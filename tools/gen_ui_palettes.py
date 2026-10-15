@@ -49,10 +49,10 @@ PALETTES = [
     ("NIGHT",  (0, 0, 0),       (0, 24, 10),     (150, 230, 170), (56, 220, 100),  (255, 255, 255)),
     # 1.0.2: black and white (the derived tokens are set, not blended: bw()); the old MONO is GREY (id 0)
     ("MONO",   (0, 0, 0),       (0, 0, 0),       (255, 255, 255), (255, 255, 255), (255, 255, 255)),
-    # JIANT FM (docs/TONIC-UI.md): a thermal camera. Black, white details, violet for what is selected, orange for the
+    # THERMAL: a thermal camera. Black, white details, violet for what is selected, orange for the
     # one active thing; every value, curve and hit as heat (ui_graph.c heat_col: cyan blue violet red orange yellow
-    # white). The default since JIANT 0.1 (src/panel.c); 0.5: violet selection (was cyan), the heat everywhere
-    ("JIANT",  (0, 0, 0),       (0, 0, 0),       (244, 241, 234), (184, 112, 255), (255, 122, 0)),   # (0.6.60: SURF black, no boxes)
+    # white).
+    ("THERMAL", (0, 0, 0),      (0, 0, 0),       (244, 241, 234), (184, 112, 255), (255, 122, 0)),   # (0.6.60: SURF black, no boxes)
     # GAMMAWAVE FM-1 (by ShadowTune): Bakelite Amber (#f27121) + Cyan mod highlight on dark charcoal octagonal modules
     ("GAMMA",  (10, 10, 12),    (28, 26, 24),    (248, 242, 230), (255, 136, 36),  (96, 228, 255)),
     # WRAITH (by ShadowTune): Spectral Crimson-Rose + Bio-Luminescent Cyan-Mint on dark obsidian-plum modules
@@ -194,7 +194,7 @@ def main():
             out.append(f'    {{"{p[0]}", ' + ", ".join(f"0x{x:04x}" for x in v) + "},")
         out += ["};", f"#define UI_NPALETTES {len(PALETTES)}u", "#define UI_GREY_INDEX 0u",
                 f"#define UI_BW_INDEX {names.index(BW)}u          /* MONO: black and white (src/gfx.c palette_set) */",
-                f"#define UI_JIANT_INDEX {names.index('JIANT')}u          /* JIANT FM: thermal camera */",
+                f"#define UI_JIANT_INDEX {names.index('THERMAL')}u          /* THERMAL: thermal camera */",
                 f"#define UI_GAMMA_INDEX {names.index('GAMMA')}u          /* GAMMAWAVE FM: default Bakelite Amber + Cherenkov */",
                 f"#define UI_WRAITH_INDEX {names.index('WRAITH')}u         /* WRAITH Specimen Scan */",
                 f"#define UI_BW_GREY 0x{to565(BW_GREY):04x}u          /* MONO's one grey: DIM LINE RAISE LANE */",

@@ -368,7 +368,7 @@
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="core">WAVES</button>
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="seq">SEQ</button>
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="tape">TAPE</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px;border-color:var(--theme);color:var(--theme)" id="gw-lcd-gen-btn" title="Open JIANT GEN 3-Page Screen on 240×240 LCD (click again to cycle Page 1/3 → 2/3 → 3/3)">🧬 GEN 1/3</button>
+        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px;border-color:var(--theme);color:var(--theme)" id="gw-lcd-gen-btn" title="Open GW-1 GEN 3-Page Screen on 240×240 LCD (click again to cycle Page 1/3 → 2/3 → 3/3)">🧬 GEN 1/3</button>
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="fx">FX</button>
         <button type="button" id="gw-secret-viz-btn" style="padding:2px 6px;font-size:9px;background:linear-gradient(180deg,#a855f7,#6b21a8);color:#fff" title="Hidden Menu Easter Egg ([HOME HELD] → ABOUT → [OCT+]): Cycle 4 Crazy Hyperspace Visualizers!">🌀 SECRET VIZ</button>
         <button type="button" class="gw-btn-sec" id="gw-fullscreen-viz-btn" style="padding:2px 5px;font-size:9px" title="Expand 240×240 LCD into Fullscreen Cinema Visualizer">⛶</button>
@@ -2126,7 +2126,7 @@ function makeMockDevice(opt = {}) {
     uiCaps: opt.legacy || opt.v3 || opt.v5 ? 0 : opt.uiCaps ?? 9,
     palette: 1, font: 0, monitor: 0, filter: 0, bankSig: 0,
     vbank: { valid: false, name: "", voices: new Array(32).fill(null) }, vtx: null,   /* (0.6.11) FM6's voice bank */
-    palettes: ["JIANT", "GAMMA", "WRAITH", "GREY", "GREEN", "AMBER", "ICE", "VIOLET", "ROSE", "PAPER", "HI-CON", "NIGHT", "MONO"],
+    palettes: ["THERMAL", "GAMMA", "WRAITH", "GREY", "GREEN", "AMBER", "ICE", "VIOLET", "ROSE", "PAPER", "HI-CON", "NIGHT", "MONO"],
     favorites: Array.from({ length: ENG.length + 1 }, () => []),
     watch: false, v4: false, lastReq: 0,
   };
@@ -3653,7 +3653,7 @@ $("backup-export").addEventListener("click", () => op(async () => {
   assertSession(d);
   const file = await captureBackup((r, o) => sessionRequest(d, r, o), d.info.version, backupProgress);
   assertSession(d);
-  download(`Felucca-backup-${new Date().toISOString().slice(0, 10)}.json`, file);
+  download(`GammaWave-backup-${new Date().toISOString().slice(0, 10)}.json`, file);
   sayK("backupDone");
 }));
 $("backup-import").addEventListener("click", () => { if (dev?.info?.backupCaps & 2) $("backup-file").click(); });
@@ -4278,7 +4278,7 @@ $("savefile").addEventListener("click", () => {
     engineName: dev.info.engines[engine], presetName: (dev.names[engine] || [])[preset],
     engine, preset, p: dev.dump.p.slice(), g: dev.dump.g.slice(),
     steps: dev.steps.map((s) => ({ n: s.n, notes: s.notes.slice(), time: s.time, flags: s.flags, vel: s.vel })) };
-  download(`felucca-${fileSlug(data.engineName || "patch")}-${fileSlug(data.presetName || preset)}.json`, data);
+  download(`gammawave-${fileSlug(data.engineName || "patch")}-${fileSlug(data.presetName || preset)}.json`, data);
 });
 $("loadfile").addEventListener("click", () => { $("file").value = ""; $("file").click(); });
 $("file").addEventListener("change", async () => {
@@ -4654,9 +4654,9 @@ const fileSlug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").repl
 const today = () => new Date().toISOString().slice(0, 10);
 $("libexp1").addEventListener("click", () => {
   const p = lib.find((x) => x.id === libSel);
-  if (p) download(`felucca-patch-${fileSlug(p.name)}.json`, libraryFile("patch", [p], libCtx()));
+  if (p) download(`gammawave-patch-${fileSlug(p.name)}.json`, libraryFile("patch", [p], libCtx()));
 });
-$("libexport").addEventListener("click", () => download(`felucca-library-${today()}.json`, libraryFile("library", lib, libCtx())));
+$("libexport").addEventListener("click", () => download(`gammawave-library-${today()}.json`, libraryFile("library", lib, libCtx())));
 $("libimport").addEventListener("click", () => { $("libfile").value = ""; $("libfile").click(); });
 $("libfile").addEventListener("change", async () => {
   let n = 0, skipped = 0;
@@ -4741,7 +4741,7 @@ $("bkexport").addEventListener("click", () => libOp(async (d, rqf) => {
     if (u.used) out.push({ name: u.name, engine: u.engine, p: u.p, pattern: u.pattern, grid: u.grid, slot: x.slot, fm6: u.fm6,
       engineName: reservedFm4(dev.info.engines, u.engine) ? "DIGITAL" : dev.info.engines[u.engine] });   /* (DIGITAL's values) */
   }
-  download(`felucca-bank-${today()}.json`, libraryFile("bank", out, libCtx()));
+  download(`gammawave-bank-${today()}.json`, libraryFile("bank", out, libCtx()));
   sayK("ready");
 }));
 

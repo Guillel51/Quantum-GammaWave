@@ -14,14 +14,14 @@ static const ui_pal_t UI_PALETTES[] = {
     {"HI-CON", 0x0000, 0x2945, 0xffdf, 0xff40, 0x073f},
     {"NIGHT", 0x0000, 0x00c1, 0x9735, 0x3eec, 0xffdf},
     {"MONO", 0x0000, 0x0000, 0xffff, 0xffff, 0xffff},
-    {"JIANT", 0x0000, 0x0000, 0xf79d, 0xbb9f, 0xfbc0},
-    {"GAMMA", 0x0000, 0x0000, 0xff9c, 0xfca4, 0x673f},
-    {"WRAITH", 0x0000, 0x0000, 0xf77f, 0xfb11, 0x7f97},
+    {"THERMAL", 0x0000, 0x0000, 0xf79d, 0xbb9f, 0xfbc0},
+    {"GAMMA", 0x0841, 0x18c3, 0xff9c, 0xfc44, 0x673f},
+    {"WRAITH", 0x0841, 0x18a3, 0xf77f, 0xfb10, 0x577a},
 };
 #define UI_NPALETTES 13u
 #define UI_GREY_INDEX 0u
 #define UI_BW_INDEX 9u          /* MONO: black and white (src/gfx.c palette_set) */
-#define UI_JIANT_INDEX 10u          /* JIANT FM: thermal camera */
+#define UI_JIANT_INDEX 10u          /* THERMAL: thermal camera */
 #define UI_GAMMA_INDEX 11u          /* GAMMAWAVE FM: default Bakelite Amber + Cherenkov */
 #define UI_WRAITH_INDEX 12u         /* WRAITH Specimen Scan */
 #define UI_BW_GREY 0x528au          /* MONO's one grey: DIM LINE RAISE LANE */

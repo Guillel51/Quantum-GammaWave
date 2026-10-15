@@ -16,7 +16,7 @@ typedef struct {
     struct { uint8_t factory[16][32]; uint32_t user, filter; } favorites;
 } persist_t;
 #define PERSIST_MAGIC 0x50455234u
-#define JIANT_PAL_SEEN 0x4Au                    /* favorites.factory[15][23]: the palette set to JIANT once */
+#define JIANT_PAL_SEEN 0x47u                    /* favorites.factory[15][23]: the palette set to GAMMA once */
 
 /* Normalize in place; 1 = current, 2 = migrated, 0 = invalid. */
 static int settings_import(persist_t *p, int n)
@@ -80,16 +80,13 @@ static int settings_import(persist_t *p, int n)
     return current ? 1 : 2;
 }
 
-/* (JIANT 0.6.81) at power-on (persist_boot, not a backup's restore): settings saved by Felucca or an earlier JIANT keep
- * their palette, often GREY or MONO (a black and white screen after installing): set to JIANT once, marked (the mark
- * saved with the next settings: a palette picked after this is kept) */
 static void settings_jiant_once(persist_t *p)
 {
     if (p->favorites.factory[15][23] == JIANT_PAL_SEEN)
         return;
     p->favorites.factory[15][23] = JIANT_PAL_SEEN;
-    p->palette = palette_to_stored(UI_JIANT_INDEX);
-    settings.palette = UI_JIANT_INDEX;
+    p->palette = palette_to_stored(UI_GAMMA_INDEX);
+    settings.palette = UI_GAMMA_INDEX;
 #ifdef FELUCCA_FAVORITES
     favorites.factory[15][23] = JIANT_PAL_SEEN;
 #endif
