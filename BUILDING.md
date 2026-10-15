@@ -1,4 +1,4 @@
-# Building JIANT
+# Building Pocket GammaWave (GW-1)
 
 The build makes three files in `build/`:
 
@@ -103,7 +103,7 @@ does the same for the cost files.
 ## Install
 
 Use the web installer in Chrome or Edge:
-<https://juanjiant-bit.github.io/JIANT/webapp/installer/>. It installs the released package (the file names keep
+<https://fvalente.github.io/GammaWave-FM1/webapp/installer/>. It installs the released package (the file names keep
 Felucca's, `felucca.bin` / `felucca.fwsc`: JIANT is built on it).
 
 From the command line (needs `pip3 install mido python-rtmidi`):

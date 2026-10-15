@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# (JIANT 0.6.7) the two cheat sheets of the README: docs/cheatsheet/controls.html and sound.html (the JIANT look: black,
-# Chakra Petch, the thermal palette, the signature), then tools/render_cheatsheets.mjs makes the PNGs and PDFs:
+# Pocket GammaWave (GW-1) cheat sheets: docs/cheatsheet/controls.html and sound.html,
+# rendered to PNG and PDF via tools/render_cheatsheets.mjs:
 #   python3 tools/gen_cheatsheets.py && node tools/render_cheatsheets.mjs
-# The content follows firmware/src/params.c (pages, labels) and the README's manual; update both together.
 import html, os
 
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(R, 'docs', 'cheatsheet')
-VERSION = 'v0.6.90'
+VERSION = 'v1.0-GW'
 
 HEAT = ['#22d3ee', '#3b82f6', '#8b5cf6', '#d946ef', '#ef4444', '#ff7a00', '#facc15', '#f4f1ea']
 
@@ -21,11 +20,11 @@ body { width: 1600px; color: #f4f1ea; font-family: Chakra, sans-serif; font-weig
        line-height: 1.32; padding: 36px 56px 40px; }
 header { display: flex; align-items: center; gap: 36px; }
 header img { height: 150px; }
-header h1 { font-size: 64px; font-weight: 700; letter-spacing: 1px; line-height: 1; }
-header h2 { font-size: 26px; font-weight: 500; color: #b8b2c8; margin-top: 8px; }
-header .ver { font-size: 18px; color: #7d7690; margin-top: 6px; }
+header h1 { font-size: 56px; font-weight: 700; letter-spacing: 1px; line-height: 1; color: #ffb800; }
+header h2 { font-size: 25px; font-weight: 500; color: #00d4ff; margin-top: 8px; }
+header .ver { font-size: 18px; color: #b8b2c8; margin-top: 6px; }
 .rule { height: 4px; margin: 22px 0 26px; border-radius: 2px;
-        background: linear-gradient(90deg, #22d3ee, #3b82f6, #8b5cf6, #d946ef, #ef4444, #ff7a00, #facc15, #f4f1ea); }
+        background: linear-gradient(90deg, #ffb800, #ff5500, #ef4444, #d946ef, #8b5cf6, #00d4ff, #facc15, #f4f1ea); }
 .grid { display: grid; gap: 22px; }
 .g2 { grid-template-columns: 1fr 1fr; } .g3 { grid-template-columns: 1fr 1fr 1fr; } .g4 { grid-template-columns: repeat(4, 1fr); }
 .card { background: #100c16; border-radius: 12px; padding: 18px 20px 18px 24px; position: relative; }
@@ -58,7 +57,7 @@ td.n { color: var(--c); font-weight: 700; white-space: nowrap; width: 1%; paddin
          text-align: center; padding: 3px 1px 0; line-height: 1.05; color: #f4f1ea; }
 .kb .on { background: var(--c); color: #0b0710; border-color: transparent; }
 .kb .on b { color: rgba(0, 0, 0, .55); }
-footer { margin-top: 30px; color: #6f6882; font-size: 16px; display: flex; justify-content: space-between; }
+footer { margin-top: 30px; color: #8f88a3; font-size: 16px; display: flex; justify-content: space-between; }
 ul { padding-left: 18px; } li { margin: 2px 0; }
 """
 
@@ -102,17 +101,17 @@ def knobs(*labels):
 
 
 def page(title, sub, body, name):
-    doc = f"""<!doctype html><html><head><meta charset="utf-8"><title>JIANT FM · {e(title)}</title>
+    doc = f"""<!doctype html><html><head><meta charset="utf-8"><title>POCKET GAMMAWAVE (GW-1) · {e(title)}</title>
 <style>{CSS}</style></head><body>
-<header><img src="signature.png" alt="JIANT FM signature"><div>
-<h1>JIANT FM · {e(title)}</h1><h2>{e(sub)}</h2>
-<div class="ver">firmware {VERSION} · M-VAVE FM-1 · juanjiant-bit.github.io/JIANT</div></div></header>
+<header><img src="signature.png" alt="Pocket GammaWave signature"><div>
+<h1>POCKET GAMMAWAVE · {e(title)}</h1><h2>{e(sub)}</h2>
+<div class="ver">firmware {VERSION} · M-VAVE FM-1 · gammawaveaudio.com · shadowtune.itch.io/gammawave · fvalente.github.io/GammaWave-FM1</div></div></header>
 <div class="rule"></div>
 {body}
-<footer><span>GPL-3.0 · fork of Felucca (Hügelton Instruments) · song mode from SLOOP</span>
-<span>JIANT FM {VERSION}</span></footer>
+<footer><span>GPL-3.0 · Companion to GammaWave Desktop VST (gammawaveaudio.com) · Built on Felucca, JIANT &amp; SLOOP</span>
+<span>POCKET GAMMAWAVE (GW-1) {VERSION}</span></footer>
 </body></html>"""
-    with open(os.path.join(OUT, name), 'w') as f:
+    with open(os.path.join(OUT, name), 'w', encoding='utf-8') as f:
         f.write(doc)
 
 
@@ -204,8 +203,14 @@ def controls():
     b.append('<div class="grid g4" style="margin-top:22px">' + ''.join(
         card(t, c, f'<p>{e(d)}</p><h4>KNOBS</h4>' + knobs(*kn)) for t, c, d, kn in small) + '</div>')
 
-    b.append(sec('COMBOS'))
+    b.append(sec('COMBOS & [OCT−] SHIFT DECK'))
     combos = [
+        (k('OCT−', cls='a') + ' + ' + k('ARP', cls='a'), '<b>SOLAR HEARTH &amp; ECLIPSE MACROS (1/6–6/6)</b>: cycles Gravity, Singularity, Photosphere, Wraith Scream, Formant Vowel &amp; Solar Eclipse across the full Wraith bar.'),
+        (k('OCT−', cls='a') + ' + ' + k('PLAY', cls='a'), '<b>49-GENRE SONG GENERATOR (GEN)</b>: instant Trap ATL, UK Drill, Dark Trap, Rage Trap, Synthwave, Techno &amp; Ambient song ideas (KNOB 2 picks genre, OCT+ rolls).'),
+        (k('OCT−', cls='a') + ' + ' + k('ENV / SCL', cls='a'), '<b>SEQ &gt; MUTATE (1-CLICK)</b>: jumps straight to MUTATE and activates ORBIT (Sound=2B, Pattern=4B, Amount=50%).'),
+        (k('OCT−', cls='a') + ' + ' + k('HOME / SAVE', cls='a'), '<b>3D HYPERSPACE VISUALIZER</b>: launches 4-mode 60 FPS visualizer (Supernova, Wraith 3D, Warp Tunnel, Matrix FFT; OCT+ cycles mode).'),
+        (k('OCT−', cls='a') + ' + ' + k('SEQ · EDIT · FX · LFO', cls='v'), '<b>1-HAND DICE</b>: rolls Sequence, Sound Patch, Track FX, or LFO on the active track.'),
+        (k('OCT−', cls='a') + ' + ' + k('GLO', cls='v'), '<b>INSTANT UNDO / REDO</b> (same as GLO + G4 or HOME + PLAY).'),
         (k('HOME · EDIT · SEQ · LFO · FX', cls='v') + ' + ' + k('SELECT', cls='v'), 'Their dice: everything · sound · sequence · LFO · effects (KEEP? OK / CANCEL).'),
         (k('PAGE BUTTON', cls='v') + ' + ' + k('PRESETS', cls='v'), 'Jump through that button\'s pages.'),
         (k('REC') + ' + ' + k('FX') + k('EDIT') + k('ENV') + k('LFO') + k('SCL') + k('ARP') + k('GLO'),
@@ -219,7 +224,7 @@ def controls():
     ]
     t3 = '<table>' + ''.join(f'<tr><td style="white-space:nowrap;width:1%;padding-right:18px">{a}</td><td>{d}</td></tr>'
                              for a, d in combos) + '</table>'
-    b.append(card('BUTTONS TOGETHER', HEAT[7], t3))
+    b.append(card('GAMMAWAVE [OCT−] SHIFT SHORTCUTS & BUTTON COMBOS', HEAT[7], t3))
 
     b.append(sec('EVERY PAGE · KNOB 1 – 4'))
     fams = [
@@ -297,16 +302,17 @@ def sound():
     t += '</table>'
     b.append(card('EIGHT ENGINES, ALL SYNTHESIS', HEAT[7], t))
     b.append('<div class="grid g3" style="margin-top:22px">')
-    b.append(card('FILTER · EVERY ENGINE', HEAT[3], knobs('TYPE', 'CUT', 'RES', 'DRV') +
-                  '<p style="margin-top:8px"><b>LP · HP · BP · COMB</b>. COMB rings tuned to the note: CUT moves it '
-                  '±32 st, RES how much it rings. ANALOG and LOFI: per voice; the others: on the track, following '
-                  'LFO / ENV DEST FLT (DRV = the track\'s DIST).</p>'))
+    b.append(card('SPECTROGRAM FILTER & WRAITH BAR', HEAT[3], knobs('TYPE', 'CUT', 'RES', 'DRV') +
+                  '<p style="margin-top:8px"><b>LP · HP · BP · COMB · VOWEL · SCREAM</b> with live FFT Spectrogram &amp; '
+                  '6-Mode Wraith Voice Bar (<b>FLU · WHI · VOX · CHR · BEL · SCR</b> / <b>OO · OH · AH · EH · EE</b>). '
+                  'Hold <b>OCT− + ARP</b> to cycle 6 Solar Hearth &amp; Eclipse macros across the full 0..127 range.</p>'))
     b.append(card('VOICE · PLAYING', HEAT[2], knobs('VCE', 'GLD', 'GLMOD', 'PRIO') +
                   '<p style="margin-top:8px">POLY · MONO · LEG · UNI; glide and its mode; LAST / LOW / HIGH priority. '
                   '<b>8 voices</b> shared by the six tracks (MONO and LEGATO keep their note).</p>'))
-    b.append(card('DICE', HEAT[5], '<p><b>EDIT + SELECT</b>: a random factory preset of the engine, every '
-                  'parameter moved up to a quarter of its range. DRUM-X: both sides of every sound around the factory '
-                  'kit. Heard at once: OCT+ OK keeps it, OCT- CANCEL brings the sound back. SEQ / LFO / FX + SELECT: the sequence, the LFO, the effects, the same way. HOME + SELECT (after YES): a new piece: a genre, an energy (SPACE · MID · FRANTIC), its orchestration, every track a role. GLO + G4 undoes.</p>'))
+    b.append(card('49-GENRE GENERATOR & DICE', HEAT[5], '<p><b>OCT− + PLAY</b> (or SELECT on HOME): 49-Genre Song Generator '
+                  'including <b>TRAP ATL</b>, <b>UK DRILL</b> (3-3-2 tresillo bounce), <b>DARK TRAP</b> (808 cowbells), '
+                  '<b>RAGE TRAP</b>, Synthwave, Techno &amp; IDM. <b>OCT− + ENV</b>: 1-click <b>SEQ &gt; MUTATE</b> (ORBIT / DRIFT / FREEZE / KEEP). '
+                  '<b>OCT− + GLO</b>: instant Undo.</p>'))
     b.append('</div>')
 
     b.append(sec('MODULATION'))

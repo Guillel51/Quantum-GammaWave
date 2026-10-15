@@ -1,18 +1,18 @@
-# Contributing to JIANT
+# Contributing to Pocket GammaWave (GW-1)
 
-Thanks for helping! JIANT is a custom firmware for the FM-1, based on Felucca by Leo Kuroshita (Hügelton Instruments).
-Please report JIANT's bugs and ideas here, not to Felucca: JIANT's changes are not theirs to answer.
+Thanks for helping! Pocket GammaWave (GW-1) is a custom firmware for the FM-1, based on Felucca by Leo Kuroshita (Hügelton Instruments).
+Please report Pocket GammaWave's bugs and ideas here, not to Felucca: Pocket GammaWave's changes are not theirs to answer.
 
 | What | Where |
 |---|---|
-| A bug you can reproduce | [JIANT Issues](https://github.com/juanjiant-bit/JIANT/issues/new): one issue per bug |
-| A feature idea or request | [JIANT Issues](https://github.com/juanjiant-bit/JIANT/issues/new) with "idea" in the title (no promise it will be added) |
+| A bug you can reproduce | [Pocket GammaWave Issues](https://github.com/fvalente/GammaWave-FM1/issues/new): one issue per bug |
+| A feature idea or request | [Pocket GammaWave Issues](https://github.com/fvalente/GammaWave-FM1/issues/new) with "idea" in the title (no promise it will be added) |
 | How to use it, or how something works | the [manual](docs/MANUAL.md) ([español](docs/MANUAL.es.md)), then an issue if it is still unclear |
 | Forks, mods, music, demos | an issue or a message to the author: we love to see them |
 
 ## Reporting a bug
 
-Please include the JIANT version (hold HOME > ABOUT), your computer's OS and browser if the editor or installer is
+Please include the Pocket GammaWave version (hold HOME > ABOUT), your computer's OS and browser if the editor or installer is
 involved, the steps to reproduce it, what you expected and what happened. A photo or a short video helps.
 
 ## Pull requests

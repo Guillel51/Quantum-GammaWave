@@ -1,11 +1,11 @@
-# JIANT FM — User Manual
+# POCKET GAMMAWAVE (GW-1) — User Manual
 
-**Firmware v0.6.30 for the M-VAVE FM-1**
+**Firmware v1.0-GW for the M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Buy GammaWave VST](https://shadowtune.itch.io/gammawave)**
 
 > *Versión en español: [MANUAL.es.md](MANUAL.es.md).*
 
-This manual is for musicians who have just installed JIANT FM and want to know how to play it, build songs with it
-and, above all, **save their work without losing anything**. It follows the firmware as it is in v0.6.30: every
+This manual is for musicians who have just installed Pocket GammaWave (GW-1) and want to know how to play it, build songs with it
+and, above all, **save their work without losing anything**. It follows the firmware as it is in v1.0-GW: every
 button, knob and message is named exactly as the device shows it.
 
 If you only read one chapter, read [12. Saving and loading](#12-saving-and-loading).
@@ -36,15 +36,15 @@ If you only read one chapter, read [12. Saving and loading](#12-saving-and-loadi
 
 ### Install
 
-1. Open the **web installer** in Chrome or Edge: <https://juanjiant-bit.github.io/JIANT/webapp/installer/>
+1. Open the **web installer** in Chrome or Edge: <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
 2. Connect the FM-1 **directly** to the computer with a USB data cable.
 3. **Coming from another custom firmware (Felucca, baudgirl or any other)?** Return to the official V15 firmware
    first, with the installer's **Return to official V15 first** button (it also saves a complete backup). Writing
-   JIANT straight over another custom firmware has left an FM-1 unable to start.
-4. Press **Install**. It first checks the FM-1's firmware and writes only over official V15 or JIANT (anything else: it
+   Pocket GammaWave straight over another custom firmware has left an FM-1 unable to start.
+4. Press **Install**. It first checks the FM-1's firmware and writes only over official V15 or Pocket GammaWave (anything else: it
 sends you to Return to official V15 first). Don't unplug the cable while it writes.
 
-JIANT has no user samples: if you come from Felucca, its user samples (USR1–3) are lost on install. Keep your WAV
+Pocket GammaWave has no user samples: if you come from Felucca, its user samples (USR1–3) are lost on install. Keep your WAV
 files.
 
 ### Your first sound (1 minute)
@@ -937,7 +937,7 @@ The SAVE layer (section jumps on the bar, quick chains, store, recall, SONG REC)
 
 ## 12. Saving and loading
 
-This is the chapter to read carefully. JIANT keeps several kinds of data in different places, saved in different ways.
+This is the chapter to read carefully. Pocket GammaWave keeps several kinds of data in different places, saved in different ways.
 
 ### The big picture
 
@@ -1115,7 +1115,7 @@ closes it (settings are saved then).
 
 | Tab | Row | Values |
 | --- | --- | --- |
-| DISPLAY | COLOR | GREY, GREEN, AMBER, ICE, VIOLET, ROSE, PAPER, HI-CON, NIGHT, MONO, **JIANT** (default) |
+| DISPLAY | COLOR | GREY, GREEN, AMBER, ICE, VIOLET, ROSE, PAPER, HI-CON, NIGHT, MONO, **Pocket GammaWave** (default) |
 | DISPLAY | STYLE | FLAT, LINE |
 | DISPLAY | LARGE | OFF, ON (big labels and values) |
 | DISPLAY | ANIM | ON, OFF (values snap; the power-on signature appears whole) |
@@ -1166,7 +1166,7 @@ faded): a photo of that screen helps when you report a problem.
   stopped: at once; an empty one is said so); programs **16–23** load project **1–8** with its section A (stopped only,
   as SAVE > PROJECT). A foot controller or a DAW can run a set.
 - **Not possible**: MIDI OUT on the **TRS** jack (the FM-1's jack is an input only: no output line goes to it) and
-  **Bluetooth MIDI** (the chip has a radio, but its Bluetooth software is JieLi's closed SDK, which JIANT does not use).
+  **Bluetooth MIDI** (the chip has a radio, but its Bluetooth software is JieLi's closed SDK, which Pocket GammaWave does not use).
 - **Clock**: GLO > GLOBAL > CLOCK **USB** or **TRS** follows that input's clock and Start / Continue / Stop. With an
   external clock, TAP and GLO + PLAY restart are disabled.
 - **Controllers** (on the track the channel plays): CC5 glide, CC7 level, CC10 pan, CC71 resonance and CC74 cutoff (the
@@ -1182,23 +1182,23 @@ faded): a photo of that screen helps when you report a problem.
 
 All three run in the browser and update themselves with every change to the firmware.
 
-### Emulator — <https://juanjiant-bit.github.io/JIANT/>
+### Emulator — <https://fvalente.github.io/GammaWave-FM1/>
 
 The same code as the FM-1, with sound, in the browser. Play it with the mouse or the computer keyboard: **Z–'** and
 **Q–O** rows are the keys, **1** to **=** the buttons from FX to REC, **[ ]** OCT− / OCT+, **↑ ↓** SELECT, **← →**
 ALGORITHM; **Shift-click** holds a button. Great for learning the layers without the device.
 
-### Installer — <https://juanjiant-bit.github.io/JIANT/webapp/installer/>
+### Installer — <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
 
 Chrome or Edge, the FM-1 connected straight to the computer.
 
-- **Install** JIANT (it checks the FM-1 first: official V15 or JIANT only).
+- **Install** Pocket GammaWave (it checks the FM-1 first: official V15 or Pocket GammaWave only).
 - **Return to official V15**: give it M-VAVE's unmodified **FM-1.fwsc** (checked locally in the browser). It first
   saves a complete backup (current music, saved music, sound banks and settings; not user samples). Use this before
-  installing JIANT if your FM-1 runs **another custom firmware** (Felucca, baudgirl…), and whenever you want to go back
-  to stock. Official V15 cannot open JIANT music; to restore the backup later, reinstall JIANT and use the editor.
+  installing Pocket GammaWave if your FM-1 runs **another custom firmware** (Felucca, baudgirl…), and whenever you want to go back
+  to stock. Official V15 cannot open Pocket GammaWave music; to restore the backup later, reinstall Pocket GammaWave and use the editor.
 
-### Editor — <https://juanjiant-bit.github.io/JIANT/webapp/editor/>
+### Editor — <https://fvalente.github.io/GammaWave-FM1/webapp/editor/>
 
 Every parameter from the computer, over USB. Tabs: Sound, 6-OP FM, Sequencer, Tracks, Library, Projects, Settings.
 
@@ -1259,9 +1259,9 @@ deliberately from a running device, hold **OCT− + OCT+** for 5 seconds. If tha
 M-VAVE's own updater.
 
 **I came from baudgirl / Felucca. Can I install directly?** No: return to official V15 first with the installer, then
-install JIANT. Going straight from another custom firmware has bricked an FM-1.
+install Pocket GammaWave. Going straight from another custom firmware has bricked an FM-1.
 
-**Where did my Felucca samples go?** JIANT has no user samples; that flash now holds the songs.
+**Where did my Felucca samples go?** Pocket GammaWave has no user samples; that flash now holds the songs.
 
 ---
 
