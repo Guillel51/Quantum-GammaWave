@@ -5860,6 +5860,7 @@ $("connect").addEventListener("click", () => {
       bass: s.bass.slice(), arp: s.arp.slice(), pad: s.pad.slice(), drum: s.drum.slice(), wraithPos
     };
     const offsets = [-12, -5, 0, 3, 5, 7, 12];
+    const drumMutPool = [1, 2, 2, 3, 4, 5, 6, 7, 8];
     for (let i = 0; i < 64; i++) {
       if (base.bass[i] > 0 && Math.random() < amt * 0.45) {
         s.bass[i] = Math.max(28, Math.min(64, base.bass[i] + offsets[Math.floor(Math.random() * offsets.length)]));
@@ -5870,6 +5871,20 @@ $("connect").addEventListener("click", () => {
         s.arp[i] = Math.max(48, Math.min(88, base.arp[i] + offsets[Math.floor(Math.random() * offsets.length)]));
       } else {
         s.arp[i] = base.arp[i];
+      }
+      /* Mutate drum groove on non-anchor steps (keep step 0 kick locked) */
+      if (i % 16 !== 0 && Math.random() < amt * 0.38) {
+        s.drum[i] = Math.random() < 0.25 ? 0 : drumMutPool[Math.floor(Math.random() * drumMutPool.length)];
+      } else {
+        s.drum[i] = base.drum[i];
+      }
+    }
+    /* Sync mutated bass, arp, pad, and drum directly into active Tape Lanes (T1..T4) so changes are heard immediately! */
+    const roleArrays = [s.bass, s.arp, s.pad, s.drum];
+    for (let l = 0; l < 4; l++) {
+      if (tapeLanes[l] && tapeLanes[l].layers && tapeLanes[l].layers.length > 0) {
+        tapeLanes[l].layers[0].steps = roleArrays[l].slice();
+        recomputeTapeWave(l);
       }
     }
     const deltaW = Math.round((Math.random() * 2 - 1) * amt * 48);
@@ -6003,22 +6018,80 @@ $("connect").addEventListener("click", () => {
         osc.start(now); osc.stop(now + stepDur * 7.8);
       });
     } else if (cat === "drum") {
-      const kickP = pr.kickP || 155;
-      const snareF = pr.snareF || 2800;
-      if (noteOrHit === 1 || noteOrHit === 3) {
-        const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
-        osc.frequency.setValueAtTime(noteOrHit === 1 ? kickP : kickP * 1.55, now);
-        osc.frequency.exponentialRampToValueAtTime(34, now + 0.13);
-        g.gain.setValueAtTime(0.22 * gMul, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.16);
-      } else if (noteOrHit === 2) {
-        const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
-        osc.type = "square"; osc.frequency.setValueAtTime(snareF, now);
-        g.gain.setValueAtTime(0.038 * gMul, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.05);
+      if (!window._gwDrumNoiseBuf || window._gwDrumNoiseCtx !== audioCtx) {
+        const sr = audioCtx.sampleRate || 48000;
+        const buf = audioCtx.createBuffer(1, Math.floor(sr * 0.4), sr);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        window._gwDrumNoiseBuf = buf;
+        window._gwDrumNoiseCtx = audioCtx;
       }
+      const kv = window._gwDrumKitVar || { kickP: pr.kickP || 155, kickDec: 0.17, snareF: 2100, snareDec: 0.14, hatF: 6800, hatDec: 0.045, cbF: 540 };
+      const fireKick = (t0, vel) => {
+        const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(kv.kickP * (0.85 + wScale * 0.12), t0);
+        osc.frequency.exponentialRampToValueAtTime(32, t0 + kv.kickDec);
+        g.gain.setValueAtTime(0.28 * gMul * vel, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + kv.kickDec + 0.02);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(t0); osc.stop(t0 + kv.kickDec + 0.03);
+      };
+      const fireSnare = (t0, vel) => {
+        /* Tonal body + filtered white-noise snare/clap snap */
+        const osc = audioCtx.createOscillator(), gBody = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(215, t0);
+        osc.frequency.exponentialRampToValueAtTime(88, t0 + 0.08);
+        gBody.gain.setValueAtTime(0.16 * gMul * vel, t0);
+        gBody.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
+        osc.connect(gBody); gBody.connect(audioCtx.destination);
+        osc.start(t0); osc.stop(t0 + 0.10);
+
+        const nSrc = audioCtx.createBufferSource(), flt = audioCtx.createBiquadFilter(), gNz = audioCtx.createGain();
+        nSrc.buffer = window._gwDrumNoiseBuf;
+        flt.type = "bandpass";
+        flt.frequency.setValueAtTime(Math.min(9000, kv.snareF * (0.75 + wScale * 0.3)), t0);
+        flt.Q.value = 1.4;
+        gNz.gain.setValueAtTime(0.22 * gMul * vel, t0);
+        gNz.gain.exponentialRampToValueAtTime(0.001, t0 + kv.snareDec);
+        nSrc.connect(flt); flt.connect(gNz); gNz.connect(audioCtx.destination);
+        nSrc.start(t0); nSrc.stop(t0 + kv.snareDec + 0.01);
+      };
+      const fireHat = (t0, dur, vel) => {
+        const nSrc = audioCtx.createBufferSource(), flt = audioCtx.createBiquadFilter(), gH = audioCtx.createGain();
+        nSrc.buffer = window._gwDrumNoiseBuf;
+        flt.type = "highpass";
+        flt.frequency.setValueAtTime(Math.min(11000, kv.hatF * (0.8 + wScale * 0.25)), t0);
+        gH.gain.setValueAtTime(0.11 * gMul * vel, t0);
+        gH.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+        nSrc.connect(flt); flt.connect(gH); gH.connect(audioCtx.destination);
+        nSrc.start(t0); nSrc.stop(t0 + dur + 0.01);
+      };
+      const fireCowbell = (t0, vel) => {
+        [kv.cbF, kv.cbF * 1.48].forEach((f) => {
+          const osc = audioCtx.createOscillator(), flt = audioCtx.createBiquadFilter(), gC = audioCtx.createGain();
+          osc.type = "square"; osc.frequency.setValueAtTime(f, t0);
+          flt.type = "bandpass"; flt.frequency.setValueAtTime(kv.cbF * 1.25, t0); flt.Q.value = 3.5;
+          gC.gain.setValueAtTime(0.08 * gMul * vel, t0);
+          gC.gain.exponentialRampToValueAtTime(0.001, t0 + 0.11);
+          osc.connect(flt); flt.connect(gC); gC.connect(audioCtx.destination);
+          osc.start(t0); osc.stop(t0 + 0.12);
+        });
+      };
+
+      if (noteOrHit === 1) { fireKick(now, 1.0); }
+      else if (noteOrHit === 2) { fireHat(now, kv.hatDec, 0.9); }
+      else if (noteOrHit === 3) { fireSnare(now, 1.0); }
+      else if (noteOrHit === 4) { fireHat(now, 0.19, 1.15); } /* Open Hat */
+      else if (noteOrHit === 5) { /* 3x Hi-Hat Ratchet Roll */
+        const sub = stepDur / 3;
+        fireHat(now, sub * 0.85, 1.0);
+        fireHat(now + sub, sub * 0.85, 0.82);
+        fireHat(now + sub * 2, sub * 0.85, 0.68);
+      } else if (noteOrHit === 6) { fireKick(now, 1.0); fireHat(now, kv.hatDec, 0.75); }
+      else if (noteOrHit === 7) { fireSnare(now, 1.0); fireHat(now, kv.hatDec, 0.75); }
+      else if (noteOrHit >= 8) { fireCowbell(now, 0.95); }
     }
   }
 
@@ -6119,11 +6192,41 @@ $("connect").addEventListener("click", () => {
       if (Math.random() < 0.6) bar1[12] = rootMidi + 10;
       return expand4Bars(bar1, prog, [rootMidi + 17, 0, rootMidi + 19, 0], false);
     } else {
+      window._gwDrumKitVar = {
+        kickP:    125 + Math.floor(Math.random() * 65),
+        kickDec:  0.13 + Math.random() * 0.14,
+        snareF:   1600 + Math.floor(Math.random() * 1800),
+        snareDec: 0.10 + Math.random() * 0.08,
+        hatF:     5800 + Math.floor(Math.random() * 3500),
+        hatDec:   0.035 + Math.random() * 0.03,
+        cbF:      490 + Math.floor(Math.random() * 160)
+      };
+      const style = Math.floor(Math.random() * 4);
       for (let i = 0; i < 16; i++) {
-        if (i % 4 === 0) bar1[i] = 1;
-        else if (i % 8 === 4) bar1[i] = 3;
-        else if (i % 2 === 0 || Math.random() < 0.35) bar1[i] = 2;
-        else if (Math.random() < 0.2) bar1[i] = 1;
+        if (style === 0) {
+          /* Trap / ATL Half-Time + Hat Rolls */
+          if (i === 0 || i === 10 || (i === 6 && Math.random() < 0.6)) bar1[i] = 6;
+          else if (i === 8) bar1[i] = 7;
+          else if ((i === 7 || i === 14 || i === 15) && Math.random() < 0.65) bar1[i] = 5;
+          else if (i % 2 === 0 || Math.random() < 0.5) bar1[i] = 2;
+        } else if (style === 1) {
+          /* UK Drill 3-3-2 Tresillo Bounce */
+          if (i === 0 || i === 9 || (i === 13 && Math.random() < 0.6)) bar1[i] = 1;
+          else if (i === 8 || i === 12) bar1[i] = 3;
+          else if (i === 3 || i === 6 || i === 11 || i === 14) bar1[i] = (i === 14 && Math.random() < 0.5) ? 5 : 2;
+        } else if (style === 2) {
+          /* Syncopated Breakbeat / Electro */
+          if (i === 0 || i === 6 || i === 10) bar1[i] = 6;
+          else if (i === 4 || i === 12) bar1[i] = 7;
+          else if (i === 7 || i === 9 || i === 15) bar1[i] = Math.random() < 0.5 ? 3 : 8;
+          else if (i % 2 === 0) bar1[i] = (i === 14) ? 4 : 2;
+        } else {
+          /* Driving Industrial / Techno */
+          if (i === 4 || i === 12) bar1[i] = 7;
+          else if (i % 4 === 0) bar1[i] = 6;
+          else if (i % 4 === 2) bar1[i] = Math.random() < 0.45 ? 4 : 2;
+          else if (Math.random() < 0.35) bar1[i] = Math.random() < 0.3 ? 8 : 2;
+        }
       }
       return expand4Bars(bar1, [0, 0, 0, 0], null, true);
     }
@@ -6337,31 +6440,95 @@ $("connect").addEventListener("click", () => {
     const amtArp    = effAmt(cfg.arp,    gB.amt[3]);
     const amtLead   = effAmt(cfg.lead,   gB.amt[4]);
 
-    /* Stream 1: GS_DRUMS (Mutable Instruments Grids priority map + 4th-bar fill) */
+    /* Stream 1: GS_DRUMS (Mutable Instruments Grids priority map + per-seed groove/kit variation + 4th-bar fills) */
     gseed(cfg.seed, 1);
     const drumSteps = new Array(64).fill(0);
     const kickMask = new Array(64).fill(0);
+    /* Randomize Drum Kit Timbre per seed so every throw sounds fresh! */
+    const isTrapStyle = ["trap", "trap_atl", "uk_drill", "phonk", "rage", "dubstep"].includes(gA.dm);
+    window._gwDrumKitVar = {
+      kickP:    isTrapStyle ? grr(120, 168) : grr(138, 195),
+      kickDec:  isTrapStyle ? grr(18, 28) / 100 : grr(12, 20) / 100,
+      snareF:   grr(1550, 3400),
+      snareDec: grr(9, 18) / 100,
+      hatF:     grr(5800, 9400),
+      hatDec:   grr(32, 65) / 1000,
+      cbF:      grr(480, 660)
+    };
     if (amtDrums > 0) {
       const dm = GEN_DRUM_MAPS[gA.dm] || GEN_DRUM_MAPS.ebm;
-      const thresh = Math.max(1, 10 - Math.floor((amtDrums * 9) / 100));
+      const HAT_VARS = [
+        "..8...8...8...8.",
+        "8.6.8.6.8.6.8.6.",
+        "8684868886848888",
+        "9..8..9.8..8..9.",
+        "..8.7.8.3.8.7.8.",
+        "8.8.888.8.8.8888",
+        "7.5.7.7.7.5.7.8."
+      ];
+      /* 50% of throws pick a fresh hi-hat groove from the pool (or mutate the genre's hat map) */
+      const hatMap = (gA.dm !== "uk_drill" && gch(50)) ? HAT_VARS[gr() % HAT_VARS.length] : dm[2];
+      /* Seed-specific syncopated kick & ghost snare steps */
+      const syncKickStep1 = [2, 3, 6, 7, 10, 11, 14, 15][gr() % 8];
+      const syncKickStep2 = [3, 6, 9, 11, 13, 14, 15][gr() % 7];
+      const ghostSnareStep = [7, 9, 11, 15][gr() % 4];
+      const openHatStep = [2, 6, 10, 14][gr() % 4];
+      const baseThresh = Math.max(2, 9 - Math.floor((amtDrums * 6) / 100));
+
       for (let bar = 0; bar < 4; bar++) {
         for (let s = 0; s < 16; s++) {
           const idx = bar * 16 + s;
-          /* Form SONG: bar 0 sparse intro, bar 3 build fill */
           if (cfg.form === 2 && bar === 0 && s % 4 !== 0) continue;
-          const cBD = dm[0][s] || ".";
-          const cSD = dm[1][s] || ".";
-          const cCH = dm[2][s] || ".";
           const lv = (c) => (c === "X" ? 10 : (c >= "1" && c <= "9" ? Number(c) : 0));
-          if (lv(cBD) >= thresh || s === 0) { drumSteps[idx] = 1; kickMask[idx] = 1; }
-          else if (lv(cSD) >= thresh) { drumSteps[idx] = 3; }
-          else if (lv(cCH) >= thresh) { drumSteps[idx] = 2; }
-          else if (cfg.complex > 55 && (bar % 2 === 1) && gch(20)) { drumSteps[idx] = 2; }
+          /* Perturb non-anchor ('1'..'9') priorities per seed & bar so every seed changes the beat! */
+          const jitter = () => grr(-3, 2 + Math.floor(cfg.complex / 35));
+          let lBD = lv(dm[0][s] || ".");
+          let lSD = lv(dm[1][s] || ".");
+          let lCH = lv(hatMap[s] || ".");
+          if (lBD > 0 && lBD < 10) lBD = Math.max(0, lBD + jitter());
+          if (lSD > 0 && lSD < 10) lSD = Math.max(0, lSD + jitter());
+          if (lCH > 0 && lCH < 10) lCH = Math.max(0, lCH + jitter());
+
+          /* Inject per-seed syncopated kicks & ghost snares */
+          if (lBD === 0 && lSD < 8 && (s === syncKickStep1 || (bar % 2 === 1 && s === syncKickStep2)) && gch(35 + cfg.complex / 3)) {
+            lBD = baseThresh + 1;
+          }
+          if (lSD === 0 && lBD < 8 && s === ghostSnareStep && gch(30 + cfg.complex / 3)) {
+            lSD = baseThresh;
+          }
+
+          const hasBD = (lBD >= baseThresh || s === 0);
+          const hasSD = (!hasBD && lSD >= baseThresh);
+          const hasCH = (lCH >= baseThresh || (cfg.energy > 68 && s % 2 === 0 && gch(45)));
+
+          if (hasBD) {
+            kickMask[idx] = 1;
+            drumSteps[idx] = hasCH ? 6 : 1; /* 6 = Kick + Hat, 1 = Kick */
+          } else if (hasSD) {
+            drumSteps[idx] = hasCH ? 7 : 3; /* 7 = Snare + Hat, 3 = Snare */
+          } else if (gA.dm === "phonk" && (s === 2 || s === 6 || s === 10 || s === 14) && gch(45)) {
+            drumSteps[idx] = 8; /* 808 Cowbell */
+          } else if (s === openHatStep && gch(45 + cfg.energy / 4)) {
+            drumSteps[idx] = 4; /* Open Hi-Hat */
+          } else if (hasCH) {
+            /* Trap / Drill / Rage / IDM hi-hat ratchet rolls (5) before snares & bar ends */
+            if ((isTrapStyle || gA.dm === "breaks") && (s === 6 || s === 7 || s === 11 || s === 14 || s === 15) && gch(32 + cfg.complex / 3)) {
+              drumSteps[idx] = 5;
+            } else {
+              drumSteps[idx] = 2;
+            }
+          } else if (cfg.complex >= 45 && gch(16)) {
+            drumSteps[idx] = gch(35) ? 8 : 2;
+          }
         }
       }
-      /* 4th-bar genre fill */
+      /* 4th-bar genre fill (4 distinct fill styles picked per seed) */
+      const fillType = gr() % 4;
       for (let s = 12; s < 16; s++) {
-        if (gch(45 + cfg.energy / 3)) drumSteps[48 + s] = (s % 2 === 0) ? 3 : 1;
+        if (fillType === 0) drumSteps[48 + s] = (s === 15) ? 4 : 3; /* Snare build into open hat */
+        else if (fillType === 1) drumSteps[48 + s] = (s % 2 === 0) ? 5 : 3; /* Trap ratchet roll + snare */
+        else if (fillType === 2) drumSteps[48 + s] = (s === 12 || s === 14) ? 6 : 7; /* Linear Kick+Snare fill */
+        else drumSteps[48 + s] = (s === 15) ? 3 : 8; /* 808 Cowbell / Tom turnaround */
       }
     }
 

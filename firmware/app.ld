@@ -18,8 +18,8 @@ MEMORY
     LOWBUF (rw)  : ORIGIN = 0x01C00000, LENGTH = 0x7000
     RAM    (rwx) : ORIGIN = 0x01C08000, LENGTH = 96K
     POOL   (rw)  : ORIGIN = 0x01C20000, LENGTH = 0x50000
-    RAMTEXT (rwx): ORIGIN = 0x01C70000, LENGTH = 0x6000   /* (0.6.97, 0.7.0: up 4 KiB each, the image grew: a call from here must
-                                                           * reach its end; the user stack 4 KiB shorter each time, 15.75 KiB) */
+    RAMTEXT (rwx): ORIGIN = 0x01C70800, LENGTH = 0x6000   /* (0.6.97, 0.7.0, 1.0-GW: up 2 KiB so calls from RAMTEXT reach >16 KiB
+                                                           * past the XIP image's end; user stack is 13.75 KiB) */
     NOINIT (rw)  : ORIGIN = 0x01C7C000, LENGTH = 0x3D50
 }
 SECTIONS
@@ -51,7 +51,7 @@ SECTIONS
     _c1_sstack_top = _c1_stack_hi;
     .lowbuf (NOLOAD) : { _low_start = .; *(.lowbuf*) . = ALIGN(4); _low_end = .; } > LOWBUF
     .noinit (NOLOAD) : { *(.noinit*) } > NOINIT
-    _guard0 = 0x01C76000; _ustack_lo = 0x01C76100; _ustack_top = 0x01C7A000;
+    _guard0 = 0x01C76800; _ustack_lo = 0x01C76900; _ustack_top = 0x01C7A000;
     _guard1 = 0x01C7A000; _sstack_lo = 0x01C7A100; _sstack_top = 0x01C7C000;
     /DISCARD/ : { *(.comment) *(.note*) }
 }

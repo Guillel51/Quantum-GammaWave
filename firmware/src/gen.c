@@ -212,22 +212,19 @@ static void gen_drums(track_t *t, uint32_t len)
     static const int8_t OFF[8] = {40, 20, 20, 0, 0, -20, -20, -20};
     uint32_t a = gs.amt[GP_DRUMS], dens = (uint32_t)clamp(40 + (int32_t)a * 2 + ((int32_t)gs.energy - 50) / 2, 20, 255), i, l, bars = len / 16u ? len / 16u : 1u;
     /* (0.6.93) ENERGY: the density and the velocities with it, the hats sixteenths above 66, the percussion thinned under 34 */
-    uint32_t chaos = gs.complex * 40u / 100u, ng = (g->ghosts * a + 50u) / 100u + (gs.complex > 60u);
+    uint32_t chaos = 24u + gs.complex * 48u / 100u, ng = (g->ghosts * a + 50u) / 100u + (gs.complex > 60u);
     const uint8_t *cell = HAT_CELL[g->hats];
     gseed(GS_DRUMS);
     memset(gs.kick, 0, sizeof gs.kick);
     memset(gs.snare, 0, sizeof gs.snare);
     for (l = 0; l < 8u; l++) map[l] = DRUM_MAP[g->drum][l];
-    if (g->drum != DM_IDM && g->drum != DM_NONE && g->drum != DM_SPARSE &&
-        g->drum != DM_TRAP_ATL && g->drum != DM_UK_DRILL && g->drum != DM_PHONK && g->drum != DM_RAGE) {   /* (0.6.97) a throw's own top end: the hats,
-                                                         * the open hats and the percussion from the pools now and then;
-                                                         * the snare and the clap swapped now and then */
-        if (gch(50)) map[3] = HAT_POOL[gr() % 8u];
-        if (gch(40)) map[4] = OH_POOL[gr() % 6u];
-        if (gch(35)) map[6] = RS_POOL[gr() % 6u];
-        if (gch(18)) map[7] = CB_POOL[gr() % 4u];
-        if (gch(30)) map[5] = TM_POOL[gr() % 4u];
-        if (map[1][0] && map[2][0] && gch(30)) { const char *x = map[1]; map[1] = map[2]; map[2] = x; }
+    if (g->drum != DM_IDM && g->drum != DM_NONE && g->drum != DM_SPARSE) {
+        if (g->drum != DM_UK_DRILL && gch(45)) map[3] = HAT_POOL[gr() % 8u];
+        if (gch(50)) map[4] = OH_POOL[gr() % 6u];
+        if (gch(45)) map[6] = RS_POOL[gr() % 6u];
+        if (g->drum != DM_PHONK && gch(25)) map[7] = CB_POOL[gr() % 4u];
+        if (gch(40)) map[5] = TM_POOL[gr() % 4u];
+        if (map[1][0] && map[2][0] && gch(35)) { const char *x = map[1]; map[1] = map[2]; map[2] = x; }
     }
     if (g->drum == DM_IDM) {
         gen_drums_idm(t, len);
@@ -240,16 +237,21 @@ static void gen_drums(track_t *t, uint32_t len)
         for (l = 0; l < 8u; l++) {
             uint32_t lv = map[l][0] ? glevel(map[l][p]) : 0u, lim;
             int32_t d;
-            if (!lv) continue;
-            if (lv < 230u && b) {                       /* (Grids: a perturbation a bar, the first bar pure) */
-                uint32_t k = chaos * (b % 4u == 3u ? 2u : b % 2u ? 1u : 0u) / 2u;
-                if (k) lv += gr() % (k + 1u);
+            if (!lv) {
+                /* Per-seed syncopated kick / perc injection on offbeat 16ths */
+                if (l == 0u && p && (p == 3u || p == 6u || p == 7u || p == 10u || p == 11u || p == 14u) &&
+                    (!map[1][0] || glevel(map[1][p]) < 180u) && gch(10 + gs.complex / 6u))
+                    lv = 150u;
+                else continue;
             }
-            d = (int32_t)dens + OFF[l];
+            if (lv < 230u) {                            /* Signed perturbation on every bar so each seed roll changes the groove */
+                int32_t k = (int32_t)chaos + (b & 1u ? 18 : 0);
+                lv = (uint32_t)clamp((int32_t)lv + grr(-k, k / 2), 0, 229);
+            }
+            d = (int32_t)dens + OFF[l] - 36;
             lim = (uint32_t)clamp(d, 0, 255);
             if (lv <= 255u - lim) continue;
-            if (l >= 3u && lv < 230u && a < 100u && gr() % 100u >= 55u + a * 45u / 100u) continue;   /* (0.6.95) the hats
-                                                         * and the percussion thinned by the amount, a hit at a time */
+            if (l >= 3u && lv < 230u && gr() % 100u >= 40u + a * 50u / 100u) continue;
             h |= 1u << l;
             if (lv >= 230u) acc |= 1u << l;
             else { lv_sum += lv; lv_n++; }
@@ -860,9 +862,9 @@ static void gen_kit(track_t *t)
         dx_lane_t *L = &dx_kit[l];
         L->mode = D->mode;
         for (i = 0; i < DXP_N; i++) {
-            int32_t j = grr(-6, 6) * (int32_t)gs.complex / 100;
+            int32_t j = grr(-12, 12) * (int32_t)(30u + gs.complex) / 100;
             L->a[i] = (uint8_t)clamp(D->a[i] + k->d[l][i] + j, 0, 127);
-            L->b[i] = (uint8_t)clamp(D->b[i] + k->d[l][i] + j, 0, 127);
+            L->b[i] = (uint8_t)clamp(D->b[i] + k->d[l][i] + grr(-12, 12), 0, 127);
         }
     }
     memcpy(dx_lay, DX_LAY_DEF, sizeof dx_lay);
@@ -891,14 +893,17 @@ static void gen_kit(track_t *t)
         H->a[DXP_NOISE] = (uint8_t)clamp(H->a[DXP_NOISE] + nz, 0, 127); H->b[DXP_NOISE] = (uint8_t)clamp(H->b[DXP_NOISE] + nz, 0, 127);
         H->a[DXP_COLOR] = (uint8_t)clamp(H->a[DXP_COLOR] + cl, 0, 127); H->b[DXP_COLOR] = (uint8_t)clamp(H->b[DXP_COLOR] + cl, 0, 127);
     }
-    t->p[P_E0] = (int16_t)grr(40, 88);                  /* MORPH */
-    t->p[P_E2] = (int16_t)clamp(70 + k->tone, 0, 127);
-    t->p[P_E3] = (int16_t)clamp(64 + k->decy, 0, 127);
-    t->p[P_E4] = (int16_t)clamp(64 + k->nois, 0, 127);
-    t->p[P_E7] = (int16_t)clamp(k->drv, 0, 127);
+    t->p[P_E0] = (int16_t)grr(18, 110);                 /* MORPH */
+    t->p[P_E1] = (int16_t)grr(-7, 7);                   /* TUNE */
+    t->p[P_E2] = (int16_t)clamp(70 + k->tone + grr(-14, 14), 0, 127);
+    t->p[P_E3] = (int16_t)clamp(64 + k->decy + grr(-14, 14), 0, 127);
+    t->p[P_E4] = (int16_t)clamp(64 + k->nois + grr(-12, 14), 0, 127);
+    t->p[P_E5] = (int16_t)grr(8, 52);                   /* FM ENV */
+    t->p[P_E6] = (int16_t)grr(6, 48);                   /* FOLD */
+    t->p[P_E7] = (int16_t)clamp(k->drv + grr(-10, 16), 0, 127);
     t->p[P_FTYPE] = 0;
-    t->p[P_FCUT] = (int16_t)(gs.g->human >= 40u ? grr(118, 127) : grr(104, 120));
-    t->p[P_FRES] = (int16_t)grr(0, 14);
+    t->p[P_FCUT] = (int16_t)(gs.g->human >= 40u ? grr(114, 127) : grr(98, 122));
+    t->p[P_FRES] = (int16_t)grr(0, 18);
     for (l = 0; l < 8u; l++) t->p[P_LN0 + l] = 127;
     t->p[P_LN3] = (int16_t)(gs.g->hats == HC_MACHINE ? 112 : 118);   /* (the hats a little under) */
     t->p[P_LN4] = 118;
