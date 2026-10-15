@@ -477,6 +477,13 @@ static int graph_tech(const track_t *t, const page_t *pg)
 {
     if (pg->scope != SC_GLOBAL)
         switch (pg->id[0]) {
+        case P_FTYPE:
+            if (ux.chamfer && !ux.style) {
+                gw_draw_forge_bay(t, 8, 2, 224, 82, bg_energy());
+                gw_draw_wraith_ribbon(t, 8, 86, 224, 32);
+                return 1;
+            }
+            return 0;
         case P_DIST: tech_dist(t); return 1;
         case P_APDEP: tech_autopan(t); return 1;
         case P_LRTRG: if (pg->id[1] != 0xFFu) return 0; tech_retrig(t); return 1;   /* (not DIGITAL's OP1 ENV) */

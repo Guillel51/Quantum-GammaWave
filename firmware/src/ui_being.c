@@ -253,6 +253,15 @@ static void gw_wraith_glyph(int32_t idx, int32_t cx, int32_t cy, uint16_t col)
     }
 }
 
+static int32_t gw_trk_cut(const track_t *t)
+{
+    return clamp(t->p[(t->eng_req % NENGINES) == ENGI_ANALOG ? P_E4 : P_FCUT], 0, 127);
+}
+static int32_t gw_trk_res(const track_t *t)
+{
+    return clamp(t->p[(t->eng_req % NENGINES) == ENGI_ANALOG ? P_E5 : P_FRES], 0, 127);
+}
+
 static void gw_draw_wraith_ribbon(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h)
 {
     static const char *const CHAR_N[6] = {"FLU", "WHI", "VOX", "CHR", "BEL", "SCR"};
@@ -262,9 +271,23 @@ static void gw_draw_wraith_ribbon(const track_t *t, int32_t x0, int32_t y0, int3
     int is_voice = str_eq(ENGINES[eng]->name, "VOICE");
     int is_vowel = is_voice || (t->p[P_FTYPE] >= FT_VOWEL);
     int32_t nb = is_vowel ? 5 : 6, bw = w / nb, i;
-    int32_t morph = is_vowel ? clamp(t->p[is_voice ? P_E0 : P_FCUT], 0, 127)
-                             : clamp((t->p[P_FCUT] + t->p[P_E0] + t->p[P_MORPH]) / 3, 0, 127);
-    int32_t active_b = morph * nb / 128;
+    const char *lb;
+    int32_t k0 = bg_knob(0, &lb), khot = ui.hot_t ? bg_knob(ui.hot_col & 3u, &lb) : -1;
+    int32_t cut = gw_trk_cut(t);
+    int32_t lfo_mod = (t->p[P_LD_FLT] * mulq15(t->lfo_val, t->lfo_fade)) >> 14;
+    int32_t morph = cut;
+    if (khot >= 0) {
+        morph = khot >> 1;
+    } else if (is_voice) {
+        int32_t v0 = t->p[P_E0], talk = (t->p[P_E2] > 0 && bg_energy() > 8) ? ((bg_sin(ui.frame * 900u) + 32768) >> 9) : 0;
+        morph = v0 + (((t->p[P_E1] - v0) * talk) >> 7);
+    } else if (!is_vowel && cur_page()->id[0] == P_E0 && k0 >= 0) {
+        morph = (k0 >> 1) + (t->p[P_MORPH] >> 2);
+    } else if (!is_vowel && cur_page()->id[0] == P_MORPH) {
+        morph = t->p[P_MORPH];
+    }
+    morph = clamp(morph + lfo_mod, 0, 127);
+    int32_t active_b = (morph * nb) / 128;
     int32_t nx = x0 + 3 + morph * (w - 6) / 127;
 
     gw_oct_panel(x0, y0, w, h, 3, T_BG, T_LINE, 0, T_THEME);
@@ -285,7 +308,7 @@ static void gw_draw_wraith_ribbon(const track_t *t, int32_t x0, int32_t y0, int3
         }
     }
     /* Continuous WRAITH Ribbon Playhead Needle */
-    cv_rect(nx, y0 + 1, 1, h - 2, T_TEXT);
+    cv_rect(nx, y0 + 1, 2, h - 2, T_TEXT);
     cv_rect(nx - 2, y0, 5, 2, T_ACCENT);
     cv_rect(nx - 2, y0 + h - 2, 5, 2, T_ACCENT);
 }
@@ -306,7 +329,10 @@ static int32_t gw_filter_resp_y(int32_t ftype, int32_t x, int32_t w, int32_t cut
     case 2: /* BP: band-pass bell around cutoff */
         att = (d * d) * h_max / (w * 14 + 1);
         break;
-    case 3: /* FT_VOWEL: 3 formant peaks (F1, F2, F3) morphing with cutoff */
+    case 3: /* FT_COMB: comb notches */
+        att = ((x * 5) % 18 < 5) ? h_max / 3 : 0;
+        break;
+    case 4: /* FT_VOWEL: 3 formant peaks (F1, F2, F3) morphing with cutoff */
     {
         int32_t f1 = w / 6 + cut_x / 4, f2 = w / 2 + cut_x / 3, f3 = w * 4 / 5;
         int32_t d1 = x - f1, d2 = x - f2, d3 = x - f3;
@@ -316,7 +342,7 @@ static int32_t gw_filter_resp_y(int32_t ftype, int32_t x, int32_t w, int32_t cut
         int32_t pk = (p1 > 0 ? p1 : 0) + (p2 > 0 ? p2 : 0) + (p3 > 0 ? p3 : 0);
         return clamp(y_zero + h_max / 3 - pk - res_pk / 2, y_zero - h_max / 2, y_zero + h_max / 2);
     }
-    case 4: /* FT_SCREAM: sharp resonant peak + comb notch */
+    case 5: /* FT_SCREAM: sharp resonant peak + comb notch */
         if (d > 0) att = (d * d) * h_max / (w * 12 + 1);
         if (d > -14 && d < -4) att += h_max / 3;
         res_pk = res_pk * 3 / 2;
@@ -345,8 +371,8 @@ static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val
 static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t en)
 {
     int32_t gx0 = x0 + 4, gy0 = y0 + 4, gw = w - 28, gh = h - 8;
-    int32_t y_zero = gy0 + gh * 2 / 5, cut = clamp(t->p[P_FCUT], 0, 127), res = clamp(t->p[P_FRES], 0, 127);
-    int32_t ftype = clamp(t->p[P_FTYPE], 0, 4);
+    int32_t y_zero = gy0 + gh * 2 / 5, cut = gw_trk_cut(t), res = gw_trk_res(t);
+    int32_t ftype = clamp(t->p[P_FTYPE], 0, 5);
     int32_t lfo_mod = (t->p[P_LD_FLT] * mulq15(t->lfo_val, t->lfo_fade)) >> 14;
     int32_t cut_x = 10 + clamp(cut + lfo_mod, 0, 127) * (gw - 20) / 127;
     int32_t mod_span = (t->p[P_LD_FLT] < 0 ? -t->p[P_LD_FLT] : t->p[P_LD_FLT]) * (gw - 20) / 256;
@@ -461,8 +487,7 @@ static void graph_being(const track_t *t)
     cv_rect(126, 41, 102, 1, T_LINE);
     for (c = 0; c < 4u; c++) {
         int32_t by = 45 + (int32_t)c * 9;
-        int32_t mv = k[c] > 24 ? k[c] : (200 - (int32_t)c * 36);
-        gw_hbar(128, by, 98, 6, 11, mv, 72 + (int32_t)c * 36);
+        gw_hbar(128, by, 98, 6, 11, clamp(k[c], 0, 256), 72 + (int32_t)c * 36);
     }
 
     /* 3. Lower Bay: WRAITH 6-Band Character Ribbon / 5-Band Vowel Ribbon */

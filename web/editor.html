@@ -569,8 +569,8 @@
         </div>
       </div>
       <div class="gw-macros">
-        <div class="gw-macros-title"><span>4️⃣ STEP 4 — HEARTH PHYSICS &amp; SOLAR ECLIPSE MACROS (HW: [OCT-] + [ARP])</span><span>PUMP 1/16 + MUTATE</span></div>
-        <div class="bar" style="margin:0;gap:6px">
+        <div class="gw-macros-title"><span>4️⃣ STEP 4 — WRAITH VOICE MODES, SOLAR MACROS (HW: [OCT-]+[ARP]) &amp; MUTATE (HW: [OCT-]+[ENV])</span><span id="gw-wraith-lbl" style="color:var(--accent)">WRAITH: CHR (54%) • MUTATE: ORBIT</span></div>
+        <div class="bar" style="margin:0 0 6px;gap:6px">
           <button type="button" class="gw-macro-btn" data-macro="hearth">☀️ HEARTH GRAVITY</button>
           <button type="button" class="gw-macro-btn" data-macro="blast">🕳️ SINGULARITY</button>
           <button type="button" class="gw-macro-btn" data-macro="plasma">🔥 PHOTOSPHERE</button>
@@ -578,9 +578,36 @@
           <button type="button" class="gw-macro-btn" data-macro="vowel">🗣️ FORMANT VOWEL</button>
           <button type="button" class="gw-macro-btn" data-macro="eclipse" style="background:linear-gradient(180deg,#a855f7,#6b21a8);color:#fff">🌑 SOLAR ECLIPSE</button>
         </div>
+        <div class="bar" style="margin:0 0 6px;gap:5px;align-items:center;background:rgba(0,0,0,0.35);padding:5px 8px;border:1px solid var(--border);border-radius:3px">
+          <strong style="font-size:11px;color:var(--theme);letter-spacing:0.06em">👻 WRAITH VOICE BAR:</strong>
+          <button type="button" class="gw-btn-sec gw-wraith-mode" data-wpos="8" style="padding:2px 7px">1. FLU</button>
+          <button type="button" class="gw-btn-sec gw-wraith-mode" data-wpos="32" style="padding:2px 7px">2. WHI</button>
+          <button type="button" class="gw-btn-sec gw-wraith-mode" data-wpos="54" style="padding:2px 7px">3. VOX</button>
+          <button type="button" class="gw-btn-sec gw-wraith-mode" data-wpos="76" style="padding:2px 7px">4. CHR</button>
+          <button type="button" class="gw-btn-sec gw-wraith-mode" data-wpos="100" style="padding:2px 7px">5. BEL</button>
+          <button type="button" class="gw-btn-sec gw-wraith-mode" data-wpos="124" style="padding:2px 7px">6. SCR</button>
+          <input type="range" id="gw-wraith-bar" min="0" max="127" value="68" style="flex:1;min-width:110px;accent-color:var(--accent)" title="Drag continuously across all 6 Wraith Voice Modes (FLU → WHI → VOX → CHR → BEL → SCR)">
+        </div>
+        <div class="bar" style="margin:0;gap:6px;align-items:center;background:rgba(0,0,0,0.35);padding:5px 8px;border:1px solid var(--border);border-radius:3px">
+          <strong style="font-size:11px;color:var(--accent);letter-spacing:0.06em">🧬 SEQ MUTATE:</strong>
+          <button type="button" id="gw-mutate-now" style="background:linear-gradient(180deg,#a855f7,#7e22ce);color:#fff;padding:3px 10px;font-weight:800" title="Mutate active sequence & Wraith timbre right now!">🎲 MUTATE NOW</button>
+          <label style="font-size:11px;color:var(--mid);display:flex;align-items:center;gap:4px">MODE
+            <select id="gw-mutate-mode" style="font-size:11px;padding:2px 5px">
+              <option value="orbit" selected>ORBIT (Every 2 Bars)</option>
+              <option value="drift">DRIFT (Every 4 Bars)</option>
+              <option value="off">OFF</option>
+            </select>
+          </label>
+          <label style="font-size:11px;color:var(--mid);display:flex;align-items:center;gap:4px">AMOUNT
+            <input type="range" id="gw-mutate-amt" min="0" max="100" value="55" style="width:80px;accent-color:#a855f7">
+            <span id="gw-mutate-amt-val" style="color:var(--fg);font-weight:700;min-width:30px">55%</span>
+          </label>
+          <button type="button" class="gw-btn-sec" id="gw-mutate-freeze" style="padding:3px 8px" title="Freeze/Unfreeze automatic bar mutation (HW: [OCT-] on MUTATE page)">❄️ FREEZE: OFF</button>
+          <button type="button" class="gw-btn-sec" id="gw-mutate-keep" style="padding:3px 8px;margin-left:auto" title="Anchor current mutated pattern as the new base loop (HW: [OCT+] on MUTATE page)">⚓ KEEP ANCHOR</button>
+        </div>
       </div>
       <div class="dim" style="font-size:11px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
-        <span>🎹 <b>Hardware FM-1 Shortcuts:</b> <b>[OCT-]+[PLAY]</b>=Song Gen • <b>[OCT-]+[ARP]</b>=Solar Eclipse Macro • <b>[OCT-]+[HOME]</b>=Secret Viz • <b>[OCT-]+[SEQ/EDIT/FX]</b>=Dice Track • <b>[OCT-]+[GLO]</b>=Undo</span>
+        <span>🎹 <b>Hardware FM-1 Shortcuts:</b> <b>[OCT-]+[PLAY]</b>=Song Gen • <b>[OCT-]+[ARP]</b>=Solar Eclipse Macro • <b>[OCT-]+[ENV]</b>=Mutate Page • <b>[OCT-]+[HOME]</b>=Secret Viz • <b>[OCT-]+[SEQ/EDIT/FX]</b>=Dice Track • <b>[OCT-]+[GLO]</b>=Undo</span>
         <span id="gw-fps-lbl" style="color:var(--accent)">GW-1 // 4 PARALLEL TAPE TRACKS ACTIVE</span>
       </div>
     </div>
@@ -5549,31 +5576,53 @@ $("connect").addEventListener("click", () => {
       }
     } else if (mode === "core") {
       /* Screen 2: WAVE 1 + WAVE 2 + MIXER + WRAITH Ribbon */
+      const wNorm = wraithPos / 127;
       drawBrackets(8, 83, 118, 162, 5, pal.theme);
       ctx.fillStyle = pal.theme; ctx.font = "bold 9px 'IBM Plex Mono', monospace";
       ctx.fillText("WAVE 1", 14, 94);
       ctx.fillStyle = pal.accent; ctx.fillText("UNI 4", 82, 94);
-      drawScopeTrace(pal, 14, 98, 115, 11);
-      [0.5, 0.65, 0.8, 0.45].forEach((kv, k) => drawBakeliteKnob(pal, 24 + k * 25, 146, 6.5, kv, pal.theme));
+      drawScopeTrace(pal, 14, 98, 115, 7 + Math.round(wNorm * 7));
+      [wNorm, st.res / 127, st.drv / 127, 0.35 + wNorm * 0.55].forEach((kv, k) =>
+        drawBakeliteKnob(pal, 24 + k * 25, 146, 6.5, Math.max(0.05, Math.min(1, kv)), k === 0 ? pal.accent : pal.theme)
+      );
 
       drawBrackets(122, 83, 232, 162, 5, pal.accent);
       ctx.fillStyle = pal.accent; ctx.fillText("WAVE 2", 128, 94);
       ctx.fillStyle = pal.mid; ctx.fillText("MIXER", 194, 94);
-      drawScopeTrace(pal, 128, 98, 110, 8);
+      drawScopeTrace(pal, 128, 98, 110, 5 + Math.round(wNorm * 6));
+      const mixBars = [
+        Math.round(14 + wNorm * 82),
+        Math.round(14 + (st.cut / 127) * 82),
+        Math.round(14 + (st.res / 127) * 82),
+        Math.round(14 + (st.drv / 127) * 82)
+      ];
       for (let m = 0; m < 4; m++) {
         ctx.fillStyle = pal.raise; ctx.fillRect(128, 126 + m * 8, 96, 5);
         ctx.fillStyle = m & 1 ? pal.accent : pal.theme;
-        ctx.fillRect(128, 126 + m * 8, 52 + ((m * 17) % 38), 5);
+        ctx.fillRect(128, 126 + m * 8, Math.max(6, Math.min(96, mixBars[m])), 5);
       }
       const CHARS = ["FLU", "WHI", "VOX", "CHR", "BEL", "SCR"];
+      const activeChar = Math.min(5, Math.floor((wraithPos / 128) * 6));
       CHARS.forEach((ch, i) => {
-        const bx = 8 + i * 37, sel = i === Math.floor((st.cut / 128) * 6);
+        const bx = 8 + i * 37, sel = i === activeChar;
         ctx.fillStyle = sel ? pal.raise : pal.bg;
         ctx.fillRect(bx, 166, 35, 32);
+        if (sel) {
+          ctx.strokeStyle = pal.accent;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(bx + 0.5, 166.5, 34, 31);
+        }
         ctx.fillStyle = sel ? pal.accent : pal.mid;
         ctx.font = "bold 9px 'IBM Plex Mono', monospace";
         ctx.fillText(ch, bx + 9, 192);
       });
+      /* Continuous Moving WRAITH Ribbon Playhead Bar across x = 10..228 */
+      const nx = Math.round(10 + (wraithPos / 127) * 218);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(nx - 1, 165, 3, 34);
+      ctx.fillStyle = pal.theme;
+      ctx.fillRect(nx - 3, 164, 7, 3);
+      ctx.fillRect(nx - 3, 196, 7, 3);
     } else if (mode === "seq") {
       /* Screen 3: Solar Gravity Orbit Sequencer (64 Steps / 4 Bars) */
       drawBrackets(8, 83, 124, 198, 6, pal.theme);
@@ -5592,7 +5641,7 @@ $("connect").addEventListener("click", () => {
       ctx.fillText(`DICE: ${lastDicedTrack.label.slice(0, 9)}`, 134, 116);
       ctx.fillStyle = pal.text;
       ctx.fillText("PUMP: 1/16 SYNC", 134, 134);
-      ctx.fillText("MUTATE: ORBIT", 134, 152);
+      ctx.fillText(`MUTATE: ${mutateFrozen ? "FROZEN" : mutateMode.toUpperCase()} (${mutateAmt}%)`, 134, 152);
       drawScopeTrace(pal, 134, 92, 178, 10);
     } else if (mode === "tape") {
       /* Screen 4: OP-1 Style 4-Track Analog Audio Waveform Tape (T1..T4) */
@@ -5686,7 +5735,62 @@ $("connect").addEventListener("click", () => {
     requestAnimationFrame(renderLCD);
   }
 
-  cv.addEventListener("click", () => {
+  /* Interactive Wraith Voice Mode Bar (0..127 across FLU / WHI / VOX / CHR / BEL / SCR) & SEQ MUTATE state */
+  const WRAITH_MODES = ["FLU", "WHI", "VOX", "CHR", "BEL", "SCR"];
+  let wraithPos = 68;
+  let mutateMode = "orbit";
+  let mutateAmt = 55;
+  let mutateFrozen = false;
+  let anchorSong = null;
+
+  function updateWraithMutateLabel() {
+    const mIdx = Math.min(5, Math.floor((wraithPos / 128) * 6));
+    const pct = Math.round((wraithPos / 127) * 100);
+    const mutTxt = mutateFrozen ? "FROZEN" : (mutateMode === "off" ? "OFF" : `${mutateMode.toUpperCase()} ${mutateAmt}%`);
+    if ($("gw-wraith-lbl")) {
+      $("gw-wraith-lbl").textContent = `WRAITH: ${WRAITH_MODES[mIdx]} (${pct}%) • MUTATE: ${mutTxt}`;
+    }
+  }
+
+  async function setWraithPos(val, switchToWaves = false) {
+    wraithPos = Math.max(0, Math.min(127, Math.round(Number(val) || 0)));
+    if ($("gw-wraith-bar")) $("gw-wraith-bar").value = wraithPos;
+    if (switchToWaves) lcdMode = "core";
+    updateWraithMutateLabel();
+    if (dev && dev.dump && dev.dump.p) {
+      dev.dump.p[9] = wraithPos; /* Cutoff / Wraith Morph */
+      const c = ctl.get(key(0, 9));
+      if (c) { c.input.value = wraithPos; c.out.textContent = fmtVal(c.desc, wraithPos); }
+      try { await sessionRequest(dev, req.set(0, 9, wraithPos)); } catch (e) { /* ignore */ }
+    }
+  }
+
+  let draggingWraithCanvas = false;
+  function handleCanvasWraithPointer(ev) {
+    const rect = cv.getBoundingClientRect();
+    const x = ((ev.clientX - rect.left) / rect.width) * 240;
+    const y = ((ev.clientY - rect.top) / rect.height) * 240;
+    const curMode = lcdMode === "auto" ? ((tab === "sound" || tab === "fm6") ? "core" : "home") : lcdMode;
+    if (curMode === "core" && y >= 160 && y <= 204) {
+      const pos = Math.round(((x - 10) / 218) * 127);
+      setWraithPos(pos, false);
+      return true;
+    }
+    return false;
+  }
+  cv.addEventListener("mousedown", (ev) => {
+    if (handleCanvasWraithPointer(ev)) {
+      draggingWraithCanvas = true;
+      ev.stopPropagation();
+    }
+  });
+  window.addEventListener("mousemove", (ev) => {
+    if (draggingWraithCanvas) handleCanvasWraithPointer(ev);
+  });
+  window.addEventListener("mouseup", () => { draggingWraithCanvas = false; });
+
+  cv.addEventListener("click", (ev) => {
+    if (handleCanvasWraithPointer(ev)) return;
     if (lcdMode === "viz") {
       secretVizMode = (secretVizMode + 1) % 4;
       return;
@@ -5724,14 +5828,97 @@ $("connect").addEventListener("click", () => {
     await connect();
   });
 
-  /* One-Click GammaWave Hearth Physics & Solar Eclipse Macros */
+  /* Wire Wraith Voice Bar buttons & continuous slider */
+  if ($("gw-wraith-bar")) {
+    $("gw-wraith-bar").addEventListener("input", (ev) => {
+      setWraithPos(ev.target.value, true);
+    });
+  }
+  document.querySelectorAll(".gw-wraith-mode").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setWraithPos(btn.dataset.wpos, true);
+    });
+  });
+
+  /* Wire SEQ MUTATE (ORBIT / DRIFT / AMOUNT / FREEZE / KEEP) */
+  function captureAnchorSong() {
+    const s = DEMO_SONGS[activeDemoIdx];
+    anchorSong = {
+      bass: s.bass.slice(),
+      arp: s.arp.slice(),
+      pad: s.pad.slice(),
+      drum: s.drum.slice(),
+      wraithPos
+    };
+  }
+  function triggerMutateNow(autoBar = false) {
+    if (autoBar && (mutateFrozen || mutateMode === "off" || mutateAmt <= 0)) return;
+    const s = DEMO_SONGS[activeDemoIdx];
+    if (!anchorSong) captureAnchorSong();
+    const amt = mutateAmt / 100;
+    const base = (mutateMode === "orbit" && anchorSong) ? anchorSong : {
+      bass: s.bass.slice(), arp: s.arp.slice(), pad: s.pad.slice(), drum: s.drum.slice(), wraithPos
+    };
+    const offsets = [-12, -5, 0, 3, 5, 7, 12];
+    for (let i = 0; i < 64; i++) {
+      if (base.bass[i] > 0 && Math.random() < amt * 0.45) {
+        s.bass[i] = Math.max(28, Math.min(64, base.bass[i] + offsets[Math.floor(Math.random() * offsets.length)]));
+      } else {
+        s.bass[i] = base.bass[i];
+      }
+      if (base.arp[i] > 0 && Math.random() < amt * 0.55) {
+        s.arp[i] = Math.max(48, Math.min(88, base.arp[i] + offsets[Math.floor(Math.random() * offsets.length)]));
+      } else {
+        s.arp[i] = base.arp[i];
+      }
+    }
+    const deltaW = Math.round((Math.random() * 2 - 1) * amt * 48);
+    setWraithPos((base.wraithPos ?? wraithPos) + deltaW, false);
+    if (!autoBar) {
+      syncStepsToEditor(s.bass);
+      sayK("applied", ` — 🧬 MUTATE [${mutateMode.toUpperCase()} ${mutateAmt}%]`);
+    }
+  }
+  if ($("gw-mutate-now")) {
+    $("gw-mutate-now").addEventListener("click", () => triggerMutateNow(false));
+  }
+  if ($("gw-mutate-mode")) {
+    $("gw-mutate-mode").addEventListener("change", (ev) => {
+      mutateMode = ev.target.value;
+      updateWraithMutateLabel();
+    });
+  }
+  if ($("gw-mutate-amt")) {
+    $("gw-mutate-amt").addEventListener("input", (ev) => {
+      mutateAmt = Number(ev.target.value) || 0;
+      if ($("gw-mutate-amt-val")) $("gw-mutate-amt-val").textContent = `${mutateAmt}%`;
+      updateWraithMutateLabel();
+    });
+  }
+  if ($("gw-mutate-freeze")) {
+    $("gw-mutate-freeze").addEventListener("click", () => {
+      mutateFrozen = !mutateFrozen;
+      $("gw-mutate-freeze").textContent = `❄️ FREEZE: ${mutateFrozen ? "ON" : "OFF"}`;
+      $("gw-mutate-freeze").style.borderColor = mutateFrozen ? "var(--accent)" : "";
+      $("gw-mutate-freeze").style.color = mutateFrozen ? "var(--accent)" : "";
+      updateWraithMutateLabel();
+    });
+  }
+  if ($("gw-mutate-keep")) {
+    $("gw-mutate-keep").addEventListener("click", () => {
+      captureAnchorSong();
+      sayK("applied", " — ⚓ ANCHOR KEPT (CURRENT MUSIC LOCKED)");
+    });
+  }
+
+  /* One-Click GammaWave Hearth Physics & Solar Eclipse Macros (spanning all 6 Wraith Voice Modes 0..127!) */
   const MACROS = {
-    hearth:  [[91, 14], [33, 72], [9, 68], [10, 42]],   /* GRAVITY + warm drive + smooth LPF */
-    blast:   [[91, 15], [33, 108], [9, 54], [10, 64]],  /* SINGULARITY + heavy sub drive */
-    plasma:  [[91, 16], [33, 96], [9, 88], [10, 78]],   /* PHOTOSPHERE wavefolder + resonant sweep */
-    scream:  [[91, 17], [33, 92], [11, 4], [9, 76], [10, 104]], /* FLUX + SCREAM filter */
-    vowel:   [[91, 14], [33, 64], [11, 3], [9, 62], [10, 96]],  /* GRAVITY + FORMANT VOWEL */
-    eclipse: [[91, 15], [33, 118], [11, 4], [9, 92], [10, 112], [29, 90], [30, 95]], /* SOLAR ECLIPSE TOTAL OVERDRIVE */
+    hearth:  [[91, 14], [33, 72], [9, 12],  [10, 42]],  /* 1. FLU (8%)  + GRAVITY + warm drive */
+    blast:   [[91, 15], [33, 108],[9, 34],  [10, 64]],  /* 2. WHI (27%) + SINGULARITY + sub drive */
+    vowel:   [[91, 14], [33, 64], [11, 3],  [9, 54],  [10, 96]],  /* 3. VOX (43%) + FORMANT VOWEL */
+    plasma:  [[91, 16], [33, 96], [9, 78],  [10, 78]],  /* 4. CHR (61%) + PHOTOSPHERE wavefolder */
+    scream:  [[91, 17], [33, 92], [11, 4],  [9, 102], [10, 104]], /* 5. BEL (80%) + FLUX + SCREAM */
+    eclipse: [[91, 15], [33, 118],[11, 4],  [9, 124], [10, 112], [29, 90], [30, 95]], /* 6. SCR (98%) + SOLAR ECLIPSE */
   };
 
   async function applyMacro(name) {
@@ -5744,6 +5931,7 @@ $("connect").addEventListener("click", () => {
     const pairs = MACROS[name] || [];
     for (const [id, val] of pairs) {
       dev.dump.p[id] = val;
+      if (id === 9) setWraithPos(val, false);
       const c = ctl.get(key(0, id));
       if (c) { c.input.value = val; c.out.textContent = fmtVal(c.desc, val); }
       try { await sessionRequest(dev, req.set(0, id, val)); } catch (e) { /* ignore */ }
@@ -5763,6 +5951,9 @@ $("connect").addEventListener("click", () => {
     const gMul = gainScale || 1.0;
     const pr = GW_PRESETS[presetId] || GW_PRESETS.ingot_sub;
     const cat = pr.cat;
+    /* Wraith Voice Mode Bar (0..127) scales cutoff (0.35x .. 2.35x) & resonance in real time! */
+    const wScale = 0.35 + (wraithPos / 127) * 2.0;
+    const qBoost = (wraithPos > 90) ? 3.5 : 0;
 
     if (cat === "bass") {
       const f0 = midiToFreq(noteOrHit);
@@ -5770,11 +5961,11 @@ $("connect").addEventListener("click", () => {
       const flt = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
       osc1.type = pr.osc1 || "sawtooth"; osc1.frequency.setValueAtTime(f0, now);
       osc2.type = pr.osc2 || "triangle"; osc2.frequency.setValueAtTime(f0 * (pr.sub ? 0.5 : 1.0), now);
-      osc2.detune.setValueAtTime(pr.detune || 8, now);
+      osc2.detune.setValueAtTime((pr.detune || 8) * (0.6 + wScale * 0.5), now);
       flt.type = pr.flt || "lowpass";
-      flt.frequency.setValueAtTime(pr.cut || 1250, now);
-      flt.frequency.exponentialRampToValueAtTime(160, now + stepDur * 0.92);
-      flt.Q.value = pr.q || 6.5;
+      flt.frequency.setValueAtTime(Math.min(9000, (pr.cut || 1250) * wScale), now);
+      flt.frequency.exponentialRampToValueAtTime(Math.max(80, 160 * wScale * 0.6), now + stepDur * 0.92);
+      flt.Q.value = (pr.q || 6.5) + qBoost;
       g.gain.setValueAtTime(0.15 * gMul, now);
       g.gain.exponentialRampToValueAtTime(0.001, now + stepDur * 0.96);
       osc1.connect(flt); osc2.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
@@ -5786,11 +5977,11 @@ $("connect").addEventListener("click", () => {
       const flt = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
       osc1.type = pr.osc1 || "sawtooth"; osc1.frequency.setValueAtTime(f0, now);
       osc2.type = pr.osc2 || "square";   osc2.frequency.setValueAtTime(f0, now);
-      osc2.detune.setValueAtTime(pr.detune || 14, now);
+      osc2.detune.setValueAtTime((pr.detune || 14) * (0.6 + wScale * 0.5), now);
       flt.type = pr.flt || "lowpass";
-      flt.frequency.setValueAtTime(pr.cut || 2200, now);
-      flt.frequency.exponentialRampToValueAtTime(420, now + stepDur * 0.85);
-      flt.Q.value = pr.q || 4.0;
+      flt.frequency.setValueAtTime(Math.min(11000, (pr.cut || 2200) * wScale), now);
+      flt.frequency.exponentialRampToValueAtTime(Math.max(180, 420 * wScale * 0.7), now + stepDur * 0.85);
+      flt.Q.value = (pr.q || 4.0) + qBoost;
       g.gain.setValueAtTime(0.075 * gMul, now);
       g.gain.exponentialRampToValueAtTime(0.001, now + stepDur * 0.88);
       osc1.connect(flt); osc2.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
@@ -5802,10 +5993,10 @@ $("connect").addEventListener("click", () => {
         const osc = audioCtx.createOscillator(), flt = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
         osc.type = (idx % 2 === 0) ? (pr.osc1 || "sawtooth") : (pr.osc2 || "triangle");
         osc.frequency.setValueAtTime(midiToFreq(noteOrHit + iv), now);
-        osc.detune.setValueAtTime((idx - 1.5) * (pr.detune || 14), now);
+        osc.detune.setValueAtTime((idx - 1.5) * (pr.detune || 14) * (0.6 + wScale * 0.5), now);
         flt.type = pr.flt || "lowpass";
-        flt.frequency.setValueAtTime(pr.cut || 1500, now);
-        flt.Q.value = pr.q || 2.5;
+        flt.frequency.setValueAtTime(Math.min(10000, (pr.cut || 1500) * wScale), now);
+        flt.Q.value = (pr.q || 2.5) + qBoost * 0.5;
         g.gain.setValueAtTime(0.036 * gMul, now);
         g.gain.exponentialRampToValueAtTime(0.001, now + stepDur * 7.5);
         osc.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
@@ -5837,6 +6028,12 @@ $("connect").addEventListener("click", () => {
     const now = audioCtx.currentTime;
     const stepDur = (60 / song.bpm) / 4;
     const s = stepIdx64 % 64;
+    /* Automatic Bar Mutation (ORBIT every 32 steps = 2 bars; DRIFT every 64 steps = 4 bars) */
+    if (s > 0 && ((mutateMode === "orbit" && s % 32 === 0) || (mutateMode === "drift" && s === 0))) {
+      triggerMutateNow(true);
+    } else if (s === 0 && mutateMode === "drift" && frame > 60) {
+      triggerMutateNow(true);
+    }
 
     /* Play ALL 4 Tape Tracks (T1 + T2 + T3 + T4) SIMULTANEOUSLY IN PARALLEL! */
     const anyTapeUsed = tapeLanes.some((t) => t.used);

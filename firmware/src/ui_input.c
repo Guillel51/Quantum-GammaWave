@@ -1776,14 +1776,34 @@ static int gw_oct_combo(uint32_t b)
             "1/6 HEARTH GRAVITY", "2/6 SINGULARITY", "3/6 PHOTOSPHERE",
             "4/6 WRAITH SCREAM", "5/6 FORMANT VOWEL", "6/6 SOLAR ECLIPSE!"
         };
+        static const uint8_t MD[6][4] = {
+            {5, 78, 22, 64}, {6, 96, 46, 88}, {7, 92, 72, 76},
+            {8, 84, 98, 108}, {5, 72, 56, 92}, {6, 110, 118, 112}
+        };
         uint32_t m = gw_macro_idx++ % 6u;
-        if (m == 0u) { t->p[P_DTYPE] = 5; t->p[P_DIST] = 78; t->p[P_FCUT] = 84; t->p[P_FRES] = 64; }
-        else if (m == 1u) { t->p[P_DTYPE] = 6; t->p[P_DIST] = 96; t->p[P_FCUT] = 68; t->p[P_FRES] = 88; }
-        else if (m == 2u) { t->p[P_DTYPE] = 7; t->p[P_DIST] = 92; t->p[P_FCUT] = 96; t->p[P_FRES] = 76; }
-        else if (m == 3u) { t->p[P_FTYPE] = 5; t->p[P_FCUT] = 74; t->p[P_FRES] = 108; t->p[P_DTYPE] = 8; t->p[P_DIST] = 84; }
-        else if (m == 4u) { t->p[P_FTYPE] = 4; t->p[P_FCUT] = 64; t->p[P_FRES] = 92; t->p[P_DTYPE] = 5; t->p[P_DIST] = 72; }
-        else { t->p[P_DTYPE] = 6; t->p[P_DIST] = 110; t->p[P_FTYPE] = 5; t->p[P_FCUT] = 86; t->p[P_FRES] = 112; song.g[G_DUCK] = 96; song.g[G_PUNCH] = 90; }
+        t->p[P_DTYPE] = MD[m][0];
+        t->p[P_DIST]  = MD[m][1];
+        t->p[P_FCUT]  = t->p[P_E4] = MD[m][2];
+        t->p[P_FRES]  = t->p[P_E5] = MD[m][3];
+        if (m >= 3u) t->p[P_FTYPE] = (m == 4u) ? 4 : 5;
+        if (m == 5u) { song.g[G_DUCK] = 96; song.g[G_PUNCH] = 90; }
         ui_message(MN[m]);
+        ui.force = 1;
+        return 1;
+    }
+    case B_ENV:
+    case B_SCL: {                                       /* [OCT-] + [ENV] or [SCL]: 1-Click Jump to SEQ > MUTATE & Activate */
+        uint32_t i;
+        ui.home = ui.menu = ui.confirm = 0;
+        name_close();
+        for (i = 0; i < NPAGES; i++)
+            if (PAGES[i].graph == GR_MUTATE) { ui.page = (uint8_t)i; break; }
+        if (!t->p[P_MSND] && !t->p[P_MPAT]) {
+            t->p[P_MSND] = 2;
+            t->p[P_MPAT] = 3;
+            if (!t->p[P_MAMT]) t->p[P_MAMT] = 64;
+        }
+        ui_message("SEQ > MUTATE");
         ui.force = 1;
         return 1;
     }
