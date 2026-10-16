@@ -33,16 +33,17 @@ typedef struct {
     uint8_t ts;                                         /* the drums', the 808's, the melody's rhythms */
     uint8_t bpm[2][2];                                  /* two tempo ranges (the seed picks) */
     uint8_t scale[4];                                   /* (0: the genre's) */
-    uint8_t rev[2], swing[2], clip[2], drv[2], dist[2], dtype, dcut;   /* (dcut: the drums' low-pass, 127 open) */
+    uint8_t rev[2], swing[2], clip[2], dcut;            /* (dcut: the drums' low-pass, 127 open) */
+    uint8_t b808[10];                                   /* the 808 recipes' weights (T808R) */
 } tflav_t;
 static const tflav_t TFLAV[TF_N] = {
-    [TF_ATL]    = {TS_ATL,   {{136, 150}, {136, 150}}, {0},                          {24, 44}, {0, 0},   {10, 25}, {84, 108},  {52, 68},  0, 127},
-    [TF_PIERRE] = {TS_ATL,   {{156, 166}, {156, 166}}, {SC_MAJ, SC_MIX, SC_MIN, SC_MAJ}, {50, 75}, {8, 14},  {6, 18},  {60, 84},   {28, 44},  0, 108},
-    [TF_METRO]  = {TS_ATL,   {{116, 124}, {140, 150}}, {0},                          {30, 50}, {0, 0},   {20, 35}, {100, 122}, {64, 84},  0, 127},
-    [TF_DRILL]  = {TS_DRILL, {{140, 145}, {140, 145}}, {0},                          {24, 44}, {4, 10},  {10, 25}, {88, 112},  {52, 68},  0, 127},
-    [TF_DARK]   = {TS_DARK,  {{130, 148}, {130, 148}}, {0},                          {24, 44}, {0, 0},   {30, 45}, {110, 127}, {76, 98},  0, 127},
-    [TF_WLR]    = {TS_RAGE,  {{140, 150}, {140, 150}}, {SC_MAJ, SC_LYD, SC_MAJ, SC_MIX}, {20, 40}, {0, 0},   {50, 70}, {114, 127}, {80, 100}, 1, 127},
-    [TF_MUSIC]  = {TS_RAGE,  {{150, 160}, {150, 160}}, {0},                          {15, 35}, {0, 0},   {50, 70}, {116, 127}, {86, 104}, 1, 127},
+    [TF_ATL] = {TS_ATL,   {{136, 150}, {136, 150}}, {0}, {24, 44}, {0, 0}, {10, 25}, 127, {25, 0, 0, 0, 15, 20, 25, 15, 0, 0}},
+    [TF_PIERRE] = {TS_ATL,   {{156, 166}, {156, 166}}, {SC_MAJ, SC_MIX, SC_MIN, SC_MAJ}, {50, 75}, {8, 14}, {6, 18}, 108, {20, 30, 0, 25, 0, 0, 0, 25, 0, 0}},
+    [TF_METRO] = {TS_ATL,   {{116, 124}, {140, 150}}, {0}, {30, 50}, {0, 0}, {20, 35}, 127, {25, 0, 25, 0, 15, 0, 35, 0, 0, 0}},
+    [TF_DRILL] = {TS_DRILL, {{140, 145}, {140, 145}}, {0}, {24, 44}, {4, 10}, {10, 25}, 127, {0, 0, 0, 0, 15, 30, 0, 25, 30, 0}},
+    [TF_DARK] = {TS_DARK,  {{130, 148}, {130, 148}}, {0}, {24, 44}, {0, 0}, {30, 45}, 127, {0, 0, 40, 0, 30, 0, 0, 0, 0, 30}},
+    [TF_WLR] = {TS_RAGE,  {{140, 150}, {140, 150}}, {SC_MAJ, SC_LYD, SC_MAJ, SC_MIX}, {20, 40}, {0, 0}, {50, 70}, 127, {0, 0, 40, 0, 20, 0, 0, 0, 0, 40}},
+    [TF_MUSIC] = {TS_RAGE,  {{150, 160}, {150, 160}}, {0}, {15, 35}, {0, 0}, {50, 70}, 127, {0, 0, 30, 0, 30, 0, 0, 0, 0, 40}},
 };
 static uint8_t tk_tf;                                   /* this piece's flavour */
 /* the flavour from the genre's style (its own stream: the piece's choices stay as they were) */
@@ -576,26 +577,57 @@ static void trap_kit(track_t *t)
     t->p[P_LN0] = 112; t->p[P_LN1] = 118; t->p[P_LN2] = 122; t->p[P_LN3] = 124;
     t->p[P_LN4] = 108; t->p[P_LN5] = 94; t->p[P_LN6] = 104; t->p[P_LN7] = 118;
 }
-/* the 808: a sine, driven (dark trap and rage: clipped), a glide, held */
-static void trap_808_sound(track_t *t)
+/* the 808 recipes, from the 808s of GammaWave's factory bank (Bass/) and of WRAITH (SLIDE 808, DIRTY 808), on the
+ * GW-1's ANALOG with its ports of their saturation (fx.c: HEARTH, FLUX from GammaWave, BLAST from WRAITH; CRUSH).
+ * They decay as theirs do (no sustain but the WRAITH ones), start a little sharp and settle (the ENV's PITCH), click,
+ * and glide 80..350 ms. dec / rel: P_DEC / P_REL (1 ms .. 10 s); ed: ENV > PITCH; dist: P_DIST with its type (WRAITH's
+ * BLAST folds the sub away: under 8 its DIST blends the dry 808 back in, a clean sub under a dirty copy) */
+typedef struct {
+    const char *name;
+    uint8_t mix, noise, cut, res, edflt, drv[2], dec, sus, rel;
+    int8_t edpit;
+    uint8_t dist[2], dtype, glide;
+    int8_t trim;
+} t808r_t;
+static const t808r_t T808R[10] = {
+    /* name             mix noise cut res edf  drive      dec sus rel pit  dist      type       glide trim */
+    {"CLASSIC THUMP",   0,  8,   62, 10, 30, {60, 80},   98, 0,  82, 4,  {28, 40}, DT_HEARTH, 62, 0},
+    {"CLEAN",           0,  0,   100, 0, 0,  {36, 50},   98, 0,  92, 0,  {0, -1},   DT_SOFT,   62, 0},
+    {"CRUSHED VENOM",   0,  2,   72, 12, 28, {120, 127}, 95, 0,  40, 4,  {70, 86}, DT_CRUSH,  62, -2},
+    {"DEEP SUB",        0,  0,   100, 0, 0,  {44, 60},   88, 0,  82, 8,  {0, 2},   DT_SOFT,   62, 0},
+    {"DISTORTED",       0,  0,   84, 4,  10, {104, 120}, 85, 50, 85, 2,  {56, 70}, DT_FLUX,   64, -1},
+    {"GLIDE KING",      0,  12,  66, 8,  26, {70, 90},   101, 0, 88, 0,  {36, 48}, DT_HEARTH, 76, -1},
+    {"DEEP THUMP",      14, 0,   90, 0,  0,  {64, 84},   91, 0,  70, 3,  {26, 38}, DT_HEARTH, 64, 2},
+    {"SUB GLIDE",       0,  0,   80, 2,  20, {60, 76},   88, 0,  85, 5,  {34, 46}, DT_HEARTH, 80, 2},
+    {"WRAITH SLIDE",    0,  0,   90, 0,  8,  {92, 108},  90, 70, 70, 0,  {3, 5},   DT_BLAST,  78, -3},
+    {"WRAITH DIRTY",    0,  4,   84, 6,  16, {118, 127}, 90, 76, 68, 2,  {5, 7},   DT_BLAST,  78, -3},
+};
+static uint8_t tk_808r;                                 /* this piece's 808 */
+static void trap_808_apply(track_t *t, uint32_t ri)
 {
-    const tflav_t *f = &TFLAV[tk_tf];                  /* (DRIVE 1x .. 3x into a soft clip: the harmonics a phone speaker plays) */
-    trap_preset(t, EG_A, gch(60) ? "INGOT SUB" : "SUB BASS");
+    const t808r_t *c = &T808R[ri % 10u];
+    tk_808r = (uint8_t)(ri % 10u);
+    trap_preset(t, EG_A, "SUB BASS");
     t->p[P_E0] = 3;                                     /* WAVE: SIN */
-    t->p[P_E1] = 0; t->p[P_E2] = 0; t->p[P_E3] = 0;     /* DETUNE MIX NOISE */
-    t->p[P_E4] = (int16_t)grr(100, 127);                /* CUT open */
-    t->p[P_E5] = (int16_t)grr(0, 8);
-    t->p[P_E6] = (int16_t)grr(f->drv[0], f->drv[1]);   /* DRIVE */
-    t->p[P_E7] = 0;                                     /* INT */
+    t->p[P_E1] = 0; t->p[P_E2] = c->mix; t->p[P_E3] = c->noise;   /* DETUNE MIX NOISE (the click) */
+    t->p[P_E4] = c->cut; t->p[P_E5] = c->res;           /* CUT RES */
+    t->p[P_E6] = (int16_t)grr(c->drv[0], c->drv[1]);   /* DRIVE: 1x .. 3x into a soft clip */
+    t->p[P_E7] = 0;
     t->p[P_FTYPE] = 0;
-    t->p[P_ATK] = 0; t->p[P_DEC] = (int16_t)grr(96, 112); t->p[P_SUS] = (int16_t)grr(104, 118);
-    t->p[P_REL] = (int16_t)(gs.ts == TS_RAGE ? grr(30, 45) : grr(40, 60));
-    t->p[P_GLIDE] = (int16_t)(gs.ts == TS_DRILL ? grr(38, 52) : grr(28, 42));
-    t->p[P_VOICE] = V_LEGATO;
-    t->p[P_DIST] = (int16_t)grr(f->dist[0], f->dist[1]);   /* (1.6x .. 5x) */
-    t->p[P_DTYPE] = f->dtype;                           /* (SOFT; rage HARD) */
+    t->p[P_ATK] = 0; t->p[P_DEC] = c->dec; t->p[P_SUS] = c->sus; t->p[P_REL] = c->rel;
+    t->p[P_ED_FLT] = c->edflt; t->p[P_ED_PIT] = c->edpit; t->p[P_ED_SHP] = 0; t->p[P_ELOOP] = 0;
+    t->p[P_GLIDE] = (int16_t)clamp(c->glide + (gs.ts == TS_DRILL ? 4 : 0) + grr(-3, 3), 0, 127);
+    t->p[P_GLMODE] = 1;                                 /* TIME: a slide takes its time whatever the interval */
+    t->p[P_VOICE] = V_LEGATO;                           /* (a new note after a gap: struck again; a slide: held, glided) */
+    t->p[P_DIST] = (int16_t)grr(c->dist[0], c->dist[1]);
+    t->p[P_DTYPE] = c->dtype;
     t->p[P_CHOR] = 0;
     t->p[P_LD_PIT] = t->p[P_LD_FLT] = t->p[P_LD_AMP] = 0;
+}
+/* the 808: a recipe the flavour likes */
+static void trap_808_sound(track_t *t)
+{
+    trap_808_apply(t, gpickw(TFLAV[tk_tf].b808, 10));
 }
 /* a role's sound in the trap family (the hook's) */
 static void trap_sound(track_t *t, uint32_t r)
@@ -626,7 +658,7 @@ static void trap_mix(track_t *t, uint32_t r, uint32_t verse)
     t->p[P_DLY] = 0;
     switch (r) {
     case RL_DRUM: t->p[P_LEVEL] = 112; t->p[P_REV] = (int16_t)grr(4, 10); break;
-    case RL_BASS: t->p[P_LEVEL] = (int16_t)(gs.ts == TS_RAGE ? 102 : 106); t->p[P_REV] = 0; break;
+    case RL_BASS: t->p[P_LEVEL] = (int16_t)clamp((gs.ts == TS_RAGE ? 102 : 106) + T808R[tk_808r].trim, 1, 127); t->p[P_REV] = 0; break;
     case RL_LEAD:
         t->p[P_LEVEL] = (int16_t)(verse ? 90 : gs.ts == TS_RAGE || gs.ts == TS_DARK ? 92 : 98);
         t->p[P_REV] = (int16_t)grr(TFLAV[tk_tf].rev[0], TFLAV[tk_tf].rev[1]); t->p[P_DLY] = (int16_t)(verse ? grr(0, 15) : grr(10, 30));

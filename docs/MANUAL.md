@@ -769,7 +769,9 @@ What the generator knows, per genre (`gen_tables.c`):
   bar's end, triplet bursts and shuffled percussion (on a second DRUM track at 16T when TRACKS is 6), a crash on the
   hook's downbeat, drill's 3-3-2 gallop and late snare, dark trap's cowbell. The bass is an 808, a driven sine (dark
   trap and rage clip it), played as spaced patterns: two to six notes a bar, long and short ones with rests between
-  them, a slide or two into the notes that matter (drill the most), the kick under each note. The
+  them, a slide or two into the notes that matter (drill the most), the kick under each note. Its sound is one of
+  ten recipes ported from GammaWave's and WRAITH's 808s (clean, deep, thumping, gliding, crushed, distorted, WRAITH's
+  slide and dirty ones): they decay rather than hold, start a little sharp, click and glide. The
   melody is a two-bar motif of chord tones — a call, then a short answer whose end stays empty — about 10 dB under
   the drums (bells, keys, a flute; strings and choirs in drill; a saw hook in rage), over a low-passed pad; in the
   hook a counter melody replies in the gap (on TRACKS 4 the melody plays the reply itself). With FORM on SONG it makes the rap layout: intro (4 bars, the melody

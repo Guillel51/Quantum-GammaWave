@@ -167,7 +167,10 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
     open hat at a phrase's turn, drill's 3-3-2 gallop and late snare, dark trap's cowbell.
   - **808**: a pattern bank per style of spaced notes — two to six a bar, long ones and short ones with rests between
     them, a slide or two into the notes that matter (drill the most) — on the chord's root, now and then the octave
-    or the fifth; the verse gets another pattern. A driven sine so a small speaker plays it (dark trap and rage clip it).
+    or the fifth; the verse gets another pattern. Its sound is one of ten 808 recipes ported from GammaWave's factory
+    808s (Classic Thump, Clean, Crushed Venom, Deep Sub, Distorted, Glide King, Deep 808 Thump, Sub Glide 808) and
+    WRAITH's (SLIDE 808, DIRTY 808), on the GW-1's ports of their saturation (HEARTH, FLUX, BLAST in parallel, CRUSH):
+    they decay instead of holding, start a little sharp and settle, click, glide 80–350 ms; each flavour has its own.
   - **Sound**: a short knocking kick, bright high-passed hats. The melody is a two-bar motif (a call, then a short answer whose end stays empty)
     about 10 dB under the drums with little reverb: bells, keys, a flute; strings and choirs in drill; a saw hook
     in rage. A low-passed pad under it; in the hook a counter melody (flute, voice, pluck) replies in the gap. Every

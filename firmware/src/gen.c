@@ -1375,7 +1375,9 @@ static void gen_make(void)
                     }
                 }
                 t->p[P_SLEN] = (int16_t)len;
-                if (gs.trap) { if (r != RL_LEAD && r != RL_ARP) t->p[P_SGATE] = 120; }   /* (the lead's, the counter's: their own) */
+                if (gs.trap) { if (r != RL_LEAD && r != RL_ARP) t->p[P_SGATE] = (int16_t)(r == RL_BASS ? 95 : 120); }   /* (the lead's,
+                                                         * the counter's: their own; the 808 ends before the next step: struck
+                                                         * again, but for its slides) */
                 else if (r == RL_BASS) t->p[P_SGATE] = (int16_t)clamp(g->bass_gate, 1, 127);
                 else if (r == RL_PAD) t->p[P_SGATE] = (int16_t)(g->pads == CS_STAB || g->pads == CS_DUB || g->pads == CS_SKANK || g->pads == CS_BROKEN ? grr(25, 45) :
                                                               g->pads == CS_TRANCE ? 35 : g->pads == CS_COMP ? 60 : 120);

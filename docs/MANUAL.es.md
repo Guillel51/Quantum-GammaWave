@@ -811,7 +811,10 @@ Lo que el generador sabe, por género (`gen_tables.c`):
   cuando TRACKS es 6), un crash en el primer tiempo del hook, el galope 3-3-2 y el redoblante atrasado del drill, el
   cencerro del dark trap. El bajo es un 808, un seno saturado (dark trap y rage lo recortan), tocado en patrones
   espaciados: de dos a seis notas por compás, largas y cortas con silencios entre ellas, un deslizamiento o dos hacia
-  las notas importantes (el drill más que ninguno), el bombo debajo de cada nota. La melodía es un motivo de dos
+  las notas importantes (el drill más que ninguno), el bombo debajo de cada nota. Su sonido es una de diez recetas
+  tomadas de los 808 de GammaWave y de WRAITH (limpio, profundo, golpeado, con glide, aplastado, distorsionado, el
+  slide y el sucio de WRAITH): decaen en vez de sostenerse, arrancan un poco altos, tienen click y glide. La melodía
+  es un motivo de dos
   compases con notas del acorde — una pregunta y una respuesta corta cuyo final queda vacío — unos 10 dB debajo de
   la batería (campanas, teclas, una flauta; cuerdas y coros en el drill; un hook de sierra en el rage), sobre un pad
   filtrado; en el hook una contramelodía responde en el hueco (con TRACKS 4 la melodía toca la respuesta). Con FORM en SONG arma la forma del rap: intro (4
