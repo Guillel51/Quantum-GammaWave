@@ -269,21 +269,16 @@ static void gw_draw_wraith_ribbon(const track_t *t, int32_t x0, int32_t y0, int3
     static const uint8_t CHAR_HEAT[6]  = {36, 68, 128, 96, 176, 232};
     uint32_t eng = t->eng_req % NENGINES;
     int is_voice = str_eq(ENGINES[eng]->name, "VOICE");
+    int is_drum = str_eq(ENGINES[eng]->name, "DRUM");
     int is_vowel = is_voice || (t->p[P_FTYPE] >= FT_VOWEL);
     int32_t nb = is_vowel ? 5 : 6, bw = w / nb, i;
-    const char *lb;
-    int32_t k0 = bg_knob(0, &lb), khot = ui.hot_t ? bg_knob(ui.hot_col & 3u, &lb) : -1;
     int32_t cut = gw_trk_cut(t);
     int32_t lfo_mod = (t->p[P_LD_FLT] * mulq15(t->lfo_val, t->lfo_fade)) >> 14;
     int32_t morph = cut;
-    if (khot >= 0) {
-        morph = khot >> 1;
-    } else if (is_voice) {
+    if (is_voice) {
         int32_t v0 = t->p[P_E0], talk = (t->p[P_E2] > 0 && bg_energy() > 8) ? ((bg_sin(ui.frame * 900u) + 32768) >> 9) : 0;
         morph = v0 + (((t->p[P_E1] - v0) * talk) >> 7);
-    } else if (!is_vowel && cur_page()->id[0] == P_E0 && k0 >= 0) {
-        morph = (k0 >> 1) + (t->p[P_MORPH] >> 2);
-    } else if (!is_vowel && cur_page()->id[0] == P_MORPH) {
+    } else if (is_drum) {
         morph = t->p[P_MORPH];
     }
     morph = clamp(morph + lfo_mod, 0, 127);
