@@ -190,6 +190,7 @@
     gap: 10px;
     margin: 16px 0;
   }
+  [hidden] { display: none !important; }
   .nav-btn {
     display: inline-block;
     text-decoration: none;
@@ -265,7 +266,7 @@
     <div class="nav-links">
       <a class="nav-btn" href="../editor/" data-t="editor"></a>
       <a class="nav-btn" href="../editor/?mock=1" data-t="editorMock"></a>
-      <a class="nav-btn" href="../../firmware/FM-1.fwsc" download="FM-1.fwsc">📥 FM-1.fwsc (Official V15)</a>
+      <a class="nav-btn" id="nav-stock" href="../../firmware/FM-1.fwsc" download="FM-1.fwsc" data-t="navStock" hidden></a>
       <a class="nav-btn" href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,#ffb800,#ff5500);color:#050608;border-color:#ffb800;font-weight:800">🔥 BUY GAMMAWAVE VST (PC/Mac) ↗</a>
       <a class="nav-btn" href="https://gammawaveaudio.com/" target="_blank" rel="noopener">🌐 GAMMAWAVEAUDIO.COM ↗</a>
     </div>
@@ -376,17 +377,18 @@
 
     <details id="stock" open style="margin-top:20px;border-top:1px solid var(--border);padding-top:12px">
       <summary style="cursor:pointer;color:var(--accent);font-weight:600" data-t="stockTitle"></summary>
-      <p id="stock-preload-badge" class="small" style="margin-top:8px;color:#48f098;font-weight:600">✓ FM-1.fwsc (Officiel V15 — 699 956 octets, SHA-256 vérifié) est déjà inclus et préchargé !</p>
+      <!-- (shown only once the bundled FM-1.fwsc was fetched and verified: a site built without it has no copy) -->
+      <p id="stock-preload-badge" class="small" style="margin-top:8px;color:#48f098;font-weight:600" data-t="stockPreload" hidden></p>
       <p class="small" style="margin-top:6px">
-        <a href="../../firmware/FM-1.fwsc" download="FM-1.fwsc" style="color:var(--theme);font-weight:600">📥 Télécharger FM-1.fwsc (Officiel V15 local)</a> ·
-        <a href="https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc" target="_blank" rel="noopener" style="color:var(--accent)">Miroir Cloud M-VAVE V15</a>
+        <span id="stock-local" hidden><a href="../../firmware/FM-1.fwsc" download="FM-1.fwsc" style="color:var(--theme);font-weight:600" data-t="stockLocal"></a> ·</span>
+        <a href="https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc" target="_blank" rel="noopener" style="color:var(--accent)" data-t="stockMirror"></a>
       </p>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0">
-        <button id="stock-direct" disabled>⚡ Flasher V15 Officiel Directement (depuis autre firmware)</button>
+        <button id="stock-direct" disabled data-t="stockDirect"></button>
         <button id="stock-go" class="secondary" disabled data-t="stockGo"></button>
       </div>
       <p class="small" data-t="stockBackup"></p>
-      <p class="small"><label><span data-t="stockFile"></span> (optionnel, déjà préchargé) : <input id="stock-file" type="file" accept=".fwsc"></label></p>
+      <p class="small"><label><span data-t="stockFile"></span><span id="stock-file-pre" hidden> <span data-t="stockOptional"></span></span>: <input id="stock-file" type="file" accept=".fwsc"></label></p>
       <p class="small"><label><input id="stock-recovery" type="checkbox"> <span data-t="stockRecovery"></span></label></p>
     </details>
   </section>
@@ -440,6 +442,9 @@ const TEXT = {
     beta: "GAMMAWAVE // WRAITH FM-1 est distribué sous licence GPL-3.0 sans garantie. Utilisez-le sous votre propre responsabilité.",
     back: "Téléchargez le fichier officiel FM-1 V15 (FM-1.fwsc) chez M-VAVE. La validation se fait localement dans votre navigateur.",
     stockTitle: "Retourner au firmware officiel V15 (avec sauvegarde complète)", stockFile: "Fichier officiel FM-1.fwsc", stockGo: "Sauvegarder et restaurer V15 officiel",
+    stockPreload: "✓ FM-1.fwsc (officiel V15, vérifié) est inclus sur ce site et déjà préchargé.", stockLocal: "📥 Télécharger FM-1.fwsc (officiel V15, copie de ce site)",
+    stockMirror: "Miroir cloud M-VAVE V15", stockDirect: "⚡ Flasher directement le V15 officiel (depuis un autre firmware)",
+    stockOptional: "(optionnel, déjà préchargé)", navStock: "📥 FM-1.fwsc (officiel V15)",
     stockBackup: "Sauvegarde automatiquement vos morceaux, banques et réglages sur votre PC avant de restaurer le V15 officiel.",
     stockRecovery: "Reprendre une mise à jour interrompue (sauvegarde déjà effectuée)",
     stockValid: "Firmware officiel V15 vérifié ✓", stockConfirm: "La sauvegarde complète a-t-elle bien été enregistrée ? Continuer vers le firmware officiel V15 ?",
@@ -485,6 +490,9 @@ const TEXT = {
     beta: "GAMMAWAVE // WRAITH FM-1 is a custom firmware release (GPL-3.0). Use it at your own risk.",
     back: "Get official FM-1 V15 from M-VAVE and select the unmodified FM-1.fwsc. Validated locally in your browser.",
     stockTitle: "Return to official V15", stockFile: "Official FM-1.fwsc", stockGo: "Back up and return to official V15",
+    stockPreload: "✓ FM-1.fwsc (official V15, verified) is bundled with this site and already preloaded.", stockLocal: "📥 Download FM-1.fwsc (official V15, this site's copy)",
+    stockMirror: "M-VAVE V15 cloud mirror", stockDirect: "⚡ Flash official V15 directly (from another firmware)",
+    stockOptional: "(optional, already preloaded)", navStock: "📥 FM-1.fwsc (Official V15)",
     stockBackup: "Current music, saved music, sound banks and settings are backed up first.",
     stockRecovery: "Resume an interrupted update: I already saved a complete backup to this computer",
     stockValid: "Official V15 verified ✓", stockConfirm: "Has the complete backup file been saved to this computer? Continue to return to official V15.",
@@ -530,6 +538,9 @@ const TEXT = {
     beta: "GAMMAWAVE // WRAITH FM-1 は GPL-3.0 のカスタムファームウェアです。自己責任でお使いください。",
     back: "M-VAVEから公式FM-1 V15を取得し、FM-1.fwscを選んでください。",
     stockTitle: "公式V15に戻す", stockFile: "公式FM-1.fwsc", stockGo: "バックアップして公式V15へ戻す",
+    stockPreload: "✓ FM-1.fwsc（公式V15・確認済み）はこのサイトに含まれ、読み込み済みです。", stockLocal: "📥 FM-1.fwsc をダウンロード（公式V15・このサイトのコピー）",
+    stockMirror: "M-VAVE V15 クラウドミラー", stockDirect: "⚡ 公式V15を直接書き込む（他のファームウェアから）",
+    stockOptional: "（任意・読み込み済み）", navStock: "📥 FM-1.fwsc（公式V15）",
     stockBackup: "現在の曲・音色バンク・設定を先にパソコンへ保存します。",
     stockRecovery: "更新中断の再開：全体バックアップはすでにパソコンへ保存済み",
     stockValid: "公式V15を確認しました ✓", stockConfirm: "全体バックアップファイルを保存しましたか？ 続けると公式V15へ戻します。",
@@ -622,6 +633,8 @@ $("ver").addEventListener("change", () => { if (!writing) loadVersion(+$("ver").
       const sbytes = new Uint8Array(await sr.arrayBuffer());
       stock = await validateStockPackage(sbytes);
       lockInstaller(writing);
+      /* only now is there a copy to offer (the CI-built site has none: the links stay hidden, no 404) */
+      for (const id of ["stock-preload-badge", "stock-local", "stock-file-pre", "nav-stock"]) $(id).hidden = false;
     }
   } catch (_) {}
 })();

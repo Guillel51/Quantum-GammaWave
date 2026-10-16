@@ -294,6 +294,10 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
   }
   @media (max-width: 760px) { .gw-deck { grid-template-columns: 1fr; justify-items: center; } }
+  /* (phones) the console's controls shrink to the column: long selects (GW PRESET, GENRE) never widen the page */
+  .gw-deck > * { min-width: 0; max-width: 100%; }
+  .gw-console select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+  .gw-console .bar { flex-wrap: wrap; }
   .gw-bezel {
     background: #040507; border: 2px solid #262b3d; border-radius: 8px;
     padding: 10px 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -307,7 +311,7 @@
   #gw-lcd {
     width: 240px; height: 240px; image-rendering: pixelated;
     background: #060609; border: 1px solid #1f2433;
-    cursor: pointer;
+    cursor: pointer; touch-action: none;
   }
   .gw-console {
     display: flex; flex-direction: column; justify-content: space-between; gap: 8px; min-width: 0; width: 100%;
@@ -412,63 +416,63 @@
               <optgroup label="🔥 POCKET GAMMAWAVE / WRAITH &amp; TRAP / DRILL">
                 <option value="1" selected>1. GAMMAWAVE (Solar Industrial)</option>
                 <option value="2">2. WRAITHWAVE (Spectral Witch)</option>
-                <option value="46">46. TRAP ATL (Atlanta 808 + Hat Rolls)</option>
-                <option value="47">47. UK DRILL (3-3-2 Hats + Sliding 808s)</option>
-                <option value="48">48. DARK TRAP / PHONK (Memphis Cowbell)</option>
-                <option value="49">49. RAGE TRAP (Opium / Hyper-Saw 808)</option>
+                <option value="3">3. TRAP ATL (Atlanta 808 + Hat Rolls)</option>
+                <option value="4">4. UK DRILL (3-3-2 Hats + Sliding 808s)</option>
+                <option value="5">5. DARK TRAP / PHONK (Memphis Cowbell)</option>
+                <option value="6">6. RAGE TRAP (Opium / Hyper-Saw 808)</option>
               </optgroup>
               <optgroup label="🏠 HOUSE &amp; TECHNO">
-                <option value="3">3. HOUSE</option>
-                <option value="4">4. DEEP HOUSE</option>
-                <option value="5">5. MICRO HOUSE</option>
-                <option value="6">6. TECH HOUSE</option>
-                <option value="7">7. ACID HOUSE (TB-303 Rules)</option>
-                <option value="8">8. TECHNO</option>
-                <option value="9">9. DETROIT</option>
-                <option value="10">10. DUB TECHNO</option>
-                <option value="11">11. HARD TECHNO</option>
-                <option value="12">12. HYPNOTIC</option>
-                <option value="13">13. TRANCE</option>
+                <option value="7">7. HOUSE</option>
+                <option value="8">8. DEEP HOUSE</option>
+                <option value="9">9. MICRO HOUSE</option>
+                <option value="10">10. TECH HOUSE</option>
+                <option value="11">11. ACID HOUSE (TB-303 Rules)</option>
+                <option value="12">12. TECHNO</option>
+                <option value="13">13. DETROIT</option>
+                <option value="14">14. DUB TECHNO</option>
+                <option value="15">15. HARD TECHNO</option>
+                <option value="16">16. HYPNOTIC</option>
+                <option value="17">17. TRANCE</option>
               </optgroup>
               <optgroup label="⚡ ELECTRO, EBM, WAVE &amp; POST-PUNK">
-                <option value="14">14. ELECTRO</option>
-                <option value="15">15. EBM (Nitzer Ebb)</option>
-                <option value="16">16. ITALO</option>
-                <option value="17">17. SYNTH POP</option>
-                <option value="18">18. DARKWAVE</option>
-                <option value="19">19. POST PUNK (Joy Div / New Order)</option>
-                <option value="20">20. TRIBAL PUNK</option>
-                <option value="21">21. MINIMAL SYNTH (Suicide)</option>
-                <option value="22">22. MAN MACHINE (Kraftwerk)</option>
+                <option value="18">18. ELECTRO</option>
+                <option value="19">19. EBM (Nitzer Ebb)</option>
+                <option value="20">20. ITALO</option>
+                <option value="21">21. SYNTH POP</option>
+                <option value="22">22. DARKWAVE</option>
+                <option value="23">23. POST PUNK (Joy Div / New Order)</option>
+                <option value="24">24. TRIBAL PUNK</option>
+                <option value="25">25. MINIMAL SYNTH (Suicide)</option>
+                <option value="26">26. MAN MACHINE (Kraftwerk)</option>
               </optgroup>
               <optgroup label="🎸 KRAUT, INDIE, SHOEGAZE &amp; POST-ROCK">
-                <option value="23">23. MOTORIK</option>
-                <option value="24">24. INDIE</option>
-                <option value="25">25. SHOEGAZE</option>
-                <option value="26">26. POST ROCK (Radiohead)</option>
+                <option value="27">27. MOTORIK</option>
+                <option value="28">28. INDIE</option>
+                <option value="29">29. SHOEGAZE</option>
+                <option value="30">30. POST ROCK (Radiohead)</option>
               </optgroup>
               <optgroup label="🥁 FUNK, HIP-HOP, UK BASS &amp; DNB">
-                <option value="27">27. FUNK (Jamerson)</option>
-                <option value="28">28. DISCO</option>
-                <option value="29">29. BOOM BAP</option>
-                <option value="30">30. TRAP (808)</option>
-                <option value="31">31. UK GARAGE</option>
-                <option value="32">32. DUBSTEP (Wobble)</option>
-                <option value="33">33. BREAKS</option>
-                <option value="34">34. DRUM &amp; BASS</option>
+                <option value="31">31. FUNK (Jamerson)</option>
+                <option value="32">32. DISCO</option>
+                <option value="33">33. BOOM BAP</option>
+                <option value="34">34. TRAP (808)</option>
+                <option value="35">35. UK GARAGE</option>
+                <option value="36">36. DUBSTEP (Wobble)</option>
+                <option value="37">37. BREAKS</option>
+                <option value="38">38. DRUM &amp; BASS</option>
               </optgroup>
               <optgroup label="🌴 DUB, JAZZ, AMBIENT &amp; IDM">
-                <option value="35">35. DUB</option>
-                <option value="36">36. STEPPERS</option>
-                <option value="37">37. JAZZ</option>
-                <option value="38">38. BOSSA</option>
-                <option value="39">39. AFROBEAT</option>
-                <option value="40">40. AMBIENT</option>
-                <option value="41">41. NEO CLASSIC</option>
-                <option value="42">42. IMPRESSION</option>
-                <option value="43">43. SOUNDTRACK</option>
-                <option value="44">44. IDM (Euclidean)</option>
-                <option value="45">45. BROKEN</option>
+                <option value="39">39. DUB</option>
+                <option value="40">40. STEPPERS</option>
+                <option value="41">41. JAZZ</option>
+                <option value="42">42. BOSSA</option>
+                <option value="43">43. AFROBEAT</option>
+                <option value="44">44. AMBIENT</option>
+                <option value="45">45. NEO CLASSIC</option>
+                <option value="46">46. IMPRESSION</option>
+                <option value="47">47. SOUNDTRACK</option>
+                <option value="48">48. IDM (Euclidean)</option>
+                <option value="49">49. BROKEN</option>
               </optgroup>
             </select>
           </label>
@@ -2124,9 +2128,10 @@ function makeMockDevice(opt = {}) {
     slots: [null, null, null, null], songRows: [], chainPlaying: false, chainRow: 0, chainRemaining: 0,
     bank: new Array(opt.slots || 32).fill(null),     /* user presets: {engine, name, p, pattern, grid, fm6 (FM6: its patch)} */
     uiCaps: opt.legacy || opt.v3 || opt.v5 ? 0 : opt.uiCaps ?? 9,
-    palette: 1, font: 0, monitor: 0, filter: 0, bankSig: 0,
+    palette: 11, font: 0, monitor: 0, filter: 0, bankSig: 0,   /* (GAMMAWAVE) GAMMA, the firmware's default (UI_GAMMA_INDEX) */
     vbank: { valid: false, name: "", voices: new Array(32).fill(null) }, vtx: null,   /* (0.6.11) FM6's voice bank */
-    palettes: ["THERMAL", "GAMMA", "WRAITH", "GREY", "GREEN", "AMBER", "ICE", "VIOLET", "ROSE", "PAPER", "HI-CON", "NIGHT", "MONO"],
+    /* firmware/src/ui_palettes.h order: GREY .. MONO 0..9, THERMAL 10, GAMMA 11, WRAITH 12 */
+    palettes: ["GREY", "GREEN", "AMBER", "ICE", "VIOLET", "ROSE", "PAPER", "HI-CON", "NIGHT", "MONO", "THERMAL", "GAMMA", "WRAITH"],
     favorites: Array.from({ length: ENG.length + 1 }, () => []),
     watch: false, v4: false, lastReq: 0,
   };
@@ -2816,7 +2821,7 @@ const TEXT = {
     fm6OtherMaker: "別のメーカーの SysEx です", fm6Universal: "音色ではない汎用 SysEx です",
     fm6Factories: "ファクトリー音色",
     fm6NeedDevice: "FM-1 を接続すると 6-OP FM の音色を編集してトラックへ送れます。",
-    fm6NoFw: "このファームウェアには 6-OP FM（FM6）がありません。Felucca 1.0 以降に更新すると使えます。",
+    fm6NoFw: "このファームウェアには 6-OP FM（FM6）がありません。Pocket GammaWave の最新ファームウェアに更新すると使えます。",
     motion: "オートメーション", motionOn: "再生", motionClear: "オートメーションを消去", motionConfirm: "選択トラックのオートメーションを消しますか？", chance: "確率 %", ratchet: "ラチェット", motionStep: "ステップ", motionParam: "パラメーター", motionValue: "値",
     backupTitle: "全体バックアップ", backupExport: "バックアップ保存", backupImport: "バックアップ復元", backupHelp: "現在の曲・A〜D・音色バンク・設定を、このパソコンへ保存。", backupOld: "全体バックアップには対応版への更新が必要です。", backupConfirm: "全体バックアップを復元しますか？ 現在の曲と保存データを置き換えます。USBを抜かないでください。", backupWorking: "バックアップ処理中 ", backupDone: "バックアップを保存しました", backupRestored: "全体バックアップを復元しました",
     deviceDisplay: "本体の画面",
@@ -2852,9 +2857,9 @@ const TEXT = {
     foot: "Chrome か Edge で使えます。", iconsCredit: "アイコン: Fukiai（MIT）Hügelton Instruments",
     nomidi: "このブラウザでは使えません。Chrome か Edge で開いてください。",
     denied: "MIDI（SysEx）の使用が許可されませんでした。",
-    nodevice: "Felucca が見つかりません。USB で接続して、もう一度押してください。",
+    nodevice: "Pocket GammaWave が見つかりません。USB で接続して、もう一度押してください。",
     connecting: "接続中", reading: "読み込み中 ", steploading: "ステップを読み込み中 ",
-    ready: "接続しました", disconnected: "切断されました", lost: "Felucca が外されました",
+    ready: "接続しました", disconnected: "切断されました", lost: "Pocket GammaWave が外されました",
     noreply: "応答がありません", error: "エラー: ", busy: "処理中",
     applying: "書き込み中 ", applied: "読み込みました", badfile: "ファイルを読み込めません: ",
     savedSlot: "保存しました: スロット ", loadedSlot: "読み込みました: スロット ", emptySlot: "空のスロットです: ",
@@ -2883,7 +2888,7 @@ const TEXT = {
     putDone: "本体に書き込みました: スロット ", storedSlot: "本体に保存しました: スロット ", erasedSlot: "消去しました: スロット ",
     loadedUser: "音色を読み込みました（シーケンスはそのまま。パターンは本体の SEQ > PHRASES から。SAVE 長押しで元に戻せます）: ", reloaded: "本体で音色が変わったので読み直しました", readingBank: "スロットを読み込み中",
     badEngine: "このファームウェアにないエンジンです: ", flashFail: "書き込みに失敗しました（rc {rc}）",
-    installer: "Felucca インストーラー",
+    installer: "Pocket GammaWave インストーラー",
     tabSeq: "シーケンサー", tabTracks: "トラック", tabSettings: "設定",
     needDevice: "FM-1 を接続すると編集できます。",
     bankConnect: "FM-1 を接続すると本体のユーザープリセットも扱えます。", bankNone: "このファームウェアにはユーザープリセットがありません。",
@@ -2913,7 +2918,7 @@ const TEXT = {
     fm6OtherMaker: "SysEx from another manufacturer", fm6Universal: "Universal SysEx, not voice data",
     fm6Factories: "Factory patch",
     fm6NeedDevice: "Connect the FM-1 to edit 6-OP FM voices and send them to a track.",
-    fm6NoFw: "This firmware has no 6-OP FM (FM6). Update to Felucca 1.0 or later to use it.",
+    fm6NoFw: "This firmware has no 6-OP FM (FM6). Update to the latest Pocket GammaWave firmware to use it.",
     motion: "Automation", motionOn: "Play automation", motionClear: "Clear automation", motionConfirm: "Clear this track's automation?", chance: "Chance %", ratchet: "Ratchet", motionStep: "Step", motionParam: "Parameter", motionValue: "Value",
     backupTitle: "Complete backup", backupExport: "Save backup", backupImport: "Restore backup", backupHelp: "Save the current music, A–D, sound banks and settings to this computer.", backupOld: "Complete backups need firmware with archive support.", backupConfirm: "Restore this complete backup? Current music and saved data will be replaced. Keep USB connected.", backupWorking: "Backing up / restoring ", backupDone: "Backup saved", backupRestored: "Complete backup restored",
     deviceDisplay: "Device display",
@@ -2949,9 +2954,9 @@ const TEXT = {
     foot: "Works in Chrome or Edge.", iconsCredit: "Icons: Fukiai (MIT), Hügelton Instruments",
     nomidi: "This browser cannot do it. Open the page in Chrome or Edge.",
     denied: "MIDI (SysEx) access was not allowed.",
-    nodevice: "Felucca not found. Connect it by USB and press Connect again.",
+    nodevice: "Pocket GammaWave not found. Connect it by USB and press Connect again.",
     connecting: "Connecting", reading: "Reading ", steploading: "Reading steps ",
-    ready: "Connected", disconnected: "Disconnected", lost: "Felucca was unplugged",
+    ready: "Connected", disconnected: "Disconnected", lost: "Pocket GammaWave was unplugged",
     noreply: "No reply from the device", error: "Error: ", busy: "Busy",
     applying: "Writing ", applied: "Loaded", badfile: "Cannot read the file: ",
     savedSlot: "Saved to slot ", loadedSlot: "Loaded slot ", emptySlot: "Empty slot: ",
@@ -2980,7 +2985,7 @@ const TEXT = {
     putDone: "Written to the device: slot ", storedSlot: "Stored on the device: slot ", erasedSlot: "Erased slot ",
     loadedUser: "Sound loaded (the sequence stays; its pattern is on the device under SEQ > PHRASES; hold SAVE to undo): ", reloaded: "The sound changed on the device: read again", readingBank: "Reading the slots",
     badEngine: "This firmware has no such engine: ", flashFail: "Write failed (rc {rc})",
-    installer: "Felucca installer",
+    installer: "Pocket GammaWave installer",
     tabSeq: "Sequencer", tabTracks: "Tracks", tabSettings: "Settings",
     needDevice: "Connect the FM-1 to edit.",
     bankConnect: "Connect the FM-1 to see its user presets too.", bankNone: "This firmware has no user presets.",
@@ -3075,9 +3080,20 @@ window.addEventListener("hashchange", () => { const h = location.hash.slice(1); 
 
 const QS = new URLSearchParams(location.search);
 let MOCK = QS.get("mock") === "1";
+const MOCK_QS = MOCK;  /* ?mock=1: the simulator for the whole visit */
 $("mock").hidden = !MOCK;
 let mock = null;
-
+/* the simulator on or off (SIMULATE button; Connect leaves it again unless ?mock=1, so a real FM-1 can be
+   connected afterwards without a reload) */
+function setMock(on) {
+  if (MOCK === on) return;
+  MOCK = on;
+  access = null;
+  mock = null;
+  $("mock").hidden = !on;
+  const sim = $("gw-sim-btn");
+  if (sim) sim.textContent = on ? "⚡ SIMULATING GW-1 (ACTIVE)" : "⚡ SIMULATE GW-1";
+}
 /* -------------------------------------------------------------- state --- */
 let access = null;     /* MIDIAccess */
 let dev = null;        /* {link, input, output, info, pdesc[], gdesc[], names[][], dump, steps[], slotUsed[],
@@ -3253,7 +3269,8 @@ async function load(d) {
   try {
     /* the first frame after opening the port can be lost: a few tries */
     d.info = parse[CMD.INFO](await sessionRequest(d, req.info(), { timeout: 500, retries: 3 }));
-    $("version").textContent = d.info.version;
+    /* shown as Pocket GammaWave; the firmware still reports "FELUCCA <version>" (INFO; the installer's check needs it) */
+    $("version").textContent = String(d.info.version || "").replace(/^FELUCCA\b/i, "POCKET GAMMAWAVE");
     const total = d.info.pcount + d.info.gcount;
     for (let i = 0; i < d.info.pcount; i++) { sayK("reading", `${i + 1}/${total}`); d.pdesc[i] = await getDescOrNull(0, i, d); }
     for (let i = 0; i < d.info.gcount; i++) { sayK("reading", `${d.info.pcount + i + 1}/${total}`); d.gdesc[i] = await getDescOrNull(1, i, d); }
@@ -4457,7 +4474,8 @@ function fillSelect(sel, opts) {
   if (opts.some(([val]) => val === v)) sel.value = v;
 }
 function renderLib() {
-  const all = [...new Set([...(dev ? dev.info.engines : libMeta.engines || []), ...lib.map((p) => p.engineName).filter(Boolean)])];
+  /* (dev?.info?.engines: a connect started during the page load has no INFO yet) */
+  const all = [...new Set([...(dev?.info?.engines || libMeta.engines || []), ...lib.map((p) => p.engineName).filter(Boolean)])];
   const engs = engineOrder(all).map((i) => all[i]);
   fillSelect($("libeng"), [["", t("allEngines")], ...engs.map((e) => [e, e])]);
   const tags = [...new Set(lib.flatMap((p) => p.tags))].sort();
@@ -4910,7 +4928,9 @@ function downloadBytes(name, bytes) {
 $("fm6export").addEventListener("click", () => downloadBytes(`${fileSlug(FM6.name(fm6v))}.syx`, FM6.singleSysex(fm6v)));
 
 $("connect").addEventListener("click", () => {
-  if (dev) { wantConnected = false; disconnect(); } else connect();
+  if (!MOCK_QS) setMock(false);
+  if (dev) { wantConnected = false; disconnect(); }
+  else connect();   /* Connect is the real FM-1 (SIMULATE is the simulator) */
 });
 
 /* ------------------------------------------- POCKET GAMMAWAVE // GW-1 LIVE 240x240 LCD, DEMO SONGS & .WAV TAPE --- */
@@ -5101,7 +5121,9 @@ $("connect").addEventListener("click", () => {
       tapeLanes[l].layers = [{
         role: pid,
         label: pr.label,
-        steps: sources[l].slice()
+        steps: sources[l].slice(),
+        part: l,                              /* the song's own part (MUTATE follows it) */
+        kit: l === 3 ? song.kit || null : null
       }];
       tapeLanes[l].muted = false;
       tapeLanes[l].label = pr.label;
@@ -5196,26 +5218,47 @@ $("connect").addEventListener("click", () => {
     }
   }
 
+  /* Parameter ids of the selected track (firmware/src/core.h P_* / G_* enums; params.c names). Older layouts are a
+   * prefix of today's (common parameters are only ever added just before P_E0), so an id below INFO's pe0 is the
+   * same parameter; ANALOG's own cutoff / resonance are its EDIT E4 / E5 (ui_being.c gw_trk_cut / gw_trk_res) */
+  const GWP = { ATK: 1, REL: 4, SLEN: 29, DIST: 33, DTYPE: 91, FTYPE: 112, FCUT: 113, FRES: 114 };
+  const GWG = { PUNCH: 25, DUCK: 26 };
+  const GW_DTYPES = ["SOFT", "HARD", "FOLD", "CRUSH", "RECT", "HEARTH", "BLAST", "PLASMA", "FLUX"];   /* N_DTYPE (fx.c DT_*) */
+  const GW_FTYPES = ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"];                                  /* N_FTYPE (eng_analog.c FT_*) */
+  const gwLive = () => !!(dev && dev.info && dev.dump && dev.dump.p);
+  const gwHasP = (id) => gwLive() && id < dev.info.pe0 && id < dev.dump.p.length;
+  const gwAnalog = () => engName() === "ANALOG";
+  const gwCutId = () => (gwAnalog() ? dev.info.pe0 + 4 : GWP.FCUT);   /* the cutoff the device's Wraith ribbon shows */
+  const gwResId = () => (gwAnalog() ? dev.info.pe0 + 5 : GWP.FRES);
+  /* without a device the deck keeps its own copy (macros, ribbon) so the telemetry still follows */
+  const gwLocal = { dtype: 5, dist: 72, ftype: 0, cut: 68, res: 64 };
+  /* writes one parameter to the connected device (real or SIMULATE) the editor's way: dump, control and SET */
+  function gwSet(scope, id, val) {
+    if (!gwLive() || id >= (scope ? Math.min(dev.info.gcount, dev.dump.g.length) : Math.min(dev.info.pcount, dev.dump.p.length))) return;
+    const d = scope ? dev.gdesc[id] : dev.pdesc[id];
+    const v = d ? Math.max(d.min, Math.min(d.max, Math.round(val))) : Math.round(val);
+    userSet(scope, id, v, true);
+  }
+
   function getActiveState() {
     const trkIdx = (dev && dev.sel != null) ? dev.sel : 0;
     const eng = engName() || "ANALOG";
-    const p = (dev && dev.dump && dev.dump.p) ? dev.dump.p : null;
+    const p = gwLive() ? dev.dump.p : null;
     const pSel = $("preset");
     const presetName = (pSel && pSel.options[pSel.selectedIndex]) ? pSel.options[pSel.selectedIndex].text : "SOLAR BASS";
-    const cut = p ? (p[9] ?? 78) : 78;
-    const res = p ? (p[10] ?? 84) : 84;
-    const drv = p ? (p[33] ?? 72) : 72;
-    const fltType = p ? (p[11] ?? 3) : 3;
-    const distType = p ? (p[91] ?? 14) : 14;
-    const DT_NAMES = ["SOFT", "HARD", "FOLD", "RECT", "FUZZ", "TAPE", "TUBE", "ASYM", "SCRM", "CRSH", "DOWNS", "RING", "DECIM", "BIT4", "GRAVITY", "SINGULARITY", "PHOTOSPHERE", "FLUX"];
-    const FT_NAMES = ["LADDER LP", "HIGHPASS", "BANDPASS", "FORMANT", "SCREAM"];
+    const pv = (id, local) => (p && id < p.length && p[id] != null ? p[id] : local);
+    const cut = p ? pv(gwCutId(), gwLocal.cut) : gwLocal.cut;
+    const res = p ? pv(gwResId(), gwLocal.res) : gwLocal.res;
+    const drv = pv(GWP.DIST, gwLocal.dist);
+    const fltType = p && gwHasP(GWP.FTYPE) ? p[GWP.FTYPE] : gwLocal.ftype;
+    const distType = p && gwHasP(GWP.DTYPE) ? p[GWP.DTYPE] : gwLocal.dtype;
     return {
       trkIdx, eng, presetName: presetName.replace(/^\d+\s*/, "").slice(0, 12) || "SOLAR BASS",
       cut, res, drv,
-      atk: p ? (p[1] ?? 18) : 18,
-      rel: p ? (p[4] ?? 54) : 54,
-      distName: DT_NAMES[distType] || "GRAVITY",
-      fltName: FT_NAMES[fltType] || "FORMANT"
+      atk: pv(GWP.ATK, 18),
+      rel: pv(GWP.REL, 54),
+      distName: GW_DTYPES[distType] || "SOFT",
+      fltName: GW_FTYPES[fltType] || "LP"
     };
   }
 
@@ -5752,17 +5795,14 @@ $("connect").addEventListener("click", () => {
     }
   }
 
-  async function setWraithPos(val, switchToWaves = false) {
+  /* the ribbon is the track's cutoff, as on the device (ui_being.c gw_draw_wraith_ribbon: ANALOG's E4, else P_FCUT) */
+  function setWraithPos(val, switchToWaves = false, send = true) {
     wraithPos = Math.max(0, Math.min(127, Math.round(Number(val) || 0)));
     if ($("gw-wraith-bar")) $("gw-wraith-bar").value = wraithPos;
     if (switchToWaves) lcdMode = "core";
     updateWraithMutateLabel();
-    if (dev && dev.dump && dev.dump.p) {
-      dev.dump.p[9] = wraithPos; /* Cutoff / Wraith Morph */
-      const c = ctl.get(key(0, 9));
-      if (c) { c.input.value = wraithPos; c.out.textContent = fmtVal(c.desc, wraithPos); }
-      try { await sessionRequest(dev, req.set(0, 9, wraithPos)); } catch (e) { /* ignore */ }
-    }
+    gwLocal.cut = wraithPos;
+    if (send && gwLive() && (gwAnalog() || gwHasP(GWP.FCUT))) gwSet(0, gwCutId(), wraithPos);
   }
 
   let draggingWraithCanvas = false;
@@ -5778,16 +5818,22 @@ $("connect").addEventListener("click", () => {
     }
     return false;
   }
-  cv.addEventListener("mousedown", (ev) => {
+  /* pointer events: mouse, pen and touch (the ribbon band keeps the page from scrolling while dragged) */
+  cv.addEventListener("pointerdown", (ev) => {
     if (handleCanvasWraithPointer(ev)) {
       draggingWraithCanvas = true;
+      try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* not capturable */ }
+      ev.preventDefault();
       ev.stopPropagation();
     }
   });
-  window.addEventListener("mousemove", (ev) => {
-    if (draggingWraithCanvas) handleCanvasWraithPointer(ev);
+  cv.addEventListener("pointermove", (ev) => {
+    if (draggingWraithCanvas) { ev.preventDefault(); handleCanvasWraithPointer(ev); }
   });
-  window.addEventListener("mouseup", () => { draggingWraithCanvas = false; });
+  const endWraithDrag = () => { draggingWraithCanvas = false; };
+  cv.addEventListener("pointerup", endWraithDrag);
+  cv.addEventListener("pointercancel", endWraithDrag);
+  window.addEventListener("pointerup", endWraithDrag);
 
   cv.addEventListener("click", (ev) => {
     if (handleCanvasWraithPointer(ev)) return;
@@ -5821,10 +5867,7 @@ $("connect").addEventListener("click", () => {
   });
   $("gw-sim-btn").addEventListener("click", async () => {
     if (dev) { wantConnected = false; disconnect(); }
-    MOCK = true;
-    access = null;
-    $("mock").hidden = false;
-    $("gw-sim-btn").textContent = "⚡ SIMULATING GW-1 (ACTIVE)";
+    setMock(true);
     await connect();
   });
 
@@ -5879,13 +5922,17 @@ $("connect").addEventListener("click", () => {
         s.drum[i] = base.drum[i];
       }
     }
-    /* Sync mutated bass, arp, pad, and drum directly into active Tape Lanes (T1..T4) so changes are heard immediately! */
+    /* Sync the mutated parts into the tape layers that hold the song's own material (part: 0 bass, 1 arp, 2 pad,
+     * 3 drum; loadSongIntoTapeLanes), wherever a BOUNCE moved them; DUMPed takes (no part) stay as recorded */
     const roleArrays = [s.bass, s.arp, s.pad, s.drum];
     for (let l = 0; l < 4; l++) {
-      if (tapeLanes[l] && tapeLanes[l].layers && tapeLanes[l].layers.length > 0) {
-        tapeLanes[l].layers[0].steps = roleArrays[l].slice();
-        recomputeTapeWave(l);
+      let changed = false;
+      for (const ly of tapeLanes[l].layers) {
+        if (ly.part == null || !roleArrays[ly.part]) continue;
+        ly.steps = roleArrays[ly.part].slice();
+        changed = true;
       }
+      if (changed) recomputeTapeWave(l);
     }
     const deltaW = Math.round((Math.random() * 2 - 1) * amt * 48);
     setWraithPos((base.wraithPos ?? wraithPos) + deltaW, false);
@@ -5927,29 +5974,28 @@ $("connect").addEventListener("click", () => {
   }
 
   /* One-Click GammaWave Hearth Physics & Solar Eclipse Macros (spanning all 6 Wraith Voice Modes 0..127!) */
-  const MACROS = {
-    hearth:  [[91, 14], [33, 72], [9, 12],  [10, 42]],  /* 1. FLU (8%)  + GRAVITY + warm drive */
-    blast:   [[91, 15], [33, 108],[9, 34],  [10, 64]],  /* 2. WHI (27%) + SINGULARITY + sub drive */
-    vowel:   [[91, 14], [33, 64], [11, 3],  [9, 54],  [10, 96]],  /* 3. VOX (43%) + FORMANT VOWEL */
-    plasma:  [[91, 16], [33, 96], [9, 78],  [10, 78]],  /* 4. CHR (61%) + PHOTOSPHERE wavefolder */
-    scream:  [[91, 17], [33, 92], [11, 4],  [9, 102], [10, 104]], /* 5. BEL (80%) + FLUX + SCREAM */
-    eclipse: [[91, 15], [33, 118],[11, 4],  [9, 124], [10, 112], [29, 90], [30, 95]], /* 6. SCR (98%) + SOLAR ECLIPSE */
-  };
+  /* the device's own table (firmware/src/ui_input.c gw_oct_combo, [OCT-] + [ARP]): MD[6][4] = DTYPE, DIST, cutoff, res;
+   * FTYPE VOWEL (4) for 5/6, SCREAM (5) for 4/6 and 6/6, LP (0) else; 6/6 also sets the master's DUCK 96 / PUNCH 90 */
+  const MACRO_MD = [[5, 78, 22, 64], [6, 96, 46, 88], [7, 92, 72, 76], [8, 84, 98, 108], [5, 72, 56, 92], [6, 110, 118, 112]];
+  const MACROS = { hearth: 0, blast: 1, plasma: 2, scream: 3, vowel: 4, eclipse: 5 };   /* the buttons -> MD rows */
 
-  async function applyMacro(name) {
-    if (!dev) {
-      MOCK = true; access = null; $("mock").hidden = false;
-      $("gw-sim-btn").textContent = "⚡ SIMULATING GW-1 (ACTIVE)";
-      await connect();
-    }
-    if (!dev || !dev.dump) return;
-    const pairs = MACROS[name] || [];
-    for (const [id, val] of pairs) {
-      dev.dump.p[id] = val;
-      if (id === 9) setWraithPos(val, false);
-      const c = ctl.get(key(0, id));
-      if (c) { c.input.value = val; c.out.textContent = fmtVal(c.desc, val); }
-      try { await sessionRequest(dev, req.set(0, id, val)); } catch (e) { /* ignore */ }
+  function applyMacro(name) {
+    const m = MACROS[name];
+    if (m == null) return;
+    const [dtype, dist, cut, res] = MACRO_MD[m];
+    const ftype = m === 4 ? 4 : m >= 3 ? 5 : 0;
+    Object.assign(gwLocal, { dtype, dist, ftype, cut, res });
+    setWraithPos(cut, false, false);                /* (the ribbon is the cutoff: written below) */
+    if (gwLive()) {
+      /* the part's filter (P_FCUT / P_FRES) on every engine; ANALOG's own CUT / RES (E4 / E5) too, other engines'
+       * E4 / E5 are their own parameters and stay */
+      if (gwHasP(GWP.DTYPE)) gwSet(0, GWP.DTYPE, dtype);
+      gwSet(0, GWP.DIST, dist);
+      if (gwHasP(GWP.FCUT)) gwSet(0, GWP.FCUT, cut);
+      if (gwHasP(GWP.FRES)) gwSet(0, GWP.FRES, res);
+      if (gwAnalog()) { gwSet(0, dev.info.pe0 + 4, cut); gwSet(0, dev.info.pe0 + 5, res); }
+      if (gwHasP(GWP.FTYPE)) gwSet(0, GWP.FTYPE, ftype);
+      if (m === 5) { gwSet(1, GWG.DUCK, 96); gwSet(1, GWG.PUNCH, 90); }
     }
     sayK("applied", ` — POCKET GAMMAWAVE MACRO [${name.toUpperCase()}]`);
   }
@@ -5961,8 +6007,39 @@ $("connect").addEventListener("click", () => {
   /* Live WebAudio 4-Track Parallel Synthesizer, 64-Step GammaWave Preset Dice & OP-1 Tape Playback */
   function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 
-  function triggerRoleNote(presetId, noteOrHit, now, stepDur, gainScale) {
-    if (!noteOrHit || noteOrHit <= 0) return;
+  /* One master bus per audio context (live and the .WAV's OfflineAudioContext): every GW voice -> gain -> a
+   * limiter-like compressor (-3 dB, 20:1, fast attack) -> the destination */
+  const gwBus = new WeakMap();
+  function masterIn(ac) {
+    let bus = gwBus.get(ac);
+    if (!bus) {
+      const gain = ac.createGain(), lim = ac.createDynamicsCompressor();
+      gain.gain.value = 0.9;
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20;
+      lim.attack.value = 0.002; lim.release.value = 0.12;
+      gain.connect(lim); lim.connect(ac.destination);
+      gwBus.set(ac, bus = gain);
+    }
+    return bus;
+  }
+  const gwNoise = new WeakMap();                    /* the drums' white noise, one buffer per context */
+  function noiseBuf(ac) {
+    let buf = gwNoise.get(ac);
+    if (!buf) {
+      const sr = ac.sampleRate || 48000;
+      buf = ac.createBuffer(1, Math.floor(sr * 0.4), sr);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      gwNoise.set(ac, buf);
+    }
+    return buf;
+  }
+
+  /* kit: a drum layer's own kit variation (dice / GEN), relative to the preset's kick pitch and snare tone;
+   * ac: the context to play on (the live one by default) */
+  function triggerRoleNote(presetId, noteOrHit, now, stepDur, gainScale, kit, ac = audioCtx) {
+    if (!noteOrHit || noteOrHit <= 0 || !ac) return;
+    const out = masterIn(ac);
     const gMul = gainScale || 1.0;
     const pr = GW_PRESETS[presetId] || GW_PRESETS.ingot_sub;
     const cat = pr.cat;
@@ -5972,8 +6049,8 @@ $("connect").addEventListener("click", () => {
 
     if (cat === "bass") {
       const f0 = midiToFreq(noteOrHit);
-      const osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
-      const flt = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+      const osc1 = ac.createOscillator(), osc2 = ac.createOscillator();
+      const flt = ac.createBiquadFilter(), g = ac.createGain();
       osc1.type = pr.osc1 || "sawtooth"; osc1.frequency.setValueAtTime(f0, now);
       osc2.type = pr.osc2 || "triangle"; osc2.frequency.setValueAtTime(f0 * (pr.sub ? 0.5 : 1.0), now);
       osc2.detune.setValueAtTime((pr.detune || 8) * (0.6 + wScale * 0.5), now);
@@ -5983,13 +6060,13 @@ $("connect").addEventListener("click", () => {
       flt.Q.value = (pr.q || 6.5) + qBoost;
       g.gain.setValueAtTime(0.15 * gMul, now);
       g.gain.exponentialRampToValueAtTime(0.001, now + stepDur * 0.96);
-      osc1.connect(flt); osc2.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+      osc1.connect(flt); osc2.connect(flt); flt.connect(g); g.connect(out);
       osc1.start(now); osc2.start(now);
       osc1.stop(now + stepDur); osc2.stop(now + stepDur);
     } else if (cat === "arp") {
       const f0 = midiToFreq(noteOrHit);
-      const osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
-      const flt = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+      const osc1 = ac.createOscillator(), osc2 = ac.createOscillator();
+      const flt = ac.createBiquadFilter(), g = ac.createGain();
       osc1.type = pr.osc1 || "sawtooth"; osc1.frequency.setValueAtTime(f0, now);
       osc2.type = pr.osc2 || "square";   osc2.frequency.setValueAtTime(f0, now);
       osc2.detune.setValueAtTime((pr.detune || 14) * (0.6 + wScale * 0.5), now);
@@ -5999,13 +6076,13 @@ $("connect").addEventListener("click", () => {
       flt.Q.value = (pr.q || 4.0) + qBoost;
       g.gain.setValueAtTime(0.075 * gMul, now);
       g.gain.exponentialRampToValueAtTime(0.001, now + stepDur * 0.88);
-      osc1.connect(flt); osc2.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+      osc1.connect(flt); osc2.connect(flt); flt.connect(g); g.connect(out);
       osc1.start(now); osc2.start(now);
       osc1.stop(now + stepDur * 0.92); osc2.stop(now + stepDur * 0.92);
     } else if (cat === "pad") {
       const chord = presetId === "doom_cath" ? [0, 7, 12, 15] : (presetId === "black_choir" ? [0, 3, 7, 14] : [0, 3, 7, 10]);
       chord.forEach((iv, idx) => {
-        const osc = audioCtx.createOscillator(), flt = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+        const osc = ac.createOscillator(), flt = ac.createBiquadFilter(), g = ac.createGain();
         osc.type = (idx % 2 === 0) ? (pr.osc1 || "sawtooth") : (pr.osc2 || "triangle");
         osc.frequency.setValueAtTime(midiToFreq(noteOrHit + iv), now);
         osc.detune.setValueAtTime((idx - 1.5) * (pr.detune || 14) * (0.6 + wScale * 0.5), now);
@@ -6014,68 +6091,67 @@ $("connect").addEventListener("click", () => {
         flt.Q.value = (pr.q || 2.5) + qBoost * 0.5;
         g.gain.setValueAtTime(0.036 * gMul, now);
         g.gain.exponentialRampToValueAtTime(0.001, now + stepDur * 7.5);
-        osc.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+        osc.connect(flt); flt.connect(g); g.connect(out);
         osc.start(now); osc.stop(now + stepDur * 7.8);
       });
     } else if (cat === "drum") {
-      if (!window._gwDrumNoiseBuf || window._gwDrumNoiseCtx !== audioCtx) {
-        const sr = audioCtx.sampleRate || 48000;
-        const buf = audioCtx.createBuffer(1, Math.floor(sr * 0.4), sr);
-        const d = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-        window._gwDrumNoiseBuf = buf;
-        window._gwDrumNoiseCtx = audioCtx;
-      }
-      const kv = window._gwDrumKitVar || { kickP: pr.kickP || 155, kickDec: 0.17, snareF: 2100, snareDec: 0.14, hatF: 6800, hatDec: 0.045, cbF: 540 };
+      const noise = noiseBuf(ac);
+      /* the preset's kick pitch and snare tone, the layer's kit variation around them (155 Hz / 2100 Hz: neutral) */
+      const kx = kit || {};
+      const kv = {
+        kickP: (pr.kickP || 155) * ((kx.kickP || 155) / 155), kickDec: kx.kickDec || 0.17,
+        snareF: (pr.snareF || 2100) * ((kx.snareF || 2100) / 2100), snareDec: kx.snareDec || 0.14,
+        hatF: kx.hatF || 6800, hatDec: kx.hatDec || 0.045, cbF: kx.cbF || 540
+      };
       const fireKick = (t0, vel) => {
-        const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+        const osc = ac.createOscillator(), g = ac.createGain();
         osc.type = "sine";
         osc.frequency.setValueAtTime(kv.kickP * (0.85 + wScale * 0.12), t0);
         osc.frequency.exponentialRampToValueAtTime(32, t0 + kv.kickDec);
         g.gain.setValueAtTime(0.28 * gMul * vel, t0);
         g.gain.exponentialRampToValueAtTime(0.001, t0 + kv.kickDec + 0.02);
-        osc.connect(g); g.connect(audioCtx.destination);
+        osc.connect(g); g.connect(out);
         osc.start(t0); osc.stop(t0 + kv.kickDec + 0.03);
       };
       const fireSnare = (t0, vel) => {
         /* Tonal body + filtered white-noise snare/clap snap */
-        const osc = audioCtx.createOscillator(), gBody = audioCtx.createGain();
+        const osc = ac.createOscillator(), gBody = ac.createGain();
         osc.type = "triangle";
         osc.frequency.setValueAtTime(215, t0);
         osc.frequency.exponentialRampToValueAtTime(88, t0 + 0.08);
         gBody.gain.setValueAtTime(0.16 * gMul * vel, t0);
         gBody.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
-        osc.connect(gBody); gBody.connect(audioCtx.destination);
+        osc.connect(gBody); gBody.connect(out);
         osc.start(t0); osc.stop(t0 + 0.10);
 
-        const nSrc = audioCtx.createBufferSource(), flt = audioCtx.createBiquadFilter(), gNz = audioCtx.createGain();
-        nSrc.buffer = window._gwDrumNoiseBuf;
+        const nSrc = ac.createBufferSource(), flt = ac.createBiquadFilter(), gNz = ac.createGain();
+        nSrc.buffer = noise;
         flt.type = "bandpass";
         flt.frequency.setValueAtTime(Math.min(9000, kv.snareF * (0.75 + wScale * 0.3)), t0);
         flt.Q.value = 1.4;
         gNz.gain.setValueAtTime(0.22 * gMul * vel, t0);
         gNz.gain.exponentialRampToValueAtTime(0.001, t0 + kv.snareDec);
-        nSrc.connect(flt); flt.connect(gNz); gNz.connect(audioCtx.destination);
+        nSrc.connect(flt); flt.connect(gNz); gNz.connect(out);
         nSrc.start(t0); nSrc.stop(t0 + kv.snareDec + 0.01);
       };
       const fireHat = (t0, dur, vel) => {
-        const nSrc = audioCtx.createBufferSource(), flt = audioCtx.createBiquadFilter(), gH = audioCtx.createGain();
-        nSrc.buffer = window._gwDrumNoiseBuf;
+        const nSrc = ac.createBufferSource(), flt = ac.createBiquadFilter(), gH = ac.createGain();
+        nSrc.buffer = noise;
         flt.type = "highpass";
         flt.frequency.setValueAtTime(Math.min(11000, kv.hatF * (0.8 + wScale * 0.25)), t0);
         gH.gain.setValueAtTime(0.11 * gMul * vel, t0);
         gH.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-        nSrc.connect(flt); flt.connect(gH); gH.connect(audioCtx.destination);
+        nSrc.connect(flt); flt.connect(gH); gH.connect(out);
         nSrc.start(t0); nSrc.stop(t0 + dur + 0.01);
       };
       const fireCowbell = (t0, vel) => {
         [kv.cbF, kv.cbF * 1.48].forEach((f) => {
-          const osc = audioCtx.createOscillator(), flt = audioCtx.createBiquadFilter(), gC = audioCtx.createGain();
+          const osc = ac.createOscillator(), flt = ac.createBiquadFilter(), gC = ac.createGain();
           osc.type = "square"; osc.frequency.setValueAtTime(f, t0);
           flt.type = "bandpass"; flt.frequency.setValueAtTime(kv.cbF * 1.25, t0); flt.Q.value = 3.5;
           gC.gain.setValueAtTime(0.08 * gMul * vel, t0);
           gC.gain.exponentialRampToValueAtTime(0.001, t0 + 0.11);
-          osc.connect(flt); flt.connect(gC); gC.connect(audioCtx.destination);
+          osc.connect(flt); flt.connect(gC); gC.connect(out);
           osc.start(t0); osc.stop(t0 + 0.12);
         });
       };
@@ -6095,55 +6171,81 @@ $("connect").addEventListener("click", () => {
     }
   }
 
+  /* what plays: every unmuted tape layer (T1..T4 in parallel) and the auditioned dice track on top; with an empty
+   * tape the song's four parts. The live transport and the .WAV export share it */
+  function activeLayers(song) {
+    if (!tapeLanes.some((t) => t.used)) {
+      return [
+        { role: "ingot_sub",   steps: song.bass, gain: 1.0 },
+        { role: "hearth_lead", steps: song.arp,  gain: 1.0 },
+        { role: "wraith_pad",  steps: song.pad,  gain: 1.0 },
+        { role: "drum_ind",    steps: song.drum, gain: 1.0, kit: song.kit || null }
+      ];
+    }
+    const out = [];
+    for (const tl of tapeLanes) {
+      if (!tl.used || tl.muted) continue;
+      for (const ly of tl.layers) out.push({ role: ly.role, steps: ly.steps, gain: 0.90, kit: ly.kit || null });
+    }
+    if (auditionActive && lastDicedTrack) {
+      out.push({ role: lastDicedTrack.role, steps: lastDicedTrack.steps, gain: 0.95, kit: lastDicedTrack.kit || null });
+    }
+    return out;
+  }
+
+  let transportTicks = 0;                           /* steps played since the transport (re)started */
   function playStepAudio(song, stepIdx64) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === "suspended") audioCtx.resume();
     const now = audioCtx.currentTime;
     const stepDur = (60 / song.bpm) / 4;
     const s = stepIdx64 % 64;
-    /* Automatic Bar Mutation (ORBIT every 32 steps = 2 bars; DRIFT every 64 steps = 4 bars) */
-    if (s > 0 && ((mutateMode === "orbit" && s % 32 === 0) || (mutateMode === "drift" && s === 0))) {
-      triggerMutateNow(true);
-    } else if (s === 0 && mutateMode === "drift" && frame > 60) {
+    /* Automatic Bar Mutation (ORBIT every 2 bars = steps 0 and 32 of the loop; DRIFT every 4 bars = step 0), never
+     * on the transport's very first step (the piece just loaded is heard as it is first) */
+    const first = transportTicks++ === 0;
+    if (!first && ((mutateMode === "orbit" && s % 32 === 0) || (mutateMode === "drift" && s === 0))) {
       triggerMutateNow(true);
     }
 
     /* Play ALL 4 Tape Tracks (T1 + T2 + T3 + T4) SIMULTANEOUSLY IN PARALLEL! */
-    const anyTapeUsed = tapeLanes.some((t) => t.used);
-    if (!anyTapeUsed) {
-      triggerRoleNote("ingot_sub",   song.bass[s], now, stepDur, 1.0);
-      triggerRoleNote("hearth_lead", song.arp[s],  now, stepDur, 1.0);
-      triggerRoleNote("wraith_pad",  song.pad[s],  now, stepDur, 1.0);
-      triggerRoleNote("drum_ind",    song.drum[s], now, stepDur, 1.0);
-    } else {
-      for (let l = 0; l < 4; l++) {
-        const tl = tapeLanes[l];
-        if (!tl.used || tl.muted) continue;
-        for (const ly of tl.layers) {
-          triggerRoleNote(ly.role, ly.steps[s], now, stepDur, 0.90);
-        }
-      }
-      /* If user clicked '1. DICE GW TRACK', also play the auditioned track SIMULTANEOUSLY on top! */
-      if (auditionActive && lastDicedTrack) {
-        triggerRoleNote(lastDicedTrack.role, lastDicedTrack.steps[s], now, stepDur, 0.95);
-      }
-    }
+    for (const ly of activeLayers(song)) triggerRoleNote(ly.role, ly.steps[s], now, stepDur, ly.gain, ly.kit);
   }
 
-  function syncStepsToEditor(steps64) {
-    if (dev && dev.steps) {
-      if (dev.dump && dev.dump.p) dev.dump.p[21] = 64; /* P_SLEN = 64 steps (4 bars) */
-      for (let i = 0; i < 64; i++) {
-        const n = steps64[i] || 0;
-        dev.steps[i] = { n: n || 60, hit: n ? 1 : 0, flags: (i % 4 === 0) ? 1 : 0, v: 100 };
+  /* The deck's 64 steps (a MIDI note a step, 0 rest) on the connected device's selected track, through the editor's
+   * own STEP_SET (req.stepSet) and LEN (P_SLEN) SET, as the step table's edits; a newer call stops an older one */
+  let stepSyncGen = 0;
+  function deckStep(note, i, info) {
+    const on = note > 0;
+    const s = { n: on ? 1 : 0, notes: [on ? note & 0x7F : 0, 0, 0, 0], time: on ? 0 : 2,
+      flags: on && i % 4 === 0 ? 1 : 0, vel: on ? 100 : 0, hit: 0, acc: 0 };
+    if (info.chance) s.chance = 100;
+    if (info.ratchet) s.ratchet = 1;
+    return s;
+  }
+  async function syncStepsToEditor(steps64) {
+    if (!gwLive() || !dev.steps.length) return;
+    const d = dev, gen = ++stepSyncGen;
+    const n = Math.min(64, d.info.nstep);
+    const releaseBusy = beginBusy();
+    try {
+      if (d.dump.p[pSlen()] !== n) gwSet(0, pSlen(), n);   /* P_SLEN: 64 steps (4 bars) */
+      for (let i = 0; i < n; i++) {
+        if (gen !== stepSyncGen || d !== dev) return;
+        const s = deckStep(steps64[i] | 0, i, d.info);
+        const o = d.steps[i];
+        if (o && o.time === s.time && o.n === s.n && o.notes[0] === s.notes[0] && o.flags === s.flags && o.vel === s.vel && !(o.hit | 0)) continue;
+        stepEdit.set(i, performance.now());
+        d.steps[i] = parse[CMD.STEP_SET](await sessionRequest(d, req.stepSet(i, s)));
       }
-      try { renderSteps(); } catch (e) { /* ignore */ }
-    }
+      $("steptables").dataset.len = "";
+      renderSteps();
+    } catch (err) { report(err); } finally { releaseBusy(); }
   }
 
   function startTransportLoop(song, labelPrefix) {
     stopDemo();
     playStep64 = 0;
+    transportTicks = 0;
     const stEl = $("gw-demo-status");
     const updateLbl = () => {
       if (stEl) stEl.textContent = `${labelPrefix}: ${song.name} • BAR ${Math.floor(playStep64 / 16) + 1}/4 (STEP ${String(playStep64 + 1).padStart(2, "0")}/64)`;
@@ -6165,7 +6267,8 @@ $("connect").addEventListener("click", () => {
 
   /* Auto-Dice 64-Step (4-Bar) Track Generator for any of the 15 GammaWave Presets */
   const SCALE_MIN = [0, 2, 3, 5, 7, 8, 10, 12];
-  function dice64StepsForRole(presetId, rootMidi) {
+  function dice64StepsForRole(presetId, rootMidi, meta = {}) {
+    meta.kit = null;
     const pr = GW_PRESETS[presetId] || GW_PRESETS.ingot_sub;
     const cat = pr.cat;
     const prog = [0, [3, 5, -2][Math.floor(Math.random() * 3)], [-4, 3, 7][Math.floor(Math.random() * 3)], [5, 7, -2][Math.floor(Math.random() * 3)]];
@@ -6192,7 +6295,7 @@ $("connect").addEventListener("click", () => {
       if (Math.random() < 0.6) bar1[12] = rootMidi + 10;
       return expand4Bars(bar1, prog, [rootMidi + 17, 0, rootMidi + 19, 0], false);
     } else {
-      window._gwDrumKitVar = {
+      meta.kit = {                                  /* this take's own kit (its layer keeps it: triggerRoleNote) */
         kickP:    125 + Math.floor(Math.random() * 65),
         kickDec:  0.13 + Math.random() * 0.14,
         snareF:   1600 + Math.floor(Math.random() * 1800),
@@ -6319,11 +6422,16 @@ $("connect").addEventListener("click", () => {
     acid:     "ACID303"
   };
 
-  /* 49 Genres Table (Indices 1..49; 0 = RANDOM / MUTANT) */
+  /* 49 Genres Table (Indices 1..49; 0 = RANDOM / MUTANT), in the firmware's order and with its tempo ranges
+   * (firmware/src/gen_tables.c GENRE[]: 1 GAMMAWAVE, 2 WRAITHWAVE, 3..6 the trap / drill four, 7 HOUSE .. 49 BROKEN) */
   const GEN_GENRES = [
     null,
     { name: "GAMMAWAVE",    bpm: [118, 134], sc: "phry", dm: "ebm",      ba: "synthw",   amt: [95, 95, 75, 65, 55], presets: ["worm_reese",  "hearth_lead", "black_choir", "drum_ind"],    macro: "hearth" },
     { name: "WRAITHWAVE",   bpm: [104, 126], sc: "harm", dm: "darkwave", ba: "dark8",    amt: [85, 95, 85, 55, 50], presets: ["ingot_sub",   "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "vowel" },
+    { name: "TRAP ATL",     bpm: [136, 150], sc: "phry", dm: "trap_atl", ba: "atl808",   amt: [95, 100,50, 55, 45], presets: ["ingot_sub",   "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "blast" },
+    { name: "UK DRILL",     bpm: [140, 145], sc: "harm", dm: "uk_drill", ba: "ukdrill",  amt: [95, 100,65, 45, 40], presets: ["ingot_sub",   "crypt_bell",  "black_choir", "drum_ind"],    macro: "vowel" },
+    { name: "DARK TRAP",    bpm: [130, 148], sc: "phry", dm: "phonk",    ba: "atl808",   amt: [95, 100,60, 50, 55], presets: ["grave_growl", "witchfire",   "black_choir", "drum_ind"],    macro: "eclipse" },
+    { name: "RAGE TRAP",    bpm: [138, 156], sc: "min",  dm: "rage",     ba: "rage808",  amt: [100,100,75, 75, 65], presets: ["worm_reese",  "plasma_core", "doom_cath",   "drum_ind"],    macro: "scream" },
     { name: "HOUSE",        bpm: [122, 127], sc: "min",  dm: "house",    ba: "offbeat",  amt: [80, 70, 60, 30, 40], presets: ["ingot_sub",   "hearth_lead", "wraith_pad",  "drum_hearth"], macro: "hearth" },
     { name: "DEEP HOUSE",   bpm: [118, 124], sc: "dor",  dm: "house",    ba: "deepwalk", amt: [70, 75, 70, 30, 30], presets: ["ingot_sub",   "crypt_bell",  "cherenkov",   "drum_hearth"], macro: "hearth" },
     { name: "MICRO HOUSE",  bpm: [122, 128], sc: "min",  dm: "techno",   ba: "offbeat",  amt: [70, 65, 40, 45, 20], presets: ["grave_growl", "geiger_bit",  "wraith_pad",  "drum_ind"],    macro: "plasma" },
@@ -6335,42 +6443,38 @@ $("connect").addEventListener("click", () => {
     { name: "HARD TECHNO",  bpm: [138, 150], sc: "phry", dm: "hard",     ba: "roll16",   amt: [100,90, 30, 35, 25], presets: ["scream_303",  "witchfire",   "doom_cath",   "drum_ind"],    macro: "eclipse" },
     { name: "HYPNOTIC",     bpm: [128, 134], sc: "phry", dm: "techno",   ba: "psy",      amt: [90, 80, 30, 60, 30], presets: ["grave_growl", "crypt_bell",  "cherenkov",   "drum_ind"],    macro: "plasma" },
     { name: "TRANCE",       bpm: [134, 140], sc: "min",  dm: "house",    ba: "psy",      amt: [85, 85, 75, 75, 55], presets: ["worm_reese",  "hearth_lead", "wraith_pad",  "drum_hearth"], macro: "hearth" },
-    { name: "ELECTRO",      bpm: [114, 128], sc: "phry", dm: "electro",  ba: "synthw",   amt: [90, 85, 40, 55, 45], presets: ["grave_growl", "geiger_bit",  "wraith_pad",  "drum_ind"],    macro: "plasma" },
+    { name: "ELECTRO",      bpm: [112, 128], sc: "phry", dm: "electro",  ba: "synthw",   amt: [90, 85, 40, 55, 45], presets: ["grave_growl", "geiger_bit",  "wraith_pad",  "drum_ind"],    macro: "plasma" },
     { name: "EBM",          bpm: [118, 132], sc: "phry", dm: "ebm",      ba: "nitzer",   amt: [95, 100,35, 30, 35], presets: ["scream_303",  "plasma_core", "doom_cath",   "drum_ind"],    macro: "blast" },
     { name: "ITALO",        bpm: [114, 124], sc: "min",  dm: "house",    ba: "italo",    amt: [90, 90, 60, 65, 60], presets: ["grave_growl", "hearth_lead", "wraith_pad",  "drum_hearth"], macro: "hearth" },
     { name: "SYNTH POP",    bpm: [112, 128], sc: "min",  dm: "electro",  ba: "italo",    amt: [85, 85, 65, 55, 60], presets: ["ingot_sub",   "hearth_lead", "cherenkov",   "drum_hearth"], macro: "hearth" },
     { name: "DARKWAVE",     bpm: [124, 136], sc: "min",  dm: "darkwave", ba: "dark8",    amt: [90, 95, 65, 30, 45], presets: ["worm_reese",  "witchfire",   "black_choir", "drum_ind"],    macro: "vowel" },
-    { name: "POST PUNK",    bpm: [120, 146], sc: "min",  dm: "postpunk", ba: "hook",     amt: [95, 100,55, 45, 50], presets: ["grave_growl", "hearth_lead", "black_choir", "drum_ind"],    macro: "blast" },
-    { name: "TRIBAL PUNK",  bpm: [140, 160], sc: "phry", dm: "postpunk", ba: "dark8",    amt: [95, 95, 40, 20, 45], presets: ["scream_303",  "witchfire",   "doom_cath",   "drum_ind"],    macro: "eclipse" },
-    { name: "MINIMAL SYNTH",bpm: [106, 130], sc: "min",  dm: "electro",  ba: "synthw",   amt: [85, 95, 55, 25, 45], presets: ["ingot_sub",   "geiger_bit",  "doom_cath",   "drum_hearth"], macro: "plasma" },
-    { name: "MAN MACHINE",  bpm: [104, 124], sc: "min",  dm: "electro",  ba: "synthw",   amt: [85, 90, 50, 65, 60], presets: ["grave_growl", "geiger_bit",  "wraith_pad",  "drum_ind"],    macro: "plasma" },
-    { name: "MOTORIK",      bpm: [120, 138], sc: "dor",  dm: "motorik",  ba: "motorik",  amt: [90, 95, 50, 55, 40], presets: ["ingot_sub",   "hearth_lead", "cherenkov",   "drum_hearth"], macro: "hearth" },
-    { name: "INDIE",        bpm: [112, 136], sc: "maj",  dm: "postpunk", ba: "motorik",  amt: [85, 90, 70, 25, 55], presets: ["ingot_sub",   "hearth_lead", "wraith_pad",  "drum_hearth"], macro: "hearth" },
-    { name: "SHOEGAZE",     bpm: [100, 128], sc: "maj",  dm: "motorik",  ba: "pedal",    amt: [75, 85, 100,35, 45], presets: ["worm_reese",  "witchfire",   "cherenkov",   "drum_hearth"], macro: "vowel" },
-    { name: "POST ROCK",    bpm: [88,  116], sc: "min",  dm: "motorik",  ba: "pedal",    amt: [65, 75, 85, 75, 45], presets: ["ingot_sub",   "crypt_bell",  "doom_cath",   "drum_hearth"], macro: "vowel" },
-    { name: "FUNK",         bpm: [98,  112], sc: "dor",  dm: "funk",     ba: "jamerson", amt: [90, 100,55, 25, 45], presets: ["grave_growl", "plasma_core", "doom_cath",   "drum_hearth"], macro: "blast" },
+    { name: "POST PUNK",    bpm: [118, 148], sc: "min",  dm: "postpunk", ba: "hook",     amt: [95, 100,55, 45, 50], presets: ["grave_growl", "hearth_lead", "black_choir", "drum_ind"],    macro: "blast" },
+    { name: "TRIBAL PUNK",  bpm: [140, 165], sc: "phry", dm: "postpunk", ba: "dark8",    amt: [95, 95, 40, 20, 45], presets: ["scream_303",  "witchfire",   "doom_cath",   "drum_ind"],    macro: "eclipse" },
+    { name: "MINIMAL SYNTH",bpm: [104, 132], sc: "min",  dm: "electro",  ba: "synthw",   amt: [85, 95, 55, 25, 45], presets: ["ingot_sub",   "geiger_bit",  "doom_cath",   "drum_hearth"], macro: "plasma" },
+    { name: "MAN MACHINE",  bpm: [100, 124], sc: "min",  dm: "electro",  ba: "synthw",   amt: [85, 90, 50, 65, 60], presets: ["grave_growl", "geiger_bit",  "wraith_pad",  "drum_ind"],    macro: "plasma" },
+    { name: "MOTORIK",      bpm: [118, 140], sc: "dor",  dm: "motorik",  ba: "motorik",  amt: [90, 95, 50, 55, 40], presets: ["ingot_sub",   "hearth_lead", "cherenkov",   "drum_hearth"], macro: "hearth" },
+    { name: "INDIE",        bpm: [110, 140], sc: "maj",  dm: "postpunk", ba: "motorik",  amt: [85, 90, 70, 25, 55], presets: ["ingot_sub",   "hearth_lead", "wraith_pad",  "drum_hearth"], macro: "hearth" },
+    { name: "SHOEGAZE",     bpm: [100, 130], sc: "maj",  dm: "motorik",  ba: "pedal",    amt: [75, 85, 100,35, 45], presets: ["worm_reese",  "witchfire",   "cherenkov",   "drum_hearth"], macro: "vowel" },
+    { name: "POST ROCK",    bpm: [84,  118], sc: "min",  dm: "motorik",  ba: "pedal",    amt: [65, 75, 85, 75, 45], presets: ["ingot_sub",   "crypt_bell",  "doom_cath",   "drum_hearth"], macro: "vowel" },
+    { name: "FUNK",         bpm: [96,  112], sc: "dor",  dm: "funk",     ba: "jamerson", amt: [90, 100,55, 25, 45], presets: ["grave_growl", "plasma_core", "doom_cath",   "drum_hearth"], macro: "blast" },
     { name: "DISCO",        bpm: [114, 122], sc: "min",  dm: "house",    ba: "italo",    amt: [90, 100,65, 40, 45], presets: ["ingot_sub",   "hearth_lead", "wraith_pad",  "drum_hearth"], macro: "hearth" },
     { name: "BOOM BAP",     bpm: [86,  96],  sc: "min",  dm: "boombap",  ba: "boombap",  amt: [90, 85, 60, 25, 35], presets: ["ingot_sub",   "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "hearth" },
     { name: "TRAP",         bpm: [136, 146], sc: "phry", dm: "trap",     ba: "trap",     amt: [90, 100,45, 45, 35], presets: ["ingot_sub",   "crypt_bell",  "black_choir", "drum_ind"],    macro: "eclipse" },
     { name: "UK GARAGE",    bpm: [128, 134], sc: "min",  dm: "ukg",      ba: "ukg",      amt: [90, 90, 60, 35, 45], presets: ["worm_reese",  "plasma_core", "wraith_pad",  "drum_hearth"], macro: "plasma" },
     { name: "DUBSTEP",      bpm: [138, 142], sc: "phry", dm: "dubstep",  ba: "wobble",   amt: [85, 100,40, 25, 35], presets: ["worm_reese",  "witchfire",   "doom_cath",   "drum_ind"],    macro: "scream" },
-    { name: "BREAKS",       bpm: [126, 138], sc: "min",  dm: "breaks",   ba: "acid",     amt: [95, 90, 45, 35, 40], presets: ["scream_303",  "plasma_core", "wraith_pad",  "drum_ind"],    macro: "scream" },
+    { name: "BREAKS",       bpm: [126, 140], sc: "min",  dm: "breaks",   ba: "acid",     amt: [95, 90, 45, 35, 40], presets: ["scream_303",  "plasma_core", "wraith_pad",  "drum_ind"],    macro: "scream" },
     { name: "DRUM & BASS",  bpm: [170, 176], sc: "min",  dm: "dnb",      ba: "dnb",      amt: [95, 95, 50, 25, 35], presets: ["worm_reese",  "plasma_core", "cherenkov",   "drum_ind"],    macro: "eclipse" },
-    { name: "DUB",          bpm: [72,  82],  sc: "min",  dm: "dub",      ba: "dub",      amt: [80, 100,65, 15, 25], presets: ["ingot_sub",   "crypt_bell",  "doom_cath",   "drum_hearth"], macro: "vowel" },
-    { name: "STEPPERS",     bpm: [78,  88],  sc: "min",  dm: "techno",   ba: "dub",      amt: [90, 100,65, 20, 30], presets: ["ingot_sub",   "crypt_bell",  "doom_cath",   "drum_hearth"], macro: "vowel" },
-    { name: "JAZZ",         bpm: [110, 142], sc: "dor",  dm: "jazz",     ba: "deepwalk", amt: [65, 95, 75, 25, 55], presets: ["ingot_sub",   "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "hearth" },
-    { name: "BOSSA",        bpm: [120, 134], sc: "maj",  dm: "jazz",     ba: "deepwalk", amt: [75, 90, 70, 35, 50], presets: ["ingot_sub",   "crypt_bell",  "cherenkov",   "drum_hearth"], macro: "hearth" },
+    { name: "DUB",          bpm: [70,  80],  sc: "min",  dm: "dub",      ba: "dub",      amt: [80, 100,65, 15, 25], presets: ["ingot_sub",   "crypt_bell",  "doom_cath",   "drum_hearth"], macro: "vowel" },
+    { name: "STEPPERS",     bpm: [76,  88],  sc: "min",  dm: "techno",   ba: "dub",      amt: [90, 100,65, 20, 30], presets: ["ingot_sub",   "crypt_bell",  "doom_cath",   "drum_hearth"], macro: "vowel" },
+    { name: "JAZZ",         bpm: [110, 150], sc: "dor",  dm: "jazz",     ba: "deepwalk", amt: [65, 95, 75, 25, 55], presets: ["ingot_sub",   "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "hearth" },
+    { name: "BOSSA",        bpm: [120, 136], sc: "maj",  dm: "jazz",     ba: "deepwalk", amt: [75, 90, 70, 35, 50], presets: ["ingot_sub",   "crypt_bell",  "cherenkov",   "drum_hearth"], macro: "hearth" },
     { name: "AFROBEAT",     bpm: [112, 126], sc: "dor",  dm: "funk",     ba: "jamerson", amt: [100,100,55, 40, 45], presets: ["grave_growl", "hearth_lead", "doom_cath",   "drum_hearth"], macro: "hearth" },
-    { name: "AMBIENT",      bpm: [64,  88],  sc: "maj",  dm: "sparse",   ba: "pedal",    amt: [25, 55, 100,45, 35], presets: ["ingot_sub",   "crypt_bell",  "cherenkov",   "drum_hearth"], macro: "vowel" },
-    { name: "NEO CLASSIC",  bpm: [74,  108], sc: "min",  dm: "sparse",   ba: "pedal",    amt: [0,  65, 75, 90, 55], presets: ["ingot_sub",   "crypt_bell",  "black_choir", "drum_hearth"], macro: "vowel" },
-    { name: "IMPRESSION",   bpm: [66,  92],  sc: "maj",  dm: "sparse",   ba: "pedal",    amt: [20, 55, 85, 75, 45], presets: ["ingot_sub",   "crypt_bell",  "cherenkov",   "drum_hearth"], macro: "vowel" },
-    { name: "SOUNDTRACK",   bpm: [68,  92],  sc: "harm", dm: "sparse",   ba: "pedal",    amt: [35, 65, 100,35, 40], presets: ["worm_reese",  "crypt_bell",  "black_choir", "drum_ind"],    macro: "vowel" },
-    { name: "IDM",          bpm: [96,  138], sc: "phry", dm: "breaks",   ba: "ukg",      amt: [85, 75, 50, 65, 50], presets: ["grave_growl", "geiger_bit",  "cherenkov",   "drum_ind"],    macro: "plasma" },
-    { name: "BROKEN",       bpm: [82,  100], sc: "dor",  dm: "breaks",   ba: "ukg",      amt: [80, 85, 60, 35, 45], presets: ["grave_growl", "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "plasma" },
-    { name: "TRAP ATL",     bpm: [136, 150], sc: "phry", dm: "trap_atl", ba: "atl808",   amt: [95, 100,50, 55, 45], presets: ["ingot_sub",   "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "blast" },
-    { name: "UK DRILL",     bpm: [140, 145], sc: "harm", dm: "uk_drill", ba: "ukdrill",  amt: [95, 100,65, 45, 40], presets: ["ingot_sub",   "crypt_bell",  "black_choir", "drum_ind"],    macro: "vowel" },
-    { name: "DARK TRAP",    bpm: [130, 148], sc: "phry", dm: "phonk",    ba: "atl808",   amt: [95, 100,60, 50, 55], presets: ["grave_growl", "witchfire",   "black_choir", "drum_ind"],    macro: "eclipse" },
-    { name: "RAGE TRAP",    bpm: [138, 156], sc: "min",  dm: "rage",     ba: "rage808",  amt: [100,100,75, 75, 65], presets: ["worm_reese",  "plasma_core", "doom_cath",   "drum_ind"],    macro: "scream" }
+    { name: "AMBIENT",      bpm: [60,  90],  sc: "maj",  dm: "sparse",   ba: "pedal",    amt: [25, 55, 100,45, 35], presets: ["ingot_sub",   "crypt_bell",  "cherenkov",   "drum_hearth"], macro: "vowel" },
+    { name: "NEO CLASSIC",  bpm: [70,  112], sc: "min",  dm: "sparse",   ba: "pedal",    amt: [0,  65, 75, 90, 55], presets: ["ingot_sub",   "crypt_bell",  "black_choir", "drum_hearth"], macro: "vowel" },
+    { name: "IMPRESSION",   bpm: [60,  92],  sc: "maj",  dm: "sparse",   ba: "pedal",    amt: [20, 55, 85, 75, 45], presets: ["ingot_sub",   "crypt_bell",  "cherenkov",   "drum_hearth"], macro: "vowel" },
+    { name: "SOUNDTRACK",   bpm: [64,  92],  sc: "harm", dm: "sparse",   ba: "pedal",    amt: [35, 65, 100,35, 40], presets: ["worm_reese",  "crypt_bell",  "black_choir", "drum_ind"],    macro: "vowel" },
+    { name: "IDM",          bpm: [86,  140], sc: "phry", dm: "breaks",   ba: "ukg",      amt: [85, 75, 50, 65, 50], presets: ["grave_growl", "geiger_bit",  "cherenkov",   "drum_ind"],    macro: "plasma" },
+    { name: "BROKEN",       bpm: [80,  100], sc: "dor",  dm: "breaks",   ba: "ukg",      amt: [80, 85, 60, 35, 45], presets: ["grave_growl", "crypt_bell",  "wraith_pad",  "drum_hearth"], macro: "plasma" }
   ];
 
   let lastGenSig = "";
@@ -6446,7 +6550,7 @@ $("connect").addEventListener("click", () => {
     const kickMask = new Array(64).fill(0);
     /* Randomize Drum Kit Timbre per seed so every throw sounds fresh! */
     const isTrapStyle = ["trap", "trap_atl", "uk_drill", "phonk", "rage", "dubstep"].includes(gA.dm);
-    window._gwDrumKitVar = {
+    const drumKit = {                               /* the piece's own kit (its drum layer keeps it: triggerRoleNote) */
       kickP:    isTrapStyle ? grr(120, 168) : grr(138, 195),
       kickDec:  isTrapStyle ? grr(18, 28) / 100 : grr(12, 20) / 100,
       snareF:   grr(1550, 3400),
@@ -6627,7 +6731,9 @@ $("connect").addEventListener("click", () => {
     song.arp  = arpSteps;
     song.pad  = padSteps;
     song.drum = drumSteps;
+    song.kit = drumKit;
     song.macro = gA.macro || "hearth";
+    anchorSong = null;                              /* MUTATE ORBIT circles this new piece, not the previous one */
 
     /* Map genre's GammaWave presets to the 4 simultaneous Tape Lanes (T1..T4) */
     const pB = gA.presets[0], pA = gB.presets[1], pP = gB.presets[2], pD = gA.presets[3];
@@ -6697,10 +6803,11 @@ $("connect").addEventListener("click", () => {
       const presetId = roleSel ? roleSel.value : "ingot_sub";
       const pr = GW_PRESETS[presetId] || GW_PRESETS.ingot_sub;
       const song = DEMO_SONGS[activeDemoIdx];
-      const steps = dice64StepsForRole(presetId, 36);
-      lastDicedTrack = { role: presetId, label: pr.label, steps: steps.slice() };
+      const meta = {};
+      const steps = dice64StepsForRole(presetId, 36, meta);
+      lastDicedTrack = { role: presetId, label: pr.label, steps: steps.slice(), kit: meta.kit };
       auditionActive = true;
-      syncStepsToEditor(steps);
+      if (pr.cat !== "drum") syncStepsToEditor(steps);   /* (drum hit codes are not notes: the device keeps its steps) */
       startTransportLoop(song, `🎲 AUDITION [${pr.label}] + T1..T4`);
     });
   }
@@ -6710,10 +6817,11 @@ $("connect").addEventListener("click", () => {
     $("gw-dice-role").addEventListener("change", () => {
       const presetId = $("gw-dice-role").value;
       const pr = GW_PRESETS[presetId] || GW_PRESETS.ingot_sub;
-      const steps = dice64StepsForRole(presetId, 36);
-      lastDicedTrack = { role: presetId, label: pr.label, steps: steps.slice() };
+      const meta = {};
+      const steps = dice64StepsForRole(presetId, 36, meta);
+      lastDicedTrack = { role: presetId, label: pr.label, steps: steps.slice(), kit: meta.kit };
       auditionActive = true;
-      syncStepsToEditor(steps);
+      if (pr.cat !== "drum") syncStepsToEditor(steps);
       const song = DEMO_SONGS[activeDemoIdx];
       if (demoTimer) startTransportLoop(song, `🎹 GW PRESET [${pr.label}] + T1..T4`);
     });
@@ -6724,10 +6832,11 @@ $("connect").addEventListener("click", () => {
     btn.addEventListener("click", () => {
       const lane = Number(btn.dataset.lane) || 0;
       const tl = tapeLanes[lane];
-      tl.layers = [{
+      tl.layers = [{                                /* a user take: no song part, MUTATE leaves it as recorded */
         role: lastDicedTrack.role,
         label: lastDicedTrack.label,
-        steps: lastDicedTrack.steps.slice()
+        steps: lastDicedTrack.steps.slice(),
+        kit: lastDicedTrack.kit || null
       }];
       tl.muted = false;
       tl.label = lastDicedTrack.label;
@@ -6796,6 +6905,7 @@ $("connect").addEventListener("click", () => {
     btn.addEventListener("click", async () => {
       activeDemoIdx = Number(btn.dataset.demo) || 0;
       const song = DEMO_SONGS[activeDemoIdx];
+      anchorSong = null;                            /* MUTATE ORBIT circles this song from now on */
       loadSongIntoTapeLanes(activeDemoIdx);
       const firstPreset = (SONG_GW_PRESETS[activeDemoIdx] || SONG_GW_PRESETS[0])[0];
       lastDicedTrack = { role: firstPreset, label: GW_PRESETS[firstPreset].label, steps: song.bass.slice() };
@@ -6808,82 +6918,50 @@ $("connect").addEventListener("click", () => {
   if ($("gw-demo-stop")) $("gw-demo-stop").addEventListener("click", stopDemo);
 
   /* Export Currently Playing 64-Step (4-Bar) Song or OP-1 Tape to PC (.WAV & .GW1.JSON) */
-  function exportCurrentSongWavToPC() {
-    const song = DEMO_SONGS[activeDemoIdx];
-    const sr = 44100;
-    const stepSec = (60 / song.bpm) / 4;
-    const totalSteps = 64; /* 4 full bars (64 steps) */
-    const numSamples = Math.floor(sr * stepSec * totalSteps);
-    const buf = new ArrayBuffer(44 + numSamples * 4);
-    const view = new DataView(buf);
-    const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-    writeStr(0, "RIFF"); view.setUint32(4, 36 + numSamples * 4, true);
-    writeStr(8, "WAVE"); writeStr(12, "fmt "); view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); view.setUint16(22, 2, true);
-    view.setUint32(24, sr, true); view.setUint32(28, sr * 4, true);
-    view.setUint16(32, 4, true); view.setUint16(34, 16, true);
-    writeStr(36, "data"); view.setUint32(40, numSamples * 4, true);
-
-    /* Collect all simultaneous active layers across T1 + T2 + T3 + T4 */
-    const renderLayers = [];
-    for (let l = 0; l < 4; l++) {
-      if (tapeLanes[l].used && !tapeLanes[l].muted) renderLayers.push(...tapeLanes[l].layers);
-    }
-    if (!renderLayers.length) {
-      renderLayers.push(
-        { role: "ingot_sub",   steps: song.bass },
-        { role: "hearth_lead", steps: song.arp },
-        { role: "wraith_pad",  steps: song.pad },
-        { role: "drum_ind",    steps: song.drum }
-      );
-    }
-    const phases = renderLayers.map(() => 0);
-
-    for (let i = 0; i < numSamples; i++) {
-      const t = i / sr;
-      const step = Math.floor(t / stepSec) % 64;
-      const stT = (t % stepSec) / stepSec;
-      const env = Math.exp(-stT * 4.2);
-      let sigL = 0, sigR = 0;
-      for (let li = 0; li < renderLayers.length; li++) {
-        const ly = renderLayers[li];
-        const v = ly.steps[step] || 0;
-        if (v <= 0) continue;
-        const pr = GW_PRESETS[ly.role] || GW_PRESETS.ingot_sub;
-        const cat = pr.cat;
-        if (cat === "bass") {
-          phases[li] += (2 * Math.PI * midiToFreq(v)) / sr;
-          const drive = pr.id === "scream_303" ? 3.4 : 2.4;
-          const b = Math.tanh(Math.sin(phases[li]) * drive + Math.sin(phases[li] * 0.5) * (pr.sub || 0.4)) * env * 0.34;
-          sigL += b; sigR += b;
-        } else if (cat === "arp") {
-          phases[li] += (2 * Math.PI * midiToFreq(v)) / sr;
-          const a = (Math.sin(phases[li]) >= 0 ? 0.20 : -0.20) * Math.exp(-stT * 5.5);
-          sigL += a * 1.1; sigR += a * 0.78;
-        } else if (cat === "pad") {
-          phases[li] += (2 * Math.PI * midiToFreq(v)) / sr;
-          const p = (Math.sin(phases[li]) + 0.5 * Math.sin(phases[li] * 1.498) + 0.35 * Math.sin(phases[li] * 1.189)) * 0.13;
-          sigL += p * 0.85; sigR += p * 1.15;
-        } else if (cat === "drum") {
-          if (v === 1 || v === 3) {
-            phases[li] += (2 * Math.PI * (45 + 120 * Math.exp(-stT * 18))) / sr;
-            const k = Math.sin(phases[li]) * Math.exp(-stT * 9) * 0.38;
-            sigL += k; sigR += k;
-          } else if (v === 2) {
-            const hh = (Math.sin(i * 1.73) * Math.cos(i * 3.17)) * Math.exp(-stT * 28) * 0.12;
-            sigL += hh; sigR += hh;
-          }
-        }
-      }
-      const sL = Math.max(-1, Math.min(1, Math.tanh(sigL * 1.25)));
-      const sR = Math.max(-1, Math.min(1, Math.tanh(sigR * 1.25)));
-      view.setInt16(44 + i * 4, sL * 32767, true);
-      view.setInt16(44 + i * 4 + 2, sR * 32767, true);
-    }
-    const slug = song.name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-    downloadBytes(`pocket_gammawave_gw1_4bar_${slug}.wav`, new Uint8Array(buf));
+  /* the .WAV is rendered by the live voices themselves (triggerRoleNote, the master bus, the same drum codes, pad
+   * lengths and kits) on an OfflineAudioContext: 44.1 kHz, 16-bit stereo, the 64 steps (4 bars) of what plays now */
+  let wavBusy = false;
+  async function exportCurrentSongWavToPC() {
+    if (wavBusy) return;
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     const stEl = $("gw-demo-status");
-    if (stEl) stEl.textContent = `💾 EXPORTED TO PC: pocket_gammawave_gw1_4bar_${slug}.wav`;
+    if (!OAC) { if (stEl) stEl.textContent = "⚠ .WAV EXPORT NEEDS OFFLINE WEB AUDIO (NOT IN THIS BROWSER)"; return; }
+    wavBusy = true;
+    try {
+      const song = DEMO_SONGS[activeDemoIdx];
+      const sr = 44100;
+      const stepSec = (60 / song.bpm) / 4;
+      const totalSteps = 64; /* 4 full bars (64 steps) */
+      const numSamples = Math.floor(sr * stepSec * totalSteps);
+      const oc = new OAC(2, numSamples, sr);
+      const layers = activeLayers(song);
+      for (let i = 0; i < totalSteps; i++) {
+        for (const ly of layers) triggerRoleNote(ly.role, ly.steps[i], i * stepSec, stepSec, ly.gain, ly.kit, oc);
+      }
+      if (stEl) stEl.textContent = "💾 RENDERING .WAV …";
+      const rendered = await oc.startRendering();
+      const L = rendered.getChannelData(0), R = rendered.numberOfChannels > 1 ? rendered.getChannelData(1) : L;
+      const buf = new ArrayBuffer(44 + numSamples * 4);
+      const view = new DataView(buf);
+      const writeStr = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+      writeStr(0, "RIFF"); view.setUint32(4, 36 + numSamples * 4, true);
+      writeStr(8, "WAVE"); writeStr(12, "fmt "); view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); view.setUint16(22, 2, true);
+      view.setUint32(24, sr, true); view.setUint32(28, sr * 4, true);
+      view.setUint16(32, 4, true); view.setUint16(34, 16, true);
+      writeStr(36, "data"); view.setUint32(40, numSamples * 4, true);
+      const s16 = (x) => Math.round(Math.max(-1, Math.min(1, x || 0)) * 32767);   /* (|x| <= 1: never past 0 dBFS) */
+      for (let i = 0; i < numSamples; i++) {
+        view.setInt16(44 + i * 4, s16(L[i]), true);
+        view.setInt16(44 + i * 4 + 2, s16(R[i]), true);
+      }
+      const slug = song.name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      downloadBytes(`pocket_gammawave_gw1_4bar_${slug}.wav`, new Uint8Array(buf));
+      if (stEl) stEl.textContent = `💾 EXPORTED TO PC: pocket_gammawave_gw1_4bar_${slug}.wav`;
+    } catch (err) {
+      console.warn(err);
+      if (stEl) stEl.textContent = `⚠ .WAV EXPORT FAILED: ${err.message}`;
+    } finally { wavBusy = false; }
   }
 
   if ($("gw-wav-export")) $("gw-wav-export").addEventListener("click", exportCurrentSongWavToPC);
@@ -6899,7 +6977,7 @@ $("connect").addEventListener("click", () => {
         song,
         tapeLanes
       };
-      downloadText(`pocket_gammawave_${slug}.gw1.json`, JSON.stringify(payload, null, 2));
+      download(`pocket_gammawave_${slug}.gw1.json`, payload);   /* (download() writes the JSON) */
       const stEl = $("gw-demo-status");
       if (stEl) stEl.textContent = `📦 SAVED PROJECT TO PC: pocket_gammawave_${slug}.gw1.json`;
     });
