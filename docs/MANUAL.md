@@ -8,7 +8,9 @@ This manual is for musicians who have just installed Pocket GammaWave (GW-1) and
 and, above all, **save their work without losing anything**. It follows the firmware as it is in v1.0-GW: every
 button, knob and message is named exactly as the device shows it.
 
-If you only read one chapter, read [12. Saving and loading](#12-saving-and-loading).
+If you only read one chapter, read [12. Saving and loading](#12-saving-and-loading). What GW-1 adds to the firmware it
+is built on (the `[OCT−]` shift deck, the generator's new genres, the VOWEL / SCREAM filters, the new drive types, the
+GammaWave screens) is gathered in [17. GW-1 additions](#17-gw-1-additions).
 
 ## Contents
 
@@ -29,6 +31,7 @@ If you only read one chapter, read [12. Saving and loading](#12-saving-and-loadi
 14. [MIDI and USB](#14-midi-and-usb)
 15. [Web tools: emulator, installer, editor, backup](#15-web-tools-emulator-installer-editor-backup)
 16. [Troubleshooting and FAQ](#16-troubleshooting-and-faq)
+17. [GW-1 additions](#17-gw-1-additions)
 
 ---
 
@@ -36,20 +39,21 @@ If you only read one chapter, read [12. Saving and loading](#12-saving-and-loadi
 
 ### Install
 
-1. Open the **web installer** in Chrome or Edge: <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
+1. Open the **web installer** in Chrome, Edge or Opera: <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
 2. Connect the FM-1 **directly** to the computer with a USB data cable.
 3. **Coming from another custom firmware (Felucca, baudgirl or any other)?** Return to the official V15 firmware
    first, with the installer's **Return to official V15 first** button (it also saves a complete backup). Writing
    Pocket GammaWave straight over another custom firmware has left an FM-1 unable to start.
-4. Press **Install**. It first checks the FM-1's firmware and writes only over official V15 or Pocket GammaWave (anything else: it
-sends you to Return to official V15 first). Don't unplug the cable while it writes.
+4. Press **Install**. It first checks the FM-1's firmware and writes only over official V15, JIANT or Pocket GammaWave
+   (anything else: it sends you to Return to official V15 first). Don't unplug the cable while it writes.
 
 Pocket GammaWave has no user samples: if you come from Felucca, its user samples (USR1–3) are lost on install. Keep your WAV
 files.
 
 ### Your first sound (1 minute)
 
-1. Power on. The signature draws itself, then you land on **HOME**: six creatures, one per track.
+1. Power on. The GammaWave splash draws itself, then you land on **HOME**: the selected track's filter curve over a
+   live spectrum, the Hearth sun, and the strip of tracks T1–T6.
 2. Turn **ALGORITHM** to pick a track (T1–T6). With the default **TRACKS 4** it stops at T4: T5 and T6 appear only with TRACKS 6 (see
    [13](#13-system-tracks-load-and-the-menu)).
 3. Turn **PRESETS** to browse sounds. Play the keys.
@@ -59,10 +63,11 @@ files.
 
 ### Your first song (5 minutes)
 
-1. On **HOME**, turn **SELECT**. The screen asks **DICE EVERYTHING?** Press **OCT+** (YES). A whole song idea
-   appears: engines, sounds, parts, scale, tempo and effects. Press **PLAY**.
-2. Not your thing? Turn SELECT again and confirm. Every throw is new. To go back to the one before: hold **GLO** and
-   press **G4** (UNDO).
+1. On **HOME**, turn **SELECT** (or hold **OCT−** and press **PLAY**). The **GENERATOR** screen opens. Turn **KNOB 1**
+   to pick a genre (or leave it on RANDOM) and press **OCT+**: a whole piece appears — engines, sounds, parts, scale,
+   tempo and effects. Press **PLAY** to hear it, **HOME** to leave the screen.
+2. Not your thing? Press **OCT+** again: the same settings give a new seed, so every press is a new piece. To go back to
+   the music before: hold **GLO** and press **G4** (UNDO).
 3. Like it? **Stop** (PLAY), then press **SAVE** twice to reach **SAVE > PROJECT** (the first SAVE press opens
    USER, the second PROJECT). Turn **KNOB 4** to the right so it shows **[OCT+]**, then press **OCT+**. Type a name with the keys (or keep
    the one offered) and press **OCT+** again. The screen says **SAVED**.
@@ -84,7 +89,7 @@ The names below are the ones the firmware uses (the HARDWARE CALIBRATION screen 
 
 | Control | What it does |
 | --- | --- |
-| **SELECT** (encoder) | Alone: **scrolls through the pages of the section you are in** (EDIT's pages on an EDIT page, FX's on an FX page …), one a detent, no wrap; on **HOME** it opens **DICE EVERYTHING?** (as HOME + SELECT). With a button held, that button's **dice**: **HOME** + SELECT **DICE EVERYTHING?**, **EDIT** + SELECT the sound, **SEQ** + SELECT the sequence, **LFO** + SELECT the LFO, **FX** + SELECT the effects. **GLO** + SELECT: the tempo. Any other page button + SELECT: its pages. |
+| **SELECT** (encoder) | Alone: **scrolls through the pages of the section you are in** (EDIT's pages on an EDIT page, FX's on an FX page …), one a detent, no wrap; on **HOME** it opens the **GENERATOR** (as HOME + SELECT). With a button held, that button's **dice**: **HOME** + SELECT the **GENERATOR**, **EDIT** + SELECT the sound, **SEQ** + SELECT the sequence, **LFO** + SELECT the LFO, **FX** + SELECT the effects. **GLO** + SELECT: the tempo. Any other page button + SELECT: its pages. |
 | **ALGORITHM** (encoder) | Selects the track from any page: T1–T4, or T1–T6 with TRACKS 6. In the MENU: switches tabs. |
 | **PRESETS** (encoder) | On HOME, PRESETS and the sound pages: browses sounds (every engine's factory presets, then your user presets). On step pages (STEP, COMP, PATTERN, AUTOMATION, SHIFT): moves the step cursor. On list pages (USER, PROJECT, ARRANGE, TOOLS, AUTO LIST): moves the selection. **Hold a page button and turn SELECT** (or PRESETS) to jump straight through that button's pages. |
 | **KNOB 1–4** | The four cards (columns) on screen. With a layer held, the layer's own knobs. Turning fast sweeps the whole range, slowly fine-tunes (MENU > KNOB ACCEL turns this off). |
@@ -94,7 +99,7 @@ The names below are the ones the firmware uses (the HARDWARE CALIBRATION screen 
 
 | Button | Tap | Hold |
 | --- | --- | --- |
-| **HOME** | Back to HOME (the ecosystem). | About 0.7 s: opens the **MENU**. |
+| **HOME** | Back to HOME. | About 0.7 s: opens the **MENU**. |
 | **ENV** | ENV pages. | (no layer) |
 | **LFO** | LFO pages. | **MACRO** layer: KNOB 1–4 are M1–M4. |
 | **FX** | FX pages (two quick taps: next FX section). | **Punch-in FX** layer. |
@@ -123,7 +128,8 @@ layer's shortcuts; on the DRUM grid they are steps and lanes; on the NAME screen
 | **SEQ** held + **REC** | **CLEAR ALL SEQUENCES?** — all six tracks' steps and automation, and the punch-in lane. |
 | **REC** held + **FX / EDIT / ENV / LFO / SCL / ARP / GLO** | Clears that part's automation on the selected track (GLO: the level and pan automation of all tracks; FX: also the punch-in lane). No dialog. |
 | **SAVE** held + **OCT+** / **OCT−** | Store the music into the section playing / recall that section as stored. |
-| **HOME / EDIT / SEQ / LFO / FX** held + **SELECT** | The dice: everything / the sound / the sequence / the LFO / the effects (see [8](#8-dice-and-undo)). |
+| **HOME / EDIT / SEQ / LFO / FX** held + **SELECT** | HOME: the GENERATOR. The others, their dice: the sound / the sequence / the LFO / the effects (see [8](#8-dice-and-undo)). |
+| **OCT−** held alone, then **ARP / PLAY / ENV / HOME / SEQ / EDIT / FX / LFO / GLO** | The GW-1 shift deck: Hearth macros, the GENERATOR, the MUTATE page, the visualizer, the dice, UNDO (see [17](#17-gw-1-additions)). |
 | **ENV / SCL / ARP / SAVE** held + **SELECT**, any page button + **PRESETS** | Jump through that button's pages. |
 | A step held (SEQ > STEP) + **KNOB 1–4** | A parameter lock on that step. |
 | **OCT− + OCT+** held at power-on | HARDWARE CALIBRATION. |
@@ -142,16 +148,19 @@ layer's shortcuts; on the DRUM grid they are steps and lanes; on the NAME screen
   its engine at the right; on HOME the track's engine, "T1 HOME" small. The header, the cards and the graph stay in sight.
 - **Granules**: a few dots drift behind the panel's graph, as on HOME (LOAD FULL with ANIM ON). They move only when the panel redraws anyway
   (a knob, the LFO, the envelope), so they cost no CPU.
-- **Panel (middle)**: the page's graph — the engine's creature, an envelope, the LFO running, the step grid, a list...
+- **Panel (middle)**: the page's graph — on the EDIT pages two live scopes over the Wraith ribbon (the DRUM kit's
+  eight pads on a DRUM track), an envelope, the LFO running, the step grid, a list...
 - **Footer**: the page name and its place in its family (e.g. **DLY 2/2**), or key hints. On the song pages
   (PROJECT, ARRANGE, TOOLS, GLOBAL, SYSTEM) it shows the project and its name instead of the track's sound.
 
 **Colours** work like a thermal camera: cold (cyan, blue) is little, hot (orange, yellow, white) is a lot. Violet is
 what's selected, orange what's active.
 
-**HOME** is the ecosystem: one creature per track, its species from its engine, its shape from its four knobs, swelling
-and heating up with its own audio. The selected track is drawn bigger, a muted one goes dark, a track asleep
-(TRACKS 4) is drawn as muted. On the **MIXER**, asleep tracks are greyed and say OFF.
+**HOME** has three bays. On top, the selected track's **filter response curve** drawn over a 28-bar spectrum display
+that moves with the audio. Bottom left, the **Hearth sun** with its orbiting moon, growing and flaring with the
+overall level. Bottom right, the track's four HOME knobs as small dials and the **T1–T6 strip**: each track's number
+with a level bar; the selected track is highlighted, a muted one stays dark, a track asleep (TRACKS 4) is drawn as
+muted. On the **MIXER**, asleep tracks are greyed and say OFF.
 
 **Dialogs** ask before anything destructive: **OCT− NO**, **OCT+ YES**.
 
@@ -163,15 +172,15 @@ and heating up with its own audio. The selected track is drawn bigger, a muted o
 
 - **Tap** a page button: its pages. Tap again: the next page of that family. From another family you return to the
   page you were last on.
-- **HOME** returns to the ecosystem.
+- **HOME** returns to HOME.
 - **FX** is long, so it is split into sections: TRACK (FX, DIST, AUTO PAN), DELAY (DLY, DLY 2), REVERB (REVERB, REVERB 2),
   CHORUS, SLICER (SLICER, SL BUS, SL BUS 2, SL PITCH), MASTER. **Two quick taps** on FX jump to the next section.
 - **Turn SELECT** to scroll through the pages of the section you are in (EDIT's on an EDIT page, FX's on an FX page),
   one a detent, stopping at its first and last; the page's name shows over the footer for a moment. On HOME it opens
-  DICE EVERYTHING?.
+  the GENERATOR.
 - **Hold a page button and turn PRESETS** to go through its pages forwards or back (no wrap); let go and you stay
-  there. ENV, SCL, ARP and SAVE do the same with SELECT; HOME, EDIT, SEQ, LFO and FX + SELECT are their dice, GLO +
-  SELECT the tempo.
+  there. ENV, SCL, ARP and SAVE do the same with SELECT; HOME + SELECT opens the GENERATOR, EDIT, SEQ, LFO and FX +
+  SELECT are their dice, GLO + SELECT the tempo.
 - **Hold** a page button (past the HOLD time, MENU > HOLD, 0.4 s by default) to open its **layer**: the keys and
   knobs change function while you hold it, and a map shows what each key does. Pressing a key or turning a knob
   opens it at once. Let go and you're back where you were.
@@ -408,8 +417,9 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
 
 ### FILTER (every engine)
 
-EDIT > **FILTER**: **TYPE** LP, HP, BP or **COMB** (a comb tuned to the note you play; CUT moves it, RES is how much
-it rings), **CUT**, **RES**, and KNOB 4: on ANALOG its own DRIVE, on every other engine the track's DIST. On ANALOG
+EDIT > **FILTER**: **TYPE** LP, HP, BP, **COMB** (a comb tuned to the note you play; CUT moves it, RES is how much
+it rings), **VOWEL** (a vocal colour: low-pass and band-pass blended with a saturated notch) or **SCREAM** (a
+resonant filter with a saturated core, for screaming leads and basses), **CUT**, **RES**, and KNOB 4: on ANALOG its own DRIVE, on every other engine the track's DIST. On ANALOG
 the filter is per voice; on LOFI the filter page drives its per-voice filter; on the others it is a filter on the
 track that follows LFO DEST / ENV DEST FILTER.
 
@@ -444,7 +454,7 @@ DRUM-X is a synthesized kit of eight sounds, **BD SD CP CH OH TM RS CB**, genera
       sound, more as it goes up: from a metal edge to a clang with no note, so the sound melts into the rhythm and stays
       out of the harmony (the factory kit has it on the snare, the hats and the cowbell); **FEEDBK** (OFF, 1–15): that
       sound's own (added to KIT 3's); **SEND**: that hit alone into one effect, OFF then CHO, DLY, REV with 16 amounts
-      each, on one knob ("REV 75%"), on top of the track's own sends. The dice (EDIT + SELECT on a DRUM track, DICE ALL) set
+      each, on one knob ("REV 75%"), on top of the track's own sends. The dice (EDIT + SELECT on a DRUM track, the GENERATOR) set
       LAYER and FEEDBK boldly. Each sound with a LAYER costs a little CPU (about as FEEDBK).
   - **LEVELS / LEVELS 2**: the level of each sound (KICK, SNARE, CLAP, HATCL, HATOP, TOM, RIM, BELL).
   - **STEREO**: **IMAGE** (automatable) sweeps the kit through its placings in the stereo field. 0 (MONO): every sound
@@ -564,8 +574,8 @@ recorded into the pattern, quantized to its steps, overdubbing. Knob moves on th
   what it is now. SOUND changes the engine's values, the filter, its envelope, DEC, REL and the sends (never LEVEL, PAN
   or MUTE); PATTERN moves notes along the scale, flips accents, adds or takes a note off the beat (never on it); on
   DRUM it flips hits, never the kick. **OCT−** here (or **GLO + A4**, FREEZE) stops every mutation until pressed again.
-  The page shows each track's next 32 bars (orange: SOUND, violet: PATTERN); on HOME each being has a ring of dots
-  filling up to its next change, all lit when it changes.
+  The page shows each track's next 32 bars (orange: SOUND, violet: PATTERN). **OCT− held + ENV** jumps here from
+  HOME or a parameter page (see [17](#17-gw-1-additions)).
 - **PLAYHEADS** (SEQ, page 4; it was FUGUE), after the Fugue Machine: three more **playheads** (heads 2, 3, 4) read the same steps
   as the track's sequencer. KNOB 1 **HEAD** picks one, KNOB 2 **RATE** (OFF, 1/4, 1/3, 1/2, 2/3, x1, 3/2, x2, x3, x4 of
   the track's), KNOB 3 **DIR** (FWD, REV, PING, RND), KNOB 4 **INTVL**, its interval in degrees of the scale (−14 to +14;
@@ -704,56 +714,60 @@ Hold **SAVE**:
 
 ## 8. Dice and UNDO
 
-### DICE ALL — the song-idea generator (HOME + SELECT)
+### GENERATOR — the song generator (HOME + SELECT)
 
-On **HOME**, turn **SELECT** (or hold HOME and turn SELECT, from any page). The dialog **DICE EVERYTHING?** appears (with "UNDO AFTER: GLO + G4"). **OCT+ YES** /
-**OCT− NO**.
+Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (GW-1). The screen,
+**GENERATOR 1/3**, has three pages of four settings; **SELECT** turns the page, **KNOB 1–4** set the four rows:
 
-Each throw makes three choices, then guard rails keep the result musical:
+| Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
+| --- | --- | --- | --- | --- |
+| 1/3 | **GENRE** (RANDOM or one of 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
+| 2/3 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
+| 3/3 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % or AUTO) | **HUMAN** (0–100 %) |
 
-- **A genre** — the wave's four (two throws in five): **POST PUNK** (Joy Division: the bass singing the tune high,
-  power chords, a tight kit), **SYNTH POP** (New Order: a melodic bass, a sequencer, four on the floor and a
-  handclap), **MINIMAL SYNTH** (Suicide: a rockabilly bass ostinato over one organ chord, a cheap rhythm box) and
-  **MAN MACHINE** (Kraftwerk: a sequencer, a machine's tune repeated exactly, a dry electronic kit); the night's:
-  **DARK MINIMAL**, **DUB TECHNO**, **IDM**, **DARK IDM**, **DARK ELECTRO**, **ACID NIGHT**, **BROKEN**, **HYPNOTIC**,
-  **DEEP BREAKS**; and **SOUNDTRACK** (enveloping pads, no drums or a heartbeat), **HARD TECHNO** and **NEO CLASSICAL**
-  (Reich's pulses and phases, Glass's additive arps, Pärt's tintinnabuli; never drums). Each genre has its tempo range, scales, progressions, drum family (or none) and kits, bass
-  figure, how its chords move, how its lead and arp speak, the engines it likes per role and how wet its space is.
-- **An energy** — **SPACE** (two or three things sounding, long tails: minimalism, with cared-for timbres), **MID**,
-  or **FRANTIC** (everything, denser, ratchets). The screen shows SPACE or FRANTIC under the genre's name.
-- **An orchestration** — which roles play: the genre's order of importance cut by the energy. **The drums may not
-  play at all.** A role left out keeps its sound with an empty sequence, ready to play or record.
+The part rows (DRUMS … LEAD) go from OFF through 10–100 % to **AUTO** (the genre decides). **OCT+** makes the piece;
+**PLAY** starts and stops it so you can hear it without leaving the screen; **HOME** (or OCT−) closes the screen. The
+screen remembers the last piece (**LAST: UK DRILL 0421**) and the header says **GEN:** and the piece.
 
-The guard rails:
+**The piece is deterministic**: the same genre, seed and settings always make the same piece, and each part draws on
+its own stream, so turning one part's row leaves the others as they were. **OCT+ with nothing changed** throws a new
+seed. The screen opens on RANDOM each time.
 
-- **One harmony**, every part anchored on the same tonic; **chords always of four notes** (7ths, 9ths, fourths,
-  suspended, add9), voiced in a middle register and led to the nearest voicing.
-- **Deep basses** (from E1); **arps in the middle octaves** (C3–C5): up and down, Alberti, Glass groups, a Reich
-  pulse or a random walk.
-- **Coherent melodies**: a rhythmic motif of a few notes, its contour in steps (a leap is filled back by a step), its
-  strong beats on chord tones, developed over four bars (the motif, the motif moved to the next chord, the motif with
-  its end varied, then a cadence that lands and holds); or a hypnotic ostinato, a few long notes, or a tintinnabuli
-  line. **Space between notes**, more of it with less energy.
-- **High notes measured**: the lead stays under G5, high notes are played softer, and a part that sits high plays
-  quieter.
-- **Sounds**: a factory sound that fits the role (never a bass sound off the bass, never the bright ones: bells,
-  brass, marimbas, organs, chiptune), its envelope shaped for the role and the energy (pads that swell in SPACE,
-  plucked arps and basses), filtered by role with an **envelope on the filter**, a filter **TYPE** that changes (LP,
-  BP, COMB), a slow LFO of its own shape, a little drive on some basses and leads.
-- **Drums**: in the night's genres they almost always play; the DRUM-X kit is rolled around the factory kit (as SELECT
-  on a DRUM track does) and goes through a soft low-pass so the hats are not glassy.
-- **Space**: delay and reverb sends by role and scaled by how wet the genre and the energy are, now and then one track
-  soaked and another dry; the delay time, the GRAIN delay's pitch, the reverb type (ROOM, SPRING, RESO, CLOUD; never
-  SHIMMER), size, modulation and width change from throw to throw.
-- **A twist** in about one throw in five: one experiment — two copies of the arp drifting apart (Reich's phase), a
-  comb filter on the chords and arp, the grain delay pitched down, a lead in another metre, or a drone under
-  everything.
-- A **new tempo** in the genre's range (SPACE in its lower half, FRANTIC in its upper; always at least 3 BPM away),
-  unless MENU > **BPM LOCK** is on; new macro routes.
+**The genres** (49): GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP, HOUSE, DEEP HOUSE, MICRO HOUSE,
+TECH HOUSE, ACID HOUSE, TECHNO, DETROIT, DUB TECHNO, HARD TECHNO, HYPNOTIC, TRANCE, ELECTRO, EBM, ITALO, SYNTH POP,
+DARKWAVE, POST PUNK, TRIBAL PUNK, MINIMAL SYNTH, MAN MACHINE, MOTORIK, INDIE, SHOEGAZE, POST ROCK, FUNK, DISCO,
+BOOM BAP, TRAP, UK GARAGE, DUBSTEP, BREAKS, DRUM & BASS, DUB, STEPPERS, JAZZ, BOSSA, AFROBEAT, AMBIENT, NEO CLASSIC,
+IMPRESSION, SOUNDTRACK, IDM, BROKEN. Each has its tempo range, scales, progressions, drum family (or none) and kit,
+bass figures, how its chords move, how its lead and arp speak, the sounds it likes per role and how wet it is.
 
-It remembers your last 32 pieces and throws again if a new one would match one of them. It does not write automation or modulation routings (other than the
-macros' routes), but it replaces every track's steps, and with them that track's existing automation. Mutes are left
-as they are. The roles that play go on the first tracks, so with TRACKS 4 you hear the most important ones. The screen says **DICED:** and the style.
+**ENERGY** thins or fills the piece: low energy leaves two or three things sounding with long tails, high energy brings
+in every role, denser, with ratchets. **The drums may not play at all.** A role left out keeps its sound with an
+empty sequence, ready to play or record.
+
+**FORM**: **LOOP** writes one section; **PARTS** stores the whole piece in section A and variations with parts taken
+out or changed in B, C (and D), chained in ARRANGE (A B A C); **SONG** makes a longer club or arc form (intro, build
+with a filter opening and a roll, drop, break), each section 16 bars. A section you saved yourself is never
+overwritten: then the piece stays a loop. Sections are 32 or 64 steps, depending on how fast the genre's chords move.
+
+What the generator knows, per genre (`gen_tables.c`):
+
+- **Harmony**: the genre's scales and progressions, every chord with its own quality, voiced between C3 and G5 and
+  led to the nearest voicing (or moved in parallel where the genre does).
+- **Drums**: a map of priorities — a hit plays where its level clears the density, so ghost notes go first and the
+  anchors last; the snare laid back where the genre does; hi-hat rolls in the trap family; the kit's MORPH drifting
+  a little over the loop now and then.
+- **Bass**: one of about fifty figures written against the kick (the root at every chord change, approaches by a
+  semitone, the kick doubled, answered or interlocked); in the trap and drill genres an 808 that glides.
+- **Arp and lead**: the arp as an order over the voiced chord (cycles of 3 or 5 against the bar); the lead as a
+  one-bar motif in a phrase (A A A A', A R A R' …), varied by one change a bar.
+- **Sounds**: a factory sound per role whose name fits, with its envelope, filter, a slow LFO and sends shaped for
+  the role; HUMAN by how human the genre is, unless you set it.
+- **Tempo**: inside the genre's range, higher with more ENERGY (the same seed, the same tempo), unless MENU >
+  **BPM LOCK** is on. Swing, delay and reverb follow the genre (the wet genres — dub, dub techno, shoegaze, ambient —
+  get long tails).
+
+Making a piece replaces every track's steps, and with them their automation. **UNDO** (GLO held + G4, or OCT− held +
+GLO) brings back the music from before.
 
 ### Sound dice (EDIT + SELECT)
 
@@ -768,7 +782,7 @@ the music plays on). After OK, **GLO held + G4** still undoes it.
 The same idea for the other parts of the selected track, each heard at once under its **KEEP DICED …?** dialog
 (SELECT again: another roll, **OCT+ OK** keeps it, **OCT− CANCEL** puts back what was there, the rest plays on):
 
-- **SEQ + SELECT**: a new sequence as DICE ALL writes a part, in the track's own scale: a beat on a DRUM track, else
+- **SEQ + SELECT**: a new sequence as the GENERATOR writes a part, in the track's own scale: a beat on a DRUM track, else
   the role its steps sound like (low notes: a bass line, chords: a pad, else a lead or an arp). Its sound, mix and
   automation stay.
 - **LFO + SELECT**: the track's LFO: a rate in the middle of the range, any wave and phase, a fade now and then, aimed
@@ -786,7 +800,7 @@ G3 clears them. See [10](#10-modulation-and-macros).
 One step back over the **last big change**. Pressing it again goes forward (redo). The transport keeps playing.
 G4 breathes on the GLO map when there is something to undo; with nothing, it says **NOTHING TO UNDO**.
 
-**UNDO covers**: DICE ALL, a sound diced, a track cleared (REC F3, TOOLS CLEAR SEQ), CLEAR ALL SEQUENCES (SEQ + REC),
+**UNDO covers**: a piece made on the GENERATOR, a Hearth macro (OCT− + ARP), a sound diced, a track cleared (REC F3, TOOLS CLEAR SEQ), CLEAR ALL SEQUENCES (SEQ + REC),
 NEW PROJECT, INIT and RECALL (EDIT layer or TOOLS), clearing the automation (SEQ > AUTOMATION),
 and a section loaded with **SAVE > PROJECT > LOAD**. It restores the music as it was: sounds, steps, automation, the
 kit, the punch-in lane, the macros, the tempo and global effects.
@@ -803,7 +817,10 @@ sounds picked with PRESETS, SEQ TOOLS actions, or ordinary knob turns. It is not
 ### Per track
 
 - **FX**: DIST amount and the three sends (CHORUS, DLY, REV).
-- **DIST**: amount, **TYPE** (SOFT, HARD, FOLD, CRUSH, RECT), **TONE** (darker / brighter).
+- **DIST**: amount, **TYPE** (SOFT, HARD, FOLD, CRUSH, RECT, and GW-1's **HEARTH** — warm tube-style drive with a
+  little high-frequency edge and low weight; **BLAST** — a two-stage sine wavefolder over a soft-clipped body;
+  **PLASMA** — saturation warped by the signal's own envelope; **FLUX** — a drifting bias and a bit-starved grain that
+  grow with the amount), **TONE** (darker / brighter).
 - **AUTO PAN**: the track's pan swung left and right around its PAN. **DEPTH** (0 = off), **RATE**, **SYNC** (BEAT:
   RATE in divisions 4BAR … 1/32, locked to the bar; FREE: RATE in Hz), **WAVE** (SIN, TRI, SAW, SQR, S&H).
 - **FILTER**: see [4](#4-engines).
@@ -1090,8 +1107,8 @@ How heavy the sound may get.
 | LOAD | What changes while it sounds |
 | --- | --- |
 | **FULL** (default) | Everything as set. |
-| **LITE** | SHIMMER and CLOUD reverbs play as ROOM, RESO as SPRING; the GRAIN delay plays plain; FM6 plays two voices. The screen draws lighter: the beings and graphs animate at about 20 frames a second with simpler outlines, and values change at once (no rolling digits). |
-| **ECO** | LITE, plus every reverb plays as a light SPRING, **no SLICER** (its tracks go straight to the mix), **no chorus** (their pages are hidden), at most **4 voices** per synth track and **6 voices** between all tracks (8 otherwise; the drums count too). When the load climbs, nearly silent tails are let go sooner. The screen at about 14 frames a second, the beings simpler still. |
+| **LITE** | SHIMMER and CLOUD reverbs play as ROOM, RESO as SPRING; the GRAIN delay plays plain; FM6 plays two voices. The screen draws lighter: the graphs animate at about 20 frames a second with simpler outlines, and values change at once (no rolling digits). |
+| **ECO** | LITE, plus every reverb plays as a light SPRING, **no SLICER** (its tracks go straight to the mix), **no chorus** (their pages are hidden), at most **4 voices** per synth track and **6 voices** between all tracks (8 otherwise; the drums count too). When the load climbs, nearly silent tails are let go sooner. The screen at about 14 frames a second, the graphs simpler still. |
 
 LOAD only changes how things are rendered: **projects keep their settings** and sound as saved on FULL (or on another
 FM-1). The cards of swapped effects say LITE or ECO. LOAD frees **CPU**, not RAM: the firmware reserves all its memory
@@ -1115,7 +1132,7 @@ closes it (settings are saved then).
 
 | Tab | Row | Values |
 | --- | --- | --- |
-| DISPLAY | COLOR | GREY, GREEN, AMBER, ICE, VIOLET, ROSE, PAPER, HI-CON, NIGHT, MONO, **Pocket GammaWave** (default) |
+| DISPLAY | COLOR | GREY, GREEN, AMBER, ICE, VIOLET, ROSE, PAPER, HI-CON, NIGHT, MONO, THERMAL, **GAMMA** (default), WRAITH |
 | DISPLAY | STYLE | FLAT, LINE |
 | DISPLAY | LARGE | OFF, ON (big labels and values) |
 | DISPLAY | ANIM | ON, OFF (values snap; the power-on signature appears whole) |
@@ -1124,7 +1141,7 @@ closes it (settings are saved then).
 | CONTROL | HOLD | 0.3 s, **0.4 s** (default), 0.5 s, 0.6 s — how long until a held button opens its layer |
 | CONTROL | KNOB ACCEL | **ON** (default), OFF |
 | CONTROL | FX LATCH | **OFF** (default since 0.6.64), ON |
-| CONTROL | BPM LOCK | OFF, ON — DICE ALL keeps the tempo (the tempo is GLO + SELECT, GLO's F4 TAP or GLOBAL's BPM) |
+| CONTROL | BPM LOCK | OFF, ON — the GENERATOR keeps the tempo (the tempo is GLO + SELECT, GLO's F4 TAP or GLOBAL's BPM) |
 | CONTROL | SCALE LEDS | OFF, ON — the keys of the scale glow, the root brighter |
 | CONTROL | MIDI OUT | **KEYS**, CLOCK, ALL, OFF — what goes out over USB MIDI (see [14](#14-midi-and-usb)) |
 | AUDIO | SPEAKER EQ | FLAT, LOWCUT, BASS+ (an EQ on the master for the small speaker; also reaches the outputs and USB) |
@@ -1138,7 +1155,7 @@ closes it (settings are saved then).
 | SYSTEM | LOAD | ECO, LITE, **FULL** (default) |
 | SYSTEM | CALIBRATION | OCT+ opens HARDWARE CALIBRATION (teach each button and knob) |
 | SYSTEM | INIT SYSTEM | OCT+ asks, then everything back to zero for a new song (as SAVE > TOOLS > NEW PROJECT; UNDO brings the music back) |
-| SYSTEM | ABOUT | OCT+ opens: version, QR code, AUDIO LOAD (NOW, PEAK, LATE, SHED since power-on) and credits (scroll with PRESETS, OCT− back) |
+| SYSTEM | ABOUT | OCT+ opens: version, QR code, AUDIO LOAD (NOW, PEAK, LATE, SHED since power-on) and credits (scroll with PRESETS, OCT− back). OCT+ there opens the visualizer (see [17](#17-gw-1-additions)) |
 
 If you hear clicks, open ABOUT and look at **LATE** (audio blocks that came too late) and **SHED** (voices the guard
 faded): a photo of that screen helps when you report a problem.
@@ -1190,9 +1207,9 @@ ALGORITHM; **Shift-click** holds a button. Great for learning the layers without
 
 ### Installer — <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
 
-Chrome or Edge, the FM-1 connected straight to the computer.
+Chrome, Edge or Opera (it needs Web MIDI), the FM-1 connected straight to the computer.
 
-- **Install** Pocket GammaWave (it checks the FM-1 first: official V15 or Pocket GammaWave only).
+- **Install** Pocket GammaWave (it checks the FM-1 first: official V15, JIANT or Pocket GammaWave only).
 - **Return to official V15**: give it M-VAVE's unmodified **FM-1.fwsc** (checked locally in the browser). It first
   saves a complete backup (current music, saved music, sound banks and settings; not user samples). Use this before
   installing Pocket GammaWave if your FM-1 runs **another custom firmware** (Felucca, baudgirl…), and whenever you want to go back
@@ -1204,6 +1221,12 @@ Every parameter from the computer, over USB. Tabs: Sound, 6-OP FM, Sequencer, Tr
 
 - **6-OP FM**: edit FM6 patches, import .syx, and **Send to the device's voice bank (B1–B32)**.
 - **Projects**: the project slots, and the **Complete backup**: **Save backup** and **Restore backup**.
+- **The GW-1 panel** (on the Sound tab): four demo songs, the editor's own 49-genre generator (the same genre list;
+  its patterns are made in the browser, so they won't match the device's for the same seed), **4 tape lanes** (T1–T4:
+  DUMP a track's pattern into a lane, layer, bounce, mute and clear them — note patterns, not recorded audio),
+  **EXPORT .WAV** (the song and the tape lanes as a 16-bit 44.1 kHz stereo WAV), the Wraith bar and SEQ MUTATE.
+  Without a device it plays on its own in the browser; with one connected, the macros, the Wraith bar and the
+  generator's bass line are sent to the selected track.
 
 ### The complete backup
 
@@ -1262,6 +1285,67 @@ M-VAVE's own updater.
 install Pocket GammaWave. Going straight from another custom firmware has bricked an FM-1.
 
 **Where did my Felucca samples go?** Pocket GammaWave has no user samples; that flash now holds the songs.
+
+---
+
+## 17. GW-1 additions
+
+What Pocket GammaWave adds to the firmware it is built on (Felucca, by way of JIANT FM). Everything else in this manual
+applies as written.
+
+### The `[OCT−]` shift deck
+
+Hold **OCT−** on its own first, then press the second button. A plain OCT− tap still lowers the octave; when a
+shortcut fires, the octave is put back. The deck works from HOME and the parameter pages — not inside the MENU or a
+dialog, and not on pages where OCT− has its own job (on MUTATE it is FREEZE). Pressing a page button and OCT− at the
+same moment is that page's own gesture, as before.
+
+| Shortcut | What it does |
+| --- | --- |
+| **OCT− + ARP** | The next of the six **Hearth macros** on the selected track (below). |
+| **OCT− + PLAY** (or **REC**) | Opens the **GENERATOR** (see [8](#8-dice-and-undo)). |
+| **OCT− + ENV** (or **SCL**) | Jumps to **SEQ > MUTATE**. If SOUND and PATTERN were both OFF it sets SOUND every 2 bars, PATTERN every 4 bars and AMOUNT about 50 %; MODE stays as it was (ORBIT by default). |
+| **OCT− + HOME** (or **SAVE**) | Opens the **visualizer** (below). |
+| **OCT− + SEQ / EDIT / FX / LFO** | Dices the selected track's sequence / sound / effects / LFO, as SEQ / EDIT / FX / LFO + SELECT do: the **KEEP DICED …?** dialog, OCT+ keeps, OCT− cancels. |
+| **OCT− + GLO** | **UNDO** (again: redo), as GLO + G4. |
+
+The editing shortcuts say **STOP TO EDIT** while a song or quick chain plays, as their GLO-layer versions do.
+
+### Hearth macros (OCT− + ARP)
+
+Each press sets the track's DIST type and amount, its filter cutoff and resonance (on ANALOG, its own CUT and RES),
+and the filter type; the screen says which one. UNDO takes a macro back.
+
+| Macro | DIST TYPE | Filter TYPE | Also |
+| --- | --- | --- | --- |
+| 1/6 HEARTH GRAVITY | HEARTH | LP | low cutoff, medium resonance |
+| 2/6 SINGULARITY | BLAST | LP | |
+| 3/6 PHOTOSPHERE | PLASMA | LP | |
+| 4/6 WRAITH SCREAM | FLUX | SCREAM | high cutoff and resonance |
+| 5/6 FORMANT VOWEL | HEARTH | VOWEL | |
+| 6/6 SOLAR ECLIPSE! | BLAST | SCREAM | raises the master DUCK and PUNCH |
+
+### New filter and drive types
+
+FILTER **TYPE** adds **VOWEL** and **SCREAM** (see [4](#4-engines)); DIST **TYPE** adds **HEARTH**, **BLAST**,
+**PLASMA** and **FLUX** (see [9](#9-effects-and-master)). The GENERATOR adds six genres: GAMMAWAVE, WRAITHWAVE,
+TRAP ATL, UK DRILL, DARK TRAP and RAGE TRAP (see [8](#8-dice-and-undo)).
+
+### The GammaWave screens
+
+- **HOME**: the filter curve over the live spectrum, the Hearth sun and moon, the T1–T6 strip (see [2](#2-the-screen)).
+- **EDIT pages**: two live scope traces over the **Wraith ribbon**. Its six zones — **FLU · WHI · VOX · CHR · BEL ·
+  SCR** — label the cutoff range, and the needle follows CUT (and the filter LFO). With the VOWEL or SCREAM filter, or
+  on the VOICE engine, the ribbon shows the vowels **OO · OH · AH · EH · EE** instead.
+- **SLICER**: drawn as four tape lanes. **DRUM**: the kit's eight pads with the A/B MORPH bar.
+- **Palettes**: MENU > DISPLAY > COLOR adds **THERMAL**, **GAMMA** (the default) and **WRAITH**.
+- **ABOUT** carries a QR code to gammawaveaudio.com.
+
+### The visualizer
+
+**OCT− + HOME** (or MENU > SYSTEM > ABOUT, then OCT+) opens **HYPERSPACE VIZ**: four animated scenes — 1/4
+SUPERNOVA, 2/4 WRAITH 3D, 3/4 WARP TUNNEL, 4/4 MATRIX FFT — that pulse while the sequencer plays. **OCT+** (or
+PRESETS / ALGORITHM) changes scene, **OCT−** leaves (to ABOUT; HOME goes back home).
 
 ---
 

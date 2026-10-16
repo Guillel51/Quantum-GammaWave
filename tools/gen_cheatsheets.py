@@ -125,7 +125,7 @@ def controls():
     b.append(sec('THE PANEL'))
     rows = [
         ('MASTER', 'Master volume.'),
-        ('SELECT', '<b>Scrolls the section\'s pages</b> (HOME: DICE EVERYTHING?). Held with a button, its <b>dice</b> (OK keeps, CANCEL back): HOME everything, '
+        ('SELECT', '<b>Scrolls the section\'s pages</b> (HOME: the 49-genre generator). Held with a button, its <b>dice</b> (OK keeps, CANCEL back): HOME the generator, '
                    'EDIT the sound, SEQ the sequence, LFO the LFO, FX the effects. GLO + SELECT: the tempo.'),
         ('PRESETS', 'Browses the sounds (factory and user). On step, list and song pages: the cursor / the row. '
                     '<b>Hold a page button + PRESETS: jump through its pages.</b>'),
@@ -205,13 +205,13 @@ def controls():
 
     b.append(sec('COMBOS & [OCT−] SHIFT DECK'))
     combos = [
-        (k('OCT−', cls='a') + ' + ' + k('ARP', cls='a'), '<b>SOLAR HEARTH &amp; ECLIPSE MACROS (1/6–6/6)</b>: cycles Gravity, Singularity, Photosphere, Wraith Scream, Formant Vowel &amp; Solar Eclipse across the full Wraith bar.'),
-        (k('OCT−', cls='a') + ' + ' + k('PLAY', cls='a'), '<b>49-GENRE SONG GENERATOR (GEN)</b>: instant Trap ATL, UK Drill, Dark Trap, Rage Trap, Synthwave, Techno &amp; Ambient song ideas (KNOB 2 picks genre, OCT+ rolls).'),
-        (k('OCT−', cls='a') + ' + ' + k('ENV / SCL', cls='a'), '<b>SEQ &gt; MUTATE (1-CLICK)</b>: jumps straight to MUTATE and activates ORBIT (Sound=2B, Pattern=4B, Amount=50%).'),
-        (k('OCT−', cls='a') + ' + ' + k('HOME / SAVE', cls='a'), '<b>3D HYPERSPACE VISUALIZER</b>: launches 4-mode 60 FPS visualizer (Supernova, Wraith 3D, Warp Tunnel, Matrix FFT; OCT+ cycles mode).'),
+        (k('OCT−', cls='a') + ' + ' + k('ARP', cls='a'), '<b>HEARTH MACROS (1/6–6/6)</b>: Gravity, Singularity, Photosphere, Wraith Scream, Formant Vowel, Solar Eclipse — drive type and amount, cutoff, resonance (4–6: SCREAM / VOWEL filter). Undo: OCT− + GLO.'),
+        (k('OCT−', cls='a') + ' + ' + k('PLAY', cls='a'), '<b>49-GENRE SONG GENERATOR (GEN)</b>: Trap ATL, UK Drill, Dark Trap, Rage Trap, house, techno, IDM, ambient… KNOB 1 genre, KNOB 2 seed, KNOB 3 energy, KNOB 4 form; SELECT pages; OCT+ makes, PLAY auditions.'),
+        (k('OCT−', cls='a') + ' + ' + k('ENV / SCL', cls='a'), '<b>SEQ &gt; MUTATE (1-CLICK)</b>: jumps to MUTATE; if it was off, switches it on (Sound 2 bars, Pattern 4 bars, Amount 50%).'),
+        (k('OCT−', cls='a') + ' + ' + k('HOME / SAVE', cls='a'), '<b>HYPERSPACE VISUALIZER</b>: 4 animated scenes (Supernova, Wraith 3D, Warp Tunnel, Matrix FFT); OCT+ next scene, OCT− leaves.'),
         (k('OCT−', cls='a') + ' + ' + k('SEQ · EDIT · FX · LFO', cls='v'), '<b>1-HAND DICE</b>: rolls Sequence, Sound Patch, Track FX, or LFO on the active track.'),
-        (k('OCT−', cls='a') + ' + ' + k('GLO', cls='v'), '<b>INSTANT UNDO / REDO</b> (same as GLO + G4 or HOME + PLAY).'),
-        (k('HOME · EDIT · SEQ · LFO · FX', cls='v') + ' + ' + k('SELECT', cls='v'), 'Their dice: everything · sound · sequence · LFO · effects (KEEP? OK / CANCEL).'),
+        (k('OCT−', cls='a') + ' + ' + k('GLO', cls='v'), '<b>UNDO</b>, again: REDO (same as GLO + G4).'),
+        (k('HOME · EDIT · SEQ · LFO · FX', cls='v') + ' + ' + k('SELECT', cls='v'), 'HOME: the 49-genre generator (GEN). The others dice: sound · sequence · LFO · effects (KEEP? OK / CANCEL).'),
         (k('PAGE BUTTON', cls='v') + ' + ' + k('PRESETS', cls='v'), 'Jump through that button\'s pages.'),
         (k('REC') + ' + ' + k('FX') + k('EDIT') + k('ENV') + k('LFO') + k('SCL') + k('ARP') + k('GLO'),
          'Clear that part\'s automation on the selected track (FX: the punch-in lane too).'),
@@ -303,16 +303,16 @@ def sound():
     b.append(card('EIGHT ENGINES, ALL SYNTHESIS', HEAT[7], t))
     b.append('<div class="grid g3" style="margin-top:22px">')
     b.append(card('SPECTROGRAM FILTER & WRAITH BAR', HEAT[3], knobs('TYPE', 'CUT', 'RES', 'DRV') +
-                  '<p style="margin-top:8px"><b>LP · HP · BP · COMB · VOWEL · SCREAM</b> with live FFT Spectrogram &amp; '
-                  '6-Mode Wraith Voice Bar (<b>FLU · WHI · VOX · CHR · BEL · SCR</b> / <b>OO · OH · AH · EH · EE</b>). '
-                  'Hold <b>OCT− + ARP</b> to cycle 6 Solar Hearth &amp; Eclipse macros across the full 0..127 range.</p>'))
+                  '<p style="margin-top:8px"><b>LP · HP · BP · COMB · VOWEL · SCREAM</b>, drawn over the audio-reactive spectrum. '
+                  'The Wraith ribbon follows CUT through six zones (<b>FLU · WHI · VOX · CHR · BEL · SCR</b>; vowels <b>OO · OH · AH · EH · EE</b> with VOWEL / SCREAM or the VOICE engine). '
+                  '<b>OCT− + ARP</b> steps through 6 Hearth macros.</p>'))
     b.append(card('VOICE · PLAYING', HEAT[2], knobs('VCE', 'GLD', 'GLMOD', 'PRIO') +
                   '<p style="margin-top:8px">POLY · MONO · LEG · UNI; glide and its mode; LAST / LOW / HIGH priority. '
                   '<b>8 voices</b> shared by the six tracks (MONO and LEGATO keep their note).</p>'))
     b.append(card('49-GENRE GENERATOR & DICE', HEAT[5], '<p><b>OCT− + PLAY</b> (or SELECT on HOME): 49-Genre Song Generator '
                   'including <b>TRAP ATL</b>, <b>UK DRILL</b> (3-3-2 tresillo bounce), <b>DARK TRAP</b> (808 cowbells), '
-                  '<b>RAGE TRAP</b>, Synthwave, Techno &amp; IDM. <b>OCT− + ENV</b>: 1-click <b>SEQ &gt; MUTATE</b> (ORBIT / DRIFT / FREEZE / KEEP). '
-                  '<b>OCT− + GLO</b>: instant Undo.</p>'))
+                  '<b>RAGE TRAP</b>, house, techno, IDM, ambient… KNOB 1 genre, OCT+ makes. <b>OCT− + ENV</b>: 1-click <b>SEQ &gt; MUTATE</b> (ORBIT / DRIFT; on the page OCT− FREEZE, OCT+ KEEP). '
+                  '<b>OCT− + GLO</b>: Undo.</p>'))
     b.append('</div>')
 
     b.append(sec('MODULATION'))
