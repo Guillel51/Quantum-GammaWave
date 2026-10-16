@@ -758,15 +758,18 @@ What the generator knows, per genre (`gen_tables.c`):
   a little over the loop now and then.
 - **Bass**: one of about fifty figures written against the kick (the root at every chord change, approaches by a
   semitone, the kick doubled, answered or interlocked).
-- **The trap family** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) has its own generator: the snare and the clap
-  on beat 3, the kick around it, and the hats as the groove — eighths or sixteenths with 1/32 and 1/64 rolls before
-  the snare and at the bar's end, triplet bursts (on a second DRUM track at 16T when TRACKS is 6), drill's 3-3-2
-  gallop and late snare, dark trap's cowbell. The bass is an 808: a driven sine that starts on every kick and rings
-  to the next, gliding between notes (drill the most; dark trap and rage clip it). The melody is a short loop of
-  chord tones, high and wet (bells, keys, a flute; strings and choirs in drill; a bright saw hook in rage) over a
-  dark pad and a counter line. With FORM on SONG it makes intro (the melody alone, its filter opening), hook, verse
-  (another kick and hat style, the melody out), hook, bridge (no drums but a snare roll) and hook; PARTS stops after
-  the second hook. The hook loop is four bars.
+- **The trap family** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) has its own generator, made for a voice on
+  top: the drums and the 808 loud, the music sparse and behind them. The snare and the clap on beat 3, the kick
+  around it, and the hats as the groove — eighths or sixteenths with 1/32 and 1/64 rolls before the snare and at the
+  bar's end, triplet bursts and shuffled percussion (on a second DRUM track at 16T when TRACKS is 6), a crash on the
+  hook's downbeat, drill's 3-3-2 gallop and late snare, dark trap's cowbell. The bass is an 808: a driven sine that
+  starts on every kick and rings to the next, gliding between notes (drill the most; dark trap and rage clip it). The
+  melody is a two-bar motif of chord tones — a call, then a short answer whose end stays empty — about 10 dB under
+  the drums (bells, keys, a flute; strings and choirs in drill; a saw hook in rage), over a low-passed pad; in the
+  hook a counter melody replies in the gap. With FORM on SONG it makes the rap layout: intro (4 bars, the melody
+  alone, its filter opening), hook (8), verse (16: another kick, plainer hats, a softer instrument playing only the
+  calls, a darker pad; its last 4 bars a pre-hook where the drums and the 808 stop for a snare roll), hook, verse,
+  hook, outro. PARTS stops after the second hook. The hook loop is four bars.
 - **Arp and lead**: the arp as an order over the voiced chord (cycles of 3 or 5 against the bar); the lead as a
   one-bar motif in a phrase (A A A A', A R A R' …), varied by one change a bar.
 - **Sounds**: a factory sound per role whose name fits, with its envelope, filter, a slow LFO and sends shaped for

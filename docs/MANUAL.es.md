@@ -799,16 +799,20 @@ Lo que el generador sabe, por género (`gen_tables.c`):
   trap; el MORPH del kit que a veces se mueve un poco a lo largo del loop.
 - **Bajo**: una de unas cincuenta figuras escritas contra el bombo (la fundamental en cada cambio de acorde,
   aproximaciones por semitono, el bombo doblado, respondido o entrelazado).
-- **La familia trap** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) tiene su propio generador: el redoblante y el
-  clap en el tiempo 3, el bombo alrededor, y los hi-hats como el groove — corcheas o semicorcheas con redobles de 1/32
-  y 1/64 antes del redoblante y al final del compás, ráfagas en tresillo (en una segunda pista DRUM a 16T cuando
-  TRACKS es 6), el galope 3-3-2 y el redoblante atrasado del drill, el cencerro del dark trap. El bajo es un 808: un
-  seno saturado que arranca en cada bombo y suena hasta el siguiente, deslizándose entre notas (el drill más que
-  ninguno; dark trap y rage lo recortan). La melodía es un loop corto de notas del acorde, aguda y con reverb
-  (campanas, teclas, una flauta; cuerdas y coros en el drill; un hook de sierra brillante en el rage) sobre un pad
-  oscuro y una contramelodía. Con FORM en SONG arma intro (la melodía sola, su filtro abriéndose), hook, verso (otro
-  bombo y otros hi-hats, sin la melodía), hook, puente (sin batería salvo un redoble) y hook; PARTS termina después
-  del segundo hook. El loop del hook dura cuatro compases.
+- **La familia trap** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) tiene su propio generador, pensado para una
+  voz encima: la batería y el 808 fuertes, la música escasa y detrás. El redoblante y el clap en el tiempo 3, el
+  bombo alrededor, y los hi-hats como el groove — corcheas o semicorcheas con redobles de 1/32 y 1/64 antes del
+  redoblante y al final del compás, ráfagas en tresillo y percusión con shuffle (en una segunda pista DRUM a 16T
+  cuando TRACKS es 6), un crash en el primer tiempo del hook, el galope 3-3-2 y el redoblante atrasado del drill, el
+  cencerro del dark trap. El bajo es un 808: un seno saturado que arranca en cada bombo y suena hasta el siguiente,
+  deslizándose entre notas (el drill más que ninguno; dark trap y rage lo recortan). La melodía es un motivo de dos
+  compases con notas del acorde — una pregunta y una respuesta corta cuyo final queda vacío — unos 10 dB debajo de
+  la batería (campanas, teclas, una flauta; cuerdas y coros en el drill; un hook de sierra en el rage), sobre un pad
+  filtrado; en el hook una contramelodía responde en el hueco. Con FORM en SONG arma la forma del rap: intro (4
+  compases, la melodía sola, su filtro abriéndose), hook (8), verso (16: otro bombo, hi-hats más simples, un
+  instrumento más suave que toca solo las preguntas, un pad más oscuro; sus últimos 4 compases un pre-hook donde la
+  batería y el 808 paran para un redoble), hook, verso, hook, outro. PARTS termina después del segundo hook. El loop
+  del hook dura cuatro compases.
 - **Arpegio y lead**: el arpegio como un orden sobre el acorde (ciclos de 3 o 5 contra el compás); el lead como un
   motivo de un compás dentro de una frase (A A A A', A R A R' …), variado con un cambio por compás.
 - **Sonidos**: un sonido de fábrica por rol cuyo nombre corresponde, con su envolvente, filtro, un LFO lento y envíos

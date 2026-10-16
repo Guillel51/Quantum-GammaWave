@@ -153,16 +153,21 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - The Hearth macros only touch ANALOG's E4/E5 cutoff/resonance on ANALOG tracks (on other engines those slots are other parameters), reset the filter type for macros 1–3, and can be undone; the deck's undo shows `UNDONE (AGAIN: REDO)` and respects `STOP TO EDIT`.
 - The MUTATE jump enters the page properly (sequencer mode and page state follow).
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
-- The trap genres (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) have their own generator (`gen_trap.c`):
+- The trap genres (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) have their own generator (`gen_trap.c`), and
+  they make a beat for a voice: the drums and the 808 loud, the music sparse and behind them, the middle left free.
   - **Groove**: the snare and clap on beat 3, a kick bank per style that never lands on the snare, hats that are the
     groove (eighths or sixteenths, 1/32 and 1/64 rolls before the snare and at the bar's end, triplet bursts on a
-    second DRUM track at 16T when TRACKS 6 is on), drill's 3-3-2 gallop and late snare, dark trap's cowbell.
+    second DRUM track at 16T when TRACKS 6 is on, with shuffled percussion), a crash on the hook's downbeat, an
+    open hat at a phrase's turn, drill's 3-3-2 gallop and late snare, dark trap's cowbell.
   - **Sound**: a short knocking kick, bright high-passed hats, a sine 808 driven so a small speaker plays it
-    (dark trap and rage clip it), a high, wet melody (bells, keys, a flute; strings and choirs in drill; a saw hook
-    in rage), a dark pad, a counter line.
-  - **Song**: SONG makes intro (the melody alone, its filter opening) → hook → verse (another kick and hat style,
-    the melody out) → hook → bridge (no drums but a snare roll) → hook, with a stop on the last beat before a hook.
-    PARTS makes intro → hook → verse → hook.
+    (dark trap and rage clip it). The melody is a two-bar motif (a call, then a short answer whose end stays empty)
+    about 10 dB under the drums with little reverb: bells, keys, a flute; strings and choirs in drill; a saw hook
+    in rage. A low-passed pad under it; in the hook a counter melody (flute, voice, pluck) replies in the gap. Every
+    sound has a measured level trim, so a choir and a pluck sit at the same loudness.
+  - **Song**: SONG makes the rap layout: intro 4 bars (the melody alone, its filter opening), hook 8, verse 16 (another
+    kick and plainer hats, a softer instrument playing only the melody's calls, a darker pad, no counter; its last
+    4 bars a pre-hook where the drums and the 808 stop for a snare roll), hook, verse, hook, outro: 64 bars.
+    PARTS stops after the second hook.
 - DICE ALL and a new GEN seed never repeat one of the last 64 seeds (two throws could land on the same piece).
 - ABOUT: the QR code no longer covers the license line.
 

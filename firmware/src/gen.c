@@ -1357,11 +1357,11 @@ static void gen_make(void)
                 if (gs.trap && gs.act[r] && (r != RL_TEX || k == gs.trk_of[RL_TEX])) {
                     switch (r) {
                     case RL_DRUM: trap_drums(t, len, 0); break;
-                    case RL_BASS: trap_808(t, len); break;
-                    case RL_PAD: gen_pads(t, len); break;
+                    case RL_BASS: trap_808(t, len, 0); break;
+                    case RL_PAD: trap_pads(t, len); break;
                     case RL_ARP: trap_counter(t, len); break;
-                    case RL_LEAD: trap_lead(t, len); break;
-                    default: trap_hats2(t); break;
+                    case RL_LEAD: trap_lead(t, len, 0); break;
+                    default: trap_hats2(t, 0); break;
                     }
                 } else if (gs.act[r] && (r != RL_TEX || k == gs.trk_of[RL_TEX])) {
                     switch (r) {
@@ -1388,7 +1388,7 @@ static void gen_make(void)
     }
     if (gs.trap) {                                      /* the trap mix (after dlevel: the melody high and still loud) */
         gseed(GS_MIX + 32u);
-        for (k = 0; k < NTRK; k++) trap_mix(&trk[k], gs.role[k]);
+        for (k = 0; k < NTRK; k++) trap_mix(&trk[k], gs.role[k], 0);
         if (gs.trk_of[RL_TEX] < NTRK && dr < NTRK && gs.act[RL_TEX]) trap_hat_track_like(&trk[gs.trk_of[RL_TEX]], &trk[dr]);
     }
     gseed(GS_FORM);
