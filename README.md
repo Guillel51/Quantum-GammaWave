@@ -37,7 +37,7 @@
   - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls and triplets, bell / flute / key melodies)
   - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat gallop, late snare, sliding 808, dark strings and choirs)
   - **`DARK TRAP`** (130–148 BPM, Memphis-style cowbell, clipped 808, phrygian bells)
-  - **`RAGE TRAP`** (150–166 BPM, distorted 808, bright detuned saw hooks)
+  - **`RAGE TRAP`** (140–160 BPM, Whole Lotta Red or MUSIC flavour: square video-game leads or wobbling stabs, a crushed 808)
   - plus `GAMMAWAVE`, `WRAITHWAVE`, house, techno, trance, electro, EBM, synth pop, darkwave, post punk, motorik, funk, disco, boom bap, UK garage, dubstep, breaks, drum & bass, dub, jazz, bossa, afrobeat, ambient, neo-classical, soundtrack, IDM and more.
   - Pieces are 32 or 64 steps (2 or 4 bars per section) depending on the genre's chord rhythm.
 - **One-press MUTATE** — **`[OCT−] + [ENV]`** jumps to **SEQ > MUTATE**. If MUTATE was off on the track it switches it on with SOUND every 2 bars, PATTERN every 4 bars and AMOUNT ≈ 50 %:
@@ -155,6 +155,12 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - The trap genres (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) have their own generator (`gen_trap.c`), and
   they make a beat for a voice: the drums and the 808 loud, the music sparse and behind them, the middle left free.
+  - **Flavours** (the seed picks one; each set from what is documented about a reference record): TRAP ATL plays
+    *Atlanta* (dark bells and keys), *Pi'erre* ("Magnolia": 156–166 BPM, major or mixolydian, flute, organ and
+    chip-arp leads, long tails, swing, filtered drums, a lighter 808) or *Metro* ("Superhero", "Type Shit": a
+    brass or string loop, choirs, a pummeling 808, 116–124 or 140–150 BPM); DARK TRAP plays *Memphis* (the cowbell)
+    or *Metro*; RAGE TRAP plays *Whole Lotta Red* ("Sky": 140–150 BPM in major or lydian, square video-game leads,
+    a crushed 808) or *MUSIC* ("EVIL J0RDAN": 150–160 BPM, minor, wobbling synth stabs, the most bass).
   - **Groove**: the snare and clap on beat 3, the kick under the 808's notes (never on the snare), hats that are the
     groove (eighths or sixteenths, 1/32 and 1/64 rolls before the snare and at the bar's end, triplet bursts on a
     second DRUM track at 16T when TRACKS 6 is on, with shuffled percussion), a crash on the hook's downbeat, an

@@ -1230,6 +1230,7 @@ static void gen_make(void)
         const ggenre_t *o = &GENRE[gs.gi];
         gs.trap = (uint8_t)(!gs.mutant && o->kick_mode == KM_808);
         gs.ts = (uint8_t)(o->drum == DM_UK_DRILL ? TS_DRILL : o->drum == DM_PHONK ? TS_DARK : o->drum == DM_RAGE ? TS_RAGE : TS_ATL);
+        if (gs.trap) trap_flavour();                    /* (its producers' flavour: tempo, scales, sounds) */
     }
     /* (0.6.95) a throw its own: the drums from the map's family, the chords' play and a role's recipe from the neighbours */
     if (gmut.drum < DM_NONE && gmut.drum != DM_IDM && gch(35)) gmut.drum = DM_ALT[gmut.drum][gr() % 2u];
@@ -1406,7 +1407,9 @@ static void gen_make(void)
     /* the tempo (the genre's range, the energy in it; always moved), the swing, the space, the master */
     if (!(ui_prefs & PREF_BPM_LOCK)) {                  /* the genre's range, the energy's place in it (from the seed:
                                                          * the same piece, the same tempo) */
-        int32_t lo = gs.trap && gs.ts == TS_RAGE ? 150 : g->bpm_lo, hi = gs.trap && gs.ts == TS_RAGE ? 166 : g->bpm_hi, v = lo + (hi - lo) * (int32_t)gs.energy / 100 + grr(-3, 3);
+        int32_t lo = g->bpm_lo, hi = g->bpm_hi, v;
+        if (gs.trap) trap_bpm(&lo, &hi);
+        v = lo + (hi - lo) * (int32_t)gs.energy / 100 + grr(-3, 3);
         song.g[G_BPM] = (int16_t)clamp(v, lo, hi);
     }
     song.g[G_SWING] = (int16_t)clamp((int32_t)gs.swing, 0, 100);

@@ -800,7 +800,12 @@ Lo que el generador sabe, por género (`gen_tables.c`):
 - **Bajo**: una de unas cincuenta figuras escritas contra el bombo (la fundamental en cada cambio de acorde,
   aproximaciones por semitono, el bombo doblado, respondido o entrelazado).
 - **La familia trap** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) tiene su propio generador, pensado para una
-  voz encima: la batería y el 808 fuertes, la música escasa y detrás. El redoblante y el clap en el tiempo 3, el
+  voz encima: la batería y el 808 fuertes, la música escasa y detrás. Cada tema tiene un sabor, elegido por la
+  semilla: TRAP ATL toca Atlanta (campanas y teclas oscuras), Pi'erre (156–166 BPM, mayor o mixolidio, flauta, órgano
+  y arpegios de chip, colas largas, swing, batería filtrada, un 808 más liviano) o Metro (un loop de metales o
+  cuerdas, coros, un 808 contundente, 116–124 o 140–150 BPM); DARK TRAP toca Memphis (el cencerro) o Metro; RAGE TRAP
+  toca Whole Lotta Red (140–150 BPM en mayor o lidio, leads cuadrados de videojuego, un 808 aplastado) o MUSIC
+  (150–160 BPM, menor, stabs de sintetizador que ondulan). El redoblante y el clap en el tiempo 3, el
   bombo alrededor, y los hi-hats como el groove — corcheas o semicorcheas con redobles de 1/32 y 1/64 antes del
   redoblante y al final del compás, ráfagas en tresillo y percusión con shuffle (en una segunda pista DRUM a 16T
   cuando TRACKS es 6), un crash en el primer tiempo del hook, el galope 3-3-2 y el redoblante atrasado del drill, el

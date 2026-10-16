@@ -759,7 +759,12 @@ What the generator knows, per genre (`gen_tables.c`):
 - **Bass**: one of about fifty figures written against the kick (the root at every chord change, approaches by a
   semitone, the kick doubled, answered or interlocked).
 - **The trap family** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) has its own generator, made for a voice on
-  top: the drums and the 808 loud, the music sparse and behind them. The snare and the clap on beat 3, the kick
+  top: the drums and the 808 loud, the music sparse and behind them. Each piece has a flavour, picked by the seed:
+  TRAP ATL plays Atlanta (dark bells and keys), Pi'erre (156–166 BPM, major or mixolydian, flute, organ and chip-arp
+  leads, long tails, swing, filtered drums, a lighter 808) or Metro (a brass or string loop, choirs, a pummeling 808,
+  116–124 or 140–150 BPM); DARK TRAP plays Memphis (the cowbell) or Metro; RAGE TRAP plays Whole Lotta Red (140–150
+  BPM in major or lydian, square video-game leads, a crushed 808) or MUSIC (150–160 BPM, minor, wobbling synth stabs).
+  The snare and the clap on beat 3, the kick
   around it, and the hats as the groove — eighths or sixteenths with 1/32 and 1/64 rolls before the snare and at the
   bar's end, triplet bursts and shuffled percussion (on a second DRUM track at 16T when TRACKS is 6), a crash on the
   hook's downbeat, drill's 3-3-2 gallop and late snare, dark trap's cowbell. The bass is an 808, a driven sine (dark

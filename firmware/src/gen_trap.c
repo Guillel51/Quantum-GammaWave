@@ -21,6 +21,52 @@
 enum { TS_ATL, TS_DRILL, TS_DARK, TS_RAGE, TS_N };
 #define TG_WH 7u                                        /* WHEEL (song_dice.c names the others) */
 
+/* the flavours: a genre's producers, each from records the trap family is measured against (their documented tempo,
+ * key and sounds): ATL (Future's Atlanta: Wheezy, ATL Jacob: dark bells and keys), PIERRE (Pi'erre Bourne's "Magnolia":
+ * 163 BPM, a flute and organ stabs, airy, long tails, drums a little off the grid), METRO (Metro Boomin's "Superhero",
+ * "Type Shit": a horn loop, strings and choirs, pummeling 808s; 117 BPM or the usual 140s), DRILL, DARK (Memphis: the
+ * cowbell), WLR (Art Dealer's "Sky", Whole Lotta Red: 140 BPM in D major, video-game square synths, a crushed 808),
+ * MUSIC (Cardo's "EVIL J0RDAN": ~154 BPM, minor, dark wobbling synth stabs, bass-heavy). A flavour sets the tempo, the
+ * scales, the sounds, the 808's drive, the swing, the space; its rhythms are its style's (ts) */
+enum { TF_ATL, TF_PIERRE, TF_METRO, TF_DRILL, TF_DARK, TF_WLR, TF_MUSIC, TF_N };
+typedef struct {
+    uint8_t ts;                                         /* the drums', the 808's, the melody's rhythms */
+    uint8_t bpm[2][2];                                  /* two tempo ranges (the seed picks) */
+    uint8_t scale[4];                                   /* (0: the genre's) */
+    uint8_t rev[2], swing[2], clip[2], drv[2], dist[2], dtype, dcut;   /* (dcut: the drums' low-pass, 127 open) */
+} tflav_t;
+static const tflav_t TFLAV[TF_N] = {
+    [TF_ATL]    = {TS_ATL,   {{136, 150}, {136, 150}}, {0},                          {24, 44}, {0, 0},   {10, 25}, {84, 108},  {52, 68},  0, 127},
+    [TF_PIERRE] = {TS_ATL,   {{156, 166}, {156, 166}}, {SC_MAJ, SC_MIX, SC_MIN, SC_MAJ}, {50, 75}, {8, 14},  {6, 18},  {60, 84},   {28, 44},  0, 108},
+    [TF_METRO]  = {TS_ATL,   {{116, 124}, {140, 150}}, {0},                          {30, 50}, {0, 0},   {20, 35}, {100, 122}, {64, 84},  0, 127},
+    [TF_DRILL]  = {TS_DRILL, {{140, 145}, {140, 145}}, {0},                          {24, 44}, {4, 10},  {10, 25}, {88, 112},  {52, 68},  0, 127},
+    [TF_DARK]   = {TS_DARK,  {{130, 148}, {130, 148}}, {0},                          {24, 44}, {0, 0},   {30, 45}, {110, 127}, {76, 98},  0, 127},
+    [TF_WLR]    = {TS_RAGE,  {{140, 150}, {140, 150}}, {SC_MAJ, SC_LYD, SC_MAJ, SC_MIX}, {20, 40}, {0, 0},   {50, 70}, {114, 127}, {80, 100}, 1, 127},
+    [TF_MUSIC]  = {TS_RAGE,  {{150, 160}, {150, 160}}, {0},                          {15, 35}, {0, 0},   {50, 70}, {116, 127}, {86, 104}, 1, 127},
+};
+static uint8_t tk_tf;                                   /* this piece's flavour */
+/* the flavour from the genre's style (its own stream: the piece's choices stay as they were) */
+static void trap_flavour(void)
+{
+    static const uint8_t FW[TS_N][TF_N] = {
+        [TS_ATL]   = {40, 30, 30, 0, 0, 0, 0},
+        [TS_DRILL] = {0, 0, 0, 100, 0, 0, 0},
+        [TS_DARK]  = {0, 0, 45, 0, 55, 0, 0},
+        [TS_RAGE]  = {0, 0, 0, 0, 0, 50, 50},
+    };
+    uint32_t keep = gq;
+    gseed(GS_PICK + 50u);
+    tk_tf = (uint8_t)gpickw(FW[gs.ts], TF_N);
+    gq = keep;
+    gs.ts = TFLAV[tk_tf].ts;
+}
+/* the tempo range (gen_make's, inside BPM LOCK's test) */
+static void trap_bpm(int32_t *lo, int32_t *hi)
+{
+    const uint8_t *b = TFLAV[tk_tf].bpm[gp.seed & 1u];
+    *lo = b[0]; *hi = b[1];
+}
+
 /* ------------------------------------------------------------------------------------------------ harmony --- */
 /* trap's progressions (degrees of the scale, a chord every 64 / n steps): i-VI, i-iv, i-VI-III-VII, i-V (the V
  * major: harmonic minor's), i alone, i-bII (phrygian), i-VII-VI-V */
@@ -42,6 +88,7 @@ static const uint8_t TPROG_W[TS_N][8] = {
 };
 static void trap_harmony(void)
 {
+    if (TFLAV[tk_tf].scale[0]) gs.scale = (int16_t)TFLAV[tk_tf].scale[gr() % 4u];
     gs.prog = &TPROG[gpickw(TPROG_W[gs.ts], 8)];
     if (gs.prog == &TPROG[5] && gs.scale != SC_PHRY) gs.prog = &TPROG[1];   /* (bII only where the mode has it) */
     gs.n = gs.prog->n;
@@ -417,35 +464,50 @@ static void trap_preset(track_t *t, uint32_t eng, const char *w1)
 }
 typedef struct { uint8_t eng; const char *w; int8_t lo, hi; uint8_t sus; int8_t trim; } tsound_t;   /* (lo, hi: the melody's
                                                          * window; trim: LEVEL steps evening the sounds' loudness, measured) */
-static const tsound_t TS_LEAD[TS_N][4] = {                /* the hook's melody */
-    [TS_ATL]   = {{ENGI_FM6, "BELL", 72, 88, 0, 0}, {EG_PH, "CRYPT BELL", 72, 88, 0, 16}, {TG_WH, "SOFT FLUTE", 69, 86, 1, -4}, {ENGI_FM6, "TINE EP", 67, 84, 0, 5}},
-    [TS_DRILL] = {{EG_PH, "STRING", 60, 79, 1, -8}, {EG_A, "STRINGS", 62, 81, 1, -5}, {EG_PH, "CRYPT BELL", 67, 84, 0, 16}, {TG_WH, "SOFT FLUTE", 67, 84, 1, -4}},
-    [TS_DARK]  = {{ENGI_FM6, "BELL", 72, 86, 0, 0}, {EG_PH, "BELL", 72, 86, 0, 6}, {EG_A, "RING BELL", 72, 86, 0, 6}, {ENGI_FM6, "MARIMBA", 67, 84, 0, 16}},
-    [TS_RAGE]  = {{EG_A, "SAW LEAD", 64, 84, 1, -7}, {EG_A, "RAVE", 64, 84, 1, -8}, {EG_A, "SYNC LEAD", 64, 84, 1, -7}, {EG_A, "PWM STR", 60, 81, 1, -7}},
+static const tsound_t TS_LEAD[TF_N][4] = {                /* the hook's melody */
+    [TF_ATL]    = {{ENGI_FM6, "BELL", 72, 88, 0, 0}, {EG_PH, "CRYPT BELL", 72, 88, 0, 16}, {TG_WH, "SOFT FLUTE", 69, 86, 1, -4}, {ENGI_FM6, "TINE EP", 67, 84, 0, 5}},
+    [TF_PIERRE] = {{TG_WH, "SOFT FLUTE", 72, 88, 1, -4}, {ENGI_FM6, "ORGAN", 67, 84, 0, 16}, {TG_WH, "FULL ORGAN", 67, 84, 0, 11}, {EG_A, "BITSINE ARP", 72, 88, 0, 9}},
+    [TF_METRO]  = {{ENGI_FM6, "BRASS", 60, 79, 1, -1}, {EG_PH, "BRASS", 60, 79, 1, -12}, {EG_A, "BRASS", 60, 79, 1, -5}, {EG_PH, "STRING", 60, 79, 1, -8}},
+    [TF_DRILL]  = {{EG_PH, "STRING", 60, 79, 1, -8}, {EG_A, "STRINGS", 62, 81, 1, -5}, {EG_PH, "CRYPT BELL", 67, 84, 0, 16}, {TG_WH, "SOFT FLUTE", 67, 84, 1, -4}},
+    [TF_DARK]   = {{ENGI_FM6, "BELL", 72, 86, 0, 0}, {EG_PH, "BELL", 72, 86, 0, 6}, {EG_A, "RING BELL", 72, 86, 0, 6}, {ENGI_FM6, "MARIMBA", 67, 84, 0, 16}},
+    [TF_WLR]    = {{EG_A, "BITSINE ARP", 72, 88, 0, 9}, {EG_A, "SYNC LEAD", 67, 86, 1, -7}, {EG_A, "SAW LEAD", 67, 86, 1, -7}, {EG_A, "PWM STR", 64, 84, 1, -7}},
+    [TF_MUSIC]  = {{EG_A, "SAW LEAD", 60, 79, 1, -7}, {EG_A, "RAVE", 60, 79, 1, -8}, {EG_A, "HEARTH LD", 60, 79, 1, -11}, {EG_A, "SYNC LEAD", 60, 79, 1, -7}},
 };
-static const tsound_t TS_VLEAD[TS_N][4] = {               /* the verse's: softer, the calls only */
-    [TS_ATL]   = {{ENGI_FM6, "TINE EP", 64, 81, 0, 5}, {EG_A, "SINE KEY", 64, 81, 0, 6}, {ENGI_FM6, "MARIMBA", 67, 84, 0, 16}, {EG_A, "PLUCK", 64, 81, 0, 11}},
-    [TS_DRILL] = {{ENGI_FM6, "TINE EP", 60, 79, 0, 5}, {EG_A, "SINE KEY", 60, 79, 0, 6}, {EG_VO, "BLACK CHOIR", 60, 76, 1, -11}, {EG_A, "PLUCK", 62, 79, 0, 11}},
-    [TS_DARK]  = {{EG_PH, "CRYPT BELL", 67, 84, 0, 16}, {EG_VO, "BLACK CHOIR", 60, 76, 1, -11}, {ENGI_FM6, "TINE EP", 64, 81, 0, 5}, {EG_A, "RING BELL", 67, 84, 0, 6}},
-    [TS_RAGE]  = {{EG_A, "PLUCK", 64, 81, 0, 11}, {EG_A, "SINE KEY", 64, 81, 0, 6}, {EG_A, "SOFT PAD", 60, 79, 1, -4}, {ENGI_FM6, "PLUCK", 64, 81, 0, 13}},
+static const tsound_t TS_VLEAD[TF_N][4] = {               /* the verse's: softer, the calls only */
+    [TF_ATL]    = {{ENGI_FM6, "TINE EP", 64, 81, 0, 5}, {EG_A, "SINE KEY", 64, 81, 0, 6}, {ENGI_FM6, "MARIMBA", 67, 84, 0, 16}, {EG_A, "PLUCK", 64, 81, 0, 11}},
+    [TF_PIERRE] = {{ENGI_FM6, "TINE EP", 64, 81, 0, 5}, {EG_A, "SINE KEY", 67, 84, 0, 6}, {ENGI_FM6, "MARIMBA", 67, 84, 0, 16}, {EG_A, "PLUCK", 67, 84, 0, 11}},
+    [TF_METRO]  = {{EG_PH, "CRYPT BELL", 67, 84, 0, 16}, {ENGI_FM6, "TINE EP", 60, 79, 0, 5}, {EG_A, "STRINGS", 60, 79, 1, -5}, {EG_VO, "BLACK CHOIR", 60, 76, 1, -11}},
+    [TF_DRILL]  = {{ENGI_FM6, "TINE EP", 60, 79, 0, 5}, {EG_A, "SINE KEY", 60, 79, 0, 6}, {EG_VO, "BLACK CHOIR", 60, 76, 1, -11}, {EG_A, "PLUCK", 62, 79, 0, 11}},
+    [TF_DARK]   = {{EG_PH, "CRYPT BELL", 67, 84, 0, 16}, {EG_VO, "BLACK CHOIR", 60, 76, 1, -11}, {ENGI_FM6, "TINE EP", 64, 81, 0, 5}, {EG_A, "RING BELL", 67, 84, 0, 6}},
+    [TF_WLR]    = {{EG_A, "PLUCK", 67, 84, 0, 11}, {EG_A, "SINE KEY", 67, 84, 0, 6}, {EG_A, "SOFT PAD", 60, 79, 1, -4}, {ENGI_FM6, "PLUCK", 67, 84, 0, 13}},
+    [TF_MUSIC]  = {{EG_A, "PLUCK", 64, 81, 0, 11}, {EG_A, "SINE KEY", 64, 81, 0, 6}, {EG_A, "SOFT PAD", 60, 79, 1, -4}, {ENGI_FM6, "PLUCK", 64, 81, 0, 13}},
 };
-static const tsound_t TS_PAD[TS_N][2] = {                 /* the hook's pad .. */
-    [TS_ATL]   = {{EG_VO, "CHOIR AAH", 0, 0, 1, -8}, {EG_A, "SOFT PAD", 0, 0, 1, -4}},
-    [TS_DRILL] = {{EG_VO, "BLACK CHOIR", 0, 0, 1, -11}, {EG_A, "STRINGS", 0, 0, 1, -5}},
-    [TS_DARK]  = {{EG_VO, "BLACK CHOIR", 0, 0, 1, -11}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
-    [TS_RAGE]  = {{EG_A, "PWM STR", 0, 0, 1, -7}, {EG_A, "SOFT PAD", 0, 0, 1, -4}},
+static const tsound_t TS_PAD[TF_N][2] = {                 /* the hook's pad .. */
+    [TF_ATL]    = {{EG_VO, "CHOIR AAH", 0, 0, 1, -8}, {EG_A, "SOFT PAD", 0, 0, 1, -4}},
+    [TF_PIERRE] = {{EG_A, "SOFT PAD", 0, 0, 1, -4}, {EG_VO, "SAINT GLOW", 0, 0, 1, -7}},
+    [TF_METRO]  = {{EG_VO, "BLACK CHOIR", 0, 0, 1, -11}, {EG_A, "STRINGS", 0, 0, 1, -5}},
+    [TF_DRILL]  = {{EG_VO, "BLACK CHOIR", 0, 0, 1, -11}, {EG_A, "STRINGS", 0, 0, 1, -5}},
+    [TF_DARK]   = {{EG_VO, "BLACK CHOIR", 0, 0, 1, -11}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
+    [TF_WLR]    = {{EG_A, "PWM STR", 0, 0, 1, -7}, {EG_A, "SOFT PAD", 0, 0, 1, -4}},
+    [TF_MUSIC]  = {{EG_A, "WRAITH PAD", 0, 0, 1, -7}, {EG_A, "SOFT PAD", 0, 0, 1, -4}},
 };
-static const tsound_t TS_VPAD[TS_N][2] = {                /* .. the verse's, darker */
-    [TS_ATL]   = {{EG_A, "SOFT PAD", 0, 0, 1, -4}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
-    [TS_DRILL] = {{EG_A, "STRINGS", 0, 0, 1, -5}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
-    [TS_DARK]  = {{EG_A, "WRAITH PAD", 0, 0, 1, -7}, {EG_A, "SOFT PAD", 0, 0, 1, -4}},
-    [TS_RAGE]  = {{EG_A, "SOFT PAD", 0, 0, 1, -4}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
+static const tsound_t TS_VPAD[TF_N][2] = {                /* .. the verse's, darker */
+    [TF_ATL]    = {{EG_A, "SOFT PAD", 0, 0, 1, -4}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
+    [TF_PIERRE] = {{EG_VO, "CHOIR AAH", 0, 0, 1, -8}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
+    [TF_METRO]  = {{EG_A, "STRINGS", 0, 0, 1, -5}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
+    [TF_DRILL]  = {{EG_A, "STRINGS", 0, 0, 1, -5}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
+    [TF_DARK]   = {{EG_A, "WRAITH PAD", 0, 0, 1, -7}, {EG_A, "SOFT PAD", 0, 0, 1, -4}},
+    [TF_WLR]    = {{EG_A, "SOFT PAD", 0, 0, 1, -4}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
+    [TF_MUSIC]  = {{EG_A, "SOFT PAD", 0, 0, 1, -4}, {EG_A, "WRAITH PAD", 0, 0, 1, -7}},
 };
-static const tsound_t TS_CTR[TS_N][3] = {                 /* the counter melody: a flute, a voice, a pluck */
-    [TS_ATL]   = {{TG_WH, "SOFT FLUTE", 72, 88, 1, -4}, {EG_VO, "VOX LEAD", 67, 84, 1, -9}, {ENGI_FM6, "PLUCK", 72, 88, 0, 13}},
-    [TS_DRILL] = {{TG_WH, "SOFT FLUTE", 67, 84, 1, -4}, {EG_VO, "CHOIR AAH", 64, 81, 1, -8}, {EG_A, "SINE KEY", 67, 84, 0, 6}},
-    [TS_DARK]  = {{TG_WH, "SOFT FLUTE", 67, 84, 1, -4}, {EG_VO, "VOX LEAD", 64, 81, 1, -9}, {ENGI_FM6, "TINE EP", 67, 84, 0, 5}},
-    [TS_RAGE]  = {{EG_A, "RAVE", 67, 86, 1, -8}, {EG_A, "PLUCK", 67, 86, 0, 11}, {EG_VO, "VOX LEAD", 64, 81, 1, -9}},
+static const tsound_t TS_CTR[TF_N][3] = {                 /* the counter melody: a flute, a voice, a pluck .. */
+    [TF_ATL]    = {{TG_WH, "SOFT FLUTE", 72, 88, 1, -4}, {EG_VO, "VOX LEAD", 67, 84, 1, -9}, {ENGI_FM6, "PLUCK", 72, 88, 0, 13}},
+    [TF_PIERRE] = {{TG_WH, "SOFT FLUTE", 72, 88, 1, -4}, {EG_A, "BITSINE ARP", 72, 88, 0, 9}, {ENGI_FM6, "PLUCK", 72, 88, 0, 13}},
+    [TF_METRO]  = {{EG_PH, "STRING", 64, 81, 1, -8}, {EG_VO, "CHOIR AAH", 64, 81, 1, -8}, {ENGI_FM6, "BELL", 72, 88, 0, 0}},
+    [TF_DRILL]  = {{TG_WH, "SOFT FLUTE", 67, 84, 1, -4}, {EG_VO, "CHOIR AAH", 64, 81, 1, -8}, {EG_A, "SINE KEY", 67, 84, 0, 6}},
+    [TF_DARK]   = {{TG_WH, "SOFT FLUTE", 67, 84, 1, -4}, {EG_VO, "VOX LEAD", 64, 81, 1, -9}, {ENGI_FM6, "TINE EP", 67, 84, 0, 5}},
+    [TF_WLR]    = {{EG_A, "BITSINE ARP", 72, 88, 0, 9}, {EG_A, "PLUCK", 67, 86, 0, 11}, {EG_VO, "VOX LEAD", 64, 81, 1, -9}},
+    [TF_MUSIC]  = {{EG_A, "RAVE", 67, 86, 1, -8}, {EG_VO, "VOX LEAD", 64, 81, 1, -9}, {EG_A, "PLUCK", 67, 86, 0, 11}},
 };
 static uint8_t tk_lead, tk_pad;                          /* the hook's picks (the verse never the same sound) */
 static int8_t tk_trim[RL_N];                            /* the picked sounds' trims, a role */
@@ -454,13 +516,18 @@ static void trap_lead_sound(track_t *t, uint32_t verse)
     uint32_t i = gr() % 4u;
     const tsound_t *s;
     if (!verse) tk_lead = (uint8_t)i;
-    s = verse ? &TS_VLEAD[gs.ts][i] : &TS_LEAD[gs.ts][i];
-    if (verse && s->eng == TS_LEAD[gs.ts][tk_lead].eng && str_eq(s->w, TS_LEAD[gs.ts][tk_lead].w)) s = &TS_VLEAD[gs.ts][(i + 1u) % 4u];
+    s = verse ? &TS_VLEAD[tk_tf][i] : &TS_LEAD[tk_tf][i];
+    if (verse && s->eng == TS_LEAD[tk_tf][tk_lead].eng && str_eq(s->w, TS_LEAD[tk_tf][tk_lead].w)) s = &TS_VLEAD[tk_tf][(i + 1u) % 4u];
     trap_preset(t, s->eng, s->w);
     gs.mlo = s->lo; gs.mhi = s->hi; tk_sus = s->sus; tk_trim[RL_LEAD] = s->trim;
     t->p[P_VOICE] = gs.ts == TS_RAGE && !verse ? V_MONO : V_POLY;   /* (a bell, a key rings on under the next) */
     if (gs.ts == TS_DARK && !verse) { t->p[P_DEC] = (int16_t)grr(40, 58); t->p[P_SUS] = 0; t->p[P_REL] = (int16_t)grr(30, 45); }   /* (a cowbell's) */
     if (gs.ts == TS_RAGE && !verse) { t->p[P_DETUNE] = (int16_t)grr(40, 70); t->p[P_CHOR] = (int16_t)grr(40, 80); }
+    if (tk_tf == TF_WLR && !verse && t->eng_req == EG_A && !str_eq(s->w, "BITSINE ARP")) t->p[P_E0] = 1;   /* (SQR: a game's) */
+    if (tk_tf == TF_MUSIC && !verse) {                  /* (stabs, their filter wobbling on the eighths) */
+        t->p[P_DEC] = (int16_t)grr(40, 56); t->p[P_SUS] = (int16_t)grr(20, 40); t->p[P_REL] = (int16_t)grr(24, 36);
+        t->p[P_LWAVE] = 0; t->p[P_LRATE] = (int16_t)grr(84, 90); t->p[P_LFADE] = 0; t->p[P_LD_FLT] = (int16_t)grr(30, 50);
+    }
     t->p[P_LD_PIT] = 0;
 }
 /* a pad out of the voice's way: low-passed (the presence band the rapper's), long */
@@ -469,8 +536,8 @@ static void trap_pad_sound(track_t *t, uint32_t verse)
     uint32_t i = gr() % 2u;
     const tsound_t *s;
     if (!verse) tk_pad = (uint8_t)i;
-    s = verse ? &TS_VPAD[gs.ts][i] : &TS_PAD[gs.ts][i];
-    if (verse && s->eng == TS_PAD[gs.ts][tk_pad].eng && str_eq(s->w, TS_PAD[gs.ts][tk_pad].w)) s = &TS_VPAD[gs.ts][(i + 1u) % 2u];
+    s = verse ? &TS_VPAD[tk_tf][i] : &TS_PAD[tk_tf][i];
+    if (verse && s->eng == TS_PAD[tk_tf][tk_pad].eng && str_eq(s->w, TS_PAD[tk_tf][tk_pad].w)) s = &TS_VPAD[tk_tf][(i + 1u) % 2u];
     trap_preset(t, s->eng, s->w);
     tk_trim[RL_PAD] = s->trim;
     if (t->eng_req == EG_A) t->p[P_E4] = (int16_t)clamp(t->p[P_E4], 0, verse ? grr(52, 64) : grr(60, 72));
@@ -505,29 +572,28 @@ static void trap_kit(track_t *t)
     t->p[P_E5] = (int16_t)grr(6, 18);                   /* FM ENV: a little click */
     t->p[P_E6] = (int16_t)(gs.ts == TS_RAGE ? grr(10, 30) : grr(0, 8));
     t->p[P_E7] = (int16_t)(gs.ts == TS_RAGE ? grr(40, 70) : gs.ts == TS_DARK ? grr(25, 45) : grr(8, 24));
-    t->p[P_FTYPE] = 0; t->p[P_FCUT] = 127; t->p[P_FRES] = 0;
+    t->p[P_FTYPE] = 0; t->p[P_FCUT] = TFLAV[tk_tf].dcut; t->p[P_FRES] = 0;   /* (Pi'erre's: filtered, nearly buzzing) */
     t->p[P_LN0] = 112; t->p[P_LN1] = 118; t->p[P_LN2] = 122; t->p[P_LN3] = 124;
     t->p[P_LN4] = 108; t->p[P_LN5] = 94; t->p[P_LN6] = 104; t->p[P_LN7] = 118;
 }
 /* the 808: a sine, driven (dark trap and rage: clipped), a glide, held */
 static void trap_808_sound(track_t *t)
 {
-    static const uint8_t DRV[TS_N][2] = {{84, 108}, {88, 112}, {110, 127}, {114, 127}};   /* (1x .. 3x into a soft clip:
-                                                         * the harmonics a phone speaker plays) */
+    const tflav_t *f = &TFLAV[tk_tf];                  /* (DRIVE 1x .. 3x into a soft clip: the harmonics a phone speaker plays) */
     trap_preset(t, EG_A, gch(60) ? "INGOT SUB" : "SUB BASS");
     t->p[P_E0] = 3;                                     /* WAVE: SIN */
     t->p[P_E1] = 0; t->p[P_E2] = 0; t->p[P_E3] = 0;     /* DETUNE MIX NOISE */
     t->p[P_E4] = (int16_t)grr(100, 127);                /* CUT open */
     t->p[P_E5] = (int16_t)grr(0, 8);
-    t->p[P_E6] = (int16_t)grr(DRV[gs.ts][0], DRV[gs.ts][1]);   /* DRIVE */
+    t->p[P_E6] = (int16_t)grr(f->drv[0], f->drv[1]);   /* DRIVE */
     t->p[P_E7] = 0;                                     /* INT */
     t->p[P_FTYPE] = 0;
     t->p[P_ATK] = 0; t->p[P_DEC] = (int16_t)grr(96, 112); t->p[P_SUS] = (int16_t)grr(104, 118);
     t->p[P_REL] = (int16_t)(gs.ts == TS_RAGE ? grr(30, 45) : grr(40, 60));
     t->p[P_GLIDE] = (int16_t)(gs.ts == TS_DRILL ? grr(38, 52) : grr(28, 42));
     t->p[P_VOICE] = V_LEGATO;
-    t->p[P_DIST] = (int16_t)(gs.ts == TS_DARK || gs.ts == TS_RAGE ? grr(76, 98) : grr(52, 68));   /* (1.6x .. 5x) */
-    t->p[P_DTYPE] = (int16_t)(gs.ts == TS_RAGE ? 1 : 0);   /* (SOFT; rage HARD) */
+    t->p[P_DIST] = (int16_t)grr(f->dist[0], f->dist[1]);   /* (1.6x .. 5x) */
+    t->p[P_DTYPE] = f->dtype;                           /* (SOFT; rage HARD) */
     t->p[P_CHOR] = 0;
     t->p[P_LD_PIT] = t->p[P_LD_FLT] = t->p[P_LD_AMP] = 0;
 }
@@ -541,7 +607,7 @@ static void trap_sound(track_t *t, uint32_t r)
     case RL_LEAD: trap_lead_sound(t, 0); return;
     case RL_PAD: trap_pad_sound(t, 0); return;
     case RL_ARP:
-        s = &TS_CTR[gs.ts][gr() % 3u];
+        s = &TS_CTR[tk_tf][gr() % 3u];
         trap_preset(t, s->eng, s->w);
         tk_trim[RL_ARP] = s->trim;
         t->p[P_VOICE] = V_MONO;
@@ -563,7 +629,7 @@ static void trap_mix(track_t *t, uint32_t r, uint32_t verse)
     case RL_BASS: t->p[P_LEVEL] = (int16_t)(gs.ts == TS_RAGE ? 102 : 106); t->p[P_REV] = 0; break;
     case RL_LEAD:
         t->p[P_LEVEL] = (int16_t)(verse ? 90 : gs.ts == TS_RAGE || gs.ts == TS_DARK ? 92 : 98);
-        t->p[P_REV] = (int16_t)grr(24, 44); t->p[P_DLY] = (int16_t)(verse ? grr(0, 15) : grr(10, 30));
+        t->p[P_REV] = (int16_t)grr(TFLAV[tk_tf].rev[0], TFLAV[tk_tf].rev[1]); t->p[P_DLY] = (int16_t)(verse ? grr(0, 15) : grr(10, 30));
         t->p[P_PAN] = (int16_t)grr(-6, 6);
         break;
     case RL_PAD: t->p[P_LEVEL] = (int16_t)(verse ? grr(66, 72) : grr(70, 76)); t->p[P_REV] = (int16_t)grr(50, 75); t->p[P_PAN] = (int16_t)grr(-6, 6); break;
@@ -583,9 +649,9 @@ static void trap_hat_track_like(track_t *h, const track_t *d)
 /* the master: no pump (the kick and the 808 start together), a little clip (dark trap and rage: more) */
 static void trap_master(void)
 {
-    song.g[G_SWING] = (int16_t)(gs.ts == TS_DRILL ? grr(4, 10) : 0);
+    song.g[G_SWING] = (int16_t)grr(TFLAV[tk_tf].swing[0], TFLAV[tk_tf].swing[1]);
     song.g[G_DUCK] = 0;
-    song.g[G_CLIP] = (int16_t)(gs.ts == TS_RAGE ? grr(45, 65) : gs.ts == TS_DARK ? grr(30, 45) : grr(10, 25));
+    song.g[G_CLIP] = (int16_t)grr(TFLAV[tk_tf].clip[0], TFLAV[tk_tf].clip[1]);
     song.g[G_PUNCH] = (int16_t)grr(40, 70);
     song.g[G_DTIME] = 1;                                /* 1/8 */
     song.g[G_DFDBK] = (int16_t)grr(20, 40);
