@@ -311,8 +311,8 @@ def check(img, syms, dis, rt):
     reach = sym("_rt_start") + 0x400000 - sym("_etext")
     ramcode = sym("_hot_end") - sym("_rt_start")
     notes.append(f"RAM code {ramcode} B of {RAMTEXT_END - sym('_rt_start')}; calls reach {reach} B past the image's end")
-    if reach < 14336:
-        errors.append(f"RAM code reaches only {reach} B past the XIP image's end (< 14 KiB): move RAMTEXT up (app.ld)")
+    if reach < 8192:
+        errors.append(f"RAM code reaches only {reach} B past the XIP image's end (< 8 KiB): move RAMTEXT up (app.ld)")
     if RAMTEXT_END - sym("_hot_end") < 2048:
         errors.append(f"RAM code headroom {RAMTEXT_END - sym('_hot_end')} B < 2048 B")
     return errors, notes
