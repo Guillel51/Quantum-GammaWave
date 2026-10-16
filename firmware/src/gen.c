@@ -213,12 +213,18 @@ static void gen_drums(track_t *t, uint32_t len)
     uint32_t a = gs.amt[GP_DRUMS], dens = (uint32_t)clamp(40 + (int32_t)a * 2 + ((int32_t)gs.energy - 50) / 2, 20, 255), i, l, bars = len / 16u ? len / 16u : 1u;
     /* (0.6.93) ENERGY: the density and the velocities with it, the hats sixteenths above 66, the percussion thinned under 34 */
     uint32_t chaos = 24u + gs.complex * 48u / 100u, ng = (g->ghosts * a + 50u) / 100u + (gs.complex > 60u);
+    int trap = g->kick_mode == KM_808;                  /* (trap, drill, rage: steady hats with rolls, the kick for the 808) */
     const uint8_t *cell = HAT_CELL[g->hats];
     gseed(GS_DRUMS);
     memset(gs.kick, 0, sizeof gs.kick);
     memset(gs.snare, 0, sizeof gs.snare);
     for (l = 0; l < 8u; l++) map[l] = DRUM_MAP[g->drum][l];
-    if (g->drum != DM_IDM && g->drum != DM_NONE && g->drum != DM_SPARSE) {
+    if (trap) {                                         /* only straight eighths or sixteenths from the pool (drill keeps
+                                                         * its 3-3-2); its open hats, percussion and snares are its own */
+        static const uint8_t TRAP_HATS[4] = {0, 1, 3, 7};
+        if (g->drum != DM_UK_DRILL && gch(45)) map[3] = HAT_POOL[TRAP_HATS[gr() % 4u]];
+        ng = 0;
+    } else if (g->drum != DM_IDM && g->drum != DM_NONE && g->drum != DM_SPARSE) {
         if (g->drum != DM_UK_DRILL && gch(45)) map[3] = HAT_POOL[gr() % 8u];
         if (gch(50)) map[4] = OH_POOL[gr() % 6u];
         if (gch(45)) map[6] = RS_POOL[gr() % 6u];
@@ -244,14 +250,14 @@ static void gen_drums(track_t *t, uint32_t len)
                     lv = 150u;
                 else continue;
             }
-            if (lv < 230u) {                            /* Signed perturbation on every bar so each seed roll changes the groove */
+            if (lv < 230u && !(trap && l == 3u)) {      /* Signed perturbation on every bar so each seed roll changes the groove */
                 int32_t k = (int32_t)chaos + (b & 1u ? 18 : 0);
                 lv = (uint32_t)clamp((int32_t)lv + grr(-k, k / 2), 0, 229);
             }
             d = (int32_t)dens + OFF[l] - 36;
             lim = (uint32_t)clamp(d, 0, 255);
             if (lv <= 255u - lim) continue;
-            if (l >= 3u && lv < 230u && gr() % 100u >= 40u + a * 50u / 100u) continue;
+            if (l >= 3u && lv < 230u && !(trap && l == 3u) && gr() % 100u >= 40u + a * 50u / 100u) continue;
             h |= 1u << l;
             if (lv >= 230u) acc |= 1u << l;
             else { lv_sum += lv; lv_n++; }
@@ -421,6 +427,47 @@ static void gen_acid(track_t *t, uint32_t len, int32_t lo)
         }
     }
 }
+/* the 808 (trap, drill, rage): a long note on every kick, held to the next kick (or the next chord); its pitch the
+ * archetype's at that step (the root, the octave, the fifth ..), slides between notes of different pitch, drill the most */
+static int gen_808(track_t *t, uint32_t len)
+{
+    const ggenre_t *g = gs.g;
+    const barch_t *a = &BASS_ARCH[gs.ba];
+    int32_t lo = g->bass_lo, prev = -1;
+    uint32_t i, alen = 16u * a->bars, kicks = 0, start = 0;
+    uint32_t slide = g->drum == DM_UK_DRILL ? 55u : g->drum == DM_RAGE ? 20u : 32u;
+    uint32_t jump = g->drum == DM_UK_DRILL ? 30u : 15u;
+    for (i = 0; i < len; i++) kicks += gs.kick[i];
+    if (kicks < 2u) return 0;                           /* (no drums: the archetype as written) */
+    for (i = 0; i < len; i++) {
+        step_t *s = &t->step[i];
+        int32_t cd = gchord_deg(i), root = gbass_root(t, lo, cd), n[1], vel = 104;
+        uint32_t fl = 0;
+        char c = a->n[i % alen];
+        if (!gs.kick[i] && (i % gs.csteps || prev < 0)) {
+            if (prev >= 0) dstep_tie(s);
+            continue;
+        }
+        switch (c) {
+        case '8': n[0] = root + 12; break;
+        case '5': n[0] = scale_steps(t, root, 4); break;
+        case '7': n[0] = scale_steps(t, root, 6); break;
+        case '3': n[0] = scale_steps(t, root, 2); break;
+        case '2': n[0] = scale_steps(t, root, 1); break;
+        default: n[0] = root; break;
+        }
+        if (i % 16u && n[0] == root && gch(jump)) n[0] = gch(60) ? root + 12 : scale_steps(t, root, 4);
+        if (n[0] > lo + 26) n[0] -= 12;
+        if (n[0] < lo - 7) n[0] += 12;
+        if (i % 16u == 0u) { vel = 112; fl |= SF_ACCENT; }
+        if (gs.human) vel += grr(-(int32_t)gs.human / 12, (int32_t)gs.human / 12);
+        if (prev >= 0 && n[0] != prev && gch(slide)) t->step[start].flags |= SF_SLIDE;
+        gnote(s, n, 1, vel, fl);
+        prev = n[0];
+        start = i;
+    }
+    return 1;
+}
 static void gen_bass(track_t *t, uint32_t len)
 {
     const ggenre_t *g = gs.g;
@@ -429,6 +476,7 @@ static void gen_bass(track_t *t, uint32_t len)
     uint32_t i, alen = 16u * a->bars, held = 0;
     gseed(GS_BASS);
     if (gs.ba == BA_ACID) { gen_acid(t, len, lo); return; }
+    if (g->kick_mode == KM_808 && gen_808(t, len)) return;
     for (i = 0; i < len; i++) {
         step_t *s = &t->step[i];
         char c = a->n[i % alen], f = a->f ? a->f[i % alen] : '.';
@@ -1346,7 +1394,8 @@ static void gen_make(void)
     song.g[G_CDEPTH] = (int16_t)grr(20, 80);
     song.g[G_STRN] = 0;
     song.g[G_SLPQ] = 1;
-    song.g[G_DUCK] = (int16_t)(gs.act[RL_DRUM] ? (g->kick_mode == KM_SUSTAIN ? grr(30, 50) : grr(14, 30)) : 0);
+    song.g[G_DUCK] = (int16_t)(gs.act[RL_DRUM] ? (g->kick_mode == KM_SUSTAIN ? grr(30, 50) : g->kick_mode == KM_808 ? grr(0, 8) :
+                                                  grr(14, 30)) : 0);
     song.g[G_DREL] = (int16_t)(g->drum == DM_TECHNO || g->drum == DM_HARD ? grr(15, 30) : grr(25, 45));
     song.g[G_CLIP] = (int16_t)(gs.act[RL_DRUM] ? grr(25, 55) : grr(10, 30));
     song.g[G_PUNCH] = (int16_t)(gs.act[RL_DRUM] ? grr(45, 85) : 0);

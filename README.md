@@ -153,6 +153,9 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - The Hearth macros only touch ANALOG's E4/E5 cutoff/resonance on ANALOG tracks (on other engines those slots are other parameters), reset the filter type for macros 1–3, and can be undone; the deck's undo shows `UNDONE (AGAIN: REDO)` and respects `STOP TO EDIT`.
 - The MUTATE jump enters the page properly (sequencer mode and page state follow).
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
+- The trap genres now sound like trap: the 808 starts on every kick and rings to the next (it used to follow a fixed
+  pattern that landed on the snare), the hats stay steady with rolls instead of borrowing house open hats and
+  dropouts, no boom-bap ghost snares, DARK TRAP is half-time with its cowbell, and RAGE TRAP plays an 808.
 - ABOUT: the QR code no longer covers the license line.
 
 ---

@@ -798,8 +798,9 @@ Lo que el generador sabe, por género (`gen_tables.c`):
   van primero y los anclajes al final; el redoblante atrasado donde el género lo hace; redobles de hi-hat en la familia
   trap; el MORPH del kit que a veces se mueve un poco a lo largo del loop.
 - **Bajo**: una de unas cincuenta figuras escritas contra el bombo (la fundamental en cada cambio de acorde,
-  aproximaciones por semitono, el bombo doblado, respondido o entrelazado); en los géneros trap y drill, un 808 que
-  se desliza.
+  aproximaciones por semitono, el bombo doblado, respondido o entrelazado); en la familia trap (TRAP, TRAP ATL, UK DRILL, DARK
+  TRAP, RAGE TRAP) el bajo es un 808 que arranca en cada bombo y suena hasta el siguiente, deslizándose entre notas — el
+  drill más que ninguno.
 - **Arpegio y lead**: el arpegio como un orden sobre el acorde (ciclos de 3 o 5 contra el compás); el lead como un
   motivo de un compás dentro de una frase (A A A A', A R A R' …), variado con un cambio por compás.
 - **Sonidos**: un sonido de fábrica por rol cuyo nombre corresponde, con su envolvente, filtro, un LFO lento y envíos

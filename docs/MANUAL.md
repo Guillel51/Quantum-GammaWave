@@ -757,7 +757,8 @@ What the generator knows, per genre (`gen_tables.c`):
   anchors last; the snare laid back where the genre does; hi-hat rolls in the trap family; the kit's MORPH drifting
   a little over the loop now and then.
 - **Bass**: one of about fifty figures written against the kick (the root at every chord change, approaches by a
-  semitone, the kick doubled, answered or interlocked); in the trap and drill genres an 808 that glides.
+  semitone, the kick doubled, answered or interlocked). In the trap family (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE
+  TRAP) the bass is an 808 that starts on every kick and rings to the next one, gliding between notes — drill the most.
 - **Arp and lead**: the arp as an order over the voiced chord (cycles of 3 or 5 against the bar); the lead as a
   one-bar motif in a phrase (A A A A', A R A R' …), varied by one change a bar.
 - **Sounds**: a factory sound per role whose name fits, with its envelope, filter, a slow LFO and sends shaped for
