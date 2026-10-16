@@ -1780,12 +1780,23 @@ static int gw_oct_combo(uint32_t b)
             {5, 78, 22, 64}, {6, 96, 46, 88}, {7, 92, 72, 76},
             {8, 84, 98, 108}, {5, 72, 56, 92}, {6, 110, 118, 112}
         };
-        uint32_t m = gw_macro_idx++ % 6u;
+        uint32_t m;
+        if (chain_busy()) {
+            ui_message("STOP TO EDIT");
+            return 1;
+        }
+        undo_mark();                                    /* ([OCT-] + [GLO] takes the macro back) */
+        m = gw_macro_idx++ % 6u;
         t->p[P_DTYPE] = MD[m][0];
         t->p[P_DIST]  = MD[m][1];
-        t->p[P_FCUT]  = t->p[P_E4] = MD[m][2];
-        t->p[P_FRES]  = t->p[P_E5] = MD[m][3];
-        if (m >= 3u) t->p[P_FTYPE] = (m == 4u) ? 4 : 5;
+        if (t->eng_req % NENGINES == ENGI_ANALOG) {     /* ANALOG's own CUT / RES; on the other engines E4 / E5 are
+                                                         * their own parameters (BUZZ, MEG, PERC...): left alone */
+            t->p[P_E4] = MD[m][2];
+            t->p[P_E5] = MD[m][3];
+        }
+        t->p[P_FCUT] = MD[m][2];
+        t->p[P_FRES] = MD[m][3];
+        t->p[P_FTYPE] = m == 4u ? 4 : m >= 3u ? 5 : 0;  /* VOWEL, SCREAM, else back to LP */
         if (m == 5u) { song.g[G_DUCK] = 96; song.g[G_PUNCH] = 90; }
         ui_message(MN[m]);
         ui.force = 1;
@@ -1797,7 +1808,13 @@ static int gw_oct_combo(uint32_t b)
         ui.home = ui.menu = ui.confirm = 0;
         name_close();
         for (i = 0; i < NPAGES; i++)
-            if (PAGES[i].graph == GR_MUTATE) { ui.page = (uint8_t)i; break; }
+            if (PAGES[i].graph == GR_MUTATE) {
+                ui.page = (uint8_t)i;
+                ui.fam_last[PAGES[i].fam] = ui.page;
+                page_entered();
+                page_flash();
+                break;
+            }
         if (!t->p[P_MSND] && !t->p[P_MPAT]) {
             t->p[P_MSND] = 2;
             t->p[P_MPAT] = 3;
@@ -1809,6 +1826,8 @@ static int gw_oct_combo(uint32_t b)
     }
     case B_HOME:
     case B_SAVE:                                        /* [OCT-] + [HOME] or [SAVE]: 1-Click Secret Hyperspace Visualizer */
+        if (b == B_HOME) ui.home_t0 |= 2u;              /* (its release is no tap: HOME's tap closes the menu) */
+        else ui.save_t0 |= 2u;
         ui.menu = 3;
         ui.confirm = 0;
         name_close();
@@ -1817,14 +1836,18 @@ static int gw_oct_combo(uint32_t b)
         return 1;
     case B_PLAY:
     case B_REC:                                         /* [OCT-] + [PLAY] or [REC]: 1-Click 49-Genre Song Generator (GEN) */
+        if (b == B_REC) ui.rec_t0 |= 2u;
         if (chain_busy()) ui_message("STOP TO EDIT");
         else { confirm_open(CF_DICE_ALL, song.sel); gen_open(); }
         return 1;
-    case B_SEQ:  part_dice(CF_DICE_SEQ);   return 1;    /* [OCT-] + [SEQ]:  Dice Track Sequence */
+    case B_SEQ:  ui.seq_t0 |= 2u; part_dice(CF_DICE_SEQ); return 1;   /* [OCT-] + [SEQ]:  Dice Track Sequence */
     case B_EDIT: part_dice(CF_DICE_SOUND); return 1;    /* [OCT-] + [EDIT]: Dice Track Sound */
     case B_FX:   part_dice(CF_DICE_FX);    return 1;    /* [OCT-] + [FX]:   Dice Track FX */
     case B_LFO:  part_dice(CF_DICE_LFO);   return 1;    /* [OCT-] + [LFO]:  Dice Track LFO */
-    case B_GLO:  ui_message(undo_do() ? "NOTHING TO UNDO" : "UNDONE"); ui.force = 1; return 1;
+    case B_GLO:                                         /* [OCT-] + [GLO]: UNDO (again: REDO), as GLO + G4 */
+        ui_message(chain_busy() ? "STOP TO EDIT" : undo_do() ? "NOTHING TO UNDO" : "UNDONE (AGAIN: REDO)");
+        ui.force = 1;
+        return 1;
     default: return 0;
     }
 }
@@ -1916,7 +1939,8 @@ static void ui_input_frame(void)
     /* GammaWave [OCT-] Shift Deck Combos: hold [OCT-] first, then press ARP/HOME/SAVE/PLAY/SEQ/EDIT/FX/LFO/GLO */
     if (!((fm1_in.buttons >> panel.btn[B_OCTDN]) & 1u) || ((fm1_in.buttons >> panel.btn[B_OCTUP]) & 1u)) {
         octdn_shift = 0;
-    } else if (((pressed >> panel.btn[B_OCTDN]) & 1u) && !ui.ly && !ui.menu && !ui.confirm && !name_on() && !act_cols() && !layer_set_open()) {
+    } else if (((pressed >> panel.btn[B_OCTDN]) & 1u) && !(fm1_in.buttons & ~(1u << panel.btn[B_OCTDN])) &&
+               !ui.ly && !ui.menu && !ui.confirm && !name_on() && !act_cols() && !layer_set_open()) {
         octdn_prev_oct = song.octave;
         octdn_shift = 1;
     }
