@@ -8,8 +8,9 @@
  *  - the hats are the groove: a bed of eighths or sixteenths, rolls before the snare and at the bar's end (1/32,
  *    1/64), triplet bursts (on a second DRUM track at 16T when TRACKS 6 lets one live), velocity moving all the time;
  *    a crash on the hook's downbeat, percussion on the triplet track, an open hat now and then;
- *  - the 808 is the bass and the kick's shadow: a long sine on every kick, held to the next, gliding between notes
- *    (drill the most), driven so a small speaker plays it (dark trap and rage clip it);
+ *  - the 808 is the bass with the kick under it: a pattern of spaced notes, long and short with rests between them,
+ *    a slide or two into the notes that matter (drill the most), driven so a small speaker plays it (dark trap and
+ *    rage clip it);
  *  - the melody: a two-bar motif of chord tones, a call in the first bar and a short answer in the second whose end
  *    is left empty (for the voice, and in the hook for a counter melody's reply); high, about 10 dB under the drums,
  *    little reverb; a dark, low-passed pad;
@@ -48,18 +49,30 @@ static void trap_harmony(void)
 }
 
 /* ---------------------------------------------------------------------------------------------------- drums --- */
-/* the kick, two bars a pattern: 'X' accented, 'x' a hit, 'o' a hit half the time, '.' none; never on the snare's
- * beat 3 (steps 8 and 24) */
-static const char *const TK_KICK[TS_N][6] = {
-    [TS_ATL]   = {"X.....x...x...x.X.....x..x....o.", "X......x..x.....X.....x...x.x...", "X..x......x.....X..x..o...x.....",
-                  "X.....x..x....x.X.....x..x..x...", "X.o.......x...o.X.....x.....x.x.", "X.....xx......x.X......x..x....."},
-    [TS_DRILL] = {"X.....x...x..x..X..x..x...x.....", "X......x..x.....X.....x..x...x..", "X..x.....x...x..X.....x....x....",
-                  "X.....x...x.....X..x......x..x..", "X..x..x.....x...X......x..x..x..", "X.....x..x....x.X..x.....x......"},
-    [TS_DARK]  = {"X.....x...x...x.X.....x...x...x.", "X..x..x...x.....X..x..x...x.x...", "X.....xx..x.....X.....xx..x...x.",
-                  "X...x.x...x.x...X...x.x...x.....", "X.....x...x..x..X.x...x...x..x..", "X..x......x.x...X..x......x.x.x."},
-    [TS_RAGE]  = {"X..x..x...x...x.X..x..x...x..x..", "X.x...x...x.x...X.x...x...x.x...", "X..x..x...x..x..X..x..x...x...x.",
-                  "X...x.x...x.x.x.X...x.x...x...x.", "X..x..x..xx.....X..x..x..x..x.x.", "X.x.x.x...x.x.x.X.x.x.x...x.x.x."},
+/* the 808 and the kick, two bars a pattern: 'X' an accented note, 'x' a note, '-' held, '.' silent, '/' a note slid
+ * into from the last (held up to it). The 808 is spaced: two to six notes a bar, long ones and short ones, rests
+ * between them, a slide or two into the notes that matter; the kick under every note but the slides; never a note on
+ * the snare's beat 3 (steps 8 and 24) */
+static const char *const TK_808[TS_N][6] = {
+    [TS_ATL]   = {"X-----....x-.x--X-------....x-..", "X---..x-...x----X-----.x-.......", "X-------..x-x-..X-----....x---/-",
+                  "X-..x-....x-----X-------..x-....", "X-----.x--..x---X---...x-...x---", "X-------...x-...X-----.x-..x-/--"},
+    [TS_DRILL] = {"X--x--...x--/---X--x---...x-/-..", "X-...x-...x--/--X--x-.....x-x-..", "X--x-....x---/-.X-...x--..x--/--",
+                  "X-..x--...x-.x-.X--x-.....x--/-.", "X--x-......x-/--X-..x--...x--...", "X-...x-..x--/---X--x-....x--/-.."},
+    [TS_DARK]  = {"X-----.x-...x---X-----.x-...x-..", "X---..x-..x-....X---..x-..x---..", "X-------..x-x-..X-------..x-x-..",
+                  "X--x--.x--..x---X--x--.x---.....", "X-----....x-x---X-----....x-x-x-", "X---..x---..x-..X---..x---......"},
+    [TS_RAGE]  = {"X-------..x---..X-------..x--...", "X-----.x------..X-----.x---/--..", "X---------..x-..X---------..x-..",
+                  "X-----.x--..x---X-----.x--..x-/-", "X-------..x-x-..X-------..x-....", "X-----.x---.x-..X-----.x-...x-.."},
 };
+/* a section's 808 pattern: the hook's (var 0), the verse's (never the hook's); its own stream, the caller's kept */
+static const char *trap_808pat(uint32_t var)
+{
+    uint32_t keep = gq, k;
+    gseed(GS_BASS + 7u);
+    k = gr() % 6u;
+    if (var) k = (k + 1u + gr() % 5u) % 6u;
+    gq = keep;
+    return TK_808[gs.ts][k];
+}
 /* dark trap's cowbell (the drum kit's BELL), a bar: the Memphis figure under the melody */
 static const char *const TK_BELL[4] = {"x..x..x.x.x.x...", "x.x..x.x..x.x.x.", "x..x..x..x..x.x.", "x...x.x.x...x.x."};
 /* drill's percussion (the RIM lane), a bar: the gallop's off-beats */
@@ -107,12 +120,10 @@ static void trap_drums(track_t *t, uint32_t len, uint32_t var)
     memset(gs.kick, 0, sizeof gs.kick);
     memset(gs.snare, 0, sizeof gs.snare);
     memset(gs.th, 0, sizeof gs.th);
-    k = gr() % 6u;
-    if (var) k = (k + 1u + gr() % 5u) % 6u;             /* (the verse: never the hook's kick) */
-    kick = TK_KICK[gs.ts][k];
-    for (i = 0; i < len; i++) {                         /* the kick: two bars, again */
+    kick = trap_808pat(var);
+    for (i = 0; i < len; i++) {                         /* the kick: under the 808's notes (not its slides) */
         char c = kick[i % 32u];
-        if (c == '.' || (c == 'o' && gch(50))) continue;
+        if (c != 'X' && c != 'x') continue;
         trap_hit(t, i, 0, c == 'X' ? 118 : 104, c == 'X');
     }
     for (b = 0; b < bars; b++) {                        /* the snare and the clap on 3; the pickups */
@@ -139,6 +150,8 @@ static void trap_drums(track_t *t, uint32_t len, uint32_t var)
     } else {                                            /* an open hat at a phrase's turn, choked by the next closed one */
         for (b = 1; b < bars; b += 2u) if (gch(var ? 20 : 40)) trap_hit(t, b * 16u + 14u, 4, 92, 0);
     }
+    if (!two && !var && gs.ts != TS_DRILL)              /* (no 16T track: its percussion here, on the beat's last 16th) */
+        for (b = 0; b < len / 4u; b++) if (b % 4u != 2u && gch(40)) trap_hit(t, b * 4u + 3u, 6, grr(66, 82), 0);
     if (!var) trap_hit(t, 0, 5, 100, 0);                /* (the crash: the TOM lane as trap_kit makes it) */
     /* the hats: a bed figure for the section, rolls before the snare and at the bar's end (the verse: plainer, its
      * rolls at the phrase's ends); a triplet figure the same in bars 3-4 as in 1-2 (the 16T track loops two bars) */
@@ -233,39 +246,41 @@ static void trap_hats2(track_t *t, uint32_t var)
 }
 
 /* ------------------------------------------------------------------------------------------------------ 808 --- */
-/* a long note on every kick, held to the next kick (or the next chord), its pitch the root mostly, the octave and the
- * fifth at the turns (drill: a moving line, gliding nearly every change), slides between notes of different pitch;
- * var 2 (the pre-hook): its last bar only a stab on the downbeat */
+/* the 808 as its pattern writes it (the section's: trap_808pat): each note the chord's root, a short one now and then on
+ * the octave or the fifth (drill: its moving line), a slide onto the octave or the line's next note; a chord changing
+ * under a held note: the new root, slid into half the time. var 2 (the pre-hook): its last bar only a stab on the
+ * downbeat */
 static void trap_808(track_t *t, uint32_t len, uint32_t var)
 {
-    static const uint8_t SLIDE[TS_N] = {34, 62, 38, 22}, JUMP[TS_N] = {26, 40, 18, 28};
+    static const uint8_t JUMP[TS_N] = {26, 40, 18, 28};
     static const int8_t DRILL_MOVE[6] = {0, 4, 0, 7, 6, 3};     /* (scale steps over the root: drill's line) */
+    const char *p = trap_808pat(var);
     int32_t lo = 30, prev = -1;                         /* (F#1 .. F2: over DIST's low cut at ~55 Hz, still a sub) */
-    uint32_t i, start = 0, kicks = 0, q = 0;
+    uint32_t i, start = 0, q = 0;
     gseed(GS_BASS);
     for (i = 0; i < NSTEP; i++) gclear(&t->step[i]);
-    for (i = 0; i < len; i++) kicks += gs.kick[i];
     for (i = 0; i < len; i++) {
         step_t *s = &t->step[i];
-        int32_t root = gbass_root(t, lo, gchord_deg(i)), n[1], vel = 108;
-        int head = i % 16u == 0u;
-        if (kicks ? !gs.kick[i] && (i % gs.csteps || prev < 0) : i % 8u) {
-            if (prev >= 0) dstep_tie(s);
-            continue;
+        char c = p[i % 32u];
+        int32_t root = gbass_root(t, lo, gchord_deg(i)), n = root;
+        if (c == '.') { prev = -1; continue; }
+        if (c == '-') {
+            if (prev < 0) continue;
+            if (!i || gchord_deg(i) == gchord_deg(i - 1u)) { dstep_tie(s); continue; }
+            if (gch(50)) t->step[start].flags |= SF_SLIDE;   /* (the chord moves under it: the new root) */
+        } else if (c == '/') {
+            n = gs.ts == TS_DRILL ? scale_steps(t, root, DRILL_MOVE[1u + q++ % 5u]) : root + 12;
+            if (n == prev) n = prev == root ? root + 12 : root;
+            if (prev >= 0) t->step[start].flags |= SF_SLIDE;
+        } else if (c == 'x' && gch(JUMP[gs.ts])) {
+            n = gs.ts == TS_DRILL ? scale_steps(t, root, DRILL_MOVE[q++ % 6u]) : gch(60) ? root + 12 : scale_steps(t, root, 4);
         }
-        n[0] = root;
-        if (!head && gch(JUMP[gs.ts])) {
-            if (gs.ts == TS_DRILL) n[0] = scale_steps(t, root, DRILL_MOVE[q++ % 6u]);
-            else n[0] = gch(65) ? root + 12 : scale_steps(t, root, 4);
-        }
-        if (head) vel = 118;
         s->time = ST_NOTE;
         s->n = 1;
-        s->note[0] = (uint8_t)clamp(n[0], 0, 127);
-        s->vel = (uint8_t)vel;
-        s->flags = head ? SF_ACCENT : 0u;
-        if (prev >= 0 && n[0] != prev && gch(SLIDE[gs.ts])) t->step[start].flags |= SF_SLIDE;
-        prev = n[0];
+        s->note[0] = (uint8_t)clamp(n, 0, 127);
+        s->vel = (uint8_t)(c == 'X' ? 118 : c == 'x' ? 106 : 100);
+        s->flags = c == 'X' ? SF_ACCENT : 0u;
+        prev = n;
         start = i;
     }
     if (var == 2u && len >= 16u) {
@@ -294,6 +309,8 @@ static const int8_t TM_CELL[10][6] = {
     {0, 0, 4, 2, 99}, {2, 4, 7, 4, 99}, {0, 1, 0, 4, 99}, {7, 6, 4, 2, 99}, {0, 4, 6, 4, 2, 99},
 };
 static uint8_t tk_sus;                                  /* the melody's sound holds its notes (strings, a flute ..) */
+static int trap_ctr_live(void);
+static void trap_replies(track_t *t, uint32_t len, int32_t lo, int32_t hi, int32_t vel);
 /* a note from a degree over the chord, in the window [lo, hi], the octave nearest the last */
 static int32_t trap_mnote(const track_t *t, int32_t deg, int32_t lo, int32_t hi, int32_t *last)
 {
@@ -339,11 +356,18 @@ static void trap_lead(track_t *t, uint32_t len, uint32_t var)
         if (drop || (var && (bar & 1u))) continue;
         trap_put(&t->step[i], trap_mnote(t, d, lo, hi, &last), var ? 80 : i % 4u ? 88 : 104, 0);
     }
+    if (!var && !trap_ctr_live()) trap_replies(t, len, lo, hi, 76);   /* (four tracks: the hook's reply on the melody) */
     if (tk_sus) for (i = 0; i < len; i++) if (t->step[i].time == ST_NOTE) dhold(t, i, var ? 12u : 6u, len);
     t->p[P_SGATE] = (int16_t)(tk_sus ? 100 : gs.ts == TS_DARK ? 45 : 70);
 }
-/* the counter melody (the hook's): the melody's reply in the empty end of each two bars, chord tones falling */
-static void trap_counter(track_t *t, uint32_t len)
+/* the counter melody's track playing (TRACKS 6), or not (4: the melody plays its own reply) */
+static int trap_ctr_live(void)
+{
+    uint32_t nl = trk_live < NTRK ? trk_live : NTRK;
+    return gs.act[RL_ARP] && gs.trk_of[RL_ARP] < nl;
+}
+/* the reply in the empty end of each two bars: chord tones falling */
+static void trap_replies(track_t *t, uint32_t len, int32_t lo, int32_t hi, int32_t vel)
 {
     static const uint8_t AP[4][4] = {{26, 28, 30, 99}, {27, 30, 99, 99}, {26, 30, 99, 99}, {26, 27, 29, 99}};
     static const int8_t DG[3] = {7, 4, 2};
@@ -351,11 +375,17 @@ static void trap_counter(track_t *t, uint32_t len)
     uint32_t i, j;
     int32_t last = 0;
     gseed(GS_ARP);
-    for (i = 0; i < NSTEP; i++) gclear(&t->step[i]);
     p = AP[(gr() >> 9) % 4u];
     for (i = 0; i + 32u <= len; i += 32u)
         for (j = 0; j < 4u && p[j] != 99; j++)
-            trap_put(&t->step[i + p[j]], trap_mnote(t, gchord_deg(i + p[j]) + DG[j % 3u], gs.mlo, gs.mhi + 3, &last), 84 - (int32_t)j * 6, 0);
+            trap_put(&t->step[i + p[j]], trap_mnote(t, gchord_deg(i + p[j]) + DG[j % 3u], lo, hi, &last), vel - (int32_t)j * 6, 0);
+}
+/* the counter melody (the hook's, on its own track): the replies */
+static void trap_counter(track_t *t, uint32_t len)
+{
+    uint32_t i;
+    for (i = 0; i < NSTEP; i++) gclear(&t->step[i]);
+    trap_replies(t, len, gs.mlo, gs.mhi + 3, 84);
     t->p[P_SGATE] = 90;
 }
 

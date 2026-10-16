@@ -155,15 +155,18 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - The trap genres (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) have their own generator (`gen_trap.c`), and
   they make a beat for a voice: the drums and the 808 loud, the music sparse and behind them, the middle left free.
-  - **Groove**: the snare and clap on beat 3, a kick bank per style that never lands on the snare, hats that are the
+  - **Groove**: the snare and clap on beat 3, the kick under the 808's notes (never on the snare), hats that are the
     groove (eighths or sixteenths, 1/32 and 1/64 rolls before the snare and at the bar's end, triplet bursts on a
     second DRUM track at 16T when TRACKS 6 is on, with shuffled percussion), a crash on the hook's downbeat, an
     open hat at a phrase's turn, drill's 3-3-2 gallop and late snare, dark trap's cowbell.
-  - **Sound**: a short knocking kick, bright high-passed hats, a sine 808 driven so a small speaker plays it
-    (dark trap and rage clip it). The melody is a two-bar motif (a call, then a short answer whose end stays empty)
+  - **808**: a pattern bank per style of spaced notes — two to six a bar, long ones and short ones with rests between
+    them, a slide or two into the notes that matter (drill the most) — on the chord's root, now and then the octave
+    or the fifth; the verse gets another pattern. A driven sine so a small speaker plays it (dark trap and rage clip it).
+  - **Sound**: a short knocking kick, bright high-passed hats. The melody is a two-bar motif (a call, then a short answer whose end stays empty)
     about 10 dB under the drums with little reverb: bells, keys, a flute; strings and choirs in drill; a saw hook
     in rage. A low-passed pad under it; in the hook a counter melody (flute, voice, pluck) replies in the gap. Every
-    sound has a measured level trim, so a choir and a pluck sit at the same loudness.
+    sound has a measured level trim, so a choir and a pluck sit at the same loudness. On the default TRACKS 4 the
+    melody plays the counter's reply itself and the drum track carries the percussion.
   - **Song**: SONG makes the rap layout: intro 4 bars (the melody alone, its filter opening), hook 8, verse 16 (another
     kick and plainer hats, a softer instrument playing only the melody's calls, a darker pad, no counter; its last
     4 bars a pre-hook where the drums and the 808 stop for a snare roll), hook, verse, hook, outro: 64 bars.

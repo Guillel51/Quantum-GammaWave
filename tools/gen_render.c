@@ -3,6 +3,7 @@
  * at its tempo (its song, when FORM made parts), written as WAV files, to judge a genre by ear. Each argument is
  * GENRE:SEED[:ENERGY[:FORM[:COMPLEX]]] (the genre's name with '_' for spaces, or its number 1..49; ENERGY and COMPLEX
  * 0..100, default 50; FORM 0 LOOP, 1 PARTS, 2 SONG, default 2); the files are DIR/<genre>_<seed>.wav, SECONDS each.
+ * On TRACKS 6, unless the environment has TRACKS4 (then the default 4 tracks).
  *   cc -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o build/gen_render tools/gen_render.c -lm
  *   build/gen_render DIR SECONDS TRAP_ATL:7 UK_DRILL:11:70:2 ... */
 #define UI_TEST_NO_MAIN 1
@@ -38,7 +39,7 @@ int main(int argc, char **argv)
             return 1;
         }
         ui_power_on();
-        ui_rec_prefs |= PREF_SIX >> 8; rp_apply();      /* TRACKS 6 */
+        if (!getenv("TRACKS4")) { ui_rec_prefs |= PREF_SIX >> 8; rp_apply(); }   /* TRACKS 6 (TRACKS4 set: the default 4) */
         song.master_q12 = 4096;
         dice_secs = 0xFF;                               /* (a fresh project: the parts may be written) */
         gp.genre = (uint8_t)g; gp.seed = (uint16_t)(seed % 10000u); gp.energy = (uint8_t)energy; gp.form = (uint8_t)(form % 3u);
