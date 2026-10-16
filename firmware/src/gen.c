@@ -894,7 +894,7 @@ static void gen_kit(track_t *t)
         H->a[DXP_COLOR] = (uint8_t)clamp(H->a[DXP_COLOR] + cl, 0, 127); H->b[DXP_COLOR] = (uint8_t)clamp(H->b[DXP_COLOR] + cl, 0, 127);
     }
     t->p[P_E0] = (int16_t)grr(18, 110);                 /* MORPH */
-    t->p[P_E1] = (int16_t)grr(-7, 7);                   /* TUNE */
+    t->p[P_E1] = (int16_t)(64 + grr(-7, 7));            /* TUNE (0..127, 64 the kit's own pitch) */
     t->p[P_E2] = (int16_t)clamp(70 + k->tone + grr(-14, 14), 0, 127);
     t->p[P_E3] = (int16_t)clamp(64 + k->decy + grr(-14, 14), 0, 127);
     t->p[P_E4] = (int16_t)clamp(64 + k->nois + grr(-12, 14), 0, 127);

@@ -1,4 +1,12 @@
-# Felucca licensing
+# Licensing
+
+Pocket GammaWave (GW-1) is a derivative of Felucca, by way of JIANT FM, and is released under the
+same licence: GPL-3.0-only. The GW-1 additions (the GammaWave screens and palettes, the shift deck,
+the generator genres, the VOWEL / SCREAM filters and the new drive types, the Web Studio additions)
+are Copyright (C) 2026 Frederic Valente, GPL-3.0-only. Everything below is Felucca's own licensing
+note, which still applies to the code it describes; "Felucca" in it means this tree.
+
+## Felucca licensing
 
 Felucca is free software, licensed under the GNU General Public License, version 3 only
 (`GPL-3.0-only`, full text in `LICENSE`). That covers the code and its own assets. A few
@@ -15,7 +23,7 @@ Every file in this tree that carries an `SPDX-License-Identifier: GPL-3.0-only` 
 - the build script and tools: `build.sh`, `tools/`
 - the web pages (installer, editor, the browser emulator `web/emu/`) and their tests: `web/` (not the Fukiai and DotGothic16 fonts, below)
 - the host tests: `tests/`
-- JIANT FM's interface art: `assets/ui-art/`, `assets/ui-shapes/` and the concept image `docs/jiant-fm-ui-concept.jpg`
+- JIANT FM's interface art: `assets/ui-art/` and `assets/ui-shapes/`
   (by JIANT's author, under GPL-3.0-only like the rest of JIANT)
 
 One source file is a port and keeps the licence of its original: `firmware/src/fm6_core.c`
@@ -34,7 +42,7 @@ All by Hügelton Instruments (Leo Kuroshita), in this tree:
 | --- | --- | --- |
 | Felucca: firmware, tools, web pages, tests | GPL-3.0-only | `LICENSE` |
 | The PHASE engine's waveforms: a C port of the oscillator of CrispyZebra (<https://github.com/hugelton/CrispyZebra>) | GPL-3.0 | `firmware/src/eng_phase.c` |
-| The DRUM voices and kit | GPL-3.0-only | `firmware/src/drum_voice.c`, `firmware/src/eng_drum.c` |
+| The DRUM voices and kit | GPL-3.0-only | `firmware/src/eng_drum.c` |
 | The Hügelton Sample Pack: Felucca's drum sounds, made by `tools/gen_waves.py` (not CC0; JIANT builds none of them in: SLICE, which played its BREAK, is retired) | GPL-3.0-only | `tools/gen_waves.py` |
 | The Fukiai icon font (<https://github.com/hugelton/Fukiai>): the firmware's icons (rasterised at build time by `tools/gen_aa_icons.py`) and the web editor's | MIT | `web/fukiai.ttf`, `LICENSES/MIT-Fukiai.txt`, `web/FUKIAI-LICENSE.txt` |
 

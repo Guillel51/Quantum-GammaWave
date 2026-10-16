@@ -12,6 +12,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { logicalImage, productOf } from "./fm1pkg.js";
 import { Updater, pack7, unpack7 } from "./fm1ota.js";
@@ -20,7 +21,7 @@ let failed = 0;
 const ok = (cond, what) => { console.log(`${what.padEnd(64)} ${cond ? "ok" : "FAIL"}`); if (!cond) failed++; };
 const eq = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 const py = (code, ...args) => execFileSync("python3", ["-c", code, ...args], { maxBuffer: 1 << 26 });
-const HERE = new URL(".", import.meta.url).pathname;
+const HERE = fileURLToPath(new URL(".", import.meta.url));
 /* what lives outside web/, each overridable (a web-only checkout passes them, or the checks skip):
    FELUCCA_DESC  the firmware's parameter / protocol table (tests/descdump.c -> build/host/desc.json)
    FELUCCA_ROOT  the Felucca tree with a ./build.sh build (the package check) */
@@ -215,11 +216,14 @@ async function editorMock() {
   const names = [];
   for (let e = 0; e < info.nengines; e++) names.push(E.parse[E.CMD.NAMES](await rq(E.req.names(e))).names);
   let prefs = await E.readDevicePreferences(rq, info, names);
-  ok(info.uiCaps === 9 && prefs.palettes.length === 10 && prefs.palettes[0] === "GREY" && prefs.palettes.includes("HI-CON") && prefs.palettes[8] === "NIGHT" && prefs.palettes[9] === "MONO",
+  /* (GAMMAWAVE) firmware/src/ui_palettes.h: GREY .. MONO 0..9, THERMAL 10, GAMMA 11 (the default), WRAITH 12 */
+  ok(info.uiCaps === 9 && prefs.palettes.join() === "GREY,GREEN,AMBER,ICE,VIOLET,ROSE,PAPER,HI-CON,NIGHT,MONO,THERMAL,GAMMA,WRAITH" &&
+     prefs.state.palette === 11 && prefs.palettes[prefs.state.palette] === "GAMMA",
      "editor: preference capabilities (palette, favorites) and palette names");
   const pal = E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 2)));
   ok(pal.rc === 0 && pal.palette === 2, "editor: display preference 0 (palette) round trip");
-  ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 10))).rc === 1, "editor: out-of-range palette refused");
+  ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 12))).rc === 0 &&
+     E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 13))).rc === 1, "editor: out-of-range palette refused");
   ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(1, 1))).rc === 2, "editor: the retired font weight answers not supported");
   ok(E.parse[E.CMD.FAV_SET](await rq(E.req.favSet(info.nengines, 31, true))).rc === 1, "editor: empty user slot cannot be favorited");
   await rq(E.req.favSet(0, 0, true));
@@ -278,8 +282,8 @@ async function editorMock() {
        "editor: MENU_SET round trip (LEDS INV)");
     const pal = m.state.palette;
     r = E.parse[E.CMD.MENU_SET](await rq(E.req.menuSet(0, 50)));
-    ok(r.rc === 0 && r.value === 9 && E.parse[E.CMD.UI_STATE](await rq(E.req.uiState())).palette === 9,
-       "editor: MENU_SET clamps (COLOR 50 -> 9), the same setting as UI_SET 0");
+    ok(r.rc === 0 && r.value === 12 && E.parse[E.CMD.UI_STATE](await rq(E.req.uiState())).palette === 12,
+       "editor: MENU_SET clamps (COLOR 50 -> 12, WRAITH), the same setting as UI_SET 0");
     r = E.parse[E.CMD.MENU_SET](await rq(E.req.menuSet(14, 1)));
     ok(r.rc === 0 && r.id === 14 && r.value === 1 && E.parse[E.CMD.MENU_DESC](await rq(E.req.menuDesc(14))).value === 1,
        "editor: MENU_SET round trip (1.1: COUNT-IN 1 BAR)");

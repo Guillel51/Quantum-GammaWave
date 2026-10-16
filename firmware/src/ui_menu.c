@@ -118,8 +118,8 @@ static int32_t menu_document(int32_t y, int draw)
         cv_text(6, y + 58, &AF_M, FELUCCA_VERSION, T_THEME);
         cv_text_r(232, y + 61, &AF_S, __DATE__, T_MID, T_BG);
         cv_text(6, y + 82, &AF_S, "Solar Hearth. Spectrogram. Wraith.", T_ACCENT);
-        cv_text(6, y + 100, &AF_S, "DSP: Hearth / Forge / 4-Trk Tape", T_TEXT);
-        cv_text(6, y + 118, &AF_S, "GPL-3.0-only (GammaWave / Felucca)", T_TEXT);
+        cv_text(6, y + 100, &AF_S, "8 engines. 49-genre generator.", T_TEXT);
+        cv_text(6, y + 118, &AF_S, "GPL-3.0-only", T_TEXT);
         cv_text(6, y + 138, &AF_S, "GAMMAWAVEAUDIO.COM", T_THEME);
         cv_text(6, y + 156, &AF_S, "SHADOWTUNE.ITCH.IO", T_ACCENT);
         cv_text(6, y + 174, &AF_S, "OCT+: SECRET VIZ", T_THEME);
