@@ -757,8 +757,16 @@ What the generator knows, per genre (`gen_tables.c`):
   anchors last; the snare laid back where the genre does; hi-hat rolls in the trap family; the kit's MORPH drifting
   a little over the loop now and then.
 - **Bass**: one of about fifty figures written against the kick (the root at every chord change, approaches by a
-  semitone, the kick doubled, answered or interlocked). In the trap family (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE
-  TRAP) the bass is an 808 that starts on every kick and rings to the next one, gliding between notes — drill the most.
+  semitone, the kick doubled, answered or interlocked).
+- **The trap family** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) has its own generator: the snare and the clap
+  on beat 3, the kick around it, and the hats as the groove — eighths or sixteenths with 1/32 and 1/64 rolls before
+  the snare and at the bar's end, triplet bursts (on a second DRUM track at 16T when TRACKS is 6), drill's 3-3-2
+  gallop and late snare, dark trap's cowbell. The bass is an 808: a driven sine that starts on every kick and rings
+  to the next, gliding between notes (drill the most; dark trap and rage clip it). The melody is a short loop of
+  chord tones, high and wet (bells, keys, a flute; strings and choirs in drill; a bright saw hook in rage) over a
+  dark pad and a counter line. With FORM on SONG it makes intro (the melody alone, its filter opening), hook, verse
+  (another kick and hat style, the melody out), hook, bridge (no drums but a snare roll) and hook; PARTS stops after
+  the second hook. The hook loop is four bars.
 - **Arp and lead**: the arp as an order over the voiced chord (cycles of 3 or 5 against the bar); the lead as a
   one-bar motif in a phrase (A A A A', A R A R' …), varied by one change a bar.
 - **Sounds**: a factory sound per role whose name fits, with its envelope, filter, a slow LFO and sends shaped for

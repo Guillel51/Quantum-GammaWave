@@ -34,10 +34,10 @@
   - Boot splash with the Hearth sun and `POCKET GAMMAWAVE // GW-1`; the ABOUT page carries a QR code to gammawaveaudio.com.
 - **Two new filter types and four new drive types** on every track: filter `VOWEL` and `SCREAM` (after `LP`, `HP`, `BP`, `COMB`), drive `HEARTH`, `BLAST`, `PLASMA` and `FLUX`.
 - **49-genre song generator (GEN)** — open it with **`[OCT−] + [PLAY]`**, or turn **SELECT** on HOME. Page 1: **KNOB 1** genre, **KNOB 2** seed, **KNOB 3** energy, **KNOB 4** form (LOOP / PARTS / SONG); **SELECT** turns the page (drums, bass, chords, arp; lead, complexity, swing, humanize); **OCT+** makes the piece, **PLAY** auditions it, **HOME** closes. Genres include:
-  - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls)
-  - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat bounce, sliding 808 bass)
-  - **`DARK TRAP`** (130–148 BPM, Memphis-style 808 cowbell, crushed sub)
-  - **`RAGE TRAP`** (138–156 BPM, detuned saw leads, heavy distortion)
+  - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls and triplets, bell / flute / key melodies)
+  - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat gallop, late snare, sliding 808, dark strings and choirs)
+  - **`DARK TRAP`** (130–148 BPM, Memphis-style cowbell, clipped 808, phrygian bells)
+  - **`RAGE TRAP`** (150–166 BPM, distorted 808, bright detuned saw hooks)
   - plus `GAMMAWAVE`, `WRAITHWAVE`, house, techno, trance, electro, EBM, synth pop, darkwave, post punk, motorik, funk, disco, boom bap, UK garage, dubstep, breaks, drum & bass, dub, jazz, bossa, afrobeat, ambient, neo-classical, soundtrack, IDM and more.
   - Pieces are 32 or 64 steps (2 or 4 bars per section) depending on the genre's chord rhythm.
 - **One-press MUTATE** — **`[OCT−] + [ENV]`** jumps to **SEQ > MUTATE**. If MUTATE was off on the track it switches it on with SOUND every 2 bars, PATTERN every 4 bars and AMOUNT ≈ 50 %:
@@ -153,9 +153,17 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - The Hearth macros only touch ANALOG's E4/E5 cutoff/resonance on ANALOG tracks (on other engines those slots are other parameters), reset the filter type for macros 1–3, and can be undone; the deck's undo shows `UNDONE (AGAIN: REDO)` and respects `STOP TO EDIT`.
 - The MUTATE jump enters the page properly (sequencer mode and page state follow).
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
-- The trap genres now sound like trap: the 808 starts on every kick and rings to the next (it used to follow a fixed
-  pattern that landed on the snare), the hats stay steady with rolls instead of borrowing house open hats and
-  dropouts, no boom-bap ghost snares, DARK TRAP is half-time with its cowbell, and RAGE TRAP plays an 808.
+- The trap genres (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) have their own generator (`gen_trap.c`):
+  - **Groove**: the snare and clap on beat 3, a kick bank per style that never lands on the snare, hats that are the
+    groove (eighths or sixteenths, 1/32 and 1/64 rolls before the snare and at the bar's end, triplet bursts on a
+    second DRUM track at 16T when TRACKS 6 is on), drill's 3-3-2 gallop and late snare, dark trap's cowbell.
+  - **Sound**: a short knocking kick, bright high-passed hats, a sine 808 driven so a small speaker plays it
+    (dark trap and rage clip it), a high, wet melody (bells, keys, a flute; strings and choirs in drill; a saw hook
+    in rage), a dark pad, a counter line.
+  - **Song**: SONG makes intro (the melody alone, its filter opening) → hook → verse (another kick and hat style,
+    the melody out) → hook → bridge (no drums but a snare roll) → hook, with a stop on the last beat before a hook.
+    PARTS makes intro → hook → verse → hook.
+- DICE ALL and a new GEN seed never repeat one of the last 64 seeds (two throws could land on the same piece).
 - ABOUT: the QR code no longer covers the license line.
 
 ---
