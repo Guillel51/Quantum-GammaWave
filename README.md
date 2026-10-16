@@ -88,7 +88,7 @@ Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Españo
 ## Synthesis engines & sound architecture
 
 ### 1. Eight synthesis engines (no samples)
-- **`ANALOG`**: dual virtual-analog oscillators (`SAW`, `SQR`, `TRI`, `SIN`, `PWM`, `SYNC`, `RING`, `SAW3`) with interval (`INT ±24 st`), detune, oscillator mix and noise, through the track filter (`CUT`, `RES`, `DRIVE`).
+- **`ANALOG`**: dual virtual-analog oscillators (`SAW`, `SQR`, `TRI`, `SIN`, `PWM`, `SYNC`, `RING`, `SAW3`, and the dirty sines `TUBE` — GammaWave's Hearth tube curve — and `FOLD` — WRAITH's Blast wavefolder — whose amount is MORPH plus ENV/LFO → SHAPE) with interval (`INT ±24 st`), detune, oscillator mix and noise, through the track filter (`CUT`, `RES`, `DRIVE`).
 - **`FM6`**: 6-operator DX7-style FM (DX7 `.syx` voices load through the Web Studio), the 32 algorithms drawn on screen, per-operator editing on the device (`OPERATOR`, `OP ENV`, `OPERATOR 2`) and a 32-voice user bank (`B1–B32`).
 - **`PHASE`**: CZ-style phase distortion with feedback (`FB`), from warm brass to digital growl.
 - **`LOFI`**: 1-bit, 4-bit and 8-bit chip voices plus 32-formula **Bytebeat (`BYTE`)** and **Floatbeat (`FLOAT`)** engines tuned to the keyboard scale.
@@ -169,7 +169,8 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
     them, a slide or two into the notes that matter (drill the most) — on the chord's root, now and then the octave
     or the fifth; the verse gets another pattern. Its sound is one of ten 808 recipes ported from GammaWave's factory
     808s (Classic Thump, Clean, Crushed Venom, Deep Sub, Distorted, Glide King, Deep 808 Thump, Sub Glide 808) and
-    WRAITH's (SLIDE 808, DIRTY 808), on the GW-1's ports of their saturation (HEARTH, FLUX, BLAST in parallel, CRUSH):
+    WRAITH's (SLIDE 808, DIRTY 808), on the GW-1's ports of their saturation (ANALOG's TUBE and FOLD waves, HEARTH,
+    FLUX, BLAST in parallel, CRUSH):
     they decay instead of holding, start a little sharp and settle, click, glide 80–350 ms; each flavour has its own.
   - **Sound**: a short knocking kick, bright high-passed hats. The melody is a two-bar motif (a call, then a short answer whose end stays empty)
     about 10 dB under the drums with little reverb: bells, keys, a flute; strings and choirs in drill; a saw hook

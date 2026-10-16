@@ -579,28 +579,32 @@ static void trap_kit(track_t *t)
 }
 /* the 808 recipes, from the 808s of GammaWave's factory bank (Bass/) and of WRAITH (SLIDE 808, DIRTY 808), on the
  * GW-1's ANALOG with its ports of their saturation (fx.c: HEARTH, FLUX from GammaWave, BLAST from WRAITH; CRUSH).
- * They decay as theirs do (no sustain but the WRAITH ones), start a little sharp and settle (the ENV's PITCH), click,
+ * Their oscillator is a sine, or ANALOG's TUBE / FOLD (the same Hearth and Blast, computed in the oscillator so the
+ * sub stays), dirtiest on the hit (ENV > SHAPE). They decay as theirs do (no sustain but the WRAITH ones), start a
+ * little sharp and settle (the ENV's PITCH), click,
  * and glide 80..350 ms. dec / rel: P_DEC / P_REL (1 ms .. 10 s); ed: ENV > PITCH; dist: P_DIST with its type (WRAITH's
  * BLAST folds the sub away: under 8 its DIST blends the dry 808 back in, a clean sub under a dirty copy) */
 typedef struct {
     const char *name;
+    uint8_t wave, morph;                                /* (eng_analog.c: SIN, or TUBE / FOLD that dirty, MORPH how much) */
+    int8_t edshp;                                       /* (ENV > SHAPE: dirtier on the hit, cleaner as it rings) */
     uint8_t mix, noise, cut, res, edflt, drv[2], dec, sus, rel;
     int8_t edpit;
     uint8_t dist[2], dtype, glide;
     int8_t trim;
 } t808r_t;
 static const t808r_t T808R[10] = {
-    /* name             mix noise cut res edf  drive      dec sus rel pit  dist      type       glide trim */
-    {"CLASSIC THUMP",   0,  8,   62, 10, 30, {60, 80},   98, 0,  82, 4,  {28, 40}, DT_HEARTH, 62, 0},
-    {"CLEAN",           0,  0,   100, 0, 0,  {36, 50},   98, 0,  92, 0,  {0, -1},   DT_SOFT,   62, 0},
-    {"CRUSHED VENOM",   0,  2,   72, 12, 28, {120, 127}, 95, 0,  40, 4,  {70, 86}, DT_CRUSH,  62, -2},
-    {"DEEP SUB",        0,  0,   100, 0, 0,  {44, 60},   88, 0,  82, 8,  {0, 2},   DT_SOFT,   62, 0},
-    {"DISTORTED",       0,  0,   84, 4,  10, {104, 120}, 85, 50, 85, 2,  {56, 70}, DT_FLUX,   64, -1},
-    {"GLIDE KING",      0,  12,  66, 8,  26, {70, 90},   101, 0, 88, 0,  {36, 48}, DT_HEARTH, 76, -1},
-    {"DEEP THUMP",      14, 0,   90, 0,  0,  {64, 84},   91, 0,  70, 3,  {26, 38}, DT_HEARTH, 64, 2},
-    {"SUB GLIDE",       0,  0,   80, 2,  20, {60, 76},   88, 0,  85, 5,  {34, 46}, DT_HEARTH, 80, 2},
-    {"WRAITH SLIDE",    0,  0,   90, 0,  8,  {92, 108},  90, 70, 70, 0,  {3, 5},   DT_BLAST,  78, -3},
-    {"WRAITH DIRTY",    0,  4,   84, 6,  16, {118, 127}, 90, 76, 68, 2,  {5, 7},   DT_BLAST,  78, -3},
+    /* name             wave morph edshp | mix noise cut res edf  drive  dec sus rel pit  dist  type  glide trim */
+    {"CLASSIC THUMP", AW_TUBE, 10, 30,   0,  8,   62, 10, 30, {60, 80},   98, 0,  82, 4,  {28, 40}, DT_HEARTH, 62, 0},
+    {"CLEAN",         3, 0, 0,        0,  0,   100, 0, 0,  {36, 50},   98, 0,  92, 0,  {0, 0},   DT_SOFT,   62, -1},
+    {"CRUSHED VENOM", AW_TUBE, 60, 40,   0,  2,   72, 12, 28, {120, 127}, 95, 0,  40, 4,  {70, 86}, DT_CRUSH,  62, -2},
+    {"DEEP SUB",      3, 0, 0,        0,  0,   100, 0, 0,  {44, 60},   88, 0,  82, 8,  {0, 0},   DT_SOFT,   62, 2},
+    {"DISTORTED", AW_TUBE, 40, 30,       0,  0,   84, 4,  10, {104, 120}, 85, 50, 85, 2,  {56, 70}, DT_FLUX,   64, -1},
+    {"GLIDE KING", AW_TUBE, 20, 20,      0,  12,  66, 8,  26, {70, 90},   101, 0, 88, 0,  {36, 48}, DT_HEARTH, 76, -1},
+    {"DEEP THUMP",    3, 0, 0,        14, 0,   90, 0,  0,  {64, 84},   91, 0,  70, 3,  {26, 38}, DT_HEARTH, 64, 2},
+    {"SUB GLIDE", AW_TUBE, 12, 16,       0,  0,   80, 2,  20, {60, 76},   88, 0,  85, 5,  {34, 46}, DT_HEARTH, 80, 2},
+    {"WRAITH SLIDE", AW_FOLD, 6, 14,    0,  0,   90, 0,  8,  {92, 108},  90, 70, 70, 0,  {3, 5},   DT_BLAST,  78, -3},
+    {"WRAITH DIRTY", AW_FOLD, 14, 26,    0,  4,   84, 6,  16, {118, 127}, 90, 76, 68, 2,  {5, 7},   DT_BLAST,  78, -3},
 };
 static uint8_t tk_808r;                                 /* this piece's 808 */
 static void trap_808_apply(track_t *t, uint32_t ri)
@@ -608,14 +612,15 @@ static void trap_808_apply(track_t *t, uint32_t ri)
     const t808r_t *c = &T808R[ri % 10u];
     tk_808r = (uint8_t)(ri % 10u);
     trap_preset(t, EG_A, "SUB BASS");
-    t->p[P_E0] = 3;                                     /* WAVE: SIN */
+    t->p[P_E0] = c->wave;                               /* WAVE: SIN, TUBE (GammaWave's Hearth), FOLD (WRAITH's Blast) */
+    t->p[P_MORPH] = c->morph;
     t->p[P_E1] = 0; t->p[P_E2] = c->mix; t->p[P_E3] = c->noise;   /* DETUNE MIX NOISE (the click) */
     t->p[P_E4] = c->cut; t->p[P_E5] = c->res;           /* CUT RES */
     t->p[P_E6] = (int16_t)grr(c->drv[0], c->drv[1]);   /* DRIVE: 1x .. 3x into a soft clip */
     t->p[P_E7] = 0;
     t->p[P_FTYPE] = 0;
     t->p[P_ATK] = 0; t->p[P_DEC] = c->dec; t->p[P_SUS] = c->sus; t->p[P_REL] = c->rel;
-    t->p[P_ED_FLT] = c->edflt; t->p[P_ED_PIT] = c->edpit; t->p[P_ED_SHP] = 0; t->p[P_ELOOP] = 0;
+    t->p[P_ED_FLT] = c->edflt; t->p[P_ED_PIT] = c->edpit; t->p[P_ED_SHP] = c->edshp; t->p[P_ELOOP] = 0;
     t->p[P_GLIDE] = (int16_t)clamp(c->glide + (gs.ts == TS_DRILL ? 4 : 0) + grr(-3, 3), 0, 127);
     t->p[P_GLMODE] = 1;                                 /* TIME: a slide takes its time whatever the interval */
     t->p[P_VOICE] = V_LEGATO;                           /* (a new note after a gap: struck again; a slide: held, glided) */

@@ -399,8 +399,12 @@ click; las notas siguen.
 | **NOISE** | MODE, COLOR, FREQ, PEAK | TRK, DENSE, DRIFT, CRUSH | FREQ, PEAK, COLOR, REL |
 | **DRUM** (DRUM-X) | MORPH, TUNE, TONE, DECAY | NOISE, FM ENV, FOLD, DRIVE | MORPH, TUNE, TONE, DECAY |
 
-- **ANALOG**: dos osciladores. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3. **INT** fija el intervalo del
-  oscilador 2 (±24 semitonos). Su filtro es por voz.
+- **ANALOG**: dos osciladores. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD. **INT** fija el
+  intervalo del oscilador 2 (±24 semitonos). Su filtro es por voz. **TUBE** y **FOLD** son senos ensuciados dentro del
+  oscilador, antes del filtro, así que la fundamental se queda (un 808 distorsionado conserva su sub): TUBE pasa por la
+  curva de válvula Hearth de GammaWave (cálido, armónicos pares), FOLD por el plegador Blast de WRAITH (un gruñido,
+  metal). Cuánto ensucian: **MORPH** más ENV / LFO → **SHAPE**; con ENV → SHAPE arriba, la nota está más sucia en el
+  golpe y se limpia mientras suena.
 - **FM6**: un motor FM de seis operadores (msfa, de Dexed), 32 algoritmos dibujados en pantalla, cuatro voces por
   pista. Las perillas de EDIT 1/2 son macros sobre el patch. **SLOT**: los patches de fábrica F1–F8, OWN (un patch
   editado o importado) y B1–B32 (un banco DX7 de 32 voces enviado desde el editor web; los slots vacíos se saltean).

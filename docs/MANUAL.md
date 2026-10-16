@@ -388,8 +388,11 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
 | **NOISE** | MODE, COLOR, FREQ, PEAK | TRK, DENSE, DRIFT, CRUSH | FREQ, PEAK, COLOR, REL |
 | **DRUM** (DRUM-X) | MORPH, TUNE, TONE, DECAY | NOISE, FM ENV, FOLD, DRIVE | MORPH, TUNE, TONE, DECAY |
 
-- **ANALOG**: two oscillators. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3. **INT** sets oscillator 2's interval
-  (±24 semitones). Its filter is per voice.
+- **ANALOG**: two oscillators. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD. **INT** sets oscillator
+  2's interval (±24 semitones). Its filter is per voice. **TUBE** and **FOLD** are sines made dirty inside the
+  oscillator, before the filter, so the fundamental stays (a distorted 808 keeps its sub): TUBE through GammaWave's
+  Hearth tube curve (warm, even harmonics), FOLD through WRAITH's Blast wavefolder (a growl, metal). How dirty is
+  **MORPH** plus ENV / LFO → **SHAPE**: with ENV → SHAPE up, a note is dirtiest on its hit and cleans up as it rings.
 - **FM6**: a six-operator FM engine (Dexed's msfa), 32 algorithms drawn on screen, four voices per track. The EDIT 1/2
   knobs are macros over the patch. **SLOT**: the factory patches F1–F8, OWN (an edited or imported patch) and B1–B32
   (a 32-voice DX7 bank sent from the web editor; empty slots are skipped). **OPERATOR / OP ENV / OPERATOR 2** edit each

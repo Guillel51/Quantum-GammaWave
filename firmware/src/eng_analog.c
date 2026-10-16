@@ -6,8 +6,8 @@
  * lead's sweep), RING (osc 1's saw times osc 2's sine at that ratio: bells, metal), SAW3 (three saws, osc 2 DTN cents up,
  * osc 3 down: TRIO's fat stack). MIX: osc 1 against the other(s) as before. INT (0.4, once KTR): osc 2 INT semitones
  * from osc 1, as a classic two-oscillator synth (fifths, octaves; SAW3: its osc 2). */
-static const char *const N_ANALOG_WAVE[] = {"SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3"};
-enum { AW_SYNC = 5, AW_RING, AW_SAW3 };
+static const char *const N_ANALOG_WAVE[] = {"SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD"};
+enum { AW_SYNC = 5, AW_RING, AW_SAW3, AW_TUBE, AW_FOLD };
 /* (JIANT 0.5) FILTER TYPE (P_FTYPE): LP as before (analog_render's loop); HP BP from the same state-variable filter
  * (analog_ext's loop, every WAVE); COMB the filter open, the part's sum through a feedback comb tuned to the newest
  * note and CUT (+-32 semitones about it), RES its feedback (voice.c track_comb) */
@@ -56,6 +56,29 @@ static int32_t an_mpos(const int16_t *p, int32_t mq8, const vmod_t *m)   /* (mq8
 static int32_t an_mext(int32_t mq8, const vmod_t *m)
 {
     return clamp(mq8 + m->shape - (64 << 8), 0, 127 << 8);
+}
+/* (1.0-GW) TUBE and FOLD: a sine made dirty in the oscillator, computed (no table), before the filter, so its
+ * fundamental stays (a dirty 808 keeps its sub): TUBE after GammaWave's Hearth, an asymmetric tube (even harmonics,
+ * warmth; its DC taken off), FOLD after WRAITH's Blast, the sine of a sine (odd harmonics, a growl, metal). How dirty:
+ * MORPH and the SHAPE modulation together (an_mext: ENV > SHAPE makes it dirty on the hit, clean as it rings) */
+typedef struct { int32_t g, b, cb, dc, kf; } an_dirt_t;
+static void an_dirt_set(an_dirt_t *d, int32_t mx)        /* mx: Q8, 0 .. 127 << 8 */
+{
+    int32_t a = clamp(mx, 0, 127 << 8) >> 8, k, sum = 0;
+    d->g = 4096 + a * 200;                              /* TUBE: Q12, the sine x1 .. x7.2 into the curve .. */
+    d->b = a * 60;                                      /* .. biased (up to ~0.23): its asymmetry */
+    d->cb = softclip(d->b);
+    for (k = 0; k < 16; k++)                            /* (its DC over a cycle, taken off: no thump at the gate) */
+        sum += softclip(((SINE[k * 64] * d->g) >> 12) + d->b) - d->cb;
+    d->dc = sum >> 4;
+    d->kf = 5215 + a * 287;                             /* FOLD: sin(g sin x), g 1 .. 8 rad (the phase scale / 4) */
+}
+static inline int32_t an_dirt(uint32_t w, uint32_t ph, const an_dirt_t *d)
+{
+    int32_t s = osc_sine(ph);
+    if (w == AW_TUBE)
+        return softclip(((s * d->g) >> 12) + d->b) - d->cb - d->dc;
+    return (sine_i((uint32_t)(s * d->kf) << 2) * 3 + s) >> 2;   /* (a quarter of the sine under it, as Blast's) */
 }
 static inline int32_t an_osc(uint32_t w, uint32_t ph, uint32_t inc)
 {
@@ -107,8 +130,8 @@ static uint32_t an_pw(const track_t *t, const vmod_t *m)
     return 0x80000000u + (uint32_t)(clamp(q, -16384, 65000) << 15);
 }
 
-/* SYNC RING SAW3 (see the top): a render of their own (the other WAVEs' loop untouched), the same noise, drive and
- * filter */
+/* SYNC RING SAW3 (see the top), (1.0-GW) TUBE FOLD: a render of their own (the other WAVEs' loop untouched), the same
+ * noise, drive and filter */
 static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const int16_t *p = t->p;
@@ -117,23 +140,28 @@ static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t
     int32_t mx = wave >= AW_SYNC ? an_mext(t->mo_cur, m) : 0;   /* (0.6.81) MORPH, SHAPE on SYNC RING SAW3 */
     int32_t det = p[P_E1] + (wave == AW_SAW3 ? mx * 40 / (127 << 8) : 0), m2 = p[P_E2] * 258, m1 = 32767 - m2, nz = p[P_E3] * 200, drv = p[P_E6], kd = 8192 - p[P_E5] * 7600 / 127;
     int32_t drive = 32768 + drv * 512, cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) << 2);
-    int32_t ic1 = v->s[0], ic2 = v->s[1], nst = v->s[2];
+    int32_t ic1 = v->s[0], ic2 = v->s[1], nst = v->s[2], dirty = wave >= AW_TUBE;
     tsvf_t flt;
+    an_dirt_t dt = {0, 0, 0, 0, 0};
     tsvf_coef(&flt, cut, p[P_E5]);
+    if (dirty)
+        an_dirt_set(&dt, mx);
     r = 16u + (uint32_t)det + (wave != AW_SAW3 ? (uint32_t)(mx * 64 / (127 << 8)) : 0u);   /* SYNC / RING: osc 2 at r / 16
                                                          * of osc 1 (1 .. 8.9; 0.6.81: MORPH up to 4 more) */
     inc2 = wave == AW_SAW3 ? cents_inc(m->pitch16 + p[P_E7] * 16, det, 0) : (inc1 >> 4) * r;   /* (SAW3: osc 2 at INT) */
-    if (wave != AW_SAW3 && p[P_E7]) {                   /* (JIANT 0.5) SYNC / RING: INT moves osc 2 too, semitones */
+    if ((wave == AW_SYNC || wave == AW_RING) && p[P_E7]) {   /* (JIANT 0.5) SYNC / RING: INT moves osc 2 too, semitones */
         inc2 = (cents_inc(m->pitch16 + p[P_E7] * 16, 0, 0) >> 4) * r;
         r = inc1 >> 8 ? (inc2 / (inc1 >> 8)) >> 4 : r; /* (its ratio to osc 1, x16: the restart below) */
         if (r < 1u) r = 1u;
     }
     inc3 = wave == AW_SAW3 ? cents_inc(m->pitch16, -det, 0) : 0u;
-    if (wave < AW_SYNC)                                 /* (JIANT 0.5: HP BP COMB) the plain WAVEs: osc 2 as analog_render */
+    if (wave < AW_SYNC || dirty)                        /* (JIANT 0.5: HP BP COMB) the plain WAVEs: osc 2 as analog_render */
         inc2 = det || p[P_E7] ? cents_inc(m->pitch16 + p[P_E7] * 16, det, 0) : inc1;
     for (i = 0; i < n; i++) {
-        int32_t a = osc_saw(ph0, inc1), b, s;
-        if (wave < AW_SYNC) {
+        int32_t a = dirty ? an_dirt(wave, ph0, &dt) : osc_saw(ph0, inc1), b, s;
+        if (dirty) {                                    /* (1.0-GW) TUBE FOLD: osc 2 the same wave */
+            b = an_dirt(wave, ph1, &dt);
+        } else if (wave < AW_SYNC) {
             switch (wave) {
             case 1: a = osc_pulse(ph0, inc1, 0x80000000u); b = osc_pulse(ph1, inc2, 0x80000000u); break;
             case 2: a = osc_tri(ph0); b = osc_tri(ph1); break;
@@ -286,7 +314,7 @@ static const engine_t ENG_ANALOG = {
     .name = "ANALOG",
     .page_title = {"OSC", "FLT"},
     .edit = {
-        {"WAVE", F_ENUM, 0, 7, 0, N_ANALOG_WAVE, 0},
+        {"WAVE", F_ENUM, 0, 9, 0, N_ANALOG_WAVE, 0},  /* (1.0-GW: TUBE FOLD appended) */
         {"DETUNE", F_INT, 0, 127, 10, 0, "ct"},
         {"MIX", F_PCT, 0, 127, 64, 0, 0},
         {"NOISE", F_PCT, 0, 127, 0, 0, 0},
