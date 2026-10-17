@@ -85,7 +85,7 @@ static int reel_find(uint16_t id)                       /* a take's place on the
 static uint16_t reel_new_id(void)                       /* the next ID: 0001 .. FFFF, round, never one on the reel */
 {
     uint32_t n;
-    for (n = 0; n < 0x10000u; n++) {
+    for (n = 0; n < 65536u; n++) {
         uint16_t id = reel_next;
         reel_next = (uint16_t)(reel_next == 0xFFFFu ? 1u : reel_next + 1u);
         if (id && reel_find(id) < 0) return id;
@@ -747,6 +747,11 @@ static void draw_set(void)
         int tk = set_take(i);
         uint16_t c = tk < 0 ? T_RAISE : heat_col((int32_t)(60u + (set_e[i].id * 37u) % 190u));
         cv_rect((int32_t)xs, i == set_cur ? 2 : 8, (int32_t)(w > 1u ? w - 1u : 1u), i == set_cur ? 36 : 24, c);
+        if (w >= 16u) {                                 /* (its bars on it) */
+            char nb[6];
+            fmt_int(nb, bars);
+            if ((int32_t)w >= text_w(&AF_S, nb) + 4) cv_text((int32_t)xs + ((int32_t)w - text_w(&AF_S, nb)) / 2, 13, &AF_S, nb, T_INK);
+        }
         if (set_play && i < set_i) pos += bars;
         xs += w;
     }
@@ -760,11 +765,10 @@ static void draw_set(void)
     if (set_n) {
         int tk = set_take(set_cur);
         uint32_t n;
-        b[0] = (char)('0' + (set_cur + 1u) / 10u); b[1] = (char)('0' + (set_cur + 1u) % 10u);
-        str_cpy(b + 2, " OF ", sizeof b - 2u);
-        n = str_len(b);
-        b[n++] = (char)('0' + set_n / 10u); b[n++] = (char)('0' + set_n % 10u); b[n] = 0;
-        draw_text_box(0, 104, 240, &AF_S, b[0] == '0' ? b + 1 : b, T_MID, 1);
+        fmt_int(b, set_cur + 1u);
+        str_cpy(b + str_len(b), " OF ", 5);
+        fmt_int(b + str_len(b), set_n);
+        draw_text_box(0, 104, 240, &AF_S, b, T_MID, 1);
         b[0] = '#';
         reel_hex(b + 1, set_e[set_cur].id);
         str_cpy(b + 5, "  ", 3);
