@@ -2223,6 +2223,7 @@ static void ui_input_frame(void)
             if ((s = panel_enc(EN_SELECT)) != 0) gen_select(s);
             if ((s = panel_enc(EN_PRESET)) != 0) gen_reel_turn(s);   /* (1.0-GW) the TAKES reel */
             if ((s = panel_enc(EN_ALGO)) != 0) gen_algo(s);
+            gen_layer(lkeys);                           /* (TAKES v2) OCT+ held on the reel: the keys */
             gen_take_poll();
             {   /* (TAKES v2) EDIT on the reel: delete the take (held: the takes not kept), a question first */
                 static uint32_t ed_t0;

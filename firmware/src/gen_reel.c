@@ -167,6 +167,10 @@ static int gen_reel_load(void)
 }
 /* PRESETS: the reel opened (the settings' view: its first turn), then scrolled; playing, the take under the cursor
  * loads once PRESETS rests */
+static struct {                                         /* (v2) OCT+ held on the reel: the take layer */
+    uint8_t held, used, focus;                          /* OCT+ down; a key acted (no load when let go); KNOB 2's section */
+    uint32_t down, t[27];                               /* the layer's keys down, since when */
+} gl;
 static void gen_reel_turn(int32_t s)
 {
     reel_ask = 0;
@@ -174,7 +178,10 @@ static void gen_reel_turn(int32_t s)
         gp.view = 1;
     } else if (reel_n) {
         reel_cur = (uint8_t)clamp((int32_t)reel_cur + (s > 0 ? 1 : -1), 0, (int32_t)reel_n - 1);
-        if ((song.playing || chain_busy()) && reel_cur != reel_play) {
+        if (gl.held) {                                  /* (v2) OCT+ held: a cue, the take when OCT+ is let go */
+            reel_want = -1;
+            gen_take_ms = 0;
+        } else if ((song.playing || chain_busy()) && reel_cur != reel_play) {
             reel_want = (int8_t)reel_cur;
             gen_take_ms = fm1_ms | 1u;
         }
@@ -243,6 +250,7 @@ static void draw_reel(void)
     } else {
         str_cpy(t + str_len(t), "EMPTY", sizeof t - str_len(t));
     }
+    if (gen_take_bar && gen_take_ms) str_cpy(t + str_len(t), "  NEXT BAR", sizeof t - str_len(t));   /* (v2) */
     draw_text_box(0, 30, 240, &AF_M, t, T_THEME, 1);
     if (!reel_n) {
         lcd_fill(0, 50, 240, 148, T_BG);
@@ -329,7 +337,14 @@ static void draw_reel(void)
                 cv_rect((int32_t)(24u + pos * 192u / tot), 0, 2, 24, T_TEXT);   /* (the playhead) */
             }
         }
-        cv_blit(0, 172);
+        if (!gl.held) cv_blit(0, 172);
+    }
+    if (gl.held) {                                      /* (v2) OCT+ held: the keys */
+        static const char *const LG[4] = {"F DRM G BAS A CHD B ARP C LED D TEX", "BLACK KEY: ITS SOUND  HOLD: LOCK",
+                                          "E SOUNDS F HARM G- A+ ENRG B MIX", "C- D+ KEY E- F+ BPM G VARY C# UP"};
+        uint32_t i;
+        for (i = 0; i < 4u; i++) draw_text_box(0, 172 + i * 16u, 240, &AF_S, LG[i], i & 1u ? T_MID : T_TEXT, 1);
+        return;
     }
     if (reel_ask) {                                     /* (v2) the question, in the footer */
         char q[32];
@@ -346,4 +361,157 @@ static void draw_reel(void)
     }
     draw_text_box(0, 200, 240, &AF_S, "PRESETS SCROLL  OCT+ LOAD  K4 KEEP", T_TEXT, 1);
     draw_text_box(0, 216, 240, &AF_S, "ALGO SOUNDS  EDIT DEL  HOME BACK", T_DIM, 1);
+}
+
+/* ------------------------------------------------------------------- (v2) OCT+ held on the reel: the take layer --- */
+/* A key makes a take from the one playing (a child: the card says what), on the next bar (stopped: at once): the white
+ * keys F3 .. D4 a part's notes made again (DRUMS BASS CHORDS ARP LEAD TEX), the black key next to each its sound, E4 every
+ * sound, F4 the harmony, G4 / A4 ENERGY down / up, B4 the mix, C5 / D5 the key down / up, E5 / F5 the tempo, G5 VARY (the
+ * ornaments: echoes, octaves, bends, the kit's drift), C#5 back to the parent take. A part or a sound key held half a
+ * second locks it instead (ALGORITHM and the rerolls leave it; a new seed keeps it). On another take's card (PRESETS
+ * turned with OCT+ held), a part or a sound key borrows that take's into the playing one. Let go of OCT+ without a key:
+ * the take under the cursor, on the next bar. seq.c keeps the keys silent (layer_masks) */
+enum { GK_SOUNDS = 0x20, GK_HARM, GK_NRG_DN, GK_NRG_UP, GK_MIX, GK_KEY_DN, GK_KEY_UP, GK_BPM_DN, GK_BPM_UP, GK_VARY,
+       GK_PARENT, GK_ARR_DN, GK_ARR_UP, GK_JAM };
+static const uint8_t GKEY[27] = {                       /* F3 .. G5: a part (SL_*), a role's sound (0x10 + RL_*), an act */
+    SL_DRUMS, 0x10 | RL_DRUM, SL_BASS, 0x10 | RL_BASS, SL_CHORDS, 0x10 | RL_PAD, SL_ARP, SL_LEAD, 0x10 | RL_LEAD, SL_TEX,
+    0x10 | RL_TEX, GK_SOUNDS, GK_HARM, 0x10 | RL_ARP, GK_NRG_DN, GK_ARR_DN, GK_NRG_UP, GK_ARR_UP, GK_MIX, GK_KEY_DN,
+    GK_PARENT, GK_KEY_UP, GK_JAM, GK_BPM_DN, GK_BPM_UP, 0, GK_VARY};
+static const char *const GK_SAY[RL_N] = {"KIT", "BASS SOUND", "PAD SOUND", "LEAD SOUND", "ARP SOUND", "TEX SOUND"};
+static const char *const SL_SAY[SL_PARTS] = {"DRUMS", "BASS", "CHORDS", "ARP", "LEAD", "TEX"};
+/* a part or a sound borrowed: its pin (the same kind's replaced, else a free one, else the last) */
+static void gl_pin(uint32_t what, uint32_t seed, uint32_t var)
+{
+    uint32_t i, at = GP_PINS - 1u;
+    for (i = 0; i < GP_PINS; i++) if (gp.pin[i].what == what) { at = i; break; }
+    if (i == GP_PINS)
+        for (i = 0; i < GP_PINS; i++) if (!gp.pin[i].what) { at = i; break; }
+    gp.pin[at].what = (uint8_t)what; gp.pin[at].seed = (uint16_t)seed; gp.pin[at].var = (uint8_t)var;
+}
+static void gl_unpin(uint32_t what)
+{
+    uint32_t i;
+    for (i = 0; i < GP_PINS; i++) if (gp.pin[i].what == what) gp.pin[i].what = 0;
+}
+/* another take's own seed and variation for a stream or a sound (its pin, else its seed and variation) */
+static uint32_t gl_of(const take_t *o, uint32_t what, uint32_t v, uint32_t *sd)
+{
+    uint32_t i;
+    *sd = o->set.seed;
+    for (i = 0; i < GP_PINS; i++) if (o->set.pin[i].what == what) { *sd = o->set.pin[i].seed; return o->set.pin[i].var; }
+    return v;
+}
+static void gl_go(uint32_t how, const char *what, const char *say)
+{
+    gen_take_arm(how);
+    gen_take_ms = (fm1_ms - 460u) | 1u;                 /* (no rest: the next bar; stopped, now) */
+    gl.used = 1;
+    ui_say(what, say);
+    ui.force = 1;
+}
+static void gl_act(uint32_t c)
+{
+    const take_t *o = reel_cur < reel_n && reel_cur != reel_play && reel_play < reel_n ? &reel[reel_cur] : 0;
+    uint32_t sd, v;
+    int32_t x;
+    if (c >= SL_DRUMS && c <= SL_TEX) {                 /* a part's notes */
+        if (o) {                                        /* (borrowed from the take under the cursor) */
+            v = gl_of(o, 1u + c, o->set.var[c], &sd);
+            if (sd == gp.seed && !gpinned(1u + c)) gp.var[c] = (uint8_t)v;
+            else gl_pin(1u + c, sd, v);
+            gl_go(GH_BORROW, "BORROWED ", SL_SAY[c - SL_DRUMS]);
+        } else if (gl.focus) {                          /* (a section's own: phase 3) */
+            gp.secvar[(gl.focus - 1u) % 3u][c - SL_DRUMS]++;
+            gl_go(GH_SECTION, "NEW SECTION ", SL_SAY[c - SL_DRUMS]);
+        } else {
+            gl_unpin(1u + c);
+            gp.var[c]++;
+            gl_go(GH_DRUMS + c - SL_DRUMS, "NEW ", SL_SAY[c - SL_DRUMS]);
+        }
+        return;
+    }
+    if (c >= 0x10u && c < 0x10u + RL_N) {               /* a role's sound */
+        uint32_t r = c - 0x10u;
+        if (o) {
+            v = gl_of(o, 16u + r, o->set.svar[r], &sd);
+            if (sd == gp.seed && !gpinned(16u + r)) gp.svar[r] = (uint8_t)v;
+            else gl_pin(16u + r, sd, v);
+            gl_go(GH_BORROW, "BORROWED ", GK_SAY[r]);
+        } else {
+            gl_unpin(16u + r);
+            gp.svar[r]++;
+            gl_go(GH_KIT + r, "NEW ", GK_SAY[r]);
+        }
+        return;
+    }
+    switch (c) {
+    case GK_SOUNDS:
+        for (v = 0; v < RL_N; v++) if (!((gp.lock >> (8u + v)) & 1u)) { gl_unpin(16u + v); gp.svar[v]++; }
+        gl_go(GH_SOUNDS, "NEW SOUNDS", "");
+        break;
+    case GK_HARM: gp.var[SL_HARM]++; gl_go(GH_HARM, "NEW HARMONY", ""); break;
+    case GK_NRG_DN: case GK_NRG_UP:
+        gp.energy = (uint8_t)clamp((int32_t)gp.energy + (c == GK_NRG_UP ? 10 : -10), 0, 100);
+        gl_go(GH_ENERGY, c == GK_NRG_UP ? "ENERGY UP" : "ENERGY DOWN", "");
+        break;
+    case GK_MIX: gp.var[SL_MIX]++; gl_go(GH_MIX, "NEW MIX", ""); break;
+    case GK_KEY_DN: case GK_KEY_UP:
+        x = gp.key ? (int32_t)gp.key - 1 : gs.root;      /* (AUTO: from the key playing) */
+        x = (x + (c == GK_KEY_UP ? 1 : 11)) % 12;
+        gp.key = (uint8_t)(x + 1);
+        gl_go(GH_KEY, "KEY ", REEL_KEY[x % 12]);
+        break;
+    case GK_BPM_DN: case GK_BPM_UP:
+        x = gp.tempo ? gp.tempo : song.g[G_BPM];
+        gp.tempo = (uint8_t)clamp(x + (c == GK_BPM_UP ? 2 : -2), 60, 200);
+        gl_go(GH_TEMPO, c == GK_BPM_UP ? "TEMPO UP" : "TEMPO DOWN", "");
+        break;
+    case GK_VARY: gp.var[SL_FORM]++; gl_go(GH_VARY, "VARIED", ""); break;
+    case GK_PARENT:
+        if (reel_play < reel_n && reel[reel_play].parent) {
+            int i = reel_find(reel[reel_play].parent);
+            if (i < 0) { ui_message("PARENT DELETED"); break; }
+            reel_cur = (uint8_t)i;
+            reel_want = (int8_t)i;
+            gl_go(GH_NONE, "BACK TO PARENT", "");
+        } else {
+            ui_message("FIRST OF ITS FAMILY");
+        }
+        break;
+    default: break;
+    }
+}
+/* a part key or a sound key held: its lock */
+static void gl_lock(uint32_t c)
+{
+    uint32_t bit = c >= 0x10u ? 8u + (c - 0x10u) : c, on;
+    gp.lock ^= (uint16_t)(1u << bit);
+    on = (gp.lock >> bit) & 1u;
+    ui_say(on ? "LOCKED " : "UNLOCKED ", c >= 0x10u ? GK_SAY[(c - 0x10u) % RL_N] : SL_SAY[(c - SL_DRUMS) % SL_PARTS]);
+    gl.used = 1;
+    ui.force = 1;
+}
+/* every frame on the GEN screen: the layer's keys (lkeys: pressed with OCT+ held, silent: seq.c) */
+static void gen_layer(uint32_t lkeys)
+{
+    uint32_t held = gp.view && ((fm1_in.buttons >> panel.btn[B_OCTUP]) & 1u), k, up;
+    if (held && !gl.held) gl.used = 0;
+    if (held != gl.held) ui.force = 1;
+    gl.held = (uint8_t)held;
+    up = gl.down & ~fm1_in.notes;
+    for (k = 0; k < 27u; k++)
+        if ((up >> k) & 1u) {                           /* a part or a sound key let go: held long, its lock */
+            uint32_t c = GKEY[k];
+            gl.down &= ~(1u << k);
+            if (fm1_ms - gl.t[k] >= 500u) gl_lock(c);
+            else gl_act(c);
+        }
+    if (!held) return;
+    for (k = 0; k < 27u; k++)
+        if ((lkeys >> k) & 1u) {
+            uint32_t c = GKEY[k];
+            gl.used = 1;
+            if (c && c < 0x20u) { gl.down |= 1u << k; gl.t[k] = fm1_ms; }   /* (on release: tap or hold) */
+            else if (c) gl_act(c);
+        }
 }

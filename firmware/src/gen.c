@@ -89,7 +89,9 @@ static void gseed(uint32_t part)
     case 7u: sl = SL_FORM; break;
     case 8u: case 40u: case 72u: sl = SL_MIX; break;    /* GS_MIX (+32 trap's, +64 FEEL's) */
     case 6u: case 46u: sl = SL_N; break;                /* GS_SOUND: the roles' own (gsnd_begin) */
-    default: sl = SL_HARM; break;                       /* GS_PICK (+50 the trap flavour) */
+    case 200u: sl = SL_HARM; break;                     /* (GS_PICK + 200: the harmony made again, gen_make) */
+    default: sl = SL_N; break;                          /* GS_PICK (+50 the trap flavour): the genre's identity (a
+                                                         * RANDOM throw's genre, a hybrid, a flavour) never varied */
     }
     if (sl == SL_N) {
         gq = ((uint32_t)gp.seed + 1u) * 2654435761u ^ (part + 1u) * 0x9E3779B9u ^ 0x6D2B79F5u;
@@ -114,6 +116,12 @@ static int gsnd_begin(uint32_t r, uint32_t salt)
     return 1;
 }
 static void gsnd_end(void) { gq = gsnd_keep; }
+static int gpinned(uint32_t what)                       /* a pin for it */
+{
+    uint32_t i;
+    for (i = 0; i < GP_PINS; i++) if (gp.pin[i].what == what) return 1;
+    return 0;
+}
 static uint32_t gsnd_sig(const track_t *t)              /* a sound, hashed (a sound made again: another one) */
 {
     uint32_t h = 2166136261u ^ t->eng_req, j;
@@ -1417,6 +1425,9 @@ static void gen_make(void)
         gs.ts = (uint8_t)(o->drum == DM_UK_DRILL ? TS_DRILL : o->drum == DM_PHONK ? TS_DARK : o->drum == DM_RAGE ? TS_RAGE : TS_ATL);
         if (gs.trap) trap_flavour();                    /* (its producers' flavour: tempo, scales, sounds) */
     }
+    if (gp.var[SL_HARM] || gpinned(1u + SL_HARM))
+        gseed(GS_PICK + 200u);                          /* (TAKES v2) the harmony made again: the genre and its
+                                                         * flavour kept, the root, the scale, the chords, the figures new */
     /* (0.6.95) a throw its own: the drums from the map's family, the chords' play and a role's recipe from the neighbours */
     if (gmut.drum < DM_NONE && gmut.drum != DM_IDM && gch(35)) gmut.drum = DM_ALT[gmut.drum][gr() % 2u];
     if (gmut.pads <= CS_TRANCE && gch(35)) gmut.pads = CS_ALT[gmut.pads][gr() % 2u];
@@ -1623,8 +1634,7 @@ static void gen_make(void)
         v = lo + (hi - lo) * (int32_t)gs.energy / 100 + grr(-3, 3);
         song.g[G_BPM] = (int16_t)(gp.tempo ? gp.tempo : clamp(v, lo, hi));   /* (1.0-GW) TEMPO: the screen's BPM */
     }
-    if (gp.var[SL_MIX] || gp.pin[0].what == 1u + SL_MIX || gp.pin[1].what == 1u + SL_MIX || gp.pin[2].what == 1u + SL_MIX ||
-        gp.pin[3].what == 1u + SL_MIX)
+    if (gp.var[SL_MIX] || gpinned(1u + SL_MIX))
         gseed(GS_MIX + 96u);                            /* (1.0-GW TAKES v2) a new mix: the master's sends from its stream */
     song.g[G_SWING] = (int16_t)clamp((int32_t)gs.swing, 0, 100);
     song.g[G_DTIME] = g->dtime;
@@ -1676,6 +1686,8 @@ enum { GH_NONE, GH_NEW, GH_SET, GH_SOUNDS, GH_DRUMS, GH_BASS, GH_CHORDS, GH_ARP,
        GH_SLEAD, GH_SARP, GH_STEX, GH_HARM, GH_MIX, GH_FORM, GH_ENERGY, GH_KEY, GH_TEMPO, GH_SECTION, GH_BORROW, GH_VARY,
        GH_N };
 static uint8_t gen_how, gen_take_how;
+static uint8_t gen_take_bar;                            /* (TAKES v2) a take waiting for the next bar (the music playing) */
+static void gen_take_arm(uint32_t how);
 static void reel_add(void);                             /* (gen_reel.c) the piece made, on the TAKES reel */
 static int gen_reel_load(void);
 static void reel_tempo(int set);
@@ -1741,12 +1753,36 @@ static void gen_fresh_recipe(void)
     memset(gp.pin, 0, sizeof gp.pin);
     gp.arr = 0;
 }
+/* (TAKES v2) a new seed, a family's first take; a part or a sound locked goes with it: pinned to the take's seed and
+ * variation (at most four; the same genre makes it the same way, the harmony around it is the new one) */
+static void gen_new_seed_locked(void)
+{
+    struct { uint16_t seed; uint8_t what, var; } keep[GP_PINS];
+    uint32_t n = 0, sl, r, sd;
+    for (sl = SL_DRUMS; sl <= SL_TEX && n < GP_PINS; sl++)
+        if ((gp.lock >> sl) & 1u) {
+            keep[n].var = (uint8_t)gseed_of(1u + sl, gp.var[sl], &sd);
+            keep[n].seed = (uint16_t)sd; keep[n].what = (uint8_t)(1u + sl); n++;
+        }
+    for (r = 0; r < RL_N && n < GP_PINS; r++)
+        if ((gp.lock >> (8u + r)) & 1u) {
+            keep[n].var = (uint8_t)gseed_of(16u + r, gp.svar[r], &sd);
+            keep[n].seed = (uint16_t)sd; keep[n].what = (uint8_t)(16u + r); n++;
+        }
+    gen_new_seed();
+    gen_fresh_recipe();
+    for (r = 0; r < n; r++) { gp.pin[r].seed = keep[r].seed; gp.pin[r].what = keep[r].what; gp.pin[r].var = keep[r].var; }
+}
 /* OCT+ on the GEN screen: the piece; the same settings again: a new seed first */
 static void gen_press(void)
 {
     if (!gen_reel_load()) {                             /* (1.0-GW) on the reel: the take under the cursor */
-        if (gp.sig == gen_sig()) { gen_new_seed(); gen_fresh_recipe(); gen_how = GH_NEW; }
-        else gen_how = GH_SET;                          /* (TAKES v2: the settings changed: a child) */
+        if (gp.sig == gen_sig()) {
+            gen_new_seed_locked();                      /* (TAKES v2: the locked parts and sounds carried) */
+            gen_how = GH_NEW;
+        } else {
+            gen_how = GH_SET;                           /* (TAKES v2: the settings changed: a child) */
+        }
         gen_go();
     }
     gp.sig = gen_sig();
@@ -1886,11 +1922,19 @@ static void gen_algo(int32_t s)
 }
 /* every frame on the screen: a take waiting, its turns at rest (450 ms): the song's parts stopped first (its sections
  * are rewritten), the piece made, the music on again */
+static uint32_t gen_bar_last;
 static void gen_take_poll(void)
 {
     int32_t w;
+    uint32_t bp = chain.bar_pos, wrap = bp < gen_bar_last, notes;
+    gen_bar_last = bp;
     if (!gen_take_ms || fm1_ms - gen_take_ms < 450u)
         return;
+    if (song.playing && !gen_take_play) {               /* (TAKES v2) the music playing: on the next bar */
+        if (!gen_take_bar) { gen_take_bar = 1; ui.force = 1; return; }
+        if (!wrap) return;
+    }
+    gen_take_bar = 0;
     if (chain_busy()) {
         transport_req = 2;
         gen_take_play = 1;
@@ -1901,6 +1945,7 @@ static void gen_take_poll(void)
     reel_want = -1;
     if (w >= 0) gset_put(&reel[(uint32_t)w % REEL_N].set);   /* (the reel scrolled: that take) */
     gen_how = w >= 0 ? GH_NONE : gen_take_how;
+    notes = w >= 0 || !(gen_how == GH_SOUNDS || (gen_how >= GH_KIT && gen_how <= GH_STEX) || gen_how == GH_MIX);
     gen_keep_undo = gen_take_on;
     gen_go();
     if (w >= 0) reel_tempo(0);
@@ -1911,15 +1956,31 @@ static void gen_take_poll(void)
         gen_take_play = 0;
         if (live.mode) chain_play_ui();
         else transport_req = 1;
+    } else if (song.playing && !live.mode && notes) {
+        transport_req = 3;                              /* (TAKES v2) a loop's new notes: from its top, on the bar */
     }
     gen_take_live = 0;
+    ui.force = 1;
 }
 /* (TAKES v2) OCT- / OCT+ on the GEN screen first: the reel's question answered (the taps eaten); else as they were */
 static uint32_t gen_oct(uint32_t oct)
 {
-    if (!reel_ask || !(oct & 3u)) return oct;
-    gen_reel_answer((oct & 2u) != 0u);
-    return 0;
+    if (reel_ask && (oct & 3u)) {
+        gen_reel_answer((oct & 2u) != 0u);
+        return 0;
+    }
+    if ((oct & 2u) && gp.view) {                        /* (TAKES v2) OCT+ on the reel let go */
+        if (gl.used) { gl.used = 0; return oct & ~2u; } /* (its keys made the takes: nothing more) */
+        if ((song.playing || chain_busy()) && reel_n) { /* playing: the take under the cursor, on the next bar */
+            if (reel_cur != reel_play) {
+                reel_want = (int8_t)reel_cur;
+                gen_take_arm(GH_NONE);
+                gen_take_ms = (fm1_ms - 460u) | 1u;
+            }
+            return oct & ~2u;
+        }
+    }
+    return oct;
 }
 static void gen_value(uint32_t p, uint32_t k, char *b)
 {

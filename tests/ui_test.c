@@ -228,6 +228,16 @@ static void press(uint32_t label)                 /* a tap: down, a frame, up, a
     frame();
 }
 static void frames(uint32_t ms) { uint32_t i; for (i = 0; i < ms / 16u; i++) frame(); }
+static void song_poll(void);
+/* (TAKES v2) the music in real time: a frame's 16 ms of audio each frame, the song's sections staged (the main loop) */
+static void play_ms(uint32_t ms)
+{
+    uint32_t i, j;
+    for (i = 0; i < ms / 16u; i++) {
+        frame();
+        for (j = 0; j < 768u / CTL; j++) { events_block(CTL); song_poll(); }
+    }
+}
 static void hold(uint32_t label)                  /* held 0.8 s, then let go */
 {
     uint32_t k;
@@ -6853,11 +6863,11 @@ static int test_gen_pages(void)
         for (k = 0; k < 20u; k++) { frame(); events_block(CTL); }   /* (the transport runs with the audio) */
         ok = song.playing || chain_busy();
         turn(EN_ALGO, 1);                               /* (playing: a take once it rests, its UNDO point the music before) */
-        for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
+        play_ms(4000);                                  /* (TAKES v2: on the next bar) */
         ok &= gp.sig == gen_sig() && (song.playing || chain_busy());
         for (k = 0; k < NTRK; k++) sig1 |= gsnd_sig(&trk[k]) != snd0[k];   /* (new sounds) */
         turn(EN_ALGO, 1);                               /* (a second take: the same UNDO point) */
-        for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
+        play_ms(4000);                                  /* (TAKES v2: on the next bar) */
         ok &= gp.sig == gen_sig() && (song.playing || chain_busy());
         transport_req = 2;
         for (k = 0; k < 4u; k++) { frame(); events_block(CTL); }
@@ -6901,7 +6911,7 @@ static int test_gen_reel(void)
     turn(EN_PRESET, 1);                                 /* (playing: take 2 once PRESETS rests; the song's sections
                                                          * play, so the steps are a section's: only queued yet) */
     ok &= reel_want == 1 && reel_play == 0u;
-    for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
+    play_ms(4000);                                  /* (TAKES v2: on the next bar) */
     ok &= dice_print() == pr[1] && reel_play == 1u && reel_n == 3u && (song.playing || chain_busy());
     transport_req = 2;
     for (k = 0; k < 4u; k++) { frame(); events_block(CTL); }
@@ -6996,6 +7006,90 @@ static int test_gen_v2(void)
     press(B_OCTUP); frames(4);                          /* (the same settings: a new seed, a family of its own) */
     ok = reel_n == 2u && reel[1].parent == 0u && reel[1].id > id1 && gp.seed != 202u;
     bad += check("GEN v2: IDs never reused, a new seed a family's first take (no parent)", ok);
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF;
+    ui_rec_prefs &= (uint8_t)~(PREF_SIX >> 8); rp_apply();
+    ui_power_on();
+    return bad;
+}
+
+/* (TAKES v2) OCT+ held on the reel: the keys silent and the layer's: a part's key makes a child with that part new (stopped:
+ * at once), held half a second it locks the part instead; a black key the part's sound; playing, a take waits for the
+ * next bar and the loop starts again from its top; PRESETS with OCT+ held only cues (nothing loads), OCT+ let go loads the
+ * cue on the next bar; on another take's card a part key borrows it (a pin); a locked part goes with a new seed */
+static void gl_key(uint32_t k, uint32_t ms)              /* OCT+ held: key k down for ms, let go (OCT+ stays) */
+{
+    key_down(k); frame();
+    frames(ms);
+    key_up(k); frame();
+}
+static int test_gen_layer(void)
+{
+    int bad = 0, ok;
+    uint32_t k, st0[NTRK], sn0[NTRK], dr, bs, ld, gates0;
+    uint16_t id0;
+    ui_power_on();
+    ui_rec_prefs |= PREF_SIX >> 8; rp_apply();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    fm1_ms += 1200u;
+    gp.genre = 3; gp.seed = 202; gp.form = 0;          /* TRAP ATL, a loop */
+    press(B_OCTUP); frames(4);
+    turn(EN_PRESET, 1); frames(32);                     /* (the reel) */
+    for (k = 0; k < NTRK; k++) { st0[k] = steps_sig(&trk[k]); sn0[k] = gsnd_sig(&trk[k]); }
+    dr = gs.trk_of[RL_DRUM]; bs = gs.trk_of[RL_BASS]; ld = gs.trk_of[RL_LEAD];
+    id0 = reel[reel_play].id;
+    btn_down(B_OCTUP); frame();
+    gates0 = gates();
+    gl_key(0, 50);                                      /* F3: new DRUMS */
+    ok = gates() == gates0 && gl.held && reel_n == 2u && reel[1].parent == id0 && reel[1].how == GH_DRUMS;
+    ok &= steps_sig(&trk[dr]) != st0[dr] && steps_sig(&trk[ld]) == st0[ld] && gsnd_sig(&trk[ld]) == sn0[ld];
+    bad += check("GEN layer: OCT+ held on the reel: a key silent, F3 a child with new DRUMS (stopped: at once)", ok);
+    gl_key(8, 50);                                      /* C#4: the lead's sound */
+    ok = reel_n == 3u && reel[2].how == GH_SLEAD && gsnd_sig(&trk[ld]) != sn0[ld] && steps_sig(&trk[ld]) == st0[ld];
+    gl_key(2, 700);                                     /* G3 held: BASS locked, no take */
+    ok &= ((gp.lock >> SL_BASS) & 1u) && reel_n == 3u;
+    btn_up(B_OCTUP); frame(); frame();
+    ok &= reel_n == 3u && !gl.held;                     /* (its keys acted: OCT+ let go loads nothing) */
+    bad += check("GEN layer: a black key the part's sound (the notes kept), a part key held locks it (no take), OCT+ let go after keys: nothing more", ok);
+    press(B_PLAY);
+    play_ms(200);
+    btn_down(B_OCTUP); frame();
+    gl_key(11, 50);                                     /* E4: every sound, on the next bar */
+    ok = gen_take_ms && reel_n == 3u && (song.playing || chain_busy());
+    btn_up(B_OCTUP); frame();
+    play_ms(4000);
+    ok &= reel_n == 4u && reel[3].how == GH_SOUNDS && !gen_take_ms && song.playing;
+    bad += check("GEN layer: playing, E4 new sounds wait for the next bar, the music playing on", ok);
+    btn_down(B_OCTUP); frame();
+    turn(EN_PRESET, -1); turn(EN_PRESET, -1); frames(600);   /* (a cue only) */
+    ok = reel_cur == 1u && reel_play == 3u && !gen_take_ms;
+    btn_up(B_OCTUP); frame();
+    ok &= gen_take_ms && reel_want == 1;
+    play_ms(4000);
+    ok &= reel_play == 1u && song.playing && reel_n == 4u;
+    bad += check("GEN layer: PRESETS with OCT+ held cues (nothing loads), OCT+ let go: the cue on the next bar", ok);
+    transport_req = 2; play_ms(100);
+    gp.seed = 4242; gen_fresh_recipe(); gen_how = GH_NEW; gen_go(); gp.sig = gen_sig();   /* (another family) */
+    ok = reel_n == 5u && reel[4].parent == 0u;
+    reel_cur = 1;                                       /* (the cursor on #2: seed 202, new drums) */
+    btn_down(B_OCTUP); frame();
+    gl_key(0, 50);                                      /* F3 on another take's card: its drums borrowed */
+    btn_up(B_OCTUP); frame();
+    ok &= reel_n == 6u && reel[5].how == GH_BORROW && gpinned(1u + SL_DRUMS) && gp.seed == 4242u;
+    for (k = 0; k < GP_PINS; k++)
+        if (gp.pin[k].what == 1u + SL_DRUMS) ok &= gp.pin[k].seed == 202u && gp.pin[k].var == 1u;
+    bad += check("GEN layer: on another take's card a part key borrows its part (its seed and variation pinned)", ok);
+    gp.lock = (uint16_t)(1u << SL_BASS);
+    gp.view = 0; gp.sig = gen_sig();
+    press(B_OCTUP); frames(4);                          /* (the same settings: a new seed, BASS locked) */
+    ok = gp.seed != 4242u && gpinned(1u + SL_BASS) && !gpinned(1u + SL_DRUMS);
+    for (k = 0; k < GP_PINS; k++)
+        if (gp.pin[k].what == 1u + SL_BASS) ok &= gp.pin[k].seed == 4242u;
+    bad += check("GEN layer: a new seed keeps a locked part (pinned to the take's seed), drops the borrowed ones", ok);
+    (void)bs;
+    gp.lock = 0;
     reel_n = 0; reel_cur = 0; reel_play = 0xFF;
     ui_rec_prefs &= (uint8_t)~(PREF_SIX >> 8); rp_apply();
     ui_power_on();
@@ -9256,6 +9350,7 @@ int main(void)
     bad += test_gen_pages();
     bad += test_gen_reel();
     bad += test_gen_v2();
+    bad += test_gen_layer();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();
