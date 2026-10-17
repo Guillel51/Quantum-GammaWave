@@ -193,6 +193,7 @@ static void fl_plain_window_init(void) {}
 #include "../../firmware/src/storage.c"
 #include "../../firmware/src/upreset.c"
 #include "../../firmware/src/project.c"
+#include "../../firmware/src/gen_reel_flash.c"       /* (1.0-GW TAKES v2) the reel kept (main.c: reel_boot, reel_save_poll) */
 
 /* ------------------------------------------------- main.c and its HAL --- */
 typedef struct { uint32_t magic, count, vec, pc, emu, dbg, rets; } fm1_crash_t;
