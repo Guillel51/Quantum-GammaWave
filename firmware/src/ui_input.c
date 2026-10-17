@@ -2225,20 +2225,28 @@ static void ui_input_frame(void)
             if ((s = panel_enc(EN_ALGO)) != 0) gen_algo(s);
             gen_layer(lkeys);                           /* (TAKES v2) OCT+ held on the reel: the keys */
             gen_take_poll();
-            {   /* (TAKES v2) EDIT on the reel: delete the take (held: the takes not kept), a question first */
+            {   /* (TAKES v2) EDIT on the reel: delete the take (held: the takes not kept), a question first; on the SET
+                 * page, the entry */
                 static uint32_t ed_t0;
                 uint32_t e = btn_hold(&ed_t0, B_EDIT, now, 1);
-                if (gp.view && (e == BT_TAP || e == BT_HOLD)) gen_reel_edit(e == BT_HOLD);
+                if (gp.view == 2u && e == BT_TAP) set_delete();
+                else if (gp.view && (e == BT_TAP || e == BT_HOLD)) gen_reel_edit(e == BT_HOLD);
+            }
+            {   /* (TAKES v2) REC on the reel: the SET (its own tap: in a dialog the REC layer is dead) */
+                static uint32_t rc_t0;
+                if (btn_hold(&rc_t0, B_REC, now, 0) == BT_TAP && gp.view) gen_reel_rec();
             }
             if (home == BT_TAP && gp.view) {            /* (1.0-GW) HOME on the reel: back to the settings */
-                gp.view = 0;
+                gp.view = gp.view == 2u ? 1u : 0u;      /* (v2: the SET page: back to the reel) */
                 ui.force = 1;
             } else if (home == BT_TAP) {                /* (0.7.0) HOME: done (OCT- too) */
                 ui.confirm = 0;
                 ui.force = 1;
                 go_home();
             }
-            if ((pressed >> panel.btn[B_PLAY]) & 1u) {
+            if (((pressed >> panel.btn[B_PLAY]) & 1u) && gp.view == 2u) {
+                set_toggle();                           /* (TAKES v2) the SET page: PLAY runs the SET */
+            } else if ((pressed >> panel.btn[B_PLAY]) & 1u) {
                 if (song.playing || chain_busy() || seq_counting()) transport_req = 2;
                 else if (live.mode) chain_play_ui();
                 else transport_req = 1;

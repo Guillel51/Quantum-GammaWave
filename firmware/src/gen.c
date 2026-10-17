@@ -116,6 +116,14 @@ static int gsnd_begin(uint32_t r, uint32_t salt)
     return 1;
 }
 static void gsnd_end(void) { gq = gsnd_keep; }
+/* (TAKES v2) a stream made again (its variation, the section's, a pin): 1. The parts with no draws of their own (the
+ * trap pad) vary then only */
+static uint32_t gvar_now(uint32_t sl)
+{
+    uint32_t sd, v = gseed_of(1u + sl, gp.var[sl % SL_N], &sd);
+    if (gsec && sl >= SL_DRUMS && sl <= SL_TEX) v += (uint32_t)gp.secvar[(gsec - 1u) % 3u][sl - SL_DRUMS] << 8;
+    return v || sd != gp.seed;
+}
 static int gpinned(uint32_t what)                       /* a pin for it */
 {
     uint32_t i;
@@ -1160,6 +1168,50 @@ static void gen_length(void)
     }
 }
 #include "gen_trap.c"
+/* (TAKES v2) a section's own parts (gp.secvar): made again in section k (1..3: B C D) from their stream and the section's
+ * variation, the roles the section's own making already made again (gsec_done) left as they are. 1: one made */
+static int gen_sec_parts(uint32_t k)
+{
+    uint32_t p, j;
+    int did = 0;
+    for (p = 0; p < SL_PARTS; p++) {
+        uint32_t r = SL_ROLE[p], ti = gs.trk_of[r], len;
+        track_t *t;
+        if (!gp.secvar[(k - 1u) % 3u][p] || ((gsec_done >> r) & 1u) || ti >= NTRK || !gs.act[r]) continue;
+        t = &trk[ti];
+        len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP);
+        load_begin(t, LOAD_PAT);
+        for (j = 0; j < NSTEP; j++) gclear(&t->step[j]);
+        if (gs.trap) {
+            uint32_t v = k == 1u ? 1u : k == 3u ? 2u : 0u;
+            switch (r) {
+            case RL_DRUM: trap_drums(t, len, v); gen_fills(t, len); break;
+            case RL_BASS: trap_808(t, len, v); break;
+            case RL_PAD: trap_pads(t, len); break;
+            case RL_ARP: trap_counter(t, len); break;
+            case RL_LEAD: trap_lead(t, len, v ? 1u : 0u); break;
+            default: trap_hats2(t, v ? 1u : 0u); break;
+            }
+        } else {
+            switch (r) {
+            case RL_DRUM: gen_drums(t, len); gen_fills(t, len); break;
+            case RL_BASS: gen_bass(t, len); break;
+            case RL_PAD: gen_pads(t, len); break;
+            case RL_ARP: gen_arp(t, len); break;
+            case RL_LEAD: gen_lead(t, len); break;
+            default: gen_texture(t, len); break;
+            }
+        }
+        if (r != RL_DRUM) dlevel(t, len);
+        load_end(t);
+        did = 1;
+    }
+    return did;
+}
+/* (TAKES v2) the arrangements (gp.arr 1..3; 0 as made): the sections' order, a variant a form */
+static const uint8_t ARR_CLUB[3][8] = {{0, 3, 2, 0, 1, 255}, {1, 1, 2, 0, 0, 3, 2, 0}, {1, 2, 0, 2, 0, 3, 255}};
+static const uint8_t ARR_ARC[3][6] = {{1, 2, 0, 3, 0, 255}, {0, 1, 2, 3, 255}, {1, 0, 3, 2, 3, 255}};
+static const uint8_t ARR_PARTS[3][5] = {{0, 2, 0, 1, 255}, {1, 0, 2, 0, 255}, {0, 0, 1, 2, 255}};
 static void gen_parts(void)
 {
     const ggenre_t *g = gs.g;
@@ -1187,6 +1239,9 @@ static void gen_parts(void)
     if (pd < NTRK) memcpy(gen_keep[1], trk[pd].step, sizeof gen_keep[1]);
     n = form == FM_CLUB ? 4u : form == FM_ARC ? 4u : 3u;
     for (k = 1; k < n; k++) {
+        int own;
+        gsec = (uint8_t)k;                              /* (TAKES v2: the section's own variation) */
+        gsec_done = 0;
         /* back to the whole piece, then this section's cut */
         for (i = 0; i < NTRK; i++) trk[i].p[P_MUTE] = 0;
         if (dr < NTRK) { load_begin(&trk[dr], LOAD_PAT); memcpy(trk[dr].step, gen_keep[0], sizeof gen_keep[0]); motion_clear(&trk[dr]); load_end(&trk[dr]); }
@@ -1202,6 +1257,7 @@ static void gen_parts(void)
             gs.drum_fill = 0;
             gen_fills(t, dlen(t));                      /* (1.0-GW) FILLS: the screen's, when set */
             load_end(t);
+            gsec_done |= 1u << RL_DRUM;
             memcpy(gen_keep[0], trk[dr].step, sizeof gen_keep[0]);
         }
         if (form == FM_CLUB) {
@@ -1220,6 +1276,7 @@ static void gen_parts(void)
                     gen_drums(t, dlen(t));
                     gs.drum_fill = 0;
                     load_end(t);
+                    gsec_done |= 1u << RL_DRUM;
                 }
                 memset(pfx_lane, 0, sizeof pfx_lane);   /* (0.6.97) the punch-in lane: a stutter into the drop (1/8 on
                                                          * the last beat, 1/16 on its last two sixteenths), every track */
@@ -1260,6 +1317,7 @@ static void gen_parts(void)
                     gs.amt[GP_DRUMS] = a0;
                     gen_fills(t, dlen(t));
                     load_end(t);
+                    gsec_done |= 1u << RL_DRUM;
                 }
             }
         } else {                                        /* FM_PARTS: B a break (drums and bass out), C a drop (denser drums) */
@@ -1277,12 +1335,16 @@ static void gen_parts(void)
                 gs.amt[GP_DRUMS] = a0; gs.complex = c0;
                 gen_fills(t, dlen(t));
                 load_end(t);
+                gsec_done |= 1u << RL_DRUM;
             }
         }
+        own = gen_sec_parts(k);                         /* (TAKES v2) the section's own parts */
         section_store(k);
         if (live.cur != (int8_t)k) { n = k; break; }
         dice_secs |= (uint8_t)(1u << k);
+        if (own && section_load(0)) { n = k + 1u; break; }   /* (its own parts not carried into the next) */
     }
+    gsec = 0;
     section_load(0);                                    /* (the whole piece back, as A holds it) */
     live.cur = 0;
     if (n < 2u) return;
@@ -1290,6 +1352,11 @@ static void gen_parts(void)
     if (form == FM_CLUB) { ord = ORD_CLUB; nord = n >= 4u ? 6u : n == 3u ? 4u : 2u; }
     else if (form == FM_ARC) { ord = ORD_ARC; nord = n; }
     else { ord = ORD_PARTS; nord = n >= 3u ? 4u : 2u; }
+    if (gp.arr && n >= (form == FM_PARTS ? 3u : 4u)) {  /* (TAKES v2) another arrangement */
+        uint32_t a = (gp.arr - 1u) % 3u;
+        ord = form == FM_CLUB ? ARR_CLUB[a] : form == FM_ARC ? ARR_ARC[a] : ARR_PARTS[a];
+        for (nord = 0; nord < 8u && ord[nord] != 255u; nord++) {}
+    }
     for (k = 0; k < nord && rows < CHAIN_ROWS; k++) {
         if (ord[k] >= n) continue;
         chain_config.row[rows].slot = ord[k];
@@ -1834,6 +1901,7 @@ static void gen_open(void)
     gen_take_on = gen_take_play = gen_take_live = 0;
     gen_take_ms = 0;
     reel_ask = 0;
+    gl.focus = 0;
     gp.view = 0;                                        /* (the settings first) */
     reel_want = -1;
 }
@@ -1846,9 +1914,13 @@ static void gen_amt_turn(uint8_t *v, int32_t s)         /* OFF, 10 .. 100, AUTO 
 static void gen_knob(uint32_t k, int32_t s)
 {
     uint32_t p = gp.page;
-    if (gp.view) {                                      /* (1.0-GW) the reel: KNOB 1 scrolls, KNOB 4 keeps */
+    if (gp.view == 2u) { set_knob(k, s); return; }     /* (TAKES v2) the SET page */
+    if (gp.view) {                                      /* (1.0-GW) the reel: KNOB 1 scrolls, KNOB 4 keeps; (v2) KNOB 2
+                                                         * the section the part keys make again, KNOB 3 JAM's bars */
         if (k == 0u) gen_reel_turn(s);
-        else if (k == 3u) gen_reel_keep(s);
+        else if (k == 1u) gen_reel_focus(s);
+        else if (k == 2u) gen_reel_jam_bars(s);
+        else gen_reel_keep(s);
         return;
     }
     gp.hot = (uint8_t)k;
@@ -1927,10 +1999,17 @@ static void gen_take_poll(void)
 {
     int32_t w;
     uint32_t bp = chain.bar_pos, wrap = bp < gen_bar_last, notes;
-    gen_bar_last = bp;
+    gen_bar_last = song.playing ? bp : 0u;              /* (stopped: no bar; started: the first one is its own) */
+    if (song.playing) set_seen = 1;
+    else if (set_play && set_seen && !chain_busy() && !gen_take_play && !gen_take_ms) set_play = 0;   /* (stopped) */
+    if (wrap && song.playing) {                         /* (TAKES v2) a bar went by: the SET, JAM */
+        set_bar();
+        jam_bar();
+    }
     if (!gen_take_ms || fm1_ms - gen_take_ms < 450u)
         return;
-    if (song.playing && !gen_take_play) {               /* (TAKES v2) the music playing: on the next bar */
+    if ((song.playing || set_play) && !gen_take_play) { /* (TAKES v2) the music playing (or a SET starting): on the
+                                                         * next bar */
         if (!gen_take_bar) { gen_take_bar = 1; ui.force = 1; return; }
         if (!wrap) return;
     }
@@ -1959,6 +2038,7 @@ static void gen_take_poll(void)
     } else if (song.playing && !live.mode && notes) {
         transport_req = 3;                              /* (TAKES v2) a loop's new notes: from its top, on the bar */
     }
+    set_note_take();                                    /* (TAKES v2: recording a SET) */
     gen_take_live = 0;
     ui.force = 1;
 }
@@ -1969,6 +2049,7 @@ static uint32_t gen_oct(uint32_t oct)
         gen_reel_answer((oct & 2u) != 0u);
         return 0;
     }
+    if (gp.view == 2u && (oct & 2u)) { set_insert(); return oct & ~2u; }   /* (the SET page: OCT+ adds) */
     if ((oct & 2u) && gp.view) {                        /* (TAKES v2) OCT+ on the reel let go */
         if (gl.used) { gl.used = 0; return oct & ~2u; } /* (its keys made the takes: nothing more) */
         if ((song.playing || chain_busy()) && reel_n) { /* playing: the take under the cursor, on the next bar */
@@ -2028,6 +2109,10 @@ static void draw_gen(void)
         last_view = gp.view;
     }
     ui.head_sig = ~0u;
+    if (gp.view == 2u) {
+        draw_set();
+        return;
+    }
     if (gp.view) {
         draw_reel();
         return;

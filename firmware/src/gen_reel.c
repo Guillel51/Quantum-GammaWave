@@ -30,7 +30,7 @@ typedef struct {
     int16_t bpm;
     uint32_t thumb[6];                                  /* a live track's first 32 steps: bit i, a note or hit */
     uint8_t role[6];
-    uint8_t row[10][2];                                 /* the song's rows: section, bars */
+    uint8_t row[12][2];                                 /* the song's rows: section, bars */
 } take_t;
 static take_t reel[REEL_N] __attribute__((section(".pool")));   /* (zeroed at boot) */
 static uint8_t reel_n, reel_cur, reel_play = 0xFF;      /* takes, the cursor, the take playing now (0xFF: none) */
@@ -139,7 +139,7 @@ static void reel_add(void)
         t->role[k] = gs.role[k];
     }
     if (live.mode)
-        for (i = 0; i < chain_config.count && i < 10u; i++) {
+        for (i = 0; i < chain_config.count && i < 12u; i++) {
             t->row[i][0] = chain_config.row[i].slot;
             t->row[i][1] = chain_config.row[i].bars;
             t->nrow = (uint8_t)(i + 1u);
@@ -171,6 +171,11 @@ static struct {                                         /* (v2) OCT+ held on the
     uint8_t held, used, focus;                          /* OCT+ down; a key acted (no load when let go); KNOB 2's section */
     uint32_t down, t[27];                               /* the layer's keys down, since when */
 } gl;
+static struct { uint8_t on, bars, n; } jam = {0, 8, 0};   /* (v2) JAM: a take every `bars` bars, by itself */
+/* (v2) the SET: takes in a row, each for its bars (REC while playing records one; the SET page edits and plays it) */
+#define SET_N 32u
+static struct { uint16_t id; uint8_t bars; } set_e[SET_N];
+static uint8_t set_n, set_rec, set_play, set_i, set_left, set_cur, set_seen;
 static void gen_reel_turn(int32_t s)
 {
     reel_ask = 0;
@@ -251,6 +256,8 @@ static void draw_reel(void)
         str_cpy(t + str_len(t), "EMPTY", sizeof t - str_len(t));
     }
     if (gen_take_bar && gen_take_ms) str_cpy(t + str_len(t), "  NEXT BAR", sizeof t - str_len(t));   /* (v2) */
+    else if (set_rec) str_cpy(t + str_len(t), "  REC SET", sizeof t - str_len(t));
+    else if (jam.on) str_cpy(t + str_len(t), "  JAM", sizeof t - str_len(t));
     draw_text_box(0, 30, 240, &AF_M, t, T_THEME, 1);
     if (!reel_n) {
         lcd_fill(0, 50, 240, 148, T_BG);
@@ -325,7 +332,8 @@ static void draw_reel(void)
             for (i = 0; i < k->nrow; i++) {
                 uint32_t w = k->row[i][1] * 192u / tot, sl = k->row[i][0] & 3u;
                 char sn[2] = {(char)(k->flav ? TRAP_SEC[sl][0] : 'A' + sl), 0};
-                cv_rect((int32_t)xs, 4, (int32_t)(w > 1u ? w - 1u : 1u), 16, heat_col(SH[sl]));
+                int lit = !gl.focus || sl == gl.focus;  /* (v2) KNOB 2's section lit, the others dim */
+                cv_rect((int32_t)xs, 4, (int32_t)(w > 1u ? w - 1u : 1u), 16, lit ? heat_col(SH[sl]) : T_RAISE);
                 if (k->flav && (int32_t)w >= text_w(&AF_S, TRAP_SEC[sl]) + 5) cv_text((int32_t)xs + 3, 5, &AF_S, TRAP_SEC[sl], T_INK);
                 else if ((int32_t)w >= text_w(&AF_S, sn) + 4) cv_text((int32_t)xs + 2, 5, &AF_S, sn, T_INK);
                 if (reel_cur == reel_play && chain.running && i < chain.row) pos += k->row[i][1];
@@ -359,8 +367,15 @@ static void draw_reel(void)
         draw_text_box(0, 216, 240, &AF_S, "OCT+ YES   OCT- NO", T_TEXT, 1);
         return;
     }
+    if (gl.focus) {
+        static const char *const SN[4] = {"", "SECTION B", "SECTION C", "SECTION D"};
+        static const char *const TSN[4] = {"", "VERSE ONLY", "INTRO ONLY", "PRE-HOOK ONLY"};
+        draw_text_box(0, 200, 240, &AF_S, reel_n && reel[reel_cur].flav ? TSN[gl.focus & 3u] : SN[gl.focus & 3u], T_ACCENT, 1);
+        draw_text_box(0, 216, 240, &AF_S, "OCT+ AND A PART KEY: THAT PART", T_DIM, 1);
+        return;
+    }
     draw_text_box(0, 200, 240, &AF_S, "PRESETS SCROLL  OCT+ LOAD  K4 KEEP", T_TEXT, 1);
-    draw_text_box(0, 216, 240, &AF_S, "ALGO SOUNDS  EDIT DEL  HOME BACK", T_DIM, 1);
+    draw_text_box(0, 216, 240, &AF_S, "ALGO SOUNDS  EDIT DEL  REC SET", T_DIM, 1);
 }
 
 /* ------------------------------------------------------------------- (v2) OCT+ held on the reel: the take layer --- */
@@ -467,6 +482,26 @@ static void gl_act(uint32_t c)
         gl_go(GH_TEMPO, c == GK_BPM_UP ? "TEMPO UP" : "TEMPO DOWN", "");
         break;
     case GK_VARY: gp.var[SL_FORM]++; gl_go(GH_VARY, "VARIED", ""); break;
+    case GK_ARR_DN: case GK_ARR_UP: {
+        char b[4] = "1/4";
+        if (!live.mode) { ui_message("A LOOP: NO SECTIONS"); break; }
+        gp.arr = (uint8_t)((gp.arr + (c == GK_ARR_UP ? 1u : 3u)) % 4u);
+        b[0] = (char)('1' + gp.arr);
+        gl_go(GH_FORM, "ARRANGEMENT ", b);
+        break;
+    }
+    case GK_JAM: {
+        char b[4] = {0};
+        jam.on = (uint8_t)!jam.on;
+        jam.n = 0;
+        gl.used = 1;
+        b[0] = (char)('0' + jam.bars / 10u); b[1] = (char)('0' + jam.bars % 10u);
+        if (b[0] == '0') { b[0] = b[1]; b[1] = 0; }
+        if (jam.on) { ui_say("JAM: A TAKE EVERY BARS ", b); str_cpy(ui.msg2, "D#5 AGAIN: JAM OFF", sizeof ui.msg2); }
+        else ui_message("JAM OFF");
+        ui.force = 1;
+        break;
+    }
     case GK_PARENT:
         if (reel_play < reel_n && reel[reel_play].parent) {
             int i = reel_find(reel[reel_play].parent);
@@ -514,4 +549,209 @@ static void gen_layer(uint32_t lkeys)
             if (c && c < 0x20u) { gl.down |= 1u << k; gl.t[k] = fm1_ms; }   /* (on release: tap or hold) */
             else if (c) gl_act(c);
         }
+}
+
+/* ---------------------------------------------------------------------------------- (v2) KNOB 2, KNOB 3, JAM --- */
+/* KNOB 2 on the reel: the section the part keys make again (ALL, B, C, D: a song's; a loop has none) */
+static void gen_reel_focus(int32_t s)
+{
+    static const char *const SN[4] = {"ALL SECTIONS", "SECTION B", "SECTION C", "SECTION D"};
+    if (!reel_n || !reel[reel_cur].nrow) { gl.focus = 0; ui_message("A LOOP: NO SECTIONS"); return; }
+    gl.focus = (uint8_t)clamp((int32_t)gl.focus + (s > 0 ? 1 : -1), 0, 3);
+    ui_say(SN[gl.focus], "");
+    ui.force = 1;
+}
+/* KNOB 3 on the reel: JAM's bars (4, 8, 16, 32) */
+static void gen_reel_jam_bars(int32_t s)
+{
+    static const uint8_t B[4] = {4, 8, 16, 32};
+    uint32_t i;
+    char b[4] = {0};
+    for (i = 0; i < 3u && B[i] != jam.bars; i++) {}
+    i = (uint32_t)clamp((int32_t)i + (s > 0 ? 1 : -1), 0, 3);
+    jam.bars = B[i];
+    b[0] = (char)('0' + jam.bars / 10u); b[1] = (char)('0' + jam.bars % 10u);
+    if (b[0] == '0') { b[0] = b[1]; b[1] = 0; }
+    ui_say("JAM EVERY BARS ", b);
+    ui.force = 1;
+}
+/* a bar went by (the music playing, the GEN screen open): JAM's count; its time: a take with one thing made again (a
+ * part's notes mostly, a sound, the ornaments, the mix; never a locked one), on the next bar */
+static void jam_bar(void)
+{
+    static const uint8_t W[4] = {60, 25, 10, 5};        /* a part, a sound, VARY, the mix */
+    uint32_t c = 0, tries;
+    if (!jam.on || gen_take_ms || ++jam.n < jam.bars) return;
+    jam.n = 0;
+    reel_cur = reel_play < reel_n ? reel_play : reel_cur;   /* (from the take playing: never a borrow) */
+    for (tries = 0; tries < 12u && !c; tries++) {
+        uint32_t w = rng() % 100u, k = W[0], r;
+        if (w < k) {
+            r = SL_DRUMS + rng() % SL_PARTS;
+            if (!((gp.lock >> r) & 1u) && gs.act[SL_ROLE[r - SL_DRUMS]]) c = r;
+        } else if (w < (k += W[1])) {
+            r = rng() % RL_N;
+            if (!((gp.lock >> (8u + r)) & 1u) && gs.trk_of[r] < NTRK) c = 0x10u + r;
+        } else if (w < k + W[2]) {
+            c = GK_VARY;
+        } else {
+            c = GK_MIX;
+        }
+    }
+    if (c) { gl_act(c); gl.used = 0; }
+}
+
+/* ---------------------------------------------------------------------------------------- (v2) the SET --- */
+/* REC on the reel: playing, a SET recorded (a new one: the take playing first, then every take that becomes the music,
+ * each with the bars it played; REC again ends it); stopped, the SET page */
+static void set_note_take(void)                         /* a take became the music: the SET's next entry */
+{
+    if (!set_rec || reel_play >= reel_n) return;
+    if (set_n && set_e[set_n - 1u].id == reel[reel_play].id) return;
+    if (set_n >= SET_N) { set_rec = 0; ui_message("SET FULL (32)"); return; }
+    set_e[set_n].id = reel[reel_play].id;
+    set_e[set_n].bars = 0;
+    set_n++;
+}
+static void gen_reel_rec(void)
+{
+    if (gp.view == 2u) { gp.view = 1; ui.force = 1; return; }   /* (the SET page: back to the reel) */
+    if (song.playing || chain_busy()) {
+        set_rec = (uint8_t)!set_rec;
+        if (set_rec) { set_n = 0; set_note_take(); ui_message("SET: RECORDING"); }
+        else {
+            if (set_n && !set_e[set_n - 1u].bars) set_n--;   /* (a take that never played a bar) */
+            ui_message(set_n ? "SET RECORDED: REC STOPPED" : "SET EMPTY");
+        }
+    } else if (set_n) {
+        gp.view = 2;
+        set_cur = 0;
+    } else {
+        ui_message("SET EMPTY: REC WHILE PLAYING");
+    }
+    ui.force = 1;
+}
+/* the take an entry plays (-1: deleted) */
+static int set_take(uint32_t i) { return i < set_n ? reel_find(set_e[i].id) : -1; }
+static void set_arm(uint32_t i)                         /* an entry's take, on the next bar */
+{
+    int t = set_take(i);
+    if (t < 0) return;
+    reel_want = (int8_t)t;
+    reel_cur = (uint8_t)t;
+    gen_take_arm(GH_NONE);
+    gen_take_ms = (fm1_ms - 460u) | 1u;
+}
+/* a bar went by: the SET's count (recording: the take's bars; playing: the next entry armed a bar before its turn) */
+static void set_bar(void)
+{
+    if (set_rec && set_n && set_e[set_n - 1u].bars < 255u) set_e[set_n - 1u].bars++;
+    if (!set_play || !set_n) return;
+    if (set_left > 1u) set_left--;
+    else {
+        set_i = (uint8_t)((set_i + 1u) % set_n);
+        set_left = set_e[set_i].bars ? set_e[set_i].bars : 1u;
+    }
+    if (set_left == 1u) set_arm((set_i + 1u) % set_n);
+}
+/* PLAY on the SET page: from the entry under the cursor (stopped), or stopped */
+static void set_toggle(void)
+{
+    int t;
+    if (song.playing || chain_busy() || seq_counting()) { transport_req = 2; set_play = 0; return; }
+    if (!set_n || (t = set_take(set_cur)) < 0) { ui_message("TAKE DELETED"); return; }
+    gset_put(&reel[t].set);
+    gen_how = GH_NONE;
+    gen_go();
+    reel_tempo(0);
+    gp.sig = gen_sig();
+    set_play = 1;
+    set_seen = 0;
+    set_i = set_cur;
+    set_left = set_e[set_i].bars ? set_e[set_i].bars : 1u;
+    if (set_left == 1u && set_n > 1u) set_arm((set_i + 1u) % set_n);
+    if (live.mode) chain_play_ui();
+    else transport_req = 1;
+}
+/* the SET page's knobs: KNOB 1 the entry, KNOB 2 its take (the reel's, in order), KNOB 3 its bars */
+static void set_knob(uint32_t k, int32_t s)
+{
+    if (!set_n) return;
+    if (k == 0u) set_cur = (uint8_t)clamp((int32_t)set_cur + (s > 0 ? 1 : -1), 0, (int32_t)set_n - 1);
+    else if (k == 1u && reel_n) {
+        int t = set_take(set_cur);
+        t = clamp((t < 0 ? 0 : t) + (s > 0 ? 1 : -1), 0, (int32_t)reel_n - 1);
+        set_e[set_cur].id = reel[t].id;
+    } else if (k == 2u) {
+        set_e[set_cur].bars = (uint8_t)clamp((int32_t)set_e[set_cur].bars + (s > 0 ? 1 : -1), 1, 64);
+    }
+    ui.force = 1;
+}
+/* OCT+ on the SET page: the take playing (else under the reel's cursor) after the entry; EDIT: the entry out */
+static void set_insert(void)
+{
+    uint32_t i, t = reel_play < reel_n ? reel_play : reel_cur;
+    if (set_n >= SET_N || !reel_n) return;
+    for (i = set_n; i > (uint32_t)set_cur + 1u; i--) set_e[i] = set_e[i - 1u];
+    i = set_n ? set_cur + 1u : 0u;
+    set_e[i].id = reel[t].id;
+    set_e[i].bars = 4;
+    set_n++;
+    set_cur = (uint8_t)i;
+    ui.force = 1;
+}
+static void set_delete(void)
+{
+    uint32_t i;
+    if (!set_n) return;
+    for (i = set_cur; i + 1u < set_n; i++) set_e[i] = set_e[i + 1u];
+    set_n--;
+    if (set_cur >= set_n && set_cur) set_cur--;
+    if (!set_n) { gp.view = 1; ui_message("SET EMPTY"); }
+    ui.force = 1;
+}
+static void draw_set(void)
+{
+    char t[32], b[40];
+    uint32_t i, tot = 0, xs = 16, pos = 0;
+    str_cpy(t, set_play ? "SET  PLAYING" : "SET", sizeof t);
+    draw_text_box(0, 30, 240, &AF_M, t, T_THEME, 1);
+    for (i = 0; i < set_n; i++) tot += set_e[i].bars ? set_e[i].bars : 1u;
+    cv_begin(240, 40, T_BG);
+    for (i = 0; i < set_n; i++) {                       /* the entries as blocks, as long as their bars */
+        uint32_t bars = set_e[i].bars ? set_e[i].bars : 1u, w = bars * 208u / (tot ? tot : 1u);
+        int tk = set_take(i);
+        uint16_t c = tk < 0 ? T_RAISE : heat_col((int32_t)(60u + (set_e[i].id * 37u) % 190u));
+        cv_rect((int32_t)xs, i == set_cur ? 2 : 8, (int32_t)(w > 1u ? w - 1u : 1u), i == set_cur ? 36 : 24, c);
+        if (set_play && i < set_i) pos += bars;
+        xs += w;
+    }
+    if (set_play && set_i < set_n) {
+        uint32_t bars = set_e[set_i].bars ? set_e[set_i].bars : 1u;
+        pos += bars - (set_left < bars ? set_left : bars);
+        cv_rect((int32_t)(16u + pos * 208u / (tot ? tot : 1u)), 0, 2, 40, T_TEXT);
+    }
+    cv_blit(0, 56);
+    lcd_fill(0, 100, 240, 96, T_BG);
+    if (set_n) {
+        int tk = set_take(set_cur);
+        uint32_t n;
+        b[0] = (char)('0' + (set_cur + 1u) / 10u); b[1] = (char)('0' + (set_cur + 1u) % 10u);
+        str_cpy(b + 2, " OF ", sizeof b - 2u);
+        n = str_len(b);
+        b[n++] = (char)('0' + set_n / 10u); b[n++] = (char)('0' + set_n % 10u); b[n] = 0;
+        draw_text_box(0, 104, 240, &AF_S, b[0] == '0' ? b + 1 : b, T_MID, 1);
+        b[0] = '#';
+        reel_hex(b + 1, set_e[set_cur].id);
+        str_cpy(b + 5, "  ", 3);
+        str_cpy(b + 7, tk < 0 ? "DELETED" : reel[tk].name, sizeof b - 7u);
+        draw_text_box(0, 122, 240, &AF_M, b, tk < 0 ? T_DIM : T_TEXT, 1);
+        n = set_e[set_cur].bars;
+        b[0] = (char)('0' + n / 10u); b[1] = (char)('0' + n % 10u);
+        str_cpy(b + 2, n == 1u ? " BAR" : " BARS", sizeof b - 2u);
+        draw_text_box(0, 146, 240, &AF_M, b[0] == '0' ? b + 1 : b, T_THEME, 1);
+    }
+    draw_text_box(0, 184, 240, &AF_S, "K1 ENTRY  K2 TAKE  K3 BARS", T_TEXT, 1);
+    draw_text_box(0, 200, 240, &AF_S, "PLAY RUN  OCT+ ADD  EDIT DEL", T_TEXT, 1);
+    draw_text_box(0, 216, 240, &AF_S, "REC OR HOME: THE REEL", T_DIM, 1);
 }

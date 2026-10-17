@@ -441,12 +441,26 @@ static void trap_counter(track_t *t, uint32_t len)
 static void trap_pads(track_t *t, uint32_t len)
 {
     int32_t n[4], prev[4];
-    uint32_t i, cnt, np = 0;
+    uint32_t i, j, cnt, np = 0, st = 0;
     for (i = 0; i < NSTEP; i++) gclear(&t->step[i]);
+    if (gvar_now(SL_CHORDS)) {                          /* (TAKES v2) the chords made again: another way of playing
+                                                         * them: struck each bar, dotted stabs, voiced higher, halves */
+        uint32_t keep = gq;
+        gseed(GS_CHORDS);
+        st = 1u + gr() % 4u;
+        gq = keep;
+    }
     for (i = 0; i < len; i += gs.csteps) {
-        cnt = gchord_at(t, i, 55, 74, n, prev, &np);
-        gnote(&t->step[i], n, cnt, 80, 0);
-        dhold(t, i, gs.csteps - 1u, len);
+        cnt = gchord_at(t, i, st == 3u ? 62 : 55, st == 3u ? 81 : 74, n, prev, &np);
+        if (st == 0u || st == 3u) {
+            gnote(&t->step[i], n, cnt, 80, 0);
+            dhold(t, i, gs.csteps - 1u, len);
+            continue;
+        }
+        for (j = i; j < i + gs.csteps && j < len; j += st == 1u ? 16u : st == 2u ? 6u : 8u) {
+            gnote(&t->step[j], n, cnt, st == 2u ? 72 : (j - i) % 16u ? 70 : 82, 0);
+            dhold(t, j, st == 1u ? 14u : st == 2u ? 2u : 6u, len);
+        }
     }
 }
 
@@ -695,12 +709,15 @@ static void trap_master(void)
 }
 
 /* ------------------------------------------------------------------------------------------------ the song --- */
+static uint8_t gsec_done;                               /* (TAKES v2) the roles a section's own making made again
+                                                         * (gen.c gen_sec_parts leaves them) */
 /* B the verse, D its last four bars (the pre-hook): the hook's piece with another kick and plainer hats, its 808 on
  * them, a softer instrument playing the melody's calls, a darker pad, no counter (and in D the 16T track out) */
 static void trap_verse(uint32_t end)
 {
     uint32_t dr = gs.trk_of[RL_DRUM], bs = gs.trk_of[RL_BASS], pd = gs.trk_of[RL_PAD], ld = gs.trk_of[RL_LEAD];
     uint32_t ar = gs.trk_of[RL_ARP], hx = gs.act[RL_TEX] ? gs.trk_of[RL_TEX] : NTRK, len = gs.len;
+    gsec_done |= (uint8_t)((1u << RL_DRUM) | (1u << RL_TEX) | (1u << RL_BASS) | (1u << RL_LEAD));   /* (TAKES v2: made here) */
     if (dr < NTRK && gs.act[RL_DRUM]) {
         load_begin(&trk[dr], LOAD_PAT); trap_drums(&trk[dr], len, end ? 2u : 1u);
         gen_fills(&trk[dr], end && len >= 16u ? len - 16u : len);   /* (FILLS: the pre-hook's last bar its own) */
@@ -753,10 +770,17 @@ static void trap_intro(void)
 /* the sections: A the hook (the piece as made), B the verse, C the intro and outro, D the pre-hook; each made from the
  * hook (section A loaded back); the chain: intro 4, hook 8, verse 12 + pre-hook 4, hook 8 (PARTS stops there), verse,
  * pre-hook, hook, outro (SONG) */
+static int gen_sec_parts(uint32_t k);
+/* (TAKES v2) the arrangements (gp.arr 1..3): hook first; two hooks each time; verse first. 255 ends */
+static const uint8_t TARR[3][2][12] = {
+    {{0, 1, 3, 0, 1, 3, 0, 2, 255}, {8, 12, 4, 8, 12, 4, 8, 4}},
+    {{2, 0, 0, 1, 3, 0, 0, 1, 3, 0, 0, 2}, {4, 8, 8, 12, 4, 8, 8, 12, 4, 8, 8, 4}},
+    {{2, 1, 3, 0, 1, 3, 0, 2, 255}, {4, 12, 4, 8, 12, 4, 8, 4}}};
 static void trap_parts(void)
 {
     static const uint8_t ORD[9] = {2, 0, 1, 3, 0, 1, 3, 0, 2}, BARS[9] = {4, 8, 12, 4, 8, 12, 4, 8, 4};
     uint32_t k, i, n = 0, rows = 0, nord = gp.form == 2u ? 9u : 5u;
+    const uint8_t *ord = ORD, *bars = BARS;
     gseed(GS_FORM);
     for (k = 0; k < 4u; k++)
         if (project_used(k) && !((dice_secs >> k) & 1u)) return;   /* (a section of yours: kept) */
@@ -767,23 +791,33 @@ static void trap_parts(void)
     memcpy(tk_th, gs.th, sizeof tk_th);
     for (k = 1; k < 4u; k++) {
         if (k > 1u && section_load(0)) break;           /* (back to the hook, then this section's changes) */
+        gsec = (uint8_t)k;                              /* (TAKES v2: the section's own variation) */
+        gsec_done = 0;
         for (i = 0; i < NTRK; i++) trk[i].p[P_MUTE] = 0;
         if (k == 2u) trap_intro();
         else trap_verse(k == 3u);
+        gen_sec_parts(k);                               /* (TAKES v2) the section's own parts */
         section_store(k);
         if (live.cur != (int8_t)k) break;
         dice_secs |= (uint8_t)(1u << k);
         n = k + 1u;
     }
+    gsec = 0;
     section_load(0);
     memcpy(gs.th, tk_th, sizeof tk_th);
     live.cur = 0;
     if (n < 2u) return;
     chain_defaults(&chain_config);
+    if (gp.arr) {                                       /* (TAKES v2) another arrangement (PARTS: to its second hook) */
+        uint32_t a = (gp.arr - 1u) % 3u, hooks = 0;
+        ord = TARR[a][0]; bars = TARR[a][1];
+        for (nord = 0; nord < 12u && ord[nord] != 255u; nord++)
+            if (gp.form != 2u && ord[nord] == 0u && ++hooks == 2u) { nord++; break; }
+    }
     for (k = 0; k < nord && rows < CHAIN_ROWS; k++) {
-        if (ORD[k] >= n) continue;
-        chain_config.row[rows].slot = ORD[k];
-        chain_config.row[rows].bars = BARS[k];
+        if (ord[k] >= n) continue;
+        chain_config.row[rows].slot = ord[k];
+        chain_config.row[rows].bars = bars[k];
         rows++;
     }
     chain_config.count = (uint8_t)rows;

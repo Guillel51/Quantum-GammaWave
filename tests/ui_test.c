@@ -7096,6 +7096,96 @@ static int test_gen_layer(void)
     return bad;
 }
 
+/* (TAKES v2) a song's sections: KNOB 2 on the reel picks one, a part key then makes that part again there only (the hook,
+ * A, as it was); G#4 / A#4 another arrangement (the song's rows), JAM a take by itself every few bars; the SET: REC while
+ * playing records the takes and their bars, the SET page (REC stopped) plays them in a row */
+static uint32_t sec_print(uint32_t s, uint32_t role)     /* a section's part, hashed (section A back after) */
+{
+    uint32_t h = section_load(s) ? 0u : steps_sig(&trk[gs.trk_of[role]]);
+    section_load(0);
+    return h;
+}
+static int test_gen_song_takes(void)
+{
+    int bad = 0, ok;
+    uint32_t a0, b0, c0, r0[CHAIN_ROWS], n0, k;
+    uint16_t idA;
+    ui_power_on();
+    ui_rec_prefs |= PREF_SIX >> 8; rp_apply();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    fm1_ms += 1200u;
+    gp.genre = 3; gp.seed = 202; gp.form = 2;          /* TRAP ATL, a SONG */
+    press(B_OCTUP); frames(4);
+    turn(EN_PRESET, 1); frames(32);                     /* (the reel) */
+    a0 = sec_print(0, RL_PAD); b0 = sec_print(1, RL_PAD); c0 = sec_print(2, RL_PAD);
+    turn(EN_K2, 1);                                     /* (section B: the verse) */
+    ok = gl.focus == 1u;
+    btn_down(B_OCTUP); frame();
+    gl_key(4, 50);                                      /* A3: the chords (the pad), in the verse only */
+    btn_up(B_OCTUP); frame();
+    ok &= reel[reel_play].how == GH_SECTION && gp.secvar[0][SL_CHORDS - SL_DRUMS] == 1u;
+    ok &= sec_print(0, RL_PAD) == a0 && sec_print(1, RL_PAD) != b0 && sec_print(2, RL_PAD) == c0;
+    bad += check("GEN song takes: KNOB 2 picks section B, a part key makes that part again there only (A and C as they were)", ok);
+    turn(EN_K2, -1);
+    n0 = chain_config.count;
+    for (k = 0; k < n0; k++) r0[k] = chain_config.row[k].slot | (uint32_t)chain_config.row[k].bars << 8;
+    btn_down(B_OCTUP); frame();
+    gl_key(17, 50);                                     /* A#4: the next arrangement */
+    btn_up(B_OCTUP); frame();
+    ok = gp.arr == 1u && reel[reel_play].how == GH_FORM && live.mode && chain_config.row[0].slot == 0u;
+    for (k = 0, c0 = 0; k < n0 && k < chain_config.count; k++) c0 |= (r0[k] != (chain_config.row[k].slot | (uint32_t)chain_config.row[k].bars << 8));
+    ok &= c0 && sec_print(0, RL_PAD) == a0;
+    bad += check("GEN song takes: A#4 another arrangement (hook first: the song's rows), the hook the same", ok);
+    gp.form = 0; gp.arr = 0; memset(gp.secvar, 0, sizeof gp.secvar);
+    press(B_OCTUP); frames(4);                          /* (a loop, for JAM and the SET) */
+    turn(EN_PRESET, 1); frames(32);
+    idA = reel[reel_play].id;
+    turn(EN_K3, -1);                                    /* (JAM every 4 bars) */
+    ok = jam.bars == 4u;
+    btn_down(B_OCTUP); frame();
+    gl_key(22, 50);                                     /* D#5: JAM on */
+    btn_up(B_OCTUP); frame();
+    ok &= jam.on && reel[reel_play].id == idA;
+    press(B_REC); frame();                              /* (stopped: the SET's empty) */
+    ok &= !set_rec && gp.view == 1u;
+    press(B_PLAY);
+    play_ms(500);
+    press(B_REC); frame();                              /* (playing: a SET recording) */
+    ok &= set_rec && set_n == 1u && set_e[0].id == idA;
+    play_ms(12000);                                     /* (JAM: a take after four bars, one more four later) */
+    ok &= reel[reel_play].id != idA && reel_find(reel[reel_play].parent) >= 0 && set_n >= 2u && set_e[0].bars >= 4u;
+    bad += check("GEN song takes: JAM makes takes by itself every 4 bars (children of the take playing); REC while playing records them in a SET", ok);
+    btn_down(B_OCTUP); frame(); gl_key(22, 50); btn_up(B_OCTUP); frame();   /* (JAM off) */
+    play_ms(4000);                                      /* (the last take its bars) */
+    press(B_REC); frame();
+    ok = !set_rec && !jam.on && set_n >= 2u;
+    transport_req = 2; play_ms(100);
+    press(B_REC); frame();                              /* (stopped: the SET page) */
+    ok &= gp.view == 2u && set_cur == 0u;
+    set_e[0].bars = 1; set_e[1].bars = 2;               /* (short entries) */
+    turn(EN_K3, 1);
+    ok &= set_e[0].bars == 2u;
+    set_e[0].bars = 1;
+    press(B_PLAY);
+    play_ms(800);
+    ok &= set_play && reel[reel_play].id == set_e[0].id;
+    play_ms(3000);
+    ok &= set_play && set_i == 1u && reel[reel_play].id == set_e[1].id;
+    press(B_PLAY); play_ms(100);
+    ok &= !set_play;
+    bad += check("GEN song takes: the SET page (REC stopped): KNOB 3 an entry's bars, PLAY plays the takes in a row, each its bars", ok);
+    press(B_HOME); frame();
+    ok = gp.view == 1u;
+    set_n = 0; jam.on = 0; jam.bars = 8;
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF;
+    ui_rec_prefs &= (uint8_t)~(PREF_SIX >> 8); rp_apply();
+    ui_power_on();
+    return bad;
+}
+
 /* (0.6.21) HOME + SELECT: the dialog, OCT+: everything diced (one musical scale, a sequence on every track, DRUM a
  * beat); GLO + G4: UNDO puts the music back, again: forward */
 static int test_dice_all(void)
@@ -9351,6 +9441,7 @@ int main(void)
     bad += test_gen_reel();
     bad += test_gen_v2();
     bad += test_gen_layer();
+    bad += test_gen_song_takes();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();
