@@ -720,8 +720,9 @@ Hold **SAVE**:
 ### GENERATOR — the song generator (HOME + SELECT)
 
 Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (GW-1). The screen,
-**GENERATOR 1/5**, has five pages of four settings: **PRESETS** turns the page (round), **KNOB 1–4** set the four
-rows, **SELECT** turns the genre and **ALGORITHM** the seed from any page (the first page comes up, the row lit):
+**GENERATOR 1/5**, has five pages of four settings: **SELECT** turns the page (round), **KNOB 1–4** set the four
+rows, **ALGORITHM** turns the seed from any page (the first page comes up, the row lit), **PRESETS** opens the
+**TAKES** reel (below):
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
@@ -747,9 +748,9 @@ genre; left on AUTO / OFF the genre decides, as before:
   (CLEAN: none, 200 %: twice; WRAITH's BLAST on an 808 stays a blend, its sub kept).
 
 **OCT+** makes the piece;
-**takes**: while the music plays, turning SELECT or ALGORITHM makes the piece by itself once you stop turning (about
-half a second; the song's parts stop for it and start again), so you turn and listen; stopped, they only set the
-genre or the seed. A run of takes keeps one UNDO point: **UNDO** (GLO held + G4, or OCT− held + GLO) brings back the
+**takes**: while the music plays, turning ALGORITHM makes the piece by itself once you stop turning (about
+half a second; the song's parts stop for it and start again), so you turn and listen; stopped, it only sets the
+seed. A run of takes keeps one UNDO point: **UNDO** (GLO held + G4, or OCT− held + GLO) brings back the
 music from before the first take, and again redoes. A **LOOP** piece always plays as a loop (an earlier PARTS / SONG
 piece no longer leaves its song playing);
 **PLAY** starts and stops it so you can hear it without leaving the screen; **HOME** (or OCT−) closes the screen. The
@@ -758,6 +759,33 @@ screen remembers the last piece (**LAST: UK DRILL 0421**) and the header says **
 **The piece is deterministic**: the same genre, seed and settings always make the same piece, and each part draws on
 its own stream, so turning one part's row leaves the others as they were. **OCT+ with nothing changed** throws a new
 seed. The screen opens on RANDOM each time.
+
+#### TAKES — the reel of pieces made (GW-1)
+
+Every piece the GENERATOR makes (OCT+, a take, DICE ALL) goes on the **TAKES** reel. **PRESETS** opens it, **TAKES
+3/7** in the title; turn PRESETS (or KNOB 1) to scroll. Each take is a card:
+
+- the genre, and under it the trap flavour (ATLANTA, PI'ERRE, METRO, DRILL, MEMPHIS, WHOLE LOTTA RED, MUSIC) or, for
+  the other genres, the tracks it ran on and LOOP / SONG;
+- the seed, the tempo, the key and the scale;
+- a thumbnail of the first two bars of each live track (4 or 6 rows), coloured by part: drums, bass, pad, lead, arp;
+- the song's rows as blocks, each as wide as its bars (trap: **I**ntro, **H**ook, **V**erse, **P**re-hook; other
+  genres A–D), with the playhead on the take playing; a LOOP piece shows **LOOP**.
+
+**NOW** marks the take that is the music, **KEEP** a kept take; the cards peeking in at the sides are the takes
+before and after.
+
+- **Playing**: scroll to a take and leave PRESETS still — about half a second later it is the music (the song's parts
+  stop for it and start again). A run of these keeps one UNDO point, like ALGORITHM's takes.
+- **Stopped**: **OCT+** loads the take under the cursor (PLAY to hear it).
+- **KNOB 4**: right keeps the take, left lets it go. The reel holds the last 32 takes; when it is full the oldest take
+  not kept drops off.
+- **HOME** or **SELECT**: back to the settings (HOME again closes the GENERATOR); ALGORITHM goes back too, with a new
+  seed.
+
+A take is the **recipe** — the seed and every setting — not a recording: loading it makes the same piece again
+exactly, but changes you made to the piece afterwards are not on it, and the reel is lost at power off. To keep the
+music itself, SAVE it (SAVE > PROJECT, or a song slot); to keep the sound, record it over USB audio.
 
 **The genres** (49): GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP, HOUSE, DEEP HOUSE, MICRO HOUSE,
 TECH HOUSE, ACID HOUSE, TECHNO, DETROIT, DUB TECHNO, HARD TECHNO, HYPNOTIC, TRANCE, ELECTRO, EBM, ITALO, SYNTH POP,

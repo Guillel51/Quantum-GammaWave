@@ -2219,10 +2219,13 @@ static void ui_input_frame(void)
             for (k = 0; k < 4u; k++)
                 if ((s = panel_enc(EN_K1 + k)) != 0) gen_knob(k, s);
             if ((s = panel_enc(EN_SELECT)) != 0) gen_select(s);
-            if ((s = panel_enc(EN_PRESET)) != 0) gen_page(s);
+            if ((s = panel_enc(EN_PRESET)) != 0) gen_reel_turn(s);   /* (1.0-GW) the TAKES reel */
             if ((s = panel_enc(EN_ALGO)) != 0) gen_algo(s);
             gen_take_poll();
-            if (home == BT_TAP) {                       /* (0.7.0) HOME: done (OCT- too) */
+            if (home == BT_TAP && gp.view) {            /* (1.0-GW) HOME on the reel: back to the settings */
+                gp.view = 0;
+                ui.force = 1;
+            } else if (home == BT_TAP) {                /* (0.7.0) HOME: done (OCT- too) */
                 ui.confirm = 0;
                 ui.force = 1;
                 go_home();

@@ -31,6 +31,7 @@ static struct {
      * made, else 0 .. 200 % of the genre's sends / drive) */
     uint8_t tempo, key, scale, length, space, fills, wet, grit;
     uint8_t page, hot;                                  /* the GEN screen's page, its last knob */
+    uint8_t view;                                       /* (1.0-GW) 0 the settings' pages, 1 the TAKES reel (gen_reel.c) */
     uint32_t sig;                                       /* the settings of the last piece made (OCT+ again: a new seed) */
     uint32_t open_ms;                                   /* when the screen opened (SELECT still turning: no page) */
     char last[20];                                      /* the last piece: "HOUSE 0421" */
@@ -1573,6 +1574,9 @@ static void gen_make(void)
 static uint8_t gen_keep_undo;                           /* (gen_go: the UNDO point kept) */
 static uint8_t gen_take_on, gen_take_play;              /* a run of takes going; the song to start again after one */
 static uint32_t gen_take_ms;                            /* the last turn while playing (0: no take waiting) */
+static void reel_add(void);                             /* (gen_reel.c) the piece made, on the TAKES reel */
+static int gen_reel_load(void);
+static void reel_tempo(int set);
 /* the piece made from the settings (UNDO brings back what was there); the message */
 static void gen_go(void)
 {
@@ -1589,6 +1593,7 @@ static void gen_go(void)
     ui_say("GEN: ", gp.last);
     str_cpy(ui.msg2, live.mode ? "PARTS: PLAY THE SONG" : "UNDO: GLO + G4", sizeof ui.msg2);
     ui.force = 1;
+    reel_add();                                         /* (1.0-GW) on the TAKES reel */
 }
 static uint32_t gen_sig(void)                           /* the settings that make the piece */
 {
@@ -1618,8 +1623,10 @@ static void gen_new_seed(void)
 /* OCT+ on the GEN screen: the piece; the same settings again: a new seed first */
 static void gen_press(void)
 {
-    if (gp.sig == gen_sig()) gen_new_seed();
-    gen_go();
+    if (!gen_reel_load()) {                             /* (1.0-GW) on the reel: the take under the cursor */
+        if (gp.sig == gen_sig()) gen_new_seed();
+        gen_go();
+    }
     gp.sig = gen_sig();
     gen_take_on = 0;                                    /* (a take run after it: its own UNDO point) */
     gen_take_ms = 0;
@@ -1635,6 +1642,7 @@ static void dice_all(void)
     if (song.g[G_BPM] == b0 && !gp.tempo && !(ui_prefs & PREF_BPM_LOCK))   /* (1.0-GW) a throw always moves the tempo: landed on the
                                                          * last one (two genres' ranges meet), one BPM off it */
         song.g[G_BPM] = (int16_t)(b0 + (b0 < (int16_t)gs.g->bpm_hi ? 1 : -1));
+    reel_tempo(1);                                      /* (the take's tempo: the throw's) */
     gp.sig = gen_sig();
     gp.genre = g;
 }
@@ -1644,6 +1652,8 @@ static uint32_t dice_print(void)                        /* a fingerprint of the 
     for (k = 0; k < NTRK; k++) h = (h ^ steps_sig(&trk[k]) ^ trk[k].eng_req) * 16777619u;
     return h;
 }
+
+#include "gen_reel.c"                                   /* (1.0-GW) the TAKES reel */
 
 /* ------------------------------------------------------------------------------------------- the GEN screen --- */
 #define GEN_PAGES 5u                                    /* (1.0-GW: SONG, FEEL) */
@@ -1663,6 +1673,8 @@ static void gen_open(void)
     gp.genre = 0;                                       /* (0.6.93) opens on RANDOM: a genre is this visit's choice */
     gen_take_on = gen_take_play = 0;
     gen_take_ms = 0;
+    gp.view = 0;                                        /* (the settings first) */
+    reel_want = -1;
 }
 static void gen_amt_turn(uint8_t *v, int32_t s)         /* OFF, 10 .. 100, AUTO (above 100) */
 {
@@ -1673,6 +1685,11 @@ static void gen_amt_turn(uint8_t *v, int32_t s)         /* OFF, 10 .. 100, AUTO 
 static void gen_knob(uint32_t k, int32_t s)
 {
     uint32_t p = gp.page;
+    if (gp.view) {                                      /* (1.0-GW) the reel: KNOB 1 scrolls, KNOB 4 keeps */
+        if (k == 0u) gen_reel_turn(s);
+        else if (k == 3u) gen_reel_keep(s);
+        return;
+    }
     gp.hot = (uint8_t)k;
     if (p == 0u) {
         if (k == 0u) gp.genre = (uint8_t)((gp.genre + (uint32_t)(s > 0 ? 1 : NGENRE) ) % (NGENRE + 1u));
@@ -1713,8 +1730,8 @@ static void gen_page(int32_t s)
     gp.hot = 0xFF;
     ui.force = 1;
 }
-/* (1.0-GW) SELECT: the genre, ALGORITHM: the seed (from any page: the first page shown, its row lit); while the music
- * plays, a take once they rest */
+/* (1.0-GW) SELECT: the pages (from the reel: back to them), ALGORITHM: the seed (from any page: the first page shown, its
+ * row lit); while the music plays, ALGORITHM makes a take once it rests */
 static void gen_take_arm(void)
 {
     if (song.playing || chain_busy()) gen_take_ms = fm1_ms | 1u;
@@ -1723,12 +1740,12 @@ static void gen_select(int32_t s)
 {
     if (gp.open_ms && fm1_ms - gp.open_ms < 400u) { gp.open_ms = fm1_ms | 1u; return; }   /* (the turn that opened it) */
     gp.open_ms = 0;
-    gp.page = 0;
-    gen_knob(0, s);
-    gen_take_arm();
+    if (gp.view) { gp.view = 0; ui.force = 1; return; }   /* (the reel: back to the pages) */
+    gen_page(s);
 }
 static void gen_algo(int32_t s)
 {
+    gp.view = 0;
     gp.page = 0;
     gp.hot = 1;
     gp.seed = (uint16_t)((gp.seed + 10000u + (uint32_t)clamp(accel(EN_ALGO, s, 9999), -9999, 9999)) % 10000u);
@@ -1739,6 +1756,7 @@ static void gen_algo(int32_t s)
  * are rewritten), the piece made, the music on again */
 static void gen_take_poll(void)
 {
+    int32_t w;
     if (!gen_take_ms || fm1_ms - gen_take_ms < 450u)
         return;
     if (chain_busy()) {
@@ -1747,8 +1765,12 @@ static void gen_take_poll(void)
         return;
     }
     gen_take_ms = 0;
+    w = reel_want;
+    reel_want = -1;
+    if (w >= 0) gset_put(&reel[(uint32_t)w % REEL_N].set);   /* (the reel scrolled: that take) */
     gen_keep_undo = gen_take_on;
     gen_go();
+    if (w >= 0) reel_tempo(0);
     gen_keep_undo = 0;
     gen_take_on = 1;
     gp.sig = gen_sig();
@@ -1795,12 +1817,19 @@ static void draw_gen(void)
 {
     uint32_t k;
     char t[24], v[16];
-    if (gen_fresh || ui.head_sig != ~0u) {              /* (0.6.96) cleared once on entering, not on every knob: each
+    static uint8_t last_view;
+    if (gen_fresh || ui.head_sig != ~0u || last_view != gp.view) {   /* (0.6.96) cleared once on entering (1.0-GW: and
+                                                         * between the pages and the reel), not on every knob: each
                                                          * card and line paints its own band (it flickered) */
         lcd_fill(0, H_HEAD, 240, 240 - H_HEAD, T_BG);
         gen_fresh = 0;
+        last_view = gp.view;
     }
     ui.head_sig = ~0u;
+    if (gp.view) {
+        draw_reel();
+        return;
+    }
     str_cpy(t, "GENERATOR  1/5", sizeof t);
     t[11] = (char)('1' + gp.page);
     t[13] = (char)('0' + GEN_PAGES);
@@ -1821,5 +1850,5 @@ static void draw_gen(void)
         draw_text_box(0, 172, 240, &AF_S, t, T_MID, 1);
     }
     draw_text_box(0, 190, 240, &AF_S, "OCT+ MAKE   HOME DONE", T_TEXT, 1);
-    draw_text_box(0, 206, 240, &AF_S, "SEL GENRE  ALGO SEED  PRESETS PAGE", T_DIM, 1);
+    draw_text_box(0, 206, 240, &AF_S, "SEL PAGE  ALGO SEED  PRESETS TAKES", T_DIM, 1);
 }

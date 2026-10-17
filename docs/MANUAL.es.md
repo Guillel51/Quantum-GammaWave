@@ -759,9 +759,9 @@ Mantené **SAVE**:
 ### GENERATOR — el generador de temas (HOME + SELECT)
 
 Abrilo con **SELECT** en HOME, **HOME mantenido + SELECT** desde cualquier página, o **OCT− mantenido + PLAY** (GW-1).
-La pantalla, **GENERATOR 1/5**, tiene cinco páginas de cuatro ajustes: **PRESETS** cambia de página (en ronda),
-**KNOB 1–4** ajustan las cuatro filas, **SELECT** cambia el género y **ALGORITHM** la semilla desde cualquier página
-(aparece la primera página, con la fila iluminada):
+La pantalla, **GENERATOR 1/5**, tiene cinco páginas de cuatro ajustes: **SELECT** cambia de página (en ronda),
+**KNOB 1–4** ajustan las cuatro filas, **ALGORITHM** cambia la semilla desde cualquier página (aparece la primera
+página, con la fila iluminada) y **PRESETS** abre la cinta de **TAKES** (más abajo):
 
 | Página | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
@@ -789,9 +789,8 @@ cualquier género; en AUTO / OFF decide el género, como antes:
   (CLEAN: nada, 200 %: el doble; el BLAST de WRAITH en un 808 sigue en mezcla, con su sub).
 
 **OCT+** arma el tema;
-**tomas**: mientras suena la música, girar SELECT o ALGORITHM arma el tema solo cuando dejás de girar (medio segundo;
-las partes del tema paran para eso y vuelven a sonar), así que girás y escuchás; parado, solo eligen el género o la
-semilla. Una serie de tomas guarda un solo punto de UNDO: **UNDO** (GLO mantenido + G4, u OCT− mantenido + GLO)
+**tomas**: mientras suena la música, girar ALGORITHM arma el tema solo cuando dejás de girar (medio segundo;
+las partes del tema paran para eso y vuelven a sonar), así que girás y escuchás; parado, solo elige la semilla. Una serie de tomas guarda un solo punto de UNDO: **UNDO** (GLO mantenido + G4, u OCT− mantenido + GLO)
 devuelve la música de antes de la primera toma, y otra vez la rehace. Un tema **LOOP** suena siempre como loop (un tema
 PARTS / SONG anterior ya no deja sonando su canción);
 **PLAY** lo arranca y lo para para escucharlo sin salir de la pantalla; **HOME** (u OCT−) cierra la pantalla. La
@@ -800,6 +799,34 @@ pantalla recuerda el último tema (**LAST: UK DRILL 0421**) y la cabecera dice *
 **El tema es determinista**: el mismo género, semilla y ajustes dan siempre el mismo tema, y cada parte sale de su
 propia secuencia aleatoria, así que mover la fila de una parte deja las otras como estaban. **OCT+ sin cambiar nada**
 tira una semilla nueva. La pantalla se abre siempre en RANDOM.
+
+#### TAKES — la cinta de los temas armados (GW-1)
+
+Cada tema que arma el GENERATOR (OCT+, una toma, DICE ALL) queda en la cinta de **TAKES**. **PRESETS** la abre, con
+**TAKES 3/7** en el título; girá PRESETS (o KNOB 1) para recorrerla. Cada toma es una tarjeta:
+
+- el género y, debajo, el sabor de trap (ATLANTA, PI'ERRE, METRO, DRILL, MEMPHIS, WHOLE LOTTA RED, MUSIC) o, en los
+  otros géneros, las pistas con que se armó y LOOP / SONG;
+- la semilla, el tempo, la tonalidad y la escala;
+- una miniatura de los dos primeros compases de cada pista activa (4 o 6 filas), con el color de su parte: batería,
+  bajo, pad, lead, arpegio;
+- las filas del tema como bloques, cada uno tan ancho como sus compases (trap: **I**ntro, **H**ook, **V**erse,
+  **P**re-hook; los otros géneros A–D), con el cabezal sobre la toma que suena; un tema LOOP muestra **LOOP**.
+
+**NOW** marca la toma que es la música, **KEEP** una toma guardada; las tarjetas que asoman a los lados son las tomas
+de antes y de después.
+
+- **Sonando**: llevá el cursor a una toma y dejá PRESETS quieto — medio segundo después es la música (las partes del
+  tema paran para eso y vuelven a sonar). Una serie de estas guarda un solo punto de UNDO, como las tomas de ALGORITHM.
+- **Parado**: **OCT+** carga la toma del cursor (PLAY para escucharla).
+- **KNOB 4**: a la derecha guarda la toma, a la izquierda la suelta. La cinta tiene las últimas 32 tomas; llena, se va
+  la toma más vieja que no esté guardada.
+- **HOME** o **SELECT**: vuelven a los ajustes (HOME otra vez cierra el GENERATOR); ALGORITHM también vuelve, con una
+  semilla nueva.
+
+Una toma es la **receta** — la semilla y todos los ajustes —, no una grabación: al cargarla se arma otra vez el mismo
+tema exacto, pero los cambios que le hiciste después no están, y la cinta se pierde al apagar. Para guardar la música,
+SAVE (SAVE > PROJECT o una canción); para guardar el sonido, grabalo por audio USB.
 
 **Los géneros** (49): GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP, HOUSE, DEEP HOUSE, MICRO HOUSE,
 TECH HOUSE, ACID HOUSE, TECHNO, DETROIT, DUB TECHNO, HARD TECHNO, HYPNOTIC, TRANCE, ELECTRO, EBM, ITALO, SYNTH POP,
