@@ -759,8 +759,9 @@ Mantené **SAVE**:
 ### GENERATOR — el generador de temas (HOME + SELECT)
 
 Abrilo con **SELECT** en HOME, **HOME mantenido + SELECT** desde cualquier página, o **OCT− mantenido + PLAY** (GW-1).
-La pantalla, **GENERATOR 1/5**, tiene cinco páginas de cuatro ajustes; **PRESETS** cambia de página (en ronda;
-SELECT también), **KNOB 1–4** ajustan las cuatro filas:
+La pantalla, **GENERATOR 1/5**, tiene cinco páginas de cuatro ajustes: **PRESETS** cambia de página (en ronda),
+**KNOB 1–4** ajustan las cuatro filas, **SELECT** cambia el género y **ALGORITHM** la semilla desde cualquier página
+(aparece la primera página, con la fila iluminada):
 
 | Página | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
@@ -785,7 +786,14 @@ cualquier género; en AUTO / OFF decide el género, como antes:
   desde 70 %.
 - **WET**: los envíos a reverb y delay, como parte de lo que da el género (DRY: nada, 100 %: igual, 200 %: el doble).
 - **GRIT**: el clip del master, la distorsión y el drive del bajo y el drive de la batería, como parte de los del género
-  (CLEAN: nada, 200 %: el doble; el BLAST de WRAITH en un 808 sigue en mezcla, con su sub). **OCT+** arma el tema;
+  (CLEAN: nada, 200 %: el doble; el BLAST de WRAITH en un 808 sigue en mezcla, con su sub).
+
+**OCT+** arma el tema;
+**tomas**: mientras suena la música, girar SELECT o ALGORITHM arma el tema solo cuando dejás de girar (medio segundo;
+las partes del tema paran para eso y vuelven a sonar), así que girás y escuchás; parado, solo eligen el género o la
+semilla. Una serie de tomas guarda un solo punto de UNDO: **UNDO** (GLO mantenido + G4, u OCT− mantenido + GLO)
+devuelve la música de antes de la primera toma, y otra vez la rehace. Un tema **LOOP** suena siempre como loop (un tema
+PARTS / SONG anterior ya no deja sonando su canción);
 **PLAY** lo arranca y lo para para escucharlo sin salir de la pantalla; **HOME** (u OCT−) cierra la pantalla. La
 pantalla recuerda el último tema (**LAST: UK DRILL 0421**) y la cabecera dice **GEN:** y el tema.
 

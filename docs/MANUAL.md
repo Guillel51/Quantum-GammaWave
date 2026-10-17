@@ -720,8 +720,8 @@ Hold **SAVE**:
 ### GENERATOR — the song generator (HOME + SELECT)
 
 Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (GW-1). The screen,
-**GENERATOR 1/5**, has five pages of four settings; **PRESETS** turns the page (round; SELECT does too),
-**KNOB 1–4** set the four rows:
+**GENERATOR 1/5**, has five pages of four settings: **PRESETS** turns the page (round), **KNOB 1–4** set the four
+rows, **SELECT** turns the genre and **ALGORITHM** the seed from any page (the first page comes up, the row lit):
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
@@ -744,7 +744,14 @@ genre; left on AUTO / OFF the genre decides, as before:
   beat (the 4th bar's always, the 2nd's from 50 %, every bar's from 80 %), faster (1/64) from 70 %.
 - **WET**: the reverb and delay sends, as a share of what the genre gives (DRY: none, 100 %: as made, 200 %: twice).
 - **GRIT**: the master clip, the bass's distortion and drive and the drums' drive, as a share of the genre's
-  (CLEAN: none, 200 %: twice; WRAITH's BLAST on an 808 stays a blend, its sub kept). **OCT+** makes the piece;
+  (CLEAN: none, 200 %: twice; WRAITH's BLAST on an 808 stays a blend, its sub kept).
+
+**OCT+** makes the piece;
+**takes**: while the music plays, turning SELECT or ALGORITHM makes the piece by itself once you stop turning (about
+half a second; the song's parts stop for it and start again), so you turn and listen; stopped, they only set the
+genre or the seed. A run of takes keeps one UNDO point: **UNDO** (GLO held + G4, or OCT− held + GLO) brings back the
+music from before the first take, and again redoes. A **LOOP** piece always plays as a loop (an earlier PARTS / SONG
+piece no longer leaves its song playing);
 **PLAY** starts and stops it so you can hear it without leaving the screen; **HOME** (or OCT−) closes the screen. The
 screen remembers the last piece (**LAST: UK DRILL 0421**) and the header says **GEN:** and the piece.
 

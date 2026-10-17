@@ -186,6 +186,14 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - The song generator has two more pages (five, turned with PRESETS): **SONG** — TEMPO (AUTO or 60–200 BPM), KEY,
   SCALE, LENGTH (SHORT / LONG / EPIC) — and **FEEL** — SPACE (room for a voice: the melody thinned at the end of
   every two bars, the music lower), FILLS (the drum rolls), WET (the sends) and GRIT (clip, bass and drum drive).
+- Generator controls: **PRESETS** turns its pages, **SELECT** the genre and **ALGORITHM** the seed from any page.
+  While the music plays, turning SELECT or ALGORITHM makes a **take** once you stop (the song stops and starts again
+  around it), and a run of takes keeps one UNDO point (the music before the first take).
+- A **LOOP** piece plays as a loop: after a PARTS / SONG piece, PLAY kept playing that piece's sections.
+- **ANALOG** has two more waves, **TUBE** (GammaWave's Hearth tube curve on a sine) and **FOLD** (WRAITH's Blast
+  wavefolder), dirty inside the oscillator so a bass keeps its fundamental; MORPH and ENV / LFO → SHAPE set how dirty.
+- Build: the RAM code's call reach is measured to the end of the code (`app.ld` `_ecode`), not of code and constants;
+  the trap generator's growth would have failed the old check with 122 KB of real reach to spare.
 - On the default TRACKS 4 every genre keeps its melody: the bass, the genre's foreground part (its lead, or its arp
   where it leans on the arp) and the chords get the three melodic tracks (the lead used to be left out, on the asleep
   fifth track, in 9 pieces of 10); TRACKS 6 pieces are as before.

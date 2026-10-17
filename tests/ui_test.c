@@ -6828,6 +6828,40 @@ static int test_gen_pages(void)
     ok &= song.g[G_BPM] == gp.tempo && gs.root == 1;
     bad += check("GEN: SONG's TEMPO (AUTO, then the song's tempo up) and KEY make the piece", ok);
     gp.tempo = gp.key = gp.scale = gp.length = gp.space = 0; gp.fills = gp.wet = gp.grit = GA_AUTO; gp.page = 0;
+    {   /* (1.0-GW) SELECT the genre, ALGORITHM the seed (the first page shown); stopped: only set; playing: a take once
+         * they rest, two takes one UNDO point (the music before the first) */
+        uint32_t sig0[NTRK], sig1 = 0, same = 1;
+        uint16_t sd;
+        uint8_t g0;
+        gp.page = 2;
+        fm1_ms += 1200u;
+        g0 = gp.genre;
+        turn(EN_SELECT, 1);
+        ok = gp.page == 0u && gp.hot == 0u && gp.genre == (uint8_t)((g0 + 1u) % (NGENRE + 1u));
+        sd = gp.seed;
+        for (k = 0; k < NTRK; k++) sig0[k] = steps_sig(&trk[k]);
+        turn(EN_ALGO, 1);
+        ok &= gp.hot == 1u && gp.seed == (uint16_t)((sd + 1u) % 10000u);
+        frames(60);                                     /* (stopped: nothing made) */
+        for (k = 0; k < NTRK; k++) ok &= steps_sig(&trk[k]) == sig0[k];
+        bad += check("GEN: SELECT turns the genre, ALGORITHM the seed (page 1 shown); stopped, nothing made", ok);
+        press(B_PLAY);
+        for (k = 0; k < 20u; k++) { frame(); events_block(CTL); }   /* (the transport runs with the audio) */
+        ok = song.playing || chain_busy();
+        turn(EN_ALGO, 1);                               /* (playing: a take once it rests, its UNDO point the music before) */
+        for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
+        ok &= gp.sig == gen_sig() && (song.playing || chain_busy());
+        for (k = 0; k < NTRK; k++) sig1 ^= steps_sig(&trk[k]) ^ sig0[k];
+        turn(EN_ALGO, 1);                               /* (a second take: the same UNDO point) */
+        for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
+        ok &= gp.sig == gen_sig() && (song.playing || chain_busy());
+        transport_req = 2;
+        for (k = 0; k < 4u; k++) { frame(); events_block(CTL); }
+        ok &= !undo_do();
+        for (k = 0; k < NTRK; k++) same &= steps_sig(&trk[k]) == sig0[k];
+        ok &= same && sig1 != 0u;
+        bad += check("GEN: playing, ALGORITHM makes a take once it rests, the music still playing; UNDO after two takes: the music before the first", ok);
+    }
     ui_power_on();
     return bad;
 }

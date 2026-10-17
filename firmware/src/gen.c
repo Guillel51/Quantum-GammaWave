@@ -1089,8 +1089,12 @@ static void gen_parts(void)
     static const uint8_t FILLS[6] = {FL_ROLL, FL_TOM, FL_HAT, FL_DROP, FL_LINEAR, FL_KICK16};   /* (0.6.97) a fill a section */
     const uint8_t *ord;
     uint32_t nord;
-    if (gs.trap) { if (form != FM_LOOP) trap_parts(); return; }   /* (the trap family: its own song) */
-    if (form == FM_LOOP) return;
+    if (form == FM_LOOP) {                              /* (1.0-GW) a loop: PLAY plays it (an earlier piece's parts left
+                                                         * the song mode on: PLAY played that piece's sections) */
+        live.mode = 0;
+        return;
+    }
+    if (gs.trap) { trap_parts(); return; }              /* (the trap family: its own song) */
     gseed(GS_FORM);
     for (k = 0; k < 4u; k++)
         if (project_used(k) && !((dice_secs >> k) & 1u)) return;   /* (a section of yours: kept) */
@@ -1564,12 +1568,18 @@ static void gen_make(void)
     mut_keep();
     gen_parts();
 }
+/* (1.0-GW) takes: SELECT (the genre) or ALGORITHM (the seed) turned while the music plays makes the piece once they
+ * rest; a run of takes keeps one UNDO point, the music before its first take */
+static uint8_t gen_keep_undo;                           /* (gen_go: the UNDO point kept) */
+static uint8_t gen_take_on, gen_take_play;              /* a run of takes going; the song to start again after one */
+static uint32_t gen_take_ms;                            /* the last turn while playing (0: no take waiting) */
 /* the piece made from the settings (UNDO brings back what was there); the message */
 static void gen_go(void)
 {
     uint32_t k;
     char b[8];
-    undo_mark();
+    if (!gen_keep_undo)
+        undo_mark();
     gen_make();
     str_cpy(gp.last, gs.g->name, sizeof gp.last);
     k = str_len(gp.last);
@@ -1611,6 +1621,8 @@ static void gen_press(void)
     if (gp.sig == gen_sig()) gen_new_seed();
     gen_go();
     gp.sig = gen_sig();
+    gen_take_on = 0;                                    /* (a take run after it: its own UNDO point) */
+    gen_take_ms = 0;
 }
 /* (the old name: tests, the films, the renders) a new throw: any genre, a new seed (the screen's settings otherwise) */
 static void dice_all(void)
@@ -1649,6 +1661,8 @@ static void gen_open(void)
     gp.hot = 0xFF;
     gen_fresh = 1;
     gp.genre = 0;                                       /* (0.6.93) opens on RANDOM: a genre is this visit's choice */
+    gen_take_on = gen_take_play = 0;
+    gen_take_ms = 0;
 }
 static void gen_amt_turn(uint8_t *v, int32_t s)         /* OFF, 10 .. 100, AUTO (above 100) */
 {
@@ -1692,18 +1706,57 @@ static void gen_knob(uint32_t k, int32_t s)
     }
     ui.force = 1;
 }
-/* the page: PRESETS (1.0-GW) or SELECT turned, round */
+/* the page: PRESETS (1.0-GW), round */
 static void gen_page(int32_t s)
 {
     gp.page = (uint8_t)((gp.page + GEN_PAGES + (s > 0 ? 1u : GEN_PAGES - 1u)) % GEN_PAGES);
     gp.hot = 0xFF;
     ui.force = 1;
 }
+/* (1.0-GW) SELECT: the genre, ALGORITHM: the seed (from any page: the first page shown, its row lit); while the music
+ * plays, a take once they rest */
+static void gen_take_arm(void)
+{
+    if (song.playing || chain_busy()) gen_take_ms = fm1_ms | 1u;
+}
 static void gen_select(int32_t s)
 {
     if (gp.open_ms && fm1_ms - gp.open_ms < 400u) { gp.open_ms = fm1_ms | 1u; return; }   /* (the turn that opened it) */
     gp.open_ms = 0;
-    gen_page(s);
+    gp.page = 0;
+    gen_knob(0, s);
+    gen_take_arm();
+}
+static void gen_algo(int32_t s)
+{
+    gp.page = 0;
+    gp.hot = 1;
+    gp.seed = (uint16_t)((gp.seed + 10000u + (uint32_t)clamp(accel(EN_ALGO, s, 9999), -9999, 9999)) % 10000u);
+    ui.force = 1;
+    gen_take_arm();
+}
+/* every frame on the screen: a take waiting, its turns at rest (450 ms): the song's parts stopped first (its sections
+ * are rewritten), the piece made, the music on again */
+static void gen_take_poll(void)
+{
+    if (!gen_take_ms || fm1_ms - gen_take_ms < 450u)
+        return;
+    if (chain_busy()) {
+        transport_req = 2;
+        gen_take_play = 1;
+        return;
+    }
+    gen_take_ms = 0;
+    gen_keep_undo = gen_take_on;
+    gen_go();
+    gen_keep_undo = 0;
+    gen_take_on = 1;
+    gp.sig = gen_sig();
+    if (gen_take_play || (live.mode && !song.playing)) {
+        gen_take_play = 0;
+        if (live.mode) chain_play_ui();
+        else transport_req = 1;
+    }
 }
 static void gen_value(uint32_t p, uint32_t k, char *b)
 {
@@ -1768,5 +1821,5 @@ static void draw_gen(void)
         draw_text_box(0, 172, 240, &AF_S, t, T_MID, 1);
     }
     draw_text_box(0, 190, 240, &AF_S, "OCT+ MAKE   HOME DONE", T_TEXT, 1);
-    draw_text_box(0, 206, 240, &AF_S, "PRESETS: PAGE  KNOBS: SET", T_DIM, 1);
+    draw_text_box(0, 206, 240, &AF_S, "SEL GENRE  ALGO SEED  PRESETS PAGE", T_DIM, 1);
 }
