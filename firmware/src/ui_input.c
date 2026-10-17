@@ -2232,9 +2232,11 @@ static void ui_input_frame(void)
                 if (gp.view == 2u && e == BT_TAP) set_delete();
                 else if (gp.view && (e == BT_TAP || e == BT_HOLD)) gen_reel_edit(e == BT_HOLD);
             }
-            {   /* (TAKES v2) REC on the reel: the SET (its own tap: in a dialog the REC layer is dead) */
-                static uint32_t rc_t0;
+            {   /* (TAKES v2) REC on the reel: the SET (its own tap: in a dialog the REC layer is dead); SAVE: a take's
+                 * code typed (the NAME screen) */
+                static uint32_t rc_t0, sv_t0;
                 if (btn_hold(&rc_t0, B_REC, now, 0) == BT_TAP && gp.view) gen_reel_rec();
+                if (btn_hold(&sv_t0, B_SAVE, now, 0) == BT_TAP && gp.view == 1u) gen_code_enter();
             }
             if (home == BT_TAP && gp.view) {            /* (1.0-GW) HOME on the reel: back to the settings */
                 gp.view = gp.view == 2u ? 1u : 0u;      /* (v2: the SET page: back to the reel) */

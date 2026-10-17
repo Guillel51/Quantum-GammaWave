@@ -7186,6 +7186,81 @@ static int test_gen_song_takes(void)
     return bad;
 }
 
+/* (TAKES v2) the reel packed and read back (what flash keeps over power-off): every take, its card, the SET, the IDs
+ * going on; too many for the sector: the oldest not kept left out. Share codes: a take's code makes the same piece (its
+ * fingerprint), a typo is caught by the check, a take as made is 7 characters */
+static int test_gen_store(void)
+{
+    static uint8_t buf[3840];
+    static take_t keep[REEL_N];
+    int bad = 0, ok;
+    uint32_t n, k, pr0, len, i, maxlen = 0;
+    uint16_t next0;
+    char code[CODE_MAX + 2u];
+    gset_t g;
+    ui_power_on();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
+    gp.genre = 3; gp.seed = 202; gp.form = 2; gp.var[SL_DRUMS] = 2; gp.svar[RL_LEAD] = 1; gp.secvar[0][1] = 3; gp.arr = 1;
+    gp.pin[0].what = 1u + SL_BASS; gp.pin[0].seed = 77; gp.pin[0].var = 4;
+    gen_how = GH_NEW; gen_go();
+    pr0 = dice_print();
+    gen_fresh_recipe();
+    for (k = 0; k < 6u; k++) { gp.genre = (uint8_t)(7u + k); gp.seed = (uint16_t)(1000u + k); gp.form = (uint8_t)(k % 3u); gen_how = GH_NEW; gen_go(); }
+    reel[2].keep = 1;
+    set_e[0].id = reel[0].id; set_e[0].bars = 8; set_e[1].id = reel[3].id; set_e[1].bars = 4; set_n = 2;
+    memcpy(keep, reel, sizeof keep);
+    n = reel_n; next0 = reel_next;
+    len = reel_pack(buf, sizeof buf);
+    reel_n = 0; set_n = 0; reel_next = 1;
+    ok = reel_unpack(buf, len) == 0 && reel_n == n && set_n == 2u && set_e[1].bars == 4u && reel_next == next0;
+    for (k = 0; k < n; k++)
+        ok &= !memcmp(&reel[k].set, &keep[k].set, sizeof keep[k].set) && reel[k].id == keep[k].id &&
+              reel[k].keep == keep[k].keep && !memcmp(reel[k].thumb, keep[k].thumb, sizeof keep[k].thumb) &&
+              reel[k].nrow == keep[k].nrow && !memcmp(reel[k].row, keep[k].row, sizeof keep[k].row) && reel[k].bpm == keep[k].bpm;
+    gset_put(&reel[0].set); gen_how = GH_NONE; gen_go();
+    ok &= dice_print() == pr0;
+    bad += check("GEN store: the reel packed and read back (every recipe, card, the SET, the IDs); a take read back makes its piece", ok);
+    buf[20] ^= 0x5Au;                                   /* (the pack not one: the reel left as it was) */
+    ok = reel_unpack((const uint8_t *)"XX", 2) != 0 && reel_n == n;
+    len = reel_pack(buf, 400);                          /* (a small sector: the oldest not kept out, the kept one in) */
+    reel_n = 0; set_n = 0;
+    ok &= len <= 400u && reel_unpack(buf, len) == 0 && reel_n < n && reel_find(keep[2].id) >= 0 && reel_find(keep[n - 1u].id) >= 0;
+    bad += check("GEN store: a broken pack refused; too many for the room: the oldest not kept left out, the kept ones in", ok);
+    memcpy(reel, keep, sizeof keep); reel_n = (uint8_t)n;
+    ok = 1;
+    for (k = 0; k < n; k++) {                           /* (every take: its code back to its recipe) */
+        len = take_code(&reel[k].set, code);
+        ok &= len >= 7u && code_take(code, &g) == 0 && g.seed == reel[k].set.seed && !memcmp(g.var, reel[k].set.var, sizeof g.var) &&
+              !memcmp(g.svar, reel[k].set.svar, sizeof g.svar) && !memcmp(g.secvar, reel[k].set.secvar, sizeof g.secvar) &&
+              g.arr == reel[k].set.arr && g.genre == reel[k].set.genre && g.form == reel[k].set.form && g.pin[0].what == reel[k].set.pin[0].what &&
+              g.pin[0].seed == reel[k].set.pin[0].seed && g.energy == reel[k].set.energy && g.amt[2] == reel[k].set.amt[2];
+        if (len > maxlen) maxlen = len;
+    }
+    memset(&g, 0, sizeof g);                            /* (a take as the screen makes it: 7 characters) */
+    g.seed = 1234; g.genre = 5; g.nlive = 4; g.form = 1; g.energy = 50; g.complex = 50; g.swing = GA_AUTO; g.human = 30;
+    g.fills = g.wet = g.grit = GA_AUTO;
+    for (i = 0; i < GP_N; i++) g.amt[i] = GA_AUTO;
+    len = take_code(&g, code);
+    ok &= len == 7u;
+    len = take_code(&reel[0].set, code);
+    for (i = 0; code[i]; i++) code[i] = (char)(code[i] == 'X' ? 'x' : code[i]);
+    ok &= code_take(code, &g) == 0;                     /* (lower case taken) */
+    code[2] = (char)(code[2] == 'A' ? 'B' : 'A');
+    ok &= code_take(code, &g) == -2 && code_take("HELLO!", &g) == -1;
+    code_take(code, &g);
+    len = take_code(&reel[0].set, code);
+    code_take(code, &g);
+    gset_put(&g); gen_how = GH_NONE; gen_go();
+    ok &= dice_print() == pr0;
+    printf("     (codes: a take as made 7 characters, the richest here %u)\n", maxlen);
+    bad += check("GEN store: share codes: every take's code back to its recipe, the piece the same; a typo caught", ok);
+    memset(gp.var, 0, sizeof gp.var); memset(gp.svar, 0, sizeof gp.svar); memset(gp.secvar, 0, sizeof gp.secvar);
+    memset(gp.pin, 0, sizeof gp.pin); gp.arr = 0;
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0; reel_next = 1;
+    ui_power_on();
+    return bad;
+}
+
 /* (0.6.21) HOME + SELECT: the dialog, OCT+: everything diced (one musical scale, a sequence on every track, DRUM a
  * beat); GLO + G4: UNDO puts the music back, again: forward */
 static int test_dice_all(void)
@@ -9442,6 +9517,7 @@ int main(void)
     bad += test_gen_v2();
     bad += test_gen_layer();
     bad += test_gen_song_takes();
+    bad += test_gen_store();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();

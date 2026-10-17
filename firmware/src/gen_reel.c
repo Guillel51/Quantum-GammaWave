@@ -12,6 +12,8 @@
 
 static uint16_t heat_col(int32_t v);                    /* (ui_graph.c) */
 #define REEL_N 32u
+#define CODE_MAX 28u                                    /* (v2) a share code's characters, at most */
+static uint8_t gen_fresh;                               /* (gen.c: the GEN screen drawn anew) */
 #define GEN_VERSION 2u                                  /* (TAKES v2) the generator a recipe was made with: a recipe is
                                                          * remade exactly by the same generator only */
 typedef struct {                                        /* the recipe: what gen_make reads (and the tracks it ran on) */
@@ -32,6 +34,7 @@ typedef struct {
     uint8_t role[6];
     uint8_t row[12][2];                                 /* the song's rows: section, bars */
 } take_t;
+static uint32_t take_code(const gset_t *g, char *out);
 static take_t reel[REEL_N] __attribute__((section(".pool")));   /* (zeroed at boot) */
 static uint8_t reel_n, reel_cur, reel_play = 0xFF;      /* takes, the cursor, the take playing now (0xFF: none) */
 static int8_t reel_want = -1;                           /* a take to load once PRESETS rests (playing) */
@@ -176,9 +179,11 @@ static struct { uint8_t on, bars, n; } jam = {0, 8, 0};   /* (v2) JAM: a take ev
 #define SET_N 32u
 static struct { uint16_t id; uint8_t bars; } set_e[SET_N];
 static uint8_t set_n, set_rec, set_play, set_i, set_left, set_cur, set_seen;
+static uint32_t gl_code_ms;
 static void gen_reel_turn(int32_t s)
 {
     reel_ask = 0;
+    gl_code_ms = 0;
     if (!gp.view) {
         gp.view = 1;
     } else if (reel_n) {
@@ -283,6 +288,7 @@ static void draw_reel(void)
             cv_rrect(176, 5, 40, 15, 4, T_THEME, T_SURF);
             cv_text(181, 6, &AF_S, "KEEP", T_INK);
         }
+        if (k->gv != GEN_VERSION) cv_text(150, 108, &AF_S, "OLD GEN", T_DIM);   /* (another generator made it) */
         if (reel_cur == reel_play && (song.playing || chain_busy())) {   /* (the music now) */
             cv_rrect(k->keep ? 136 : 176, 5, 36, 15, 4, T_TEXT, T_RAISE);
             cv_text(k->keep ? 141 : 181, 6, &AF_S, "NOW", T_INK);
@@ -347,6 +353,19 @@ static void draw_reel(void)
         }
         if (!gl.held) cv_blit(0, 172);
     }
+    if (gl_code_ms && fm1_ms - gl_code_ms < 10000u && reel_n) {   /* (v2) F#5: the take's code, 10 s */
+        char c[CODE_MAX + 8u], g[CODE_MAX + 8u];
+        uint32_t n = take_code(&reel[reel_cur].set, c), i, j = 0;
+        if (!gl.held) {
+            for (i = 0; i < n; i++) { if (i && !(i % 4u)) g[j++] = ' '; g[j++] = c[i]; }   /* (by four) */
+            g[j] = 0;
+            str_cpy(c, "CODE #", sizeof c);
+            reel_hex(c + 6, reel[reel_cur].id);
+            draw_text_box(0, 200, 240, &AF_S, c, T_MID, 1);
+            draw_text_box(0, 214, 240, n > 12u ? &AF_S : &AF_M, n ? g : "TOO MANY CHOICES", T_THEME, 1);
+            return;
+        }
+    }
     if (gl.held) {                                      /* (v2) OCT+ held: the keys */
         static const char *const LG[4] = {"F DRM G BAS A CHD B ARP C LED D TEX", "BLACK KEY: ITS SOUND  HOLD: LOCK",
                                           "E SOUNDS F HARM G- A+ ENRG B MIX", "C- D+ KEY E- F+ BPM G VARY C# UP"};
@@ -387,11 +406,11 @@ static void draw_reel(void)
  * turned with OCT+ held), a part or a sound key borrows that take's into the playing one. Let go of OCT+ without a key:
  * the take under the cursor, on the next bar. seq.c keeps the keys silent (layer_masks) */
 enum { GK_SOUNDS = 0x20, GK_HARM, GK_NRG_DN, GK_NRG_UP, GK_MIX, GK_KEY_DN, GK_KEY_UP, GK_BPM_DN, GK_BPM_UP, GK_VARY,
-       GK_PARENT, GK_ARR_DN, GK_ARR_UP, GK_JAM };
+       GK_PARENT, GK_ARR_DN, GK_ARR_UP, GK_JAM, GK_CODE };
 static const uint8_t GKEY[27] = {                       /* F3 .. G5: a part (SL_*), a role's sound (0x10 + RL_*), an act */
     SL_DRUMS, 0x10 | RL_DRUM, SL_BASS, 0x10 | RL_BASS, SL_CHORDS, 0x10 | RL_PAD, SL_ARP, SL_LEAD, 0x10 | RL_LEAD, SL_TEX,
     0x10 | RL_TEX, GK_SOUNDS, GK_HARM, 0x10 | RL_ARP, GK_NRG_DN, GK_ARR_DN, GK_NRG_UP, GK_ARR_UP, GK_MIX, GK_KEY_DN,
-    GK_PARENT, GK_KEY_UP, GK_JAM, GK_BPM_DN, GK_BPM_UP, 0, GK_VARY};
+    GK_PARENT, GK_KEY_UP, GK_JAM, GK_BPM_DN, GK_BPM_UP, GK_CODE, GK_VARY};
 static const char *const GK_SAY[RL_N] = {"KIT", "BASS SOUND", "PAD SOUND", "LEAD SOUND", "ARP SOUND", "TEX SOUND"};
 static const char *const SL_SAY[SL_PARTS] = {"DRUMS", "BASS", "CHORDS", "ARP", "LEAD", "TEX"};
 /* a part or a sound borrowed: its pin (the same kind's replaced, else a free one, else the last) */
@@ -490,6 +509,11 @@ static void gl_act(uint32_t c)
         gl_go(GH_FORM, "ARRANGEMENT ", b);
         break;
     }
+    case GK_CODE:                                       /* (v2) the take's code (let go of OCT+ to read it) */
+        gl_code_ms = fm1_ms | 1u;
+        gl.used = 1;
+        ui.force = 1;
+        break;
     case GK_JAM: {
         char b[4] = {0};
         jam.on = (uint8_t)!jam.on;
@@ -754,4 +778,336 @@ static void draw_set(void)
     draw_text_box(0, 184, 240, &AF_S, "K1 ENTRY  K2 TAKE  K3 BARS", T_TEXT, 1);
     draw_text_box(0, 200, 240, &AF_S, "PLAY RUN  OCT+ ADD  EDIT DEL", T_TEXT, 1);
     draw_text_box(0, 216, 240, &AF_S, "REC OR HOME: THE REEL", T_DIM, 1);
+}
+
+/* ------------------------------------------------------------------ (v2) the reel packed (flash: OBJ_REEL) --- */
+/* "TK", the format, the generator, the next ID, the takes, the SET's entries, JAM's bars; then the SET (3 bytes an
+ * entry) and the takes oldest first, each its recipe (the variations only when it has some), its card. What does not
+ * fit (3840 bytes) leaves out the oldest takes not kept first. The pack is read back by the same firmware; a take of
+ * another generator (gv) is kept and loads, its card says OLD GEN */
+#define REEL_FMT 1u
+static uint32_t tk_pack(const take_t *t, uint8_t *out)  /* a take, packed into out (NULL: its length only) */
+{
+    uint8_t b[192];
+    uint32_t n = 0, i, f = 0, np = 0;
+    const gset_t *g = &t->set;
+#define TP(x) (b[n++] = (uint8_t)(x))
+    TP(g->seed); TP(g->seed >> 8);
+    TP(g->genre); TP(g->energy); TP(g->form); TP(g->complex); TP(g->swing); TP(g->human); TP(g->tempo); TP(g->key);
+    TP(g->scale); TP(g->length); TP(g->space); TP(g->fills); TP(g->wet); TP(g->grit); TP(g->nlive);
+    for (i = 0; i < GP_N; i++) TP(g->amt[i]);
+    for (i = 0; i < SL_N; i++) f |= g->var[i] ? 1u : 0u;
+    for (i = 0; i < RL_N; i++) f |= g->svar[i] ? 2u : 0u;
+    for (i = 0; i < 3u * SL_PARTS; i++) f |= (&g->secvar[0][0])[i] ? 4u : 0u;
+    for (i = 0; i < GP_PINS; i++) np += g->pin[i].what != 0u;
+    f |= np ? 8u : 0u;
+    f |= g->arr ? 16u : 0u;
+    TP(f);
+    if (f & 1u) for (i = 0; i < SL_N; i++) TP(g->var[i]);
+    if (f & 2u) for (i = 0; i < RL_N; i++) TP(g->svar[i]);
+    if (f & 4u) for (i = 0; i < 3u * SL_PARTS; i++) TP((&g->secvar[0][0])[i]);
+    if (f & 8u) {
+        TP(np);
+        for (i = 0; i < GP_PINS; i++)
+            if (g->pin[i].what) { TP(g->pin[i].what); TP(g->pin[i].var); TP(g->pin[i].seed); TP(g->pin[i].seed >> 8); }
+    }
+    if (f & 16u) TP(g->arr);
+    TP(t->id); TP(t->id >> 8); TP(t->parent); TP(t->parent >> 8);
+    for (i = 0; i < 12u; i++) TP(t->name[i]);
+    TP(t->flav); TP(t->root); TP(t->scl); TP(t->nl); TP(t->keep); TP(t->nrow); TP(t->how); TP(t->gv);
+    TP(t->bpm); TP((uint16_t)t->bpm >> 8);
+    for (i = 0; i < t->nl && i < 6u; i++) { TP(t->thumb[i]); TP(t->thumb[i] >> 8); TP(t->thumb[i] >> 16); TP(t->thumb[i] >> 24); }
+    for (i = 0; i < t->nl && i < 6u; i++) TP(t->role[i]);
+    for (i = 0; i < t->nrow && i < 12u; i++) { TP(t->row[i][0]); TP(t->row[i][1]); }
+#undef TP
+    if (out) memcpy(out, b, n);
+    return n;
+}
+/* the reel into out (at most max bytes); its length */
+static uint32_t reel_pack(uint8_t *out, uint32_t max)
+{
+    uint32_t i, tot = 9u + 3u * set_n, n, cnt = 0;
+    uint32_t inc = 0;                                   /* (bit i: take i goes in) */
+    for (i = 0; i < reel_n; i++) { inc |= 1u << i; tot += tk_pack(&reel[i], 0); }
+    for (i = 0; tot > max && i < reel_n; i++)           /* (too much: the oldest not kept out, then the oldest) */
+        if (!reel[i].keep) { inc &= ~(1u << i); tot -= tk_pack(&reel[i], 0); }
+    for (i = 0; tot > max && i < reel_n; i++)
+        if ((inc >> i) & 1u) { inc &= ~(1u << i); tot -= tk_pack(&reel[i], 0); }
+    for (i = 0; i < reel_n; i++) cnt += (inc >> i) & 1u;
+    out[0] = 'T'; out[1] = 'K'; out[2] = REEL_FMT; out[3] = GEN_VERSION;
+    out[4] = (uint8_t)reel_next; out[5] = (uint8_t)(reel_next >> 8);
+    out[6] = (uint8_t)cnt; out[7] = set_n; out[8] = jam.bars;
+    n = 9u;
+    for (i = 0; i < set_n; i++) { out[n++] = (uint8_t)set_e[i].id; out[n++] = (uint8_t)(set_e[i].id >> 8); out[n++] = set_e[i].bars; }
+    for (i = 0; i < reel_n; i++)
+        if ((inc >> i) & 1u) n += tk_pack(&reel[i], out + n);
+    return n;
+}
+/* the reel from a pack (0: taken; the reel as it was when the pack is not one) */
+static int reel_unpack(const uint8_t *b, uint32_t len)
+{
+    uint32_t n = 9u, i, k, cnt, sn;
+    if (len < 9u || b[0] != 'T' || b[1] != 'K' || b[2] != REEL_FMT) return -1;
+    cnt = b[6]; sn = b[7];
+    if (cnt > REEL_N || sn > SET_N || n + 3u * sn > len) return -1;
+    reel_n = 0;
+    for (i = 0; i < sn; i++, n += 3u) { set_e[i].id = (uint16_t)(b[n] | b[n + 1u] << 8); set_e[i].bars = b[n + 2u]; }
+    set_n = (uint8_t)sn;
+    jam.bars = b[8] == 4u || b[8] == 8u || b[8] == 16u || b[8] == 32u ? b[8] : 8u;
+    reel_next = (uint16_t)(b[4] | b[5] << 8);
+    for (k = 0; k < cnt; k++) {
+        take_t *t = &reel[reel_n];
+        gset_t *g = &t->set;
+        uint32_t f;
+#define TG(x) do { if (n >= len) goto bad; (x) = b[n++]; } while (0)
+        memset(t, 0, sizeof *t);
+        { uint8_t lo, hi; TG(lo); TG(hi); g->seed = (uint16_t)(lo | hi << 8); }
+        TG(g->genre); TG(g->energy); TG(g->form); TG(g->complex); TG(g->swing); TG(g->human); TG(g->tempo); TG(g->key);
+        TG(g->scale); TG(g->length); TG(g->space); TG(g->fills); TG(g->wet); TG(g->grit); TG(g->nlive);
+        for (i = 0; i < GP_N; i++) TG(g->amt[i]);
+        TG(f);
+        if (f & 1u) for (i = 0; i < SL_N; i++) TG(g->var[i]);
+        if (f & 2u) for (i = 0; i < RL_N; i++) TG(g->svar[i]);
+        if (f & 4u) for (i = 0; i < 3u * SL_PARTS; i++) TG((&g->secvar[0][0])[i]);
+        if (f & 8u) {
+            uint32_t np;
+            TG(np);
+            for (i = 0; i < np && i < GP_PINS; i++) {
+                uint8_t lo, hi;
+                TG(g->pin[i].what); TG(g->pin[i].var); TG(lo); TG(hi);
+                g->pin[i].seed = (uint16_t)(lo | hi << 8);
+            }
+        }
+        if (f & 16u) TG(g->arr);
+        { uint8_t a, c, d, e; TG(a); TG(c); TG(d); TG(e); t->id = (uint16_t)(a | c << 8); t->parent = (uint16_t)(d | e << 8); }
+        for (i = 0; i < 12u; i++) TG(t->name[i]);
+        t->name[12] = 0;
+        TG(t->flav); TG(t->root); TG(t->scl); TG(t->nl); TG(t->keep); TG(t->nrow); TG(t->how); TG(t->gv);
+        { uint8_t lo, hi; TG(lo); TG(hi); t->bpm = (int16_t)(lo | hi << 8); }
+        if (t->nl > 6u || t->nrow > 12u || t->how >= GH_N) goto bad;
+        for (i = 0; i < t->nl; i++) { uint8_t a, c, d, e; TG(a); TG(c); TG(d); TG(e); t->thumb[i] = a | (uint32_t)c << 8 | (uint32_t)d << 16 | (uint32_t)e << 24; }
+        for (i = 0; i < t->nl; i++) TG(t->role[i]);
+        for (i = 0; i < t->nrow; i++) { TG(t->row[i][0]); TG(t->row[i][1]); }
+#undef TG
+        if (!t->id || reel_find(t->id) >= 0) goto bad;
+        reel_n++;
+    }
+    reel_cur = (uint8_t)(reel_n ? reel_n - 1u : 0u);
+    reel_play = 0xFF;
+    if (!reel_next) reel_next = 1;
+    return 0;
+bad:
+    reel_n = 0; set_n = 0; reel_next = 1;
+    return -1;
+}
+/* what a save would hold, hashed: the reel changed since the last one */
+static uint32_t reel_sig(void)
+{
+    uint32_t h = 2166136261u, i;
+    const uint8_t *p = (const uint8_t *)reel;
+    for (i = 0; i < reel_n * sizeof reel[0]; i++) h = (h ^ p[i]) * 16777619u;
+    p = (const uint8_t *)set_e;
+    for (i = 0; i < set_n * sizeof set_e[0]; i++) h = (h ^ p[i]) * 16777619u;
+    return (h ^ reel_n ^ (uint32_t)set_n << 8 ^ (uint32_t)jam.bars << 16) * 16777619u ^ reel_next;
+}
+
+/* -------------------------------------------------------------------------------------- (v2) share codes --- */
+/* A take's recipe as a code to read off one GW-1 and type into another (the same firmware makes the same piece): base
+ * 32 without I L O U (typed as 1 1 0 V), the last character a check. Bits: the code's version (2), the seed (14), the
+ * genre (6, RANDOM 0), 6 tracks (1), the form (2); the settings that are not as the screen opens (a mask of 17 and their
+ * values); the take's own choices (a mask of 5: the streams', the sounds', the sections' variations, the pins, the
+ * arrangement). A take as made: 7 characters, with a few choices 10 to 16, at most 28 */
+#define CODE_VER 1u
+static const char CK32[33] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+typedef struct { uint8_t b[20]; uint32_t n; } bits_t;   /* (28 characters: 140 bits) */
+static void bw(bits_t *w, uint32_t v, uint32_t k)
+{
+    while (k--) {
+        if (w->n < 160u && ((v >> k) & 1u)) w->b[w->n >> 3] |= (uint8_t)(0x80u >> (w->n & 7u));
+        w->n++;
+    }
+}
+static uint32_t brd(const bits_t *w, uint32_t *at, uint32_t k)
+{
+    uint32_t v = 0;
+    while (k--) {
+        v = v << 1 | (*at < w->n && *at < 160u ? (uint32_t)(w->b[*at >> 3] >> (7u - (*at & 7u))) & 1u : 0u);
+        (*at)++;
+    }
+    return v;
+}
+static void bwv(bits_t *w, uint32_t v)                 /* a variation: 1..7 in 4 bits, else 9 */
+{
+    if (v < 8u) { bw(w, 0, 1); bw(w, v, 3); } else { bw(w, 1, 1); bw(w, v, 8); }
+}
+static uint32_t brv(const bits_t *w, uint32_t *at) { return brd(w, at, 1) ? brd(w, at, 8) : brd(w, at, 3); }
+static uint32_t code7(uint32_t v) { return v == GA_AUTO ? 127u : v > 126u ? 126u : v; }   /* (AUTO: 127) */
+static uint32_t uncode7(uint32_t v) { return v == 127u ? GA_AUTO : v; }
+static uint32_t code_sum(const bits_t *w, uint32_t n)   /* the check: 5 bits of the payload's hash */
+{
+    uint32_t h = 2166136261u, i;
+    for (i = 0; i < (n + 7u) / 8u && i < 20u; i++) h = (h ^ w->b[i]) * 16777619u;
+    return (h ^ h >> 5 ^ h >> 10 ^ h >> 15) & 31u;
+}
+/* a take's code into out (CODE_MAX + 1); its length, 0 when it does not fit */
+static uint32_t take_code(const gset_t *g, char *out)
+{
+    bits_t w;
+    uint32_t m = 0, x = 0, i, k, n;
+    static const uint8_t DEF[12] = {50, 50, GA_AUTO, 30, 0, 0, 0, 0, 0, GA_AUTO, GA_AUTO, GA_AUTO};
+    const uint8_t v[12] = {g->energy, g->complex, g->swing, g->human, g->tempo, g->key, g->scale, g->length, g->space,
+                           g->fills, g->wet, g->grit};
+    memset(&w, 0, sizeof w);
+    bw(&w, CODE_VER, 2); bw(&w, g->seed, 14); bw(&w, g->genre, 6); bw(&w, g->nlive > 4u, 1); bw(&w, g->form, 2);
+    for (i = 0; i < 12u; i++) m |= (uint32_t)(v[i] != DEF[i]) << i;
+    for (i = 0; i < GP_N; i++) m |= (uint32_t)(g->amt[i] != GA_AUTO) << (12u + i);
+    bw(&w, m != 0u, 1);
+    if (m) {
+        static const uint8_t BITS[12] = {7, 7, 7, 7, 8, 4, 3, 2, 7, 7, 8, 8};
+        bw(&w, m, 17);
+        for (i = 0; i < 12u; i++)
+            if ((m >> i) & 1u) bw(&w, BITS[i] == 7u ? code7(v[i]) : v[i], BITS[i]);
+        for (i = 0; i < GP_N; i++) if ((m >> (12u + i)) & 1u) bw(&w, code7(g->amt[i]), 7);
+    }
+    for (i = 0; i < SL_N; i++) x |= g->var[i] ? 1u : 0u;
+    for (i = 0; i < RL_N; i++) x |= g->svar[i] ? 2u : 0u;
+    for (i = 0; i < 3u * SL_PARTS; i++) x |= (&g->secvar[0][0])[i] ? 4u : 0u;
+    for (i = 0; i < GP_PINS; i++) x |= g->pin[i].what ? 8u : 0u;
+    x |= g->arr ? 16u : 0u;
+    bw(&w, x != 0u, 1);
+    if (x) {
+        bw(&w, x, 5);
+        if (x & 1u) { for (i = 0, k = 0; i < SL_N; i++) k |= (uint32_t)(g->var[i] != 0u) << i; bw(&w, k, SL_N); for (i = 0; i < SL_N; i++) if (g->var[i]) bwv(&w, g->var[i]); }
+        if (x & 2u) { for (i = 0, k = 0; i < RL_N; i++) k |= (uint32_t)(g->svar[i] != 0u) << i; bw(&w, k, RL_N); for (i = 0; i < RL_N; i++) if (g->svar[i]) bwv(&w, g->svar[i]); }
+        if (x & 4u) {
+            uint32_t sc, p;                             /* (the sections with any (3 bits), then each one's parts (6)) */
+            for (sc = 0, k = 0; sc < 3u; sc++) for (p = 0; p < SL_PARTS; p++) k |= (uint32_t)(g->secvar[sc][p] != 0u) << sc;
+            bw(&w, k, 3);
+            for (sc = 0; sc < 3u; sc++) {
+                uint32_t pm = 0;
+                if (!((k >> sc) & 1u)) continue;
+                for (p = 0; p < SL_PARTS; p++) pm |= (uint32_t)(g->secvar[sc][p] != 0u) << p;
+                bw(&w, pm, SL_PARTS);
+                for (p = 0; p < SL_PARTS; p++) if (g->secvar[sc][p]) bwv(&w, g->secvar[sc][p]);
+            }
+        }
+        if (x & 8u) {
+            for (i = 0, k = 0; i < GP_PINS; i++) k += g->pin[i].what != 0u;
+            bw(&w, k - 1u, 2);
+            for (i = 0; i < GP_PINS; i++)
+                if (g->pin[i].what) { bw(&w, g->pin[i].what, 5); bwv(&w, g->pin[i].var); bw(&w, g->pin[i].seed, 14); }
+        }
+        if (x & 16u) bw(&w, g->arr, 2);
+    }
+    n = (w.n + 4u) / 5u;                                /* (the payload in characters, then the check) */
+    if (n + 1u > CODE_MAX || w.n > 135u) return 0;
+    {
+        uint32_t at = 0, sum = code_sum(&w, n * 5u);
+        for (i = 0; i < n; i++) out[i] = CK32[brd(&w, &at, 5)];
+        out[n] = CK32[sum];
+        out[n + 1u] = 0;
+    }
+    return n + 1u;
+}
+/* a code typed (spaces and dashes skipped, I L O U as 1 1 0 V) into a recipe; 0 ok, -1 not a code, -2 the check wrong */
+static int code_take(const char *s, gset_t *g)
+{
+    bits_t w;
+    uint32_t n = 0, at = 0, i, k, m, x, sum;
+    int32_t vals[40];
+    memset(&w, 0, sizeof w);
+    for (; *s; s++) {
+        char c = *s;
+        int32_t d = -1;
+        if (c == ' ' || c == '-' || c == '.' || c == '_') continue;
+        if (c >= 'a' && c <= 'z') c = (char)(c - 32);
+        if (c == 'I' || c == 'L') c = '1';
+        if (c == 'O') c = '0';
+        if (c == 'U') c = 'V';
+        for (i = 0; i < 32u; i++) if (CK32[i] == c) d = (int32_t)i;
+        if (d < 0 || n >= 40u) return -1;
+        vals[n++] = d;
+    }
+    if (n < 2u) return -1;
+    for (i = 0; i + 1u < n; i++) bw(&w, (uint32_t)vals[i], 5);
+    sum = code_sum(&w, (n - 1u) * 5u);
+    if ((uint32_t)vals[n - 1u] != sum) return -2;
+    memset(g, 0, sizeof *g);
+    if (brd(&w, &at, 2) != CODE_VER) return -1;
+    g->seed = (uint16_t)brd(&w, &at, 14);
+    g->genre = (uint8_t)brd(&w, &at, 6);
+    g->nlive = (uint8_t)(brd(&w, &at, 1) ? 6u : 4u);
+    g->form = (uint8_t)brd(&w, &at, 2);
+    g->energy = 50; g->complex = 50; g->swing = GA_AUTO; g->human = 30; g->fills = g->wet = g->grit = GA_AUTO;
+    for (i = 0; i < GP_N; i++) g->amt[i] = GA_AUTO;
+    if (brd(&w, &at, 1)) {
+        static const uint8_t BITS[12] = {7, 7, 7, 7, 8, 4, 3, 2, 7, 7, 8, 8};
+        uint8_t *v[12] = {&g->energy, &g->complex, &g->swing, &g->human, &g->tempo, &g->key, &g->scale, &g->length,
+                          &g->space, &g->fills, &g->wet, &g->grit};
+        m = brd(&w, &at, 17);
+        for (i = 0; i < 12u; i++)
+            if ((m >> i) & 1u) { k = brd(&w, &at, BITS[i]); *v[i] = (uint8_t)(BITS[i] == 7u ? uncode7(k) : k); }
+        for (i = 0; i < GP_N; i++) if ((m >> (12u + i)) & 1u) g->amt[i] = (uint8_t)uncode7(brd(&w, &at, 7));
+    }
+    if (brd(&w, &at, 1)) {
+        x = brd(&w, &at, 5);
+        if (x & 1u) { k = brd(&w, &at, SL_N); for (i = 0; i < SL_N; i++) if ((k >> i) & 1u) g->var[i] = (uint8_t)brv(&w, &at); }
+        if (x & 2u) { k = brd(&w, &at, RL_N); for (i = 0; i < RL_N; i++) if ((k >> i) & 1u) g->svar[i] = (uint8_t)brv(&w, &at); }
+        if (x & 4u) {
+            uint32_t sc, p, pm;
+            k = brd(&w, &at, 3);
+            for (sc = 0; sc < 3u; sc++) {
+                if (!((k >> sc) & 1u)) continue;
+                pm = brd(&w, &at, SL_PARTS);
+                for (p = 0; p < SL_PARTS; p++) if ((pm >> p) & 1u) g->secvar[sc][p] = (uint8_t)brv(&w, &at);
+            }
+        }
+        if (x & 8u) {
+            k = brd(&w, &at, 2) + 1u;
+            for (i = 0; i < k; i++) {
+                g->pin[i].what = (uint8_t)brd(&w, &at, 5);
+                g->pin[i].var = (uint8_t)brv(&w, &at);
+                g->pin[i].seed = (uint16_t)brd(&w, &at, 14);
+            }
+        }
+        if (x & 16u) g->arr = (uint8_t)brd(&w, &at, 2);
+    }
+    if (at > (n - 1u) * 5u || g->seed > 9999u || g->genre > NGENRE || g->form > 2u || g->energy > 100u || g->complex > 100u ||
+        g->key > 12u || g->scale > 7u || g->arr > 3u)
+        return -1;
+    for (i = 0; i < GP_PINS; i++)
+        if (g->pin[i].what && !((g->pin[i].what >= 1u && g->pin[i].what <= SL_N) || (g->pin[i].what >= 16u && g->pin[i].what < 16u + RL_N)) ) return -1;
+    return 0;
+}
+/* (v2) SAVE on the reel: the NAME screen for a code (gen_code_ok makes its take); F#5 (OCT+ held): the take's code shown */
+static void gen_code_enter(void)
+{
+    ui.confirm = 0;                                     /* (the NAME screen is a page of its own: the GEN screen back after) */
+    name_open(NK_CODE, 0);
+}
+static void gen_code_back(void)                         /* cancelled: the reel again */
+{
+    confirm_open(CF_DICE_ALL, song.sel);
+    gen_fresh = 1;
+    gp.open_ms = 0;
+    gp.view = 1;
+    ui.force = 1;
+}
+static int gen_code_ok(const char *s)                   /* a code typed: its take made (1), or said why not (0) */
+{
+    gset_t g;
+    int rc = code_take(s, &g);
+    if (rc) { ui_message(rc == -2 ? "CODE: A TYPO (CHECK FAILED)" : "NOT A TAKE CODE"); return 0; }
+    gen_code_back();
+    gset_put(&g);
+    gen_how = GH_NONE;
+    gen_go();
+    gp.sig = gen_sig();
+    if (g.nlive != (trk_live < NTRK ? trk_live : NTRK)) {   /* (made on the other number of tracks: another piece) */
+        ui_say(g.nlive > 4u ? "MADE ON 6 TRACKS" : "MADE ON 4 TRACKS", "");
+        str_cpy(ui.msg2, "GLO>SYSTEM>TRACKS", sizeof ui.msg2);
+    } else {
+        ui_message("TAKE FROM ITS CODE");
+    }
+    return 1;
 }
