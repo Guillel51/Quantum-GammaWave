@@ -2098,6 +2098,8 @@ static void ui_input_frame(void)
     if (save == BT_TAP && !ui.confirm)                  /* SAVE let go (not its layer's: that tap is layer_tap's) */
         open_family(FAM_SAVE);
     if (ui.confirm) {                                   /* OCT- cancels, OCT+ does it; nothing else reacts */
+        if (ui.confirm == CF_DICE_ALL)                  /* (TAKES v2) the reel's question first: OCT+ yes, OCT- no */
+            oct = gen_oct(oct);
         if (oct & 2u) {
             uint32_t kind = ui.confirm;
             ui.confirm = 0;
@@ -2222,6 +2224,11 @@ static void ui_input_frame(void)
             if ((s = panel_enc(EN_PRESET)) != 0) gen_reel_turn(s);   /* (1.0-GW) the TAKES reel */
             if ((s = panel_enc(EN_ALGO)) != 0) gen_algo(s);
             gen_take_poll();
+            {   /* (TAKES v2) EDIT on the reel: delete the take (held: the takes not kept), a question first */
+                static uint32_t ed_t0;
+                uint32_t e = btn_hold(&ed_t0, B_EDIT, now, 1);
+                if (gp.view && (e == BT_TAP || e == BT_HOLD)) gen_reel_edit(e == BT_HOLD);
+            }
             if (home == BT_TAP && gp.view) {            /* (1.0-GW) HOME on the reel: back to the settings */
                 gp.view = 0;
                 ui.force = 1;

@@ -6829,9 +6829,9 @@ static int test_gen_pages(void)
     ok &= song.g[G_BPM] == gp.tempo && gs.root == 1;
     bad += check("GEN: SONG's TEMPO (AUTO, then the song's tempo up) and KEY make the piece", ok);
     gp.tempo = gp.key = gp.scale = gp.length = gp.space = 0; gp.fills = gp.wet = gp.grit = GA_AUTO; gp.page = 0;
-    {   /* (1.0-GW) SELECT the next page (the genre kept), ALGORITHM the seed (the first page shown); stopped: only set;
-         * playing: a take once it rests, two takes one UNDO point (the music before the first) */
-        uint32_t sig0[NTRK], sig1 = 0, same = 1;
+    {   /* (1.0-GW) SELECT the next page (the genre kept); (TAKES v2) ALGORITHM new sounds (the seed kept), a take once it
+         * rests: stopped, the notes the same and still stopped; playing: two takes one UNDO point (the music before) */
+        uint32_t sig0[NTRK], sig1 = 0, same = 1, snd0[NTRK];
         uint16_t sd;
         uint8_t g0;
         gp.page = 2;
@@ -6839,27 +6839,30 @@ static int test_gen_pages(void)
         g0 = gp.genre;
         turn(EN_SELECT, 1);
         ok = gp.page == 3u && gp.genre == g0;
+        press(B_OCTUP); frames(4);                      /* (the piece of these settings: TEMPO, KEY back on AUTO) */
         sd = gp.seed;
-        for (k = 0; k < NTRK; k++) sig0[k] = steps_sig(&trk[k]);
+        for (k = 0; k < NTRK; k++) { sig0[k] = steps_sig(&trk[k]); snd0[k] = gsnd_sig(&trk[k]); }   /* (the run's UNDO point) */
         turn(EN_ALGO, 1);
-        ok &= gp.page == 0u && gp.hot == 1u && gp.seed == (uint16_t)((sd + 1u) % 10000u);
-        frames(60);                                     /* (stopped: nothing made) */
+        ok &= gp.seed == sd && gp.svar[RL_BASS] == 1u && gp.svar[RL_DRUM] == 1u;
+        frames(640);                                    /* (at rest: the take made, stopped) */
         for (k = 0; k < NTRK; k++) ok &= steps_sig(&trk[k]) == sig0[k];
-        bad += check("GEN: SELECT the next page (genre kept), ALGORITHM the seed (page 1 shown); stopped, nothing made", ok);
+        ok &= !song.playing && !chain_busy() && gp.sig == gen_sig();
+        bad += check("GEN: SELECT the next page (genre kept), ALGORITHM new sounds (seed kept): made at rest, the notes the same, still stopped", ok);
+        for (k = 0; k < NTRK; k++) sig0[k] = steps_sig(&trk[k]);
         press(B_PLAY);
         for (k = 0; k < 20u; k++) { frame(); events_block(CTL); }   /* (the transport runs with the audio) */
         ok = song.playing || chain_busy();
         turn(EN_ALGO, 1);                               /* (playing: a take once it rests, its UNDO point the music before) */
         for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
         ok &= gp.sig == gen_sig() && (song.playing || chain_busy());
-        for (k = 0; k < NTRK; k++) sig1 ^= steps_sig(&trk[k]) ^ sig0[k];
+        for (k = 0; k < NTRK; k++) sig1 |= gsnd_sig(&trk[k]) != snd0[k];   /* (new sounds) */
         turn(EN_ALGO, 1);                               /* (a second take: the same UNDO point) */
         for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
         ok &= gp.sig == gen_sig() && (song.playing || chain_busy());
         transport_req = 2;
         for (k = 0; k < 4u; k++) { frame(); events_block(CTL); }
         ok &= !undo_do();
-        for (k = 0; k < NTRK; k++) same &= steps_sig(&trk[k]) == sig0[k];
+        for (k = 0; k < NTRK; k++) same &= steps_sig(&trk[k]) == sig0[k] && gsnd_sig(&trk[k]) == snd0[k];
         ok &= same && sig1 != 0u;
         bad += check("GEN: playing, ALGORITHM makes a take once it rests, the music still playing; UNDO after two takes: the music before the first", ok);
     }
@@ -6916,6 +6919,85 @@ static int test_gen_reel(void)
     ok &= !gp.view && ui.confirm == CF_DICE_ALL;
     bad += check("GEN TAKES: KNOB 4 keeps a take through 40 more pieces (the reel holds 32), HOME and SELECT back to the settings", ok);
     reel_n = 0; reel_cur = 0; reel_play = 0xFF;
+    ui_power_on();
+    return bad;
+}
+
+/* (TAKES v2) a take's own choices: a part made again changes that part only (its notes; every sound the same), a role's
+ * sound made again changes that sound only (every note the same), turned back the piece as before; IDs never reused, a
+ * child knows its parent, a new seed starts a family; EDIT deletes (a question first, a kept take refused), EDIT held the
+ * unkept ones */
+static uint32_t snd_sig(const track_t *t)
+{
+    uint32_t h = 2166136261u ^ t->eng_req, j;
+    for (j = 0; j < P_COUNT; j++) h = (h ^ (uint16_t)t->p[j]) * 16777619u;
+    return h;
+}
+static int test_gen_v2(void)
+{
+    int bad = 0, ok;
+    uint32_t k, st0[NTRK], sn0[NTRK], pr0, dr, ld, ch_st = 0, ch_sn = 0;
+    uint16_t id0, id1;
+    ui_power_on();
+    ui_rec_prefs |= PREF_SIX >> 8; rp_apply();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    fm1_ms += 1200u;
+    gp.genre = 3; gp.seed = 202; gp.form = 0;          /* TRAP ATL, a loop */
+    press(B_OCTUP); frames(4);
+    for (k = 0; k < NTRK; k++) { st0[k] = steps_sig(&trk[k]); sn0[k] = snd_sig(&trk[k]); }
+    pr0 = dice_print();
+    dr = gs.trk_of[RL_DRUM]; ld = gs.trk_of[RL_LEAD];
+    id0 = reel[reel_play].id;
+    ok = reel_n == 1u && reel[0].parent == 0u && id0 != 0u;
+    gp.var[SL_DRUMS] = 1;                               /* new drums */
+    gen_how = GH_DRUMS; gen_go(); gp.sig = gen_sig();
+    for (k = 0; k < NTRK; k++) {
+        ch_st |= (uint32_t)(steps_sig(&trk[k]) != st0[k]) << k;
+        ch_sn |= (uint32_t)(snd_sig(&trk[k]) != sn0[k]) << k;
+    }
+    ok &= ((ch_st >> dr) & 1u) && !((ch_st >> ld) & 1u) && !ch_sn;
+    ok &= reel_n == 2u && reel[1].parent == id0 && reel[1].how == GH_DRUMS && reel[1].id != id0;
+    bad += check("GEN v2: new DRUMS: the drum part's notes change, the lead's don't, no sound changes; a child of the take", ok);
+    gp.var[SL_DRUMS] = 0;
+    gp.svar[RL_LEAD] = 1;                               /* the lead's sound made again */
+    gen_how = GH_SLEAD; gen_go(); gp.sig = gen_sig();
+    ch_st = ch_sn = 0;
+    for (k = 0; k < NTRK; k++) {
+        ch_st |= (uint32_t)(steps_sig(&trk[k]) != st0[k]) << k;
+        ch_sn |= (uint32_t)(snd_sig(&trk[k]) != sn0[k]) << k;
+    }
+    ok = !ch_st && ((ch_sn >> ld) & 1u) && !((ch_sn >> dr) & 1u);
+    bad += check("GEN v2: the lead's sound made again: only its sound changes, every note the same", ok);
+    gp.svar[RL_LEAD] = 0;
+    gen_how = GH_SET; gen_go(); gp.sig = gen_sig();     /* (back: the first take, not a new one) */
+    ok = dice_print() == pr0 && reel_n == 3u && reel_play == 0u;
+    bad += check("GEN v2: the variations turned back: the piece as first made, its take (no new one)", ok);
+    id1 = reel[2].id;
+    reel_cur = 2; gp.view = 1;
+    press(B_EDIT); frames(32);                          /* (a question) */
+    ok = reel_ask == 1u && reel_n == 3u;
+    press(B_OCTDN); frames(32);                         /* (no) */
+    ok &= !reel_ask && reel_n == 3u && ui.confirm == CF_DICE_ALL;
+    press(B_EDIT); press(B_OCTUP); frames(32);          /* (yes) */
+    ok &= reel_n == 2u && reel_find(id1) < 0 && reel[0].id == id0 && reel_find(reel[1].id) == 1;
+    bad += check("GEN v2: EDIT on the reel: a question (OCT- no, OCT+ yes), the take gone, the others' IDs as they were", ok);
+    reel[0].keep = 1; reel_cur = 0;
+    press(B_EDIT); frames(32);
+    ok = !reel_ask && reel_n == 2u;                     /* (a kept take: refused) */
+    hold(B_EDIT); frames(32);
+    ok &= reel_ask == 2u;
+    press(B_OCTUP); frames(32);
+    ok &= reel_n == 1u && reel[0].id == id0 && reel[0].keep;
+    bad += check("GEN v2: a kept take not deleted; EDIT held: every take not kept deleted (a question first)", ok);
+    gp.view = 0; gp.sig = gen_sig();
+    press(B_OCTUP); frames(4);                          /* (the same settings: a new seed, a family of its own) */
+    ok = reel_n == 2u && reel[1].parent == 0u && reel[1].id > id1 && gp.seed != 202u;
+    bad += check("GEN v2: IDs never reused, a new seed a family's first take (no parent)", ok);
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF;
+    ui_rec_prefs &= (uint8_t)~(PREF_SIX >> 8); rp_apply();
     ui_power_on();
     return bad;
 }
@@ -9173,6 +9255,7 @@ int main(void)
     bad += test_dice_all();
     bad += test_gen_pages();
     bad += test_gen_reel();
+    bad += test_gen_v2();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();

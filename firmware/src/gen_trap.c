@@ -115,7 +115,7 @@ static const char *const TK_808[TS_N][6] = {
 static const char *trap_808pat(uint32_t var)
 {
     uint32_t keep = gq, k;
-    gseed(GS_BASS + 7u);
+    gseed_sl(GS_BASS + 7u, SL_BASS);                   /* (its id is GS_TEX's: the bass's variation, by name) */
     k = gr() % 6u;
     if (var) k = (k + 1u + gr() % 5u) % 6u;
     gq = keep;
@@ -716,11 +716,23 @@ static void trap_verse(uint32_t end)
     if (ld < NTRK && gs.act[RL_LEAD]) {
         track_t *t = &trk[ld];
         trap_lead_sound(t, 1);
+        if (gsnd_begin(RL_LEAD, 1)) {                   /* (1.0-GW TAKES v2: its own sound, the notes kept) */
+            int32_t lo = gs.mlo, hi = gs.mhi;
+            uint8_t su = tk_sus;
+            trap_lead_sound(t, 1);
+            gs.mlo = lo; gs.mhi = hi; tk_sus = su;
+            gsnd_end();
+        }
         trap_mix(t, RL_LEAD, 1);
         gen_feel_track(t, RL_LEAD);
         load_begin(t, LOAD_PAT); trap_lead(t, len, 1); motion_clear(t); load_end(t);
     }
-    if (pd < NTRK && gs.act[RL_PAD]) { trap_pad_sound(&trk[pd], 1); trap_mix(&trk[pd], RL_PAD, 1); gen_feel_track(&trk[pd], RL_PAD); }
+    if (pd < NTRK && gs.act[RL_PAD]) {
+        trap_pad_sound(&trk[pd], 1);
+        if (gsnd_begin(RL_PAD, 1)) { trap_pad_sound(&trk[pd], 1); gsnd_end(); }
+        trap_mix(&trk[pd], RL_PAD, 1);
+        gen_feel_track(&trk[pd], RL_PAD);
+    }
 }
 /* C the intro (and the outro): the hook's melody and pad alone, the melody's filter opening over the four bars */
 static void trap_intro(void)
