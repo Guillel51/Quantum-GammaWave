@@ -2218,6 +2218,7 @@ static void ui_input_frame(void)
             for (k = 0; k < 4u; k++)
                 if ((s = panel_enc(EN_K1 + k)) != 0) gen_knob(k, s);
             if ((s = panel_enc(EN_SELECT)) != 0) gen_select(s);
+            if ((s = panel_enc(EN_PRESET)) != 0) gen_page(s);   /* (1.0-GW) PRESETS turns the pages */
             if (home == BT_TAP) {                       /* (0.7.0) HOME: done (OCT- too) */
                 ui.confirm = 0;
                 ui.force = 1;

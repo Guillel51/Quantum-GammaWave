@@ -759,16 +759,33 @@ Mantené **SAVE**:
 ### GENERATOR — el generador de temas (HOME + SELECT)
 
 Abrilo con **SELECT** en HOME, **HOME mantenido + SELECT** desde cualquier página, o **OCT− mantenido + PLAY** (GW-1).
-La pantalla, **GENERATOR 1/3**, tiene tres páginas de cuatro ajustes; **SELECT** cambia de página, **KNOB 1–4**
-ajustan las cuatro filas:
+La pantalla, **GENERATOR 1/5**, tiene cinco páginas de cuatro ajustes; **PRESETS** cambia de página (en ronda;
+SELECT también), **KNOB 1–4** ajustan las cuatro filas:
 
 | Página | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
-| 1/3 | **GENRE** (RANDOM o uno de 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
-| 2/3 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
-| 3/3 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % o AUTO) | **HUMAN** (0–100 %) |
+| 1/5 | **GENRE** (RANDOM o uno de 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
+| 2/5 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
+| 3/5 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % o AUTO) | **HUMAN** (0–100 %) |
+| 4/5 SONG | **TEMPO** (AUTO o 60–200 BPM) | **KEY** (AUTO o C–B) | **SCALE** (AUTO, MIN, MAJ, DOR, PHRY, HARM, MIX, LYD) | **LENGTH** (AUTO, SHORT, LONG, EPIC) |
+| 5/5 FEEL | **SPACE** (OFF–100 %) | **FILLS** (OFF–100 % o AUTO) | **WET** (DRY–200 % o AUTO) | **GRIT** (CLEAN–200 % o AUTO) |
 
-Las filas de partes (DRUMS … LEAD) van de OFF a 10–100 % y a **AUTO** (decide el género). **OCT+** arma el tema;
+Las filas de partes (DRUMS … LEAD) van de OFF a 10–100 % y a **AUTO** (decide el género). SONG y FEEL afinan
+cualquier género; en AUTO / OFF decide el género, como antes:
+
+- **TEMPO**: AUTO es el rango del género (ENERGY elige el lugar); subiéndolo desde AUTO arranca en el tempo del tema y
+  después fija los BPM. MENU > BPM LOCK sigue mandando.
+- **KEY**, **SCALE**: la tonalidad y el modo del tema en vez de los de la semilla y el género.
+- **LENGTH** (FORM PARTS o SONG): las filas del tema a la mitad, al doble, al triple, en loops enteros de cada sección.
+- **SPACE**: lugar para una voz. La melodía y el arpegio pierden el final de cada dos compases (la respuesta del que
+  canta) y parte de sus contratiempos, y la música queda más abajo que la batería (melodía, arpegio −4 dB, pad −3 dB
+  al 100 %).
+- **FILLS**: los redobles de la batería. OFF: ninguno; 10–100 %: en lugar de los del género, redobles de caja en el
+  último tiempo de las frases (el del 4.º compás siempre, el del 2.º desde 50 %, todos desde 80 %), más rápidos (1/64)
+  desde 70 %.
+- **WET**: los envíos a reverb y delay, como parte de lo que da el género (DRY: nada, 100 %: igual, 200 %: el doble).
+- **GRIT**: el clip del master, la distorsión y el drive del bajo y el drive de la batería, como parte de los del género
+  (CLEAN: nada, 200 %: el doble; el BLAST de WRAITH en un 808 sigue en mezcla, con su sub). **OCT+** arma el tema;
 **PLAY** lo arranca y lo para para escucharlo sin salir de la pantalla; **HOME** (u OCT−) cierra la pantalla. La
 pantalla recuerda el último tema (**LAST: UK DRILL 0421**) y la cabecera dice **GEN:** y el tema.
 

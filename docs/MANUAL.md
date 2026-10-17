@@ -720,15 +720,31 @@ Hold **SAVE**:
 ### GENERATOR — the song generator (HOME + SELECT)
 
 Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (GW-1). The screen,
-**GENERATOR 1/3**, has three pages of four settings; **SELECT** turns the page, **KNOB 1–4** set the four rows:
+**GENERATOR 1/5**, has five pages of four settings; **PRESETS** turns the page (round; SELECT does too),
+**KNOB 1–4** set the four rows:
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
-| 1/3 | **GENRE** (RANDOM or one of 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
-| 2/3 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
-| 3/3 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % or AUTO) | **HUMAN** (0–100 %) |
+| 1/5 | **GENRE** (RANDOM or one of 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
+| 2/5 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
+| 3/5 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % or AUTO) | **HUMAN** (0–100 %) |
+| 4/5 SONG | **TEMPO** (AUTO or 60–200 BPM) | **KEY** (AUTO or C–B) | **SCALE** (AUTO, MIN, MAJ, DOR, PHRY, HARM, MIX, LYD) | **LENGTH** (AUTO, SHORT, LONG, EPIC) |
+| 5/5 FEEL | **SPACE** (OFF–100 %) | **FILLS** (OFF–100 % or AUTO) | **WET** (DRY–200 % or AUTO) | **GRIT** (CLEAN–200 % or AUTO) |
 
-The part rows (DRUMS … LEAD) go from OFF through 10–100 % to **AUTO** (the genre decides). **OCT+** makes the piece;
+The part rows (DRUMS … LEAD) go from OFF through 10–100 % to **AUTO** (the genre decides). SONG and FEEL refine any
+genre; left on AUTO / OFF the genre decides, as before:
+
+- **TEMPO**: AUTO is the genre's range (ENERGY sets the place in it); turned up from AUTO it starts at the song's
+  tempo, then sets the piece's BPM. MENU > BPM LOCK still wins.
+- **KEY**, **SCALE**: the piece's key and mode instead of the seed's and the genre's.
+- **LENGTH** (FORM PARTS or SONG): the song's rows half as long, twice, three times, in whole loops of each section.
+- **SPACE**: room for a voice. The melody and the arp lose the end of every two bars (the singer's answer) and some of
+  their off-beats, and the music sits lower under the drums (melody, arp −4 dB, pad −3 dB at 100 %).
+- **FILLS**: the drum rolls. OFF: none at all; 10–100 %: the rolls as made replaced by snare rolls on a phrase's last
+  beat (the 4th bar's always, the 2nd's from 50 %, every bar's from 80 %), faster (1/64) from 70 %.
+- **WET**: the reverb and delay sends, as a share of what the genre gives (DRY: none, 100 %: as made, 200 %: twice).
+- **GRIT**: the master clip, the bass's distortion and drive and the drums' drive, as a share of the genre's
+  (CLEAN: none, 200 %: twice; WRAITH's BLAST on an 808 stays a blend, its sub kept). **OCT+** makes the piece;
 **PLAY** starts and stops it so you can hear it without leaving the screen; **HOME** (or OCT−) closes the screen. The
 screen remembers the last piece (**LAST: UK DRILL 0421**) and the header says **GEN:** and the piece.
 

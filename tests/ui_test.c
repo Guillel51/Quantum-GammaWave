@@ -6801,6 +6801,37 @@ static int test_fx_sections(void)
     return bad;
 }
 
+/* (1.0-GW) GEN: PRESETS turns its five pages round (SONG, FEEL the new ones); TEMPO from AUTO starts at the song's
+ * tempo and the piece takes it; the settings back to AUTO after */
+static int test_gen_pages(void)
+{
+    int bad = 0, ok;
+    uint32_t k;
+    ui_power_on();
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    ok = ui.confirm == CF_DICE_ALL && gp.page == 0u;
+    for (k = 1; k <= 4u; k++) { turn(EN_PRESET, 1); ok &= gp.page == k; }
+    turn(EN_PRESET, 1); ok &= gp.page == 0u;           /* (round) */
+    turn(EN_PRESET, -1); ok &= gp.page == 4u;
+    turn(EN_K4, 1); ok &= gp.grit == GA_AUTO;          /* (GRIT: AUTO at the top) */
+    turn(EN_K4, -1); ok &= gp.grit == 200u;
+    turn(EN_K1, 1); ok &= gp.space == 10u;
+    bad += check("GEN: PRESETS turns the pages (1..5, round), FEEL's knobs (GRIT from AUTO, SPACE)", ok);
+    turn(EN_PRESET, -1); ok = gp.page == 3u;           /* SONG */
+    turn(EN_K1, -1); ok &= !gp.tempo;                  /* (left of AUTO: AUTO) */
+    turn(EN_K1, 1); ok &= gp.tempo == (uint8_t)clamp(song.g[G_BPM], 60, 200);
+    turn(EN_K1, 1); ok &= gp.tempo == (uint8_t)clamp(song.g[G_BPM], 60, 200) + 1u;
+    turn(EN_K2, 1); turn(EN_K2, 1); ok &= gp.key == 2u;   /* C# */
+    press(B_OCTUP); frames(4);
+    ok &= song.g[G_BPM] == gp.tempo && gs.root == 1;
+    bad += check("GEN: SONG's TEMPO (AUTO, then the song's tempo up) and KEY make the piece", ok);
+    gp.tempo = gp.key = gp.scale = gp.length = gp.space = 0; gp.fills = gp.wet = gp.grit = GA_AUTO; gp.page = 0;
+    ui_power_on();
+    return bad;
+}
+
 /* (0.6.21) HOME + SELECT: the dialog, OCT+: everything diced (one musical scale, a sequence on every track, DRUM a
  * beat); GLO + G4: UNDO puts the music back, again: forward */
 static int test_dice_all(void)
@@ -9052,6 +9083,7 @@ int main(void)
     bad += test_key_latch();
     bad += test_load_budget();
     bad += test_dice_all();
+    bad += test_gen_pages();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();

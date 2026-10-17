@@ -89,7 +89,7 @@ static const uint8_t TPROG_W[TS_N][8] = {
 };
 static void trap_harmony(void)
 {
-    if (TFLAV[tk_tf].scale[0]) gs.scale = (int16_t)TFLAV[tk_tf].scale[gr() % 4u];
+    if (TFLAV[tk_tf].scale[0] && !gp.scale) gs.scale = (int16_t)TFLAV[tk_tf].scale[gr() % 4u];   /* (SCALE set: the screen's) */
     gs.prog = &TPROG[gpickw(TPROG_W[gs.ts], 8)];
     if (gs.prog == &TPROG[5] && gs.scale != SC_PHRY) gs.prog = &TPROG[1];   /* (bII only where the mode has it) */
     gs.n = gs.prog->n;
@@ -702,7 +702,9 @@ static void trap_verse(uint32_t end)
     uint32_t dr = gs.trk_of[RL_DRUM], bs = gs.trk_of[RL_BASS], pd = gs.trk_of[RL_PAD], ld = gs.trk_of[RL_LEAD];
     uint32_t ar = gs.trk_of[RL_ARP], hx = gs.act[RL_TEX] ? gs.trk_of[RL_TEX] : NTRK, len = gs.len;
     if (dr < NTRK && gs.act[RL_DRUM]) {
-        load_begin(&trk[dr], LOAD_PAT); trap_drums(&trk[dr], len, end ? 2u : 1u); load_end(&trk[dr]);
+        load_begin(&trk[dr], LOAD_PAT); trap_drums(&trk[dr], len, end ? 2u : 1u);
+        gen_fills(&trk[dr], end && len >= 16u ? len - 16u : len);   /* (FILLS: the pre-hook's last bar its own) */
+        load_end(&trk[dr]);
         if (hx < NTRK) {
             if (end) trk[hx].p[P_MUTE] = 1;
             else { load_begin(&trk[hx], LOAD_PAT); trap_hats2(&trk[hx], 1); load_end(&trk[hx]); }
@@ -715,9 +717,10 @@ static void trap_verse(uint32_t end)
         track_t *t = &trk[ld];
         trap_lead_sound(t, 1);
         trap_mix(t, RL_LEAD, 1);
+        gen_feel_track(t, RL_LEAD);
         load_begin(t, LOAD_PAT); trap_lead(t, len, 1); motion_clear(t); load_end(t);
     }
-    if (pd < NTRK && gs.act[RL_PAD]) { trap_pad_sound(&trk[pd], 1); trap_mix(&trk[pd], RL_PAD, 1); }
+    if (pd < NTRK && gs.act[RL_PAD]) { trap_pad_sound(&trk[pd], 1); trap_mix(&trk[pd], RL_PAD, 1); gen_feel_track(&trk[pd], RL_PAD); }
 }
 /* C the intro (and the outro): the hook's melody and pad alone, the melody's filter opening over the four bars */
 static void trap_intro(void)
@@ -772,6 +775,7 @@ static void trap_parts(void)
         rows++;
     }
     chain_config.count = (uint8_t)rows;
+    gen_length();                                       /* (LENGTH) */
     SONG_END(&chain_config) = SONG_FOREVER;
     ui.song_row = 0;
     live.mode = 1;
