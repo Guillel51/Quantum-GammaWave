@@ -190,6 +190,33 @@ def controls():
     b.append(card('EDIT · SOUND', HEAT[3], keyboard(ed_w, ed_b) +
                   '<p>INIT: the factory sound (DRUM: the kit too). RECALL: the sound stored in the section. On a DRUM '
                   'track black 1–8 mute each DRUM-X sound.</p><h4>KNOBS</h4>' + knobs('EDIT 1', 'EDIT 2', 'EDIT 3', 'EDIT 4')))
+    tk_w = {'F3': 'DRUM', 'G3': 'BASS', 'A3': 'CHRD', 'B3': 'ARP', 'C4': 'LEAD', 'D4': 'TEX', 'E4': 'ALL SND',
+            'F4': 'HARM', 'G4': 'NRG −', 'A4': 'NRG +', 'B4': 'MIX', 'C5': 'KEY −', 'D5': 'KEY +', 'E5': 'BPM −',
+            'F5': 'BPM +', 'G5': 'VARY'}
+    tk_b = {'F#3': 'KIT', 'G#3': 'BASS SND', 'A#3': 'PAD SND', 'C#4': 'LEAD SND', 'D#4': 'TEX SND', 'F#4': 'ARP SND',
+            'G#4': 'ARR −', 'A#4': 'ARR +', 'C#5': 'BACK', 'D#5': 'JAM', 'F#5': 'CODE'}
+    b.append(card('TAKES · OCT+ HELD ON THE REEL', HEAT[5], keyboard(tk_w, tk_b) +
+                  '<p>GEN (OCT− + PLAY), PRESETS: the <b>TAKES</b> reel. Hold <b>OCT+</b>: each key makes a <b>child take</b> '
+                  'from the one playing, on the next bar (stopped: at once). White F3–D4: that part&rsquo;s notes made again '
+                  '(with KNOB 2 on a section: there only); the black key beside it: its <b>sound</b> (the notes kept). '
+                  '<b>Hold a part or sound key ½ s: lock it</b> (ALGORITHM, ALL SOUNDS and JAM leave it; a new seed keeps '
+                  'it). On another take&rsquo;s card: the key <b>borrows</b> its part. PRESETS with OCT+ held: a cue, played when '
+                  'OCT+ is let go. D#5 <b>JAM</b>: a take by itself every 4–32 bars. F#5: the take&rsquo;s <b>share code</b>.</p>'
+                  '<h4>KNOBS ON THE REEL</h4>' + knobs('SCROLL', 'SECTION', 'JAM BARS', 'KEEP')))
+    reel = [
+        ('PRESETS', 'Scroll the takes: the one under the cursor plays on the next bar.'),
+        ('OCT+', 'Load the take (stopped); playing: on the next bar.'),
+        ('ALGORITHM', 'New instruments for the take playing, the notes kept.'),
+        ('EDIT', 'Delete the take (OCT+ yes). Held: every take not kept.'),
+        ('REC', 'Playing: record a <b>SET</b> of takes. Stopped: the SET page (K1 entry, K2 take, K3 bars, OCT+ add, PLAY).'),
+        ('SAVE', 'Type a take&rsquo;s <b>share code</b>: its piece, the same on any GW-1.'),
+        ('HOME · SELECT', 'Back to the settings pages.'),
+    ]
+    tr = '<table>' + ''.join(f'<tr><td class="n">{e(a)}</td><td>{d}</td></tr>' for a, d in reel) + '</table>'
+    b.append(card('TAKES · THE REEL', HEAT[6], tr +
+                  '<p style="margin-top:8px">Each card: its ID (#0A3D), the take it came from and what changed '
+                  '(&lt;0A3C LEAD SND), seed · BPM · key, two bars of every track, the song&rsquo;s sections and the playhead. '
+                  'The reel (32 takes), its SET and JAM are kept over power-off.</p>'))
     b.append('</div>')
     small = [
         ('LFO · MACROS', HEAT[2], 'Knobs M1–M4; they stay latched when let go (LFO again: off). F3 rolls new routes, '
