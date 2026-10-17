@@ -11,6 +11,18 @@
  * take under the cursor (OCT+ yes, OCT- no), EDIT held the takes not kept. Included by gen.c (after dice_print). */
 
 static uint16_t heat_col(int32_t v);                    /* (ui_graph.c) */
+/* (v2) the GEN screen's pop-up: what a control just did, big, in the middle of the screen for 1.6 s (a label, a
+ * value); a take waiting for the next bar: the bar's progress under it */
+static struct { char lbl[24], val[24]; uint32_t ms; uint8_t on; } gpop;
+static void reel_hex(char *b, uint32_t id);
+static void gen_pop(const char *lbl, const char *val)
+{
+    str_cpy(gpop.lbl, lbl, sizeof gpop.lbl);
+    str_cpy(gpop.val, val, sizeof gpop.val);
+    gpop.ms = (fm1_ms ? fm1_ms : 1u);
+    gpop.on = 1;
+    ui.force = 1;
+}
 #define REEL_N 32u
 #define CODE_MAX 28u                                    /* (v2) a share code's characters, at most */
 static uint8_t gen_fresh;                               /* (gen.c: the GEN screen drawn anew) */
@@ -174,6 +186,7 @@ static struct {                                         /* (v2) OCT+ held on the
     uint8_t held, used, focus;                          /* OCT+ held (the layer's); a key or a control acted (no load or
                                                          * piece when it is let go); KNOB 2's section */
     uint8_t down_oct;                                   /* OCT+ down (any page) */
+    uint8_t drop, drop_mute[SL_PARTS];                  /* (v2) the parts dropped (held), their mute before */
     uint32_t down, t[27];                               /* the layer's keys down, since when */
 } gl;
 static struct { uint8_t on, bars, n; } jam = {0, 8, 0};   /* (v2) JAM: a take every `bars` bars, by itself */
@@ -188,16 +201,26 @@ static void gen_reel_turn(int32_t s)
     reel_ask = 0;
     gl_code_ms = 0;
     if (gp.view == 2u) { set_knob(0, s); return; }      /* (the SET page: its entries, never the reel behind it) */
-    if (!gp.view) {
+    if (!gp.view) {                                     /* (the settings: the reel, the turn a step too) */
         gp.view = 1;
-    } else if (reel_n) {
-        reel_cur = (uint8_t)clamp((int32_t)reel_cur + (s > 0 ? 1 : -1), 0, (int32_t)reel_n - 1);
+        if (reel_play < reel_n) reel_cur = reel_play;
+    }
+    if (reel_n) {
+        uint32_t c = (reel_cur + (s > 0 ? 1u : reel_n - 1u)) % reel_n;   /* (round: the newest, then the oldest) */
+        if ((s > 0 && c < reel_cur) || (s < 0 && c > reel_cur)) {
+            char b[8];
+            fmt_int(b, c + 1u);
+            str_cpy(b + str_len(b), "/", 2);
+            fmt_int(b + str_len(b), reel_n);
+            gen_pop(s > 0 ? "ROUND TO THE FIRST" : "ROUND TO THE NEWEST", b);
+        }
+        reel_cur = (uint8_t)c;
         if (gl.held) {                                  /* (v2) OCT+ held: a cue, the take when OCT+ is let go */
             reel_want = -1;
             gen_take_ms = 0;
         } else if ((song.playing || chain_busy()) && reel_cur != reel_play) {
             reel_want = (int8_t)reel_cur;
-            gen_take_ms = fm1_ms | 1u;
+            gen_take_ms = (fm1_ms ? fm1_ms : 1u);
         }
     }
     ui.force = 1;
@@ -205,8 +228,11 @@ static void gen_reel_turn(int32_t s)
 /* KNOB 4 on the reel: keep (right) or let go (left) */
 static void gen_reel_keep(int32_t s)
 {
-    if (reel_n) reel[reel_cur].keep = (uint8_t)(s > 0);
-    ui.force = 1;
+    char b[8] = "#";
+    if (!reel_n) return;
+    reel[reel_cur].keep = (uint8_t)(s > 0 ? 1 : s < 0 ? 0 : !reel[reel_cur].keep);   /* (0: toggled) */
+    reel_hex(b + 1, reel[reel_cur].id);
+    gen_pop(reel[reel_cur].keep ? "KEPT" : "NOT KEPT", b);
 }
 /* (v2) EDIT on the reel: ask to delete the take under the cursor (held: the takes not kept); a kept take stays */
 static void gen_reel_edit(int held)
@@ -253,14 +279,39 @@ static void reel_hex(char *b, uint32_t id)              /* "0A3F" */
 }
 /* (v2) OCT+ held on the GEN screen: what the keys do, in the screen's last four lines */
 static uint8_t gl_drawn;
+static uint16_t reel_col(uint32_t role);
+static const uint8_t GKEY[27];
 static void draw_layer_keys(void)
 {
-    static const char *const LG[4] = {"F DRM G BAS A CHD B ARP C LED D TEX", "BLACK KEY: ITS SOUND  HOLD: LOCK",
-                                      "E SOUNDS F HARM G- A+ ENRG B MIX", "C- D+ KEY E- F+ BPM G VARY C# UP"};
+    /* the 16 white keys F3 .. G5 (a 2-letter tag, the part's colour; a drop: the colour on its tag only), the 11 black
+     * ones over them (a sound: the part's colour), a key down outlined, a locked part dotted; two lines of help */
+    static const char *const WT[16] = {"DR", "BS", "CH", "AR", "LD", "TX", "SN", "HM", "DR", "BS", "MX", "CH", "AR", "LD",
+                                       "TX", "VY"};
+    static const uint8_t WHITE[16] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};
+    static const uint8_t BLACK[11] = {1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25}, BAFTER[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
     uint32_t i;
     if (!gl_drawn) lcd_fill(0, 170, 240, 70, T_BG);     /* (once: what was there before) */
     gl_drawn = 1;
-    for (i = 0; i < 4u; i++) draw_text_box(0, 172 + i * 16u, 240, &AF_S, LG[i], i & 1u ? T_MID : T_TEXT, 1);
+    cv_begin(240, 44, T_BG);
+    for (i = 0; i < 16u; i++) {
+        uint32_t k = WHITE[i], c = GKEY[k], x = i * 15u;
+        int part = c >= SL_DRUMS && c <= SL_TEX, drop = c >= 0x40u && c < 0x40u + SL_PARTS;
+        uint32_t role = part ? SL_ROLE[c - SL_DRUMS] : drop ? SL_ROLE[c - 0x40u] : 0u;
+        uint16_t f = part ? reel_col(role) : drop ? T_SURF : T_RAISE, ink = part ? T_INK : drop ? reel_col(role) : T_TEXT;
+        int down = ((fm1_in.notes >> k) & 1u) != 0u;
+        cv_rrect((int32_t)x + 1, 16, 13, 26, 3, down ? T_TEXT : f, T_BG);
+        cv_text((int32_t)x + 2, 23, &AF_S, WT[i], down ? T_INK : ink);
+        if (part && ((gp.lock >> c) & 1u)) cv_rect((int32_t)x + 6, 38, 3, 3, T_INK);   /* (locked) */
+    }
+    for (i = 0; i < 11u; i++) {
+        uint32_t k = BLACK[i], c = GKEY[k], x = (BAFTER[i] + 1u) * 15u - 5u;
+        int snd = c >= 0x10u && c < 0x10u + RL_N, down = ((fm1_in.notes >> k) & 1u) != 0u;
+        cv_rrect((int32_t)x, 0, 10, 14, 2, down ? T_TEXT : snd ? reel_col(c - 0x10u) : T_MID, T_BG);
+        if (snd && ((gp.lock >> (8u + c - 0x10u)) & 1u)) cv_rect((int32_t)x + 4, 10, 2, 2, T_INK);
+    }
+    cv_blit(0, 170);
+    draw_text_box(0, 214, 240, &AF_S, "WHITE: PART AGAIN  BLACK: ITS SOUND  HOLD: LOCK", T_TEXT, 1);
+    draw_text_box(0, 228, 240, &AF_S, "G4..F5 HELD: DROP IT  E SND F HARM B MIX G VARY", T_MID, 1);
 }
 static void layer_keys_off(void)                        /* the keys' lines gone: the band cleared once */
 {
@@ -274,10 +325,10 @@ static void draw_reel(void)
     uint32_t i, r, tot = 0, x;
     if (!gl.held) layer_keys_off();                     /* (the keys' lines gone first: the map, the footer over it) */
     str_cpy(t, "TAKES  ", sizeof t);
-    if (reel_n) {
-        uint32_t n = str_len(t);
-        if (reel_n >= 10u) t[n++] = (char)('0' + reel_n / 10u);
-        t[n++] = (char)('0' + reel_n % 10u); t[n] = 0;
+    if (reel_n) {                                       /* (v2) its place: 3/7 */
+        fmt_int(t + str_len(t), reel_cur + 1u);
+        str_cpy(t + str_len(t), "/", 2);
+        fmt_int(t + str_len(t), reel_n);
     } else {
         str_cpy(t + str_len(t), "EMPTY", sizeof t - str_len(t));
     }
@@ -313,6 +364,9 @@ static void draw_reel(void)
         if (reel_cur == reel_play && (song.playing || chain_busy())) {   /* (the music now) */
             cv_rrect(k->keep ? 136 : 176, 5, 36, 15, 4, T_TEXT, T_RAISE);
             cv_text(k->keep ? 141 : 181, 6, &AF_S, "NOW", T_INK);
+        } else if ((reel_want == (int8_t)reel_cur && gen_take_ms) || (gl.held && reel_cur != reel_play)) {
+            cv_rrect(k->keep ? 136 : 176, 5, 36, 15, 4, T_ACCENT, T_SURF);   /* (v2) the take that comes next */
+            cv_text(k->keep ? 141 : 181, 6, &AF_S, "CUE", T_INK);
         }
         if (k->flav) {
             str_cpy(b, REEL_FLAV[(k->flav - 1u) % 7u], sizeof b);
@@ -321,11 +375,16 @@ static void draw_reel(void)
             str_cpy(b + 1, k->nrow ? " TRACKS  SONG" : " TRACKS  LOOP", sizeof b - 1u);
         }
         cv_text(26, 23, &AF_S, b, T_THEME);
-        if (k->parent) {                                /* (v2) its parent and what changed: "<0A3B DRUMS" */
+        if (k->parent) {                                /* (v2) its parent and what changed: "FROM 0A3B: DRUMS" */
             int32_t w0 = text_w(&AF_S, b), w;
-            b[0] = '<';
-            reel_hex(b + 1, k->parent);
-            if (k->how && k->how < GH_N) { b[5] = ' '; str_cpy(b + 6, GH_NAME[k->how], sizeof b - 6u); }
+            str_cpy(b, "FROM ", sizeof b);
+            reel_hex(b + 5, k->parent);
+            if (k->how && k->how < GH_N) { b[9] = ':'; b[10] = ' '; str_cpy(b + 11, GH_NAME[k->how], sizeof b - 11u); }
+            if (26 + w0 + 8 + text_w(&AF_S, b) > 214) {   /* (no room: the short way, "<0A3B DRUMS") */
+                b[0] = '<';
+                reel_hex(b + 1, k->parent);
+                if (k->how && k->how < GH_N) { b[5] = ' '; str_cpy(b + 6, GH_NAME[k->how], sizeof b - 6u); }
+            }
             w = text_w(&AF_S, b);
             if (26 + w0 + 8 + w <= 214) cv_text(214 - w, 23, &AF_S, b, reel_find(k->parent) >= 0 ? T_MID : T_DIM);
         }
@@ -411,8 +470,8 @@ static void draw_reel(void)
         draw_text_box(0, 216, 240, &AF_S, "OCT+ AND A PART KEY: THAT PART", T_DIM, 1);
         return;
     }
-    draw_text_box(0, 200, 240, &AF_S, "PRESETS SCROLL  OCT+ LOAD  K4 KEEP", T_TEXT, 1);
-    draw_text_box(0, 216, 240, &AF_S, "ALGO SOUNDS  EDIT DEL  REC SET", T_DIM, 1);
+    draw_text_box(0, 200, 240, &AF_S, "K1 TEMPO  K2 KEY  K3 ENERGY  K4 SECTION", T_TEXT, 1);
+    draw_text_box(0, 216, 240, &AF_S, "SAVE KEEP  EDIT DEL  HOLD OCT+: KEYS", T_DIM, 1);
 }
 
 /* ------------------------------------------------------------------- (v2) OCT+ held on the reel: the take layer --- */
@@ -423,12 +482,13 @@ static void draw_reel(void)
  * second locks it instead (ALGORITHM and the rerolls leave it; a new seed keeps it). On another take's card (PRESETS
  * turned with OCT+ held), a part or a sound key borrows that take's into the playing one. Let go of OCT+ without a key:
  * the take under the cursor, on the next bar. seq.c keeps the keys silent (layer_masks) */
-enum { GK_SOUNDS = 0x20, GK_HARM, GK_NRG_DN, GK_NRG_UP, GK_MIX, GK_KEY_DN, GK_KEY_UP, GK_BPM_DN, GK_BPM_UP, GK_VARY,
-       GK_PARENT, GK_ARR_DN, GK_ARR_UP, GK_JAM, GK_CODE };
-static const uint8_t GKEY[27] = {                       /* F3 .. G5: a part (SL_*), a role's sound (0x10 + RL_*), an act */
+enum { GK_SOUNDS = 0x20, GK_HARM, GK_MIX, GK_VARY, GK_PARENT, GK_ARR_DN, GK_ARR_UP, GK_JAM, GK_CODE };
+#define GK_DROP 0x40u                                   /* + SL_* - SL_DRUMS: that part dropped while the key is held */
+static const uint8_t GKEY[27] = {                       /* F3 .. G5: a part (SL_*), a role's sound (0x10 + RL_*), a drop
+                                                         * (0x40 + part), an act */
     SL_DRUMS, 0x10 | RL_DRUM, SL_BASS, 0x10 | RL_BASS, SL_CHORDS, 0x10 | RL_PAD, SL_ARP, SL_LEAD, 0x10 | RL_LEAD, SL_TEX,
-    0x10 | RL_TEX, GK_SOUNDS, GK_HARM, 0x10 | RL_ARP, GK_NRG_DN, GK_ARR_DN, GK_NRG_UP, GK_ARR_UP, GK_MIX, GK_KEY_DN,
-    GK_PARENT, GK_KEY_UP, GK_JAM, GK_BPM_DN, GK_BPM_UP, GK_CODE, GK_VARY};
+    0x10 | RL_TEX, GK_SOUNDS, GK_HARM, 0x10 | RL_ARP, GK_DROP + 0u, GK_ARR_DN, GK_DROP + 1u, GK_ARR_UP, GK_MIX,
+    GK_DROP + 2u, GK_PARENT, GK_DROP + 3u, GK_JAM, GK_DROP + 4u, GK_DROP + 5u, GK_CODE, GK_VARY};
 static const char *const GK_SAY[RL_N] = {"KIT", "BASS SOUND", "PAD SOUND", "LEAD SOUND", "ARP SOUND", "TEX SOUND"};
 static const char *const SL_SAY[SL_PARTS] = {"DRUMS", "BASS", "CHORDS", "ARP", "LEAD", "TEX"};
 /* a part or a sound borrowed: its pin (the same kind's replaced, else a free one, else the last) */
@@ -455,17 +515,18 @@ static uint32_t gl_of(const take_t *o, uint32_t what, uint32_t v, uint32_t *sd)
 }
 static void gl_go(uint32_t how, const char *what, const char *say)
 {
+    char b[24];
     gen_take_arm(how);
     gen_take_ms = (fm1_ms - 460u) | 1u;                 /* (no rest: the next bar; stopped, now) */
     gl.used = 1;
-    ui_say(what, say);
-    ui.force = 1;
+    str_cpy(b, what, sizeof b);
+    str_cpy(b + str_len(b), say, sizeof b - str_len(b));
+    gen_pop(song.playing || chain_busy() ? "ON THE NEXT BAR" : "TAKE", b);
 }
 static void gl_act(uint32_t c)
 {
     const take_t *o = gp.view == 1u && reel_cur < reel_n && reel_cur != reel_play && reel_play < reel_n ? &reel[reel_cur] : 0;
     uint32_t sd, v;
-    int32_t x;
     if (c >= SL_DRUMS && c <= SL_TEX) {                 /* a part's notes */
         if (o) {                                        /* (borrowed from the take under the cursor) */
             v = gl_of(o, 1u + c, o->set.var[c], &sd);
@@ -502,33 +563,18 @@ static void gl_act(uint32_t c)
         gl_go(GH_SOUNDS, "NEW SOUNDS", "");
         break;
     case GK_HARM: gp.var[SL_HARM]++; gl_go(GH_HARM, "NEW HARMONY", ""); break;
-    case GK_NRG_DN: case GK_NRG_UP:
-        gp.energy = (uint8_t)clamp((int32_t)gp.energy + (c == GK_NRG_UP ? 10 : -10), 0, 100);
-        gl_go(GH_ENERGY, c == GK_NRG_UP ? "ENERGY UP" : "ENERGY DOWN", "");
-        break;
     case GK_MIX: gp.var[SL_MIX]++; gl_go(GH_MIX, "NEW MIX", ""); break;
-    case GK_KEY_DN: case GK_KEY_UP:
-        x = gp.key ? (int32_t)gp.key - 1 : gs.root;      /* (AUTO: from the key playing) */
-        x = (x + (c == GK_KEY_UP ? 1 : 11)) % 12;
-        gp.key = (uint8_t)(x + 1);
-        gl_go(GH_KEY, "KEY ", REEL_KEY[x % 12]);
-        break;
-    case GK_BPM_DN: case GK_BPM_UP:
-        x = gp.tempo ? gp.tempo : song.g[G_BPM];
-        gp.tempo = (uint8_t)clamp(x + (c == GK_BPM_UP ? 2 : -2), 60, 200);
-        gl_go(GH_TEMPO, c == GK_BPM_UP ? "TEMPO UP" : "TEMPO DOWN", "");
-        break;
     case GK_VARY: gp.var[SL_FORM]++; gl_go(GH_VARY, "VARIED", ""); break;
     case GK_ARR_DN: case GK_ARR_UP: {
         char b[4] = "1/4";
-        if (!live.mode) { ui_message("A LOOP: NO SECTIONS"); break; }
+        if (!live.mode) { gen_pop("A LOOP", "NO SECTIONS"); break; }
         gp.arr = (uint8_t)((gp.arr + (c == GK_ARR_UP ? 1u : 3u)) % 4u);
         b[0] = (char)('1' + gp.arr);
         gl_go(GH_FORM, "ARRANGEMENT ", b);
         break;
     }
     case GK_CODE:                                       /* (v2) the take's code (let go of OCT+ to read it) */
-        gl_code_ms = fm1_ms | 1u;
+        gl_code_ms = (fm1_ms ? fm1_ms : 1u);
         gl.used = 1;
         ui.force = 1;
         break;
@@ -537,22 +583,25 @@ static void gl_act(uint32_t c)
         jam.on = (uint8_t)!jam.on;
         jam.n = 0;
         gl.used = 1;
-        b[0] = (char)('0' + jam.bars / 10u); b[1] = (char)('0' + jam.bars % 10u);
-        if (b[0] == '0') { b[0] = b[1]; b[1] = 0; }
-        if (jam.on) { ui_say("JAM: A TAKE EVERY BARS ", b); str_cpy(ui.msg2, "D#5 AGAIN: JAM OFF", sizeof ui.msg2); }
-        else ui_message("JAM OFF");
-        ui.force = 1;
+        str_cpy(b, "", sizeof b);
+        {
+            char v[16] = "EVERY ";
+            fmt_int(v + 6, jam.bars);
+            str_cpy(v + str_len(v), " BARS", 6);
+            gen_pop(jam.on ? "JAM ON  (D#5 HELD: BARS)" : "JAM", jam.on ? v : "OFF");
+        }
+        (void)b;
         break;
     }
     case GK_PARENT:
         if (reel_play < reel_n && reel[reel_play].parent) {
             int i = reel_find(reel[reel_play].parent);
-            if (i < 0) { ui_message("PARENT DELETED"); break; }
+            if (i < 0) { gen_pop("ITS PARENT", "DELETED"); break; }
             reel_cur = (uint8_t)i;
             reel_want = (int8_t)i;
             gl_go(GH_NONE, "BACK TO PARENT", "");
         } else {
-            ui_message("FIRST OF ITS FAMILY");
+            gen_pop("FIRST OF ITS FAMILY", "NO PARENT");
         }
         break;
     default: break;
@@ -564,9 +613,42 @@ static void gl_lock(uint32_t c)
     uint32_t bit = c >= 0x10u ? 8u + (c - 0x10u) : c, on;
     gp.lock ^= (uint16_t)(1u << bit);
     on = (gp.lock >> bit) & 1u;
-    ui_say(on ? "LOCKED " : "UNLOCKED ", c >= 0x10u ? GK_SAY[(c - 0x10u) % RL_N] : SL_SAY[(c - SL_DRUMS) % SL_PARTS]);
+    gen_pop(on ? "LOCKED" : "UNLOCKED", c >= 0x10u ? GK_SAY[(c - 0x10u) % RL_N] : SL_SAY[(c - SL_DRUMS) % SL_PARTS]);
     gl.used = 1;
-    ui.force = 1;
+}
+/* (v2) a part dropped while its key is held (G4 A4 C5 D5 E5 F5: DRUMS BASS CHORDS ARP LEAD TEX): its track muted at
+ * once, back as it was when the key is let go (no take: a performance) */
+static void gen_reel_jam_bars(int32_t s);
+static uint32_t gl_drop_trk(uint32_t p)
+{
+    uint32_t r = SL_ROLE[p % SL_PARTS];
+    return gs.trk_of[r] < NTRK ? gs.trk_of[r] : NTRK;
+}
+static void gl_drop(uint32_t p, int on)
+{
+    uint32_t t = gl_drop_trk(p);
+    if (on) {
+        if (t >= NTRK || !gs.act[SL_ROLE[p]]) { gen_pop("DROP", "NOT PLAYING"); return; }
+        if (!((gl.drop >> p) & 1u)) gl.drop_mute[p] = (uint8_t)trk[t].p[P_MUTE];
+        gl.drop |= (uint8_t)(1u << p);
+        trk[t].p[P_MUTE] = 1;
+        gen_pop("DROPPED WHILE HELD", SL_SAY[p]);
+    } else if ((gl.drop >> p) & 1u) {
+        gl.drop &= (uint8_t)~(1u << p);
+        if (t < NTRK) trk[t].p[P_MUTE] = gl.drop_mute[p];
+        gpop.on = 0;
+        gen_fresh = 1;
+        ui.force = 1;
+    }
+}
+static void gl_drop_hold(void)                          /* every frame: a section that came in keeps the drop */
+{
+    uint32_t p;
+    for (p = 0; p < SL_PARTS; p++)
+        if ((gl.drop >> p) & 1u) {
+            uint32_t t = gl_drop_trk(p);
+            if (t < NTRK) trk[t].p[P_MUTE] = 1;
+        }
 }
 /* every frame on the GEN screen: the layer's keys (lkeys: pressed with OCT+ held, silent: seq.c) */
 static void gen_layer(uint32_t lkeys)
@@ -590,45 +672,85 @@ static void gen_layer(uint32_t lkeys)
     }
     up = gl.down & ~fm1_in.notes;
     for (k = 0; k < 27u; k++)
-        if ((up >> k) & 1u) {                           /* a part or a sound key let go: held long, its lock */
+        if ((up >> k) & 1u) {                           /* a key let go: a part or a sound, held long its lock; D#5
+                                                         * held long JAM's bars; a drop over */
             uint32_t c = GKEY[k];
             gl.down &= ~(1u << k);
-            if (fm1_ms - gl.t[k] >= 500u) gl_lock(c);
+            if (c >= GK_DROP && c < GK_DROP + SL_PARTS) gl_drop(c - GK_DROP, 0);
+            else if (c == GK_JAM && fm1_ms - gl.t[k] >= 500u) gen_reel_jam_bars(1);
+            else if (fm1_ms - gl.t[k] >= 500u) gl_lock(c);
             else gl_act(c);
         }
+    gl_drop_hold();
     if (!held) return;
     for (k = 0; k < 27u; k++)
         if ((lkeys >> k) & 1u) {
             uint32_t c = GKEY[k];
             gl.used = 1;
-            if (c && c < 0x20u) { gl.down |= 1u << k; gl.t[k] = fm1_ms; }   /* (on release: tap or hold) */
+            if (c >= GK_DROP && c < GK_DROP + SL_PARTS) { gl.down |= 1u << k; gl_drop(c - GK_DROP, 1); }   /* (held: out) */
+            else if ((c && c < 0x20u) || c == GK_JAM) { gl.down |= 1u << k; gl.t[k] = fm1_ms; }   /* (let go: tap, hold) */
             else if (c) gl_act(c);
         }
 }
 
 /* ---------------------------------------------------------------------------------- (v2) KNOB 2, KNOB 3, JAM --- */
-/* KNOB 2 on the reel: the section the part keys make again (ALL, B, C, D: a song's; a loop has none) */
+/* KNOB 4 on the reel: the section the part keys make again (ALL, B, C, D: a song's; a loop has none) */
 static void gen_reel_focus(int32_t s)
 {
-    static const char *const SN[4] = {"ALL SECTIONS", "SECTION B", "SECTION C", "SECTION D"};
-    if (!reel_n || !reel[reel_cur].nrow) { gl.focus = 0; ui_message("A LOOP: NO SECTIONS"); return; }
+    static const char *const SN[4] = {"ALL", "B", "C", "D"}, *const TN[4] = {"ALL", "VERSE", "INTRO", "PRE-HOOK"};
+    if (!reel_n || !reel[reel_cur].nrow) { gl.focus = 0; gen_pop("A LOOP", "NO SECTIONS"); return; }
     gl.focus = (uint8_t)clamp((int32_t)gl.focus + (s > 0 ? 1 : -1), 0, 3);
-    ui_say(SN[gl.focus], "");
-    ui.force = 1;
+    gen_pop("THE PART KEYS REMAKE", reel[reel_cur].flav ? TN[gl.focus] : SN[gl.focus]);
+}
+/* (v2) KNOB 1 on the reel: the tempo, at once (no new take: the take playing keeps it) */
+static void gen_reel_tempo(int32_t s)
+{
+    int32_t x;
+    char v[12];
+    if (ui_prefs & PREF_BPM_LOCK) { gen_pop("TEMPO", "BPM LOCKED"); return; }
+    x = clamp(song.g[G_BPM] + accel(EN_K1, s, 140), 60, 200);
+    song.g[G_BPM] = (int16_t)x;
+    gp.tempo = (uint8_t)x;
+    if (reel_play < reel_n) { reel[reel_play].set.tempo = (uint8_t)x; reel[reel_play].bpm = (int16_t)x; }
+    gp.sig = gen_sig();
+    fmt_int(v, x);
+    str_cpy(v + str_len(v), " BPM", 5);
+    gen_pop("TEMPO", v);
+}
+/* (v2) KNOB 2: the key a semitone a detent, KNOB 3: the energy (5 a detent): a take once it rests, on the next bar */
+static void gen_reel_key(int32_t s)
+{
+    int32_t x = gp.key ? (int32_t)gp.key - 1 : gs.root;   /* (AUTO: from the key playing) */
+    char v[16];
+    x = (x + (s > 0 ? 1 : 11)) % 12;
+    gp.key = (uint8_t)(x + 1);
+    gen_take_arm(GH_KEY);
+    str_cpy(v, "KEY ", sizeof v);
+    str_cpy(v + 4, REEL_KEY[x % 12], 4);
+    gen_pop(song.playing || chain_busy() ? "ON THE NEXT BAR" : "TAKE", v);
+}
+static void gen_reel_energy(int32_t s)
+{
+    char v[16];
+    gp.energy = (uint8_t)clamp((int32_t)gp.energy + (s > 0 ? 5 : -5), 0, 100);
+    gen_take_arm(GH_ENERGY);
+    str_cpy(v, "ENERGY ", sizeof v);
+    fmt_int(v + 7, gp.energy);
+    gen_pop(song.playing || chain_busy() ? "ON THE NEXT BAR" : "TAKE", v);
 }
 /* KNOB 3 on the reel: JAM's bars (4, 8, 16, 32) */
 static void gen_reel_jam_bars(int32_t s)
 {
     static const uint8_t B[4] = {4, 8, 16, 32};
     uint32_t i;
-    char b[4] = {0};
+    char v[16] = "EVERY ";
     for (i = 0; i < 3u && B[i] != jam.bars; i++) {}
-    i = (uint32_t)clamp((int32_t)i + (s > 0 ? 1 : -1), 0, 3);
+    i = (i + (s > 0 ? 1u : 3u)) % 4u;                   /* (round: D#5 held again and again) */
     jam.bars = B[i];
-    b[0] = (char)('0' + jam.bars / 10u); b[1] = (char)('0' + jam.bars % 10u);
-    if (b[0] == '0') { b[0] = b[1]; b[1] = 0; }
-    ui_say("JAM EVERY BARS ", b);
-    ui.force = 1;
+    fmt_int(v + 6, jam.bars);
+    str_cpy(v + str_len(v), " BARS", 6);
+    gen_pop(jam.on ? "JAM" : "JAM (OFF)", v);
+    gl.used = 1;
 }
 /* a bar went by (the music playing, the GEN screen open): JAM's count; its time: a take with one thing made again (a
  * part's notes mostly, a sound, the ornaments, the mix; never a locked one), on the next bar */
@@ -670,21 +792,19 @@ static void set_note_take(void)                         /* a take became the mus
 }
 static void gen_reel_rec(void)
 {
-    if (gp.view == 2u) { gp.view = 1; ui.force = 1; return; }   /* (the SET page: back to the reel) */
+    char b[16];
     if (song.playing || chain_busy()) {
         set_rec = (uint8_t)!set_rec;
-        if (set_rec) { set_n = 0; set_note_take(); ui_message("SET: RECORDING"); }
+        if (set_rec) { set_n = 0; set_note_take(); gen_pop("SET", "RECORDING"); }
         else {
             if (set_n && !set_e[set_n - 1u].bars) set_n--;   /* (a take that never played a bar) */
-            ui_message(set_n ? "SET RECORDED: REC STOPPED" : "SET EMPTY");
+            fmt_int(b, set_n);
+            str_cpy(b + str_len(b), set_n == 1u ? " TAKE" : " TAKES", 8);
+            gen_pop("SET RECORDED (SELECT: ITS PAGE)", set_n ? b : "EMPTY");
         }
-    } else if (set_n) {
-        gp.view = 2;
-        set_cur = 0;
     } else {
-        ui_message("SET EMPTY: REC WHILE PLAYING");
+        gen_pop("REC A SET", "PLAY FIRST");
     }
-    ui.force = 1;
 }
 /* the take an entry plays (-1: deleted) */
 static int set_take(uint32_t i) { return i < set_n ? reel_find(set_e[i].id) : -1; }
@@ -810,9 +930,14 @@ static void draw_set(void)
         str_cpy(b + 2, n == 1u ? " BAR" : " BARS", sizeof b - 2u);
         draw_text_box(0, 146, 240, &AF_M, b[0] == '0' ? b + 1 : b, T_THEME, 1);
     }
+    else {
+        draw_text_box(0, 120, 240, &AF_S, "NO SET YET", T_MID, 1);
+        draw_text_box(0, 136, 240, &AF_S, "PLAYING: REC RECORDS THE TAKES", T_DIM, 1);
+        draw_text_box(0, 152, 240, &AF_S, "OR OCT+ ADDS THE TAKE PLAYING", T_DIM, 1);
+    }
     draw_text_box(0, 184, 240, &AF_S, "K1 ENTRY  K2 TAKE  K3 BARS", T_TEXT, 1);
     draw_text_box(0, 200, 240, &AF_S, "PLAY RUN  OCT+ ADD  EDIT DEL", T_TEXT, 1);
-    draw_text_box(0, 216, 240, &AF_S, "REC OR HOME: THE REEL", T_DIM, 1);
+    draw_text_box(0, 216, 240, &AF_S, "OCT- BACK  SEL NEXT PAGE", T_DIM, 1);
 }
 
 /* ------------------------------------------------------------------ (v2) the reel packed (flash: OBJ_REEL) --- */
@@ -1145,4 +1270,25 @@ static int gen_code_ok(const char *s)                   /* a code typed: its tak
         ui_message("TAKE FROM ITS CODE");
     }
     return 1;
+}
+
+/* ------------------------------------------------------------------------------- (v2) the take layer's LEDs --- */
+/* OCT+ held on the GEN screen: the keys that make takes breathe, a key down, a part dropped and a locked part (its notes'
+ * key, its sound's) lit (ui_input.c key_leds) */
+static int gen_keys_own(void) { return ui.confirm == CF_DICE_ALL && !ui.menu && gl.held; }
+static uint32_t gen_layer_leds(uint32_t *br)
+{
+    uint32_t k, on = 0, can = 0;
+    for (k = 0; k < 27u; k++) {
+        uint32_t c = GKEY[k], lit = ((fm1_in.notes >> k) & 1u) != 0u;
+        if (!c) continue;
+        can |= 1u << k;
+        if (c >= SL_DRUMS && c <= SL_TEX) lit |= (gp.lock >> c) & 1u;
+        else if (c >= 0x10u && c < 0x10u + RL_N) lit |= (gp.lock >> (8u + c - 0x10u)) & 1u;
+        else if (c >= GK_DROP && c < GK_DROP + SL_PARTS) lit |= (gl.drop >> (c - GK_DROP)) & 1u;
+        else if (c == GK_JAM) lit |= jam.on;
+        on |= lit << k;
+    }
+    if (br) *br = can & ~on;
+    return on;
 }
