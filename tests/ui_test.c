@@ -7042,8 +7042,11 @@ static int test_gen_layer(void)
     id0 = reel[reel_play].id;
     btn_down(B_OCTUP); frame();
     gates0 = gates();
-    gl_key(0, 50);                                      /* F3: new DRUMS */
-    ok = gates() == gates0 && gl.held && reel_n == 2u && reel[1].parent == id0 && reel[1].how == GH_DRUMS;
+    key_down(0); frame();
+    ok = kb_note[0] == KB_SILENT;                       /* F3: silent while it is down, */
+    frames(50); key_up(0); frame();                     /* new DRUMS when let go */
+    ok &= gl.held && reel_n == 2u && reel[1].parent == id0 && reel[1].how == GH_DRUMS;
+    (void)gates0;
     ok &= steps_sig(&trk[dr]) != st0[dr] && steps_sig(&trk[ld]) == st0[ld] && gsnd_sig(&trk[ld]) == sn0[ld];
     bad += check("GEN layer: OCT+ held on the reel: a key silent, F3 a child with new DRUMS (stopped: at once)", ok);
     gl_key(8, 50);                                      /* C#4: the lead's sound */
@@ -7257,6 +7260,109 @@ static int test_gen_store(void)
     memset(gp.var, 0, sizeof gp.var); memset(gp.svar, 0, sizeof gp.svar); memset(gp.secvar, 0, sizeof gp.secvar);
     memset(gp.pin, 0, sizeof gp.pin); gp.arr = 0;
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0; reel_next = 1;
+    ui_power_on();
+    return bad;
+}
+
+/* (TAKES v2) the GEN screen's controls, no conflicts: OCT+ held makes the keys the take layer's on every page (silent:
+ * checked while the key is down), OCT+ let go after keys or another control does nothing more, the SET page's EDIT held,
+ * PRESETS and ALGORITHM leave the reel alone, a delete question goes with the page, JAM waits for a SET playing, OCT+ on
+ * the settings while the music plays makes a take, GLO held + G4 is UNDO there */
+static int test_gen_conflicts(void)
+{
+    int bad = 0, ok;
+    uint32_t k, n0, st0[NTRK];
+    ui_power_on();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    fm1_ms += 1200u;
+    gp.genre = 3; gp.seed = 202; gp.form = 0;
+    press(B_OCTUP); frames(4);                          /* (a piece: the first take) */
+    ok = !gp.view && reel_n == 1u;
+    key_down(0); frame();
+    ok &= kb_note[0] != KB_SILENT;                      /* (a key alone: a note) */
+    key_up(0); frame();
+    btn_down(B_OCTUP); frame();
+    key_down(0); frame();
+    ok &= kb_note[0] == KB_SILENT;                      /* (OCT+ held: silent, while it is down) */
+    frames(48);
+    key_up(0); frame();
+    ok &= reel_n == 2u && reel[1].how == GH_DRUMS;      /* (F3: new drums, on the settings page too) */
+    btn_up(B_OCTUP); frame(); frames(32);
+    ok &= reel_n == 2u && !gl.used;                     /* (OCT+ let go after a key: no piece) */
+    bad += check("GEN controls: settings page, OCT+ held: a key silent while down, F3 a take; OCT+ let go: no piece too", ok);
+    turn(EN_PRESET, 1); frames(32);                     /* (the reel) */
+    btn_down(B_OCTUP); frame();
+    key_down(9); frame();
+    ok = gp.view == 1u && kb_note[9] == KB_SILENT;
+    frames(48); key_up(9); frame();
+    btn_up(B_OCTUP); frame(); frames(32);
+    ok &= reel_n == 3u && reel[2].how == GH_TEX && reel_want == -1;
+    bad += check("GEN controls: the reel, OCT+ held: a key silent while down, a take; OCT+ let go: no load", ok);
+    press(B_PLAY); play_ms(300);
+    reel_cur = 0;                                       /* (the cursor on another take) */
+    btn_down(B_OCTUP); frame();
+    turn(EN_ALGO, 1);                                   /* (a control with OCT+ down) */
+    btn_up(B_OCTUP); frame();
+    ok = gl.used == 0u && reel_want == -1 && gen_take_how == GH_SOUNDS;   /* (no load: ALGORITHM's take waits) */
+    play_ms(4000);
+    ok &= reel[reel_play].how == GH_SOUNDS;
+    bad += check("GEN controls: ALGORITHM turned with OCT+ down: its take, OCT+ let go loads nothing over it", ok);
+    transport_req = 2; play_ms(100);
+    reel_cur = 1;
+    press(B_EDIT); frame();                             /* (a question on the reel) */
+    ok = reel_ask == 1u;
+    turn(EN_SELECT, 1); frame();                        /* (the pages: the question gone) */
+    ok &= !reel_ask && !gp.view;
+    turn(EN_PRESET, 1); frames(32);
+    press(B_EDIT); frame(); press(B_HOME); frame();
+    ok &= !reel_ask && !gp.view && ui.confirm == CF_DICE_ALL;
+    n0 = reel_n;
+    press(B_OCTUP); frames(4);                          /* (no delete answered by it: a piece) */
+    ok &= reel_n == n0 + 1u;
+    bad += check("GEN controls: a delete question goes with the page (SELECT, HOME): a later OCT+ deletes nothing", ok);
+    set_e[0].id = reel[0].id; set_e[0].bars = 2; set_e[1].id = reel[1].id; set_e[1].bars = 2; set_n = 2;
+    turn(EN_PRESET, 1); frames(32);
+    press(B_REC); frame();                              /* (stopped: the SET page) */
+    ok = gp.view == 2u;
+    k = reel_cur;
+    turn(EN_PRESET, 1); frame();
+    ok &= set_cur == 1u && reel_cur == k && reel_want == -1;   /* (PRESETS: the entries, not the reel) */
+    { uint8_t sv = gp.svar[RL_BASS]; turn(EN_ALGO, 1); frame(); ok &= gp.svar[RL_BASS] == sv && !gen_take_ms; }
+    hold(B_EDIT); frame();
+    ok &= !reel_ask && set_n == 2u;                     /* (EDIT held: nothing) */
+    btn_down(B_OCTUP); frame(); key_down(0); frame();
+    ok &= kb_note[0] == KB_SILENT;
+    key_up(0); frame(); btn_up(B_OCTUP); frame();
+    ok &= set_n == 2u;                                  /* (OCT+ with a key: no entry added) */
+    bad += check("GEN controls: the SET page: PRESETS its entries, ALGORITHM and EDIT held nothing, OCT+ with a key no entry", ok);
+    set_play = 1; jam.on = 1; jam.bars = 4; jam.n = 3;
+    { uint32_t ms = gen_take_ms; jam_bar(); ok = gen_take_ms == ms; }
+    set_play = 0; jam.on = 0; jam.bars = 8; set_n = 0;
+    bad += check("GEN controls: JAM waits while a SET plays", ok);
+    press(B_HOME); frame(); press(B_HOME); frame();      /* (the settings) */
+    ok = !gp.view;
+    press(B_PLAY); play_ms(300);
+    n0 = reel_n;
+    gp.energy = 70;                                     /* (a setting changed, the music playing) */
+    press(B_OCTUP); frame();
+    ok &= gen_take_ms != 0u && reel_n == n0;            /* (a take, on the next bar) */
+    play_ms(4000);
+    ok &= reel_n == n0 + 1u && reel[reel_play].how == GH_SET && song.playing;
+    transport_req = 2; play_ms(100);
+    bad += check("GEN controls: OCT+ on the settings while playing: the piece as a take on the next bar", ok);
+    for (k = 0; k < NTRK; k++) st0[k] = steps_sig(&trk[k]);
+    gp.var[SL_DRUMS] = 9;
+    press(B_OCTUP); frames(4);                          /* (another piece: an UNDO point) */
+    btn_down(B_GLO); frame(); key_down(14); frame();
+    ok = kb_note[14] == KB_SILENT;
+    key_up(14); frame(); btn_up(B_GLO); frame();
+    for (k = 0; k < NTRK; k++) ok &= steps_sig(&trk[k]) == st0[k];
+    bad += check("GEN controls: GLO held + G4 on the GEN screen: UNDO (silent), the piece before back", ok);
+    memset(gp.var, 0, sizeof gp.var); memset(gp.svar, 0, sizeof gp.svar);
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0;
     ui_power_on();
     return bad;
 }
@@ -9518,6 +9624,7 @@ int main(void)
     bad += test_gen_layer();
     bad += test_gen_song_takes();
     bad += test_gen_store();
+    bad += test_gen_conflicts();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();

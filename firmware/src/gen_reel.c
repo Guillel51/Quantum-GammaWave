@@ -171,7 +171,9 @@ static int gen_reel_load(void)
 /* PRESETS: the reel opened (the settings' view: its first turn), then scrolled; playing, the take under the cursor
  * loads once PRESETS rests */
 static struct {                                         /* (v2) OCT+ held on the reel: the take layer */
-    uint8_t held, used, focus;                          /* OCT+ down; a key acted (no load when let go); KNOB 2's section */
+    uint8_t held, used, focus;                          /* OCT+ held (the layer's); a key or a control acted (no load or
+                                                         * piece when it is let go); KNOB 2's section */
+    uint8_t down_oct;                                   /* OCT+ down (any page) */
     uint32_t down, t[27];                               /* the layer's keys down, since when */
 } gl;
 static struct { uint8_t on, bars, n; } jam = {0, 8, 0};   /* (v2) JAM: a take every `bars` bars, by itself */
@@ -180,10 +182,12 @@ static struct { uint8_t on, bars, n; } jam = {0, 8, 0};   /* (v2) JAM: a take ev
 static struct { uint16_t id; uint8_t bars; } set_e[SET_N];
 static uint8_t set_n, set_rec, set_play, set_i, set_left, set_cur, set_seen;
 static uint32_t gl_code_ms;
+static void set_knob(uint32_t k, int32_t s);
 static void gen_reel_turn(int32_t s)
 {
     reel_ask = 0;
     gl_code_ms = 0;
+    if (gp.view == 2u) { set_knob(0, s); return; }      /* (the SET page: its entries, never the reel behind it) */
     if (!gp.view) {
         gp.view = 1;
     } else if (reel_n) {
@@ -247,11 +251,28 @@ static void reel_hex(char *b, uint32_t id)              /* "0A3F" */
     static const char HX[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
     b[0] = HX[(id >> 12) & 15u]; b[1] = HX[(id >> 8) & 15u]; b[2] = HX[(id >> 4) & 15u]; b[3] = HX[id & 15u]; b[4] = 0;
 }
+/* (v2) OCT+ held on the GEN screen: what the keys do, in the screen's last four lines */
+static uint8_t gl_drawn;
+static void draw_layer_keys(void)
+{
+    static const char *const LG[4] = {"F DRM G BAS A CHD B ARP C LED D TEX", "BLACK KEY: ITS SOUND  HOLD: LOCK",
+                                      "E SOUNDS F HARM G- A+ ENRG B MIX", "C- D+ KEY E- F+ BPM G VARY C# UP"};
+    uint32_t i;
+    if (!gl_drawn) lcd_fill(0, 170, 240, 70, T_BG);     /* (once: what was there before) */
+    gl_drawn = 1;
+    for (i = 0; i < 4u; i++) draw_text_box(0, 172 + i * 16u, 240, &AF_S, LG[i], i & 1u ? T_MID : T_TEXT, 1);
+}
+static void layer_keys_off(void)                        /* the keys' lines gone: the band cleared once */
+{
+    if (gl_drawn) lcd_fill(0, 170, 240, 70, T_BG);
+    gl_drawn = 0;
+}
 static void draw_reel(void)
 {
     char t[40];
     const take_t *k;
     uint32_t i, r, tot = 0, x;
+    if (!gl.held) layer_keys_off();                     /* (the keys' lines gone first: the map, the footer over it) */
     str_cpy(t, "TAKES  ", sizeof t);
     if (reel_n) {
         uint32_t n = str_len(t);
@@ -367,10 +388,7 @@ static void draw_reel(void)
         }
     }
     if (gl.held) {                                      /* (v2) OCT+ held: the keys */
-        static const char *const LG[4] = {"F DRM G BAS A CHD B ARP C LED D TEX", "BLACK KEY: ITS SOUND  HOLD: LOCK",
-                                          "E SOUNDS F HARM G- A+ ENRG B MIX", "C- D+ KEY E- F+ BPM G VARY C# UP"};
-        uint32_t i;
-        for (i = 0; i < 4u; i++) draw_text_box(0, 172 + i * 16u, 240, &AF_S, LG[i], i & 1u ? T_MID : T_TEXT, 1);
+        draw_layer_keys();
         return;
     }
     if (reel_ask) {                                     /* (v2) the question, in the footer */
@@ -445,7 +463,7 @@ static void gl_go(uint32_t how, const char *what, const char *say)
 }
 static void gl_act(uint32_t c)
 {
-    const take_t *o = reel_cur < reel_n && reel_cur != reel_play && reel_play < reel_n ? &reel[reel_cur] : 0;
+    const take_t *o = gp.view == 1u && reel_cur < reel_n && reel_cur != reel_play && reel_play < reel_n ? &reel[reel_cur] : 0;
     uint32_t sd, v;
     int32_t x;
     if (c >= SL_DRUMS && c <= SL_TEX) {                 /* a part's notes */
@@ -553,10 +571,23 @@ static void gl_lock(uint32_t c)
 /* every frame on the GEN screen: the layer's keys (lkeys: pressed with OCT+ held, silent: seq.c) */
 static void gen_layer(uint32_t lkeys)
 {
-    uint32_t held = gp.view && ((fm1_in.buttons >> panel.btn[B_OCTUP]) & 1u), k, up;
-    if (held && !gl.held) gl.used = 0;
+    uint32_t down = (fm1_in.buttons >> panel.btn[B_OCTUP]) & 1u, held = down && gp.view != 2u, k, up;
+    if (down && !gl.down_oct) gl.used = 0;               /* (OCT+ pressed: nothing done with it yet) */
+    gl.down_oct = (uint8_t)down;
     if (held != gl.held) ui.force = 1;
     gl.held = (uint8_t)held;
+    if (((fm1_in.buttons >> panel.btn[B_GLO]) & 1u) && !down) {   /* GLO held: G4 UNDO (the keys silent: layer_masks) */
+        if ((lkeys >> 14) & 1u) {
+            reel_ask = 0;
+            ui_message(chain_busy() ? "STOP TO EDIT" : undo_do() ? "NOTHING TO UNDO" : "UNDONE (AGAIN: REDO)");
+            ui.force = 1;
+        }
+        return;
+    }
+    if (down && !held) {                                 /* (the SET page: OCT+ adds; its keys do nothing) */
+        if (lkeys) gl.used = 1;
+        return;
+    }
     up = gl.down & ~fm1_in.notes;
     for (k = 0; k < 27u; k++)
         if ((up >> k) & 1u) {                           /* a part or a sound key let go: held long, its lock */
@@ -605,7 +636,7 @@ static void jam_bar(void)
 {
     static const uint8_t W[4] = {60, 25, 10, 5};        /* a part, a sound, VARY, the mix */
     uint32_t c = 0, tries;
-    if (!jam.on || gen_take_ms || ++jam.n < jam.bars) return;
+    if (!jam.on || set_play || gen_take_ms || ++jam.n < jam.bars) return;   /* (a SET playing: it leads) */
     jam.n = 0;
     reel_cur = reel_play < reel_n ? reel_play : reel_cur;   /* (from the take playing: never a borrow) */
     for (tries = 0; tries < 12u && !c; tries++) {

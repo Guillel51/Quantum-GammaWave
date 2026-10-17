@@ -2226,12 +2226,14 @@ static void ui_input_frame(void)
             gen_layer(lkeys);                           /* (TAKES v2) OCT+ held on the reel: the keys */
             gen_take_poll();
             {   /* (TAKES v2) EDIT on the reel: delete the take (held: the takes not kept), a question first; on the SET
-                 * page, the entry */
+                 * page, the entry (held: nothing) */
                 static uint32_t ed_t0;
                 uint32_t e = btn_hold(&ed_t0, B_EDIT, now, 1);
-                if (gp.view == 2u && e == BT_TAP) set_delete();
+                if (gp.view == 2u) { if (e == BT_TAP) set_delete(); }
                 else if (gp.view && (e == BT_TAP || e == BT_HOLD)) gen_reel_edit(e == BT_HOLD);
             }
+            if (gl.down_oct && (pressed & ~((1u << panel.btn[B_OCTUP]) | (1u << panel.btn[B_OCTDN]))))
+                gl.used = 1;                            /* (TAKES v2) a button with OCT+ down: no load when it is let go */
             {   /* (TAKES v2) REC on the reel: the SET (its own tap: in a dialog the REC layer is dead); SAVE: a take's
                  * code typed (the NAME screen) */
                 static uint32_t rc_t0, sv_t0;
@@ -2240,6 +2242,7 @@ static void ui_input_frame(void)
             }
             if (home == BT_TAP && gp.view) {            /* (1.0-GW) HOME on the reel: back to the settings */
                 gp.view = gp.view == 2u ? 1u : 0u;      /* (v2: the SET page: back to the reel) */
+                reel_ask = 0;
                 ui.force = 1;
             } else if (home == BT_TAP) {                /* (0.7.0) HOME: done (OCT- too) */
                 ui.confirm = 0;
