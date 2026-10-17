@@ -181,7 +181,11 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
     kick and plainer hats, a softer instrument playing only the melody's calls, a darker pad, no counter; its last
     4 bars a pre-hook where the drums and the 808 stop for a snare roll), hook, verse, hook, outro: 64 bars.
     PARTS stops after the second hook.
-- DICE ALL and a new GEN seed never repeat one of the last 64 seeds (two throws could land on the same piece).
+- DICE ALL and a new GEN seed never repeat one of the last 64 seeds (two throws could land on the same piece), and a
+  throw always moves the tempo.
+- On the default TRACKS 4 every genre keeps its melody: the bass, the genre's foreground part (its lead, or its arp
+  where it leans on the arp) and the chords get the three melodic tracks (the lead used to be left out, on the asleep
+  fifth track, in 9 pieces of 10); TRACKS 6 pieces are as before.
 - ABOUT: the QR code no longer covers the license line.
 
 ---

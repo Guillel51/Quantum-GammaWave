@@ -1293,8 +1293,18 @@ static void gen_make(void)
         gs.act[RL_DRUM] = (uint8_t)drums;
         static const uint8_t TRAP_K[GP_N - 1u] = {GP_BASS, GP_LEAD, GP_CHORDS, GP_ARP};   /* (trap: the melody before the
                                                          * pad: it lives on four tracks) */
-        for (k = 1; k < GP_N; k++) {
-            uint32_t kk = gs.trap ? TRAP_K[k - 1u] : k;
+        uint8_t ord[GP_N - 1u] = {GP_BASS, GP_CHORDS, GP_ARP, GP_LEAD};   /* the melodic parts, the most important first */
+        if (gs.trap) {
+            for (k = 0; k < GP_N - 1u; k++) ord[k] = TRAP_K[k];
+        } else if (nlive <= 4u) {                       /* (1.0-GW) four tracks: three melodic parts live, and the
+                                                         * melody was always the one left out (on the fifth): the bass,
+                                                         * the genre's foreground (its lead, or its arp where it weighs
+                                                         * the arp above the lead), the chords; the other one after */
+            uint8_t fg = (uint8_t)(gs.amt[GP_ARP] > gs.amt[GP_LEAD] ? GP_ARP : GP_LEAD);
+            ord[1] = fg; ord[2] = GP_CHORDS; ord[3] = (uint8_t)(fg == GP_ARP ? GP_LEAD : GP_ARP);
+        }
+        for (k = 0; k < GP_N - 1u; k++) {
+            uint32_t kk = ord[k];
             if (gs.amt[kk]) { pri[np++] = PRI[kk]; gs.act[PRI[kk]] = 1; }
         }
         nmel = np;
@@ -1303,7 +1313,7 @@ static void gen_make(void)
             if (np < 2u && !gs.act[RL_PAD]) { gs.act[RL_PAD] = 1; gs.amt[GP_CHORDS] = 60; pri[np++] = RL_PAD; }
         }
         for (k = 0; k < GP_N - 1u; k++) {               /* (the silent ones after) */
-            uint32_t kk = gs.trap ? TRAP_K[k] : k + 1u;
+            uint32_t kk = ord[k];
             if (!gs.act[PRI[kk]]) pri[np++] = PRI[kk];
         }
         for (k = 0; k < NTRK && dr == NTRK; k++) if (drum_track(&trk[k])) dr = k;
@@ -1501,9 +1511,13 @@ static void gen_press(void)
 static void dice_all(void)
 {
     uint8_t g = gp.genre;
+    int16_t b0 = song.g[G_BPM];
     gp.genre = 0;
     gen_new_seed();
     gen_go();
+    if (song.g[G_BPM] == b0 && !(ui_prefs & PREF_BPM_LOCK))   /* (1.0-GW) a throw always moves the tempo: landed on the
+                                                         * last one (two genres' ranges meet), one BPM off it */
+        song.g[G_BPM] = (int16_t)(b0 + (b0 < (int16_t)gs.g->bpm_hi ? 1 : -1));
     gp.sig = gen_sig();
     gp.genre = g;
 }

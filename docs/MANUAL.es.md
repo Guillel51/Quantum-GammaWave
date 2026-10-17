@@ -794,6 +794,12 @@ o de arco (intro, subida con el filtro abriéndose y un redoble, drop, break), c
 guardaste vos nunca se pisa: en ese caso el tema queda en loop. Las secciones son de 32 o 64 pasos, según qué tan
 rápido se mueven los acordes del género.
 
+**Qué partes reciben una pista**: la batería, el bajo y después las partes melódicas por importancia. Con MENU >
+TRACKS en 4 (tres partes melódicas en juego) son el bajo, la parte principal del género — su lead, o su arpegio donde
+el género se apoya en el arpegio — y los acordes; con 6, el bajo, los acordes, el arpegio, el lead y una textura (o, en
+la familia trap, los hi-hats en tresillo). DICE ALL siempre mueve el tempo (un BPM al lado del anterior si un tiro cae
+en el mismo).
+
 Lo que el generador sabe, por género (`gen_tables.c`):
 
 - **Armonía**: las escalas y progresiones del género, cada acorde con su propia calidad, en voces entre C3 y G5 y

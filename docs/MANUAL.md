@@ -752,6 +752,11 @@ out or changed in B, C (and D), chained in ARRANGE (A B A C); **SONG** makes a l
 with a filter opening and a roll, drop, break), each section 16 bars. A section you saved yourself is never
 overwritten: then the piece stays a loop. Sections are 32 or 64 steps, depending on how fast the genre's chords move.
 
+**Which parts get a track**: the drums, the bass, then the melodic parts by importance. With MENU > TRACKS on 4
+(three melodic parts live) that is the bass, the genre's foreground — its lead, or its arp where the genre leans on the
+arp — and the chords; with 6 the bass, the chords, the arp, the lead and a texture (or, in the trap family, the triplet
+hats). DICE ALL always moves the tempo (one BPM off the last one when a throw lands on it).
+
 What the generator knows, per genre (`gen_tables.c`):
 
 - **Harmony**: the genre's scales and progressions, every chord with its own quality, voiced between C3 and G5 and
