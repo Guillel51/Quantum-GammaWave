@@ -167,7 +167,30 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
 
-### Unreleased — the next build: TAKES v2, the songwriter (branch `claude/gw1-takes-v2`)
+### Unreleased — the next build (branch `claude/gw1-controls-audit`)
+
+**GEN: the controls, no conflicts** — reported: OCT+ held and a key still played the note. The take layer was the
+reel's only; on the settings pages the key sounded, and letting go of OCT+ then made a new piece. Every control on the
+GEN screen was then checked against every other (tests press each key and check it while it is still down):
+- **OCT+ held makes the keys the take layer's on every GEN page** (the settings and the reel): silent, the screen's
+  last lines say what they do.
+- **OCT+ let go after its keys, ALGORITHM, a knob or a button does nothing more**; it loaded the take under the cursor
+  over what had just been made.
+- **EDIT held on the SET page** asked, out of sight, to delete every take not kept, and the next OCT+ said yes: it
+  does nothing there now.
+- **A delete question goes with its page** (SELECT, HOME); a later OCT+ deleted takes.
+- **PRESETS on the SET page** moves the SET's entries; it moved the reel's cursor behind the page and, the SET playing,
+  loaded a take over it. **ALGORITHM** is refused there (it changed the music under the SET), and **JAM waits** while a
+  SET plays.
+- **OCT+ on the settings while a SONG plays** makes the piece as a take on the next bar (it did nothing).
+- **GLO held + G4 is UNDO on the GEN screen** too, silent (layers are off in a dialog: it played the note G4).
+- The browser emulator: **`[` and `]` are OCT− and OCT+ on any keyboard layout**. They were read by position; on
+  AZERTY they are AltGr + 5 and AltGr + °, so `[` held EDIT (and with AltGr reported as Ctrl + Alt, nothing).
+
+Every genre's whole song is still bit-identical; ui_test: the new GEN controls tests pass, and the old "UNDO (GLO +
+G4)" failure now passes too (14 failures from 15).
+
+### Published as `v1.0-GW-0f3b9b0` — TAKES v2, the songwriter (PR #6; the emulator's build fixed in PR #7)
 
 **A take's own choices** (the recipe: `gen.c`, `gen_trap.c`)
 - Besides the seed and the settings, a take now holds a **variation for each stream** the generator draws from (the

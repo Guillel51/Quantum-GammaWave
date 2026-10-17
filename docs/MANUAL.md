@@ -746,11 +746,11 @@ genre; left on AUTO / OFF the genre decides, as before:
 - **GRIT**: the master clip, the bass's distortion and drive and the drums' drive, as a share of the genre's
   (CLEAN: none, 200 %: twice; WRAITH's BLAST on an 808 stays a blend, its sub kept).
 
-**OCT+** makes the piece;
+**OCT+** makes the piece (the music playing: as a take, on the next bar);
 **ALGORITHM** gives it **new instruments**: every role's sound picked again (the notes stay; a locked sound stays),
 made by itself once you stop turning (about half a second; playing, on the next bar), turned back the sounds before.
-A run of takes keeps one UNDO point: **UNDO** (GLO held + G4, or OCT− held + GLO) brings back the
-music from before the first take, and again redoes. A **LOOP** piece always plays as a loop (an earlier PARTS / SONG
+A run of takes keeps one UNDO point: **UNDO** (GLO held + G4 — on the GENERATOR screen too, silent there — or OCT−
+held + GLO outside it) brings back the music from before the first take, and again redoes. A **LOOP** piece always plays as a loop (an earlier PARTS / SONG
 piece no longer leaves its song playing);
 **PLAY** starts and stops it so you can hear it without leaving the screen; **HOME** (or OCT−) closes the screen. The
 screen remembers the last piece (**LAST: UK DRILL 0421**) and the header says **GEN:** and the piece.
@@ -789,8 +789,10 @@ in the title: the number of takes); turn PRESETS (or KNOB 1) to scroll. Each tak
 | **SAVE** | Type a take's **share code** (the NAME screen). |
 | **HOME**, **SELECT** | Back to the settings (HOME again closes the GENERATOR). |
 
-**Hold OCT+**: the keys are silent and make **takes from the one playing** — a child each, on the next bar (stopped:
-at once):
+**Hold OCT+** — on every page of the GENERATOR screen, the settings and the reel (not the SET page): the keys are
+silent and make **takes from the one playing** — a child each, on the next bar (stopped: at once); the screen's last
+lines say what the keys do while OCT+ is held. Let go of OCT+ after a key, a knob or a button: nothing more happens (no
+piece, no load):
 
 | Keys (OCT+ held) | |
 | --- | --- |
@@ -821,9 +823,10 @@ mostly, now and then a sound, the ornaments or the mix, never a locked one. It r
 
 **The SET**: takes in a row, each for its bars. **REC** while playing records one: the take playing first, then every
 take that becomes the music (yours, JAM's), each with the bars it played; REC again ends it. **REC** stopped opens the
-**SET page**: the takes as blocks as long as their bars; **KNOB 1** the entry, **KNOB 2** its take, **KNOB 3** its bars,
-**OCT+** adds the take playing after the entry, **EDIT** deletes it, **PLAY** plays the SET from the entry (each take
-queued a bar before its turn, round), PLAY again stops; REC or HOME: the reel.
+**SET page**: the takes as blocks as long as their bars; **KNOB 1** (or PRESETS) the entry, **KNOB 2** its take,
+**KNOB 3** its bars, **OCT+** adds the take playing after the entry, **EDIT** deletes it, **PLAY** plays the SET from the
+entry (each take queued a bar before its turn, round), PLAY again stops; REC or HOME: the reel. ALGORITHM and the take
+keys do nothing there (the SET leads), and JAM waits while a SET plays.
 
 **Share codes**: **F#5** (OCT+ held) shows a take's code, e.g. **8350 YG00 DWDW C0GJ 0GV**: its recipe (the seed, the
 settings that are not as the screen opens, the take's own choices), the last character a check. **SAVE** on the reel

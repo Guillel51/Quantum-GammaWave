@@ -195,8 +195,8 @@ def controls():
             'F5': 'BPM +', 'G5': 'VARY'}
     tk_b = {'F#3': 'KIT', 'G#3': 'BASS SND', 'A#3': 'PAD SND', 'C#4': 'LEAD SND', 'D#4': 'TEX SND', 'F#4': 'ARP SND',
             'G#4': 'ARR −', 'A#4': 'ARR +', 'C#5': 'BACK', 'D#5': 'JAM', 'F#5': 'CODE'}
-    b.append(card('TAKES · OCT+ HELD ON THE REEL', HEAT[5], keyboard(tk_w, tk_b) +
-                  '<p>GEN (OCT− + PLAY), PRESETS: the <b>TAKES</b> reel. Hold <b>OCT+</b>: each key makes a <b>child take</b> '
+    b.append(card('TAKES · OCT+ HELD ON THE GEN SCREEN', HEAT[5], keyboard(tk_w, tk_b) +
+                  '<p>GEN (OCT− + PLAY), any page; PRESETS: the <b>TAKES</b> reel. Hold <b>OCT+</b>: the keys are silent, each makes a <b>child take</b> '
                   'from the one playing, on the next bar (stopped: at once). White F3–D4: that part&rsquo;s notes made again '
                   '(with KNOB 2 on a section: there only); the black key beside it: its <b>sound</b> (the notes kept). '
                   '<b>Hold a part or sound key ½ s: lock it</b> (ALGORITHM, ALL SOUNDS and JAM leave it; a new seed keeps '
@@ -211,6 +211,7 @@ def controls():
         ('REC', 'Playing: record a <b>SET</b> of takes. Stopped: the SET page (K1 entry, K2 take, K3 bars, OCT+ add, PLAY).'),
         ('SAVE', 'Type a take&rsquo;s <b>share code</b>: its piece, the same on any GW-1.'),
         ('HOME · SELECT', 'Back to the settings pages.'),
+        ('GLO + G4', '<b>UNDO</b> (on the GEN screen too).'),
     ]
     tr = '<table>' + ''.join(f'<tr><td class="n">{e(a)}</td><td>{d}</td></tr>' for a, d in reel) + '</table>'
     b.append(card('TAKES · THE REEL', HEAT[6], tr +
