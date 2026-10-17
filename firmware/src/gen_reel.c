@@ -3,7 +3,7 @@
  * settings that remake it exactly (the generator is deterministic) — with what its card shows: the genre and the trap
  * flavour, the seed, the tempo, the key, each live track's first two bars as a thumbnail and the song's sections.
  * PRESETS on the GEN screen opens the reel and scrolls it; while the music plays the take under the cursor becomes the
- * music once PRESETS rests (gen_take_poll), stopped OCT+ loads it; KNOB 4 keeps a take (kept ones never drop off: the
+ * music once PRESETS rests (gen_take_poll), stopped OCT+ loads it; SAVE keeps a take (kept ones never drop off: the
  * reel holds the last 32). A recipe is not a recording: edits made after are not on it, SAVE keeps those.
  * (TAKES v2) A take has an ID of its own (#0001 .. #FFFF, never one still on the reel: a take's ID stays its ID when
  * others go) and its parent's: a take made from another (a part, a sound, a section made again, a setting changed) is
@@ -225,7 +225,7 @@ static void gen_reel_turn(int32_t s)
     }
     ui.force = 1;
 }
-/* KNOB 4 on the reel: keep (right) or let go (left) */
+/* SAVE on the reel: keep or let go (0: toggled; right / left: kept / not) */
 static void gen_reel_keep(int32_t s)
 {
     char b[8] = "#";
@@ -241,10 +241,10 @@ static void gen_reel_edit(int held)
     if (!reel_n) return;
     if (held) {
         for (i = 0; i < reel_n; i++) n += !reel[i].keep;
-        if (!n) { ui_message("ALL TAKES KEPT"); return; }
+        if (!n) { gen_pop("NOTHING TO DELETE", "ALL KEPT"); return; }
         reel_ask = 2;
     } else if (reel[reel_cur].keep) {
-        ui_message("KEPT: KNOB 4 LEFT FIRST");
+        gen_pop("KEPT", "SAVE LETS IT GO");
         return;
     } else {
         reel_ask = 1;
@@ -257,11 +257,11 @@ static void gen_reel_answer(int yes)
     uint32_t i, n = 0;
     if (yes && reel_ask == 1u && reel_cur < reel_n) {
         reel_drop(reel_cur);
-        ui_message("TAKE DELETED");
+        gen_pop("TAKE", "DELETED");
     } else if (yes && reel_ask == 2u) {
         for (i = reel_n; i-- > 0;)
             if (!reel[i].keep) { reel_drop(i); n++; }
-        ui_message(n ? "UNKEPT TAKES DELETED" : "ALL TAKES KEPT");
+        gen_pop(n ? "NOT KEPT" : "NOTHING TO DELETE", n ? "DELETED" : "ALL KEPT");
     }
     reel_ask = 0;
     ui.force = 1;
@@ -283,8 +283,8 @@ static uint16_t reel_col(uint32_t role);
 static const uint8_t GKEY[27];
 static void draw_layer_keys(void)
 {
-    /* the 16 white keys F3 .. G5 (a 2-letter tag, the part's colour; a drop: the colour on its tag only), the 11 black
-     * ones over them (a sound: the part's colour), a key down outlined, a locked part dotted; two lines of help */
+    /* the 16 white keys F3 .. G5 (a letter; a part: filled in its colour; a drop: framed in it), the 11 black ones over
+     * them (a sound: the part's colour), a key down lit, a locked part or sound dotted; two lines of help */
     static const char *const WT[16] = {"D", "B", "C", "A", "L", "T", "S", "H", "D", "B", "M", "C", "A", "L", "T", "V"};
     static const uint8_t WHITE[16] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};
     static const uint8_t BLACK[11] = {1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25}, BAFTER[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
@@ -663,7 +663,7 @@ static void gen_layer(uint32_t lkeys)
     if (((fm1_in.buttons >> panel.btn[B_GLO]) & 1u) && !down) {   /* GLO held: G4 UNDO (the keys silent: layer_masks) */
         if ((lkeys >> 14) & 1u) {
             reel_ask = 0;
-            ui_message(chain_busy() ? "STOP TO EDIT" : undo_do() ? "NOTHING TO UNDO" : "UNDONE (AGAIN: REDO)");
+            gen_pop("UNDO", chain_busy() ? "STOP TO EDIT" : undo_do() ? "NOTHING TO UNDO" : "UNDONE");
             ui.force = 1;
         }
         return;
@@ -740,7 +740,7 @@ static void gen_reel_energy(int32_t s)
     fmt_int(v + 7, gp.energy);
     gen_pop(song.playing || chain_busy() ? "ON THE NEXT BAR" : "TAKE", v);
 }
-/* KNOB 3 on the reel: JAM's bars (4, 8, 16, 32) */
+/* D#5 held on the take layer: JAM's bars (4, 8, 16, 32, round) */
 static void gen_reel_jam_bars(int32_t s)
 {
     static const uint8_t B[4] = {4, 8, 16, 32};
@@ -787,7 +787,7 @@ static void set_note_take(void)                         /* a take became the mus
 {
     if (!set_rec || reel_play >= reel_n) return;
     if (set_n && set_e[set_n - 1u].id == reel[reel_play].id) return;
-    if (set_n >= SET_N) { set_rec = 0; ui_message("SET FULL (32)"); return; }
+    if (set_n >= SET_N) { set_rec = 0; gen_pop("SET FULL", "32 ENTRIES"); return; }
     set_e[set_n].id = reel[reel_play].id;
     set_e[set_n].bars = 0;
     set_n++;
@@ -836,7 +836,7 @@ static void set_toggle(void)
 {
     int t;
     if (song.playing || chain_busy() || seq_counting()) { transport_req = 2; set_play = 0; return; }
-    if (!set_n || (t = set_take(set_cur)) < 0) { ui_message("TAKE DELETED"); return; }
+    if (!set_n || (t = set_take(set_cur)) < 0) { gen_pop("THAT TAKE", "DELETED"); return; }
     gset_put(&reel[t].set);
     gen_how = GH_NONE;
     gen_go();
@@ -884,7 +884,7 @@ static void set_delete(void)
     for (i = set_cur; i + 1u < set_n; i++) set_e[i] = set_e[i + 1u];
     set_n--;
     if (set_cur >= set_n && set_cur) set_cur--;
-    if (!set_n) { gp.view = 1; ui_message("SET EMPTY"); }
+    if (!set_n) { gp.view = 1; gen_pop("SET", "EMPTY"); }
     ui.force = 1;
 }
 static void draw_set(void)

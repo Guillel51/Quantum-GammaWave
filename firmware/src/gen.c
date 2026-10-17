@@ -2019,10 +2019,10 @@ static void gen_algo(int32_t s)
     char b[8];
     reel_ask = 0;
     if (gl.down_oct) gl.used = 1;                       /* (with OCT+ down: no load when it is let go) */
-    if (gp.view == 2u) { ui_message("SET: ALGORITHM ON THE REEL"); return; }   /* (not under a SET) */
+    if (gp.view == 2u) { gen_pop("ALGORITHM", "ON THE REEL"); return; }   /* (not under a SET) */
     for (r = 0; r < RL_N; r++)                          /* (the sounds not locked) */
         if (!((gp.lock >> (8u + r)) & 1u)) { gp.svar[r] = (uint8_t)(gp.svar[r] + (s > 0 ? 1u : 255u)); n++; }
-    if (!n) { ui_message("ALL SOUNDS LOCKED"); return; }
+    if (!n) { gen_pop("NEW SOUNDS", "ALL LOCKED"); return; }
     r = gp.svar[RL_BASS] ? gp.svar[RL_BASS] : gp.svar[RL_LEAD];
     (void)b;
     gen_pop(song.playing || chain_busy() ? "NEW SOUNDS ON THE NEXT BAR" : "ALGORITHM", r ? "NEW SOUNDS" : "AS MADE");
