@@ -285,23 +285,25 @@ static void draw_layer_keys(void)
 {
     /* the 16 white keys F3 .. G5 (a 2-letter tag, the part's colour; a drop: the colour on its tag only), the 11 black
      * ones over them (a sound: the part's colour), a key down outlined, a locked part dotted; two lines of help */
-    static const char *const WT[16] = {"DR", "BS", "CH", "AR", "LD", "TX", "SN", "HM", "DR", "BS", "MX", "CH", "AR", "LD",
-                                       "TX", "VY"};
+    static const char *const WT[16] = {"D", "B", "C", "A", "L", "T", "S", "H", "D", "B", "M", "C", "A", "L", "T", "V"};
     static const uint8_t WHITE[16] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};
     static const uint8_t BLACK[11] = {1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25}, BAFTER[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
     uint32_t i;
     if (!gl_drawn) lcd_fill(0, 170, 240, 70, T_BG);     /* (once: what was there before) */
     gl_drawn = 1;
     cv_begin(240, 44, T_BG);
-    for (i = 0; i < 16u; i++) {
+    for (i = 0; i < 16u; i++) {                         /* (a part: filled in its colour; a drop: its colour as a frame) */
         uint32_t k = WHITE[i], c = GKEY[k], x = i * 15u;
         int part = c >= SL_DRUMS && c <= SL_TEX, drop = c >= 0x40u && c < 0x40u + SL_PARTS;
         uint32_t role = part ? SL_ROLE[c - SL_DRUMS] : drop ? SL_ROLE[c - 0x40u] : 0u;
-        uint16_t f = part ? reel_col(role) : drop ? T_SURF : T_RAISE, ink = part ? T_INK : drop ? reel_col(role) : T_TEXT;
+        uint16_t col = reel_col(role), f = part ? col : drop ? col : T_RAISE, ink = part ? T_INK : drop ? col : T_TEXT;
         int down = ((fm1_in.notes >> k) & 1u) != 0u;
+        int32_t w;
         cv_rrect((int32_t)x + 1, 16, 13, 26, 3, down ? T_TEXT : f, T_BG);
-        cv_text((int32_t)x + 2, 23, &AF_S, WT[i], down ? T_INK : ink);
-        if (part && ((gp.lock >> c) & 1u)) cv_rect((int32_t)x + 6, 38, 3, 3, T_INK);   /* (locked) */
+        if (drop && !down) cv_rrect((int32_t)x + 3, 18, 9, 22, 2, T_BG, f);
+        w = text_w(&AF_S, WT[i]);
+        cv_text((int32_t)x + 1 + (13 - w) / 2, 22, &AF_S, WT[i], down ? T_INK : ink);
+        if (part && ((gp.lock >> c) & 1u)) cv_rect((int32_t)x + 6, 37, 3, 3, T_INK);   /* (locked) */
     }
     for (i = 0; i < 11u; i++) {
         uint32_t k = BLACK[i], c = GKEY[k], x = (BAFTER[i] + 1u) * 15u - 5u;
@@ -309,9 +311,9 @@ static void draw_layer_keys(void)
         cv_rrect((int32_t)x, 0, 10, 14, 2, down ? T_TEXT : snd ? reel_col(c - 0x10u) : T_MID, T_BG);
         if (snd && ((gp.lock >> (8u + c - 0x10u)) & 1u)) cv_rect((int32_t)x + 4, 10, 2, 2, T_INK);
     }
-    cv_blit(0, 170);
-    draw_text_box(0, 214, 240, &AF_S, "WHITE: PART AGAIN  BLACK: ITS SOUND  HOLD: LOCK", T_TEXT, 1);
-    draw_text_box(0, 228, 240, &AF_S, "G4..F5 HELD: DROP IT  E SND F HARM B MIX G VARY", T_MID, 1);
+    cv_blit(0, 172);
+    draw_text_box(0, 211, 240, &AF_S, "FILLED: NEW PART  BLACK: ITS SOUND", T_TEXT, 1);
+    draw_text_box(0, 224, 240, &AF_S, "FRAMED: DROP WHILE HELD  HOLD: LOCK", T_MID, 1);
 }
 static void layer_keys_off(void)                        /* the keys' lines gone: the band cleared once */
 {

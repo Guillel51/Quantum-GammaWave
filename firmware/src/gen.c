@@ -2189,7 +2189,7 @@ static void draw_pop(void)
 static void draw_gen(void)
 {
     uint32_t k;
-    char t[24], v[16];
+    char t[40], v[16];
     static uint8_t last_view;
     if (gen_fresh || ui.head_sig != ~0u || last_view != gp.view) {   /* (0.6.96) cleared once on entering (1.0-GW: and
                                                          * between the pages and the reel), not on every knob: each
