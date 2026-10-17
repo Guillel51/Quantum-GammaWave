@@ -127,9 +127,9 @@ def controls():
         ('MASTER', 'Master volume.'),
         ('SELECT', '<b>Scrolls the section\'s pages</b> (HOME: the 49-genre generator). Held with a button, its <b>dice</b> (OK keeps, CANCEL back): HOME the generator, '
                    'EDIT the sound, SEQ the sequence, LFO the LFO, FX the effects. GLO + SELECT: the tempo.'),
-        ('PRESETS', 'Browses the sounds (factory and user). On step, list and song pages: the cursor / the row. '
+        ('PRESETS', 'Browses the sounds (factory and user). On step, list and song pages: the cursor / the row. In the generator: its five pages. '
                     '<b>Hold a page button + PRESETS: jump through its pages.</b>'),
-        ('ALGORITHM', 'Selects the track from any page: T1–T4, or T1–T6 with TRACKS 6.'),
+        ('ALGORITHM', 'Selects the track from any page: T1–T4, or T1–T6 with TRACKS 6. In the generator: the seed (a take while playing).'),
         ('KNOB 1–4', 'The four columns on screen. Fast sweeps the whole range, slow fine-tunes. With a layer held: '
                      'the layer\'s.'),
         ('OCT− · OCT+', 'The keyboard\'s octave (both together: back to 0). On action pages and dialogs: back / confirm.'),
@@ -206,7 +206,7 @@ def controls():
     b.append(sec('COMBOS & [OCT−] SHIFT DECK'))
     combos = [
         (k('OCT−', cls='a') + ' + ' + k('ARP', cls='a'), '<b>HEARTH MACROS (1/6–6/6)</b>: Gravity, Singularity, Photosphere, Wraith Scream, Formant Vowel, Solar Eclipse — drive type and amount, cutoff, resonance (4–6: SCREAM / VOWEL filter). Undo: OCT− + GLO.'),
-        (k('OCT−', cls='a') + ' + ' + k('PLAY', cls='a'), '<b>49-GENRE SONG GENERATOR (GEN)</b>: Trap ATL, UK Drill, Dark Trap, Rage Trap, house, techno, IDM, ambient… KNOB 1 genre, KNOB 2 seed, KNOB 3 energy, KNOB 4 form; SELECT pages; OCT+ makes, PLAY auditions.'),
+        (k('OCT−', cls='a') + ' + ' + k('PLAY', cls='a'), '<b>49-GENRE SONG GENERATOR (GEN)</b>: Trap ATL, UK Drill, Dark Trap, Rage Trap, house, techno, IDM, ambient… KNOB 1 genre, KNOB 2 seed, KNOB 3 energy, KNOB 4 form; PRESETS pages (parts, SONG: tempo key scale length, FEEL: space fills wet grit), SELECT genre, ALGORITHM seed (takes while playing); OCT+ makes, PLAY auditions.'),
         (k('OCT−', cls='a') + ' + ' + k('ENV / SCL', cls='a'), '<b>SEQ &gt; MUTATE (1-CLICK)</b>: jumps to MUTATE; if it was off, switches it on (Sound 2 bars, Pattern 4 bars, Amount 50%).'),
         (k('OCT−', cls='a') + ' + ' + k('HOME / SAVE', cls='a'), '<b>HYPERSPACE VISUALIZER</b>: 4 animated scenes (Supernova, Wraith 3D, Warp Tunnel, Matrix FFT); OCT+ next scene, OCT− leaves.'),
         (k('OCT−', cls='a') + ' + ' + k('SEQ · EDIT · FX · LFO', cls='v'), '<b>1-HAND DICE</b>: rolls Sequence, Sound Patch, Track FX, or LFO on the active track.'),
@@ -311,7 +311,7 @@ def sound():
                   '<b>8 voices</b> shared by the six tracks (MONO and LEGATO keep their note).</p>'))
     b.append(card('49-GENRE GENERATOR & DICE', HEAT[5], '<p><b>OCT− + PLAY</b> (or SELECT on HOME): 49-Genre Song Generator '
                   'including <b>TRAP ATL</b>, <b>UK DRILL</b> (3-3-2 tresillo bounce), <b>DARK TRAP</b> (808 cowbells), '
-                  '<b>RAGE TRAP</b>, house, techno, IDM, ambient… KNOB 1 genre, OCT+ makes. <b>OCT− + ENV</b>: 1-click <b>SEQ &gt; MUTATE</b> (ORBIT / DRIFT; on the page OCT− FREEZE, OCT+ KEEP). '
+                  '<b>RAGE TRAP</b>, house, techno, IDM, ambient… KNOB 1 genre, PRESETS its pages (SONG: tempo, key, scale, length; FEEL: space for a voice, fills, wet, grit), OCT+ makes. <b>OCT− + ENV</b>: 1-click <b>SEQ &gt; MUTATE</b> (ORBIT / DRIFT; on the page OCT− FREEZE, OCT+ KEEP). '
                   '<b>OCT− + GLO</b>: Undo.</p>'))
     b.append('</div>')
 

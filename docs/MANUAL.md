@@ -388,8 +388,11 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
 | **NOISE** | MODE, COLOR, FREQ, PEAK | TRK, DENSE, DRIFT, CRUSH | FREQ, PEAK, COLOR, REL |
 | **DRUM** (DRUM-X) | MORPH, TUNE, TONE, DECAY | NOISE, FM ENV, FOLD, DRIVE | MORPH, TUNE, TONE, DECAY |
 
-- **ANALOG**: two oscillators. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3. **INT** sets oscillator 2's interval
-  (±24 semitones). Its filter is per voice.
+- **ANALOG**: two oscillators. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD. **INT** sets oscillator
+  2's interval (±24 semitones). Its filter is per voice. **TUBE** and **FOLD** are sines made dirty inside the
+  oscillator, before the filter, so the fundamental stays (a distorted 808 keeps its sub): TUBE through GammaWave's
+  Hearth tube curve (warm, even harmonics), FOLD through WRAITH's Blast wavefolder (a growl, metal). How dirty is
+  **MORPH** plus ENV / LFO → **SHAPE**: with ENV → SHAPE up, a note is dirtiest on its hit and cleans up as it rings.
 - **FM6**: a six-operator FM engine (Dexed's msfa), 32 algorithms drawn on screen, four voices per track. The EDIT 1/2
   knobs are macros over the patch. **SLOT**: the factory patches F1–F8, OWN (an edited or imported patch) and B1–B32
   (a 32-voice DX7 bank sent from the web editor; empty slots are skipped). **OPERATOR / OP ENV / OPERATOR 2** edit each
@@ -717,15 +720,38 @@ Hold **SAVE**:
 ### GENERATOR — the song generator (HOME + SELECT)
 
 Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (GW-1). The screen,
-**GENERATOR 1/3**, has three pages of four settings; **SELECT** turns the page, **KNOB 1–4** set the four rows:
+**GENERATOR 1/5**, has five pages of four settings: **PRESETS** turns the page (round), **KNOB 1–4** set the four
+rows, **SELECT** turns the genre and **ALGORITHM** the seed from any page (the first page comes up, the row lit):
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
-| 1/3 | **GENRE** (RANDOM or one of 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
-| 2/3 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
-| 3/3 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % or AUTO) | **HUMAN** (0–100 %) |
+| 1/5 | **GENRE** (RANDOM or one of 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
+| 2/5 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
+| 3/5 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % or AUTO) | **HUMAN** (0–100 %) |
+| 4/5 SONG | **TEMPO** (AUTO or 60–200 BPM) | **KEY** (AUTO or C–B) | **SCALE** (AUTO, MIN, MAJ, DOR, PHRY, HARM, MIX, LYD) | **LENGTH** (AUTO, SHORT, LONG, EPIC) |
+| 5/5 FEEL | **SPACE** (OFF–100 %) | **FILLS** (OFF–100 % or AUTO) | **WET** (DRY–200 % or AUTO) | **GRIT** (CLEAN–200 % or AUTO) |
 
-The part rows (DRUMS … LEAD) go from OFF through 10–100 % to **AUTO** (the genre decides). **OCT+** makes the piece;
+The part rows (DRUMS … LEAD) go from OFF through 10–100 % to **AUTO** (the genre decides). SONG and FEEL refine any
+genre; left on AUTO / OFF the genre decides, as before:
+
+- **TEMPO**: AUTO is the genre's range (ENERGY sets the place in it); turned up from AUTO it starts at the song's
+  tempo, then sets the piece's BPM. MENU > BPM LOCK still wins.
+- **KEY**, **SCALE**: the piece's key and mode instead of the seed's and the genre's.
+- **LENGTH** (FORM PARTS or SONG): the song's rows half as long, twice, three times, in whole loops of each section.
+- **SPACE**: room for a voice. The melody and the arp lose the end of every two bars (the singer's answer) and some of
+  their off-beats, and the music sits lower under the drums (melody, arp −4 dB, pad −3 dB at 100 %).
+- **FILLS**: the drum rolls. OFF: none at all; 10–100 %: the rolls as made replaced by snare rolls on a phrase's last
+  beat (the 4th bar's always, the 2nd's from 50 %, every bar's from 80 %), faster (1/64) from 70 %.
+- **WET**: the reverb and delay sends, as a share of what the genre gives (DRY: none, 100 %: as made, 200 %: twice).
+- **GRIT**: the master clip, the bass's distortion and drive and the drums' drive, as a share of the genre's
+  (CLEAN: none, 200 %: twice; WRAITH's BLAST on an 808 stays a blend, its sub kept).
+
+**OCT+** makes the piece;
+**takes**: while the music plays, turning SELECT or ALGORITHM makes the piece by itself once you stop turning (about
+half a second; the song's parts stop for it and start again), so you turn and listen; stopped, they only set the
+genre or the seed. A run of takes keeps one UNDO point: **UNDO** (GLO held + G4, or OCT− held + GLO) brings back the
+music from before the first take, and again redoes. A **LOOP** piece always plays as a loop (an earlier PARTS / SONG
+piece no longer leaves its song playing);
 **PLAY** starts and stops it so you can hear it without leaving the screen; **HOME** (or OCT−) closes the screen. The
 screen remembers the last piece (**LAST: UK DRILL 0421**) and the header says **GEN:** and the piece.
 
@@ -749,6 +775,11 @@ out or changed in B, C (and D), chained in ARRANGE (A B A C); **SONG** makes a l
 with a filter opening and a roll, drop, break), each section 16 bars. A section you saved yourself is never
 overwritten: then the piece stays a loop. Sections are 32 or 64 steps, depending on how fast the genre's chords move.
 
+**Which parts get a track**: the drums, the bass, then the melodic parts by importance. With MENU > TRACKS on 4
+(three melodic parts live) that is the bass, the genre's foreground — its lead, or its arp where the genre leans on the
+arp — and the chords; with 6 the bass, the chords, the arp, the lead and a texture (or, in the trap family, the triplet
+hats). DICE ALL always moves the tempo (one BPM off the last one when a throw lands on it).
+
 What the generator knows, per genre (`gen_tables.c`):
 
 - **Harmony**: the genre's scales and progressions, every chord with its own quality, voiced between C3 and G5 and
@@ -757,7 +788,27 @@ What the generator knows, per genre (`gen_tables.c`):
   anchors last; the snare laid back where the genre does; hi-hat rolls in the trap family; the kit's MORPH drifting
   a little over the loop now and then.
 - **Bass**: one of about fifty figures written against the kick (the root at every chord change, approaches by a
-  semitone, the kick doubled, answered or interlocked); in the trap and drill genres an 808 that glides.
+  semitone, the kick doubled, answered or interlocked).
+- **The trap family** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) has its own generator, made for a voice on
+  top: the drums and the 808 loud, the music sparse and behind them. Each piece has a flavour, picked by the seed:
+  TRAP ATL plays Atlanta (dark bells and keys), Pi'erre (156–166 BPM, major or mixolydian, flute, organ and chip-arp
+  leads, long tails, swing, filtered drums, a lighter 808) or Metro (a brass or string loop, choirs, a pummeling 808,
+  116–124 or 140–150 BPM); DARK TRAP plays Memphis (the cowbell) or Metro; RAGE TRAP plays Whole Lotta Red (140–150
+  BPM in major or lydian, square video-game leads, a crushed 808) or MUSIC (150–160 BPM, minor, wobbling synth stabs).
+  The snare and the clap on beat 3, the kick
+  around it, and the hats as the groove — eighths or sixteenths with 1/32 and 1/64 rolls before the snare and at the
+  bar's end, triplet bursts and shuffled percussion (on a second DRUM track at 16T when TRACKS is 6), a crash on the
+  hook's downbeat, drill's 3-3-2 gallop and late snare, dark trap's cowbell. The bass is an 808, a driven sine (dark
+  trap and rage clip it), played as spaced patterns: two to six notes a bar, long and short ones with rests between
+  them, a slide or two into the notes that matter (drill the most), the kick under each note. Its sound is one of
+  ten recipes ported from GammaWave's and WRAITH's 808s (clean, deep, thumping, gliding, crushed, distorted, WRAITH's
+  slide and dirty ones): they decay rather than hold, start a little sharp, click and glide. The
+  melody is a two-bar motif of chord tones — a call, then a short answer whose end stays empty — about 10 dB under
+  the drums (bells, keys, a flute; strings and choirs in drill; a saw hook in rage), over a low-passed pad; in the
+  hook a counter melody replies in the gap (on TRACKS 4 the melody plays the reply itself). With FORM on SONG it makes the rap layout: intro (4 bars, the melody
+  alone, its filter opening), hook (8), verse (16: another kick, plainer hats, a softer instrument playing only the
+  calls, a darker pad; its last 4 bars a pre-hook where the drums and the 808 stop for a snare roll), hook, verse,
+  hook, outro. PARTS stops after the second hook. The hook loop is four bars.
 - **Arp and lead**: the arp as an order over the voiced chord (cycles of 3 or 5 against the bar); the lead as a
   one-bar motif in a phrase (A A A A', A R A R' …), varied by one change a bar.
 - **Sounds**: a factory sound per role whose name fits, with its envelope, filter, a slow LFO and sends shaped for

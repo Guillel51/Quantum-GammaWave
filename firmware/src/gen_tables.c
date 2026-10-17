@@ -63,10 +63,10 @@ static const char *const DRUM_MAP[][8] = {
     [DM_JOYDIV]    = {"X..X..X.X..X..X.", "....X.......X...", "", "7777777777777777", "", "..........4...5.", "", ""},
     [DM_NEWORDER]  = {"X...X...X...X...", "....X.......X...", "....5.......5...", "7676767676767676", "..6...6...6...6.", "..............44", "", ""},
     /* Trap & Drill variants: Atlanta 808 bounce, UK Drill 3-3-2 tresillo hats & displaced snare, Dark Phonk cowbell, Rage */
-    [DM_TRAP_ATL]  = {"X.....7...9...6.", "........X....4..", "........9.......", "8684868886848888", "..7.......6.....", "", "...5........5...", ""},
+    [DM_TRAP_ATL]  = {"X.....7...9...6.", "........X.......", "........9.......", "8684868886848888", "", "", "", ""},
     [DM_UK_DRILL]  = {"X.....6...9..7..", "........X..7....", "........8.......", "9..8..9.8..8..9.", "....6.........6.", "", "..5..5...5..5...", ""},
-    [DM_PHONK]     = {"X...6..8X.....8.", "....8.......X...", "........X.......", "8585858885858888", "..6...6...6...6.", "", "", "9..7..9.7.8.7..."},
-    [DM_RAGE]      = {"X..7..8...9...7.", "........X.......", "........X....5..", "8.8.888.8.8.8888", "....8.......8...", "..............67", "", ""},
+    [DM_PHONK]     = {"X......7..8...6.", "........X.......", "........8.......", "8585858885858888", "", "", "", "9..7..9.7.8.7..."},
+    [DM_RAGE]      = {"X..7..8...9...7.", "........X.......", "........X....5..", "8.8.888.8.8.8888", "", "", "", ""},
     [DM_NONE]      = {"", "", "", "", "", "", "", ""},
 };
 /* (0.6.97) a throw's own hats and percussion: a hat pattern, an open hat pattern and a percussion line from these pools
@@ -185,7 +185,8 @@ static const barch_t BASS_ARCH[BA_N] = {
     [BA_UKDRILL]  = {"R=========..8=5=R=======..8=9=8=", "a...........s.s.a.........s.s.s.", 2},
     [BA_RAGE808]  = {"R==R==8.R==5==2=R==R==8.R==8=52=", "a.....s.a.....s.a.....s.a....ss.", 2},
 };
-enum { KM_DOUBLE, KM_ANSWER, KM_SUSTAIN, KM_INTERLOCK };   /* the bass against the kick */
+enum { KM_DOUBLE, KM_ANSWER, KM_SUSTAIN, KM_INTERLOCK, KM_808 };   /* the bass against the kick (808: the bass IS the
+                                                         * kick's rhythm, a long note a kick: trap, drill, rage) */
 
 /* ------------------------------------------------------------------------------------------------- harmony --- */
 /* a chord's quality: its notes as steps of the scale from its root (a stack), POWER in semitones */
@@ -374,21 +375,21 @@ static const ggenre_t GENRE[] = {
      {BA_DARK8, BA_WOBBLE, BA_DUB}, 31, KM_SUSTAIN, 65, {PR_I_VI, PR_MINOR4, PR_ONE}, 2, CS_SWELL, VM_RICH,
      {AP_CYCLE3, AP_GLASS}, LD_HOOK, AMT(85, 95, 85, 55, 50), {KIT_808, SR_SUB, SR_CHOIR, SR_BELL, SR_VOXLEAD}, SR_TEXTURE,
      4, 4, 75, 2, FM_ARC, 20},
-    {"TRAP ATL", 136, 150, 0, {SC_PHRY, SC_MIN, SC_HARM, SC_MIN}, DM_TRAP_ATL, 100, KIT_808, 1, HC_MACHINE, FL_HAT, 0,
-     {BA_ATL808, BA_TRAP, BA_RAGE808}, 29, KM_SUSTAIN, 110, {PR_I_VI, PR_ONE, PR_MINOR4}, 2, CS_SPARSE, VM_RICH,
+    {"TRAP ATL", 136, 150, 0, {SC_PHRY, SC_MIN, SC_HARM, SC_MIN}, DM_TRAP_ATL, 100, KIT_808, 0, HC_MACHINE, FL_HAT, 0,
+     {BA_ATL808, BA_TRAP, BA_RAGE808}, 29, KM_808, 110, {PR_I_VI, PR_ONE, PR_MINOR4}, 2, CS_SPARSE, VM_RICH,
      {AP_BROKEN, AP_CYCLE3}, LD_OSTINATO, AMT(95, 100, 50, 55, 45), {KIT_808, SR_808GLIDE, SR_PAD, SR_BELL, SR_KEYS}, SR_CHOIR,
      2, 1, 55, 2, FM_PARTS, 5},
-    {"UK DRILL", 140, 145, 8, {SC_MIN, SC_PHRY, SC_HARM, SC_MIN}, DM_UK_DRILL, 100, KIT_808, 2, HC_GARAGE, FL_HAT, 0,
-     {BA_UKDRILL, BA_ATL808, BA_TRAP}, 29, KM_SUSTAIN, 115, {PR_I_VI, PR_MINOR4, PR_ANDAL}, 2, CS_SWELL, VM_RICH,
+    {"UK DRILL", 140, 145, 8, {SC_MIN, SC_PHRY, SC_HARM, SC_MIN}, DM_UK_DRILL, 100, KIT_808, 0, HC_GARAGE, FL_HAT, 0,
+     {BA_UKDRILL, BA_ATL808, BA_TRAP}, 29, KM_808, 115, {PR_I_VI, PR_MINOR4, PR_ANDAL}, 2, CS_SWELL, VM_RICH,
      {AP_BROKEN, AP_ALBERTI}, LD_SPARSE, AMT(95, 100, 65, 45, 40), {KIT_808, SR_808GLIDE, SR_CHOIR, SR_KEYS, SR_STRINGS}, SR_DRONE,
      2, 2, 60, 2, FM_CLUB, 10},
-    {"DARK TRAP", 130, 148, 4, {SC_PHRY, SC_HARM, SC_MIN, SC_PHRY}, DM_PHONK, 100, KIT_808, 1, HC_MACHINE, FL_HAT, 0,
-     {BA_ATL808, BA_DARK8, BA_WOBBLE}, 29, KM_DOUBLE, 105, {PR_ONE, PR_I_II, PR_I_VI}, 2, CS_HOLD, VM_SUS,
+    {"DARK TRAP", 130, 148, 4, {SC_PHRY, SC_HARM, SC_MIN, SC_PHRY}, DM_PHONK, 100, KIT_808, 0, HC_MACHINE, FL_HAT, 0,
+     {BA_ATL808, BA_DARK8, BA_WOBBLE}, 29, KM_808, 105, {PR_ONE, PR_I_II, PR_I_VI}, 2, CS_HOLD, VM_SUS,
      {AP_CYCLE3, AP_OCTAVES}, LD_HOOK, AMT(95, 100, 60, 50, 55), {KIT_808, SR_808GLIDE, SR_CHOIR, SR_BELL, SR_VOXLEAD}, SR_TEXTURE,
      4, 2, 65, 2, FM_PARTS, 10},
     {"RAGE TRAP", 138, 156, 0, {SC_MIN, SC_PHRY, SC_MIN, SC_HARM}, DM_RAGE, 100, KIT_INDUS, 0, HC_MACHINE, FL_HAT, 0,
-     {BA_RAGE808, BA_ATL808, BA_SYNTHW}, 31, KM_DOUBLE, 95, {PR_I_VI, PR_TRANCE, PR_ONE}, 2, CS_STAB, VM_POWER,
-     {AP_TRANCE, AP_OCTAVES}, LD_OSTINATO, AMT(100, 100, 75, 75, 65), {KIT_INDUS, SR_REESE, SR_HOOVER, SR_PLUCK, SR_LEAD}, SR_NOISE,
+     {BA_RAGE808, BA_ATL808, BA_SYNTHW}, 31, KM_808, 95, {PR_I_VI, PR_TRANCE, PR_ONE}, 2, CS_STAB, VM_POWER,
+     {AP_TRANCE, AP_OCTAVES}, LD_OSTINATO, AMT(100, 100, 75, 75, 65), {KIT_INDUS, SR_808GLIDE, SR_HOOVER, SR_PLUCK, SR_LEAD}, SR_NOISE,
      2, 1, 45, 3, FM_CLUB, 0},
     /* ---- the club: house */
     {"HOUSE", 122, 127, 8, {SC_MIN, SC_DOR, SC_MAJ, SC_MIN}, DM_HOUSE, 100, KIT_909, 0, HC_HOUSE, FL_ROLL, 0,
@@ -505,7 +506,7 @@ static const ggenre_t GENRE[] = {
      {AP_BROKEN, AP_WALK}, LD_SPARSE, AMT(90, 85, 60, 20, 35), {KIT_SOFT, SR_SUB, SR_EP, SR_KEYS, SR_BELL}, SR_TEXTURE,
      0, 1, 40, 0, FM_LOOP, 50},
     {"TRAP", 136, 146, 0, {SC_MIN, SC_PHRY, SC_HARM, SC_MIN}, DM_TRAP, 100, KIT_808, 0, HC_FLAT, FL_HAT, 0,
-     {BA_TRAP, BA_WOBBLE, BA_DUB}, 29, KM_SUSTAIN, 110, {PR_I_VI, PR_ONE, PR_MINOR4}, 2, CS_SPARSE, VM_RICH,
+     {BA_TRAP, BA_WOBBLE, BA_DUB}, 29, KM_808, 110, {PR_I_VI, PR_ONE, PR_MINOR4}, 2, CS_SPARSE, VM_RICH,
      {AP_BROKEN, AP_UPDOWN}, LD_SPARSE, AMT(90, 100, 45, 40, 35), {KIT_808, SR_SUB, SR_PAD, SR_BELL, SR_BELL}, SR_CHOIR,
      2, 1, 55, 0, FM_PARTS, 0},
     {"UK GARAGE", 128, 134, 24, {SC_MIN, SC_DOR, SC_MIN, SC_MAJ}, DM_UKG, 100, KIT_909, 2, HC_GARAGE, FL_KICK16, 1,

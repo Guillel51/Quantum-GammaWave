@@ -399,8 +399,12 @@ click; las notas siguen.
 | **NOISE** | MODE, COLOR, FREQ, PEAK | TRK, DENSE, DRIFT, CRUSH | FREQ, PEAK, COLOR, REL |
 | **DRUM** (DRUM-X) | MORPH, TUNE, TONE, DECAY | NOISE, FM ENV, FOLD, DRIVE | MORPH, TUNE, TONE, DECAY |
 
-- **ANALOG**: dos osciladores. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3. **INT** fija el intervalo del
-  oscilador 2 (±24 semitonos). Su filtro es por voz.
+- **ANALOG**: dos osciladores. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD. **INT** fija el
+  intervalo del oscilador 2 (±24 semitonos). Su filtro es por voz. **TUBE** y **FOLD** son senos ensuciados dentro del
+  oscilador, antes del filtro, así que la fundamental se queda (un 808 distorsionado conserva su sub): TUBE pasa por la
+  curva de válvula Hearth de GammaWave (cálido, armónicos pares), FOLD por el plegador Blast de WRAITH (un gruñido,
+  metal). Cuánto ensucian: **MORPH** más ENV / LFO → **SHAPE**; con ENV → SHAPE arriba, la nota está más sucia en el
+  golpe y se limpia mientras suena.
 - **FM6**: un motor FM de seis operadores (msfa, de Dexed), 32 algoritmos dibujados en pantalla, cuatro voces por
   pista. Las perillas de EDIT 1/2 son macros sobre el patch. **SLOT**: los patches de fábrica F1–F8, OWN (un patch
   editado o importado) y B1–B32 (un banco DX7 de 32 voces enviado desde el editor web; los slots vacíos se saltean).
@@ -755,16 +759,41 @@ Mantené **SAVE**:
 ### GENERATOR — el generador de temas (HOME + SELECT)
 
 Abrilo con **SELECT** en HOME, **HOME mantenido + SELECT** desde cualquier página, o **OCT− mantenido + PLAY** (GW-1).
-La pantalla, **GENERATOR 1/3**, tiene tres páginas de cuatro ajustes; **SELECT** cambia de página, **KNOB 1–4**
-ajustan las cuatro filas:
+La pantalla, **GENERATOR 1/5**, tiene cinco páginas de cuatro ajustes: **PRESETS** cambia de página (en ronda),
+**KNOB 1–4** ajustan las cuatro filas, **SELECT** cambia el género y **ALGORITHM** la semilla desde cualquier página
+(aparece la primera página, con la fila iluminada):
 
 | Página | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
-| 1/3 | **GENRE** (RANDOM o uno de 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
-| 2/3 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
-| 3/3 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % o AUTO) | **HUMAN** (0–100 %) |
+| 1/5 | **GENRE** (RANDOM o uno de 49) | **SEED** (0000–9999) | **ENERGY** (0–100 %) | **FORM**: LOOP, PARTS, SONG |
+| 2/5 | **DRUMS** | **BASS** | **CHORDS** | **ARP** |
+| 3/5 | **LEAD** | **COMPLEX** (0–100 %) | **SWING** (0–100 % o AUTO) | **HUMAN** (0–100 %) |
+| 4/5 SONG | **TEMPO** (AUTO o 60–200 BPM) | **KEY** (AUTO o C–B) | **SCALE** (AUTO, MIN, MAJ, DOR, PHRY, HARM, MIX, LYD) | **LENGTH** (AUTO, SHORT, LONG, EPIC) |
+| 5/5 FEEL | **SPACE** (OFF–100 %) | **FILLS** (OFF–100 % o AUTO) | **WET** (DRY–200 % o AUTO) | **GRIT** (CLEAN–200 % o AUTO) |
 
-Las filas de partes (DRUMS … LEAD) van de OFF a 10–100 % y a **AUTO** (decide el género). **OCT+** arma el tema;
+Las filas de partes (DRUMS … LEAD) van de OFF a 10–100 % y a **AUTO** (decide el género). SONG y FEEL afinan
+cualquier género; en AUTO / OFF decide el género, como antes:
+
+- **TEMPO**: AUTO es el rango del género (ENERGY elige el lugar); subiéndolo desde AUTO arranca en el tempo del tema y
+  después fija los BPM. MENU > BPM LOCK sigue mandando.
+- **KEY**, **SCALE**: la tonalidad y el modo del tema en vez de los de la semilla y el género.
+- **LENGTH** (FORM PARTS o SONG): las filas del tema a la mitad, al doble, al triple, en loops enteros de cada sección.
+- **SPACE**: lugar para una voz. La melodía y el arpegio pierden el final de cada dos compases (la respuesta del que
+  canta) y parte de sus contratiempos, y la música queda más abajo que la batería (melodía, arpegio −4 dB, pad −3 dB
+  al 100 %).
+- **FILLS**: los redobles de la batería. OFF: ninguno; 10–100 %: en lugar de los del género, redobles de caja en el
+  último tiempo de las frases (el del 4.º compás siempre, el del 2.º desde 50 %, todos desde 80 %), más rápidos (1/64)
+  desde 70 %.
+- **WET**: los envíos a reverb y delay, como parte de lo que da el género (DRY: nada, 100 %: igual, 200 %: el doble).
+- **GRIT**: el clip del master, la distorsión y el drive del bajo y el drive de la batería, como parte de los del género
+  (CLEAN: nada, 200 %: el doble; el BLAST de WRAITH en un 808 sigue en mezcla, con su sub).
+
+**OCT+** arma el tema;
+**tomas**: mientras suena la música, girar SELECT o ALGORITHM arma el tema solo cuando dejás de girar (medio segundo;
+las partes del tema paran para eso y vuelven a sonar), así que girás y escuchás; parado, solo eligen el género o la
+semilla. Una serie de tomas guarda un solo punto de UNDO: **UNDO** (GLO mantenido + G4, u OCT− mantenido + GLO)
+devuelve la música de antes de la primera toma, y otra vez la rehace. Un tema **LOOP** suena siempre como loop (un tema
+PARTS / SONG anterior ya no deja sonando su canción);
 **PLAY** lo arranca y lo para para escucharlo sin salir de la pantalla; **HOME** (u OCT−) cierra la pantalla. La
 pantalla recuerda el último tema (**LAST: UK DRILL 0421**) y la cabecera dice **GEN:** y el tema.
 
@@ -790,6 +819,12 @@ o de arco (intro, subida con el filtro abriéndose y un redoble, drop, break), c
 guardaste vos nunca se pisa: en ese caso el tema queda en loop. Las secciones son de 32 o 64 pasos, según qué tan
 rápido se mueven los acordes del género.
 
+**Qué partes reciben una pista**: la batería, el bajo y después las partes melódicas por importancia. Con MENU >
+TRACKS en 4 (tres partes melódicas en juego) son el bajo, la parte principal del género — su lead, o su arpegio donde
+el género se apoya en el arpegio — y los acordes; con 6, el bajo, los acordes, el arpegio, el lead y una textura (o, en
+la familia trap, los hi-hats en tresillo). DICE ALL siempre mueve el tempo (un BPM al lado del anterior si un tiro cae
+en el mismo).
+
 Lo que el generador sabe, por género (`gen_tables.c`):
 
 - **Armonía**: las escalas y progresiones del género, cada acorde con su propia calidad, en voces entre C3 y G5 y
@@ -798,8 +833,30 @@ Lo que el generador sabe, por género (`gen_tables.c`):
   van primero y los anclajes al final; el redoblante atrasado donde el género lo hace; redobles de hi-hat en la familia
   trap; el MORPH del kit que a veces se mueve un poco a lo largo del loop.
 - **Bajo**: una de unas cincuenta figuras escritas contra el bombo (la fundamental en cada cambio de acorde,
-  aproximaciones por semitono, el bombo doblado, respondido o entrelazado); en los géneros trap y drill, un 808 que
-  se desliza.
+  aproximaciones por semitono, el bombo doblado, respondido o entrelazado).
+- **La familia trap** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP) tiene su propio generador, pensado para una
+  voz encima: la batería y el 808 fuertes, la música escasa y detrás. Cada tema tiene un sabor, elegido por la
+  semilla: TRAP ATL toca Atlanta (campanas y teclas oscuras), Pi'erre (156–166 BPM, mayor o mixolidio, flauta, órgano
+  y arpegios de chip, colas largas, swing, batería filtrada, un 808 más liviano) o Metro (un loop de metales o
+  cuerdas, coros, un 808 contundente, 116–124 o 140–150 BPM); DARK TRAP toca Memphis (el cencerro) o Metro; RAGE TRAP
+  toca Whole Lotta Red (140–150 BPM en mayor o lidio, leads cuadrados de videojuego, un 808 aplastado) o MUSIC
+  (150–160 BPM, menor, stabs de sintetizador que ondulan). El redoblante y el clap en el tiempo 3, el
+  bombo alrededor, y los hi-hats como el groove — corcheas o semicorcheas con redobles de 1/32 y 1/64 antes del
+  redoblante y al final del compás, ráfagas en tresillo y percusión con shuffle (en una segunda pista DRUM a 16T
+  cuando TRACKS es 6), un crash en el primer tiempo del hook, el galope 3-3-2 y el redoblante atrasado del drill, el
+  cencerro del dark trap. El bajo es un 808, un seno saturado (dark trap y rage lo recortan), tocado en patrones
+  espaciados: de dos a seis notas por compás, largas y cortas con silencios entre ellas, un deslizamiento o dos hacia
+  las notas importantes (el drill más que ninguno), el bombo debajo de cada nota. Su sonido es una de diez recetas
+  tomadas de los 808 de GammaWave y de WRAITH (limpio, profundo, golpeado, con glide, aplastado, distorsionado, el
+  slide y el sucio de WRAITH): decaen en vez de sostenerse, arrancan un poco altos, tienen click y glide. La melodía
+  es un motivo de dos
+  compases con notas del acorde — una pregunta y una respuesta corta cuyo final queda vacío — unos 10 dB debajo de
+  la batería (campanas, teclas, una flauta; cuerdas y coros en el drill; un hook de sierra en el rage), sobre un pad
+  filtrado; en el hook una contramelodía responde en el hueco (con TRACKS 4 la melodía toca la respuesta). Con FORM en SONG arma la forma del rap: intro (4
+  compases, la melodía sola, su filtro abriéndose), hook (8), verso (16: otro bombo, hi-hats más simples, un
+  instrumento más suave que toca solo las preguntas, un pad más oscuro; sus últimos 4 compases un pre-hook donde la
+  batería y el 808 paran para un redoble), hook, verso, hook, outro. PARTS termina después del segundo hook. El loop
+  del hook dura cuatro compases.
 - **Arpegio y lead**: el arpegio como un orden sobre el acorde (ciclos de 3 o 5 contra el compás); el lead como un
   motivo de un compás dentro de una frase (A A A A', A R A R' …), variado con un cambio por compás.
 - **Sonidos**: un sonido de fábrica por rol cuyo nombre corresponde, con su envolvente, filtro, un LFO lento y envíos

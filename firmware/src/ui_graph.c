@@ -328,6 +328,8 @@ static void graph_morph(const track_t *t)
     const char *n0 = "", *n1 = "";
     char b[24];
     pd_t pa, pb;
+    an_dirt_t dt = {0, 0, 0, 0, 0};
+    int dirt = 0;
     if (ENGINES[e] == &ENG_PHASE) {
         uint32_t dcw = (uint32_t)(p[P_E2] << 8) * 65535u / (127u << 8);
         pos = (int32_t)(p[P_E0] & 7) * 256 + p[P_MORPH] * 768 / 127;
@@ -339,6 +341,11 @@ static void graph_morph(const track_t *t)
         pos = clamp(p[P_E1] * 256 + p[P_MORPH] * 768 / 127, 0, RW_WRAM * 256);
         a0 = (uint32_t)pos >> 8; a1 = a0 + 1u < RW_BYTE ? a0 + 1u : a0;
         n0 = N_RWAVE[a0]; n1 = N_RWAVE[a1];
+    } else if (p[P_E0] >= AW_TUBE) {                  /* (1.0-GW) TUBE FOLD: the sine as MORPH makes it dirty */
+        an_dirt_set(&dt, p[P_MORPH] << 8);
+        dirt = 1;
+        pos = 0;
+        n0 = n1 = N_ANALOG_WAVE[(uint32_t)p[P_E0] % NELEM(N_ANALOG_WAVE)];
     } else {
         if (p[P_E0] >= 4) {                             /* (0.6.81) PWM SYNC RING SAW3: the WAVE, what MORPH moves */
             static const char *const WHAT[4] = {"PWM  WIDTH", "SYNC  RATIO", "RING  RATIO", "SAW3  SPREAD"};
@@ -367,7 +374,9 @@ static void graph_morph(const track_t *t)
         } else if (ENGINES[e] == &ENG_LOFI) {
             s = lofi_mto(a0, ph, 0x80000000u, WRAM[((uint32_t)p[P_E2] >> 3) & 15u], 0, 1u);
             if (f) s += ((lofi_mto(a1, ph, 0x80000000u, WRAM[((uint32_t)p[P_E2] >> 3) & 15u], 0, 1u) - s) * f) >> 8;
-        } else
+        } else if (dirt)
+            s = an_dirt((uint32_t)p[P_E0], ph, &dt);
+        else
             s = an_morph(pos, ph, inc);
         y = 46 - s * 34 / 32768;
         if (i) cv_line_t(px, py, x, y, heat_col(80 + (uint32_t)(46 - y + 34) * 2u), 2);

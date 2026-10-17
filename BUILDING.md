@@ -66,6 +66,13 @@ Build options (environment, `0` or `1`; defaults in `firmware/src/felucca.c`, `c
 `FELUCCA_USB_LAYOUT` (`0` to `3`, default `0`) picks other USB descriptor layouts for testing; see
 `firmware/src/usb.c`.
 
+The build checks the image's budgets and prints them (`tools/build.py`, `check`): the app slot (568 KiB of XIP
+flash), RAM `.data` + `.bss` (96 KiB), the pool's headroom, the RAM code's room and its call reach. The RAM code
+(flash driver, second core, hot audio) calls into the flash image and back with a ±4 MiB reach, so the **code** must
+end within it, 8 KiB to spare. The linker places all code first and all constants (fonts, icons, tables, presets,
+strings) after it (`firmware/app.ld`, `_ecode`), and constants are never called, so the reach is measured to the end
+of the code (`XIP code … B, constants … B` in the notes); constants only use up the slot.
+
 ## Browser emulator
 
 ```

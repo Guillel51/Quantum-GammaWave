@@ -1993,7 +1993,7 @@ function makeMockDevice(opt = {}) {
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
   const P = (name, e, env = [10, 70, 90, 60], mono = 0, pat = 0) => ({ name, e, env, mono, pat });
   const ENG = [
-    { name: "ANALOG", titles: ["OSC", "FLT"], edit: [E("WAVE", ["SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3"], 0), D("DETUNE", F.INT, 0, 127, 10, null, "ct"), D("MIX", F.PCT, 0, 127, 64),
+    { name: "ANALOG", titles: ["OSC", "FLT"], edit: [E("WAVE", ["SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD"], 0), D("DETUNE", F.INT, 0, 127, 10, null, "ct"), D("MIX", F.PCT, 0, 127, 64),
         D("NOISE", F.PCT, 0, 127, 0), D("CUT", F.CUTOFF, 0, 127, 90), D("RES", F.PCT, 0, 127, 30), D("DRIVE", F.PCT, 0, 127, 0), D("INT", F.SEMI, -24, 24, 0)],   /* (JIANT 0.4: INT, osc 2's interval, was KTR) */
       presets: [
         P("INGOT SUB", [1, 4, 48, 0, 38, 42, 76, -12], [0, 58, 95, 22], 1, 2), P("WORM REESE", [7, 28, 72, 6, 56, 68, 84, -12], [6, 75, 110, 40], 1, 8),

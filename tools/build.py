@@ -307,12 +307,16 @@ def check(img, syms, dis, rt):
     if POOL_END - pool_top < 8192:                # keep >= 8 KiB of the pool spare
         errors.append(f"pool headroom {POOL_END - pool_top} B < 8192 B")
     # (JIANT 0.6.78) the RAM code at the pool's top: a call reaches +-4 MiB (app.ld), so from the lowest RAM code
-    # address the XIP image must end within 4 MiB; and the room left for RAM code
-    reach = sym("_rt_start") + 0x400000 - sym("_etext")
+    # address the XIP code must end within 4 MiB; and the room left for RAM code. (1.0-GW) Measured to the end of the
+    # code (_ecode, app.ld): the constants come after it and are never called (it was measured to the image's end,
+    # constants and all); without the symbol (an old app.ld), to the image's end as before
+    code_end = sym("_ecode") or sym("_etext")
+    reach = sym("_rt_start") + 0x400000 - code_end
     ramcode = sym("_hot_end") - sym("_rt_start")
-    notes.append(f"RAM code {ramcode} B of {RAMTEXT_END - sym('_rt_start')}; calls reach {reach} B past the image's end")
+    notes.append(f"XIP code {code_end - 0x02000120} B, constants {sym('_etext') - code_end} B")
+    notes.append(f"RAM code {ramcode} B of {RAMTEXT_END - sym('_rt_start')}; calls reach {reach} B past the code's end")
     if reach < 8192:
-        errors.append(f"RAM code reaches only {reach} B past the XIP image's end (< 8 KiB): move RAMTEXT up (app.ld)")
+        errors.append(f"RAM code reaches only {reach} B past the XIP code's end (< 8 KiB): move RAMTEXT up (app.ld)")
     if RAMTEXT_END - sym("_hot_end") < 2048:
         errors.append(f"RAM code headroom {RAMTEXT_END - sym('_hot_end')} B < 2048 B")
     return errors, notes

@@ -24,7 +24,10 @@ MEMORY
 }
 SECTIONS
 {
-    .text : { KEEP(*(.text.crt0)) *(.text*) *(.rodata*) . = ALIGN(4); _etext = .; } > XIP
+    /* (1.0-GW) _ecode: the end of the code. All the code comes first, the constants after it (fonts, icons, tables,
+     * presets, strings): only code calls or is called by the RAM code, so the call reach (build.py) is measured to
+     * _ecode, not to the image's end */
+    .text : { KEEP(*(.text.crt0)) *(.text*) . = ALIGN(4); _ecode = .; *(.rodata*) . = ALIGN(4); _etext = .; } > XIP
     .ram_text : { _rt_start = .; KEEP(*(.ram_text*)) . = ALIGN(4); _rt_end = .; } > RAMTEXT AT > XIP
     _rt_load = LOADADDR(.ram_text);
     /* (JIANT 0.6.71) the second core's waiting loop (hal/fm1_multicore.h): in RAM, after the flash driver, inside the

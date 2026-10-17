@@ -15,7 +15,8 @@ import re
 import sys
 
 FUNCS = ["analog_render", "digital_render", "digital_render_legacy", "digital_render_custom", "phase_render", "lofi_render", "formant_render",
-         "wheel_render", "wheel_block", "analog_ext", "analog_morph", "lofi_byte_render",   # (JIANT 0.4: SYNC RING SAW3, BYTE)
+         "wheel_render", "wheel_block", "analog_ext", "analog_morph", "analog_dirty", "lofi_byte_render",   # (JIANT 0.4: SYNC RING SAW3,
+         # BYTE; 1.0-GW: TUBE FOLD)
          "drum_render", "noise_render", "fm6_render", "fm6_op_run", "fm6_op_fb",
          "dx_run", "dx_layer",                              # DRUM-X (drumx_voice.c): a hit, osc + noise; (0.6.49) LAYER
          "drum_side_add", "drum_mix",                       # (JIANT 0.6.48) DRUM-X IMAGE and SENDs

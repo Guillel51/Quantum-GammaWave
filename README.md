@@ -34,10 +34,10 @@
   - Boot splash with the Hearth sun and `POCKET GAMMAWAVE // GW-1`; the ABOUT page carries a QR code to gammawaveaudio.com.
 - **Two new filter types and four new drive types** on every track: filter `VOWEL` and `SCREAM` (after `LP`, `HP`, `BP`, `COMB`), drive `HEARTH`, `BLAST`, `PLASMA` and `FLUX`.
 - **49-genre song generator (GEN)** — open it with **`[OCT−] + [PLAY]`**, or turn **SELECT** on HOME. Page 1: **KNOB 1** genre, **KNOB 2** seed, **KNOB 3** energy, **KNOB 4** form (LOOP / PARTS / SONG); **SELECT** turns the page (drums, bass, chords, arp; lead, complexity, swing, humanize); **OCT+** makes the piece, **PLAY** auditions it, **HOME** closes. Genres include:
-  - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls)
-  - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat bounce, sliding 808 bass)
-  - **`DARK TRAP`** (130–148 BPM, Memphis-style 808 cowbell, crushed sub)
-  - **`RAGE TRAP`** (138–156 BPM, detuned saw leads, heavy distortion)
+  - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls and triplets, bell / flute / key melodies)
+  - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat gallop, late snare, sliding 808, dark strings and choirs)
+  - **`DARK TRAP`** (130–148 BPM, Memphis-style cowbell, clipped 808, phrygian bells)
+  - **`RAGE TRAP`** (140–160 BPM, Whole Lotta Red or MUSIC flavour: square video-game leads or wobbling stabs, a crushed 808)
   - plus `GAMMAWAVE`, `WRAITHWAVE`, house, techno, trance, electro, EBM, synth pop, darkwave, post punk, motorik, funk, disco, boom bap, UK garage, dubstep, breaks, drum & bass, dub, jazz, bossa, afrobeat, ambient, neo-classical, soundtrack, IDM and more.
   - Pieces are 32 or 64 steps (2 or 4 bars per section) depending on the genre's chord rhythm.
 - **One-press MUTATE** — **`[OCT−] + [ENV]`** jumps to **SEQ > MUTATE**. If MUTATE was off on the track it switches it on with SOUND every 2 bars, PATTERN every 4 bars and AMOUNT ≈ 50 %:
@@ -88,7 +88,7 @@ Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Españo
 ## Synthesis engines & sound architecture
 
 ### 1. Eight synthesis engines (no samples)
-- **`ANALOG`**: dual virtual-analog oscillators (`SAW`, `SQR`, `TRI`, `SIN`, `PWM`, `SYNC`, `RING`, `SAW3`) with interval (`INT ±24 st`), detune, oscillator mix and noise, through the track filter (`CUT`, `RES`, `DRIVE`).
+- **`ANALOG`**: dual virtual-analog oscillators (`SAW`, `SQR`, `TRI`, `SIN`, `PWM`, `SYNC`, `RING`, `SAW3`, and the dirty sines `TUBE` — GammaWave's Hearth tube curve — and `FOLD` — WRAITH's Blast wavefolder — whose amount is MORPH plus ENV/LFO → SHAPE) with interval (`INT ±24 st`), detune, oscillator mix and noise, through the track filter (`CUT`, `RES`, `DRIVE`).
 - **`FM6`**: 6-operator DX7-style FM (DX7 `.syx` voices load through the Web Studio), the 32 algorithms drawn on screen, per-operator editing on the device (`OPERATOR`, `OP ENV`, `OPERATOR 2`) and a 32-voice user bank (`B1–B32`).
 - **`PHASE`**: CZ-style phase distortion with feedback (`FB`), from warm brass to digital growl.
 - **`LOFI`**: 1-bit, 4-bit and 8-bit chip voices plus 32-formula **Bytebeat (`BYTE`)** and **Floatbeat (`FLOAT`)** engines tuned to the keyboard scale.
@@ -147,13 +147,85 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - **`[OCT−]` shift deck** (`ui_input.c`): Hearth macros, GEN, the MUTATE jump, the visualizer, track dice and undo — see the table above.
 - **Web Studio** (`web/editor.html`): demo songs, its own 49-genre generator, 4 tape lanes with WAV export, the Wraith bar and SEQ MUTATE.
 
-### Fixes since the first `v1.0-GW` package
+### Fixes since the first `v1.0-GW` package (published as `v1.0-GW-8f5e254`)
 - `[OCT−] + [HOME]` now keeps the visualizer open (letting go of HOME closed it at once).
 - Pressing a page button and OCT− at the same moment is the page's own gesture again (FX + OCT− no longer dices FX).
 - The Hearth macros only touch ANALOG's E4/E5 cutoff/resonance on ANALOG tracks (on other engines those slots are other parameters), reset the filter type for macros 1–3, and can be undone; the deck's undo shows `UNDONE (AGAIN: REDO)` and respects `STOP TO EDIT`.
 - The MUTATE jump enters the page properly (sequencer mode and page state follow).
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
+
+### Unreleased — the next build (branch `claude/gw1-trap-genres`, previews `1.0-GW-trap-…`)
+
+**Song generator (GEN)**
+- **Five pages** (was three), turned with **PRESETS**:
+  - **SONG** (4/5) — **TEMPO**: AUTO (the genre's range, ENERGY placing it) or a fixed 60–200 BPM; turned up from AUTO
+    it starts at the song's tempo; MENU > BPM LOCK still wins. **KEY**: AUTO or C–B. **SCALE**: AUTO, MIN, MAJ, DOR,
+    PHRY, HARM, MIX, LYD (it also wins over the trap flavours' scales). **LENGTH**: AUTO, SHORT, LONG, EPIC — the
+    song's rows ×½, ×2, ×3, in whole loops of each section (trap SONG: 64 bars → ~44, 128, 192).
+  - **FEEL** (5/5) — **SPACE** (OFF–100 %): room for a voice; the melody and the arp lose the end of every two bars
+    and some off-beats, and the music sits lower under the drums (melody / arp −4 dB, pad −3 dB at 100 %).
+    **FILLS** (AUTO, OFF, 10–100 %): OFF takes every roll away; 10–100 % puts snare rolls on a phrase's last beat
+    (bar 4 always, bar 2 from 50 %, every bar from 80 %), 1/64 from 70 %; the club build and the trap pre-hook keep
+    their own roll. **WET** (AUTO, 0–200 % of the genre's reverb and delay sends, 0 = DRY). **GRIT** (AUTO,
+    0–200 % of the genre's master clip, bass distortion / drive and drum drive, 0 = CLEAN; WRAITH's BLAST on an 808
+    stays a blend so the sub survives).
+  - All on AUTO / OFF, every piece is exactly as before (checked on all 49 genres, 4 and 6 tracks); 600 throws with
+    random settings stay inside every parameter's range.
+- **Controls**: **PRESETS** the pages, **SELECT** the genre, **ALGORITHM** the seed, from any page (page 1 comes up,
+  the row lit). **Takes**: while the music plays, turning SELECT or ALGORITHM makes the piece by itself once the knob
+  rests (~450 ms); a PARTS / SONG song stops for it (its sections are rewritten) and starts again. A run of takes
+  keeps **one UNDO point**, the music from before the first take (OCT+ or reopening the screen starts a new run).
+- **TRACKS 4 keeps the melody**: the three melodic tracks go to the bass, the genre's foreground part (its lead, or
+  its arp where the genre weighs the arp above the lead) and the chords. Before, the lead was always the part left
+  out (on the asleep fifth track) — 440 of 490 test pieces had no melody, now 12 (minimal tech / acid house throws
+  with a sparse arp). TRACKS 6 pieces are unchanged.
+- **DICE ALL / a new seed** never repeat one of the last 64 seeds (two throws in a session could land on the same
+  piece), and a throw always moves the tempo (one BPM off the last when a throw lands on it, unless TEMPO is set).
+- **Fix**: a **LOOP** piece made after a PARTS / SONG piece left the song mode on, so PLAY played the earlier piece's
+  sections; a LOOP piece now plays as a loop.
+
+**Trap family** (TRAP, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP: their own generator, `gen_trap.c`) — beats made for
+a voice: the drums and the 808 loud, the music sparse and behind them, the middle left free.
+- **Flavours** (the seed picks one; each set from what is documented about a reference record): TRAP ATL plays
+  *Atlanta* (dark bells and keys), *Pi'erre* ("Magnolia": 156–166 BPM, major or mixolydian, flute, organ and
+  chip-arp leads, long tails, swing, filtered drums, a lighter 808) or *Metro* ("Superhero", "Type Shit": a brass or
+  string loop, choirs, a pummeling 808, 116–124 or 140–150 BPM); DARK TRAP plays *Memphis* (the cowbell) or *Metro*;
+  RAGE TRAP plays *Whole Lotta Red* ("Sky": 140–150 BPM in major or lydian, square video-game leads, a crushed 808)
+  or *MUSIC* ("EVIL J0RDAN": 150–160 BPM, minor, wobbling synth stabs, the most bass).
+- **Groove**: the snare and clap on beat 3, the kick under the 808's notes (never on the snare), hats that are the
+  groove (eighths or sixteenths, 1/32 and 1/64 rolls before the snare and at the bar's end, triplet bursts on a second
+  DRUM track at 16T when TRACKS 6 is on, with shuffled percussion), a crash on the hook's downbeat, an open hat at a
+  phrase's turn, drill's 3-3-2 gallop and late snare, dark trap's cowbell.
+- **808**: a pattern bank per style of spaced notes — two to six a bar, long and short with rests between, a slide or
+  two into the notes that matter (drill the most) — on the chord's root, now and then the octave or the fifth; the
+  verse gets another pattern. Its sound is one of ten recipes ported from GammaWave's factory 808s (Classic Thump,
+  Clean, Crushed Venom, Deep Sub, Distorted, Glide King, Deep 808 Thump, Sub Glide 808) and WRAITH's (SLIDE 808,
+  DIRTY 808), on ANALOG's TUBE / FOLD waves and the HEARTH, FLUX, CRUSH and (in parallel) BLAST drives: they decay
+  instead of holding, start a little sharp and settle, click, glide 80–350 ms; each flavour picks its own.
+- **Sound**: a short knocking kick, bright high-passed hats. The melody is a two-bar motif (a call, then a short
+  answer whose end stays empty) about 10 dB under the drums with little reverb: bells, keys, a flute; strings and
+  choirs in drill; a saw hook in rage. A low-passed pad under it; in the hook a counter melody (flute, voice, pluck)
+  replies in the gap. Every sound has a measured level trim (a choir and a pluck at the same loudness). On TRACKS 4
+  the melody plays the counter's reply itself and the drum track carries the percussion.
+- **Song**: SONG is the rap layout — intro 4 bars (the melody alone, its filter opening), hook 8, verse 16 (another
+  kick and plainer hats, a softer instrument playing only the melody's calls, a darker pad, no counter; its last 4
+  bars a pre-hook where the drums and the 808 stop for a snare roll), hook, verse, hook, outro: 64 bars. PARTS stops
+  after the second hook.
+
+**Sound engines**
+- **ANALOG: two more waves**, **TUBE** (a sine through GammaWave's Hearth tube curve: warm, even harmonics, its DC
+  taken off) and **FOLD** (WRAITH's Blast sine-of-sine fold with a quarter of the clean sine under it: a growl),
+  computed in the oscillator (no tables) before the filter, so a bass keeps its fundamental. How dirty: MORPH plus
+  ENV / LFO → SHAPE (with ENV → SHAPE a note is dirtiest on its hit). Their own render (`analog_dirty`); every
+  existing ANALOG preset renders bit-identically to before. The web editor and the MORPH screen know them.
+
+**Build**
+- The RAM code's ±4 MiB call reach is measured to the end of the code (`app.ld` `_ecode`), not of code and
+  constants (fonts, icons, tables, presets: ~123 KB that are never called). On this build: image 485,172 B of the
+  581,564 B slot, code 340,632 B + constants 123,128 B, reach 119,880 B to spare (≥ 8 KiB required); the old check
+  would have failed it. The build prints the code / constants split.
+- The device's static loop-cost check (`tests/target_budget.txt`) covers the new `analog_dirty`.
 
 ---
 

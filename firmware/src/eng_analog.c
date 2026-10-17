@@ -6,8 +6,8 @@
  * lead's sweep), RING (osc 1's saw times osc 2's sine at that ratio: bells, metal), SAW3 (three saws, osc 2 DTN cents up,
  * osc 3 down: TRIO's fat stack). MIX: osc 1 against the other(s) as before. INT (0.4, once KTR): osc 2 INT semitones
  * from osc 1, as a classic two-oscillator synth (fifths, octaves; SAW3: its osc 2). */
-static const char *const N_ANALOG_WAVE[] = {"SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3"};
-enum { AW_SYNC = 5, AW_RING, AW_SAW3 };
+static const char *const N_ANALOG_WAVE[] = {"SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD"};
+enum { AW_SYNC = 5, AW_RING, AW_SAW3, AW_TUBE, AW_FOLD };
 /* (JIANT 0.5) FILTER TYPE (P_FTYPE): LP as before (analog_render's loop); HP BP from the same state-variable filter
  * (analog_ext's loop, every WAVE); COMB the filter open, the part's sum through a feedback comb tuned to the newest
  * note and CUT (+-32 semitones about it), RES its feedback (voice.c track_comb) */
@@ -56,6 +56,29 @@ static int32_t an_mpos(const int16_t *p, int32_t mq8, const vmod_t *m)   /* (mq8
 static int32_t an_mext(int32_t mq8, const vmod_t *m)
 {
     return clamp(mq8 + m->shape - (64 << 8), 0, 127 << 8);
+}
+/* (1.0-GW) TUBE and FOLD: a sine made dirty in the oscillator, computed (no table), before the filter, so its
+ * fundamental stays (a dirty 808 keeps its sub): TUBE after GammaWave's Hearth, an asymmetric tube (even harmonics,
+ * warmth; its DC taken off), FOLD after WRAITH's Blast, the sine of a sine (odd harmonics, a growl, metal). How dirty:
+ * MORPH and the SHAPE modulation together (an_mext: ENV > SHAPE makes it dirty on the hit, clean as it rings) */
+typedef struct { int32_t g, b, cb, dc, kf; } an_dirt_t;
+static void an_dirt_set(an_dirt_t *d, int32_t mx)        /* mx: Q8, 0 .. 127 << 8 */
+{
+    int32_t a = clamp(mx, 0, 127 << 8) >> 8, k, sum = 0;
+    d->g = 4096 + a * 200;                              /* TUBE: Q12, the sine x1 .. x7.2 into the curve .. */
+    d->b = a * 60;                                      /* .. biased (up to ~0.23): its asymmetry */
+    d->cb = softclip(d->b);
+    for (k = 0; k < 16; k++)                            /* (its DC over a cycle, taken off: no thump at the gate) */
+        sum += softclip(((SINE[k * 64] * d->g) >> 12) + d->b) - d->cb;
+    d->dc = sum >> 4;
+    d->kf = 5215 + a * 287;                             /* FOLD: sin(g sin x), g 1 .. 8 rad (the phase scale / 4) */
+}
+static inline int32_t an_dirt(uint32_t w, uint32_t ph, const an_dirt_t *d)
+{
+    int32_t s = osc_sine(ph);
+    if (w == AW_TUBE)
+        return softclip(((s * d->g) >> 12) + d->b) - d->cb - d->dc;
+    return (sine_i((uint32_t)(s * d->kf) << 2) * 3 + s) >> 2;   /* (a quarter of the sine under it, as Blast's) */
 }
 static inline int32_t an_osc(uint32_t w, uint32_t ph, uint32_t inc)
 {
@@ -234,8 +257,39 @@ static __attribute__((noinline)) void analog_render(track_t *t, voice_t *v, int3
     v->s[2] = nst;
 }
 
-/* the engine's render: SYNC RING SAW3 (0.4) and the FILTER TYPEs HP BP COMB (0.5) in analog_ext, the rest (LP) here
- * (a dispatch of its own: analog_render's loop as before) */
+/* (1.0-GW) TUBE FOLD: a render of their own (analog_render's and analog_ext's loops untouched: tests/target_budget.txt),
+ * osc 2 the same wave at INT / DETUNE, the same noise, drive and filter (every FILTER TYPE); how dirty: once a block */
+static __attribute__((noinline)) void analog_dirty(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
+{
+    const int16_t *p = t->p;
+    uint32_t wave = (uint32_t)p[P_E0], i, inc1 = m->inc, ph0 = v->ph[0], ph1 = v->ph[1], ft = (uint32_t)p[P_FTYPE] % 6u;
+    uint32_t inc2 = p[P_E1] || p[P_E7] ? cents_inc(m->pitch16 + p[P_E7] * 16, p[P_E1], 0) : inc1;
+    int32_t m2 = p[P_E2] * 258, m1 = 32767 - m2, nz = p[P_E3] * 200, drv = p[P_E6], kd = 8192 - p[P_E5] * 7600 / 127;
+    int32_t drive = 32768 + drv * 512, cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) << 2);
+    int32_t ic1 = v->s[0], ic2 = v->s[1], nst = v->s[2];
+    tsvf_t flt;
+    an_dirt_t dt;
+    tsvf_coef(&flt, cut, p[P_E5]);
+    an_dirt_set(&dt, an_mext(t->mo_cur, m));
+    for (i = 0; i < n; i++) {
+        int32_t s = mulq15(an_dirt(wave, ph0, &dt), m1) + mulq15(an_dirt(wave, ph1, &dt), m2);
+        ph0 += inc1;
+        ph1 += inc2;
+        if (nz)
+            s += mulq15((int32_t)(noise32(&nst) >> 17) - 16384, nz);
+        if (drv)
+            s = softclip(((s >> 2) * (drive >> 2)) >> 11);
+        out[i] += voice_amp(soft_knee(svf_mode(&flt, s >> 1, &ic1, &ic2, ft, kd), 16000) << 1, m, i) << 1;
+    }
+    v->ph[0] = ph0;
+    v->ph[1] = ph1;
+    v->s[0] = ic1;
+    v->s[1] = ic2;
+    v->s[2] = nst;
+}
+
+/* the engine's render: SYNC RING SAW3 (0.4) and the FILTER TYPEs HP BP COMB (0.5) in analog_ext, (1.0-GW) TUBE FOLD in
+ * analog_dirty, the rest (LP) here (a dispatch of its own: analog_render's loop as before) */
 static void analog_dispatch(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     int32_t m1 = an_mpos(t->p, t->mo_cur, m), m0 = an_mpos(t->p, t->mo_prev, m);
@@ -243,6 +297,8 @@ static void analog_dispatch(track_t *t, voice_t *v, int32_t *out, uint32_t n, co
         int32_t base = (int32_t)t->p[P_E0] * 256;      /* (as it leaves or comes: the plain WAVE) */
         analog_morph(t, v, out, n, m, m0 < 0 ? base : m0, m1 < 0 ? base : m1);
     }
+    else if ((uint32_t)t->p[P_E0] >= AW_TUBE)
+        analog_dirty(t, v, out, n, m);
     else if ((uint32_t)t->p[P_E0] >= AW_SYNC || t->p[P_FTYPE])
         analog_ext(t, v, out, n, m);
     else
@@ -286,7 +342,7 @@ static const engine_t ENG_ANALOG = {
     .name = "ANALOG",
     .page_title = {"OSC", "FLT"},
     .edit = {
-        {"WAVE", F_ENUM, 0, 7, 0, N_ANALOG_WAVE, 0},
+        {"WAVE", F_ENUM, 0, 9, 0, N_ANALOG_WAVE, 0},  /* (1.0-GW: TUBE FOLD appended) */
         {"DETUNE", F_INT, 0, 127, 10, 0, "ct"},
         {"MIX", F_PCT, 0, 127, 64, 0, 0},
         {"NOISE", F_PCT, 0, 127, 0, 0, 0},
