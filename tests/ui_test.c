@@ -6801,7 +6801,7 @@ static int test_fx_sections(void)
     return bad;
 }
 
-/* (1.0-GW) GEN: PRESETS turns its five pages round (SONG, FEEL the new ones); TEMPO from AUTO starts at the song's
+/* (1.0-GW) GEN: SELECT turns its five pages round (SONG, FEEL the new ones); TEMPO from AUTO starts at the song's
  * tempo and the piece takes it; the settings back to AUTO after */
 static int test_gen_pages(void)
 {
@@ -6811,15 +6811,16 @@ static int test_gen_pages(void)
     go_home(); frames(16);
     fm1_ms += 1200u;
     held_turn(B_HOME, 1);
-    ok = ui.confirm == CF_DICE_ALL && gp.page == 0u;
-    for (k = 1; k <= 4u; k++) { turn(EN_PRESET, 1); ok &= gp.page == k; }
-    turn(EN_PRESET, 1); ok &= gp.page == 0u;           /* (round) */
-    turn(EN_PRESET, -1); ok &= gp.page == 4u;
+    ok = ui.confirm == CF_DICE_ALL && gp.page == 0u && !gp.view;
+    fm1_ms += 1200u;                                    /* (past the turn that opened it) */
+    for (k = 1; k <= 4u; k++) { turn(EN_SELECT, 1); ok &= gp.page == k; }
+    turn(EN_SELECT, 1); ok &= gp.page == 0u;           /* (round) */
+    turn(EN_SELECT, -1); ok &= gp.page == 4u;
     turn(EN_K4, 1); ok &= gp.grit == GA_AUTO;          /* (GRIT: AUTO at the top) */
     turn(EN_K4, -1); ok &= gp.grit == 200u;
     turn(EN_K1, 1); ok &= gp.space == 10u;
-    bad += check("GEN: PRESETS turns the pages (1..5, round), FEEL's knobs (GRIT from AUTO, SPACE)", ok);
-    turn(EN_PRESET, -1); ok = gp.page == 3u;           /* SONG */
+    bad += check("GEN: SELECT turns the pages (1..5, round), FEEL's knobs (GRIT from AUTO, SPACE)", ok);
+    turn(EN_SELECT, -1); ok = gp.page == 3u;           /* SONG */
     turn(EN_K1, -1); ok &= !gp.tempo;                  /* (left of AUTO: AUTO) */
     turn(EN_K1, 1); ok &= gp.tempo == (uint8_t)clamp(song.g[G_BPM], 60, 200);
     turn(EN_K1, 1); ok &= gp.tempo == (uint8_t)clamp(song.g[G_BPM], 60, 200) + 1u;
@@ -6828,8 +6829,8 @@ static int test_gen_pages(void)
     ok &= song.g[G_BPM] == gp.tempo && gs.root == 1;
     bad += check("GEN: SONG's TEMPO (AUTO, then the song's tempo up) and KEY make the piece", ok);
     gp.tempo = gp.key = gp.scale = gp.length = gp.space = 0; gp.fills = gp.wet = gp.grit = GA_AUTO; gp.page = 0;
-    {   /* (1.0-GW) SELECT the genre, ALGORITHM the seed (the first page shown); stopped: only set; playing: a take once
-         * they rest, two takes one UNDO point (the music before the first) */
+    {   /* (1.0-GW) SELECT the next page (the genre kept), ALGORITHM the seed (the first page shown); stopped: only set;
+         * playing: a take once it rests, two takes one UNDO point (the music before the first) */
         uint32_t sig0[NTRK], sig1 = 0, same = 1;
         uint16_t sd;
         uint8_t g0;
@@ -6837,14 +6838,14 @@ static int test_gen_pages(void)
         fm1_ms += 1200u;
         g0 = gp.genre;
         turn(EN_SELECT, 1);
-        ok = gp.page == 0u && gp.hot == 0u && gp.genre == (uint8_t)((g0 + 1u) % (NGENRE + 1u));
+        ok = gp.page == 3u && gp.genre == g0;
         sd = gp.seed;
         for (k = 0; k < NTRK; k++) sig0[k] = steps_sig(&trk[k]);
         turn(EN_ALGO, 1);
-        ok &= gp.hot == 1u && gp.seed == (uint16_t)((sd + 1u) % 10000u);
+        ok &= gp.page == 0u && gp.hot == 1u && gp.seed == (uint16_t)((sd + 1u) % 10000u);
         frames(60);                                     /* (stopped: nothing made) */
         for (k = 0; k < NTRK; k++) ok &= steps_sig(&trk[k]) == sig0[k];
-        bad += check("GEN: SELECT turns the genre, ALGORITHM the seed (page 1 shown); stopped, nothing made", ok);
+        bad += check("GEN: SELECT the next page (genre kept), ALGORITHM the seed (page 1 shown); stopped, nothing made", ok);
         press(B_PLAY);
         for (k = 0; k < 20u; k++) { frame(); events_block(CTL); }   /* (the transport runs with the audio) */
         ok = song.playing || chain_busy();
@@ -6862,6 +6863,59 @@ static int test_gen_pages(void)
         ok &= same && sig1 != 0u;
         bad += check("GEN: playing, ALGORITHM makes a take once it rests, the music still playing; UNDO after two takes: the music before the first", ok);
     }
+    ui_power_on();
+    return bad;
+}
+
+/* (1.0-GW) GEN's TAKES reel: every piece made on it (the same recipe once), PRESETS opens and scrolls it, OCT+ remakes
+ * the take under the cursor exactly, playing a scrolled take becomes the music once PRESETS rests, KNOB 4 keeps one (it
+ * stays when the reel overflows), HOME and SELECT back to the settings */
+static int test_gen_reel(void)
+{
+    int bad = 0, ok;
+    uint32_t k, pr[3];
+    uint16_t s0;
+    ui_power_on();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    fm1_ms += 1200u;
+    ok = ui.confirm == CF_DICE_ALL && !gp.view;
+    for (k = 0; k < 3u; k++) { press(B_OCTUP); frames(4); pr[k] = dice_print(); }
+    ok &= reel_n == 3u && reel_cur == 2u && reel_play == 2u && pr[0] != pr[1] && pr[1] != pr[2];
+    ok &= reel[2].set.seed == gp.seed && reel[2].bpm == song.g[G_BPM] && reel[2].nl == (uint8_t)trk_live;
+    turn(EN_PRESET, 1); frames(32);                     /* (opens it: the cursor stays) */
+    ok &= gp.view == 1u && reel_cur == 2u;
+    turn(EN_PRESET, -1); turn(EN_PRESET, -1); turn(EN_PRESET, -1); frames(32);   /* (stops at the first) */
+    ok &= reel_cur == 0u;
+    press(B_OCTUP); frames(4);
+    ok &= dice_print() == pr[0] && reel_n == 3u && reel_play == 0u && gp.view == 1u;
+    bad += check("GEN TAKES: every piece on the reel, PRESETS opens and scrolls it, OCT+ remakes a take exactly (once on it)", ok);
+    press(B_PLAY);
+    for (k = 0; k < 20u; k++) { frame(); events_block(CTL); }
+    ok = song.playing || chain_busy();
+    turn(EN_PRESET, 1);                                 /* (playing: take 2 once PRESETS rests; the song's sections
+                                                         * play, so the steps are a section's: only queued yet) */
+    ok &= reel_want == 1 && reel_play == 0u;
+    for (k = 0; k < 60u; k++) { frame(); events_block(CTL); }
+    ok &= dice_print() == pr[1] && reel_play == 1u && reel_n == 3u && (song.playing || chain_busy());
+    transport_req = 2;
+    for (k = 0; k < 4u; k++) { frame(); events_block(CTL); }
+    bad += check("GEN TAKES: playing, a scrolled take becomes the music once PRESETS rests, the music still playing", ok);
+    turn(EN_PRESET, -1); turn(EN_K4, 1);                /* (keep the first) */
+    ok = reel[0].keep == 1u;
+    s0 = reel[0].set.seed;
+    press(B_HOME); frames(32);                          /* (HOME on the reel: back to the settings, still GEN) */
+    ok &= !gp.view && ui.confirm == CF_DICE_ALL;
+    for (k = 0; k < 40u; k++) { press(B_OCTUP); frames(4); }
+    ok &= reel_n == REEL_N && reel[0].keep && reel[0].set.seed == s0 && reel_cur == REEL_N - 1u;
+    ok &= reel[1].set.seed != reel[0].set.seed;
+    turn(EN_PRESET, 1); ok &= gp.view == 1u;
+    turn(EN_SELECT, 1); frames(32);                     /* (SELECT on the reel: back to the pages) */
+    ok &= !gp.view && ui.confirm == CF_DICE_ALL;
+    bad += check("GEN TAKES: KNOB 4 keeps a take through 40 more pieces (the reel holds 32), HOME and SELECT back to the settings", ok);
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF;
     ui_power_on();
     return bad;
 }
@@ -9118,6 +9172,7 @@ int main(void)
     bad += test_load_budget();
     bad += test_dice_all();
     bad += test_gen_pages();
+    bad += test_gen_reel();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();
