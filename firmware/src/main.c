@@ -220,6 +220,7 @@ static void fm1_main(void)
     }
 #endif
     autosave_boot(boot_clean);                /* (1.2) the last session's music, under the splash */
+    reel_boot();                              /* (1.0-GW TAKES v2) the TAKES reel and its SET */
     session_dice(fm1_ticks() ^ (uint32_t)fm1_adc_read(FM1_ADC_BATT) << 16);   /* (JIANT 0.4) this session's macros */
     {                                         /* the splash, its signature written (JIANT 0.5: was 400 ms); the pot
                                                * followed (MIDI IN plays under it). (0.5.2) On the clock: drawing the
@@ -313,6 +314,7 @@ static void fm1_main(void)
         ui_input();
         settings_poll();                              /* queued settings save: only while stopped */
         autosave_poll();                              /* (1.2) the music, stopped and idle: project.c */
+        reel_save_poll();                             /* (1.0-GW TAKES v2) the TAKES reel, the same way */
         mutate_poll();                                /* (JIANT 0.6.43) MUTATE on the bar: project.c */
         song_poll();                                  /* the song: the next section staged, the music back after it */
         felucca_dbg.stage = 2;

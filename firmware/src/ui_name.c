@@ -19,8 +19,11 @@
  *   KNOB 1       the cursor; KNOB 2 the character at the cursor (SPACE A..Z 0..9 - . _ / # +; at the end: a new one).
  *   LEDs         every key that types or edits is lit; the key whose letters are being cycled blinks.
  * Spaces at either end are dropped when it is written; an empty name: USER the automatic one, PROJECT none. */
-enum { NK_NONE, NK_USER_SAVE, NK_USER_RENAME, NK_PROJ_SAVE, NK_PROJ_RENAME };
-#define NM_LEN 12u
+enum { NK_NONE, NK_USER_SAVE, NK_USER_RENAME, NK_PROJ_SAVE, NK_PROJ_RENAME, NK_CODE };
+#define NM_LEN 28u                                     /* (1.0-GW: a take's code; a name stays 12: nm_max) */
+#define NM_CELLS 12u                                   /* the field's cells (a code scrolls through them) */
+static int gen_code_ok(const char *s);                 /* (gen_reel.c) a take's code typed */
+static void gen_code_back(void);
 #define NM_TAP_MS 800u                                 /* multi-tap: the next letter within this */
 #define NM_REP_MS 450u                                 /* a held arrow / DELETE repeats after this, */
 #define NM_RATE_MS 90u                                 /* .. every this */
@@ -44,6 +47,7 @@ static struct {
 } nm __attribute__((section(".pool")));                /* (zero-initialised; main loop only: off the audio code's .bss) */
 
 static int name_on(void) { return nm.kind != NK_NONE; }
+static uint32_t nm_max(void) { return nm.kind == NK_CODE ? NM_LEN : 12u; }
 static void name_close(void)
 {
     if (nm.kind)
@@ -89,6 +93,9 @@ static void name_open(uint32_t kind, uint32_t slot)
             up_name(user_of(TSEL), b);
         else
             str_cpy(b, nm.ph, sizeof b);
+    } else if (kind == NK_CODE) {                     /* (1.0-GW) a take's code: typed from empty */
+        str_cpy(nm.ph, "TAKE CODE", sizeof nm.ph);
+        nm.num = 1;                                     /* (codes are digits mostly: 123 first) */
     } else {
         str_cpy(nm.ph, "PROJECT A", sizeof nm.ph);
         nm.ph[8] = (char)('A' + (slot & 3u));
@@ -125,8 +132,8 @@ static void nm_commit(void)                            /* the letter being cycle
 static int nm_insert(char c)                           /* at the cursor (it stays on it); 0 = full */
 {
     uint32_t i;
-    if (nm.len >= NM_LEN) {
-        ui_message("NAME FULL");
+    if (nm.len >= nm_max()) {
+        ui_message(nm.kind == NK_CODE ? "CODE FULL" : "NAME FULL");
         return 0;
     }
     for (i = nm.len; i > nm.cur; i--)
@@ -215,6 +222,12 @@ static void name_ok(void)
         a++;
     for (z -= a, b[z] = 0; z--;)
         b[z] = nm.s[a + z];
+    if (nm.kind == NK_CODE) {                          /* (1.0-GW) a code: its take (the screen stays on a wrong one) */
+        nm.kind = NK_NONE;
+        if (!gen_code_ok(b)) nm.kind = NK_CODE;
+        ui.force = 1;
+        return;
+    }
     if (transport_busy()) {
         ui_message("STOP TO SAVE");
         return;
@@ -269,7 +282,10 @@ static void name_input(uint32_t notes, uint32_t oct)
     enc_drop();                                        /* the other knobs do nothing here */
     if (oct & 2u)
         name_ok();
-    else if (oct & 1u)
+    else if (oct & 1u && nm.kind == NK_CODE) {
+        name_close();
+        gen_code_back();                               /* (1.0-GW) a code cancelled: the reel again */
+    } else if (oct & 1u)
         name_close();                                  /* cancel: nothing written, back to the page */
 }
 
@@ -295,6 +311,7 @@ static uint32_t name_leds(void)
 static void nm_title(char *b)
 {
     str_cpy(b, nm.kind == NK_USER_SAVE || nm.kind == NK_PROJ_SAVE ? "SAVE " : "NAME ", 8);
+    if (nm.kind == NK_CODE) { str_cpy(b, "TAKE CODE", 16); return; }
     if (nm.kind <= NK_USER_RENAME)
         up_slot_label(b + 5, nm.slot);
     else
@@ -303,38 +320,40 @@ static void nm_title(char *b)
 static void nm_draw_field(void)
 {
     char b[24];
-    uint32_t i, empty = nm.len == 0u;
+    uint32_t i, empty = nm.len == 0u, off = nm.cur >= NM_CELLS ? nm.cur - NM_CELLS + 1u : 0u;   /* (a code: it scrolls) */
     cv_begin(240, CARD_H, T_BG);
     cv_rrect(3, 0, 234, CARD_H, 4, T_SURF, T_BG);
     nm_title(b);
     cv_text_on(9, 2, &AF_S, b, T_MID, T_SURF);
     fmt_int(b, nm.len);
-    str_cpy(b + str_len(b), "/12", 4);
-    cv_text_r(231, 2, &AF_S, b, nm.len >= NM_LEN ? T_ACCENT : T_DIM, T_SURF);
-    for (i = 0; i < NM_LEN; i++) {
+    str_cpy(b + str_len(b), nm.kind == NK_CODE ? "/28" : "/12", 4);
+    cv_text_r(231, 2, &AF_S, b, nm.len >= nm_max() ? T_ACCENT : T_DIM, T_SURF);
+    for (i = 0; i < NM_CELLS; i++) {
         int32_t x = NM_CX(i);
-        char c[2] = {empty ? nm.ph[i] : i < nm.len ? nm.s[i] : 0, 0};
+        uint32_t at = i + off;
+        char c[2] = {empty ? nm.ph[i] : at < nm.len ? nm.s[at] : 0, 0};
         uint16_t bg = T_SURF, fg = empty ? T_DIM : T_TEXT;
-        if (i == nm.cur && nm.key) {                   /* the letter being cycled */
+        if (at == nm.cur && nm.key) {                  /* the letter being cycled */
             cv_rrect(x, 18, 18, 22, 3, T_THEME, T_SURF);
             bg = T_THEME;
             fg = T_INK;
-        } else if (i == nm.cur) {                      /* the cursor: a box */
+        } else if (at == nm.cur) {                     /* the cursor: a box */
             cv_rrect(x, 18, 18, 22, 4, T_ACCENT, T_SURF);
             cv_rrect(x + 2, 20, 14, 18, 2, T_SURF, T_ACCENT);
         }
         if (!c[0] || (c[0] == ' ' && i >= nm.len)) {
-            if (i != nm.cur)
+            if (at != nm.cur)
                 cv_rrect(x + 4, 37, 10, 2, 1, T_RAISE, T_SURF);   /* an empty cell */
         } else if (c[0] == ' ') {
+            (void)at;
             cv_rect(x + 8, 28, 2, 2, bg == T_THEME ? T_INK : T_DIM);   /* a space */
         } else {
             GFX_HOOK_ALIGN(x, 18, x + 18, 40, AL_HV, "name field letter in its cell");
             cv_text_in(x, 18 + CAP_IN(M, 22), 18, &AF_M, c, fg, bg);   /* its ink across, the capitals' band up and down */
         }
     }
-    if (nm.cur >= NM_LEN)                              /* full, the cursor past the end: a bar */
-        cv_rrect(NM_CX(NM_LEN) + 1, 18, 3, 22, 1, T_ACCENT, T_SURF);
+    if (nm.cur >= nm_max())                            /* full, the cursor past the end: a bar */
+        cv_rrect(NM_CX(NM_CELLS) + 1, 18, 3, 22, 1, T_ACCENT, T_SURF);
     cv_blit(0, Y_LABEL);
 }
 static void nm_draw_panel(void)
@@ -392,7 +411,7 @@ static void nm_draw_foot(void)
 {
     khint_t a[2], b[3];
     int ok = !transport_busy();
-    a[0] = (khint_t){KC_OCTUP, nm.kind == NK_USER_SAVE || nm.kind == NK_PROJ_SAVE ? "SAVE" : "RENAME"};
+    a[0] = (khint_t){KC_OCTUP, nm.kind == NK_CODE ? "LOAD" : nm.kind == NK_USER_SAVE || nm.kind == NK_PROJ_SAVE ? "SAVE" : "RENAME"};
     a[1] = (khint_t){KC_OCTDN, "CANCEL"};
     b[0] = (khint_t){KC_K1, "MOVE"};
     b[1] = (khint_t){KC_K2, "CHAR"};
