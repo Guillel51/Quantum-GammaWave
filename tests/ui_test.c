@@ -69,6 +69,39 @@ static void fm1_wdt_feed(void) { if (host_wdt_hook) host_wdt_hook(); }
 static void fm1_irq_off(void) {}
 static void fm1_irq_on(void) {}
 static uint16_t host_screen[240 * 240];
+/* (GEN fix) a flash: a pixel that changed during a frame and ended it as it began (a page drawn, then something over
+ * it again; a body cleared and drawn the same): on the panel the eye sees it (the LCD shows every write). host_px
+ * writes a pixel and counts; frame() adds a frame's flashes to host_flash */
+static uint8_t host_chg[240 * 240];
+static uint16_t host_px0[240 * 240];
+static uint32_t host_dirty, host_flash, host_flash_frames, host_fx0 = 240, host_fy0 = 240, host_fx1, host_fy1;
+static inline void host_px(uint32_t i, uint16_t v)
+{
+    if (host_screen[i] == v) return;
+    if (!host_chg[i]) host_px0[i] = host_screen[i];
+    if (host_chg[i] < 255u) host_chg[i]++;
+    host_screen[i] = v;
+    host_dirty = 1;
+}
+static void host_flash_end(void)
+{
+    uint32_t i, n = 0;
+    if (!host_dirty) return;
+    for (i = 0; i < 240u * 240u; i++) {
+        if (host_chg[i] >= 2u && host_screen[i] == host_px0[i]) {
+            uint32_t x = i % 240u, y = i / 240u;
+            n++;
+            if (x < host_fx0) host_fx0 = x;
+            if (x > host_fx1) host_fx1 = x;
+            if (y < host_fy0) host_fy0 = y;
+            if (y > host_fy1) host_fy1 = y;
+        }
+        host_chg[i] = 0;
+    }
+    host_dirty = 0;
+    host_flash += n;
+    host_flash_frames += n != 0u;
+}
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 {
     uint32_t i, j;
@@ -77,7 +110,7 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 #endif
     for (j = 0; j < h && y + j < 240u; j++)
         for (i = 0; i < w && x + i < 240u; i++)
-            host_screen[(y + j) * 240u + x + i] = (uint16_t)((c >> 8) | (c << 8));
+            host_px((y + j) * 240u + x + i, (uint16_t)((c >> 8) | (c << 8)));
 }
 static void lcd_sync(void) {}
 /* MENU > SCREEN OFF (lcd.c lcd_power / lcd_wake_now): what the panel was told, in order (0 off: DISPOFF, SLPIN;
@@ -102,7 +135,7 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
     uint32_t i, j;
     host_blit_rows += h;
     for (j = 0; j < h && y + j < 240u; j++)
-        for (i = 0; i < w && x + i < 240u; i++) host_screen[(y + j) * 240u + x + i] = p[j * w + i];
+        for (i = 0; i < w && x + i < 240u; i++) host_px((y + j) * 240u + x + i, p[j * w + i]);
 }
 static struct { uint32_t stage; } felucca_dbg;
 #define FELUCCA_FLASH 0
@@ -218,6 +251,7 @@ static void frame(void)
     fm1_ms += 16u;
     ui_input();
     ui_draw();
+    host_flash_end();
 }
 static void press(uint32_t label)                 /* a tap: down, a frame, up, a frame */
 {
@@ -7475,6 +7509,88 @@ static int test_gen_ux(void)
     return bad;
 }
 
+/* (GEN fix) reported: every change on the GEN screen (a BPM step, ALGORITHM, PRESETS, OCT+ and a key) showed the
+ * takes page again before what changed: the page was cleared and drawn whole on every redraw, and drawn under the
+ * pop-up each time. Now nothing on the panel flashes (a pixel written twice in a frame, back to what it was), stopped
+ * or playing; the pop-up gone, the screen is what a fresh drawing of the page makes (nothing of it left) */
+static void gen_scr_setup(int playing)
+{
+    ui_power_on();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    fm1_ms += 1200u;
+    gp.genre = 3; gp.seed = 202; gp.form = 2;
+    press(B_OCTUP); frames(800);
+    gp.seed = 203; press(B_OCTUP); frames(800);
+    to_reel(); frames(100);
+    if (playing) { press(B_PLAY); play_ms(1000); }
+    host_flash = host_flash_frames = 0;
+}
+static void gen_scr_run(uint32_t ms, int playing) { if (playing) play_ms(ms); else frames(ms); }
+static int gen_scr_fresh_same(void)                     /* the screen as it is == the page drawn anew */
+{
+    static uint16_t a[240 * 240];
+    uint32_t i, d = 0;
+    ui.force = 1; frame();                              /* (the page as it is now: the playhead moves on redraws) */
+    memcpy(a, host_screen, sizeof a);
+    gen_fresh = 1; ui.force = 1; frame();
+    for (i = 240u * H_HEAD; i < 240u * 240u; i++) d += a[i] != host_screen[i];
+    return d == 0u;
+}
+static int test_gen_screen(void)
+{
+    int bad = 0, ok, pl;
+    uint32_t i;
+    for (pl = 0; pl < 2; pl++) {
+        gen_scr_setup(pl);
+        for (i = 0; i < 12u; i++) { turn(EN_K1, 1); gen_scr_run(48, pl); }   /* (BPM, a detent at a time) */
+        ok = host_flash == 0u && gpop.on && str_eq(gpop.lbl, "TEMPO");
+        gen_scr_run(2000, pl);
+        ok &= !gpop.on && host_flash == 0u && gen_scr_fresh_same();
+        bad += check(pl ? "GEN SCREEN: KNOB 1 TEMPO step by step, playing: the pop-up only, nothing flashes, nothing left"
+                        : "GEN SCREEN: KNOB 1 TEMPO step by step, stopped: the pop-up only, nothing flashes, nothing left", ok);
+        gen_scr_setup(pl);
+        turn(EN_ALGO, 1); gen_scr_run(3000, pl);
+        ok = host_flash == 0u && gen_scr_fresh_same();
+        gen_scr_setup(pl);
+        turn(EN_PRESET, -1); gen_scr_run(600, pl); press(B_OCTUP); gen_scr_run(3000, pl);
+        ok &= host_flash == 0u && gen_scr_fresh_same();
+        gen_scr_setup(pl);
+        turn(EN_K2, 1); gen_scr_run(200, pl); turn(EN_K3, 1); gen_scr_run(3000, pl);
+        ok &= host_flash == 0u && gen_scr_fresh_same();
+        bad += check(pl ? "GEN SCREEN: ALGORITHM, PRESETS + OCT+, KEY, ENERGY, playing: nothing flashes (takes on the bar)"
+                        : "GEN SCREEN: ALGORITHM, PRESETS + OCT+, KEY, ENERGY, stopped: nothing flashes", ok);
+        gen_scr_setup(pl);
+        btn_down(B_OCTUP); frame();
+        key_down(2); frame(); key_up(2); gen_scr_run(200, pl);   /* (G3: the bass made again) */
+        key_down(14); gen_scr_run(300, pl); key_up(14); frame();  /* (G4 held: the drums dropped) */
+        btn_up(B_OCTUP); gen_scr_run(3000, pl);
+        ok = host_flash == 0u && gen_scr_fresh_same();
+        bad += check(pl ? "GEN SCREEN: OCT+ held, a part key, a drop, playing: nothing flashes, nothing left"
+                        : "GEN SCREEN: OCT+ held, a part key, a drop, stopped: nothing flashes, nothing left", ok);
+    }
+    {   /* the settings pages and the SET page too */
+        gen_scr_setup(1);
+        press(B_OCTDN); frame();                        /* (the settings) */
+        host_flash = 0;
+        turn(EN_ALGO, 1); play_ms(2500); press(B_OCTUP); play_ms(3000);
+        ok = gp.view == 0u && host_flash == 0u && gen_scr_fresh_same();
+        to_reel(); turn(EN_SELECT, 1); frame();         /* (the SET page) */
+        host_flash = 0;
+        press(B_OCTUP); play_ms(3000);
+        ok &= gp.view == 2u && host_flash == 0u && gen_scr_fresh_same();
+        transport_req = 2; frames(64);
+        bad += check("GEN SCREEN: the settings (ALGORITHM, OCT+) and the SET page (OCT+, bars going by): nothing flashes", ok);
+    }
+    memset(gp.var, 0, sizeof gp.var); memset(gp.svar, 0, sizeof gp.svar);
+    gp.tempo = gp.key = 0; gp.energy = 50;
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0;
+    ui_power_on();
+    return bad;
+}
+
 /* (0.6.21) HOME + SELECT: the dialog, OCT+: everything diced (one musical scale, a sequence on every track, DRUM a
  * beat); GLO + G4: UNDO puts the music back, again: forward */
 static int test_dice_all(void)
@@ -9734,6 +9850,7 @@ int main(void)
     bad += test_gen_store();
     bad += test_gen_conflicts();
     bad += test_gen_ux();
+    bad += test_gen_screen();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();

@@ -167,7 +167,30 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
 
-### Unreleased — the next build (branch `claude/gw1-controls-audit`)
+### Unreleased — the next build (branch `claude/gw1-gen-fix`)
+
+**GEN: the screen no longer flashes or cycles** — reported: on the device, every ALGORITHM turn, PRESETS turn, knob
+turn, OCT+ press and take key showed the takes page again, then what had changed (a BPM step: the whole page, then
+the pop-up), as if the screen were cycling through it. Three causes, all in how the GEN screen was drawn:
+- **The whole screen was cleared and drawn again on every redraw.** The check meant to clear it only on entering
+  compared the header's signature with a value the header always overwrote, so it was always true. On the panel
+  every write shows, so each detent blanked the page and drew it back. It is now cleared only on entering and
+  between its pages.
+- **The page was drawn under the pop-up each time**, then the pop-up over it: with a take waiting for the bar (a
+  redraw every 100 ms) the page and the pop-up took turns. The pop-up's rows are now left alone while it shows: a
+  BPM step changes the number in the pop-up and nothing else.
+- **A pop-up going, the keys' map coming or going, a page change** cleared an area and then drew over it, a blink.
+  The page is now drawn first and only what it does not paint is cleared after.
+- The keys' map (OCT+ held) is 6 px shorter, so its two help lines sit under the keys instead of over their last
+  rows (they were painted twice on every redraw, a flicker).
+- The SET page's entry is one drawing (it was cleared and redrawn with every bar while a SET played).
+
+A test now counts every pixel written twice in a frame that ends as it began (what the eye sees as a flash on the
+panel): BPM step by step, ALGORITHM, PRESETS and OCT+, KEY and ENERGY, OCT+ held with a part key and a drop, the
+settings and the SET page, stopped and playing — none, where there were up to 230,000 per action; and once a
+pop-up is gone the screen equals the page drawn afresh.
+
+### Published as `v1.0-GW-2eeb792` — the GEN control model and UX pass (PR #9)
 
 **GEN: the controls, no conflicts** — reported: OCT+ held and a key still played the note. The take layer was the
 reel's only; on the settings pages the key sounded, and letting go of OCT+ then made a new piece. Every control on the

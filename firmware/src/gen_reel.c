@@ -14,6 +14,36 @@ static uint16_t heat_col(int32_t v);                    /* (ui_graph.c) */
 /* (v2) the GEN screen's pop-up: what a control just did, big, in the middle of the screen for 1.6 s (a label, a
  * value); a take waiting for the next bar: the bar's progress under it */
 static struct { char lbl[24], val[24]; uint32_t ms; uint8_t on; } gpop;
+#define POP_X 14u                                       /* (its card on the screen) */
+#define POP_Y 92u
+#define POP_W 212u
+#define POP_H 66u
+/* (GEN fix) areas to clear once the page is drawn, its gaps only (draw_gen: the pop-up's place gone, the keys' lines on
+ * or off, the empty reel) */
+#define GCLEAN_N 4u
+static struct { uint8_t x, y, w, h; } gclean[GCLEAN_N];
+static uint8_t gclean_n;
+/* a fill, the pop-up's rows left alone (cv_hole: gfx.c) */
+static void lcd_fill_hole(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
+{
+    cv_rec_add(x, y, w, h);
+    if (cv_hole1 <= y || cv_hole0 >= y + h) {
+        lcd_fill(x, y, w, h, c);
+        return;
+    }
+    if (cv_hole0 > y)
+        lcd_fill(x, y, w, cv_hole0 - y, c);
+    if (cv_hole1 < y + h)
+        lcd_fill(x, cv_hole1, w, y + h - cv_hole1, c);
+}
+static void scr_clean(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+{
+    if (gclean_n < GCLEAN_N) {
+        gclean[gclean_n].x = (uint8_t)x; gclean[gclean_n].y = (uint8_t)y;
+        gclean[gclean_n].w = (uint8_t)w; gclean[gclean_n].h = (uint8_t)h;
+        gclean_n++;
+    }
+}
 static void reel_hex(char *b, uint32_t id);
 static void gen_pop(const char *lbl, const char *val)
 {
@@ -289,9 +319,10 @@ static void draw_layer_keys(void)
     static const uint8_t WHITE[16] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};
     static const uint8_t BLACK[11] = {1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25}, BAFTER[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
     uint32_t i;
-    if (!gl_drawn) lcd_fill(0, 170, 240, 70, T_BG);     /* (once: what was there before) */
+    if (!gl_drawn) scr_clean(0, 170, 240, 70);          /* (once: what was there before, round the keys) */
     gl_drawn = 1;
-    cv_begin(240, 44, T_BG);
+    cv_begin(240, 36, T_BG);                            /* (GEN fix: 172 .. 207, the help under it; the help over its
+                                                         * last rows painted them twice, a flicker) */
     for (i = 0; i < 16u; i++) {                         /* (a part: filled in its colour; a drop: its colour as a frame) */
         uint32_t k = WHITE[i], c = GKEY[k], x = i * 15u;
         int part = c >= SL_DRUMS && c <= SL_TEX, drop = c >= 0x40u && c < 0x40u + SL_PARTS;
@@ -299,27 +330,28 @@ static void draw_layer_keys(void)
         uint16_t col = reel_col(role), f = part ? col : drop ? col : T_RAISE, ink = part ? T_INK : drop ? col : T_TEXT;
         int down = ((fm1_in.notes >> k) & 1u) != 0u;
         int32_t w;
-        cv_rrect((int32_t)x + 1, 16, 13, 26, 3, down ? T_TEXT : f, T_BG);
-        if (drop && !down) cv_rrect((int32_t)x + 3, 18, 9, 22, 2, T_BG, f);
+        cv_rrect((int32_t)x + 1, 12, 13, 24, 3, down ? T_TEXT : f, T_BG);
+        if (drop && !down) cv_rrect((int32_t)x + 3, 14, 9, 20, 2, T_BG, f);
         w = text_w(&AF_S, WT[i]);
-        cv_text((int32_t)x + 1 + (13 - w) / 2, 22, &AF_S, WT[i], down ? T_INK : ink);
-        if (part && ((gp.lock >> c) & 1u)) cv_rect((int32_t)x + 6, 37, 3, 3, T_INK);   /* (locked) */
+        cv_text((int32_t)x + 1 + (13 - w) / 2, 16, &AF_S, WT[i], down ? T_INK : ink);
+        if (part && ((gp.lock >> c) & 1u)) cv_rect((int32_t)x + 6, 31, 3, 3, T_INK);   /* (locked) */
     }
     for (i = 0; i < 11u; i++) {
         uint32_t k = BLACK[i], c = GKEY[k], x = (BAFTER[i] + 1u) * 15u - 5u;
         int snd = c >= 0x10u && c < 0x10u + RL_N, down = ((fm1_in.notes >> k) & 1u) != 0u;
-        cv_rrect((int32_t)x, 0, 10, 14, 2, down ? T_TEXT : snd ? reel_col(c - 0x10u) : T_MID, T_BG);
-        if (snd && ((gp.lock >> (8u + c - 0x10u)) & 1u)) cv_rect((int32_t)x + 4, 10, 2, 2, T_INK);
+        cv_rrect((int32_t)x, 0, 10, 11, 2, down ? T_TEXT : snd ? reel_col(c - 0x10u) : T_MID, T_BG);
+        if (snd && ((gp.lock >> (8u + c - 0x10u)) & 1u)) cv_rect((int32_t)x + 4, 7, 2, 2, T_INK);
     }
     cv_blit(0, 172);
-    draw_text_box(0, 211, 240, &AF_S, "FILLED: NEW PART  BLACK: ITS SOUND", T_TEXT, 1);
+    draw_text_box(0, 208, 240, &AF_S, "FILLED: NEW PART  BLACK: ITS SOUND", T_TEXT, 1);
     draw_text_box(0, 224, 240, &AF_S, "FRAMED: DROP WHILE HELD  HOLD: LOCK", T_MID, 1);
 }
 static void layer_keys_off(void)                        /* the keys' lines gone: the band cleared once */
 {
-    if (gl_drawn) lcd_fill(0, 170, 240, 70, T_BG);
+    if (gl_drawn) scr_clean(0, 170, 240, 70);           /* (round the map and the footer drawn now) */
     gl_drawn = 0;
 }
+static uint8_t reel_empty_drawn;
 static void draw_reel(void)
 {
     char t[40];
@@ -339,12 +371,14 @@ static void draw_reel(void)
     else if (jam.on) str_cpy(t + str_len(t), "  JAM", sizeof t - str_len(t));
     draw_text_box(0, 30, 240, &AF_M, t, T_THEME, 1);
     if (!reel_n) {
-        lcd_fill(0, 50, 240, 148, T_BG);
+        if (!reel_empty_drawn) scr_clean(0, 50, 240, 148);   /* (once: the card gone; not every redraw) */
+        reel_empty_drawn = 1;
         draw_text_box(0, 100, 240, &AF_S, "EVERY PIECE MADE GOES HERE", T_MID, 1);
         draw_text_box(0, 116, 240, &AF_S, "OCT+ MAKES THE FIRST", T_DIM, 1);
     } else {
         char b[40];
         uint32_t nl, y0 = 56u, rh;
+        reel_empty_drawn = 0;
         int32_t nw;
         k = &reel[reel_cur];
         nl = k->nl ? k->nl : 1u;
@@ -638,8 +672,7 @@ static void gl_drop(uint32_t p, int on)
     } else if ((gl.drop >> p) & 1u) {
         gl.drop &= (uint8_t)~(1u << p);
         if (t < NTRK) trk[t].p[P_MUTE] = gl.drop_mute[p];
-        gpop.on = 0;
-        gen_fresh = 1;
+        gpop.on = 0;                                    /* (its place only: draw_gen) */
         ui.force = 1;
     }
 }
@@ -914,29 +947,31 @@ static void draw_set(void)
         cv_rect((int32_t)(16u + pos * 208u / (tot ? tot : 1u)), 0, 2, 40, T_TEXT);
     }
     cv_blit(0, 56);
-    lcd_fill(0, 100, 240, 96, T_BG);
+    cv_begin(240, 84, T_BG);                            /* (GEN fix) the entry, one canvas (a fill then its lines: the
+                                                         * lines flashed with every bar) */
     if (set_n) {
         int tk = set_take(set_cur);
         uint32_t n;
         fmt_int(b, set_cur + 1u);
         str_cpy(b + str_len(b), " OF ", 5);
         fmt_int(b + str_len(b), set_n);
-        draw_text_box(0, 104, 240, &AF_S, b, T_MID, 1);
+        cv_text((240 - text_w(&AF_S, b)) / 2, 4, &AF_S, b, T_MID);
         b[0] = '#';
         reel_hex(b + 1, set_e[set_cur].id);
         str_cpy(b + 5, "  ", 3);
         str_cpy(b + 7, tk < 0 ? "DELETED" : reel[tk].name, sizeof b - 7u);
-        draw_text_box(0, 122, 240, &AF_M, b, tk < 0 ? T_DIM : T_TEXT, 1);
+        cv_text((240 - text_w(&AF_M, b)) / 2, 22, &AF_M, b, tk < 0 ? T_DIM : T_TEXT);
         n = set_e[set_cur].bars;
         b[0] = (char)('0' + n / 10u); b[1] = (char)('0' + n % 10u);
         str_cpy(b + 2, n == 1u ? " BAR" : " BARS", sizeof b - 2u);
-        draw_text_box(0, 146, 240, &AF_M, b[0] == '0' ? b + 1 : b, T_THEME, 1);
+        cv_text((240 - text_w(&AF_M, b[0] == '0' ? b + 1 : b)) / 2, 46, &AF_M, b[0] == '0' ? b + 1 : b, T_THEME);
     }
     else {
-        draw_text_box(0, 120, 240, &AF_S, "NO SET YET", T_MID, 1);
-        draw_text_box(0, 136, 240, &AF_S, "PLAYING: REC RECORDS THE TAKES", T_DIM, 1);
-        draw_text_box(0, 152, 240, &AF_S, "OR OCT+ ADDS THE TAKE PLAYING", T_DIM, 1);
+        cv_text((240 - text_w(&AF_S, "NO SET YET")) / 2, 20, &AF_S, "NO SET YET", T_MID);
+        cv_text((240 - text_w(&AF_S, "PLAYING: REC RECORDS THE TAKES")) / 2, 36, &AF_S, "PLAYING: REC RECORDS THE TAKES", T_DIM);
+        cv_text((240 - text_w(&AF_S, "OR OCT+ ADDS THE TAKE PLAYING")) / 2, 52, &AF_S, "OR OCT+ ADDS THE TAKE PLAYING", T_DIM);
     }
+    cv_blit(0, 100);
     draw_text_box(0, 184, 240, &AF_S, "K1 ENTRY  K2 TAKE  K3 BARS", T_TEXT, 1);
     draw_text_box(0, 200, 240, &AF_S, "PLAY RUN  OCT+ ADD  EDIT DEL", T_TEXT, 1);
     draw_text_box(0, 216, 240, &AF_S, "OCT- BACK  SEL NEXT PAGE", T_DIM, 1);

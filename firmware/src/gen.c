@@ -2039,7 +2039,7 @@ static void gen_take_poll(void)
     {   /* (TAKES v2) the pop-up goes after 1.6 s (a take still waiting: it stays, its bar filling, 10 times a second) */
         static uint32_t cd_ms;
         int waiting = gen_take_ms && gen_take_bar && song.playing;
-        if (gpop.on && !waiting && fm1_ms - gpop.ms > 1600u) { gpop.on = 0; gen_fresh = 1; ui.force = 1; }
+        if (gpop.on && !waiting && fm1_ms - gpop.ms > 1600u) { gpop.on = 0; ui.force = 1; }   /* (its place only: draw_gen) */
         if (waiting && fm1_ms - cd_ms >= 100u) {
             cd_ms = fm1_ms;
             if (!gpop.on) gen_pop("ON THE NEXT BAR", reel_want >= 0 ? "TAKE" : "NEW TAKE");
@@ -2184,29 +2184,97 @@ static void draw_pop(void)
         cv_rrect(12, 56, 188, 5, 2, T_SURF, T_RAISE);
         cv_rrect(12, 56, (int32_t)(pos > 188u ? 188u : pos < 5u ? 5u : pos), 5, 2, T_THEME, T_RAISE);
     }
-    cv_blit(14, 92);
+    cv_blit(POP_X, POP_Y);
 }
+static void draw_gen_page(void);
+/* (GEN fix) the screen: cleared on entering and between its pages only (0.6.96: each card and line paints its own
+ * band) -- it was cleared on every redraw, a knob's every detent (ui.head_sig is drawn again after this, never ~0u
+ * here: the test was always true); a pop-up up: the page drawn round it (cv_hole), the pop-up over; gone: its place
+ * cleared and the page over it. Nothing on the panel is written twice in a frame */
+/* an area's gaps once the page is drawn over it: on row y, x0 .. x1, what no blit or fill painted (cv_rec), as pairs */
+static uint32_t gen_row_gaps(uint32_t y, uint32_t x0, uint32_t x1, uint8_t *g)
+{
+    uint32_t n = 0, x = x0, i, e, nx, moved;
+    if (cv_hole1 && y >= cv_hole0 && y < cv_hole1)
+        return 0;                                       /* (the pop-up's rows: its own) */
+    while (x < x1 && n < 16u) {
+        e = x;
+        do {                                            /* (covered at e: as far as the rects reach) */
+            moved = 0;
+            for (i = 0; i < cv_rec_n; i++)
+                if (cv_rec[i].y0 <= y && y < cv_rec[i].y1 && cv_rec[i].x0 <= e && e < cv_rec[i].x1) { e = cv_rec[i].x1; moved = 1; }
+        } while (moved);
+        if (e > x) { x = e; continue; }
+        nx = x1;                                        /* (a gap: to the next rect on the row) */
+        for (i = 0; i < cv_rec_n; i++)
+            if (cv_rec[i].y0 <= y && y < cv_rec[i].y1 && cv_rec[i].x0 > x && cv_rec[i].x0 < nx) nx = cv_rec[i].x0;
+        g[n++] = (uint8_t)x;
+        g[n++] = (uint8_t)nx;
+        x = nx;
+    }
+    return n;
+}
+/* the gaps cleared, rows with the same gaps in one fill each */
+static void gen_gaps(uint32_t x0, uint32_t y0, uint32_t w, uint32_t h)
+{
+    uint8_t run[16], row[16];
+    uint32_t nrun = 0, nrow, y, ys = y0, i, same;
+    for (y = y0; y <= y0 + h; y++) {
+        nrow = y < y0 + h ? gen_row_gaps(y, x0, x0 + w, row) : 0xFFu;
+        same = nrow == nrun;
+        for (i = 0; same && i < nrun; i++) same = row[i] == run[i];
+        if (y > y0 && same) continue;
+        for (i = 0; i + 1u < nrun; i += 2u) lcd_fill(run[i], ys, (uint32_t)(run[i + 1u] - run[i]), y - ys, T_BG);
+        ys = y;
+        nrun = nrow == 0xFFu ? 0u : nrow;
+        for (i = 0; i < nrun; i++) run[i] = row[i];
+    }
+}
+/* (GEN fix) the screen: cleared on entering and between its pages only (0.6.96: each card and line paints its own
+ * band) -- it was cleared on every redraw, a knob's every detent (ui.head_sig is drawn again after this, never ~0u
+ * here: the test was always true); a pop-up up: the page drawn round it (cv_hole), the pop-up over; an area to clear
+ * (the pop-up gone, the keys' lines on or off): the page drawn first, then its gaps. Nothing on the panel is written
+ * twice in a frame */
 static void draw_gen(void)
 {
-    uint32_t k;
-    char t[40], v[16];
-    static uint8_t last_view;
-    if (gen_fresh || ui.head_sig != ~0u || last_view != gp.view) {   /* (0.6.96) cleared once on entering (1.0-GW: and
-                                                         * between the pages and the reel), not on every knob: each
-                                                         * card and line paints its own band (it flickered) */
-        lcd_fill(0, H_HEAD, 240, 240 - H_HEAD, T_BG);
+    static uint8_t last_view, pop_was;
+    uint32_t i;
+    int fresh = gen_fresh || last_view != gp.view;
+    if (pop_was && !gpop.on && !fresh) scr_clean(POP_X, POP_Y, POP_W, POP_H);
+    pop_was = gpop.on;
+    if (gpop.on) { cv_hole0 = POP_Y; cv_hole1 = POP_Y + POP_H; }
+    if (fresh) {                                        /* (entering, another page: drawn, then what it leaves cleared) */
+        gclean_n = 0;
+        scr_clean(0, H_HEAD, 240, 240 - H_HEAD);
         gen_fresh = 0;
         last_view = gp.view;
     }
     ui.head_sig = ~0u;
+    cv_rec_n = 0; cv_rec_y0 = H_HEAD; cv_rec_y1 = 240; cv_rec_on = 1;
+    draw_gen_page();
+    cv_rec_on = 0;
+    if (gclean_n) {
+        if (cv_rec_n == 0xFFu) {                        /* (too much to follow: cleared, the page again) */
+            for (i = 0; i < gclean_n; i++) lcd_fill_hole(gclean[i].x, gclean[i].y, gclean[i].w, gclean[i].h, T_BG);
+            draw_gen_page();
+        } else {
+            for (i = 0; i < gclean_n; i++) gen_gaps(gclean[i].x, gclean[i].y, gclean[i].w, gclean[i].h);
+        }
+    }
+    gclean_n = 0;
+    cv_hole0 = cv_hole1 = 0;
+    draw_pop();
+}
+static void draw_gen_page(void)
+{
+    uint32_t k;
+    char t[40], v[16];
     if (gp.view == 2u) {
         draw_set();
-        draw_pop();
         return;
     }
     if (gp.view) {
         draw_reel();
-        draw_pop();
         return;
     }
     str_cpy(t, "GENERATOR  1/5", sizeof t);
@@ -2225,7 +2293,6 @@ static void draw_gen(void)
     }
     if (gl.held) {                                      /* (TAKES v2) OCT+ held: the keys make takes here too */
         draw_layer_keys();
-        draw_pop();
         return;
     }
     layer_keys_off();
@@ -2242,5 +2309,4 @@ static void draw_gen(void)
     }
     draw_text_box(0, 190, 240, &AF_S, "OCT+ MAKE  HOLD OCT+: KEYS", T_TEXT, 1);
     draw_text_box(0, 206, 240, &AF_S, "SEL PAGES  ALGO SOUNDS  PRESETS TAKES", T_DIM, 1);
-    draw_pop();
 }
