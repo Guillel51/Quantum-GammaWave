@@ -6917,9 +6917,17 @@ static int test_gen_pages(void)
     return bad;
 }
 
-/* (1.0-GW) GEN's TAKES reel: every piece made on it (the same recipe once), PRESETS opens and scrolls it, OCT+ remakes
- * the take under the cursor exactly, playing a scrolled take becomes the music once PRESETS rests, KNOB 4 keeps one (it
- * stays when the reel overflows), HOME and SELECT back to the settings */
+/* (NOW) the GEN screen's NOW and its TAKES reel: a piece made is NOW (no take); SAVE keeps NOW as a take; PRESETS
+ * goes NOW, then the takes (round); OCT+ on a take remakes it exactly (no new take); playing, a scrolled take becomes the
+ * music once PRESETS rests; the reel never drops a take (full: SAVE says so); OCT- back, SELECT on, HOME closes */
+static void gen_enter(void)                             /* HOME, then the GEN screen (HOME held + SELECT) */
+{
+    go_home(); frames(16);
+    fm1_ms += 1200u;
+    held_turn(B_HOME, 1);
+    fm1_ms += 1200u;
+}
+static void sv(void) { press(B_SAVE); frames(16); }     /* SAVE: NOW a take */
 static int test_gen_reel(void)
 {
     int bad = 0, ok;
@@ -6927,47 +6935,50 @@ static int test_gen_reel(void)
     uint16_t s0;
     ui_power_on();
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
-    go_home(); frames(16);
-    fm1_ms += 1200u;
-    held_turn(B_HOME, 1);
-    fm1_ms += 1200u;
+    gen_enter();
     ok = ui.confirm == CF_DICE_ALL && !gp.view;
-    for (k = 0; k < 3u; k++) { press(B_OCTUP); frames(4); pr[k] = dice_print(); }
-    ok &= reel_n == 3u && reel_cur == 2u && reel_play == 2u && pr[0] != pr[1] && pr[1] != pr[2];
+    press(B_OCTUP); frames(4);
+    ok &= reel_n == 0u && now_ok && now_dirty();       /* (a piece: NOW, no take) */
+    sv();
+    ok &= reel_n == 1u && reel_play == 0u && !now_dirty();
+    sv();
+    ok &= reel_n == 1u && gpop.on && str_eq(gpop.lbl, "ALREADY SAVED");   /* (the same NOW: not twice) */
+    pr[0] = dice_print();
+    for (k = 1; k < 3u; k++) { press(B_OCTUP); frames(4); sv(); pr[k] = dice_print(); }
+    ok &= reel_n == 3u && reel_play == 2u && reel_on_now && pr[0] != pr[1] && pr[1] != pr[2];
     ok &= reel[2].set.seed == gp.seed && reel[2].bpm == song.g[G_BPM] && reel[2].nl == (uint8_t)trk_live;
-    turn(EN_PRESET, -1); frames(32);                    /* (TAKES v2: opens it, the turn a step too) */
-    ok &= gp.view == 1u && reel_cur == 1u;
+    turn(EN_PRESET, -1); frames(32);                    /* (opens it on NOW, the turn a step: round to the newest) */
+    ok &= gp.view == 1u && !reel_on_now && reel_cur == 2u;
+    turn(EN_PRESET, -1); ok &= reel_cur == 1u;
     turn(EN_PRESET, -1); ok &= reel_cur == 0u;
-    turn(EN_PRESET, -1); ok &= reel_cur == 2u && gpop.on;   /* (round: the newest after the first, said) */
-    turn(EN_PRESET, 1); frames(32); ok &= reel_cur == 0u;   /* (and back round) */
+    turn(EN_PRESET, -1); ok &= reel_on_now;            /* (NOW, before the first) */
+    turn(EN_PRESET, 1); frames(32); ok &= !reel_on_now && reel_cur == 0u;
     press(B_OCTUP); frames(4);
     ok &= dice_print() == pr[0] && reel_n == 3u && reel_play == 0u && gp.view == 1u;
-    bad += check("GEN TAKES: every piece on the reel, PRESETS opens and scrolls it (round), OCT+ remakes a take exactly (once on it)", ok);
+    bad += check("GEN TAKES: a piece is NOW, SAVE a take (once); PRESETS NOW then the takes (round); OCT+ remakes a take exactly", ok);
     press(B_PLAY);
     for (k = 0; k < 20u; k++) { frame(); events_block(CTL); }
     ok = song.playing || chain_busy();
-    turn(EN_PRESET, 1);                                 /* (playing: take 2 once PRESETS rests; the song's sections
-                                                         * play, so the steps are a section's: only queued yet) */
+    turn(EN_PRESET, 1);                                 /* (playing: take 2 once PRESETS rests) */
     ok &= reel_want == 1 && reel_play == 0u;
-    play_ms(4000);                                  /* (TAKES v2: on the next bar) */
+    play_ms(4000);                                      /* (on the next bar) */
     ok &= dice_print() == pr[1] && reel_play == 1u && reel_n == 3u && (song.playing || chain_busy());
     transport_req = 2;
     for (k = 0; k < 4u; k++) { frame(); events_block(CTL); }
     bad += check("GEN TAKES: playing, a scrolled take becomes the music once PRESETS rests, the music still playing", ok);
-    turn(EN_PRESET, -1); press(B_SAVE); frames(32);     /* (TAKES v2: SAVE keeps the first) */
-    ok = reel[0].keep == 1u && reel_cur == 0u;
     s0 = reel[0].set.seed;
     press(B_OCTDN); frames(32);                         /* (OCT- on the reel: back to the settings, still GEN) */
-    ok &= !gp.view && ui.confirm == CF_DICE_ALL;
+    ok = !gp.view && ui.confirm == CF_DICE_ALL;
     for (k = 0; k < 40u; k++) { press(B_OCTUP); frames(4); }
-    ok &= reel_n == REEL_N && reel[0].keep && reel[0].set.seed == s0 && reel_cur == REEL_N - 1u;
-    ok &= reel[1].set.seed != reel[0].set.seed;
+    ok &= reel_n == 3u && now_dirty();                  /* (40 pieces: NOW each time, no take) */
+    for (k = 0; k < 40u; k++) { press(B_OCTUP); frames(4); sv(); }
+    ok &= reel_n == REEL_N && reel[0].set.seed == s0 && gpop.on && str_eq(gpop.lbl, "32 TAKES: THE REEL IS FULL");
     turn(EN_PRESET, 1); ok &= gp.view == 1u;
     turn(EN_SELECT, 1); frames(32);                     /* (SELECT on the reel: the SET page) */
     ok &= gp.view == 2u && ui.confirm == CF_DICE_ALL;
     press(B_HOME); frames(32);                          /* (HOME: the GEN screen closed, from any page) */
     ok &= !ui.confirm;
-    bad += check("GEN TAKES: SAVE keeps a take through 40 more pieces (the reel holds 32), OCT- back, SELECT on, HOME closes", ok);
+    bad += check("GEN TAKES: 40 pieces make no take; SAVE fills the reel to 32 and says it is full (none dropped); OCT- back, SELECT on, HOME closes", ok);
     reel_n = 0; reel_cur = 0; reel_play = 0xFF;
     ui_power_on();
     return bad;
@@ -6975,8 +6986,8 @@ static int test_gen_reel(void)
 
 /* (TAKES v2) a take's own choices: a part made again changes that part only (its notes; every sound the same), a role's
  * sound made again changes that sound only (every note the same), turned back the piece as before; IDs never reused, a
- * child knows its parent, a new seed starts a family; EDIT deletes (a question first, a kept take refused), EDIT held the
- * unkept ones */
+ * saved take knows the take NOW came from, a new seed starts a family; EDIT deletes (a question first), EDIT held every
+ * take; NOW is never deleted */
 static uint32_t snd_sig(const track_t *t)
 {
     uint32_t h = 2166136261u ^ t->eng_req, j;
@@ -6991,12 +7002,10 @@ static int test_gen_v2(void)
     ui_power_on();
     ui_rec_prefs |= PREF_SIX >> 8; rp_apply();
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
-    go_home(); frames(16);
-    fm1_ms += 1200u;
-    held_turn(B_HOME, 1);
-    fm1_ms += 1200u;
+    gen_enter();
     gp.genre = 3; gp.seed = 202; gp.form = 0;          /* TRAP ATL, a loop */
     press(B_OCTUP); frames(4);
+    sv();
     for (k = 0; k < NTRK; k++) { st0[k] = steps_sig(&trk[k]); sn0[k] = snd_sig(&trk[k]); }
     pr0 = dice_print();
     dr = gs.trk_of[RL_DRUM]; ld = gs.trk_of[RL_LEAD];
@@ -7009,8 +7018,10 @@ static int test_gen_v2(void)
         ch_sn |= (uint32_t)(snd_sig(&trk[k]) != sn0[k]) << k;
     }
     ok &= ((ch_st >> dr) & 1u) && !((ch_st >> ld) & 1u) && !ch_sn;
+    ok &= reel_n == 1u && now_t.how == GH_DRUMS && now_dirty();
+    now_save(); gpop.on = 0;
     ok &= reel_n == 2u && reel[1].parent == id0 && reel[1].how == GH_DRUMS && reel[1].id != id0;
-    bad += check("GEN v2: new DRUMS: the drum part's notes change, the lead's don't, no sound changes; a child of the take", ok);
+    bad += check("GEN v2: new DRUMS: the drum part's notes change, the lead's don't, no sound changes; saved: a child of the take", ok);
     gp.var[SL_DRUMS] = 0;
     gp.svar[RL_LEAD] = 1;                               /* the lead's sound made again */
     gen_how = GH_SLEAD; gen_go(); gp.sig = gen_sig();
@@ -7020,13 +7031,14 @@ static int test_gen_v2(void)
         ch_sn |= (uint32_t)(snd_sig(&trk[k]) != sn0[k]) << k;
     }
     ok = !ch_st && ((ch_sn >> ld) & 1u) && !((ch_sn >> dr) & 1u);
+    now_save(); gpop.on = 0;
     bad += check("GEN v2: the lead's sound made again: only its sound changes, every note the same", ok);
     gp.svar[RL_LEAD] = 0;
     gen_how = GH_SET; gen_go(); gp.sig = gen_sig();     /* (back: the first take, not a new one) */
-    ok = dice_print() == pr0 && reel_n == 3u && reel_play == 0u;
-    bad += check("GEN v2: the variations turned back: the piece as first made, its take (no new one)", ok);
+    ok = dice_print() == pr0 && reel_n == 3u && reel_play == 0u && !now_dirty();
+    bad += check("GEN v2: the variations turned back: the piece as first made, NOW its take (no new one)", ok);
     id1 = reel[2].id;
-    reel_cur = 2; gp.view = 1;
+    reel_cur = 2; reel_on_now = 0; gp.view = 1;
     press(B_EDIT); frames(32);                          /* (a question) */
     ok = reel_ask == 1u && reel_n == 3u;
     press(B_OCTDN); frames(32);                         /* (no) */
@@ -7034,17 +7046,18 @@ static int test_gen_v2(void)
     press(B_EDIT); press(B_OCTUP); frames(32);          /* (yes) */
     ok &= reel_n == 2u && reel_find(id1) < 0 && reel[0].id == id0 && reel_find(reel[1].id) == 1;
     bad += check("GEN v2: EDIT on the reel: a question (OCT- no, OCT+ yes), the take gone, the others' IDs as they were", ok);
-    reel[0].keep = 1; reel_cur = 0;
+    reel_on_now = 1;
     press(B_EDIT); frames(32);
-    ok = !reel_ask && reel_n == 2u;                     /* (a kept take: refused) */
+    ok = !reel_ask && reel_n == 2u;                     /* (NOW: nothing to delete) */
     hold(B_EDIT); frames(32);
     ok &= reel_ask == 2u;
     press(B_OCTUP); frames(32);
-    ok &= reel_n == 1u && reel[0].id == id0 && reel[0].keep;
-    bad += check("GEN v2: a kept take not deleted; EDIT held: every take not kept deleted (a question first)", ok);
+    ok &= reel_n == 0u && reel_on_now && now_ok;
+    bad += check("GEN v2: EDIT on NOW: nothing deleted; EDIT held: every take deleted (a question first), NOW stays", ok);
     gp.view = 0; gp.sig = gen_sig();
     press(B_OCTUP); frames(4);                          /* (the same settings: a new seed, a family of its own) */
-    ok = reel_n == 2u && reel[1].parent == 0u && reel[1].id > id1 && gp.seed != 202u;
+    sv();
+    ok = reel_n == 1u && reel[0].parent == 0u && reel[0].id > id1 && gp.seed != 202u;
     bad += check("GEN v2: IDs never reused, a new seed a family's first take (no parent)", ok);
     reel_n = 0; reel_cur = 0; reel_play = 0xFF;
     ui_rec_prefs &= (uint8_t)~(PREF_SIX >> 8); rp_apply();
@@ -7052,10 +7065,10 @@ static int test_gen_v2(void)
     return bad;
 }
 
-/* (TAKES v2) OCT+ held on the reel: the keys silent and the layer's: a part's key makes a child with that part new (stopped:
- * at once), held half a second it locks the part instead; a black key the part's sound; playing, a take waits for the
- * next bar and the loop starts again from its top; PRESETS with OCT+ held only cues (nothing loads), OCT+ let go loads the
- * cue on the next bar; on another take's card a part key borrows it (a pin); a locked part goes with a new seed */
+/* (TAKES v2, NOW) OCT+ held: the keys silent and the layer's: a part's key makes NOW again with that part new (stopped:
+ * at once), held half a second it locks the part instead; a black key the part's sound; playing, a change waits for the
+ * next bar and the loop starts again from its top; PRESETS with OCT+ held only cues (nothing loads), OCT+ let go loads
+ * the cue on the next bar; on another take's card a part key borrows it (a pin); a locked part goes with a new seed */
 static void to_reel(void)                               /* (TAKES v2) SELECT round the GEN screen's ring to the reel */
 {
     uint32_t i;
@@ -7070,62 +7083,60 @@ static void gl_key(uint32_t k, uint32_t ms)              /* OCT+ held: key k dow
 static int test_gen_layer(void)
 {
     int bad = 0, ok;
-    uint32_t k, st0[NTRK], sn0[NTRK], dr, bs, ld, gates0;
+    uint32_t k, st0[NTRK], sn0[NTRK], dr, ld;
     uint16_t id0;
     ui_power_on();
     ui_rec_prefs |= PREF_SIX >> 8; rp_apply();
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
-    go_home(); frames(16);
-    fm1_ms += 1200u;
-    held_turn(B_HOME, 1);
-    fm1_ms += 1200u;
+    gen_enter();
     gp.genre = 3; gp.seed = 202; gp.form = 0;          /* TRAP ATL, a loop */
     press(B_OCTUP); frames(4);
-    turn(EN_PRESET, 1); frames(32);                     /* (the reel) */
+    sv();
+    to_reel(); frames(32);                              /* (the reel, on NOW) */
     for (k = 0; k < NTRK; k++) { st0[k] = steps_sig(&trk[k]); sn0[k] = gsnd_sig(&trk[k]); }
-    dr = gs.trk_of[RL_DRUM]; bs = gs.trk_of[RL_BASS]; ld = gs.trk_of[RL_LEAD];
+    dr = gs.trk_of[RL_DRUM]; ld = gs.trk_of[RL_LEAD];
     id0 = reel[reel_play].id;
     btn_down(B_OCTUP); frame();
-    gates0 = gates();
     key_down(0); frame();
     ok = kb_note[0] == KB_SILENT;                       /* F3: silent while it is down, */
-    frames(50); key_up(0); frame();                     /* new DRUMS when let go */
-    ok &= gl.held && reel_n == 2u && reel[1].parent == id0 && reel[1].how == GH_DRUMS;
-    (void)gates0;
+    frames(50); key_up(0); frame();                     /* new DRUMS when let go: NOW, no take */
+    ok &= gl.held && reel_n == 1u && now_t.parent == id0 && now_t.how == GH_DRUMS && now_dirty();
     ok &= steps_sig(&trk[dr]) != st0[dr] && steps_sig(&trk[ld]) == st0[ld] && gsnd_sig(&trk[ld]) == sn0[ld];
-    bad += check("GEN layer: OCT+ held on the reel: a key silent, F3 a child with new DRUMS (stopped: at once)", ok);
+    bad += check("GEN layer: OCT+ held on the reel: a key silent, F3 NOW with new DRUMS (stopped: at once), no take", ok);
     gl_key(8, 50);                                      /* C#4: the lead's sound */
-    ok = reel_n == 3u && reel[2].how == GH_SLEAD && gsnd_sig(&trk[ld]) != sn0[ld] && steps_sig(&trk[ld]) == st0[ld];
-    gl_key(2, 700);                                     /* G3 held: BASS locked, no take */
-    ok &= ((gp.lock >> SL_BASS) & 1u) && reel_n == 3u;
+    ok = reel_n == 1u && now_t.how == GH_SLEAD && gsnd_sig(&trk[ld]) != sn0[ld] && steps_sig(&trk[ld]) == st0[ld];
+    gl_key(2, 700);                                     /* G3 held: BASS locked */
+    ok &= ((gp.lock >> SL_BASS) & 1u) && reel_n == 1u;
     btn_up(B_OCTUP); frame(); frame();
-    ok &= reel_n == 3u && !gl.held;                     /* (its keys acted: OCT+ let go loads nothing) */
-    bad += check("GEN layer: a black key the part's sound (the notes kept), a part key held locks it (no take), OCT+ let go after keys: nothing more", ok);
+    ok &= reel_n == 1u && !gl.held && reel_want == -1;  /* (its keys acted: OCT+ let go loads nothing) */
+    bad += check("GEN layer: a black key the part's sound (the notes kept), a part key held locks it, OCT+ let go after keys: nothing more", ok);
     press(B_PLAY);
     play_ms(200);
     btn_down(B_OCTUP); frame();
     gl_key(11, 50);                                     /* E4: every sound, on the next bar */
-    ok = gen_take_ms && reel_n == 3u && (song.playing || chain_busy());
+    ok = gen_take_ms && reel_n == 1u && (song.playing || chain_busy());
     btn_up(B_OCTUP); frame();
     play_ms(4000);
-    ok &= reel_n == 4u && reel[3].how == GH_SOUNDS && !gen_take_ms && song.playing;
+    ok &= now_t.how == GH_SOUNDS && !gen_take_ms && song.playing && reel_n == 1u;
     bad += check("GEN layer: playing, E4 new sounds wait for the next bar, the music playing on", ok);
+    sv();                                               /* (take 2: NOW with its new drums and sounds) */
     btn_down(B_OCTUP); frame();
-    turn(EN_PRESET, -1); turn(EN_PRESET, -1); frames(600);   /* (a cue only) */
-    ok = reel_cur == 1u && reel_play == 3u && !gen_take_ms;
+    turn(EN_PRESET, -1); turn(EN_PRESET, -1); frames(600);   /* (NOW, take 2, take 1: a cue only) */
+    ok = reel_n == 2u && !reel_on_now && reel_cur == 0u && reel_play == 1u && !gen_take_ms;
     btn_up(B_OCTUP); frame();
-    ok &= gen_take_ms && reel_want == 1;
+    ok &= gen_take_ms && reel_want == 0;
     play_ms(4000);
-    ok &= reel_play == 1u && song.playing && reel_n == 4u;
+    ok &= reel_play == 0u && song.playing && reel_n == 2u;
     bad += check("GEN layer: PRESETS with OCT+ held cues (nothing loads), OCT+ let go: the cue on the next bar", ok);
     transport_req = 2; play_ms(100);
-    gp.seed = 4242; gen_fresh_recipe(); gen_how = GH_NEW; gen_go(); gp.sig = gen_sig();   /* (another family) */
-    ok = reel_n == 5u && reel[4].parent == 0u;
-    reel_cur = 1;                                       /* (the cursor on #2: seed 202, new drums) */
+    gp.seed = 4242; gen_fresh_recipe(); gen_how = GH_NEW; now_from = 0; gen_go(); gp.sig = gen_sig();   /* (another family) */
+    now_save(); gpop.on = 0;
+    ok = reel_n == 3u && reel[2].parent == 0u;
+    reel_cur = 1; reel_on_now = 0;                      /* (the cursor on take 2: seed 202, new drums) */
     btn_down(B_OCTUP); frame();
     gl_key(0, 50);                                      /* F3 on another take's card: its drums borrowed */
     btn_up(B_OCTUP); frame();
-    ok &= reel_n == 6u && reel[5].how == GH_BORROW && gpinned(1u + SL_DRUMS) && gp.seed == 4242u;
+    ok &= reel_n == 3u && now_t.how == GH_BORROW && gpinned(1u + SL_DRUMS) && gp.seed == 4242u;
     for (k = 0; k < GP_PINS; k++)
         if (gp.pin[k].what == 1u + SL_DRUMS) ok &= gp.pin[k].seed == 202u && gp.pin[k].var == 1u;
     bad += check("GEN layer: on another take's card a part key borrows its part (its seed and variation pinned)", ok);
@@ -7136,7 +7147,6 @@ static int test_gen_layer(void)
     for (k = 0; k < GP_PINS; k++)
         if (gp.pin[k].what == 1u + SL_BASS) ok &= gp.pin[k].seed == 4242u;
     bad += check("GEN layer: a new seed keeps a locked part (pinned to the take's seed), drops the borrowed ones", ok);
-    (void)bs;
     gp.lock = 0;
     reel_n = 0; reel_cur = 0; reel_play = 0xFF;
     ui_rec_prefs &= (uint8_t)~(PREF_SIX >> 8); rp_apply();
@@ -7144,37 +7154,41 @@ static int test_gen_layer(void)
     return bad;
 }
 
-/* (TAKES v2) a song's sections: KNOB 2 on the reel picks one, a part key then makes that part again there only (the hook,
- * A, as it was); G#4 / A#4 another arrangement (the song's rows), JAM a take by itself every few bars; the SET: REC while
- * playing records the takes and their bars, the SET page (REC stopped) plays them in a row */
+/* (TAKES v2, NOW) a song's sections: KNOB 4 on the reel picks one, a part key then makes that part again there only
+ * (the hook, A, as it was); A#4 another arrangement (the song's rows); JAM changes NOW by itself every few bars (no take);
+ * the SET: REC while playing records the takes launched (OCT- + a white key) and their bars, the SET page plays them in a
+ * row, KNOB 1 while it plays jumps to an entry on the next bar */
 static uint32_t sec_print(uint32_t s, uint32_t role)     /* a section's part, hashed (section A back after) */
 {
     uint32_t h = section_load(s) ? 0u : steps_sig(&trk[gs.trk_of[role]]);
     section_load(0);
     return h;
 }
+static void launch(uint32_t white_i)                    /* OCT- held + white key i: take i (OCT- let go after) */
+{
+    btn_down(B_OCTDN); frame();
+    key_down(white(white_i)); frame(); key_up(white(white_i)); frame();
+    btn_up(B_OCTDN); frame();
+}
 static int test_gen_song_takes(void)
 {
     int bad = 0, ok;
     uint32_t a0, b0, c0, r0[CHAIN_ROWS], n0, k;
-    uint16_t idA;
+    uint16_t idA, idB;
     ui_power_on();
     ui_rec_prefs |= PREF_SIX >> 8; rp_apply();
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1;
-    go_home(); frames(16);
-    fm1_ms += 1200u;
-    held_turn(B_HOME, 1);
-    fm1_ms += 1200u;
+    gen_enter();
     gp.genre = 3; gp.seed = 202; gp.form = 2;          /* TRAP ATL, a SONG */
     press(B_OCTUP); frames(4);
-    to_reel(); frames(32);                              /* (the reel, by the ring) */
+    to_reel(); frames(32);                              /* (the reel, on NOW) */
     a0 = sec_print(0, RL_PAD); b0 = sec_print(1, RL_PAD); c0 = sec_print(2, RL_PAD);
-    turn(EN_K4, 1);                                     /* (TAKES v2: KNOB 4, section B: the verse) */
+    turn(EN_K4, 1);                                     /* (KNOB 4, section B: the verse) */
     ok = gl.focus == 1u;
     btn_down(B_OCTUP); frame();
     gl_key(4, 50);                                      /* A3: the chords (the pad), in the verse only */
     btn_up(B_OCTUP); frame();
-    ok &= reel[reel_play].how == GH_SECTION && gp.secvar[0][SL_CHORDS - SL_DRUMS] == 1u;
+    ok &= now_t.how == GH_SECTION && gp.secvar[0][SL_CHORDS - SL_DRUMS] == 1u;
     ok &= sec_print(0, RL_PAD) == a0 && sec_print(1, RL_PAD) != b0 && sec_print(2, RL_PAD) == c0;
     bad += check("GEN song takes: KNOB 4 picks section B, a part key makes that part again there only (A and C as they were)", ok);
     turn(EN_K4, -1);
@@ -7183,39 +7197,42 @@ static int test_gen_song_takes(void)
     btn_down(B_OCTUP); frame();
     gl_key(17, 50);                                     /* A#4: the next arrangement */
     btn_up(B_OCTUP); frame();
-    ok = gp.arr == 1u && reel[reel_play].how == GH_FORM && live.mode && chain_config.row[0].slot == 0u;
+    ok = gp.arr == 1u && now_t.how == GH_FORM && live.mode && chain_config.row[0].slot == 0u;
     for (k = 0, c0 = 0; k < n0 && k < chain_config.count; k++) c0 |= (r0[k] != (chain_config.row[k].slot | (uint32_t)chain_config.row[k].bars << 8));
     ok &= c0 && sec_print(0, RL_PAD) == a0;
     bad += check("GEN song takes: A#4 another arrangement (hook first: the song's rows), the hook the same", ok);
     gp.form = 0; gp.arr = 0; memset(gp.secvar, 0, sizeof gp.secvar);
-    press(B_OCTUP); frames(4);                          /* (a loop, for JAM and the SET) */
+    press(B_OCTDN); frame();                            /* (the settings: a loop, for JAM and the SET) */
+    press(B_OCTUP); frames(4);
     to_reel(); frames(32);
-    idA = reel[reel_play].id;
+    sv(); idA = reel[reel_play].id;                     /* (take 1) */
+    turn(EN_ALGO, 1); frames(640); sv(); idB = reel[reel_play].id;   /* (take 2: new sounds) */
     btn_down(B_OCTUP); frame();
-    gl_key(22, 600); gl_key(22, 600); gl_key(22, 600);  /* (TAKES v2: D#5 held: JAM's bars, 8 -> 16 -> 32 -> 4) */
-    btn_up(B_OCTUP); frame();
-    ok = jam.bars == 4u && !jam.on;
-    btn_down(B_OCTUP); frame();
+    gl_key(22, 600); gl_key(22, 600); gl_key(22, 600);  /* (D#5 held: JAM's bars, 8 -> 16 -> 32 -> 4) */
     gl_key(22, 50);                                     /* D#5: JAM on */
     btn_up(B_OCTUP); frame();
-    ok &= jam.on && reel[reel_play].id == idA;
+    ok = jam.bars == 4u && jam.on && reel_n == 2u;
     press(B_REC); frame();                              /* (stopped: no SET recorded, said) */
     ok &= !set_rec && gp.view == 1u && gpop.on;
     press(B_PLAY);
-    play_ms(500);
-    press(B_REC); frame();                              /* (playing: a SET recording) */
-    ok &= set_rec && set_n == 1u && set_e[0].id == idA;
-    play_ms(12000);                                     /* (JAM: a take after four bars, one more four later) */
-    ok &= reel[reel_play].id != idA && reel_find(reel[reel_play].parent) >= 0 && set_n >= 2u && set_e[0].bars >= 4u;
-    bad += check("GEN song takes: JAM makes takes by itself every 4 bars (children of the take playing); REC while playing records them in a SET", ok);
+    play_ms(12000);                                     /* (JAM: NOW changed by itself, no take) */
+    ok &= reel_n == 2u && now_dirty() && now_t.parent == idB && now_t.how != GH_NONE;
+    bad += check("GEN song takes: JAM changes NOW by itself every 4 bars (from the take it came from), no take", ok);
     btn_down(B_OCTUP); frame(); gl_key(22, 50); btn_up(B_OCTUP); frame();   /* (JAM off) */
-    play_ms(4000);                                      /* (the last take its bars) */
+    launch(1); play_ms(3000);                           /* (OCT- + G3: take 2, NOW again) */
+    ok = !jam.on && reel_play == 1u;
+    press(B_REC); frame();                              /* (playing: a SET recording, take 2 first) */
+    ok &= set_rec && set_n == 1u && set_e[0].id == idB;
+    launch(0); play_ms(3000);                           /* (OCT- + F3: take 1, its entry) */
+    ok &= reel_play == 0u && set_n == 2u && set_e[1].id == idA && set_e[0].bars >= 1u;
+    play_ms(3000);
     press(B_REC); frame();
-    ok = !set_rec && !jam.on && set_n >= 2u;
+    ok &= !set_rec && set_n == 2u;
+    bad += check("GEN song takes: REC while playing records the takes launched with OCT- + a white key, each its bars", ok);
     transport_req = 2; play_ms(100);
-    turn(EN_SELECT, 1); frame();                        /* (TAKES v2: the SET page, by the ring) */
+    turn(EN_SELECT, 1); frame();                        /* (the SET page, by the ring) */
     set_cur = 0;
-    ok &= gp.view == 2u;
+    ok = gp.view == 2u;
     set_e[0].bars = 1; set_e[1].bars = 2;               /* (short entries) */
     turn(EN_K3, 1);
     ok &= set_e[0].bars == 2u;
@@ -7224,12 +7241,18 @@ static int test_gen_song_takes(void)
     play_ms(800);
     ok &= set_play && reel[reel_play].id == set_e[0].id;
     play_ms(3000);
-    ok &= set_play && set_i == 1u && reel[reel_play].id == set_e[1].id;
+    ok &= set_play && set_i == 1u && reel[reel_play].id == set_e[1].id && set_cur == 1u;   /* (the cursor goes with it) */
+    bad += check("GEN song takes: the SET page: KNOB 3 an entry's bars, PLAY plays the takes in a row, each its bars, the cursor with it", ok);
+    set_e[0].bars = 4; set_e[1].bars = 8;
+    play_ms(100);
+    turn(EN_K1, -1);                                    /* (playing: entry 1 picked, on the next bar) */
+    ok = set_cur == 0u && set_jump == 1u && gpop.on;
+    play_ms(3000);
+    ok &= set_i == 0u && reel[reel_play].id == set_e[0].id && set_play;
     press(B_PLAY); play_ms(100);
     ok &= !set_play;
-    bad += check("GEN song takes: the SET page (REC stopped): KNOB 3 an entry's bars, PLAY plays the takes in a row, each its bars", ok);
+    bad += check("GEN song takes: KNOB 1 while the SET plays: that entry on the next bar", ok);
     press(B_OCTDN); frame();
-    ok = gp.view == 1u;
     set_n = 0; jam.on = 0; jam.bars = 8;
     reel_n = 0; reel_cur = 0; reel_play = 0xFF;
     ui_rec_prefs &= (uint8_t)~(PREF_SIX >> 8); rp_apply();
@@ -7238,8 +7261,8 @@ static int test_gen_song_takes(void)
 }
 
 /* (TAKES v2) the reel packed and read back (what flash keeps over power-off): every take, its card, the SET, the IDs
- * going on; too many for the sector: the oldest not kept left out. Share codes: a take's code makes the same piece (its
- * fingerprint), a typo is caught by the check, a take as made is 7 characters */
+ * going on; too many for the sector: the oldest not kept left out (an older firmware's takes). Share codes: a take's code
+ * makes the same piece (its fingerprint), a typo is caught by the check, a take as made is 7 characters */
 static int test_gen_store(void)
 {
     static uint8_t buf[3840];
@@ -7251,19 +7274,25 @@ static int test_gen_store(void)
     gset_t g;
     ui_power_on();
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
+    gen_fresh_recipe();                                 /* (what an earlier test's JAM and ALGORITHM left: not this take's) */
     gp.genre = 3; gp.seed = 202; gp.form = 2; gp.var[SL_DRUMS] = 2; gp.svar[RL_LEAD] = 1; gp.secvar[0][1] = 3; gp.arr = 1;
     gp.pin[0].what = 1u + SL_BASS; gp.pin[0].seed = 77; gp.pin[0].var = 4;
-    gen_how = GH_NEW; gen_go();
+    gen_how = GH_NEW; gen_go(); now_save();
     pr0 = dice_print();
     gen_fresh_recipe();
-    for (k = 0; k < 6u; k++) { gp.genre = (uint8_t)(7u + k); gp.seed = (uint16_t)(1000u + k); gp.form = (uint8_t)(k % 3u); gen_how = GH_NEW; gen_go(); }
+    for (k = 0; k < 6u; k++) {
+        gp.genre = (uint8_t)(7u + k); gp.seed = (uint16_t)(1000u + k); gp.form = (uint8_t)(k % 3u);
+        gen_how = GH_NEW; now_from = 0; gen_go(); now_save();
+    }
+    gpop.on = 0;
+    for (k = 0; k < reel_n; k++) reel[k].keep = 0;      /* (as an older firmware's takes: not kept, but one) */
     reel[2].keep = 1;
     set_e[0].id = reel[0].id; set_e[0].bars = 8; set_e[1].id = reel[3].id; set_e[1].bars = 4; set_n = 2;
     memcpy(keep, reel, sizeof keep);
     n = reel_n; next0 = reel_next;
     len = reel_pack(buf, sizeof buf);
     reel_n = 0; set_n = 0; reel_next = 1;
-    ok = reel_unpack(buf, len) == 0 && reel_n == n && set_n == 2u && set_e[1].bars == 4u && reel_next == next0;
+    ok = n == 7u && reel_unpack(buf, len) == 0 && reel_n == n && set_n == 2u && set_e[1].bars == 4u && reel_next == next0;
     for (k = 0; k < n; k++)
         ok &= !memcmp(&reel[k].set, &keep[k].set, sizeof keep[k].set) && reel[k].id == keep[k].id &&
               reel[k].keep == keep[k].keep && !memcmp(reel[k].thumb, keep[k].thumb, sizeof keep[k].thumb) &&
@@ -7312,22 +7341,20 @@ static int test_gen_store(void)
     return bad;
 }
 
-/* (TAKES v2) the GEN screen's controls, no conflicts: OCT+ held makes the keys the take layer's on every page (silent:
+/* (TAKES v2, NOW) the GEN screen's controls, no conflicts: OCT+ held makes the keys the layer's on every page (silent:
  * checked while the key is down), OCT+ let go after keys or another control does nothing more, the SET page's EDIT held,
  * PRESETS and ALGORITHM leave the reel alone, a delete question goes with the page, JAM waits for a SET playing, OCT+ on
- * the settings while the music plays makes a take, GLO held + G4 is UNDO there */
+ * the settings while the music plays makes NOW on the next bar, GLO held + G4 is NOW's UNDO there (silent) */
 static int test_gen_conflicts(void)
 {
     int bad = 0, ok;
     uint32_t k, n0, st0[NTRK];
     ui_power_on();
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
-    go_home(); frames(16);
-    fm1_ms += 1200u;
-    held_turn(B_HOME, 1);
-    fm1_ms += 1200u;
+    gen_enter();
     gp.genre = 3; gp.seed = 202; gp.form = 0;
-    press(B_OCTUP); frames(4);                          /* (a piece: the first take) */
+    press(B_OCTUP); frames(4);                          /* (a piece: NOW) */
+    sv();
     ok = !gp.view && reel_n == 1u;
     key_down(0); frame();
     ok &= kb_note[0] != KB_SILENT;                      /* (a key alone: a note) */
@@ -7337,46 +7364,49 @@ static int test_gen_conflicts(void)
     ok &= kb_note[0] == KB_SILENT;                      /* (OCT+ held: silent, while it is down) */
     frames(48);
     key_up(0); frame();
-    ok &= reel_n == 2u && reel[1].how == GH_DRUMS;      /* (F3: new drums, on the settings page too) */
+    ok &= reel_n == 1u && now_t.how == GH_DRUMS;        /* (F3: new drums, on the settings page too) */
     btn_up(B_OCTUP); frame(); frames(32);
-    ok &= reel_n == 2u && !gl.used;                     /* (OCT+ let go after a key: no piece) */
-    bad += check("GEN controls: settings page, OCT+ held: a key silent while down, F3 a take; OCT+ let go: no piece too", ok);
-    to_reel(); frames(32);                              /* (the reel, by the ring: the cursor on the take playing) */
+    ok &= reel_n == 1u && !gl.used && now_t.how == GH_DRUMS;   /* (OCT+ let go after a key: no piece) */
+    bad += check("GEN controls: settings page, OCT+ held: a key silent while down, F3 new drums (NOW); OCT+ let go: no piece too", ok);
+    sv();                                               /* (take 2) */
+    to_reel(); frames(32);                              /* (the reel, by the ring: on NOW) */
     btn_down(B_OCTUP); frame();
     key_down(9); frame();
     ok = gp.view == 1u && kb_note[9] == KB_SILENT;
     frames(48); key_up(9); frame();
     btn_up(B_OCTUP); frame(); frames(32);
-    ok &= reel_n == 3u && reel[2].how == GH_TEX && reel_want == -1;
-    bad += check("GEN controls: the reel, OCT+ held: a key silent while down, a take; OCT+ let go: no load", ok);
+    ok &= reel_n == 2u && now_t.how == GH_TEX && reel_want == -1;
+    bad += check("GEN controls: the reel, OCT+ held: a key silent while down, NOW changed; OCT+ let go: no load", ok);
+    sv();                                               /* (take 3) */
     press(B_PLAY); play_ms(300);
-    reel_cur = 0;                                       /* (the cursor on another take) */
+    reel_cur = 0; reel_on_now = 0;                      /* (the cursor on another take) */
     btn_down(B_OCTUP); frame();
     turn(EN_ALGO, 1);                                   /* (a control with OCT+ down) */
     btn_up(B_OCTUP); frame();
-    ok = gl.used == 0u && reel_want == -1 && gen_take_how == GH_SOUNDS;   /* (no load: ALGORITHM's take waits) */
+    ok = gl.used == 0u && reel_want == -1 && gen_take_how == GH_SOUNDS;   /* (no load: ALGORITHM's change waits) */
     play_ms(4000);
-    ok &= reel[reel_play].how == GH_SOUNDS;
-    bad += check("GEN controls: ALGORITHM turned with OCT+ down: its take, OCT+ let go loads nothing over it", ok);
+    ok &= now_t.how == GH_SOUNDS && reel_on_now;
+    bad += check("GEN controls: ALGORITHM turned with OCT+ down: its change, OCT+ let go loads nothing over it", ok);
     transport_req = 2; play_ms(100);
-    reel_cur = 1;
+    reel_cur = 1; reel_on_now = 0;
     press(B_EDIT); frame();                             /* (a question on the reel) */
     ok = reel_ask == 1u;
     turn(EN_SELECT, 1); frame();                        /* (the next page, the SET's: the question gone) */
     ok &= !reel_ask && gp.view == 2u;
     press(B_OCTDN); frame();                            /* (OCT-: back to the reel) */
     ok &= gp.view == 1u && !reel_ask;
+    reel_cur = 1; reel_on_now = 0;
     n0 = reel_n;
     press(B_OCTUP); frames(4);                          /* (no delete answered by it: the take loaded) */
     ok &= reel_n == n0 && reel_play == reel_cur;
     bad += check("GEN controls: a delete question goes with the page (SELECT): a later OCT+ deletes nothing, OCT- back", ok);
     set_e[0].id = reel[0].id; set_e[0].bars = 2; set_e[1].id = reel[1].id; set_e[1].bars = 2; set_n = 2;
-    turn(EN_SELECT, 1); frames(32);                     /* (TAKES v2: the SET page, by the ring) */
+    turn(EN_SELECT, 1); frames(32);                     /* (the SET page, by the ring) */
     ok = gp.view == 2u;
     k = reel_cur;
     turn(EN_PRESET, 1); frame();
     ok &= set_cur == 1u && reel_cur == k && reel_want == -1;   /* (PRESETS: the entries, not the reel) */
-    { uint8_t sv = gp.svar[RL_BASS]; turn(EN_ALGO, 1); frame(); ok &= gp.svar[RL_BASS] == sv && !gen_take_ms; }
+    { uint8_t s2 = gp.svar[RL_BASS]; turn(EN_ALGO, 1); frame(); ok &= gp.svar[RL_BASS] == s2 && !gen_take_ms; }
     hold(B_EDIT); frame();
     ok &= !reel_ask && set_n == 2u;                     /* (EDIT held: nothing) */
     btn_down(B_OCTUP); frame(); key_down(0); frame();
@@ -7394,28 +7424,28 @@ static int test_gen_conflicts(void)
     n0 = reel_n;
     gp.energy = 70;                                     /* (a setting changed, the music playing) */
     press(B_OCTUP); frame();
-    ok &= gen_take_ms != 0u && reel_n == n0;            /* (a take, on the next bar) */
+    ok &= gen_take_ms != 0u && reel_n == n0;            /* (NOW, on the next bar) */
     play_ms(4000);
-    ok &= reel_n == n0 + 1u && reel[reel_play].how == GH_SET && song.playing;
+    ok &= reel_n == n0 && now_t.how == GH_SET && now_dirty() && song.playing;
     transport_req = 2; play_ms(100);
-    bad += check("GEN controls: OCT+ on the settings while playing: the piece as a take on the next bar", ok);
+    bad += check("GEN controls: OCT+ on the settings while playing: NOW made on the next bar (no take)", ok);
     for (k = 0; k < NTRK; k++) st0[k] = steps_sig(&trk[k]);
     gp.var[SL_DRUMS] = 9;
-    press(B_OCTUP); frames(4);                          /* (another piece: an UNDO point) */
+    press(B_OCTUP); frames(4);                          /* (another piece: NOW's next state) */
     btn_down(B_GLO); frame(); key_down(14); frame();
     ok = kb_note[14] == KB_SILENT;
-    key_up(14); frame(); btn_up(B_GLO); frame();
+    key_up(14); frame(); btn_up(B_GLO); frame(); frames(16);
     for (k = 0; k < NTRK; k++) ok &= steps_sig(&trk[k]) == st0[k];
-    bad += check("GEN controls: GLO held + G4 on the GEN screen: UNDO (silent), the piece before back", ok);
+    bad += check("GEN controls: GLO held + G4 on the GEN screen: NOW's UNDO (silent), the piece before back", ok);
     memset(gp.var, 0, sizeof gp.var); memset(gp.svar, 0, sizeof gp.svar);
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0;
     ui_power_on();
     return bad;
 }
 
-/* (TAKES v2, the UX pass) the reel's knobs (TEMPO at once, KEY and ENERGY a take), the pop-up, OCT- back and HOME
- * closing, SAVE keeping (with OCT+: a code), the drops held (G4 the drums), the take layer's LEDs, REC stopped; and a piece
- * the same whatever came before it (its notes, its sounds, the song's settings) */
+/* (TAKES v2, the UX pass, NOW) the reel's knobs (TEMPO at once, KEY and ENERGY: NOW on the next change), the pop-up,
+ * OCT- back and HOME closing, SAVE keeping NOW (with OCT+: a code), the drops held (G4 the drums), the layer's LEDs, REC
+ * stopped; and a piece the same whatever came before it (its notes, its sounds, the song's settings) */
 static uint32_t gen_full_sig(void)
 {
     uint32_t h = 2166136261u, k, j;
@@ -7429,30 +7459,27 @@ static uint32_t gen_full_sig(void)
 static int test_gen_ux(void)
 {
     int bad = 0, ok;
-    uint32_t k, n0, dr, a;
+    uint32_t n0, dr, a;
     int16_t bpm0;
-    uint16_t id;
     ui_power_on();
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
-    go_home(); frames(16);
-    fm1_ms += 1200u;
-    held_turn(B_HOME, 1);
-    fm1_ms += 1200u;
+    gen_enter();
     gp.genre = 3; gp.seed = 202; gp.form = 0;
     press(B_OCTUP); frames(4);
+    sv();
     to_reel(); frames(32);
     n0 = reel_n; bpm0 = song.g[G_BPM];
     turn(EN_K1, 1); frame();
-    ok = song.g[G_BPM] == bpm0 + 1 && reel_n == n0 && reel[reel_play].bpm == song.g[G_BPM] && gp.tempo == (uint8_t)(bpm0 + 1);
-    ok &= gpop.on && str_eq(gpop.lbl, "TEMPO");
-    bad += check("GEN UX: KNOB 1 on the reel, TEMPO at once (no new take, the take keeps it), said in the pop-up", ok);
+    ok = song.g[G_BPM] == bpm0 + 1 && reel_n == n0 && reel[0].bpm == bpm0 && now_t.bpm == song.g[G_BPM];
+    ok &= gp.tempo == (uint8_t)(bpm0 + 1) && now_dirty() && gpop.on && str_eq(gpop.lbl, "TEMPO");
+    bad += check("GEN UX: KNOB 1 on the reel, TEMPO at once (NOW's; the saved take keeps its own), said in the band", ok);
     turn(EN_K2, 1); frame();
     ok = gen_take_ms != 0u && gp.key != 0u;
-    frames(640);                                        /* (at rest, stopped: the take) */
-    ok &= reel_n == n0 + 1u && reel[reel_play].how == GH_KEY;
+    frames(640);                                        /* (at rest, stopped: NOW) */
+    ok &= reel_n == n0 && now_t.how == GH_KEY;
     turn(EN_K3, 1); frames(640);
-    ok &= reel_n == n0 + 2u && reel[reel_play].how == GH_ENERGY;
-    bad += check("GEN UX: KNOB 2 the key, KNOB 3 the energy: a take each once the knob rests", ok);
+    ok &= reel_n == n0 && now_t.how == GH_ENERGY;
+    bad += check("GEN UX: KNOB 2 the key, KNOB 3 the energy: NOW made again once the knob rests (no take)", ok);
     turn(EN_SELECT, 1); frame();                        /* (the SET page) */
     ok = gp.view == 2u;
     press(B_OCTDN); frame(); ok &= gp.view == 1u && ui.confirm == CF_DICE_ALL;
@@ -7464,16 +7491,13 @@ static int test_gen_ux(void)
     bad += check("GEN UX: OCT- goes back (the SET page, the reel, the settings, closed), HOME closes from any page", ok);
     held_turn(B_HOME, 1); fm1_ms += 1200u; frames(32);
     to_reel();
-    id = reel[reel_cur].id;
     press(B_SAVE); frame();
-    ok = reel[reel_cur].keep && reel[reel_cur].id == id && gpop.on;
-    press(B_SAVE); frame();
-    ok &= !reel[reel_cur].keep;
+    ok = reel_n == n0 + 1u && reel[n0].how == GH_ENERGY && reel[n0].parent == reel[0].id && gpop.on && !now_dirty();
     btn_down(B_OCTUP); frame(); press(B_SAVE); frame(); btn_up(B_OCTUP); frame();
     ok &= name_on();                                    /* (OCT+ held + SAVE: a code typed) */
     press(B_OCTDN); frame();
-    ok &= !name_on() && ui.confirm == CF_DICE_ALL && gp.view == 1u;   /* (cancelled: the reel again) */
-    bad += check("GEN UX: SAVE on the reel keeps (again: lets go), OCT+ held + SAVE types a code (OCT- back to the reel)", ok);
+    ok &= !name_on() && ui.confirm == CF_DICE_ALL && gp.view == 1u && reel_n == n0 + 1u;   /* (cancelled: the reel again) */
+    bad += check("GEN UX: SAVE keeps NOW (a child of its take, what changed), OCT+ held + SAVE types a code (OCT- back)", ok);
     dr = gs.trk_of[RL_DRUM];
     n0 = reel_n;
     btn_down(B_OCTUP); frame();
@@ -7481,10 +7505,10 @@ static int test_gen_ux(void)
     ok = trk[dr].p[P_MUTE] == 1 && kb_note[14] == KB_SILENT;
     { uint32_t on, br; on = gen_layer_leds(&br); ok &= ((on >> 14) & 1u) && ((br >> 0) & 1u); }   /* (G4 lit, F3 breathing) */
     key_up(14); frame();
-    ok &= trk[dr].p[P_MUTE] == 0 && reel_n == n0;       /* (let go: back, no take) */
+    ok &= trk[dr].p[P_MUTE] == 0 && reel_n == n0 && !now_dirty();   /* (let go: back, nothing changed) */
     btn_up(B_OCTUP); frame(); frames(32);
     ok &= reel_n == n0 && !gl.used;
-    bad += check("GEN UX: OCT+ held, G4 held drops the drums at once, let go they are back (no take); the layer's LEDs", ok);
+    bad += check("GEN UX: OCT+ held, G4 held drops the drums at once, let go they are back (NOW the same); the layer's LEDs", ok);
     press(B_REC); frame();
     ok = !set_rec && gpop.on && str_eq(gpop.val, "PLAY FIRST");
     bad += check("GEN UX: REC stopped: no SET page (SELECT has it), said to play first", ok);
@@ -7504,6 +7528,79 @@ static int test_gen_ux(void)
     }
     memset(gp.var, 0, sizeof gp.var); memset(gp.svar, 0, sizeof gp.svar);
     gp.tempo = gp.key = 0; gp.energy = 50;
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0;
+    ui_power_on();
+    return bad;
+}
+
+/* (NOW) reported: every change made a take (ALGORITHM, KEY, ENERGY, OCT+, the keys), the pop-up covered the card. NOW:
+ * nothing makes a take but SAVE; NOW's history (GLO + G4 back, GLO + A4 forward; at its start the music before GEN);
+ * C#5 ORIG back to the take NOW came from; OCT- held: the white keys play the takes (a key with none: nothing; OCT- let
+ * go after: no back); PLAY on a take's card plays that take; the keys' map and the takes' map the whole screen */
+static int test_gen_now(void)
+{
+    int bad = 0, ok;
+    uint32_t k, p1, p2, p3;
+    ui_power_on();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
+    gen_enter();
+    gp.genre = 3; gp.seed = 202; gp.form = 0;
+    press(B_OCTUP); frames(4);
+    to_reel(); frames(32);
+    sv(); p1 = dice_print();                            /* (take 1) */
+    turn(EN_ALGO, 1); frames(640); p2 = dice_print();   /* (NOW: new sounds) */
+    turn(EN_K3, 1); frames(640); p3 = dice_print();     /* (NOW: more energy) */
+    ok = reel_n == 1u && now_dirty() && now_hn == 3u && now_hi == 2u && p1 != p2 && p2 != p3;
+    btn_down(B_GLO); frame(); key_down(14); frame(); key_up(14); frame(); btn_up(B_GLO); frames(16);
+    ok &= dice_print() == p2 && now_hi == 1u;           /* (GLO + G4: a state back) */
+    btn_down(B_GLO); frame(); key_down(14); frame(); key_up(14); frame(); btn_up(B_GLO); frames(16);
+    ok &= dice_print() == p1 && now_hi == 0u && !now_dirty() && reel_play == 0u;   /* (back to take 1: NOW is it) */
+    btn_down(B_GLO); frame(); key_down(16); frame(); key_up(16); frame(); btn_up(B_GLO); frames(16);
+    ok &= dice_print() == p2 && now_hi == 1u;           /* (GLO + A4: forward) */
+    bad += check("GEN NOW: ALGORITHM, ENERGY make no take; GLO + G4 steps NOW back, GLO + A4 forward (the piece each time)", ok);
+    btn_down(B_OCTUP); frame(); gl_key(20, 50); btn_up(B_OCTUP); frame(); frames(16);   /* (C#5: ORIG) */
+    ok = dice_print() == p1 && reel_play == 0u && now_hn == 3u && now_hi == 2u;   /* (back to take 1: a state of its
+                                                         * own, after the one it came from: the redo gone) */
+    btn_down(B_GLO); frame(); key_down(14); frame(); key_up(14); frame(); btn_up(B_GLO); frames(16);
+    ok &= dice_print() == p2;                           /* (and undone) */
+    bad += check("GEN NOW: OCT+ + C#5 ORIG: NOW back to the take it came from, all at once; GLO + G4 undoes it", ok);
+    sv();                                               /* (take 2: NOW with new sounds) */
+    press(B_PLAY); play_ms(300);
+    launch(0);                                          /* (OCT- + F3: take 1, on the next bar) */
+    ok = reel_want == 0 && gp.view == 1u && ui.confirm == CF_DICE_ALL;   /* (OCT- let go after a key: no back) */
+    play_ms(3000);
+    ok &= reel_play == 0u && dice_print() == p1;
+    launch(5);                                          /* (D4: no take 6, nothing) */
+    play_ms(3000);
+    ok &= reel_play == 0u && song.playing;
+    btn_down(B_OCTDN); frame(); key_down(white(1)); frame();
+    ok &= kb_note[white(1)] == KB_SILENT && gl.held_dn;  /* (silent while OCT- is down) */
+    { uint32_t on, br; on = gen_layer_leds(&br); ok &= ((on >> white(0)) & 1u) && ((br >> white(1)) & 0u) == 0u; }
+    key_up(white(1)); frame(); btn_up(B_OCTDN); frame();
+    play_ms(3000);
+    ok &= reel_play == 1u && dice_print() == p2;
+    transport_req = 2; play_ms(100);
+    bad += check("GEN NOW: OCT- held + a white key plays that take on the next bar (silent; none there: nothing; no back)", ok);
+    turn(EN_PRESET, 1);                                 /* (the cursor: take 1, stopped: nothing loads) */
+    { int g = 0; while ((reel_on_now || reel_cur != 0u) && g++ < 4) turn(EN_PRESET, 1); }
+    ok = !reel_on_now && reel_cur == 0u && reel_play == 1u;
+    press(B_PLAY); play_ms(300);                        /* (PLAY on take 1's card: take 1, playing) */
+    ok &= reel_play == 0u && dice_print() == p1 && (song.playing || chain_busy());
+    transport_req = 2; play_ms(100);
+    bad += check("GEN NOW: PLAY on a take's card plays that take", ok);
+    reel_on_now = 1; ui.force = 1; frame();
+    k = reel_play;
+    btn_down(B_OCTUP); frames(600);                     /* (held 0.6 s, to read the keys' map) */
+    ok = gl.held && host_screen[240u * 40u + 15u] != host_screen[240u * 40u + 239u];   /* (the map drawn) */
+    btn_up(B_OCTUP); frames(16);
+    ok &= reel_play == k && !gen_take_ms && !now_dirty();   /* (let go: no new piece, nothing loaded) */
+    btn_down(B_OCTDN); frames(600);
+    ok &= gl.held_dn;
+    btn_up(B_OCTDN); frames(16);
+    ok &= gp.view == 1u && ui.confirm == CF_DICE_ALL;   /* (held to read the takes: let go, no back) */
+    press(B_OCTDN); frame();
+    ok &= !gp.view;                                     /* (a tap: back) */
+    bad += check("GEN NOW: OCT+ or OCT- held to read their maps (the whole screen): let go, nothing (a tap still acts)", ok);
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0;
     ui_power_on();
     return bad;
@@ -9851,6 +9948,7 @@ int main(void)
     bad += test_gen_conflicts();
     bad += test_gen_ux();
     bad += test_gen_screen();
+    bad += test_gen_now();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();
