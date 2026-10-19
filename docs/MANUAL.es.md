@@ -766,9 +766,15 @@ las cuatro filas, **ALGORITHM** le da al tema instrumentos nuevos (más abajo) y
 
 Los mismos botones hacen lo mismo en todas las páginas: **OCT+** arma (el tema, la toma del cursor, una entrada del
 SET), **OCT−** vuelve una página (la del SET → la cinta → los ajustes → cerrada), **HOME** cierra desde cualquier
-página. Lo que hizo un cambio aparece **en un cartel en el centro de la pantalla** durante un segundo y medio
-(**TEMPO 144 BPM**, **ON THE NEXT BAR — NEW DRUMS**); una toma que espera el compás siguiente muestra una barra que se
-llena.
+página, **SAVE** guarda el tema que suena como una toma. Lo que hizo un control aparece **en una franja al pie de la
+pantalla** durante un segundo y medio (**TEMPO 144 BPM**, **ON THE NEXT BAR — NEW DRUMS**), solo sobre el pie: la
+tarjeta de la toma, las filas del tema y los ajustes siguen a la vista; un cambio que espera el compás siguiente
+muestra una barra que se llena.
+
+**NOW y las tomas.** El tema que suena es **NOW**. Todo en esta pantalla cambia NOW — OCT+ (un tema nuevo),
+ALGORITHM, KEY y ENERGY de la cinta, las teclas con OCT+, JAM — y **nada arma una toma salvo SAVE**. Una toma es un
+tema que elegiste guardar: SAVE le da el número siguiente en la cinta y un ID. Así podés girar, probar y descartar
+sin miedo, y la cinta tiene solo lo que guardaste.
 
 | Página | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
@@ -795,60 +801,71 @@ cualquier género; en AUTO / OFF decide el género, como antes:
 - **GRIT**: el clip del master, la distorsión y el drive del bajo y el drive de la batería, como parte de los del género
   (CLEAN: nada, 200 %: el doble; el BLAST de WRAITH en un 808 sigue en mezcla, con su sub).
 
-**OCT+** arma el tema (con la música sonando: como una toma, en el compás siguiente);
-**ALGORITHM** le da **instrumentos nuevos**: el sonido de cada papel elegido de nuevo (las notas quedan; un sonido
-bloqueado queda), armado solo cuando dejás de girar (medio segundo; sonando, en el compás siguiente); girado para atrás,
-los sonidos de antes. Una serie de tomas guarda un solo punto de UNDO: **UNDO** (GLO mantenido + G4 — también en la pantalla del
-GENERATOR, sin sonar — u OCT− mantenido + GLO fuera de ella) devuelve la música de antes de la primera toma, y otra vez la
-rehace. Un tema **LOOP** suena siempre como loop (un tema
-PARTS / SONG anterior ya no deja sonando su canción);
-**PLAY** lo arranca y lo para para escucharlo sin salir de la pantalla; **HOME** (u OCT−) cierra la pantalla. La
-pantalla muestra la última toma (**TAKE #0A3D TRAP ATL 0202**) y la cabecera dice **GEN:** y el tema.
+**OCT+** arma el tema (con la música sonando: en el compás siguiente); **ALGORITHM** le da **instrumentos nuevos**:
+el sonido de cada papel elegido de nuevo (las notas quedan; un sonido bloqueado queda), armado solo cuando dejás de
+girar (medio segundo; sonando, en el compás siguiente); girado para atrás, los sonidos de antes. Un tema **LOOP** suena
+siempre como loop (un tema PARTS / SONG anterior ya no deja sonando su canción); **PLAY** lo arranca y lo para para
+escucharlo sin salir de la pantalla; **HOME** (u OCT−) cierra la pantalla. La pantalla muestra la toma que es NOW
+(**TAKE #0A3D TRAP ATL 0202**) y la cabecera dice **GEN:** y el tema.
+
+**UNDO de NOW**: **GLO mantenido + G4** lleva NOW un paso atrás (sus últimos 8 estados: cada cambio, cada toma
+tocada), **GLO mantenido + A4** hacia adelante — en el compás siguiente si suena; el tempo queda como está. En el
+primer estado de NOW, GLO + G4 es el UNDO del equipo (la música de antes del GENERATOR; otra vez: adelante), igual
+que OCT− mantenido + GLO fuera de la pantalla. Si la música cambió fuera del GENERATOR (un proyecto cargado, el tema
+editado), NOW empieza de nuevo al abrir la pantalla.
 
 **El tema es determinista**: el mismo género, semilla y ajustes dan siempre el mismo tema, y cada parte sale de su
 propia secuencia aleatoria, así que mover la fila de una parte deja las otras como estaban. **OCT+ sin cambiar nada**
 tira una semilla nueva. La pantalla se abre siempre en RANDOM.
 
-#### TAKES — la cinta, el compositor (GW-1)
+#### TAKES — NOW y la cinta, el compositor (GW-1)
 
-Cada tema que arma el GENERATOR (OCT+, una toma, DICE ALL) queda en la cinta de **TAKES**. **PRESETS** la abre en la
-toma que suena, y el giro que la abre ya avanza (**TAKES 2/3** en el título: dónde está el cursor, de cuántas). Girá
-PRESETS para recorrerla; **la cinta da la vuelta** (pasada la más nueva, la primera; un cartel lo avisa). Cada toma es
-una tarjeta:
+**PRESETS** abre la cinta de **TAKES** en **NOW**, y el giro que la abre ya avanza: primero NOW, después las tomas
+1 … n (**TAKE 2 OF 3** en el título), en ronda. Cada tarjeta muestra:
 
-- su **ID** (**#0A3D**, que ninguna otra toma recibe mientras esta siga en la cinta) y el género;
-- debajo, el sabor de trap (ATLANTA, PI'ERRE, METRO, DRILL, MEMPHIS, WHOLE LOTTA RED, MUSIC) o, en los otros géneros,
-  las pistas y LOOP / SONG; a la derecha **la toma de la que salió y qué cambió** (**<0A3C LEAD SND**);
-- la semilla, el tempo, la tonalidad y la escala;
+- la de **NOW**: **NOW** y el género; a la derecha **TAKE 2** cuando NOW es esa toma tal como se guardó, si no
+  **EDITED**; debajo, **la toma de la que salió y lo último que cambió** (**FROM TAKE 1: ENERGY**; un tema nuevo:
+  **A NEW PIECE**);
+- la de una toma: su **ID** (**#0A3D**, que ninguna otra toma recibe mientras esta siga en la cinta) y el género;
+  **NOW** cuando es la música, **NEXT** cuando espera el compás siguiente; a la derecha la toma de la que salió y qué
+  cambió (**FROM 0A3C: LEAD SND**);
+- el sabor de trap (ATLANTA, PI'ERRE, METRO, DRILL, MEMPHIS, WHOLE LOTTA RED, MUSIC) o las pistas y LOOP / SONG; la
+  semilla, el tempo, la tonalidad y la escala;
 - una miniatura de los dos primeros compases de cada pista activa (4 o 6 filas), con el color de su parte;
 - las filas del tema como bloques, cada uno tan ancho como sus compases (trap: **I**ntro, **H**ook, **V**erse,
-  **P**re-hook; los otros géneros A–D), con el cabezal sobre la toma que suena; un tema LOOP muestra **LOOP**.
+  **P**re-hook; los otros géneros A–D), con el cabezal avanzando con la música; un tema LOOP muestra **LOOP**.
 
-**NOW** marca la toma que es la música, **CUE** la que espera el compás siguiente, **KEEP** una toma guardada, **OLD GEN** una toma del generador de otro firmware
-(carga; puede sonar distinta); las tarjetas que asoman a los lados son las tomas de antes y de después.
+**OLD GEN** marca una toma del generador de otro firmware (carga; puede sonar distinta); las tarjetas que asoman a los
+lados son las de antes y de después. Cuando llega un cambio, la cinta vuelve a mostrar NOW.
 
 | En la cinta | |
 | --- | --- |
-| **PRESETS** | Recorrerla, en ronda. Sonando: la toma del cursor es la música **en el compás siguiente** (CUE en su tarjeta). |
-| **OCT+** | Parado: carga la toma del cursor. Sonando: esa, en el compás siguiente. |
-| **KNOB 1** | **TEMPO**, enseguida (sin toma nueva: la toma que suena se lo queda). MENU > BPM LOCK sigue mandando. |
-| **KNOB 2** | **TONALIDAD**, un semitono por paso: una toma cuando la perilla se queda quieta (sonando: en el compás siguiente). |
-| **KNOB 3** | **ENERGÍA**, 5 % por paso: una toma cuando la perilla se queda quieta. |
+| **PRESETS** | NOW, después las tomas, en ronda. Sonando: la toma del cursor es la música **en el compás siguiente** (NEXT en su tarjeta). |
+| **OCT+** | Sobre una toma: esa (parado: enseguida; sonando: en el compás siguiente). Sobre NOW: un tema nuevo. |
+| **PLAY** | Parado, sobre la tarjeta de una toma: esa toma, sonando. Si no: arranca / para. |
+| **KNOB 1** | **TEMPO** de NOW, enseguida (una toma guardada conserva el suyo; SAVE guarda este). MENU > BPM LOCK sigue mandando. |
+| **KNOB 2** | **TONALIDAD**, un semitono por paso: NOW rehecho cuando la perilla se queda quieta (sonando: en el compás siguiente). |
+| **KNOB 3** | **ENERGÍA**, 5 % por paso: NOW rehecho cuando la perilla se queda quieta. |
 | **KNOB 4** | La **sección** que rehacen las teclas de partes: ALL, B, C, D (trap: el verso, la intro, el pre-hook). Un loop no tiene. |
-| **ALGORITHM** | Instrumentos nuevos para la toma que suena (una toma hija). |
-| **SAVE** | Guarda la toma del cursor (otra vez: la suelta). **OCT+ mantenido + SAVE**: escribir el **código** de una toma. |
-| **EDIT** | Borra la toma del cursor (OCT+ sí, OCT− no; una guardada no). **Mantenido**: todas las no guardadas. |
+| **ALGORITHM** | Instrumentos nuevos para NOW. |
+| **SAVE** | **NOW guardado como toma** (el número siguiente; no, si NOW ya es una toma o la cinta tiene 32). **OCT+ mantenido + SAVE**: escribir el **código** de una toma. |
+| **EDIT** | Borra la toma del cursor (OCT+ sí, OCT− no). **Mantenido**: todas las tomas (pregunta antes). NOW no se borra nunca. |
 | **REC** | Sonando: graba un **SET** (otra vez: termina). Parado: avisa que hay que tocar primero. |
 | **SELECT** | La página siguiente (la del SET); la ronda sigue hasta los ajustes. |
 | **OCT−** | Vuelve a los ajustes. **HOME** cierra el GENERATOR. |
 
-**Mantené OCT+** — en todas las páginas de la pantalla del GENERATOR, los ajustes y la cinta (no en la página del
-SET): las teclas no suenan y arman **tomas a partir de la que suena** — una hija cada vez, en el compás siguiente
-(parado: enseguida). Mientras OCT+ está mantenido la pantalla dibuja el teclado: la letra de cada tecla, las teclas de
-partes rellenas con el color de su parte, sus sonidos (las negras) del mismo color, los **cortes** enmarcados en él;
-una bloqueada con un punto, una apretada iluminada. Los LEDs de las teclas también: cada tecla con una función respira;
-una apretada, una parte o un sonido bloqueado, una parte cortada y JAM encendido quedan prendidos. Al soltar OCT+
-después de una tecla, una perilla o un botón, no pasa nada más (ni tema nuevo ni carga):
+**Mantené OCT+** — en todas las páginas de la pantalla del GENERATOR salvo la del SET: las teclas no suenan y **dan
+forma a NOW**, en el compás siguiente (parado: enseguida), y **toda la pantalla es el mapa de las teclas**: las teclas
+en dos filas (la mitad izquierda del teclado, F3 … F4, sobre la derecha, G4 … G5), cada una con el color de su parte;
+debajo los nombres de las partes en los mismos colores; después dos líneas que dicen **qué hace la tecla apretada**
+("G3 BASS: NEW NOTES WHEN LET GO") y **qué acaba de hacer una tecla**; después las otras teclas (S ALL, H HARM, M MIX,
+V VARY; < > ARR, O ORIG, J JAM, # CODE). Una parte o un sonido bloqueado lleva un punto, una tecla apretada se ilumina.
+Los LEDs de las teclas también: cada tecla con una función respira; una apretada, una parte o un sonido bloqueado,
+una parte cortada y JAM encendido quedan prendidos. Mantenido para leer el mapa y soltado sin tecla: no pasa nada; al
+soltarlo después de una tecla, una perilla o un botón, no pasa nada más (ni tema nuevo ni carga).
+
+El mapa es **espejo**: la tecla de corte de cada parte está debajo de la tecla de la parte, siete teclas blancas a la
+derecha.
 
 | Teclas (OCT+ mantenido) | |
 | --- | --- |
@@ -856,47 +873,53 @@ después de una tecla, una perilla o un botón, no pasa nada más (ni tema nuevo
 | **F#3 G#3 A#3 C#4 D#4**, **F#4** | El sonido de la parte de la izquierda (el kit, el bajo, el pad, el lead, la textura); F#4 el del arpegio. Las notas quedan. |
 | **E4** | Todos los sonidos (no los bloqueados). |
 | **F4** | La armonía: tónica, escala, acordes, la figura del bajo (el género y su sabor quedan). |
-| **G4 A4 C5 D5 E5 F5** | **Cortan** DRUMS, BASS, CHORDS, ARP, LEAD, TEX **mientras están mantenidas** (al soltar: vuelven; sin toma). |
-| **B4** | La mezcla (niveles, envíos, los efectos del master). |
+| **G4 A4 B4 C5 D5 E5** | **Cortan** DRUMS, BASS, CHORDS, ARP, LEAD, TEX **mientras están mantenidas** (al soltar: vuelven; NOW igual). |
+| **F5** | La mezcla (niveles, envíos, los efectos del master). |
 | **G5** | VARY: los adornos (ecos, octavas, bends, la deriva del kit). |
 | **G#4 / A#4** | El arreglo (cuatro por forma: el de trap como sale, hook primero, dos hooks, verso primero). |
-| **C#5** | Volver a la toma de la que salió esta. |
+| **C#5** | **ORIG**: NOW vuelve a la toma de la que salió, todo de una vez (GLO + G4 lo deshace). |
 | **D#5** | **JAM** sí / no. **Mantenida** medio segundo: los compases de JAM, 4, 8, 16, 32 (en ronda, una y otra vez). |
-| **F#5** | Mostrar el código de la toma (soltá OCT+ para leerlo). |
+| **F#5** | Mostrar el código de la tarjeta (soltá OCT+ para leerlo). |
 
 - Una tecla de parte o de sonido **mantenida medio segundo la bloquea**: ALGORITHM, E4 y JAM no la tocan, y **una
   semilla nueva la conserva** (OCT+ en los ajustes: el tema nuevo lleva la parte bloqueada del anterior).
 - Con OCT+ mantenido, **PRESETS solo marca**: el cursor se mueve, nada carga; al soltar OCT+ la marcada suena en el
   compás siguiente.
-- Sobre **la tarjeta de otra toma** (PRESETS girado con OCT+ mantenido), una tecla de parte o de sonido **toma prestada**
-  esa parte o ese sonido para la toma que suena (su batería bajo este tema, por ejemplo). Con el mismo género, la parte
-  prestada conserva sus decisiones; la armonía alrededor es la de esta toma.
+- Sobre **la tarjeta de una toma** (PRESETS girado con OCT+ mantenido), una tecla de parte o de sonido **toma
+  prestada** esa parte o ese sonido para NOW (su batería bajo este tema, por ejemplo). Con el mismo género, la parte
+  prestada conserva sus decisiones; la armonía alrededor es la de NOW.
 
-La energía, la tonalidad y el tempo están en las perillas de la cinta (KNOB 1–3).
+**Mantené OCT−** — **las teclas de las tomas**: las teclas blancas F3 … G5 tocan las **tomas 1 … 16** en el compás
+siguiente (parado: enseguida), como lanzar clips. Mientras OCT− está mantenido la pantalla las muestra: la toma que
+suena iluminada, la siguiente con borde, las teclas sin toma oscuras (no hacen nada), y debajo la toma tocada (número,
+ID, género, tempo, tonalidad). Las tomas 17 … 32: con PRESETS. Mantenido para mirar y soltado sin tecla: nada (un
+toque de OCT− sigue volviendo).
 
-**JAM** (D#5): cada tantos compases (D#5 mantenida) una toma sola — una cosa rehecha a partir de la que suena: casi siempre las
-notas de una parte, a veces un sonido, los adornos o la mezcla, nunca algo bloqueado. Funciona con la pantalla del
-GENERATOR abierta.
+**JAM** (D#5): cada tantos compases (D#5 mantenida) **NOW cambia solo** — una cosa rehecha: casi siempre las notas de
+una parte, a veces un sonido, los adornos o la mezcla, nunca algo bloqueado. Funciona con la pantalla del GENERATOR
+abierta; SAVE guarda un momento que te guste.
 
 **El SET**: tomas en fila, cada una sus compases. **REC** sonando graba uno: primero la toma que suena, después cada
-toma que pasa a ser la música (tuyas o de JAM), cada una con los compases que sonó; REC otra vez lo termina.
-**SELECT** en la cinta abre la **página del SET**: las tomas como bloques tan largos como sus compases; **KNOB 1** (o
-PRESETS) la entrada, **KNOB 2** su toma, **KNOB 3** sus compases, **OCT+** agrega la toma que suena después de la
-entrada, **EDIT** la borra, **PLAY** toca el SET desde la entrada (cada toma preparada un compás antes de su turno, en
-ronda), PLAY otra vez lo para; **OCT−** vuelve a la cinta, HOME cierra. ALGORITHM y las teclas de tomas no hacen nada ahí (manda el SET), y JAM espera mientras suena
-un SET.
+toma que tocás (OCT− + una tecla blanca, o PRESETS), cada una con los compases que sonó; REC otra vez lo termina.
+**SELECT** en la cinta abre la **página del SET**: las tomas como bloques tan largos como sus compases, con el cabezal
+avanzando; **KNOB 1** (o PRESETS) la entrada, **KNOB 2** su toma, **KNOB 3** sus compases, **OCT+** agrega la toma que
+suena después de la entrada, **EDIT** la borra, **PLAY** toca el SET desde la entrada (cada toma preparada un compás
+antes de su turno, en ronda), PLAY otra vez lo para. Mientras suena, el cursor sigue a la entrada que suena, y
+**girar KNOB 1 hasta una entrada la toca desde el compás siguiente**. **OCT−** vuelve a la cinta, HOME cierra.
+ALGORITHM y las teclas de tomas no hacen nada ahí (manda el SET), y JAM espera mientras suena un SET.
 
-**Códigos para compartir**: **F#5** (OCT+ mantenido) muestra el código de una toma, p. ej. **8350 YG00 DWDW C0GJ
+**Códigos para compartir**: **F#5** (OCT+ mantenido) muestra el código de la tarjeta, p. ej. **8350 YG00 DWDW C0GJ
 0GV**: su receta (la semilla, los ajustes que no están como abre la pantalla, las decisiones propias de la toma); el
-último carácter es un control. **OCT+ mantenido + SAVE** en la cinta abre la pantalla NAME para un código (hasta 28 caracteres; primero
-123, D# cambia a letras; I L O U se leen como 1 1 0 V); **OCT+** arma su toma, y un carácter equivocado se detecta
-("CODE: A TYPO"). El mismo firmware arma el mismo tema; un código hecho con la otra cantidad de pistas lo avisa (GLO >
-SYSTEM > TRACKS). Una toma tal como sale tiene 7 caracteres.
+último carácter es un control. **OCT+ mantenido + SAVE** abre la pantalla NAME para un código (hasta 28 caracteres;
+primero 123, D# cambia a letras; I L O U se leen como 1 1 0 V); **OCT+** lo hace NOW (SAVE lo guarda), y un carácter
+equivocado se detecta ("CODE: A TYPO"). El mismo firmware arma el mismo tema; un código hecho con la otra cantidad de
+pistas lo avisa (GLO > SYSTEM > TRACKS). Una toma tal como sale tiene 7 caracteres.
 
-**Se guarda al apagar**: la cinta (sus últimas 32 tomas), su SET y los compases de JAM se guardan en la flash cuando
-quedan sin cambios 10 s con la música parada (como mucho una vez por minuto) y vuelven al encender. Una toma es la
-**receta**, no una grabación: al cargarla se arma otra vez el mismo tema exacto, pero los cambios que le hiciste después
-no están. Para guardar la música, SAVE (SAVE > PROJECT o una canción); para guardar el sonido, grabalo por audio USB.
+**Se guarda al apagar**: la cinta (sus tomas), su SET y los compases de JAM se guardan en la flash cuando quedan sin
+cambios 10 s con la música parada (como mucho una vez por minuto) y vuelven al encender. Una toma es la **receta** —
+no una grabación: cargarla vuelve a armar exactamente el mismo tema, pero los cambios que le hiciste después no están.
+Para guardar la música en sí, guardala (SAVE > PROJECT, o un lugar de canción); para guardar el sonido, grabalo por
+audio USB.
 
 **Los géneros** (49): GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP, RAGE TRAP, HOUSE, DEEP HOUSE, MICRO HOUSE,
 TECH HOUSE, ACID HOUSE, TECHNO, DETROIT, DUB TECHNO, HARD TECHNO, HYPNOTIC, TRANCE, ELECTRO, EBM, ITALO, SYNTH POP,

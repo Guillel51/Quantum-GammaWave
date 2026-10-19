@@ -725,9 +725,15 @@ pages, the **TAKES** reel and the **SET** page (below) — **KNOB 1–4** set th
 new instruments (below), **PRESETS** opens the **TAKES** reel (below).
 
 The same buttons mean the same thing on every page: **OCT+** makes (the piece, the take under the cursor, a SET
-entry), **OCT−** goes back one page (the SET page → the reel → the settings → closed), **HOME** closes from any page.
-What a change did shows **in a pop-up in the middle of the screen** for a second and a half (**TEMPO 144 BPM**,
-**ON THE NEXT BAR — NEW DRUMS**); a take waiting for the next bar shows a bar filling up.
+entry), **OCT−** goes back one page (the SET page → the reel → the settings → closed), **HOME** closes from any page,
+**SAVE** keeps the piece playing as a take. What a control did shows **in a band at the foot of the screen** for a
+second and a half (**TEMPO 144 BPM**, **ON THE NEXT BAR — NEW DRUMS**), over the footer only: the take's card, the
+song's rows and the settings stay in sight; a change waiting for the next bar shows a bar filling up.
+
+**NOW and takes.** The piece playing is **NOW**. Everything on this screen changes NOW — OCT+ (a new piece),
+ALGORITHM, the reel's KEY and ENERGY, the OCT+ keys, JAM — and **nothing makes a take but SAVE**. A take is a piece
+you chose to keep: SAVE gives it the next number on the reel and an ID. So you can turn, try and throw away freely, and
+the reel holds only what you kept.
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
@@ -752,59 +758,67 @@ genre; left on AUTO / OFF the genre decides, as before:
 - **GRIT**: the master clip, the bass's distortion and drive and the drums' drive, as a share of the genre's
   (CLEAN: none, 200 %: twice; WRAITH's BLAST on an 808 stays a blend, its sub kept).
 
-**OCT+** makes the piece (the music playing: as a take, on the next bar);
-**ALGORITHM** gives it **new instruments**: every role's sound picked again (the notes stay; a locked sound stays),
-made by itself once you stop turning (about half a second; playing, on the next bar), turned back the sounds before.
-A run of takes keeps one UNDO point: **UNDO** (GLO held + G4 — on the GENERATOR screen too, silent there — or OCT−
-held + GLO outside it) brings back the music from before the first take, and again redoes. A **LOOP** piece always plays as a loop (an earlier PARTS / SONG
-piece no longer leaves its song playing);
-**PLAY** starts and stops it so you can hear it without leaving the screen; **HOME** (or OCT−) closes the screen. The
-screen shows the last take (**TAKE #0A3D TRAP ATL 0202**) and the header says **GEN:** and the piece.
+**OCT+** makes the piece (the music playing: on the next bar); **ALGORITHM** gives it **new instruments**: every
+role's sound picked again (the notes stay; a locked sound stays), made by itself once you stop turning (about half a
+second; playing, on the next bar), turned back the sounds before. A **LOOP** piece always plays as a loop (an earlier
+PARTS / SONG piece no longer leaves its song playing); **PLAY** starts and stops it so you can hear it without leaving
+the screen; **HOME** (or OCT−) closes the screen. The screen shows the take NOW is (**TAKE #0A3D TRAP ATL 0202**) and
+the header says **GEN:** and the piece.
+
+**UNDO for NOW**: **GLO held + G4** steps NOW back (its last 8 states: each change, each take played), **GLO held +
+A4** forward again — on the next bar while playing; the tempo stays as it is. At NOW's first state GLO + G4 is the
+device's UNDO (the music from before the GENERATOR; again: forward), as is OCT− held + GLO outside the screen. If the
+music changed outside the GENERATOR since (a project loaded, the song edited), NOW starts afresh when the screen opens.
 
 **The piece is deterministic**: the same genre, seed and settings always make the same piece, and each part draws on
 its own stream, so turning one part's row leaves the others as they were. **OCT+ with nothing changed** throws a new
 seed. The screen opens on RANDOM each time.
 
-#### TAKES — the reel, the songwriter (GW-1)
+#### TAKES — NOW and the reel, the songwriter (GW-1)
 
-Every piece the GENERATOR makes (OCT+, a take, DICE ALL) goes on the **TAKES** reel. **PRESETS** opens it on the take
-playing, and the turn that opens it already steps (**TAKES 2/3** in the title: where the cursor is, of how many).
-Turn PRESETS to scroll; **the reel goes round** (past the newest take, the first; a pop-up says so). Each take is a
-card:
+**PRESETS** opens the **TAKES** reel on **NOW**, and the turn that opens it already steps: NOW first, then takes 1 … n
+(**TAKE 2 OF 3** in the title), round. Each card shows:
 
-- its **ID** (**#0A3D**, never given to another take while this one is on the reel) and the genre;
-- under it the trap flavour (ATLANTA, PI'ERRE, METRO, DRILL, MEMPHIS, WHOLE LOTTA RED, MUSIC) or, for the other
-  genres, the tracks it ran on and LOOP / SONG; on the right **the take it was made from and what changed**
-  (**<0A3C LEAD SND**);
-- the seed, the tempo, the key and the scale;
+- **NOW**'s card: **NOW** and the genre; on the right **TAKE 2** when NOW is that take as saved, else **EDITED**; under
+  it **the take it came from and what changed last** (**FROM TAKE 1: ENERGY**; a new piece: **A NEW PIECE**);
+- a take's card: its **ID** (**#0A3D**, never given to another take while this one is on the reel) and the genre;
+  **NOW** when it is the music, **NEXT** when it waits for the next bar; on the right the take it was made from and
+  what changed (**FROM 0A3C: LEAD SND**);
+- the trap flavour (ATLANTA, PI'ERRE, METRO, DRILL, MEMPHIS, WHOLE LOTTA RED, MUSIC) or the tracks it ran on and
+  LOOP / SONG; the seed, the tempo, the key and the scale;
 - a thumbnail of the first two bars of each live track (4 or 6 rows), coloured by part: drums, bass, pad, lead, arp;
 - the song's rows as blocks, each as wide as its bars (trap: **I**ntro, **H**ook, **V**erse, **P**re-hook; other
-  genres A–D), with the playhead on the take playing; a LOOP piece shows **LOOP**.
+  genres A–D), with the playhead moving on the music; a LOOP piece shows **LOOP**.
 
-**NOW** marks the take that is the music, **CUE** the one waiting for the next bar, **KEEP** a kept take, **OLD GEN** a take another firmware's generator made
-(it loads; it may sound different); the cards peeking in at the sides are the takes before and after.
+**OLD GEN** marks a take another firmware's generator made (it loads; it may sound different); the cards peeking in at
+the sides are the ones before and after. When a change lands, the reel shows NOW again.
 
 | On the reel | |
 | --- | --- |
-| **PRESETS** | Scroll, round. Playing: the take under the cursor becomes the music **on the next bar** (CUE on its card). |
-| **OCT+** | Stopped: load the take under the cursor. Playing: it, on the next bar. |
-| **KNOB 1** | **TEMPO**, at once (no new take: the take playing keeps it). MENU > BPM LOCK still wins. |
-| **KNOB 2** | **KEY**, a semitone a detent: a take once the knob rests (playing: on the next bar). |
-| **KNOB 3** | **ENERGY**, 5 % a detent: a take once the knob rests. |
+| **PRESETS** | NOW, then the takes, round. Playing: the take under the cursor becomes the music **on the next bar** (NEXT on its card). |
+| **OCT+** | On a take: it (stopped: at once; playing: on the next bar). On NOW: a new piece. |
+| **PLAY** | Stopped, on a take's card: that take, playing. Else: play / stop. |
+| **KNOB 1** | **TEMPO** of NOW, at once (a saved take keeps its own; SAVE keeps this one). MENU > BPM LOCK still wins. |
+| **KNOB 2** | **KEY**, a semitone a detent: NOW made again once the knob rests (playing: on the next bar). |
+| **KNOB 3** | **ENERGY**, 5 % a detent: NOW made again once the knob rests. |
 | **KNOB 4** | The **section** the part keys make again: ALL, B, C, D (trap: the verse, the intro, the pre-hook). A loop has none. |
-| **ALGORITHM** | New instruments for the take playing (a child take). |
-| **SAVE** | Keep the take under the cursor (again: let it go). **OCT+ held + SAVE**: type a take's **share code**. |
-| **EDIT** | Delete the take under the cursor (OCT+ yes, OCT− no; a kept take is refused). **Held**: every take not kept. |
+| **ALGORITHM** | New instruments for NOW. |
+| **SAVE** | **NOW kept as a take** (the next number; refused when NOW is already a take, or the reel holds 32). **OCT+ held + SAVE**: type a take's **share code**. |
+| **EDIT** | Delete the take under the cursor (OCT+ yes, OCT− no). **Held**: every take (asks first). NOW is never deleted. |
 | **REC** | Playing: record a **SET** (again: stop recording). Stopped: it says to play first. |
 | **SELECT** | The next page (the SET page); the ring goes on round to the settings. |
 | **OCT−** | Back to the settings. **HOME** closes the GENERATOR. |
 
-**Hold OCT+** — on every page of the GENERATOR screen, the settings and the reel (not the SET page): the keys are
-silent and make **takes from the one playing** — a child each, on the next bar (stopped: at once). The screen draws
-the keyboard while OCT+ is held: each key's letter, the part keys filled in their part's colour, their sounds (the
-black keys) in the same colour, the **drops** framed in it; a locked key dotted, a key down lit. The key LEDs show it
-too: every key with a job breathes; a key down, a locked part or sound, a dropped part and JAM on are lit. Let go of
-OCT+ after a key, a knob or a button: nothing more happens (no piece, no load):
+**Hold OCT+** — on every page of the GENERATOR screen but the SET page: the keys are silent and **shape NOW**, on the
+next bar (stopped: at once), and **the whole screen is the keys' map**: the keys in two rows (the left half of the
+keyboard, F3 … F4, over the right half, G4 … G5), each filled in its part's colour; under them the parts' names in the
+same colours; then two lines that say **what the key down does** ("G3 BASS: NEW NOTES WHEN LET GO") and **what a key
+just did**; then the other keys (S ALL, H HARM, M MIX, V VARY; < > ARR, O ORIG, J JAM, # CODE). A locked part or sound
+is dotted, a key down lit. The key LEDs show it too: every key with a job breathes; a key down, a locked part or sound,
+a dropped part and JAM on are lit. Held to read the map, let go without a key: nothing happens; let go after a key, a
+knob or a button: nothing more happens (no piece, no load).
+
+The map is **mirrored**: each part's drop key is under its part key, seven white keys to the right.
 
 | Keys (OCT+ held) | |
 | --- | --- |
@@ -812,41 +826,47 @@ OCT+ after a key, a knob or a button: nothing more happens (no piece, no load):
 | **F#3 G#3 A#3 C#4 D#4**, **F#4** | The sound of the part on the left (the kit, the bass, the pad, the lead, the texture); F#4 the arp's. The notes stay. |
 | **E4** | Every sound (not the locked ones). |
 | **F4** | The harmony: root, scale, chords, the bass's figure (the genre and its flavour kept). |
-| **G4 A4 C5 D5 E5 F5** | **Drop** the DRUMS, BASS, CHORDS, ARP, LEAD, TEX **while held** (let go: back; no take). |
-| **B4** | The mix (levels, sends, the master's effects). |
+| **G4 A4 B4 C5 D5 E5** | **Drop** the DRUMS, BASS, CHORDS, ARP, LEAD, TEX **while held** (let go: back; NOW the same). |
+| **F5** | The mix (levels, sends, the master's effects). |
 | **G5** | VARY: the ornaments (echoes, octaves, bends, the kit's drift). |
 | **G#4 / A#4** | The arrangement (four a form: trap's as made, hook first, two hooks, verse first). |
-| **C#5** | Back to the take this one was made from. |
+| **C#5** | **ORIG**: NOW back to the take it came from, all at once (GLO + G4 undoes it). |
 | **D#5** | **JAM** on / off. **Held** half a second: JAM's bars, 4, 8, 16, 32 (round; again and again). |
-| **F#5** | Show the take's share code (let go of OCT+ to read it). |
+| **F#5** | Show the card's share code (let go of OCT+ to read it). |
 
 - A part key or a sound key **held half a second locks** it: ALGORITHM, E4 and JAM leave it alone, and **a new seed
   keeps it** (OCT+ on the settings: the new piece gets the locked part from the old one).
 - With OCT+ held, **PRESETS only cues**: the cursor moves, nothing loads; let go of OCT+ and the cue plays on the next
   bar.
-- On **another take's card** (PRESETS turned with OCT+ held), a part key or a sound key **borrows** that take's part or
-  sound into the one playing (its drums under this song, for instance). With the same genre a borrowed part keeps its
-  choices; the harmony around it is this take's.
+- On **a take's card** (PRESETS turned with OCT+ held), a part key or a sound key **borrows** that take's part or
+  sound into NOW (its drums under this song, for instance). With the same genre a borrowed part keeps its choices; the
+  harmony around it is NOW's.
 
-Energy, the key and the tempo are on the reel's knobs (KNOB 1–3).
+**Hold OCT−** — **the takes' keys**: the white keys F3 … G5 play **takes 1 … 16** on the next bar (stopped: at once),
+like launching clips. The screen shows them while OCT− is held: the take playing lit, the one next outlined, keys with
+no take dark (they do nothing), and under them the take touched (number, ID, genre, tempo, key). Takes 17 … 32: with
+PRESETS. Held to look and let go without a key: nothing (a tap of OCT− still goes back).
 
-**JAM** (D#5): every few bars (D#5 held) a take by itself — one thing made again from the take playing: a part's notes
-mostly, now and then a sound, the ornaments or the mix, never a locked one. It runs while the GENERATOR screen is open.
+**JAM** (D#5): every few bars (D#5 held) **NOW changes by itself** — one thing made again: a part's notes mostly, now
+and then a sound, the ornaments or the mix, never a locked one. It runs while the GENERATOR screen is open; SAVE keeps
+a moment you like.
 
 **The SET**: takes in a row, each for its bars. **REC** while playing records one: the take playing first, then every
-take that becomes the music (yours, JAM's), each with the bars it played; REC again ends it. **SELECT** on the reel
-opens the **SET page**: the takes as blocks as long as their bars; **KNOB 1** (or PRESETS) the entry, **KNOB 2** its
-take, **KNOB 3** its bars, **OCT+** adds the take playing after the entry, **EDIT** deletes it, **PLAY** plays the SET
-from the entry (each take queued a bar before its turn, round), PLAY again stops; **OCT−** back to the reel, HOME
-closes. ALGORITHM and the take keys do nothing there (the SET leads), and JAM waits while a SET plays.
+take you play (OCT− + a white key, or PRESETS), each with the bars it played; REC again ends it. **SELECT** on the reel
+opens the **SET page**: the takes as blocks as long as their bars, the playhead moving; **KNOB 1** (or PRESETS) the
+entry, **KNOB 2** its take, **KNOB 3** its bars, **OCT+** adds the take playing after the entry, **EDIT** deletes it,
+**PLAY** plays the SET from the entry (each take queued a bar before its turn, round), PLAY again stops. While it
+plays the cursor follows the entry playing, and **turning KNOB 1 to an entry plays it from the next bar**. **OCT−**
+back to the reel, HOME closes. ALGORITHM and the take keys do nothing there (the SET leads), and JAM waits while a SET
+plays.
 
-**Share codes**: **F#5** (OCT+ held) shows a take's code, e.g. **8350 YG00 DWDW C0GJ 0GV**: its recipe (the seed, the
+**Share codes**: **F#5** (OCT+ held) shows the card's code, e.g. **8350 YG00 DWDW C0GJ 0GV**: its recipe (the seed, the
 settings that are not as the screen opens, the take's own choices), the last character a check. **OCT+ held + SAVE**
-on the reel opens the NAME screen for a code (up to 28 characters; 123 first, D# switches to letters; I L O U are read as 1 1 0 V);
-**OCT+** makes its take, a wrong character is caught ("CODE: A TYPO"). The same firmware makes the same piece; a code
-made on the other number of tracks says so (GLO > SYSTEM > TRACKS). A take as made is 7 characters.
+opens the NAME screen for a code (up to 28 characters; 123 first, D# switches to letters; I L O U are read as 1 1 0 V);
+**OCT+** makes it NOW (SAVE keeps it), a wrong character is caught ("CODE: A TYPO"). The same firmware makes the same
+piece; a code made on the other number of tracks says so (GLO > SYSTEM > TRACKS). A take as made is 7 characters.
 
-**Kept over power-off**: the reel (its last 32 takes), its SET and JAM's bars are saved in flash once they have stayed
+**Kept over power-off**: the reel (its takes), its SET and JAM's bars are saved in flash once they have stayed
 unchanged for 10 s with the music stopped (at most once a minute) and are back at power-on. A take is the **recipe** —
 not a recording: loading it makes the same piece again exactly, but changes you made to the piece afterwards are not on
 it. To keep the music itself, SAVE it (SAVE > PROJECT, or a song slot); to keep the sound, record it over USB audio.

@@ -28,13 +28,13 @@
 
 ![Pocket GammaWave (GW-1) song generator and TAKES reel](docs/gw1-generator.png)
 
-*Real frames of the GEN screen, rendered by the firmware's own drawing code in the GAMMA palette (`docs/gw1-generator.png`). Top row: three of the generator's five settings pages, turned with **SELECT** — **1/5** genre, seed, energy, form; **4/5 SONG** (tempo, key, scale, length); **5/5 FEEL** (space for a voice, fills, wet, grit; the knob last turned is lit). Bottom row: **TAKES**, opened with **PRESETS** — every piece the generator makes goes on the reel as a card: the genre and its trap flavour (or the tracks and the form), the seed, tempo, key and scale, the first two bars of each live track (one row a track, coloured by its part: drums, bass, pad, lead, arp), and the song's sections as blocks (trap: **I**ntro, **H**ook, **V**erse, **P**re-hook) with the playhead on the take playing. **TAKES 4/4** says where the cursor is (the reel goes round), **NOW** marks the music playing, **KEEP** a take kept (SAVE), the cards either side the takes before and after; each take has its own ID (#0004). On the reel the knobs are **TEMPO, KEY, ENERGY, SECTION**.*
+*Real frames of the GEN screen, rendered by the firmware's own drawing code in the GAMMA palette (`docs/gw1-generator.png`). Top row: three of the generator's five settings pages, turned with **SELECT** — **1/5** genre, seed, energy, form; **4/5 SONG** (tempo, key, scale, length); **5/5 FEEL** (space for a voice, fills, wet, grit; the knob last turned is lit). Bottom row: **PRESETS** opens the reel on **NOW**, the piece playing: its card says it is **EDITED** (or which take it is) and where it came from (`FROM TAKE 4: SOUNDS`), the genre and its trap flavour (or the tracks and the form), the seed, tempo, key and scale, the first two bars of each live track (one row a track, coloured by its part) and the song's sections as blocks (trap: **I**ntro, **H**ook, **V**erse, **P**re-hook) with the playhead. Then the **takes you saved** (SAVE), numbered (**TAKE 3 OF 4**), each with its own ID; scrolled while playing, a take plays on the next bar. On the reel the knobs are **TEMPO, KEY, ENERGY, SECTION**.*
 
 ### TAKES: the songwriter
 
 ![Pocket GammaWave (GW-1) TAKES: the songwriter](docs/gw1-takes.png)
 
-*The TAKES reel as a songwriting tool (`docs/gw1-takes.png`, real frames). **1** A child take: its ID (#0A3D), the take it was made from and what changed (`<0A3C LEAD SND`). **2** **OCT+ held**: the screen draws the keys and what they do — a part's notes made again (F3 DRUMS, G3 BASS, A3 CHORDS, B3 ARP, C4 LEAD, D4 TEX: filled in the part's colour), the black key next to each its sound, every sound, the harmony, the mix, the ornaments, back to the parent; the **framed** keys (G4 A4 C5 D5 E5 F5) **drop** a part while held — here G4, the drums; a key held half a second locks its part. **3** **KNOB 1** is the tempo, said in a pop-up mid-screen (KNOB 2 the key, KNOB 3 the energy). **4** **KNOB 4** picks a section of the song (here the verse): the part keys then make that part again there only. **5** **F#5** shows the take's **share code** (OCT+ held + SAVE types one in: the same firmware makes the same piece). **6** The **SET**: takes in a row, each for its bars, recorded with REC while playing and played from its page (SELECT).*
+*The TAKES reel as a songwriting tool (`docs/gw1-takes.png`, real frames). **1** **NOW** after a change: **EDITED**, from take 2, what changed (`FROM TAKE 2: LEAD SND`) — no take was made. **2** **OCT+ held**: the whole screen maps the keys, each in its part's colour, the parts' names under them; the key down said in full (`G3 BASS: NEW NOTES WHEN LET GO`); the right half mirrors the left: the same parts dropped while held; C#5 ORIG back to the take, D#5 JAM, F#5 the code. **3** **OCT− held**: the white keys play takes 1–16 on the next bar, like clips. **4** **SAVE**: NOW kept as take 3, said in the band at the foot of the screen. **5** The **SET**: takes in a row, each for its bars, recorded with REC from the takes you play; while it plays KNOB 1 jumps to an entry. **6** **F#5** shows a take's **share code** (OCT+ held + SAVE types one in: the same firmware makes the same piece).*
 
 ---
 
@@ -45,7 +45,7 @@
   - **EDIT pages**: two live scope traces above the **Wraith ribbon** — six zones (`FLU` · `WHI` · `VOX` · `CHR` · `BEL` · `SCR`) whose needle follows the filter cutoff (and the filter LFO). With the VOWEL or SCREAM filter, or the VOICE engine, the ribbon shows the vowels `OO` · `OH` · `AH` · `EH` · `EE` instead.
   - Boot splash with the Hearth sun and `POCKET GAMMAWAVE // GW-1`; the ABOUT page carries a QR code to gammawaveaudio.com.
 - **Two new filter types and four new drive types** on every track: filter `VOWEL` and `SCREAM` (after `LP`, `HP`, `BP`, `COMB`), drive `HEARTH`, `BLAST`, `PLASMA` and `FLUX`.
-- **49-genre song generator (GEN)** — open it with **`[OCT−] + [PLAY]`**, or turn **SELECT** on HOME. Page 1: **KNOB 1** genre, **KNOB 2** seed, **KNOB 3** energy, **KNOB 4** form (LOOP / PARTS / SONG); **SELECT** turns the five pages (drums, bass, chords, arp; lead, complexity, swing, humanize; SONG: tempo, key, scale, length; FEEL: space, fills, wet, grit); **ALGORITHM** gives the piece new instruments (the notes kept); **OCT+** makes the piece, **PLAY** auditions it, **HOME** closes. **PRESETS** opens **TAKES**, the reel of every piece made (the last 32, kept over power-off; kept ones stay): scroll it (round) and the take under the cursor plays on the next bar (OCT+ when stopped); there **KNOB 1–3** are the tempo, key and energy, **KNOB 4** picks a section, **SAVE** keeps a take, **EDIT** deletes, **OCT−** goes back. Hold **OCT+** and the keys make new takes from the one playing — one part, one sound, one section made again, the harmony, the mix — or **drop a part while held**; **D#5** starts **JAM** (a new take by itself every few bars); **REC** records a **SET** of takes; **F#5** shows a take's **share code**, **OCT+ + SAVE** types one in. Every change says what it did in a pop-up mid-screen. Genres include:
+- **49-genre song generator (GEN)** — open it with **`[OCT−] + [PLAY]`**, or turn **SELECT** on HOME. Page 1: **KNOB 1** genre, **KNOB 2** seed, **KNOB 3** energy, **KNOB 4** form (LOOP / PARTS / SONG); **SELECT** turns the five pages (drums, bass, chords, arp; lead, complexity, swing, humanize; SONG: tempo, key, scale, length; FEEL: space, fills, wet, grit); **ALGORITHM** gives the piece new instruments (the notes kept); **OCT+** makes the piece, **PLAY** auditions it, **HOME** closes. The piece playing is **NOW**: every change shapes NOW (on the next bar while playing) and **SAVE keeps it as a take** — the **TAKES** reel (**PRESETS**) holds only the takes you saved (32, kept over power-off): scroll it (round) and the take under the cursor plays on the next bar (OCT+ or PLAY when stopped); there **KNOB 1–3** are the tempo, key and energy, **KNOB 4** picks a section, **EDIT** deletes, **OCT−** goes back. **GLO + G4 / A4** step NOW back and forward. Hold **OCT+** and the whole screen maps the keys: remake one part, one sound, one section, the harmony, the mix, **drop a part while held**, **C#5** back to the original take, **D#5** **JAM** (NOW changed by itself every few bars), **F#5** the **share code** (**OCT+ + SAVE** types one in). Hold **OCT−** and the white keys **play takes 1–16** on the next bar; **REC** records them as a **SET**. What a control did shows in a band at the foot of the screen. Genres include:
   - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls and triplets, bell / flute / key melodies)
   - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat gallop, late snare, sliding 808, dark strings and choirs)
   - **`DARK TRAP`** (130–148 BPM, Memphis-style cowbell, clipped 808, phrygian bells)
@@ -169,6 +169,46 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 
 ### Unreleased — the next build (branch `claude/gw1-gen-fix`)
 
+**GEN: NOW, and takes you choose** — reported: every ALGORITHM turn, KEY and ENERGY turn, OCT+ press and take key made
+a new take, and the reel filled with near-copies (the oldest falling off past 32); the pop-up covered the take's card.
+The GEN screen now works like this:
+- **NOW is the piece playing.** ALGORITHM, KNOB 2 KEY, KNOB 3 ENERGY, OCT+ (a new piece), the OCT+ keys and JAM all
+  change NOW, on the next bar while playing. **None of them makes a take.**
+- **SAVE keeps NOW as a take** (the next number, its own ID, made from the take NOW came from and what changed).
+  Takes are only the ones you saved: none ever falls off; at 32 SAVE says the reel is full (EDIT deletes one).
+  KEEP is gone (every take is kept).
+- **The reel starts on NOW**, then takes 1 … n (PRESETS round). NOW's card says whether it is a take as saved
+  (`TAKE 2`) or `EDITED`, and from which take (`FROM TAKE 1: ENERGY`). PLAY on a take's card plays that take. When a
+  change lands, the card shows NOW again.
+- **Undo for NOW:** GLO + G4 steps NOW back (its last 8 states), GLO + A4 forward; at NOW's first state, GLO + G4 is
+  the device's UNDO again (the music before GEN). **C#5 (OCT+ held) is ORIG**: NOW back to the take it came from, all
+  at once (one undo step).
+- **OCT+ held: the whole screen is the keys' map** — every key in its part's colour, the parts' names under them in
+  the same colours, the key down said in full ("G3 BASS: NEW NOTES WHEN LET GO") and what a key just did. The map is
+  mirrored: the left half (F3 … F4) remakes a part (white: its notes, black: its sound; E4 every sound, F4 the
+  harmony), the right half drops the same parts in the same places while held (G4 A4 B4 C5 D5 E5), F5 the mix, G5
+  VARY; G#4 / A#4 the arrangement, C#5 ORIG, D#5 JAM, F#5 the share code. *(MIX moved from B4 to F5; the chords, arp,
+  lead and texture drops moved one white key left.)* The arp's colour is the palette's accent now (it was a yellow
+  next to the drums').
+- **OCT− held: the takes' keys** — the white keys play takes 1 … 16 on the next bar (stopped: at once), like clips;
+  the screen shows them (the one playing lit, the next outlined, empty keys dark) and the take touched. REC while
+  playing records the takes you play into a SET.
+- **What a control did shows in a band at the foot of the screen**, over the footer only: the card, the song map and
+  the settings stay in sight (the maps say it in their own lines).
+- **The SET page while a SET plays:** the playhead and the cursor move with the bars (they stood still), and turning
+  KNOB 1 / PRESETS to an entry plays it from the next bar.
+
+**Fixes found on the way**
+- **Holding OCT+ to read the keys and letting go made a new piece (or loaded a take)**; holding OCT− and letting go
+  went back a page. Held 0.4 s or more, letting go now does nothing (a take cued with PRESETS while OCT+ is held still
+  loads).
+- **A one-bar SET entry never played:** the SET armed the next entry on the same bar, before the entry's own take was
+  loaded. The bar's take loads first now.
+- **K1 TEMPO changed the saved take's tempo** behind your back; it changes NOW's (SAVE keeps it).
+- GEN forgot that OCT+ or OCT− were still down when it closed, so after reopening a quick OCT− tap could be ignored.
+- If the music changed outside GEN (a project loaded, the song edited), GEN still offered NOW's history; it now starts
+  afresh and GLO + G4 is the device's UNDO.
+
 **GEN: the screen no longer flashes or cycles** — reported: on the device, every ALGORITHM turn, PRESETS turn, knob
 turn, OCT+ press and take key showed the takes page again, then what had changed (a BPM step: the whole page, then
 the pop-up), as if the screen were cycling through it. Three causes, all in how the GEN screen was drawn:
@@ -181,8 +221,8 @@ the pop-up), as if the screen were cycling through it. Three causes, all in how 
   BPM step changes the number in the pop-up and nothing else.
 - **A pop-up going, the keys' map coming or going, a page change** cleared an area and then drew over it, a blink.
   The page is now drawn first and only what it does not paint is cleared after.
-- The keys' map (OCT+ held) is 6 px shorter, so its two help lines sit under the keys instead of over their last
-  rows (they were painted twice on every redraw, a flicker).
+- The keys' help lines were drawn over the keys' last rows (painted twice on every redraw, a flicker); the keys'
+  map is now the whole screen (above).
 - The SET page's entry is one drawing (it was cleared and redrawn with every bar while a SET played).
 
 A test now counts every pixel written twice in a frame that ends as it began (what the eye sees as a flash on the
