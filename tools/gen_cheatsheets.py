@@ -127,7 +127,7 @@ def controls():
         ('MASTER', 'Master volume.'),
         ('SELECT', '<b>Scrolls the section\'s pages</b> (HOME: the 49-genre generator). Held with a button, its <b>dice</b> (OK keeps, CANCEL back): HOME the generator, '
                    'EDIT the sound, SEQ the sequence, LFO the LFO, FX the effects. GLO + SELECT: the tempo. In the generator: its pages, the reel, the SET (round).'),
-        ('PRESETS', 'Browses the sounds (factory and user). On step, list and song pages: the cursor / the row. In the generator: the <b>TAKES</b> reel (scroll, round: the take plays on the next bar; <b>OCT+ held: the keys make takes</b>). '
+        ('PRESETS', 'Browses the sounds (factory and user). On step, list and song pages: the cursor / the row. In the generator: NOW and the <b>TAKES</b> you saved (scroll, round: a take plays on the next bar; <b>OCT+ held: the keys shape NOW</b>). '
                     '<b>Hold a page button + PRESETS: jump through its pages.</b>'),
         ('ALGORITHM', 'Selects the track from any page: T1–T4, or T1–T6 with TRACKS 6. In the generator: new instruments for the piece (the notes kept).'),
         ('KNOB 1–4', 'The four columns on screen. Fast sweeps the whole range, slow fine-tunes. With a layer held: '
@@ -191,38 +191,38 @@ def controls():
                   '<p>INIT: the factory sound (DRUM: the kit too). RECALL: the sound stored in the section. On a DRUM '
                   'track black 1–8 mute each DRUM-X sound.</p><h4>KNOBS</h4>' + knobs('EDIT 1', 'EDIT 2', 'EDIT 3', 'EDIT 4')))
     tk_w = {'F3': 'DRUM', 'G3': 'BASS', 'A3': 'CHRD', 'B3': 'ARP', 'C4': 'LEAD', 'D4': 'TEX', 'E4': 'ALL SND',
-            'F4': 'HARM', 'G4': 'DROP DRUM', 'A4': 'DROP BASS', 'B4': 'MIX', 'C5': 'DROP CHRD', 'D5': 'DROP ARP',
-            'E5': 'DROP LEAD', 'F5': 'DROP TEX', 'G5': 'VARY'}
+            'F4': 'HARM', 'G4': 'DROP DRUM', 'A4': 'DROP BASS', 'B4': 'DROP CHRD', 'C5': 'DROP ARP', 'D5': 'DROP LEAD',
+            'E5': 'DROP TEX', 'F5': 'MIX', 'G5': 'VARY'}
     tk_b = {'F#3': 'KIT', 'G#3': 'BASS SND', 'A#3': 'PAD SND', 'C#4': 'LEAD SND', 'D#4': 'TEX SND', 'F#4': 'ARP SND',
-            'G#4': 'ARR −', 'A#4': 'ARR +', 'C#5': 'BACK', 'D#5': 'JAM', 'F#5': 'CODE'}
-    b.append(card('TAKES · OCT+ HELD ON THE GEN SCREEN', HEAT[5], keyboard(tk_w, tk_b) +
-                  '<p>GEN (OCT− + PLAY), any page; PRESETS: the <b>TAKES</b> reel. Hold <b>OCT+</b>: the keys are silent, each makes a <b>child take</b> '
-                  'from the one playing, on the next bar (stopped: at once); the screen draws this keyboard, the keys breathe. '
-                  'White F3–D4, let go: that part&rsquo;s notes made again (with KNOB 4 on a section: there only); the black key '
-                  'beside it: its <b>sound</b> (the notes kept). <b>Hold a part or sound key ½ s: lock it</b> (ALGORITHM, ALL '
-                  'SOUNDS and JAM leave it; a new seed keeps it). <b>DROP</b> keys mute that part while held (no take). On '
-                  'another take&rsquo;s card: the key <b>borrows</b> its part. PRESETS with OCT+ held: a cue, played when OCT+ is '
-                  'let go. D#5 <b>JAM</b>: a take by itself; held ½ s: every 4, 8, 16, 32 bars. F#5: the take&rsquo;s '
-                  '<b>share code</b>.</p>'
+            'G#4': 'ARR −', 'A#4': 'ARR +', 'C#5': 'ORIG', 'D#5': 'JAM', 'F#5': 'CODE'}
+    b.append(card('GEN · OCT+ HELD: SHAPE NOW', HEAT[5], keyboard(tk_w, tk_b) +
+                  '<p>GEN (OCT− + PLAY), any page but the SET&rsquo;s. The piece playing is <b>NOW</b>: hold <b>OCT+</b> and the keys '
+                  'are silent and change NOW, on the next bar (stopped: at once) &mdash; <b>no take</b> (SAVE keeps NOW as one). The '
+                  'whole screen maps the keys in their parts&rsquo; colours and says the key down in full. Left half: white F3–D4, let '
+                  'go: that part&rsquo;s notes made again (KNOB 4 on a section: there only); the black key beside it: its <b>sound</b>. '
+                  'Right half, mirrored: G4–E5 <b>drop</b> the same parts while held. <b>Hold a part or sound key ½ s: lock it</b>. '
+                  'On a take&rsquo;s card: the key <b>borrows</b> its part. C#5 <b>ORIG</b>: back to the take NOW came from. D#5 '
+                  '<b>JAM</b>: NOW changes by itself (held ½ s: every 4, 8, 16, 32 bars). F#5: the <b>share code</b>. Held to '
+                  'read the map, let go: nothing.</p>'
                   '<h4>KNOBS ON THE REEL</h4>' + knobs('TEMPO', 'KEY', 'ENERGY', 'SECTION')))
+    ln_w = {n: str(i + 1) for i, n in enumerate(WHITE)}
     reel = [
-        ('PRESETS', 'Scroll the takes, round (TAKES 2/3): the one under the cursor plays on the next bar.'),
-        ('OCT+', 'Load the take (stopped); playing: on the next bar.'),
-        ('K1 · K2 · K3', '<b>TEMPO</b> at once; <b>KEY</b>, <b>ENERGY</b>: a take once the knob rests.'),
-        ('ALGORITHM', 'New instruments for the take playing, the notes kept.'),
-        ('SAVE', '<b>Keep</b> the take (again: let go). OCT+ held + SAVE: type a <b>share code</b>.'),
-        ('EDIT', 'Delete the take (OCT+ yes). Held: every take not kept.'),
-        ('REC', 'Playing: record a <b>SET</b> of takes (stopped: play first).'),
-        ('SELECT', 'The SET page: K1 entry, K2 take, K3 bars, OCT+ add, PLAY.'),
-        ('OCT− · HOME', 'Back one page · close.'),
-        ('GLO + G4', '<b>UNDO</b> (on the GEN screen too).'),
+        ('SAVE', '<b>NOW kept as a take</b> (the next number). OCT+ held + SAVE: type a <b>share code</b>.'),
+        ('PRESETS', 'NOW, then the takes, round: a take plays on the next bar. Stopped: OCT+ or PLAY.'),
+        ('K1 · K2 · K3', '<b>TEMPO</b> at once; <b>KEY</b>, <b>ENERGY</b>: NOW made again once the knob rests.'),
+        ('ALGORITHM', 'New instruments for NOW, the notes kept.'),
+        ('GLO + G4 · A4', '<b>UNDO</b> NOW a step (8) · forward. At its start: the music before GEN.'),
+        ('EDIT', 'Delete the take (OCT+ yes). Held: every take.'),
+        ('REC', 'Playing: record a <b>SET</b> of the takes you play.'),
+        ('SELECT', 'The SET page: K1 entry (playing: it next bar), K2 take, K3 bars, PLAY.'),
     ]
     tr = '<table>' + ''.join(f'<tr><td class="n">{e(a)}</td><td>{d}</td></tr>' for a, d in reel) + '</table>'
-    b.append(card('TAKES · THE REEL', HEAT[6], tr +
-                  '<p style="margin-top:8px">Each card: its ID (#0A3D), the take it came from and what changed '
-                  '(&lt;0A3C LEAD SND), seed · BPM · key, two bars of every track, the song&rsquo;s sections and the playhead. '
-                  'Every change says what it did in a pop-up mid-screen. The reel (32 takes), its SET and JAM are kept over '
-                  'power-off.</p>'))
+    b.append(card('GEN · NOW, THE TAKES · OCT− HELD: PLAY THEM', HEAT[6], keyboard(ln_w, {}) +
+                  '<p>Hold <b>OCT−</b>: the white keys play <b>takes 1–16</b> on the next bar (stopped: at once), like clips; '
+                  'the screen shows the one playing and the next. A tap of OCT− still goes back.</p>' + tr +
+                  '<p style="margin-top:8px">NOW&rsquo;s card says TAKE n or EDITED and where it came from; a take&rsquo;s card its ID, '
+                  'its parent and what changed. What a control did shows in a band at the foot of the screen. The takes '
+                  '(32), the SET and JAM are kept over power-off.</p>'))
     b.append('</div>')
     small = [
         ('LFO · MACROS', HEAT[2], 'Knobs M1–M4; they stay latched when let go (LFO again: off). F3 rolls new routes, '
@@ -239,7 +239,7 @@ def controls():
     b.append(sec('COMBOS & [OCT−] SHIFT DECK'))
     combos = [
         (k('OCT−', cls='a') + ' + ' + k('ARP', cls='a'), '<b>HEARTH MACROS (1/6–6/6)</b>: Gravity, Singularity, Photosphere, Wraith Scream, Formant Vowel, Solar Eclipse — drive type and amount, cutoff, resonance (4–6: SCREAM / VOWEL filter). Undo: OCT− + GLO.'),
-        (k('OCT−', cls='a') + ' + ' + k('PLAY', cls='a'), '<b>49-GENRE SONG GENERATOR (GEN)</b>: Trap ATL, UK Drill, Dark Trap, Rage Trap, house, techno, IDM, ambient… KNOB 1 genre, KNOB 2 seed, KNOB 3 energy, KNOB 4 form; SELECT pages (parts, SONG: tempo key scale length, FEEL: space fills wet grit), ALGORITHM new instruments, PRESETS the TAKES reel (every piece made, kept over power-off: scroll to play one, K1 tempo, K2 key, K3 energy, K4 a section, SAVE keeps, EDIT deletes; hold OCT+: F3..D4 a part made again, black keys its sound, G4..F5 drop a part while held, F4 harmony, D#5 JAM, F#5 the share code; REC a SET); OCT+ makes, OCT− back, PLAY auditions.'),
+        (k('OCT−', cls='a') + ' + ' + k('PLAY', cls='a'), '<b>49-GENRE SONG GENERATOR (GEN)</b>: Trap ATL, UK Drill, Dark Trap, Rage Trap, house, techno, IDM, ambient… KNOB 1 genre, KNOB 2 seed, KNOB 3 energy, KNOB 4 form; SELECT pages (parts, SONG: tempo key scale length, FEEL: space fills wet grit), ALGORITHM new instruments, the piece playing is NOW (every change shapes it, no take), SAVE keeps it as a take; PRESETS the TAKES reel (kept over power-off: scroll to play one, K1 tempo, K2 key, K3 energy, K4 a section, EDIT deletes; GLO + G4 / A4 NOW back / forward; hold OCT+: F3..D4 a part made again, black keys its sound, G4..E5 drop a part while held, C#5 back to the take, D#5 JAM, F#5 the share code; hold OCT−: the white keys play takes 1–16; REC a SET); OCT+ makes, OCT− back, PLAY auditions.'),
         (k('OCT−', cls='a') + ' + ' + k('ENV / SCL', cls='a'), '<b>SEQ &gt; MUTATE (1-CLICK)</b>: jumps to MUTATE; if it was off, switches it on (Sound 2 bars, Pattern 4 bars, Amount 50%).'),
         (k('OCT−', cls='a') + ' + ' + k('HOME / SAVE', cls='a'), '<b>HYPERSPACE VISUALIZER</b>: 4 animated scenes (Supernova, Wraith 3D, Warp Tunnel, Matrix FFT); OCT+ next scene, OCT− leaves.'),
         (k('OCT−', cls='a') + ' + ' + k('SEQ · EDIT · FX · LFO', cls='v'), '<b>1-HAND DICE</b>: rolls Sequence, Sound Patch, Track FX, or LFO on the active track.'),
@@ -344,7 +344,7 @@ def sound():
                   '<b>8 voices</b> shared by the six tracks (MONO and LEGATO keep their note).</p>'))
     b.append(card('49-GENRE GENERATOR & DICE', HEAT[5], '<p><b>OCT− + PLAY</b> (or SELECT on HOME): 49-Genre Song Generator '
                   'including <b>TRAP ATL</b>, <b>UK DRILL</b> (3-3-2 tresillo bounce), <b>DARK TRAP</b> (808 cowbells), '
-                  '<b>RAGE TRAP</b>, house, techno, IDM, ambient… KNOB 1 genre, SELECT its pages (SONG: tempo, key, scale, length; FEEL: space for a voice, fills, wet, grit), OCT+ makes, PRESETS the <b>TAKES</b> reel of every piece made (hold OCT+: the keys remake a part, a sound, a section; JAM; SET; share codes). <b>OCT− + ENV</b>: 1-click <b>SEQ &gt; MUTATE</b> (ORBIT / DRIFT; on the page OCT− FREEZE, OCT+ KEEP). '
+                  '<b>RAGE TRAP</b>, house, techno, IDM, ambient… KNOB 1 genre, SELECT its pages (SONG: tempo, key, scale, length; FEEL: space for a voice, fills, wet, grit), OCT+ makes NOW, SAVE keeps it as a <b>take</b> (hold OCT+: the keys remake a part, a sound, a section; hold OCT−: the keys play the takes; JAM; SET; share codes). <b>OCT− + ENV</b>: 1-click <b>SEQ &gt; MUTATE</b> (ORBIT / DRIFT; on the page OCT− FREEZE, OCT+ KEEP). '
                   '<b>OCT− + GLO</b>: Undo.</p>'))
     b.append('</div>')
 

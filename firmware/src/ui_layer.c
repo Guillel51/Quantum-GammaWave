@@ -148,7 +148,8 @@ static void layer_masks(void)
                : ui.ly ? ly_bit(ui.ly) : layer_bits() & ~fm1_in.buttons;
     if (ui.confirm == CF_DICE_ALL && !ui.menu)          /* (TAKES v2) the GEN screen, every page: OCT+ held, the keys are
                                                          * the take layer's (gen_layer); GLO held, G4 its UNDO; silent */
-        m |= 1u << panel.btn[B_OCTUP] | 1u << panel.btn[B_GLO];
+        m |= 1u << panel.btn[B_OCTUP] | 1u << panel.btn[B_OCTDN] | 1u << panel.btn[B_GLO];   /* (NOW: OCT- held, the
+                                                         * takes' keys) */
     kb_mask = m;
     perf_mask = m & ly_bit(LAYER_FX);
     fx_lock_on = (uint8_t)(fx_lock && !ui.ly && layer_allowed());

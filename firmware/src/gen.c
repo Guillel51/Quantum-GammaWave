@@ -1779,7 +1779,8 @@ enum { GH_NONE, GH_NEW, GH_SET, GH_SOUNDS, GH_DRUMS, GH_BASS, GH_CHORDS, GH_ARP,
 static uint8_t gen_how, gen_take_how;
 static uint8_t gen_take_bar;                            /* (TAKES v2) a take waiting for the next bar (the music playing) */
 static void gen_take_arm(uint32_t how);
-static void reel_add(void);                             /* (gen_reel.c) the piece made, on the TAKES reel */
+static void now_made(void);                             /* (gen_reel.c) the piece made is NOW (SAVE: a take) */
+static uint16_t now_from;                               /* (gen_reel.c) the take NOW came from */
 static int gen_reel_load(void);
 static void reel_tempo(int set);
 /* the piece made from the settings (UNDO brings back what was there); the message */
@@ -1798,7 +1799,7 @@ static void gen_go(void)
     ui_say("GEN: ", gp.last);
     str_cpy(ui.msg2, live.mode ? "PARTS: PLAY THE SONG" : "UNDO: GLO + G4", sizeof ui.msg2);
     ui.force = 1;
-    reel_add();                                         /* (1.0-GW) on the TAKES reel */
+    now_made();                                         /* (NOW) the piece playing: a take only when SAVE keeps it */
 }
 static uint32_t gen_sig(void)                           /* the settings that make the piece */
 {
@@ -1871,6 +1872,7 @@ static void gen_press(void)
         if (gp.sig == gen_sig()) {
             gen_new_seed_locked();                      /* (TAKES v2: the locked parts and sounds carried) */
             gen_how = GH_NEW;
+            now_from = 0;                               /* (NOW: a new piece, from no take) */
         } else {
             gen_how = GH_SET;                           /* (TAKES v2: the settings changed: a child) */
         }
@@ -1889,6 +1891,7 @@ static void dice_all(void)
     gen_new_seed();
     gen_fresh_recipe();
     gen_how = GH_NEW;
+    now_from = 0;
     gen_go();
     if (song.g[G_BPM] == b0 && !gp.tempo && !(ui_prefs & PREF_BPM_LOCK))   /* (1.0-GW) a throw always moves the tempo: landed on the
                                                          * last one (two genres' ranges meet), one BPM off it */
@@ -1926,6 +1929,9 @@ static void gen_open(void)
     gen_take_ms = 0;
     reel_ask = 0;
     gl.focus = 0;
+    now_check();
+    gl.held = gl.held_dn = gl.down_oct = gl.down_dn = gl.used = gl.used_dn = gl.cued = 0;   /* (NOW: what a hold before
+                                                         * it left: OCT+ / OCT- seen down from here on) */
     gp.view = 0;                                        /* (the settings first) */
     reel_want = -1;
 }
@@ -2007,7 +2013,7 @@ static void gen_select(int32_t s)
         uint32_t pos = gp.view == 2u ? GEN_PAGES + 1u : gp.view ? GEN_PAGES : gp.page;
         pos = (pos + (s > 0 ? 1u : GEN_PAGES + 1u)) % (GEN_PAGES + 2u);
         if (pos < GEN_PAGES) { gp.view = 0; gp.page = (uint8_t)pos; gp.hot = 0xFF; }
-        else if (pos == GEN_PAGES) { gp.view = 1; if (reel_play < reel_n && !reel_want_pending()) reel_cur = reel_play; }
+        else if (pos == GEN_PAGES) { gp.view = 1; if (!reel_want_pending()) reel_on_now = 1; }   /* (the reel: on NOW) */
         else { gp.view = 2; if (set_cur >= set_n) set_cur = (uint8_t)(set_n ? set_n - 1u : 0u); }
         ui.force = 1;
     }
@@ -2031,27 +2037,41 @@ static void gen_algo(int32_t s)
 /* every frame on the screen: a take waiting, its turns at rest (450 ms): the song's parts stopped first (its sections
  * are rewritten), the piece made, the music on again */
 static uint32_t gen_bar_last;
+static void gen_take_step(uint32_t wrap);
 static void gen_take_poll(void)
 {
-    int32_t w;
-    uint32_t bp = chain.bar_pos, wrap = bp < gen_bar_last, notes;
+    uint32_t bp = chain.bar_pos, wrap = bp < gen_bar_last;
     gen_bar_last = song.playing ? bp : 0u;              /* (stopped: no bar; started: the first one is its own) */
     {   /* (TAKES v2) the pop-up goes after 1.6 s (a take still waiting: it stays, its bar filling, 10 times a second) */
         static uint32_t cd_ms;
         int waiting = gen_take_ms && gen_take_bar && song.playing;
-        if (gpop.on && !waiting && fm1_ms - gpop.ms > 1600u) { gpop.on = 0; gen_fresh = 1; ui.force = 1; }
+        if (gpop.on && !waiting && fm1_ms - gpop.ms > 1600u) { gpop.on = 0; ui.force = 1; }   /* (its place only: draw_gen) */
         if (waiting && fm1_ms - cd_ms >= 100u) {
             cd_ms = fm1_ms;
-            if (!gpop.on) gen_pop("ON THE NEXT BAR", reel_want >= 0 ? "TAKE" : "NEW TAKE");
+            if (!gpop.on) {
+                char b[12] = "TAKE ";
+                fmt_int(b + 5, (uint32_t)reel_want + 1u);
+                gen_pop("ON THE NEXT BAR", reel_want >= 0 ? b : "NOW CHANGES");
+            }
             ui.force = 1;
         }
     }
     if (song.playing) set_seen = 1;
     else if (set_play && set_seen && !chain_busy() && !gen_take_play && !gen_take_ms) set_play = 0;   /* (stopped) */
+    if (wrap && song.playing && set_rec && set_n && set_e[set_n - 1u].bars < 255u)
+        set_e[set_n - 1u].bars++;                       /* (a SET recording: the bar the take playing played) */
+    gen_take_step(wrap);                                /* (NOW) the take of this bar first, then the SET's next armed:
+                                                         * a one-bar entry was armed over before it played */
     if (wrap && song.playing) {                         /* (TAKES v2) a bar went by: the SET, JAM */
         set_bar();
         jam_bar();
+        if (gp.view) ui.force = 1;                      /* (NOW) the playheads move on (the reel's song, the SET) */
     }
+}
+static void gen_take_step(uint32_t wrap)
+{
+    int32_t w;
+    uint32_t notes;
     if (!gen_take_ms || fm1_ms - gen_take_ms < 450u)
         return;
     if ((song.playing || set_play) && !gen_take_play) { /* (TAKES v2) the music playing (or a SET starting): on the
@@ -2068,7 +2088,14 @@ static void gen_take_poll(void)
     gen_take_ms = 0;
     w = reel_want;
     reel_want = -1;
-    if (w >= 0) gset_put(&reel[(uint32_t)w % REEL_N].set);   /* (the reel scrolled: that take) */
+    if (w >= 0) {                                       /* (the reel scrolled: that take, NOW) */
+        gset_put(&reel[(uint32_t)w % REEL_N].set);
+        now_from = reel[(uint32_t)w % REEL_N].id;
+    } else {
+        if (gen_take_how == GH_NEW) now_from = 0;       /* (a new piece: from no take) */
+        if (!gl.held) reel_on_now = 1;                  /* (NOW changed: its card, the music; OCT+ held: the card the
+                                                         * keys borrow from stays) */
+    }
     gen_how = w >= 0 ? GH_NONE : gen_take_how;
     notes = w >= 0 || !(gen_how == GH_SOUNDS || (gen_how >= GH_KIT && gen_how <= GH_STEX) || gen_how == GH_MIX);
     gen_keep_undo = gen_take_on;
@@ -2095,6 +2122,7 @@ static uint32_t gen_oct(uint32_t oct)
         gen_reel_answer((oct & 2u) != 0u);
         return 0;
     }
+    if ((oct & 1u) && gl.used_dn) { gl.used_dn = 0; oct &= ~1u; }   /* (NOW) OCT- let go after its take keys: no back */
     if ((oct & 1u) && gp.view) {                        /* (TAKES v2) OCT-: back, the SET page to the reel, the reel to
                                                          * the settings (there, OCT- closes the screen) */
         gp.view = gp.view == 2u ? 1u : 0u;
@@ -2105,22 +2133,21 @@ static uint32_t gen_oct(uint32_t oct)
     if ((oct & 2u) && gl.used) { gl.used = 0; return oct & ~2u; }   /* (TAKES v2) OCT+ let go after its keys or another
                                                          * control: they acted, nothing more (no piece, no load, no entry) */
     if (gp.view == 2u && (oct & 2u)) { set_insert(); return oct & ~2u; }   /* (the SET page: OCT+ adds) */
-    if ((oct & 2u) && !gp.view && (song.playing || chain_busy())) {   /* (the settings, the music playing: the piece
-                                                         * as a take on the next bar; a SONG stops for it, as takes do) */
-        if (gp.sig == gen_sig()) { gen_new_seed_locked(); gen_take_arm(GH_NEW); }
-        else gen_take_arm(GH_SET);
-        gen_take_ms = (fm1_ms - 460u) | 1u;
-        return oct & ~2u;
-    }
-    if ((oct & 2u) && gp.view) {                        /* (TAKES v2) OCT+ on the reel let go */
-        if ((song.playing || chain_busy()) && reel_n) { /* playing: the take under the cursor, on the next bar */
+    if ((oct & 2u) && (song.playing || chain_busy())) { /* (playing: on the next bar; a SONG stops for it) */
+        if (gp.view && !reel_on_now && reel_n) {        /* (the reel, a take under the cursor: it is NOW) */
             if (reel_cur != reel_play) {
                 reel_want = (int8_t)reel_cur;
                 gen_take_arm(GH_NONE);
                 gen_take_ms = (fm1_ms - 460u) | 1u;
             }
-            return oct & ~2u;
+        } else {                                        /* (the settings, NOW's card: the piece; the same settings: a
+                                                         * new seed) */
+            if (gp.sig == gen_sig()) { gen_new_seed_locked(); gen_take_arm(GH_NEW); }
+            else gen_take_arm(GH_SET);
+            gen_take_ms = (fm1_ms - 460u) | 1u;
+            gen_pop("ON THE NEXT BAR", "A NEW PIECE");
         }
+        return oct & ~2u;
     }
     return oct;
 }
@@ -2172,41 +2199,112 @@ static void draw_pop(void)
     const aafont_t *f;
     int32_t w;
     if (!gpop.on) return;
-    f = pop_large(gpop.val) && text_w(&AF_L, gpop.val) <= 196 ? &AF_L : &AF_M;
-    cv_begin(212, 66, T_BG);
-    cv_rrect(0, 0, 212, 66, 10, T_RAISE, T_BG);
+    f = pop_large(gpop.val) && text_w(&AF_L, gpop.val) <= 220 ? &AF_L : &AF_M;
+    cv_begin(POP_W, POP_H, T_BG);
+    cv_rrect(4, 0, 232, 44, 8, T_RAISE, T_BG);
     w = text_w(&AF_S, gpop.lbl);
-    cv_text((212 - w) / 2, 5, &AF_S, gpop.lbl, T_MID);
+    cv_text((240 - w) / 2, 2, &AF_S, gpop.lbl, T_MID);
     w = text_w(f, gpop.val);
-    cv_text((212 - w) / 2, f == &AF_L ? 22 : 27, f, gpop.val, T_ACCENT);
-    if (gen_take_ms && gen_take_bar && song.playing) {  /* (the bar going by: the take at its end) */
-        uint32_t bar = chain_bar(), pos = bar ? (uint32_t)((uint64_t)chain.bar_pos * 188u / bar) : 0u;
-        cv_rrect(12, 56, 188, 5, 2, T_SURF, T_RAISE);
-        cv_rrect(12, 56, (int32_t)(pos > 188u ? 188u : pos < 5u ? 5u : pos), 5, 2, T_THEME, T_RAISE);
+    cv_text((240 - w) / 2, f == &AF_L ? 16 : 19, f, gpop.val, T_THEME);
+    if (gen_take_ms && gen_take_bar && song.playing) {  /* (the bar going by: the change at its end) */
+        uint32_t bar = chain_bar(), pos = bar ? (uint32_t)((uint64_t)chain.bar_pos * 200u / bar) : 0u;
+        cv_rrect(20, 40, 200, 3, 1, T_SURF, T_RAISE);
+        cv_rrect(20, 40, (int32_t)(pos > 200u ? 200u : pos < 4u ? 4u : pos), 3, 1, T_THEME, T_RAISE);
     }
-    cv_blit(14, 92);
+    cv_blit(POP_X, POP_Y);
 }
+static void draw_gen_page(void);
+/* (GEN fix) the screen: cleared on entering and between its pages only (0.6.96: each card and line paints its own
+ * band) -- it was cleared on every redraw, a knob's every detent (ui.head_sig is drawn again after this, never ~0u
+ * here: the test was always true); a pop-up up: the page drawn round it (cv_hole), the pop-up over; gone: its place
+ * cleared and the page over it. Nothing on the panel is written twice in a frame */
+/* an area's gaps once the page is drawn over it: on row y, x0 .. x1, what no blit or fill painted (cv_rec), as pairs */
+static uint32_t gen_row_gaps(uint32_t y, uint32_t x0, uint32_t x1, uint8_t *g)
+{
+    uint32_t n = 0, x = x0, i, e, nx, moved;
+    if (cv_hole1 && y >= cv_hole0 && y < cv_hole1)
+        return 0;                                       /* (the pop-up's rows: its own) */
+    while (x < x1 && n < 16u) {
+        e = x;
+        do {                                            /* (covered at e: as far as the rects reach) */
+            moved = 0;
+            for (i = 0; i < cv_rec_n; i++)
+                if (cv_rec[i].y0 <= y && y < cv_rec[i].y1 && cv_rec[i].x0 <= e && e < cv_rec[i].x1) { e = cv_rec[i].x1; moved = 1; }
+        } while (moved);
+        if (e > x) { x = e; continue; }
+        nx = x1;                                        /* (a gap: to the next rect on the row) */
+        for (i = 0; i < cv_rec_n; i++)
+            if (cv_rec[i].y0 <= y && y < cv_rec[i].y1 && cv_rec[i].x0 > x && cv_rec[i].x0 < nx) nx = cv_rec[i].x0;
+        g[n++] = (uint8_t)x;
+        g[n++] = (uint8_t)nx;
+        x = nx;
+    }
+    return n;
+}
+/* the gaps cleared, rows with the same gaps in one fill each */
+static void gen_gaps(uint32_t x0, uint32_t y0, uint32_t w, uint32_t h)
+{
+    uint8_t run[16], row[16];
+    uint32_t nrun = 0, nrow, y, ys = y0, i, same;
+    for (y = y0; y <= y0 + h; y++) {
+        nrow = y < y0 + h ? gen_row_gaps(y, x0, x0 + w, row) : 0xFFu;
+        same = nrow == nrun;
+        for (i = 0; same && i < nrun; i++) same = row[i] == run[i];
+        if (y > y0 && same) continue;
+        for (i = 0; i + 1u < nrun; i += 2u) lcd_fill(run[i], ys, (uint32_t)(run[i + 1u] - run[i]), y - ys, T_BG);
+        ys = y;
+        nrun = nrow == 0xFFu ? 0u : nrow;
+        for (i = 0; i < nrun; i++) run[i] = row[i];
+    }
+}
+/* (GEN fix) the screen: cleared on entering and between its pages only (0.6.96: each card and line paints its own
+ * band) -- it was cleared on every redraw, a knob's every detent (ui.head_sig is drawn again after this, never ~0u
+ * here: the test was always true); a pop-up up: the page drawn round it (cv_hole), the pop-up over; an area to clear
+ * (the pop-up gone, the keys' lines on or off): the page drawn first, then its gaps. Nothing on the panel is written
+ * twice in a frame */
 static void draw_gen(void)
+{
+    static uint8_t last_mode = 0xFF, pop_was;
+    uint32_t i, mode = gl.held ? 3u : gl.held_dn ? 4u : gp.view;   /* (the settings, the reel, the SET; the maps) */
+    int band = gpop.on && mode < 3u;                    /* (the maps say it in their own lines) */
+    int fresh = gen_fresh || last_mode != mode;
+    if (pop_was && !band && !fresh) scr_clean(POP_X, POP_Y, POP_W, POP_H);
+    pop_was = (uint8_t)band;
+    if (band) { cv_hole0 = POP_Y; cv_hole1 = POP_Y + POP_H; }
+    if (fresh) {                                        /* (entering, another page: drawn, then what it leaves cleared) */
+        gclean_n = 0;
+        scr_clean(0, H_HEAD, 240, 240 - H_HEAD);
+        gen_fresh = 0;
+        last_mode = (uint8_t)mode;
+    }
+    ui.head_sig = ~0u;
+    cv_rec_n = 0; cv_rec_y0 = H_HEAD; cv_rec_y1 = 240; cv_rec_on = 1;
+    draw_gen_page();
+    cv_rec_on = 0;
+    if (gclean_n) {
+        if (cv_rec_n == 0xFFu) {                        /* (too much to follow: cleared, the page again) */
+            for (i = 0; i < gclean_n; i++) lcd_fill_hole(gclean[i].x, gclean[i].y, gclean[i].w, gclean[i].h, T_BG);
+            draw_gen_page();
+        } else {
+            for (i = 0; i < gclean_n; i++) gen_gaps(gclean[i].x, gclean[i].y, gclean[i].w, gclean[i].h);
+        }
+    }
+    gclean_n = 0;
+    cv_hole0 = cv_hole1 = 0;
+    if (band) draw_pop();
+}
+static void draw_gen_page(void)
 {
     uint32_t k;
     char t[40], v[16];
-    static uint8_t last_view;
-    if (gen_fresh || ui.head_sig != ~0u || last_view != gp.view) {   /* (0.6.96) cleared once on entering (1.0-GW: and
-                                                         * between the pages and the reel), not on every knob: each
-                                                         * card and line paints its own band (it flickered) */
-        lcd_fill(0, H_HEAD, 240, 240 - H_HEAD, T_BG);
-        gen_fresh = 0;
-        last_view = gp.view;
-    }
-    ui.head_sig = ~0u;
+    if (gl.held) { draw_keys_map(); return; }          /* (NOW) OCT+ held: the keys' map, the whole screen */
+    if (gl.held_dn) { draw_launch(); return; }         /* (NOW) OCT- held: the takes' keys */
     if (gp.view == 2u) {
         draw_set();
-        draw_pop();
         return;
     }
     if (gp.view) {
         draw_reel();
-        draw_pop();
         return;
     }
     str_cpy(t, "GENERATOR  1/5", sizeof t);
@@ -2223,12 +2321,6 @@ static void draw_gen(void)
         cv_text(198 - text_w(&AF_M, v), 3, &AF_M, v, hot ? T_ACCENT : T_TEXT);
         cv_blit(16, y);
     }
-    if (gl.held) {                                      /* (TAKES v2) OCT+ held: the keys make takes here too */
-        draw_layer_keys();
-        draw_pop();
-        return;
-    }
-    layer_keys_off();
     if (gp.last[0]) {                                   /* (TAKES v2) the take these settings are: "TAKE #0A3D  TRAP .." */
         if (reel_play < reel_n) {
             str_cpy(t, "TAKE #", sizeof t);
@@ -2240,7 +2332,6 @@ static void draw_gen(void)
         str_cpy(t + str_len(t), gp.last, sizeof t - str_len(t));
         draw_text_box(0, 172, 240, &AF_S, t, T_MID, 1);
     }
-    draw_text_box(0, 190, 240, &AF_S, "OCT+ MAKE  HOLD OCT+: KEYS", T_TEXT, 1);
-    draw_text_box(0, 206, 240, &AF_S, "SEL PAGES  ALGO SOUNDS  PRESETS TAKES", T_DIM, 1);
-    draw_pop();
+    draw_text_box(0, 196, 240, &AF_S, "OCT+ MAKE  SAVE KEEP  ALGO SOUNDS", T_TEXT, 1);
+    draw_text_box(0, 212, 240, &AF_S, "SEL PAGES  PRESETS TAKES  HOLD OCT+/-", T_DIM, 1);
 }

@@ -2237,16 +2237,16 @@ static void ui_input_frame(void)
             }
             if (gl.down_oct && (pressed & ~((1u << panel.btn[B_OCTUP]) | (1u << panel.btn[B_OCTDN]))))
                 gl.used = 1;                            /* (TAKES v2) a button with OCT+ down: no load when it is let go */
-            {   /* (TAKES v2) REC: a SET recorded while playing (its own tap: in a dialog the REC layer is dead); SAVE on
-                 * the reel: KEEP, with OCT+ held: a take's code typed (the NAME screen) */
+            {   /* (TAKES v2) REC: a SET recorded while playing (its own tap: in a dialog the REC layer is dead); (NOW)
+                 * SAVE on the settings and the reel: NOW kept as a take, with OCT+ held: a take's code typed (NAME) */
                 static uint32_t rc_t0, sv_t0;
                 uint32_t sv;
                 if (btn_hold(&rc_t0, B_REC, now, 0) == BT_TAP && gp.view != 2u) gen_reel_rec();
                 sv = btn_hold(&sv_t0, B_SAVE, now, 0);
-                if (sv == BT_TAP && gp.view == 1u) {
+                if (sv == BT_TAP && gp.view != 2u) {
                     if (gl.down_oct) gen_code_enter();
-                    else gen_reel_keep(0);
-                } else if (gl.down_oct && ((fm1_in.buttons >> panel.btn[B_SAVE]) & 1u) && gp.view == 1u) {
+                    else now_save();
+                } else if (gl.down_oct && ((fm1_in.buttons >> panel.btn[B_SAVE]) & 1u) && gp.view != 2u) {
                     gl.used = 1;                        /* (SAVE down with OCT+: its tap comes after OCT+ is let go) */
                 }
             }
@@ -2259,8 +2259,14 @@ static void ui_input_frame(void)
                 set_toggle();                           /* (TAKES v2) the SET page: PLAY runs the SET */
             } else if ((pressed >> panel.btn[B_PLAY]) & 1u) {
                 if (song.playing || chain_busy() || seq_counting()) transport_req = 2;
-                else if (live.mode) chain_play_ui();
-                else transport_req = 1;
+                else {
+                    if (gp.view == 1u && !reel_on_now && reel_cur < reel_n && reel_cur != reel_play && gen_reel_load()) {
+                        gp.sig = gen_sig();             /* (NOW) PLAY on a take's card: that take, then playing */
+                        gen_take_ms = 0;
+                    }
+                    if (live.mode) chain_play_ui();
+                    else transport_req = 1;
+                }
             }
         }
         ui.pg_down = 0;

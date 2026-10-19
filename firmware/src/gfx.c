@@ -190,18 +190,62 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
         cv_px[i] = s;
 }
 
+/* (GEN fix) screen rows the canvases leave alone (cv_hole0 .. cv_hole1 - 1; cv_hole1 0: none): the GEN screen's
+ * pop-up, so the page drawn again under it never paints there (on the panel every write shows: the page and the
+ * pop-up took turns, a knob's every detent) */
+static uint16_t cv_hole0, cv_hole1;
+/* (GEN fix) what the blits and fills cover in a band (cv_rec_y0 .. y1), recorded while cv_rec_on: an area's gaps
+ * cleared after (the pop-up gone, the keys' lines on or off: the page drawn over it first, then what it does not
+ * paint; a fill before it blinked) */
+#define CV_REC_N 32u
+static struct { uint8_t x0, x1, y0, y1; } cv_rec[CV_REC_N];
+static uint8_t cv_rec_on, cv_rec_n, cv_rec_y0, cv_rec_y1;
+static void cv_rec_add(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+{
+    if (!cv_rec_on || !w || !h || y >= cv_rec_y1 || y + h <= cv_rec_y0)
+        return;
+    if (cv_rec_n >= CV_REC_N) {
+        cv_rec_n = 0xFFu;                           /* (too many: the caller falls back) */
+        cv_rec_on = 0;
+        return;
+    }
+    cv_rec[cv_rec_n].x0 = (uint8_t)x;
+    cv_rec[cv_rec_n].x1 = (uint8_t)(x + w > 240u ? 240u : x + w);
+    cv_rec[cv_rec_n].y0 = (uint8_t)y;
+    cv_rec[cv_rec_n].y1 = (uint8_t)(y + h > 240u ? 240u : y + h);
+    cv_rec_n++;
+}
+static void cv_blit_rows(uint32_t x, uint32_t y, uint32_t r0)
+{
+    uint32_t a, b;
+    if (r0 >= cv_h)
+        return;
+    cv_rec_add(x, y + r0, cv_w, cv_h - r0);         /* (the hole's rows: never cleared, cv_gaps) */
+    if (cv_hole1 <= y + r0 || cv_hole0 >= y + cv_h) {
+        lcd_blit(x, y + r0, cv_w, cv_h - r0, cv_px + r0 * cv_w);
+        return;
+    }
+    a = cv_hole0 > y ? cv_hole0 - y : 0u;           /* (the canvas rows above the hole, then those below) */
+    b = cv_hole1 - y;
+    if (a > r0)
+        lcd_blit(x, y + r0, cv_w, a - r0, cv_px + r0 * cv_w);
+    if (b < r0)
+        b = r0;
+    if (b < cv_h)
+        lcd_blit(x, y + b, cv_w, cv_h - b, cv_px + b * cv_w);
+}
+
 static void cv_blit(uint32_t x, uint32_t y)
 {
     GFX_HOOK_BLIT(x, y, 0u);
-    lcd_blit(x, y, cv_w, cv_h, cv_px);
+    cv_blit_rows(x, y, 0u);
 }
 
 /* canvas rows r0 .. cv_h-1 only, to screen row y + r0 */
 static void cv_blit_from(uint32_t x, uint32_t y, uint32_t r0)
 {
     GFX_HOOK_BLIT(x, y, r0);
-    if (r0 < cv_h)
-        lcd_blit(x, y + r0, cv_w, cv_h - r0, cv_px + r0 * cv_w);
+    cv_blit_rows(x, y, r0);
 }
 
 static inline void cv_pset(int32_t x, int32_t y, uint16_t c)
