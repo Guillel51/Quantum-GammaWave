@@ -560,11 +560,13 @@ static void trap_pad_sound(track_t *t, uint32_t verse)
 }
 /* the kit: a trap kit on top of the generic one (gen_kit's): the hats high-passed, bright and short, the kick a short
  * knock (the 808 is the boom), the snare and the clap snappy, the TOM lane a crash, the rim, the cowbell; the track's
- * filter open, the hats loud */
+ * filter open, the hats loud. (1.0-GW) The snare and the clap the 808's, measured against its samples: the snare a
+ * sine at ~170 Hz under high-passed noise, -20 dB in ~45 ms (was FM, ~240 Hz, twice as long, fizzing above 6 kHz);
+ * the clap CLAP's three bursts, level from 1 to 8 kHz (was one smooth hiss, 20 dB too bright up there) */
 static void trap_kit(track_t *t)
 {
     static const uint8_t P[8][5] = {                    /* PITCH PMOD DECAY NOISE COLOR */
-        {8, 76, 40, 2, 40}, {50, 14, 46, 110, 104}, {58, 0, 48, 127, 96}, {104, 0, 12, 120, 124},
+        {8, 76, 40, 2, 40}, {41, 14, 38, 114, 58}, {60, 0, 44, 127, 38}, {104, 0, 12, 120, 124},
         {104, 0, 54, 120, 120}, {96, 0, 104, 127, 116}, {74, 0, 10, 40, 110}, {68, 0, 40, 6, 64},
     };
     uint32_t l, i;
@@ -572,6 +574,8 @@ static void trap_kit(track_t *t)
         dx_lane_t *L = &dx_kit[l];
         if (l == DV_HATC || l == DV_HATO) L->mode = DX_KIT_DEF[l].mode;   /* (high-passed, as the factory's) */
         if (l == DV_TOM) L->mode = DX_MODE(DXW_METAL, DXF_HP, 0);          /* (a crash: metal, noise, long) */
+        if (l == DV_SNARE) L->mode = DX_MODE(DXW_SINE, DXF_HP, 0);
+        if (l == DV_CLAP) L->mode = DX_MODE(DXW_SINE, DXF_CLAP, 0);
         for (i = 0; i < DXP_N; i++) {
             int32_t v = (int32_t)P[l][i] + grr(-4, 4);
             if (gs.ts == TS_RAGE && l == DV_KICK && i == DXP_COLOR) v += 30;   /* (rage: a driven knock) */
@@ -579,6 +583,7 @@ static void trap_kit(track_t *t)
         }
     }
     dx_tone = 0;
+    dx_lay[DV_SNARE] = 0;                               /* (the 808's: no LAYER's clang, no FEEDBK's grit) */
     dx_snd[DV_TOM] = (uint8_t)((3u << 6) | 24u);        /* (the crash into the reverb) */
     t->p[P_E0] = 0;                                     /* MORPH (A and B are the same: no drift) */
     t->p[P_E2] = (int16_t)grr(84, 98);                  /* TONE */

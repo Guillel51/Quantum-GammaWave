@@ -397,6 +397,44 @@ int main(int argc, char **argv)
               "crossings 30-120 ms %u -> %u, crest %.2f -> %.2f", c0, c1, pk0 / rm0, pk4 / rm4);
     }
 
+    /* (1.0-GW) CLAP: the noise struck three times 8..10 ms apart (its envelope back to full twice in the first 20 ms,
+     * the BP's never), every hit its own spacing; the lane under full scale and it ends */
+    {
+        dx_lane_t keep = dx_kit[DV_CLAP];
+        static const uint8_t V[5] = {60, 0, 44, 127, 38};
+        uint32_t m, k, h, up[2] = {0, 0}, gaps = 0, pk = 0;
+        int ended;
+        static int32_t y[CTL];
+        for (m = 0; m < 2u; m++) {
+            dx_kit[DV_CLAP].mode = m ? DX_MODE(DXW_SINE, DXF_BP, 0) : DX_MODE(DXW_SINE, DXF_CLAP, 0);
+            memcpy(dx_kit[DV_CLAP].a, V, 5); memcpy(dx_kit[DV_CLAP].b, V, 5);
+            for (h = 0; h < 8u; h++) {                   /* (eight hits: the bursts on each, their spacing varied) */
+                dx_voice_t v;
+                int32_t en = 0;
+                memset(&v, 0, sizeof v);
+                v.rng = (int32_t)(0x2545F491u * (h + 1u));
+                dx_trigger(&v);
+                for (k = 0; k < 28u; k++) {              /* (28 blocks: ~20 ms) */
+                    dx_run(&dx_kit[DV_CLAP], &v, 0, 0, 0, 0, 0, 0, 0, y, CTL);
+                    if (k && v.en > en) up[m]++;
+                    en = v.en;
+                }
+                if (!m) gaps |= 1u << (v.gap - 11u);
+            }
+        }
+        {
+            track_t *t = kitx(0, 64);
+            dx_kit[DV_CLAP].mode = DX_MODE(DXW_SINE, DXF_CLAP, 0);
+            ended = !strike(t, DV_CLAP, FS * 3u / 2u);
+            for (i = 0; i < FS * 3u / 2u; i++)
+                pk = (uint32_t)abs(buf[i]) > pk ? (uint32_t)abs(buf[i]) : pk;
+        }
+        dx_kit[DV_CLAP] = keep;
+        check("CLAP (1.0-GW): three bursts a hit (BP: one), spacings varied, under full scale, it ends",
+              up[0] == 16u && up[1] == 0u && (gaps & (gaps - 1u)) && pk < 32767u && ended,
+              "re-strikes in 8 hits: CLAP %u, BP %u; spacings seen %X; peak %u", up[0], up[1], gaps, pk);
+    }
+
     /* 5b */
     {
         uint32_t kit;

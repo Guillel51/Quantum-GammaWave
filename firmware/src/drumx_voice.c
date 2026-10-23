@@ -10,7 +10,9 @@
  *   NOISE  the mix: 0 the oscillator only .. 127 the noise only
  *   COLOR  the oscillator's FM index (SINE: its drive) and the noise filter's cutoff (30 Hz .. 16 kHz)
  * The mode: the oscillator (SINE, FM at 1:1, METAL at 1:1.47, BELL at 1:2.76), the noise filter (LP, BP, HP), the
- * noise's envelope (as the oscillator's, or SNAP: a quarter of its tau); (JIANT 0.4, the mode's free bits 5..7) the
+ * noise's envelope (as the oscillator's, or SNAP: a quarter of its tau); (1.0-GW) the filter CLAP: the noise high-
+ * passed, its top tilted down, struck three times 8..10 ms apart (the hands never quite together, as the 808's), the
+ * first two gone in ~3 ms, the last its decay; (JIANT 0.4, the mode's free bits 5..7) the
  * pitch modulation, as Microtonic's: DECAY (the envelope above), LONG (its tau half the decay's, up to 250 ms: the
  * 808 boom), NOISE (a random pitch each block, scaled by the envelope: glitch, grit), SINE (a sine at 1/8 of the
  * pitch, scaled by the envelope: wobble, laser); and DRIVE (the oscillator x3 into a soft clip: dense kicks, fat toms).
@@ -19,7 +21,7 @@
  * that has rung out (-84 dB) stops computing (live 0) and writes zeros. Only 32-bit products. */
 enum { DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_RIM, DV_BELL, DV_NLANE };   /* the kit's lanes */
 enum { DXW_SINE, DXW_FM, DXW_METAL, DXW_BELL };
-enum { DXF_LP, DXF_BP, DXF_HP };
+enum { DXF_LP, DXF_BP, DXF_HP, DXF_CLAP };             /* (1.0-GW: CLAP, a hand clap's noise in bursts) */
 #define DX_MODE(w, f, snap) ((uint8_t)((w) | (f) << 2 | (snap) << 4))
 enum { DXM_DECAY, DXM_LONG, DXM_NOISE, DXM_SINE };       /* (JIANT 0.4) the pitch modulation: mode bits 5..6 */
 #define DX_DRIVE 0x80u                                   /* .. the oscillator driven: bit 7 */
@@ -39,6 +41,8 @@ typedef struct {                                         /* a hit */
     int32_t b1, b2;                                      /* (0.6.36) TONE's band-pass state */
     uint32_t ph4;                                        /* (0.6.49) LAYER's oscillator phase */
     uint8_t live, trig, choke;
+    int32_t cl;                                          /* (1.0-GW) CLAP: its noise's low-pass state */
+    uint8_t age, gap;                                    /* .. the blocks since the hit, its bursts' spacing */
 } dx_voice_t;
 
 /* the oscillator's modulator ratios (Q12), by wave */
@@ -169,16 +173,26 @@ static __attribute__((noinline)) void dx_run(const dx_lane_t *L, dx_voice_t *v, 
         v->ea = v->en = 1 << 30;
         v->ep = 32767;
         v->ph = v->ph2 = v->ph4 = 0;
-        v->ic1 = v->ic2 = 0;
+        v->ic1 = v->ic2 = v->cl = 0;
         v->b1 = v->b2 = 0;
         v->mo = 0;
         if (!v->rng)
             v->rng = 0x2545F491;
         v->inc = pitch_inc((uint32_t)clamp(p16 + depth, 0, 2047));
+        v->age = 0;
+        v->gap = (uint8_t)(11u + ((uint32_t)v->rng >> 30));   /* (CLAP: 11..14 blocks, 8..10 ms: no two alike) */
     }
     kb = v->choke ? dv_kb(1500u) : dv_kb(ta);            /* (a choked hit: gone in ~5 ms) */
     ea1 = mulq16(v->ea, kb);
     en1 = mulq16(v->en, v->choke ? kb : dv_kb(tn));
+    if (flt == DXF_CLAP && !v->choke && v->age < 2u * v->gap) {   /* (1.0-GW) CLAP: the first two bursts short, each
+                                                          * struck again at its end (the block's ramp its attack) */
+        en1 = mulq16(v->en, dv_kb(3000u));
+        if (v->age + 1u == v->gap || v->age + 1u == 2u * v->gap)
+            en1 = 1 << 30;
+    }
+    if (v->age < 255u)
+        v->age++;
     ep1 = (int32_t)(((uint32_t)v->ep * dv_kb(tp)) >> 16);
     {
         uint32_t pm = (L->mode >> 5) & 3u;
@@ -266,7 +280,7 @@ static __attribute__((noinline)) void dx_run(const dx_lane_t *L, dx_voice_t *v, 
             y[i] = 0;
     }
     if (ng) {                                            /* the noise through its filter */
-        int32_t ic1 = v->ic1, ic2 = v->ic2, rng = v->rng;
+        int32_t ic1 = v->ic1, ic2 = v->ic2, rng = v->rng, cl = v->cl;
         kd = flt == DXF_BP ? 2400 : 6000;                /* (BP a little resonant) */
         tsvf_coef_k(&c, (q[DXP_COLOR] + 14) << 8, kd);   /* (+ an octave of the table: the same Hz at half rate) */
 /* (one loop per filter: the choice is not made per sample) */
@@ -284,12 +298,17 @@ static __attribute__((noinline)) void dx_run(const dx_lane_t *L, dx_voice_t *v, 
             DX_NOISE(v2)
         else if (flt == DXF_BP)
             DX_NOISE(v1)
+        else if (flt == DXF_CLAP)                        /* (1.0-GW) CLAP: the HP's noise through a one-pole at
+                                                          * ~1.3 kHz (white noise rises 3 dB an octave; a clap's is
+                                                          * level from 1 to 8 kHz, cut below ~800 Hz: the 808's) */
+            DX_NOISE(cl += ((r - ((kd * v1) >> 12) - v2 - cl) * 1300) >> 12)
         else
             DX_NOISE(r - ((kd * v1) >> 12) - v2)
 #undef DX_NOISE
         v->ic1 = ic1;
         v->ic2 = ic2;
         v->rng = rng;
+        v->cl = cl;
     }
     if (DX_TONE_BP(dx_tone) && (L == &dx_kit[DV_HATC] || L == &dx_kit[DV_HATO] || L == &dx_kit[DV_RIM] ||
                                 L == &dx_kit[DV_BELL])) {   /* (0.6.36) TONE's BP on the metal sounds */
@@ -351,13 +370,12 @@ static const dx_lane_t DX_KIT_DEF[8] = DX_KIT_INIT;
 /* (0.6.49) the factory kit's LAYERs (FEEDBK 0): the snare, the hats and the bell (no note to them); the rest clean (CPU) */
 static const uint8_t DX_LAY_DEF[8] = DX_LAY_INIT;
 static dx_lane_t dx_kit[8] = DX_KIT_INIT;
-/* a stored kit as the voice takes it: values 0..127, the mode's fields in range (wave 0..3, filter 0..2, snap) */
+/* a stored kit as the voice takes it: values 0..127 (any mode: wave 0..3, filter 0..3 since 1.0-GW's CLAP, snap; JIANT
+ * 0.4's bits 5..7 the pitch modulation, DRIVE) */
 static int dx_kit_ok(const dx_lane_t *k)
 {
     uint32_t l, i;
     for (l = 0; l < 8u; l++) {
-        if (((k[l].mode >> 2) & 3u) > DXF_HP)          /* (JIANT 0.4: bits 5..7 the pitch modulation, DRIVE) */
-            return 0;
         for (i = 0; i < DXP_N; i++)
             if (k[l].a[i] > 127u || k[l].b[i] > 127u)
                 return 0;

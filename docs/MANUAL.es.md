@@ -467,8 +467,11 @@ DRUM-X es un kit sintetizado de ocho sonidos, **BD SD CP CH OH TM RS CB**, gener
   - **SOUND 1–4**, un sonido cada una: la KNOB 1 es siempre **SOUND** (cuál; tocar una tecla también lo elige).
     - **SOUND**: SIDE (A / B), PITCH, PMOD (cuánto cae la afinación).
     - **SOUND 2**: DECAY, NOISE, COLOR, del lado elegido en SOUND (la KNOB 1 lo muestra: "SD B").
-    - **SOUND 3**: **MODE** (onda SIN / FM / MTL / BEL, filtro de ruido LP / BP / HP, "+" para snap), **PM.TYPE** (cómo
-      se mueve la afinación: DECAY, LONG, NOISE, SINE), **DRIVE** (ON / OFF).
+    - **SOUND 3**: **MODE** (onda SIN / FM / MTL / BEL, filtro de ruido LP / BP / HP / CLP, "+" para snap), **PM.TYPE**
+      (cómo se mueve la afinación: DECAY, LONG, NOISE, SINE), **DRIVE** (ON / OFF). **CLP** es una palmada: el ruido
+      golpea tres veces, unos 9 ms entre cada golpe, como la palmada de la 808, con un nivel parejo de 1 a 8 kHz y poco
+      por debajo de 800 Hz. COLOR mueve la banda; DECAY, la cola tras el tercer golpe. La usa la palmada de los géneros
+      trap.
     - **SOUND 4**: **LAYER** (OFF, 1–15): un segundo oscilador en un intervalo desafinado, modulado en frecuencia por el
       sonido, más cuanto más alto: de un filo metálico a un golpe sin nota, así el sonido se funde en el ritmo y no
       molesta a la armonía (el kit de fábrica lo tiene en redoblante, hi-hats y cowbell); **FEEDBK** (OFF, 1–15): el de

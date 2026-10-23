@@ -167,7 +167,18 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
 
-### Unreleased — the next build (branch `claude/gw1-set-loops`)
+### Unreleased — the next build (branch `claude/gw1-trap-drums`)
+
+**The trap snare and clap, remade on the 808's** — reported: in RAGE TRAP the snare part was weak, and another
+snare-like sound was bad too. Measured against 808 one-shots, the snare was an FM body at ~240 Hz under band-passed
+noise, twice as long as an 808's and fizzing above 6 kHz. The clap was one smooth hiss, about 20 dB too bright above 3 kHz, with
+none of a clap's bursts. **The trap genres' snare is now an 808 snare**: a sine at ~170 Hz under high-passed noise,
+down 20 dB in ~45 ms, its mids scooped. **The clap is a real clap**: DRUM-X gets a fourth noise filter, **CLP**
+(EDIT > SOUND 3 > MODE), whose noise strikes three times 8–10 ms apart, level from 1 to 8 kHz, with little below
+800 Hz. Measured, both match the 808 samples to within a few dB per octave. Saved projects keep their kits: only new
+trap songs get the new sounds, and any lane can use CLP.
+
+### Published as `v1.0-GW-fbf5d6e` — the SET plays whole phrases (PR #13)
 
 **The SET plays whole phrases** — reported: in a SET, the first take did not play completely. REC counted the take
 already playing from the moment REC was pressed (part of its loop), and played back from its top the entry cut the

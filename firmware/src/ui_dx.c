@@ -21,17 +21,17 @@ static void dx_follow(void)
     }
 }
 
-/* the mode as one value 0..23: wave x 6 + filter x 2 + SNAP, and back */
-static uint32_t dx_mode_ix(uint32_t m) { return (m & 3u) * 6u + ((m >> 2) & 3u) * 2u + ((m >> 4) & 1u); }
-static uint8_t dx_mode_of(uint32_t ix) { return (uint8_t)(ix / 6u | (ix % 6u / 2u) << 2 | (ix & 1u) << 4); }
-static void dx_mode_name(char *b, uint32_t m)        /* "FM BP+" (b: 8 bytes) */
+/* the mode as one value 0..31: wave x 8 + filter x 2 + SNAP, and back (1.0-GW: was 0..23, CLAP the fourth filter) */
+static uint32_t dx_mode_ix(uint32_t m) { return (m & 3u) * 8u + ((m >> 2) & 3u) * 2u + ((m >> 4) & 1u); }
+static uint8_t dx_mode_of(uint32_t ix) { return (uint8_t)(((ix >> 3) & 3u) | (ix % 8u / 2u) << 2 | (ix & 1u) << 4); }
+static void dx_mode_name(char *b, uint32_t m)        /* "FM BP+" (b: 12 bytes; "SIN CLP+" the longest) */
 {
-    static const char *const W[4] = {"SIN", "FM", "MTL", "BEL"}, *const F[3] = {"LP", "BP", "HP"};
-    str_cpy(b, W[m & 3u], 8);
-    str_cpy(b + str_len(b), " ", 8 - str_len(b));
-    str_cpy(b + str_len(b), F[((m >> 2) & 3u) % 3u], 8 - str_len(b));
+    static const char *const W[4] = {"SIN", "FM", "MTL", "BEL"}, *const F[4] = {"LP", "BP", "HP", "CLP"};
+    str_cpy(b, W[m & 3u], 12);
+    str_cpy(b + str_len(b), " ", 12 - str_len(b));
+    str_cpy(b + str_len(b), F[(m >> 2) & 3u], 12 - str_len(b));
     if ((m >> 4) & 1u)
-        str_cpy(b + str_len(b), "+", 8 - str_len(b));
+        str_cpy(b + str_len(b), "+", 12 - str_len(b));
 }
 
 /* (JIANT 0.6.54) the pages, the whole kit first, then a sound: KIT (EDIT 1), KIT 2 (EDIT 2), KIT 3 (TONE's BP and FEEDBK,
@@ -77,7 +77,7 @@ static void dx_knob(const page_t *pg, uint32_t k, int32_t s)
     if (pn == 3u) {                                     /* SOUND 3: MODE, the pitch modulation's type, DRIVE */
         if (k == 1u)
             L->mode = (uint8_t)((L->mode & 0xE0u) |
-                                (dx_mode_of((uint32_t)clamp((int32_t)dx_mode_ix(L->mode) + (s > 0 ? 1 : -1), 0, 23)) & 0x1Fu));
+                                (dx_mode_of((uint32_t)clamp((int32_t)dx_mode_ix(L->mode) + (s > 0 ? 1 : -1), 0, 31)) & 0x1Fu));
         else if (k == 2u)
             L->mode = (uint8_t)((L->mode & ~0x60u) | (uint32_t)clamp((int32_t)((L->mode >> 5) & 3u) + (s > 0 ? 1 : -1), 0, 3) << 5);
         else
@@ -166,7 +166,7 @@ static void dx_cards(const page_t *pg)
     if (pn == 3u) {                                     /* SOUND 3 */
         static const char *const PM[4] = {"DECAY", "LONG", "NOISE", "SINE"};
         dx_mode_name(val, L->mode);
-        draw_column(1, "MODE", val, "", VAL(1u), (int32_t)dx_mode_ix(L->mode) * 1000 / 23, ICON_WAVE);
+        draw_column(1, "MODE", val, "", VAL(1u), (int32_t)dx_mode_ix(L->mode) * 1000 / 31, ICON_WAVE);
         draw_column(2, "PM.TYPE", PM[(L->mode >> 5) & 3u], "", VAL(2u), (int32_t)((L->mode >> 5) & 3u) * 333, ICON_ENV);
         draw_column(3, "DRIVE", L->mode & DX_DRIVE ? "ON" : "OFF", "", L->mode & DX_DRIVE ? VAL(3u) : T_DIM,
                     L->mode & DX_DRIVE ? 1000 : 0, ICON_DRIVE);
