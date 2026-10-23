@@ -820,8 +820,9 @@ tira una semilla nueva. La pantalla se abre siempre en RANDOM.
 
 #### TAKES — NOW y la cinta, el compositor (GW-1)
 
-**PRESETS** abre la cinta de **TAKES** en **NOW**, y el giro que la abre ya avanza: primero NOW, después las tomas
-1 … n (**TAKE 2 OF 3** en el título), en ronda. Cada tarjeta muestra:
+**PRESETS** abre la cinta de **TAKES** en **NOW** (el giro que la abre solo la abre: nada queda marcado, la música sigue
+igual); girando más: primero NOW, después las tomas 1 … n (**TAKE 2 OF 3** en el título), en ronda. Cada tarjeta
+muestra:
 
 - la de **NOW**: **NOW** y el género; a la derecha **TAKE 2** cuando NOW es esa toma tal como se guardó, si no
   **EDITED**; debajo, **la toma de la que salió y lo último que cambió** (**FROM TAKE 1: ENERGY**; un tema nuevo:

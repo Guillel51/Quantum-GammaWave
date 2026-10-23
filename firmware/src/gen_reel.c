@@ -317,9 +317,13 @@ static void gen_reel_turn(int32_t s)
     reel_ask = 0;
     gl_code_ms = 0;
     if (gp.view == 2u) { set_knob(0, s); return; }      /* (the SET page: its entries, never the reel behind it) */
-    if (!gp.view) {                                     /* (the settings: the reel on NOW, the turn a step too) */
+    if (!gp.view) {                                     /* (the settings: the reel on NOW; the turn no step: a take
+                                                         * stepped to while playing would play, the music changed by a
+                                                         * look) */
         gp.view = 1;
         reel_on_now = 1;
+        ui.force = 1;
+        return;
     }
     if (reel_n) {                                       /* (NOW) NOW, then the takes 1 .. n, round */
         uint32_t n = reel_n + 1u, pos = reel_on_now ? 0u : reel_cur + 1u;

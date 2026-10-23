@@ -776,8 +776,8 @@ seed. The screen opens on RANDOM each time.
 
 #### TAKES — NOW and the reel, the songwriter (GW-1)
 
-**PRESETS** opens the **TAKES** reel on **NOW**, and the turn that opens it already steps: NOW first, then takes 1 … n
-(**TAKE 2 OF 3** in the title), round. Each card shows:
+**PRESETS** opens the **TAKES** reel on **NOW** (the turn that opens it only opens it: nothing is cued, the music stays);
+turned on: NOW first, then takes 1 … n (**TAKE 2 OF 3** in the title), round. Each card shows:
 
 - **NOW**'s card: **NOW** and the genre; on the right **TAKE 2** when NOW is that take as saved, else **EDITED**; under
   it **the take it came from and what changed last** (**FROM TAKE 1: ENERGY**; a new piece: **A NEW PIECE**);

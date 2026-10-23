@@ -6947,8 +6947,9 @@ static int test_gen_reel(void)
     for (k = 1; k < 3u; k++) { press(B_OCTUP); frames(4); sv(); pr[k] = dice_print(); }
     ok &= reel_n == 3u && reel_play == 2u && reel_on_now && pr[0] != pr[1] && pr[1] != pr[2];
     ok &= reel[2].set.seed == gp.seed && reel[2].bpm == song.g[G_BPM] && reel[2].nl == (uint8_t)trk_live;
-    turn(EN_PRESET, -1); frames(32);                    /* (opens it on NOW, the turn a step: round to the newest) */
-    ok &= gp.view == 1u && !reel_on_now && reel_cur == 2u;
+    turn(EN_PRESET, -1); frames(32);                    /* (opens it on NOW, no step: nothing cued) */
+    ok &= gp.view == 1u && reel_on_now && reel_want < 0;
+    turn(EN_PRESET, -1); ok &= !reel_on_now && reel_cur == 2u;   /* (round: the newest before NOW) */
     turn(EN_PRESET, -1); ok &= reel_cur == 1u;
     turn(EN_PRESET, -1); ok &= reel_cur == 0u;
     turn(EN_PRESET, -1); ok &= reel_on_now;            /* (NOW, before the first) */

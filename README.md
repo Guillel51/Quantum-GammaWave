@@ -175,6 +175,10 @@ phrase short; a take launched and left for part of a loop did the same. **An ent
 take** (the nearest, one loop at least; a SONG take keeps its bars as played). The entries' bars can still be set by
 hand on the SET page (KNOB 3).
 
+**Opening the reel no longer changes the music** — PRESETS turned on the settings pages opened the reel and stepped
+from NOW to take 1 at once; while playing, that take was cued and replaced the music a bar later, just for looking. The
+turn that opens the reel now only opens it, on NOW; the next turn moves.
+
 ### Published as `v1.0-GW-d420b39` — NOW and takes you choose, the GEN screen without flashing (PR #11)
 
 **GEN: NOW, and takes you choose** — reported: every ALGORITHM turn, KEY and ENERGY turn, OCT+ press and take key made
