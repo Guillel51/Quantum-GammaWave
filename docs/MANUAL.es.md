@@ -820,8 +820,9 @@ tira una semilla nueva. La pantalla se abre siempre en RANDOM.
 
 #### TAKES — NOW y la cinta, el compositor (GW-1)
 
-**PRESETS** abre la cinta de **TAKES** en **NOW**, y el giro que la abre ya avanza: primero NOW, después las tomas
-1 … n (**TAKE 2 OF 3** en el título), en ronda. Cada tarjeta muestra:
+**PRESETS** abre la cinta de **TAKES** en **NOW** (el giro que la abre solo la abre: nada queda marcado, la música sigue
+igual); girando más: primero NOW, después las tomas 1 … n (**TAKE 2 OF 3** en el título), en ronda. Cada tarjeta
+muestra:
 
 - la de **NOW**: **NOW** y el género; a la derecha **TAKE 2** cuando NOW es esa toma tal como se guardó, si no
   **EDITED**; debajo, **la toma de la que salió y lo último que cambió** (**FROM TAKE 1: ENERGY**; un tema nuevo:
@@ -900,7 +901,8 @@ una parte, a veces un sonido, los adornos o la mezcla, nunca algo bloqueado. Fun
 abierta; SAVE guarda un momento que te guste.
 
 **El SET**: tomas en fila, cada una sus compases. **REC** sonando graba uno: primero la toma que suena, después cada
-toma que tocás (OCT− + una tecla blanca, o PRESETS), cada una con los compases que sonó; REC otra vez lo termina.
+toma que tocás (OCT− + una tecla blanca, o PRESETS), cada una con los compases que sonó, redondeados a loops enteros de
+su toma (así cada entrada toca frases enteras); REC otra vez lo termina.
 **SELECT** en la cinta abre la **página del SET**: las tomas como bloques tan largos como sus compases, con el cabezal
 avanzando; **KNOB 1** (o PRESETS) la entrada, **KNOB 2** su toma, **KNOB 3** sus compases, **OCT+** agrega la toma que
 suena después de la entrada, **EDIT** la borra, **PLAY** toca el SET desde la entrada (cada toma preparada un compás

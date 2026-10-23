@@ -6947,8 +6947,9 @@ static int test_gen_reel(void)
     for (k = 1; k < 3u; k++) { press(B_OCTUP); frames(4); sv(); pr[k] = dice_print(); }
     ok &= reel_n == 3u && reel_play == 2u && reel_on_now && pr[0] != pr[1] && pr[1] != pr[2];
     ok &= reel[2].set.seed == gp.seed && reel[2].bpm == song.g[G_BPM] && reel[2].nl == (uint8_t)trk_live;
-    turn(EN_PRESET, -1); frames(32);                    /* (opens it on NOW, the turn a step: round to the newest) */
-    ok &= gp.view == 1u && !reel_on_now && reel_cur == 2u;
+    turn(EN_PRESET, -1); frames(32);                    /* (opens it on NOW, no step: nothing cued) */
+    ok &= gp.view == 1u && reel_on_now && reel_want < 0;
+    turn(EN_PRESET, -1); ok &= !reel_on_now && reel_cur == 2u;   /* (round: the newest before NOW) */
     turn(EN_PRESET, -1); ok &= reel_cur == 1u;
     turn(EN_PRESET, -1); ok &= reel_cur == 0u;
     turn(EN_PRESET, -1); ok &= reel_on_now;            /* (NOW, before the first) */
@@ -7684,6 +7685,38 @@ static int test_gen_screen(void)
     memset(gp.var, 0, sizeof gp.var); memset(gp.svar, 0, sizeof gp.svar);
     gp.tempo = gp.key = 0; gp.energy = 50;
     reel_n = 0; reel_cur = 0; reel_play = 0xFF; set_n = 0;
+    ui_power_on();
+    return bad;
+}
+
+/* (SET loops) reported: the SET's first take did not play completely. REC counted the take playing from the moment REC
+ * was pressed (part of its loop), and played back from its top the entry cut its phrase short. An entry recorded is now
+ * whole loops of its take (the nearest, one at least) */
+static int test_gen_set_loops(void)
+{
+    int bad = 0, ok;
+    uint32_t l, i;
+    ui_power_on();
+    reel_n = 0; reel_cur = 0; reel_play = 0xFF; reel_want = -1; set_n = 0;
+    gen_enter();
+    gp.genre = 3; gp.seed = 202; gp.form = 0;          /* (a loop) */
+    press(B_OCTUP); frames(4);
+    to_reel(); frames(32);
+    sv();
+    turn(EN_ALGO, 1); frames(640); sv();               /* (take 2) */
+    l = now_loop_bars();
+    press(B_PLAY); play_ms(chain_bar() * 1500u / FS);  /* (a bar and a half in: REC part-way through the loop) */
+    press(B_REC); frame();
+    play_ms(chain_bar() * 1000u / FS);
+    launch(0);                                          /* (take 1, after about a bar) */
+    play_ms(chain_bar() * 1000u / FS * (l + 1u));
+    press(B_REC); frame();
+    ok = l >= 1u && set_n == 2u;
+    for (i = 0; i < set_n; i++) ok &= set_e[i].bars >= l && set_e[i].bars % l == 0u;
+    printf("     (a loop of %u bars: entries %u, %u bars)\n", l, set_e[0].bars, set_n > 1u ? set_e[1].bars : 0u);
+    bad += check("GEN SET: REC part-way through a loop, a take launched after a bar: each entry whole loops of its take", ok);
+    transport_req = 2; play_ms(100);
+    set_n = 0; reel_n = 0; reel_cur = 0; reel_play = 0xFF;
     ui_power_on();
     return bad;
 }
@@ -9949,6 +9982,7 @@ int main(void)
     bad += test_gen_ux();
     bad += test_gen_screen();
     bad += test_gen_now();
+    bad += test_gen_set_loops();
     bad += test_midi_song_pc();
     bad += test_chord();
     bad += test_trans_seq();

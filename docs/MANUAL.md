@@ -776,8 +776,8 @@ seed. The screen opens on RANDOM each time.
 
 #### TAKES — NOW and the reel, the songwriter (GW-1)
 
-**PRESETS** opens the **TAKES** reel on **NOW**, and the turn that opens it already steps: NOW first, then takes 1 … n
-(**TAKE 2 OF 3** in the title), round. Each card shows:
+**PRESETS** opens the **TAKES** reel on **NOW** (the turn that opens it only opens it: nothing is cued, the music stays);
+turned on: NOW first, then takes 1 … n (**TAKE 2 OF 3** in the title), round. Each card shows:
 
 - **NOW**'s card: **NOW** and the genre; on the right **TAKE 2** when NOW is that take as saved, else **EDITED**; under
   it **the take it came from and what changed last** (**FROM TAKE 1: ENERGY**; a new piece: **A NEW PIECE**);
@@ -852,7 +852,8 @@ and then a sound, the ornaments or the mix, never a locked one. It runs while th
 a moment you like.
 
 **The SET**: takes in a row, each for its bars. **REC** while playing records one: the take playing first, then every
-take you play (OCT− + a white key, or PRESETS), each with the bars it played; REC again ends it. **SELECT** on the reel
+take you play (OCT− + a white key, or PRESETS), each with the bars it played, rounded to whole loops of its take (so
+each entry plays whole phrases); REC again ends it. **SELECT** on the reel
 opens the **SET page**: the takes as blocks as long as their bars, the playhead moving; **KNOB 1** (or PRESETS) the
 entry, **KNOB 2** its take, **KNOB 3** its bars, **OCT+** adds the take playing after the entry, **EDIT** deletes it,
 **PLAY** plays the SET from the entry (each take queued a bar before its turn, round), PLAY again stops. While it

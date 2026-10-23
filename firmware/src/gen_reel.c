@@ -317,9 +317,13 @@ static void gen_reel_turn(int32_t s)
     reel_ask = 0;
     gl_code_ms = 0;
     if (gp.view == 2u) { set_knob(0, s); return; }      /* (the SET page: its entries, never the reel behind it) */
-    if (!gp.view) {                                     /* (the settings: the reel on NOW, the turn a step too) */
+    if (!gp.view) {                                     /* (the settings: the reel on NOW; the turn no step: a take
+                                                         * stepped to while playing would play, the music changed by a
+                                                         * look) */
         gp.view = 1;
         reel_on_now = 1;
+        ui.force = 1;
+        return;
     }
     if (reel_n) {                                       /* (NOW) NOW, then the takes 1 .. n, round */
         uint32_t n = reel_n + 1u, pos = reel_on_now ? 0u : reel_cur + 1u;
@@ -1154,13 +1158,38 @@ static void now_orig(void)
 /* ---------------------------------------------------------------------------------------- (v2) the SET --- */
 /* REC on the reel: playing, a SET recorded (a new one: the take playing first, then every take that becomes the music,
  * each with the bars it played; REC again ends it); stopped, the SET page */
+/* (SET loops) a loop's length in bars (its longest live track; a song's: 1, its bars as played) */
+static uint8_t set_loopb[SET_N];                        /* (an entry recorded: its take's loop) */
+static uint32_t now_loop_bars(void)
+{
+    uint32_t k, bars = 1, bar = 16u * div_samples(2), n = trk_live < NTRK ? trk_live : NTRK;
+    if (live.mode || !bar) return 1u;
+    for (k = 0; k < n; k++) {
+        uint32_t len = (uint32_t)clamp(trk[k].p[P_SLEN], 1, NSTEP);
+        uint32_t b = (len * div_samples((uint32_t)trk[k].p[P_SDIV]) + bar - 1u) / bar;
+        bars = b > bars ? b : bars;
+    }
+    return bars > 16u ? 16u : bars;
+}
+/* an entry recorded: its bars whole loops of its take, the nearest (one at least): played back from its top it plays
+ * whole phrases (the take playing when REC was pressed was counted from there: its loop cut short) */
+static void set_whole(uint32_t i)
+{
+    uint32_t l = set_loopb[i] ? set_loopb[i] : 1u, b = set_e[i].bars;
+    b = (b + l / 2u) / l * l;
+    if (!b) b = l;
+    if (b > 255u) b = 255u / l * l;
+    set_e[i].bars = (uint8_t)b;
+}
 static void set_note_take(void)                         /* a take became the music: the SET's next entry */
 {
     if (!set_rec || reel_play >= reel_n) return;
     if (set_n && set_e[set_n - 1u].id == reel[reel_play].id) return;
     if (set_n >= SET_N) { set_rec = 0; gen_pop("SET FULL", "32 ENTRIES"); return; }
+    if (set_n) set_whole(set_n - 1u);                   /* (the one before: done) */
     set_e[set_n].id = reel[reel_play].id;
     set_e[set_n].bars = 0;
+    set_loopb[set_n] = (uint8_t)now_loop_bars();
     set_n++;
 }
 static void gen_reel_rec(void)
@@ -1171,6 +1200,7 @@ static void gen_reel_rec(void)
         if (set_rec) { set_n = 0; set_note_take(); gen_pop("SET", "RECORDING"); }
         else {
             if (set_n && !set_e[set_n - 1u].bars) set_n--;   /* (a take that never played a bar) */
+            else if (set_n) set_whole(set_n - 1u);
             fmt_int(b, set_n);
             str_cpy(b + str_len(b), set_n == 1u ? " TAKE" : " TAKES", 8);
             gen_pop("SET RECORDED (SELECT: ITS PAGE)", set_n ? b : "EMPTY");
