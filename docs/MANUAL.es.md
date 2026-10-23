@@ -900,7 +900,8 @@ una parte, a veces un sonido, los adornos o la mezcla, nunca algo bloqueado. Fun
 abierta; SAVE guarda un momento que te guste.
 
 **El SET**: tomas en fila, cada una sus compases. **REC** sonando graba uno: primero la toma que suena, después cada
-toma que tocás (OCT− + una tecla blanca, o PRESETS), cada una con los compases que sonó; REC otra vez lo termina.
+toma que tocás (OCT− + una tecla blanca, o PRESETS), cada una con los compases que sonó, redondeados a loops enteros de
+su toma (así cada entrada toca frases enteras); REC otra vez lo termina.
 **SELECT** en la cinta abre la **página del SET**: las tomas como bloques tan largos como sus compases, con el cabezal
 avanzando; **KNOB 1** (o PRESETS) la entrada, **KNOB 2** su toma, **KNOB 3** sus compases, **OCT+** agrega la toma que
 suena después de la entrada, **EDIT** la borra, **PLAY** toca el SET desde la entrada (cada toma preparada un compás

@@ -852,7 +852,8 @@ and then a sound, the ornaments or the mix, never a locked one. It runs while th
 a moment you like.
 
 **The SET**: takes in a row, each for its bars. **REC** while playing records one: the take playing first, then every
-take you play (OCT− + a white key, or PRESETS), each with the bars it played; REC again ends it. **SELECT** on the reel
+take you play (OCT− + a white key, or PRESETS), each with the bars it played, rounded to whole loops of its take (so
+each entry plays whole phrases); REC again ends it. **SELECT** on the reel
 opens the **SET page**: the takes as blocks as long as their bars, the playhead moving; **KNOB 1** (or PRESETS) the
 entry, **KNOB 2** its take, **KNOB 3** its bars, **OCT+** adds the take playing after the entry, **EDIT** deletes it,
 **PLAY** plays the SET from the entry (each take queued a bar before its turn, round), PLAY again stops. While it

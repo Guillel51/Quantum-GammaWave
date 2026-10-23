@@ -167,7 +167,15 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
 
-### Unreleased — the next build (branch `claude/gw1-gen-fix`)
+### Unreleased — the next build (branch `claude/gw1-set-loops`)
+
+**The SET plays whole phrases** — reported: in a SET, the first take did not play completely. REC counted the take
+already playing from the moment REC was pressed (part of its loop), and played back from its top the entry cut the
+phrase short; a take launched and left for part of a loop did the same. **An entry recorded is now whole loops of its
+take** (the nearest, one loop at least; a SONG take keeps its bars as played). The entries' bars can still be set by
+hand on the SET page (KNOB 3).
+
+### Published as `v1.0-GW-d420b39` — NOW and takes you choose, the GEN screen without flashing (PR #11)
 
 **GEN: NOW, and takes you choose** — reported: every ALGORITHM turn, KEY and ENERGY turn, OCT+ press and take key made
 a new take, and the reel filled with near-copies (the oldest falling off past 32); the pop-up covered the take's card.
