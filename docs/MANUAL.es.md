@@ -1,11 +1,11 @@
 # POCKET GAMMAWAVE (GW-1) — Manual de Usuario
 
-**Firmware v1.0-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.1-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
 
 > *English version: [MANUAL.md](MANUAL.md).*
 
 Este manual es para músicos que acaban de instalar Pocket GammaWave (GW-1) y quieren saber cómo tocarlo, cómo armar temas con él
-y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.0-GW: cada
+y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.1-GW: cada
 botón, perilla y mensaje aparece nombrado exactamente como lo muestra el equipo.
 
 Si vas a leer un solo capítulo, leé [12. Guardar y cargar](#12-guardar-y-cargar). Lo que GW-1 agrega al firmware
