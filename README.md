@@ -22,7 +22,7 @@
 
 ![Pocket GammaWave (GW-1) Hardware Screens](docs/gw1-screens.png)
 
-*Real 240×240 RGB565 frames from Pocket GammaWave (`v1.0-GW`). Top row: **HOME** (filter curve over an audio-reactive spectrum, the Hearth sun with its orbiting moon, tracks T1–T6), **EDIT 1** of ANALOG (two live scopes over the Wraith ribbon) and **EDIT 1** of the VOICE engine (the vowel ribbon OO · OH · AH · EH · EE). Bottom row: the **SLICER** page (drawn as four tape lanes), **FX > MASTER** (CLIP / PUNCH / DUCK and the FX rack) and the **DRUM** kit page (8 pads, A/B morph).*
+*Real 240×240 RGB565 frames from Pocket GammaWave (`v1.0-GW` and `v1.1-GW`). Top row: **HOME** (filter curve over an audio-reactive spectrum, the Hearth sun with its orbiting moon, tracks T1–T6), **EDIT 1** of ANALOG (two live scopes over the Wraith ribbon) and **EDIT 1** of the VOICE engine (the vowel ribbon OO · OH · AH · EH · EE). Bottom row: the **SLICER** page (drawn as four tape lanes), **FX > MASTER** (CLIP / PUNCH / DUCK and the FX rack) and the **DRUM** kit page (8 pads, A/B morph).*
 
 ### The song generator and its TAKES reel
 
@@ -38,7 +38,7 @@
 
 ---
 
-## What's in Pocket GammaWave (`v1.0-GW`)
+## What's in Pocket GammaWave (`v1.1-GW`)
 
 - **GammaWave HUD** on the FM-1's 240×240 screen, in the GAMMA palette (default), plus THERMAL and WRAITH palettes:
   - **HOME**: the selected track's filter response curve drawn over a 28-bar audio-reactive spectrum display, the Hearth sun with an orbiting moon, and the T1–T6 track strip.
@@ -143,7 +143,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.0-GW build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.1-GW build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -167,7 +167,29 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
 
-### Unreleased — the next build (branch `claude/gw1-set-loops`)
+### `v1.1-GW` — the songwriter (2026-10-24)
+
+Everything below from `v1.0-GW-e3a5a33` up, as one release (package `felucca-1.1-GW.fwsc` on the GitHub release; the
+web installer already ran each build as it was published):
+
+- **Trap family in the generator**: TRAP, TRAP ATL, UK DRILL, DARK TRAP and RAGE TRAP get a generator of their own,
+  with producer flavours, ten 808 recipes ported from GammaWave and WRAITH, and ANALOG's new TUBE and FOLD waves for
+  dirty 808s.
+- **GEN, more pages**: SONG and FEEL; SELECT picks the genre, ALGORITHM the seed; takes while playing.
+- **TAKES: the songwriter**: every piece goes on a reel. Takes come from the one playing (re-instrument, new drums,
+  new melody …). A section can have its own parts; JAM makes takes by itself; the SET records an arrangement. The reel
+  and the SET survive power-off, and share codes pass a take on.
+- **NOW and takes you choose**: turning knobs and pressing keys edits the music playing (NOW). A new take is made only
+  when you save it (SAVE, or OCT+ held for its code). There is an undo one step back and an undo to the original. OCT+
+  held shows the full key map.
+- **The GEN screen**: one control model on every page, no conflicts between the take layer and the keys. Big pop-ups
+  say what changed, and the screen no longer flashes or cycles on every change.
+- **The SET plays whole phrases**: each entry is recorded as whole loops of its take, and opening the reel no longer
+  changes the music.
+
+The sections below give the detail of each published build.
+
+### Published as `v1.0-GW-fbf5d6e` — the SET plays whole phrases (PR #13)
 
 **The SET plays whole phrases** — reported: in a SET, the first take did not play completely. REC counted the take
 already playing from the moment REC was pressed (part of its loop), and played back from its top the entry cut the
