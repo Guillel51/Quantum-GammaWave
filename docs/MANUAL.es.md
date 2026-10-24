@@ -478,7 +478,8 @@ DRUM-X es un kit sintetizado de ocho sonidos, **BD SD CP CH OH TM RS CB**, gener
         - **DECAY**: cuánto se sostiene (0–63 ms).
         - **NOISE**: cuerpo frente a bordonera.
         - **COLOR**: la banda de la bordonera (600 Hz – 4,8 kHz).
-      - "+" (SNAP) corta la cola, como una puerta. CLAP golpea su bordonera tres veces, a unos 10 ms.
+      - "+" (SNAP) corta la cola, como una puerta. CLAP golpea su bordonera tres veces; en CLAP, **PMOD** fija la
+        separación (de ~4 ms, apretada, a ~12 ms, abierta) en lugar del arranque del cuerpo.
       - La perilla 3 pasa a ser **CLIP** (OFF, 1–15: cuánto empuja el clipper). PM.TYPE, LAYER y FEEDBK no se
         aplican (se muestran como "-").
       - Los géneros trap los usan para su caja y su palmada.

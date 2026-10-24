@@ -561,16 +561,15 @@ static void trap_pad_sound(track_t *t, uint32_t verse)
 /* the kit: a trap kit on top of the generic one (gen_kit's): the hats high-passed, bright and short, the kick a short
  * knock (the 808 is the boom), the snare and the clap snappy, the TOM lane a crash, the rim, the cowbell; the track's
  * filter open, the hats loud. (1.0-GW) The snare and the clap DRUM-X's SNARE and CLAP models, fitted to producer
- * one-shots: three snares (a clipped crack at ~330 Hz; a long held one, gated; a tight one at ~465 Hz with its octave
- * below), one clap (three strikes ~10 ms apart); dry, no LAYER. Their values are the fit's at the kit's TONE, DECAY, NOISE
+ * one-shots: two snares (a clipped crack at ~330 Hz; a tight one at ~465 Hz with its octave below), two claps (its strikes
+ * ~10 ms apart, as the clap the snares were fitted with; or ~5 ms: tight, no flam) (three strikes ~10 ms apart); dry, no LAYER. Their values are the fit's at the kit's TONE, DECAY, NOISE
  * and TUNE at rest: the kit's set below, they are taken back off (the sound as fitted). No more draws than before (a
  * piece's code makes the same piece): the snare's character and their small spreads from the draws the loop makes */
-static const uint8_t TRAP_SN[3][7] = {                  /* PITCH PMOD DECAY NOISE COLOR SNAP CLIP */
+static const uint8_t TRAP_SN[2][7] = {                  /* PITCH PMOD DECAY NOISE COLOR SNAP CLIP */
     {54, 59, 36, 100, 62, 0, 15},                       /* a clipped crack, ~330 Hz */
-    {54, 60, 86, 104, 59, 1, 6},                        /* held long, gated */
     {61, 19, 46, 75, 104, 1, 3},                        /* tight, ~465 Hz, its octave below */
 };
-static const uint8_t TRAP_CP[7] = {52, 2, 25, 113, 50, 0, 3};
+static const uint8_t TRAP_CP[2][7] = {{52, 92, 25, 113, 50, 0, 3}, {52, 12, 25, 113, 50, 0, 3}};   /* (PMOD: the spread) */
 static void trap_kit(track_t *t)
 {
     static const uint8_t P[8][5] = {                    /* PITCH PMOD DECAY NOISE COLOR */
@@ -608,7 +607,7 @@ static void trap_kit(track_t *t)
     t->p[P_LN4] = 108; t->p[P_LN5] = 94; t->p[P_LN6] = 104; t->p[P_LN7] = 118;
     for (l = 0; l < 2u; l++) {                          /* (1.0-GW) the snare and the clap: SNARE, CLAP */
         dx_lane_t *L = &dx_kit[DV_SNARE + l];
-        const uint8_t *c = l ? TRAP_CP : TRAP_SN[gs.ts == TS_RAGE ? (j[0][DXP_PMOD] + 4) % 2 : 1 + (j[0][DXP_PMOD] + 4) % 2];
+        const uint8_t *c = l ? TRAP_CP[(j[1][DXP_PMOD] + 4) % 2] : TRAP_SN[(j[0][DXP_PMOD] + 4) % 2];
         int32_t off[DXP_N] = {-(t->p[P_E1] - 64) / 4, 0, -(t->p[P_E3] - 64), -(t->p[P_E4] - 64), -(t->p[P_E2] - 64)};
         for (i = 0; i < DXP_N; i++)                     /* (a spread of +-2: PITCH a semitone and a half) */
             L->a[i] = L->b[i] = (uint8_t)clamp((int32_t)c[i] + off[i] + j[l][i] / 2, 0, 127);

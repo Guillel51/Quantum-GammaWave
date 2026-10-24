@@ -149,12 +149,13 @@ static uint8_t dx_mdl[8];
 /* (1.0-GW) SNARE / CLAP, at full rate: a trap snare as producers make one (a tuned drum, a stick's click and the
  * snares' rattle, held and pushed into a clipper), fitted to producer one-shots. The patch's values as the sound's:
  *   PITCH  the body (a sine; an octave below it, an eighth of it), MIDI 24..119 as CLASSIC's
- *   PMOD   how far the body starts above it: 0..12 semitones, falling in ~4 ms
+ *   PMOD   how far the body starts above it: 0..12 semitones, falling in ~4 ms (CLAP: its strikes' spread instead,
+ *          ~3.6 .. 11.6 ms apart: tight .. wide; its body as it is)
  *   DECAY  the hold: 0..63 ms at full level, then the tails (SNAP: ~3 ms, gated; else a third / two thirds of the hold)
  *   NOISE  the body against the noise: 0 the body only .. 127 the noise only
  *   COLOR  the noise's band, 600 Hz .. 4.8 kHz (a second an octave up, a third of it), the top rolled off at 3.5x it
- * CLAP: the noise struck three times ~10.5 ms apart (each hit its own spacing), the first two short (2.5 ms), the last
- * held, then its tail. CLIP (dx_mdl): the sum x1 .. x8.5 into a cubic clipper at twice the rate (flat at full scale).
+ * CLAP: the noise struck three times, PMOD apart (each hit its own spacing, up to 2 ms more), the first two short
+ * (2.5 ms), the last held, then its tail. CLIP (dx_mdl): the sum x1 .. x8.5 into a cubic clipper at twice the rate (flat at full scale).
  * Envelopes per block (Q30), ramped inside it; the rest per sample. */
 static __attribute__((noinline)) void dx_run_sn(const dx_lane_t *L, dx_voice_t *v, int32_t morph, int32_t tune16,
                                                 int32_t dofs, int32_t cofs, int32_t nofs, uint32_t mdl, int32_t *y, uint32_t n)
@@ -180,7 +181,7 @@ static __attribute__((noinline)) void dx_run_sn(const dx_lane_t *L, dx_voice_t *
     q[DXP_NOISE] = clamp(q[DXP_NOISE] + nofs, 0, 127);
     hold = ((uint32_t)q[DXP_DECAY] * 689u) / 1000u;
     p16 = 384 + q[DXP_PITCH] * 12 + tune16;
-    depth = q[DXP_PMOD] * 192 / 127;
+    depth = clap ? 0 : q[DXP_PMOD] * 192 / 127;
     cf = 15514 + q[DXP_COLOR] * 85;
     ct = clamp(cf + 6487, 26493, 31026);
     if (v->trig) {                                       /* the hit: from the top */
@@ -194,7 +195,8 @@ static __attribute__((noinline)) void dx_run_sn(const dx_lane_t *L, dx_voice_t *
         if (!rng)
             rng = 0x2545F491;
         v->age = 0;
-        v->gap = (uint8_t)(13u + ((uint32_t)rng >> 30));   /* (CLAP: 13..16 blocks, 9.4..11.6 ms: no two alike) */
+        v->gap = (uint8_t)(5u + (uint32_t)q[DXP_PMOD] * 11u / 127u + ((uint32_t)rng >> 30));   /* (CLAP: 5..19 blocks, PMOD
+                                                          * and 0..3 more: no two alike) */
         v->inc = pitch_inc((uint32_t)clamp(p16 + depth, 0, 2047));
     }
     /* the envelopes: held, then their tails; CLAP's noise struck again after 1 and 2 gaps (the first two 2.5 ms, the

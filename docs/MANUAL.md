@@ -462,7 +462,8 @@ DRUM-X is a synthesized kit of eight sounds, **BD SD CP CH OH TM RS CB**, genera
         - **DECAY**: how long it holds (0–63 ms).
         - **NOISE**: body against rattle.
         - **COLOR**: the rattle's band (600 Hz – 4.8 kHz).
-      - "+" (SNAP) cuts the tail short, gated. CLAP strikes its rattle three times, ~10 ms apart.
+      - "+" (SNAP) cuts the tail short, gated. CLAP strikes its rattle three times; on CLAP, **PMOD** sets how far
+        apart (from ~4 ms, tight, to ~12 ms, wide) instead of the body's start.
       - KNOB 3 becomes **CLIP** (OFF, 1–15: how hard it hits the clipper). PM.TYPE, LAYER and FEEDBK don't apply (shown as "-").
       - The trap genres use them for their snare and clap.
     - **SOUND 4**: **LAYER** (OFF, 1–15): a second oscillator at an out-of-tune interval, frequency modulated by the

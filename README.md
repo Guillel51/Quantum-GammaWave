@@ -208,11 +208,12 @@ computed at full rate:
 - held at full level, then their tails (SNAP: gated);
 - pushed into a clipper at twice the rate, **CLIP** 0–15 on SOUND 3's KNOB 3.
 
-CLAP strikes its rattle three times, about 10 ms apart. Fitted to the user's reference one-shots, they come within
+CLAP strikes its rattle three times, PMOD apart (~4–12 ms). Fitted to the user's reference one-shots, they come within
 a few dB per octave of them, at their pitch.
 
-**In the trap genres** the snare is one of three characters (a clipped crack, a long held and gated one, a tight one
-at ~465 Hz with its octave below), and the clap is CLAP, both dry. In RAGE TRAP 0161 the snare and clap now sit
+**In the trap genres** the snare is one of two characters (a clipped crack at ~330 Hz, a tight one at ~465 Hz with
+its octave below). The clap is CLAP with its strikes either ~10 ms apart or tight (~5 ms, no flam against the snare;
+on CLAP, PMOD sets the spread). Both are dry. In RAGE TRAP 0161 the snare and clap now sit
 ~5 dB above the rest of the mix at each hit (was ~0.6 dB under it). Pieces keep their codes: the generator draws
 nothing new.
 
