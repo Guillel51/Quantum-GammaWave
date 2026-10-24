@@ -397,6 +397,85 @@ int main(int argc, char **argv)
               "crossings 30-120 ms %u -> %u, crest %.2f -> %.2f", c0, c1, pk0 / rm0, pk4 / rm4);
     }
 
+    /* (1.0-GW) SNARE / CLAP: the trap kit's three snares and its clap as the models play them: each sounds, stays under
+     * full scale, ends, no DC; the body at PITCH (the tight snare's ~465 Hz, measured in its first 15 ms); CLAP's noise
+     * struck again twice a hit (its envelope back to full), SNARE's never; CLIP denser (the crest factor down) */
+    {
+        static const uint8_t SN[4][7] = {{54, 59, 36, 100, 62, 0, 15}, {54, 60, 86, 104, 59, 1, 6}, {61, 19, 46, 75, 104, 1, 3},
+                                          {52, 2, 25, 113, 50, 0, 3}};
+        dx_lane_t keep = dx_kit[DV_SNARE];
+        uint8_t mk = dx_mdl[DV_SNARE];
+        uint32_t m, k, up[2] = {0, 0}, h, cr = 0;
+        int okm = 1;
+        double hz = 0, crest[2];
+        static int32_t y[CTL];
+        for (m = 0; m < 4u; m++) {
+            track_t *t = kitx(0, 64);
+            int32_t pk = 0;
+            double dc = 0, e = 0;
+            int ended;
+            memcpy(dx_kit[DV_SNARE].a, SN[m], 5); memcpy(dx_kit[DV_SNARE].b, SN[m], 5);
+            dx_kit[DV_SNARE].mode = (uint8_t)DX_MODE(DXW_SINE, DXF_BP, SN[m][5]);
+            dx_mdl[DV_SNARE] = (uint8_t)((m == 3u ? DXX_CLAP : DXX_SNARE) | SN[m][6] << 2);
+            t->p[P_E2] = t->p[P_E3] = t->p[P_E4] = 64;  /* (the kit at rest: the values as fitted) */
+            strike(t, DV_SNARE, FS / 2u);
+            for (i = 0; i < FS / 2u; i++) {
+                pk = abs(buf[i]) > pk ? abs(buf[i]) : pk;
+                dc += buf[i];
+                e += (double)buf[i] * buf[i];
+            }
+            ended = !strike(t, DV_SNARE, MAXN);
+            okm &= pk > 3000 && pk < 32000 && fabs(dc / (FS / 2u)) < pk * 0.02 && ended;
+            (void)e;
+        }
+        {                                                /* (the tight snare's body alone (NOISE 0): its pitch, the
+                                                          * zero crossings 3..15 ms) */
+            track_t *t = kitx(0, 64);
+            memcpy(dx_kit[DV_SNARE].a, SN[2], 5); memcpy(dx_kit[DV_SNARE].b, SN[2], 5);
+            dx_kit[DV_SNARE].a[DXP_NOISE] = dx_kit[DV_SNARE].b[DXP_NOISE] = 0;
+            dx_mdl[DV_SNARE] = (uint8_t)(DXX_SNARE | SN[2][6] << 2);
+            t->p[P_E2] = t->p[P_E3] = t->p[P_E4] = 64;
+            strike(t, DV_SNARE, FS / 10u);
+            hz = crossings(FS * 3u / 1000u, FS * 15u / 1000u) / 0.012;
+        }
+        for (m = 0; m < 2u; m++) {                       /* CLAP's strikes, the voice alone */
+            memcpy(dx_kit[DV_SNARE].a, SN[3], 5); memcpy(dx_kit[DV_SNARE].b, SN[3], 5);
+            dx_mdl[DV_SNARE] = (uint8_t)(m ? DXX_SNARE : DXX_CLAP);
+            for (h = 0; h < 8u; h++) {
+                dx_voice_t v;
+                int32_t en = 0;
+                memset(&v, 0, sizeof v);
+                v.rng = (int32_t)(0x2545F491u * (h + 1u));
+                dx_trigger(&v);
+                for (k = 0; k < 40u; k++) {
+                    dx_run_sn(&dx_kit[DV_SNARE], &v, 0, 0, 0, 0, 0, dx_mdl[DV_SNARE], y, CTL);
+                    if (k && v.en > en) up[m]++;
+                    en = v.en;
+                }
+            }
+        }
+        for (m = 0; m < 2u; m++) {                       /* CLIP 0 and 15: the crest factor over the hold */
+            dx_voice_t v;
+            double s2 = 0, p = 0;
+            memcpy(dx_kit[DV_SNARE].a, SN[0], 5); memcpy(dx_kit[DV_SNARE].b, SN[0], 5);
+            dx_mdl[DV_SNARE] = (uint8_t)(DXX_SNARE | (m ? 15u : 0u) << 2);
+            memset(&v, 0, sizeof v);
+            dx_trigger(&v);
+            for (k = 0; k < 30u; k++) {
+                dx_run_sn(&dx_kit[DV_SNARE], &v, 0, 0, 0, 0, 0, dx_mdl[DV_SNARE], y, CTL);
+                for (i = 0; i < CTL; i++) { s2 += (double)y[i] * y[i]; p = fabs((double)y[i]) > p ? fabs((double)y[i]) : p; cr++; }
+            }
+            crest[m] = p / sqrt(s2 / cr);
+            cr = 0;
+        }
+        dx_kit[DV_SNARE] = keep;
+        dx_mdl[DV_SNARE] = mk;
+        check("SNARE / CLAP (1.0-GW): sound, under full scale, end; the body at PITCH; CLAP struck thrice, SNARE once; CLIP denser",
+              okm && hz > 400 && hz < 540 && up[0] == 16u && up[1] == 0u && crest[1] < crest[0] * 0.8,
+              "tight snare's body %.0f Hz; re-strikes in 8 hits CLAP %u, SNARE %u; crest CLIP 0 %.2f, 15 %.2f", hz, up[0], up[1],
+              crest[0], crest[1]);
+    }
+
     /* 5b */
     {
         uint32_t kit;

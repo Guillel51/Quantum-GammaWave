@@ -469,6 +469,20 @@ DRUM-X es un kit sintetizado de ocho sonidos, **BD SD CP CH OH TM RS CB**, gener
     - **SOUND 2**: DECAY, NOISE, COLOR, del lado elegido en SOUND (la KNOB 1 lo muestra: "SD B").
     - **SOUND 3**: **MODE** (onda SIN / FM / MTL / BEL, filtro de ruido LP / BP / HP, "+" para snap), **PM.TYPE** (cómo
       se mueve la afinación: DECAY, LONG, NOISE, SINE), **DRIVE** (ON / OFF).
+      - Los últimos cuatro pasos de MODE no son sonidos CLASSIC sino **SNARE**, **SNARE+**, **CLAP** y **CLAP+**: una
+        caja y una palmada de trap producidas, calculadas a frecuencia completa y ajustadas a one-shots de productores.
+      - Cada una es un cuerpo afinado, un clic de baqueta y dos bandas de bordonera, sostenidos a nivel máximo y
+        luego empujados contra un clipper. Ahí, los valores del sonido son:
+        - **PITCH**: la nota del cuerpo.
+        - **PMOD**: cuánto más arriba empieza el cuerpo (0–12 semitonos, desaparece en ~4 ms).
+        - **DECAY**: cuánto se sostiene (0–63 ms).
+        - **NOISE**: cuerpo frente a bordonera.
+        - **COLOR**: la banda de la bordonera (600 Hz – 4,8 kHz).
+      - "+" (SNAP) corta la cola, como una puerta. CLAP golpea su bordonera tres veces; en CLAP, **PMOD** fija la
+        separación (de ~4 ms, apretada, a ~12 ms, abierta) en lugar del arranque del cuerpo.
+      - La perilla 3 pasa a ser **CLIP** (OFF, 1–15: cuánto empuja el clipper). PM.TYPE, LAYER y FEEDBK no se
+        aplican (se muestran como "-").
+      - Los géneros trap los usan para su caja y su palmada.
     - **SOUND 4**: **LAYER** (OFF, 1–15): un segundo oscilador en un intervalo desafinado, modulado en frecuencia por el
       sonido, más cuanto más alto: de un filo metálico a un golpe sin nota, así el sonido se funde en el ritmo y no
       molesta a la armonía (el kit de fábrica lo tiene en redoblante, hi-hats y cowbell); **FEEDBK** (OFF, 1–15): el de

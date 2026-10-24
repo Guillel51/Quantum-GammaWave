@@ -1015,6 +1015,7 @@ static void gen_kit(track_t *t)
         }
     }
     memcpy(dx_lay, DX_LAY_DEF, sizeof dx_lay);
+    memset(dx_mdl, 0, sizeof dx_mdl);                   /* (1.0-GW: CLASSIC; the trap family's own, trap_kit) */
     {   /* (0.6.94) the snare a snare (it came out tonal): mostly noise, shorter, less of the pitch sweep, the noise's
          * band a little brighter, and its own FEEDBK on top of the LAYER */
         dx_lane_t *S = &dx_kit[DV_SNARE];

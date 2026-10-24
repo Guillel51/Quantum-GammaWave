@@ -128,6 +128,7 @@ typedef struct {
     uint8_t dx_tone;                           /* (0.6.36) the kit's TONE (drumx_voice.c: BP, FEEDBK), its byte 7 */
     uint8_t dx_snd[8];                         /* (0.6.48) its sounds' SENDs (eng_drum.c): FUNC's 'D' 'S' block, 0 before */
     uint8_t dx_lay[8];                         /* (0.6.49) its sounds' LAYER, FEEDBK (drumx_voice.c): 'D' 'L', 0 before */
+    uint8_t dx_mdl[8];                         /* (1.0-GW) its sounds' MODEL, CLIP (drumx_voice.c): 'D' 'X', 0 before */
     uint8_t fugue[NTRK][3][2];                 /* (0.6.52) SEQ > FUGUE's heads (fugue.c): RATE | DIR << 4, INTERVAL (int8);
                                                 * FUNC's 'F' 'G' block, none before */
     uint8_t pfx_lane[32], pfx_ltgt;            /* the punch-in lane (pfx.c), in FUN9's spare bytes (PROJ_PFX_OFF) */
@@ -550,6 +551,7 @@ static void proj_fm6_init(project_t *q)
     q->dx_tone = 0;
     memset(q->dx_snd, 0, sizeof q->dx_snd);
     memcpy(q->dx_lay, DX_LAY_DEF, sizeof q->dx_lay);   /* (0.6.49: a new project: the factory kit's) */
+    memset(q->dx_mdl, 0, sizeof q->dx_mdl);            /* (1.0-GW: every sound CLASSIC) */
     memset(q->fugue, 0, sizeof q->fugue);              /* (0.6.52: no FUGUE) */
     q->sum = proj_sum(q);
 }
@@ -769,6 +771,8 @@ static uint32_t proj_packed_size(const project_t *q)
         if (q->dx_snd[i]) { n += 2u + sizeof q->dx_snd; break; }
     for (i = 0; i < sizeof q->dx_lay; i++)              /* (0.6.49) the LAYERs' */
         if (q->dx_lay[i]) { n += 2u + sizeof q->dx_lay; break; }
+    for (i = 0; i < sizeof q->dx_mdl; i++)              /* (1.0-GW) the MODELs' */
+        if (q->dx_mdl[i]) { n += 2u + sizeof q->dx_mdl; break; }
     if (proj_fg_used(q))                                /* (0.6.52) FUGUE's */
         n += 2u + sizeof q->fugue;
     for (t = 0; t < NTRK; t++) {
@@ -868,6 +872,14 @@ static int proj_pack(project_store_t *out, const project_t *q)
     if (q->g[G_DTYPE] || q->g[G_DPING]) {               /* (0.6.90) the delay's TYPE, PING-PONG */
         b[pos++] = 'D'; b[pos++] = 'T';
         b[pos++] = (uint8_t)clamp(q->g[G_DTYPE], 0, 1); b[pos++] = (uint8_t)clamp(q->g[G_DPING], 0, 1);
+    }
+    for (i = 0; i < sizeof q->dx_mdl && !q->dx_mdl[i]; i++)
+        ;
+    if (i < sizeof q->dx_mdl) {                         /* (1.0-GW) the kit's MODELs and CLIPs, when one is set (last:
+                                                         * a firmware before it reads the rest as it did) */
+        b[pos++] = 'D'; b[pos++] = 'X';
+        memcpy(b + pos, q->dx_mdl, sizeof q->dx_mdl);
+        pos += sizeof q->dx_mdl;
     }
     memcpy(b + PROJC_PFX_OFF, q->pfx_lane, sizeof q->pfx_lane);
     b[PROJC_PFX_OFF + sizeof q->pfx_lane] = q->pfx_ltgt > 2u ? 0u : q->pfx_ltgt;
@@ -1075,6 +1087,15 @@ static int proj_unpack_c(project_t *q, const uint8_t *b)
     if (pos + 4u <= room && b[pos] == 'D' && b[pos + 1u] == 'T') {   /* (0.6.90) its TYPE, PING-PONG (else ANALOG, OFF) */
         q->g[G_DTYPE] = (int16_t)(b[pos + 2u] & 1u);
         q->g[G_DPING] = (int16_t)(b[pos + 3u] & 1u);
+        pos += 4u;
+    }
+    memset(q->dx_mdl, 0, sizeof q->dx_mdl);
+    if (pos + 2u + sizeof q->dx_mdl <= room && b[pos] == 'D' && b[pos + 1u] == 'X') {   /* (1.0-GW) its MODELs */
+        uint32_t k;
+        memcpy(q->dx_mdl, b + pos + 2u, sizeof q->dx_mdl);
+        for (k = 0; k < sizeof q->dx_mdl; k++)          /* (in range: CLASSIC, SNARE, CLAP; CLIP 0..15) */
+            if (DXX_MODEL(q->dx_mdl[k]) > DXX_CLAP || q->dx_mdl[k] >> 6) q->dx_mdl[k] = 0;
+        pos += 2u + sizeof q->dx_mdl;
     }
     proj_new_tracks(q, nt);                             /* (a FUNC of fewer tracks: the rest at power-on) */
     for (t = nt; t < NTRK; t++)
@@ -1215,6 +1236,7 @@ static int proj_unpack(project_t *q, const uint8_t *b, uint32_t st)
     }
     memset(q->dx_snd, 0, sizeof q->dx_snd);            /* (0.6.48: none before FUNC's block) */
     memset(q->dx_lay, 0, sizeof q->dx_lay);            /* (0.6.49: none: the kit as it sounded) */
+    memset(q->dx_mdl, 0, sizeof q->dx_mdl);            /* (1.0-GW) */
     memset(q->fugue, 0, sizeof q->fugue);              /* (0.6.52) */
     proj_new_tracks(q, PROJ_LT);                       /* (JIANT 0.6: tracks 5, 6 their power-on sounds) */
     {
@@ -1348,6 +1370,7 @@ static void project_capture(project_t *p)
     p->dx_tone = dx_tone;
     memcpy(p->dx_snd, dx_snd, sizeof p->dx_snd);        /* (0.6.48) */
     memcpy(p->dx_lay, dx_lay, sizeof p->dx_lay);        /* (0.6.49) */
+    memcpy(p->dx_mdl, dx_mdl, sizeof p->dx_mdl);        /* (1.0-GW) */
     {                                                   /* (0.6.52) FUGUE */
         uint32_t a, h;
         for (a = 0; a < NTRK; a++)
@@ -1503,6 +1526,7 @@ static void sound_put(project_t *p, uint32_t k)
         dx_tone = p->dx_tone;
         memcpy(dx_snd, p->dx_snd, sizeof dx_snd);
         memcpy(dx_lay, p->dx_lay, sizeof dx_lay);
+        memcpy(dx_mdl, p->dx_mdl, sizeof dx_mdl);
     }
     fm1_irq_on();
     if (t == TSEL)
@@ -1546,6 +1570,7 @@ static int project_restore_runtime(const project_t *input)
     dx_tone = p->dx_tone;                               /* (0.6.36: its TONE) */
     memcpy(dx_snd, p->dx_snd, sizeof dx_snd);           /* (0.6.48: its SENDs) */
     memcpy(dx_lay, p->dx_lay, sizeof dx_lay);           /* (0.6.49: its LAYERs) */
+    memcpy(dx_mdl, p->dx_mdl, sizeof dx_mdl);           /* (1.0-GW: its MODELs) */
     fg_load(p);                                         /* (0.6.52: its FUGUE) */
     memcpy(pfx_lane, p->pfx_lane, sizeof pfx_lane);    /* (the section's punch-in lane) */
     pfx_ltgt = p->pfx_ltgt > 2u ? 0u : p->pfx_ltgt;
@@ -1634,6 +1659,7 @@ static void system_init(void)
     dx_tone = 0;
     memset(dx_snd, 0, sizeof dx_snd);
     memcpy(dx_lay, DX_LAY_DEF, sizeof dx_lay);
+    memset(dx_mdl, 0, sizeof dx_mdl);
     memset(fg_set, 0, sizeof fg_set);                   /* (0.6.52) no FUGUE */
     dx_mute_set(0);
     fm6_init();

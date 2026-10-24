@@ -2180,6 +2180,7 @@ static void ui_input_frame(void)
                         memset(dx_mot, 0, sizeof dx_mot);   /* (0.5.1: X-MOD off) */
                         memset(dx_snd, 0, sizeof dx_snd);   /* (0.6.48: no SEND) */
                         memcpy(dx_lay, DX_LAY_DEF, sizeof dx_lay);   /* (0.6.49: the factory LAYERs) */
+                        memset(dx_mdl, 0, sizeof dx_mdl);   /* (1.0-GW: every sound CLASSIC) */
                     }
                     ui_message("SOUND INIT");
                 }
