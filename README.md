@@ -186,8 +186,38 @@ web installer already ran each build as it was published):
   say what changed, and the screen no longer flashes or cycles on every change.
 - **The SET plays whole phrases**: each entry is recorded as whole loops of its take, and opening the reel no longer
   changes the music.
+- **A real trap snare and clap**: DRUM-X gets two new sound models, **SNARE** and **CLAP** (EDIT > SOUND 3 > MODE),
+  built at full rate and fitted to producer one-shots. The trap genres use them, and the snare finally cuts through
+  the 808.
 
 The sections below give the detail of each published build.
+
+### The trap snare and clap (PR #14)
+
+**Reported:** in RAGE TRAP the snare part was weak; then, with an 808-shaped snare, "not much audible"; and the clap
+was a bad snare-like hiss.
+
+**What it was.** DRUM-X's CLASSIC sounds are one oscillator and one filtered noise, computed at half rate with a
+smooth exponential envelope. Producer snares are something else: hard-clipped, held at full level for 20–60 ms,
+mid-heavy (1–4 kHz), with a tuned body at ~330–470 Hz. In the mix the old snare sat about 5 dB under the 808 below
+500 Hz, and every hit was flattened to the same peak by the drum bus.
+
+**The fix.** Each DRUM-X sound now has a **MODEL**: CLASSIC as before, or the new **SNARE** and **CLAP**. They are
+computed at full rate:
+- a tuned body (with its octave below), a stick click, and two bands of rattle;
+- held at full level, then their tails (SNAP: gated);
+- pushed into a clipper at twice the rate, **CLIP** 0–15 on SOUND 3's KNOB 3.
+
+CLAP strikes its rattle three times, about 10 ms apart. Fitted to the user's reference one-shots, they come within
+a few dB per octave of them, at their pitch.
+
+**In the trap genres** the snare is one of three characters (a clipped crack, a long held and gated one, a tight one
+at ~465 Hz with its octave below), and the clap is CLAP, both dry. In RAGE TRAP 0161 the snare and clap now sit
+~5 dB above the rest of the mix at each hit (was ~0.6 dB under it). Pieces keep their codes: the generator draws
+nothing new.
+
+**Compatibility:** saved projects keep their kits; a project with a SNARE or CLAP sound stores it in a new FUNC block
+('D' 'X'), which earlier firmware ignores (it plays those sounds as CLASSIC).
 
 ### Published as `v1.0-GW-fbf5d6e` — the SET plays whole phrases (PR #13)
 
