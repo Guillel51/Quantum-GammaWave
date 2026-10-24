@@ -21,17 +21,37 @@ static void dx_follow(void)
     }
 }
 
-/* the mode as one value 0..31: wave x 8 + filter x 2 + SNAP, and back (1.0-GW: was 0..23, CLAP the fourth filter) */
-static uint32_t dx_mode_ix(uint32_t m) { return (m & 3u) * 8u + ((m >> 2) & 3u) * 2u + ((m >> 4) & 1u); }
-static uint8_t dx_mode_of(uint32_t ix) { return (uint8_t)(((ix >> 3) & 3u) | (ix % 8u / 2u) << 2 | (ix & 1u) << 4); }
-static void dx_mode_name(char *b, uint32_t m)        /* "FM BP+" (b: 12 bytes; "SIN CLP+" the longest) */
+/* the mode as one value 0..23: wave x 6 + filter x 2 + SNAP, and back */
+static uint32_t dx_mode_ix(uint32_t m) { return (m & 3u) * 6u + ((m >> 2) & 3u) * 2u + ((m >> 4) & 1u); }
+static uint8_t dx_mode_of(uint32_t ix) { return (uint8_t)(ix / 6u | (ix % 6u / 2u) << 2 | (ix & 1u) << 4); }
+/* (1.0-GW) MODE on SOUND 3 as one value 0..27: CLASSIC's 24, then SNARE, SNARE+, CLAP, CLAP+ (the MODEL, dx_mdl;
+ * "+": SNAP, gated tails); and back (a CLASSIC mode keeps the sound's wave and filter, the MODEL its CLIP) */
+#define DX_NMODE 28
+static uint32_t dx_ui_mode_ix(uint32_t l)
 {
-    static const char *const W[4] = {"SIN", "FM", "MTL", "BEL"}, *const F[4] = {"LP", "BP", "HP", "CLP"};
-    str_cpy(b, W[m & 3u], 12);
-    str_cpy(b + str_len(b), " ", 12 - str_len(b));
-    str_cpy(b + str_len(b), F[(m >> 2) & 3u], 12 - str_len(b));
+    uint32_t md = DXX_MODEL(dx_mdl[l & 7u]);
+    return md ? 24u + (md - 1u) * 2u + ((dx_kit[l & 7u].mode >> 4) & 1u) : dx_mode_ix(dx_kit[l & 7u].mode);
+}
+static void dx_ui_mode_set(uint32_t l, uint32_t ix)
+{
+    dx_lane_t *L = &dx_kit[l & 7u];
+    uint8_t *x = &dx_mdl[l & 7u];
+    if (ix >= 24u) {
+        *x = (uint8_t)((*x & ~3u) | (1u + (ix - 24u) / 2u));
+        L->mode = (uint8_t)((L->mode & ~0x10u) | (ix & 1u) << 4);
+    } else {
+        *x = (uint8_t)(*x & ~3u);
+        L->mode = (uint8_t)((L->mode & 0xE0u) | (dx_mode_of(ix) & 0x1Fu));
+    }
+}
+static void dx_mode_name(char *b, uint32_t m)        /* "FM BP+" (b: 8 bytes) */
+{
+    static const char *const W[4] = {"SIN", "FM", "MTL", "BEL"}, *const F[3] = {"LP", "BP", "HP"};
+    str_cpy(b, W[m & 3u], 8);
+    str_cpy(b + str_len(b), " ", 8 - str_len(b));
+    str_cpy(b + str_len(b), F[((m >> 2) & 3u) % 3u], 8 - str_len(b));
     if ((m >> 4) & 1u)
-        str_cpy(b + str_len(b), "+", 12 - str_len(b));
+        str_cpy(b + str_len(b), "+", 8 - str_len(b));
 }
 
 /* (JIANT 0.6.54) the pages, the whole kit first, then a sound: KIT (EDIT 1), KIT 2 (EDIT 2), KIT 3 (TONE's BP and FEEDBK,
@@ -75,10 +95,13 @@ static void dx_knob(const page_t *pg, uint32_t k, int32_t s)
         return;
     }
     if (pn == 3u) {                                     /* SOUND 3: MODE, the pitch modulation's type, DRIVE */
+        uint8_t *x = &dx_mdl[dx_ui_lane & 7u];
         if (k == 1u)
-            L->mode = (uint8_t)((L->mode & 0xE0u) |
-                                (dx_mode_of((uint32_t)clamp((int32_t)dx_mode_ix(L->mode) + (s > 0 ? 1 : -1), 0, 31)) & 0x1Fu));
-        else if (k == 2u)
+            dx_ui_mode_set(dx_ui_lane, (uint32_t)clamp((int32_t)dx_ui_mode_ix(dx_ui_lane) + (s > 0 ? 1 : -1), 0, DX_NMODE - 1));
+        else if (DXX_MODEL(*x)) {                       /* (1.0-GW) SNARE / CLAP: KNOB 3 CLIP (no PM.TYPE: KNOB 2 rests) */
+            if (k == 3u)
+                *x = (uint8_t)((*x & 3u) | (uint32_t)clamp((int32_t)DXX_CLIP(*x) + (s > 0 ? 1 : -1), 0, 15) << 2);
+        } else if (k == 2u)
             L->mode = (uint8_t)((L->mode & ~0x60u) | (uint32_t)clamp((int32_t)((L->mode >> 5) & 3u) + (s > 0 ? 1 : -1), 0, 3) << 5);
         else
             L->mode = (uint8_t)(s > 0 ? L->mode | DX_DRIVE : L->mode & ~DX_DRIVE);
@@ -151,10 +174,11 @@ static void dx_cards(const page_t *pg)
     if (pn == 8u) {                                     /* SOUND 4 */
         uint32_t ly = dx_lay[dx_ui_lane & 7u], la = DX_LAY_L(ly), fb = DX_LAY_FB(ly), sn = dx_snd[dx_ui_lane & 7u];
         int32_t ix = dx_send_ix(sn);
+        uint32_t md = DXX_MODEL(dx_mdl[dx_ui_lane & 7u]);   /* (1.0-GW: SNARE / CLAP have neither) */
         fmt_int(val, (int32_t)la);
-        draw_column(1, "LAYER", la ? val : "OFF", "", la ? VAL(1u) : T_DIM, (int32_t)la * 1000 / 15, ICON_WAVE);
+        draw_column(1, "LAYER", md ? "-" : la ? val : "OFF", "", la && !md ? VAL(1u) : T_DIM, (int32_t)la * 1000 / 15, ICON_WAVE);
         fmt_int(val, (int32_t)fb);
-        draw_column(2, "FEEDBK", fb ? val : "OFF", "", fb ? VAL(2u) : T_DIM, (int32_t)fb * 1000 / 15, ICON_DRIVE);
+        draw_column(2, "FEEDBK", md ? "-" : fb ? val : "OFF", "", fb && !md ? VAL(2u) : T_DIM, (int32_t)fb * 1000 / 15, ICON_DRIVE);
         {
             char un[8];
             fmt_int(un, ix ? ((ix - 1) % 16 + 1) * 100 / 16 : 0);
@@ -164,9 +188,19 @@ static void dx_cards(const page_t *pg)
         return;
     }
     if (pn == 3u) {                                     /* SOUND 3 */
-        static const char *const PM[4] = {"DECAY", "LONG", "NOISE", "SINE"};
-        dx_mode_name(val, L->mode);
-        draw_column(1, "MODE", val, "", VAL(1u), (int32_t)dx_mode_ix(L->mode) * 1000 / 31, ICON_WAVE);
+        static const char *const PM[4] = {"DECAY", "LONG", "NOISE", "SINE"}, *const MD[4] = {"SNARE", "SNARE+", "CLAP", "CLAP+"};
+        uint32_t ix = dx_ui_mode_ix(dx_ui_lane), md = DXX_MODEL(dx_mdl[dx_ui_lane & 7u]), cl = DXX_CLIP(dx_mdl[dx_ui_lane & 7u]);
+        if (md)
+            str_cpy(val, MD[ix - 24u], sizeof val);
+        else
+            dx_mode_name(val, L->mode);
+        draw_column(1, "MODE", val, "", VAL(1u), (int32_t)ix * 1000 / (DX_NMODE - 1), ICON_WAVE);
+        if (md) {                                       /* (1.0-GW) SNARE / CLAP: CLIP on KNOB 3 */
+            fmt_int(val, (int32_t)cl);
+            draw_column(2, "PM.TYPE", "-", "", T_DIM, 0, ICON_ENV);
+            draw_column(3, "CLIP", cl ? val : "OFF", "", cl ? VAL(3u) : T_DIM, (int32_t)cl * 1000 / 15, ICON_DRIVE);
+            return;
+        }
         draw_column(2, "PM.TYPE", PM[(L->mode >> 5) & 3u], "", VAL(2u), (int32_t)((L->mode >> 5) & 3u) * 333, ICON_ENV);
         draw_column(3, "DRIVE", L->mode & DX_DRIVE ? "ON" : "OFF", "", L->mode & DX_DRIVE ? VAL(3u) : T_DIM,
                     L->mode & DX_DRIVE ? 1000 : 0, ICON_DRIVE);
@@ -194,8 +228,8 @@ static uint32_t dx_sig(void)
     uint32_t h = (uint32_t)dx_ui_lane * 31u + dx_ui_side * 977u + L->mode * 131u, i;
     h ^= (uint32_t)dx_mot[0] << 24 ^ (uint32_t)dx_mot[1] << 16 ^ (uint32_t)dx_mot[2] << 8 ^ dx_mot[3];   /* (X-MOD) */
     h = (h ^ dx_tone) * 2654435761u;                    /* (TONE) */
-    for (i = 0; i < DV_NLANE; i++)                      /* (0.6.48) the SENDs, (0.6.49) the LAYERs */
-        h = (h ^ dx_snd[i] ^ (uint32_t)dx_lay[i] << 8) * 16777619u;
+    for (i = 0; i < DV_NLANE; i++)                      /* (0.6.48) the SENDs, (0.6.49) the LAYERs, (1.0-GW) MODELs */
+        h = (h ^ dx_snd[i] ^ (uint32_t)dx_lay[i] << 8 ^ (uint32_t)dx_mdl[i] << 16) * 16777619u;
     for (i = 0; i < DXP_N; i++)
         h = (h ^ (uint32_t)L->a[i] << 8 ^ L->b[i]) * 16777619u;
     return h;

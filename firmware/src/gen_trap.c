@@ -560,22 +560,34 @@ static void trap_pad_sound(track_t *t, uint32_t verse)
 }
 /* the kit: a trap kit on top of the generic one (gen_kit's): the hats high-passed, bright and short, the kick a short
  * knock (the 808 is the boom), the snare and the clap snappy, the TOM lane a crash, the rim, the cowbell; the track's
- * filter open, the hats loud. (1.0-GW) The snare and the clap the 808's, measured against its samples: the snare a
- * sine at ~170 Hz under high-passed noise, -20 dB in ~45 ms (was FM, ~240 Hz, twice as long, fizzing above 6 kHz);
- * the clap CLAP's three bursts, level from 1 to 8 kHz (was one smooth hiss, 20 dB too bright up there) */
+ * filter open, the hats loud. (1.0-GW) The snare and the clap DRUM-X's SNARE and CLAP models, fitted to producer
+ * one-shots: three snares (a clipped crack at ~330 Hz; a long held one, gated; a tight one at ~465 Hz with its octave
+ * below), one clap (three strikes ~10 ms apart); dry, no LAYER. Their values are the fit's at the kit's TONE, DECAY, NOISE
+ * and TUNE at rest: the kit's set below, they are taken back off (the sound as fitted). No more draws than before (a
+ * piece's code makes the same piece): the snare's character and their small spreads from the draws the loop makes */
+static const uint8_t TRAP_SN[3][7] = {                  /* PITCH PMOD DECAY NOISE COLOR SNAP CLIP */
+    {54, 59, 36, 100, 62, 0, 15},                       /* a clipped crack, ~330 Hz */
+    {54, 60, 86, 104, 59, 1, 6},                        /* held long, gated */
+    {61, 19, 46, 75, 104, 1, 3},                        /* tight, ~465 Hz, its octave below */
+};
+static const uint8_t TRAP_CP[7] = {52, 2, 25, 113, 50, 0, 3};
 static void trap_kit(track_t *t)
 {
     static const uint8_t P[8][5] = {                    /* PITCH PMOD DECAY NOISE COLOR */
-        {8, 76, 40, 2, 40}, {41, 14, 38, 114, 58}, {60, 0, 44, 127, 38}, {104, 0, 12, 120, 124},
+        {8, 76, 40, 2, 40}, {50, 14, 46, 110, 104}, {58, 0, 48, 127, 96}, {104, 0, 12, 120, 124},
         {104, 0, 54, 120, 120}, {96, 0, 104, 127, 116}, {74, 0, 10, 40, 110}, {68, 0, 40, 6, 64},
     };
     uint32_t l, i;
+    int32_t j[2][DXP_N];                                /* (the snare's and the clap's draws: their spreads) */
     for (l = 0; l < 8u; l++) {
         dx_lane_t *L = &dx_kit[l];
+        if (l == DV_SNARE || l == DV_CLAP) {
+            for (i = 0; i < DXP_N; i++)
+                j[l - DV_SNARE][i] = grr(-4, 4);
+            continue;
+        }
         if (l == DV_HATC || l == DV_HATO) L->mode = DX_KIT_DEF[l].mode;   /* (high-passed, as the factory's) */
         if (l == DV_TOM) L->mode = DX_MODE(DXW_METAL, DXF_HP, 0);          /* (a crash: metal, noise, long) */
-        if (l == DV_SNARE) L->mode = DX_MODE(DXW_SINE, DXF_HP, 0);
-        if (l == DV_CLAP) L->mode = DX_MODE(DXW_SINE, DXF_CLAP, 0);
         for (i = 0; i < DXP_N; i++) {
             int32_t v = (int32_t)P[l][i] + grr(-4, 4);
             if (gs.ts == TS_RAGE && l == DV_KICK && i == DXP_COLOR) v += 30;   /* (rage: a driven knock) */
@@ -583,7 +595,6 @@ static void trap_kit(track_t *t)
         }
     }
     dx_tone = 0;
-    dx_lay[DV_SNARE] = 0;                               /* (the 808's: no LAYER's clang, no FEEDBK's grit) */
     dx_snd[DV_TOM] = (uint8_t)((3u << 6) | 24u);        /* (the crash into the reverb) */
     t->p[P_E0] = 0;                                     /* MORPH (A and B are the same: no drift) */
     t->p[P_E2] = (int16_t)grr(84, 98);                  /* TONE */
@@ -595,6 +606,17 @@ static void trap_kit(track_t *t)
     t->p[P_FTYPE] = 0; t->p[P_FCUT] = TFLAV[tk_tf].dcut; t->p[P_FRES] = 0;   /* (Pi'erre's: filtered, nearly buzzing) */
     t->p[P_LN0] = 112; t->p[P_LN1] = 118; t->p[P_LN2] = 122; t->p[P_LN3] = 124;
     t->p[P_LN4] = 108; t->p[P_LN5] = 94; t->p[P_LN6] = 104; t->p[P_LN7] = 118;
+    for (l = 0; l < 2u; l++) {                          /* (1.0-GW) the snare and the clap: SNARE, CLAP */
+        dx_lane_t *L = &dx_kit[DV_SNARE + l];
+        const uint8_t *c = l ? TRAP_CP : TRAP_SN[gs.ts == TS_RAGE ? (j[0][DXP_PMOD] + 4) % 2 : 1 + (j[0][DXP_PMOD] + 4) % 2];
+        int32_t off[DXP_N] = {-(t->p[P_E1] - 64) / 4, 0, -(t->p[P_E3] - 64), -(t->p[P_E4] - 64), -(t->p[P_E2] - 64)};
+        for (i = 0; i < DXP_N; i++)                     /* (a spread of +-2: PITCH a semitone and a half) */
+            L->a[i] = L->b[i] = (uint8_t)clamp((int32_t)c[i] + off[i] + j[l][i] / 2, 0, 127);
+        L->mode = (uint8_t)DX_MODE(DXW_SINE, DXF_BP, c[5]);
+        dx_mdl[DV_SNARE + l] = (uint8_t)((l ? DXX_CLAP : DXX_SNARE) | (uint32_t)c[6] << 2);
+        dx_lay[DV_SNARE + l] = 0;
+        dx_snd[DV_SNARE + l] = 0;
+    }
 }
 /* the 808 recipes, from the 808s of GammaWave's factory bank (Bass/) and of WRAITH (SLIDE 808, DIRTY 808), on the
  * GW-1's ANALOG with its ports of their saturation (fx.c: HEARTH, FLUX from GammaWave, BLAST from WRAITH; CRUSH).

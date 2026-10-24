@@ -451,10 +451,20 @@ DRUM-X is a synthesized kit of eight sounds, **BD SD CP CH OH TM RS CB**, genera
   - **SOUND 1–4**, one sound each: KNOB 1 is always **SOUND** (which one; striking a key also picks it).
     - **SOUND**: SIDE (A / B), PITCH, PMOD (how far the pitch falls).
     - **SOUND 2**: DECAY, NOISE, COLOR, of the side picked on SOUND (KNOB 1 shows it: "SD B").
-    - **SOUND 3**: **MODE** (wave SIN / FM / MTL / BEL, noise filter LP / BP / HP / CLP, "+" for snap), **PM.TYPE** (how
-      the pitch moves: DECAY, LONG, NOISE, SINE), **DRIVE** (ON / OFF). **CLP** is a hand clap: the noise strikes three
-      times about 9 ms apart, as the 808's clap does, and is level from 1 to 8 kHz with little below 800 Hz. COLOR
-      moves the band, DECAY the tail after the third burst. The trap genres' clap uses it.
+    - **SOUND 3**: **MODE** (wave SIN / FM / MTL / BEL, noise filter LP / BP / HP, "+" for snap), **PM.TYPE** (how the
+      pitch moves: DECAY, LONG, NOISE, SINE), **DRIVE** (ON / OFF).
+      - MODE's last four steps are not CLASSIC sounds but **SNARE**, **SNARE+**, **CLAP** and **CLAP+**: a produced
+        trap snare and clap, built at full rate and fitted to producer one-shots.
+      - Each is a tuned body, a stick click and two bands of rattle, held at full level and then pushed into a
+        clipper. On them, the sound's values mean:
+        - **PITCH**: the body's note.
+        - **PMOD**: how far above it the body starts (0–12 semitones, gone in ~4 ms).
+        - **DECAY**: how long it holds (0–63 ms).
+        - **NOISE**: body against rattle.
+        - **COLOR**: the rattle's band (600 Hz – 4.8 kHz).
+      - "+" (SNAP) cuts the tail short, gated. CLAP strikes its rattle three times, ~10 ms apart.
+      - KNOB 3 becomes **CLIP** (OFF, 1–15: how hard it hits the clipper). PM.TYPE, LAYER and FEEDBK don't apply (shown as "-").
+      - The trap genres use them for their snare and clap.
     - **SOUND 4**: **LAYER** (OFF, 1–15): a second oscillator at an out-of-tune interval, frequency modulated by the
       sound, more as it goes up: from a metal edge to a clang with no note, so the sound melts into the rhythm and stays
       out of the harmony (the factory kit has it on the snare, the hats and the cowbell); **FEEDBK** (OFF, 1–15): that

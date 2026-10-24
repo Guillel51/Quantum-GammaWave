@@ -887,6 +887,25 @@ static int test_dxlay(void)
     ok &= proj_import(&proj_scratch, &st, sizeof st) && !project_restore_runtime(&proj_scratch);
     ok &= dx_lay[DV_BELL] == 0x5Fu && dx_lay[DV_SNARE] == DX_LAY_DEF[DV_SNARE];
     bad += check("DRUM LAYER: kept with the project (FUNC 'D' 'L')", ok);
+    memset(dx_mdl, 0, sizeof dx_mdl);                   /* (1.0-GW) SNARE / CLAP: kept with the project, MODE's steps */
+    dx_mdl[DV_SNARE] = (uint8_t)(DXX_SNARE | 9u << 2);
+    dx_mdl[DV_CLAP] = DXX_CLAP;
+    project_capture(&proj_scratch);
+    ok = proj_pack(&st, &proj_scratch);
+    memset(dx_mdl, 0, sizeof dx_mdl);
+    ok &= proj_import(&proj_scratch, &st, sizeof st) && !project_restore_runtime(&proj_scratch);
+    ok &= dx_mdl[DV_SNARE] == (DXX_SNARE | 9u << 2) && dx_mdl[DV_CLAP] == DXX_CLAP && !dx_mdl[DV_KICK];
+    memset(dx_mdl, 0, sizeof dx_mdl);                   /* (none set: no block, the project as before) */
+    project_capture(&proj_scratch);
+    ok &= proj_pack(&st, &proj_scratch) && proj_import(&proj_scratch, &st, sizeof st) && !project_restore_runtime(&proj_scratch);
+    for (i = 0; i < 8u; i++) ok &= !dx_mdl[i];
+    dx_kit[DV_RIM].mode = DX_MODE(DXW_BELL, DXF_HP, 1);  /* MODE: CLASSIC's last, then SNARE, SNARE+, CLAP, CLAP+; back */
+    ok &= dx_ui_mode_ix(DV_RIM) == 23u;
+    dx_ui_mode_set(DV_RIM, 24u); ok &= DXX_MODEL(dx_mdl[DV_RIM]) == DXX_SNARE && !((dx_kit[DV_RIM].mode >> 4) & 1u);
+    dx_ui_mode_set(DV_RIM, 27u); ok &= DXX_MODEL(dx_mdl[DV_RIM]) == DXX_CLAP && ((dx_kit[DV_RIM].mode >> 4) & 1u);
+    dx_ui_mode_set(DV_RIM, 23u); ok &= !DXX_MODEL(dx_mdl[DV_RIM]) && dx_kit[DV_RIM].mode == DX_MODE(DXW_BELL, DXF_HP, 1);
+    memset(dx_mdl, 0, sizeof dx_mdl);
+    bad += check("DRUM SNARE / CLAP: kept with the project (FUNC 'D' 'X'), none: no block; MODE's 28 steps", ok);
     fg_set[2][1] = (fg_set_t){8, 2, -5};                 /* (0.6.52) FUGUE: T3's head 3 x3 PING -5 */
     project_capture(&proj_scratch);
     ok = proj_pack(&st, &proj_scratch);

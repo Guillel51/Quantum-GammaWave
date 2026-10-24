@@ -10,18 +10,18 @@
  *   NOISE  the mix: 0 the oscillator only .. 127 the noise only
  *   COLOR  the oscillator's FM index (SINE: its drive) and the noise filter's cutoff (30 Hz .. 16 kHz)
  * The mode: the oscillator (SINE, FM at 1:1, METAL at 1:1.47, BELL at 1:2.76), the noise filter (LP, BP, HP), the
- * noise's envelope (as the oscillator's, or SNAP: a quarter of its tau); (1.0-GW) the filter CLAP: the noise high-
- * passed, its top tilted down, struck three times 8..10 ms apart (the hands never quite together, as the 808's), the
- * first two gone in ~3 ms, the last its decay; (JIANT 0.4, the mode's free bits 5..7) the
+ * noise's envelope (as the oscillator's, or SNAP: a quarter of its tau); (JIANT 0.4, the mode's free bits 5..7) the
  * pitch modulation, as Microtonic's: DECAY (the envelope above), LONG (its tau half the decay's, up to 250 ms: the
  * 808 boom), NOISE (a random pitch each block, scaled by the envelope: glitch, grit), SINE (a sine at 1/8 of the
  * pitch, scaled by the envelope: wobble, laser); and DRIVE (the oscillator x3 into a soft clip: dense kicks, fat toms).
  * MORPH (0 A .. 127 B) mixes the two patches value by value, read every block: it may move while a hit rings.
  * Envelopes per block (Q30 values, Q16 factors, dv_kb), ramped linearly inside it; the pitch ramps too. A hit
- * that has rung out (-84 dB) stops computing (live 0) and writes zeros. Only 32-bit products. */
+ * that has rung out (-84 dB) stops computing (live 0) and writes zeros. Only 32-bit products.
+ * (1.0-GW) A sound's MODEL (dx_mdl): CLASSIC, the above; SNARE and CLAP, a produced trap snare / clap built at full
+ * rate (dx_run_sn: a tuned body, a click, two noise bands, a held envelope, a 2x clipper; fitted to producer one-shots). */
 enum { DV_KICK, DV_SNARE, DV_CLAP, DV_HATC, DV_HATO, DV_TOM, DV_RIM, DV_BELL, DV_NLANE };   /* the kit's lanes */
 enum { DXW_SINE, DXW_FM, DXW_METAL, DXW_BELL };
-enum { DXF_LP, DXF_BP, DXF_HP, DXF_CLAP };             /* (1.0-GW: CLAP, a hand clap's noise in bursts) */
+enum { DXF_LP, DXF_BP, DXF_HP };
 #define DX_MODE(w, f, snap) ((uint8_t)((w) | (f) << 2 | (snap) << 4))
 enum { DXM_DECAY, DXM_LONG, DXM_NOISE, DXM_SINE };       /* (JIANT 0.4) the pitch modulation: mode bits 5..6 */
 #define DX_DRIVE 0x80u                                   /* .. the oscillator driven: bit 7 */
@@ -41,8 +41,9 @@ typedef struct {                                         /* a hit */
     int32_t b1, b2;                                      /* (0.6.36) TONE's band-pass state */
     uint32_t ph4;                                        /* (0.6.49) LAYER's oscillator phase */
     uint8_t live, trig, choke;
-    int32_t cl;                                          /* (1.0-GW) CLAP: its noise's low-pass state */
-    uint8_t age, gap;                                    /* .. the blocks since the hit, its bursts' spacing */
+    int32_t ck, chp, t1, t2, dc, xo, es;                 /* (1.0-GW) SNARE / CLAP: the click's envelope and high-pass,
+                                                          * the top's low-pass, the DC cut, the last sample clipped, the octave below's envelope */
+    uint8_t age, gap;                                    /* .. the blocks since the hit, CLAP's strikes' spacing */
 } dx_voice_t;
 
 /* the oscillator's modulator ratios (Q12), by wave */
@@ -134,10 +135,149 @@ static dx_lane_t dx_kit[8];                              /* (defined below with 
  * stays out of the harmony); high nibble FEEDBK, the sound's own oscillator fed back (on top of TONE's, the kit's) */
 #define DX_LAY_INIT {0, 6, 0, 9, 9, 0, 0, 11}            /* (the factory kit's: DX_LAY_DEF) */
 static uint8_t dx_lay[8] = DX_LAY_INIT;
+/* (1.0-GW) EDIT > SOUND 3 > MODE's last four (the section's kit: project.c, FUNC's 'D' 'X' block; 0 before it): each
+ * sound's MODEL (bits 0..1: CLASSIC, SNARE, CLAP) and, on SNARE / CLAP, its CLIP (bits 2..5, 0..15: x1 .. x8.5 into the
+ * clipper) */
+enum { DXX_CLASSIC, DXX_SNARE, DXX_CLAP };
+static uint8_t dx_mdl[8];
+#define DXX_MODEL(x) ((uint32_t)(x) & 3u)
+#define DXX_CLIP(x) (((uint32_t)(x) >> 2) & 15u)
 #define DX_LAY_L(x) ((uint32_t)(x) & 15u)
 #define DX_LAY_FB(x) ((uint32_t)(x) >> 4)
 #define DX_TONE_BP(t) ((uint32_t)(t) & 15u)
 #define DX_TONE_FB(t) ((uint32_t)(t) >> 4)
+/* (1.0-GW) SNARE / CLAP, at full rate: a trap snare as producers make one (a tuned drum, a stick's click and the
+ * snares' rattle, held and pushed into a clipper), fitted to producer one-shots. The patch's values as the sound's:
+ *   PITCH  the body (a sine; an octave below it, an eighth of it), MIDI 24..119 as CLASSIC's
+ *   PMOD   how far the body starts above it: 0..12 semitones, falling in ~4 ms
+ *   DECAY  the hold: 0..63 ms at full level, then the tails (SNAP: ~3 ms, gated; else a third / two thirds of the hold)
+ *   NOISE  the body against the noise: 0 the body only .. 127 the noise only
+ *   COLOR  the noise's band, 600 Hz .. 4.8 kHz (a second an octave up, a third of it), the top rolled off at 3.5x it
+ * CLAP: the noise struck three times ~10.5 ms apart (each hit its own spacing), the first two short (2.5 ms), the last
+ * held, then its tail. CLIP (dx_mdl): the sum x1 .. x8.5 into a cubic clipper at twice the rate (flat at full scale).
+ * Envelopes per block (Q30), ramped inside it; the rest per sample. */
+static __attribute__((noinline)) void dx_run_sn(const dx_lane_t *L, dx_voice_t *v, int32_t morph, int32_t tune16,
+                                                int32_t dofs, int32_t cofs, int32_t nofs, uint32_t mdl, int32_t *y, uint32_t n)
+{
+    int32_t q[DXP_N];
+    uint32_t i, snap = (L->mode >> 4) & 1u, hold;
+    uint32_t clap = DXX_MODEL(mdl) == DXX_CLAP, ph = v->ph, ph2 = v->ph2, kb, kn;
+    int32_t p16, depth, inc, inc1, dinc;
+    int32_t eb, en, eb1, en1, deb, den, es, es1, des, ck = v->ck, chp = v->chp, x, xo = v->xo, dc = v->dc, t1 = v->t1, t2 = v->t2;
+    int32_t ic1 = v->ic1, ic2 = v->ic2, b1 = v->b1, b2 = v->b2, rng = v->rng, gb, gn, drv = 16 + (int32_t)DXX_CLIP(mdl) * 8;
+    int32_t cf, ct;
+    tsvf_t c1, c2, c3;
+    if (!v->live && !v->trig) {
+        for (i = 0; i < n; i++)
+            y[i] = 0;
+        return;
+    }
+    morph = clamp(morph, 0, 127);                        /* (the patch's values as CLASSIC takes them) */
+    for (i = 0; i < DXP_N; i++)
+        q[i] = L->a[i] + ((L->b[i] - L->a[i]) * morph) / 127;
+    q[DXP_DECAY] = clamp(q[DXP_DECAY] + dofs, 0, 127);
+    q[DXP_COLOR] = clamp(q[DXP_COLOR] + cofs, 0, 127);
+    q[DXP_NOISE] = clamp(q[DXP_NOISE] + nofs, 0, 127);
+    hold = ((uint32_t)q[DXP_DECAY] * 689u) / 1000u;
+    p16 = 384 + q[DXP_PITCH] * 12 + tune16;
+    depth = q[DXP_PMOD] * 192 / 127;
+    cf = 15514 + q[DXP_COLOR] * 85;
+    ct = clamp(cf + 6487, 26493, 31026);
+    if (v->trig) {                                       /* the hit: from the top */
+        v->trig = 0;
+        v->live = 1;
+        v->ea = v->en = v->es = 1 << 30;
+        v->ep = 32767;
+        ph = ph2 = 0;
+        ic1 = ic2 = b1 = b2 = t1 = t2 = dc = xo = chp = 0;
+        ck = 32767;
+        if (!rng)
+            rng = 0x2545F491;
+        v->age = 0;
+        v->gap = (uint8_t)(13u + ((uint32_t)rng >> 30));   /* (CLAP: 13..16 blocks, 9.4..11.6 ms: no two alike) */
+        v->inc = pitch_inc((uint32_t)clamp(p16 + depth, 0, 2047));
+    }
+    /* the envelopes: held, then their tails; CLAP's noise struck again after 1 and 2 gaps (the first two 2.5 ms, the
+     * last held) */
+    kb = v->choke ? dv_kb(1500u) : v->age < hold ? 65535u : dv_kb(snap ? 3000u : 3000u + (uint32_t)q[DXP_DECAY] * 150u);
+    kn = v->choke ? kb : dv_kb(snap ? 3500u : 3000u + (uint32_t)q[DXP_DECAY] * 300u);
+    eb = v->ea;
+    en = v->en;
+    eb1 = kb == 65535u ? eb : mulq16(eb, kb);
+    es = v->es;                                          /* (the octave below: its own ~10 ms tail) */
+    es1 = v->choke ? mulq16(es, kb) : v->age < hold ? es : mulq16(es, dv_kb(10000u));
+    if (clap && !v->choke && v->age < 2u * v->gap) {
+        en1 = mulq16(en, dv_kb(2500u));
+        if ((v->age + 1u) % v->gap == 0u)
+            en1 = 1 << 30;
+    } else if (!v->choke && v->age < (clap ? 2u * v->gap : 0u) + hold)
+        en1 = en;                                        /* (held) */
+    else
+        en1 = mulq16(en, kn);
+    if (v->age < 255u)
+        v->age++;
+    v->ep = (int32_t)(((uint32_t)v->ep * dv_kb(4000u)) >> 16);
+    inc = (int32_t)(v->inc >> 1);                        /* (>> 1: the ramp's step fits; << 1 again below) */
+    inc1 = (int32_t)(pitch_inc((uint32_t)clamp(p16 + ((depth * v->ep) >> 15), 0, 2047)) >> 1);
+    dinc = (inc1 - inc) / (int32_t)n;
+    gn = q[DXP_NOISE] * 45;                              /* (Q12: 1.4 x NOISE / 127; the body 1.4 x the rest) */
+    gb = 5734 - gn;
+    deb = ((eb1 >> 15) - (eb >> 15)) / (int32_t)n;       /* (Q15 ramps) */
+    den = ((en1 >> 15) - (en >> 15)) / (int32_t)n;
+    des = ((es1 >> 15) - (es >> 15)) / (int32_t)n;
+    eb >>= 15;
+    en >>= 15;
+    es >>= 15;
+    tsvf_coef_k(&c1, cf, 2731);                          /* (the band: Q 1.5) */
+    tsvf_coef_k(&c2, cf + 3589, 4096);                   /* (an octave up: Q 1) */
+    tsvf_coef_k(&c3, ct, 5793);                          /* (the top: Butterworth) */
+    for (i = 0; i < n; i++, inc += dinc, eb += deb, en += den, es += des) {
+        int32_t r = (int32_t)noise32(&rng) >> 16, body, nz, v1, v2, v3, h, m, a;
+        body = mulq15(sine_i(ph), eb) + mulq15((sine_i(ph2) * 3932) >> 15, es);   /* (the octave below: 0.12) */
+        ph += (uint32_t)inc << 1;
+        ph2 += (uint32_t)inc;
+        v3 = r - ic2;                                    /* the band (tsvf_lp's, its band-pass) */
+        v1 = (c1.a1 * ic1 + c1.a2 * v3) >> 13;
+        v2 = ic2 + ((c1.a2 * ic1 + c1.a3 * v3) >> 13);
+        ic1 = clamp(2 * v1 - ic1, -150000, 150000);
+        ic2 = clamp(2 * v2 - ic2, -150000, 150000);
+        nz = (v1 * 5420) >> 12;                          /* (x 2.04 (RBJ's 0 dB band x sqrt Q x 2.5) x 0.65) */
+        v3 = r - b2;                                     /* the band an octave up */
+        a = (c2.a1 * b1 + c2.a2 * v3) >> 13;
+        v2 = b2 + ((c2.a2 * b1 + c2.a3 * v3) >> 13);
+        b1 = clamp(2 * a - b1, -150000, 150000);
+        b2 = clamp(2 * v2 - b2, -150000, 150000);
+        nz += (a * 3584) >> 12;                          /* (x 2.5 x 0.35) */
+        h = r - chp;                                     /* the click: the noise above ~2 kHz, gone in ~2 ms */
+        chp += (h * 1017) >> 12;
+        ck = (ck * 31553) >> 15;
+        x = ((body * gb) >> 12) + ((mulq15(nz, en) * gn) >> 12) + (mulq15(h, ck) >> 1);
+        x = (x * drv) >> 4;                              /* CLIP, then the clipper at twice the rate */
+        m = clamp((xo + x) >> 2, -24576, 24576);         /* (Q14, +-1.5: y = x - 4/27 x^3, flat at +-1) */
+        a = clamp(x >> 1, -24576, 24576);
+        xo = x;
+        m -= ((((m * m) >> 14) * m) >> 14) * 4855 >> 15;
+        a -= ((((a * a) >> 14) * a) >> 14) * 4855 >> 15;
+        h = m + a;                                       /* (Q15: the two's mean) */
+        v3 = h - t2;                                     /* the top (tsvf_lp's) */
+        v1 = (c3.a1 * t1 + c3.a2 * v3) >> 13;
+        v2 = t2 + ((c3.a2 * t1 + c3.a3 * v3) >> 13);
+        t1 = clamp(2 * v1 - t1, -150000, 150000);
+        t2 = clamp(2 * v2 - t2, -150000, 150000);
+        dc += ((v2 << 8) - dc) >> 9;                     /* the DC cut (~14 Hz) */
+        y[i] = clamp(((v2 - (dc >> 8)) * 23000) >> 15, -32767, 32767);
+    }
+    v->ph = ph; v->ph2 = ph2; v->ck = ck; v->chp = chp; v->xo = xo; v->dc = dc; v->t1 = t1; v->t2 = t2;
+    v->ic1 = ic1; v->ic2 = ic2; v->b1 = b1; v->b2 = b2; v->rng = rng;
+    v->ea = eb1;
+    v->en = en1;
+    v->es = es1;
+    v->inc = (uint32_t)inc1 << 1;
+    if (v->age > hold + 4u && v->ea < (1 << 19) && v->en < (1 << 19) && v->es < (1 << 19) && ck < 8) {   /* (-66 dB, as CLASSIC) */
+        v->live = 0;
+        v->hl = 0;
+    }
+}
 static __attribute__((noinline)) void dx_run(const dx_lane_t *L, dx_voice_t *v, int32_t morph, int32_t tune16,
                                              int32_t dofs, int32_t cofs, int32_t nofs, int32_t warp, int32_t fm, int32_t *y,
                                              uint32_t n)
@@ -173,26 +313,16 @@ static __attribute__((noinline)) void dx_run(const dx_lane_t *L, dx_voice_t *v, 
         v->ea = v->en = 1 << 30;
         v->ep = 32767;
         v->ph = v->ph2 = v->ph4 = 0;
-        v->ic1 = v->ic2 = v->cl = 0;
+        v->ic1 = v->ic2 = 0;
         v->b1 = v->b2 = 0;
         v->mo = 0;
         if (!v->rng)
             v->rng = 0x2545F491;
         v->inc = pitch_inc((uint32_t)clamp(p16 + depth, 0, 2047));
-        v->age = 0;
-        v->gap = (uint8_t)(11u + ((uint32_t)v->rng >> 30));   /* (CLAP: 11..14 blocks, 8..10 ms: no two alike) */
     }
     kb = v->choke ? dv_kb(1500u) : dv_kb(ta);            /* (a choked hit: gone in ~5 ms) */
     ea1 = mulq16(v->ea, kb);
     en1 = mulq16(v->en, v->choke ? kb : dv_kb(tn));
-    if (flt == DXF_CLAP && !v->choke && v->age < 2u * v->gap) {   /* (1.0-GW) CLAP: the first two bursts short, each
-                                                          * struck again at its end (the block's ramp its attack) */
-        en1 = mulq16(v->en, dv_kb(3000u));
-        if (v->age + 1u == v->gap || v->age + 1u == 2u * v->gap)
-            en1 = 1 << 30;
-    }
-    if (v->age < 255u)
-        v->age++;
     ep1 = (int32_t)(((uint32_t)v->ep * dv_kb(tp)) >> 16);
     {
         uint32_t pm = (L->mode >> 5) & 3u;
@@ -280,7 +410,7 @@ static __attribute__((noinline)) void dx_run(const dx_lane_t *L, dx_voice_t *v, 
             y[i] = 0;
     }
     if (ng) {                                            /* the noise through its filter */
-        int32_t ic1 = v->ic1, ic2 = v->ic2, rng = v->rng, cl = v->cl;
+        int32_t ic1 = v->ic1, ic2 = v->ic2, rng = v->rng;
         kd = flt == DXF_BP ? 2400 : 6000;                /* (BP a little resonant) */
         tsvf_coef_k(&c, (q[DXP_COLOR] + 14) << 8, kd);   /* (+ an octave of the table: the same Hz at half rate) */
 /* (one loop per filter: the choice is not made per sample) */
@@ -298,17 +428,12 @@ static __attribute__((noinline)) void dx_run(const dx_lane_t *L, dx_voice_t *v, 
             DX_NOISE(v2)
         else if (flt == DXF_BP)
             DX_NOISE(v1)
-        else if (flt == DXF_CLAP)                        /* (1.0-GW) CLAP: the HP's noise through a one-pole at
-                                                          * ~1.3 kHz (white noise rises 3 dB an octave; a clap's is
-                                                          * level from 1 to 8 kHz, cut below ~800 Hz: the 808's) */
-            DX_NOISE(cl += ((r - ((kd * v1) >> 12) - v2 - cl) * 1300) >> 12)
         else
             DX_NOISE(r - ((kd * v1) >> 12) - v2)
 #undef DX_NOISE
         v->ic1 = ic1;
         v->ic2 = ic2;
         v->rng = rng;
-        v->cl = cl;
     }
     if (DX_TONE_BP(dx_tone) && (L == &dx_kit[DV_HATC] || L == &dx_kit[DV_HATO] || L == &dx_kit[DV_RIM] ||
                                 L == &dx_kit[DV_BELL])) {   /* (0.6.36) TONE's BP on the metal sounds */
@@ -370,12 +495,13 @@ static const dx_lane_t DX_KIT_DEF[8] = DX_KIT_INIT;
 /* (0.6.49) the factory kit's LAYERs (FEEDBK 0): the snare, the hats and the bell (no note to them); the rest clean (CPU) */
 static const uint8_t DX_LAY_DEF[8] = DX_LAY_INIT;
 static dx_lane_t dx_kit[8] = DX_KIT_INIT;
-/* a stored kit as the voice takes it: values 0..127 (any mode: wave 0..3, filter 0..3 since 1.0-GW's CLAP, snap; JIANT
- * 0.4's bits 5..7 the pitch modulation, DRIVE) */
+/* a stored kit as the voice takes it: values 0..127, the mode's fields in range (wave 0..3, filter 0..2, snap) */
 static int dx_kit_ok(const dx_lane_t *k)
 {
     uint32_t l, i;
     for (l = 0; l < 8u; l++) {
+        if (((k[l].mode >> 2) & 3u) > DXF_HP)          /* (JIANT 0.4: bits 5..7 the pitch modulation, DRIVE) */
+            return 0;
         for (i = 0; i < DXP_N; i++)
             if (k[l].a[i] > 127u || k[l].b[i] > 127u)
                 return 0;

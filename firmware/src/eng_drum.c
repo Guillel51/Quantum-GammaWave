@@ -401,9 +401,14 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
         int32_t d = L->bd - L->bc;
         L->bc = (int16_t)(L->bc + (d > 0 ? (d < L->bs ? d : L->bs) : (-d < L->bs ? d : -L->bs)));
     }
-    dx_run(&dx_kit[(uint32_t)v->s[0] & (DV_NLANE - 1u)], &L->x, p[P_E0] + dx_mot_v + L->rm + lfo_shp,
-           L->st * 16 + L->rt + L->bc + (p[P_E1] - 64) * 3 + t->pfx_pit + lfo_pit,
-           p[P_E3] - 64, p[P_E2] - 64, p[P_E4] - 64, p[P_E6], p[P_E5], y, n);
+    {
+        uint32_t ln = (uint32_t)v->s[0] & (DV_NLANE - 1u);
+        int32_t mo = p[P_E0] + dx_mot_v + L->rm + lfo_shp, tu = L->st * 16 + L->rt + L->bc + (p[P_E1] - 64) * 3 + t->pfx_pit + lfo_pit;
+        if (DXX_MODEL(dx_mdl[ln]))                       /* (1.0-GW) SNARE / CLAP: their own, at full rate (no FOLD, FM ENV) */
+            dx_run_sn(&dx_kit[ln], &L->x, mo, tu, p[P_E3] - 64, p[P_E2] - 64, p[P_E4] - 64, dx_mdl[ln], y, n);
+        else
+            dx_run(&dx_kit[ln], &L->x, mo, tu, p[P_E3] - 64, p[P_E2] - 64, p[P_E4] - 64, p[P_E6], p[P_E5], y, n);
+    }
     {                                                    /* PUNCH: the boost before the knee (driven into it, as
                                                           * Drum Buss), the tail's cut on the amplitude ramp */
         int32_t pu = pnch_eff;
