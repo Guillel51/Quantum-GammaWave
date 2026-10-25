@@ -281,6 +281,8 @@ static const preset_t WHEEL_PRESETS[] = {
     /* (GAMMAWAVE) cathedral & overdriven tonewheel patches */
     {"DOOM CATH", {15, 6, 4, 3, 0, 45, 78, 1}, {20, 85, 127, 75}, 0, 0, FX(38, 30, 25, 85), PAT(5)},
     {"BAKELITE", {11, 4, 2, -2, 3, 65, 92, 2}, {2, 70, 120, 50}, 0, 0, FX(45, 20, 30, 45), PAT(6)},
+    /* (1.2-GW, issue #17: ambient and expressive) an organ drone: flutes, the slow rotor, a long swell */
+    {"DRONE ORGAN", {0, 4, 2, -4, 0, 0, 0, 1}, {60, 64, 127, 90}, 0, 0, FX(0, 40, 20, 85), PAT(5)},
 };
 
 static const engine_t ENG_WHEEL = {

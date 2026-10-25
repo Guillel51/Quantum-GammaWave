@@ -6,7 +6,8 @@
  * the new one, never half; the autosave kept), a wrong CRC and an autosave between requests changing nothing, SLOT
  * B1..B32 loading the exact records, bank slots without a voice skipped by the knob and refused elsewhere, a new
  * bank leaving a track's voice its own, projects and user presets keeping a bank voice whatever the bank holds later,
- * and the SLOT values stored before 1.4.1 (projects, user presets, motion) loading exactly as before. */
+ * and the SLOT values stored before 1.4.1 (projects, user presets, motion) loading exactly as before. (1.2-GW) GW-1
+ * KEYS, the bank built in while none is sent, and the 1.2 presets (their extra values, their bank voices, a sound). */
 #define main hostsim_main
 #include "hostsim.c"
 #undef main
@@ -224,10 +225,10 @@ static int store_test(void)
     uint8_t as_data[600], got[600], arg[1 + FM6_PACKED];
     uint32_t k;
     reset();
-    ok = !fm6_bank_used && !fvb_info() && fm6_bank_read;
+    ok = fm6_bank_used == (1u << FM6_ROMBANK_N) - 1u && !fvb_info() && fm6_bank_read;   /* (1.2-GW: GW-1 KEYS, keys_test) */
     request(ED_FM6B_LIST, arg, 0);
-    bad += check("an empty flash: no bank; LIST: 32 voices, no bank, \"\", every voice empty",
-                 ok && rep_n == 2u + 1u + 32u * 2u && rep[0] == 32 && rep[1] == 0 && rep[2] == 0 && rep[3] == 0 && rep[4] == 0);
+    bad += check("an empty flash: no bank sent (GW-1 KEYS on B1..B11); LIST: 32 voices, no bank, the rest empty",
+                 ok && rep[0] == 32 && rep[1] == 0 && rep[rep_n - 1u] == 0 && rep[rep_n - 2u] == 0);
     memset(as_data, 'S', sizeof as_data);
     st_save(OBJ_AUTOSAVE, as_data, sizeof as_data);      /* an autosave (copy A) */
     memcpy(snap, nor, sizeof nor);
@@ -396,11 +397,13 @@ static int slot_test(void)
     const param_desc_t *d = &ENG_FM6.edit[7];
     uint32_t k;
     reset();
+    make_bank(&b, 'E', 0, "EMPTY");                       /* (1.2-GW: none sent is GW-1 KEYS now; an empty bank sent is none) */
+    send_bank(&b, 0);
     ok = param_turn(d, FM6_OWN, 1) == FM6_OWN && param_turn(d, FM6_OWN, -1) == 7 && param_turn(d, 7, 1) == FM6_OWN &&
          param_turn(d, 7, 5) == FM6_OWN;
     slot_to(0, FM6_OWN + 3);
     ok &= trk[0].p[P_E7] == FM6_OWN && fm6_slot[0] == FM6_OWN;
-    bad += check("no bank: the knob stops at OWN (B1..B32 skipped); a B value from elsewhere is refused (SLOT back)", ok);
+    bad += check("an empty bank: the knob stops at OWN (B1..B32 skipped); a B value from elsewhere is refused (SLOT back)", ok);
     make_bank(&a, 'A', 0xFFFFFFFFu, "FULL");
     send_bank(&a, 0);
     ok = 1;
@@ -459,6 +462,95 @@ static int slot_test(void)
     slot_to(0, 2);
     ok = trk[0].p[P_E7] == 2 && patch_is(0, FM6_FACTORY[2]);
     bad += check("  .. F3 from there: the factory patch as always", ok);
+    return bad;
+}
+
+/* (1.2-GW, issue #17) GW-1 KEYS, the bank built in: B1..B11 with no bank sent (an erased sector, no flash), each the
+ * ROM record exactly; a bank sent (an empty one too) replaces it; LIST names it. The presets made on it load their
+ * voice; the 1.2 presets are the ones past what the generator picks (gen_npresets), load their extra values, and sound */
+static int keys_test(void)
+{
+    int bad = 0, ok;
+    static bank_t a, e;
+    uint32_t k, eng, i, n12 = 0;
+    const param_desc_t *d = &ENG_FM6.edit[7];
+    reset();
+    ok = fm6_bank_used == (1u << FM6_ROMBANK_N) - 1u && fm6_bank_read == fvb_rom_read && FM6_ROMBANK_N == 11u &&
+         param_turn(d, FM6_OWN, 1) == FM6_OWN + 1 && param_turn(d, FM6_OWN + 11, 1) == FM6_OWN + 11;
+    for (k = 0; k < FM6_ROMBANK_N; k++) {
+        slot_to(1, (int32_t)(FM6_OWN + 1u + k));
+        ok &= fm6_slot[1] == FM6_OWN + 1u + k && patch_is(1, FM6_ROMBANK[k]);
+    }
+    slot_to(1, FM6_OWN + 12);
+    ok &= trk[1].p[P_E7] != FM6_OWN + 12;
+    bad += check("no bank sent: B1..B11 are GW-1 KEYS, each its ROM record; the knob stops at B11, B12 refused", ok);
+    flash_ok = 0;
+    fvb_boot();
+    ok = fm6_bank_used == (1u << FM6_ROMBANK_N) - 1u && fm6_bank_read == fvb_rom_read;
+    flash_ok = 1;
+    request(ED_FM6B_LIST, 0, 0);
+    {
+        uint32_t at = 2u + 10u, used = 0;                  /* (32, bank 0, "GW-1 KEYS" 0, then the voices) */
+        ok &= rep[0] == 32u && rep[1] == 0u && !memcmp(rep + 2, "GW-1 KEYS", 10);
+        for (k = 0; k < FM6_NBANK && at < rep_n; k++) {
+            used += rep[at] == 1u;
+            at += 1u;
+            while (at < rep_n && rep[at]) at++;
+            at++;
+        }
+        ok &= used == FM6_ROMBANK_N;
+    }
+    bad += check("  .. no flash: GW-1 KEYS too; LIST: bank 0, named GW-1 KEYS, its 11 voices", ok);
+    make_bank(&a, 'K', 0x0000000Fu, "FOUR");
+    ok = send_bank(&a, 0) == 0 && bank_is(&a) && fm6_bank_read == fvb_read && param_turn(d, FM6_OWN + 4, 1) == FM6_OWN + 4;
+    fvb_boot();
+    ok &= bank_is(&a);                                  /* (the next power-on: the bank sent, not GW-1 KEYS) */
+    make_bank(&e, 'E', 0, "EMPTY");
+    ok &= send_bank(&e, 0) == 0 && fm6_bank_used == 0u;
+    fvb_boot();
+    ok &= fm6_bank_used == 0u && fm6_bank_read == fvb_read;
+    bad += check("  .. a bank sent replaces it, at every power-on after; an empty one too (no voice, not GW-1 KEYS)", ok);
+    reset();
+    song.master_q12 = 4096;                             /* (the MASTER knob: main.c reads it) */
+    ok = 1;
+    for (eng = 0; eng < NENGINES; eng++) {
+        const engine_t *en = ENGINES[eng];
+        for (i = gen_npresets(eng); i < en->npresets; i++) {
+            const preset_t *pr = &en->presets[i];
+            track_t *t = &trk[0];
+            int32_t pk = 0;
+            uint32_t f, j, x;
+            n12++;
+            set_engine_of(t, eng);
+            apply_preset_to(t, i);
+            t->engine = t->eng_req;                       /* (the audio side's switch, at once: hostsim.c host_preset) */
+            fm6_poll();
+            for (x = 0; x < NELEM(pr->x); x++)
+                if (pr->x[x].id && t->p[pr->x[x].id - 1u] != pr->x[x].v) {
+                    printf("  %s: value %u is %d, not %d\n", pr->name, pr->x[x].id - 1u, t->p[pr->x[x].id - 1u], pr->x[x].v);
+                    ok = 0;
+                }
+            if (eng == ENGI_FM6 && pr->e[7] > (int8_t)FM6_OWN &&
+                (fm6_slot[0] != (uint8_t)pr->e[7] || !patch_is(0, FM6_ROMBANK[pr->e[7] - FM6_OWN - 1]))) {
+                printf("  %s: not its GW-1 KEYS voice (slot %u)\n", pr->name, fm6_slot[0]);
+                ok = 0;
+            }
+            for (f = 0; f < 8u; f++) { int32_t o[2 * CTL]; mix_block(o, CTL); }   /* (the load's panic, its fade) */
+            trk_note_on(t, 60, 100); trk_note_on(t, 64, 100); trk_note_on(t, 67, 100);
+            for (f = 0; f < 3u * FS; f += CTL) {
+                int32_t o[2 * CTL];
+                mix_block(o, CTL);
+                for (j = 0; j < 2u * CTL; j++) pk = abs(o[j]) > pk ? abs(o[j]) : pk;
+            }
+            for (j = 60; j <= 67; j++) trk_note_off(t, (uint8_t)j);
+            for (f = 0; f < 12u * FS; f += CTL) { int32_t o[2 * CTL]; mix_block(o, CTL); }
+            if (pk < 328 || pk > 32112) {                  /* (-40 .. -0.2 dBFS) */
+                printf("  %s: peak %d\n", pr->name, pk);
+                ok = 0;
+            }
+        }
+    }
+    bad += check("the 1.2 presets (21, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 21u);
     return bad;
 }
 
@@ -570,6 +662,7 @@ int main(void)
     bad += cut_test();
     bad += slot_test();
     bad += keep_test();
+    bad += keys_test();
     printf(bad ? "fm6bank: FAILED (%d)\n" : "fm6bank: all ok\n", bad);
     return bad ? 1 : 0;
 }

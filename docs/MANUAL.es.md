@@ -1,11 +1,11 @@
 # POCKET GAMMAWAVE (GW-1) — Manual de Usuario
 
-**Firmware v1.1.1-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.2-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
 
 > *English version: [MANUAL.md](MANUAL.md).*
 
 Este manual es para músicos que acaban de instalar Pocket GammaWave (GW-1) y quieren saber cómo tocarlo, cómo armar temas con él
-y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.1.1-GW: cada
+y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.2-GW: cada
 botón, perilla y mensaje aparece nombrado exactamente como lo muestra el equipo.
 
 Si vas a leer un solo capítulo, leé [12. Guardar y cargar](#12-guardar-y-cargar). Lo que GW-1 agrega al firmware
@@ -407,7 +407,8 @@ click; las notas siguen.
   golpe y se limpia mientras suena.
 - **FM6**: un motor FM de seis operadores (msfa, de Dexed), 32 algoritmos dibujados en pantalla, cuatro voces por
   pista. Las perillas de EDIT 1/2 son macros sobre el patch. **SLOT**: los patches de fábrica F1–F8, OWN (un patch
-  editado o importado) y B1–B32 (un banco DX7 de 32 voces enviado desde el editor web; los slots vacíos se saltean).
+  editado o importado) y B1–B32 (un banco DX7 de 32 voces enviado desde el editor web; los slots vacíos se saltean; hasta que mandes
+  uno, B1–B11 tienen **GW-1 KEYS**, incluido: ver abajo).
   **OPERATOR / OP ENV / OPERATOR 2** editan cada uno de los seis operadores en el equipo (KNOB 1 elige el operador);
   editar convierte el patch en propio de la pista (SLOT OWN), y se guarda con el proyecto. Una voz del banco que
   elegís se copia a la pista, así que los proyectos la conservan aunque después mandes otro banco.
@@ -431,6 +432,31 @@ click; las notas siguen.
   3SLOW), click de tecla, drive, ROTOR (OFF, SLOW, FAST).
 - **NOISE**: ruido coloreado y metálico. MODE: ANLG, DUST, LFSR, META (DUST es solo el crepitar: con DENS en 0 igual crepita suave). PEAK es su propia resonancia.
 - **DRUM**: DRUM-X, ver [5](#5-drum-x).
+
+### Presets Ambient & Keys (1.2-GW)
+
+Veintiún presets de pads, drones, cuerdas y teclados (issue #17), sobre los motores de arriba. Están en **PRESETS**
+(los de cada motor, al final de su lista). Los pads se mueven solos: un LFO lento, a veces una modulación al azar,
+sobre su filtro, su brillo o su afinación, puestos por el preset. Girá ENV > ATK y REL para hacer un pad más lento o
+más corto.
+
+| Motor | Presets |
+| --- | --- |
+| **ANALOG** | **EVOLVE PAD** (tres sierras, un LFO lento en el filtro, cada nota su propia mezcla: deriva), **SOLINA** (una máquina de cuerdas, el chorus ensemble), **DEEP DRONE** (una quinta que respira) |
+| **PHASE** | **CRYSTAL PAD** (su brillo barrido despacio), **HAZE STRINGS** |
+| **VOICE** | **SOFT CHOIR** (una "u" que se abre un poco), **ANGEL AIR** (aliento en el aire) |
+| **WHEEL** | **DRONE ORGAN** (flautas, el rotor lento) |
+| **NOISE** | **OCEAN** (una ola lenta de ruido filtrado), **DUST HAZE** |
+| **FM6** | **SOFT EP**, **REED PIANO**, **FM PIANO**, **GLASS KEYS**, **CRYSTAL BELL**, **KALIMBA**, **VIBES**, **MUSIC BOX**, **WARM PAD**, **GLASS PAD**, **CELESTA** |
+
+- **GW-1 KEYS**: los presets de FM6 tocan las voces de un banco que viene en el firmware, en **B1–B11** (SLOT). Está
+  ahí hasta que mandes un banco propio desde el editor web; tu banco lo reemplaza (para recuperarlo, mandalo de nuevo:
+  `web/banks/gw1-keys.syx` es el mismo banco como archivo). La velocidad abre su brillo: tocá suave para un sonido más
+  oscuro.
+- FM6 tiene cuatro voces por pista, así que un acorde de cuatro notas sostenido es su límite; para pads largos con
+  muchas notas, ANALOG, PHASE o VOICE son más livianos.
+- El **GENERATOR no elige estos presets** (un código compartido da el mismo tema que antes de la 1.2). Hacé un tema y
+  después cargalos en sus pistas con PRESETS: la secuencia queda.
 
 ### FILTER (todos los motores)
 
@@ -1232,7 +1258,7 @@ distintas.
 | **Presets de usuario** U01–U32 (un sonido + un patrón de 16 pasos) | Flash | **SAVE > USER > SAVE** (parado) | Sí |
 | **Configuración** (MENU, TRACKS, LOAD, favoritos) | Flash | Automáticamente (MENU: al cerrarlo; mientras suena: después de parar) | Sí |
 | El **autoguardado** | Flash, en su propio lugar | 10 s después del último cambio, parado y sin actividad, como máximo una vez por minuto | Sí (se restaura al encender si RESTORE LAST está en ON) |
-| El **banco de voces FM6** B1–B32 | Flash, en su propio lugar | Se envía desde el editor web | Sí (no está en el backup: guardá el .syx) |
+| El **banco de voces FM6** B1–B32 | Flash, en su propio lugar | Se envía desde el editor web (hasta entonces: GW-1 KEYS, incluido) | Sí (no está en el backup: guardá el .syx) |
 | **UNDO** | RAM | — | No |
 
 ### Cómo funciona realmente el autoguardado

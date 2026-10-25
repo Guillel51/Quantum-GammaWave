@@ -88,6 +88,13 @@ static void host_tracks_init(void)                /* as felucca_init: defaults, 
 /* the factory preset as ui.c apply_preset_to sets it (sound, sends; not the steps, not the track's own:
  * the mix, ARP, SCL, the pattern parameters, the SLICER);
  * the engine as the UI asks for it (eng_req: the audio side switches; host_preset: at once) */
+static int host_rom_read(uint32_t k, uint8_t *pk)
+{
+    if (k >= FM6_ROMBANK_N) return 1;
+    memcpy(pk, FM6_ROMBANK[k], FM6_PACKED);
+    return 0;
+}
+static void host_rom_bank(void) { fm6_bank_used = (1u << FM6_ROMBANK_N) - 1u; fm6_bank_read = host_rom_read; }
 static void host_preset_values(track_t *t, uint32_t e, uint32_t pi, const preset_t *p)
 {
     static const uint8_t FX_DEF[4] = {0, 24, 28, 36};
@@ -104,6 +111,11 @@ static void host_preset_values(track_t *t, uint32_t e, uint32_t pi, const preset
     t->p[P_VOICE] = p->mono ? V_LEGATO : V_POLY;
     for (i = 0; i < 4u; i++)
         t->p[P_DIST + i] = (int16_t)(p->fx[i] ? p->fx[i] - 1 : FX_DEF[i]);
+    for (i = 0; i < NELEM(p->x); i++)             /* (1.2-GW) its extra values (ui.c apply_preset_to) */
+        if (p->x[i].id && p->x[i].id - 1u < P_E0)
+            t->p[p->x[i].id - 1u] = (int16_t)clamp(p->x[i].v, TP[p->x[i].id - 1u].min, TP[p->x[i].id - 1u].max);
+    if (!fm6_bank_read)                           /* (1.2-GW) no store here: FM6's built-in bank, GW-1 KEYS (fm6_vbank.c) */
+        host_rom_bank();
     fm6_track_loaded(t);                          /* FM6: the preset's patch (ui.c apply_preset_to) */
 }
 static void host_preset_req(track_t *t, uint32_t e, uint32_t pi)

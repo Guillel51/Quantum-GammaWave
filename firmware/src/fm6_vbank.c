@@ -51,6 +51,21 @@ static void fm6_bank_changed(void)
             fm6_adopt(tr);
 }
 
+/* (1.2-GW) no bank sent (none in flash, or no store): GW-1 KEYS, built in (tools/gen_fm6_patches.py BANK: its electric
+ * pianos, bells, mallets, pads on B1..), so the presets made on them (eng_fm6.c) and B1.. always have a voice. A bank
+ * sent replaces it; INIT SYSTEM leaves the sent one (its sector is its own) */
+static int fvb_rom_read(uint32_t k, uint8_t *pk)
+{
+    if (k >= FM6_ROMBANK_N)
+        return 1;
+    memcpy(pk, FM6_ROMBANK[k], FM6_PACKED);
+    return 0;
+}
+static void fvb_rom(void)
+{
+    fm6_bank_used = (1u << FM6_ROMBANK_N) - 1u;
+    fm6_bank_read = fvb_rom_read;
+}
 #if FELUCCA_FLASH
 _Static_assert(FVB_LEN <= ST_PAYLOAD_MAX, "the payload fits st_buf");
 static uint32_t fvb_stage(void) { return st_sector(OBJ_AUTOSAVE, fvb_tx.copy); }
@@ -118,8 +133,10 @@ static void fvb_boot(void)
     int home;
     fm6_bank_used = 0;
     fm6_bank_read = fvb_read;
-    if (!flash_ok)
+    if (!flash_ok) {
+        fvb_rom();                                     /* (1.2-GW: GW-1 KEYS) */
         return;
+    }
     home = fvb_valid(FVB_HOME, 0, &h);
     for (c = 0; c < 2u; c++)
         if (!fvb_valid(st_sector(OBJ_AUTOSAVE, c), 1, &t) && (home || (t.seq != h.seq && t.seq - h.seq < 0x80000000u)) &&
@@ -132,6 +149,8 @@ static void fvb_boot(void)
         fvb_commit(FVB_HOME, 0, s.seq);
     if (!fvb_valid(FVB_HOME, 0, &h))
         fm6_bank_used = ((const fvb_info_t *)st_buf)->used;
+    else
+        fvb_rom();                                     /* (1.2-GW) none sent: GW-1 KEYS */
 }
 
 /* the transfer's sector holds only what it wrote: no autosave took it since FM6B_BEGIN (its commit record still
@@ -229,7 +248,7 @@ static const fvb_info_t *fvb_info(void)
     return flash_ok && !fvb_valid(FVB_HOME, 0, &h) ? (const fvb_info_t *)st_buf : 0;
 }
 #else
-static void fvb_boot(void) {}
+static void fvb_boot(void) { fvb_rom(); }            /* (1.2-GW: GW-1 KEYS; the emulator, the host tests) */
 static uint32_t fvb_begin(void) { return 4; }
 static uint32_t fvb_write(uint32_t k, const uint8_t *pk) { (void)k; (void)pk; return 5; }
 static uint32_t fvb_end(const uint8_t *name, uint32_t crc) { (void)name; (void)crc; return 5; }

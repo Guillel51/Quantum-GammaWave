@@ -216,6 +216,11 @@ static const preset_t PHASE_PRESETS[] = {
     {"WARP REESE", {0, 5, 76, 65, 22, 0, 85, 64}, {6, 82, 105, 48}, 24, 1, FX(38, 45, 15, 30), PAT(8)},
     {"CRYPT BELL", {6, 7, 88, 70, 9, 1, 20, 48}, {0, 96, 0, 92}, 0, 0, FX(12, 30, 45, 80), PAT(7)},
     {"WITCHFIRE", {4, 6, 74, 55, 18, 0, 40, 70}, {45, 90, 110, 88}, 18, 0, FX(28, 55, 40, 75), PAT(5)},
+    /* (1.2-GW, issue #17: ambient and expressive) a crystal pad (its DCW swept by a slow LFO), strings in a haze */
+    {"CRYSTAL PAD", {3, 0, 50, 70, 20, 0, 20, 0}, {85, 90, 110, 100}, 0, 0, FX(0, 70, 30, 85), PAT(5),
+     {XP(P_LRATE, 12), XP(P_LWAVE, 1), XP(P_LFADE, 60), XP(P_LD_SHP, 18)}},
+    {"HAZE STRINGS", {0, 7, 40, 60, 30, 0, 10, 0}, {70, 90, 115, 90}, 0, 0, FX(0, 90, 20, 75), PAT(5),
+     {XP(P_LRATE, 48), XP(P_LD_PIT, 2), XP(P_M1SRC, 5), XP(P_M1DST, 3), XP(P_M1AMT, 10)}},
 };
 
 static const engine_t ENG_PHASE = {

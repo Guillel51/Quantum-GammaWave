@@ -252,6 +252,10 @@ static const preset_t NOISE_PRESETS[] = {
     {"CHERENKOV", {NZ_DUST, 24, 96, 92, 90, 88, 75, 36}, {18, 90, 115, 88}, 16, 0, FX(22, 35, 50, 85), PAT(5)},
     {"REACTOR", {NZ_META, 82, 58, 78, 110, 48, 60, 24}, {35, 92, 110, 85}, 20, 1, FX(45, 20, 35, 65), PAT(8)},
     {"VOID WASH", {NZ_ANLG, 90, 52, 88, 64, 0, 95, 0}, {85, 95, 118, 102}, 12, 0, FX(10, 50, 45, 95), PAT(5)},
+    /* (1.2-GW, issue #17: ambient and expressive) the sea (a slow swell of filtered noise), a dust haze */
+    {"OCEAN", {NZ_ANLG, 40, 50, 30, 0, 0, 110, 0}, {100, 90, 127, 110}, 0, 0, FX(0, 30, 10, 90), PAT(5),
+     {XP(P_LRATE, 6), XP(P_LWAVE, 0), XP(P_LD_AMP, 40), XP(P_LD_FLT, 12)}},
+    {"DUST HAZE", {NZ_DUST, 80, 110, 45, 30, 60, 60, 0}, {80, 90, 120, 100}, 0, 0, FX(0, 40, 30, 95), PAT(5)},
 };
 
 static const engine_t ENG_NOISE = {

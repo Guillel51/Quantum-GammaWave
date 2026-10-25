@@ -909,6 +909,9 @@ not stop, 4 flash (no flash, an erase or a write failed), 5 no transfer (no `FM6
 the device's autosave took the transfer's flash between two requests, after 10 s without one: start again).
 
 - An END with no WRITE (the CRC of nothing: 0) writes an empty bank: every B slot is empty.
+- (1.2-GW) With no bank in flash (none sent yet, or no flash), B1..B11 hold GW-1 KEYS, built into the firmware (the
+  presets SOFT EP .. CELESTA play them; `web/banks/gw1-keys.syx` is the same 11 voices as a file): LIST answers bank 0,
+  the name "GW-1 KEYS" and those 11 voices. Any bank sent replaces it, an empty one too.
 - The old bank stays until END answers rc 0; a power cut at any point leaves the old bank or the new one, never a mix.
 - A track on a bank slot when a new bank arrives keeps the voice it played, as its own patch: SLOT becomes OWN.
 - The editor's import (6-OP FM tab): a 32-voice file's voices, each packed as for a single voice (every value into

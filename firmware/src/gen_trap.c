@@ -472,7 +472,7 @@ static void trap_preset(track_t *t, uint32_t eng, const char *w1)
     uint32_t i, n;
     set_engine_of(t, eng);
     en = ENGINES[t->eng_req % NENGINES];
-    n = en->npresets;
+    n = gen_npresets(t->eng_req);                       /* (1.2-GW: the presets of before 1.2, ui.c) */
     if (!n) return;
     for (i = 0; i < n; i++) if (dname_has(en->presets[i].name, w1)) { apply_preset_to(t, i); return; }
     apply_preset_to(t, 0);

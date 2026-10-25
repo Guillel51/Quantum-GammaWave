@@ -234,7 +234,8 @@ static void fm6_track_loaded(const track_t *t)
         fm6_own_ok &= (uint8_t)~(1u << tr);
         if (t->p[P_E7] >= 0 && t->p[P_E7] < (int32_t)FM6_NFACTORY)
             fm6_load_slot(tr, (uint32_t)t->p[P_E7]);
-        else
+        else if (fm6_bank_slot(t->p[P_E7]) < 0 || fm6_load_slot(tr, (uint32_t)t->p[P_E7]))   /* (1.2-GW) a preset
+                                                          * on a bank slot: its voice (GW-1 KEYS, or the bank sent) */
             fm6_adopt(tr);
     }
 }
@@ -477,6 +478,19 @@ static const preset_t FM6_PRESETS[] = {
     {"MARIMBA", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 0, 25, 40), PAT(3)},
     {"ORGAN", {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 127, 0}, 0, 0, FX(10, 40, 0, 30), PAT(6)},
     {"PLUCK", {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 35, 30), PAT(13)},
+    /* (1.2-GW, issue #17: ambient and expressive) on GW-1 KEYS, the bank FM6 has built in (B1.., fm6_vbank.c): electric
+     * pianos, bells, mallets, pads; velocity opens their brightness (each voice's own KVS) */
+    {"SOFT EP", {0, 0, 0, 0, 0, 0, 0, 9}, {0, 0, 127, 0}, 0, 0, FX(0, 50, 25, 45), PAT(6)},
+    {"REED PIANO", {0, 0, 0, 0, 0, 0, 0, 10}, {0, 0, 127, 0}, 0, 0, FX(4, 40, 20, 35), PAT(6)},
+    {"FM PIANO", {0, 0, 0, 0, 0, 0, 0, 11}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 15, 45), PAT(6)},
+    {"GLASS KEYS", {0, 0, 0, 0, 0, 0, 10, 12}, {0, 0, 127, 0}, 0, 0, FX(0, 55, 35, 60), PAT(6)},
+    {"CRYSTAL BELL", {0, 0, 0, 0, 0, 0, 0, 13}, {0, 0, 127, 0}, 0, 0, FX(0, 30, 45, 85), PAT(7)},
+    {"KALIMBA", {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(0, 15, 35, 55), PAT(3)},
+    {"VIBES", {0, 0, 0, 0, 0, 0, 0, 15}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 25, 60), PAT(7)},
+    {"MUSIC BOX", {0, 0, 0, 0, 0, 0, 0, 16}, {0, 0, 127, 0}, 0, 0, FX(0, 25, 40, 75), PAT(3)},
+    {"WARM PAD", {0, 0, 0, 0, 0, 0, 20, 17}, {0, 0, 127, 0}, 0, 0, FX(0, 70, 30, 85), PAT(5)},
+    {"GLASS PAD", {0, 0, 0, 0, 0, 0, 20, 18}, {0, 0, 127, 0}, 0, 0, FX(0, 70, 35, 90), PAT(5)},
+    {"CELESTA", {0, 0, 0, 0, 0, 0, 0, 19}, {0, 0, 127, 0}, 0, 0, FX(0, 25, 35, 65), PAT(7)},
 };
 
 static const engine_t ENG_FM6 = {

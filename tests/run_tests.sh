@@ -242,7 +242,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     mkdir -p build/fm6_demo
     run "FM6: algorithms, envelopes, retrigger, DC, clipping, macros, patch formats, voices, cost, demos" "$OUT/fm6_test" build/fm6_demo
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6bank_test" tests/fm6bank_test.c -lm
-    run "FM6 voice bank: write / read, power cuts, CRC, SLOT B1..B32, stored SLOT values as before" "$OUT/fm6bank_test"
+    run "FM6 voice bank: write / read, power cuts, CRC, SLOT B1..B32, stored SLOT values as before; GW-1 KEYS built in, the 1.2 presets" "$OUT/fm6bank_test"
 else
     echo "== skip hostsim (run ./build.sh once)"
 fi
