@@ -106,8 +106,8 @@ static int ed_fm6_handle(uint32_t cmd, const uint8_t *a, uint32_t n)
         if (n)
             return 0;
         in = fvb_info();
-        for (i = 0; i < 10u; i++)
-            nm[i] = in ? in->name[i] : 0;
+        for (i = 0; i < 10u; i++)                          /* (1.2-GW) none sent: the voices GW-1 KEYS' (bank 0) */
+            nm[i] = in ? in->name[i] : fm6_bank_read == fvb_rom_read ? "GW-1 KEYS "[i] : 0;
         for (nm[10] = 0, i = 10; i && (nm[i - 1] == ' ' || !nm[i - 1]); i--)
             nm[i - 1] = 0;
         ed_b(FM6_NBANK); ed_b(in != 0);

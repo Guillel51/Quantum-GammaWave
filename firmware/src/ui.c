@@ -1038,6 +1038,14 @@ static void fm4_load_preset(track_t *t, uint32_t k)
 
 static void set_engine_of(track_t *t, uint32_t ei);
 /* preset pi of the engine the track asked for: the sound only (not the steps, not param_kept) */
+/* (1.2-GW) the presets the generator picks from (gen.c, gen_trap.c): each engine's of before 1.2 (the later ones appended after them; a
+ * piece's code makes the same piece whatever came after: it never picks them). npresets where it has fewer */
+static const uint8_t GEN_NPRESETS[NENGINES] = {27, 0, 12, 14, 0, 8, 0, 7, 0, 0, 1, 7, 8, 0};
+static uint32_t gen_npresets(uint32_t e)
+{
+    uint32_t n = ENGINES[e % NENGINES]->npresets;
+    return GEN_NPRESETS[e % NENGINES] && GEN_NPRESETS[e % NENGINES] < n ? GEN_NPRESETS[e % NENGINES] : n;
+}
 static void apply_preset_to(track_t *t, uint32_t pi)
 {
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
@@ -1083,6 +1091,9 @@ static void apply_preset_to(track_t *t, uint32_t pi)
         const preset_t *pr = &e->presets[pi];
         for (i = 0; i < 4u; i++)
             t->p[P_DIST + i] = (int16_t)(pr->fx[i] ? pr->fx[i] - 1 : FX_DEF[i]);
+        for (i = 0; i < NELEM(pr->x); i++)             /* (1.2-GW) its extra values: the LFO, the matrix, VOICE .. */
+            if (pr->x[i].id && pr->x[i].id - 1u < P_E0 && !param_kept(pr->x[i].id - 1u))
+                t->p[pr->x[i].id - 1u] = (int16_t)clamp(pr->x[i].v, TP[pr->x[i].id - 1u].min, TP[pr->x[i].id - 1u].max);
     }
     fm6_track_loaded(t);                              /* FM6: the preset's patch (its SLOT) */
     load_end(t);

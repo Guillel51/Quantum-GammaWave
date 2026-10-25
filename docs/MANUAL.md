@@ -1,11 +1,11 @@
 # POCKET GAMMAWAVE (GW-1) — User Manual
 
-**Firmware v1.1.1-GW for the M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Buy GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.2-GW for the M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Buy GammaWave VST](https://shadowtune.itch.io/gammawave)**
 
 > *Versión en español: [MANUAL.es.md](MANUAL.es.md).*
 
 This manual is for musicians who have just installed Pocket GammaWave (GW-1) and want to know how to play it, build songs with it
-and, above all, **save their work without losing anything**. It follows the firmware as it is in v1.1.1-GW: every
+and, above all, **save their work without losing anything**. It follows the firmware as it is in v1.2-GW: every
 button, knob and message is named exactly as the device shows it.
 
 If you only read one chapter, read [12. Saving and loading](#12-saving-and-loading). What GW-1 adds to the firmware it
@@ -395,7 +395,8 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
   **MORPH** plus ENV / LFO → **SHAPE**: with ENV → SHAPE up, a note is dirtiest on its hit and cleans up as it rings.
 - **FM6**: a six-operator FM engine (Dexed's msfa), 32 algorithms drawn on screen, four voices per track. The EDIT 1/2
   knobs are macros over the patch. **SLOT**: the factory patches F1–F8, OWN (an edited or imported patch) and B1–B32
-  (a 32-voice DX7 bank sent from the web editor; empty slots are skipped). **OPERATOR / OP ENV / OPERATOR 2** edit each
+  (a 32-voice DX7 bank sent from the web editor; empty slots are skipped; until you send one, B1–B11 hold
+  **GW-1 KEYS**, built in: see below). **OPERATOR / OP ENV / OPERATOR 2** edit each
   of the six operators on the device (KNOB 1 picks the operator); editing makes the patch the track's own (SLOT OWN),
   saved with the project. A bank voice you pick is copied into the track, so projects keep it even if you send
   another bank later.
@@ -417,6 +418,29 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
   key click, drive, ROTOR (OFF, SLOW, FAST).
 - **NOISE**: coloured and metallic noise. MODE: ANLG, DUST, LFSR, META (DUST is only the crackle: at DENS 0 it still crackles softly). PEAK is its own resonance.
 - **DRUM**: DRUM-X, see [5](#5-drum-x).
+
+### Ambient & Keys presets (1.2-GW)
+
+Twenty-one presets for pads, drones, strings and keys (issue #17), on the engines above. Find them with **PRESETS**
+(each engine's come at the end of its list). The pads move by themselves: a slow LFO, sometimes a random modulation,
+on their filter, brightness or pitch, set by the preset. Turn ENV > ATK and REL to make a pad slower or tighter.
+
+| Engine | Presets |
+| --- | --- |
+| **ANALOG** | **EVOLVE PAD** (three saws, a slow LFO on the filter, each note its own mix: it drifts), **SOLINA** (a string machine, the ensemble chorus), **DEEP DRONE** (a fifth that breathes) |
+| **PHASE** | **CRYSTAL PAD** (its brightness swept slowly), **HAZE STRINGS** |
+| **VOICE** | **SOFT CHOIR** (an "oo" that opens a little), **ANGEL AIR** (breath in the air) |
+| **WHEEL** | **DRONE ORGAN** (flutes, the slow rotor) |
+| **NOISE** | **OCEAN** (a slow swell of filtered noise), **DUST HAZE** |
+| **FM6** | **SOFT EP**, **REED PIANO**, **FM PIANO**, **GLASS KEYS**, **CRYSTAL BELL**, **KALIMBA**, **VIBES**, **MUSIC BOX**, **WARM PAD**, **GLASS PAD**, **CELESTA** |
+
+- **GW-1 KEYS**: the FM6 presets play the voices of a bank built into the firmware, on **B1–B11** (SLOT). It is there
+  until you send a bank of your own from the web editor; your bank replaces it (send it again to get it back:
+  `web/banks/gw1-keys.syx` is the same bank as a file). Velocity opens their brightness: play softly for a darker sound.
+- FM6 runs four voices per track, so a held chord of four notes is its limit; for long pads with many notes, ANALOG,
+  PHASE or VOICE are lighter.
+- The **GENERATOR does not pick these presets** (a share code makes the same piece as before 1.2). Make a piece, then
+  load them on its tracks with PRESETS: the sequence stays.
 
 ### FILTER (every engine)
 
@@ -1156,7 +1180,7 @@ This is the chapter to read carefully. Pocket GammaWave keeps several kinds of d
 | **User presets** U01–U32 (one sound + a 16-step pattern) | Flash | **SAVE > USER > SAVE** (stopped) | Yes |
 | **Settings** (MENU, TRACKS, LOAD, favourites) | Flash | Automatically (MENU: when it closes; while playing: after you stop) | Yes |
 | The **autosave** | Flash, its own place | 10 s after the last change, stopped and idle, at most once a minute | Yes (restored at power-on if RESTORE LAST is ON) |
-| The **FM6 voice bank** B1–B32 | Flash, its own place | Sent from the web editor | Yes (not in the backup: keep the .syx) |
+| The **FM6 voice bank** B1–B32 | Flash, its own place | Sent from the web editor (until then: GW-1 KEYS, built in) | Yes (not in the backup: keep the .syx) |
 | **UNDO** | RAM | — | No |
 
 ### How the autosave really works

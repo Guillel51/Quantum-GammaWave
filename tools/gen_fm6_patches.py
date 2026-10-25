@@ -121,6 +121,99 @@ PATCHES = [
 ]
 
 
+# (1.2-GW) GW-1 KEYS: the voice bank FM6's SLOT B1.. plays until a bank is sent from the editor (fm6_vbank.c, its
+# presets in eng_fm6.c): electric pianos, bells, mallets, FM pads. Pocket GammaWave's own, made for it (no factory ROM
+# data of any instrument). Algorithm 5 unless said: three pairs, OP1<-OP2, OP3<-OP4, OP5<-OP6 (the feedback). OP1..OP6.
+# ams: an operator's amplitude modulation sensitivity (the LFO's tremolo, lamd); kvs: velocity sensitivity.
+OFF = op(ol=0)
+BANK = [
+    ("SOFT EP", voice("SOFT EP", 5, [            # a warm tine piano: the hammer's bark only when struck hard
+        op(r=(96, 30, 22, 62), l=(99, 80, 0, 0), ol=99, kvs=2, rs=3, ams=1),
+        op(r=(96, 55, 30, 70), l=(99, 60, 0, 0), ol=54, kvs=6, rs=3),
+        op(r=(95, 26, 20, 58), l=(99, 90, 0, 0), ol=88, det=8, kvs=2, rs=2, ams=1),
+        op(r=(98, 72, 45, 66), l=(99, 38, 0, 0), ol=58, fc=14, kvs=7, rs=3),
+        op(r=(95, 30, 20, 60), l=(99, 86, 0, 0), ol=68, det=6, kvs=1, ams=1),
+        op(r=(95, 45, 30, 62), l=(99, 70, 0, 0), ol=40, kvs=3)],
+        fb=2, lfs=36, lfd=0, lamd=10, lfw=4, lpms=0)),
+    ("WURLI", voice("REED PIANO", 5, [            # a reed piano: a nasal bark that opens with the velocity
+        op(r=(97, 40, 25, 58), l=(99, 72, 0, 0), ol=99, kvs=2, rs=3, ams=2),
+        op(r=(97, 48, 32, 66), l=(99, 52, 0, 0), ol=74, kvs=7, rs=3),
+        op(r=(96, 36, 24, 58), l=(99, 80, 0, 0), ol=84, det=9, kvs=2, rs=2, ams=2),
+        op(r=(98, 80, 50, 66), l=(99, 30, 0, 0), ol=52, fc=3, kvs=6, rs=3),
+        op(r=(96, 40, 25, 60), l=(99, 72, 0, 0), ol=60, det=5, kvs=1, ams=2),
+        op(r=(97, 50, 32, 66), l=(99, 55, 0, 0), ol=62, kvs=5)],
+        fb=5, lfs=40, lfd=0, lamd=22, lfw=4, lpms=0)),
+    ("FM PIANO", voice("FM PIANO", 5, [           # a struck string: the hammer (OP6 at 14), the body (OP2), a fourth up
+        op(r=(98, 38, 26, 60), l=(99, 78, 0, 0), ol=99, kvs=3, rs=4),
+        op(r=(98, 60, 36, 70), l=(99, 55, 0, 0), ol=66, kvs=6, rs=4),
+        op(r=(97, 34, 24, 58), l=(99, 82, 0, 0), ol=82, det=8, kvs=3, rs=3),
+        op(r=(98, 66, 40, 68), l=(99, 45, 0, 0), ol=56, fc=4, kvs=5, rs=4),
+        op(r=(98, 50, 30, 62), l=(99, 60, 0, 0), ol=64, fc=1, det=6, kvs=3, rs=3),
+        op(r=(99, 88, 60, 70), l=(99, 20, 0, 0), ol=60, fc=14, kvs=7, rs=4)],
+        fb=1, lpms=0)),
+    ("GLASS KEYS", voice("GLASS KEYS", 5, [       # an electric piano with a glass top: the bell partial on OP6
+        op(r=(96, 32, 22, 60), l=(99, 80, 0, 0), ol=99, kvs=2, rs=3),
+        op(r=(96, 56, 32, 70), l=(99, 58, 0, 0), ol=50, kvs=5, rs=3),
+        op(r=(95, 28, 20, 58), l=(99, 88, 0, 0), ol=80, det=9, kvs=2, rs=2),
+        op(r=(97, 60, 38, 66), l=(99, 50, 0, 0), ol=48, kvs=6, rs=3),
+        op(r=(96, 24, 18, 50), l=(99, 70, 0, 0), ol=66, fc=4, kvs=3, rs=2),
+        op(r=(98, 40, 30, 55), l=(99, 60, 0, 0), ol=58, fc=7, kvs=6, rs=3)],
+        fb=0, lfs=30, lpms=0)),
+    ("CRYSTAL BELL", voice("CRYSTAL BL", 5, [     # long glass: inharmonic pairs (3.5, 7.1), a slow shimmer
+        op(r=(99, 30, 18, 30), l=(99, 85, 0, 0), ol=96, kvs=1),
+        op(r=(99, 28, 18, 30), l=(99, 75, 0, 0), ol=72, fc=3, ff=50, kvs=3),
+        op(r=(99, 34, 20, 32), l=(99, 80, 0, 0), ol=82, fc=2, det=9, kvs=1),
+        op(r=(99, 36, 22, 34), l=(99, 70, 0, 0), ol=66, fc=7, ff=10, kvs=3),
+        op(r=(99, 44, 26, 38), l=(99, 60, 0, 0), ol=70, fc=4, ff=30, det=5),
+        op(r=(99, 50, 30, 40), l=(99, 55, 0, 0), ol=56, fc=9)],
+        fb=0, lfs=22, lfd=0, lamd=6, lfw=4, lpms=0)),
+    ("KALIMBA", voice("KALIMBA", 5, [             # a thumb piano: a short inharmonic tine (5.4), a click (9)
+        op(r=(99, 46, 34, 55), l=(99, 0, 0, 0), ol=99, kvs=3, rs=3),
+        op(r=(99, 82, 60, 66), l=(99, 0, 0, 0), ol=60, fc=5, ff=40, kvs=6, rs=3),
+        op(r=(99, 52, 38, 58), l=(99, 0, 0, 0), ol=74, det=8, kvs=2, rs=3),
+        op(r=(99, 92, 70, 70), l=(99, 0, 0, 0), ol=52, fc=9, kvs=7, rs=3),
+        OFF, OFF],
+        fb=0, lpms=0)),
+    ("VIBES", voice("VIBES", 5, [                 # a vibraphone: its motor's tremolo on the carriers
+        op(r=(99, 30, 20, 48), l=(99, 62, 0, 0), ol=99, kvs=2, rs=2, ams=3),
+        op(r=(99, 70, 45, 60), l=(99, 30, 0, 0), ol=48, fc=4, kvs=5, rs=3),
+        op(r=(99, 40, 28, 50), l=(99, 50, 0, 0), ol=56, fc=4, kvs=2, rs=3, ams=3),
+        op(r=(99, 60, 40, 60), l=(99, 30, 0, 0), ol=30, kvs=3, rs=3),
+        OFF, OFF],
+        fb=0, lfs=42, lfd=0, lamd=32, lfw=4, lks=0, lpms=0)),
+    ("MUSIC BOX", voice("MUSIC BOX", 5, [         # a comb of steel teeth: bright, short, a little detuned
+        op(r=(99, 42, 30, 48), l=(99, 0, 0, 0), ol=99, fc=2, kvs=2, rs=3),
+        op(r=(99, 70, 50, 60), l=(99, 0, 0, 0), ol=56, fc=7, kvs=4, rs=3),
+        op(r=(99, 48, 34, 52), l=(99, 0, 0, 0), ol=60, fc=6, det=10, kvs=2, rs=3),
+        op(r=(99, 80, 56, 64), l=(99, 0, 0, 0), ol=40, fc=13, kvs=5, rs=3),
+        OFF, OFF],
+        fb=0, lpms=0, trnsp=36)),
+    ("WARM FM PAD", voice("WARM PAD", 5, [        # a slow pad: detuned pairs, the modulators rising after the notes
+        op(r=(34, 30, 40, 36), l=(99, 95, 92, 0), ol=92, det=5, ams=1),
+        op(r=(22, 26, 40, 36), l=(70, 88, 84, 0), ol=58, kvs=1),
+        op(r=(34, 30, 40, 36), l=(99, 95, 92, 0), ol=92, det=10, ams=1),
+        op(r=(20, 26, 40, 36), l=(68, 86, 82, 0), ol=48, fc=2, kvs=1),
+        op(r=(30, 30, 40, 36), l=(99, 95, 92, 0), ol=72, fc=2, det=6),
+        op(r=(18, 24, 40, 36), l=(60, 84, 80, 0), ol=42)],
+        fb=2, lfs=24, lfd=50, lpmd=5, lamd=4, lfw=4, lpms=2)),
+    ("GLASS PAD", voice("GLASS PAD", 5, [         # a pad with a glass halo: OP5 / OP6 at 3.5 and 7 over two warm pairs
+        op(r=(36, 28, 40, 34), l=(99, 95, 92, 0), ol=90, det=6),
+        op(r=(26, 26, 40, 34), l=(74, 86, 82, 0), ol=52),
+        op(r=(36, 28, 40, 34), l=(99, 95, 92, 0), ol=86, fc=2, det=9),
+        op(r=(24, 26, 40, 34), l=(70, 84, 80, 0), ol=44, fc=1),
+        op(r=(30, 30, 40, 34), l=(99, 90, 86, 0), ol=64, fc=3, ff=50, det=4),
+        op(r=(26, 28, 40, 34), l=(80, 80, 76, 0), ol=46, fc=7)],
+        fb=0, lfs=20, lfd=60, lpmd=4, lfw=4, lpms=2)),
+    ("CELESTA", voice("CELESTA", 5, [             # a soft celesta: round, a fourth partial, a little air
+        op(r=(99, 36, 26, 46), l=(99, 40, 0, 0), ol=99, kvs=2, rs=3),
+        op(r=(99, 66, 44, 58), l=(99, 30, 0, 0), ol=50, fc=4, kvs=5, rs=3),
+        op(r=(99, 42, 30, 50), l=(99, 30, 0, 0), ol=70, fc=4, det=8, kvs=2, rs=3),
+        op(r=(99, 72, 50, 62), l=(99, 20, 0, 0), ol=36, fc=1, kvs=4, rs=3),
+        OFF, OFF],
+        fb=0, lpms=0, trnsp=36)),
+]
+
+
 def c_rows(b):
     return ",\n".join("     " + ", ".join(f"{x:3d}" for x in b[i:i + 16]) for i in range(0, len(b), 16))
 
@@ -133,8 +226,24 @@ def main(path):
     for name, v in PATCHES:
         L += [f"    {{/* {name} */", c_rows(pack(v)) + "},"]
     L += ["};"]
+    L += [f"#define FM6_ROMBANK_N {len(BANK)}",    # (1.2-GW) GW-1 KEYS: B1.. until a bank is sent (fm6_vbank.c)
+          f"static const uint8_t FM6_ROMBANK[{len(BANK)}][128] = {{"]
+    for name, v in BANK:
+        L += [f"    {{/* {name} */", c_rows(pack(v)) + "},"]
+    L += ["};"]
     Path(path).write_text("\n".join(L) + "\n")
-    print(f"fm6 patches: {len(PATCHES)} -> {path}")
+    print(f"fm6 patches: {len(PATCHES)}, bank {len(BANK)} -> {path}")
+
+
+def syx(path):
+    """(1.2-GW) GW-1 KEYS as a 32-voice bank (.syx) for the editor's SEND BANK and any 6-operator FM synth: the bank's
+    voices, then the INIT voice in the slots left"""
+    data = []
+    for k in range(32):
+        data += pack(BANK[k][1] if k < len(BANK) else INIT)
+    out = bytes([0xF0, 0x43, 0x00, 0x09, 0x20, 0x00] + data + [(-sum(data)) & 0x7F, 0xF7])
+    Path(path).write_bytes(out)
+    print(f"fm6 bank: {len(BANK)} voices -> {path} ({len(out)} bytes)")
 
 
 def js():
@@ -148,4 +257,9 @@ def js():
 
 
 if __name__ == "__main__":
-    js() if sys.argv[1] == "--js" else main(sys.argv[1])
+    if sys.argv[1] == "--js":
+        js()
+    elif sys.argv[1] == "--syx":
+        syx(sys.argv[2])
+    else:
+        main(sys.argv[1])

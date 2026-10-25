@@ -213,6 +213,11 @@ static const preset_t FORMANT_PRESETS[] = {
     {"FERAL VOW", {110, 12, 82, -7, 118, 14, 92, 18}, {0, 65, 75, 32}, 25, 1, FX(45, 10, 20, 20), PAT(2)},
     {"GHOUL RIOT", {64, 120, 96, -4, 112, 40, 88, 55}, {4, 72, 90, 44}, 18, 1, FX(52, 25, 35, 35), PAT(4)},
     {"SAINT GLOW", {12, 48, 28, 3, 45, 50, 62, 12}, {82, 92, 115, 98}, 0, 0, FX(0, 75, 40, 95), PAT(5)},
+    /* (1.2-GW, issue #17: ambient and expressive) a soft choir (an 'oo' that opens a little), breath in the air */
+    {"SOFT CHOIR", {10, 40, 0, 0, 30, 40, 50, 20}, {90, 90, 120, 100}, 0, 0, FX(0, 80, 25, 95), PAT(5),
+     {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_SHP, 10)}},
+    {"ANGEL AIR", {60, 90, 20, 12, 20, 80, 60, 30}, {95, 90, 120, 105}, 0, 0, FX(0, 85, 35, 100), PAT(5),
+     {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_SHP, 14)}},
 };
 
 static const engine_t ENG_FORMANT = {

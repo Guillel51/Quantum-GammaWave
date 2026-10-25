@@ -309,8 +309,12 @@ typedef struct {
     uint8_t pat;                 /* suggested pattern (PATTERNS[pat - 1], 0 = none): only a hint. A sound load
                                   * never touches the steps; SEQ > PATTERNS loads a pattern (ui.c pat_load). The
                                   * arp is the track's too: a preset does not set it */
+    struct { uint8_t id; int8_t v; } x[6];   /* (1.2-GW) up to six more of the sound's values a preset sets (P_* + 1,
+                                  * 0 = none; its value as is): the LFO, the matrix, VOICE, GLIDE .. so a pad moves by
+                                  * itself. None in the presets before 1.2: they load as they did */
 } preset_t;
 #define FX(d, c, dl, r) .fx = {(d) + 1, (c) + 1, (dl) + 1, (r) + 1}
+#define XP(id, v) {(id) + 1, (v)}
 #define PAT(n) .pat = (n)
 
 struct track;

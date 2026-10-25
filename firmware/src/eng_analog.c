@@ -336,6 +336,14 @@ static const preset_t ANALOG_PRESETS[] = {
     {"SINGULARITY", {5, 24, 96, 18, 52, 88, 95, -12}, {4, 78, 92, 46}, 48, 1, FX(60, 25, 35, 30), PAT(16)},
     {"PHOTOSPHERE", {4, 22, 64, 14, 78, 40, 28, 7}, {48, 92, 110, 94}, 22, 0, FX(15, 60, 45, 85), PAT(17)},
     {"ANALOG DRFT", {0, 19, 64, 6, 72, 32, 18, 0}, {18, 84, 96, 76}, 24, 0, FX(12, 48, 40, 68), PAT(15)},
+    /* (1.2-GW, issue #17: ambient and expressive) a pad that drifts by itself (a slow LFO on the filter, each note its own
+     * mix), a string machine (three saws, the ensemble chorus), a drone on a fifth that breathes */
+    {"EVOLVE PAD", {AW_SAW3, 46, 64, 4, 58, 22, 0, 0}, {92, 90, 112, 100}, 8, 0, FX(0, 64, 22, 82), PAT(5),
+     {XP(P_LRATE, 14), XP(P_LWAVE, 1), XP(P_LFADE, 70), XP(P_LD_FLT, 16), XP(P_M1SRC, 5), XP(P_M1DST, 14)}},
+    {"SOLINA", {AW_SAW3, 30, 70, 0, 88, 8, 0, 0}, {50, 90, 118, 82}, 0, 0, FX(0, 115, 10, 70), PAT(5),
+     {XP(P_LRATE, 52), XP(P_LD_PIT, 2)}},
+    {"DEEP DRONE", {0, 20, 50, 10, 42, 70, 20, 7}, {100, 90, 127, 110}, 0, 0, FX(10, 40, 30, 95), PAT(5),
+     {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_FLT, 20), XP(P_LD_AMP, 18)}},
 };
 
 static const engine_t ENG_ANALOG = {

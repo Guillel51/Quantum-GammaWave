@@ -934,7 +934,7 @@ static void gen_sound(track_t *t, uint32_t role, uint32_t ri)
     gs.fm6 += e == ENGI_FM6;
     set_engine_of(t, e);
     en = ENGINES[t->eng_req % NENGINES];
-    n = en->npresets;
+    n = gen_npresets(t->eng_req);
     if (!n) return;
     for (i = 0; i < n; i++) {
         const char *pn = en->presets[i].name;

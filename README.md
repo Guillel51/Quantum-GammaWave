@@ -38,7 +38,7 @@
 
 ---
 
-## What's in Pocket GammaWave (`v1.1.1-GW`)
+## What's in Pocket GammaWave (`v1.2-GW`)
 
 - **GammaWave HUD** on the FM-1's 240×240 screen, in the GAMMA palette (default), plus THERMAL and WRAITH palettes:
   - **HOME**: the selected track's filter response curve drawn over a 28-bar audio-reactive spectrum display, the Hearth sun with an orbiting moon, and the T1–T6 track strip.
@@ -101,7 +101,7 @@ Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Españo
 
 ### 1. Eight synthesis engines (no samples)
 - **`ANALOG`**: dual virtual-analog oscillators (`SAW`, `SQR`, `TRI`, `SIN`, `PWM`, `SYNC`, `RING`, `SAW3`, and the dirty sines `TUBE` — GammaWave's Hearth tube curve — and `FOLD` — WRAITH's Blast wavefolder — whose amount is MORPH plus ENV/LFO → SHAPE) with interval (`INT ±24 st`), detune, oscillator mix and noise, through the track filter (`CUT`, `RES`, `DRIVE`).
-- **`FM6`**: 6-operator DX7-style FM (DX7 `.syx` voices load through the Web Studio), the 32 algorithms drawn on screen, per-operator editing on the device (`OPERATOR`, `OP ENV`, `OPERATOR 2`) and a 32-voice user bank (`B1–B32`).
+- **`FM6`**: 6-operator DX7-style FM (DX7 `.syx` voices load through the Web Studio), the 32 algorithms drawn on screen, per-operator editing on the device (`OPERATOR`, `OP ENV`, `OPERATOR 2`) and a 32-voice user bank (`B1–B32`; until you send one, `B1–B11` hold **GW-1 KEYS**, built in: electric pianos, bells, mallets, pads).
 - **`PHASE`**: CZ-style phase distortion with feedback (`FB`), from warm brass to digital growl.
 - **`LOFI`**: 1-bit, 4-bit and 8-bit chip voices plus 32-formula **Bytebeat (`BYTE`)** and **Floatbeat (`FLOAT`)** engines tuned to the keyboard scale.
 - **`VOICE`**: formant voice (`VOWEL`, `VOWEL2`, `TALK`, `SHIFT`, `BUZZ`, `BREATH`) — its EDIT page shows the vowel ribbon.
@@ -143,7 +143,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.1.1-GW build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.2-GW build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -166,6 +166,25 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - The MUTATE jump enters the page properly (sequencer mode and page state follow).
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
+
+### `v1.2-GW` — Ambient & Keys (2026-10-25)
+
+- **21 new presets** for pads, drones, strings and keys (issue #17), on the engines already there: no new engine, and
+  nothing else in the sound changes.
+  - ANALOG: **EVOLVE PAD** (a slow LFO on the filter, each note its own mix: it drifts by itself), **SOLINA** (a
+    string machine: three saws, the ensemble chorus), **DEEP DRONE** (a fifth that breathes);
+  - PHASE: **CRYSTAL PAD** (its brightness swept slowly), **HAZE STRINGS**; VOICE: **SOFT CHOIR**, **ANGEL AIR**;
+    WHEEL: **DRONE ORGAN**; NOISE: **OCEAN**, **DUST HAZE**;
+  - FM6: **SOFT EP**, **REED PIANO**, **FM PIANO**, **GLASS KEYS**, **CRYSTAL BELL**, **KALIMBA**, **VIBES**,
+    **MUSIC BOX**, **WARM PAD**, **GLASS PAD**, **CELESTA**; velocity opens their brightness.
+- **GW-1 KEYS, an FM6 bank built in.** Until you send a bank from the Web Studio, FM6's SLOT **B1–B11** hold these
+  eleven voices (the FM6 presets above play them; the Web Studio's bank list names them). A bank you send replaces it,
+  as before. `web/banks/gw1-keys.syx` is the same bank as a 32-voice file, to edit or to send back.
+- A preset can now set a few more of a sound's values (its LFO, the modulation matrix): that is how the pads move.
+- **The generator does not pick the new presets**: a share code makes the same piece as on v1.1.1. Make a piece, then
+  load them on its tracks with PRESETS.
+- **Fixed on the way:** a preset set to an FM6 bank slot kept the sound before it instead of loading its voice (no
+  factory preset used one until now).
 
 ### `v1.1.1-GW` — from the issues (2026-10-24)
 
