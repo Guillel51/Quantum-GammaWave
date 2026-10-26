@@ -167,9 +167,9 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
 
-### `v1.2.1-GW` — fixes from upstream (2026-10-26)
+### `v1.2.1-GW` — CLEAR PROJECT and fixes from upstream (2026-10-26)
 
-Fixes taken from the firmware Pocket GammaWave is built on ([JIANT](https://github.com/juanjiant-bit/JIANT) 0.7.8 to
+A clear tool from the issues, and fixes taken from the firmware Pocket GammaWave is built on ([JIANT](https://github.com/juanjiant-bit/JIANT) 0.7.8 to
 0.9.18, [Felucca](https://github.com/hugelton/Felucca) after 1.6.1).
 - **No click after a slow block** (JIANT 0.8.9). The audio interrupt acknowledged a half of the buffer only after it
   rendered it, so a render that ran late lost the next half: 2.9 ms of old audio played again, a click (and USB audio
@@ -187,6 +187,9 @@ Fixes taken from the firmware Pocket GammaWave is built on ([JIANT](https://gith
   −7.5 dB at MOD 127): every read stays inside the line.
 - **LFO FREE** (JIANT 0.9.18): its FADE no longer comes back on every note; it fades in once, when a project loads.
 - **A BPM of 0 never divides** (Felucca #282).
+- **SAVE > TOOLS > 7 CLEAR PROJ** (issue #22): frees the current project's sections A–D and empties its song, after a
+  confirm (no UNDO); the music playing stays. Until now a stored section could never be freed, so once A–D were taken
+  the generator's SONG form had nowhere to write.
 - **RAM**: the project staging buffer moved to the pool (JIANT 0.8.4): 3.8 KB of main RAM back for later features.
 
 ### `v1.2-GW` — Ambient & Keys (2026-10-25)

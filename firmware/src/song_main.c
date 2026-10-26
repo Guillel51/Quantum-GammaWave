@@ -286,6 +286,26 @@ static int song_flush(void)
     live.dirty = 0;
     return 0;
 }
+/* (1.2.1-GW, issue #22) SAVE > TOOLS 7 CLEAR PROJECT: the current project's sections A-D free again and its song
+ * empty; the music playing stays. Each stored section's record is marked empty (its header zeroed: project_used, the
+ * generator's SONG form and LOAD read it as free) and written so at the next stop (song_poll), so it stays free after a
+ * power-on (proj_fetch: an empty record). The song's rows and scenes as CLEAR SONG */
+static void project_clear(void)
+{
+    uint32_t k;
+    for (k = 0; k < 4u; k++)
+        if (project_used(k)) {
+            memset(proj_slot[k].raw, 0, 4);
+            live.dirty |= (uint8_t)(1u << k);
+        }
+    chain_defaults(&chain_config);
+    memset(song_idx.scene[song_cur], 0, sizeof song_idx.scene[song_cur]);
+    song_idx_touch();
+    dice_secs = 0;
+    live.cur = -1;
+    live.mode = 0;                                      /* (PLAY: the music, no song of sections) */
+    proj_cur = PROJ_NO_SLOT;
+}
 /* (JIANT) the index changed outside the rows (a scene): into flash as the rows go (song_poll) */
 static void song_idx_touch(void)
 {

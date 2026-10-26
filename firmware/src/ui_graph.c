@@ -1648,11 +1648,14 @@ static void graph_events(void)
  * PRESETS, 0.6.25: was a knob each) filled; OCT+ does it (a dialog first) */
 static void graph_tools(void)
 {
-    static const char *const WHAT[6] = {"CLEAR SEQ", "INIT SOUND", "DELETE ROW", "CLEAR SONG", "NEW PROJECT", "CPU TEST"};
-    static const char *const ON[6] = {"STEPS + AUTO", "ENGINE DEFAULT", "", "ALL ROWS", "EVERYTHING", "HEAVY SONG"};
+    static const char *const WHAT[7] = {"CLEAR SEQ", "INIT SOUND", "DELETE ROW", "CLEAR SONG", "NEW PROJECT", "CPU TEST",
+                                        "CLEAR PROJ"};
+    static const char *const ON[7] = {"STEPS + AUTO", "ENGINE DEFAULT", "", "ALL ROWS", "EVERYTHING", "HEAVY SONG",
+                                      "SECTIONS A-D"};
     uint32_t c;
     char b[24];
-    for (c = 0; c < 6u; c++) {
+    for (c = 0; c < 7u; c++) {                          /* (1.2.1-GW, issue #22: 7, CLEAR PROJECT; the list fills the
+                                                         * panel, OCT+'s action in the footer as before) */
         int32_t y = LIST_Y(c);
         int sel = ui.act == c + 1u;
         uint16_t bg = sel ? T_THEME : T_SURF;
@@ -1666,7 +1669,6 @@ static void graph_tools(void)
             cv_text_r(226, y + CAP_IN(S, 16), &AF_S, ON[c], sel ? T_INK : T_DIM, bg);
         }
     }
-    note_line(LIST_Y(6), ui.act ? "[OCT+] DO IT" : "TURN [K1] TO PICK", ui.act ? T_ACCENT : T_DIM);
 }
 /* (0.6.12) SAVE > PROJECT: the project (one of NSONG: a song of storage.c) and its four sections. A title line
  * (PROJECT n, the section the music came from or went to), the sections A-D (name, USED or --; the one picked filled;
