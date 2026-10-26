@@ -1607,6 +1607,11 @@ static void confirm_text(char *a, char *b)
     case CF_CLEAR_SONG:
         str_cpy(a, "CLEAR SONG ORDER?", 24);
         break;
+    case CF_CLEAR_PROJ:                              /* (1.2.1-GW, issue #22) SAVE > TOOLS 7 */
+        str_cpy(a, "CLEAR PROJECT 1?", 24);
+        a[14] = (char)('1' + song_cur % 9u);
+        str_cpy(b, "A-D + SONG. NO UNDO", 24);
+        break;
     case CF_INIT_SOUND:
         str_cpy(a, drum_track(TSEL) ? "INIT SOUND + KIT?" : "INITIALIZE SOUND?", 24);
         break;

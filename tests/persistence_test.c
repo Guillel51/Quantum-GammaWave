@@ -487,6 +487,68 @@ static int songs_test(void)
     return bad;
 }
 
+/* (1.2.1-GW, issue #22) SAVE > TOOLS 7 CLEAR PROJECT against the flash: the sections stay free after a power-off; while
+ * playing the flash waits for the stop; another project's sections untouched */
+static void clr_power_on(void)
+{
+    uint32_t i;
+    memset(proj_slot, 0, sizeof proj_slot);             /* a power-off: RAM lost */
+    song_cur = 0;
+    chain_defaults(&chain_config);
+    song_index_load();
+    for (i = 0; i < 4u; i++)
+        proj_fetch(i);
+    song_index_boot();
+}
+static int clear_test(void)
+{
+    int bad = 0, ok;
+    uint32_t k, used;
+    reset();
+    song_cur = 0;
+    song_index_load();
+    song_index_boot();
+    ok = song_select(1) == 0;                           /* project 2: A, B, D stored, a song of two rows */
+    for (k = 0; k < 4u; k++)
+        if (k != 2u) { trk[0].p[P_SLEN] = (int16_t)(4 + k); section_store(k); }
+    chain_config.count = 2;
+    chain_config.row[0] = (chain_row_t){0, 4};
+    chain_config.row[1] = (chain_row_t){3, 8};
+    song_poll();
+    fm1_ms += 3000u;
+    song_poll();
+    ok &= song_select(0) == 0 && project_save(1) == 0 && song_select(1) == 0;   /* (project 1: B stored) */
+    ok &= project_used(0) && project_used(1) && !project_used(2) && project_used(3) && chain_config.count == 2u;
+    bad += check("clear: project 2 with sections A B D and two song rows, project 1 with B", ok);
+    trk[0].p[P_SLEN] = 9;
+    song.playing = 1;                                   /* CLEAR PROJECT while playing: RAM at once, flash at the stop */
+    project_clear();
+    song_poll();
+    for (k = 0, used = 0; k < 4u; k++) used |= (uint32_t)project_used(k) << k;
+    ok = !used && chain_config.count == 0u && live.dirty == 0x0Bu && trk[0].p[P_SLEN] == 9 &&
+         st_load(OBJ_SONG1 + 0, &proj_wire, sizeof proj_wire) > 0;
+    bad += check("clear: sections free and the song empty at once, the flash written once stopped, the music kept", ok);
+    song.playing = 0;
+    song_poll();
+    fm1_ms += 3000u;
+    song_poll();
+    ok = !live.dirty;
+    clr_power_on();
+    for (k = 0, used = 0; k < 4u; k++) used |= (uint32_t)project_used(k) << k;
+    ok &= song_cur == 1 && !used && chain_config.count == 0u;
+    bad += check("clear: after a power-off, project 2's sections still free and its song empty", ok);
+    ok = song_select(0) == 0 && project_used(1) && !project_used(0);
+    bad += check("clear: project 1's sections untouched", ok);
+    ok = song_select(1) == 0;
+    trk[0].p[P_SLEN] = 11;
+    section_store(2);                                   /* stored again after the clear: as any section */
+    song_poll();
+    clr_power_on();
+    ok &= project_used(2) && !project_used(0);
+    bad += check("clear: a section stored after it is kept over a power-off", ok);
+    return bad;
+}
+
 int main(void)
 {
     int bad = 0, ok;
@@ -765,6 +827,7 @@ int main(void)
     bad += mig_test();
     bad += autosave_test();
     bad += songs_test();
+    bad += clear_test();
     printf("%s\n", bad ? "PERSISTENCE TEST FAILED" : "persistence test passed");
     return bad != 0;
 }

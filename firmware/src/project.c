@@ -1290,7 +1290,7 @@ static uint32_t proj_obj(uint32_t slot)
 static union {                               /* serialized main-loop work; no retained expansion */
     project_store_t s;
     uint8_t raw[3840];                         /* (the staging of a backup object, up to a storage object: editor_backup.c) */
-} proj_wire_u;
+} proj_wire_u __attribute__((section(".pool")));   /* (1.2.1-GW, JIANT 0.8.4: in the pool, was .bss; main loop only) */
 #define proj_wire (proj_wire_u.s)
 static uint8_t proj_wire_gen;                /* +1 whenever proj_wire is rewritten (a backup's runtime copy lives there) */
 
@@ -1547,6 +1547,8 @@ static void fg_load(const project_t *p)
             fg_set[a][h].ivl = (int8_t)clamp((int32_t)(int8_t)p->fugue[a][h][1], -14, 14);
         }
 }
+static uint8_t proj_lfo_keep;                          /* (1.2.1-GW) song_main.c section_load (a song's next section),
+                                                         * undo_do: the music going on, the LFOs' FADE not again */
 static int project_restore_runtime(const project_t *input)
 {
     project_t *p = &proj_scratch;
@@ -1605,6 +1607,8 @@ static int project_restore_runtime(const project_t *input)
         }
     }
     song.sel = (uint8_t)(p->sel < NTRK ? p->sel : 0u);
+    if (!proj_lfo_keep)
+        lfo_fade_restart((1u << NTRK) - 1u);            /* (1.2.1-GW) the LFOs' FADE from 0 (FREE: only now) */
     fm1_irq_on();
     proj_name_get(proj_name, (const uint8_t *)p->name);
     proj_cur = PROJ_NO_SLOT;                            /* (project_load: its slot) */
@@ -1844,8 +1848,14 @@ static int undo_do(void)                                /* 0: done */
     if (!proj_pack(&undo_st[1], &proj_scratch) || !proj_import(&proj_scratch, &undo_st[0], sizeof undo_st[0]))
         return 1;
     str_cpy(name, proj_name, sizeof name);
-    if (project_restore_runtime(&proj_scratch))
-        return 1;
+    {
+        int rc;
+        proj_lfo_keep = 1;                              /* (1.2.1-GW: it plays on, FREE LFOs not faded again) */
+        rc = project_restore_runtime(&proj_scratch);
+        proj_lfo_keep = 0;
+        if (rc)
+            return 1;
+    }
     proj_cur = cur;                                     /* (the project's slot and name stay) */
     str_cpy(proj_name, name, sizeof proj_name);
     undo_st[0] = undo_st[1];                            /* (UNDO again: what it replaced) */

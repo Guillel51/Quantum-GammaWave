@@ -36,7 +36,8 @@
  * presets read and write t->p from the main loop, which the ISR preempts; TIMER5 only fills the MIDI rings),
  * and the engines read t->p as before. An engine reads its parameters in note_on (events_block) unmodulated.
  * Nothing active (every slot with SRC, DST or AMT at 0): no work, and the sound is bit-identical. */
-enum { MS_OFF, MS_LFO, MS_ENV, MS_VEL, MS_KEY, MS_RAND, MS_MODW, MS_AT, MS_EXPR, MS_M1, MS_STEP = MS_M1 + 4, MS_N };
+enum { MS_OFF, MS_LFO, MS_ENV, MS_VEL, MS_KEY, MS_RAND, MS_MODW, MS_AT, MS_EXPR, MS_M1, MS_STEP = MS_M1 + 4, MS_NOISE,
+       MS_N };   /* (1.2.1-GW, JIANT 0.7.8) NOISE: appended, the stored numbers stay */
 static uint32_t div_samples(uint32_t div);   /* fx.c */
 #define CLK_START 0xFFFFFFFFu
 static uint32_t clk_pos = CLK_START, clk_step;  /* (seq.c click_tick) samples into the transport's 1/16 step, the step of
@@ -51,7 +52,7 @@ _Static_assert(NELEM(N_MSRC) == MS_N && NELEM(N_MDST) == MD_N, "N_MSRC / N_MDST 
 _Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11 && P_M4AMT + 1 == P_FM1_ATK, "matrix slots: 3 ids each");
 #define NMSLOT 4u
 #define MS_VOICE(s) ((s) >= MS_ENV && (s) <= MS_RAND)             /* a value per voice */
-#define MS_BIPOLAR(s) ((s) == MS_LFO || (s) == MS_KEY || (s) == MS_RAND)
+#define MS_BIPOLAR(s) ((s) == MS_LFO || (s) == MS_KEY || (s) == MS_RAND || (s) == MS_NOISE)
 
 /* the track parameter of a per-block destination */
 static uint32_t mod_param(uint32_t d)
@@ -85,6 +86,21 @@ static int16_t mod_rand(void)    /* RAND of a note-on: xorshift32, bipolar */
 
 static int32_t mod_key(uint32_t note) { return clamp(((int32_t)note - 60) * 512, -32767, 32767); }
 
+/* (1.2.1-GW, JIANT 0.7.8) a smooth value noise, -32768..32767: a new random point every len steps of clk, eased between
+ * (smoothstep); seed picks the stream. No state: NOISE's per track (mod_tsrc) */
+static int32_t mod_noise(uint32_t seed, uint32_t clk, uint32_t len)
+{
+    uint32_t k = clk / len, f = (clk % len) * 256u / len, a = (seed + k) * 2654435761u, b = (seed + k + 1u) * 2654435761u;
+    int32_t ya, yb;
+    a ^= a >> 15; a *= 2246822519u; a ^= a >> 13;
+    b ^= b >> 15; b *= 2246822519u; b ^= b >> 13;
+    ya = (int32_t)(a >> 16) - 32768;
+    yb = (int32_t)(b >> 16) - 32768;
+    f = f * f * (768u - 2u * f) >> 16;                  /* smoothstep, 0..256 */
+    return ya + (((yb - ya) * (int32_t)f) >> 8);
+}
+static uint32_t mns_clk;                                 /* NOISE's clock: audio blocks (macro_master) */
+
 /* source s of the track: the per-track ones, the per-voice ones of the latest note-on */
 static int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
 {
@@ -107,6 +123,9 @@ static int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
         return (127 - t->ex_off) * 258;
     case MS_STEP:
         return t->ms_v;
+    case MS_NOISE:                                      /* (1.2.1-GW, JIANT 0.7.8) a random wander, a new point every
+                                                         * ~46 ms, eased: a smooth random LFO, each track its own */
+        return mod_noise((uint32_t)(t - trk) * 7919u + 0x1234u, mns_clk, 64u);
     default:
         return macro_v[(s - MS_M1) & 3u] * 258;
     }
@@ -220,6 +239,7 @@ static __attribute__((noinline)) void macro_master(void)
 {
     int32_t off[2] = {0, 0};
     uint32_t i, k;
+    mns_clk++;                                          /* (1.2.1-GW) NOISE's clock: a block */
     for (i = 0; i < NTRK; i++) {
         const track_t *t = &trk[i];
         for (k = 0; k < NMSLOT; k++) {

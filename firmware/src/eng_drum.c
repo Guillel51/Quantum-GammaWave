@@ -254,13 +254,27 @@ static int32_t drum_amp(track_t *t, voice_t *v, int32_t adsr)
 #define DXS_BUS(s) ((uint32_t)(s) >> 6)                  /* 0 none, 1 CHORUS, 2 DELAY, 3 REVERB */
 #define DXS_AMT(s) ((int32_t)(s) & 63)                   /* 0..63 */
 static uint8_t dx_snd[DV_NLANE];
-static int32_t dx_sl[CTL], dx_sr[CTL], dx_sb[3][CTL];
-static int8_t dx_lpan[DV_NLANE];                         /* this block's pans, -64 (left) .. 64, at its end */
-static int8_t dx_lpan0[DV_NLANE];                        /* (0.6.81) .. and at its start: each ramped across the block */
+/* (1.2.1-GW, JIANT 0.7.8) a core's own (mod.c's mod_c the same way): the two cores render two parts at once (fx.c
+ * mix_block), and with one set the other core's part cleared dx_xon (voice.c track_render) and the sides mid-render: the
+ * image on and off block by block (a grit at the block rate, like a downsampling) and clicks on the side a sound leaned
+ * to. A core renders its parts one after another, so one set a core is enough */
+typedef struct {
+    int32_t sl[CTL], sr[CTL], sb[3][CTL];                /* what each side gives up; each bus's feed */
+    int8_t lpan[DV_NLANE];                               /* this block's pans, -64 (left) .. 64, at its end */
+    int8_t lpan0[DV_NLANE];                              /* (0.6.81) .. and at its start: each ramped across the block */
+    uint8_t xon;                                         /* this part's render: bit 0 the image, bits 1..3 a bus fed */
+} dx_core_t;
+static dx_core_t dx_core[2];
+#define DXC (dx_core[MC_CPU() & 1u])
+#define dx_sl (DXC.sl)
+#define dx_sr (DXC.sr)
+#define dx_sb (DXC.sb)
+#define dx_lpan (DXC.lpan)
+#define dx_lpan0 (DXC.lpan0)
+#define dx_xon (DXC.xon)
 static int8_t dx_pcur[NTRK][DV_NLANE];                   /* (0.6.81) each part's pans as they are, slewed toward the
                                                           * knob's: a turn of IMAGE jumped a sound across (a click) */
 #define DX_PSLEW 2                                       /* (a pan's step a block at most: across in ~45 ms) */
-static uint8_t dx_xon;                                   /* this part's render: bit 0 the image, bits 1..3 a bus fed */
 /* IMAGE img 1..127 -> lane l's pan, -64..64: each sound on a sine of its own rate over the knob (1 to 9 turns), so a
  * sweep goes through the kit's placings one after another, every one coming back at the same value; the first 16 open
  * it from the middle; the kick a quarter as far (the low end stays centred) */
@@ -347,11 +361,12 @@ static __attribute__((noinline)) void drum_side_ramp(int32_t *y, int32_t *out, u
 {
     uint32_t i;
     int32_t gl = g[0] << CTL_LOG2, dgl = g[1] - g[0], gr = g[2] << CTL_LOG2, dgr = g[3] - g[2];   /* (Q6 + CTL_LOG2) */
+    int32_t *sl = dx_sl, *sr = dx_sr;                    /* (this core's) */
     for (i = 0; i < n; i++, gl += dgl, gr += dgr) {
         int32_t s = y[i], o = voice_amp(s + (s >> 2), m, i) << 1;
         out[i] += o;
-        dx_sl[i] += (o * gl) >> (6 + CTL_LOG2);
-        dx_sr[i] += (o * gr) >> (6 + CTL_LOG2);
+        sl[i] += (o * gl) >> (6 + CTL_LOG2);
+        sr[i] += (o * gr) >> (6 + CTL_LOG2);
         d2[i] += (o * a) >> 6;
     }
 }
@@ -455,18 +470,29 @@ static void drum_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
  * and the knee (were each hit's: eight lanes, two curves a sample each; now the bus's, a glue) */
 static __attribute__((noinline)) void drum_bus(const track_t *t, int32_t *out, uint32_t n)
 {
-    int32_t drv = t->p[P_E7], g = 0, mk = 0;
-    uint32_t i;
+    int32_t drv = t->p[P_E7], g = 0, mk = 0, k = 4096, *sl = dx_sl, *sr = dx_sr;
+    uint32_t i, side = (dx_xon & 1u) != 0u;
     if (drv > 0) {
         g = 4096 + drv * 3 * 4096 / 127;
         mk = (int32_t)((19661u << 15) / (uint32_t)softclip((19661 * g) >> 12));
+        k = (g * mk) >> 15;                              /* (the curve's slope at 0: a quiet sum's gain) */
     }
     for (i = 0; i < n; i++) {
-        int32_t s = out[i] >> 1;
+        int32_t s = out[i] >> 1, y = s;
         if (g)                                           /* (0.6.19: s held to +-131071: s * g fits; several loud hits
                                                          * at once with DRV high wrapped it: a full-scale click) */
-            s = (softclip((clamp(s, -131071, 131071) * g) >> 12) * mk) >> 15;
-        out[i] = soft_knee(s, 24000) << 1;
+            y = (softclip((clamp(s, -131071, 131071) * g) >> 12) * mk) >> 15;
+        y = soft_knee(y, 24000);
+        out[i] = y << 1;
+        if (side) {                                      /* (1.2.1-GW, JIANT 0.7.8) IMAGE: what each side gives up
+                                                         * through the same gain the curve gave the sum here (it was
+                                                         * taken raw from the squashed sum: a loud hit's side
+                                                         * over-taken, clicks and grit on the side it leaned to) */
+            if (s > 256 || s < -256)
+                k = clamp((y << 12) / s, 0, 16384);      /* (y within +-41000: y << 12 fits 32 bits) */
+            sl[i] = ((sl[i] >> 2) * k) >> 10;
+            sr[i] = ((sr[i] >> 2) * k) >> 10;
+        }
     }
 }
 

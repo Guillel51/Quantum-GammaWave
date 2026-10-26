@@ -233,7 +233,7 @@ static struct {
 enum { CF_NONE, CF_CLEAR_SEQ, CF_CLEAR_TRK, CF_OVR_PROJ, CF_OVR_USER, CF_LOAD_PAT,
        CF_DEL_ROW, CF_CLEAR_SONG, CF_INIT_SOUND, CF_CLEAR_MOTION, CF_ERASE_USER,
        CF_RECALL_SOUND, CF_CLEAR_ALL, CF_DICE_ALL, CF_INIT_SYS, CF_DICE_SOUND, CF_DICE_SEQ, CF_DICE_LFO,
-       CF_DICE_FX, CF_CPU_TEST };   /* ui.confirm: TOOLS' clears; (0.6.21) HOME + SELECT:
+       CF_DICE_FX, CF_CPU_TEST, CF_CLEAR_PROJ };   /* ui.confirm: TOOLS' clears (1.2.1-GW: CLEAR PROJECT); (0.6.21) HOME + SELECT:
                                    * everything diced; (0.6.65) EDIT + SELECT: keep the diced sound?; (0.6.67) SEQ / LFO / FX + SELECT:
                                    * keep the diced sequence / LFO / effects?;
                                    * SAVE over a used slot; a pattern over the user's steps;
@@ -1469,8 +1469,9 @@ static const char *act_name(uint32_t c)          /* column c's action (the foote
     if (cur_page()->graph == GR_EVENTS) return ev_act_name();
     if (cur_page()->graph == GR_SHAPE) return c ? "REPEAT" : "STRETCH";
     if (cur_page()->graph == GR_TOOLS) {
-        static const char *const actions[] = {"CLEAR", "INIT", "DELETE", "CLEAR", "INIT"};
-        return actions[c < 5u ? c : 4u];
+        static const char *const actions[] = {"CLEAR", "INIT", "DELETE", "CLEAR", "INIT", "INIT", "CLEAR"};   /* (1.2.1-GW:
+                                                         * 7 CLEAR PROJECT) */
+        return actions[c < 7u ? c : 4u];
     }
     if (cur_page()->graph == GR_SONG)
         return song.playing || chain_busy() ? "STOP" : "PLAY";
@@ -1491,9 +1492,12 @@ static int act_ready(void)
     if (cur_page()->graph == GR_MOTION) return !chain_busy() && motion_count(TSEL);
     if (cur_page()->graph == GR_EVENTS) return ev_act_ready();
     if (cur_page()->graph == GR_SHAPE) return !chain_busy() && c < 2u;
-    if (cur_page()->graph == GR_TOOLS)                  /* one case per column: CLEAR PAT, INIT, DELETE ROW, CLEAR SONG */
-        return !chain_busy() && (c == 0u ? !seq_is_empty(TSEL) || motion_count(TSEL) : c == 1u || c >= 4u ? 1 :
-                                 c == 2u ? ui.song_row < chain_config.count : chain_config.count != 0u);
+    if (cur_page()->graph == GR_TOOLS)                  /* one case per column: CLEAR PAT, INIT, DELETE ROW, CLEAR SONG,
+                                                         * (1.2.1-GW) CLEAR PROJECT: a section stored or a song */
+        return !chain_busy() && (c == 0u ? !seq_is_empty(TSEL) || motion_count(TSEL) :
+                                 c == 6u ? project_used(0) || project_used(1) || project_used(2) || project_used(3) ||
+                                           chain_config.count != 0u :
+                                 c == 1u || c >= 4u ? 1 : c == 2u ? ui.song_row < chain_config.count : chain_config.count != 0u);
     if (cur_page()->graph == GR_SONG)
         return song.playing || chain_busy() || chain_config.count;
     if (cur_page()->graph == GR_PATS)

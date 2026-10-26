@@ -42,7 +42,8 @@ static const char *const N_APSYNC[] = {"FREE", "BEAT"};                  /* (JIA
 static const char *const N_APDIV[] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8", "1/16", "1/32"};   /* .. BEAT (fx.c AP_SIXT) */
 /* modulation matrix (mod.c): sources, destinations (E1..E8 = P_E0..P_E7: shown with the engine's labels) */
 static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR",
-                                     "M1", "M2", "M3", "M4", "STEP"};   /* (JIANT: the macros, LFO held; the modulation sequence) */
+                                     "M1", "M2", "M3", "M4", "STEP", "NOISE"};   /* (JIANT: the macros, LFO held; the modulation
+                                                         * sequence; 1.2.1-GW, JIANT 0.7.8: a smooth random wander) */
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
                                      "CLIP", "PNCH"};   /* (JIANT: the master, FX > MASTER) */

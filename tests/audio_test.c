@@ -23,7 +23,8 @@ void isr_alnk0(void) {}
 static int32_t host_tap[2 * 64];
 static uint32_t host_tap_n;
 static void uac_tap(const int32_t *out, uint32_t n) { memcpy(host_tap, out, 8u * n); host_tap_n = n; }
-static void uac_render_start(void) {}
+static uint32_t host_acks_at_start;
+static void uac_render_start(void) { host_acks_at_start = host_acks; }   /* (just before the blocks) */
 #include "../firmware/src/audio.c"
 enum { FM1_ADC_BATT = 3, FM1_ADC_MASTER = 4 };
 static int32_t host_pot = 1023;                        /* the MASTER pot as the ADC reads it (-1: timeout) */
@@ -132,6 +133,17 @@ static void dma(void)
     host_half_reads = 0; host_dma_advanced = 1; host_us = 100;
     fm1_alnk0_irq();
     check("DMA advancing during a render is counted once", host_acks == 3u && felucca_dbg.late == 1u && !felucca_dbg.in_audio && !shed_req);
+    check("(1.2.1-GW) the half is acknowledged before it renders: a flip during a late render stays pending",
+          host_acks_at_start == host_acks && host_acks_at_start == 3u);
+    {   /* the free half alternates: none lost; the same half twice in a row: the one between was never rendered */
+        uint32_t lost0;
+        audio_last_half = 2u; audio_lost = 0;
+        host_dma_advanced = 0;                          /* (free half 0 each time) */
+        fm1_alnk0_irq();
+        lost0 = audio_lost;
+        fm1_alnk0_irq();
+        check("(1.2.1-GW) the same free half twice in a row counts a lost half (audio_lost)", audio_lost == lost0 + 1u);
+    }
     fresh();
     expected = HALF_FRAMES * 1000000u / FS;            /* the half's deadline in us */
     host_us = expected * 90u / 100u; host_nest = expected * 30u / 100u;   /* the render 60 %, TIMER5 nested 30 % */
@@ -273,9 +285,30 @@ static void boot_keys(void)
           ref > 100.0 && fabs(quiet - ref) < 1e-9 && silent == 0.0);
 }
 
+/* (1.2.1-GW) the delay's reads stay inside its line: the longest TIME, MOD's drift at 127 at its peak, the Hermite's
+ * two older taps (past the line's length the read wrapped onto the newest samples: the input in the wet) */
+static void delay_edge(void)
+{
+    uint32_t g, b, worst = 0;
+    int32_t m0, dm, mmax = 0;
+    for (g = 0; g < 256u; g++) {
+        song.g[G_DTIME] = (int16_t)g;
+        if (delay_samples() > worst) worst = delay_samples();
+    }
+    song.g[G_DMOD] = 127;
+    for (b = 0; b < 20000u; b++) {
+        dly_wow_adv(CTL, &m0, &dm);
+        if (m0 > mmax) mmax = m0;
+    }
+    check("(1.2.1-GW) the delay's farthest read (longest TIME, MOD 127's drift, two older taps) inside its line",
+          worst + (uint32_t)((mmax + 255) >> 8) + 2u <= DLY_LEN - 1u && mmax > 1000);
+    song.g[G_DMOD] = 20;
+    song.g[G_DTIME] = GP[G_DTIME].def;
+}
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
+    delay_edge();
     usb_level();
     boot_keys();
     overload(); dma();

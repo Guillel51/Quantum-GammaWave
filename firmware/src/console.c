@@ -200,6 +200,7 @@ static void con_status(void)
     con_kv("audio_max_us", (int32_t)felucca_dbg.max_us);
     con_kv("audio_late", (int32_t)felucca_dbg.late);
     con_kv("voices_shed", (int32_t)shed_count);
+    con_kv("audio_lost", (int32_t)audio_lost);         /* (1.2.1-GW) halves never rendered (a click each): a render > ~2 halves */
     con_kv("voices_given_up", (int32_t)voice_kills);
     con_puts("cpu2 ");                                  /* (0.6.72) the second core (fx.c mc_status) */
     con_puts(mc_status());

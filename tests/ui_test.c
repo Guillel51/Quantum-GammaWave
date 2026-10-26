@@ -844,6 +844,23 @@ static int test_dximg(void)
     ok &= dx_snd[2] == (2u << 6 | 40u) && !dx_snd[0];
     bad += check("DRUM SEND: kept with the project (FUNC 'D' 'S')", ok);
     memset(dx_snd, 0, sizeof dx_snd);
+    {   /* (1.2.1-GW, JIANT 0.7.8) the two cores: the other core's part starting (voice.c track_render clears dx_xon)
+         * leaves this core's DRUM part's image and sides as they were (they were one set: the image on and off block
+         * by block, clicks) */
+        uint8_t keep_cpu = mc_host_cpu;
+        memset(dx_core, 0, sizeof dx_core);
+        mc_host_cpu = 0;
+        dx_xon = 1;
+        dx_sl[3] = 1234;
+        mc_host_cpu = 1;
+        dx_xon = 0;                                     /* the other core: a part that is not DRUM */
+        dx_sl[3] = 0;
+        mc_host_cpu = 0;
+        bad += check("DRUM IMAGE: each core its own image and sides (the other core's part leaves them)",
+                     (dx_xon & 1u) && dx_sl[3] == 1234);
+        mc_host_cpu = keep_cpu;
+        memset(dx_core, 0, sizeof dx_core);
+    }
     ui_power_on();
     return bad;
 }
@@ -1434,6 +1451,36 @@ static int test_init_system(void)
         ok2 = !undo_do() && steps_sig(&trk[0]) == sig0 && song.g[G_BPM] == 97;
         bad += check("  UNDO after CPU TEST: the music back", ok2);
         song.g[G_BPM] = GP[G_BPM].def;
+    }
+    {   /* (1.2.1-GW, issue #22) TOOLS 7 CLEAR PROJECT: the project's sections A-D free again and its song empty (they
+         * stayed taken for good: the generator's SONG form keeps a section of yours), the music playing kept */
+        uint32_t k, ok2, sig0, used = 0;
+        for (k = 0; k < 4u; k++) memset(proj_slot[k].raw, 0, 4);
+        chain_defaults(&chain_config);
+        go_title("TOOLS"); tools_pick(7); press(B_OCTUP);
+        ok2 = !ui.confirm && msg_is("NOTHING TO CLEAR");
+        trk[0].step[2] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+        sig0 = steps_sig(&trk[0]);
+        section_store(0);
+        section_store(2);
+        chain_config.count = 1; chain_config.row[0].slot = 2; chain_config.row[0].bars = 4;
+        ok2 &= project_used(0) && project_used(2) && !project_used(1);
+        go_title("TOOLS"); tools_pick(7); press(B_OCTUP);
+        ok2 &= ui.confirm == CF_CLEAR_PROJ;
+        press(B_OCTUP);
+        for (k = 0; k < 4u; k++) used |= (uint32_t)project_used(k) << k;
+        ok2 &= !ui.confirm && msg_is("PROJECT CLEARED") && !used && chain_config.count == 0u && live.cur < 0 &&
+               steps_sig(&trk[0]) == sig0;
+        bad += check("TOOLS 7 CLEAR PROJECT: its dialog; sections A-D free, the song empty, the music kept", ok2);
+        confirm_open(CF_DICE_ALL, song.sel); gen_open(); gp.open_ms = 0;
+        gp.genre = 1; gp.seed = 77; gp.form = 2; gp.energy = 60;
+        gen_make();
+        ok2 = project_used(0) && project_used(1);
+        bad += check("  .. the generator's SONG form fills the freed sections again", ok2);
+        ui.confirm = 0; ui.force = 1;                  /* (the GENERATOR closed) */
+        project_clear();                                /* (the song mode, the sections: as before) */
+        gp.form = 0;
+        go_home();
     }
     return bad;
 }

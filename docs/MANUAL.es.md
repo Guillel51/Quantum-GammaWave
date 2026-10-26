@@ -1,11 +1,11 @@
 # POCKET GAMMAWAVE (GW-1) — Manual de Usuario
 
-**Firmware v1.2-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.2.1-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
 
 > *English version: [MANUAL.md](MANUAL.md).*
 
 Este manual es para músicos que acaban de instalar Pocket GammaWave (GW-1) y quieren saber cómo tocarlo, cómo armar temas con él
-y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.2-GW: cada
+y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.2.1-GW: cada
 botón, perilla y mensaje aparece nombrado exactamente como lo muestra el equipo.
 
 Si vas a leer un solo capítulo, leé [12. Guardar y cargar](#12-guardar-y-cargar). Lo que GW-1 agrega al firmware
@@ -278,7 +278,7 @@ a la derecha); apretá OCT+ para ejecutarla.
 | USER | SLOT (U01–U32) | LOAD (acción) | ERASE (acción) | SAVE (acción) |
 | PROJECT | PROJ (1–8) | SECT (A–D) | LOAD (acción) | SAVE (acción) |
 | ARRANGE | ROW | SECT (en END: STOP / x2–x8 / LOOP) | BARS | SCENE |
-| TOOLS | cualquier perilla o PRESETS elige de la lista: CLEAR SEQ, INIT SOUND, DELETE ROW, CLEAR SONG, NEW PROJECT, CPU TEST | | | |
+| TOOLS | cualquier perilla o PRESETS elige de la lista: CLEAR SEQ, INIT SOUND, DELETE ROW, CLEAR SONG, NEW PROJECT, CPU TEST, CLEAR PROJ | | | |
 
 **ARP** (por pista)
 
@@ -726,6 +726,7 @@ las notas sonando después de soltarlas; el acorde siguiente las reemplaza.
 | Los pasos y la automatización de las seis pistas, y el carril de punch-in | **SEQ mantenido + REC**, después OCT+ |
 | **Todo** (NEW PROJECT): cada pista con el sonido por defecto de su motor (seco, FM6 con la voz init), sin pasos ni automatización; mezcla, efectos, tempo y SLICER por defecto; el arreglo vacío, las macros en 0, el kit DRUM-X de fábrica. Quedan los proyectos guardados, los presets de usuario, el MENU, CLOCK, TUNE y MIDI | **MENU > SYSTEM > INIT SYSTEM** o **SAVE > TOOLS > 5 NEW PROJECT**, después OCT+ (UNDO devuelve la música) |
 | *(no borra)* Una canción de prueba pesada, para medir la CPU en el equipo y escuchar si hay clics (cada pista viva con acordes de cuatro notas, dos componentes por paso y glides largos, el kit con todos los carriles, todos los FX, 160 BPM) | **SAVE > TOOLS > 6 CPU TEST**, OCT+, después PLAY (UNDO devuelve tu música) |
+| **Las secciones guardadas A–D del proyecto y su canción** (CLEAR PROJECT, 1.2.1-GW): las secciones quedan libres, LOAD las muestra vacías y la forma SONG del GENERATOR puede llenarlas; la música que suena se queda. Sin UNDO | **SAVE > TOOLS > 7 CLEAR PROJ**, después OCT+ |
 | Solo la automatización de una parte en la pista seleccionada | **REC mantenido + FX / EDIT / ENV / LFO / SCL / ARP / GLO** |
 | La automatización de la pista, conservando los pasos | SEQ TOOLS **F4 CLR AUTO**, o SEQ > AUTOMATION > CLEAR |
 
@@ -1135,7 +1136,7 @@ según el tipo:
 | **SPRING** | Tanque de resortes de amplificador | DAMP | PRE |
 | **SHIMR** (shimmer) | Sube una octava en cada pasada | DAMP | **AIR** (±24 st: más oscuro y grave / más aireado y agudo) |
 | **RESO** | Cuatro cuerdas afinadas a la escala del tema | **FOLLOW** (OFF / T1–T6: el acorde sigue la nota más grave que toca esa pista) | **PITCH** (el acorde 0–14 grados hacia arriba en la escala) |
-| **CLOUD** | Nube granular; SIZE al máximo la congela | DAMP | **AIR** |
+| **CLOUD** | Nube granular; SIZE al máximo la congela (desde el silencio primero toma ~0,7 s de sonido) | DAMP | **AIR** |
 
 **REVERB 2**: **MOD** (profundidad de modulación), **RATE**, **FILT** (tono de entrada: más oscuro / más brillante;
 0.6.86 resonante, una banda en el corte para tallar el lugar del espacio), **WIDE**.
@@ -1165,9 +1166,11 @@ ancho). Se oculta con LOAD ECO (la tarjeta de envío de chorus de una pista dice
     1/4, 1/8D, 1/4T, 1/8, 1/8T, 1/16, 1/16T, 1/32), enganchado al compás mientras el transporte toca (PHASE es su
     desfase).
   - **PHASE** es dónde reinicia el LFO una frase nueva; girándolo a la izquierda pasado 0 queda en **FREE**: nunca se
-    reinicia, corre libre.
+    reinicia, corre libre. En FREE, **FADE** entra una vez (al cargar el proyecto), no de nuevo en cada nota.
 - **Matriz MOD**: 4 slots por pista (KNOB 1 elige el slot).
-  - Fuentes: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ).
+  - Fuentes: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ),
+    **NOISE** (1.2.1-GW: un LFO aleatorio suave, un vagar propio de cada pista, un valor nuevo cada ~46 ms con transición
+    suave; RAND en cambio sortea un valor por nota).
   - Destinos: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (velocidad del LFO), VIB, **E1–E8** (las perillas
     EDIT propias del motor, mostradas por nombre), **CLIP** y **PNCH** (el master).
 - **MSEQ**: un secuenciador de modulación de 16 pasos por pista, como un secuenciador de CV. KNOB 1 elige el paso,

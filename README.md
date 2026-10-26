@@ -38,7 +38,7 @@
 
 ---
 
-## What's in Pocket GammaWave (`v1.2-GW`)
+## What's in Pocket GammaWave (`v1.2.1-GW`)
 
 - **GammaWave HUD** on the FM-1's 240×240 screen, in the GAMMA palette (default), plus THERMAL and WRAITH palettes:
   - **HOME**: the selected track's filter response curve drawn over a 28-bar audio-reactive spectrum display, the Hearth sun with an orbiting moon, and the T1–T6 track strip.
@@ -143,7 +143,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.2-GW build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.2.1-GW build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -166,6 +166,34 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 - The MUTATE jump enters the page properly (sequencer mode and page state follow).
 - Generated DRUM kits are tuned around their own pitch again (TUNE was set about an octave flat).
 - ABOUT: the QR code no longer covers the license line.
+
+### `v1.2.1-GW` — CLEAR PROJECT and fixes from upstream (2026-10-26)
+
+A clear tool from the issues, and fixes taken from the firmware Pocket GammaWave is built on ([JIANT](https://github.com/juanjiant-bit/JIANT) 0.7.8 to
+0.9.18, [Felucca](https://github.com/hugelton/Felucca) after 1.6.1).
+- **No click after a slow block** (JIANT 0.8.9). The audio interrupt acknowledged a half of the buffer only after it
+  rendered it, so a render that ran late lost the next half: 2.9 ms of old audio played again, a click (and USB audio
+  came up short). Now the half is acknowledged first and a late render is caught up at once. The USB console counts
+  any half still lost (`audio_lost`).
+- **DRUM-X STEREO clean on two cores** (JIANT 0.7.8). With IMAGE on, the kit's sides were one set for both cores, and
+  the other core's part cleared them mid-render: grit like a downsampling and clicks on the side a sound leaned to.
+  Each core now has its own. The kit's DRV / knee now scales the sides as it scales the sum, so a loud hit's side is
+  never over-taken.
+- **CLOUD** (JIANT 0.9.14 / 0.9.16). Pushed hard (high RATE and SIZE, a hot send), its loop could run away into
+  clipping: the crackle. Now the grains' overlap is capped, the line rounds off softly instead of clamping, a low cut
+  keeps DC out of the loop, and with AIR up no grain reads across the write head (a click each). SIZE at max on an
+  empty line froze silence: it now takes ~0.7 s of sound first, then holds.
+- **The delay at its longest TIME with MOD up** (JIANT 0.8.4) no longer leaks the dry input into the echoes (up to
+  −7.5 dB at MOD 127): every read stays inside the line.
+- **LFO FREE** (JIANT 0.9.18): its FADE no longer comes back on every note; it fades in once, when a project loads.
+- **A BPM of 0 never divides** (Felucca #282).
+- **NOISE, a smooth random LFO** (issue #20; JIANT 0.7.8): a new source in the modulation matrix (LFO > MOD, KNOB 2 SRC).
+  Each track wanders on its own, a new value about every 46 ms with an eased glide between, instead of RAND's one value
+  per note or the LFO's S&H steps. Route it to CUT, PITCH, PAN or an engine value for a sound that keeps moving.
+- **SAVE > TOOLS > 7 CLEAR PROJ** (issue #22): frees the current project's sections A–D and empties its song, after a
+  confirm (no UNDO); the music playing stays. Until now a stored section could never be freed, so once A–D were taken
+  the generator's SONG form had nowhere to write.
+- **RAM**: the project staging buffer moved to the pool (JIANT 0.8.4): 3.8 KB of main RAM back for later features.
 
 ### `v1.2-GW` — Ambient & Keys (2026-10-25)
 

@@ -1052,7 +1052,7 @@ static void edit_param(uint32_t slot, int32_t steps)
     }
     if (pg->graph == GR_TOOLS) {                          /* (0.6.25) TOOLS: a list, any knob (and PRESETS) moves the
                                                          * pick down / up; OCT+ does it (its dialog first) */
-        ui.act = steps < 0 && ui.act <= 1u ? 0u : (uint8_t)clamp((int32_t)ui.act + (steps > 0 ? 1 : -1), 1, 6);   /* (left
+        ui.act = steps < 0 && ui.act <= 1u ? 0u : (uint8_t)clamp((int32_t)ui.act + (steps > 0 ? 1 : -1), 1, 7);   /* (left
                                                          * past the first: none picked) */
         return;
     }
@@ -1150,7 +1150,7 @@ static void act_do(void)
             return;
         }
         confirm_open(c == 0u ? CF_CLEAR_SEQ : c == 1u ? CF_INIT_SOUND : c == 2u ? CF_DEL_ROW : c == 4u ? CF_INIT_SYS :
-                     c == 5u ? CF_CPU_TEST : CF_CLEAR_SONG, c == 2u ? ui.song_row : song.sel);
+                     c == 5u ? CF_CPU_TEST : c == 6u ? CF_CLEAR_PROJ : CF_CLEAR_SONG, c == 2u ? ui.song_row : song.sel);
         return;
     }
     if (cur_page()->graph == GR_SONG) {
@@ -1657,6 +1657,7 @@ static void page_scroll(int32_t s)
 static void macro_dice(uint32_t mode);
 static int16_t sl_root = -1, sl_scale, sl_quant;      /* (scale_link: the song's scale) */
 #include "song_dice.c"                             /* (0.6.26) DICE ALL: a song-idea generator */
+static void project_clear(void);                     /* (1.2.1-GW, song_main.c) SAVE > TOOLS 7 */
 #include "gen.c"                                   /* (0.6.91) GEN: the song generator and its screen (HOME + SELECT) */
 
 /* HOME / REC / SAVE: tap on release, hold 0.7 s fires once. t0 = press time | 1,
@@ -2133,7 +2134,7 @@ static void ui_input_frame(void)
             ui.confirm = 0;
             ui.force = 1;
             if (kind != CF_OVR_PROJ && kind != CF_OVR_USER && kind != CF_ERASE_USER && kind != CF_DICE_ALL &&
-                !dice_kind(kind) && kind != CF_DEL_ROW && kind != CF_CLEAR_SONG && !chain_busy())
+                !dice_kind(kind) && kind != CF_DEL_ROW && kind != CF_CLEAR_SONG && kind != CF_CLEAR_PROJ && !chain_busy())
                 undo_mark();                            /* (0.6.21) the music before a clear, INIT, RECALL, pattern */
             if (kind == CF_OVR_PROJ) {                  /* overwrite: the NAME screen writes it */
                 name_open(NK_PROJ_SAVE, ui.confirm_trk & 3u);
@@ -2163,6 +2164,12 @@ static void ui_input_frame(void)
                     chain_config.count--;
                     if (ui.song_row > chain_config.count) ui.song_row = chain_config.count;
                     ui_message("ROW DELETED");
+                }
+            } else if (kind == CF_CLEAR_PROJ) {         /* (1.2.1-GW, issue #22) SAVE > TOOLS 7 */
+                if (!chain_busy()) {
+                    project_clear();
+                    ui.song_row = 0;
+                    ui_message("PROJECT CLEARED");
                 }
             } else if (kind == CF_CLEAR_SONG) {
                 if (!chain_busy()) {
