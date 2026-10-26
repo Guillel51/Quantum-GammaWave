@@ -1,11 +1,11 @@
 # POCKET GAMMAWAVE (GW-1) — Manual de Usuario
 
-**Firmware v1.2-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.2.1-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
 
 > *English version: [MANUAL.md](MANUAL.md).*
 
 Este manual es para músicos que acaban de instalar Pocket GammaWave (GW-1) y quieren saber cómo tocarlo, cómo armar temas con él
-y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.2-GW: cada
+y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.2.1-GW: cada
 botón, perilla y mensaje aparece nombrado exactamente como lo muestra el equipo.
 
 Si vas a leer un solo capítulo, leé [12. Guardar y cargar](#12-guardar-y-cargar). Lo que GW-1 agrega al firmware
@@ -1135,7 +1135,7 @@ según el tipo:
 | **SPRING** | Tanque de resortes de amplificador | DAMP | PRE |
 | **SHIMR** (shimmer) | Sube una octava en cada pasada | DAMP | **AIR** (±24 st: más oscuro y grave / más aireado y agudo) |
 | **RESO** | Cuatro cuerdas afinadas a la escala del tema | **FOLLOW** (OFF / T1–T6: el acorde sigue la nota más grave que toca esa pista) | **PITCH** (el acorde 0–14 grados hacia arriba en la escala) |
-| **CLOUD** | Nube granular; SIZE al máximo la congela | DAMP | **AIR** |
+| **CLOUD** | Nube granular; SIZE al máximo la congela (desde el silencio primero toma ~0,7 s de sonido) | DAMP | **AIR** |
 
 **REVERB 2**: **MOD** (profundidad de modulación), **RATE**, **FILT** (tono de entrada: más oscuro / más brillante;
 0.6.86 resonante, una banda en el corte para tallar el lugar del espacio), **WIDE**.
@@ -1165,7 +1165,7 @@ ancho). Se oculta con LOAD ECO (la tarjeta de envío de chorus de una pista dice
     1/4, 1/8D, 1/4T, 1/8, 1/8T, 1/16, 1/16T, 1/32), enganchado al compás mientras el transporte toca (PHASE es su
     desfase).
   - **PHASE** es dónde reinicia el LFO una frase nueva; girándolo a la izquierda pasado 0 queda en **FREE**: nunca se
-    reinicia, corre libre.
+    reinicia, corre libre. En FREE, **FADE** entra una vez (al cargar el proyecto), no de nuevo en cada nota.
 - **Matriz MOD**: 4 slots por pista (KNOB 1 elige el slot).
   - Fuentes: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ).
   - Destinos: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (velocidad del LFO), VIB, **E1–E8** (las perillas

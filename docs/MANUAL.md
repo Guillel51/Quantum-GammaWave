@@ -1,11 +1,11 @@
 # POCKET GAMMAWAVE (GW-1) — User Manual
 
-**Firmware v1.2-GW for the M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Buy GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.2.1-GW for the M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Buy GammaWave VST](https://shadowtune.itch.io/gammawave)**
 
 > *Versión en español: [MANUAL.es.md](MANUAL.es.md).*
 
 This manual is for musicians who have just installed Pocket GammaWave (GW-1) and want to know how to play it, build songs with it
-and, above all, **save their work without losing anything**. It follows the firmware as it is in v1.2-GW: every
+and, above all, **save their work without losing anything**. It follows the firmware as it is in v1.2.1-GW: every
 button, knob and message is named exactly as the device shows it.
 
 If you only read one chapter, read [12. Saving and loading](#12-saving-and-loading). What GW-1 adds to the firmware it
@@ -1067,7 +1067,7 @@ sounds picked with PRESETS, SEQ TOOLS actions, or ordinary knob turns. It is not
 | **SPRING** | Amp spring tank | DAMP | PRE |
 | **SHIMR** (shimmer) | Rises an octave on every pass | DAMP | **AIR** (±24 st: darker and lower / airier and higher) |
 | **RESO** | Four strings tuned to the song's scale | **FOLLOW** (OFF / T1–T6: the chord follows the lowest note that track plays) | **PITCH** (the chord 0–14 steps up the scale) |
-| **CLOUD** | Granular wash; SIZE at max freezes it | DAMP | **AIR** |
+| **CLOUD** | Granular wash; SIZE at max freezes it (from silence it first takes ~0.7 s of sound) | DAMP | **AIR** |
 
 **REVERB 2**: **MOD** (modulation depth), **RATE**, **FILT** (input tone: darker / brighter; 0.6.86 resonant, a band at the cutoff to carve the room's place), **WIDE**.
 
@@ -1095,6 +1095,7 @@ The settings stay; the TYPE card shows LITE or ECO under its value.
   - **RATE** is free in Hz; turn it left past the slowest and it goes **in time** with the tempo (4BAR, 2BAR, 1BAR, 1/2,
     1/4, 1/8D, 1/4T, 1/8, 1/8T, 1/16, 1/16T, 1/32), locked to the bar while the transport plays (PHASE its offset).
   - **PHASE** is where a new phrase restarts the LFO; turn it left past 0 to **FREE**: it never restarts, it just runs.
+    In FREE, **FADE** comes in once (when the project loads), not again on every note.
 - **MOD matrix**: 4 slots per track (KNOB 1 picks the slot).
   - Sources: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ).
   - Destinations: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (LFO rate), VIB, **E1–E8** (the engine's own

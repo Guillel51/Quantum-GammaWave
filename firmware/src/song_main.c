@@ -141,7 +141,11 @@ static int section_load(uint32_t s)
 {
     chain_config_t keep = chain_config;
     uint8_t row = ui.song_row;
-    if (!proj_import(&proj_scratch, &proj_slot[s & 3u], sizeof(project_store_t)) || project_restore_runtime(&proj_scratch))
+    int rc;
+    proj_lfo_keep = 1;                                  /* (1.2.1-GW: the song plays on, FREE LFOs not faded again) */
+    rc = !proj_import(&proj_scratch, &proj_slot[s & 3u], sizeof(project_store_t)) || project_restore_runtime(&proj_scratch);
+    proj_lfo_keep = 0;
+    if (rc)
         return 1;
     chain_config = keep;
     ui.song_row = row;

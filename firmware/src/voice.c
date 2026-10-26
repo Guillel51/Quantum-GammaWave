@@ -278,6 +278,16 @@ static void track_lfo_tick(track_t *t)
     }
 }
 
+/* (1.2.1-GW, JIANT 0.9.18) the LFOs' FADE from 0 again: a project loaded (project.c project_restore_runtime; the
+ * power-on: lfo_fade 0 already). PHASE set fades on each fresh phrase anyway (trk_note_on); FREE only then */
+static void lfo_fade_restart(uint32_t mask)
+{
+    uint32_t k;
+    for (k = 0; k < NTRK; k++)
+        if ((mask >> k) & 1u)
+            trk[k].lfo_fade = 0;
+}
+
 /* voices the engine may use (POLY and UNISON): its cap, else all of them */
 /* (JIANT 0.6.29, 0.6.30) GLO > SYSTEM > LOAD (MENU > SYSTEM > LOAD): how much of the CPU the heavy parts may take,
  * swapped while they sound, the project keeping its settings (ui.c ui_load, rp_apply). FULL: all as set. LITE: their
@@ -653,9 +663,11 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
     mod_note(t, note, vel);                             /* the matrix's VEL / KEY / RAND */
     for (i = 0; i < NVOICE; i++)
         any |= t->v[i].gate;
-    if (!any) {                                        /* fresh phrase: LFO retrigger and fade */
-        if (t->p[P_LPHASE] >= 0)                        /* (0.6.51: PHASE FREE: it runs on) */
-            t->lfo_ph = (uint32_t)t->p[P_LPHASE] << 25;
+    if (!any && t->p[P_LPHASE] >= 0) {                 /* fresh phrase, PHASE set: the LFO from PHASE, FADE from 0.
+                                                         * (1.2.1-GW, JIANT 0.9.18) FREE (PHASE -1) restarts neither:
+                                                         * it runs on, its FADE once from a project's load
+                                                         * (lfo_fade_restart; it faded in again on every note) */
+        t->lfo_ph = (uint32_t)t->p[P_LPHASE] << 25;
         t->lfo_fade = 0;
     }
     if (mode == V_POLY) {

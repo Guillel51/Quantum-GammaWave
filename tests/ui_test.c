@@ -844,6 +844,23 @@ static int test_dximg(void)
     ok &= dx_snd[2] == (2u << 6 | 40u) && !dx_snd[0];
     bad += check("DRUM SEND: kept with the project (FUNC 'D' 'S')", ok);
     memset(dx_snd, 0, sizeof dx_snd);
+    {   /* (1.2.1-GW, JIANT 0.7.8) the two cores: the other core's part starting (voice.c track_render clears dx_xon)
+         * leaves this core's DRUM part's image and sides as they were (they were one set: the image on and off block
+         * by block, clicks) */
+        uint8_t keep_cpu = mc_host_cpu;
+        memset(dx_core, 0, sizeof dx_core);
+        mc_host_cpu = 0;
+        dx_xon = 1;
+        dx_sl[3] = 1234;
+        mc_host_cpu = 1;
+        dx_xon = 0;                                     /* the other core: a part that is not DRUM */
+        dx_sl[3] = 0;
+        mc_host_cpu = 0;
+        bad += check("DRUM IMAGE: each core its own image and sides (the other core's part leaves them)",
+                     (dx_xon & 1u) && dx_sl[3] == 1234);
+        mc_host_cpu = keep_cpu;
+        memset(dx_core, 0, sizeof dx_core);
+    }
     ui_power_on();
     return bad;
 }

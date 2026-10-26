@@ -23,6 +23,8 @@ struct felucca_dbg {
 static volatile uint32_t audio_halves, audio_max_us;
 static volatile uint32_t t5_nested_ticks;              /* TIMER4 ticks TIMER5 spent nested in this ISR (main.c) */
 static uint32_t audio_cpu_rem;                         /* keep the fractional IIR step: no low-load bias */
+static uint32_t audio_last_half = 2u, audio_lost;     /* (1.2.1-GW, JIANT 0.8.9) halves never rendered: a render past
+                                                         * two halves (console) */
 #define SCOPE_N 512u
 static int16_t scope_buf[SCOPE_N];
 static uint32_t scope_w;
@@ -123,6 +125,10 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
     if (p & FM1_AUDIO_HALF) {
         uint32_t half = fm1_audio_free_half(), b, us;
         int32_t *o = &abuf[half * HALF_WORDS];
+        fm1_audio_ack_half();                           /* (1.2.1-GW, JIANT 0.8.9) first: a flip during a late render */
+        if (half == audio_last_half)                    /* stays pending and this ISR runs again at once for the other */
+            audio_lost++;                               /* half (acked after the render, a late half lost the next one: */
+        audio_last_half = half;                         /* its stale 2.9 ms played again, a click, USB short) */
         if (shed_req) {
             shed_req = 0;
             shed_voice();
@@ -136,7 +142,6 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
 #endif
             audio_block(o + 2u * b, CTL);
         }
-        fm1_audio_ack_half();
         audio_halves++;
         us = shed_check(fm1_ticks() - t0);
         if (us > audio_max_us)
@@ -147,7 +152,8 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
             audio_cpu_rem = load % CPU_AVG;
         }
         if (fm1_audio_free_half() != half)
-            felucca_dbg.late++;                         /* the DMA moved on while we rendered */
+            felucca_dbg.late++;                         /* the DMA moved on while we rendered (1.2.1-GW: caught up
+                                                         * at once, its half pending; a click only past ~1.7 halves) */
         {   /* (0.6.17) MENU > ABOUT's numbers (voice.c load_diag) */
             uint32_t pc = us * 100u / (HALF_FRAMES * 1000000u / FS);
             if (pc > load_diag.peak) load_diag.peak = pc;
