@@ -187,6 +187,9 @@ A clear tool from the issues, and fixes taken from the firmware Pocket GammaWave
   −7.5 dB at MOD 127): every read stays inside the line.
 - **LFO FREE** (JIANT 0.9.18): its FADE no longer comes back on every note; it fades in once, when a project loads.
 - **A BPM of 0 never divides** (Felucca #282).
+- **NOISE, a smooth random LFO** (issue #20; JIANT 0.7.8): a new source in the modulation matrix (LFO > MOD, KNOB 2 SRC).
+  Each track wanders on its own, a new value about every 46 ms with an eased glide between, instead of RAND's one value
+  per note or the LFO's S&H steps. Route it to CUT, PITCH, PAN or an engine value for a sound that keeps moving.
 - **SAVE > TOOLS > 7 CLEAR PROJ** (issue #22): frees the current project's sections A–D and empties its song, after a
   confirm (no UNDO); the music playing stays. Until now a stored section could never be freed, so once A–D were taken
   the generator's SONG form had nowhere to write.

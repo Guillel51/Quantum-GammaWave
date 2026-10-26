@@ -1174,6 +1174,38 @@ static void test_jiant_fx(void)
     song.g[G_RTYPE] = 0;
 }
 
+/* (1.2.1-GW, JIANT 0.7.8) the NOISE source, a smooth random LFO: each track its own wander, bipolar, a new point about
+ * every 46 ms eased in between (no jump block to block), moving the filter; nothing routed to it: as before */
+static void test_noise_src(void)
+{
+    uint32_t ea = eng_by_name("ANALOG"), b, crossed = 0;
+    uint64_t a0, h;
+    int32_t prev, v, maxstep = 0, lo = 0, hi = 0, other_same = 1;
+    fresh(ea, 0);
+    a0 = phrase();
+    fresh(ea, 0);
+    trk[0].p[P_M1SRC] = MS_NOISE; trk[0].p[P_M1DST] = MD_CUT; trk[0].p[P_M1AMT] = 40;
+    h = phrase();
+    check("1.2.1-GW: the NOISE source moves the filter (its own sound); NOISE appended (14, the stored numbers stay)",
+          h != a0 && MS_NOISE == 14 && MS_N == 15 && str_eq(N_MSRC[MS_NOISE], "NOISE"));
+    mns_clk = 0;
+    prev = mod_tsrc(&trk[0], MS_NOISE, 0);
+    for (b = 1; b < 64u * 40u; b++) {                   /* 40 points, block by block */
+        int32_t d;
+        mns_clk = b;
+        v = mod_tsrc(&trk[0], MS_NOISE, 0);
+        d = v > prev ? v - prev : prev - v;
+        if (d > maxstep) maxstep = d;
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+        crossed |= (uint32_t)((v < 0) != (prev < 0));
+        other_same &= v != mod_tsrc(&trk[1], MS_NOISE, 0);
+        prev = v;
+    }
+    check("1.2.1-GW: NOISE wanders smoothly (a block's step under 1/16 of the range), both sides of 0, each track its own",
+          maxstep < 65536 / 16 && lo < -16384 && hi > 16384 && crossed && other_same);
+}
+
 int main(int argc, char **argv)
 {
     test_off();
@@ -1187,6 +1219,7 @@ int main(int argc, char **argv)
     test_analog_ext();
     test_phase_fb();
     test_lofi_tone();
+    test_noise_src();
     if (argc > 1)
         check("demos written", demos(argv[1]));
     printf("%s\n", bad ? "MOD MATRIX TEST FAILED" : "mod matrix test passed");

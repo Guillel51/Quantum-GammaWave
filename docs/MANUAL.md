@@ -1098,7 +1098,9 @@ The settings stay; the TYPE card shows LITE or ECO under its value.
   - **PHASE** is where a new phrase restarts the LFO; turn it left past 0 to **FREE**: it never restarts, it just runs.
     In FREE, **FADE** comes in once (when the project loads), not again on every note.
 - **MOD matrix**: 4 slots per track (KNOB 1 picks the slot).
-  - Sources: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ).
+  - Sources: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ),
+    **NOISE** (1.2.1-GW: a smooth random LFO, each track its own wander, a new value about every 46 ms and eased in
+    between; RAND instead draws one value per note).
   - Destinations: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (LFO rate), VIB, **E1–E8** (the engine's own
     EDIT knobs, shown by name), **CLIP** and **PNCH** (the master).
 - **MSEQ**: a 16-step modulation sequencer per track, like a CV sequencer. KNOB 1 picks the step, KNOB 2 sets its

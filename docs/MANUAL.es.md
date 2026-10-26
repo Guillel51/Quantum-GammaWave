@@ -1168,7 +1168,9 @@ ancho). Se oculta con LOAD ECO (la tarjeta de envío de chorus de una pista dice
   - **PHASE** es dónde reinicia el LFO una frase nueva; girándolo a la izquierda pasado 0 queda en **FREE**: nunca se
     reinicia, corre libre. En FREE, **FADE** entra una vez (al cargar el proyecto), no de nuevo en cada nota.
 - **Matriz MOD**: 4 slots por pista (KNOB 1 elige el slot).
-  - Fuentes: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ).
+  - Fuentes: OFF, LFO, ENV, VEL, KEY, RAND, MODW (MIDI CC1), AT (aftertouch), EXPR (CC11), **M1–M4**, **STEP** (MSEQ),
+    **NOISE** (1.2.1-GW: un LFO aleatorio suave, un vagar propio de cada pista, un valor nuevo cada ~46 ms con transición
+    suave; RAND en cambio sortea un valor por nota).
   - Destinos: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (velocidad del LFO), VIB, **E1–E8** (las perillas
     EDIT propias del motor, mostradas por nombre), **CLIP** y **PNCH** (el master).
 - **MSEQ**: un secuenciador de modulación de 16 pasos por pista, como un secuenciador de CV. KNOB 1 elige el paso,
