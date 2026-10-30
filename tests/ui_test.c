@@ -3267,8 +3267,24 @@ static int test_layer(void)
         memset(dx_mot, 0, 4);
     }
     go_title("CHORUS");
-    bad += check("  CHORUS page: CRT CDP STER (0.6.9)", cur_page()->fam == FAM_FX && cur_page()->id[0] == G_CRATE &&
-                 cur_page()->id[1] == G_CDEPTH && cur_page()->id[2] == G_CSTER && cur_page()->id[3] == 0xFFu);
+    bad += check("  CHORUS page: CRT CDP STER TYPE (0.6.9; QG-1 TYPE)", cur_page()->fam == FAM_FX && cur_page()->id[0] == G_CRATE &&
+                 cur_page()->id[1] == G_CDEPTH && cur_page()->id[2] == G_CSTER && cur_page()->id[3] == G_CTYPE);
+    {   /* (QG-1) CHORUS > TYPE PHASER: a project keeps it (bit 1 of 'DT'), the delay's TYPE beside it untouched */
+        int16_t dt0 = song.g[G_DTYPE];
+        song.playing = 0;
+        song.g[G_CTYPE] = 1; song.g[G_DTYPE] = 0;
+        project_save(2);
+        song.g[G_CTYPE] = 0; song.g[G_DTYPE] = 1;
+        project_load(2);
+        ok = song.g[G_CTYPE] == 1 && song.g[G_DTYPE] == 0;
+        song.g[G_CTYPE] = 0; song.g[G_DTYPE] = 1;
+        project_save(2);
+        song.g[G_CTYPE] = 1;
+        project_load(2);
+        ok &= song.g[G_CTYPE] == 0 && song.g[G_DTYPE] == 1;
+        song.g[G_CTYPE] = 0; song.g[G_DTYPE] = dt0;
+        bad += check("  CHORUS TYPE PHASER: a project keeps it, the delay's TYPE its own", ok);
+    }
     /* chording: a key held before FX stays a note, its note-off arrives */
     ui_power_on();
     mo = mo_w;

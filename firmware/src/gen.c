@@ -1735,6 +1735,7 @@ static void gen_make(void)
     song.g[G_DMIX] = (int16_t)grr(70, 110);
     song.g[G_DCOLOR] = (int16_t)(g->dtype & 1u ? grr(50, 70) : grr(30, 52));
     song.g[G_DTYPE] = (int16_t)(g->dtype & 1u);
+    song.g[G_CTYPE] = 0;                                /* (QG-1) a piece's chorus the ensemble */
     song.g[G_DPING] = (int16_t)((g->dtype >> 1) & 1u);
     song.g[G_DMOD] = (int16_t)(wet >= 70u ? grr(20, 50) : g->human >= 40u && gch(50) ? grr(10, 36) : 0);   /* (0.6.97: the
                                                          * tape's wobble on the long tails) */
