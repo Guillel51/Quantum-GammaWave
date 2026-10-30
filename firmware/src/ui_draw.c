@@ -1343,7 +1343,7 @@ static void draw_columns(void)
 #define SPL_HOLD 900u                               /* .. then shown whole, before the UI (was 1100; 0.6.51: 500 -> 900) */
 #define SPL_SY 40                                   /* the signature's canvas on the screen (240 x SIG_H + 12) */
 #define SPL_TY 186                                  /* the two lines under it */
-static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, "POCKET GAMMAWAVE // GW-1"};
+static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, "QUANTUM GAMMAWAVE // QG-1"};
 static uint8_t spl_anim;                            /* main.c: 1 = the signature to be written (splash_write) */
 static int32_t sig_seg(uint32_t i)                  /* segment i -> i + 1's length, px (0: a stroke starts at i + 1) */
 {
@@ -1442,6 +1442,17 @@ static void splash_sig(int32_t px, uint32_t ms)
     } else {
         gw_orbit_ring(120, 39, 30, 18, T_DIM, 1);
         gw_disc(120, 39, 12, T_TEXT);
+    }
+    /* 2b. (QG-1) the quantum shell: two electron orbits around the Hearth, written in with the signature */
+    if (prog > 64) {
+        static const int8_t ORB[2][2] = {{46, 11}, {22, 30}};
+        uint32_t k;
+        for (k = 0; k < 2u; k++) {
+            uint32_t ph = ms * (k ? 41u : 29u) + k * 21845u;
+            int32_t ex = 120 + (bg_sin(ph) * ORB[k][0] >> 15), ey = 39 + (bg_sin(ph + 16384u) * ORB[k][1] >> 15);
+            gw_orbit_ring(120, 39, ORB[k][0], ORB[k][1], mono ? T_DIM : T_LINE, 1);
+            gw_disc(ex, ey, 2, mono ? T_TEXT : k ? T_ACCENT : T_THEME);
+        }
     }
     cv_rect(18, 72, 204, 1, T_LINE);
 
