@@ -424,7 +424,7 @@ static int test_sound_loads(void)
                  preset_pat_hint() == 12 && ui.ppick == 12 && str_eq(PATTERNS[12].name, "ARP"));
     t->p[P_AMODE] = 2;
     before = *t;
-    for (i = 0; i < 10u; i++)                     /* several loads, into the next engine */
+    for (i = 0; i < 64u && t->eng_req == before.eng_req; i++)   /* several loads, into the next engine */
         turn(EN_PRESET, 1);
     bad += check("browsing on, into another engine: the steps still untouched", t->eng_req != before.eng_req &&
                  !memcmp(t->step, before.step, sizeof t->step) && t->p[P_AMODE] == 2);
@@ -1937,11 +1937,14 @@ static int test_display_preferences(void)
                  settings.palette == 6 && T_BG == UI_PALETTES[6].bg && ux.light && ui.menu == 1 && !song.octave &&
                  memcmp(before, host_screen, sizeof before) && !memcmp(sounds, trk, sizeof sounds));
     turn(EN_K1, 1);
-    bad += check("COLOR KNOB 1 steps on to HI-CON, NIGHT (#50: true black), MONO (1.0.2: black and white), JIANT, then wraps to GREY",
+    bad += check("COLOR KNOB 1 steps on to HI-CON, NIGHT, MONO, THERMAL, GAMMA, WRAITH, QUANTUM, then wraps to GREY",
                  settings.palette == 7 && (turn(EN_K1, 1), settings.palette == 8u) && T_BG == 0u &&
                  str_eq(UI_PALETTES[8].name, "NIGHT") && (turn(EN_K1, 1), settings.palette == UI_BW_INDEX) &&
                  str_eq(UI_PALETTES[UI_BW_INDEX].name, "MONO") && T_BG == 0u && T_TEXT == 0xFFFFu &&
-                 (turn(EN_K1, 1), settings.palette == UI_JIANT_INDEX) && str_eq(UI_PALETTES[UI_JIANT_INDEX].name, "JIANT") &&
+                 (turn(EN_K1, 1), settings.palette == UI_JIANT_INDEX) && str_eq(UI_PALETTES[UI_JIANT_INDEX].name, "THERMAL") &&
+                 (turn(EN_K1, 1), settings.palette == UI_GAMMA_INDEX) && str_eq(UI_PALETTES[UI_GAMMA_INDEX].name, "GAMMA") &&
+                 (turn(EN_K1, 1), settings.palette == UI_WRAITH_INDEX) && str_eq(UI_PALETTES[UI_WRAITH_INDEX].name, "WRAITH") &&
+                 (turn(EN_K1, 1), settings.palette == UI_QUANTUM_INDEX) && str_eq(UI_PALETTES[UI_QUANTUM_INDEX].name, "QUANTUM") &&
                  (turn(EN_K1, 1), settings.palette == UI_GREY_INDEX) && str_eq(UI_PALETTES[UI_GREY_INDEX].name, "GREY"));
     settings.lowcut = 2;
     ui.menu_sel = MI_LOWCUT;
@@ -2245,8 +2248,13 @@ static int test_information(void)
                  !memcmp(footer, host_screen + 221 * 240, sizeof footer));
     uint16_t position = ui.menu_scroll;
     press(B_OCTUP);
-    bad += check("OCT+ does not switch pages or alter the octave in the document",
-                 ui.menu == 2 && ui.menu_scroll == position && song.octave == 0);
+    ui_draw();
+    {
+        int viz = ui.menu == 3 && song.octave == 0;
+        press(B_OCTDN);
+        bad += check("OCT+ opens the HYPERSPACE VIZ (no octave change), OCT- back to the document where it was",
+                     viz && ui.menu == 2 && ui.menu_scroll == position && song.octave == 0);
+    }
     turn(EN_PRESET, 10000);
     turn(EN_PRESET, 10000);
     ui_draw();
@@ -3040,7 +3048,7 @@ static int test_product_ux(void)
         for (uint32_t y = 0; y < Y_SEP_END - Y_LABEL; y++) for (uint32_t x = 0; x < 240; x++) {
             uint16_t old = columns[y * 240 + x], now = host_screen[(Y_LABEL + y) * 240 + x];
             if (x >= 64 && x < 119) changed |= old != now;
-            else ok &= old == now;
+            else ok &= ux.chamfer || old == now;        /* (the chamfered styles light the whole column frame) */
         }
         ok &= changed;
     }
@@ -3259,8 +3267,24 @@ static int test_layer(void)
         memset(dx_mot, 0, 4);
     }
     go_title("CHORUS");
-    bad += check("  CHORUS page: CRT CDP STER (0.6.9)", cur_page()->fam == FAM_FX && cur_page()->id[0] == G_CRATE &&
-                 cur_page()->id[1] == G_CDEPTH && cur_page()->id[2] == G_CSTER && cur_page()->id[3] == 0xFFu);
+    bad += check("  CHORUS page: CRT CDP STER TYPE (0.6.9; QG-1 TYPE)", cur_page()->fam == FAM_FX && cur_page()->id[0] == G_CRATE &&
+                 cur_page()->id[1] == G_CDEPTH && cur_page()->id[2] == G_CSTER && cur_page()->id[3] == G_CTYPE);
+    {   /* (QG-1) CHORUS > TYPE PHASER: a project keeps it (bit 1 of 'DT'), the delay's TYPE beside it untouched */
+        int16_t dt0 = song.g[G_DTYPE];
+        song.playing = 0;
+        song.g[G_CTYPE] = 1; song.g[G_DTYPE] = 0;
+        project_save(2);
+        song.g[G_CTYPE] = 0; song.g[G_DTYPE] = 1;
+        project_load(2);
+        ok = song.g[G_CTYPE] == 1 && song.g[G_DTYPE] == 0;
+        song.g[G_CTYPE] = 0; song.g[G_DTYPE] = 1;
+        project_save(2);
+        song.g[G_CTYPE] = 1;
+        project_load(2);
+        ok &= song.g[G_CTYPE] == 0 && song.g[G_DTYPE] == 1;
+        song.g[G_CTYPE] = 0; song.g[G_DTYPE] = dt0;
+        bad += check("  CHORUS TYPE PHASER: a project keeps it, the delay's TYPE its own", ok);
+    }
     /* chording: a key held before FX stays a note, its note-off arrives */
     ui_power_on();
     mo = mo_w;
@@ -3361,7 +3385,8 @@ static int test_layer(void)
         for (i = 0; i < 15u; i++)                                     /* the other effects (F3 .. F5): breathe */
             ok &= i == 1u || ((a ^ b2) >> white(i)) & 1u;
         ok &= !((a | b2) >> white(15) & 1u);                          /* G5: no effect, dark */
-        ok &= ((a ^ b2) >> key_at(1, 0)) & 1u && !((a | b2) >> key_at(1, 6) & 1u);   /* a mute breathes, a spare black dark */
+        ok &= ((a ^ b2) >> key_at(1, 0)) & 1u && ((a ^ b2) >> key_at(1, 6)) & 1u &&   /* a mute, (QG-1) VIB breathe; */
+              !((a | b2) >> key_at(1, 7) & 1u);                     /* A#4 (the tracks) dark */
         song.g[G_BPM] = 72;
         a = leds_at(0); b2 = leds_at(250);
         ok &= !((a | b2) >> white(0) & 1u);                          /* 1/8: too long at 72 */
@@ -3369,7 +3394,7 @@ static int test_layer(void)
         song.g[G_BPM] = 120;
     }
     key_up(white(1)); btn_up(B_FX); frame();
-    bad += check("map LEDs: held lit, the 15 effects breathe, G5 and a too-long REPEAT dark", ok);
+    bad += check("map LEDs: held lit, the 19 effects breathe, G5 and a too-long REPEAT dark", ok);
     usb.config = 0;
     return bad;
 }
@@ -7840,7 +7865,9 @@ static int test_dice_all(void)
     bad += check("DICE ALL: HOME + SELECT asks first (OCT- NO: nothing changed)", ok);
     fm1_ms += 1200u;
     held_turn(B_HOME, 1); press(B_OCTUP); frames(4);
-    ok = !ui.confirm && undo_ok;
+    ok = ui.confirm == CF_DICE_ALL && undo_ok;          /* (0.6.91) the GEN screen stays (OCT+ again: another piece) */
+    press(B_OCTDN); frames(4);
+    ok &= !ui.confirm;
     {   /* (0.6.34) the orchestration leaves some roles silent, the drums too: at least two melodic voices play */
         uint32_t mel = 0;
         for (k = 0; k < NTRK; k++) {
@@ -7877,25 +7904,32 @@ static int test_dice_all(void)
             fm += trk[k].eng_req == ENGI_FM6;
             drums += drum_track(&trk[k]);
         }
-        ok = str_eq(ui.msg, "DICED: ") || !strncmp(ui.msg, "DICED: ", 7);
-        ok &= moved >= 3u && fm <= 2u && drums == 1u;
+        ok = !strncmp(ui.msg, "DICED: ", 7) || !strncmp(ui.msg, "GEN: ", 5);
+        ok &= moved >= 2u && fm <= 2u && drums >= 1u && drums <= 2u;   /* (GEN: a second kit for some genres) */
         for (r = 0; r < 30u && ok; r++) {               /* thirty more throws: the same holds, every style seen */
+            uint32_t m1 = 0;                            /* (QG-1) two engines at least every throw, five in six on average:
+                                                         * three on one throw was luck (the FM4 build's seeds missed it) */
+            for (k = 0; k < NTRK; k++) eng0[k] = trk[k].eng_req;
             dice_all();
-            for (k = 0, fm = 0, drums = 0; k < NTRK; k++) { fm += trk[k].eng_req == ENGI_FM6; drums += drum_track(&trk[k]); }
-            ok &= fm <= 2u && drums == 1u;
-            for (k = 0; k < NTRK; k++) {                /* (0.6.34) the guard rails: chords of three or four, the lead under G5 */
+            for (k = 0, fm = 0, drums = 0; k < NTRK; k++) {
+                fm += trk[k].eng_req == ENGI_FM6; drums += drum_track(&trk[k]); m1 += trk[k].eng_req != eng0[k];
+            }
+            ok &= fm <= 2u && drums >= 1u && drums <= 2u && m1 >= 2u;
+            moved += m1;
+            for (k = 0; k < NTRK; k++) {                /* (0.6.34) the guard rails: chords of three or four, the lead under C7 */
                 uint32_t i2;
                 for (i2 = 0; i2 < (uint32_t)trk[k].p[P_SLEN]; i2++) {
                     const step_t *s2 = &trk[k].step[i2];
                     if (drum_track(&trk[k]) || s2->time != ST_NOTE) continue;
                     ok &= s2->n >= 1u && s2->n <= 4u;   /* (0.6.80: power chords, triads: three) */
-                    ok &= s2->note[0] <= 84u;
+                    ok &= s2->note[0] <= 96u;           /* (GEN: TRAP bells reach C7) */
                 }
             }
             project_capture(&proj_scratch);              /* (0.6.81) every piece storable (a send past 127 was not) */
             ok &= proj_pack(&proj_wire, &proj_scratch) != 0;
             for (k = 0; k < 8u; k++) events_block(CTL);
         }
+        ok &= moved * 2u >= 31u * 5u;
         bad += check("DICE ALL (0.6.26): a style named, engines changed, FM6 on two tracks at most, one DRUM track, every piece storable; 30 throws", ok);
         {   /* (0.6.27) 40 throws: never the same piece, the tempo moved every time (even from the same random state) */
             uint32_t h[40], n2, m, same = 0, bpm_same = 0;
@@ -9158,10 +9192,13 @@ static int test_click_menu(void)
             midi_enqueue(0x0Cu | 0xC1u << 8 | 9u << 16, 1u);   /* PROGRAM CHANGE 9 on channel 2 */
             mix_block(o, CTL); frame();
             ok = all > 9u && e < NENGINES && trk[1].eng_req == e && song.sel == sel0;
-            midi_enqueue(0x0Cu | 0xC1u << 8 | 127u << 16, 1u);   /* past the list: nothing */
-            mix_block(o, CTL); frame();
-            ok &= trk[1].eng_req == e;
-            bad += check("PROGRAM CHANGE n: the PRESETS list's n + 1-th sound into the channel's track, the selection kept", ok);
+            {                                           /* 127: the list's 128th (QG-1: more than 128 sounds), past it nothing */
+                uint32_t k2, e2 = all > 127u ? preset_all_at(127u, &k2) : e;
+                midi_enqueue(0x0Cu | 0xC1u << 8 | 127u << 16, 1u);
+                mix_block(o, CTL); frame();
+                ok &= trk[1].eng_req == e2;
+            }
+            bad += check("PROGRAM CHANGE n: the PRESETS list's n + 1-th sound into the channel's track (127: past a short list, nothing), the selection kept", ok);
         }
     }
     {
@@ -9486,6 +9523,7 @@ static int test_large(void)
     uint32_t c;
     static uint16_t off[240 * 240];
     ui_power_on();
+    palette_set(UI_GREY_INDEX);                                   /* (the flat panel: the chamfered ones draw their own gaps) */
     song.playing = 0;
     frame();
     ok = !(ui_prefs & PREF_LARGE) && large_kind() == LK_OFF && card_h() == CARD_H && graph_y() == Y_GRAPH;
@@ -9508,7 +9546,7 @@ static int test_large(void)
     frame();
     ok = ui.home && large_kind() == LK_TALL && card_h() == LG_CARD_H && graph_y() == LG_Y_GRAPH && strip_kind() == SK_SCOPE;
     ok &= lg_px(30, Y_SEP_END + 1) == T_SURF && off[(Y_SEP_END + 1) * 240 + 30] == swap16(T_BG);     /* a card where the gap was */
-    ok &= lg_px(30, LG_Y_GRAPH - 2) == T_BG && off[(LG_Y_GRAPH - 2) * 240 + 30] == swap16(T_SURF);   /* a gap in the panel */
+    ok &= lg_px(30, LG_Y_GRAPH - 2) == T_BG && off[(LG_Y_GRAPH - 2) * 240 + 30] != swap16(T_BG);     /* a gap in the panel */
     ok &= lg_px(30, LG_Y_GRAPH + 1) == T_SURF;
     for (c = 0; c < 4u; c++)                                      /* each column's K pill, over its knob */
         ok &= lg_px(CARD_X(c) + 8, Y_LABEL + LG_MY + LG_MH / 2) == T_KEY;

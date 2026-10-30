@@ -264,6 +264,41 @@ def errors():
     ok(rc == 2, "missing file -> exit 2")
 
 
+def integrity():
+    """(QG-1) SHA-256: --sha256, a .sha256 / SHA256SUMS next to the package; --verify-only writes nothing"""
+    import hashlib
+    raw = package()
+    image = I.logical_image(raw)
+    h = hashlib.sha256(raw).hexdigest()
+    d = TMP / "sums"
+    d.mkdir(exist_ok=True)
+    p = d / "q.fwsc"
+    p.write_bytes(raw)
+    dev = FakeFM1(image)
+    rc, out, err = cli([str(p), "--yes", "--sha256", h], dev)
+    ok(rc == 0 and f"sha256:  {h}  (verified)" in out, "--sha256 that matches: installs, says verified")
+    dev = FakeFM1(image)
+    rc, out, err = cli([str(p), "--yes", "--sha256", "0" * 64], dev)
+    ok(rc == 2 and "does not match" in err and dev.sent == [], "--sha256 that does not match -> exit 2, no MIDI")
+    (d / "SHA256SUMS").write_text(f"{'1' * 64}  other.fwsc\n{'f' * 64}  q.fwsc\n")
+    dev = FakeFM1(image)
+    rc, out, err = cli([str(p), "--yes"], dev)
+    ok(rc == 2 and "SHA256SUMS" in err and dev.sent == [], "SHA256SUMS next to it, wrong line for it -> exit 2, no MIDI")
+    (d / "SHA256SUMS").write_text(f"{h} *q.fwsc\n")
+    dev = FakeFM1(image)
+    rc, out, err = cli([str(p), "--yes"], dev)
+    ok(rc == 0 and "(verified)" in out, "SHA256SUMS that matches: installs")
+    (d / "SHA256SUMS").unlink()
+    (d / "q.fwsc.sha256").write_text(h + "\n")
+    dev = FakeFM1(image)
+    rc, out, err = cli([str(p), "--verify-only"], dev)
+    ok(rc == 0 and "nothing was written" in out and dev.upgrades == 0 and "(verified)" in out,
+       "--verify-only: package and device checked, no update started")
+    dev = FakeFM1(image, identity="XY-9_001", name="usb-midi")
+    rc, out, err = cli([str(p), "--verify-only"], dev)
+    ok(rc == 6 and dev.upgrades == 0, "--verify-only on another model -> exit 6")
+
+
 def against_js():
     clean = ROOT / "build/felucca.fwsc"
     if not shutil.which("node") or not clean.exists():
@@ -298,6 +333,7 @@ def official():
 
 
 wire()
+integrity()
 installs()
 errors()
 against_js()

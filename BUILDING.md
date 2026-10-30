@@ -43,7 +43,7 @@ On Linux x86-64 the toolchain runs natively and Docker is not needed.
 `JIELI_TOOLCHAIN` and `AC79_SDK` override the default locations
 (`~/.jieli/toolchain`, `~/fw-AC79_AIoT_SDK`).
 
-`./build.sh --release 1.0` makes a release build: the package identity stays `FM-1_981` (Pocket GammaWave's own,
+`./build.sh --release 1.0` makes a release build: the package identity stays `FM-1_982` (Quantum GammaWave's own; Pocket GammaWave is FM-1_981,
 the one The Firmware Hub knows; Felucca's per-release `FM-1_9XY` gave 1.1 `FM-1_911`, Felucca 1.1's),
 and the version string `v1.0`; the package is `build/felucca-1.0.fwsc`, and
 `build/release-1.0/` holds what a release ships: the package, the app

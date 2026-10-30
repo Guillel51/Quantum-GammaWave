@@ -6,16 +6,21 @@
 # installs it); webapp/installer, the one people use, is the version approved in web/STABLE (a commit of main, set by
 # a PR once the preview was checked in the emulator). No web/STABLE yet: main, as before.
 name: emulator
+# (QG-1) Also on every other push and pull request that touches the firmware, the page or the tools: the emulator
+# built and smoke-tested (web/emu/emu_test.mjs) and kept as an artifact (emulator-<sha>) to download and open; only
+# main goes up to Pages.
 on:
   push:
-    branches: [main]
+    paths: ["firmware/**", "web/**", "tools/**", "build.sh", ".github/workflows/emulator.yml"]
+  pull_request:
+    paths: ["firmware/**", "web/**", "tools/**", "build.sh", ".github/workflows/emulator.yml"]
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: emulator-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -35,9 +40,21 @@ jobs:
           version: 6.0.11                # (the version the emulator is tested with)
       - name: the emulator
         run: sh web/emu/build.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)
+        run: BENCH_MAX=1.5 node web/emu/emu_test.mjs build/emu/felucca.wasm
+      - name: the emulator as an artifact (every branch, every PR)
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-${{ github.sha }}
+          path: build/emu
+          retention-days: 14
       # (JIANT) the installer and the web editor next to the emulator: the package needs JieLi's toolchain (downloaded)
       # and three files of their AC79 SDK (a partial clone: only those blobs). If any of it fails the emulator still goes up
       - name: JieLi toolchain and SDK files (cached)
+        if: github.ref == 'refs/heads/main'
         uses: actions/cache@v4
         with:
           path: |
@@ -46,6 +63,7 @@ jobs:
           key: jieli-ac79-v1
       - name: JieLi toolchain and SDK files
         id: tc
+        if: github.ref == 'refs/heads/main'
         continue-on-error: true
         run: |
           # gitee resets connections from the runners now and then: retries with backoff; the cache above keeps them
@@ -86,10 +104,12 @@ jobs:
           python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
           cp -r build/site/webapp build/site/firmware build/emu/
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: build/emu
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     environment:
       name: github-pages
