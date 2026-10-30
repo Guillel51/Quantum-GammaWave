@@ -3385,7 +3385,8 @@ static int test_layer(void)
         for (i = 0; i < 15u; i++)                                     /* the other effects (F3 .. F5): breathe */
             ok &= i == 1u || ((a ^ b2) >> white(i)) & 1u;
         ok &= !((a | b2) >> white(15) & 1u);                          /* G5: no effect, dark */
-        ok &= ((a ^ b2) >> key_at(1, 0)) & 1u && !((a | b2) >> key_at(1, 6) & 1u);   /* a mute breathes, a spare black dark */
+        ok &= ((a ^ b2) >> key_at(1, 0)) & 1u && ((a ^ b2) >> key_at(1, 6)) & 1u &&   /* a mute, (QG-1) VIB breathe; */
+              !((a | b2) >> key_at(1, 7) & 1u);                     /* A#4 (the tracks) dark */
         song.g[G_BPM] = 72;
         a = leds_at(0); b2 = leds_at(250);
         ok &= !((a | b2) >> white(0) & 1u);                          /* 1/8: too long at 72 */
@@ -3393,7 +3394,7 @@ static int test_layer(void)
         song.g[G_BPM] = 120;
     }
     key_up(white(1)); btn_up(B_FX); frame();
-    bad += check("map LEDs: held lit, the 15 effects breathe, G5 and a too-long REPEAT dark", ok);
+    bad += check("map LEDs: held lit, the 19 effects breathe, G5 and a too-long REPEAT dark", ok);
     usb.config = 0;
     return bad;
 }
