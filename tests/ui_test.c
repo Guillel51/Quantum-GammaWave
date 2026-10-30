@@ -7905,11 +7905,17 @@ static int test_dice_all(void)
             drums += drum_track(&trk[k]);
         }
         ok = !strncmp(ui.msg, "DICED: ", 7) || !strncmp(ui.msg, "GEN: ", 5);
-        ok &= moved >= 3u && fm <= 2u && drums >= 1u && drums <= 2u;   /* (GEN: a second kit for some genres) */
+        ok &= moved >= 2u && fm <= 2u && drums >= 1u && drums <= 2u;   /* (GEN: a second kit for some genres) */
         for (r = 0; r < 30u && ok; r++) {               /* thirty more throws: the same holds, every style seen */
+            uint32_t m1 = 0;                            /* (QG-1) two engines at least every throw, five in six on average:
+                                                         * three on one throw was luck (the FM4 build's seeds missed it) */
+            for (k = 0; k < NTRK; k++) eng0[k] = trk[k].eng_req;
             dice_all();
-            for (k = 0, fm = 0, drums = 0; k < NTRK; k++) { fm += trk[k].eng_req == ENGI_FM6; drums += drum_track(&trk[k]); }
-            ok &= fm <= 2u && drums >= 1u && drums <= 2u;
+            for (k = 0, fm = 0, drums = 0; k < NTRK; k++) {
+                fm += trk[k].eng_req == ENGI_FM6; drums += drum_track(&trk[k]); m1 += trk[k].eng_req != eng0[k];
+            }
+            ok &= fm <= 2u && drums >= 1u && drums <= 2u && m1 >= 2u;
+            moved += m1;
             for (k = 0; k < NTRK; k++) {                /* (0.6.34) the guard rails: chords of three or four, the lead under C7 */
                 uint32_t i2;
                 for (i2 = 0; i2 < (uint32_t)trk[k].p[P_SLEN]; i2++) {
@@ -7923,6 +7929,7 @@ static int test_dice_all(void)
             ok &= proj_pack(&proj_wire, &proj_scratch) != 0;
             for (k = 0; k < 8u; k++) events_block(CTL);
         }
+        ok &= moved * 2u >= 31u * 5u;
         bad += check("DICE ALL (0.6.26): a style named, engines changed, FM6 on two tracks at most, one DRUM track, every piece storable; 30 throws", ok);
         {   /* (0.6.27) 40 throws: never the same piece, the tempo moved every time (even from the same random state) */
             uint32_t h[40], n2, m, same = 0, bpm_same = 0;
