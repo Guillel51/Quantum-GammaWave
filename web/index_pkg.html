@@ -368,7 +368,16 @@
     <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:18px 0 10px">
       <label class="small"><span data-t="verLabel"></span> <select id="ver"></select></label>
       <button id="go" disabled data-t="install"></button>
+      <button id="verify" class="secondary" type="button" data-t="verifyOnly"></button>
     </div>
+    <fieldset id="preflight" class="small" style="border:1px solid var(--border);padding:8px 12px;margin:0 0 10px">
+      <legend data-t="pfTitle"></legend>
+      <label><input type="checkbox" class="pf"> <span data-t="pf1"></span></label><br>
+      <label><input type="checkbox" class="pf"> <span data-t="pf2"></span></label><br>
+      <label><input type="checkbox" class="pf"> <span data-t="pf3"></span></label><br>
+      <label><input type="checkbox" class="pf"> <span data-t="pf4"></span></label>
+    </fieldset>
+    <p class="small" id="pkg-hash"></p>
     <p class="small" data-t="verOld"></p>
 
     <progress id="bar" max="100" value="0"></progress>
@@ -485,6 +494,20 @@ const TEXT = {
     editor: "🎛️ Open Web Studio Editor (Live USB)",
     editorMock: "🧪 Try Web Studio Editor (Mock Device Simulator)",
     verLabel: "Version:", verOld: "You can install the latest release or roll back to an earlier build.", latest: "latest", manual: "Manual:",
+    verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
+    pf1: "The FM-1 is connected straight to the computer with a USB data cable (no hub).",
+    pf2: "The computer is on mains power and will not sleep; the FM-1 is charged.",
+    pf3: "Every other app that uses MIDI (DAW, editor, other tabs) is closed.",
+    pf4: "I will not unplug while writing. If it is cut off, I reconnect and press INSTALL again: the update loader finishes the write.",
+    hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ",
+    vNone: "Verify: no FM-1 found (USB data cable? another app using MIDI?)",
+    vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
+    vStock: "Verify: official V15 (FM-1_015). This package can be installed. ",
+    vJiant: "Verify: GAMMAWAVE/JIANT firmware ", vOther: "Verify: another custom firmware: return to official V15 first. Found: ",
+    vSame: " — same identity as this package (a reinstall or another version).", vCan: " — this package can be installed over it.",
+    bkSaving: "Backing up the FM-1 before writing ", bkSaved: "The backup file was downloaded. Keep it: restore it from the Web Studio if anything goes wrong. Write the firmware now?",
+    bkNone: "This firmware cannot export a backup. Its songs and sounds may be lost. Write anyway?",
+    cancelled: "Cancelled: nothing was written.",
     direct: "Connect the USB cable directly to the computer. No probe or Transporter is needed.",
     brick: "If an install is interrupted by power loss, hardware recovery uses:",
     beta: "QUANTUM GAMMAWAVE FM-1 is a custom firmware release (GPL-3.0). Use it at your own risk.",
@@ -595,7 +618,10 @@ let image = null;
 const meta = /*META*/;
 
 let writing = false, stock = null, stockFileEpoch = 0;
-const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image; $("stock-go").disabled = on || !stock; if ($("stock-direct")) $("stock-direct").disabled = on || !stock; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
+const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
+const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk(); $("verify").disabled = on;
+  document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock; if ($("stock-direct")) $("stock-direct").disabled = on || !stock; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
+document.querySelectorAll(".pf").forEach((c) => c.addEventListener("change", () => lockInstaller(writing)));
 window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = t("leave"); } });
 
 const versions = meta.versions && meta.versions.length ? meta.versions : [{ version: meta.version, pkg: meta.pkg }];
@@ -616,9 +642,14 @@ async function loadVersion(i) {
     const pkg = new Uint8Array(await r.arrayBuffer());
     if (epoch !== loadEpoch) return;
     if (productOf(pkg) !== meta.product) { sayK("badpkg"); return; }
+    /* (QG-1) the bytes against the SHA-256 make_site.py published with them: a cut or altered download is refused */
+    const hash = await sha256hex(pkg);
+    if (epoch !== loadEpoch) return;
+    if ((v.sha256 && hash !== v.sha256) || (v.size && pkg.length !== v.size)) { sayK("badhash", hash.slice(0, 16)); return; }
+    $("pkg-hash").textContent = (v.sha256 ? t("hashOk") : "SHA-256 ") + hash;
     image = logicalImage(pkg);
     say(`QUANTUM GAMMAWAVE FM-1 (${v.version}) — Ready to flash (${pkg.length.toLocaleString()} bytes)`);
-    $("go").disabled = writing;
+    lockInstaller(writing);
   } catch (e) { if (epoch === loadEpoch) sayK("loadfail", e.message); }
 }
 fillVersions();
@@ -663,7 +694,8 @@ async function fwKind(up) {
   if (!/^FM-1_9\d\d$/.test(text)) { dev.link.close(); return { kind: "other", text }; }
   const input = dev.link.input, output = dev.link.output; dev.link.close();
   const link = new BackupConnection(input, output);
-  try { return isJiantInfo(await link.request([1, []], { timeout: 2000 })) ? { kind: "jiant", text } : { kind: "other", text }; }
+  try { const a = await link.request([1, []], { timeout: 2000 });
+    return isJiantInfo(a) ? { kind: "jiant", text, input, output, info: a } : { kind: "other", text }; }
   catch (e) { return { kind: "other", text: text + " (no answer)" }; }
   finally { link.close(); }
 }
@@ -697,6 +729,19 @@ $("go").addEventListener("click", async () => {
       log(`firmware: ${fw.kind} ${fw.text || ""}`);
       if (fw.kind === "none") { sayK("notfound"); lockInstaller(false); return; }
       if (fw.kind === "other") { sayK("otherfw", fw.text); $("stock").open = true; lockInstaller(false); return; }
+      if (fw.kind === "jiant") {                 /* (QG-1) a backup first, always: songs, sounds, settings */
+        let ai = null;
+        try { ai = archiveInfo(fw.info); } catch (_) {}
+        if (ai && ai.supported) {
+          const bl = new BackupConnection(fw.input, fw.output);
+          try {
+            const archive = await captureBackup((r, o) => bl.request(r, o), ai.version,
+              (done, total) => sayK("bkSaving", `${Math.round(done / Math.max(1, total) * 100)}%`));
+            saveArchive(archive);
+          } finally { bl.close(); }
+          if (!confirm(t("bkSaved"))) { sayK("cancelled"); lockInstaller(false); return; }
+        } else if (!confirm(t("bkNone"))) { sayK("cancelled"); lockInstaller(false); return; }
+      }
       await up.install(image, meta.product, step);
     }
   } catch (e) {
@@ -707,6 +752,26 @@ $("go").addEventListener("click", async () => {
   lockInstaller(false);
 });
 
+$("verify").addEventListener("click", async () => {
+  if (writing) return;
+  lockInstaller(true);
+  try {
+    let midi;
+    try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
+    const up = new Updater(midi, log);
+    const ota = await up.find((id) => /^ota-/i.test(id.model));
+    if (ota) { ota.link.close(); sayK("vLoader"); return; }
+    const fw = await fwKind(up);
+    log(`verify: ${fw.kind} ${fw.text || ""}`);
+    if (fw.kind === "none") sayK("vNone");
+    else if (fw.kind === "stock") sayK("vStock", meta.product);
+    else if (fw.kind === "jiant") {
+      let ver = ""; try { ver = archiveInfo(fw.info).version; } catch (_) {}
+      sayK("vJiant", `${fw.text} ${ver}` + t(fw.text === meta.product ? "vSame" : "vCan"));
+    } else sayK("vOther", fw.text);
+  } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
+  finally { lockInstaller(false); }
+});
 $("stock-file").addEventListener("change", async () => {
   const epoch = ++stockFileEpoch, file = $("stock-file").files[0]; stock = null; lockInstaller(false);
   if (!file) return;

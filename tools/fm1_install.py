@@ -9,12 +9,17 @@ step 2, the loader reads the whole package and writes it. In both steps the
 device asks (SysEx read requests on the logical image) and we answer. Then
 the FM-1 restarts and the installed identity is checked.
 
-  fm1_install.py PACKAGE.fwsc [--port NAME] [--yes] [--force]
+  fm1_install.py PACKAGE.fwsc [--port NAME] [--yes] [--force] [--sha256 HEX]
+  fm1_install.py PACKAGE.fwsc --verify-only   (checks the package and the FM-1, writes nothing)
   fm1_install.py FM-1.fwsc            (the official V15 file: back to the stock firmware)
   fm1_install.py --info [--port NAME]
 
 If the FM-1 is still in update mode (an earlier install was cut off), the
 install finishes the write. Needs mido with python-rtmidi.
+
+(QG-1) The package's SHA-256 is printed and checked against --sha256, or a
+PACKAGE.fwsc.sha256 / SHA256SUMS file next to it (sha256sum format) when there
+is one: a mismatch writes nothing (exit 2).
 
 Exit codes: 0 done, 1 cancelled or other error, 2 bad arguments or package,
 3 FM-1 not found, 4 connection lost or the device stopped, 5 timeout (no
@@ -371,11 +376,44 @@ class Updater:
 
 # ------------------------------------------------------------------- CLI ---
 
-def load_package(path, force):
+def expected_sha256(path):
+    """the SHA-256 published next to the package: PACKAGE.sha256 / PACKAGE.fwsc.sha256 or SHA256SUMS (sha256sum
+    lines); None when there is none"""
+    import os
+    name, d = os.path.basename(path), os.path.dirname(os.path.abspath(path))
+    for side in (path + ".sha256", os.path.splitext(path)[0] + ".sha256", os.path.join(d, "SHA256SUMS")):
+        try:
+            with open(side, encoding="utf-8") as f:
+                for line in f:
+                    parts = line.split()
+                    if not parts or not re.fullmatch(r"[0-9a-fA-F]{64}", parts[0]):
+                        continue
+                    if len(parts) == 1 or parts[-1].lstrip("*") == name:
+                        return parts[0].lower(), side
+        except OSError:
+            pass
+    return None
+
+
+def check_sha256(raw, path, want=None):
+    got = hashlib.sha256(raw).hexdigest()
+    src = "--sha256"
+    if want is None:
+        found = expected_sha256(path)
+        if found:
+            want, src = found
+    if want is not None and got != want.lower():
+        raise InstallError("badpkg", f"{path}: SHA-256 {got} does not match {want.lower()} ({src}): damaged or "
+                                     "altered, nothing written")
+    return got, want is not None
+
+
+def load_package(path, force, sha=None):
     try:
         raw = open(path, "rb").read()
     except OSError as e:
         raise InstallError("badpkg", f"cannot read {path}: {e.strerror}")
+    load_package.digest = check_sha256(raw, path, sha)
     product = product_of(raw)
     if not re.fullmatch(r"[^_]+_\d+", product):
         raise InstallError("badpkg", f"{path}: not an FM-1 package (identity {product!r})")
@@ -429,14 +467,25 @@ def run(a, backend, out, ask):
         mode = "update loader (update not finished)" if dev.id.loader else "running"
         print(f"{dev.id.text}  [{mode}]  port: {dev.name}", file=out)
         return 0
-    product, image = load_package(a.package, a.force)
+    product, image = load_package(a.package, a.force, a.sha256)
+    got, checked = load_package.digest
     print(f"package: {product}  ({a.package})", file=out)
+    print(f"sha256:  {got}" + ("  (verified)" if checked else ""), file=out)
     dev = up.find()
     if not dev:
         raise not_found(up)
     print(f"device:  {dev.id.text}  ({dev.name})" + ("  in update mode: the write will be finished" if dev.id.loader else ""),
           file=out)
-    if not a.yes and not ask("Install? Do not unplug the FM-1 while writing. [y/N] "):
+    if a.verify_only:
+        dev.link.close()
+        if model_of(dev.id.text) != model_of(product):
+            raise InstallError("model", f"the device is {dev.id.text}, the package is for {product}")
+        same = dev.id.text.removeprefix("ota-") == product
+        print("verify:  the package can be installed on this FM-1" + (" (same identity: a reinstall or another version)"
+              if same else "") + "; nothing was written", file=out)
+        return 0
+    if not a.yes and not ask("Before writing: USB data cable straight to the computer, computer on power, other MIDI "
+                             "apps closed.\nInstall? Do not unplug the FM-1 while writing. [y/N] "):
         dev.link.close()
         print("cancelled", file=out)
         return 1
@@ -462,6 +511,8 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     ap.add_argument("--port", metavar="NAME", help="MIDI port to use (part of its name)")
     ap.add_argument("--yes", action="store_true", help="do not ask for confirmation")
     ap.add_argument("--force", action="store_true", help="install a package without the Felucca loader marker")
+    ap.add_argument("--sha256", metavar="HEX", help="the package's expected SHA-256 (else PACKAGE.sha256 / SHA256SUMS)")
+    ap.add_argument("--verify-only", action="store_true", help="check the package and the connected FM-1, write nothing")
     a = ap.parse_args(argv)
     if bool(a.info) == bool(a.package):
         ap.error("give a PACKAGE.fwsc or --info")

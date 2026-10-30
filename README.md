@@ -124,6 +124,11 @@ Some synth tracks run on the FM-1's second core, with per-block checksums and a 
 
 ## Installing on M-VAVE FM-1 hardware
 
+> **(QG-1)** Web installer with SHA-256 check, pre-flight checklist, *verify only* and an automatic backup over
+> GammaWave/JIANT; one-click launchers in `tools/install/` (`install-fm1.sh`, `.command`, `.bat`); CLI `tools/fm1_install.py
+> --verify-only / --sha256`. Recovery guide (es): [docs/INSTALL.es.md](docs/INSTALL.es.md). Emulator while coding:
+> `python3 tools/emu_dev.py` (rebuilds on every change and reloads the page).
+
 1. **Open the USB web installer** in Chrome, Edge or Opera (it needs Web MIDI):
    **<https://fvalente.github.io/GammaWave-FM1/webapp/installer/>**
 2. Connect the **M-VAVE FM-1** with a USB data cable and switch it on.
