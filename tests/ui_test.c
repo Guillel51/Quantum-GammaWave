@@ -9168,10 +9168,13 @@ static int test_click_menu(void)
             midi_enqueue(0x0Cu | 0xC1u << 8 | 9u << 16, 1u);   /* PROGRAM CHANGE 9 on channel 2 */
             mix_block(o, CTL); frame();
             ok = all > 9u && e < NENGINES && trk[1].eng_req == e && song.sel == sel0;
-            midi_enqueue(0x0Cu | 0xC1u << 8 | 127u << 16, 1u);   /* past the list: nothing */
-            mix_block(o, CTL); frame();
-            ok &= trk[1].eng_req == e;
-            bad += check("PROGRAM CHANGE n: the PRESETS list's n + 1-th sound into the channel's track, the selection kept", ok);
+            {                                           /* 127: the list's 128th (QG-1: more than 128 sounds), past it nothing */
+                uint32_t k2, e2 = all > 127u ? preset_all_at(127u, &k2) : e;
+                midi_enqueue(0x0Cu | 0xC1u << 8 | 127u << 16, 1u);
+                mix_block(o, CTL); frame();
+                ok &= trk[1].eng_req == e2;
+            }
+            bad += check("PROGRAM CHANGE n: the PRESETS list's n + 1-th sound into the channel's track (127: past a short list, nothing), the selection kept", ok);
         }
     }
     {

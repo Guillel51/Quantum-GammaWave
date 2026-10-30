@@ -550,7 +550,7 @@ static int keys_test(void)
             }
         }
     }
-    bad += check("the 1.2 presets (21, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 21u);
+    bad += check("the 1.2 and QG-1 presets (48, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 48u);
     return bad;
 }
 
