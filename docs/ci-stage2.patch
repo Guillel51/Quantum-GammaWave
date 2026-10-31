@@ -1,0 +1,37 @@
+diff --git a/.github/workflows/emulator.yml b/.github/workflows/emulator.yml
+index 6a8c3bc..c82a654 100644
+--- a/.github/workflows/emulator.yml
++++ b/.github/workflows/emulator.yml
+@@ -103,6 +103,15 @@ jobs:
+           python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
+           python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
+           cp -r build/site/webapp build/site/firmware build/emu/
++      # (QG-1 stage 2) the checks that need the target compiler, which only this workflow downloads: the DSP
++      # cost of the render loops (static, against tests/target_budget.txt) and the web installer's reader on
++      # the package just built. Not continue-on-error: a regression here is the point of running them.
++      - name: target cost of the render loops (pi32v2 disassembly, tests/target_budget.txt)
++        if: steps.tc.outcome == 'success'
++        run: python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt
++      - name: the .fwsc reader on the package just built (web/fm1pkg.js + the bounds checks)
++        if: steps.tc.outcome == 'success'
++        run: node web/test_pkg_bounds.mjs build/felucca.fwsc
+       - uses: actions/upload-pages-artifact@v3
+         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+         with:
+@@ -115,5 +124,16 @@ jobs:
+       name: github-pages
+       url: ${{ steps.deployment.outputs.page_url }}
+     steps:
++      # (QG-1 stage 2) deploy-pages fails with "Get Pages site failed (404)" when Pages has never been
++      # enabled, and GitHub does not let the job's own token create the site: say what to do instead
++      - name: "Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)"
++        env:
++          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++        run: |
++          if ! gh api "repos/${{ github.repository }}/pages" > /tmp/pages.json 2>/dev/null; then
++            echo "::error::GitHub Pages is not enabled for ${{ github.repository }}: deploy-pages would fail with HTTP 404. Enable it once, Settings > Pages > Build and deployment > Source: GitHub Actions (no workflow change is needed)."
++            exit 1
++          fi
++          echo "Pages: $(tr -d '\n' < /tmp/pages.json)"
+       - id: deployment
+         uses: actions/deploy-pages@v4
