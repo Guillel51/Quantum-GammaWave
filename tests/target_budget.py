@@ -9,7 +9,13 @@ level of nesting (an inner loop runs several times per sample) and 1 + 8 for a d
 so it is exact run to run, and it catches a render loop that grew (more work per sample, a new divide,
 something not inlined any more). Compared with tests/target_budget.txt at +10 %. The host
 CPU check (regress.c) is the primary one; this one sees the target compiler's code.
-  tests/target_budget.py [DIS [BUDGET]]      BUDGET_UPDATE=1 rewrites BUDGET"""
+
+What it measures: the work per sample of one function's own loops, as the target compiler emitted it.
+What it does not: a callee's loops (they are that callee's line: DRUM_PATH adds the path's lines up, it
+still does not run them), the cost of the calls themselves, memory / cache / DMA behaviour, or the
+device's real load (a cycle count needs the hardware: none of these numbers is a measurement on an FM-1,
+and none of them is a CPU margin).
+  tests/target_budget.py [DIS [BUDGET]]      BUDGET_UPDATE=1 rewrites BUDGET (reviewed changes only)"""
 import os
 import re
 import sys
@@ -127,8 +133,16 @@ def main():
         fail += 1
     for n, r in res.items():
         b = base.get(n, OPTIONAL.get(n))
-        state = "no budget (BUDGET_UPDATE=1 adds it)" if b is None else "ok"
-        if b is not None and not os.environ.get("BUDGET_UPDATE"):
+        state = "ok"
+        if b is None:
+            # (QG-1 stage 2) a function in FUNCS with no line used to pass as "no budget": a new render loop
+            # would then run unchecked. One has to be measured and reviewed once, by hand or BUDGET_UPDATE=1
+            if os.environ.get("BUDGET_UPDATE"):
+                state = "no budget (written by BUDGET_UPDATE=1)"
+            else:
+                state = "FAIL no budget line (measure it, then BUDGET_UPDATE=1; review the cost first)"
+                fail += 1
+        elif not os.environ.get("BUDGET_UPDATE"):
             if r["cost"] > b * (1 + TOL):
                 over = "any loop" if b == 0 else f"+{(r['cost'] / b - 1) * 100:.0f} %"
                 state = f"OVER BUDGET ({over}, limit +{TOL * 100:.0f} %)"
@@ -141,8 +155,14 @@ def main():
     if path:
         total = sum(res[n]["cost"] for n in path)
         b = base.get("DRUM_PATH")
-        state = "no budget (BUDGET_UPDATE=1 adds it)" if b is None else "ok"
-        if b is not None and not os.environ.get("BUDGET_UPDATE"):
+        state = "ok"
+        if b is None:
+            if os.environ.get("BUDGET_UPDATE"):
+                state = "no budget (written by BUDGET_UPDATE=1)"
+            else:                               # (QG-1 stage 2) the path as a whole must be watched too
+                state = "FAIL no DRUM_PATH line (measure it, then BUDGET_UPDATE=1)"
+                fail += 1
+        elif not os.environ.get("BUDGET_UPDATE"):
             if total > b * (1 + TOL):
                 over = "any cost" if b == 0 else f"+{(total / b - 1) * 100:.0f} %"
                 state = f"OVER BUDGET ({over}, limit +{TOL * 100:.0f} %)"
