@@ -419,8 +419,8 @@ def load_package(path, force, sha=None):
         raw = open(path, "rb").read()
     except OSError as e:
         raise InstallError("badpkg", f"cannot read {path}: {e.strerror}")
-    load_package.digest = check_sha256(raw, path, sha)
-    product = product_of(raw)
+    digest = check_sha256(raw, path, sha)[0]      # (QG-1 stage 2) returned, not kept on the function: a
+    product = product_of(raw)                     # stale value from an earlier call can never be printed
     if not re.fullmatch(r"[^_]+_\d+", product):
         raise InstallError("badpkg", f"{path}: not an FM-1 package (identity {product!r})")
     official = hashlib.sha256(raw).hexdigest() == STOCK_V15_SHA256
@@ -428,7 +428,7 @@ def load_package(path, force, sha=None):
         raise InstallError("badpkg", f"{path}: no Felucca update loader in this package; only Felucca's own "
                                      "packages and the unmodified official V15 (FM-1.fwsc) are installed "
                                      "(--force overrides)")
-    return product, logical_image(raw)
+    return product, logical_image(raw), digest
 
 
 def not_found(up):
@@ -473,8 +473,7 @@ def run(a, backend, out, ask):
         mode = "update loader (update not finished)" if dev.id.loader else "running"
         print(f"{dev.id.text}  [{mode}]  port: {dev.name}", file=out)
         return 0
-    product, image = load_package(a.package, a.force, a.sha256)
-    got = load_package.digest[0]
+    product, image, got = load_package(a.package, a.force, a.sha256)
     print(f"package: {product}  ({a.package})", file=out)
     print(f"sha256:  {got}  (verified)", file=out)
     dev = up.find()

@@ -73,6 +73,7 @@ correr el test solo, primero en un proceso nuevo, y N veces seguidas. Resultados
 | suite completa (`ui_test`), donde el test corre tras ~200 otros | pasa |
 
 `tests/run_tests.sh` ejecuta 50 iteraciones después de la suite (3 s): si el orden o el estado dejado
+por otro test importara, el CI lo vería.
 
 ## 3. Presupuesto DSP (pi32v2)
 
@@ -185,6 +186,20 @@ Cadena de suministro: los tres archivos del SDK se verifican por SHA-256 en `too
    reloj del emulador; ninguno es el dispositivo.
 9. **El presupuesto de target no corre en los PR** (solo en `main`, cuando hay toolchain).
 10. **La prueba del V15** (`tests/install_test.py`, restauración oficial) se salta sin
+10. **La prueba del V15** (`tests/install_test.py`, restauración oficial) se salta sin
+    `FM-1_v15.fwsc`: ese camino sigue sin ejecutarse aquí.
+11. **`ui_render` está en rojo y ya lo estaba antes del PR #1** (hallazgo de esta etapa, no arreglado):
+    el paso sale con código 1 si hay cualquier hallazgo de lint o cualquier desalineación de 1 px.
+    Medido aquí: en el commit anterior al PR #1 (`e06bde2`) 2 hallazgos de lint y 148 medidas
+    desalineadas de 2 491 449; en `main` hoy 6 hallazgos y 1 830 de 2 525 677 (y 8 / 1 874 en la
+    variante `FELUCCA_FM4=1`). Los 6 hallazgos están todos en MENU > LARGE (valores demasiado anchos
+    para su celda: `'355' '1/16' 'ORBIT' '1.18' …`, uno en S: `'SIN LP+'`, y `LARGE WHEEL/PRESETS`
+    recortado sin ser texto libre). Es decir: el trabajo de UI del PR #1 (paleta QUANTUM, pantalla
+    GEN, capas de performance) multiplicó por ~12 las desalineaciones, pero el paso **nunca** estuvo
+    verde, así que el job "host tests" estaba rojo por esto además de por el parser. Necesita una
+    pasada de layout (detalles en `build/ui_new/align.txt` y `report.txt`) y, si no se corrige entero,
+    una línea base explícita — lo que sería relajar el umbral y por eso no se toca en esta etapa.
+
     `FM-1_v15.fwsc`: ese camino sigue sin ejecutarse aquí.
 
 ## 7. Próxima etapa recomendada
@@ -203,4 +218,19 @@ Cadena de suministro: los tres archivos del SDK se verifican por SHA-256 en `too
 Nada de lo anterior se ha empezado: esta etapa se cierra con el CI del parser arreglado y lo demás
 comprobado o documentado.
 
-por otro test importara, el CI lo vería.
+## 8. Resultado real de la suite completa (toolchain y paquete construidos aquí)
+
+`tests/run_tests.sh` termina en `HOST TESTS FAILED`, y los dos únicos pasos que fallan son
+`ui_render` (ver §6.11) y su variante `FELUCCA_FM4=1`. Todo lo demás pasa:
+
+| Bloque | Resultado |
+|---|---|
+| Golden renders / salud / voces / routing | 151 renders, 0 cambiados, 0 fallos de salud, 0 de voces, 14 129 eventos sin nota colgada |
+| Presupuesto de target | 38 líneas `ok`, `DRUM path 1189 (budget 1191)` |
+| `ui_test` (incluye DICE ALL) | `ui: all passed`; `dice_all x50: all passed` |
+| ASan/UBSan (todos los tests) y los dos fuzzers | ok (18 777 frames, 5000 iteraciones) |
+| Instalador (CLI), tests web, backup web, parser `.fwsc` | `install tests passed`, `web tests passed`, `backup web tests passed`, `package bounds: all checks passed` (con el paquete real) |
+| Emulador WASM | omitido aquí (no hay `emcc`); en CI ya pasaba |
+
+Es decir: el fallo de CI que motivaba esta etapa (el parser) está corregido; el job "host tests"
+seguirá en rojo mientras no se aborde `ui_render`, que ya estaba rojo antes del PR #1.
