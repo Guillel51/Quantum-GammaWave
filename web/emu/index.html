@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QUANTUM GAMMAWAVE (QG-1) · Live M-VAVE FM-1 Synthesizer &amp; Groovebox Emulator</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23110804%22/%3E%3Ccircle cx=%228%22 cy=%228%22 r=%225%22 fill=%22%23ffb800%22/%3E%3C/svg%3E">
-<meta name="description" content="QUANTUM GAMMAWAVE (QG-1), custom synthesizer &amp; groovebox firmware and Web Studio for the M-VAVE FM-1 (fork of Pocket GammaWave) — companion to the GammaWave Desktop VST (gammawaveaudio.com).">
+<meta name="description" content="QUANTUM GAMMAWAVE (QG-1), custom synthesizer &amp; groovebox firmware and Web Studio for the M-VAVE FM-1.">
 <style>
 /* DotGothic16 (SIL OFL 1.1, fonts/OFL.txt), cut to printable ASCII, for the knob labels */
 @font-face { font-family: "DotGothic16"; src: url("fonts/DotGothic16-subset.woff") format("woff"); font-display: swap; }
@@ -80,9 +80,8 @@ footer small { font-size: 11px; opacity: .8; }
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
     <a href="webapp/editor/" style="padding:5px 10px;background:#221810;color:#ffb800;border:1px solid #ffb800;border-radius:4px;text-decoration:none;font-weight:700">🎛️ Open Web Studio (4-Track Tape &amp; HUD)</a>
-    <a href="webapp/installer/" style="padding:5px 10px;background:#1c2228;color:#00d4ff;border:1px solid #00d4ff;border-radius:4px;text-decoration:none;font-weight:600">⚡ Flash FM-1 Hardware</a>
-    <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="padding:5px 10px;background:#182026;color:#e0f7ff;border:1px solid #446688;border-radius:4px;text-decoration:none;font-weight:600">🌐 gammawaveaudio.com</a>
-    <a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="padding:5px 12px;background:linear-gradient(90deg,#ffb800,#ff5500);color:#110800;border-radius:4px;text-decoration:none;font-weight:800">🔥 BUY GAMMAWAVE VST</a>
+    <a href="https://github.com/Guillel51/Quantum-GammaWave" style="padding:5px 12px;background:#ff5500;color:#fff;border-radius:4px;text-decoration:none;font-weight:700">⚡ GITHUB REPOSITORY</a>
+    <a href="../webapp/installer/" style="padding:5px 10px;background:#182026;color:#e0f7ff;border:1px solid #446688;border-radius:4px;text-decoration:none;font-weight:600">⚡ USB INSTALLER</a>
   </div>
 </div>
 <div class="device" id="device">
@@ -100,13 +99,10 @@ footer small { font-size: 11px; opacity: .8; }
   <span><kbd>Shift</kbd>-click holds a button (e.g. <kbd>Shift</kbd>+<kbd>OCT-</kbd> then <kbd>ARP</kbd> = Solar Macros, <kbd>PLAY</kbd> = 49-Genre Gen, <kbd>HOME</kbd> = 3D Visualizer)</span>
 </p>
 
-<p class="kofi" style="border-left:3px solid #ffb800;background:#14100c;color:#f4eade;padding:10px 14px;border-radius:6px">
-  🔥 <strong>Love the sound &amp; visual workflow of Pocket GammaWave?</strong> Unlock the full studio <strong><a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="color:#00d4ff">GammaWave Desktop Synthesizer VST (PC / Mac)</a></strong> with multi-oscillator Solar Hearth wavetables, high-res FFT spectrogram filter &amp; full DAW automation — <strong><a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="color:#ffb800">Get it on Itch.io → shadowtune.itch.io/gammawave</a></strong>
-</p>
 <footer>
   <small class="version">@VERSION@@PREVIEW@</small><br>
-  <strong>QUANTUM GAMMAWAVE (QG-1)</strong> · Fork of <a href="https://github.com/fvalente/GammaWave-FM1">Pocket GammaWave</a> · Built on <a href="https://github.com/juanjiant-bit/JIANT">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita, Hügelton Instruments · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · browser build after charlesvestal's <a href="https://github.com/charlesvestal/fm1-x0x">X0X</a> · DotGothic16 font, <a href="fonts/OFL.txt">SIL OFL 1.1</a><br>
-  <nav><a href="https://github.com/Guillel51/Quantum-GammaWave">GitHub Source</a> · <a href="webapp/editor/">Web Studio</a> · <a href="webapp/installer/">USB Web Installer</a> · <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener">Official Website</a> · <a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener">Buy GammaWave VST</a></nav>
+  <strong>QUANTUM GAMMAWAVE (QG-1)</strong> · Lineage: Pocket GammaWave · Built on <a href="https://github.com/juanjiant-bit/JIANT">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita, Hügelton Instruments · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · browser build after charlesvestal's <a href="https://github.com/charlesvestal/fm1-x0x">X0X</a> · DotGothic16 font, <a href="fonts/OFL.txt">SIL OFL 1.1</a><br>
+  <nav><a href="https://github.com/Guillel51/Quantum-GammaWave">GitHub Source</a> · <a href="webapp/editor/">Web Studio</a> · <a href="webapp/installer/">USB Web Installer</a></nav>
   <small>M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is not affiliated with or endorsed by them, nor with Hügelton Instruments.</small>
 </footer>
 </main>

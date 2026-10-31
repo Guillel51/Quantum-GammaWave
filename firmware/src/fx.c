@@ -284,8 +284,6 @@ static __attribute__((noinline)) void clip_block(uint32_t n)
         mix_r[i] = ((softclip(r * clip_g >> 10) * clip_mk + 16384) >> 15) << 2;
         wet[i] = 0;
     }
-    if (master_eq.active)
-        qg_biquad_process(&master_eq, mix_l, mix_r, n);
 }
 static __attribute__((noinline)) void master_begin(void)
 {
@@ -1899,6 +1897,8 @@ static __attribute__((noinline)) void mix_block(int32_t *out, uint32_t n)   /* (
         }
     if (clip_g)
         clip_block(n);
+    if (master_eq.active)
+        qg_biquad_process(&master_eq, mix_l, mix_r, n);
     lev_block(n);                                       /* (JIANT 0.5) the leveler: the loudness held */
     if (perf) {
         perf_master(out, n);

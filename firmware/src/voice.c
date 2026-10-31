@@ -371,7 +371,7 @@ static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
                 c = 3;                                  /* held, not the bass */
             else
                 continue;
-            if (c < cat || (c == cat && v->age < (*pp)->v[best].age)) {
+            if (c < cat || (c == cat && best < NVOICE && v->age < (*pp)->v[best].age)) {
                 cat = c;
                 best = i;
                 *pp = t;
@@ -424,7 +424,9 @@ static int voice_room(track_t *t, int soft)
             voice_kill(&vp->v[k]);                      /* (the load budget: a dying tail makes the room) */
         return 1;
     }
-    k = voice_victim(t, soft, &vp);
+    k = quiet_tail(&vp);
+    if (k == NVOICE)
+        k = voice_victim(t, soft, &vp);
     if (k == NVOICE)
         return !soft;                                   /* hard: over the budget (cannot happen: each of the
                                                          * NPART < NVOICE parts protects one voice at most) */
@@ -463,7 +465,9 @@ static voice_t *voice_alloc(track_t *t, uint32_t note)
     }
     if (nfree && (voices_busy() >= voice_cap() || load_tight)) {   /* (0.6.16: the load budget too; 0.6.18: a dying tail) */
         track_t *vp = 0;
-        uint32_t k = voices_busy() >= voice_cap() ? voice_victim(t, 0, &vp) : quiet_tail(&vp);
+        uint32_t k = quiet_tail(&vp);
+        if (k == NVOICE && voices_busy() >= voice_cap())
+            k = voice_victim(t, 0, &vp);
         if (k < np && vp == t)
             return &t->v[k];                            /* our own: restart it in place (no click) */
         if (k < NVOICE)

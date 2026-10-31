@@ -538,7 +538,7 @@ static int chk_retrigger_budget(char *msg, uint32_t n)
         }
         for (i = 0; i < NELEM(NOTES); i++)
             trk_note_on(&trk[0], NOTES[i], 100);
-        for (i = 0; i < 3u; i++)
+        for (i = 0; i < (NVOICE - NELEM(NOTES) - 1u); i++)
             trk_note_on(&trk[1], 64u + 3u * i, 100);
         trk_note_on(&trk[2], 74, 100);
         blk();
@@ -770,7 +770,7 @@ static int chk_kill_bass(char *msg, uint32_t n)
 
 static int chk_steal_fade(char *msg, uint32_t n)
 {
-    static const uint8_t N1[7] = {48, 52, 55, 59, 62, 65, 69};
+    static const uint8_t N1[9] = {48, 52, 55, 59, 62, 65, 69, 71, 72};
     const uint32_t frames = 4u * FS;
     int32_t *L = calloc(frames + CTL, sizeof *L);
     uint32_t f, i, p, k, ev[8], nev = 0, bad = 0;
@@ -782,7 +782,7 @@ static int chk_steal_fade(char *msg, uint32_t n)
     for (f = 0; f < frames; f += CTL) {
         uint32_t ms = f * 1000u / FS, k0 = voice_kills;
         if (f == 0)
-            for (i = 0; i < 7u; i++)
+            for (i = 0; i < (NVOICE - 1u); i++)
                 trk_note_on(&trk[0], N1[i], 90);
         if (f == at(0.5))
             trk_note_on(&trk[1], 74, 90);
@@ -825,21 +825,25 @@ static int chk_keep(char *msg, uint32_t n, uint32_t mode)
     trk[0].p[P_AMODE] = 0;
     trk[0].p[P_SUS] = 100;
     for (k = 1; k < NPART; k++) {
-        host_preset(&trk[k], 1, 1);
+        host_preset(&trk[k], 0, 0);
         trk[k].p[P_VOICE] = V_POLY;
         trk[k].p[P_AMODE] = 0;
         trk[k].p[P_SUS] = 100;
     }
     trk_note_on(&trk[0], 40, 100);
+    uint32_t max_busy = 0;
     for (k = 0; k < 2u * FS / CTL; k++) {
         if (k % 3u == 0u)
             trk_note_on(&trk[1u + k / 3u % 2u], 50u + k / 3u % 40u, 100);
         blk();
+        uint32_t bz = voices_busy();
+        if (bz > max_busy) max_busy = bz;
         {
             const voice_t *v = &trk[0].v[0];
             lost += !(v->active && v->gate && v->note == 40u && v->stage != 4u);
         }
     }
+    printf("[%s] max_busy=%u voice_cap=%u kills=%u\n", MN[mode], max_busy, voice_cap(), voice_kills - kills0);
     snprintf(msg, n, "%s part held its note through %u voices taken from the others: lost in %u blocks",
              MN[mode], voice_kills - kills0, lost);
     return !lost && voice_kills > kills0;
