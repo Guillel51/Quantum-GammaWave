@@ -2,19 +2,17 @@
 
 **Quantum GammaWave (QG-1)** is an advanced open-source firmware and Web Studio for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox**. It is a major evolution and fork of [Pocket GammaWave (GW-1)](https://github.com/fvalente/GammaWave-FM1) by Leo Kuroshita / Hügelton Instruments, built upon [JIANT FM](https://github.com/juanjiant-bit/JIANT) and [Felucca](https://github.com/hugelton/Felucca), and companion to the **[GammaWave desktop synthesizer](https://gammawaveaudio.com/)**.
 
-[![Buy GammaWave VST](https://img.shields.io/badge/BUY%20GAMMAWAVE%20VST-shadowtune.itch.io%2Fgammawave-ffb800?style=for-the-badge)](https://shadowtune.itch.io/gammawave)
 [![Official Website](https://img.shields.io/badge/OFFICIAL%20SITE-gammawaveaudio.com-00d4ff?style=for-the-badge)](https://gammawaveaudio.com/)
 [![Emulator](https://img.shields.io/badge/EMULATOR-guillel51.github.io%2FQuantum--GammaWave-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/)
 [![Web Studio](https://img.shields.io/badge/WEB%20STUDIO-webapp%2Feditor-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)
 [![USB Web Installer](https://img.shields.io/badge/USB%20INSTALLER-Flash%20FM--1-00e5a3?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)
 [![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg?style=for-the-badge)](LICENSE)
 
-> **Like the sound and workflow?** The full **[GammaWave desktop synth](https://shadowtune.itch.io/gammawave)** is a dual-oscillator hybrid (subtractive, FM, granular) with the Hearth saturation engine, a 7-engine filter, 3-layer granular FX, 32-voice polyphony and full DAW automation — VST3 and Standalone on Windows, macOS and Linux, plus AU on macOS.
-> - **Buy the desktop plugin:** <https://shadowtune.itch.io/gammawave>
-> - **Official website:** <https://gammawaveaudio.com/>
-> - **Try the firmware in your browser (emulator):** <https://guillel51.github.io/Quantum-GammaWave/>
-> - **Web Studio (editor, demo songs, tape lanes):** <https://guillel51.github.io/Quantum-GammaWave/webapp/editor/>
-> - **USB web installer:** <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
+> **Quantum GammaWave (QG-1)** is dedicated firmware and workstation software engineered specifically for the M-VAVE FM-1 groovebox hardware.
+> - **Official Project Portal & Emulator:** <https://guillel51.github.io/Quantum-GammaWave/>
+> - **Web Studio Workstation (Editor, Sequencer, Telemetry):** <https://guillel51.github.io/Quantum-GammaWave/webapp/editor/>
+> - **USB Web Installer & Safe Flasher:** <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
+> - **Official Documentation:** [English Manual (`docs/MANUAL.md`)](docs/MANUAL.md) · [Manual en Español (`docs/MANUAL.es.md`)](docs/MANUAL.es.md)
 
 ---
 
@@ -607,7 +605,7 @@ a voice: the drums and the 808 loud, the music sparse and behind them, the middl
 
 ## Credits & license
 
-**Pocket GammaWave (`GW-1`)** is free and open-source software released under **[GPL-3.0-only](LICENSE)**, created as the hardware & browser companion to the **[GammaWave desktop synth](https://gammawaveaudio.com/)** ([buy on itch.io](https://shadowtune.itch.io/gammawave)).
+**Pocket GammaWave (`GW-1`)** is free and open-source software released under **[GPL-3.0-only](LICENSE)**, created as the hardware & browser companion to the **[GammaWave desktop synth](https://gammawaveaudio.com/)** .
 
 Built upon the work of:
 - **[Felucca](https://github.com/hugelton/Felucca)** by [Hügelton Instruments](https://hugelton.com) (Leo Kuroshita, [@kurogedelic](https://github.com/kurogedelic)) — core FM-1 hardware abstraction, bootloader, engines, and the [Fukiai](https://github.com/hugelton/Fukiai) icon font ([MIT](LICENSES/MIT-Fukiai.txt)).

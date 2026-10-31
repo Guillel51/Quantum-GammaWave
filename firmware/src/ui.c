@@ -688,7 +688,7 @@ static int fx_head(uint32_t i)
 {
     const char *t = PAGES[i].title;
     return PAGES[i].fam == FAM_FX && (str_eq(t, "FX") || str_eq(t, "SLICER") || str_eq(t, "DLY") ||
-                                      str_eq(t, "REVERB") || str_eq(t, "CHORUS") || str_eq(t, "MASTER"));
+                                      str_eq(t, "REVERB") || str_eq(t, "CHORUS") || str_eq(t, "MASTER") || str_eq(t, "MASTER EQ"));
 }
 /* (JIANT 0.6.51) a page (or the track) changed by hand: its name in the header (0.6.61), (0.6.64) the footer, for PF_MS, so the
  * pages need no memorising (ui_graph.c page_flash_draw); a page set by code (a test, a dialog's way back) shows none */

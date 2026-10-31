@@ -775,17 +775,17 @@
     </div>
   </section>
 
-  <div style="margin-top:24px;border:1px solid var(--accent);border-left:4px solid var(--theme);background:rgba(255,184,0,0.06);padding:10px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
+  <div style="margin-top:24px;border:1px solid var(--accent);border-left:4px solid var(--theme);background:rgba(96,228,255,0.05);padding:10px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
     <div>
-      <strong style="color:var(--theme);letter-spacing:0.06em">⚡ WANT THE FULL STUDIO GAMMAWAVE SYNTHESIZER FOR YOUR DAW (VST3 / AU)?</strong><br>
-      <span class="dim" style="font-size:12px">Multi-Oscillator Solar Hearth Wavetables • High-Res FFT Spectrogram Filter • Polyphonic Modulation Matrix</span>
+      <strong style="color:var(--accent);letter-spacing:0.06em">☀️ QUANTUM GAMMAWAVE (QG-1) HARDWARE WORKSTATION</strong><br>
+      <span class="dim" style="font-size:12px">10-Voice Polyphony • Peak/Notch Biquad Master EQ • 4 Warm Tape Shapes • Dual-Core AC791N DSP</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,#ffb800,#ff5500);color:#050608;font-weight:900;padding:6px 14px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.05em">🔥 BUY GAMMAWAVE VST (ITCH.IO) ↗</a>
-      <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="border:1px solid var(--accent);color:var(--accent);font-weight:800;padding:6px 12px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.04em">🌐 GAMMAWAVEAUDIO.COM ↗</a>
+      <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="border:1px solid var(--accent);color:var(--accent);font-weight:800;padding:6px 12px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.04em">GITHUB SOURCE ↗</a>
+      <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="border:1px solid var(--theme);color:var(--theme);font-weight:800;padding:6px 12px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.04em">GAMMAWAVEAUDIO.COM ↗</a>
     </div>
   </div>
-  <footer><strong>QUANTUM GAMMAWAVE (QG-1)</strong> — Open-source M-VAVE FM-1 Synthesizer &amp; Groovebox Web Studio, companion to <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener">GammaWave Audio</a> (<a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener">Buy VST on itch.io</a> · <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener">GitHub Source</a> · Fork of <a href="https://github.com/fvalente/GammaWave-FM1" target="_blank" rel="noopener">Pocket GammaWave</a>).<br>
+  <footer><strong>QUANTUM GAMMAWAVE (QG-1)</strong> — Open-source M-VAVE FM-1 Synthesizer &amp; Groovebox Web Studio, companion to <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener">GammaWave Audio</a> (<a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener">GitHub Source</a> · Fork of <a href="https://github.com/fvalente/GammaWave-FM1" target="_blank" rel="noopener">Pocket GammaWave</a>).<br>
     Built on <a href="https://github.com/juanjiant-bit/JIANT" target="_blank" rel="noopener">JIANT FM</a> (<a href="https://ko-fi.com/juanjiant" target="_blank" rel="noopener">Juan Jiant</a>) &amp; Felucca by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments</a>. GPL-3.0.<br>
     <span data-t="foot"></span> M-VAVE and FM-1 are trademarks of their respective owners.<br>
     <a href="FUKIAI-LICENSE.txt" data-t="iconsCredit"></a></footer>
@@ -1990,6 +1990,10 @@ function makeMockDevice(opt = {}) {
     D("MOD", F.PCT, 0, 127, 0),                       /* (0.6.86) G_DMOD 66: the delay's tape drift (WOW, FLUTTER) */
     E("TYPE", ["ANALOG", "DIGITAL"], 0), E("PING", ["OFF", "ON"], 0),   /* (0.6.90) G_DTYPE 67, G_DPING 68 */
     E("TYPE", ["CHORUS", "PHASER"], 0),                /* (QG-1) G_CTYPE 69: the chorus bus's ensemble / PHASER */
+    E("MODE", ["OFF", "PEAK", "NOTCH"], 0),            /* (QG-1 v1.4) G_EQMODE 70: Master Parametric EQ */
+    D("FREQ", F.CUTOFF, 0, 127, 64),                   /* G_EQFREQ 71 */
+    D("GAIN", F.BIPCT, -24, 24, 0),                    /* G_EQGAIN 72 */
+    D("Q", F.PCT, 0, 127, 64),                         /* G_EQQ 73 */
   ];
   const NONE = D("-", F.INT, 0, 0, 0);
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
@@ -2209,7 +2213,7 @@ function makeMockDevice(opt = {}) {
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
     D("CUT", F.CUTOFF, 0, 127, 127), D("RES", F.PCT, 0, 127, 0));                       /* 113, 114: the other engines' */
-  const P_COUNT = 123, G_COUNT = 70, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
+  const P_COUNT = 123, G_COUNT = 74, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* tracks (firmware v3): four synth parts (1.0), six (JIANT 0.6); engine / preset / p / step below are the selected track's */

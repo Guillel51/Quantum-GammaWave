@@ -164,6 +164,7 @@ enum {                          /* global parameters */
     G_DTYPE, G_DPING,           /* (0.6.90) the delay's TYPE (ANALOG / DIGITAL) and PING-PONG (project.c: block 'DT') */
     G_CTYPE,                    /* (QG-1) the CHORUS bus's TYPE: CHORUS (the ensemble) / PHASER (fx.c cho_phaser; project.c:
                                  * bit 1 of block 'DT's TYPE byte, which a firmware before it masks off) */
+    G_EQMODE, G_EQFREQ, G_EQGAIN, G_EQQ, /* (QG-1 v1.4) Parametric Master EQ: OFF/PEAK/NOTCH, FREQ, GAIN, Q */
     G_COUNT
 };
 #define G_SL_N (G_SLP15 + 1 - G_SLMODE)     /* the SLICER's globals (stored together: project.c, song_chain.c) */

@@ -121,7 +121,7 @@ static int32_t menu_document(int32_t y, int draw)
         cv_text(6, y + 100, &AF_S, "4 Warm Tape/Hearth/Flux Shapes.", T_TEXT);
         cv_text(6, y + 118, &AF_S, "8 Engines. 49-Genre Generator.", T_TEXT);
         cv_text(6, y + 138, &AF_S, "GAMMAWAVEAUDIO.COM", T_THEME);
-        cv_text(6, y + 156, &AF_S, "SHADOWTUNE.ITCH.IO", T_ACCENT);
+        cv_text(6, y + 156, &AF_S, "GUILLEL51 GITHUB", T_ACCENT);
         cv_text(6, y + 174, &AF_S, "OCT+: SECRET VIZ", T_THEME);
         draw_about_qr(158, y + 122);
     }
