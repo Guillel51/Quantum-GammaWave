@@ -785,7 +785,7 @@
       <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="border:1px solid var(--accent);color:var(--accent);font-weight:800;padding:6px 12px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.04em">🌐 GAMMAWAVEAUDIO.COM ↗</a>
     </div>
   </div>
-  <footer><strong>Pocket GammaWave (GW-1)</strong> — Open-source M-VAVE FM-1 companion to <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener">GammaWave Audio</a> (<a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener">Buy VST on itch.io</a> · <a href="https://github.com/fvalente/GammaWave-FM1" target="_blank" rel="noopener">GitHub Source</a>).<br>
+  <footer><strong>QUANTUM GAMMAWAVE (QG-1)</strong> — Open-source M-VAVE FM-1 Synthesizer &amp; Groovebox Web Studio, companion to <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener">GammaWave Audio</a> (<a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener">Buy VST on itch.io</a> · <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener">GitHub Source</a> · Fork of <a href="https://github.com/fvalente/GammaWave-FM1" target="_blank" rel="noopener">Pocket GammaWave</a>).<br>
     Built on <a href="https://github.com/juanjiant-bit/JIANT" target="_blank" rel="noopener">JIANT FM</a> (<a href="https://ko-fi.com/juanjiant" target="_blank" rel="noopener">Juan Jiant</a>) &amp; Felucca by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments</a>. GPL-3.0.<br>
     <span data-t="foot"></span> M-VAVE and FM-1 are trademarks of their respective owners.<br>
     <a href="FUKIAI-LICENSE.txt" data-t="iconsCredit"></a></footer>
@@ -3290,7 +3290,12 @@ async function connect() {
       if (MOCK) { mock = makeMockDevice({ legacy: QS.get("legacy") === "1" }); access = mock.access; }
       else {
         try { access = await navigator.requestMIDIAccess({ sysex: true }); }
-        catch (e) { sayK("denied"); return; }
+        catch (e) {
+          console.warn("Web MIDI access denied or unavailable; switching to built-in simulator.", e);
+          setMock(true);
+          say("Web MIDI access was denied or unavailable. Automatically activated built-in Simulator mode.");
+          return;
+        }
       }
       access.onstatechange = onState;
     }

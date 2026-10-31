@@ -446,20 +446,31 @@ function saveFlash(sectors) {
 
 // ------------------------------------------------------------------ Web MIDI in (channel messages)
 async function midiOn() {
-  if (!navigator.requestMIDIAccess) return;
+  if (!navigator.requestMIDIAccess) {
+    console.info("QUANTUM GAMMAWAVE: Web MIDI API unavailable in this browser; running in standalone simulation mode.");
+    return;
+  }
   try {
     const access = await navigator.requestMIDIAccess();
+    let portCount = 0;
     const bind = () => {
+      portCount = 0;
       for (const input of access.inputs.values()) {
+        portCount++;
         input.onmidimessage = (e) => {
           const d = e.data;
           if (d.length >= 2 && d[0] >= 0x80 && d[0] < 0xF0) send({ type: "midi", data: [d[0], d[1], d[2] || 0] });
         };
       }
+      if (portCount > 0) {
+        console.info(`QUANTUM GAMMAWAVE: Connected to ${portCount} MIDI input port(s).`);
+      }
     };
     access.onstatechange = bind;
     bind();
-  } catch { /* no permission: the panel only */ }
+  } catch (err) {
+    console.info("QUANTUM GAMMAWAVE: Web MIDI permission denied or unavailable. Fallback: on-screen controls and computer keyboard active.");
+  }
 }
 
 // ------------------------------------------------------------------ switching on
