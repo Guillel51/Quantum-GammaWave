@@ -391,18 +391,22 @@ static void voice_kill(voice_t *v)                      /* fade out over ~6 ms (
     voice_kills++;
 }
 
-/* (0.6.18) the load budget takes only a tail that is nearly gone: the oldest released voice under -50 dB (any part; 0.6.19, was -30).
- * NVOICE = none: the new voice is added and the tails ring out (0.6.16-17 took the oldest released one, loud or not:
- * with a sequence running every note cut the tails; the overload guard at 80 % stays the last line) */
+/* (v1.4-QG) Smart psychoacoustic voice stealing: evaluates release state and psychoacoustic loudness
+ * (env_out * gain). Prioritizes imperceptible dying release tails (<-40 dB, env_out < 120),
+ * avoiding clicks and preserving audible sustained polyphony. */
 static uint32_t quiet_tail(track_t **pp)
 {
     uint32_t p, i, best = NVOICE;
+    uint32_t lowest_energy = 0xFFFFFFFFu;
     for (p = 0; p < NPART; p++)
         for (i = 0; i < NVOICE; i++) {
             const voice_t *v = &trk[p].v[i];
-            if (!v->active || v->gate || v->stage == 4u || v->env_out >= 104)
+            if (!v->active || v->gate || v->stage == 4u || v->env_out >= 120)
                 continue;
-            if (best == NVOICE || v->age < (*pp)->v[best].age) {
+            /* Psychoacoustic metric: envelope value weighted with track level */
+            uint32_t energy = (uint32_t)v->env_out * (uint32_t)(trk[p].p[P_LEVEL] + 1);
+            if (energy < lowest_energy) {
+                lowest_energy = energy;
                 best = i;
                 *pp = &trk[p];
             }

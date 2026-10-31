@@ -50,27 +50,10 @@ static int32_t tk_dist_y(uint32_t type, int32_t x, int32_t g, int32_t d)
 {
     int32_t v = ((x >> 2) * g) >> 10, a;
     switch (type) {
-    case DT_HARD: return clamp(v, -22000, 22000) * 32767 / 26000;
-    case DT_FOLD:
-        v = clamp(v, -110000, 110000);
-        for (a = 0; a < 3; a++)
-            v = v > 22000 ? 44000 - v : v < -22000 ? -44000 - v : v;
-        return v * 32767 / 26000;
-    case DT_CRUSH: {
-        uint32_t sh = 4u + (uint32_t)d / 12u;
-        x = (int32_t)((uint32_t)(clamp(x, -131072, 131068) >> sh) << sh);
-        return clamp(((x >> 2) * g) >> 10, -26000, 26000) * 32767 / 26000;
-    }
-    case DT_RECT: a = x < 0 ? -x : x; return softclip((((a - 65536) >> 2) * g) >> 10);
     case DT_HEARTH: {
         int32_t h = softclip(v + 4800) - softclip(4800);
         int32_t sp = sine_i((uint32_t)(v * 28000)) >> 3;
         return clamp(h + sp, -32767, 32767);
-    }
-    case DT_BLAST: {
-        int32_t f1 = sine_i((uint32_t)(v * 42000));
-        int32_t f2 = sine_i((uint32_t)(f1 * (48000 + d * 600)));
-        return (f2 * 3 + softclip(v)) >> 2;
     }
     case DT_PLASMA: {
         int32_t warp = sine_i((uint32_t)(v * (36000 + d * 500)));
@@ -82,14 +65,18 @@ static int32_t tk_dist_y(uint32_t type, int32_t x, int32_t g, int32_t d)
         int32_t q = (v + jit) & ~(int32_t)((1u << (3u + (uint32_t)d / 20u)) - 1u);
         return softclip(q + (jit >> 1));
     }
-    default: return softclip(v + 2400) - softclip(2400);
+    case DT_TAPE:
+    default: {
+        int32_t x3 = (v * ((v * v) >> 15)) >> 15;
+        return softclip(v - (x3 / 3));
+    }
     }
 }
 static void tech_dist(const track_t *t)
 {
     int32_t d = t->p[P_DIST], g = 4096 + d * d * 2, i, py = 0, x0 = 22, y0 = TK_Y0, s = 100, cx = x0 + s / 2;
     int32_t cy = y0 + s / 2, en = bg_energy(), tone = t->p[P_DTONE];
-    uint32_t type = (uint32_t)t->p[P_DTYPE] > DT_FLUX ? DT_SOFT : (uint32_t)t->p[P_DTYPE];
+    uint32_t type = (uint32_t)t->p[P_DTYPE] > DT_FLUX ? DT_TAPE : (uint32_t)t->p[P_DTYPE];
     tk_axes(x0, y0, x0 + s, y0 + s);
     cv_rect(x0, cy, s, 1, T_LINE);
     cv_rect(cx, y0, 1, s, T_LINE);

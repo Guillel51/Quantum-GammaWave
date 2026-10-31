@@ -636,15 +636,15 @@ typedef struct {
 static const t808r_t T808R[10] = {
     /* name             wave morph edshp | mix noise cut res edf  drive  dec sus rel pit  dist  type  glide trim */
     {"CLASSIC THUMP", AW_TUBE, 10, 30,   0,  8,   62, 10, 30, {60, 80},   98, 0,  82, 4,  {28, 40}, DT_HEARTH, 62, 0},
-    {"CLEAN",         3, 0, 0,        0,  0,   100, 0, 0,  {36, 50},   98, 0,  92, 0,  {0, 0},   DT_SOFT,   62, -1},
-    {"CRUSHED VENOM", AW_TUBE, 60, 40,   0,  2,   72, 12, 28, {120, 127}, 95, 0,  40, 4,  {70, 86}, DT_CRUSH,  62, -2},
-    {"DEEP SUB",      3, 0, 0,        0,  0,   100, 0, 0,  {44, 60},   88, 0,  82, 8,  {0, 0},   DT_SOFT,   62, 2},
+    {"CLEAN",         3, 0, 0,        0,  0,   100, 0, 0,  {36, 50},   98, 0,  92, 0,  {0, 0},   DT_TAPE,   62, -1},
+    {"CRUSHED VENOM", AW_TUBE, 60, 40,   0,  2,   72, 12, 28, {120, 127}, 95, 0,  40, 4,  {70, 86}, DT_FLUX,   62, -2},
+    {"DEEP SUB",      3, 0, 0,        0,  0,   100, 0, 0,  {44, 60},   88, 0,  82, 8,  {0, 0},   DT_TAPE,   62, 2},
     {"DISTORTED", AW_TUBE, 40, 30,       0,  0,   84, 4,  10, {104, 120}, 85, 50, 85, 2,  {56, 70}, DT_FLUX,   64, -1},
     {"GLIDE KING", AW_TUBE, 20, 20,      0,  12,  66, 8,  26, {70, 90},   101, 0, 88, 0,  {36, 48}, DT_HEARTH, 76, -1},
     {"DEEP THUMP",    3, 0, 0,        14, 0,   90, 0,  0,  {64, 84},   91, 0,  70, 3,  {26, 38}, DT_HEARTH, 64, 2},
     {"SUB GLIDE", AW_TUBE, 12, 16,       0,  0,   80, 2,  20, {60, 76},   88, 0,  85, 5,  {34, 46}, DT_HEARTH, 80, 2},
-    {"WRAITH SLIDE", AW_FOLD, 6, 14,    0,  0,   90, 0,  8,  {92, 108},  90, 70, 70, 0,  {3, 5},   DT_BLAST,  78, -3},
-    {"WRAITH DIRTY", AW_FOLD, 14, 26,    0,  4,   84, 6,  16, {118, 127}, 90, 76, 68, 2,  {5, 7},   DT_BLAST,  78, -3},
+    {"WRAITH SLIDE", AW_FOLD, 6, 14,    0,  0,   90, 0,  8,  {92, 108},  90, 70, 70, 0,  {3, 5},   DT_PLASMA, 78, -3},
+    {"WRAITH DIRTY", AW_FOLD, 14, 26,    0,  4,   84, 6,  16, {118, 127}, 90, 76, 68, 2,  {5, 7},   DT_PLASMA, 78, -3},
 };
 static uint8_t tk_808r;                                 /* this piece's 808 */
 static void trap_808_apply(track_t *t, uint32_t ri)

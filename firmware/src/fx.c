@@ -81,31 +81,11 @@ _Static_assert(sizeof rev_comb / 2u >= SP_LEN && sizeof rev_u.sp / 4u >= 4u * (S
  * folds the wave back on itself: more partials as it rises); CRUSH fewer bits and a held sample (the drive takes both
  * down); RECT full-wave rectified (an octave up, fuzz), its DC taken out. Then the two-pole low-pass, TONE (P_DTONE)
  * moving it darker / brighter, and the make-up. DRIVE 0: out of the chain */
-enum { DT_SOFT, DT_HARD, DT_FOLD, DT_CRUSH, DT_RECT, DT_HEARTH, DT_BLAST, DT_PLASMA, DT_FLUX };
+enum { DT_TAPE, DT_HEARTH, DT_PLASMA, DT_FLUX };
 static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, int32_t x, int32_t g, int32_t d)
 {
     int32_t v = ((x >> 2) * g) >> 10, a;
     switch (type) {
-    case DT_HARD:
-        return clamp(v, -22000, 22000);
-    case DT_FOLD:                                        /* folded back at +-T (T 22000), up to 5T: three folds */
-        v = clamp(v, -110000, 110000);
-        for (a = 0; a < 3; a++)
-            v = v > 22000 ? 44000 - v : v < -22000 ? -44000 - v : v;
-        return v;
-    case DT_CRUSH: {
-        uint32_t hold = 1u + (uint32_t)d / 12u, sh = 4u + (uint32_t)d / 12u;   /* (up to 11x held, 4 .. 14 bits off) */
-        if (!t->dist_hc) {
-            t->dist_hold = (int32_t)((uint32_t)(clamp(x, -131072, 131068) >> sh) << sh);
-            t->dist_hc = (uint8_t)hold;
-        }
-        t->dist_hc--;
-        return clamp(((t->dist_hold >> 2) * g) >> 10, -26000, 26000);   /* (the drive's gain as the others: level kept) */
-    }
-    case DT_RECT:
-        a = x < 0 ? -x : x;
-        t->dist_dc += (a - t->dist_dc) >> 9;             /* (its mean: the DC the rectifier adds) */
-        return softclip((((a - t->dist_dc) >> 2) * g) >> 10);
     case DT_HEARTH: {                                    /* GammaWave Hearth: tube Heat + HF Sparks + sub Weight */
         int32_t h = softclip(v + 4800) - softclip(4800);
         int32_t dx = x - t->dist_hold;
@@ -117,11 +97,6 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         wt = (x >= 0 ? t->dist_dc : -t->dist_dc) >> 3;
         return clamp(h + sp + wt, -28000, 28000);
     }
-    case DT_BLAST: {                                     /* WRAITH Blast: 4-stage sinusoidal wavefolder + sub body */
-        int32_t f1 = sine_i((uint32_t)(v * 42000));
-        int32_t f2 = sine_i((uint32_t)(f1 * (48000 + d * 600)));
-        return (f2 * 3 + softclip(v)) >> 2;
-    }
     case DT_PLASMA: {                                    /* GammaWave Singularity/Plasma: envelope-warped AM saturation */
         int32_t warp, core;
         a = v < 0 ? -v : v;
@@ -130,7 +105,7 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         core = softclip(v + (warp >> 1));
         return clamp(core + ((core * warp) >> 15), -28000, 28000);
     }
-    case DT_FLUX: {                                      /* GammaWave Flux: thermal bias drift + Geiger bit-starve */
+    case DT_FLUX: {                                      /* GammaWave Flux: thermal bias drift + tape head roll-off */
         int32_t jit, q;
         t->dist_hc++;
         if ((t->dist_hc & 7u) == 0u)
@@ -139,8 +114,12 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         q = (v + jit) & ~(int32_t)((1u << (3u + (uint32_t)d / 20u)) - 1u);
         return softclip(q + (jit >> 1));
     }
-    default:
-        return softclip(v + 2400) - softclip(2400);
+    case DT_TAPE:                                        /* TAPE: cubic polynomial soft warmth */
+    default: {
+        int32_t x3 = (v * ((v * v) >> 15)) >> 15;
+        int32_t out = v - (x3 / 3);
+        return softclip(out);
+    }
     }
 }
 /* (JIANT 0.6.8, the crackles turning DIST up from 0) DST 1..8 blends the dry part into the drive (it was all drive
@@ -164,14 +143,14 @@ static void track_dist(track_t *t, int32_t *b, uint32_t n)
     full = w0 >= 4096 && w1 >= 4096;
     g = 4096 + d * d * 2;                                /* Q12: 1x .. ~9x, gentle at first */
     k = clamp(32000 - d * 95 + t->p[P_DTONE] * 300, 2500, 32767);   /* tone: transparent at low drive .. ~3 kHz, Q15 */
-    mk = type == DT_HARD || type == DT_FOLD || type == DT_CRUSH || type == DT_BLAST ? 30000 - d * 60 : 30000 - d * 110;   /* make-up */
+    mk = 30000 - d * 100;                               /* make-up gain */
     if (type > DT_FLUX)
-        type = DT_SOFT;
+        type = DT_TAPE;
     for (i = 0; i < (int32_t)n; i++) {
         int32_t x = b[i], y;
         t->dist_hp += (x - t->dist_hp + 64) >> 7;           /* ~55 Hz low cut: keep the bass out of the clipper */
         x = clamp(x - t->dist_hp, -230000, 230000);         /* (x >> 2) * g fits 32 bits; the clip is flat out there */
-        y = type == DT_SOFT ? softclip((((x >> 2) * g) >> 10) + 2400) - b0 : dist_shape(t, type, x, g, d);
+        y = dist_shape(t, type, x, g, d);
         t->dist_lp1 += mulq15(y - t->dist_lp1, k);         /* two poles: tames the fizz */
         t->dist_lp2 += mulq15(t->dist_lp1 - t->dist_lp2, k);
         y = mulq15(t->dist_lp2, mk);
@@ -187,6 +166,105 @@ static int32_t lim_env = LIM_T;
 /* (JIANT) CLIP (G_CLIP 0..100): the mix driven x1 .. x4 into the soft clip ahead of the limiter, its level kept near
  * -4 dBFS (as DRUM's DRV); 0: out of the chain. Set each block (master_begin) */
 static int32_t clip_g, clip_mk;
+/* ------------------------------------------------------------ Q15 Direct Form II Transposed Biquad Filter --- */
+typedef struct {
+    int32_t b0, b1, b2;                                 /* Q15 feedforward */
+    int32_t a1, a2;                                     /* Q15 feedback */
+    int32_t s1_l, s2_l;                                 /* stereo delay states */
+    int32_t s1_r, s2_r;
+    uint8_t active;                                     /* 0 = pass-through bypass */
+} qg_biquad_t;
+
+/* Initialize filter in pure pass-through bypass: unity gain, zero delay */
+static void qg_biquad_init(qg_biquad_t *eq)
+{
+    eq->b0 = 32767;
+    eq->b1 = 0;
+    eq->b2 = 0;
+    eq->a1 = 0;
+    eq->a2 = 0;
+    eq->s1_l = eq->s2_l = 0;
+    eq->s1_r = eq->s2_r = 0;
+    eq->active = 0;
+}
+
+/* Set Peak / Bell EQ: freq (0..127), gain_db (-24..+24), Q factor */
+static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+{
+    if (gain_db == 0) {
+        qg_biquad_init(eq);
+        return;
+    }
+    uint32_t angle = (uint32_t)freq_idx * 33816698u;   /* 0..Pi mapped across 0..127 */
+    int32_t sn = sine_i(angle);
+    int32_t cs = sine_i(angle + 0x40000000u);
+    int32_t alpha = sn >> 2;                            /* Q ~ 2.0 */
+    int32_t a = 32768 + (gain_db * 1365);               /* Gain multiplier */
+    int32_t a_sqrt = 32768 + (gain_db * 682);
+    int32_t b0 = 32768 + ((alpha * a) >> 15);
+    int32_t b1 = -((2 * cs) >> 15);
+    int32_t b2 = 32768 - ((alpha * a) >> 15);
+    int32_t a0 = 32768 + ((alpha * 32768) / a_sqrt);
+    int32_t a1 = -((2 * cs) >> 15);
+    int32_t a2 = 32768 - ((alpha * 32768) / a_sqrt);
+
+    if (a0 > 0) {
+        eq->b0 = (b0 * 32767) / a0;
+        eq->b1 = (b1 * 32767) / a0;
+        eq->b2 = (b2 * 32767) / a0;
+        eq->a1 = (a1 * 32767) / a0;
+        eq->a2 = (a2 * 32767) / a0;
+        eq->active = 1;
+    }
+}
+
+/* Set Notch Filter: freq (0..127) */
+static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx)
+{
+    uint32_t angle = (uint32_t)freq_idx * 33816698u;
+    int32_t sn = sine_i(angle);
+    int32_t cs = sine_i(angle + 0x40000000u);
+    int32_t alpha = sn >> 3;                            /* Narrow notch Q ~ 4.0 */
+    int32_t b0 = 32768;
+    int32_t b1 = -((2 * cs) >> 15);
+    int32_t b2 = 32768;
+    int32_t a0 = 32768 + alpha;
+    int32_t a1 = -((2 * cs) >> 15);
+    int32_t a2 = 32768 - alpha;
+
+    if (a0 > 0) {
+        eq->b0 = (b0 * 32767) / a0;
+        eq->b1 = (b1 * 32767) / a0;
+        eq->b2 = (b2 * 32767) / a0;
+        eq->a1 = (a1 * 32767) / a0;
+        eq->a2 = (a2 * 32767) / a0;
+        eq->active = 1;
+    }
+}
+
+/* Process block of stereo samples through biquad (Direct Form II Transposed) */
+static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t n)
+{
+    if (!eq->active)
+        return;                                         /* zero CPU cost when bypassed */
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        int32_t in_l = l[i] >> 2;
+        int32_t out_l = ((eq->b0 * in_l) >> 15) + eq->s1_l;
+        eq->s1_l = ((eq->b1 * in_l) >> 15) - ((eq->a1 * out_l) >> 15) + eq->s2_l;
+        eq->s2_l = ((eq->b2 * in_l) >> 15) - ((eq->a2 * out_l) >> 15);
+        l[i] = out_l << 2;
+
+        int32_t in_r = r[i] >> 2;
+        int32_t out_r = ((eq->b0 * in_r) >> 15) + eq->s1_r;
+        eq->s1_r = ((eq->b1 * in_r) >> 15) - ((eq->a1 * out_r) >> 15) + eq->s2_r;
+        eq->s2_r = ((eq->b2 * in_r) >> 15) - ((eq->a2 * out_r) >> 15);
+        r[i] = out_r << 2;
+    }
+}
+
+static qg_biquad_t master_eq = { 32767, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
 /* the mix (dry + wet, before the MASTER knob: the same saturation at any volume) through CLIP, in place; wet
  * cleared (it is in the mix now). Its own loop, only while CLIP is on: the ISR's master loop stays as it was */
 static int32_t mix_l[CTL], mix_r[CTL], wet[CTL];
@@ -206,6 +284,8 @@ static __attribute__((noinline)) void clip_block(uint32_t n)
         mix_r[i] = ((softclip(r * clip_g >> 10) * clip_mk + 16384) >> 15) << 2;
         wet[i] = 0;
     }
+    if (master_eq.active)
+        qg_biquad_process(&master_eq, mix_l, mix_r, n);
 }
 static __attribute__((noinline)) void master_begin(void)
 {
