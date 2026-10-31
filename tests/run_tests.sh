@@ -309,7 +309,10 @@ run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/inst
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
-    run "web package parser: malformed .fwsc refused, never loops" node web/test_pkg_bounds.mjs
+    PKG=""
+    if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
+    run "web package parser: malformed .fwsc refused, never loops, the built one parses" \
+        node web/test_pkg_bounds.mjs $PKG
 else
     echo "== skip web tests (no node)"
 fi

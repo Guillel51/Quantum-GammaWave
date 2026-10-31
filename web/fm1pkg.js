@@ -104,6 +104,9 @@ export class Package {
   hdrFileOff(i) { return Math.floor(i / KEEP) * BLK + (i % KEEP); }
 
   parseUfw() {
+    /* (QG-1 stage 2) a file shorter than the 20 blocks the identity lives in cannot be a package:
+     * headerBytes() would read an empty tail and all-zero CRCs would compare equal */
+    if (this.raw.length < BLOCKS * BLK) throw new Error("not an FM-1 package (too short)");
     const h = this.headerBytes();
     enc(h, 0, 0x40);
     const hcrc = u16(h, 0), lcrc = u16(h, 2), nent = u16(h, 8);
@@ -177,7 +180,11 @@ export class Package {
     this.head = head;
     this.app = null;
     let appEnd = false;
-    for (let off = b + 32; off + 32 <= dec.length; off += 32) {
+    /* (QG-1 stage 2) the app entry list lives inside the app area (head.size): the parser decrypts
+     * exactly [b, blkEnd), so an entry past blkEnd is still ciphertext and can never pass its header
+     * CRC. Stop there, as setApp() does, instead of walking the rest of a truncated list */
+    const appLimit = Math.min(dec.length, blkEnd);
+    for (let off = b + 32; off + 32 <= appLimit; off += 32) {
       const e = new Entry(dec, off);
       if (e.flags === 0x82 && e.name === "app.bin") this.app = e;
       if (e.index) { appEnd = true; break; }
