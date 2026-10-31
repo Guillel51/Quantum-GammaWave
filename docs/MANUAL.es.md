@@ -4,7 +4,7 @@
 
 > *English version: [MANUAL.md](MANUAL.md).*
 
-Este manual es para músicos que acaban de instalar Pocket GammaWave (GW-1) y quieren saber cómo tocarlo, cómo armar temas con él
+Este manual es para músicos que acaban de instalar Quantum GammaWave (QG-1) [fork de Pocket GammaWave] y quieren saber cómo tocarlo, cómo armar temas con él
 y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.2.1-GW: cada
 botón, perilla y mensaje aparece nombrado exactamente como lo muestra el equipo.
 

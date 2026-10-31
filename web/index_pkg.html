@@ -254,14 +254,14 @@
 <main>
   <header class="hero">
     <div class="topbar">
-      <span class="tag-pill">POCKET GAMMAWAVE // GW-1 // DUAL-CORE AC791N</span>
+      <span class="tag-pill">QUANTUM GAMMAWAVE // QG-1 // DUAL-CORE AC791N</span>
       <div class="controls-top">
         <button class="btn-ghost" id="pal-toggle" type="button">THEME: GAMMA</button>
         <button class="btn-ghost" id="lang" type="button"></button>
       </div>
     </div>
-    <h1>POCKET GAMMAWAVE // GW-1</h1>
-    <div class="subtitle">Solar Hearth. Spectrogram Filter. 4-Track Tape. — Custom Firmware &amp; Web Studio for M-VAVE FM-1</div>
+    <h1>QUANTUM GAMMAWAVE // QG-1</h1>
+    <div class="subtitle">Solar Hearth. Spectrogram Filter. 4-Track Tape. — Custom Synthesizer &amp; Groovebox Firmware for M-VAVE FM-1 (Fork of Pocket GammaWave)</div>
     <p data-t="intro" style="margin-bottom:8px"></p>
     <div class="nav-links">
       <a class="nav-btn" href="../editor/" data-t="editor"></a>
@@ -417,11 +417,11 @@
       <a href="https://github.com/kurogedelic/FM-1-transporter" target="_blank" rel="noopener" style="color:var(--theme)">FM-1-transporter</a></p>
     <p data-t="beta"></p>
     <p><span data-t="manual"></span>
-      <a href="https://github.com/fvalente/GammaWave-FM1/blob/main/docs/MANUAL.md" target="_blank" rel="noopener" style="color:var(--accent)">English</a> ·
-      <a href="https://github.com/fvalente/GammaWave-FM1/blob/main/docs/MANUAL.es.md" target="_blank" rel="noopener" style="color:var(--accent)">Español</a></p>
-    <p><strong>QUANTUM GAMMAWAVE FM-1</strong> (<a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="color:var(--theme)">gammawaveaudio.com</a> · <a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="color:var(--accent)">Buy GammaWave VST</a> · <a href="https://github.com/fvalente/GammaWave-FM1" target="_blank" rel="noopener" style="color:var(--accent)">GitHub Source</a>): Built on <a href="https://github.com/juanjiant-bit/JIANT" target="_blank" rel="noopener" style="color:inherit">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca" target="_blank" rel="noopener" style="color:inherit">Felucca</a> by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener" style="color:inherit">Hügelton Instruments</a>, with SLOOP song arranger by isod89 &amp; GammaWave/Wraith industrial DSP.<br>
+      <a href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.md" target="_blank" rel="noopener" style="color:var(--accent)">English</a> ·
+      <a href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.es.md" target="_blank" rel="noopener" style="color:var(--accent)">Español</a></p>
+    <p><strong>QUANTUM GAMMAWAVE FM-1</strong> (<a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="color:var(--theme)">gammawaveaudio.com</a> · <a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="color:var(--accent)">Buy GammaWave VST</a> · <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="color:var(--accent)">GitHub Source</a>): Built on <a href="https://github.com/juanjiant-bit/JIANT" target="_blank" rel="noopener" style="color:inherit">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca" target="_blank" rel="noopener" style="color:inherit">Felucca</a> by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener" style="color:inherit">Hügelton Instruments</a>, with SLOOP song arranger by isod89 &amp; GammaWave/Wraith industrial DSP.<br>
       FM6 engine: msfa from Dexed (Google Inc., Pascal Gauthier, Apache-2.0). Package includes JieLi AC79 SDK files (uboot.boot, cfg_tool.bin, eq_cfg_hw.bin under Apache-2.0). <a href="../../firmware/LICENSING.md" style="color:var(--accent)">Licences</a>: <a href="../../firmware/LICENSE" style="color:var(--accent)">GPL-3.0</a>, <a href="../../firmware/LICENSES/Apache-2.0.txt" style="color:var(--accent)">Apache-2.0</a>, <a href="../../firmware/LICENSES/" style="color:var(--accent)">all</a>.<br>
-      <span data-t="license"></span> <a href="https://github.com/fvalente/GammaWave-FM1" target="_blank" rel="noopener" style="color:var(--theme)">fvalente/GammaWave-FM1 (GPL-3.0)</a></p>
+      <span data-t="license"></span> <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="color:var(--theme)">fvalente/GammaWave-FM1 (GPL-3.0)</a></p>
   </footer>
 </main>
 <script type="module">
@@ -460,7 +460,7 @@ const TEXT = {
     stockNeedBackup: "Impossible de sauvegarder depuis le mode bootloader. Cochez la reprise uniquement si vous avez déjà une sauvegarde.",
     stockUnsupported: "Ce firmware ne supporte pas la sauvegarde complète. Installez d'abord la version actuelle.",
     backup: "Sauvegarde complète en cours ", stockError: "Fichier officiel invalide : ",
-    nomidi: "WebMIDI non supporté par ce navigateur. Ouvrez cette page dans Chrome, Edge ou Brave.", loadfail: "Impossible de charger le firmware : ",
+    nomidi: "Web MIDI non disponible dans ce contexte (HTTPS ou http://localhost requis avec Chrome, Edge ou Brave ; file:// est bloqué).", loadfail: "Impossible de charger le firmware : ",
     start: "Démarrage…", verify: "Vérification de l'image…", loader: "Passage en mode mise à jour (OTA)…", write: "Écriture Flash en cours…",
     reboot: "Redémarrage du FM-1…", done: "✓ Installation GAMMAWAVE terminée avec succès !", stopped: "Interrompu. Rebranchez le câble USB et cliquez à nouveau sur Installer.",
     error: "Erreur : ",
@@ -524,7 +524,7 @@ const TEXT = {
     stockNeedBackup: "An update loader cannot export a backup. Only select resume if you already saved a complete backup.",
     stockUnsupported: "This firmware does not support complete backups. Install the current firmware first.",
     backup: "Saving complete backup ", stockError: "Cannot validate official firmware: ",
-    nomidi: "This browser does not support WebMIDI. Open this page in Chrome or Edge.", loadfail: "Could not load: ",
+    nomidi: "Web MIDI is unavailable in this context (requires HTTPS or http://localhost in Chrome, Edge, or Brave; file:// is blocked).", loadfail: "Could not load: ",
     start: "Starting", verify: "Verifying", loader: "Switching to update mode", write: "Writing",
     reboot: "Restarting", done: "✓ GAMMAWAVE installation complete!", stopped: "Stopped. Replug the USB cable and press Install again.",
     error: "Error: ",
@@ -572,7 +572,7 @@ const TEXT = {
     stockNeedBackup: "書き込みモードからはバックアップできません。",
     stockUnsupported: "このファームウェアは全体バックアップに未対応です。",
     backup: "全体バックアップ保存中 ", stockError: "公式ファイルを確認できません: ",
-    nomidi: "このブラウザでは使えません。Chrome か Edge で開いてください。", loadfail: "読み込めませんでした: ",
+    nomidi: "Web MIDIはこのコンテキストで利用できません（HTTPSまたはlocalhostが必要、file://はブロックされます）。", loadfail: "読み込めませんでした: ",
     start: "開始します", verify: "確認中", loader: "書き込みモードに切り替え中", write: "書き込み中",
     reboot: "再起動中", done: "✓ 完了しました！", stopped: "途中で止まりました。USB を挿し直してもう一度押してください。",
     error: "エラー: ",
@@ -662,7 +662,14 @@ fillVersions();
 $("lang").addEventListener("click", fillVersions);
 $("ver").addEventListener("change", () => { if (!writing) loadVersion(+$("ver").value); });
 (async () => {
-  if (!navigator.requestMIDIAccess) { sayK("nomidi"); return; }
+  if (!navigator.requestMIDIAccess) {
+  if (location.protocol === "file:") {
+    say("Browser security restricts Web MIDI over file://. Please start a local server (double-click 'launch_browser_installer.bat') or use the online web flasher.");
+  } else {
+    sayK("nomidi");
+  }
+  return;
+}
   await loadVersion(0);
   try {
     const sr = await fetch("../../firmware/FM-1.fwsc");
