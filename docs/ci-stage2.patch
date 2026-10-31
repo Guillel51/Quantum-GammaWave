@@ -1,24 +1,62 @@
 diff --git a/.github/workflows/emulator.yml b/.github/workflows/emulator.yml
-index 6a8c3bc..c82a654 100644
+index 6a8c3bc..397f1f5 100644
 --- a/.github/workflows/emulator.yml
 +++ b/.github/workflows/emulator.yml
-@@ -103,6 +103,15 @@ jobs:
+@@ -11,9 +11,11 @@ name: emulator
+ # main goes up to Pages.
+ on:
+   push:
+-    paths: ["firmware/**", "web/**", "tools/**", "build.sh", ".github/workflows/emulator.yml"]
++    paths: ["firmware/**", "web/**", "tools/**", "tests/target_budget.txt", "tests/target_budget.py", "build.sh",
++            ".github/workflows/emulator.yml"]
+   pull_request:
+-    paths: ["firmware/**", "web/**", "tools/**", "build.sh", ".github/workflows/emulator.yml"]
++    paths: ["firmware/**", "web/**", "tools/**", "tests/target_budget.txt", "tests/target_budget.py", "build.sh",
++            ".github/workflows/emulator.yml"]
+   workflow_dispatch:
+ permissions:
+   contents: read
+@@ -52,9 +54,10 @@ jobs:
+           path: build/emu
+           retention-days: 14
+       # (JIANT) the installer and the web editor next to the emulator: the package needs JieLi's toolchain (downloaded)
+-      # and three files of their AC79 SDK (a partial clone: only those blobs). If any of it fails the emulator still goes up
++      # and three files of their AC79 SDK (a partial clone: only those blobs). If any of it fails the emulator still
++      # goes up. (QG-1 stage 3) On every pull request too: the DSP budget and the .fwsc reader need the target
++      # compiler, and a PR is exactly where a render loop or the package reader can regress.
+       - name: JieLi toolchain and SDK files (cached)
+-        if: github.ref == 'refs/heads/main'
+         uses: actions/cache@v4
+         with:
+           path: |
+@@ -63,7 +66,6 @@ jobs:
+           key: jieli-ac79-v1
+       - name: JieLi toolchain and SDK files
+         id: tc
+-        if: github.ref == 'refs/heads/main'
+         continue-on-error: true
+         run: |
+           # gitee resets connections from the runners now and then: retries with backoff; the cache above keeps them
+@@ -103,6 +105,18 @@ jobs:
            python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
            python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
            cp -r build/site/webapp build/site/firmware build/emu/
-+      # (QG-1 stage 2) the checks that need the target compiler, which only this workflow downloads: the DSP
-+      # cost of the render loops (static, against tests/target_budget.txt) and the web installer's reader on
-+      # the package just built. Not continue-on-error: a regression here is the point of running them.
-+      - name: target cost of the render loops (pi32v2 disassembly, tests/target_budget.txt)
++      # (QG-1 stage 2/3) the two checks that need the target compiler, on main and on every PR. On main the step
++      # above has just built the package; on a PR (no site, no deploy) this is the only build. Not
++      # continue-on-error: a regression here is the point of running them.
++      - name: target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)
 +        if: steps.tc.outcome == 'success'
-+        run: python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt
-+      - name: the .fwsc reader on the package just built (web/fm1pkg.js + the bounds checks)
-+        if: steps.tc.outcome == 'success'
-+        run: node web/test_pkg_bounds.mjs build/felucca.fwsc
++        env:
++          AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
++          JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
++        run: |
++          if [ ! -s build/felucca.dis ] || [ ! -s build/felucca.fwsc ]; then python3 tools/build.py; fi
++          python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt
++          node web/test_pkg_bounds.mjs build/felucca.fwsc
        - uses: actions/upload-pages-artifact@v3
          if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
          with:
-@@ -115,5 +124,16 @@ jobs:
+@@ -115,5 +129,16 @@ jobs:
        name: github-pages
        url: ${{ steps.deployment.outputs.page_url }}
      steps:
