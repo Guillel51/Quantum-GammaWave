@@ -473,6 +473,7 @@ const TEXT = {
     noreturn: "Le FM-1 n'a pas redémarré automatiquement. Éteignez-le puis rallumez-le.",
     mismatch: "Écriture terminée, mais le FM-1 annonce une autre version : ",
     badpkg: "Le package firmware est endommagé. Rechargez la page.",
+    nohash: "Ce package n'a pas de SHA-256 publié : rien ne sera écrit. Rechargez la page.",
     leave: "Écriture du firmware en cours. Ne fermez pas cette page !",
     license: "Licence GPL-3.0, sans garantie. Base :",
   },
@@ -500,6 +501,7 @@ const TEXT = {
     pf3: "Every other app that uses MIDI (DAW, editor, other tabs) is closed.",
     pf4: "I will not unplug while writing. If it is cut off, I reconnect and press INSTALL again: the update loader finishes the write.",
     hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ",
+    nohash: "This package has no published SHA-256: nothing will be written. Reload the page.",
     vNone: "Verify: no FM-1 found (USB data cable? another app using MIDI?)",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vStock: "Verify: official V15 (FM-1_015). This package can be installed. ",
@@ -583,6 +585,7 @@ const TEXT = {
     noreturn: "FM-1 が戻ってきません。電源を入れ直してください。",
     mismatch: "書き込みは終わりましたが、別のバージョンを報告しています: ",
     badpkg: "ファイルが壊れています。",
+    nohash: "このパッケージには公開された SHA-256 がありません。書き込みは行いません。ページを再読み込みしてください。",
     leave: "書き込み中です。ページを閉じないでください。",
     license: "GPL-3.0、無保証。ソース:",
   },
@@ -624,7 +627,8 @@ const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").di
 document.querySelectorAll(".pf").forEach((c) => c.addEventListener("change", () => lockInstaller(writing)));
 window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = t("leave"); } });
 
-const versions = meta.versions && meta.versions.length ? meta.versions : [{ version: meta.version, pkg: meta.pkg }];
+const versions = meta.versions && meta.versions.length ? meta.versions
+  : [{ version: meta.version, pkg: meta.pkg, sha256: meta.sha256, size: meta.size }];
 let loadEpoch = 0;
 function fillVersions() {
   const sel = $("ver"), at = sel.selectedIndex;
@@ -645,8 +649,10 @@ async function loadVersion(i) {
     /* (QG-1) the bytes against the SHA-256 make_site.py published with them: a cut or altered download is refused */
     const hash = await sha256hex(pkg);
     if (epoch !== loadEpoch) return;
-    if ((v.sha256 && hash !== v.sha256) || (v.size && pkg.length !== v.size)) { sayK("badhash", hash.slice(0, 16)); return; }
-    $("pkg-hash").textContent = (v.sha256 ? t("hashOk") : "SHA-256 ") + hash;
+    /* (QG-1) the published hash is mandatory: an old or hand-edited metadata file is refused, not trusted */
+    if (!v.sha256) { sayK("nohash"); return; }
+    if (hash !== v.sha256 || (v.size && pkg.length !== v.size)) { sayK("badhash", hash.slice(0, 16)); return; }
+    $("pkg-hash").textContent = t("hashOk") + hash;
     image = logicalImage(pkg);
     say(`QUANTUM GAMMAWAVE FM-1 (${v.version}) — Ready to flash (${pkg.length.toLocaleString()} bytes)`);
     lockInstaller(writing);

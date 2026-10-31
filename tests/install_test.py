@@ -7,6 +7,7 @@ then "device asks, host answers" reads of the logical image. Run from the repo r
   python3 tests/install_test.py
 Also checks logical_image/product_of against web/fm1pkg.js (needs node and
 build/felucca.fwsc, skipped otherwise)."""
+import hashlib
 import io
 import queue
 import shutil
@@ -154,6 +155,7 @@ TMP = Path(tempfile.mkdtemp(prefix="felucca-install-"))
 def pkgfile(name, raw):
     p = TMP / name
     p.write_bytes(raw)
+    (TMP / (name + ".sha256")).write_text(hashlib.sha256(raw).hexdigest() + "\n")   # (QG-1) hashes are mandatory
     return str(p)
 
 
@@ -265,8 +267,7 @@ def errors():
 
 
 def integrity():
-    """(QG-1) SHA-256: --sha256, a .sha256 / SHA256SUMS next to the package; --verify-only writes nothing"""
-    import hashlib
+    """(QG-1) SHA-256 mandatory: --sha256, a .sha256 / SHA256SUMS next to the package; --verify-only writes nothing"""
     raw = package()
     image = I.logical_image(raw)
     h = hashlib.sha256(raw).hexdigest()
@@ -274,6 +275,12 @@ def integrity():
     d.mkdir(exist_ok=True)
     p = d / "q.fwsc"
     p.write_bytes(raw)
+    plain = d / "plain.fwsc"
+    plain.write_bytes(raw)
+    dev = FakeFM1(image)
+    rc, out, err = cli([str(plain), "--yes"], dev)
+    ok(rc == 2 and "no SHA-256 published" in err and dev.sent == [],
+       "no SHA-256 published -> refused (exit 2), no MIDI")
     dev = FakeFM1(image)
     rc, out, err = cli([str(p), "--yes", "--sha256", h], dev)
     ok(rc == 0 and f"sha256:  {h}  (verified)" in out, "--sha256 that matches: installs, says verified")
@@ -322,7 +329,7 @@ def official():
         return
     raw = v15.read_bytes()
     dev = FakeFM1(I.logical_image(raw), identity="FM-1_900", name="Felucca", after_write="FM-1_015")
-    rc, out, err = cli([str(v15), "--yes"], dev)
+    rc, out, err = cli([str(v15), "--yes", "--sha256", hashlib.sha256(raw).hexdigest()], dev)
     ok(rc == 0 and dev.bad == 0 and "FM-1_015" in out and dev.identity == "FM-1_015",
        "official V15 (FM-1.fwsc) from Felucca: installed without --force, back as FM-1_015")
     bad = bytearray(raw)

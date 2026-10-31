@@ -180,6 +180,7 @@ static void ui_power_on(void)
         if ((dice_secs >> i) & 1u) memset(proj_slot[i].raw, 0, 4);
     dice_secs = 0;
     memset(&ui, 0, sizeof ui);
+    gen_power_on();                               /* (QG-1 audit) no GEN settings from the test before */
     cin_left = cin_total = 0;                     /* (no count-in) */
     memset(&nm, 0, sizeof nm);                    /* NAME closed, no project name */
     proj_name[0] = 0;
@@ -7855,6 +7856,7 @@ static int test_dice_all(void)
     int bad = 0, ok;
     uint32_t k, i, sig0[NTRK], eng0[NTRK], sig1[NTRK], on;
     ui_power_on();
+    host_ticks = 0;                                      /* (QG-1 audit) the soak's clock must not seed this test */
     go_home(); frames(16);
     for (k = 0; k < NTRK; k++) { sig0[k] = steps_sig(&trk[k]); eng0[k] = trk[k].eng_req; }
     fm1_ms += 1200u;
@@ -7945,6 +7947,14 @@ static int test_dice_all(void)
             }
             bad += check("DICE ALL (0.6.27): 40 throws, none the same piece, the tempo moved every time", !same && !bpm_same);
         }
+    }
+    {   /* (QG-1 audit) an explicit TEMPO is the user's: DICE ALL keeps it instead of forcing a move */
+        int16_t bpm;
+        gp.tempo = 137;
+        dice_all();
+        bpm = song.g[G_BPM];
+        gp.tempo = 0;
+        bad += check("DICE ALL: a TEMPO set on GEN is kept (AUTO still moves it)", bpm == 137);
     }
     ui_power_on();
     return bad;

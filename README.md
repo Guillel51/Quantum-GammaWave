@@ -38,7 +38,7 @@
 
 ---
 
-## What's in Pocket GammaWave (`v1.2.1-GW`)
+## What's in Pocket GammaWave (`v1.3-QG`)
 
 - **GammaWave HUD** on the FM-1's 240×240 screen, in the GAMMA palette (default), plus THERMAL and WRAITH palettes:
   - **HOME**: the selected track's filter response curve drawn over a 28-bar audio-reactive spectrum display, the Hearth sun with an orbiting moon, and the T1–T6 track strip.
@@ -148,7 +148,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.2.1-GW build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.3-QG build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).

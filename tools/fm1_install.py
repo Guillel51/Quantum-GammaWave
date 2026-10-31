@@ -18,8 +18,10 @@ If the FM-1 is still in update mode (an earlier install was cut off), the
 install finishes the write. Needs mido with python-rtmidi.
 
 (QG-1) The package's SHA-256 is printed and checked against --sha256, or a
-PACKAGE.fwsc.sha256 / SHA256SUMS file next to it (sha256sum format) when there
-is one: a mismatch writes nothing (exit 2).
+PACKAGE.fwsc.sha256 / SHA256SUMS file next to it (sha256sum format). The hash is
+mandatory: without one, or on a mismatch, nothing is written (exit 2). It is
+integrity (the bytes are the published ones), not authenticity (who published
+them); see docs/PHASE0_SECURITY.md for the planned Ed25519 signature.
 
 Exit codes: 0 done, 1 cancelled or other error, 2 bad arguments or package,
 3 FM-1 not found, 4 connection lost or the device stopped, 5 timeout (no
@@ -402,10 +404,14 @@ def check_sha256(raw, path, want=None):
         found = expected_sha256(path)
         if found:
             want, src = found
-    if want is not None and got != want.lower():
+    if want is None:
+        raise InstallError("badpkg", f"{path}: no SHA-256 published (pass --sha256, or put PACKAGE.sha256 / "
+                                     "SHA256SUMS next to it): nothing written. A hash is integrity, not "
+                                     "authenticity: it proves the bytes are the published ones, not who published them")
+    if got != want.lower():
         raise InstallError("badpkg", f"{path}: SHA-256 {got} does not match {want.lower()} ({src}): damaged or "
                                      "altered, nothing written")
-    return got, want is not None
+    return got, True
 
 
 def load_package(path, force, sha=None):
@@ -468,9 +474,9 @@ def run(a, backend, out, ask):
         print(f"{dev.id.text}  [{mode}]  port: {dev.name}", file=out)
         return 0
     product, image = load_package(a.package, a.force, a.sha256)
-    got, checked = load_package.digest
+    got = load_package.digest[0]
     print(f"package: {product}  ({a.package})", file=out)
-    print(f"sha256:  {got}" + ("  (verified)" if checked else ""), file=out)
+    print(f"sha256:  {got}  (verified)", file=out)
     dev = up.find()
     if not dev:
         raise not_found(up)
@@ -511,7 +517,7 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     ap.add_argument("--port", metavar="NAME", help="MIDI port to use (part of its name)")
     ap.add_argument("--yes", action="store_true", help="do not ask for confirmation")
     ap.add_argument("--force", action="store_true", help="install a package without the Felucca loader marker")
-    ap.add_argument("--sha256", metavar="HEX", help="the package's expected SHA-256 (else PACKAGE.sha256 / SHA256SUMS)")
+    ap.add_argument("--sha256", metavar="HEX", help="the package's expected SHA-256 (required; else PACKAGE.sha256 / SHA256SUMS)")
     ap.add_argument("--verify-only", action="store_true", help="check the package and the connected FM-1, write nothing")
     a = ap.parse_args(argv)
     if bool(a.info) == bool(a.package):
