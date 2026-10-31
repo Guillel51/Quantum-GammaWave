@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 /* ------------------------------------------------------------ sizes --- */
-#define NVOICE 8                 /* voices per part, and the budget shared by all parts */
+#define NVOICE 10                /* voices per part, and the budget shared by all parts */
 #define NPART 6                  /* synth parts: tracks 1..6 (JIANT 0.6: was 4) */
 #define NTRK NPART               /* tracks (the formats and the protocol count these): every track is a part */
 #define NSTEP 64

@@ -1118,7 +1118,7 @@ static void gen_feel_track(track_t *t, uint32_t r)
     }
     if (gp.grit != GA_AUTO) {
         if (r == RL_BASS) {
-            t->p[P_DIST] = gen_pct(t->p[P_DIST] ? t->p[P_DIST] : 20, gp.grit, 0, t->p[P_DTYPE] == DT_BLAST ? 7 : 110);
+            t->p[P_DIST] = gen_pct(t->p[P_DIST] ? t->p[P_DIST] : 20, gp.grit, 0, t->p[P_DTYPE] == DT_PLASMA ? 15 : 110);
             if (t->eng_req == EG_A) t->p[P_E6] = gen_pct(t->p[P_E6] ? t->p[P_E6] : 30, gp.grit, 0, 127);
         } else if (drum_track(t)) {
             t->p[P_E7] = gen_pct(t->p[P_E7], gp.grit, 0, 127);

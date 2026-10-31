@@ -337,8 +337,8 @@
 <body>
 <main>
   <button class="lang" id="lang"></button>
-  <h1>QUANTUM GAMMAWAVE — FM-1 Web Studio Workstation</h1>
-  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>WAVE 1 &amp; 2 • SPECTROGRAM FILTER • SOLAR HEARTH • 4-TRACK ANALOG TAPE (.WAV) • MODULAR FX RACK</span> &nbsp;|&nbsp; <a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,#ffb800,#ff5500);color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">🔥 BUY GAMMAWAVE VST (PC/Mac) ↗</a> <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="border:1px solid var(--accent);color:var(--accent);font-weight:800;padding:1px 8px;border-radius:3px;text-decoration:none;letter-spacing:0.04em">🌐 GAMMAWAVEAUDIO.COM ↗</a></p>
+  <h1>QUANTUM GAMMAWAVE — FM-1 Web Studio Workstation (v1.4-QG)</h1>
+  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>10-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a> <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="border:1px solid var(--accent);color:var(--accent);font-weight:800;padding:1px 8px;border-radius:3px;text-decoration:none;letter-spacing:0.04em">🌐 GAMMAWAVEAUDIO.COM ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
   <header class="top">
     <div class="bar">
@@ -5333,7 +5333,7 @@ $("connect").addEventListener("click", () => {
    * same parameter; ANALOG's own cutoff / resonance are its EDIT E4 / E5 (ui_being.c gw_trk_cut / gw_trk_res) */
   const GWP = { ATK: 1, REL: 4, SLEN: 29, DIST: 33, DTYPE: 91, FTYPE: 112, FCUT: 113, FRES: 114 };
   const GWG = { PUNCH: 25, DUCK: 26 };
-  const GW_DTYPES = ["SOFT", "HARD", "FOLD", "CRUSH", "RECT", "HEARTH", "BLAST", "PLASMA", "FLUX"];   /* N_DTYPE (fx.c DT_*) */
+  const GW_DTYPES = ["TAPE", "HEARTH", "PLASMA", "FLUX"];   /* N_DTYPE (fx.c DT_*) */
   const GW_FTYPES = ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"];                                  /* N_FTYPE (eng_analog.c FT_*) */
   const gwLive = () => !!(dev && dev.info && dev.dump && dev.dump.p);
   const gwHasP = (id) => gwLive() && id < dev.info.pe0 && id < dev.dump.p.length;
@@ -5625,7 +5625,7 @@ $("connect").addEventListener("click", () => {
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("v1.3-QG", 120, 194);
+      ctx.fillText("v1.4-QG", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";

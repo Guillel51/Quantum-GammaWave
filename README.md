@@ -38,13 +38,22 @@
 
 ---
 
-## What's in Pocket GammaWave (`v1.3-QG`)
+## What's in Quantum GammaWave (`v1.4-QG`)
 
-- **GammaWave HUD** on the FM-1's 240×240 screen, in the GAMMA palette (default), plus THERMAL and WRAITH palettes:
+- **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
+- **Harmonic Distortion & Saturation Suite:** Replaced abrasive wave-shapers with 4 musical, warm saturation topologies:
+  - **`TAPE` (Tape Warmth):** Soft cubic polynomial saturation with subtle 2nd/3rd even/odd harmonic warmth.
+  - **`HEARTH` (Tube Heat):** Asymmetric tube bias curve with rich sub-bass reinforcement and smooth compression.
+  - **`PLASMA` (Singularity):** Dynamic amplitude modulation saturation with progressive crest factor control.
+  - **`FLUX` (Analog Drift):** Warm tape flux saturation with subtle thermal drift and tape head roll-off.
+- **Direct Form II Transposed Biquad Filter Engine (Peak/Bell & Notch):** Fixed-point Q15 parametric EQ filters for precise surgical tone sculpting and master channel resonance cleanup.
+- **Visual Diagnostics & Virtual Device Simulator:**
+  - Fallback virtual device simulator for Web Studio and WebAssembly emulator when physical hardware is disconnected or WebMIDI permissions are missing.
+  - Diagnostics modal providing instant connection troubleshooting, SysEx logging, and MIDI port state inspection.
+- **Quantum GammaWave HUD** on the FM-1's 240×240 screen, in the GAMMA palette (default), plus THERMAL and WRAITH palettes:
   - **HOME**: the selected track's filter response curve drawn over a 28-bar audio-reactive spectrum display, the Hearth sun with an orbiting moon, and the T1–T6 track strip.
   - **EDIT pages**: two live scope traces above the **Wraith ribbon** — six zones (`FLU` · `WHI` · `VOX` · `CHR` · `BEL` · `SCR`) whose needle follows the filter cutoff (and the filter LFO). With the VOWEL or SCREAM filter, or the VOICE engine, the ribbon shows the vowels `OO` · `OH` · `AH` · `EH` · `EE` instead.
-  - Boot splash with the Hearth sun and `POCKET GAMMAWAVE // GW-1`; the ABOUT page carries a QR code to gammawaveaudio.com.
-- **Two new filter types and four new drive types** on every track: filter `VOWEL` and `SCREAM` (after `LP`, `HP`, `BP`, `COMB`), drive `HEARTH`, `BLAST`, `PLASMA` and `FLUX`.
+  - Boot splash and updated ABOUT page with system metrics and credit lineage.
 - **49-genre song generator (GEN)** — open it with **`[OCT−] + [PLAY]`**, or turn **SELECT** on HOME. Page 1: **KNOB 1** genre, **KNOB 2** seed, **KNOB 3** energy, **KNOB 4** form (LOOP / PARTS / SONG); **SELECT** turns the five pages (drums, bass, chords, arp; lead, complexity, swing, humanize; SONG: tempo, key, scale, length; FEEL: space, fills, wet, grit); **ALGORITHM** gives the piece new instruments (the notes kept); **OCT+** makes the piece, **PLAY** auditions it, **HOME** closes. The piece playing is **NOW**: every change shapes NOW (on the next bar while playing) and **SAVE keeps it as a take** — the **TAKES** reel (**PRESETS**) holds only the takes you saved (32, kept over power-off): scroll it (round) and the take under the cursor plays on the next bar (OCT+ or PLAY when stopped); there **KNOB 1–3** are the tempo, key and energy, **KNOB 4** picks a section, **EDIT** deletes, **OCT−** goes back. **GLO + G4 / A4** step NOW back and forward. Hold **OCT+** and the whole screen maps the keys: remake one part, one sound, one section, the harmony, the mix, **drop a part while held**, **C#5** back to the original take, **D#5** **JAM** (NOW changed by itself every few bars), **F#5** the **share code** (**OCT+ + SAVE** types one in). Hold **OCT−** and the white keys **play takes 1–16** on the next bar; **REC** records them as a **SET**. What a control did shows in a band at the foot of the screen. Genres include:
   - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls and triplets, bell / flute / key melodies)
   - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat gallop, late snare, sliding 808, dark strings and choirs)
