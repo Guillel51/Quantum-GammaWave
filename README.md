@@ -1,20 +1,17 @@
 # QUANTUM GAMMAWAVE (QG-1) — M-VAVE FM-1 Synthesizer & Groovebox Firmware
 
-**Quantum GammaWave (QG-1)** is an advanced open-source firmware and Web Studio for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox**. It is a major evolution and fork of [Pocket GammaWave (GW-1)](https://github.com/fvalente/GammaWave-FM1) by Leo Kuroshita / Hügelton Instruments, built upon [JIANT FM](https://github.com/juanjiant-bit/JIANT) and [Felucca](https://github.com/hugelton/Felucca), and companion to the **[GammaWave desktop synthesizer](https://gammawaveaudio.com/)**.
+**Quantum GammaWave (QG-1)** is an advanced open-source firmware and Web Studio for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox**. It represents a major evolution and fork with roots in [Pocket GammaWave (GW-1)](https://github.com/fvalente/GammaWave-FM1) by Leo Kuroshita / Hügelton Instruments, built upon [JIANT FM](https://github.com/juanjiant-bit/JIANT) and [Felucca](https://github.com/hugelton/Felucca).
 
-[![Buy GammaWave VST](https://img.shields.io/badge/BUY%20GAMMAWAVE%20VST-shadowtune.itch.io%2Fgammawave-ffb800?style=for-the-badge)](https://shadowtune.itch.io/gammawave)
-[![Official Website](https://img.shields.io/badge/OFFICIAL%20SITE-gammawaveaudio.com-00d4ff?style=for-the-badge)](https://gammawaveaudio.com/)
 [![Emulator](https://img.shields.io/badge/EMULATOR-guillel51.github.io%2FQuantum--GammaWave-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/)
 [![Web Studio](https://img.shields.io/badge/WEB%20STUDIO-webapp%2Feditor-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)
 [![USB Web Installer](https://img.shields.io/badge/USB%20INSTALLER-Flash%20FM--1-00e5a3?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)
 [![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg?style=for-the-badge)](LICENSE)
 
-> **Like the sound and workflow?** The full **[GammaWave desktop synth](https://shadowtune.itch.io/gammawave)** is a dual-oscillator hybrid (subtractive, FM, granular) with the Hearth saturation engine, a 7-engine filter, 3-layer granular FX, 32-voice polyphony and full DAW automation — VST3 and Standalone on Windows, macOS and Linux, plus AU on macOS.
-> - **Buy the desktop plugin:** <https://shadowtune.itch.io/gammawave>
-> - **Official website:** <https://gammawaveaudio.com/>
+> **Quantum GammaWave (QG-1) Ecosystem:**
 > - **Try the firmware in your browser (emulator):** <https://guillel51.github.io/Quantum-GammaWave/>
 > - **Web Studio (editor, demo songs, tape lanes):** <https://guillel51.github.io/Quantum-GammaWave/webapp/editor/>
 > - **USB web installer:** <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
+> - **GitHub Repository:** <https://github.com/Guillel51/Quantum-GammaWave>
 
 ---
 
@@ -146,7 +143,7 @@ Some synth tracks run on the FM-1's second core, with per-block checksums and a 
 
 *Pocket GammaWave uses the FM-1's user sample flash (`USR1–3`) to store 8 multi-section songs and the 32-voice FM6 user bank. Back up any custom WAV samples from stock firmware before flashing.*
 
-You can also download the package from the **[Releases page](https://github.com/fvalente/GammaWave-FM1/releases)** (named `felucca-<version>.fwsc`, e.g. `felucca-1.1-GW.fwsc` — the build tooling keeps Felucca's file name).
+You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** (named `felucca-<version>.fwsc`, e.g. `felucca-v1.4-QG.fwsc` — the build tooling keeps Felucca's file name).
 
 ---
 
@@ -157,7 +154,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.3-QG build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.4-QG build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -167,7 +164,7 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 ## Changelog
 
 ### `v1.0-GW` — Pocket GammaWave (`GW-1`)
-- **GammaWave HUD** (`ui_being.c`, `ui_tech.c`): HOME with the filter curve over a 28-bar audio-reactive spectrum, the Hearth sun and moon, and the T1–T6 strip; EDIT pages with two scopes and the Wraith ribbon; the SLICER drawn as tape lanes; GAMMA (default), THERMAL and WRAITH palettes; a GammaWave boot splash and an ABOUT page with a gammawaveaudio.com QR code.
+- **Quantum GammaWave HUD** (`ui_being.c`, `ui_tech.c`): HOME with the filter curve over a 28-bar audio-reactive spectrum, the Hearth sun and moon, and the T1–T6 strip; EDIT pages with two scopes and the Wraith ribbon; the SLICER drawn as tape lanes; GAMMA (default), THERMAL and WRAITH palettes; boot splash and an ABOUT page.
 - **New filter types `VOWEL` and `SCREAM`**, and drive types `HEARTH`, `BLAST`, `PLASMA`, `FLUX`.
 - **49-genre generator** (`gen.c`, `gen_tables.c`): adds `GAMMAWAVE`, `WRAITHWAVE`, `TRAP ATL`, `UK DRILL` (3-3-2 hat bounce), `DARK TRAP` (808 cowbells) and `RAGE TRAP`, with 808 glide bass and hi-hat rolls.
 - **`[OCT−]` shift deck** (`ui_input.c`): Hearth macros, GEN, the MUTATE jump, the visualizer, track dice and undo — see the table above.
@@ -607,13 +604,14 @@ a voice: the drums and the 808 loud, the music sparse and behind them, the middl
 
 ## Credits & license
 
-**Pocket GammaWave (`GW-1`)** is free and open-source software released under **[GPL-3.0-only](LICENSE)**, created as the hardware & browser companion to the **[GammaWave desktop synth](https://gammawaveaudio.com/)** ([buy on itch.io](https://shadowtune.itch.io/gammawave)).
+**Quantum GammaWave (`QG-1`)** is free and open-source software released under **[GPL-3.0-only](LICENSE)**.
 
 Built upon the work of:
+- **Pocket GammaWave (GW-1)** by Leo Kuroshita / Hügelton Instruments & ShadowTune.
 - **[Felucca](https://github.com/hugelton/Felucca)** by [Hügelton Instruments](https://hugelton.com) (Leo Kuroshita, [@kurogedelic](https://github.com/kurogedelic)) — core FM-1 hardware abstraction, bootloader, engines, and the [Fukiai](https://github.com/hugelton/Fukiai) icon font ([MIT](LICENSES/MIT-Fukiai.txt)).
 - **[JIANT FM](https://github.com/juanjiant-bit/JIANT)** — DRUM-X synthesis engine, dual-core audio scheduler, procedural generator foundation, and thermal font pipeline.
 - **[SLOOP](https://github.com/isod89/sloop-fm1)** by isod89 — multi-section song arranger and live `SONG REC` architecture.
 - **[Melodee](https://github.com/keremimo/melodee)** (keremimo) & **[fm1-x0x](https://github.com/charlesvestal/fm1-x0x)** (Charles Vestal) — AC791N second-core startup, memory-read guard, and WebAssembly browser emulator architecture.
 - **DSP & fonts**: `msfa` 6-op FM from [Dexed](https://github.com/asb2m10/dexed) ([Apache-2.0](LICENSES/Apache-2.0-msfa.txt)); formant synthesis after [klattsch](https://github.com/tgies/klattsch) (MIT); [Chakra Petch](LICENSES/OFL-ChakraPetch.txt), [IBM Plex Mono](LICENSES/OFL-IBMPlexMono.txt), [Michroma](LICENSES/OFL-Michroma.txt), and [DotGothic16](LICENSES/OFL-DotGothic16.txt) (SIL OFL 1.1).
 
-*M-VAVE and FM-1 are trademarks of their respective owners. Pocket GammaWave is an independent open-source project and is not affiliated with or endorsed by M-VAVE or Hügelton Instruments.*
+*M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is an independent open-source project and is not affiliated with or endorsed by M-VAVE or Hügelton Instruments.*
