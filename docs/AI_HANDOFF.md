@@ -20,6 +20,7 @@ Welcome, Jules! This document contains all essential context, verified baseline 
 ## 2. Commit Baseline & Current Branch
 - **Working Branch**: `feature/quantum-handoff-evolution`
 - **Base Commit**: `dff422e3e65ba5df7b4ca0700bf90f6a9c80c1f7` (Merge PR #2 `Guillel51/dev/quantum-integral`)
+- **Current Commit**: `9cec8b163990fcbf8cde8f8e75298b8f7eeb50d3`
 - **Key Files Created / Maintained**:
   - `AGENTS.md`: Full operating instructions, hardware safety directives, build commands.
   - `docs/PROJECT_STATUS.md`: Up-to-date test verification and subsystem status.

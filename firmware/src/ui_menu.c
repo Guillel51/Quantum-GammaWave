@@ -34,7 +34,7 @@ static void draw_about_qr(int32_t x, int32_t y)
 enum { MC_TEXT, MC_TITLE, MC_URL };
 typedef struct { const char *text; uint8_t kind; } menu_credit_t;
 static const menu_credit_t MENU_CREDITS[] = {
-    {"POCKET GAMMAWAVE (GW-1)", MC_TITLE},
+    {"QUANTUM GAMMAWAVE (QG-1)", MC_TITLE},
     {"ShadowTune / GammaWave Audio", MC_TEXT},
     {"https://gammawaveaudio.com", MC_URL},
     {"https://shadowtune.itch.io/gammawave", MC_URL},
