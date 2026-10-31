@@ -1,5 +1,5 @@
 diff --git a/.github/workflows/emulator.yml b/.github/workflows/emulator.yml
-index 6a8c3bc..397f1f5 100644
+index 6a8c3bc..2c5bacb 100644
 --- a/.github/workflows/emulator.yml
 +++ b/.github/workflows/emulator.yml
 @@ -11,9 +11,11 @@ name: emulator
@@ -29,15 +29,20 @@ index 6a8c3bc..397f1f5 100644
          uses: actions/cache@v4
          with:
            path: |
-@@ -63,7 +66,6 @@ jobs:
+@@ -63,8 +66,11 @@ jobs:
            key: jieli-ac79-v1
        - name: JieLi toolchain and SDK files
          id: tc
 -        if: github.ref == 'refs/heads/main'
          continue-on-error: true
++        env:
++          # (QG-1 stage 3) the reviewed SHA-256 of the toolchain archive (Settings > Variables). Empty: the
++          # download still runs and prints the hash it got, so the value can be reviewed and set
++          JIELI_TOOLCHAIN_SHA256: ${{ vars.JIELI_TOOLCHAIN_SHA256 }}
          run: |
            # gitee resets connections from the runners now and then: retries with backoff; the cache above keeps them
-@@ -103,6 +105,18 @@ jobs:
+           retry() { for d in 0 5 15 30 60; do sleep $d; "$@" && return 0; done; return 1; }
+@@ -103,6 +109,18 @@ jobs:
            python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
            python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
            cp -r build/site/webapp build/site/firmware build/emu/
@@ -56,7 +61,7 @@ index 6a8c3bc..397f1f5 100644
        - uses: actions/upload-pages-artifact@v3
          if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
          with:
-@@ -115,5 +129,16 @@ jobs:
+@@ -115,5 +133,16 @@ jobs:
        name: github-pages
        url: ${{ steps.deployment.outputs.page_url }}
      steps:
