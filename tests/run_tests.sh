@@ -193,6 +193,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "settings: PER1..PER4 migration, palette ids and preference preservation" "$OUT/settings_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test" tests/ui_test.c -lm
     run "UI: sounds keep steps, undo, recording, MIDI overflow, pending saves, panel recovery, drum grid, song chain, GREY gray, MONO neutral" "$OUT/ui_test"
+    run "UI: DICE ALL on its own, 50 throws in a row in one process (no state left by the test before)" \
+        env UI_ONLY=dice_all UI_REPEAT_DICE=50 "$OUT/ui_test"
     FV=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c)   # (the splash, ABOUT: the real version)
     $CC -O1 -w "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render" tests/ui_render.c -lm
     mkdir -p build/ui_new/ppm build/ui_slot
@@ -309,7 +311,10 @@ run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/inst
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
-    run "web package parser: malformed .fwsc refused, never loops" node web/test_pkg_bounds.mjs
+    PKG=""
+    if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
+    run "web package parser: malformed .fwsc refused, never loops, the built one parses" \
+        node web/test_pkg_bounds.mjs $PKG
 else
     echo "== skip web tests (no node)"
 fi

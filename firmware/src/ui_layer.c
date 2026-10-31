@@ -853,21 +853,31 @@ static void lcell(int32_t x, int32_t y, int32_t h, const char *note, uint32_t ic
         GFX_HOOK_ALIGN(x, 0, x + lc_w, 0, AL_H | AL_PASS, "layer cell icon / name centred across");
         cv_text_in(x, t + 14 - AF_S_CAP_Y, lc_w, &AF_S, name, ink, fill);
     } else if (name) {                                     /* a key's row: the icon and the name on its middle */
+        int32_t ib[4];                                     /* (QG-1 stage 3) by its ink, not by the capitals: a
+                                                            * label with a "#" (G# C# .., the FX keys) reaches 2 px
+                                                            * below them and sat low in its cell */
+        text_ink(&AF_S, name, ib);
+        int32_t ny = y + HALF_UP(h - (ib[3] - ib[1])) - ib[1];   /* (the ink box is [y0, y1): its height is the difference) */
         if (!note && icon < ICON_COUNT) {                  /* (the EDIT layer: the engine's icon instead of the key) */
             GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
             cv_icon_in(x + 3, y, 0, h, 12, icon, ink, fill);
             GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
-            cv_text_r(x + lc_w - 3, y + CAP_IN(S, h), &AF_S, name, ink, fill);
+            cv_text_r(x + lc_w - 3, ny, &AF_S, name, ink, fill);
         } else {
             GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
-            cv_text_r(x + lc_w - 5, y + CAP_IN(S, h), &AF_S, name, ink, fill);
+            cv_text_r(x + lc_w - 5, ny, &AF_S, name, ink, fill);
         }
     } else {
-        GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
-        if (icon != ICON_NONE)                          /* (JIANT 0.6: a narrow cell, G6_W, the track's alone) */
+        /* (QG-1 stage 3) a hook declares the box for the item drawn next: one declared for an icon that is not
+         * there was paired with whatever came after (a cell 23 px below), a false finding */
+        if (icon != ICON_NONE) {                            /* (JIANT 0.6: a narrow cell, G6_W, the track's alone) */
+            GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
             cv_icon_in(x + lc_w - 31, y, 0, h, 12, icon, ink, fill);
-        GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
-        cv_icon_in(x + lc_w - (lc_w < LC_W ? 14 : 17), y, 0, h, 12, icon2, ink, fill);
+        }
+        if (icon2 != ICON_NONE) {
+            GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
+            cv_icon_in(x + lc_w - (lc_w < LC_W ? 14 : 17), y, 0, h, 12, icon2, ink, fill);
+        }
     }
     if (tri) {
         int32_t j;

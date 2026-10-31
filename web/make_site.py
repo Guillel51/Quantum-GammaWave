@@ -131,7 +131,7 @@ def main(pkg, version, out, prev=None):
     for n in names:
         shutil.copy(lic / n, fw / "LICENSES" / n)
     (fw / "LICENSES" / "index.html").write_text(    # the installer links this folder: Pages lists no folders
-        '<!doctype html><meta charset="utf-8"><title>Pocket GammaWave (GW-1) licences</title><h1>Licence texts</h1><ul>'
+        '<!doctype html><meta charset="utf-8"><title>Quantum GammaWave (QG-1) licences</title><h1>Licence texts</h1><ul>'
         + "".join(f'<li><a href="{n}">{n}</a></li>' for n in names)
         + '</ul><p><a href="../LICENSING.md">LICENSING.md</a> · <a href="../LICENSE">LICENSE (GPL-3.0)</a></p>\n',
         encoding="utf-8")
@@ -142,9 +142,9 @@ def main(pkg, version, out, prev=None):
         if (HERE / f).exists():
             shutil.copy(HERE / f, ed / f)
     (out / "index.html").write_text(
-        '<!doctype html><meta charset="utf-8"><title>Pocket GammaWave (GW-1)</title>'
+        '<!doctype html><meta charset="utf-8"><title>Quantum GammaWave (QG-1)</title>'
         '<meta http-equiv="refresh" content="0; url=webapp/installer/">'
-        '<a href="webapp/installer/">Pocket GammaWave (GW-1) Installer</a>\n', encoding="utf-8")
+        '<a href="webapp/installer/">Quantum GammaWave (QG-1) Installer</a>\n', encoding="utf-8")
     print(f"site: {out}: webapp/installer ({len(html)} B), webapp/editor, firmware/{name} ({len(raw)} B, {product})"
           + (f", earlier: {' '.join(e['version'] for e, _ in old)}" if old else ""))
 

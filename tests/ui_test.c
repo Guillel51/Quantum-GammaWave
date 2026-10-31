@@ -7960,6 +7960,69 @@ static int test_dice_all(void)
     return bad;
 }
 
+/* (QG-1 stage 2) GEN at power-on: ui_power_on() must leave the defaults of the static initializer (a real boot),
+ * whatever the test before it did. gen_power_on() clears the whole struct and then sets the same fields, so a
+ * field added to gp shows up here instead of being inherited */
+static int test_gen_power_on(void)
+{
+    int bad = 0, ok;
+    uint32_t i;
+    ui_power_on();
+    ok = gp.genre == 0 && gp.seed == 1 && gp.energy == 50 && gp.form == 1 && gp.complex == 50 && gp.human == 30 &&
+         gp.swing == GA_AUTO && gp.fills == GA_AUTO && gp.wet == GA_AUTO && gp.grit == GA_AUTO &&
+         gp.tempo == 0 && gp.key == 0 && gp.scale == 0 && gp.length == 0 && gp.space == 0;
+    for (i = 0; i < GP_N; i++) ok &= gp.amt[i] == GA_AUTO;
+    bad += check("GEN power-on: the defaults a fresh boot has (RANDOM, seed 1, ENERGY 50, AUTO everywhere)", ok);
+    /* every field a take can set, dirtied the way a soak would leave them */
+    gp.genre = 5; gp.seed = 4321; gp.energy = 7; gp.form = 2; gp.complex = 99; gp.swing = 88; gp.human = 3;
+    gp.fills = 66; gp.wet = 55; gp.grit = 44; gp.tempo = 137; gp.key = 5; gp.scale = 3; gp.length = 2;
+    gp.space = 64; gp.page = 3; gp.hot = 2; gp.view = 1; gp.arr = 2; gp.lock = 0xFFFF; gp.sig = 0xDEADBEEF;
+    gp.open_ms = 999;
+    for (i = 0; i < GP_N; i++) gp.amt[i] = 11;
+    memset(gp.var, 0x5A, sizeof gp.var);
+    memset(gp.svar, 0x5A, sizeof gp.svar);
+    memset(&gp.secvar[0][0], 0x5A, sizeof gp.secvar);
+    for (i = 0; i < GP_PINS; i++) { gp.pin[i].what = 3; gp.pin[i].var = 4; gp.pin[i].seed = 5; }
+    str_cpy(gp.last, "HOUSE 0421", sizeof gp.last);
+    ui_power_on();
+    ok = gp.genre == 0 && gp.seed == 1 && gp.energy == 50 && gp.form == 1 && gp.complex == 50 && gp.human == 30 &&
+         gp.swing == GA_AUTO && gp.fills == GA_AUTO && gp.wet == GA_AUTO && gp.grit == GA_AUTO &&
+         gp.tempo == 0 && gp.key == 0 && gp.scale == 0 && gp.length == 0 && gp.space == 0 &&
+         gp.page == 0 && gp.view == 0 && gp.arr == 0 && gp.lock == 0 && gp.sig == 0 && gp.open_ms == 0;
+    for (i = 0; i < GP_N; i++) ok &= gp.amt[i] == GA_AUTO;
+    for (i = 0; i < sizeof gp.var; i++) ok &= gp.var[i] == 0;
+    for (i = 0; i < RL_N; i++) ok &= gp.svar[i] == 0;
+    for (i = 0; i < sizeof gp.secvar / sizeof gp.secvar[0][0]; i++) ok &= (&gp.secvar[0][0])[i] == 0;
+    for (i = 0; i < GP_PINS; i++) ok &= !gp.pin[i].what && !gp.pin[i].var && !gp.pin[i].seed;
+    bad += check("GEN power-on: nothing of the take before survives (TEMPO, takes, pins, the reel's state)", ok);
+    ui_power_on();
+    return bad;
+}
+
+/* (QG-1 stage 2) the RNG is reproducible where it has to be: the same settings and seed make the same piece
+ * (the seed drives the generator's own stream), while DICE ALL asks for a new seed every throw */
+static int test_gen_reproducible(void)
+{
+    int bad = 0, ok;
+    uint32_t a, b, c;
+    ui_power_on();
+    gp.genre = 2; gp.seed = 1234;
+    gen_go();
+    a = dice_print();
+    ui_power_on();
+    gp.genre = 2; gp.seed = 1234;
+    gen_go();
+    b = dice_print();
+    ui_power_on();
+    gp.genre = 2; gp.seed = 1235;
+    gen_go();
+    c = dice_print();
+    ok = a == b && a != c;
+    bad += check("GEN: the same settings and seed make the same piece, another seed another piece", ok);
+    ui_power_on();
+    return bad;
+}
+
 /* (0.6.16) the load budget: tight (audio.c), a new note takes a voice instead of adding one; calm, it adds */
 static int test_load_budget(void)
 {
@@ -7968,6 +8031,8 @@ static int test_load_budget(void)
     track_t *t = &trk[0];
     ui_power_on();
     for (e = 0; e < NENGINES && ENGINES[e] != &ENG_ANALOG; e++) {}
+
+
     set_engine_of(t, e); t->engine = t->eng_req; t->p[P_VOICE] = V_POLY; t->p[P_SUS] = 127; t->p[P_MUTE] = 0;
     trk_note_on(t, 60, 100); trk_note_on(t, 64, 100); trk_note_on(t, 67, 100);
     n0 = voices_busy();
@@ -10079,6 +10144,23 @@ int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     int bad = 0;
+    /* (QG-1 stage 2) one test on its own, and as many times as wanted, instead of the whole suite for each
+     * run:  UI_ONLY=dice_all ./ui_test          DICE ALL first, in a fresh process
+     *       UI_REPEAT_DICE=100 ./ui_test        DICE ALL 100 times in one process (the state it leaves
+     *                                           behind, the generator's last-64-seeds memory and the
+     *                                           clock included, must not change the outcome) */
+    {
+        const char *only = getenv("UI_ONLY");
+        const char *rep = getenv("UI_REPEAT_DICE");
+        if (only && !strcmp(only, "dice_all")) {
+            int n = rep ? atoi(rep) : 1, i;
+            if (n < 1) n = 1;
+            for (i = 0; i < n; i++) bad += test_dice_all();
+            if (bad) printf("ui: dice_all x%d: %d FAILED\n", n, bad);
+            else printf("ui: dice_all x%d: all passed\n", n);
+            return bad ? 1 : 0;
+        }
+    }
     bad += test_large_face();
     bad += test_sound_loads();
     bad += test_patterns();
@@ -10123,6 +10205,8 @@ int main(void)
     bad += test_key_latch();
     bad += test_load_budget();
     bad += test_dice_all();
+    bad += test_gen_power_on();
+    bad += test_gen_reproducible();
     bad += test_gen_pages();
     bad += test_gen_reel();
     bad += test_gen_v2();

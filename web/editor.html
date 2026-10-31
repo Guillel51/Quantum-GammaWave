@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>POCKET GAMMAWAVE // GW-1 — FM-1 Web Studio Workstation</title>
+<title>QUANTUM GAMMAWAVE // QG-1 — FM-1 Web Studio Workstation</title>
 <style>
   /* Fukiai: Hügelton Instruments' icon font (MIT, FUKIAI-LICENSE.txt). Icons are text in .ic spans;
      they stay hidden until the face has loaded (html.fk), so a missing font never shows boxes. */
@@ -286,7 +286,7 @@
   .strip button { width: 100%; padding: 3px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .strip button.selb:disabled { opacity: 1; background: none; color: var(--accent); border: 0; }
   #sysinfo th { padding-right: 16px; }
-  /* POCKET GAMMAWAVE // GW-1 Live 240x240 Hardware Screen & Telemetry Deck */
+  /* QUANTUM GAMMAWAVE // QG-1 Live 240x240 Hardware Screen & Telemetry Deck */
   .gw-deck {
     display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: stretch;
     background: linear-gradient(135deg, var(--gw-c5) 0%, var(--gw-c6) 100%);
@@ -337,13 +337,13 @@
 <body>
 <main>
   <button class="lang" id="lang"></button>
-  <h1>POCKET GAMMAWAVE — FM-1 Web Studio Workstation</h1>
+  <h1>QUANTUM GAMMAWAVE — FM-1 Web Studio Workstation</h1>
   <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>WAVE 1 &amp; 2 • SPECTROGRAM FILTER • SOLAR HEARTH • 4-TRACK ANALOG TAPE (.WAV) • MODULAR FX RACK</span> &nbsp;|&nbsp; <a href="https://shadowtune.itch.io/gammawave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,#ffb800,#ff5500);color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">🔥 BUY GAMMAWAVE VST (PC/Mac) ↗</a> <a href="https://gammawaveaudio.com/" target="_blank" rel="noopener" style="border:1px solid var(--accent);color:var(--accent);font-weight:800;padding:1px 8px;border-radius:3px;text-decoration:none;letter-spacing:0.04em">🌐 GAMMAWAVEAUDIO.COM ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
   <header class="top">
     <div class="bar">
       <button id="connect" data-t="connect" data-ic="port_usb_c"></button>
-      <button type="button" class="gw-btn-sec" id="gw-sim-btn" title="Run built-in FM-1 hardware simulator in browser">⚡ SIMULATE GW-1</button>
+      <button type="button" class="gw-btn-sec" id="gw-sim-btn" title="Run built-in FM-1 hardware simulator in browser (No hardware required)">⚡ SIMULATE QG-1</button>
       <button type="button" class="gw-btn-sec" id="gw-pal-btn" title="Switch Workstation & LCD Theme (GAMMA / WRAITH)">🎨 PALETTE: GAMMA</button>
       <span id="version" class="dim"></span>
       <span id="live" class="dim"></span>
@@ -362,10 +362,10 @@
     <div class="trackbar" id="trackbar" hidden><span class="dim" data-t="track"></span><span class="seg" id="trackbtns" role="group"></span></div>
   </header>
 
-  <!-- POCKET GAMMAWAVE // GW-1 Live 240x240 Hardware Screen HUD & Telemetry Console -->
-  <section class="gw-deck" id="gw-deck" aria-label="Pocket GammaWave Hardware Telemetry Deck">
+  <!-- QUANTUM GAMMAWAVE // QG-1 Live 240x240 Hardware Screen HUD & Telemetry Console -->
+  <section class="gw-deck" id="gw-deck" aria-label="Quantum GammaWave Hardware Telemetry Deck">
     <div class="gw-bezel">
-      <div class="gw-bezel-top"><span>POCKET GAMMAWAVE // GW-1</span><span class="led" id="gw-lcd-mode-lbl">● HOME // FORGE</span></div>
+      <div class="gw-bezel-top"><span>QUANTUM GAMMAWAVE // QG-1</span><span class="led" id="gw-lcd-mode-lbl">● HOME // FORGE</span></div>
       <canvas id="gw-lcd" width="240" height="240" title="Click to cycle Hardware 240×240 LCD Screen (HOME / WAVES / SEQ / TAPE / FX RACK / SPLASH / SECRET VIZ)"></canvas>
       <div class="bar" style="margin:2px 0 0;gap:3px;justify-content:center">
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="auto">AUTO</button>
@@ -381,7 +381,7 @@
     </div>
     <div class="gw-console">
       <div>
-        <h2 style="margin-bottom:6px">POCKET GAMMAWAVE // GW-1 — LIVE SOLAR &amp; 4-TRACK TAPE TELEMETRY</h2>
+        <h2 style="margin-bottom:6px">QUANTUM GAMMAWAVE // QG-1 — LIVE SOLAR &amp; 4-TRACK TAPE TELEMETRY</h2>
         <div class="gw-telem-grid">
           <div class="gw-stat cyan"><div class="k">ACTIVE TRACK</div><div class="val" id="gw-st-trk">TRK 1 // READY</div></div>
           <div class="gw-stat"><div class="k">WAVE 1 / WAVE 2</div><div class="val" id="gw-st-eng">ANALOG : SOLAR BASS</div></div>
@@ -414,7 +414,7 @@
           <label>GENRE
             <select id="gw-gen-genre" style="font-weight:700;color:var(--theme)">
               <option value="0">🎲 RANDOM (50% MUTANT A+B)</option>
-              <optgroup label="🔥 POCKET GAMMAWAVE / WRAITH &amp; TRAP / DRILL">
+              <optgroup label="🔥 QUANTUM GAMMAWAVE / WRAITH &amp; TRAP / DRILL">
                 <option value="1" selected>1. GAMMAWAVE (Solar Industrial)</option>
                 <option value="2">2. WRAITHWAVE (Spectral Witch)</option>
                 <option value="3">3. TRAP ATL (Atlanta 808 + Hat Rolls)</option>
@@ -2917,7 +2917,7 @@ const TEXT = {
     fm6OtherMaker: "別のメーカーの SysEx です", fm6Universal: "音色ではない汎用 SysEx です",
     fm6Factories: "ファクトリー音色",
     fm6NeedDevice: "FM-1 を接続すると 6-OP FM の音色を編集してトラックへ送れます。",
-    fm6NoFw: "このファームウェアには 6-OP FM（FM6）がありません。Pocket GammaWave の最新ファームウェアに更新すると使えます。",
+    fm6NoFw: "このファームウェアには 6-OP FM（FM6）がありません。Quantum GammaWave の最新ファームウェアに更新すると使えます。",
     motion: "オートメーション", motionOn: "再生", motionClear: "オートメーションを消去", motionConfirm: "選択トラックのオートメーションを消しますか？", chance: "確率 %", ratchet: "ラチェット", motionStep: "ステップ", motionParam: "パラメーター", motionValue: "値",
     backupTitle: "全体バックアップ", backupExport: "バックアップ保存", backupImport: "バックアップ復元", backupHelp: "現在の曲・A〜D・音色バンク・設定を、このパソコンへ保存。", backupOld: "全体バックアップには対応版への更新が必要です。", backupConfirm: "全体バックアップを復元しますか？ 現在の曲と保存データを置き換えます。USBを抜かないでください。", backupWorking: "バックアップ処理中 ", backupDone: "バックアップを保存しました", backupRestored: "全体バックアップを復元しました",
     deviceDisplay: "本体の画面",
@@ -2953,9 +2953,9 @@ const TEXT = {
     foot: "Chrome か Edge で使えます。", iconsCredit: "アイコン: Fukiai（MIT）Hügelton Instruments",
     nomidi: "このブラウザでは使えません。Chrome か Edge で開いてください。",
     denied: "MIDI（SysEx）の使用が許可されませんでした。",
-    nodevice: "Pocket GammaWave が見つかりません。USB で接続して、もう一度押してください。",
+    nodevice: "Quantum GammaWave / FM-1 が見つかりません。USB接続して再試行するか、「SIMULATE QG-1」でオフライン作業できます。",
     connecting: "接続中", reading: "読み込み中 ", steploading: "ステップを読み込み中 ",
-    ready: "接続しました", disconnected: "切断されました", lost: "Pocket GammaWave が外されました",
+    ready: "接続しました", disconnected: "切断されました", lost: "Quantum GammaWave / FM-1 が外されました",
     noreply: "応答がありません", error: "エラー: ", busy: "処理中",
     applying: "書き込み中 ", applied: "読み込みました", badfile: "ファイルを読み込めません: ",
     savedSlot: "保存しました: スロット ", loadedSlot: "読み込みました: スロット ", emptySlot: "空のスロットです: ",
@@ -2984,7 +2984,7 @@ const TEXT = {
     putDone: "本体に書き込みました: スロット ", storedSlot: "本体に保存しました: スロット ", erasedSlot: "消去しました: スロット ",
     loadedUser: "音色を読み込みました（シーケンスはそのまま。パターンは本体の SEQ > PHRASES から。SAVE 長押しで元に戻せます）: ", reloaded: "本体で音色が変わったので読み直しました", readingBank: "スロットを読み込み中",
     badEngine: "このファームウェアにないエンジンです: ", flashFail: "書き込みに失敗しました（rc {rc}）",
-    installer: "Pocket GammaWave インストーラー",
+    installer: "Quantum GammaWave インストーラー",
     tabSeq: "シーケンサー", tabTracks: "トラック", tabSettings: "設定",
     needDevice: "FM-1 を接続すると編集できます。",
     bankConnect: "FM-1 を接続すると本体のユーザープリセットも扱えます。", bankNone: "このファームウェアにはユーザープリセットがありません。",
@@ -3014,7 +3014,7 @@ const TEXT = {
     fm6OtherMaker: "SysEx from another manufacturer", fm6Universal: "Universal SysEx, not voice data",
     fm6Factories: "Factory patch",
     fm6NeedDevice: "Connect the FM-1 to edit 6-OP FM voices and send them to a track.",
-    fm6NoFw: "This firmware has no 6-OP FM (FM6). Update to the latest Pocket GammaWave firmware to use it.",
+    fm6NoFw: "This firmware has no 6-OP FM (FM6). Update to the latest Quantum GammaWave firmware to use it.",
     motion: "Automation", motionOn: "Play automation", motionClear: "Clear automation", motionConfirm: "Clear this track's automation?", chance: "Chance %", ratchet: "Ratchet", motionStep: "Step", motionParam: "Parameter", motionValue: "Value",
     backupTitle: "Complete backup", backupExport: "Save backup", backupImport: "Restore backup", backupHelp: "Save the current music, A–D, sound banks and settings to this computer.", backupOld: "Complete backups need firmware with archive support.", backupConfirm: "Restore this complete backup? Current music and saved data will be replaced. Keep USB connected.", backupWorking: "Backing up / restoring ", backupDone: "Backup saved", backupRestored: "Complete backup restored",
     deviceDisplay: "Device display",
@@ -3048,11 +3048,11 @@ const TEXT = {
     notesHelp: "Enter notes like C4 E4 G4 (up to 4, C4 = 60). Hits are DRUM lanes: KICK >SNARE HATCL (> = accent).",
     notes: "Notes", hits: "Hits", time: "Time", acc: "Accent", slide: "Slide", vel: "Velocity",
     foot: "Works in Chrome or Edge.", iconsCredit: "Icons: Fukiai (MIT), Hügelton Instruments",
-    nomidi: "This browser cannot do it. Open the page in Chrome or Edge.",
+    nomidi: "Web MIDI is unavailable in this context (requires HTTPS or http://localhost). Running in offline Simulator mode.",
     denied: "MIDI (SysEx) access was not allowed.",
-    nodevice: "Pocket GammaWave not found. Connect it by USB and press Connect again.",
+    nodevice: "Quantum GammaWave / FM-1 not found. Connect via USB and press Connect again (or click SIMULATE QG-1 to work offline).",
     connecting: "Connecting", reading: "Reading ", steploading: "Reading steps ",
-    ready: "Connected", disconnected: "Disconnected", lost: "Pocket GammaWave was unplugged",
+    ready: "Connected", disconnected: "Disconnected", lost: "Quantum GammaWave / FM-1 was unplugged",
     noreply: "No reply from the device", error: "Error: ", busy: "Busy",
     applying: "Writing ", applied: "Loaded", badfile: "Cannot read the file: ",
     savedSlot: "Saved to slot ", loadedSlot: "Loaded slot ", emptySlot: "Empty slot: ",
@@ -3081,7 +3081,7 @@ const TEXT = {
     putDone: "Written to the device: slot ", storedSlot: "Stored on the device: slot ", erasedSlot: "Erased slot ",
     loadedUser: "Sound loaded (the sequence stays; its pattern is on the device under SEQ > PHRASES; hold SAVE to undo): ", reloaded: "The sound changed on the device: read again", readingBank: "Reading the slots",
     badEngine: "This firmware has no such engine: ", flashFail: "Write failed (rc {rc})",
-    installer: "Pocket GammaWave installer",
+    installer: "Quantum GammaWave installer",
     tabSeq: "Sequencer", tabTracks: "Tracks", tabSettings: "Settings",
     needDevice: "Connect the FM-1 to edit.",
     bankConnect: "Connect the FM-1 to see its user presets too.", bankNone: "This firmware has no user presets.",
@@ -3273,7 +3273,16 @@ async function connect() {
   connecting = true;
   let connectedDevice = null;
   wantConnected = true;
-  if (!MOCK && !navigator.requestMIDIAccess) { connecting = false; sayK("nomidi"); return; }
+  if (!MOCK && !navigator.requestMIDIAccess) {
+    connecting = false;
+    if (location.protocol === "file:" || !window.isSecureContext) {
+      setMock(true);
+      say("Web MIDI requires HTTPS or http://localhost (blocked on file://). Switched to Quantum GammaWave Simulator.");
+    } else {
+      sayK("nomidi");
+    }
+    return;
+  }
   $("connect").disabled = true;
   sayK("connecting");
   try {
@@ -3285,7 +3294,7 @@ async function connect() {
       }
       access.onstatechange = onState;
     }
-    const isF = (p) => /felucca/i.test(p.name || "") && p.state !== "disconnected";
+    const isF = (p) => /felucca|fm-?1|gammawave|quantum/i.test(p.name || "") && p.state !== "disconnected";
     const input = [...access.inputs.values()].find(isF);
     const output = [...access.outputs.values()].find(isF);
     if (!input || !output) { sayK("nodevice"); return; }
@@ -3366,7 +3375,7 @@ async function load(d) {
     /* the first frame after opening the port can be lost: a few tries */
     d.info = parse[CMD.INFO](await sessionRequest(d, req.info(), { timeout: 500, retries: 3 }));
     /* shown as Pocket GammaWave; the firmware still reports "FELUCCA <version>" (INFO; the installer's check needs it) */
-    $("version").textContent = String(d.info.version || "").replace(/^FELUCCA\b/i, "POCKET GAMMAWAVE");
+    $("version").textContent = String(d.info.version || "").replace(/^FELUCCA\b/i, "QUANTUM GAMMAWAVE");
     const total = d.info.pcount + d.info.gcount;
     for (let i = 0; i < d.info.pcount; i++) { sayK("reading", `${i + 1}/${total}`); d.pdesc[i] = await getDescOrNull(0, i, d); }
     for (let i = 0; i < d.info.gcount; i++) { sayK("reading", `${d.info.pcount + i + 1}/${total}`); d.gdesc[i] = await getDescOrNull(1, i, d); }
@@ -5613,7 +5622,7 @@ $("connect").addEventListener("click", () => {
       ctx.fillStyle = pal.text;
       ctx.fillText("v1.3-QG", 120, 194);
       ctx.fillStyle = pal.theme;
-      ctx.fillText("POCKET GAMMAWAVE // GW-1", 120, 212);
+      ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";
       requestAnimationFrame(renderLCD);
       return;
@@ -6093,7 +6102,7 @@ $("connect").addEventListener("click", () => {
       if (gwHasP(GWP.FTYPE)) gwSet(0, GWP.FTYPE, ftype);
       if (m === 5) { gwSet(1, GWG.DUCK, 96); gwSet(1, GWG.PUNCH, 90); }
     }
-    sayK("applied", ` — POCKET GAMMAWAVE MACRO [${name.toUpperCase()}]`);
+    sayK("applied", ` — QUANTUM GAMMAWAVE MACRO [${name.toUpperCase()}]`);
   }
 
   document.querySelectorAll(".gw-macro-btn").forEach((btn) => {
@@ -7086,7 +7095,10 @@ $("connect").addEventListener("click", () => {
 applyLang();
 showTab(tab);
 libInit();
-if (!MOCK && !navigator.requestMIDIAccess) sayK("nomidi");
+if (!MOCK && !navigator.requestMIDIAccess) {
+  setMock(true);
+  sayK("nomidi");
+}
 })();
 </script>
 </body>
