@@ -294,6 +294,22 @@ static void tech_master_eq(void)
                 int32_t dip = (24 * (bw * 2 - dist)) / (bw * 2);
                 cur_y += dip;
             }
+        } else if (mode == 3) { /* LOW SHELF */
+            int32_t slope = 14 + (127 - q) / 5;
+            if (cur_x <= mark_x - slope) {
+                cur_y -= gain;
+            } else if (cur_x < mark_x + slope) {
+                int32_t t = (mark_x + slope - cur_x) * gain / (slope * 2);
+                cur_y -= t;
+            }
+        } else if (mode == 4) { /* HIGH SHELF */
+            int32_t slope = 14 + (127 - q) / 5;
+            if (cur_x >= mark_x + slope) {
+                cur_y -= gain;
+            } else if (cur_x > mark_x - slope) {
+                int32_t t = (cur_x - (mark_x - slope)) * gain / (slope * 2);
+                cur_y -= t;
+            }
         }
         cur_y = clamp(cur_y, y0 + 20, y0 + 94);
         if (i > 0)
