@@ -2035,7 +2035,7 @@ function makeMockDevice(opt = {}) {
     D("MOD", F.PCT, 0, 127, 0),                       /* (0.6.86) G_DMOD 66: the delay's tape drift (WOW, FLUTTER) */
     E("TYPE", ["ANALOG", "DIGITAL"], 0), E("PING", ["OFF", "ON"], 0),   /* (0.6.90) G_DTYPE 67, G_DPING 68 */
     E("TYPE", ["CHORUS", "PHASER"], 0),                /* (QG-1) G_CTYPE 69: the chorus bus's ensemble / PHASER */
-    E("MODE", ["OFF", "PEAK", "NOTCH"], 0),            /* (QG-1 v1.4) G_EQMODE 70: Master Parametric EQ */
+    E("MODE", ["OFF", "PEAK", "NOTCH", "LOWSH", "HIGHSH"], 0),            /* (QG-1 v1.4) G_EQMODE 70: Master Parametric EQ */
     D("FREQ", F.CUTOFF, 0, 127, 64),                   /* G_EQFREQ 71 */
     D("GAIN", F.BIPCT, -24, 24, 0),                    /* G_EQGAIN 72 */
     D("Q", F.PCT, 0, 127, 64),                         /* G_EQQ 73 */
