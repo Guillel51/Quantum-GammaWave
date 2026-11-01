@@ -107,6 +107,43 @@ Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Españo
 
 ---
 
+## Real Hardware Interface Gallery
+
+All screenshots below represent the authentic, native 240×240 procedural interface rendered directly by the Quantum GammaWave (QG-1) firmware engine on the M-VAVE FM-1's color display.
+
+### 1. Quantum Signature Suite & Core Views
+
+| HOME Screen (Spectrum & Hearth Sun) | EDIT 1 (Wraith Cutoff Ribbon) | FM6 Operator Algorithms | Master Mixer (6 Tracks) |
+| :---: | :---: | :---: | :---: |
+| ![HOME](assets/screenshots/quantum_01_home.png) | ![EDIT ANALOG](assets/screenshots/quantum_02_edit_analog.png) | ![FM6](assets/screenshots/quantum_03_fm6_algorithm.png) | ![MIXER](assets/screenshots/quantum_13_mixer.png) |
+| *Real-time 28-bar spectrum & filter curve* | *Dual VA oscillators & spectral ribbon* | *32 DX7-style FM operator networks* | *Levels, pan, peak meters & sends* |
+
+| Full-Screen Audio Visualizer (`HOME -> HOME`) | Parametric Master Biquad EQ | GLO 2 System Telemetry | Transient Preset Browser (1.5s) |
+| :---: | :---: | :---: | :---: |
+| ![VISUALIZER](assets/screenshots/quantum_18_fullscreen_visualizer.png) | ![MASTER EQ](assets/screenshots/quantum_21_master_eq.png) | ![GLO 2](assets/screenshots/quantum_23_glo2_telemetry.png) | ![PRESET OVERLAY](assets/screenshots/quantum_22_transient_presets.png) |
+| *Zero-crossing scope & Lissajous orbits* | *Direct Form II Transposed Peak/Notch EQ* | *Active polyphony & dual-core CPU ticks* | *Fast 7-row categorized library overlay* |
+
+### 2. Performance, Sequencing & Drum Synthesis
+
+| Dynamic Modern Arpeggiator | DRUM-X Synthesized Pads | Playable Punch-In FX Grid | Motion Sequencer (MSEQ) |
+| :---: | :---: | :---: | :---: |
+| ![ARP](assets/screenshots/quantum_16_modern_arp.png) | ![DRUM-X](assets/screenshots/quantum_07_drum_x.png) | ![PUNCH-IN](assets/screenshots/quantum_11_punch_in_fx.png) | ![MSEQ](assets/screenshots/quantum_10_motion_seq.png) |
+| *16-step trajectory, direction & swing* | *8-pad synthesized percussion with morph* | *Quantized live performance repeats* | *Continuous parameter lane automation* |
+
+| Step Sequencer | Piano Roll Playhead | Hearth Macros Layer | Harmonic Performance Mode |
+| :---: | :---: | :---: | :---: |
+| ![STEP](assets/screenshots/quantum_05_sequencer.png) | ![ROLL](assets/screenshots/quantum_06_seq_roll.png) | ![MACRO](assets/screenshots/quantum_09_macro_layer.png) | ![PERF HARM](assets/screenshots/quantum_20_harmonic_performance.png) |
+| *Velocity, microtiming & parameter locks* | *Active note trajectories & ties* | *Expressive drive & filter macro shifts* | *Live scales, chords and filter curves* |
+
+### 3. Curated Visual Themes
+
+| QUANTUM (Signature) | SOLARIS (Solar Gold) | CYBERPUNK (Neon Grid) | NORDIC (Obsidian Aurora) |
+| :---: | :---: | :---: | :---: |
+| ![QUANTUM](assets/screenshots/quantum_01_home.png) | ![SOLARIS](assets/screenshots/solaris_theme_solaris_home.png) | ![CYBERPUNK](assets/screenshots/cyberpunk_theme_cyberpunk_home.png) | ![NORDIC](assets/screenshots/nordic_theme_nordic_home.png) |
+| *Deep quantum indigo & Cherenkov cyan* | *Radiant gold, ember & corona amber* | *High-contrast synthwave magenta/cyan* | *Arctic emerald gradients on obsidian* |
+
+---
+
 ## Synthesis engines & sound architecture
 
 ### 1. Eight synthesis engines (no samples)
