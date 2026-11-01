@@ -1830,9 +1830,9 @@ static void ui_draw_page(uint32_t counting)
         draw_columns();
         felucca_dbg.stage = 5;
         if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u) {
-            /* Transient 1.5s preset selection popup overlay reusing the full SAVE/BROWSE library */
-            cv_oy = 0;
-            graph_browse();
+            /* Render background graph/page first, then overlay compact translucent HUD popup */
+            draw_graph();
+            graph_preset_pop();
         } else {
             if (ui.preset_pop_ms) {
                 ui.preset_pop_ms = 0;

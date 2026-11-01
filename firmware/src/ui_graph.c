@@ -1749,6 +1749,68 @@ static void graph_user(void)
         list_row(LIST_Y(row), k == ui.uslot, tag, T_MID, nm, used ? T_TEXT : T_DIM, 232);
     }
 }
+
+/* Compact semi-translucent 1.5s HUD popup showing presets when changing presets via knob */
+static void graph_preset_pop(void)
+{
+    uint32_t total, cur = preset_pos(&total), e, k;
+    int32_t r, x0 = 12, y0 = 36, w = 216, h = 90;
+
+    if (!total) return;
+
+    /* Translucent backdrop dither over current screen area */
+    for (r = y0; r < y0 + h; r += 2) {
+        cv_rect(x0, r, w, 1, T_BG);
+    }
+
+    /* Compact panel enclosure */
+    if (ux.chamfer && !ux.style) {
+        gw_oct_panel(x0, y0, w, h, 6, T_SURF, T_ACCENT, 1, T_ACCENT);
+    } else {
+        cv_rrect(x0, y0, w, h, 6, T_SURF, T_LINE);
+    }
+
+    /* 5 compact rows of presets centered on current preset */
+    for (r = -2; r <= 2; r++) {
+        int32_t ry = y0 + 5 + (r + 2) * 16, x1 = x0 + w - 18;
+        char tag[6], nm[13], pt[4], pn[13];
+        uint32_t index = preset_visible(cur, total, (uint32_t)(r + 3));
+        int sel = (index == cur);
+        int32_t hint = sel ? preset_pat_hint() : -1;
+        uint16_t row_bg;
+
+        if (index >= total) continue;
+        e = preset_at(index, &k);
+        if (e == NENGINES) {
+            up_slot_label(tag, k);
+            up_name(k, nm);
+        } else {
+            str_cpy(tag, eng_abbr(ENGINES[e]->name), sizeof tag);
+            str_cpy(nm, ENGINES[e]->presets[k].name, sizeof nm);
+        }
+
+        row_bg = sel ? T_THEME : T_SURF;
+        if (sel) {
+            cv_rrect(x0 + 4, ry, w - 8, 15, 3, T_THEME, T_SURF);
+            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_INK);
+            cv_text(x0 + 38, ry + 1, &AF_S, nm, T_INK);
+        } else {
+            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_MID);
+            cv_text(x0 + 38, ry + 1, &AF_S, nm, T_TEXT);
+        }
+
+        if (hint >= 0) {
+            pat_label((uint32_t)hint, pt, pn);
+            x1 = x0 + w - 24 - text_w(&AF_S, pt) - 4;
+            cv_text_r(x0 + w - 24, ry + 1, &AF_S, pt, sel ? T_INK : T_ACCENT, row_bg);
+        }
+        if (favorite_has(e, k)) {
+            cv_icon_in(x0 + w - 16, ry, 0, 15, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
+        }
+    }
+    cv_blit(0, Y_GRAPH);
+}
+
 /* SEQ > PATTERNS: the pattern list around the one picked ("03  MELODY", "U07  MY BASS") */
 static void graph_pats(void)
 {
@@ -2151,15 +2213,16 @@ static void draw_tracks(void)
     }
 }
 /* (QG-1) Full-Screen Integrated Visualizer when HOME is pressed while on HOME:
- * Genuine oscilloscope based on scope_buf with authentic zero-crossing trigger.
- * Orbital trace is generated via time-delayed phase space embedding x(t) vs x(t - tau)
- * (mono phase-space trajectory, strictly avoiding any fake stereo simulation). */
+ * Genuine dual-layer oscilloscope, real-time energy spectrum analyzer, phase trajectory
+ * and authentic telemetry crafted from scratch with QG-1 aesthetic.
+ * Rendered in 2 vertically-tiled 240x88 canvas bands to respect CV_MAX buffer limit. */
 static void graph_home_viz(uint16_t c)
 {
     static int16_t snap[SCOPE_N];
-    uint32_t w = scope_w, i, trig = 0;
-    int32_t cy = 120, cx = 120, py = cy, peak = 1200;
-    int32_t x;
+    static uint8_t peak_decay[16];
+    uint32_t w = scope_w, i, trig = 0, pass;
+    int32_t peak = 1000;
+    int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
         snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
@@ -2170,46 +2233,95 @@ static void graph_home_viz(uint16_t c)
         if (snap[i - 1] < 0 && snap[i] >= 0) { trig = i; break; }
     }
 
-    /* Screen background & styling */
-    if (ux.chamfer && !ux.style) {
-        gw_oct_panel(6, 26, 228, 188, 6, T_BG, T_LINE, 1, c);
-    } else {
-        cv_rrect(6, 26, 228, 188, 6, T_SURF, T_BG);
-    }
+    /* Render in two 88-pixel high bands (y=26..113 and y=114..201) */
+    for (pass = 0; pass < 2u; pass++) {
+        int32_t top_y = pass ? 114 : 26;
+        cv_begin(240, 88, T_BG);
+        cv_oy = -top_y;
+        cv_bg = T_SURF;
 
-    /* Outer grid & reticle */
-    cv_rect(12, cy, 216, 1, T_LINE);
-    cv_rect(cx, 32, 1, 176, T_LINE);
-
-    /* Real-time audio waveform from authentic output buffer */
-    for (x = 0; x < 216; x += 2) {
-        int32_t y = cy - (snap[trig + (uint32_t)x] * 64) / peak;
-        y = clamp(y, 34, 206);
-        if (x) {
-            uint16_t col = ux.chamfer ? heat_col(40 + (y > cy ? y - cy : cy - y) * 216 / 64) : c;
-            cv_line_t(12 + x - 2, py, 12 + x, y, col, 2);
+        /* Panel enclosure */
+        if (ux.chamfer && !ux.style) {
+            gw_oct_panel(4, 26, 232, 176, 6, T_SURF, T_LINE, 1, c);
+        } else {
+            cv_rrect(4, 26, 232, 176, 6, T_SURF, T_BG);
         }
-        py = y;
-    }
 
-    /* Time-delay phase space trajectory x(t) vs x(t - 16 samples) */
-    if (peak > 1800) {
-        int32_t lpx = cx, lpy = cy;
-        for (i = 0; i < 64u; i += 2) {
-            int32_t ox = cx + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 34) / peak;
-            int32_t oy = cy + (snap[(trig + i * 2u + 16u) & (SCOPE_N - 1u)] * 34) / peak;
-            ox = clamp(ox, 40, 200);
-            oy = clamp(oy, 40, 200);
-            if (i) cv_line_t(lpx, lpy, ox, oy, T_ACCENT, 1);
-            lpx = ox; lpy = oy;
+        /* Reticle lines & zero-crossing center axis at y=114 */
+        cv_rect(10, 114, 220, 1, T_LINE);
+        cv_rect(120, 32, 1, 164, T_LINE);
+        cv_rect(65, 50, 1, 128, T_RAISE);
+        cv_rect(175, 50, 1, 128, T_RAISE);
+
+        /* Real-time 16-band energy spectrum bars across the bottom */
+        for (i = 0; i < 16u; i++) {
+            int32_t bx = 16 + (int32_t)i * 13;
+            int32_t bsum = 0, j;
+            for (j = 0; j < 8; j++) {
+                int32_t val = snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
+                if (val < 0) val = -val;
+                bsum += val;
+            }
+            bsum = (bsum * 48) / (peak ? peak * 8 : 1);
+            if (bsum > 36) bsum = 36;
+            if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
+            else if (peak_decay[i]) peak_decay[i]--;
+
+            /* Draw bar & peak cap */
+            if (bsum > 0) {
+                uint16_t bcol = mono ? T_TEXT : heat_col(40 + (int32_t)i * 12);
+                cv_rect(bx, 190 - bsum, 9, bsum, bcol);
+            }
+            if (peak_decay[i] > 1) {
+                cv_rect(bx, 190 - (int32_t)peak_decay[i] - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
+            }
         }
-    }
 
-    /* Header & Footer banner */
-    cv_text(16, 32, &AF_S, "QG-1 SCOPE (MONO)", T_THEME);
-    cv_text_r(224, 32, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
-    cv_text(16, 196, &AF_S, "[HOME] EXIT", T_DIM);
-    cv_text_r(224, 196, &AF_S, "REALTIME AUDIO", T_DIM, T_SURF);
+        /* Dual-layer phosphor oscilloscope waveform */
+        {
+            int32_t py1 = 114, py2 = 114, x;
+            for (x = 0; x < 216; x += 2) {
+                int32_t sval = snap[trig + (uint32_t)x];
+                int32_t y = 114 - (sval * 46) / peak;
+                y = clamp(y, 36, 192);
+
+                if (x) {
+                    /* Outer warm phosphor glow */
+                    uint16_t glow = mono ? T_DIM : ux_mix(T_SURF, heat_col(50 + (y > 114 ? y - 114 : 114 - y) * 200 / 46), 40);
+                    cv_line_t(12 + x - 2, py1, 12 + x, y, glow, 3);
+                    /* Core focused beam */
+                    uint16_t core = mono ? T_TEXT : heat_col(70 + (y > 114 ? y - 114 : 114 - y) * 185 / 46);
+                    cv_line_t(12 + x - 2, py2, 12 + x, y, core, 1);
+                }
+                py1 = py2 = y;
+            }
+        }
+
+        /* Orbital phase-space trajectory x(t) vs x(t - tau) */
+        if (peak > 1400) {
+            int32_t lpx = 120, lpy = 114;
+            for (i = 0; i <= 60u; i += 2) {
+                int32_t ox = 120 + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 30) / peak;
+                int32_t oy = 114 + (snap[(trig + i * 2u + 16u) & (SCOPE_N - 1u)] * 30) / peak;
+                ox = clamp(ox, 40, 200);
+                oy = clamp(oy, 40, 188);
+                if (i) cv_line(lpx, lpy, ox, oy, mono ? T_TEXT : T_ACCENT);
+                lpx = ox; lpy = oy;
+            }
+        }
+
+        /* Telemetry overlays */
+        if (!pass) {
+            cv_text(12, 30, &AF_S, "QG-1 QUANTUM SCOPE", T_THEME);
+            cv_text_r(228, 30, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
+        } else {
+            cv_text(12, 196, &AF_S, "[HOME] EXIT", T_DIM);
+            cv_text_r(228, 196, &AF_S, "LIVE AUDIO MATRIX", T_DIM, T_SURF);
+        }
+
+        cv_oy = 0;
+        cv_blit(0, (uint32_t)top_y);
+    }
 }
 
 /* oscilloscope of the output, triggered on a rising zero crossing: a RAISE centre line, the trace 2 px (in silence
