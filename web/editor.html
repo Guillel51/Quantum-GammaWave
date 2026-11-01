@@ -600,6 +600,9 @@
             <optgroup label="🥁 DRUM-X INDUSTRIAL KITS">
               <option value="drum_ind">GW PRESET: DRUM-X INDUSTRIAL KIT</option>
               <option value="drum_hearth">GW PRESET: HEARTH CRUSH 909 KIT</option>
+              <option value="drum_gamma">GW PRESET: GAMMA TRAP 808 KIT</option>
+              <option value="drum_glitch">GW PRESET: NEON GLITCH EXPERIMENTAL</option>
+              <option value="drum_wraith">GW PRESET: WRAITH BEAT CYBER KIT</option>
             </optgroup>
           </select>
           <button type="button" id="gw-dice-trk" style="background:linear-gradient(180deg,#facc15,#ca8a04);color:#050608" title="Generate a new 64-step (4-bar) sequence with the selected GammaWave Preset and hear it live on top of T1..T4">🎲 1. DICE GW TRACK</button>
@@ -5251,6 +5254,9 @@ $("connect").addEventListener("click", () => {
     cherenkov:     { id: "cherenkov",     cat: "pad",  label: "CHERENKOV",     osc1: "triangle", osc2: "sine",     detune: 16, flt: "lowpass", cut: 2200, q: 4.0, sub: 0.0 },
     drum_ind:      { id: "drum_ind",      cat: "drum", label: "DRUM-X IND",    kickP: 160, snareF: 2800 },
     drum_hearth:   { id: "drum_hearth",   cat: "drum", label: "DRUM-X HRTH",   kickP: 135, snareF: 2100 },
+    drum_gamma:    { id: "drum_gamma",    cat: "drum", label: "DRUM-X TRAP",   kickP: 180, snareF: 3200 },
+    drum_glitch:   { id: "drum_glitch",   cat: "drum", label: "DRUM-X GLTCH",  kickP: 120, snareF: 3600 },
+    drum_wraith:   { id: "drum_wraith",   cat: "drum", label: "DRUM-X WRTH",   kickP: 145, snareF: 2400 },
     /* Legacy aliases */
     bass:          { id: "ingot_sub",     cat: "bass", label: "INGOT SUB",     osc1: "sawtooth", osc2: "triangle", detune: 6,  flt: "lowpass", cut: 1100, q: 6.0, sub: 0.45 },
     arp:           { id: "hearth_lead",   cat: "arp",  label: "HEARTH LEAD",   osc1: "sawtooth", osc2: "square",   detune: 10, flt: "lowpass", cut: 2600, q: 3.5, sub: 0.0 },
