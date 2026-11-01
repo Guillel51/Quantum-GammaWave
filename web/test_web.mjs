@@ -149,7 +149,7 @@ async function editorMock() {
     const sd = [];
     for (let i = 45; i < 49; i++) sd.push(E.parse[E.CMD.DESC](await rq(E.req.desc(0, i))));
     ok(sd.map((d) => d.label).join() === "DEPTH,RATE,WAVE,SYNC" && sd[3].names.join() === "FREE,BEAT" &&
-      sd[2].names.join() === "SIN,TRI,SAW,SQR,S&H", "editor: AUTO PAN parameters 45..48 over DESC");
+      sd[2].names.join() === "SIN,TRI,SAW,SQR,S&H,RAMP", "editor: AUTO PAN parameters 45..48 over DESC");
     await rq(E.req.set(0, 45, 2));
     await rq(E.req.set(0, 46, 7));
     const on = E.parse[E.CMD.DUMP](await rq(E.req.dump()), info);

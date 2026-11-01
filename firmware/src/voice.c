@@ -23,6 +23,8 @@ static int32_t lfo_wave(track_t *t, uint32_t ph)
         return ph < 0x80000000u ? 32767 : -32767;
     case 4:
         return (int32_t)(t->lfo_rnd >> 16) - 32768;
+    case 5:
+        return 32767 - (int32_t)(ph >> 16);
     default:
         return osc_sine(ph);
     }
