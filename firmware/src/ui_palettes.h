@@ -18,14 +18,20 @@ static const ui_pal_t UI_PALETTES[] = {
     {"GAMMA", 0x0841, 0x18c3, 0xff9c, 0xfc44, 0x673f},
     {"WRAITH", 0x0841, 0x18a3, 0xf77f, 0xfb10, 0x577a},
     {"QUANTUM", 0x0022, 0x10a5, 0xef9f, 0x3eff, 0xfd44},
+    {"SOLARIS", 0x1040, 0x20c1, 0xffbb, 0xfde5, 0xfac2},
+    {"CYBERPUNK", 0x0822, 0x1885, 0xf79f, 0x079f, 0xf950},
+    {"NORDIC", 0x0061, 0x10e4, 0xe7de, 0x4714, 0xfdaa},
 };
-#define UI_NPALETTES 14u
+#define UI_NPALETTES 17u
 #define UI_GREY_INDEX 0u
 #define UI_BW_INDEX 9u          /* MONO: black and white (src/gfx.c palette_set) */
 #define UI_JIANT_INDEX 10u          /* THERMAL: thermal camera */
 #define UI_GAMMA_INDEX 11u          /* GAMMAWAVE FM: default Bakelite Amber + Cherenkov */
 #define UI_WRAITH_INDEX 12u         /* WRAITH Specimen Scan */
 #define UI_QUANTUM_INDEX 13u        /* QUANTUM: the default (Quantum GammaWave) */
+#define UI_SOLARIS_INDEX 14u        /* SOLARIS: Solar gold & amber */
+#define UI_CYBER_INDEX 15u        /* CYBERPUNK: Neon cyan & magenta */
+#define UI_NORDIC_INDEX 16u         /* NORDIC: Emerald aurora on obsidian */
 #define UI_BW_GREY 0x528au          /* MONO's one grey: DIM LINE RAISE LANE */
 #define UI_PAL_TAG 64u          /* stored id = UI_PAL_TAG + index; below 20: an old id */
 #define UI_MID_PCT 70

@@ -60,6 +60,12 @@ PALETTES = [
     # QUANTUM (Quantum GammaWave, v1.3-QG): deep quantum indigo, Cherenkov cyan values, the Hearth amber for the one
     # active thing (GAMMA's colours swapped onto a cold vacuum)
     ("QUANTUM", (6, 6, 18),     (20, 20, 44),    (236, 240, 255), (56, 220, 255),  (255, 168, 32)),
+    # SOLARIS: Solar golden brilliance, stellar corona amber and deep forge embers
+    ("SOLARIS", (16, 10, 4),    (36, 24, 12),    (255, 244, 220), (255, 190, 40),  (255, 90, 20)),
+    # CYBERPUNK: Synthwave high-contrast neon grid, intense cyan core with electric magenta highlights
+    ("CYBERPUNK", (8, 6, 16),   (24, 16, 40),    (245, 240, 255), (0, 240, 255),   (255, 40, 130)),
+    # NORDIC: Polar obsidian black with emerald aurora borealis and warm arctic beacon accent
+    ("NORDIC",  (6, 12, 14),    (16, 28, 32),    (230, 248, 246), (64, 224, 160),  (255, 180, 80)),
 ]
 BW = "MONO"
 BW_GREY = (82, 82, 82)             # MONO's one mid grey (RGB565 10/20/10): DIM LINE RAISE LANE
@@ -201,6 +207,9 @@ def main():
                 f"#define UI_GAMMA_INDEX {names.index('GAMMA')}u          /* GAMMAWAVE FM: default Bakelite Amber + Cherenkov */",
                 f"#define UI_WRAITH_INDEX {names.index('WRAITH')}u         /* WRAITH Specimen Scan */",
                 f"#define UI_QUANTUM_INDEX {names.index('QUANTUM')}u        /* QUANTUM: the default (Quantum GammaWave) */",
+                f"#define UI_SOLARIS_INDEX {names.index('SOLARIS')}u        /* SOLARIS: Solar gold & amber */",
+                f"#define UI_CYBER_INDEX {names.index('CYBERPUNK')}u        /* CYBERPUNK: Neon cyan & magenta */",
+                f"#define UI_NORDIC_INDEX {names.index('NORDIC')}u         /* NORDIC: Emerald aurora on obsidian */",
                 f"#define UI_BW_GREY 0x{to565(BW_GREY):04x}u          /* MONO's one grey: DIM LINE RAISE LANE */",
                 f"#define UI_PAL_TAG {PAL_TAG}u          /* stored id = UI_PAL_TAG + index; below 20: an old id */"]
         out += [f"#define UI_{k}_PCT {v}" for k, v in PCT.items()] + [f"#define UI_RAISE_PCT {RAISE_PCT}   /* SURF -> TEXT */"]

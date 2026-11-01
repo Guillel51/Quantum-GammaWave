@@ -261,6 +261,12 @@ static const preset_t NOISE_PRESETS[] = {
      {XP(P_LRATE, 4), XP(P_LWAVE, 2), XP(P_LD_FLT, 40)}},
     {"GEIGER CNT", {NZ_DUST, 10, 90, 60, 64, 30, 30, 0}, {0, 60, 100, 40}, 0, 0, FX(0, 0, 25, 30), PAT(5)},
     {"QUANTUM FOAM", {NZ_DUST, 50, 100, 85, 90, 95, 85, 20}, {30, 90, 115, 90}, 12, 0, FX(10, 50, 45, 90), PAT(5)},
+    /* (QG-1 EXPANSION: Ambient Atmospheres & Experimental Noise Textures) */
+    {"COSMIC WINDS", {NZ_ANLG, 55, 60, 90, 80, 0, 90, 0}, {95, 90, 120, 105}, 0, 0, FX(0, 45, 30, 95), PAT(5),
+     {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_FLT, 16)}},
+    {"POLAR AURORA", {NZ_DUST, 40, 95, 80, 50, 70, 70, 10}, {70, 90, 118, 95}, 0, 0, FX(0, 60, 35, 90), PAT(5)},
+    {"STATIC HAZE", {NZ_DUST, 75, 105, 50, 40, 50, 50, 30}, {85, 90, 120, 100}, 0, 0, FX(15, 30, 25, 85), PAT(5)},
+    {"ABYSS DRONE", {NZ_ANLG, 80, 35, 95, 64, 0, 100, 0}, {100, 95, 127, 110}, 0, 0, FX(10, 40, 20, 95), PAT(5)},
 };
 
 static const engine_t ENG_NOISE = {

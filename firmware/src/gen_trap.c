@@ -643,8 +643,8 @@ static const t808r_t T808R[10] = {
     {"GLIDE KING", AW_TUBE, 20, 20,      0,  12,  66, 8,  26, {70, 90},   101, 0, 88, 0,  {36, 48}, DT_HEARTH, 76, -1},
     {"DEEP THUMP",    3, 0, 0,        14, 0,   90, 0,  0,  {64, 84},   91, 0,  70, 3,  {26, 38}, DT_HEARTH, 64, 2},
     {"SUB GLIDE", AW_TUBE, 12, 16,       0,  0,   80, 2,  20, {60, 76},   88, 0,  85, 5,  {34, 46}, DT_HEARTH, 80, 2},
-    {"WRAITH SLIDE", AW_FOLD, 6, 14,    0,  0,   90, 0,  8,  {92, 108},  90, 70, 70, 0,  {3, 5},   DT_PLASMA, 78, -3},
-    {"WRAITH DIRTY", AW_FOLD, 14, 26,    0,  4,   84, 6,  16, {118, 127}, 90, 76, 68, 2,  {5, 7},   DT_PLASMA, 78, -3},
+    {"WRAITH SLIDE", AW_FOLD, 6, 14,    0,  0,   90, 0,  8,  {92, 108},  90, 70, 70, 0,  {3, 5},   DT_FLUX,   78, -3},
+    {"WRAITH DIRTY", AW_FOLD, 14, 26,    0,  4,   84, 6,  16, {118, 127}, 90, 76, 68, 2,  {5, 7},   DT_FLUX,   78, -3},
 };
 static uint8_t tk_808r;                                 /* this piece's 808 */
 static void trap_808_apply(track_t *t, uint32_t ri)

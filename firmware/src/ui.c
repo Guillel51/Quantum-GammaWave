@@ -209,6 +209,8 @@ static struct {
     uint8_t ev_row;              /* SEQ > AUTO LIST (ui_input.c ev_*): the row selected (the track's count: + ADD LOCK) */
     uint8_t ev_step, ev_id;      /* .. + ADD LOCK: the step and the parameter a lock is added on */
     uint8_t uboot;               /* main.c: seconds left before UPDATE MODE (OCT- + OCT+ held), 0 = none */
+    uint32_t preset_pop_ms;      /* non-blocking 1.5s popup timer for PRESET knob browser */
+    uint8_t home_viz;            /* 1 = full-screen integrated music visualizer on HOME -> HOME */
     uint32_t ly_t0;              /* the layer button's press time | 1, LY_* bits (ui_layer.c layer_gesture) */
     uint8_t ly;                  /* the layer whose button is down (LAYER_*), 0 = none */
     uint8_t layer;               /* the layer whose map is shown (LAYER_*), 0 = none */
@@ -742,6 +744,7 @@ static void open_family(uint32_t fam)
     }
     ui.fam_last[fam] = ui.page;
     ui.home = 0;
+    ui.home_viz = 0;
     page_entered();
     page_flash();
 }
@@ -766,7 +769,12 @@ static void open_global(void)
 
 static void go_home(void)
 {
-    ui.home = 1;
+    if (ui.home) {
+        ui.home_viz = !ui.home_viz;              /* toggle visualizer if already at HOME */
+    } else {
+        ui.home = 1;
+        ui.home_viz = 0;
+    }
     ui.plk_src = 0;                              /* (parameter locks: HOME's four) */
     ui.entry_open = 0;
     ui.hot_t = 0;
@@ -977,7 +985,7 @@ static uint32_t preset_orig(const engine_t *e, uint32_t k) { (void)e; return k; 
 /* the presets of engine e that browsing shows before preset k (k = npresets: all of them) */
 /* (0.5.1) browsing order: LOFI's BYTE presets, then FLOAT's (appended in 0.5.1: the stored numbers stay), then the
  * rest; every other engine in its own order. preset_nth: the preset shown n-th */
-static const uint8_t LOFI_ORDER[18] = {0, 1, 2, 8, 9, 10, 11, 12, 13, 3, 4, 5, 6, 7, 14, 15, 16, 17};
+static const uint8_t LOFI_ORDER[24] = {0, 1, 2, 8, 9, 10, 11, 12, 13, 3, 4, 5, 6, 7, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
 _Static_assert(sizeof LOFI_ORDER == NELEM(LOFI_PRESETS), "LOFI's browsing order: every preset once");
 static uint32_t preset_rank(const engine_t *e, uint32_t k)
 {

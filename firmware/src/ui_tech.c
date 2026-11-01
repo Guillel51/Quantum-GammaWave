@@ -55,20 +55,19 @@ static int32_t tk_dist_y(uint32_t type, int32_t x, int32_t g, int32_t d)
         int32_t sp = sine_i((uint32_t)(v * 28000)) >> 3;
         return clamp(h + sp, -32767, 32767);
     }
-    case DT_PLASMA: {
-        int32_t warp = sine_i((uint32_t)(v * (36000 + d * 500)));
-        int32_t core = softclip(v + (warp >> 1));
-        return clamp(core + ((core * warp) >> 15), -32767, 32767);
-    }
     case DT_FLUX: {
         int32_t jit = (sine_i((uint32_t)(x * 9000)) * d) >> 9;
         int32_t q = (v + jit) & ~(int32_t)((1u << (3u + (uint32_t)d / 20u)) - 1u);
         return softclip(q + (jit >> 1));
     }
-    case DT_TAPE:
-    default: {
+    case DT_TAPE: {
         int32_t x3 = (v * ((v * v) >> 15)) >> 15;
         return softclip(v - (x3 / 3));
+    }
+    case DT_SOFT:
+    default: {
+        int32_t b0 = softclip(2400);
+        return softclip(v + 2400) - b0;
     }
     }
 }
@@ -76,7 +75,7 @@ static void tech_dist(const track_t *t)
 {
     int32_t d = t->p[P_DIST], g = 4096 + d * d * 2, i, py = 0, x0 = 22, y0 = TK_Y0, s = 100, cx = x0 + s / 2;
     int32_t cy = y0 + s / 2, en = bg_energy(), tone = t->p[P_DTONE];
-    uint32_t type = (uint32_t)t->p[P_DTYPE] > DT_FLUX ? DT_TAPE : (uint32_t)t->p[P_DTYPE];
+    uint32_t type = (uint32_t)t->p[P_DTYPE] > DT_FLUX ? DT_SOFT : (uint32_t)t->p[P_DTYPE];
     tk_axes(x0, y0, x0 + s, y0 + s);
     cv_rect(x0, cy, s, 1, T_LINE);
     cv_rect(cx, y0, 1, s, T_LINE);
@@ -246,6 +245,66 @@ static void tech_chorus(void)
             py = y;
         }
     }
+}
+
+
+/* MASTER EQ: Real-time Biquad Frequency Curve Visualizer (QG-1 v1.4) */
+static void tech_master_eq(void)
+{
+    int32_t mode = song.g[G_EQMODE];
+    int32_t freq = song.g[G_EQFREQ];
+    int32_t gain = song.g[G_EQGAIN];
+    int32_t q = song.g[G_EQQ];
+    int32_t y0 = TK_Y0, i, px = 0, py = 0;
+    static const char *const MODES[] = {"BYPASS", "PEAK/BELL", "NOTCH", "LOW SHELF", "HIGH SHELF"};
+
+    /* Header banner for EQ curve display */
+    gw_oct_panel(8, y0 - 2, 224, 104, 4, T_BG, T_LINE, mode > 0, T_ACCENT);
+    cv_rect(12, y0 + 2, 216, 14, T_RAISE);
+    cv_text_on(16, y0 + 4, &AF_S, "MASTER BIQUAD EQ", T_THEME, T_RAISE);
+    cv_text_on(140, y0 + 4, &AF_S, MODES[mode > 4 ? 0 : mode], mode ? T_ACCENT : T_DIM, T_RAISE);
+
+    /* Grid lines (0 dB center, -12dB, +12dB) */
+    int32_t mid_y = y0 + 56;
+    cv_rect(14, mid_y, 212, 1, T_LINE);
+    cv_rect(14, mid_y - 24, 212, 1, T_RAISE);
+    cv_rect(14, mid_y + 24, 212, 1, T_RAISE);
+
+    /* Frequency marker tick */
+    int32_t mark_x = 14 + (freq * 212 / 127);
+    cv_rect(mark_x, y0 + 18, 1, 76, T_LINE);
+
+    /* Draw frequency response curve across 212 pixels */
+    for (i = 0; i <= 212; i += 4) {
+        int32_t cur_x = 14 + i;
+        int32_t cur_y = mid_y;
+        if (mode == 1) { /* PEAK/BELL */
+            int32_t diff = cur_x - mark_x;
+            int32_t dist = diff < 0 ? -diff : diff;
+            int32_t bw = 10 + (127 - q) / 4;
+            if (dist < bw * 3) {
+                int32_t bell = (gain * 24 * (bw * 3 - dist)) / (bw * 3 * 24);
+                cur_y -= bell;
+            }
+        } else if (mode == 2) { /* NOTCH */
+            int32_t diff = cur_x - mark_x;
+            int32_t dist = diff < 0 ? -diff : diff;
+            int32_t bw = 6 + (127 - q) / 8;
+            if (dist < bw * 2) {
+                int32_t dip = (24 * (bw * 2 - dist)) / (bw * 2);
+                cur_y += dip;
+            }
+        }
+        cur_y = clamp(cur_y, y0 + 20, y0 + 94);
+        if (i > 0)
+            cv_line_t(px, py, cur_x, cur_y, mode ? T_THEME : T_DIM, 2);
+        px = cur_x;
+        py = cur_y;
+    }
+
+    /* Target center dot */
+    if (mode > 0)
+        cv_rect(mark_x - 2, py - 2, 5, 5, T_ACCENT);
 }
 
 /* MASTER: Modular 4-Slot Master FX Rack + Globals Meters (POCKET GAMMAWAVE // GW-1) */
@@ -487,6 +546,7 @@ static int graph_tech(const track_t *t, const page_t *pg)
     case G_RMOD: tech_rev2(); return 1;
     case G_CRATE: tech_chorus(); return 1;
     case G_CLIP: tech_master(); return 1;
+    case G_EQMODE: tech_master_eq(); return 1;
     case G_BPM: tech_global(); return 1;
     default: return 0;
     }
