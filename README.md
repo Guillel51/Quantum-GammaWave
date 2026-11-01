@@ -1,4 +1,22 @@
+<p align="center">
+  <img src="assets/branding/quantum_banner.png" alt="Quantum GammaWave (QG-1) Banner" width="100%">
+</p>
+
 # QUANTUM GAMMAWAVE (QG-1) — M-VAVE FM-1 Synthesizer & Groovebox Firmware
+
+<p align="center">
+  <strong>Advanced Open-Source Firmware & Web Studio for the M-VAVE FM-1 Groovebox (Dual-Core JieLi AC791N SoC)</strong><br>
+  <em>10-Voice Psychoacoustic Polyphony · Direct Form II Parametric Master EQ · 4 Harmonic Saturations · 17 Curated Themes</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/quantum_01_home.png" alt="Quantum GammaWave HOME Screen" width="46%">
+  &nbsp;&nbsp;
+  <img src="assets/screenshots/quantum_18_fullscreen_visualizer.png" alt="Quantum GammaWave Full-Screen Visualizer" width="46%">
+</p>
+<p align="center">
+  <em>Pantallas reales de Quantum GammaWave (QG-1) en resolución nativa 240×240: a la izquierda, la pantalla principal HOME con analizador de espectro de 28 barras, sol Hearth y curva de filtro en tiempo real en la paleta insignia QUANTUM; a la derecha, el visualizador nativo de audio a pantalla completa (HOME -> HOME) con osciloscopio sincronizado por cruce por cero y órbitas Lissajous.</em>
+</p>
 
 **Quantum GammaWave (QG-1)** is an independent, advanced open-source custom firmware and Web Studio workstation engineered specifically for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox** (powered by the dual-core JieLi AC791N SoC). It delivers expanded 10-voice polyphony with psychoacoustic voice stealing, an expanded warm harmonic distortion suite, full-screen audio visualization, fixed-point parametric master EQ, real-time diagnostic telemetry, 17 curated visual themes, and an extensive preset sound library.
 
