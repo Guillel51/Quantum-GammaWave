@@ -550,8 +550,8 @@ static int keys_test(void)
             }
         }
     }
-    if (n12 != 49u) printf("  %u presets past the generator's\n", n12);
-    bad += check("the 1.2 and QG-1 presets (49, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 49u);
+    if (n12 != 94u) printf("  %u presets past the generator's\n", n12);
+    bad += check("the 1.2 and QG-1 presets (94, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 94u);
     return bad;
 }
 
