@@ -7,6 +7,18 @@
 
 ---
 
+| Component | Status | Verification Method |
+| :--- | :--- | :--- |
+| **Firmware Core (C/Asm)** | Stable | 25+ hostsim tests passed (audio, scales, project, engines, voice management) |
+| **DSP & Polyphony (v1.4-QG)** | Active | 10-voice psychoacoustic stealing (`quiet_tail`), Direct Form II Transposed Biquad EQ |
+| **Code Generation Pipeline** | Stable | Verified with Pillow + fonttools; tables & UI headers generated in `build/gen/` |
+| **Web Studio (`web/editor.html`)** | Stable | Verified via `node web/test_web.mjs` (all protocol tests pass, synchronized v1.4-QG) |
+| **Web Installer (`web/index_pkg.html`)** | Stable | Verified via `node web/test_pkg_bounds.mjs` & `install_test.py` |
+| **Backup System (`web/fm1backup.js`)** | Stable | Verified via `node web/test_backup.mjs` (43 object structures verified) |
+| **Browser Emulator (`web/emu`)** | Active | Updated with resilient MIDI fallback & AudioWorklet diagnostics |
+| **Windows Launchers (`*.bat`)** | Fixed | Updated to multi-Python detection (`python`, `py`, `python3`) |
+| **Documentation Suite** | Complete | Audited, purged of obsolete commercial references, aligned with QG-1 identity |
+
 ## 1. Executive Summary & Audit Conclusions
 
 Following independent review of the repository after PR #6 fusion, all discrepancies between reported items and repository state were systematically diagnosed, verified with reproducible tests, and resolved:

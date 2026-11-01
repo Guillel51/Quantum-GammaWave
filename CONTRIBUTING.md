@@ -5,8 +5,8 @@ Please report Pocket GammaWave's bugs and ideas here, not to Felucca: Pocket Gam
 
 | What | Where |
 |---|---|
-| A bug you can reproduce | [Pocket GammaWave Issues](https://github.com/fvalente/GammaWave-FM1/issues/new): one issue per bug |
-| A feature idea or request | [Pocket GammaWave Issues](https://github.com/fvalente/GammaWave-FM1/issues/new) with "idea" in the title (no promise it will be added) |
+| A bug you can reproduce | [Quantum GammaWave Issues](https://github.com/Guillel51/Quantum-GammaWave/issues/new): one issue per bug |
+| A feature idea or request | [Quantum GammaWave Issues](https://github.com/Guillel51/Quantum-GammaWave/issues/new) with "idea" in the title |
 | How to use it, or how something works | the [manual](docs/MANUAL.md) ([español](docs/MANUAL.es.md)), then an issue if it is still unclear |
 | Forks, mods, music, demos | an issue or a message to the author: we love to see them |
 

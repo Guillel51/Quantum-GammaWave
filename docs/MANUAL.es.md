@@ -1,16 +1,16 @@
-# POCKET GAMMAWAVE (GW-1) — Manual de Usuario
+# QUANTUM GAMMAWAVE (QG-1) — Manual de Usuario
 
-**Firmware v1.2.1-GW para el M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Comprar GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.4-QG para el M-VAVE FM-1 · [Repositorio GitHub](https://github.com/Guillel51/Quantum-GammaWave)**
 
 > *English version: [MANUAL.md](MANUAL.md).*
 
-Este manual es para músicos que acaban de instalar Quantum GammaWave (QG-1) [fork de Pocket GammaWave] y quieren saber cómo tocarlo, cómo armar temas con él
+Este manual es para músicos que acaban de instalar Quantum GammaWave (QG-1) [fork de Quantum GammaWave] y quieren saber cómo tocarlo, cómo armar temas con él
 y, sobre todo, **cómo guardar su trabajo sin perder nada**. Sigue el firmware tal como está en la v1.2.1-GW: cada
 botón, perilla y mensaje aparece nombrado exactamente como lo muestra el equipo.
 
-Si vas a leer un solo capítulo, leé [12. Guardar y cargar](#12-guardar-y-cargar). Lo que GW-1 agrega al firmware
+Si vas a leer un solo capítulo, leé [12. Guardar y cargar](#12-guardar-y-cargar). Lo que QG-1 agrega al firmware
 sobre el que está construido (el atajo `[OCT−]`, los géneros nuevos del generador, los filtros VOWEL / SCREAM, los
-tipos de saturación nuevos, las pantallas GammaWave) está reunido en [17. Novedades de GW-1](#17-novedades-de-gw-1).
+tipos de saturación nuevos, las pantallas GammaWave) está reunido en [17. Novedades de QG-1](#17-novedades-de-gw-1).
 
 ## Contenido
 
@@ -31,7 +31,7 @@ tipos de saturación nuevos, las pantallas GammaWave) está reunido en [17. Nove
 14. [MIDI y USB](#14-midi-y-usb)
 15. [Herramientas web: emulador, instalador, editor, backup](#15-herramientas-web-emulador-instalador-editor-backup)
 16. [Problemas y preguntas frecuentes](#16-problemas-y-preguntas-frecuentes)
-17. [Novedades de GW-1](#17-novedades-de-gw-1)
+17. [Novedades de QG-1](#17-novedades-de-gw-1)
 
 ---
 
@@ -39,15 +39,15 @@ tipos de saturación nuevos, las pantallas GammaWave) está reunido en [17. Nove
 
 ### Instalación
 
-1. Abrí el **instalador web** en Chrome, Edge u Opera: <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
+1. Abrí el **instalador web** en Chrome, Edge u Opera: <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
 2. Conectá el FM-1 **directamente** a la computadora con un cable USB de datos.
 3. **¿Venís de otro firmware custom (Felucca, baudgirl o cualquier otro)?** Volvé primero al firmware oficial V15
    con el botón **Return to official V15 first** del instalador (que además guarda un backup completo). Escribir
-   Pocket GammaWave directamente encima de otro firmware custom ya dejó algún FM-1 sin poder arrancar.
-4. Apretá **Install**. Primero revisa el firmware del FM-1 y solo escribe sobre el oficial V15, JIANT o Pocket GammaWave
+   Quantum GammaWave directamente encima de otro firmware custom ya dejó algún FM-1 sin poder arrancar.
+4. Apretá **Install**. Primero revisa el firmware del FM-1 y solo escribe sobre el oficial V15, JIANT o Quantum GammaWave
    (si encuentra otro, te manda a volver al V15 oficial primero). No desenchufes el cable mientras escribe.
 
-Pocket GammaWave no tiene samples de usuario: si venís de Felucca, sus samples de usuario (USR1–3) se pierden al instalar.
+Quantum GammaWave no tiene samples de usuario: si venís de Felucca, sus samples de usuario (USR1–3) se pierden al instalar.
 Guardá tus archivos WAV.
 
 ### Tu primer sonido (1 minuto)
@@ -129,7 +129,7 @@ atajos de esa capa; en la grilla DRUM son pasos y carriles; en la pantalla NAME 
 | **REC** mantenido + **FX / EDIT / ENV / LFO / SCL / ARP / GLO** | Borra la automatización de esa parte en la pista seleccionada (GLO: la automatización de nivel y paneo de todas las pistas; FX: también el carril de punch-in). Sin diálogo. |
 | **SAVE** mantenido + **OCT+** / **OCT−** | Guarda la música en la sección que está sonando / recupera esa sección tal como quedó guardada. |
 | **HOME / EDIT / SEQ / LFO / FX** mantenido + **SELECT** | HOME: el GENERATOR. Los demás, sus dados: el sonido / la secuencia / el LFO / los efectos (ver [8](#8-dados-y-undo)). |
-| **OCT−** mantenido solo, después **ARP / PLAY / ENV / HOME / SEQ / EDIT / FX / LFO / GLO** | Los atajos de GW-1: macros Hearth, el GENERATOR, la página MUTATE, el visualizador, los dados, UNDO (ver [17](#17-novedades-de-gw-1)). |
+| **OCT−** mantenido solo, después **ARP / PLAY / ENV / HOME / SEQ / EDIT / FX / LFO / GLO** | Los atajos de QG-1: macros Hearth, el GENERATOR, la página MUTATE, el visualizador, los dados, UNDO (ver [17](#17-novedades-de-gw-1)). |
 | **ENV / SCL / ARP / SAVE** mantenido + **SELECT**, cualquier botón de página + **PRESETS** | Salta por las páginas de ese botón. |
 | Un paso mantenido (SEQ > STEP) + **KNOB 1–4** | Un parameter lock en ese paso. |
 | **OCT− + OCT+** mantenidos al encender | HARDWARE CALIBRATION. |
@@ -410,7 +410,7 @@ click; las notas siguen.
 - **FM6**: un motor FM de seis operadores (msfa, de Dexed), 32 algoritmos dibujados en pantalla, cuatro voces por
   pista. Las perillas de EDIT 1/2 son macros sobre el patch. **SLOT**: los patches de fábrica F1–F8, OWN (un patch
   editado o importado) y B1–B32 (un banco DX7 de 32 voces enviado desde el editor web; los slots vacíos se saltean; hasta que mandes
-  uno, B1–B11 tienen **GW-1 KEYS**, incluido: ver abajo).
+  uno, B1–B11 tienen **QG-1 KEYS**, incluido: ver abajo).
   **OPERATOR / OP ENV / OPERATOR 2** editan cada uno de los seis operadores en el equipo (KNOB 1 elige el operador);
   editar convierte el patch en propio de la pista (SLOT OWN), y se guarda con el proyecto. Una voz del banco que
   elegís se copia a la pista, así que los proyectos la conservan aunque después mandes otro banco.
@@ -451,7 +451,7 @@ más corto.
 | **NOISE** | **OCEAN** (una ola lenta de ruido filtrado), **DUST HAZE** |
 | **FM6** | **SOFT EP**, **REED PIANO**, **FM PIANO**, **GLASS KEYS**, **CRYSTAL BELL**, **KALIMBA**, **VIBES**, **MUSIC BOX**, **WARM PAD**, **GLASS PAD**, **CELESTA** |
 
-- **GW-1 KEYS**: los presets de FM6 tocan las voces de un banco que viene en el firmware, en **B1–B11** (SLOT). Está
+- **QG-1 KEYS**: los presets de FM6 tocan las voces de un banco que viene en el firmware, en **B1–B11** (SLOT). Está
   ahí hasta que mandes un banco propio desde el editor web; tu banco lo reemplaza (para recuperarlo, mandalo de nuevo:
   `web/banks/gw1-keys.syx` es el mismo banco como archivo). La velocidad abre su brillo: tocá suave para un sonido más
   oscuro.
@@ -805,7 +805,7 @@ Mantené **SAVE**:
 
 ### GENERATOR — el generador de temas (HOME + SELECT)
 
-Abrilo con **SELECT** en HOME, **HOME mantenido + SELECT** desde cualquier página, o **OCT− mantenido + PLAY** (GW-1).
+Abrilo con **SELECT** en HOME, **HOME mantenido + SELECT** desde cualquier página, o **OCT− mantenido + PLAY** (QG-1).
 La pantalla, **GENERATOR 1/5**, tiene cinco páginas de cuatro ajustes: **SELECT** cambia de página — una ronda de
 siete: las cinco páginas de ajustes, la cinta de **TAKES** y la página del **SET** (más abajo) —, **KNOB 1–4** ajustan
 las cuatro filas, **ALGORITHM** le da al tema instrumentos nuevos (más abajo) y **PRESETS** abre la cinta de **TAKES**
@@ -865,7 +865,7 @@ editado), NOW empieza de nuevo al abrir la pantalla.
 propia secuencia aleatoria, así que mover la fila de una parte deja las otras como estaban. **OCT+ sin cambiar nada**
 tira una semilla nueva. La pantalla se abre siempre en RANDOM.
 
-#### TAKES — NOW y la cinta, el compositor (GW-1)
+#### TAKES — NOW y la cinta, el compositor (QG-1)
 
 **PRESETS** abre la cinta de **TAKES** en **NOW** (el giro que la abre solo la abre: nada queda marcado, la música sigue
 igual); girando más: primero NOW, después las tomas 1 … n (**TAKE 2 OF 3** en el título), en ronda. Cada tarjeta
@@ -1087,7 +1087,7 @@ disponible mientras suena un tema (**STOP TO EDIT**). Guarda un solo paso, en RA
 ### Por pista
 
 - **FX**: cantidad de DIST y los tres envíos (CHORUS, DLY, REV).
-- **DIST**: cantidad, **TYPE** (SOFT, HARD, FOLD, CRUSH, RECT, y los de GW-1: **HEARTH** — saturación cálida tipo
+- **DIST**: cantidad, **TYPE** (SOFT, HARD, FOLD, CRUSH, RECT, y los de QG-1: **HEARTH** — saturación cálida tipo
   válvula con un poco de brillo en los agudos y peso en los graves; **BLAST** — un wavefolder senoidal de dos etapas
   sobre un cuerpo con soft clip; **PLASMA** — saturación deformada por la propia envolvente de la señal; **FLUX** —
   un bias que deriva y un grano de bits hambrientos que crecen con la cantidad), **TONE** (más oscuro / más brillante).
@@ -1241,7 +1241,7 @@ La capa SAVE (saltos de sección en el compás, cadenas rápidas, guardar, recup
 
 ## 12. Guardar y cargar
 
-Este es el capítulo para leer con atención. Pocket GammaWave guarda varios tipos de datos en lugares distintos y de maneras
+Este es el capítulo para leer con atención. Quantum GammaWave guarda varios tipos de datos en lugares distintos y de maneras
 distintas.
 
 ### El panorama general
@@ -1266,7 +1266,7 @@ distintas.
 | **Presets de usuario** U01–U32 (un sonido + un patrón de 16 pasos) | Flash | **SAVE > USER > SAVE** (parado) | Sí |
 | **Configuración** (MENU, TRACKS, LOAD, favoritos) | Flash | Automáticamente (MENU: al cerrarlo; mientras suena: después de parar) | Sí |
 | El **autoguardado** | Flash, en su propio lugar | 10 s después del último cambio, parado y sin actividad, como máximo una vez por minuto | Sí (se restaura al encender si RESTORE LAST está en ON) |
-| El **banco de voces FM6** B1–B32 | Flash, en su propio lugar | Se envía desde el editor web (hasta entonces: GW-1 KEYS, incluido) | Sí (no está en el backup: guardá el .syx) |
+| El **banco de voces FM6** B1–B32 | Flash, en su propio lugar | Se envía desde el editor web (hasta entonces: QG-1 KEYS, incluido) | Sí (no está en el backup: guardá el .syx) |
 | **UNDO** | RAM | — | No |
 
 ### Cómo funciona realmente el autoguardado
@@ -1487,7 +1487,7 @@ protección desvaneció): una foto de esa pantalla ayuda cuando reportás un pro
   pueden llevar un set entero.
 - **No es posible**: MIDI OUT por el jack **TRS** (el jack del FM-1 es solo de entrada: no le llega ninguna línea de
   salida) ni **MIDI por Bluetooth** (el chip tiene radio, pero su software de Bluetooth es el SDK cerrado de JieLi,
-  que Pocket GammaWave no usa).
+  que Quantum GammaWave no usa).
 - **Clock**: GLO > GLOBAL > CLOCK **USB** o **TRS** sigue el clock y los Start / Continue / Stop de esa entrada. Con un
   clock externo, TAP y el reinicio con GLO + PLAY quedan desactivados.
 - **Controladores** (en la pista que toca el canal): CC5 glide, CC7 nivel, CC10 paneo, CC71 resonancia y CC74 cutoff
@@ -1503,24 +1503,24 @@ protección desvaneció): una foto de esa pantalla ayuda cuando reportás un pro
 
 Las tres funcionan en el navegador y se actualizan solas con cada cambio del firmware.
 
-### Emulador — <https://fvalente.github.io/GammaWave-FM1/>
+### Emulador — <https://guillel51.github.io/Quantum-GammaWave/>
 
 El mismo código que el FM-1, con sonido, en el navegador. Tocalo con el mouse o con el teclado de la computadora: las
 filas **Z–'** y **Q–O** son las teclas, **1** a **=** los botones de FX a REC, **[ ]** OCT− / OCT+, **↑ ↓** SELECT,
 **← →** ALGORITHM; **Shift-clic** mantiene un botón. Ideal para aprender las capas sin el equipo.
 
-### Instalador — <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
+### Instalador — <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
 
 Chrome, Edge u Opera (necesita Web MIDI), con el FM-1 conectado directo a la computadora.
 
-- **Install**: instala Pocket GammaWave (primero revisa el FM-1: solo sobre el oficial V15, JIANT o Pocket GammaWave).
+- **Install**: instala Quantum GammaWave (primero revisa el FM-1: solo sobre el oficial V15, JIANT o Quantum GammaWave).
 - **Return to official V15**: dale el **FM-1.fwsc** original sin modificar de M-VAVE (se verifica localmente en el
   navegador). Primero guarda un backup completo (música actual, música guardada, bancos de sonido y configuración; no
-  los samples de usuario). Usalo antes de instalar Pocket GammaWave si tu FM-1 tiene **otro firmware custom** (Felucca,
-  baudgirl…), y siempre que quieras volver al firmware de fábrica. El V15 oficial no puede abrir música de Pocket GammaWave; para
-  restaurar el backup más adelante, reinstalá Pocket GammaWave y usá el editor.
+  los samples de usuario). Usalo antes de instalar Quantum GammaWave si tu FM-1 tiene **otro firmware custom** (Felucca,
+  baudgirl…), y siempre que quieras volver al firmware de fábrica. El V15 oficial no puede abrir música de Quantum GammaWave; para
+  restaurar el backup más adelante, reinstalá Quantum GammaWave y usá el editor.
 
-### Editor — <https://fvalente.github.io/GammaWave-FM1/webapp/editor/>
+### Editor — <https://guillel51.github.io/Quantum-GammaWave/webapp/editor/>
 
 Todos los parámetros desde la computadora, por USB. Pestañas: Sound, 6-OP FM, Sequencer, Tracks, Library, Projects,
 Settings.
@@ -1528,7 +1528,7 @@ Settings.
 - **6-OP FM**: editá patches FM6, importá .syx y **Send to the device's voice bank (B1–B32)** (enviá al banco de voces
   del equipo).
 - **Projects**: los slots de proyecto y el **Complete backup**: **Save backup** y **Restore backup**.
-- **El panel GW-1** (en la pestaña Sound): cuatro temas de demo, el generador de 49 géneros propio del editor (la misma
+- **El panel QG-1** (en la pestaña Sound): cuatro temas de demo, el generador de 49 géneros propio del editor (la misma
   lista de géneros; sus patrones se arman en el navegador, así que no coinciden con los del equipo para la misma
   semilla), **4 pistas de cinta** (T1–T4: DUMP pasa el patrón de una pista a una pista de cinta; se pueden superponer,
   hacer bounce, mutear y borrar — son patrones de notas, no audio grabado), **EXPORT .WAV** (el tema y las pistas de
@@ -1597,15 +1597,15 @@ escribir (probá con otro cable). Para entrar a propósito al modo de actualizac
 antes), o el actualizador propio de M-VAVE.
 
 **Vengo de baudgirl / Felucca. ¿Puedo instalar directamente?** No: primero volvé al V15 oficial con el instalador y
-después instalá Pocket GammaWave. Pasar directamente desde otro firmware custom ya brickeó algún FM-1.
+después instalá Quantum GammaWave. Pasar directamente desde otro firmware custom ya brickeó algún FM-1.
 
-**¿Adónde fueron mis samples de Felucca?** Pocket GammaWave no tiene samples de usuario; esa flash ahora guarda los temas.
+**¿Adónde fueron mis samples de Felucca?** Quantum GammaWave no tiene samples de usuario; esa flash ahora guarda los temas.
 
 ---
 
-## 17. Novedades de GW-1
+## 17. Novedades de QG-1
 
-Lo que Pocket GammaWave agrega al firmware sobre el que está construido (Felucca, a través de JIANT FM). Todo lo demás
+Lo que Quantum GammaWave agrega al firmware sobre el que está construido (Felucca, a través de JIANT FM). Todo lo demás
 de este manual vale tal como está escrito.
 
 ### El atajo `[OCT−]`
@@ -1656,7 +1656,7 @@ WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP y RAGE TRAP (ver [8](#8-dados-y-undo))
   SCREAM, o en el motor VOICE, la cinta muestra las vocales **OO · OH · AH · EH · EE**.
 - **SLICER**: dibujado como cuatro pistas de cinta. **DRUM**: los ocho pads del kit con la barra A/B de MORPH.
 - **Paletas**: MENU > DISPLAY > COLOR suma **THERMAL**, **GAMMA** (por defecto) y **WRAITH**.
-- **ABOUT** tiene un código QR a gammawaveaudio.com.
+- **ABOUT** muestra métricas del sistema, versión y créditos de autoría.
 
 ### El visualizador
 

@@ -371,7 +371,7 @@ static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
                 c = 3;                                  /* held, not the bass */
             else
                 continue;
-            if (c < cat || (c == cat && v->age < (*pp)->v[best].age)) {
+            if (c < cat || (c == cat && best < NVOICE && v->age < (*pp)->v[best].age)) {
                 cat = c;
                 best = i;
                 *pp = t;

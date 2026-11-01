@@ -35,9 +35,11 @@ enum { MC_TEXT, MC_TITLE, MC_URL };
 typedef struct { const char *text; uint8_t kind; } menu_credit_t;
 static const menu_credit_t MENU_CREDITS[] = {
     {"QUANTUM GAMMAWAVE (QG-1)", MC_TITLE},
-    {"ShadowTune / GammaWave Audio", MC_TEXT},
-    {"https://gammawaveaudio.com", MC_URL},
-    {"https://shadowtune.itch.io/gammawave", MC_URL},
+    {"Guillel51 / Quantum GammaWave", MC_TEXT},
+    {"https://github.com/Guillel51/Quantum-GammaWave", MC_URL},
+    {"", MC_TEXT},
+    {"ORIGINAL GW-1 LINEAGE", MC_TITLE},
+    {"Leo Kuroshita / Hugelton / ShadowTune", MC_TEXT},
     {"https://github.com/fvalente/GammaWave-FM1", MC_URL},
     {"", MC_TEXT},
     {"H\xFCgelton Instruments", MC_TITLE},
@@ -120,8 +122,8 @@ static int32_t menu_document(int32_t y, int draw)
         cv_text(6, y + 82, &AF_S, "10-Voice Poly. Peak/Notch EQ.", T_ACCENT);
         cv_text(6, y + 100, &AF_S, "4 Warm Tape/Hearth/Flux Shapes.", T_TEXT);
         cv_text(6, y + 118, &AF_S, "8 Engines. 49-Genre Generator.", T_TEXT);
-        cv_text(6, y + 138, &AF_S, "GAMMAWAVEAUDIO.COM", T_THEME);
-        cv_text(6, y + 156, &AF_S, "GUILLEL51 GITHUB", T_ACCENT);
+        cv_text(6, y + 138, &AF_S, "GUILLEL51 GITHUB", T_THEME);
+        cv_text(6, y + 156, &AF_S, "QUANTUM GAMMAWAVE", T_ACCENT);
         cv_text(6, y + 174, &AF_S, "OCT+: SECRET VIZ", T_THEME);
         draw_about_qr(158, y + 122);
     }
