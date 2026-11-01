@@ -1393,49 +1393,47 @@ static void sig_pt(uint32_t j, uint32_t s, uint32_t e, int32_t *x, int32_t *y)
     *x = sx;                                            /* (/16 x 16: Q4) */
     *y = sy;
 }
-/* Bold geometric block glyph renderer for "GAMMAWAVE" in StandaloneLogoComponent (no font hook side-effects) */
+/* Bold geometric block glyph renderer for "QUANTUM" in QG-1 StandaloneLogoComponent (no font hook side-effects) */
 static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
 {
     int32_t t = 3, mw = w / 2;
-    if (ch == 'G') {
+    if (ch == 'Q') {
         cv_rect(x, y, w, t, c);
+        cv_rect(x, y, t, h - 2, c);
+        cv_rect(x + w - t, y, t, h - 2, c);
+        cv_rect(x, y + h - 2 - t, w, t, c);
+        cv_line_t(x + mw, y + h / 2, x + w, y + h, c, 2);
+    } else if (ch == 'U') {
         cv_rect(x, y, t, h, c);
+        cv_rect(x + w - t, y, t, h, c);
         cv_rect(x, y + h - t, w, t, c);
-        cv_rect(x + w - t, y + h / 2, t, h - h / 2, c);
-        cv_rect(x + mw, y + h / 2, w - mw, t, c);
     } else if (ch == 'A') {
         cv_rect(x, y + t, t, h - t, c);
         cv_rect(x + w - t, y + t, t, h - t, c);
         cv_rect(x + t, y, w - 2 * t, t, c);
         cv_rect(x + t, y + h / 2, w - 2 * t, t, c);
+    } else if (ch == 'N') {
+        cv_rect(x, y, t, h, c);
+        cv_rect(x + w - t, y, t, h, c);
+        cv_line_t(x + t, y, x + w - t, y + h, c, 2);
+    } else if (ch == 'T') {
+        cv_rect(x, y, w, t, c);
+        cv_rect(x + mw - 1, y, t, h, c);
     } else if (ch == 'M') {
         cv_rect(x, y, t, h, c);
         cv_rect(x + w - t, y, t, h, c);
         cv_line_t(x + t, y + 1, x + mw, y + h / 2, c, 2);
         cv_line_t(x + w - t - 1, y + 1, x + mw, y + h / 2, c, 2);
-    } else if (ch == 'W') {
-        cv_rect(x, y, t, h, c);
-        cv_rect(x + w - t, y, t, h, c);
-        cv_line_t(x + t, y + h - 2, x + mw, y + h / 2, c, 2);
-        cv_line_t(x + w - t - 1, y + h - 2, x + mw, y + h / 2, c, 2);
-    } else if (ch == 'V') {
-        cv_line_t(x + 1, y, x + mw, y + h - 2, c, 3);
-        cv_line_t(x + w - 2, y, x + mw, y + h - 2, c, 3);
-    } else if (ch == 'E') {
-        cv_rect(x, y, t, h, c);
-        cv_rect(x, y, w, t, c);
-        cv_rect(x, y + h / 2 - 1, w - 2, t, c);
-        cv_rect(x, y + h - t, w, t, c);
     }
 }
 
-/* Authentic POCKET GAMMAWAVE // GW-1 Wave-Surfing Boot Splash:
- *   - Chamfered Octagonal GammaWave Frame with Top-Left #f27121 Orange Bracket
- *   - Upper Bay: THE HEARTH Blazing Yellow-White Solar Core + Radial Flare Corona + Spark Particles + Orbiting Moon
- *   - Lower Bay: Full 9-letter "GAMMAWAVE" typography physically surfing/undulating along the glowing 3-cycle sine wave */
+/* Authentic QUANTUM GAMMAWAVE // QG-1 Wave-Surfing Boot Splash:
+ *   - Chamfered Octagonal Quantum Frame with Top-Left Cyan Bracket
+ *   - Upper Bay: Quantum Core Blazing Cyan/Amber + Orbiting Electron Rings
+ *   - Lower Bay: Full 7-letter "QUANTUM" typography physically surfing along the glowing sine wave */
 static void splash_sig(int32_t px, uint32_t ms)
 {
-    static const char *const WORD = "GAMMAWAVE";
+    static const char *const WORD = "QUANTUM";
     int32_t tot = sig_len(), prog = px >= tot ? 256 : px * 256 / (tot ? tot : 1);
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
     int32_t i, wx0 = 18, ww = 204, wy = 104, w_draw = ww * prog / 256;
@@ -1487,13 +1485,13 @@ static void splash_sig(int32_t px, uint32_t ms)
         py = y;
     }
 
-    /* 4. Wave-Surfing "GAMMAWAVE" Typography: each letter rides the phase of the live sine wave */
-    for (i = 0; i < 9; i++) {
-        int32_t lx = 22 + i * 22;
+    /* 4. Wave-Surfing "QUANTUM" Typography: each letter rides the phase of the live sine wave */
+    for (i = 0; i < 7; i++) {
+        int32_t lx = 32 + i * 26;
         if (lx <= wx0 + w_draw) {
             uint32_t lph = (uint32_t)((lx - wx0) * 3 * 65536 / ww) - ms * 22u;
             int32_t surf_y = 85 - (bg_sin(lph) * 6 >> 15);
-            uint16_t lc = mono ? T_TEXT : (i < 5 ? T_TEXT : bg_col(210 + i * 5));
+            uint16_t lc = mono ? T_TEXT : (i < 4 ? T_THEME : T_ACCENT);
             gw_logo_letter(WORD[i], lx, surf_y, 16, 18, lc);
         }
     }
