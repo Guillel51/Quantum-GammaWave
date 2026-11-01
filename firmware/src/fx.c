@@ -81,7 +81,7 @@ _Static_assert(sizeof rev_comb / 2u >= SP_LEN && sizeof rev_u.sp / 4u >= 4u * (S
  * folds the wave back on itself: more partials as it rises); CRUSH fewer bits and a held sample (the drive takes both
  * down); RECT full-wave rectified (an octave up, fuzz), its DC taken out. Then the two-pole low-pass, TONE (P_DTONE)
  * moving it darker / brighter, and the make-up. DRIVE 0: out of the chain */
-enum { DT_TAPE, DT_HEARTH, DT_PLASMA, DT_FLUX };
+enum { DT_SOFT, DT_TAPE, DT_HEARTH, DT_FLUX };
 static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, int32_t x, int32_t g, int32_t d)
 {
     int32_t v = ((x >> 2) * g) >> 10, a;
@@ -97,14 +97,6 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         wt = (x >= 0 ? t->dist_dc : -t->dist_dc) >> 3;
         return clamp(h + sp + wt, -28000, 28000);
     }
-    case DT_PLASMA: {                                    /* GammaWave Singularity/Plasma: envelope-warped AM saturation */
-        int32_t warp, core;
-        a = v < 0 ? -v : v;
-        t->dist_dc += (a - t->dist_dc) >> 5;
-        warp = sine_i((uint32_t)((v + (t->dist_dc >> 1)) * (36000 + d * 500)));
-        core = softclip(v + (warp >> 1));
-        return clamp(core + ((core * warp) >> 15), -28000, 28000);
-    }
     case DT_FLUX: {                                      /* GammaWave Flux: thermal bias drift + tape head roll-off */
         int32_t jit, q;
         t->dist_hc++;
@@ -114,11 +106,15 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         q = (v + jit) & ~(int32_t)((1u << (3u + (uint32_t)d / 20u)) - 1u);
         return softclip(q + (jit >> 1));
     }
-    case DT_TAPE:                                        /* TAPE: cubic polynomial soft warmth */
-    default: {
+    case DT_TAPE: {                                      /* TAPE: cubic polynomial soft tape warmth */
         int32_t x3 = (v * ((v * v) >> 15)) >> 15;
         int32_t out = v - (x3 / 3);
         return softclip(out);
+    }
+    case DT_SOFT:                                        /* SOFT: musical asymmetric soft clip (even harmonics) */
+    default: {
+        int32_t b0 = softclip(2400);
+        return softclip(v + 2400) - b0;
     }
     }
 }
@@ -145,7 +141,7 @@ static void track_dist(track_t *t, int32_t *b, uint32_t n)
     k = clamp(32000 - d * 95 + t->p[P_DTONE] * 300, 2500, 32767);   /* tone: transparent at low drive .. ~3 kHz, Q15 */
     mk = 30000 - d * 100;                               /* make-up gain */
     if (type > DT_FLUX)
-        type = DT_TAPE;
+        type = DT_SOFT;
     for (i = 0; i < (int32_t)n; i++) {
         int32_t x = b[i], y;
         t->dist_hp += (x - t->dist_hp + 64) >> 7;           /* ~55 Hz low cut: keep the bass out of the clipper */
@@ -188,8 +184,8 @@ static void qg_biquad_init(qg_biquad_t *eq)
     eq->active = 0;
 }
 
-/* Set Peak / Bell EQ: freq (0..127), gain_db (-24..+24) */
-static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+/* Set Peak / Bell EQ: freq (0..127), gain_db (-24..+24), q_idx (0..127 -> Q 0.5..8.0) */
+static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx)
 {
     if (gain_db == 0) {
         qg_biquad_init(eq);
@@ -199,20 +195,27 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
     int32_t sn = sine_i(angle);                         /* Q15 */
     int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
-    int32_t alpha = sn >> 2;                            /* Q15, Q ~ 2.0 */
+
+    /* Q dynamic scaling: q_idx 0..127 -> Q 0.5 to 8.0 (inv_2q in Q14: 16384 at Q=0.5, 4096 at Q=2, 1024 at Q=8) */
+    uint32_t q_shift = (uint32_t)q_idx >> 5;
+    uint32_t q_frac = (uint32_t)q_idx & 31;
+    int32_t base = 16384 >> q_shift;
+    int32_t nxt = 16384 >> (q_shift + 1);
+    int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
+    int32_t alpha = (sn * inv_2q) >> 15;                /* Q14 */
 
     /* A = 10^(gain_db / 40) in Q12: 1.0 = 4096 */
     int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
     if (a_q12 < 512) a_q12 = 512;
     int32_t a_inv_q12 = (4096 * 4096) / a_q12;
 
-    int32_t b0_un = 16384 + ((alpha * a_q12) >> 13);
+    int32_t b0_un = 16384 + ((alpha * a_q12) >> 12);
     int32_t b1_un = -((cs) >> 0);                       /* -2 * cs in Q14 = -cs in Q15 */
-    int32_t b2_un = 16384 - ((alpha * a_q12) >> 13);
+    int32_t b2_un = 16384 - ((alpha * a_q12) >> 12);
 
-    int32_t a0_un = 16384 + ((alpha * a_inv_q12) >> 13);
+    int32_t a0_un = 16384 + ((alpha * a_inv_q12) >> 12);
     int32_t a1_un = -((cs) >> 0);
-    int32_t a2_un = 16384 - ((alpha * a_inv_q12) >> 13);
+    int32_t a2_un = 16384 - ((alpha * a_inv_q12) >> 12);
 
     if (a0_un > 100) {
         eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
@@ -224,21 +227,91 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     }
 }
 
-/* Set Notch Filter: freq (0..127) */
-static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx)
+/* Set Low Shelf Filter: freq (0..127), gain_db (-24..+24) */
+static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+{
+    if (gain_db == 0) {
+        qg_biquad_init(eq);
+        return;
+    }
+    uint32_t angle = (uint32_t)freq_idx * 33816698u;
+    int32_t sn = sine_i(angle);
+    int32_t cs = sine_i(angle + 0x40000000u);
+    int32_t a = 32768 + (gain_db * 1365);               /* Gain multiplier */
+    int32_t a_sqrt = 32768 + (gain_db * 682);
+    int32_t alpha = (sn * a_sqrt) >> 16;
+    int32_t a_p1 = a + 32768;
+    int32_t a_m1 = a - 32768;
+    int32_t b0 = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt) >> 15);
+    int32_t b1 = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t b2 = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt) >> 15);
+    int32_t a0 = ((32768 + a_sqrt) >> 1) + ((alpha * 32768) / a_sqrt);
+    int32_t a1 = -(a_m1 + ((a_p1 * cs) >> 15));
+    int32_t a2 = ((32768 + a_sqrt) >> 1) - ((alpha * 32768) / a_sqrt);
+
+    if (a0 > 0) {
+        eq->b0 = (b0 * 32767) / a0;
+        eq->b1 = (b1 * 32767) / a0;
+        eq->b2 = (b2 * 32767) / a0;
+        eq->a1 = (a1 * 32767) / a0;
+        eq->a2 = (a2 * 32767) / a0;
+        eq->active = 1;
+    }
+}
+
+/* Set High Shelf Filter: freq (0..127), gain_db (-24..+24) */
+static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+{
+    if (gain_db == 0) {
+        qg_biquad_init(eq);
+        return;
+    }
+    uint32_t angle = (uint32_t)freq_idx * 33816698u;
+    int32_t sn = sine_i(angle);
+    int32_t cs = sine_i(angle + 0x40000000u);
+    int32_t a = 32768 + (gain_db * 1365);
+    int32_t a_sqrt = 32768 + (gain_db * 682);
+    int32_t alpha = (sn * a_sqrt) >> 16;
+    int32_t a_p1 = a + 32768;
+    int32_t a_m1 = a - 32768;
+    int32_t b0 = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt) >> 15);
+    int32_t b1 = -((a_m1 + ((a_p1 * cs) >> 15)));
+    int32_t b2 = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt) >> 15);
+    int32_t a0 = ((32768 + a_sqrt) >> 1) + ((alpha * 32768) / a_sqrt);
+    int32_t a1 = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t a2 = ((32768 + a_sqrt) >> 1) - ((alpha * 32768) / a_sqrt);
+
+    if (a0 > 0) {
+        eq->b0 = (b0 * 32767) / a0;
+        eq->b1 = (b1 * 32767) / a0;
+        eq->b2 = (b2 * 32767) / a0;
+        eq->a1 = (a1 * 32767) / a0;
+        eq->a2 = (a2 * 32767) / a0;
+        eq->active = 1;
+    }
+}
+
+/* Set Notch Filter: freq (0..127), q_idx (0..127 -> Q 0.5..8.0) */
+static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx)
 {
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
     int32_t sn = sine_i(angle);                         /* Q15 */
     int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
-    int32_t alpha = sn >> 2;                            /* Q15, Q ~ 2.0 */
+
+    uint32_t q_shift = (uint32_t)q_idx >> 5;
+    uint32_t q_frac = (uint32_t)q_idx & 31;
+    int32_t base = 16384 >> q_shift;
+    int32_t nxt = 16384 >> (q_shift + 1);
+    int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
+    int32_t alpha = (sn * inv_2q) >> 15;                /* Q14 */
 
     int32_t b0_un = 16384;
     int32_t b1_un = -((cs) >> 0);                       /* -2 * cs in Q14 */
     int32_t b2_un = 16384;
 
-    int32_t a0_un = 16384 + (alpha >> 1);
+    int32_t a0_un = 16384 + alpha;
     int32_t a1_un = -((cs) >> 0);
-    int32_t a2_un = 16384 - (alpha >> 1);
+    int32_t a2_un = 16384 - alpha;
 
     if (a0_un > 100) {
         eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
@@ -312,9 +385,13 @@ static void master_eq_update(void)
     if (mode == 0) {
         qg_biquad_init(&master_eq);
     } else if (mode == 1) {
-        qg_biquad_set_peak(&master_eq, freq, gain);
+        qg_biquad_set_peak(&master_eq, freq, gain, q);
     } else if (mode == 2) {
-        qg_biquad_set_notch(&master_eq, freq);
+        qg_biquad_set_notch(&master_eq, freq, q);
+    } else if (mode == 3) {
+        qg_biquad_set_lowshelf(&master_eq, freq, gain);
+    } else if (mode == 4) {
+        qg_biquad_set_highshelf(&master_eq, freq, gain);
     }
 }
 static __attribute__((noinline)) void master_begin(void)
@@ -413,6 +490,18 @@ static __attribute__((noinline)) void usb_fixed_dac(int32_t *out, uint32_t n)   
 }
 static volatile uint8_t fx_lowcut;     /* settings: 1 LOWCUT 12 dB/oct ~110 Hz, 2 BASS+ (the small speaker):
                                         * 12 dB/oct ~220 Hz plus the harmonics of the bass (spk_bass) */
+
+/* Apply EQ preset configuration using QG-1 Biquad shelf/peak filters */
+void qg_fx_update_eq(uint8_t mode)
+{
+    if (mode == 0) {
+        qg_biquad_init(&master_eq);
+    } else if (mode == 1) {
+        qg_biquad_set_highshelf(&master_eq, 90, 3);    /* LOWCUT profile: gentle high shelf compensation */
+    } else if (mode == 2) {
+        qg_biquad_set_lowshelf(&master_eq, 35, 4);     /* BASS+ profile: warm low shelf boost */
+    }
+}
 static int32_t lc_l1, lc_l2, lc_r1, lc_r2, dc_l, dc_r, dce_l, dce_r;
 
 /* DC blocker (~2 Hz), always on: a leaky integrator of the input (Q6 state) subtracted from it.
@@ -475,6 +564,15 @@ static inline void master_out(int32_t *l, int32_t *r)
         *l = lowcut1(*l, &lc_l2, &lce[1], sh) + b;
         *r = lowcut1(*r, &lc_r1, &lce[2], sh);
         *r = lowcut1(*r, &lc_r2, &lce[3], sh) + b;
+    }
+    /* (QG-1) Mid/Side stereo balance: ensure mono compatibility and phase coherence */
+    if (song.g[G_WIDTH] != 0) {
+        int32_t mid = (*l + *r) >> 1;
+        int32_t side = (*l - *r) >> 1;
+        int32_t w = 32768 + ((song.g[G_WIDTH] - 64) * 512);   /* width scaling */
+        side = (side * clamp(w, 0, 65536)) >> 15;
+        *l = mid + side;
+        *r = mid - side;
     }
     *l = (clamp(*l, -262143, 262143) * (lev_cur >> 4)) >> 11;   /* (JIANT 0.5) the leveler's gain (lev_block) */
     *r = (clamp(*r, -262143, 262143) * (lev_cur >> 4)) >> 11;

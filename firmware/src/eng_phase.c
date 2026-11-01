@@ -228,6 +228,13 @@ static const preset_t PHASE_PRESETS[] = {
      {XP(P_VOICE, V_LEGATO), XP(P_GLIDE, 40)}},
     {"ION SWEEP", {5, 4, 70, 80, 16, 0, 30, 40}, {60, 90, 110, 90}, 10, 0, FX(10, 60, 40, 80), PAT(5),
      {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_SHP, 20)}},
+    /* (QG-1 EXPANSION: Organic Plucks, Bells & Evolving Textures) */
+    {"SHRINE BELL", {6, 2, 75, 60, 6, 0, 15, 30}, {0, 90, 0, 85}, 0, 0, FX(0, 25, 40, 75), PAT(7)},
+    {"CHIME TREE", {6, 0, 85, 45, 10, 0, 0, 20}, {0, 92, 0, 90}, 0, 0, FX(0, 35, 45, 85), PAT(7)},
+    {"FOLK PLUCK", {4, 0, 50, 40, 0, 0, 20, 15}, {0, 70, 0, 45}, 35, 0, FX(0, 15, 35, 35), PAT(15)},
+    {"BALAFON", {5, 0, 65, 55, 0, 0, 10, 25}, {0, 75, 10, 40}, 20, 0, FX(0, 10, 30, 40), PAT(3)},
+    {"ETHNIC PLUCK", {4, 3, 58, 48, 8, 0, 25, 35}, {0, 72, 0, 50}, 40, 0, FX(0, 20, 40, 45), PAT(15)},
+    {"WRAITH DRONE", {0, 5, 68, 50, 25, 0, 60, 80}, {90, 90, 120, 105}, 15, 0, FX(20, 40, 30, 90), PAT(5)},
 };
 
 static const engine_t ENG_PHASE = {

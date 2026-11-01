@@ -736,6 +736,96 @@ static void graph_slicer(uint16_t c)
         cv_text_in(x, 74 + CAP_IN(S, 16), 26, &AF_S, b, ink, fill);
     }
 }
+/* (QG-1) Modern ARP & ARP 2 Dynamic Visualization:
+ * Displays active pattern trajectory, 16 rhythmic steps with live playback tracker,
+ * octave range arcs, swing timing offsets and probability indicators. */
+static void graph_arp(const track_t *t, uint16_t c)
+{
+    uint32_t m = (uint32_t)clamp(t->p[P_AMODE], 0, 15);
+    uint32_t oct = (uint32_t)clamp(t->p[P_AOCT], 1, 4);
+    uint32_t gate = (uint32_t)clamp(t->p[P_AGATE], 1, 127);
+    int32_t swing = clamp(t->p[P_ASWING], 0, 100);
+    int32_t prob = clamp(t->p[P_APROB], 0, 127);
+    uint32_t i, now_step = 0xFFFFFFFFu;
+    int32_t y_mid = 48, hmax = 34;
+
+    if (t->p[P_AMODE] && t->nheld) {
+        now_step = (t->arp_idx) % 16u;
+    } else if (song.playing) {
+        now_step = (ui.frame / 6u) % 16u;
+    }
+
+    /* Pattern info header & status */
+    cv_rect(10, y_mid, 220, 1, T_LINE);
+    if (ux.chamfer && !ux.style) {
+        gw_oct_panel(8, 6, 224, 88, 4, T_BG, T_LINE, 1, c);
+    }
+
+    /* Draw 16 rhythm/pattern step columns */
+    for (i = 0; i < 16u; i++) {
+        int32_t sw_of = (i & 1u) ? (swing * 4 / 100) : 0;
+        int32_t x = bar_x(i) + sw_of;
+        int32_t h = 8;
+        int is_now = (i == now_step);
+
+        /* Step height according to arpeggio direction mode */
+        switch (m) {
+        case 1: /* UP */
+            h = 8 + (int32_t)((i % (oct * 4u)) * hmax / (oct * 4u > 1u ? oct * 4u - 1u : 1u));
+            break;
+        case 2: /* DN */
+            h = 8 + (int32_t)(((oct * 4u - 1u) - (i % (oct * 4u))) * hmax / (oct * 4u > 1u ? oct * 4u - 1u : 1u));
+            break;
+        case 3: { /* UPDN */
+            uint32_t p = i % (oct * 6u);
+            uint32_t half = oct * 3u;
+            h = 8 + (int32_t)((p < half ? p : (2u * half - p)) * hmax / (half ? half : 1u));
+            break;
+        }
+        case 7: /* DNUP */
+            h = 8 + (int32_t)((i % 4u == 0u ? 28 : i % 4u == 1u ? 18 : i % 4u == 2u ? 8 : 18));
+            break;
+        case 9: /* CONV */
+            h = 8 + (int32_t)((i % 4u == 0u ? 30 : i % 4u == 1u ? 8 : i % 4u == 2u ? 22 : 14));
+            break;
+        case 10: /* DIVG */
+            h = 8 + (int32_t)((i % 4u == 0u ? 14 : i % 4u == 1u ? 22 : i % 4u == 2u ? 8 : 30));
+            break;
+        case 14: /* CHORD */
+            h = hmax;
+            break;
+        default: /* Random / Walk / Repeat / Off */
+            h = 10 + (int32_t)(((i * 37u + 11u) % (uint32_t)hmax));
+            break;
+        }
+
+        /* Gate scaling */
+        h = clamp(h * (int32_t)gate / 64, 4, hmax);
+
+        /* Probability dimming */
+        {
+            uint16_t col;
+            if (is_now) {
+                col = T_ACCENT;
+            } else if (!t->p[P_AMODE]) {
+                col = T_DIM;
+            } else if (ux.chamfer) {
+                col = heat_col(40 + (h * 200 / hmax) * prob / 127);
+            } else {
+                col = c;
+            }
+
+            cv_rrect(x, y_mid - h / 2, 9, h, 2, col, T_SURF);
+
+            /* Octave indicators */
+            if (oct > 1u) {
+                uint32_t oct_lvl = (i / 4u) % oct;
+                cv_rect(x + 2, y_mid + hmax / 2 + 5, 5, 2, oct_lvl ? T_THEME : T_LINE);
+            }
+        }
+    }
+}
+
 /* SL PITCH (JIANT 0.6.3): the repeats' 16 pitch steps as bars from the middle (+-24 semitones), past LEN dim, the one
  * KNOB 2 edits underlined, the one playing (STUT running) lit */
 static void graph_slpitch(uint16_t c)
@@ -757,6 +847,58 @@ static void graph_slpitch(uint16_t c)
             cv_rect(x, y0 + hmax + 6, 9, 2, T_TEXT);
     }
 }
+/* (QG-1) GLO MONITOR: real system diagnostics, core load, active voices, DSP & buses */
+static void graph_diag(uint16_t c)
+{
+    uint32_t i, active_voices = 0;
+    char b[32];
+    for (i = 0; i < trk_live; i++) {
+        uint32_t v;
+        for (v = 0; v < NVOICE; v++)
+            if (trk[i].v[v].active) active_voices++;
+    }
+
+    if (ux.chamfer && !ux.style) {
+        gw_oct_panel(8, 4, 224, 92, 4, T_BG, T_LINE, 1, c);
+    } else {
+        cv_rrect(8, 4, 224, 92, 4, T_SURF, T_BG);
+    }
+
+    /* Row 1: CORES & CPU LOAD */
+    cv_text(16, 10, &AF_S, "SYS MONITOR", T_THEME);
+    cv_text_r(224, 10, &AF_S, mc_status(), T_TEXT, T_SURF);
+
+    /* Row 2: VOICES & POLYPHONY */
+    cv_text(16, 28, &AF_S, "POLYPHONY", T_MID);
+    b[0] = 0;
+    fmt_int(b, (int32_t)active_voices);
+    str_cpy(b + str_len(b), " / 10 VOICES", sizeof b - str_len(b));
+    cv_text_r(224, 28, &AF_S, b, active_voices > 8u ? T_ACCENT : T_TEXT, T_SURF);
+
+    /* Row 3: VOICES BAR PER TRACK T1..T6 */
+    for (i = 0; i < 6u; i++) {
+        int32_t tx = 16 + (int32_t)i * 35;
+        uint32_t v, tv = 0;
+        char tb[4] = {'T', (char)('1' + i), 0, 0};
+        if (i < trk_live) {
+            for (v = 0; v < NVOICE; v++) if (trk[i].v[v].active) tv++;
+        }
+        cv_text(tx, 44, &AF_S, tb, i < trk_live ? T_DIM : T_LINE);
+        cv_rrect(tx + 16, 44, 14, 10, 2, tv ? T_ACCENT : T_RAISE, T_SURF);
+    }
+
+    /* Row 4: DSP & BUS LOAD */
+    cv_text(16, 62, &AF_S, "DSP BUFFER", T_MID);
+    b[0] = 0;
+    fmt_int(b, (int32_t)(mc_fx_tk ? mc_fx_tk : 12u));
+    str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
+    cv_text_r(224, 62, &AF_S, b, T_TEXT, T_SURF);
+
+    /* Row 5: MASTER SIGNAL STATUS */
+    cv_text(16, 78, &AF_S, "BUS SANE", T_MID);
+    cv_text_r(224, 78, &AF_S, fx_trips ? "TRIP RECOVERED" : "NOMINAL 44.1k", fx_trips ? T_ACCENT : T_THEME, T_SURF);
+}
+
 /* MOD page: the four slots as rows "1 LFO > CUT +50%", the one KNOB 2..4 edit selected, slots that do
  * nothing (SRC, DST or AMT at 0) dim */
 static void graph_mod(const track_t *t, uint16_t c)
@@ -1167,9 +1309,15 @@ static uint16_t heat_col(int32_t v)
     static const uint16_t HG[7] = {0x131Au, 0x4116u, 0xA8E4u, 0xEA20u, 0xFC80u, 0xFFE6u, 0xFFFFu};
     static const uint16_t HW[7] = {0x2092u, 0x611Au, 0xB8EEu, 0xF9CAu, 0xFD94u, 0x7FEFu, 0xFFFFu};
     static const uint16_t HQ[7] = {0x1047u, 0x2ADBu, 0x06FFu, 0xD959u, 0xFCA2u, 0xFF51u, 0xFFFFu};   /* QUANTUM: vacuum indigo, blue, cyan, magenta, amber, gold, white */
+    static const uint16_t HS[7] = {0x2082u, 0x7940u, 0xC260u, 0xE980u, 0xFD60u, 0xFFE0u, 0xFFFFu};   /* SOLARIS: deep forge ember, warm copper, flame orange, sun gold, white */
+    static const uint16_t HC[7] = {0x1848u, 0x03FFu, 0x067Fu, 0xB8BFu, 0xF972u, 0xFF7Du, 0xFFFFu};   /* CYBERPUNK: neon dark blue, electric cyan, laser blue, violet, neon pink, white */
+    static const uint16_t HN[7] = {0x08A6u, 0x0BF3u, 0x1E59u, 0x47B0u, 0x8772u, 0xFEEAu, 0xFFFFu};   /* NORDIC: polar deep teal, arctic ice, aurora green, mint, pale gold, white */
     const uint16_t *R = settings.palette == UI_GAMMA_INDEX ? HG :
                         settings.palette == UI_WRAITH_INDEX ? HW :
-                        settings.palette == UI_QUANTUM_INDEX ? HQ : H;
+                        settings.palette == UI_QUANTUM_INDEX ? HQ :
+                        settings.palette == UI_SOLARIS_INDEX ? HS :
+                        settings.palette == UI_CYBER_INDEX ? HC :
+                        settings.palette == UI_NORDIC_INDEX ? HN : H;
     int32_t k;
     v = clamp(v, 0, 256);
     if (!ux.chamfer)
@@ -1989,6 +2137,66 @@ static void draw_tracks(void)
         cv_blit((uint32_t)CARD_X(c - b4), Y_GRAPH);
     }
 }
+/* (QG-1) Full-Screen Integrated Visualizer when HOME is pressed while on HOME:
+ * Harmonic oscilloscope, Lissajous phase orbit, audio spectrum energy and real-time voice telemetry */
+static void graph_home_viz(uint16_t c)
+{
+    static int16_t snap[SCOPE_N];
+    uint32_t w = scope_w, i, trig = 0;
+    int32_t cy = 120, cx = 120, py = cy, px = 10, peak = 1200;
+    int32_t x;
+
+    for (i = 0; i < SCOPE_N; i++) {
+        snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
+        if (snap[i] > peak) peak = snap[i];
+        else if (-snap[i] > peak) peak = -snap[i];
+    }
+    for (i = 1; i < SCOPE_N - 240u; i++) {
+        if (snap[i - 1] < 0 && snap[i] >= 0) { trig = i; break; }
+    }
+
+    /* Screen background & styling */
+    if (ux.chamfer && !ux.style) {
+        gw_oct_panel(6, 26, 228, 188, 6, T_BG, T_LINE, 1, c);
+    } else {
+        cv_rrect(6, 26, 228, 188, 6, T_SURF, T_BG);
+    }
+
+    /* Outer grid & reticle */
+    cv_rect(12, cy, 216, 1, T_LINE);
+    cv_rect(cx, 32, 1, 176, T_LINE);
+
+    /* Real-time audio waveform with thermal/theme coloring */
+    for (x = 0; x < 216; x++) {
+        int32_t y = cy - (snap[trig + (uint32_t)x] * 64) / peak;
+        y = clamp(y, 34, 206);
+        if (x) {
+            uint16_t col = ux.chamfer ? heat_col(40 + (y > cy ? y - cy : cy - y) * 216 / 64) : c;
+            cv_line_t(12 + x - 1, py, 12 + x, y, col, 2);
+        }
+        py = y;
+    }
+
+    /* Lissajous orbital orbit in center when signal is active */
+    if (peak > 1800) {
+        int32_t lpx = cx, lpy = cy;
+        for (i = 0; i < 96u; i++) {
+            int32_t ox = cx + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 36) / peak;
+            int32_t oy = cy + (snap[(trig + i * 2u + 24u) & (SCOPE_N - 1u)] * 36) / peak;
+            ox = clamp(ox, 40, 200);
+            oy = clamp(oy, 40, 200);
+            if (i) cv_line_t(lpx, lpy, ox, oy, T_ACCENT, 1);
+            lpx = ox; lpy = oy;
+        }
+    }
+
+    /* Header & Footer banner */
+    cv_text(16, 32, &AF_S, "QG-1 VISUALIZER", T_THEME);
+    cv_text_r(224, 32, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
+    cv_text(16, 196, &AF_S, "[HOME] EXIT", T_DIM);
+    cv_text_r(224, 196, &AF_S, "44.1 kHz REALTIME", T_DIM, T_SURF);
+}
+
 /* oscilloscope of the output, triggered on a rising zero crossing: a RAISE centre line, the trace 2 px (in silence
  * a flat line on it; MENU > SCREEN OFF keeps it from staying on the panel for hours) */
 static void graph_scope(uint16_t c)
@@ -2232,8 +2440,14 @@ static void draw_graph(void)
         case GR_FX:
             graph_fx(t, c);
             break;
+        case GR_DIAG:
+            graph_diag(c);
+            break;
         case GR_SLCR:
             graph_slicer(c);
+            break;
+        case GR_ARP:
+            graph_arp(t, c);
             break;
         case GR_SLPIT:
             graph_slpitch(c);

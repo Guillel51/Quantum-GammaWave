@@ -30,7 +30,7 @@ static void qg_biquad_init(qg_biquad_t *eq) {
     eq->active = 0;
 }
 
-static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db) {
+static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx) {
     if (gain_db == 0) {
         qg_biquad_init(eq);
         return;
@@ -38,19 +38,25 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
     int32_t sn = sine_i(angle);
     int32_t cs = sine_i(angle + 0x40000000u);
-    int32_t alpha = sn >> 2;
+
+    uint32_t q_shift = (uint32_t)q_idx >> 5;
+    uint32_t q_frac = (uint32_t)q_idx & 31;
+    int32_t base = 16384 >> q_shift;
+    int32_t nxt = 16384 >> (q_shift + 1);
+    int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
+    int32_t alpha = (sn * inv_2q) >> 15;
 
     int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
     if (a_q12 < 512) a_q12 = 512;
     int32_t a_inv_q12 = (4096 * 4096) / a_q12;
 
-    int32_t b0_un = 16384 + ((alpha * a_q12) >> 13);
+    int32_t b0_un = 16384 + ((alpha * a_q12) >> 12);
     int32_t b1_un = -((cs) >> 0);
-    int32_t b2_un = 16384 - ((alpha * a_q12) >> 13);
+    int32_t b2_un = 16384 - ((alpha * a_q12) >> 12);
 
-    int32_t a0_un = 16384 + ((alpha * a_inv_q12) >> 13);
+    int32_t a0_un = 16384 + ((alpha * a_inv_q12) >> 12);
     int32_t a1_un = -((cs) >> 0);
-    int32_t a2_un = 16384 - ((alpha * a_inv_q12) >> 13);
+    int32_t a2_un = 16384 - ((alpha * a_inv_q12) >> 12);
 
     if (a0_un > 100) {
         eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
@@ -62,19 +68,25 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     }
 }
 
-static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx) {
+static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx) {
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
     int32_t sn = sine_i(angle);
     int32_t cs = sine_i(angle + 0x40000000u);
-    int32_t alpha = sn >> 2;
+
+    uint32_t q_shift = (uint32_t)q_idx >> 5;
+    uint32_t q_frac = (uint32_t)q_idx & 31;
+    int32_t base = 16384 >> q_shift;
+    int32_t nxt = 16384 >> (q_shift + 1);
+    int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
+    int32_t alpha = (sn * inv_2q) >> 15;
 
     int32_t b0_un = 16384;
     int32_t b1_un = -((cs) >> 0);
     int32_t b2_un = 16384;
 
-    int32_t a0_un = 16384 + (alpha >> 1);
+    int32_t a0_un = 16384 + alpha;
     int32_t a1_un = -((cs) >> 0);
-    int32_t a2_un = 16384 - (alpha >> 1);
+    int32_t a2_un = 16384 - alpha;
 
     if (a0_un > 100) {
         eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
@@ -125,7 +137,7 @@ int main(void) {
 
     /* 2. Notch Attenuation */
     int freq_idx = 64;
-    qg_biquad_set_notch(&eq, freq_idx);
+    qg_biquad_set_notch(&eq, freq_idx, 64);
     assert(eq.active == 1);
 
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
@@ -147,7 +159,7 @@ int main(void) {
 
     /* 3. Peak Boost (+6 dB) */
     qg_biquad_init(&eq);
-    qg_biquad_set_peak(&eq, freq_idx, 6);
+    qg_biquad_set_peak(&eq, freq_idx, 6, 64);
     assert(eq.active == 1);
 
     for (int blk = 0; blk < 10; blk++) {
@@ -166,7 +178,7 @@ int main(void) {
 
     /* 4. Stability on Extremes and Impulses */
     qg_biquad_init(&eq);
-    qg_biquad_set_peak(&eq, 120, 18); /* High gain boost */
+    qg_biquad_set_peak(&eq, 120, 18, 64); /* High gain boost */
     buf_l[0] = 30000; buf_r[0] = 30000;
     for (i = 1; i < 512; i++) buf_l[i] = buf_r[i] = 0;
     qg_biquad_process(&eq, buf_l, buf_r, 512);
@@ -175,6 +187,15 @@ int main(void) {
         assert(abs(buf_r[i]) < 65536);
     }
     printf("[PASS] Impulse response stability: no overflow or numeric instability.\n");
+
+        /* 5. Q parameter verification: Narrow vs Wide Peak */
+    qg_biquad_t eq_narrow, eq_wide;
+    qg_biquad_init(&eq_narrow);
+    qg_biquad_init(&eq_wide);
+    qg_biquad_set_peak(&eq_narrow, 64, 12, 120);
+    qg_biquad_set_peak(&eq_wide, 64, 12, 10);
+    assert(eq_narrow.b0 != eq_wide.b0);
+    printf("[PASS] Q parameter: narrow b0=%d vs wide b0=%d dynamically distinct.\n", eq_narrow.b0, eq_wide.b0);
 
     printf("ALL DSP TESTS PASSED WITH 100%% SUCCESS!\n");
     return 0;

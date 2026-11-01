@@ -286,6 +286,13 @@ static const preset_t WHEEL_PRESETS[] = {
     /* (QUANTUM // QG-1) a bright drawbar set with percussion, a soft chapel */
     {"QUANTUM DRAW", {9, 2, 1, 1, 2, 40, 30, 2}, {0, 64, 127, 45}, 0, 0, FX(10, 20, 15, 40), PAT(6)},
     {"CHAPEL SOFT", {2, 2, -1, 0, 0, 5, 0, 1}, {40, 64, 127, 80}, 0, 0, FX(0, 30, 20, 80), PAT(5)},
+    /* (QG-1 EXPANSION: Hurdy Gurdy & Acoustic Traditional) */
+    {"HURDY GURDY", {10, 4, 3, -2, 1, 85, 45, 0}, {5, 60, 127, 40}, 0, 1, FX(15, 10, 15, 30), PAT(3)},
+    {"GURDY DRONE", {8, 6, 4, -4, 0, 95, 60, 0}, {20, 80, 127, 70}, 0, 0, FX(25, 20, 20, 60), PAT(5)},
+    {"MEDIEVAL VIEL", {6, 3, 2, -1, 0, 40, 25, 0}, {10, 70, 120, 50}, 0, 1, FX(10, 15, 15, 45), PAT(4)},
+    {"FOLK DRONE", {12, 5, 3, 0, 0, 50, 35, 1}, {45, 80, 127, 85}, 0, 0, FX(12, 25, 25, 75), PAT(5)},
+    {"NORDIC ORGAN", {7, 3, 0, 1, 1, 30, 15, 1}, {15, 64, 127, 65}, 0, 0, FX(0, 35, 30, 70), PAT(6)},
+    {"GOTHIC SHRINE", {15, 7, 5, 4, 0, 60, 85, 2}, {30, 90, 127, 95}, 0, 0, FX(40, 45, 35, 95), PAT(5)},
 };
 
 static const engine_t ENG_WHEEL = {
