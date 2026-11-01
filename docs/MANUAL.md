@@ -1539,21 +1539,25 @@ and the filter type; the screen says which one. UNDO takes a macro back.
 | 5/6 FORMANT VOWEL | HEARTH | VOWEL | |
 | 6/6 SOLAR ECLIPSE! | BLAST | SCREAM | raises the master DUCK and PUNCH |
 
-### New filter and drive types
+### New filter, EQ and harmonic distortion types
 
-FILTER **TYPE** adds **VOWEL** and **SCREAM** (see [4](#4-engines)); DIST **TYPE** adds **HEARTH**, **BLAST**,
-**PLASMA** and **FLUX** (see [9](#9-effects-and-master)). The GENERATOR adds six genres: GAMMAWAVE, WRAITHWAVE,
-TRAP ATL, UK DRILL, DARK TRAP and RAGE TRAP (see [8](#8-dice-and-undo)).
+- **Filters**: FILTER **TYPE** adds **VOWEL** and **SCREAM** (see [4](#4-engines)).
+- **Harmonic Distortions**: DIST **TYPE** provides 4 musical saturation models: **`SOFT`** (warm soft-clip with 2nd harmonic richness), **`TAPE`** (cubic tape saturation and head warmth), **`HEARTH`** (asymmetric tube bias curve) and **`FLUX`** (analog drift and tape compression).
+- **Parametric Master Biquad EQ (Q14)**: Dedicated **MASTER EQ** page on the master bus implementing a fixed-point Direct Form II Transposed biquad filter (`OFF`, `PEAK` bell curve with adjustable gain and Q, and surgical `NOTCH` rejection).
+- **10-Voice Polyphony & Psychoacoustic Allocation**: Expanded real-time capacity to 10 voices with weighted quiet-tail stealing ($<-40\text{ dB}$) eliminating clicks.
+- **GENERATOR (49 genres)**: Includes GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP and RAGE TRAP (see [8](#8-dice-and-undo)).
 
-### The GammaWave screens
+### The Quantum GammaWave (QG-1) screens
 
-- **HOME**: the filter curve over the live spectrum, the Hearth sun and moon, the T1–T6 strip (see [2](#2-the-screen)).
-- **EDIT pages**: two live scope traces over the **Wraith ribbon**. Its six zones — **FLU · WHI · VOX · CHR · BEL ·
-  SCR** — label the cutoff range, and the needle follows CUT (and the filter LFO). With the VOWEL or SCREAM filter, or
-  on the VOICE engine, the ribbon shows the vowels **OO · OH · AH · EH · EE** instead.
-- **SLICER**: drawn as four tape lanes. **DRUM**: the kit's eight pads with the A/B MORPH bar.
-- **Palettes**: MENU > DISPLAY > COLOR adds **THERMAL**, **GAMMA** (the default) and **WRAITH**.
-- **ABOUT** displays system metrics, version and credit lineage.
+- **HOME**: 28-bar reactive spectrum analyzer, Hearth sun with orbiting moon, live filter curve, and T1–T6 track strip.
+- **Full-Screen Audio Visualizer (`HOME -> HOME`)**: Tapping HOME while on the HOME screen reveals a hardware-native oscilloscope with zero-crossing sync and Lissajous phase orbits.
+- **Transient Preset Overlay (1.5s)**: Turning PRESET brings up a non-blocking 7-row categorized preset browser overlay for 1.5s without interrupting playback.
+- **Dynamic Modern ARP Visualizer**: Live 16-step arpeggiator trajectory, direction mode arcs, swing visualization and tempo-synced playhead.
+- **GLO 2 Telemetry Monitor**: Real-time voice allocation across 6 tracks (10-voice budget), dual-core CPU execution ticks (`mc_fx_tk`), and DSP buffer integrity.
+- **EDIT pages**: Two live scope traces over the **Wraith ribbon**. Its six zones — **FLU · WHI · VOX · CHR · BEL · SCR** — label the cutoff range, and the needle follows CUT (and the filter LFO). With the VOWEL or SCREAM filter, or on the VOICE engine, the ribbon shows the vowels **OO · OH · AH · EH · EE** instead.
+- **SLICER**: Drawn as four tape lanes. **DRUM**: The kit's eight pads with the A/B MORPH bar.
+- **17 Visual Themes**: MENU > DISPLAY > COLOR includes **QUANTUM** (signature theme), **SOLARIS** (solar gold), **CYBERPUNK** (neon grid), **NORDIC** (emerald aurora on obsidian), **GAMMA**, **THERMAL**, **WRAITH**, and more.
+- **ABOUT**: Real-time audio engine metrics, official Quantum GammaWave version, and an on-screen QR code pointing directly to the project website.
 
 ### The visualizer
 
@@ -1563,4 +1567,6 @@ PRESETS / ALGORITHM) changes scene, **OCT−** leaves (to ABOUT; HOME goes back 
 
 ---
 
-If you resonate with my work, consider supporting me on Ko-fi (https://ko-fi.com/juanjiant) — in Argentina: Cafecito (https://cafecito.app/juanjiant).
+**Quantum GammaWave (QG-1)** is free and open-source software released under the **GPL-3.0-only** license.
+- Official Portal & Browser Emulator: <https://guillel51.github.io/Quantum-GammaWave/>
+- Source Code Repository & Releases: <https://github.com/Guillel51/Quantum-GammaWave>

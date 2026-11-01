@@ -1641,22 +1641,25 @@ propio CUT y RES) y el tipo de filtro; la pantalla dice cuál es. UNDO deshace u
 | 5/6 FORMANT VOWEL | HEARTH | VOWEL | |
 | 6/6 SOLAR ECLIPSE! | BLAST | SCREAM | sube DUCK y PUNCH del master |
 
-### Tipos nuevos de filtro y de saturación
+### Tipos nuevos de filtro, ecualización y saturación armónica
 
-El **TYPE** de FILTER suma **VOWEL** y **SCREAM** (ver [4](#4-motores)); el **TYPE** de DIST suma **HEARTH**,
-**BLAST**, **PLASMA** y **FLUX** (ver [9](#9-efectos-y-master)). El GENERATOR suma seis géneros: GAMMAWAVE,
-WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP y RAGE TRAP (ver [8](#8-dados-y-undo)).
+- **Filtros**: El **TYPE** de FILTER suma **VOWEL** y **SCREAM** (ver [4](#4-motores)).
+- **Saturación armónica cálida**: El **TYPE** de DIST cuenta con 4 modelos musicales de alta fidelidad: **`SOFT`** (recorte suave rico en 2º armónico), **`TAPE`** (saturación cúbica con calidez de cabezal), **`HEARTH`** (curva a válvulas asimétrica) y **`FLUX`** (deriva analógica y compresión de cinta).
+- **Master EQ Paramétrico Biquad Q14**: Nueva página **MASTER EQ** en el bus master con filtro paramétrico biquad en Direct Form II Transposed de coma fija (`OFF`, `PEAK` tipo campana con ganancia y Q variables, y `NOTCH` de rechazo estrecho para limpieza quirúrgica de resonancias).
+- **Polifonía de 10 Voces y Asignación Psicoacústica**: Capacidad ampliada a 10 voces en tiempo real con robo inteligente de voces amortiguadas ($<-40\text{ dB}$) para evitar clics audibles.
+- **GENERATOR (49 géneros)**: Incluye GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP y RAGE TRAP (ver [8](#8-dados-y-undo)).
 
-### Las pantallas GammaWave
+### Las pantallas Quantum GammaWave (QG-1)
 
-- **HOME**: la curva del filtro sobre el espectro en vivo, el sol Hearth y su luna, la tira T1–T6 (ver
-  [2](#2-la-pantalla)).
-- **Páginas EDIT**: dos osciloscopios en vivo sobre la **cinta Wraith**. Sus seis zonas — **FLU · WHI · VOX · CHR ·
-  BEL · SCR** — marcan el rango del cutoff, y la aguja sigue a CUT (y al LFO del filtro). Con el filtro VOWEL o
-  SCREAM, o en el motor VOICE, la cinta muestra las vocales **OO · OH · AH · EH · EE**.
-- **SLICER**: dibujado como cuatro pistas de cinta. **DRUM**: los ocho pads del kit con la barra A/B de MORPH.
-- **Paletas**: MENU > DISPLAY > COLOR suma **THERMAL**, **GAMMA** (por defecto) y **WRAITH**.
-- **ABOUT** muestra métricas del sistema, versión y créditos de autoría.
+- **HOME**: Analizador de espectro reactivo de 28 barras, sol Hearth y luna orbital, curva de filtro en tiempo real y tira de pistas T1–T6.
+- **Visualizador Full-Screen (`HOME -> HOME`)**: Al pulsar HOME estando ya en la pantalla HOME, se activa un osciloscopio en tiempo real con sincronización de fase por cruce por cero y órbitas Lissajous.
+- **Selector Transitorio de Presets (1.5 s)**: Al girar el encoder PRESET, se muestra un panel emergente de 7 filas categorizadas durante 1.5 s sin interrumpir la reproducción.
+- **Arpegiador Moderno Dinámico (ARP)**: Visualización en tiempo real de la trayectoria del arpegio de 16 pasos, arcos de octava, modos direccionales y cabezal sincronizado al tempo.
+- **Monitor de Telemetría GLO 2**: Visualización en vivo del reparto de las 10 voces por pista, recuento de ciclos de CPU de ambos núcleos (`mc_fx_tk`) y salud del búfer de audio.
+- **Páginas EDIT**: Dos osciloscopios en vivo sobre la **cinta Wraith**. Sus seis zonas — **FLU · WHI · VOX · CHR · BEL · SCR** — marcan el rango del cutoff, y la aguja sigue a CUT (y al LFO del filtro). Con el filtro VOWEL o SCREAM, o en el motor VOICE, la cinta muestra las vocales **OO · OH · AH · EH · EE**.
+- **SLICER**: Dibujado como cuatro pistas de cinta. **DRUM**: Los ocho pads del kit con la barra A/B de MORPH.
+- **17 Paletas Visuales**: MENU > DISPLAY > COLOR incluye **QUANTUM** (insignia), **SOLARIS** (oro solar), **CYBERPUNK** (neón de alto contraste), **NORDIC** (aurora esmeralda sobre obsidiana), **GAMMA**, **THERMAL**, **WRAITH**, etc.
+- **ABOUT**: Métricas del sistema en tiempo real, versión oficial de Quantum GammaWave y código QR directo a la web oficial del proyecto.
 
 ### El visualizador
 
@@ -1666,4 +1669,6 @@ PRESETS / ALGORITHM) cambia de escena, **OCT−** sale (a ABOUT; HOME vuelve a H
 
 ---
 
-Si mi trabajo resuena con vos, considerá apoyarme en Ko-fi (https://ko-fi.com/juanjiant) — en Argentina: Cafecito (https://cafecito.app/juanjiant).
+**Quantum GammaWave (QG-1)** es software libre y de código abierto bajo licencia **GPL-3.0-only**.
+- Portal Oficial y Emulador: <https://guillel51.github.io/Quantum-GammaWave/>
+- Repositorio y Lanzamientos: <https://github.com/Guillel51/Quantum-GammaWave>
