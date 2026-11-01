@@ -103,13 +103,13 @@ def knobs(*labels):
 def page(title, sub, body, name):
     doc = f"""<!doctype html><html><head><meta charset="utf-8"><title>POCKET GAMMAWAVE (GW-1) · {e(title)}</title>
 <style>{CSS}</style></head><body>
-<header><img src="signature.png" alt="Pocket GammaWave signature"><div>
-<h1>POCKET GAMMAWAVE · {e(title)}</h1><h2>{e(sub)}</h2>
-<div class="ver">firmware {VERSION} · M-VAVE FM-1 · gammawaveaudio.com · shadowtune.itch.io/gammawave · fvalente.github.io/GammaWave-FM1</div></div></header>
+<header><img src="signature.png" alt="Quantum GammaWave signature"><div>
+<h1>QUANTUM GAMMAWAVE · {e(title)}</h1><h2>{e(sub)}</h2>
+<div class="ver">firmware {VERSION} · M-VAVE FM-1 · guillel51.github.io/Quantum-GammaWave</div></div></header>
 <div class="rule"></div>
 {body}
-<footer><span>GPL-3.0 · Companion to GammaWave Desktop VST (gammawaveaudio.com) · Built on Felucca, JIANT &amp; SLOOP</span>
-<span>POCKET GAMMAWAVE (GW-1) {VERSION}</span></footer>
+<footer><span>GPL-3.0 · Built on Pocket GammaWave, Felucca, JIANT &amp; SLOOP</span>
+<span>QUANTUM GAMMAWAVE (QG-1) {VERSION}</span></footer>
 </body></html>"""
     with open(os.path.join(OUT, name), 'w', encoding='utf-8') as f:
         f.write(doc)

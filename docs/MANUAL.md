@@ -1,16 +1,16 @@
 # QUANTUM GAMMAWAVE (QG-1) — User Manual
 
-**Firmware v1.2.1-GW for the M-VAVE FM-1 · [gammawaveaudio.com](https://gammawaveaudio.com/) · [Buy GammaWave VST](https://shadowtune.itch.io/gammawave)**
+**Firmware v1.4-QG for the M-VAVE FM-1 · [GitHub Repository](https://github.com/Guillel51/Quantum-GammaWave)**
 
 > *Versión en español: [MANUAL.es.md](MANUAL.es.md).*
 
-This manual is for musicians who have just installed Quantum GammaWave (QG-1) [fork of Pocket GammaWave] and want to know how to play it, build songs with it
+This manual is for musicians who have just installed Quantum GammaWave (QG-1) [fork of Quantum GammaWave] and want to know how to play it, build songs with it
 and, above all, **save their work without losing anything**. It follows the firmware as it is in v1.2.1-GW: every
 button, knob and message is named exactly as the device shows it.
 
-If you only read one chapter, read [12. Saving and loading](#12-saving-and-loading). What GW-1 adds to the firmware it
+If you only read one chapter, read [12. Saving and loading](#12-saving-and-loading). What QG-1 adds to the firmware it
 is built on (the `[OCT−]` shift deck, the generator's new genres, the VOWEL / SCREAM filters, the new drive types, the
-GammaWave screens) is gathered in [17. GW-1 additions](#17-gw-1-additions).
+GammaWave screens) is gathered in [17. QG-1 additions](#17-gw-1-additions).
 
 ## Contents
 
@@ -31,7 +31,7 @@ GammaWave screens) is gathered in [17. GW-1 additions](#17-gw-1-additions).
 14. [MIDI and USB](#14-midi-and-usb)
 15. [Web tools: emulator, installer, editor, backup](#15-web-tools-emulator-installer-editor-backup)
 16. [Troubleshooting and FAQ](#16-troubleshooting-and-faq)
-17. [GW-1 additions](#17-gw-1-additions)
+17. [QG-1 additions](#17-gw-1-additions)
 
 ---
 
@@ -39,15 +39,15 @@ GammaWave screens) is gathered in [17. GW-1 additions](#17-gw-1-additions).
 
 ### Install
 
-1. Open the **web installer** in Chrome, Edge or Opera: <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
+1. Open the **web installer** in Chrome, Edge or Opera: <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
 2. Connect the FM-1 **directly** to the computer with a USB data cable.
 3. **Coming from another custom firmware (Felucca, baudgirl or any other)?** Return to the official V15 firmware
    first, with the installer's **Return to official V15 first** button (it also saves a complete backup). Writing
-   Pocket GammaWave straight over another custom firmware has left an FM-1 unable to start.
-4. Press **Install**. It first checks the FM-1's firmware and writes only over official V15, JIANT or Pocket GammaWave
+   Quantum GammaWave straight over another custom firmware has left an FM-1 unable to start.
+4. Press **Install**. It first checks the FM-1's firmware and writes only over official V15, JIANT or Quantum GammaWave
    (anything else: it sends you to Return to official V15 first). Don't unplug the cable while it writes.
 
-Pocket GammaWave has no user samples: if you come from Felucca, its user samples (USR1–3) are lost on install. Keep your WAV
+Quantum GammaWave has no user samples: if you come from Felucca, its user samples (USR1–3) are lost on install. Keep your WAV
 files.
 
 ### Your first sound (1 minute)
@@ -129,7 +129,7 @@ layer's shortcuts; on the DRUM grid they are steps and lanes; on the NAME screen
 | **REC** held + **FX / EDIT / ENV / LFO / SCL / ARP / GLO** | Clears that part's automation on the selected track (GLO: the level and pan automation of all tracks; FX: also the punch-in lane). No dialog. |
 | **SAVE** held + **OCT+** / **OCT−** | Store the music into the section playing / recall that section as stored. |
 | **HOME / EDIT / SEQ / LFO / FX** held + **SELECT** | HOME: the GENERATOR. The others, their dice: the sound / the sequence / the LFO / the effects (see [8](#8-dice-and-undo)). |
-| **OCT−** held alone, then **ARP / PLAY / ENV / HOME / SEQ / EDIT / FX / LFO / GLO** | The GW-1 shift deck: Hearth macros, the GENERATOR, the MUTATE page, the visualizer, the dice, UNDO (see [17](#17-gw-1-additions)). |
+| **OCT−** held alone, then **ARP / PLAY / ENV / HOME / SEQ / EDIT / FX / LFO / GLO** | The QG-1 shift deck: Hearth macros, the GENERATOR, the MUTATE page, the visualizer, the dice, UNDO (see [17](#17-gw-1-additions)). |
 | **ENV / SCL / ARP / SAVE** held + **SELECT**, any page button + **PRESETS** | Jump through that button's pages. |
 | A step held (SEQ > STEP) + **KNOB 1–4** | A parameter lock on that step. |
 | **OCT− + OCT+** held at power-on | HARDWARE CALIBRATION. |
@@ -398,7 +398,7 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
 - **FM6**: a six-operator FM engine (Dexed's msfa), 32 algorithms drawn on screen, four voices per track. The EDIT 1/2
   knobs are macros over the patch. **SLOT**: the factory patches F1–F8, OWN (an edited or imported patch) and B1–B32
   (a 32-voice DX7 bank sent from the web editor; empty slots are skipped; until you send one, B1–B11 hold
-  **GW-1 KEYS**, built in: see below). **OPERATOR / OP ENV / OPERATOR 2** edit each
+  **QG-1 KEYS**, built in: see below). **OPERATOR / OP ENV / OPERATOR 2** edit each
   of the six operators on the device (KNOB 1 picks the operator); editing makes the patch the track's own (SLOT OWN),
   saved with the project. A bank voice you pick is copied into the track, so projects keep it even if you send
   another bank later.
@@ -436,7 +436,7 @@ on their filter, brightness or pitch, set by the preset. Turn ENV > ATK and REL 
 | **NOISE** | **OCEAN** (a slow swell of filtered noise), **DUST HAZE** |
 | **FM6** | **SOFT EP**, **REED PIANO**, **FM PIANO**, **GLASS KEYS**, **CRYSTAL BELL**, **KALIMBA**, **VIBES**, **MUSIC BOX**, **WARM PAD**, **GLASS PAD**, **CELESTA** |
 
-- **GW-1 KEYS**: the FM6 presets play the voices of a bank built into the firmware, on **B1–B11** (SLOT). It is there
+- **QG-1 KEYS**: the FM6 presets play the voices of a bank built into the firmware, on **B1–B11** (SLOT). It is there
   until you send a bank of your own from the web editor; your bank replaces it (send it again to get it back:
   `web/banks/gw1-keys.syx` is the same bank as a file). Velocity opens their brightness: play softly for a darker sound.
 - FM6 runs four voices per track, so a held chord of four notes is its limit; for long pads with many notes, ANALOG,
@@ -762,7 +762,7 @@ Hold **SAVE**:
 
 ### GENERATOR — the song generator (HOME + SELECT)
 
-Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (GW-1). The screen,
+Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (QG-1). The screen,
 **GENERATOR 1/5**, has five pages of four settings: **SELECT** turns the page — a ring of seven: the five settings
 pages, the **TAKES** reel and the **SET** page (below) — **KNOB 1–4** set the four rows, **ALGORITHM** gives the piece
 new instruments (below), **PRESETS** opens the **TAKES** reel (below).
@@ -817,7 +817,7 @@ music changed outside the GENERATOR since (a project loaded, the song edited), N
 its own stream, so turning one part's row leaves the others as they were. **OCT+ with nothing changed** throws a new
 seed. The screen opens on RANDOM each time.
 
-#### TAKES — NOW and the reel, the songwriter (GW-1)
+#### TAKES — NOW and the reel, the songwriter (QG-1)
 
 **PRESETS** opens the **TAKES** reel on **NOW** (the turn that opens it only opens it: nothing is cued, the music stays);
 turned on: NOW first, then takes 1 … n (**TAKE 2 OF 3** in the title), round. Each card shows:
@@ -1024,7 +1024,7 @@ sounds picked with PRESETS, SEQ TOOLS actions, or ordinary knob turns. It is not
 ### Per track
 
 - **FX**: DIST amount and the three sends (CHORUS, DLY, REV).
-- **DIST**: amount, **TYPE** (SOFT, HARD, FOLD, CRUSH, RECT, and GW-1's **HEARTH** — warm tube-style drive with a
+- **DIST**: amount, **TYPE** (SOFT, HARD, FOLD, CRUSH, RECT, and QG-1's **HEARTH** — warm tube-style drive with a
   little high-frequency edge and low weight; **BLAST** — a two-stage sine wavefolder over a soft-clipped body;
   **PLASMA** — saturation warped by the signal's own envelope; **FLUX** — a drifting bias and a bit-starved grain that
   grow with the amount), **TONE** (darker / brighter).
@@ -1167,7 +1167,7 @@ The SAVE layer (section jumps on the bar, quick chains, store, recall, SONG REC)
 
 ## 12. Saving and loading
 
-This is the chapter to read carefully. Pocket GammaWave keeps several kinds of data in different places, saved in different ways.
+This is the chapter to read carefully. Quantum GammaWave keeps several kinds of data in different places, saved in different ways.
 
 ### The big picture
 
@@ -1189,7 +1189,7 @@ This is the chapter to read carefully. Pocket GammaWave keeps several kinds of d
 | **User presets** U01–U32 (one sound + a 16-step pattern) | Flash | **SAVE > USER > SAVE** (stopped) | Yes |
 | **Settings** (MENU, TRACKS, LOAD, favourites) | Flash | Automatically (MENU: when it closes; while playing: after you stop) | Yes |
 | The **autosave** | Flash, its own place | 10 s after the last change, stopped and idle, at most once a minute | Yes (restored at power-on if RESTORE LAST is ON) |
-| The **FM6 voice bank** B1–B32 | Flash, its own place | Sent from the web editor (until then: GW-1 KEYS, built in) | Yes (not in the backup: keep the .syx) |
+| The **FM6 voice bank** B1–B32 | Flash, its own place | Sent from the web editor (until then: QG-1 KEYS, built in) | Yes (not in the backup: keep the .syx) |
 | **UNDO** | RAM | — | No |
 
 ### How the autosave really works
@@ -1397,7 +1397,7 @@ faded): a photo of that screen helps when you report a problem.
   stopped: at once; an empty one is said so); programs **16–23** load project **1–8** with its section A (stopped only,
   as SAVE > PROJECT). A foot controller or a DAW can run a set.
 - **Not possible**: MIDI OUT on the **TRS** jack (the FM-1's jack is an input only: no output line goes to it) and
-  **Bluetooth MIDI** (the chip has a radio, but its Bluetooth software is JieLi's closed SDK, which Pocket GammaWave does not use).
+  **Bluetooth MIDI** (the chip has a radio, but its Bluetooth software is JieLi's closed SDK, which Quantum GammaWave does not use).
 - **Clock**: GLO > GLOBAL > CLOCK **USB** or **TRS** follows that input's clock and Start / Continue / Stop. With an
   external clock, TAP and GLO + PLAY restart are disabled.
 - **Controllers** (on the track the channel plays): CC5 glide, CC7 level, CC10 pan, CC71 resonance and CC74 cutoff (the
@@ -1413,29 +1413,29 @@ faded): a photo of that screen helps when you report a problem.
 
 All three run in the browser and update themselves with every change to the firmware.
 
-### Emulator — <https://fvalente.github.io/GammaWave-FM1/>
+### Emulator — <https://guillel51.github.io/Quantum-GammaWave/>
 
 The same code as the FM-1, with sound, in the browser. Play it with the mouse or the computer keyboard: **Z–'** and
 **Q–O** rows are the keys, **1** to **=** the buttons from FX to REC, **[ ]** OCT− / OCT+, **↑ ↓** SELECT, **← →**
 ALGORITHM; **Shift-click** holds a button. Great for learning the layers without the device.
 
-### Installer — <https://fvalente.github.io/GammaWave-FM1/webapp/installer/>
+### Installer — <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
 
 Chrome, Edge or Opera (it needs Web MIDI), the FM-1 connected straight to the computer.
 
-- **Install** Pocket GammaWave (it checks the FM-1 first: official V15, JIANT or Pocket GammaWave only).
+- **Install** Quantum GammaWave (it checks the FM-1 first: official V15, JIANT or Quantum GammaWave only).
 - **Return to official V15**: give it M-VAVE's unmodified **FM-1.fwsc** (checked locally in the browser). It first
   saves a complete backup (current music, saved music, sound banks and settings; not user samples). Use this before
-  installing Pocket GammaWave if your FM-1 runs **another custom firmware** (Felucca, baudgirl…), and whenever you want to go back
-  to stock. Official V15 cannot open Pocket GammaWave music; to restore the backup later, reinstall Pocket GammaWave and use the editor.
+  installing Quantum GammaWave if your FM-1 runs **another custom firmware** (Felucca, baudgirl…), and whenever you want to go back
+  to stock. Official V15 cannot open Quantum GammaWave music; to restore the backup later, reinstall Quantum GammaWave and use the editor.
 
-### Editor — <https://fvalente.github.io/GammaWave-FM1/webapp/editor/>
+### Editor — <https://guillel51.github.io/Quantum-GammaWave/webapp/editor/>
 
 Every parameter from the computer, over USB. Tabs: Sound, 6-OP FM, Sequencer, Tracks, Library, Projects, Settings.
 
 - **6-OP FM**: edit FM6 patches, import .syx, and **Send to the device's voice bank (B1–B32)**.
 - **Projects**: the project slots, and the **Complete backup**: **Save backup** and **Restore backup**.
-- **The GW-1 panel** (on the Sound tab): four demo songs, the editor's own 49-genre generator (the same genre list;
+- **The QG-1 panel** (on the Sound tab): four demo songs, the editor's own 49-genre generator (the same genre list;
   its patterns are made in the browser, so they won't match the device's for the same seed), **4 tape lanes** (T1–T4:
   DUMP a track's pattern into a lane, layer, bounce, mute and clear them — note patterns, not recorded audio),
   **EXPORT .WAV** (the song and the tape lanes as a 16-bit 44.1 kHz stereo WAV), the Wraith bar and SEQ MUTATE.
@@ -1496,15 +1496,15 @@ deliberately from a running device, hold **OCT− + OCT+** for 5 seconds. If tha
 M-VAVE's own updater.
 
 **I came from baudgirl / Felucca. Can I install directly?** No: return to official V15 first with the installer, then
-install Pocket GammaWave. Going straight from another custom firmware has bricked an FM-1.
+install Quantum GammaWave. Going straight from another custom firmware has bricked an FM-1.
 
-**Where did my Felucca samples go?** Pocket GammaWave has no user samples; that flash now holds the songs.
+**Where did my Felucca samples go?** Quantum GammaWave has no user samples; that flash now holds the songs.
 
 ---
 
-## 17. GW-1 additions
+## 17. QG-1 additions
 
-What Pocket GammaWave adds to the firmware it is built on (Felucca, by way of JIANT FM). Everything else in this manual
+What Quantum GammaWave adds to the firmware it is built on (Felucca, by way of JIANT FM). Everything else in this manual
 applies as written.
 
 ### The `[OCT−]` shift deck
@@ -1553,7 +1553,7 @@ TRAP ATL, UK DRILL, DARK TRAP and RAGE TRAP (see [8](#8-dice-and-undo)).
   on the VOICE engine, the ribbon shows the vowels **OO · OH · AH · EH · EE** instead.
 - **SLICER**: drawn as four tape lanes. **DRUM**: the kit's eight pads with the A/B MORPH bar.
 - **Palettes**: MENU > DISPLAY > COLOR adds **THERMAL**, **GAMMA** (the default) and **WRAITH**.
-- **ABOUT** carries a QR code to gammawaveaudio.com.
+- **ABOUT** displays system metrics, version and credit lineage.
 
 ### The visualizer
 
