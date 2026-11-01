@@ -191,7 +191,7 @@ static void menu_put(uint32_t row, uint32_t v)
         ui.force = 1;
         break;
     case MI_STYLE: ui_style = (uint8_t)(v ? ST_LINE : ST_FLAT); break;   /* (drawn so from the next frame) */
-    case MI_LOWCUT: settings.lowcut = v; fx_lowcut = (uint8_t)v; break;
+    case MI_LOWCUT: settings.lowcut = v; fx_lowcut = (uint8_t)v; qg_fx_update_eq(fx_lowcut); break;
     case MI_HOLD: settings_hold = (uint8_t)v; break;
     case MI_SCROFF: scr_put(v); break;                 /* (read every frame: ui.c scr_frame) */
     case MI_LEDS: settings_leds = LEDS_MENU[v]; break;

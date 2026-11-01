@@ -820,10 +820,10 @@
     </div>
   </section>
 
-  <div style="margin-top:24px;border:1px solid var(--accent);border-left:4px solid var(--theme);background:rgba(255,184,0,0.06);padding:10px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
+  <div style="margin-top:24px;border:1px solid var(--accent);border-left:4px solid var(--theme);background:rgba(96,228,255,0.05);padding:10px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
     <div>
-      <strong style="color:var(--theme);letter-spacing:0.06em">⚡ WANT THE FULL STUDIO GAMMAWAVE SYNTHESIZER FOR YOUR DAW (VST3 / AU)?</strong><br>
-      <span class="dim" style="font-size:12px">Multi-Oscillator Solar Hearth Wavetables • High-Res FFT Spectrogram Filter • Polyphonic Modulation Matrix</span>
+      <strong style="color:var(--accent);letter-spacing:0.06em">☀️ QUANTUM GAMMAWAVE (QG-1) HARDWARE WORKSTATION</strong><br>
+      <span class="dim" style="font-size:12px">10-Voice Polyphony • Peak/Notch Biquad Master EQ • 4 Warm Tape Shapes • Dual-Core AC791N DSP</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:6px 14px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a>
@@ -1997,7 +1997,7 @@ function makeMockDevice(opt = {}) {
     D("LEVEL", F.DB, 0, 127, 104),
     D("ATK", F.TIME, 0, 127, 10), D("DEC", F.TIME, 0, 127, 70), D("SUS", F.PCT, 0, 127, 90), D("REL", F.TIME, 0, 127, 60),
     D("FILTER", F.BIPCT, -64, 63, 0), D("PITCH", F.BIPCT, -64, 63, 0), D("SHAPE", F.BIPCT, -64, 63, 0), E("LOOP", ["OFF", "ON"], 0),   /* (JIANT 0.4: P_ED_FX is the ENV LOOP) */
-    D("RATE", F.LFOHZ, -12, 127, 60), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H"], 0), D("PHASE", F.INT, -1, 127, 0), D("FADE", F.TIME, 0, 127, 0),   /* (0.6.51) RATE < 0 in time, PHASE -1 FREE */
+    D("RATE", F.LFOHZ, -12, 127, 60), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP"], 0), D("PHASE", F.INT, -1, 127, 0), D("FADE", F.TIME, 0, 127, 0),   /* (0.6.51) RATE < 0 in time, PHASE -1 FREE */
     D("PITCH", F.BIPCT, -64, 63, 0), D("FILTER", F.BIPCT, -64, 63, 0), D("SHAPE", F.BIPCT, -64, 63, 0), D("AMP", F.PCT, 0, 127, 0),
     E("MODE", ["OFF", "UP", "DN", "UPDN", "RND", "ORD", "REPEAT", "DNUP", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "WALK", "CHORD", "TRNS"], 0), E("RATE", NDIV, 2), D("OCT", F.INT, 1, 4, 1), D("GATE", F.PCT, 1, 127, 64),
     D("SWING", F.PCT, 0, 100, 0), D("PROB", F.PCT, 0, 127, 127), E("HOLD", NONOFF, 0), E("ORDER", ["NOTE", "PLAY"], 0),
@@ -2006,7 +2006,7 @@ function makeMockDevice(opt = {}) {
     D("DIST", F.PCT, 0, 127, 0), D("CHORUS", F.PCT, 0, 127, 0), D("DLY", F.PCT, 0, 127, 0), D("REV", F.PCT, 0, 127, 0),
     E("VOICE", ["POLY", "MONO", "LEG", "UNI"], 0), D("GLIDE", F.TIME, 0, 127, 0), D("PAN", F.BIPCT, -64, 63, 0), E("MUTE", NONOFF, 0),
     E("MODE", ["RATE", "TIME"], 0), E("PRIO", ["LAST", "LOW", "HIGH"], 0), E("ALLOC", ["ROT", "REUSE"], 0), D("DETUNE", F.INT, 0, 127, 40),
-    D("DEPTH", F.PCT, 0, 127, 0), D("RATE", F.LFOHZ, 0, 127, 2), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H"], 1), E("SYNC", ["FREE", "BEAT"], 1),   /* (JIANT 0.6.9) AUTO PAN, in the old per-track SLICER's slots (BEAT: RATE 0..7, 4BAR .. 1/32) */
+    D("DEPTH", F.PCT, 0, 127, 0), D("RATE", F.LFOHZ, 0, 127, 2), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP"], 1), E("SYNC", ["FREE", "BEAT"], 1),   /* (JIANT 0.6.9) AUTO PAN, in the old per-track SLICER's slots (BEAT: RATE 0..7, 4BAR .. 1/32) */
     ...[1, 2, 3, 4].flatMap((k) => [E("SRC" + k, MSRC, 0), E("DEST" + k, MDST, 0), D("AMT" + k, F.BIPCT, -64, 63, 0)]),   /* the matrix */
   ];
   const GP = [
@@ -2035,6 +2035,11 @@ function makeMockDevice(opt = {}) {
     D("MOD", F.PCT, 0, 127, 0),                       /* (0.6.86) G_DMOD 66: the delay's tape drift (WOW, FLUTTER) */
     E("TYPE", ["ANALOG", "DIGITAL"], 0), E("PING", ["OFF", "ON"], 0),   /* (0.6.90) G_DTYPE 67, G_DPING 68 */
     E("TYPE", ["CHORUS", "PHASER"], 0),                /* (QG-1) G_CTYPE 69: the chorus bus's ensemble / PHASER */
+    E("MODE", ["OFF", "PEAK", "NOTCH", "LOWSH", "HIGHSH"], 0), /* (QG-1 v1.4) G_EQMODE 70: Master Parametric EQ */
+    D("FREQ", F.CUTOFF, 0, 127, 64),                   /* G_EQFREQ 71 */
+    D("GAIN", F.BIPCT, -24, 24, 0),                    /* G_EQGAIN 72 */
+    D("Q", F.PCT, 0, 127, 64),                         /* G_EQQ 73 */
+    D("M-WIDE", F.PCT, 0, 127, 64),                    /* (QG-1 v1.4) G_MWIDTH 74: Master Stereo Width */
   ];
   const NONE = D("-", F.INT, 0, 0, 0);
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
@@ -2254,7 +2259,7 @@ function makeMockDevice(opt = {}) {
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
     D("CUT", F.CUTOFF, 0, 127, 127), D("RES", F.PCT, 0, 127, 0));                       /* 113, 114: the other engines' */
-  const P_COUNT = 123, G_COUNT = 70, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
+  const P_COUNT = 123, G_COUNT = 75, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* tracks (firmware v3): four synth parts (1.0), six (JIANT 0.6); engine / preset / p / step below are the selected track's */
@@ -3295,7 +3300,10 @@ const LAYOUT = (pe0) => [
       [50 + 4 * k, 51 + 4 * k, 52 + 4 * k, 53 + 4 * k]])] : [["SLICER", 0, [45, 46, 47, 48]]]),   /* (0.6.3: one, on a bus) */
     ["DLY", 1, [4, 5, 6, 7]], ...(pe0 >= 112 ? [["DLY 2", 1, [28, 34, 35, ...(dev && dev.info && dev.info.gcount >= 67 ? [66] : [])]],
     ...(dev && dev.info && dev.info.gcount >= 69 ? [["DLY 3", 1, [67, 68]]] : [])] : []), ["REVERB", 1, pe0 >= 112 ? [24, 8, 9, 31] : [24, 8, 9]],
-    ...(pe0 >= 112 ? [["REVERB 2", 1, [29, 30, 32, 33]]] : []), ["CHORUS", 1, pe0 >= 112 ? (dev && dev.info && dev.info.gcount >= 70 ? [10, 11, 27, 69] : [10, 11, 27]) : [10, 11]], ["MASTER", 1, [21, 25, 26, 13]]] },   /* G_RTYPE 24: ROOM SPRING SHIMR RESO CLOUD; MASTER: CLIP PNCH DUCK REL; (0.6.9) AUTOPAN: DPTH RATE SYNC WAVE, CHORUS: STER (27) */
+    ...(pe0 >= 112 ? [["REVERB 2", 1, [29, 30, 32, 33]]] : []), ["CHORUS", 1, pe0 >= 112 ? (dev && dev.info && dev.info.gcount >= 70 ? [10, 11, 27, 69] : [10, 11, 27]) : [10, 11]],
+    ["MASTER", 1, [21, 25, 26, 13]],
+    ...(dev && dev.info && dev.info.gcount >= 74 ? [["MASTER EQ", 1, [70, 71, 72, 73]]] : []),
+    ...(dev && dev.info && dev.info.gcount >= 75 ? [["STEREO M/S", 1, [74]]] : [])] },   /* G_RTYPE 24: ROOM SPRING SHIMR RESO CLOUD; MASTER: CLIP PNCH DUCK REL; (0.6.9) AUTOPAN: DPTH RATE SYNC WAVE, CHORUS: STER (27) */
   { t: "SCL", pages: [["SCL", 0, [25, 26, 27, 28]], ["SCL 2", 1, [36]]] },   /* (JIANT 0.4) G_STRN 36: every sequence along the scale */
   { t: "ARP", pages: [["ARP", 0, [17, 18, 19, 20]], ["ARP 2", 0, [21, 22, 23, 24]]] },
   { t: "SEQ PATTERN", tab: "seqgroups", pages: [["PATTERN", 0, [29, 30, 31, 32]], ...(pe0 >= 83 ? [["SHIFT", 0, P_SHIFT]] : [])] },   /* OFS PIT 81, 82 */

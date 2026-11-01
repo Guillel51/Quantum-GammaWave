@@ -352,7 +352,7 @@
           <option value="0" selected>SOFT (Warm Tanh)</option>
           <option value="1">TAPE (Cubic Polynomial)</option>
           <option value="2">HEARTH (Tube Heat + Sub)</option>
-          <option value="3">FLUX (Thermal Tape Drift)</option>
+          <option value="3">FLUX (Analog Tape Drift)</option>
         </select>
       </div>
       <div class="ctl-box">
@@ -937,7 +937,7 @@ function distShapeJS(x, type, drive01) {
     default: { // FLUX: thermal bias drift + tape head roll-off
       const q = Math.round(u * 6) / 6;
       const t = q / (1 + 0.8 * Math.abs(q));
-      return t + 0.14 * Math.sin(u * 9.0);
+      return t + 0.12 * Math.sin(u * 8.0);
     }
   }
 }

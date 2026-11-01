@@ -162,10 +162,10 @@ static int32_t lim_env = LIM_T;
 /* (JIANT) CLIP (G_CLIP 0..100): the mix driven x1 .. x4 into the soft clip ahead of the limiter, its level kept near
  * -4 dBFS (as DRUM's DRV); 0: out of the chain. Set each block (master_begin) */
 static int32_t clip_g, clip_mk;
-/* ------------------------------------------------------------ Q15 Direct Form II Transposed Biquad Filter --- */
+/* ------------------------------------------------------------ Q14 Direct Form II Transposed Biquad Filter --- */
 typedef struct {
-    int32_t b0, b1, b2;                                 /* Q15 feedforward */
-    int32_t a1, a2;                                     /* Q15 feedback */
+    int32_t b0, b1, b2;                                 /* Q14 feedforward coeffs */
+    int32_t a1, a2;                                     /* Q14 feedback coeffs */
     int32_t s1_l, s2_l;                                 /* stereo delay states */
     int32_t s1_r, s2_r;
     uint8_t active;                                     /* 0 = pass-through bypass */
@@ -174,7 +174,7 @@ typedef struct {
 /* Initialize filter in pure pass-through bypass: unity gain, zero delay */
 static void qg_biquad_init(qg_biquad_t *eq)
 {
-    eq->b0 = 32767;
+    eq->b0 = 16384;                                     /* 1.0 in Q14 */
     eq->b1 = 0;
     eq->b2 = 0;
     eq->a1 = 0;
@@ -184,78 +184,167 @@ static void qg_biquad_init(qg_biquad_t *eq)
     eq->active = 0;
 }
 
-/* Set Peak / Bell EQ: freq (0..127), gain_db (-24..+24), Q factor */
-static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+/* Set Peak / Bell EQ: freq (0..127), gain_db (-24..+24), q_idx (0..127 -> Q 0.5..8.0) */
+static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx)
 {
     if (gain_db == 0) {
         qg_biquad_init(eq);
         return;
     }
-    uint32_t angle = (uint32_t)freq_idx * 33816698u;   /* 0..Pi mapped across 0..127 */
-    int32_t sn = sine_i(angle);
-    int32_t cs = sine_i(angle + 0x40000000u);
-    int32_t alpha = sn >> 2;                            /* Q ~ 2.0 */
-    int32_t a = 32768 + (gain_db * 1365);               /* Gain multiplier */
-    int32_t a_sqrt = 32768 + (gain_db * 682);
-    int32_t b0 = 32768 + ((alpha * a) >> 15);
-    int32_t b1 = -((2 * cs) >> 15);
-    int32_t b2 = 32768 - ((alpha * a) >> 15);
-    int32_t a0 = 32768 + ((alpha * 32768) / a_sqrt);
-    int32_t a1 = -((2 * cs) >> 15);
-    int32_t a2 = 32768 - ((alpha * 32768) / a_sqrt);
+    /* Map freq_idx 0..127 musically from ~40 Hz to ~16 kHz: angle = w0 in binary radians */
+    uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
+    int32_t sn = sine_i(angle);                         /* Q15 */
+    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
 
-    if (a0 > 0) {
-        eq->b0 = (b0 * 32767) / a0;
-        eq->b1 = (b1 * 32767) / a0;
-        eq->b2 = (b2 * 32767) / a0;
-        eq->a1 = (a1 * 32767) / a0;
-        eq->a2 = (a2 * 32767) / a0;
+    /* Q dynamic scaling: q_idx 0..127 -> Q 0.5 to 8.0 (inv_2q in Q14: 16384 at Q=0.5, 4096 at Q=2, 1024 at Q=8) */
+    uint32_t q_shift = (uint32_t)q_idx >> 5;
+    uint32_t q_frac = (uint32_t)q_idx & 31;
+    int32_t base = 16384 >> q_shift;
+    int32_t nxt = 16384 >> (q_shift + 1);
+    int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
+    int32_t alpha = (sn * inv_2q) >> 15;                /* Q14 */
+
+    /* A = 10^(gain_db / 40) in Q12: 1.0 = 4096 */
+    int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
+    if (a_q12 < 512) a_q12 = 512;
+    int32_t a_inv_q12 = (4096 * 4096) / a_q12;
+
+    int32_t b0_un = 16384 + ((alpha * a_q12) >> 12);
+    int32_t b1_un = -((cs) >> 0);                       /* -2 * cs in Q14 = -cs in Q15 */
+    int32_t b2_un = 16384 - ((alpha * a_q12) >> 12);
+
+    int32_t a0_un = 16384 + ((alpha * a_inv_q12) >> 12);
+    int32_t a1_un = -((cs) >> 0);
+    int32_t a2_un = 16384 - ((alpha * a_inv_q12) >> 12);
+
+    if (a0_un > 100) {
+        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
+        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
+        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
+        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
+        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
         eq->active = 1;
     }
 }
 
-/* Set Notch Filter: freq (0..127) */
-static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx)
+/* Set Low Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
+static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
 {
-    uint32_t angle = (uint32_t)freq_idx * 33816698u;
-    int32_t sn = sine_i(angle);
-    int32_t cs = sine_i(angle + 0x40000000u);
-    int32_t alpha = sn >> 3;                            /* Narrow notch Q ~ 4.0 */
-    int32_t b0 = 32768;
-    int32_t b1 = -((2 * cs) >> 15);
-    int32_t b2 = 32768;
-    int32_t a0 = 32768 + alpha;
-    int32_t a1 = -((2 * cs) >> 15);
-    int32_t a2 = 32768 - alpha;
+    if (gain_db == 0) {
+        qg_biquad_init(eq);
+        return;
+    }
+    uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
+    int32_t sn = sine_i(angle);                         /* Q15 */
+    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
+    int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
+    if (a_q12 < 512) a_q12 = 512;
+    int32_t a_sqrt_q12 = 4096 + (gain_db * 118);
+    if (a_sqrt_q12 < 512) a_sqrt_q12 = 512;
+    int32_t alpha = (sn * 4096) >> 15;                  /* Q12 */
+    int32_t a_p1 = a_q12 + 4096;
+    int32_t a_m1 = a_q12 - 4096;
+    int32_t b0_un = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt_q12) >> 12);
+    int32_t b1_un = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t b2_un = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt_q12) >> 12);
+    int32_t a0_un = ((4096 + a_sqrt_q12) >> 1) + ((alpha * 4096) / a_sqrt_q12);
+    int32_t a1_un = -(a_m1 + ((a_p1 * cs) >> 15));
+    int32_t a2_un = ((4096 + a_sqrt_q12) >> 1) - ((alpha * 4096) / a_sqrt_q12);
 
-    if (a0 > 0) {
-        eq->b0 = (b0 * 32767) / a0;
-        eq->b1 = (b1 * 32767) / a0;
-        eq->b2 = (b2 * 32767) / a0;
-        eq->a1 = (a1 * 32767) / a0;
-        eq->a2 = (a2 * 32767) / a0;
+    if (a0_un > 50) {
+        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
+        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
+        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
+        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
+        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
         eq->active = 1;
     }
 }
 
-/* Process block of stereo samples through biquad (Direct Form II Transposed) */
+/* Set High Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
+static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+{
+    if (gain_db == 0) {
+        qg_biquad_init(eq);
+        return;
+    }
+    uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
+    int32_t sn = sine_i(angle);                         /* Q15 */
+    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
+    int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
+    if (a_q12 < 512) a_q12 = 512;
+    int32_t a_sqrt_q12 = 4096 + (gain_db * 118);
+    if (a_sqrt_q12 < 512) a_sqrt_q12 = 512;
+    int32_t alpha = (sn * 4096) >> 15;                  /* Q12 */
+    int32_t a_p1 = a_q12 + 4096;
+    int32_t a_m1 = a_q12 - 4096;
+    int32_t b0_un = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt_q12) >> 12);
+    int32_t b1_un = -((a_m1 + ((a_p1 * cs) >> 15)));
+    int32_t b2_un = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt_q12) >> 12);
+    int32_t a0_un = ((4096 + a_sqrt_q12) >> 1) + ((alpha * 4096) / a_sqrt_q12);
+    int32_t a1_un = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t a2_un = ((4096 + a_sqrt_q12) >> 1) - ((alpha * 4096) / a_sqrt_q12);
+
+    if (a0_un > 50) {
+        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
+        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
+        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
+        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
+        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
+        eq->active = 1;
+    }
+}
+
+/* Set Notch Filter: freq (0..127), q_idx (0..127 -> Q 0.5..8.0) */
+static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx)
+{
+    uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
+    int32_t sn = sine_i(angle);                         /* Q15 */
+    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
+
+    uint32_t q_shift = (uint32_t)q_idx >> 5;
+    uint32_t q_frac = (uint32_t)q_idx & 31;
+    int32_t base = 16384 >> q_shift;
+    int32_t nxt = 16384 >> (q_shift + 1);
+    int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
+    int32_t alpha = (sn * inv_2q) >> 15;                /* Q14 */
+
+    int32_t b0_un = 16384;
+    int32_t b1_un = -((cs) >> 0);                       /* -2 * cs in Q14 */
+    int32_t b2_un = 16384;
+
+    int32_t a0_un = 16384 + alpha;
+    int32_t a1_un = -((cs) >> 0);
+    int32_t a2_un = 16384 - alpha;
+
+    if (a0_un > 100) {
+        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
+        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
+        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
+        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
+        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
+        eq->active = 1;
+    }
+}
+
+/* Process block of stereo samples through biquad (Direct Form II Transposed in Q14) */
 static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t n)
 {
     if (!eq->active)
         return;                                         /* zero CPU cost when bypassed */
     uint32_t i;
     for (i = 0; i < n; i++) {
-        int32_t in_l = l[i] >> 2;
-        int32_t out_l = ((eq->b0 * in_l) >> 15) + eq->s1_l;
-        eq->s1_l = ((eq->b1 * in_l) >> 15) - ((eq->a1 * out_l) >> 15) + eq->s2_l;
-        eq->s2_l = ((eq->b2 * in_l) >> 15) - ((eq->a2 * out_l) >> 15);
-        l[i] = out_l << 2;
+        int32_t x_l = l[i] >> 2;
+        int32_t y_l = ((eq->b0 * x_l) >> 14) + eq->s1_l;
+        eq->s1_l = ((eq->b1 * x_l) >> 14) - ((eq->a1 * y_l) >> 14) + eq->s2_l;
+        eq->s2_l = ((eq->b2 * x_l) >> 14) - ((eq->a2 * y_l) >> 14);
+        l[i] = y_l << 2;
 
-        int32_t in_r = r[i] >> 2;
-        int32_t out_r = ((eq->b0 * in_r) >> 15) + eq->s1_r;
-        eq->s1_r = ((eq->b1 * in_r) >> 15) - ((eq->a1 * out_r) >> 15) + eq->s2_r;
-        eq->s2_r = ((eq->b2 * in_r) >> 15) - ((eq->a2 * out_r) >> 15);
-        r[i] = out_r << 2;
+        int32_t x_r = r[i] >> 2;
+        int32_t y_r = ((eq->b0 * x_r) >> 14) + eq->s1_r;
+        eq->s1_r = ((eq->b1 * x_r) >> 14) - ((eq->a1 * y_r) >> 14) + eq->s2_r;
+        eq->s2_r = ((eq->b2 * x_r) >> 14) - ((eq->a2 * y_r) >> 14);
+        r[i] = y_r << 2;
     }
 }
 
@@ -281,9 +370,38 @@ static __attribute__((noinline)) void clip_block(uint32_t n)
         wet[i] = 0;
     }
 }
+static int16_t eq_last_mode = -1, eq_last_freq = -1, eq_last_gain = -1, eq_last_q = -1;
+static void master_eq_update(void)
+{
+    int16_t mode = song.g[G_EQMODE];
+    int16_t freq = song.g[G_EQFREQ];
+    int16_t gain = song.g[G_EQGAIN];
+    int16_t q = song.g[G_EQQ];
+
+    if (mode == eq_last_mode && freq == eq_last_freq && gain == eq_last_gain && q == eq_last_q)
+        return;
+
+    eq_last_mode = mode;
+    eq_last_freq = freq;
+    eq_last_gain = gain;
+    eq_last_q = q;
+
+    if (mode == 0) {
+        qg_biquad_init(&master_eq);
+    } else if (mode == 1) {
+        qg_biquad_set_peak(&master_eq, freq, gain, q);
+    } else if (mode == 2) {
+        qg_biquad_set_notch(&master_eq, freq, q);
+    } else if (mode == 3) {
+        qg_biquad_set_lowshelf(&master_eq, freq, gain);
+    } else if (mode == 4) {
+        qg_biquad_set_highshelf(&master_eq, freq, gain);
+    }
+}
 static __attribute__((noinline)) void master_begin(void)
 {
     int32_t a = clip_eff;
+    master_eq_update();
     clip_g = a > 0 ? 4096 + a * 12288 / 100 : 0;
     if (clip_g)                                         /* (JIANT 0.5) made up at a mix's usual level (-15 dBFS), not near
                                                          * full scale: CLIP adds saturation, not loudness (the leveler) */
@@ -376,6 +494,18 @@ static __attribute__((noinline)) void usb_fixed_dac(int32_t *out, uint32_t n)   
 }
 static volatile uint8_t fx_lowcut;     /* settings: 1 LOWCUT 12 dB/oct ~110 Hz, 2 BASS+ (the small speaker):
                                         * 12 dB/oct ~220 Hz plus the harmonics of the bass (spk_bass) */
+
+/* Apply EQ preset configuration using QG-1 Biquad shelf/peak filters */
+void qg_fx_update_eq(uint8_t mode)
+{
+    if (mode == 0) {
+        qg_biquad_init(&master_eq);
+    } else if (mode == 1) {
+        qg_biquad_set_highshelf(&master_eq, 90, 3);    /* LOWCUT profile: gentle high shelf compensation */
+    } else if (mode == 2) {
+        qg_biquad_set_lowshelf(&master_eq, 35, 4);     /* BASS+ profile: warm low shelf boost */
+    }
+}
 static int32_t lc_l1, lc_l2, lc_r1, lc_r2, dc_l, dc_r, dce_l, dce_r;
 
 /* DC blocker (~2 Hz), always on: a leaky integrator of the input (Q6 state) subtracted from it.
@@ -438,6 +568,18 @@ static inline void master_out(int32_t *l, int32_t *r)
         *l = lowcut1(*l, &lc_l2, &lce[1], sh) + b;
         *r = lowcut1(*r, &lc_r1, &lce[2], sh);
         *r = lowcut1(*r, &lc_r2, &lce[3], sh) + b;
+    }
+    /* (QG-1 v1.4) Master Mid/Side stereo width balance (G_MWIDTH: 0..127, def 64 = 100% bypass).
+     * 64 is strictly neutral with zero CPU overhead. 0 = pure mono sum (M, M). 127 = wide stereo.
+     * Retains G_WIDTH intact for Delay and Chorus buses. */
+    int16_t mwidth = song.g[G_MWIDTH];
+    if (mwidth != 64) {
+        int32_t mid = (*l + *r) >> 1;
+        int32_t side = (*l - *r) >> 1;
+        int32_t w = (int32_t)clamp(mwidth, 0, 127) * 512;   /* 0..65024, Q15: 32768 at 64 */
+        side = (side * w) >> 15;
+        *l = mid + side;
+        *r = mid - side;
     }
     *l = (clamp(*l, -262143, 262143) * (lev_cur >> 4)) >> 11;   /* (JIANT 0.5) the leveler's gain (lev_block) */
     *r = (clamp(*r, -262143, 262143) * (lev_cur >> 4)) >> 11;
