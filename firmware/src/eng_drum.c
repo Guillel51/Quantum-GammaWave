@@ -518,6 +518,9 @@ static int32_t drum_keys(const track_t *t, uint32_t k)
 /* {MRPH, TUNE, TONE, DECY, NOIS, FM, FOLD, DRV}; the kit suggests the BEAT pattern (GM notes) */
 static const preset_t DRUM_PRESETS[] = {
     {"DRUM-X", DRUM_KIT_E, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 20), PAT(12)},   /* (core.h: SAMPLE PERC's too) */
+    {"QUANTUM BEAT", {64, 70, 75, 60, 50, 20, 15, 10}, {0, 100, 127, 100}, 0, 0, FX(10, 0, 15, 25), PAT(12)},
+    {"HEARTH KIT", {80, 55, 80, 70, 40, 30, 25, 20}, {0, 100, 127, 100}, 0, 0, FX(15, 10, 20, 30), PAT(12)},
+    {"CYBER DRUM", {45, 80, 65, 50, 70, 10, 35, 15}, {0, 100, 127, 100}, 0, 0, FX(20, 0, 25, 35), PAT(12)},
 };
 
 static const engine_t ENG_DRUM = {
