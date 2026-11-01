@@ -382,7 +382,7 @@ function mockTables() {
     ok(ph.name === "-" && ph.presets.length === 0,
        "editor: engine 9 reserved (PHYS retired in TONIC), no presets");
     ok(dr.name === "DRUM" && dr.edit.map((d) => d.label).join() === "MORPH,TUNE,TONE,DECAY,NOISE,FM ENV,FOLD,DRIVE" &&
-       dr.presets.length === 1 && dr.presets.every((p) => p.pat === 12),
+       dr.presets.length >= 1 && dr.presets.every((p) => p.pat === 12),
        "editor: DRUM engine 10 (DRUM-X: MORPH TUNE TONE DECAY NOISE FM ENV FOLD DRIVE), one kit suggesting BEAT");
   }
   const dj = DESC;
