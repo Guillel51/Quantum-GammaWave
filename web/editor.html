@@ -5940,25 +5940,32 @@ $("connect").addEventListener("click", () => {
       ctx.fillStyle = "#ffffff"; ctx.fillRect(headX, 86, 2, 108);
       ctx.fillStyle = pal.theme; ctx.fillRect(headX - 3, 85, 8, 4); ctx.fillRect(headX - 3, 192, 8, 4);
     } else if (mode === "fx") {
-      /* Screen 5: Modular 4-Slot Master FX Rack + Globals */
-      const RACK = ["CRUSH", "DELAY", "REVERB", "CHORUS"];
-      for (let r = 0; r < 4; r++) {
-        const ry = 83 + r * 29;
-        drawBrackets(8, ry, 174, ry + 25, 4, r & 1 ? pal.accent : pal.theme);
-        ctx.fillStyle = pal.theme; ctx.fillRect(13, ry + 7, 4, 4);
-        ctx.fillStyle = pal.accent; ctx.fillRect(13, ry + 14, 4, 4);
-        ctx.fillStyle = pal.text; ctx.font = "bold 9px 'IBM Plex Mono', monospace";
-        ctx.fillText(RACK[r], 22, ry + 16);
-        for (let k = 0; k < 3; k++) {
-          drawBakeliteKnob(pal, 104 + k * 26, ry + 13, 6.5, 0.45 + ((r + k) % 3) * 0.2, k === 2 ? pal.theme : pal.accent);
+      /* Screen 5: Redesigned 4-Channel FX Workstation Dashboard with Send Faders & Topologies */
+      const FX_NAMES = ["DIST", "CHOR", "DLY", "REV"];
+      const DIST_TOPO = ["SOFT", "TAPE", "HRTH", "FLUX"];
+      drawBrackets(8, 83, 232, 198, 5, pal.theme);
+      for (let i = 0; i < 4; i++) {
+        const cx = 14 + i * 54;
+        drawBrackets(cx, 86, cx + 50, 195, 3, pal.accent);
+        ctx.fillStyle = pal.theme;
+        ctx.font = "bold 9px 'IBM Plex Mono', monospace";
+        ctx.fillText(FX_NAMES[i], cx + 6, 98);
+        const fVal = [0.45, 0.35, 0.65, 0.55][i];
+        const fH = Math.round(fVal * 54);
+        const sx = cx + 24;
+        ctx.fillStyle = pal.raise; ctx.fillRect(sx, 106, 4, 58);
+        ctx.fillStyle = i === 0 ? pal.accent : pal.theme; ctx.fillRect(sx, 164 - fH, 4, fH);
+        ctx.fillStyle = pal.text; ctx.fillRect(sx - 5, 162 - fH, 14, 5);
+        if (i === 0) {
+          ctx.fillStyle = pal.accent;
+          ctx.font = "bold 8.5px 'IBM Plex Mono', monospace";
+          ctx.fillText(DIST_TOPO[1], cx + 12, 186);
+        } else {
+          ctx.fillStyle = pal.mid;
+          ctx.font = "bold 9px 'IBM Plex Mono', monospace";
+          ctx.fillText(String(Math.round(fVal * 127)), cx + 16, 186);
         }
       }
-      drawBrackets(180, 83, 232, 198, 5, pal.accent);
-      drawBakeliteKnob(pal, 206, 100, 8, 0.82, pal.theme);
-      const en = 0.5 + 0.4 * Math.abs(Math.sin(frame * 0.08));
-      drawPlasmaBar(pal, 188, 118, 8, 72, 10, en);
-      drawPlasmaBar(pal, 201, 118, 8, 72, 10, en * 0.92);
-      drawPlasmaBar(pal, 214, 118, 10, 72, 10, 0.75);
     }
 
     /* 4. Bottom 16-Step Dual-Segment Plasma LED Bar & Footer (y = 208..238) */
