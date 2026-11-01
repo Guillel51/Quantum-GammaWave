@@ -69,15 +69,34 @@ static void gw_oct_panel(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, 
     }
 }
 
-/* Smooth filled circular disc (Q0 pixel coordinates) for THE HEARTH solar core & satellite moon */
+/* Smooth anti-aliased filled circular disc for THE HEARTH solar core, knobs & satellite moons */
 static void gw_disc(int32_t cx, int32_t cy, int32_t r, uint16_t col)
 {
-    int32_t dy, dx, r2 = r * r;
+    int32_t dy, dx, r2 = r * r, r_inner2 = (r > 1) ? (r - 1) * (r - 1) : 0;
     for (dy = -r; dy <= r; dy++) {
-        int32_t y = cy + dy, span = 0;
+        int32_t y = cy + dy, span = 0, inner_span = 0;
         for (dx = r; dx >= 0; dx--)
             if (dx * dx + dy * dy <= r2) { span = dx; break; }
-        cv_rect(cx - span, y, 2 * span + 1, 1, col);
+        for (dx = span; dx >= 0; dx--)
+            if (dx * dx + dy * dy <= r_inner2) { inner_span = dx; break; }
+
+        if (r <= 2 || inner_span == span) {
+            cv_rect(cx - span, y, 2 * span + 1, 1, col);
+        } else {
+            if (inner_span >= 0)
+                cv_rect(cx - inner_span, y, 2 * inner_span + 1, 1, col);
+
+            /* Soft antialiased edge pixels on perimeter */
+            uint16_t edge_col = ux.mono ? col : ux_mix(T_SURF, col, 55);
+            for (dx = (inner_span >= 0 ? inner_span + 1 : 0); dx <= span; dx++) {
+                if (dx == 0) {
+                    cv_pset(cx, y, edge_col);
+                } else {
+                    cv_pset(cx - dx, y, edge_col);
+                    cv_pset(cx + dx, y, edge_col);
+                }
+            }
+        }
     }
 }
 
