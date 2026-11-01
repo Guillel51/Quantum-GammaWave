@@ -41,11 +41,33 @@
 ## What's in Quantum GammaWave (`v1.4-QG`)
 
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
-- **Harmonic Distortion & Saturation Suite:** Replaced abrasive wave-shapers with 4 musical, warm saturation topologies:
-  - **`TAPE` (Tape Warmth):** Soft cubic polynomial saturation with subtle 2nd/3rd even/odd harmonic warmth.
+- **Harmonic Distortion & Saturation Suite:** 4 musical, warm saturation topologies with dedicated algorithms:
+  - **`SOFT` (Musical Soft Warmth):** Biased tanh soft-clipping with rich 2nd harmonic saturation.
+  - **`TAPE` (Tape Warmth):** Smooth cubic polynomial saturation with subtle tape saturation and head warmth.
   - **`HEARTH` (Tube Heat):** Asymmetric tube bias curve with rich sub-bass reinforcement and smooth compression.
-  - **`PLASMA` (Singularity):** Dynamic amplitude modulation saturation with progressive crest factor control.
-  - **`FLUX` (Analog Drift):** Warm tape flux saturation with subtle thermal drift and tape head roll-off.
+  - **`FLUX` (Analog Drift):** Thermal tape flux saturation with subtle bias drift and tape head roll-off.
+- **Three Completely New Visual Themes with Exclusive Identities:**
+  - **`SOLARIS`:** Radiant solar gold, stellar corona amber, and forge embers on deep charcoal.
+  - **`CYBERPUNK`:** High-contrast synthwave neon grid with electric cyan and laser magenta highlights.
+  - **`NORDIC`:** Arctic obsidian black with emerald aurora borealis gradients and warm beacon accents.
+- **Expanded Sound Library (+42 Original Presets):**
+  - Meticulously designed across all synthesis engines into 8 organized musical categories:
+    - *Ambient:* Borealis Pad, Cosmic Winds, Polar Aurora, Space Lullaby.
+    - *Drones:* Nebula Drone, Abyss Drone, Cyber Drone, Vox Drone, Wraith Drone.
+    - *Bells:* Crypt Bell, Temple Bell, Tibet Bowl, Shrine Bell, Chime Tree.
+    - *Hurdy Gurdy:* Hurdy Gurdy, Gurdy Drone, Medieval Viel, Gurdy Wheel.
+    - *Acoustic & Traditional:* Nordic Organ, Bamboo Flute, Folk Drone, Gothic Shrine.
+    - *Ethnic & Experimental:* Sitar Reson, Koto Harp, Gamelan Met, Shaman Chant, Tibetan Vox, Balafon, Ethnic Call.
+    - *Evolving Pads:* Wraith Pad, Solaris Glow, Aura Strings, Mystic Choir, Solar Hymn.
+    - *Organic Plucks:* Wood Pluck, Harp Pluck, Folk Pluck, Ethnic Pluck.
+- **Transient Preset Selection Overlay (PRESET Knob):**
+  - Turning the PRESET encoder instantly shows the full 7-row categorized library overlay for 1.5 seconds without interrupting real-time audio playback.
+- **Dynamic Modern ARP Visualization:**
+  - Real-time 16-step rhythmic pattern trajectory, direction mode visualization (UP, DN, UPDN, CONV, DIVG, CHORD, etc.), octave arcs, swing offsets, and tempo-synced live playhead.
+- **GLO 2 System Monitor (Diagnostics & Live Telemetry):**
+  - Real-time hardware telemetry: active voice count, track-by-track polyphony distribution (T1–T6), dual-core CPU load and execution ticks (`mc_fx_tk`), DSP buffer integrity, and master bus status.
+- **Full-Screen Integrated Visualizer (`HOME -> HOME`):**
+  - Tapping HOME while already on the HOME screen opens an immersive, hardware-native audio visualizer featuring harmonic oscilloscope traces, dynamic Lissajous phase orbits, and real-time audio telemetry, returning cleanly with a single press.
 - **Direct Form II Transposed Biquad Filter Engine (Peak/Bell & Notch):** Fixed-point Q15 parametric EQ filters for precise surgical tone sculpting and master channel resonance cleanup.
 - **Visual Diagnostics & Virtual Device Simulator:**
   - Fallback virtual device simulator for Web Studio and WebAssembly emulator when physical hardware is disconnected or WebMIDI permissions are missing.

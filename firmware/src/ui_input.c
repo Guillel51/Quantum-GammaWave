@@ -1447,6 +1447,8 @@ static void presets_turn(int32_t s)
     uint32_t g = pg->graph;
     if (ui.home || g == GR_BROWSE) {
         preset_step(s);
+        ui.preset_pop_ms = fm1_ms ? fm1_ms : 1u;
+        ui.force = 1;
     } else if (g == GR_ROLL && (pg->id[0] == 4u || pg->id[0] == 8u)) {   /* (0.6.81) SEQ > NOTE (KNOB 1 FOCUS), TIMING:
                                                          * PRESETS the step */
         cursor_set(ui.cursor + s);
@@ -1462,6 +1464,8 @@ static void presets_turn(int32_t s)
         cursor_set(ui.cursor + s);                        /* (PATTERN draws it; MOTION: STEP shows it) */
     } else if (g != GR_TOOLS) {
         preset_step(s);
+        ui.preset_pop_ms = fm1_ms ? fm1_ms : 1u;
+        ui.force = 1;
     }
 }
 
@@ -1806,8 +1810,8 @@ static int gw_oct_combo(uint32_t b)
             "4/6 WRAITH SCREAM", "5/6 FORMANT VOWEL", "6/6 SOLAR ECLIPSE!"
         };
         static const uint8_t MD[6][4] = {
-            {5, 78, 22, 64}, {6, 96, 46, 88}, {7, 92, 72, 76},
-            {8, 84, 98, 108}, {5, 72, 56, 92}, {6, 110, 118, 112}
+            {2, 78, 22, 64}, {1, 96, 46, 88}, {0, 92, 72, 76},
+            {3, 84, 98, 108}, {2, 72, 56, 92}, {1, 110, 118, 112}
         };
         uint32_t m;
         if (chain_busy()) {

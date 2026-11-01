@@ -32,6 +32,42 @@
     --border: #32243c;
     --glow: rgba(255, 96, 136, 0.18);
   }
+  :root[data-palette="solaris"] {
+    --bg: #100a04;
+    --surf: #24180c;
+    --surf2: #342212;
+    --fg: #fff4dc;
+    --dim: #ad9a7a;
+    --theme: #ffbe28;
+    --accent: #ff5a14;
+    --danger: #ff3b30;
+    --border: #4a3418;
+    --glow: rgba(255, 190, 40, 0.22);
+  }
+  :root[data-palette="cyberpunk"] {
+    --bg: #080610;
+    --surf: #181028;
+    --surf2: #24183c;
+    --fg: #f5f0ff;
+    --dim: #9b8ab8;
+    --theme: #00f0ff;
+    --accent: #ff2882;
+    --danger: #ff0055;
+    --border: #3c2058;
+    --glow: rgba(0, 240, 255, 0.25);
+  }
+  :root[data-palette="nordic"] {
+    --bg: #060c0e;
+    --surf: #101c20;
+    --surf2: #18282e;
+    --fg: #e6f8f6;
+    --dim: #82a8a2;
+    --theme: #40e0a0;
+    --accent: #ffb450;
+    --danger: #ff5068;
+    --border: #223c38;
+    --glow: rgba(64, 224, 160, 0.20);
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -314,15 +350,10 @@
       <div class="ctl-box">
         <label><span>DIST TYPE</span></label>
         <select id="syn-dtype">
-          <option value="5" selected>HEARTH (Tube+Sub)</option>
-          <option value="6">BLAST (Wraith 4x Fold)</option>
-          <option value="7">PLASMA (AM Warp)</option>
-          <option value="8">FLUX (Geiger Drift)</option>
-          <option value="0">SOFT</option>
-          <option value="1">HARD</option>
-          <option value="2">FOLD</option>
-          <option value="3">CRUSH</option>
-          <option value="4">RECT</option>
+          <option value="0" selected>SOFT (Warm Tanh)</option>
+          <option value="1">TAPE (Cubic Polynomial)</option>
+          <option value="2">HEARTH (Tube Heat + Sub)</option>
+          <option value="3">FLUX (Thermal Tape Drift)</option>
         </select>
       </div>
       <div class="ctl-box">
@@ -877,16 +908,16 @@ $("stock-direct").addEventListener("click", async () => {
  * GAMMAWAVE // WRAITH — Interactive Browser DSP Preview & Thermal Scope
  * Mirrors firmware/src/fx.c (DT_HEARTH, DT_BLAST, DT_PLASMA, DT_FLUX) & SVF
  * ============================================================================ */
-const DTYPE_NAMES = ["SOFT", "HARD", "FOLD", "CRUSH", "RECT", "HEARTH", "BLAST", "PLASMA", "FLUX"];
+const DTYPE_NAMES = ["SOFT", "TAPE", "HEARTH", "FLUX"];
 const PRESET_CFG = [
-  { name: "INGOT SUB",  dtype: 5, ftype: 0, drive: 76, cut: 48, res: 42, base: 36, notes: [36,36,48,36, 0,39,36,43, 36,36,48,36, 41,0,39,36] },
-  { name: "WORM REESE", dtype: 6, ftype: 5, drive: 92, cut: 68, res: 84, base: 38, notes: [38,38,38,50, 38,41,41,38, 36,36,48,36, 37,37,49,37] },
-  { name: "SCREAM 303", dtype: 5, ftype: 5, drive: 88, cut: 80, res: 112,base: 45, notes: [45,45,57,45, 0,48,45,55,  45,0,57,52,  45,48,0,50] },
-  { name: "HEARTH LD",  dtype: 5, ftype: 0, drive: 96, cut: 94, res: 64, base: 57, notes: [57,0,60,64,  57,69,64,60,  55,0,59,62,  64,60,57,0] },
-  { name: "PLASMA CORE",dtype: 7, ftype: 4, drive: 98, cut: 86, res: 88, base: 40, notes: [40,52,40,0,  40,55,52,40,  43,55,43,0,  41,53,48,40] },
-  { name: "WRAITH PAD", dtype: 6, ftype: 4, drive: 64, cut: 72, res: 76, base: 48, notes: [48,55,60,63, 48,55,60,67,  46,53,58,62, 44,51,56,60] },
-  { name: "BLACK CHOIR",dtype: 5, ftype: 4, drive: 58, cut: 78, res: 96, base: 50, notes: [50,57,62,65, 50,57,62,69,  48,55,60,64, 45,52,57,61] },
-  { name: "GEIGER BIT", dtype: 8, ftype: 5, drive: 108,cut: 92, res: 90, base: 48, notes: [48,0,60,48,  63,48,0,55,   48,60,67,48, 58,55,48,0] },
+  { name: "INGOT SUB",  dtype: 2, ftype: 0, drive: 76, cut: 48, res: 42, base: 36, notes: [36,36,48,36, 0,39,36,43, 36,36,48,36, 41,0,39,36] },
+  { name: "WORM REESE", dtype: 1, ftype: 5, drive: 92, cut: 68, res: 84, base: 38, notes: [38,38,38,50, 38,41,41,38, 36,36,48,36, 37,37,49,37] },
+  { name: "SCREAM 303", dtype: 2, ftype: 5, drive: 88, cut: 80, res: 112,base: 45, notes: [45,45,57,45, 0,48,45,55,  45,0,57,52,  45,48,0,50] },
+  { name: "HEARTH LD",  dtype: 2, ftype: 0, drive: 96, cut: 94, res: 64, base: 57, notes: [57,0,60,64,  57,69,64,60,  55,0,59,62,  64,60,57,0] },
+  { name: "PLASMA CORE",dtype: 0, ftype: 4, drive: 98, cut: 86, res: 88, base: 40, notes: [40,52,40,0,  40,55,52,40,  43,55,43,0,  41,53,48,40] },
+  { name: "WRAITH PAD", dtype: 1, ftype: 4, drive: 64, cut: 72, res: 76, base: 48, notes: [48,55,60,63, 48,55,60,67,  46,53,58,62, 44,51,56,60] },
+  { name: "BLACK CHOIR",dtype: 2, ftype: 4, drive: 58, cut: 78, res: 96, base: 50, notes: [50,57,62,65, 50,57,62,69,  48,55,60,64, 45,52,57,61] },
+  { name: "GEIGER BIT", dtype: 3, ftype: 5, drive: 108,cut: 92, res: 90, base: 48, notes: [48,0,60,48,  63,48,0,55,   48,60,67,48, 58,55,48,0] },
 ];
 
 let seqNotes = PRESET_CFG[0].notes.slice();
@@ -899,31 +930,22 @@ function distShapeJS(x, type, drive01) {
   const g = 1 + drive01 * 7.0;
   let u = x * g;
   switch (type | 0) {
-    case 0: return u / (1 + Math.abs(u)); // SOFT
-    case 1: return Math.max(-1, Math.min(1, u)); // HARD
-    case 2: { // FOLD
-      let f = ((u + 1) % 4 + 4) % 4 - 2;
-      return Math.abs(f) - 1;
+    case 0: { // SOFT: musical asymmetric soft clip (even harmonics)
+      const b0 = Math.tanh(2400 / 32768);
+      return Math.tanh((u * 32768 + 2400) / 32768) - b0;
     }
-    case 3: return Math.round(Math.max(-1, Math.min(1, u)) * 4) / 4; // CRUSH
-    case 4: return Math.abs(Math.max(-1, Math.min(1, u))) * 1.4 - 0.35; // RECT
-    case 5: { // HEARTH: asymmetric warm tube + HF sparks + sub weight
+    case 1: { // TAPE: cubic polynomial soft warmth
+      let v = Math.max(-1.5, Math.min(1.5, u));
+      let out = v - (v * v * v) / 3.0;
+      return Math.max(-1, Math.min(1, Math.tanh(out)));
+    }
+    case 2: { // HEARTH: asymmetric warm tube + HF sparks + sub weight
       const b = u + 0.18 * u * u;
-      const sat = b / (1 + Math.abs(b));
+      const sat = Math.tanh(b);
       const spk = Math.sin(u * 2.4) * 0.22 * drive01;
       return Math.max(-1, Math.min(1, sat * 0.88 + spk));
     }
-    case 6: { // BLAST: WRAITH 4-stage sinusoidal wavefolder
-      let w = x * (1 + drive01 * 3.5);
-      for (let s = 0; s < 4; s++) w = Math.sin(w * 1.85);
-      return w;
-    }
-    case 7: { // PLASMA: Singularity envelope-warped AM saturation
-      const sat = u / (1 + 0.7 * Math.abs(u));
-      const mod = Math.cos(u * 3.2 * (0.4 + drive01));
-      return sat * (0.65 + 0.35 * mod);
-    }
-    default: { // FLUX: thermal drift + Geiger bit-starve
+    default: { // FLUX: thermal bias drift + tape head roll-off
       const q = Math.round(u * 6) / 6;
       const t = q / (1 + 0.8 * Math.abs(q));
       return t + 0.14 * Math.sin(u * 9.0);

@@ -367,6 +367,16 @@ static const preset_t ANALOG_PRESETS[] = {
     {"TRAP PLUCK", {0, 10, 50, 0, 40, 30, 10, 12}, {0, 76, 0, 50}, 50, 0, FX(0, 20, 55, 40), PAT(15)},
     {"CHERENKOV LD", {AW_RING, 20, 80, 0, 90, 30, 20, 0}, {2, 74, 90, 50}, 16, 1, FX(10, 20, 50, 40), PAT(4),
      {XP(P_LRATE, 58), XP(P_LFADE, 60), XP(P_LD_PIT, 2)}},
+    /* (QG-1 EXPANSION: Ambient, Drones, Evolving Pads, Organic Plucks) */
+    {"BOREALIS PAD", {AW_SAW3, 32, 64, 8, 68, 24, 0, 12}, {90, 92, 118, 105}, 10, 0, FX(0, 85, 30, 92), PAT(5),
+     {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_FLT, 22)}},
+    {"NEBULA DRONE", {AW_TUBE, 18, 55, 6, 48, 62, 18, 7}, {110, 90, 125, 115}, 0, 0, FX(12, 45, 35, 95), PAT(5),
+     {XP(P_LRATE, 6), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_LD_AMP, 14)}},
+    {"AURA STRINGS", {4, 26, 70, 0, 78, 16, 0, 7}, {65, 88, 112, 90}, 5, 0, FX(0, 65, 25, 75), PAT(5)},
+    {"SOLARIS GLOW", {AW_FOLD, 14, 60, 4, 72, 35, 30, 0}, {80, 90, 115, 95}, 14, 0, FX(8, 70, 40, 88), PAT(5)},
+    {"WOOD PLUCK", {0, 6, 50, 0, 42, 28, 0, 0}, {0, 72, 0, 45}, 45, 0, FX(0, 15, 45, 35), PAT(15)},
+    {"BAMBOO FLUTE", {3, 10, 40, 30, 68, 20, 0, 12}, {18, 75, 40, 55}, 15, 0, FX(0, 35, 30, 65), PAT(6)},
+    {"HARP PLUCK", {3, 8, 60, 0, 55, 30, 0, 12}, {0, 80, 0, 55}, 40, 0, FX(0, 25, 45, 50), PAT(15)},
 };
 
 static const engine_t ENG_ANALOG = {

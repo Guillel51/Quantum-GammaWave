@@ -20,6 +20,13 @@
 | **Browser Emulator (`web/emu`)** | Active | Updated with resilient MIDI fallback & AudioWorklet diagnostics |
 | **Windows Launchers (`*.bat`)** | Fixed | Updated to multi-Python detection (`python`, `py`, `python3`) |
 | **Documentation Suite** | Complete | Audited, modernized, aligned with QG-1 identity |
+| **Harmonic Distortions** | Verified | SOFT, TAPE, HEARTH, FLUX synced in firmware, emulator, Web Studio |
+| **Themes (SOLARIS/CYBER/NORDIC)** | Verified | Strict WCAG compliance pass, thermal ramps, UI layouts integrated |
+| **Preset Library (+42 Presets)** | Verified | 8 musical categories across engines, verified in web and firmware |
+| **Transient PRESET Popup (1.5s)** | Verified | Non-blocking timer popup reusing SAVE browser view |
+| **Dynamic ARP Visualization** | Verified | Real-time 16-step trajectory and playhead animation in GR_ARP |
+| **GLO 2 Monitor Screen** | Verified | Real hardware telemetry (polyphony, core ticks, buffer sanity) |
+| **Full-Screen HOME Visualizer** | Verified | Harmonic scope + Lissajous orbit toggle on HOME -> HOME |
 
 ## Automated Test Results
 - `python3 tests/install_test.py`: **PASSED** (all CLI SysEx, flash layout, and verify-only tests pass)

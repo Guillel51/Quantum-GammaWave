@@ -216,14 +216,14 @@ async function editorMock() {
   const names = [];
   for (let e = 0; e < info.nengines; e++) names.push(E.parse[E.CMD.NAMES](await rq(E.req.names(e))).names);
   let prefs = await E.readDevicePreferences(rq, info, names);
-  /* (GAMMAWAVE) firmware/src/ui_palettes.h: GREY .. MONO 0..9, THERMAL 10, GAMMA 11 (the default), WRAITH 12 */
-  ok(info.uiCaps === 9 && prefs.palettes.join() === "GREY,GREEN,AMBER,ICE,VIOLET,ROSE,PAPER,HI-CON,NIGHT,MONO,THERMAL,GAMMA,WRAITH" &&
+  /* (QUANTUM GAMMAWAVE) firmware/src/ui_palettes.h: GREY .. MONO 0..9, THERMAL 10, GAMMA 11, WRAITH 12, QUANTUM 13, SOLARIS 14, CYBERPUNK 15, NORDIC 16 */
+  ok(info.uiCaps === 9 && prefs.palettes.join() === "GREY,GREEN,AMBER,ICE,VIOLET,ROSE,PAPER,HI-CON,NIGHT,MONO,THERMAL,GAMMA,WRAITH,QUANTUM,SOLARIS,CYBERPUNK,NORDIC" &&
      prefs.state.palette === 11 && prefs.palettes[prefs.state.palette] === "GAMMA",
      "editor: preference capabilities (palette, favorites) and palette names");
   const pal = E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 2)));
   ok(pal.rc === 0 && pal.palette === 2, "editor: display preference 0 (palette) round trip");
-  ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 12))).rc === 0 &&
-     E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 13))).rc === 1, "editor: out-of-range palette refused");
+  ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 16))).rc === 0 &&
+     E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 17))).rc === 1, "editor: out-of-range palette refused");
   ok(E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(1, 1))).rc === 2, "editor: the retired font weight answers not supported");
   ok(E.parse[E.CMD.FAV_SET](await rq(E.req.favSet(info.nengines, 31, true))).rc === 1, "editor: empty user slot cannot be favorited");
   await rq(E.req.favSet(0, 0, true));

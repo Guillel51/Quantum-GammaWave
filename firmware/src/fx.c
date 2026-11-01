@@ -81,7 +81,7 @@ _Static_assert(sizeof rev_comb / 2u >= SP_LEN && sizeof rev_u.sp / 4u >= 4u * (S
  * folds the wave back on itself: more partials as it rises); CRUSH fewer bits and a held sample (the drive takes both
  * down); RECT full-wave rectified (an octave up, fuzz), its DC taken out. Then the two-pole low-pass, TONE (P_DTONE)
  * moving it darker / brighter, and the make-up. DRIVE 0: out of the chain */
-enum { DT_TAPE, DT_HEARTH, DT_PLASMA, DT_FLUX };
+enum { DT_SOFT, DT_TAPE, DT_HEARTH, DT_FLUX };
 static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, int32_t x, int32_t g, int32_t d)
 {
     int32_t v = ((x >> 2) * g) >> 10, a;
@@ -97,14 +97,6 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         wt = (x >= 0 ? t->dist_dc : -t->dist_dc) >> 3;
         return clamp(h + sp + wt, -28000, 28000);
     }
-    case DT_PLASMA: {                                    /* GammaWave Singularity/Plasma: envelope-warped AM saturation */
-        int32_t warp, core;
-        a = v < 0 ? -v : v;
-        t->dist_dc += (a - t->dist_dc) >> 5;
-        warp = sine_i((uint32_t)((v + (t->dist_dc >> 1)) * (36000 + d * 500)));
-        core = softclip(v + (warp >> 1));
-        return clamp(core + ((core * warp) >> 15), -28000, 28000);
-    }
     case DT_FLUX: {                                      /* GammaWave Flux: thermal bias drift + tape head roll-off */
         int32_t jit, q;
         t->dist_hc++;
@@ -114,11 +106,15 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         q = (v + jit) & ~(int32_t)((1u << (3u + (uint32_t)d / 20u)) - 1u);
         return softclip(q + (jit >> 1));
     }
-    case DT_TAPE:                                        /* TAPE: cubic polynomial soft warmth */
-    default: {
+    case DT_TAPE: {                                      /* TAPE: cubic polynomial soft tape warmth */
         int32_t x3 = (v * ((v * v) >> 15)) >> 15;
         int32_t out = v - (x3 / 3);
         return softclip(out);
+    }
+    case DT_SOFT:                                        /* SOFT: musical asymmetric soft clip (even harmonics) */
+    default: {
+        int32_t b0 = softclip(2400);
+        return softclip(v + 2400) - b0;
     }
     }
 }
@@ -145,7 +141,7 @@ static void track_dist(track_t *t, int32_t *b, uint32_t n)
     k = clamp(32000 - d * 95 + t->p[P_DTONE] * 300, 2500, 32767);   /* tone: transparent at low drive .. ~3 kHz, Q15 */
     mk = 30000 - d * 100;                               /* make-up gain */
     if (type > DT_FLUX)
-        type = DT_TAPE;
+        type = DT_SOFT;
     for (i = 0; i < (int32_t)n; i++) {
         int32_t x = b[i], y;
         t->dist_hp += (x - t->dist_hp + 64) >> 7;           /* ~55 Hz low cut: keep the bass out of the clipper */
