@@ -218,6 +218,70 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     }
 }
 
+/* Set Low Shelf Filter: freq (0..127), gain_db (-24..+24) */
+static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+{
+    if (gain_db == 0) {
+        qg_biquad_init(eq);
+        return;
+    }
+    uint32_t angle = (uint32_t)freq_idx * 33816698u;
+    int32_t sn = sine_i(angle);
+    int32_t cs = sine_i(angle + 0x40000000u);
+    int32_t a = 32768 + (gain_db * 1365);               /* Gain multiplier */
+    int32_t a_sqrt = 32768 + (gain_db * 682);
+    int32_t alpha = (sn * a_sqrt) >> 16;
+    int32_t a_p1 = a + 32768;
+    int32_t a_m1 = a - 32768;
+    int32_t b0 = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt) >> 15);
+    int32_t b1 = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t b2 = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt) >> 15);
+    int32_t a0 = ((32768 + a_sqrt) >> 1) + ((alpha * 32768) / a_sqrt);
+    int32_t a1 = -(a_m1 + ((a_p1 * cs) >> 15));
+    int32_t a2 = ((32768 + a_sqrt) >> 1) - ((alpha * 32768) / a_sqrt);
+
+    if (a0 > 0) {
+        eq->b0 = (b0 * 32767) / a0;
+        eq->b1 = (b1 * 32767) / a0;
+        eq->b2 = (b2 * 32767) / a0;
+        eq->a1 = (a1 * 32767) / a0;
+        eq->a2 = (a2 * 32767) / a0;
+        eq->active = 1;
+    }
+}
+
+/* Set High Shelf Filter: freq (0..127), gain_db (-24..+24) */
+static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
+{
+    if (gain_db == 0) {
+        qg_biquad_init(eq);
+        return;
+    }
+    uint32_t angle = (uint32_t)freq_idx * 33816698u;
+    int32_t sn = sine_i(angle);
+    int32_t cs = sine_i(angle + 0x40000000u);
+    int32_t a = 32768 + (gain_db * 1365);
+    int32_t a_sqrt = 32768 + (gain_db * 682);
+    int32_t alpha = (sn * a_sqrt) >> 16;
+    int32_t a_p1 = a + 32768;
+    int32_t a_m1 = a - 32768;
+    int32_t b0 = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt) >> 15);
+    int32_t b1 = -((a_m1 + ((a_p1 * cs) >> 15)));
+    int32_t b2 = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt) >> 15);
+    int32_t a0 = ((32768 + a_sqrt) >> 1) + ((alpha * 32768) / a_sqrt);
+    int32_t a1 = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t a2 = ((32768 + a_sqrt) >> 1) - ((alpha * 32768) / a_sqrt);
+
+    if (a0 > 0) {
+        eq->b0 = (b0 * 32767) / a0;
+        eq->b1 = (b1 * 32767) / a0;
+        eq->b2 = (b2 * 32767) / a0;
+        eq->a1 = (a1 * 32767) / a0;
+        eq->a2 = (a2 * 32767) / a0;
+        eq->active = 1;
+    }
+}
+
 /* Set Notch Filter: freq (0..127) */
 static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx)
 {
@@ -380,6 +444,18 @@ static __attribute__((noinline)) void usb_fixed_dac(int32_t *out, uint32_t n)   
 }
 static volatile uint8_t fx_lowcut;     /* settings: 1 LOWCUT 12 dB/oct ~110 Hz, 2 BASS+ (the small speaker):
                                         * 12 dB/oct ~220 Hz plus the harmonics of the bass (spk_bass) */
+
+/* Apply EQ preset configuration using QG-1 Biquad shelf/peak filters */
+void qg_fx_update_eq(uint8_t mode)
+{
+    if (mode == 0) {
+        qg_biquad_init(&master_eq);
+    } else if (mode == 1) {
+        qg_biquad_set_highshelf(&master_eq, 90, 3);    /* LOWCUT profile: gentle high shelf compensation */
+    } else if (mode == 2) {
+        qg_biquad_set_lowshelf(&master_eq, 35, 4);     /* BASS+ profile: warm low shelf boost */
+    }
+}
 static int32_t lc_l1, lc_l2, lc_r1, lc_r2, dc_l, dc_r, dce_l, dce_r;
 
 /* DC blocker (~2 Hz), always on: a leaky integrator of the input (Q6 state) subtracted from it.
@@ -442,6 +518,15 @@ static inline void master_out(int32_t *l, int32_t *r)
         *l = lowcut1(*l, &lc_l2, &lce[1], sh) + b;
         *r = lowcut1(*r, &lc_r1, &lce[2], sh);
         *r = lowcut1(*r, &lc_r2, &lce[3], sh) + b;
+    }
+    /* (QG-1) Mid/Side stereo balance: ensure mono compatibility and phase coherence */
+    if (song.g[G_WIDTH] != 0) {
+        int32_t mid = (*l + *r) >> 1;
+        int32_t side = (*l - *r) >> 1;
+        int32_t w = 32768 + ((song.g[G_WIDTH] - 64) * 512);   /* width scaling */
+        side = (side * clamp(w, 0, 65536)) >> 15;
+        *l = mid + side;
+        *r = mid - side;
     }
     *l = (clamp(*l, -262143, 262143) * (lev_cur >> 4)) >> 11;   /* (JIANT 0.5) the leveler's gain (lev_block) */
     *r = (clamp(*r, -262143, 262143) * (lev_cur >> 4)) >> 11;

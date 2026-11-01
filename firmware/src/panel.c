@@ -127,4 +127,5 @@ static void settings_init(void)
     }
     palette_set(settings.palette);
     fx_lowcut = (uint8_t)(settings.lowcut % 3u);
+    qg_fx_update_eq(fx_lowcut);
 }
