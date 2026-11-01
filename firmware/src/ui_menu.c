@@ -533,7 +533,13 @@ static void menu_close(void)
 {
     settings_save();                                   /* palette / panel table, if changed */
     ui.menu = 0;
+    ui.home = 1;
+    ui.home_viz = 0;
     ui.force = 1;
+    ui.head_sig = 0;
+    ui.foot_sig = 0;
+    ui.graph_sig = 0;
+    ui.col[0][0] = ui.col[1][0] = ui.col[2][0] = ui.col[3][0] = 0;
     go_home();
 }
 
