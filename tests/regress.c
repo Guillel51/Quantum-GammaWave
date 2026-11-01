@@ -843,7 +843,6 @@ static int chk_keep(char *msg, uint32_t n, uint32_t mode)
             lost += !(v->active && v->gate && v->note == 40u && v->stage != 4u);
         }
     }
-    printf("[%s] max_busy=%u voice_cap=%u kills=%u\n", MN[mode], max_busy, voice_cap(), voice_kills - kills0);
     snprintf(msg, n, "%s part held its note through %u voices taken from the others: lost in %u blocks",
              MN[mode], voice_kills - kills0, lost);
     return !lost && voice_kills > kills0;

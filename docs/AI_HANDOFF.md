@@ -1,55 +1,30 @@
-# AI Handoff Document — Quantum GammaWave (QG-1)
-## Continuity & Transfer of Knowledge for Jules
+# AI Agent Handoff Document — Quantum GammaWave (QG-1)
 
-Welcome, Jules! This document contains all essential context, verified baseline information, and operational guidance to continue developing and maintaining the **Quantum GammaWave (QG-1)** firmware and Web Studio without repeating research or hitting known pitfalls.
+## Overview & Architecture
+Quantum GammaWave (QG-1) is open-source custom firmware and web workstation software for the **M-VAVE FM-1 multitrack groovebox**.
+The physical device uses a dual-core **JieLi AC791N** processor (Pi32 DSP core architecture) running at 44.1 kHz 16-bit audio.
 
----
+### Dual-Core Partitioning
+- **Core 0:** Sequencing, MIDI IO, track synthesis (tracks 1..3), master FX bus, clipping, leveler, parametric EQ, and 240x240 LCD rendering.
+- **Core 1:** Tracks 4..6 synthesis (DRUM-X engine, additional poly voices) rendered in parallel and mixed in `c1_mix`.
 
-## 1. Executive Summary & Repository Identity
-- **Repository**: `Guillel51/Quantum-GammaWave`
-- **Target Hardware**: M-VAVE FM-1 Groovebox / Multitrack Synthesizer (dual-core JieLi AC791N SoC).
-- **Architecture**:
-  - Embedded C/Asm firmware in `firmware/src/` & `firmware/hal/`
-  - Browser WebAssembly emulator in `web/emu/`
-  - Web Studio workstation & USB flasher in `web/editor.html` & `web/index_pkg.html`
-  - Python build and generator tooling in `tools/`
-  - Comprehensive unit test and simulator suite in `tests/`
+## Key Changes Introduced in Milestone v1.4-QG
+1. **10-Voice Polyphony (`core.h`, `voice.c`):**
+   - Expanded `NVOICE` to 10.
+   - Smart psychoacoustic voice stealing evaluates energy metric $E = \text{env\_out} \times (\text{level} + 1)$ targeting inaudible release tails ($<-40\text{ dB}$, $\text{env\_out} < 120$).
+2. **Master Parametric EQ (`fx.c`, `params.c`, `core.h`, `ui_tech.c`):**
+   - Direct Form II Transposed Q14 Biquad Filter.
+   - Global parameters `G_EQMODE` (70), `G_EQFREQ` (71), `G_EQGAIN` (72), `G_EQQ` (73).
+   - Dedicated hardware LCD graph `tech_master_eq()` displaying real-time frequency curves.
+3. **Harmonic Distortion Rationalization (`fx.c`, `params.c`, `web/index_pkg.html`, `web/editor.html`):**
+   - 4 warm musical models: `DT_TAPE` (cubic soft saturation), `DT_HEARTH` (tube warmth + sub weight), `DT_PLASMA` (AM saturation), `DT_FLUX` (analog tape drift).
+4. **Branding & Web Studio Cleanup:**
+   - Removed legacy third-party VST commercial links.
+   - All tests (`tests/test_dsp_eq.c`, `tests/test_polyphony.c`, `test_web.mjs`, `test_backup.mjs`, `install_test.py`) verified 100% passing.
 
----
-
-## 2. Commit Baseline & Current Branch
-- **Working Branch**: `feature/quantum-handoff-evolution`
-- **Base Commit**: `dff422e3e65ba5df7b4ca0700bf90f6a9c80c1f7` (Merge PR #2 `Guillel51/dev/quantum-integral`)
-- **Current Commit**: `9cec8b163990fcbf8cde8f8e75298b8f7eeb50d3`
-- **Key Files Created / Maintained**:
-  - `AGENTS.md`: Full operating instructions, hardware safety directives, build commands.
-  - `docs/PROJECT_STATUS.md`: Up-to-date test verification and subsystem status.
-  - `docs/TECHNICAL_OVERVIEW.md`: Detailed DSP, dual-core, memory map, and Web Studio architecture.
-  - `docs/ROADMAP.md`: Feasibility analysis and memory budgets for Peak/Notch EQ, Tape Warmth, Bit Freeze.
-  - `docs/HARDWARE_TEST_PLAN.md`: Protocol for physical hardware testing on real FM-1 units.
-  - `launch_emulator.bat`, `launch_studio.bat`, `launch_browser_installer.bat`: Python path auto-detection and server launchers.
-
----
-
-## 3. How to Run Verifications Quickly
-Always verify changes using the fast local test sequence:
-```bash
-# 1. Regenerate firmware tables and headers
-python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
-
-# 2. Host installer CLI simulation tests
-python3 tests/install_test.py
-
-# 3. Web Studio & backup protocol tests
-node web/test_web.mjs
-node web/test_backup.mjs
-node web/test_pkg_bounds.mjs
-```
-
----
-
-## 4. Key Rules to Remember
-1. **Never physical-flash real hardware**: All testing in automated environments is host-simulated or WebAssembly-based.
-2. **Preserve memory budget**: Keep SRAM data usage under 92 KB, leaving $\ge 8\text{ KB}$ headroom in `POOL_END - pool_top`.
-3. **Keep all licenses & credits**: Preserve GPL-3.0 and original attributions to Leo Kuroshita / Hügelton Instruments, JIANT FM, and Felucca.
-4. **Follow pre-commit steps**: Always use `pre_commit_instructions` before submitting work.
+## Verification Instructions for Next Agent
+- To run host web tests: `node web/test_web.mjs && node web/test_backup.mjs`
+- To run Python installer tests: `python3 tests/install_test.py`
+- To run DSP signal checks: `gcc -O2 tests/test_dsp_eq.c -lm -o tests/test_dsp_eq && ./tests/test_dsp_eq`
+- To run polyphony checks: `gcc -O2 tests/test_polyphony.c -o tests/test_polyphony && ./tests/test_polyphony`
+- To check C syntax: `gcc -fsyntax-only -I firmware/hal -I build/gen -I firmware/src firmware/src/felucca.c`

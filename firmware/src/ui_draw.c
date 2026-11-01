@@ -1824,9 +1824,25 @@ static void ui_draw_page(uint32_t counting)
     felucca_dbg.stage = 3;
     draw_head();
     felucca_dbg.stage = 4;
-    draw_columns();
-    felucca_dbg.stage = 5;
-    draw_graph();
+    if (ui.home_viz) {
+        /* Full screen visualizer replaces cards and standard graph */
+        cv_oy = 0;
+        graph_home_viz(ACC);
+    } else {
+        draw_columns();
+        felucca_dbg.stage = 5;
+        if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u) {
+            /* Transient 1.5s preset selection popup overlay reusing the full SAVE/BROWSE library */
+            cv_oy = 0;
+            graph_browse();
+        } else {
+            if (ui.preset_pop_ms) {
+                ui.preset_pop_ms = 0;
+                ui.force = 1;
+            }
+            draw_graph();
+        }
+    }
     if (ui.msg_t && !--ui.msg_t && ui.msg2[0]) {     /* the second message (ui_notices) */
         str_cpy(ui.msg, ui.msg2, sizeof ui.msg);
         ui.msg2[0] = 0;
