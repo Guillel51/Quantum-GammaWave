@@ -847,7 +847,8 @@ static void graph_slpitch(uint16_t c)
             cv_rect(x, y0 + hmax + 6, 9, 2, T_TEXT);
     }
 }
-/* (QG-1) GLO MONITOR: real system diagnostics, core load, active voices, DSP & buses */
+/* (QG-1) GLO MONITOR: real system diagnostics, core load, active voices, DSP & buses.
+ * Only displays authentic measurements; displays "N/A" if counter is zero or uninstrumented. */
 static void graph_diag(uint16_t c)
 {
     uint32_t i, active_voices = 0;
@@ -864,18 +865,27 @@ static void graph_diag(uint16_t c)
         cv_rrect(8, 4, 224, 92, 4, T_SURF, T_BG);
     }
 
-    /* Row 1: CORES & CPU LOAD */
-    cv_text(16, 10, &AF_S, "SYS MONITOR", T_THEME);
-    cv_text_r(224, 10, &AF_S, mc_status(), T_TEXT, T_SURF);
+    /* Row 1: MULTICORE STATUS & AUDIO CPU LOAD % (from audio.c song.cpu_q8) */
+    cv_text(16, 10, &AF_S, "CORES", T_MID);
+    cv_text_r(224, 10, &AF_S, mc_status(), T_THEME, T_SURF);
 
-    /* Row 2: VOICES & POLYPHONY */
-    cv_text(16, 28, &AF_S, "POLYPHONY", T_MID);
+    /* Row 2: REAL CPU LOAD & PEAK */
+    cv_text(16, 26, &AF_S, "CPU LOAD", T_MID);
+    b[0] = 0;
+    fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
+    str_cpy(b + str_len(b), "% (PK ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)load_diag.peak);
+    str_cpy(b + str_len(b), "%)", sizeof b - str_len(b));
+    cv_text_r(224, 26, &AF_S, b, song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
+
+    /* Row 3: POLYPHONY (active voices across all live tracks) */
+    cv_text(16, 42, &AF_S, "POLYPHONY", T_MID);
     b[0] = 0;
     fmt_int(b, (int32_t)active_voices);
     str_cpy(b + str_len(b), " / 10 VOICES", sizeof b - str_len(b));
-    cv_text_r(224, 28, &AF_S, b, active_voices > 8u ? T_ACCENT : T_TEXT, T_SURF);
+    cv_text_r(224, 42, &AF_S, b, active_voices >= 9u ? T_ACCENT : T_TEXT, T_SURF);
 
-    /* Row 3: VOICES BAR PER TRACK T1..T6 */
+    /* Row 4: ACTIVE TRACKS T1..T6 VOICE BLOCKS */
     for (i = 0; i < 6u; i++) {
         int32_t tx = 16 + (int32_t)i * 35;
         uint32_t v, tv = 0;
@@ -883,20 +893,23 @@ static void graph_diag(uint16_t c)
         if (i < trk_live) {
             for (v = 0; v < NVOICE; v++) if (trk[i].v[v].active) tv++;
         }
-        cv_text(tx, 44, &AF_S, tb, i < trk_live ? T_DIM : T_LINE);
-        cv_rrect(tx + 16, 44, 14, 10, 2, tv ? T_ACCENT : T_RAISE, T_SURF);
+        cv_text(tx, 58, &AF_S, tb, i < trk_live ? T_DIM : T_LINE);
+        cv_rrect(tx + 16, 58, 14, 10, 2, tv ? T_ACCENT : T_RAISE, T_SURF);
     }
 
-    /* Row 4: DSP & BUS LOAD */
-    cv_text(16, 62, &AF_S, "DSP BUFFER", T_MID);
-    b[0] = 0;
-    fmt_int(b, (int32_t)(mc_fx_tk ? mc_fx_tk : 12u));
-    str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
-    cv_text_r(224, 62, &AF_S, b, T_TEXT, T_SURF);
-
-    /* Row 5: MASTER SIGNAL STATUS */
-    cv_text(16, 78, &AF_S, "BUS SANE", T_MID);
-    cv_text_r(224, 78, &AF_S, fx_trips ? "TRIP RECOVERED" : "NOMINAL 44.1k", fx_trips ? T_ACCENT : T_THEME, T_SURF);
+    /* Row 5: BUS TICKS & HARDWARE SANITY (no fabricated constants) */
+    cv_text(16, 76, &AF_S, "BUS TICKS", T_MID);
+    if (mc_fx_tk) {
+        b[0] = 0;
+        fmt_int(b, (int32_t)mc_fx_tk);
+        str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
+    } else {
+        str_cpy(b, "N/A", sizeof b);
+    }
+    if (fx_trips) {
+        str_cpy(b + str_len(b), " [TRIP]", sizeof b - str_len(b));
+    }
+    cv_text_r(224, 76, &AF_S, b, fx_trips ? T_ACCENT : T_TEXT, T_SURF);
 }
 
 /* MOD page: the four slots as rows "1 LFO > CUT +50%", the one KNOB 2..4 edit selected, slots that do
@@ -2138,12 +2151,14 @@ static void draw_tracks(void)
     }
 }
 /* (QG-1) Full-Screen Integrated Visualizer when HOME is pressed while on HOME:
- * Harmonic oscilloscope, Lissajous phase orbit, audio spectrum energy and real-time voice telemetry */
+ * Genuine oscilloscope based on scope_buf with authentic zero-crossing trigger.
+ * Orbital trace is generated via time-delayed phase space embedding x(t) vs x(t - tau)
+ * (mono phase-space trajectory, strictly avoiding any fake stereo simulation). */
 static void graph_home_viz(uint16_t c)
 {
     static int16_t snap[SCOPE_N];
     uint32_t w = scope_w, i, trig = 0;
-    int32_t cy = 120, cx = 120, py = cy, px = 10, peak = 1200;
+    int32_t cy = 120, cx = 120, py = cy, peak = 1200;
     int32_t x;
 
     for (i = 0; i < SCOPE_N; i++) {
@@ -2166,23 +2181,23 @@ static void graph_home_viz(uint16_t c)
     cv_rect(12, cy, 216, 1, T_LINE);
     cv_rect(cx, 32, 1, 176, T_LINE);
 
-    /* Real-time audio waveform with thermal/theme coloring */
-    for (x = 0; x < 216; x++) {
+    /* Real-time audio waveform from authentic output buffer */
+    for (x = 0; x < 216; x += 2) {
         int32_t y = cy - (snap[trig + (uint32_t)x] * 64) / peak;
         y = clamp(y, 34, 206);
         if (x) {
             uint16_t col = ux.chamfer ? heat_col(40 + (y > cy ? y - cy : cy - y) * 216 / 64) : c;
-            cv_line_t(12 + x - 1, py, 12 + x, y, col, 2);
+            cv_line_t(12 + x - 2, py, 12 + x, y, col, 2);
         }
         py = y;
     }
 
-    /* Lissajous orbital orbit in center when signal is active */
+    /* Time-delay phase space trajectory x(t) vs x(t - 16 samples) */
     if (peak > 1800) {
         int32_t lpx = cx, lpy = cy;
-        for (i = 0; i < 96u; i++) {
-            int32_t ox = cx + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 36) / peak;
-            int32_t oy = cy + (snap[(trig + i * 2u + 24u) & (SCOPE_N - 1u)] * 36) / peak;
+        for (i = 0; i < 64u; i += 2) {
+            int32_t ox = cx + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 34) / peak;
+            int32_t oy = cy + (snap[(trig + i * 2u + 16u) & (SCOPE_N - 1u)] * 34) / peak;
             ox = clamp(ox, 40, 200);
             oy = clamp(oy, 40, 200);
             if (i) cv_line_t(lpx, lpy, ox, oy, T_ACCENT, 1);
@@ -2191,10 +2206,10 @@ static void graph_home_viz(uint16_t c)
     }
 
     /* Header & Footer banner */
-    cv_text(16, 32, &AF_S, "QG-1 VISUALIZER", T_THEME);
+    cv_text(16, 32, &AF_S, "QG-1 SCOPE (MONO)", T_THEME);
     cv_text_r(224, 32, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
     cv_text(16, 196, &AF_S, "[HOME] EXIT", T_DIM);
-    cv_text_r(224, 196, &AF_S, "44.1 kHz REALTIME", T_DIM, T_SURF);
+    cv_text_r(224, 196, &AF_S, "REALTIME AUDIO", T_DIM, T_SURF);
 }
 
 /* oscilloscope of the output, triggered on a rising zero crossing: a RAISE centre line, the trace 2 px (in silence

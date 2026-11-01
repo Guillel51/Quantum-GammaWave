@@ -426,7 +426,6 @@ static int voice_room(track_t *t, int soft)
             voice_kill(&vp->v[k]);                      /* (the load budget: a dying tail makes the room) */
         return 1;
     }
-    /* Smart voice stealing: check inaudible quiet tails (<-40 dB) before stealing louder held notes */
     k = quiet_tail(&vp);
     if (k == NVOICE)
         k = voice_victim(t, soft, &vp);

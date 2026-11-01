@@ -2035,10 +2035,11 @@ function makeMockDevice(opt = {}) {
     D("MOD", F.PCT, 0, 127, 0),                       /* (0.6.86) G_DMOD 66: the delay's tape drift (WOW, FLUTTER) */
     E("TYPE", ["ANALOG", "DIGITAL"], 0), E("PING", ["OFF", "ON"], 0),   /* (0.6.90) G_DTYPE 67, G_DPING 68 */
     E("TYPE", ["CHORUS", "PHASER"], 0),                /* (QG-1) G_CTYPE 69: the chorus bus's ensemble / PHASER */
-    E("MODE", ["OFF", "PEAK", "NOTCH", "LOWSH", "HIGHSH"], 0),            /* (QG-1 v1.4) G_EQMODE 70: Master Parametric EQ */
+    E("MODE", ["OFF", "PEAK", "NOTCH", "LOWSH", "HIGHSH"], 0), /* (QG-1 v1.4) G_EQMODE 70: Master Parametric EQ */
     D("FREQ", F.CUTOFF, 0, 127, 64),                   /* G_EQFREQ 71 */
     D("GAIN", F.BIPCT, -24, 24, 0),                    /* G_EQGAIN 72 */
     D("Q", F.PCT, 0, 127, 64),                         /* G_EQQ 73 */
+    D("M-WIDE", F.PCT, 0, 127, 64),                    /* (QG-1 v1.4) G_MWIDTH 74: Master Stereo Width */
   ];
   const NONE = D("-", F.INT, 0, 0, 0);
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
@@ -2258,7 +2259,7 @@ function makeMockDevice(opt = {}) {
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
     D("CUT", F.CUTOFF, 0, 127, 127), D("RES", F.PCT, 0, 127, 0));                       /* 113, 114: the other engines' */
-  const P_COUNT = 123, G_COUNT = 74, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
+  const P_COUNT = 123, G_COUNT = 75, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* tracks (firmware v3): four synth parts (1.0), six (JIANT 0.6); engine / preset / p / step below are the selected track's */
@@ -3299,7 +3300,10 @@ const LAYOUT = (pe0) => [
       [50 + 4 * k, 51 + 4 * k, 52 + 4 * k, 53 + 4 * k]])] : [["SLICER", 0, [45, 46, 47, 48]]]),   /* (0.6.3: one, on a bus) */
     ["DLY", 1, [4, 5, 6, 7]], ...(pe0 >= 112 ? [["DLY 2", 1, [28, 34, 35, ...(dev && dev.info && dev.info.gcount >= 67 ? [66] : [])]],
     ...(dev && dev.info && dev.info.gcount >= 69 ? [["DLY 3", 1, [67, 68]]] : [])] : []), ["REVERB", 1, pe0 >= 112 ? [24, 8, 9, 31] : [24, 8, 9]],
-    ...(pe0 >= 112 ? [["REVERB 2", 1, [29, 30, 32, 33]]] : []), ["CHORUS", 1, pe0 >= 112 ? (dev && dev.info && dev.info.gcount >= 70 ? [10, 11, 27, 69] : [10, 11, 27]) : [10, 11]], ["MASTER", 1, [21, 25, 26, 13]]] },   /* G_RTYPE 24: ROOM SPRING SHIMR RESO CLOUD; MASTER: CLIP PNCH DUCK REL; (0.6.9) AUTOPAN: DPTH RATE SYNC WAVE, CHORUS: STER (27) */
+    ...(pe0 >= 112 ? [["REVERB 2", 1, [29, 30, 32, 33]]] : []), ["CHORUS", 1, pe0 >= 112 ? (dev && dev.info && dev.info.gcount >= 70 ? [10, 11, 27, 69] : [10, 11, 27]) : [10, 11]],
+    ["MASTER", 1, [21, 25, 26, 13]],
+    ...(dev && dev.info && dev.info.gcount >= 74 ? [["MASTER EQ", 1, [70, 71, 72, 73]]] : []),
+    ...(dev && dev.info && dev.info.gcount >= 75 ? [["STEREO M/S", 1, [74]]] : [])] },   /* G_RTYPE 24: ROOM SPRING SHIMR RESO CLOUD; MASTER: CLIP PNCH DUCK REL; (0.6.9) AUTOPAN: DPTH RATE SYNC WAVE, CHORUS: STER (27) */
   { t: "SCL", pages: [["SCL", 0, [25, 26, 27, 28]], ["SCL 2", 1, [36]]] },   /* (JIANT 0.4) G_STRN 36: every sequence along the scale */
   { t: "ARP", pages: [["ARP", 0, [17, 18, 19, 20]], ["ARP 2", 0, [21, 22, 23, 24]]] },
   { t: "SEQ PATTERN", tab: "seqgroups", pages: [["PATTERN", 0, [29, 30, 31, 32]], ...(pe0 >= 83 ? [["SHIFT", 0, P_SHIFT]] : [])] },   /* OFS PIT 81, 82 */

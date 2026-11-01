@@ -2429,18 +2429,64 @@ static void ui_input_frame(void)
             ui.bpm_t = 40;                              /* the header's BPM lights up; no message over the header */
         }
     } else if ((s = panel_enc(EN_SELECT)) != 0 && !lay && !ui.menu) {   /* (0.6.67) SELECT alone: the section's pages;
-                                                         * (0.6.69) on HOME, as before: DICE EVERYTHING? (once a turn) */
-        static uint32_t hd_ms;
-        if (!ui.home) page_scroll(s);
-        else if (ui_sel_home & 1u) {                    /* (1.1.1-GW, issue #3) MENU > GEN > SELECT ON HOME TEMPO: as
-                                                         * GLO + SELECT (the generator: HOME held + SELECT, OCT- + PLAY) */
-            song.g[G_BPM] = (int16_t)clamp(song.g[G_BPM] + accel(EN_SELECT, s, 200), GP[G_BPM].min, GP[G_BPM].max);
-            ui.bpm_t = 40;
-        } else if (!ui.confirm && (!hd_ms || fm1_ms - hd_ms > 400u)) {
-            if (chain_busy()) ui_message("STOP TO EDIT");
-            else { confirm_open(CF_DICE_ALL, song.sel); gen_open(); }
+                                                         * (QG-1) On HOME: configurable KNOB SELECT MODE (0 BPM, 1 TRK VOL, 2 TRK PAN, 3 MASTER VOL, 4 OFF) */
+        if (!ui.home) {
+            page_scroll(s);
+        } else {
+            uint32_t mode = ui_sel_home < 5u ? ui_sel_home : 0u;
+            char msg_buf[24];
+            switch (mode) {
+            case 0: /* BPM / TEMPO */
+                song.g[G_BPM] = (int16_t)clamp(song.g[G_BPM] + accel(EN_SELECT, s, 200), GP[G_BPM].min, GP[G_BPM].max);
+                ui.bpm_t = 40;
+                break;
+            case 1: { /* TRACK VOLUME */
+                track_t *t = TSEL;
+                uint32_t cur = trk_level(song.sel);
+                int32_t nv = clamp((int32_t)cur + s, 0, 127);
+                t->p[P_LEVEL] = (int16_t)nv;
+                msg_buf[0] = 'T'; msg_buf[1] = (char)('1' + song.sel); msg_buf[2] = ' ';
+                msg_buf[3] = 'V'; msg_buf[4] = 'O'; msg_buf[5] = 'L'; msg_buf[6] = ' ';
+                fmt_int(msg_buf + 7, nv * 100 / 127);
+                str_cpy(msg_buf + str_len(msg_buf), "%", sizeof msg_buf - str_len(msg_buf));
+                ui_message(msg_buf);
+                ui.force = 1;
+                break;
+            }
+            case 2: { /* TRACK PAN */
+                track_t *t = TSEL;
+                int32_t np = clamp((int32_t)t->p[P_PAN] + s, -64, 63);
+                t->p[P_PAN] = (int16_t)np;
+                msg_buf[0] = 'T'; msg_buf[1] = (char)('1' + song.sel); msg_buf[2] = ' ';
+                msg_buf[3] = 'P'; msg_buf[4] = 'A'; msg_buf[5] = 'N'; msg_buf[6] = ' ';
+                if (np == 0) {
+                    str_cpy(msg_buf + 7, "C", sizeof msg_buf - 7);
+                } else if (np < 0) {
+                    msg_buf[7] = 'L';
+                    fmt_int(msg_buf + 8, -np * 100 / 64);
+                } else {
+                    msg_buf[7] = 'R';
+                    fmt_int(msg_buf + 8, np * 100 / 63);
+                }
+                ui_message(msg_buf);
+                ui.force = 1;
+                break;
+            }
+            case 3: { /* MASTER VOLUME */
+                int32_t mg = clamp((int32_t)song.master_q12 + s * 16, 0, MASTER_FULL);
+                song.master_q12 = (uint16_t)mg;
+                str_cpy(msg_buf, "MASTER ", sizeof msg_buf);
+                fmt_int(msg_buf + str_len(msg_buf), mg * 100 / MASTER_FULL);
+                str_cpy(msg_buf + str_len(msg_buf), "%", sizeof msg_buf - str_len(msg_buf));
+                ui_message(msg_buf);
+                ui.force = 1;
+                break;
+            }
+            case 4: /* OFF */
+            default:
+                break;
+            }
         }
-        if (ui.home) hd_ms = fm1_ms | 1u;
     }
     for (k = 0; k < 4u && !kq; k++) {
         const page_t *pg = cur_page();

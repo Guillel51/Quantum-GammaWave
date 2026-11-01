@@ -227,66 +227,70 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     }
 }
 
-/* Set Low Shelf Filter: freq (0..127), gain_db (-24..+24) */
+/* Set Low Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
 static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
 {
     if (gain_db == 0) {
         qg_biquad_init(eq);
         return;
     }
-    uint32_t angle = (uint32_t)freq_idx * 33816698u;
-    int32_t sn = sine_i(angle);
-    int32_t cs = sine_i(angle + 0x40000000u);
-    int32_t a = 32768 + (gain_db * 1365);               /* Gain multiplier */
-    int32_t a_sqrt = 32768 + (gain_db * 682);
-    int32_t alpha = (sn * a_sqrt) >> 16;
-    int32_t a_p1 = a + 32768;
-    int32_t a_m1 = a - 32768;
-    int32_t b0 = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt) >> 15);
-    int32_t b1 = ((a_m1 - ((a_p1 * cs) >> 15)));
-    int32_t b2 = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt) >> 15);
-    int32_t a0 = ((32768 + a_sqrt) >> 1) + ((alpha * 32768) / a_sqrt);
-    int32_t a1 = -(a_m1 + ((a_p1 * cs) >> 15));
-    int32_t a2 = ((32768 + a_sqrt) >> 1) - ((alpha * 32768) / a_sqrt);
+    uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
+    int32_t sn = sine_i(angle);                         /* Q15 */
+    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
+    int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
+    if (a_q12 < 512) a_q12 = 512;
+    int32_t a_sqrt_q12 = 4096 + (gain_db * 118);
+    if (a_sqrt_q12 < 512) a_sqrt_q12 = 512;
+    int32_t alpha = (sn * 4096) >> 15;                  /* Q12 */
+    int32_t a_p1 = a_q12 + 4096;
+    int32_t a_m1 = a_q12 - 4096;
+    int32_t b0_un = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt_q12) >> 12);
+    int32_t b1_un = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t b2_un = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt_q12) >> 12);
+    int32_t a0_un = ((4096 + a_sqrt_q12) >> 1) + ((alpha * 4096) / a_sqrt_q12);
+    int32_t a1_un = -(a_m1 + ((a_p1 * cs) >> 15));
+    int32_t a2_un = ((4096 + a_sqrt_q12) >> 1) - ((alpha * 4096) / a_sqrt_q12);
 
-    if (a0 > 0) {
-        eq->b0 = (b0 * 32767) / a0;
-        eq->b1 = (b1 * 32767) / a0;
-        eq->b2 = (b2 * 32767) / a0;
-        eq->a1 = (a1 * 32767) / a0;
-        eq->a2 = (a2 * 32767) / a0;
+    if (a0_un > 50) {
+        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
+        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
+        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
+        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
+        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
         eq->active = 1;
     }
 }
 
-/* Set High Shelf Filter: freq (0..127), gain_db (-24..+24) */
+/* Set High Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
 static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
 {
     if (gain_db == 0) {
         qg_biquad_init(eq);
         return;
     }
-    uint32_t angle = (uint32_t)freq_idx * 33816698u;
-    int32_t sn = sine_i(angle);
-    int32_t cs = sine_i(angle + 0x40000000u);
-    int32_t a = 32768 + (gain_db * 1365);
-    int32_t a_sqrt = 32768 + (gain_db * 682);
-    int32_t alpha = (sn * a_sqrt) >> 16;
-    int32_t a_p1 = a + 32768;
-    int32_t a_m1 = a - 32768;
-    int32_t b0 = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt) >> 15);
-    int32_t b1 = -((a_m1 + ((a_p1 * cs) >> 15)));
-    int32_t b2 = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt) >> 15);
-    int32_t a0 = ((32768 + a_sqrt) >> 1) + ((alpha * 32768) / a_sqrt);
-    int32_t a1 = ((a_m1 - ((a_p1 * cs) >> 15)));
-    int32_t a2 = ((32768 + a_sqrt) >> 1) - ((alpha * 32768) / a_sqrt);
+    uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
+    int32_t sn = sine_i(angle);                         /* Q15 */
+    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
+    int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
+    if (a_q12 < 512) a_q12 = 512;
+    int32_t a_sqrt_q12 = 4096 + (gain_db * 118);
+    if (a_sqrt_q12 < 512) a_sqrt_q12 = 512;
+    int32_t alpha = (sn * 4096) >> 15;                  /* Q12 */
+    int32_t a_p1 = a_q12 + 4096;
+    int32_t a_m1 = a_q12 - 4096;
+    int32_t b0_un = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt_q12) >> 12);
+    int32_t b1_un = -((a_m1 + ((a_p1 * cs) >> 15)));
+    int32_t b2_un = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt_q12) >> 12);
+    int32_t a0_un = ((4096 + a_sqrt_q12) >> 1) + ((alpha * 4096) / a_sqrt_q12);
+    int32_t a1_un = ((a_m1 - ((a_p1 * cs) >> 15)));
+    int32_t a2_un = ((4096 + a_sqrt_q12) >> 1) - ((alpha * 4096) / a_sqrt_q12);
 
-    if (a0 > 0) {
-        eq->b0 = (b0 * 32767) / a0;
-        eq->b1 = (b1 * 32767) / a0;
-        eq->b2 = (b2 * 32767) / a0;
-        eq->a1 = (a1 * 32767) / a0;
-        eq->a2 = (a2 * 32767) / a0;
+    if (a0_un > 50) {
+        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
+        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
+        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
+        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
+        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
         eq->active = 1;
     }
 }
@@ -565,12 +569,15 @@ static inline void master_out(int32_t *l, int32_t *r)
         *r = lowcut1(*r, &lc_r1, &lce[2], sh);
         *r = lowcut1(*r, &lc_r2, &lce[3], sh) + b;
     }
-    /* (QG-1) Mid/Side stereo balance: ensure mono compatibility and phase coherence */
-    if (song.g[G_WIDTH] != 0) {
+    /* (QG-1 v1.4) Master Mid/Side stereo width balance (G_MWIDTH: 0..127, def 64 = 100% bypass).
+     * 64 is strictly neutral with zero CPU overhead. 0 = pure mono sum (M, M). 127 = wide stereo.
+     * Retains G_WIDTH intact for Delay and Chorus buses. */
+    int16_t mwidth = song.g[G_MWIDTH];
+    if (mwidth != 64) {
         int32_t mid = (*l + *r) >> 1;
         int32_t side = (*l - *r) >> 1;
-        int32_t w = 32768 + ((song.g[G_WIDTH] - 64) * 512);   /* width scaling */
-        side = (side * clamp(w, 0, 65536)) >> 15;
+        int32_t w = (int32_t)clamp(mwidth, 0, 127) * 512;   /* 0..65024, Q15: 32768 at 64 */
+        side = (side * w) >> 15;
         *l = mid + side;
         *r = mid - side;
     }
