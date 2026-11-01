@@ -45,7 +45,7 @@ static int settings_import(persist_t *p, int n)
     }
     if (p->favorites.factory[15][26] > 2u)         /* LOAD (JIANT 0.6.30, ui.c ui_load): unknown = FULL */
         p->favorites.factory[15][26] = 0;
-    if (p->favorites.factory[15][22] > 1u)         /* SELECT ON HOME (1.1.1-GW, ui.c ui_sel_home): unknown = GENERATOR */
+    if (p->favorites.factory[15][22] > 4u)         /* KNOB SELECT MODE (QG-1, ui.c ui_sel_home): 0..4, default 0 (BPM) */
         p->favorites.factory[15][22] = 0;
     if (p->favorites.factory[15][24] > 3u)         /* MIDI OUT (JIANT 0.6.72, ui.c midi_out_mode): unknown = KEYS */
         p->favorites.factory[15][24] = 0;
