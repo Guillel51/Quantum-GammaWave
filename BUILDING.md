@@ -1,4 +1,4 @@
-# Building Pocket GammaWave (GW-1)
+# Building Quantum GammaWave (QG-1)
 
 The build makes three files in `build/`:
 
