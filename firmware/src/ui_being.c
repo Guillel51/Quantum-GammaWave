@@ -174,6 +174,19 @@ static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_
     }
 }
 
+/* (QG-1 v1.5) MENU > VISUALIZER QUALITY (ui.c ui_viz_q): what the visualizer spends, never the audio. Nothing here
+ * is on the render path's budget -- it only changes how much of the screen is drawn and how often the motion advances.
+ * HIGH (0, default): every spark and flare, the curves at their own step, the motion every frame (as before).
+ * BALANCED (1): half the sparks, a third fewer flares, the curves every 2nd column, the motion every other frame.
+ * LOW (2): no sparks, eight flares, the curves every 3rd column, the motion every third frame. */
+static uint32_t vz_step(void) { return ui_viz_q >= 2u ? 3u : ui_viz_q == 1u ? 2u : 1u; }
+static uint32_t vz_sparks(void) { return ui_viz_q >= 2u ? 0u : ui_viz_q == 1u ? 7u : 14u; }
+static uint32_t vz_flares(void) { return ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 12u : 20u; }
+/* the motion's frame snapped to vz_step(): it advances in the same size steps, once per step's frames, so a lower
+ * quality updates the animation less often at the same speed (the screen still repaints every frame, so nothing
+ * is left blank) */
+static uint32_t vz_qframe(void) { uint32_t s = vz_step(); return ui.frame / s * s; }
+
 /* ============================================================================
  * 1. THE HEARTH (Ported from HearthVisualizer in PluginEditorComponents.h)
  *    Solar Furnace Core + Radial Flare Corona + Spark Particles + Orbiting Moon
@@ -181,7 +194,7 @@ static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_
 static void gw_draw_hearth(int32_t cx, int32_t cy, int32_t r_core, int32_t en, int32_t heat, int32_t sparks, uint32_t tm)
 {
     int32_t i, r_outer = r_core + 4 + (en * 4 >> 8), rx_orb = r_core + 20, ry_orb = r_core + 12;
-    uint32_t moon_ang = tm / 3u + 0x2800u;
+    uint32_t moon_ang = tm / 3u + 0x2800u, nfl = vz_flares();   /* (v1.5) the flares' count and their spacing */
     int32_t mx = cx + (rx_orb * bg_sin(moon_ang + 0x4000u) >> 15);
     int32_t my = cy + (ry_orb * bg_sin(moon_ang) >> 15);
 
@@ -190,8 +203,8 @@ static void gw_draw_hearth(int32_t cx, int32_t cy, int32_t r_core, int32_t en, i
     gw_orbit_ring(cx, cy, r_outer + 5, r_outer + 5, ux_mix(T_SURF, bg_col(64 + heat / 3), 45), 0);
 
     /* 2. Solar Flare Corona Rays (20 smooth radial flares modulated by heat & audio) */
-    for (i = 0; i < 20; i++) {
-        uint32_t a = (uint32_t)i * 65536u / 20u + (tm >> 2);
+    for (i = 0; i < (int32_t)nfl; i++) {                /* (v1.5) still the whole circle: the spacing is nfl's */
+        uint32_t a = (uint32_t)i * 65536u / nfl + (tm >> 2);
         int32_t wave = (bg_sin(a * 3u - tm) + 32768) >> 12;   /* 0..16 */
         int32_t len = 3 + ((heat + en) * (3 + (wave >> 1)) >> 8);
         int32_t x0 = cx + ((r_outer - 1) * bg_sin(a + 0x4000u) >> 15);
@@ -202,7 +215,7 @@ static void gw_draw_hearth(int32_t cx, int32_t cy, int32_t r_core, int32_t en, i
     }
 
     /* 3. Orbiting Star / Spark Particles (HearthVisualizer::stars) */
-    for (i = 0; i < 14; i++) {
+    for (i = 0; i < (int32_t)vz_sparks(); i++) {        /* (v1.5) none at LOW */
         uint32_t hsh = (uint32_t)(i + 1) * 2654435761u;
         uint32_t pa = (hsh >> 16) + tm * (1u + (i & 1u)) / 4u;
         int32_t pr = r_outer + 3 + (int32_t)(((hsh >> 8) + (tm >> 9)) % (uint32_t)(10 + (sparks >> 4)));
@@ -424,11 +437,11 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
     }
 
     /* 3. Cyan Modulation Envelope Curve (drawFilterCurve pre-FX/mod overlay) */
-    for (x = 0; x < gw; x += 2) {
+    for (x = 0; x < gw; x += (int32_t)vz_step()) {      /* (v1.5) its sampling step: 1 / 2 / 3 px */
         int32_t mod_cut = clamp(cut_x + (mod_span > 4 ? mod_span : 14), 8, gw - 8);
         int32_t my = clamp(gw_filter_resp_y(ftype, x, gw, mod_cut, res / 2, y_zero + 3, gh), gy0 + 2, gy0 + gh - 2);
         if (x)
-            cv_line(gx0 + x - 2, mpy, gx0 + x, my, T_ACCENT);
+            cv_line(gx0 + x - (int32_t)vz_step(), mpy, gx0 + x, my, T_ACCENT);
         mpy = my;
     }
 
@@ -436,11 +449,23 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
     gw_live_trace(gx0 + 2, gw - 4, gy0 + gh / 2, gh / 3, 64);
 
     /* 5. Glowing #f27121 Orange Filter Frequency Response Curve (2px thick) */
-    for (x = 0; x < gw; x++) {
-        int32_t y = clamp(gw_filter_resp_y(ftype, x, gw, cut_x, res, y_zero, gh), gy0 + 2, gy0 + gh - 2);
-        if (x)
-            cv_line_t(gx0 + x - 1, py, gx0 + x, y, bg_col(176 + (gy0 + gh - y) * 76 / (gh ? gh : 1)), 2);
-        py = y;
+    {   /* (v1.5) sampled every vz_step() column instead of every one: the segment runs from the previous sample to
+         * this one and the last sample is always gw - 1, so the curve keeps its shape and still reaches the right
+         * edge at any step. At step 1 these are exactly the segments this drew before. */
+        uint32_t st = vz_step(), xp = 0;
+        int32_t yp = clamp(gw_filter_resp_y(ftype, 0, gw, cut_x, res, y_zero, gh), gy0 + 2, gy0 + gh - 2);
+        py = yp;
+        for (x = (int32_t)st; ; x += (int32_t)st) {
+            uint32_t xe = (uint32_t)x < (uint32_t)gw ? (uint32_t)x : (uint32_t)gw - 1u;
+            int32_t y = clamp(gw_filter_resp_y(ftype, (int32_t)xe, gw, cut_x, res, y_zero, gh), gy0 + 2, gy0 + gh - 2);
+            cv_line_t(gx0 + (int32_t)xp, yp, gx0 + (int32_t)xe, y,
+                      bg_col(176 + (gy0 + gh - y) * 76 / (gh ? gh : 1)), 2);
+            yp = y;
+            py = y;
+            xp = xe;
+            if (xe >= (uint32_t)gw - 1u)
+                break;
+        }
     }
     /* Cutoff Resonance Node Handle (Glowing Orange + White Core) */
     {
@@ -475,8 +500,8 @@ static void graph_being(const track_t *t)
         k[c] = v < 0 ? 128 : v;
     }
     if (!(ui_prefs & PREF_ANIM_OFF))
-        tm += (ui.frame - f0) * (uint32_t)(180 + en * 4);
-    f0 = ui.frame;
+        tm += (vz_qframe() - f0) * (uint32_t)(180 + en * 4);
+    f0 = vz_qframe();
 
     /* 1. Upper-Left Module (x=8..118, y=2..82): WAVE 1 (Oscillator Scope + 4 Mini Bakelite Knobs) */
     gw_oct_panel(8, 2, 110, 81, 4, T_BG, T_LINE, 1, T_THEME);
@@ -517,10 +542,10 @@ static void graph_ecosys(void)
     static int32_t en[NTRK];
     static uint32_t f0, tm;
     int32_t tot_en = bg_energy();
-    uint32_t c, dt = ui.frame - f0;
+    uint32_t c, dt = vz_qframe() - f0;
     if (dt > 8u) dt = 8u;
     if (ui_prefs & PREF_ANIM_OFF) dt = 0;
-    f0 = ui.frame;
+    f0 = vz_qframe();
     tm += dt * (uint32_t)(200 + tot_en * 3);
 
     /* 1. Upper Bay (y = 2..63): FILTER + Yellow-Orange-Purple Spectrogram Waterfall + Cyan Mod Curve */

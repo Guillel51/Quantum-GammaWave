@@ -157,7 +157,8 @@ static int preferences(void)
         host_wire[n - 23] == 0 &&                        /* (no bank since 1.0.3) */
         host_wire[n - 22] == 0x53 && host_wire[n - 21] == 1 && host_wire[n - 20] == 3 &&
         host_wire[n - 19] == 0x50 && host_wire[n - 18] == 1 && host_wire[n - 17] == 3 &&   /* FM6 v2: no bank, preset patches */
-        host_wire[n - 16] == 0x4E && host_wire[n - 15] == 1 && host_wire[n - 14] == 22 &&   /* MENU settings: 22 items (0.6.72: MIDI OUT, 1.1.1-GW: SELECT ON HOME) */
+        host_wire[n - 16] == 0x4E && host_wire[n - 15] == 1 && host_wire[n - 14] == 25 &&   /* MENU settings: 25 items (0.6.72: MIDI OUT, 1.1.1-GW: SELECT ON HOME,
+                                                        * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH) */
         host_wire[n - 13] == 0x52 && host_wire[n - 12] == 1 && host_wire[n - 11] == 4 &&   /* RATCH */
         host_wire[n - 10] == 0x4C && host_wire[n - 9] == 1 && host_wire[n - 8] == 1 &&   /* 1.1 parameter locks */
         host_wire[n - 7] == 0x56 && host_wire[n - 6] == 1 && host_wire[n - 5] == 32 &&   /* (0.6.11) FM6 voice bank */

@@ -208,7 +208,7 @@ at 1..3 and hides 6 5 8: what it sets still plays the right kit, and the device 
 
 | cmd | Request args | Reply args |
 | --- | --- | --- |
-| 1 INFO | — | version string, NENGINES, P_COUNT, G_COUNT, NSTEP, P_E0, then NENGINES engine-name strings, then (v3) NTRK (6 since JIANT 0.6, 4 before), then (v6) CHAIN_ROWS (16), then the tagged blocks `55 01 uiCaps`, `4D 01 64 01`, `42 01 3`, `46 01 nfactory nbank`, `53 01 3`, (1.0.3) `50 01 3` and (1.0.4) `4E 01 count` (MENU settings; 12, 1.1: 15, 1.2: 17, 1.1.5: 18) and (1.0.5) `52 01 4` (ratchet) and (1.1) `4C 01 1` (parameter locks) and (JIANT 0.6.11) `56 01 32` (FM6's voice bank) (below); older firmware ends earlier |
+| 1 INFO | — | version string, NENGINES, P_COUNT, G_COUNT, NSTEP, P_E0, then NENGINES engine-name strings, then (v3) NTRK (6 since JIANT 0.6, 4 before), then (v6) CHAIN_ROWS (16), then the tagged blocks `55 01 uiCaps`, `4D 01 64 01`, `42 01 3`, `46 01 nfactory nbank`, `53 01 3`, (1.0.3) `50 01 3` and (1.0.4) `4E 01 count` (MENU settings; 12, 1.1: 15, 1.2: 17, 1.1.5: 18, 1.0.5: 22, QG-1 v1.5: 25) and (1.0.5) `52 01 4` (ratchet) and (1.1) `4C 01 1` (parameter locks) and (JIANT 0.6.11) `56 01 32` (FM6's voice bank) (below); older firmware ends earlier |
 | 2 GET | scope, id | scope, id, v14 |
 | 3 SET | scope, id, v14 | scope, id, v14 (the value after clamping). Setting global `G_ENGSEL` (id from DESC label "ENG") changes the engine: its defaults, then its first preset (as on the device) |
 | 4 DUMP | — | engine, preset, then P_COUNT × v14 (the selected track), then G_COUNT × v14 (globals) |
@@ -822,8 +822,8 @@ is told: no list of settings is fixed in the editor. INFO advertises `4E 01 coun
   A tab may hold items with no value that are not offered (this firmware: SYSTEM also holds CALIBRATION and ABOUT).
   For a kind it does not know, an editor cannot find the tab (it does not know that kind's bytes).
 
-This firmware (count 18; tabs 0 DISPLAY, 1 CONTROL, 2 AUDIO, 3 SYSTEM; 1.0.5 had the first 12, 1.1 the first 15, 1.2
-before SCALE LEDS the first 16, before SCREEN OFF the first 17):
+This firmware (count 25; tabs 0 DISPLAY, 1 CONTROL, 2 AUDIO, 3 SYSTEM, 4 EXTRA; 1.0.5 had the first 12, 1.1 the
+first 15, 1.2 before SCALE LEDS the first 16, before SCREEN OFF the first 17, 1.0.5 the first 22, QG-1 v1.5 25):
 
 | index | id | name | kind | values (min 0) | default | tab |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -845,6 +845,13 @@ before SCALE LEDS the first 16, before SCREEN OFF the first 17):
 | 15 | 15 | RESTORE LAST | 0 | 0 ON, 1 OFF (1.2) | ON | 3 SYSTEM |
 | 16 | 16 | SCALE LEDS | 0 | 0 OFF, 1 ON (1.2) | OFF | 1 CONTROL |
 | 17 | 17 | SCREEN OFF | 0 | 0 NEVER, 1 "5 MIN", 2 "15 MIN", 3 "30 MIN", 4 "60 MIN" (1.1.5) | NEVER (1.1.5.1; 1.1.5: 30 MIN) | 0 DISPLAY |
+| 18 | 18 | TRACKS | 0 | 0 "4", 1 "6" | 4 | 2 AUDIO |
+| 19 | 19 | LOAD | 0 | 0 ECO, 1 LITE, 2 FULL | FULL | 3 SYSTEM |
+| 20 | 20 | MIDI OUT | 0 | 0 KEYS, 1 CLOCK, 2 ALL, 3 OFF | KEYS | 1 CONTROL |
+| 21 | 21 | KNOB SELECT | 0 | 0 BPM, 1 "TRACK VOL", 2 "TRACK PAN", 3 "MASTER VOL", 4 OFF | BPM | 4 EXTRA |
+| 22 | 22 | CPU MODE | 0 | 0 AUTO, 1 "DUAL CORE", 2 "SAFE SINGLE" (QG-1 v1.5) | AUTO | 4 EXTRA |
+| 23 | 23 | VIS QUALITY | 0 | 0 HIGH, 1 BALANCED, 2 LOW (QG-1 v1.5) | HIGH | 4 EXTRA |
+| 24 | 24 | SPLASH | 0 | 0 FULL, 1 SHORT, 2 OFF (QG-1 v1.5) | FULL | 4 EXTRA |
 
 The device's AUDIO tab shows SPEAKER EQ, USB LEVEL, CLICK, CLICK LEVEL, COUNT-IN (index 9, 10, 12, 13, 14).
 CLICK: the metronome while the transport runs: OFF, REC (while a track is armed), ON (always); CLICK LEVEL its
@@ -864,6 +871,22 @@ SCREEN OFF (id 17, 1.1.5; the DISPLAY tab shows COLOR, STYLE, LARGE, ANIM, LEDS 
 after that long without input on the panel (a button, a key, a knob; not MIDI, not the editor) the screen and its
 backlight go off while the sound, the sequencer, MIDI and USB go on; the next touch wakes it and does nothing else.
 NEVER keeps it on. A change counts from then (a MENU_SET to 5 MIN does not turn it off at once). Applied at once.
+
+CPU MODE (id 22, QG-1 v1.5; the EXTRA tab shows KNOB SELECT, CPU MODE, VIS QUALITY and SPLASH, index 21..24):
+whether the second core is started at power-on. AUTO (the default) keeps what the device has always done -- REC held
+at power-on is one core for that session -- DUAL CORE asks for the second core whatever that key does, SAFE SINGLE
+never starts it. In all three, a core that has failed still wins: one given up or beside a crash since power-on and a
+failed boot are never overridden, so no setting can force a core that did not come up. Applied at the next power-on.
+
+VISUALIZER QUALITY (id 23, QG-1 v1.5; EXTRA): what the visualizer spends, never the audio. HIGH (the default) draws
+every particle and flare at the curve's own step and updates the motion every frame; BALANCED halves the sparks, uses
+a 2 px curve step and updates the motion every other frame; LOW drops the sparks, uses a third of the flares, a 3 px
+step and updates every third frame. Nothing here is on the render budget's path: the audio is untouched. Applied at
+once (the next frame).
+
+SPLASH (id 24, QG-1 v1.5; EXTRA): FULL (the default) writes the signature on and holds it as before; SHORT draws it
+whole with no writing animation and a short hold; OFF shows no splash at all. The hardware initialization is the same
+in all three (the panel is brought up before any of this). Applied at the next power-on.
 
 Example (bytes in hex): `F0 7D 46 4C 48 04 F7` asks for index 4; the reply
 `F0 7D 46 4C 48 04 04 00 02 40 00 40 03 40 4C 45 44 53 00 4F 46 46 00 44 49 4D 20 4C 4F 00 44 49 4D 20 48 49 00 49 4E 56 00 00 44 49 53 50 4C 41 59 00 F7`

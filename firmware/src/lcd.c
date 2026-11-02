@@ -95,6 +95,24 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
     lcd_data(px, w * h * 2u);
 }
 
+/* The controller's frame memory is 240x320, not the 240x240 the panel shows: a 240x240 panel is bonded to one
+ * 240-row slice of it and which slice depends on the module (Adafruit/Arduino_GFX/Zephyr all use 320 - 240 = 80 for
+ * the parts they ship). lcd_fill / lcd_blit clamp to the panel, so before this they left the other rows at whatever
+ * power-on left there -- and frame memory is not cleared by SWRESET or SLPOUT, so it reads back as noise. With the
+ * backlight last, those untouched rows are exactly what showed as the black lines at startup: the clear covered the
+ * window the UI draws in, not the memory the panel scans. Writing all 320 rows closes it either way, with no offset
+ * to guess and nothing the UI can reach changing. */
+static void lcd_gdram_clear(uint16_t c)
+{
+    uint32_t i, n, sw = (uint16_t)((c >> 8) | (c << 8));
+    for (i = 0; i < 240u; i++)
+        lcd_fillbuf[i] = (uint16_t)sw;
+    lcd_sync();
+    lcd_window(0, 0, 239, 319);                    /* the whole 240x320, past lcd_fill's 240 clamp */
+    for (n = 240u * 320u; n; n -= 240u)            /* 76800 pixels, 240 at a time (lcd_fillbuf's size) */
+        lcd_data(lcd_fillbuf, 240u * 2u);
+}
+
 /* ST7789V init: reset, then 16-bit colour, scan direction and IPS inversion;
  * voltage and gamma stay at the defaults. Format: cmd, n, n data bytes;
  * cmd 0x00 = wait (data byte: ~ms). */
@@ -126,11 +144,11 @@ static void lcd_init(void)
             lcd_data(lcd_small, LCD_SEQ[r + 1u]);
     }
     fm1_lcd_baud(LCD_BAUD);
-    lcd_fill(0, 0, 240, 240, 0);
+    lcd_gdram_clear(0);                            /* every row of the 240x320, not just the 240x240 the UI uses */
     lcd_cmd(0x29);
     /* The backlight only now (fm1_lcd_hw_init left it off): the panel has had SWRESET, SLPOUT, COLMOD, MADCTL and a
-     * full-frame write, so there is no uninitialized row left to light as a black line at power-on. PA2 is also the
-     * key matrix 595's /OE, so it has to be low before fm1_input_init / panel_init (both after this call). */
+     * write of its whole 240x320 frame memory, so there is no row the panel can scan that nobody has written. PA2 is
+     * also the key matrix 595's /OE, so it has to be low before fm1_input_init / panel_init (both after this call). */
     fm1_lcd_backlight(1);
 }
 

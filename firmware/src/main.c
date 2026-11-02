@@ -171,8 +171,12 @@ static void fm1_main(void)
     prefs_update();                                     /* (JIANT 0.6.44) FX LATCH ON by default, once */
     usb_serial_apply();                                 /* (#67: the saved USB SERIAL before usb_start) */
     lcd_init();
-    spl_anim = 1;                                       /* (JIANT 0.5) the signature written: splash_write */
-    draw_splash();                                      /* ui_draw.c (1.1.5) */
+    spl_anim = ui_splash == 0u;                        /* (JIANT 0.5) the signature written: splash_write. (v1.5)
+                                                        * FULL writes it on; SHORT and OFF have it whole */
+    if (ui_splash != 2u)                              /* (v1.5) STARTUP SPLASH OFF: no splash at all -- lcd_init has
+                                                        * already brought the panel up, so the hardware init is the
+                                                        * same in all three; the UI below redraws from a clean frame */
+        draw_splash();                                /* ui_draw.c (1.1.5) */
     if (felucca_dbg.magic != DBG_MAGIC) {
         memset(&felucca_dbg, 0, sizeof felucca_dbg);
         felucca_dbg.magic = DBG_MAGIC;
@@ -209,8 +213,13 @@ static void fm1_main(void)
 #if FELUCCA_DUAL_CORE
     /* (0.6.71) the second core, unless REC is held at power-on (one core this session: mc_off), a boot failed (a second
      * would enter UBOOT), or it was given up / beside a crash since power-on (hal/fm1_multicore.h fm1_mc_bar). Its entry
-     * word is in the protected top of RAM: opened for it, interrupts off (up to 20 ms: under the splash) */
-    mc_off = (uint8_t)((fm1_in.buttons >> panel.btn[B_REC]) & 1u);
+     * word is in the protected top of RAM: opened for it, interrupts off (up to 20 ms: under the splash)
+     * (QG-1 v1.5) MENU > CPU MODE decides the request: AUTO keeps the power-on key as the session's opt-out (what it
+     * has always done), DUAL CORE asks for the second core whatever that key does, SAFE SINGLE never starts it. In
+     * every mode a core that has failed still wins: fm1_mc_barred() (given up or beside a crash since power-on) and a
+     * failed boot are never overridden, so no setting can force a core that did not come up. */
+    mc_off = (uint8_t)(ui_cpu_mode == 2u ||
+                       (ui_cpu_mode != 1u && (fm1_in.buttons >> panel.btn[B_REC]) & 1u));
     if (!mc_off && !bootguard.failed && !fm1_mc_barred()) {
         fm1_irq_off();
         fm1_guard_unlock_top();
@@ -221,13 +230,16 @@ static void fm1_main(void)
 #endif
     autosave_boot(boot_clean);                /* (1.2) the last session's music, under the splash */
     reel_boot();                              /* (1.0-GW TAKES v2) the TAKES reel and its SET */
-    session_dice(fm1_ticks() ^ (uint32_t)fm1_adc_read(FM1_ADC_BATT) << 16);   /* (JIANT 0.4) this session's macros */
-    {                                         /* the splash, its signature written (JIANT 0.5: was 400 ms); the pot
+    session_dice(fm1_ticks() ^ (uint32_t)fm1_adc_read(FM1_ADC_BATT) << 16);   /* (JIANT 0.4) this session's macros */    {                                         /* the splash, its signature written (JIANT 0.5: was 400 ms); the pot
                                                * followed (MIDI IN plays under it). (0.5.2) On the clock: drawing the
-                                               * beings does not make it longer */
+                                               * beings does not make it longer. (v1.5) STARTUP SPLASH: FULL as
+                                               * before (SPL_WRITE + SPL_HOLD); SHORT the drawing without the hold;
+                                               * OFF nothing at all -- the loop simply does not run, and nothing it
+                                               * did is lost (master_poll runs every main-loop pass below) */
         uint32_t t0 = fm1_ms, n;
-        for (n = 0; n < 600u && (ms = fm1_ms - t0) < SPL_WRITE + SPL_HOLD; n++) {   /* (600: a stalled clock still
-                                                                                   * ends it, in ~2.4 s) */
+        uint32_t span = ui_splash == 2u ? 0u : ui_splash == 1u ? SPL_SHORT : SPL_WRITE + SPL_HOLD;
+        for (n = 0; n < 600u && (ms = fm1_ms - t0) < span; n++) {   /* (600: a stalled clock still
+                                                                                       * ends it, in ~2.4 s) */
             splash_write(ms);
             fm1_delay_ms(4);
             master_poll();
