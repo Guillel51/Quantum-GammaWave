@@ -5561,12 +5561,12 @@ $("connect").addEventListener("click", () => {
     ctx.fillRect(0, 0, 240, 240);
 
     if (mode === "gen") {
-      /* (QG-1) Modernized Settings & System Preferences Screen (UI / Control / Performance) */
+      /* Authentic JIANT v0.7.0 3-Page GENERATOR Screen (HOME + SELECT) */
       ctx.fillStyle = pal.surf;
       ctx.fillRect(0, 0, 240, 22);
       ctx.fillStyle = pal.theme;
       ctx.font = "bold 11px 'IBM Plex Mono', monospace";
-      ctx.fillText("QG-1 // SETTINGS & PREFS", 8, 15);
+      ctx.fillText("GW-1 // GEN ENGINE", 8, 15);
       ctx.fillStyle = pal.accent;
       ctx.font = "bold 10px 'IBM Plex Mono', monospace";
       ctx.textAlign = "right";
@@ -5576,15 +5576,10 @@ $("connect").addEventListener("click", () => {
       ctx.fillStyle = pal.theme;
       ctx.font = "bold 13px 'IBM Plex Mono', monospace";
       ctx.textAlign = "center";
-      ctx.fillText(genLcdPage === 0 ? "UI PREFERENCES" : genLcdPage === 1 ? "CONTROL & FEEL" : "DSP PERFORMANCE", 120, 42);
+      ctx.fillText(`GENERATOR  ${genLcdPage + 1}/3`, 120, 42);
       ctx.textAlign = "left";
 
-      const prefRows = [
-        [ ["PALETTE", "QUANTUM"], ["ANIMATIONS", "SMOOTH (ON)"], ["KNOB ACCEL", "EXPONENTIAL"], ["LED BRIGHT", "HIGH"] ],
-        [ ["HOME SELECT", "BPM / TEMPO"], ["FX LATCH", "AUTO HOLD"], ["OCTAVE RANGE", "-2 .. +2"], ["SCALE LOCK", "ENABLED"] ],
-        [ ["POLYPHONY", "10 VOICES"], ["LOAD PROFILE", "BALANCED FULL"], ["MASTER WIDTH", "STEREO EXP"], ["EQ BIQUAD", "WARM PEAK"] ]
-      ];
-      const rows = prefRows[genLcdPage % 3];
+      const rows = getGenDisplayRows(genLcdPage);
       for (let k = 0; k < 4; k++) {
         const y = 54 + k * 28;
         const hot = (k === genHotRow);
@@ -5606,12 +5601,12 @@ $("connect").addEventListener("click", () => {
       ctx.textAlign = "center";
       ctx.fillStyle = pal.mid;
       ctx.font = "bold 10px 'IBM Plex Mono', monospace";
-      ctx.fillText("PAGE " + (genLcdPage + 1) + "/3 — HARDWARE OPTIMIZED", 120, 182);
+      ctx.fillText(`LAST: ${genLastLabel}`, 120, 182);
       ctx.fillStyle = pal.text;
-      ctx.fillText("OCT+ SAVE   HOME EXIT", 120, 200);
+      ctx.fillText("OCT+ MAKE   HOME DONE", 120, 200);
       ctx.fillStyle = pal.dim;
       ctx.font = "9.5px 'IBM Plex Mono', monospace";
-      ctx.fillText("SELECT: PAGE  KNOBS: ADJUST", 120, 216);
+      ctx.fillText("SELECT: PAGE  KNOBS: SET", 120, 216);
       ctx.textAlign = "left";
       requestAnimationFrame(renderLCD);
       return;
@@ -5951,26 +5946,32 @@ $("connect").addEventListener("click", () => {
       drawBrackets(8, 83, 232, 198, 5, pal.theme);
       for (let i = 0; i < 4; i++) {
         const cx = 14 + i * 54;
-        drawBrackets(cx, 86, cx + 50, 195, 3, pal.accent);
+        drawBrackets(cx, 86, cx + 50, 168, 3, pal.accent);
         ctx.fillStyle = pal.theme;
         ctx.font = "bold 9px 'IBM Plex Mono', monospace";
         ctx.fillText(FX_NAMES[i], cx + 6, 98);
         const fVal = [0.45, 0.35, 0.65, 0.55][i];
-        const fH = Math.round(fVal * 54);
+        const fH = Math.round(fVal * 44);
         const sx = cx + 24;
-        ctx.fillStyle = pal.raise; ctx.fillRect(sx, 106, 4, 58);
-        ctx.fillStyle = i === 0 ? pal.accent : pal.theme; ctx.fillRect(sx, 164 - fH, 4, fH);
-        ctx.fillStyle = pal.text; ctx.fillRect(sx - 5, 162 - fH, 14, 5);
+        ctx.fillStyle = pal.raise; ctx.fillRect(sx, 104, 4, 48);
+        ctx.fillStyle = i === 0 ? pal.accent : pal.theme; ctx.fillRect(sx, 152 - fH, 4, fH);
+        ctx.fillStyle = pal.text; ctx.fillRect(sx - 5, 150 - fH, 14, 4);
         if (i === 0) {
           ctx.fillStyle = pal.accent;
           ctx.font = "bold 8.5px 'IBM Plex Mono', monospace";
-          ctx.fillText(DIST_TOPO[1], cx + 12, 186);
+          ctx.fillText(DIST_TOPO[1], cx + 12, 164);
         } else {
           ctx.fillStyle = pal.mid;
           ctx.font = "bold 9px 'IBM Plex Mono', monospace";
-          ctx.fillText(String(Math.round(fVal * 127)), cx + 16, 186);
+          ctx.fillText(String(Math.round(fVal * 127)), cx + 16, 164);
         }
       }
+      /* Global FX status bar at bottom */
+      ctx.fillStyle = pal.raise; ctx.fillRect(14, 174, 212, 20);
+      ctx.fillStyle = pal.theme; ctx.font = "bold 8.5px 'IBM Plex Mono', monospace";
+      ctx.fillText("MASTER EQ: ON", 18, 187);
+      ctx.fillStyle = pal.accent; ctx.fillText("SLICER: OFF", 96, 187);
+      ctx.fillStyle = pal.text; ctx.fillText("WIDTH: 100%", 164, 187);
     }
 
     /* 4. Bottom 16-Step Dual-Segment Plasma LED Bar & Footer (y = 208..238) */
