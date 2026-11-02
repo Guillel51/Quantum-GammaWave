@@ -24,14 +24,6 @@ static const char *const N_FGRATE[FG_NRATE] = {"OFF", "1/4", "1/3", "1/2", "2/3"
 static const char *const N_FGDIR[4] = {"FWD", "REV", "PING", "RND"};
 enum { FG_FWD, FG_REV, FG_PING, FG_RND };
 
-static int fg_on(uint32_t ti)
-{
-    uint32_t h;
-    for (h = 0; h < FG_HEADS; h++)
-        if (fg_set[ti % NTRK][h].rate)
-            return 1;
-    return 0;
-}
 static void fg_release(track_t *t, fg_head_t *h)
 {
     uint32_t i;

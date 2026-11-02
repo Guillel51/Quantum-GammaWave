@@ -242,13 +242,6 @@ static void cv_blit(uint32_t x, uint32_t y)
     cv_blit_rows(x, y, 0u);
 }
 
-/* canvas rows r0 .. cv_h-1 only, to screen row y + r0 */
-static void cv_blit_from(uint32_t x, uint32_t y, uint32_t r0)
-{
-    GFX_HOOK_BLIT(x, y, r0);
-    cv_blit_rows(x, y, r0);
-}
-
 static inline void cv_pset(int32_t x, int32_t y, uint16_t c)
 {
     y += cv_oy;
