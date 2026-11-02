@@ -5416,16 +5416,47 @@ $("connect").addEventListener("click", () => {
   }
 
   function drawBakeliteKnob(pal, cx, cy, r, norm, arcCol) {
-    ctx.fillStyle = pal.bake;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = pal.accent;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.arc(cx, cy, r + 1.5, Math.PI * 0.75, Math.PI * (0.75 + 1.5 * Math.min(1, norm + 0.15))); ctx.stroke();
-    ctx.strokeStyle = arcCol || pal.theme;
-    ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI * 0.75, Math.PI * (0.75 + 1.5 * norm)); ctx.stroke();
-    const ang = Math.PI * (0.75 + 1.5 * norm);
-    ctx.strokeStyle = pal.text;
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * (r - 1), cy + Math.sin(ang) * (r - 1)); ctx.stroke();
+    /* Smooth circular outer track */
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = pal.bake || pal.raise;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = pal.grid;
+    ctx.stroke();
+
+    /* Antialiased value arc (270 degrees: 135 deg to 405 deg) */
+    const startAng = Math.PI * 0.75;
+    const endAng = startAng + Math.PI * 1.5 * Math.max(0, Math.min(1, norm));
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 1.5, startAng, startAng + Math.PI * 1.5);
+    ctx.strokeStyle = pal.raise;
+    ctx.lineWidth = 2.0;
+    ctx.stroke();
+
+    if (norm > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 1.5, startAng, endAng);
+      ctx.strokeStyle = arcCol || pal.theme;
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+    }
+
+    /* Radial indicator needle */
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(endAng) * (r - 1.5), cy + Math.sin(endAng) * (r - 1.5));
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    /* Center dot */
+    ctx.beginPath();
+    ctx.arc(cx, cy, 1.8, 0, Math.PI * 2);
+    ctx.fillStyle = pal.accent;
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawSunAndMoon(pal, cx, cy, rCore) {

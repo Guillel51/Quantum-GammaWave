@@ -1509,8 +1509,10 @@ static void splash_sig(int32_t px, uint32_t ms)
 static void draw_splash(void)
 {
     uint32_t k;
+    /* Clear full 240x240 frame with authentic theme background to eliminate any black line artifacts */
     lcd_fill(0, 0, 240, 240, T_BG);
     cv_begin(240, 36, T_BG);
+    cv_rect(0, 0, 240, 36, T_BG);
     for (k = 0; k < 2u; k++)
         cv_text_in(0, (int32_t)k * 16, 240, &AF_S, SPLASH_LINES[k], k ? T_DIM : T_MID, T_BG);
     cv_blit(0, SPL_TY);
