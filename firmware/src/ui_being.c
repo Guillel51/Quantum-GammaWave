@@ -375,10 +375,10 @@ static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val
     uint16_t bake = (settings.palette == UI_GREY_INDEX || settings.palette == UI_BW_INDEX)
                         ? T_RAISE
                         : ux_mix(T_BG, bg_col(128), 42);
-    gw_disc(cx, cy, r, T_LINE);
-    gw_disc(cx, cy, r - 1, bake);
-    gw_orbit_ring(cx, cy, r + 1, r + 1, arc_col, 1);
-    cv_line(cx, cy, px1, py1, T_TEXT);
+    gw_disc(cx, cy, r + 1, T_LINE);
+    gw_disc(cx, cy, r, bake);
+    gw_orbit_ring(cx, cy, r + 2, r + 2, arc_col, 1);
+    cv_line_t(cx, cy, px1, py1, T_TEXT, 1);
     cv_pset(cx, cy, T_ACCENT);
 }
 

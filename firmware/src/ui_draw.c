@@ -1509,8 +1509,10 @@ static void splash_sig(int32_t px, uint32_t ms)
 static void draw_splash(void)
 {
     uint32_t k;
+    /* Clear full 240x240 frame with authentic theme background to eliminate any black line artifacts */
     lcd_fill(0, 0, 240, 240, T_BG);
     cv_begin(240, 36, T_BG);
+    cv_rect(0, 0, 240, 36, T_BG);
     for (k = 0; k < 2u; k++)
         cv_text_in(0, (int32_t)k * 16, 240, &AF_S, SPLASH_LINES[k], k ? T_DIM : T_MID, T_BG);
     cv_blit(0, SPL_TY);
@@ -1827,17 +1829,33 @@ static void ui_draw_page(uint32_t counting)
         cv_oy = 0;
         graph_home_viz(ACC);
     } else {
-        draw_columns();
         felucca_dbg.stage = 5;
         if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u) {
-            /* Transient 1.5s preset selection popup overlay reusing the full SAVE/BROWSE library */
-            cv_oy = 0;
-            graph_browse();
+            /* Clean dedicated HUD popup within graph area without corrupting card columns */
+            draw_columns();
+            draw_graph();
+            cv_begin(216, 26, T_BG);
+            cv_rrect(0, 0, 216, 26, 4, T_THEME, T_BG);
+            cv_rrect(1, 1, 214, 24, 3, T_SURF, T_THEME);
+            char ptag[8], pnm[16];
+            const engine_t *pe = ENGINES[TSEL->eng_req % NENGINES];
+            uint32_t pu = user_of(TSEL);
+            if (pu < UP_SLOTS) {
+                up_slot_label(ptag, pu);
+                up_name(pu, pnm);
+            } else {
+                str_cpy(ptag, eng_abbr(pe->name), sizeof ptag);
+                str_cpy(pnm, pe->npresets ? pe->presets[TSEL->preset % pe->npresets].name : "", sizeof pnm);
+            }
+            cv_text(10, 5, &AF_S, ptag, T_ACCENT);
+            cv_text(54, 5, &AF_M, pnm, T_TEXT);
+            cv_blit(12, 118);
         } else {
             if (ui.preset_pop_ms) {
                 ui.preset_pop_ms = 0;
                 ui.force = 1;
             }
+            draw_columns();
             draw_graph();
         }
     }

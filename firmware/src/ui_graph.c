@@ -642,17 +642,36 @@ static void graph_grid(const track_t *t, uint16_t c)
     if (song.playing && seq_src(t, t->seq_idx) < len && seq_src(t, t->seq_idx) / 16u == ui.bank)
         cv_rect(40 + (int32_t)(seq_src(t, t->seq_idx) % 16u) * 12, y0 - 1, 10, 3, T_TEXT);
 }
-/* SCL: the 12 keys as rounded bars (black keys high, white keys low): in the scale THEME, the root the
- * accent, out of the scale RAISE */
+/* SCL: Modernized Scale Piano Keyboard Matrix with Clear Degree & Root Badges */
 static void graph_scale(const track_t *t, uint16_t c)
 {
     static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+    static const char *const NOTE_N[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
     uint32_t i, mask = scale_mask(t);
+    int32_t y0 = 10;
+
+    /* Background panel frame */
+    cv_rrect(6, y0, 228, 98, 5, T_RAISE, T_SURF);
+    cv_rrect(7, y0 + 1, 226, 96, 4, T_SURF, T_RAISE);
+
+    /* 12 Key slots */
     for (i = 0; i < 12u; i++) {
         uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
-        int32_t x = 13 + (int32_t)i * 18;
-        uint16_t col = (mask >> deg) & 1u ? (deg == 0u ? T_ACCENT : c) : T_RAISE;
-        cv_rrect(x + 3, BLACK[i] ? 6 : 38, 10, 52, 3, col, T_SURF);
+        int32_t x = 11 + (int32_t)i * 18;
+        int in_scale = (mask >> deg) & 1u;
+        int is_root = (deg == 0u);
+        uint16_t key_col = in_scale ? (is_root ? T_ACCENT : c) : T_RAISE;
+        uint16_t text_col = in_scale ? (is_root ? T_INK : T_TEXT) : T_DIM;
+
+        /* Key Bar */
+        cv_rrect(x + 2, y0 + (BLACK[i] ? 6 : 28), 14, BLACK[i] ? 42 : 56, 3, key_col, T_SURF);
+
+        /* Root Indicator Dot */
+        if (is_root)
+            cv_rect(x + 6, y0 + (BLACK[i] ? 12 : 36), 6, 6, T_INK);
+
+        /* Note label at bottom */
+        cv_text_in(x + 1, y0 + 84, 16, &AF_S, NOTE_N[i], text_col, T_SURF);
     }
 }
 static void panel_note(const char *a, const char *b, const char *c);
@@ -2295,6 +2314,18 @@ static void graph_home_viz(uint16_t c)
     /* Outer grid & reticle */
     cv_rect(12, cy, 216, 1, T_LINE);
     cv_rect(cx, 32, 1, 176, T_LINE);
+
+    /* Dynamic particle sparks reactive to audio peak */
+    if (peak > 2000) {
+        for (i = 0; i < 12u; i++) {
+            uint32_t seed = (uint32_t)(fm1_ms * 13u + i * 97u);
+            int32_t px = 18 + (int32_t)(seed % 204u);
+            int32_t pamp = (snap[(trig + (uint32_t)(px - 18)) & (SCOPE_N - 1u)] * 54) / peak;
+            int32_t py_spark = cy - pamp + ((int32_t)(seed >> 8) % 17) - 8;
+            py_spark = clamp(py_spark, 36, 204);
+            cv_pset(px, py_spark, (i & 1u) ? T_ACCENT : T_THEME);
+        }
+    }
 
     /* Real-time audio waveform from authentic output buffer */
     for (x = 0; x < 216; x += 2) {
