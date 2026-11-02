@@ -1346,60 +1346,24 @@ static void draw_columns(void)
 }
 
 
-/* The power-on splash (main.c fm1_main, web/emu felucca_web.c; JIANT 0.5): the maker's signature ("Jiant FM1",
- * tools/gen_signature.py: 24 strokes, 214 points) written in the thermal colours, stroke by stroke as the hand went:
- * the line cold (cyan) where the pen started, hotter along its way (violet, red, orange) to yellow white where it
- * ended, the pen's tip a white point while it writes; under it, small, the version and "based on Felucca". Written over
- * SPL_WRITE ms (splash_write, main.c's splash loop; MENU > ANIM OFF: whole at once). Lines only, the canvas
- * redrawn a step (~700 short lines). In the saved palette (settings_init before it) */
-#include "ui_signature.h"
-#define SPL_WRITE 800u                              /* ms: the signature written (was 900; 0.6.51: 600 -> 800) */
+/* The power-on screen (main.c fm1_main; QG-1 v1.5, redesigned): the chamfered quantum frame with its accent
+ * bracket, the wordmark in the block letters the QG logo is built from, and a spectrum rail that lights from
+ * the left while the boot runs with the playhead on its leading edge. Under the frame, two lines: the
+ * installed version, then the project's name. Nothing else is drawn, and nothing in it is a stored picture:
+ * it is all rects and lines in the saved palette (settings_init runs before this), so it costs no frame
+ * buffer and follows the theme. Written over SPL_WRITE ms by splash_write (MENU > ANIM OFF: whole at once);
+ * SHORT draws it whole and holds it SPL_SHORT; OFF has no splash at all (main.c skips this entirely). */
+#define SPL_WRITE 800u                              /* ms: the screen written (was 900; 0.6.51: 600 -> 800) */
 #define SPL_HOLD 900u                               /* .. then shown whole, before the UI (was 1100; 0.6.51: 500 -> 900) */
 #define SPL_SHORT 300u                              /* (QG-1 v1.5) MENU > STARTUP SPLASH SHORT: drawn whole and held
                                                      * this long, with no writing animation (OFF: main.c skips the
                                                      * splash entirely; the hardware init is the same in all three) */
-#define SPL_SY 40                                   /* the signature's canvas on the screen (240 x SIG_H + 12) */
+#define SPL_SY 40                                   /* the art's canvas on the screen (240 x SPL_ART_H) */
+#define SPL_ART_H 124                               /* .. 40 .. 163, the band ui_render measures for ink */
+#define SPL_BARS 16                                 /* the rail's bars */
 #define SPL_TY 186                                  /* the two lines under it */
 static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, "QUANTUM GAMMAWAVE // QG-1"};
 static uint8_t spl_anim;                            /* main.c: 1 = the signature to be written (splash_write) */
-static int32_t sig_seg(uint32_t i)                  /* segment i -> i + 1's length, px (0: a stroke starts at i + 1) */
-{
-    int32_t dx = SIG_PTS[2u * i + 2u] - SIG_PTS[2u * i], dy = (SIG_PTS[2u * i + 3u] & 127) - (SIG_PTS[2u * i + 1u] & 127);
-    if (SIG_PTS[2u * i + 3u] & 128u)                /* (y's bit 7: a stroke starts) */
-        return 0;
-    dx = dx < 0 ? -dx : dx;
-    dy = dy < 0 ? -dy : dy;
-    return dx > dy ? dx + dy / 2 : dy + dx / 2;
-}
-static int32_t sig_len(void)
-{
-    static int32_t n;
-    uint32_t i;
-    if (!n)
-        for (i = 0; i + 1u < SIG_N; i++)
-            n += sig_seg(i);
-    return n;
-}
-/* (0.5.2) the stroke point j of the signature, smoothed (1 4 6 4 1 over its neighbours inside its stroke [s, e],
- * the ends kept), Q4 */
-static void sig_pt(uint32_t j, uint32_t s, uint32_t e, int32_t *x, int32_t *y)
-{
-    static const uint8_t W[5] = {1, 4, 6, 4, 1};
-    int32_t k, sx = 0, sy = 0;
-    if (j == s || j == e) {
-        *x = SIG_PTS[2u * j] * 16;
-        *y = (SIG_PTS[2u * j + 1u] & 127) * 16;
-        return;
-    }
-    for (k = -2; k <= 2; k++) {
-        int32_t i = (int32_t)j + k;
-        uint32_t m = (uint32_t)(i < (int32_t)s ? (int32_t)s : i > (int32_t)e ? (int32_t)e : i);
-        sx += W[k + 2] * SIG_PTS[2u * m];
-        sy += W[k + 2] * (SIG_PTS[2u * m + 1u] & 127);
-    }
-    *x = sx;                                            /* (/16 x 16: Q4) */
-    *y = sy;
-}
 /* Bold geometric block glyph renderer for "QUANTUM" in QG-1 StandaloneLogoComponent (no font hook side-effects) */
 static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
 {
@@ -1438,79 +1402,38 @@ static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, 
  *   - Chamfered Octagonal Quantum Frame with Top-Left Cyan Bracket
  *   - Upper Bay: Quantum Core Blazing Cyan/Amber + Orbiting Electron Rings
  *   - Lower Bay: Full 7-letter "QUANTUM" typography physically surfing along the glowing sine wave */
-static void splash_sig(int32_t px, uint32_t ms)
+static const uint8_t SPL_BAR[SPL_BARS] = {7, 12, 19, 26, 31, 25, 20, 28, 34, 29, 22, 16, 11, 18, 10, 6};
+/* prog: 0..256 of SPL_WRITE. The two texts are NOT drawn here: draw_splash draws the version and the name
+ * first, so the order ui_render asserts stays "version | name". */
+static void splash_sig(uint32_t prog, uint32_t ms)
 {
     static const char *const WORD = "QUANTUM";
-    int32_t tot = sig_len(), prog = px >= tot ? 256 : px * 256 / (tot ? tot : 1);
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
-    int32_t i, wx0 = 18, ww = 204, wy = 104, w_draw = ww * prog / 256;
-    int32_t py = wy;
-    (void)sig_pt;
-    cv_begin(240, SIG_H + 12, T_BG);
+    int32_t i, lx, ly = 14, lw = 20, lh = 26, step = 26;
+    int32_t rx = 26, rstep = 12, rw = 8, base = 104, rmax = 44;
+    uint32_t lit = prog * SPL_BARS / 256u;
+    (void)ms;
+    cv_begin(240, SPL_ART_H, T_BG);
+    gw_oct_panel(8, 2, 224, SPL_ART_H - 4, 6, mono ? T_BG : T_SURF, T_LINE, 1, mono ? T_TEXT : T_THEME);
 
-    /* 1. Chamfered Octagonal GammaWave Logo Frame with Top-Left #f27121 Bracket */
-    gw_oct_panel(8, 2, 224, SIG_H + 8, 6, mono ? T_BG : T_SURF, T_LINE, 1, mono ? T_TEXT : T_THEME);
-
-    /* 2. Upper Bay: THE HEARTH Blazing Yellow-White Sun + Orbiting Satellite Moon */
-    if (!mono) {
-        gw_draw_hearth(120, 39, 15, 200 * prog / 256, 224, 196, ms * 24u);
-    } else {
-        gw_orbit_ring(120, 39, 30, 18, T_DIM, 1);
-        gw_disc(120, 39, 12, T_TEXT);
-    }
-    /* 2b. (QG-1) the quantum shell: two electron orbits around the Hearth, written in with the signature */
-    if (prog > 64) {
-        static const int8_t ORB[2][2] = {{46, 11}, {22, 30}};
-        uint32_t k;
-        for (k = 0; k < 2u; k++) {
-            uint32_t ph = ms * (k ? 41u : 29u) + k * 21845u;
-            int32_t ex = 120 + (bg_sin(ph) * ORB[k][0] >> 15), ey = 39 + (bg_sin(ph + 16384u) * ORB[k][1] >> 15);
-            gw_orbit_ring(120, 39, ORB[k][0], ORB[k][1], mono ? T_DIM : T_LINE, 1);
-            gw_disc(ex, ey, 2, mono ? T_TEXT : k ? T_ACCENT : T_THEME);
-        }
-    }
-    cv_rect(18, 72, 204, 1, T_LINE);
-
-    /* 3. Lower Bay: Glowing Triple-Stroked #f27121 Orange & Yellow 3-Cycle Sine Wave across full bay */
-    for (i = 0; i <= w_draw; i++) {
-        uint32_t ph = (uint32_t)(i * 3 * 65536 / ww) - ms * 22u;
-        int32_t y = wy - (bg_sin(ph) * 8 >> 15);
-        if (i) {
-            if (!mono) {
-                /* Outer warm amber glow */
-                cv_line(wx0 + i - 1, py - 2, wx0 + i, y - 2, bg_col(84));
-                cv_line(wx0 + i - 1, py + 2, wx0 + i, y + 2, bg_col(84));
-                /* Mid #f27121 vibrant orange wave */
-                cv_line(wx0 + i - 1, py - 1, wx0 + i, y - 1, bg_col(176));
-                cv_line(wx0 + i - 1, py + 1, wx0 + i, y + 1, bg_col(176));
-                /* Inner hot yellow-white core */
-                cv_line(wx0 + i - 1, py, wx0 + i, y, bg_col(246));
-            } else {
-                cv_line_t(wx0 + i - 1, py - 1, wx0 + i, y - 1, T_TEXT, 2);
-            }
-        }
-        py = y;
-    }
-
-    /* 4. Wave-Surfing "QUANTUM" Typography: each letter rides the phase of the live sine wave */
+    /* the wordmark, one letter at a time as the boot runs */
     for (i = 0; i < 7; i++) {
-        int32_t lx = 32 + i * 26;
-        if (lx <= wx0 + w_draw) {
-            uint32_t lph = (uint32_t)((lx - wx0) * 3 * 65536 / ww) - ms * 22u;
-            int32_t surf_y = 85 - (bg_sin(lph) * 6 >> 15);
-            uint16_t lc = mono ? T_TEXT : (i < 4 ? T_THEME : T_ACCENT);
-            gw_logo_letter(WORD[i], lx, surf_y, 16, 18, lc);
-        }
+        if ((uint32_t)(i + 1) * 256u / 7u > prog)
+            break;
+        lx = 32 + i * step;
+        gw_logo_letter(WORD[i], lx, ly, lw, lh, mono ? T_TEXT : (i < 4 ? T_THEME : T_ACCENT));
     }
 
-    /* 5. Floating White/Gold Spark Particles around the Sine Wave */
-    for (i = 0; i < 10; i++) {
-        int32_t sx = wx0 + ((i * 21 + (int32_t)(ms / 24u)) % ww);
-        int32_t sy = wy + (((i * 29) % 24) - 12);
-        if (sx <= wx0 + w_draw)
-            cv_pset(sx, sy, mono ? T_TEXT : (i & 1) ? T_TEXT : bg_col(224));
+    /* the rail: a fixed spectrum, lit from the left, the newest bar in the accent */
+    cv_rect(rx, base, rstep * SPL_BARS - (rstep - rw), 1, mono ? T_DIM : T_LINE);
+    for (i = 0; i < (int32_t)lit && i < (int32_t)SPL_BARS; i++) {
+        int32_t h = (int32_t)SPL_BAR[i] * rmax / 34;
+        cv_rect(rx + i * rstep, base - h, rw, h, mono ? T_TEXT : ((uint32_t)i + 1u == lit ? T_ACCENT : T_THEME));
     }
-
+    if (prog < 256u) {                              /* the playhead, only while it is writing */
+        int32_t px = rx + (int32_t)(prog * (uint32_t)(rstep * SPL_BARS) / 256u);
+        cv_rect(px, ly - 4, 1, base - ly + 6, mono ? T_TEXT : T_ACCENT);
+    }
     cv_blit(0, SPL_SY);
 }
 static void draw_splash(void)
@@ -1523,15 +1446,15 @@ static void draw_splash(void)
     for (k = 0; k < 2u; k++)
         cv_text_in(0, (int32_t)k * 16, 240, &AF_S, SPLASH_LINES[k], k ? T_DIM : T_MID, T_BG);
     cv_blit(0, SPL_TY);
-    splash_sig(spl_anim && !(ui_prefs & PREF_ANIM_OFF) ? 0 : 0x7FFFFFFF, SPL_WRITE);
+    splash_sig(spl_anim && !(ui_prefs & PREF_ANIM_OFF) ? 0u : 256u, SPL_WRITE);
     lcd_sync();
 }
-/* main.c's splash loop: the signature as written ms after the start */
+/* main.c's splash loop: the screen as written ms after the start */
 static void splash_write(uint32_t ms)
 {
     if (!spl_anim || (ui_prefs & PREF_ANIM_OFF))
         return;
-    splash_sig(ms >= SPL_WRITE ? 0x7FFFFFFF : (int32_t)((int64_t)sig_len() * ms / SPL_WRITE), ms);
+    splash_sig(ms >= SPL_WRITE ? 256u : ms * 256u / SPL_WRITE, ms);
     lcd_sync();
 }
 

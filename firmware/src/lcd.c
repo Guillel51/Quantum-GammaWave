@@ -85,6 +85,16 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
             k = n;
         lcd_data(lcd_fillbuf, k * 2u);
     }
+    /* (QG-1 v1.5) A whole-screen background fill also repaints the controller's rows the panel is not bonded
+     * to (240..319). They cannot be addressed from the UI's 240x240 coordinates, so without this they keep
+     * whatever colour they had at boot: on a module bonded to the upper slice that reads as a band of the
+     * startup background across the bottom of the screen for the rest of the session, and it changes colour
+     * with the palette without them. The clamp above still keeps every other fill inside the panel. */
+    if (!x && !y && w == 240u && h == 240u) {
+        lcd_window(0, 240u, 239u, 319u);
+        for (n = 80u * 240u; n; n -= 240u)            /* 19200 pixels, 240 at a time (lcd_fillbuf's size) */
+            lcd_data(lcd_fillbuf, 240u * 2u);
+    }
 }
 
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px)
@@ -127,7 +137,10 @@ static const uint8_t LCD_SEQ[] = {
     0x13, 0,                     /* NORON */
 };
 
-static void lcd_init(void)
+/* bg: the theme's background (main.c passes T_BG, valid because settings_init() applies the palette before
+ * this runs). The whole 240x320 is written in it, not in black, so no bonded slice of the panel can show a
+ * colour the splash and the UI never draw. */
+static void lcd_init(uint16_t bg)
 {
     uint32_t r, x;
     fm1_lcd_hw_init();
@@ -144,7 +157,7 @@ static void lcd_init(void)
             lcd_data(lcd_small, LCD_SEQ[r + 1u]);
     }
     fm1_lcd_baud(LCD_BAUD);
-    lcd_gdram_clear(0);                            /* every row of the 240x320, not just the 240x240 the UI uses */
+    lcd_gdram_clear(bg);                           /* every row of the 240x320, not just the 240x240 the UI uses */
     lcd_cmd(0x29);
     /* The backlight only now (fm1_lcd_hw_init left it off): the panel has had SWRESET, SLPOUT, COLMOD, MADCTL and a
      * write of its whole 240x320 frame memory, so there is no row the panel can scan that nobody has written. PA2 is
