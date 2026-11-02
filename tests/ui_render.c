@@ -1234,6 +1234,49 @@ static void draw(int s)
             static uint8_t said;
             if (!said++) printf("ui_render: the splash shows the version " FELUCCA_VERSION " (FELUCCA_VERSION) and its lines\n");
         }
+        {   /* (QG-1 v1.5) the boot timeline exactly as main.c runs it -- one step every 4 ms over
+             * SPL_WRITE + SPL_HOLD: how many of those steps change the framebuffer AT ALL. splash_sig redraws
+             * only when its signature moves, so this counts the identical rewrites the hold used to pay for,
+             * on the pixels themselves rather than by arithmetic. */
+            const uint32_t np = (uint32_t)(sizeof host_screen / sizeof host_screen[0]);
+            uint32_t ms, steps = 0, changed = 0, prev = 0, i;
+            uint8_t anim0 = spl_anim;
+            uint32_t prefs0 = ui_prefs;
+            static uint8_t saidcost;
+            spl_anim = 1;
+            ui_prefs &= ~(uint32_t)PREF_ANIM_OFF;
+            for (ms = 0; ms < SPL_WRITE + SPL_HOLD; ms += 4u) {
+                uint32_t h = 2166136261u;
+                splash_write(ms);
+                for (i = 0; i < np; i++) { h ^= (uint32_t)host_screen[i]; h *= 16777619u; }
+                if (!steps) prev = h;
+                else if (h != prev) { changed++; prev = h; }
+                steps++;
+            }
+            spl_anim = anim0;
+            ui_prefs = prefs0;
+            {   /* the frame the whole timeline left must be the frame a whole draw produces: the guard may only
+                 * skip work, never pixels. */
+                uint16_t end[sizeof host_screen / sizeof host_screen[0]];
+                memcpy(end, host_screen, sizeof end);
+                spl_anim = 0;
+                draw_splash();
+                spl_anim = anim0;
+                if (memcmp(end, host_screen, sizeof end)) {
+                    if (rep) fprintf(rep, "FIND %-26s the splash timeline's last frame is not the whole splash\n",
+                                     cur_name);
+                    nfind++;
+                }
+            }
+            if (steps != 425u || changed < 150u || changed > 300u) {   /* the timeline, or the art, moved */
+                if (rep) fprintf(rep, "FIND %-26s the splash timeline: %u steps of 4 ms, %u change the screen\n",
+                                 cur_name, steps, changed);
+                nfind++;
+            } else if (!saidcost++) {
+                printf("ui_render: splash timeline: %u steps of 4 ms, %u of them change the screen, "
+                       "%u identical rewrites skipped\n", steps, changed, steps - changed);
+            }
+        }
         return;
     }
     ui.force = 1;

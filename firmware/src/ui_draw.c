@@ -1364,6 +1364,9 @@ static void draw_columns(void)
 #define SPL_TY 186                                  /* the two lines under it */
 static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, "QUANTUM GAMMAWAVE // QG-1"};
 static uint8_t spl_anim;                            /* main.c: 1 = the signature to be written (splash_write) */
+static uint32_t spl_shown;                          /* (QG-1 v1.5) the art's signature actually on screen: splash_sig is
+                                                     * a no-op while it matches, so the splash's hold does not rewrite a
+                                                     * still 240x124 art every 4 ms. 0 = nothing trusted yet */
 /* Bold geometric block glyph renderer for "QUANTUM" in QG-1 StandaloneLogoComponent (no font hook side-effects) */
 static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
 {
@@ -1412,7 +1415,25 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     int32_t i, lx, ly = 14, lw = 20, lh = 26, step = 26;
     int32_t rx = 26, rstep = 12, rw = 8, base = 104, rmax = 44;
     uint32_t lit = prog * SPL_BARS / 256u;
+    int32_t letters = 0, ph = -1;
+    uint32_t sig;
     (void)ms;
+    /* The art is a pure function of (bars lit, letters shown, playhead x, mono) -- nothing else in here reads state.
+     * While that signature equals what splash_sig last drew, drawing again would produce the same pixels, so it
+     * returns. main.c's boot loop calls this every 4 ms over SPL_WRITE + SPL_HOLD (1700 ms): without this the
+     * 900 ms hold rewrote the identical art ~225 times, ~6.7 M pixels for a screen that had stopped changing. */
+    for (i = 0; i < 7; i++) {
+        if ((uint32_t)(i + 1) * 256u / 7u > prog)
+            break;
+        letters = i + 1;
+    }
+    if (prog < 256u)
+        ph = rx + (int32_t)(prog * (uint32_t)(rstep * SPL_BARS) / 256u);
+    sig = 0x51470000u | (mono ? 0x01000000u : 0u) | (lit << 16) | ((uint32_t)letters << 8) |
+          (ph < 0 ? 0xFFu : (uint32_t)ph);
+    if (sig == spl_shown)
+        return;
+    spl_shown = sig;
     cv_begin(240, SPL_ART_H, T_BG);
     gw_oct_panel(8, 2, 224, SPL_ART_H - 4, 6, mono ? T_BG : T_SURF, T_LINE, 1, mono ? T_TEXT : T_THEME);
 
@@ -1446,6 +1467,7 @@ static void draw_splash(void)
     for (k = 0; k < 2u; k++)
         cv_text_in(0, (int32_t)k * 16, 240, &AF_S, SPLASH_LINES[k], k ? T_DIM : T_MID, T_BG);
     cv_blit(0, SPL_TY);
+    spl_shown = 0;                                  /* the frame was just cleared under it: write the art again */
     splash_sig(spl_anim && !(ui_prefs & PREF_ANIM_OFF) ? 0u : 256u, SPL_WRITE);
     lcd_sync();
 }
