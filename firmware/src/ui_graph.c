@@ -718,6 +718,13 @@ static void panel_alert(uint32_t id, const char *a);
  * Compact modular 4-channel rack with scaled micro-faders, exact numeric send readouts,
  * distortion topology tags (SOFT/TAPE/HRTH/FLUX), and global bus telemetry (EQ, Slicer, M/S Width)
  * neatly contained within screen boundaries without clipping or overflowing. */
+/* (QG-1 WORKSTATION FX OVERVIEW)
+ * General FX Overview dashboard: displays all implemented effect modules categorized:
+ *  - Column 0 (TRACK FX): DIST/DRIVE (level + topology SOFT/TAPE/HEARTH/FLUX), AUTO-PAN
+ *  - Column 1 (CHORUS / PHASER BUS): Chorus Rate, Depth, Stereo Width, Type
+ *  - Column 2 (DELAY BUS): Time, Feedback, Mix, Analog/Digital Tape Type
+ *  - Column 3 (REVERB BUS & MASTER): Reverb Size/Damp/Pre, Master EQ & Stereo Width
+ * Shows active/bypass status, live meter levels, and topology tag in real-time. */
 static void graph_fx(const track_t *t, uint16_t c)
 {
     static const char *const FX_LABELS[4] = {"DIST", "CHOR", "DLY", "REV"};
@@ -780,6 +787,122 @@ static void graph_fx(const track_t *t, uint16_t c)
         fmt_int(wb + 6, (int32_t)song.g[G_MWIDTH] * 100 / 64);
         str_cpy(wb + str_len(wb), "%", 2);
         cv_text_r(230, 78, &AF_S, wb, T_TEXT, T_SURF);
+    int32_t y0 = 6, box_h = 86;
+
+    /* Background categorized FX blocks */
+    for (i = 0; i < 4u; i++) {
+        int32_t x = CARD_X(i);
+        int32_t w = 56;
+        uint16_t frame_col = (i == ui.hot_col && ui.hot_t) ? T_ACCENT : T_SURF;
+        uint16_t text_col = (i == ui.hot_col && ui.hot_t) ? T_ACCENT : T_MID;
+
+        /* Outer Module Card Frame */
+        cv_rrect(x, y0, w, box_h, 4, T_RAISE, T_SURF);
+        cv_rrect(x + 1, y0 + 1, w - 2, box_h - 2, 3, T_SURF, T_RAISE);
+        if (frame_col == T_ACCENT)
+            cv_rect(x + 2, y0 + 1, w - 4, 1, T_ACCENT);
+
+        /* Category / Module Mini Headers with dedicated Icons */
+        if (i == 0) {
+            /* Column 0: DRIVE / DIST & AUTO PAN */
+            int32_t dval = clamp(t->p[P_DIST], 0, 127);
+            int32_t dtype = clamp(t->p[P_DTYPE], 0, 3);
+            int32_t apdep = clamp(t->p[P_APDEP], 0, 127);
+            int32_t bar_h = dval * 42 / 127;
+            uint16_t act_c = dval > 0 ? (ux.chamfer ? heat_col(dval * 2) : T_THEME) : T_DIM;
+
+            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_DRIVE, text_col, T_SURF);
+            cv_text(x + 18, y0 + 3, &AF_S, "DRIVE", text_col);
+            cv_text(x + 4, y0 + 15, &AF_S, N_DTYPE[dtype], act_c);
+
+            /* Drive Level Bar */
+            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
+            if (bar_h > 2)
+                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
+
+            /* Auto Pan Indicator with ICON_PAN */
+            cv_icon_in(x + 18, y0 + 29, 12, 12, 12, ICON_PAN, apdep > 0 ? T_THEME : T_DIM, T_SURF);
+            cv_text(x + 31, y0 + 30, &AF_S, "A-PAN", apdep > 0 ? T_THEME : T_DIM);
+            cv_rrect(x + 18, y0 + 44, 32, 6, 2, T_RAISE, T_SURF);
+            if (apdep > 0)
+                cv_rrect(x + 18, y0 + 44, clamp(apdep * 32 / 127, 2, 32), 6, 2, T_THEME, T_RAISE);
+            cv_text(x + 18, y0 + 56, &AF_S, apdep > 0 ? "ACTIVE" : "OFF", apdep > 0 ? T_TEXT : T_DIM);
+        } else if (i == 1) {
+            /* Column 1: CHORUS / PHASER */
+            int32_t csend = clamp(t->p[P_CHOR], 0, 127);
+            int32_t ctype = clamp(song.g[G_CTYPE], 0, 1);
+            int32_t bar_h = csend * 42 / 127;
+            uint16_t act_c = csend > 0 ? (ux.chamfer ? heat_col(csend * 2) : T_THEME) : T_DIM;
+
+            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_CHORUS, text_col, T_SURF);
+            cv_text(x + 18, y0 + 3, &AF_S, "CHORUS", text_col);
+            cv_text(x + 4, y0 + 15, &AF_S, ctype ? "PHASE" : "ENSEMB", act_c);
+
+            /* Chorus Send Bar */
+            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
+            if (bar_h > 2)
+                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
+
+            /* Stereo Width status with ICON_PAN */
+            cv_icon_in(x + 18, y0 + 29, 12, 12, 12, ICON_PAN, T_MID, T_SURF);
+            cv_text(x + 31, y0 + 30, &AF_S, "WIDTH", T_MID);
+            cv_text(x + 18, y0 + 44, &AF_S, song.g[G_CSTER] < 0 ? "NARROW" : "WIDE", T_THEME);
+            cv_text(x + 18, y0 + 56, &AF_S, csend > 0 ? "ACTV" : "MUTE", act_c);
+        } else if (i == 2) {
+            /* Column 2: DELAY */
+            int32_t dsend = clamp(t->p[P_DLY], 0, 127);
+            int32_t dtype = clamp(song.g[G_DTYPE], 0, 1);
+            int32_t dping = clamp(song.g[G_DPING], 0, 1);
+            int32_t bar_h = dsend * 42 / 127;
+            uint16_t act_c = dsend > 0 ? (ux.chamfer ? heat_col(dsend * 2) : T_THEME) : T_DIM;
+
+            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_DELAY, text_col, T_SURF);
+            cv_text(x + 18, y0 + 3, &AF_S, "DELAY", text_col);
+            cv_text(x + 4, y0 + 15, &AF_S, dtype ? "DIGITL" : "ANALOG", act_c);
+
+            /* Delay Send Bar */
+            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
+            if (bar_h > 2)
+                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
+
+            /* Ping Pong & Mix info with ICON_FEEDBACK */
+            cv_text(x + 18, y0 + 30, &AF_S, dping ? "PINGPONG" : "STEREO", T_THEME);
+            cv_icon_in(x + 18, y0 + 42, 12, 12, 12, ICON_FEEDBACK, T_MID, T_SURF);
+            cv_rrect(x + 32, y0 + 46, 20, 4, 1, T_RAISE, T_SURF);
+            cv_rrect(x + 32, y0 + 46, clamp(song.g[G_DFDBK] * 20 / 127, 2, 20), 4, 1, T_THEME, T_RAISE);
+            cv_text(x + 18, y0 + 56, &AF_S, dsend > 0 ? "ACTV" : "MUTE", act_c);
+        } else {
+            /* Column 3: REVERB & MASTER BUS (EQ / SLICER / STEREO M/S) */
+            int32_t rsend = clamp(t->p[P_REV], 0, 127);
+            int32_t eqmode = clamp(song.g[G_EQMODE], 0, 4);
+            int32_t mwidth = clamp(song.g[G_MWIDTH], 0, 127);
+            int32_t bar_h = rsend * 42 / 127;
+            uint16_t act_c = rsend > 0 ? (ux.chamfer ? heat_col(rsend * 2) : T_THEME) : T_DIM;
+
+            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_REVERB, text_col, T_SURF);
+            cv_text(x + 18, y0 + 3, &AF_S, "REVERB", text_col);
+            cv_text(x + 4, y0 + 15, &AF_S, song.g[G_RTYPE] ? "SPRING" : "ROOM", act_c);
+
+            /* Reverb Send Bar */
+            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
+            if (bar_h > 2)
+                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
+
+            /* Master EQ with ICON_CUTOFF, Slicer with ICON_X_REPEAT and Stereo M/S */
+            cv_icon_in(x + 18, y0 + 29, 12, 12, 12, ICON_CUTOFF, eqmode > 0 ? T_ACCENT : T_MID, T_SURF);
+            cv_text(x + 31, y0 + 30, &AF_S, eqmode == 0 ? "EQ BYP" : eqmode == 1 ? "PEAK" : "NOTCH",
+                    eqmode > 0 ? T_ACCENT : T_DIM);
+
+            if (song.g[G_SLMODE] != 0) {
+                cv_icon_in(x + 18, y0 + 43, 12, 12, 12, ICON_X_REPEAT, T_ACCENT, T_SURF);
+                cv_text(x + 31, y0 + 44, &AF_S, "SLICER", T_ACCENT);
+            } else {
+                cv_icon_in(x + 18, y0 + 43, 12, 12, 12, ICON_PAN, mwidth != 64 ? T_THEME : T_MID, T_SURF);
+                cv_text(x + 31, y0 + 44, &AF_S, mwidth < 64 ? "M/S MON" : mwidth > 64 ? "M/S WID" : "M/S BYP",
+                        mwidth != 64 ? T_THEME : T_DIM);
+            }
+            cv_text(x + 18, y0 + 56, &AF_S, rsend > 0 ? "ACTV" : "MUTE", act_c);
+        }
     }
 }
 /* SLICER and SL BUS pages (JIANT 0.6.3: one, on a bus): the pattern's 16 steps, a 'x' step a full bar; a '.' step: GATE
