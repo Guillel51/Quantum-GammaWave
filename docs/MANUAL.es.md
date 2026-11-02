@@ -89,7 +89,7 @@ Los nombres de abajo son los que usa el firmware (la pantalla HARDWARE CALIBRATI
 
 | Control | Qué hace |
 | --- | --- |
-| **SELECT** (encoder) | Solo: **recorre las páginas de la sección en la que estás** (las de EDIT en una página EDIT, las de FX en una de FX …), una por paso, sin dar la vuelta; en **HOME** abre el **GENERATOR** (como HOME + SELECT; con MENU > GEN > SELECT ON HOME en TEMPO cambia el tempo en su lugar). Con un botón mantenido, los **dados** de ese botón: **HOME** + SELECT el **GENERATOR**, **EDIT** + SELECT el sonido, **SEQ** + SELECT la secuencia, **LFO** + SELECT el LFO, **FX** + SELECT los efectos. **GLO** + SELECT: el tempo. Cualquier otro botón de página + SELECT: sus páginas. |
+| **SELECT** (encoder) | Solo: **recorre las páginas de la sección en la que estás** (las de EDIT en una página EDIT, las de FX en una de FX …), una por paso, sin dar la vuelta; en **HOME** abre el **GENERATOR** (como HOME + SELECT; con MENU > EXTRA > SELECT ON HOME en TEMPO cambia el tempo en su lugar). Con un botón mantenido, los **dados** de ese botón: **HOME** + SELECT el **GENERATOR**, **EDIT** + SELECT el sonido, **SEQ** + SELECT la secuencia, **LFO** + SELECT el LFO, **FX** + SELECT los efectos. **GLO** + SELECT: el tempo. Cualquier otro botón de página + SELECT: sus páginas. |
 | **ALGORITHM** (encoder) | Elige la pista desde cualquier página: T1–T4, o T1–T6 con TRACKS 6. En el MENU: cambia de pestaña. |
 | **PRESETS** (encoder) | En HOME, PRESETS y las páginas de sonido: recorre sonidos (los presets de fábrica de cada motor y después tus presets de usuario). En las páginas de pasos (STEP, COMP, PATTERN, AUTOMATION, SHIFT): mueve el cursor de paso. En las páginas de lista (USER, PROJECT, ARRANGE, TOOLS, AUTO LIST): mueve la selección. **Mantené un botón de página y girá SELECT** (o PRESETS) para saltar directo por las páginas de ese botón. |
 | **KNOB 1–4** | Las cuatro tarjetas (columnas) de la pantalla. Con una capa mantenida, las perillas propias de la capa. Girar rápido recorre todo el rango, despacio ajusta fino (MENU > KNOB ACCEL lo desactiva). |
@@ -1455,7 +1455,7 @@ valor. HOME lo cierra (en ese momento se guarda la configuración).
 | SYSTEM | CALIBRATION | OCT+ abre HARDWARE CALIBRATION (enseñarle cada botón y perilla) |
 | SYSTEM | INIT SYSTEM | OCT+ pregunta, y después todo vuelve a cero para una canción nueva (como SAVE > TOOLS > NEW PROJECT; UNDO devuelve la música) |
 | SYSTEM | ABOUT | OCT+ abre: versión, código QR, AUDIO LOAD (NOW, PEAK, LATE, SHED desde el encendido) y créditos (se desplaza con PRESETS, OCT− vuelve). Ahí OCT+ abre el visualizador (ver [17](#17-novedades-de-gw-1)) |
-| GEN | SELECT ON HOME | **GENERATOR** (por defecto): SELECT solo en HOME abre el generador; TEMPO: cambia el tempo en su lugar (el generador sigue en HOME mantenido + SELECT, u OCT− + PLAY) |
+| EXTRA | SELECT ON HOME | **GENERATOR** (por defecto): SELECT solo en HOME abre el generador; TEMPO: cambia el tempo en su lugar (el generador sigue en HOME mantenido + SELECT, u OCT− + PLAY) |
 
 Si escuchás clicks, abrí ABOUT y mirá **LATE** (bloques de audio que llegaron tarde) y **SHED** (voces que la
 protección desvaneció): una foto de esa pantalla ayuda cuando reportás un problema.

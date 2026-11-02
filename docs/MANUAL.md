@@ -89,7 +89,7 @@ The names below are the ones the firmware uses (the HARDWARE CALIBRATION screen 
 
 | Control | What it does |
 | --- | --- |
-| **SELECT** (encoder) | Alone: **scrolls through the pages of the section you are in** (EDIT's pages on an EDIT page, FX's on an FX page …), one a detent, no wrap; on **HOME** it opens the **GENERATOR** (as HOME + SELECT; with MENU > GEN > SELECT ON HOME TEMPO it turns the tempo instead). With a button held, that button's **dice**: **HOME** + SELECT the **GENERATOR**, **EDIT** + SELECT the sound, **SEQ** + SELECT the sequence, **LFO** + SELECT the LFO, **FX** + SELECT the effects. **GLO** + SELECT: the tempo. Any other page button + SELECT: its pages. |
+| **SELECT** (encoder) | Alone: **scrolls through the pages of the section you are in** (EDIT's pages on an EDIT page, FX's on an FX page …), one a detent, no wrap; on **HOME** it opens the **GENERATOR** (as HOME + SELECT; with MENU > EXTRA > SELECT ON HOME TEMPO it turns the tempo instead). With a button held, that button's **dice**: **HOME** + SELECT the **GENERATOR**, **EDIT** + SELECT the sound, **SEQ** + SELECT the sequence, **LFO** + SELECT the LFO, **FX** + SELECT the effects. **GLO** + SELECT: the tempo. Any other page button + SELECT: its pages. |
 | **ALGORITHM** (encoder) | Selects the track from any page: T1–T4, or T1–T6 with TRACKS 6. In the MENU: switches tabs. |
 | **PRESETS** (encoder) | On HOME, PRESETS and the sound pages: browses sounds (every engine's factory presets, then your user presets). On step pages (STEP, COMP, PATTERN, AUTOMATION, SHIFT): moves the step cursor. On list pages (USER, PROJECT, ARRANGE, TOOLS, AUTO LIST): moves the selection. **Hold a page button and turn SELECT** (or PRESETS) to jump straight through that button's pages. |
 | **KNOB 1–4** | The four cards (columns) on screen. With a layer held, the layer's own knobs. Turning fast sweeps the whole range, slowly fine-tunes (MENU > KNOB ACCEL turns this off). |
@@ -1369,7 +1369,7 @@ closes it (settings are saved then).
 | SYSTEM | CALIBRATION | OCT+ opens HARDWARE CALIBRATION (teach each button and knob) |
 | SYSTEM | INIT SYSTEM | OCT+ asks, then everything back to zero for a new song (as SAVE > TOOLS > NEW PROJECT; UNDO brings the music back) |
 | SYSTEM | ABOUT | OCT+ opens: version, QR code, AUDIO LOAD (NOW, PEAK, LATE, SHED since power-on) and credits (scroll with PRESETS, OCT− back). OCT+ there opens the visualizer (see [17](#17-gw-1-additions)) |
-| GEN | SELECT ON HOME | **GENERATOR** (default): SELECT alone on HOME opens the generator; TEMPO: it turns the tempo instead (the generator is still HOME held + SELECT, or OCT− + PLAY) |
+| EXTRA | SELECT ON HOME | **GENERATOR** (default): SELECT alone on HOME opens the generator; TEMPO: it turns the tempo instead (the generator is still HOME held + SELECT, or OCT− + PLAY) |
 
 If you hear clicks, open ABOUT and look at **LATE** (audio blocks that came too late) and **SHED** (voices the guard
 faded): a photo of that screen helps when you report a problem.

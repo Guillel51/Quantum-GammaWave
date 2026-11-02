@@ -638,7 +638,7 @@ static void eng(uint32_t e) { set_engine_of(TSEL, e); }
 
 enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESETS, S_PRESETS_NOFAV, S_USER, S_PHRASES, S_PROJECT, S_TOOLS,
        S_SONG_EMPTY, S_SONG, S_STEP, S_PATTERN, S_CHANCE, S_COMP, S_COMP_TRIG, S_COMP_ECHO, S_MUTATE, S_MORPH, S_DXIMG, S_DXSEND, S_PFLASH, S_PFLASH_HOME, S_FUGUE, S_MOTION, S_DRUM, S_DRUM_HAND, S_DRUM_CYM, S_MIXER, S_MIXER_PAN,
-       S_ENV, S_ENVDEST, S_LFO, S_MOD, S_FX, S_SLICER, S_SLBUS, S_SLPITCH, S_DLY, S_SCL, S_SHIFT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM,
+       S_ENV, S_ENVDEST, S_LFO, S_MOD, S_FX, S_SLICER, S_SLBUS, S_SLPITCH, S_DLY, S_SCL, S_SHIFT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM, S_MONITOR,
        S_EDIT_ANALOG, S_EDIT_DIGITAL, S_OP_ENV, S_EDIT_WHEEL, S_EDIT_SAMPLE, S_EDIT_GRAIN,
        S_ALG1, S_ALG2, S_ALG3, S_ALG4, S_ALG5, S_ALG6, S_ALG7, S_ALG8, S_OP_LEVEL,
        S_FM6_ALG1, S_FM6_ALG5, S_FM6_ALG22, S_FM6_ALG32, S_DRUMX, S_DRUMX_HIT, S_DX_SOUND, S_DX_SOUND2,
@@ -658,7 +658,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
     "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "scl", "shift", "arp",
-    "voice", "global", "system", "edit_analog", FELUCCA_FM4 ? "edit_digital" : "edit_fm6", "op_env", "edit_wheel", "edit_voice",
+    "voice", "global", "system", "monitor", "edit_analog", FELUCCA_FM4 ? "edit_digital" : "edit_fm6", "op_env", "edit_wheel", "edit_voice",
     "edit_noise", "alg_1", "alg_2", "alg_3", "alg_4", "alg_5", "alg_6", "alg_7", "alg_8", "op_level", "fm6_alg_01", "fm6_alg_05", "fm6_alg_22", "fm6_alg_32", "drumx", "drumx_hit", "dx_sound", "dx_sound2", "confirm_seq", "confirm_project", "confirm_user", "confirm_pattern",
     "confirm_motion", "confirm_erase", "menu", "menu_speaker", "about", "about_rec", "about_credits", "about_end", "uboot", "calibration", "splash",
     "batt_0", "batt_1", "batt_2", "batt_3", "batt_usb", "motion_rec", "motion_off", "motion_card", "song_home",
@@ -976,6 +976,7 @@ static void setup(int s)
     case S_VOICE: go_title("VOICE"); break;
     case S_GLOBAL: go_title("GLOBAL"); break;
     case S_SYSTEM: go_title("SYSTEM"); break;
+    case S_MONITOR: go_title("MONITOR"); break;   /* (QG-1) GLO > MONITOR: the live diagnostics */
     case S_EDIT_ANALOG: go_title("EDIT 1"); break;
     case S_EDIT_DIGITAL: eng(E_FM); go_title("EDIT 1"); break;
     case S_OP_ENV: eng(1); go_title("OP1 ENV"); break;

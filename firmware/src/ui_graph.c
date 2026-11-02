@@ -661,10 +661,12 @@ static void graph_scale(const track_t *t, uint16_t c)
         cv_rrect(8, 2, 224, 92, 4, T_SURF, T_BG);
     }
 
-    /* 1. Draw 7 White Piano Keys */
+    /* 1. Draw 7 White Piano Keys. A plain rect, not a cv_rrect: a rounded cell here would be as tall as the
+     * whole key, so it would still run under the black keys, and the accidental's name (drawn on the black
+     * key) would touch a cell it is not inside. The fill is identical; only the cell hook is gone. */
     for (i = 0; i < 7u; i++) {
         int32_t kx = x_base + (int32_t)i * 28;
-        cv_rrect(kx, y0 + 10, 26, 68, 3, T_RAISE, T_SURF);
+        cv_rect(kx, y0 + 10, 26, 68, T_RAISE);
     }
 
     /* 2. Highlight In-Scale Natural Notes on White Keys */
@@ -706,22 +708,23 @@ static void graph_scale(const track_t *t, uint16_t c)
         str_cpy(sb, N_NOTE[(uint32_t)t->p[P_ROOT] % 12u], sizeof sb);
         str_cpy(sb + str_len(sb), " ", 2);
         str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
-        cv_text(16, y0 - 1, &AF_S, sb, T_THEME);
+        cv_text(16, y0 - 4, &AF_S, sb, T_THEME);          /* (3 px clear of the keys at y0 + 10) */
         if (t->p[P_QUANT]) {
-            cv_text_r(224, y0 - 1, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
+            cv_text_r(224, y0 - 4, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
         }
     }
 }
 static void panel_note(const char *a, const char *b, const char *c);
 static void panel_alert(uint32_t id, const char *a);
-/* (QG-1) Complete Pro FX Workstation Dashboard with Micro-UI:
- * Compact modular 4-channel rack with scaled micro-faders, exact numeric send readouts,
- * distortion topology tags (SOFT/TAPE/HRTH/FLUX), and global bus telemetry (EQ, Slicer, M/S Width)
- * neatly contained within screen boundaries without clipping or overflowing. */
+/* (QG-1) FX: a compact modular 4-channel rack. One sub-panel per send, each with the effect's own
+ * icon and name along the top, a scaled micro-fader down its right-hand side and the send's value or
+ * distortion topology tag (SOFT/TAPE/HRTH/FLUX) under the name. Under them the global bus telemetry
+ * (EQ, Slicer, M/S Width), measured field by field so nothing clips, overlaps or leaves its cell. */
 static void graph_fx(const track_t *t, uint16_t c)
 {
     static const char *const FX_LABELS[4] = {"DIST", "CHOR", "DLY", "REV"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
+    static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
     uint32_t i;
 
     /* Enclosure panel */
@@ -735,51 +738,58 @@ static void graph_fx(const track_t *t, uint16_t c)
     for (i = 0; i < 4u; i++) {
         int32_t cx = CARD_X(i);
         int32_t val = t->p[P_DIST + i];
-        int32_t f_h = val * 52 / 127;
-        int32_t slot_x = cx + 26;
-        int32_t slot_y = 16;
+        int32_t f_h = val * 40 / 127;
+        int32_t slot_x = cx + 44;
+        int32_t slot_y = 26;
         uint16_t col = ux.chamfer ? heat_col(val * 240 / 127 + 16) : c;
         char num[8];
 
         /* Sub-panel enclosure per FX column */
         cv_rrect(cx + 2, 4, CARD_W - 4, 70, 3, T_SURF, T_BG);
 
-        /* Compact header label */
-        cv_text(cx + 6, 6, &AF_S, FX_LABELS[i], T_MID);
+        /* The effect's own icon and its name, side by side along the top of the sub-panel, so each
+         * send is identifiable at a glance without reading the label */
+        cv_icon_in(cx + 4, 6, 14, 14, 12, FX_ICON[i], T_MID, T_SURF);
+        cv_text(cx + 21, 6, &AF_S, FX_LABELS[i], T_MID);
 
-        /* Micro fader slot */
-        cv_rrect(slot_x, slot_y, 4, 52, 2, T_RAISE, T_SURF);
+        /* Micro fader slot down the right of the sub-panel: its rows (y 26..66) are clear of the name
+         * above (ink y 9..19) and its column (x cx+39..cx+53) is clear of the readout on the left
+         * (ends at x cx+33), so a label, a value and the thumb can no longer overlap each other */
+        cv_rrect(slot_x, slot_y, 4, 40, 2, T_RAISE, T_SURF);
         if (f_h > 2) {
-            cv_rrect(slot_x, slot_y + 52 - f_h, 4, f_h, 2, col, T_RAISE);
+            cv_rrect(slot_x, slot_y + 40 - f_h, 4, f_h, 2, col, T_RAISE);
         }
         /* Fader thumb cap */
-        cv_rrect(slot_x - 5, slot_y + 50 - f_h, 14, 4, 2, col, T_SURF);
-        cv_rect(slot_x - 3, slot_y + 51 - f_h, 10, 1, T_INK);
+        cv_rrect(slot_x - 5, slot_y + 38 - f_h, 14, 4, 2, col, T_SURF);
+        cv_rect(slot_x - 3, slot_y + 39 - f_h, 10, 1, T_INK);
 
         /* Value readout or distortion topology badge */
         if (i == 0) {
             uint32_t dt = t->p[P_DTYPE] & 3u;
-            cv_text(cx + 4, 60, &AF_S, DIST_TYPES[dt], T_ACCENT);
+            cv_text(cx + 6, 60, &AF_S, DIST_TYPES[dt], T_ACCENT);
         } else {
             fmt_int(num, val);
-            cv_text(cx + 8, 60, &AF_S, num, val > 0 ? T_TEXT : T_DIM);
+            cv_text(cx + 6, 60, &AF_S, num, val > 0 ? T_TEXT : T_DIM);
         }
     }
 
-    /* Bottom Global Master FX Telemetry Ribbon */
-    cv_rrect(6, 76, 228, 16, 3, T_SURF, T_BG);
-    cv_text(10, 78, &AF_S, "MASTER:", T_DIM);
-    /* EQ */
-    cv_text(60, 78, &AF_S, song.g[G_EQMODE] ? "EQ:ON" : "EQ:BYP", song.g[G_EQMODE] ? T_THEME : T_MID);
-    /* SLICER */
-    cv_text(112, 78, &AF_S, song.g[G_SLMODE] ? "SLICER:ON" : "SLICER:OFF", song.g[G_SLMODE] ? T_ACCENT : T_MID);
-    /* WIDTH */
+    /* Bottom Global Master FX Telemetry Ribbon. Laid out right to left, each field measured against
+     * the one after it, so the four can never collide whatever their values are: SLICER:ON/OFF used to
+     * overlap WIDTH:100% by 5 px at the right-hand end. */
     {
-        char wb[16];
+        static const char *const EQ_N[2] = {"EQ:BYP", "EQ:ON"};
+        char sl[12], wb[16];
+        uint16_t eq_c = song.g[G_EQMODE] ? T_THEME : T_MID, sl_c = song.g[G_SLMODE] ? T_ACCENT : T_MID;
+        int32_t x;
+        str_cpy(sl, song.g[G_SLMODE] ? "SLICER:ON" : "SLICER:OFF", sizeof sl);
         str_cpy(wb, "WIDTH:", sizeof wb);
         fmt_int(wb + 6, (int32_t)song.g[G_MWIDTH] * 100 / 64);
         str_cpy(wb + str_len(wb), "%", 2);
-        cv_text_r(230, 78, &AF_S, wb, T_TEXT, T_SURF);
+        cv_rrect(6, 76, 228, 16, 3, T_SURF, T_BG);
+        x = cv_text_r(230, 78, &AF_S, wb, T_TEXT, T_SURF);
+        x = cv_text_r(x - 6, 78, &AF_S, sl, sl_c, T_SURF);
+        x = cv_text_r(x - 6, 78, &AF_S, EQ_N[song.g[G_EQMODE] != 0], eq_c, T_SURF);
+        cv_text_r(x - 6, 78, &AF_S, "MASTER:", T_DIM, T_SURF);
     }
 }
 /* SLICER and SL BUS pages (JIANT 0.6.3: one, on a bus): the pattern's 16 steps, a 'x' step a full bar; a '.' step: GATE
@@ -977,8 +987,9 @@ static void graph_diag(uint16_t c)
         cv_rrect(8, 4, 224, 92, 4, T_SURF, T_BG);
     }
 
-    /* Row 1: MULTICORE STATUS & AUDIO CPU LOAD % (from audio.c song.cpu_q8) */
-    cv_text(16, 10, &AF_S, "CORES", T_MID);
+    /* Row 1: MULTICORE STATUS & AUDIO CPU LOAD % (from audio.c song.cpu_q8). mc_status() already
+     * spells the whole state ("CORES 2", "CORES 1 (FAULT)"), so the caption must not repeat it */
+    cv_text(16, 10, &AF_S, "MULTICORE", T_MID);
     cv_text_r(224, 10, &AF_S, mc_status(), T_THEME, T_SURF);
 
     /* Row 2: REAL CPU LOAD & PEAK */
@@ -1707,6 +1718,17 @@ static uint32_t graph_signature(void)
                       (uint32_t)ui.ent_nn << 16)) * 16777619u;   /* (0.6.81: NOTE's focus, the length being held) */
         }
     }
+    if (pg->graph == GR_DIAG) {                     /* (QG-1) GLO > MONITOR: the live numbers it draws */
+        uint32_t av = 0, k;
+        for (k = 0; k < trk_live; k++) {
+            uint32_t v;
+            for (v = 0; v < NVOICE; v++)
+                av = av + (trk[k].v[v].active != 0);
+        }
+        h = (h ^ song.cpu_q8 * 3329u ^ load_diag.peak * 1931u ^ load_diag.late * 2671u ^
+             load_diag.shed * 6151u) * 16777619u;
+        h = (h ^ mc_fx_tk * 40503u ^ fx_trips * 7919u ^ trk_live * 104729u ^ av * 131u) * 16777619u;
+    }
     return h;
 }
 /* 4-letter engine tags of the preset list */
@@ -2367,9 +2389,10 @@ static void graph_home_viz(uint16_t c)
             cv_rrect(4, 26, 232, 176, 6, T_SURF, T_BG);
         }
 
-        /* Reticle lines & zero-crossing center axis at y=114 */
+        /* Reticle lines & zero-crossing center axis at y=114. The vertical spine stops above the bottom
+         * telemetry band (y >= 184), so it never runs under the exit pill or its caption. */
         cv_rect(10, 114, 220, 1, T_LINE);
-        cv_rect(120, 32, 1, 164, T_LINE);
+        cv_rect(120, 32, 1, 150, T_LINE);
         cv_rect(65, 50, 1, 128, T_RAISE);
         cv_rect(175, 50, 1, 128, T_RAISE);
 
@@ -2387,13 +2410,14 @@ static void graph_home_viz(uint16_t c)
             if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
             else if (peak_decay[i]) peak_decay[i]--;
 
-            /* Draw bar & peak cap */
+            /* Draw bar & peak cap. Baseline y=180 (was 186): the bars now clear the bottom telemetry
+             * band at y=184..198 instead of crowding the caption drawn over them. */
             if (bsum > 0) {
                 uint16_t bcol = mono ? T_TEXT : heat_col(40 + (int32_t)i * 12);
-                cv_rect(bx, 186 - bsum, 9, bsum, bcol);
+                cv_rect(bx, 180 - bsum, 9, bsum, bcol);
             }
             if (peak_decay[i] > 1) {
-                cv_rect(bx, 186 - (int32_t)peak_decay[i] - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
+                cv_rect(bx, 180 - (int32_t)peak_decay[i] - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
             }
         }
 
@@ -2414,7 +2438,7 @@ static void graph_home_viz(uint16_t c)
             for (x = 0; x < 216; x += 2) {
                 int32_t sval = snap[trig + (uint32_t)x];
                 int32_t y = 114 - (sval * 46) / peak;
-                y = clamp(y, 36, 186);
+                y = clamp(y, 36, 180);            /* (the telemetry band owns y >= 184) */
 
                 if (x) {
                     /* Outer warm phosphor glow */
@@ -2435,22 +2459,31 @@ static void graph_home_viz(uint16_t c)
                 int32_t ox = 120 + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 30) / peak;
                 int32_t oy = 114 + (snap[(trig + i * 2u + 16u) & (SCOPE_N - 1u)] * 30) / peak;
                 ox = clamp(ox, 40, 200);
-                oy = clamp(oy, 40, 184);
+                oy = clamp(oy, 40, 180);          /* (above the telemetry band) */
                 if (i) cv_line(lpx, lpy, ox, oy, mono ? T_TEXT : T_ACCENT);
                 lpx = ox; lpy = oy;
             }
         }
 
-        /* Audio-reactive floating quantum dust particles */
+        /* Quantum motes: soft specks gliding on slow, independent Lissajous orbits. The position is a
+         * smooth function of the frame (never a per-frame hash), so they drift instead of flickering
+         * every frame; each breathes on its own phase and brightens with the music, coloured by the same
+         * thermal ramp as every other hot element, so they belong to the rest of the interface. */
         {
-            uint32_t p_cnt = peak > 1500 ? 12u : 6u;
-            for (i = 0; i < p_cnt; i++) {
-                uint32_t h = (ui.frame * 7u + i * 31u) * 2654435761u;
-                int32_t px = 14 + (int32_t)((h >> 16) % 212u);
-                int32_t py = 40 + (int32_t)((h >> 8) % 144u);
+            uint32_t n = peak > 1500 ? 14u : peak > 700 ? 10u : 7u;
+            for (i = 0; i < n; i++) {
+                int32_t rx = 76 - (int32_t)(i % 4u) * 17;      /* nested orbits, inside the reticle */
+                int32_t ry = 48 - (int32_t)(i % 3u) * 13;
+                int32_t px = 120 + ((bg_sin(ui.frame * (150u + i * 27u) + i * 8192u) * rx) >> 15);
+                int32_t py = 114 + ((bg_sin(ui.frame * (97u + i * 19u) + i * 4096u + 16384u) * ry) >> 15);
+                int32_t pulse = (bg_sin(ui.frame * (61u + i * 11u) + i * 2048u) + 32768) >> 8;   /* 0..255 */
+                int32_t lvl = pulse * (48 + (peak >> 8)) >> 8;  /* 0..~170: breathes, louder = brighter */
                 if (py >= top_y - 2 && py < top_y + 88) {
-                    uint16_t pcol = mono ? T_TEXT : (i & 1) ? T_ACCENT : heat_col(100 + (int32_t)i * 12);
+                    uint16_t pcol = mono ? (lvl > 85 ? T_TEXT : T_DIM)
+                                         : ux_mix(T_SURF, heat_col(80 + (int32_t)i * 12), 30 + lvl / 3);
                     cv_rect(px, py, 2, 2, pcol);
+                    if (lvl > 150)                            /* a white-hot core on the brightest mote */
+                        cv_pset(px, py, mono ? T_TEXT : T_THEME);
                 }
             }
         }
@@ -2460,10 +2493,14 @@ static void graph_home_viz(uint16_t c)
             cv_text(12, 30, &AF_S, "QG-1 QUANTUM SCOPE", T_THEME);
             cv_text_r(228, 30, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
         } else {
-            /* Crystal-clear bottom exit pill & prompt at y=190..200 (well within canvas bounds) */
-            cv_rrect(12, 190, 78, 11, 2, T_THEME, T_SURF);
-            cv_text(16, 192, &AF_S, "[HOME] EXIT", T_INK);
-            cv_text_r(228, 192, &AF_S, "LIVE AUDIO MATRIX", T_TEXT, T_SURF);
+            /* Bottom telemetry band, fully inside the panel and inside this pass's 88-row canvas
+             * (screen rows 114..201). The pill owns y 184..198, so an AF_S caption drawn at y=183 has
+             * its ink at y 186..196: it no longer overflows the pill, spills past the panel edge or is
+             * clipped by the canvas (it used to run to y=206 against a canvas ending at y=201). The exit
+             * caption is blended against the pill it sits on, not against the panel behind it. */
+            cv_rrect(12, 184, 72, 15, 3, T_THEME, T_SURF);
+            cv_text_on(16, 183, &AF_S, "[HOME] EXIT", T_INK, T_THEME);
+            cv_text_r(228, 183, &AF_S, "LIVE AUDIO MATRIX", T_TEXT, T_SURF);
         }
 
         cv_oy = 0;

@@ -388,7 +388,11 @@ static void draw_frame(void)
     for (i = 0; i < 4u; i++)                            /* right of each card */
         lcd_fill((uint32_t)(CARD_X(i) + CARD_W), Y_LABEL, i < 3u ? (uint32_t)(CARD_X(i + 1u) - CARD_X(i) - CARD_W) :
                  240u - (uint32_t)(CARD_X(i) + CARD_W), ch, T_BG);
-    if (ux.style)                                       /* LINE: the dividers in the gaps */
+    if (ux.style && !ui.home_viz)                       /* LINE: the dividers in the gaps. None while the
+                                                         * full-screen visualizer is up: the card row it would
+                                                         * cut is not drawn there, so the rule would stand
+                                                         * alone across the graph (and, in LARGE, past the two
+                                                         * bands the visualizer blits, so nothing covers it). */
         draw_rules(Y_LABEL, ch);
 }
 

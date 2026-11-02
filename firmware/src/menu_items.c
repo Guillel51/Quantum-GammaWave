@@ -24,7 +24,7 @@ static const char *const MI_NAME[MI_COUNT] = {"COLOR", "STYLE", "LARGE", "ANIM",
  * appended (its index is what the editor is told) */
 enum { MTAB_DISPLAY, MTAB_CONTROL, MTAB_AUDIO, MTAB_SYSTEM, MTAB_GEN, MTAB_COUNT };   /* (1.1.1-GW: GEN, the generator's) */
 #define MTAB_ROWS 6u
-static const char *const MTAB_NAME[MTAB_COUNT] = {"DISPLAY", "CONTROL", "AUDIO", "SYSTEM", "GEN"};
+static const char *const MTAB_NAME[MTAB_COUNT] = {"DISPLAY", "CONTROL", "AUDIO", "SYSTEM", "EXTRA"};
 static const uint8_t MI_TAB[MI_COUNT] = {
     MTAB_DISPLAY, MTAB_DISPLAY, MTAB_DISPLAY, MTAB_DISPLAY, MTAB_DISPLAY,   /* COLOR STYLE LARGE ANIM LEDS */
     MTAB_DISPLAY,                                                           /* SCREEN OFF (1.1.5) */
