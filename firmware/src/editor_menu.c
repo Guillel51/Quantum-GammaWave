@@ -22,9 +22,6 @@ static const uint8_t ED_MENU[][2] = {
     {MI_LOAD, 19},                                     /* (JIANT 0.6.30) LOAD ECO / LITE / FULL, a row of SYSTEM */
     {MI_MIDIOUT, 20},                                  /* (JIANT 0.6.72) MIDI OUT KEYS / CLOCK / ALL / OFF, CONTROL */
     {MI_SELHOME, 21},                                  /* (QG-1) KNOB SELECT MODE ON HOME, EXTRA */
-    {MI_CPU, 22},                                      /* (QG-1 v1.5) CPU MODE AUTO / DUAL CORE / SAFE SINGLE, EXTRA */
-    {MI_VIZQ, 23},                                     /* (QG-1 v1.5) VISUALIZER QUALITY HIGH / BALANCED / LOW, EXTRA */
-    {MI_SPLASH, 24},                                   /* (QG-1 v1.5) STARTUP SPLASH FULL / SHORT / OFF, EXTRA */
 };
 #define ED_MENU_N NELEM(ED_MENU)
 
