@@ -4,7 +4,12 @@
 # tools/fm1_install.py. Usage: install-fm1.sh [PACKAGE.fwsc] [--verify-only] (default: build/felucca.fwsc).
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd); ROOT=$(cd "$HERE/../.." && pwd)
-PKG=${1:-$ROOT/build/felucca.fwsc}; [ $# -gt 0 ] && shift
+PKG=$ROOT/build/felucca.fwsc
+case "${1-}" in
+  -*) ;;                 # an option, not the package: --verify-only and friends stay options
+  "") ;;
+  *) PKG=$1; shift ;;
+esac
 [ -f "$PKG" ] || { echo "no package: $PKG (build it with ./build.sh or download felucca-*.fwsc)"; exit 2; }
 VENV=${FM1_VENV:-$HOME/.fm1-installer}
 PY=$(command -v python3 || command -v python) || { echo "needs Python 3 (python.org)"; exit 1; }

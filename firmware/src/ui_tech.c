@@ -48,7 +48,7 @@ static void tk_dot(int32_t x, int32_t y) { cv_rrect(x - 3, y - 3, 7, 7, 3, T_TEX
 /* DIST: in -> out of dist_shape's maths (the input's full scale +-131072 as the track's mix sees it) */
 static int32_t tk_dist_y(uint32_t type, int32_t x, int32_t g, int32_t d)
 {
-    int32_t v = ((x >> 2) * g) >> 10, a;
+    int32_t v = ((x >> 2) * g) >> 10;
     switch (type) {
     case DT_HEARTH: {
         int32_t h = softclip(v + 4800) - softclip(4800);
