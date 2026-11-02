@@ -1196,7 +1196,6 @@ static uint32_t gated_notes(const track_t *t)
 static int test_midi(void)
 {
     int bad = 0;
-    track_t *a, *b;
     ui_power_on();
     song.sel = 2;
     midi_hint = 0;

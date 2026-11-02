@@ -3,7 +3,7 @@
 /* FM-1 LCD wiring: SPI1 on PC9 CLK, PC10 DO, PC7 CS,
  * PC8 D/C; backlight PA2, active low. The panel protocol is src/lcd.c.
  *
- *   fm1_lcd_hw_init()          pins, backlight on, SPI1 master at BAUD 4
+ *   fm1_lcd_hw_init()          pins, backlight OFF, SPI1 master at BAUD 4 (lcd.c lights it after the first frame)
  *   fm1_lcd_baud(b)            SPI1 clock = lsb / (b + 1)
  *   fm1_lcd_send_cmd(c)        D/C low, CS low, one byte (then fm1_lcd_wait)
  *   fm1_lcd_send_data(p, n)    D/C high, CS low, DMA n bytes from RAM p
@@ -35,7 +35,8 @@ static uint32_t fm1_lcd_timeouts;
 
 FM1_INLINE void fm1_lcd_hw_init(void)
 {
-    FM1_LCD_PA_OUT &= ~FM1_LCD_BL;
+    FM1_LCD_PA_OUT |= FM1_LCD_BL;   /* backlight off while the panel is reset and its RAM written: with it lit from
+                                     * the first microsecond, the GDRAM no one has written yet shows as black lines */
     FM1_LCD_PA_DIR &= ~FM1_LCD_BL;
     FM1_LCD_IOMAP_CON1 |= 0x10u;
     FM1_LCD_PC_OUT |= FM1_LCD_CS;

@@ -124,7 +124,7 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
 static int32_t dist_w[NTRK];                            /* the blend the last block ended at, Q12 */
 static void track_dist(track_t *t, int32_t *b, uint32_t n)
 {
-    int32_t d = t->p[P_DIST], i, g, k, mk, b0 = softclip(2400), w0, w1, dw, full;
+    int32_t d = t->p[P_DIST], i, g, k, mk, w0, w1, dw, full;
     uint32_t type = (uint32_t)t->p[P_DTYPE], ti = (uint32_t)(t - trk) % NTRK;
     w0 = dist_w[ti];
     w1 = d >= 8 ? 4096 : d * 512;
