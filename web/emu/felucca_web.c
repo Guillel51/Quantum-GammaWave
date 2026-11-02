@@ -143,7 +143,8 @@ static void lcd_power(uint32_t s)              /* MENU > SCREEN OFF (lcd.c): off
     }
 }
 static void lcd_wake_now(void) {}
-static void lcd_init(void) {}
+static void lcd_init(uint16_t bg) { (void)bg; }   /* (QG-1 v1.5) main.c passes the theme's background; the
+                                                     * emulator's frame is the panel's 240x240, already filled */
 
 #include "../../firmware/src/gfx.c"
 #include "../../firmware/src/panel.c"
