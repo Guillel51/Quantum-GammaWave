@@ -128,6 +128,10 @@ static void lcd_init(void)
     fm1_lcd_baud(LCD_BAUD);
     lcd_fill(0, 0, 240, 240, 0);
     lcd_cmd(0x29);
+    /* The backlight only now (fm1_lcd_hw_init left it off): the panel has had SWRESET, SLPOUT, COLMOD, MADCTL and a
+     * full-frame write, so there is no uninitialized row left to light as a black line at power-on. PA2 is also the
+     * key matrix 595's /OE, so it has to be low before fm1_input_init / panel_init (both after this call). */
+    fm1_lcd_backlight(1);
 }
 
 /* MENU > SCREEN OFF (ui.c scr_frame): the panel dark while the sound goes on. s 0: DISPOFF, SLPIN; 1: SLPOUT (the

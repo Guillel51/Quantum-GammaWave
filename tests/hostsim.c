@@ -471,6 +471,108 @@ static int steal_test(const char *dir)
     return nev < 4u || bad;
 }
 
+/* every one of the six parts under the shared budget (the FM-1's normal worst case: T1..T6 sounding at
+ * once, 10 voices for 6 parts): the budget filled across four parts, then a note on each of the six in
+ * turn. Each note must land on its own part: voice.c takes the victim from any part, but restarts the
+ * note's part's own voice when that is the one given up -- so cross-part takes are counted and measured,
+ * while a part fails only when its note got no voice at all. The taken voice fades over one block, so the
+ * largest sample step around a take must stay near the largest one in the 0.25 s before it, and the
+ * shared budget must never be exceeded. Writes DIR/steal6.wav. */
+static int steal6_test(const char *dir)
+{
+    static const uint8_t N1[7] = {48, 52, 55, 59, 62, 65, 69};
+    const uint32_t frames = 4u * FS;
+    char path[512];
+    FILE *w;
+    int32_t *L = calloc(frames + CTL, sizeof *L);   /* (the last block may run past frames) */
+    uint32_t f, i, p, k, events[16], ev_part[16], nev = 0, bad = 0, kills0, fired;
+    uint32_t per[NPART] = {0}, landed[NPART] = {0}, next = 300u, busy_max = 0, nsound = 0;
+    double worst = 0;
+    snprintf(path, sizeof path, "%s/steal6.wav", dir);
+    if (!L || !(w = fopen(path, "wb")))
+        return 1;
+    host_tracks_init();
+    for (p = 0; p < NPART; p++) {
+        track_t *t = &trk[p];
+        host_preset(t, 0, 5);                      /* ANALOG SINE KEY: a plain held sine on every part */
+        t->p[P_E4] = 127;                          /* filter open, no resonance, no drive */
+        t->p[P_E5] = t->p[P_E6] = 0;
+        t->p[P_ED_FLT] = 0;
+        t->p[P_ATK] = 40;                          /* slow attack, full sustain, no sends */
+        t->p[P_SUS] = 127;
+        t->p[P_DIST] = t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = 0;
+        t->p[P_VOICE] = V_POLY;
+        t->p[P_LEVEL] = 90;
+    }
+    kills0 = voice_kills;
+    wav_hdr(w, frames);
+    for (f = 0; f < frames; f += CTL) {
+        int32_t o[2 * CTL];
+        uint32_t ms = f * 1000u / FS, k0 = voice_kills;
+        fired = NPART;                              /* no note in this block */
+        if (f == 0) {
+            for (i = 0; i < 7u; i++)
+                trk_note_on(&trk[0], N1[i], 90);   /* 7 on part 1 */
+            trk_note_on(&trk[1], 74, 90);           /* 8, 9, 10: the shared budget is full */
+            trk_note_on(&trk[2], 76, 90);
+            trk_note_on(&trk[3], 77, 90);
+        }
+        if (ms >= next && nev < 16u) {              /* the next part in turn: it has to get a voice */
+            p = (ms / 300u) % NPART;
+            trk_note_on(&trk[p], (uint8_t)(60u + p * 2u + ms / 300u), 90);
+            fired = p;
+            next += 300u;
+        }
+        mix_block(o, CTL);
+        if (fired < NPART) {                        /* its note landed: this part has a voice sounding */
+            for (i = 0; i < NVOICE && !trk[fired].v[i].active; i++)
+                ;
+            if (i < NVOICE)
+                landed[fired] = 1;
+        }
+        if (voices_busy() > busy_max)
+            busy_max = voices_busy();
+        if (voice_kills != k0 && fired < NPART && nev < 16u) {
+            events[nev] = f;
+            ev_part[nev] = fired;
+            nev++;
+        }
+        for (i = 0; i < CTL; i++) {
+            L[f + i] = o[2 * i];
+            wav_put(w, o[2 * i], o[2 * i + 1]);
+        }
+    }
+    fclose(w);
+    for (k = 0; k < nev; k++) {                    /* around the take vs. the 0.25 s before */
+        int32_t calm = 0, at = 0;
+        uint32_t e = events[k];
+        per[ev_part[k]]++;
+        for (i = e - FS / 4u; i < e - 2u * CTL; i++)
+            calm = abs(L[i] - L[i - 1]) > calm ? abs(L[i] - L[i - 1]) : calm;
+        for (i = e; i < e + 2u * CTL; i++)
+            at = abs(L[i] - L[i - 1]) > at ? abs(L[i] - L[i - 1]) : at;
+        if ((double)at / calm > worst)
+            worst = (double)at / calm;
+        if (at > calm * 3 / 2)
+            bad++;
+    }
+    for (p = 0; p < NPART; p++) {
+        nsound += landed[p];
+        if (!landed[p])
+            bad++;                                  /* a part whose note never got a voice: not stressed */
+    }
+    if (busy_max > voice_cap())
+        bad++;                                      /* the shared budget was exceeded */
+    printf("tracks: 6-part stress: %u cross-part takes, per part", voice_kills - kills0);
+    for (p = 0; p < NPART; p++)
+        printf(" T%u=%u", p + 1u, per[p]);
+    printf(", %u/6 parts sounding, busy %u/%u; largest sample step at a take / before it: at most %.2f x "
+           "(a hard cut: several x) %s\n", nsound, busy_max, voice_cap(), worst,
+           nev >= NPART && !bad ? "ok" : "FAIL");
+    free(L);
+    return nev < NPART || bad;
+}
+
 /* a preset change across engines while notes sound (the PRESETS knob, the editor's PRESET) must not click:
  * part 1 as a plain sine pad (ANALOG SINE KEY, filter open, slow release, no sends: smooth, so the largest
  * sample step is set by the pitches), (a) a chord held and released, the switch to DIGITAL (its E.PIANO; without
@@ -771,6 +873,16 @@ static int tracks_test(const char *dir)
         fflush(stdout);
         pid = fork();
         if (!pid) {
+            int rc = steal6_test(dir);
+            fflush(stdout);
+            _exit(rc);
+        }
+        waitpid(pid, &st, 0);
+        if (!WIFEXITED(st) || WEXITSTATUS(st))
+            fail++;
+        fflush(stdout);
+        pid = fork();
+        if (!pid) {
             int rc = trs_test();
             fflush(stdout);
             _exit(rc);
@@ -800,7 +912,7 @@ static int tracks_test(const char *dir)
             fail++;
     }
 #endif
-    printf("tracks: WAVs in %s: %s (mix), %s, %s, %s, %s, steal.wav, engine_switch.wav\n", dir, SOLO[0], SOLO[1], SOLO[2], SOLO[3], SOLO[4]);
+    printf("tracks: WAVs in %s: %s (mix), %s, %s, %s, %s, steal.wav, steal6.wav, engine_switch.wav\n", dir, SOLO[0], SOLO[1], SOLO[2], SOLO[3], SOLO[4]);
     /* one part: every preset with 8 held notes (the engine's cap: VOICE 4); the worst one */
     for (e = 0; e < NENGINES; e++)
         for (pi = 0; pi < ENGINES[e]->npresets; pi++) {
