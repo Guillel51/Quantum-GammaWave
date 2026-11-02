@@ -1755,6 +1755,13 @@ static void ui_draw(void)
 {
     static uint8_t counting;
     style_apply();
+    /* (QG-1 v1.5) the full-screen visualizer belongs to HOME alone. open_global() used to leave ui.home_viz
+     * set with ui.home == 0, and every consumer of the flag then drew the visualizer over a page: draw_frame
+     * dropped the rules, and ui_draw_page skipped draw_columns() / draw_graph() altogether, so the section did
+     * not change and nothing on it (the CPU LOAD row of GLO > MONITOR included) could ever update. Fixed at
+     * open_global(); this makes the state unreachable for any other setter, before anything reads it. */
+    if (ui.home_viz && !ui.home)
+        ui.home_viz = 0;
     ui.frame++;
     if (counting != (uint8_t)seq_counting()) {          /* a count-in began or ended: the page drawn again after it */
         counting = (uint8_t)seq_counting();

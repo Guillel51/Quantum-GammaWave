@@ -10141,6 +10141,100 @@ static int test_organic(void)
     return bad;
 }
 
+/* (QG-1 v1.5) The three defects this release fixes, each asserted on the screen it happens on.
+ * Everything below reads host_screen (what the panel was told), not the state the drawing came from, so a row
+ * that is drawn from a stale cache fails even when the variable behind it is right. */
+static uint32_t qg_band(uint32_t x0, uint32_t x1, uint32_t y0, uint32_t y1)
+{
+    uint32_t x, y, h = 2166136261u;
+    for (y = y0; y < y1; y++)
+        for (x = x0; x < x1; x++)
+            h = (h ^ (uint32_t)host_screen[y * 240u + x]) * 16777619u;
+    return h;
+}
+/* GLO > MONITOR's CPU LOAD row is a function of the audio ISR's measurement and of nothing else: the same
+ * cpu_q8 draws the same pixels, a different one draws different pixels, and the LATE/SHED row follows the
+ * counters the ISR increments. (audio.c writes song.cpu_q8 / load_diag; no ISR runs in this harness, so the
+ * inputs are set directly and the output is the screen.) */
+static int qg_monitor_follows(void)
+{
+    int bad = 0;
+    uint32_t a, b, c, l0, l1;
+    ui_power_on();
+    go_title("MONITOR"); frame(); frame();
+    song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
+    a = qg_band(8, 232, 108, 122);                      /* row 2: Y_GRAPH 76 + GOY 11 + 22 */
+    song.cpu_q8 = 200u; fm1_ms += 120u; frame(); frame();
+    b = qg_band(8, 232, 108, 122);
+    song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
+    c = qg_band(8, 232, 108, 122);
+    bad += check("GLO > MONITOR: the CPU LOAD row is drawn from song.cpu_q8 (same value, same pixels)",
+                 a != b && a == c);
+    l0 = qg_band(8, 232, 176, 192);                    /* row 7: 76 + 11 + 92 */
+    load_diag.late = 5; load_diag.shed = 2; fm1_ms += 120u; frame(); frame();
+    l1 = qg_band(8, 232, 176, 192);
+    bad += check("GLO > MONITOR: LATE/SHED follows load_diag (the ISR's counters, not a constant)",
+                 l0 != l1);
+    load_diag.late = 0; load_diag.shed = 0;
+    {   /* the header's five-segment load meter (ui_draw.c head_load) reads the same measurement */
+        uint32_t h0, h1;
+        song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
+        h0 = qg_band(0, 240, 4, 20);
+        song.cpu_q8 = 220u; fm1_ms += 120u; frame(); frame();
+        h1 = qg_band(0, 240, 4, 20);
+        bad += check("the header load meter follows song.cpu_q8 (the same real measurement)", h0 != h1);
+        song.cpu_q8 = 40u;
+    }
+    return bad;
+}
+/* GLO > SYSTEM's CPU card (params.c G_INFO) is the same measurement on a card: it must follow it too. */
+static int qg_system_card_follows(void)
+{
+    int bad = 0;
+    uint32_t a, b, c;
+    ui_power_on();
+    go_title("SYSTEM"); frame(); frame();
+    song.cpu_q8 = 40u; frames(400);
+    a = qg_band(CARD_X(3), 240, Y_LABEL, Y_LABEL + CARD_H);
+    song.cpu_q8 = 200u; frames(400);
+    b = qg_band(CARD_X(3), 240, Y_LABEL, Y_LABEL + CARD_H);
+    song.cpu_q8 = 40u; frames(400);
+    c = qg_band(CARD_X(3), 240, Y_LABEL, Y_LABEL + CARD_H);
+    bad += check("GLO > SYSTEM: the CPU card follows song.cpu_q8 (same value, same pixels)",
+                 a != b && a == c);
+    return bad;
+}
+/* Every section button leaves the full-screen visualizer at once, without HOME first (open_global used to
+ * leave ui.home_viz set with ui.home == 0, so GLO kept rendering graph_home_viz() and the page under it never
+ * redrew). The shortcuts are untouched: these are the same taps page_tap() dispatches. */
+static int qg_viz_exits(void)
+{
+    static const uint32_t BTN[7] = {B_GLO, B_FX, B_EDIT, B_SCL, B_LFO, B_ENV, B_SAVE};
+    static const char *const NM[7] = {"GLO", "FX", "EDIT", "SCL", "LFO", "ENV", "SAVE"};
+    int bad = 0;
+    uint32_t i;
+    for (i = 0; i < 7u; i++) {
+        char what[72];
+        int ok;
+        ui_power_on();                                /* power-on is already HOME */
+        press(B_HOME); frame();                       /* HOME again: the visualizer up */
+        ok = ui.home == 1 && ui.home_viz == 1;
+        press(BTN[i]); frame();
+        ok &= !ui.home_viz && !ui.home;
+        snprintf(what, sizeof what, "the visualizer: %s goes straight to its section (HOME not needed)", NM[i]);
+        bad += check(what, ok);
+    }
+    return bad;
+}
+static int test_qg15(void)
+{
+    int bad = 0;
+    bad += qg_monitor_follows();
+    bad += qg_system_card_follows();
+    bad += qg_viz_exits();
+    return bad;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -10162,6 +10256,7 @@ int main(void)
             return bad ? 1 : 0;
         }
     }
+    bad += test_qg15();
     bad += test_large_face();
     bad += test_sound_loads();
     bad += test_patterns();
