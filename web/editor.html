@@ -5999,26 +5999,32 @@ $("connect").addEventListener("click", () => {
       drawBrackets(8, 83, 232, 198, 5, pal.theme);
       for (let i = 0; i < 4; i++) {
         const cx = 14 + i * 54;
-        drawBrackets(cx, 86, cx + 50, 195, 3, pal.accent);
+        drawBrackets(cx, 86, cx + 50, 168, 3, pal.accent);
         ctx.fillStyle = pal.theme;
         ctx.font = "bold 9px 'IBM Plex Mono', monospace";
         ctx.fillText(FX_NAMES[i], cx + 6, 98);
         const fVal = [0.45, 0.35, 0.65, 0.55][i];
-        const fH = Math.round(fVal * 54);
+        const fH = Math.round(fVal * 44);
         const sx = cx + 24;
-        ctx.fillStyle = pal.raise; ctx.fillRect(sx, 106, 4, 58);
-        ctx.fillStyle = i === 0 ? pal.accent : pal.theme; ctx.fillRect(sx, 164 - fH, 4, fH);
-        ctx.fillStyle = pal.text; ctx.fillRect(sx - 5, 162 - fH, 14, 5);
+        ctx.fillStyle = pal.raise; ctx.fillRect(sx, 104, 4, 48);
+        ctx.fillStyle = i === 0 ? pal.accent : pal.theme; ctx.fillRect(sx, 152 - fH, 4, fH);
+        ctx.fillStyle = pal.text; ctx.fillRect(sx - 5, 150 - fH, 14, 4);
         if (i === 0) {
           ctx.fillStyle = pal.accent;
           ctx.font = "bold 8.5px 'IBM Plex Mono', monospace";
-          ctx.fillText(DIST_TOPO[1], cx + 12, 186);
+          ctx.fillText(DIST_TOPO[1], cx + 12, 164);
         } else {
           ctx.fillStyle = pal.mid;
           ctx.font = "bold 9px 'IBM Plex Mono', monospace";
-          ctx.fillText(String(Math.round(fVal * 127)), cx + 16, 186);
+          ctx.fillText(String(Math.round(fVal * 127)), cx + 16, 164);
         }
       }
+      /* Global FX status bar at bottom */
+      ctx.fillStyle = pal.raise; ctx.fillRect(14, 174, 212, 20);
+      ctx.fillStyle = pal.theme; ctx.font = "bold 8.5px 'IBM Plex Mono', monospace";
+      ctx.fillText("MASTER EQ: ON", 18, 187);
+      ctx.fillStyle = pal.accent; ctx.fillText("SLICER: OFF", 96, 187);
+      ctx.fillStyle = pal.text; ctx.fillText("WIDTH: 100%", 164, 187);
     }
 
     /* 4. Bottom 16-Step Dual-Segment Plasma LED Bar & Footer (y = 208..238) */
