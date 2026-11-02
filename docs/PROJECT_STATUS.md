@@ -1,9 +1,9 @@
 # Quantum GammaWave (QG-1) — Project Status & Audit Report
 
-**Date:** 2026-10-31
+**Date:** 2026-11-02
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
-**Branch:** `feature/quantum-v1.4-qg-complete`
-**Current Milestone Version:** `v1.4-QG`
+**Branch:** `release/v1.5-qg`
+**Current Milestone Version:** `v1.5-QG`
 
 ---
 
@@ -12,7 +12,7 @@
 | **Firmware Core (C/Asm)** | Stable | 25+ hostsim tests passed (audio, scales, project, engines, voice management) |
 | **DSP & Polyphony (v1.4-QG)** | Active | 10-voice psychoacoustic stealing (`quiet_tail`), Direct Form II Transposed Biquad EQ |
 | **Code Generation Pipeline** | Stable | Verified with Pillow + fonttools; tables & UI headers generated in `build/gen/` |
-| **Web Studio (`web/editor.html`)** | Stable | Verified via `node web/test_web.mjs` (all protocol tests pass, synchronized v1.4-QG) |
+| **Web Studio (`web/editor.html`)** | Stable | Verified via `node web/test_web.mjs` (all protocol tests pass, synchronized v1.5-QG) |
 | **Web Installer (`web/index_pkg.html`)** | Stable | Verified via `node web/test_pkg_bounds.mjs` & `install_test.py` |
 | **Backup System (`web/fm1backup.js`)** | Stable | Verified via `node web/test_backup.mjs` (43 object structures verified) |
 | **Browser Emulator (`web/emu`)** | Active | Updated with resilient MIDI fallback & AudioWorklet diagnostics |

@@ -20,13 +20,20 @@
 - Manual: `python3 tools/fm1_install.py paquete.fwsc [--sha256 HEX] [--verify-only]`. Si hay un `paquete.fwsc.sha256` o
   `SHA256SUMS` al lado, se verifica solo.
 
+## Antes de tocar la flash
+
+Leé [docs/SECURITY.md](SECURITY.md): qué comprueba de verdad el protocolo de actualización, por qué un corte
+de luz a media escritura deja el equipo en negro (banco único, sin rollback) y cuál es la escalera de
+recuperación documentada. **No hay ninguna instalación declarada segura sin una recuperación independiente
+comprobada.**
+
 ## Si algo sale mal
 | Qué pasa | Qué hacer |
 | --- | --- |
 | Se cortó durante la escritura | Reconectá y repetí la instalación: el FM-1 queda en *modo update* y el loader termina de escribir (web: INSTALL; CLI: el mismo comando). |
 | "FM-1 not found" | Otro cable (de datos), otro puerto USB, cerrá apps MIDI; `fm1_install.py --info` lista los puertos. |
 | La identidad no coincide después (exit 6) | Repetí la instalación; si sigue, volvé a la V15 oficial desde el instalador web ("Return to official V15"). |
-| El FM-1 no arranca | Mantené **OCT− + OCT+** 2 s al encender (UBOOT) y usá la recuperación por hardware que describe el instalador web. |
+| El FM-1 no arranca | Mirá si la computadora lo ve como **WL80UBOOT** (`4C4A:8057`): es el modo de arranque del chip y el instalador lo vuelve a escribir (probá con otro cable). Si QG-1 **sí** corre, **OCT− + OCT+** durante **5 s** entra en UBOOT (la cuenta regresiva aparece a los 2 s; soltás y se cancela). Si nada de eso: [FM-1 Transporter](https://github.com/kurogedelic/FM-1-transporter). |
 | Perdiste canciones/sonidos | Restaurá el backup `.json` desde el Web Studio. |
 
 Códigos de salida del CLI: 0 ok, 1 cancelado, 2 paquete inválido o SHA-256 distinto, 3 FM-1 no encontrado,

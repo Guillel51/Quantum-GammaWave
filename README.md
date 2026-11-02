@@ -12,10 +12,10 @@
 <p align="center">
   <img src="assets/screenshots/quantum_01_home.png" alt="Quantum GammaWave HOME Screen" width="46%">
   &nbsp;&nbsp;
-  <img src="assets/screenshots/quantum_02_edit_analog.png" alt="Quantum GammaWave EDIT 1 Screen" width="46%">
+  <img src="assets/screenshots/quantum_18_fullscreen_visualizer.png" alt="Quantum GammaWave Full-Screen Visualizer" width="46%">
 </p>
 <p align="center">
-  <em>Pantallas reales de Quantum GammaWave en resolución nativa 240×240: a la izquierda, la pantalla principal HOME con analizador de espectro de 28 barras, sol Hearth y curva de filtro en tiempo real en la paleta insignia QUANTUM; a la derecha, la pantalla de edición EDIT 1 del motor ANALOG, con sus dos osciladores virtuales, corte, resonancia y la cinta espectral Wraith.</em>
+  <em>Pantallas reales de Quantum GammaWave en resolución nativa 240×240: a la izquierda, la pantalla principal HOME con analizador de espectro de 28 barras, sol Hearth y curva de filtro en tiempo real en la paleta insignia QUANTUM; a la derecha, el visualizador de pantalla completa (<code>HOME → HOME</code>) con el tema sonando: osciloscopio de fósforo doble, traza orbital de fase, las 16 barras de espectro con sus picos, los medidores de las seis pistas y las motas cuánticas en sus órbitas.</em>
 </p>
 
 **Quantum GammaWave (QG-1)** is an independent, advanced open-source custom firmware and Web Studio workstation engineered specifically for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox** (powered by the dual-core JieLi AC791N SoC). It delivers expanded 10-voice polyphony with psychoacoustic voice stealing, an expanded warm harmonic distortion suite, full-screen audio visualization, fixed-point parametric master EQ, real-time diagnostic telemetry, 17 curated visual themes, and an extensive preset sound library.
@@ -44,7 +44,7 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## What's in Quantum GammaWave (`v1.4-QG`)
+## What's in Quantum GammaWave (`v1.5-QG`)
 
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
 - **Harmonic Distortion & Saturation Suite:** 4 musical, warm saturation topologies with dedicated algorithms:
@@ -204,7 +204,9 @@ Some synth tracks run on the FM-1's second core, with per-block checksums and a 
 
 *Quantum GammaWave uses the FM-1's user sample flash (`USR1–3`) to store 8 multi-section songs and the 32-voice FM6 user bank. Back up any custom WAV samples from stock firmware before flashing.*
 
-You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** (named `felucca-<version>.fwsc`, e.g. `felucca-v1.4-QG.fwsc` — the build tooling keeps Felucca's file name).
+> **Read [`docs/SECURITY.md`](docs/SECURITY.md) before flashing anything.** It documents what the update protocol actually verifies (CRC, no signature), why an interrupted write cannot roll back on this single-bank layout, the community recovery ladder, and an honest audit of this repository's own installer — including what has *not* been tested on hardware. No install is declared safe without an independently demonstrated recovery path.
+
+You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** (named `felucca-<version>.fwsc`, e.g. `felucca-v1.5-QG.fwsc` — the build tooling keeps Felucca's file name).
 
 ---
 
@@ -215,7 +217,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.4-QG build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.5-QG build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -224,7 +226,16 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 
 ## Changelog
 
-### `v1.4-QG` / `v1.5-QG` — Quantum GammaWave Major Release
+### `v1.5-QG` — Startup, Preferences & Telemetry Release
+- **Startup without the four black lines:** the ST7789 GDRAM is 240×320 while the blit clamps to 240×240, so 80 rows were never written; `lcd_gdram_clear()` now writes all 76 800 pixels before the display is turned on (commit #37 only touched the backlight).
+- **`MENU > EXTRA`: three preferences, firmware and Web Studio together** — `CPU MODE` (AUTO / DUAL CORE / SAFE SINGLE, AUTO by default, never forcing a core that failed), `VISUALIZER QUALITY` (HIGH / BALANCED / LOW: draw resolution, particles and refresh rate only, never the audio) and `STARTUP SPLASH` (FULL / SHORT / OFF, hardware still initialised either way). Stored in the free bytes of the factory favourites record, so old records read as the defaults and need no migration.
+- **GLO monitor from the real state:** per-core split with each core's own time, CPU load, active voices, peaks, ticks, late blocks and fallback, redrawing on the data that actually changed.
+- **Six-track worst-case bench** (`cpu/mix/6parts_full` in `tests/regress.c`): the six parts at once, a different engine each, 8 notes held plus the drums and every send at 96.
+- **Polyphony measured, not assumed:** the 10- vs 12-voice experiment is built and run (§ of `docs/SECURITY.md` aside, numbers in the PR). 12 voices passes every health and voice check but changes two golden renders, costs +1008 B of SRAM and +11.6 % CPU on that bench, so **10 stays**.
+- **`steal_test` fixed:** it filled the shared budget with 7+1 notes, which was the whole budget when it was written; with 10 voices only three of its five scheduled notes stole one and the test failed its own "at least 4" on main.
+- **`docs/SECURITY.md`:** AC791N/WL82 flash map, boot chain, what the update protocol really verifies, the single-bank power-loss window, the recovery ladder, and an honest audit of our own installer.
+
+### `v1.4-QG` — Quantum GammaWave Major Release
 - **10-Voice Psychoacoustic Polyphony:** Expanded real-time capacity from 8 to 10 voices across tracks with weighted-energy quiet-tail stealing ($<-40\text{ dB}$) and dynamic load throttling.
 - **Harmonic Distortion Suite:** 4 distinct saturation topologies (`SOFT`, `TAPE`, `HEARTH`, `FLUX`) with dedicated DSP curves in `firmware/src/fx.c`.
 - **Parametric Master EQ Engine:** Fixed-point Q14/Q15 biquad Direct Form II Transposed filters providing surgical Peak/Bell boost and Notch cleanup.
