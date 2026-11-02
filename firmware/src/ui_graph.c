@@ -1029,8 +1029,10 @@ static void graph_diag(uint16_t c)
     cv_text(16, 50, &AF_S, "POLYPHONY", T_MID);
     b[0] = 0;
     fmt_int(b, (int32_t)active_voices);
-    str_cpy(b + str_len(b), " / 10 VOICES", sizeof b - str_len(b));
-    cv_text_r(224, 50, &AF_S, b, active_voices >= 9u ? T_ACCENT : T_TEXT, T_SURF);
+    str_cpy(b + str_len(b), " / ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)NVOICE);        /* the cap it really has, not a written-out 10 */
+    str_cpy(b + str_len(b), " VOICES", sizeof b - str_len(b));
+    cv_text_r(224, 50, &AF_S, b, active_voices + 1u >= NVOICE ? T_ACCENT : T_TEXT, T_SURF);
 
     /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS */
     for (i = 0; i < 6u; i++) {

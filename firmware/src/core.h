@@ -8,7 +8,11 @@
 #include <stdint.h>
 
 /* ------------------------------------------------------------ sizes --- */
-#define NVOICE 10                /* voices per part, and the budget shared by all parts */
+#ifndef NVOICE
+#define NVOICE 10                /* voices per part, and the budget shared by all parts. Overridable so the 12-voice
+                                  * experiment (tests/run_tests.sh POLY=12) can be built and measured against it; the
+                                  * shipped value is 10, which is what every golden render and budget is taken at. */
+#endif
 #define NPART 6                  /* synth parts: tracks 1..6 (JIANT 0.6: was 4) */
 #define NTRK NPART               /* tracks (the formats and the protocol count these): every track is a part */
 #define NSTEP 64

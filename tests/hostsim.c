@@ -400,17 +400,24 @@ static double tracks_cost(const uint8_t parts[NPART][3], uint32_t *busy_max)
 }
 
 /* stealing across parts must not click: three parts of plain sines (smooth: the largest sample
- * step is set by the pitches), 7 + 1 notes fill the budget, then notes on parts 2 and 3 take held
- * voices of part 1 (and part 2). Each taken voice fades over one block. Compares the largest sample
- * step around each take with the largest one in the 0.25 s before it; a hard cut would be several
- * times larger. Writes DIR/steal.wav. */
+ * step is set by the pitches), NVOICE - 1 + 1 notes fill the shared budget, then notes on parts 2 and
+ * 3 take held voices of part 1 (and part 2). Each taken voice fades over one block. Compares the
+ * largest sample step around each take with the largest one in the 0.25 s before it; a hard cut would
+ * be several times larger. Writes DIR/steal.wav. */
 static int steal_test(const char *dir)
 {
-    static const uint8_t N1[7] = {48, 52, 55, 59, 62, 65, 69};
+    /* The shared budget has to be exactly full before the first measured take. This test was written with the
+     * budget at 8 -- the "8: the budget is full" comment below -- where 7 held notes plus part 1's note at 0.5 s
+     * filled it and each of the five scheduled notes then had to take a voice from another part. The budget is
+     * NVOICE now, so hold NVOICE - 1 instead of a fixed 7: with 7, two of those notes found a free voice, only 3
+     * takes happened, and the test failed its own "at least 4 takes" for a reason that has nothing to do with the
+     * click it is there to catch. Same engine, same attack, same measurement -- only the preconditions follow the
+     * budget. */
+    static const uint8_t N1[12] = {48, 52, 55, 59, 62, 65, 69, 72, 74, 77, 79, 81};
     const uint32_t frames = 4u * FS;
     char path[512];
     FILE *w;
-    int32_t prev = 0, *L = calloc(frames + CTL, sizeof *L);   /* (the last block may run past frames) */
+    int32_t *L = calloc(frames + CTL, sizeof *L);   /* (the last block may run past frames) */
     uint32_t f, i, p, k, events[6], nev = 0, bad = 0, kills0;
     double worst = 0;
     snprintf(path, sizeof path, "%s/steal.wav", dir);
@@ -435,10 +442,10 @@ static int steal_test(const char *dir)
         int32_t o[2 * CTL];
         uint32_t ms = f * 1000u / FS, k0 = voice_kills;
         if (f == 0)
-            for (i = 0; i < 7u; i++)
+            for (i = 0; i < NVOICE - 1u && i < sizeof N1 / sizeof N1[0]; i++)
                 trk_note_on(&trk[0], N1[i], 90);
         if (f == FS / 2u / CTL * CTL)
-            trk_note_on(&trk[1], 74, 90);          /* 8: the budget is full */
+            trk_note_on(&trk[1], 74, 90);          /* the budget is full: NVOICE - 1 held, this one is the last */
         if (ms >= 1000u && ms % 500u == 0u && f % (FS / 2u) < CTL && ms < 3500u) {
             p = ms / 500u % 2u ? 1u : 2u;          /* parts 2, 3 in turn: each takes a voice */
             trk_note_on(&trk[p], 76u + ms / 250u, 90);
@@ -464,7 +471,6 @@ static int steal_test(const char *dir)
         if (at > calm * 3 / 2)
             bad++;
     }
-    (void)prev;
     printf("tracks: stealing across parts: %u voices taken; largest sample step at a take / before it: at most %.2f x "
            "(a hard cut: several x) %s\n", voice_kills - kills0, worst, nev >= 4u && !bad ? "ok" : "FAIL");
     free(L);
