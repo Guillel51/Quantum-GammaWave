@@ -1,7 +1,7 @@
-# Contributing to Pocket GammaWave (GW-1)
+# Contributing to Quantum GammaWave (QG-1)
 
-Thanks for helping! Pocket GammaWave (GW-1) is a custom firmware for the FM-1, based on Felucca by Leo Kuroshita (Hügelton Instruments).
-Please report Pocket GammaWave's bugs and ideas here, not to Felucca: Pocket GammaWave's changes are not theirs to answer.
+Thanks for helping! Quantum GammaWave (QG-1) is a custom firmware and Web Studio for the M-VAVE FM-1 groovebox, built with lineage roots in Pocket GammaWave, JIANT FM, and Felucca.
+Please report Quantum GammaWave's bugs and ideas here, not to upstream projects: Quantum GammaWave's changes are independent.
 
 | What | Where |
 |---|---|
@@ -12,7 +12,7 @@ Please report Pocket GammaWave's bugs and ideas here, not to Felucca: Pocket Gam
 
 ## Reporting a bug
 
-Please include the Pocket GammaWave version (hold HOME > ABOUT), your computer's OS and browser if the editor or installer is
+Please include the Quantum GammaWave version (hold HOME > ABOUT), your computer's OS and browser if the editor or installer is
 involved, the steps to reproduce it, what you expected and what happened. A photo or a short video helps.
 
 ## Pull requests

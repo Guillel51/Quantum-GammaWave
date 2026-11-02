@@ -10,6 +10,7 @@
 #define ENGI_DRUM 10u
 #define SMP_SET_PERC 4u
 static uint8_t fx_lowcut;
+void qg_fx_update_eq(uint8_t mode) { (void)mode; }
 static void fm1_led_key(unsigned k, int on) { (void)k; (void)on; }
 static int fm1_enc_take(unsigned k) { (void)k; return 0; }
 static void lcd_sync(void) {}
@@ -55,7 +56,7 @@ int main(void)
         /* 1.0.2: the old MONO keeps its id as GREY (a saved MONO looks the same); the new black and white MONO is
          * appended, a new id */
         assert(palette_from_stored(UI_PAL_TAG + 0u) == UI_GREY_INDEX && !strcmp(UI_PALETTES[UI_GREY_INDEX].name, "GREY"));
-        assert(UI_BW_INDEX == 9u && UI_JIANT_INDEX == 10u && UI_QUANTUM_INDEX == NPALETTES - 1u && !strcmp(UI_PALETTES[UI_BW_INDEX].name, "MONO") &&
+        assert(UI_BW_INDEX == 9u && UI_JIANT_INDEX == 10u && UI_QUANTUM_INDEX == 13u && !strcmp(UI_PALETTES[UI_BW_INDEX].name, "MONO") &&
                palette_from_stored(UI_PAL_TAG + UI_BW_INDEX) == UI_BW_INDEX && palette_stored_ok(UI_PAL_TAG + UI_BW_INDEX));
         q.palette = palette_to_stored(5);
         assert(settings_import(&q, sizeof q) == 1 && settings.palette == 5u);

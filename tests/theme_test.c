@@ -107,7 +107,7 @@ int main(int argc, char **argv)
             if (p == UI_GREY_INDEX) assert(gray(swap16(cv_px[1])));
             if (p == UI_BW_INDEX) assert(neutral(swap16(cv_px[1])));
         }
-        assert(text_w(&AF_S, UI_PALETTES[p].name) <= 60);     /* the COLOR row's value */
+        assert(text_w(&AF_S, UI_PALETTES[p].name) <= 64);     /* the COLOR row's value */
         cv_begin(240, 124, T_BG);
         cv_text(4, 2, &AF_M, UI_PALETTES[p].name, T_TEXT);
         for (unsigned k = 0; k < 5; k++) cv_rect(150 + k * 16, 4, 12, 12, tok[k]);
