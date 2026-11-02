@@ -31,14 +31,25 @@
 Following independent review of the repository after PR #6 fusion, all discrepancies between reported items and repository state were systematically diagnosed, verified with reproducible tests, and resolved:
 
 ### A. Emulator Version & GitHub Pages Deployment Audit
+**Measured 2026-11-02, ~19:00 UTC, over HTTP — re-checkable with the URLs below.**
+
 - **Published Pages URL:** `https://guillel51.github.io/Quantum-GammaWave/`
-- **Root Artifact Deployed:** `index.html` (SHA-256: `9849459d9324d7fd5cde0ecb5d2bc4c186dc8cb91b4bde1babf70b1389ef61ee`)
-- **WASM Binary Deployed:** `felucca.wasm` (983,138 bytes, SHA-256: `7e59b466016c8ee9349a037730e4c95bd34e6b1dff80360887126369bf7dd235`)
-- **Version Embedded:** `v1.4-QG` (verified via binary string inspection and HTTP extraction).
-- **Audit Explanation for v1.3 Appearance:**
-  1. GitHub Pages edge caching (Fastly/Varnish CDN): `Cache-Control: max-age=600` retains cached representations for 10 minutes unless invalidated.
-  2. The Web USB Installer (`webapp/installer/`) maintains historical fallback versions for safe rollback (`v1.3-QG-f5ea2fa` was retained alongside `v1.4-QG-f011b3e`).
-  3. Client browser service workers and local HTTP disk caches required forced refresh. The live deployment is 100% verified on `v1.4-QG`.
+- **Version embedded:** `v1.5-QG (preview)` — the footer of the deployed `index.html` (`<small class="version">`). The page contains no `1.4-QG` string at all.
+- **WASM binary deployed:** `felucca.wasm`, 1,004,467 bytes, SHA-256 `74c6819beaa663bb6b66b69a9c4ffa159faf158835aa272c55b626ec585bc71a`. A string scan of the binary returns exactly one version: `v1.5-QG` (no `v1.4-QG`, no `v1.3-QG`).
+- **Root `index.html`:** 29,951 bytes, stable across four no-cache requests.
+- **The deploy it came from:** workflow `emulator`, run [#115](https://github.com/Guillel51/Quantum-GammaWave/actions/runs/41503671469) on `main` at `4682fef`. `build` (emulator, smoke test, package, installer, editor, target compiler checks) succeeded; job `deploy` succeeded and `actions/deploy-pages@v4` finished at `2026-11-02T18:48:20Z`.
+- **Installer's version list:** `firmware/versions.json` served by the site, newest first:
+  1. `v1.5-QG-4682fef` — `felucca-v1.5-QG-4682fef.fwsc`, 610,113 bytes
+  2. `v1.4-QG-9fb0549` — kept so a user can roll back
+  3. `v1.3-QG-f5ea2fa` — kept so a user can roll back
+
+**Why `1.4-QG` can still appear on screen, and why that is not a stale build:**
+
+1. The installer's version dropdown deliberately lists the three builds above, so `v1.4-QG` and `v1.3-QG` are *selectable options*, not the current one. The default and newest entry is `v1.5-QG-4682fef`.
+2. GitHub Pages edge caching: `Cache-Control: max-age=600` keeps a cached copy for 10 minutes after a deploy. A hard refresh clears it. (The first request after this deploy still served a 29,890-byte copy; four subsequent no-cache requests all returned the same 29,951-byte, `v1.5-QG` page.)
+3. Browser service workers and local disk caches may hold the previous page.
+
+**To re-verify:** `curl -s https://guillel51.github.io/Quantum-GammaWave/ | grep -o 'v1\.[0-9]-QG'` and `curl -s https://guillel51.github.io/Quantum-GammaWave/firmware/versions.json`.
 
 ### B. Master EQ Implementation & Signal Tests
 - **Filter Architecture:** Parametric Biquad Filter in Direct Form II Transposed in fixed-point Q14 arithmetic (`qg_biquad_t`).
