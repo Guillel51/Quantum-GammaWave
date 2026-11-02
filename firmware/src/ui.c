@@ -754,8 +754,9 @@ static void open_family(uint32_t fam)
     page_flash();
 }
 
-/* GLO always enters the mixer from another family. Subsequent taps visit the
- * global settings, then return to the mixer; recording has no navigation role. */
+/* GLO always enters the mixer from another family. Subsequent taps walk the
+ * family's pages -- GLOBAL, SYSTEM and, since QG-1, MONITOR -- and the one past
+ * the last returns to the mixer; recording has no navigation role. */
 static void open_global(void)
 {
     uint32_t i;
