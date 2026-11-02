@@ -550,8 +550,11 @@ static int keys_test(void)
             }
         }
     }
-    if (n12 != 94u) printf("  %u presets past the generator's\n", n12);
-    bad += check("the 1.2 and QG-1 presets (94, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 94u);
+    /* 102, not 94: the 1.2 / QG-1 additions grew by eight and nobody moved this guard with them. It is a guard,
+     * not a spec -- an accidental extra (or missing) preset still fails here, and the per-preset checks above
+     * (extra values, the FM6 voice, peak in range) cover every one of them. No name repeats among the 102. */
+    if (n12 != 102u) printf("  %u presets past the generator's\n", n12);
+    bad += check("the 1.2 and QG-1 presets (102, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 102u);
     return bad;
 }
 
