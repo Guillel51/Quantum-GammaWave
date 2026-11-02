@@ -769,6 +769,14 @@ static void open_global(void)
         ui.page = (uint8_t)page_first(FAM_TRK);
     }
     ui.home = 0;
+    /* (QG-1 v1.5) open_family() already clears this; open_global() did not, so GLO from the full-screen
+     * visualizer left home_viz set with ui.home == 0. ui_draw() then kept rendering graph_home_viz() and never
+     * called draw_columns() / draw_graph() at all: the section did not appear to change and every live value on
+     * it (the CPU LOAD row of GLO > MONITOR among them) stayed frozen until HOME was pressed twice. */
+    if (ui.home_viz) {
+        ui.home_viz = 0;
+        ui.force = 1;                               /* the page under the visualizer, whole */
+    }
     page_entered();
     page_flash();
 }

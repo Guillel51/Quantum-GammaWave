@@ -215,6 +215,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "persistence: deferred settings, retry and failed-save rollback" "$OUT/persistence_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/startup_test" tests/startup_test.c -lm
     run "startup: saved arrangement survives initialization and idle saving (by @workeffortwaste, #134)" "$OUT/startup_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/lcd_st7789_test" tests/lcd_st7789_test.c
+    run "LCD: the ST7789's 240x320 frame memory written whole before DISPON and the backlight (the four black lines)" \
+        "$OUT/lcd_st7789_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/backup_test" tests/backup_test.c -lm
     run "full backup: CRC before writes, stale runtime, USB reset / timeout, malformed objects, older projects" "$OUT/backup_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/editor_test" tests/editor_test.c -lm
