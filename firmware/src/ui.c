@@ -97,6 +97,13 @@ static void prefs_update(void)
 #define ui_load (favorites.factory[15][26])    /* (JIANT 0.6.30) LOAD (voice.c sys_load): 0 FULL, 1 LITE, 2 ECO; a byte no
                                                 * engine uses, 0 in older settings (0.6.29's 6 LITE: 1, LITE) */
 #define ui_sel_home (favorites.factory[15][22])     /* (QG-1) MENU > SYSTEM > KNOB SELECT: 0 BPM, 1 TRK VOL, 2 TRK PAN, 3 MASTER VOL, 4 OFF */
+/* (QG-1 v1.5) MENU > EXTRA's three settings: a byte each in engine 15's block (NENGINES is 14, so 0..21 are free),
+ * each 0 in every older settings record = its default, so importing one changes nothing and nothing has to migrate
+ * (settings_persist.c puts back whatever it does not recognise). The menu, the editor and the apply path are the
+ * same as every other row's (menu_items.c). */
+#define ui_cpu_mode (favorites.factory[15][21])     /* 0 AUTO (default), 1 DUAL CORE, 2 SAFE SINGLE (main.c boot) */
+#define ui_viz_q (favorites.factory[15][20])        /* 0 HIGH (default), 1 BALANCED, 2 LOW (ui_graph, ui_being) */
+#define ui_splash (favorites.factory[15][19])       /* 0 FULL (default), 1 SHORT, 2 OFF (main.c boot) */
 #define midi_out_mode (favorites.factory[15][24])   /* (JIANT 0.6.72) MENU > MIDI OUT (seq.c MO_*): 0 KEYS (older settings,
                                                 * as ever), 1 CLOCK, 2 ALL, 3 OFF; a byte no engine uses */
 #define PREF_SIX (0x80u << 8)                  /* (JIANT 0.6.18) MENU > TRACKS 6: all six tracks play; clear (the
@@ -747,8 +754,9 @@ static void open_family(uint32_t fam)
     page_flash();
 }
 
-/* GLO always enters the mixer from another family. Subsequent taps visit the
- * global settings, then return to the mixer; recording has no navigation role. */
+/* GLO always enters the mixer from another family. Subsequent taps walk the
+ * family's pages -- GLOBAL, SYSTEM and, since QG-1, MONITOR -- and the one past
+ * the last returns to the mixer; recording has no navigation role. */
 static void open_global(void)
 {
     uint32_t i;
@@ -1327,25 +1335,6 @@ static uint32_t eng_list_pos(uint32_t *total)
         }
     *total = np + n;
     return cur;
-}
-
-static void eng_list_step(int32_t direction)         /* the next / previous sound of the engine (wraps) */
-{
-    uint32_t total, cur = eng_list_pos(&total), e = TSEL->eng_req % NENGINES, np = preset_shown(e), k, n;
-    if (total < 2u)
-        return;
-    n = (cur + (direction > 0 ? 1u : total - 1u)) % total;
-    if (n < np) {
-        apply_preset(preset_nth(ENGINES[e], n));        /* the n-th shown preset */
-    } else {
-        n -= np;
-        for (k = 0; k < UP_SLOTS; k++)
-            if (up_used(k) && up_engine(k) == e && !n--) {
-                up_load(k);
-                break;
-            }
-    }
-    preset_hinted();
 }
 
 static void preset_step(int32_t direction)

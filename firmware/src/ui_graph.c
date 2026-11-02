@@ -970,45 +970,71 @@ static void graph_slpitch(uint16_t c)
     }
 }
 /* (QG-1) GLO MONITOR: real system diagnostics, core load, active voices, DSP & buses.
- * Only displays authentic measurements; displays "N/A" if counter is zero or uninstrumented. */
+ * Only displays authentic measurements; displays "N/A" if counter is zero or uninstrumented.
+ * (QG-1 v1.5) seven rows now: how the parts split between the cores (mc_mask_last, from fx.c mc_split) and how long
+ * core 1's last job really took (hal/fm1_multicore.h fm1_mc_job_us, stamped by core 1 itself around the job and
+ * published before `done`), plus the late blocks and the voices shed for them (audio.c load_diag). Every figure has
+ * a writer; none is a constant. */
 static void graph_diag(uint16_t c)
 {
-    uint32_t i, active_voices = 0;
-    char b[32];
+    uint32_t i, active_voices = 0, n1 = 0, n0;
+    char b[48];
     for (i = 0; i < trk_live; i++) {
         uint32_t v;
         for (v = 0; v < NVOICE; v++)
             if (trk[i].v[v].active) active_voices++;
     }
+    for (i = 0; i < NPART; i++)                     /* the parts core 1 took in the last block */
+        n1 += (mc_mask_last >> i) & 1u;
+    if (n1 > trk_live) n1 = trk_live;
+    n0 = trk_live - n1;
 
     if (ux.chamfer && !ux.style) {
-        gw_oct_panel(8, 4, 224, 92, 4, T_BG, T_LINE, 1, c);
+        gw_oct_panel(8, 4, 224, 102, 4, T_BG, T_LINE, 1, c);
     } else {
-        cv_rrect(8, 4, 224, 92, 4, T_SURF, T_BG);
+        cv_rrect(8, 4, 224, 102, 4, T_SURF, T_BG);
     }
 
-    /* Row 1: MULTICORE STATUS & AUDIO CPU LOAD % (from audio.c song.cpu_q8). mc_status() already
-     * spells the whole state ("CORES 2", "CORES 1 (FAULT)"), so the caption must not repeat it */
-    cv_text(16, 10, &AF_S, "MULTICORE", T_MID);
-    cv_text_r(224, 10, &AF_S, mc_status(), T_THEME, T_SURF);
+    /* Row 1: MULTICORE STATUS. mc_status() already spells the whole state ("CORES 2", "CORES 1 (FAULT)"), the
+     * fallback and the fault included, so the caption must not repeat it */
+    cv_text(16, 8, &AF_S, "MULTICORE", T_MID);
+    cv_text_r(224, 8, &AF_S, mc_status(), T_THEME, T_SURF);
 
-    /* Row 2: REAL CPU LOAD & PEAK */
-    cv_text(16, 26, &AF_S, "CPU LOAD", T_MID);
+    /* Row 2: REAL CPU LOAD & PEAK (audio.c song.cpu_q8, load_diag.peak) */
+    cv_text(16, 22, &AF_S, "CPU LOAD", T_MID);
     b[0] = 0;
     fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
     str_cpy(b + str_len(b), "% (PK ", sizeof b - str_len(b));
     fmt_int(b + str_len(b), (int32_t)load_diag.peak);
     str_cpy(b + str_len(b), "%)", sizeof b - str_len(b));
-    cv_text_r(224, 26, &AF_S, b, song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
+    cv_text_r(224, 22, &AF_S, b, song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
 
-    /* Row 3: POLYPHONY (active voices across all live tracks) */
-    cv_text(16, 42, &AF_S, "POLYPHONY", T_MID);
+    /* Row 3: HOW THE PARTS SPLIT, and how long core 1's last job took (its own stamp on the shared TIMER4) */
+    cv_text(16, 36, &AF_S, "CORE SPLIT", T_MID);
+    b[0] = 0;
+    str_cpy(b, "C0 ", sizeof b);
+    fmt_int(b + str_len(b), (int32_t)n0);
+    str_cpy(b + str_len(b), " C1 ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)n1);
+#if FELUCCA_DUAL_CORE                              /* the figure only exists with a second core built in */
+    if (mc_live()) {                                /* .. and once core 1 has actually run a job */
+        str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)fm1_mc_job_us());
+        str_cpy(b + str_len(b), "us", sizeof b - str_len(b));
+    }
+#endif
+    cv_text_r(224, 36, &AF_S, b, n1 ? T_THEME : T_TEXT, T_SURF);
+
+    /* Row 4: POLYPHONY (active voices across all live tracks) */
+    cv_text(16, 50, &AF_S, "POLYPHONY", T_MID);
     b[0] = 0;
     fmt_int(b, (int32_t)active_voices);
-    str_cpy(b + str_len(b), " / 10 VOICES", sizeof b - str_len(b));
-    cv_text_r(224, 42, &AF_S, b, active_voices >= 9u ? T_ACCENT : T_TEXT, T_SURF);
+    str_cpy(b + str_len(b), " / ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)NVOICE);        /* the cap it really has, not a written-out 10 */
+    str_cpy(b + str_len(b), " VOICES", sizeof b - str_len(b));
+    cv_text_r(224, 50, &AF_S, b, active_voices + 1u >= NVOICE ? T_ACCENT : T_TEXT, T_SURF);
 
-    /* Row 4: ACTIVE TRACKS T1..T6 VOICE BLOCKS */
+    /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS */
     for (i = 0; i < 6u; i++) {
         int32_t tx = 16 + (int32_t)i * 35;
         uint32_t v, tv = 0;
@@ -1016,12 +1042,12 @@ static void graph_diag(uint16_t c)
         if (i < trk_live) {
             for (v = 0; v < NVOICE; v++) if (trk[i].v[v].active) tv++;
         }
-        cv_text(tx, 58, &AF_S, tb, i < trk_live ? T_DIM : T_LINE);
-        cv_rrect(tx + 16, 58, 14, 10, 2, tv ? T_ACCENT : T_RAISE, T_SURF);
+        cv_text(tx, 64, &AF_S, tb, i < trk_live ? T_DIM : T_LINE);
+        cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : T_RAISE, T_SURF);
     }
 
-    /* Row 5: BUS TICKS & HARDWARE SANITY (no fabricated constants) */
-    cv_text(16, 76, &AF_S, "BUS TICKS", T_MID);
+    /* Row 6: BUS TICKS & HARDWARE SANITY (no fabricated constants) */
+    cv_text(16, 78, &AF_S, "BUS TICKS", T_MID);
     if (mc_fx_tk) {
         b[0] = 0;
         fmt_int(b, (int32_t)mc_fx_tk);
@@ -1032,7 +1058,15 @@ static void graph_diag(uint16_t c)
     if (fx_trips) {
         str_cpy(b + str_len(b), " [TRIP]", sizeof b - str_len(b));
     }
-    cv_text_r(224, 76, &AF_S, b, fx_trips ? T_ACCENT : T_TEXT, T_SURF);
+    cv_text_r(224, 78, &AF_S, b, fx_trips ? T_ACCENT : T_TEXT, T_SURF);
+
+    /* Row 7: BLOCKS THAT MISSED THEIR DEADLINE, and the voices shed for it (the overload fallback) */
+    cv_text(16, 92, &AF_S, "LATE/SHED", T_MID);
+    b[0] = 0;
+    fmt_int(b, (int32_t)load_diag.late);
+    str_cpy(b + str_len(b), " / ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)load_diag.shed);
+    cv_text_r(224, 92, &AF_S, b, (load_diag.late || load_diag.shed) ? T_ACCENT : T_TEXT, T_SURF);
 }
 
 /* MOD page: the four slots as rows "1 LFO > CUT +50%", the one KNOB 2..4 edit selected, slots that do
@@ -1728,6 +1762,15 @@ static uint32_t graph_signature(void)
         h = (h ^ song.cpu_q8 * 3329u ^ load_diag.peak * 1931u ^ load_diag.late * 2671u ^
              load_diag.shed * 6151u) * 16777619u;
         h = (h ^ mc_fx_tk * 40503u ^ fx_trips * 7919u ^ trk_live * 104729u ^ av * 131u) * 16777619u;
+        /* (QG-1 v1.5) the rows added on top of those: the part split, core 1's job and the multicore state.
+         * Without these the page kept the figure it first drew: mc_status() and CORE SPLIT never moved, because
+         * nothing in the old hash changed when they did (that is the "data that does not update"). */
+        h = (h ^ (uint32_t)mc_mask_last * 65537u ^ (uint32_t)mc_live() * 374761393u ^
+             (uint32_t)mc_off * 2654435761u) * 16777619u;
+#if FELUCCA_DUAL_CORE                              /* the HAL's own state, only there with a second core */
+        h = (h ^ fm1_mc_job_us() * 2246822519u ^ (uint32_t)fm1_mc_lost * 668265263u) * 16777619u;
+        h = (h ^ (uint32_t)fm1_mc_barred() * 1013904223u) * 16777619u;
+#endif
     }
     return h;
 }

@@ -337,7 +337,7 @@
 <body>
 <main>
   <button class="lang" id="lang"></button>
-  <h1>QUANTUM GAMMAWAVE — FM-1 Web Studio Workstation (v1.4-QG)</h1>
+  <h1>QUANTUM GAMMAWAVE — FM-1 Web Studio Workstation (v1.5-QG)</h1>
   <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>10-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
   <header class="top">
@@ -5631,7 +5631,7 @@ $("connect").addEventListener("click", () => {
     const modeNames = {
       home: "HOME // FORGE", core: "WAVE 1 & 2", seq: "SOLAR ORBIT",
       tape: "4-TRK TAPE", fx: "MASTER FX RACK", splash: "WAVE SPLASH",
-      gen: `GENERATOR ${genLcdPage + 1}/3`,
+      gen: `SETTINGS ${genLcdPage + 1}/4`,
       viz: `VIZ // ${SECRET_VIZ_LABELS[secretVizMode]}`
     };
     updateTelemetryDOM(st, modeNames[mode] || "HOME // FORGE");
@@ -5640,7 +5640,7 @@ $("connect").addEventListener("click", () => {
     ctx.fillRect(0, 0, 240, 240);
 
     if (mode === "gen") {
-      /* (QG-1) Modernized Settings & System Preferences Screen (UI / Control / Performance) */
+      /* (QG-1) Modernized Settings & System Preferences Screen (UI / Control / Performance / Extra) */
       ctx.fillStyle = pal.surf;
       ctx.fillRect(0, 0, 240, 22);
       ctx.fillStyle = pal.theme;
@@ -5655,15 +5655,18 @@ $("connect").addEventListener("click", () => {
       ctx.fillStyle = pal.theme;
       ctx.font = "bold 13px 'IBM Plex Mono', monospace";
       ctx.textAlign = "center";
-      ctx.fillText(genLcdPage === 0 ? "UI PREFERENCES" : genLcdPage === 1 ? "CONTROL & FEEL" : "DSP PERFORMANCE", 120, 42);
+      ctx.fillText(genLcdPage === 0 ? "UI PREFERENCES" : genLcdPage === 1 ? "CONTROL & FEEL" : genLcdPage === 2 ? "DSP PERFORMANCE" : "EXTRA OPTIONS", 120, 42);
       ctx.textAlign = "left";
 
       const prefRows = [
         [ ["PALETTE", "QUANTUM"], ["ANIMATIONS", "SMOOTH (ON)"], ["KNOB ACCEL", "EXPONENTIAL"], ["LED BRIGHT", "HIGH"] ],
         [ ["HOME SELECT", "BPM / TEMPO"], ["FX LATCH", "AUTO HOLD"], ["OCTAVE RANGE", "-2 .. +2"], ["SCALE LOCK", "ENABLED"] ],
-        [ ["POLYPHONY", "10 VOICES"], ["LOAD PROFILE", "BALANCED FULL"], ["MASTER WIDTH", "STEREO EXP"], ["EQ BIQUAD", "WARM PEAK"] ]
+        [ ["POLYPHONY", "10 VOICES"], ["LOAD PROFILE", "BALANCED FULL"], ["MASTER WIDTH", "STEREO EXP"], ["EQ BIQUAD", "WARM PEAK"] ],
+        /* (QG-1 v1.5) the device's MENU > EXTRA rows as the firmware reports them (MENU_DESC ids 22, 23, 24). The
+         * preview shows their defaults; the device is the source of truth (EDITOR_PROTOCOL.md "MENU settings"). */
+        [ ["CPU MODE", "AUTO"], ["VIS QUALITY", "HIGH"], ["STARTUP SPLASH", "FULL"], ["TRACKS", "6 VOICES"] ]
       ];
-      const rows = prefRows[genLcdPage % 3];
+      const rows = prefRows[genLcdPage % 4];
       for (let k = 0; k < 4; k++) {
         const y = 54 + k * 28;
         const hot = (k === genHotRow);
@@ -5685,7 +5688,7 @@ $("connect").addEventListener("click", () => {
       ctx.textAlign = "center";
       ctx.fillStyle = pal.mid;
       ctx.font = "bold 10px 'IBM Plex Mono', monospace";
-      ctx.fillText("PAGE " + (genLcdPage + 1) + "/3 — HARDWARE OPTIMIZED", 120, 182);
+      ctx.fillText("PAGE " + (genLcdPage + 1) + "/4 — HARDWARE OPTIMIZED", 120, 182);
       ctx.fillStyle = pal.text;
       ctx.fillText("OCT+ SAVE   HOME EXIT", 120, 200);
       ctx.fillStyle = pal.dim;
@@ -5818,7 +5821,7 @@ $("connect").addEventListener("click", () => {
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("v1.4-QG", 120, 194);
+      ctx.fillText("v1.5-QG", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";
@@ -7071,9 +7074,9 @@ $("connect").addEventListener("click", () => {
   /* Wire JIANT GEN UI Controls & 240x240 LCD Screen */
   if ($("gw-lcd-gen-btn")) {
     $("gw-lcd-gen-btn").addEventListener("click", () => {
-      if (lcdMode === "gen") genLcdPage = (genLcdPage + 1) % 3;
+      if (lcdMode === "gen") genLcdPage = (genLcdPage + 1) % 4;
       else { lcdMode = "gen"; genLcdPage = 0; }
-      $("gw-lcd-gen-btn").textContent = `🧬 GEN ${genLcdPage + 1}/3`;
+      $("gw-lcd-gen-btn").textContent = `🧬 SET ${genLcdPage + 1}/4`;
     });
   }
   if ($("gw-gen-make")) {
@@ -7107,7 +7110,7 @@ $("connect").addEventListener("click", () => {
       genLcdPage = pg;
       genHotRow = row;
       lcdMode = "gen";
-      if ($("gw-lcd-gen-btn")) $("gw-lcd-gen-btn").textContent = `🧬 GEN ${genLcdPage + 1}/3`;
+      if ($("gw-lcd-gen-btn")) $("gw-lcd-gen-btn").textContent = `🧬 SET ${genLcdPage + 1}/4`;
       runJiantGen(false);
     });
   });

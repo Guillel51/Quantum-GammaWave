@@ -51,6 +51,14 @@ static int settings_import(persist_t *p, int n)
         p->favorites.factory[15][24] = 0;
     if (p->favorites.factory[15][27] > 7u)         /* SCREEN OFF (1.1.5, ui.c SCR_CODE): unknown = 0 (NEVER since 1.1.5.1) */
         p->favorites.factory[15][27] = 0;
+    /* (QG-1 v1.5) MENU > EXTRA: 0 is the default in every older record (a byte no engine uses, engine 15), so the
+     * three only need the unknown-value clamp the rest have: a corrupt or future value reads as the default. */
+    if (p->favorites.factory[15][19] > 2u)         /* STARTUP SPLASH: unknown = FULL */
+        p->favorites.factory[15][19] = 0;
+    if (p->favorites.factory[15][20] > 2u)         /* VISUALIZER QUALITY: unknown = HIGH */
+        p->favorites.factory[15][20] = 0;
+    if (p->favorites.factory[15][21] > 2u)         /* CPU MODE: unknown = AUTO */
+        p->favorites.factory[15][21] = 0;
     p->magic = PERSIST_MAGIC;
     p->palette = palette_to_stored(palette_from_stored(p->palette));
     settings.magic = SETTINGS_MAGIC;

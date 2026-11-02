@@ -41,10 +41,18 @@ typedef struct {
     volatile uint32_t check;
     uint32_t pad0[12];                          /* (each core's words on cache lines of their own) */
     volatile uint32_t alive, done, bad;         /* core 1's: started; the last job finished; jobs refused */
-    uint32_t pad1[13];
+    volatile uint32_t job_us;                   /* (QG-1 v1.5) its last job, microseconds: it stamps it with the
+                                                * shared TIMER4 around fn(arg) and publishes it before `done`, so
+                                                * core 0 reads a finished job's figure, never one in flight (GLO >
+                                                * MONITOR; console cpu2_job_us). Stays on core 1's cache line: the
+                                                * struct is still 128 bytes, two lines, as it was */
+    uint32_t pad1[12];
 } fm1_mc_box_t;
 static fm1_mc_box_t fm1_mc_box __attribute__((aligned(64)));
 static inline uint32_t fm1_mc_ticks(void) { return FM1_C1_T4(); }   /* (0.6.73) TIMER4 from either core: fx.c times the parts */
+/* (QG-1 v1.5) core 1's last job in microseconds, or 0 if it has not run one yet (GLO > MONITOR, console). Written
+ * before `done`, so a value read while `done == job` is that job's own figure */
+static inline uint32_t fm1_mc_job_us(void) { return fm1_mc_box.job_us; }
 static uint8_t fm1_mc_on;                       /* answering: core 0 may hand it work */
 static uint8_t fm1_mc_lost;                     /* why it stopped: 1 a wrong job, 2 a job not back, 3 a fault */
 static uint32_t fm1_mc_max_ticks;               /* the longest wait for a job (TIMER4 ticks): MENU > ABOUT */
@@ -78,7 +86,11 @@ void __attribute__((section(".c1_text"), noinline, noreturn, used)) fm1_c1_main(
             void (*fn)(uint32_t) = fm1_mc_box.fn;
             uint32_t arg = fm1_mc_box.arg;
             if (fn && fm1_mc_box.check == FM1_C1_CHECK(fn, arg, j)) {
+                uint32_t t0 = FM1_C1_T4();        /* (QG-1 v1.5) how long this job takes core 1 */
                 fn(arg);                        /* (the work itself runs from the flash) */
+                FM1_C1_SYNC();
+                fm1_mc_box.job_us = (FM1_C1_T4() - t0) / 24u;   /* 24 MHz: microseconds */
+                FM1_C1_SYNC();
                 done = j;
                 FM1_C1_SYNC();
                 fm1_mc_box.done = j;

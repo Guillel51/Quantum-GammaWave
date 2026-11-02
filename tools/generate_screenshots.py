@@ -6,6 +6,21 @@ import os
 import subprocess
 from PIL import Image
 
+def shrink(im):
+    """The same pixels in fewer bytes: a palette image when the render has at most 256 colours and the
+    round trip is byte-identical, the RGB image otherwise. Returns (image, note)."""
+    cols = im.getcolors(maxcolors=257)
+    if cols is None or len(cols) > 256:
+        return im, ""
+    try:
+        pal = im.quantize(colors=len(cols))
+    except Exception:
+        return im, ""
+    if pal.convert("RGB").tobytes() != im.tobytes():
+        return im, ""
+    return pal, ", palette"
+
+
 def generate_screens():
     os.makedirs("assets/screenshots", exist_ok=True)
     os.makedirs("assets/ui-art/art", exist_ok=True)
@@ -125,11 +140,23 @@ int main(int argc, char **argv) {
     draw(S_MOTION_LOCKS);
     write_ppm("assets/screenshots", "quantum", "17_motion_locks");
 
-    /* 18. Full-Screen Audio Visualizer (Oscilloscope & Lissajous) */
+    /* 18. Full-Screen Audio Visualizer (Oscilloscope & Lissajous), actually running.
+     * The song is playing, the six VU meters have signal and ui.frame sits mid-animation, so the capture shows the
+     * visualizer working -- spectrum bars up, phosphor trace, motes spread over their orbits -- instead of parked at
+     * its idle frame with every meter empty. */
     setup(S_HOME);
     pal(UI_QUANTUM_INDEX);
     ui.home = 1;
     ui.home_viz = 1;
+    song.playing = 1;
+    trk_live = NTRK;
+    {
+        static const int32_t pk[6] = {21000, 9000, 15500, 27000, 7400, 12800};
+        uint32_t k;
+        for (k = 0; k < NTRK; k++)
+            trk[k].peak = pk[k];
+    }
+    ui.frame = 173;
     ui_draw();
     write_ppm("assets/screenshots", "quantum", "18_fullscreen_visualizer");
     ui.home_viz = 0;
@@ -200,21 +227,24 @@ int main(int argc, char **argv) {
         f.write(src + "\n" + custom_main)
 
     os.makedirs("assets/screenshots/ppm", exist_ok=True)
-    subprocess.run(["gcc", "-O1", "-w", "-DFELUCCA_VERSION=\"v1.4-QG\"",
+    subprocess.run(["gcc", "-O1", "-w", "-DFELUCCA_VERSION=\"v1.5-QG\"",
                     "-Ibuild/gen", "-Ifirmware/src", "-Itests",
                     "-o", "/tmp/gen_screens", "/tmp/gen_screens.c", "-lm"], check=True)
     subprocess.run(["/tmp/gen_screens"], check=True)
 
-    # Convert all PPM to PNG
+    # Convert all PPM to PNG, as small as the pixels allow. A palette PNG is only used when the render really has
+    # 256 colours or fewer AND decoding it back is byte-identical to the source, so "smaller without losing quality"
+    # is checked rather than assumed; optimize=True applies either way.
     for fname in sorted(os.listdir("assets/screenshots/ppm")):
         if fname.endswith(".ppm"):
             base = fname[:-4]
             ppm_path = os.path.join("assets/screenshots/ppm", fname)
             png_path = os.path.join("assets/screenshots", base + ".png")
-            im = Image.open(ppm_path)
-            im.save(png_path)
+            im = Image.open(ppm_path).convert("RGB")
+            out, note = shrink(im)
+            out.save(png_path, optimize=True)
             os.remove(ppm_path)
-            print(f"Generated {png_path}")
+            print(f"Generated {png_path} ({os.path.getsize(png_path)} B{note})")
     os.rmdir("assets/screenshots/ppm")
 
     # Synchronize assets/ui-art/art/ with actual rendered screens
@@ -244,8 +274,9 @@ int main(int argc, char **argv) {
         src_path = os.path.join("assets/screenshots", src)
         dst_path = os.path.join("assets/ui-art/art", dst)
         if os.path.exists(src_path):
-            im = Image.open(src_path)
-            im.save(dst_path)
+            im = Image.open(src_path).convert("RGB")
+            out, _ = shrink(im)
+            out.save(dst_path, optimize=True)
             print(f"Updated {dst_path} from {src}")
 
 if __name__ == "__main__":

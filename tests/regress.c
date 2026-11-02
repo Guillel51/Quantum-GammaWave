@@ -16,8 +16,10 @@
  *    peak level, every voice free after the release, silence at the end. Fails with the numbers.
  * 3. CPU budget: per engine x preset (8 notes held; VOICE: its 4) and a few mixes, the instructions
  *    per sample counted by the kernel (proc_pid_rusage ri_instructions: the same on every run within
- *    ~1 %, unlike wall time), compared with CPU_FILE (tests/cpu_baseline.txt) at +-25 %; ns per
- *    sample printed for information. A count over the budget fails, one far under it only warns.
+ *    ~1 %, unlike wall time), compared with CPU_FILE (tests/cpu_baseline.txt) at +-25 %; the ns per
+ *    sample are this process's CPU time (cpu_ns below), not the wall clock, so they hold on a loaded
+ *    Linux host where a job's ~15 ms window would otherwise swing +-30 %. A count over the budget
+ *    fails, one far under it only warns.
  * 4. voices: the shared budget of 8 across 4 parts, stolen voices fade (no step), MONO / LEGATO /
  *    UNISON keep their note under pressure, the VOICE engine's 4-voice cap, release frees voices, and
  *    no hanging note after the note-offs on any routing (USB channels 1..4, others while the
@@ -29,8 +31,8 @@
 #undef main
 #ifdef __APPLE__
 #include <libproc.h>
-#include <sys/resource.h>
 #endif
+#include <sys/resource.h>
 
 /* ------------------------------------------------------------- limits --- */
 #define LIM_NEAR 30000            /* |sample| at or above: "near full scale" (the limiter holds ~18000) */
@@ -322,6 +324,18 @@ static uint64_t instr_now(void)
 #endif
     return 0;
 }
+/* The process's own CPU time (user + system) in ns. CLOCK_MONOTONIC counts the time the scheduler took away too, and
+ * a job's window here is only ~15 ms of work, so on a loaded host the wall-clock ns/sample swung +-30 % run to run and
+ * could not tell a 10-voice build from a 12-voice one (the control rows moved as much as the row under test). CPU time
+ * does not have that problem; the exact instruction counts stay callgrind's job (tests/cpu_vg.c, run_tests.sh). */
+static uint64_t cpu_ns(void)
+{
+    struct rusage ru;
+    if (getrusage(RUSAGE_SELF, &ru))
+        return now_ns();
+    return (uint64_t)ru.ru_utime.tv_sec * 1000000000u + (uint64_t)ru.ru_utime.tv_usec * 1000u
+         + (uint64_t)ru.ru_stime.tv_sec * 1000000000u + (uint64_t)ru.ru_stime.tv_usec * 1000u;
+}
 static void job_cpu(const job_t *j)
 {
     static const uint8_t NOTES[8] = {48, 52, 55, 59, 60, 64, 67, 71};
@@ -332,6 +346,10 @@ static void job_cpu(const job_t *j)
     host_tracks_init();
     for (p = 0; p < NPART; p++) {
         host_preset(&trk[p], parts[p][0], parts[p][1]);
+        if (j->arg)                            /* cpu/mix/6parts_full: the four sends wide open on every part,
+                                             * drums included (the FX load the six-track review asks about) */
+            for (i = 0; i < 4u; i++)
+                trk[p].p[P_DIST + i] = 96;
         if (parts[p][2] == DRUM_HITS)
             continue;
         trk[p].p[P_VOICE] = V_POLY;
@@ -343,7 +361,7 @@ static void job_cpu(const job_t *j)
     for (k = 0; k < nb / 2u + nb; k++) {
         if (k == nb / 2u) {
             i0 = instr_now();
-            t0 = now_ns();
+            t0 = cpu_ns();
         }
         for (p = 0; p < NPART; p++)
             if (parts[p][2] != DRUM_HITS && ENGINES[parts[p][0]]->oneshot && k % 64u == 63u)
@@ -357,7 +375,7 @@ static void job_cpu(const job_t *j)
         if (j->e == 0xFE)
             click_render(last_out, CTL);                /* (audio.c audio_block: after the master) */
     }
-    R.ns = (double)(now_ns() - t0) / (nb * CTL);
+    R.ns = (double)(cpu_ns() - t0) / (nb * CTL);
     R.ipc = i0 ? (double)(instr_now() - i0) / (nb * CTL) : 0;
 }
 
@@ -1127,6 +1145,20 @@ int main(int argc, char **argv)
         cpu_parts[ncpu][3][0] = ENGI_DRUM, cpu_parts[ncpu][3][1] = 0, cpu_parts[ncpu][3][2] = DRUM_HITS;
         j->parts = (const uint8_t (*)[3])cpu_parts[ncpu++];
         j->e = 0xFF;
+        j = add(J_CPU, "cpu/mix/6parts_full");         /* the six parts at once, a different engine each, 8 notes each
+                                             * plus the drums and every send at 96: the shared voice budget (NVOICE
+                                             * across all parts) saturated with the FX on. The row the 10 vs 12 voice
+                                             * experiment compares; arg 1 turns the sends on (job_cpu above). */
+        memset(cpu_parts[ncpu], 0, sizeof cpu_parts[ncpu]);
+        cpu_parts[ncpu][0][0] = FELUCCA_FM4 ? ENGI_DIGITAL : ENGI_FM6, cpu_parts[ncpu][0][1] = 0, cpu_parts[ncpu][0][2] = 8;
+        cpu_parts[ncpu][1][0] = 0, cpu_parts[ncpu][1][1] = 0, cpu_parts[ncpu][1][2] = 8;   /* ANALOG */
+        cpu_parts[ncpu][2][0] = 2, cpu_parts[ncpu][2][1] = 0, cpu_parts[ncpu][2][2] = 8;   /* PHASE */
+        cpu_parts[ncpu][3][0] = ENGI_DRUM, cpu_parts[ncpu][3][1] = 0, cpu_parts[ncpu][3][2] = DRUM_HITS;
+        cpu_parts[ncpu][4][0] = 7, cpu_parts[ncpu][4][1] = 0, cpu_parts[ncpu][4][2] = 8;   /* WHEEL */
+        cpu_parts[ncpu][5][0] = 5, cpu_parts[ncpu][5][1] = 0, cpu_parts[ncpu][5][2] = 8;   /* VOICE */
+        j->parts = (const uint8_t (*)[3])cpu_parts[ncpu++];
+        j->e = 0xFF;
+        j->arg = 1;
         j = add(J_CPU, "cpu/mix/idle_click");          /* idle + the metronome's click (click.c) never silent */
         memset(cpu_parts[ncpu], 0, sizeof cpu_parts[ncpu]);
         j->parts = (const uint8_t (*)[3])cpu_parts[ncpu++];
@@ -1271,7 +1303,7 @@ int main(int argc, char **argv)
         fclose(f);
         printf("regress: CPU baseline %s rewritten (%u entries)\n", cpath, c1 - c0);
     }
-    printf("regress: CPU, one part with 8 notes held (VOICE 4), heaviest preset per engine (instructions / ns per sample):\n");
+    printf("regress: CPU, one part with 8 notes held (VOICE 4), heaviest preset per engine (instructions / CPU ns per sample):\n");
     for (e = 0; e < NENGINES; e++)
         if (eng_ok(e))
             printf("regress:   %-8s %-14s %6.0f instr  %6.1f ns\n", ENGINES[e]->name, ENGINES[e]->presets[heavy_p[e]].name,

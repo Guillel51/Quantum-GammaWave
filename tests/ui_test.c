@@ -2043,10 +2043,11 @@ static int test_menu_tabs(void)
             }
     }
     ui_prefs = 0;
-    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 1 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
+    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 4 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
                  ok && MTAB_COUNT == 5u && str_eq(MTAB_NAME[0], "DISPLAY") && mtab_rows(MTAB_DISPLAY) == 6u &&
                  mtab_rows(MTAB_CONTROL) == 6u && mtab_rows(MTAB_AUDIO) == 6u && mtab_rows(MTAB_SYSTEM) == 6u &&
-                 mtab_rows(MTAB_GEN) == 1u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN) */
+                 mtab_rows(MTAB_GEN) == 4u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN;
+                                                    * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH join it) */
 
     ui_power_on();
     hold(B_HOME);
@@ -2928,8 +2929,9 @@ static int test_product_ux(void)
     frames(320);                                       /* (taps further apart than a double tap: #83) */
     press(B_GLO); frames(320); ok = cur_page()->fam == FAM_GLO && str_eq(cur_page()->title, "GLOBAL");
     press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SYSTEM");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "MONITOR") && cur_page()->graph == GR_DIAG;
     press(B_GLO); ok &= cur_page()->graph == GR_TRK;
-    bad += check("GLO cycles MIXER > GLOBAL > SYSTEM > MIXER", ok);
+    bad += check("GLO cycles MIXER > GLOBAL > SYSTEM > MONITOR > MIXER", ok);
     go_home(); hold(B_SEQ);
     bad += check("long SEQ off the SEQ pages is a tap (no SONG: SAVE held, G5)", cur_page()->graph != GR_SONG);
     go_page(GR_SONG);

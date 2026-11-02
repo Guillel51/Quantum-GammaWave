@@ -157,7 +157,8 @@ static int preferences(void)
         host_wire[n - 23] == 0 &&                        /* (no bank since 1.0.3) */
         host_wire[n - 22] == 0x53 && host_wire[n - 21] == 1 && host_wire[n - 20] == 3 &&
         host_wire[n - 19] == 0x50 && host_wire[n - 18] == 1 && host_wire[n - 17] == 3 &&   /* FM6 v2: no bank, preset patches */
-        host_wire[n - 16] == 0x4E && host_wire[n - 15] == 1 && host_wire[n - 14] == 22 &&   /* MENU settings: 22 items (0.6.72: MIDI OUT, 1.1.1-GW: SELECT ON HOME) */
+        host_wire[n - 16] == 0x4E && host_wire[n - 15] == 1 && host_wire[n - 14] == 25 &&   /* MENU settings: 25 items (0.6.72: MIDI OUT, 1.1.1-GW: SELECT ON HOME,
+                                                        * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH) */
         host_wire[n - 13] == 0x52 && host_wire[n - 12] == 1 && host_wire[n - 11] == 4 &&   /* RATCH */
         host_wire[n - 10] == 0x4C && host_wire[n - 9] == 1 && host_wire[n - 8] == 1 &&   /* 1.1 parameter locks */
         host_wire[n - 7] == 0x56 && host_wire[n - 6] == 1 && host_wire[n - 5] == 32 &&   /* (0.6.11) FM6 voice bank */
@@ -691,7 +692,9 @@ static int usb_burst(void)
 }
 
 /* ---- MENU_DESC / MENU_SET (72, 73): the menu's settings over the editor ---- */
-typedef struct { uint32_t index, id, kind, nnames, tab, rest; int32_t value, min, max; char name[16], names[16][12], tabname[16]; } menu_item_t;
+/* names[NPALETTES], not names[16]: COLOR's names are the whole palette list and there are 17 of them, so the old
+ * width truncated NORDIC and left the tab bytes parsed out of the tail of the last palette name. */
+typedef struct { uint32_t index, id, kind, nnames, tab, rest; int32_t value, min, max; char name[16], names[NPALETTES][12], tabname[16]; } menu_item_t;
 static uint32_t menu_desc(uint32_t index, menu_item_t *it)   /* the reply's payload length; it parsed */
 {
     uint8_t a[1] = {(uint8_t)index};
@@ -704,7 +707,7 @@ static uint32_t menu_desc(uint32_t index, menu_item_t *it)   /* the reply's payl
     it->value = ed_rv(host_wire + 8); it->min = ed_rv(host_wire + 10); it->max = ed_rv(host_wire + 12);
     for (k = 0; p < n - 1u && host_wire[p] && k < 15u; ) it->name[k++] = (char)host_wire[p++];
     p++;
-    while (p < n - 1u && it->nnames < 16u && (int32_t)it->nnames < it->max - it->min + 1) {   /* (kind 0: max - min + 1) */
+    while (p < n - 1u && it->nnames < NPALETTES && (int32_t)it->nnames < it->max - it->min + 1) {   /* (kind 0: max - min + 1) */
         for (k = 0; p < n - 1u && host_wire[p] && k < 11u; ) it->names[it->nnames][k++] = (char)host_wire[p++];
         p++; it->nnames++;
     }
@@ -735,20 +738,29 @@ static int menu_protocol(void)
         {"LOAD", "ECO,LITE,FULL"}};                                                                 /* (0.6.30) */
     static const int32_t DEF[20] = {-1, 0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2};   /* (COLOR: the default palette) */
     static const uint8_t TAB[20] = {0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 2, 2, 2, 3, 1, 0, 2, 3};      /* DISPLAY CONTROL AUDIO SYSTEM */
-    static const char *const TABN[4] = {"DISPLAY", "CONTROL", "AUDIO", "SYSTEM"};
+    static const char *const TABN[5] = {"DISPLAY", "CONTROL", "AUDIO", "SYSTEM", "EXTRA"};   /* (QG-1 1.5: EXTRA) */
     int bad = 0, ok = 1;
     uint32_t i, k, n;
     menu_item_t it;
-    char joined[96];
+    char joined[12 * NPALETTES + 1];   /* COLOR joins the whole palette list: 17 names + 16 commas = 204 bytes */
     const char *json = getenv("MENU_JSON");
     FILE *jf = json ? fopen(json, "w") : 0;
     reset();
     if (jf) fprintf(jf, "[");
     for (i = 0; i < 20u; i++) {
+        int fits = 1;
         n = menu_desc(i, &it);
         joined[0] = 0;
-        for (k = 0; k < it.nnames; k++) { if (k) strcat(joined, ","); strcat(joined, it.names[k]); }
-        ok &= n > 10u && it.index == i && it.id == i && it.kind == 0 && it.min == 0 &&
+        /* bounded: joined[96] overflowed on the very first item (COLOR's 17 names are 204 bytes) and aborted the
+         * whole run under _FORTIFY_SOURCE / ASan. Because stdout is buffered and the abort goes to stderr, it
+         * surfaced as the *previous* check "SONG PLAY refuses extra argument bytes" dying, which is why it read
+         * like an editor-protocol bug instead of a test buffer. */
+        for (k = 0; k < it.nnames; k++) {
+            if (strlen(joined) + strlen(it.names[k]) + 2u > sizeof joined) { fits = 0; break; }
+            if (k) strcat(joined, ",");
+            strcat(joined, it.names[k]);
+        }
+        ok &= fits && n > 10u && it.index == i && it.id == i && it.kind == 0 && it.min == 0 &&
               it.max + 1 == (int32_t)it.nnames && !strcmp(it.name, WANT[i][0]) &&
               (WANT[i][1] ? !strcmp(joined, WANT[i][1]) : it.nnames == NPALETTES) &&
               it.value == (DEF[i] < 0 ? (int32_t)settings.palette : DEF[i]) &&
@@ -756,15 +768,20 @@ static int menu_protocol(void)
         if (i == 0)
             for (k = 0; k < NPALETTES; k++) ok &= !strcmp(it.names[k], UI_PALETTES[k].name);
         if (!ok) { printf("  MENU_DESC %u: %s [%s] value %d max %d tab %u %s\n", i, it.name, joined, it.value, it.max, it.tab, it.tabname); break; }
-        if (jf) {
+    }
+    if (jf) {                        /* every row of the list, ids 0..24: the file run_tests.sh publishes as
+                                      * build/host/menu.json. The Web Studio reads the device live rather than a
+                                      * copy of this, so nothing here can drift from it unnoticed. */
+        for (i = 0; i < 25u; i++) {
+            menu_desc(i, &it);
             fprintf(jf, "%s\n {\"id\":%u,\"kind\":%u,\"min\":%d,\"max\":%d,\"value\":%d,\"name\":\"%s\",\"names\":[", i ? "," : "",
                     it.id, it.kind, it.min, it.max, it.value, it.name);
             for (k = 0; k < it.nnames; k++) fprintf(jf, "%s\"%s\"", k ? "," : "", it.names[k]);
-            fprintf(jf, "],\"tab\":%u,\"tabName\":\"%s\"}", it.tab, it.tabname);
+            fprintf(jf, "],\"tab\":%u,\"tabName\":\"%s\"}\n", it.tab, it.tabname);
         }
+        fprintf(jf, "]\n"); fclose(jf);
     }
-    if (jf) { fprintf(jf, "]\n"); fclose(jf); }
-    bad += check("MENU_DESC: 18 items (1.0.4's 12 in the menu's order, then 1.1's CLICK, CLICK LEVEL, COUNT-IN, 1.2's RESTORE LAST, SCALE LEDS, SCREEN OFF), ids 0..17, names, defaults", ok);
+    bad += check("MENU_DESC: ids 0..19 in the menu's order, their names, defaults and tabs (1.0.4's 12, then CLICK, CLICK LEVEL, COUNT-IN, RESTORE LAST, SCALE LEDS, SCREEN OFF, TRACKS, LOAD)", ok);
     bad += check("MENU_DESC (1.0.5): after the names each item's tab, index and name (DISPLAY CONTROL AUDIO SYSTEM)", ok);
     {   /* an older editor reads the names and stops: the tab is past them, nothing it reads moved */
         uint32_t m = menu_desc(4, &it), p = 14, q;
@@ -774,17 +791,48 @@ static int menu_protocol(void)
         bad += check("MENU_DESC: the tab comes after every byte of the 1.0.4 reply (older editors ignore it)", ok);
     }
     ok = 1;
-    for (i = 0; i < 22u; i++) {
+    for (i = 0; i < 25u; i++) {                          /* the whole list: 25 items since QG-1 1.5's EXTRA rows */
         menu_desc(i, &it);
         ok &= strcmp(it.name, "CALIBRATION") && strcmp(it.name, "ABOUT");
         if (i == 20u) ok &= !strcmp(it.name, "MIDI OUT") && it.id == 20;   /* (0.6.72) */
+        if (i == 21u) ok &= !strcmp(it.name, "KNOB SELECT") && it.id == 21;
     }
-    ok &= it.id == 21;                                   /* (1.1.1-GW) SELECT ON HOME */
-    n = menu_desc(22, &it);
-    ok &= n == 2u && it.index == 22 && it.id == 127;
+    n = menu_desc(25, &it);                              /* past the list: it was 22 before EXTRA grew it */
+    ok &= n == 2u && it.index == 25 && it.id == 127;
     n = menu_desc(127, &it);
-    bad += check("MENU_DESC: no CALIBRATION / ABOUT; an index past the list answers index, 127 (no item)",
+    bad += check("MENU_DESC: no CALIBRATION / ABOUT; an index past the list (25) answers index, 127 (no item)",
                  ok && n == 2u && it.index == 127 && it.id == 127);
+
+    /* (QG-1 1.5) MENU > EXTRA: ids 21..24 in the EXTRA tab, the three new rows with the defaults they ship with,
+     * applying where the firmware reads them and reading back, and no id or name repeated anywhere in the list. */
+    {
+        static const char *const EXN[3] = {"CPU MODE", "VIS QUALITY", "SPLASH"};
+        static const char *const EX0[3] = {"AUTO", "HIGH", "FULL"};
+        menu_item_t o, x, y;
+        int dup = 0;
+        ok = 1;
+        for (i = 21u; i < 25u; i++) {
+            n = menu_desc(i, &o);
+            ok &= n > 10u && o.index == i && o.id == i && o.kind == 0 && o.tab == 4u && !strcmp(o.tabname, "EXTRA");
+        }
+        for (i = 22u; i < 25u; i++) {
+            menu_desc(i, &o);
+            ok &= o.min == 0 && o.max == 2 && o.nnames == 3u && o.value == 0 &&
+                  !strcmp(o.name, EXN[i - 22u]) && !strcmp(o.names[0], EX0[i - 22u]);
+        }
+        bad += check("MENU_DESC: EXTRA holds KNOB SELECT, CPU MODE, VIS QUALITY and SPLASH (ids 21..24, the three new rows AUTO / HIGH / FULL)", ok);
+        for (i = 0; i < 25u; i++) {
+            menu_desc(i, &x);
+            for (k = i + 1u; k < 25u; k++) { menu_desc(k, &y); dup |= x.id == y.id || !strcmp(x.name, y.name); }
+        }
+        bad += check("MENU_DESC: 25 items, no id and no name repeated (the EXTRA rows included)", !dup);
+        ok = menu_set(22, 1) == 3 && ui_cpu_mode == 1u && menu_desc(22, &o) && o.value == 1;
+        ok &= menu_set(23, 2) == 3 && ui_viz_q == 2u && menu_desc(23, &o) && o.value == 2;
+        ok &= menu_set(24, 2) == 3 && ui_splash == 2u && menu_desc(24, &o) && o.value == 2;
+        ok &= menu_set(22, 0) == 3 && ui_cpu_mode == 0u && menu_set(23, 0) == 3 && ui_viz_q == 0u &&
+              menu_set(24, 0) == 3 && ui_splash == 0u;
+        bad += check("MENU_SET: CPU MODE, VIS QUALITY and SPLASH land where the firmware reads them, read back, and return to their defaults", ok);
+    }
     {
         uint8_t a[3] = {0, 0, 0};
         ok = request(ED_MENU_DESC, a, 0) == 0 && request(ED_MENU_DESC, a, 2) == 0 && request(ED_MENU_SET, a, 2) == 0 &&
@@ -841,7 +889,7 @@ static int menu_protocol(void)
         static uint8_t fav0[sizeof favorites], set0[sizeof settings];
         uint8_t hold0 = settings_hold, leds0 = settings_leds;
         memcpy(fav0, &favorites, sizeof favorites); memcpy(set0, &settings, sizeof settings);
-        ok = menu_set(22, 1) == 1 && host_wire[6] == 22 && ed_rv(host_wire + 7) == 1;
+        ok = menu_set(40, 1) == 1 && host_wire[6] == 40 && ed_rv(host_wire + 7) == 1;   /* (22 is CPU MODE now) */
         ok &= menu_set(126, -3) == 1 && host_wire[6] == 126 && ed_rv(host_wire + 7) == -3;
         ok &= menu_set(127, 0) == 1 && host_wire[6] == 127;
         ok &= !memcmp(fav0, &favorites, sizeof favorites) && !memcmp(set0, &settings, sizeof settings) &&

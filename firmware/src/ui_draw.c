@@ -1355,6 +1355,9 @@ static void draw_columns(void)
 #include "ui_signature.h"
 #define SPL_WRITE 800u                              /* ms: the signature written (was 900; 0.6.51: 600 -> 800) */
 #define SPL_HOLD 900u                               /* .. then shown whole, before the UI (was 1100; 0.6.51: 500 -> 900) */
+#define SPL_SHORT 300u                              /* (QG-1 v1.5) MENU > STARTUP SPLASH SHORT: drawn whole and held
+                                                     * this long, with no writing animation (OFF: main.c skips the
+                                                     * splash entirely; the hardware init is the same in all three) */
 #define SPL_SY 40                                   /* the signature's canvas on the screen (240 x SIG_H + 12) */
 #define SPL_TY 186                                  /* the two lines under it */
 static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, "QUANTUM GAMMAWAVE // QG-1"};

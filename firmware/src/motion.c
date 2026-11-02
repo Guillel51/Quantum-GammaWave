@@ -293,15 +293,6 @@ static __attribute__((noinline)) void motion_step(track_t *t, uint32_t step, con
             motion_locked[k][id / 32u] |= 1u << (id % 32u);
     }
 }
-static void motion_snapshot_track(track_t *t, motion_store_t *out)
-{
-    uint32_t f = motion_guard(), k = trk_index(t), i;
-    memset(out, 0, sizeof *out);
-    out->on = motion.on & (uint8_t)(1u << k);
-    for (i = 0; i < motion.count; i++)
-        if (MOTION_TRK(&motion.event[i]) == k) out->event[out->count++] = motion.event[i];
-    motion_unguard(f);
-}
 static int motion_replace_track(track_t *t, const motion_store_t *in)
 {
     uint32_t k = trk_index(t), n = motion.count - motion_count(t), f;
