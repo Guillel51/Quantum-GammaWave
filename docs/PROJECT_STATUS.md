@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-02
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
-**Branch:** `release/v1.5-qg`
+**Branch:** `feat/v1.5-hardening` (cut from `main` @ `4682fef`)
 **Current Milestone Version:** `v1.5-QG`
 
 ---
@@ -79,17 +79,25 @@ Following independent review of the repository after PR #6 fusion, all discrepan
 
 ## 3. Release v1.5-QG — Validation Results and Real Limits
 
-**Branch:** `release/v1.5-qg` · **Suite:** `NO_PACKAGE=1 ./tests/run_tests.sh` · **Date:** 2026-11-02
+**Branch:** `feat/v1.5-hardening` · **Suite:** `NO_PACKAGE=1 ./tests/run_tests.sh` · **Date:** 2026-11-02
 
 ### What actually ran
 
+The runner here stops at 5 minutes, so the suite was executed end to end in
+tramos cut from `tests/run_tests.sh` itself (same commands, same order), plus the
+sections the first pass never reached.
+
 | Check | Result |
 | :--- | :--- |
-| Full host suite `NO_PACKAGE=1 ./tests/run_tests.sh` | 4204 assertions `ok`, 18 suites `test passed`; the **only** failing suite is `ui` |
-| `tests/ui_test.c` | **12 FAILED** — a strict subset of the 13 that fail on `main`. One of them (the GLO cycle) is fixed here. |
+| Whole host suite `NO_PACKAGE=1 ./tests/run_tests.sh` | **78 `==` sections, `ALL HOST TESTS PASSED`** — the only non-green line is `ui`'s own count |
+| `tests/ui_test.c` | **8 FAILED** — was **12** at `main` (`4682fef`): four `#15 LARGE` layout checks fixed, **no new failure** (diffed name by name against a clean `main` build) |
 | `tests/ui_render.c` | exit 0 — 171 screens x 17 palettes, **0 lint findings**, 0 inks off their colour, 0 alignment errors over 2,655,362 measurements, splash reads `v1.5-QG` |
-| `tests/regress.c` | exit 0 — **204 golden renders, 0 changed**, 0 health failures, 0 voice / routing failures, 0 CPU entries over budget |
-| `tests/editor_test.c` | `editor test passed` (110 checks) |
+| `tests/ui_render.c` splash timeline | 425 steps of 4 ms, **160 change the screen, 265 identical rewrites skipped (62 %)**; the last frame is byte-identical to a whole draw |
+| `tests/regress.c` | exit 0 — **215 golden renders (204 + the 11 DRUM presets recorded here), 0 changed, 0 gone**, 0 health failures, 0 voice / routing failures, 0 CPU entries over budget |
+| `tests/editor_test.c` | `editor test passed` — **110 checks, exit 0** (was 4 FAIL at `main`) |
+| `tests/lcd_st7789_test.c` | 14/14 — the four black lines reproduced on the old path, closed by `lcd_gdram_clear()` |
+| ASan + UBSan (5 stored-data suites + 2 fuzz runs) | 9 sections, no finding — `fuzz_ed` 20000 packets, `fuzz_proj` 5000 stores |
+| `firmware/src/felucca.c` syntax + dead code | `cc -fsyntax-only` **rc 0**; with `-Wall -Wunused-function` **0 unused functions or variables** (23 warnings, all the expected 32-bit pointer casts) |
 | `tests/fm6bank_test.c` | `all ok` |
 | `node web/test_web.mjs` | `web tests passed` |
 | `node web/test_pkg_bounds.mjs` | all checks passed |
@@ -108,16 +116,18 @@ Following independent review of the repository after PR #6 fusion, all discrepan
 
 ### Fixed in this branch
 
-- **Startup**: `lcd_gdram_clear()` writes all 76800 pixels before `DISPON` / backlight, so the four black lines cannot survive a partial clear.
-- **EXTRA**: CPU MODE / VIS QUALITY / SPLASH in firmware (`menu_items.c`, `settings_persist.c`) and Web Studio (page 4), ids 22 / 23 / 24, defaults AUTO / HIGH / FULL, no id or name repeated.
-- **`tests/editor_test.c` `stack-buffer-overflow`**: `joined[96]` overflowed on COLOR (17 names = 204 bytes) and aborted the run under `_FORTIFY_SOURCE`, which surfaced as the *previous* check dying. Also fixed the stale EXTRA expectations and exported all 25 rows of `menu.json`.
-- **`tests/fm6bank_test.c`**: the preset-count guard said 94; it is 102 (all 102 pass their per-preset checks, none repeats a name).
-- **GLO cycle**: `MONITOR` made it four taps, the test expected three.
-- **Dead code**: 6 `static` functions with no call anywhere (`cp_arp`, `cv_blit_from`, `eng_list_step`, `fg_on`, `leds_step`, `motion_snapshot_track`), 53 lines.
+- **GLO / CPU LOAD (point 1)**: `open_global()` did not clear `ui.home_viz`, so opening GLO left `home_viz=1` with `home=0` and `ui_draw()` rendered only `graph_home_viz()` — `draw_columns()`/`draw_graph()` never ran, MONITOR's CPU LOAD stayed frozen and the section buttons did nothing. `ui_draw()` now guards that state; `open_global()` clears it. Measured: `ui_test` 12 → **8 FAILED**.
+- **Section buttons with the visualizer open (point 3)**: same root cause — GLO/FX/EDIT/SCL/LFO/ENV/SAVE now change section without HOME; 11 checks added (`qg_band`, MONITOR, LATE/SHED, header, SYSTEM card, the 7 buttons).
+- **Startup (point 2)**: `lcd_init(T_BG)` + `lcd_gdram_clear()` write all 76800 pixels before `DISPON` / backlight, so the four black lines cannot survive a partial clear; the old windowed path is reproduced and asserted by `tests/lcd_st7789_test.c`. The splash was redesigned from scratch (octagonal frame, QUANTUM wordmark, spectrum rail, playhead, `v1.5-QG` + `QUANTUM GAMMAWAVE // QG-1`).
+- **EXTRA unreachable from the editor**: `ED_MENU[]` stopped at `{MI_SELHOME, 21}`, so `MENU_DESC` answered `id=127` for indices 22..24, `MENU_SET` answered `rc 1`, and `INFO` advertised 25 settings with 22 real. CPU MODE / VIS QUALITY / SPLASH could not be read or written from the Web Studio. Appended as ids 22 / 23 / 24; the 4 failing `editor_test` checks are green.
+- **Emulator build**: `web/emu/felucca_web.c` declared `lcd_init(void)` while `main.c` now passes the theme colour — `startup_test` did not compile.
+- **Boot splash traffic**: `splash_sig()` skipped 265 of 425 timeline steps whose artwork was unchanged (~7.9 M fewer pixels per boot), with the last frame asserted byte-identical to a whole draw.
+- **Regression coverage**: the 11 DRUM presets were never in `tests/golden.txt`; recorded and verified (0 changed).
+- **EXTRA in firmware**: CPU MODE / VIS QUALITY / SPLASH in `menu_items.c`, `settings_persist.c` and Web Studio (page 4), ids 22 / 23 / 24, defaults AUTO / HIGH / FULL, no id or name repeated.
 
 ### Still failing (pre-existing on `main`, not introduced here)
 
-The 12 `ui_test` failures above: display-palette stepping, HOME / SELECT-on-HOME, layer tap handling, FX section taps, `MENU > STYLE`, section scrolling, and the five `#15 LARGE` layout checks. They fail identically on `main` (`c37f511`).
+**8 `ui_test` checks**, down from 12: COLOR KNOB palette stepping, HOME leaving display preferences, `#3 SELECT ON HOME`, `#39 FX/GLO/SCL/EDIT` layer taps, FX section taps, `MENU > STYLE`, `0.6.69 SELECT` section scrolling, and `#15 LARGE ON` cards. They fail identically on `main` (`4682fef`). Diffed name by name against a clean `main` build: **four `#15 LARGE` layout checks** are fixed here and **nothing new fails**.
 
 ### Polyphony: 10 vs 12 voices
 
@@ -136,5 +146,5 @@ Measured on the **host** build (x86-64, 5 runs of 40000 blocks, best of):
 ### Categories
 
 - **VERIFICADO EN HARDWARE** — nothing in this release. No FM-1 was connected, powered, flashed or recovered.
-- **SIMULADO** — everything in "What actually ran": the firmware's own sources built for the host, the menu/protocol, the golden renders, the CPU budget, the 10 vs 12 measurement, the installer's package bounds and protocol, and the FM-1 flash/recovery *analysis* in `docs/SECURITY.md`.
-- **NO VERIFICADO** — dual-core timing and per-core load on the real AC791N; the flash map, bootloader and recovery window of a physical unit; `m-bootloader` installability; 12 voices on target; power-cut behaviour on real flash; the browser emulator (no `emcc`); the `.fwsc` package (no toolchain).
+- **SIMULADO** — everything in "What actually ran": the firmware's own sources built for the host, the menu/protocol, the golden renders, the splash timeline on the framebuffer, the ST7789's frame memory modelled byte for byte, the installer's package bounds and protocol, ASan/UBSan + fuzz, the 10 vs 12 measurement, and the FM-1 flash/recovery *analysis* in `docs/SECURITY.md`.
+- **NO VERIFICADO** — anything on a physical FM-1 (no device was connected, powered or flashed); dual-core timing and per-core load on the real AC791N; the flash map, bootloader and recovery window of a physical unit; `m-bootloader` installability; the CPU render budget (`tests/target_budget.py` skipped: no `.fwsc`, no JieLi toolchain — and `regress` reports *no instruction counter on this host*, so the budget is not checked here either); power-cut behaviour on real flash; the browser emulator (no `emcc`); CPU under valgrind (not installed); the `.fwsc` package (no toolchain).
