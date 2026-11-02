@@ -642,166 +642,144 @@ static void graph_grid(const track_t *t, uint16_t c)
     if (song.playing && seq_src(t, t->seq_idx) < len && seq_src(t, t->seq_idx) / 16u == ui.bank)
         cv_rect(40 + (int32_t)(seq_src(t, t->seq_idx) % 16u) * 12, y0 - 1, 10, 3, T_TEXT);
 }
-/* SCL: Modernized Scale Piano Keyboard Matrix with Clear Degree & Root Badges */
+/* (QG-1) Modern SCL (Scale & Quantum Harmonics) Dashboard:
+ * Visualizes a complete chromatic octave with physical white and black piano keys,
+ * active scale degree markers, root key highlight, note names, and scale metadata. */
 static void graph_scale(const track_t *t, uint16_t c)
 {
     static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
-    static const char *const NOTE_N[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    static const uint8_t W_INDEX[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
+    static const uint8_t B_OFFSET[12] = {0, 18, 0, 48, 0, 0, 108, 0, 138, 0, 168, 0};
     uint32_t i, mask = scale_mask(t);
-    int32_t y0 = 10;
+    int32_t y0 = 6;
+    int32_t x_base = 22;
 
-    /* Background panel frame */
-    cv_rrect(6, y0, 228, 98, 5, T_RAISE, T_SURF);
-    cv_rrect(7, y0 + 1, 226, 96, 4, T_SURF, T_RAISE);
+    /* Enclosure panel */
+    if (ux.chamfer && !ux.style) {
+        gw_oct_panel(8, 2, 224, 92, 5, T_BG, T_LINE, 1, c);
+    } else {
+        cv_rrect(8, 2, 224, 92, 4, T_SURF, T_BG);
+    }
 
-    /* 12 Key slots */
+    /* 1. Draw 7 White Piano Keys */
+    for (i = 0; i < 7u; i++) {
+        int32_t kx = x_base + (int32_t)i * 28;
+        cv_rrect(kx, y0 + 10, 26, 68, 3, T_RAISE, T_SURF);
+    }
+
+    /* 2. Highlight In-Scale Natural Notes on White Keys */
     for (i = 0; i < 12u; i++) {
-        uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
-        int32_t x = 11 + (int32_t)i * 18;
-        int in_scale = (mask >> deg) & 1u;
-        int is_root = (deg == 0u);
-        uint16_t key_col = in_scale ? (is_root ? T_ACCENT : c) : T_RAISE;
-        uint16_t text_col = in_scale ? (is_root ? T_INK : T_TEXT) : T_DIM;
+        if (!BLACK[i]) {
+            uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
+            int in = (mask >> deg) & 1u;
+            int is_root = (deg == 0u);
+            int32_t kx = x_base + (int32_t)W_INDEX[i] * 28;
+            if (in) {
+                uint16_t col = is_root ? T_ACCENT : c;
+                cv_rrect(kx + 2, y0 + 52, 22, 24, 2, col, T_RAISE);
+                cv_text_in(kx + 2, y0 + 56, 22, &AF_S, N_NOTE[i], T_INK, col);
+            } else {
+                cv_text_in(kx + 2, y0 + 56, 22, &AF_S, N_NOTE[i], T_DIM, T_RAISE);
+            }
+        }
+    }
 
-        /* Key Bar */
-        cv_rrect(x + 2, y0 + (BLACK[i] ? 6 : 28), 14, BLACK[i] ? 42 : 56, 3, key_col, T_SURF);
+    /* 3. Draw 5 Black Piano Keys (Accidentals) Over White Keys */
+    for (i = 0; i < 12u; i++) {
+        if (BLACK[i]) {
+            uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
+            int in = (mask >> deg) & 1u;
+            int is_root = (deg == 0u);
+            int32_t kx = x_base + (int32_t)B_OFFSET[i];
+            uint16_t fill = in ? (is_root ? T_ACCENT : (ux.chamfer ? heat_col(180) : c)) : T_BG;
+            uint16_t txt = in ? T_INK : T_DIM;
 
-        /* Root Indicator Dot */
-        if (is_root)
-            cv_rect(x + 6, y0 + (BLACK[i] ? 12 : 36), 6, 6, T_INK);
+            cv_rrect(kx, y0 + 10, 18, 40, 2, fill, T_SURF);
+            cv_frame(kx, y0 + 10, 18, 40, T_LINE);
+            cv_text_in(kx, y0 + 20, 18, &AF_S, N_NOTE[i], txt, fill);
+        }
+    }
 
-        /* Note label at bottom */
-        cv_text_in(x + 1, y0 + 84, 16, &AF_S, NOTE_N[i], text_col, T_SURF);
+    /* Top scale title banner */
+    {
+        char sb[24];
+        str_cpy(sb, N_NOTE[(uint32_t)t->p[P_ROOT] % 12u], sizeof sb);
+        str_cpy(sb + str_len(sb), " ", 2);
+        str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
+        cv_text(16, y0 - 1, &AF_S, sb, T_THEME);
+        if (t->p[P_QUANT]) {
+            cv_text_r(224, y0 - 1, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
+        }
     }
 }
 static void panel_note(const char *a, const char *b, const char *c);
 static void panel_alert(uint32_t id, const char *a);
-/* (QG-1 WORKSTATION FX OVERVIEW)
- * General FX Overview dashboard: displays all implemented effect modules categorized:
- *  - Column 0 (TRACK FX): DIST/DRIVE (level + topology SOFT/TAPE/HEARTH/FLUX), AUTO-PAN
- *  - Column 1 (CHORUS / PHASER BUS): Chorus Rate, Depth, Stereo Width, Type
- *  - Column 2 (DELAY BUS): Time, Feedback, Mix, Analog/Digital Tape Type
- *  - Column 3 (REVERB BUS & MASTER): Reverb Size/Damp/Pre, Master EQ & Stereo Width
- * Shows active/bypass status, live meter levels, and topology tag in real-time. */
+/* (QG-1) Complete Pro FX Workstation Dashboard with Micro-UI:
+ * Compact modular 4-channel rack with scaled micro-faders, exact numeric send readouts,
+ * distortion topology tags (SOFT/TAPE/HRTH/FLUX), and global bus telemetry (EQ, Slicer, M/S Width)
+ * neatly contained within screen boundaries without clipping or overflowing. */
 static void graph_fx(const track_t *t, uint16_t c)
 {
+    static const char *const FX_LABELS[4] = {"DIST", "CHOR", "DLY", "REV"};
+    static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     uint32_t i;
-    int32_t y0 = 6, box_h = 86;
 
-    /* Background categorized FX blocks */
+    /* Enclosure panel */
+    if (ux.chamfer && !ux.style) {
+        gw_oct_panel(4, 2, 232, 92, 5, T_BG, T_LINE, 1, c);
+    } else {
+        cv_rrect(4, 2, 232, 92, 4, T_SURF, T_BG);
+    }
+
+    /* 4 modular effect send columns */
     for (i = 0; i < 4u; i++) {
-        int32_t x = CARD_X(i);
-        int32_t w = 56;
-        uint16_t frame_col = (i == ui.hot_col && ui.hot_t) ? T_ACCENT : T_SURF;
-        uint16_t text_col = (i == ui.hot_col && ui.hot_t) ? T_ACCENT : T_MID;
+        int32_t cx = CARD_X(i);
+        int32_t val = t->p[P_DIST + i];
+        int32_t f_h = val * 52 / 127;
+        int32_t slot_x = cx + 26;
+        int32_t slot_y = 16;
+        uint16_t col = ux.chamfer ? heat_col(val * 240 / 127 + 16) : c;
+        char num[8];
 
-        /* Outer Module Card Frame */
-        cv_rrect(x, y0, w, box_h, 4, T_RAISE, T_SURF);
-        cv_rrect(x + 1, y0 + 1, w - 2, box_h - 2, 3, T_SURF, T_RAISE);
-        if (frame_col == T_ACCENT)
-            cv_rect(x + 2, y0 + 1, w - 4, 1, T_ACCENT);
+        /* Sub-panel enclosure per FX column */
+        cv_rrect(cx + 2, 4, CARD_W - 4, 70, 3, T_SURF, T_BG);
 
-        /* Category / Module Mini Headers with dedicated Icons */
-        if (i == 0) {
-            /* Column 0: DRIVE / DIST & AUTO PAN */
-            int32_t dval = clamp(t->p[P_DIST], 0, 127);
-            int32_t dtype = clamp(t->p[P_DTYPE], 0, 3);
-            int32_t apdep = clamp(t->p[P_APDEP], 0, 127);
-            int32_t bar_h = dval * 42 / 127;
-            uint16_t act_c = dval > 0 ? (ux.chamfer ? heat_col(dval * 2) : T_THEME) : T_DIM;
+        /* Compact header label */
+        cv_text(cx + 6, 6, &AF_S, FX_LABELS[i], T_MID);
 
-            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_DRIVE, text_col, T_SURF);
-            cv_text(x + 18, y0 + 3, &AF_S, "DRIVE", text_col);
-            cv_text(x + 4, y0 + 15, &AF_S, N_DTYPE[dtype], act_c);
-
-            /* Drive Level Bar */
-            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
-            if (bar_h > 2)
-                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
-
-            /* Auto Pan Indicator with ICON_PAN */
-            cv_icon_in(x + 18, y0 + 29, 12, 12, 12, ICON_PAN, apdep > 0 ? T_THEME : T_DIM, T_SURF);
-            cv_text(x + 31, y0 + 30, &AF_S, "A-PAN", apdep > 0 ? T_THEME : T_DIM);
-            cv_rrect(x + 18, y0 + 44, 32, 6, 2, T_RAISE, T_SURF);
-            if (apdep > 0)
-                cv_rrect(x + 18, y0 + 44, clamp(apdep * 32 / 127, 2, 32), 6, 2, T_THEME, T_RAISE);
-            cv_text(x + 18, y0 + 56, &AF_S, apdep > 0 ? "ACTIVE" : "OFF", apdep > 0 ? T_TEXT : T_DIM);
-        } else if (i == 1) {
-            /* Column 1: CHORUS / PHASER */
-            int32_t csend = clamp(t->p[P_CHOR], 0, 127);
-            int32_t ctype = clamp(song.g[G_CTYPE], 0, 1);
-            int32_t bar_h = csend * 42 / 127;
-            uint16_t act_c = csend > 0 ? (ux.chamfer ? heat_col(csend * 2) : T_THEME) : T_DIM;
-
-            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_CHORUS, text_col, T_SURF);
-            cv_text(x + 18, y0 + 3, &AF_S, "CHORUS", text_col);
-            cv_text(x + 4, y0 + 15, &AF_S, ctype ? "PHASE" : "ENSEMB", act_c);
-
-            /* Chorus Send Bar */
-            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
-            if (bar_h > 2)
-                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
-
-            /* Stereo Width status with ICON_PAN */
-            cv_icon_in(x + 18, y0 + 29, 12, 12, 12, ICON_PAN, T_MID, T_SURF);
-            cv_text(x + 31, y0 + 30, &AF_S, "WIDTH", T_MID);
-            cv_text(x + 18, y0 + 44, &AF_S, song.g[G_CSTER] < 0 ? "NARROW" : "WIDE", T_THEME);
-            cv_text(x + 18, y0 + 56, &AF_S, csend > 0 ? "ACTV" : "MUTE", act_c);
-        } else if (i == 2) {
-            /* Column 2: DELAY */
-            int32_t dsend = clamp(t->p[P_DLY], 0, 127);
-            int32_t dtype = clamp(song.g[G_DTYPE], 0, 1);
-            int32_t dping = clamp(song.g[G_DPING], 0, 1);
-            int32_t bar_h = dsend * 42 / 127;
-            uint16_t act_c = dsend > 0 ? (ux.chamfer ? heat_col(dsend * 2) : T_THEME) : T_DIM;
-
-            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_DELAY, text_col, T_SURF);
-            cv_text(x + 18, y0 + 3, &AF_S, "DELAY", text_col);
-            cv_text(x + 4, y0 + 15, &AF_S, dtype ? "DIGITL" : "ANALOG", act_c);
-
-            /* Delay Send Bar */
-            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
-            if (bar_h > 2)
-                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
-
-            /* Ping Pong & Mix info with ICON_FEEDBACK */
-            cv_text(x + 18, y0 + 30, &AF_S, dping ? "PINGPONG" : "STEREO", T_THEME);
-            cv_icon_in(x + 18, y0 + 42, 12, 12, 12, ICON_FEEDBACK, T_MID, T_SURF);
-            cv_rrect(x + 32, y0 + 46, 20, 4, 1, T_RAISE, T_SURF);
-            cv_rrect(x + 32, y0 + 46, clamp(song.g[G_DFDBK] * 20 / 127, 2, 20), 4, 1, T_THEME, T_RAISE);
-            cv_text(x + 18, y0 + 56, &AF_S, dsend > 0 ? "ACTV" : "MUTE", act_c);
-        } else {
-            /* Column 3: REVERB & MASTER BUS (EQ / SLICER / STEREO M/S) */
-            int32_t rsend = clamp(t->p[P_REV], 0, 127);
-            int32_t eqmode = clamp(song.g[G_EQMODE], 0, 4);
-            int32_t mwidth = clamp(song.g[G_MWIDTH], 0, 127);
-            int32_t bar_h = rsend * 42 / 127;
-            uint16_t act_c = rsend > 0 ? (ux.chamfer ? heat_col(rsend * 2) : T_THEME) : T_DIM;
-
-            cv_icon_in(x + 3, y0 + 3, 12, 12, 12, ICON_REVERB, text_col, T_SURF);
-            cv_text(x + 18, y0 + 3, &AF_S, "REVERB", text_col);
-            cv_text(x + 4, y0 + 15, &AF_S, song.g[G_RTYPE] ? "SPRING" : "ROOM", act_c);
-
-            /* Reverb Send Bar */
-            cv_rrect(x + 6, y0 + 27, 8, 42, 2, T_RAISE, T_SURF);
-            if (bar_h > 2)
-                cv_rrect(x + 6, y0 + 69 - bar_h, 8, bar_h, 2, act_c, T_RAISE);
-
-            /* Master EQ with ICON_CUTOFF, Slicer with ICON_X_REPEAT and Stereo M/S */
-            cv_icon_in(x + 18, y0 + 29, 12, 12, 12, ICON_CUTOFF, eqmode > 0 ? T_ACCENT : T_MID, T_SURF);
-            cv_text(x + 31, y0 + 30, &AF_S, eqmode == 0 ? "EQ BYP" : eqmode == 1 ? "PEAK" : "NOTCH",
-                    eqmode > 0 ? T_ACCENT : T_DIM);
-
-            if (song.g[G_SLMODE] != 0) {
-                cv_icon_in(x + 18, y0 + 43, 12, 12, 12, ICON_X_REPEAT, T_ACCENT, T_SURF);
-                cv_text(x + 31, y0 + 44, &AF_S, "SLICER", T_ACCENT);
-            } else {
-                cv_icon_in(x + 18, y0 + 43, 12, 12, 12, ICON_PAN, mwidth != 64 ? T_THEME : T_MID, T_SURF);
-                cv_text(x + 31, y0 + 44, &AF_S, mwidth < 64 ? "M/S MON" : mwidth > 64 ? "M/S WID" : "M/S BYP",
-                        mwidth != 64 ? T_THEME : T_DIM);
-            }
-            cv_text(x + 18, y0 + 56, &AF_S, rsend > 0 ? "ACTV" : "MUTE", act_c);
+        /* Micro fader slot */
+        cv_rrect(slot_x, slot_y, 4, 52, 2, T_RAISE, T_SURF);
+        if (f_h > 2) {
+            cv_rrect(slot_x, slot_y + 52 - f_h, 4, f_h, 2, col, T_RAISE);
         }
+        /* Fader thumb cap */
+        cv_rrect(slot_x - 5, slot_y + 50 - f_h, 14, 4, 2, col, T_SURF);
+        cv_rect(slot_x - 3, slot_y + 51 - f_h, 10, 1, T_INK);
+
+        /* Value readout or distortion topology badge */
+        if (i == 0) {
+            uint32_t dt = t->p[P_DTYPE] & 3u;
+            cv_text(cx + 4, 60, &AF_S, DIST_TYPES[dt], T_ACCENT);
+        } else {
+            fmt_int(num, val);
+            cv_text(cx + 8, 60, &AF_S, num, val > 0 ? T_TEXT : T_DIM);
+        }
+    }
+
+    /* Bottom Global Master FX Telemetry Ribbon */
+    cv_rrect(6, 76, 228, 16, 3, T_SURF, T_BG);
+    cv_text(10, 78, &AF_S, "MASTER:", T_DIM);
+    /* EQ */
+    cv_text(60, 78, &AF_S, song.g[G_EQMODE] ? "EQ:ON" : "EQ:BYP", song.g[G_EQMODE] ? T_THEME : T_MID);
+    /* SLICER */
+    cv_text(112, 78, &AF_S, song.g[G_SLMODE] ? "SLICER:ON" : "SLICER:OFF", song.g[G_SLMODE] ? T_ACCENT : T_MID);
+    /* WIDTH */
+    {
+        char wb[16];
+        str_cpy(wb, "WIDTH:", sizeof wb);
+        fmt_int(wb + 6, (int32_t)song.g[G_MWIDTH] * 100 / 64);
+        str_cpy(wb + str_len(wb), "%", 2);
+        cv_text_r(230, 78, &AF_S, wb, T_TEXT, T_SURF);
     }
 }
 /* SLICER and SL BUS pages (JIANT 0.6.3: one, on a bus): the pattern's 16 steps, a 'x' step a full bar; a '.' step: GATE
@@ -1843,6 +1821,73 @@ static void graph_browse(void)
         }
     }
 }
+
+/* Compact semi-translucent 1.5s HUD popup centered on screen when changing presets via knob */
+static void graph_preset_pop(void)
+{
+    uint32_t total, cur = preset_pos(&total), e, k;
+    int32_t r, x0 = 16, y0 = 18, w = 208, h = 86;
+
+    if (!total) return;
+
+    /* Subtle dither pattern over underlying page for gentle translucency */
+    for (r = y0; r < y0 + h; r += 2) {
+        cv_rect(x0, r, w, 1, T_BG);
+    }
+
+    /* Centered chamfered HUD enclosure */
+    if (ux.chamfer && !ux.style) {
+        gw_oct_panel(x0, y0, w, h, 6, T_SURF, T_ACCENT, 1, T_ACCENT);
+    } else {
+        cv_rrect(x0, y0, w, h, 6, T_SURF, T_LINE);
+    }
+
+    /* 5 compact rows of presets centered on current preset */
+    for (r = -2; r <= 2; r++) {
+        int32_t ry = y0 + 4 + (r + 2) * 15;
+        int32_t x1 = x0 + w - 16;
+        char tag[6], nm[16], pt[4], pn[13];
+        uint32_t index = preset_visible(cur, total, (uint32_t)(r + 3));
+        int sel = (index == cur);
+        int32_t hint = sel ? preset_pat_hint() : -1;
+        uint16_t row_bg;
+
+        if (index >= total) continue;
+        e = preset_at(index, &k);
+        if (e == NENGINES) {
+            up_slot_label(tag, k);
+            up_name(k, nm);
+        } else {
+            str_cpy(tag, eng_abbr(ENGINES[e]->name), sizeof tag);
+            str_cpy(nm, ENGINES[e]->presets[k].name, sizeof nm);
+        }
+
+        row_bg = sel ? T_THEME : T_SURF;
+        if (favorite_has(e, k)) x1 -= 14;
+        if (hint >= 0) {
+            pat_label((uint32_t)hint, pt, pn);
+            x1 -= (text_w(&AF_S, pt) + 6);
+        }
+
+        if (sel) {
+            cv_rrect(x0 + 4, ry, w - 8, 14, 3, T_THEME, T_SURF);
+            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_INK);
+            /* Generous 44px spacing between tag and name, avoiding heavy bold visual weight */
+            cv_free_text(x0 + 46, ry + 1, &AF_S, nm, T_INK, T_THEME, x1 - (x0 + 46));
+        } else {
+            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_MID);
+            cv_free_text(x0 + 46, ry + 1, &AF_S, nm, T_TEXT, T_SURF, x1 - (x0 + 46));
+        }
+
+        if (hint >= 0) {
+            cv_text_r(favorite_has(e, k) ? x0 + w - 20 : x0 + w - 8, ry + 1, &AF_S, pt, sel ? T_INK : T_ACCENT, row_bg);
+        }
+        if (favorite_has(e, k)) {
+            cv_icon_in(x0 + w - 16, ry, 0, 14, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
+        }
+    }
+    cv_blit(0, Y_GRAPH);
+}
 /* the EDIT layer (ui_layer.c): the sound loaded, as the browser's selected row: "03" (its place in KNOB 2's list,
  * the engine's sounds) or "U07", the name, the star of a favourite */
 static void engine_sound_row(int32_t y)
@@ -1883,68 +1928,6 @@ static void graph_user(void)
         list_row(LIST_Y(row), k == ui.uslot, tag, T_MID, nm, used ? T_TEXT : T_DIM, 232);
     }
 }
-
-/* Compact semi-translucent 1.5s HUD popup showing presets when changing presets via knob */
-static void graph_preset_pop(void)
-{
-    uint32_t total, cur = preset_pos(&total), e, k;
-    int32_t r, x0 = 12, y0 = 36, w = 216, h = 90;
-
-    if (!total) return;
-
-    /* Translucent backdrop dither over current screen area */
-    for (r = y0; r < y0 + h; r += 2) {
-        cv_rect(x0, r, w, 1, T_BG);
-    }
-
-    /* Compact panel enclosure */
-    if (ux.chamfer && !ux.style) {
-        gw_oct_panel(x0, y0, w, h, 6, T_SURF, T_ACCENT, 1, T_ACCENT);
-    } else {
-        cv_rrect(x0, y0, w, h, 6, T_SURF, T_LINE);
-    }
-
-    /* 5 compact rows of presets centered on current preset */
-    for (r = -2; r <= 2; r++) {
-        int32_t ry = y0 + 5 + (r + 2) * 16, x1 = x0 + w - 18;
-        char tag[6], nm[13], pt[4], pn[13];
-        uint32_t index = preset_visible(cur, total, (uint32_t)(r + 3));
-        int sel = (index == cur);
-        int32_t hint = sel ? preset_pat_hint() : -1;
-        uint16_t row_bg;
-
-        if (index >= total) continue;
-        e = preset_at(index, &k);
-        if (e == NENGINES) {
-            up_slot_label(tag, k);
-            up_name(k, nm);
-        } else {
-            str_cpy(tag, eng_abbr(ENGINES[e]->name), sizeof tag);
-            str_cpy(nm, ENGINES[e]->presets[k].name, sizeof nm);
-        }
-
-        row_bg = sel ? T_THEME : T_SURF;
-        if (sel) {
-            cv_rrect(x0 + 4, ry, w - 8, 15, 3, T_THEME, T_SURF);
-            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_INK);
-            cv_text(x0 + 38, ry + 1, &AF_S, nm, T_INK);
-        } else {
-            cv_text(x0 + 8, ry + 1, &AF_S, tag, T_MID);
-            cv_text(x0 + 38, ry + 1, &AF_S, nm, T_TEXT);
-        }
-
-        if (hint >= 0) {
-            pat_label((uint32_t)hint, pt, pn);
-            x1 = x0 + w - 24 - text_w(&AF_S, pt) - 4;
-            cv_text_r(x0 + w - 24, ry + 1, &AF_S, pt, sel ? T_INK : T_ACCENT, row_bg);
-        }
-        if (favorite_has(e, k)) {
-            cv_icon_in(x0 + w - 16, ry, 0, 15, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
-        }
-    }
-    cv_blit(0, Y_GRAPH);
-}
-
 /* SEQ > PATTERNS: the pattern list around the one picked ("03  MELODY", "U07  MY BASS") */
 static void graph_pats(void)
 {
@@ -2346,10 +2329,13 @@ static void draw_tracks(void)
         cv_blit((uint32_t)CARD_X(c - b4), Y_GRAPH);
     }
 }
-/* (QG-1) Full-Screen Integrated Visualizer when HOME is pressed while on HOME:
- * Genuine dual-layer oscilloscope, real-time energy spectrum analyzer, phase trajectory
- * and authentic telemetry crafted from scratch with QG-1 aesthetic.
- * Rendered in 2 vertically-tiled 240x88 canvas bands to respect CV_MAX buffer limit. */
+/* (QG-1) Full-Screen Integrated Oscilloscope & Realtime Matrix:
+ * Rendered in 2 vertically-tiled 240x88 canvas bands to respect CV_MAX buffer limit.
+ * - Dual-layer phosphor oscilloscope beam with rising zero-crossing trigger.
+ * - 16-band energy spectrum analyzer with decaying peak markers.
+ * - 6-track mini VU activity meter across top reticle.
+ * - Orbital phase space trajectory x(t) vs x(t - tau).
+ * - High-contrast, crystal-clear bottom telemetry & exit hint [HOME] EXIT. */
 static void graph_home_viz(uint16_t c)
 {
     static int16_t snap[SCOPE_N];
@@ -2396,18 +2382,29 @@ static void graph_home_viz(uint16_t c)
                 if (val < 0) val = -val;
                 bsum += val;
             }
-            bsum = (bsum * 48) / (peak ? peak * 8 : 1);
-            if (bsum > 36) bsum = 36;
+            bsum = (bsum * 44) / (peak ? peak * 8 : 1);
+            if (bsum > 34) bsum = 34;
             if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
             else if (peak_decay[i]) peak_decay[i]--;
 
             /* Draw bar & peak cap */
             if (bsum > 0) {
                 uint16_t bcol = mono ? T_TEXT : heat_col(40 + (int32_t)i * 12);
-                cv_rect(bx, 190 - bsum, 9, bsum, bcol);
+                cv_rect(bx, 186 - bsum, 9, bsum, bcol);
             }
             if (peak_decay[i] > 1) {
-                cv_rect(bx, 190 - (int32_t)peak_decay[i] - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
+                cv_rect(bx, 186 - (int32_t)peak_decay[i] - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
+            }
+        }
+
+        /* 6-Track Mini VU Activity Meters at y=48..52 */
+        for (i = 0; i < trk_live && i < 6u; i++) {
+            int32_t vx = 16 + (int32_t)i * 35;
+            int32_t vpk = trk[i].peak > 0 ? (trk[i].peak * 20 / 32767) : 0;
+            vpk = clamp(vpk, 0, 20);
+            cv_rect(vx, 48, 22, 4, T_RAISE);
+            if (vpk > 0) {
+                cv_rect(vx, 48, vpk, 4, i == song.sel ? T_ACCENT : T_THEME);
             }
         }
 
@@ -2417,7 +2414,7 @@ static void graph_home_viz(uint16_t c)
             for (x = 0; x < 216; x += 2) {
                 int32_t sval = snap[trig + (uint32_t)x];
                 int32_t y = 114 - (sval * 46) / peak;
-                y = clamp(y, 36, 192);
+                y = clamp(y, 36, 186);
 
                 if (x) {
                     /* Outer warm phosphor glow */
@@ -2438,19 +2435,35 @@ static void graph_home_viz(uint16_t c)
                 int32_t ox = 120 + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 30) / peak;
                 int32_t oy = 114 + (snap[(trig + i * 2u + 16u) & (SCOPE_N - 1u)] * 30) / peak;
                 ox = clamp(ox, 40, 200);
-                oy = clamp(oy, 40, 188);
+                oy = clamp(oy, 40, 184);
                 if (i) cv_line(lpx, lpy, ox, oy, mono ? T_TEXT : T_ACCENT);
                 lpx = ox; lpy = oy;
             }
         }
 
-        /* Telemetry overlays */
+        /* Audio-reactive floating quantum dust particles */
+        {
+            uint32_t p_cnt = peak > 1500 ? 12u : 6u;
+            for (i = 0; i < p_cnt; i++) {
+                uint32_t h = (ui.frame * 7u + i * 31u) * 2654435761u;
+                int32_t px = 14 + (int32_t)((h >> 16) % 212u);
+                int32_t py = 40 + (int32_t)((h >> 8) % 144u);
+                if (py >= top_y - 2 && py < top_y + 88) {
+                    uint16_t pcol = mono ? T_TEXT : (i & 1) ? T_ACCENT : heat_col(100 + (int32_t)i * 12);
+                    cv_rect(px, py, 2, 2, pcol);
+                }
+            }
+        }
+
+        /* High-contrast Telemetry overlays */
         if (!pass) {
             cv_text(12, 30, &AF_S, "QG-1 QUANTUM SCOPE", T_THEME);
             cv_text_r(228, 30, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
         } else {
-            cv_text(12, 196, &AF_S, "[HOME] EXIT", T_DIM);
-            cv_text_r(228, 196, &AF_S, "LIVE AUDIO MATRIX", T_DIM, T_SURF);
+            /* Crystal-clear bottom exit pill & prompt at y=190..200 (well within canvas bounds) */
+            cv_rrect(12, 190, 78, 11, 2, T_THEME, T_SURF);
+            cv_text(16, 192, &AF_S, "[HOME] EXIT", T_INK);
+            cv_text_r(228, 192, &AF_S, "LIVE AUDIO MATRIX", T_TEXT, T_SURF);
         }
 
         cv_oy = 0;
@@ -2699,6 +2712,7 @@ static void draw_graph(void)
             graph_scale(t, c);
             break;
         case GR_FX:
+            cv_oy = 0;
             graph_fx(t, c);
             break;
         case GR_DIAG:

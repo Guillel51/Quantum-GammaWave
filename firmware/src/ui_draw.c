@@ -1831,16 +1831,13 @@ static void ui_draw_page(uint32_t counting)
     } else {
         draw_columns();
         felucca_dbg.stage = 5;
+        draw_graph();
         if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u) {
-            /* Render background graph/page first, then overlay compact translucent HUD popup */
-            draw_graph();
+            /* Transient 1.5s compact translucent HUD preset popup over current page */
             graph_preset_pop();
-        } else {
-            if (ui.preset_pop_ms) {
-                ui.preset_pop_ms = 0;
-                ui.force = 1;
-            }
-            draw_graph();
+        } else if (ui.preset_pop_ms) {
+            ui.preset_pop_ms = 0;
+            ui.force = 1;
         }
     }
     if (ui.msg_t && !--ui.msg_t && ui.msg2[0]) {     /* the second message (ui_notices) */
