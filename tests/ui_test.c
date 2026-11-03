@@ -6046,7 +6046,7 @@ static int test_layer_knob_leak(void)
                     arp_fx++;
             }
     bad += check("#39 FX / GLO / SCL / EDIT + KNOB 1..4, let go while turning: no page under the layer changes",
-                 !fails && arp_fx == 4u);
+                 !fails && arp_fx == 8u);   /* ARP and ARP 2, 4 scenarios each */
     /* the quiet time is short: KNOB 1 edits the page again 0.3 s after FX */
     ui_power_on();
     go_page(GR_ARP);
