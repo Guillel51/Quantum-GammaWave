@@ -107,6 +107,12 @@ def main():
        f"{app_size} <= {app_slot}")
     ck("package is exactly the 0x93000 image plus wrapper", pkg_size is None or pkg_size >= flash_img,
        f"{pkg_size} B")
+    if app_size is not None:
+        print(f"memory map: app slot {app_slot} B; app.bin {app_size} B; "
+              f"unused {app_slot - app_size} B")
+    if pkg_size is not None:
+        print(f"memory map: package {pkg_size} B; image {flash_img} B; "
+              f"wrapper {pkg_size - flash_img} B")
 
     # SRAM: .data/.bss, pool, core-1 stacks, RAM code, guards and stacks.
     ck("LOWBUF starts at its origin", sym["_low_start"] == LOWBUF_LO)

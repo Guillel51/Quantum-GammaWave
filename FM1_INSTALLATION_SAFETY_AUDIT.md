@@ -1,16 +1,16 @@
 # FM-1 installation safety audit
 
-**Date:** 2026-11-03  
-**Branch:** `perf/security-hardening`  
-**Base commit:** `4f6b6e6` (the audit changes are committed after this file was generated)  
-**Package:** `build/felucca.fwsc`, identity `FM-1_982`, **610876 B**  
-**Package SHA-256:** `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`  
-**Application:** `build/felucca.bin`, **549012 B**; **application hash:**
-`447cbcd243e848a63d36d553368e091223ab4df0af0f558229c92f46b518d239`
+**Date:** 2026-11-03
+**Branch:** `perf/security-hardening`
+**Base commit:** `4f6b6e6`; this pass is on `1e85888` plus the uncommitted audit patch (the final commit is recorded in the delivery message)
+**Package:** `build/felucca.fwsc`, identity `FM-1_982`, **610897 B**
+**Package SHA-256:** `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`
+**Application:** `build/felucca.bin`, **549028 B**; **application hash:**
+`0dcd80f23747832d7d440f9e992b032db7c40be297155c5ebe257c063512e67f`
 
 ## Verdict
 
-# BLOQUEADO
+# NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL
 
 There is no physical M-VAVE FM-1 in this workspace. No full flash backup was taken, no USB_KEY /
 Mask-ROM recovery was demonstrated, and no package was written to hardware. A host build, emulator
@@ -47,19 +47,39 @@ projects observed, not a manufacturer guarantee and not a substitute for measuri
 | Check | Evidence | Classification |
 |---|---|---|
 | Target architecture / linker | JieLi toolchain build completed; no calls or loads into the chip ROM; RAM code and XIP sections fit | **COMPILADA PARA TARGET** |
-| Application size | `549012 B`; slot `0x8DFBC` / `581564 B`; app area ends before `0x93000` | **COMPILADA PARA TARGET** |
-| Package size | `610876 B`, image `0x93000`, identity `FM-1_982` | **COMPILADA PARA TARGET** |
+| Application size | `549028 B`; slot `0x8DFBC` / `581564 B`; unused **32536 B**; app area ends `0x920DC <= 0x93000` | **COMPILADA PARA TARGET** |
+| Package size | `610897 B`; `flash.bin` image `0x93000` / `602112 B`; wrapper **8785 B**; identity `FM-1_982` | **COMPILADA PARA TARGET** |
 | Static RAM | `.data+.bss` `94588 B` of the project's `98304 B` budget; pool spare `9248 B`; RAMTEXT spare `2404 B`; NOINIT spare `124 B` | **COMPILADA PARA TARGET** |
 | Hot DSP path | `perf_block 569/522` (the project's existing +10 % tolerance); `DRUM_PATH 1189/1191` | **COMPILADA PARA TARGET** |
 | UI render | 172 screens × 17 palettes, 0 lint, 0 alignment findings; splash 425 steps, 200 changing, 225 identical rewrites skipped | **TESTEADA EN HOST** |
 | Encoder mapping | New test walks every available engine and every KNOB 1–4; each changes only its own HOME parameter and mini-knob | **TESTEADA EN HOST** |
 | Emulator | WASM and native render the same audio; heavy song 2.2 % of real time | **SIMULADA** |
-| Installer/backup/package bounds | `tests/groups.sh security`, `web`, `presets` pass; package CRC, model, SHA-256, disconnect/timeout paths exercised against mocks | **SIMULADA** |
-| Loader power-cut path | Loader tests simulate cuts at multiple write offsets and resume; this is a RAM-loader model, not the SPL or real erase/write timing | **SIMULADA** |
+| Installer/backup/package bounds | `tests/groups.sh security`, `web`, `presets` pass; package CRC, model, SHA-256, disconnect/timeout and lost-final-ACK paths exercised against mocks | **SIMULADA** |
+| Loader power-cut and ACK path | Loader tests simulate cuts at five write offsets, a wrong final ACK, record retention and later resume; this is a RAM-loader model, not the SPL or real erase/write timing | **SIMULADA** |
+| Flash-ID allowlist | `tests/flash_id_test.c` accepts `0x856014` / `0xB36014` and refuses unknown IDs; `project.c` uses the same helper | **TESTEADA EN HOST** |
+| Previous-package compatibility | `tests/ldr_test build/host/old.fwsc build/felucca.fwsc` updates an `FM-1_900` package, including five simulated power cuts | **SIMULADA** |
 | Bootloader / clock / JEDEC / panel / audio / USB | No physical measurement | **NO VERIFICADA** |
 
 The static budgets are not a measurement of board headroom. `perf_block` has only a few units of
 margin under the existing ceiling; no new DSP work was added in this pass.
+
+### Reconciliation of the reported sizes
+
+- **`581564 B` is not the application size.** It is `APP_SLOT = 0x8DFBC`, the maximum XIP
+  `app.bin` the linker/package format reserves. The current application is **549028 B**, leaving
+  **32536 B** of the slot unused. The app area head is `0x120`; the app starts at `0x02000120`, ends
+  at `0x920DC`, and the package image ends at `0x93000`.
+- **`548708 B` was an earlier application baseline**, not this HEAD and not a second simultaneous
+  build. The later HOME/splash pass produced `549012 B`; the JEDEC allowlist/ACK work in this pass
+  produced **`549028 B`**.
+- **`610876 B` was the previous `.fwsc`**; the current `.fwsc` is **`610897 B`**. The increase is
+  +16 B in `app.bin`; the remaining +5 B is in the packaged loader/wrapper. The layout and the slot
+  did not change.
+- **`0x93000` is the packaged flash image**, not the physical 1 MiB part. The physical part is
+  `0x100000`; the loader caps `flash.bin` at `LDR_FL_MAX = 0x100000`. The 8785 B above the image are
+  the `.fwsc` wrapper/identity bytes.
+- All figures above come from one `tools/build.py` run at this HEAD. The previous values are kept
+  only as labelled history; they are not mixed into the current budget.
 
 ## 3. Package and write-boundary analysis
 
@@ -72,7 +92,12 @@ margin under the existing ceiling; no new DSP work was added in this pass.
 - The update loader writes only the application range `[0x4000, 0x93000)`, in 4 KiB sectors, and
   reads back each written sector.
 - The loader refuses a package image larger than `0x100000` and an application beyond its slot.
+- The loader accepts the final `0xF0000000` acknowledgement only when it is exactly `success\0`.
+  A timeout, a missing reply or any other bytes return `-14` **before** the RAM update record is
+  cleared; a later session can therefore resume instead of committing an unconfirmed update.
 - Disconnect, lost link and silent-loader paths return an error instead of reporting success.
+- Both host installers return `lost`/`noreturn` when the final ACK cannot be sent or the device does
+  not come back; neither reports `done` in that case.
 - The host no longer treats a failed `success` SysEx ACK as a completed step.
 
 ### What those checks do **not** provide
@@ -83,17 +108,35 @@ margin under the existing ceiling; no new DSP work was added in this pass.
 - **No atomic update.** The FM-1 uses a single application bank. A cut during erase/write can leave
   the application incomplete. The stock loader writes in ascending order; once the first application
   sector is rewritten, the remaining one-to-two-minute window has no rescue code in the unit.
-- **A success ACK is not an authorization.** The loader may retry the completion handshake and return
-  without a strong end-to-end attestation.
+- **A success ACK is not an authorization.** The loader retries the final handshake, then returns
+  `-14` unless it receives exactly `success\0`; a successful handshake still does not provide a
+  signature or an end-to-end attestation.
 - **The boot area is out of scope for a safe write.** `[0x00000, 0x04000)` must never be touched by
   this project's normal installation path.
 
+### Write order and exposure window
+
+The loader writes `[0x4000, 0x93000)` in ascending 4 KiB sectors. It first verifies the whole
+package and every section CRC, skips sectors that already match, and re-reads a sector if the second
+read disagrees with the checked pass. The first application sector contains the app-area head; once
+it is rewritten, a power loss can leave no complete application bank.
+
+I evaluated, but did **not** implement, moving the first sector to the end. That could keep the old
+head valid longer, but the stock SPL's choice between the update record and the app head has not been
+verified on hardware. Without that evidence it could strand the unit in the loader or commit a mixed
+image. A/B banks, rollback and atomic commit would require bootloader support this package does not
+have. The only host-verifiable reduction is the existing preflight/skip/verify work; the one-to-two
+minute single-bank window is unchanged and remains a hardware risk.
+
 ### JEDEC and chip-key gate
 
-`firmware/src/project.c` accepts the documented part only when the JEDEC value is exactly
-`0x856014`. A unit reporting `0xB36014` will not pass that check and should be treated as
-**NO VERIFICADA / BLOQUEANTE**, not forced into the 1 MiB path. The chip key used by the package is
-documented as `0x980F`; it was not read from a physical unit or independently verified here.
+`firmware/hal/fm1_flash_id.h` is the explicit allowlist used by `firmware/src/project.c`:
+`0x856014` (documented P25Q80H) and `0xB36014` (documented newer variant) pass; any other 24-bit ID
+leaves the firmware RAM-only. Both accepted IDs describe a 1 MiB part, but **neither has been read
+from a physical FM-1 in this workspace**. The two parts are not assumed interchangeable for
+write-protect, OTP, timing or persistence behavior until each is measured. The chip key used by the
+package is documented as `0x980F`; it was not read from a physical unit or independently verified
+here.
 
 ## 4. Mandatory backup and write protocol (pending)
 
@@ -154,8 +197,10 @@ this unit, this package or this bootloader revision.
   exercised here.
 - **Single-bank update.** There is no A/B bank, atomic commit or automatic rollback.
 - **No signature/anti-rollback.** Integrity hashes are not provenance or boot authorization.
-- **`0xB36014` units are not supported by the current JEDEC gate.** Forcing a 1 MiB package would be
-  unsafe; the variant must be investigated and validated separately.
+- **`0xB36014` is accepted by the code but not validated on hardware.** The allowlist removes the
+  artificial `0x856014`-only rejection, but it does not prove that this batch's geometry,
+  write-protect state or timing match. Do not install on it until its own backup and recovery proof
+  exists; an unknown ID is still rejected.
 
 ### High
 
@@ -189,15 +234,15 @@ this unit, this package or this bootloader revision.
 | Two independent full-flash reads and comparison | **NO VERIFICADA** |
 | Controlled power-cut run with demonstrated recovery | **NO VERIFICADA** |
 | USB_KEY / Mask-ROM recovery | **NO VERIFICADA** |
-| Installation on `0xB36014` flash | **NO VERIFICADA / BLOQUEANTE** |
+| Installation on `0xB36014` flash | **NO VERIFICADA** (accepted by the static allowlist) |
 
 ## 8. Conditions to change the verdict
 
 The verdict can move to **APTO** only after all of the following are evidenced on a real FM-1,
 preferably a sacrificial test unit:
 
-1. Identity and JEDEC are recorded; `0x856014` and `0xB36014` are handled by their own validated
-   paths.
+1. Identity and JEDEC are recorded; `0x856014` and `0xB36014` are each validated on their own unit
+   and path (the shared code allowlist is not a hardware validation).
 2. Two independent 1 MiB reads match byte for byte and their SHA-256 is archived.
 3. USB_KEY / Mask-ROM recovery is demonstrated from a deliberately non-booting application state.
 4. A known-good backup is restored and verified byte for byte in the protected regions.
@@ -208,8 +253,9 @@ preferably a sacrificial test unit:
 8. The package is signed or otherwise authenticated, or the residual no-signature risk is explicitly
    accepted for a non-critical unit.
 
-Until then the only correct classification is **BLOQUEADO**. There is no "100 % safe" claim in this
-repository, and no emulator result is a hardware safety proof.
+Until then the only correct classification is **NO VERIFICADO EN HARDWARE — NO APTO PARA
+INSTALACIÓN REAL**. There is no "100 % safe" claim in this repository, and no emulator result is a
+hardware safety proof.
 
 ## 9. Evidence files
 
@@ -219,7 +265,7 @@ repository, and no emulator result is a hardware safety proof.
 - `docs/PERF_SECURITY_AUDIT.md` — host/target measurements and residual performance risk.
 - `docs/AUDIT_FINAL_FM1.md` — prior audit, updated with this pass.
 - `firmware/loader/ldr_core.c` — application-only write path.
-- `firmware/src/project.c` — JEDEC gate (`0x856014` only).
+- `firmware/hal/fm1_flash_id.h` and `firmware/src/project.c` — explicit 1 MiB JEDEC allowlist.
 - `web/fm1pkg.js`, `web/fm1ota.js`, `tools/fm1_install.py` — package and host validation.
 - `tests/ui_test.c` — HOME encoder/mini-knob regression.
-- `tests/ldr_test.c`, `tests/install_test.py`, `web/test_backup.mjs` — simulated failure paths.
+- `tests/ldr_test.c`, `tests/install_test.py`, `web/test_backup.mjs`, `tests/flash_id_test.c` — simulated failure paths and the static JEDEC allowlist.

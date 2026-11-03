@@ -17,6 +17,7 @@ static size_t logical_len;
 static uint8_t rx[1024];
 static uint32_t rx_len, rx_full, now_ms, requests, erases, bad_range, record_cleared, f0_asked;
 static uint32_t flip_addr = 0xFFFFFFFFu, flip_seen, flip_on;   /* serve addr's flip_on-th reply with a byte changed */
+static uint32_t bad_finish;                     /* serve a wrong 0xF0000000 acknowledgement */
 static long prog_budget = -1;                  /* power loss after this many programmed bytes; -1 = none */
 static uint32_t power_cuts;                     /* simulated power losses during ldr_prog() */
 
@@ -58,7 +59,7 @@ static int ota_wire_send(const uint8_t *p, uint32_t n)
     if (addr >= 0xE0000000u) {
         f0_asked += addr == 0xF0000000u;
         memset(m + 14, 0, len);
-        memcpy(m + 14, "success", 8);
+        memcpy(m + 14, bad_finish ? "succesx" : "success", 8);
     } else {
         if (addr + len > logical_len) { printf("read past the package %#x\n", addr); exit(1); }
         memcpy(m + 14, logical + addr, len);
@@ -233,6 +234,21 @@ int main(int argc, char **argv)
         bad += check("foreign key / damaged app head refused, nothing erased", rc == -6 && erases == 0);
         logical[nfo + 0x4000 + 5] = save;
     }
+    /* a missing or wrong final ACK must not clear the update record or commit */
+    {
+        memcpy(nor, old + ofo, 0x93000);
+        memcpy(nor, head, sizeof head);
+        put_record(0xE4F00); put_record(0xE8F00);
+        bad_finish = 1; record_cleared = 0; f0_asked = 0; erases = 0; bad_range = 0;
+        rc = ldr_session();
+        bad += check("wrong final ACK: no commit and the record is kept",
+                     rc == -14 && !record_cleared && nor[0xE4F06] == 0x41);
+        bad_finish = 0;
+        rc = ldr_session();
+        bad += check("correct ACK after a wrong one: commits and clears the record",
+                     rc == 0 && record_cleared && nor[0xE4F06] == 0xFF &&
+                     !memcmp(nor, head, sizeof head) && !bad_range);
+    }
     /* power loss during the write: the record survives, the next session resumes and finishes */
     {
         static const uint32_t cuts[] = { 0, 0x1000, 0x10000, 0x40000, 0x80000 };
@@ -259,6 +275,8 @@ int main(int argc, char **argv)
                          !memcmp(nor, head, sizeof head) && !memcmp(nor + 0xA0000, user, sizeof user) && bad_range == 0);
         }
     }
+    free(old);
+    free(logical);
     printf("%s\n", bad ? "LOADER TEST FAILED" : "loader test passed");
     return bad != 0;
 }

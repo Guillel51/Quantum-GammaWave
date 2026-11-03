@@ -29,7 +29,7 @@ tener presente antes de tocar un equipo con datos propios.
 | CPU | pi32v2 (derivada de Blackfin), palabras de 16 bits LE, 240 MHz con PLL desde cristal de 24 MHz |
 | Núcleos | **2** (`CPU_CORE_NUM 2` en el SDK); el segundo núcleo es opcional para el firmware |
 | OS | FreeRTOS derivado, SMP, con capa de API JieLi |
-| Flash | **1 MiB** según todas las fuentes de ingeniería inversa (Puya P25Q80H, JEDEC `0x856014`) — ver §3 |
+| Flash | **1 MiB** según todas las fuentes de ingeniería inversa; IDs documentados `0x856014` (Puya P25Q80H) y `0xB36014` — ver §3 |
 | Seguro de arranque | **No hay.** Ninguna fuente describe autenticación criptográfica de la imagen de aplicación |
 
 **Discrepancia resuelta: 1 MiB.** La ficha del Puya P25Q80H dice 8 Mbit (1 MiB); el JEDEC
@@ -61,10 +61,12 @@ Una sola copia de la aplicación. **No hay banco A/B.**
 | `[0xEA000, 0xFC000)` | USR: parches y recursos de usuario |
 | `[0xFF000, 0x100000)` | Reserva de fábrica (`key_mac`) |
 
-**Variante de flash `0xB36014`:** algunas unidades más recientes reportan este identificador. El
-firmware actual comprueba exactamente `0x856014` (`project.c`), por lo que no se debe forzar una
-instalación en una unidad `0xB36014`: queda **NO VERIFICADA / BLOQUEANTE** hasta validar ese lote y su
-ruta de persistencia. No se asume que ambos chips compartan fabricante, tamaño o protección.
+**Variantes de flash:** `firmware/hal/fm1_flash_id.h` contiene una lista blanca explícita con
+`0x856014` y `0xB36014`; `project.c` usa esa lista y rechaza cualquier otro ID (el firmware queda en
+modo RAM). Aceptar el ID no valida el lote: ninguna de las dos variantes se ha leído en hardware y no
+se asume que compartan fabricante, protección, OTP o temporización. Una unidad `0xB36014` sigue
+**NO VERIFICADA** y no debe forzarse hasta repetir en ella identidad, backup, recuperación y escritura
+controlada.
 
 Tres advertencias que la wiki documenta y que importan para este proyecto:
 
@@ -131,8 +133,9 @@ flujo continuo de 8→7 bits entre `F0` y `F7`; `checksum = ~sum(flashtype…dat
 | Anti-rollback | **No** (la negativa a repetir la misma versión es política del host, no un fusible) | — |
 
 Confirmado por dos vías independientes (cadenas del actualizador y desensamblado del loader). El
-«éxito» de `success\0` es **un acuse, no una autorización**: el `ota_finish_gate` reintenta hasta
-cuatro veces y **devuelve 0 aunque las cuatro comparaciones fallen**.
+«éxito» de `success\0` es **un acuse, no una autorización**: el paso 1 reintenta la lectura hasta
+cuatro veces y devuelve `-13` si ninguna coincide; solo entonces escribe el registro y entra en el
+loader. No es una firma ni una atestación del host.
 
 **Matiz importante:** el paso 1 acepta un **loader ajeno** (los paquetes Felucca/SLOOP llevan su
 propio `ota.bin`), y un paquete con la tabla de particiones movida **se instala**. El loader
@@ -216,7 +219,8 @@ toolchain JieLi) y la restauración de V15 oficial (necesita `FM-1_v15.fwsc` en 
 4. **No hay rollback automático** si se corta la luz a media escritura (banco único, §6).
 5. **La verificación es del host, no del dispositivo.** Si la máquina del usuario está
    comprometida, nada de esto la salva. El FM-1 no verifica firmas.
-6. **`success\0` no es autorización** (§5), y el loader reintenta cuatro veces sin fallar.
+6. **`success\0` no es autorización** (§5). El paso 1 y el loader reintentan la lectura cuatro veces,
+   pero si no coincide devuelven error (`-13` / `-14`) y no confirman el commit.
 7. **No hay recuperación demostrada fuera del área de arranque intacta.** Los propios investigadores
    lo dicen: *«The update protocol is not a demonstrated recovery mechanism. Current work has not
    established ROM recovery, rollback, or safe interrupted-write behavior for the single-bank

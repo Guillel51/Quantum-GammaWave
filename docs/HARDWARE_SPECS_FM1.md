@@ -13,7 +13,7 @@ prove from what is reported by the SDK or by reverse-engineering projects.
 | FPU | single-precision hardware; `double` is software | The build does not claim a double-precision FPU; no cycle or precision measurement was made | **REPORTED / NOT MEASURED** |
 | SRAM | 578 KB according to the SDK; firmware uses the `0x01C00000–0x01C7FFFF` window | Linker sub-windows: RAM `0x01C08000–0x01C20000`, pool to `0x01C70000`, RAMTEXT and stacks up to `0x01C7C000`. The project's `.data+.bss` budget is 96 KiB, not the whole SRAM | **IMPLEMENTED / TARGET COMPILED** |
 | Flash | 1 MiB SPI NOR, XIP at `0x02000000` | `LDR_FL_MAX = 0x100000`, `LDR_APP_HI = 0x93000`, package image `0x93000`, emulator `nor[0x100000]` | **IMPLEMENTED / TARGET COMPILED; JEDEC NOT READ** |
-| Flash IDs | `0x856014` (Puya P25Q80H, documented) and `0xB36014` on newer units | `project.c` accepts **only** `0x856014`; `0xB36014` is not accepted by this firmware | `0x856014`: **DOCUMENTED, NOT VERIFIED**; `0xB36014`: **NOT VERIFIED / BLOCKER** |
+| Flash IDs | `0x856014` (Puya P25Q80H, documented) and `0xB36014` on newer units | `firmware/hal/fm1_flash_id.h` accepts both documented 1 MiB IDs; `project.c` rejects unknown IDs and leaves the firmware RAM-only | `0x856014`: **DOCUMENTED, NOT VERIFIED**; `0xB36014`: **DOCUMENTED, NOT VERIFIED**; unknown: **REJECTED BY CODE** |
 | Display | 240 × 240 TFT, ST7789-class, RGB565 | `lcd_st7789_test.c`, `lcd_st7789.c`, 240×240 framebuffer and RGB565 UI tests | **IMPLEMENTED / HOST TESTED; PANEL NOT VERIFIED** |
 | Musical keys | 27 keys in two rows | `27 micro-switches` in `AGENTS.md`; keyboard/panel code | **REPORTED / PANEL NOT VERIFIED** |
 | Buttons | 14 physical buttons | `enum { B_FX, ..., B_OCTUP, NB }` in `panel.c`: **NB = 14** | **IMPLEMENTED / HOST TESTED; PANEL NOT VERIFIED** |
@@ -51,9 +51,10 @@ store their own data there.
 - It now states **14 buttons, 7 encoders and a MASTER pot**, not 12 buttons and 8 encoders.
 - The clock is no longer presented as a fixed 160–240 MHz value. The 320/360 MHz reports are
   explicitly marked as measurements to reproduce on the actual unit.
-- The flash line keeps `0x856014` as the documented part and records `0xB36014` as an unvalidated
-  variant. The firmware still rejects it; installing on such a unit is blocked until the check and a
-  physical unit are validated.
+- The flash line records `0x856014` and `0xB36014` as the two documented 1 MiB IDs. The firmware
+  accepts both through an explicit allowlist and rejects unknown IDs. Neither has been read from a
+  physical unit; installing on either variant remains blocked until its own backup and recovery proof
+  exists.
 - `docs/TECHNICAL_OVERVIEW.md` follows the same distinction between SDK SRAM and the linker budget.
 
 ## 4. What is still unknown
@@ -67,5 +68,6 @@ store their own data there.
   host and emulator.
 - Wi-Fi/Bluetooth availability and regulatory behavior in the shipped firmware.
 
-These are not cosmetic unknowns: the installation verdict remains **BLOQUEADO** until the identity,
-backup and recovery checks in `FM1_INSTALLATION_SAFETY_AUDIT.md` are performed on hardware.
+These are not cosmetic unknowns: the installation verdict remains **NO VERIFICADO EN HARDWARE — NO
+APTO PARA INSTALACIÓN REAL** until the identity, backup and recovery checks in
+`FM1_INSTALLATION_SAFETY_AUDIT.md` are performed on hardware.

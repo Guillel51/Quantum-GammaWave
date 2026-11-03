@@ -41,13 +41,14 @@ modified. **No operation was run on a physical FM-1.**
   single part 602.9 ns/sample (ASan/UBSan build), six-part mix 569.5 ns/sample.
 - `regress`: 220 golden renders, **0 changed**, 0 health failures, 0 voice/routing failures, 0 CPU
   entries over budget; `6parts_full` 680.3 ns/sample on this host.
-- Target build after the loader, UI and visual changes: app **549012 B**, package **610876 B**, `FM-1_982`,
-  SHA-256 `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`. The app
-  slot check is `0x920DC <= 0x93000`; the package image ends at `0x93000`. The visual pass costs
-  **+748 B** of app image and no package bytes; RAM and the static DSP budgets are unchanged.
+- Target build at the final HEAD: app **549028 B**, package **610897 B**, `FM-1_982`, package
+  SHA-256 `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`; app SHA-256
+  `0dcd80f23747832d7d440f9e992b032db7c40be297155c5ebe257c063512e67f`. The app slot check is
+  `0x920DC <= 0x93000`; the package image is `0x93000` (602112 B) plus 8785 B of wrapper. `581564` is
+  the slot, not this app; `548708` was an earlier baseline. RAM and static DSP budgets are unchanged.
 - Target static budget: pass; `mod_begin` 35/166, `mod_voice` 19/30, DRUM path 1189/1191,
   `perf_block` 569/522 (`+9 %`, inside the existing +10 % tolerance).
-- RAM: `.data+.bss` 94572 B of 98304 B; pool spare 9248 B (the project's minimum is 8192 B).
+- RAM: `.data+.bss` 94588 B of 98304 B; spare 3716 B; pool spare 9248 B (the project's minimum is 8192 B).
   This is margin, not a measured board headroom.
 - UI: 172 screens x 17 palettes, 0 lint findings, 0 alignment errors. FX draw cost is 123.9 host units
   (was 125.3 before the meter/FX layout change); the visualizer and splash were not separately
@@ -248,20 +249,21 @@ fixes. Do not force-push or rewrite the merged history.
 - **Host finish ACK (IMPLEMENTED, HOST TESTED).** `web/fm1ota.js` and `tools/fm1_install.py` now return
   `lost` if the `success` frame cannot be sent. Previously they could mark the step finished without
   delivering the ACK. This does not make the single-bank write atomic or recovery guaranteed.
-- **Final evidence.** Target build and `target_budget.py` pass (`perf_block` 569/522, `DRUM_PATH`
-  1189/1191); `memory_map_test.py` passes with RAM spare 3716 B, pool 9248 B, RAMTEXT 2404 B and
-  NOINIT 124 B. App 548708 B; package 610876 B; SHA-256
-  `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d` (this was the
-  prior build; the current build is 549012 B / `2590d28a...` in the section below).
+- **Final evidence at this HEAD.** Target build and `target_budget.py` pass (`perf_block` 569/522,
+  `DRUM_PATH` 1189/1191); `memory_map_test.py` passes with RAM spare 3716 B, pool 9248 B, RAMTEXT
+  2404 B and NOINIT 124 B. App is **549028 B**, package **610897 B**, package SHA-256
+  `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`. The older `548708 B` /
+  `38eb7655...` and `549012 B` / `2590d28a...` values are historical baselines, not this build.
 - **Tests actually run in this pass.** UI, presets, web, emulator, security, stress (1 run), target,
   loader normal and ASan/UBSan. The full `run_tests.sh` was not run in one process because of the
   5-minute shell limit; no timeout is counted as a pass. No physical FM-1 exists in this environment.
 
 ## Recommendation
 
-**NO APTO PARA VALIDACIÓN FÍSICA CONTROLADA todavía.** The flash size is resolved, the SRAM map is
+**NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL.** The flash size is resolved, the SRAM map is
 checked by a test, the loader preflight and backup validation are sound in simulation, and the
-record-clear window is fixed. The host and emulator workflows are green on #51's head. Before a
+record-clear window is fixed. The host and emulator workflows are green on this final HEAD, but the
+branch has not been verified on hardware. Before a
 controlled physical run, the JEDEC, power-cut, recovery and single-bank window must be tested on
 hardware with USB_KEY. The missing signature/anti-rollback remains a security limitation, not a
 build blocker.
@@ -299,13 +301,14 @@ No DSP, bootloader, flash layout, loader or audio budget was changed.
 - **Host cost reduction.** `bg_knob()` now accepts a null label pointer and HOME passes `0`; the
   display path no longer writes four unused label pointers per redraw. This is a small UI-path
   reduction, not a measured DSP saving.
-- **Target measurements.** App **549012 B** (baseline 548708 B), package **610876 B** (wrapped image
-  `0x93000`), RAM `.data+.bss` **94588 B** of the 98304 B project budget, pool spare **9248 B**,
-  RAMTEXT spare **2404 B**, NOINIT spare **124 B**. `perf_block` remains **569/522**; `DRUM_PATH`
-  **1189/1191**; target build and memory-map tests pass.
+- **Target measurements.** App **549028 B** (earlier baseline 548708 B; previous HEAD 549012 B),
+  package **610897 B** (wrapped `0x93000` image plus 8785 B), RAM `.data+.bss` **94588 B** of the
+  98304 B project budget, pool spare **9248 B**, RAMTEXT spare **2404 B**, NOINIT spare **124 B**.
+  `perf_block` remains **569/522**; `DRUM_PATH` **1189/1191**; target build and memory-map tests pass.
 - **Host/emulator.** `tests/groups.sh ui`, `presets`, `web`, `emu`, `security`, `stress 1` and `target`
   pass. UI: 172 screens × 17 palettes, 0 lint, 0 alignment; splash 425 steps, 200 changing and 225
   identical rewrites skipped. Encoder test: every available engine and all four KNOBs pass.
 - **Not measured.** No AC791N cycle counter, stack high-water, ISR latency, DMA arbitration, panel
   timing, encoder bounce or audio measurement was available. No CPU saving is claimed for the visual
-  change. The installation verdict is **BLOQUEADO**; see `FM1_INSTALLATION_SAFETY_AUDIT.md`.
+  change. The installation verdict is **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL**;
+  see `FM1_INSTALLATION_SAFETY_AUDIT.md`.

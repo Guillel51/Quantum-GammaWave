@@ -1436,8 +1436,8 @@ const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 
 /* an FM-1 on WebMIDI: identity, then "device asks, host answers" reads of the image */
 class FakeFM1 {
-  constructor(image, { unplugAfter = Infinity } = {}) {
-    this.image = image; this.unplugAfter = unplugAfter; this.served = 0; this.bad = 0;
+  constructor(image, { unplugAfter = Infinity, ackLost = false } = {}) {
+    this.image = image; this.unplugAfter = unplugAfter; this.ackLost = ackLost; this.served = 0; this.bad = 0;
     this.access = { inputs: new Map(), outputs: new Map() };
     this.boot("FM-1_015", "FM-1");
   }
@@ -1474,8 +1474,9 @@ class FakeFM1 {
       this.served++;
       if (this.served >= this.unplugAfter) { this.input.state = this.output.state = "disconnected"; return; }
       if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_900", "Felucca Update"), 300);
-      else if (addr === 0xF0000000) setTimeout(() => this.boot("FM-1_900", "Felucca"), 300);
-      else this.next();
+      else if (addr === 0xF0000000) {
+        if (!this.ackLost) setTimeout(() => this.boot("FM-1_900", "Felucca"), 300);
+      } else this.next();
     }
   }
   next() {
@@ -1510,6 +1511,10 @@ async function updater() {
   ok(e && e.code === "lost", "fm1ota.js: unplugged in step 1 -> error code 'lost'");
   const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_900").then(() => null, (x) => x);
   ok(e2 && e2.code === "notfound", "fm1ota.js: no device -> error code 'notfound'");
+  const dev4 = new FakeFM1(image, { ackLost: true });
+  const e4 = await new Updater(dev4.access, null, { loaderDelay: 10, rebootDelay: 10, rebootWait: 300 })
+    .install(image, "FM-1_900").then(() => null, (x) => x);
+  ok(e4 && e4.code === "noreturn", "fm1ota.js: lost final ACK -> no success ('noreturn')");
 }
 
 await editorMock();

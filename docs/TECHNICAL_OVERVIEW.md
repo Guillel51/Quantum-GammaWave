@@ -3,7 +3,7 @@
 ## 1. Hardware Architecture (M-VAVE FM-1)
 - **SoC**: JieLi AC791N / WL82 (dual-core 32-bit RISC `pi32v2`, little-endian, simple-precision FPU). The clock is not asserted by this repository: 320 MHz and 360 MHz configurations have been reported and must be measured on the actual unit.
 - **SRAM**: 578 KB according to the SDK; the firmware uses the `0x01C00000–0x01C7FFFF` window and a 96 KiB `.data+.bss` linker budget, not all of SRAM.
-- **Flash Storage**: 1 MiB SPI NOR Flash mapped via XIP at `0x02000000`. The documented part is the Puya P25Q80H (JEDEC `0x856014`); some newer units report `0xB36014`, which is unvalidated and is currently rejected by the firmware's JEDEC gate.
+- **Flash Storage**: 1 MiB SPI NOR Flash mapped via XIP at `0x02000000`. The documented part is the Puya P25Q80H (JEDEC `0x856014`); some newer units report `0xB36014`. Both are accepted by the explicit 1 MiB allowlist, while unknown IDs are rejected; neither has been read from a physical unit here.
 - **Display**: 240×240 ST7789-class RGB565 LCD display driven over SPI with DMA.
 - **User Interface**:
   - 14 physical buttons, including the two octave buttons (`OCT-`, `OCT+`).

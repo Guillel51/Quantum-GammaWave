@@ -27,9 +27,12 @@ esta auditoría.
 
 ## Métricas del cierre
 
-- App: **549012 B**. Paquete `.fwsc`: **610876 B**. Identidad de paquete `FM-1_982`.
-- SHA-256 del paquete: **`2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`**.
-- SHA-256 de la aplicación: **`447cbcd243e848a63d36d553368e091223ab4df0af0f558229c92f46b518d239`**.
+- App: **549028 B**. Paquete `.fwsc`: **610897 B**. Identidad de paquete `FM-1_982`.
+- SHA-256 del paquete: **`932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`**.
+- SHA-256 de la aplicación: **`0dcd80f23747832d7d440f9e992b032db7c40be297155c5ebe257c063512e67f`**.
+- Slot XIP `APP_SLOT = 0x8DFBC = 581564 B`; app real 549028 B; **32536 B** sin usar. `0x93000` es la
+  imagen de flash empaquetada, no la flash física de 1 MiB. `548708 B` fue una baseline anterior, no
+  este HEAD. La imagen actual de app termina en `0x920DC`.
 - RAM `.data+.bss`: 94588 B de 98304 B; spare **3716 B**.
 - Pool spare: **9248 B** (mínimo del proyecto: 8192 B).
 - RAMTEXT spare: **2404 B**. NOINIT spare: **124 B**.
@@ -70,8 +73,10 @@ radial de 270° y centro de contraste. La prueba `test_home_knobs()` recorre tod
 disponibles y los cuatro encoders; comprueba que cada uno mueve su parámetro y su mini-knob, y que no
 mueve ningún otro. El test es de host, no una validación del encoder físico.
 
-La variante de flash `0xB36014` no se acepta todavía: `project.c` exige `0x856014`. Una unidad con el
-otro identificador no debe forzarse; queda **NO VERIFICADA / BLOQUEANTE**.
+La variante de flash `0xB36014` ya pasa la lista blanca estática de `firmware/hal/fm1_flash_id.h`,
+junto con `0x856014`; cualquier otro ID se rechaza. Esto **no** valida el lote: ninguna de las dos
+variantes se ha leído en hardware. Una unidad `0xB36014` sigue **NO VERIFICADA** y no debe forzarse
+hasta repetir en ella identidad, backup, recuperación y escritura controlada.
 
 ## Riesgos
 
@@ -90,8 +95,9 @@ otro identificador no debe forzarse; queda **NO VERIFICADA / BLOQUEANTE**.
 - **Ventana de escritura ascendente.** El loader escribe el primer sector de la aplicación antes que
   el resto; la ventana sin código de rescate es de uno a dos minutos, no de milisegundos. Cambiar el
   orden sin bootloader compatible no crea un rollback real.
-- **JEDEC no leído en hardware.** El mapa de 1 MiB (`0x856014`) es documental y coherente con el
-  código; no es una medición de la unidad.
+- **JEDEC no leído en hardware.** El mapa de 1 MiB y la lista blanca (`0x856014`, `0xB36014`) son
+  documentales y coherentes con el código; no son una medición de la unidad. Un ID desconocido se
+  rechaza, pero aceptar el ID no valida geometría, protección ni persistencia.
 - **Sin medición de pila/ISR/DMA.** RAM y RAW text tienen margen estático, pero no hay high-water
   real de las pilas, latencia de interrupción, arbitraje DMA ni comportamiento de caché.
 - **`perf_block` con ~5 unidades de margen.** El techo del +10 % es 574; el valor actual es 569. No
@@ -112,22 +118,26 @@ otro identificador no debe forzarse; queda **NO VERIFICADA / BLOQUEANTE**.
 |---|---|
 | `tests/groups.sh ui` | OK: 172 pantallas × 17 paletas, 0 lint, 0 desalineaciones |
 | `tests/groups.sh presets` | OK: 200/200 categorías, una primaria por preset |
-| `tests/groups.sh web` | OK |
-| `tests/groups.sh emu` | OK; WASM y nativo bit a bit, 2.4 % de tiempo real |
+| `tests/groups.sh web` | OK; incluye `web/test_web.mjs` y ACK final perdido |
+| `tests/groups.sh emu` | OK; WASM y nativo bit a bit, 2.3 % de tiempo real |
 | `tests/groups.sh security` | OK: instalador, backup, límites de paquete, audio ASan/UBSan |
 | `tests/groups.sh stress 1` | OK: project, persistence, robust, MIDI y 2 pasadas de regress |
 | `tests/groups.sh target` | OK: build AC791N, `target_budget`, `memory_map` |
-| `tests/ldr_test OLD NEW` | OK: paquete dañado, clave ajena, reanudación y cinco cortes |
-| `tests/ldr_test` con ASan/UBSan | OK |
+| `tests/ldr_test OLD NEW` | OK: paquete anterior `FM-1_900`, paquete dañado, clave ajena, ACK incorrecto, reanudación y cinco cortes |
+| `tests/ldr_test` con ASan/UBSan | OK, sin fugas; el harness libera sus imágenes |
+| `tests/install_test.py` | OK; incluye ACK final perdido -> exit 5, nunca `done` |
+| `tests/flash_id_test.c` | OK; `0x856014` y `0xB36014` aceptados, IDs desconocidos rechazados |
 | `target_budget.py` | OK; `perf_block` 569/522 |
-| `memory_map_test.py` | OK; spare RAM 3716, pool 9248, RAMTEXT 2404, NOINIT 124 |
+| `memory_map_test.py` | OK; spare RAM 3716, pool 9248, RAMTEXT 2404, NOINIT 124; slot 581564 vs app 549028 |
 
 No se ejecutó una pasada completa de `run_tests.sh` por el límite de tiempo; no se declara que todos
 los tests del repositorio hayan corrido en un solo proceso. No se ejecutó ninguna prueba física.
 
 ## Condiciones antes de instalar en un FM-1 real
 
-1. Leer y registrar la identidad de la unidad y el JEDEC; debe ser `0x856014` (1 MiB). Si no, detenerse.
+1. Leer y registrar la identidad de la unidad y el JEDEC. Solo se aceptan `0x856014` o `0xB36014`
+   (ambos 1 MiB y en la lista blanca estática); validar cada variante en su propia unidad. Cualquier
+   otro ID es NO-GO.
 2. Leer la flash completa **dos veces** de forma independiente y comparar byte a byte y SHA-256; guardar
    copia fuera del equipo. Una sola lectura no es un backup.
 3. Demostrar la recuperación USB_KEY en una unidad de ensayo, desde un estado conocido, antes de

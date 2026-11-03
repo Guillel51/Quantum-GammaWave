@@ -15,12 +15,18 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   path changed; it remains a function of boot progress with no stored bitmap.
 - **Hardware specification correction.** The repository now records 578 KB SDK SRAM versus the 96 KiB
   firmware budget, 14 buttons, 7 encoders plus MASTER, the ST7789-class panel and the unresolved
-  320/360 MHz clock reports. `0xB36014` is documented as unvalidated and currently rejected by the
-  `0x856014` JEDEC gate.
-- Final target: app **549012 B**, package **610876 B**, `FM-1_982`, SHA-256
-  `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`. UI 172 × 17 with 0 lint;
-  `perf_block 569/522`. Installation verdict: **BLOQUEADO** until physical identity, backup and
-  USB_KEY recovery are demonstrated; see `FM1_INSTALLATION_SAFETY_AUDIT.md`.
+  320/360 MHz clock reports. `0x856014` and `0xB36014` are the two documented 1 MiB IDs in an explicit
+  allowlist; unknown IDs are rejected. Neither variant has been validated on hardware.
+- **Loader completion handshake hardened.** The loader now requires exactly `success\0` for the final
+  `0xF0000000` ACK and returns `-14` without clearing the update record on a missing or wrong reply.
+  Host tests cover a lost final ACK; neither installer reports `done` without the reboot/identity
+  confirmation.
+- Final target at this HEAD: app **549028 B**, package **610897 B**, `FM-1_982`, package SHA-256
+  `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`. The app slot is 581564 B,
+  not the app size; `548708` and `549012` were earlier baselines. UI 172 × 17 with 0 lint;
+  `perf_block 569/522`. Installation verdict: **NO VERIFICADO EN HARDWARE — NO APTO PARA
+  INSTALACIÓN REAL** until physical identity, backup and USB_KEY recovery are demonstrated; see
+  `FM1_INSTALLATION_SAFETY_AUDIT.md`.
 
 ## v1.7-QG — final audit and PUNCH-IN FX visual pass
 

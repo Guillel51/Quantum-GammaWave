@@ -166,10 +166,13 @@ static int ldr_session(void)
         done += 0x1000u;
         ldr_progress(done, LDR_APP_HI - LDR_APP_LO);
     }
-    /* 4. finish: the host confirms, the record goes, the SPL boots the app */
+    /* 4. finish: only the exact host acknowledgement commits the update. A reply with
+     * any other bytes is not a confirmation: keep the record so the loader can resume. */
     for (i = 0; i < 4u; i++)
-        if (!ota_read(0xF0000000u, sec, 8))
+        if (!ota_read(0xF0000000u, sec, 8) && ota_memeq(sec, (const uint8_t *)"success", 8))
             break;
+    if (i == 4u)
+        return -14;                                 /* missing or wrong final ACK: no commit */
     ldr_record_clear();
     {
         uint8_t zero[80];

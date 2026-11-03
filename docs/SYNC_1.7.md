@@ -48,17 +48,22 @@
   its mini-knob move.
 - Mini-knobs: concentric rim/body and a 270-degree needle; splash: second electron, solar flares and
   progress-driven wave phase.
-- Target: app 549012 B, package 610876 B, identity `FM-1_982`, SHA-256
-  `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`.
+- Target: app 549028 B, package 610897 B, identity `FM-1_982`, package SHA-256
+  `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`.
+- App slot 581564 B; current app 549028 B, unused 32536 B. `548708` / `549012` were earlier baselines,
+  not the current app. The `0x93000` package image is not the physical 1 MiB part.
 - UI: 172 × 17, 0 lint/alignment; splash 425 steps, 200 changing, 225 identical rewrites skipped.
-- Installation audit: **BLOQUEADO**; no physical FM-1, backup or USB_KEY recovery demonstration.
+- Loader: exact final `success\0` ACK required; wrong/lost ACK returns `-14` without clearing the
+  update record. Host tests cover the lost-ACK path.
+- Installation audit: **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL**; no physical FM-1,
+  backup or USB_KEY recovery demonstration.
 
-## perf/security-hardening (current)
+## perf/security-hardening (earlier baseline)
 
 - Branch `perf/security-hardening`, merged with `origin/main` (`e3475f0`) at `08c74d0`; PRs #47–#51
   are closed and merged. No open PR remained to update at the time of this record.
-- Target app 548852 B, package 610876 B, identity FM-1_982; package SHA-256
-  `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`.
+- This is a historical baseline, not the final HEAD. It had app 548852 B, package 610876 B, identity
+  FM-1_982; package SHA-256 `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`.
 - RAM: `RAM spare 3732 B; pool spare 9248 B; RAMTEXT spare 2436 B; NOINIT spare 124 B`.
 - Host: loader normal + ASan/UBSan pass; web, security and preset groups pass; UI 172 screens x 17
   palettes, 0 lint / 0 alignment; FX draw cost 123.9 host units (was 125.3).
@@ -69,8 +74,8 @@
 
 ## Final audit (2026-11-03, perf/security-hardening)
 
-- Target: app 549012 B, package 610876 B, `FM-1_982`, SHA-256
-  `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`.
+- Target: app **549028 B**, package **610897 B**, `FM-1_982`, package SHA-256
+  `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`.
 - RAM spare 3716 B; pool 9248 B; RAMTEXT 2404 B; NOINIT 124 B. `perf_block` 569/522;
   `DRUM_PATH` 1189/1191.
 - Green: UI (172 x 17, 0 lint/alignment), presets, web, emu, security, stress 1, target,
