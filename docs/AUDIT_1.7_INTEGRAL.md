@@ -61,9 +61,9 @@ reintroduced the 1.6/1.7 content. There are no unmerged 1.6 commits in the repos
 - `ui_render` → 181 screens x 17 palettes (FM4 build), 0 lint findings, 0 alignment errors, 0 off-colour inks.
 - `tests/run_tests.sh` → **exit 124** (5 minute shell limit). It reached persistence, editor, OTA and
   package tests with no assertion failure there, but did not finish.
-- `ui_test` → **1 FAILED** after updating the SELECT, FX and STYLE contracts and the ARP count
-  (the LARGE pixel check remains: tall cards show the K pill only on the active column; the other
-  columns read SURF at the pill row, and the gap at y=134 reads SURF instead of BG). (the palette cycle now covers SOLARIS /
+- `ui_test` → **all passed** after updating the SELECT, FX, STYLE, ARP and LARGE checks. LARGE was
+  testing cards while HOME's full-screen visualizer was up (`ui.home_viz=1`), so the cards were not drawn;
+  the test now turns the visualizer off and forces the frame. No assertion was removed. (the palette cycle now covers SOLARIS /
   CYBERPUNK / NORDIC, and `ui_power_on` resets `ui_style` so STYLE does not leak LINE into later cases).
   Remaining failure: **#15 LARGE ON tall cards**. Measured at HOME with LARGE on: kind 2, card height 104,
   graph 136, scope strip 1; `lg_px(30,134)=SURF` but the gap should be BG; the K1/K2/K4 pill row reads SURF

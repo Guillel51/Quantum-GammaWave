@@ -9627,7 +9627,8 @@ static int test_large(void)
     bad += check("#15 MENU > LARGE: OFF by default, under STYLE; KNOB 1 right / OCT+ ON, left / OCT- OFF", ok && !ui.menu);
 
     /* HOME: tall cards (rows 28..132) and the strip (136..198); the footer as it was */
-    frame();
+    ui.home_viz = 0;                                   /* (the full-screen visualizer hides the cards) */
+    ui.force = 1; frame();
     ok = ui.home && large_kind() == LK_TALL && card_h() == LG_CARD_H && graph_y() == LG_Y_GRAPH && strip_kind() == SK_SCOPE;
     ok &= lg_px(30, Y_SEP_END + 1) == T_SURF && off[(Y_SEP_END + 1) * 240 + 30] == swap16(T_BG);     /* a card where the gap was */
     ok &= lg_px(30, LG_Y_GRAPH - 2) == T_BG && off[(LG_Y_GRAPH - 2) * 240 + 30] != swap16(T_BG);     /* a gap in the panel */
