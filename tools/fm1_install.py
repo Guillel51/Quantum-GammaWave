@@ -307,7 +307,8 @@ class Updater:
             fl, addr, n = r
             last = time.monotonic()
             if addr in (FINISH_CHECK, FINISH_WRITE):
-                link.send(response(addr, b"success\0"))
+                if not link.send(response(addr, b"success\0")):
+                    return served, False, True
                 if addr == finish:
                     return served, True, False
                 continue

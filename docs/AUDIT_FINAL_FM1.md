@@ -1,0 +1,140 @@
+# Auditoría final QG-1 / FM-1 — 2026-11-03
+
+Rama de integración: `perf/security-hardening`. Este documento describe el estado del árbol en el
+commit de cierre de esta auditoría. No se modificó `main`, no se fusionaron PRs, no se publicaron
+releases y **no se escribió nada en un FM-1 físico**.
+
+## Dictamen
+
+**NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL.**
+
+No es «APTO PARA PRUEBAS FÍSICAS CONTROLADAS» todavía: falta un backup completo verificado y una
+recuperación USB_KEY demostrada en una unidad de ensayo. Tampoco es un fallo de compilación: el
+firmware, el loader, el emulador y las herramientas pasan las pruebas de host y el target AC791N
+compila dentro de los límites estáticos. La diferencia entre ambas cosas es exactamente el objeto de
+esta auditoría.
+
+## Estado por capas
+
+| Capa | Estado | Evidencia / límite |
+|---|---|---|
+| Firmware | IMPLEMENTADO | C y cabeceras generadas; sin cambios de bootloader ni de formato de usuario |
+| Host | TESTEADO EN HOST | UI, presets, web, emulador, seguridad, stress y loader, incluido ASan/UBSan |
+| Target | COMPILADO PARA TARGET | JieLi AC791N; `tools/build.py`, `target_budget.py` y `memory_map_test.py` en verde |
+| Simulación | SIMULADO | Cortes de alimentación en `ldr_test`, emulador WASM, modelos de RAM/CPU |
+| Hardware | NO VERIFICADO | Ningún arranque, audio, pantalla, USB, encoder, flash, IRQ, DMA ni recuperación real |
+| Recuperación | NO DEMOSTRADA | USB_KEY descrito, no probado; no hay unidad de ensayo ni backup físico |
+
+## Métricas del cierre
+
+- App: **548708 B**. Paquete `.fwsc`: **610876 B**. Identidad de paquete `FM-1_982`.
+- SHA-256 del paquete: **`38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`**.
+- RAM `.data+.bss`: 94588 B de 98304 B; spare **3716 B**.
+- Pool spare: **9248 B** (mínimo del proyecto: 8192 B).
+- RAMTEXT spare: **2404 B**. NOINIT spare: **124 B**.
+- `perf_block`: **569/522** (+9 %, límite +10 %; solo ~5 unidades antes del techo).
+- `DRUM_PATH`: **1189/1191**. `perf_begin` 28/28; `perf_pre` 31/31; `perf_master` 32/32.
+- UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 198 cambian,
+  227 reescrituras idénticas omitidas.
+- No hay medición de ciclos, pila, latencia de interrupción, DMA ni corriente en la placa.
+
+## Correcciones de esta pasada
+
+1. **Sección PUNCH-IN FX (visual).** Se redujo la altura y la separación de las tarjetas, se dibujaron
+   como pads redondeados con borde suave, se añadió una línea de sección `PUNCH-IN FX · A#4 TGT ·
+   G5 CLR` y se mantuvo la retícula de 5 columnas. Es un cambio de dibujo: no añade parámetros,
+   no cambia el formato persistente y no toca el DSP.
+2. **ACK de finalización del instalador.** `web/fm1ota.js` y `tools/fm1_install.py` marcaban el paso
+   como terminado aunque `link.send()` fallara al enviar `success`. Ahora un envío fallido devuelve
+   `lost` y el host no presenta el paso como completado. Esto no hace atómica la escritura ni
+   sustituye una recuperación; evita un falso positivo del host.
+3. **Banco DSP Reverse/Glitch/Freeze/Tape Stop: DESCARTADO.** La implementación de buffer probada
+   en esta rama quedó en `perf_block` **662/522** (+27 %) y redujo RAMTEXT por debajo del margen
+   exigido. No se relajó el presupuesto ni se ocultó el fallo: se retiró el banco. Los efectos
+   existentes (REPEAT, stutter MIDI, filtros, GATE, SWEEP, CRUSH, THROW, mutes y DIVE) siguen
+   disponibles; Reverse/Glitch/Freeze/Tape Stop **no están implementados** en el firmware final.
+   El Tape Stop no se declara: F#5 conserva el `DIVE` existente, que es un caída de pitch, no un
+   tape-stop de buffer verificado.
+
+## Riesgos
+
+### Críticos
+
+- **Un solo banco de aplicación.** No hay A/B ni rollback automático. Un corte durante la escritura
+  de `[0x4000,0x93000)` puede dejar la aplicación incompleta; el loader puede reanudar si el registro
+  y el bootloader sobreviven, pero no hay garantía si se daña el área de arranque.
+- **Sin firma criptográfica ni anti-rollback.** SHA-256 del instalador y CRC16 del paquete detectan
+  corrupción, no sustituyen la procedencia. El sitio y el hash pueden reemplazarse juntos.
+- **Recuperación no demostrada.** USB_KEY / ROM `4C4A:8057` está documentado, pero no se ejecutó en
+  una unidad real. No se puede afirmar que un equipo bloqueado se recupere.
+
+### Altos
+
+- **Ventana de escritura ascendente.** El loader escribe el primer sector de la aplicación antes que
+  el resto; la ventana sin código de rescate es de uno a dos minutos, no de milisegundos. Cambiar el
+  orden sin bootloader compatible no crea un rollback real.
+- **JEDEC no leído en hardware.** El mapa de 1 MiB (`0x856014`) es documental y coherente con el
+  código; no es una medición de la unidad.
+- **Sin medición de pila/ISR/DMA.** RAM y RAW text tienen margen estático, pero no hay high-water
+  real de las pilas, latencia de interrupción, arbitraje DMA ni comportamiento de caché.
+- **`perf_block` con ~5 unidades de margen.** El techo del +10 % es 574; el valor actual es 569. No
+  se debe añadir DSP al camino caliente sin una medición de target.
+
+### Medios
+
+- **NOINIT con 124 B** de margen; no se debe añadir estado persistente no inicializado.
+- **UI FX**: el rediseño es visual; no se verificó en la pantalla física ni con el encoder real.
+- **Suite completa**: `run_tests.sh` no cabe en el límite de 5 minutos de este entorno; se ejecutaron
+  los grupos y el loader por separado. Un timeout no se cuenta como aprobado.
+- **CI/PR**: no hay autenticación GitHub en este entorno para abrir/actualizar PRs ni lanzar
+  workflows manuales. El push de la rama se hace con las credenciales administradas por el host.
+
+## Pruebas ejecutadas en esta pasada
+
+| Prueba | Resultado |
+|---|---|
+| `tests/groups.sh ui` | OK: 172 pantallas × 17 paletas, 0 lint, 0 desalineaciones |
+| `tests/groups.sh presets` | OK: 200/200 categorías, una primaria por preset |
+| `tests/groups.sh web` | OK |
+| `tests/groups.sh emu` | OK; WASM y nativo bit a bit, 2.4 % de tiempo real |
+| `tests/groups.sh security` | OK: instalador, backup, límites de paquete, audio ASan/UBSan |
+| `tests/groups.sh stress 1` | OK: project, persistence, robust, MIDI y 2 pasadas de regress |
+| `tests/groups.sh target` | OK: build AC791N, `target_budget`, `memory_map` |
+| `tests/ldr_test OLD NEW` | OK: paquete dañado, clave ajena, reanudación y cinco cortes |
+| `tests/ldr_test` con ASan/UBSan | OK |
+| `target_budget.py` | OK; `perf_block` 569/522 |
+| `memory_map_test.py` | OK; spare RAM 3716, pool 9248, RAMTEXT 2404, NOINIT 124 |
+
+No se ejecutó una pasada completa de `run_tests.sh` por el límite de tiempo; no se declara que todos
+los tests del repositorio hayan corrido en un solo proceso. No se ejecutó ninguna prueba física.
+
+## Condiciones antes de instalar en un FM-1 real
+
+1. Leer y registrar la identidad de la unidad y el JEDEC; debe ser `0x856014` (1 MiB). Si no, detenerse.
+2. Leer la flash completa **dos veces** de forma independiente y comparar byte a byte y SHA-256; guardar
+   copia fuera del equipo. Una sola lectura no es un backup.
+3. Demostrar la recuperación USB_KEY en una unidad de ensayo, desde un estado conocido, antes de
+   cualquier actualización deliberada.
+4. Verificar el paquete y su SHA-256 publicado; no usar un paquete de otro modelo ni un hash pegado
+   en el chat.
+5. Ejecutar la guía `docs/HARDWARE_TEST_PLAN.md` en orden: identidad, backup, recuperación, memoria,
+   reloj/reset/watchdog, actualización controlada, cortes y audio/datos.
+6. Detenerse ante cualquier JEDEC distinto, hash de lectura distinto, reset loop, watchdog, humo,
+   corriente anómala o dispositivo que no enumera.
+7. No escribir el área de arranque `[0,0x4000)` ni el bootloader. No usar un único equipo funcional
+   como banco de pruebas.
+
+## Lo que no se declara
+
+- No se declara «antibrick», «actualización atómica», «rollback», «recuperación garantizada» ni
+  «compatible con hardware».
+- No se declara que los efectos nuevos de PUNCH-IN FX estén implementados: el banco DSP fue descartado.
+- No se declara que la compilación de target sustituya una medición eléctrica o de audio.
+
+## Fuentes internas
+
+- `docs/HARDWARE_TEST_PLAN.md`: guía física completa y puertas de seguridad.
+- `docs/SECURITY.md`: mapa de flash, cadena de arranque, protocolo y límites del bootloader.
+- `docs/PERF_SECURITY_AUDIT.md`: auditoría de rendimiento y seguridad de la rama.
+- `docs/SYNC_1.7.md`: métricas y estado de sincronización.
+- `CHANGELOG.md`: cambios de esta rama.

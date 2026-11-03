@@ -54,3 +54,17 @@
   QUANTUM wordmark and solar core. App +748 B, package unchanged; 198 of 425 splash steps change pixels.
 - Flash/loader/UI detail and residual risks: `docs/PERF_SECURITY_AUDIT.md`. No physical FM-1
   validation, no release, no Pages deployment, no force push.
+
+## Final audit (2026-11-03, perf/security-hardening)
+
+- Target: app 548708 B, package 610876 B, `FM-1_982`, SHA-256
+  `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`.
+- RAM spare 3716 B; pool 9248 B; RAMTEXT 2404 B; NOINIT 124 B. `perf_block` 569/522;
+  `DRUM_PATH` 1189/1191.
+- Green: UI (172 x 17, 0 lint/alignment), presets, web, emu, security, stress 1, target,
+  loader normal and ASan/UBSan.
+- FX UI redesign is IMPLEMENTED/TESTED ON HOST. The buffered Reverse/Glitch/Freeze/Tape Stop bank was
+  DISCARDED because it exceeded `perf_block` and RAMTEXT; no budget was relaxed. F#5 remains DIVE.
+- Host finish ACK now reports `lost` if the `success` frame cannot be sent.
+- **NO VERIFICADO EN HARDWARE; not approved for installation.** See `docs/AUDIT_FINAL_FM1.md` and
+  `docs/HARDWARE_TEST_PLAN.md`.

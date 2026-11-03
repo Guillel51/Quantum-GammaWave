@@ -7,6 +7,16 @@ This plan is deliberately conservative. A simulated test, a successful USB updat
 emulator does not establish that an FM-1 can be recovered. The first goal is to prove a way back,
 not to install the newest build.
 
+## Current gate — 2026-11-03
+
+The audited build is **NO VERIFICADO EN HARDWARE** and is **not approved for a real FM-1 install**.
+Host/target evidence is in `docs/AUDIT_FINAL_FM1.md`; this plan is the physical procedure that must
+be completed before changing that status. The current static figures are app 548708 B, package
+610876 B, `FM-1_982`, SHA-256 `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`,
+`perf_block` 569/522 and RAM spare 3716 B. None of these is a board measurement. No flash write or
+recovery is performed by this repository.
+
+
 ## 0. Safety gates
 
 Do not proceed past a gate until its result is recorded with the unit's serial number, date,
