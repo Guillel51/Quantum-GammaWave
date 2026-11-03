@@ -366,7 +366,7 @@ static int test_keys(void)
         }
         fm1_in.buttons = 0;
         bad += check("the keys without an effect (G5, the black keys past the mutes): silent, nothing held",
-                     ok && (uint32_t)__builtin_popcount(assigned) == PF_N + 4);   /* (15 white F3 .. F5, 6 mutes, QG-1: 4 black) */
+                     ok && (uint32_t)__builtin_popcount(assigned) == 15u + 4u);   /* (15 white F3 .. F5, QG-1: 4 black; the mutes latch) */
         pfx_tgt = 0;                                /* (A#4 stepped it) */
         kb_mask = perf_mask = 0;
     }
@@ -544,7 +544,7 @@ static uint64_t instr_now(void)
 }
 static double cost_run(int on)
 {
-    static const int ALL[] = {PF_R16, PF_LPF, PF_HPF, PF_M1 + 2, PF_GATE, PF_SWP};
+    static const int ALL[] = {PF_R16, PF_LPF, PF_HPF, PF_M1 + 2, PF_GATE, PF_RTRG};
     uint32_t f, k;
     uint64_t i0;
     int32_t o[2 * CTL];
@@ -866,7 +866,39 @@ static int test_pfx(void)
 }
 
 /* (QG-1) the black keys' effects: VIBRATO swings the pitch both ways and lets it back; DIVE falls two octaves over a
- * beat, slow then fast; GATE shuts each 1/16's second half (and fades, no click); SWEEP closes the LPF mid-bar */
+ * beat, slow then fast; GATE shuts each 1/16's second half (and fades, no click) */
+/* (1.8) the five buffer effects of the second bank: each must capture and change the live signal, and let
+ * it back when released. No new buffer is used; this is the same SLICER loop as REPEAT. */
+static int test_new_bank(void)
+{
+    static const uint32_t E[5] = {PF_REV, PF_FRZ, PF_TAPE, PF_GLCH, PF_RTRG};
+    static const char *const N[5] = {"REVERSE", "FREEZE", "TAPE STOP", "GLITCH", "RETRIGGER"};
+    int bad = 0;
+    uint32_t i;
+    test_signal(440, 12000, 277, 9000);
+    for (i = 0; i < 5u; i++) {
+        ev_t ev[] = {{1000, (int)E[i] + 1}, {30000, -((int)E[i] + 1)}};
+        int32_t pk;
+        run(120, 1, ev, 2, 60000);
+        pk = peak(out_l, 3000u, 30000u);
+        bad += check(N[i], pk > 100 && !same(3000u, 30000u) && same(36000u, 60000u) &&
+                     peak(out_l, 0, 60000u) < 40000);
+    }
+    {   /* bank 2's F5 is CRUSH: an independent held effect on the master, not the KNOB 2 macro */
+        ev_t ev[] = {{1000, PF_RND + 1}, {30000, -(PF_RND + 1)}};
+        int32_t pk;
+        test_signal(440, 12000, 277, 9000);
+        pfx_bank = 1;
+        run(120, 1, ev, 2, 60000);
+        pk = peak(out_l, 3000u, 30000u);
+        bad += check("bank 2 F5: CRUSH changes the master, returns to dry when let go",
+                     pk > 100 && !same(3000u, 30000u) && same(36000u, 60000u) && peak(out_l, 0, 60000u) < 40000);
+        pfx_bank = 0;
+    }
+    bad += check("second bank uses the existing loop: no new buffer or voice", PB_FRAMES <= SL_FR && NVOICE == 10u);
+    return bad;
+}
+
 static int test_qg(void)
 {
     int bad = 0;
@@ -888,7 +920,7 @@ static int test_qg(void)
     bad += check("VIBRATO: the pitch swung both ways (+-1/2 semitone), back when let go",
                  lo <= -6 && lo >= -9 && hi >= 6 && hi <= 9 && !t1->pfx_pit);
     perf_press(PF_DIVE, 1);
-    for (i = 0; i < 22050u + 4u * CTL; i += CTL) {
+    for (i = 0; i < 22050u + P16 + 4u * CTL; i += CTL) {   /* (the press is quantized to the next 1/16) */
         mix_block(o, CTL);
         if (i < 5513u) d1 = t1->pfx_pit;
         d4 = t1->pfx_pit;
@@ -910,15 +942,6 @@ static int test_qg(void)
             ed = abs(out_l[i] - out_l[i - 1]) > ed ? abs(out_l[i] - out_l[i - 1]) : ed;
         bad += check("GATE: each 1/16 open for its first half, shut for the second, no step (click)",
                      op > 10000 && sh < 400 && ed < 600);
-    }
-    {
-        ev_t ev[] = {{0, PF_SWP + 1}};
-        int32_t a, m;
-        test_signal(6000, 12000, 6000, 12000);
-        run(120, 1, ev, 1, 10u * P16);
-        a = peak(out_l, 2000u, 3000u);
-        m = peak(out_l, 7u * P16, 9u * P16);
-        bad += check("SWEEP: the LPF open at the bar's start, closed half way (a 6 kHz tone down)", a > 8000 && m < a / 4);
     }
     {   /* the lane: REC + DIVE over steps 2..5, VIBRATO over 8..9: codes 12 and 11 there; the next pass plays them */
         uint32_t s16, st, ok = 1, dv = 0, vb = 0, none = 1;
@@ -966,6 +989,7 @@ int main(int argc, char **argv)
     bad += test_idle();
     bad += test_misc();
     bad += test_pfx();
+    bad += test_new_bank();
     bad += test_qg();
     bad += test_cost();
     if (argc > 1)

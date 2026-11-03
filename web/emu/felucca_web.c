@@ -482,6 +482,26 @@ EXPORT void web_test_heavy(void)
 }
 
 EXPORT uint32_t web_test_user_preset(uint32_t i) { return (uint32_t)up_used(i); }
+/* the HOME encoders' real parameters (not a pixel test): KNOB 1..4 */
+EXPORT int32_t web_test_home_value(uint32_t k)
+{
+    int16_t *v;
+    if (k > 3u)
+        return -1;
+    home_param(k, &v);
+    return *v;
+}
+/* the engine tests: pick one of the selectable engines on T1, at HOME, then the four real HOME values above */
+EXPORT uint32_t web_test_engine(uint32_t e)
+{
+    if (e >= NENGINES || !eng_ok(e))
+        return 0;
+    song.sel = 0;
+    set_engine_of(&trk[0], e);
+    ui.home = 1;
+    ui.force = 1;
+    return 1;
+}
 
 EXPORT uint16_t *web_screen(void) { return web_fb; }
 EXPORT uint32_t web_screen_draws(void) { return web_draws; }

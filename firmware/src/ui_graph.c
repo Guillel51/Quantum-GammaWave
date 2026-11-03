@@ -725,78 +725,61 @@ static void graph_fx(const track_t *t, uint16_t c)
     static const char *const FX_LABELS[4] = {"DIST", "CHOR", "DLY", "REV"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
-    static uint8_t vu[4];
+    static uint8_t vu[4], hold[4];
     static int32_t vu_trk = -1;
     int32_t pk = t->peak < 0 ? -t->peak : t->peak;   /* the track's real post-FX peak (fx.c) */
     uint32_t i;
     if (vu_trk != (int32_t)(t - trk)) {              /* the meters belong to one track */
         memset(vu, 0, sizeof vu);
+        memset(hold, 0, sizeof hold);
         vu_trk = (int32_t)(t - trk);
     }
 
-    /* Enclosure panel */
-    if (ux.chamfer && !ux.style) {
-        gw_oct_panel(4, 2, 232, 92, 5, T_BG, T_LINE, 1, c);
-    } else {
-        cv_rrect(4, 2, 232, 92, 4, T_SURF, T_BG);
-    }
-
-    /* 4 modular effect send columns */
+    /* One quiet rack: four equal channels, a clean level meter, the send's value and its parameter bar.
+     * No second fader, no fake motion: the meter is the track's post-FX peak through this send. */
+    cv_rrect(4, 2, 232, 72, 4, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
-        int32_t cx = CARD_X(i);
-        int32_t val = t->p[P_DIST + i];
-        int32_t f_h = val * 40 / 127;
-        int32_t slot_x = cx + 44;
-        int32_t slot_y = 26;
-        uint16_t col = ux.chamfer ? heat_col(val * 240 / 127 + 16) : c;
-        int32_t vu_x = cx + 34, vu_h = 38, vu_lv;
+        int32_t cx = 7 + (int32_t)i * 56;
+        int32_t val = clamp(t->p[P_DIST + i], 0, 127);
+        int32_t mx = cx + 43, my = 24, mh = 33;
+        int32_t lvl = clamp(pk, 0, 7000) * val / 127;
+        int32_t hpx = clamp(lvl, 0, 7000) * mh / 7000;
+        int32_t seg;
         char num[8];
 
-        /* Sub-panel enclosure per FX column */
-        cv_rrect(cx + 2, 4, CARD_W - 4, 70, 3, T_SURF, T_BG);
+        cv_rrect(cx, 4, 53, 68, 3, T_SURF, T_BG);
+        cv_icon_on(cx + 4, 6, 12, FX_ICON[i], T_MID, T_SURF);
+        cv_text_on(cx + 19, 4, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);
+        if (pk > 64)
+            cv_rect(cx + 46, 7, 3, 3, T_ACCENT);
+        else
+            cv_rect(cx + 46, 7, 3, 3, T_LINE);
 
-        /* The effect's own icon and its name, side by side along the top of the sub-panel, so each
-         * send is identifiable at a glance without reading the label */
-        cv_icon_in(cx + 4, 6, 14, 14, 12, FX_ICON[i], T_MID, T_SURF);
-        cv_text(cx + 21, 6, &AF_S, FX_LABELS[i], T_MID);
+        fmt_int(num, val);
+        cv_text_on(cx + 5, 20, &AF_M, num, val ? T_TEXT : T_DIM, T_SURF);
+        cv_text_on(cx + 5, 38, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
+                   i == 0 ? T_ACCENT : T_DIM, T_SURF);
 
-        /* Micro fader slot down the right of the sub-panel: its rows (y 26..66) are clear of the name
-         * above (ink y 9..19) and its column (x cx+39..cx+53) is clear of the readout on the left
-         * (ends at x cx+33), so a label, a value and the thumb can no longer overlap each other */
-        /* Real activity meter beside the fader: the track's peak through this send, not a fake
-         * oscillator. It attacks at once and falls two rows per redraw. */
-        vu_lv = clamp(pk, 0, 7000) * (vu_h - 1) / 7000;
-        vu_lv = vu_lv * clamp(val, 0, 127) / 127;
-        if (vu_lv > vu[i]) vu[i] = (uint8_t)vu_lv;
-        else if (vu[i] > 2u) vu[i] -= 2u; else vu[i] = 0;
-        cv_rrect(vu_x, slot_y, 4, vu_h, 1, T_BG, T_RAISE);
-        for (int32_t yy = 0; yy < vu_h; yy += 4)
-            cv_rect(vu_x + 1, slot_y + vu_h - 1 - yy, 2, 1, T_RAISE);
+        /* a 5 px well with 4 px graduations; the fill comes up from the bottom, the peak cap stays a moment */
+        cv_rect(mx, my, 5, mh, T_BG);
+        for (seg = 0; seg < mh; seg += 5)
+            cv_rect(mx, my + mh - 1 - seg, 5, 1, T_RAISE);
+        if (hpx > vu[i]) vu[i] = (uint8_t)hpx;
+        else if (vu[i] > 0u) vu[i]--;
+        if (hpx > hold[i]) hold[i] = (uint8_t)hpx;
+        else if (hold[i] > 0u) hold[i]--;
         if (vu[i] > 0u)
-            cv_rrect(vu_x + 1, slot_y + vu_h - vu[i], 2, vu[i], 1,
-                     ux.chamfer ? heat_col(40 + (int32_t)vu[i] * 200 / vu_h) : c, T_BG);
-        if (pk > 64)                                  /* a live note: the effect's lamp */
-            cv_rect(cx + 36, 7, 2, 2, T_ACCENT);
+            cv_rect(mx + 1, my + mh - vu[i], 3, vu[i], i == 0 ? c : T_THEME);
+        if (hold[i] > 0u)
+            cv_rect(mx + 1, my + mh - hold[i], 3, 1, T_ACCENT);
 
-        /* Micro fader slot down the right of the sub-panel: its rows (y 26..66) are clear of the name
-         * above (ink y 9..19) and its column (x cx+39..cx+53) is clear of the readout on the left
-         * (ends at x cx+33), so a label, a value and the thumb can no longer overlap each other */
-        cv_rrect(slot_x, slot_y, 4, 40, 2, T_RAISE, T_SURF);
-        if (f_h > 2) {
-            cv_rrect(slot_x, slot_y + 40 - f_h, 4, f_h, 2, col, T_RAISE);
-        }
-        /* Fader thumb cap */
-        cv_rrect(slot_x - 5, slot_y + 38 - f_h, 14, 4, 2, col, T_SURF);
-        cv_rect(slot_x - 3, slot_y + 39 - f_h, 10, 1, T_INK);
-
-        /* Value readout or distortion topology badge */
-        if (i == 0) {
-            uint32_t dt = t->p[P_DTYPE] & 3u;
-            cv_text(cx + 6, 60, &AF_S, DIST_TYPES[dt], T_ACCENT);
-        } else {
-            fmt_int(num, val);
-            cv_text(cx + 6, 60, &AF_S, num, val > 0 ? T_TEXT : T_DIM);
-        }
+        /* the send at a glance: a thin bar, under the meter, not another fader to interpret */
+        cv_rect(cx + 5, 56, 34, 3, T_RAISE);
+        if (val > 0)
+            cv_rect(cx + 5, 56, val * 34 / 127, 3, T_SEL);
+        cv_rect(cx + 43, 56, 5, 3, T_RAISE);
+        if (val > 0)
+            cv_rect(cx + 43, 56, 5, 3, c);
     }
 
     /* Bottom Global Master FX Telemetry Ribbon. Laid out right to left, each field measured against

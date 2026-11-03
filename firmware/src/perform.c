@@ -25,15 +25,21 @@ enum { PF_R8, PF_R16, PF_R32, PF_LPF, PF_HPF,
        PF_OCTD, PF_OCTU, PF_HALF, PF_DSHT, PF_DLNG, PF_S8, PF_S16, PF_ATK, PF_ARP, PF_RND,   /* the MIDI ones: pfx.c */
        PF_M1, PF_N = PF_M1 + NTRK, PF_TGT = PF_N + 1,     /* PF_TGT: A#4, the MIDI effects' tracks (pfx_tgt) */
        PF_CLR = PF_N + 2,                                  /* PF_CLR: G5, erases the punch-in lane (pfx.c) */
-       /* (QG-1) the black keys left over: G#4 VIBRATO and F#5 DIVE on the notes (pfx.c), C#5 GATE and D#5 SWEEP on
-        * the master (here) */
-       PF_VIB = PF_N + 3, PF_GATE, PF_SWP, PF_DIVE, PF_END };
+       /* (QG-1) the black keys left over: G#4 VIBRATO and F#5 DIVE on the notes (pfx.c), C#5 GATE,
+        * D#5 RETRIGGER on the master (here) */
+       /* SWEEP was dropped from the key map to keep the PF bits inside one word; its DSP stays in the
+        * filter block only through the LPF/HPF macros. D#5 now opens RETRIGGER. */
+       PF_VIB = PF_N + 3, PF_GATE, PF_DIVE,
+       /* (1.8) the second FX bank: the five buffer effects that were missing. They share the SLICER's
+        * existing loop; no new buffer, voice or parameter was added. A#4 held opens the bank. */
+       PF_REV, PF_FRZ, PF_TAPE, PF_GLCH, PF_RTRG, PF_END };
 #define PF_IS(e) ((e) < PF_N || ((e) >= PF_VIB && (e) < PF_END))   /* a key with an effect */
 _Static_assert(PF_END <= 32, "the PF bits in a word");
 #define PF_BIT(e) (1u << (e))
 #define PF_REPEAT 0x7u                                         /* the three REPEAT rates */
 #define PF_Q PF_REPEAT                                         /* start on the 1/16 */
-#define PF_BUF PF_REPEAT                                       /* the buffer effects */
+#define PF_BUF (PF_REPEAT | PF_BIT(PF_REV) | PF_BIT(PF_FRZ) | PF_BIT(PF_TAPE) | \
+                PF_BIT(PF_GLCH) | PF_BIT(PF_RTRG))                       /* the buffer effects */
 #define PF_MUTE (((1u << NTRK) - 1u) << PF_M1)
 #define PF_MIDI ((((1u << (PF_RND + 1)) - 1u) & ~((1u << PF_OCTD) - 1u)) | PF_BIT(PF_VIB) | PF_BIT(PF_DIVE))   /* PF_OCTD .. PF_RND,
                                                                  * VIB, DIVE: on the notes (pfx.c) */
@@ -42,7 +48,7 @@ _Static_assert(PB_FRAMES <= SL_FR && !(PB_FRAMES & (PB_FRAMES - 1u)), "the REPEA
 #define PB_MAX (2u * PB_FRAMES)               /* the longest loop, 44.1 kHz samples */
 #define PF_TOP (63 << 8)                      /* filter cutoff index, Q8 (PF_SVF): the LPF's open end */
 #define PF_LOW (14 << 8)                      /* .. the LPF sweep's end, the HPF sweep's (and K1's) top */
-enum { BM_NONE, BM_LOOP };
+enum { BM_NONE, BM_LOOP, BM_REV, BM_FRZ, BM_TAPE, BM_GLCH, BM_RTRG };
 
 static volatile uint32_t perf_mask;   /* main: the FX button's bit while its layer may own keys, 0 = none */
 static volatile uint32_t kb_mask;     /* main: the button bits whose hold makes keys a layer's (ui_layer.c), 0 = none */
@@ -81,8 +87,10 @@ static struct {
     uint8_t busy, sync, mute;          /* sync: a 1/16 starts with the next block; mute: tracks to ramp */
     /* the buffer */
     uint8_t mode, src, next;           /* BM_*, the effect it plays (PF_N none), one waiting for the fade */
-    uint8_t state, odd;                /* LOOP: 0 recording, 1 playing; the sample of a pair */
+    uint8_t state, odd;                /* 0 recording, 1 playing; the sample of a pair */
     uint32_t len, wr, rp;              /* loop length (samples), frames written, read (samples into the loop) */
+    uint32_t tp, spd, tdec;            /* TAPE STOP: the read position and speed (Q16), its decrease a sample */
+    uint32_t gl_next, gl_pos, gl_dir;  /* GLITCH: samples to the next jump, the read place, its direction */
     uint32_t xrp, xlen, xn;            /* the loop it switched from, faded over xn samples */
     int32_t w, tw, hl, hr;             /* the buffer's share and its target, Q15; the first of a pair */
     /* the filters, CRUSH, THROW, mutes */
@@ -94,14 +102,23 @@ static struct {
     uint32_t cn;
     int32_t td;                        /* THROW: the share of the dry mix sent, Q15 */
     int32_t mg[NTRK];                  /* mute gains, Q15 (32768 = open) */
-    /* (QG-1) GATE: the cut now (Q15, 0 = open), the place in the 1/16 at the block's start; SWEEP: samples held */
+    /* (QG-1) GATE: the cut now (Q15, 0 = open), the place in the 1/16 at the block's start */
     int32_t gc;
-    uint32_t gph, swt;
+    uint32_t gph;
 } pf = {.src = PF_N, .next = PF_N, .lc = PF_TOP, .mg = {[0 ... NTRK - 1] = 32768}};   /* (every track open: 0.6, six) */
 
 /* the loop length of a REPEAT at the tempo, 44.1 kHz samples; 0 = not one */
 static const uint8_t PF_DEN[PF_R32 + 1] = {2, 4, 8};
-static uint32_t perf_len(uint32_t e) { return e <= PF_R32 ? beat_samples() / PF_DEN[e] : 0u; }
+static uint32_t perf_len(uint32_t e)
+{
+    if (e <= PF_R32)
+        return beat_samples() / PF_DEN[e];
+    if (e == PF_REV || e == PF_FRZ || e == PF_TAPE || e == PF_GLCH)
+        return beat_samples() > PB_MAX ? PB_MAX : beat_samples();   /* one beat, the loop's room */
+    if (e == PF_RTRG)
+        return beat_samples() / 8u > PB_MAX ? PB_MAX : beat_samples() / 8u;
+    return 0u;
+}
 /* the effects that can run at the tempo: a REPEAT longer than the loop cannot */
 static uint32_t perf_avail(void)
 {
@@ -114,15 +131,32 @@ static uint32_t perf_avail(void)
 
 /* seq.c keyboard_block: a layer key down / up (e: PF_*, PF_N = no effect) */
 static volatile uint8_t pfx_tgt;      /* main / keys: the MIDI effects' tracks, 0 ALL, 1 SYN, 2 DRM (pfx.c) */
+static volatile uint8_t pfx_bank;     /* 0: the original FX map; 1: REV FRZ TAPE GLCH RTRG (A#4 held) */
+static volatile uint8_t pfx_bank_force; /* the UI redraws the map after the bank changes */
+static uint32_t pfx_tgt_t0;            /* A#4 down: a short press steps TGT, a long one opens bank 1 */
 static volatile uint8_t pfx_clr;      /* keys: G5 held (pfx.c: the lane erased where it passes, or all of it) */
 static uint32_t pfx_lph;              /* samples into the punch-in lane (pfx.c): from the transport's start, a section's */
+static uint32_t pf_rs = 0x2545F491u;  /* GLITCH's own random numbers */
 static uint8_t pfx_lane[32], pfx_ltgt;   /* the section's punch-in lane (pfx.c), its tracks (as pfx_tgt) */
 static void perf_press(uint32_t e, int down)
 {
-    if (e == PF_TGT && down)
-        pfx_tgt = (uint8_t)((pfx_tgt + 1u) % 3u);
+    if (e == PF_TGT) {
+        if (down) {
+            pfx_tgt_t0 = fm1_ms;
+            return;
+        }
+        if (fm1_ms - pfx_tgt_t0 >= 600u) {       /* a long A#4: the second FX bank */
+            pfx_bank ^= 1u;
+            pfx_bank_force = 1;
+        }
+        else
+            pfx_tgt = (uint8_t)((pfx_tgt + 1u) % 3u);
+        return;
+    }
     if (e == PF_CLR)
         pfx_clr = (uint8_t)(down ? 1u : 0u);
+    if (e == PF_RND && pfx_bank && down)   /* bank 2's CRUSH must wake perf_begin without a new branch there */
+        pf.busy = 1;
     if (!PF_IS(e))
         return;
     if (perf_latch_on) {                  /* FX LATCH: a press turns it on or off, letting go does nothing */
@@ -150,7 +184,7 @@ static uint32_t perf_pick(uint32_t a)
 {
     uint32_t e, best = PF_N;
     a &= PF_BUF;
-    for (e = 0; e < PF_M1; e++)
+    for (e = 0; e < PF_END; e++)
         if (((a >> e) & 1u) && (best == PF_N || perf_ord[e] - perf_ord[best] < 0x80000000u))
             best = e;
     return best;
@@ -167,9 +201,16 @@ static void perf_buf_start(uint32_t e)
     pf.wr = pf.rp = 0;
     pf.odd = 0;
     pf.xn = 0;
-    pf.mode = BM_LOOP;
+    pf.mode = e == PF_REV ? BM_REV : e == PF_FRZ ? BM_FRZ : e == PF_TAPE ? BM_TAPE :
+              e == PF_GLCH ? BM_GLCH : e == PF_RTRG ? BM_RTRG : BM_LOOP;
     pf.state = 0;
     pf.len = perf_len(e);
+    pf.tp = 0;
+    pf.spd = 1u << 16;
+    pf.tdec = pf.len ? (1u << 16) / pf.len : 0u;
+    pf.gl_next = 0;
+    pf.gl_pos = 0;
+    pf.gl_dir = 1;
 }
 
 /* the buffer effect to play becomes e (at a 1/16): a shorter REPEAT of what is
@@ -263,13 +304,6 @@ static __attribute__((noinline)) int perf_begin(uint32_t n)
         }
         if (m < 0 && PF_TOP + m * (PF_TOP - PF_LOW) / 100 < lt)
             lt = PF_TOP + m * (PF_TOP - PF_LOW) / 100;
-        pf.swt = (pf.act & PF_BIT(PF_SWP)) ? pf.swt + n : 0u;
-        if (pf.swt) {                               /* (QG-1) SWEEP: the LPF down and back up over a bar, again */
-            uint32_t q = (pf.swt % bar) * 128u / bar;   /* (0..127: a triangle, open at both ends) */
-            int32_t sw = PF_TOP - (int32_t)((uint32_t)(PF_TOP - PF_LOW) / 64u * (q < 64u ? q : 127u - q));
-            if (sw < lt)
-                lt = sw;
-        }
         if (pf.ht) {
             t = pf.ht < bar ? pf.ht : bar;
             ht = (int32_t)((uint32_t)(PF_TOP - PF_LOW) / 64u * (t * 64u / bar));
@@ -405,10 +439,12 @@ static __attribute__((noinline)) void perf_buf_done(void)
 }
 
 /* the buffer effect on one sample: the share pf.w of what it plays, the rest live */
-static inline void perf_buf(int32_t *pl, int32_t *pr)
+/* Not inlined: the five new modes must not consume the hot RAMTEXT window. It is one call per
+ * sample only while the buffer effect runs; the old REPEAT path uses it too. */
+static __attribute__((noinline)) void perf_buf(int32_t *pl, int32_t *pr)
 {
     int32_t l = *pl, r = *pr, yl = 0, yr = 0, on = 0;
-    if (pf.mode == BM_LOOP) {
+    if (pf.mode != BM_NONE) {
         if (!pf.state) {
             pf.wr = pb_rec(pf.wr, l, r);
             if (++pf.rp >= pf.len) {                /* (rp: samples recorded) */
@@ -416,8 +452,37 @@ static inline void perf_buf(int32_t *pl, int32_t *pr)
                 pf.rp = 0;
             }
         } else {
-            pb_loop(pf.rp, pf.len, pf.wr, &yl, &yr);
-            if (pf.xn) {                            /* the loop it switched from, fading out */
+            if (pf.mode == BM_LOOP || pf.mode == BM_FRZ || pf.mode == BM_RTRG) {
+                pb_loop(pf.rp, pf.len, pf.wr, &yl, &yr);
+            } else if (pf.mode == BM_REV) {
+                pb_loop(pf.len - 1u - pf.rp, pf.len, pf.wr, &yl, &yr);
+            } else if (pf.mode == BM_TAPE) {
+                if (pf.spd) {
+                    pb_at(pf.tp >> 16, pf.wr, &yl, &yr);
+                    pf.tp += pf.spd;
+                    pf.spd = pf.spd > pf.tdec ? pf.spd - pf.tdec : 0u;
+                    if (pf.tp >= pf.len)
+                        yl = yr = 0;
+                }
+            } else if (pf.mode == BM_GLCH) {
+                if (!pf.gl_next) {                  /* a new slice: a random place and direction */
+                    pf_rs = pf_rs * 1664525u + 1013904223u;
+                    pf.gl_pos = (pf_rs >> 8) % (pf.len ? pf.len : 1u);
+                    pf.gl_dir = (pf_rs & 1u) ? 1u : 0u;
+                    pf.gl_next = 256u + ((pf_rs >> 16) & 511u);
+                }
+                pb_at(pf.gl_pos, pf.wr, &yl, &yr);
+                pf.gl_next--;
+                if (pf.gl_dir) {
+                    if (++pf.gl_pos >= pf.len)
+                        pf.gl_pos = 0;
+                } else if (pf.gl_pos) {
+                    pf.gl_pos--;
+                } else {
+                    pf.gl_pos = pf.len ? pf.len - 1u : 0u;
+                }
+            }
+            if (pf.mode == BM_LOOP && pf.xn) {      /* the loop it switched from, fading out */
                 int32_t ol, orr, g = (int32_t)pf.xn;
                 pb_loop(pf.xrp, pf.xlen, pf.wr, &ol, &orr);
                 yl += (ol * g) >> SL_RAMP_LOG2;
@@ -426,8 +491,9 @@ static inline void perf_buf(int32_t *pl, int32_t *pr)
                 if (++pf.xrp >= pf.xlen)
                     pf.xrp = 0;
             }
-            if (++pf.rp >= pf.len)
-                pf.rp = 0;
+            if (pf.mode == BM_LOOP || pf.mode == BM_FRZ || pf.mode == BM_REV || pf.mode == BM_RTRG)
+                if (++pf.rp >= pf.len)
+                    pf.rp = 0;
             on = 1;
         }
     }
@@ -457,6 +523,8 @@ static __attribute__((noinline)) void perf_block(int32_t *bl, int32_t *br, uint3
 {
     uint32_t i, a = pf.act0, sh, hold, gp = pf.P ? pf.gph % pf.P : 0u, gh = pf.P / 2u;
     int32_t c = perf_k[1], lt, ht, ct, gd = 32768 - perf_k[3] * 327;
+    if (pfx_bank && ((perf_held | perf_latched) & PF_BIT(PF_RND)))   /* (1.8) bank 2 F5: CRUSH independent */
+        c = 100;
     if (c)
         pf.cc = c;
     ct = c ? 32768 : 0;

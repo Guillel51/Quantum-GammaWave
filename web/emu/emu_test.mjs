@@ -86,8 +86,34 @@ a.ex.web_midi(0x80, 64, 0);
 a.render(300);
 check(`a MIDI note in (USB-MIDI's queue) sounds (peak ${a.peak.toFixed(3)})`, a.peak > 0.01);
 const draws = a.ex.web_screen_draws();
+const hb = [0, 1, 2, 3].map((k) => a.ex.web_test_home_value(k));
 a.turn(EN.K1, 3);
+const ha = [0, 1, 2, 3].map((k) => a.ex.web_test_home_value(k));
 check("KNOB 1 redraws the screen", a.ex.web_screen_draws() > draws);
+check("HOME: KNOB 1 moves its parameter and leaves KNOB 2..4", ha[0] !== hb[0] && ha.slice(1).every((v, i) => v === hb[i + 1]));
+{ // (1.8) every selectable engine, every HOME knob: its own parameter only; the value survives a redraw
+  const ENGINES = [0, 12, 2, 3, 5, 7, 11, 10];
+  let ok = true;
+  for (const e of ENGINES) {
+    ok = a.ex.web_test_engine(e) === 1 && ok;
+    a.render(90);
+    for (let k = 0; k < 4; k++) {
+      const before = [0, 1, 2, 3].map((j) => a.ex.web_test_home_value(j));
+      a.turn(EN.K1 + k, 1);
+      const after = [0, 1, 2, 3].map((j) => a.ex.web_test_home_value(j));
+      if (after[k] === before[k]) {                    // an enum at its end: one step the other way
+        a.turn(EN.K1 + k, -1);
+      }
+      const moved = [0, 1, 2, 3].map((j) => a.ex.web_test_home_value(j));
+      ok = ok && moved[k] !== before[k] && moved.every((v, j) => j === k || v === before[j]);
+      a.render(40);
+      ok = ok && a.ex.web_test_home_value(k) === moved[k];
+    }
+  }
+  a.ex.web_test_engine(0);
+  a.render(90);
+  check("HOME: KNOB 1..4 on every engine moves only its parameter and keeps the value", ok);
+}
 a.tap(B.PLAY);
 a.render(1000);
 check("PLAY: the sequencer runs, PLAY's green LED", a.ex.web_playing() === 1 && (a.ex.web_lit_buttons() >> 14 & 1) === 1);

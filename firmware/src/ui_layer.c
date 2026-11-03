@@ -528,7 +528,10 @@ static void session_dice(uint32_t seed)
 static void layer_key(uint32_t l, uint32_t k)
 {
     uint32_t p = key_place(k), i;
-    if (l == LAYER_GLO) {
+    if (l == LAYER_FX && key_black(k) && p < NTRK) {    /* (1.8) the six mutes: latch, not hold */
+        trk[p].p[P_MUTE] = (int16_t)!trk[p].p[P_MUTE];
+        ui.force = 1;
+    } else if (l == LAYER_GLO) {
         if (key_black(k)) {
             if (p < NTRK)
                 trk[p].p[P_MUTE] = (int16_t)!trk[p].p[P_MUTE];
@@ -704,10 +707,15 @@ static uint32_t layer_leds(uint32_t *br)
     uint32_t mask = scale_mask(TSEL), root = (uint32_t)TSEL->p[P_ROOT] % 12u;
     for (k = 0; k < 27u; k++) {
         uint32_t p = key_place(k), b = (uint32_t)key_black(k), on = 0, can = 0, e;
-        if (l == LAYER_FX) {                            /* effects breathe, held lit, a too-long REPEAT dark */
-            e = perf_key(k);
-            can = PF_IS(e) && ((ok >> e) & 1u);
-            on = can && ((held >> e) & 1u);
+        if (l == LAYER_FX) {                            /* (1.8) mutes latch; effects breathe, held lit */
+            if (b && p < NTRK) {
+                on = trk[p].p[P_MUTE] != 0;
+                can = 1;
+            } else {
+                e = perf_key(k);
+                can = PF_IS(e) && ((ok >> e) & 1u);
+                on = can && ((held >> e) & 1u);
+            }
         } else if (l == LAYER_GLO) {                    /* sounding lit; SOLO held lit, the others, C4, F4 breathe */
             on = b ? (p < NTRK && glo_sounding(p)) || (p >= NTRK && p < NTRK + 4u && !((dx_mute >> (p - NTRK)) & 1u))
                    : p < NTRK && ((lys.solo >> k) & 1u);      /* (a group sounding: lit) */
@@ -751,6 +759,7 @@ static uint32_t layer_leds(uint32_t *br)
  * it says why), KEY (a muted track, as the MUTE badge); HOLD cells in a SET layer: a corner triangle */
 static const char *const PF_NAME[PF_M1] = {"1/8", "1/16", "1/32", "LPF", "HPF",          /* the audio ones (perform.c) */
     "OCT-", "OCT+", "1/2", "DEC-", "DEC+", "ST8", "ST16", "ATK+", "ARP", "RND"};            /* the MIDI ones (pfx.c) */
+static const char *const PF_BANK2[5] = {"REV", "FRZ", "TAPE", "GLCH", "RTRG"};
 static const char W_NOTE[16] = {'F', 'G', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'A', 'B', 'C', 'D', 'E', 'F', 'G'};
 static const char B_NOTE[11] = {'F', 'G', 'A', 'C', 'D', 'F', 'G', 'A', 'C', 'D', 'F'};   /* black keys 1..11: F# G# A# C# D# F# .. F# */
 #define G6_X(c) (7 + 38 * (int32_t)(c))                 /* (JIANT 0.6) a cell per track: 36 px wide, 2 px apart */
@@ -766,6 +775,7 @@ static const char B_NOTE[11] = {'F', 'G', 'A', 'C', 'D', 'F', 'G', 'A', 'C', 'D'
 #define LF_Y 4                                            /* the effects occupy the map's first three rows */
 #define LFR_P 20                                         /* (QG-1) FX: the white keys' rows 20 px apart, 18 high; */
 #define LFR_H 18
+#define LF_Y 4                                            /* the effects occupy the map's first three rows */
 #define LFM_Y 78                                         /* .. the mutes' row, the black effects' row under it */
 #define LFX_Y 98
 #define LFB_H 16
@@ -901,12 +911,82 @@ static void lcell(int32_t x, int32_t y, int32_t h, const char *note, uint32_t ic
 }
 static void bnote(char *n, uint32_t t) { n[0] = B_NOTE[t]; n[1] = '#'; n[2] = 0; }
 
+/* (1.8) PUNCH-IN FX: the ten performance effects of the two banks, the complete 27-key keyboard,
+ * and the six latched track mutes. The cards are labels for the real keys; the keyboard is the hardware's
+ * F3..G5 layout, with every effect key and every mute lit from its live state. Bank 1's white effects and
+ * bank 2 share F3..C4; A#4 held switches them. The four black-key effects (VIB GATE RTRG DIVE) are always
+ * available. No card here is a fake button: the physical keys run the DSP. */
+static const uint8_t PF10[10] = {PF_R16, PF_S16, PF_GATE, PF_DIVE, PF_RND,
+                                 PF_REV, PF_FRZ, PF_TAPE, PF_GLCH, PF_RTRG};
+static const char *const FX10[10] = {"RPT", "STU", "GAT", "DIV", "CRS",
+                                     "REV", "FRZ", "TAP", "GLC", "RTR"};
+static const char *const FX10_KEY[10] = {"F3", "C5", "C#", "F#", "F5", "F3", "G3", "A3", "B3", "C4"};
+static void fx_card(int32_t x, int32_t y, const char *key, const char *name, uint32_t on, uint32_t dim,
+                    uint32_t row_on)
+{
+    uint16_t fill = on ? T_ACCENT : dim && !row_on ? T_DIM : row_on ? T_RAISE : T_SURF;
+    uint16_t ink = on ? T_INK : T_TEXT;
+    cv_rrect(x, y, 42, 20, 3, fill, T_SURF);
+    cv_rect(x + 38, y + 2, 2, 2, on ? T_INK : dim ? T_DIM : T_LINE);
+    cv_text_on(x + 4, y + 5, &AF_S, key, ink, fill);
+    cv_text_on(x + 19, y + 5, &AF_S, name, ink, fill);
+}
+static void fx_keyboard(int32_t y, uint32_t held, uint32_t act)
+{
+    static const uint8_t BKPOS[11] = {0, 1, 3, 4, 5, 7, 8, 10, 11, 12, 14};
+    uint32_t k, p, f, b, m;
+    char n[3];
+    for (p = 0; p < 16u; p++) {                         /* the white keys F3 .. G5, left to right */
+        int32_t x = 6 + 14 * (int32_t)p;
+        for (k = 0; k < 27u; k++)
+            if (!key_black(k) && key_place(k) == p)
+                break;
+        f = k < 27u ? perf_key(k) : PF_N;
+        m = f != PF_N && PF_IS(f) && ((held >> f) & 1u);
+        cv_rect(x, y, 14, 24, m ? T_ACCENT : f != PF_N && PF_IS(f) ? T_SEL : T_RAISE);
+        cv_rect(x + 13, y, 1, 24, T_LINE);
+        n[0] = W_NOTE[p];
+        n[1] = (char)('3' + (p + 3u) / 7u);
+        n[2] = 0;
+        cv_text_on(x + 2, y + 13, &AF_S, n, m ? T_INK : T_TEXT, m ? T_ACCENT : f != PF_N && PF_IS(f) ? T_SEL : T_RAISE);
+    }
+    for (b = 0; b < 11u; b++) {                         /* the black keys: mutes 1..6, then VIB TGT GATE RTRG DIVE */
+        int32_t x = 6 + 14 * (int32_t)(BKPOS[b] + 1u) - 4;
+        for (k = 0; k < 27u; k++)
+            if (key_black(k) && key_place(k) == b)
+                break;
+        f = k < 27u ? perf_key(k) : PF_N;
+        if (b < NTRK) {
+            m = trk[b].p[P_MUTE] != 0;
+            cv_rrect(x, y, 8, 15, 2, m ? T_ACCENT : T_BG, T_SURF);
+            cv_rect(x + 3, y + 2, 2, 2, m ? T_INK : T_LINE);
+        } else {
+            m = f != PF_N && PF_IS(f) && ((held >> f) & 1u);
+            cv_rrect(x, y, 8, 15, 2, m ? T_ACCENT : T_THEME, T_SURF);
+            cv_rect(x + 3, y + 2, 2, 2, m ? T_INK : T_BG);
+        }
+    }
+    (void)act;
+}
 static void layer_fx(void)
 {
-    uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail(), e;
-    char n[3] = {0, 0, 0};
-    lc_w = LF_W;
+    uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail();
+    uint32_t i, row_on, mutes = 0;
+    char m[3] = {'T', '1', 0};
+    for (i = 0; i < NTRK; i++)
+        mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
     lc_soft = 1;
+    cv_text(7, 1, &AF_S, "PUNCH-IN FX", T_THEME);
+    cv_text_r(230, 1, &AF_S, pfx_bank ? "BANK 2" : "BANK 1", T_ACCENT, T_SURF);
+    for (i = 0; i < 10u; i++) {                         /* ten assignments: bank 1 above, bank 2 below */
+        uint32_t f = PF10[i], on, dim;
+        row_on = pfx_bank ? i >= 5u : i < 5u;
+        on = ((held >> f) & 1u) != 0u;
+        dim = !((ok >> f) & 1u);
+        if ((i == 0u && pfx_bank) || (i >= 5u && !pfx_bank))  /* the white-key bank not selected */
+            dim = 1u;
+        fx_card(12 + (int32_t)(i % 5u) * 44, 15 + (int32_t)(i / 5u) * 21,
+                FX10_KEY[i], i == 4u && !pfx_bank ? "RND" : FX10[i], on, dim, row_on);
     /* The map's legend sits in the gap between the third FX row and the mutes, as before: it is
      * one measured line, so it does not compete with either group. */
     cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
@@ -918,19 +998,21 @@ static void layer_fx(void)
         n[0] = W_NOTE[e];
         lcell(LF_X(e % 5u), LF_Y + LFR_P * (int32_t)(e / 5u), LFR_H, 0, ICON_COUNT, 0, PF_NAME[e], st, 0);
     }
-    cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
-    lc_w = G6_W;
-    for (e = 0; e < NTRK; e++) {                        /* the mutes of the black keys 1..6 */
-        bnote(n, e);
-        lcell(G6_X(e), LFM_Y, LFB_H, n, ICON_NONE, trk_icon(e, 0), 0, (held >> (PF_M1 + e)) & 1u ? LS_MUTE : LS_OFF, 0);
+    fx_keyboard(59, held, act);
+    lc_w = 35;
+    for (i = 0; i < NTRK; i++) {                        /* the six latched mutes, T1 .. T6 */
+        m[1] = (char)('1' + i);
+        lcell(7 + 38 * (int32_t)i, 86, 16, m, ICON_NONE, trk_icon(i, 0), 0,
+              (mutes >> i) & 1u ? LS_MUTE : LS_OFF, 0);
     }
-    lc_w = LC_W;
-    for (e = 0; e < 4u; e++) {                          /* (QG-1) G#4 VIB, C#5 GATE, D#5 SWEEP, F#5 DIVE */
-        static const uint8_t K[4] = {PF_VIB, PF_GATE, PF_SWP, PF_DIVE}, B[4] = {NTRK, NTRK + 2, NTRK + 3, NTRK + 4};
-        static const char *const N[4] = {"VIB", "GATE", "SWP", "DIVE"};
-        uint32_t f = K[e];
-        bnote(n, B[e]);
-        lcell(LC_X(e), LFX_Y, LFB_H, n, ICON_NONE, 0, N[e], !((held >> f) & 1u) ? LS_OFF : LS_HELD, 0);
+    lc_w = 55;
+    for (i = 0; i < 4u; i++) {                          /* G#4 VIB, C#5 GATE, D#5 RTRG, F#5 DIVE */
+        static const uint8_t K[4] = {PF_VIB, PF_GATE, PF_RTRG, PF_DIVE}, B[4] = {NTRK, NTRK + 2, NTRK + 3, NTRK + 4};
+        static const char *const N[4] = {"VIB", "GATE", "RTRG", "DIVE"};
+        uint32_t f = K[i];
+        bnote(m, B[i]);
+        lcell(7 + 57 * (int32_t)i, 104, 16, m, ICON_NONE, 0, N[i],
+              !((ok >> f) & 1u) ? LS_DIM : !((held >> f) & 1u) ? LS_OFF : LS_HELD, 0);
     }
 }
 /* a track playing DRUM: the rows shrink (28, 28, 24 px) and the group mutes take the third */
@@ -1236,7 +1318,10 @@ static void draw_layer(void)
     uint32_t l = ui.layer % LAYER_N, sig = l * 7919u + ux.gen * 977u;
     layer_cards(l);
     if (l == LAYER_FX)
-        sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 11u + perf_act * 131u + perf_avail() * 7u;
+        sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 11u + perf_act * 131u + perf_avail() * 7u +
+               (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u +
+               (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 |
+                          trk[3].p[P_MUTE] << 3 | trk[4].p[P_MUTE] << 4 | trk[5].p[P_MUTE] << 5) * 104729u;
     else if (l == LAYER_GLO)
         sig += perf_solo * 31u + (uint32_t)song.g[G_CLOCK] * 5u +
                (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 | trk[3].p[P_MUTE] << 3 |

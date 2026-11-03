@@ -1895,6 +1895,10 @@ static void ui_input(void)
 static void ui_input_frame(void)
 {
     uint32_t pressed = fm1_input_edges(0), notes = fm1_input_note_edges(), now = fm1_ticks(), id, b, k;
+    if (pfx_bank_force) {                            /* A#4 long: redraw the FX map at once */
+        pfx_bank_force = 0;
+        ui.force = 1;
+    }
     uint32_t home, rec, seq, save;
     uint32_t oct;
     uint32_t lay, combo = 0, lytap, lkeys, glo, kq = 0;

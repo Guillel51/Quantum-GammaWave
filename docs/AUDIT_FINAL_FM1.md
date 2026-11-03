@@ -27,6 +27,18 @@ esta auditoría.
 
 ## Métricas del cierre
 
+- App: **551224 B**. Paquete `.fwsc`: **610897 B**. Identidad de paquete `FM-1_982`.
+- SHA-256 del paquete: **`35499e5928335809bed46cb62c941ed89f496af72530b340463e8fb32c07fe01`**.
+- SHA-256 de la aplicación: **`9118f2c9dcc9897245f90bc3816b6d9bcf0a79f1de7bedb7d83caad61889c16e`**.
+- Slot XIP `APP_SLOT = 0x8DFBC = 581564 B`; app real 551224 B; **30340 B** sin usar. `0x93000` es la
+  imagen de flash empaquetada, no la flash física de 1 MiB.
+- RAM `.data+.bss`: 94668 B de 98304 B; spare **3636 B**.
+- Pool spare: **9248 B** (mínimo del proyecto: 8192 B).
+- RAMTEXT spare: **2968 B**. NOINIT spare: **124 B**.
+- `perf_block`: **374/522**. `DRUM_PATH`: **1189/1191**. `perf_begin` 28/28; `perf_pre` 31/31;
+  `perf_master` 32/32.
+- UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 200 cambian,
+  225 reescrituras idénticas omitidas.
 - App: **549028 B**. Paquete `.fwsc`: **610897 B**. Identidad de paquete `FM-1_982`.
 - SHA-256 del paquete: **`932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`**.
 - SHA-256 de la aplicación: **`0dcd80f23747832d7d440f9e992b032db7c40be297155c5ebe257c063512e67f`**.

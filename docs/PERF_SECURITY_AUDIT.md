@@ -249,6 +249,11 @@ fixes. Do not force-push or rewrite the merged history.
 - **Host finish ACK (IMPLEMENTED, HOST TESTED).** `web/fm1ota.js` and `tools/fm1_install.py` now return
   `lost` if the `success` frame cannot be sent. Previously they could mark the step finished without
   delivering the ACK. This does not make the single-bank write atomic or recovery guaranteed.
+- **Final evidence at this HEAD.** Target build and `target_budget.py` pass (`perf_block` 374/522,
+  `DRUM_PATH` 1189/1191); `memory_map_test.py` passes with RAM spare 3636 B, pool 9248 B, RAMTEXT
+  2968 B and NOINIT 124 B. App is **551224 B**, package **610897 B**, package SHA-256
+  `35499e5928335809bed46cb2c941ed89f496af72530b340463e8fb32c07fe01`. The older values are historical
+  baselines, not this build.
 - **Final evidence at this HEAD.** Target build and `target_budget.py` pass (`perf_block` 569/522,
   `DRUM_PATH` 1189/1191); `memory_map_test.py` passes with RAM spare 3716 B, pool 9248 B, RAMTEXT
   2404 B and NOINIT 124 B. App is **549028 B**, package **610897 B**, package SHA-256

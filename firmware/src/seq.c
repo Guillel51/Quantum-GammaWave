@@ -729,11 +729,15 @@ static void input_off(track_t *t, uint32_t note)
 }
 
 /* the effect of key k in the FX layer (PF_N none): the first PF_M1 white keys (F3 .. F5) in order, black keys
- * 1..6 (F#3 .. F#4) the track mutes, then G#4 VIBRATO, A#4 the tracks, C#5 GATE, D#5 SWEEP, F#5 DIVE (QG-1) */
+ * 1..6 (F#3 .. F#4) the track mutes, then G#4 VIBRATO, A#4 the tracks, C#5 GATE, D#5 RTRG, F#5 DIVE (QG-1) */
 static uint32_t perf_key(uint32_t k)
 {
     uint32_t p = key_place(k);
-    static const uint8_t BK[5] = {PF_VIB, PF_TGT, PF_GATE, PF_SWP, PF_DIVE};   /* (QG-1) G#4 A#4 C#5 D#5 F#5 */
+    static const uint8_t BK[5] = {PF_VIB, PF_TGT, PF_GATE, PF_RTRG, PF_DIVE};   /* G#4 A#4 C#5 D#5 F#5 */
+    if (key_black(k) && p < NTRK)                  /* (1.8) black keys 1..6: latched track mutes */
+        return PF_N;
+    if (!key_black(k) && p < 5u && pfx_bank)       /* (1.8) A#4 held: the second bank */
+        return PF_REV + p;
     return !key_black(k) ? (p < PF_M1 ? p : p == PF_M1 ? PF_CLR : PF_N) : p < NTRK ? PF_M1 + p :
            p < NTRK + 5u ? BK[p - NTRK] : PF_N;
 }
