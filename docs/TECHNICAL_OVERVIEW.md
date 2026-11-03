@@ -3,7 +3,7 @@
 ## 1. Hardware Architecture (M-VAVE FM-1)
 - **SoC**: JieLi AC791N (Dual-core 32-bit RISC `pi32v2` architecture, clockable up to 240 MHz).
 - **SRAM**: 96 KB total on-chip data RAM.
-- **Flash Storage**: 2 MB SPI NOR Flash mapped via XIP (eXecute In Place) at `0x02000000`.
+- **Flash Storage**: 1 MiB SPI NOR Flash (Puya P25Q80H, JEDEC 0x856014) mapped via XIP (eXecute In Place) at `0x02000000`.
 - **Display**: 240×240 IPS RGB565 LCD display driven over high-speed SPI with DMA.
 - **User Interface**:
   - 12 silicone front-panel buttons arranged in 2 rows of 6 (`FX`, `SCL`, `ENV`, `LFO`, `EDIT`, `GLO`; `HOME`, `SAVE`, `ARP`, `SEQ`, `PLAY`, `REC`).
