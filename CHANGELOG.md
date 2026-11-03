@@ -11,6 +11,14 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 - `docs/HARDWARE_SIMULATION.md`: what the host stubs and the wasm shim model, and what they do not.
 - `docs/FEATURES_1.7.md`: every requested feature classified as already present, deferred with a reason, or
   blocked by the frozen project format. No persistent parameter was added.
+- **MIDI Learn (session only):** CC 119 arms the parameter id of the track's engine, the next CC binds to it,
+  CC 118 clears every binding. RAM only, so projects, user presets and settings keep their layout; the MIDI
+  control test covers the range, the clear and an out-of-range arm.
+- `tests/stress_run.sh`: project, persistence, robustness and MIDI paths under ASan/UBSan for N runs, then
+  two full golden passes, all against the simulated flash.
+- **UBSan findings fixed:** ANALOG shifted negative samples left twice (`y << 1`, `voice_amp(...) << 1`);
+  both are now `* 2`, the same DSP with defined behaviour (goldens unchanged). The FUN5 persistence test
+  wrote 27+ globals into a 27-entry header; it now stops at the old format's size.
 - Version 1.7-QG across firmware, Web Studio, installer strings and documentation.
 
 ## v1.6-QG — EVOLVE / MOTION, Touch & 200 Sounds (2026-11-03)

@@ -48,6 +48,8 @@ flash size, underruns and thermal/battery margin. None of that was available, so
 3. `tests/regress.c` — golden audio, health, voices, routing (host).
 4. `tests/ui_render.c` — every screen in every palette (host).
 5. `sh web/emu/build.sh` + `node web/emu/emu_test.mjs` — wasm parity (emulation).
-6. JieLi build + board measurements — the only source of target CPU/flash/latency numbers.
+6. `sh tests/stress_run.sh 3` — ASan/UBSan over project, persistence, robustness and MIDI, then two full
+   golden passes (simulated flash; no board).
+7. JieLi build + board measurements — the only source of target CPU/flash/latency numbers.
 
 No result from steps 1–5 is presented as an AC791N measurement.

@@ -318,6 +318,10 @@ Scope: the 1.6 changes only (preset tables, the EVO LFO wave, the `PAT` matrix s
 the HOME/EDIT knob drawing and the splash). **No bootloader, linker script, flash layout, update loader or
 recovery path was modified**, and no hardware was flashed.
 
+- **Undefined behaviour (v1.7 stress pass):** UBSan found two left shifts of negative samples in ANALOG
+  (`eng_analog.c`); they are multiplications by 2 now, with byte-identical golden renders. The FUN5
+  persistence test wrote past its 27-global header; the loop is bounded to the old format. Both are covered
+  by `tests/stress_run.sh`, which runs the storage, project, robustness and MIDI tests under ASan/UBSan.
 - **Preset table change (audited):** the two least distinct DRUM kits are retired from browsing but stay
   in `DRUM_PRESETS` as legacy entries at their original indices 10 and 11, flagged `.legacy = 1`. Loaders
   keep `preset % npresets` with `npresets` still 12, so a pre-1.6 project, favorite or user preset resolves

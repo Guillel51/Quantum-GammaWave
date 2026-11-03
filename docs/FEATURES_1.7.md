@@ -14,7 +14,7 @@ half-safe. "Present" means the capability already exists in 1.6 and was verified
 | Arpeggiator improvements | **Present (8 controls)** | `ARP` / `ARP 2`: mode, rate, octave, gate, swing, probability, hold, order. Further modes deferred until a musical gap is demonstrated |
 | Chord Memory | **Present** | `SCL > CHORD`: fixed chord types, voicing, strum |
 | Preset Compare | **Deferred** | Needs a held "compare" state and a second sound buffer; no free persistent surface without changing the UI/format. Alternative: save the sound to a user slot and use the browser A/B by ear |
-| MIDI Learn | **Deferred** | Would need a mapping table persisted with the settings; the current CC map is fixed and safe. Alternative: a session-only learn (lost on power-off) is the next low-risk step |
+| MIDI Learn | **Present (session)** | CC 119 arms the parameter id (its value) of the track's engine; the next CC binds to it, CC 118 forgets every binding. RAM only, so no settings/project format change; a persisted mapping is still deferred |
 
 ## Why not force them in
 
@@ -23,8 +23,10 @@ half-safe. "Present" means the capability already exists in 1.6 and was verified
   a seemingly harmless table change can move a stored sound; the same rule applies to parameters.
 - UI additions must pass the 171-screen lint/alignment sweep in 17 palettes; a half-designed page would fail
   it or, worse, ship cut text.
-- MIDI Learn and Preset Compare both need state that survives a power cycle to be useful; storing it
-  safely means a versioned settings/format change with a migration, which is a project of its own.
+- A *persisted* MIDI Learn map (surviving power-off) would need a versioned settings block and a migration;
+  the session table above is the low-risk step until that format is designed and tested.
+- Preset Compare needs state that survives a sound load plus a UI surface; both are deferred until a
+  screen and a button gesture can be validated on a board.
 
 ## Next low-risk candidates
 

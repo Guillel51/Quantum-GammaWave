@@ -79,6 +79,33 @@ def library():
     return counts, legacy
 
 
+def costs():
+    """Host instructions per sample per engine, from tests/cpu_baseline.txt (NOT AC791N)."""
+    path = ROOT / "tests/cpu_baseline.txt"
+    per = {}
+    if not path.exists():
+        return {}
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name, _, val = line.partition(" ")
+        parts = name.split("/")
+        if len(parts) != 3 or parts[0] != "cpu":
+            continue
+        try:
+            v = int(val)
+        except ValueError:
+            continue
+        per.setdefault(parts[1], []).append((v, parts[2]))
+    out = {}
+    for eng, vals in per.items():
+        vals.sort()
+        out[eng] = {"count": len(vals), "max": vals[-1][0], "max_name": vals[-1][1],
+                    "avg": sum(v for v, _ in vals) // len(vals)}
+    return out
+
+
 def main():
     if not (GEN / "felucca_tables.h").exists():
         print("budget: run ./build.sh once (build/gen missing)", file=sys.stderr)
@@ -111,6 +138,14 @@ def main():
         print("%6d  %7d  %10d  %+6d" % (r["voices"], r["voice_t"], r["six_tracks"],
                                         r["six_tracks"] - base))
     print("RAM per voice is exact for this ABI; the target pointer size makes it smaller, never larger.")
+    c = costs()
+    if c:
+        print("host cost per engine (instructions/sample, tests/cpu_baseline.txt; not AC791N):")
+        for eng, v in sorted(c.items(), key=lambda kv: -kv[1]["max"]):
+            print("  %-8s max %6d (%s), avg %6d, %2d baselines" % (eng, v["max"], v["max_name"], v["avg"], v["count"]))
+    fw = ROOT / "build/felucca.fwsc"
+    if fw.exists():
+        print("package: build/felucca.fwsc %.0f KiB (host build; the target image differs)" % (fw.stat().st_size / 1024.0))
     print("CPU: run tests/regress.c for host ns, or the JieLi build + board for instructions/sample.")
     return 0
 
