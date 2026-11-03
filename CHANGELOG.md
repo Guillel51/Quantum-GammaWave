@@ -3,6 +3,19 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — performance / security hardening
+
+- `graph_home_viz()` measured the 16 spectrum bands twice per frame because the screen is drawn in two
+  88-pixel bands, so peak caps fell two rows per frame. It now measures and updates the decay once and
+  draws the same bars in both passes. A native HOME->HOME render was added to `ui_render` (172 screens,
+  0 lint findings, 0 alignment errors).
+- Six left shifts of negative fixed-point samples became equivalent multiplications in the DC blocker,
+  DRUM-X output and DRUM output/IMAGE paths. This removes undefined behaviour without changing sound:
+  all 220 golden renders are unchanged. The six-part 10-voice stress, `audio_test` and `reverb_test`
+  pass under the repository's ASan/UBSan policy.
+- `tests/groups.sh` gains `security` and `stress`; `docs/PERF_SECURITY_AUDIT.md` records the host and
+  target measurements, the remaining single-bank/no-signature risks, and what was not tested on metal.
+
 ## v1.7-QG — Splash identity
 
 - The splash monogram was a square `Q` (a box with a diagonal) that read as a placeholder. It is now a round
