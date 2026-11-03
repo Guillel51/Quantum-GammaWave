@@ -3,11 +3,24 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — performance / security hardening
+
+- `graph_home_viz()` measured the 16 spectrum bands twice per frame because the screen is drawn in two
+  88-pixel bands, so peak caps fell two rows per frame. It now measures and updates the decay once and
+  draws the same bars in both passes. A native HOME->HOME render was added to `ui_render` (172 screens,
+  0 lint findings, 0 alignment errors).
+- Seven left shifts of negative fixed-point samples became equivalent multiplications in the DC blocker,
+  DRUM-X output and DRUM output/IMAGE paths. This removes undefined behaviour without changing sound:
+  all 220 golden renders are unchanged. The six-part 10-voice stress, `audio_test` and `reverb_test`
+  pass under the repository's ASan/UBSan policy.
+- `tests/groups.sh` gains `security` and `stress`; `docs/PERF_SECURITY_AUDIT.md` records the host and
+  target measurements, the remaining single-bank/no-signature risks, and what was not tested on metal.
+
 ## v1.7-QG — Splash identity
 
 - The splash monogram was a square `Q` (a box with a diagonal) that read as a placeholder. It is now a round
   Q ring with its tail, drawn with the same orbit/knob language as the rest of QG, in the same palette and
-  mono rule. `ui_render` still reports 0 lint findings and 0 alignment errors over 171 screens x 17 palettes.
+  mono rule. `ui_render` still reports 0 lint findings and 0 alignment errors over 172 screens x 17 palettes.
 
 ## v1.7-QG — CI budget fix (target compiler checks)
 
@@ -23,6 +36,12 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   0 changed).
 - `tests/mod_test.c` still asserted `MS_N == 15`; PAT was appended in 1.6 (15, `MS_N` 16). The test now
   checks both NOISE 14 and PAT 15, and the matrix suite passes again on `main`.
+
+## v1.7-QG — Splash dust
+
+- The boot splash gains deterministic particles behind the three written waves, in the saved palette and mono
+  rule, with no extra frames of drawing (197 changing frames of 425). `ui_render` now derives the timeline
+  length from `SPL_WRITE + SPL_HOLD` instead of a hardcoded 425.
 
 ## v1.7-QG — UI Evolution & Hardware Validation (2026-11-03)
 

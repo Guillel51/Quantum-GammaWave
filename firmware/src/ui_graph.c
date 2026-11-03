@@ -2406,7 +2406,7 @@ static void graph_home_viz(uint16_t c)
     static int16_t snap[SCOPE_N];
     static uint8_t peak_decay[16];
     uint32_t w = scope_w, i, trig = 0, pass;
-    int32_t peak = 1000;
+    int32_t peak = 1000, bars[16];
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
@@ -2416,6 +2416,22 @@ static void graph_home_viz(uint16_t c)
     }
     for (i = 1; i < SCOPE_N - 240u; i++) {
         if (snap[i - 1] < 0 && snap[i] >= 0) { trig = i; break; }
+    }
+
+    /* One measurement per frame: the two band passes draw the same bars and peak caps. Updating
+     * peak_decay inside the passes made a peak fall two rows per frame. */
+    for (i = 0; i < 16u; i++) {
+        int32_t bsum = 0, j;
+        for (j = 0; j < 8; j++) {
+            int32_t val = snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
+            if (val < 0) val = -val;
+            bsum += val;
+        }
+        bsum = (bsum * 44) / (peak ? peak * 8 : 1);
+        if (bsum > 34) bsum = 34;
+        bars[i] = bsum;
+        if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
+        else if (peak_decay[i]) peak_decay[i]--;
     }
 
     /* Render in two 88-pixel high bands (y=26..113 and y=114..201) */
@@ -2442,16 +2458,7 @@ static void graph_home_viz(uint16_t c)
         /* Real-time 16-band energy spectrum bars across the bottom */
         for (i = 0; i < 16u; i++) {
             int32_t bx = 16 + (int32_t)i * 13;
-            int32_t bsum = 0, j;
-            for (j = 0; j < 8; j++) {
-                int32_t val = snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
-                if (val < 0) val = -val;
-                bsum += val;
-            }
-            bsum = (bsum * 44) / (peak ? peak * 8 : 1);
-            if (bsum > 34) bsum = 34;
-            if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
-            else if (peak_decay[i]) peak_decay[i]--;
+            int32_t bsum = bars[i];
 
             /* Draw bar & peak cap. Baseline y=180 (was 186): the bars now clear the bottom telemetry
              * band at y=184..198 instead of crowding the caption drawn over them. */
@@ -2706,6 +2713,51 @@ static void graph_song(void)
     }
 }
 #include "ui_tech.c"                                /* (JIANT 0.5) the technical graphs (FX, DEST, VOICE, GLOBAL) */
+/* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
+static void graph_master(void)
+{
+    static const char *const L[4] = {"CLIP", "PUNCH", "DUCK", "DREL"};
+    if (str_eq(cur_page()->title, "MASTER EQ")) {      /* the bell from FREQ/GAIN/Q, over a 0 dB rule */
+        int32_t f = clamp(song.g[G_EQFREQ], 0, 127), g = clamp(song.g[G_EQGAIN], -24, 24);
+        int32_t q = clamp(song.g[G_EQQ], 0, 127), cx = f * 200 / 127, w = 14 + q * 46 / 127, x;
+        cv_rect(20, 50, 200, 1, T_LINE);
+        for (x = 0; x < 200; x++) {
+            int32_t d = x > cx ? x - cx : cx - x, y = 50;
+            if (d < w && g) {
+                int32_t a = g * (w - d) / w;           /* triangular skirt, the actual parameters */
+                y = 50 - a * 44 / 24;
+            }
+            if (y != 50)
+                cv_rect(20 + x, y, 1, 2, g > 0 ? T_THEME : T_DIM);
+        }
+        return;
+    }
+    if (str_eq(cur_page()->title, "STEREO M/S")) {     /* M/S width: the two sides separate with M-WIDE */
+        int32_t wd = clamp(song.g[G_MWIDTH], 0, 127), off = 8 + wd * 52 / 127, i;
+        cv_rect(20, 50, 200, 1, T_LINE);
+        for (i = 0; i < 4; i++) {
+            cv_rect(100 - off - i * 4, 30, 2, 40, T_THEME);
+            cv_rect(100 + off + i * 4, 30, 2, 40, T_ACCENT);
+        }
+        return;
+    }
+    const int16_t *v[4] = {&song.g[G_CLIP], &song.g[G_PUNCH], &song.g[G_DUCK], &song.g[G_DREL]};
+    int32_t i;
+    cv_rect(12, 4, 216, 1, T_LINE);
+    for (i = 0; i < 4; i++) {
+        int32_t x = 20 + i * 52, h = clamp((int32_t)*v[i], 0, 127) * 48 / 127;
+        cv_rrect(x, 14, 18, 52, 4, T_BG, T_SURF);
+        if (h > 0)
+            cv_rrect(x, 64 - h, 18, h, 4, i == 0 ? T_ACCENT : T_THEME, T_BG);
+        cv_rect(x + 2, 46, 14, 1, T_LINE);
+        cv_text_in(x - 10, 70, 38, &AF_S, L[i], i == 0 ? T_ACCENT : T_MID, T_SURF);
+    }
+    for (i = 0; i < 10; i++) {                         /* fixed dust, the same language as the splash */
+        uint32_t hsh = (uint32_t)i * 2654435761u ^ 0x9E3779B9u;
+        cv_rect(10 + (int32_t)(hsh % 220u), 8 + (int32_t)((hsh >> 9) % 56u), 1, 1, T_LINE);
+    }
+}
+
 static void draw_graph(void)
 {
     const page_t *pg = cur_page();
@@ -2854,6 +2906,10 @@ static void draw_graph(void)
             graph_tools();
             break;
         default:
+            if (str_eq(pg->title, "MASTER") || str_eq(pg->title, "MASTER EQ") || str_eq(pg->title, "STEREO M/S")) {
+                graph_master();
+                break;
+            }
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {
