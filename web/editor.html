@@ -742,6 +742,7 @@
       <label><span data-t="deviceList"></span> <select id="device-filter"></select></label>
       <label>SEARCH <input type="search" id="device-search" spellcheck="false" placeholder="name"></label>
       <label>CATEGORY <select id="device-category"><option value="">ALL</option></select></label>
+      <p class="bar"><button id="device-ab" disabled>COMPARE A/B</button> <span class="dim" id="device-ab-state">A: — / B: —</span></p>
       <div class="list" id="device-preset-list" style="margin-top:8px"></div>
     </div>
     <div class="libcols" id="libsec">
@@ -2969,6 +2970,14 @@ const el = (tag, attrs = {}, ...kids) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /* primary category per factory sound (tools/gen_preset_categories.py); absent: no filter, never an error */
 const PRESET_CATS = new Map();
+let compareA = null, compareB = null, compareSide = "A";
+function compareLabel(row) { return row ? row.name : "—"; }
+function showCompare() {
+  const state = $("device-ab-state"), button = $("device-ab");
+  if (!state || !button) return;
+  state.textContent = "A: " + compareLabel(compareA) + " / B: " + compareLabel(compareB);
+  button.disabled = !(compareA && compareB);
+}
 if (typeof fetch === "function") fetch("preset_categories.json").then((r) => r.ok ? r.json() : []).then((rows) => {
   for (const row of rows) PRESET_CATS.set(row.name, row.category);
   const sel = $("device-category");
@@ -4504,20 +4513,38 @@ function renderPreferences(force = false) {
     rows = rows.filter((r) => (!q || r.name.toLowerCase().includes(q)) && (!cat || PRESET_CATS.get(r.name) === cat));
   }
   const table = el("table");
-  table.append(el("colgroup", {}, el("col", { style: "width:40px" }), el("col"), el("col", { style: "width:110px" })));
+  table.append(el("colgroup", {}, el("col", { style: "width:40px" }), el("col"), el("col", { style: "width:110px" }), el("col", { style: "width:64px" })));
+  const loadRow = (row) => { if (!dev || busy) return; row.user ? bankLoad(row.preset) : choosePreset(row.engine, row.preset); };
+  const assignCompare = (side, row) => {
+    if (side === "A") compareA = { ...row }; else compareB = { ...row };
+    compareSide = side; showCompare(); loadRow(row);
+  };
   for (const row of rows) {
     const name = row.user ? slotName(row.preset) + " " + row.name : row.name;
     const star = el("button", { text: row.favorite ? "\u2605" : "\u2606", "aria-label": t(row.favorite ? "deviceUnstar" : "deviceStar") + ": " + name, "aria-pressed": String(row.favorite) });
     star.addEventListener("click", () => changeFavorite(row));
     const load = el("button", { text: name });
-    load.addEventListener("click", () => { if (!dev || busy) return; row.user ? bankLoad(row.preset) : choosePreset(row.engine, row.preset); });
-    table.append(el("tr", {}, el("td", {}, star), el("td", {}, load), el("td", { text: row.user ? t("bank") : d.info.engines[row.engine] })));
+    load.addEventListener("click", () => loadRow(row));
+    const ab = el("td");
+    for (const side of ["A", "B"]) {
+      const b = el("button", { text: side, title: "Compare " + side + ": " + name });
+      b.addEventListener("click", () => assignCompare(side, row));
+      ab.append(b);
+    }
+    table.append(el("tr", {}, el("td", {}, star), el("td", {}, load), el("td", { text: row.user ? t("bank") : d.info.engines[row.engine] }), ab));
   }
   $("device-preset-list").replaceChildren(rows.length ? table : el("p", { class: "dim", text: t("deviceEmpty") }));
 }
 $("device-filter").addEventListener("change", () => changePreference(3, +$("device-filter").value));
 for (const id of ["device-search", "device-category"])
   $(id).addEventListener("input", () => { if (dev) { renderPreferences.sig = null; renderPreferences(); } });
+$("device-ab").addEventListener("click", () => {
+  const next = compareSide === "A" ? compareB : compareA;
+  if (!next) return;
+  compareSide = compareSide === "A" ? "B" : "A";
+  next.user ? bankLoad(next.preset) : choosePreset(next.engine, next.preset);
+  showCompare();
+});
 setInterval(() => {
   if (!dev || !dev.preferences || busy || document.hidden || !["settings", "library"].includes(tab)) return;
   const d = dev;

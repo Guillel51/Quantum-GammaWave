@@ -43,9 +43,9 @@ half-safe. "Present" means the capability already exists in 1.6 and was verified
   `tests/preset_categories_test.py` requires exactly 200, no per-engine duplicate and a match with
   `web/preset_categories.json`. Web Studio's device list has a name search and a primary-category filter;
   `make_site.py` ships the JSON. Names, ids, parameters and order are untouched.
-- **Preset Compare: deferred.** A real A/B needs a second sound buffer and a held UI state; doing it in RAM
-  without a persistent parameter is possible, but it still needs a screen/gesture and a full load/restore
-  test. It is not shipped as a placeholder.
+- **Preset Compare: implemented in Web Studio.** Every row in the device preset list has A/B assign
+  buttons; COMPARE A/B reloads the stored row, including user bank slots, and shows both names. It compares
+  the saved presets, not unsaved edits, and there is no FM-1-screen version yet.
 - **Motion Recorder: partial, unchanged.** Knob moves already become automation events through
   `motion_capture` and the existing MOTION lanes; a separate real-time timeline with configurable duration
   and resolution is not implemented.
