@@ -32,12 +32,13 @@ tener presente antes de tocar un equipo con datos propios.
 | Flash | **1 MiB** según todas las fuentes de ingeniería inversa (Puya P25Q80H, JEDEC `0x856014`) — ver §3 |
 | Seguro de arranque | **No hay.** Ninguna fuente describe autenticación criptográfica de la imagen de aplicación |
 
-⚠️ **Discrepancia abierta:** `AGENTS.md` y parte de la documentación del proyecto hablan de
-**2 MiB** de flash. Todas las fuentes de ingeniería inversa revisadas (FM-1-RE, la wiki de
-desarrolladores, lunar-modulator) miden **1 MiB** con el ID JEDEC `0x856014`, y el mapa de
-direcciones que publican termina en `0x100000`. **No se resolvió aquí**: no hay hardware al que
-medir. Antes de asumir 2 MiB para calcular nada de espacio, hay que leer el ID de la chip en una
-unidad. Marca como NO VERIFICADO.
+**Discrepancia resuelta: 1 MiB.** La ficha del Puya P25Q80H dice 8 Mbit (1 MiB); el JEDEC
+`0x856014` codifica 2^20 bytes y el mapa termina en `0x100000`. El firmware lo confirma por tres
+vías independientes: `web/emu/felucca_web.c` declara `nor[0x100000]`, el loader limita la imagen a
+`LDR_FL_MAX 0x100000` y el paquete construido mide `0x93000` bytes de imagen (el resto del espacio
+es la VM y las reservas del SDK). El valor 2 MiB que figuraba en `AGENTS.md`/
+`TECHNICAL_OVERVIEW.md` era una errata heredada. Sigue siendo **NO VERIFICADO en hardware**: no se ha leído el JEDEC de una unidad
+física; la conclusión es documental, no una medición.
 
 ### Cifrado de la imagen: ofuscación, no autenticación
 
@@ -192,6 +193,7 @@ Archivos: `tools/fm1_install.py` (CLI), `web/fm1ota.js` (paso 1 y 2 en el navega
 | Volver a V15 oficial sin `--force` (hash `STOCK_V15_SHA256`) | `fm1_install.py` | **ok** con `--force` cuando no coincide |
 | Nunca se sondea otro equipo que no sea FM-1 (`PORT_RE`) | `fm1_install.py` | **ok** |
 | Límites del parser (512 KB sin final de lista rechazado, sin bucle) | `test_pkg_bounds.mjs` | **ok** |
+| El borrado de registros no toca VM, autosave/FM6 ni USR aunque su cola parezca un registro | `ldr_core.c`, `ldr_test` | **ok** (SIMULADO; ventana `[0xE0000,0xE9000)`, sin `[0xE5000,0xE8000)`) |
 
 `python3 tests/install_test.py` → **`install tests passed`** (31 comprobaciones, SIMULADO contra un
 FM-1 simulado). Dos comprobaciones quedan **sin ejecutar** aquí: la comparación de la imagen lógica
@@ -270,13 +272,16 @@ proyectos citados, no nuestras.
   paso 1 y durante la escritura, loader mudo, lectura fuera del paquete, reanudación, V15, `--info`.
 - `node web/test_web.mjs`, `node web/test_backup.mjs`, `node web/test_pkg_bounds.mjs` → en verde:
   CRC-16 del paquete, captura/validación/orden de la restauración del backup, límites del parser.
-- La **interrupción de energía a media escritura no está simulada**: no hay ningún arnés en el
-  repo que corte la alimentación en un instante concreto de la escritura. Es el hueco grande.
+- `tests/ldr_test` **simula un corte de energía** después de 0, 4 KiB, 64 KiB, 256 KiB y 512 KiB
+  programados: el registro de actualización sobrevive, la segunda sesión reanuda y termina, el
+  área de usuario no se toca. Es el loader en RAM, **no** el SPL ni el tiempo real de erase/write;
+  no sustituye una prueba física.
 
 ### NO VERIFICADO
 - **Ninguna prueba física.** Ni escritura real, ni corte de luz, ni recuperación, ni modo descarga,
   ni dongle USB_KEY.
-- **Tamaño real de la flash** (1 MiB vs 2 MiB, §2).
+- **Lectura del JEDEC en una unidad física**: el tamaño se resolvió documentalmente a 1 MiB (§2),
+  pero no se leyó el ID de la chip en hardware.
 - Si la protección de escritura VOTP/OTP o algún eFuse está programado de fábrica.
 - Si el área de arranque dañada se puede recuperar.
 - La comparación `fm1_install.py` ↔ `fm1pkg.js` y la restauración de V15 oficial (falta
