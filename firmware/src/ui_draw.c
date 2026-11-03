@@ -1425,7 +1425,11 @@ static void splash_sig(uint32_t prog, uint32_t ms)
         int32_t cx = 54, cy = 62;
         gw_orbit_ring(cx, cy, 37, 37, mono ? T_DIM : T_LINE, 1);
         gw_orbit_ring(cx, cy, 29, 29, mono ? T_TEXT : T_THEME, 0);
-        gw_logo_letter('Q', cx - 15, cy - 16, 30, 30, mono ? T_TEXT : T_ACCENT);
+        /* (1.7) the Q as QG draws everything else: a round ring with its tail, not the old square glyph
+         * (a box with a diagonal read as a placeholder). Same palette, same mono rule. */
+        gw_orbit_ring(cx, cy - 1, 16, 16, mono ? T_TEXT : T_ACCENT, 0);
+        cv_line_t(cx + 6, cy + 6, cx + 17, cy + 17, mono ? T_TEXT : T_ACCENT, 3);
+        gw_disc(cx, cy - 1, 3, card);
         {
             uint32_t an = (uint32_t)(28 + prog * 3u) << 6;
             int32_t ex = cx + (int32_t)((37 * bg_sin((int32_t)an)) >> 15);
