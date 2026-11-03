@@ -107,7 +107,7 @@ static int32_t mod_noise(uint32_t seed, uint32_t clk, uint32_t len)
 static uint32_t mns_clk;                                 /* NOISE's clock: audio blocks (macro_master) */
 
 /* source s of the track: the per-track ones, the per-voice ones of the latest note-on */
-static int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
+static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
 {
     switch (s) {
     case MS_LFO:
@@ -144,7 +144,7 @@ static int32_t mod_gain(uint32_t s, int32_t x, int32_t a)
 }
 
 /* a per-voice destination d by source value x, amount a */
-static void mod_voice_add(uint32_t s, uint32_t d, int32_t x, int32_t a, int32_t *pit, int32_t *cut, int32_t *shp,
+static __attribute__((noinline)) void mod_voice_add(uint32_t s, uint32_t d, int32_t x, int32_t a, int32_t *pit, int32_t *cut, int32_t *shp,
                           int32_t *gain)
 {
     if (d == MD_PITCH)
@@ -172,6 +172,60 @@ static __attribute__((noinline)) void ms_tick(track_t *t)
 
 /* before a part's block (fx.c mix_part): the per-track offsets, the per-block destinations into t->p.
  * 0 = no slot active (then nothing changed) */
+/* (1.7) one slot's work, out of mod_begin's loop: the body was most of the loop's target cost. The
+ * slots are four; the call is cheaper than inlining the per-block branch, the descriptor lookup and
+ * the hold/search into the loop four times, and the behaviour is the same. */
+static __attribute__((noinline)) uint32_t mod_scan(const int16_t *p, int *step)
+{
+    uint32_t k, first = NMSLOT;
+    *step = 0;
+    for (k = 0; k < NMSLOT; k++) {
+        uint32_t s = (uint32_t)p[P_M1SRC + 3u * k];
+        if (s && p[P_M1DST + 3u * k] && p[P_M1AMT + 3u * k]) {
+            if (first == NMSLOT)
+                first = k;
+            if (s == MS_STEP)
+                *step = 1;
+        }
+    }
+    return first;
+}
+
+static __attribute__((noinline)) void mod_block_slot(track_t *t, uint32_t k, const int16_t *p, int32_t lfo,
+                                                     int32_t *off, mod_t *mp)
+{
+    uint32_t s = (uint32_t)p[P_M1SRC + 3u * k], d = (uint32_t)p[P_M1DST + 3u * k], j;
+    int32_t a = p[P_M1AMT + 3u * k], x;
+    if (!s || !d || !a || s >= MS_N || d >= MD_CLIP)   /* (the master's: macro_master) */
+        return;
+    if (d <= MD_AMP) {                                 /* per voice */
+        mp->amp |= d == MD_AMP;
+        if (MS_VOICE(s)) {
+            mp->vsrc[mp->nv] = (uint8_t)s;
+            mp->vdst[mp->nv] = (uint8_t)d;
+            mp->vamt[mp->nv++] = (int8_t)a;
+        } else {
+            mod_voice_add(s, d, mod_tsrc(t, s, lfo), a, &mp->pit, &mp->cut, &mp->shp, &mp->gain);
+        }
+        return;
+    }
+    {                                                   /* per block: AMT 64 = the whole range */
+        uint32_t id = mod_param(d);
+        const param_desc_t *pd = id >= P_E0 ? &ENGINES[t->engine]->edit[id - P_E0] : &TP[id];
+        x = mod_tsrc(t, s, lfo);
+        for (j = 0; j < mp->nk && mp->kid[j] != id; j++)
+            ;
+        if (j == mp->nk) {
+            mp->kid[j] = (uint8_t)id;
+            mp->keep[j] = p[id];
+            off[j] = 0;
+            mp->nk++;
+        }
+        off[j] += (((x * a) >> 6) * (id == P_LRATE ? 127 : pd->max - pd->min)) >> 15;   /* (0.6.51: RATE's free span,
+                                                                                           * as before its in-time values) */
+    }
+}
+
 static __attribute__((noinline)) int mod_begin(track_t *t)
 {
     mod_t *const mp = &MOD;                          /* (0.6.71) this core's */
@@ -179,54 +233,22 @@ static __attribute__((noinline)) int mod_begin(track_t *t)
     int32_t lfo, off[NMSLOT];
     uint32_t k, j;
     mp->on = 0;
-    for (k = 0; k < NMSLOT; k++)
-        if (p[P_M1SRC + 3u * k] && p[P_M1DST + 3u * k] && p[P_M1AMT + 3u * k])
-            break;
-    if (k == NMSLOT)
-        return 0;
-    lfo = mulq15(t->lfo_val, t->lfo_fade);              /* (the LFO of the block before: track_render ticks it) */
-    for (j = k; j < NMSLOT; j++)
-        if (p[P_M1SRC + 3u * j] == MS_STEP && p[P_M1AMT + 3u * j]) {
-            ms_tick(t);                                 /* (once, for every slot reading it) */
-            break;
-        }
+    {
+        int step;
+        k = mod_scan(p, &step);
+        if (k == NMSLOT)
+            return 0;
+        lfo = mulq15(t->lfo_val, t->lfo_fade);          /* (the LFO of the block before: track_render ticks it) */
+        if (step)
+            ms_tick(t);                                 /* (once, before any slot reads it) */
+    }
     mp->on = 1;
     mp->amp = 0;
     mp->nv = mp->nk = 0;
     mp->pit = mp->cut = mp->shp = 0;
     mp->gain = 32767;
-    for (; k < NMSLOT; k++) {
-        uint32_t s = (uint32_t)p[P_M1SRC + 3u * k], d = (uint32_t)p[P_M1DST + 3u * k];
-        int32_t a = p[P_M1AMT + 3u * k], x;
-        if (!s || !d || !a || s >= MS_N || d >= MD_CLIP)   /* (the master's: macro_master) */
-            continue;
-        if (d <= MD_AMP) {                              /* per voice */
-            mp->amp |= d == MD_AMP;
-            if (MS_VOICE(s)) {
-                mp->vsrc[mp->nv] = (uint8_t)s;
-                mp->vdst[mp->nv] = (uint8_t)d;
-                mp->vamt[mp->nv++] = (int8_t)a;
-            } else {
-                mod_voice_add(s, d, mod_tsrc(t, s, lfo), a, &mp->pit, &mp->cut, &mp->shp, &mp->gain);
-            }
-            continue;
-        }
-        {                                               /* per block: AMT 64 = the whole range */
-            uint32_t id = mod_param(d);
-            const param_desc_t *pd = id >= P_E0 ? &ENGINES[t->engine]->edit[id - P_E0] : &TP[id];
-            x = mod_tsrc(t, s, lfo);
-            for (j = 0; j < mp->nk && mp->kid[j] != id; j++)
-                ;
-            if (j == mp->nk) {
-                mp->kid[j] = (uint8_t)id;
-                mp->keep[j] = p[id];
-                off[j] = 0;
-                mp->nk++;
-            }
-            off[j] += (((x * a) >> 6) * (id == P_LRATE ? 127 : pd->max - pd->min)) >> 15;   /* (0.6.51: RATE's free span,
-                                                                                               * as before its in-time values) */
-        }
-    }
+    for (; k < NMSLOT; k++)
+        mod_block_slot(t, k, p, lfo, off, mp);
     for (j = 0; j < mp->nk; j++) {
         uint32_t id = mp->kid[j];
         const param_desc_t *pd = id >= P_E0 ? &ENGINES[t->engine]->edit[id - P_E0] : &TP[id];
