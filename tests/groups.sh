@@ -74,6 +74,10 @@ case "$group" in
         run_presets
         run_web
         run_emu
+        run_target
+        ;;
+    *)
+        echo "usage: $0 ui|presets|web|emu|target|all" >&2
         run_security
         run_target
         ;;
