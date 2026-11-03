@@ -215,6 +215,7 @@ static void ui_power_on(void)
     panel = PANEL_DEFAULT;
     settings.palette = UI_GREY_INDEX;
     palette_set(UI_GREY_INDEX);
+    ui_style = ST_FLAT;                           /* (isolate: a style test leaves LINE behind) */
     transport_req = 0;
     panic_req = 0;
     mi_r = mi_w = midi_in_overflow = 0;
@@ -1945,6 +1946,9 @@ static int test_display_preferences(void)
                  (turn(EN_K1, 1), settings.palette == UI_GAMMA_INDEX) && str_eq(UI_PALETTES[UI_GAMMA_INDEX].name, "GAMMA") &&
                  (turn(EN_K1, 1), settings.palette == UI_WRAITH_INDEX) && str_eq(UI_PALETTES[UI_WRAITH_INDEX].name, "WRAITH") &&
                  (turn(EN_K1, 1), settings.palette == UI_QUANTUM_INDEX) && str_eq(UI_PALETTES[UI_QUANTUM_INDEX].name, "QUANTUM") &&
+                 (turn(EN_K1, 1), settings.palette == UI_SOLARIS_INDEX) && str_eq(UI_PALETTES[UI_SOLARIS_INDEX].name, "SOLARIS") &&
+                 (turn(EN_K1, 1), settings.palette == UI_CYBER_INDEX) && str_eq(UI_PALETTES[UI_CYBER_INDEX].name, "CYBERPUNK") &&
+                 (turn(EN_K1, 1), settings.palette == UI_NORDIC_INDEX) && str_eq(UI_PALETTES[UI_NORDIC_INDEX].name, "NORDIC") &&
                  (turn(EN_K1, 1), settings.palette == UI_GREY_INDEX) && str_eq(UI_PALETTES[UI_GREY_INDEX].name, "GREY"));
     settings.lowcut = 2;
     ui.menu_sel = MI_LOWCUT;
