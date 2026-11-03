@@ -3405,6 +3405,41 @@ static int test_layer(void)
     }
     key_up(white(1)); btn_up(B_FX); frame();
     bad += check("map LEDs: held lit, the 19 effects breathe, G5 and a too-long REPEAT dark", ok);
+    {   /* (1.8) six independent, latched track mutes through the FX layer */
+        uint32_t j, key, lit, all;
+        ui_power_on();
+        fx_latch = 0;
+        perf_held = perf_latched = 0;
+        btn_down(B_FX); frame();
+        for (j = 0; j < NTRK; j++) {
+            key = key_at(1, j);
+            key_down(key); frame(); key_up(key); frame();
+        }
+        all = 1;
+        for (j = 0; j < NTRK; j++)
+            all &= trk[j].p[P_MUTE] != 0;
+        lit = layer_leds(0);
+        ok = all;
+        for (j = 0; j < NTRK; j++)
+            ok &= (lit >> key_at(1, j)) & 1u;
+        /* two off, the other four stay muted; then all off */
+        key_down(key_at(1, 1)); frame(); key_up(key_at(1, 1)); frame();
+        key_down(key_at(1, 4)); frame(); key_up(key_at(1, 4)); frame();
+        for (j = 0; j < NTRK; j++)
+            ok &= trk[j].p[P_MUTE] != 0 == (j != 1u && j != 4u);
+        key_down(key_at(1, 1)); frame(); key_up(key_at(1, 1)); frame();
+        key_down(key_at(1, 4)); frame(); key_up(key_at(1, 4)); frame();
+        for (j = 0; j < NTRK; j++)
+            ok &= trk[j].p[P_MUTE] != 0;
+        for (j = 0; j < NTRK; j++) {
+            key = key_at(1, j);
+            key_down(key); frame(); key_up(key); frame();
+        }
+        for (j = 0; j < NTRK; j++)
+            ok &= !trk[j].p[P_MUTE];
+        btn_up(B_FX); frame();
+        bad += check("FX mutes: black keys 1..6 latch each track, stay independent, and clear again", ok);
+    }
     usb.config = 0;
     return bad;
 }
@@ -8344,9 +8379,11 @@ static int test_fx_latch(void)
     go_home(); ui_leds();
     ok = (fm1_led[0] & 2u) != 0u;
     btn_down(B_FX); key_down(m1); frame(); key_up(m1); frame();   /* a mute latches too */
-    ok &= perf_latched == (PF_BIT(PF_LPF) | PF_BIT(PF_M1));
+    ok &= trk[0].p[P_MUTE] != 0 && perf_latched == PF_BIT(PF_LPF) && !(perf_held & PF_MUTE);
     key_down(lpf); frame(); key_up(lpf); frame();                 /* B3 again: LPF off */
-    ok &= perf_latched == PF_BIT(PF_M1);
+    ok &= perf_latched == 0 && trk[0].p[P_MUTE] != 0;
+    key_down(m1); frame(); key_up(m1); frame();                   /* the mute again: live */
+    ok &= !trk[0].p[P_MUTE];
     btn_up(B_FX); frame();
     bad += check("  the FX LED lit while something is on; a mute key latches; B3 again: LPF off", ok);
     btn_down(B_FX); frame(); turn(EN_K1, -40);

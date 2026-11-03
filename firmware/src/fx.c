@@ -1972,8 +1972,13 @@ static __attribute__((noinline)) void mix_block(int32_t *out, uint32_t n)   /* (
     int32_t mg = fx_usb_fixed ? MASTER_FULL : (int32_t)song.master_q12;   /* (USB LEVEL FIXED: MASTER after) */
     for (i = 0; i < n; i++)
         send_c[i] = send_d[i] = send_r[i] = mix_l[i] = mix_r[i] = sl_l[i] = sl_r[i] = 0;
-    pfx_rec_held = perf_kill ? 0u : perf_held & PF_MIDI;
-    pfx_block(n, (perf_kill ? 0u : (perf_held | perf_latched) & PF_MIDI) | scene_pfx);
+    {   /* (1.8) bank 2's F5 is CRUSH, not the MIDI randomizer */
+        uint32_t midi = perf_kill ? 0u : (perf_held | perf_latched) & PF_MIDI;
+        if (pfx_bank)
+            midi &= ~PF_BIT(PF_RND);
+        pfx_rec_held = midi;
+        pfx_block(n, midi | scene_pfx);
+    }
     events_block(n);
     if (song.playing)                                   /* (JIANT) the modulation sequences' clock (mod.c): the block's end on
                                                          * the transport's grid (through tempo changes, an external clock) */
