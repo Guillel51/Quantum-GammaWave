@@ -21,7 +21,7 @@ half-safe. "Present" means the capability already exists in 1.6 and was verified
 - Every new persistent parameter changes `P_COUNT`, which is part of the project record
   (`project.c`'s frozen sizes) and of user presets (`upreset.c` maps by count). The audit of 1.6 showed how
   a seemingly harmless table change can move a stored sound; the same rule applies to parameters.
-- UI additions must pass the 171-screen lint/alignment sweep in 17 palettes; a half-designed page would fail
+- UI additions must pass the 172-screen lint/alignment sweep in 17 palettes; a half-designed page would fail
   it or, worse, ship cut text.
 - A *persisted* MIDI Learn map (surviving power-off) would need a versioned settings block and a migration;
   the session table above is the low-risk step until that format is designed and tested.
