@@ -311,3 +311,47 @@ Fabricante (primaria):
 Formatos:
 
 - Contenedor nuevo JieLi — <https://kagaimiq.github.io/jielie/datafmt/newfw.html>
+
+## v1.6-QG audit — touch, presets and the flash path
+
+Scope: the 1.6 changes only (preset tables, the EVO LFO wave, the `PAT` matrix source and MIDI `0xA0`,
+the HOME/EDIT knob drawing and the splash). **No bootloader, linker script, flash layout, update loader or
+recovery path was modified**, and no hardware was flashed.
+
+- **Preset table change:** two entries removed from the end of `DRUM_PRESETS` and 16 appended per engine.
+  Indices 0..9 of DRUM and every non-DRUM index are unchanged; a stored index that no longer exists is
+  reduced by `preset % npresets` in the existing loaders. `tests/preset_library_test.py` pins the ten
+  DRUM names, and the project/user-preset formats keep their `P_COUNT`, size and offsets
+  (`project.c`'s frozen-size assertions still compile).
+- **MIDI surface:** `0xA0` is handled exactly like the existing `0xD0` branch: three bytes, channel
+  validated by the same `midi_track()`/routing rules, value clamped to 0..127, and only voices already
+  held on that track are touched. No new buffer, no length field, no allocation.
+- **LFO EVO:** integer only (`uint64_t` intermediate bounded by 2^48), clamped to ±32767; no division by a
+  user value, no table index outside `N_LWAVE`.
+- **Rendering:** the new splash and knobs use the existing clipped primitives (`cv_rect`, `cv_rrect`,
+  `gw_disc`, `gw_orbit_ring`, `knob`), the saved palette, and no text. The UI lint measures every screen.
+
+### Package signing — design, deliberately not enabled
+
+The current `.fwsc` path already checks a CRC and refuses short/oversized writes, and the loader keeps a
+rollback copy; that is corruption detection, not authenticity. A signature would need:
+
+1. An Ed25519 (or ECDSA P-256) detached signature over SHA-256 of the payload, stored in the package
+   header and covered by the existing CRC.
+2. Verification **before the first erase**, in the loader, with the public key in ROM — not in the same
+   updatable flash region it protects.
+3. A recovery window that keeps the previous image bootable until the new one has been verified after a
+   reboot, plus a documented USB/UART recovery path.
+
+None of that can be validated here: the AC791N boot chain, the ROM's key storage and a physical recovery
+procedure are not available, and a key placed in updatable flash is not a root of trust. Shipping an
+unverified signature check would add a new bricking path, so it stays a design and the firmware continues
+to rely on CRC + rollback. This is a residual risk, stated plainly.
+
+### Residual risks
+
+- A power cut during any flash write is handled by the existing retry/rollback tests but cannot be proven
+  safe without hardware.
+- A malformed external MIDI stream is bounded by the existing ring buffers and fuzz tests, not by new code.
+- The 12-voice build is not shipped; if enabled experimentally it could starve the audio ISR on a real
+  board (see `docs/POLYPHONY_1.6.md`).

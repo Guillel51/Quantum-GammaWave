@@ -235,6 +235,11 @@ static const preset_t PHASE_PRESETS[] = {
     {"BALAFON", {5, 0, 65, 55, 0, 0, 10, 25}, {0, 75, 10, 40}, 20, 0, FX(0, 10, 30, 40), PAT(3)},
     {"ETHNIC PLUCK", {4, 3, 58, 48, 8, 0, 25, 35}, {0, 72, 0, 50}, 40, 0, FX(0, 20, 40, 45), PAT(15)},
     {"WRAITH DRONE", {0, 5, 68, 50, 25, 0, 60, 80}, {90, 90, 120, 105}, 15, 0, FX(20, 40, 30, 90), PAT(5)},
+
+    /* (QG-1 1.6) EVOLVE: a slow, free wander of the filter, the phase wave underneath it */
+    {"EVOLVING GLASS", {6, 2, 70, 40, 15, 0, 10, 20}, {82, 92, 118, 102}, 8, 0, FX(0, 60, 35, 82), PAT(5),
+     {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LFADE, 60), XP(P_LD_FLT, 18), XP(P_LD_AMP, 10)}},
+
 };
 
 static const engine_t ENG_PHASE = {

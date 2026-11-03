@@ -3,7 +3,22 @@
 **Date:** 2026-11-02
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
 **Branch:** `feat/v1.5-hardening` (cut from `main` @ `4682fef`)
-**Current Milestone Version:** `v1.5-QG`
+**Current Milestone Version:** `v1.6-QG`
+
+### v1.6-QG — what was verified (2026-11-03)
+
+| Check | Result |
+|---|---|
+| `tests/preset_library_test.py` | **VERIFIED** — 200 factory sounds (ANALOG 56, PHASE 25, LOFI 25, FORMANT 20, WHEEL 18, DRUM 10, NOISE 17, FM6 29), DRUM indices 0..9 preserved, retired kits absent, names unique per engine |
+| `tests/regress.c` | **VERIFIED (host)** — 218 golden renders, 0 changed / 0 gone after the intended update, 0 health failures, 0 voice/routing failures |
+| `tests/ui_render.c` | **VERIFIED (host)** — 171 screens x 17 palettes, 0 lint findings, 0 alignment errors (2,655,786 measurements), splash reads `v1.6-QG`; 197 of 425 timeline steps change the screen |
+| Installer / Web Studio / backup / package bounds | **VERIFIED (host, simulated device)** — all four suites pass |
+| ASan/UBSan: fuzz_ed 20,000 frames, editor_test | **VERIFIED (host)** |
+| Browser emulator | **VERIFIED (wasm)** — rebuilt with Emscripten 6.0.13 (998,738 B) after fixing `web/emu/felucca_web.c`'s stale `lcd_init()` call; boots, renders the new splash, and matches the native build |
+| 8 / 10 / 12 voices | **SIMULATED (host)** — 4,224 / 5,280 / 6,336 B for six tracks, 367 / 352 / 388 ns/sample; 12 stays off. **NO VERIFICADO on hardware** (`docs/POLYPHONY_1.6.md`) |
+| Package signature / power-cut recovery | **NOT IMPLEMENTED / NO VERIFICADO** — design only, no bootloader or flash-critical change (`docs/SECURITY.md`) |
+
+
 
 ---
 
@@ -12,7 +27,7 @@
 | **Firmware Core (C/Asm)** | Stable | 25+ hostsim tests passed (audio, scales, project, engines, voice management) |
 | **DSP & Polyphony (v1.4-QG)** | Active | 10-voice psychoacoustic stealing (`quiet_tail`), Direct Form II Transposed Biquad EQ |
 | **Code Generation Pipeline** | Stable | Verified with Pillow + fonttools; tables & UI headers generated in `build/gen/` |
-| **Web Studio (`web/editor.html`)** | Stable | Verified via `node web/test_web.mjs` (all protocol tests pass, synchronized v1.5-QG) |
+| **Web Studio (`web/editor.html`)** | Stable | Verified via `node web/test_web.mjs` (all protocol tests pass, synchronized v1.6-QG) |
 | **Web Installer (`web/index_pkg.html`)** | Stable | Verified via `node web/test_pkg_bounds.mjs` & `install_test.py` |
 | **Backup System (`web/fm1backup.js`)** | Stable | Verified via `node web/test_backup.mjs` (43 object structures verified) |
 | **Browser Emulator (`web/emu`)** | Active | Updated with resilient MIDI fallback & AudioWorklet diagnostics |

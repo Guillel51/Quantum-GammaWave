@@ -293,6 +293,12 @@ static const preset_t WHEEL_PRESETS[] = {
     {"FOLK DRONE", {12, 5, 3, 0, 0, 50, 35, 1}, {45, 80, 127, 85}, 0, 0, FX(12, 25, 25, 75), PAT(5)},
     {"NORDIC ORGAN", {7, 3, 0, 1, 1, 30, 15, 1}, {15, 64, 127, 65}, 0, 0, FX(0, 35, 30, 70), PAT(6)},
     {"GOTHIC SHRINE", {15, 7, 5, 4, 0, 60, 85, 2}, {30, 90, 127, 95}, 0, 0, FX(40, 45, 35, 95), PAT(5)},
+
+    /* (QG-1 1.6) EVOLVE: the rotor's swell and the filter wander together, slowly */
+    {"CATHEDRAL REED", {5, 2, 3, 1, 2, 30, 10, 1}, {45, 70, 127, 90}, 0, 0, FX(0, 35, 25, 88), PAT(5),
+     {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8)}},
+    {"TIDAL ORGAN", {13, 6, 6, 3, 0, 55, 45, 2}, {60, 85, 127, 95}, 0, 0, FX(15, 50, 30, 85), PAT(5),
+     {XP(P_LRATE, 3), XP(P_LWAVE, 6), XP(P_LD_FLT, 20)}},
 };
 
 static const engine_t ENG_WHEEL = {

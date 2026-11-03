@@ -267,6 +267,11 @@ static const preset_t NOISE_PRESETS[] = {
     {"POLAR AURORA", {NZ_DUST, 40, 95, 80, 50, 70, 70, 10}, {70, 90, 118, 95}, 0, 0, FX(0, 60, 35, 90), PAT(5)},
     {"STATIC HAZE", {NZ_DUST, 75, 105, 50, 40, 50, 50, 30}, {85, 90, 120, 100}, 0, 0, FX(15, 30, 25, 85), PAT(5)},
     {"ABYSS DRONE", {NZ_ANLG, 80, 35, 95, 64, 0, 100, 0}, {100, 95, 127, 110}, 0, 0, FX(10, 40, 20, 95), PAT(5)},
+
+    /* (QG-1 1.6) EVOLVE: a texture whose colour and level breathe together */
+    {"SOLAR WIND", {1, 32, 45, 52, 88, 60, 100, 0}, {96, 90, 124, 108}, 0, 0, FX(0, 45, 30, 88), PAT(5),
+     {XP(P_LRATE, 3), XP(P_LWAVE, 6), XP(P_LD_FLT, 22), XP(P_LD_AMP, 12)}},
+
 };
 
 static const engine_t ENG_NOISE = {

@@ -999,7 +999,7 @@ static uint32_t preset_orig(const engine_t *e, uint32_t k) { (void)e; return k; 
 /* the presets of engine e that browsing shows before preset k (k = npresets: all of them) */
 /* (0.5.1) browsing order: LOFI's BYTE presets, then FLOAT's (appended in 0.5.1: the stored numbers stay), then the
  * rest; every other engine in its own order. preset_nth: the preset shown n-th */
-static const uint8_t LOFI_ORDER[24] = {0, 1, 2, 8, 9, 10, 11, 12, 13, 3, 4, 5, 6, 7, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
+static const uint8_t LOFI_ORDER[25] = {0, 1, 2, 8, 9, 10, 11, 12, 13, 3, 4, 5, 6, 7, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};   /* (1.6) TAPE DRONE appended */
 _Static_assert(sizeof LOFI_ORDER == NELEM(LOFI_PRESETS), "LOFI's browsing order: every preset once");
 static uint32_t preset_rank(const engine_t *e, uint32_t k)
 {
