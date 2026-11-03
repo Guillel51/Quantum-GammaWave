@@ -19,10 +19,10 @@ modified. **No operation was run on a physical FM-1.**
    because the screen is drawn in two 88-pixel bands; the peak markers therefore fell two rows per
    frame. It now measures/updates once and draws the same bars in both passes. A native HOME->HOME
    render was added to `ui_render`.
-2. **Undefined behaviour in fixed-point DSP.** Six left shifts of negative values were replaced by
+2. **Undefined behaviour in fixed-point DSP.** Seven left shifts of negative values were replaced by
    equivalent multiplications: `fx.c` DC blocker (`x * 64`, `d * 4096`), `drumx_voice.c` output
-   (`* 2`) and `eng_drum.c` output/IMAGE (`* 2`, `* 2`, `* 4096`). The audio is bit-identical: the
-   220 golden renders are unchanged.
+   (`* 2`) and `eng_drum.c` output/IMAGE (`* 2`, `* 2`, `* 2`, `* 4096`). The audio is bit-identical:
+   the 220 golden renders are unchanged.
 3. **Reproducible groups.** `tests/groups.sh` now has `security` (installer, backup, package bounds,
    sanitized audio test) and `stress` (`tests/stress_run.sh N`), in addition to `ui`, `presets`, `web`,
    `emu` and `target`.

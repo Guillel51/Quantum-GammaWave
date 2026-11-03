@@ -9,7 +9,7 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   88-pixel bands, so peak caps fell two rows per frame. It now measures and updates the decay once and
   draws the same bars in both passes. A native HOME->HOME render was added to `ui_render` (172 screens,
   0 lint findings, 0 alignment errors).
-- Six left shifts of negative fixed-point samples became equivalent multiplications in the DC blocker,
+- Seven left shifts of negative fixed-point samples became equivalent multiplications in the DC blocker,
   DRUM-X output and DRUM output/IMAGE paths. This removes undefined behaviour without changing sound:
   all 220 golden renders are unchanged. The six-part 10-voice stress, `audio_test` and `reverb_test`
   pass under the repository's ASan/UBSan policy.
