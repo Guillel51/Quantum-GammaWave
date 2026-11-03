@@ -1997,13 +1997,13 @@ function makeMockDevice(opt = {}) {
   const NONOFF = ["OFF", "ON"], NDIV = ["1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR"], NGO = ["--", "GO"], NDASH = ["--"];
   const D = (label, fmt, min, max, def, names = null, unit = "") => ({ label, fmt, min, max, def, names, unit });
   const E = (label, names, def) => D(label, F.ENUM, 0, names.length - 1, def, names);
-  const MSRC = ["OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR", "M1", "M2", "M3", "M4", "STEP", "NOISE"];   /* (1.2.1-GW NOISE) */
+  const MSRC = ["OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR", "M1", "M2", "M3", "M4", "STEP", "NOISE", "PAT"];   /* (1.2.1-GW NOISE; PAT 1.6) */
   const MDST = ["OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE", "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "CLIP", "PNCH"];
   const TP = [
     D("LEVEL", F.DB, 0, 127, 104),
     D("ATK", F.TIME, 0, 127, 10), D("DEC", F.TIME, 0, 127, 70), D("SUS", F.PCT, 0, 127, 90), D("REL", F.TIME, 0, 127, 60),
     D("FILTER", F.BIPCT, -64, 63, 0), D("PITCH", F.BIPCT, -64, 63, 0), D("SHAPE", F.BIPCT, -64, 63, 0), E("LOOP", ["OFF", "ON"], 0),   /* (JIANT 0.4: P_ED_FX is the ENV LOOP) */
-    D("RATE", F.LFOHZ, -12, 127, 60), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP"], 0), D("PHASE", F.INT, -1, 127, 0), D("FADE", F.TIME, 0, 127, 0),   /* (0.6.51) RATE < 0 in time, PHASE -1 FREE */
+    D("RATE", F.LFOHZ, -12, 127, 60), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO"], 0), D("PHASE", F.INT, -1, 127, 0), D("FADE", F.TIME, 0, 127, 0),   /* (0.6.51) RATE < 0 in time, PHASE -1 FREE */
     D("PITCH", F.BIPCT, -64, 63, 0), D("FILTER", F.BIPCT, -64, 63, 0), D("SHAPE", F.BIPCT, -64, 63, 0), D("AMP", F.PCT, 0, 127, 0),
     E("MODE", ["OFF", "UP", "DN", "UPDN", "RND", "ORD", "REPEAT", "DNUP", "UP+8", "CONV", "DIVG", "PINKY", "THUMB", "WALK", "CHORD", "TRNS"], 0), E("RATE", NDIV, 2), D("OCT", F.INT, 1, 4, 1), D("GATE", F.PCT, 1, 127, 64),
     D("SWING", F.PCT, 0, 100, 0), D("PROB", F.PCT, 0, 127, 127), E("HOLD", NONOFF, 0), E("ORDER", ["NOTE", "PLAY"], 0),
@@ -2012,7 +2012,7 @@ function makeMockDevice(opt = {}) {
     D("DIST", F.PCT, 0, 127, 0), D("CHORUS", F.PCT, 0, 127, 0), D("DLY", F.PCT, 0, 127, 0), D("REV", F.PCT, 0, 127, 0),
     E("VOICE", ["POLY", "MONO", "LEG", "UNI"], 0), D("GLIDE", F.TIME, 0, 127, 0), D("PAN", F.BIPCT, -64, 63, 0), E("MUTE", NONOFF, 0),
     E("MODE", ["RATE", "TIME"], 0), E("PRIO", ["LAST", "LOW", "HIGH"], 0), E("ALLOC", ["ROT", "REUSE"], 0), D("DETUNE", F.INT, 0, 127, 40),
-    D("DEPTH", F.PCT, 0, 127, 0), D("RATE", F.LFOHZ, 0, 127, 2), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP"], 1), E("SYNC", ["FREE", "BEAT"], 1),   /* (JIANT 0.6.9) AUTO PAN, in the old per-track SLICER's slots (BEAT: RATE 0..7, 4BAR .. 1/32) */
+    D("DEPTH", F.PCT, 0, 127, 0), D("RATE", F.LFOHZ, 0, 127, 2), E("WAVE", ["SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO"], 1), E("SYNC", ["FREE", "BEAT"], 1),   /* (JIANT 0.6.9) AUTO PAN, in the old per-track SLICER's slots (BEAT: RATE 0..7, 4BAR .. 1/32) */
     ...[1, 2, 3, 4].flatMap((k) => [E("SRC" + k, MSRC, 0), E("DEST" + k, MDST, 0), D("AMT" + k, F.BIPCT, -64, 63, 0)]),   /* the matrix */
   ];
   const GP = [
@@ -2102,7 +2102,14 @@ function makeMockDevice(opt = {}) {
         P("SOLARIS GLOW", [9,  14,  60,  4,  72,  35,  30,  0], [80,  90,  115,  95], 0, 5),
         P("WOOD PLUCK", [0,  6,  50,  0,  42,  28,  0,  0], [0,  72,  0,  45], 0, 15),
         P("BAMBOO FLUTE", [3,  10,  40,  30,  68,  20,  0,  12], [18,  75,  40,  55], 0, 6),
-        P("HARP PLUCK", [3,  8,  60,  0,  55,  30,  0,  12], [0,  80,  0,  55], 0, 15)] },
+        P("HARP PLUCK", [3,  8,  60,  0,  55,  30,  0,  12], [0,  80,  0,  55], 0, 15),
+        P("QUANTUM BLOOM", [7, 40, 66, 4, 58, 26, 6, 7], [96, 94, 120, 108], 0, 5),
+        P("ABYSSAL DRONE", [8, 20, 58, 10, 44, 58, 14, -12], [112, 90, 126, 118], 0, 5),
+        P("PRISM KEYS", [4, 12, 70, 0, 66, 18, 0, 12], [0, 84, 40, 60], 0, 6),
+        P("GLASS BELL", [6, 18, 80, 0, 84, 24, 0, 12], [0, 92, 0, 88], 0, 7),
+        P("AURORA PLUCK", [9, 8, 58, 2, 48, 30, 12, 0], [0, 74, 0, 52], 0, 15),
+        P("OCEANIC PAD", [7, 34, 68, 12, 54, 32, 0, 7], [104, 94, 122, 112], 0, 5),
+        P("EMBER LEAD", [8, 16, 74, 0, 70, 40, 34, 12], [4, 72, 92, 48], 1, 4)] },
     /* 1: reserved (DIGITAL, retired: src/fm4_convert.c ENG_FM4_GONE; its sounds load as FM6, FM4 above) */
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 7, 0), D("-", F.INT, 0, 14, 1), D("-", F.INT, 0, 14, 1),
         D("-", F.INT, 0, 14, 1), D("-", F.PCT, 0, 127, 60), D("-", F.INT, 0, 127, 60), D("-", F.PCT, 0, 127, 0), NONE],
@@ -2134,7 +2141,8 @@ function makeMockDevice(opt = {}) {
         P("FOLK PLUCK", [4,  0,  50,  40,  0,  0,  20,  15], [0,  70,  0,  45], 0, 15),
         P("BALAFON", [5,  0,  65,  55,  0,  0,  10,  25], [0,  75,  10,  40], 0, 3),
         P("ETHNIC PLUCK", [4,  3,  58,  48,  8,  0,  25,  35], [0,  72,  0,  50], 0, 15),
-        P("WRAITH DRONE", [0,  5,  68,  50,  25,  0,  60,  80], [90,  90,  120,  105], 0, 5)] },
+        P("WRAITH DRONE", [0,  5,  68,  50,  25,  0,  60,  80], [90,  90,  120,  105], 0, 5),
+        P("EVOLVING GLASS", [6, 2, 70, 40, 15, 0, 10, 20], [82, 92, 118, 102], 0, 5)] },
     { name: "LOFI", titles: ["CHIP", "TONE"], edit: [E("CHIP", ["4BIT", "4B/2", "8BIT", "1BIT", "STEP"], 0), E("WAVE", ["PLS", "TRI", "SAW", "NOIS", "WRAM", "BYTE", "FLOAT"], 0), D("DUTY", F.INT, 0, 127, 64),
         D("CRUSH", F.PCT, 0, 127, 0), D("CUT", F.CUTOFF, 0, 127, 110), D("VIB", F.PCT, 0, 127, 0), D("BEND", F.PCT, 0, 127, 0), D("MASK", F.PCT, 0, 127, 0)],   /* (JIANT 0.4: CUT BEND MASK) */
       presets: [
@@ -2161,7 +2169,8 @@ function makeMockDevice(opt = {}) {
         P("ANCIENT FLT", [2,  6,  88,  24,  60,  20,  0,  0], [20,  80,  110,  70], 1, 6),
         P("CYBER DRONE", [2,  5,  12,  0,  55,  0,  0,  95], [80,  90,  120,  100], 0, 5),
         P("SPACE LULLABY", [0,  4,  60,  0,  95,  12,  0,  0], [50,  90,  115,  85], 0, 5),
-        P("RITUAL PULSE", [4,  0,  50,  45,  115,  20,  0,  0], [0,  65,  80,  45], 1, 4)] },
+        P("RITUAL PULSE", [4,  0,  50,  45,  115,  20,  0,  0], [0,  65,  80,  45], 1, 4),
+        P("TAPE DRONE", [2, 6, 20, 0, 52, 18, 40, 0], [100, 92, 122, 110], 0, 5)] },
     /* 4: reserved (SAMPLE, retired in JIANT; its sounds load as ANALOG, its PERC set as DRUM) */
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0),
         D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
@@ -2187,7 +2196,8 @@ function makeMockDevice(opt = {}) {
         P("ETHNIC CALL", [45,  85,  60,  4,  90,  25,  70,  15], [20,  75,  105,  60], 1, 3),
         P("MYSTIC CHOIR", [20,  60,  35,  0,  55,  40,  65,  15], [85,  90,  118,  100], 0, 5),
         P("VOX DRONE", [10,  30,  0,  -4,  65,  15,  75,  25], [100,  92,  127,  110], 0, 5),
-        P("SOLAR HYMN", [25,  75,  50,  2,  80,  20,  68,  10], [60,  90,  115,  95], 0, 5)] },
+        P("SOLAR HYMN", [25,  75,  50,  2,  80,  20,  68,  10], [60,  90,  115,  95], 0, 5),
+        P("BREATH CHOIR", [12, 58, 22, 3, 40, 70, 66, 18], [96, 90, 122, 104], 0, 5)] },
     /* 6: reserved (TRIO, folded into ANALOG in JIANT 0.4: its sounds load as ANALOG's SYNC / RING / SAW3, core.h analog_from_trio) */
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0),
         D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
@@ -2211,7 +2221,9 @@ function makeMockDevice(opt = {}) {
         P("MEDIEVAL VIEL", [6,  3,  2,  -1,  0,  40,  25,  0], [10,  70,  120,  50], 1, 4),
         P("FOLK DRONE", [12,  5,  3,  0,  0,  50,  35,  1], [45,  80,  127,  85], 0, 5),
         P("NORDIC ORGAN", [7,  3,  0,  1,  1,  30,  15,  1], [15,  64,  127,  65], 0, 6),
-        P("GOTHIC SHRINE", [15,  7,  5,  4,  0,  60,  85,  2], [30,  90,  127,  95], 0, 5)] },
+        P("GOTHIC SHRINE", [15,  7,  5,  4,  0,  60,  85,  2], [30,  90,  127,  95], 0, 5),
+        P("CATHEDRAL REED", [5, 2, 3, 1, 2, 30, 10, 1], [45, 70, 127, 90], 0, 5),
+        P("TIDAL ORGAN", [13, 6, 6, 3, 0, 55, 45, 2], [60, 85, 127, 95], 0, 5)] },
     /* 8: reserved (GRAIN, retired in JIANT) */
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0),
         D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
@@ -2233,9 +2245,7 @@ function makeMockDevice(opt = {}) {
         P("LOFI VINYL", [75, 48, 45, 55, 80, 10, 30, 25], [0, 100, 127, 100], 0, 12),
         P("INDUSTRIAL", [90, 82, 105, 70, 75, 50, 60, 50], [0, 100, 127, 100], 0, 12),
         P("ELECTRO", [40, 76, 95, 60, 65, 35, 25, 30], [0, 100, 127, 100], 0, 12),
-        P("QUANTUM BEAT", [64,  70,  75,  60,  50,  20,  15,  10], [0,  100,  127,  100], 0, 12),
-        P("HEARTH KIT", [80,  55,  80,  70,  40,  30,  25,  20], [0,  100,  127,  100], 0, 12),
-        P("CYBER DRUM", [45,  80,  65,  50,  70,  10,  35,  15], [0,  100,  127,  100], 0, 12)] },
+        P("QUANTUM BEAT", [64,  70,  75,  60,  50,  20,  15,  10], [0,  100,  127,  100], 0, 12)] },
     { name: "NOISE", titles: ["SRC", "MOVE"], edit: [E("MODE", ["ANLG", "DUST", "LFSR", "META"], 0), D("COLOR", F.PCT, 0, 127, 64),
         D("FREQ", F.CUTOFF, 0, 127, 80), D("PEAK", F.PCT, 0, 127, 30), D("TRK", F.PCT, 0, 127, 64), D("DENSE", F.PCT, 0, 127, 0),
         D("DRIFT", F.PCT, 0, 127, 0), D("CRUSH", F.PCT, 0, 127, 0)],
@@ -2255,7 +2265,8 @@ function makeMockDevice(opt = {}) {
         P("COSMIC WINDS", [0,  55,  60,  90,  80,  0,  90,  0], [95,  90,  120,  105], 0, 5),
         P("POLAR AURORA", [1,  40,  95,  80,  50,  70,  70,  10], [70,  90,  118,  95], 0, 5),
         P("STATIC HAZE", [1,  75,  105,  50,  40,  50,  50,  30], [85,  90,  120,  100], 0, 5),
-        P("ABYSS DRONE", [0,  80,  35,  95,  64,  0,  100,  0], [100,  95,  127,  110], 0, 5)] },
+        P("ABYSS DRONE", [0,  80,  35,  95,  64,  0,  100,  0], [100,  95,  127,  110], 0, 5),
+        P("SOLAR WIND", [1, 32, 45, 52, 88, 60, 100, 0], [96, 90, 124, 108], 0, 5)] },
     { name: "FM6", titles: ["OPS", "PATCH"], edit: [D("ALG", F.INT, 0, 32, 0), D("FB", F.INT, -7, 7, 0), D("MOD", F.BIPCT, -64, 63, 0),
         D("RATIO", F.INT, -16, 16, 0), D("MEG", F.BIPCT, -64, 63, 0), D("VMOD", F.INT, -7, 7, 0), D("DETUNE", F.PCT, 0, 127, 0),
         D("SLOT", F.INT, 0, FM6.FACTORY_PK.length + 32, 0)],   /* F1..F8, then OWN (eng_fm6.c, 1.0.3) */
@@ -2281,7 +2292,10 @@ function makeMockDevice(opt = {}) {
         P("KOTO HARP", [0,  0,  0,  0,  0,  0,  0,  7], [0,  0,  127,  0], 0, 15),
         P("SITAR RESON", [0,  0,  0,  0,  0,  0,  0,  14], [0,  0,  127,  0], 0, 3),
         P("GAMELAN MET", [0,  0,  0,  0,  0,  0,  0,  15], [0,  0,  127,  0], 0, 7),
-        P("STEEL DRUM", [0,  0,  0,  0,  0,  0,  0,  5], [0,  0,  127,  0], 0, 3)] },
+        P("STEEL DRUM", [0,  0,  0,  0,  0,  0,  0,  5], [0,  0,  127,  0], 0, 3),
+        P("EVOLVE BELL", [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 127, 0], 0, 7),
+        P("VELVET EP", [0, 0, 0, 0, 0, 0, 0, 0], [0, 70, 30, 25], 0, 6),
+        P("AURORA FM", [0, 0, 0, 0, 0, 0, 0, 4], [30, 90, 60, 8], 0, 5)] },
     /* 13: reserved (SLICE, retired in JIANT) */
     { name: "-", titles: ["-", "-"], edit: [D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0),
         D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0), D("-", F.INT, 0, 127, 0)],
