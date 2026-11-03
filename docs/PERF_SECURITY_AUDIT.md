@@ -33,8 +33,9 @@ modified. **No operation was run on a physical FM-1.**
   single part 602.9 ns/sample (ASan/UBSan build), six-part mix 569.5 ns/sample.
 - `regress`: 220 golden renders, **0 changed**, 0 health failures, 0 voice/routing failures, 0 CPU
   entries over budget; `6parts_full` 680.3 ns/sample on this host.
-- Target build: app **545676 B**, package **610113 B**, `FM-1_982`, SHA-256
-  `dc2790f0ae20175d9d548110177fc3dce48913188cbbc3238da990dde0eb55a1`.
+- Target build after the loader fix: app **545676 B**, package **610116 B**, `FM-1_982`,
+  SHA-256 `1a3ca1353d7aa3697b85e8e2651b90a76e797a0d2d0241ac96a3053ffee696d9`. (The PR A
+  package, without this loader change, remains 610113 B.)
 - Target static budget: pass; `mod_begin` 35/166, `mod_voice` 19/30, DRUM path 1189/1191,
   `perf_block` 569/522 (`+9 %`, inside the existing +10 % tolerance).
 - RAM: `.data+.bss` 94572 B of 98304 B; pool spare 9248 B (the project's minimum is 8192 B).

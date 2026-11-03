@@ -24,9 +24,11 @@
 
 ## perf/security-hardening
 
-- Branch `perf/security-hardening`; target app 545676 B, package 610113 B, identity FM-1_982.
-- Package SHA-256: dc2790f0ae20175d9d548110177fc3dce48913188cbbc3238da990dde0eb55a1
+- Branch `perf/security-hardening`; target app 545676 B, package 610116 B, identity FM-1_982
+  (the package changed after the loader record-clear fix).
+- Package SHA-256: 1a3ca1353d7aa3697b85e8e2651b90a76e797a0d2d0241ac96a3053ffee696d9
 - RAM: `.data+.bss` 94572 B of 98304; pool spare 9248 B (minimum 8192).
-- Host: 220 golden renders 0 changed; six-part 10-voice stress and sanitized project/persistence/robust/MIDI all pass.
+- Host: 220 golden renders 0 changed; six-part 10-voice stress and sanitized project/persistence/robust/MIDI all pass;
+  the loader record-clear regression and its ASan/UBSan build pass.
 - Emulator: all ok, 2.3 % of real time; UI: 172 screens, 0 lint / 0 alignment.
 - Detail and residual risks: docs/PERF_SECURITY_AUDIT.md. No hardware validation, no deploy.
