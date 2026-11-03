@@ -11,6 +11,7 @@ static void midi_test_reset(void)
     memset(midi_owners, 0, sizeof midi_owners); memset(midi_bend_q8, 0, sizeof midi_bend_q8);
     memset(midi_bend_target, 0, sizeof midi_bend_target); memset(&midi_clock, 0, sizeof midi_clock);
     memset(&um, 0, sizeof um); memset(midi_in_source, 0, sizeof midi_in_source);
+    midi_learn_reset();
     mi_r = mi_w = 0; midi_in_overflow = 0; midi_beat_samples = 0;
     fm1_in.notes = kb_prev = 0; fm1_ms = 0; song.sel = 0;
     events_block(CTL);
@@ -350,6 +351,23 @@ static int cc_map_test(void)
     song.rec = 0;
     queued(0xB0, 74, 77, 1);
     bad += check("not armed: the CC is the new value, no event", trk[0].p[P_E4] == 77 && motion.count == 1u);
+
+    /* (1.7) MIDI Learn, session only: arm a parameter, bind the next CC to it, clear the table */
+    midi_test_reset();
+    {
+        const param_desc_t *d = param_desc_of(eng_idx(trk[0].eng_req), P_ATK);
+        queued(0xB0, 119, P_ATK, 1);
+        queued(0xB0, 20, 127, 1);
+        bad += check("MIDI Learn: CC20 bound to ATK sets its maximum", trk[0].p[P_ATK] == d->max);
+        queued(0xB0, 20, 0, 1);
+        bad += check("MIDI Learn: the learned CC follows the range", trk[0].p[P_ATK] == d->min);
+        queued(0xB0, 118, 0, 1);
+        queued(0xB0, 20, 127, 1);
+        bad += check("MIDI Learn: CC118 forgets the binding", trk[0].p[P_ATK] == d->min);
+        queued(0xB0, 119, 127, 1);
+        queued(0xB0, 21, 127, 1);
+        bad += check("MIDI Learn: an out-of-range arm binds nothing", midi_learn_n == 0u);
+    }
     return bad;
 }
 int main(void)

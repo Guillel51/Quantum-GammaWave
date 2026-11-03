@@ -738,7 +738,7 @@ int main(void)
         memset(&v5, 0, sizeof v5);
         v5.magic = PROJ_MAGIC_V5;
         v5.size = sizeof v5;
-        for (i = 0; i < G_COUNT; i++)
+        for (i = 0; i < NELEM(v5.g) && i < G_COUNT; i++)   /* (1.7) FUN5 holds 27: no write past it */
             v5.g[i] = GP[i].def;
         for (i = 0; i < PROJ_LT; i++) {
             v5.t[i].engine = trk[i].engine;

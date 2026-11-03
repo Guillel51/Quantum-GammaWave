@@ -246,9 +246,9 @@ static __attribute__((noinline)) void analog_render(track_t *t, voice_t *v, int3
                 a = 16000 + (softclip((a - 16000) * 2) >> 1);
                 y = y < 0 ? -a : a;
             }
-            s = y << 1;
+            s = y * 2;                   /* (1.7) not a shift of a negative value (UB): same code, defined */
         }
-        out[i] += voice_amp(s, m, i) << 1;
+        out[i] += voice_amp(s, m, i) * 2;   /* (1.7) same value, no shift of a negative (UB) */
     }
     v->ph[0] = ph0;
     v->ph[1] = ph1;

@@ -198,14 +198,25 @@ static const uint8_t MIDI_CC_ENG[NENGINES] = {
     0x80, 0x30, 0x30, 0x34, 0x30,                     /* GRAIN TONE, PHYS BRIT, DRUM TONE, NOISE FREQ RES, FM6 MLVL */
     0x80,                                             /* SLICE TONE (retired: ANALOG's played) */
 };
+/* (QG-1 1.7) Session-only MIDI Learn. CC 119 arms it, its value the parameter id (0..127) of the track's
+ * engine; the next CC other than 118/119 binds to that parameter and sets it. CC 118 forgets every binding.
+ * The table is RAM only: a power cycle clears it, so no project, user preset or settings layout changes. */
+#define MIDI_LEARN_MAX 8u
+static struct { uint8_t cc, param; } midi_learn[MIDI_LEARN_MAX];
+static uint8_t midi_learn_n, midi_learn_arm;
+static void midi_learn_reset(void) { midi_learn_n = midi_learn_arm = 0; }
 static void __attribute__((noinline)) midi_cc_map(track_t *t, uint32_t cc, uint32_t value)
 {
     const param_desc_t *d;
     uint32_t i, id = 0xFFFFu, e;
     int32_t v;
-    for (i = 0; i < NELEM(MIDI_CC_MAP); i++)
-        if (MIDI_CC_MAP[i][0] == cc)
-            id = MIDI_CC_MAP[i][1];
+    for (i = 0; i < midi_learn_n; i++)
+        if (midi_learn[i].cc == cc)
+            id = midi_learn[i].param;
+    if (id == 0xFFFFu)
+        for (i = 0; i < NELEM(MIDI_CC_MAP); i++)
+            if (MIDI_CC_MAP[i][0] == cc)
+                id = MIDI_CC_MAP[i][1];
     if (id >= MCC_CUT) {
         if (id == 0xFFFFu)
             return;
@@ -275,7 +286,25 @@ static void midi_control(uint32_t ch, uint32_t cc, uint32_t value)
             midi_expression_channel(ch);
         }
         break;
+    case 118:                                      /* (1.7) MIDI Learn: forget every binding */
+        midi_learn_reset();
+        break;
+    case 119:                                      /* (1.7) MIDI Learn: arm the parameter value names */
+        if (value < P_COUNT && param_desc_of(eng_idx(midi_track(ch)->eng_req), value))
+            midi_learn_arm = (uint8_t)(value + 1u);
+        break;
     default:
+        if (midi_learn_arm) {                      /* (1.7) the next CC becomes its controller */
+            uint32_t param = midi_learn_arm - 1u;
+            midi_learn_arm = 0;
+            for (i = 0; i < midi_learn_n; i++)
+                if (midi_learn[i].cc == cc) { midi_learn[i].param = (uint8_t)param; break; }
+            if (i == midi_learn_n && midi_learn_n < MIDI_LEARN_MAX) {
+                midi_learn[midi_learn_n].cc = (uint8_t)cc;
+                midi_learn[midi_learn_n].param = (uint8_t)param;
+                midi_learn_n++;
+            }
+        }
         midi_cc_map(midi_track(ch), cc, value);
         break;
     }
