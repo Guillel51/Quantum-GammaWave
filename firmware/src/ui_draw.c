@@ -1437,6 +1437,14 @@ static void splash_sig(uint32_t prog, uint32_t ms)
             gw_disc(ex, ey, 4, mono ? T_TEXT : T_ACCENT);
         }
     }
+    {   /* (1.7) particles: deterministic from prog, behind the waves so they never cut a line */
+        for (i = 0; i < 14; i++) {
+            uint32_t h = (uint32_t)i * 2654435761u ^ 0x9E3779B9u;   /* (fixed: the waves write, the dust stays) */
+            int32_t px = 16 + (int32_t)(h % 208u), py = 16 + (int32_t)((h >> 9) % 84u);
+            uint16_t pc = i % 5u == 0u ? (mono ? T_TEXT : T_ACCENT) : (mono ? T_DIM : T_THEME);
+            gw_disc(px, py, i % 4u == 0u ? 2 : 1, pc);
+        }
+    }
     /* three waves, written from the left; the middle one is the accent */
     for (i = 0; i < 3; i++) {
         int32_t w = (int32_t)(prog * 126u / 256u), ax = 100, ay = 40 + i * 17, ph = i * 100;
@@ -1718,6 +1726,10 @@ static void ui_draw(void)
 }
 static void ui_draw_page(uint32_t counting)
 {
+    static uint8_t menu_was;                           /* (closing the menu: the page under it was not drawn) */
+    if (menu_was && !ui.menu)
+        ui.force = 1;
+    menu_was = (uint8_t)ui.menu;
     if (ui.uboot) {
         draw_uboot();
         draw_head();
