@@ -24,6 +24,12 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 - `tests/mod_test.c` still asserted `MS_N == 15`; PAT was appended in 1.6 (15, `MS_N` 16). The test now
   checks both NOISE 14 and PAT 15, and the matrix suite passes again on `main`.
 
+## v1.7-QG — Splash dust
+
+- The boot splash gains deterministic particles behind the three written waves, in the saved palette and mono
+  rule, with no extra frames of drawing (197 changing frames of 425). `ui_render` now derives the timeline
+  length from `SPL_WRITE + SPL_HOLD` instead of a hardcoded 425.
+
 ## v1.7-QG — UI Evolution & Hardware Validation (2026-11-03)
 
 - UI audit kept at 0 lint findings and 0 alignment errors across 171 screens x 17 palettes.

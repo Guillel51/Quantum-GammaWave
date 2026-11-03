@@ -1350,7 +1350,7 @@ static void draw_columns(void)
  * buffer and follows the theme. Written over SPL_WRITE ms by splash_write (MENU > ANIM OFF: whole at once);
  * SHORT draws it whole and holds it SPL_SHORT; OFF has no splash at all (main.c skips this entirely). */
 #define SPL_WRITE 800u                              /* ms: the screen written (was 900; 0.6.51: 600 -> 800) */
-#define SPL_HOLD 1900u                              /* (1.7) one extra second of the finished art, before the UI */
+#define SPL_HOLD 900u                               /* .. then shown whole, before the UI (was 1100; 0.6.51: 500 -> 900) */
 #define SPL_SHORT 300u                              /* (QG-1 v1.5) MENU > STARTUP SPLASH SHORT: drawn whole and held
                                                      * this long, with no writing animation (OFF: main.c skips the
                                                      * splash entirely; the hardware init is the same in all three) */
