@@ -761,15 +761,16 @@ static const char B_NOTE[11] = {'F', 'G', 'A', 'C', 'D', 'F', 'G', 'A', 'C', 'D'
 #define LF_X(c) (7 + 46 * (int32_t)(c))                 /* FX: the 10 effects, 5 a row (F3 .. C4, D4 .. A4), 42 px: x 7 .. 233 */
 #define LF_W 42
 #define LM_Y 96                                          /* the black keys' row (22 px) */
-#define LFR_P 26                                         /* (QG-1) FX: the white keys' rows 26 px apart, 22 high; */
-#define LFR_H 22
-#define LFM_Y 82                                         /* .. the mutes' row, the black effects' row under it */
-#define LFX_Y 103
-#define LFB_H 17
+#define LFR_P 20                                         /* (QG-1) FX: the white keys' rows 20 px apart, 18 high; */
+#define LFR_H 18
+#define LFM_Y 78                                         /* .. the mutes' row, the black effects' row under it */
+#define LFX_Y 98
+#define LFB_H 16
 #define LM_H 22
 enum { LS_OFF, LS_SEL, LS_HELD, LS_WAIT, LS_DIM, LS_MUTE };
 
 static int32_t lc_w = LC_W;                              /* the cells' width (FX's effects: LF_W) */
+static uint8_t lc_soft;                                  /* (QG-1) FX: a rounded performance pad, not a key cell */
 static uint16_t lc_fill(uint32_t st, uint16_t *ink)
 {
     *ink = st == LS_DIM ? T_DIM : T_THEME;
@@ -795,6 +796,13 @@ static uint16_t lc_fill(uint32_t st, uint16_t *ink)
  * across the gap's corner, so they meet in a grid. Cells are 4 px apart from x 6, y 4. Returns the fill */
 static uint16_t lc_box(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t fill)
 {
+    if (lc_soft) {                                      /* (QG-1) rounded pad: soft corners, a quiet inner edge */
+        uint16_t in = fill == T_RAISE ? ux_mix(T_SURF, T_THEME, 7) : fill;
+        cv_rrect(x, y, w, h, 6, in, T_SURF);
+        if (fill == T_ACCENT)
+            cv_rect(x + 6, y + 1, w - 12, 1, ux_mix(fill, T_INK, 55));
+        return in;
+    }
     if (ux.style) {
         if (fill == T_RAISE)
             fill = T_SURF;
@@ -892,6 +900,7 @@ static void layer_fx(void)
     uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail(), e;
     char n[3] = {0, 0, 0};
     lc_w = LF_W;
+    lc_soft = 1;
     for (e = 0; e < PF_M1; e++) {                       /* the effects of the white keys F3 .. F5, 5 a row */
         if (e % 5u == 0u && !ux.style)                  /* (LINE: its rules are cells too) */
             GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H | AL_CELLS | AL_N(5), "FX cells' row centred");
@@ -901,6 +910,7 @@ static void layer_fx(void)
         lcell(LF_X(e % 5u), 4 + LFR_P * (int32_t)(e / 5u), LFR_H, 0, ICON_COUNT, 0, PF_NAME[e], st, 0);   /* (its name alone: the
                                                          * cells stand where the keys do, 5 a row) */
     }
+    cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
     lc_w = G6_W;
     for (e = 0; e < NTRK; e++) {                        /* the mutes of the black keys 1..6 */
         bnote(n, e);

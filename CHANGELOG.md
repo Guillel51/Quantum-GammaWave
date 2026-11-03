@@ -3,6 +3,18 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — final audit and PUNCH-IN FX visual pass
+
+- PUNCH-IN FX: rounded pads, a tighter 5-column grid and a quiet `PUNCH-IN FX · A#4 TGT · G5 CLR`
+  section line, in the existing Solar Heat/Quantum palette. Drawing only; no parameter or DSP change.
+- The buffered Reverse/Glitch/Freeze/Tape Stop bank was measured at `perf_block` 662/522 (+27 %) and
+  below the RAMTEXT margin, so it was **discarded**. No budget was relaxed; F#5 keeps the existing
+  DIVE and is not claimed as a verified tape stop.
+- Installer: a failed USB `success` ACK now reports `lost` instead of marking the step finished.
+- Final target: app 548708 B, package 610876 B, `FM-1_982`, SHA-256
+  `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`. Final status is
+  **NO VERIFICADO EN HARDWARE**; see `docs/AUDIT_FINAL_FM1.md`.
+
 ## v1.7-QG — visual system: scope and splash
 
 - The full-screen visualizer was recomposed instead of recoloured: a single header with the six live track

@@ -236,6 +236,26 @@ warning that #49 must not be merged was overtaken by the repository owner's merg
 here only as history. The integration branch is now up to date with `main` and contains the audited
 fixes. Do not force-push or rewrite the merged history.
 
+### 12. Final pass (2026-11-03): release candidate state
+
+- **FX UI (IMPLEMENTED, HOST TESTED).** The PUNCH-IN FX keys are drawn as rounded pads with a tighter
+  5-column grid, a quiet section line and the same palette/breathing language as HOME. This is drawing
+  only: no parameter, persistent format or DSP path was added.
+- **FX DSP bank (DISCARDED).** Reverse, the 1/16 glitch stutter, Freeze-on-buffer and the buffered Tape
+  Stop were implemented and then removed. The best variant measured `perf_block` **662/522** (+27 %)
+  and cut the RAMTEXT margin below the project's 2 KiB requirement. No budget was relaxed. F#5 keeps
+  the existing DIVE pitch fall; it is not declared as a verified tape stop.
+- **Host finish ACK (IMPLEMENTED, HOST TESTED).** `web/fm1ota.js` and `tools/fm1_install.py` now return
+  `lost` if the `success` frame cannot be sent. Previously they could mark the step finished without
+  delivering the ACK. This does not make the single-bank write atomic or recovery guaranteed.
+- **Final evidence.** Target build and `target_budget.py` pass (`perf_block` 569/522, `DRUM_PATH`
+  1189/1191); `memory_map_test.py` passes with RAM spare 3716 B, pool 9248 B, RAMTEXT 2404 B and
+  NOINIT 124 B. App 548708 B; package 610876 B; SHA-256
+  `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`.
+- **Tests actually run in this pass.** UI, presets, web, emulator, security, stress (1 run), target,
+  loader normal and ASan/UBSan. The full `run_tests.sh` was not run in one process because of the
+  5-minute shell limit; no timeout is counted as a pass. No physical FM-1 exists in this environment.
+
 ## Recommendation
 
 **NO APTO PARA VALIDACIÓN FÍSICA CONTROLADA todavía.** The flash size is resolved, the SRAM map is

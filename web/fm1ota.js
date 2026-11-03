@@ -156,7 +156,8 @@ export class Updater {
       if (!r) continue;
       last = Date.now();
       if (r.addr === 0xE0000000 || r.addr === 0xF0000000) {
-        link.send(response(r.addr, [...new TextEncoder().encode("success"), 0]));
+        if (!link.send(response(r.addr, [...new TextEncoder().encode("success"), 0])))
+          return { served, finished: false, lost: true };
         if (r.addr === finishAddr) return { served, finished: true };
         continue;
       }
