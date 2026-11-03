@@ -323,7 +323,7 @@ static void tech_master_eq(void)
         cv_rect(mark_x - 2, py - 2, 5, 5, T_ACCENT);
 }
 
-/* MASTER: Modular 4-Slot Master FX Rack + Globals Meters (POCKET GAMMAWAVE // GW-1) */
+/* MASTER: Modular 4-Slot Master FX Rack + Globals Meters (QUANTUM GAMMAWAVE // QG-1) */
 static void tech_master(void)
 {
     int32_t clip = song.g[G_CLIP], g = 1024 + clip * 31, i, py = 0, x0 = 22, y0 = TK_Y0, s = 100, cy = y0 + s / 2;

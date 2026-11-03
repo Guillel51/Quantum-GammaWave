@@ -41,13 +41,16 @@
 - No Pages deployment: the public site was not updated from this environment.
 - No physical FM-1: display, encoder, audio and recovery behaviour are NOT VERIFIED on hardware.
 
-## perf/security-hardening
+## perf/security-hardening (current)
 
-- Branch `perf/security-hardening`; target app 545676 B, package 610116 B, identity FM-1_982
-  (the package changed after the loader record-clear fix).
-- Package SHA-256: 1a3ca1353d7aa3697b85e8e2651b90a76e797a0d2d0241ac96a3053ffee696d9
-- RAM: `.data+.bss` 94572 B of 98304; pool spare 9248 B (minimum 8192).
-- Host: 220 golden renders 0 changed; six-part 10-voice stress and sanitized project/persistence/robust/MIDI all pass;
-  the loader record-clear regression and its ASan/UBSan build pass.
-- Emulator: all ok, 2.3 % of real time; UI: 172 screens, 0 lint / 0 alignment.
-- Detail and residual risks: docs/PERF_SECURITY_AUDIT.md. No hardware validation, no deploy.
+- Branch `perf/security-hardening`, merged with `origin/main` (`e3475f0`) at `08c74d0`; PRs #47–#51
+  are closed and merged. No open PR remained to update at the time of this record.
+- Target app 548852 B, package 610876 B, identity FM-1_982; package SHA-256
+  `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`.
+- RAM: `RAM spare 3732 B; pool spare 9248 B; RAMTEXT spare 2436 B; NOINIT spare 124 B`.
+- Host: loader normal + ASan/UBSan pass; web, security and preset groups pass; UI 172 screens x 17
+  palettes, 0 lint / 0 alignment; FX draw cost 123.9 host units (was 125.3).
+- Final visual pass: the scope now separates waveform, real phase plot and spectrum; the splash adds the
+  QUANTUM wordmark and solar core. App +748 B, package unchanged; 198 of 425 splash steps change pixels.
+- Flash/loader/UI detail and residual risks: `docs/PERF_SECURITY_AUDIT.md`. No physical FM-1
+  validation, no release, no Pages deployment, no force push.

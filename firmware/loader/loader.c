@@ -16,10 +16,19 @@
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "fm1_time.h"
 #include "fm1_sys.h"
-/* the loader may write the app area and erase update records; never the head, nor Felucca's store
- * [0x97000, 0xE0000) (user data, never a record: ldr_core.c) */
-#define FL_RANGE_OK(off, n) (FL_IN(off, n, 0x4000u, 0x97000u) || FL_IN(off, n, 0xE0000u, 0xFC000u))
+/* the loader may write the app area, the Felucca staging sectors and the stock record's
+ * sector only; never the head, Felucca's store, the VM below 0xE0000, the autosave/FM6
+ * sectors or USR. The record scan in ldr_core.c uses this same window. */
+#define FL_RANGE_OK(off, n) (FL_IN(off, n, 0x4000u, 0x93000u) || FL_IN(off, n, 0xE0000u, 0xE5000u) || \
+                             FL_IN(off, n, 0xE8000u, 0xE9000u))
 #include "fm1_flash.h"
+_Static_assert(FL_RANGE_OK(0x4000u, 0x1000u), "loader app window");
+_Static_assert(FL_RANGE_OK(0xE0000u, 0x1000u), "loader staging window");
+_Static_assert(FL_RANGE_OK(0xE8000u, 0x1000u), "stock record sector");
+_Static_assert(!FL_RANGE_OK(0x93000u, 0x1000u), "VM is not writable");
+_Static_assert(!FL_RANGE_OK(0xE5000u, 0x1000u), "autosave is not writable");
+_Static_assert(!FL_RANGE_OK(0xE7000u, 0x1000u), "FM6 bank is not writable");
+_Static_assert(!FL_RANGE_OK(0xEB000u, 0x1000u), "USR is not writable");
 #include "../src/libc.c"
 #include "../src/usb.c"
 

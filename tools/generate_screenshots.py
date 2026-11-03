@@ -104,10 +104,11 @@ int main(int argc, char **argv) {
     draw(S_FX_HELD);
     write_ppm("assets/screenshots", "quantum", "11_punch_in_fx");
 
-    /* 12. FX Rack with Warm Harmonic Distortions */
-    setup(S_DIST_PAGE);
+    /* 12. FX send rack (the first FX page), with a real track peak for the meters */
+    setup(S_FX);
+    TSEL->peak = 12000;
     pal(UI_QUANTUM_INDEX);
-    draw(S_DIST_PAGE);
+    draw(S_FX);
     write_ppm("assets/screenshots", "quantum", "12_fx_rack");
 
     /* 13. 6-Track Master Mixer */
@@ -182,6 +183,12 @@ int main(int argc, char **argv) {
     }
     ui_draw();
     write_ppm("assets/screenshots", "quantum", "21_master_eq");
+
+    /* 25. MASTER bus: clip curve, punch, duck, output VU */
+    setup(S_MASTER);
+    pal(UI_QUANTUM_INDEX);
+    draw(S_MASTER);
+    write_ppm("assets/screenshots", "quantum", "25_master_bus");
 
     /* 22. Transient 1.5s Categorized Preset Overlay */
     setup(S_HOME);

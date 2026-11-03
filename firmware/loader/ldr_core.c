@@ -18,9 +18,11 @@
  *      the flash head (SPL, isd_config) is never written;
  *   4. asks 0xF0000000 ("success"), then invalidates the update record (RAM
  *      and flash) so the SPL boots the new app, and resets. The flash scan is
- *      limited to the documented update slots in [0xE0000,0xE9000); the VM,
- *      Felucca's store, the autosave and the FM6 voice bank are never erased,
- *      even if their bytes happen to look like a record.
+ *      limited to [0xE0000,0xE9000): staging sectors are erased, the autosave
+ *      and FM6 bank are skipped, and the stock record in the VM backup sector
+ *      at 0xE8000 is invalidated in place (its first 80 bytes are zeroed, the
+ *      sector is not erased). Felucca's store, the live VM, USR and the head
+ *      are never written, even if their bytes happen to look like a record.
  * Power loss during 3: the record is still there, the SPL runs the loader
  * again on the next power-on and the host can resume.
  *
@@ -169,14 +171,24 @@ static int ldr_session(void)
         if (!ota_read(0xF0000000u, sec, 8))
             break;
     ldr_record_clear();
-    for (s = LDR_REC_HI; s > LDR_REC_LO; s -= 0x1000u) {   /* flash records: 4K boundary - 256 */
-        uint8_t r[80];
-        if (s - 0x1000u >= LDR_AUTO_LO && s - 0x1000u < LDR_AUTO_HI)
-            continue;                                    /* autosave/FM6: user data that may look like one */
-        if (ldr_fread(s - 0x100u, r, 80))
-            break;
-        if (ota_rd16(r + 6) == 0x5441u && ota_rd16(r) && ota_rd16(r) == ota_crc16(r + 2, 78, 0))
-            ldr_erase(s - 0x1000u);
+    {
+        uint8_t zero[80];
+        uint32_t z;
+        for (z = 0; z < sizeof zero; z++)
+            zero[z] = 0;
+        for (s = LDR_REC_HI; s > LDR_REC_LO; s -= 0x1000u) {   /* flash records: 4K boundary - 256 */
+            uint8_t r[80];
+            if (s - 0x1000u >= LDR_AUTO_LO && s - 0x1000u < LDR_AUTO_HI)
+                continue;                                /* autosave/FM6: user data that may look like one */
+            if (ldr_fread(s - 0x100u, r, 80))
+                break;
+            if (ota_rd16(r + 6) == 0x5441u && ota_rd16(r) && ota_rd16(r) == ota_crc16(r + 2, 78, 0)) {
+                if (s - 0x1000u == 0xE8000u)
+                    ldr_prog(s - 0x100u, zero, sizeof zero);   /* stock VM backup: invalidate the record in place */
+                else
+                    ldr_erase(s - 0x1000u);
+            }
+        }
     }
     return 0;
 }

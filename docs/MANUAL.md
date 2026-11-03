@@ -1550,7 +1550,7 @@ and the filter type; the screen says which one. UNDO takes a macro back.
 ### The Quantum GammaWave (QG-1) screens
 
 - **HOME**: 28-bar reactive spectrum analyzer, Hearth sun with orbiting moon, live filter curve, and T1–T6 track strip.
-- **Full-Screen Audio Visualizer (`HOME -> HOME`)**: Tapping HOME while on the HOME screen reveals a hardware-native oscilloscope with zero-crossing sync and Lissajous phase orbits.
+- **Full-Screen Audio Visualizer (`HOME -> HOME`)**: Tapping HOME while on the HOME screen reveals a hardware-native scope: zero-crossing waveform on the left, its live X/Y Lissajous phase plot on the right, six track levels in the header and a 16-band spectrum with peak caps below.
 - **Transient Preset Overlay (1.5s)**: Turning PRESET brings up a non-blocking 7-row categorized preset browser overlay for 1.5s without interrupting playback.
 - **Dynamic Modern ARP Visualizer**: Live 16-step arpeggiator trajectory, direction mode arcs, swing visualization and tempo-synced playhead.
 - **GLO 2 Telemetry Monitor**: Real-time voice allocation across 6 tracks (10-voice budget), dual-core CPU execution ticks (`mc_fx_tk`), and DSP buffer integrity.

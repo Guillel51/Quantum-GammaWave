@@ -131,6 +131,8 @@ static void fvb_boot(void)
     st_hdr_t h, s, t;
     uint32_t c, best = 2u;
     int home;
+    memset(&h, 0, sizeof h);                 /* no home bank: any valid staged bank wins */
+    memset(&s, 0, sizeof s);
     fm6_bank_used = 0;
     fm6_bank_read = fvb_read;
     if (!flash_ok) {

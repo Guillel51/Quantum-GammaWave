@@ -127,9 +127,9 @@ Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Españo
 
 ---
 
-## Real Hardware Interface Gallery
+## Firmware Renderer Gallery
 
-All screenshots below represent the authentic, native 240×240 procedural interface rendered directly by the Quantum GammaWave (QG-1) firmware engine on the M-VAVE FM-1's color display.
+All screenshots below are native 240×240 renders produced directly by the Quantum GammaWave (QG-1) firmware drawing code. They are **renderer output, not photographs of a physical FM-1**; the current branch regenerated the full gallery with `tools/generate_screenshots.py`.
 
 ### 1. Quantum Signature Suite & Core Views
 
@@ -138,10 +138,15 @@ All screenshots below represent the authentic, native 240×240 procedural interf
 | ![HOME](assets/screenshots/quantum_01_home.png) | ![EDIT ANALOG](assets/screenshots/quantum_02_edit_analog.png) | ![FM6](assets/screenshots/quantum_03_fm6_algorithm.png) | ![MIXER](assets/screenshots/quantum_13_mixer.png) |
 | *Real-time 28-bar spectrum & filter curve* | *Dual VA oscillators & spectral ribbon* | *32 DX7-style FM operator networks* | *Levels, pan, peak meters & sends* |
 
-| Full-Screen Audio Visualizer (`HOME -> HOME`) | Parametric Master Biquad EQ | GLO 2 System Telemetry | Transient Preset Browser (1.5s) |
+| Full-Screen Audio Visualizer (`HOME -> HOME`) | FX Send Rack with Peak Meters | MASTER Bus: Clip, Punch, Duck, VU | Transient Preset Browser (1.5s) |
 | :---: | :---: | :---: | :---: |
-| ![VISUALIZER](assets/screenshots/quantum_18_fullscreen_visualizer.png) | ![MASTER EQ](assets/screenshots/quantum_21_master_eq.png) | ![GLO 2](assets/screenshots/quantum_23_glo2_telemetry.png) | ![PRESET OVERLAY](assets/screenshots/quantum_22_transient_presets.png) |
-| *Zero-crossing scope & Lissajous orbits* | *Direct Form II Transposed Peak/Notch EQ* | *Active polyphony & dual-core CPU ticks* | *Fast 7-row categorized library overlay* |
+| ![VISUALIZER](assets/screenshots/quantum_18_fullscreen_visualizer.png) | ![FX RACK](assets/screenshots/quantum_12_fx_rack.png) | ![MASTER BUS](assets/screenshots/quantum_25_master_bus.png) | ![PRESET OVERLAY](assets/screenshots/quantum_22_transient_presets.png) |
+| *Zero-crossing scope & Lissajous orbits* | *Real post-FX peak beside each send* | *Live clip curve, punch, duck gain & output VU* | *Fast 7-row categorized library overlay* |
+
+| Parametric Master Biquad EQ | GLO 2 System Telemetry |
+| :---: | :---: |
+| ![MASTER EQ](assets/screenshots/quantum_21_master_eq.png) | ![GLO 2](assets/screenshots/quantum_23_glo2_telemetry.png) |
+| *Direct Form II Transposed Peak/Notch EQ* | *Active polyphony & dual-core CPU ticks* |
 
 ### 2. Performance, Sequencing & Drum Synthesis
 
@@ -229,8 +234,8 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 ### `v1.7-QG` — UI Evolution & Hardware Validation
 
 - **UI pass without regressions:** the 171-screen lint and alignment sweep stays at 0 findings and 0 off-by-one
-  measurements in all 17 palettes. HOME/EDIT's knobs are the round design from 1.6, the splash is the same
-  single SURF card, and the preset browser, matrix and visualisers were audited for overlaps and cut text.
+  measurements in all 17 palettes. HOME/EDIT's knobs are the round design from 1.6, and the splash and full-screen scope share HOME's
+  instrument language, and the preset browser, matrix and visualisers were audited for overlaps and cut text.
 - **Budget analyzer:** `tools/budget_report.py` measures static RAM per voice count (8/10/12), the library's
   composition and the host CPU baselines, and states plainly what is host-measured and what needs a board.
 - **Hardware simulation, documented:** `docs/HARDWARE_SIMULATION.md` separates emulation (the same C in wasm),
@@ -262,8 +267,9 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
   BREATH CHOIR, VELVET EP and EMBER LEAD.
 - **UI.** HOME and EDIT's rotary knobs are real round knobs (filled body, 270-degree ring, value arc,
   needle, centre dot, no offset orbit ring), and the boot splash is one SURF card in the UI's own language:
-  the QG monogram, three waves writing across it and the 16-segment rail, instead of the old octagonal
-  frame whose bands read as black lines.
+  the seven-letter QUANTUM wordmark, a solar core with its corona and orbits, three waves writing across
+  the frame and the 16-segment spectral horizon, instead of the old octagonal frame whose bands read as
+  black lines.
 - **Verification.** Host tests, sanitizers, UI lint/PNG renders and the 200-sound test pass; the emulator
   rebuild is marked NO VERIFICADO when `emcc` is unavailable, and the 12-voice experiment stays off
   (`docs/POLYPHONY_1.6.md`). No bootloader or flash-critical change was made.
@@ -271,7 +277,7 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 ### `v1.5-QG` — Startup, Preferences & Telemetry Release
 - **Startup without the four black lines:** the ST7789 GDRAM is 240×320 while the blit clamps to 240×240, so 80 rows were never written; `lcd_gdram_clear()` now writes all 76 800 pixels before the display is turned on (commit #37 only touched the backlight). Proven by `tests/lcd_st7789_test.c`, which models the controller's own command stream and reproduces the old windowed path first.
 - **A new power-on screen:** redesigned from scratch — chamfered octagonal frame, the seven letters of QUANTUM lighting one by one, a fixed spectrum rail with a playhead, then `v1.5-QG` and `QUANTUM GAMMAWAVE // QG-1`. `lcd_init(bg)` now paints the whole 240×320 in the theme's background first, so no residue of the previous frame survives. `MENU > STARTUP SPLASH` still chooses FULL / SHORT / OFF.
-- **The splash costs less to draw:** `splash_sig()` compares the artwork it is about to paint with the one already on screen and returns when they match. Measured on the framebuffer over the real boot timeline: 425 steps of 4 ms, only 160 change the screen, **265 identical rewrites skipped (62 %, ~7.9 M pixels)**, with the final frame asserted byte-for-byte equal to a whole draw.
+- **The splash costs less to draw:** `splash_sig()` compares the artwork it is about to paint with the one already on screen and returns when they match. Measured on the framebuffer over the real boot timeline: at v1.5, 425 steps of 4 ms, 160 changing and **265 identical rewrites skipped**; after the v1.7 visual pass, 198 change and **227 are skipped (53 %, ~6.8 M pixels)**, with the final frame still asserted byte-for-byte equal to a whole draw.
 - **GLO / CPU LOAD is live again:** opening GLO left the UI rendering only the HOME visualizer's band, so `graph_diag()` never ran, MONITOR's CPU LOAD froze on its first value and the section buttons did nothing. `open_global()` now clears that state and `ui_draw()` guards it — GLO, FX, EDIT, SCL, LFO, ENV and SAVE switch section straight from the visualizer, without HOME, shortcuts and combinations untouched.
 - **`MENU > EXTRA` reachable from the editor:** `ED_MENU[]` ended at index 21, so `MENU_DESC` reported "no item" for 22..24 and `MENU_SET` answered "unknown id" while `INFO` advertised 25 settings with 22 real. CPU MODE, VIS QUALITY and SPLASH are appended as ids 22 / 23 / 24, matching `web/EDITOR_PROTOCOL.md`.
 - **`MENU > EXTRA`: three preferences, firmware and Web Studio together** — `CPU MODE` (AUTO / DUAL CORE / SAFE SINGLE, AUTO by default, never forcing a core that failed), `VISUALIZER QUALITY` (HIGH / BALANCED / LOW: draw resolution, particles and refresh rate only, never the audio) and `STARTUP SPLASH` (FULL / SHORT / OFF, hardware still initialised either way). Stored in the free bytes of the factory favourites record, so old records read as the defaults and need no migration.
