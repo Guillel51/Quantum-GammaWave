@@ -49,9 +49,143 @@ modified. **No operation was run on a physical FM-1.**
 
 The installer already enforces a published SHA-256, package CRC/entry bounds, model identity before
 and after the write, disconnect/lost-link handling, resume from update mode, and V15 stock-package
-recognition. The browser package parser rejects truncated/oversized/malformed packages. The 1 MiB vs
-2 MiB flash discrepancy, the single-bank write window, the absence of a signature/anti-rollback and
-the lack of a demonstrated recovery with a damaged boot area remain **open**.
+recognition. The browser package parser rejects truncated/oversized/malformed packages. The single-bank
+write window, the absence of a signature/anti-rollback and the lack of a demonstrated recovery with a
+damaged boot area remain **open**. The flash size is now resolved to 1 MiB (below).
+
+## Second audit (2026-11-03): open risks
+
+Status labels used here: **IMPLEMENTED**, **EXECUTED ON HOST**, **TARGET COMPILED**, **SIMULATED**,
+**NO VERIFIED** and **BLOCKED**. No physical FM-1 was available.
+
+### 1. Flash: 1 MiB, not 2 MiB (resolved)
+
+- Puya P25Q80H datasheet: 8 Mbit = 1 MiB; JEDEC `0x856014` encodes 2^20 bytes. Internal evidence:
+  `web/emu/felucca_web.c` allocates `nor[0x100000]`, the loader caps `flash.bin` at `LDR_FL_MAX
+  0x100000`, and the package image is `0x93000` bytes. `tools/hw_model.py` said 2 MiB: corrected.
+- Map: head `[0x0,0x4000)`, app `[0x4000,0x93000)`, VM `[0x93000,0xE9000)`, BTIF
+  `[0xE9000,0xEA000)`, USR `[0xEA000,0xFC000)`, factory `[0xFF000,0x100000)`. The app slot starts
+  at `0x4120`; `0x4120 + 0x8DFBC = 0x920DC`, so 3.876 B remain before `0x93000`. The package's VM
+  descriptor ends exactly at `0xE9000`. No address above `0x100000` is used.
+- The 2 MiB statements in `AGENTS.md`, `TECHNICAL_OVERVIEW.md` and `HARDWARE_SIMULATION.md` were
+  stale; corrected. **Still NO VERIFIED on hardware**: the JEDEC was not read from a physical unit.
+  Conclusion is documentary, not a measurement.
+
+### 2. RAM, stacks, heap, DMA and ISR (EXECUTED ON HOST)
+
+`tests/memory_map_test.py` reads the target ELF and fails on any overlap. Current map:
+
+| Region | Range / size | Headroom |
+|---|---|---|
+| LOWBUF | `0x1C00000..0x1C067A4` (26.532 B) | 2.140 B to `0x1C07000` |
+| `.data` + `.bss` | `0x1C08000..0x1C1F16C` (94.572 B of 98.304) | 3.732 B to `0x1C20000` |
+| pool | `0x1C20000..0x1C6BFC8` (311.240 B) | 9.248 B after core-1 stacks |
+| core-1 stacks | `0x1C6BFE0..0x1C6DBE0` (7.168 B) | 6 KiB user + 1 KiB exception |
+| RAMTEXT | `0x1C70800..0x1C75B10` | 3.312 B to guard `0x1C76800` |
+| user stack | `0x1C76900..0x1C7A000` (13.568 B) | 256 B guard each side |
+| system stack | `0x1C7A100..0x1C7C000` (7.936 B) | 256 B guard each side |
+| NOINIT | `0x1C7C000..0x1C7FCD4` (15.572 B) | **124 B** to reserved `0x1C7FD50` |
+
+- There is **no heap allocator call** in `firmware/` (`malloc`/`calloc`/`pvPortMalloc` absent); the
+  big buffers are static `.bss`/`.pool`, so heap fragmentation cannot collide with them. `abuf` is
+  `0x1C08380`, 2.048 B in `.bss`; the DMA/audio rings are not on a stack.
+- No range overlaps. The risks are **stack depth** (13,75 KiB user, 7,75 KiB system) and **NOINIT's
+  124 B**, not a detected collision. The guards are hardware write/EMU limits armed in `main.c`;
+  they detect an overflow, they do not make more room. ISR nesting depth and worst-case stack use
+  are **not measured** on target.
+- The 94.572 B figure includes the 4-byte `.data`/`.bss` alignment; `.bss` alone is 93.804 B.
+
+### 3. Static DSP budgets (TARGET COMPILED)
+
+- `DRUM_PATH 1189/1191`: 2 units under the reference, but the enforced tolerance is +10 %, so the
+  hard ceiling is ~1.310; the real margin is ~121 units, not 2. It is a static sum, not a measured
+  worst case.
+- `perf_block 569/522`: **+9,0 %**, hard ceiling ~574, only **~5 units** left. This is the FX hold
+  layer, not the normal path, but it is the thinnest static margin in the build. No target cycle
+  measurement exists; do not raise the budget or claim it safe under every effect combination.
+- `target_budget.py` passed; no budget was relaxed.
+
+### 4. Installer, backup and restore (INDEPENDENT REVIEW)
+
+Write paths are bounded:
+
+- Browser/CLI update: published SHA-256 before anything, `.fwsc` CRC/entry bounds, model identity
+  before and after, lost-link/resume handling; the loader reads the whole `flash.bin` and checks its
+  CRC and each app-sector CRC **before the first erase**, then erases/programs only
+  `[0x4000,0x93000)`, verifies each sector and retries twice.
+- Loader write guards: `ldr_erase`/`ldr_prog` reject the head, the store `[0x97000,0xE0000)` and any
+  range past `0x93000`; the head is never written. The host test exercises a damaged package, a
+  transfer error after the check, a foreign chip key and five power-cut points.
+- Backup: `readBackup` validates format, object ids, sizes, base64 length and CRC32 of every object
+  before the first `PUT`; restore sends objects individually with begin/chunk/commit. A disconnect
+  can leave a **partial restore** (documented); it cannot write past an object's declared size.
+- Residual: SHA-256 is integrity, not provenance (no signature/anti-rollback); the site can replace
+  package and hash together. Recovery with a damaged boot area is not demonstrated. No physical
+  backup was restored; the “recuperable” claim is limited to the simulated protocol.
+
+### 5. Interruption / disconnection / corruption (SIMULATED)
+
+`tests/ldr_test` now cuts `ldr_prog` after 0, 4 KiB, 64 KiB, 256 KiB and 512 KiB, keeps the update
+record, and runs a second session: all five resume, the app matches the package, the head and user
+store are untouched, and no write leaves the window. This is **SIMULATED** against the loader in
+RAM; it does not exercise the SPL, real erase/program timing or a physical power rail. Disconnection
+and corruption paths remain covered by `tests/install_test.py`, `web/test_web.mjs`,
+`web/test_pkg_bounds.mjs` and the damaged-package case in `ldr_test`.
+
+### 6. Reducing the single-bank write window (NO CHANGE)
+
+The loader writes `[0x4000,0x93000)` in ascending 4 KiB sectors. Writing the first sector last would
+not create a bootable old image by itself: the SPL's update record still forces the loader, and the
+old app's remaining sectors would already have been replaced. A real reduction needs bootloader
+support (A/B or a recovery slot) or a verified write-order protocol. Neither is added here; changing
+it without hardware evidence would risk the boot path.
+
+### 7. Manual recovery (DOCUMENTED, NOT DEMONSTRATED)
+
+Requires the stock `FM-1_v15.fwsc` and one of: OCT− + OCT+ held 5 s at power-on (Felucca update
+mode), REC (fm1-base/m-bootloader), the ROM download mode `4C4A:8057` with M-Flasher /
+`MvaveFM1Unbricker` / `fm1_rescue`, or the **USB_KEY dongle** for a hard brick. The flash key must
+be `0x980F` and JEDEC `856014` (1 MiB); read and save the whole flash before writing; write only
+`[0x4000,0x93000)`. A damaged boot area `[0,0x4000)` is **not** recoverable by this procedure. None
+of this was run on hardware.
+
+### 8. UBSan exclusions (REVIEWED)
+
+The seven left shifts of negative values fixed on this branch were the actionable UB. The remaining
+excluded categories are intentional fixed-point wrap and signed right shifts (implementation-defined,
+arithmetic on pi32v2, not UB). A static pass over the touched DSP files found no new left shift of a
+negative signed value; `fx.c`'s variable shifts are on unsigned or bounded non-negative values. This
+is a code review, not proof: a full UBSan run still reports the intentional wraps, and the policy
+continues to exclude them.
+
+### 9. Further DSP optimisation (NO MEASURED WIN)
+
+No additional change is claimed. The branch removes UB but does not reduce operations; the host
+`perform_test` has no instruction counter here, and target cycles are unavailable. `perf_block` has
+the least static headroom, so any optimisation should start there with a target measurement, not
+with a source change made to “look faster”.
+
+### 10. Branch and PR strategy
+
+`origin/main` is `7c3dd24`; this branch is 14 commits ahead: 12 UI/preset/web commits (through
+`e23fb14`) plus `200a0dc` (DSP UB) and `e4cede6` (docs). The base is the unmerged
+`feat/v1.7-visual-presets`, not `main`.
+
+- **PR A**: the 12 UI/preset/web commits, including the visualizer fix `e23fb14`, into `main`.
+- **PR B**: `200a0dc` + these audit changes, rebased onto the merge of PR A; the DSP fixes do not
+depend on the UI code, but the report references the branch. Do not open PR B against `main` while
+the 12 unrelated commits are still in it.
+- Keep this branch as the integration branch; no force push, no history rewrite, no release.
+- If PR A is rejected, PR B remains a draft against the UI branch; the DSP patch can be cherry-picked
+  alone after a clean build.
+
+## Recommendation
+
+**APTO PARA PR CON LIMITACIONES.** The flash size is resolved, the SRAM map is checked by a test,
+the loader preflight and backup validation are sound in simulation, and no new hardware parameter was
+changed. **NO APTO PARA INSTALACIÓN FÍSICA** until the JEDEC is read on a unit, a real power-cut /
+recovery run is done with USB_KEY, and the single-bank window is accepted or eliminated. The missing
+signature/anti-rollback remains a security limitation, not a build blocker.
 
 ## No claims
 

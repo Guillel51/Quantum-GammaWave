@@ -58,6 +58,7 @@ run_target() {
     fi
     JIELI_TOOLCHAIN=/tmp/jieli/toolchain AC79_SDK=/tmp/ac79 python3 tools/build.py
     python3 tests/target_budget.py
+    python3 tests/memory_map_test.py
 }
 
 case "$group" in

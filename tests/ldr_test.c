@@ -17,6 +17,8 @@ static size_t logical_len;
 static uint8_t rx[1024];
 static uint32_t rx_len, rx_full, now_ms, requests, erases, bad_range, record_cleared, f0_asked;
 static uint32_t flip_addr = 0xFFFFFFFFu, flip_seen, flip_on;   /* serve addr's flip_on-th reply with a byte changed */
+static long prog_budget = -1;                  /* power loss after this many programmed bytes; -1 = none */
+static uint32_t power_cuts;                     /* simulated power losses during ldr_prog() */
 
 static uint32_t pack7(const uint8_t *in, uint32_t n, uint8_t *out)
 {
@@ -92,14 +94,28 @@ static int ldr_erase(uint32_t off)
 static int ldr_prog(uint32_t off, const void *p, uint32_t n)
 {
     const uint8_t *s = p;
-    uint32_t i;
+    uint32_t i, limit = n;
     if (off < 0x4000u || off + n > 0x93000u || ((off & 0xFFu) + n) > 256u) bad_range++;
-    for (i = 0; i < n; i++) nor[off + i] &= s[i];
+    if (prog_budget >= 0) {
+        if (prog_budget <= 0) { prog_budget = -1; power_cuts++; return -1; }
+        if ((long)n > prog_budget) limit = (uint32_t)prog_budget;
+    }
+    for (i = 0; i < limit; i++) nor[off + i] &= s[i];
+    if (limit != n) { prog_budget = -1; power_cuts++; return -1; }
+    if (prog_budget >= 0) prog_budget -= n;
     return 0;
 }
 static void ldr_record_clear(void) { record_cleared++; }
 static void ldr_progress(uint32_t done, uint32_t total) { (void)done; (void)total; }
 #include "../firmware/loader/ldr_core.c"
+
+static void put_record(uint32_t off)                 /* the step-1 record, valid */
+{
+    uint8_t r[112] = {0};
+    r[2] = 0x0D; r[3] = 0x5A; r[4] = 0x01; r[5] = 0x5A; r[6] = 0x41; r[7] = 0x54;
+    ota_wr16(r, ota_crc16(r + 2, 78, 0));
+    memcpy(nor + off, r, sizeof r);
+}
 
 static uint8_t *load_logical(const char *path, size_t *len)
 {
@@ -153,13 +169,10 @@ int main(int argc, char **argv)
     memcpy(nor, old + ofo, 0x93000);
     memcpy(head, nor, sizeof head);
     {
-        uint8_t r[112] = {0};
-        r[2] = 0x0D; r[3] = 0x5A; r[4] = 0x01; r[5] = 0x5A; r[6] = 0x41; r[7] = 0x54;
-        ota_wr16(r, ota_crc16(r + 2, 78, 0));
-        memcpy(nor + 0xE4F00, r, sizeof r);
-        memcpy(nor + 0xE8F00, r, sizeof r);
+        put_record(0xE4F00);
+        put_record(0xE8F00);
         for (i = 0; i < 0x1000u; i++) nor[0xA0000 + i] = (uint8_t)(i * 7u);
-        memcpy(nor + 0xA0F00, r, sizeof r);
+        put_record(0xA0F00);
         memcpy(user, nor + 0xA0000, sizeof user);
     }
     /* a damaged package (one byte deep in the app area): refused before anything is erased */
@@ -200,6 +213,32 @@ int main(int argc, char **argv)
         rc = ldr_session();
         bad += check("foreign key / damaged app head refused, nothing erased", rc == -6 && erases == 0);
         logical[nfo + 0x4000 + 5] = save;
+    }
+    /* power loss during the write: the record survives, the next session resumes and finishes */
+    {
+        static const uint32_t cuts[] = { 0, 0x1000, 0x10000, 0x40000, 0x80000 };
+        unsigned ci;
+        for (ci = 0; ci < sizeof cuts / sizeof cuts[0]; ci++) {
+            memcpy(nor, old + ofo, 0x93000);
+            memcpy(nor, head, sizeof head);
+            put_record(0xE4F00); put_record(0xE8F00);
+            prog_budget = (long)cuts[ci]; power_cuts = 0; record_cleared = 0; erases = 0; bad_range = 0; f0_asked = 0;
+            rc = ldr_session();
+            if (rc == 0 || power_cuts != 1 || record_cleared || nor[0xE4F06] != 0x41) {
+                printf("  cut %#x: rc %d, cuts %u, record_cleared %u\n", cuts[ci], rc, power_cuts, record_cleared);
+                bad++;
+            }
+            prog_budget = -1;
+            rc = ldr_session();
+            if (rc || !record_cleared || memcmp(nor + 0x4000, logical + nfo + 0x4000, 0x93000 - 0x4000) ||
+                memcmp(nor, head, sizeof head) || memcmp(nor + 0xA0000, user, sizeof user) || bad_range)
+                printf("  resume %#x: rc %d, cleared %u, app %d, head %d, user %d, bad %u\n", cuts[ci], rc,
+                       record_cleared, !memcmp(nor + 0x4000, logical + nfo + 0x4000, 0x93000 - 0x4000),
+                       !memcmp(nor, head, sizeof head), !memcmp(nor + 0xA0000, user, sizeof user), bad_range);
+            bad += check("power cut resumes and completes", rc == 0 && record_cleared &&
+                         !memcmp(nor + 0x4000, logical + nfo + 0x4000, 0x93000 - 0x4000) &&
+                         !memcmp(nor, head, sizeof head) && !memcmp(nor + 0xA0000, user, sizeof user) && bad_range == 0);
+        }
     }
     printf("%s\n", bad ? "LOADER TEST FAILED" : "loader test passed");
     return bad != 0;
