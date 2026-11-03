@@ -16,6 +16,8 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   control test covers the range, the clear and an out-of-range arm.
 - `tests/stress_run.sh`: project, persistence, robustness and MIDI paths under ASan/UBSan for N runs, then
   two full golden passes, all against the simulated flash.
+- `tools/hw_model.py`: block deadlines, half-buffer latency, DMA and LCD bandwidth, SRAM share per voice
+  count and the cycle ceiling at 160/240 MHz — arithmetic from documented constants, never a measurement.
 - **UBSan findings fixed:** ANALOG shifted negative samples left twice (`y << 1`, `voice_amp(...) << 1`);
   both are now `* 2`, the same DSP with defined behaviour (goldens unchanged). The FUN5 persistence test
   wrote 27+ globals into a 27-entry header; it now stops at the old format's size.

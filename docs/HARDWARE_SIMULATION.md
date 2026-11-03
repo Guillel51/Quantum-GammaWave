@@ -41,6 +41,14 @@ flash size, underruns and thermal/battery margin. None of that was available, so
 | Flash write, power-cut recovery | simulated only |
 | Audio latency/underruns on hardware | **NO VERIFICADO** |
 
+## 4. Budget model (`tools/hw_model.py`)
+
+The model turns the project's documented constants (44.1 kHz, 32-sample blocks, 128-frame half buffer,
+96 KiB SRAM, 2 MiB flash, 160–240 MHz) into deadlines, DMA bytes, LCD bandwidth and the cycle *ceiling*
+per block. It deliberately does not print firmware cycles: IPC, cache, DMA arbitration and interrupt
+latency are unknown without the board. Voice RAM is an upper bound from the host ABI (the target uses
+32-bit pointers).
+
 ## Validation ladder
 
 1. `python3 tools/budget_report.py` — static sizes and library composition (host).
