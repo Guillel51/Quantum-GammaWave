@@ -3,7 +3,7 @@
 **Date:** 2026-11-02
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
 **Branch:** `feat/v1.5-hardening` (cut from `main` @ `4682fef`)
-**Current Milestone Version:** `v1.6-QG`
+**Current Milestone Version:** `v1.7-QG`
 
 ### v1.6-QG — what was verified (2026-11-03)
 

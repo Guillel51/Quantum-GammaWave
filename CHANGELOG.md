@@ -3,6 +3,16 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — UI Evolution & Hardware Validation (2026-11-03)
+
+- UI audit kept at 0 lint findings and 0 alignment errors across 171 screens x 17 palettes.
+- `tools/budget_report.py`: static RAM for 8/10/12 voices, library composition and host CPU baselines, with
+  the host/target distinction built into the output.
+- `docs/HARDWARE_SIMULATION.md`: what the host stubs and the wasm shim model, and what they do not.
+- `docs/FEATURES_1.7.md`: every requested feature classified as already present, deferred with a reason, or
+  blocked by the frozen project format. No persistent parameter was added.
+- Version 1.7-QG across firmware, Web Studio, installer strings and documentation.
+
 ## v1.6-QG — EVOLVE / MOTION, Touch & 200 Sounds (2026-11-03)
 
 ### Library — exactly 200 factory sounds

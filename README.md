@@ -44,7 +44,7 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## What's in Quantum GammaWave (`v1.6-QG`)
+## What's in Quantum GammaWave (`v1.7-QG`)
 
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
 - **Harmonic Distortion & Saturation Suite:** 4 musical, warm saturation topologies with dedicated algorithms:
@@ -217,7 +217,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.6-QG build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.7-QG build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -225,6 +225,23 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 ---
 
 ## Changelog
+
+### `v1.7-QG` — UI Evolution & Hardware Validation
+
+- **UI pass without regressions:** the 171-screen lint and alignment sweep stays at 0 findings and 0 off-by-one
+  measurements in all 17 palettes. HOME/EDIT's knobs are the round design from 1.6, the splash is the same
+  single SURF card, and the preset browser, matrix and visualisers were audited for overlaps and cut text.
+- **Budget analyzer:** `tools/budget_report.py` measures static RAM per voice count (8/10/12), the library's
+  composition and the host CPU baselines, and states plainly what is host-measured and what needs a board.
+- **Hardware simulation, documented:** `docs/HARDWARE_SIMULATION.md` separates emulation (the same C in wasm),
+  host simulation (peripheral stubs, NOR, DMA, LCD, MIDI/USB) and physical measurement, and lists what the
+  model does **not** cover: ISR timing, DMA bandwidth, flash erase time and dual-core contention.
+- **Feature audit:** macros, morphing, motion/automation, chord memory, the arpeggiator, the randomizer and
+  LFO phase/retrigger already exist; features that would need new persistent parameters (MIDI Learn, a global
+  LFO-retrigger switch, Preset Compare state) are documented as deferred in `docs/FEATURES_1.7.md` rather
+  than shipped against the frozen project format.
+- **No new persistent parameters.** `P_COUNT`, project sizes and SysEx layouts are unchanged; 200 sounds and
+  the legacy DRUM indices stay exactly as verified for 1.6.
 
 ### `v1.6-QG` — EVOLVE / MOTION, Touch & 200 Sounds
 
