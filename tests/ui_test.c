@@ -1987,18 +1987,22 @@ static void wdt_key(void) { fm1_ms++; if (fm1_ms % 50u == 0u) fm1_in.notes = 1u;
 static int test_issues_111(void)
 {
     int bad = 0, ok;
-    int16_t bpm;
+    int16_t bpm, lvl;
     ui_power_on();
     go_home(); frames(16);
     fm1_ms += 1200u;
-    ui_sel_home = 1;
+    ui_sel_home = 0;                                   /* (QG-1) 0 BPM, 1 TRK VOL, 2 PAN, 3 MASTER, 4 OFF */
     bpm = song.g[G_BPM];
     turn(EN_SELECT, 3);
     ok = song.g[G_BPM] > bpm && ui.confirm != CF_DICE_ALL && ui.home;
-    ui_sel_home = 0;
-    fm1_ms += 1200u;
+    ui_sel_home = 1;
+    lvl = trk[0].p[P_LEVEL];
     turn(EN_SELECT, 1);
-    ok &= ui.confirm == CF_DICE_ALL;
+    ok &= trk[0].p[P_LEVEL] != lvl && ui.confirm != CF_DICE_ALL;
+    ui_sel_home = 4;
+    bpm = song.g[G_BPM];
+    turn(EN_SELECT, 1);
+    ok &= song.g[G_BPM] == bpm && ui.confirm != CF_DICE_ALL;
     bad += check("#3 SELECT ON HOME: TEMPO turns the BPM (no generator); GENERATOR (the default) opens it", ok);
     ui_power_on();
     go_title("ENV"); frames(16);
@@ -6969,10 +6973,10 @@ static int test_fx_sections(void)
     press(B_FX); press(B_FX); frames(600);
     ok &= str_eq(cur_page()->title, "SLICER");
     go_title("MASTER"); frame();
-    press(B_FX); press(B_FX); frames(600);             /* (past MASTER: round to the first) */
-    ok &= str_eq(cur_page()->title, "FX");
+    press(B_FX); press(B_FX); frames(600);             /* MASTER EQ / STEREO M.S is the last section */
+    ok &= str_eq(cur_page()->title, "MASTER EQ");
     page_title(ti);
-    ok &= str_eq(ti, "FX 1/3");
+    ok &= str_eq(ti, "MASTER EQ 1/2");
     bad += check("FX sections: tap next page, two quick taps next section (TRACK DELAY REVERB CHORUS SLICER MASTER), 'DLY 2/3'", ok);
     ui_power_on();
     return bad;
@@ -9438,8 +9442,8 @@ static int test_bpm_lock(void)
     ok = song.g[G_BPM] == b0 && str_eq(cur_page()->title, "SYSTEM") && str_eq(menu_flag(MI_BPMLOCK)->name[0], "OFF");
     turn(EN_SELECT, -1);
     ok &= str_eq(cur_page()->title, "GLOBAL");
-    go_home(); frame(); turn(EN_SELECT, 1);
-    ok &= ui.home && ui.confirm == CF_DICE_ALL && song.g[G_BPM] == b0;   /* (0.6.69) HOME: DICE EVERYTHING? as before */
+    go_home(); frame(); b0 = song.g[G_BPM]; turn(EN_SELECT, 1);
+    ok &= ui.home && !ui.confirm && song.g[G_BPM] != b0;   /* (QG-1) HOME SELECT is the configurable mode, BPM by default */
     press(B_OCTDN); frame(); ok &= !ui.confirm;
     go_title("EDIT 1"); frame(); turn(EN_SELECT, 1);
     ok &= str_eq(cur_page()->title, "EDIT 2");
@@ -9790,7 +9794,8 @@ static int test_style(void)
     press(B_OCTDN); ok &= ui_style == ST_FLAT && ux.style == ST_FLAT && ux.surf != ux.bg && ui.menu == 1u;
     press(B_OCTUP); ok &= ui_style == ST_LINE;
     ok &= !(ui_prefs & 0xFFu & ~PREF_ACCEL_OFF) && settings_leds == LEDS_DIM;   /* (no other setting moved) */
-    hold(B_HOME);
+    press(B_HOME);
+    go_title("GLOBAL"); ui.force = 1; frame();         /* HOME's visualizer suppresses the rules */
     ok &= !ui.menu && ux.style == ST_LINE && host_screen[rule] == swap16(T_RULE);
     bad += check("MENU > STYLE: FLAT by default, KNOB 1 / OCT-+ FLAT / LINE, LINE drawn (rules, no SURF)", ok);
     {
