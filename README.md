@@ -228,8 +228,9 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 
 ### `v1.6-QG` — EVOLVE / MOTION, Touch & 200 Sounds
 
-- **A 200-sound factory library.** The last two redundant DRUM kits (HEARTH KIT, CYBER DRUM) are gone; every
-  surviving kit keeps its index, so projects, favorites and user presets load the same sound. Sixteen new
+- **A 200-sound factory library.** The last two redundant DRUM kits (HEARTH KIT, CYBER DRUM) are retired
+  from browsing but kept as legacy entries at their old indices 10 and 11, so projects, favorites and user
+  presets load the exact sound they saved; the ten browsable kits keep indices 0..9. Sixteen new
   sounds (pads, drones, textures, expressive keys, bells, plucks, leads, organs) were added across ANALOG,
   PHASE, LOFI, WHEEL, FORMANT, NOISE and FM6. `tests/preset_library_test.py` checks the 200, each engine's
   share, DRUM's first ten indices and the names.

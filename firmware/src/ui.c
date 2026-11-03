@@ -1014,7 +1014,7 @@ static uint32_t preset_nth(const engine_t *e, uint32_t n)
 {
     return e == &ENG_LOFI && n < sizeof LOFI_ORDER ? LOFI_ORDER[n] : n;
 }
-#define preset_shown(e) (ENGINES[e]->npresets)
+#define preset_shown(e) (engine_library(ENGINES[e]))
 
 #if !FELUCCA_FM4
 /* DIGITAL (engine 1, retired): t's sound = p, values as DIGITAL has them, converted to FM6 with a patch of its own

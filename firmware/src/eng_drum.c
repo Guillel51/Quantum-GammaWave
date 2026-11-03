@@ -527,7 +527,12 @@ static const preset_t DRUM_PRESETS[] = {
     {"INDUSTRIAL", {90, 82, 105, 70, 75, 50, 60, 50}, {0, 100, 127, 100}, 0, 0, FX(30, 10, 35, 32), PAT(12)},
     {"ELECTRO", {40, 76, 95, 60, 65, 35, 25, 30}, {0, 100, 127, 100}, 0, 0, FX(15, 5, 20, 26), PAT(12)},
     {"QUANTUM BEAT", {64, 70, 75, 60, 50, 20, 15, 10}, {0, 100, 127, 100}, 0, 0, FX(10, 0, 15, 25), PAT(12)},
-        };
+
+    /* (QG-1 1.6 audit) retired from browsing, kept at indices 10 and 11 so a project, a favorite or a user preset
+     * made before 1.6 loads the exact kit it saved. Not in the 200-sound library (core.h engine_library). */
+    {"HEARTH KIT", {80, 55, 80, 70, 40, 30, 25, 20}, {0, 100, 127, 100}, 0, 0, FX(15, 10, 20, 30), PAT(12), .legacy = 1},
+    {"CYBER DRUM", {45, 80, 65, 50, 70, 10, 35, 15}, {0, 100, 127, 100}, 0, 0, FX(20, 0, 25, 35), PAT(12), .legacy = 1},
+};
 
 static const engine_t ENG_DRUM = {
     .name = "DRUM",

@@ -1502,8 +1502,8 @@ static void sound_dice_of(track_t *t, int quiet)
         if (!quiet) ui_message("KIT DICED");
         return;
     }
-    if (ENGINES[e]->npresets)
-        apply_preset_to(t, rng() % ENGINES[e]->npresets);
+    if (engine_library(ENGINES[e]))
+        apply_preset_to(t, rng() % engine_library(ENGINES[e]));
     for (i = 0; i < 8u; i++) {
         const param_desc_t *d = track_desc(t, P_E0 + i);
         int32_t span = (d->max - d->min) / 4;

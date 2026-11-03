@@ -720,7 +720,7 @@ static void dice_sound(track_t *t, uint32_t role, const uint8_t *el)
     dice_fm6 += e == ENGI_FM6;
     set_engine_of(t, e);
     en = ENGINES[t->eng_req % NENGINES];
-    n = en->npresets;
+    n = engine_library(en);   /* (1.6 audit) never a legacy sound */
     if (!n) return;
     for (i = 0; i < n; i++) {                           /* the presets whose names fit the role; the not bright ones,
                                                          * and never a bass's sound off the bass (0.6.34) */

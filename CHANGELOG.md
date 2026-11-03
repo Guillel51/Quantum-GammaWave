@@ -6,9 +6,10 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 ## v1.6-QG — EVOLVE / MOTION, Touch & 200 Sounds (2026-11-03)
 
 ### Library — exactly 200 factory sounds
-- Removed the two least distinct DRUM kits, **HEARTH KIT** and **CYBER DRUM** (the last two entries).
-  DRUM keeps indices 0..9 unchanged, so every project, favorite and user preset still loads the same kit;
-  an old index past the table falls back to kit 0 through the existing `preset % npresets` path.
+- Retired from browsing the two least distinct DRUM kits, **HEARTH KIT** and **CYBER DRUM**. They stay in
+  the table as legacy entries at their original indices 10 and 11, so a project, favorite or user preset
+  made before 1.6 loads the exact kit it saved (their golden hashes are byte-identical to v1.5). DRUM's
+  ten browsable sounds keep indices 0..9 and the library is exactly 200 (`core.h engine_library`).
 - Added 16 original sounds (not variations): QUANTUM BLOOM, ABYSSAL DRONE, PRISM KEYS, GLASS BELL,
   AURORA PLUCK, OCEANIC PAD, EMBER LEAD (ANALOG); EVOLVING GLASS (PHASE); TAPE DRONE (LOFI);
   CATHEDRAL REED, TIDAL ORGAN (WHEEL); BREATH CHOIR (FORMANT); SOLAR WIND (NOISE);
@@ -47,8 +48,8 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 - No change to the device bootloader, flash layout, or recovery code.
 
 ### Verification (see `docs/PROJECT_STATUS.md`, `docs/POLYPHONY_1.6.md`, `docs/TOUCH_1.6.md`)
-- **VERIFIED on the host:** 200-sound library test; UI lint/alignment (0 findings) and PNG renders;
-  golden renders and the health suite; installer, Web Studio and backup tests; sanitizer/fuzz runs when
+- **VERIFIED on the host:** 200-sound library test plus the two legacy DRUM indices; UI lint/alignment
+  (0 findings) and PNG renders; 220 golden renders and the health suite; installer, Web Studio and backup tests; sanitizer/fuzz runs when
   the local compiler supports them.
 - **SIMULATED:** the emulator page and its installer strings, from the same firmware sources.
 - **NOT VERIFIED:** anything on a physical FM-1; a 12-voice build on hardware; a rebuilt `felucca.wasm`

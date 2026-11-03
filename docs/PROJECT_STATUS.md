@@ -9,8 +9,8 @@
 
 | Check | Result |
 |---|---|
-| `tests/preset_library_test.py` | **VERIFIED** — 200 factory sounds (ANALOG 56, PHASE 25, LOFI 25, FORMANT 20, WHEEL 18, DRUM 10, NOISE 17, FM6 29), DRUM indices 0..9 preserved, retired kits absent, names unique per engine |
-| `tests/regress.c` | **VERIFIED (host)** — 218 golden renders, 0 changed / 0 gone after the intended update, 0 health failures, 0 voice/routing failures |
+| `tests/preset_library_test.py` | **VERIFIED** — 200 browsable sounds (ANALOG 56, PHASE 25, LOFI 25, FORMANT 20, WHEEL 18, DRUM 10, NOISE 17, FM6 29); DRUM 0..9 preserved and legacy kits still at 10/11 (byte-identical hashes); names unique per engine |
+| `tests/regress.c` | **VERIFIED (host)** — 220 golden renders (200 library + 2 legacy DRUM + modes/mixes), 0 changed / 0 gone after the intended update, 0 health failures, 0 voice/routing failures |
 | `tests/ui_render.c` | **VERIFIED (host)** — 171 screens x 17 palettes, 0 lint findings, 0 alignment errors (2,655,786 measurements), splash reads `v1.6-QG`; 197 of 425 timeline steps change the screen |
 | Installer / Web Studio / backup / package bounds | **VERIFIED (host, simulated device)** — all four suites pass |
 | ASan/UBSan: fuzz_ed 20,000 frames, editor_test | **VERIFIED (host)** |

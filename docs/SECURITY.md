@@ -318,11 +318,13 @@ Scope: the 1.6 changes only (preset tables, the EVO LFO wave, the `PAT` matrix s
 the HOME/EDIT knob drawing and the splash). **No bootloader, linker script, flash layout, update loader or
 recovery path was modified**, and no hardware was flashed.
 
-- **Preset table change:** two entries removed from the end of `DRUM_PRESETS` and 16 appended per engine.
-  Indices 0..9 of DRUM and every non-DRUM index are unchanged; a stored index that no longer exists is
-  reduced by `preset % npresets` in the existing loaders. `tests/preset_library_test.py` pins the ten
-  DRUM names, and the project/user-preset formats keep their `P_COUNT`, size and offsets
-  (`project.c`'s frozen-size assertions still compile).
+- **Preset table change (audited):** the two least distinct DRUM kits are retired from browsing but stay
+  in `DRUM_PRESETS` as legacy entries at their original indices 10 and 11, flagged `.legacy = 1`. Loaders
+  keep `preset % npresets` with `npresets` still 12, so a pre-1.6 project, favorite or user preset resolves
+  to the exact same kit; browsing, the dice and the editor use `engine_library()` (10 DRUM, 200 total).
+  The two legacy renders are byte-identical to v1.5. `tests/preset_library_test.py` pins the ten browsable
+  indices, the two legacy names and every range; `P_COUNT`, the project size and its offsets are unchanged
+  (`project.c`'s frozen-size assertions still compile), and `sizeof(preset_t)` remains 40 bytes.
 - **MIDI surface:** `0xA0` is handled exactly like the existing `0xD0` branch: three bytes, channel
   validated by the same `midi_track()`/routing rules, value clamped to 0..127, and only voices already
   held on that track are touched. No new buffer, no length field, no allocation.

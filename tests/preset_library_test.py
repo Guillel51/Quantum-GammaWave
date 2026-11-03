@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
-"""The factory library, checked as data (QG-1 1.6: exactly 200 sounds).
+"""The factory library, checked as data (QG-1 1.6: 200 sounds, plus two legacy kits).
 
-The firmware's preset tables are the only source: every engine's PRESETS[] array is parsed from
-firmware/src/eng_*.c, so a sound that is listed but not compiled in (or the reverse) fails here.
-Checks: the 200 total and each engine's share; DRUM's first ten indices unchanged (projects, favorites
-and user presets store a sound by index); no two sounds share a name; the two retired kits are gone; every
-entry has eight E values, a four-stage envelope in range and sends in range. A duplicate parameter
-signature is reported (not failed): the library's older sounds are allowed to be close, a new one should not.
+The firmware's tables are the only source: every engine's PRESETS[] is parsed from firmware/src/eng_*.c.
+Checks: 200 browsable sounds and each engine's share; DRUM's ten indices unchanged and its two pre-1.6
+kits still present as legacy entries at indices 10/11 (so an old project loads the exact sound it saved);
+no two sounds of an engine share a name; every entry's E count, envelope and sends in range. Duplicate
+parameter signatures are reported (not failed): the older library is allowed to be close.
 """
 import re
 import sys
@@ -27,7 +26,7 @@ ENGINES = [
 TOTAL = 200
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "TRAP 808",
              "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT"]
-RETIRED = {"HEARTH KIT", "CYBER DRUM"}
+LEGACY = ["HEARTH KIT", "CYBER DRUM"]
 NEW = {"QUANTUM BLOOM", "ABYSSAL DRONE", "PRISM KEYS", "GLASS BELL", "AURORA PLUCK",
        "EVOLVING GLASS", "TAPE DRONE", "SOLAR WIND", "BREATH CHOIR", "EVOLVE BELL",
        "VELVET EP", "OCEANIC PAD", "EMBER LEAD", "CATHEDRAL REED", "TIDAL ORGAN", "AURORA FM"}
@@ -35,7 +34,6 @@ fails = []
 
 
 def strip_comments(s):
-    """Remove C comments (the tables carry braces inside them), leaving strings untouched."""
     out, i, n, quote, esc = [], 0, len(s), False, False
     while i < n:
         c = s[i]
@@ -66,12 +64,10 @@ def strip_comments(s):
 
 
 def array_body(path, name):
-    s = open(path, encoding="utf-8").read()
+    s = strip_comments(open(path, encoding="utf-8").read())
     m = re.search(r"static const preset_t " + name + r"\[\] = \{", s)
     if not m:
         raise SystemExit("%s: no %s" % (path, name))
-    s = strip_comments(s)
-    m = re.search(r"static const preset_t " + name + r"\[\] = \{", s)
     i = s.index("{", m.start())
     depth, quote, esc = 0, False, False
     for j in range(i, len(s)):
@@ -129,18 +125,17 @@ def parse(entry):
     fenv, mono = int(env.group(2)), int(env.group(3))
     fx = [int(x) for x in re.findall(r"-?\d+", re.search(r"FX\(([^)]*)\)", entry).group(1))]
     pat = re.search(r"PAT\((\d+)\)", entry)
-    return name, e, envv, fenv, mono, fx, int(pat.group(1)) if pat else 0, entry
+    legacy = bool(re.search(r"\.legacy\s*=\s*1", entry))
+    return name, e, envv, fenv, mono, fx, int(pat.group(1)) if pat else 0, legacy
 
 
-names = []
-sigs = {}
+names, active, legacy, sigs = [], {}, {}, {}
 for label, file, arr, want in ENGINES:
     es = entries(array_body(ROOT + file, arr))
-    if len(es) != want:
-        fails.append("%s: %u presets, expected %u" % (label, len(es), want))
+    act, leg = [], []
     for entry in es:
-        name, e, envv, fenv, mono, fx, pat, _ = parse(entry)
-        names.append(name)
+        name, e, envv, fenv, mono, fx, pat, is_legacy = parse(entry)
+        (leg if is_legacy else act).append(name)
         if len(e) != 8:
             fails.append("%s: %s has %u E values, expected 8" % (label, name, len(e)))
         if len(envv) != 4 or any(v < 0 or v > 127 for v in envv):
@@ -153,25 +148,27 @@ for label, file, arr, want in ENGINES:
             fails.append("%s: %s sends %r out of range" % (label, name, fx))
         if not 0 <= pat <= 32:
             fails.append("%s: %s pattern %d" % (label, name, pat))
-        sig = (tuple(e), tuple(envv), fenv, mono, tuple(fx), tuple(re.findall(r"XP\([^)]*\)", entry)))
-        sigs.setdefault((label, sig), []).append(name)
-
-if len(names) != TOTAL:
-    fails.append("library: %u sounds, expected %u" % (len(names), TOTAL))
-for label, _f, _a, _w in ENGINES:
-    ens = [n for n in names if n in set(names)]  # placeholder, replaced below
-for label, file, arr, want in ENGINES:
-    es = entries(array_body(ROOT + file, arr))
-    en = [parse(e)[0] for e in es]
+        if not is_legacy:
+            names.append(name)
+            sig = (tuple(e), tuple(envv), fenv, mono, tuple(fx), tuple(re.findall(r"XP\([^)]*\)", entry)))
+            sigs.setdefault((label, sig), []).append(name)
+    if len(act) != want:
+        fails.append("%s: %u library sounds, expected %u" % (label, len(act), want))
+    active[label], legacy[label] = act, leg
+    en = act + leg
     dups = sorted({n for n in en if en.count(n) > 1})
     if dups:
         fails.append("%s: duplicate names: %s" % (label, ", ".join(dups)))
-for gone in sorted(RETIRED):
-    if gone in names:
-        fails.append("retired preset still present: " + gone)
-drum = [n for n in names if n in DRUM_KEEP]
-if drum != DRUM_KEEP:
-    fails.append("DRUM's first ten indices moved: %r" % (drum,))
+
+if len(names) != TOTAL:
+    fails.append("library: %u sounds, expected %u" % (len(names), TOTAL))
+if active.get("DRUM") != DRUM_KEEP:
+    fails.append("DRUM's ten library indices moved: %r" % (active.get("DRUM"),))
+if legacy.get("DRUM") != LEGACY:
+    fails.append("DRUM's legacy indices 10/11 changed: %r" % (legacy.get("DRUM"),))
+for label, leg in legacy.items():
+    if label != "DRUM" and leg:
+        fails.append("%s: unexpected legacy sounds: %r" % (label, leg))
 missing = sorted(NEW - set(names))
 if missing:
     fails.append("1.6 sounds missing: " + ", ".join(missing))
@@ -183,5 +180,5 @@ if fails:
     for f in fails:
         print("FAIL: " + f)
     sys.exit(1)
-print("preset library: %u factory sounds (%s); DRUM's ten indices kept, %u unique names, %u new"
-      % (len(names), ", ".join("%s %u" % (l, w) for l, _, _, w in ENGINES), len(set(names)), len(NEW)))
+print("preset library: %u factory sounds (%s); DRUM 10 indices + legacy 10/11 kept, %u unique names, %u new"
+      % (len(names), ", ".join("%s %u" % (l, len(active[l])) for l, _, _, _ in ENGINES), len(set(names)), len(NEW)))

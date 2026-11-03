@@ -321,6 +321,8 @@ typedef struct {
     struct { uint8_t id; int8_t v; } x[6];   /* (1.2-GW) up to six more of the sound's values a preset sets (P_* + 1,
                                   * 0 = none; its value as is): the LFO, the matrix, VOICE, GLIDE .. so a pad moves by
                                   * itself. None in the presets before 1.2: they load as they did */
+    uint8_t legacy;              /* (QG-1 1.6 audit) kept at its old index for projects and user presets, not shown
+                                  * by the browser and not part of the 200-sound library: DRUM 10, 11 */
 } preset_t;
 #define FX(d, c, dl, r) .fx = {(d) + 1, (c) + 1, (dl) + 1, (r) + 1}
 #define XP(id, v) {(id) + 1, (v)}
@@ -368,6 +370,16 @@ typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c 
     uint8_t ownenv;
     int (*done)(struct track *t, voice_t *v);
 } engine_t;
+/* (QG-1 1.6 audit) the sounds browsing offers: the table's, less the legacy ones kept at its end so a project made
+ * before they were retired still loads the exact kit it saved. No index moves (npresets stays the table's size, and
+ * every stored index is taken modulo it), so DRUM 10 HEARTH KIT and 11 CYBER DRUM still resolve. */
+static inline uint32_t engine_library(const engine_t *e)
+{
+    uint32_t n = e->npresets;
+    while (n && e->presets[n - 1u].legacy)
+        n--;
+    return n;
+}
 
 /* ------------------------------------------------- tracks, the song --- */
 enum { ST_NOTE, ST_TIE, ST_REST };
