@@ -35,3 +35,20 @@ half-safe. "Present" means the capability already exists in 1.6 and was verified
    already in RAM (no new storage), behind a held button.
 3. Motion recorder onto the existing automation lanes (no new parameter): record knob moves as automation
    events, which the project format already stores.
+
+## 1.7 delivery status (2026-11-03)
+
+- **Preset classification: implemented.** `tools/gen_preset_categories.py` reads all 200 entries from the
+  firmware tables and assigns one primary category from engine defaults plus documented name keywords.
+  `tests/preset_categories_test.py` requires exactly 200, no per-engine duplicate and a match with
+  `web/preset_categories.json`. Web Studio's device list has a name search and a primary-category filter;
+  `make_site.py` ships the JSON. Names, ids, parameters and order are untouched.
+- **Preset Compare: deferred.** A real A/B needs a second sound buffer and a held UI state; doing it in RAM
+  without a persistent parameter is possible, but it still needs a screen/gesture and a full load/restore
+  test. It is not shipped as a placeholder.
+- **Motion Recorder: partial, unchanged.** Knob moves already become automation events through
+  `motion_capture` and the existing MOTION lanes; a separate real-time timeline with configurable duration
+  and resolution is not implemented.
+- **Preset Morphing: wave-only, unchanged.** `P_MORPH` morphs the oscillator wave. Preset-to-preset
+  interpolation needs a compatibility table (engine, discrete parameters, ranges) and a defined CPU budget;
+  it is deferred rather than interpolating incompatible values.

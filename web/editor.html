@@ -740,6 +740,8 @@
       <h2 data-t="devicePresets"></h2>
       <p class="dim" data-t="deviceFavHelp"></p>
       <label><span data-t="deviceList"></span> <select id="device-filter"></select></label>
+      <label>SEARCH <input type="search" id="device-search" spellcheck="false" placeholder="name"></label>
+      <label>CATEGORY <select id="device-category"><option value="">ALL</option></select></label>
       <div class="list" id="device-preset-list" style="margin-top:8px"></div>
     </div>
     <div class="libcols" id="libsec">
@@ -2965,6 +2967,15 @@ const el = (tag, attrs = {}, ...kids) => {
   return e;
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/* primary category per factory sound (tools/gen_preset_categories.py); absent: no filter, never an error */
+const PRESET_CATS = new Map();
+if (typeof fetch === "function") fetch("preset_categories.json").then((r) => r.ok ? r.json() : []).then((rows) => {
+  for (const row of rows) PRESET_CATS.set(row.name, row.category);
+  const sel = $("device-category");
+  if (!sel) return;
+  const cats = [...new Set(rows.map((r) => r.category))].sort();
+  sel.replaceChildren(el("option", { value: "", text: "ALL" }), ...cats.map((c) => el("option", { value: c, text: c })));
+}).catch(() => {});
 
 /* ---------------------------------------------------------------- icons --- */
 /* Fukiai glyphs by their names in hugelton-plugin-rules lib/include/hugelton/Glyphs.h */
@@ -4486,7 +4497,12 @@ function renderPreferences(force = false) {
   filter.setAttribute("aria-label", t("deviceList"));
   filter.replaceChildren(el("option", { value: 0, text: t("deviceAll") }), el("option", { value: 1, text: t("deviceFavorites") }));
   filter.value = p.state.filter;
-  const rows = devicePresetRows(d.info, d.names, p);
+  let rows = devicePresetRows(d.info, d.names, p);
+  {   /* (1.7) search + primary category, from the 200-sound table */
+    const q = ($("device-search") && $("device-search").value || "").toLowerCase();
+    const cat = $("device-category") && $("device-category").value || "";
+    rows = rows.filter((r) => (!q || r.name.toLowerCase().includes(q)) && (!cat || PRESET_CATS.get(r.name) === cat));
+  }
   const table = el("table");
   table.append(el("colgroup", {}, el("col", { style: "width:40px" }), el("col"), el("col", { style: "width:110px" })));
   for (const row of rows) {
@@ -4500,6 +4516,8 @@ function renderPreferences(force = false) {
   $("device-preset-list").replaceChildren(rows.length ? table : el("p", { class: "dim", text: t("deviceEmpty") }));
 }
 $("device-filter").addEventListener("change", () => changePreference(3, +$("device-filter").value));
+for (const id of ["device-search", "device-category"])
+  $(id).addEventListener("input", () => { if (dev) { renderPreferences.sig = null; renderPreferences(); } });
 setInterval(() => {
   if (!dev || !dev.preferences || busy || document.hidden || !["settings", "library"].includes(tab)) return;
   const d = dev;
