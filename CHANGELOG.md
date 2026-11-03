@@ -3,6 +3,22 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — visual system: scope and splash
+
+- The full-screen visualizer was recomposed instead of recoloured: a single header with the six live track
+  levels, a 144 px zero-crossing waveform on the left, its real X/Y phase trajectory in a framed inset on
+  the right, and the 16-band spectrum with peak caps on its own floor. The old overlapping reticle, the
+  full-width trace through the bars and the crowded cloud of motes are gone. The phase plot and the
+  music-reactive meters remain; the six ambient motes are deliberate and slow, not a random field.
+- The boot splash is now a real title screen: the seven block letters of QUANTUM in the same glyphs as the
+  QG logo, an accent Q, a solar core with a corona, two orbits and a travelling electron, a progress
+  hairline under the wordmark, three written waves and a spectral horizon with its playhead. It stays
+  inside the existing 240x124 canvas, the palette and the mono rule; no stored bitmap was added.
+- UI passes 172 screens x 17 palettes with 0 lint and 0 alignment findings. The splash timeline still has
+  425 steps of 4 ms; 198 change the screen and 227 identical rewrites are skipped. No DSP, persistent
+  layout, bootloader or flash path changed. Target app grew 748 B to 548852 B; package size is unchanged
+  at 610876 B (`FM-1_982`, SHA-256 `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`).
+
 ## v1.7-QG — performance / security hardening
 
 - `graph_home_viz()` measured the 16 spectrum bands twice per frame because the screen is drawn in two

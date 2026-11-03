@@ -1419,49 +1419,70 @@ static void splash_sig(uint32_t prog, uint32_t ms)
         return;
     spl_shown = sig;
     cv_begin(240, SPL_ART_H, T_BG);
-    cv_rrect(4, 2, 232, SPL_ART_H - 10, 10, card, T_BG);       /* the one card */
-    cv_rect(14, 8, 212, 2, rule);                                /* its top rule */
-    {   /* the monogram: a dotted orbit, the ring, the Q, an electron that goes round while it writes */
-        int32_t cx = 54, cy = 62;
-        gw_orbit_ring(cx, cy, 37, 37, mono ? T_DIM : T_LINE, 1);
-        gw_orbit_ring(cx, cy, 29, 29, mono ? T_TEXT : T_THEME, 0);
-        /* (1.7) the Q as QG draws everything else: a round ring with its tail, not the old square glyph
-         * (a box with a diagonal read as a placeholder). Same palette, same mono rule. */
-        gw_orbit_ring(cx, cy - 1, 16, 16, mono ? T_TEXT : T_ACCENT, 0);
-        cv_line_t(cx + 6, cy + 6, cx + 17, cy + 17, mono ? T_TEXT : T_ACCENT, 3);
+    cv_rrect(4, 2, 232, SPL_ART_H - 10, 10, card, T_BG);
+
+    /* corner brackets and a hairline: the same quiet instrument frame as HOME */
+    cv_rect(12, 8, 14, 1, rule);
+    cv_rect(12, 8, 1, 10, rule);
+    cv_rect(214, 8, 14, 1, rule);
+    cv_rect(227, 8, 1, 10, rule);
+    cv_rect(12, 108, 216, 1, T_LINE);
+
+    /* the wordmark: seven block letters, built by the same glyphs as the QG logo */
+    for (i = 0; i < 7; i++)
+        gw_logo_letter("QUANTUM"[i], 104 + i * 17, 15, 14, 16, mono ? T_TEXT : (i == 0 ? T_ACCENT : T_THEME));
+    cv_rect(104, 35, 120, 1, T_LINE);
+    if (prog > 0u)
+        cv_rect(104, 35, (int32_t)(120u * prog / 256u), 1, rule);
+
+    {   /* the quantum core: a solar disc, its corona, two orbits and one travelling electron */
+        int32_t cx = 57, cy = 65;
+        if (mono) {
+            gw_disc(cx, cy, 32, T_RAISE);
+            gw_disc(cx, cy, 24, T_DIM);
+        } else {
+            for (i = 3; i >= 0; i--)
+                gw_disc(cx, cy, 32 - i * 6, ux_mix(card, bg_col(52 + (3 - i) * 34), 58 - i * 9));
+        }
+        gw_orbit_ring(cx, cy, 46, 46, mono ? T_DIM : T_LINE, 1);
+        gw_orbit_ring(cx, cy, 38, 38, mono ? T_TEXT : T_THEME, 0);
+        gw_orbit_ring(cx, cy - 1, 18, 18, mono ? T_TEXT : T_ACCENT, 0);
+        cv_line_t(cx + 7, cy + 6, cx + 19, cy + 18, mono ? T_TEXT : T_ACCENT, 3);
         gw_disc(cx, cy - 1, 3, card);
         {
-            uint32_t an = (uint32_t)(28 + prog * 3u) << 6;
-            int32_t ex = cx + (int32_t)((37 * bg_sin((int32_t)an)) >> 15);
-            int32_t ey = cy - (int32_t)((37 * bg_sin((int32_t)an + 0x4000)) >> 15);
+            uint32_t an = (uint32_t)(24 + prog * 3u) << 6;
+            int32_t ex = cx + (int32_t)((46 * bg_sin((int32_t)an)) >> 15);
+            int32_t ey = cy - (int32_t)((46 * bg_sin((int32_t)an + 0x4000)) >> 15);
             gw_disc(ex, ey, 4, mono ? T_TEXT : T_ACCENT);
+            gw_disc(ex, ey, 2, mono ? T_TEXT : T_ACCENT);
+        }
+        /* solar ticks, fixed: heat radiating from the core, not random dust */
+        for (i = 0; i < 8; i++) {
+            int32_t tx = cx + (int32_t)((52 * bg_sin(i * 8192 + 0x2000)) >> 15);
+            int32_t ty = cy - (int32_t)((52 * bg_sin(i * 8192)) >> 15);
+            cv_rect(tx, ty, 2, 2, mono ? T_DIM : (i % 2 ? T_ACCENT : T_THEME));
         }
     }
-    {   /* (1.7) particles: deterministic from prog, behind the waves so they never cut a line */
-        for (i = 0; i < 14; i++) {
-            uint32_t h = (uint32_t)i * 2654435761u ^ 0x9E3779B9u;   /* (fixed: the waves write, the dust stays) */
-            int32_t px = 16 + (int32_t)(h % 208u), py = 16 + (int32_t)((h >> 9) % 84u);
-            uint16_t pc = i % 5u == 0u ? (mono ? T_TEXT : T_ACCENT) : (mono ? T_DIM : T_THEME);
-            gw_disc(px, py, i % 4u == 0u ? 2 : 1, pc);
-        }
-    }
-    /* three waves, written from the left; the middle one is the accent */
+
+    /* three waves write themselves under the wordmark, the middle one carrying the accent */
     for (i = 0; i < 3; i++) {
-        int32_t w = (int32_t)(prog * 126u / 256u), ax = 100, ay = 40 + i * 17, ph = i * 100;
+        int32_t w = (int32_t)(prog * 122u / 256u), ax = 104, ay = 52 + i * 15, ph = i * 100;
         for (x = 0; x < w; x++) {
-            y = ay + (int32_t)((9 * bg_sin((x * 300 + ph * 64) & 0xFFFF)) >> 15);
+            y = ay + (int32_t)((6 * bg_sin((x * 300 + ph * 64) & 0xFFFF)) >> 15);
             cv_rect(ax + x, y, 1, 2, mono ? (i == 1 ? T_TEXT : T_DIM) : (i == 1 ? T_ACCENT : T_THEME));
         }
     }
-    /* the rail: sixteen segments, the newest in the accent; the playhead rides it while it writes */
-    cv_rect(22, 104, 196, 1, mono ? T_LINE : T_LINE);
+
+    /* the spectral horizon: sixteen segments rise from the baseline; the leading edge is the playhead */
+    cv_rect(24, 104, 190, 1, T_LINE);
     for (i = 0; i < (int32_t)SPL_BARS; i++) {
-        int32_t h = SPL_BAR[i] * 20 / 38, bx = 24 + i * 12;
-        cv_rrect(bx, 104 - h, 8, h, 2, mono ? (i < lit ? T_TEXT : T_DIM)
-                                            : (i < lit ? ((uint32_t)i + 1u == (uint32_t)lit ? T_ACCENT : T_THEME) : T_LINE), card);
+        int32_t h = SPL_BAR[i] * 17 / 38, bx = 25 + i * 12;
+        uint16_t bc = mono ? (i < lit ? T_TEXT : T_DIM)
+                           : (i < lit ? ((uint32_t)i + 1u == (uint32_t)lit ? T_ACCENT : T_THEME) : T_LINE);
+        cv_rrect(bx, 103 - h, 8, h, 2, bc, card);
     }
     if (prog < 256u)
-        gw_disc(24 + (int32_t)(prog * 190u / 256u), 108, 3, mono ? T_TEXT : T_ACCENT);
+        gw_disc(25 + (int32_t)(prog * 184u / 256u), 106, 3, mono ? T_TEXT : T_ACCENT);
     cv_blit(0, SPL_SY);
 }
 static void draw_splash(void)

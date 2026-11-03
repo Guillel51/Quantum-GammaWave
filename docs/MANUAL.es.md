@@ -1652,7 +1652,7 @@ propio CUT y RES) y el tipo de filtro; la pantalla dice cuál es. UNDO deshace u
 ### Las pantallas Quantum GammaWave (QG-1)
 
 - **HOME**: Analizador de espectro reactivo de 28 barras, sol Hearth y luna orbital, curva de filtro en tiempo real y tira de pistas T1–T6.
-- **Visualizador Full-Screen (`HOME -> HOME`)**: Al pulsar HOME estando ya en la pantalla HOME, se activa un osciloscopio en tiempo real con sincronización de fase por cruce por cero y órbitas Lissajous.
+- **Visualizador Full-Screen (`HOME -> HOME`)**: Al pulsar HOME estando ya en la pantalla HOME se abre un osciloscopio nativo: onda con sincronización por cruce por cero a la izquierda, su traza de fase X/Y de Lissajous en vivo a la derecha, seis niveles de pista en la cabecera y espectro de 16 bandas con picos en la base.
 - **Selector Transitorio de Presets (1.5 s)**: Al girar el encoder PRESET, se muestra un panel emergente de 7 filas categorizadas durante 1.5 s sin interrumpir la reproducción.
 - **Arpegiador Moderno Dinámico (ARP)**: Visualización en tiempo real de la trayectoria del arpegio de 16 pasos, arcos de octava, modos direccionales y cabezal sincronizado al tempo.
 - **Monitor de Telemetría GLO 2**: Visualización en vivo del reparto de las 10 voces por pista, recuento de ciclos de CPU de ambos núcleos (`mc_fx_tk`) y salud del búfer de audio.

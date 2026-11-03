@@ -45,10 +45,12 @@
 
 - Branch `perf/security-hardening`, merged with `origin/main` (`e3475f0`) at `08c74d0`; PRs #47–#51
   are closed and merged. No open PR remained to update at the time of this record.
-- Target app 548104 B, package 610876 B, identity FM-1_982; package SHA-256
-  `b0e985c7fbefc2c44bcb51d68dd1346e57c4eb284acf75831488f49516dfd358`.
+- Target app 548852 B, package 610876 B, identity FM-1_982; package SHA-256
+  `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`.
 - RAM: `RAM spare 3732 B; pool spare 9248 B; RAMTEXT spare 2436 B; NOINIT spare 124 B`.
 - Host: loader normal + ASan/UBSan pass; web, security and preset groups pass; UI 172 screens x 17
   palettes, 0 lint / 0 alignment; FX draw cost 123.9 host units (was 125.3).
+- Final visual pass: the scope now separates waveform, real phase plot and spectrum; the splash adds the
+  QUANTUM wordmark and solar core. App +748 B, package unchanged; 198 of 425 splash steps change pixels.
 - Flash/loader/UI detail and residual risks: `docs/PERF_SECURITY_AUDIT.md`. No physical FM-1
   validation, no release, no Pages deployment, no force push.

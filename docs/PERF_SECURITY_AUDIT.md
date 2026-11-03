@@ -26,6 +26,14 @@ modified. **No operation was run on a physical FM-1.**
 3. **Reproducible groups.** `tests/groups.sh` now has `security` (installer, backup, package bounds,
    sanitized audio test) and `stress` (`tests/stress_run.sh N`), in addition to `ui`, `presets`, `web`,
    `emu` and `target`.
+4. **Visual system (UI only).** `graph_home_viz()` now draws one header with six real track levels, a
+   left-hand zero-crossing waveform, a framed X/Y phase inset and a separate 16-band spectrum floor. This
+   removes the old full-width trace through the bars, the cross-screen reticle and the dense mote field,
+   while retaining the phase trajectory and the real peak meters. `splash_sig()` now carries the seven
+   block-letter QUANTUM wordmark, an accent Q, a solar core/corona, two orbits, a writing progress rule
+   and the spectral horizon. Both use only primitives and the saved palette; no stored image, new
+   parameter or DSP path was added. UI lint/alignment pass again; the splash timeline is unchanged at
+   425 steps (198 changing, 227 skipped).
 
 ## Measurements (host, not AC791N)
 
@@ -33,16 +41,18 @@ modified. **No operation was run on a physical FM-1.**
   single part 602.9 ns/sample (ASan/UBSan build), six-part mix 569.5 ns/sample.
 - `regress`: 220 golden renders, **0 changed**, 0 health failures, 0 voice/routing failures, 0 CPU
   entries over budget; `6parts_full` 680.3 ns/sample on this host.
-- Target build after the loader and UI changes: app **548104 B**, package **610876 B**, `FM-1_982`,
-  SHA-256 `b0e985c7fbefc2c44bcb51d68dd1346e57c4eb284acf75831488f49516dfd358`. The app
-  slot check is `0x920DC <= 0x93000`; the package image ends at `0x93000`.
+- Target build after the loader, UI and visual changes: app **548852 B**, package **610876 B**, `FM-1_982`,
+  SHA-256 `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`. The app
+  slot check is `0x920DC <= 0x93000`; the package image ends at `0x93000`. The visual pass costs
+  **+748 B** of app image and no package bytes; RAM and the static DSP budgets are unchanged.
 - Target static budget: pass; `mod_begin` 35/166, `mod_voice` 19/30, DRUM path 1189/1191,
   `perf_block` 569/522 (`+9 %`, inside the existing +10 % tolerance).
 - RAM: `.data+.bss` 94572 B of 98304 B; pool spare 9248 B (the project's minimum is 8192 B).
   This is margin, not a measured board headroom.
-- UI: 172 screens x 17 palettes, 0 lint findings, 0 alignment errors. FX draw cost
-  123.9 host units (was 125.3 before the meter/FX layout change); MASTER was not benchmarked
-  separately. These are host ratios, not AC791N cycles.
+- UI: 172 screens x 17 palettes, 0 lint findings, 0 alignment errors. FX draw cost is 123.9 host units
+  (was 125.3 before the meter/FX layout change); the visualizer and splash were not separately
+  benchmarked, so no CPU saving is claimed for them. The splash timeline has 198 changing frames of 425
+  (227 identical rewrites skipped). These are host ratios, not AC791N cycles.
 - Sanitized host paths: `audio_test`, `reverb_test`, six-part `hostsim`, and the project,
   persistence, robust and MIDI tests plus two full regress passes (the `stress` group) pass under the
   repository policy (ASan + bounds; intentional fixed-point wraps are excluded, as in

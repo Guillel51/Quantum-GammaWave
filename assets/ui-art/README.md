@@ -23,7 +23,7 @@ El firmware renderiza toda la interfaz proceduralmente mediante dibujo vectorial
 15. **`15_chord.png` — ESCALAS & ACORDES**: Cuantización por notas de escalas musicales y generador armónico de acordes.
 16. **`16_arp.png` — ARPEGIADOR DINÁMICO**: Trayectoria de arpegio de 16 pasos con visualización de modo de dirección y swing.
 17. **`17_automation.png` — AUTOMATIZACIÓN & PARAMETER LOCKS**: Parámetros bloqueados en pasos específicos de la secuencia.
-18. **`18_visualizer.png` — VISUALIZADOR DE AUDIO FULL-SCREEN**: Osciloscopio con sincronización de cruce por cero y órbitas Lissajous (`HOME -> HOME`).
+18. **`18_visualizer.png` — VISUALIZADOR DE AUDIO FULL-SCREEN**: Composición en tres planos: osciloscopio con sincronización por cruce por cero a la izquierda, trayectoria de fase X/Y enmarcada a la derecha, y espectro de 16 bandas con picos en la base; cabecera con los seis niveles de pista (`HOME -> HOME`).
 19. **`19_save_project.png` — PROJECT MANAGER**: Almacenamiento seguro en ranuras de memoria flash física.
 20. **`20_performance.png` — MODO PERFORMANCE ARMÓNICO**: Tiras de rendimiento con filtros en vivo y contornos envolventes.
 

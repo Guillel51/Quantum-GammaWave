@@ -2443,12 +2443,10 @@ static void graph_home_viz(uint16_t c)
         if (snap[i] > peak) peak = snap[i];
         else if (-snap[i] > peak) peak = -snap[i];
     }
-    for (i = 1; i < SCOPE_N - 240u; i++) {
+    for (i = 1; i < SCOPE_N - 240u; i++)
         if (snap[i - 1] < 0 && snap[i] >= 0) { trig = i; break; }
-    }
 
-    /* One measurement per frame: the two band passes draw the same bars and peak caps. Updating
-     * peak_decay inside the passes made a peak fall two rows per frame. */
+    /* One measurement per frame: the two band passes draw the same bars and peak caps. */
     for (i = 0; i < 16u; i++) {
         int32_t bsum = 0, j;
         for (j = 0; j < 8; j++) {
@@ -2463,123 +2461,99 @@ static void graph_home_viz(uint16_t c)
         else if (peak_decay[i]) peak_decay[i]--;
     }
 
-    /* Render in two 88-pixel high bands (y=26..113 and y=114..201) */
     for (pass = 0; pass < 2u; pass++) {
-        int32_t top_y = pass ? 114 : 26;
+        int32_t top_y = pass ? 114 : 26, cy = 100, amp = 34;
         cv_begin(240, 88, T_BG);
         cv_oy = -top_y;
         cv_bg = T_SURF;
 
-        /* Panel enclosure */
-        if (ux.chamfer && !ux.style) {
+        if (ux.chamfer && !ux.style)
             gw_oct_panel(4, 26, 232, 176, 6, T_SURF, T_LINE, 1, c);
-        } else {
+        else
             cv_rrect(4, 26, 232, 176, 6, T_SURF, T_BG);
-        }
 
-        /* Reticle lines & zero-crossing center axis at y=114. The vertical spine stops above the bottom
-         * telemetry band (y >= 184), so it never runs under the exit pill or its caption. */
-        cv_rect(10, 114, 220, 1, T_LINE);
-        cv_rect(120, 32, 1, 150, T_LINE);
-        cv_rect(65, 50, 1, 128, T_RAISE);
-        cv_rect(175, 50, 1, 128, T_RAISE);
-
-        /* Real-time 16-band energy spectrum bars across the bottom */
-        for (i = 0; i < 16u; i++) {
-            int32_t bx = 16 + (int32_t)i * 13;
-            int32_t bsum = bars[i];
-
-            /* Draw bar & peak cap. Baseline y=180 (was 186): the bars now clear the bottom telemetry
-             * band at y=184..198 instead of crowding the caption drawn over them. */
-            if (bsum > 0) {
-                uint16_t bcol = mono ? T_TEXT : heat_col(40 + (int32_t)i * 12);
-                cv_rect(bx, 180 - bsum, 9, bsum, bcol);
-            }
-            if (peak_decay[i] > 1) {
-                cv_rect(bx, 180 - (int32_t)peak_decay[i] - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
-            }
-        }
-
-        /* 6-Track Mini VU Activity Meters at y=48..52 */
-        for (i = 0; i < trk_live && i < 6u; i++) {
-            int32_t vx = 16 + (int32_t)i * 35;
-            int32_t vpk = trk[i].peak > 0 ? (trk[i].peak * 20 / 32767) : 0;
-            vpk = clamp(vpk, 0, 20);
-            cv_rect(vx, 48, 22, 4, T_RAISE);
-            if (vpk > 0) {
-                cv_rect(vx, 48, vpk, 4, i == song.sel ? T_ACCENT : T_THEME);
-            }
-        }
-
-        /* Dual-layer phosphor oscilloscope waveform */
-        {
-            int32_t py1 = 114, py2 = 114, x;
-            for (x = 0; x < 216; x += 2) {
-                int32_t sval = snap[trig + (uint32_t)x];
-                int32_t y = 114 - (sval * 46) / peak;
-                y = clamp(y, 36, 180);            /* (the telemetry band owns y >= 184) */
-
-                if (x) {
-                    /* Outer warm phosphor glow */
-                    uint16_t glow = mono ? T_DIM : ux_mix(T_SURF, heat_col(50 + (y > 114 ? y - 114 : 114 - y) * 200 / 46), 40);
-                    cv_line_t(12 + x - 2, py1, 12 + x, y, glow, 3);
-                    /* Core focused beam */
-                    uint16_t core = mono ? T_TEXT : heat_col(70 + (y > 114 ? y - 114 : 114 - y) * 185 / 46);
-                    cv_line_t(12 + x - 2, py2, 12 + x, y, core, 1);
-                }
-                py1 = py2 = y;
-            }
-        }
-
-        /* Orbital phase-space trajectory x(t) vs x(t - tau) */
-        if (peak > 1400) {
-            int32_t lpx = 120, lpy = 114;
-            for (i = 0; i <= 60u; i += 2) {
-                int32_t ox = 120 + (snap[(trig + i * 2u) & (SCOPE_N - 1u)] * 30) / peak;
-                int32_t oy = 114 + (snap[(trig + i * 2u + 16u) & (SCOPE_N - 1u)] * 30) / peak;
-                ox = clamp(ox, 40, 200);
-                oy = clamp(oy, 40, 180);          /* (above the telemetry band) */
-                if (i) cv_line(lpx, lpy, ox, oy, mono ? T_TEXT : T_ACCENT);
-                lpx = ox; lpy = oy;
-            }
-        }
-
-        /* Quantum motes: soft specks gliding on slow, independent Lissajous orbits. The position is a
-         * smooth function of the frame (never a per-frame hash), so they drift instead of flickering
-         * every frame; each breathes on its own phase and brightens with the music, coloured by the same
-         * thermal ramp as every other hot element, so they belong to the rest of the interface. */
-        {
-            uint32_t n = peak > 1500 ? 14u : peak > 700 ? 10u : 7u;
-            for (i = 0; i < n; i++) {
-                int32_t rx = 76 - (int32_t)(i % 4u) * 17;      /* nested orbits, inside the reticle */
-                int32_t ry = 48 - (int32_t)(i % 3u) * 13;
-                int32_t px = 120 + ((bg_sin(ui.frame * (150u + i * 27u) + i * 8192u) * rx) >> 15);
-                int32_t py = 114 + ((bg_sin(ui.frame * (97u + i * 19u) + i * 4096u + 16384u) * ry) >> 15);
-                int32_t pulse = (bg_sin(ui.frame * (61u + i * 11u) + i * 2048u) + 32768) >> 8;   /* 0..255 */
-                int32_t lvl = pulse * (48 + (peak >> 8)) >> 8;  /* 0..~170: breathes, louder = brighter */
-                if (py >= top_y - 2 && py < top_y + 88) {
-                    uint16_t pcol = mono ? (lvl > 85 ? T_TEXT : T_DIM)
-                                         : ux_mix(T_SURF, heat_col(80 + (int32_t)i * 12), 30 + lvl / 3);
-                    cv_rect(px, py, 2, 2, pcol);
-                    if (lvl > 150)                            /* a white-hot core on the brightest mote */
-                        cv_pset(px, py, mono ? T_TEXT : T_THEME);
-                }
-            }
-        }
-
-        /* High-contrast Telemetry overlays */
+        /* A single quiet frame: header, a scope field, then the spectrum floor. */
         if (!pass) {
-            cv_text(12, 30, &AF_S, "QG-1 QUANTUM SCOPE", T_THEME);
-            cv_text_r(228, 30, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
-        } else {
-            /* Bottom telemetry band, fully inside the panel and inside this pass's 88-row canvas
-             * (screen rows 114..201). The pill owns y 184..198, so an AF_S caption drawn at y=183 has
-             * its ink at y 186..196: it no longer overflows the pill, spills past the panel edge or is
-             * clipped by the canvas (it used to run to y=206 against a canvas ending at y=201). The exit
-             * caption is blended against the pill it sits on, not against the panel behind it. */
+            cv_text(14, 30, &AF_S, "QG-1 QUANTUM SCOPE", T_THEME);
+            cv_text_r(226, 30, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
+            cv_rect(14, 43, 212, 1, T_LINE);
+            for (i = 0; i < trk_live && i < 6u; i++) {
+                int32_t vx = 16 + (int32_t)i * 35;
+                int32_t vpk = trk[i].peak > 0 ? trk[i].peak * 18 / 32767 : 0;
+                vpk = clamp(vpk, 0, 18);
+                cv_rect(vx, 49, 22, 3, T_RAISE);
+                if (vpk > 0)
+                    cv_rect(vx, 49, vpk, 3, i == song.sel ? T_ACCENT : T_THEME);
+            }
+        }
+
+        /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
+        cv_rect(12, cy, 144, 1, T_LINE);
+        for (i = 0; i < 4u; i++)
+            cv_rect(12 + (int32_t)i * 48, 64, 1, 66, T_GRID);
+        cv_rect(12, 64, 144, 1, T_GRID);
+        cv_rect(12, 130, 144, 1, T_GRID);
+        {
+            int32_t py = cy, x;
+            for (x = 0; x <= 144; x += 2) {
+                int32_t sv = snap[(trig + (uint32_t)x) & (SCOPE_N - 1u)];
+                int32_t y = cy - (sv * amp) / peak;
+                y = clamp(y, cy - amp, cy + amp);
+                if (x) {
+                    uint16_t glow = mono ? T_DIM : ux_mix(T_SURF, heat_col(54 + (y > cy ? y - cy : cy - y) * 190 / amp), 38);
+                    uint16_t core = mono ? T_TEXT : heat_col(76 + (y > cy ? y - cy : cy - y) * 178 / amp);
+                    cv_line_t(12 + x - 2, py, 12 + x, y, glow, 3);
+                    cv_line_t(12 + x - 2, py, 12 + x, y, core, 1);
+                }
+                py = y;
+            }
+        }
+        /* Phase plot: x(t) against x(t - tau), inside its own quiet reticle. */
+        cv_rrect(164, 64, 64, 67, 3, T_SURF, T_GRID);
+        cv_rect(196, 72, 1, 51, T_GRID);
+        cv_rect(172, 97, 48, 1, T_LINE);
+        if (peak > 1400) {
+            int32_t px = 196, py = 98;
+            for (i = 0; i <= 64u; i += 2) {
+                int32_t ox = 196 + (snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
+                int32_t oy = 98 + (snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
+                ox = clamp(ox, 168, 224);
+                oy = clamp(oy, 72, 123);
+                if (i) cv_line(px, py, ox, oy, mono ? T_TEXT : T_ACCENT);
+                px = ox; py = oy;
+            }
+        }
+
+        /* Spectrum floor: 16 slim bars, with peak marks, below the trace. */
+        cv_rect(12, 180, 216, 1, T_LINE);
+        for (i = 0; i < 16u; i++) {
+            int32_t bx = 14 + (int32_t)i * 13, bh = bars[i] * 26 / 34;
+            if (bh > 0) {
+                uint16_t bcol = mono ? T_TEXT : heat_col(38 + (int32_t)i * 13);
+                cv_rect(bx, 179 - bh, 9, bh, bcol);
+            }
+            if (peak_decay[i] > 1)
+                cv_rect(bx, 179 - (int32_t)peak_decay[i] * 26 / 34 - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
+            /* an ambient scan tick: a UI marker, never presented as measured level */
+            if (!song.playing && (uint32_t)((ui.frame / 6u + i) % 16u) == 0u)
+                cv_rect(bx + 4, 181, 1, 2, T_DIM);
+        }
+
+        /* A few slow orbital embers around the field; they are decorative, not audio meters. */
+        for (i = 0; i < 6u; i++) {
+            int32_t px = 38 + (int32_t)((i % 3u) * 40u);
+            int32_t py = 92 + (int32_t)((bg_sin(ui.frame * (43u + i * 11u) + i * 8192u) * (20 + i * 3)) >> 15);
+            int32_t lvl = (bg_sin(ui.frame * (31u + i * 7u) + i * 4096u) + 32768) >> 9;
+            if (py >= top_y && py < top_y + 88 && px >= 12 && px < 228) {
+                uint16_t pc = mono ? (lvl > 90 ? T_TEXT : T_DIM) : ux_mix(T_SURF, heat_col(90 + i * 14), 22 + lvl / 10);
+                cv_rect(px, py, 1, 1, pc);
+            }
+        }
+
+        if (pass) {
             cv_rrect(12, 184, 72, 15, 3, T_THEME, T_SURF);
             cv_text_on(16, 183, &AF_S, "[HOME] EXIT", T_INK, T_THEME);
-            cv_text_r(228, 183, &AF_S, "LIVE AUDIO MATRIX", T_TEXT, T_SURF);
+            cv_text_r(228, 183, &AF_S, "SPECTRUM / WAVEFORM", T_TEXT, T_SURF);
         }
 
         cv_oy = 0;
