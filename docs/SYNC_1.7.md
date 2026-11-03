@@ -76,6 +76,8 @@
 
 - Target: app **549028 B**, package **610897 B**, `FM-1_982`, package SHA-256
   `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`.
+- Target: app 548708 B, package 610876 B, `FM-1_982`, SHA-256
+  `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`.
 - RAM spare 3716 B; pool 9248 B; RAMTEXT 2404 B; NOINIT 124 B. `perf_block` 569/522;
   `DRUM_PATH` 1189/1191.
 - Green: UI (172 x 17, 0 lint/alignment), presets, web, emu, security, stress 1, target,

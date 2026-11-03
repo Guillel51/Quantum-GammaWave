@@ -15,6 +15,9 @@ be completed before changing that status. The current static figures are app 549
 610897 B, `FM-1_982`, SHA-256 `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`,
 `perf_block` 569/522 and RAM spare 3716 B. The app slot is 581564 B; the app is 549028 B, so the slot
 is not a second app size. None of these is a board measurement. No flash write or
+be completed before changing that status. The current static figures are app 548708 B, package
+610876 B, `FM-1_982`, SHA-256 `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`,
+`perf_block` 569/522 and RAM spare 3716 B. None of these is a board measurement. No flash write or
 recovery is performed by this repository.
 
 

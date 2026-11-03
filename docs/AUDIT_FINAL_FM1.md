@@ -33,6 +33,8 @@ esta auditoría.
 - Slot XIP `APP_SLOT = 0x8DFBC = 581564 B`; app real 549028 B; **32536 B** sin usar. `0x93000` es la
   imagen de flash empaquetada, no la flash física de 1 MiB. `548708 B` fue una baseline anterior, no
   este HEAD. La imagen actual de app termina en `0x920DC`.
+- App: **548708 B**. Paquete `.fwsc`: **610876 B**. Identidad de paquete `FM-1_982`.
+- SHA-256 del paquete: **`38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`**.
 - RAM `.data+.bss`: 94588 B de 98304 B; spare **3716 B**.
 - Pool spare: **9248 B** (mínimo del proyecto: 8192 B).
 - RAMTEXT spare: **2404 B**. NOINIT spare: **124 B**.
@@ -40,6 +42,8 @@ esta auditoría.
 - `DRUM_PATH`: **1189/1191**. `perf_begin` 28/28; `perf_pre` 31/31; `perf_master` 32/32.
 - UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 200 cambian,
   225 reescrituras idénticas omitidas.
+- UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 198 cambian,
+  227 reescrituras idénticas omitidas.
 - No hay medición de ciclos, pila, latencia de interrupción, DMA ni corriente en la placa.
 
 ## Correcciones de esta pasada
@@ -98,6 +102,8 @@ hasta repetir en ella identidad, backup, recuperación y escritura controlada.
 - **JEDEC no leído en hardware.** El mapa de 1 MiB y la lista blanca (`0x856014`, `0xB36014`) son
   documentales y coherentes con el código; no son una medición de la unidad. Un ID desconocido se
   rechaza, pero aceptar el ID no valida geometría, protección ni persistencia.
+- **JEDEC no leído en hardware.** El mapa de 1 MiB (`0x856014`) es documental y coherente con el
+  código; no es una medición de la unidad.
 - **Sin medición de pila/ISR/DMA.** RAM y RAW text tienen margen estático, pero no hay high-water
   real de las pilas, latencia de interrupción, arbitraje DMA ni comportamiento de caché.
 - **`perf_block` con ~5 unidades de margen.** El techo del +10 % es 574; el valor actual es 569. No
@@ -129,6 +135,15 @@ hasta repetir en ella identidad, backup, recuperación y escritura controlada.
 | `tests/flash_id_test.c` | OK; `0x856014` y `0xB36014` aceptados, IDs desconocidos rechazados |
 | `target_budget.py` | OK; `perf_block` 569/522 |
 | `memory_map_test.py` | OK; spare RAM 3716, pool 9248, RAMTEXT 2404, NOINIT 124; slot 581564 vs app 549028 |
+| `tests/groups.sh web` | OK |
+| `tests/groups.sh emu` | OK; WASM y nativo bit a bit, 2.4 % de tiempo real |
+| `tests/groups.sh security` | OK: instalador, backup, límites de paquete, audio ASan/UBSan |
+| `tests/groups.sh stress 1` | OK: project, persistence, robust, MIDI y 2 pasadas de regress |
+| `tests/groups.sh target` | OK: build AC791N, `target_budget`, `memory_map` |
+| `tests/ldr_test OLD NEW` | OK: paquete dañado, clave ajena, reanudación y cinco cortes |
+| `tests/ldr_test` con ASan/UBSan | OK |
+| `target_budget.py` | OK; `perf_block` 569/522 |
+| `memory_map_test.py` | OK; spare RAM 3716, pool 9248, RAMTEXT 2404, NOINIT 124 |
 
 No se ejecutó una pasada completa de `run_tests.sh` por el límite de tiempo; no se declara que todos
 los tests del repositorio hayan corrido en un solo proceso. No se ejecutó ninguna prueba física.
@@ -138,6 +153,7 @@ los tests del repositorio hayan corrido en un solo proceso. No se ejecutó ningu
 1. Leer y registrar la identidad de la unidad y el JEDEC. Solo se aceptan `0x856014` o `0xB36014`
    (ambos 1 MiB y en la lista blanca estática); validar cada variante en su propia unidad. Cualquier
    otro ID es NO-GO.
+1. Leer y registrar la identidad de la unidad y el JEDEC; debe ser `0x856014` (1 MiB). Si no, detenerse.
 2. Leer la flash completa **dos veces** de forma independiente y comparar byte a byte y SHA-256; guardar
    copia fuera del equipo. Una sola lectura no es un backup.
 3. Demostrar la recuperación USB_KEY en una unidad de ensayo, desde un estado conocido, antes de
