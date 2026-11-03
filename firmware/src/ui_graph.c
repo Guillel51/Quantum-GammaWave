@@ -2406,7 +2406,7 @@ static void graph_home_viz(uint16_t c)
     static int16_t snap[SCOPE_N];
     static uint8_t peak_decay[16];
     uint32_t w = scope_w, i, trig = 0, pass;
-    int32_t peak = 1000;
+    int32_t peak = 1000, bars[16];
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
@@ -2416,6 +2416,22 @@ static void graph_home_viz(uint16_t c)
     }
     for (i = 1; i < SCOPE_N - 240u; i++) {
         if (snap[i - 1] < 0 && snap[i] >= 0) { trig = i; break; }
+    }
+
+    /* One measurement per frame: the two band passes draw the same bars and peak caps. Updating
+     * peak_decay inside the passes made a peak fall two rows per frame. */
+    for (i = 0; i < 16u; i++) {
+        int32_t bsum = 0, j;
+        for (j = 0; j < 8; j++) {
+            int32_t val = snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
+            if (val < 0) val = -val;
+            bsum += val;
+        }
+        bsum = (bsum * 44) / (peak ? peak * 8 : 1);
+        if (bsum > 34) bsum = 34;
+        bars[i] = bsum;
+        if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
+        else if (peak_decay[i]) peak_decay[i]--;
     }
 
     /* Render in two 88-pixel high bands (y=26..113 and y=114..201) */
@@ -2442,16 +2458,7 @@ static void graph_home_viz(uint16_t c)
         /* Real-time 16-band energy spectrum bars across the bottom */
         for (i = 0; i < 16u; i++) {
             int32_t bx = 16 + (int32_t)i * 13;
-            int32_t bsum = 0, j;
-            for (j = 0; j < 8; j++) {
-                int32_t val = snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
-                if (val < 0) val = -val;
-                bsum += val;
-            }
-            bsum = (bsum * 44) / (peak ? peak * 8 : 1);
-            if (bsum > 34) bsum = 34;
-            if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
-            else if (peak_decay[i]) peak_decay[i]--;
+            int32_t bsum = bars[i];
 
             /* Draw bar & peak cap. Baseline y=180 (was 186): the bars now clear the bottom telemetry
              * band at y=184..198 instead of crowding the caption drawn over them. */

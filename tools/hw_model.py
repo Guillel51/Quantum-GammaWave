@@ -14,7 +14,7 @@ SR = 44100
 BLOCK = 32
 HALF_FRAMES = 128
 SRAM_KIB = 96
-FLASH_MIB = 2
+FLASH_MIB = 1                                  # Puya P25Q80H, JEDEC 0x856014 (8 Mbit = 1 MiB)
 LCD_W = LCD_H = 240
 RGB565 = 2
 CLOCKS = (160_000_000, 240_000_000)
