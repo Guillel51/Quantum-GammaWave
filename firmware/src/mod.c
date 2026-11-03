@@ -107,7 +107,7 @@ static int32_t mod_noise(uint32_t seed, uint32_t clk, uint32_t len)
 static uint32_t mns_clk;                                 /* NOISE's clock: audio blocks (macro_master) */
 
 /* source s of the track: the per-track ones, the per-voice ones of the latest note-on */
-static int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
+static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
 {
     switch (s) {
     case MS_LFO:
@@ -144,7 +144,7 @@ static int32_t mod_gain(uint32_t s, int32_t x, int32_t a)
 }
 
 /* a per-voice destination d by source value x, amount a */
-static void mod_voice_add(uint32_t s, uint32_t d, int32_t x, int32_t a, int32_t *pit, int32_t *cut, int32_t *shp,
+static __attribute__((noinline)) void mod_voice_add(uint32_t s, uint32_t d, int32_t x, int32_t a, int32_t *pit, int32_t *cut, int32_t *shp,
                           int32_t *gain)
 {
     if (d == MD_PITCH)
@@ -179,17 +179,27 @@ static __attribute__((noinline)) int mod_begin(track_t *t)
     int32_t lfo, off[NMSLOT];
     uint32_t k, j;
     mp->on = 0;
-    for (k = 0; k < NMSLOT; k++)
-        if (p[P_M1SRC + 3u * k] && p[P_M1DST + 3u * k] && p[P_M1AMT + 3u * k])
-            break;
-    if (k == NMSLOT)
-        return 0;
-    lfo = mulq15(t->lfo_val, t->lfo_fade);              /* (the LFO of the block before: track_render ticks it) */
-    for (j = k; j < NMSLOT; j++)
-        if (p[P_M1SRC + 3u * j] == MS_STEP && p[P_M1AMT + 3u * j]) {
-            ms_tick(t);                                 /* (once, for every slot reading it) */
-            break;
+    {   /* one pass for both: the first active slot and whether STEP is read. The old code walked the
+         * slots twice (once to find activity, once for STEP); the slots are four, but the second walk
+         * was a loop of its own in the target budget. */
+        uint32_t first = NMSLOT;
+        int step = 0;
+        for (k = 0; k < NMSLOT; k++) {
+            uint32_t s = (uint32_t)p[P_M1SRC + 3u * k];
+            if (s && p[P_M1DST + 3u * k] && p[P_M1AMT + 3u * k]) {
+                if (first == NMSLOT)
+                    first = k;
+                if (s == MS_STEP)
+                    step = 1;
+            }
         }
+        if (first == NMSLOT)
+            return 0;
+        k = first;
+        lfo = mulq15(t->lfo_val, t->lfo_fade);          /* (the LFO of the block before: track_render ticks it) */
+        if (step)
+            ms_tick(t);                                 /* (once, before any slot reads it) */
+    }
     mp->on = 1;
     mp->amp = 0;
     mp->nv = mp->nk = 0;

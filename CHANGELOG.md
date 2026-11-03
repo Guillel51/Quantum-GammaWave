@@ -5,6 +5,12 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 
 ## v1.7-QG — CI budget fix (target compiler checks)
 
+- `mod_begin` and `mod_voice` are being brought back inside their target budgets: the exact run reported
+  274/166 (+65 %) and 36/30 (+20 %). The per-slot calls to `mod_tsrc` / `mod_voice_add` are no longer
+  inlined into the loop; the two initial walks over the slots are one; and the per-voice sources are
+  resolved once before the slot loop. Host equivalence: `mod_test` passes and 220 goldens are unchanged.
+  Target cost still needs the JieLi compiler (not available here).
+
 - `mod_voice` resolves the per-voice sources (ENV, VEL, KEY, RAND, PAT) once, before the slot loop, and
   indexes them there. 1.6's PAT added a source test to that loop, whose weighted cost had a 30 budget;
   the loop now does one load per slot instead of re-testing the source, with identical renders (220 goldens,
