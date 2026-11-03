@@ -377,6 +377,28 @@ static const preset_t ANALOG_PRESETS[] = {
     {"WOOD PLUCK", {0, 6, 50, 0, 42, 28, 0, 0}, {0, 72, 0, 45}, 45, 0, FX(0, 15, 45, 35), PAT(15)},
     {"BAMBOO FLUTE", {3, 10, 40, 30, 68, 20, 0, 12}, {18, 75, 40, 55}, 15, 0, FX(0, 35, 30, 65), PAT(6)},
     {"HARP PLUCK", {3, 8, 60, 0, 55, 30, 0, 12}, {0, 80, 0, 55}, 40, 0, FX(0, 25, 45, 50), PAT(15)},
+
+    /* (QG-1 1.6) EVOLVE / MOTION: the EVO wave (a smooth random walk) at a musical division, the matrix on top */
+    {"QUANTUM BLOOM", {AW_SAW3, 40, 66, 4, 58, 26, 6, 7}, {96, 94, 120, 108}, 10, 0, FX(0, 72, 28, 88), PAT(5),
+     {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LFADE, 90), XP(P_LD_FLT, 24), XP(P_LD_AMP, 14)}},
+    {"ABYSSAL DRONE", {AW_TUBE, 20, 58, 10, 44, 58, 14, -12}, {112, 90, 126, 118}, 0, 0, FX(10, 50, 32, 96), PAT(5),
+     {XP(P_LRATE, 5), XP(P_LWAVE, 6), XP(P_LD_FLT, 30), XP(P_LD_SHP, 18), XP(P_LD_AMP, 8)}},
+    {"PRISM KEYS", {4, 12, 70, 0, 66, 18, 0, 12}, {0, 84, 40, 60}, 30, 0, FX(0, 40, 35, 55), PAT(6),
+     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 46),
+      XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_CUT), XP(P_M2AMT, 30)}},
+    {"GLASS BELL", {AW_RING, 18, 80, 0, 84, 24, 0, 12}, {0, 92, 0, 88}, 42, 0, FX(0, 30, 40, 78), PAT(7),
+     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 50),
+      XP(P_M2SRC, QG_SRC_PAT), XP(P_M2DST, QG_DST_VIB), XP(P_M2AMT, 34)}},
+    {"AURORA PLUCK", {AW_FOLD, 8, 58, 2, 48, 30, 12, 0}, {0, 74, 0, 52}, 46, 0, FX(0, 25, 52, 45), PAT(15),
+     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 52),
+      XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_REV), XP(P_M2AMT, 26)}},
+
+
+    {"OCEANIC PAD", {AW_SAW3, 34, 68, 12, 54, 32, 0, 7}, {104, 94, 122, 112}, 6, 0, FX(0, 78, 34, 90), PAT(5),
+     {XP(P_LRATE, 7), XP(P_LWAVE, 6), XP(P_LD_FLT, 26), XP(P_LD_AMP, 10)}},
+    {"EMBER LEAD", {AW_TUBE, 16, 74, 0, 70, 40, 34, 12}, {4, 72, 92, 48}, 24, 1, FX(28, 20, 42, 30), PAT(4),
+     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 34),
+      XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_VIB), XP(P_M2AMT, 18)}},
 };
 
 static const engine_t ENG_ANALOG = {

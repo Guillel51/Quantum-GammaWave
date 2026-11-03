@@ -292,6 +292,7 @@ typedef struct {
     int32_t s[8];                /* engine state (filters, envs) */
     uint32_t age;
     uint8_t mvel;                /* mod.c: the note-on velocity (before UNISON scaling) and RAND of the note */
+    uint8_t pat;                 /* (QG-1 1.6) this key's polyphonic aftertouch (MIDI 0xA0), 0 = none */
     uint8_t gacc;                /* (0.6.82) the glide's fraction of a 1/16 st carried (gstep Q8) */
     int16_t mrnd;
 } voice_t;
@@ -320,10 +321,22 @@ typedef struct {
     struct { uint8_t id; int8_t v; } x[6];   /* (1.2-GW) up to six more of the sound's values a preset sets (P_* + 1,
                                   * 0 = none; its value as is): the LFO, the matrix, VOICE, GLIDE .. so a pad moves by
                                   * itself. None in the presets before 1.2: they load as they did */
+    uint8_t legacy;              /* (QG-1 1.6 audit) kept at its old index for projects and user presets, not shown
+                                  * by the browser and not part of the 200-sound library: DRUM 10, 11 */
 } preset_t;
 #define FX(d, c, dl, r) .fx = {(d) + 1, (c) + 1, (dl) + 1, (r) + 1}
 #define XP(id, v) {(id) + 1, (v)}
 #define PAT(n) .pat = (n)
+/* (QG-1 1.6) the matrix source / destination numbers a preset's x[] may name: mod.c MS_* / MD_* (asserted there,
+ * so a reordering of either list breaks the build rather than the sound) */
+#define QG_SRC_VEL 3             /* MS_VEL */
+#define QG_SRC_AT 7              /* MS_AT: channel aftertouch */
+#define QG_SRC_PAT 15            /* MS_PAT: this key's polyphonic aftertouch */
+#define QG_DST_CUT 2             /* MD_CUT */
+#define QG_DST_SHP 3             /* MD_SHP */
+#define QG_DST_REV 9             /* MD_REV */
+#define QG_DST_VIB 11            /* MD_VIB */
+#define QG_DST_E1 12             /* MD_E1: the engine's first EDIT parameter (a formant's vowel, FM6's algorithm) */
 
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */
@@ -357,6 +370,16 @@ typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c 
     uint8_t ownenv;
     int (*done)(struct track *t, voice_t *v);
 } engine_t;
+/* (QG-1 1.6 audit) the sounds browsing offers: the table's, less the legacy ones kept at its end so a project made
+ * before they were retired still loads the exact kit it saved. No index moves (npresets stays the table's size, and
+ * every stored index is taken modulo it), so DRUM 10 HEARTH KIT and 11 CYBER DRUM still resolve. */
+static inline uint32_t engine_library(const engine_t *e)
+{
+    uint32_t n = e->npresets;
+    while (n && e->presets[n - 1u].legacy)
+        n--;
+    return n;
+}
 
 /* ------------------------------------------------- tracks, the song --- */
 enum { ST_NOTE, ST_TIE, ST_REST };

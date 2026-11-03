@@ -230,6 +230,12 @@ static const preset_t FORMANT_PRESETS[] = {
     {"MYSTIC CHOIR", {20, 60, 35, 0, 55, 40, 65, 15}, {85, 90, 118, 100}, 0, 0, FX(0, 70, 35, 95), PAT(5)},
     {"VOX DRONE", {10, 30, 0, -4, 65, 15, 75, 25}, {100, 92, 127, 110}, 0, 0, FX(10, 40, 25, 95), PAT(5)},
     {"SOLAR HYMN", {25, 75, 50, 2, 80, 20, 68, 10}, {60, 90, 115, 95}, 0, 0, FX(0, 80, 40, 90), PAT(5)},
+
+    /* (QG-1 1.6) TOUCH: the vowel opens with velocity and with the player's pressure */
+    {"BREATH CHOIR", {12, 58, 22, 3, 40, 70, 66, 18}, {96, 90, 122, 104}, 0, 0, FX(0, 70, 28, 92), PAT(5),
+     {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_M1SRC, QG_SRC_AT), XP(P_M1DST, QG_DST_E1),
+      XP(P_M1AMT, 22)}},
+
 };
 
 static const engine_t ENG_FORMANT = {

@@ -44,7 +44,7 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## What's in Quantum GammaWave (`v1.5-QG`)
+## What's in Quantum GammaWave (`v1.6-QG`)
 
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
 - **Harmonic Distortion & Saturation Suite:** 4 musical, warm saturation topologies with dedicated algorithms:
@@ -217,7 +217,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.5-QG build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.6-QG build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -225,6 +225,31 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 ---
 
 ## Changelog
+
+### `v1.6-QG` — EVOLVE / MOTION, Touch & 200 Sounds
+
+- **A 200-sound factory library.** The last two redundant DRUM kits (HEARTH KIT, CYBER DRUM) are retired
+  from browsing but kept as legacy entries at their old indices 10 and 11, so projects, favorites and user
+  presets load the exact sound they saved; the ten browsable kits keep indices 0..9. Sixteen new
+  sounds (pads, drones, textures, expressive keys, bells, plucks, leads, organs) were added across ANALOG,
+  PHASE, LOFI, WHEEL, FORMANT, NOISE and FM6. `tests/preset_library_test.py` checks the 200, each engine's
+  share, DRUM's first ten indices and the names.
+- **EVO, a new LFO wave.** A smooth random walk (one new point per cycle, eased with a smoothstep), at a free
+  rate or a musical division on the transport's grid. `P_LWAVE = 6`; the graph, the matrix, FADE and the LFO
+  destinations all work with it. Demo sounds: QUANTUM BLOOM, ABYSSAL DRONE, OCEANIC PAD, EVOLVING GLASS,
+  TAPE DRONE, SOLAR WIND, CATHEDRAL REED, TIDAL ORGAN, EVOLVE BELL, AURORA FM.
+- **Touch.** Channel aftertouch (MIDI `0xD0`) reaches the matrix's `AT` source as before; polyphonic
+  aftertouch (MIDI `0xA0`) is now a per-voice source, `PAT`, for external controllers. The FM-1's own keys
+  have no pressure sensor, so nothing pretends they do. Sensitivity is the matrix's AMT per destination
+  (CUT, SHP, AMP, PITCH, VIB, E1..E8, FX sends), demonstrated by PRISM KEYS, GLASS BELL, AURORA PLUCK,
+  BREATH CHOIR, VELVET EP and EMBER LEAD.
+- **UI.** HOME and EDIT's rotary knobs are real round knobs (filled body, 270-degree ring, value arc,
+  needle, centre dot, no offset orbit ring), and the boot splash is one SURF card in the UI's own language:
+  the QG monogram, three waves writing across it and the 16-segment rail, instead of the old octagonal
+  frame whose bands read as black lines.
+- **Verification.** Host tests, sanitizers, UI lint/PNG renders and the 200-sound test pass; the emulator
+  rebuild is marked NO VERIFICADO when `emcc` is unavailable, and the 12-voice experiment stays off
+  (`docs/POLYPHONY_1.6.md`). No bootloader or flash-critical change was made.
 
 ### `v1.5-QG` — Startup, Preferences & Telemetry Release
 - **Startup without the four black lines:** the ST7789 GDRAM is 240×320 while the blit clamps to 240×240, so 80 rows were never written; `lcd_gdram_clear()` now writes all 76 800 pixels before the display is turned on (commit #37 only touched the backlight). Proven by `tests/lcd_st7789_test.c`, which models the controller's own command stream and reproduces the old windowed path first.

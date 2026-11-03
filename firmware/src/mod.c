@@ -37,7 +37,8 @@
  * and the engines read t->p as before. An engine reads its parameters in note_on (events_block) unmodulated.
  * Nothing active (every slot with SRC, DST or AMT at 0): no work, and the sound is bit-identical. */
 enum { MS_OFF, MS_LFO, MS_ENV, MS_VEL, MS_KEY, MS_RAND, MS_MODW, MS_AT, MS_EXPR, MS_M1, MS_STEP = MS_M1 + 4, MS_NOISE,
-       MS_N };   /* (1.2.1-GW, JIANT 0.7.8) NOISE: appended, the stored numbers stay */
+       MS_PAT, MS_N };   /* (1.2.1-GW, JIANT 0.7.8) NOISE: appended, the stored numbers stay; (QG-1 1.6) PAT: this
+                           * key's polyphonic aftertouch (MIDI 0xA0), appended too */
 static uint32_t div_samples(uint32_t div);   /* fx.c */
 #define CLK_START 0xFFFFFFFFu
 static uint32_t clk_pos = CLK_START, clk_step;  /* (seq.c click_tick) samples into the transport's 1/16 step, the step of
@@ -51,7 +52,11 @@ static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the proje
 _Static_assert(NELEM(N_MSRC) == MS_N && NELEM(N_MDST) == MD_N, "N_MSRC / N_MDST == MS_* / MD_*");
 _Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11 && P_M4AMT + 1 == P_FM1_ATK, "matrix slots: 3 ids each");
 #define NMSLOT 4u
-#define MS_VOICE(s) ((s) >= MS_ENV && (s) <= MS_RAND)             /* a value per voice */
+/* (QG-1 1.6) the numbers core.h hands a preset's x[] (QG_SRC_* / QG_DST_*): keep both lists in step */
+_Static_assert(QG_SRC_VEL == MS_VEL && QG_SRC_AT == MS_AT && QG_SRC_PAT == MS_PAT, "QG_SRC_* == MS_*");
+_Static_assert(QG_DST_CUT == MD_CUT && QG_DST_SHP == MD_SHP && QG_DST_REV == MD_REV && QG_DST_VIB == MD_VIB &&
+               QG_DST_E1 == MD_E1, "QG_DST_* == MD_*");
+#define MS_VOICE(s) (((s) >= MS_ENV && (s) <= MS_RAND) || (s) == MS_PAT)   /* a value per voice */
 #define MS_BIPOLAR(s) ((s) == MS_LFO || (s) == MS_KEY || (s) == MS_RAND || (s) == MS_NOISE)
 
 /* the track parameter of a per-block destination */
@@ -275,7 +280,8 @@ static __attribute__((noinline)) void mod_voice(track_t *t, voice_t *v, vmod_t *
         t->m_env = env;                                 /* ENV of the latest note, for per-block destinations */
     for (k = 0; k < mp->nv; k++) {
         uint32_t s = mp->vsrc[k];
-        int32_t x = s == MS_ENV ? env : s == MS_VEL ? v->mvel * 258 : s == MS_KEY ? mod_key(v->note) : v->mrnd;
+        int32_t x = s == MS_ENV ? env : s == MS_VEL ? v->mvel * 258 : s == MS_KEY ? mod_key(v->note)
+                  : s == MS_PAT ? v->pat * 258 : v->mrnd;
         mod_voice_add(s, mp->vdst[k], x, mp->vamt[k], &pit, &cut, &shp, &gain);
     }
     if (pit) {
@@ -298,6 +304,16 @@ static void mod_note(track_t *t, uint32_t note, uint32_t vel)
     t->m_vel = (uint8_t)vel;
     t->m_key = (uint8_t)note;
     t->m_rnd = mod_rand();
+}
+
+/* (QG-1 1.6) polyphonic aftertouch (MIDI 0xA0) for the keys of track t that are held: the M-VAVE FM-1's own keys
+ * have no pressure sensor, so this comes from an external controller and only touches the notes it names */
+static void mod_pat(track_t *t, uint32_t note, uint32_t val)
+{
+    uint32_t i;
+    for (i = 0; i < NVOICE; i++)
+        if (t->v[i].active && t->v[i].gate && t->v[i].note == (uint8_t)note)
+            t->v[i].pat = (uint8_t)(val > 127u ? 127u : val);
 }
 
 /* a MIDI controller for track t (seq.c events_block): CC1 / CC11 / channel aftertouch; CC121 resets them */

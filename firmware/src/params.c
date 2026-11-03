@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Parameter descriptors, formatting and the page table. */
-static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP"};
+static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO"};   /* (QG-1 1.6) EVO: appended */
+/* (QG-1 1.6) TOUCH > VEL CURVE: how a key's / MIDI note's velocity reaches the engines (voice.c vel_curve) */
 /* (JIANT 0.6.51) the LFO's RATE below 0: in time with the tempo, -1 the slowest (next to the slowest free rate) */
 static const char *const N_LSYNC[12] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16",
                                         "1/16T", "1/32"};
@@ -44,7 +45,7 @@ static const char *const N_APSYNC[] = {"FREE", "BEAT"};                  /* (JIA
 static const char *const N_APDIV[] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8", "1/16", "1/32"};   /* .. BEAT (fx.c AP_SIXT) */
 /* modulation matrix (mod.c): sources, destinations (E1..E8 = P_E0..P_E7: shown with the engine's labels) */
 static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", "MODW", "AT", "EXPR",
-                                     "M1", "M2", "M3", "M4", "STEP", "NOISE"};   /* (JIANT: the macros, LFO held; the modulation
+                                     "M1", "M2", "M3", "M4", "STEP", "NOISE", "PAT"};   /* (QG-1 1.6) PAT: this key's poly aftertouch */   /* (JIANT: the macros, LFO held; the modulation
                                                          * sequence; 1.2.1-GW, JIANT 0.7.8: a smooth random wander) */
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
