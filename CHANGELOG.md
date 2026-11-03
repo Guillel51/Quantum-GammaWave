@@ -3,6 +3,22 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — PUNCH-IN FX emulator sync
+
+- **The emulator now shows the PUNCH-IN FX redesign.** The page requests `felucca.wasm?v=@VERSION@` so a
+  rebuilt WASM is not hidden by a cached copy; `build/emu` was regenerated at `v1.7-QG` (1019205 B).
+- **WASM label fix.** The 18 px effect pads draw their names directly with `cv_text_on`; the measured
+  `cv_text_r` path rendered the pads but not their labels in the WebAssembly build. The LED and the
+  top highlight stay; no DSP, voice count or parameter changed.
+- **Effect audit recorded.** `docs/PUNCH_IN_FX_AUDIT.md` separates the 15 existing pads and the four
+  black-key effects from Reverse/Glitch/Freeze/Tape Stop, which remain unimplemented. `DIVE` is a
+  two-octave pitch drop, not a tape stop; `RND` and `ST8`/`ST16` are not relabelled as Glitch.
+- Final target at this HEAD: app **549220 B**, package **610897 B**, identity `FM-1_982`; app SHA-256
+  `616db4d6ed191e171721c7cdc1f7ea9fde80705ef1911f0dad51c1918c206f8d`, package SHA-256
+  `106b5f41bd8f93fa22142e9c9669375dc784f7e65a19de2b8183d7e19acedab4`. `perf_block` 569; no new DSP.
+  UI 172 × 17 with 0 lint and 0 alignment findings; installation remains **NO VERIFICADO EN HARDWARE —
+  NO APTO PARA INSTALACIÓN REAL**.
+
 ## v1.7-QG — HOME encoders, mini-knobs, splash and installation safety audit
 
 - **HOME encoder mapping fixed.** `bg_knob()` now reads `home_param()` while HOME is open instead of

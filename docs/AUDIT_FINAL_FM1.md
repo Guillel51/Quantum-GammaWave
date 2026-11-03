@@ -151,6 +151,17 @@ los tests del repositorio hayan corrido en un solo proceso. No se ejecutó ningu
 7. No escribir el área de arranque `[0,0x4000)` ni el bootloader. No usar un único equipo funcional
    como banco de pruebas.
 
+## Actualización posterior: PUNCH-IN FX y emulador
+
+- El rediseño de PUNCH-IN FX y la corrección de etiquetas del WASM se documentan en
+  `docs/PUNCH_IN_FX_AUDIT.md`. No añadieron DSP ni cambiaron parámetros de audio.
+- Target posterior: app **549220 B** (+192 B), paquete **610897 B**, identidad `FM-1_982`; SHA-256 de la
+  app `616db4d6ed191e171721c7cdc1f7ea9fde80705ef1911f0dad51c1918c206f8d`, del paquete
+  `106b5f41bd8f93fa22142e9c9669375dc784f7e65a19de2b8183d7e19acedab4`.
+- El emulador se regeneró (`build/emu`, WASM 1019205 B, `v1.7-QG`) y su página evita la cache con
+  `?v=@VERSION@`; las capturas son del framebuffer real del WASM y del render del firmware.
+- La conclusión de hardware no cambia: **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL**.
+
 ## Lo que no se declara
 
 - No se declara «antibrick», «actualización atómica», «rollback», «recuperación garantizada» ni

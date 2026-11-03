@@ -85,3 +85,21 @@
 - Host finish ACK now reports `lost` if the `success` frame cannot be sent.
 - **NO VERIFICADO EN HARDWARE; not approved for installation.** See `docs/AUDIT_FINAL_FM1.md` and
   `docs/HARDWARE_TEST_PLAN.md`.
+
+## PUNCH-IN FX / emulator sync (2026-11-03, after a366cd0)
+
+- App **549220 B** (+192 B from 549028), package **610897 B**, identity `FM-1_982`. App SHA-256
+  `616db4d6ed191e171721c7cdc1f7ea9fde80705ef1911f0dad51c1918c206f8d`; package SHA-256
+  `106b5f41bd8f93fa22142e9c9669375dc784f7e65a19de2b8183d7e19acedab4`.
+- RAM spare 3716 B; pool 9248 B; RAMTEXT 2404 B; NOINIT 124 B. `perf_block` 569 in loops; UI code only,
+  no new DSP.
+- UI 172 × 17, 0 lint, 0 alignment findings. `PUNCH-IN FX` uses 5 columns × 3 rows of 42 × 18 pads, a
+  section legend and the four black-key effects on their own row.
+- Emulator: `build/emu` regenerated at `v1.7-QG`, WASM 1019205 B. The page fetches
+  `felucca.wasm?v=@VERSION@`; the 18 px labels now use direct drawing because `cv_text_r` lost its width
+  in the WASM build. `emu_test` all ok; screenshots are real framebuffer captures.
+- Effect audit: `docs/PUNCH_IN_FX_AUDIT.md`. Reverse/Freeze/Tape Stop are not implemented; Glitch/RND and
+  Stutter/ST8/ST16 are partial; DIVE is a pitch drop, not a tape stop. No effect was renamed to imply
+  otherwise.
+- **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL.** No physical FM-1, backup, JEDEC or
+  USB_KEY recovery test.
