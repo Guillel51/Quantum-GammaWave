@@ -349,7 +349,7 @@ static __attribute__((noinline)) void drum_side_add(int32_t *y, int32_t *out, ui
 {
     uint32_t i;
     for (i = 0; i < n; i++) {
-        int32_t s = y[i], o = voice_amp(s + (s >> 2), m, i) * 2;
+        int32_t s = y[i], o = voice_amp(s + (s >> 2), m, i) << 1;
         out[i] += o;
         d1[i] += (o * g) >> 6;
         d2[i] += (o * a) >> 6;
@@ -362,7 +362,7 @@ static __attribute__((noinline)) void drum_add(const int32_t *y, int32_t *out, u
     uint32_t i;
     for (i = 0; i < n; i++) {                            /* x1.25 */
         int32_t s = y[i];
-        out[i] += voice_amp(s + (s >> 2), m, i) * 2;
+        out[i] += voice_amp(s + (s >> 2), m, i) << 1;
     }
 }
 /* (0.6.81) .. its pan moving (IMAGE turned): both sides fed, each ramped across the block (only while it slews) */
@@ -373,7 +373,7 @@ static __attribute__((noinline)) void drum_side_ramp(int32_t *y, int32_t *out, u
     int32_t gl = g[0] << CTL_LOG2, dgl = g[1] - g[0], gr = g[2] << CTL_LOG2, dgr = g[3] - g[2];   /* (Q6 + CTL_LOG2) */
     int32_t *sl = dx_sl, *sr = dx_sr;                    /* (this core's) */
     for (i = 0; i < n; i++, gl += dgl, gr += dgr) {
-        int32_t s = y[i], o = voice_amp(s + (s >> 2), m, i) * 2;
+        int32_t s = y[i], o = voice_amp(s + (s >> 2), m, i) << 1;
         out[i] += o;
         sl[i] += (o * gl) >> (6 + CTL_LOG2);
         sr[i] += (o * gr) >> (6 + CTL_LOG2);
@@ -495,13 +495,13 @@ static __attribute__((noinline)) void drum_bus(const track_t *t, int32_t *out, u
                                                          * at once with DRV high wrapped it: a full-scale click) */
             y = (softclip((clamp(s, -131071, 131071) * g) >> 12) * mk) >> 15;
         y = soft_knee(y, 24000);
-        out[i] = y * 2;
+        out[i] = y << 1;
         if (side) {                                      /* (1.2.1-GW, JIANT 0.7.8) IMAGE: what each side gives up
                                                          * through the same gain the curve gave the sum here (it was
                                                          * taken raw from the squashed sum: a loud hit's side
                                                          * over-taken, clicks and grit on the side it leaned to) */
             if (s > 256 || s < -256)
-                k = clamp((y * 4096) / s, 0, 16384);      /* (y within +-41000: y << 12 fits 32 bits) */
+                k = clamp((y << 12) / s, 0, 16384);      /* (y within +-41000: y << 12 fits 32 bits) */
             sl[i] = ((sl[i] >> 2) * k) >> 10;
             sr[i] = ((sr[i] >> 2) * k) >> 10;
         }

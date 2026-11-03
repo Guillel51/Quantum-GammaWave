@@ -6,7 +6,7 @@ Welcome to **QUANTUM GAMMAWAVE (QG-1)**. This repository houses the custom open-
 
 ## 1. Project & Hardware Identity
 - **Product Name**: QUANTUM GAMMAWAVE (QG-1).
-- **Target Hardware**: M-VAVE FM-1 (Dual-Core JieLi AC791N SoC @ 160–240 MHz, 96 KB SRAM, 1 MiB SPI Flash (P25Q80H, JEDEC 0x856014), 240×240 RGB565 IPS LCD display, 12 primary silicon buttons, 8 rotary encoders, 27 micro-switches in 2 rows as keys).
+- **Target Hardware**: M-VAVE FM-1 (Dual-Core JieLi AC791N SoC @ 160–240 MHz, 96 KB SRAM, 2 MB SPI Flash, 240×240 RGB565 IPS LCD display, 12 primary silicon buttons, 8 rotary encoders, 27 micro-switches in 2 rows as keys).
 - **Not a guitar pedal**: The M-VAVE FM-1 is a multitrack groovebox / synthesizer desktop instrument.
 - **Lineage**: Major evolution/fork of Pocket GammaWave (GW-1) by Leo Kuroshita / Hügelton Instruments, built on JIANT FM and Felucca.
 - **Licensing**: GPL-3.0-only. All original copyright notices, credits and licenses in `LICENSES/` must strictly remain intact.

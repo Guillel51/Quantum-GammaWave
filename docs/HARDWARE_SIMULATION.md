@@ -25,7 +25,7 @@ are host wall-clock, useful for relative comparisons only.
 
 - Models: control flow, data formats, error paths, memory safety, deterministic audio, interleavings that
   the tests inject (power cuts, short writes, corrupt records).
-- Does not model: the target's 160–240 MHz core budget, its 96 KB SRAM layout, its 1 MiB SPI flash timing,
+- Does not model: the target's 160–240 MHz core budget, its 96 KB SRAM layout, its 2 MB SPI flash timing,
   or real USB/DMA concurrency.
 
 ## 3. Physical measurement (not available here)
@@ -44,7 +44,7 @@ flash size, underruns and thermal/battery margin. None of that was available, so
 ## 4. Budget model (`tools/hw_model.py`)
 
 The model turns the project's documented constants (44.1 kHz, 32-sample blocks, 128-frame half buffer,
-96 KiB SRAM, 1 MiB flash, 160–240 MHz) into deadlines, DMA bytes, LCD bandwidth and the cycle *ceiling*
+96 KiB SRAM, 2 MiB flash, 160–240 MHz) into deadlines, DMA bytes, LCD bandwidth and the cycle *ceiling*
 per block. It deliberately does not print firmware cycles: IPC, cache, DMA arbitration and interrupt
 latency are unknown without the board. Voice RAM is an upper bound from the host ABI (the target uses
 32-bit pointers).

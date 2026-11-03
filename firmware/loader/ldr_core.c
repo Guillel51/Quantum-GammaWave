@@ -17,10 +17,9 @@
  *      comes in different from the checked pass is read again, never written;
  *      the flash head (SPL, isd_config) is never written;
  *   4. asks 0xF0000000 ("success"), then invalidates the update record (RAM
- *      and flash) so the SPL boots the new app, and resets. The flash scan is
- *      limited to the documented update slots in [0xE0000,0xE9000); the VM,
- *      Felucca's store, the autosave and the FM6 voice bank are never erased,
- *      even if their bytes happen to look like a record.
+ *      and flash: 4K boundary - 256 between 0x93000 and 0xFC000, outside
+ *      Felucca's store, where only user data lives) so the SPL boots the new
+ *      app, and resets.
  * Power loss during 3: the record is still there, the SPL runs the loader
  * again on the next power-on and the host can resume.
  *
@@ -31,10 +30,10 @@
  * plus the ota.c hooks (frames, time, idle). */
 #define LDR_APP_LO 0x4000u
 #define LDR_APP_HI 0x93000u
-#define LDR_REC_LO 0xE0000u                     /* documented update/staging window ... */
-#define LDR_REC_HI 0xE9000u                     /* ... (Felucca's record: 0xE4F00, the stock one: 0xE8F00) */
-#define LDR_AUTO_LO 0xE5000u                    /* autosave A/B: user data, never a record */
-#define LDR_AUTO_HI 0xE8000u                    /* FM6 voice bank at 0xE7000 is in this range too */
+#define LDR_REC_LO 0x93000u                     /* update records live above the app ... */
+#define LDR_REC_HI 0xFC000u                     /* ... and below Felucca's globals (Felucca's records: 0xE4F00, */
+#define LDR_DATA_LO 0x97000u                    /* the stock firmware's: 0xE8F00), never in Felucca's store, whose */
+#define LDR_DATA_HI 0xE0000u                    /* bytes (the store) the host writes */
 #define LDR_NSEC ((LDR_APP_HI - LDR_APP_LO) >> 12)
 #define LDR_FL_MAX 0x100000u                    /* flash.bin: at most the 1 MiB part */
 
@@ -171,8 +170,8 @@ static int ldr_session(void)
     ldr_record_clear();
     for (s = LDR_REC_HI; s > LDR_REC_LO; s -= 0x1000u) {   /* flash records: 4K boundary - 256 */
         uint8_t r[80];
-        if (s - 0x1000u >= LDR_AUTO_LO && s - 0x1000u < LDR_AUTO_HI)
-            continue;                                    /* autosave/FM6: user data that may look like one */
+        if (s - 0x1000u >= LDR_DATA_LO && s - 0x1000u < LDR_DATA_HI)
+            continue;                                    /* Felucca's store: user data that may look like one */
         if (ldr_fread(s - 0x100u, r, 80))
             break;
         if (ota_rd16(r + 6) == 0x5441u && ota_rd16(r) && ota_rd16(r) == ota_crc16(r + 2, 78, 0))
