@@ -2710,6 +2710,30 @@ static void graph_song(void)
 static void graph_master(void)
 {
     static const char *const L[4] = {"CLIP", "PUNCH", "DUCK", "DREL"};
+    if (str_eq(cur_page()->title, "MASTER EQ")) {      /* the bell from FREQ/GAIN/Q, over a 0 dB rule */
+        int32_t f = clamp(song.g[G_EQFREQ], 0, 127), g = clamp(song.g[G_EQGAIN], -24, 24);
+        int32_t q = clamp(song.g[G_EQQ], 0, 127), cx = f * 200 / 127, w = 14 + q * 46 / 127, x;
+        cv_rect(20, 50, 200, 1, T_LINE);
+        for (x = 0; x < 200; x++) {
+            int32_t d = x > cx ? x - cx : cx - x, y = 50;
+            if (d < w && g) {
+                int32_t a = g * (w - d) / w;           /* triangular skirt, the actual parameters */
+                y = 50 - a * 44 / 24;
+            }
+            if (y != 50)
+                cv_rect(20 + x, y, 1, 2, g > 0 ? T_THEME : T_DIM);
+        }
+        return;
+    }
+    if (str_eq(cur_page()->title, "STEREO M/S")) {     /* M/S width: the two sides separate with M-WIDE */
+        int32_t wd = clamp(song.g[G_MWIDTH], 0, 127), off = 8 + wd * 52 / 127, i;
+        cv_rect(20, 50, 200, 1, T_LINE);
+        for (i = 0; i < 4; i++) {
+            cv_rect(100 - off - i * 4, 30, 2, 40, T_THEME);
+            cv_rect(100 + off + i * 4, 30, 2, 40, T_ACCENT);
+        }
+        return;
+    }
     const int16_t *v[4] = {&song.g[G_CLIP], &song.g[G_PUNCH], &song.g[G_DUCK], &song.g[G_DREL]};
     int32_t i;
     cv_rect(12, 4, 216, 1, T_LINE);
@@ -2875,7 +2899,10 @@ static void draw_graph(void)
             graph_tools();
             break;
         default:
-            if (str_eq(pg->title, "MASTER")) { graph_master(); break; }
+            if (str_eq(pg->title, "MASTER") || str_eq(pg->title, "MASTER EQ") || str_eq(pg->title, "STEREO M/S")) {
+                graph_master();
+                break;
+            }
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {
