@@ -27,23 +27,18 @@ esta auditoría.
 
 ## Métricas del cierre
 
-- App: **549028 B**. Paquete `.fwsc`: **610897 B**. Identidad de paquete `FM-1_982`.
-- SHA-256 del paquete: **`932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`**.
-- SHA-256 de la aplicación: **`0dcd80f23747832d7d440f9e992b032db7c40be297155c5ebe257c063512e67f`**.
-- Slot XIP `APP_SLOT = 0x8DFBC = 581564 B`; app real 549028 B; **32536 B** sin usar. `0x93000` es la
-  imagen de flash empaquetada, no la flash física de 1 MiB. `548708 B` fue una baseline anterior, no
-  este HEAD. La imagen actual de app termina en `0x920DC`.
-- App: **548708 B**. Paquete `.fwsc`: **610876 B**. Identidad de paquete `FM-1_982`.
-- SHA-256 del paquete: **`38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`**.
-- RAM `.data+.bss`: 94588 B de 98304 B; spare **3716 B**.
+- App: **551224 B**. Paquete `.fwsc`: **610897 B**. Identidad de paquete `FM-1_982`.
+- SHA-256 del paquete: **`35499e5928335809bed46cb62c941ed89f496af72530b340463e8fb32c07fe01`**.
+- SHA-256 de la aplicación: **`9118f2c9dcc9897245f90bc3816b6d9bcf0a79f1de7bedb7d83caad61889c16e`**.
+- Slot XIP `APP_SLOT = 0x8DFBC = 581564 B`; app real 551224 B; **30340 B** sin usar. `0x93000` es la
+  imagen de flash empaquetada, no la flash física de 1 MiB.
+- RAM `.data+.bss`: 94668 B de 98304 B; spare **3636 B**.
 - Pool spare: **9248 B** (mínimo del proyecto: 8192 B).
-- RAMTEXT spare: **2404 B**. NOINIT spare: **124 B**.
-- `perf_block`: **569/522** (+9 %, límite +10 %; solo ~5 unidades antes del techo).
-- `DRUM_PATH`: **1189/1191**. `perf_begin` 28/28; `perf_pre` 31/31; `perf_master` 32/32.
+- RAMTEXT spare: **2968 B**. NOINIT spare: **124 B**.
+- `perf_block`: **374/522**. `DRUM_PATH`: **1189/1191**. `perf_begin` 28/28; `perf_pre` 31/31;
+  `perf_master` 32/32.
 - UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 200 cambian,
   225 reescrituras idénticas omitidas.
-- UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 198 cambian,
-  227 reescrituras idénticas omitidas.
 - No hay medición de ciclos, pila, latencia de interrupción, DMA ni corriente en la placa.
 
 ## Correcciones de esta pasada

@@ -11,14 +11,10 @@ not to install the newest build.
 
 The audited build is **NO VERIFICADO EN HARDWARE** and is **not approved for a real FM-1 install**.
 Host/target evidence is in `docs/AUDIT_FINAL_FM1.md`; this plan is the physical procedure that must
-be completed before changing that status. The current static figures are app 549028 B, package
-610897 B, `FM-1_982`, SHA-256 `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`,
-`perf_block` 569/522 and RAM spare 3716 B. The app slot is 581564 B; the app is 549028 B, so the slot
-is not a second app size. None of these is a board measurement. No flash write or
-be completed before changing that status. The current static figures are app 548708 B, package
-610876 B, `FM-1_982`, SHA-256 `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`,
-`perf_block` 569/522 and RAM spare 3716 B. None of these is a board measurement. No flash write or
-recovery is performed by this repository.
+be completed before changing that status. The current static figures are app 551224 B, package
+610897 B, `FM-1_982`, SHA-256 `35499e5928335809bed46cb62c941ed89f496af72530b340463e8fb32c07fe01`,
+`perf_block` 374/522 and RAM spare 3636 B. The app slot is 581564 B; none of these is a board measurement.
+No flash write or recovery is performed by this repository.
 
 
 ## 0. Safety gates
