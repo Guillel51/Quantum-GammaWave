@@ -25,19 +25,6 @@ static int32_t lfo_wave(track_t *t, uint32_t ph)
         return (int32_t)(t->lfo_rnd >> 16) - 32768;
     case 5:
         return 32767 - (int32_t)(ph >> 16);
-    case 6: {                                       /* (QG-1 1.6) EVO: a smooth random walk, one new point a cycle:
-                                                     * it eases from this cycle's value to the next (smoothstep), so
-                                                     * the wander has no steps and costs a few multiplies */
-        uint32_t h = t->lfo_rnd ? t->lfo_rnd : 0x9E3779B9u, x = ph >> 16;
-        int32_t a, b, sm;
-        h ^= h << 13;
-        h ^= h >> 17;
-        h ^= h << 5;
-        a = (int32_t)(t->lfo_rnd >> 16) - 32768;
-        b = (int32_t)(h >> 16) - 32768;
-        sm = (int32_t)(((uint64_t)x * x * (196608u - 2u * x)) >> 48);   /* x^2 (3 - 2x), x in 0..65535 */
-        return clamp(a + (((b - a) * sm) >> 16), -32767, 32767);
-    }
     default:
         return osc_sine(ph);
     }
@@ -565,7 +552,6 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     v->gacc = 0;
     v->pitch16 = ((int32_t)note + trk_trans(t)) * 16 + t->pfx_rpit;   /* (pfx.c RANDOM: 0 but while it is held) */
     v->mvel = t->m_vel;                                 /* mod.c: the note's VEL and RAND */
-    v->pat = 0;                                         /* (QG-1 1.6) a new key starts with no poly pressure */
     v->mrnd = t->m_rnd;
     t->m_vi = (uint8_t)(v - t->v);
     glide_set(t, v, glide);

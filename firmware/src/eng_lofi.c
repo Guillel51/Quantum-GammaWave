@@ -595,11 +595,6 @@ static const preset_t LOFI_PRESETS[] = {
     {"CYBER DRONE", {2, 5, 12, 0, 55, 0, 0, 95}, {80, 90, 120, 100}, 0, 0, FX(20, 35, 25, 90), PAT(5)},
     {"SPACE LULLABY", {0, 4, 60, 0, 95, 12, 0, 0}, {50, 90, 115, 85}, 0, 0, FX(0, 50, 35, 75), PAT(5)},
     {"RITUAL PULSE", {4, 0, 50, 45, 115, 20, 0, 0}, {0, 65, 80, 45}, 0, 1, FX(15, 0, 35, 30), PAT(4)},
-
-    /* (QG-1 1.6) EVOLVE: tape that keeps drifting, no two bars the same */
-    {"TAPE DRONE", {2, 6, 20, 0, 52, 18, 40, 0}, {100, 92, 122, 110}, 0, 0, FX(20, 25, 40, 70), PAT(5),
-     {XP(P_LRATE, 4), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_LD_SHP, 20)}},
-
 };
 
 static const engine_t ENG_LOFI = {

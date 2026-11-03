@@ -332,8 +332,6 @@ static void __attribute__((noinline)) midi_event(uint32_t st, uint32_t ch, uint3
         midi_control(ch, d1, d2);
     } else if (st == 0xD0u)
         mod_midi(midi_track(ch), st, d1, d2);
-    else if (st == 0xA0u)                              /* (QG-1 1.6) polyphonic aftertouch: per key, external MIDI */
-        mod_pat(midi_track(ch), d1, d2);
     else if (st == 0xC0u)                          /* (0.6.72) PROGRAM CHANGE: the UI loads it (ui.c midi_pc_poll) */
         midi_pc_req[trk_index(midi_track(ch)) % NTRK] = (uint8_t)(d1 + 1u);
 }

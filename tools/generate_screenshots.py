@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
         f.write(src + "\n" + custom_main)
 
     os.makedirs("assets/screenshots/ppm", exist_ok=True)
-    subprocess.run(["gcc", "-O1", "-w", "-DFELUCCA_VERSION=\"v1.6-QG\"",
+    subprocess.run(["gcc", "-O1", "-w", "-DFELUCCA_VERSION=\"v1.5-QG\"",
                     "-Ibuild/gen", "-Ifirmware/src", "-Itests",
                     "-o", "/tmp/gen_screens", "/tmp/gen_screens.c", "-lm"], check=True)
     subprocess.run(["/tmp/gen_screens"], check=True)

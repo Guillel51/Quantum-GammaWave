@@ -253,7 +253,7 @@ static void web_power_on(void)
     settings_init();
     prefs_update();                       /* main.c (JIANT 0.6.44): FX LATCH ON by default (0.6.58: here too) */
     usb_serial_apply();
-    lcd_init(0);                 /* (QG-1 1.6) the firmware's lcd_init(bg) since 1.5; this shim ignores the colour */
+    lcd_init();
     spl_anim = 1;                         /* main.c (JIANT 0.5): the signature written */
     draw_splash();                        /* main.c: the splash (ui_draw.c) */
     memset(&felucca_dbg, 0, sizeof felucca_dbg);

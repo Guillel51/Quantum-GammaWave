@@ -292,7 +292,6 @@ typedef struct {
     int32_t s[8];                /* engine state (filters, envs) */
     uint32_t age;
     uint8_t mvel;                /* mod.c: the note-on velocity (before UNISON scaling) and RAND of the note */
-    uint8_t pat;                 /* (QG-1 1.6) this key's polyphonic aftertouch (MIDI 0xA0), 0 = none */
     uint8_t gacc;                /* (0.6.82) the glide's fraction of a 1/16 st carried (gstep Q8) */
     int16_t mrnd;
 } voice_t;
@@ -325,16 +324,6 @@ typedef struct {
 #define FX(d, c, dl, r) .fx = {(d) + 1, (c) + 1, (dl) + 1, (r) + 1}
 #define XP(id, v) {(id) + 1, (v)}
 #define PAT(n) .pat = (n)
-/* (QG-1 1.6) the matrix source / destination numbers a preset's x[] may name: mod.c MS_* / MD_* (asserted there,
- * so a reordering of either list breaks the build rather than the sound) */
-#define QG_SRC_VEL 3             /* MS_VEL */
-#define QG_SRC_AT 7              /* MS_AT: channel aftertouch */
-#define QG_SRC_PAT 15            /* MS_PAT: this key's polyphonic aftertouch */
-#define QG_DST_CUT 2             /* MD_CUT */
-#define QG_DST_SHP 3             /* MD_SHP */
-#define QG_DST_REV 9             /* MD_REV */
-#define QG_DST_VIB 11            /* MD_VIB */
-#define QG_DST_E1 12             /* MD_E1: the engine's first EDIT parameter (a formant's vowel, FM6's algorithm) */
 
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */

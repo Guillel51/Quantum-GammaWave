@@ -309,7 +309,6 @@ else
     echo "== skip CPU under valgrind (no valgrind, or not Linux x86-64)"
 fi
 
-run "preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 
 if command -v node >/dev/null 2>&1; then

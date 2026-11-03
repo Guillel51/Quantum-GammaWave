@@ -499,18 +499,6 @@ static const preset_t FM6_PRESETS[] = {
     {"SITAR RESON", {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(15, 30, 35, 60), PAT(3)},
     {"GAMELAN MET", {0, 0, 0, 0, 0, 0, 0, 15}, {0, 0, 127, 0}, 0, 0, FX(0, 15, 30, 70), PAT(7)},
     {"STEEL DRUM", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 25, 50), PAT(3)},
-
-    /* (QG-1 1.6) EVOLVE: the bell's tail keeps moving while it rings */
-    {"EVOLVE BELL", {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 25, 30, 74), PAT(7),
-     {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LFADE, 70), XP(P_LD_FLT, 18), XP(P_LD_AMP, 8)}},
-    /* (QG-1 1.6) TOUCH: the EP's brightness follows velocity, its vibrato the pressure */
-    {"VELVET EP", {0, 0, 0, 0, 0, 0, 0, 0}, {0, 70, 30, 25}, 0, 0, FX(0, 55, 30, 48), PAT(6),
-     {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 40),
-      XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_VIB), XP(P_M2AMT, 24)}},
-
-
-    {"AURORA FM", {0, 0, 0, 0, 0, 0, 0, 4}, {30, 90, 60, 8}, 0, 0, FX(0, 70, 35, 86), PAT(5),
-     {XP(P_LRATE, -3), XP(P_LWAVE, 6), XP(P_LFADE, 80), XP(P_LD_FLT, 20), XP(P_LD_AMP, 10)}},
 };
 
 static const engine_t ENG_FM6 = {

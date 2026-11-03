@@ -605,21 +605,25 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         int gw_rotary = (ux.chamfer && !ux.style && kind == LK_OFF && ratio >= 0 && !strip &&
                          5 + text_w(&AF_S, label) <= COL_W - 22);
         if (gw_rotary) {
-            /* (QG-1 1.6) a real round knob: a filled body, a 270-degree ring, the value arc and a needle, in the
-             * cards' own SURF / LINE / THEME language. The old bakelite disc, its orbit ring one pixel inside the
-             * ring and the chamfer read as a gear from the side and left the knob looking square. */
+            /* Authentic GammaWave Bakelite Amber Rotary Knob (20x20 at top-right of module, x=35..54, y=2..21)
+             * with warm bakelite body + dual Cyan/Orange modulation rings */
             int32_t kr = KNOB_SMALL_R, kx = COL_W - 2 * kr - 2, ky = 2;
             int32_t kcx = kx + kr, kcy = ky + kr, r_cl = clamp(ratio, 0, 1000);
             uint32_t th = (uint32_t)((-384 + r_cl * 768 / 1000) * 64);
-            int32_t px1 = kcx + ((kr - 4) * bg_sin(th) >> 15), py1 = kcy - ((kr - 4) * bg_sin(th + 0x4000u) >> 15);
+            int32_t px1 = kcx + (6 * bg_sin(th) >> 15), py1 = kcy - (6 * bg_sin(th + 0x4000u) >> 15);
             uint16_t kc_arc = hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(r_cl);
-            uint16_t body = ux.mono ? T_BG : ux_mix(T_SURF, T_RAISE, 62);
-            gw_disc(kcx, kcy, kr, body);                /* the body, under the ring: no gap, no square corners */
+            uint16_t bake_fill = ux.mono ? T_BG : ux_mix(T_BG, bg_col(128), 38);
+            gw_disc(kcx, kcy, kr - 2, bake_fill);
+            gw_orbit_ring(kcx, kcy, kr - 3, kr - 3, mot || hot ? T_ACCENT : T_LINE, 0);
             knob(kx, ky, kr, KNOB_SMALL_COV, KNOB_SMALL_ANG, r_cl, 0, 1000, kc_arc);
-            cv_line_t(kcx, kcy, px1, py1, hot ? T_ACCENT : T_TEXT, 2);
-            gw_disc(kcx, kcy, 2, ux.mono ? T_TEXT : T_MID);
-            if (mot)                                    /* automated: an accent dot on the rim, the knob stays round */
-                gw_disc(kcx + kr - 3, kcy + kr - 3, 4, T_ACCENT);
+            if (mot) {                                  /* (1.1.1-GW) automated: an "A" on an accent disc in the knob */
+                gw_disc(kcx, kcy, kr - 4, T_ACCENT);
+                cv_text_on(kcx - (text_w(&AF_S, "A") >> 1), kcy - AF_S_CAP_Y - (AF_S_CAP_H >> 1), &AF_S, "A", T_INK,
+                           T_ACCENT);
+            } else {
+                cv_line(kcx, kcy, px1, py1, hot ? T_ACCENT : T_TEXT);
+                cv_pset(kcx, kcy, T_MID);
+            }
         }
         if (!strip && label[0]) {
             /* MENU > LARGE on a list / graph page or a layer (LK_LABEL): the label in M where it fits the card (its
@@ -1401,55 +1405,56 @@ static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, 
  *   - Chamfered Octagonal Quantum Frame with Top-Left Cyan Bracket
  *   - Upper Bay: Quantum Core Blazing Cyan/Amber + Orbiting Electron Rings
  *   - Lower Bay: Full 7-letter "QUANTUM" typography physically surfing along the glowing sine wave */
-/* (QG-1 1.6) The splash, redrawn in the UI's own language: one SURF card with the theme's rule, the QG monogram
- * on the left, three waves writing themselves across it, and the rail of 16 segments along the bottom with the
- * playhead on its edge. No chamfer, no letters surfing, no stray bars: the old octagon and its dark bands read as
- * a different program and left black lines between the elements. It is still all rects, lines and discs in the
- * saved palette, and still nothing but a function of prog (and mono), so the hold does not redraw it. */
-static const uint8_t SPL_BAR[SPL_BARS] = {10, 18, 26, 34, 28, 22, 30, 38, 30, 24, 18, 26, 32, 22, 16, 12};
+static const uint8_t SPL_BAR[SPL_BARS] = {7, 12, 19, 26, 31, 25, 20, 28, 34, 29, 22, 16, 11, 18, 10, 6};
+/* prog: 0..256 of SPL_WRITE. The two texts are NOT drawn here: draw_splash draws the version and the name
+ * first, so the order ui_render asserts stays "version | name". */
 static void splash_sig(uint32_t prog, uint32_t ms)
 {
+    static const char *const WORD = "QUANTUM";
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
-    uint16_t card = mono ? T_BG : T_SURF, rule = mono ? T_TEXT : T_THEME;
-    int32_t i, x, y, lit = (int32_t)(prog * SPL_BARS / 256u);
+    int32_t i, lx, ly = 14, lw = 20, lh = 26, step = 26;
+    int32_t rx = 26, rstep = 12, rw = 8, base = 104, rmax = 44;
+    uint32_t lit = prog * SPL_BARS / 256u;
+    int32_t letters = 0, ph = -1;
     uint32_t sig;
     (void)ms;
-    sig = 0x51470000u | (mono ? 0x01000000u : 0u) | (prog << 8);
+    /* The art is a pure function of (bars lit, letters shown, playhead x, mono) -- nothing else in here reads state.
+     * While that signature equals what splash_sig last drew, drawing again would produce the same pixels, so it
+     * returns. main.c's boot loop calls this every 4 ms over SPL_WRITE + SPL_HOLD (1700 ms): without this the
+     * 900 ms hold rewrote the identical art ~225 times, ~6.7 M pixels for a screen that had stopped changing. */
+    for (i = 0; i < 7; i++) {
+        if ((uint32_t)(i + 1) * 256u / 7u > prog)
+            break;
+        letters = i + 1;
+    }
+    if (prog < 256u)
+        ph = rx + (int32_t)(prog * (uint32_t)(rstep * SPL_BARS) / 256u);
+    sig = 0x51470000u | (mono ? 0x01000000u : 0u) | (lit << 16) | ((uint32_t)letters << 8) |
+          (ph < 0 ? 0xFFu : (uint32_t)ph);
     if (sig == spl_shown)
         return;
     spl_shown = sig;
     cv_begin(240, SPL_ART_H, T_BG);
-    cv_rrect(4, 2, 232, SPL_ART_H - 10, 10, card, T_BG);       /* the one card */
-    cv_rect(14, 8, 212, 2, rule);                                /* its top rule */
-    {   /* the monogram: a dotted orbit, the ring, the Q, an electron that goes round while it writes */
-        int32_t cx = 54, cy = 62;
-        gw_orbit_ring(cx, cy, 37, 37, mono ? T_DIM : T_LINE, 1);
-        gw_orbit_ring(cx, cy, 29, 29, mono ? T_TEXT : T_THEME, 0);
-        gw_logo_letter('Q', cx - 15, cy - 16, 30, 30, mono ? T_TEXT : T_ACCENT);
-        {
-            uint32_t an = (uint32_t)(28 + prog * 3u) << 6;
-            int32_t ex = cx + (int32_t)((37 * bg_sin((int32_t)an)) >> 15);
-            int32_t ey = cy - (int32_t)((37 * bg_sin((int32_t)an + 0x4000)) >> 15);
-            gw_disc(ex, ey, 4, mono ? T_TEXT : T_ACCENT);
-        }
+    gw_oct_panel(8, 2, 224, SPL_ART_H - 4, 6, mono ? T_BG : T_SURF, T_LINE, 1, mono ? T_TEXT : T_THEME);
+
+    /* the wordmark, one letter at a time as the boot runs */
+    for (i = 0; i < 7; i++) {
+        if ((uint32_t)(i + 1) * 256u / 7u > prog)
+            break;
+        lx = 32 + i * step;
+        gw_logo_letter(WORD[i], lx, ly, lw, lh, mono ? T_TEXT : (i < 4 ? T_THEME : T_ACCENT));
     }
-    /* three waves, written from the left; the middle one is the accent */
-    for (i = 0; i < 3; i++) {
-        int32_t w = (int32_t)(prog * 126u / 256u), ax = 100, ay = 40 + i * 17, ph = i * 100;
-        for (x = 0; x < w; x++) {
-            y = ay + (int32_t)((9 * bg_sin((x * 300 + ph * 64) & 0xFFFF)) >> 15);
-            cv_rect(ax + x, y, 1, 2, mono ? (i == 1 ? T_TEXT : T_DIM) : (i == 1 ? T_ACCENT : T_THEME));
-        }
+
+    /* the rail: a fixed spectrum, lit from the left, the newest bar in the accent */
+    cv_rect(rx, base, rstep * SPL_BARS - (rstep - rw), 1, mono ? T_DIM : T_LINE);
+    for (i = 0; i < (int32_t)lit && i < (int32_t)SPL_BARS; i++) {
+        int32_t h = (int32_t)SPL_BAR[i] * rmax / 34;
+        cv_rect(rx + i * rstep, base - h, rw, h, mono ? T_TEXT : ((uint32_t)i + 1u == lit ? T_ACCENT : T_THEME));
     }
-    /* the rail: sixteen segments, the newest in the accent; the playhead rides it while it writes */
-    cv_rect(22, 104, 196, 1, mono ? T_LINE : T_LINE);
-    for (i = 0; i < (int32_t)SPL_BARS; i++) {
-        int32_t h = SPL_BAR[i] * 20 / 38, bx = 24 + i * 12;
-        cv_rrect(bx, 104 - h, 8, h, 2, mono ? (i < lit ? T_TEXT : T_DIM)
-                                            : (i < lit ? ((uint32_t)i + 1u == (uint32_t)lit ? T_ACCENT : T_THEME) : T_LINE), card);
+    if (prog < 256u) {                              /* the playhead, only while it is writing */
+        int32_t px = rx + (int32_t)(prog * (uint32_t)(rstep * SPL_BARS) / 256u);
+        cv_rect(px, ly - 4, 1, base - ly + 6, mono ? T_TEXT : T_ACCENT);
     }
-    if (prog < 256u)
-        gw_disc(24 + (int32_t)(prog * 190u / 256u), 108, 3, mono ? T_TEXT : T_ACCENT);
     cv_blit(0, SPL_SY);
 }
 static void draw_splash(void)
