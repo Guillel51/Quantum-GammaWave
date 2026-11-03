@@ -20,6 +20,7 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 
 - The splash monogram was a square `Q` (a box with a diagonal) that read as a placeholder. It is now a round
   Q ring with its tail, drawn with the same orbit/knob language as the rest of QG, in the same palette and
+  mono rule. `ui_render` still reports 0 lint findings and 0 alignment errors over 171 screens x 17 palettes.
   mono rule. `ui_render` still reports 0 lint findings and 0 alignment errors over 172 screens x 17 palettes.
 
 ## v1.7-QG — CI budget fix (target compiler checks)

@@ -61,6 +61,12 @@ reintroduced the 1.6/1.7 content. There are no unmerged 1.6 commits in the repos
 - `ui_render` → 181 screens x 17 palettes (FM4 build), 0 lint findings, 0 alignment errors, 0 off-colour inks.
 - `tests/run_tests.sh` → **exit 124** (5 minute shell limit). It reached persistence, editor, OTA and
   package tests with no assertion failure there, but did not finish.
+- `ui_test` → **8 FAILED**, reproduced twice in the same run:
+  1. COLOR KNOB 1 palette cycle; 2. HOME leaving display preferences; 3. #3 SELECT ON HOME;
+  4. #39 layer + KNOB 1..4 release; 5. FX section paging; 6. MENU > STYLE FLAT/LINE;
+  7. 0.6.69 SELECT page scrolling; 8. #15 LARGE ON tall cards.
+  These paths are untouched by this branch (only `mod.c` and the splash glyph changed), so they are
+  pre-existing in `main`; they must be treated as a 1.7 defect, not waved through.
 - `ui_test` → **all passed** after updating the SELECT, FX, STYLE, ARP and LARGE checks. LARGE was
   testing cards while HOME's full-screen visualizer was up (`ui.home_viz=1`), so the cards were not drawn;
   the test now turns the visualizer off and forces the frame. No assertion was removed. (the palette cycle now covers SOLARIS /
