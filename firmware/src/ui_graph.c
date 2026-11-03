@@ -2706,6 +2706,27 @@ static void graph_song(void)
     }
 }
 #include "ui_tech.c"                                /* (JIANT 0.5) the technical graphs (FX, DEST, VOICE, GLOBAL) */
+/* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
+static void graph_master(void)
+{
+    static const char *const L[4] = {"CLIP", "PUNCH", "DUCK", "DREL"};
+    const int16_t *v[4] = {&song.g[G_CLIP], &song.g[G_PUNCH], &song.g[G_DUCK], &song.g[G_DREL]};
+    int32_t i;
+    cv_rect(12, 4, 216, 1, T_LINE);
+    for (i = 0; i < 4; i++) {
+        int32_t x = 20 + i * 52, h = clamp((int32_t)*v[i], 0, 127) * 48 / 127;
+        cv_rrect(x, 14, 18, 52, 4, T_BG, T_SURF);
+        if (h > 0)
+            cv_rrect(x, 64 - h, 18, h, 4, i == 0 ? T_ACCENT : T_THEME, T_BG);
+        cv_rect(x + 2, 46, 14, 1, T_LINE);
+        cv_text_in(x - 10, 70, 38, &AF_S, L[i], i == 0 ? T_ACCENT : T_MID, T_SURF);
+    }
+    for (i = 0; i < 10; i++) {                         /* fixed dust, the same language as the splash */
+        uint32_t hsh = (uint32_t)i * 2654435761u ^ 0x9E3779B9u;
+        cv_rect(10 + (int32_t)(hsh % 220u), 8 + (int32_t)((hsh >> 9) % 56u), 1, 1, T_LINE);
+    }
+}
+
 static void draw_graph(void)
 {
     const page_t *pg = cur_page();
@@ -2854,6 +2875,7 @@ static void draw_graph(void)
             graph_tools();
             break;
         default:
+            if (str_eq(pg->title, "MASTER")) { graph_master(); break; }
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {
