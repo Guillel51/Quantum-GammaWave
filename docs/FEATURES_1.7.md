@@ -13,7 +13,7 @@ half-safe. "Present" means the capability already exists in 1.6 and was verified
 | LFO retrigger | **Present** | LFO `PHASE` restarts on a fresh phrase; LOFI has `RTRG`. A global per-note retrigger switch would need a new parameter — deferred |
 | Arpeggiator improvements | **Present (8 controls)** | `ARP` / `ARP 2`: mode, rate, octave, gate, swing, probability, hold, order. Further modes deferred until a musical gap is demonstrated |
 | Chord Memory | **Present** | `SCL > CHORD`: fixed chord types, voicing, strum |
-| Preset Compare | **Deferred** | Needs a held "compare" state and a second sound buffer; no free persistent surface without changing the UI/format. Alternative: save the sound to a user slot and use the browser A/B by ear |
+| Preset Compare | **Web Studio only** | A/B assigns and reloads saved factory or user presets in the browser; the FM-1 screen/state version is still deferred because it needs a held compare surface without changing the project format |
 | MIDI Learn | **Present (session)** | CC 119 arms the parameter id (its value) of the track's engine; the next CC binds to it, CC 118 forgets every binding. RAM only, so no settings/project format change; a persisted mapping is still deferred |
 
 ## Why not force them in
@@ -25,8 +25,8 @@ half-safe. "Present" means the capability already exists in 1.6 and was verified
   it or, worse, ship cut text.
 - A *persisted* MIDI Learn map (surviving power-off) would need a versioned settings block and a migration;
   the session table above is the low-risk step until that format is designed and tested.
-- Preset Compare needs state that survives a sound load plus a UI surface; both are deferred until a
-  screen and a button gesture can be validated on a board.
+- A firmware Preset Compare still needs state that survives a sound load plus a screen gesture; the Web
+  Studio A/B does not change that format and is the low-risk step already shipped.
 
 ## Next low-risk candidates
 
