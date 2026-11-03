@@ -329,7 +329,7 @@ static const preset_t ANALOG_PRESETS[] = {
     {"HEARTH LD", {0, 14, 64, 10, 86, 45, 60, 7}, {4, 76, 100, 52}, 28, 1, FX(40, 20, 45, 35), PAT(4)},
     {"WRAITH PAD", {4, 24, 64, 18, 64, 42, 25, 12}, {75, 95, 112, 98}, 16, 0, FX(18, 65, 35, 82), PAT(5)},
     {"SCREAM 303", {0, 0, 0, 4, 42, 114, 80, 0}, {0, 52, 15, 26}, 58, 1, FX(48, 0, 40, 18), PAT(1)},
-    /* (POCKET GAMMAWAVE // GW-1) Latest GammaWave Wave 1/2 + Hearth Physics presets */
+    /* (QUANTUM GAMMAWAVE // QG-1) Latest GammaWave Wave 1/2 + Hearth Physics presets */
     {"SOLAR BASS", {7, 11, 64, 6, 54, 68, 72, -12}, {0, 62, 85, 32}, 44, 1, FX(38, 15, 20, 18), PAT(14)},
     {"PDRESO ACID", {5, 16, 82, 4, 46, 108, 64, 0}, {0, 56, 25, 28}, 54, 1, FX(42, 10, 38, 22), PAT(14)},
     {"BITSINE ARP", {6, 14, 70, 8, 88, 36, 35, 12}, {0, 74, 40, 52}, 32, 0, FX(22, 35, 50, 45), PAT(15)},

@@ -16,11 +16,23 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 - `tests/groups.sh` gains `security` and `stress`; `docs/PERF_SECURITY_AUDIT.md` records the host and
   target measurements, the remaining single-bank/no-signature risks, and what was not tested on metal.
 
+## v1.7-QG — flash I/O, loader bounds and FX/MASTER UI
+
+- Flash: SPI timeout errors now propagate to erase/program/read callers instead of being discarded;
+  cache and SFC waits are bounded, and a failed I/O operation cannot report success. The loader's app
+  window is asserted at `[0x4000,0x93000)`; VM, autosave, FM6 bank and USR are rejected at compile time.
+- Loader: the stock record at `0xE8F00` is invalidated in place (80 zero bytes), preserving the rest of
+  the VM-backup sector; `fvb_boot()` no longer reads an uninitialised sequence when no home bank exists.
+- UI: the first FX page gains real per-send peak meters; MASTER gains a live CLIP transfer curve, PUNCH
+  envelope, DUCK gain, REL and output VU. UI lint/alignment pass 172 screens x 17 palettes; FX host
+  draw cost 125.3 -> 123.9 units. The full gallery was regenerated from the firmware renderer.
+- Tests: target build, loader (normal and ASan/UBSan), web, security, presets and UI renderer pass.
+  No physical FM-1 verification; the single-bank/no-signature risks remain.
+
 ## v1.7-QG — Splash identity
 
 - The splash monogram was a square `Q` (a box with a diagonal) that read as a placeholder. It is now a round
   Q ring with its tail, drawn with the same orbit/knob language as the rest of QG, in the same palette and
-  mono rule. `ui_render` still reports 0 lint findings and 0 alignment errors over 171 screens x 17 palettes.
   mono rule. `ui_render` still reports 0 lint findings and 0 alignment errors over 172 screens x 17 palettes.
 
 ## v1.7-QG — CI budget fix (target compiler checks)

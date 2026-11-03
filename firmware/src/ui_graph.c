@@ -725,7 +725,14 @@ static void graph_fx(const track_t *t, uint16_t c)
     static const char *const FX_LABELS[4] = {"DIST", "CHOR", "DLY", "REV"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
+    static uint8_t vu[4];
+    static int32_t vu_trk = -1;
+    int32_t pk = t->peak < 0 ? -t->peak : t->peak;   /* the track's real post-FX peak (fx.c) */
     uint32_t i;
+    if (vu_trk != (int32_t)(t - trk)) {              /* the meters belong to one track */
+        memset(vu, 0, sizeof vu);
+        vu_trk = (int32_t)(t - trk);
+    }
 
     /* Enclosure panel */
     if (ux.chamfer && !ux.style) {
@@ -742,6 +749,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         int32_t slot_x = cx + 44;
         int32_t slot_y = 26;
         uint16_t col = ux.chamfer ? heat_col(val * 240 / 127 + 16) : c;
+        int32_t vu_x = cx + 34, vu_h = 38, vu_lv;
         char num[8];
 
         /* Sub-panel enclosure per FX column */
@@ -751,6 +759,24 @@ static void graph_fx(const track_t *t, uint16_t c)
          * send is identifiable at a glance without reading the label */
         cv_icon_in(cx + 4, 6, 14, 14, 12, FX_ICON[i], T_MID, T_SURF);
         cv_text(cx + 21, 6, &AF_S, FX_LABELS[i], T_MID);
+
+        /* Micro fader slot down the right of the sub-panel: its rows (y 26..66) are clear of the name
+         * above (ink y 9..19) and its column (x cx+39..cx+53) is clear of the readout on the left
+         * (ends at x cx+33), so a label, a value and the thumb can no longer overlap each other */
+        /* Real activity meter beside the fader: the track's peak through this send, not a fake
+         * oscillator. It attacks at once and falls two rows per redraw. */
+        vu_lv = clamp(pk, 0, 7000) * (vu_h - 1) / 7000;
+        vu_lv = vu_lv * clamp(val, 0, 127) / 127;
+        if (vu_lv > vu[i]) vu[i] = (uint8_t)vu_lv;
+        else if (vu[i] > 2u) vu[i] -= 2u; else vu[i] = 0;
+        cv_rrect(vu_x, slot_y, 4, vu_h, 1, T_BG, T_RAISE);
+        for (int32_t yy = 0; yy < vu_h; yy += 4)
+            cv_rect(vu_x + 1, slot_y + vu_h - 1 - yy, 2, 1, T_RAISE);
+        if (vu[i] > 0u)
+            cv_rrect(vu_x + 1, slot_y + vu_h - vu[i], 2, vu[i], 1,
+                     ux.chamfer ? heat_col(40 + (int32_t)vu[i] * 200 / vu_h) : c, T_BG);
+        if (pk > 64)                                  /* a live note: the effect's lamp */
+            cv_rect(cx + 36, 7, 2, 2, T_ACCENT);
 
         /* Micro fader slot down the right of the sub-panel: its rows (y 26..66) are clear of the name
          * above (ink y 9..19) and its column (x cx+39..cx+53) is clear of the readout on the left
@@ -801,7 +827,7 @@ static void graph_slicer(uint16_t c)
     int32_t open = 52 - song.g[G_SLDEP] * 52 / 127;     /* px a closed GATE step keeps */
     uint16_t col = mode == SL_OFF ? T_DIM : c;
     if (ux.chamfer && !ux.style) {
-        /* POCKET GAMMAWAVE // GW-1: 4-Track Analog Audio Waveform Tape Deck (y = 4..69) */
+        /* QUANTUM GAMMAWAVE // QG-1: 4-Track Analog Audio Waveform Tape Deck (y = 4..69) */
         int32_t lane, x, head_x = 18 + (int32_t)(cur & 15u) * 13;
         gw_oct_panel(8, 4, 224, 65, 4, T_BG, T_LINE, 1, T_THEME);
         /* Top Yellow Tape Loop Bracket */
@@ -1645,6 +1671,9 @@ static uint32_t graph_signature(void)
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
     if (pg->graph == GR_NONE || pg->graph == GR_ARP || pg->graph == GR_MOTION) h ^= ui.frame / 2u;
+    if (pg->graph == GR_FX)                          /* real peak meters, plus a slow ambient tick when idle */
+        h ^= (uint32_t)(t->peak < 0 ? -t->peak : t->peak) * 2654435761u ^ (uint32_t)bg_energy() * 40503u ^
+             (ui.frame / 16u) * 1299709u;
     if (pg->graph == GR_LFO)                         /* (JIANT 0.5) the LFO runs: its phase, its level */
         h ^= (t->lfo_ph >> 23) * 2654435761u ^ (uint32_t)(t->lfo_val * t->lfo_fade >> 22);
     if (pg->graph == GR_ADSR)                        /* the envelope's dot: every voice's stage and level */
@@ -2716,7 +2745,7 @@ static void graph_song(void)
 /* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
 static void graph_master(void)
 {
-    static const char *const L[4] = {"CLIP", "PUNCH", "DUCK", "DREL"};
+    cv_oy = 0;                                       /* this panel is laid out on its own 0..100 scale */
     if (str_eq(cur_page()->title, "MASTER EQ")) {      /* the bell from FREQ/GAIN/Q, over a 0 dB rule */
         int32_t f = clamp(song.g[G_EQFREQ], 0, 127), g = clamp(song.g[G_EQGAIN], -24, 24);
         int32_t q = clamp(song.g[G_EQQ], 0, 127), cx = f * 200 / 127, w = 14 + q * 46 / 127, x;
@@ -2741,21 +2770,64 @@ static void graph_master(void)
         }
         return;
     }
-    const int16_t *v[4] = {&song.g[G_CLIP], &song.g[G_PUNCH], &song.g[G_DUCK], &song.g[G_DREL]};
-    int32_t i;
-    cv_rect(12, 4, 216, 1, T_LINE);
-    for (i = 0; i < 4; i++) {
-        int32_t x = 20 + i * 52, h = clamp((int32_t)*v[i], 0, 127) * 48 / 127;
-        cv_rrect(x, 14, 18, 52, 4, T_BG, T_SURF);
-        if (h > 0)
-            cv_rrect(x, 64 - h, 18, h, 4, i == 0 ? T_ACCENT : T_THEME, T_BG);
-        cv_rect(x + 2, 46, 14, 1, T_LINE);
-        cv_text_in(x - 10, 70, 38, &AF_S, L[i], i == 0 ? T_ACCENT : T_MID, T_SURF);
+    int32_t i, py = 0, en = bg_energy(), clip = clamp(song.g[G_CLIP], 0, 127);
+    int32_t g = 1024 + clip * 31, punch = clamp(song.g[G_PUNCH], 0, 127);
+    int32_t duck = clamp(song.g[G_DUCK], 0, 127), drel = clamp(song.g[G_DREL], 0, 127);
+    int32_t x0 = 14, y0 = 14, sw = 88, sh = 50, cy = y0 + sh / 2;
+    /* CLIP: the actual transfer curve (the same softclip the DSP uses), the live level on it. */
+    cv_rect(x0, y0 + sh, sw, 1, T_LINE);
+    cv_rect(x0, y0, 1, sh, T_RAISE);
+    for (i = 0; i <= sw; i += 8)
+        cv_rect(x0 + i, y0, 1, 3, T_LINE);
+    for (i = 0; i <= sw; i++) {
+        int32_t x = (i - sw / 2) * 32767 / (sw / 2);
+        int32_t y = cy - softclip(x * g >> 10) * (sh / 2) / 32767;
+        if (i)
+            cv_line_t(x0 + i - 1, py, x0 + i, y, heat_y(y < cy ? y : 2 * cy - y, y0, cy, T_THEME), 2);
+        py = y;
     }
-    for (i = 0; i < 10; i++) {                         /* fixed dust, the same language as the splash */
-        uint32_t hsh = (uint32_t)i * 2654435761u ^ 0x9E3779B9u;
-        cv_rect(10 + (int32_t)(hsh % 220u), 8 + (int32_t)((hsh >> 9) % 56u), 1, 1, T_LINE);
+    for (i = 0; i <= sw; i += 6)                      /* unity, dotted */
+        cv_rect(x0 + i, y0 + sh - i * sh / sw, 1, 1, T_DIM);
+    if (en > 2) {
+        int32_t dx = x0 + sw / 2 + en * (sw / 2) / 256;
+        int32_t dy = cy - softclip(en * 128 * g >> 10) * (sh / 2) / 32767;
+        cv_rrect(dx - 3, dy - 3, 7, 7, 3, T_TEXT, T_SURF);
     }
+    cv_text_on(x0, y0 + sh + 3, &AF_S, "CLIP", T_DIM, T_SURF);
+    cv_text_on(x0 + 42, y0 + sh + 3, &AF_S, en > 2 ? "LIVE" : "OUT", en > 2 ? T_ACCENT : T_DIM, T_SURF);
+
+    /* PUNCH: the transient shaper's real envelope (punch_gain), not decoration. */
+    cv_text_on(116, 5, &AF_S, "PUNCH", T_DIM, T_SURF);
+    cv_rect(116, 43, 56, 1, T_LINE);
+    py = 42;
+    for (i = 0; i <= 56; i++) {
+        int32_t y = 42 - (punch_gain((uint32_t)i * 255u / 56u, punch) >> 15) * 22 / 32767;
+        if (i)
+            cv_line_t(115 + i, py, 116 + i, y, heat_y(y, 20, 42, T_THEME), 2);
+        py = y;
+    }
+    cv_text_on(116, 46, &AF_S, punch > 0 ? "HIT" : "OFF", punch > 0 ? T_ACCENT : T_DIM, T_SURF);
+
+    /* DUCK: the sidechain gain the other tracks get right now (duck_g1), and REL below it. */
+    cv_rrect(180, 16, 12, 38, 2, T_BG, T_RAISE);
+    {
+        int32_t gh = clamp((int32_t)duck_g1, 0, 32767) * 36 / 32767;
+        if (gh > 0)
+            cv_rrect(181, 53 - gh, 10, gh, 2, duck ? heat_col(60 + gh * 180 / 36) : T_DIM, T_BG);
+    }
+    cv_rect(180, 34, 12, 1, T_ACCENT);                /* unity gain reference */
+    cv_text_on(180, 57, &AF_S, duck ? "ON" : "OFF", duck ? T_ACCENT : T_DIM, T_SURF);
+    cv_rrect(198, 16, 10, 38, 2, T_BG, T_RAISE);
+    cv_rrect(199, 16, 8, clamp(drel, 0, 127) * 38 / 127, 2, T_THEME, T_BG);
+    /* OUT: the real master level (bg_energy on the DAC scope), segmented like a hardware VU. */
+    cv_rrect(216, 16, 8, 38, 2, T_BG, T_RAISE);
+    for (i = 1; i < 38; i += 4)
+        cv_rect(217, 16 + i, 6, 1, T_RAISE);
+    if (en > 1) {
+        int32_t oh = en * 36 / 256;
+        cv_rrect(217, 53 - oh, 6, oh, 1, heat_col(80 + en * 160 / 256), T_BG);
+    }
+    cv_text_on(214, 57, &AF_S, en > 2 ? "LIVE" : "OUT", en > 2 ? T_ACCENT : T_DIM, T_SURF);
 }
 
 static void draw_graph(void)

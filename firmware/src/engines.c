@@ -141,7 +141,7 @@ static const struct {
      * now that the arpeggiator is the track's and a preset no longer switches it on */
     {"ARP", {48, 51, 55, 60, 63, 67, 72, 75, 48, 51, 55, 60, 63, 67, 72, 75},       /* 13 */
      {1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0}},
-    /* (POCKET GAMMAWAVE // GW-1) Solar / Gravity / Eclipse / Wraith signature patterns */
+    /* (QUANTUM GAMMAWAVE // QG-1) Solar / Gravity / Eclipse / Wraith signature patterns */
     {"SOLAR", {36, 36, 48, 36, 39, 36, 51, 48, 36, 36, 55, 36, 43, 41, 48, 39},      /* 14 solar bassline */
      {1, 0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 2, 0, 1}},
     {"GRAVITY", {60, 63, 67, 72, 70, 67, 63, 60, 58, 62, 67, 74, 72, 67, 63, 62},    /* 15 orbital arp */

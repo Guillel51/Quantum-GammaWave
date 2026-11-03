@@ -127,9 +127,9 @@ Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Españo
 
 ---
 
-## Real Hardware Interface Gallery
+## Firmware Renderer Gallery
 
-All screenshots below represent the authentic, native 240×240 procedural interface rendered directly by the Quantum GammaWave (QG-1) firmware engine on the M-VAVE FM-1's color display.
+All screenshots below are native 240×240 renders produced directly by the Quantum GammaWave (QG-1) firmware drawing code. They are **renderer output, not photographs of a physical FM-1**; the current branch regenerated the full gallery with `tools/generate_screenshots.py`.
 
 ### 1. Quantum Signature Suite & Core Views
 
@@ -138,10 +138,15 @@ All screenshots below represent the authentic, native 240×240 procedural interf
 | ![HOME](assets/screenshots/quantum_01_home.png) | ![EDIT ANALOG](assets/screenshots/quantum_02_edit_analog.png) | ![FM6](assets/screenshots/quantum_03_fm6_algorithm.png) | ![MIXER](assets/screenshots/quantum_13_mixer.png) |
 | *Real-time 28-bar spectrum & filter curve* | *Dual VA oscillators & spectral ribbon* | *32 DX7-style FM operator networks* | *Levels, pan, peak meters & sends* |
 
-| Full-Screen Audio Visualizer (`HOME -> HOME`) | Parametric Master Biquad EQ | GLO 2 System Telemetry | Transient Preset Browser (1.5s) |
+| Full-Screen Audio Visualizer (`HOME -> HOME`) | FX Send Rack with Peak Meters | MASTER Bus: Clip, Punch, Duck, VU | Transient Preset Browser (1.5s) |
 | :---: | :---: | :---: | :---: |
-| ![VISUALIZER](assets/screenshots/quantum_18_fullscreen_visualizer.png) | ![MASTER EQ](assets/screenshots/quantum_21_master_eq.png) | ![GLO 2](assets/screenshots/quantum_23_glo2_telemetry.png) | ![PRESET OVERLAY](assets/screenshots/quantum_22_transient_presets.png) |
-| *Zero-crossing scope & Lissajous orbits* | *Direct Form II Transposed Peak/Notch EQ* | *Active polyphony & dual-core CPU ticks* | *Fast 7-row categorized library overlay* |
+| ![VISUALIZER](assets/screenshots/quantum_18_fullscreen_visualizer.png) | ![FX RACK](assets/screenshots/quantum_12_fx_rack.png) | ![MASTER BUS](assets/screenshots/quantum_25_master_bus.png) | ![PRESET OVERLAY](assets/screenshots/quantum_22_transient_presets.png) |
+| *Zero-crossing scope & Lissajous orbits* | *Real post-FX peak beside each send* | *Live clip curve, punch, duck gain & output VU* | *Fast 7-row categorized library overlay* |
+
+| Parametric Master Biquad EQ | GLO 2 System Telemetry |
+| :---: | :---: |
+| ![MASTER EQ](assets/screenshots/quantum_21_master_eq.png) | ![GLO 2](assets/screenshots/quantum_23_glo2_telemetry.png) |
+| *Direct Form II Transposed Peak/Notch EQ* | *Active polyphony & dual-core CPU ticks* |
 
 ### 2. Performance, Sequencing & Drum Synthesis
 

@@ -33,14 +33,16 @@ modified. **No operation was run on a physical FM-1.**
   single part 602.9 ns/sample (ASan/UBSan build), six-part mix 569.5 ns/sample.
 - `regress`: 220 golden renders, **0 changed**, 0 health failures, 0 voice/routing failures, 0 CPU
   entries over budget; `6parts_full` 680.3 ns/sample on this host.
-- Target build after the loader fix: app **545676 B**, package **610116 B**, `FM-1_982`,
-  SHA-256 `1a3ca1353d7aa3697b85e8e2651b90a76e797a0d2d0241ac96a3053ffee696d9`. (The PR A
-  package, without this loader change, remains 610113 B.)
+- Target build after the loader and UI changes: app **548104 B**, package **610876 B**, `FM-1_982`,
+  SHA-256 `b0e985c7fbefc2c44bcb51d68dd1346e57c4eb284acf75831488f49516dfd358`. The app
+  slot check is `0x920DC <= 0x93000`; the package image ends at `0x93000`.
 - Target static budget: pass; `mod_begin` 35/166, `mod_voice` 19/30, DRUM path 1189/1191,
   `perf_block` 569/522 (`+9 %`, inside the existing +10 % tolerance).
 - RAM: `.data+.bss` 94572 B of 98304 B; pool spare 9248 B (the project's minimum is 8192 B).
   This is margin, not a measured board headroom.
-- UI: 172 screens x 17 palettes, 0 lint findings, 0 alignment errors.
+- UI: 172 screens x 17 palettes, 0 lint findings, 0 alignment errors. FX draw cost
+  123.9 host units (was 125.3 before the meter/FX layout change); MASTER was not benchmarked
+  separately. These are host ratios, not AC791N cycles.
 - Sanitized host paths: `audio_test`, `reverb_test`, six-part `hostsim`, and the project,
   persistence, robust and MIDI tests plus two full regress passes (the `stress` group) pass under the
   repository policy (ASan + bounds; intentional fixed-point wraps are excluded, as in
@@ -82,7 +84,7 @@ Status labels used here: **IMPLEMENTED**, **EXECUTED ON HOST**, **TARGET COMPILE
 | `.data` + `.bss` | `0x1C08000..0x1C1F16C` (94.572 B of 98.304) | 3.732 B to `0x1C20000` |
 | pool | `0x1C20000..0x1C6BFC8` (311.240 B) | 9.248 B after core-1 stacks |
 | core-1 stacks | `0x1C6BFE0..0x1C6DBE0` (7.168 B) | 6 KiB user + 1 KiB exception |
-| RAMTEXT | `0x1C70800..0x1C75B10` | 3.312 B to guard `0x1C76800` |
+| RAMTEXT | `0x1C70800..0x1C75E7C` | 2.436 B to guard `0x1C76800` |
 | user stack | `0x1C76900..0x1C7A000` (13.568 B) | 256 B guard each side |
 | system stack | `0x1C7A100..0x1C7C000` (7.936 B) | 256 B guard each side |
 | NOINIT | `0x1C7C000..0x1C7FCD4` (15.572 B) | **124 B** to reserved `0x1C7FD50` |
@@ -177,36 +179,52 @@ continues to exclude them.
 No additional change is claimed. The branch removes UB but does not reduce operations; the host
 `perform_test` has no instruction counter here, and target cycles are unavailable. `perf_block` has
 the least static headroom, so any optimisation should start there with a target measurement, not
-with a source change made to “look faster”.### 10. Branch and PR strategy
+with a source change made to “look faster”.### 10. Third pass (2026-11-03): flash I/O, loader finish and FX UI
 
-`origin/main` is `7c3dd24`. The integration branch `perf/security-hardening` now contains the
-UI/preset/web work, the DSP audit, the loader fix and the host-test synchronization. Its head
-(`4bd16db`) is the only branch that is both complete and green.
+**IMPLEMENTED / TARGET COMPILED / HOST TESTED. No hardware verification.**
 
-- **PR #51**: merge this as the integration PR, preferably with **Squash and merge**. It contains
-  PR #49's tree plus the loader/test fixes and has no conflict with `main` (`git merge-tree` clean).
-- **PR #49**: do not merge. Its tree is correct, but an accidental push left PR B's commits in its
-  history; a merge commit would make PR #51's loader diff disappear. It is also still red because
-  the test fixes are only in #51. Close it after #51 is merged, or recreate a clean branch from
-  `767915e` if separate history is required.
-- **PR #48 and #50**: close. #50's `mod.c` and `ui_draw.c` are byte-identical to #51's (its code is
-  already present); #48 is the older UI branch and lacks the visualizer peak fix.
-- No force push, no history rewrite, no release.
+- **SPI timeout propagation.** `fl_spi_wait()` returned a timeout that `fl_tx()` and `fl_rx()`
+  discarded. A timed-out command could therefore be followed by a “successful” erase/program/read.
+  The driver now sets a per-operation `fl_io_err`, returns `0xFF` from a failed receive, and
+  `fl_erase4k_ram`, `fl_prog_ram`, `fl_read_ram`, JEDEC and status reads report failure instead of 0.
+- **Bounded cache/SFC waits.** `fl_cache_idle` and the SFC-busy loops were unbounded; they now have
+  bounded waits (1,000,000 polls). Entry aborts before touching the SFC on timeout. `fl_exit` still
+  restores XIP, records the error and lets the caller fail the operation. This prevents a silent
+  hang but is **not** proof that a stuck controller recovers on hardware.
+- **Loader write window.** The app window is `[0x4000,0x93000)`; staging is `[0xE0000,0xE5000)`;
+  the stock record sector is `[0xE8000,0xE9000)`. The previous `0x97000` end (which admitted the
+  VM sectors at `0x93000..0x96FFF`) was removed, and compile-time assertions now reject the VM,
+  autosave, FM6 bank and USR ranges. `fl_read_ram` also rejects ranges outside the 1 MiB part.
+- **Stock record invalidation.** A stock record at `0xE8F00` is invalidated by programming its first
+  80 bytes to zero in place, not by erasing the whole VM-backup sector. The host loader test keeps a
+  sentinel at `0xE8F80` and checks that it survives.
+- **No-home-bank read.** `fvb_boot()` zero-initialises the home/staged headers, so it no longer
+  compares an uninitialised `h.seq` when no valid bank exists.
+- **Loader finish without an acknowledgement.** If all four `0xF0000000` reads fail, the loader still
+  clears the RAM/flash update record and resets. This is intentional: the app sectors were verified
+  before that point, and keeping the record would re-enter the loader on every power-on. The loader
+  cannot know whether the host received “success”; the host must treat a lost link as “reflash or
+  resume”, not as proof of failure. This remains **simulated**, not hardware-tested.
+- **FX / MASTER UI.** The first FX page keeps its four send faders but adds a real peak meter beside
+  each one (selected track's post-FX peak multiplied by that send; it is a derived send activity,
+  not an independent wet-bus measurement). MASTER now draws the CLIP transfer curve with the live
+  output dot, the PUNCH envelope, the real DUCK gain (`duck_g1`), REL and a live output VU. Idle
+  motion is a slow signature tick, not a fake measurement. `ui_render` passes 172 screens x 17
+  palettes with 0 lint findings, 0 alignment errors, and FX draw cost fell from 125.3 to 123.9 host
+  units. No new control or nonexistent parameter was added.
+- **Repository state.** PRs #47–#51 are **closed and merged**; `origin/main` was `e3475f0` when this
+  pass started. This branch merged `main` (`08c74d0`) and then adds the changes above. There are no
+  open PRs to update. A new PR could not be opened from this environment because no authenticated
+  `gh`/GitHub token is available; the branch is pushed directly. No force push, branch deletion,
+  release, Pages deployment or physical flash occurred.
 
-## Publication and CI status (2026-11-03)
+### 11. Branch and PR history (historical)
 
-- Remote `main` is `7c3dd24`; PR #49 (`feat/v1.7-visual-presets`, head `398096d`) and PR #51
-  (`perf/security-hardening`, head `4bd16db`) are open. #51 is the stacked integration branch and is
-  green: host tests run `41670345705` and emulator run `41670346061` succeeded. #49 is still red
-  because it does not contain the test synchronization; do not merge it.
-- `git merge-tree --write-tree origin/main perf/security-hardening` exits 0, so #51 has no textual
-  conflict with `main`. The test fixes are `4bd16db`: the FM6 preset guard now matches 118 entries and
-  the editor mock matches the firmware's EVO/PAT sources and factory presets.
-- No repository ruleset applies to `main`; the classic branch-protection endpoint requires
-authentication and could not be read. No review requirement could be confirmed. This is a repository
-  governance blocker, not a firmware defect.
-- No PR was merged, no branch was deleted, no release or Pages deployment was created, and no physical
-  FM-1 was touched.
+PRs #48–#51 were eventually merged into `main`: #51 (`d3241bb`, perf/security-hardening), #48
+(`d1dda37`, UI audit), #49 (`564f96f`, visual presets) and #50 (`e3475f0`, CI budget). The earlier
+warning that #49 must not be merged was overtaken by the repository owner's merges; it is recorded
+here only as history. The integration branch is now up to date with `main` and contains the audited
+fixes. Do not force-push or rewrite the merged history.
 
 ## Recommendation
 

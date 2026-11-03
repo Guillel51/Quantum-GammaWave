@@ -1,6 +1,6 @@
 # Quantum GammaWave (QG-1): Galería Visual e Interfaz Real
 
-Las 20 pantallas de referencia en `assets/ui-art/art/` y la suite extendida en `assets/screenshots/` son **renders reales píxel a píxel a 240 × 240** generados directamente desde el motor gráfico embebido del firmware Quantum GammaWave (QG-1) para el hardware M-VAVE FM-1 (SoC dual-core JieLi AC791N).
+Las 20 pantallas de referencia en `assets/ui-art/art/` y la suite extendida en `assets/screenshots/` son **renders reales píxel a píxel a 240 × 240** generados directamente desde el motor gráfico embebido del firmware Quantum GammaWave (QG-1). No son fotografías de una unidad física; la galería completa se regeneró en esta rama con `tools/generate_screenshots.py`.
 
 El firmware renderiza toda la interfaz proceduralmente mediante dibujo vectorial, fuentes anti-aliasing y primitivas optimizadas en C (`firmware/src/ui*.c`, `firmware/src/gfx.c`), sin almacenar mapas de bits pesados en flash.
 
@@ -17,7 +17,7 @@ El firmware renderiza toda la interfaz proceduralmente mediante dibujo vectorial
 9. **`09_macro.png` — HEARTH MACROS**: Capa de modulación rápida de macros Hearth (gravedad, calor, eclipse).
 10. **`10_macro_map.png` — MOTION SEQUENCER (MSEQ)**: Automatización continua de parámetros y trayectoria por paso.
 11. **`11_punch_in_fx.png` — PUNCH-IN FX**: Matriz de efectos en vivo cuantizados (stutters, repeticiones, filtros, saltos).
-12. **`12_fx_rack.png` — FX RACK**: Suite de distorsiones armónicas cálidas (`SOFT`, `TAPE`, `HEARTH`, `FLUX`) y multiefectos.
+12. **`12_fx_rack.png` — FX SENDS**: Los cuatro envíos (DIST, CHORUS, DLY, REV) con su fader y un vúmetro de pico real al lado; la actividad es el pico post-FX de la pista multiplicado por el envío.
 13. **`13_mixer.png` — MASTER MIXER**: Mezclador global de 6 pistas con vúmetros de pico, balance panorámico y envíos de reverb/delay.
 14. **`14_song.png` — SONG ARRANGER**: Encadenamiento de secciones y bloques de patrones para canciones completas.
 15. **`15_chord.png` — ESCALAS & ACORDES**: Cuantización por notas de escalas musicales y generador armónico de acordes.
@@ -33,6 +33,7 @@ El firmware renderiza toda la interfaz proceduralmente mediante dibujo vectorial
 - **`quantum_22_transient_presets.png`**: Panel flotante no bloqueante de selección rápida de presets (1.5 segundos).
 - **`quantum_23_glo2_telemetry.png`**: Pantalla de telemetría y diagnóstico en vivo GLO 2 (conteo de voces, reparto de polifonía de 10 voces, carga de doble núcleo).
 - **`quantum_24_about_credits.png`**: Pantalla ABOUT / CREDITS con métricas de sistema y código QR hacia el portal oficial.
+- **`quantum_25_master_bus.png`**: MASTER con la curva de CLIP, la envolvente de PUNCH, la ganancia real de DUCK, REL y el vúmetro de salida.
 - **Temas Visuales**: Capturas en temas exclusivos `SOLARIS`, `CYBERPUNK`, `NORDIC` y `GAMMA`.
 
 Las formas vectoriales de soporte están en [assets/ui-shapes/](../ui-shapes/) (SVG).

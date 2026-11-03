@@ -60,8 +60,14 @@ static inline void *fl_far(void *p) { void *volatile q = p; return q; }
 
 typedef struct { uint32_t sfc_con, spi_con; } fl_saved_t;
 
+/* A transfer that timed out must not look like a successful erase / program / read. The
+ * flag is per operation (reset in fl_enter) and checked before every entry point reports 0. */
+static volatile uint8_t fl_io_err;
 RAMINL void fl_csync(void) { __asm__ volatile("csync" ::: "memory"); }
-RAMINL void fl_cache_idle(void) { while (!(CACHE_CON & 0x4000u)) ; }
+/* Bounded waits: a stuck cache or SFC must fail the operation instead of hanging the device
+ * (the loader runs with interrupts off, so an infinite wait would also stop its watchdog feed). */
+RAMINL int fl_cache_idle_to(uint32_t n) { while (!(CACHE_CON & 0x4000u)) if (!n--) return -1; return 0; }
+RAMINL int fl_sfc_idle_to(uint32_t n) { while ((int32_t)SFC_CON < 0) if (!n--) return -1; return 0; }
 RAMINL void fl_delay(uint32_t n) { volatile uint32_t i = n; while (i--) ; }
 
 RAMINL void fl_cs(int high)
@@ -82,17 +88,17 @@ RAMINL int fl_spi_wait(void)
 RAMINL void fl_tx(uint8_t b)
 {
     SPI0_CON |= 8u; SPI0_CON &= ~0x1000u;
-    SPI0_BUF = b; fl_spi_wait();
+    SPI0_BUF = b; if (fl_spi_wait()) fl_io_err = 1;
     SPI0_CON &= ~8u;
 }
 RAMINL uint8_t fl_rx(void)
 {
     uint8_t v;
     SPI0_CON |= 8u; SPI0_CON |= 0x1000u;
-    SPI0_BUF = 0xFFu; fl_spi_wait();
+    SPI0_BUF = 0xFFu; if (fl_spi_wait()) fl_io_err = 1;
     v = (uint8_t)SPI0_BUF;
     SPI0_CON &= ~8u;
-    return v;
+    return fl_io_err ? 0xFFu : v;
 }
 RAMINL void fl_addr(uint32_t a) { fl_tx((uint8_t)(a >> 16)); fl_tx((uint8_t)(a >> 8)); fl_tx((uint8_t)a); }
 RAMINL uint8_t fl_rdsr(uint8_t cmd) { uint8_t v; fl_cs(0); fl_tx(cmd); v = fl_rx(); fl_cs(1); return v; }
@@ -101,14 +107,15 @@ RAMINL void fl_wren(void) { fl_cs(0); fl_tx(0x06); fl_cs(1); }
 RAMINL int fl_enter(fl_saved_t *s)
 {
     uint32_t mode;
-    fl_cache_idle();
+    fl_io_err = 0;
+    if (fl_cache_idle_to(1000000u)) return -3;   /* cache never drained: do not touch the SFC */
     s->sfc_con = SFC_CON;
     s->spi_con = SPI0_CON;
     mode = (s->sfc_con >> 8) & 0xFu;
     if (mode == 6u || mode == 7u)                 /* continuous-read XIP: not handled here */
         return -1;
     fl_csync();
-    while ((int32_t)SFC_CON < 0) ;                /* SFC idle */
+    if (fl_sfc_idle_to(1000000u)) return -4;      /* SFC busy: leave XIP alone */
     SFC_CON = 0;                                  /* XIP OFF from here on */
     IOMAP_CON0 &= ~0x20u;                         /* pins -> SPI0 / GPIO */
     SPI0_CON = 0;
@@ -121,19 +128,19 @@ RAMINL void fl_exit(const fl_saved_t *s)
     SPI0_CON = s->spi_con;
     IOMAP_CON0 |= 0x20u;
     fl_csync();
-    while ((int32_t)SFC_CON < 0) ;
+    if (fl_sfc_idle_to(1000000u)) fl_io_err = 1;  /* still restore XIP: leave the CPU runnable */
     SFC_CON = s->sfc_con;                         /* XIP back on */
     fl_csync();
 }
 RAMINL void fl_inval(uint32_t off, uint32_t len)
 {
     uint32_t a = FL_XIP(off) & ~31u, e = FL_XIP(off) + len;
-    fl_cache_idle();
+    if (fl_cache_idle_to(1000000u)) { fl_io_err = 1; return; }
     for (; a < e; a += 32u) {
         fl_csync();
         __asm__ volatile("flushinv [%0]" :: "r"(a) : "memory");
         fl_csync();
-        fl_cache_idle();
+        if (fl_cache_idle_to(1000000u)) { fl_io_err = 1; return; }
     }
 }
 RAMINL int fl_wait_ready(uint32_t max_us, uint32_t *took_us)
@@ -156,7 +163,7 @@ static RAMFN uint32_t fl_jedec_ram(void)                 /* expect 0x856014 */
     id = (uint32_t)fl_rx() << 16; id |= (uint32_t)fl_rx() << 8; id |= fl_rx();
     fl_cs(1);
     fl_exit(&s);
-    return id;
+    return fl_io_err ? 0u : id;
 }
 
 static RAMFN uint32_t fl_status_ram(void)                /* SR1 | SR2 << 8 */
@@ -165,7 +172,7 @@ static RAMFN uint32_t fl_status_ram(void)                /* SR1 | SR2 << 8 */
     if (fl_enter(&s)) return 0xFFFFFFFFu;
     v = fl_rdsr(0x05) | ((uint32_t)fl_rdsr(0x35) << 8);
     fl_exit(&s);
-    return v;
+    return fl_io_err ? 0xFFFFFFFFu : v;
 }
 
 static RAMFN int fl_erase4k_ram(uint32_t off, uint32_t *took_us)
@@ -182,7 +189,7 @@ static RAMFN int fl_erase4k_ram(uint32_t off, uint32_t *took_us)
         rc = fl_wait_ready(500000u, took_us);     /* generic NOR max 400 ms */
     }
     fl_exit(&s);
-    return rc;
+    return fl_io_err ? -5 : rc;
 }
 
 static RAMFN int fl_prog_ram(uint32_t off, const uint8_t *src, uint32_t n, uint32_t *took_us)
@@ -201,18 +208,19 @@ static RAMFN int fl_prog_ram(uint32_t off, const uint8_t *src, uint32_t n, uint3
         rc = fl_wait_ready(10000u, took_us);      /* generic NOR max 3 ms */
     }
     fl_exit(&s);
-    return rc;
+    return fl_io_err ? -5 : rc;
 }
 
 static RAMFN int fl_read_ram(uint32_t off, uint8_t *dst, uint32_t n)   /* 0x0B fast read */
 {
     fl_saved_t s; uint32_t i;
+    if (!FL_IN(off, n, 0u, 0x100000u)) return -1;   /* one 1 MiB part, no wrap */
     if (fl_enter(&s)) return -2;
     fl_cs(0); fl_tx(0x0B); fl_addr(off); fl_tx(0xFF);
     for (i = 0; i < n; i++) dst[i] = fl_rx();
     fl_cs(1);
     fl_exit(&s);
-    return 0;
+    return fl_io_err ? -5 : 0;
 }
 
 /* ---- XIP side (normal .text) ---- */

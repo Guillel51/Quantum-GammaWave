@@ -85,8 +85,9 @@ static void ota_commit(const uint8_t *parm) { (void)parm; }
 static int ldr_fread(uint32_t off, void *p, uint32_t n) { memcpy(p, nor + off, n); return 0; }
 static int ldr_erase(uint32_t off)
 {
-    if (off < 0x4000u || off >= 0xE9000u || (off & 0xFFFu) ||
-        (off >= 0x93000u && off < 0xE0000u) || (off >= 0xE5000u && off < 0xE8000u)) bad_range++;
+    if (off < 0x4000u || off >= 0xE5000u || (off & 0xFFFu) || (off >= 0x93000u && off < 0xE0000u))
+        bad_range++;
+    if (off == 0xE8000u) { printf("ERASE IN THE VM BACKUP %#x\n", off); exit(1); }
     if (off < 0x4000u) { printf("ERASE IN THE HEAD %#x\n", off); exit(1); }
     erases++;
     memset(nor + off, 0xFF, 0x1000);
@@ -96,7 +97,9 @@ static int ldr_prog(uint32_t off, const void *p, uint32_t n)
 {
     const uint8_t *s = p;
     uint32_t i, limit = n;
-    if (off < 0x4000u || off + n > 0x93000u || ((off & 0xFFu) + n) > 256u) bad_range++;
+    if ((off < 0x4000u || off + n > 0x93000u) &&
+        !(off >= 0xE8F00u && off + n <= 0xE8F50u)) bad_range++;
+    if (((off & 0xFFu) + n) > 256u) bad_range++;
     if (prog_budget >= 0) {
         if (prog_budget <= 0) { prog_budget = -1; power_cuts++; return -1; }
         if ((long)n > prog_budget) limit = (uint32_t)prog_budget;
@@ -181,6 +184,7 @@ int main(int argc, char **argv)
             nor[0xE5000 + i] = (uint8_t)(i * 5u);
             nor[0xEB000 + i] = (uint8_t)(i * 11u);
         }
+        nor[0xE8F80] = 0x5A;                         /* VM backup data beside the stock record */
         put_record(0x93F00); put_record(0xE5F00); put_record(0xEBF00);
         memcpy(vm, nor + 0x93000, sizeof vm);
         memcpy(auto_s, nor + 0xE5000, sizeof auto_s);
@@ -208,7 +212,8 @@ int main(int argc, char **argv)
     bad += check("flash head [0, 0x4000) untouched", !memcmp(nor, head, sizeof head));
     bad += check("finish asked (0xF0000000)", f0_asked >= 1);
     bad += check("update records cleared (RAM + flash 0xE4F00, the stock firmware's 0xE8F00)",
-                 record_cleared && nor[0xE4F06] == 0xFF && nor[0xE8F06] == 0xFF);
+                 record_cleared && nor[0xE4F06] == 0xFF && nor[0xE8F06] == 0x00);
+    bad += check("the stock record's VM sector is invalidated in place, not erased", nor[0xE8F80] == 0x5A);
     bad += check("user data in Felucca's store that looks like a record is kept", !memcmp(nor + 0xA0000, user, sizeof user));
     bad += check("VM sector with a record-looking block is kept", !memcmp(nor + 0x93000, vm, sizeof vm));
     bad += check("autosave/FM6 sector with a record-looking block is kept", !memcmp(nor + 0xE5000, auto_s, sizeof auto_s));
