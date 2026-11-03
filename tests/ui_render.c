@@ -1268,7 +1268,7 @@ static void draw(int s)
                     nfind++;
                 }
             }
-            if (steps != 425u || changed < 150u || changed > 300u) {   /* the timeline, or the art, moved */
+            if (steps != (SPL_WRITE + SPL_HOLD) / 4u || changed < 150u || changed > 300u) {   /* the timeline, or the art, moved */
                 if (rep) fprintf(rep, "FIND %-26s the splash timeline: %u steps of 4 ms, %u change the screen\n",
                                  cur_name, steps, changed);
                 nfind++;
