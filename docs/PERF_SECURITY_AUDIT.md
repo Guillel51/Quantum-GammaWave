@@ -177,32 +177,31 @@ continues to exclude them.
 No additional change is claimed. The branch removes UB but does not reduce operations; the host
 `perform_test` has no instruction counter here, and target cycles are unavailable. `perf_block` has
 the least static headroom, so any optimisation should start there with a target measurement, not
-with a source change made to “look faster”.
+with a source change made to “look faster”.### 10. Branch and PR strategy
 
-### 10. Branch and PR strategy
+`origin/main` is `7c3dd24`. The integration branch `perf/security-hardening` now contains the
+UI/preset/web work, the DSP audit, the loader fix and the host-test synchronization. Its head
+(`4bd16db`) is the only branch that is both complete and green.
 
-`origin/main` is `7c3dd24`; this branch is 14 commits ahead: 12 UI/preset/web commits (through
-`e23fb14`) plus `200a0dc` (DSP UB) and `e4cede6` (docs). The base is the unmerged
-`feat/v1.7-visual-presets`, not `main`.
-
-- **PR A**: the 12 UI/preset/web commits, including the visualizer fix `e23fb14`, into `main`.
-- **PR B**: `200a0dc` + these audit changes, rebased onto the merge of PR A; the DSP fixes do not
-depend on the UI code, but the report references the branch. Do not open PR B against `main` while
-the 12 unrelated commits are still in it.
-- Keep this branch as the integration branch; no force push, no history rewrite, no release.
-- If PR A is rejected, PR B remains a draft against the UI branch; the DSP patch can be cherry-picked
-  alone after a clean build.
+- **PR #51**: merge this as the integration PR, preferably with **Squash and merge**. It contains
+  PR #49's tree plus the loader/test fixes and has no conflict with `main` (`git merge-tree` clean).
+- **PR #49**: do not merge. Its tree is correct, but an accidental push left PR B's commits in its
+  history; a merge commit would make PR #51's loader diff disappear. It is also still red because
+  the test fixes are only in #51. Close it after #51 is merged, or recreate a clean branch from
+  `767915e` if separate history is required.
+- **PR #48 and #50**: close. #50's `mod.c` and `ui_draw.c` are byte-identical to #51's (its code is
+  already present); #48 is the older UI branch and lacks the visualizer peak fix.
+- No force push, no history rewrite, no release.
 
 ## Publication and CI status (2026-11-03)
 
-- Remote `main` is `7c3dd24`; PR #49 (`feat/v1.7-visual-presets`) and PR #51
-  (`perf/security-hardening`) are open against `main`. PR #51 is **not** based on PR #49, so its
-  current diff against `main` includes the 12 UI commits. This must be retargeted after PR #49 is
-  integrated; no remote setting was changed here.
-- The emulator workflow passes on both heads (`e23fb14`, `e840624`). The host workflow fails on both,
-  and also on `main` (`7c3dd24`): the `fm6bank` preset-count check and the editor mock tables are
-  pre-existing failures, not introduced by the DSP/audit commits. Their exact failing steps are
-  recorded in the publication report; they are not a reason to merge a red PR.
+- Remote `main` is `7c3dd24`; PR #49 (`feat/v1.7-visual-presets`, head `398096d`) and PR #51
+  (`perf/security-hardening`, head `4bd16db`) are open. #51 is the stacked integration branch and is
+  green: host tests run `41670345705` and emulator run `41670346061` succeeded. #49 is still red
+  because it does not contain the test synchronization; do not merge it.
+- `git merge-tree --write-tree origin/main perf/security-hardening` exits 0, so #51 has no textual
+  conflict with `main`. The test fixes are `4bd16db`: the FM6 preset guard now matches 118 entries and
+  the editor mock matches the firmware's EVO/PAT sources and factory presets.
 - No repository ruleset applies to `main`; the classic branch-protection endpoint requires
 authentication and could not be read. No review requirement could be confirmed. This is a repository
   governance blocker, not a firmware defect.
@@ -213,10 +212,10 @@ authentication and could not be read. No review requirement could be confirmed. 
 
 **NO APTO PARA VALIDACIÓN FÍSICA CONTROLADA todavía.** The flash size is resolved, the SRAM map is
 checked by a test, the loader preflight and backup validation are sound in simulation, and the
-record-clear window is fixed. Before a controlled physical run, the host workflow must be green (or
-the two pre-existing failures explicitly waived), PR #51 must be based on the integrated PR #49, and
-the JEDEC, power-cut, recovery and single-bank window must be tested on hardware with USB_KEY. The
-missing signature/anti-rollback remains a security limitation, not a build blocker.
+record-clear window is fixed. The host and emulator workflows are green on #51's head. Before a
+controlled physical run, the JEDEC, power-cut, recovery and single-bank window must be tested on
+hardware with USB_KEY. The missing signature/anti-rollback remains a security limitation, not a
+build blocker.
 
 ## No claims
 
