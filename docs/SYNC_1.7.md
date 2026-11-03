@@ -41,6 +41,18 @@
 - No Pages deployment: the public site was not updated from this environment.
 - No physical FM-1: display, encoder, audio and recovery behaviour are NOT VERIFIED on hardware.
 
+## HOME encoder / mini-knob / splash pass (2026-11-03)
+
+- `bg_knob()` uses `home_param()` in HOME; `page_desc()` remains correct on engine pages.
+- New `test_home_knobs()` walks every available engine and KNOB 1–4; only the selected parameter and
+  its mini-knob move.
+- Mini-knobs: concentric rim/body and a 270-degree needle; splash: second electron, solar flares and
+  progress-driven wave phase.
+- Target: app 549012 B, package 610876 B, identity `FM-1_982`, SHA-256
+  `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`.
+- UI: 172 × 17, 0 lint/alignment; splash 425 steps, 200 changing, 225 identical rewrites skipped.
+- Installation audit: **BLOQUEADO**; no physical FM-1, backup or USB_KEY recovery demonstration.
+
 ## perf/security-hardening (current)
 
 - Branch `perf/security-hardening`, merged with `origin/main` (`e3475f0`) at `08c74d0`; PRs #47–#51
@@ -57,8 +69,8 @@
 
 ## Final audit (2026-11-03, perf/security-hardening)
 
-- Target: app 548708 B, package 610876 B, `FM-1_982`, SHA-256
-  `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`.
+- Target: app 549012 B, package 610876 B, `FM-1_982`, SHA-256
+  `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`.
 - RAM spare 3716 B; pool 9248 B; RAMTEXT 2404 B; NOINIT 124 B. `perf_block` 569/522;
   `DRUM_PATH` 1189/1191.
 - Green: UI (172 x 17, 0 lint/alignment), presets, web, emu, security, stress 1, target,

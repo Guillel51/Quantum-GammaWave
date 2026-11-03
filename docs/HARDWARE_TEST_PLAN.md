@@ -11,8 +11,8 @@ not to install the newest build.
 
 The audited build is **NO VERIFICADO EN HARDWARE** and is **not approved for a real FM-1 install**.
 Host/target evidence is in `docs/AUDIT_FINAL_FM1.md`; this plan is the physical procedure that must
-be completed before changing that status. The current static figures are app 548708 B, package
-610876 B, `FM-1_982`, SHA-256 `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`,
+be completed before changing that status. The current static figures are app 549012 B, package
+610876 B, `FM-1_982`, SHA-256 `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`,
 `perf_block` 569/522 and RAM spare 3716 B. None of these is a board measurement. No flash write or
 recovery is performed by this repository.
 
@@ -47,9 +47,11 @@ magnifier, and a read-only flash/JEDEC tool that does not write.
 1. Photograph the board, chip markings and the flash package. Record the SoC marking
    (`C156211-11B8` / `C188612-11B8` or another variant) and the flash marking.
 2. Read the JEDEC ID through a read-only path (ROM download mode or the vendor read tool). Record
-   the exact 24-bit value; expected for the documented Puya P25Q80H is `0x856014` (1 MiB).
-3. If the ID is not `0x856014`, stop. Do not use a 1 MiB layout assumption; re-audit the package
-   and the flash map.
+   the exact 24-bit value. The documented Puya P25Q80H is `0x856014` (1 MiB); some newer units report
+   `0xB36014`. Do not assume they are interchangeable.
+3. If the ID is not `0x856014`, stop. The current firmware rejects `0xB36014`; do not force a 1 MiB
+   write until that variant has its own validated identity/persistence path. Re-audit the package and
+   the flash map.
 4. Record the ROM/USB identity (`4C4A:8057`, `WL82/UBOOT1.00`), the SPL and bootloader versions and
    the stock firmware version. Do not update yet.
 
@@ -151,7 +153,8 @@ reported as partial.
 
 A build is eligible for **controlled physical validation** only when:
 
-- the JEDEC is read as `0x856014` and the full flash map is backed up twice;
+- the JEDEC is read and recorded; `0x856014` is the documented supported part, while `0xB36014` is
+  stopped and investigated separately; the full flash map is backed up twice;
 - USB_KEY recovery has been demonstrated on the sacrificial unit;
 - the host suite is green or every pre-existing failure is explicitly waived with an issue;
 - the target build, `tests/memory_map_test.py`, `tests/ldr_test` and the package parser pass on the

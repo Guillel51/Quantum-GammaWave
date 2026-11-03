@@ -3,6 +3,25 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — HOME encoders, mini-knobs, splash and installation safety audit
+
+- **HOME encoder mapping fixed.** `bg_knob()` now reads `home_param()` while HOME is open instead of
+  the last page's columns. KNOB 1–4 each edit their own parameter and their own mini-knob; engine
+  pages keep `page_desc()`. A new host test covers every available engine and all four encoders.
+- **Mini-knobs redesigned.** Concentric rim, recessed body and a 270-degree radial needle, in the
+  Solar Heat/Quantum palette; the four controls are evenly spaced in the lower-right bay.
+- **Splash polished.** A second electron, twelve solar ticks with longer flares and a progress-driven
+  wave phase join the existing wordmark, waves and spectral horizon. No bootloader, flash or audio
+  path changed; it remains a function of boot progress with no stored bitmap.
+- **Hardware specification correction.** The repository now records 578 KB SDK SRAM versus the 96 KiB
+  firmware budget, 14 buttons, 7 encoders plus MASTER, the ST7789-class panel and the unresolved
+  320/360 MHz clock reports. `0xB36014` is documented as unvalidated and currently rejected by the
+  `0x856014` JEDEC gate.
+- Final target: app **549012 B**, package **610876 B**, `FM-1_982`, SHA-256
+  `2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`. UI 172 × 17 with 0 lint;
+  `perf_block 569/522`. Installation verdict: **BLOQUEADO** until physical identity, backup and
+  USB_KEY recovery are demonstrated; see `FM1_INSTALLATION_SAFETY_AUDIT.md`.
+
 ## v1.7-QG — final audit and PUNCH-IN FX visual pass
 
 - PUNCH-IN FX: rounded pads, a tighter 5-column grid and a quiet `PUNCH-IN FX · A#4 TGT · G5 CLR`
@@ -11,7 +30,7 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   below the RAMTEXT margin, so it was **discarded**. No budget was relaxed; F#5 keeps the existing
   DIVE and is not claimed as a verified tape stop.
 - Installer: a failed USB `success` ACK now reports `lost` instead of marking the step finished.
-- Final target: app 548708 B, package 610876 B, `FM-1_982`, SHA-256
+- Previous target (before the HOME/splash pass): app 548708 B, package 610876 B, `FM-1_982`, SHA-256
   `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`. Final status is
   **NO VERIFICADO EN HARDWARE**; see `docs/AUDIT_FINAL_FM1.md`.
 

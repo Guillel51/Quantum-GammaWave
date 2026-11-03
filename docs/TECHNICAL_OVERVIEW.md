@@ -1,15 +1,14 @@
 # Technical Overview — Quantum GammaWave (QG-1)
 
 ## 1. Hardware Architecture (M-VAVE FM-1)
-- **SoC**: JieLi AC791N (Dual-core 32-bit RISC `pi32v2` architecture, clockable up to 240 MHz).
-- **SRAM**: 96 KB total on-chip data RAM.
-- **Flash Storage**: 1 MiB SPI NOR Flash (Puya P25Q80H, JEDEC 0x856014) mapped via XIP (eXecute In Place) at `0x02000000`.
-- **Display**: 240×240 IPS RGB565 LCD display driven over high-speed SPI with DMA.
+- **SoC**: JieLi AC791N / WL82 (dual-core 32-bit RISC `pi32v2`, little-endian, simple-precision FPU). The clock is not asserted by this repository: 320 MHz and 360 MHz configurations have been reported and must be measured on the actual unit.
+- **SRAM**: 578 KB according to the SDK; the firmware uses the `0x01C00000–0x01C7FFFF` window and a 96 KiB `.data+.bss` linker budget, not all of SRAM.
+- **Flash Storage**: 1 MiB SPI NOR Flash mapped via XIP at `0x02000000`. The documented part is the Puya P25Q80H (JEDEC `0x856014`); some newer units report `0xB36014`, which is unvalidated and is currently rejected by the firmware's JEDEC gate.
+- **Display**: 240×240 ST7789-class RGB565 LCD display driven over SPI with DMA.
 - **User Interface**:
-  - 12 silicone front-panel buttons arranged in 2 rows of 6 (`FX`, `SCL`, `ENV`, `LFO`, `EDIT`, `GLO`; `HOME`, `SAVE`, `ARP`, `SEQ`, `PLAY`, `REC`).
-  - 2 Octave buttons (`OCT-`, `OCT+`).
-  - 27 microswitch keys arranged in chromatic keyboard layout ($F3 \dots G5$).
-  - 8 continuous rotary encoders (`MASTER` analog pot, `SELECT`, `PRESETS`, `ALGORITHM`, `KNOB 1`–`KNOB 4`).
+  - 14 physical buttons, including the two octave buttons (`OCT-`, `OCT+`).
+  - 27 microswitch keys arranged in a chromatic keyboard layout ($F3 \dots G5$).
+  - 7 continuous rotary encoders (`SELECT`, `ALGORITHM`, `PRESETS`, `KNOB 1`–`KNOB 4`) plus the `MASTER` analog potentiometer.
 - **Audio Codec**: On-chip stereo 24-bit/48 kHz DAC/ADC with class-AB headphone amplifier and line output.
 
 ## 2. Firmware Memory Map & Dual-Core Audio Engine

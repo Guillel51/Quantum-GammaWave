@@ -6,7 +6,7 @@ Welcome to **QUANTUM GAMMAWAVE (QG-1)**. This repository houses the custom open-
 
 ## 1. Project & Hardware Identity
 - **Product Name**: QUANTUM GAMMAWAVE (QG-1).
-- **Target Hardware**: M-VAVE FM-1 (Dual-Core JieLi AC791N SoC @ 160–240 MHz, 96 KB SRAM, 1 MiB SPI Flash (P25Q80H, JEDEC 0x856014), 240×240 RGB565 IPS LCD display, 12 primary silicon buttons, 8 rotary encoders, 27 micro-switches in 2 rows as keys).
+- **Target Hardware**: M-VAVE FM-1 (JieLi AC791N / WL82, dual-core `pi32v2`, 32-bit little-endian, simple-precision FPU; 578 KB SRAM according to the SDK, with the firmware using the `0x01C00000–0x01C7FFFF` window and a 96 KiB `.data+.bss` budget; 1 MiB SPI NOR with XIP at `0x02000000`; documented P25Q80H JEDEC `0x856014`, while the newer `0xB36014` variant is unvalidated and currently not accepted by the firmware; 240×240 ST7789-class RGB565 LCD; 14 buttons; 7 rotary encoders plus the MASTER analog pot; 27 micro-switches in 2 rows as keys). The clock is not fixed by this repository: 320 MHz and 360 MHz have been reported, and must be measured on the actual unit.
 - **Not a guitar pedal**: The M-VAVE FM-1 is a multitrack groovebox / synthesizer desktop instrument.
 - **Lineage**: Major evolution/fork of Pocket GammaWave (GW-1) by Leo Kuroshita / Hügelton Instruments, built on JIANT FM and Felucca.
 - **Licensing**: GPL-3.0-only. All original copyright notices, credits and licenses in `LICENSES/` must strictly remain intact.
@@ -84,6 +84,6 @@ NO_PACKAGE=1 ./tests/run_tests.sh
 
 ## 5. DSP & Firmware Guidelines
 - **Dual-Core Safety**: Core 0 renders master buses, UI, display and tracks 1–3; Core 1 renders tracks 4–6. Keep inter-core mailbox structures strictly synchronized and non-blocking.
-- **Memory Footprint**: Total available SRAM is 96 KB. Headroom must remain $\ge 8\text{ KiB}$ in `POOL_END - pool_top`.
+- **Memory Footprint**: The SDK reports 578 KB SRAM, but this firmware's linker budget is 96 KiB for `.data+.bss`; the full SRAM window is not available to the application. Headroom must remain $\ge 8\text{ KiB}$ in `POOL_END - pool_top`.
 - **Render Budget**: Target DSP render cost per block (32 samples @ 44.1 kHz $\approx 725\ \mu\text{s}$) must never exceed static budgets checked by `tests/target_budget.py`.
 - **Fixed-Point Math**: Prefer Q12/Q15/Q31 arithmetic over floating-point on target hardware where feasible. Avoid unvetted runtime memory allocations (`malloc` is forbidden in realtime audio paths).

@@ -27,15 +27,16 @@ esta auditoría.
 
 ## Métricas del cierre
 
-- App: **548708 B**. Paquete `.fwsc`: **610876 B**. Identidad de paquete `FM-1_982`.
-- SHA-256 del paquete: **`38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`**.
+- App: **549012 B**. Paquete `.fwsc`: **610876 B**. Identidad de paquete `FM-1_982`.
+- SHA-256 del paquete: **`2590d28a24a8c544409adad75cb8e4301d78d6f307cc403fc363b0050c995219`**.
+- SHA-256 de la aplicación: **`447cbcd243e848a63d36d553368e091223ab4df0af0f558229c92f46b518d239`**.
 - RAM `.data+.bss`: 94588 B de 98304 B; spare **3716 B**.
 - Pool spare: **9248 B** (mínimo del proyecto: 8192 B).
 - RAMTEXT spare: **2404 B**. NOINIT spare: **124 B**.
 - `perf_block`: **569/522** (+9 %, límite +10 %; solo ~5 unidades antes del techo).
 - `DRUM_PATH`: **1189/1191**. `perf_begin` 28/28; `perf_pre` 31/31; `perf_master` 32/32.
-- UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 198 cambian,
-  227 reescrituras idénticas omitidas.
+- UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 200 cambian,
+  225 reescrituras idénticas omitidas.
 - No hay medición de ciclos, pila, latencia de interrupción, DMA ni corriente en la placa.
 
 ## Correcciones de esta pasada
@@ -55,6 +56,22 @@ esta auditoría.
    disponibles; Reverse/Glitch/Freeze/Tape Stop **no están implementados** en el firmware final.
    El Tape Stop no se declara: F#5 conserva el `DIVE` existente, que es un caída de pitch, no un
    tape-stop de buffer verificado.
+
+## Corrección de la asignación HOME (2026-11-03)
+
+El origen era `bg_knob()` en `ui_being.c`: dibujaba los cuatro mini-knobs con
+`page_desc(cur_page(), c, ...)` aunque los encoders de HOME editan `home_param(c)`. Por eso KNOB 3
+podía mover el indicador 1 (la página anterior seguía teniendo prioridad) y KNOB 1/2/4 parecían no
+actualizar su propio indicador. Ahora `bg_knob()` usa `home_param()` solo cuando `ui.home` está activo
+y conserva `page_desc()` en las páginas de motor, donde la columna de página es la correcta.
+
+Los mini-knobs se rediseñaron como controles concéntricos: aro exterior, cuerpo hundido, indicador
+radial de 270° y centro de contraste. La prueba `test_home_knobs()` recorre todos los motores
+disponibles y los cuatro encoders; comprueba que cada uno mueve su parámetro y su mini-knob, y que no
+mueve ningún otro. El test es de host, no una validación del encoder físico.
+
+La variante de flash `0xB36014` no se acepta todavía: `project.c` exige `0x856014`. Una unidad con el
+otro identificador no debe forzarse; queda **NO VERIFICADA / BLOQUEANTE**.
 
 ## Riesgos
 

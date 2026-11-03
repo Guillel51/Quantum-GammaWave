@@ -61,6 +61,11 @@ Una sola copia de la aplicación. **No hay banco A/B.**
 | `[0xEA000, 0xFC000)` | USR: parches y recursos de usuario |
 | `[0xFF000, 0x100000)` | Reserva de fábrica (`key_mac`) |
 
+**Variante de flash `0xB36014`:** algunas unidades más recientes reportan este identificador. El
+firmware actual comprueba exactamente `0x856014` (`project.c`), por lo que no se debe forzar una
+instalación en una unidad `0xB36014`: queda **NO VERIFICADA / BLOQUEANTE** hasta validar ese lote y su
+ruta de persistencia. No se asume que ambos chips compartan fabricante, tamaño o protección.
+
 Tres advertencias que la wiki documenta y que importan para este proyecto:
 
 1. **Los huecos no están necesariamente libres.** Otros firmwares usan estas zonas de otra forma

@@ -141,9 +141,12 @@ static void gw_hbar(int32_t x0, int32_t y, int32_t w, int32_t h, int32_t segs, i
 static int32_t bg_knob(uint32_t c, const char **lab)
 {
     int16_t *vp;
-    const param_desc_t *d = page_desc(cur_page(), c, &vp);
+    /* HOME's four mini-knobs are the four HOME encoders, not the last page's columns. Using page_desc()
+     * here made the indicators follow a stale page and desynchronise from KNOB 1..4. */
+    const param_desc_t *d = ui.home ? home_param(c, &vp) : page_desc(cur_page(), c, &vp);
     int32_t r = d && d->label && d->label[0] != '-' ? RATIO(d, enum_rank(d, *vp)) : -1;
-    *lab = d && d->label ? d->label : "";
+    if (lab)
+        *lab = d && d->label ? d->label : "";
     return r < 0 ? -1 : r * 256 / 1000;
 }
 
@@ -384,15 +387,21 @@ static int32_t gw_filter_resp_y(int32_t ftype, int32_t x, int32_t w, int32_t cut
 static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val256, uint16_t arc_col)
 {
     uint32_t th = (uint32_t)((-384 + clamp(val256, 0, 256) * 768 / 256) * 64);
-    int32_t px1 = cx + ((r - 1) * bg_sin(th) >> 15), py1 = cy - ((r - 1) * bg_sin(th + 0x4000u) >> 15);
+    int32_t px1 = cx + ((r - 2) * bg_sin(th) >> 15), py1 = cy - ((r - 2) * bg_sin(th + 0x4000u) >> 15);
     uint16_t bake = (settings.palette == UI_GREY_INDEX || settings.palette == UI_BW_INDEX)
                         ? T_RAISE
                         : ux_mix(T_BG, bg_col(128), 42);
-    gw_disc(cx, cy, r + 1, T_LINE);
+    uint16_t rim = ux.mono ? T_DIM : ux_mix(T_BG, arc_col, 38);
+    /* A true radial control: a clean outer rim, a recessed body and a 270-degree needle. The old
+     * two discs plus the dotted orbit read as a gear; every layer here is concentric and the
+     * indicator is drawn from the body's edge, so the value stays legible at a glance. */
+    gw_disc(cx, cy, r + 3, T_LINE);
+    gw_disc(cx, cy, r + 2, rim);
     gw_disc(cx, cy, r, bake);
-    gw_orbit_ring(cx, cy, r + 2, r + 2, arc_col, 1);
+    gw_disc(cx, cy, r - 2, ux.mono ? bake : ux_mix(bake, T_BG, 48));
+    gw_orbit_ring(cx, cy, r + 3, r + 3, arc_col, 0);
     cv_line_t(cx, cy, px1, py1, T_TEXT, 1);
-    cv_pset(cx, cy, T_ACCENT);
+    cv_pset(cx, cy, ux.mono ? T_TEXT : T_ACCENT);
 }
 
 static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t en)
@@ -558,10 +567,9 @@ static void graph_ecosys(void)
     /* 3. Lower-Right Bay (x = 100..232, y = 66..118): HEARTH Physics Knobs (Heat/Sparks/Weight/Force) + 6 Track Pads */
     gw_oct_panel(100, 66, 132, 52, 4, T_BG, T_LINE, 1, T_ACCENT);
     for (c = 0; c < 4u; c++) {
-        const char *lb;
-        int32_t kv = bg_knob(c, &lb);
+        int32_t kv = bg_knob(c, 0);
         int32_t kx = 118 + (int32_t)c * 31;
-        gw_mini_bakelite_knob(kx, 79, 8, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
+        gw_mini_bakelite_knob(kx, 78, 9, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
     }
     cv_rect(104, 92, 124, 1, T_LINE);
 
