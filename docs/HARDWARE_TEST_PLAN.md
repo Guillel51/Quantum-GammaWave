@@ -11,6 +11,10 @@ not to install the newest build.
 
 The audited build is **NO VERIFICADO EN HARDWARE** and is **not approved for a real FM-1 install**.
 Host/target evidence is in `docs/AUDIT_FINAL_FM1.md`; this plan is the physical procedure that must
+be completed before changing that status. The current static figures are app 549028 B, package
+610897 B, `FM-1_982`, SHA-256 `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`,
+`perf_block` 569/522 and RAM spare 3716 B. The app slot is 581564 B; the app is 549028 B, so the slot
+is not a second app size. None of these is a board measurement. No flash write or
 be completed before changing that status. The current static figures are app 548708 B, package
 610876 B, `FM-1_982`, SHA-256 `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`,
 `perf_block` 569/522 and RAM spare 3716 B. None of these is a board measurement. No flash write or
@@ -47,9 +51,13 @@ magnifier, and a read-only flash/JEDEC tool that does not write.
 1. Photograph the board, chip markings and the flash package. Record the SoC marking
    (`C156211-11B8` / `C188612-11B8` or another variant) and the flash marking.
 2. Read the JEDEC ID through a read-only path (ROM download mode or the vendor read tool). Record
-   the exact 24-bit value; expected for the documented Puya P25Q80H is `0x856014` (1 MiB).
-3. If the ID is not `0x856014`, stop. Do not use a 1 MiB layout assumption; re-audit the package
-   and the flash map.
+   the exact 24-bit value. The documented Puya P25Q80H is `0x856014` (1 MiB); some newer units report
+   `0xB36014`. Both are in the firmware's explicit 1 MiB allowlist, but do not assume they are
+   interchangeable for write-protect, OTP, timing or persistence.
+3. If the ID is neither `0x856014` nor `0xB36014`, stop: an unknown ID is rejected by the firmware.
+   If it is one of the two documented IDs, validate that variant on its own unit; do not force a 1 MiB
+   write merely because the static gate accepts the ID. Re-audit the package and the flash map if the
+   marking, key or geometry differs.
 4. Record the ROM/USB identity (`4C4A:8057`, `WL82/UBOOT1.00`), the SPL and bootloader versions and
    the stock firmware version. Do not update yet.
 
@@ -151,7 +159,9 @@ reported as partial.
 
 A build is eligible for **controlled physical validation** only when:
 
-- the JEDEC is read as `0x856014` and the full flash map is backed up twice;
+- the JEDEC is read and recorded; `0x856014` and `0xB36014` are the two documented IDs accepted by
+  the static allowlist, and each variant is validated on its own unit; an unknown ID is a NO-GO; the
+  full flash map is backed up twice;
 - USB_KEY recovery has been demonstrated on the sacrificial unit;
 - the host suite is green or every pre-existing failure is explicitly waived with an issue;
 - the target build, `tests/memory_map_test.py`, `tests/ldr_test` and the package parser pass on the

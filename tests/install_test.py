@@ -68,9 +68,10 @@ class FakeFM1:
     """a MIDI backend with one FM-1 on it"""
 
     def __init__(self, image, identity="FM-1_015", name="FM-1", unplug_after=None, after_write="FM-1_900",
-                 stall_after=None, bad_addr=None):
+                 stall_after=None, bad_addr=None, ack_lost=False, ack_lost_stage1=False):
         self.image, self.unplug_after, self.after_write = image, unplug_after, after_write
-        self.stall_after, self.bad_addr = stall_after, bad_addr
+        self.stall_after, self.bad_addr, self.ack_lost = stall_after, bad_addr, ack_lost
+        self.ack_lost_stage1 = ack_lost_stage1
         self.served = self.bad = self.upgrades = 0
         self.sent, self.links, self.gen, self.lock = [], [], 0, threading.Lock()
         self.boot(identity, name)
@@ -124,9 +125,11 @@ class FakeFM1:
             if self.stall_after and self.served >= self.stall_after:
                 return
             if addr == I.FINISH_CHECK:
-                threading.Timer(0.05, self.boot, ("ota-FM-1_900", "Felucca Update")).start()
+                if not self.ack_lost_stage1:
+                    threading.Timer(0.05, self.boot, ("ota-FM-1_900", "Felucca Update")).start()
             elif addr == I.FINISH_WRITE:
-                threading.Timer(0.05, self.boot, (self.after_write, "Felucca")).start()
+                if not self.ack_lost:
+                    threading.Timer(0.05, self.boot, (self.after_write, "Felucca")).start()
             else:
                 self.next()
 
@@ -241,6 +244,16 @@ def errors():
 
     rc, out, err = cli([p, "--yes"], FakeFM1(image, after_write="FM-1_015"))
     ok(rc == 6 and "reports FM-1_015" in err, "another identity after the restart -> exit 6")
+
+    t0 = time.monotonic()
+    rc, out, err = cli([p, "--yes"], FakeFM1(image, ack_lost_stage1=True))
+    ok(rc == 5 and "loader did not appear" in err and "done:" not in out and time.monotonic() - t0 < 5,
+       "step-1 ACK lost -> no loader, exit 5, never done")
+
+    t0 = time.monotonic()
+    rc, out, err = cli([p, "--yes"], FakeFM1(image, ack_lost=True))
+    ok(rc == 5 and "did not come back" in err and "done:" not in out and time.monotonic() - t0 < 4,
+       "final ACK lost -> no success, exit 5 after the reboot wait")
     dev = FakeFM1(image, identity="XY-9_001", name="usb-midi")
     rc, out, err = cli([p, "--yes"], dev)
     ok(rc == 6 and dev.upgrades == 0, "another model -> exit 6, nothing sent")

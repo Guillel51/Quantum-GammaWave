@@ -761,6 +761,9 @@ static const char B_NOTE[11] = {'F', 'G', 'A', 'C', 'D', 'F', 'G', 'A', 'C', 'D'
 #define LF_X(c) (7 + 46 * (int32_t)(c))                 /* FX: the 10 effects, 5 a row (F3 .. C4, D4 .. A4), 42 px: x 7 .. 233 */
 #define LF_W 42
 #define LM_Y 96                                          /* the black keys' row (22 px) */
+#define LFR_P 20                                         /* (QG-1) FX: the 15 white-key effects, 5 x 3, 18 high */
+#define LFR_H 18
+#define LF_Y 4                                            /* the effects occupy the map's first three rows */
 #define LFR_P 20                                         /* (QG-1) FX: the white keys' rows 20 px apart, 18 high; */
 #define LFR_H 18
 #define LFM_Y 78                                         /* .. the mutes' row, the black effects' row under it */
@@ -840,6 +843,16 @@ static void lcell(int32_t x, int32_t y, int32_t h, const char *note, uint32_t ic
 {
     uint16_t ink, fill = lc_fill(st, &ink), idle = fill == T_RAISE;
     fill = lc_box(x, y, lc_w, h, fill);
+    if (lc_soft)                                        /* the label contrasts with the pad on every palette */
+        ink = fill == T_ACCENT || fill == T_SEL || fill == T_THEME ? T_INK : T_TEXT;
+    if (lc_soft) {                                      /* a quiet hardware LED and a top highlight: the pad's state
+                                                         * reads before the label does, without a second border */
+        uint16_t led = st == LS_HELD ? T_ACCENT : st == LS_WAIT ? T_THEME : st == LS_DIM ? T_DIM : T_LINE;
+        cv_rect(x + 4, y + 3, 2, 2, led);
+        cv_rect(x + 4, y + 2, lc_w - 8, 1, ux_mix(fill, T_INK, 34));
+        if (st == LS_HELD)
+            cv_rect(x + 3, y + 7, 1, h - 11, ux_mix(fill, T_INK, 55));
+    }
     if (note)
         cv_text_on(x + 5, y + 3, &AF_S, note, idle ? T_MID : ink, fill);
     if (h > 30 && lc_w == LF_W) {
@@ -861,20 +874,13 @@ static void lcell(int32_t x, int32_t y, int32_t h, const char *note, uint32_t ic
         GFX_HOOK_ALIGN(x, 0, x + lc_w, 0, AL_H | AL_PASS, "layer cell icon / name centred across");
         cv_text_in(x, t + 14 - AF_S_CAP_Y, lc_w, &AF_S, name, ink, fill);
     } else if (name) {                                     /* a key's row: the icon and the name on its middle */
-        int32_t ib[4];                                     /* (QG-1 stage 3) by its ink, not by the capitals: a
-                                                            * label with a "#" (G# C# .., the FX keys) reaches 2 px
-                                                            * below them and sat low in its cell */
-        text_ink(&AF_S, name, ib);
-        int32_t ny = y + HALF_UP(h - (ib[3] - ib[1])) - ib[1];   /* (the ink box is [y0, y1): its height is the difference) */
         if (!note && icon < ICON_COUNT) {                  /* (the EDIT layer: the engine's icon instead of the key) */
             GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
             cv_icon_in(x + 3, y, 0, h, 12, icon, ink, fill);
-            GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
-            cv_text_r(x + lc_w - 3, ny, &AF_S, name, ink, fill);
-        } else {
-            GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "layer key cell icon / name centred up/down");
-            cv_text_r(x + lc_w - 5, ny, &AF_S, name, ink, fill);
         }
+        /* The 18 px PUNCH-IN pads use direct drawing: cv_text_r's measured width was not reliable in the
+         * WebAssembly build (the labels vanished there while the same code was correct on the host). */
+        cv_text_on(note ? x + 22 : x + 10, y + 3, &AF_S, name, ink, fill);
     } else {
         /* (QG-1 stage 3) a hook declares the box for the item drawn next: one declared for an icon that is not
          * there was paired with whatever came after (a cell 23 px below), a false finding */
@@ -901,14 +907,16 @@ static void layer_fx(void)
     char n[3] = {0, 0, 0};
     lc_w = LF_W;
     lc_soft = 1;
+    /* The map's legend sits in the gap between the third FX row and the mutes, as before: it is
+     * one measured line, so it does not compete with either group. */
+    cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
     for (e = 0; e < PF_M1; e++) {                       /* the effects of the white keys F3 .. F5, 5 a row */
         if (e % 5u == 0u && !ux.style)                  /* (LINE: its rules are cells too) */
             GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H | AL_CELLS | AL_N(5), "FX cells' row centred");
         uint32_t st = !((ok >> e) & 1u) ? LS_DIM : !((held >> e) & 1u) ? LS_OFF :
                       (act >> e) & 1u || ((PF_MIDI >> e) & 1u) ? LS_HELD : LS_WAIT;
         n[0] = W_NOTE[e];
-        lcell(LF_X(e % 5u), 4 + LFR_P * (int32_t)(e / 5u), LFR_H, 0, ICON_COUNT, 0, PF_NAME[e], st, 0);   /* (its name alone: the
-                                                         * cells stand where the keys do, 5 a row) */
+        lcell(LF_X(e % 5u), LF_Y + LFR_P * (int32_t)(e / 5u), LFR_H, 0, ICON_COUNT, 0, PF_NAME[e], st, 0);
     }
     cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
     lc_w = G6_W;

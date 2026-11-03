@@ -10245,6 +10245,50 @@ static int test_qg15(void)
     return bad;
 }
 
+/* HOME: each physical encoder must move its own parameter and its own mini-knob, on every engine;
+ * this is the regression that page_desc() caused (the mini-knobs followed the last page instead). */
+static int test_home_knobs(void)
+{
+    int bad = 0;
+    uint32_t e, k, c;
+    for (e = 0; e < NENGINES; e++) {
+        if (!eng_ok(e))
+            continue;
+        ui_power_on();
+        set_engine_of(TSEL, e);
+        go_home();
+        frames(2);
+        for (k = 0; k < 4u; k++) {
+            int16_t *vp[4], before[4];
+            const param_desc_t *d;
+            const char *lb;
+            int32_t old[4], v0;
+            int ok;
+            for (c = 0; c < 4u; c++)
+                home_param(c, &vp[c]);
+            d = home_param(k, &vp[k]);
+            *vp[k] = (int16_t)((d->min + d->max) / 2);
+            for (c = 0; c < 4u; c++) {
+                before[c] = *vp[c];
+                old[c] = bg_knob(c, &lb);
+            }
+            v0 = old[k];
+            turn(EN_K1 + k, 1);
+            ok = *vp[k] != before[k] && bg_knob(k, &lb) != v0;
+            for (c = 0; c < 4u; c++) {
+                if (c != k)
+                    ok &= *vp[c] == before[c] && bg_knob(c, &lb) == old[c];
+            }
+            if (!ok) {
+                printf("ui:   HOME knob: engine %u KNOB %u moved a foreign parameter or mini-knob\n", e, k + 1u);
+                bad++;
+            }
+        }
+    }
+    check("HOME: KNOB 1..4 move only their own parameter and mini-knob, on every engine", bad == 0);
+    return bad;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -10267,6 +10311,7 @@ int main(void)
         }
     }
     bad += test_qg15();
+    bad += test_home_knobs();
     bad += test_large_face();
     bad += test_sound_loads();
     bad += test_patterns();

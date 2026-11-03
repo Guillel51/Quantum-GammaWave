@@ -152,6 +152,8 @@ else
     python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
     $CC -o "$OUT/ldr_test" tests/ldr_test.c
     run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+    $CC -o "$OUT/flash_id_test" tests/flash_id_test.c
+    run "flash id allowlist: documented 1 MiB variants, unknown refused" "$OUT/flash_id_test"
 fi
 
 if [ -f build/gen/felucca_tables.h ]; then

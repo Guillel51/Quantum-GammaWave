@@ -16,7 +16,7 @@ This roadmap details the planned evolutions for Quantum GammaWave, including mem
 ### B. TAPE WARMTH: Saturation, Hiss & Wow/Flutter
 - **Description**: Analog tape saturation curve combined with subtle pitch wobble (wow/flutter) and band-limited noise floor on the master bus.
 - **Feasibility & Resource Calculation**:
-  - *SRAM*: Modulated short delay line of 256 samples $\times$ 2 channels $\times$ 16-bit = 1024 bytes. Fits within spare pool allocation without exceeding 96 KB SRAM limit.
+  - *SRAM*: Modulated short delay line of 256 samples $\times$ 2 channels $\times$ 16-bit = 1024 bytes. Fits within the spare pool allocation without exceeding the 96 KiB project `.data+.bss` budget (the SDK reports 578 KB total SRAM).
   - *CPU*: Soft tanh/polynomial curve (Pade approximant or cubic Hermite spline) requires 3 MAC operations per sample. LFO modulation requires 1 sine evaluation per block.
   - *Status*: Highly viable. Prototype in Web Studio simulator first.
 

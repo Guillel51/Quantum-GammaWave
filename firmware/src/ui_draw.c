@@ -1453,20 +1453,33 @@ static void splash_sig(uint32_t prog, uint32_t ms)
             uint32_t an = (uint32_t)(24 + prog * 3u) << 6;
             int32_t ex = cx + (int32_t)((46 * bg_sin((int32_t)an)) >> 15);
             int32_t ey = cy - (int32_t)((46 * bg_sin((int32_t)an + 0x4000)) >> 15);
+            int32_t ex2 = cx + (int32_t)((39 * bg_sin((int32_t)an + 0x8000)) >> 15);
+            int32_t ey2 = cy - (int32_t)((39 * bg_sin((int32_t)an + 0xC000)) >> 15);
             gw_disc(ex, ey, 4, mono ? T_TEXT : T_ACCENT);
             gw_disc(ex, ey, 2, mono ? T_TEXT : T_ACCENT);
+            if (prog > 48u) {
+                gw_disc(ex2, ey2, 3, mono ? T_DIM : T_THEME);
+                cv_line_t(ex, ey, ex2, ey2, mono ? T_TEXT : T_LINE, 1);
+            }
         }
-        /* solar ticks, fixed: heat radiating from the core, not random dust */
-        for (i = 0; i < 8; i++) {
-            int32_t tx = cx + (int32_t)((52 * bg_sin(i * 8192 + 0x2000)) >> 15);
-            int32_t ty = cy - (int32_t)((52 * bg_sin(i * 8192)) >> 15);
+        /* solar ticks: heat radiating from the core, with a longer flare every third one */
+        for (i = 0; i < 12; i++) {
+            int32_t rr = 51 + (i % 3) * 3;
+            int32_t tx = cx + (int32_t)((rr * bg_sin(i * 5461 + 0x2000)) >> 15);
+            int32_t ty = cy - (int32_t)((rr * bg_sin(i * 5461)) >> 15);
+            if (i % 3 == 0) {
+                int32_t tx2 = cx + (int32_t)(((rr + 5) * bg_sin(i * 5461 + 0x2000)) >> 15);
+                int32_t ty2 = cy - (int32_t)(((rr + 5) * bg_sin(i * 5461)) >> 15);
+                cv_line_t(tx, ty, tx2, ty2, mono ? T_DIM : T_THEME, 1);
+            }
             cv_rect(tx, ty, 2, 2, mono ? T_DIM : (i % 2 ? T_ACCENT : T_THEME));
         }
     }
 
     /* three waves write themselves under the wordmark, the middle one carrying the accent */
     for (i = 0; i < 3; i++) {
-        int32_t w = (int32_t)(prog * 122u / 256u), ax = 104, ay = 52 + i * 15, ph = i * 100;
+        int32_t w = (int32_t)(prog * 122u / 256u), ax = 104, ay = 52 + i * 15;
+        int32_t ph = i * 100 + (int32_t)(prog * 2u);
         for (x = 0; x < w; x++) {
             y = ay + (int32_t)((6 * bg_sin((x * 300 + ph * 64) & 0xFFFF)) >> 15);
             cv_rect(ax + x, y, 1, 2, mono ? (i == 1 ? T_TEXT : T_DIM) : (i == 1 ? T_ACCENT : T_THEME));

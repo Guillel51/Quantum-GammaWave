@@ -45,7 +45,7 @@ reintroduced the 1.6/1.7 content. There are no unmerged 1.6 commits in the repos
 | Firmware | builds with JieLi | app 544748 B; package 610113 B, `FM-1_982` |
 | Emulator | rebuilt from these sources | `emu_test`: all ok, 22.6 ms per 1 s (2.3 % host) |
 | Web Studio | v1.7 labels and 8 preset groups | `test_web.mjs` passes |
-| Installer / package | bounds pass | `test_pkg_bounds.mjs`: `FM-1_982`, 581564 B app |
+| Installer / package | bounds pass | `test_pkg_bounds.mjs`: `FM-1_982`, 581564 B app slot (the parser reports the slot, not the current image) |
 | Repo / docs | version 1.7 strings in firmware, editor, installer | `felucca.c:41`, `editor.html`, `index_pkg.html` |
 | Tests / CI | partial: 8 UI failures, suite longer than the 5 min shell | see §4 |
 | Public web | NOT VERIFIED / likely stale | GitHub Pages was serving v1.5 earlier; no authenticated deploy from here |

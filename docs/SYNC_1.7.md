@@ -41,12 +41,29 @@
 - No Pages deployment: the public site was not updated from this environment.
 - No physical FM-1: display, encoder, audio and recovery behaviour are NOT VERIFIED on hardware.
 
-## perf/security-hardening (current)
+## HOME encoder / mini-knob / splash pass (2026-11-03)
+
+- `bg_knob()` uses `home_param()` in HOME; `page_desc()` remains correct on engine pages.
+- New `test_home_knobs()` walks every available engine and KNOB 1–4; only the selected parameter and
+  its mini-knob move.
+- Mini-knobs: concentric rim/body and a 270-degree needle; splash: second electron, solar flares and
+  progress-driven wave phase.
+- Target: app 549028 B, package 610897 B, identity `FM-1_982`, package SHA-256
+  `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`.
+- App slot 581564 B; current app 549028 B, unused 32536 B. `548708` / `549012` were earlier baselines,
+  not the current app. The `0x93000` package image is not the physical 1 MiB part.
+- UI: 172 × 17, 0 lint/alignment; splash 425 steps, 200 changing, 225 identical rewrites skipped.
+- Loader: exact final `success\0` ACK required; wrong/lost ACK returns `-14` without clearing the
+  update record. Host tests cover the lost-ACK path.
+- Installation audit: **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL**; no physical FM-1,
+  backup or USB_KEY recovery demonstration.
+
+## perf/security-hardening (earlier baseline)
 
 - Branch `perf/security-hardening`, merged with `origin/main` (`e3475f0`) at `08c74d0`; PRs #47–#51
   are closed and merged. No open PR remained to update at the time of this record.
-- Target app 548852 B, package 610876 B, identity FM-1_982; package SHA-256
-  `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`.
+- This is a historical baseline, not the final HEAD. It had app 548852 B, package 610876 B, identity
+  FM-1_982; package SHA-256 `b0d4d9c56690f6224dadcefbf06690b3e33ef0d03c819e3778eb7d85dd9c6a8b`.
 - RAM: `RAM spare 3732 B; pool spare 9248 B; RAMTEXT spare 2436 B; NOINIT spare 124 B`.
 - Host: loader normal + ASan/UBSan pass; web, security and preset groups pass; UI 172 screens x 17
   palettes, 0 lint / 0 alignment; FX draw cost 123.9 host units (was 125.3).
@@ -57,6 +74,8 @@
 
 ## Final audit (2026-11-03, perf/security-hardening)
 
+- Target: app **549028 B**, package **610897 B**, `FM-1_982`, package SHA-256
+  `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`.
 - Target: app 548708 B, package 610876 B, `FM-1_982`, SHA-256
   `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`.
 - RAM spare 3716 B; pool 9248 B; RAMTEXT 2404 B; NOINIT 124 B. `perf_block` 569/522;
@@ -68,3 +87,21 @@
 - Host finish ACK now reports `lost` if the `success` frame cannot be sent.
 - **NO VERIFICADO EN HARDWARE; not approved for installation.** See `docs/AUDIT_FINAL_FM1.md` and
   `docs/HARDWARE_TEST_PLAN.md`.
+
+## PUNCH-IN FX / emulator sync (2026-11-03, after a366cd0)
+
+- App **549220 B** (+192 B from 549028), package **610897 B**, identity `FM-1_982`. App SHA-256
+  `616db4d6ed191e171721c7cdc1f7ea9fde80705ef1911f0dad51c1918c206f8d`; package SHA-256
+  `106b5f41bd8f93fa22142e9c9669375dc784f7e65a19de2b8183d7e19acedab4`.
+- RAM spare 3716 B; pool 9248 B; RAMTEXT 2404 B; NOINIT 124 B. `perf_block` 569 in loops; UI code only,
+  no new DSP.
+- UI 172 × 17, 0 lint, 0 alignment findings. `PUNCH-IN FX` uses 5 columns × 3 rows of 42 × 18 pads, a
+  section legend and the four black-key effects on their own row.
+- Emulator: `build/emu` regenerated at `v1.7-QG`, WASM 1019205 B. The page fetches
+  `felucca.wasm?v=@VERSION@`; the 18 px labels now use direct drawing because `cv_text_r` lost its width
+  in the WASM build. `emu_test` all ok; screenshots are real framebuffer captures.
+- Effect audit: `docs/PUNCH_IN_FX_AUDIT.md`. Reverse/Freeze/Tape Stop are not implemented; Glitch/RND and
+  Stutter/ST8/ST16 are partial; DIVE is a pitch drop, not a tape stop. No effect was renamed to imply
+  otherwise.
+- **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL.** No physical FM-1, backup, JEDEC or
+  USB_KEY recovery test.

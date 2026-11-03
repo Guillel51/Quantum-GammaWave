@@ -27,6 +27,12 @@ esta auditoría.
 
 ## Métricas del cierre
 
+- App: **549028 B**. Paquete `.fwsc`: **610897 B**. Identidad de paquete `FM-1_982`.
+- SHA-256 del paquete: **`932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`**.
+- SHA-256 de la aplicación: **`0dcd80f23747832d7d440f9e992b032db7c40be297155c5ebe257c063512e67f`**.
+- Slot XIP `APP_SLOT = 0x8DFBC = 581564 B`; app real 549028 B; **32536 B** sin usar. `0x93000` es la
+  imagen de flash empaquetada, no la flash física de 1 MiB. `548708 B` fue una baseline anterior, no
+  este HEAD. La imagen actual de app termina en `0x920DC`.
 - App: **548708 B**. Paquete `.fwsc`: **610876 B**. Identidad de paquete `FM-1_982`.
 - SHA-256 del paquete: **`38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`**.
 - RAM `.data+.bss`: 94588 B de 98304 B; spare **3716 B**.
@@ -34,6 +40,8 @@ esta auditoría.
 - RAMTEXT spare: **2404 B**. NOINIT spare: **124 B**.
 - `perf_block`: **569/522** (+9 %, límite +10 %; solo ~5 unidades antes del techo).
 - `DRUM_PATH`: **1189/1191**. `perf_begin` 28/28; `perf_pre` 31/31; `perf_master` 32/32.
+- UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 200 cambian,
+  225 reescrituras idénticas omitidas.
 - UI: 172 pantallas × 17 paletas, **0** lint, **0** desalineaciones; splash 425 pasos, 198 cambian,
   227 reescrituras idénticas omitidas.
 - No hay medición de ciclos, pila, latencia de interrupción, DMA ni corriente en la placa.
@@ -56,6 +64,24 @@ esta auditoría.
    El Tape Stop no se declara: F#5 conserva el `DIVE` existente, que es un caída de pitch, no un
    tape-stop de buffer verificado.
 
+## Corrección de la asignación HOME (2026-11-03)
+
+El origen era `bg_knob()` en `ui_being.c`: dibujaba los cuatro mini-knobs con
+`page_desc(cur_page(), c, ...)` aunque los encoders de HOME editan `home_param(c)`. Por eso KNOB 3
+podía mover el indicador 1 (la página anterior seguía teniendo prioridad) y KNOB 1/2/4 parecían no
+actualizar su propio indicador. Ahora `bg_knob()` usa `home_param()` solo cuando `ui.home` está activo
+y conserva `page_desc()` en las páginas de motor, donde la columna de página es la correcta.
+
+Los mini-knobs se rediseñaron como controles concéntricos: aro exterior, cuerpo hundido, indicador
+radial de 270° y centro de contraste. La prueba `test_home_knobs()` recorre todos los motores
+disponibles y los cuatro encoders; comprueba que cada uno mueve su parámetro y su mini-knob, y que no
+mueve ningún otro. El test es de host, no una validación del encoder físico.
+
+La variante de flash `0xB36014` ya pasa la lista blanca estática de `firmware/hal/fm1_flash_id.h`,
+junto con `0x856014`; cualquier otro ID se rechaza. Esto **no** valida el lote: ninguna de las dos
+variantes se ha leído en hardware. Una unidad `0xB36014` sigue **NO VERIFICADA** y no debe forzarse
+hasta repetir en ella identidad, backup, recuperación y escritura controlada.
+
 ## Riesgos
 
 ### Críticos
@@ -73,6 +99,9 @@ esta auditoría.
 - **Ventana de escritura ascendente.** El loader escribe el primer sector de la aplicación antes que
   el resto; la ventana sin código de rescate es de uno a dos minutos, no de milisegundos. Cambiar el
   orden sin bootloader compatible no crea un rollback real.
+- **JEDEC no leído en hardware.** El mapa de 1 MiB y la lista blanca (`0x856014`, `0xB36014`) son
+  documentales y coherentes con el código; no son una medición de la unidad. Un ID desconocido se
+  rechaza, pero aceptar el ID no valida geometría, protección ni persistencia.
 - **JEDEC no leído en hardware.** El mapa de 1 MiB (`0x856014`) es documental y coherente con el
   código; no es una medición de la unidad.
 - **Sin medición de pila/ISR/DMA.** RAM y RAW text tienen margen estático, pero no hay high-water
@@ -95,6 +124,17 @@ esta auditoría.
 |---|---|
 | `tests/groups.sh ui` | OK: 172 pantallas × 17 paletas, 0 lint, 0 desalineaciones |
 | `tests/groups.sh presets` | OK: 200/200 categorías, una primaria por preset |
+| `tests/groups.sh web` | OK; incluye `web/test_web.mjs` y ACK final perdido |
+| `tests/groups.sh emu` | OK; WASM y nativo bit a bit, 2.3 % de tiempo real |
+| `tests/groups.sh security` | OK: instalador, backup, límites de paquete, audio ASan/UBSan |
+| `tests/groups.sh stress 1` | OK: project, persistence, robust, MIDI y 2 pasadas de regress |
+| `tests/groups.sh target` | OK: build AC791N, `target_budget`, `memory_map` |
+| `tests/ldr_test OLD NEW` | OK: paquete anterior `FM-1_900`, paquete dañado, clave ajena, ACK incorrecto, reanudación y cinco cortes |
+| `tests/ldr_test` con ASan/UBSan | OK, sin fugas; el harness libera sus imágenes |
+| `tests/install_test.py` | OK; incluye ACK final perdido -> exit 5, nunca `done` |
+| `tests/flash_id_test.c` | OK; `0x856014` y `0xB36014` aceptados, IDs desconocidos rechazados |
+| `target_budget.py` | OK; `perf_block` 569/522 |
+| `memory_map_test.py` | OK; spare RAM 3716, pool 9248, RAMTEXT 2404, NOINIT 124; slot 581564 vs app 549028 |
 | `tests/groups.sh web` | OK |
 | `tests/groups.sh emu` | OK; WASM y nativo bit a bit, 2.4 % de tiempo real |
 | `tests/groups.sh security` | OK: instalador, backup, límites de paquete, audio ASan/UBSan |
@@ -110,6 +150,9 @@ los tests del repositorio hayan corrido en un solo proceso. No se ejecutó ningu
 
 ## Condiciones antes de instalar en un FM-1 real
 
+1. Leer y registrar la identidad de la unidad y el JEDEC. Solo se aceptan `0x856014` o `0xB36014`
+   (ambos 1 MiB y en la lista blanca estática); validar cada variante en su propia unidad. Cualquier
+   otro ID es NO-GO.
 1. Leer y registrar la identidad de la unidad y el JEDEC; debe ser `0x856014` (1 MiB). Si no, detenerse.
 2. Leer la flash completa **dos veces** de forma independiente y comparar byte a byte y SHA-256; guardar
    copia fuera del equipo. Una sola lectura no es un backup.
@@ -123,6 +166,17 @@ los tests del repositorio hayan corrido en un solo proceso. No se ejecutó ningu
    corriente anómala o dispositivo que no enumera.
 7. No escribir el área de arranque `[0,0x4000)` ni el bootloader. No usar un único equipo funcional
    como banco de pruebas.
+
+## Actualización posterior: PUNCH-IN FX y emulador
+
+- El rediseño de PUNCH-IN FX y la corrección de etiquetas del WASM se documentan en
+  `docs/PUNCH_IN_FX_AUDIT.md`. No añadieron DSP ni cambiaron parámetros de audio.
+- Target posterior: app **549220 B** (+192 B), paquete **610897 B**, identidad `FM-1_982`; SHA-256 de la
+  app `616db4d6ed191e171721c7cdc1f7ea9fde80705ef1911f0dad51c1918c206f8d`, del paquete
+  `106b5f41bd8f93fa22142e9c9669375dc784f7e65a19de2b8183d7e19acedab4`.
+- El emulador se regeneró (`build/emu`, WASM 1019205 B, `v1.7-QG`) y su página evita la cache con
+  `?v=@VERSION@`; las capturas son del framebuffer real del WASM y del render del firmware.
+- La conclusión de hardware no cambia: **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL**.
 
 ## Lo que no se declara
 

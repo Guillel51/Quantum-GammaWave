@@ -494,7 +494,7 @@ async function switchOn() {
     if (!AudioCtx) throw new Error("Web Audio API is not supported in this browser.");
     const ac = new AudioCtx({ sampleRate: 44100, latencyHint: "interactive" });
     const [wasm] = await Promise.all([
-      fetch("felucca.wasm", { cache: "no-cache" }).then((r) => {
+      fetch("felucca.wasm?v=@VERSION@", { cache: "no-cache" }).then((r) => {
         if (!r.ok) {
           if (r.status === 404) throw new Error("felucca.wasm not found (HTTP 404). Compile the emulator binary with 'sh web/emu/build.sh' or run 'python tools/emu_dev.py'.");
           throw new Error(`felucca.wasm: HTTP ${r.status}`);

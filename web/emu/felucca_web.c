@@ -191,6 +191,7 @@ static void irq_restore(uint32_t f) { (void)f; }
 static uint32_t fl_jedec_ram(void) { return 0x856014u; }             /* the FM-1's part (project.c) */
 static void fl_plain_window_init(void) {}
 #define FL_FAR(fn) (fn)
+#include "../../firmware/hal/fm1_flash_id.h"
 #include "../../firmware/src/storage.c"
 #include "../../firmware/src/upreset.c"
 #include "../../firmware/src/project.c"

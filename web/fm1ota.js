@@ -109,9 +109,13 @@ async function handshake(link, tries = 3) {
 }
 
 export class Updater {
-  constructor(access, log) {
+  constructor(access, log, timing = {}) {
     this.access = access;
     this.log = log || (() => {});
+    this.loaderDelay = timing.loaderDelay ?? 3000;
+    this.loaderWait = timing.loaderWait ?? 30000;
+    this.rebootDelay = timing.rebootDelay ?? 3000;
+    this.rebootWait = timing.rebootWait ?? 40000;
   }
 
   // every in/out pair with the same port name that answers the handshake
@@ -185,14 +189,14 @@ export class Updater {
     dev.link.close();
     if (!s1.finished) throw fail(s1.lost ? "lost" : "stopped", `the device ${s1.lost ? "was disconnected" : "stopped"} after ${s1.served} requests: nothing was written`);
     step("loader");
-    await sleep(3000);
-    const ota = await this.waitFor((id) => id.model === "ota-" + model, 30000);
+    await sleep(this.loaderDelay);
+    const ota = await this.waitFor((id) => id.model === "ota-" + model, this.loaderWait);
     if (!ota) throw fail("noloader", "the update loader did not appear. Replug the USB cable and press Install again: the device stays in update mode until it is finished.");
     const s2 = await this.write(ota, image, step);
     if (!s2.finished) throw fail(s2.lost ? "lost" : "stopped", `the loader ${s2.lost ? "was disconnected" : "stopped"} after ${s2.served} requests. Replug and press Install again to resume.`);
     step("reboot");
-    await sleep(3000);
-    const back = await this.waitFor((id) => !IS_OTA(id), 40000);
+    await sleep(this.rebootDelay);
+    const back = await this.waitFor((id) => !IS_OTA(id), this.rebootWait);
     if (!back) throw fail("noreturn", "the device did not come back: power-cycle it");
     back.link.close();
     if (back.id.text !== product) throw fail("mismatch", `installed, but the device reports ${back.id.text}`, back.id.text);
@@ -219,8 +223,8 @@ export class Updater {
     if (!result.finished) return false;
     if (product) {
       step("reboot");
-      await sleep(3000);
-      const back = await this.waitFor((id) => id.model === model, 40000);
+      await sleep(this.rebootDelay);
+      const back = await this.waitFor((id) => id.model === model, this.rebootWait);
       if (!back) throw fail("noreturn", "The FM-1 did not return after resuming the write.");
       back.link.close();
       if (back.id.text !== product) throw fail("mismatch", "The FM-1 reports a different firmware after resuming.", back.id.text);
