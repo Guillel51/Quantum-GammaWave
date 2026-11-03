@@ -215,6 +215,7 @@ static void ui_power_on(void)
     panel = PANEL_DEFAULT;
     settings.palette = UI_GREY_INDEX;
     palette_set(UI_GREY_INDEX);
+    ui_style = ST_FLAT;                           /* (isolate: a style test leaves LINE behind) */
     transport_req = 0;
     panic_req = 0;
     mi_r = mi_w = midi_in_overflow = 0;
@@ -1945,6 +1946,9 @@ static int test_display_preferences(void)
                  (turn(EN_K1, 1), settings.palette == UI_GAMMA_INDEX) && str_eq(UI_PALETTES[UI_GAMMA_INDEX].name, "GAMMA") &&
                  (turn(EN_K1, 1), settings.palette == UI_WRAITH_INDEX) && str_eq(UI_PALETTES[UI_WRAITH_INDEX].name, "WRAITH") &&
                  (turn(EN_K1, 1), settings.palette == UI_QUANTUM_INDEX) && str_eq(UI_PALETTES[UI_QUANTUM_INDEX].name, "QUANTUM") &&
+                 (turn(EN_K1, 1), settings.palette == UI_SOLARIS_INDEX) && str_eq(UI_PALETTES[UI_SOLARIS_INDEX].name, "SOLARIS") &&
+                 (turn(EN_K1, 1), settings.palette == UI_CYBER_INDEX) && str_eq(UI_PALETTES[UI_CYBER_INDEX].name, "CYBERPUNK") &&
+                 (turn(EN_K1, 1), settings.palette == UI_NORDIC_INDEX) && str_eq(UI_PALETTES[UI_NORDIC_INDEX].name, "NORDIC") &&
                  (turn(EN_K1, 1), settings.palette == UI_GREY_INDEX) && str_eq(UI_PALETTES[UI_GREY_INDEX].name, "GREY"));
     settings.lowcut = 2;
     ui.menu_sel = MI_LOWCUT;
@@ -6042,7 +6046,7 @@ static int test_layer_knob_leak(void)
                     arp_fx++;
             }
     bad += check("#39 FX / GLO / SCL / EDIT + KNOB 1..4, let go while turning: no page under the layer changes",
-                 !fails && arp_fx == 4u);
+                 !fails && arp_fx == 8u);   /* ARP and ARP 2, 4 scenarios each */
     /* the quiet time is short: KNOB 1 edits the page again 0.3 s after FX */
     ui_power_on();
     go_page(GR_ARP);
