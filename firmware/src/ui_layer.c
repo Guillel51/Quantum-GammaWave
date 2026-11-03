@@ -764,6 +764,8 @@ static const char B_NOTE[11] = {'F', 'G', 'A', 'C', 'D', 'F', 'G', 'A', 'C', 'D'
 #define LFR_P 20                                         /* (QG-1) FX: the 15 white-key effects, 5 x 3, 18 high */
 #define LFR_H 18
 #define LF_Y 4                                            /* the effects occupy the map's first three rows */
+#define LFR_P 20                                         /* (QG-1) FX: the white keys' rows 20 px apart, 18 high; */
+#define LFR_H 18
 #define LFM_Y 78                                         /* .. the mutes' row, the black effects' row under it */
 #define LFX_Y 98
 #define LFB_H 16
@@ -916,6 +918,7 @@ static void layer_fx(void)
         n[0] = W_NOTE[e];
         lcell(LF_X(e % 5u), LF_Y + LFR_P * (int32_t)(e / 5u), LFR_H, 0, ICON_COUNT, 0, PF_NAME[e], st, 0);
     }
+    cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
     lc_w = G6_W;
     for (e = 0; e < NTRK; e++) {                        /* the mutes of the black keys 1..6 */
         bnote(n, e);

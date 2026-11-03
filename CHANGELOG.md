@@ -53,6 +53,7 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   DIVE and is not claimed as a verified tape stop.
 - Installer: a failed USB `success` ACK now reports `lost` instead of marking the step finished.
 - Previous target (before the HOME/splash pass): app 548708 B, package 610876 B, `FM-1_982`, SHA-256
+- Final target: app 548708 B, package 610876 B, `FM-1_982`, SHA-256
   `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`. Final status is
   **NO VERIFICADO EN HARDWARE**; see `docs/AUDIT_FINAL_FM1.md`.
 

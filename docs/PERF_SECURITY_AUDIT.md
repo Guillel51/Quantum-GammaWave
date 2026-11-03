@@ -254,6 +254,10 @@ fixes. Do not force-push or rewrite the merged history.
   2404 B and NOINIT 124 B. App is **549028 B**, package **610897 B**, package SHA-256
   `932d37a0d5c5d74124713555f678804589ba42b8e129bce03e1d0762ac36be8d`. The older `548708 B` /
   `38eb7655...` and `549012 B` / `2590d28a...` values are historical baselines, not this build.
+- **Final evidence.** Target build and `target_budget.py` pass (`perf_block` 569/522, `DRUM_PATH`
+  1189/1191); `memory_map_test.py` passes with RAM spare 3716 B, pool 9248 B, RAMTEXT 2404 B and
+  NOINIT 124 B. App 548708 B; package 610876 B; SHA-256
+  `38eb7655e903a5244663c7625db87e46317591d905e862d0ccb4795534d7351d`.
 - **Tests actually run in this pass.** UI, presets, web, emulator, security, stress (1 run), target,
   loader normal and ASan/UBSan. The full `run_tests.sh` was not run in one process because of the
   5-minute shell limit; no timeout is counted as a pass. No physical FM-1 exists in this environment.
