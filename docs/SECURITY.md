@@ -193,6 +193,7 @@ Archivos: `tools/fm1_install.py` (CLI), `web/fm1ota.js` (paso 1 y 2 en el navega
 | Volver a V15 oficial sin `--force` (hash `STOCK_V15_SHA256`) | `fm1_install.py` | **ok** con `--force` cuando no coincide |
 | Nunca se sondea otro equipo que no sea FM-1 (`PORT_RE`) | `fm1_install.py` | **ok** |
 | Límites del parser (512 KB sin final de lista rechazado, sin bucle) | `test_pkg_bounds.mjs` | **ok** |
+| El borrado de registros no toca VM, autosave/FM6 ni USR aunque su cola parezca un registro | `ldr_core.c`, `ldr_test` | **ok** (SIMULADO; ventana `[0xE0000,0xE9000)`, sin `[0xE5000,0xE8000)`) |
 
 `python3 tests/install_test.py` → **`install tests passed`** (31 comprobaciones, SIMULADO contra un
 FM-1 simulado). Dos comprobaciones quedan **sin ejecutar** aquí: la comparación de la imagen lógica

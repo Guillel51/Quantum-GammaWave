@@ -132,6 +132,19 @@ RAM; it does not exercise the SPL, real erase/program timing or a physical power
 and corruption paths remain covered by `tests/install_test.py`, `web/test_web.mjs`,
 `web/test_pkg_bounds.mjs` and the damaged-package case in `ldr_test`.
 
+### 5b. Update-record clear: fixed data-loss window
+
+The loader's record scan used to cover `[0x93000, 0xFC000)` and skip only Felucca's main store. A
+record-looking 80-byte tail at `0x93F00` (VM), `0xE5F00` (autosave), or `0xEBF00` (USR) could make it
+erase that 4 KiB sector; the FM6 voice bank at `0xE7000` was in the same risk window. No host-only input
+could select an arbitrary address, but existing user data could match the update-record magic/CRC.
+
+The scan is now limited to `[0xE0000, 0xE9000)` and explicitly skips the autosave/FM6 range
+`[0xE5000, 0xE8000)`. It still clears Felucca's `0xE4F00` and the stock firmware's `0xE8F00`. The test
+places valid record tails at `0x93F00`, `0xE5F00` and `0xEBF00`, checks all three survive, and tightens
+its erase guard so any erase outside the app area, `[0xE0000,0xE5000)` or `[0xE8000,0xE9000)` fails.
+`ldr_test` and its ASan/UBSan build pass. This is **SIMULATED**, not a hardware write.
+
 ### 6. Reducing the single-bank write window (NO CHANGE)
 
 The loader writes `[0x4000,0x93000)` in ascending 4 KiB sectors. Writing the first sector last would
@@ -179,13 +192,30 @@ the 12 unrelated commits are still in it.
 - If PR A is rejected, PR B remains a draft against the UI branch; the DSP patch can be cherry-picked
   alone after a clean build.
 
+## Publication and CI status (2026-11-03)
+
+- Remote `main` is `7c3dd24`; PR #49 (`feat/v1.7-visual-presets`) and PR #51
+  (`perf/security-hardening`) are open against `main`. PR #51 is **not** based on PR #49, so its
+  current diff against `main` includes the 12 UI commits. This must be retargeted after PR #49 is
+  integrated; no remote setting was changed here.
+- The emulator workflow passes on both heads (`e23fb14`, `e840624`). The host workflow fails on both,
+  and also on `main` (`7c3dd24`): the `fm6bank` preset-count check and the editor mock tables are
+  pre-existing failures, not introduced by the DSP/audit commits. Their exact failing steps are
+  recorded in the publication report; they are not a reason to merge a red PR.
+- No repository ruleset applies to `main`; the classic branch-protection endpoint requires
+authentication and could not be read. No review requirement could be confirmed. This is a repository
+  governance blocker, not a firmware defect.
+- No PR was merged, no branch was deleted, no release or Pages deployment was created, and no physical
+  FM-1 was touched.
+
 ## Recommendation
 
-**APTO PARA PR CON LIMITACIONES.** The flash size is resolved, the SRAM map is checked by a test,
-the loader preflight and backup validation are sound in simulation, and no new hardware parameter was
-changed. **NO APTO PARA INSTALACIÓN FÍSICA** until the JEDEC is read on a unit, a real power-cut /
-recovery run is done with USB_KEY, and the single-bank window is accepted or eliminated. The missing
-signature/anti-rollback remains a security limitation, not a build blocker.
+**NO APTO PARA VALIDACIÓN FÍSICA CONTROLADA todavía.** The flash size is resolved, the SRAM map is
+checked by a test, the loader preflight and backup validation are sound in simulation, and the
+record-clear window is fixed. Before a controlled physical run, the host workflow must be green (or
+the two pre-existing failures explicitly waived), PR #51 must be based on the integrated PR #49, and
+the JEDEC, power-cut, recovery and single-bank window must be tested on hardware with USB_KEY. The
+missing signature/anti-rollback remains a security limitation, not a build blocker.
 
 ## No claims
 

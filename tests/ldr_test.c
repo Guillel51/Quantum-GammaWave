@@ -85,7 +85,8 @@ static void ota_commit(const uint8_t *parm) { (void)parm; }
 static int ldr_fread(uint32_t off, void *p, uint32_t n) { memcpy(p, nor + off, n); return 0; }
 static int ldr_erase(uint32_t off)
 {
-    if (off < 0x4000u || off >= 0xFC000u || (off & 0xFFFu) || (off >= 0x97000u && off < 0xE0000u)) bad_range++;
+    if (off < 0x4000u || off >= 0xE9000u || (off & 0xFFFu) ||
+        (off >= 0x93000u && off < 0xE0000u) || (off >= 0xE5000u && off < 0xE8000u)) bad_range++;
     if (off < 0x4000u) { printf("ERASE IN THE HEAD %#x\n", off); exit(1); }
     erases++;
     memset(nor + off, 0xFF, 0x1000);
@@ -154,7 +155,7 @@ static int check(const char *what, int ok) { printf("%-56s %s\n", what, ok ? "ok
 int main(int argc, char **argv)
 {
     size_t olen;
-    static uint8_t user[0x1000];
+    static uint8_t user[0x1000], vm[0x1000], auto_s[0x1000], usr[0x1000];
     uint8_t *old, head[0x4000];
     uint32_t ofo, nfo, i;
     int bad = 0, rc;
@@ -174,6 +175,16 @@ int main(int argc, char **argv)
         for (i = 0; i < 0x1000u; i++) nor[0xA0000 + i] = (uint8_t)(i * 7u);
         put_record(0xA0F00);
         memcpy(user, nor + 0xA0000, sizeof user);
+        /* record-looking tails in the VM, the autosave/FM6 bank and USR must survive */
+        for (i = 0; i < 0x1000u; i++) {
+            nor[0x93000 + i] = (uint8_t)(i * 3u);
+            nor[0xE5000 + i] = (uint8_t)(i * 5u);
+            nor[0xEB000 + i] = (uint8_t)(i * 11u);
+        }
+        put_record(0x93F00); put_record(0xE5F00); put_record(0xEBF00);
+        memcpy(vm, nor + 0x93000, sizeof vm);
+        memcpy(auto_s, nor + 0xE5000, sizeof auto_s);
+        memcpy(usr, nor + 0xEB000, sizeof usr);
     }
     /* a damaged package (one byte deep in the app area): refused before anything is erased */
     {
@@ -199,6 +210,9 @@ int main(int argc, char **argv)
     bad += check("update records cleared (RAM + flash 0xE4F00, the stock firmware's 0xE8F00)",
                  record_cleared && nor[0xE4F06] == 0xFF && nor[0xE8F06] == 0xFF);
     bad += check("user data in Felucca's store that looks like a record is kept", !memcmp(nor + 0xA0000, user, sizeof user));
+    bad += check("VM sector with a record-looking block is kept", !memcmp(nor + 0x93000, vm, sizeof vm));
+    bad += check("autosave/FM6 sector with a record-looking block is kept", !memcmp(nor + 0xE5000, auto_s, sizeof auto_s));
+    bad += check("USR sector with a record-looking block is kept", !memcmp(nor + 0xEB000, usr, sizeof usr));
     bad += check("no write outside the allowed windows", bad_range == 0);
     /* same package again: nothing to erase */
     erases = 0; requests = 0;
