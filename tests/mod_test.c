@@ -1186,8 +1186,9 @@ static void test_noise_src(void)
     fresh(ea, 0);
     trk[0].p[P_M1SRC] = MS_NOISE; trk[0].p[P_M1DST] = MD_CUT; trk[0].p[P_M1AMT] = 40;
     h = phrase();
-    check("1.2.1-GW: the NOISE source moves the filter (its own sound); NOISE appended (14, the stored numbers stay)",
-          h != a0 && MS_NOISE == 14 && MS_N == 15 && str_eq(N_MSRC[MS_NOISE], "NOISE"));
+    check("1.2.1-GW: the NOISE source moves the filter; NOISE 14 and PAT 15 appended (the stored numbers stay)",
+          h != a0 && MS_NOISE == 14 && MS_PAT == 15 && MS_N == 16 &&
+          str_eq(N_MSRC[MS_NOISE], "NOISE") && str_eq(N_MSRC[MS_PAT], "PAT"));
     mns_clk = 0;
     prev = mod_tsrc(&trk[0], MS_NOISE, 0);
     for (b = 1; b < 64u * 40u; b++) {                   /* 40 points, block by block */

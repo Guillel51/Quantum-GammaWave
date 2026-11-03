@@ -278,11 +278,18 @@ static __attribute__((noinline)) void mod_voice(track_t *t, voice_t *v, vmod_t *
     uint32_t k;
     if (v == &t->v[t->m_vi])
         t->m_env = env;                                 /* ENV of the latest note, for per-block destinations */
+    /* (1.7) the per-voice sources resolved once, outside the slot loop: a vsrc is always one of these
+     * (MS_VOICE), so the loop does one indexed load instead of re-testing the source every slot. That
+     * keeps PAT (1.6) from growing the loop's weighted cost, without touching the budget. */
+    int32_t sv[MS_N];
+    sv[MS_ENV] = env;
+    sv[MS_VEL] = v->mvel * 258;
+    sv[MS_KEY] = mod_key(v->note);
+    sv[MS_RAND] = v->mrnd;
+    sv[MS_PAT] = (int32_t)v->pat * 258;
     for (k = 0; k < mp->nv; k++) {
         uint32_t s = mp->vsrc[k];
-        int32_t x = s == MS_ENV ? env : s == MS_VEL ? v->mvel * 258 : s == MS_KEY ? mod_key(v->note)
-                  : s == MS_PAT ? v->pat * 258 : v->mrnd;
-        mod_voice_add(s, mp->vdst[k], x, mp->vamt[k], &pit, &cut, &shp, &gain);
+        mod_voice_add(s, mp->vdst[k], sv[s], mp->vamt[k], &pit, &cut, &shp, &gain);
     }
     if (pit) {
         m->pitch16 = clamp(m->pitch16 + pit, 0, 2047);

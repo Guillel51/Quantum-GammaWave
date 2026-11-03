@@ -3,6 +3,15 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.7-QG — CI budget fix (target compiler checks)
+
+- `mod_voice` resolves the per-voice sources (ENV, VEL, KEY, RAND, PAT) once, before the slot loop, and
+  indexes them there. 1.6's PAT added a source test to that loop, whose weighted cost had a 30 budget;
+  the loop now does one load per slot instead of re-testing the source, with identical renders (220 goldens,
+  0 changed).
+- `tests/mod_test.c` still asserted `MS_N == 15`; PAT was appended in 1.6 (15, `MS_N` 16). The test now
+  checks both NOISE 14 and PAT 15, and the matrix suite passes again on `main`.
+
 ## v1.7-QG — UI Evolution & Hardware Validation (2026-11-03)
 
 - UI audit kept at 0 lint findings and 0 alignment errors across 171 screens x 17 palettes.
