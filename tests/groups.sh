@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Split the long Quantum GammaWave suite into reproducible groups.
-# Usage: tests/groups.sh ui|presets|web|emu|sync|target|security|stress|all
+# Usage: tests/groups.sh ui|presets|web|emu|sync|target|security|stress|browser|all
 # Each group keeps its own exit status; no assertion or budget is changed.
 set -eu
 cd "$(dirname "$0")/.."
@@ -42,6 +42,19 @@ run_web() {
     node web/test_web.mjs
 }
 
+run_browser() {
+    # Chromium (playwright's build) loads build/emu as a page: the WASM the page receives must be the
+    # manifest's, the console clean, and the worklet must render sound. Missing browser or system
+    # libraries exit 2, which is "not run here", never a pass.
+    if [ -d "$HOME/.cache/ms-playwright" ]; then
+        LD_LIBRARY_PATH="$PWD/build/sysroot/usr/lib/x86_64-linux-gnu:$PWD/build/apt/root/usr/lib/x86_64-linux-gnu" \
+            node web/emu/browser_test.mjs build/emu
+    else
+        echo "browser: playwright's Chromium is not installed (npx playwright install chromium)" >&2
+        return 2
+    fi
+}
+
 run_sync() {
     python3 tests/emu_sync.py
 }
@@ -65,6 +78,12 @@ run_eq() {
     # uses: a filter that is stable on paper but wrong at the corner cannot pass this one
     cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/eq_response_test tests/eq_response_test.c -lm
     ./build/uifix/eq_response_test
+    # the four delay states one by one (a bad scale on one of them cost the right channel its EQ)
+    cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/eq_state_test tests/eq_state_test.c -lm
+    ./build/uifix/eq_state_test
+    # what the DC gain really is: coefficients vs processing vs truncation
+    cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/eq_dc_test tests/eq_dc_test.c -lm
+    ./build/uifix/eq_dc_test
 }
 
 run_security() {
@@ -72,6 +91,7 @@ run_security() {
     python3 tests/preflight_test.py
     python3 tests/gate_test.py
     node web/test_backup.mjs
+    python3 tests/restore_test.py
     if [ -f build/felucca.fwsc ]; then node web/test_pkg_bounds.mjs build/felucca.fwsc; node web/test_pkg_faults.mjs build/felucca.fwsc; fi
     san="-O1 -g -fsanitize=address,undefined -fno-sanitize=signed-integer-overflow,shift,bounds,object-size,pointer-overflow -fno-sanitize-recover=undefined -w"
     cc $san -Ibuild/gen -Ifirmware/src -o build/uifix/audio_san tests/audio_test.c -lm
@@ -111,6 +131,7 @@ case "$group" in
     web) run_web ;;
     emu) run_emu ;;
     sync) run_sync ;;
+    browser) run_browser ;;
     security) run_security ;;
     stress) run_stress ;;
     target) run_target ;;
@@ -123,9 +144,10 @@ case "$group" in
         run_eq
         run_target
         run_security
+        run_browser
         ;;
     *)
-        echo "usage: $0 ui|presets|web|emu|sync|eq|security|stress|target|all" >&2
+        echo "usage: $0 ui|presets|web|emu|sync|eq|security|stress|target|browser|all" >&2
         exit 2
         ;;
 esac

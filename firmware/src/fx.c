@@ -466,6 +466,14 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
 static inline int32_t bq_mul(int32_t c, int32_t x) { return (int32_t)(((int64_t)c * x) >> BQ_Q); }
 static inline int32_t bq_lim(int32_t v) { return v > BQ_LIM ? BQ_LIM : v < -BQ_LIM ? -BQ_LIM : v; }
 
+/* (v1.8.8) Half the state clamp, in the states' own Q10 scale: no stable filter reaches past it.
+ * s2_r was compared against BQ_LIM / 2 without the shift -- 1024x below the other three -- so an
+ * ordinary right-channel state looked impossible and master_eq_update(), which runs every block,
+ * cleared the right delay line: the left channel kept its EQ and the right lost it. One predicate
+ * for the four states so the scale cannot drift again. */
+#define BQ_STATE_HI (((int64_t)BQ_LIM << BQ_S) / 2)
+static inline int eq_state_bad(int64_t v) { return v > BQ_STATE_HI || v < -BQ_STATE_HI; }
+
 /* Process block of stereo samples through biquad (Direct Form II Transposed in Q25) */
 static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t n)
 {
@@ -548,13 +556,8 @@ static void master_eq_update(void)
     if (mode == eq_last_mode && freq == eq_last_freq && gain == eq_last_gain && q == eq_last_q) {
         /* The same preset can still carry a state from a previous filter if a scene or project loaded
          * identical values. Only an impossible state is cleared here, so normal audio is untouched. */
-        if (master_eq.active && (master_eq.s1_l > ((int64_t)BQ_LIM << BQ_S) / 2 ||
-                                 master_eq.s1_l < -(((int64_t)BQ_LIM << BQ_S) / 2) ||
-                                 master_eq.s1_r > ((int64_t)BQ_LIM << BQ_S) / 2 ||
-                                 master_eq.s1_r < -(((int64_t)BQ_LIM << BQ_S) / 2) ||
-                                 master_eq.s2_l > ((int64_t)BQ_LIM << BQ_S) / 2 ||
-                                 master_eq.s2_l < -(((int64_t)BQ_LIM << BQ_S) / 2) ||
-                                 master_eq.s2_r > BQ_LIM / 2 || master_eq.s2_r < -BQ_LIM / 2))
+        if (master_eq.active && (eq_state_bad(master_eq.s1_l) || eq_state_bad(master_eq.s1_r) ||
+                                 eq_state_bad(master_eq.s2_l) || eq_state_bad(master_eq.s2_r)))
             qg_biquad_clear_state(&master_eq);
         return;
     }

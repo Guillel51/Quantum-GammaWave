@@ -40,6 +40,35 @@
   RAM code 22 528/24 576 (margen 2 048 B, el mínimo exigido por el gate). Sin voces nuevas ni cambios de
   calidad.
 
+## v1.8.8 — one master-EQ delay state had the wrong scale (2026-11-04)
+
+- **The bug, measured:** `master_eq_update()` guarded the four delay states against a state a stable
+  filter cannot reach, but `s2_r` was compared with `BQ_LIM / 2` **without the `BQ_S` shift** -- 1024x
+  below the other three. `master_eq_update()` runs on every block, so with the EQ active an ordinary
+  right-channel state looked impossible and the right delay line was cleared again and again: the left
+  channel kept its EQ and the right lost it, block after block. A new test walks the four states one by
+  one, and it fails on the old code at exactly two assertions (`s2_r = BQ_LIM/2+1` and
+  `s2_r = BQ_STATE_HI`), both of which pass now.
+- **The fix:** one predicate, `eq_state_bad()`, over `BQ_STATE_HI = (BQ_LIM << BQ_S) / 2`, used for all
+  four states, so a scale cannot drift on one of them again. No coefficient, no topology and no
+  polyphony change; the image is 16 B smaller (558 860 B).
+- **DC gain, separated and documented:** the coefficient's own DC gain for the +24 dB, 20 Hz shelf is
+  (b0+b1+b2)/(1+a1+a2) = 15.9559 (24.06 dB). The audio path returns 13.492 (22.60 dB) for a DC input of
+  1000, at 1 s and at 20 s alike: it is a settled truncation bias, not settling, because the pole sits
+  2.0e-6 from the unit circle and the per-sample truncation is multiplied by ~493 000. At the corner the
+  shelf is +12.09 dB against the +12 dB a shelf gives there. `tests/eq_dc_test.c` now measures the three
+  numbers (coefficients, processing, bias) and `tests/eq_state_test.c` covers each state.
+- **Recovery, honestly:** `tools/fm1_restore.py` validates a raw backup end to end (both passes,
+  byte-identical, full 1 MiB, hash, chip, geometry, read-only frame log) and can read the unit again and
+  list the ranges that differ. It **refuses to write**: the loader protocol serves a signed package, and
+  no raw 1 MiB write has ever been demonstrated on an FM-1 here. `docs/RECOVERY.md` says what a real
+  recovery needs.
+- **Browser:** `web/emu/browser_test.mjs` loads the built page in Chromium, checks the WASM the page
+  received against the manifest's SHA-256, the version and the commit, that the console and the network
+  stay clean, that a held key reaches the device, and that the same AudioWorklet renders sound offline
+  (peak 0.120 on a held C4). It is a separate group (`tests/groups.sh browser`) because it needs
+  Playwright's Chromium.
+
 ## Unreleased — six-track load, target link and installer trust
 
 - **Six-track load test:** `tests/six_track_test.c` (new, `bash tests/groups.sh six`) runs six tracks with ten
