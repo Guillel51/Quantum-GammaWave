@@ -437,8 +437,12 @@ static const ota_part_t OTA_PARTS[] = {
 };
 #define OTA_NPARTS (sizeof OTA_PARTS / sizeof OTA_PARTS[0])
 
-static uint8_t ota_qbuf[6u + 24u], ota_qwire[40u];           /* 0x12 reply (38 wire bytes) */
-static uint8_t ota_rbuf[6u + 14u + OTA_QRY_CHUNK];           /* 0x13 reply */
+/* ota_send_big() writes 6 header bytes, n body bytes and one checksum byte: the buffer is
+ * 6 + n + 1. Both were declared 6 + n, so the checksum landed one byte past the array. On the
+ * 0x12 reply (n = 24) ASan reports a global-buffer-overflow; on a bare part the same write
+ * silently corrupted whatever the linker put next. */
+static uint8_t ota_qbuf[6u + 24u + 1u], ota_qwire[40u];      /* 0x12 reply (38 wire bytes) */
+static uint8_t ota_rbuf[6u + 14u + OTA_QRY_CHUNK + 1u];      /* 0x13 reply (+ the checksum byte) */
 static uint8_t ota_rwire[320u];                              /* 6 + 14 + 256 -> 319 */
 static uint32_t ota_sess, ota_sess_seq;
 static const ota_part_t *ota_sess_part;
