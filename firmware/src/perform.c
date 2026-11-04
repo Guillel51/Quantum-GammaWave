@@ -705,8 +705,8 @@ static __attribute__((noinline)) void perf_block(int32_t *bl, int32_t *br, uint3
         lt = (a & PF_BIT(PF_LPF)) || perf_k[0] < 0 || pf.lc < PF_TOP ? 32768 : 0;
         pf.la += clamp(lt - pf.la, -SL_SLOPE, SL_SLOPE);
         if (pf.la) {
-            int32_t fl = pf_svf(clamp(l >> 2, -32767, 32767), &pf.lz[0], pf.lk, 0) << 2;
-            int32_t fr = pf_svf(clamp(r >> 2, -32767, 32767), &pf.lz[2], pf.lk, 0) << 2;
+            int32_t fl = pf_svf(clamp(l >> 2, -32767, 32767), &pf.lz[0], pf.lk, 0) * 4;
+            int32_t fr = pf_svf(clamp(r >> 2, -32767, 32767), &pf.lz[2], pf.lk, 0) * 4;
             l = pf_mix(l, fl, pf.la);
             r = pf_mix(r, fr, pf.la);
         } else {
@@ -715,8 +715,8 @@ static __attribute__((noinline)) void perf_block(int32_t *bl, int32_t *br, uint3
         ht = (a & PF_BIT(PF_HPF)) || perf_k[0] > 0 || pf.hc > 0 ? 32768 : 0;
         pf.ha += clamp(ht - pf.ha, -SL_SLOPE, SL_SLOPE);
         if (pf.ha) {
-            int32_t fl = pf_svf(clamp(l >> 2, -32767, 32767), &pf.hz[0], pf.hk, 1) << 2;
-            int32_t fr = pf_svf(clamp(r >> 2, -32767, 32767), &pf.hz[2], pf.hk, 1) << 2;
+            int32_t fl = pf_svf(clamp(l >> 2, -32767, 32767), &pf.hz[0], pf.hk, 1) * 4;
+            int32_t fr = pf_svf(clamp(r >> 2, -32767, 32767), &pf.hz[2], pf.hk, 1) * 4;
             l = pf_mix(l, fl, pf.ha);
             r = pf_mix(r, fr, pf.ha);
         } else {
@@ -727,8 +727,8 @@ static __attribute__((noinline)) void perf_block(int32_t *bl, int32_t *br, uint3
             if (pf.cw) {
                 if (++pf.cn >= hold) {
                     pf.cn = 0;
-                    pf.chl = ((l >> sh) << sh) + (1 << (sh - 1u));
-                    pf.chr = ((r >> sh) << sh) + (1 << (sh - 1u));
+                    pf.chl = ((l >> sh) * (1 << sh)) + (1 << (sh - 1u));
+                    pf.chr = ((r >> sh) * (1 << sh)) + (1 << (sh - 1u));
                 }
                 l = pf_mix(l, pf.chl, pf.cw);
                 r = pf_mix(r, pf.chr, pf.cw);

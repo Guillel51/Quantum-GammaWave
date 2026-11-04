@@ -9,6 +9,8 @@ group=${1:-all}
 mkdir -p build/uifix
 
 run_ui() {
+    cc -O1 -w -Ibuild/gen -Ifirmware/src -o build/uifix/semi_test tests/semi_test.c -lm
+    ./build/uifix/semi_test
     cc -O1 -w -Ibuild/gen -Ifirmware/src -o build/uifix/ui_test tests/ui_test.c -lm
     ./build/uifix/ui_test
     ver=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c)
@@ -25,6 +27,12 @@ run_presets() {
 }
 
 run_web() {
+    # Never let a failed built-site check fall through to the source-only check.
+    if [ -d build/site ]; then
+        python3 web/test_site.py build/site
+    else
+        python3 web/test_site.py
+    fi
     node web/test_web.mjs
 }
 

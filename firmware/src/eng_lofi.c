@@ -270,7 +270,7 @@ static __attribute__((noinline)) void lofi_byte_render(track_t *t, voice_t *v, i
             int32_t s = (int32_t)(lofi_byte(f, tw, a) & 255u) * 256 - 32640;
             cnt = hold;
             if (bits < 8)
-                s = ((s + (1 << (15 - bits))) >> (16 - bits)) << (16 - bits);
+                s = ((s + (1 << (15 - bits))) >> (16 - bits)) * (1 << (16 - bits));
             held = s;
         }
         tf += ti;
@@ -280,7 +280,7 @@ static __attribute__((noinline)) void lofi_byte_render(track_t *t, voice_t *v, i
         l1 += ((held >> 1) - l1) * 19500 >> 15;        /* (JIANT 0.5) the 8-bit steps rounded: two one-poles at
                                                          * ~6 kHz before the filter (BYTE was knife-sharp) */
         l2 += (l1 - l2) * 19500 >> 15;
-        out[i] += voice_amp(soft_knee(svf_mode(flt, l2, &ic1, &ic2, ft, kd), 16000) << 1, m, i);
+        out[i] += voice_amp(soft_knee(svf_mode(flt, l2, &ic1, &ic2, ft, kd), 16000) * 2, m, i);
     }
     v->s[3] = l1;
     v->ph[2] = (uint32_t)l2;
@@ -330,7 +330,7 @@ static __attribute__((noinline)) void lofi_float_render(track_t *t, voice_t *v, 
         tt += tf >> 24;
         tf &= 0xFFFFFFu;
         ts += ((ti >> 8) * mul) >> 16;
-        out[i] += voice_amp(soft_knee(svf_mode(flt, s >> 1, &y1, &y2, ft, kd), 16000) << 1, m, i);
+        out[i] += voice_amp(soft_knee(svf_mode(flt, s >> 1, &y1, &y2, ft, kd), 16000) * 2, m, i);
     }
     v->s[0] = fb;
     v->s[2] = (int32_t)tt;
@@ -543,14 +543,14 @@ static void lofi_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
             if (mf >> 8)                                /* (0.6.45) MORPH: towards the next wave */
                 s += ((lofi_mto(wave + 1u, ph0, duty, wr, wdc, lfsr) - s) * (mf >> 8)) >> 8;
             if (q)                                      /* rounded, not floored (floor = DC) */
-                s = ((s + (1 << (15 - bits))) >> (16 - bits)) << (16 - bits);
+                s = ((s + (1 << (15 - bits))) >> (16 - bits)) * (1 << (16 - bits));
             if (crush > 64)
-                s = (s >> 12) << 12;
+                s = (s >> 12) * 4096;
             held = lofi_mask(s, msk);
         }
         ph += inc;
         mf += dmf;                                      /* (0.6.50) MORPH's ramp */
-        out[i] += voice_amp(soft_knee(svf_mode(&flt, held >> 1, &ic1, &ic2, ft, kd), 16000) << 1, m, i);
+        out[i] += voice_amp(soft_knee(svf_mode(&flt, held >> 1, &ic1, &ic2, ft, kd), 16000) * 2, m, i);
     }
     v->ph[0] = ph;
     v->s[0] = held;

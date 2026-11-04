@@ -45,6 +45,20 @@ static void blocks(uint32_t n)
     }
 }
 
+/* (1.8) what the master bus really outputs with no note playing: a filter that wraps rings, a stable one is silent. */
+static int32_t render_peak(uint32_t n)
+{
+    uint32_t b, i;
+    int32_t pk = 0;
+    for (b = 0; b < n; b++) {
+        mix_block(out_buf, CTL);
+        for (i = 0; i < 2u * CTL; i++) {
+            int32_t v = out_buf[i] < 0 ? -out_buf[i] : out_buf[i];
+            if (v > pk) pk = v;
+        }
+    }
+    return pk;
+}
 static void slot(track_t *t, uint32_t k, int32_t s, int32_t d, int32_t a)
 {
     t->p[P_M1SRC + 3u * k] = (int16_t)s;

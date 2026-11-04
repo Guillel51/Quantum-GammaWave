@@ -767,16 +767,17 @@ static void graph_fx(const track_t *t, uint16_t c)
         cv_text_on(cx + 5, 38, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, T_SURF);
 
-        /* a 5 px well with 4 px graduations; the fill comes up from the bottom, the peak cap stays a moment */
-        cv_rect(mx, my, 5, mh, T_BG);
+        /* One slim 7 px meter, a real level and its peak cap; the send's number is already above it, so the
+         * duplicate 34 px bar is gone. A 1 px tick shows what the bus actually receives. */
+        cv_rect(mx, my, 7, mh, T_BG);
         for (seg = 0; seg < mh; seg += 5)
-            cv_rect(mx, my + mh - 1 - seg, 5, 1, T_RAISE);
+            cv_rect(mx, my + mh - 1 - seg, 7, 1, T_RAISE);
         if (hpx > vu[i]) vu[i] = (uint8_t)hpx;
         else if (vu[i] > 0u) vu[i]--;
         if (hpx > hold[i]) hold[i] = (uint8_t)hpx;
         else if (hold[i] > 0u) hold[i]--;
         if (vu[i] > 0u)
-            cv_rect(mx + 1, my + mh - vu[i], 3, vu[i], i == 0 ? c : T_THEME);
+            cv_rect(mx + 1, my + mh - vu[i], 5, vu[i], i == 0 ? c : T_THEME);
         if (hold[i] > 0u)
             cv_rect(mx + 1, my + mh - hold[i], 3, 1, T_ACCENT);
         if (i && inpx > 0)                            /* the actual send level: a thin input tick */

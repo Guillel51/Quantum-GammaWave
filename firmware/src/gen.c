@@ -971,6 +971,12 @@ static void gen_sound(track_t *t, uint32_t role, uint32_t ri)
         const param_desc_t *d = track_desc(t, P_E0 + i);
         int32_t span = (d->max - d->min) / 8;
         if (!d->label || d->label[0] == '-' || d->max <= d->min || d->fmt == F_ENUM || !span) continue;
+        if (d->fmt == F_SEMI) {                         /* (V10.38) an interval stays in tune: kept (snapped) or
+                                                         * chosen from unison / fourth / fifth / octave */
+            t->p[P_E0 + i] = (int16_t)(gch(25) ? param_semi_pick(gr(), d->min, d->max)
+                                               : clamp(param_semi_snap(t->p[P_E0 + i]), d->min, d->max));
+            continue;
+        }
         t->p[P_E0 + i] = (int16_t)clamp(t->p[P_E0 + i] + grr(-span, span), d->min, d->max);
     }
     t->p[P_ATK] = (int16_t)grr(r->atk[0], r->atk[1]);

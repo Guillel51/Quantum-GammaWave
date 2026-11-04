@@ -3,12 +3,15 @@
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
 """Make the site (GitHub Pages):
 
-  index.html                  redirect to the installer (the old URL keeps working)
+  index.html                  the official portal (web/site/index.html + its real screenshots)
   firmware/felucca-VER.fwsc   the package (+ LICENSE, LICENSING.md, LICENSES/: the package holds
                               JieLi SDK files under Apache-2.0, see LICENSING.md)
   webapp/installer/index.html index_pkg.html, self-contained (fm1pkg.js, fm1ota.js, metadata inlined)
   webapp/editor/index.html    editor.html (+ fukiai.ttf, FUKIAI-LICENSE.txt)
   src/                        not touched
+
+  The emulator is copied to OUT/emulator by the Pages workflow: the portal is the root, and the
+  installer / editor keep their existing /webapp/ paths.
 
   web/make_site.py build/felucca-X.Y.fwsc X.Y OUT_DIR [PREV_DIR]
 
@@ -142,11 +145,16 @@ def main(pkg, version, out, prev=None):
     for f in ("fukiai.ttf", "FUKIAI-LICENSE.txt", "fm1backup.js", "preset_categories.json"):
         if (HERE / f).exists():
             shutil.copy(HERE / f, ed / f)
-    (out / "index.html").write_text(
-        '<!doctype html><meta charset="utf-8"><title>Quantum GammaWave (QG-1)</title>'
-        '<meta http-equiv="refresh" content="0; url=webapp/installer/">'
-        '<a href="webapp/installer/">Quantum GammaWave (QG-1) Installer</a>\n', encoding="utf-8")
-    print(f"site: {out}: webapp/installer ({len(html)} B), webapp/editor, firmware/{name} ({len(raw)} B, {product})"
+    site = HERE / "site"
+    if not (site / "index.html").is_file():
+        raise SystemExit(f"{site / 'index.html'} is missing")
+    shutil.copy(site / "index.html", out / "index.html")
+    assets = out / "assets"
+    if assets.exists():
+        shutil.rmtree(assets)
+    shutil.copytree(site / "assets", assets)
+    print(f"site: {out}: portal + assets, webapp/installer ({len(html)} B), webapp/editor, "
+          f"firmware/{name} ({len(raw)} B, {product})"
           + (f", earlier: {' '.join(e['version'] for e, _ in old)}" if old else ""))
 
 
