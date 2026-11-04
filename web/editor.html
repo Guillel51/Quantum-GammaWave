@@ -23,7 +23,7 @@
     --theme: #3adfff;
     --accent: #8fd8ff;
     --plasma: #8b5cff;
-    --glow: rgba(255, 148, 36, 0.22);
+    --glow: rgba(58, 223, 255, 0.22);
     --cyan-glow: rgba(96, 228, 255, 0.22);
     /* Web Studio console palette */ --gw-c0: #090b11; --gw-c1: #232738; --gw-c2: #ffffff; --gw-c3: #040608; --gw-c4: #ff385c; --gw-c5: #0b0d14; --gw-c6: #111522; --gw-c7: #040507; --gw-c8: #262b3d; --gw-c9: #060609; --gw-c10: #1f2433; --gw-c11: #07080d;
   }
@@ -65,14 +65,14 @@
   h1::before {
     content: "GW-1";
     font-size: 11px; padding: 2px 8px;
-    background: linear-gradient(135deg, var(--theme), #facc15);
+    background: linear-gradient(135deg, var(--theme), #ffaa21);
     color: #050608; font-weight: 800; letter-spacing: 0.12em;
     clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
   }
   h2 {
     font-size: 12px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase;
     color: var(--theme); margin: 0 0 8px; padding: 4px 8px;
-    background: linear-gradient(90deg, rgba(255, 148, 36, 0.14), rgba(96, 228, 255, 0.04));
+    background: linear-gradient(90deg, rgba(58, 223, 255, 0.14), rgba(96, 228, 255, 0.04));
     border-left: 3px solid var(--theme);
     border-bottom: 1px solid var(--line);
   }
@@ -85,7 +85,7 @@
   .lang { float: right; font-size: 12px; color: var(--dim); text-decoration: underline; background: none; padding: 0; border: 0; }
   button {
     font: inherit; font-weight: 700; letter-spacing: 0.04em;
-    background: linear-gradient(180deg, var(--theme), #d97208);
+    background: linear-gradient(180deg, var(--theme), #8b5cff);
     color: #000410; border: 1px solid rgba(255, 255, 255, 0.15);
     padding: 4px 12px; cursor: pointer;
     clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
@@ -212,7 +212,7 @@
   }
   .tabs button:hover { color: var(--fg); border-color: var(--accent); }
   .tabs button[aria-selected="true"] {
-    background: linear-gradient(180deg, var(--theme), #d97208);
+    background: linear-gradient(180deg, var(--theme), #8b5cff);
     color: #050608; border-color: var(--theme); font-weight: 800;
   }
   .trackbar {
@@ -246,19 +246,19 @@
   .grid button .n { color: var(--dim); font-size: 9px; }
   .grid button .x { overflow: hidden; overflow-wrap: anywhere; flex: 1; font-weight: 600; }
   .grid button.on {
-    background: linear-gradient(180deg, rgba(255, 148, 36, 0.28), rgba(168, 85, 247, 0.16));
+    background: linear-gradient(180deg, rgba(58, 223, 255, 0.28), rgba(168, 85, 247, 0.16));
     color: var(--fg); border-color: var(--theme);
     border-top: 3px solid var(--accent);
-    box-shadow: 0 0 10px rgba(255, 148, 36, 0.2);
+    box-shadow: 0 0 10px rgba(58, 223, 255, 0.2);
   }
   .grid button.on .n { color: var(--accent); opacity: 1; }
   .grid button.acc {
     border-color: var(--accent); border-top: 3px solid var(--gw-c2);
-    background: linear-gradient(180deg, rgba(96, 228, 255, 0.32), rgba(255, 148, 36, 0.22));
+    background: linear-gradient(180deg, rgba(96, 228, 255, 0.32), rgba(58, 223, 255, 0.22));
   }
   .grid button.acc .x { font-weight: 800; color: var(--accent); }
   .grid button.tie { border-style: dashed; border-color: var(--accent); }
-  .grid button.beat { border-left: 2px solid rgba(255, 148, 36, 0.55); }
+  .grid button.beat { border-left: 2px solid rgba(58, 223, 255, 0.55); }
   #steps tr.hl td { outline: 1px solid var(--accent); background: rgba(96, 228, 255, 0.08); }
   /* mixer: 6-track GammaWave console strips */
   .mixer { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; max-width: 820px; margin: 8px 0; }
@@ -347,19 +347,19 @@
     --dim: #93a3c4;
     --line: #16233d;
     --theme: #3adfff;
-    --accent: #ffaa21;
+    --accent: #8fd8ff;
     --plasma: #8b5cff;
-    --glow: rgba(255, 138, 30, .24);
+    --glow: rgba(58, 223, 255, .24);
     --cyan-glow: rgba(126, 231, 245, .20);
   }
   html { scrollbar-color: var(--line2, #56351e) var(--bg); }
   body {
     background-color: var(--bg);
     background-image:
-      radial-gradient(900px 520px at 10% -10%, rgba(255, 77, 0, .22), transparent 62%),
+      radial-gradient(900px 520px at 10% -10%, rgba(139, 92, 255, .22), transparent 62%),
       radial-gradient(760px 460px at 92% 0%, rgba(126, 231, 245, .10), transparent 62%),
-      linear-gradient(rgba(255, 138, 30, .018) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 138, 30, .018) 1px, transparent 1px);
+      linear-gradient(rgba(58, 223, 255, .018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58, 223, 255, .018) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
     background-attachment: fixed;
   }
@@ -371,7 +371,7 @@
   main { max-width: 1380px; padding: 0 24px 46px; }
   .gw-brandbar {
     display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-    padding: 18px 0 14px; border-bottom: 1px solid rgba(255, 138, 30, .16); margin-bottom: 18px;
+    padding: 18px 0 14px; border-bottom: 1px solid rgba(58, 223, 255, .16); margin-bottom: 18px;
   }
   .gw-brand {
     display: inline-flex; align-items: center; gap: 11px; color: var(--fg);
@@ -381,7 +381,7 @@
   .gw-brand .orb {
     width: 34px; height: 34px; border-radius: 50%;
     background: radial-gradient(circle at 50% 45%, #eaf9ff 0 9%, #ffaa21 10% 22%, #3adfff 23% 48%, #4c3bb0 49% 61%, transparent 62%);
-    box-shadow: 0 0 22px rgba(255, 77, 0, .45); flex: 0 0 auto;
+    box-shadow: 0 0 22px rgba(139, 92, 255, .45); flex: 0 0 auto;
   }
   .gw-brand b { display: block; font-size: 13px; line-height: 1.02; letter-spacing: .11em; }
   .gw-brand small { display: block; color: var(--theme); font-size: 8.5px; letter-spacing: .15em; font-weight: 800; margin-top: 2px; }
@@ -400,7 +400,7 @@
   h1::before {
     content: "QG-1"; font-size: 10px; padding: 3px 8px; color: #040b18;
     background: linear-gradient(135deg, #ffaa21, var(--theme) 55%, #8b5cff);
-    box-shadow: 0 0 18px rgba(255, 77, 0, .22);
+    box-shadow: 0 0 18px rgba(139, 92, 255, .22);
   }
   .lang { margin-top: 4px; }
   .top {
@@ -415,10 +415,10 @@
     color: var(--dim); padding: 8px 15px; clip-path: none; border-radius: 6px 6px 0 0;
     font-size: 10px; letter-spacing: .06em;
   }
-  .tabs button:hover { background: rgba(255, 138, 30, .07); color: var(--fg); border-color: var(--line); }
+  .tabs button:hover { background: rgba(58, 223, 255, .07); color: var(--fg); border-color: var(--line); }
   .tabs button[aria-selected="true"] {
-    background: linear-gradient(180deg, var(--theme), #d96b08); color: #180a02;
-    border-color: #7fe9ff; border-bottom: 0; box-shadow: 0 -8px 20px rgba(255, 77, 0, .14);
+    background: linear-gradient(180deg, var(--theme), #8b5cff); color: #04101e;
+    border-color: #7fe9ff; border-bottom: 0; box-shadow: 0 -8px 20px rgba(139, 92, 255, .14);
   }
   .trackbar { background: rgba(17, 11, 7, .9); border: 1px solid var(--line); border-top: 0; }
   .bar { gap: 7px 10px; }
@@ -428,7 +428,7 @@
     border: 1px solid var(--line); border-radius: 5px; clip-path: none;
     font-weight: 800; font-size: 11px; padding: 6px 12px; letter-spacing: .04em;
   }
-  button:hover:not(:disabled) { border-color: var(--theme); background: linear-gradient(180deg, #372012, #20130b); box-shadow: 0 0 14px rgba(255, 77, 0, .12); }
+  button:hover:not(:disabled) { border-color: var(--theme); background: linear-gradient(180deg, #372012, #20130b); box-shadow: 0 0 14px rgba(139, 92, 255, .12); }
   button.gw-btn-sec { background: rgba(126, 231, 245, .04); border-color: rgba(126, 231, 245, .32); color: var(--accent); }
   button.gw-btn-sec:hover:not(:disabled) { background: rgba(126, 231, 245, .10); border-color: var(--accent); }
   select, input[type=text], input[type=number], input[type=search] {
@@ -439,15 +439,15 @@
   .gw-deck {
     border: 1px solid #4b2e1a; border-top: 1px solid #5d3a20; border-radius: 16px;
     background:
-      radial-gradient(600px 260px at 12% 0%, rgba(255, 77, 0, .12), transparent 65%),
+      radial-gradient(600px 260px at 12% 0%, rgba(139, 92, 255, .12), transparent 65%),
       linear-gradient(135deg, #1b0f08 0%, #0e0805 72%);
     padding: 18px; margin: 18px 0; box-shadow: 0 26px 70px rgba(0, 0, 0, .5);
   }
   .gw-bezel {
     background: linear-gradient(145deg, #070403, #020101); border: 1px solid #4b2e1a; border-radius: 12px;
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 196, 92, .06), 0 0 28px rgba(255, 77, 0, .08);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 170, 33, .06), 0 0 28px rgba(139, 92, 255, .08);
   }
-  #gw-lcd { border-color: #3c2515; box-shadow: 0 0 22px rgba(255, 138, 30, .12); }
+  #gw-lcd { border-color: #3c2515; box-shadow: 0 0 22px rgba(58, 223, 255, .12); }
   .gw-bezel-top { color: #9b8068; }
   .gw-bezel-top span.led { color: var(--accent); text-shadow: 0 0 8px rgba(126, 231, 245, .5); }
   .gw-console h2, .gw-macros-title { color: var(--gold, #ffaa21); }
@@ -466,8 +466,8 @@
   .browser { border-top-color: var(--accent); }
   .hint { background: rgba(126, 231, 245, .05); border: 1px solid rgba(126, 231, 245, .18); border-left: 2px solid var(--accent); border-radius: 5px; }
   .grid button { background: #0a0604; border-color: #2e1e13; border-top-color: #402718; border-radius: 4px; }
-  .grid button.on { background: linear-gradient(180deg, rgba(255, 138, 30, .22), rgba(255, 77, 0, .08)); border-color: var(--theme); border-top-color: var(--accent); }
-  .grid button.acc { background: linear-gradient(180deg, rgba(126, 231, 245, .16), rgba(255, 138, 30, .12)); }
+  .grid button.on { background: linear-gradient(180deg, rgba(58, 223, 255, .22), rgba(139, 92, 255, .08)); border-color: var(--theme); border-top-color: var(--accent); }
+  .grid button.acc { background: linear-gradient(180deg, rgba(126, 231, 245, .16), rgba(58, 223, 255, .12)); }
   .strip { background: linear-gradient(180deg, #140d08, #0b0704); border-color: var(--line); border-top-color: var(--theme); border-radius: 7px; }
   .strip.sel { border-color: var(--accent); box-shadow: 0 0 20px rgba(126, 231, 245, .10); }
   .list { background: #000410; border-color: var(--line); border-radius: 5px; }
@@ -699,7 +699,7 @@
           <label>HUMAN
             <select id="gw-gen-human"><option value="0">0%</option><option value="30" selected>30%</option><option value="60">60%</option><option value="90">90%</option></select>
           </label>
-          <button type="button" id="gw-gen-make" style="background:linear-gradient(180deg,#facc15,#ca8a04);color:#050608;margin-left:auto;font-weight:800" title="Hardware: Press [OCT+] on GEN screen to generate piece">⚡ GENERATE PIECE [OCT+]</button>
+          <button type="button" id="gw-gen-make" style="background:linear-gradient(180deg,#7fe9ff,#1b8fb0);color:#050608;margin-left:auto;font-weight:800" title="Hardware: Press [OCT+] on GEN screen to generate piece">⚡ GENERATE PIECE [OCT+]</button>
         </div>
       </div>
       <div class="gw-macros" style="border-color:var(--accent)">
@@ -778,7 +778,7 @@
               <option value="drum_wraith">GW PRESET: WRAITH BEAT CYBER KIT</option>
             </optgroup>
           </select>
-          <button type="button" id="gw-dice-trk" style="background:linear-gradient(180deg,#facc15,#ca8a04);color:#050608" title="Generate a new 64-step (4-bar) sequence with the selected GammaWave Preset and hear it live on top of T1..T4">🎲 1. DICE GW TRACK</button>
+          <button type="button" id="gw-dice-trk" style="background:linear-gradient(180deg,#7fe9ff,#1b8fb0);color:#050608" title="Generate a new 64-step (4-bar) sequence with the selected GammaWave Preset and hear it live on top of T1..T4">🎲 1. DICE GW TRACK</button>
           <button type="button" class="gw-tape-dump" data-lane="0" title="Record/Dump onto Tape Track 1 (plays simultaneously with T2, T3, T4)">📥 DUMP → T1</button>
           <button type="button" class="gw-tape-dump" data-lane="1" title="Record/Dump onto Tape Track 2 (plays simultaneously with T1, T3, T4)">📥 DUMP → T2</button>
           <button type="button" class="gw-tape-dump" data-lane="2" title="Record/Dump onto Tape Track 3 (plays simultaneously with T1, T2, T4)">📥 DUMP → T3</button>
