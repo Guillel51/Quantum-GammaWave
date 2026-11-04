@@ -70,6 +70,11 @@
 - **Restore keeps the boot area by default:** `--write` starts at 0x4000; the first 16 KiB (loader
   and boot header) are unit-specific and need `--include-head`, which `flashrom` requires because it
   writes the whole part.
+- **OTA reply buffer fixed (found by the merged suite):** `ota_send_big()` writes 6 header bytes,
+  n body bytes and one checksum byte, but `ota_qbuf` and `ota_rbuf` were declared `6 + n`. The
+  checksum landed one byte past the array: ASan reports a global-buffer-overflow on the 0x12 reply
+  (n = 24) and on a bare part it corrupted the neighbouring global silently. Both buffers now carry
+  the extra byte; `build/host/asan/ota_test` and the 0x13 path pass.
 - **Not verified:** hardware, physical restore, audio on a real unit.
 
 ## Target build for the AC791N, portable cache barriers, rebuilt WASM
