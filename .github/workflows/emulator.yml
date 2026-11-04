@@ -18,8 +18,7 @@ on:
             ".github/workflows/emulator.yml"]
   workflow_dispatch:
 permissions:
-  contents: write        # temporary: the diagnosis step below pushes its report to ci-diag
-  actions: read
+  contents: read
   pages: write
   id-token: write
 concurrency:
@@ -148,23 +147,6 @@ jobs:
         run: |
           ls -la build | head -20
           test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
-      - name: ci diagnosis (temporary)
-        if: failure()
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STEPS_JSON: ${{ toJSON(steps) }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          printf '%s\n' "$STEPS_JSON" > build/ci_steps.json
-          echo '--- failed log ---' >> build/ci_steps.json
-          gh run view "$RUN_ID" --log-failed >> build/ci_steps.json 2>&1 || true
-          git config user.email ci@localhost
-          git config user.name ci
-          git checkout -B ci-diag
-          git add -f build/ci_steps.json
-          git commit -m "ci: diagnosis of run $RUN_ID" || true
-          git push origin ci-diag || echo "push failed"
       - uses: actions/upload-pages-artifact@v3
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
         with:
@@ -185,24 +167,5 @@ jobs:
             exit 1
           fi
           echo "Pages: $(tr -d '\n' < /tmp/pages.json)"
-      - name: pages settings and the failure (temporary)
-        if: failure()
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STEPS_JSON: ${{ toJSON(steps) }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          printf '%s\n' "$STEPS_JSON" > pages_report.json
-          echo '--- pages ---' >> pages_report.json
-          gh api "repos/${{ github.repository }}/pages" >> pages_report.json 2>&1 || true
-          echo '--- failed log ---' >> pages_report.json
-          gh run view "$RUN_ID" --log-failed >> pages_report.json 2>&1 || true
-          git config user.email ci@localhost
-          git config user.name ci
-          git checkout -B ci-diag
-          git add -f pages_report.json
-          git commit -m "ci: pages diagnosis of run $RUN_ID" || true
-          git push origin ci-diag || echo "push failed"
       - id: deployment
         uses: actions/deploy-pages@v4
