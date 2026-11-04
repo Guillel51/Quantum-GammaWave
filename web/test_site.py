@@ -126,6 +126,24 @@ def main(site_dir=None):
             target = out / href.split("#", 1)[0].split("?", 1)[0]
             if not (target.is_file() or (target.is_dir() and (target / "index.html").is_file())):
                 bad.append(f"link goes nowhere in the build: {href}")
+        # The portal test above only follows the portal's links. The same depth mistake used to
+        # hide in /emulator/ and /webapp/editor/ (their links resolve from a different directory),
+        # so verify every local href in each generated page as the browser would. The optional
+        # stock FM-1.fwsc is intentionally absent from a build without it and is not fetched.
+        built_pages = [out / "index.html", out / "emulator" / "index.html",
+                       out / "webapp" / "editor" / "index.html", out / "webapp" / "installer" / "index.html"]
+        for built in built_pages:
+            if not built.is_file():
+                bad.append(f"missing built page {built}")
+                continue
+            sub = Page()
+            sub.feed(built.read_text(encoding="utf-8"))
+            for href in sub.links:
+                if href.startswith(("http", "mailto:", "#", "data:")) or "FM-1.fwsc" in href:
+                    continue
+                target = (built.parent / href.split("#", 1)[0].split("?", 1)[0]).resolve()
+                if not (target.is_file() or (target.is_dir() and (target / "index.html").is_file())):
+                    bad.append(f"link goes nowhere from {built.relative_to(out)}: {href}")
         emu, built = out / "emulator", HERE.parent / "build" / "emu"
         if (emu / "manifest.json").is_file() and (built / "manifest.json").is_file():
             try:
