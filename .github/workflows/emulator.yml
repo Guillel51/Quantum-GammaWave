@@ -145,6 +145,13 @@ jobs:
           mkdir -p build/site/emulator
           cp -r build/emu/. build/site/emulator/
           rm -rf build/site/emulator/preview
+      # Fail closed: the fallback site above must never turn a missing target build into a green
+      # release. The emulator-only preview may still be uploaded, but publishing is blocked.
+      - name: require the target package and target checks (fail closed)
+        if: always()
+        run: |
+          test -s build/felucca.fwsc || { echo "::error::no target package was built"; exit 1; }
+          test -s build/felucca.dis || { echo "::error::no target disassembly was produced"; exit 1; }
       - name: the site exists (the deploy would otherwise upload nothing)
         run: |
           ls -la build | head -20

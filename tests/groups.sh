@@ -70,6 +70,13 @@ run_security() {
     cc -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -w -Ibuild/gen -Ifirmware/src -o build/uifix/fuzz_proj tests/fuzz_proj.c -lm
     ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 ./build/uifix/fuzz_ed 20000 7
     ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 ./build/uifix/fuzz_proj 5000 13
+    # power-cut matrices: every persistent object's A/B write, and the OTA staging area
+    cc -O1 -w -o build/uifix/storage_cut_test tests/storage_cut_test.c
+    ./build/uifix/storage_cut_test
+    if [ -f build/felucca.fwsc ]; then
+        cc -O1 -w -o build/uifix/ota_cut_test tests/ota_cut_test.c
+        ./build/uifix/ota_cut_test build/felucca.fwsc
+    fi
     run_eq
 }
 
