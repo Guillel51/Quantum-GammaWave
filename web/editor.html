@@ -14,15 +14,15 @@
      they stay hidden until the face has loaded (html.fk), so a missing font never shows boxes. */
   @font-face { font-family: "Fukiai"; src: url("fukiai.ttf") format("truetype"); font-display: block; unicode-range: U+EA00-EB09; }
   :root {
-    --bg: #06070a;
-    --surf: #0d0f17;
-    --raise: #151926;
-    --fg: #f8f0e0;
-    --dim: #8a8694;
-    --line: #282c3e;
-    --theme: #ff9424;
-    --accent: #60e4ff;
-    --plasma: #a855f7;
+    --bg: #000410;
+    --surf: #050a18;
+    --raise: #0a1426;
+    --fg: #eff3ff;
+    --dim: #93a3c4;
+    --line: #16233d;
+    --theme: #3adfff;
+    --accent: #8fd8ff;
+    --plasma: #8b5cff;
     --glow: rgba(255, 148, 36, 0.22);
     --cyan-glow: rgba(96, 228, 255, 0.22);
     /* Web Studio console palette */ --gw-c0: #090b11; --gw-c1: #232738; --gw-c2: #ffffff; --gw-c3: #040608; --gw-c4: #ff385c; --gw-c5: #0b0d14; --gw-c6: #111522; --gw-c7: #040507; --gw-c8: #262b3d; --gw-c9: #060609; --gw-c10: #1f2433; --gw-c11: #07080d;
@@ -86,7 +86,7 @@
   button {
     font: inherit; font-weight: 700; letter-spacing: 0.04em;
     background: linear-gradient(180deg, var(--theme), #d97208);
-    color: #06070a; border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #000410; border: 1px solid rgba(255, 255, 255, 0.15);
     padding: 4px 12px; cursor: pointer;
     clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
     transition: filter 0.12s, transform 0.08s, box-shadow 0.12s;
@@ -138,7 +138,7 @@
     background: var(--surf); border: 1px solid var(--line); border-top: 2px solid var(--accent);
     padding: 12px; margin-bottom: 12px;
   }
-  .browser select[size] { min-width: 170px; background: #06070a; border: 1px solid var(--line); }
+  .browser select[size] { min-width: 170px; background: #000410; border: 1px solid var(--line); }
   .slots { display: grid; grid-template-columns: auto auto auto auto; gap: 6px 10px; align-items: center; justify-content: start; }
   table { border-collapse: collapse; }
   th { font-weight: 600; color: var(--dim); text-align: left; padding: 0 6px 2px 0; font-size: 11px; text-transform: uppercase; }
@@ -335,20 +335,20 @@
   [hidden] { display: none !important; }
 
   /* ============================================================================
-     QUANTUM GAMMAWAVE // WEB STUDIO 2.0 — Solar Heat surface
+     QUANTUM GAMMAWAVE // WEB STUDIO 2.0 — Quantum surface
      A presentation layer only: every id, control and protocol frame is the
      same. The LCD, telemetry and the six-track console keep their real data.
      ============================================================================ */
   :root {
-    --bg: #080503;
-    --surf: #110b07;
-    --raise: #1b110a;
-    --fg: #f8eddc;
-    --dim: #b6a690;
-    --line: #3a2719;
-    --theme: #ff8a1e;
-    --accent: #7ee7f5;
-    --plasma: #ff4d00;
+    --bg: #000410;
+    --surf: #050a18;
+    --raise: #0a1426;
+    --fg: #eff3ff;
+    --dim: #93a3c4;
+    --line: #16233d;
+    --theme: #3adfff;
+    --accent: #ffaa21;
+    --plasma: #8b5cff;
     --glow: rgba(255, 138, 30, .24);
     --cyan-glow: rgba(126, 231, 245, .20);
   }
@@ -380,7 +380,7 @@
   .gw-brand:hover { text-decoration: none; color: var(--fg); }
   .gw-brand .orb {
     width: 34px; height: 34px; border-radius: 50%;
-    background: radial-gradient(circle at 50% 45%, #fff4d6 0 9%, #ffc45c 10% 22%, #ff8a1e 23% 48%, #a82b04 49% 61%, transparent 62%);
+    background: radial-gradient(circle at 50% 45%, #eaf9ff 0 9%, #ffaa21 10% 22%, #3adfff 23% 48%, #4c3bb0 49% 61%, transparent 62%);
     box-shadow: 0 0 22px rgba(255, 77, 0, .45); flex: 0 0 auto;
   }
   .gw-brand b { display: block; font-size: 13px; line-height: 1.02; letter-spacing: .11em; }
@@ -392,14 +392,14 @@
     border-bottom: 1px solid transparent;
   }
   .gw-brandnav a:hover { color: var(--fg); border-bottom-color: var(--theme); text-decoration: none; }
-  .gw-brandnav a.hot { color: var(--ink, #140804); background: linear-gradient(135deg, var(--theme), #ff4d00); border: 1px solid #ffb54e; border-radius: 5px; padding: 9px 12px; }
+  .gw-brandnav a.hot { color: var(--ink, #04101e); background: linear-gradient(135deg, var(--theme), #8b5cff); border: 1px solid #7fe9ff; border-radius: 5px; padding: 9px 12px; }
   h1 {
     font-size: clamp(22px, 2.5vw, 34px); letter-spacing: -.02em; line-height: 1.05;
     margin: 0 0 8px; text-shadow: none; color: var(--fg); max-width: 24ch;
   }
   h1::before {
-    content: "QG-1"; font-size: 10px; padding: 3px 8px; color: #1a0a02;
-    background: linear-gradient(135deg, #ffc45c, var(--theme) 55%, #ff4d00);
+    content: "QG-1"; font-size: 10px; padding: 3px 8px; color: #040b18;
+    background: linear-gradient(135deg, #ffaa21, var(--theme) 55%, #8b5cff);
     box-shadow: 0 0 18px rgba(255, 77, 0, .22);
   }
   .lang { margin-top: 4px; }
@@ -418,7 +418,7 @@
   .tabs button:hover { background: rgba(255, 138, 30, .07); color: var(--fg); border-color: var(--line); }
   .tabs button[aria-selected="true"] {
     background: linear-gradient(180deg, var(--theme), #d96b08); color: #180a02;
-    border-color: #ffb54e; border-bottom: 0; box-shadow: 0 -8px 20px rgba(255, 77, 0, .14);
+    border-color: #7fe9ff; border-bottom: 0; box-shadow: 0 -8px 20px rgba(255, 77, 0, .14);
   }
   .trackbar { background: rgba(17, 11, 7, .9); border: 1px solid var(--line); border-top: 0; }
   .bar { gap: 7px 10px; }
@@ -450,7 +450,7 @@
   #gw-lcd { border-color: #3c2515; box-shadow: 0 0 22px rgba(255, 138, 30, .12); }
   .gw-bezel-top { color: #9b8068; }
   .gw-bezel-top span.led { color: var(--accent); text-shadow: 0 0 8px rgba(126, 231, 245, .5); }
-  .gw-console h2, .gw-macros-title { color: var(--gold, #ffc45c); }
+  .gw-console h2, .gw-macros-title { color: var(--gold, #ffaa21); }
   .gw-stat, .gw-macros { background: rgba(8, 5, 3, .56); border-color: #342216; }
   .gw-stat { border-left-width: 2px; border-radius: 5px; }
   .gw-stat .val { color: var(--fg); }
@@ -462,7 +462,7 @@
     border-color: var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .24);
   }
   .group { border-top-width: 1px; border-top-color: #5a351c; }
-  .group h2, .browser h2, .libcols h2 { color: var(--gold, #ffc45c); }
+  .group h2, .browser h2, .libcols h2 { color: var(--gold, #ffaa21); }
   .browser { border-top-color: var(--accent); }
   .hint { background: rgba(126, 231, 245, .05); border: 1px solid rgba(126, 231, 245, .18); border-left: 2px solid var(--accent); border-radius: 5px; }
   .grid button { background: #0a0604; border-color: #2e1e13; border-top-color: #402718; border-radius: 4px; }
@@ -470,8 +470,8 @@
   .grid button.acc { background: linear-gradient(180deg, rgba(126, 231, 245, .16), rgba(255, 138, 30, .12)); }
   .strip { background: linear-gradient(180deg, #140d08, #0b0704); border-color: var(--line); border-top-color: var(--theme); border-radius: 7px; }
   .strip.sel { border-color: var(--accent); box-shadow: 0 0 20px rgba(126, 231, 245, .10); }
-  .list { background: #080503; border-color: var(--line); border-radius: 5px; }
-  .list th { background: #1b110a; }
+  .list { background: #000410; border-color: var(--line); border-radius: 5px; }
+  .list th { background: #0a1426; }
   .list tr.sel td { background: var(--theme); color: #180a02; }
   footer { border-top-color: var(--line); color: var(--faint, #8c7761); }
   .dim { color: var(--dim); }
@@ -548,7 +548,7 @@
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px;border-color:var(--theme);color:var(--theme)" id="gw-lcd-gen-btn" title="Open GW-1 GEN 3-Page Screen on 240×240 LCD (click again to cycle Page 1/3 → 2/3 → 3/3)">🧬 GEN 1/3</button>
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="fx">FX</button>
         <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px;border-color:var(--theme);color:var(--theme)" data-lcd-view="punch" title="Punch-in FX: 10 keys, full F3–G5 keyboard and the six track mutes">PUNCH</button>
-        <button type="button" id="gw-secret-viz-btn" style="padding:2px 6px;font-size:9px;background:linear-gradient(180deg,#a855f7,#6b21a8);color:#fff" title="Hidden Menu Easter Egg ([HOME HELD] → ABOUT → [OCT+]): Cycle 4 Crazy Hyperspace Visualizers!">🌀 SECRET VIZ</button>
+        <button type="button" id="gw-secret-viz-btn" style="padding:2px 6px;font-size:9px;background:linear-gradient(180deg,#8b5cff,#6b21a8);color:#fff" title="Hidden Menu Easter Egg ([HOME HELD] → ABOUT → [OCT+]): Cycle 4 Crazy Hyperspace Visualizers!">🌀 SECRET VIZ</button>
         <button type="button" class="gw-btn-sec" id="gw-fullscreen-viz-btn" style="padding:2px 5px;font-size:9px" title="Expand 240×240 LCD into Fullscreen Cinema Visualizer">⛶</button>
       </div>
     </div>
@@ -569,14 +569,14 @@
           <button type="button" class="gw-demo-btn" data-demo="1">👻 2. WRAITH CHOIR</button>
           <button type="button" class="gw-demo-btn" data-demo="2">📼 3. TAPE DRIFT</button>
           <button type="button" class="gw-demo-btn" data-demo="3">🌑 4. TOTAL ECLIPSE</button>
-          <button type="button" id="gw-dice-song" style="background:linear-gradient(180deg,#a855f7,#6b21a8);color:#fff" title="Hardware shortcut: [HOME]+[SELECT] or [OCT-]+[PLAY]">🎲 RANDOM SONG</button>
+          <button type="button" id="gw-dice-song" style="background:linear-gradient(180deg,#8b5cff,#6b21a8);color:#fff" title="Hardware shortcut: [HOME]+[SELECT] or [OCT-]+[PLAY]">🎲 RANDOM SONG</button>
           <button type="button" class="gw-btn-sec" id="gw-demo-stop">■ STOP</button>
-          <button type="button" id="gw-export-song-pc" style="background:linear-gradient(180deg,#60e4ff,#0284c7);color:#040608;margin-left:auto" title="Render and download the currently playing 4-bar song as a 44.1 kHz 16-bit Stereo .WAV file to your PC">💾 EXPORT .WAV</button>
+          <button type="button" id="gw-export-song-pc" style="background:linear-gradient(180deg,#8fd8ff,#0284c7);color:#040608;margin-left:auto" title="Render and download the currently playing 4-bar song as a 44.1 kHz 16-bit Stereo .WAV file to your PC">💾 EXPORT .WAV</button>
           <button type="button" class="gw-btn-sec" id="gw-export-json-pc" title="Save complete 64-step song project (.gw1.json) to PC">📦 SAVE .GW1</button>
         </div>
       </div>
       <!-- STEP 2: CONFIGURABLE 49-GENRE SONG & TRACK GENERATOR -->
-      <div class="gw-macros" style="border-color:#a855f7;background:rgba(168,85,247,.06)">
+      <div class="gw-macros" style="border-color:#8b5cff;background:rgba(168,85,247,.06)">
         <div class="gw-macros-title">
           <span style="color:#d8b4fe">2️⃣ STEP 2 — 49-GENRE SONG GENERATOR (HW: [HOME]+[SELECT] or [OCT-]+[PLAY], then [OCT+])</span>
           <span id="gw-gen-last" style="color:var(--theme);font-weight:700">LAST: GAMMAWAVE 0421</span>
@@ -791,7 +791,7 @@
           <button type="button" class="gw-btn-sec gw-tape-mute" data-lane="2" style="padding:3px 8px">MUTE T3</button>
           <button type="button" class="gw-btn-sec gw-tape-mute" data-lane="3" style="padding:3px 8px">MUTE T4</button>
           <button type="button" class="gw-btn-sec" id="gw-tape-clear" style="padding:3px 8px;color:#ff3864;border-color:#ff3864">🗑️ CLEAR TAPE</button>
-          <button type="button" id="gw-wav-export" style="background:linear-gradient(180deg,#60e4ff,#0284c7);color:#040608;margin-left:auto">💾 EXPORT TAPE (.WAV)</button>
+          <button type="button" id="gw-wav-export" style="background:linear-gradient(180deg,#8fd8ff,#0284c7);color:#040608;margin-left:auto">💾 EXPORT TAPE (.WAV)</button>
         </div>
       </div>
       <div class="gw-macros">
@@ -802,7 +802,7 @@
           <button type="button" class="gw-macro-btn" data-macro="plasma">🔥 PHOTOSPHERE</button>
           <button type="button" class="gw-macro-btn" data-macro="scream">👻 WRAITH SCREAM</button>
           <button type="button" class="gw-macro-btn" data-macro="vowel">🗣️ FORMANT VOWEL</button>
-          <button type="button" class="gw-macro-btn" data-macro="eclipse" style="background:linear-gradient(180deg,#a855f7,#6b21a8);color:#fff">🌑 SOLAR ECLIPSE</button>
+          <button type="button" class="gw-macro-btn" data-macro="eclipse" style="background:linear-gradient(180deg,#8b5cff,#6b21a8);color:#fff">🌑 SOLAR ECLIPSE</button>
         </div>
         <div class="bar" style="margin:0 0 6px;gap:5px;align-items:center;background:rgba(0,0,0,0.35);padding:5px 8px;border:1px solid var(--border);border-radius:3px">
           <strong style="font-size:11px;color:var(--theme);letter-spacing:0.06em">👻 WRAITH VOICE BAR:</strong>
@@ -816,7 +816,7 @@
         </div>
         <div class="bar" style="margin:0;gap:6px;align-items:center;background:rgba(0,0,0,0.35);padding:5px 8px;border:1px solid var(--border);border-radius:3px">
           <strong style="font-size:11px;color:var(--accent);letter-spacing:0.06em">🧬 SEQ MUTATE:</strong>
-          <button type="button" id="gw-mutate-now" style="background:linear-gradient(180deg,#a855f7,#7e22ce);color:#fff;padding:3px 10px;font-weight:800" title="Mutate active sequence & Wraith timbre right now!">🎲 MUTATE NOW</button>
+          <button type="button" id="gw-mutate-now" style="background:linear-gradient(180deg,#8b5cff,#7e22ce);color:#fff;padding:3px 10px;font-weight:800" title="Mutate active sequence & Wraith timbre right now!">🎲 MUTATE NOW</button>
           <label style="font-size:11px;color:var(--mid);display:flex;align-items:center;gap:4px">MODE
             <select id="gw-mutate-mode" style="font-size:11px;padding:2px 5px">
               <option value="orbit" selected>ORBIT (Every 2 Bars)</option>
@@ -825,7 +825,7 @@
             </select>
           </label>
           <label style="font-size:11px;color:var(--mid);display:flex;align-items:center;gap:4px">AMOUNT
-            <input type="range" id="gw-mutate-amt" min="0" max="100" value="55" style="width:80px;accent-color:#a855f7">
+            <input type="range" id="gw-mutate-amt" min="0" max="100" value="55" style="width:80px;accent-color:#8b5cff">
             <span id="gw-mutate-amt-val" style="color:var(--fg);font-weight:700;min-width:30px">55%</span>
           </label>
           <button type="button" class="gw-btn-sec" id="gw-mutate-freeze" style="padding:3px 8px" title="Freeze/Unfreeze automatic bar mutation (HW: [OCT-] on MUTATE page)">❄️ FREEZE: OFF</button>
@@ -1421,6 +1421,7 @@ class Link {
     this.finish(f.a);
   }
   close() {
+    if (this.closed) return;                      /* closing twice must not reject the same requests again */
     this.closed = true;
     const all = (this.cur ? [this.cur] : []).concat(this.q);
     if (this.cur) clearTimeout(this.cur.timer);
@@ -3495,13 +3496,13 @@ let mock = null;
 /* the simulator on or off (SIMULATE button; Connect leaves it again unless ?mock=1, so a real FM-1 can be
    connected afterwards without a reload) */
 function setMock(on) {
+  const sim = $("gw-sim-btn");                  /* the label follows the state even when it is already on */
+  if (sim) sim.textContent = on ? "⚡ SIMULATING QG-1 (ACTIVE)" : "⚡ SIMULATE QG-1";
+  $("mock").hidden = !on;
   if (MOCK === on) return;
   MOCK = on;
   access = null;
   mock = null;
-  $("mock").hidden = !on;
-  const sim = $("gw-sim-btn");
-  if (sim) sim.textContent = on ? "⚡ SIMULATING GW-1 (ACTIVE)" : "⚡ SIMULATE GW-1";
 }
 /* -------------------------------------------------------------- state --- */
 let access = null;     /* MIDIAccess */
@@ -3634,6 +3635,7 @@ async function connect() {
     setLabel($("connect"), t("disconnect"));
     await load(connectedDevice);
   } catch (e) {
+    if (e && e.message === "closed") return;      /* a deliberate disconnect (SIMULATE / Connect): not an error */
     console.error(e);
     if (connectedDevice && connectedDevice === dev) { /* an old connection must not close a replacement */
       const timeout = /^timeout/.test(e.message);
@@ -5384,6 +5386,9 @@ $("connect").addEventListener("click", () => {
   else connect();   /* Connect is the real FM-1 (SIMULATE is the simulator) */
 });
 
+/* ?mock=1 boots straight into the simulator: the flag alone used to leave every data panel hidden. */
+if (MOCK_QS) { setMock(true); connect(); }
+
 /* ------------------------------------------- POCKET GAMMAWAVE // GW-1 LIVE 240x240 LCD, DEMO SONGS & .WAV TAPE --- */
 (() => {
   const cv = $("gw-lcd");
@@ -5399,15 +5404,15 @@ $("connect").addEventListener("click", () => {
   const PALS = {
     gamma: {
       bg: "#060609", surf: "#0e1018", raise: "#1b1f2e", grid: "#161926",
-      text: "#f8f0e0", mid: "#9a94a6", dim: "#565264",
-      theme: "#f27121", accent: "#60e4ff", bake: "#4e3520",
+      text: "#eff3ff", mid: "#9a94a6", dim: "#565264",
+      theme: "#f27121", accent: "#8fd8ff", bake: "#4e3520",
       heat: ["#581c87", "#9333ea", "#e11d48", "#f27121", "#fb923c", "#facc15", "#fef08a"]
     },
     wraith: {
       bg: "#050809", surf: "#0b1215", raise: "#152329", grid: "#111e24",
       text: "#e8fff4", mid: "#7da398", dim: "#45635a",
       theme: "#ff3864", accent: "#50ffb1", bake: "#3d2230",
-      heat: ["#4c1d95", "#a855f7", "#ec4899", "#ff3864", "#fb923c", "#50ffb1", "#d1fae5"]
+      heat: ["#4c1d95", "#8b5cff", "#ec4899", "#ff3864", "#fb923c", "#50ffb1", "#d1fae5"]
     }
   };
 
@@ -6234,7 +6239,7 @@ $("connect").addEventListener("click", () => {
         const bx = 62 + b * 41;
         ctx.fillRect(bx, 84, 1, 5);
       }
-      const COLORS = [pal.theme, pal.accent, "#facc15", "#a855f7"];
+      const COLORS = [pal.theme, pal.accent, "#facc15", "#8b5cff"];
       for (let l = 0; l < 4; l++) {
         const cy = 104 + l * 24;
         const tl = tapeLanes[l];
@@ -6457,6 +6462,7 @@ $("connect").addEventListener("click", () => {
     $("gw-pal-btn").textContent = `🎨 PALETTE: ${gwPal.toUpperCase()}`;
   });
   $("gw-sim-btn").addEventListener("click", async () => {
+    if (MOCK && dev) return;                      /* already simulating: keep the live session */
     if (dev) { wantConnected = false; disconnect(); }
     setMock(true);
     await connect();

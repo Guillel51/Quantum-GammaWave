@@ -19,7 +19,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SOURCE = HERE / "site"
 ROUTES = ("emulator/", "webapp/editor/", "webapp/installer/", "firmware/versions.json")
-REQUIRED = ("Solar", "QUANTUM", "FM-1", "versions.json", "SHA-256", "Web Studio", "Instalador")
+REQUIRED = ("Quantum", "QUANTUM", "FM-1", "versions.json", "SHA-256", "Web Studio", "Instalador", "Web Site",
+            "Web Emulator")
+# The portal names the browser build "Web Emulator" and keeps the Quantum identity: Solar Heat was the
+# original palette and must not come back as the dominant design or as the access name.
+FORBIDDEN = ("Emulador WASM", "Solar Heat", "Solar <em>")
 
 
 class Page(HTMLParser):
@@ -61,6 +65,25 @@ def main(site_dir=None):
     for word in REQUIRED:
         if word.lower() not in text.lower():
             bad.append(f"missing copy: {word}")
+    for word in FORBIDDEN:
+        if word.lower() in text.lower():
+            bad.append(f"forbidden copy: {word}")
+    # Web Site is the primary access and must come before every other one.
+    at = text.find('id="accesos"')
+    if at < 0:
+        bad.append("no access section")
+    else:
+        order = [text.find(h, at) for h in ('href="./"', 'href="emulator/"', 'href="webapp/editor/"',
+                                            'href="webapp/installer/"')]
+        if any(i < 0 for i in order):
+            bad.append("the access section misses one of the four links")
+        elif order != sorted(order):
+            bad.append("Web Site is not the first access")
+        primary = text[at:order[1]] if order[1] > 0 else ""
+        if 'class="access-card primary"' not in primary:
+            bad.append("Web Site is not the highlighted access")
+    if "location.hash === \"#emu\"" in text:
+        bad.append("the portal still redirects a #emu hash to the emulator")
     if "TODO" in text or "lorem ipsum" in text.lower():
         bad.append("placeholder copy")
     if ".reveal { opacity: 0" in text:
@@ -90,6 +113,12 @@ def main(site_dir=None):
         for asset in page.assets:
             if not asset.startswith(("data:", "http")) and not (out / asset).is_file():
                 bad.append(f"missing built asset {asset}")
+        for href in page.links:
+            if href.startswith(("http", "mailto:", "#", "data:")):
+                continue
+            target = out / href.split("#", 1)[0].split("?", 1)[0]
+            if not (target.is_file() or (target.is_dir() and (target / "index.html").is_file())):
+                bad.append(f"link goes nowhere in the build: {href}")
         emu, built = out / "emulator", HERE.parent / "build" / "emu"
         if (emu / "manifest.json").is_file() and (built / "manifest.json").is_file():
             try:

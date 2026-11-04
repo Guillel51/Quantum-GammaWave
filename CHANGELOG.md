@@ -3,6 +3,25 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## 2026-11-04 — Portal access hierarchy, Quantum identity and a synced emulator
+
+- **The portal names the browser build `Web Emulator`** (never `WASM`) and drops the leftover `#emu` hash
+  redirect that replaced the portal with the emulator.
+- **New `#accesos` section:** `Web Site` first and clearly the largest, with its URL beside the name, then
+  `Web Emulator`, `Web Studio` and the USB installer. `web/test_site.py` now enforces the order, rejects the
+  old naming and the Solar Heat wording, and fails on any internal link that has no file in the build.
+- **Quantum identity on the portal and in the Web Studio:** both use the firmware's `QUANTUM` palette
+  (`0x0022 0x10a5 0xef9f 0x3eff 0xfd44`). Every id, tab, handler and protocol frame of the Web Studio is
+  unchanged; `web/test_web.mjs` still passes.
+- **Web Studio simulator fixed:** `?mock=1` now connects at boot (it only set a flag before), the SIMULATE
+  button keeps a coherent label and is idempotent, and `Link.close()` is idempotent, so a deliberate
+  disconnect no longer logs `Error: closed`. Chromium 1440/390: seven tabs, no console errors, no 404.
+- **Emulator manifest names the current commit** after a rebuild, and `build/site/emulator` ships that same
+  `index.html` + `felucca.wasm` + `manifest.json`.
+- **Installer:** the published package still matches `firmware/versions.json` (`v1.7-QG-1fae6cc`, `FM-1_982`,
+  610.897 B, SHA-256 `d6d9611b…c75a6eac`). It was compiled at `1fae6cc` and does **not** contain the later
+  Punch-in FX / LATCH UI fixes: there is no JieLi/AC79 toolchain here to rebuild it.
+
 ## 2026-11-04 — Web portal, Web Studio 2.0 and consonant intervals
 
 - **Official portal at `/`.** `web/site/index.html` is a real Solar Heat / Quantum landing page: current

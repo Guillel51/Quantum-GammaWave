@@ -7,26 +7,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#080503">
+<meta name="theme-color" content="#000410">
 <meta name="description" content="Quantum GammaWave (QG-1): firmware open source, emulador, Web Studio e instalador para la groovebox M-VAVE FM-1.">
 <title>QUANTUM GAMMAWAVE — Firmware, emulador y Web Studio para FM-1</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23080503%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229%22 fill=%22%23ff8a1e%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23fff4d6%22/%3E%3C/svg%3E">
 <style>
   :root {
-    --ink: #f8eddc;
-    --muted: #b6a690;
-    --faint: #786c5c;
-    --bg: #080503;
-    --bg2: #0d0906;
-    --panel: #120c08;
-    --panel2: #17100a;
-    --line: #382619;
-    --line2: #56351e;
-    --heat: #ff8a1e;
-    --ember: #ff4d00;
-    --gold: #ffc45c;
-    --cyan: #7ee7f5;
-    --green: #8ef0b0;
+    --ink: #eef4ff;
+    --muted: #9aabcc;
+    --faint: #62739a;
+    --bg: #000410;
+    --bg2: #050a18;
+    --panel: #080e1d;
+    --panel2: #0b1426;
+    --line: #16233d;
+    --line2: #24395e;
+    --heat: #3adfff;
+    --ember: #8b5cff;
+    --gold: #ffaa21;
+    --cyan: #8fd8ff;
+    --green: #4ef0b0;
     --radius: 18px;
     --max: 1240px;
     --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
@@ -40,10 +40,10 @@
     margin: 0; color: var(--ink); background: var(--bg);
     font: 16px/1.65 var(--sans);
     background-image:
-      radial-gradient(900px 520px at 12% -8%, rgba(255, 77, 0, .22), transparent 65%),
-      radial-gradient(700px 480px at 92% 2%, rgba(126, 231, 245, .10), transparent 65%),
-      linear-gradient(rgba(255, 138, 30, .025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 138, 30, .025) 1px, transparent 1px);
+      radial-gradient(900px 520px at 12% -8%, rgba(139, 92, 255, .22), transparent 65%),
+      radial-gradient(700px 480px at 92% 2%, rgba(143, 216, 255, .10), transparent 65%),
+      linear-gradient(rgba(58, 223, 255, .025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58, 223, 255, .025) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 64px 64px, 64px 64px;
     background-attachment: fixed;
   }
@@ -52,9 +52,9 @@
     background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.16) 3px 4px);
     mix-blend-mode: multiply;
   }
-  ::selection { background: var(--heat); color: #150903; }
+  ::selection { background: var(--heat); color: #04101e; }
   a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-  a:hover { color: #c7f8ff; }
+  a:hover { color: #d6f6ff; }
   :focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
   img { max-width: 100%; height: auto; display: block; }
   h1, h2, h3 { margin: 0; line-height: 1.02; }
@@ -62,7 +62,7 @@
   h2 { font: 800 clamp(30px, 4.4vw, 56px)/.98 var(--display); letter-spacing: -.035em; text-transform: uppercase; }
   h3 { font-size: 18px; line-height: 1.25; letter-spacing: -.01em; }
   p { margin: 0 0 1em; }
-  .skip { position: absolute; left: -9999px; top: 10px; z-index: 100; background: var(--gold); color: #120803; padding: 10px 16px; }
+  .skip { position: absolute; left: -9999px; top: 10px; z-index: 100; background: var(--gold); color: #04101e; padding: 10px 16px; }
   .skip:focus { left: 10px; }
   .wrap { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
   .mono { font-family: var(--mono); font-size: 11px; letter-spacing: .10em; text-transform: uppercase; }
@@ -73,13 +73,13 @@
   .cyan { color: var(--cyan); }
   .top {
     position: sticky; top: 0; z-index: 30;
-    border-bottom: 1px solid rgba(255, 138, 30, .18);
-    background: rgba(8, 5, 3, .84); backdrop-filter: blur(14px) saturate(130%);
+    border-bottom: 1px solid rgba(58, 223, 255, .18);
+    background: rgba(0, 4, 16, .86); backdrop-filter: blur(14px) saturate(130%);
   }
   .top .wrap { min-height: 70px; display: flex; align-items: center; gap: 22px; }
   .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
   .brand:hover { color: var(--ink); }
-  .sun { width: 34px; height: 34px; flex: 0 0 auto; filter: drop-shadow(0 0 12px rgba(255, 138, 30, .45)); }
+  .sun { width: 34px; height: 34px; flex: 0 0 auto; filter: drop-shadow(0 0 12px rgba(58, 223, 255, .45)); }
   .brand b { display: block; font: 800 13px/1.05 var(--display); letter-spacing: .10em; }
   .brand small { display: block; color: var(--heat); font: 700 9px/1.4 var(--mono); letter-spacing: .15em; }
   .nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
@@ -98,19 +98,19 @@
   }
   .btn:hover { transform: translateY(-2px); border-color: var(--heat); color: var(--ink); }
   .btn.primary {
-    color: #190a02; border-color: #ffb54e;
-    background: linear-gradient(135deg, #ffc45c, var(--heat) 52%, var(--ember));
-    box-shadow: 0 10px 34px rgba(255, 77, 0, .24), inset 0 1px 0 rgba(255,255,255,.4);
+    color: #040b18; border-color: #7fe9ff;
+    background: linear-gradient(135deg, #ffaa21, var(--heat) 52%, var(--ember));
+    box-shadow: 0 10px 34px rgba(139, 92, 255, .24), inset 0 1px 0 rgba(255,255,255,.4);
   }
-  .btn.primary:hover { box-shadow: 0 14px 44px rgba(255, 77, 0, .36), inset 0 1px 0 rgba(255,255,255,.5); }
+  .btn.primary:hover { box-shadow: 0 14px 44px rgba(139, 92, 255, .36), inset 0 1px 0 rgba(255,255,255,.5); }
   .btn.ghost { background: rgba(255,255,255,.02); }
   .btn.small { min-height: 38px; padding: 9px 13px; font-size: 10px; }
   .arrow { font-size: 15px; line-height: 1; }
   .hero { position: relative; padding: clamp(48px, 8vw, 92px) 0 clamp(36px, 5vw, 64px); overflow: clip; }
   .hero-grid { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(360px, .94fr); gap: clamp(30px, 5vw, 72px); align-items: center; }
-  .hero h1 span { display: block; color: transparent; -webkit-text-stroke: 1px rgba(255, 196, 92, .45); }
+  .hero h1 span { display: block; color: transparent; -webkit-text-stroke: 1px rgba(255, 170, 33, .45); }
   .hero h1 em { display: block; font-style: normal; color: transparent; background: linear-gradient(100deg, var(--gold), var(--heat) 45%, var(--ember)); -webkit-background-clip: text; background-clip: text; }
-  .hero-copy { margin-top: 24px; max-width: 55ch; color: #d8c8b4; font-size: clamp(16px, 1.5vw, 19px); }
+  .hero-copy { margin-top: 24px; max-width: 55ch; color: #c4d3ec; font-size: clamp(16px, 1.5vw, 19px); }
   .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 18px; }
   .hero-note { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 600 11px/1.4 var(--mono); }
   .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); flex: 0 0 auto; }
@@ -119,24 +119,24 @@
   .spec:last-child { border-right: 0; }
   .spec b { display: block; font: 800 clamp(24px, 3.3vw, 38px)/1 var(--display); color: var(--gold); letter-spacing: -.03em; }
   .spec span { display: block; margin-top: 7px; color: var(--muted); font: 600 10px/1.4 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
-  .instrument { position: relative; padding: 14px; border-radius: 26px; border: 1px solid var(--line2); background: linear-gradient(155deg, #24160d, #0b0705 58%); box-shadow: 0 35px 90px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08); }
-  .instrument::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(255, 196, 92, .12); border-radius: 21px; pointer-events: none; }
+  .instrument { position: relative; padding: 14px; border-radius: 26px; border: 1px solid var(--line2); background: linear-gradient(155deg, #0a1930, #020611 58%); box-shadow: 0 35px 90px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08); }
+  .instrument::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(255, 170, 33, .12); border-radius: 21px; pointer-events: none; }
   .instrument-top { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px 12px; color: var(--muted); font: 700 9px/1 var(--mono); letter-spacing: .15em; }
   .instrument-top b { color: var(--heat); }
-  .instrument img { border-radius: 12px; border: 1px solid #352416; }
+  .instrument img { border-radius: 12px; border: 1px solid #1a2a48; }
   .instrument-foot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 6px 2px; color: var(--faint); font: 600 9px/1.4 var(--mono); letter-spacing: .08em; }
-  .float-tag { position: absolute; right: -16px; top: 17%; background: #190f08; border: 1px solid var(--line2); border-left: 3px solid var(--cyan); border-radius: 7px; padding: 8px 12px; font: 700 9px/1.45 var(--mono); letter-spacing: .08em; box-shadow: 0 14px 30px rgba(0,0,0,.45); }
+  .float-tag { position: absolute; right: -16px; top: 17%; background: #081020; border: 1px solid var(--line2); border-left: 3px solid var(--cyan); border-radius: 7px; padding: 8px 12px; font: 700 9px/1.45 var(--mono); letter-spacing: .08em; box-shadow: 0 14px 30px rgba(0,0,0,.45); }
   .float-tag b { display: block; color: var(--cyan); }
   section { padding: clamp(46px, 7vw, 86px) 0; }
   .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .55fr); gap: 30px; align-items: end; margin-bottom: 32px; }
   .section-head p { color: var(--muted); margin: 0; max-width: 48ch; }
   .rule { height: 1px; background: linear-gradient(90deg, var(--heat), var(--line) 34%, transparent); margin-bottom: 18px; }
   .feature-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
-  .card { grid-column: span 4; position: relative; overflow: hidden; min-height: 205px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(32, 20, 12, .9), rgba(12, 8, 5, .92)); }
-  .card::after { content: ""; position: absolute; right: -50px; bottom: -65px; width: 160px; height: 160px; border: 1px solid rgba(255, 138, 30, .15); border-radius: 50%; box-shadow: 0 0 0 22px rgba(255, 138, 30, .035), 0 0 0 44px rgba(255, 138, 30, .025); }
+  .card { grid-column: span 4; position: relative; overflow: hidden; min-height: 205px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .92), rgba(2, 6, 15, .94)); }
+  .card::after { content: ""; position: absolute; right: -50px; bottom: -65px; width: 160px; height: 160px; border: 1px solid rgba(58, 223, 255, .15); border-radius: 50%; box-shadow: 0 0 0 22px rgba(58, 223, 255, .035), 0 0 0 44px rgba(58, 223, 255, .025); }
   .card.wide { grid-column: span 6; }
   .card.half { grid-column: span 3; }
-  .card.hot { border-color: rgba(255, 138, 30, .45); background: linear-gradient(145deg, #28150a, #110a06 72%); }
+  .card.hot { border-color: rgba(58, 223, 255, .45); background: linear-gradient(145deg, #0a1730, #03060f 72%); }
   .card .num { color: var(--faint); font: 700 10px/1 var(--mono); letter-spacing: .12em; }
   .card h3 { margin: 24px 0 8px; color: var(--ink); }
   .card p { margin: 0; color: var(--muted); font-size: 14px; max-width: 38ch; }
@@ -145,25 +145,25 @@
   .showcase { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
   .shot { grid-column: span 4; margin: 0; padding: 9px; border: 1px solid var(--line); border-radius: 14px; background: #0d0805; }
   .shot.big { grid-column: span 8; }
-  .shot img { border: 1px solid #2a1c12; border-radius: 8px; width: 100%; }
+  .shot img { border: 1px solid #142040; border-radius: 8px; width: 100%; }
   .shot figcaption { display: flex; justify-content: space-between; gap: 10px; padding: 10px 4px 2px; color: var(--muted); font: 600 10px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
   .shot figcaption b { color: var(--gold); }
-  .studio-band { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px; align-items: center; padding: clamp(26px, 4vw, 48px); border: 1px solid var(--line2); border-radius: 24px; background: linear-gradient(135deg, #1e1008, #0d0805 65%); }
+  .studio-band { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px; align-items: center; padding: clamp(26px, 4vw, 48px); border: 1px solid var(--line2); border-radius: 24px; background: linear-gradient(135deg, #071028, #0d0805 65%); }
   .studio-band h2 { font-size: clamp(30px, 4.2vw, 52px); }
   .studio-band p { color: var(--muted); }
   .checklist { list-style: none; padding: 0; margin: 20px 0; display: grid; gap: 8px; }
-  .checklist li { display: flex; gap: 9px; color: #d8c8b4; font-size: 14px; }
+  .checklist li { display: flex; gap: 9px; color: #c4d3ec; font-size: 14px; }
   .checklist li::before { content: "+"; color: var(--heat); font: 800 15px/1.4 var(--mono); }
-  .studio-shot { border: 1px solid var(--line); border-radius: 14px; padding: 7px; background: #070403; box-shadow: 0 26px 60px rgba(0,0,0,.5); }
+  .studio-shot { border: 1px solid var(--line); border-radius: 14px; padding: 7px; background: #02050f; box-shadow: 0 26px 60px rgba(0,0,0,.5); }
   .install-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 24px; align-items: start; }
   .steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
   .steps li { counter-increment: step; display: grid; grid-template-columns: 38px 1fr; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--line); }
   .steps li::before { content: "0" counter(step); color: var(--heat); font: 800 14px/1.5 var(--mono); }
   .steps b { display: block; margin-bottom: 4px; color: var(--ink); }
   .steps span { color: var(--muted); font-size: 14px; }
-  .warning { padding: 20px; border: 1px solid #66401a; border-left: 4px solid var(--heat); border-radius: 10px; background: rgba(255, 138, 30, .055); }
+  .warning { padding: 20px; border: 1px solid #24406e; border-left: 4px solid var(--heat); border-radius: 10px; background: rgba(58, 223, 255, .055); }
   .warning h3 { color: var(--gold); margin-bottom: 8px; }
-  .warning p, .warning li { color: #cdbba6; font-size: 13.5px; }
+  .warning p, .warning li { color: #aebeda; font-size: 13.5px; }
   .warning ul { margin: 8px 0 0; padding-left: 18px; }
   .compat { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
   .compat th, .compat td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -174,7 +174,7 @@
   .pill.ok { color: #072013; background: var(--green); }
   .pill.part { color: #241304; background: var(--gold); }
   .pill.no { color: #ffd9c8; background: #64250e; }
-  .version-card { border: 1px solid var(--line2); border-radius: 20px; background: linear-gradient(150deg, #1c1008, #0b0704); padding: 24px; }
+  .version-card { border: 1px solid var(--line2); border-radius: 20px; background: linear-gradient(150deg, #070f22, #02050c); padding: 24px; }
   .version-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 16px; }
   .version-head strong { display: block; color: var(--gold); font: 800 34px/.95 var(--display); letter-spacing: -.03em; }
   .version-head span { color: var(--muted); font: 600 9px/1.4 var(--mono); letter-spacing: .10em; }
@@ -182,11 +182,27 @@
   .kv dt { color: var(--faint); font: 700 9px/1.6 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
   .kv dd { margin: 0; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
   .resources { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .resource { display: block; min-height: 126px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: rgba(18, 12, 8, .7); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .resource { display: block; min-height: 126px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: rgba(8, 14, 29, .72); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
   .resource:hover { border-color: var(--heat); transform: translateY(-2px); color: var(--ink); }
   .resource b { display: block; margin: 14px 0 4px; font-size: 14px; }
   .resource span { color: var(--muted); font-size: 12px; }
   .resource .no { color: var(--heat); font: 700 10px/1 var(--mono); }
+  /* The four ecosystem accesses: Web Site first and clearly the largest. */
+  .access { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .access-card { display: grid; gap: 7px; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .access-card:hover { border-color: var(--heat); transform: translateY(-2px); color: var(--ink); }
+  .access-card .no { color: var(--faint); font: 700 10px/1 var(--mono); letter-spacing: .12em; }
+  .access-card b { font: 800 clamp(20px, 2.4vw, 26px)/1.05 var(--display); letter-spacing: -.02em; text-transform: uppercase; }
+  .access-card .url { color: var(--cyan); font: 700 10px/1.4 var(--mono); overflow-wrap: anywhere; }
+  .access-card p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .access-card .go { margin-top: 2px; color: var(--gold); font: 800 10px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
+  .access-card.primary { grid-column: 1 / -1; border-color: rgba(58, 223, 255, .55); border-left: 4px solid var(--heat); background: linear-gradient(135deg, #071229, #02060f 70%); box-shadow: 0 24px 60px rgba(139, 92, 255, .18); padding: 30px 32px; }
+  .access-title { display: flex; align-items: baseline; gap: 8px 18px; flex-wrap: wrap; }
+  .access-card.primary b { font-size: clamp(32px, 5.4vw, 58px); }
+  .access-card.primary .url { font-size: 12px; }
+  .access-card.primary p { font-size: 15px; max-width: 62ch; }
+  @media (max-width: 900px) { .access { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .access-card.primary { padding: 22px; } }
   footer { border-top: 1px solid var(--line); padding: 32px 0 44px; color: var(--faint); font-size: 12px; }
   .foot-grid { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 30px; }
   footer b { color: var(--muted); }
@@ -231,15 +247,16 @@
 <header class="top">
   <div class="wrap">
     <a class="brand" href="./" aria-label="Quantum GammaWave, inicio">
-      <svg class="sun" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="9" fill="#ff8a1e"/><circle cx="20" cy="20" r="4" fill="#fff0cf"/><g stroke="#ffc45c" stroke-width="1.6" stroke-linecap="round"><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M32 8l-3.5 3.5M11.5 28.5L8 32"/></g><circle cx="20" cy="20" r="15" fill="none" stroke="#ff4d00" stroke-opacity=".35"/></svg>
+      <svg class="sun" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="9" fill="#3adfff"/><circle cx="20" cy="20" r="4" fill="#eaf9ff"/><g stroke="#ffaa21" stroke-width="1.6" stroke-linecap="round"><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M32 8l-3.5 3.5M11.5 28.5L8 32"/></g><circle cx="20" cy="20" r="15" fill="none" stroke="#8b5cff" stroke-opacity=".35"/></svg>
       <span><b>QUANTUM<br>GAMMAWAVE</b><small>QG-1 // FM-1</small></span>
     </a>
     <nav class="nav" aria-label="Principal">
+      <a href="#accesos">Accesos</a>
       <a href="#sistema">Sistema</a>
       <a href="#capturas">Capturas</a>
       <a href="#instalacion">Instalación</a>
       <a href="#versiones">Versiones</a>
-      <a class="btn primary small top-cta" href="emulator/">Abrir emulador <span class="arrow">↗</span></a>
+      <a class="btn primary small top-cta" href="emulator/">Web Emulator <span class="arrow">↗</span></a>
     </nav>
   </div>
 </header>
@@ -250,14 +267,14 @@
       <div class="hero-grid">
         <div>
           <div class="eyebrow">Firmware abierto · M-VAVE FM-1 · AC791N</div>
-          <h1 id="hero-title" style="margin-top:18px">Solar <em>Heat.</em><span>Quantum motion.</span></h1>
+          <h1 id="hero-title" style="margin-top:18px">Quantum <em>GammaWave.</em><span>Seis pistas. Diez voces.</span></h1>
           <p class="hero-copy">Quantum GammaWave convierte la FM-1 en un instrumento completo: seis pistas, diez voces, ocho motores de síntesis, secuenciador, generador musical y un Web Studio que edita el sonido real por Web MIDI.</p>
           <div class="hero-actions">
-            <a class="btn primary" href="emulator/">Probar en el navegador <span class="arrow">→</span></a>
+            <a class="btn primary" href="emulator/">Abrir el Web Emulator <span class="arrow">→</span></a>
             <a class="btn ghost" href="webapp/editor/">Abrir Web Studio</a>
             <a class="btn ghost" href="webapp/installer/">Instalar en FM-1</a>
           </div>
-          <p class="hero-note"><span class="live-dot"></span> Emulador WASM y Web Studio disponibles sin instalar nada.</p>
+          <p class="hero-note"><span class="live-dot"></span> Web Emulator y Web Studio disponibles sin instalar nada.</p>
         </div>
         <div class="instrument">
           <div class="instrument-top"><span>QG-1 // <b>HOME / FORGE</b></span><span>240 × 240</span></div>
@@ -271,6 +288,44 @@
         <div class="spec"><b>10</b><span>voces con robo psicoacústico</span></div>
         <div class="spec"><b>8</b><span>motores de síntesis</span></div>
         <div class="spec"><b>200</b><span>sonidos factory navegables</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="accesos" class="reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="rule"></div><div class="eyebrow">Accesos</div><h2 style="margin-top:14px">Todo el ecosistema,<br>en un clic.</h2></div>
+        <p>Cuatro entradas al mismo proyecto. El Web Site es la principal y desde ahí se llega al resto; ninguna ruta depende de una redirección.</p>
+      </div>
+      <div class="access">
+        <a class="access-card primary" href="./" aria-label="Web Site, portal principal de Quantum GammaWave">
+          <span class="no">01 / WEB SITE</span>
+          <span class="access-title"><b>Web Site</b><span class="url">https://guillel51.github.io/Quantum-GammaWave/</span></span>
+          <p>El portal principal: firmware, capturas reales del build publicado, instalación verificada y versiones.</p>
+          <span class="go">Entrar al sitio <span class="arrow">→</span></span>
+        </a>
+        <a class="access-card" href="emulator/">
+          <span class="no">02 / WEB EMULATOR</span>
+          <b>Web Emulator</b>
+          <span class="url">/emulator/</span>
+          <p>El mismo firmware compilado a WebAssembly, con el mapa Punch-in FX, LATCH y el commit del build publicado.</p>
+          <span class="go">Abrir el emulador <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card" href="webapp/editor/">
+          <span class="no">03 / WEB STUDIO</span>
+          <b>Web Studio</b>
+          <span class="url">/webapp/editor/</span>
+          <p>Editor del sonido real por Web MIDI, secuenciador de 16 pasos, mixer de seis pistas y proyectos.</p>
+          <span class="go">Entrar al estudio <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card" href="webapp/installer/">
+          <span class="no">04 / INSTALADOR</span>
+          <b>Instalador USB</b>
+          <span class="url">/webapp/installer/</span>
+          <p>Identidad FM-1, tamaño del paquete y SHA-256 comprobados antes de escribir un solo byte.</p>
+          <span class="go">Abrir instalador <span class="arrow">↗</span></span>
+        </a>
       </div>
     </div>
   </section>
@@ -329,7 +384,7 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Capturas actuales</div><h2 style="margin-top:14px">La interfaz,<br>sin renders.</h2></div>
-        <p>Pantallas capturadas del emulador y del sitio publicados. La estética Solar Heat se comparte entre firmware, emulador, Web Studio e instalador.</p>
+        <p>Pantallas capturadas del emulador y del sitio publicados. La identidad Quantum recorre firmware, Web Emulator, Web Studio e instalador.</p>
       </div>
       <div class="showcase">
         <figure class="shot big"><img src="assets/emulator-visualizer.png" alt="Visualizador de Quantum GammaWave con osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
@@ -391,7 +446,7 @@
         <thead><tr><th>Elemento</th><th>Estado</th><th>Verificación</th></tr></thead>
         <tbody>
           <tr><td>M-VAVE FM-1 / JieLi AC791N</td><td><span class="pill ok">SÍ</span></td><td>Toolchain y mapa del SDK; build target reproducible.</td></tr>
-          <tr><td>Emulador WASM</td><td><span class="pill ok">SÍ</span></td><td>Compila el mismo firmware y compara el DSP nativo bit a bit.</td></tr>
+          <tr><td>Web Emulator</td><td><span class="pill ok">SÍ</span></td><td>Compila el mismo firmware y compara el DSP nativo bit a bit.</td></tr>
           <tr><td>Web Studio por Web MIDI</td><td><span class="pill ok">SÍ</span></td><td>Protocolo y dispositivo simulado en la suite web.</td></tr>
           <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Integridad y límites probados en host; sin firma ni prueba física.</td></tr>
           <tr><td>Recuperación tras brick</td><td><span class="pill no">NO VERIFICADA</span></td><td>Requiere bootloader/partition support que este proyecto no modifica.</td></tr>
@@ -449,7 +504,7 @@
   <div class="wrap">
     <div class="foot-grid">
       <div><b>QUANTUM GAMMAWAVE (QG-1)</b><br>Firmware y Web Studio open source para M-VAVE FM-1. GPL-3.0-only.<br><span style="color:var(--faint)">M-VAVE y FM-1 son marcas de sus respectivos dueños.</span></div>
-      <div><b>Herramientas</b><br><a href="emulator/">Emulador</a> · <a href="webapp/editor/">Web Studio</a><br><a href="webapp/installer/">Instalador USB</a> · <a href="firmware/versions.json">Versiones</a></div>
+      <div><b>Herramientas</b><br><a href="./">Web Site</a> · <a href="emulator/">Web Emulator</a><br><a href="webapp/editor/">Web Studio</a> · <a href="webapp/installer/">Instalador USB</a><br><a href="firmware/versions.json">Versiones</a></div>
       <div><b>Linaje</b><br>Felucca · JIANT FM · Pocket GammaWave.<br><a href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/LICENSES">Licencias y créditos ↗</a></div>
     </div>
     <div class="foot-line"><span>© <span id="year">2026</span> Quantum GammaWave contributors</span><span id="foot-build">QG-1 // BUILD VERIFICADO POR HASH</span></div>
@@ -460,7 +515,9 @@
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  if (location.search.indexOf("emu=1") >= 0 || location.hash === "#emu") {
+  // Only the explicit ?emu=1 shortcut opens the Web Emulator. A bare #emu hash used to
+  // replace the portal: a stale or shared link must never take the site's place.
+  if (location.search.indexOf("emu=1") >= 0) {
     location.replace("emulator/");
     return;
   }
