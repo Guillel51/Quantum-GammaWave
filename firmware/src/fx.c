@@ -254,7 +254,9 @@ static int64_t fx_eq_sin_q30(uint32_t w)
         int64_t x2 = (x * x) >> 30;
         int64_t x3 = (x2 * x) >> 30;
         int64_t x5 = (x3 * x2) >> 30;
-        return x - x3 / 6 + x5 / 120;
+        /* |x| < 0.1 rad here, so x3 < 4.3e5 and x5 < 2.6e3 in Q30: divide in 32 bits.
+         * A 64-bit divide emits __udivdi3, which the pi32v2 runtime does not link. */
+        return (int64_t)((int32_t)x - (int32_t)x3 / 6 + (int32_t)x5 / 120);
     }
     return (int64_t)sine_i(w) << 15;                   /* Q15 -> Q30 */
 }
@@ -265,6 +267,24 @@ static int64_t fx_eq_cos_q30(uint32_t w)
 }
 static int32_t fx_eq_sin_q26(uint32_t w) { return (int32_t)(fx_eq_sin_q30(w) >> 4); }
 static int32_t fx_eq_cos_q26(uint32_t w) { return (int32_t)(fx_eq_cos_q30(w) >> 4); }
+/* 64 / 32 -> 32 without __divdi3/__udivdi3: pi32v2 links no libgcc 64-bit divide, and
+ * the coefficient normalisation below is the only place that needs one. Restoring
+ * division on the magnitudes (truncation toward zero, as C's '/'), 64 bit steps;
+ * only parameter changes call it, never the audio path. */
+static int32_t fx_div64_32(int64_t num, int32_t den)
+{
+    uint64_t u, d, q = 0, r = 0;
+    int neg = 0, i;
+    if (den == 0) return 0;
+    if (num < 0) { neg = 1; u = (uint64_t)(-(num + 1)) + 1u; } else u = (uint64_t)num;
+    if (den < 0) { neg = !neg; d = (uint64_t)(-(int64_t)den); } else d = (uint64_t)den;
+    for (i = 63; i >= 0; i--) {
+        r = (r << 1) | ((u >> i) & 1u);
+        if (r >= d) { r -= d; q |= (uint64_t)1 << i; }
+    }
+    if (q > 0x7fffffffu) q = 0x7fffffffu;
+    return neg ? -(int32_t)q : (int32_t)q;
+}
 static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx)
 {
     freq_idx = clamp(freq_idx, 0, 127);
@@ -286,7 +306,7 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     int32_t alpha = (int32_t)(((int64_t)sn * inv_2q) >> 14);  /* Q24 */
 
     int32_t a_q24 = fx_eq_gain_q24(gain_db);
-    int32_t a_inv_q24 = (int32_t)(((int64_t)BQ_U * BQ_U) / a_q24);
+    int32_t a_inv_q24 = fx_div64_32((int64_t)BQ_U * BQ_U, a_q24);
 
     int32_t b0_un = BQ_U + (int32_t)(((int64_t)alpha * a_q24) >> 26);
     int32_t b1_un = -2 * cs;
@@ -296,11 +316,11 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     int32_t a2_un = BQ_U - (int32_t)(((int64_t)alpha * a_inv_q24) >> 26);
 
     if (a0_un > 100) {
-        eq->b0 = (int32_t)(((int64_t)b0_un * BQ_ONE) / a0_un);
-        eq->b1 = (int32_t)(((int64_t)b1_un * BQ_ONE) / a0_un);
-        eq->b2 = (int32_t)(((int64_t)b2_un * BQ_ONE) / a0_un);
-        eq->a1 = (int32_t)(((int64_t)a1_un * BQ_ONE) / a0_un);
-        eq->a2 = (int32_t)(((int64_t)a2_un * BQ_ONE) / a0_un);
+        eq->b0 = fx_div64_32((int64_t)b0_un * BQ_ONE, a0_un);
+        eq->b1 = fx_div64_32((int64_t)b1_un * BQ_ONE, a0_un);
+        eq->b2 = fx_div64_32((int64_t)b2_un * BQ_ONE, a0_un);
+        eq->a1 = fx_div64_32((int64_t)a1_un * BQ_ONE, a0_un);
+        eq->a2 = fx_div64_32((int64_t)a2_un * BQ_ONE, a0_un);
         if (!qg_biquad_stabilize(eq)) {
             qg_biquad_init(eq);
             return;
@@ -338,11 +358,11 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
     a1 = -2 * (am1 + ((ap1 * cs) >> 26));
     a2 = ap1 + ct - two_sq_alpha;
     if (a0 > 100) {
-        eq->b0 = (int32_t)((b0 * BQ_ONE) / a0);
-        eq->b1 = (int32_t)((b1 * BQ_ONE) / a0);
-        eq->b2 = (int32_t)((b2 * BQ_ONE) / a0);
-        eq->a1 = (int32_t)((a1 * BQ_ONE) / a0);
-        eq->a2 = (int32_t)((a2 * BQ_ONE) / a0);
+        eq->b0 = fx_div64_32(b0 * BQ_ONE, (int32_t)a0);
+        eq->b1 = fx_div64_32(b1 * BQ_ONE, (int32_t)a0);
+        eq->b2 = fx_div64_32(b2 * BQ_ONE, (int32_t)a0);
+        eq->a1 = fx_div64_32(a1 * BQ_ONE, (int32_t)a0);
+        eq->a2 = fx_div64_32(a2 * BQ_ONE, (int32_t)a0);
         if (!qg_biquad_stabilize(eq)) {
             qg_biquad_init(eq);
             return;
@@ -380,11 +400,11 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
     a1 = 2 * (am1 - ((ap1 * cs) >> 26));
     a2 = ap1 - ct - two_sq_alpha;
     if (a0 > 100) {
-        eq->b0 = (int32_t)((b0 * BQ_ONE) / a0);
-        eq->b1 = (int32_t)((b1 * BQ_ONE) / a0);
-        eq->b2 = (int32_t)((b2 * BQ_ONE) / a0);
-        eq->a1 = (int32_t)((a1 * BQ_ONE) / a0);
-        eq->a2 = (int32_t)((a2 * BQ_ONE) / a0);
+        eq->b0 = fx_div64_32(b0 * BQ_ONE, (int32_t)a0);
+        eq->b1 = fx_div64_32(b1 * BQ_ONE, (int32_t)a0);
+        eq->b2 = fx_div64_32(b2 * BQ_ONE, (int32_t)a0);
+        eq->a1 = fx_div64_32(a1 * BQ_ONE, (int32_t)a0);
+        eq->a2 = fx_div64_32(a2 * BQ_ONE, (int32_t)a0);
         if (!qg_biquad_stabilize(eq)) {
             qg_biquad_init(eq);
             return;
@@ -418,11 +438,11 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
     int32_t a2_un = BQ_U - alpha;
 
     if (a0_un > 100) {
-        eq->b0 = (int32_t)(((int64_t)b0_un * BQ_ONE) / a0_un);
-        eq->b1 = (int32_t)(((int64_t)b1_un * BQ_ONE) / a0_un);
-        eq->b2 = (int32_t)(((int64_t)b2_un * BQ_ONE) / a0_un);
-        eq->a1 = (int32_t)(((int64_t)a1_un * BQ_ONE) / a0_un);
-        eq->a2 = (int32_t)(((int64_t)a2_un * BQ_ONE) / a0_un);
+        eq->b0 = fx_div64_32((int64_t)b0_un * BQ_ONE, a0_un);
+        eq->b1 = fx_div64_32((int64_t)b1_un * BQ_ONE, a0_un);
+        eq->b2 = fx_div64_32((int64_t)b2_un * BQ_ONE, a0_un);
+        eq->a1 = fx_div64_32((int64_t)a1_un * BQ_ONE, a0_un);
+        eq->a2 = fx_div64_32((int64_t)a2_un * BQ_ONE, a0_un);
         if (!qg_biquad_stabilize(eq)) {
             qg_biquad_init(eq);
             return;

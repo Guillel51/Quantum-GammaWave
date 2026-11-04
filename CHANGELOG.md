@@ -15,6 +15,9 @@
   shelves, peak/notch and 480 parameter corners are tested; the graph no longer folds or drops at 20 Hz.
   The sweep also proves the poles stay inside the unit circle at 20 Hz and 20 kHz (+24 dB, both Q ends) and
   that one impulse decays back to silence.
+- **Target link:** the EQ's coefficient normalisation divided 64-bit values, and pi32v2 links no
+  `__divdi3`/`__udivdi3`; `qg_biquad_set_*` now normalise through a local 64/32 restoring division, so
+  `tools/build.py` links again. The rebuilt package is 610.897 B (581.564 B app), SHA-256 `7f7a9ee8…`.
 - **Verification:** `ui` (0 lint), `mod`, `presets`, `security`, `target`, `emu`, `sync`, web and package tests;
   target app/package rebuilt from this tree. No physical FM-1 was flashed.
 
