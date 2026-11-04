@@ -234,6 +234,8 @@ static void perf_press(uint32_t e, int down)
                 perf_count(perf_latched) >= PF_MAX_ACTIVE)
                 return;                     /* a fourth effect refused; the six mutes still work */
             perf_latched ^= PF_BIT(e);
+        } else {
+            perf_held &= ~PF_BIT(e);        /* a key already down when LATCH was turned on: no stuck hold */
         }
         return;
     }

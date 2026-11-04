@@ -478,6 +478,21 @@ const say = (t) => { status.textContent = t; status.hidden = !t; };
 const EXPECTED_WASM_SHA = "@WASM_SHA@";
 const EXPECTED_VERSION = "@VERSION@";
 const BUILD_COMMIT = "@COMMIT@";
+// GitHub Pages caches the HTML for a few minutes. The page may be old even when the new
+// manifest is already live; ask for the manifest without a cache and reload once with
+// the manifest's commit as a query. The WASM already has its own ?v=<sha>.
+void (async () => {
+  try {
+    const r = await fetch("manifest.json?v=" + encodeURIComponent(BUILD_COMMIT), { cache: "no-store" });
+    if (!r.ok) return;
+    const m = await r.json();
+    if (!m || !m.commit || m.commit === BUILD_COMMIT) return;
+    const u = new URL(location.href);
+    if (u.searchParams.get("v") === m.commit) return;
+    u.searchParams.set("v", m.commit);
+    location.replace(u.toString());
+  } catch (_) { /* a manifest is optional for a hand-opened build */ }
+})();
 const sha256hex = async (buf) => {
   if (!crypto?.subtle) throw new Error("SHA-256 unavailable: serve the emulator over HTTP(S), not a file URL.");
   const d = await crypto.subtle.digest("SHA-256", buf);

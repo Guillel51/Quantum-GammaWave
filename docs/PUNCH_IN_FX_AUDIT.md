@@ -3,7 +3,22 @@
 Este documento describe el estado real de la rama `perf/security-hardening`. No declara verificados el LCD,
 el audio, el USB/MIDI ni la recuperación de un FM-1 físico: esas pruebas requieren hardware y no se hicieron.
 
-## Mapa final
+## Estado vigente — 2026-11-04 (reemplaza el mapa de abajo)
+
+La pantalla ya **no tiene diez tarjetas ni una rejilla 5×3**. El mapa completo es el teclado: 16 teclas
+blancas de 14 px (141 px de alto) y 11 negras (66 px), desde F3 hasta G5. Las tarjetas superiores FILTER,
+CRUSH y THROW se retiraron; DEPTH queda en el encabezado. El banco, LATCH, `LIVE/CAP/n/3`, `TGT` y `SEL`
+ocupan dos líneas. El panel mide 170 px y se dibuja en dos bandas (48 + 122 px) para respetar `CV_MAX`.
+
+La captura que publica el portal (`web/site/assets/emulator-punch-in-fx.png`, 1040×650) se regeneró desde
+Chromium con la capa FX abierta y una tecla sostenida, así que muestra el mapa nuevo y no la rejilla 5×3.
+
+La copia servida en `build/site/emulator` estaba un commit atrás (`b358b3f`) respecto de `build/emu`
+(`ab3da86`), aunque el WASM tuviera el mismo SHA. Ahora se sincroniza, `web/test_site.py` compara los
+manifiestos y `web/emu/index.html` recarga con `?v=<commit>` cuando el HTML cacheado no coincide con
+`manifest.json`. La causa no era un Service Worker: no hay ninguno.
+
+## Mapa histórico (2026-11-03; reemplazado)
 
 La capa PUNCH-IN FX se abre manteniendo **FX**. **A#4 mantenido** alterna el banco; un toque corto de A#4
 sigue cambiando el destino de los efectos MIDI (`ALL`, `SYN`, `DRM`). El mapa muestra siempre las diez

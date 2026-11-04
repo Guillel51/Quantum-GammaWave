@@ -916,16 +916,34 @@ static void bnote(char *n, uint32_t t) { n[0] = B_NOTE[t]; n[1] = '#'; n[2] = 0;
  * never drift from the DSP. Bank 1 is the original map; bank 2 replaces
  * F3..C4 with the five buffer effects. The black keys 1..6 are the six
  * latched track mutes; G#4 VIB, A#4 TGT, C#5 GATE, D#5 RTRG, F#5 DIVE.
- * A#4 short press steps TGT (ALL / SYN / DRM), long press switches bank. */
+ * A#4 short press steps TGT (ALL / SYN / DRM), long press switches bank.
+ *
+ * (1.8.1) The old top row of FILTER / CRUSH / THROW / DEPTH cards is gone. The
+ * three hidden macros still work on KNOB 1..3; the fourth, DEPTH, is shown in
+ * the map's header (it is the one the buffer effects need while playing). The
+ * map itself now starts where the cards were: the keyboard is 170 px high,
+ * not 122, and the white keys are 141 px tall. */
 static const char *const FX_BANK2[5] = {"REV", "FRZ", "TAPE", "GLCH", "RTRG"};
 static const char *const FX_BLACK[5] = {"VIB", "TGT", "GATE", "RTRG", "DIVE"};
+#define FX_H (H_GRAPH + (Y_GRAPH - Y_LABEL))      /* the map takes the cards' 48 px too: 170 */
+#define FX_KEY_Y 25
+#define FX_KEY_H (FX_H - FX_KEY_Y - 4)           /* 141 px white keys, 66 px black keys */
+#define FX_BLACK_H 66
+#define FX_WHITE_LABEL_Y (FX_KEY_Y + FX_BLACK_H + 2)   /* below the black keys: no overlap */
+#define FX_WHITE_LABEL_H (FX_KEY_H - FX_BLACK_H - 2)
+#define FX_BLACK_LABEL_Y (Y_GRAPH - Y_LABEL)           /* below the 48 px top band: one glyph, one band */
+#define FX_BLACK_LABEL_H (FX_KEY_Y + FX_BLACK_H - FX_BLACK_LABEL_Y)
+static int32_t fx_text_y0, fx_text_y1;               /* the map band being drawn: no text outside it */
 static void fx_vtext(int32_t x, int32_t w, int32_t y, int32_t h, const char *s, uint16_t ink, uint16_t fill)
 {
     int32_t n = (int32_t)str_len(s), top = y + (h - n * 10) / 2;
     uint32_t i;
     for (i = 0; i < (uint32_t)n; i++) {
+        int32_t ly = top + (int32_t)i * 10;
         char c[2] = {s[i], 0};
-        cv_text_on(x + (w - text_w(&AF_S, c)) / 2, top + (int32_t)i * 10, &AF_S, c, ink, fill);
+        if (ly + 10 <= fx_text_y0 || ly >= fx_text_y1)   /* the other band draws it */
+            continue;
+        cv_text_on(x + (w - text_w(&AF_S, c)) / 2, ly, &AF_S, c, ink, fill);
     }
 }
 static const char *fx_white_name(uint32_t p)
@@ -936,7 +954,7 @@ static const char *fx_white_name(uint32_t p)
         return PF_NAME[p];
     return p == PF_M1 ? "CLR" : "";
 }
-static void layer_fx(void)
+static void layer_fx(uint32_t band)
 {
     static const uint8_t BKPOS[11] = {0, 1, 3, 4, 5, 7, 8, 10, 11, 12, 14};
     uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail();
@@ -959,19 +977,25 @@ static void layer_fx(void)
     tgt[1] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'Y' : 'R';
     tgt[2] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'N' : 'M';
     tgt[3] = 0;
-    /* two compact lines: bank, latch, capture state, target and selected track */
-    cv_text(7, 1, &AF_S, "PUNCH FX", T_THEME);
-    cv_text(62, 1, &AF_S, pfx_bank ? "B2" : "B1", T_ACCENT);
-    cv_text(82, 1, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM);
-    cv_text(7, 11, &AF_S, perf_latch_on ? "LATCH ON" : "LATCH NO", perf_latch_on ? T_ACCENT : T_DIM);
-    cv_text(82, 11, &AF_S, "TGT", T_MID);
-    cv_text(106, 11, &AF_S, tgt, T_TEXT);
-    cv_text(142, 11, &AF_S, "SEL", T_MID);
-    {
-        char sel[3] = {'T', (char)('1' + song.sel % NTRK), 0};
-        cv_text(166, 11, &AF_S, sel, T_TEXT);
+    /* two compact lines: bank, latch, capture state, target and selected track (top band only) */
+    if (!band) {
+        cv_text(7, 1, &AF_S, "PUNCH FX", T_THEME);
+        cv_text(62, 1, &AF_S, pfx_bank ? "B2" : "B1", T_ACCENT);
+        cv_text(82, 1, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM);
+        cv_text(7, 11, &AF_S, perf_latch_on ? "LATCH ON" : "LATCH NO", perf_latch_on ? T_ACCENT : T_DIM);
+        cv_text(82, 11, &AF_S, "TGT", T_MID);
+        cv_text(106, 11, &AF_S, tgt, T_TEXT);
+        cv_text(142, 11, &AF_S, "SEL", T_MID);
+        {
+            char sel[3] = {'T', (char)('1' + song.sel % NTRK), 0};
+            char dep[5];
+            cv_text(166, 11, &AF_S, sel, T_TEXT);
+            fmt_int(dep, 100 - perf_k[3]);
+            cv_text(194, 1, &AF_S, "DEP", T_MID);
+            cv_text(216, 1, &AF_S, dep, T_THEME);
+        }
     }
-    /* the sixteen white keys: 14 px each, 3 px margin, from y 25 to 118. Their names are
+    /* the sixteen white keys: 14 px each, 3 px margin, from y 25 to 166. Their names are
      * vertical inside the key, centred; no note names, no separate cards. */
     for (p = 0; p < 16u; p++) {
         int32_t x = 3 + 14 * (int32_t)p;
@@ -984,9 +1008,9 @@ static void layer_fx(void)
         {
             uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
             uint16_t ink = on ? T_INK : T_TEXT;
-            cv_rect(x, 25, 14, 93, fill);
-            cv_rect(x + 13, 25, 1, 93, T_LINE);
-            fx_vtext(x, 14, 70, 48, fx_white_name(p), ink, fill);
+            cv_rect(x, FX_KEY_Y, 14, FX_KEY_H, fill);
+            cv_rect(x + 13, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
+            fx_vtext(x, 14, FX_WHITE_LABEL_Y, FX_WHITE_LABEL_H, fx_white_name(p), ink, fill);
         }
     }
     /* the eleven black keys: mutes T1..T6 and VIB TGT GATE RTRG DIVE. They sit over the
@@ -999,8 +1023,8 @@ static void layer_fx(void)
         if (b < NTRK) {
             uint16_t fill = (mutes >> b) & 1u ? T_KEY : T_RAISE;
             char n[3] = {'T', (char)('1' + b), 0};
-            cv_rrect(x, 25, 8, 44, 2, fill, T_SURF);
-            fx_vtext(x, 8, 25, 44, n, T_TEXT, fill);
+            cv_rrect(x, FX_KEY_Y, 8, FX_BLACK_H, 2, fill, T_SURF);
+            fx_vtext(x, 8, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_TEXT, fill);
         } else {
             f = k < 27u ? perf_key(k) : PF_N;
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
@@ -1008,8 +1032,8 @@ static void layer_fx(void)
             {
                 uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
                 uint16_t ink = on ? T_INK : T_TEXT;
-                cv_rrect(x, 25, 8, 44, 2, fill, T_SURF);
-                fx_vtext(x, 8, 25, 44, FX_BLACK[b - NTRK], ink, fill);
+                cv_rrect(x, FX_KEY_Y, 8, FX_BLACK_H, 2, fill, T_SURF);
+                fx_vtext(x, 8, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
             }
         }
     }
@@ -1257,20 +1281,9 @@ static void layer_cards(uint32_t l)
     char val[12];
     const char *unit;
     uint32_t c;
-    if (l == LAYER_FX) {                                /* FILTER CRUSH THROW DEPTH */
-        int32_t m = perf_k[0];
-        fmt_int(val, m < 0 ? -m : m);
-        draw_column(0, "FILTER", m ? val : "OFF", m < 0 ? "LP" : m > 0 ? "HP" : "", m ? VAL(0u) : T_DIM, (m + 100) * 5,
-                    ICON_CUTOFF);
-        fmt_int(val, perf_k[1]);
-        draw_column(1, "CRUSH", perf_k[1] ? val : "OFF", perf_k[1] ? "%" : "", perf_k[1] ? VAL(1u) : T_DIM,
-                    perf_k[1] * 10, ICON_BITS);
-        fmt_int(val, perf_k[2]);
-        draw_column(2, "THROW", perf_k[2] ? val : "OFF", perf_k[2] ? "%" : "", perf_k[2] ? VAL(2u) : T_DIM,
-                    perf_k[2] * 10, ICON_DELAY);
-        fmt_int(val, 100 - perf_k[3]);
-        draw_column(3, "DEPTH", val, "%", VAL(3u), (100 - perf_k[3]) * 10, ICON_MIX);
-    } else if (l == LAYER_GLO) {                        /* T1..T4 LEVEL (T5, T6 selected: T3..T6; the icon; muted: dim) */
+    if (l == LAYER_FX)                                  /* the map owns the cards' area: no top cards */
+        return;
+    if (l == LAYER_GLO) {                        /* T1..T4 LEVEL (T5, T6 selected: T3..T6; the icon; muted: dim) */
         for (c = 0; c < 4u; c++) {
             uint32_t t = c + trk_base4();
             param_format(&TP[P_LEVEL], trk[t].p[P_LEVEL], val, &unit);
@@ -1316,10 +1329,12 @@ static void layer_cards(uint32_t l)
 static void draw_layer(void)
 {
     uint32_t l = ui.layer % LAYER_N, sig = l * 7919u + ux.gen * 977u;
-    layer_cards(l);
+    if (l != LAYER_FX)
+        layer_cards(l);
     if (l == LAYER_FX)
         sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 10u + perf_act * 131u + perf_avail() * 7u +
-               (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u + perf_buf_heads() * 65537u +
+               (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u +
+               (uint32_t)(perf_k[3] & 0xFF) * 4099u + perf_buf_heads() * 65537u +
                perf_buf_playing() * 4099u + (uint32_t)pb_recording * 131u +
                (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 |
                           trk[3].p[P_MUTE] << 3 | trk[4].p[P_MUTE] << 4 | trk[5].p[P_MUTE] << 5) * 104729u;
@@ -1345,26 +1360,50 @@ static void draw_layer(void)
                (uint32_t)drum_track(TSEL) * 11u + up_gen * 101u;
     if (ui.force || sig != ui.layer_sig) {
         ui.layer_sig = sig;
-        cv_begin(240, H_GRAPH, T_BG);
-        cv_rrect(3, 0, 234, H_GRAPH, 5, T_SURF, T_BG);
-        cv_bg = T_SURF;
-        if (l == LAYER_FX)
-            layer_fx();
-        else if (l == LAYER_GLO)
-            layer_glo();
-        else if (l == LAYER_SCL)
-            layer_scl();
-        else if (l == LAYER_SEQ)
-            layer_seq();
-        else if (l == LAYER_REC)
-            layer_rec();
-        else if (l == LAYER_SAVE)
-            layer_song();
-        else if (l == LAYER_MACRO)
-            layer_macro();
-        else
-            layer_edit();
-        cv_blit(0, Y_GRAPH);
+        if (l == LAYER_FX) {                           /* CV_MAX is 124 rows: two bands, one buffer */
+            const uint32_t top = Y_GRAPH - Y_LABEL;
+            cv_begin(240, top, T_BG);
+            cv_rrect(3, 0, 234, top, 5, T_SURF, T_BG);
+            cv_bg = T_SURF;
+            cv_scroll = 1;
+            cv_oy = 0;
+            fx_text_y0 = 0;
+            fx_text_y1 = (int32_t)top;
+            layer_fx(0);
+            cv_scroll = 0;
+            cv_oy = 0;
+            cv_blit(0, Y_LABEL);
+            cv_begin(240, H_GRAPH, T_BG);
+            cv_rrect(3, 0, 234, H_GRAPH, 5, T_SURF, T_BG);
+            cv_bg = T_SURF;
+            cv_scroll = 1;
+            cv_oy = -(int32_t)top;
+            fx_text_y0 = (int32_t)top;
+            fx_text_y1 = FX_H;
+            layer_fx(1);
+            cv_scroll = 0;
+            cv_oy = 0;
+            cv_blit(0, Y_GRAPH);
+        } else {
+            cv_begin(240, H_GRAPH, T_BG);
+            cv_rrect(3, 0, 234, H_GRAPH, 5, T_SURF, T_BG);
+            cv_bg = T_SURF;
+            if (l == LAYER_GLO)
+                layer_glo();
+            else if (l == LAYER_SCL)
+                layer_scl();
+            else if (l == LAYER_SEQ)
+                layer_seq();
+            else if (l == LAYER_REC)
+                layer_rec();
+            else if (l == LAYER_SAVE)
+                layer_song();
+            else if (l == LAYER_MACRO)
+                layer_macro();
+            else
+                layer_edit();
+            cv_blit(0, Y_GRAPH);
+        }
     }
     if (ui.force) {                                     /* the footer: what the keys, knobs and buttons do */
         cv_begin(240, H_FOOT, T_BG);

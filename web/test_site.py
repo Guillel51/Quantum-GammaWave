@@ -90,6 +90,18 @@ def main(site_dir=None):
         for asset in page.assets:
             if not asset.startswith(("data:", "http")) and not (out / asset).is_file():
                 bad.append(f"missing built asset {asset}")
+        emu, built = out / "emulator", HERE.parent / "build" / "emu"
+        if (emu / "manifest.json").is_file() and (built / "manifest.json").is_file():
+            try:
+                a = json.loads((emu / "manifest.json").read_text(encoding="utf-8"))
+                b = json.loads((built / "manifest.json").read_text(encoding="utf-8"))
+            except ValueError as e:
+                bad.append(f"bad emulator manifest: {e}")
+            else:
+                if a != b:
+                    bad.append(f"stale emulator copy in {emu}: {a} != {b}")
+                if a.get("commit") and f'<code id="build-commit">{a["commit"]}</code>' not in (emu / "index.html").read_text(encoding="utf-8"):
+                    bad.append("emulator page does not name its manifest's commit")
 
     for line in bad:
         print(f"site: {line} FAIL")

@@ -50,6 +50,8 @@ def main():
     assert f'BUILD_COMMIT = "{sha}"' in html
     assert f'fetch("felucca.wasm?v={digest}"' in html
     assert 'cache: "no-store"' in html
+    assert 'fetch("manifest.json?v="' in html
+    assert "location.replace(u.toString())" in html
     assert 'WASM mismatch: page expects' in html
     assert f'<code id="wasm-hash">{digest}</code>' in html
     assert f'<code id="build-commit">{sha}</code>' in html

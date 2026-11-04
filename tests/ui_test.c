@@ -8487,6 +8487,30 @@ static int test_fx_latch(void)
         ok &= settings_import(&p, (int)(sizeof p - sizeof p.favorites)) == 2 && !(fx_latch & 1u);
         bad += check("  FX LATCH saved with the settings; settings from before it: OFF", ok);
     }
+    /* A mode switch while a key is down must not leave a hidden held effect behind, and turning
+     * LATCH off must not leave the latched effects running. Both were silent stuck states before. */
+    ui_power_on();
+    fx_latch = PREF_ACCEL_OFF;
+    frame();
+    btn_down(B_FX); frame();
+    key_down(lpf); frame();
+    ok = (perf_held & PF_BIT(PF_LPF)) != 0u;
+    fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
+    frame();                                                      /* OFF -> ON while B3 is held */
+    key_up(lpf); frame();
+    ok &= !perf_held && !perf_latched;
+    btn_up(B_FX); frame();
+    bad += check("  FX LATCH switch OFF -> ON while a key is down leaves no held effect after release", ok);
+    fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
+    frame();
+    btn_down(B_FX); frame();
+    key_down(lpf); frame(); key_up(lpf); frame();
+    ok = perf_latched == PF_BIT(PF_LPF);
+    fx_latch = PREF_ACCEL_OFF;
+    frame();                                                      /* ON -> OFF: the latch goes */
+    ok &= !perf_latched && !perf_held;
+    btn_up(B_FX); frame();
+    bad += check("  FX LATCH ON -> OFF clears the effects it latched", ok);
     fx_latch = PREF_ACCEL_OFF;
     return bad;
 }

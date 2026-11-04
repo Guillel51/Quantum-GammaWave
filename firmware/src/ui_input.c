@@ -1932,7 +1932,14 @@ static void ui_input_frame(void)
     for (k = 0; k < NTRK; k++)                          /* a retired engine's sound any other way (core.h): ANALOG */
         if (eng_gone(trk[k].eng_req))
             set_engine_of(&trk[k], ENGI_PHYS_TO);
-    perf_latch_on = fx_latch & 1u;                      /* (MENU > FX LATCH; a settings load sets it too) */
+    {
+        static uint8_t latch_was;
+        uint8_t latch_now = fx_latch & 1u;
+        if (latch_was && !latch_now)
+            perf_latched = 0;                           /* ON -> OFF: no effect may stay latched */
+        latch_was = latch_now;
+        perf_latch_on = latch_now;                      /* (MENU > FX LATCH; a settings load sets it too) */
+    }
     fx_usb_fixed = (ui_prefs & PREF_USB_FIXED) != 0u;   /* (MENU > USB LEVEL: fx.c, audio.c) */
     mo_lvl = (uint8_t)(midi_out_mode & 3u);             /* (0.6.72) MENU > MIDI OUT (seq.c) */
     midi_pc_poll();                                     /* (0.6.72) PROGRAM CHANGE in: the sounds it asked for */
