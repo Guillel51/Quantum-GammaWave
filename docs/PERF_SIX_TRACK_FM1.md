@@ -176,3 +176,46 @@ not re-cloned here. No code was copied from them.
 * Recovery during an application-area write, cold boot after a cut, and all
   hardware behaviour remain unproven. Do not install on a physical FM-1 on the
   strength of this document.
+
+## Target build of this branch (AC791N, JieLi toolchain)
+
+Command: `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK ./build.sh`
+(toolchain `jieli-linux-toolchains-20260730.1`, host x86_64 Linux).
+
+| Item | Value |
+|---|---|
+| Package | `build/felucca.fwsc`, 610 897 B, identity `FM-1_982` |
+| Package SHA-256 | `a56cdcb9b32490cd4d3ec560e055d60beb7262ba0217e15eb2e1a9a414fa17c1` |
+| App image | 556 152 B, SHA-256 `374222d760c052d51ea9d7cf1a9a7a7be66109806ce39ae6b204845c3168c35c` |
+| Loader | `ota.bin` 7 741 B, SHA-256 `a1ad9343f2991267f88d98a59de63cbb9b309e88e494f7e80074c3004d878be0` |
+| RAM `.data+.bss` | 95 732 B of 98 304 (spare 2 572 B) |
+| Pool | spare 9 248 B |
+| RAM code | 22 464 B of 24 576 (spare 2 112 B) |
+| DSP budgets | `tests/target_budget.py` RC 0 (every render loop within budget) |
+| Bounds | `web/test_pkg_bounds.mjs` RC 0 |
+
+The build is reproducible: two independent runs from the same tree gave the same
+package SHA-256. The splash change (`SPL_WRITE` 1100 / `SPL_HOLD` 1200) changes
+the binary, so the `fa94ec5` hash `7f7a9ee8…` does not describe this commit; the
+numbers above do.
+
+**This is TARGET COMPILED and TARGET BUDGET VERIFIED. Timing on the AC791N is
+still NOT TESTED.**
+
+## CI 218: what failed and why
+
+Run 41891015576 (`5c2ef79`) failed at `the emulator boots, plays, saves` one
+second after it started, which aborted the job: the JieLi toolchain, the target
+package and the target checks were **skipped**, and the fail-closed step then
+reported `no target package was built`.
+
+Root cause, reproduced here: `web/emu/emu_test.mjs` rendered 2 200 ms after
+boot (200 + 800 + 1 200) and expected HOME by then. The slower splash lasts
+2 300 ms (1 100 + 1 200), so the emulator was still inside it, HOME had not been
+drawn and a key produced silence — `boots: the splash, then HOME (85 colours)`
+and `a key sounds (peak 0.000)` failed on the WASM built from that exact commit.
+The test now waits 2 500 ms; the same WASM reports HOME (246 colours), a key
+(peak 0.114) and MIDI (0.113), with the heavy song at 2.3 % of real time.
+
+The fail-closed control was not the cause: it correctly refused to publish when
+no target package existed. It must stay as it is.

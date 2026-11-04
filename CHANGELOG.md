@@ -7,6 +7,11 @@
   global ratio. `voices_busy()` and `voice_kills` are checked in every block; they prove voice-state
   continuity, not that each of the six tracks is independently audible. Host wall clock only: target timing is
   NOT TESTED.
+- **CI 218 (fixed):** the slower splash made the emulator smoke test stop inside the splash (it rendered 2.2 s and the
+  splash is now 2.3 s), so HOME never appeared and a key was silent. The test waits 2.5 s; the fail-closed control
+  that refused to publish without a target package was correct and is unchanged.
+- **Target build of the branch:** 610 897 B package, app 556 152 B, sha256 `a56cdcb9…`, RAM spare 2 572 B, pool spare
+  9 248 B, RAM code spare 2 112 B, DSP budgets and package bounds green. Reproducible: same hash twice.
 - **Bootsplash:** `SPL_WRITE` 800 → 1100 ms and `SPL_HOLD` 900 → 1200 ms, a slower reveal and hold.
 - **Installer trust (documented, not changed):** the WebMIDI identity reply carries `model_version` and no
   SPI NOR JEDEC id, so the installer cannot verify the physical flash before writing; the 1 MiB allowlist is
