@@ -352,6 +352,18 @@ def official():
     ok(rc == 2 and "official V15" in err and dev.sent == [], "a modified V15 is still refused (no MIDI)")
 
 
+def pairing():
+    """#(QG-1 v1.8.7): an output only pairs with an input of the same name.
+    The old fallback took the only output on the bus whatever it was called, so a package
+    could be served to a device that never answered the handshake."""
+    ok(I.pair_output("FM-1", ["FM-1"]) == "FM-1", "pairing: the exact name wins")
+    ok(I.pair_output("FM-1 2", ["FM-1"]) == "FM-1", "pairing: Windows' numbered port matches its base")
+    ok(I.pair_output("FM-1", ["Some Synth"]) is None, "pairing: one unrelated output is not the FM-1")
+    ok(I.pair_output("FM-1", ["FM-1", "Some Synth"]) == "FM-1", "pairing: the named output among several")
+    ok(I.pair_output("FM-1", []) is None, "pairing: no outputs, no pair")
+
+
+pairing()
 wire()
 integrity()
 installs()

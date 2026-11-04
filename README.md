@@ -20,11 +20,36 @@
 
 **Quantum GammaWave (QG-1)** is an independent, advanced open-source custom firmware and Web Studio workstation engineered specifically for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox** (powered by the dual-core JieLi AC791N SoC). It delivers expanded 10-voice polyphony with psychoacoustic voice stealing, an expanded warm harmonic distortion suite, full-screen audio visualization, fixed-point parametric master EQ, real-time diagnostic telemetry, 17 curated visual themes, and an extensive preset sound library.
 
-[![Portal](https://img.shields.io/badge/PROJECT-PORTAL-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/)
-[![Emulator](https://img.shields.io/badge/EMULATOR-WASM-ff9424?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/emulator/)
-[![Web Studio](https://img.shields.io/badge/WEB%20STUDIO-webapp%2Feditor-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)
-[![USB Web Installer](https://img.shields.io/badge/USB%20INSTALLER-Flash%20FM--1-00e5a3?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)
-[![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg?style=for-the-badge)](LICENSE)
+<table align="center">
+  <tr>
+    <td colspan="2" align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/"><img alt="WEB SITE" src="https://img.shields.io/badge/WEB%20SITE-Quantum%20GammaWave-00e5a3?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/emulator/"><img alt="WEB EMULATOR" src="https://img.shields.io/badge/WEB%20EMULATOR-3effff?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-1f6feb?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="web/EDITOR_PROTOCOL.md"><img alt="WEBAPP / EDITOR" src="https://img.shields.io/badge/WEBAPP%20%2F%20EDITOR-ff9424?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-00e5a3?style=for-the-badge"></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Guillel51/Quantum-GammaWave/releases"><img alt="FLASH FM-1" src="https://img.shields.io/badge/FLASH%20FM--1-ff5500?style=for-the-badge"></a>
+    </td>
+    <td colspan="3" align="center">
+      <a href="LICENSE"><img alt="LICENSE" src="https://img.shields.io/badge/LICENSE-repository-blue?style=for-the-badge"></a>
+    </td>
+    <td colspan="2" align="center">
+      <a href="https://www.gnu.org/licenses/gpl-3.0-standalone.html"><img alt="GPL-3.0-ONLY" src="https://img.shields.io/badge/GPL--3.0--ONLY-copyleft-blue?style=for-the-badge"></a>
+    </td>
+  </tr>
+</table>
 
 > **Quantum GammaWave (QG-1)** is dedicated firmware and workstation software engineered specifically for the M-VAVE FM-1 groovebox hardware.
 > - **Official Project Portal:** <https://guillel51.github.io/Quantum-GammaWave/>

@@ -103,6 +103,14 @@ static uint32_t ota_unpack7(const uint8_t *in, uint32_t n, uint8_t *out, uint32_
     return o;
 }
 
+/* (QG-1 v1.8.7) one 1 MiB part: every offset a package names must fit in it, without
+ * wrapping. off <= MAX && len <= MAX - off is the only form that cannot overflow. */
+#define OTA_FLASH_MAX 0x00100000u
+static int ota_in_flash(uint32_t off, uint32_t len)
+{
+    return len != 0u && off <= OTA_FLASH_MAX && len <= OTA_FLASH_MAX - off;
+}
+
 static uint8_t ota_msg[8 + 32], ota_wire[2 + 48];
 static uint8_t ota_dec[OTA_FRAME_MAX];           /* decoded host message */
 
@@ -189,6 +197,7 @@ static int ota_read(uint32_t addr, uint8_t *dst, uint32_t len)
                 continue;
             }
             if (d == len + 15u && ota_dec[2] == 0x30 && ota_rd24(ota_dec + 3) == len + 8u &&
+                ota_dec[6] == 0u &&                    /* the flags byte we asked with: no stray frame */
                 ota_rd32(ota_dec + 7) == addr && ota_rd24(ota_dec + 11) == len) {
                 for (i = 0; i < len; i++)
                     dst[i] = ota_dec[14 + i];
@@ -252,6 +261,12 @@ static int ota_ufw(uint8_t *hdr, uint32_t *fl_off, uint32_t *fl_len, uint32_t *o
             *ota_len = ota_rd32(e + 12);
         }
     }
+    /* (QG-1 v1.8.7) both entries must live inside one part, without wrapping, and a flash.bin
+     * must at least cover the app window. Checked here, before anything is erased or written. */
+    if ((*fl_off && !ota_in_flash(*fl_off, *fl_len)) || (*ota_off && !ota_in_flash(*ota_off, *ota_len)))
+        return -3;                                          /* outside the 1 MiB part */
+    if (*fl_len && *fl_len < 0x93000u)
+        return -3;                                          /* too short to hold the app area */
     return 0;
 }
 
@@ -383,13 +398,19 @@ static int ota_session(void)
  * never started): erase it so the SPL does not re-enter the loader */
 static int ota_boot_cleanup(void)
 {
-    uint8_t a[4], r[8];
+    uint8_t h[32], body[32], r[8];
     uint32_t i, used = 0;
-    if (ota_fread(OTA_AREA, a, 4) || ota_fread(OTA_RES, r, 8))
+    /* (QG-1 v1.8.7) the head and the first body page, not four bytes: a half-written loader
+     * whose first word happens to be 0xFFFFFFFF still has to be cleared, or the SPL finds a
+     * LOADER.BIN it should not run. OTA_RES holds the record: any non-erased byte there counts. */
+    if (ota_fread(OTA_AREA, h, sizeof h) || ota_fread(OTA_AREA + 32u, body, sizeof body) ||
+        ota_fread(OTA_RES, r, sizeof r))
         return -1;
-    for (i = 0; i < 4u; i++)
-        used |= a[i] != 0xFFu;
-    for (i = 0; i < 8u; i++)
+    for (i = 0; i < sizeof h; i++)
+        used |= h[i] != 0xFFu;
+    for (i = 0; i < sizeof body; i++)
+        used |= body[i] != 0xFFu;
+    for (i = 0; i < sizeof r; i++)
         used |= r[i] != 0xFFu;
     if (used)
         ota_unstage();

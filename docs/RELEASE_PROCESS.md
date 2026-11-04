@@ -1,0 +1,71 @@
+# RELEASE PROCESS — QG-1
+
+A release is a set of bytes that can be named, verified and reproduced. This page defines those
+steps and states which ones this repository can already do.
+
+---
+
+## 1. One source of releases
+
+`web/make_site.py` writes `firmware/versions.json`, the only list the installer reads:
+
+```json
+[{ "version": "v1.8.7-<commit>", "file": "felucca-v1.8.7-<commit>.fwsc",
+   "sha256": "<64 hex>", "size": <bytes> }]
+```
+
+Rules:
+
+* The current package is first; at most five earlier builds are kept, one per version.
+* A package is published only if it carries the `FELUCCA-LOADER-1` marker (no vendor-patched
+  packages) and its identity is `FM-1_9xx`.
+* Every entry has `sha256` and `size`; the web installer verifies the downloaded bytes against them
+  and refuses anything else. The CLI verifies the same hash from `--sha256`, a `.sha256` sidecar or
+  `SHA256SUMS`.
+* **Never** point the installer at a mutable branch artefact. A build that is not a named, hashed
+  package is not installable.
+
+## 2. What a build record must contain
+
+`tools/build.py` and the site build already carry the version and commit; the manifest of the Web
+Emulator (`build/emu/manifest.json`) carries version, commit and the WASM hash. A complete record for
+a release should add:
+
+| Field | Where it comes from | Today |
+|-------|--------------------|-------|
+| version | `FELUCCA_VERSION` in `firmware/src/felucca.c` | yes |
+| commit | `git rev-parse HEAD` | yes (package name, emulator manifest) |
+| date | build time | yes |
+| toolchain | JieLi version, `AC79_SDK` commit | partially (documented in build logs) |
+| configuration | `FELUCCA_DUAL_CORE`, `FELUCCA_FM4`, `FELUCCA_FLASH`, … | not yet a machine-readable block |
+| package sha256 / size | `web/make_site.py` | yes |
+| WASM sha256 / size | `tools/package_emu.py` | yes |
+| test results | `tests/run_tests.sh` exit status + summary | manual |
+| signature | Ed25519 over the package | **missing** |
+
+The missing fields are the reason the process is documented as *not yet releasable*.
+
+## 3. Gates
+
+1. `tests/run_tests.sh` green (host, sanitizers, UI lint/alignment, web, package, target budgets when
+   the toolchain is present).
+2. `python3 tests/memory_map_test.py` green; budgets in `docs/MEMORY_BUDGET.md` respected.
+3. `python3 tests/readme_nav_test.py` and `python3 tests/backup_tool_test.py` green.
+4. The package rebuilt from the released commit, installed on a **laboratory** unit, recovery
+   demonstrated (`docs/INSTALLATION_SAFETY.md` §4).
+5. A signed package, an anti-downgrade story and an independent recovery path
+   (`docs/SECURITY_AUDIT.md` A–C) — otherwise the release is a laboratory build.
+
+## 4. Vocabulary (do not blur these)
+
+* **last commit** — the newest change; not a release.
+* **last build** — what CI produced; not necessarily installable.
+* **signed package** — a `.fwsc` with a verified signature. *None exist yet.*
+* **release** — a published, versioned, hashed artefact with notes.
+* **laboratory build** — software-verified, no physical validation.
+* **approved for hardware** — demonstrated on the target, with the owner's decision recorded.
+
+## 5. Publication
+
+Publishing Pages or a GitHub Release is an owner action. Nothing in this repository publishes on its
+own, and a green CI run is not an authorisation to install anything.
