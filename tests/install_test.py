@@ -163,6 +163,11 @@ def pkgfile(name, raw):
 
 
 def cli(args, dev, answer=True):
+    # (QG-1) the install now requires the physical NOR id: these tests drive the protocol, so they
+    # present a documented JEDEC the way an external reader would (tests/preflight_test.py covers refusal)
+    args = list(args)
+    if "--jedec" not in args and "--allow-unidentified-chip" not in args:
+        args += ["--jedec", "856014"]
     out, err = io.StringIO(), io.StringIO()
     old, sys.stderr = sys.stderr, err
     try:

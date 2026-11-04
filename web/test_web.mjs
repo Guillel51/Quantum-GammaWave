@@ -1496,25 +1496,38 @@ async function updater() {
   const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
   const dev = new FakeFM1(image);
   const steps = [];
-  const got = await new Updater(dev.access).install(image, "FM-1_900", (k) => steps.push(k));
+  const got = await new Updater(dev.access).install(image, "FM-1_900", (k) => steps.push(k), { jedec: 0x856014 });
   ok(got === "FM-1_900" && dev.bad === 0 && steps.includes("write") && steps.at(-1) === "done",
     `fm1ota.js: install: running firmware -> loader -> Felucca (${dev.served} reads)`);
 
   const dev2 = new FakeFM1(image, { unplugAfter: 3 });
   dev2.boot("ota-FM-1_900", "Felucca Update");
   const t0 = Date.now();
-  const done = await new Updater(dev2.access).resume(image);
+  const done = await new Updater(dev2.access).resume(image, undefined, null, { jedec: 0x856014 });
   ok(done === false && Date.now() - t0 < 6000, "fm1ota.js: unplugged during the write -> stops at once");
 
   const dev3 = new FakeFM1(image, { unplugAfter: 2 });
-  const e = await new Updater(dev3.access).install(image, "FM-1_900").then(() => null, (x) => x);
+  const e = await new Updater(dev3.access).install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
   ok(e && e.code === "lost", "fm1ota.js: unplugged in step 1 -> error code 'lost'");
-  const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_900").then(() => null, (x) => x);
+  const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
   ok(e2 && e2.code === "notfound", "fm1ota.js: no device -> error code 'notfound'");
   const dev4 = new FakeFM1(image, { ackLost: true });
   const e4 = await new Updater(dev4.access, null, { loaderDelay: 10, rebootDelay: 10, rebootWait: 300 })
-    .install(image, "FM-1_900").then(() => null, (x) => x);
+    .install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
   ok(e4 && e4.code === "noreturn", "fm1ota.js: lost final ACK -> no success ('noreturn')");
+
+  const dev5 = new FakeFM1(image);
+  const e5 = await new Updater(dev5.access).install(image, "FM-1_900").then(() => null, (x) => x);
+  ok(e5 && e5.code === "chip" && dev5.served === 0,
+    "fm1ota.js: install without chip evidence -> 'chip', not one request served");
+  const dev6 = new FakeFM1(image);
+  dev6.boot("ota-FM-1_900", "Felucca Update");
+  const e6 = await new Updater(dev6.access).resume(image).then(() => null, (x) => x);
+  ok(e6 && e6.code === "chip" && dev6.served === 0,
+    "fm1ota.js: resume without chip evidence -> 'chip', not one request served");
+  const e7 = await new Updater(dev5.access).install(image, "FM-1_900", null, { jedec: 0x123456 })
+    .then(() => null, (x) => x);
+  ok(e7 && e7.code === "chip", "fm1ota.js: a JEDEC outside the allowlist -> 'chip'");
 }
 
 await editorMock();

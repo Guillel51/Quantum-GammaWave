@@ -11,6 +11,7 @@ the FM-1 restarts and the installed identity is checked.
 
   fm1_install.py PACKAGE.fwsc [--port NAME] [--yes] [--force] [--sha256 HEX]
   fm1_install.py PACKAGE.fwsc --verify-only   (checks the package and the FM-1, writes nothing)
+  fm1_install.py PACKAGE.fwsc --jedec 856014  (the NOR id read on this unit: required to write)
   fm1_install.py FM-1.fwsc            (the official V15 file: back to the stock firmware)
   fm1_install.py --info [--port NAME]
 
@@ -29,10 +30,13 @@ loader / no restart), 6 wrong model, or another identity after the install.
 """
 import argparse
 import hashlib
+import os
 import queue
 import re
 import sys
 import time
+
+import fm1_gate as GATE
 
 HS_QUERY = bytes([0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7])
 UPGRADE = bytes([0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7])
@@ -51,7 +55,7 @@ DELAY = {"open": 0.3, "start": 2.0, "reply": 0.01, "loader": 3.0, "reboot": 3.0,
          "wait_loader": 30.0, "wait_reboot": 40.0}
 
 EXIT = {"usage": 2, "badpkg": 2, "notfound": 3, "model": 6, "lost": 4, "stopped": 4, "badreq": 4,
-        "noloader": 5, "noreturn": 5, "mismatch": 6}
+        "noloader": 5, "noreturn": 5, "mismatch": 6, "chip": 7}
 
 
 class InstallError(Exception):
@@ -320,6 +324,15 @@ class Updater:
             served += 1
             progress(served, addr + n)
 
+    def gate(self, dev, product, evidence):
+        """The physical NOR must be identified for THIS unit before a frame that can write is sent."""
+        ev = evidence or {}
+        try:
+            GATE.require(product, dev.id.text, jedec=ev.get("jedec"), lab=bool(ev.get("lab")))
+        except GATE.Refusal as e:
+            code = "model" if e.code == "model" else "chip"
+            raise InstallError(code, f"{e.reason}: {e.detail}. The update was not started: nothing was sent")
+
     def check(self, dev, image, step):
         """step 1: the running firmware checks the package and starts the loader"""
         step("start", dev.id.text)
@@ -340,8 +353,9 @@ class Updater:
                                            "run the install again: the FM-1 stays in update mode until it is done")
         return ota
 
-    def write(self, ota, image, step):
+    def write(self, ota, image, step, evidence=None, product=None):
         """step 2: the loader reads and writes the whole package, then restarts"""
+        self.gate(ota, product or ota.id.text.removeprefix("ota-"), evidence)
         step("write", 0)
         ota.link.send(UPGRADE)
         time.sleep(DELAY["start"])
@@ -366,14 +380,15 @@ class Updater:
         step("done", back.id.text)
         return back.id.text
 
-    def install(self, dev, image, product, step=lambda *a: None):
+    def install(self, dev, image, product, step=lambda *a: None, evidence=None):
         """running firmware -> loader -> new firmware; dev from find(). A device already in
         update mode only needs the write."""
+        self.gate(dev, product, evidence)
         if model_of(dev.id.text) != model_of(product):
             dev.link.close()
             raise InstallError("model", f"the device is {dev.id.text}, the package is for {product}")
         ota = dev if dev.id.loader else self.check(dev, image, step)
-        self.write(ota, image, step)
+        self.write(ota, image, step, evidence, product)
         return self.verify(product, step)
 
 
@@ -464,6 +479,21 @@ class Progress:
             self.line = False
 
 
+def evidence_of(a):
+    """-> what the caller can prove about this unit's NOR (or a lab override, which needs FM1_LAB=1)"""
+    if a.allow_unidentified_chip:
+        if os.environ.get("FM1_LAB") != "1":
+            raise InstallError("usage", "--allow-unidentified-chip is a lab override and needs FM1_LAB=1 "
+                                        "in the environment; it is not a normal installation path")
+        return {"lab": True}
+    if a.jedec:
+        try:
+            return {"jedec": int(a.jedec, 16)}
+        except ValueError:
+            raise InstallError("usage", f"--jedec {a.jedec!r} is not a hexadecimal id (e.g. 856014)")
+    return None
+
+
 def run(a, backend, out, ask):
     up = Updater(backend, a.port)
     if a.info:
@@ -474,6 +504,7 @@ def run(a, backend, out, ask):
         mode = "update loader (update not finished)" if dev.id.loader else "running"
         print(f"{dev.id.text}  [{mode}]  port: {dev.name}", file=out)
         return 0
+    evidence = evidence_of(a)
     product, image, got = load_package(a.package, a.force, a.sha256)
     print(f"package: {product}  ({a.package})", file=out)
     print(f"sha256:  {got}  (verified)", file=out)
@@ -486,6 +517,10 @@ def run(a, backend, out, ask):
         dev.link.close()
         if model_of(dev.id.text) != model_of(product):
             raise InstallError("model", f"the device is {dev.id.text}, the package is for {product}")
+        d = GATE.authorise(product, dev.id.text, jedec=(evidence or {}).get("jedec"),
+                           lab=bool((evidence or {}).get("lab")))
+        print("preflight: " + ("allowed" if d["allowed"] else f"blocked ({d['reason']})") +
+              (f" - {d['detail']}" if d["detail"] else ""), file=out)
         same = dev.id.text.removeprefix("ota-") == product
         print("verify:  the package can be installed on this FM-1" + (" (same identity: a reinstall or another version)"
               if same else "") + "; nothing was written", file=out)
@@ -497,7 +532,7 @@ def run(a, backend, out, ask):
         return 1
     prog = Progress(out)
     try:
-        up.install(dev, image, product, prog)
+        up.install(dev, image, product, prog, evidence)
     finally:
         prog.end()
     return 0
@@ -519,6 +554,10 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     ap.add_argument("--force", action="store_true", help="install a package without the Felucca loader marker")
     ap.add_argument("--sha256", metavar="HEX", help="the package's expected SHA-256 (required; else PACKAGE.sha256 / SHA256SUMS)")
     ap.add_argument("--verify-only", action="store_true", help="check the package and the connected FM-1, write nothing")
+    ap.add_argument("--jedec", metavar="HEX", help="the NOR's JEDEC id read on THIS unit with an external reader "
+                                                  "(e.g. 856014); without it the install is refused")
+    ap.add_argument("--allow-unidentified-chip", action="store_true",
+                    help="lab only, needs FM1_LAB=1: install without a chip identification")
     a = ap.parse_args(argv)
     if bool(a.info) == bool(a.package):
         ap.error("give a PACKAGE.fwsc or --info")

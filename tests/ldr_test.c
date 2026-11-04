@@ -20,6 +20,8 @@ static uint32_t flip_addr = 0xFFFFFFFFu, flip_seen, flip_on;   /* serve addr's f
 static uint32_t bad_finish;                     /* serve a wrong 0xF0000000 acknowledgement */
 static long prog_budget = -1;                  /* power loss after this many programmed bytes; -1 = none */
 static uint32_t power_cuts;                     /* simulated power losses during ldr_prog() */
+static long erase_fail_at = -1, prog_fail_at = -1, read_fail_at = -1;   /* fault injection */
+static uint32_t erase_ops, prog_ops, read_ops;
 
 static uint32_t pack7(const uint8_t *in, uint32_t n, uint8_t *out)
 {
@@ -83,13 +85,19 @@ static void ota_show(uint32_t step, int32_t code) { (void)step; (void)code; }
 static void ota_commit(const uint8_t *parm) { (void)parm; }
 #include "../firmware/src/ota.c"
 
-static int ldr_fread(uint32_t off, void *p, uint32_t n) { memcpy(p, nor + off, n); return 0; }
+static int ldr_fread(uint32_t off, void *p, uint32_t n)
+{
+    if (read_fail_at >= 0 && (long)read_ops++ == read_fail_at) return -1;
+    memcpy(p, nor + off, n);
+    return 0;
+}
 static int ldr_erase(uint32_t off)
 {
     if (off < 0x4000u || off >= 0xE5000u || (off & 0xFFFu) || (off >= 0x93000u && off < 0xE0000u))
         bad_range++;
     if (off == 0xE8000u) { printf("ERASE IN THE VM BACKUP %#x\n", off); exit(1); }
     if (off < 0x4000u) { printf("ERASE IN THE HEAD %#x\n", off); exit(1); }
+    if (erase_fail_at >= 0 && (long)erase_ops++ == erase_fail_at) return -1;
     erases++;
     memset(nor + off, 0xFF, 0x1000);
     return 0;
@@ -98,6 +106,7 @@ static int ldr_prog(uint32_t off, const void *p, uint32_t n)
 {
     const uint8_t *s = p;
     uint32_t i, limit = n;
+    if (prog_fail_at >= 0 && (long)prog_ops++ == prog_fail_at) return -1;
     if ((off < 0x4000u || off + n > 0x93000u) &&
         !(off >= 0xE8F00u && off + n <= 0xE8F50u)) bad_range++;
     if (((off & 0xFFu) + n) > 256u) bad_range++;
@@ -324,6 +333,50 @@ int main(int argc, char **argv)
         printf("  page cuts: %u cut states, %u failures\n", done, fails);
         bad += check("a power cut at every programmed page resumes and completes exactly",
                      fails == 0 && done >= 8 && reached_commit);
+    }
+    /* injected flash faults: an erase error and a program error abort without committing, and a read
+     * error before the first erase leaves the device exactly as it was */
+    {
+        int f_bad = 0;
+        for (i = 0; i < 2; i++) {
+            memcpy(nor, old + ofo, 0x93000);
+            memcpy(nor, head, sizeof head);
+            put_record(0xE4F00); put_record(0xE8F00);
+            record_cleared = 0; erase_ops = prog_ops = read_ops = 0;
+            erase_fail_at = i == 0 ? 0 : -1;
+            prog_fail_at = i == 1 ? 0 : -1;
+            rc = ldr_session();
+            erase_fail_at = prog_fail_at = -1;
+            if (rc >= 0 || record_cleared || nor[0xE4F06] != 0x41) {
+                printf("  fault %d: rc %d, cleared %u\n", i, rc, record_cleared);
+                f_bad++;
+            }
+        }
+        bad += check("an erase error and a program error abort without committing", f_bad == 0);
+
+        memcpy(nor, old + ofo, 0x93000);
+        memcpy(nor, head, sizeof head);
+        put_record(0xE4F00); put_record(0xE8F00);
+        record_cleared = 0; read_ops = 0; erases = 0; read_fail_at = 0;
+        rc = ldr_session();
+        read_fail_at = -1;
+        bad += check("a flash read error before any erase aborts and erases nothing",
+                     rc < 0 && erases == 0 && !record_cleared && nor[0xE4F06] == 0x41);
+    }
+    /* a retry with another package (the previous one) rewrites the app area and commits */
+    {
+        uint8_t *keep = logical;
+        size_t keep_len = logical_len;
+        memcpy(nor, logical + nfo, 0x93000);
+        memcpy(nor, head, sizeof head);
+        put_record(0xE4F00);
+        logical = old; logical_len = olen; nfo = ofo;
+        record_cleared = 0; erases = 0; bad_range = 0;
+        rc = ldr_session();
+        bad += check("a retry with the previous package rewrites the app area and commits",
+                     rc == 0 && record_cleared && !bad_range &&
+                     !memcmp(nor + 0x4000, old + ofo + 0x4000, 0x93000 - 0x4000));
+        logical = keep; logical_len = keep_len; nfo = flash_off(logical);
     }
     free(old);
     free(logical);

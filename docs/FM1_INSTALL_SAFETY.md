@@ -41,6 +41,28 @@ Ninguna de las cuatro está implementada y validada en esta sesión. Por eso el 
 (`tools/fm1_preflight.py`) **se niega a autorizar** una instalación: informa el paquete, la identidad,
 el modo del dispositivo y declara el chip como `unknown`.
 
+### La puerta es obligatoria en las dos rutas
+
+`tools/fm1_gate.py` es la única política; `fm1_install.py` y `web/fm1ota.js` la llaman **inmediatamente
+antes de enviar `UPGRADE`**, no al abrir la aplicación:
+
+- CLI: `Updater.install()` y `Updater.write()` (esta última también en `--resume`) llaman a
+  `GATE.require(...)`; sin evidencia del NOR de **esa** unidad lanzan `chip` (exit 7) y no se envía un
+  solo frame. `resume` no tiene camino alternativo: comparte `write`.
+- Web: `install()`, `write()` y `resume()` llaman a `requireChip(evidence)` antes de tocar WebMIDI.
+  Ningún parámetro de URL puede aportar la evidencia.
+- Evidencia aceptada: `--jedec 856014` / `{jedec: 0x856014}`, es decir el ID leído **en esa unidad** con
+  un lector externo (alternativa D), y sólo si está en la allowlist documentada. `0xFFFFFF`, `0`,
+  `0xFFFFFFFF` y cualquier valor fuera de la lista se rechazan.
+- Override de laboratorio: exige `--allow-unidentified-chip` **y** `FM1_LAB=1` en el entorno; sin la
+  variable es un error de uso (exit 2) y no se envía nada. No existe en la ruta web ni en el sitio
+  publicado.
+
+Pruebas que lo demuestran, contando los frames del dispositivo simulado (`upgrades`/`served`):
+`tests/preflight_test.py` (instalador sin evidencia, JEDEC desconocido, override sin variable,
+`Updater.write()` llamado directamente) y `web/test_web.mjs` (instalación y reanudación sin evidencia:
+`chip` y **cero peticiones servidas**).
+
 ### Política fail-closed
 
 `tools/fm1_preflight.py` implementa la parte que hoy se puede implementar:
@@ -54,6 +76,10 @@ el modo del dispositivo y declara el chip como `unknown`.
 
 El override se llama por su nombre para que quede en el registro; no hay un camino silencioso que
 convierta “no sé qué chip es” en “adelante”.
+
+El diseño concreto de los comandos que lo desbloquean (formato, validación, compatibilidad y
+transición) está en `docs/JEDEC_BACKUP_SIGNING_PROPOSAL.md`. CI ejecuta las pruebas de la puerta en las
+dos rutas (`node web/test_web.mjs` y `python3 tests/preflight_test.py`) junto a los checks de target.
 
 ## 3. Backup completo: diseño y por qué está bloqueado
 

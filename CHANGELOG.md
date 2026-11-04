@@ -21,6 +21,15 @@
   que no cortaban se informan como omitidos.
 - **Documentación:** `docs/FM1_INSTALL_SAFETY.md` reúne alternativas de identificación del chip, el diseño de
   backup bloqueado, la máquina de estados, los niveles de recuperación y el criterio NO-GO.
+- **La identificación del chip pasa a ser obligatoria en las dos rutas de instalación:** `tools/fm1_gate.py`
+  es la única política y la CLI y la web la invocan justo antes de `UPGRADE`. Sin el JEDEC de esa unidad
+  (lector externo, `--jedec`) se rechaza con exit 7 y no se envía nada; el override de laboratorio exige
+  `FM1_LAB=1` y no existe en la web. `preflight_test.py` y `test_web.mjs` cuentan los frames del
+  dispositivo falso para demostrarlo.
+- **CI:** el workflow ejecuta ahora `web/test_web.mjs` y `tests/preflight_test.py` en el job de
+  target, para que una ruta que se salte la puerta rompa el build.
+- **Propuesta de protocolo:** `docs/JEDEC_BACKUP_SIGNING_PROPOSAL.md` define los comandos `0x12`
+  (JEDEC/geometría) y `0x13` (lectura para backup) y la firma Ed25519, sin implementarlos.
 - **Bootsplash:** `SPL_WRITE` 800 → 1100 ms and `SPL_HOLD` 900 → 1200 ms, a slower reveal and hold.
 - **Installer trust (documented, not changed):** the WebMIDI identity reply carries `model_version` and no
   SPI NOR JEDEC id, so the installer cannot verify the physical flash before writing; the 1 MiB allowlist is

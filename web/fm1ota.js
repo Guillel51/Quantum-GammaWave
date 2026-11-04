@@ -13,6 +13,22 @@ const MAXDATA = 512;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_OTA = (id) => /^ota-/i.test(id.model);
 
+// The documented 1 MiB parts. The update is refused unless the caller can present the JEDEC of
+// THIS unit, read from the device or with an external reader: the identity frame carries the model
+// only, so the page today cannot produce it and the install never starts (tools/fm1_gate.py).
+const KNOWN_JEDEC = { 0x856014: "Puya P25Q80H (1 MiB)", 0xB36014: "UCUN 1 MiB" };
+
+export function requireChip(evidence) {
+  const jedec = evidence && evidence.jedec;
+  if (jedec === undefined || jedec === null)
+    throw fail("chip", "The physical flash chip was not identified: the update was not started.");
+  if (jedec === 0xFFFFFF || jedec === 0 || jedec === 0xFFFFFFFF)
+    throw fail("chip", `The flash answered ${jedec.toString(16)}: no usable JEDEC. Nothing was sent.`);
+  if (!(jedec in KNOWN_JEDEC))
+    throw fail("chip", `JEDEC 0x${jedec.toString(16)} is not in the documented 1 MiB allowlist. Nothing was sent.`);
+  return KNOWN_JEDEC[jedec];
+}
+
 // errors carry a code the pages translate: notfound, model, stopped, noloader, lost, noreturn,
 // mismatch (detail: the identity the device reports), badreq
 function fail(code, msg, detail = "") { const e = new Error(msg); e.code = code; e.detail = detail; return e; }
@@ -176,7 +192,8 @@ export class Updater {
   }
 
   // full install: running firmware -> loader -> new firmware
-  async install(image, product, onStep) {
+  async install(image, product, onStep, evidence) {
+    requireChip(evidence);                 // before find(), before any frame
     const step = onStep || (() => {});
     const dev = await this.find((id) => !IS_OTA(id));
     if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
@@ -192,7 +209,7 @@ export class Updater {
     await sleep(this.loaderDelay);
     const ota = await this.waitFor((id) => id.model === "ota-" + model, this.loaderWait);
     if (!ota) throw fail("noloader", "the update loader did not appear. Replug the USB cable and press Install again: the device stays in update mode until it is finished.");
-    const s2 = await this.write(ota, image, step);
+    const s2 = await this.write(ota, image, step, evidence);
     if (!s2.finished) throw fail(s2.lost ? "lost" : "stopped", `the loader ${s2.lost ? "was disconnected" : "stopped"} after ${s2.served} requests. Replug and press Install again to resume.`);
     step("reboot");
     await sleep(this.rebootDelay);
@@ -205,7 +222,8 @@ export class Updater {
   }
 
   // step 2 with the loader found by find()/waitFor()
-  async write(ota, image, step) {
+  async write(ota, image, step, evidence) {
+    requireChip(evidence);
     ota.link.send(UPGRADE);
     await sleep(2000);
     const s2 = await this.serve(ota.link, image, 0xF0000000, 180000, (n) => step("write", n));
@@ -214,12 +232,13 @@ export class Updater {
   }
 
   // resume: the device is already in update mode (loader) -> true when the write finished
-  async resume(image, onStep, product = null) {
+  async resume(image, onStep, product = null, evidence = null) {
+    requireChip(evidence);
     const model = product && product.split("_")[0];
     const ota = await this.find((id) => model ? id.model === "ota-" + model : IS_OTA(id));
     if (!ota) return false;
     const step = onStep || (() => {});
-    const result = await this.write(ota, image, step);
+    const result = await this.write(ota, image, step, evidence);
     if (!result.finished) return false;
     if (product) {
       step("reboot");
