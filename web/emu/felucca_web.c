@@ -188,11 +188,14 @@ static int st_prog(uint32_t off, const void *src, uint32_t n)       /* NOR: a wr
 }
 static uint32_t irq_save(void) { return 0; }
 static void irq_restore(uint32_t f) { (void)f; }
+/* (QG-1 v1.8.8) flash identification, as project.c asks it (hal/fm1_flash_id.h). A host test that
+ * includes this file together with its own simulated part defines HOSTSIM_FLASH_ID and keeps its
+ * answer: the one it drives in its checks is the one that must be compiled. */
+#ifndef HOSTSIM_FLASH_ID
+#define HOSTSIM_FLASH_ID 1
 static uint32_t fl_jedec_ram(void) { return 0x856014u; }             /* the FM-1's part (project.c) */
-/* SR1|SR2 of the emulator's part: readable, idle, no block protection. The merged
- * flash_identify() reads it, so without this the emulator would identify nothing and
- * silently run RAM-only, which is not what a healthy unit does. */
-static uint32_t fl_status_ram(void) { return 0x0000u; }
+static uint32_t fl_status_ram(void) { return 0; }                    /* SR1 | SR2 << 8: idle, unprotected */
+#endif
 static void fl_plain_window_init(void) {}
 #define FL_FAR(fn) (fn)
 #include "../../firmware/hal/fm1_flash_id.h"

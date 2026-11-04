@@ -22,6 +22,7 @@ static long prog_budget = -1;                  /* power loss after this many pro
 static uint32_t power_cuts;                     /* simulated power losses during ldr_prog() */
 static long erase_fail_at = -1, prog_fail_at = -1, read_fail_at = -1;   /* fault injection */
 static uint32_t erase_ops, prog_ops, read_ops;
+static uint32_t prog_done;                      /* bytes programmed by the last session (the cut points below) */
 
 static uint32_t pack7(const uint8_t *in, uint32_t n, uint8_t *out)
 {
@@ -117,6 +118,7 @@ static int ldr_prog(uint32_t off, const void *p, uint32_t n)
     for (i = 0; i < limit; i++) nor[off + i] &= s[i];
     if (limit != n) { prog_budget = -1; power_cuts++; return -1; }
     if (prog_budget >= 0) prog_budget -= n;
+    if (off < 0x93000u) prog_done += n;          /* the app area only: the record cleanup after the commit is not a cut point */
     return 0;
 }
 static void ldr_record_clear(void) { record_cleared++; }
@@ -258,11 +260,25 @@ int main(int argc, char **argv)
                      rc == 0 && record_cleared && nor[0xE4F06] == 0xFF &&
                      !memcmp(nor, head, sizeof head) && !bad_range);
     }
-    /* power loss during the write: the record survives, the next session resumes and finishes */
+    /* power loss during the write: the record survives, the next session resumes and finishes.
+     * The cut points are derived from what this package's install actually programs: a fixed list
+     * stopped cutting (0x80000 B) the moment the old app and the new build shared enough sectors
+     * that fewer bytes were written -- the first session then completed and the check failed on
+     * its own assumption, not on the loader. A cut at `total - 1` is still inside the last write. */
     {
-        static const uint32_t cuts[] = { 0, 0x1000, 0x10000, 0x40000, 0x80000 };
-        unsigned ci;
-        for (ci = 0; ci < sizeof cuts / sizeof cuts[0]; ci++) {
+        uint32_t cuts[5], cand[5], total, ncut = 0, ci;
+        memcpy(nor, old + ofo, 0x93000);
+        memcpy(nor, head, sizeof head);
+        put_record(0xE4F00); put_record(0xE8F00);
+        prog_budget = -1; prog_done = 0; power_cuts = 0; record_cleared = 0; erases = 0; bad_range = 0;
+        rc = ldr_session();
+        total = prog_done;
+        bad += check("baseline install: the app area actually gets programmed", rc == 0 && total > 0x1000u);
+        cand[0] = 0; cand[1] = total / 16u; cand[2] = total / 4u; cand[3] = total / 2u; cand[4] = total - 1u;
+        for (ci = 0; ci < 5u; ci++)
+            if (ci == 0u || cand[ci] != cand[ci - 1u])
+                cuts[ncut++] = cand[ci];
+        for (ci = 0; ci < ncut; ci++) {
             memcpy(nor, old + ofo, 0x93000);
             memcpy(nor, head, sizeof head);
             put_record(0xE4F00); put_record(0xE8F00);

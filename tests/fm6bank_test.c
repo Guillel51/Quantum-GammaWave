@@ -9,6 +9,7 @@
  * and the SLOT values stored before 1.4.1 (projects, user presets, motion) loading exactly as before. (1.2-GW) GW-1
  * KEYS, the bank built in while none is sent, and the 1.2 presets (their extra values, their bank voices, a sound). */
 #define main hostsim_main
+#define HOSTSIM_FLASH_ID 1                 /* this test's own fl_jedec_ram / fl_status_ram, below */
 #include "hostsim.c"
 #undef main
 
