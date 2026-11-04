@@ -188,5 +188,24 @@ jobs:
             exit 1
           fi
           echo "Pages: $(tr -d '\n' < /tmp/pages.json)"
+      - name: pages settings and the failure (temporary)
+        if: failure()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_JSON: ${{ toJSON(steps) }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          printf '%s\n' "$STEPS_JSON" > pages_report.json
+          echo '--- pages ---' >> pages_report.json
+          gh api "repos/${{ github.repository }}/pages" >> pages_report.json 2>&1 || true
+          echo '--- failed log ---' >> pages_report.json
+          gh run view "$RUN_ID" --log-failed >> pages_report.json 2>&1 || true
+          git config user.email ci@localhost
+          git config user.name ci
+          git checkout -B ci-diag
+          git add -f pages_report.json
+          git commit -m "ci: pages diagnosis of run $RUN_ID" || true
+          git push origin ci-diag || echo "push failed"
       - id: deployment
         uses: actions/deploy-pages@v4
