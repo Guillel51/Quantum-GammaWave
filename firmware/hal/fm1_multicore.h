@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include "fm1_irq.h"
 #include "fm1_guard.h"
+#include "fm1_mc_selftest.h"
 
 #define FM1_C1_CON (*(volatile uint32_t *)0x1EEE004u)
 #define FM1_C1_SYNC() __asm__ volatile("csync" ::: "memory")
@@ -111,6 +112,32 @@ static void fm1_mc_hold(void)
     fm1_mc_on = 0;
 }
 
+static inline int fm1_mc_run(void (*fn)(uint32_t), uint32_t arg);
+static inline int fm1_mc_wait(void);
+
+/* (QG-1 v1.8.7) Before core 0 hands it any audio, core 1 must show that it reads and writes
+ * the shared mailbox correctly. `alive` only proves that it reached the loop; the known
+ * failure of these units is a wrong 32-bit load under load. Eight fixed jobs with answers
+ * computed on core 0 run here (boot, not in the ISR, a few hundred microseconds); one wrong
+ * word and the core is held for good and the firmware plays on one core. */
+static int fm1_mc_selftest(void)
+{
+    uint32_t j;
+    for (j = 0; j < FM1_MC_SELFTEST_JOBS; j++) {
+        uint32_t n = j + 1u;
+        fm1_mc_selftest_prepare(fm1_mc_box.pad0, n);
+        FM1_C1_SYNC();
+        if (!fm1_mc_run(fm1_mc_selftest_run, (uint32_t)(uintptr_t)fm1_mc_box.pad0))
+            return -1;
+        if (fm1_mc_wait())
+            return -1;                          /* held there already */
+        FM1_C1_SYNC();
+        if (fm1_mc_selftest_check(fm1_mc_box.pad0, n))
+            return -1;
+    }
+    return 0;
+}
+
 static int fm1_mc_start(void)
 {
     uint32_t saved, t0, i;
@@ -137,7 +164,12 @@ static int fm1_mc_start(void)
         fm1_mc_hold();
         return 0;
     }
-    fm1_mc_on = 1;
+    fm1_mc_on = 1;                              /* fm1_mc_run refuses work while it is 0 */
+    if (fm1_mc_selftest()) {
+        fm1_mc_hold();
+        fm1_mc_lost = 1u;                       /* BAD READ: the shared mailbox did not check out */
+        return 0;
+    }
     return 1;
 }
 

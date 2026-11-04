@@ -69,6 +69,59 @@
   is refused, the correct state until a custodian exists); `0x856014` writable, `0xB36014` read-only.
 - **Not verified:** hardware, physical restore, audio on a real unit.
 
+## Integrated hardening — flash identification, OTA bounds, core-1 self-test, verified backup CLI
+(branch `freebuff/6ae847e`, merged into v1.8.9; its own text, kept whole)
+
+Hardening pass over the write paths and the second core. No DSP, voice count, effect, layout or
+parameter changed; no physical FM-1 was used and no target build was produced in this session
+(the JieLi toolchain and the AC79 SDK are not installed here). Full evidence, including what could
+**not** be run, is in [`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md).
+
+- **Flash identification is now evidence, not a single reading.** `flash_ok` used to be one `0x9F`
+  read against an allowlist. It now requires two independent reads that agree, a documented 1 MiB
+  part at its documented capacity, and a status register that is readable, idle and **not
+  block-protected** (a protected part ignores erase/program while every call returns success). Any
+  other result leaves the firmware RAM-only instead of writing to a part it cannot identify.
+  Policy: `firmware/hal/fm1_flash_id.h`; application: `flash_identify()` in `project.c`;
+  test: `tests/flash_id_test.c` (11 cases).
+- **The update path refuses packages that point outside the part.** `ota_ufw` now requires every
+  `flash.bin` / `ota.bin` range to satisfy `off <= 1 MiB && len <= 1 MiB - off` (the only form that
+  cannot wrap) and `flash.bin` to cover the app window, before anything is erased. A reply is only
+  accepted when it echoes the flags byte the request was sent with.
+- **The update loader can no longer hang for ever.** A 20-minute session deadline (`ldr_core.c`)
+  turns a host that goes quiet without unplugging into a failed write with the record intact, so the
+  next power-on resumes instead of looping.
+- **Boot cleanup covers a half-written loader.** `ota_boot_cleanup` samples the head, the first body
+  page and the record instead of four bytes, so a staging area whose first word reads `0xFFFFFFFF`
+  is still cleared.
+- **The second core must prove itself before it is used.** `fm1_mc_start` used to trust `alive`; the
+  documented failure of some units is a wrong 32-bit load under load. Eight fixed jobs with answers
+  computed on core 0 now run through the shared mailbox at boot
+  (`firmware/hal/fm1_mc_selftest.h`); one wrong word and the core is held for good, `CORES 1 (BAD
+  READ)` is reported and core 0 renders every part (`tests/mc_selftest_test.c`).
+- **The installer can no longer write to an unrelated port.** `pair_output` returned the only output
+  on the bus whatever its name; it now requires the names to match (ignoring Windows' numeric
+  suffix) and otherwise reports "FM-1 not found".
+- **New `tools/fm1_backup.py`.** Two independent reads compared byte for byte, SHA-256 per read, per
+  object and for the file, a manifest (device identity, date, method, capacity, passes, result) and
+  an explicit classification (complete / partial / inconsistent / unverifiable). Restore validates
+  manifest, file hash, every object hash and CRC, the device model and the object geometry before
+  the first write, reads every object back and compares it, and reports a selective restore as
+  partial. Archives are written `0600` outside the repository; a destination inside a git work tree
+  is refused before the device is opened. It moves **musical objects**, not raw flash, and the
+  manifest says so.
+- **README navigation** is the required two-row table: `WEB SITE` first and double width, `WEB
+  EMULATOR`, `WEB STUDIO`, `WEBAPP / EDITOR`, `USB INSTALLER`, `FLASH FM-1`; second row `LICENSE`,
+  `GPL-3.0-ONLY`. `tests/readme_nav_test.py` enforces the names, the order, the widths and that every
+  destination resolves.
+- **Documentation:** `SECURITY_AUDIT.md`, `INSTALLATION_SAFETY.md`, `BACKUP_RESTORE.md`,
+  `RECOVERY_GUIDE.md`, `EMULATOR_FIDELITY.md`, `AC791N_SECOND_CORE.md`, `MEMORY_BUDGET.md`,
+  `RELEASE_PROCESS.md`, `VALIDATION_MATRIX.md`.
+- **Still open, and the reason the verdict does not move:** no cryptographic signature on packages
+  (no key material in this tree), no anti-rollback (vendor bootloader, not modifiable), the
+  single-bank write window, and no raw-flash backup path. Installation remains **NO-GO for the main
+  unit**; the target build, the WASM rebuild and every physical check are unverified.
+
 ## v1.8.8 — one master-EQ delay state had the wrong scale (2026-11-04)
 
 - **The bug, measured:** `master_eq_update()` guarded the four delay states against a state a stable

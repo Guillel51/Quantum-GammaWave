@@ -3,6 +3,11 @@
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
 """Two-pass, read-only backup of an FM-1's NOR over USB-MIDI.
 
+This is the *raw* archive: 1 MiB of flash, read twice and hashed, which is what
+tools/fm1_restore.py validates before writing a part back. The *musical* archive (named
+objects: songs, settings, projects) lives in tools/fm1_archive.py; neither replaces the
+other and neither can touch the bootloader.
+
 Everything here is read-only: the only frames sent are 0x11 (handshake), 0x12
 (identification) and 0x13 (read). No 0x30, no UPGRADE frame, no erase, no
 program, no status-register write. `tests/backup_tool_test.py` asserts exactly

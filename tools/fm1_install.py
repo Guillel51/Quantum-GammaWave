@@ -233,13 +233,20 @@ class MidoBackend:
 
 
 def pair_output(name, outs):
+    """the output that belongs to input `name`; never a port whose name does not match"""
     if name in outs:
         return name
     base = re.sub(r"\s+\d+$", "", name)     # Windows numbers each port
     same = [o for o in outs if re.sub(r"\s+\d+$", "", o) == base]
     if len(same) == 1:
         return same[0]
-    return outs[0] if len(outs) == 1 else None
+    # (QG-1 v1.8.7) one lonely output only counts as this input's pair when the names match.
+    # The old fallback returned whichever output existed, so on a machine with a single
+    # unrelated MIDI output the package could be served to a device that never answered the
+    # handshake. The installer now reports "FM-1 not found" instead of writing to the wrong port.
+    if len(outs) == 1 and re.sub(r"\s+\d+$", "", outs[0]).lower() == base.lower():
+        return outs[0]
+    return None
 
 
 # --------------------------------------------------------------- updater ---
