@@ -1121,6 +1121,51 @@ static void test_jiant_fx(void)
         (void)phrase_lr(&d3);
         check("CHORUS: a stereo ensemble at WIDTH 0, wider at 127", d2 > 1000 && d3 > d2);
     }
+    {   /* (1.8) PHASER: the all-pass chain must change the signal and keep it finite */
+        int32_t dp;
+        uint64_t hp0, hp1;
+        fresh(0, 0);
+        trk[0].p[P_CHOR] = 90; trk[0].p[P_DLY] = trk[0].p[P_REV] = 0;
+        song.g[G_CTYPE] = 0; song.g[G_CDEPTH] = 100;
+        hp0 = phrase_lr(&dp);
+        fresh(0, 0);
+        trk[0].p[P_CHOR] = 90; trk[0].p[P_DLY] = trk[0].p[P_REV] = 0;
+        song.g[G_CTYPE] = 1; song.g[G_CDEPTH] = 100;
+        hp1 = phrase_lr(&dp);
+        song.g[G_CTYPE] = 0;
+        printf("mod:   (PHASER hash %llx, chorus hash %llx, L-R %d)\n", (unsigned long long)hp1, (unsigned long long)hp0, dp);
+        check("PHASER: TYPE 1 changes the chorus signal, finite and stereo", hp1 != hp0 && dp > 0);
+    }
+    {   /* (1.8) M-WIDE: 0 is a mono sum, 64 neutral, 127 wider; the source is the chorus's stereo */
+        int32_t dm0, dm64, dm127;
+        fresh(0, 0);
+        trk[0].p[P_CHOR] = 90; trk[0].p[P_DLY] = trk[0].p[P_REV] = 0; song.g[G_CTYPE] = 0;
+        song.g[G_MWIDTH] = 0; (void)phrase_lr(&dm0);
+        fresh(0, 0);
+        trk[0].p[P_CHOR] = 90; trk[0].p[P_DLY] = trk[0].p[P_REV] = 0; song.g[G_CTYPE] = 0;
+        song.g[G_MWIDTH] = 64; (void)phrase_lr(&dm64);
+        fresh(0, 0);
+        trk[0].p[P_CHOR] = 90; trk[0].p[P_DLY] = trk[0].p[P_REV] = 0; song.g[G_CTYPE] = 0;
+        song.g[G_MWIDTH] = 127; (void)phrase_lr(&dm127);
+        song.g[G_MWIDTH] = 64;
+        printf("mod:   (M-WIDE L-R: 0 %d, 64 %d, 127 %d)\n", dm0, dm64, dm127);
+        check("M-WIDE: 0 mono, 64 neutral, 127 wider", dm0 <= 4 && dm64 > 1000 && dm127 > dm64);
+    }
+    {   /* (1.8) the EQ graph asks the same coefficients as the audio path */
+        int32_t peak_db, notch_db, low_db, high_db;
+        song.g[G_EQMODE] = 1; song.g[G_EQFREQ] = 64; song.g[G_EQGAIN] = 18; song.g[G_EQQ] = 64;
+        peak_db = fx_master_eq_db(64);
+        song.g[G_EQMODE] = 2;
+        notch_db = fx_master_eq_db(64);
+        song.g[G_EQMODE] = 3; song.g[G_EQGAIN] = 12;
+        low_db = fx_master_eq_db(8) - fx_master_eq_db(120);   /* low shelf: low end minus high end */
+        song.g[G_EQMODE] = 4;
+        high_db = fx_master_eq_db(120) - fx_master_eq_db(8);  /* high shelf: high end minus low end */
+        song.g[G_EQMODE] = 0;
+        printf("mod:   (EQ dB Q8: peak %d, notch %d, low shelf tilt %d / high shelf tilt %d)\n", peak_db, notch_db, low_db, high_db);
+        check("MASTER EQ: the UI response is the filter's (boost, notch, shelf tilt)",
+              peak_db > 500 && notch_db < -500 && low_db > 500 && high_db > 500);
+    }
     song.g[G_WIDTH] = 0;
     {   /* (JIANT 0.6.9) CHORUS STEREO (G_CSTER, was the delay's unused HPF): -64 mono, 0 as before, 63 wider */
         int32_t dm, d0s, dw;

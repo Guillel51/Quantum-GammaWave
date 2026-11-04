@@ -75,7 +75,7 @@ static const page_t *ly_page(uint32_t l) { return l == LAYER_SCL ? &LY_SCL : l =
 #define LY_DEAD 8u                     /* .. pressed where there is no layer: does nothing */
 enum { LY_INIT, LY_RECALL };          /* EDIT: the white keys F3 G3 */
 #define layer_seen (favorites.factory[15][31])   /* bit l: layer l opened once (a byte no engine uses) */
-static const khint_t FX_LATCH_FOOT[3] = {{KC_KEYS, "ON / OFF"}, {KC_K14, "MACROS"}, {KC_OCTDN, "ALL OFF"}};
+static const khint_t FX_LATCH_FOOT[3] = {{KC_KEYS, "YES / NO"}, {KC_K14, "MACROS"}, {KC_OCTDN, "ALL OFF"}};
 static const khint_t MAC_LATCH_FOOT[3] = {{KC_K14, "M1-M4"}, {KC_SELECT, "DICE"}, {KC_LFO, "DONE"}};   /* (MACRO latched) */
 
 static struct {
@@ -119,9 +119,9 @@ static uint32_t layer_btn(void) { return LAYERS[ui.layer % LAYER_N].btn; }
 static uint32_t layer_open(void);
 static const char *layer_head(void)                     /* FX: LATCH, and the MIDI effects' tracks (A#4) */
 {
-    static const char *const H[3][3] = {{"[FX] HOLD", "[FX] HOLD SYN", "[FX] HOLD DRM"},
-                                        {"[FX] LATCH", "[FX] LATCH SYN", "[FX] LATCH DRM"},
-                                        {"[FX] LOCKED", "[FX] LOCK SYN", "[FX] LOCK DRM"}};
+    static const char *const H[3][3] = {{"[FX] LATCH:NO", "[FX] LATCH:NO SYN", "[FX] LATCH:NO DRM"},
+                                        {"[FX] LATCH:YES", "[FX] LATCH:YES SYN", "[FX] LATCH:YES DRM"},
+                                        {"[FX] LOCK:YES", "[FX] LOCK:YES SYN", "[FX] LOCK:YES DRM"}};
     if (ui.layer == LAYER_MACRO && !layer_open())       /* (JIANT 0.4) the MACRO layer latched */
         return "[LFO] LATCH";
     return ui.layer == LAYER_FX ? H[fx_lock && !ui.ly ? 2 : perf_latch_on ? 1 : 0][pfx_tgt % 3u] : LAYERS[ui.layer % LAYER_N].head;
@@ -773,9 +773,6 @@ static const char B_NOTE[11] = {'F', 'G', 'A', 'C', 'D', 'F', 'G', 'A', 'C', 'D'
 #define LFR_P 20                                         /* (QG-1) FX: the 15 white-key effects, 5 x 3, 18 high */
 #define LFR_H 18
 #define LF_Y 4                                            /* the effects occupy the map's first three rows */
-#define LFR_P 20                                         /* (QG-1) FX: the white keys' rows 20 px apart, 18 high; */
-#define LFR_H 18
-#define LF_Y 4                                            /* the effects occupy the map's first three rows */
 #define LFM_Y 78                                         /* .. the mutes' row, the black effects' row under it */
 #define LFX_Y 98
 #define LFB_H 16
@@ -922,7 +919,7 @@ static const char *const FX10[10] = {"RPT", "STU", "GAT", "DIV", "CRS",
                                      "REV", "FRZ", "TAP", "GLC", "RTR"};
 static const char *const FX10_KEY[10] = {"F3", "C5", "C#", "F#", "F5", "F3", "G3", "A3", "B3", "C4"};
 static void fx_card(int32_t x, int32_t y, const char *key, const char *name, uint32_t on, uint32_t dim,
-                    uint32_t row_on)
+                    uint32_t row_on, uint32_t live)
 {
     uint16_t fill = on ? T_ACCENT : dim && !row_on ? T_DIM : row_on ? T_RAISE : T_SURF;
     uint16_t ink = on ? T_INK : T_TEXT;
@@ -930,6 +927,8 @@ static void fx_card(int32_t x, int32_t y, const char *key, const char *name, uin
     cv_rect(x + 38, y + 2, 2, 2, on ? T_INK : dim ? T_DIM : T_LINE);
     cv_text_on(x + 4, y + 5, &AF_S, key, ink, fill);
     cv_text_on(x + 19, y + 5, &AF_S, name, ink, fill);
+    /* a thin state bar: theme = capture/armed, text = reading audio. It is not a fake level meter. */
+    cv_rect(x + 4, y + 17, 34, 2, live == 2u ? T_TEXT : live ? T_THEME : T_LINE);
 }
 static void fx_keyboard(int32_t y, uint32_t held, uint32_t act)
 {
@@ -971,12 +970,24 @@ static void fx_keyboard(int32_t y, uint32_t held, uint32_t act)
 static void layer_fx(void)
 {
     uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail();
-    uint32_t i, row_on, mutes = 0;
-    char m[3] = {'T', '1', 0};
+    uint32_t i, row_on, mutes = 0, heads = perf_buf_heads(), playing = perf_buf_playing();
+    char m[3] = {'T', '1', 0}, st[12];
     for (i = 0; i < NTRK; i++)
         mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
     lc_soft = 1;
     cv_text(7, 1, &AF_S, "PUNCH-IN FX", T_THEME);
+    if (pb_recording) {
+        str_cpy(st, "CAP ", sizeof st);
+        fmt_int(st + 4, (int32_t)(pb_wr * 100u / PB_CAP));
+        str_cpy(st + str_len(st), "%", sizeof st - str_len(st));
+    } else if (heads) {
+        fmt_int(st, (int32_t)playing);
+        str_cpy(st + str_len(st), "/", sizeof st - str_len(st));
+        fmt_int(st + str_len(st), (int32_t)heads);
+    } else {
+        str_cpy(st, "LIVE", sizeof st);
+    }
+    cv_text(96, 1, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM);
     cv_text_r(230, 1, &AF_S, pfx_bank ? "BANK 2" : "BANK 1", T_ACCENT, T_SURF);
     for (i = 0; i < 10u; i++) {                         /* ten assignments: bank 1 above, bank 2 below */
         uint32_t f = PF10[i], on, dim;
@@ -986,17 +997,8 @@ static void layer_fx(void)
         if ((i == 0u && pfx_bank) || (i >= 5u && !pfx_bank))  /* the white-key bank not selected */
             dim = 1u;
         fx_card(12 + (int32_t)(i % 5u) * 44, 15 + (int32_t)(i / 5u) * 21,
-                FX10_KEY[i], i == 4u && !pfx_bank ? "RND" : FX10[i], on, dim, row_on);
-    /* The map's legend sits in the gap between the third FX row and the mutes, as before: it is
-     * one measured line, so it does not compete with either group. */
-    cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
-    for (e = 0; e < PF_M1; e++) {                       /* the effects of the white keys F3 .. F5, 5 a row */
-        if (e % 5u == 0u && !ux.style)                  /* (LINE: its rules are cells too) */
-            GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H | AL_CELLS | AL_N(5), "FX cells' row centred");
-        uint32_t st = !((ok >> e) & 1u) ? LS_DIM : !((held >> e) & 1u) ? LS_OFF :
-                      (act >> e) & 1u || ((PF_MIDI >> e) & 1u) ? LS_HELD : LS_WAIT;
-        n[0] = W_NOTE[e];
-        lcell(LF_X(e % 5u), LF_Y + LFR_P * (int32_t)(e / 5u), LFR_H, 0, ICON_COUNT, 0, PF_NAME[e], st, 0);
+                FX10_KEY[i], i == 4u && !pfx_bank ? "RND" : FX10[i], on, dim, row_on,
+                (PF_BUF & PF_BIT(f)) ? perf_buf_state(f) : on ? 2u : 0u);
     }
     fx_keyboard(59, held, act);
     lc_w = 35;
@@ -1319,7 +1321,8 @@ static void draw_layer(void)
     layer_cards(l);
     if (l == LAYER_FX)
         sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 11u + perf_act * 131u + perf_avail() * 7u +
-               (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u +
+               (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u + perf_buf_heads() * 65537u +
+               perf_buf_playing() * 4099u + (uint32_t)pb_recording * 131u +
                (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 |
                           trk[3].p[P_MUTE] << 3 | trk[4].p[P_MUTE] << 4 | trk[5].p[P_MUTE] << 5) * 104729u;
     else if (l == LAYER_GLO)

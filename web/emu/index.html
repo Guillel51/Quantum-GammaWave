@@ -28,6 +28,7 @@ a { color: inherit; }
 .hit.knob { cursor: ns-resize; border-radius: 50%; }
 .hit:focus-visible { outline: 2px solid var(--lit); outline-offset: 2px; }
 .face { transition: fill .05s; }
+.panel-label { fill: var(--label); }
 .dim .face.btn { fill: #3a3934; }
 .lit .face.btn { fill: var(--lit); }
 .lit text { fill: #1d1d1f; }
@@ -100,7 +101,7 @@ footer small { font-size: 11px; opacity: .8; }
 </p>
 
 <footer>
-  <small class="version">@VERSION@@PREVIEW@</small><br>
+  <small class="version">@VERSION@@PREVIEW@ · WASM <code id="wasm-hash">@WASM_SHA@</code> · @WASM_SIZE@ B</small><br>
   <strong>QUANTUM GAMMAWAVE (QG-1)</strong> · <a href="https://github.com/Guillel51/Quantum-GammaWave">Official Repository</a> · Lineage: Pocket GammaWave, <a href="https://github.com/juanjiant-bit/JIANT">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita, Hügelton Instruments · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · browser build after charlesvestal's <a href="https://github.com/charlesvestal/fm1-x0x">X0X</a> · DotGothic16 font, <a href="fonts/OFL.txt">SIL OFL 1.1</a><br>
   <nav><a href="https://github.com/Guillel51/Quantum-GammaWave">GitHub Source</a> · <a href="webapp/editor/">Web Studio</a> · <a href="webapp/installer/">USB Web Installer</a></nav>
   <small>M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is not affiliated with or endorsed by them, nor with Hügelton Instruments.</small>
@@ -150,7 +151,8 @@ function el(tag, attrs, parent = svg) {
 const SANS = "-apple-system, 'Helvetica Neue', Arial, sans-serif", DOT = "'DotGothic16', " + SANS;
 function label(parent, x, y, s, size, font = SANS, ink = "var(--label)") {
   const t = el("text", { x, y, "text-anchor": "middle", "font-family": font,
-                         "font-size": size, "font-weight": 600, fill: ink, "letter-spacing": ".04em" }, parent);
+                         "font-size": size, "font-weight": 600, "letter-spacing": ".04em", class: "panel-label" }, parent);
+  if (ink !== "var(--label)") t.style.fill = ink;      // SVG presentation attributes do not resolve var() in Chromium
   t.textContent = s;
   return t;
 }
@@ -472,6 +474,13 @@ async function midiOn() {
 // ------------------------------------------------------------------ switching on
 const status = document.getElementById("status");
 const say = (t) => { status.textContent = t; status.hidden = !t; };
+const EXPECTED_WASM_SHA = "@WASM_SHA@";
+const EXPECTED_VERSION = "@VERSION@";
+const sha256hex = async (buf) => {
+  if (!crypto?.subtle) throw new Error("SHA-256 unavailable: serve the emulator over HTTP(S), not a file URL.");
+  const d = await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+};
 
 if (location.protocol === "file:") {
   say("Opened via file:// protocol. Note: Browsers block WebAssembly and AudioWorklet on file:// URLs. Run a local server (e.g. 'python tools/emu_dev.py' or 'launch_browser_installer.bat') or use GitHub Pages.");
@@ -494,13 +503,19 @@ async function switchOn() {
     if (!AudioCtx) throw new Error("Web Audio API is not supported in this browser.");
     const ac = new AudioCtx({ sampleRate: 44100, latencyHint: "interactive" });
     const [wasm] = await Promise.all([
-      fetch("felucca.wasm?v=@VERSION@-s3", { cache: "no-cache" }).then((r) => {
-      fetch("felucca.wasm?v=@VERSION@", { cache: "no-cache" }).then((r) => {
+      fetch("felucca.wasm?v=@WASM_SHA@", { cache: "no-store" }).then(async (r) => {
         if (!r.ok) {
           if (r.status === 404) throw new Error("felucca.wasm not found (HTTP 404). Compile the emulator binary with 'sh web/emu/build.sh' or run 'python tools/emu_dev.py'.");
           throw new Error(`felucca.wasm: HTTP ${r.status}`);
         }
-        return r.arrayBuffer();
+        const buf = await r.arrayBuffer();
+        const got = await sha256hex(buf);
+        if (EXPECTED_WASM_SHA && got !== EXPECTED_WASM_SHA)
+          throw new Error(`WASM mismatch: page expects ${EXPECTED_WASM_SHA}, server sent ${got}. Clear the cache/rebuild build/emu.`);
+        document.getElementById("wasm-hash").textContent = got;
+        window.__QG_EMU__ = { version: EXPECTED_VERSION, wasmSha: got, wasmBytes: buf.byteLength };
+        console.info(`QUANTUM GAMMAWAVE emulator ${EXPECTED_VERSION} · ${got} · ${buf.byteLength} B`);
+        return buf;
       }),
       ac.audioWorklet.addModule("worklet.js?v=" + Date.now()).catch((e) => {
         throw new Error("AudioWorklet failed to initialize: " + (e.message || e));

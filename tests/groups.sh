@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Split the long Quantum GammaWave suite into reproducible groups.
-# Usage: tests/groups.sh ui|presets|web|emu|target|all
+# Usage: tests/groups.sh ui|presets|web|emu|sync|target|security|stress|all
 # Each group keeps its own exit status; no assertion or budget is changed.
 set -eu
 cd "$(dirname "$0")/.."
@@ -28,14 +28,20 @@ run_web() {
     node web/test_web.mjs
 }
 
+run_sync() {
+    python3 tests/emu_sync.py
+}
+
 run_emu() {
-    if [ ! -f /tmp/emsdk/emsdk_env.sh ]; then
-        echo "emu: /tmp/emsdk/emsdk_env.sh missing" >&2
-        return 1
+    if [ -f /tmp/emsdk/emsdk_env.sh ]; then
+        . /tmp/emsdk/emsdk_env.sh
+        sh web/emu/build.sh
+    else
+        echo "emu: emcc unavailable; testing the existing packaged WASM (not a rebuild)" >&2
+        [ -f build/emu/felucca.wasm ] || return 1
     fi
-    . /tmp/emsdk/emsdk_env.sh
-    sh web/emu/build.sh
     node web/emu/emu_test.mjs build/emu/felucca.wasm build/host/emu_native.f32
+    run_sync
 }
 
 run_security() {
@@ -45,6 +51,10 @@ run_security() {
     san="-O1 -g -fsanitize=address,undefined -fno-sanitize=signed-integer-overflow,shift,bounds,object-size,pointer-overflow -fno-sanitize-recover=undefined -w"
     cc $san -Ibuild/gen -Ifirmware/src -o build/uifix/audio_san tests/audio_test.c -lm
     ASAN_OPTIONS=detect_leaks=0 ./build/uifix/audio_san
+    cc -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -w -Ibuild/gen -Ifirmware/src -o build/uifix/fuzz_ed tests/fuzz_ed.c -lm
+    cc -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -w -Ibuild/gen -Ifirmware/src -o build/uifix/fuzz_proj tests/fuzz_proj.c -lm
+    ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 ./build/uifix/fuzz_ed 20000 7
+    ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 ./build/uifix/fuzz_proj 5000 13
 }
 
 run_stress() {
@@ -66,6 +76,7 @@ case "$group" in
     presets) run_presets ;;
     web) run_web ;;
     emu) run_emu ;;
+    sync) run_sync ;;
     security) run_security ;;
     stress) run_stress ;;
     target) run_target ;;
@@ -75,14 +86,10 @@ case "$group" in
         run_web
         run_emu
         run_target
-        ;;
-    *)
-        echo "usage: $0 ui|presets|web|emu|target|all" >&2
         run_security
-        run_target
         ;;
     *)
-        echo "usage: $0 ui|presets|web|emu|security|stress|target|all" >&2
+        echo "usage: $0 ui|presets|web|emu|sync|security|stress|target|all" >&2
         exit 2
         ;;
 esac

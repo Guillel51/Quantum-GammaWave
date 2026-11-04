@@ -375,3 +375,17 @@ to rely on CRC + rollback. This is a residual risk, stated plainly.
 - A malformed external MIDI stream is bounded by the existing ring buffers and fuzz tests, not by new code.
 - The 12-voice build is not shipped; if enabled experimentally it could starve the audio ISR on a real
   board (see `docs/POLYPHONY_1.6.md`).
+
+## v1.8 audit — 2026-11-03
+
+- **Emulador:** `build/emu/manifest.json` fija versión, tamaño y SHA-256; la página pide
+  `felucca.wasm?v=<sha256>`, usa `cache: "no-store"` y verifica el cuerpo antes de instanciarlo. No hay
+  service worker. `tests/emu_sync.py` comprueba la cadena completa.
+- **UBSan:** `fuzz_proj` encontró `left shift of negative value` en `eng_analog.c`; se sustituyó por `* 4`.
+  `fuzz_ed` (20.000 frames, seed 7) y `fuzz_proj` (5.000 stores, seed 13) pasan con ASan/UBSan y están
+  dentro de `tests/groups.sh security`.
+- **Controles existentes:** CRC y límites del paquete, rechazo de escrituras cortas, backup/restore,
+  validación de presets/proyectos y pruebas de paquetes manipulados. **No hay firma digital ni rollback
+  criptográfico**: requieren clave en ROM y un bootloader que no se modifica aquí.
+- **Riesgo residual:** no se probó un corte de energía real, ni la recuperación USB_KEY, ni el flasheo de
+  una FM-1. La protección contra brick no está demostrada.

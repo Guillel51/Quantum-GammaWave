@@ -8367,7 +8367,7 @@ static int test_fx_latch(void)
     frame();                                                      /* (ui_input hands the setting to the ISR) */
     btn_down(B_FX); key_down(lpf); frame(); key_up(lpf); frame();
     turn(EN_K2, 30);
-    ok = perf_latched == PF_BIT(PF_LPF) && !perf_held && ui.layer == LAYER_FX && str_eq(layer_head(), "[FX] LATCH") &&
+    ok = perf_latched == PF_BIT(PF_LPF) && !perf_held && ui.layer == LAYER_FX && str_eq(layer_head(), "[FX] LATCH:YES") &&
          (layer_leds(0) >> lpf) & 1u;
     btn_up(B_FX); frame();
     ok &= perf_latched == PF_BIT(PF_LPF) && perf_k[1] == 30 && !ui.layer;

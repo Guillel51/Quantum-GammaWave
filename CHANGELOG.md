@@ -3,6 +3,37 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## v1.8-QG — correcciones de audio, UI y EQ (NO PUBLICADA)
+
+- **Phaser y M-WIDE reparados y medidos.** El Phaser usa cuatro etapas all-pass estables, Q15 con `a`
+  entre 0,20 y 0,95, feedback bajo y bypass con DEPTH 0. M-WIDE conserva el centro a 64 y abre el estéreo
+  hacia 127 sin inversión de fase ni pérdida anormal; los tests host pasan.
+- **HPF/LPF dejan de actuar como mute.** `PF_LOW` subió a `28 << 8` (~480 Hz); las pruebas conservan
+  1 kHz en la banda de paso y siguen atenuando los extremos. No se quitó el filtrado.
+- **EQ real y recuperado en la UI.** `fx_master_eq_db()` usa los mismos biquads del audio para PEAK,
+  NOTCH y shelves; la respuesta se calcula sin división de 64 bits para el target. La gráfica vuelve a
+  dibujar una curva, no una imagen decorativa.
+- **Vúmetros de señal real.** Los sends y retornos de chorus/delay/reverb publican peaks reales; la prueba
+  comprueba señal y caída a cero. No se usa el fader como medición.
+- **Punch-in FX:** máximo de tres efectos simultáneos. Las seis capturas (REPEAT, REV, FRZ, TAP, GLC, RTR)
+  ahora usan **tres cabezas de lectura independientes sobre una sola captura de 32 KB**: las 15 parejas y
+  las 20 ternas se probaron con audio distinto, además de tres FX sobre las seis pistas. El cuarto efecto
+  se rechaza sin apagar los activos; los mutes T1–T6 son independientes. La pantalla muestra `CAP %`,
+  `n/3` y una barra de captura/lectura por tarjeta. Un único estado `LATCH:NO / LATCH:YES`.
+- **Visualizador y startup:** 18 partículas y 24 partículas de arranque, sin allocaciones dinámicas ni
+  esperas añadidas.
+- **Emulador sincronizado por hash.** `tools/package_emu.py` genera `build/emu/manifest.json` y fija en la
+  página el SHA-256 y el tamaño del WASM; la carga usa `?v=<sha256>`, `cache: "no-store"` y verificación
+  con `crypto.subtle`. `tests/emu_sync.py` falla si página, manifiesto y binario no coinciden.
+- **UBSan real corregido:** `eng_analog.c` desplazaba a la izquierda un valor negativo
+  (`(pitch16 - 60*16) << 2`); ahora usa `* 4`. `fuzz_proj` pasa 5.000 iteraciones sin ASan/UBSan.
+- **Etiquetas del emulador visibles y validadas en Chromium:** el `fill` SVG con `var()` se sustituyó por la
+  clase `.panel-label`. La página carga el WASM `b9a52ca…`, corre a 60,6 FPS y Web Studio/instalador cargan
+  sin errores de página.
+- **Estado:** cambios locales en `perf/security-hardening`, HEAD `c020b7e`; **sin commit ni push**.
+  Target app 552660 B, paquete 610897 B; `perf_block` 372/522. `FELUCCA_VERSION` sigue en `v1.7-QG`.
+  Browser real, FM-1 físico, ALSA y FPS en navegador siguen **NO VERIFICADOS**. No es una release.
+
 ## v1.7-QG — PUNCH-IN FX emulator sync
 
 - **The emulator now shows the PUNCH-IN FX redesign.** The page requests `felucca.wasm?v=@VERSION@` so a

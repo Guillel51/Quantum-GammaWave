@@ -7,6 +7,11 @@
  * Sections: sizes, parameters, voices and engines, tracks and the song, system. */
 #include <stdint.h>
 
+/* (1.8) Audio meters published by fx.c: 0..2 the chorus/delay/reverb sends, 3..5 their wet returns. */
+extern volatile int32_t fx_vu[6];
+/* (1.8) dB response of the master EQ at a 0..127 frequency index, Q8 dB (0 = 0 dB). */
+int32_t fx_master_eq_db(int32_t freq_idx);
+
 /* ------------------------------------------------------------ sizes --- */
 #ifndef NVOICE
 #define NVOICE 10                /* voices per part, and the budget shared by all parts. Overridable so the 12-voice

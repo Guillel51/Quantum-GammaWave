@@ -251,78 +251,42 @@ static void tech_chorus(void)
 /* MASTER EQ: Real-time Biquad Frequency Curve Visualizer (QG-1 v1.4) */
 static void tech_master_eq(void)
 {
-    int32_t mode = song.g[G_EQMODE];
-    int32_t freq = song.g[G_EQFREQ];
-    int32_t gain = song.g[G_EQGAIN];
-    int32_t q = song.g[G_EQQ];
-    int32_t y0 = TK_Y0, i, px = 0, py = 0;
+    int32_t mode = clamp(song.g[G_EQMODE], 0, 4);
+    int32_t freq = clamp(song.g[G_EQFREQ], 0, 127);
+    int32_t y0 = TK_Y0, mid_y = y0 + 56, i, px = 14, py = mid_y;
     static const char *const MODES[] = {"BYPASS", "PEAK/BELL", "NOTCH", "LOW SHELF", "HIGH SHELF"};
 
-    /* Header banner for EQ curve display */
     gw_oct_panel(8, y0 - 2, 224, 104, 4, T_BG, T_LINE, mode > 0, T_ACCENT);
     cv_rect(12, y0 + 2, 216, 14, T_RAISE);
     cv_text_on(16, y0 + 4, &AF_S, "MASTER BIQUAD EQ", T_THEME, T_RAISE);
-    cv_text_on(140, y0 + 4, &AF_S, MODES[mode > 4 ? 0 : mode], mode ? T_ACCENT : T_DIM, T_RAISE);
+    cv_text_on(140, y0 + 4, &AF_S, MODES[mode], mode ? T_ACCENT : T_DIM, T_RAISE);
 
-    /* Grid lines (0 dB center, -12dB, +12dB) */
-    int32_t mid_y = y0 + 56;
+    /* 0 dB centre and the +/-12 dB guides; the curve is the real Q14 coefficient response. */
     cv_rect(14, mid_y, 212, 1, T_LINE);
-    cv_rect(14, mid_y - 24, 212, 1, T_RAISE);
-    cv_rect(14, mid_y + 24, 212, 1, T_RAISE);
+    cv_rect(14, mid_y - 22, 212, 1, T_RAISE);
+    cv_rect(14, mid_y + 22, 212, 1, T_RAISE);
+    cv_text_on(16, mid_y - 12, &AF_S, "+12", T_DIM, T_BG);
+    cv_text_on(16, mid_y + 3, &AF_S, "0", T_DIM, T_BG);
+    cv_text_on(16, mid_y + 17, &AF_S, "-12", T_DIM, T_BG);
 
-    /* Frequency marker tick */
-    int32_t mark_x = 14 + (freq * 212 / 127);
+    int32_t mark_x = 14 + freq * 212 / 127;
+    int32_t mark_db = fx_master_eq_db(freq);
+    int32_t mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), y0 + 20, y0 + 94);
     cv_rect(mark_x, y0 + 18, 1, 76, T_LINE);
-
-    /* Draw frequency response curve across 212 pixels */
-    for (i = 0; i <= 212; i += 4) {
-        int32_t cur_x = 14 + i;
-        int32_t cur_y = mid_y;
-        if (mode == 1) { /* PEAK/BELL */
-            int32_t diff = cur_x - mark_x;
-            int32_t dist = diff < 0 ? -diff : diff;
-            int32_t bw = 10 + (127 - q) / 4;
-            if (dist < bw * 3) {
-                int32_t bell = (gain * 24 * (bw * 3 - dist)) / (bw * 3 * 24);
-                cur_y -= bell;
-            }
-        } else if (mode == 2) { /* NOTCH */
-            int32_t diff = cur_x - mark_x;
-            int32_t dist = diff < 0 ? -diff : diff;
-            int32_t bw = 6 + (127 - q) / 8;
-            if (dist < bw * 2) {
-                int32_t dip = (24 * (bw * 2 - dist)) / (bw * 2);
-                cur_y += dip;
-            }
-        } else if (mode == 3) { /* LOW SHELF */
-            int32_t slope = 14 + (127 - q) / 5;
-            if (cur_x <= mark_x - slope) {
-                cur_y -= gain;
-            } else if (cur_x < mark_x + slope) {
-                int32_t t = (mark_x + slope - cur_x) * gain / (slope * 2);
-                cur_y -= t;
-            }
-        } else if (mode == 4) { /* HIGH SHELF */
-            int32_t slope = 14 + (127 - q) / 5;
-            if (cur_x >= mark_x + slope) {
-                cur_y -= gain;
-            } else if (cur_x > mark_x - slope) {
-                int32_t t = (cur_x - (mark_x - slope)) * gain / (slope * 2);
-                cur_y -= t;
-            }
+    for (i = 0; i <= 212; i++) {
+        int32_t f = i * 127 / 212;
+        int32_t db = fx_master_eq_db(f);
+        int32_t y = clamp(mid_y - db * 44 / (24 * 256), y0 + 20, y0 + 94);
+        if (i) {
+            int32_t pct = clamp(45 + (mid_y - y) * 4, 0, 100);
+            cv_line_t(px, py, 14 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);
         }
-        cur_y = clamp(cur_y, y0 + 20, y0 + 94);
-        if (i > 0)
-            cv_line_t(px, py, cur_x, cur_y, mode ? T_THEME : T_DIM, 2);
-        px = cur_x;
-        py = cur_y;
+        px = 14 + i;
+        py = y;
     }
-
-    /* Target center dot */
     if (mode > 0)
-        cv_rect(mark_x - 2, py - 2, 5, 5, T_ACCENT);
+        cv_rrect(mark_x - 2, mark_y - 2, 5, 5, 2, T_ACCENT, T_BG);
 }
-
 /* MASTER: Modular 4-Slot Master FX Rack + Globals Meters (QUANTUM GAMMAWAVE // QG-1) */
 static void tech_master(void)
 {
