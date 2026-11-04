@@ -87,5 +87,10 @@ not a production path: a JEDEC id typed by a person is not evidence, and
 
 One `0x12` is one `0x9F` (3 bytes over SPI) plus 32 bytes read twice and one read refused,
 all inside `irq_save()` in `firmware/src/ota_hw.c`; it touches no persistent data and does not
-stop audio. Code: ~1.1 KiB of XIP, ~30 bytes of `.bss`; RAM `.data+.bss` went from 95 732 to
-96 452 of 98 304 B (spare 1 852).
+stop audio.
+
+Measured on the build: the application image went from 556 152 to 558 200 B and RAM
+`.data+.bss` from 95 732 to 96 452 of 98 304 B (spare 1 852). The per-read cost — interrupts
+off for one 256-byte SPI read, **estimated** at ~40 µs — is **not measured**: it needs a
+logic analyser on a real unit, so audio is "not expected to be affected", not "verified
+unaffected".
