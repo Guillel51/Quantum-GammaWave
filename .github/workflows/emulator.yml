@@ -18,7 +18,8 @@ on:
             ".github/workflows/emulator.yml"]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write        # temporary: the diagnosis step below pushes its report to ci-diag
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -147,6 +148,22 @@ jobs:
         run: |
           ls -la build | head -20
           test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
+      - name: ci diagnosis (temporary)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            printf '%s\n' '${{ toJSON(steps) }}'
+            echo '--- failed log ---'
+            gh run view "$GITHUB_RUN_ID" --log-failed 2>&1 | tail -200 || true
+          } > build/ci_steps.json
+          git config user.email ci@localhost
+          git config user.name ci
+          git checkout -B ci-diag
+          git add -f build/ci_steps.json
+          git commit -m "ci: diagnosis of run $GITHUB_RUN_ID" || true
+          git push origin ci-diag
       - uses: actions/upload-pages-artifact@v3
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
         with:
