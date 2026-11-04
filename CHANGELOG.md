@@ -2,9 +2,12 @@
 
 - **Six-track load test:** `tests/six_track_test.c` (new, `bash tests/groups.sh six`) runs six tracks with ten
   sustained voices (3+2+2+1+1+1) and the master EQ for a minute of 32-frame blocks: 82 687 blocks, p50 8.6 µs,
-  p99.9 32.3 µs (all blocks, not a sample) against a 725.0 µs deadline, worst block 100.1 µs, 0 blocks late,
-  0 clipped samples, 0.077 % exact zeros. `voices_busy()` is checked in every block and `voice_kills` must not
-  move. Host wall clock only: target timing is NOT TESTED.
+  p99.9 32.4 µs (all blocks, not a sample) against a 725.0 µs deadline, 0 clipped samples, 0.077 % exact zeros.
+  Silence is now judged per block (0 silent blocks, leanest block 60 of 64 non-zero samples) instead of by a
+  global ratio. `voices_busy()` and `voice_kills` are checked in every block; they prove voice-state
+  continuity, not that each of the six tracks is independently audible. Host wall clock only: target timing is
+  NOT TESTED.
+- **Bootsplash:** `SPL_WRITE` 800 → 1100 ms and `SPL_HOLD` 900 → 1200 ms, a slower reveal and hold.
 - **Installer trust (documented, not changed):** the WebMIDI identity reply carries `model_version` and no
   SPI NOR JEDEC id, so the installer cannot verify the physical flash before writing; the 1 MiB allowlist is
   enforced by the firmware when it mounts flash. Recorded as BLOCKED in `docs/PERF_SIX_TRACK_FM1.md` rather

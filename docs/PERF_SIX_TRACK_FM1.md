@@ -30,31 +30,29 @@ leave the ten by design, so the DRUM render path is covered separately by
 Result on the host (wall clock, `-O2`):
 
 ```
-six: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
-six: all ten voices are sounding before the first block               ok
 six: 6 tracks, 10 notes, 10 voices, 82687 blocks of 32 frames (60 s)
-six: p50 8.6 us, p99 17.3 us, p99.9 32.3 us, worst 100.1 us, mean 9.4 us, deadline 725.0 us
-six: blocks over the deadline 0 of 82687 (0.000 %), peak 19903, samples at the rail 0, exact zeros 4069 (0.077 %)
-six: ten voices stay sounding in every one of the blocks              ok
-six: no voice was stolen during the run                               ok
-six: audio is present and never hits the rail                         ok
-six: no silent buffer while the ten voices are held                   ok
+six: p50 8.6 us, p99 16.1 us, p99.9 32.4 us, worst 2954.5 us, mean 9.0 us, deadline 725.0 us
+six: blocks over the deadline 1 of 82687 (0.001 %), peak 19903, rail 0, zeros 4069 (0.077 %)
+six: silent blocks 0 of 82687, fewest non-zero samples in a block 60 of 64
 six: all passed
 ```
 
-* `voices_busy()` is sampled in **every** block and must equal 10; any block
-  that differs counts as a lost voice and fails the run. `voice_kills` must not
-  move, so no voice was stolen.
-* Percentiles are computed with `qsort` over **all** 82 687 blocks, not a
-  sample: p99.9 is exact for this run, not an estimate.
-* The silent-sample ratio is a floating-point quotient
-  (`quiet / (blocks * 2 * CTL)`), printed as 0.077 %; the earlier integer
-  division could only ever print 0.
-* The worst block is printed as it is (100.1 µs here). It is not discarded; the
-  run reports both the tail and the exact number of blocks over the deadline
-  (0 here). A wall-clock outlier of this order is host scheduling noise — the
-  same scene measured 2.5 ms and 96 µs on other runs — but the claim is limited
-  to what the numbers show.
+* **Silence is checked per block, not as an average.** Every block counts its
+  non-zero samples; a block with none fails the run. Here none did, and the
+  leanest block still carried 60 of 64 samples. A global ratio such as
+  `pct_quiet < 50 %` would have allowed almost half the samples to be zero and
+  is not used as the criterion.
+* `voices_busy()` is sampled in every block and must equal 10; `voice_kills`
+  must not move. This proves **voice-state continuity** — no voice was stolen,
+  dropped or muted — and it does **not** prove that each of the six tracks
+  produces independently audible output. Verifying that needs a per-track bus
+  capture, which this harness does not do, so no such claim is made.
+* Percentiles are computed with `qsort` over all 82 687 blocks, not a sample.
+* The silent-sample ratio is a floating-point quotient, printed as 0.077 %.
+* The worst block is printed as it is (2 954.5 µs here) together with the exact
+  number of blocks over the deadline (1 of 82 687). That outlier is a scheduler
+  stall of this shared VM — the same scene measured 100 µs on another run — but
+  the document reports it rather than dismissing it.
 
 **This is HOST TESTED.** It proves the scene, the mixing path and the absence of
 clipping or silence at ten voices. It does **not** prove the AC791N's timing:

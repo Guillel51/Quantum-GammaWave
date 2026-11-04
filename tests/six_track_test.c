@@ -33,6 +33,7 @@ int main(void)
     static const uint8_t CNT[6] = {3, 2, 2, 1, 1, 1};
     uint64_t worst = 0, total = 0, dt, deadline = (uint64_t)CTL * 1000000ull / FS * 1000ull;
     uint32_t b, i, j, blocks = (uint32_t)(60ull * FS / CTL), busy_peak = 0, clips = 0, quiet = 0, late = 0, lost = 0;
+    uint32_t zero_blocks = 0, nz_min = 0xFFFFFFFFu;
     uint32_t noted = 0, kills0;
     int32_t peak = 0;
     double mean, pct_quiet;
@@ -73,11 +74,15 @@ int main(void)
         busy = voices_busy();
         if (busy > busy_peak) busy_peak = busy;
         if (busy != 10u) lost++;                        /* a dropped or silenced voice */
-        for (i = 0; i < 2u * CTL; i++) {
+        { uint32_t nz = 0;
+          for (i = 0; i < 2u * CTL; i++) {
             int32_t v = out[i] < 0 ? -out[i] : out[i];
             if (v > peak) peak = v;
             if (v >= 32700) clips++;
-            if (v == 0) quiet++;
+            if (v == 0) quiet++; else nz++;
+          }
+          if (nz == 0) zero_blocks++;                  /* a whole block of silence: the real failure */
+          if (nz < nz_min) nz_min = nz;
         }
     }
     mean = (double)total / (double)blocks;
@@ -89,12 +94,14 @@ int main(void)
            (double)t[blocks / 2] / 1000.0, (double)t[(uint32_t)((double)blocks * 0.99)] / 1000.0,
            (double)t[(uint32_t)((double)blocks * 0.999)] / 1000.0, (double)worst / 1000.0,
            mean / 1000.0, (double)deadline / 1000.0);
-    printf("six: blocks over the deadline %u of %u (%.3f %%), peak %d, samples at the rail %u, exact zeros %u (%.3f %%)\n",
+    printf("six: blocks over the deadline %u of %u (%.3f %%), peak %d, rail %u, zeros %u (%.3f %%)\n",
            late, blocks, 100.0 * (double)late / (double)blocks, peak, clips, quiet, pct_quiet);
+    printf("six: silent blocks %u of %u, fewest non-zero samples in a block %u of %u\n",
+           zero_blocks, blocks, nz_min, 2u * CTL);
     check("ten voices stay sounding in every one of the blocks", lost == 0u);
     check("no voice was stolen during the run", voice_kills == kills0);
     check("audio is present and never hits the rail", peak > 1000 && clips == 0u);
-    check("no silent buffer while the ten voices are held", pct_quiet < 50.0);
+    check("no block is entirely silent while the ten voices are held", zero_blocks == 0u);
     check("the p99.9 of all blocks fits the audio deadline (host clock)",
           t[(uint32_t)((double)blocks * 0.999)] < deadline);
     check("no systematic overrun: fewer than 0.01 % of blocks late", (double)late / (double)blocks < 1e-4);
