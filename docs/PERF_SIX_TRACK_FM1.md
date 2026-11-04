@@ -18,31 +18,43 @@ MHz also mentioned). No cycle count below is presented as a device measurement.
 
 ## 2. Six simultaneous tracks
 
-Scene (`tests/six_track_test.c`): six tracks, **ten voices** total — the
-Quantum limit — spread as 3+2+2+1+1+3, five melodic tracks plus one drum track,
-each with DIST 20 / CHORUS 30 / DELAY 25 / REVERB 20, master EQ active
-(PEAK, 1 kHz, +12 dB, Q 64), master at 4096, one minute of continuous blocks of
-32 frames (82 687 blocks).
+Scene (`tests/six_track_test.c`): six tracks, **ten sustained voices** — the
+Quantum limit — distributed 3+2+2+1+1+1 over the six tracks (the scene asks for
+exactly ten notes, and the test fails if it does not), each track with
+DIST 20 / CHORUS 30 / DELAY 25 / REVERB 20, master EQ active (PEAK, 1 kHz,
++12 dB, Q 64), master at 4096, one minute of continuous blocks of 32 frames
+(82 687 blocks). All six tracks are melodic: a drum voice is one-shot and would
+leave the ten by design, so the DRUM render path is covered separately by
+`target_budget.py`'s "DRUM path" line.
 
 Result on the host (wall clock, `-O2`):
 
 ```
-six: p50 7.2 us, p99.9 59.3 us, blocks over the deadline 1 of 82687
-six: 6 tracks, 10 voices, 82687 blocks of 32 frames (60 s)
-six: worst block 2512.1 us, mean 7.9 us, deadline 725.6 us (host wall clock)
-six: peak 19850, samples at the rail 0, exact zeros 0.08%
+six: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
+six: all ten voices are sounding before the first block               ok
+six: 6 tracks, 10 notes, 10 voices, 82687 blocks of 32 frames (60 s)
+six: p50 8.6 us, p99 17.3 us, p99.9 32.3 us, worst 100.1 us, mean 9.4 us, deadline 725.0 us
+six: blocks over the deadline 0 of 82687 (0.000 %), peak 19903, samples at the rail 0, exact zeros 4069 (0.077 %)
+six: ten voices stay sounding in every one of the blocks              ok
+six: no voice was stolen during the run                               ok
+six: audio is present and never hits the rail                         ok
+six: no silent buffer while the ten voices are held                   ok
 six: all passed
 ```
 
-* Ten voices held for the whole minute: no voice stealing, no dropped note.
-* No sample reached the rail (±32 700) and 0.08 % of samples were exactly zero,
-  so no buffer went silent under load.
-* The tail is 50–59 µs (p99.9 over repeated runs) against a 725.6 µs deadline.
-  The *absolute* maximum is 2.5 ms, and it is a scheduler stall of this shared
-  VM, not the DSP: the same scene measured 96 µs on an earlier run, and exactly
-  one block of 82 687 crosses the deadline. The test therefore asserts on the
-  tail and on the count of late blocks, and prints the outlier instead of
-  hiding it. All of these are host numbers.
+* `voices_busy()` is sampled in **every** block and must equal 10; any block
+  that differs counts as a lost voice and fails the run. `voice_kills` must not
+  move, so no voice was stolen.
+* Percentiles are computed with `qsort` over **all** 82 687 blocks, not a
+  sample: p99.9 is exact for this run, not an estimate.
+* The silent-sample ratio is a floating-point quotient
+  (`quiet / (blocks * 2 * CTL)`), printed as 0.077 %; the earlier integer
+  division could only ever print 0.
+* The worst block is printed as it is (100.1 µs here). It is not discarded; the
+  run reports both the tail and the exact number of blocks over the deadline
+  (0 here). A wall-clock outlier of this order is host scheduling noise — the
+  same scene measured 2.5 ms and 96 µs on other runs — but the claim is limited
+  to what the numbers show.
 
 **This is HOST TESTED.** It proves the scene, the mixing path and the absence of
 clipping or silence at ten voices. It does **not** prove the AC791N's timing:
