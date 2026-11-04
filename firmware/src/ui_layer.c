@@ -908,74 +908,41 @@ static void lcell(int32_t x, int32_t y, int32_t h, const char *note, uint32_t ic
 }
 static void bnote(char *n, uint32_t t) { n[0] = B_NOTE[t]; n[1] = '#'; n[2] = 0; }
 
-/* (1.8) PUNCH-IN FX: the ten performance effects of the two banks, the complete 27-key keyboard,
- * and the six latched track mutes. The cards are labels for the real keys; the keyboard is the hardware's
- * F3..G5 layout, with every effect key and every mute lit from its live state. Bank 1's white effects and
- * bank 2 share F3..C4; A#4 held switches them. The four black-key effects (VIB GATE RTRG DIVE) are always
- * available. No card here is a fake button: the physical keys run the DSP. */
-static const uint8_t PF10[10] = {PF_R16, PF_S16, PF_GATE, PF_DIVE, PF_RND,
-                                 PF_REV, PF_FRZ, PF_TAPE, PF_GLCH, PF_RTRG};
-static const char *const FX10[10] = {"RPT", "STU", "GAT", "DIV", "CRS",
-                                     "REV", "FRZ", "TAP", "GLC", "RTR"};
-static const char *const FX10_KEY[10] = {"F3", "C5", "C#", "F#", "F5", "F3", "G3", "A3", "B3", "C4"};
-static void fx_card(int32_t x, int32_t y, const char *key, const char *name, uint32_t on, uint32_t dim,
-                    uint32_t row_on, uint32_t live)
+/* (1.8) PUNCH-IN FX: the keys ARE the map. No effect cards: the ten white
+ * assignments and the black keys' functions are written inside the physical
+ * keys, vertically, so the keyboard can use the whole panel. The assignments
+ * come from perf_key() (seq.c), the same function the ISR uses: a label can
+ * never drift from the DSP. Bank 1 is the original map; bank 2 replaces
+ * F3..C4 with the five buffer effects. The black keys 1..6 are the six
+ * latched track mutes; G#4 VIB, A#4 TGT, C#5 GATE, D#5 RTRG, F#5 DIVE.
+ * A#4 short press steps TGT (ALL / SYN / DRM), long press switches bank. */
+static const char *const FX_BANK2[5] = {"REV", "FRZ", "TAPE", "GLCH", "RTRG"};
+static const char *const FX_BLACK[5] = {"VIB", "TGT", "GATE", "RTRG", "DIVE"};
+static void fx_vtext(int32_t x, int32_t w, int32_t y, int32_t h, const char *s, uint16_t ink, uint16_t fill)
 {
-    uint16_t fill = on ? T_ACCENT : dim && !row_on ? T_DIM : row_on ? T_RAISE : T_SURF;
-    uint16_t ink = on ? T_INK : T_TEXT;
-    cv_rrect(x, y, 42, 20, 3, fill, T_SURF);
-    cv_rect(x + 38, y + 2, 2, 2, on ? T_INK : dim ? T_DIM : T_LINE);
-    cv_text_on(x + 4, y + 5, &AF_S, key, ink, fill);
-    cv_text_on(x + 19, y + 5, &AF_S, name, ink, fill);
-    /* a thin state bar: theme = capture/armed, text = reading audio. It is not a fake level meter. */
-    cv_rect(x + 4, y + 17, 34, 2, live == 2u ? T_TEXT : live ? T_THEME : T_LINE);
+    int32_t n = (int32_t)str_len(s), top = y + (h - n * 10) / 2;
+    uint32_t i;
+    for (i = 0; i < (uint32_t)n; i++) {
+        char c[2] = {s[i], 0};
+        cv_text_on(x + (w - text_w(&AF_S, c)) / 2, top + (int32_t)i * 10, &AF_S, c, ink, fill);
+    }
 }
-static void fx_keyboard(int32_t y, uint32_t held, uint32_t act)
+static const char *fx_white_name(uint32_t p)
 {
-    static const uint8_t BKPOS[11] = {0, 1, 3, 4, 5, 7, 8, 10, 11, 12, 14};
-    uint32_t k, p, f, b, m;
-    char n[3];
-    for (p = 0; p < 16u; p++) {                         /* the white keys F3 .. G5, left to right */
-        int32_t x = 6 + 14 * (int32_t)p;
-        for (k = 0; k < 27u; k++)
-            if (!key_black(k) && key_place(k) == p)
-                break;
-        f = k < 27u ? perf_key(k) : PF_N;
-        m = f != PF_N && PF_IS(f) && ((held >> f) & 1u);
-        cv_rect(x, y, 14, 24, m ? T_ACCENT : f != PF_N && PF_IS(f) ? T_SEL : T_RAISE);
-        cv_rect(x + 13, y, 1, 24, T_LINE);
-        n[0] = W_NOTE[p];
-        n[1] = (char)('3' + (p + 3u) / 7u);
-        n[2] = 0;
-        cv_text_on(x + 2, y + 13, &AF_S, n, m ? T_INK : T_TEXT, m ? T_ACCENT : f != PF_N && PF_IS(f) ? T_SEL : T_RAISE);
-    }
-    for (b = 0; b < 11u; b++) {                         /* the black keys: mutes 1..6, then VIB TGT GATE RTRG DIVE */
-        int32_t x = 6 + 14 * (int32_t)(BKPOS[b] + 1u) - 4;
-        for (k = 0; k < 27u; k++)
-            if (key_black(k) && key_place(k) == b)
-                break;
-        f = k < 27u ? perf_key(k) : PF_N;
-        if (b < NTRK) {
-            m = trk[b].p[P_MUTE] != 0;
-            cv_rrect(x, y, 8, 15, 2, m ? T_ACCENT : T_BG, T_SURF);
-            cv_rect(x + 3, y + 2, 2, 2, m ? T_INK : T_LINE);
-        } else {
-            m = f != PF_N && PF_IS(f) && ((held >> f) & 1u);
-            cv_rrect(x, y, 8, 15, 2, m ? T_ACCENT : T_THEME, T_SURF);
-            cv_rect(x + 3, y + 2, 2, 2, m ? T_INK : T_BG);
-        }
-    }
-    (void)act;
+    if (p < 5u && pfx_bank)
+        return FX_BANK2[p];
+    if (p < PF_M1)
+        return PF_NAME[p];
+    return p == PF_M1 ? "CLR" : "";
 }
 static void layer_fx(void)
 {
+    static const uint8_t BKPOS[11] = {0, 1, 3, 4, 5, 7, 8, 10, 11, 12, 14};
     uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail();
-    uint32_t i, row_on, mutes = 0, heads = perf_buf_heads(), playing = perf_buf_playing();
-    char m[3] = {'T', '1', 0}, st[12];
+    uint32_t i, p, b, k, f, on, can, mutes = 0, heads = perf_buf_heads(), playing = perf_buf_playing();
+    char st[12], tgt[4];
     for (i = 0; i < NTRK; i++)
         mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
-    lc_soft = 1;
-    cv_text(7, 1, &AF_S, "PUNCH-IN FX", T_THEME);
     if (pb_recording) {
         str_cpy(st, "CAP ", sizeof st);
         fmt_int(st + 4, (int32_t)(pb_wr * 100u / PB_CAP));
@@ -987,35 +954,65 @@ static void layer_fx(void)
     } else {
         str_cpy(st, "LIVE", sizeof st);
     }
-    cv_text(96, 1, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM);
-    cv_text_r(230, 1, &AF_S, pfx_bank ? "BANK 2" : "BANK 1", T_ACCENT, T_SURF);
-    for (i = 0; i < 10u; i++) {                         /* ten assignments: bank 1 above, bank 2 below */
-        uint32_t f = PF10[i], on, dim;
-        row_on = pfx_bank ? i >= 5u : i < 5u;
-        on = ((held >> f) & 1u) != 0u;
-        dim = !((ok >> f) & 1u);
-        if ((i == 0u && pfx_bank) || (i >= 5u && !pfx_bank))  /* the white-key bank not selected */
-            dim = 1u;
-        fx_card(12 + (int32_t)(i % 5u) * 44, 15 + (int32_t)(i / 5u) * 21,
-                FX10_KEY[i], i == 4u && !pfx_bank ? "RND" : FX10[i], on, dim, row_on,
-                (PF_BUF & PF_BIT(f)) ? perf_buf_state(f) : on ? 2u : 0u);
+    tgt[0] = pfx_tgt == 0u ? 'A' : pfx_tgt == 1u ? 'S' : 'D';
+    tgt[1] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'Y' : 'R';
+    tgt[2] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'N' : 'M';
+    tgt[3] = 0;
+    /* two compact lines: bank, latch, capture state, target and selected track */
+    cv_text(7, 1, &AF_S, "PUNCH FX", T_THEME);
+    cv_text(62, 1, &AF_S, pfx_bank ? "B2" : "B1", T_ACCENT);
+    cv_text(82, 1, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM);
+    cv_text(7, 11, &AF_S, perf_latch_on ? "LATCH ON" : "LATCH NO", perf_latch_on ? T_ACCENT : T_DIM);
+    cv_text(82, 11, &AF_S, "TGT", T_MID);
+    cv_text(106, 11, &AF_S, tgt, T_TEXT);
+    cv_text(142, 11, &AF_S, "SEL", T_MID);
+    {
+        char sel[3] = {'T', (char)('1' + song.sel % NTRK), 0};
+        cv_text(166, 11, &AF_S, sel, T_TEXT);
     }
-    fx_keyboard(59, held, act);
-    lc_w = 35;
-    for (i = 0; i < NTRK; i++) {                        /* the six latched mutes, T1 .. T6 */
-        m[1] = (char)('1' + i);
-        lcell(7 + 38 * (int32_t)i, 86, 16, m, ICON_NONE, trk_icon(i, 0), 0,
-              (mutes >> i) & 1u ? LS_MUTE : LS_OFF, 0);
+    /* the sixteen white keys: 14 px each, 3 px margin, from y 25 to 118. Their names are
+     * vertical inside the key, centred; no note names, no separate cards. */
+    for (p = 0; p < 16u; p++) {
+        int32_t x = 3 + 14 * (int32_t)p;
+        for (k = 0; k < 27u; k++)
+            if (!key_black(k) && key_place(k) == p)
+                break;
+        f = k < 27u ? perf_key(k) : PF_N;
+        can = k < 27u && PF_IS(f) && ((ok >> f) & 1u);
+        on = can && ((held >> f) & 1u);
+        {
+            uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
+            uint16_t ink = on ? T_INK : T_TEXT;
+            cv_rect(x, 25, 14, 93, fill);
+            cv_rect(x + 13, 25, 1, 93, T_LINE);
+            fx_vtext(x, 14, 70, 48, fx_white_name(p), ink, fill);
+        }
     }
-    lc_w = 55;
-    for (i = 0; i < 4u; i++) {                          /* G#4 VIB, C#5 GATE, D#5 RTRG, F#5 DIVE */
-        static const uint8_t K[4] = {PF_VIB, PF_GATE, PF_RTRG, PF_DIVE}, B[4] = {NTRK, NTRK + 2, NTRK + 3, NTRK + 4};
-        static const char *const N[4] = {"VIB", "GATE", "RTRG", "DIVE"};
-        uint32_t f = K[i];
-        bnote(m, B[i]);
-        lcell(7 + 57 * (int32_t)i, 104, 16, m, ICON_NONE, 0, N[i],
-              !((ok >> f) & 1u) ? LS_DIM : !((held >> f) & 1u) ? LS_OFF : LS_HELD, 0);
+    /* the eleven black keys: mutes T1..T6 and VIB TGT GATE RTRG DIVE. They sit over the
+     * white keys, 8 px wide and 54 px high, with their three-letter name vertical. */
+    for (b = 0; b < 11u; b++) {
+        int32_t x = 3 + 14 * (int32_t)(BKPOS[b] + 1u) - 4;
+        for (k = 0; k < 27u; k++)
+            if (key_black(k) && key_place(k) == b)
+                break;
+        if (b < NTRK) {
+            uint16_t fill = (mutes >> b) & 1u ? T_KEY : T_RAISE;
+            char n[3] = {'T', (char)('1' + b), 0};
+            cv_rrect(x, 25, 8, 44, 2, fill, T_SURF);
+            fx_vtext(x, 8, 25, 44, n, T_TEXT, fill);
+        } else {
+            f = k < 27u ? perf_key(k) : PF_N;
+            can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
+            on = can && ((held >> f) & 1u);
+            {
+                uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
+                uint16_t ink = on ? T_INK : T_TEXT;
+                cv_rrect(x, 25, 8, 44, 2, fill, T_SURF);
+                fx_vtext(x, 8, 25, 44, FX_BLACK[b - NTRK], ink, fill);
+            }
+        }
     }
+    (void)act;
 }
 /* a track playing DRUM: the rows shrink (28, 28, 24 px) and the group mutes take the third */
 static const char *const GLO_GROUP[4] = {"KICK", "SNR", "HAT", "PERC"};
@@ -1320,7 +1317,7 @@ static void draw_layer(void)
     uint32_t l = ui.layer % LAYER_N, sig = l * 7919u + ux.gen * 977u;
     layer_cards(l);
     if (l == LAYER_FX)
-        sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 11u + perf_act * 131u + perf_avail() * 7u +
+        sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 10u + perf_act * 131u + perf_avail() * 7u +
                (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u + perf_buf_heads() * 65537u +
                perf_buf_playing() * 4099u + (uint32_t)pb_recording * 131u +
                (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 |

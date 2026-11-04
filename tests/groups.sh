@@ -44,6 +44,11 @@ run_emu() {
     run_sync
 }
 
+run_eq() {
+    cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/eq_sweep_test tests/eq_sweep_test.c -lm
+    ./build/uifix/eq_sweep_test
+}
+
 run_security() {
     python3 tests/install_test.py
     node web/test_backup.mjs
@@ -55,6 +60,7 @@ run_security() {
     cc -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -w -Ibuild/gen -Ifirmware/src -o build/uifix/fuzz_proj tests/fuzz_proj.c -lm
     ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 ./build/uifix/fuzz_ed 20000 7
     ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 ./build/uifix/fuzz_proj 5000 13
+    run_eq
 }
 
 run_stress() {

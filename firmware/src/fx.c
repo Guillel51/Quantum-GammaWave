@@ -169,6 +169,7 @@ typedef struct {
     int32_t a1, a2;                                     /* Q14 feedback coeffs */
     int32_t s1_l, s2_l;                                 /* stereo delay states */
     int32_t s1_r, s2_r;
+    uint16_t quiet;                                     /* silent blocks since the last input */
     uint8_t active;                                     /* 0 = pass-through bypass */
 } qg_biquad_t;
 
@@ -182,6 +183,7 @@ static void qg_biquad_init(qg_biquad_t *eq)
     eq->a2 = 0;
     eq->s1_l = eq->s2_l = 0;
     eq->s1_r = eq->s2_r = 0;
+    eq->quiet = 0;
     eq->active = 0;
 }
 
@@ -190,7 +192,7 @@ static void qg_biquad_init(qg_biquad_t *eq)
  * a1 rounded to -32690 while 1 + a2 is 32686. The response then self-oscillates (a loud ring with no
  * input). Keep the coefficients inside the stable triangle, a hair in from the edge; the curve moves by
  * less than a pixel. Called by every setter, after normalizing by a0. */
-static void qg_biquad_stabilize(qg_biquad_t *eq)
+static int qg_biquad_stabilize(qg_biquad_t *eq)
 {
     int32_t lim;
     if (eq->a2 > 16300) eq->a2 = 16300;
@@ -199,9 +201,22 @@ static void qg_biquad_stabilize(qg_biquad_t *eq)
     if (lim < 0) lim = 0;
     if (eq->a1 > lim) eq->a1 = lim;
     if (eq->a1 < -lim) eq->a1 = -lim;
+    if (eq->b0 < -(1 << 20) || eq->b0 > (1 << 20) || eq->b1 < -(1 << 20) || eq->b1 > (1 << 20) ||
+        eq->b2 < -(1 << 20) || eq->b2 > (1 << 20) || eq->a1 < -(1 << 15) || eq->a1 > (1 << 15) ||
+        eq->a2 < -(1 << 15) || eq->a2 > (1 << 15))
+        return 0;
+    return 1;
+}
+static void qg_biquad_clear_state(qg_biquad_t *eq)
+{
+    eq->s1_l = eq->s2_l = eq->s1_r = eq->s2_r = 0;
+    eq->quiet = 0;
 }
 static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx)
 {
+    freq_idx = clamp(freq_idx, 0, 127);
+    gain_db = clamp(gain_db, -24, 24);
+    q_idx = clamp(q_idx, 0, 127);
     if (gain_db == 0) {
         qg_biquad_init(eq);
         return;
@@ -238,7 +253,11 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
         eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
         eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
         eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
-        qg_biquad_stabilize(eq);
+        if (!qg_biquad_stabilize(eq)) {
+            qg_biquad_init(eq);
+            return;
+        }
+        qg_biquad_clear_state(eq);
         eq->active = 1;
     }
 }
@@ -246,6 +265,8 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
 /* Set Low Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
 static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
 {
+    freq_idx = clamp(freq_idx, 0, 127);
+    gain_db = clamp(gain_db, -24, 24);
     if (gain_db == 0) {
         qg_biquad_init(eq);
         return;
@@ -274,7 +295,11 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
         eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
         eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
         eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
-        qg_biquad_stabilize(eq);
+        if (!qg_biquad_stabilize(eq)) {
+            qg_biquad_init(eq);
+            return;
+        }
+        qg_biquad_clear_state(eq);
         eq->active = 1;
     }
 }
@@ -282,6 +307,8 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
 /* Set High Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
 static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db)
 {
+    freq_idx = clamp(freq_idx, 0, 127);
+    gain_db = clamp(gain_db, -24, 24);
     if (gain_db == 0) {
         qg_biquad_init(eq);
         return;
@@ -310,7 +337,11 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
         eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
         eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
         eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
-        qg_biquad_stabilize(eq);
+        if (!qg_biquad_stabilize(eq)) {
+            qg_biquad_init(eq);
+            return;
+        }
+        qg_biquad_clear_state(eq);
         eq->active = 1;
     }
 }
@@ -318,6 +349,8 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
 /* Set Notch Filter: freq (0..127), q_idx (0..127 -> Q 0.5..8.0) */
 static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx)
 {
+    freq_idx = clamp(freq_idx, 0, 127);
+    q_idx = clamp(q_idx, 0, 127);
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
     int32_t sn = sine_i(angle);                         /* Q15 */
     int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
@@ -343,7 +376,11 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
         eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
         eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
         eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
-        qg_biquad_stabilize(eq);
+        if (!qg_biquad_stabilize(eq)) {
+            qg_biquad_init(eq);
+            return;
+        }
+        qg_biquad_clear_state(eq);
         eq->active = 1;
     }
 }
@@ -377,15 +414,21 @@ static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t 
         eq->s2_r = bq_lim(bq_mul(eq->b2, x_r) - bq_mul(eq->a2, y_r));
         r[i] = y_r * 4;
     }
-    /* Fixed-point limit cycle: a silent block can leave a few hundred counts turning in the states forever
-     * (the -48 dB residue the LOW SHELF was reported for). Below -24 dB and with no input at all, flush. */
-    if (!inmax && eq->s1_l > -512 && eq->s1_l < 512 && eq->s1_r > -512 && eq->s1_r < 512 &&
-        eq->s2_l > -512 && eq->s2_l < 512 && eq->s2_r > -512 && eq->s2_r < 512) {
-        eq->s1_l = eq->s1_r = eq->s2_l = eq->s2_r = 0;
+    /* A silent block can leave a limit cycle (the -48 dB residue the LOW SHELF was reported for), and a
+     * state left over from an earlier filter can otherwise take seconds to die. After 32 silent blocks
+     * (~23 ms at 44.1 kHz) the filter starts from zero, whatever the old state was. */
+    if (!inmax) {
+        if (++eq->quiet >= 32u)
+            qg_biquad_clear_state(eq);
+        else if (eq->s1_l > -512 && eq->s1_l < 512 && eq->s1_r > -512 && eq->s1_r < 512 &&
+                 eq->s2_l > -512 && eq->s2_l < 512 && eq->s2_r > -512 && eq->s2_r < 512)
+            qg_biquad_clear_state(eq);
+    } else {
+        eq->quiet = 0;
     }
 }
 
-static qg_biquad_t master_eq = { 32767, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+static qg_biquad_t master_eq = { 32767, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 /* the mix (dry + wet, before the MASTER knob: the same saturation at any volume) through CLIP, in place; wet
  * cleared (it is in the mix now). Its own loop, only while CLIP is on: the ISR's master loop stays as it was */
@@ -423,6 +466,11 @@ static void master_eq_update(void)
     eq_last_gain = gain;
     eq_last_q = q;
 
+    /* A new mode or a new preset must not inherit the previous filter's delay line. The setters also
+     * clear it when a coefficient changes; this covers a preset whose four values happen to be the same
+     * while the state is still poisoned. */
+    if (mode != eq_last_mode || mode == 0)
+        qg_biquad_clear_state(&master_eq);
     if (mode == 0) {
         qg_biquad_init(&master_eq);
     } else if (mode == 1) {
@@ -619,7 +667,7 @@ void qg_fx_update_eq(uint8_t mode)
         qg_biquad_set_lowshelf(&master_eq, 35, 4);     /* BASS+ profile: warm low shelf boost */
     }
 }
-static int32_t lc_l1, lc_l2, lc_r1, lc_r2, dc_l, dc_r, dce_l, dce_r;
+static int32_t lc_l1, lc_l2, lc_r1, lc_r2, dc_l, dc_r, dce_l, dce_r, eq_dc_l, eq_dc_r, eq_dce_l, eq_dce_r;
 
 /* DC blocker (~2 Hz), always on: a leaky integrator of the input (Q6 state) subtracted from it.
  * The >> 12 step keeps its remainder (error feedback, 0..4095) and adds it to the next one, so no
@@ -2224,8 +2272,15 @@ static __attribute__((noinline)) void mix_block(int32_t *out, uint32_t n)   /* (
         }
     if (clip_g)
         clip_block(n);
-    if (master_eq.active)
+    if (master_eq.active) {
+        /* A low shelf at +24 dB also boosts DC by ~16x. Remove it before the EQ, not after it, so a
+         * DC offset in a preset cannot drive the leveler down and hide the whole mix. */
+        for (i = 0; i < n; i++) {
+            mix_l[i] = dc_block(mix_l[i], &eq_dc_l, &eq_dce_l);
+            mix_r[i] = dc_block(mix_r[i], &eq_dc_r, &eq_dce_r);
+        }
         qg_biquad_process(&master_eq, mix_l, mix_r, n);
+    }
     lev_block(n);                                       /* (JIANT 0.5) the leveler: the loudness held */
     if (perf) {
         perf_master(out, n);

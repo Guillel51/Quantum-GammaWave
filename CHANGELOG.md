@@ -3,6 +3,27 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## 2026-11-04 — PUNCH-IN FX keyboard and EQ safety pass
+
+- **PUNCH-IN FX redrawn as a keyboard.** The ten effect cards, the separate mute row and the four
+  black-effect cards are gone. The sixteen white keys and eleven black keys use the full panel height;
+  each key carries its abbreviated function vertically. Bank (`B1/B2`), latch, capture state, target
+  (`ALL/SYN/DRM`) and the selected track share two compact header lines. No note names are drawn.
+  Every label is read from `perf_key()`; bank 2 is `REV FRZ TAPE GLCH RTRG`. Black keys 1..6 remain
+  latched mutes T1..T6; G#4/A#4/C#5/D#5/F#5 remain VIB/TGT/GATE/RTRG/DIVE.
+  Host UI render: **172 screens × 17 palettes, 0 lint findings, 2.647.728 alignment measurements, 0
+  misalignments**. Capture: `artifacts/punch-in-fx-new.png` (240×240, rendered from the firmware code).
+- **Master EQ hardening.** The setters clamp FREQ/GAIN/Q, reject coefficients outside the stable
+  triangle or a sane feed-forward range, clear the delay line when coefficients change, force a
+  poisoned state to zero after 32 silent blocks, and remove DC before the EQ (a +24 dB low shelf
+  otherwise amplifies an offset into the leveler). `tests/eq_sweep_test.c` sweeps 480 mode/frequency/
+  gain/Q corners: worst tail after silence **0**, nonzero tails **0**, bad coefficients **0**; a
+  poisoned state clears; extreme low shelf → bypass → peak passes audio; 4.000 rapid changes remain
+  bounded.
+- **WASM rebuilt** after these changes: **1.030.044 B**, SHA-256
+  `b572131cb37c198cc703409c6588b990e422e7cbf00ed72e2ca9254ffe4ba0c0`; native comparison **bit for bit**
+  (88.200 frames), 23,2 ms/s (2,3 % of real time). No target, browser or hardware validation is claimed.
+
 ## v1.8-QG — correcciones de audio, UI y EQ (NO PUBLICADA)
 
 - **Low Shelf: ruido de fondo corregido y demostrado.** La causa era doble: los productos Q14 se
