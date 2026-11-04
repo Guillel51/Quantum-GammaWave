@@ -6,11 +6,15 @@
   timeline contract and no blank/black frames.
 - **Note visualizer:** particles are driven by the voices actually playing (`active`, `gate`, `note`, `vel`), with
   fixed storage and bounded work for chords, polyphony and note release.
-- **Punch-In keyboard:** white keys are 12 px with a 2 px gap and black keys 9 px wide, preserving MIDI/F3–G5
-  mapping and vertical labels while making the separation visible at emulator scales.
+- **Punch-In keyboard:** white keys are 12 px with a 2 px gap and black keys 8 px wide, 58 px high and 6 px
+  apart, preserving MIDI/F3–G5 mapping and vertical labels. `BKPOS` now follows the engine's own order, so
+  A#3 and A#4 sit on the boundary of the white key they follow instead of the next one (the old table drew
+  three black keys in a row and left a gap).
 - **Master Biquad EQ:** real 20 Hz–20 kHz frequency mapping (`EQ_HZ`), logarithmic graphics axis, exact
   `10^(dB/40)` gain tables, Q24 internal coefficients and 64-bit response evaluation. The +24/−24 dB extremes,
   shelves, peak/notch and 480 parameter corners are tested; the graph no longer folds or drops at 20 Hz.
+  The sweep also proves the poles stay inside the unit circle at 20 Hz and 20 kHz (+24 dB, both Q ends) and
+  that one impulse decays back to silence.
 - **Verification:** `ui` (0 lint), `mod`, `presets`, `security`, `target`, `emu`, `sync`, web and package tests;
   target app/package rebuilt from this tree. No physical FM-1 was flashed.
 
