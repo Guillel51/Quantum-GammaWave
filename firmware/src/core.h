@@ -628,6 +628,12 @@ static track_t trk[NTRK];        /* the instrument: four parts */
 static song_t song;
 #define TSEL (&trk[song.sel])    /* the selected track */
 
+/* (V10.38, adapted) an interval chosen by chance (GEN and the sound dice): unison, fourth, fifth,
+ * octave or the octave-and-fifth, up or down, within the parameter's range; random macros never aim
+ * at an interval. Defined in params.c, before every user of it. */
+int32_t param_semi_pick(uint32_t r, int32_t lo, int32_t hi);
+int32_t param_semi_snap(int32_t v);
+
 /* SWING of a track's step clock: the track's own plus the global one, at most 100 (#31). The sequencer
  * (seq.c step_samples) and the SLICER (slicer.c sl_enter) both time steps with it. At 100 the even
  * steps are 1.4 x the straight length and the odd ones 0.6 x. */

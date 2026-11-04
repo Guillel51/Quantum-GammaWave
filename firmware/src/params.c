@@ -345,6 +345,27 @@ static int32_t param_turn(const param_desc_t *d, int32_t v, int32_t steps)
 
 static uint8_t fmt_named;        /* the last param_format was a name (F_ENUM, even "4"): ui_draw.c's digits do not roll it */
 
+/* (V10.38, adapted) a random interval stays musical: unison, fourth, fifth, octave (and the octave and
+ * fifth some factory sounds use), up or down, inside the descriptor's range. A value outside it falls
+ * back to unison; param_semi_snap finds the nearest one for a preset the generator keeps. */
+int32_t param_semi_pick(uint32_t r, int32_t lo, int32_t hi)
+{
+    static const int8_t SEMI_OK[12] = {0, 7, 12, -12, 5, -5, -7, 0, 7, 19, -19, 0};
+    int32_t v = SEMI_OK[r % 12u];
+    return v < lo || v > hi ? 0 : v;
+}
+
+int32_t param_semi_snap(int32_t v)
+{
+    static const int8_t C[9] = {0, 5, -5, 7, -7, 12, -12, 19, -19};
+    uint32_t i;
+    int32_t best = 0;
+    for (i = 1; i < 9u; i++)
+        if ((C[i] - v) * (C[i] - v) < (best - v) * (best - v))
+            best = C[i];
+    return best;
+}
+
 /* value string (<= 5 chars) and unit for a parameter value */
 static void param_format(const param_desc_t *d, int32_t v, char *val, const char **unit)
 {
