@@ -130,12 +130,12 @@ jobs:
           python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt
           node web/test_pkg_bounds.mjs build/felucca.fwsc
       - uses: actions/upload-pages-artifact@v3
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening') && github.event_name != 'pull_request'
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
         with:
           path: build/site
   deploy:
     needs: build
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening') && github.event_name != 'pull_request'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     environment:
       name: github-pages
