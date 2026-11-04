@@ -97,13 +97,15 @@ int main(void)
         fill((b & 1u) ? 30000 : -30000);
         qg_biquad_process(&master_eq, l, r, CTL);
     }
+    song.g[G_EQMODE] = 3; song.g[G_EQFREQ] = 0; song.g[G_EQGAIN] = 24; song.g[G_EQQ] = 64;
+    master_eq_update();
     master_eq.s1_l = master_eq.s1_r = master_eq.s2_l = master_eq.s2_r = 200000;
-    qg_biquad_clear_state(&master_eq);
+    master_eq_update();                              /* the same values: the guard must clear it */
     for (b = 0; b < 40u; b++) {
         zeros();
         qg_biquad_process(&master_eq, l, r, CTL);
     }
-    check("a poisoned state is cleared", peak(l, CTL) == 0);
+    check("a poisoned state is cleared by master_eq_update", peak(l, CTL) == 0);
 
     /* preset switch: extreme low shelf -> bypass -> a normal peak; the output returns */
     host_tracks_init();

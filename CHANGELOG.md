@@ -20,9 +20,9 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   gain/Q corners: worst tail after silence **0**, nonzero tails **0**, bad coefficients **0**; a
   poisoned state clears; extreme low shelf → bypass → peak passes audio; 4.000 rapid changes remain
   bounded.
-- **WASM rebuilt** after these changes: **1.030.044 B**, SHA-256
-  `b572131cb37c198cc703409c6588b990e422e7cbf00ed72e2ca9254ffe4ba0c0`; native comparison **bit for bit**
-  (88.200 frames), 23,2 ms/s (2,3 % of real time). No target, browser or hardware validation is claimed.
+- **WASM rebuilt** after these changes: **1.030.207 B**, SHA-256
+  `8da41752486e9f8aceade1d221e33198b415a0ae8a3944cf4a5af6f47c8600c5`; native comparison **bit for bit**
+  (88.200 frames), 23,4 ms/s (2,3 % of real time). No target, browser or hardware validation is claimed.
 
 ## v1.8-QG — correcciones de audio, UI y EQ (NO PUBLICADA)
 

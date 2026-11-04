@@ -457,19 +457,27 @@ static void master_eq_update(void)
     int16_t freq = song.g[G_EQFREQ];
     int16_t gain = song.g[G_EQGAIN];
     int16_t q = song.g[G_EQQ];
+    int16_t old_mode = eq_last_mode;
 
-    if (mode == eq_last_mode && freq == eq_last_freq && gain == eq_last_gain && q == eq_last_q)
+    if (mode == eq_last_mode && freq == eq_last_freq && gain == eq_last_gain && q == eq_last_q) {
+        /* The same preset can still carry a state from a previous filter if a scene or project loaded
+         * identical values. Only an impossible state is cleared here, so normal audio is untouched. */
+        if (master_eq.active && (master_eq.s1_l > BQ_LIM / 2 || master_eq.s1_l < -BQ_LIM / 2 ||
+                                 master_eq.s1_r > BQ_LIM / 2 || master_eq.s1_r < -BQ_LIM / 2 ||
+                                 master_eq.s2_l > BQ_LIM / 2 || master_eq.s2_l < -BQ_LIM / 2 ||
+                                 master_eq.s2_r > BQ_LIM / 2 || master_eq.s2_r < -BQ_LIM / 2))
+            qg_biquad_clear_state(&master_eq);
         return;
+    }
 
     eq_last_mode = mode;
     eq_last_freq = freq;
     eq_last_gain = gain;
     eq_last_q = q;
 
-    /* A new mode or a new preset must not inherit the previous filter's delay line. The setters also
-     * clear it when a coefficient changes; this covers a preset whose four values happen to be the same
-     * while the state is still poisoned. */
-    if (mode != eq_last_mode || mode == 0)
+    /* A new mode must not inherit the previous filter's delay line. The setters also clear it when a
+     * coefficient actually changes. */
+    if (mode != old_mode)
         qg_biquad_clear_state(&master_eq);
     if (mode == 0) {
         qg_biquad_init(&master_eq);
