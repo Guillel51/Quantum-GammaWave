@@ -3,6 +3,31 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
+## 2026-11-04 — Web portal, Web Studio 2.0 and consonant intervals
+
+- **Official portal at `/`.** `web/site/index.html` is a real Solar Heat / Quantum landing page: current
+  build screenshots, firmware features, M-VAVE FM-1 compatibility, installation warnings, dynamic
+  `firmware/versions.json` metadata and direct links to the emulator, installer and Web Studio. The Pages
+  workflow now uploads `build/site`, keeps `/webapp/installer/` and `/webapp/editor/`, and serves the
+  emulator at `/emulator/`. `/?emu=1` and `/#emu` redirect to it. `web/make_site.py` no longer emits a
+  redirect page, and `web/test_site.py` checks ids, assets, routes and the published package hash.
+- **Web Studio 2.0 surface.** The editor keeps every id, tab, protocol frame and DSP mapping; a new CSS
+  layer unifies the charcoal/amber/cyan identity, the brand bar, panels, controls, focus and mobile
+  overflow. Chromium 131 local: 1440 px and 390 px, seven tabs, no horizontal overflow, no console or
+  failed-request errors. `web/test_web.mjs` still passes. Portal sections are visible without the scroll
+  observer; its entrance animation is now progressive, and `web/test_site.py` rejects the old hidden state.
+- **Consonant random intervals (JIANT V10.38, adapted).** `param_semi_pick()` and `param_semi_snap()` live
+  in `params.c`; `gen.c` keeps or snaps `F_SEMI` parameters instead of adding a random detune, the sound
+  dice picks a musical interval, and `ui_layer.c` excludes interval destinations from random macros.
+  `tests/semi_test.c` checks 4.096 picks and the snap floors (including the 5/7 tie).
+- **WASM rebuilt after the interval change:** **1.030.693 B**, SHA-256
+  `5b8475aaeda9e090f022fe8879d6cb3861845838367b454718ef0d482c2fd76a`; native comparison bit for bit
+  (88.200 frames), 27,7 ms/s (2,8 % of real time). No target build, physical FM-1 or online deployment
+  is claimed.
+- **Version decision:** **v1.8.5 is not published.** The weighted matrix in `docs/V1.8_STATUS.md` is
+  **83/119 = 69,7 %**, below the required 75 %, and the critical target / hardware / recovery / signature
+  gates remain open. `FELUCCA_VERSION` stays `v1.7-QG`.
+
 ## 2026-11-04 — PUNCH-IN FX keyboard and EQ safety pass
 
 - **PUNCH-IN FX redrawn as a keyboard.** The ten effect cards, the separate mute row and the four

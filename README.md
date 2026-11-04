@@ -20,17 +20,31 @@
 
 **Quantum GammaWave (QG-1)** is an independent, advanced open-source custom firmware and Web Studio workstation engineered specifically for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox** (powered by the dual-core JieLi AC791N SoC). It delivers expanded 10-voice polyphony with psychoacoustic voice stealing, an expanded warm harmonic distortion suite, full-screen audio visualization, fixed-point parametric master EQ, real-time diagnostic telemetry, 17 curated visual themes, and an extensive preset sound library.
 
-[![Emulator](https://img.shields.io/badge/EMULATOR-guillel51.github.io%2FQuantum--GammaWave-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/)
+[![Portal](https://img.shields.io/badge/PROJECT-PORTAL-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/)
+[![Emulator](https://img.shields.io/badge/EMULATOR-WASM-ff9424?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/emulator/)
 [![Web Studio](https://img.shields.io/badge/WEB%20STUDIO-webapp%2Feditor-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)
 [![USB Web Installer](https://img.shields.io/badge/USB%20INSTALLER-Flash%20FM--1-00e5a3?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)
 [![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg?style=for-the-badge)](LICENSE)
 
 > **Quantum GammaWave (QG-1)** is dedicated firmware and workstation software engineered specifically for the M-VAVE FM-1 groovebox hardware.
-> - **Official Project Portal & Emulator:** <https://guillel51.github.io/Quantum-GammaWave/>
+> - **Official Project Portal:** <https://guillel51.github.io/Quantum-GammaWave/>
+> - **Browser Emulator (WASM):** <https://guillel51.github.io/Quantum-GammaWave/emulator/>
 > - **Web Studio Workstation (Editor, Sequencer, Telemetry):** <https://guillel51.github.io/Quantum-GammaWave/webapp/editor/>
 > - **USB Web Installer & Safe Flasher:** <https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>
 > - **GitHub Repository:** <https://github.com/Guillel51/Quantum-GammaWave>
 > - **Official Documentation:** [English Manual (`docs/MANUAL.md`)](docs/MANUAL.md) · [Manual en Español (`docs/MANUAL.es.md`)](docs/MANUAL.es.md)
+
+---
+
+## Portal and interface, current build
+
+| Official portal (`/`) | Web Studio 2.0 (`/webapp/editor/`) |
+|---|---|
+| ![Quantum GammaWave portal](artifacts/v18-site-hero.png) | ![Web Studio 2.0](artifacts/v18-webstudio-2.png) |
+
+The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
+The screenshots above were captured from the local build with Chromium 131; the Portal is **not deployed** in
+this pass, so the public Pages URL still serves the previous site until these changes are merged and published.
 
 ---
 
@@ -44,8 +58,26 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
+## Web portal and Web Studio 2.0 (2026-11-04)
+
+The project now has one official entry point: the **Solar Heat / Quantum** portal at
+<https://guillel51.github.io/Quantum-GammaWave/>. It presents the firmware, real screenshots, compatibility,
+installation warnings, version metadata and direct access to the emulator (`/emulator/`), the USB installer
+(`/webapp/installer/`) and the Web Studio (`/webapp/editor/`). Existing installer and editor URLs are kept;
+the emulator now lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
+
+The Web Studio has a new presentation layer (deep charcoal, solar amber, cyan data accents, clearer
+hierarchy and a hardware-style brand bar) without changing any control id, SysEx frame, tab or protocol
+handler. It was checked in Chromium at 1440 px and 390 px: seven tabs, no horizontal overflow and no console
+or request errors. The emulator remains the same real WASM firmware; the portal only links to it.
+
+This is not a v1.8.5 release. `FELUCCA_VERSION` remains `v1.7-QG`; target compilation, physical FM-1
+validation, signed packages and independent recovery are still open. See
+[`docs/V1.8_STATUS.md`](docs/V1.8_STATUS.md) for the weighted matrix and the publication decision.
+
 ## What's in Quantum GammaWave (`v1.7-QG`)
 
+- **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
 - **Harmonic Distortion & Saturation Suite:** 4 musical, warm saturation topologies with dedicated algorithms:
   - **`SOFT` (Musical Soft Warmth):** Biased tanh soft-clipping with rich 2nd harmonic saturation.

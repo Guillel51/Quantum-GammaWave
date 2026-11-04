@@ -1413,7 +1413,7 @@ faded): a photo of that screen helps when you report a problem.
 
 All three run in the browser and update themselves with every change to the firmware.
 
-### Emulator — <https://guillel51.github.io/Quantum-GammaWave/>
+### Emulator — <https://guillel51.github.io/Quantum-GammaWave/emulator/>
 
 The same code as the FM-1, with sound, in the browser. Play it with the mouse or the computer keyboard: **Z–'** and
 **Q–O** rows are the keys, **1** to **=** the buttons from FX to REC, **[ ]** OCT− / OCT+, **↑ ↓** SELECT, **← →**
@@ -1568,5 +1568,6 @@ PRESETS / ALGORITHM) changes scene, **OCT−** leaves (to ABOUT; HOME goes back 
 ---
 
 **Quantum GammaWave (QG-1)** is free and open-source software released under the **GPL-3.0-only** license.
-- Official Portal & Browser Emulator: <https://guillel51.github.io/Quantum-GammaWave/>
+- Official Portal: <https://guillel51.github.io/Quantum-GammaWave/>
+- Browser Emulator: <https://guillel51.github.io/Quantum-GammaWave/emulator/>
 - Source Code Repository & Releases: <https://github.com/Guillel51/Quantum-GammaWave>
