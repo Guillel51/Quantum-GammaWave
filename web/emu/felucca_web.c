@@ -189,6 +189,10 @@ static int st_prog(uint32_t off, const void *src, uint32_t n)       /* NOR: a wr
 static uint32_t irq_save(void) { return 0; }
 static void irq_restore(uint32_t f) { (void)f; }
 static uint32_t fl_jedec_ram(void) { return 0x856014u; }             /* the FM-1's part (project.c) */
+/* SR1|SR2 of the emulator's part: readable, idle, no block protection. The merged
+ * flash_identify() reads it, so without this the emulator would identify nothing and
+ * silently run RAM-only, which is not what a healthy unit does. */
+static uint32_t fl_status_ram(void) { return 0x0000u; }
 static void fl_plain_window_init(void) {}
 #define FL_FAR(fn) (fn)
 #include "../../firmware/hal/fm1_flash_id.h"
