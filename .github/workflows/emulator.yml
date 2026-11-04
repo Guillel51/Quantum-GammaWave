@@ -129,6 +129,22 @@ jobs:
           if [ ! -s build/felucca.dis ] || [ ! -s build/felucca.fwsc ]; then python3 tools/build.py; fi
           python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt
           node web/test_pkg_bounds.mjs build/felucca.fwsc
+      # (QG-1) The portal and the emulator go up even when JieLi's toolchain is missing: the site then offers the
+      # package already built for the target (firmware/packages, the published one), never a rebuild it did not do.
+      - name: the site, with the published package when the target toolchain is unavailable
+        if: steps.tc.outcome != 'success'
+        run: |
+          PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)
+          test -s "$PKG" || { echo "::error::no package in firmware/packages and no target build"; exit 1; }
+          SV=$(basename "$PKG" .fwsc); SV=${SV#felucca-}
+          echo "the target toolchain did not run: the site offers $SV, compiled earlier for the FM-1"
+          python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
+          python3 web/make_site.py "$PKG" "$SV" build/site build/prev
+          mkdir -p build/site/emulator
+          cp -r build/emu/. build/site/emulator/
+          rm -rf build/site/emulator/preview
+      - name: the site exists (the deploy would otherwise upload nothing)
+        run: test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
       - uses: actions/upload-pages-artifact@v3
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
         with:
