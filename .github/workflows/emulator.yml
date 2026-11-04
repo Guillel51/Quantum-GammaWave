@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install Pillow numpy fonttools
+      - run: pip install Pillow numpy fonttools cryptography
       - name: generated headers (fonts, icons, palettes, shapes, tables, samples)
         run: python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
       - uses: mymindstorm/setup-emsdk@v14
@@ -139,6 +139,8 @@ jobs:
         run: |
           node web/test_web.mjs
           python3 tests/preflight_test.py build/felucca.fwsc
+          python3 tests/chip_test.py
+          python3 tests/sign_test.py
       # (QG-1) The portal and the emulator go up even when JieLi's toolchain is missing: the site then offers the
       # package already built for the target (firmware/packages, the published one), never a rebuild it did not do.
       - name: the site, with the published package when the target build produced none

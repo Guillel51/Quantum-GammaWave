@@ -252,3 +252,157 @@ export class Updater {
     return true;
   }
 }
+
+// ---------------------------------------------------------------------------------------------
+// 0x12 identification and 0x13 read-only flash, plus the Ed25519 manifest check.
+// Same frames and the same policy as tools/fm1_probe.py and tools/fm1_sign.py: the web
+// page must identify the chip and verify the manifest before it enables Install. Both are
+// pure functions of the link, so the page wires them in without touching this protocol.
+
+const QRY_PROTO = 1;
+const QRY_CHUNK = 256;
+const QRY_CAP = 0x100000;
+const QRY_PARTS = {
+  0x856014: { part: "P25Q80H", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000 },
+  0xB36014: { part: "P25Q80H-2", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000 },
+};
+const QRY_STATUS = { 1: "no NOR answer", 2: "unknown part", 3: "capacity not corroborated", 4: "no session",
+  5: "range", 6: "length or read error", 7: "malformed request" };
+
+function qryCrc16(data, c = 0) {
+  for (const b of data) {
+    c ^= b << 8;
+    for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF;
+  }
+  return c & 0xFFFF;
+}
+
+function qryFrame(cmd, body) {
+  const b = [0, 0x59, cmd, body.length & 0xFF, (body.length >> 8) & 0xFF, 0, ...body];
+  let s = 0;
+  for (const x of body) s += x;
+  b.push(~s & 0xFF);
+  return [0xF0, ...pack7(b), 0xF7];
+}
+
+function qryDecode(pkt) {
+  if (!pkt || pkt[0] !== 0xF0 || pkt[pkt.length - 1] !== 0xF7) return null;
+  const d = unpack7(pkt.slice(1, -1));
+  if (d.length < 7 || d[0] !== 0 || d[1] !== 0x59) return null;
+  const n = d[3] | (d[4] << 8) | (d[5] << 16);
+  if (d.length !== n + 7) return null;
+  const body = d.slice(6, 6 + n);
+  let s = 0;
+  for (const x of body) s += x;
+  if (((~s) & 0xFF) !== d[6 + n]) return null;
+  return { cmd: d[2], body };
+}
+
+async function qryAsk(link, cmd, body, timeoutMs) {
+  if (!link.send(qryFrame(cmd, body))) throw fail("chip", "The FM-1 was disconnected: nothing was sent.");
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    const p = await link.read(end - Date.now());
+    if (!p) break;
+    const r = qryDecode(p);
+    if (r && r.cmd === cmd) return r.body;
+  }
+  throw fail("chip", `The FM-1 did not answer 0x${cmd.toString(16)}: nothing was sent.`);
+}
+
+async function qryIdentify(link, nonce, timeoutMs) {
+  const body = [QRY_PROTO, ...nonce];
+  body.push(qryCrc16(body) & 0xFF, (qryCrc16(body) >> 8) & 0xFF);
+  const r = await qryAsk(link, 0x12, body, timeoutMs);
+  if (r.length !== 24) throw fail("chip", "Truncated identification reply: nothing was sent.");
+  if (qryCrc16(r.slice(0, 21)) !== (r[21] | (r[22] << 8)))
+    throw fail("chip", "The identification reply's CRC is wrong: nothing was sent.");
+  if (r[1]) throw fail("chip", `The FM-1 refused to identify the NOR (${QRY_STATUS[r[1]] || "status " + r[1]}): nothing was sent.`);
+  const jedec = (r[2] << 16) | (r[3] << 8) | r[4];
+  const part = QRY_PARTS[jedec];
+  if (!part) throw fail("chip", `JEDEC 0x${jedec.toString(16)} is not a part we know: nothing was sent.`);
+  const got = { cap: r[5] | (r[6] << 8) | (r[7] << 16) | (r[8] << 24), page: r[9] | (r[10] << 8),
+    sector: r[11] | (r[12] << 8), block: r[13] | (r[14] << 8) | (r[15] << 16) | (r[16] << 24) };
+  if (got.cap !== part.cap || got.page !== part.page || got.sector !== part.sector || got.block !== part.block)
+    throw fail("chip", `The geometry ${JSON.stringify(got)} is not the identified ${part.part}'s: nothing was sent.`);
+  const session = (r[17] | (r[18] << 8) | (r[19] << 16) | (r[20] << 24)) >>> 0;
+  if (!session) throw fail("chip", "Identification without a session token: nothing was sent.");
+  return { jedec, session, ...got, part: part.part };
+}
+
+// two identifications of the same unit: same part, a fresh token each time
+export async function probeChip(link, timeoutMs = 1000) {
+  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(4)));
+  const a = await qryIdentify(link, nonce, timeoutMs);
+  const b = await qryIdentify(link, nonce, timeoutMs);
+  for (const k of ["jedec", "cap", "page", "sector", "block"])
+    if (a[k] !== b[k]) throw fail("chip", `Two identifications disagree on ${k}: nothing was sent.`);
+  if (a.session === b.session) throw fail("chip", "The device reused a session token: the reply may be old.");
+  return { ...b, readings: 2, source: "device-0x12" };
+}
+
+// one 0x13 read (<= 256 bytes), fully validated; read-only
+export async function readFlash(link, addr, len, session, timeoutMs = 1000) {
+  if (!(len > 0) || len > QRY_CHUNK) throw fail("chip", "a single read is 1..256 bytes");
+  if (addr < 0 || addr + len > QRY_CAP) throw fail("chip", "read outside the 1 MiB part");
+  const body = [QRY_PROTO, addr & 0xFF, (addr >> 8) & 0xFF, (addr >> 16) & 0xFF, (addr >>> 24) & 0xFF,
+    len & 0xFF, (len >> 8) & 0xFF, session & 0xFF, (session >> 8) & 0xFF, (session >> 16) & 0xFF,
+    (session >>> 24) & 0xFF];
+  body.push(qryCrc16(body) & 0xFF, (qryCrc16(body) >> 8) & 0xFF);
+  const r = await qryAsk(link, 0x13, body, timeoutMs);
+  if (r.length < 14) throw fail("chip", "truncated read reply");
+  if (qryCrc16(r.slice(0, 12)) !== (r[12] | (r[13] << 8))) throw fail("chip", "read reply CRC");
+  if (r[1]) throw fail("chip", `read of 0x${addr.toString(16)} refused (${QRY_STATUS[r[1]] || "status " + r[1]})`);
+  if ((r[2] | (r[3] << 8)) !== len || (r[4] | (r[5] << 8) | (r[6] << 16) | (r[7] << 24)) !== addr ||
+      ((r[8] | (r[9] << 8) | (r[10] << 16) | (r[11] << 24)) >>> 0) !== (session >>> 0) || r.length !== 14 + len)
+    throw fail("chip", "read reply does not match the request");
+  return r.slice(14);
+}
+
+function canonJson(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(canonJson).join(",") + "]";
+  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonJson(v[k])).join(",") + "}";
+}
+
+function hexBytes(hex) {
+  if (typeof hex !== "string" || hex.length % 2) throw fail("signature", "not a hex string");
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    const b = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(b)) throw fail("signature", "not a hex string");
+    out[i] = b;
+  }
+  return out;
+}
+
+// The Ed25519 manifest of tools/fm1_sign.py, verified with WebCrypto. `keys` maps key id -> public
+// key (hex). An empty map trusts nothing, so every package is refused: that is the released state.
+export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", firmware = null } = {}) {
+  if (!manifest || manifest.format !== "qg1-release-1") throw fail("signature", "No signed manifest.");
+  for (const f of ["product", "version", "min_firmware", "sha256", "size", "keyid", "sig"])
+    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
+  const pub = keys && keys[manifest.keyid];
+  if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
+  if (manifest.product !== product) throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");
+  if (pkg.byteLength !== manifest.size) throw fail("signature", "The package size is not the manifest's.");
+  if (firmware) {
+    const a = String(firmware).split(".").map(Number), b = String(manifest.min_firmware).split(".").map(Number);
+    for (let i = 0; i < Math.max(a.length, b.length); i++)
+      if ((a[i] || 0) < (b[i] || 0)) throw fail("signature", `The package needs firmware ${manifest.min_firmware}.`);
+  }
+  const unsigned = Object.fromEntries(Object.entries(manifest).filter(([k]) => k !== "sig"));
+  let ok = false;
+  try {
+    const key = await crypto.subtle.importKey("raw", hexBytes(pub), { name: "Ed25519" }, false, ["verify"]);
+    ok = await crypto.subtle.verify({ name: "Ed25519" }, key, hexBytes(manifest.sig),
+                                     new TextEncoder().encode(canonJson(unsigned)));
+  } catch (e) {
+    throw fail("signature", `WebCrypto cannot check Ed25519 here: ${e.message}`);
+  }
+  if (!ok) throw fail("signature", `The manifest is not signed by ${manifest.keyid}.`);
+  return { keyid: manifest.keyid, version: manifest.version, sha256: digest };
+}

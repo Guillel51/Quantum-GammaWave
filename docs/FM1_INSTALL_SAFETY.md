@@ -175,3 +175,29 @@ la aplicación probado en hardware representativo; paquete con integridad y, si 
 verificada; presupuestos y build target del commit exacto.
 
 Hoy faltan el chip, el backup y la restauración. **La decisión es NO-GO.**
+
+
+---
+
+## Fase 3 — identificación, lectura, backup y firma (2026-11-04)
+
+Estado: **IMPLEMENTED, HOST TESTED, TARGET COMPILED.** Nada de esto se probó en un FM-1.
+
+| Capacidad | Estado | Dónde |
+|---|---|---|
+| `0x12` identificación (JEDEC del driver, geometría, estado, sesión, CRC) | implementada, host y target | `firmware/src/ota.c`, `docs/IDENTIFICATION.md` |
+| `0x13` lectura solo-lectura (≤256 B, rango, sesión, CRC) | implementada, host y target | `firmware/src/ota.c`, `docs/BACKUP.md` |
+| Backup de dos pasadas + manifiesto | implementado, host | `tools/fm1_backup.py` |
+| Firma Ed25519 obligatoria antes de escribir | implementada, host y web | `tools/fm1_sign.py`, `web/fm1ota.js` |
+| Restauración / recuperación física | **BLOCKED** | no existe, no se tocó loader/SPL |
+
+Reglas nuevas, sin excepciones en la ruta de producción:
+
+1. Escribir exige `0x12` de **esta** unidad, leído por el instalador, dos veces, coincidente.
+2. Un JEDEC escrito a mano (`--jedec`) y `--allow-unidentified-chip` son de laboratorio y exigen `FM1_LAB=1`.
+3. Escribir exige un manifiesto firmado que verifique contra las claves públicas fijadas; sin clave fijada,
+   todo se rechaza.
+4. Un FM-1 en modo update (instalación cortada) **no puede identificarse**: se rechaza con exit 7. Terminar una
+   instalación cortada requiere el override de laboratorio. Es una limitación declarada, no un fallo silencioso.
+5. El loader no cambia: `FELUCCA_LOADER=1` excluye el código de consulta, y el CRC/tamaño del loader siguen
+   siendo los mismos.

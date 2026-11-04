@@ -109,3 +109,20 @@ conocido en CLI y web. Nada de eso se hizo en esta fase.
 - No se implementó firma ni anti-rollback.
 - La instalación física sigue en **NO-GO** hasta que `0x12` exista y esté probado, o hasta que se
   presente evidencia externa del JEDEC de esa unidad concreta.
+
+
+---
+
+## Estado al cerrar la fase 3 (2026-11-04)
+
+- **0x12**: implementado en la app y probado en host (`tests/ota_test.c`, `tests/chip_test.py`). La geometría
+  de página/sector/bloque viene de la tabla por JEDEC, no se mide; la capacidad sí se corrobora leyendo el
+  final de la ventana y exigiendo que la lectura en `capacity` falle.
+- **0x13**: implementado, solo lectura, 256 B por petición. Auditoría de rangos: la app lee los 1 MiB crudos
+  vía `0x0B` con XIP apagado; no hay ruta a `WREN`, borrado, programa ni registro de estado.
+- **Backup**: herramienta y manifiesto implementados; **restauración no existe**. Un backup completo no es
+  recuperación.
+- **Firma**: Ed25519 implementado y verificado en Python y WebCrypto; **ninguna clave publicada**, así que la
+  cadena rechaza todo hasta que el custodio publique una clave.
+- **Lo que sigue bloqueado**: lectura real del JEDEC en una unidad, backup real, restauración en banco,
+  verificación en navegador con hardware, y cualquier escritura física.

@@ -1,3 +1,23 @@
+- **Identificación física (0x12) en la aplicación:** el NOR contesta con el JEDEC que leyó su propio driver
+  SPI, la geometría que ese id implica, un estado y un token de sesión; dos lecturas con el mismo nonce deben
+  coincidir y traer tokens distintos. Sin respuesta, JEDEC desconocido, CRC malo, geometría que no cuadra o
+  token repetido ⇒ el instalador no envía ningún frame que pueda escribir. El loader queda fuera con
+  `FELUCCA_LOADER=1`, byte a byte igual. `tests/ota_test.c` cubre los estados 1/2/4/5/6/7 y `tests/chip_test.py`
+  el host. **No probado en hardware.**
+- **Lectura solo-lectura (0x13) y backup de dos pasadas:** hasta 256 B por petición, validación de rango,
+  CRC, sesión y longitud; `tools/fm1_backup.py` lee 1 MiB dos veces, compara byte a byte, calcula SHA-256 por
+  pasada y escribe un manifiesto `qg1-backup-1` que distingue completo, parcial, inconsistente y no
+  verificable. El test comprueba que solo sale 0x13 (nunca 0x30 ni UPGRADE). **Sin restauración: RECOVERY no
+  verificado.**
+- **Autenticidad Ed25519:** manifiesto firmado (`qg1-release-1`) con hash, producto, versión, min_firmware y
+  key id; verificación en Python y con WebCrypto, obligatoria antes de instalar. `tools/fm1_keys.json` no tiene
+  ninguna clave publicada: **todo paquete se rechaza**, que es el estado correcto hasta que exista custodio.
+- **Recuperación de una instalación cortada:** el loader no puede identificar su NOR (su código no cambia), así
+  que un FM-1 en modo update se rechaza con exit 7 salvo override de laboratorio. Limitación declarada, no
+  relajada.
+- **Presupuesto:** app 558 200 B, paquete `ad2f3d41…`, RAM `.data+.bss` 96 452/98 304 (spare 1 852), RAM code
+  22 432/24 576.
+
 ## Unreleased — six-track load, target link and installer trust
 
 - **Six-track load test:** `tests/six_track_test.c` (new, `bash tests/groups.sh six`) runs six tracks with ten

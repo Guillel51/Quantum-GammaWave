@@ -105,23 +105,27 @@ def main():
     check("a package that does not exist: refused", rc == P.EXIT["badpkg"])
 
     # ---- the gate lives inside the installer, not in a program the user must remember
-    def inst(pkg, args=(), dev_identity=product, after=product):
-        d = T.FakeFM1(image, identity=dev_identity, name="Felucca", after_write=after)
+    def inst(pkg, args=(), dev_identity=product, after=product, fault=None):
+        d = T.FakeFM1(image, identity=dev_identity, name="Felucca", after_write=after, query_fault=fault)
         rc = I.main([pkg, "--yes", *args], backend=d, out=io.StringIO())
         return rc, d
 
-    rc, d = inst(good)
-    check("installer without chip evidence: refused (exit 7)", rc == I.EXIT["chip"])
-    check("installer without chip evidence: no UPGRADE reached the device", d.upgrades == 0)
+    rc, d = inst(good, fault="silent")
+    check("a device that cannot answer 0x12: refused (exit 7)", rc == I.EXIT["chip"])
+    check("a device that cannot answer 0x12: no UPGRADE sent", d.upgrades == 0)
 
     rc, d = inst(good, ("--jedec", "123456"))
-    check("installer with an unknown JEDEC: refused, nothing sent", rc == I.EXIT["chip"] and d.upgrades == 0)
+    check("a typed JEDEC is not evidence: usage error, nothing sent", rc == 2 and d.upgrades == 0)
 
     rc, d = inst(good, ("--allow-unidentified-chip",))
     check("lab override without FM1_LAB=1: usage error, nothing sent", rc == 2 and d.upgrades == 0)
 
-    rc, d = inst(good, ("--jedec", "856014"))
-    check("installer with a documented JEDEC read on this unit: installs", rc == 0 and d.upgrades >= 1)
+    os.environ["FM1_LAB"] = "1"
+    try:
+        rc, d = inst(good, ("--jedec", "856014"))
+    finally:
+        del os.environ["FM1_LAB"]
+    check("a typed JEDEC with FM1_LAB=1 is a lab install only", rc == 0 and d.upgrades >= 1)
 
     os.environ["FM1_LAB"] = "1"
     try:

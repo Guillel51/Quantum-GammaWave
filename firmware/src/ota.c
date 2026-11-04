@@ -29,6 +29,10 @@
 #define OTA_LDR_DCRC 0x5881u
 #define OTA_LDR_LEN 0x4DE1u
 #define OTA_FRAME_MAX 640u                       /* 512-B response = 605 wire bytes */
+#ifndef FELUCCA_LOADER
+#define FELUCCA_LOADER 0                         /* the update loader includes this file: it stays
+                                                  * handshake-only, byte for byte as before */
+#endif
 
 static int ota_wire_send(const uint8_t *p, uint32_t n);
 static int ota_frame_get(const uint8_t **p, uint32_t *n);
@@ -40,6 +44,12 @@ static int ota_prog(uint32_t off, const void *p, uint32_t n);
 static int ota_fread(uint32_t off, void *p, uint32_t n);
 static void ota_show(uint32_t step, int32_t code);
 static void ota_commit(const uint8_t *parm);
+#if !FELUCCA_LOADER
+static uint32_t ota_jedec(void);                 /* NOR id from the SPI driver (0 = no answer) */
+static int ota_rawread(uint32_t off, void *p, uint32_t n);   /* raw NOR read, no XIP mapping */
+static void ota_qry_ident(void);
+static void ota_qry_read(void);
+#endif
 
 static uint32_t ota_rd16(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8; }
 static uint32_t ota_rd24(const uint8_t *p) { return ota_rd16(p) | (uint32_t)p[2] << 16; }
@@ -154,12 +164,20 @@ static uint32_t ota_take(void)
     return d;
 }
 
-/* main loop, outside a session: answer handshakes */
+/* main loop, outside a session: handshake, identification, read-only flash */
 static void ota_service(void)
 {
     uint32_t d = ota_take();
-    if (d == 7u && ota_dec[2] == 0x11)
+    if (d < 7u)
+        return;
+    if (ota_dec[2] == 0x11 && d == 7u)
         ota_reply_identity();
+#if !FELUCCA_LOADER
+    else if (ota_dec[2] == 0x12 && d == 14u)
+        ota_qry_ident();
+    else if (ota_dec[2] == 0x13 && d == 20u)
+        ota_qry_read();
+#endif
 }
 
 /* one read request (3 tries x 5 s); data -> dst */
@@ -378,6 +396,174 @@ static int ota_session(void)
     ota_commit(parm);
     return 0;
 }
+
+#if !FELUCCA_LOADER
+/* ---- 0x12: the NOR's own identity. 0x13: read-only flash (no erase, no
+ * program, no status-register write: both are pure reads). ----
+ *
+ * 0x12 body: ver(1) nonce(4) crc16(2)                        -> 24-byte reply
+ * 0x13 body: ver(1) addr(4) len(2) session(4) crc16(2)       -> 14 + len bytes
+ * Both replies carry a crc16; a wrong crc, a stale session or a range that
+ * the part does not have are answered with a status, never with invented data. */
+#define OTA_QRY_VER 1u
+#define OTA_QRY_CHUNK 256u            /* payload per 0x13 reply: pack7(276) = 316 wire bytes */
+#define OTA_CAP_1M (0x1000u * 256u)   /* one 1 MiB part */
+#define OTA_BLK_64K (0x1000u * 16u)
+
+/* JEDEC -> geometry. Only parts whose capacity and layout are known; anything
+ * else is refused rather than guessed. */
+typedef struct {
+    uint32_t jedec, cap, page, sector, block;
+} ota_part_t;
+
+static const ota_part_t OTA_PARTS[] = {
+    {0x856014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* Puya P25Q80H */
+    {0xB36014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* the newer variant */
+};
+#define OTA_NPARTS (sizeof OTA_PARTS / sizeof OTA_PARTS[0])
+
+static uint8_t ota_qbuf[6u + 24u], ota_qwire[40u];           /* 0x12 reply (38 wire bytes) */
+static uint8_t ota_rbuf[6u + 14u + OTA_QRY_CHUNK];           /* 0x13 reply */
+static uint8_t ota_rwire[320u];                              /* 6 + 14 + 256 -> 319 */
+static uint32_t ota_sess, ota_sess_seq;
+static const ota_part_t *ota_sess_part;
+
+static int ota_send_big(uint32_t cmd, const uint8_t *body, uint32_t n, uint8_t *buf, uint8_t *wire)
+{
+    uint32_t i, s = 0, w;
+    buf[0] = 0;
+    buf[1] = 0x59;
+    buf[2] = (uint8_t)cmd;
+    buf[3] = (uint8_t)n;
+    buf[4] = (uint8_t)(n >> 8);
+    buf[5] = 0;
+    for (i = 0; i < n; i++) {
+        buf[6 + i] = body[i];
+        s += body[i];
+    }
+    buf[6 + n] = (uint8_t)~s;
+    wire[0] = 0xF0;
+    w = 1u + ota_pack7(buf, 7u + n, wire + 1);
+    wire[w++] = 0xF7;
+    return ota_wire_send(wire, w);
+}
+
+static const ota_part_t *ota_part_of(uint32_t jedec)
+{
+    uint32_t i;
+    for (i = 0; i < OTA_NPARTS; i++)
+        if (OTA_PARTS[i].jedec == jedec)
+            return &OTA_PARTS[i];
+    return 0;
+}
+
+/* the readable window must end exactly at the part's capacity: a read just
+ * below it works and gives the same bytes twice, a read at it fails */
+static int ota_cap_ok(uint32_t cap)
+{
+    uint8_t a[16], b[16];
+    if (ota_rawread(cap - 16u, a, sizeof a) || ota_rawread(cap - 16u, b, sizeof b))
+        return 0;
+    if (!ota_memeq(a, b, sizeof a))
+        return 0;
+    return ota_rawread(cap, b, sizeof b) != 0;
+}
+
+/* status: 0 ok, 1 no answer from the NOR, 2 part not known, 3 capacity not
+ * corroborated, 4 no/stale session, 5 range, 6 length or read error, 7 request
+ * malformed (version or crc) */
+static void ota_qry_ident(void)
+{
+    uint8_t r[24];
+    uint32_t i, nonce, jedec, st = 0, cap = 0, page = 0, sector = 0, block = 0;
+    const ota_part_t *p = 0;
+    ota_sess = 0;                            /* any failed re-identification kills the old session */
+    ota_sess_part = 0;
+    if (ota_dec[6] != OTA_QRY_VER || ota_crc16(ota_dec + 6, 5, 0) != ota_rd16(ota_dec + 11)) {
+        st = 7;
+        jedec = 0;
+        nonce = 0;
+    } else {
+        nonce = ota_rd32(ota_dec + 7);
+        jedec = ota_jedec();
+        if (!jedec)
+            st = 1;
+        else if (!(p = ota_part_of(jedec)))
+            st = 2;
+        else if (!ota_cap_ok(p->cap))
+            st = 3;
+        else {
+            cap = p->cap;
+            page = p->page;
+            sector = p->sector;
+            block = p->block;
+            /* a fresh token per answered request: an old reply cannot be replayed */
+            ota_sess = (nonce * 0x9E3779B1u) ^ ota_now_ms() ^ (++ota_sess_seq * 0x85EBCA77u);
+            if (!ota_sess)
+                ota_sess = 0xA5A50001u;
+            ota_sess_part = p;
+        }
+    }
+    for (i = 0; i < sizeof r; i++)
+        r[i] = 0;
+    r[0] = OTA_QRY_VER;
+    r[1] = (uint8_t)st;
+    r[2] = (uint8_t)(jedec >> 16);
+    r[3] = (uint8_t)(jedec >> 8);
+    r[4] = (uint8_t)jedec;
+    r[5] = (uint8_t)cap;
+    r[6] = (uint8_t)(cap >> 8);
+    r[7] = (uint8_t)(cap >> 16);
+    r[8] = (uint8_t)(cap >> 24);
+    ota_wr16(r + 9, page);
+    ota_wr16(r + 11, sector);
+    r[13] = (uint8_t)block;
+    r[14] = (uint8_t)(block >> 8);
+    r[15] = (uint8_t)(block >> 16);
+    r[16] = (uint8_t)(block >> 24);
+    ota_wr32(r + 17, st ? 0u : ota_sess);
+    ota_wr16(r + 21, ota_crc16(r, 21, 0));
+    (void)ota_send_big(0x12, r, sizeof r, ota_qbuf, ota_qwire);
+}
+
+static void ota_qry_read(void)
+{
+    static uint8_t h[14];
+    uint32_t addr, len, st = 0;
+    const ota_part_t *p;
+    if (ota_dec[6] != OTA_QRY_VER || ota_crc16(ota_dec + 6, 11, 0) != ota_rd16(ota_dec + 17)) {
+        st = 7;
+        addr = len = 0;
+    } else {
+        addr = ota_rd32(ota_dec + 7);
+        len = ota_rd16(ota_dec + 11);
+        p = ota_sess_part;                     /* the part 0x12 validated: one SPI id, not two */
+        if (!ota_sess || ota_rd32(ota_dec + 13) != ota_sess)
+            st = 4;
+        else if (!p)
+            st = 2;
+        else if (!len || len > OTA_QRY_CHUNK)
+            st = 6;                                  /* the host chunks; never a short surprise */
+        else if (addr >= p->cap || len > p->cap - addr)
+            st = 5;
+        else if (ota_rawread(addr, ota_rbuf + 6 + 14, len))
+            st = 6;
+    }
+    h[0] = OTA_QRY_VER;
+    h[1] = (uint8_t)st;
+    ota_wr16(h + 2, st ? 0u : len);
+    ota_wr32(h + 4, st ? 0u : addr);
+    ota_wr32(h + 8, st ? 0u : ota_sess);
+    ota_wr16(h + 12, ota_crc16(h, 12, 0));
+    /* header in front of the payload, which was read straight into 6+14 */
+    {
+        uint32_t i;
+        for (i = 0; i < 14u; i++)
+            ota_rbuf[6 + i] = h[i];
+    }
+    (void)ota_send_big(0x13, ota_rbuf + 6, st ? 14u : 14u + len, ota_rbuf, ota_rwire);
+}
+#endif /* !FELUCCA_LOADER */
 
 /* boot: a staging area left over (we are running, so the update finished or
  * never started): erase it so the SPL does not re-enter the loader */

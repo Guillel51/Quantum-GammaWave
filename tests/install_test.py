@@ -9,6 +9,7 @@ Also checks logical_image/product_of against web/fm1pkg.js (needs node and
 build/felucca.fwsc, skipped otherwise)."""
 import hashlib
 import io
+import json
 import queue
 import shutil
 import subprocess
@@ -21,6 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import fm1_install as I  # noqa: E402
+import fm1_probe as P  # noqa: E402
+import fm1_sign as S  # noqa: E402
 
 I.DELAY.update(open=0, start=0.01, reply=0, loader=0.01, reboot=0.01, retry=0.02, poll=0.05, hs=0.1,
                idle_check=0.4, idle_write=0.4, wait_loader=2, wait_reboot=2)
@@ -68,10 +71,13 @@ class FakeFM1:
     """a MIDI backend with one FM-1 on it"""
 
     def __init__(self, image, identity="FM-1_015", name="FM-1", unplug_after=None, after_write="FM-1_900",
-                 stall_after=None, bad_addr=None, ack_lost=False, ack_lost_stage1=False):
+                 stall_after=None, bad_addr=None, ack_lost=False, ack_lost_stage1=False,
+                 jedec=0x856014, query_fault=None):
         self.image, self.unplug_after, self.after_write = image, unplug_after, after_write
         self.stall_after, self.bad_addr, self.ack_lost = stall_after, bad_addr, ack_lost
         self.ack_lost_stage1 = ack_lost_stage1
+        self.jedec, self.query_fault, self.queries, self.session = jedec, query_fault, 0, 0
+        self.nor = bytes(range(256)) * 4096            # 1 MiB of readable NOR for 0x13
         self.served = self.bad = self.upgrades = 0
         self.sent, self.links, self.gen, self.lock = [], [], 0, threading.Lock()
         self.boot(identity, name)
@@ -100,6 +106,11 @@ class FakeFM1:
                 link.q.put(bytes(pkt))
 
     def rx(self, d):
+        if d[:1] == b"\xF0" and len(d) > 8:            # 0x12 / 0x13: identification and read-only flash
+            u = I.unpack7(d[1:-1])
+            if len(u) >= 7 and u[0] == 0 and u[1] == 0x59 and u[2] in (0x12, 0x13):
+                self.answer_query(u[2], u[6:6 + (u[3] | u[4] << 8 | u[5] << 16)])
+                return
         if d == I.HS_QUERY:
             t = self.identity.encode()
             self.tx(b"\xF0" + I.pack7(bytes([0, 0x59, 0x11, 0, 0, 0]) + t + bytes(28 - len(t))) + b"\xF7")
@@ -141,6 +152,74 @@ class FakeFM1:
         u.append(~sum(u[6:14]) & 0xFF)
         self.tx(b"\xF0" + I.pack7(u) + b"\xF7")
 
+    def _reply(self, cmd, body):
+        u = bytearray([0, 0x59, cmd, len(body) & 0xFF, (len(body) >> 8) & 0xFF, 0]) + bytearray(body)
+        u.append(~sum(body) & 0xFF)
+        self.tx(b"\xF0" + I.pack7(u) + b"\xF7")
+
+    def answer_query(self, cmd, body):
+        """the app's 0x12/0x13 answers, with the faults the tests inject"""
+        self.queries += 1
+        f = self.query_fault
+        if f == "silent" or not self.connected:
+            return
+        if cmd == 0x12:
+            nonce = int.from_bytes(body[1:5], "little") if len(body) >= 5 else 0
+            jedec, cap = self.jedec, 0x100000
+            if f == "truncated":
+                self._reply(0x12, bytes([1, 0]) + bytes(8))
+                return
+            if f == "crc":
+                b = bytearray(24)
+                b[0], b[21] = 1, 0xAA
+                self._reply(0x12, bytes(b))
+                return
+            if f == "unknown":
+                jedec = 0x123456
+            if f == "flaky":
+                jedec = 0x856014 if self.queries % 2 else 0xB36014
+            if f == "geometry":
+                cap = 0x200000
+            st = 1 if jedec == 0 else (2 if jedec not in P.PARTS else 0)
+            b = bytearray(24)
+            b[0], b[1] = 1, st
+            b[2], b[3], b[4] = (jedec >> 16) & 0xFF, (jedec >> 8) & 0xFF, jedec & 0xFF
+            if st == 0:
+                page, sector, block = P.PARTS[jedec][2:]
+                b[5:9] = cap.to_bytes(4, "little")
+                b[9:11] = page.to_bytes(2, "little")
+                b[11:13] = sector.to_bytes(2, "little")
+                b[13:17] = block.to_bytes(4, "little")
+                if f != "nosession":
+                    self.session = ((nonce * 2654435761 + self.queries * 40503) & 0xFFFFFFFF) or 1
+                    b[17:21] = self.session.to_bytes(4, "little")
+            b[21:23] = P.crc16(bytes(b[:21])).to_bytes(2, "little")
+            self._reply(0x12, bytes(b))
+            return
+        addr = int.from_bytes(body[1:5], "little") if len(body) >= 11 else 0
+        n = int.from_bytes(body[5:7], "little") if len(body) >= 11 else 0
+        sess = int.from_bytes(body[7:11], "little") if len(body) >= 11 else 0
+        st = 0
+        if f == "readfail" or (f == "readfail_at" and self.queries > 4):
+            st = 6
+        elif not self.session or sess != self.session:
+            st = 4
+        elif not n or n > 256:
+            st = 6
+        elif addr + n > 0x100000:
+            st = 5
+        h = bytearray([1, st])
+        h += (0 if st else n).to_bytes(2, "little")
+        h += (0 if st else (addr + (1 if f == "badaddr" else 0))).to_bytes(4, "little")
+        h += (0 if st else sess).to_bytes(4, "little")
+        h[12:14] = P.crc16(bytes(h[:12])).to_bytes(2, "little")
+        data = b""
+        if not st:
+            data = bytearray(self.nor[addr:addr + n])
+            if f == "unstable" and data and self.queries % 3 == 0:
+                data[0] ^= 0xFF
+        self._reply(0x13, bytes(h) + bytes(data))
+
 
 # ----------------------------------------------------------------- helpers ---
 
@@ -153,21 +232,42 @@ def package(product="FM-1_900", marker=True, size=0x2000):
 
 
 TMP = Path(tempfile.mkdtemp(prefix="felucca-install-"))
+KEYID = "install-test-1"
+PRIV = TMP / "test-key.pem"
 
 
-def pkgfile(name, raw):
+def _test_key():
+    """an ephemeral release key: the private key never touches the repository"""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    k = Ed25519PrivateKey.generate()
+    PRIV.write_bytes(k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                     serialization.NoEncryption()))
+    pub = k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    (TMP / "keys.json").write_text(json.dumps({"keys": {KEYID: pub.hex()}}))
+
+
+_test_key()
+
+
+def pkgfile(name, raw, version="3.0.0", minimum="2.0.0", sign=True, product=None):
     p = TMP / name
     p.write_bytes(raw)
     (TMP / (name + ".sha256")).write_text(hashlib.sha256(raw).hexdigest() + "\n")   # (QG-1) hashes are mandatory
+    if sign:
+        try:
+            prod = product or I.model_of(I.product_of(raw))
+        except I.InstallError:
+            prod = product or "FM-1"          # a deliberately broken package: sign it anyway
+        man = S.sign_manifest(S.manifest_for(raw, version, minimum, prod, KEYID), PRIV.read_bytes())
+        (TMP / (name + ".manifest.json")).write_text(json.dumps(man))
     return str(p)
 
 
 def cli(args, dev, answer=True):
-    # (QG-1) the install now requires the physical NOR id: these tests drive the protocol, so they
-    # present a documented JEDEC the way an external reader would (tests/preflight_test.py covers refusal)
-    args = list(args)
-    if "--jedec" not in args and "--allow-unidentified-chip" not in args:
-        args += ["--jedec", "856014"]
+    # (QG-1) no typed JEDEC any more: the installer reads the chip with 0x12 (the fake answers it) and
+    # the package carries a signed manifest. tests/preflight_test.py covers every refusal.
+    args = list(args) + ["--keys", str(TMP / "keys.json")]
     out, err = io.StringIO(), io.StringIO()
     old, sys.stderr = sys.stderr, err
     try:
@@ -202,7 +302,10 @@ def installs():
 
     dev = FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update")
     rc, out, err = cli([p, "--yes"], dev)
-    ok(rc == 0 and dev.bad == 0 and dev.upgrades == 1 and "update mode" in out, "install: device already in update mode -> finishes the write")
+    # (QG-1 phase 3) the loader cannot identify its NOR (its code is unchanged), so an install cut off in
+    # the middle is refused unless the lab override is present: fail closed, and documented as a limitation
+    ok(rc == 7 and dev.upgrades == 0 and "already in update mode" in err,
+       "install: device already in update mode -> refused, nothing sent")
 
     dev = FakeFM1(image)
     rc, out, err = cli([p], dev, answer=False)
@@ -241,11 +344,12 @@ def errors():
        "unplugged in step 1 -> exit 4 'lost', nothing written")
     t0 = time.monotonic()
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", unplug_after=3))
-    ok(rc == 4 and "run the install again" in err and time.monotonic() - t0 < 3, "unplugged during the write -> exit 4 at once")
+    ok(rc == 7 and dev.upgrades == 0 and time.monotonic() - t0 < 3,
+       "a device in update mode is refused before any write attempt")
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", stall_after=3))
-    ok(rc == 4 and "stopped answering" in err, "loader stops answering -> exit 4 after the idle time")
+    ok(rc == 7 and "already in update mode" in err, "loader mode is refused, not waited on")
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", bad_addr=len(image)))
-    ok(rc == 4 and "outside the package" in err, "read past the package -> exit 4")
+    ok(rc == 7, "a device in update mode cannot be identified, so nothing is sent")
 
     rc, out, err = cli([p, "--yes"], FakeFM1(image, after_write="FM-1_015"))
     ok(rc == 6 and "reports FM-1_015" in err, "another identity after the restart -> exit 6")
@@ -293,6 +397,8 @@ def integrity():
     d.mkdir(exist_ok=True)
     p = d / "q.fwsc"
     p.write_bytes(raw)
+    (d / "q.fwsc.manifest.json").write_text(json.dumps(          # (QG-1) signed, or nothing installs
+        S.sign_manifest(S.manifest_for(raw, "3.0.0", "2.0.0", "FM-1", KEYID), PRIV.read_bytes())))
     plain = d / "plain.fwsc"
     plain.write_bytes(raw)
     dev = FakeFM1(image)
@@ -357,14 +463,18 @@ def official():
     ok(rc == 2 and "official V15" in err and dev.sent == [], "a modified V15 is still refused (no MIDI)")
 
 
-wire()
-integrity()
-installs()
-errors()
-against_js()
-official()
-shutil.rmtree(TMP, ignore_errors=True)
-print(f"INSTALL TESTS FAILED ({failed})" if failed else "install tests passed")
+def main():
+    wire()
+    integrity()
+    installs()
+    errors()
+    against_js()
+    official()
+    print(f"INSTALL TESTS FAILED ({failed})" if failed else "install tests passed")
+    return 1 if failed else 0
+
 
 if __name__ == "__main__":
-    sys.exit(1 if failed else 0)
+    _rc = main()
+    shutil.rmtree(TMP, ignore_errors=True)
+    sys.exit(_rc)
