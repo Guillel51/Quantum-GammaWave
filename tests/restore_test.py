@@ -208,7 +208,15 @@ def main():
         nor_path = Path(tmp) / "part.nor"
         ok(R.main(["--backup", str(man_path), "--write", "--programmer", f"file:{nor_path}"]) == 0,
            "write: a blank part is erased, programmed and reads back like the backup (exit 0)")
-        ok(nor_path.read_bytes() == raw, "write: the simulated part holds the image byte for byte")
+        body = nor_path.read_bytes()
+        ok(body[:R.HEAD] == b"\xff" * R.HEAD and body[R.HEAD:] == raw[R.HEAD:],
+           "write: the app area matches and the boot header was left alone")
+        ok(body[:R.HEAD] != raw[:R.HEAD], "write: the boot header really was skipped, not copied by luck")
+
+        full = Path(tmp) / "full.nor"
+        ok(R.main(["--backup", str(man_path), "--write", "--programmer", f"file:{full}", "--include-head"]) == 0,
+           "write: --include-head writes the boot header too (exit 0)")
+        ok(full.read_bytes() == raw, "write: --include-head reproduces the image byte for byte")
 
         class Stuck(R.NorFile):
             """a part whose first byte of every page will not program: the readback must catch it"""
@@ -236,7 +244,10 @@ def main():
         saved_flashrom = R.FLASHROM
         R.FLASHROM = str(fake)
         try:
-            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi"]) == 0,
+            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi"]) == 5,
+               "write: flashrom without --include-head is refused (it cannot skip the boot header)")
+            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi",
+                       "--include-head"]) == 0,
                "write: the flashrom backend writes, reads the part back and compares it (exit 0)")
             ok(chip.read_bytes() == raw, "write: the stand-in part holds the image after the flashrom run")
 
@@ -245,7 +256,8 @@ def main():
                             f"  case \"$1\" in -w) cp \"$2\" {chip} ;; "
                             "-r) cp " + str(chip) + " \"$2\"; printf '\\377' | dd of=\"$2\" bs=1 seek=0 conv=notrunc 2>/dev/null ;; esac\n"
                             "  shift\ndone\n")
-            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi"]) == 8,
+            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi",
+                       "--include-head"]) == 8,
                "write: a readback that differs exits 8 even when flashrom claimed success")
         finally:
             R.FLASHROM = saved_flashrom
@@ -255,7 +267,8 @@ def main():
         bad.chmod(0o755)
         R.FLASHROM = str(bad)
         try:
-            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi"]) == 2,
+            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi",
+                       "--include-head"]) == 2,
                "write: a programmer that fails exits 2 instead of reporting a restore")
         finally:
             R.FLASHROM = saved_flashrom

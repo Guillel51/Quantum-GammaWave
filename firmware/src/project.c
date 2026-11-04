@@ -1912,6 +1912,7 @@ static void song_index_boot(void);
  * documented 1 MiB parts at its documented capacity, and the status register must be idle
  * and unprotected; anything else leaves the firmware RAM-only rather than writing to a part
  * it cannot identify. Policy and the reason of each check: hal/fm1_flash_id.h. */
+#if FELUCCA_FLASH
 static int flash_identify(void)
 {
     fl_id_t r;
@@ -1920,6 +1921,7 @@ static int flash_identify(void)
     r.sr = FL_FAR(fl_status_ram)();
     return fl_id_verify(&r) == FL_ID_OK;
 }
+#endif /* FELUCCA_FLASH: fl_jedec_ram/fl_status_ram live in hal/fm1_flash.h */
 
 static void persist_boot(void)                    /* before settings_init / panel_init */
 {

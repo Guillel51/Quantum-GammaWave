@@ -51,6 +51,7 @@ from pathlib import Path
 import fm1_probe as P
 
 FORMAT = "qg1-backup-1"
+HEAD = 0x4000          # loader + boot header: unit-specific, never written by default
 CAP = 0x100000
 READ_ONLY = {0x11, 0x12, 0x13}
 IDENTITY_RE = re.compile(r"^(ota-)?[^_]+_\d+$")
@@ -177,9 +178,13 @@ class NorFile:
         tmp.replace(self.path)
 
 
-def write_nor(raw, nor, sector, page):
-    """erase, program and read back sector by sector; -> receipt. Raises before trusting a mismatch."""
-    for off in range(0, len(raw), sector):
+def write_nor(raw, nor, sector, page, start=0):
+    """erase, program and read back sector by sector from `start`; -> receipt."""
+    if start % sector:
+        raise RestoreError("programmer", f"start 0x{start:05X} is not a {sector} B sector boundary")
+    if len(raw) % sector or sector % page or len(raw) > nor.size:
+        raise RestoreError("programmer", f"image {len(raw)} B / sector {sector} B / page {page} B do not tile the part")
+    for off in range(start, len(raw), sector):
         chunk = raw[off:off + sector]
         nor.erase(off, sector)
         for p in range(0, len(chunk), page):
@@ -189,10 +194,10 @@ def write_nor(raw, nor, sector, page):
             bad = next(i for i in range(len(chunk)) if got[i] != chunk[i])
             raise RestoreError("program", f"sector 0x{off:05X} does not read back: first difference at "
                                           f"+0x{bad:X}, wrote 0x{chunk[bad]:02X}, read 0x{got[bad]:02X}")
-    if nor.read(0, len(raw)) != raw:
-        raise RestoreError("program", "the whole part does not read back like the image")
-    return {"back": "file", "bytes": len(raw), "sectors": len(raw) // sector,
-            "erased": nor.erased, "programmed": nor.programmed}
+    if nor.read(start, len(raw) - start) != raw[start:]:
+        raise RestoreError("program", "the written range does not read back like the image")
+    return {"back": "file", "bytes": len(raw) - start, "sectors": (len(raw) - start) // sector,
+            "erased": nor.erased, "programmed": nor.programmed, "from": start}
 
 
 FLASHROM = "flashrom"
@@ -234,14 +239,20 @@ def restore(a, facts, raw):
         if not arg:
             raise RestoreError("programmer", "file: needs a path to the simulated part")
         nor = NorFile(arg, size=facts["capacity"])
-        rec = write_nor(raw, nor, facts["sector"], facts["page"])
+        start = 0 if getattr(a, "include_head", False) else HEAD
+        rec = write_nor(raw, nor, facts["sector"], facts["page"], start=start)
         nor.save()
         rec["part"] = arg
     elif kind == "flashrom":
+        if not getattr(a, "include_head", False):
+            raise RestoreError("write", "flashrom writes the whole part, boot header included: "
+                                        "pass --include-head to accept that, or use --programmer file:PATH "
+                                        "to write from 0x4000")
         rec = flashrom_restore(arg or "ch341a_spi", raw)
     else:
         raise RestoreError("programmer", f"unknown programmer {spec!r}: use file: or flashrom:")
-    print(f"write:   {rec['bytes']} B, {rec.get('sectors', '-')} sectors, erased, programmed and read back")
+    where = "the whole part" if rec.get("from", 0) == 0 else f"from 0x{rec['from']:05X} (boot header kept)"
+    print(f"write:   {rec['bytes']} B, {rec.get('sectors', '-')} sectors {where}, erased, programmed, read back")
     print(f"verify:  the part reads back identical to {facts['sha256'][:16]}...")
     print("restore: written")
     return 0
@@ -330,6 +341,8 @@ def main(argv=None):
     ap.add_argument("--device", action="store_true", help="also check the connected FM-1's chip and geometry")
     ap.add_argument("--compare", action="store_true", help="read the unit again and list differing ranges")
     ap.add_argument("--write", action="store_true", help="write the image back through --programmer")
+    ap.add_argument("--include-head", action="store_true",
+                    help="also write the first 16 KiB (loader/boot header): unit-specific, off by default")
     ap.add_argument("--programmer", metavar="SPEC",
                     help="file:PATH (a part simulated on a file) or flashrom:DEVICE (an external SPI programmer)")
     a = ap.parse_args(argv)

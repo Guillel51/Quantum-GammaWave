@@ -82,8 +82,12 @@ Sólo después de 1–12 en una unidad secundaria tiene sentido hablar de instal
 
 ```
 fm1_restore.py --backup DIR --write --programmer file:part.nor     # un part simulado en un archivo
-fm1_restore.py --backup DIR --write --programmer flashrom:ch341a_spi
+fm1_restore.py --backup DIR --write --programmer flashrom:ch341a_spi --include-head
 ```
+
+Por defecto `--write` empieza en `0x4000`: los primeros 16 KiB son el loader y la
+cabecera de arranque, que son propios de cada unidad. `--include-head` los escribe
+también y es obligatorio para el backend `flashrom`, que no puede escribir parcial.
 
 Borra sector a sector (4 KiB), programa página a página (256 B), relee cada sector, después relee el
 part completo y compara. Devuelve 8 si algo no vuelve idéntico, 2 si el programador falla, 5 si no se

@@ -67,6 +67,9 @@
   that fails; **neither backend has run on hardware**.
 - **Signing and chip support unchanged:** `fm1_keys.json` still has no production key (every package
   is refused, the correct state until a custodian exists); `0x856014` writable, `0xB36014` read-only.
+- **Restore keeps the boot area by default:** `--write` starts at 0x4000; the first 16 KiB (loader
+  and boot header) are unit-specific and need `--include-head`, which `flashrom` requires because it
+  writes the whole part.
 - **Not verified:** hardware, physical restore, audio on a real unit.
 
 ## Integrated hardening — flash identification, OTA bounds, core-1 self-test, verified backup CLI
