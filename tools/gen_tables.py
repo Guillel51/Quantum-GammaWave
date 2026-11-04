@@ -60,6 +60,15 @@ def main(path):
     # filter cutoff 30 Hz .. 16 kHz
     fc = [30.0 * ((16000 / 30) ** (v / 127)) for v in range(128)]
     L += arr("CUTOFF_HZ", "uint16_t", [int(round(f)) for f in fc])
+    # master EQ cutoff: 20 Hz .. 20 kHz, the axis the MASTER EQ graph draws
+    eq_fc = [20.0 * (1000.0 ** (v / 127)) for v in range(128)]
+    L += arr("EQ_HZ", "uint16_t", [int(round(f)) for f in eq_fc])
+    # master EQ gain law: A = 10^(dB / 40), sqrt(A) = 10^(dB / 80), Q12. The old
+    # linear polynomial was 18 dB at +24 and clamped at -24: the graph and the
+    # audio filter did not reach the gain the parameter asked for.
+    eq_gain_db = range(-24, 25)
+    L += arr("EQ_A_Q12", "uint16_t", [int(round(4096 * 10 ** (g / 40))) for g in eq_gain_db])
+    L += arr("EQ_SQRT_A_Q12", "uint16_t", [int(round(4096 * 10 ** (g / 80))) for g in eq_gain_db])
     # trapezoidal (Simper) SVF: g = tan(pi fc / FS), Q12; stable at any cutoff/resonance
     L += arr("SVF_G", "uint16_t", [int(4096 * math.tan(math.pi * min(f, 0.45 * FS) / FS)) for f in fc])
     # level: 0 = off, else dB = (v - 112) / 2  (112 = 0 dB, 127 = +7.5 dB)

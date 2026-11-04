@@ -1653,9 +1653,10 @@ static uint32_t graph_signature(void)
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
     if (pg->graph == GR_NONE || pg->graph == GR_ARP || pg->graph == GR_MOTION) h ^= ui.frame / 2u;
-    if (pg->graph == GR_FX) {                        /* real bus peaks, plus a slow ambient tick when idle */
-        h ^= (uint32_t)(t->peak < 0 ? -t->peak : t->peak) * 2654435761u ^ (uint32_t)bg_energy() * 40503u ^
-             (ui.frame / 16u) * 1299709u;
+    if (pg->graph == GR_FX) {                        /* real bus peaks; the ambient granules move every frame */
+        h ^= (uint32_t)(t->peak < 0 ? -t->peak : t->peak) * 2654435761u ^ (uint32_t)bg_energy() * 40503u;
+        if (drift_on())                                /* (1.8.6) was ui.frame / 16: the FX granules ran at ~3.75 fps */
+            h ^= ui.frame * 1299709u;
         for (i = 0; i < 6u; i++)
             h = (h ^ (uint32_t)fx_vu[i]) * 16777619u;
     }

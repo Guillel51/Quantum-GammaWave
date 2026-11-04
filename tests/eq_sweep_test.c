@@ -45,12 +45,13 @@ static void set_mode(int mode, int freq, int gain, int q)
 static int coefficients_ok(void)
 {
     if (!master_eq.active) return 1;
-    if (master_eq.b0 < -(1 << 20) || master_eq.b0 > (1 << 20) ||
-        master_eq.b1 < -(1 << 20) || master_eq.b1 > (1 << 20) ||
-        master_eq.b2 < -(1 << 20) || master_eq.b2 > (1 << 20))
+    if (master_eq.b0 < -(1 << 29) || master_eq.b0 > (1 << 29) ||
+        master_eq.b1 < -(1 << 29) || master_eq.b1 > (1 << 29) ||
+        master_eq.b2 < -(1 << 29) || master_eq.b2 > (1 << 29))
         return 0;
-    if (master_eq.a2 < -16300 || master_eq.a2 > 16300) return 0;
-    if (master_eq.a1 < -(16384 + master_eq.a2 - 64) || master_eq.a1 > 16384 + master_eq.a2 - 64)
+    if (master_eq.a2 < -(16300 << 10) || master_eq.a2 > (16300 << 10)) return 0;
+    if (master_eq.a1 < -((1 << 24) + master_eq.a2 - (1 << 12)) ||
+        master_eq.a1 > (1 << 24) + master_eq.a2 - (1 << 12))
         return 0;
     return 1;
 }
@@ -90,6 +91,33 @@ int main(void)
            4u * 6u * 5u * 4u, worst_tail, silent, bad_coeff);
     check("all modes/freq/gain/Q: stable coefficients, no residual after silence",
           worst_tail == 0 && silent == 0 && bad_coeff == 0);
+
+    /* (1.8.6) the response curve: a real frequency axis, a symmetric gain axis and a
+     * stable sign at the extremes. fx_master_eq_hz_db uses the same coefficients as the
+     * audio path; the old 12M + idx * 16M angle only covered 123..287 Hz. */
+    {
+        int32_t peak_boost, peak_cut, notch, low_lo, low_hi, high_lo, high_hi;
+        int32_t eq_hz = EQ_HZ[64];
+        song.g[G_EQMODE] = 1; song.g[G_EQFREQ] = 64; song.g[G_EQGAIN] = 24; song.g[G_EQQ] = 64;
+        peak_boost = fx_master_eq_hz_db(eq_hz);
+        song.g[G_EQMODE] = 1; song.g[G_EQGAIN] = -24;
+        peak_cut = fx_master_eq_hz_db(eq_hz);
+        song.g[G_EQMODE] = 2; song.g[G_EQGAIN] = 0;
+        notch = fx_master_eq_hz_db(eq_hz);
+        song.g[G_EQMODE] = 3; song.g[G_EQGAIN] = 24;
+        low_lo = fx_master_eq_hz_db(20); low_hi = fx_master_eq_hz_db(20000);
+        song.g[G_EQMODE] = 4;
+        high_lo = fx_master_eq_hz_db(20); high_hi = fx_master_eq_hz_db(20000);
+        printf("eq:   (curve Q8 dB: peak +24 %d, peak -24 %d, notch %d, low 20/20k %d/%d, high 20/20k %d/%d)\n",
+               peak_boost, peak_cut, notch, low_lo, low_hi, high_lo, high_hi);
+        check("EQ curve: +24 dB peaks, -24 dB cuts, notch cuts, shelves tilt",
+              peak_boost > 2000 && peak_cut < -2000 && notch < -2000 &&
+              low_lo > low_hi + 2000 && high_hi > high_lo + 2000);
+        check("EQ curve: 20 Hz and 20 kHz stay bounded and finite",
+              peak_boost <= 24 * 256 && peak_boost >= -24 * 256 && low_lo <= 24 * 256 &&
+              low_lo >= -24 * 256 && high_hi <= 24 * 256 && high_hi >= -24 * 256);
+        song.g[G_EQMODE] = 0;
+    }
 
     /* a poisoned delay line (a preset switched while the filter was ringing) */
     set_mode(3, 0, 24, 64);

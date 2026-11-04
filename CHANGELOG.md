@@ -1,3 +1,19 @@
+## v1.8.6 — FX particles, splash, note visualizer, Punch-In keyboard and Master EQ (2026-11-04)
+
+- **FX particles:** the first FX section was redrawn at `ui.frame / 16` (about 3.75 fps); it now advances on
+  every UI frame while drift is on, like the other sections, without extra allocations or reduced particle counts.
+- **Splash:** the boot sequence now has stars, parallax, sparks, logo reveal and a sweep, with the same bounded
+  timeline contract and no blank/black frames.
+- **Note visualizer:** particles are driven by the voices actually playing (`active`, `gate`, `note`, `vel`), with
+  fixed storage and bounded work for chords, polyphony and note release.
+- **Punch-In keyboard:** white keys are 12 px with a 2 px gap and black keys 9 px wide, preserving MIDI/F3–G5
+  mapping and vertical labels while making the separation visible at emulator scales.
+- **Master Biquad EQ:** real 20 Hz–20 kHz frequency mapping (`EQ_HZ`), logarithmic graphics axis, exact
+  `10^(dB/40)` gain tables, Q24 internal coefficients and 64-bit response evaluation. The +24/−24 dB extremes,
+  shelves, peak/notch and 480 parameter corners are tested; the graph no longer folds or drops at 20 Hz.
+- **Verification:** `ui` (0 lint), `mod`, `presets`, `security`, `target`, `emu`, `sync`, web and package tests;
+  target app/package rebuilt from this tree. No physical FM-1 was flashed.
+
 ## 2026-11-04 — Integration, target package and public deployment (`0f52f48`)
 
 - **Both histories are integrated.** `origin/main` (`36d3eac`, including PR #60–#62) was merged into

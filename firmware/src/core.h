@@ -11,6 +11,8 @@
 extern volatile int32_t fx_vu[6];
 /* (1.8) dB response of the master EQ at a 0..127 frequency index, Q8 dB (0 = 0 dB). */
 int32_t fx_master_eq_db(int32_t freq_idx);
+/* (1.8.6) the same response at a real frequency in Hz (20..20000), for the graph's log axis. */
+int32_t fx_master_eq_hz_db(int32_t hz);
 
 /* ------------------------------------------------------------ sizes --- */
 #ifndef NVOICE

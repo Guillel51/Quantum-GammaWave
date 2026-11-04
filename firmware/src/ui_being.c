@@ -14,6 +14,115 @@ static uint16_t bg_col(int32_t v)
 }
 static int32_t bg_sin(uint32_t ang) { return sine_i(ang << 16); }   /* Q15 */
 
+/* (1.8.6) Note-reactive sparks for the visualizers. They are driven by the voices the
+ * audio path is actually playing (gate, note, velocity), not by a random animation:
+ * a note-on emits a small fan, a new note on a reused voice releases the old one, and
+ * note-off emits a short outward burst. Bounded storage, no allocation, UI-side only.
+ * The host's deterministic pixel tests set UI_NO_DRIFT, which also freezes these. */
+#ifndef UI_NO_DRIFT
+#define UI_NO_DRIFT 0
+#endif
+#if !UI_NO_DRIFT
+#define VZ_NP_MAX 40
+typedef struct {
+    int16_t x, y, vx, vy;
+    uint8_t life, max, size;
+    uint16_t col;
+} vz_np_t;
+typedef struct {
+    uint8_t seen, note, vel;
+    int16_t x, y;
+} vz_nv_t;
+static vz_np_t vz_np[VZ_NP_MAX];
+static uint8_t vz_np_next;
+static vz_nv_t vz_nv[NTRK][NVOICE];
+static uint32_t vz_nv_frame = 0xFFFFFFFFu;
+
+static void vz_np_add(int32_t x, int32_t y, int32_t vx, int32_t vy, uint16_t col, uint8_t life, uint8_t size)
+{
+    vz_np_t *p = &vz_np[vz_np_next++ % VZ_NP_MAX];
+    p->x = (int16_t)clamp(x, -32, 271);
+    p->y = (int16_t)clamp(y, -32, 271);
+    p->vx = (int16_t)clamp(vx, -400, 400);
+    p->vy = (int16_t)clamp(vy, -400, 400);
+    p->life = p->max = life;
+    p->size = size;
+    p->col = col;
+}
+static void vz_np_scan(int32_t x0, int32_t y0, int32_t w, int32_t h)
+{
+    uint32_t t, i;
+    if (vz_nv_frame == ui.frame)
+        return;
+    vz_nv_frame = ui.frame;
+    if (ui_prefs & PREF_ANIM_OFF)
+        return;
+    for (t = 0; t < NTRK; t++) {
+        for (i = 0; i < NVOICE; i++) {
+            const voice_t *v = &trk[t].v[i];
+            vz_nv_t *n = &vz_nv[t][i];
+            int on = v->active && v->gate && v->note < 128u;
+            int32_t nx = x0 + 6 + (int32_t)v->note * (w - 12) / 127;
+            int32_t ny = y0 + h - 9 - (int32_t)((t * 7u + i * 5u) % 18u);
+            uint16_t col = bg_col(96 + (int32_t)(v->note % 12u) * 11 + (int32_t)t * 17);
+            if (on) {
+                if (!n->seen || n->note != v->note) {
+                    int k;
+                    if (n->seen) {                   /* a reused voice: release the note it held */
+                        for (k = 0; k < 3; k++)
+                            vz_np_add(n->x, n->y, (k - 1) * 2, -1 - (k & 1), col, 11, 1);
+                    }
+                    for (k = 0; k < 3; k++)
+                        vz_np_add(nx + (k - 1) * 2, ny, (k - 1) * 2, -2 - (k & 1), col,
+                                  14 + (uint8_t)((v->vel ? v->vel : 100u) / 24u), k == 1 ? 2 : 1);
+                }
+                n->seen = 1;
+                n->note = v->note;
+                n->vel = v->vel;
+                n->x = (int16_t)nx;
+                n->y = (int16_t)ny;
+            } else if (n->seen) {                    /* note-off: a short burst where it was */
+                int k;
+                for (k = 0; k < 4; k++)
+                    vz_np_add(n->x + (k & 1) * 3 - 1, n->y + ((k >> 1) & 1) * 3 - 1,
+                              (k & 1 ? 2 : -2), (k >> 1 ? 2 : -2), col, 13, 1);
+                n->seen = 0;
+            }
+        }
+    }
+}
+static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
+{
+    uint32_t i;
+    int32_t l, top = y0 + 1, bot = y0 + h - 1;
+    vz_np_scan(x0, y0, w, h);
+    for (i = 0; i < VZ_NP_MAX; i++) {
+        vz_np_t *p = &vz_np[i];
+        int32_t ox, oy;
+        if (!p->life)
+            continue;
+        ox = p->x;
+        oy = p->y;
+        p->x = (int16_t)(p->x + p->vx / 2);
+        p->y = (int16_t)(p->y + p->vy / 2);
+        p->vy = (int16_t)clamp(p->vy + 1, -8, 8);
+        p->vx = (int16_t)clamp(p->vx * 15 / 16, -8, 8);
+        if (p->x < x0 - 2 || p->x > x0 + w + 2 || p->y < top - 2 || p->y > bot + 2) {
+            p->life = 0;
+            continue;
+        }
+        l = 42 + (int32_t)p->life * 100 / p->max;
+        if (ox >= x0 && ox < x0 + w && oy >= top && oy < bot && (ox != p->x || oy != p->y))
+            cv_line(ox, oy, p->x, p->y, ux_mix(T_BG, p->col, l / 2));
+        cv_rect(p->x, p->y, p->size, p->size, ux_mix(T_BG, p->col, l));
+        p->life--;
+    }
+}
+#else
+static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
+{ (void)x0; (void)y0; (void)w; (void)h; }
+#endif
+
 /* the output's level now, 0..256, slewed (fast attack, smooth release) */
 static int32_t bg_energy(void)
 {
@@ -540,6 +649,7 @@ static void graph_being(const track_t *t)
 
     /* 3. Lower Bay: WRAITH 6-Band Character Ribbon / 5-Band Vowel Ribbon */
     gw_draw_wraith_ribbon(t, 8, 86, 224, 32);
+    gw_note_particles(8, 86, 224, 32);
 }
 
 /* ============================================================================
@@ -589,6 +699,7 @@ static void graph_ecosys(void)
         cv_text_in(x, y + 1, w, &AF_S, num, sel ? T_ACCENT : muted ? T_DIM : T_TEXT, sel ? T_RAISE : T_BG);
         gw_hbar(x + 2, y + 14, w - 4, 4, 3, muted ? 0 : (en[c] > 32 ? en[c] : (sel ? 96 : 24)), 72);
     }
+    gw_note_particles(8, 66, 224, 52);
 }
 
 /* ============================================================================

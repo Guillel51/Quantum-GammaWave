@@ -248,11 +248,39 @@ static void tech_chorus(void)
 }
 
 
-/* MASTER EQ: Real-time Biquad Frequency Curve Visualizer (QG-1 v1.4) */
+/* MASTER EQ: the response of the same Q24 biquad the audio path runs, on a logarithmic
+ * 20 Hz .. 20 kHz X axis. (1.8.6) The old graph plotted the parameter index as if it were
+ * a frequency, put 125 / 2k / 20k at the wrong columns and let -12 overlap the bottom
+ * labels; it also clamped a bad Y in a way that could fold the line. This maps X once,
+ * maps dB symmetrically around 0 dB, and clamps both ends before drawing. */
+static const uint16_t EQ_AXIS_HZ[33] = {
+    20, 25, 31, 38, 47, 59, 73, 91, 112, 140, 173, 215, 267, 331, 411, 510,
+    632, 785, 974, 1209, 1500, 1861, 2310, 2866, 3557, 4413, 5477, 6796, 8434, 10466,
+    12988, 16117, 20000
+};
+static int32_t eq_hz_at(int32_t i)                   /* x 0..212 -> Hz, log spaced */
+{
+    int32_t q = i * 32 / 212, r = i * 32 % 212;
+    if (q >= 32)
+        return EQ_AXIS_HZ[32];
+    return EQ_AXIS_HZ[q] + (EQ_AXIS_HZ[q + 1] - EQ_AXIS_HZ[q]) * r / 212;
+}
+static int32_t eq_hz_x(int32_t hz)                  /* Hz -> x 14..226 */
+{
+    int32_t i = 0;
+    while (i < 31 && hz > EQ_AXIS_HZ[i + 1])
+        i++;
+    /* The table's intervals are 212 / 32 px each; divide once, not once per term,
+     * so 20 kHz lands on the graph's right edge (x 226), not short of it. */
+    return 14 + (i * 212 + (hz - EQ_AXIS_HZ[i]) * 212 / (EQ_AXIS_HZ[i + 1] - EQ_AXIS_HZ[i])) / 32;
+}
+static int32_t eq_param_hz(void)                    /* the cutoff the audio filter uses */
+{
+    return (int32_t)EQ_HZ[clamp(song.g[G_EQFREQ], 0, 127)];
+}
 static void tech_master_eq(void)
 {
     int32_t mode = clamp(song.g[G_EQMODE], 0, 4);
-    int32_t freq = clamp(song.g[G_EQFREQ], 0, 127);
     int32_t y0 = TK_Y0, mid_y = y0 + 56, i, px = 14, py = mid_y;
     static const char *const MODES[] = {"BYPASS", "PEAK/BELL", "NOTCH", "LOW SHELF", "HIGH SHELF"};
 
@@ -261,39 +289,42 @@ static void tech_master_eq(void)
     cv_text_on(16, y0 + 4, &AF_S, "MASTER BIQUAD EQ", T_THEME, T_RAISE);
     cv_text_on(140, y0 + 4, &AF_S, MODES[mode], mode ? T_ACCENT : T_DIM, T_RAISE);
 
-    /* A full axis: the 0 dB neutral line, the +/-12 dB guides, log-frequency guides and their labels.
-     * The curve is the same Q14 coefficient response the audio path runs. */
+    /* the 0 dB line, the +/-12 dB guides (the curve spans +/-24 dB) and the log grid */
     cv_rect(14, mid_y, 212, 1, T_LINE);
     cv_rect(14, mid_y - 22, 212, 1, T_RAISE);
     cv_rect(14, mid_y + 22, 212, 1, T_RAISE);
     for (i = 1; i < 4; i++)
         cv_rect(14 + (int32_t)i * 53, y0 + 18, 1, 76, T_RAISE);
-    cv_text_on(16, mid_y - 12, &AF_S, "+12", T_DIM, T_BG);
-    cv_text_on(16, mid_y + 3, &AF_S, "0", T_DIM, T_BG);
-    cv_text_on(16, mid_y + 17, &AF_S, "-12", T_DIM, T_BG);
 
-    int32_t mark_x = 14 + freq * 212 / 127;
-    int32_t mark_db = fx_master_eq_db(freq);
-    int32_t mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), y0 + 20, y0 + 94);
-    cv_rect(mark_x, y0 + 18, 1, 76, T_LINE);
-    for (i = 0; i <= 212; i++) {
-        int32_t f = i * 127 / 212;
-        int32_t db = fx_master_eq_db(f);
-        int32_t y = clamp(mid_y - db * 44 / (24 * 256), y0 + 20, y0 + 94);
-        if (i) {
-            int32_t pct = clamp(45 + (mid_y - y) * 4, 0, 100);
-            cv_line_t(px, py, 14 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);
+    /* gain labels centred on their guides; the frequency labels have their own row */
+    cv_text_on(20, mid_y - 29, &AF_S, "+12", T_DIM, T_BG);
+    cv_text_on(20, mid_y - 8, &AF_S, "0", T_DIM, T_BG);
+    cv_text_on(20, mid_y + 13, &AF_S, "-12", T_DIM, T_BG);
+    cv_text_on(eq_hz_x(125) - 4, y0 + 88, &AF_S, "125", T_DIM, T_BG);
+    cv_text_on(eq_hz_x(2000) - 4, y0 + 88, &AF_S, "2k", T_DIM, T_BG);
+    cv_text_r(226, y0 + 88, &AF_S, "20k", T_DIM, T_BG);
+
+    {
+        int32_t mark_hz = eq_param_hz();
+        int32_t mark_x = clamp(eq_hz_x(mark_hz), 14, 226);
+        int32_t mark_db = fx_master_eq_hz_db(mark_hz);
+        int32_t mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), y0 + 19, y0 + 93);
+        cv_rect(mark_x, y0 + 18, 1, 76, T_LINE);
+        for (i = 0; i <= 212; i++) {
+            int32_t db = fx_master_eq_hz_db(eq_hz_at(i));
+            int32_t y = clamp(mid_y - db * 44 / (24 * 256), y0 + 19, y0 + 93);
+            if (i) {
+                int32_t pct = clamp(45 + (mid_y - y) * 4, 0, 100);
+                cv_line_t(px, py, 14 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);
+            }
+            px = 14 + i;
+            py = y;
         }
-        px = 14 + i;
-        py = y;
+        if (mode > 0)
+            cv_rrect(mark_x - 2, mark_y - 2, 5, 5, 2, T_ACCENT, T_BG);
     }
-    if (mode > 0)
-        cv_rrect(mark_x - 2, mark_y - 2, 5, 5, 2, T_ACCENT, T_BG);
-    /* labels last: the curve cannot draw over them */
-    cv_text_on(16, y0 + 82, &AF_S, "125", T_DIM, T_BG);
-    cv_text_on(104, y0 + 82, &AF_S, "2k", T_DIM, T_BG);
-    cv_text_r(226, y0 + 82, &AF_S, "20k", T_DIM, T_BG);
 }
+
 /* MASTER: Modular 4-Slot Master FX Rack + Globals Meters (QUANTUM GAMMAWAVE // QG-1) */
 static void tech_master(void)
 {

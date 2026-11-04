@@ -928,6 +928,10 @@ static const char *const FX_BLACK[5] = {"VIB", "TGT", "GATE", "RTRG", "DIVE"};
 #define FX_H (H_GRAPH + (Y_GRAPH - Y_LABEL))      /* the map takes the cards' 48 px too: 170 */
 #define FX_KEY_Y 25
 #define FX_KEY_H (FX_H - FX_KEY_Y - 4)           /* 141 px white keys, 66 px black keys */
+#define FX_KEY_X0 9                              /* 16 x 12 px keys, 2 px apart: 222 px, x 9..230 */
+#define FX_WHITE_W 12
+#define FX_WHITE_GAP 2
+#define FX_BLACK_W 9
 #define FX_BLACK_H 66
 #define FX_WHITE_LABEL_Y (FX_KEY_Y + FX_BLACK_H + 2)   /* below the black keys: no overlap */
 #define FX_WHITE_LABEL_H (FX_KEY_H - FX_BLACK_H - 2)
@@ -995,10 +999,10 @@ static void layer_fx(uint32_t band)
             cv_text(216, 1, &AF_S, dep, T_THEME);
         }
     }
-    /* the sixteen white keys: 14 px each, 3 px margin, from y 25 to 166. Their names are
-     * vertical inside the key, centred; no note names, no separate cards. */
+    /* the sixteen white keys: 12 px each, 2 px apart, from y 25 to 166. The gap and the
+     * key's own 1 px edge draw the separation; the MIDI map is unchanged. */
     for (p = 0; p < 16u; p++) {
-        int32_t x = 3 + 14 * (int32_t)p;
+        int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)p;
         for (k = 0; k < 27u; k++)
             if (!key_black(k) && key_place(k) == p)
                 break;
@@ -1008,23 +1012,23 @@ static void layer_fx(uint32_t band)
         {
             uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
             uint16_t ink = on ? T_INK : T_TEXT;
-            cv_rect(x, FX_KEY_Y, 14, FX_KEY_H, fill);
-            cv_rect(x + 13, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
-            fx_vtext(x, 14, FX_WHITE_LABEL_Y, FX_WHITE_LABEL_H, fx_white_name(p), ink, fill);
+            cv_rect(x, FX_KEY_Y, FX_WHITE_W, FX_KEY_H, fill);
+            cv_rect(x + FX_WHITE_W - 1, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
+            fx_vtext(x, FX_WHITE_W, FX_WHITE_LABEL_Y, FX_WHITE_LABEL_H, fx_white_name(p), ink, fill);
         }
     }
     /* the eleven black keys: mutes T1..T6 and VIB TGT GATE RTRG DIVE. They sit over the
-     * white keys, 8 px wide and 54 px high, with their three-letter name vertical. */
+     * white keys, 9 px wide and 66 px high, with their three-letter name vertical. */
     for (b = 0; b < 11u; b++) {
-        int32_t x = 3 + 14 * (int32_t)(BKPOS[b] + 1u) - 4;
+        int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)(BKPOS[b] + 1u) - (FX_BLACK_W + 1) / 2;
         for (k = 0; k < 27u; k++)
             if (key_black(k) && key_place(k) == b)
                 break;
         if (b < NTRK) {
             uint16_t fill = (mutes >> b) & 1u ? T_KEY : T_RAISE;
             char n[3] = {'T', (char)('1' + b), 0};
-            cv_rrect(x, FX_KEY_Y, 8, FX_BLACK_H, 2, fill, T_SURF);
-            fx_vtext(x, 8, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_TEXT, fill);
+            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_BG);
+            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_TEXT, fill);
         } else {
             f = k < 27u ? perf_key(k) : PF_N;
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
@@ -1032,8 +1036,8 @@ static void layer_fx(uint32_t band)
             {
                 uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
                 uint16_t ink = on ? T_INK : T_TEXT;
-                cv_rrect(x, FX_KEY_Y, 8, FX_BLACK_H, 2, fill, T_SURF);
-                fx_vtext(x, 8, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
+                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_BG);
+                fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
             }
         }
     }

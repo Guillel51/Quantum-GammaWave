@@ -3,16 +3,16 @@
 **Date:** 2026-11-04
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
 **Branch:** `work/v18-integration` (integrated into `main`), build `0f52f48`
-**Current Milestone Version:** `v1.7-QG`
+**Current Milestone Version:** `v1.8.6`
 
-> **Current public build (2026-11-04):** `v1.7-QG-0f52f48`. Firmware target 552.620 B
-> (`340cc9c7…`), package **610.897 B** (`eb7d14a6…`), WASM **1.030.002 B** (`c3258d73…`), `NVOICE 10`.
+> **Current public build (2026-11-04):** `v1.8.6`. Firmware target, package and WASM rebuilt
+> from this tree, `NVOICE 10`.
 > GitHub Pages serves the integrated portal, emulator, Web Studio and installer; Chromium public:
 > 60,1 FPS, seven tabs, 1440/390 without overflow, no console errors. The audit sections below are
 > historical (2026-11-02/03) and are kept as evidence, not as the current build description.
 >
 > **Pending:** no physical FM-1 was flashed; signature, anti-downgrade, A/B, rollback and independent
-> recovery are not implemented. See `docs/V1.8_STATUS.md`.
+> recovery are not implemented. See [`docs/V1.8.6_STATUS.md`](V1.8.6_STATUS.md).
 
 ### v1.6-QG — what was verified (2026-11-03)
 

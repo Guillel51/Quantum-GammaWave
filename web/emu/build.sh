@@ -7,7 +7,7 @@
 # Run after one ./build.sh (build/gen: the tables, the fonts, the CC0 samples).
 # -ffp-contract=off: no fused multiply-adds, as the host build. EMU_OPT replaces -O2, EMU_CFLAGS adds flags
 # (EMU_CFLAGS=-msimd128: let the compiler vectorise; every browser with AudioWorklet has wasm SIMD).
-# The page shows the version (FELUCCA_VERSION) marked "(preview)" before its release; EMU_PREVIEW=0 drops the mark.
+# The page shows the version (FELUCCA_VERSION); EMU_PREVIEW=1 adds "(preview)" for an unreleased build.
 set -e
 cd "$(dirname "$0")/../.."
 [ -f build/gen/felucca_tables.h ] || { echo "emu: run ./build.sh once first (build/gen)"; exit 1; }
@@ -19,6 +19,6 @@ emcc ${EMU_OPT:--O2} -ffp-contract=off -std=gnu99 -w ${EMU_CFLAGS:-} \
     "-DFELUCCA_VERSION=\"$VERSION\"" -Ibuild/gen -Ifirmware/src \
     --no-entry -sSTANDALONE_WASM -sSTACK_SIZE=1048576 -sINITIAL_MEMORY=33554432 -sFILESYSTEM=0 \
     -o build/emu/felucca.wasm web/emu/felucca_web.c
-EMU_PREVIEW="${EMU_PREVIEW:-1}" python3 tools/package_emu.py
+EMU_PREVIEW="${EMU_PREVIEW:-0}" python3 tools/package_emu.py
 cp web/emu/worklet.js build/emu/
 cp web/emu/fonts/DotGothic16-subset.woff web/emu/fonts/OFL.txt build/emu/fonts/
