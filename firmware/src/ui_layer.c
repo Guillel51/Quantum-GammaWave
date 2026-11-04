@@ -920,6 +920,7 @@ static const char *const FX10[10] = {"RPT", "STU", "GAT", "DIV", "CRS",
 static const char *const FX10_KEY[10] = {"F3", "C5", "C#", "F#", "F5", "F3", "G3", "A3", "B3", "C4"};
 static void fx_card(int32_t x, int32_t y, const char *key, const char *name, uint32_t on, uint32_t dim,
                     uint32_t row_on, uint32_t live)
+                    uint32_t row_on)
 {
     uint16_t fill = on ? T_ACCENT : dim && !row_on ? T_DIM : row_on ? T_RAISE : T_SURF;
     uint16_t ink = on ? T_INK : T_TEXT;
@@ -972,6 +973,8 @@ static void layer_fx(void)
     uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail();
     uint32_t i, row_on, mutes = 0, heads = perf_buf_heads(), playing = perf_buf_playing();
     char m[3] = {'T', '1', 0}, st[12];
+    uint32_t i, row_on, mutes = 0;
+    char m[3] = {'T', '1', 0};
     for (i = 0; i < NTRK; i++)
         mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
     lc_soft = 1;
@@ -988,6 +991,25 @@ static void layer_fx(void)
         str_cpy(st, "LIVE", sizeof st);
     }
     cv_text(96, 1, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM);
+    cv_text_r(230, 1, &AF_S, pfx_bank ? "BANK 2" : "BANK 1", T_ACCENT, T_SURF);
+    for (i = 0; i < 10u; i++) {                         /* ten assignments: bank 1 above, bank 2 below */
+        uint32_t f = PF10[i], on, dim;
+        row_on = pfx_bank ? i >= 5u : i < 5u;
+        on = ((held >> f) & 1u) != 0u;
+        dim = !((ok >> f) & 1u);
+        if ((i == 0u && pfx_bank) || (i >= 5u && !pfx_bank))  /* the white-key bank not selected */
+            dim = 1u;
+        fx_card(12 + (int32_t)(i % 5u) * 44, 15 + (int32_t)(i / 5u) * 21,
+                FX10_KEY[i], i == 4u && !pfx_bank ? "RND" : FX10[i], on, dim, row_on,
+                (PF_BUF & PF_BIT(f)) ? perf_buf_state(f) : on ? 2u : 0u);
+    }
+    fx_keyboard(59, held, act);
+    lc_w = 35;
+    for (i = 0; i < NTRK; i++) {                        /* the six latched mutes, T1 .. T6 */
+        m[1] = (char)('1' + i);
+        lcell(7 + 38 * (int32_t)i, 86, 16, m, ICON_NONE, trk_icon(i, 0), 0,
+              (mutes >> i) & 1u ? LS_MUTE : LS_OFF, 0);
+    }
     cv_text_r(230, 1, &AF_S, pfx_bank ? "BANK 2" : "BANK 1", T_ACCENT, T_SURF);
     for (i = 0; i < 10u; i++) {                         /* ten assignments: bank 1 above, bank 2 below */
         uint32_t f = PF10[i], on, dim;
@@ -1323,6 +1345,7 @@ static void draw_layer(void)
         sig += (perf_kill ? 0u : perf_held | perf_latched) * 31u + perf_latch_on * 11u + perf_act * 131u + perf_avail() * 7u +
                (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u + perf_buf_heads() * 65537u +
                perf_buf_playing() * 4099u + (uint32_t)pb_recording * 131u +
+               (uint32_t)pfx_bank * 65537u + (uint32_t)(perf_k[1] > 0) * 7919u +
                (uint32_t)(trk[0].p[P_MUTE] | trk[1].p[P_MUTE] << 1 | trk[2].p[P_MUTE] << 2 |
                           trk[3].p[P_MUTE] << 3 | trk[4].p[P_MUTE] << 4 | trk[5].p[P_MUTE] << 5) * 104729u;
     else if (l == LAYER_GLO)

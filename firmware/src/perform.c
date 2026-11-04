@@ -48,6 +48,7 @@ _Static_assert(PB_FRAMES <= SL_FR && !(PB_FRAMES & (PB_FRAMES - 1u)), "the REPEA
 #define PF_TOP (63 << 8)                      /* filter cutoff index, Q8 (PF_SVF): the LPF's open end */
 #define PF_LOW (28 << 8)                      /* .. the LPF sweep's end (~480 Hz), the HPF sweep's (and K1's) top:
                                                * a punch filter that keeps the body; 14 (~120 Hz) killed it */
+#define PF_LOW (14 << 8)                      /* .. the LPF sweep's end, the HPF sweep's (and K1's) top */
 enum { BM_NONE, BM_LOOP, BM_REV, BM_FRZ, BM_TAPE, BM_GLCH, BM_RTRG };
 
 static volatile uint32_t perf_mask;   /* main: the FX button's bit while its layer may own keys, 0 = none */
@@ -164,6 +165,7 @@ static void pb_release_idle(void)
         pb_recording = 0;
     }
 }
+} pf = {.src = PF_N, .next = PF_N, .lc = PF_TOP, .mg = {[0 ... NTRK - 1] = 32768}};   /* (every track open: 0.6, six) */
 
 /* the loop length of a REPEAT at the tempo, 44.1 kHz samples; 0 = not one */
 static const uint8_t PF_DEN[PF_R32 + 1] = {2, 4, 8};
@@ -274,6 +276,20 @@ static void perf_buf_start(uint32_t e)
     memset(h, 0, sizeof *h);
     h->src = (uint8_t)e;
     h->mode = e == PF_REV ? BM_REV : e == PF_FRZ ? BM_FRZ : e == PF_TAPE ? BM_TAPE :
+              e == PF_GLCH ? BM_GLCH : e == PF_RTRG ? BM_RTRG : BM_LOOP;
+    h->len = len;
+    h->state = 0;
+    h->on = 1;
+    h->spd = 1u << 16;
+    h->tdec = (1u << 16) / len;
+    h->gl_dir = 1;
+    pb_recording = (uint8_t)(pb_wr < PB_CAP);
+    pf.src = (uint8_t)e;
+    pf.next = PF_N;
+    pf.wr = pf.rp = 0;
+    pf.odd = 0;
+    pf.xn = 0;
+    pf.mode = e == PF_REV ? BM_REV : e == PF_FRZ ? BM_FRZ : e == PF_TAPE ? BM_TAPE :
               e == PF_GLCH ? BM_GLCH : e == PF_RTRG ? BM_RTRG : BM_LOOP;
     h->len = len;
     h->state = 0;
@@ -542,6 +558,65 @@ static __attribute__((noinline)) void perf_buf(int32_t *pl, int32_t *pr)
                     h->tp += h->spd;
                     h->spd = h->spd > h->tdec ? h->spd - h->tdec : 0u;
                     if (h->tp >= h->len)
+                        yl = yr = 0;
+                }
+            } else if (h->mode == BM_GLCH) {
+                if (!h->gl_next) {
+                    pf_rs = pf_rs * 1664525u + 1013904223u;
+                    h->gl_pos = (pf_rs >> 8) % (h->len ? h->len : 1u);
+                    h->gl_dir = (pf_rs & 1u) ? 1u : 0u;
+                    h->gl_next = 256u + ((pf_rs >> 16) & 511u);
+                }
+                pb_at(h->gl_pos, nf, &yl, &yr);
+                h->gl_next--;
+                if (h->gl_dir) {
+                    if (++h->gl_pos >= h->len)
+                        h->gl_pos = 0;
+                } else if (h->gl_pos) {
+                    h->gl_pos--;
+                } else {
+                    h->gl_pos = h->len ? h->len - 1u : 0u;
+                }
+            }
+            if (h->mode == BM_LOOP || h->mode == BM_FRZ || h->mode == BM_REV || h->mode == BM_RTRG)
+                if (++h->rp >= h->len)
+                    h->rp = 0;
+        }
+        h->tw = h->on && h->state ? 32768 - perf_k[3] * 327 : 0;
+        h->w += clamp(h->tw - h->w, -SL_SLOPE, SL_SLOPE);
+        if (h->w) {
+            dl += mulq16(yl - l, (uint32_t)h->w << 1);
+            dr += mulq16(yr - r, (uint32_t)h->w << 1);
+            n++;
+        } else if (!h->on) {
+            h->mode = BM_NONE;
+            h->src = PF_N;
+}
+
+/* the buffer effect on one sample: the share pf.w of what it plays, the rest live */
+/* Not inlined: the five new modes must not consume the hot RAMTEXT window. It is one call per
+ * sample only while the buffer effect runs; the old REPEAT path uses it too. */
+static __attribute__((noinline)) void perf_buf(int32_t *pl, int32_t *pr)
+{
+    int32_t l = *pl, r = *pr, yl = 0, yr = 0, on = 0;
+    if (pf.mode != BM_NONE) {
+        if (!pf.state) {
+            pf.wr = pb_rec(pf.wr, l, r);
+            if (++pf.rp >= pf.len) {                /* (rp: samples recorded) */
+                pf.state = 1;
+                pf.rp = 0;
+            }
+        } else {
+            if (pf.mode == BM_LOOP || pf.mode == BM_FRZ || pf.mode == BM_RTRG) {
+                pb_loop(pf.rp, pf.len, pf.wr, &yl, &yr);
+            } else if (pf.mode == BM_REV) {
+                pb_loop(pf.len - 1u - pf.rp, pf.len, pf.wr, &yl, &yr);
+            } else if (pf.mode == BM_TAPE) {
+                if (pf.spd) {
+                    pb_at(pf.tp >> 16, pf.wr, &yl, &yr);
+                    pf.tp += pf.spd;
+                    pf.spd = pf.spd > pf.tdec ? pf.spd - pf.tdec : 0u;
+                    if (pf.tp >= pf.len)
                         yl = yr = 0;
                 }
             } else if (h->mode == BM_GLCH) {

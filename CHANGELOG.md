@@ -25,9 +25,6 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 - **Emulador sincronizado por hash.** `tools/package_emu.py` genera `build/emu/manifest.json` y fija en la
   página el SHA-256 y el tamaño del WASM; la carga usa `?v=<sha256>`, `cache: "no-store"` y verificación
   con `crypto.subtle`. `tests/emu_sync.py` falla si página, manifiesto y binario no coinciden.
-- **Build identificable en el emulador:** la página y `manifest.json` muestran versión, commit y SHA-256 del
-  WASM; la carga es `?v=<sha256>` con `no-store` y verificación `crypto.subtle`. El workflow publica desde
-  `main` o la rama autorizada `perf/security-hardening`.
 - **UBSan real corregido:** `eng_analog.c` desplazaba a la izquierda un valor negativo
   (`(pitch16 - 60*16) << 2`); ahora usa `* 4`. `fuzz_proj` pasa 5.000 iteraciones sin ASan/UBSan.
 - **Etiquetas del emulador visibles y validadas en Chromium:** el `fill` SVG con `var()` se sustituyó por la
