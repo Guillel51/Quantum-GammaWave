@@ -1,3 +1,14 @@
+## Unreleased — six-track load, target link and installer trust
+
+- **Six-track load test:** `tests/six_track_test.c` (new, `bash tests/groups.sh six`) runs six tracks with ten
+  voices, per-track DIST/CHORUS/DELAY/REVERB and the master EQ for a minute of 32-frame blocks: 82 687 blocks,
+  p50 7.2 µs, p99.9 50–59 µs against a 725.6 µs deadline, 0 clipped samples, 0.08 % exact zeros, ten voices
+  held throughout. Host wall clock only; the target timing is still unmeasured.
+- **Installer trust (documented, not changed):** the WebMIDI identity reply carries `model_version` and no
+  SPI NOR JEDEC id, so the installer cannot verify the physical flash before writing; the 1 MiB allowlist is
+  enforced by the firmware when it mounts flash. Recorded as BLOCKED in `docs/PERF_SIX_TRACK_FM1.md` rather
+  than papered over with a UI warning.
+
 ## v1.8.6 — FX particles, splash, note visualizer, Punch-In keyboard and Master EQ (2026-11-04)
 
 - **FX particles:** the first FX section was redrawn at `ui.frame / 16` (about 3.75 fps); it now advances on

@@ -8,6 +8,10 @@ cd "$(dirname "$0")/.."
 group=${1:-all}
 mkdir -p build/uifix
 
+run_six() {
+    cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/six_track_test tests/six_track_test.c -lm
+    ./build/uifix/six_track_test
+}
 run_ui() {
     cc -O1 -w -Ibuild/gen -Ifirmware/src -o build/uifix/semi_test tests/semi_test.c -lm
     ./build/uifix/semi_test
@@ -96,6 +100,7 @@ run_target() {
 
 case "$group" in
     ui) run_ui ;;
+    six) run_six ;;
     presets) run_presets ;;
     web) run_web ;;
     emu) run_emu ;;
