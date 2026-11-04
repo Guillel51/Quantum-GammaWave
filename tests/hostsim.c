@@ -44,6 +44,17 @@ static void fm1_delay_ms(uint32_t ms) { (void)ms; }
 #include "../firmware/src/seq.c"
 #define inst (trk[0])                   /* the single-part renders below: part 1 */
 
+/* (QG-1 v1.8.8) the flash identification project.c does before it lets any write through
+ * (hal/fm1_flash_id.h). The host has no SFC, so the simulated part answers as the documented
+ * P25Q80H, idle and unprotected: flash_ok = 1, which is what these tests assumed before the
+ * identification existed. Tests that drive the identification themselves (persistence_test,
+ * backup_test, fm6bank_test) define HOSTSIM_FLASH_ID and keep their own answer. */
+#ifndef HOSTSIM_FLASH_ID
+#define HOSTSIM_FLASH_ID 1
+static uint32_t fl_jedec_ram(void) { return 0x856014u; }
+static uint32_t fl_status_ram(void) { return 0u; }
+#endif
+
 static void wav_hdr(FILE *f, uint32_t frames)
 {
     uint32_t v;

@@ -4,6 +4,7 @@
  * CRC before any write, stale runtime copies, USB resets and timeouts, malformed objects, older
  * project formats, settings values and user preset banks kept byte for byte. */
 #define main hostsim_main
+#define HOSTSIM_FLASH_ID 1                 /* this test's own fl_jedec_ram / fl_status_ram, below */
 #include "hostsim.c"
 #undef main
 

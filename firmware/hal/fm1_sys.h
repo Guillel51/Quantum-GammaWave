@@ -114,7 +114,7 @@ static inline void fm1_core1_stop(void)
 {
     *(volatile uint32_t *)0x1EEE004u |= 2u;
     *(volatile uint32_t *)0x1EEE004u &= ~8u;
-    __asm__ volatile("csync" ::: "memory");
+    FM1_CSYNC();
 }
 
 static void fm1_reboot(void)

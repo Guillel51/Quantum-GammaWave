@@ -1,3 +1,38 @@
+## v1.8.8 — real AC791N build, portable cache barriers, WASM rebuilt (2026-11-04)
+
+No DSP, voice count, effect, parameter, layout or project format changed. This pass produced the
+**target build** the previous one could not, and fixed what compiling it (and running the whole host
+suite) exposed.
+
+- **The firmware is now built for the AC791N.** JieLi's pi32v2 toolchain
+  (`jieli-linux-toolchains-20260730.1`, sha256 of the archive
+  `a1545cddbc451a06bac43eb5cd96d831470c42a97c5c0b1f98879a20fc7647bd`) plus the pinned SDK
+  `AC79NN_SDK_V1.2.1_2023-12-13` (its three files match `SDK_SHA256` in `tools/build.py`) produce
+  `build/felucca.bin` 556 856 B, `build/loader/ota.bin` 7 999 B and the package
+  `build/felucca.fwsc` 611 155 B (identity `FM-1_982`). Measurements and headroom:
+  [`docs/MEMORY_BUDGET.md`](docs/MEMORY_BUDGET.md).
+- **Cache barriers are portable, so the host tests that needed them compile.** `csync` / `ssync`
+  were inline asm at every call site (`fm1_usb.h`, `fm1_uart.h`, `fm1_irq.h`, `fm1_sys.h`,
+  `fm1_flash.h`, `fm1_multicore.h`): an x86 or wasm build assembled them verbatim and failed. They
+  are now `FM1_CSYNC()` / `FM1_SSYNC()` in `fm1_cc.h`, the chip's instruction on pi32v2 (same
+  expansion as before) and a compiler barrier with the same ordering on a host. `persistence_test`,
+  `backup_test` and `fm6bank_test` compile and pass — they were reported as "pre-existing failures"
+  before, and the cause was this.
+- **`FELUCCA_FLASH=0` builds again.** `flash_identify()` referenced the SFC entry points outside
+  `#if FELUCCA_FLASH`, and the TAKES reel module (`gen_reel_flash.c`) and its two call sites were
+  unguarded: a documented option in `BUILDING.md` did not compile. Fixed in `project.c`,
+  `gen_reel_flash.c` and `main.c`; the storage-less build now passes the same checks
+  (526 688 B image, 84 356 B `.data+.bss`).
+- **The loader's power-cut test no longer depends on how much the two apps differ.** `ldr_test`
+  cut at fixed byte counts (up to `0x80000`); once the old and the new app shared enough sectors,
+  fewer bytes were programmed, the "power cut" never happened and the test failed on its own
+  assumption. The cut points are now derived from the bytes the install actually programs, and the
+  counter ignores the post-commit record cleanup (cutting there is not a mid-write loss).
+- **The browser emulator builds and matches the firmware again.** Its simulated part needed
+  `fl_status_ram` once the identification existed; the stub is guarded by `HOSTSIM_FLASH_ID` so a
+  test that drives its own part keeps its own answer. WASM rebuilt at `v1.8.8`:
+  `build/emu/manifest.json` carries the version, the commit and the wasm sha256.
+
 ## v1.8.7 — flash identification, OTA bounds, second-core self-test, verified backup CLI (2026-11-04)
 
 Hardening pass over the write paths and the second core. No DSP, voice count, effect, layout or

@@ -1,9 +1,10 @@
 # MEMORY BUDGET — AC791N
 
 Budgets are contracts: a change that crosses one is a decision, not an accident. This page records
-the numbers the tree is held to, what this change costs, and how to measure it. **No target build was
-produced in this session** (JieLi's pi32v2 toolchain and the AC79 SDK are not installed here), so the
-figures marked `[STATIC]` are the historical budgets and `[NOT-VERIFIED]` marks what needs a build.
+the numbers the tree is held to, what this change costs, and how to measure it. The figures in §2.1
+are **measured**, not estimated: `./build.sh` ran with JieLi's pi32v2 toolchain
+(`jieli-linux-toolchains-20260730.1`) and the pinned SDK (`AC79NN_SDK_V1.2.1_2023-12-13`, whose three
+files match `SDK_SHA256` in `tools/build.py`).
 
 ---
 
@@ -33,9 +34,25 @@ rest of the window is not available to the application. Treating 578 KB as usabl
 The self-test deliberately uses `fm1_mc_box.pad0` (spare words on core 0's cache line) instead of a
 new buffer, so shared RAM does not grow and the mailbox stays 128 bytes / two cache lines.
 
-`[NOT-VERIFIED]` — the exact byte counts need a target build:
-`./build.sh` then `python3 tools/budget_report.py` and `python3 tests/target_budget.py
-build/felucca.dis tests/target_budget.txt`.
+### 2.1 Measured image — v1.8.8, `./build.sh`, identity `FM-1_982`
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 556 856 B | 568 KiB (581 632 B) | **24 776 B** |
+| `.data + .bss` | 95 732 B | 98 304 B | **2 572 B** |
+| RAM code (`.ram_text` + `.c1_text` + `.hot_text`) | 22 464 B | 24 576 B | **2 112 B** |
+| Pool spare (`POOL_END - pool_top`) | 9 248 B | ≥ 8 192 B | **1 056 B** |
+| XIP code / constants | 394 468 B / 139 196 B | constants only use slot | calls reach 66 044 B past the code |
+| Loader image / `ota.bin` | 9 520 B at `0x01C0A800` / 7 999 B | `0x14000` B | large |
+| Package (`build/felucca.fwsc`) | 611 155 B | — | — |
+
+The build's own checks (`tools/build.py check`) print these and pass, as do
+`python3 tests/memory_map_test.py` and `python3 tests/target_budget.py build/felucca.dis
+tests/target_budget.txt` (the render loops stay inside `tests/target_budget.txt`).
+
+A storage-less build (`FELUCCA_FLASH=0 FELUCCA_OTA=0 ./build.sh`) measures 526 688 B image, 84 356 B
+`.data+.bss`, 18 632 B RAM code, 9 344 B pool spare, and passes the same checks. It did not compile
+before v1.8.8 (`flash_identify()` and the TAKES reel module were outside their `#if`).
 
 ## 3. How to measure (target toolchain present)
 
