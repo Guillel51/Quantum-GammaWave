@@ -67,7 +67,7 @@ const splash = colours(a.screen());
 }
 a.render(800);
 check("  over by 1 s (~0.70 s)", a.ex.web_anim_levels() === 0);
-a.render(1200);                                               // (JIANT 0.5: the signature written, then held: ~2 s)
+a.render(1500);                                               // (QG-1: SPL_WRITE 1100 + SPL_HOLD 1200 = 2.3 s of splash, then HOME)
 const home = a.screen();
 check(`boots: the splash, then HOME (${colours(home)} colours), the HOME LED lit`,
       splash > 1 && colours(home) > 4 && (a.ex.web_lit_buttons() >> B.HOME & 1) === 1);
