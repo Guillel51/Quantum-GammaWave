@@ -101,6 +101,8 @@ int main(int argc, char **argv) {
     /* 11. Playable Punch-In FX Performance Grid */
     setup(S_FX_HELD);
     pal(UI_QUANTUM_INDEX);
+    perf_latched = PF_BIT(PF_LPF) | PF_BIT(PF_R16) | PF_BIT(PF_GATE);
+    perf_held = 0;
     draw(S_FX_HELD);
     write_ppm("assets/screenshots", "quantum", "11_punch_in_fx");
 
@@ -177,6 +179,10 @@ int main(int argc, char **argv) {
     /* 21. Parametric Master EQ Biquad Page */
     setup(S_MASTER);
     pal(UI_QUANTUM_INDEX);
+    song.g[G_EQMODE] = 1;
+    song.g[G_EQFREQ] = 80;
+    song.g[G_EQGAIN] = 15;
+    song.g[G_EQQ] = 64;
     ui.home = 0;
     for (uint32_t i = 0; i < NPAGES; i++) {
         if (!strcmp(PAGES[i].title, "MASTER EQ")) { ui.page = (uint8_t)i; break; }

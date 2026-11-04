@@ -728,6 +728,8 @@ static void graph_fx(const track_t *t, uint16_t c)
     static uint8_t vu[4], hold[4];
     static int32_t vu_trk = -1;
     int32_t pk = t->peak < 0 ? -t->peak : t->peak;   /* the track's real post-FX peak (fx.c) */
+    int32_t bus[4] = {pk, fx_vu[3], fx_vu[4], fx_vu[5]};   /* DIST, chorus, delay, reverb returns */
+    int32_t send[4] = {pk, fx_vu[0], fx_vu[1], fx_vu[2]};  /* what each bus actually receives */
     uint32_t i;
     if (vu_trk != (int32_t)(t - trk)) {              /* the meters belong to one track */
         memset(vu, 0, sizeof vu);
@@ -736,12 +738,17 @@ static void graph_fx(const track_t *t, uint16_t c)
     }
 
     /* One quiet rack: four equal channels, a clean level meter, the send's value and its parameter bar.
+     * No fader substitute: DIST is the track's post-FX peak, CHOR/DLY/REV are their real
+     * wet-return peaks; the thin tick marks each bus's actual input. */
      * No second fader, no fake motion: the meter is the track's post-FX peak through this send. */
     cv_rrect(4, 2, 232, 72, 4, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
         int32_t mx = cx + 43, my = 24, mh = 33;
+        int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
+        int32_t hpx = lvl * mh / 7000;
+        int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         int32_t lvl = clamp(pk, 0, 7000) * val / 127;
         int32_t hpx = clamp(lvl, 0, 7000) * mh / 7000;
         int32_t seg;
@@ -772,6 +779,8 @@ static void graph_fx(const track_t *t, uint16_t c)
             cv_rect(mx + 1, my + mh - vu[i], 3, vu[i], i == 0 ? c : T_THEME);
         if (hold[i] > 0u)
             cv_rect(mx + 1, my + mh - hold[i], 3, 1, T_ACCENT);
+        if (i && inpx > 0)                            /* the actual send level: a thin input tick */
+            cv_rect(mx + 4, my + mh - inpx, 1, 1, T_MID);
 
         /* the send at a glance: a thin bar, under the meter, not another fader to interpret */
         cv_rect(cx + 5, 56, 34, 3, T_RAISE);
@@ -1654,9 +1663,12 @@ static uint32_t graph_signature(void)
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
     if (pg->graph == GR_NONE || pg->graph == GR_ARP || pg->graph == GR_MOTION) h ^= ui.frame / 2u;
-    if (pg->graph == GR_FX)                          /* real peak meters, plus a slow ambient tick when idle */
+    if (pg->graph == GR_FX) {                        /* real bus peaks, plus a slow ambient tick when idle */
         h ^= (uint32_t)(t->peak < 0 ? -t->peak : t->peak) * 2654435761u ^ (uint32_t)bg_energy() * 40503u ^
              (ui.frame / 16u) * 1299709u;
+        for (i = 0; i < 6u; i++)
+            h = (h ^ (uint32_t)fx_vu[i]) * 16777619u;
+    }
     if (pg->graph == GR_LFO)                         /* (JIANT 0.5) the LFO runs: its phase, its level */
         h ^= (t->lfo_ph >> 23) * 2654435761u ^ (uint32_t)(t->lfo_val * t->lfo_fade >> 22);
     if (pg->graph == GR_ADSR)                        /* the envelope's dot: every voice's stage and level */
@@ -2522,14 +2534,14 @@ static void graph_home_viz(uint16_t c)
                 cv_rect(bx + 4, 181, 1, 2, T_DIM);
         }
 
-        /* A few slow orbital embers around the field; they are decorative, not audio meters. */
-        for (i = 0; i < 6u; i++) {
-            int32_t px = 38 + (int32_t)((i % 3u) * 40u);
-            int32_t py = 92 + (int32_t)((bg_sin(ui.frame * (43u + i * 11u) + i * 8192u) * (20 + i * 3)) >> 15);
-            int32_t lvl = (bg_sin(ui.frame * (31u + i * 7u) + i * 4096u) + 32768) >> 9;
+        /* A field of slow embers, deterministic and cheap: no allocation, one sine per particle per frame. */
+        for (i = 0; i < 18u; i++) {
+            int32_t px = 24 + (int32_t)((i * 11u + (i % 5u) * 7u) % 198u);
+            int32_t py = 88 + (int32_t)((bg_sin(ui.frame * (21u + (i % 7u) * 4u) + i * 4096u) * (14 + (i % 6u) * 3)) >> 15);
+            int32_t lvl = (bg_sin(ui.frame * (17u + (i % 5u) * 6u) + i * 3072u) + 32768) >> 9;
             if (py >= top_y && py < top_y + 88 && px >= 12 && px < 228) {
-                uint16_t pc = mono ? (lvl > 90 ? T_TEXT : T_DIM) : ux_mix(T_SURF, heat_col(90 + i * 14), 22 + lvl / 10);
-                cv_rect(px, py, 1, 1, pc);
+                uint16_t pc = mono ? (lvl > 90 ? T_TEXT : T_DIM) : ux_mix(T_SURF, heat_col(80 + i * 8), 18 + lvl / 9);
+                cv_rect(px, py, i % 5u == 0u ? 2 : 1, 1, pc);
             }
         }
 
@@ -2703,21 +2715,6 @@ static void graph_song(void)
 static void graph_master(void)
 {
     cv_oy = 0;                                       /* this panel is laid out on its own 0..100 scale */
-    if (str_eq(cur_page()->title, "MASTER EQ")) {      /* the bell from FREQ/GAIN/Q, over a 0 dB rule */
-        int32_t f = clamp(song.g[G_EQFREQ], 0, 127), g = clamp(song.g[G_EQGAIN], -24, 24);
-        int32_t q = clamp(song.g[G_EQQ], 0, 127), cx = f * 200 / 127, w = 14 + q * 46 / 127, x;
-        cv_rect(20, 50, 200, 1, T_LINE);
-        for (x = 0; x < 200; x++) {
-            int32_t d = x > cx ? x - cx : cx - x, y = 50;
-            if (d < w && g) {
-                int32_t a = g * (w - d) / w;           /* triangular skirt, the actual parameters */
-                y = 50 - a * 44 / 24;
-            }
-            if (y != 50)
-                cv_rect(20 + x, y, 1, 2, g > 0 ? T_THEME : T_DIM);
-        }
-        return;
-    }
     if (str_eq(cur_page()->title, "STEREO M/S")) {     /* M/S width: the two sides separate with M-WIDE */
         int32_t wd = clamp(song.g[G_MWIDTH], 0, 127), off = 8 + wd * 52 / 127, i;
         cv_rect(20, 50, 200, 1, T_LINE);
@@ -2935,7 +2932,7 @@ static void draw_graph(void)
             graph_tools();
             break;
         default:
-            if (str_eq(pg->title, "MASTER") || str_eq(pg->title, "MASTER EQ") || str_eq(pg->title, "STEREO M/S")) {
+            if (str_eq(pg->title, "MASTER") || str_eq(pg->title, "STEREO M/S")) {
                 graph_master();
                 break;
             }

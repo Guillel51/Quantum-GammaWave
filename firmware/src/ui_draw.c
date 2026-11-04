@@ -1462,6 +1462,17 @@ static void splash_sig(uint32_t prog, uint32_t ms)
                 cv_line_t(ex, ey, ex2, ey2, mono ? T_TEXT : T_LINE, 1);
             }
         }
+        /* (1.8) a wider particle field around the core: deterministic, no allocation and no extra wait */
+        for (i = 0; i < 24; i++) {
+            uint32_t an = (uint32_t)(i * 2731 + 900);
+            int32_t rr = 54 + (i % 5) * 9;
+            int32_t px = cx + (int32_t)((rr * bg_sin(an + 0x2000)) >> 15);
+            int32_t py = cy - (int32_t)((rr * bg_sin(an)) >> 15);
+            int32_t br = 20 + (i % 4) * 18;
+            if (px > 8 && px < 228 && py > 8 && py < 108)
+                cv_rect(px, py, (i % 7 == 0) ? 2 : 1, (i % 7 == 0) ? 2 : 1,
+                        mono ? T_DIM : (i % 3 ? ux_mix(card, T_THEME, br) : T_ACCENT));
+        }
         /* solar ticks: heat radiating from the core, with a longer flare every third one */
         for (i = 0; i < 12; i++) {
             int32_t rr = 51 + (i % 3) * 3;

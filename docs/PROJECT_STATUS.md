@@ -5,6 +5,12 @@
 **Branch:** `feat/v1.5-hardening` (cut from `main` @ `4682fef`)
 **Current Milestone Version:** `v1.7-QG`
 
+> **Current local build (2026-11-03):** `perf/security-hardening` @ `c020b7e` + cambios locales, **sin
+> publicar**. Firmware 552.660 B (`0ce7fade…`), paquete 610.897 B (`c6705349…`), WASM 1.032.058 B
+> (`b9a52ca4…`), página con hash/manifiesto y `NVOICE 10`. El informe de Pages de abajo es histórico
+> (2026-11-02) y no describe este build. Chromium local: 60,6 FPS, etiquetas SVG visibles y Web Studio /
+> instalador cargados sin errores de página.
+
 ### v1.6-QG — what was verified (2026-11-03)
 
 | Check | Result |

@@ -45,7 +45,9 @@ static void test_signal(double fl, double al, double fr, double ar)
 static void perf_reset(void)
 {
     memset(&pf, 0, sizeof pf);
-    pf.src = pf.next = PF_N;
+    memset(pb, 0, sizeof pb);
+    pb_wr = pb_odd = 0;
+    pb_recording = 0;
     pf.lc = PF_TOP;
     for (uint32_t m = 0; m < NTRK; m++) pf.mg[m] = 32768;
     perf_held = perf_act = 0;
@@ -137,7 +139,7 @@ static int test_timing(void)
         snprintf(what, sizeof what, "  then the 1/16 from that 1/16, looped (error L %d R %d, 2nd pass %d of 12000)", el, er, el2);
         bad += check(what, el < 100 && er < 100 && el2 < 100);
         bad += check("  let go: the live signal again after the ramp, bit for bit", same(20000 + 160, 40000));
-        bad += check("  the buffer given back, nothing left running", !sl_lent && pf.mode == BM_NONE && !pf.busy);
+        bad += check("  the buffer given back, nothing left running", !sl_lent && !pb_any() && !pf.busy);
     }
     {   /* stopped: at once */
         ev_t ev[] = {{992, PF_R16 + 1}};
@@ -228,7 +230,7 @@ static int test_too_long(void)
         }
         perf_press(PF_R8, 0);
         bad += check("  a REPEAT 1/8 held while the tempo drops below its fit: it ends, no click",
-                     pf.mode == BM_NONE && !sl_lent && mx < 4 * 190);
+                     !pb_any() && !sl_lent && mx < 4 * 190);
     }
     return bad;
 }
@@ -455,6 +457,17 @@ static int test_misc(void)
         run(120, 1, ev, 1, 100000);
         snprintf(what, sizeof what, "HPF held a bar: an 80 Hz sine down to %d of 30000", peak(out_l, 92000, 100000));
         bad += check(what, peak(out_l, 92000, 100000) < 3000);
+        /* (1.8) the sweep must keep the body: 1 kHz remains audible at the end, it is not a mute */
+        ev[0].e = PF_LPF + 1;
+        test_signal(1000, 12000, 1000, 12000);
+        run(120, 1, ev, 1, 100000);
+        snprintf(what, sizeof what, "LPF keeps 1 kHz audible at its end (peak %d of 12000)", peak(out_l, 92000, 100000));
+        bad += check(what, peak(out_l, 92000, 100000) > 2500);
+        ev[0].e = PF_HPF + 1;
+        test_signal(1000, 12000, 1000, 12000);
+        run(120, 1, ev, 1, 100000);
+        snprintf(what, sizeof what, "HPF keeps 1 kHz audible at its end (peak %d of 12000)", peak(out_l, 92000, 100000));
+        bad += check(what, peak(out_l, 92000, 100000) > 6000);
         for (t = 0; t < NT; t++) {                 /* full scale square waves, past Q15 */
             in_l[t] = (t / 37u) & 1u ? 120000 : -120000;
             in_r[t] = (t / 53u) & 1u ? 120000 : -120000;
@@ -529,6 +542,130 @@ static int test_misc(void)
         snprintf(what, sizeof what, "black key 1: track 1 muted while held (peak %d -> %d), P_MUTE untouched", before, during);
         bad += check(what, before > 1000 && during < 200 && !trk[0].p[P_MUTE]);
     }
+    return bad;
+}
+
+/* --------------------------------------------------- 7b. cap and latch --- */
+static int test_cap_latch(void)
+{
+    uint32_t n = 0, i;
+    int bad = 0;
+    perf_reset();
+    perf_press(PF_LPF, 1);
+    perf_press(PF_HPF, 1);
+    perf_press(PF_R16, 1);
+    perf_press(PF_GATE, 1);                          /* the fourth: must be refused */
+    for (i = 0; i < PF_END; i++)
+        if (PF_IS(i) && i < PF_M1 && ((perf_held >> i) & 1u)) n++;
+    bad += check("three Punch-in FX may run at once; the fourth press is refused", n == 3u && !(perf_held & PF_BIT(PF_GATE)));
+    perf_press(PF_M1, 1);                            /* mutes are not effects: still allowed */
+    bad += check("a track mute still works while three effects run", (perf_held & PF_BIT(PF_M1)) != 0u);
+    perf_press(PF_M1, 0);
+    perf_press(PF_LPF, 0); perf_press(PF_HPF, 0); perf_press(PF_R16, 0); perf_press(PF_GATE, 0);
+    perf_reset();
+    perf_latch_on = 1;
+    perf_press(PF_LPF, 1); perf_press(PF_LPF, 0);
+    bad += check("LATCH YES: a press stays after the key is let go", (perf_latched & PF_BIT(PF_LPF)) != 0u);
+    perf_press(PF_LPF, 1); perf_press(PF_LPF, 0);
+    bad += check("LATCH YES: the second press releases it", !(perf_latched & PF_BIT(PF_LPF)));
+    perf_latch_on = 0;
+    perf_press(PF_HPF, 1); perf_press(PF_HPF, 0);
+    bad += check("LATCH NO: the effect ends with the key", !(perf_held & PF_BIT(PF_HPF)));
+    perf_reset();
+    return bad;
+}
+
+/* ------------------------------------------------------------ 7c. meters --- */
+static int test_meters(void)
+{
+    int bad = 0;
+    uint32_t i;
+    int32_t o[2 * CTL];
+    track_t *t1 = &trk[0];
+    song_setup();
+    for (i = 0; i < NTRK; i++)
+        trk[i].p[P_CHOR] = trk[i].p[P_DLY] = trk[i].p[P_REV] = 0;
+    host_preset(t1, 0, 1);
+    t1->p[P_CHOR] = 100;
+    trk_note_on(t1, 57, 100);
+    for (i = 0; i < 2u * FS; i += CTL)
+        mix_block(o, CTL);
+    bad += check("VU meters: the send and the chorus return read the audio, not a fader",
+                 fx_vu[0] > 0 && fx_vu[3] > 0);
+    trk_note_off(t1, 57);
+    t1->p[P_CHOR] = 0;
+    for (i = 0; i < 4u * FS; i += CTL)
+        mix_block(o, CTL);
+    bad += check("VU meters: silence falls back to zero", fx_vu[0] == 0 && fx_vu[3] == 0);
+    return bad;
+}
+
+/* ------------------------------------------- 7d. three buffer heads --- */
+static uint32_t out_hash(uint32_t a, uint32_t b)
+{
+    uint32_t t, h = 2166136261u;
+    for (t = a; t < b; t++) {
+        h = (h ^ (uint32_t)out_l[t]) * 16777619u;
+        h = (h ^ (uint32_t)out_r[t]) * 16777619u;
+    }
+    return h;
+}
+static int pb_count(void)
+{
+    uint32_t i, n = 0;
+    for (i = 0; i < PB_HEADS; i++)
+        n += pb[i].mode != BM_NONE;
+    return (int)n;
+}
+static int test_buffer_combinations(void)
+{
+    static const uint8_t B[6] = {PF_R16, PF_REV, PF_FRZ, PF_TAPE, PF_GLCH, PF_RTRG};
+    static uint32_t h1[6], h2[15], h3[20];
+    int bad = 0, i, j, k, n2 = 0, n3 = 0;
+    char what[180];
+    test_signal(440, 16000, 330, 12000);
+    for (i = 0; i < 6; i++) {
+        ev_t ev[] = {{992, B[i] + 1}};
+        run(120, 1, ev, 1, 120000);
+        h1[i] = out_hash(60000, 80000);
+        snprintf(what, sizeof what, "buffer %d alone: one head, audio not dry (hash %08x)", i, h1[i]);
+        bad += check(what, pb_count() == 1 && h1[i] != out_hash(0, 0));
+    }
+    for (i = 0; i < 6; i++)
+        for (j = i + 1; j < 6; j++) {
+            ev_t ev[] = {{992, B[i] + 1}, {992, B[j] + 1}};
+            run(120, 1, ev, 2, 120000);
+            h2[n2] = out_hash(60000, 80000);
+            snprintf(what, sizeof what, "buffer pair %d+%d: two heads, combined audio distinct from either", i, j);
+            bad += check(what, pb_count() == 2 && h2[n2] != h1[i] && h2[n2] != h1[j]);
+            n2++;
+        }
+    {   /* the same three heads over the six-track song, not just the two-channel test signal */
+        int32_t mx = 0;
+        song_setup();
+        perf_press(PF_R16, 1);
+        perf_press(PF_REV, 1);
+        perf_press(PF_GLCH, 1);
+        song_render(120000, 0);
+        for (k = 0; k < 120000; k++) {
+            int32_t a = abs(song_l[k]), b = abs(song_r[k]);
+            if (a > mx) mx = a;
+            if (b > mx) mx = b;
+        }
+        bad += check("three buffer FX with the six-track song: three heads, no wrap or NaN", pb_count() == 3 && mx < 200000);
+        perf_press(PF_R16, 0); perf_press(PF_REV, 0); perf_press(PF_GLCH, 0);
+    }
+    for (i = 0; i < 6; i++)
+        for (j = i + 1; j < 6; j++)
+            for (k = j + 1; k < 6; k++) {
+                ev_t ev[] = {{992, B[i] + 1}, {992, B[j] + 1}, {992, B[k] + 1}};
+                run(120, 1, ev, 3, 120000);
+                h3[n3] = out_hash(60000, 80000);
+                snprintf(what, sizeof what, "buffer triple %d+%d+%d: three heads, combined audio distinct", i, j, k);
+                bad += check(what, pb_count() == 3 && h3[n3] != h1[i] && h3[n3] != h1[j] && h3[n3] != h1[k] &&
+                                   h3[n3] != h2[0]);
+                n3++;
+            }
     return bad;
 }
 
@@ -991,6 +1128,9 @@ int main(int argc, char **argv)
     bad += test_pfx();
     bad += test_new_bank();
     bad += test_qg();
+    bad += test_cap_latch();
+    bad += test_buffer_combinations();
+    bad += test_meters();
     bad += test_cost();
     if (argc > 1)
         demos(argv[1]);

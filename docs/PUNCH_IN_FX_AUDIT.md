@@ -225,3 +225,17 @@ Los grupos se ejecutaron por separado. Un timeout no se cuenta como aprobado.
   comprobaciones de build, no una validación eléctrica.
 - La rama local puede estar por detrás de `origin/perf/security-hardening`; no se hace force-push ni
   se reescribe el remoto. Cualquier integración debe hacerse con un merge normal y revisar el diff.
+
+
+## Actualización 2026-11-03 — tres cabezas reales
+
+- `perf_press()` limita a tres los efectos musicales activos; el cuarto se rechaza sin modificar los tres
+  que ya están sonando. Los mutes T1–T6 no cuentan para el límite.
+- Las seis capturas (REPEAT, REV, FRZ, TAP, GLC y RTR) comparten una única grabación de 32 KB, pero tienen
+  **tres cabezas de lectura independientes** (`pb[3]`), cada una con su modo, longitud, cursor y ganancia.
+  La captura se toma una vez y cada cabeza lee su ventana; la mezcla húmeda es su promedio ponderado.
+- Se probaron las seis individualmente, las 15 parejas y las 20 ternas; cada combinación produce audio
+  distinto de sus componentes. También pasan tres FX sobre la canción de seis pistas. No se duplican
+  buffers, voces ni polifonía.
+- `LATCH:NO` mantiene el efecto solo mientras la tecla está pulsada; `LATCH:YES` lo enciende en la primera
+  pulsación y lo apaga en la segunda. La pantalla muestra `CAP %` o `n/3` y una barra de captura/lectura.

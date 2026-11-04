@@ -6,6 +6,7 @@
 #define CHO_LEN 2048u
 static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
+volatile int32_t fx_vu[6];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses) */
 static const uint16_t REV_COMB[4] = {1116, 1188, 1277, 1356};
 static const uint16_t REV_AP[2] = {556, 441};
 static int16_t rev_comb[1116 + 1188 + 1277 + 1356] __attribute__((section(".pool")));
@@ -235,28 +236,29 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
         return;
     }
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
-    int32_t sn = sine_i(angle);                         /* Q15 */
-    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
-    int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
-    if (a_q12 < 512) a_q12 = 512;
-    int32_t a_sqrt_q12 = 4096 + (gain_db * 118);
-    if (a_sqrt_q12 < 512) a_sqrt_q12 = 512;
-    int32_t alpha = (sn * 4096) >> 15;                  /* Q12 */
-    int32_t a_p1 = a_q12 + 4096;
-    int32_t a_m1 = a_q12 - 4096;
-    int32_t b0_un = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt_q12) >> 12);
-    int32_t b1_un = ((a_m1 - ((a_p1 * cs) >> 15)));
-    int32_t b2_un = ((a_p1 - ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt_q12) >> 12);
-    int32_t a0_un = ((4096 + a_sqrt_q12) >> 1) + ((alpha * 4096) / a_sqrt_q12);
-    int32_t a1_un = -(a_m1 + ((a_p1 * cs) >> 15));
-    int32_t a2_un = ((4096 + a_sqrt_q12) >> 1) - ((alpha * 4096) / a_sqrt_q12);
-
-    if (a0_un > 50) {
-        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
-        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
-        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
-        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
-        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
+    int32_t sn = sine_i(angle), cs = sine_i(angle + 0x40000000u);
+    int32_t a = 4096 + gain_db * 235 + ((gain_db * gain_db * 7) >> 1);
+    int32_t sq = 4096 + gain_db * 118;                 /* sqrt(A), Q12 */
+    int32_t alpha = (sn * 2896) >> 15;                 /* Q12, S = 1: sin / sqrt(2) */
+    int32_t ap1, am1, ct, two_sq_alpha, b0, b1, b2, a0, a1, a2;
+    if (a < 512) a = 512;
+    if (sq < 512) sq = 512;
+    ap1 = a + 4096;
+    am1 = a - 4096;
+    ct = (am1 * cs) >> 15;
+    two_sq_alpha = (2 * sq * alpha) >> 12;
+    b0 = (a * ((ap1 - ct) + two_sq_alpha)) >> 12;
+    b1 = (2 * a * (am1 - ((ap1 * cs) >> 15))) >> 12;
+    b2 = (a * ((ap1 - ct) - two_sq_alpha)) >> 12;
+    a0 = ap1 + ct + two_sq_alpha;
+    a1 = -2 * (am1 + ((ap1 * cs) >> 15));
+    a2 = ap1 + ct - two_sq_alpha;
+    if (a0 > 100) {
+        eq->b0 = (int32_t)(((int64_t)b0 * 16384) / a0);
+        eq->b1 = (int32_t)(((int64_t)b1 * 16384) / a0);
+        eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
+        eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
+        eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
         eq->active = 1;
     }
 }
@@ -269,28 +271,29 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
         return;
     }
     uint32_t angle = 12000000u + (uint32_t)freq_idx * 16000000u;
-    int32_t sn = sine_i(angle);                         /* Q15 */
-    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
-    int32_t a_q12 = 4096 + (gain_db * 235) + ((gain_db * gain_db * 7) >> 1);
-    if (a_q12 < 512) a_q12 = 512;
-    int32_t a_sqrt_q12 = 4096 + (gain_db * 118);
-    if (a_sqrt_q12 < 512) a_sqrt_q12 = 512;
-    int32_t alpha = (sn * 4096) >> 15;                  /* Q12 */
-    int32_t a_p1 = a_q12 + 4096;
-    int32_t a_m1 = a_q12 - 4096;
-    int32_t b0_un = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) + ((alpha * a_sqrt_q12) >> 12);
-    int32_t b1_un = -((a_m1 + ((a_p1 * cs) >> 15)));
-    int32_t b2_un = ((a_p1 + ((a_m1 * cs) >> 15)) >> 1) - ((alpha * a_sqrt_q12) >> 12);
-    int32_t a0_un = ((4096 + a_sqrt_q12) >> 1) + ((alpha * 4096) / a_sqrt_q12);
-    int32_t a1_un = ((a_m1 - ((a_p1 * cs) >> 15)));
-    int32_t a2_un = ((4096 + a_sqrt_q12) >> 1) - ((alpha * 4096) / a_sqrt_q12);
-
-    if (a0_un > 50) {
-        eq->b0 = (int32_t)(((int64_t)b0_un * 16384) / a0_un);
-        eq->b1 = (int32_t)(((int64_t)b1_un * 16384) / a0_un);
-        eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
-        eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
-        eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
+    int32_t sn = sine_i(angle), cs = sine_i(angle + 0x40000000u);
+    int32_t a = 4096 + gain_db * 235 + ((gain_db * gain_db * 7) >> 1);
+    int32_t sq = 4096 + gain_db * 118;
+    int32_t alpha = (sn * 2896) >> 15;
+    int32_t ap1, am1, ct, two_sq_alpha, b0, b1, b2, a0, a1, a2;
+    if (a < 512) a = 512;
+    if (sq < 512) sq = 512;
+    ap1 = a + 4096;
+    am1 = a - 4096;
+    ct = (am1 * cs) >> 15;
+    two_sq_alpha = (2 * sq * alpha) >> 12;
+    b0 = (a * ((ap1 + ct) + two_sq_alpha)) >> 12;
+    b1 = (-2 * a * (am1 + ((ap1 * cs) >> 15))) >> 12;
+    b2 = (a * ((ap1 + ct) - two_sq_alpha)) >> 12;
+    a0 = ap1 - ct + two_sq_alpha;
+    a1 = 2 * (am1 - ((ap1 * cs) >> 15));
+    a2 = ap1 - ct - two_sq_alpha;
+    if (a0 > 100) {
+        eq->b0 = (int32_t)(((int64_t)b0 * 16384) / a0);
+        eq->b1 = (int32_t)(((int64_t)b1 * 16384) / a0);
+        eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
+        eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
+        eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
         eq->active = 1;
     }
 }
@@ -407,6 +410,82 @@ static __attribute__((noinline)) void master_begin(void)
                                                          * full scale: CLIP adds saturation, not loudness (the leveler) */
         clip_mk = (int32_t)((6000u << 15) / (uint32_t)softclip((6000 * clip_g) >> 12));
 }
+/* (1.8) Master EQ magnitude in dB, Q8, at a 0..127 frequency index. It uses the same
+ * coefficient builders as the audio path, so the UI graph cannot drift from the filter. */
+static uint32_t fx_isqrt32(uint32_t v)             /* no 64-bit divide: the target has no libgcc helper */
+{
+    uint32_t r = 0, bit = 1u << 15;
+    while (bit > v)
+        bit >>= 2;
+    while (bit) {
+        uint32_t t = r + bit;
+        if (v >= t) {
+            v -= t;
+            r = (r >> 1) + bit;
+        } else {
+            r >>= 1;
+        }
+        bit >>= 2;
+    }
+    return r;
+}
+
+int32_t fx_master_eq_db(int32_t freq_idx)
+{
+    qg_biquad_t eq;
+    int32_t mode = clamp(song.g[G_EQMODE], 0, 4);
+    int32_t gain = clamp(song.g[G_EQGAIN], -24, 24);
+    int32_t q = clamp(song.g[G_EQQ], 0, 127);
+    int32_t cut = clamp(song.g[G_EQFREQ], 0, 127);
+    uint32_t w;
+    int32_t sn, cs, e = 0, frac;
+    int64_t cs2, sn2, nr, ni, dr, di;
+    int32_t nrm, nim, drm, dim;
+    uint32_t n2, d2, ns, ds, mag;
+    qg_biquad_init(&eq);
+    if (mode == 1)
+        qg_biquad_set_peak(&eq, cut, gain, q);
+    else if (mode == 2)
+        qg_biquad_set_notch(&eq, cut, q);
+    else if (mode == 3)
+        qg_biquad_set_lowshelf(&eq, cut, gain);
+    else if (mode == 4)
+        qg_biquad_set_highshelf(&eq, cut, gain);
+    if (!eq.active)
+        return 0;
+    w = 12000000u + (uint32_t)clamp(freq_idx, 0, 127) * 16000000u;
+    sn = sine_i(w);
+    cs = sine_i(w + 0x40000000u);
+    cs2 = (((int64_t)cs * cs) - ((int64_t)sn * sn)) >> 15;
+    sn2 = (((int64_t)2 * sn * cs) >> 15);
+    nr = eq.b0 + (((int64_t)eq.b1 * cs) >> 15) + (((int64_t)eq.b2 * cs2) >> 15);
+    ni = -(((int64_t)eq.b1 * sn) >> 15) - (((int64_t)eq.b2 * sn2) >> 15);
+    dr = 16384 + (((int64_t)eq.a1 * cs) >> 15) + (((int64_t)eq.a2 * cs2) >> 15);
+    di = -(((int64_t)eq.a1 * sn) >> 15) - (((int64_t)eq.a2 * sn2) >> 15);
+    /* Q7 squares keep both the sums and the square root in 32 bits; the ratio is then Q15. */
+    nrm = (int32_t)(nr >> 7); nim = (int32_t)(ni >> 7);
+    drm = (int32_t)(dr >> 7); dim = (int32_t)(di >> 7);
+    n2 = (uint32_t)(nrm * nrm + nim * nim);
+    d2 = (uint32_t)(drm * drm + dim * dim);
+    if (!d2)
+        return 0;
+    ns = fx_isqrt32(n2);
+    ds = fx_isqrt32(d2);
+    mag = ds ? (uint32_t)((ns << 15) / ds) : 0u;
+    if (!mag)
+        return -24 * 256;
+    while (mag >= 65536u) {
+        mag >>= 1;
+        e++;
+    }
+    while (mag < 32768u) {
+        mag <<= 1;
+        e--;
+    }
+    frac = (int32_t)(((mag - 32768u) * 256u) / 32768u);
+    return clamp(6 * (e * 256 + frac), -24 * 256, 24 * 256);
+}
+
 /* (JIANT 0.5) the LEVELER, always on: the mix (dry + wet, before the MASTER knob) followed block by block (its peak,
  * ~45 ms up, ~1.5 s down: no pumping) and brought toward LEV_T at 2:1 (the gain the square root of LEV_T / level, -9 .. +6 dB),
  * ramped across the block; the gain itself smoothed (~190 ms); below LEV_GATE (-40 dB) it eases back to unity, so a tail or silence is not
@@ -1241,17 +1320,28 @@ static inline int32_t cho_ens(const int16_t *buf, uint32_t w, uint32_t ph, int32
  * the same x2 as the ensemble), *sd stage 2 - stage 4 (the sides moving apart). No line, no taps: lighter than it */
 static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t *sd)
 {
-    int32_t a = 900 + (int32_t)(((uint32_t)(osc_sine(ph) + 32768) >> 1) * (uint32_t)depth >> 15) - 32767, y2 = 0, k;
-    int32_t v = x + ((fx.ph_y * 18000) >> 15);
+    /* Four first-order all-passes, H = (a + z^-1) / (1 + a z^-1). The old coefficient was
+     * 900 + sweep - 32767: it sat at -1 and the chain had no usable output. a stays in
+     * 0.20 .. 0.95, and DEPTH 0 is a true bypass. The feedback is deliberately small. */
+    int32_t d = clamp(depth, 0, 12192);
+    int32_t sweep, a, v, y2 = 0, k;
+    if (d <= 0) {
+        *sd = 0;
+        return x;
+    }
+    sweep = (osc_sine(ph) + 32768) >> 1;                /* 0 .. 32767 */
+    a = 6554 + ((sweep * (24576 * d / 12192)) >> 15);  /* Q15: 0.20 .. 0.95 */
+    v = x + ((fx.ph_y * 6000) >> 15);                  /* a little feedback, stable */
     for (k = 0; k < 4; k++) {
-        int32_t s = fx.ph_s[k], w = clamp(v - ((a * s) >> 15), -(1 << 20), 1 << 20);
-        v = ((a * w) >> 15) + s;
-        fx.ph_s[k] = w;
-        if (k == 1) y2 = v;
+        int32_t y = ((a * v) >> 15) + fx.ph_s[k];
+        fx.ph_s[k] = v - ((a * y) >> 15);
+        v = y;
+        if (k == 1)
+            y2 = v;
     }
     fx.ph_y = v;
     *sd = y2 - v;
-    return x + v;
+    return x + v;                                      /* dry + the all-pass chain: the notches */
 }
 
 /* process the three buses for one block; sends in, wet stereo-equal out */
@@ -1315,6 +1405,18 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
 {
     uint32_t i, dl = delay_samples();
     int32_t dcd, dcw, ddm;
+    int32_t vin0 = 0, vin1 = 0, vin2 = 0;
+    for (i = 0; i < n; i++) {
+        int32_t a = cho_in[i] < 0 ? -cho_in[i] : cho_in[i];
+        int32_t b = dly_in[i] < 0 ? -dly_in[i] : dly_in[i];
+        int32_t c = rev_in[i] < 0 ? -rev_in[i] : rev_in[i];
+        if (a > vin0) vin0 = a;
+        if (b > vin1) vin1 = b;
+        if (c > vin2) vin2 = c;
+    }
+    fx_vu[0] = vin0;
+    fx_vu[1] = vin1;
+    fx_vu[2] = vin2;
     {   /* (0.6.14) anything sent to the buses this block: their gate open (fx_gate) */
         int32_t any = 0;
         for (i = 0; i < n; i++)
@@ -1392,8 +1494,9 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         }
         rev_in = rpre_out;
     }
+    int32_t chpk = 0, dlpk = 0;
     for (i = 0; i < n; i++) {
-        int32_t y = 0, x, side = 0, xr = 0, wr = 0;
+        int32_t y = 0, x, side = 0, xr = 0, wr = 0, ch = 0, dlout = 0;
         /* chorus (0.5.1: an ensemble): three taps of the line, ~7, 9.5 and 12 ms, each swept by the LFO a third of a
          * turn apart; the first left, the second right, the third in the middle: always stereo (WIDTH wider) */
         cho_buf[fx.cho_w & (CHO_LEN - 1u)] = (int16_t)clamp(cho_in[i] >> 1, -32768, 32767);
@@ -1401,8 +1504,10 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         fx.cd_cur += dcd; fx.cw_cur += dcw; fx.dm_cur += ddm;
         if (cho) {
             int32_t sd;
-            y += phz ? cho_phaser(cho_buf[fx.cho_w & (CHO_LEN - 1u)], fx.cho_ph, pdep, &sd)
+            ch = phz ? cho_phaser(cho_buf[fx.cho_w & (CHO_LEN - 1u)], fx.cho_ph, pdep, &sd)
                      : cho_ens(cho_buf, fx.cho_w, fx.cho_ph, fx.cd_cur, &sd);
+            y += ch;
+            { int32_t a = ch < 0 ? -ch : ch; if (a > chpk) chpk = a; }
             sd = (sd * fx.cw_cur) >> 7;
             side += sd;
         }
@@ -1458,8 +1563,10 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             x = (x + xr) >> 1;
         }
         fx.dly_w++;
-        y += mulq15(x << 1, fx.dm_cur);
+        dlout = mulq15(x << 1, fx.dm_cur);
+        y += dlout;
         wet[i] = y;
+        { int32_t a = dlout < 0 ? -dlout : dlout; if (a > dlpk) dlpk = a; }
         if (side) {                                     /* (the side: left +, right -) */
             if (fxg_g < 32767)                          /* (0.6.14: gated as the rest, fx_gate) */
                 side = mulq15(side, fxg_g);
@@ -1480,10 +1587,30 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         rev_clear();
         fx.rtype = (uint8_t)rt;
         fx_gate(wet, n);
+        {
+            int32_t pk = 0;
+            for (i = 0; i < n; i++) {
+                int32_t a = wet[i] < 0 ? -wet[i] : wet[i];
+                if (a > pk) pk = a;
+            }
+            fx_vu[3] = chpk;
+            fx_vu[4] = dlpk;
+            fx_vu[5] = pk;
+        }
         return;
     }
     rev_run(rt, rev_in, wet, n);
     fx_gate(wet, n);
+    {
+        int32_t pk = 0;
+        for (i = 0; i < n; i++) {
+            int32_t a = wet[i] < 0 ? -wet[i] : wet[i];
+            if (a > pk) pk = a;
+        }
+        fx_vu[3] = chpk;
+        fx_vu[4] = dlpk;
+        fx_vu[5] = pk;
+    }
 }
 
 /* one block of the whole mix (shared with hostsim.c): events -> each part (with its modulation matrix)
@@ -1601,6 +1728,7 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
         pf.mg[(uint32_t)(t - trk) % NTRK] = 32768;
         if (!on) {
             mp_seen[(uint32_t)(t - trk) % NTRK] = 0;
+            t->peak = 0;
             return;
         }
     }
@@ -1609,6 +1737,7 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
         t->tail = 16;                                   /* blocks of DIST state to run out after the last voice */
     else if (!t->tail || !t->p[P_DIST] || !--t->tail) {
         mp_seen[(uint32_t)(t - trk) % NTRK] = 0;       /* (silent: the next sound at its LEVEL and PAN) */
+        t->peak = 0;
         if (MOD.on)
             mod_end(t);
         return;
