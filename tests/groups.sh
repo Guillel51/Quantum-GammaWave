@@ -61,6 +61,10 @@ run_emu() {
 run_eq() {
     cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/eq_sweep_test tests/eq_sweep_test.c -lm
     ./build/uifix/eq_sweep_test
+    # the same filters measured through qg_biquad_process(), i.e. the audio path the mixer
+    # uses: a filter that is stable on paper but wrong at the corner cannot pass this one
+    cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/eq_response_test tests/eq_response_test.c -lm
+    ./build/uifix/eq_response_test
 }
 
 run_security() {
@@ -110,16 +114,18 @@ case "$group" in
     security) run_security ;;
     stress) run_stress ;;
     target) run_target ;;
+    eq) run_eq ;;
     all)
         run_ui
         run_presets
         run_web
         run_emu
+        run_eq
         run_target
         run_security
         ;;
     *)
-        echo "usage: $0 ui|presets|web|emu|sync|security|stress|target|all" >&2
+        echo "usage: $0 ui|presets|web|emu|sync|eq|security|stress|target|all" >&2
         exit 2
         ;;
 esac

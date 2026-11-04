@@ -70,13 +70,15 @@ hierarchy and a hardware-style brand bar) without changing any control id, SysEx
 handler. It was checked in Chromium at 1440 px and 390 px: seven tabs, no horizontal overflow and no console
 or request errors. The emulator remains the same real WASM firmware; the portal only links to it.
 
-**v1.8.6** is the current build: FX-section particles, the splash, the note-reactive visualizer, the
+**v1.8.7** is the current build: the master EQ no longer diverges at 20 Hz (its states carry 10 extra
+fractional bits, so a pole near the unit circle decays instead of integrating), on top of the FX-section
+particles, the splash, the note-reactive visualizer, the
 Punch-In keyboard spacing and the Master Biquad EQ were corrected, and the firmware, native emulator,
 WASM, Web Studio, installer and portal are synchronized from this tree. Physical FM-1 validation, signed
 packages, anti-downgrade, A/B and independent recovery are still open; see
-[`docs/V1.8.6_STATUS.md`](docs/V1.8.6_STATUS.md).
+[`docs/V1.8.7_STATUS.md`](docs/V1.8.7_STATUS.md).
 
-## What's in Quantum GammaWave (`v1.8.6`)
+## What's in Quantum GammaWave (`v1.8.7`)
 
 - **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
@@ -255,7 +257,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.8.6 build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.8.7 build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).

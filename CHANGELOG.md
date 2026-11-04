@@ -18,6 +18,28 @@
 - **Presupuesto:** app 558 200 B, paquete `ad2f3d41…`, RAM `.data+.bss` 96 452/98 304 (spare 1 852), RAM code
   22 432/24 576.
 
+## v1.8.7 — the master EQ no longer diverges at 20 Hz (2026-11-04)
+
+- **Causa raíz medida, no supuesta:** el filtro biquad maestro guardaba sus estados en enteros con la misma
+  escala que la señal. Un shelf o un peak a 20 Hz tiene sus polos a ~1e-6 del círculo unitario, así que el
+  truncamiento por muestra del lazo de realimentación se integraba: con **entrada DC 1000 la salida era
+  1 971 664** (debían ser 16 000, +24 dB) y una senoide de 20 Hz a ±24 dB trepaba hasta el clamp. Los
+  coeficientes eran correctos (su respuesta calculada da +24,1 dB a 1 Hz y +12,0 dB en la esquina), y aplicar
+  redondeo simétrico en `bq_mul` **no cambiaba nada** (mismas cifras antes y después).
+- **Corrección:** los estados del biquad pasan a `int64_t` con 10 bits fraccionarios extra (`BQ_S`), de modo que
+  la realimentación conserva precisión y el polo no se convierte en integrador. El lazo se unificó para ambos
+  canales y los umbrales de estado del silencio se escalaron con `BQ_S`. Sin cambios de coeficientes, de
+  topología audible ni de polifonía.
+- **Prueba nueva por la ruta de audio:** `tests/eq_response_test.c` inyecta senoides por `qg_biquad_process()`
+  y compara RMS (no coeficientes). 11/11 en verde: shelf +24 dB en su esquina +12,09 dB, −24 dB −11,94 dB,
+  high shelf 20 kHz +12,06 dB, peak +24 dB 20 Hz +24,01 dB, peak +12 dB en el índice 64 +12,00 dB, 1 kHz
+  plano +0,84 dB, 20 s de senoide sin llegar al clamp. Queda documentado un límite real: un corte de −24 dB a
+  20 Hz solo alcanza −17,6 dB porque los coeficientes Q25 no resuelven esa profundidad (a 650 Hz llega a
+  −23,99 dB); el test lo verifica con ese límite explícito.
+- **Presupuesto:** app 558 876 B, paquete 610 898 B, identidad `FM-1_982`; RAM `.data+.bss` 96 452/98 304,
+  RAM code 22 528/24 576 (margen 2 048 B, el mínimo exigido por el gate). Sin voces nuevas ni cambios de
+  calidad.
+
 ## Unreleased — six-track load, target link and installer trust
 
 - **Six-track load test:** `tests/six_track_test.c` (new, `bash tests/groups.sh six`) runs six tracks with ten

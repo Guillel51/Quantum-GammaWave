@@ -178,11 +178,18 @@ static int32_t clip_g, clip_mk;
 #define BQ_A1_MAX (BQ_ONE + BQ_A2_MAX - BQ_GUARD)
 #define BQ_B_MAX 0x7FFFFFFF
 #define BQ_MARGIN BQ_GUARD
+/* Delay states carry BQ_S extra fractional bits. A 20 Hz shelf has its poles ~1e-6 from
+ * the unit circle; with plain integer states the per-sample truncation of the feedback
+ * integrates instead of decaying (measured: DC in 1000 -> 1 971 664 out, expected 16 000;
+ * a 20 Hz sine at +/-24 dB ramped into the clamp). The extra bits keep the recursion on
+ * the correct side of the pole. */
+#define BQ_S 10
+#define BQ_SMUL (1 << BQ_S)
 typedef struct {
     int32_t b0, b1, b2;                                 /* Q25 feedforward coeffs */
     int32_t a1, a2;                                     /* Q25 feedback coeffs */
-    int32_t s1_l, s2_l;                                 /* stereo delay states */
-    int32_t s1_r, s2_r;
+    int64_t s1_l, s2_l;                                 /* stereo delay states, Q10 of a sample */
+    int64_t s1_r, s2_r;
     uint16_t quiet;                                     /* silent blocks since the last input */
     uint8_t active;                                     /* 0 = pass-through bypass */
 } qg_biquad_t;
@@ -466,20 +473,30 @@ static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t 
         return;                                         /* zero CPU cost when bypassed */
     uint32_t i;
     int32_t inmax = 0;
+    const int64_t slim = (int64_t)BQ_LIM << BQ_S;
+    int32_t *buf[2];
+    int64_t *st1[2], *st2[2];
+    int ch;
+    buf[0] = l; buf[1] = r;
+    st1[0] = &eq->s1_l; st1[1] = &eq->s1_r;
+    st2[0] = &eq->s2_l; st2[1] = &eq->s2_r;
     for (i = 0; i < n; i++) {
-        int32_t x_l = l[i] >> 2;
-        { int32_t ax = x_l < 0 ? -x_l : x_l; if (ax > inmax) inmax = ax; }
-        int32_t y_l = bq_lim(bq_mul(eq->b0, x_l) + eq->s1_l);
-        eq->s1_l = bq_lim(bq_mul(eq->b1, x_l) - bq_mul(eq->a1, y_l) + eq->s2_l);
-        eq->s2_l = bq_lim(bq_mul(eq->b2, x_l) - bq_mul(eq->a2, y_l));
-        l[i] = y_l * 4;
-
-        int32_t x_r = r[i] >> 2;
-        { int32_t ax = x_r < 0 ? -x_r : x_r; if (ax > inmax) inmax = ax; }
-        int32_t y_r = bq_lim(bq_mul(eq->b0, x_r) + eq->s1_r);
-        eq->s1_r = bq_lim(bq_mul(eq->b1, x_r) - bq_mul(eq->a1, y_r) + eq->s2_r);
-        eq->s2_r = bq_lim(bq_mul(eq->b2, x_r) - bq_mul(eq->a2, y_r));
-        r[i] = y_r * 4;
+        for (ch = 0; ch < 2; ch++) {
+            int32_t *p = buf[ch];
+            int64_t *s1 = st1[ch], *s2 = st2[ch];
+            int32_t x = p[i] >> 2;
+            int32_t ax = x < 0 ? -x : x;
+            int64_t y16;
+            if (ax > inmax) inmax = ax;
+            y16 = ((int64_t)eq->b0 * x >> (BQ_Q - BQ_S)) + *s1;
+            if (y16 > slim) y16 = slim; else if (y16 < -slim) y16 = -slim;
+            int32_t y = (int32_t)((y16 + (BQ_SMUL >> 1)) >> BQ_S);
+            *s1 = ((int64_t)eq->b1 * x >> (BQ_Q - BQ_S))
+                - ((int64_t)eq->a1 * y16 >> BQ_Q) + *s2;
+            *s2 = ((int64_t)eq->b2 * x >> (BQ_Q - BQ_S))
+                - ((int64_t)eq->a2 * y16 >> BQ_Q);
+            p[i] = y * 4;
+        }
     }
     /* A silent block can leave a limit cycle (the -48 dB residue the LOW SHELF was reported for), and a
      * state left over from an earlier filter can otherwise take seconds to die. After 32 silent blocks
@@ -487,8 +504,10 @@ static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t 
     if (!inmax) {
         if (++eq->quiet >= 32u)
             qg_biquad_clear_state(eq);
-        else if (eq->s1_l > -512 && eq->s1_l < 512 && eq->s1_r > -512 && eq->s1_r < 512 &&
-                 eq->s2_l > -512 && eq->s2_l < 512 && eq->s2_r > -512 && eq->s2_r < 512)
+        else if (eq->s1_l > -(512 << BQ_S) && eq->s1_l < (512 << BQ_S) &&
+                 eq->s1_r > -(512 << BQ_S) && eq->s1_r < (512 << BQ_S) &&
+                 eq->s2_l > -(512 << BQ_S) && eq->s2_l < (512 << BQ_S) &&
+                 eq->s2_r > -(512 << BQ_S) && eq->s2_r < (512 << BQ_S))
             qg_biquad_clear_state(eq);
     } else {
         eq->quiet = 0;
@@ -529,9 +548,12 @@ static void master_eq_update(void)
     if (mode == eq_last_mode && freq == eq_last_freq && gain == eq_last_gain && q == eq_last_q) {
         /* The same preset can still carry a state from a previous filter if a scene or project loaded
          * identical values. Only an impossible state is cleared here, so normal audio is untouched. */
-        if (master_eq.active && (master_eq.s1_l > BQ_LIM / 2 || master_eq.s1_l < -BQ_LIM / 2 ||
-                                 master_eq.s1_r > BQ_LIM / 2 || master_eq.s1_r < -BQ_LIM / 2 ||
-                                 master_eq.s2_l > BQ_LIM / 2 || master_eq.s2_l < -BQ_LIM / 2 ||
+        if (master_eq.active && (master_eq.s1_l > ((int64_t)BQ_LIM << BQ_S) / 2 ||
+                                 master_eq.s1_l < -(((int64_t)BQ_LIM << BQ_S) / 2) ||
+                                 master_eq.s1_r > ((int64_t)BQ_LIM << BQ_S) / 2 ||
+                                 master_eq.s1_r < -(((int64_t)BQ_LIM << BQ_S) / 2) ||
+                                 master_eq.s2_l > ((int64_t)BQ_LIM << BQ_S) / 2 ||
+                                 master_eq.s2_l < -(((int64_t)BQ_LIM << BQ_S) / 2) ||
                                  master_eq.s2_r > BQ_LIM / 2 || master_eq.s2_r < -BQ_LIM / 2))
             qg_biquad_clear_state(&master_eq);
         return;
