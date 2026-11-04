@@ -16,7 +16,11 @@ const IS_OTA = (id) => /^ota-/i.test(id.model);
 // The documented 1 MiB parts. The update is refused unless the caller can present the JEDEC of
 // THIS unit, read from the device or with an external reader: the identity frame carries the model
 // only, so the page today cannot produce it and the install never starts (tools/fm1_gate.py).
-const KNOWN_JEDEC = { 0x856014: "Puya P25Q80H (1 MiB)", 0xB36014: "UCUN 1 MiB" };
+// A part may be READ as soon as it is identified; only a validated part may be WRITTEN.
+// 0xB36014 is accepted by the read-only 0x13 path (diagnostics, backup) and refused by
+// requireChip(), exactly as tools/fm1_gate.py does: one policy for both installers.
+const KNOWN_JEDEC = { 0x856014: "Puya P25Q80H (1 MiB)" };
+const READ_ONLY_JEDEC = { 0xB36014: "UCUN UC25HQ80 (1 MiB): readable, not validated for writing" };
 
 export function requireChip(evidence) {
   const jedec = evidence && evidence.jedec;
@@ -24,6 +28,8 @@ export function requireChip(evidence) {
     throw fail("chip", "The physical flash chip was not identified: the update was not started.");
   if (jedec === 0xFFFFFF || jedec === 0 || jedec === 0xFFFFFFFF)
     throw fail("chip", `The flash answered ${jedec.toString(16)}: no usable JEDEC. Nothing was sent.`);
+  if (jedec in READ_ONLY_JEDEC)
+    throw fail("chip", `JEDEC 0x${jedec.toString(16)} (${READ_ONLY_JEDEC[jedec]}) is not validated for writing: nothing was sent.`);
   if (!(jedec in KNOWN_JEDEC))
     throw fail("chip", `JEDEC 0x${jedec.toString(16)} is not in the documented 1 MiB allowlist. Nothing was sent.`);
   return KNOWN_JEDEC[jedec];
@@ -263,8 +269,8 @@ const QRY_PROTO = 1;
 const QRY_CHUNK = 256;
 const QRY_CAP = 0x100000;
 const QRY_PARTS = {
-  0x856014: { part: "P25Q80H", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000 },
-  0xB36014: { part: "P25Q80H-2", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000 },
+  0x856014: { part: "P25Q80H", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: true },
+  0xB36014: { part: "UC25HQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
 };
 const QRY_STATUS = { 1: "no NOR answer", 2: "unknown part", 3: "capacity not corroborated", 4: "no session",
   5: "range", 6: "length or read error", 7: "malformed request" };
@@ -338,7 +344,7 @@ export async function probeChip(link, timeoutMs = 1000) {
   for (const k of ["jedec", "cap", "page", "sector", "block"])
     if (a[k] !== b[k]) throw fail("chip", `Two identifications disagree on ${k}: nothing was sent.`);
   if (a.session === b.session) throw fail("chip", "The device reused a session token: the reply may be old.");
-  return { ...b, readings: 2, source: "device-0x12" };
+  return { ...b, writable: !!(QRY_PARTS[b.jedec] && QRY_PARTS[b.jedec].writable), readings: 2, source: "device-0x12" };
 }
 
 // one 0x13 read (<= 256 bytes), fully validated; read-only

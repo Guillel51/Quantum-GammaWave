@@ -66,6 +66,7 @@ run_eq() {
 run_security() {
     python3 tests/install_test.py
     python3 tests/preflight_test.py
+    python3 tests/gate_test.py
     node web/test_backup.mjs
     if [ -f build/felucca.fwsc ]; then node web/test_pkg_bounds.mjs build/felucca.fwsc; node web/test_pkg_faults.mjs build/felucca.fwsc; fi
     san="-O1 -g -fsanitize=address,undefined -fno-sanitize=signed-integer-overflow,shift,bounds,object-size,pointer-overflow -fno-sanitize-recover=undefined -w"

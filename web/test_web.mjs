@@ -1592,6 +1592,11 @@ qg1FeaturesCheck();
   ok(resumes.length === 3 && resumes.every((s) => /,\s*ev\)$/.test(s)),
      "installer page: every resume() call passes the chip evidence");
   ok(!/up\.write\(/.test(pkgHtml), "installer page: write() is reached only through install()/resume()");
+  ok(/verifyManifest\(pkg, v\.manifest/.test(pkgHtml) && /no signed manifest/.test(pkgHtml),
+     "installer page: the signed manifest is verified before INSTALL");
+  ok(/releaseOk/.test(pkgHtml) && /!preflightOk\(\) \|\| !releaseOk/.test(pkgHtml)
+     && /the package is not signed and verified/.test(pkgHtml),
+     "installer page: INSTALL is disabled until the package is verified");
 }
 
 // ---- 0x12 / 0x13 / Ed25519: the same policy the CLI enforces (tests/chip_test.py, tests/sign_test.py) ----
@@ -1711,6 +1716,15 @@ qg1FeaturesCheck();
       ok(refused, "web Ed25519 refuses " + what);
     }
   }
+}
+
+// ---- (3.x) one chip policy for CLI and web: the unvalidated part is write-refused --------
+{
+  const M = await import("./fm1ota.js");
+  let code = "";
+  try { M.requireChip({ jedec: 0xB36014 }); } catch (e) { code = e.code + ": " + e.message; }
+  ok(/^chip: .*not validated for writing/.test(code), "web: UCUN 0xB36014 is refused for writing");
+  ok(/P25Q80H/.test(M.requireChip({ jedec: 0x856014 })), "web: P25Q80H is the validated write part");
 }
 
 console.log(failed ? `WEB TESTS FAILED (${failed})` : "web tests passed");

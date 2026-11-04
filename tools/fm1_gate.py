@@ -16,12 +16,19 @@ NO-GO and the installers refuse to start.
 """
 import re
 
-# The documented 1 MiB parts. Evidence for a new part means a unit that was
-# identified, read, written and verified; add it here with that record.
-KNOWN_JEDEC = {
+# A part can be READ for diagnostics as soon as it is identified. Only a part with a
+# record of "identified, read, written and verified on an FM-1" may be WRITTEN: evidence
+# for a new part means that record, not a datasheet and not another project's allowlist.
+PRODUCTION_JEDEC = {
     0x856014: "Puya P25Q80H (1 MiB)",
-    0xB36014: "UCUN 1 MiB",
 }
+# Identified and readable, never written on an FM-1 here. The community m-bootloader
+# notes a UCUN UC25HQ80 unit that did not boot after its bootloader was installed, so
+# this id is not trusted with a write until a lab unit proves it.
+READ_ONLY_JEDEC = {
+    0xB36014: "UCUN UC25HQ80 (1 MiB): readable, not validated for writing on an FM-1",
+}
+KNOWN_JEDEC = {**PRODUCTION_JEDEC, **READ_ONLY_JEDEC}
 MAX_PACKAGE = 0x100000        # the part is 1 MiB; the image is the whole flash
 
 
@@ -47,7 +54,7 @@ def check_identity(product, identity_text):
 
 
 def check_chip(jedec):
-    """-> the chip description when the evidence is complete and known."""
+    """-> the chip description when the evidence is complete and the part may be written."""
     if jedec is None:
         raise Refusal("chip", "chip_not_identified",
                       "the physical NOR was not identified: the identity packet carries the model "
@@ -60,10 +67,14 @@ def check_chip(jedec):
     if jedec in (0xFFFFFF, 0x000000, 0xFFFFFFFF):
         raise Refusal("chip", "chip_not_identified",
                       f"the flash answered {jedec:#08x}: no usable JEDEC")
-    if jedec not in KNOWN_JEDEC:
+    if jedec in READ_ONLY_JEDEC:
+        raise Refusal("chip", "chip_read_only",
+                      f"JEDEC {jedec:#08x} ({READ_ONLY_JEDEC[jedec]}) is not validated for writing: "
+                      "read it, back it up, and do not install on it until a lab unit proves the write")
+    if jedec not in PRODUCTION_JEDEC:
         raise Refusal("chip", "chip_unknown",
                       f"JEDEC {jedec:#08x} is not in the documented 1 MiB allowlist")
-    return {"jedec": f"0x{jedec:06X}", "part": KNOWN_JEDEC[jedec]}
+    return {"jedec": f"0x{jedec:06X}", "part": PRODUCTION_JEDEC[jedec]}
 
 
 def authorise(product, identity_text, jedec=None, lab=False):

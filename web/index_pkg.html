@@ -895,10 +895,10 @@ const log = (t) => { $("log").textContent += t + "\n"; };
 let image = null;
 const meta = /*META*/;
 
-let writing = false, stock = null, stockFileEpoch = 0;
+let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false;
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
-const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk(); $("verify").disabled = on;
-  document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock; if ($("stock-direct")) $("stock-direct").disabled = on || !stock; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
+const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk; $("verify").disabled = on;
+  document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock || !releaseOk; if ($("stock-direct")) $("stock-direct").disabled = on || !stock || !releaseOk; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
 document.querySelectorAll(".pf").forEach((c) => c.addEventListener("change", () => lockInstaller(writing)));
 window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = t("leave"); } });
 
@@ -914,7 +914,7 @@ function fillVersions() {
 }
 async function loadVersion(i) {
   const v = versions[i] || versions[0], epoch = ++loadEpoch;
-  image = null; $("go").disabled = true;
+  image = null; releaseOk = false; $("go").disabled = true;
   try {
     const r = await fetch(v.pkg);
     if (!r.ok) throw new Error(`${v.pkg}: HTTP ${r.status}`);
@@ -930,6 +930,15 @@ async function loadVersion(i) {
     /* (QG-1) the published hash is mandatory: an old or hand-edited metadata file is refused, not trusted */
     if (!v.sha256) { sayK("nohash"); return; }
     if (hash !== v.sha256 || (v.size && pkg.length !== v.size)) { sayK("badhash", hash.slice(0, 16)); return; }
+    /* (3.x) the manifest is mandatory: verifyManifest() checks the SHA-256 and the size again,
+       the product, the key id and the Ed25519 signature with the keys published beside this
+       page. No manifest, or no pinned key, leaves INSTALL disabled: the bytes are not trusted. */
+    if (!v.manifest) { sayK("error", "no signed manifest is published for this package"); return; }
+    try {
+      await verifyManifest(pkg, v.manifest, meta.keys || {}, { product: meta.product });
+    } catch (e) { log(`manifest: ${e.message}`); sayK("error", e.message); return; }
+    if (epoch !== loadEpoch) return;
+    releaseOk = true;
     $("pkg-hash").textContent = t("hashOk") + hash;
     image = logicalImage(pkg);
     say(`QUANTUM GAMMAWAVE FM-1 (${v.version}) — Ready to flash (${pkg.length.toLocaleString()} bytes)`);
@@ -1006,6 +1015,7 @@ $("first-stock").addEventListener("click", () => { $("stock").open = true; $("st
 
 $("go").addEventListener("click", async () => {
   if (writing) return;
+  if (!releaseOk) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
   lockInstaller(true);
   let midi;
   try { midi = await navigator.requestMIDIAccess({ sysex: true }); }
@@ -1105,6 +1115,7 @@ function archiveInfo(a) {
 }
 $("stock-go").addEventListener("click", async () => {
   if (!stock || writing) return;
+  if (!releaseOk) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   let link = null;
   try {
@@ -1142,6 +1153,7 @@ $("stock-go").addEventListener("click", async () => {
 });
 $("stock-direct").addEventListener("click", async () => {
   if (!stock || writing) return;
+  if (!releaseOk) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   try {
     let midi;

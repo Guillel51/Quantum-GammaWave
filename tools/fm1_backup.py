@@ -65,6 +65,18 @@ class Watch:
                 out.append(None)
         return out
 
+    def sequence(self):
+        """every frame in the order it went out, so the session can be replayed"""
+        return self.commands()
+
+    def counts(self):
+        """how many frames of each command: a set alone cannot show a replay or a doubled read"""
+        out = {}
+        for c in self.commands():
+            k = "0x%02X" % c if c is not None else "unknown"
+            out[k] = out.get(k, 0) + 1
+        return out
+
 
 def _pass(link, ev, chunk, max_errors, progress):
     """one independent read of the whole part -> (bytes, unread ranges, errors)"""
@@ -93,8 +105,8 @@ def _pass(link, ev, chunk, max_errors, progress):
 
 
 def backup(link, out_dir, chunk=P.CHUNK, max_errors=8, progress=None):
-    ev = P.probe(link)
-    watch = Watch(link)                # from here on, every frame is recorded
+    watch = Watch(link)                # before the first frame: the two 0x12 identifications are
+    ev = P.probe(link)                 # part of the session and must appear in the manifest
     t0 = time.time()
     a, unread_a, err_a = _pass(link, ev, chunk, max_errors, progress)
     b, unread_b, err_b = _pass(link, ev, chunk, max_errors, progress)
@@ -152,13 +164,16 @@ def backup(link, out_dir, chunk=P.CHUNK, max_errors=8, progress=None):
         "status": status,
         "unread_ranges": unread,
         "errors": [{"addr": e[0], "code": e[1], "message": e[2]} for e in (err_a + err_b)],
+        "commands": watch.sequence(),          # one entry per frame, in order (null if undecodable)
+        "command_counts": watch.counts(),
+        "frames": len(watch.frames),
         "commands_sent": sorted({c for c in watch.commands() if c is not None}),
         "files": {"pass_a": bin_a.name if a else None, "pass_b": bin_b.name if bin_b.exists() else None},
         "seconds": round(elapsed, 1),
         "restore": "not implemented and not verified: a backup is not a recovery path",
     }
-    if any(c not in SENT for c in manifest["commands_sent"]):
-        raise BackupError("write", "a non read-only frame was sent: %s" % manifest["commands_sent"])
+    if any(c not in SENT for c in manifest["commands"]):
+        raise BackupError("write", "a non read-only frame was sent: %s" % manifest["commands"])
     man_path = out_dir / (stem + ".manifest.json")
     man_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     if status == "complete":

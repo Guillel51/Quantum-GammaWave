@@ -110,8 +110,11 @@ def backups():
     ok(man["sha256"] == __import__("hashlib").sha256(dev.nor).hexdigest(), "backup: sha256 of the part")
     ok(man["sha256_pass_a"] == man["sha256_pass_b"], "backup: the two passes agree")
     ok(man["size"] == 0x100000 and man["expected_size"] == 0x100000, "backup: exact size")
-    ok(set(man["commands_sent"]) <= {0x13} and dev.upgrades == 0 and dev.served == 0,
-       "backup sends read frames only (no 0x30, no UPGRADE)")
+    ok(set(man["commands_sent"]) <= {0x12, 0x13} and man["command_counts"].get("0x12") == 2
+       and "0x30" not in man["command_counts"] and dev.upgrades == 0 and dev.served == 0,
+       "backup records the 0x12 pair and sends read frames only (no 0x30, no UPGRADE)")
+    ok(man["commands"][:2] == [0x12, 0x12] and man["frames"] == len(man["commands"]),
+       "backup manifest keeps the real order: identification first, then every read")
     ok(man["device"]["jedec"] == "0x856014" and man["device"]["page"] == 256, "manifest: identity and geometry")
     ok(json.loads(path.read_text())["status"] == "complete" and binp.exists(), "manifest on disk")
 
