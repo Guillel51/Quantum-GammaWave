@@ -48,6 +48,7 @@ _Static_assert(PB_FRAMES <= SL_FR && !(PB_FRAMES & (PB_FRAMES - 1u)), "the REPEA
 #define PF_TOP (63 << 8)                      /* filter cutoff index, Q8 (PF_SVF): the LPF's open end */
 #define PF_LOW (28 << 8)                      /* .. the LPF sweep's end (~480 Hz), the HPF sweep's (and K1's) top:
                                                * a punch filter that keeps the body; 14 (~120 Hz) killed it */
+#define PF_LOW (14 << 8)                      /* .. the LPF sweep's end, the HPF sweep's (and K1's) top */
 enum { BM_NONE, BM_LOOP, BM_REV, BM_FRZ, BM_TAPE, BM_GLCH, BM_RTRG };
 
 static volatile uint32_t perf_mask;   /* main: the FX button's bit while its layer may own keys, 0 = none */
@@ -84,6 +85,14 @@ static struct {
     uint32_t ph, P, split;             /* samples since play; the 1/16; this block: where a 1/16 starts */
     uint32_t act, act0;                /* running after / before split */
     uint8_t busy, sync, mute;          /* sync: a 1/16 starts with the next block; mute: tracks to ramp */
+    /* the buffer */
+    uint8_t mode, src, next;           /* BM_*, the effect it plays (PF_N none), one waiting for the fade */
+    uint8_t state, odd;                /* 0 recording, 1 playing; the sample of a pair */
+    uint32_t len, wr, rp;              /* loop length (samples), frames written, read (samples into the loop) */
+    uint32_t tp, spd, tdec;            /* TAPE STOP: the read position and speed (Q16), its decrease a sample */
+    uint32_t gl_next, gl_pos, gl_dir;  /* GLITCH: samples to the next jump, the read place, its direction */
+    uint32_t xrp, xlen, xn;            /* the loop it switched from, faded over xn samples */
+    int32_t w, tw, hl, hr;             /* the buffer's share and its target, Q15; the first of a pair */
     /* the filters, CRUSH, THROW, mutes */
     int32_t lc, hc, la, ha;            /* cutoffs (Q8 index) and shares (Q15) of LPF and HPF */
     int32_t lz[4], hz[4];              /* their states: L ic1 ic2, R ic1 ic2 */
@@ -164,6 +173,7 @@ static void pb_release_idle(void)
         pb_recording = 0;
     }
 }
+} pf = {.src = PF_N, .next = PF_N, .lc = PF_TOP, .mg = {[0 ... NTRK - 1] = 32768}};   /* (every track open: 0.6, six) */
 
 /* the loop length of a REPEAT at the tempo, 44.1 kHz samples; 0 = not one */
 static const uint8_t PF_DEN[PF_R32 + 1] = {2, 4, 8};
@@ -252,6 +262,17 @@ static void perf_start(void) { pf.ph = 0; pf.sync = 1; pfx_lph = 0; }   /* seq_s
 /* the SLICER's recordings dropped (when the buffer is taken and given back) */
 static void perf_drop_slicer(void) { slicer_drop(); }
 
+/* the buffer effect to play: the last pressed of those running */
+static uint32_t perf_pick(uint32_t a)
+{
+    uint32_t e, best = PF_N;
+    a &= PF_BUF;
+    for (e = 0; e < PF_END; e++)
+        if (((a >> e) & 1u) && (best == PF_N || perf_ord[e] - perf_ord[best] < 0x80000000u))
+            best = e;
+    return best;
+}
+
 static void perf_buf_start(uint32_t e)
 {
     int i = pb_free();
@@ -282,6 +303,21 @@ static void perf_buf_start(uint32_t e)
     h->tdec = (1u << 16) / len;
     h->gl_dir = 1;
     pb_recording = (uint8_t)(pb_wr < PB_CAP);
+    pf.src = (uint8_t)e;
+    pf.next = PF_N;
+    pf.wr = pf.rp = 0;
+    pf.odd = 0;
+    pf.xn = 0;
+    pf.mode = e == PF_REV ? BM_REV : e == PF_FRZ ? BM_FRZ : e == PF_TAPE ? BM_TAPE :
+              e == PF_GLCH ? BM_GLCH : e == PF_RTRG ? BM_RTRG : BM_LOOP;
+    pf.state = 0;
+    pf.len = perf_len(e);
+    pf.tp = 0;
+    pf.spd = 1u << 16;
+    pf.tdec = pf.len ? (1u << 16) / pf.len : 0u;
+    pf.gl_next = 0;
+    pf.gl_pos = 0;
+    pf.gl_dir = 1;
 }
 
 /* Reconcile the selected buffer effects with the three heads at a 1/16. A head that is no longer selected
@@ -575,6 +611,65 @@ static __attribute__((noinline)) void perf_buf(int32_t *pl, int32_t *pr)
         } else if (!h->on) {
             h->mode = BM_NONE;
             h->src = PF_N;
+}
+
+/* the buffer effect on one sample: the share pf.w of what it plays, the rest live */
+/* Not inlined: the five new modes must not consume the hot RAMTEXT window. It is one call per
+ * sample only while the buffer effect runs; the old REPEAT path uses it too. */
+static __attribute__((noinline)) void perf_buf(int32_t *pl, int32_t *pr)
+{
+    int32_t l = *pl, r = *pr, yl = 0, yr = 0, on = 0;
+    if (pf.mode != BM_NONE) {
+        if (!pf.state) {
+            pf.wr = pb_rec(pf.wr, l, r);
+            if (++pf.rp >= pf.len) {                /* (rp: samples recorded) */
+                pf.state = 1;
+                pf.rp = 0;
+            }
+        } else {
+            if (pf.mode == BM_LOOP || pf.mode == BM_FRZ || pf.mode == BM_RTRG) {
+                pb_loop(pf.rp, pf.len, pf.wr, &yl, &yr);
+            } else if (pf.mode == BM_REV) {
+                pb_loop(pf.len - 1u - pf.rp, pf.len, pf.wr, &yl, &yr);
+            } else if (pf.mode == BM_TAPE) {
+                if (pf.spd) {
+                    pb_at(pf.tp >> 16, pf.wr, &yl, &yr);
+                    pf.tp += pf.spd;
+                    pf.spd = pf.spd > pf.tdec ? pf.spd - pf.tdec : 0u;
+                    if (pf.tp >= pf.len)
+                        yl = yr = 0;
+                }
+            } else if (pf.mode == BM_GLCH) {
+                if (!pf.gl_next) {                  /* a new slice: a random place and direction */
+                    pf_rs = pf_rs * 1664525u + 1013904223u;
+                    pf.gl_pos = (pf_rs >> 8) % (pf.len ? pf.len : 1u);
+                    pf.gl_dir = (pf_rs & 1u) ? 1u : 0u;
+                    pf.gl_next = 256u + ((pf_rs >> 16) & 511u);
+                }
+                pb_at(pf.gl_pos, pf.wr, &yl, &yr);
+                pf.gl_next--;
+                if (pf.gl_dir) {
+                    if (++pf.gl_pos >= pf.len)
+                        pf.gl_pos = 0;
+                } else if (pf.gl_pos) {
+                    pf.gl_pos--;
+                } else {
+                    pf.gl_pos = pf.len ? pf.len - 1u : 0u;
+                }
+            }
+            if (pf.mode == BM_LOOP && pf.xn) {      /* the loop it switched from, fading out */
+                int32_t ol, orr, g = (int32_t)pf.xn;
+                pb_loop(pf.xrp, pf.xlen, pf.wr, &ol, &orr);
+                yl += (ol * g) >> SL_RAMP_LOG2;
+                yr += (orr * g) >> SL_RAMP_LOG2;
+                pf.xn--;
+                if (++pf.xrp >= pf.xlen)
+                    pf.xrp = 0;
+            }
+            if (pf.mode == BM_LOOP || pf.mode == BM_FRZ || pf.mode == BM_REV || pf.mode == BM_RTRG)
+                if (++pf.rp >= pf.len)
+                    pf.rp = 0;
+            on = 1;
         }
     }
     if (n) {

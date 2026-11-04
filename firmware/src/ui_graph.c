@@ -740,6 +740,7 @@ static void graph_fx(const track_t *t, uint16_t c)
     /* One quiet rack: four equal channels, a clean level meter, the send's value and its parameter bar.
      * No fader substitute: DIST is the track's post-FX peak, CHOR/DLY/REV are their real
      * wet-return peaks; the thin tick marks each bus's actual input. */
+     * No second fader, no fake motion: the meter is the track's post-FX peak through this send. */
     cv_rrect(4, 2, 232, 72, 4, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
@@ -748,6 +749,8 @@ static void graph_fx(const track_t *t, uint16_t c)
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
         int32_t hpx = lvl * mh / 7000;
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
+        int32_t lvl = clamp(pk, 0, 7000) * val / 127;
+        int32_t hpx = clamp(lvl, 0, 7000) * mh / 7000;
         int32_t seg;
         char num[8];
 
