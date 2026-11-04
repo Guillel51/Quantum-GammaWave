@@ -150,20 +150,21 @@ jobs:
           test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
       - name: ci diagnosis (temporary)
         if: failure()
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_JSON: ${{ toJSON(steps) }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          {
-            printf '%s\n' '${{ toJSON(steps) }}'
-            echo '--- failed log ---'
-            gh run view "$GITHUB_RUN_ID" --log-failed 2>&1 | tail -200 || true
-          } > build/ci_steps.json
+          printf '%s\n' "$STEPS_JSON" > build/ci_steps.json
+          echo '--- failed log ---' >> build/ci_steps.json
+          gh run view "$RUN_ID" --log-failed >> build/ci_steps.json 2>&1 || true
           git config user.email ci@localhost
           git config user.name ci
           git checkout -B ci-diag
           git add -f build/ci_steps.json
-          git commit -m "ci: diagnosis of run $GITHUB_RUN_ID" || true
-          git push origin ci-diag
+          git commit -m "ci: diagnosis of run $RUN_ID" || true
+          git push origin ci-diag || echo "push failed"
       - uses: actions/upload-pages-artifact@v3
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
         with:
