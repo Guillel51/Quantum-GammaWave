@@ -22,7 +22,7 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   `tests/semi_test.c` checks 4.096 picks and the snap floors (including the 5/7 tie).
 - **WASM rebuilt after the interval change:** **1.030.693 B**, SHA-256
   `5b8475aaeda9e090f022fe8879d6cb3861845838367b454718ef0d482c2fd76a`; native comparison bit for bit
-  (88.200 frames), 27,7 ms/s (2,8 % of real time). No target build, physical FM-1 or online deployment
+  (88.200 frames), 23,5 ms/s (2,4 % of real time). No target build, physical FM-1 or online deployment
   is claimed.
 - **Version decision:** **v1.8.5 is not published.** The weighted matrix in `docs/V1.8_STATUS.md` is
   **83/119 = 69,7 %**, below the required 75 %, and the critical target / hardware / recovery / signature
