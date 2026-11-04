@@ -740,14 +740,17 @@ static void graph_fx(const track_t *t, uint16_t c)
     /* One quiet rack: four equal channels, a clean level meter, the send's value and its parameter bar.
      * No fader substitute: DIST is the track's post-FX peak, CHOR/DLY/REV are their real
      * wet-return peaks; the thin tick marks each bus's actual input. */
+     * No second fader, no fake motion: the meter is the track's post-FX peak through this send. */
     cv_rrect(4, 2, 232, 72, 4, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
-        int32_t mx = cx + 41, my = 24, mh = 33;
+        int32_t mx = cx + 43, my = 24, mh = 33;
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
         int32_t hpx = lvl * mh / 7000;
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
+        int32_t lvl = clamp(pk, 0, 7000) * val / 127;
+        int32_t hpx = clamp(lvl, 0, 7000) * mh / 7000;
         int32_t seg;
         char num[8];
 
@@ -776,9 +779,17 @@ static void graph_fx(const track_t *t, uint16_t c)
         if (vu[i] > 0u)
             cv_rect(mx + 1, my + mh - vu[i], 5, vu[i], i == 0 ? c : T_THEME);
         if (hold[i] > 0u)
-            cv_rect(mx + 1, my + mh - hold[i], 5, 1, T_ACCENT);
+            cv_rect(mx + 1, my + mh - hold[i], 3, 1, T_ACCENT);
         if (i && inpx > 0)                            /* the actual send level: a thin input tick */
-            cv_rect(mx + 6, my + mh - inpx, 1, 1, T_MID);
+            cv_rect(mx + 4, my + mh - inpx, 1, 1, T_MID);
+
+        /* the send at a glance: a thin bar, under the meter, not another fader to interpret */
+        cv_rect(cx + 5, 56, 34, 3, T_RAISE);
+        if (val > 0)
+            cv_rect(cx + 5, 56, val * 34 / 127, 3, T_SEL);
+        cv_rect(cx + 43, 56, 5, 3, T_RAISE);
+        if (val > 0)
+            cv_rect(cx + 43, 56, 5, 3, c);
     }
 
     /* Bottom Global Master FX Telemetry Ribbon. Laid out right to left, each field measured against
@@ -2524,13 +2535,11 @@ static void graph_home_viz(uint16_t c)
                 cv_rect(bx + 4, 181, 1, 2, T_DIM);
         }
 
-        /* A field of drifting embers, deterministic and cheap: no allocation, one sine per particle per frame.
-         * The vertical speed was ~21-45 units/frame, which read as frozen on the panel; 55-109 keeps the same
-         * 18 particles and the same three primitives, so the draw cost does not grow with the motion. */
+        /* A field of slow embers, deterministic and cheap: no allocation, one sine per particle per frame. */
         for (i = 0; i < 18u; i++) {
             int32_t px = 24 + (int32_t)((i * 11u + (i % 5u) * 7u) % 198u);
-            int32_t py = 88 + (int32_t)((bg_sin(ui.frame * (55u + (i % 7u) * 9u) + i * 4096u) * (14 + (i % 6u) * 3)) >> 15);
-            int32_t lvl = (bg_sin(ui.frame * (39u + (i % 5u) * 8u) + i * 3072u) + 32768) >> 9;
+            int32_t py = 88 + (int32_t)((bg_sin(ui.frame * (21u + (i % 7u) * 4u) + i * 4096u) * (14 + (i % 6u) * 3)) >> 15);
+            int32_t lvl = (bg_sin(ui.frame * (17u + (i % 5u) * 6u) + i * 3072u) + 32768) >> 9;
             if (py >= top_y && py < top_y + 88 && px >= 12 && px < 228) {
                 uint16_t pc = mono ? (lvl > 90 ? T_TEXT : T_DIM) : ux_mix(T_SURF, heat_col(80 + i * 8), 18 + lvl / 9);
                 cv_rect(px, py, i % 5u == 0u ? 2 : 1, 1, pc);

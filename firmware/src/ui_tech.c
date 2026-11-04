@@ -261,13 +261,10 @@ static void tech_master_eq(void)
     cv_text_on(16, y0 + 4, &AF_S, "MASTER BIQUAD EQ", T_THEME, T_RAISE);
     cv_text_on(140, y0 + 4, &AF_S, MODES[mode], mode ? T_ACCENT : T_DIM, T_RAISE);
 
-    /* A full axis: the 0 dB neutral line, the +/-12 dB guides, log-frequency guides and their labels.
-     * The curve is the same Q14 coefficient response the audio path runs. */
+    /* 0 dB centre and the +/-12 dB guides; the curve is the real Q14 coefficient response. */
     cv_rect(14, mid_y, 212, 1, T_LINE);
     cv_rect(14, mid_y - 22, 212, 1, T_RAISE);
     cv_rect(14, mid_y + 22, 212, 1, T_RAISE);
-    for (i = 1; i < 4; i++)
-        cv_rect(14 + (int32_t)i * 53, y0 + 18, 1, 76, T_RAISE);
     cv_text_on(16, mid_y - 12, &AF_S, "+12", T_DIM, T_BG);
     cv_text_on(16, mid_y + 3, &AF_S, "0", T_DIM, T_BG);
     cv_text_on(16, mid_y + 17, &AF_S, "-12", T_DIM, T_BG);
@@ -289,10 +286,6 @@ static void tech_master_eq(void)
     }
     if (mode > 0)
         cv_rrect(mark_x - 2, mark_y - 2, 5, 5, 2, T_ACCENT, T_BG);
-    /* labels last: the curve cannot draw over them */
-    cv_text_on(16, y0 + 82, &AF_S, "125", T_DIM, T_BG);
-    cv_text_on(104, y0 + 82, &AF_S, "2k", T_DIM, T_BG);
-    cv_text_r(226, y0 + 82, &AF_S, "20k", T_DIM, T_BG);
 }
 /* MASTER: Modular 4-Slot Master FX Rack + Globals Meters (QUANTUM GAMMAWAVE // QG-1) */
 static void tech_master(void)

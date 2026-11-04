@@ -7,26 +7,12 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "web" / "emu" / "index.html"
 WASM = ROOT / "build" / "emu" / "felucca.wasm"
 OUT = ROOT / "build" / "emu"
-
-
-def commit():
-    """The build's commit: CI's SHA, or the local checkout's, so two builds of one version differ."""
-    for env in ("GIT_COMMIT", "GITHUB_SHA"):
-        value = os.environ.get(env, "").strip()
-        if value:
-            return value[:12]
-    try:
-        return subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short=12", "HEAD"],
-                              capture_output=True, text=True, check=True).stdout.strip() or "unknown"
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
 
 
 def main():
@@ -39,13 +25,11 @@ def main():
         raise SystemExit("package_emu: build/emu/felucca.wasm not found; compile it first")
     blob = WASM.read_bytes()
     digest = hashlib.sha256(blob).hexdigest()
-    sha = commit()
     preview = " (preview)" if os.environ.get("EMU_PREVIEW", "1") != "0" else ""
     html = SRC.read_text()
     for key, value in {
         "@VERSION@": version,
         "@PREVIEW@": preview,
-        "@COMMIT@": sha,
         "@WASM_SHA@": digest,
         "@WASM_SIZE@": str(len(blob)),
     }.items():
@@ -54,11 +38,10 @@ def main():
     (OUT / "index.html").write_text(html)
     (OUT / "manifest.json").write_text(json.dumps({
         "version": version,
-        "commit": sha,
         "wasm_sha256": digest,
         "wasm_bytes": len(blob),
     }, separators=(",", ":")) + "\n")
-    print(f"emu: packaged {len(blob)} B wasm, {version}, build {sha}, sha256 {digest}")
+    print(f"emu: packaged {len(blob)} B wasm, {version}, sha256 {digest}")
     print(f"emu: {OUT / 'index.html'} and {OUT / 'manifest.json'}")
 
 

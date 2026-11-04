@@ -295,11 +295,6 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
         eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
         eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
         eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
-        if (!qg_biquad_stabilize(eq)) {
-            qg_biquad_init(eq);
-            return;
-        }
-        qg_biquad_clear_state(eq);
         eq->active = 1;
     }
 }
@@ -337,11 +332,6 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
         eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
         eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
         eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
-        if (!qg_biquad_stabilize(eq)) {
-            qg_biquad_init(eq);
-            return;
-        }
-        qg_biquad_clear_state(eq);
         eq->active = 1;
     }
 }
@@ -1411,33 +1401,19 @@ static inline int32_t cho_ens(const int16_t *buf, uint32_t w, uint32_t ph, int32
 static int32_t fx_ph_g, fx_ph_d;                      /* wet gain and depth, both ramped per sample */
 static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t *sd)
 {
-    /* Six first-order all-passes, H = (a + z^-1) / (1 + a z^-1), swept together; DEPTH sets the sweep
-     * (a 0.20 .. 0.95) and the mix is the full chain, so the notches are deeper than the old four-stage
-     * return (the complaint was little intensity). Both DEPTH and the mix ramp per sample: changing DEPTH
-     * no longer steps the output, and DEPTH 0 fades to a bit-exact dry signal before the states are reset.
-     * Feedback 0.366: three clear notches, still inside the stable all-pass range. */
+    /* Four first-order all-passes, H = (a + z^-1) / (1 + a z^-1). The old coefficient was
+     * 900 + sweep - 32767: it sat at -1 and the chain had no usable output. a stays in
+     * 0.20 .. 0.95, and DEPTH 0 is a true bypass. The feedback is deliberately small. */
     int32_t d = clamp(depth, 0, 12192);
-    int32_t sweep, a, v, y2 = 0, k, tgt, step;
-    step = 256;
-    if (fx_ph_d < d)
-        fx_ph_d = d - fx_ph_d < step ? d : fx_ph_d + step;
-    else if (fx_ph_d > d)
-        fx_ph_d = fx_ph_d - d < step ? d : fx_ph_d - step;
-    tgt = fx_ph_d ? 32768 : 0;
-    if (fx_ph_g < tgt)
-        fx_ph_g = tgt - fx_ph_g < step ? tgt : fx_ph_g + step;
-    else if (fx_ph_g > tgt)
-        fx_ph_g = fx_ph_g - tgt < step ? tgt : fx_ph_g - step;
-    if (!fx_ph_g) {                                     /* truly bypassed: no stale tail */
-        memset(fx.ph_s, 0, sizeof fx.ph_s);
-        fx.ph_y = 0;
+    int32_t sweep, a, v, y2 = 0, k;
+    if (d <= 0) {
         *sd = 0;
         return x;
     }
     sweep = (osc_sine(ph) + 32768) >> 1;                /* 0 .. 32767 */
-    a = 6554 + ((sweep * (24576 * fx_ph_d / 12192)) >> 15);  /* Q15: 0.20 .. 0.95 */
-    v = x + ((fx.ph_y * 12000) >> 15);                  /* 0.366: deeper notches, all-pass stays stable */
-    for (k = 0; k < 6; k++) {
+    a = 6554 + ((sweep * (24576 * d / 12192)) >> 15);  /* Q15: 0.20 .. 0.95 */
+    v = x + ((fx.ph_y * 6000) >> 15);                  /* a little feedback, stable */
+    for (k = 0; k < 4; k++) {
         int32_t y = ((a * v) >> 15) + fx.ph_s[k];
         fx.ph_s[k] = v - ((a * y) >> 15);
         v = y;
@@ -1446,7 +1422,7 @@ static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t 
     }
     fx.ph_y = v;
     *sd = y2 - v;
-    return x + ((v * fx_ph_g) >> 15);                   /* dry + the full chain when on */
+    return x + v;                                      /* dry + the all-pass chain: the notches */
 }
 
 /* process the three buses for one block; sends in, wet stereo-equal out */
@@ -1616,7 +1592,6 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             int32_t sd;
             ch = phz ? cho_phaser(cho_buf[fx.cho_w & (CHO_LEN - 1u)], fx.cho_ph, pdep, &sd)
                      : cho_ens(cho_buf, fx.cho_w, fx.cho_ph, fx.cd_cur, &sd);
-            if (!phz) { fx_ph_g = fx_ph_d = 0; memset(fx.ph_s, 0, sizeof fx.ph_s); fx.ph_y = 0; }
             y += ch;
             { int32_t a = ch < 0 ? -ch : ch; if (a > chpk) chpk = a; }
             sd = (sd * fx.cw_cur) >> 7;
@@ -1674,7 +1649,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             x = (x + xr) >> 1;
         }
         fx.dly_w++;
-        dlout = mulq15(x * 2, fx.dm_cur);
+        dlout = mulq15(x << 1, fx.dm_cur);
         y += dlout;
         wet[i] = y;
         { int32_t a = dlout < 0 ? -dlout : dlout; if (a > dlpk) dlpk = a; }

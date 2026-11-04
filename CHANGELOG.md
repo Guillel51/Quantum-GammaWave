@@ -3,76 +3,7 @@
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
-## 2026-11-04 — Web portal, Web Studio 2.0 and consonant intervals
-
-- **Official portal at `/`.** `web/site/index.html` is a real Solar Heat / Quantum landing page: current
-  build screenshots, firmware features, M-VAVE FM-1 compatibility, installation warnings, dynamic
-  `firmware/versions.json` metadata and direct links to the emulator, installer and Web Studio. The Pages
-  workflow now uploads `build/site`, keeps `/webapp/installer/` and `/webapp/editor/`, and serves the
-  emulator at `/emulator/`. `/?emu=1` and `/#emu` redirect to it. `web/make_site.py` no longer emits a
-  redirect page, and `web/test_site.py` checks ids, assets, routes and the published package hash.
-- **Web Studio 2.0 surface.** The editor keeps every id, tab, protocol frame and DSP mapping; a new CSS
-  layer unifies the charcoal/amber/cyan identity, the brand bar, panels, controls, focus and mobile
-  overflow. Chromium 131 local: 1440 px and 390 px, seven tabs, no horizontal overflow, no console or
-  failed-request errors. `web/test_web.mjs` still passes. Portal sections are visible without the scroll
-  observer; its entrance animation is now progressive, and `web/test_site.py` rejects the old hidden state.
-- **Consonant random intervals (JIANT V10.38, adapted).** `param_semi_pick()` and `param_semi_snap()` live
-  in `params.c`; `gen.c` keeps or snaps `F_SEMI` parameters instead of adding a random detune, the sound
-  dice picks a musical interval, and `ui_layer.c` excludes interval destinations from random macros.
-  `tests/semi_test.c` checks 4.096 picks and the snap floors (including the 5/7 tie).
-- **WASM rebuilt after the interval change:** **1.030.693 B**, SHA-256
-  `5b8475aaeda9e090f022fe8879d6cb3861845838367b454718ef0d482c2fd76a`; native comparison bit for bit
-  (88.200 frames), 23,5 ms/s (2,4 % of real time). No target build, physical FM-1 or online deployment
-  is claimed.
-- **Version decision:** **v1.8.5 is not published.** The weighted matrix in `docs/V1.8_STATUS.md` is
-  **83/119 = 69,7 %**, below the required 75 %, and the critical target / hardware / recovery / signature
-  gates remain open. `FELUCCA_VERSION` stays `v1.7-QG`.
-
-## 2026-11-04 — PUNCH-IN FX keyboard and EQ safety pass
-
-- **PUNCH-IN FX redrawn as a keyboard.** The ten effect cards, the separate mute row and the four
-  black-effect cards are gone. The sixteen white keys and eleven black keys use the full panel height;
-  each key carries its abbreviated function vertically. Bank (`B1/B2`), latch, capture state, target
-  (`ALL/SYN/DRM`) and the selected track share two compact header lines. No note names are drawn.
-  Every label is read from `perf_key()`; bank 2 is `REV FRZ TAPE GLCH RTRG`. Black keys 1..6 remain
-  latched mutes T1..T6; G#4/A#4/C#5/D#5/F#5 remain VIB/TGT/GATE/RTRG/DIVE.
-  Host UI render: **172 screens × 17 palettes, 0 lint findings, 2.647.728 alignment measurements, 0
-  misalignments**. Capture: `artifacts/punch-in-fx-new.png` (240×240, rendered from the firmware code).
-- **Master EQ hardening.** The setters clamp FREQ/GAIN/Q, reject coefficients outside the stable
-  triangle or a sane feed-forward range, clear the delay line when coefficients change, force a
-  poisoned state to zero after 32 silent blocks, and remove DC before the EQ (a +24 dB low shelf
-  otherwise amplifies an offset into the leveler). `tests/eq_sweep_test.c` sweeps 480 mode/frequency/
-  gain/Q corners: worst tail after silence **0**, nonzero tails **0**, bad coefficients **0**; a
-  poisoned state clears; extreme low shelf → bypass → peak passes audio; 4.000 rapid changes remain
-  bounded.
-- **WASM rebuilt** after these changes: **1.030.207 B**, SHA-256
-  `8da41752486e9f8aceade1d221e33198b415a0ae8a3944cf4a5af6f47c8600c5`; native comparison **bit for bit**
-  (88.200 frames), 23,4 ms/s (2,3 % of real time). No target, browser or hardware validation is claimed.
-
 ## v1.8-QG — correcciones de audio, UI y EQ (NO PUBLICADA)
-
-- **Low Shelf: ruido de fondo corregido y demostrado.** La causa era doble: los productos Q14 se
-  desbordaban a 32 bits cuando el shelf +24 dB a 125 Hz llevaba el estado a ~16× la entrada, y la
-  cuantización Q14 podía dejar `|a1|` fuera del triángulo estable. Ahora el biquad multiplica en 64 bits,
-  limita estados, mete los coeficientes en el triángulo estable y vacía el residuo de ciclo límite sólo en
-  bloques mudos por debajo de −24 dB. Prueba directa (cuadrada fuerte + 4.096 ceros): cola **0**; el
-  filtro anterior dejaba **21.844**.
-- **Phaser: intensidad y pops.** Seis etapas all-pass con realimentación 0,366 y mezcla húmeda completa
-  (antes cuatro etapas y retorno fijo). DEPTH y la ganancia rampan por muestra; al apagar DEPTH se
-  desvanece a seco y se reinician los estados. Medido: notch de 20 a 97.807 (más de 18 dB), primer
-  sample al activar −5.526 contra seco −5.525 (1 LSB), DEPTH 0 bit-exacto. UBSan detectó que el sexto
-  estado escribía fuera de `ph_s[4]`; el array se amplió a `ph_s[6]`.
-- **Vúmetros y partículas.** El VU de FX es ahora una barra de 7 px con peak cap; se quitó la barra de
-  envío duplicada. Las 18 partículas de fondo aceleraron de 21–45 a 55–109 unidades/frame sin añadir
-  primitivas ni allocaciones. La gráfica del MASTER EQ añade guías logarítmicas, etiquetas 125/2k/20k y
-  mantiene la línea 0 dB y la curva de los coeficientes reales.
-- **UBSan/ASan limpios en las rutas ejercitadas.** Se corrigieron desplazamientos a la izquierda de
-  valores negativos en `perform.c`, `fx.c`, `slicer.c`, `eng_analog.c`, `eng_lofi.c`, `eng_phase.c`, y
-  desbordes en `fm6_core.c` (suma de fase y producto de la onda). `mod_test` y `perform_test` con
-  ASan+UBSan terminan sin hallazgos.
-- **12 voces: experimento medido, no adoptado.** Sobre las mismas fuentes, la canción pesada costó
-  22,9 / 24,1 / 24,3 ms por segundo con 10/11/12 voces (12 = **+6,1 %**), y el estado estático pasó de
-  294.792 a 295.864 / 296.936 B (+2.144 B con 12). No hay medición AC791N; se mantiene `NVOICE 10`.
 
 - **Phaser y M-WIDE reparados y medidos.** El Phaser usa cuatro etapas all-pass estables, Q15 con `a`
   entre 0,20 y 0,95, feedback bajo y bypass con DEPTH 0. M-WIDE conserva el centro a 64 y abre el estéreo
@@ -94,9 +25,6 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 - **Emulador sincronizado por hash.** `tools/package_emu.py` genera `build/emu/manifest.json` y fija en la
   página el SHA-256 y el tamaño del WASM; la carga usa `?v=<sha256>`, `cache: "no-store"` y verificación
   con `crypto.subtle`. `tests/emu_sync.py` falla si página, manifiesto y binario no coinciden.
-- **Build identificable en el emulador:** la página y `manifest.json` muestran versión, commit y SHA-256 del
-  WASM; la carga es `?v=<sha256>` con `no-store` y verificación `crypto.subtle`. El workflow publica desde
-  `main` o la rama autorizada `perf/security-hardening`.
 - **UBSan real corregido:** `eng_analog.c` desplazaba a la izquierda un valor negativo
   (`(pitch16 - 60*16) << 2`); ahora usa `* 4`. `fuzz_proj` pasa 5.000 iteraciones sin ASan/UBSan.
 - **Etiquetas del emulador visibles y validadas en Chromium:** el `fill` SVG con `var()` se sustituyó por la
