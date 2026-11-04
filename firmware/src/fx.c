@@ -34,7 +34,7 @@ static struct {
     int32_t dw_m;                        /* .. the read points' offset by them now (Q8 samples) */
     int32_t dt1, dt2, rt1, rt2;          /* .. (0.6.86) the resonant TONE (delay loop) and FILT (reverb input) filters */
     int32_t cd_cur, cw_cur, dm_cur;      /* .. the chorus's DEPTH, its side's width, the delay's MIX as they are (glide) */
-    int32_t ph_s[4], ph_y;               /* .. (QG-1) the PHASER's four all-pass states and its feedback */
+    int32_t ph_s[6], ph_y;               /* .. (QG-1) the PHASER's six all-pass states and its feedback */
     int32_t rpre_s;                      /* .. the even sample, averaged with the odd one into the line */
     uint16_t comb_i[4], ap_i[2];
     int32_t comb_lp[4];
@@ -108,7 +108,7 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         return softclip(q + (jit >> 1));
     }
     case DT_TAPE: {                                      /* TAPE: cubic polynomial soft tape warmth */
-        int32_t x3 = (v * ((v * v) >> 15)) >> 15;
+        int32_t x3 = (int32_t)(((int64_t)v * (((int64_t)v * v) >> 15)) >> 15);
         int32_t out = v - (x3 / 3);
         return softclip(out);
     }
@@ -186,6 +186,20 @@ static void qg_biquad_init(qg_biquad_t *eq)
 }
 
 /* Set Peak / Bell EQ: freq (0..127), gain_db (-24..+24), q_idx (0..127 -> Q 0.5..8.0) */
+/* Q14 quantization can put a shelf's poles on (or outside) the unit circle at 125 Hz / +24 dB:
+ * a1 rounded to -32690 while 1 + a2 is 32686. The response then self-oscillates (a loud ring with no
+ * input). Keep the coefficients inside the stable triangle, a hair in from the edge; the curve moves by
+ * less than a pixel. Called by every setter, after normalizing by a0. */
+static void qg_biquad_stabilize(qg_biquad_t *eq)
+{
+    int32_t lim;
+    if (eq->a2 > 16300) eq->a2 = 16300;
+    if (eq->a2 < -16300) eq->a2 = -16300;
+    lim = 16384 + eq->a2 - 64;                          /* |a1| < 1 + a2, with margin */
+    if (lim < 0) lim = 0;
+    if (eq->a1 > lim) eq->a1 = lim;
+    if (eq->a1 < -lim) eq->a1 = -lim;
+}
 static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx)
 {
     if (gain_db == 0) {
@@ -224,6 +238,7 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
         eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
         eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
         eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
+        qg_biquad_stabilize(eq);
         eq->active = 1;
     }
 }
@@ -259,6 +274,7 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
         eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
         eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
         eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
+        qg_biquad_stabilize(eq);
         eq->active = 1;
     }
 }
@@ -294,6 +310,7 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
         eq->b2 = (int32_t)(((int64_t)b2 * 16384) / a0);
         eq->a1 = (int32_t)(((int64_t)a1 * 16384) / a0);
         eq->a2 = (int32_t)(((int64_t)a2 * 16384) / a0);
+        qg_biquad_stabilize(eq);
         eq->active = 1;
     }
 }
@@ -326,9 +343,17 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
         eq->b2 = (int32_t)(((int64_t)b2_un * 16384) / a0_un);
         eq->a1 = (int32_t)(((int64_t)a1_un * 16384) / a0_un);
         eq->a2 = (int32_t)(((int64_t)a2_un * 16384) / a0_un);
+        qg_biquad_stabilize(eq);
         eq->active = 1;
     }
 }
+
+/* Q14 coefficient * Q13 sample. A LOW SHELF can need b0 > 1.0 (up to ~16x at +24 dB), and a 32-bit
+ * product wrapped there: the filter then produced loud noise with no note playing. The product is
+ * taken in 64 bits; the states stay inside a range no stable biquad reaches (a wrapped state rings). */
+#define BQ_LIM (1 << 26)
+static inline int32_t bq_mul(int32_t c, int32_t x) { return (int32_t)(((int64_t)c * x) >> 14); }
+static inline int32_t bq_lim(int32_t v) { return v > BQ_LIM ? BQ_LIM : v < -BQ_LIM ? -BQ_LIM : v; }
 
 /* Process block of stereo samples through biquad (Direct Form II Transposed in Q14) */
 static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t n)
@@ -336,18 +361,27 @@ static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t 
     if (!eq->active)
         return;                                         /* zero CPU cost when bypassed */
     uint32_t i;
+    int32_t inmax = 0;
     for (i = 0; i < n; i++) {
         int32_t x_l = l[i] >> 2;
-        int32_t y_l = ((eq->b0 * x_l) >> 14) + eq->s1_l;
-        eq->s1_l = ((eq->b1 * x_l) >> 14) - ((eq->a1 * y_l) >> 14) + eq->s2_l;
-        eq->s2_l = ((eq->b2 * x_l) >> 14) - ((eq->a2 * y_l) >> 14);
-        l[i] = y_l << 2;
+        { int32_t ax = x_l < 0 ? -x_l : x_l; if (ax > inmax) inmax = ax; }
+        int32_t y_l = bq_lim(bq_mul(eq->b0, x_l) + eq->s1_l);
+        eq->s1_l = bq_lim(bq_mul(eq->b1, x_l) - bq_mul(eq->a1, y_l) + eq->s2_l);
+        eq->s2_l = bq_lim(bq_mul(eq->b2, x_l) - bq_mul(eq->a2, y_l));
+        l[i] = y_l * 4;
 
         int32_t x_r = r[i] >> 2;
-        int32_t y_r = ((eq->b0 * x_r) >> 14) + eq->s1_r;
-        eq->s1_r = ((eq->b1 * x_r) >> 14) - ((eq->a1 * y_r) >> 14) + eq->s2_r;
-        eq->s2_r = ((eq->b2 * x_r) >> 14) - ((eq->a2 * y_r) >> 14);
-        r[i] = y_r << 2;
+        { int32_t ax = x_r < 0 ? -x_r : x_r; if (ax > inmax) inmax = ax; }
+        int32_t y_r = bq_lim(bq_mul(eq->b0, x_r) + eq->s1_r);
+        eq->s1_r = bq_lim(bq_mul(eq->b1, x_r) - bq_mul(eq->a1, y_r) + eq->s2_r);
+        eq->s2_r = bq_lim(bq_mul(eq->b2, x_r) - bq_mul(eq->a2, y_r));
+        r[i] = y_r * 4;
+    }
+    /* Fixed-point limit cycle: a silent block can leave a few hundred counts turning in the states forever
+     * (the -48 dB residue the LOW SHELF was reported for). Below -24 dB and with no input at all, flush. */
+    if (!inmax && eq->s1_l > -512 && eq->s1_l < 512 && eq->s1_r > -512 && eq->s1_r < 512 &&
+        eq->s2_l > -512 && eq->s2_l < 512 && eq->s2_r > -512 && eq->s2_r < 512) {
+        eq->s1_l = eq->s1_r = eq->s2_l = eq->s2_r = 0;
     }
 }
 
@@ -1171,7 +1205,7 @@ static __attribute__((noinline)) void rev_cloud(const int32_t *rev_in, int32_t *
         int32_t l = 0, r = 0, m;
         if (!freeze) {                                   /* the line: the input and the tail, two samples into one */
             int32_t x = (rev_in[i] >> 1) + mulq15(shim_fb[i], fb) + mulq15(fx.cl_lp, fg);
-            fx.cl_dc += ((x << 8) - fx.cl_dc) >> 9;      /* (1.2.1-GW, JIANT 0.9.14) a low cut (~14 Hz, Q8) in the loop: */
+            fx.cl_dc += ((x * 256) - fx.cl_dc) >> 9;      /* (1.2.1-GW, JIANT 0.9.14) a low cut (~14 Hz, Q8) in the loop: */
             x -= (fx.cl_dc + 128) >> 8;                  /* ROOM's floors gave it a DC that went round for ever */
             if (fx.cl_w & 1u)
                 cloud_buf[(fx.cl_w >> 1) & (CL_LEN - 1u)] = (int16_t)rv_knee((fx.cl_half + x) >> 1);
@@ -1318,21 +1352,36 @@ static inline int32_t cho_ens(const int16_t *buf, uint32_t w, uint32_t ph, int32
 /* (QG-1) CHORUS > TYPE PHASER: four first-order all-passes (H = (a + z^-1) / (1 + a z^-1)) swept together by the chorus's
  * LFO, their notches ~200 Hz .. ~3 kHz at DEPTH 100 %, a little feedback; out x + the chain (the notches inside the bus,
  * the same x2 as the ensemble), *sd stage 2 - stage 4 (the sides moving apart). No line, no taps: lighter than it */
+static int32_t fx_ph_g, fx_ph_d;                      /* wet gain and depth, both ramped per sample */
 static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t *sd)
 {
-    /* Four first-order all-passes, H = (a + z^-1) / (1 + a z^-1). The old coefficient was
-     * 900 + sweep - 32767: it sat at -1 and the chain had no usable output. a stays in
-     * 0.20 .. 0.95, and DEPTH 0 is a true bypass. The feedback is deliberately small. */
+    /* Six first-order all-passes, H = (a + z^-1) / (1 + a z^-1), swept together; DEPTH sets the sweep
+     * (a 0.20 .. 0.95) and the mix is the full chain, so the notches are deeper than the old four-stage
+     * return (the complaint was little intensity). Both DEPTH and the mix ramp per sample: changing DEPTH
+     * no longer steps the output, and DEPTH 0 fades to a bit-exact dry signal before the states are reset.
+     * Feedback 0.366: three clear notches, still inside the stable all-pass range. */
     int32_t d = clamp(depth, 0, 12192);
-    int32_t sweep, a, v, y2 = 0, k;
-    if (d <= 0) {
+    int32_t sweep, a, v, y2 = 0, k, tgt, step;
+    step = 256;
+    if (fx_ph_d < d)
+        fx_ph_d = d - fx_ph_d < step ? d : fx_ph_d + step;
+    else if (fx_ph_d > d)
+        fx_ph_d = fx_ph_d - d < step ? d : fx_ph_d - step;
+    tgt = fx_ph_d ? 32768 : 0;
+    if (fx_ph_g < tgt)
+        fx_ph_g = tgt - fx_ph_g < step ? tgt : fx_ph_g + step;
+    else if (fx_ph_g > tgt)
+        fx_ph_g = fx_ph_g - tgt < step ? tgt : fx_ph_g - step;
+    if (!fx_ph_g) {                                     /* truly bypassed: no stale tail */
+        memset(fx.ph_s, 0, sizeof fx.ph_s);
+        fx.ph_y = 0;
         *sd = 0;
         return x;
     }
     sweep = (osc_sine(ph) + 32768) >> 1;                /* 0 .. 32767 */
-    a = 6554 + ((sweep * (24576 * d / 12192)) >> 15);  /* Q15: 0.20 .. 0.95 */
-    v = x + ((fx.ph_y * 6000) >> 15);                  /* a little feedback, stable */
-    for (k = 0; k < 4; k++) {
+    a = 6554 + ((sweep * (24576 * fx_ph_d / 12192)) >> 15);  /* Q15: 0.20 .. 0.95 */
+    v = x + ((fx.ph_y * 12000) >> 15);                  /* 0.366: deeper notches, all-pass stays stable */
+    for (k = 0; k < 6; k++) {
         int32_t y = ((a * v) >> 15) + fx.ph_s[k];
         fx.ph_s[k] = v - ((a * y) >> 15);
         v = y;
@@ -1341,7 +1390,7 @@ static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t 
     }
     fx.ph_y = v;
     *sd = y2 - v;
-    return x + v;                                      /* dry + the all-pass chain: the notches */
+    return x + ((v * fx_ph_g) >> 15);                   /* dry + the full chain when on */
 }
 
 /* process the three buses for one block; sends in, wet stereo-equal out */
@@ -1502,10 +1551,16 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         cho_buf[fx.cho_w & (CHO_LEN - 1u)] = (int16_t)clamp(cho_in[i] >> 1, -32768, 32767);
         fx.cho_ph += cinc;
         fx.cd_cur += dcd; fx.cw_cur += dcw; fx.dm_cur += ddm;
+        if (!cho && (fx_ph_g || fx_ph_d)) {           /* leaving the phaser: fade in from dry next time */
+            fx_ph_g = fx_ph_d = 0;
+            memset(fx.ph_s, 0, sizeof fx.ph_s);
+            fx.ph_y = 0;
+        }
         if (cho) {
             int32_t sd;
             ch = phz ? cho_phaser(cho_buf[fx.cho_w & (CHO_LEN - 1u)], fx.cho_ph, pdep, &sd)
                      : cho_ens(cho_buf, fx.cho_w, fx.cho_ph, fx.cd_cur, &sd);
+            if (!phz) { fx_ph_g = fx_ph_d = 0; memset(fx.ph_s, 0, sizeof fx.ph_s); fx.ph_y = 0; }
             y += ch;
             { int32_t a = ch < 0 ? -ch : ch; if (a > chpk) chpk = a; }
             sd = (sd * fx.cw_cur) >> 7;
@@ -1546,9 +1601,9 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         { int32_t ax = x < 0 ? -x : x; if (ax > fxg_dpk) fxg_dpk = ax; }   /* (the delay's own level: fx_gate) */
         if (wr == 2) {                                  /* (PING-PONG: the loop from the right tap; its level, too) */
             int32_t ax = xr < 0 ? -xr : xr; if (ax > fxg_dpk) fxg_dpk = ax;
-            fx.dly_hp += (((xr << 8) - fx.dly_hp) * hk + 16384) >> 15;
+            fx.dly_hp += (((xr * 256) - fx.dly_hp) * hk + 16384) >> 15;
         } else
-            fx.dly_hp += (((x << 8) - fx.dly_hp) * hk + 16384) >> 15;
+            fx.dly_hp += (((x * 256) - fx.dly_hp) * hk + 16384) >> 15;
         {
             int32_t lf = (wr == 2 ? xr : x) - ((fx.dly_hp + 128) >> 8), w;
             if (dton) lf = tone_run(&dtn, lf, &fx.dt1, &fx.dt2);
@@ -1563,7 +1618,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             x = (x + xr) >> 1;
         }
         fx.dly_w++;
-        dlout = mulq15(x << 1, fx.dm_cur);
+        dlout = mulq15(x * 2, fx.dm_cur);
         y += dlout;
         wet[i] = y;
         { int32_t a = dlout < 0 ? -dlout : dlout; if (a > dlpk) dlpk = a; }
@@ -1623,8 +1678,8 @@ static struct { int32_t l[CTL], r[CTL], c[CTL], d[CTL], rv[CTL], sl[CTL], sr[CTL
  * CTL: no divide) */
 static __attribute__((noinline)) int32_t duck_ramp(int32_t l0, int32_t l1, int32_t *dl)
 {
-    int32_t a = ((l0 * (duck_g0 >> 3)) >> 12) << 8;
-    *dl = ((((l1 * (duck_g1 >> 3)) >> 12) << 8) - a) >> CTL_LOG2;
+    int32_t a = ((l0 * (duck_g0 >> 3)) >> 12) * 256;
+    *dl = ((((l1 * (duck_g1 >> 3)) >> 12) * 256) - a) >> CTL_LOG2;
     return a;
 }
 /* (JIANT 0.6.8, the crackles turning LEVEL / PAN) each part's LEVEL (Q12 << 8) and PAN (-64..63 << 8) as the mix has
@@ -1744,7 +1799,7 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
     }
     {
         uint32_t ti = (uint32_t)(t - trk) % NTRK;
-        int32_t lvl = LEVEL_Q12[t->p[P_LEVEL] & 127] << 8, pan = t->p[P_PAN] << 8, l0, p0, lq, dl, gl, gr, dgl, dgr;
+        int32_t lvl = LEVEL_Q12[t->p[P_LEVEL] & 127] << 8, pan = t->p[P_PAN] * 256, l0, p0, lq, dl, gl, gr, dgl, dgr;
         if (t->p[P_APDEP] > 0)                          /* (0.6.9) AUTO PAN */
             pan = clamp(pan + autopan(t, ti, n), -(64 << 8), 63 << 8);
         if (!mp_seen[ti]) {

@@ -5,6 +5,29 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
 
 ## v1.8-QG — correcciones de audio, UI y EQ (NO PUBLICADA)
 
+- **Low Shelf: ruido de fondo corregido y demostrado.** La causa era doble: los productos Q14 se
+  desbordaban a 32 bits cuando el shelf +24 dB a 125 Hz llevaba el estado a ~16× la entrada, y la
+  cuantización Q14 podía dejar `|a1|` fuera del triángulo estable. Ahora el biquad multiplica en 64 bits,
+  limita estados, mete los coeficientes en el triángulo estable y vacía el residuo de ciclo límite sólo en
+  bloques mudos por debajo de −24 dB. Prueba directa (cuadrada fuerte + 4.096 ceros): cola **0**; el
+  filtro anterior dejaba **21.844**.
+- **Phaser: intensidad y pops.** Seis etapas all-pass con realimentación 0,366 y mezcla húmeda completa
+  (antes cuatro etapas y retorno fijo). DEPTH y la ganancia rampan por muestra; al apagar DEPTH se
+  desvanece a seco y se reinician los estados. Medido: notch de 20 a 97.807 (más de 18 dB), primer
+  sample al activar −5.526 contra seco −5.525 (1 LSB), DEPTH 0 bit-exacto. UBSan detectó que el sexto
+  estado escribía fuera de `ph_s[4]`; el array se amplió a `ph_s[6]`.
+- **Vúmetros y partículas.** El VU de FX es ahora una barra de 7 px con peak cap; se quitó la barra de
+  envío duplicada. Las 18 partículas de fondo aceleraron de 21–45 a 55–109 unidades/frame sin añadir
+  primitivas ni allocaciones. La gráfica del MASTER EQ añade guías logarítmicas, etiquetas 125/2k/20k y
+  mantiene la línea 0 dB y la curva de los coeficientes reales.
+- **UBSan/ASan limpios en las rutas ejercitadas.** Se corrigieron desplazamientos a la izquierda de
+  valores negativos en `perform.c`, `fx.c`, `slicer.c`, `eng_analog.c`, `eng_lofi.c`, `eng_phase.c`, y
+  desbordes en `fm6_core.c` (suma de fase y producto de la onda). `mod_test` y `perform_test` con
+  ASan+UBSan terminan sin hallazgos.
+- **12 voces: experimento medido, no adoptado.** Sobre las mismas fuentes, la canción pesada costó
+  22,9 / 24,1 / 24,3 ms por segundo con 10/11/12 voces (12 = **+6,1 %**), y el estado estático pasó de
+  294.792 a 295.864 / 296.936 B (+2.144 B con 12). No hay medición AC791N; se mantiene `NVOICE 10`.
+
 - **Phaser y M-WIDE reparados y medidos.** El Phaser usa cuatro etapas all-pass estables, Q15 con `a`
   entre 0,20 y 0,95, feedback bajo y bypass con DEPTH 0. M-WIDE conserva el centro a 64 y abre el estéreo
   hacia 127 sin inversión de fase ni pérdida anormal; los tests host pasan.

@@ -197,8 +197,8 @@ static void sl_seg(sl_t *s, int32_t *bl, int32_t *br, uint32_t m)
             f1 = f + 1u < s->rec ? f + 1u : f;
             rl = sl_buf[f][0] + (((sl_buf[f1][0] - sl_buf[f][0]) * (int32_t)fr) >> 15);
             rr = sl_buf[f][1] + (((sl_buf[f1][1] - sl_buf[f][1]) * (int32_t)fr) >> 15);
-            rl <<= 2;
-            rr <<= 2;
+            rl *= 4;
+            rr *= 4;
             if (s->rp < e)
                 e = s->rp;
             if (left - 1u < e)

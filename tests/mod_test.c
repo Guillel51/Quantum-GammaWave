@@ -45,6 +45,20 @@ static void blocks(uint32_t n)
     }
 }
 
+/* (1.8) what the master bus really outputs with no note playing: a filter that wraps rings, a stable one is silent. */
+static int32_t render_peak(uint32_t n)
+{
+    uint32_t b, i;
+    int32_t pk = 0;
+    for (b = 0; b < n; b++) {
+        mix_block(out_buf, CTL);
+        for (i = 0; i < 2u * CTL; i++) {
+            int32_t v = out_buf[i] < 0 ? -out_buf[i] : out_buf[i];
+            if (v > pk) pk = v;
+        }
+    }
+    return pk;
+}
 static void slot(track_t *t, uint32_t k, int32_t s, int32_t d, int32_t a)
 {
     t->p[P_M1SRC + 3u * k] = (int16_t)s;
@@ -1136,6 +1150,38 @@ static void test_jiant_fx(void)
         printf("mod:   (PHASER hash %llx, chorus hash %llx, L-R %d)\n", (unsigned long long)hp1, (unsigned long long)hp0, dp);
         check("PHASER: TYPE 1 changes the chorus signal, finite and stereo", hp1 != hp0 && dp > 0);
     }
+    {   /* (1.8) DEPTH 0 bit-exact dry; full DEPTH has a deep notch (six stages, feedback); enabling
+         * DEPTH fades in from dry instead of jumping to the chain on one sample (the old pop). */
+        uint32_t i, ph = 0, lfo = 0;
+        int32_t x, o, sd, mn = 1 << 30, mx = 0, dry = 0, first = 0, dryat = 0;
+        memset(&fx, 0, sizeof fx); fx_ph_g = fx_ph_d = 0;
+        for (i = 0; i < 4096u; i++) {
+            ph += 39000000u; lfo += 1048576u; x = osc_sine(ph);
+            o = cho_phaser(x, lfo, 12192, &sd);
+            if (i > 1024u) {
+                int32_t a = o < 0 ? -o : o;
+                if (a < mn) mn = a;
+                if (a > mx) mx = a;
+            }
+        }
+        printf("mod:   (PHASER full DEPTH notch: min %d, max %d)\n", (int)mn, (int)mx);
+        check("PHASER: full DEPTH has a deep notch (max/min above 18 dB), finite", mx > 1000 && mn * 8 < mx);
+        memset(&fx, 0, sizeof fx); fx_ph_g = fx_ph_d = 0;
+        for (i = 0; i < 512u; i++) {
+            ph += 39000000u; lfo += 1024u; x = osc_sine(ph);
+            o = cho_phaser(x, lfo, i < 256u ? 0 : 12192, &sd);
+            if (i == 256u) { first = o; dryat = x; }
+        }
+        printf("mod:   (PHASER fade-in: first sample %d, dry %d, wet %d)\n", (int)first, (int)dryat, (int)(first - dryat));
+        check("PHASER: enabling DEPTH fades in from dry (no one-sample pop)", (first - dryat) < 1000 && (first - dryat) > -1000);
+        memset(&fx, 0, sizeof fx); fx_ph_g = fx_ph_d = 0;
+        for (i = 0; i < 1024u; i++) {
+            ph += 39000000u; lfo += 1024u; x = osc_sine(ph);
+            o = cho_phaser(x, lfo, 0, &sd);
+            dry += o != x;
+        }
+        check("PHASER: DEPTH 0 is bit-exact dry", dry == 0);
+    }
     {   /* (1.8) M-WIDE: 0 is a mono sum, 64 neutral, 127 wider; the source is the chorus's stereo */
         int32_t dm0, dm64, dm127;
         fresh(0, 0);
@@ -1165,6 +1211,35 @@ static void test_jiant_fx(void)
         printf("mod:   (EQ dB Q8: peak %d, notch %d, low shelf tilt %d / high shelf tilt %d)\n", peak_db, notch_db, low_db, high_db);
         check("MASTER EQ: the UI response is the filter's (boost, notch, shelf tilt)",
               peak_db > 500 && notch_db < -500 && low_db > 500 && high_db > 500);
+    }
+    {   /* (1.8) the LOW SHELF +24 dB at 125 Hz drives the filter state to ~16x the input. The old
+         * 32-bit products wrapped there; the direct biquad test feeds a loud square and then zeros: the
+         * tail must decay, not ring. No synth, no limiter, so this is the filter alone. */
+        int32_t lb[CTL], rb[CTL], pk = 0;
+        uint32_t b, i;
+        memset(&master_eq, 0, sizeof master_eq);
+        qg_biquad_set_lowshelf(&master_eq, 0, 24);
+        printf("mod:   (LOW SHELF coeff b0 %d b1 %d b2 %d a1 %d a2 %d active %d)\n",
+               (int)master_eq.b0, (int)master_eq.b1, (int)master_eq.b2, (int)master_eq.a1, (int)master_eq.a2, (int)master_eq.active);
+        for (b = 0; b < 32u; b++) {
+            for (i = 0; i < CTL; i++) {
+                int32_t v = (((b * CTL + i) / 32u) & 1u) ? 30000 : -30000;
+                lb[i] = v; rb[i] = v;
+            }
+            qg_biquad_process(&master_eq, lb, rb, CTL);
+        }
+        for (b = 0; b < 128u; b++) {
+            memset(lb, 0, sizeof lb); memset(rb, 0, sizeof rb);
+            qg_biquad_process(&master_eq, lb, rb, CTL);
+            if (b >= 96u)                               /* after 3072 samples: the settling tail */
+                for (i = 0; i < CTL; i++) {
+                    int32_t v = lb[i] < 0 ? -lb[i] : lb[i];
+                    if (v > pk) pk = v;
+                }
+        }
+        printf("mod:   (LOW SHELF +24 dB / 125 Hz, square then 4096 zeros: tail peak %d)\n", (int)pk);
+        check("MASTER EQ: LOW SHELF +24 dB does not ring after a loud input (64-bit products, bounded states)", pk < 64);
+        qg_biquad_init(&master_eq);
     }
     song.g[G_WIDTH] = 0;
     {   /* (JIANT 0.6.9) CHORUS STEREO (G_CSTER, was the delay's unused HPF): -64 mono, 0 as before, 63 wider */
