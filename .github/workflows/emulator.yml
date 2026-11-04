@@ -131,8 +131,8 @@ jobs:
           node web/test_pkg_bounds.mjs build/felucca.fwsc
       # (QG-1) The portal and the emulator go up even when JieLi's toolchain is missing: the site then offers the
       # package already built for the target (firmware/packages, the published one), never a rebuild it did not do.
-      - name: the site, with the published package when the target toolchain is unavailable
-        if: steps.tc.outcome != 'success'
+      - name: the site, with the published package when the target build produced none
+        if: ${{ hashFiles('build/site/index.html') == '' }}
         run: |
           PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)
           test -s "$PKG" || { echo "::error::no package in firmware/packages and no target build"; exit 1; }
@@ -144,7 +144,9 @@ jobs:
           cp -r build/emu/. build/site/emulator/
           rm -rf build/site/emulator/preview
       - name: the site exists (the deploy would otherwise upload nothing)
-        run: test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
+        run: |
+          ls -la build | head -20
+          test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
       - uses: actions/upload-pages-artifact@v3
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
         with:
