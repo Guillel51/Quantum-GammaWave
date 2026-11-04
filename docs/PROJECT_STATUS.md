@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-04
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
-**Branch:** `work/v18-integration`, release build `d8b6448` (to be integrated into `main`)
+**Branch:** `main` / `work/v18-integration`, release build `8612785`
 **Current Milestone Version:** `v1.8.6`
 
 > **Current public build (2026-11-04):** `v1.8.6`. Firmware target, package and WASM rebuilt
