@@ -230,7 +230,7 @@ comprobado o documentado.
 | `ui_test` (incluye DICE ALL) | `ui: all passed`; `dice_all x50: all passed` |
 | ASan/UBSan (todos los tests) y los dos fuzzers | ok (18 777 frames, 5000 iteraciones) |
 | Instalador (CLI), tests web, backup web, parser `.fwsc` | `install tests passed`, `web tests passed`, `backup web tests passed`, `package bounds: all checks passed` (con el paquete real) |
-| Emulador WASM | omitido aquí (no hay `emcc`); en CI ya pasaba |
+| Web Emulator | omitido aquí (no hay `emcc`); en CI ya pasaba |
 
 Es decir: el fallo de CI que motivaba esta etapa (el parser) está corregido; el job "host tests"
 seguirá en rojo mientras no se aborde `ui_render`, que ya estaba rojo antes del PR #1.
