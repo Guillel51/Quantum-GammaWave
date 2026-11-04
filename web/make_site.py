@@ -149,6 +149,7 @@ def main(pkg, version, out, prev=None):
     if not (site / "index.html").is_file():
         raise SystemExit(f"{site / 'index.html'} is missing")
     shutil.copy(site / "index.html", out / "index.html")
+    shutil.copy(site / "i18n.js", out / "i18n.js")
     assets = out / "assets"
     if assets.exists():
         shutil.rmtree(assets)

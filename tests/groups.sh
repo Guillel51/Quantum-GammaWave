@@ -33,6 +33,8 @@ run_web() {
     else
         python3 web/test_site.py
     fi
+    python3 web/test_i18n.py
+    python3 web/test_installer_i18n.py
     node web/test_web.mjs
 }
 
@@ -60,7 +62,7 @@ run_eq() {
 run_security() {
     python3 tests/install_test.py
     node web/test_backup.mjs
-    if [ -f build/felucca.fwsc ]; then node web/test_pkg_bounds.mjs build/felucca.fwsc; fi
+    if [ -f build/felucca.fwsc ]; then node web/test_pkg_bounds.mjs build/felucca.fwsc; node web/test_pkg_faults.mjs build/felucca.fwsc; fi
     san="-O1 -g -fsanitize=address,undefined -fno-sanitize=signed-integer-overflow,shift,bounds,object-size,pointer-overflow -fno-sanitize-recover=undefined -w"
     cc $san -Ibuild/gen -Ifirmware/src -o build/uifix/audio_san tests/audio_test.c -lm
     ASAN_OPTIONS=detect_leaks=0 ./build/uifix/audio_san

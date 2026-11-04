@@ -2,7 +2,7 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only
      Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
      GAMMAWAVE // WRAITH Edition for M-VAVE FM-1 -->
-<html lang="fr" data-palette="gamma">
+<html lang="en" data-palette="gamma">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -74,7 +74,7 @@
     margin: 0;
     background: radial-gradient(circle at 50% 0%, var(--surf2) 0%, var(--bg) 70%);
     color: var(--fg);
-    font: 14px/1.6 "IBM Plex Mono", "JetBrains Mono", "Consolas", -apple-system, BlinkMacSystemFont, monospace;
+    font: 14px/1.6 "IBM Plex Mono", "JetBrains Mono", "Consolas", -apple-system, BlinkMacSystemFont, "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", monospace;
     min-height: 100vh;
   }
   main { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
@@ -199,6 +199,7 @@
     font-weight: 600;
     color: var(--accent);
   }
+  #pkg-hash, #log, pre, code { overflow-wrap: anywhere; word-break: break-word; }
   .small { color: var(--dim); font-size: 12px; }
   progress {
     width: 100%;
@@ -294,7 +295,7 @@
       <span class="tag-pill">QUANTUM GAMMAWAVE // QG-1 // DUAL-CORE AC791N</span>
       <div class="controls-top">
         <button class="btn-ghost" id="pal-toggle" type="button">THEME: GAMMA</button>
-        <button class="btn-ghost" id="lang" type="button"></button>
+        <button class="btn-ghost" id="lang" type="button" aria-label="Language / Idioma / 语言" title="Language / Idioma / 语言"></button>
       </div>
     </div>
     <h1>QUANTUM GAMMAWAVE // QG-1</h1>
@@ -413,7 +414,7 @@
     <p class="small" data-t="verOld"></p>
 
     <progress id="bar" max="100" value="0"></progress>
-    <p id="status"></p>
+    <p id="status" role="status" aria-live="polite"></p>
     <pre id="log"></pre>
 
     <details id="stock" open style="margin-top:20px;border-top:1px solid var(--border);padding-top:12px">
@@ -504,7 +505,7 @@ const TEXT = {
     warn: "Do not unplug the USB cable while writing.",
     samples: "Note: GAMMAWAVE/JIANT repurposes user sample flash (USR1–3) to store full songs, chains and FM6 voice banks.",
     dual: "Dual-Core AC791N + HOTRAM active: both CPU cores render the 6 synth tracks + HEARTH/BLAST/PLASMA/FLUX distortions and VOWEL/SCREAM filters in real time. (Hold REC on power-up to force single-core mode).",
-    install: "⚡ INSTALL QUANTUM GAMMAWAVE v1.7-QG TO FM-1", other: "日本語 / FR",
+    install: "⚡ INSTALL QUANTUM GAMMAWAVE v1.7-QG TO FM-1", other: "ES / 中文",
     flashTitle: "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)",
     previewTitle: "GAMMAWAVE // WRAITH — LIVE BROWSER DSP PREVIEW",
     synPlay: "▶ PLAY SEQ", synStop: "■ STOP", synDice: "🎲 DICE MUTATE",
@@ -612,17 +613,269 @@ const TEXT = {
     license: "GPL-3.0、無保証。ソース:",
   },
 };
-const LANGS = ["fr", "en", "ja"];
+TEXT.es = {
+  intro: "Conectá tu M-VAVE FM-1 por USB y grabá el firmware GAMMAWAVE // WRAITH desde Chrome o Edge con WebMIDI.",
+  warn: "No desconectes el cable USB mientras se escribe el firmware.",
+  samples: "Nota: GAMMAWAVE/JIANT usa la flash de samples de usuario (USR1–3) para guardar canciones, cadenas y bancos FM6.",
+  dual: "Arquitectura Dual-Core AC791N + HOTRAM activa: los dos núcleos procesan las 6 pistas, las distorsiones HEARTH/BLAST/PLASMA/FLUX y los filtros VOWEL/SCREAM en tiempo real. (Mantené REC al encender para forzar un solo núcleo).",
+  install: "⚡ INSTALAR QUANTUM GAMMAWAVE v1.7-QG EN FM-1", other: "EN / 中文",
+  flashTitle: "CARGADOR DE FIRMWARE POR WEBMIDI (M-VAVE FM-1)",
+  previewTitle: "GAMMAWAVE // WRAITH — PREESCUCHA DSP Y OSCILOSCOPIO EN EL NAVEGADOR",
+  synPlay: "▶ TOCAR SECUENCIA", synStop: "■ PARAR", synDice: "🎲 MUTAR CON DADO",
+  firstTitle: "¿Venís de otro firmware personalizado? Volvé primero al V15 oficial",
+  firstText: "El instalador verifica automáticamente tu FM-1 antes de escribir: solo graba sobre el firmware oficial V15 o sobre JIANT/GAMMAWAVE. Si hay otro firmware personalizado, usá primero la sección de retorno al V15.",
+  firstStock: "Volver primero al V15 oficial",
+  firstOk: "La identidad se comprueba antes de grabar: no hace falta una sonda física.",
+  checking: "Comprobando el firmware del FM-1…",
+  otherfw: "Este FM-1 tiene otro firmware personalizado: no se escribió nada. Volvé primero al V15 oficial. Detectado: ",
+  editor: "🎛️ Abrir Web Studio (USB en vivo)",
+  editorMock: "🧪 Probar Web Studio (simulador sin FM-1)",
+  verLabel: "Versión del paquete:", verOld: "Podés instalar la última versión o volver a una anterior.", latest: "última", manual: "Manual:",
+  verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
+  pf1: "El FM-1 está conectado directamente a la computadora con un cable USB de datos (sin hub).",
+  pf2: "La computadora está enchufada a la red y no va a suspenderse; el FM-1 tiene batería.",
+  pf3: "Toda otra aplicación que use MIDI (DAW, editor, otras pestañas) está cerrada.",
+  pf4: "No voy a desconectar durante la escritura. Si se corta, reconecto y pulso INSTALAR otra vez: el loader termina la escritura.",
+  hashOk: "SHA-256 del paquete verificado ✓ ", badhash: "El paquete no coincide con su SHA-256 publicado: no se escribirá nada. Recargá la página. ",
+  nohash: "Este paquete no tiene SHA-256 publicado: no se escribirá nada. Recargá la página.",
+  vNone: "Verificar: no se encontró ningún FM-1 (¿cable USB de datos? ¿otra aplicación usando MIDI?)",
+  vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
+  vStock: "Verificar: V15 oficial (FM-1_015). Este paquete se puede instalar. ",
+  vJiant: "Verificar: firmware GAMMAWAVE/JIANT ", vOther: "Verificar: otro firmware personalizado; volvé primero al V15 oficial. Detectado: ",
+  vSame: " — misma identidad que este paquete (reinstalación u otra versión).", vCan: " — este paquete se puede instalar encima.",
+  bkSaving: "Guardando copia de seguridad del FM-1 ", bkSaved: "La copia se descargó. Conservala: podés restaurarla desde Web Studio si algo falla. ¿Escribir el firmware ahora?",
+  bkNone: "Este firmware no puede exportar una copia. Sus canciones y sonidos podrían perderse. ¿Escribir igual?",
+  cancelled: "Cancelado: no se escribió nada.",
+  direct: "Conectá el cable USB directamente a la computadora. No hace falta sonda ni Transporter.",
+  brick: "Si una instalación se interrumpe por corte de energía, la recuperación física usa:",
+  beta: "QUANTUM GAMMAWAVE FM-1 es un firmware personalizado (GPL-3.0). Usalo bajo tu responsabilidad.",
+  back: "Descargá el FM-1 V15 oficial de M-VAVE y elegí el FM-1.fwsc sin modificar. Se valida localmente en tu navegador.",
+  stockTitle: "Volver al firmware oficial V15", stockFile: "FM-1.fwsc oficial", stockGo: "Guardar copia y volver al V15 oficial",
+  stockPreload: "✓ FM-1.fwsc (V15 oficial, verificado) está incluido en este sitio y ya precargado.", stockLocal: "📥 Descargar FM-1.fwsc (V15 oficial, copia de este sitio)",
+  stockMirror: "Espejo en la nube de M-VAVE V15", stockDirect: "⚡ Grabar directamente el V15 oficial (desde otro firmware)",
+  stockOptional: "(opcional, ya precargado)", navStock: "📥 FM-1.fwsc (V15 oficial)",
+  stockBackup: "Primero se guardan la música actual, la guardada, los bancos y los ajustes.",
+  stockRecovery: "Reanudar una actualización interrumpida: ya guardé una copia completa en esta computadora",
+  stockValid: "V15 oficial verificado ✓", stockConfirm: "¿Ya guardaste la copia completa en esta computadora? Continuar vuelve al V15 oficial.",
+  stockNeedBackup: "El loader no puede exportar una copia. Marcá reanudar solo si ya tenés una copia completa.",
+  stockUnsupported: "Este firmware no admite copias completas. Instalá primero la versión actual.",
+  backup: "Guardando copia completa ", stockError: "No se pudo validar el firmware oficial: ",
+  nomidi: "Web MIDI no está disponible en este contexto (requiere HTTPS o http://localhost en Chrome, Edge o Brave; file:// está bloqueado).", loadfail: "No se pudo cargar: ",
+  start: "Iniciando", verify: "Verificando", loader: "Cambiando a modo actualización", write: "Escribiendo",
+  reboot: "Reiniciando", done: "✓ ¡Instalación de GAMMAWAVE completada!", stopped: "Detenido. Reconectá el USB y pulsá Instalar otra vez.",
+  error: "Error: ",
+  denied: "No se permitió el acceso MIDI (SysEx). Permití MIDI en los ajustes del sitio y volvé a intentar.",
+  blocked: "MIDI está bloqueado para este sitio. Icono a la izquierda de la barra de direcciones → Ajustes del sitio → Dispositivos MIDI → Permitir, y recargá.",
+  notfound: "No se encontró el FM-1. Revisá el cable USB de datos, cerrá otras apps MIDI y pulsá Instalar otra vez.",
+  model: "El dispositivo conectado no es un FM-1.",
+  lost: "Se perdió la conexión USB. Reconectá el FM-1 y pulsá Instalar otra vez.",
+  noloader: "No se encontró el FM-1 en modo actualización. Reconectá el USB y pulsá Instalar otra vez.",
+  noreturn: "El FM-1 no volvió solo. Apagalo y encendelo de nuevo.",
+  mismatch: "Se escribió, pero el FM-1 informa otra versión: ",
+  badpkg: "El archivo a instalar está dañado. Recargá la página.",
+  leave: "Se está escribiendo el firmware. ¡No cierres esta página!",
+  license: "GPL-3.0, sin garantía. Base:",
+};
+TEXT.zh = {
+  intro: "通过 USB 连接您的 M-VAVE FM-1，然后在 Chrome 或 Edge 中通过 WebMIDI 写入 GAMMAWAVE // WRAITH 固件。",
+  warn: "写入固件时请勿拔下 USB 线。",
+  samples: "注意：GAMMAWAVE/JIANT 会使用用户采样闪存（USR1–3）保存完整歌曲、链和 FM6 音色库。",
+  dual: "AC791N 双核 + HOTRAM 已启用：两个 CPU 核心实时处理 6 条合成轨道、HEARTH/BLAST/PLASMA/FLUX 失真和 VOWEL/SCREAM 滤波器。（开机时按住 REC 可强制单核模式）。",
+  install: "⚡ 将 QUANTUM GAMMAWAVE v1.7-QG 安装到 FM-1", other: "EN / ES",
+  flashTitle: "WebMIDI 固件写入器（M-VAVE FM-1）",
+  previewTitle: "GAMMAWAVE // WRAITH — 浏览器 DSP 试听与示波器",
+  synPlay: "▶ 播放序列", synStop: "■ 停止", synDice: "🎲 随机变换",
+  firstTitle: "来自其他自定义固件？请先恢复官方 V15",
+  firstText: "写入前安装器会自动检查 FM-1：只允许在官方 V15 或 JIANT/GAMMAWAVE 上写入。如果检测到其他自定义固件，请先使用下方的 V15 恢复功能。",
+  firstStock: "先恢复官方 V15",
+  firstOk: "写入前自动校验设备身份，无需硬件探针。",
+  checking: "正在检查 FM-1 固件…",
+  otherfw: "此 FM-1 运行其他自定义固件：未写入任何内容。请先恢复官方 V15。检测到：",
+  editor: "🎛️ 打开 Web Studio（USB 实时）",
+  editorMock: "🧪 试用 Web Studio（无硬件模拟器）",
+  verLabel: "固件包版本：", verOld: "您可以安装最新版本或回退到较早版本。", latest: "最新", manual: "手册：",
+  verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
+  pf1: "FM-1 已通过 USB 数据线直接连接到电脑（不使用集线器）。",
+  pf2: "电脑已连接电源且不会休眠；FM-1 电量充足。",
+  pf3: "所有其他使用 MIDI 的应用（DAW、编辑器、其他标签页）均已关闭。",
+  pf4: "写入过程中我不会拔线。如果中断，我会重新连接并再次点击安装：更新加载器会完成写入。",
+  hashOk: "固件包 SHA-256 已验证 ✓ ", badhash: "固件包与公布的 SHA-256 不匹配：不会写入任何内容。请重新加载页面。 ",
+  nohash: "此固件包没有公布 SHA-256：不会写入任何内容。请重新加载页面。",
+  vNone: "校验：未找到 FM-1（USB 数据线？其他应用占用了 MIDI？）",
+  vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
+  vStock: "校验：官方 V15（FM-1_015）。可以安装此固件包。 ",
+  vJiant: "校验：GAMMAWAVE/JIANT 固件 ", vOther: "校验：其他自定义固件；请先恢复官方 V15。检测到：",
+  vSame: " — 与此固件包身份相同（重装或其他版本）。", vCan: " — 可以安装此固件包。",
+  bkSaving: "正在备份 FM-1 ", bkSaved: "备份已下载。请妥善保存：如有问题可在 Web Studio 中恢复。现在写入固件吗？",
+  bkNone: "此固件无法导出备份，歌曲和音色可能丢失。仍要写入吗？",
+  cancelled: "已取消：未写入任何内容。",
+  direct: "请将 USB 线直接连接到电脑，无需探针或 Transporter。",
+  brick: "如果安装因断电中断，硬件恢复需要：",
+  beta: "QUANTUM GAMMAWAVE FM-1 是自定义固件（GPL-3.0）。请自行承担使用风险。",
+  back: "请从 M-VAVE 获取官方 FM-1 V15，并选择未修改的 FM-1.fwsc。文件会在浏览器本地校验。",
+  stockTitle: "恢复官方 V15 固件", stockFile: "官方 FM-1.fwsc", stockGo: "备份并恢复官方 V15",
+  stockPreload: "✓ 本站已包含并预加载 FM-1.fwsc（官方 V15，已验证）。", stockLocal: "📥 下载 FM-1.fwsc（官方 V15，本站副本）",
+  stockMirror: "M-VAVE V15 云端镜像", stockDirect: "⚡ 直接写入官方 V15（从其他固件恢复）",
+  stockOptional: "（可选，已预加载）", navStock: "📥 FM-1.fwsc（官方 V15）",
+  stockBackup: "写入前会先备份当前音乐、已保存音乐、音色库和设置。",
+  stockRecovery: "恢复中断的更新：我已将完整备份保存到这台电脑",
+  stockValid: "官方 V15 已验证 ✓", stockConfirm: "完整备份是否已保存到电脑？继续将恢复官方 V15。",
+  stockNeedBackup: "更新加载器无法导出备份。仅在已保存完整备份时才勾选恢复。",
+  stockUnsupported: "此固件不支持完整备份。请先安装当前版本。",
+  backup: "正在保存完整备份 ", stockError: "无法验证官方固件：",
+  nomidi: "此环境不支持 Web MIDI（需要 HTTPS 或 http://localhost，使用 Chrome、Edge 或 Brave；file:// 被阻止）。", loadfail: "无法加载：",
+  start: "开始", verify: "校验中", loader: "切换到更新模式", write: "写入中",
+  reboot: "重启中", done: "✓ GAMMAWAVE 安装完成！", stopped: "已停止。请重新连接 USB 并再次点击安装。",
+  error: "错误：",
+  denied: "未允许 MIDI（SysEx）访问。请在站点设置中允许 MIDI 后重试。",
+  blocked: "此站点已阻止 MIDI。点击地址栏左侧图标 → 站点设置 → MIDI 设备 → 允许，然后重新加载。",
+  notfound: "未找到 FM-1。请检查 USB 数据线，关闭其他 MIDI 应用，然后再次点击安装。",
+  model: "连接的设备不是 FM-1。",
+  lost: "USB 连接已断开。请重新连接 FM-1 并再次点击安装。",
+  noloader: "未找到处于更新模式的 FM-1。请重新连接 USB 并再次点击安装。",
+  noreturn: "FM-1 未自动重启。请关机后再开机。",
+  mismatch: "已写入，但 FM-1 报告了另一个版本：",
+  badpkg: "要安装的文件已损坏。请重新加载页面。",
+  leave: "正在写入固件。请勿关闭此页面！",
+  license: "GPL-3.0，无担保。基于：",
+};
+/* Static header, spec cards, controls and footer. The source strings are English; data-t entries are
+   applied after this pass from the semantic TEXT dictionaries. */
+const STATIC = {
+  es: {
+    "GAMMAWAVE // WRAITH — M-VAVE FM-1 Firmware": "GAMMAWAVE // WRAITH — Firmware para M-VAVE FM-1",
+    "THEME: GAMMA": "TEMA: GAMMA",
+    "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "Polifonía de 10 voces. EQ maestro paramétrico. Saturación armónica. — Firmware avanzado de sintetizador y groovebox open source para M-VAVE FM-1",
+    "⚡ GITHUB REPOSITORY ↗": "⚡ REPOSITORIO GITHUB ↗",
+    "WAVE 1 & 2 + HEARTH": "WAVE 1 Y 2 + HEARTH",
+    "Blazing Yellow Sun + Orbiting Moon, Gravity, Singularity, Photosphere": "Sol amarillo incandescente + luna en órbita, gravedad, singularidad y fotosfera",
+    "SPECTROGRAM FILTER": "FILTRO ESPECTROGRAMA",
+    "Yellow-Orange-Purple FFT Waterfall + Orange Filter & Cyan Mod Curve": "Cascada FFT amarillo-naranja-púrpura + filtro naranja y curva de modulación cian",
+    "4-TRACK ANALOG TAPE": "CINTA ANALÓGICA DE 4 PISTAS",
+    "Live 4-Lane Audio Waveform Tape Deck + Stereo .WAV Master Bounce": "Cinta de audio en vivo de 4 carriles + bounce master estéreo .WAV",
+    "MODULAR 4-SLOT FX RACK": "RACK FX MODULAR DE 4 SLOTS",
+    "CRUSH, DELAY, REVERB, CHORUS + Synced 1/16 PUMP & MUTATE": "CRUSH, DELAY, REVERB, CHORUS + PUMP y MUTATE sincronizados a 1/16",
+    "PUNCH-IN FX + 6 LATCH MUTES": "PUNCH-IN FX + 6 MUTES LATCH",
+    "10 key assignments, full F3–G5 keyboard, live LEDs and real peak meters": "10 asignaciones de teclas, teclado completo F3–G5, LEDs en vivo y medidores de pico reales",
+    "GAMMAWAVE // WRAITH — LIVE BROWSER DSP PREVIEW": "GAMMAWAVE // WRAITH — PREESCUCHA DSP EN EL NAVEGADOR",
+    "▶ PLAY SEQ": "▶ TOCAR SECUENCIA",
+    "🎲 DICE MUTATE": "🎲 MUTAR CON DADO",
+    "TRANSFER CURVE // HEARTH": "CURVA DE TRANSFERENCIA // HEARTH",
+    "PRESET": "PRESET",
+    "DIST TYPE": "TIPO DE DISTORSIÓN",
+    "SOFT (Warm Tanh)": "SUAVE (Tanh cálido)",
+    "TAPE (Cubic Polynomial)": "CINTA (polinomio cúbico)",
+    "HEARTH (Tube Heat + Sub)": "HEARTH (calor de válvula + sub)",
+    "FLUX (Thermal Tape Drift)": "FLUX (deriva térmica de cinta)",
+    "FILTER TYPE": "TIPO DE FILTRO",
+    "LP (Lowpass)": "LP (paso bajo)",
+    "VOWEL (Formant)": "VOWEL (formante)",
+    "SCREAM (Fold Res)": "SCREAM (resonancia plegada)",
+    "HP (Highpass)": "HP (paso alto)",
+    "BP (Bandpass)": "BP (paso banda)",
+    "DIST DRIVE": "DRIVE DE DISTORSIÓN",
+    "CUTOFF": "CORTE",
+    "RESONANCE": "RESONANCIA",
+    "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)": "CARGADOR DE FIRMWARE WEBMIDI (M-VAVE FM-1)",
+    "Portal & Emulator": "Portal y Emulador",
+    "GitHub Source": "Código en GitHub",
+    "): Lineage: Pocket GammaWave,": "): Linaje: Pocket GammaWave,",
+    "by Leo Kuroshita (@kurogedelic),": "por Leo Kuroshita (@kurogedelic),",
+    ", with SLOOP song arranger by isod89 & high-performance embedded DSP.": ", con arreglos SLOOP de isod89 y DSP embebido de alto rendimiento.",
+    "FM6 engine: msfa from Dexed (Google Inc., Pascal Gauthier, Apache-2.0). Package includes JieLi AC79 SDK files (uboot.boot, cfg_tool.bin, eq_cfg_hw.bin under Apache-2.0).": "Motor FM6: msfa de Dexed (Google Inc., Pascal Gauthier, Apache-2.0). El paquete incluye archivos del SDK JieLi AC79 (uboot.boot, cfg_tool.bin, eq_cfg_hw.bin bajo Apache-2.0).",
+    "Licences": "Licencias",
+    "all": "todas",
+  },
+  zh: {
+    "GAMMAWAVE // WRAITH — M-VAVE FM-1 Firmware": "GAMMAWAVE // WRAITH — M-VAVE FM-1 固件",
+    "THEME: GAMMA": "主题：GAMMA",
+    "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "10 声部复音。参数主 EQ。谐波饱和。— 适用于 M-VAVE FM-1 的高级开源合成器与 groovebox 固件",
+    "⚡ GITHUB REPOSITORY ↗": "⚡ GITHUB 仓库 ↗",
+    "WAVE 1 & 2 + HEARTH": "WAVE 1 和 2 + HEARTH",
+    "Blazing Yellow Sun + Orbiting Moon, Gravity, Singularity, Photosphere": "炽热黄色太阳 + 环绕月球、重力、奇点和光球层",
+    "SPECTROGRAM FILTER": "频谱图滤波器",
+    "Yellow-Orange-Purple FFT Waterfall + Orange Filter & Cyan Mod Curve": "黄橙紫 FFT 瀑布 + 橙色滤波器和青色调制曲线",
+    "4-TRACK ANALOG TAPE": "4 轨模拟磁带",
+    "Live 4-Lane Audio Waveform Tape Deck + Stereo .WAV Master Bounce": "实时 4 轨音频波形磁带 + 立体声 .WAV 主输出",
+    "MODULAR 4-SLOT FX RACK": "模块化 4 槽 FX 机架",
+    "CRUSH, DELAY, REVERB, CHORUS + Synced 1/16 PUMP & MUTATE": "CRUSH、DELAY、REVERB、CHORUS + 同步 1/16 PUMP 和 MUTATE",
+    "PUNCH-IN FX + 6 LATCH MUTES": "PUNCH-IN FX + 6 个 LATCH 静音",
+    "10 key assignments, full F3–G5 keyboard, live LEDs and real peak meters": "10 个按键分配、完整 F3–G5 键盘、实时 LED 和真实峰值表",
+    "GAMMAWAVE // WRAITH — LIVE BROWSER DSP PREVIEW": "GAMMAWAVE // WRAITH — 浏览器 DSP 试听",
+    "▶ PLAY SEQ": "▶ 播放序列",
+    "🎲 DICE MUTATE": "🎲 随机变换",
+    "TRANSFER CURVE // HEARTH": "传输曲线 // HEARTH",
+    "PRESET": "预设",
+    "DIST TYPE": "失真类型",
+    "SOFT (Warm Tanh)": "柔和（温暖 Tanh）",
+    "TAPE (Cubic Polynomial)": "磁带（三次多项式）",
+    "HEARTH (Tube Heat + Sub)": "HEARTH（电子管热度 + Sub）",
+    "FLUX (Thermal Tape Drift)": "FLUX（热磁带漂移）",
+    "FILTER TYPE": "滤波器类型",
+    "LP (Lowpass)": "LP（低通）",
+    "VOWEL (Formant)": "VOWEL（共振峰）",
+    "SCREAM (Fold Res)": "SCREAM（折叠共振）",
+    "HP (Highpass)": "HP（高通）",
+    "BP (Bandpass)": "BP（带通）",
+    "DIST DRIVE": "失真驱动",
+    "CUTOFF": "截止",
+    "RESONANCE": "共振",
+    "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)": "WebMIDI 固件写入器（M-VAVE FM-1）",
+    "Portal & Emulator": "门户与模拟器",
+    "GitHub Source": "GitHub 源码",
+    "): Lineage: Pocket GammaWave,": "）：源流：Pocket GammaWave，",
+    "by Leo Kuroshita (@kurogedelic),": "作者 Leo Kuroshita (@kurogedelic)，",
+    ", with SLOOP song arranger by isod89 & high-performance embedded DSP.": "，SLOOP 编曲由 isod89 完成，高性能嵌入式 DSP。",
+    "FM6 engine: msfa from Dexed (Google Inc., Pascal Gauthier, Apache-2.0). Package includes JieLi AC79 SDK files (uboot.boot, cfg_tool.bin, eq_cfg_hw.bin under Apache-2.0).": "FM6 引擎：来自 Dexed 的 msfa（Google Inc.、Pascal Gauthier，Apache-2.0）。固件包包含 JieLi AC79 SDK 文件（uboot.boot、cfg_tool.bin、eq_cfg_hw.bin，Apache-2.0）。",
+    "Licences": "许可证",
+    "all": "全部",
+  },
+};
+const LANGS = ["en", "es", "zh"];
+const LANG_KEY = "qg-installer-lang";
 let lang = (() => {
-  const l = (navigator.language || "fr").toLowerCase();
-  return l.startsWith("ja") ? "ja" : l.startsWith("en") ? "en" : "fr";
+  try { const l = localStorage.getItem(LANG_KEY); if (LANGS.includes(l)) return l; } catch (_) {}
+  return "en";
 })();
 const t = (k) => (TEXT[lang] && TEXT[lang][k]) || TEXT.en[k] || k;
+const LANG_LABEL = { en: "EN", es: "ES", zh: "中文" };
+const TITLE = {
+  en: "GAMMAWAVE // WRAITH — M-VAVE FM-1 Firmware",
+  es: "GAMMAWAVE // WRAITH — Firmware para M-VAVE FM-1",
+  zh: "GAMMAWAVE // WRAITH — M-VAVE FM-1 固件",
+};
 let lastKey = null, lastArg = "";
+const STATIC_NODES = [];
+function snapshotStatic() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => {
+      const p = n.parentNode;
+      return p && !/^(SCRIPT|STYLE|NOSCRIPT)$/.test(p.tagName) && n.nodeValue.trim()
+        ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    }
+  });
+  let n;
+  while ((n = walker.nextNode())) STATIC_NODES.push({ node: n, source: n.nodeValue, last: n.nodeValue });
+}
+function applyStatic() {
+  if (!STATIC_NODES.length) snapshotStatic();
+  const d = STATIC[lang] || {};
+  STATIC_NODES.forEach((item) => {
+    if (item.node.nodeValue !== item.last) return; // a live value (status, hash, theme) wins
+    const key = item.source.trim(), value = d[key] || item.source;
+    item.node.nodeValue = value;
+    item.last = value;
+  });
+}
 function applyLang() {
   document.documentElement.lang = lang;
+  document.title = TITLE[lang] || TITLE.en;
+  applyStatic();
   document.querySelectorAll("[data-t]").forEach((e) => { e.textContent = t(e.dataset.t); });
-  $("lang").textContent = t("other");
+  $("lang").textContent = LANG_LABEL[lang];
+  $("lang").setAttribute("aria-label", lang === "en" ? "Language: English. Click for Español" : lang === "es" ? "Idioma: español. Clic para 中文" : "语言：中文。点击切换 English");
+  $("lang").title = $("lang").getAttribute("aria-label");
+  try { localStorage.setItem(LANG_KEY, lang); } catch (_) {}
   if (lastKey) $("status").textContent = t(lastKey) + lastArg;
 }
 $("lang").addEventListener("click", () => {
@@ -668,6 +921,9 @@ async function loadVersion(i) {
     const pkg = new Uint8Array(await r.arrayBuffer());
     if (epoch !== loadEpoch) return;
     if (productOf(pkg) !== meta.product) { sayK("badpkg"); return; }
+    /* (QG-1) validate the complete container before enabling INSTALL: a wrong identity is not enough.
+       Package() checks the UFW/flash headers and CRCs, the entry lists, app.bin and the optional cfg. */
+    try { new Package(pkg); } catch (e) { log(`package: ${e.message}`); sayK("badpkg"); return; }
     /* (QG-1) the bytes against the SHA-256 make_site.py published with them: a cut or altered download is refused */
     const hash = await sha256hex(pkg);
     if (epoch !== loadEpoch) return;

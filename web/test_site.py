@@ -90,6 +90,13 @@ def main(site_dir=None):
         bad.append("reveal hides copy until the scroll observer runs")
     if 'id="ver-sha"' not in text or "versions.json" not in text:
         bad.append("version panel is not wired to versions.json")
+    if 'id="lang"' not in text or '<script src="i18n.js"></script>' not in text:
+        bad.append("language selector or i18n.js is missing")
+    if 'id="lang"' in text and 'localStorage' not in text:
+        bad.append("language choice is not persisted")
+    for word in ("English", "Español", "中文"):
+        if word not in text:
+            bad.append(f"language selector misses {word}")
 
     if site_dir:
         out = Path(site_dir)

@@ -2,7 +2,7 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only
      Quantum GammaWave official portal. The version, size and SHA-256 below are filled from the
      deployment's real firmware/versions.json; nothing here is a mock of a device function. -->
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -105,6 +105,7 @@
   .btn.primary:hover { box-shadow: 0 14px 44px rgba(139, 92, 255, .36), inset 0 1px 0 rgba(255,255,255,.5); }
   .btn.ghost { background: rgba(255,255,255,.02); }
   .btn.small { min-height: 38px; padding: 9px 13px; font-size: 10px; }
+  #lang { min-width: 44px; padding: 9px 10px; margin-left: 4px; }
   .arrow { font-size: 15px; line-height: 1; }
   .hero { position: relative; padding: clamp(48px, 8vw, 92px) 0 clamp(36px, 5vw, 64px); overflow: clip; }
   .hero-grid { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(360px, .94fr); gap: clamp(30px, 5vw, 72px); align-items: center; }
@@ -257,6 +258,7 @@
       <a href="#instalacion">Instalación</a>
       <a href="#versiones">Versiones</a>
       <a class="btn primary small top-cta" href="emulator/">Web Emulator <span class="arrow">↗</span></a>
+      <button class="btn ghost small" id="lang" type="button" aria-label="Language / Idioma / 语言" title="Language / Idioma / 语言">EN</button>
     </nav>
   </div>
 </header>
@@ -511,10 +513,29 @@
   </div>
 </footer>
 
+<script src="i18n.js"></script>
 <script>
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
+  var LANG_KEY = "qg-portal-lang";
+  var LANGS = ["en", "es", "zh"];
+  var lang = (function () {
+    try { var v = localStorage.getItem(LANG_KEY); return LANGS.indexOf(v) >= 0 ? v : "en"; } catch (_) { return "en"; }
+  })();
+  var lastVersion = null;
+  function applyLanguage(next) {
+    lang = LANGS.indexOf(next) >= 0 ? next : "en";
+    if (window.QG_I18N) window.QG_I18N.apply(lang);
+    var label = lang === "en" ? "EN" : lang === "es" ? "ES" : "中文";
+    $("lang").textContent = label;
+    $("lang").setAttribute("aria-label", lang === "en" ? "Language: English. Click for Español" : lang === "es" ? "Idioma: español. Clic para 中文" : "语言：中文。点击切换 English");
+    try { localStorage.setItem(LANG_KEY, lang); } catch (_) {}
+    if (lastVersion) renderVersion(lastVersion);
+  }
+  var t = function (s) { return window.QG_I18N ? window.QG_I18N.tr(s) : s; };
+  $("lang").addEventListener("click", function () { applyLanguage(LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]); });
+  applyLanguage(lang);
   // Only the explicit ?emu=1 shortcut opens the Web Emulator. A bare #emu hash used to
   // replace the portal: a stale or shared link must never take the site's place.
   if (location.search.indexOf("emu=1") >= 0) {
@@ -524,27 +545,31 @@
   $("year").textContent = String(new Date().getFullYear());
   function human(n) {
     if (!Number.isFinite(n)) return "—";
-    return n.toLocaleString("es") + " B";
+    var loc = lang === "zh" ? "zh-CN" : lang === "en" ? "en-US" : "es";
+    return n.toLocaleString(loc) + " B";
   }
   function text(id, value) { var el = $(id); if (el) el.textContent = value; }
+  function renderVersion(v) {
+    text("ver-name", v.version || "—");
+    text("ver-file", v.file || "—");
+    text("ver-size", human(Number(v.size)));
+    text("ver-sha", v.sha256 || "—");
+    text("hero-build", v.version || "QG-1");
+    text("foot-build", (v.version || "QG-1") + " // " + String(v.sha256 || "").slice(0, 12) + "…");
+    text("ver-state", t("HASH DEL SITIO"));
+    text("ver-note", t("El instalador exige este SHA-256 antes de escribir. Integridad verificada; autenticidad criptográfica pendiente."));
+  }
   fetch("firmware/versions.json", { cache: "no-cache" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(function (list) {
-      if (!Array.isArray(list) || !list.length) throw new Error("lista vacía");
-      var v = list[0];
-      text("ver-name", v.version || "—");
-      text("ver-file", v.file || "—");
-      text("ver-size", human(Number(v.size)));
-      text("ver-sha", v.sha256 || "—");
-      text("hero-build", v.version || "QG-1");
-      text("foot-build", (v.version || "QG-1") + " // " + String(v.sha256 || "").slice(0, 12) + "…");
-      text("ver-state", "HASH DEL SITIO");
-      text("ver-note", "El instalador exige este SHA-256 antes de escribir. Integridad verificada; autenticidad criptográfica pendiente.");
+      if (!Array.isArray(list) || !list.length) throw new Error("empty list");
+      lastVersion = list[0];
+      renderVersion(lastVersion);
     })
     .catch(function () {
-      text("ver-sha", "no disponible en este servidor");
-      text("ver-state", "SIN DATOS DEL BUILD");
-      text("ver-note", "versions.json no se pudo leer. Los enlaces siguen siendo válidos; no se muestra un hash inventado.");
+      text("ver-sha", t("no disponible en este servidor"));
+      text("ver-state", t("SIN DATOS DEL BUILD"));
+      text("ver-note", t("versions.json no se pudo leer. Los enlaces siguen siendo válidos; no se muestra un hash inventado."));
     });
   if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     var io = new IntersectionObserver(function (entries) {
