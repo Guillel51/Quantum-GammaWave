@@ -106,6 +106,7 @@ def main(pkg, version, out, prev=None):
     versions = [{"version": version, "file": name, **digest(raw)}] + \
         [{**e, **digest(src.read_bytes())} for e, src in old]
     meta = json.dumps({"version": version, "product": product, "pkg": "../../firmware/" + name, **digest(raw),
+                       "stock": (HERE.parent / "FM-1.fwsc").is_file(),
                        "versions": [{"version": e["version"], "pkg": "../../firmware/" + e["file"],
                                      "sha256": e["sha256"], "size": e["size"]} for e in versions]})
     for mark in ("/*LIB*/", "/*META*/"):

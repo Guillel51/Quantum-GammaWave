@@ -85,14 +85,6 @@ static struct {
     uint32_t ph, P, split;             /* samples since play; the 1/16; this block: where a 1/16 starts */
     uint32_t act, act0;                /* running after / before split */
     uint8_t busy, sync, mute;          /* sync: a 1/16 starts with the next block; mute: tracks to ramp */
-    /* the buffer */
-    uint8_t mode, src, next;           /* BM_*, the effect it plays (PF_N none), one waiting for the fade */
-    uint8_t state, odd;                /* 0 recording, 1 playing; the sample of a pair */
-    uint32_t len, wr, rp;              /* loop length (samples), frames written, read (samples into the loop) */
-    uint32_t tp, spd, tdec;            /* TAPE STOP: the read position and speed (Q16), its decrease a sample */
-    uint32_t gl_next, gl_pos, gl_dir;  /* GLITCH: samples to the next jump, the read place, its direction */
-    uint32_t xrp, xlen, xn;            /* the loop it switched from, faded over xn samples */
-    int32_t w, tw, hl, hr;             /* the buffer's share and its target, Q15; the first of a pair */
     /* the filters, CRUSH, THROW, mutes */
     int32_t lc, hc, la, ha;            /* cutoffs (Q8 index) and shares (Q15) of LPF and HPF */
     int32_t lz[4], hz[4];              /* their states: L ic1 ic2, R ic1 ic2 */
@@ -262,17 +254,6 @@ static void perf_start(void) { pf.ph = 0; pf.sync = 1; pfx_lph = 0; }   /* seq_s
 /* the SLICER's recordings dropped (when the buffer is taken and given back) */
 static void perf_drop_slicer(void) { slicer_drop(); }
 
-/* the buffer effect to play: the last pressed of those running */
-static uint32_t perf_pick(uint32_t a)
-{
-    uint32_t e, best = PF_N;
-    a &= PF_BUF;
-    for (e = 0; e < PF_END; e++)
-        if (((a >> e) & 1u) && (best == PF_N || perf_ord[e] - perf_ord[best] < 0x80000000u))
-            best = e;
-    return best;
-}
-
 static void perf_buf_start(uint32_t e)
 {
     int i = pb_free();
@@ -310,14 +291,13 @@ static void perf_buf_start(uint32_t e)
     pf.xn = 0;
     pf.mode = e == PF_REV ? BM_REV : e == PF_FRZ ? BM_FRZ : e == PF_TAPE ? BM_TAPE :
               e == PF_GLCH ? BM_GLCH : e == PF_RTRG ? BM_RTRG : BM_LOOP;
-    pf.state = 0;
-    pf.len = perf_len(e);
-    pf.tp = 0;
-    pf.spd = 1u << 16;
-    pf.tdec = pf.len ? (1u << 16) / pf.len : 0u;
-    pf.gl_next = 0;
-    pf.gl_pos = 0;
-    pf.gl_dir = 1;
+    h->len = len;
+    h->state = 0;
+    h->on = 1;
+    h->spd = 1u << 16;
+    h->tdec = (1u << 16) / len;
+    h->gl_dir = 1;
+    pb_recording = (uint8_t)(pb_wr < PB_CAP);
 }
 
 /* Reconcile the selected buffer effects with the three heads at a 1/16. A head that is no longer selected
@@ -639,37 +619,37 @@ static __attribute__((noinline)) void perf_buf(int32_t *pl, int32_t *pr)
                     if (pf.tp >= pf.len)
                         yl = yr = 0;
                 }
-            } else if (pf.mode == BM_GLCH) {
-                if (!pf.gl_next) {                  /* a new slice: a random place and direction */
+            } else if (h->mode == BM_GLCH) {
+                if (!h->gl_next) {
                     pf_rs = pf_rs * 1664525u + 1013904223u;
-                    pf.gl_pos = (pf_rs >> 8) % (pf.len ? pf.len : 1u);
-                    pf.gl_dir = (pf_rs & 1u) ? 1u : 0u;
-                    pf.gl_next = 256u + ((pf_rs >> 16) & 511u);
+                    h->gl_pos = (pf_rs >> 8) % (h->len ? h->len : 1u);
+                    h->gl_dir = (pf_rs & 1u) ? 1u : 0u;
+                    h->gl_next = 256u + ((pf_rs >> 16) & 511u);
                 }
-                pb_at(pf.gl_pos, pf.wr, &yl, &yr);
-                pf.gl_next--;
-                if (pf.gl_dir) {
-                    if (++pf.gl_pos >= pf.len)
-                        pf.gl_pos = 0;
-                } else if (pf.gl_pos) {
-                    pf.gl_pos--;
+                pb_at(h->gl_pos, nf, &yl, &yr);
+                h->gl_next--;
+                if (h->gl_dir) {
+                    if (++h->gl_pos >= h->len)
+                        h->gl_pos = 0;
+                } else if (h->gl_pos) {
+                    h->gl_pos--;
                 } else {
-                    pf.gl_pos = pf.len ? pf.len - 1u : 0u;
+                    h->gl_pos = h->len ? h->len - 1u : 0u;
                 }
             }
-            if (pf.mode == BM_LOOP && pf.xn) {      /* the loop it switched from, fading out */
-                int32_t ol, orr, g = (int32_t)pf.xn;
-                pb_loop(pf.xrp, pf.xlen, pf.wr, &ol, &orr);
-                yl += (ol * g) >> SL_RAMP_LOG2;
-                yr += (orr * g) >> SL_RAMP_LOG2;
-                pf.xn--;
-                if (++pf.xrp >= pf.xlen)
-                    pf.xrp = 0;
-            }
-            if (pf.mode == BM_LOOP || pf.mode == BM_FRZ || pf.mode == BM_REV || pf.mode == BM_RTRG)
-                if (++pf.rp >= pf.len)
-                    pf.rp = 0;
-            on = 1;
+            if (h->mode == BM_LOOP || h->mode == BM_FRZ || h->mode == BM_REV || h->mode == BM_RTRG)
+                if (++h->rp >= h->len)
+                    h->rp = 0;
+        }
+        h->tw = h->on && h->state ? 32768 - perf_k[3] * 327 : 0;
+        h->w += clamp(h->tw - h->w, -SL_SLOPE, SL_SLOPE);
+        if (h->w) {
+            dl += mulq16(yl - l, (uint32_t)h->w << 1);
+            dr += mulq16(yr - r, (uint32_t)h->w << 1);
+            n++;
+        } else if (!h->on) {
+            h->mode = BM_NONE;
+            h->src = PF_N;
         }
     }
     if (n) {

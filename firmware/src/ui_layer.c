@@ -773,9 +773,6 @@ static const char B_NOTE[11] = {'F', 'G', 'A', 'C', 'D', 'F', 'G', 'A', 'C', 'D'
 #define LFR_P 20                                         /* (QG-1) FX: the 15 white-key effects, 5 x 3, 18 high */
 #define LFR_H 18
 #define LF_Y 4                                            /* the effects occupy the map's first three rows */
-#define LFR_P 20                                         /* (QG-1) FX: the white keys' rows 20 px apart, 18 high; */
-#define LFR_H 18
-#define LF_Y 4                                            /* the effects occupy the map's first three rows */
 #define LFM_Y 78                                         /* .. the mutes' row, the black effects' row under it */
 #define LFX_Y 98
 #define LFB_H 16
@@ -1022,17 +1019,8 @@ static void layer_fx(void)
         if ((i == 0u && pfx_bank) || (i >= 5u && !pfx_bank))  /* the white-key bank not selected */
             dim = 1u;
         fx_card(12 + (int32_t)(i % 5u) * 44, 15 + (int32_t)(i / 5u) * 21,
-                FX10_KEY[i], i == 4u && !pfx_bank ? "RND" : FX10[i], on, dim, row_on);
-    /* The map's legend sits in the gap between the third FX row and the mutes, as before: it is
-     * one measured line, so it does not compete with either group. */
-    cv_text(8, 66, &AF_S, "PUNCH-IN FX   A#4 TGT   G5 CLR", T_DIM);
-    for (e = 0; e < PF_M1; e++) {                       /* the effects of the white keys F3 .. F5, 5 a row */
-        if (e % 5u == 0u && !ux.style)                  /* (LINE: its rules are cells too) */
-            GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H | AL_CELLS | AL_N(5), "FX cells' row centred");
-        uint32_t st = !((ok >> e) & 1u) ? LS_DIM : !((held >> e) & 1u) ? LS_OFF :
-                      (act >> e) & 1u || ((PF_MIDI >> e) & 1u) ? LS_HELD : LS_WAIT;
-        n[0] = W_NOTE[e];
-        lcell(LF_X(e % 5u), LF_Y + LFR_P * (int32_t)(e / 5u), LFR_H, 0, ICON_COUNT, 0, PF_NAME[e], st, 0);
+                FX10_KEY[i], i == 4u && !pfx_bank ? "RND" : FX10[i], on, dim, row_on,
+                (PF_BUF & PF_BIT(f)) ? perf_buf_state(f) : on ? 2u : 0u);
     }
     fx_keyboard(59, held, act);
     lc_w = 35;

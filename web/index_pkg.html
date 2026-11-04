@@ -693,7 +693,7 @@ $("ver").addEventListener("change", () => { if (!writing) loadVersion(+$("ver").
   return;
 }
   await loadVersion(0);
-  try {
+  if (meta.stock) try {                      // only when make_site copied it: no 404 on a site built without it
     const sr = await fetch("../../firmware/FM-1.fwsc");
     if (sr.ok) {
       const sbytes = new Uint8Array(await sr.arrayBuffer());
