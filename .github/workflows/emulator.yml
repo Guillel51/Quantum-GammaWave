@@ -95,8 +95,10 @@ jobs:
           python3 tools/build.py
           V=$(ver .)
           python3 web/make_site.py build/felucca.fwsc "${V:-dev}-${GITHUB_SHA::7}-preview" build/site_preview
+          mkdir -p build/site_preview/emulator
+          cp -r build/emu/. build/site_preview/emulator/
           mkdir -p build/emu/preview
-          cp -r build/site_preview/webapp build/site_preview/firmware build/emu/preview/
+          cp -r build/site_preview/index.html build/site_preview/assets build/site_preview/webapp build/site_preview/firmware build/site_preview/emulator build/emu/preview/
           # the public installer: the approved commit (web/STABLE), built from its own sources
           S=$(tr -d ' \n' < web/STABLE 2>/dev/null || true)
           PKG=build/felucca.fwsc; SV=${V:-dev}; SH=${GITHUB_SHA::7}
@@ -108,7 +110,13 @@ jobs:
           # (0.6.46) the versions the site offers now stay installable (the last few, web/fetch_prev.py)
           python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
           python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
-          cp -r build/site/webapp build/site/firmware build/emu/
+          # the portal is / and the emulator keeps a stable /emulator/ path; installer and editor keep /webapp/
+          mkdir -p build/site/emulator
+          cp -r build/emu/. build/site/emulator/
+          rm -rf build/site/emulator/preview
+          # the artifact and preview copy stay emulator-shaped, with the preview portal at /preview/
+          mkdir -p build/emu/preview
+          cp -r build/site/index.html build/site/assets build/site/webapp build/site/firmware build/emu/preview/
       # (QG-1 stage 2/3) the two checks that need the target compiler, on main and on every PR. On main the step
       # above has just built the package; on a PR (no site, no deploy) this is the only build. Not
       # continue-on-error: a regression here is the point of running them.
@@ -124,7 +132,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening') && github.event_name != 'pull_request'
         with:
-          path: build/emu
+          path: build/site
   deploy:
     needs: build
     if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening') && github.event_name != 'pull_request'

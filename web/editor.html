@@ -333,11 +333,182 @@
   }
   .gw-macros-title { font-size: 10px; font-weight: 800; letter-spacing: 0.09em; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
   [hidden] { display: none !important; }
+
+  /* ============================================================================
+     QUANTUM GAMMAWAVE // WEB STUDIO 2.0 — Solar Heat surface
+     A presentation layer only: every id, control and protocol frame is the
+     same. The LCD, telemetry and the six-track console keep their real data.
+     ============================================================================ */
+  :root {
+    --bg: #080503;
+    --surf: #110b07;
+    --raise: #1b110a;
+    --fg: #f8eddc;
+    --dim: #b6a690;
+    --line: #3a2719;
+    --theme: #ff8a1e;
+    --accent: #7ee7f5;
+    --plasma: #ff4d00;
+    --glow: rgba(255, 138, 30, .24);
+    --cyan-glow: rgba(126, 231, 245, .20);
+  }
+  html { scrollbar-color: var(--line2, #56351e) var(--bg); }
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(900px 520px at 10% -10%, rgba(255, 77, 0, .22), transparent 62%),
+      radial-gradient(760px 460px at 92% 0%, rgba(126, 231, 245, .10), transparent 62%),
+      linear-gradient(rgba(255, 138, 30, .018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 138, 30, .018) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+    background-attachment: fixed;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 999; pointer-events: none; opacity: .14;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, .15) 3px 4px);
+    mix-blend-mode: multiply;
+  }
+  main { max-width: 1380px; padding: 0 24px 46px; }
+  .gw-brandbar {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 18px 0 14px; border-bottom: 1px solid rgba(255, 138, 30, .16); margin-bottom: 18px;
+  }
+  .gw-brand {
+    display: inline-flex; align-items: center; gap: 11px; color: var(--fg);
+    text-decoration: none; flex: 0 0 auto;
+  }
+  .gw-brand:hover { text-decoration: none; color: var(--fg); }
+  .gw-brand .orb {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 45%, #fff4d6 0 9%, #ffc45c 10% 22%, #ff8a1e 23% 48%, #a82b04 49% 61%, transparent 62%);
+    box-shadow: 0 0 22px rgba(255, 77, 0, .45); flex: 0 0 auto;
+  }
+  .gw-brand b { display: block; font-size: 13px; line-height: 1.02; letter-spacing: .11em; }
+  .gw-brand small { display: block; color: var(--theme); font-size: 8.5px; letter-spacing: .15em; font-weight: 800; margin-top: 2px; }
+  .gw-brandnav { margin-left: auto; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .gw-brandnav a {
+    color: var(--dim); text-decoration: none; padding: 9px 10px;
+    font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    border-bottom: 1px solid transparent;
+  }
+  .gw-brandnav a:hover { color: var(--fg); border-bottom-color: var(--theme); text-decoration: none; }
+  .gw-brandnav a.hot { color: var(--ink, #140804); background: linear-gradient(135deg, var(--theme), #ff4d00); border: 1px solid #ffb54e; border-radius: 5px; padding: 9px 12px; }
+  h1 {
+    font-size: clamp(22px, 2.5vw, 34px); letter-spacing: -.02em; line-height: 1.05;
+    margin: 0 0 8px; text-shadow: none; color: var(--fg); max-width: 24ch;
+  }
+  h1::before {
+    content: "QG-1"; font-size: 10px; padding: 3px 8px; color: #1a0a02;
+    background: linear-gradient(135deg, #ffc45c, var(--theme) 55%, #ff4d00);
+    box-shadow: 0 0 18px rgba(255, 77, 0, .22);
+  }
+  .lang { margin-top: 4px; }
+  .top {
+    background: linear-gradient(180deg, rgba(12, 7, 4, .97), rgba(9, 6, 4, .93));
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, var(--theme) 25%, rgba(126, 231, 245, .55) 72%, transparent) 1;
+    padding-top: 10px;
+  }
+  .tabs { gap: 5px; border-bottom-width: 1px; border-image: linear-gradient(90deg, var(--theme), var(--line) 45%, transparent) 1; }
+  .tabs button {
+    background: transparent; border: 1px solid transparent; border-bottom: 0;
+    color: var(--dim); padding: 8px 15px; clip-path: none; border-radius: 6px 6px 0 0;
+    font-size: 10px; letter-spacing: .06em;
+  }
+  .tabs button:hover { background: rgba(255, 138, 30, .07); color: var(--fg); border-color: var(--line); }
+  .tabs button[aria-selected="true"] {
+    background: linear-gradient(180deg, var(--theme), #d96b08); color: #180a02;
+    border-color: #ffb54e; border-bottom: 0; box-shadow: 0 -8px 20px rgba(255, 77, 0, .14);
+  }
+  .trackbar { background: rgba(17, 11, 7, .9); border: 1px solid var(--line); border-top: 0; }
+  .bar { gap: 7px 10px; }
+  #status { min-height: 1.2em; color: var(--accent); font-size: 11px; }
+  button {
+    background: linear-gradient(180deg, #2a190e, #1a1009); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 5px; clip-path: none;
+    font-weight: 800; font-size: 11px; padding: 6px 12px; letter-spacing: .04em;
+  }
+  button:hover:not(:disabled) { border-color: var(--theme); background: linear-gradient(180deg, #372012, #20130b); box-shadow: 0 0 14px rgba(255, 77, 0, .12); }
+  button.gw-btn-sec { background: rgba(126, 231, 245, .04); border-color: rgba(126, 231, 245, .32); color: var(--accent); }
+  button.gw-btn-sec:hover:not(:disabled) { background: rgba(126, 231, 245, .10); border-color: var(--accent); }
+  select, input[type=text], input[type=number], input[type=search] {
+    background: #0a0604; border-color: var(--line); border-radius: 4px; color: var(--fg); min-height: 28px;
+  }
+  select:hover, input[type=text]:hover, input[type=number]:hover, input[type=search]:hover { border-color: #6b4425; }
+  input[type=range] { background: #0a0604; border-color: var(--line); accent-color: var(--theme); }
+  .gw-deck {
+    border: 1px solid #4b2e1a; border-top: 1px solid #5d3a20; border-radius: 16px;
+    background:
+      radial-gradient(600px 260px at 12% 0%, rgba(255, 77, 0, .12), transparent 65%),
+      linear-gradient(135deg, #1b0f08 0%, #0e0805 72%);
+    padding: 18px; margin: 18px 0; box-shadow: 0 26px 70px rgba(0, 0, 0, .5);
+  }
+  .gw-bezel {
+    background: linear-gradient(145deg, #070403, #020101); border: 1px solid #4b2e1a; border-radius: 12px;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 196, 92, .06), 0 0 28px rgba(255, 77, 0, .08);
+  }
+  #gw-lcd { border-color: #3c2515; box-shadow: 0 0 22px rgba(255, 138, 30, .12); }
+  .gw-bezel-top { color: #9b8068; }
+  .gw-bezel-top span.led { color: var(--accent); text-shadow: 0 0 8px rgba(126, 231, 245, .5); }
+  .gw-console h2, .gw-macros-title { color: var(--gold, #ffc45c); }
+  .gw-stat, .gw-macros { background: rgba(8, 5, 3, .56); border-color: #342216; }
+  .gw-stat { border-left-width: 2px; border-radius: 5px; }
+  .gw-stat .val { color: var(--fg); }
+  .gw-stat .k { color: var(--faint, #8c7761); }
+  .gw-macros { border-radius: 7px; }
+  .panel { margin: 20px 0; }
+  .group, .browser, #steps, .libcols > div, .version-card {
+    background: linear-gradient(155deg, rgba(24, 15, 9, .88), rgba(10, 6, 4, .9));
+    border-color: var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .24);
+  }
+  .group { border-top-width: 1px; border-top-color: #5a351c; }
+  .group h2, .browser h2, .libcols h2 { color: var(--gold, #ffc45c); }
+  .browser { border-top-color: var(--accent); }
+  .hint { background: rgba(126, 231, 245, .05); border: 1px solid rgba(126, 231, 245, .18); border-left: 2px solid var(--accent); border-radius: 5px; }
+  .grid button { background: #0a0604; border-color: #2e1e13; border-top-color: #402718; border-radius: 4px; }
+  .grid button.on { background: linear-gradient(180deg, rgba(255, 138, 30, .22), rgba(255, 77, 0, .08)); border-color: var(--theme); border-top-color: var(--accent); }
+  .grid button.acc { background: linear-gradient(180deg, rgba(126, 231, 245, .16), rgba(255, 138, 30, .12)); }
+  .strip { background: linear-gradient(180deg, #140d08, #0b0704); border-color: var(--line); border-top-color: var(--theme); border-radius: 7px; }
+  .strip.sel { border-color: var(--accent); box-shadow: 0 0 20px rgba(126, 231, 245, .10); }
+  .list { background: #080503; border-color: var(--line); border-radius: 5px; }
+  .list th { background: #1b110a; }
+  .list tr.sel td { background: var(--theme); color: #180a02; }
+  footer { border-top-color: var(--line); color: var(--faint, #8c7761); }
+  .dim { color: var(--dim); }
+  @media (max-width: 900px) {
+    .gw-brandnav a:not(.hot) { display: none; }
+    .gw-brandnav { width: 100%; margin-left: 0; }
+    .gw-brandnav a.hot { margin-left: 0; }
+  }
+  @media (max-width: 760px) {
+    main { padding: 0 13px 32px; }
+    .gw-deck { padding: 11px; border-radius: 12px; }
+    h1 { font-size: 23px; }
+    .gw-brandbar { gap: 10px; padding-top: 12px; }
+    /* Seven tabs must stay reachable without a cut-off label: wrap them into two rows. */
+    .tabs { flex-wrap: wrap; overflow-x: visible; padding-bottom: 0; row-gap: 4px; }
+    .tabs button { flex: 0 1 auto; padding: 8px 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <button class="lang" id="lang"></button>
+  <div class="gw-brandbar">
+    <a class="gw-brand" href="../" aria-label="Volver al portal de Quantum GammaWave">
+      <span class="orb" aria-hidden="true"></span>
+      <span><b>QUANTUM<br>GAMMAWAVE</b><small>WEB STUDIO 2.0 // QG-1</small></span>
+    </a>
+    <nav class="gw-brandnav" aria-label="Recursos">
+      <a href="../">Portal</a>
+      <a href="../installer/">Instalador USB</a>
+      <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener">GitHub</a>
+      <a class="hot" href="../emulator/">Emulador ↗</a>
+    </nav>
+    <button class="lang" id="lang"></button>
+  </div>
   <h1>QUANTUM GAMMAWAVE — FM-1 Web Studio Workstation (v1.7-QG)</h1>
   <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>10-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
@@ -838,7 +1009,7 @@
       <a href="../installer/" style="border:1px solid var(--accent);color:var(--accent);font-weight:800;padding:6px 12px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.04em">⚡ USB INSTALLER ↗</a>
     </div>
   </div>
-  <footer><strong>QUANTUM GAMMAWAVE (QG-1)</strong> — Open-source M-VAVE FM-1 Synthesizer &amp; Groovebox Web Studio (<a href="https://guillel51.github.io/Quantum-GammaWave/" target="_blank" rel="noopener">Project Portal &amp; Emulator</a> · <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener">GitHub Source</a> · Lineage: Pocket GammaWave, JIANT FM &amp; Felucca).<br>
+  <footer><strong>QUANTUM GAMMAWAVE (QG-1)</strong> — Open-source M-VAVE FM-1 Synthesizer &amp; Groovebox Web Studio (<a href="https://guillel51.github.io/Quantum-GammaWave/">Project Portal</a> · <a href="https://guillel51.github.io/Quantum-GammaWave/emulator/" target="_blank" rel="noopener">Emulator</a> · <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener">GitHub Source</a> · Lineage: Pocket GammaWave, JIANT FM &amp; Felucca).<br>
     Built on <a href="https://github.com/juanjiant-bit/JIANT" target="_blank" rel="noopener">JIANT FM</a> (<a href="https://ko-fi.com/juanjiant" target="_blank" rel="noopener">Juan Jiant</a>) &amp; Felucca by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments</a>. GPL-3.0.<br>
     <span data-t="foot"></span> M-VAVE and FM-1 are trademarks of their respective owners.<br>
     <a href="FUKIAI-LICENSE.txt" data-t="iconsCredit"></a></footer>
