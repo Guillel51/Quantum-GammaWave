@@ -34,17 +34,38 @@ rest of the window is not available to the application. Treating 578 KB as usabl
 The self-test deliberately uses `fm1_mc_box.pad0` (spare words on core 0's cache line) instead of a
 new buffer, so shared RAM does not grow and the mailbox stays 128 bytes / two cache lines.
 
-### 2.1 Measured image — v1.8.8, `./build.sh`, identity `FM-1_982`
+### 2.1 Measured image — v1.9.0 (the integrated tree), `./build.sh`, identity `FM-1_982`
 
 | Region | Measured | Budget | Headroom |
 |--------|----------|--------|----------|
-| App image (`build/felucca.bin`) | 556 856 B | 568 KiB (581 632 B) | **24 776 B** |
-| `.data + .bss` | 95 732 B | 98 304 B | **2 572 B** |
-| RAM code (`.ram_text` + `.c1_text` + `.hot_text`) | 22 464 B | 24 576 B | **2 112 B** |
+| App image (`build/felucca.bin`) | 559 536 B | 568 KiB (581 632 B) | **22 096 B** |
+| `.data + .bss` | 96 452 B | 98 304 B | **1 852 B** |
+| RAM code (`.ram_text` + `.c1_text` + `.hot_text`) | 22 500 B | 24 576 B | **2 076 B** |
 | Pool spare (`POOL_END - pool_top`) | 9 248 B | ≥ 8 192 B | **1 056 B** |
-| XIP code / constants | 394 468 B / 139 196 B | constants only use slot | calls reach 66 044 B past the code |
-| Loader image / `ota.bin` | 9 520 B at `0x01C0A800` / 7 999 B | `0x14000` B | large |
-| Package (`build/felucca.fwsc`) | 611 155 B | — | — |
+| XIP code / constants | 397 056 B / 139 232 B | constants only use slot | calls reach 63 456 B past the code |
+| Loader image / `ota.bin` | 9 524 B at `0x01C0A800` / 8 007 B | `0x14000` B | large |
+| Package (`build/felucca.fwsc`) | 611 163 B | — | — |
+
+### 2.2 Where the RAM goes (measured, `objdump -t` on `build/felucca.elf`)
+
+The 96 452 B are state, not slack. The largest objects:
+
+| Bytes | Object | What it is |
+|-------|--------|------------|
+| 15 576 | `trk` | the six tracks: parameters, patterns, motion (the product's core state) |
+| 7 104 | `fm6_note` | FM6 per-voice operator state, six voices |
+| 6 160 | `up_bank` | the user preset bank's RAM mirror (flash is the copy of record) |
+| 5 520 | `drw_v` | the UI's per-frame value cache |
+| 5 376 | `drum_kit` | the DRUM kit's 16 pads |
+| 3 840 | `st_buf` | the storage staging buffer (flash writes run with the part in SPI mode) |
+| 3 728 | `upf` | the user-preset parser/editor state |
+| 2 048 ×3 | `abuf`, `ua_ring`, `cdc_out` | audio output, USB audio ring, USB serial ring |
+
+What was checked and **not** changed: there are no dead buffers (every one of these is read by the
+build), the CDC rings are already inside `#if FELUCCA_CDC` (`usb.c`), and the storage-less build
+(`FELUCCA_FLASH=0`) drops 12 096 B because `storage.c`, `upreset.c` and the TAKES reel are guarded.
+Shrinking any of the objects above means removing a feature (a track, a voice, a pad, the preset
+bank), which this project does not trade for a number; the honest headroom is the 1 852 B above.
 
 The build's own checks (`tools/build.py check`) print these and pass, as do
 `python3 tests/memory_map_test.py` and `python3 tests/target_budget.py build/felucca.dis

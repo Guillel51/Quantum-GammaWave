@@ -78,6 +78,31 @@ end within it, 8 KiB to spare. The linker places all code first and all constant
 strings) after it (`firmware/app.ld`, `_ecode`), and constants are never called, so the reach is measured to the end
 of the code (`XIP code … B, constants … B` in the notes); constants only use up the slot.
 
+## Build identity (what produced these bytes)
+
+Every build writes `build/manifest.json` **after** the artefacts (`tools/build_manifest.py`, called by
+`tools/build.py` and refreshed by `web/emu/build.sh`). It records, together:
+
+- the exact `commit` (`GIT_COMMIT`/`GITHUB_SHA` in CI, `git rev-parse HEAD` locally) and the
+  uncommitted files (`dirty`, minus `build/`) — so a build from a modified tree says so;
+- the `version` compiled into the firmware and the package `identity`;
+- the build `config` (`FELUCCA_*`, `FELUCCA_USB_LAYOUT`), the `toolchain` (path, name and the clang
+  binary's sha256) and the `sdk` (checkout commit and the sha256 of its three files);
+- `artifacts`: sha256 and size of `felucca.bin`, `loader/ota.bin` and the package;
+- `emulator`: the WASM's version, commit, sha256 and size, so the two cannot disagree.
+
+```
+python3 tools/build_manifest.py --verify                    # after a build
+python3 tools/build_manifest.py --verify --require-clean \
+        --expect-commit "$(git rev-parse HEAD)"             # what CI runs
+```
+
+`--verify` fails on any mismatch: a changed artefact, a manifest that names another commit, a dirty
+build under `--require-clean`, a version that is not the firmware's, or a WASM built elsewhere. A
+`--release` build refuses a dirty tree outright. The target build, the storage-less configuration and
+the WASM parity check run in `.github/workflows/target.yml`; the host tests and the sanitizer runs in
+`.github/workflows/c-cpp.yml`.
+
 ## Browser emulator
 
 ```

@@ -1,3 +1,45 @@
+## v1.9.0 — integrated base: v1.8.9 EQ + the AC791N build, reproducible artefacts, CI (2026-11-04)
+
+This is the first tree that contains both lines. `v1.8.8` was the AC791N-build line and `v1.8.9` the
+EQ/restore line, so neither number described this code: `FELUCCA_VERSION` is `v1.9.0`, and the
+number no longer stands alone — `build/manifest.json` ties it to the commit that produced the bytes.
+
+- **Integration.** `integ/v1.8.9` (EQ, raw restore, signing, preflight, six-track load) and
+  `freebuff/6ae847e` (flash identification, OTA bounds, core-1 self-test, verified backup, AC791N
+  build, portable barriers) merged. Both lines had fixed the same two defects on their own — the
+  `flash_identify` guard and the emulator's missing status register — so each is kept once, with the
+  comment that explains it. No feature from either line was dropped; the merge is `61a3198`.
+- **Build identity (`tools/build_manifest.py`).** One JSON manifest, written after the build, records
+  version, exact commit, uncommitted files, package identity, the `FELUCCA_*` configuration, the
+  toolchain (path, name, clang sha256), the SDK (checkout commit and the sha256 of its three files),
+  the sha256 and size of every artefact, and the emulator's own manifest. `--verify` fails on any
+  mismatch (changed artefact, another commit, dirty tree under `--require-clean`, a version that is
+  not the firmware's, a WASM built elsewhere); `--release` refuses a dirty tree. The emulator's
+  `manifest.json` gained its configuration, the `emcc` version and the same dirty list, and
+  `web/emu/build.sh` refreshes the tree's manifest, so `v1.8.9`'s WASM-naming-`dcd39f9` can no longer
+  happen. `tests/manifest_test.py` checks the live manifest **and** that the verifier refuses all five
+  ways of being wrong.
+- **CI that can fail (`/.github/workflows/target.yml`).** New jobs: the AC791N build with the pinned
+  toolchain and the pinned SDK (the manifest's SDK hashes are checked against `SDK_SHA256`), the
+  artefact/commit verification with `--require-clean`, the storage-less `FELUCCA_FLASH=0` build, and
+  WASM parity against the native render. The toolchain cache is keyed by the pinned archive hash, so
+  an unpinned or replaced toolchain cannot produce a silent pass. Permissions are `contents: read`;
+  nothing deploys.
+- **Tests that existed but nothing ran.** `eq_dc_test`, `eq_response_test`, `eq_state_test`,
+  `eq_sweep_test`, `six_track_test`, `chip_test.py`, `restore_test.py`, `sign_test.py` and
+  `preflight_test.py` are now wired into `tests/run_tests.sh` (and gated correctly under
+  `NO_PACKAGE=1`), together with the manifest test. A regression in the master biquad, the chip gate,
+  the raw restore or the signature check now fails something.
+- **Measured on the integrated tree** (`./build.sh`, identity `FM-1_982`): app 559 536 B of 568 KiB,
+  `.data+.bss` 96 452/98 304 B, RAM code 22 500/24 576 B, pool spare 9 248 B, package 611 163 B.
+  `tests/memory_map_test.py`, `tests/target_budget.py` and the golden-render regression pass. The RAM
+  map and why its largest objects were not traded for a number: [`docs/MEMORY_BUDGET.md`](docs/MEMORY_BUDGET.md).
+- **ASan + UBSan and both fuzz runs executed** this time (the two suites the previous pass could not
+  fit): loader, M-UPGRADE entry, editor, projects, backup, robust, FM6 bank, plus 20 000 editor/MIDI
+  frames (seed 7) and 5 000 mutated project stores (seed 13). All pass.
+- **Not verified:** hardware of any kind, a real power cut, a real browser session (no browser
+  automation here), and physical restore with `flashrom`.
+
 ## v1.8.9 — EQ correctness, raw restore, signed installs (2026-11-04)
 
 - **Identificación física (0x12) en la aplicación:** el NOR contesta con el JEDEC que leyó su propio driver
