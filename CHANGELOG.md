@@ -1,3 +1,17 @@
+## 2026-11-04 — Target build, real package and a deploy that survives a missing toolchain
+
+- **The firmware is compiled for the AC791N again.** JieLi's linux toolchain (`20260730.1`) and the three AC79 SDK
+  files were fetched here; `tools/build.py` produces `felucca-v1.7-QG-7768f59.fwsc`, **610.897 B**, `FM-1_982`,
+  SHA-256 `eb7d14a6…308e7b2c`, from a tree that includes the two-band Punch-in FX, the LATCH fixes and the three
+  buffer heads. It replaces the `1fae6cc` package, which predated those changes.
+- **`firmware/packages/` holds the published package** so the site can be built without the toolchain.
+- **The Pages deploy no longer depends on the target compiler.** `build/site` used to be produced only inside the
+  toolchain-gated step, so a failed download left nothing to upload and Pages never moved (that is why `/emulator/`
+  answered 404 while the portal served a build from hours earlier). The site is now built from `firmware/packages`
+  when the target build produces none, and a check fails loudly if there is still no `build/site/index.html`.
+- **`rev_room` baseline 218 → 243** after measuring with the compiler JieLi ships today: `fx.c` is byte-identical to
+  `ab3da86`, so the delta is the toolchain, not a render loop that grew.
+
 # Changelog — QUANTUM GAMMAWAVE (QG-1)
 
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
