@@ -3,6 +3,7 @@
  * (gen_reel.c reel_pack). Written as the autosave is (project.c): only when it changed and has stayed so for 10 s with
  * the transport stopped and nothing sounding (an erase stops the audio for its ~40 ms), at most once a minute; read
  * at power-on. Main loop only. Included by felucca.c after project.c */
+#if FELUCCA_FLASH                         /* (QG-1 v1.8.8) storage only: FELUCCA_FLASH=0 builds without it */
 #define RS_IDLE_MS 10000u
 #define RS_GAP_MS 60000u
 static struct { uint32_t saved, seen, t, last, poll; uint8_t wrote, err; } reel_fs __attribute__((section(".pool")));
@@ -35,3 +36,5 @@ static void reel_boot(void)
     reel_fs.saved = reel_fs.seen = reel_sig();
     reel_fs.t = fm1_ms;
 }
+
+#endif /* FELUCCA_FLASH */

@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <stdint.h>
+#include "fm1_cc.h"
 #define FM1_IRQ_TARGET 1
 
 #define FM1_VEC ((volatile uint32_t *)0x01C7FE00u)
@@ -114,7 +115,7 @@ static int fm1_core1_fault_c(const uint32_t *f)   /* 1: core 1's, core 0 resumes
     if (!(FM1_DBG_WR_EN & 1u))
         FM1_DBG_WR_EN = 0xE7u;                      /* (unlock) */
     FM1_DBG_MSG_CLR = dbg & FM1_DBG_C1;
-    __asm__ volatile("csync" ::: "memory");
+    FM1_CSYNC();
     if (cpu)
         for (;;)
             ;                                       /* (held: it goes no further) */

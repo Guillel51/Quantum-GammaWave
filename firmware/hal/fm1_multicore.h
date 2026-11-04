@@ -28,9 +28,10 @@
 #include "fm1_irq.h"
 #include "fm1_guard.h"
 #include "fm1_mc_selftest.h"
+#include "fm1_cc.h"
 
 #define FM1_C1_CON (*(volatile uint32_t *)0x1EEE004u)
-#define FM1_C1_SYNC() __asm__ volatile("csync" ::: "memory")
+#define FM1_C1_SYNC() FM1_CSYNC()
 #define FM1_C1_T4() (*(volatile uint32_t *)0x10804u)            /* TIMER4, 24 MHz */
 #define FM1_C1_CHECK(fn, arg, job) ((uint32_t)(uintptr_t)(fn) ^ (arg) ^ (job) * 0x9E3779B1u)
 

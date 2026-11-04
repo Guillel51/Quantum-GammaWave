@@ -2,6 +2,7 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Firmware save flows against NOR flash: deferred settings, retries, and failed-save rollback. */
 #define main hostsim_main
+#define HOSTSIM_FLASH_ID 1                 /* this test's own fl_jedec_ram / fl_status_ram, below */
 #include "hostsim.c"
 #undef main
 
