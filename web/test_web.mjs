@@ -1580,6 +1580,20 @@ function qg1FeaturesCheck() {
 qg1FeaturesCheck();
 
 
+// ---- (3.x) the installer page identifies the flash chip before any write -------------------
+{
+  const pkgHtml = readFileSync(new URL("./index_pkg.html", import.meta.url), "utf8");
+  const installs = pkgHtml.match(/up\.install\([^)]*\)/g) || [];
+  const resumes = pkgHtml.match(/up\.resume\([^)]*\)/g) || [];
+  ok(/async function chipEvidence\(/.test(pkgHtml) && /probeChip\(/.test(pkgHtml),
+     "installer page: 0x12 identifies the flash before the first write frame");
+  ok(installs.length === 3 && installs.every((s) => /,\s*ev\)$/.test(s)),
+     "installer page: every install() call passes the chip evidence");
+  ok(resumes.length === 3 && resumes.every((s) => /,\s*ev\)$/.test(s)),
+     "installer page: every resume() call passes the chip evidence");
+  ok(!/up\.write\(/.test(pkgHtml), "installer page: write() is reached only through install()/resume()");
+}
+
 // ---- 0x12 / 0x13 / Ed25519: the same policy the CLI enforces (tests/chip_test.py, tests/sign_test.py) ----
 {
   const M = await import("./fm1ota.js");

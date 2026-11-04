@@ -990,6 +990,18 @@ async function fwKind(up) {
   catch (e) { return { kind: "other", text: text + " (no answer)" }; }
   finally { link.close(); }
 }
+/* (3.x) 0x12: the physical flash chip, read from the unit itself before the first frame
+ * that can write. The identity frame carries the model only, so without this the updater
+ * refuses (fail-closed) and no install path can start: the page identifies the chip here. */
+async function chipEvidence(up, model) {
+  const dev = await up.find((id) => id.model === model);
+  if (!dev) throw Object.assign(new Error("the " + model + " did not answer"), { code: "notfound" });
+  try {
+    const ev = await probeChip(dev.link, 1500);      /* two readings: the device must agree with itself */
+    log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
+    return ev;
+  } finally { dev.link.close(); }
+}
 $("first-stock").addEventListener("click", () => { $("stock").open = true; $("stock").scrollIntoView({ behavior: "smooth" }); });
 
 $("go").addEventListener("click", async () => {
@@ -1012,8 +1024,10 @@ $("go").addEventListener("click", async () => {
     };
     const ota = await up.find((id) => /^ota-/i.test(id.model));
     if (ota) {
+      const ev = await probeChip(ota.link, 1500);        /* (3.x) 0x12 on the open link, before the write */
+      log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       ota.link.close();
-      sayK((await up.resume(image, step, meta.product)) ? "done" : "stopped");
+      sayK((await up.resume(image, step, meta.product, ev)) ? "done" : "stopped");
     } else {
       sayK("checking");
       const fw = await fwKind(up);
@@ -1033,7 +1047,8 @@ $("go").addEventListener("click", async () => {
           if (!confirm(t("bkSaved"))) { sayK("cancelled"); lockInstaller(false); return; }
         } else if (!confirm(t("bkNone"))) { sayK("cancelled"); lockInstaller(false); return; }
       }
-      await up.install(image, meta.product, step);
+      const ev = await chipEvidence(up, meta.product.split("_")[0]);
+      await up.install(image, meta.product, step, ev);
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || "");
@@ -1099,13 +1114,17 @@ $("stock-go").addEventListener("click", async () => {
     const step = (k, n) => { log(`${k} ${n ?? ""}`); if (["start","verify","loader","write","reboot","done"].includes(k)) sayK(k); if (k === "done") $("bar").value = 100; };
     const loader = await up.find(id => id.model === "ota-FM-1");
     if (loader) {
+      const ev = await probeChip(loader.link, 1500);
+      log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       loader.link.close();
       if (!$("stock-recovery").checked) { sayK("stockNeedBackup"); return; }
       if (!confirm(t("stockConfirm"))) return;
-      sayK(await up.resume(selected.image, step, selected.product) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, ev) ? "done" : "stopped");
     } else {
       const device = await up.find(id => id.model === "FM-1");
       if (!device) { sayK("notfound"); return; }
+      const ev = await probeChip(device.link, 1500);      /* the write needs this identity */
+      log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       const input = device.link.input, output = device.link.output; device.link.close();
       link = new BackupConnection(input, output);
       const info = archiveInfo(await link.request([1,[]]));
@@ -1114,7 +1133,7 @@ $("stock-go").addEventListener("click", async () => {
         (done,total) => sayK("backup", `${Math.round(done / Math.max(1,total) * 100)}%`));
       saveArchive(archive); link.close(); link = null;
       if (!confirm(t("stockConfirm"))) return;
-      await up.install(selected.image, selected.product, step);
+      await up.install(selected.image, selected.product, step, ev);
     }
   } catch (e) {
     if (e.code && TEXT[lang][e.code]) sayK(e.code,e.detail || ""); else sayK("error",e.message);
@@ -1140,10 +1159,13 @@ $("stock-direct").addEventListener("click", async () => {
     };
     const loader = await up.find(id => /^ota-/i.test(id.model));
     if (loader) {
+      const ev = await probeChip(loader.link, 1500);
+      log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       loader.link.close();
-      sayK(await up.resume(selected.image, step, selected.product) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, ev) ? "done" : "stopped");
     } else {
-      await up.install(selected.image, selected.product, step);
+      const ev = await chipEvidence(up, selected.product.split("_")[0]);
+      await up.install(selected.image, selected.product, step, ev);
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || ""); else sayK("error", e && e.message);
