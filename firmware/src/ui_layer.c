@@ -922,21 +922,22 @@ static void bnote(char *n, uint32_t t) { n[0] = B_NOTE[t]; n[1] = '#'; n[2] = 0;
  * three hidden macros still work on KNOB 1..3; the fourth, DEPTH, is shown in
  * the map's header (it is the one the buffer effects need while playing). The
  * map itself now starts where the cards were: the keyboard is 170 px high,
- * not 122, and the white keys are 141 px tall. */
+ * not 122, and the white keys are 118 px tall below the cards' band. */
 static const char *const FX_BANK2[5] = {"REV", "FRZ", "TAPE", "GLCH", "RTRG"};
 static const char *const FX_BLACK[5] = {"VIB", "TGT", "GATE", "RTRG", "DIVE"};
 #define FX_H (H_GRAPH + (Y_GRAPH - Y_LABEL))      /* the map takes the cards' 48 px too: 170 */
-#define FX_KEY_Y 25
-#define FX_KEY_H (FX_H - FX_KEY_Y - 4)           /* 141 px white keys, 66 px black keys */
+#define FX_CARD_H 40                             /* (3 .. 42: three 11 px lines and a 2 px margin) */
+#define FX_KEY_Y 48
+#define FX_KEY_H (FX_H - FX_KEY_Y - 4)           /* 118 px white keys, 58 px black keys */
 #define FX_KEY_X0 9                              /* 16 x 12 px keys, 2 px apart: 222 px, x 9..230 */
 #define FX_WHITE_W 12
 #define FX_WHITE_GAP 2
-#define FX_BLACK_W 9
-#define FX_BLACK_H 66
-#define FX_WHITE_LABEL_Y (FX_KEY_Y + FX_BLACK_H + 2)   /* below the black keys: no overlap */
-#define FX_WHITE_LABEL_H (FX_KEY_H - FX_BLACK_H - 2)
-#define FX_BLACK_LABEL_Y (Y_GRAPH - Y_LABEL)           /* below the 48 px top band: one glyph, one band */
-#define FX_BLACK_LABEL_H (FX_KEY_Y + FX_BLACK_H - FX_BLACK_LABEL_Y)
+#define FX_BLACK_W 8
+#define FX_BLACK_H 58
+#define FX_WHITE_LABEL_Y (FX_KEY_Y + FX_BLACK_H + 3)   /* below the black keys: no overlap */
+#define FX_WHITE_LABEL_H (FX_KEY_H - FX_BLACK_H - 3)
+#define FX_BLACK_LABEL_Y FX_KEY_Y                       /* one glyph band inside the black key */
+#define FX_BLACK_LABEL_H FX_BLACK_H
 static int32_t fx_text_y0, fx_text_y1;               /* the map band being drawn: no text outside it */
 static void fx_vtext(int32_t x, int32_t w, int32_t y, int32_t h, const char *s, uint16_t ink, uint16_t fill)
 {
@@ -960,10 +961,14 @@ static const char *fx_white_name(uint32_t p)
 }
 static void layer_fx(uint32_t band)
 {
-    static const uint8_t BKPOS[11] = {0, 1, 3, 4, 5, 7, 8, 10, 11, 12, 14};
-    uint32_t held = perf_kill ? 0u : perf_held | perf_latched, act = perf_act, ok = perf_avail();
+    /* the white-key place each black key sits after, in the engine's own order
+     * (seq.c key_place: the black keys' own index). A#3 follows A3 (place 2) and A#4
+     * follows A4 (place 9): the old 3 and 10 drew them over the next boundary, which
+     * put three black keys in a row (places 3/4/5) and left a gap where A#4 belongs. */
+    static const uint8_t BKPOS[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
+    uint32_t held = perf_kill ? 0u : perf_held | perf_latched, ok = perf_avail();
     uint32_t i, p, b, k, f, on, can, mutes = 0, heads = perf_buf_heads(), playing = perf_buf_playing();
-    char st[12], tgt[4];
+    char st[8], tgt[4], sel[3], dep[4];
     for (i = 0; i < NTRK; i++)
         mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
     if (pb_recording) {
@@ -981,26 +986,33 @@ static void layer_fx(uint32_t band)
     tgt[1] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'Y' : 'R';
     tgt[2] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'N' : 'M';
     tgt[3] = 0;
-    /* two compact lines: bank, latch, capture state, target and selected track (top band only) */
+    sel[0] = 'T'; sel[1] = (char)('1' + song.sel % NTRK); sel[2] = 0;
+    fmt_int(dep, 100 - perf_k[3]);
+    /* five compact cards, 44 x 40: the real effects' state, not extra controls. 40, not 36: the
+     * third line's ink reaches row 12 of its line (AF_S_CAP_Y 3 + the round letters' faint row),
+     * and in a 36 px card it fell 1 px past the card's edge (the UI audit's "spills out of its cell"). */
     if (!band) {
-        cv_text(7, 1, &AF_S, "PUNCH FX", T_THEME);
-        cv_text(62, 1, &AF_S, pfx_bank ? "B2" : "B1", T_ACCENT);
-        cv_text(82, 1, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM);
-        cv_text(7, 11, &AF_S, perf_latch_on ? "LATCH ON" : "LATCH NO", perf_latch_on ? T_ACCENT : T_DIM);
-        cv_text(82, 11, &AF_S, "TGT", T_MID);
-        cv_text(106, 11, &AF_S, tgt, T_TEXT);
-        cv_text(142, 11, &AF_S, "SEL", T_MID);
-        {
-            char sel[3] = {'T', (char)('1' + song.sel % NTRK), 0};
-            char dep[5];
-            cv_text(166, 11, &AF_S, sel, T_TEXT);
-            fmt_int(dep, 100 - perf_k[3]);
-            cv_text(194, 1, &AF_S, "DEP", T_MID);
-            cv_text(216, 1, &AF_S, dep, T_THEME);
-        }
+        static const int32_t CX[5] = {4, 51, 98, 145, 192};
+        for (i = 0; i < 5u; i++)
+            cv_rrect(CX[i], 3, 44, FX_CARD_H, 3, T_RAISE, T_SURF);
+        cv_text_on(CX[0] + 3, 6, &AF_S, "BANK", T_MID, T_RAISE);
+        cv_text_on(CX[0] + 3, 17, &AF_S, pfx_bank ? "B2" : "B1", pfx_bank ? T_ACCENT : T_TEXT, T_RAISE);
+        cv_text_on(CX[0] + 3, 28, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM, T_RAISE);
+        cv_text_on(CX[1] + 3, 6, &AF_S, "LATCH", T_MID, T_RAISE);
+        cv_text_on(CX[1] + 3, 17, &AF_S, perf_latch_on ? "ON" : "OFF", perf_latch_on ? T_ACCENT : T_DIM, T_RAISE);
+        cv_text_on(CX[1] + 3, 28, &AF_S, "FX", T_DIM, T_RAISE);
+        cv_text_on(CX[2] + 3, 6, &AF_S, "TARGET", T_MID, T_RAISE);
+        cv_text_on(CX[2] + 3, 17, &AF_S, tgt, T_TEXT, T_RAISE);
+        cv_text_on(CX[2] + 3, 28, &AF_S, "A#4", T_DIM, T_RAISE);
+        cv_text_on(CX[3] + 3, 6, &AF_S, "TRACK", T_MID, T_RAISE);
+        cv_text_on(CX[3] + 3, 17, &AF_S, sel, T_TEXT, T_RAISE);
+        cv_text_on(CX[3] + 3, 28, &AF_S, "SEL", T_DIM, T_RAISE);
+        cv_text_on(CX[4] + 3, 6, &AF_S, "DEPTH", T_MID, T_RAISE);
+        cv_text_on(CX[4] + 3, 17, &AF_S, dep, T_THEME, T_RAISE);
+        cv_text_on(CX[4] + 3, 28, &AF_S, "K4", T_DIM, T_RAISE);
     }
-    /* the sixteen white keys: 12 px each, 2 px apart, from y 25 to 166. The gap and the
-     * key's own 1 px edge draw the separation; the MIDI map is unchanged. */
+    /* the sixteen white keys: 12 px each, a 2 px gap and a 1 px edge. White is
+     * T_TEXT and black T_KEY: the old T_RAISE on both sides was why they merged. */
     for (p = 0; p < 16u; p++) {
         int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)p;
         for (k = 0; k < 27u; k++)
@@ -1010,38 +1022,39 @@ static void layer_fx(uint32_t band)
         can = k < 27u && PF_IS(f) && ((ok >> f) & 1u);
         on = can && ((held >> f) & 1u);
         {
-            uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
-            uint16_t ink = on ? T_INK : T_TEXT;
+            uint16_t fill = on ? T_ACCENT : can ? T_TEXT : T_RAISE;
+            uint16_t ink = on ? T_INK : can ? T_INK : T_DIM;
             cv_rect(x, FX_KEY_Y, FX_WHITE_W, FX_KEY_H, fill);
+            cv_rect(x, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
             cv_rect(x + FX_WHITE_W - 1, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
             fx_vtext(x, FX_WHITE_W, FX_WHITE_LABEL_Y, FX_WHITE_LABEL_H, fx_white_name(p), ink, fill);
         }
     }
-    /* the eleven black keys: mutes T1..T6 and VIB TGT GATE RTRG DIVE. They sit over the
-     * white keys, 9 px wide and 66 px high, with their three-letter name vertical. */
+    /* the eleven black keys: 8 px wide, 58 px high and 6 px apart even where two
+     * sit side by side (BKPOS 0/1, 3/4/5, 7/8, 10/11). T_KEY makes the separation
+     * visible against the white keys; the 1 px edge keeps the rounded shape. */
     for (b = 0; b < 11u; b++) {
-        int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)(BKPOS[b] + 1u) - (FX_BLACK_W + 1) / 2;
+        int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)(BKPOS[b] + 1u) - FX_BLACK_W / 2;
         for (k = 0; k < 27u; k++)
             if (key_black(k) && key_place(k) == b)
                 break;
         if (b < NTRK) {
-            uint16_t fill = (mutes >> b) & 1u ? T_KEY : T_RAISE;
+            uint16_t fill = (mutes >> b) & 1u ? T_ACCENT : T_KEY;
             char n[3] = {'T', (char)('1' + b), 0};
-            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_BG);
+            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
             fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_TEXT, fill);
         } else {
             f = k < 27u ? perf_key(k) : PF_N;
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
             on = can && ((held >> f) & 1u);
             {
-                uint16_t fill = on ? T_ACCENT : can ? T_RAISE : T_DIM;
-                uint16_t ink = on ? T_INK : T_TEXT;
-                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_BG);
+                uint16_t fill = on ? T_ACCENT : can ? T_KEY : T_DIM;
+                uint16_t ink = on ? T_INK : can ? T_TEXT : T_BG;
+                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
                 fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
             }
         }
     }
-    (void)act;
 }
 /* a track playing DRUM: the rows shrink (28, 28, 24 px) and the group mutes take the third */
 static const char *const GLO_GROUP[4] = {"KICK", "SNR", "HAT", "PERC"};
