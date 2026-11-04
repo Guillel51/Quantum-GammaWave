@@ -12,6 +12,15 @@
   that refused to publish without a target package was correct and is unchanged.
 - **Target build of the branch:** 610 897 B package, app 556 152 B, sha256 `a56cdcb9…`, RAM spare 2 572 B, pool spare
   9 248 B, RAM code spare 2 112 B, DSP budgets and package bounds green. Reproducible: same hash twice.
+- **Preflight de instalación (solo lectura):** `tools/fm1_preflight.py` comprueba hash obligatorio, tamaño,
+  identidad, modelo y modo del dispositivo, y devuelve NO-GO mientras el chip físico no esté identificado
+  (exit 7). Nunca envía UPGRADE; `tests/preflight_test.py` lo verifica caso por caso dentro del grupo
+  `security`.
+- **Cortes por página en el loader:** `tests/ldr_test.c` corta la energía en cada página que el loader
+  realmente programa (32 estados con los paquetes de esta rama) y exige reanudación exacta. Los presupuestos
+  que no cortaban se informan como omitidos.
+- **Documentación:** `docs/FM1_INSTALL_SAFETY.md` reúne alternativas de identificación del chip, el diseño de
+  backup bloqueado, la máquina de estados, los niveles de recuperación y el criterio NO-GO.
 - **Bootsplash:** `SPL_WRITE` 800 → 1100 ms and `SPL_HOLD` 900 → 1200 ms, a slower reveal and hold.
 - **Installer trust (documented, not changed):** the WebMIDI identity reply carries `model_version` and no
   SPI NOR JEDEC id, so the installer cannot verify the physical flash before writing; the 1 MiB allowlist is

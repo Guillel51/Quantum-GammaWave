@@ -360,4 +360,6 @@ against_js()
 official()
 shutil.rmtree(TMP, ignore_errors=True)
 print(f"INSTALL TESTS FAILED ({failed})" if failed else "install tests passed")
-sys.exit(1 if failed else 0)
+
+if __name__ == "__main__":
+    sys.exit(1 if failed else 0)

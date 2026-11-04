@@ -259,6 +259,11 @@ int main(int argc, char **argv)
             put_record(0xE4F00); put_record(0xE8F00);
             prog_budget = (long)cuts[ci]; power_cuts = 0; record_cleared = 0; erases = 0; bad_range = 0; f0_asked = 0;
             rc = ldr_session();
+            if (rc == 0 && power_cuts == 0) {          /* this install programs less than the budget */
+                printf("  cut %#x: the write ends before it, skipped\n", cuts[ci]);
+                prog_budget = -1;
+                continue;
+            }
             if (rc == 0 || power_cuts != 1 || record_cleared || nor[0xE4F06] != 0x41) {
                 printf("  cut %#x: rc %d, cuts %u, record_cleared %u\n", cuts[ci], rc, power_cuts, record_cleared);
                 bad++;
@@ -274,6 +279,51 @@ int main(int argc, char **argv)
                          !memcmp(nor + 0x4000, logical + nfo + 0x4000, 0x93000 - 0x4000) &&
                          !memcmp(nor, head, sizeof head) && !memcmp(nor + 0xA0000, user, sizeof user) && bad_range == 0);
         }
+    }
+    /* power loss at every program page the loader actually writes: the number of pages comes from an
+     * uncut reference run, so every step below is a real cut (the loader skips sectors already equal) */
+    {
+        uint32_t total = 0, cut, done = 0, fails = 0, ref_eras, reached_commit = 0;
+        memcpy(nor, old + ofo, 0x93000);
+        memcpy(nor, head, sizeof head);
+        put_record(0xE4F00); put_record(0xE8F00);
+        erases = 0; prog_budget = -1; bad_range = 0; record_cleared = 0;
+        rc = ldr_session();
+        ref_eras = erases;
+        if (rc == 0)
+            total = ref_eras * 0x1000u;
+        printf("  reference write: rc %d, %u sector erases, %u B to program\n", rc, ref_eras, total);
+        if (!total) bad++;
+        for (cut = 0; cut < total; cut += 256u) {
+            memcpy(nor, old + ofo, 0x93000);
+            memcpy(nor, head, sizeof head);
+            put_record(0xE4F00); put_record(0xE8F00);
+            prog_budget = (long)cut; power_cuts = 0; record_cleared = 0; f0_asked = 0; bad_range = 0;
+            rc = ldr_session();
+            if (rc == 0 && power_cuts == 0) break;          /* the write ended before this page */
+            if (rc == 0 && record_cleared) {               /* the cut fell after the commit, in cleanup */
+                printf("  cut %#x: after the commit (cleanup), matrix ends\n", cut);
+                reached_commit = 1;
+                break;
+            }
+            if (power_cuts != 1 || record_cleared) {
+                fails++;
+                printf("  cut %#x: rc %d, cuts %u, record cleared %u\n", cut, rc, power_cuts, record_cleared);
+                continue;
+            }
+            prog_budget = -1;
+            rc = ldr_session();
+            if (rc || !record_cleared ||
+                memcmp(nor + 0x4000, logical + nfo + 0x4000, 0x93000 - 0x4000) ||
+                memcmp(nor, head, sizeof head) || memcmp(nor + 0xA0000, user, sizeof user) || bad_range) {
+                fails++;
+                printf("  resume after %#x: rc %d, cleared %u, bad range %u\n", cut, rc, record_cleared, bad_range);
+            }
+            done++;
+        }
+        printf("  page cuts: %u cut states, %u failures\n", done, fails);
+        bad += check("a power cut at every programmed page resumes and completes exactly",
+                     fails == 0 && done >= 8 && reached_commit);
     }
     free(old);
     free(logical);
