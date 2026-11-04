@@ -1,14 +1,36 @@
+## 2026-11-04 — Integration, target package and public deployment (`0f52f48`)
+
+- **Both histories are integrated.** `origin/main` (`36d3eac`, including PR #60–#62) was merged into
+  `work/v18-integration` in `9ff38e3` without force-push and without dropping either side. Conflicts in
+  `ui_layer.c`, `web/editor.html`, `web/site/index.html`, `web/test_site.py` and the two captures were
+  resolved against the Quantum/two-band tree; the duplicated `layer_fx`/`fx_card` calls and the duplicated
+  `pf`/`PF_LOW` blocks were removed.
+- **The target package is current.** JieLi `20260730.1` and the AC79 SDK files produced
+  `v1.7-QG-0f52f48`, **610.897 B**, `FM-1_982`, SHA-256 `eb7d14a6…308e7b2c`. It includes the two-band
+  Punch-in FX, LATCH, the key assignments and the three-head buffer engine; the old `1fae6cc` package is
+  no longer offered as current.
+- **GitHub Pages published the integrated tree.** The run from `0f52f48` replaced the manifest commit
+  `8c101d13…` with `0f52f48011ce`; `/emulator/`, `/emulator/manifest.json`, `/webapp/editor/`,
+  `/webapp/installer/` and `/firmware/versions.json` all return 200.
+- **Public Chromium passed:** 1440 px and 390 px without overflow, Web Site first, seven Web Studio tabs
+  visible, emulator at **60,1 FPS** with WASM `c3258d73…` (1.030.002 B), installer listing
+  `v1.7-QG-0f52f48` with the downloaded package's SHA-256 verified, and no console errors.
+- **Documentation is aligned with the public build** in `docs/V1.8_STATUS.md`; the temporary `ci-diag`
+  diagnostics were removed from the Pages workflow. This remains `v1.7-QG`, not a v1.8.5 release, and no
+  physical FM-1 was flashed.
+
 ## 2026-11-04 — Target build, real package and a deploy that survives a missing toolchain
 
 - **The firmware is compiled for the AC791N again.** JieLi's linux toolchain (`20260730.1`) and the three AC79 SDK
   files were fetched here; `tools/build.py` produces `felucca-v1.7-QG-7768f59.fwsc`, **610.897 B**, `FM-1_982`,
   SHA-256 `eb7d14a6…308e7b2c`, from a tree that includes the two-band Punch-in FX, the LATCH fixes and the three
   buffer heads. It replaces the `1fae6cc` package, which predated those changes.
-- **`firmware/packages/` holds the published package** so the site can be built without the toolchain.
+- **The site build no longer needs a package committed to the tree.** The target build produces the
+  package; if the toolchain did not run, the workflow falls back to one already built for the target.
 - **The Pages deploy no longer depends on the target compiler.** `build/site` used to be produced only inside the
   toolchain-gated step, so a failed download left nothing to upload and Pages never moved (that is why `/emulator/`
-  answered 404 while the portal served a build from hours earlier). The site is now built from `firmware/packages`
-  when the target build produces none, and a check fails loudly if there is still no `build/site/index.html`.
+  answered 404 while the portal served a build from hours earlier). The site falls back to a target-built
+  package when the compiler did not run, and a check fails loudly if there is still no `build/site/index.html`.
 - **`rev_room` baseline 218 → 243** after measuring with the compiler JieLi ships today: `fx.c` is byte-identical to
   `ab3da86`, so the delta is the toolchain, not a render loop that grew.
 
@@ -32,9 +54,9 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   disconnect no longer logs `Error: closed`. Chromium 1440/390: seven tabs, no console errors, no 404.
 - **Emulator manifest names the current commit** after a rebuild, and `build/site/emulator` ships that same
   `index.html` + `felucca.wasm` + `manifest.json`.
-- **Installer:** the published package still matches `firmware/versions.json` (`v1.7-QG-1fae6cc`, `FM-1_982`,
-  610.897 B, SHA-256 `d6d9611b…c75a6eac`). It was compiled at `1fae6cc` and does **not** contain the later
-  Punch-in FX / LATCH UI fixes: there is no JieLi/AC79 toolchain here to rebuild it.
+- **Installer:** the published package matches `firmware/versions.json` (`v1.7-QG-0f52f48`, `FM-1_982`,
+  610.897 B, SHA-256 `eb7d14a6…308e7b2c`). It was compiled for the AC791N from the integrated tree and
+  includes the Punch-in FX / LATCH UI fixes; the older `1fae6cc` package is retained only as history.
 
 ## 2026-11-04 — Web portal, Web Studio 2.0 and consonant intervals
 
@@ -57,9 +79,9 @@ The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hard
   `5b8475aaeda9e090f022fe8879d6cb3861845838367b454718ef0d482c2fd76a`; native comparison bit for bit
   (88.200 frames), 23,5 ms/s (2,4 % of real time). No target build, physical FM-1 or online deployment
   is claimed.
-- **Version decision:** **v1.8.5 is not published.** The weighted matrix in `docs/V1.8_STATUS.md` is
-  **83/119 = 69,7 %**, below the required 75 %, and the critical target / hardware / recovery / signature
-  gates remain open. `FELUCCA_VERSION` stays `v1.7-QG`.
+- **Version decision:** **v1.8.5 is not published.** `FELUCCA_VERSION` stays `v1.7-QG`; the build is
+  published and verified in software, but physical hardware, signature, rollback and independent recovery
+  remain open. See `docs/V1.8_STATUS.md`.
 
 ## 2026-11-04 — PUNCH-IN FX keyboard and EQ safety pass
 

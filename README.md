@@ -38,13 +38,12 @@
 
 ## Portal and interface, current build
 
-| Official portal (`/`) | Web Studio 2.0 (`/webapp/editor/`) |
+| Public portal (`/`) | Public Web Studio (`/webapp/editor/`) |
 |---|---|
-| ![Quantum GammaWave portal](artifacts/v18-site-hero.png) | ![Web Studio 2.0](artifacts/v18-webstudio-2.png) |
+| ![Quantum GammaWave portal](artifacts/public-site-1440.png) | ![Web Studio 2.0](artifacts/public-webstudio-1440.png) |
 
 The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
-The screenshots above were captured from the local build with Chromium 131; the Portal is **not deployed** in
-this pass, so the public Pages URL still serves the previous site until these changes are merged and published.
+The screenshots above were captured in Chromium from the **published build `0f52f48`**, not from localhost.
 
 ---
 
@@ -71,9 +70,10 @@ hierarchy and a hardware-style brand bar) without changing any control id, SysEx
 handler. It was checked in Chromium at 1440 px and 390 px: seven tabs, no horizontal overflow and no console
 or request errors. The emulator remains the same real WASM firmware; the portal only links to it.
 
-This is not a v1.8.5 release. `FELUCCA_VERSION` remains `v1.7-QG`; target compilation, physical FM-1
-validation, signed packages and independent recovery are still open. See
-[`docs/V1.8_STATUS.md`](docs/V1.8_STATUS.md) for the weighted matrix and the publication decision.
+This is not a v1.8.5 release. `FELUCCA_VERSION` remains `v1.7-QG`. The target package is compiled and
+published (`v1.7-QG-0f52f48`, 610.897 B, `eb7d14a6…`), and the public portal, emulator, Web Studio and
+installer were verified in Chromium. Physical FM-1 validation, signed packages, anti-downgrade, A/B and
+independent recovery are still open; see [`docs/V1.8_STATUS.md`](docs/V1.8_STATUS.md).
 
 ## What's in Quantum GammaWave (`v1.7-QG`)
 

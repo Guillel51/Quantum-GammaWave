@@ -1,15 +1,18 @@
 # Quantum GammaWave (QG-1) — Project Status & Audit Report
 
-**Date:** 2026-11-02
+**Date:** 2026-11-04
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
-**Branch:** `feat/v1.5-hardening` (cut from `main` @ `4682fef`)
+**Branch:** `work/v18-integration` (integrated into `main`), build `0f52f48`
 **Current Milestone Version:** `v1.7-QG`
 
-> **Current local build (2026-11-03):** `perf/security-hardening` @ `c020b7e` + cambios locales, **sin
-> publicar**. Firmware 552.660 B (`0ce7fade…`), paquete 610.897 B (`c6705349…`), WASM 1.032.058 B
-> (`b9a52ca4…`), página con hash/manifiesto y `NVOICE 10`. El informe de Pages de abajo es histórico
-> (2026-11-02) y no describe este build. Chromium local: 60,6 FPS, etiquetas SVG visibles y Web Studio /
-> instalador cargados sin errores de página.
+> **Current public build (2026-11-04):** `v1.7-QG-0f52f48`. Firmware target 552.620 B
+> (`340cc9c7…`), package **610.897 B** (`eb7d14a6…`), WASM **1.030.002 B** (`c3258d73…`), `NVOICE 10`.
+> GitHub Pages serves the integrated portal, emulator, Web Studio and installer; Chromium public:
+> 60,1 FPS, seven tabs, 1440/390 without overflow, no console errors. The audit sections below are
+> historical (2026-11-02/03) and are kept as evidence, not as the current build description.
+>
+> **Pending:** no physical FM-1 was flashed; signature, anti-downgrade, A/B, rollback and independent
+> recovery are not implemented. See `docs/V1.8_STATUS.md`.
 
 ### v1.6-QG — what was verified (2026-11-03)
 
