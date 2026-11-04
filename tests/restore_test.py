@@ -204,9 +204,65 @@ def main():
         except R.RestoreError as e:
             ok(e.code == "geometry", "a unit with another geometry is refused (code geometry)")
 
+        # --- the write path: the part is erased, programmed and read back, sector by sector ---
+        nor_path = Path(tmp) / "part.nor"
+        ok(R.main(["--backup", str(man_path), "--write", "--programmer", f"file:{nor_path}"]) == 0,
+           "write: a blank part is erased, programmed and reads back like the backup (exit 0)")
+        ok(nor_path.read_bytes() == raw, "write: the simulated part holds the image byte for byte")
+
+        class Stuck(R.NorFile):
+            """a part whose first byte of every page will not program: the readback must catch it"""
+
+            def program(self, addr, chunk):
+                super().program(addr, chunk)
+                self.data[addr] |= 0x01
+
+        got, why = refuses(lambda: R.write_nor(raw, Stuck(Path(tmp) / "stuck.nor"), 0x1000, 256), "program")
+        ok(got, f"write: a bit that does not program is caught by the sector readback ({why})")
+
+        ok(R.main(["--backup", str(man_path), "--write", "--programmer", "nope:x"]) == 2,
+           "write: an unknown programmer is refused with exit 2")
+
+        # an external SPI programmer: a stand-in flashrom, so the command line and the readback compare run
+        bindir = Path(tmp) / "bin"
+        bindir.mkdir()
+        chip = Path(tmp) / "chip.bin"
+        chip.write_bytes(b"\xff" * 0x100000)
+        fake = bindir / "flashrom"
+        fake.write_text("#!/bin/sh\nwhile [ $# -gt 0 ]; do\n"
+                        f"  case \"$1\" in -w) cp \"$2\" {chip} ;; -r) cp {chip} \"$2\" ;; esac\n"
+                        "  shift\ndone\n")
+        fake.chmod(0o755)
+        saved_flashrom = R.FLASHROM
+        R.FLASHROM = str(fake)
+        try:
+            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi"]) == 0,
+               "write: the flashrom backend writes, reads the part back and compares it (exit 0)")
+            ok(chip.read_bytes() == raw, "write: the stand-in part holds the image after the flashrom run")
+
+            # a programmer that reports success but leaves a byte wrong must not pass
+            fake.write_text("#!/bin/sh\nwhile [ $# -gt 0 ]; do\n"
+                            f"  case \"$1\" in -w) cp \"$2\" {chip} ;; "
+                            "-r) cp " + str(chip) + " \"$2\"; printf '\\377' | dd of=\"$2\" bs=1 seek=0 conv=notrunc 2>/dev/null ;; esac\n"
+                            "  shift\ndone\n")
+            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi"]) == 8,
+               "write: a readback that differs exits 8 even when flashrom claimed success")
+        finally:
+            R.FLASHROM = saved_flashrom
+
+        bad = bindir / "flashrom_bad"
+        bad.write_text("#!/bin/sh\necho 'No EEPROM/flash device found.' >&2\nexit 3\n")
+        bad.chmod(0o755)
+        R.FLASHROM = str(bad)
+        try:
+            ok(R.main(["--backup", str(man_path), "--write", "--programmer", "flashrom:ch341a_spi"]) == 2,
+               "write: a programmer that fails exits 2 instead of reporting a restore")
+        finally:
+            R.FLASHROM = saved_flashrom
+
         # exit codes through main(): a good archive is 0, a write is 5, an archive problem is 1
         ok(R.main(["--backup", str(man_path)]) == 0, "main: a usable archive exits 0")
-        ok(R.main(["--backup", str(man_path), "--write"]) == 5, "main: --write exits 5")
+        ok(R.main(["--backup", str(man_path), "--write"]) == 5, "main: --write without a programmer exits 5")
         truncated = Path(tmp) / "cut.bin"
         truncated.write_bytes(raw[:0x80000])
         cut_man = json.loads(json.dumps(man))

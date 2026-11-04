@@ -10,8 +10,9 @@
  *   processed   what qg_biquad_process() really returns, sampled at 1 s and at 20 s
  *   settling    the same value at both times: a 20 Hz shelf settles in ~2 s here, so a
  *               difference would be settling, and there is none
- *   bias        processed - ideal, in dB: the fixed-point truncation of the recursion,
- *               multiplied by 1/(1+a1+a2) ~ 493 000 because the pole is that close to 1
+ *   bias        processed - ideal, in dB: what is left of the fixed-point error of the
+ *               recursion after it rounds to nearest, multiplied by 1/(1+a1+a2) ~ 493 000
+ *               because the pole is that close to 1
  *
  * Nothing here is tuned to make the numbers agree: the assertions are the ones the measured
  * behaviour has to keep (a bounded bias, no drift, both channels equal). If a future change to
@@ -88,15 +89,16 @@ int main(void)
     check("both channels process DC identically (no left/right scale asymmetry)", y1l == y1r && y20l == y20r);
     check("the DC output does not drift between 1 s and 20 s (it is settled, not converging)",
           y1l == y20l && y1r == y20r);
-    check("the processed DC gain is the coefficient's within 2 dB", fabs(bias) < 2.0);
+    check("the processed DC gain is the coefficient's within 0.5 dB", fabs(bias) < 0.5);
     check("the processed DC gain is a boost, not a cut or a runaway (gain > 10)", g1 > 10.0 && g1 < 25.0);
-    /* the bias is the truncation amplified by the near-unit pole: a positive gain error of that
-     * size is expected, an unexplained loss of 6 dB or a growing output is not */
-    check("the quantization bias stays under 1.5 dB below the ideal gain", bias > -1.5);
+    /* rounding to nearest (v1.8.9) is what brought this from -1.46 dB to +0.23 dB: the residue is
+     * the last half-LSB of each product, amplified by the near-unit pole. A loss of 1 dB or more,
+     * or an output that keeps growing, would be a different bug. */
+    check("the quantization residue stays inside +/-0.5 dB of the ideal gain", fabs(bias) < 0.5);
 
     /* The same shelf at three levels. The truncation is an absolute offset in the output, not a
-     * gain: at a quiet DC it is a large share of the signal (+20 % at 100) and at a loud one it
-     * is a fraction of a percent. DC is not audio; the corner-response test covers the band. */
+     * remainder: at a quiet DC it is a large share of the signal (-4.4 dB at 100) and at a loud
+     * one it is a fraction of a percent. DC is not audio; the corner-response test covers the band. */
     {
         static int32_t l[CTL], r[CTL];
         static const int32_t IN[3] = {100, 1000, 8000};
@@ -116,11 +118,11 @@ int main(void)
             err = out - ideal * IN[k];
             printf("eq-dc: input %5d -> %7d  gain %.4f (%.2f dB, ideal %+.2f dB)  offset %+.0f units\n",
                    IN[k], out, g, 20.0 * log10(g), 20.0 * log10(g / ideal), err);
-            if (fabs(err) > 3000.0) err_ok = 0;                  /* < 10 % of 32768 */
-            if (IN[k] >= 1000 && fabs(20.0 * log10(g / ideal)) > 2.0) gain_ok = 0;
+            if (fabs(err) > 1000.0) err_ok = 0;                  /* < 3 % of 32768 */
+            if (IN[k] >= 1000 && fabs(20.0 * log10(g / ideal)) > 0.5) gain_ok = 0;
         }
-        check("the absolute DC offset stays under 3000 units at every level", err_ok);
-        check("at audio levels (1000, 8000) the gain is the ideal one within 2 dB", gain_ok);
+        check("the absolute DC remainder stays under 1000 units at every level", err_ok);
+        check("at audio levels (1000, 8000) the gain is the ideal one within 0.5 dB", gain_ok);
     }
 
     printf("eq dc: %s (%d failed)\n", bad ? "FAILED" : "passed", bad);

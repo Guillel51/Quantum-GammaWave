@@ -113,13 +113,12 @@ int main(void)
     snprintf(b, sizeof b, "peak +24 dB at 20 Hz: measured %+.2f dB", v);
     check(b, v > 21.5 && v < 26.5);
 
-    /* A 20 Hz cut is limited by the Q25 coefficients themselves, not by the recursion: at that
-     * frequency the denominator's coefficients are only a few LSB apart, so a deep cut cannot be
-     * resolved (measured -17.6 dB). The same cut at 650 Hz reaches -24.0 dB, which is checked
-     * below: this is a documented limit of the filter's resolution, not a regression. */
+    /* (v1.8.9) This used to reach only -17.6 dB: the numerator is three rounded Q25 coefficients
+     * whose sum is a handful of LSB, and the three rounding errors were several dB of the cut. The
+     * setter now corrects the sum to the exact value it divided by a0, so the cut is the cut. */
     v = gain_db(1, 0, -24, 64, 20.0);
-    snprintf(b, sizeof b, "peak -24 dB at 20 Hz: measured %+.2f dB (Q25 limit, >= 15)", v);
-    check(b, v < -15.0 && v > -27.0);
+    snprintf(b, sizeof b, "peak -24 dB at 20 Hz: measured %+.2f dB (the cut the sum used to lose)", v);
+    check(b, v < -21.5 && v > -26.5);
 
     v = gain_db(1, 64, -24, 64, EQ_HZ[64]);
     snprintf(b, sizeof b, "peak -24 dB at index 64 (%.0f Hz): measured %+.2f dB", (double)EQ_HZ[64], v);

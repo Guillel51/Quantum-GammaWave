@@ -11,15 +11,23 @@ exactly which ranges differ.
   fm1_restore.py --backup DIR-or-FILE            validate the archive on its own (no MIDI)
   fm1_restore.py --backup DIR-or-FILE --device   validate it and compare with the connected FM-1
   fm1_restore.py --backup DIR-or-FILE --compare  read the whole part again and list the differences
-  fm1_restore.py --backup DIR-or-FILE --write    refused: see below
+  fm1_restore.py --backup DIR-or-FILE --write --programmer file:PATH
+  fm1_restore.py --backup DIR-or-FILE --write --programmer flashrom:ch341a_spi
 
-WHY --write IS REFUSED, and not hidden: the update path (web/fm1ota.js, tools/fm1_install.py) serves a
-*felucca package* to the loader, which reads the logical image and writes the firmware. Nothing in
-that protocol has been shown to accept an arbitrary 1 MiB dump, and no raw write has been verified on
-a bench here. A tool that offered one would be a way to brick a unit while looking like recovery.
-Restoring a backup needs either the vendor's bootloader path or an external programmer, both
-documented in docs/RECOVERY.md; until one is demonstrated on a lab unit, this tool stops before the
-first frame that could write.
+WHY --write NEEDS A PROGRAMMER, and not a MIDI frame: the update path (web/fm1ota.js,
+tools/fm1_install.py) serves a *felucca package* to the loader, which writes the application area from
+a verified package. Nothing in that protocol has been shown to accept an arbitrary 1 MiB dump, so a
+raw restore cannot go over MIDI: it goes through the part's own SPI bus, with the flash held off the
+FM-1's own MCU (docs/RECOVERY.md). Two backends implement that here:
+
+  file:PATH       a NOR part simulated on a file (4 KiB erase, 256 B program, program clears bits
+                  only). Every sector is erased, programmed and read back, then the whole part is
+                  read back again. This is the path the tests drive; it is not hardware.
+  flashrom:DEVICE an external SPI programmer through flashrom, which erases, programs and verifies;
+                  this tool then reads the whole part back and compares it with the archive.
+
+Neither backend has been run against physical hardware here. --write without --programmer is still
+refused, and no MIDI write frame is ever sent.
 
 What it does verify, so a backup is worth something: the archive is complete (both passes ran, are
 byte-identical, and cover the whole part), the file's SHA-256 is the manifest's, the manifest's chip
@@ -27,13 +35,17 @@ and geometry are an identified 1 MiB part, and the recorded frames were read-onl
 
 Exit codes: 0 the archive is usable (and, with --compare, matches), 1 the archive is not usable,
 2 bad arguments, 3 the FM-1 was not found, 4 the comparison found differences, 5 a write was asked
-for (refused), 6 the unit does not match the backup's chip or geometry.
+for, 6 the unit does not match the backup's chip or geometry, 8 a write was attempted and the part
+does not read back like the archive.
 """
 import argparse
 import hashlib
 import json
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import fm1_probe as P
@@ -132,6 +144,109 @@ def compare(link, raw, session, chunk=P.CHUNK):
     return ranges
 
 
+class NorFile:
+    """A NOR part simulated on a file: 4 KiB sectors, 256 B pages, programming only clears bits."""
+
+    def __init__(self, path, size=CAP, blank=0xFF):
+        self.path, self.size = Path(path), size
+        if self.path.exists():
+            data = bytearray(self.path.read_bytes())
+            if len(data) != size:
+                raise RestoreError("programmer", f"{self.path} holds {len(data)} bytes, the part is {size}")
+        else:
+            data = bytearray([blank]) * size
+        self.data, self.erased, self.programmed = data, 0, 0
+
+    def erase(self, addr, sector):
+        if addr % sector or addr + sector > self.size:
+            raise RestoreError("programmer", f"erase of 0x{addr:05X} is not a {sector} B sector of this part")
+        self.data[addr:addr + sector] = b"\xff" * sector
+        self.erased += sector
+
+    def program(self, addr, chunk):
+        for i, b in enumerate(chunk):
+            self.data[addr + i] &= b          # NOR can only turn 1s into 0s
+        self.programmed += len(chunk)
+
+    def read(self, addr, n):
+        return bytes(self.data[addr:addr + n])
+
+    def save(self):
+        tmp = self.path.with_suffix(self.path.suffix + ".tmp")
+        tmp.write_bytes(bytes(self.data))
+        tmp.replace(self.path)
+
+
+def write_nor(raw, nor, sector, page):
+    """erase, program and read back sector by sector; -> receipt. Raises before trusting a mismatch."""
+    for off in range(0, len(raw), sector):
+        chunk = raw[off:off + sector]
+        nor.erase(off, sector)
+        for p in range(0, len(chunk), page):
+            nor.program(off + p, chunk[p:p + page])
+        got = nor.read(off, len(chunk))
+        if got != chunk:
+            bad = next(i for i in range(len(chunk)) if got[i] != chunk[i])
+            raise RestoreError("program", f"sector 0x{off:05X} does not read back: first difference at "
+                                          f"+0x{bad:X}, wrote 0x{chunk[bad]:02X}, read 0x{got[bad]:02X}")
+    if nor.read(0, len(raw)) != raw:
+        raise RestoreError("program", "the whole part does not read back like the image")
+    return {"back": "file", "bytes": len(raw), "sectors": len(raw) // sector,
+            "erased": nor.erased, "programmed": nor.programmed}
+
+
+FLASHROM = "flashrom"
+
+
+def flashrom_restore(programmer, raw):
+    """erase+program+verify with flashrom, then read the part back and compare -> receipt"""
+    exe = shutil.which(FLASHROM) if not Path(FLASHROM).is_file() else FLASHROM
+    if not exe:
+        raise RestoreError("programmer", f"{FLASHROM} is not installed: apt-get install flashrom, "
+                                         f"or use --programmer file:PATH to exercise the engine")
+    with tempfile.TemporaryDirectory(prefix="fm1-restore-") as tmp:
+        img, back = Path(tmp) / "image.bin", Path(tmp) / "readback.bin"
+        img.write_bytes(raw)
+        for args in (("-w", str(img)), ("-r", str(back))):
+            r = subprocess.run([exe, "-p", programmer, *args], capture_output=True, text=True)
+            if r.returncode:
+                tail = (r.stderr or r.stdout).strip().splitlines()[-1:] or ["no output"]
+                raise RestoreError("programmer", f"flashrom -p {programmer} {args[0]} failed "
+                                                 f"({r.returncode}): {tail[0]}")
+        got = back.read_bytes()
+    if len(got) != len(raw):
+        raise RestoreError("program", f"the part reads back {len(got)} bytes, the archive has {len(raw)}")
+    if got != raw:
+        bad = next(i for i in range(len(raw)) if got[i] != raw[i])
+        raise RestoreError("program", f"the part does not read back like the archive: first difference at "
+                                      f"0x{bad:05X}, wrote 0x{raw[bad]:02X}, read 0x{got[bad]:02X}")
+    return {"back": "flashrom", "programmer": programmer, "bytes": len(raw), "verified": True}
+
+
+def restore(a, facts, raw):
+    spec = (getattr(a, "programmer", None) or "").strip()
+    if not spec:
+        raise RestoreError("write", "refused: no programmer. The MIDI protocol has no frame that writes "
+                                    "a raw image, so a restore goes through the part's SPI bus: give "
+                                    "--programmer file:PATH or --programmer flashrom:DEVICE (docs/RECOVERY.md)")
+    kind, _, arg = spec.partition(":")
+    if kind == "file":
+        if not arg:
+            raise RestoreError("programmer", "file: needs a path to the simulated part")
+        nor = NorFile(arg, size=facts["capacity"])
+        rec = write_nor(raw, nor, facts["sector"], facts["page"])
+        nor.save()
+        rec["part"] = arg
+    elif kind == "flashrom":
+        rec = flashrom_restore(arg or "ch341a_spi", raw)
+    else:
+        raise RestoreError("programmer", f"unknown programmer {spec!r}: use file: or flashrom:")
+    print(f"write:   {rec['bytes']} B, {rec.get('sectors', '-')} sectors, erased, programmed and read back")
+    print(f"verify:  the part reads back identical to {facts['sha256'][:16]}...")
+    print("restore: written")
+    return 0
+
+
 def open_device(port=None):
     """-> (link, evidence) from the running app's 0x12; needs mido like the other tools"""
     try:
@@ -177,9 +292,7 @@ def run(a):
     facts = validate(man, raw, bin_path)
 
     if a.write:
-        raise RestoreError("write", "refused: this tool has no verified raw-write path. An FM-1 is put "
-                                    "back with the vendor bootloader or an external programmer "
-                                    "(docs/RECOVERY.md); nothing here sends a frame that could write")
+        return restore(a, facts, raw)
 
     print(f"backup:  {bin_path}")
     print(f"device:  {facts['identity']}  {facts['jedec']} {facts['part']}  {facts['capacity'] // 1024} KiB")
@@ -216,7 +329,9 @@ def main(argv=None):
     ap.add_argument("--port", metavar="NAME", help="MIDI port to use (part of its name)")
     ap.add_argument("--device", action="store_true", help="also check the connected FM-1's chip and geometry")
     ap.add_argument("--compare", action="store_true", help="read the unit again and list differing ranges")
-    ap.add_argument("--write", action="store_true", help="refused by design: see the module docstring")
+    ap.add_argument("--write", action="store_true", help="write the image back through --programmer")
+    ap.add_argument("--programmer", metavar="SPEC",
+                    help="file:PATH (a part simulated on a file) or flashrom:DEVICE (an external SPI programmer)")
     a = ap.parse_args(argv)
     try:
         return run(a)
@@ -224,7 +339,7 @@ def main(argv=None):
         print(f"error: {e}", file=sys.stderr)
         return {"archive": 1, "format": 1, "incomplete": 1, "size": 1, "hash": 1, "readonly": 1,
                 "identity": 1, "chip": 6, "geometry": 6, "usage": 2, "notfound": 3,
-                "read": 1, "write": 5}.get(e.code, 1)
+                "read": 1, "write": 5, "program": 8, "programmer": 2}.get(e.code, 1)
 
 
 if __name__ == "__main__":

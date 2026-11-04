@@ -75,3 +75,18 @@ Sólo después de 1–12 en una unidad secundaria tiene sentido hablar de instal
 - Ningún corte de energía real durante una escritura.
 - Ningún secure boot: la firma Ed25519 se verifica **en el host** antes de enviar el paquete. Que el
   bootloader del FM-1 compruebe esa firma no está demostrado y no se afirma.
+
+## 13. Restauración por programador SPI (v1.8.9)
+
+`tools/fm1_restore.py` ya escribe, con un programador externo y nunca por MIDI:
+
+```
+fm1_restore.py --backup DIR --write --programmer file:part.nor     # un part simulado en un archivo
+fm1_restore.py --backup DIR --write --programmer flashrom:ch341a_spi
+```
+
+Borra sector a sector (4 KiB), programa página a página (256 B), relee cada sector, después relee el
+part completo y compara. Devuelve 8 si algo no vuelve idéntico, 2 si el programador falla, 5 si no se
+indicó programador. El camino `file:` es el que corren las pruebas; el camino `flashrom:` construye la
+orden real pero **no se ejecutó sobre hardware**. Antes de usar una unidad: clip SOIC-8 con el MCU en
+reset, alimentación del programador (no del FM-1), y un backup independiente verificado dos veces.

@@ -40,6 +40,35 @@
   RAM code 22 528/24 576 (margen 2 048 B, el mínimo exigido por el gate). Sin voces nuevas ni cambios de
   calidad.
 
+## v1.8.9 — the master EQ's DC bias and its 20 Hz cut (2026-11-04)
+
+- **The DC bias was truncation, not the coefficients:** the loop floored every product toward -inf, and
+  with the pole 2e-6 from the unit circle that constant error is multiplied by 1/(1+a1+a2) ~ 493 000.
+  With a DC input of 1000 the measured gain was 13,492 (22.60 dB) against the 15,956 (24.06 dB) the
+  coefficients describe: -1.46 dB, stable from 1 s to 40 s.
+- **Fix:** `bq_rnd()` rounds each of the five loop products to nearest (all five: without the
+  feedforward ones the 20 Hz cut fell back to -14.8 dB) and the states carry 11 fractional bits
+  (`BQ_S` 10 -> 11). Measured: DC 1000 -> 16,384 (+0.23 dB), DC 8000 -> 127,224 (-0.03 dB), stable
+  from 1 s to 40 s. The quietest DC (100) sits at -4.38 dB because there the signal's own
+  quantisation dominates, not the loop; the test pins that as its own bound.
+- **The -24 dB cut at 20 Hz is a cut now:** the numerator is three Q25 coefficients whose rounding
+  error, with a denominator of a few LSB, ate half the depth (-17.61 dB measured). The four setters
+  share `qg_biquad_commit()`, which corrects the numerator's sum to the exact value it divided by a0:
+  -24.14 dB today, and the 20 Hz notch went from -18.7 to -45.30 dB.
+- **Budget, measured:** app 558,688 B, package 610,898 B, identity FM-1_982; RAM `.data+.bss`
+  96,452/98,304 (spare 1,852), pool 311,240 (spare 9,248), RAM code 22,500/24,576 (**2,076 B spare,
+  +28 B over v1.8.8** despite the rounding, from folding the four setters into one commit path and two
+  unsigned window compares in `.hot_text`).
+- **Real restore implemented, hardware not tested:** `fm1_restore.py --write --programmer
+  file:PATH|flashrom:DEVICE` erases, programs and reads back sector by sector (4 KiB / 256 B), then
+  reads the whole part back and compares; exit 8 when it does not come back identical, 2 when the
+  programmer fails. MIDI still has no write frame and `--write` without `--programmer` still exits 5.
+  Tested against a part simulated on a file, a bit that does not program, a flashrom that lies and one
+  that fails; **neither backend has run on hardware**.
+- **Signing and chip support unchanged:** `fm1_keys.json` still has no production key (every package
+  is refused, the correct state until a custodian exists); `0x856014` writable, `0xB36014` read-only.
+- **Not verified:** hardware, physical restore, audio on a real unit.
+
 ## v1.8.8 — one master-EQ delay state had the wrong scale (2026-11-04)
 
 - **The bug, measured:** `master_eq_update()` guarded the four delay states against a state a stable

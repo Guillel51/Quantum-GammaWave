@@ -183,7 +183,7 @@ static int32_t clip_g, clip_mk;
  * integrates instead of decaying (measured: DC in 1000 -> 1 971 664 out, expected 16 000;
  * a 20 Hz sine at +/-24 dB ramped into the clamp). The extra bits keep the recursion on
  * the correct side of the pole. */
-#define BQ_S 10
+#define BQ_S 11
 #define BQ_SMUL (1 << BQ_S)
 typedef struct {
     int32_t b0, b1, b2;                                 /* Q25 feedforward coeffs */
@@ -292,6 +292,28 @@ static int32_t fx_div64_32(int64_t num, int32_t den)
     if (q > 0x7fffffffu) q = 0x7fffffffu;
     return neg ? -(int32_t)q : (int32_t)q;
 }
+/* (v1.8.9) What all four setters do once they have a0 and the unnormalised coefficients: divide by
+ * a0, correct the numerator's sum, guard, clear the delay line and arm the filter. It was copied
+ * into each setter, and .ram_text is the tightest budget in this build: one copy, not four. */
+static void qg_biquad_commit(qg_biquad_t *eq, int64_t b0, int64_t b1, int64_t b2,
+                             int64_t a1, int64_t a2, int32_t a0)
+{
+    eq->b0 = fx_div64_32(b0 * BQ_ONE, a0);
+    eq->b1 = fx_div64_32(b1 * BQ_ONE, a0);
+    eq->b2 = fx_div64_32(b2 * BQ_ONE, a0);
+    eq->a1 = fx_div64_32(a1 * BQ_ONE, a0);
+    eq->a2 = fx_div64_32(a2 * BQ_ONE, a0);
+    /* the numerator as one number, not three independently rounded pieces: at 20 Hz the
+     * denominator is only a few LSB, so rounding b2 on its own was several dB of a deep cut */
+    eq->b2 += fx_div64_32((b0 + b1 + b2) * BQ_ONE, a0) - (eq->b0 + eq->b1 + eq->b2);
+    if (!qg_biquad_stabilize(eq)) {
+        qg_biquad_init(eq);
+        return;
+    }
+    qg_biquad_clear_state(eq);
+    eq->active = 1;
+}
+
 static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx)
 {
     freq_idx = clamp(freq_idx, 0, 127);
@@ -322,19 +344,7 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
     int32_t a1_un = -2 * cs;
     int32_t a2_un = BQ_U - (int32_t)(((int64_t)alpha * a_inv_q24) >> 26);
 
-    if (a0_un > 100) {
-        eq->b0 = fx_div64_32((int64_t)b0_un * BQ_ONE, a0_un);
-        eq->b1 = fx_div64_32((int64_t)b1_un * BQ_ONE, a0_un);
-        eq->b2 = fx_div64_32((int64_t)b2_un * BQ_ONE, a0_un);
-        eq->a1 = fx_div64_32((int64_t)a1_un * BQ_ONE, a0_un);
-        eq->a2 = fx_div64_32((int64_t)a2_un * BQ_ONE, a0_un);
-        if (!qg_biquad_stabilize(eq)) {
-            qg_biquad_init(eq);
-            return;
-        }
-        qg_biquad_clear_state(eq);
-        eq->active = 1;
-    }
+    if (a0_un > 100) qg_biquad_commit(eq, b0_un, b1_un, b2_un, a1_un, a2_un, a0_un);
 }
 
 /* Set Low Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
@@ -364,19 +374,7 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
     a0 = ap1 + ct + two_sq_alpha;
     a1 = -2 * (am1 + ((ap1 * cs) >> 26));
     a2 = ap1 + ct - two_sq_alpha;
-    if (a0 > 100) {
-        eq->b0 = fx_div64_32(b0 * BQ_ONE, (int32_t)a0);
-        eq->b1 = fx_div64_32(b1 * BQ_ONE, (int32_t)a0);
-        eq->b2 = fx_div64_32(b2 * BQ_ONE, (int32_t)a0);
-        eq->a1 = fx_div64_32(a1 * BQ_ONE, (int32_t)a0);
-        eq->a2 = fx_div64_32(a2 * BQ_ONE, (int32_t)a0);
-        if (!qg_biquad_stabilize(eq)) {
-            qg_biquad_init(eq);
-            return;
-        }
-        qg_biquad_clear_state(eq);
-        eq->active = 1;
-    }
+    if (a0 > 100) qg_biquad_commit(eq, b0, b1, b2, a1, a2, (int32_t)a0);
 }
 
 /* Set High Shelf Filter: freq (0..127), gain_db (-24..+24) in Q14 */
@@ -406,19 +404,7 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
     a0 = ap1 - ct + two_sq_alpha;
     a1 = 2 * (am1 - ((ap1 * cs) >> 26));
     a2 = ap1 - ct - two_sq_alpha;
-    if (a0 > 100) {
-        eq->b0 = fx_div64_32(b0 * BQ_ONE, (int32_t)a0);
-        eq->b1 = fx_div64_32(b1 * BQ_ONE, (int32_t)a0);
-        eq->b2 = fx_div64_32(b2 * BQ_ONE, (int32_t)a0);
-        eq->a1 = fx_div64_32(a1 * BQ_ONE, (int32_t)a0);
-        eq->a2 = fx_div64_32(a2 * BQ_ONE, (int32_t)a0);
-        if (!qg_biquad_stabilize(eq)) {
-            qg_biquad_init(eq);
-            return;
-        }
-        qg_biquad_clear_state(eq);
-        eq->active = 1;
-    }
+    if (a0 > 100) qg_biquad_commit(eq, b0, b1, b2, a1, a2, (int32_t)a0);
 }
 
 /* Set Notch Filter: freq (0..127), q_idx (0..127 -> Q 0.5..8.0) */
@@ -444,29 +430,27 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
     int32_t a1_un = -2 * cs;
     int32_t a2_un = BQ_U - alpha;
 
-    if (a0_un > 100) {
-        eq->b0 = fx_div64_32((int64_t)b0_un * BQ_ONE, a0_un);
-        eq->b1 = fx_div64_32((int64_t)b1_un * BQ_ONE, a0_un);
-        eq->b2 = fx_div64_32((int64_t)b2_un * BQ_ONE, a0_un);
-        eq->a1 = fx_div64_32((int64_t)a1_un * BQ_ONE, a0_un);
-        eq->a2 = fx_div64_32((int64_t)a2_un * BQ_ONE, a0_un);
-        if (!qg_biquad_stabilize(eq)) {
-            qg_biquad_init(eq);
-            return;
-        }
-        qg_biquad_clear_state(eq);
-        eq->active = 1;
-    }
+    if (a0_un > 100) qg_biquad_commit(eq, b0_un, b1_un, b2_un, a1_un, a2_un, a0_un);
 }
 
 /* Q25 coefficient * Q13 sample. A LOW SHELF can need b0 > 1.0 (up to ~16x at +24 dB), and a 32-bit
  * product wrapped there: the filter then produced loud noise with no note playing. The product is
  * taken in 64 bits; the states stay inside a range no stable biquad reaches (a wrapped state rings). */
 #define BQ_LIM (1 << 26)
+/* (v1.8.9) -T < v < T in one unsigned compare ((v + T) < 2T), for code size: .hot_text is the
+ * tightest budget in this build and the states are clamped far below the overflow it would need. */
+#define BQ_TINY (512 * BQ_SMUL)
+static inline int qg_tiny(int64_t v) { return (uint64_t)(v + BQ_TINY) < (uint64_t)(2 * BQ_TINY); }
 static inline int32_t bq_mul(int32_t c, int32_t x) { return (int32_t)(((int64_t)c * x) >> BQ_Q); }
+
+/* (v1.8.9) Round to nearest instead of flooring when a product comes back to the states' scale.
+ * Flooring moves a negative product toward -inf every sample; with a pole 2e-6 from the unit circle
+ * that constant error is multiplied by 1/(1 + a1 + a2) ~ 493 000, which is the whole -1.46 dB of the
+ * measured DC gain. (v + half) >> shift is the nearest value for either sign. */
+static inline int64_t bq_rnd(int64_t v, int sh) { return (v + ((int64_t)1 << (sh - 1))) >> sh; }
 static inline int32_t bq_lim(int32_t v) { return v > BQ_LIM ? BQ_LIM : v < -BQ_LIM ? -BQ_LIM : v; }
 
-/* (v1.8.8) Half the state clamp, in the states' own Q10 scale: no stable filter reaches past it.
+/* (v1.8.8) Half the state clamp, in the states' own scaled Q: no stable filter reaches past it.
  * s2_r was compared against BQ_LIM / 2 without the shift -- 1024x below the other three -- so an
  * ordinary right-channel state looked impossible and master_eq_update(), which runs every block,
  * cleared the right delay line: the left channel kept its EQ and the right lost it. One predicate
@@ -496,13 +480,13 @@ static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t 
             int32_t ax = x < 0 ? -x : x;
             int64_t y16;
             if (ax > inmax) inmax = ax;
-            y16 = ((int64_t)eq->b0 * x >> (BQ_Q - BQ_S)) + *s1;
-            if (y16 > slim) y16 = slim; else if (y16 < -slim) y16 = -slim;
+            y16 = bq_rnd((int64_t)eq->b0 * x, BQ_Q - BQ_S) + *s1;
+            if ((uint64_t)(y16 + slim) > (uint64_t)(slim << 1)) y16 = y16 > 0 ? slim : -slim;
             int32_t y = (int32_t)((y16 + (BQ_SMUL >> 1)) >> BQ_S);
-            *s1 = ((int64_t)eq->b1 * x >> (BQ_Q - BQ_S))
-                - ((int64_t)eq->a1 * y16 >> BQ_Q) + *s2;
-            *s2 = ((int64_t)eq->b2 * x >> (BQ_Q - BQ_S))
-                - ((int64_t)eq->a2 * y16 >> BQ_Q);
+            *s1 = bq_rnd((int64_t)eq->b1 * x, BQ_Q - BQ_S)
+                - bq_rnd((int64_t)eq->a1 * y16, BQ_Q) + *s2;
+            *s2 = bq_rnd((int64_t)eq->b2 * x, BQ_Q - BQ_S)
+                - bq_rnd((int64_t)eq->a2 * y16, BQ_Q);
             p[i] = y * 4;
         }
     }
@@ -512,10 +496,7 @@ static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t 
     if (!inmax) {
         if (++eq->quiet >= 32u)
             qg_biquad_clear_state(eq);
-        else if (eq->s1_l > -(512 << BQ_S) && eq->s1_l < (512 << BQ_S) &&
-                 eq->s1_r > -(512 << BQ_S) && eq->s1_r < (512 << BQ_S) &&
-                 eq->s2_l > -(512 << BQ_S) && eq->s2_l < (512 << BQ_S) &&
-                 eq->s2_r > -(512 << BQ_S) && eq->s2_r < (512 << BQ_S))
+        else if (qg_tiny(eq->s1_l) && qg_tiny(eq->s1_r) && qg_tiny(eq->s2_l) && qg_tiny(eq->s2_r))
             qg_biquad_clear_state(eq);
     } else {
         eq->quiet = 0;
