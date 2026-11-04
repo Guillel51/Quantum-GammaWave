@@ -45,14 +45,12 @@ static void set_mode(int mode, int freq, int gain, int q)
 static int coefficients_ok(void)
 {
     if (!master_eq.active) return 1;
-    if (master_eq.b0 < -(1 << 29) || master_eq.b0 > (1 << 29) ||
-        master_eq.b1 < -(1 << 29) || master_eq.b1 > (1 << 29) ||
-        master_eq.b2 < -(1 << 29) || master_eq.b2 > (1 << 29))
+    if (master_eq.b0 < -BQ_B_MAX || master_eq.b0 > BQ_B_MAX ||
+        master_eq.b1 < -BQ_B_MAX || master_eq.b1 > BQ_B_MAX ||
+        master_eq.b2 < -BQ_B_MAX || master_eq.b2 > BQ_B_MAX)
         return 0;
-    if (master_eq.a2 < -(16300 << 10) || master_eq.a2 > (16300 << 10)) return 0;
-    if (master_eq.a1 < -((1 << 24) + master_eq.a2 - (1 << 12)) ||
-        master_eq.a1 > (1 << 24) + master_eq.a2 - (1 << 12))
-        return 0;
+    if (master_eq.a2 < -BQ_A2_MAX || master_eq.a2 > BQ_A2_MAX) return 0;
+    if (master_eq.a1 < -BQ_A1_MAX || master_eq.a1 > BQ_A1_MAX) return 0;
     return 1;
 }
 
@@ -119,6 +117,39 @@ int main(void)
         song.g[G_EQMODE] = 0;
     }
 
+    /* The reported bug: maximum gain at the minimum frequency, every type, both Q ends.
+     * A stable coefficient set is not enough; the response itself must survive the 20 Hz
+     * pole and the shelf's corner. */
+    {
+        int ok = 1, m, q;
+        for (q = 0; q < 2; q++) {
+            int qi = q ? 127 : 0;
+            song.g[G_EQFREQ] = 0; song.g[G_EQQ] = (int16_t)qi;
+            for (m = 1; m <= 4; m++) {
+                int boost, cut;
+                song.g[G_EQMODE] = (int16_t)m;
+                song.g[G_EQGAIN] = 24;
+                boost = fx_master_eq_hz_db(20);
+                song.g[G_EQGAIN] = -24;
+                cut = fx_master_eq_hz_db(20);
+                if (m == 1 && (boost < 22 * 256 || cut > -22 * 256)) ok = 0;
+                if (m == 2 && (boost > -22 * 256 || cut > -22 * 256)) ok = 0;
+                if (m >= 3 && (boost < 9 * 256 || cut > -9 * 256)) ok = 0;
+            }
+        }
+        song.g[G_EQFREQ] = 0; song.g[G_EQGAIN] = 24;
+        song.g[G_EQMODE] = 1; song.g[G_EQQ] = 127;
+        ok &= fx_master_eq_hz_db(20) > 22 * 256;
+        song.g[G_EQMODE] = 2;
+        ok &= fx_master_eq_hz_db(20) < -22 * 256;
+        song.g[G_EQMODE] = 3;
+        ok &= fx_master_eq_hz_db(20) > 9 * 256;
+        song.g[G_EQMODE] = 4;
+        ok &= fx_master_eq_hz_db(20) > 9 * 256;
+        check("20 Hz +24 dB: PEAK/LOW/HIGH keep their gain and NOTCH cuts (Q 0 and 127)", ok);
+        song.g[G_EQMODE] = 0;
+    }
+
     /* a poisoned delay line (a preset switched while the filter was ringing) */
     set_mode(3, 0, 24, 64);
     for (b = 0; b < 16u; b++) {
@@ -155,6 +186,55 @@ int main(void)
     check("preset recovery: extreme low shelf, bypass, then a peak passes audio",
           peak(l, CTL) > 1000);
     song.g[G_EQMODE] = 0; master_eq_update();
+
+    /* Poles and impulse response at the corners. The Jury guard is the only thing between a
+     * quantised 20 Hz pole and a growing filter, so assert it directly (|a2| < 1, |a1| < 1 + a2)
+     * and drive an impulse through every mode/Q end: bounded or it is a bug. */
+    {
+        int m, q, f, ok = 1, poles_ok = 1, loud = 0;
+        for (m = 1; m <= 4; m++)
+            for (q = 0; q < 2; q++)
+                for (f = 0; f < 2; f++) {
+                    int fi = f ? 127 : 0;
+                    set_mode(m, fi, 24, q ? 127 : 0);
+                    if (!master_eq.active) continue;
+                    {
+                        /* fx.c runs 1 + a1 z^-1 + a2 z^-2, so the poles solve z^2 + a1 z + a2 = 0:
+                         * Jury is |a2| < 1 and |a1| < 1 + a2, and a complex pair has |z| = sqrt(a2). */
+                        double a1 = master_eq.a1 / (double)BQ_ONE, a2 = master_eq.a2 / (double)BQ_ONE;
+                        double d = a1 * a1 - 4.0 * a2, p1, p2;
+                        if (d >= 0.0) { double sd = sqrt(d); p1 = (-a1 + sd) / 2.0; p2 = (-a1 - sd) / 2.0; }
+                        else p1 = p2 = sqrt(a2);
+                        if (!(a2 > -1.0 && a2 < 1.0) || (p1 < 0 ? -p1 : p1) >= 1.0 ||
+                            (p2 < 0 ? -p2 : p2) >= 1.0) {
+                            poles_ok = 0;
+                            printf("eq:   pole m%d q%d f%d a1 %.6f a2 %.6f |p| %.6f %.6f\n",
+                                   m, q, f, a1, a2, p1 < 0 ? -p1 : p1, p2 < 0 ? -p2 : p2);
+                        }
+                    }
+                    /* One impulse, then silence. A stable filter's ringing decays to zero (the
+                     * firmware flushes the state after its quiet window); a pole outside the
+                     * unit circle would keep ringing, or grow, and never reach silence. The gain
+                     * is not guessed: only the numeric bound and the return to zero are. */
+                    {
+                        int32_t here = 0, tail;
+                        zeros();
+                        l[0] = r[0] = 30000;
+                        for (b = 0; b < 48u; b++) {
+                            qg_biquad_process(&master_eq, l, r, CTL);
+                            if (peak(l, CTL) > here) here = peak(l, CTL);
+                            if (b + 1 < 48u) zeros();
+                        }
+                        tail = peak(l, CTL);
+                        if (here >= (1 << 26)) ok = 0;              /* hard numeric bound */
+                        if (tail != 0) { ok = 0; printf("eq:   corner m%d q%d f%d tail %d\n", m, q, f, (int)tail); }
+                        if (here > loud) loud = here;
+                    }
+                }
+        printf("eq:   impulse response, first cycle peak %d\n", loud);
+        check("poles inside the unit circle at 20 Hz and 20 kHz, +24 dB", poles_ok);
+        check("one impulse decays to silence (48 blocks) at every corner", ok);
+    }
 
     /* rapid parameter changes: no coefficient can make the filter leave its bound */
     for (i = 0; i < 4000u; i++) {

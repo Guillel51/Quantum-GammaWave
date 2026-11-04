@@ -163,19 +163,24 @@ static int32_t lim_env = LIM_T;
 /* (JIANT) CLIP (G_CLIP 0..100): the mix driven x1 .. x4 into the soft clip ahead of the limiter, its level kept near
  * -4 dBFS (as DRUM's DRV); 0: out of the chain. Set each block (master_begin) */
 static int32_t clip_g, clip_mk;
-/* ----------------------------------------------- Q24 Direct Form II Transposed Biquad Filter --- */
+/* ----------------------------------------------- Q25 Direct Form II Transposed Biquad Filter --- */
 /* Q14 was too coarse for a shelf at the bottom of the band: the DC cancellation left the
- * 20 Hz response at 18.7 dB for a +24 dB setting. Q24 keeps the same per-sample cost
- * (one 64-bit multiply and shift) with 1024 times the coefficient resolution. */
-#define BQ_Q 24
+ * 20 Hz response at 18.7 dB for a +24 dB setting. Q24 fixed the arithmetic but not the
+ * stability guard: capping a2 at 0.995 and keeping a 1/4096 Jury margin moved a 20 Hz pole
+ * away from the unit circle, so +24 dB became -4.8 dB at the minimum frequency. Q27 keeps
+ * the same per-sample cost (one 64-bit multiply and shift), gives 1.5e-8 coefficient steps
+ * and leaves the guard at one LSB, where it only corrects a rounded pole. */
+#define BQ_Q 25
 #define BQ_ONE (1 << BQ_Q)
-#define BQ_A2_MAX (16300 << (BQ_Q - 14))
-#define BQ_A1_MAX (1 << (BQ_Q + 1))
-#define BQ_B_MAX (1 << (BQ_Q + 5))
-#define BQ_MARGIN (1 << (BQ_Q - 12))
+#define BQ_U (1 << 26)
+#define BQ_GUARD 1
+#define BQ_A2_MAX (BQ_ONE - BQ_GUARD)
+#define BQ_A1_MAX (BQ_ONE + BQ_A2_MAX - BQ_GUARD)
+#define BQ_B_MAX 0x7FFFFFFF
+#define BQ_MARGIN BQ_GUARD
 typedef struct {
-    int32_t b0, b1, b2;                                 /* Q24 feedforward coeffs */
-    int32_t a1, a2;                                     /* Q24 feedback coeffs */
+    int32_t b0, b1, b2;                                 /* Q25 feedforward coeffs */
+    int32_t a1, a2;                                     /* Q25 feedback coeffs */
     int32_t s1_l, s2_l;                                 /* stereo delay states */
     int32_t s1_r, s2_r;
     uint16_t quiet;                                     /* silent blocks since the last input */
@@ -185,7 +190,7 @@ typedef struct {
 /* Initialize filter in pure pass-through bypass: unity gain, zero delay */
 static void qg_biquad_init(qg_biquad_t *eq)
 {
-    eq->b0 = BQ_ONE;                                    /* 1.0 in Q24 */
+    eq->b0 = BQ_ONE;                                    /* 1.0 in Q25 */
     eq->b1 = 0;
     eq->b2 = 0;
     eq->a1 = 0;
@@ -197,16 +202,16 @@ static void qg_biquad_init(qg_biquad_t *eq)
 }
 
 /* Set Peak / Bell EQ: freq (0..127), gain_db (-24..+24), q_idx (0..127 -> Q 0.5..8.0) */
-/* Q14 quantization can put a shelf's poles on (or outside) the unit circle at 125 Hz / +24 dB:
- * a1 rounded to -32690 while 1 + a2 is 32686. The response then self-oscillates (a loud ring with no
- * input). Keep the coefficients inside the stable triangle, a hair in from the edge; the curve moves by
- * less than a pixel. Called by every setter, after normalizing by a0. */
+/* Quantization can put a pole on (or outside) the unit circle when a1 rounds past 1 + a2.
+ * Keep it inside Jury's triangle by one LSB, not by a fixed fraction of full scale: at
+ * 20 Hz the true 1 + a1 + a2 is only a few Q27 steps, so the old 1/4096 margin changed the
+ * filter instead of guarding it. Called by every setter, after normalizing by a0. */
 static int qg_biquad_stabilize(qg_biquad_t *eq)
 {
     int32_t lim;
     if (eq->a2 > BQ_A2_MAX) eq->a2 = BQ_A2_MAX;
     if (eq->a2 < -BQ_A2_MAX) eq->a2 = -BQ_A2_MAX;
-    lim = BQ_ONE + eq->a2 - BQ_MARGIN;                  /* |a1| < 1 + a2, with margin */
+    lim = BQ_ONE + eq->a2 - BQ_MARGIN;                  /* |a1| < 1 + a2, with one LSB */
     if (lim < 0) lim = 0;
     if (eq->a1 > lim) eq->a1 = lim;
     if (eq->a1 < -lim) eq->a1 = -lim;
@@ -229,14 +234,37 @@ static uint32_t fx_eq_angle(int32_t freq_idx)
     uint32_t hz = EQ_HZ[clamp(freq_idx, 0, 127)];
     return hz * 97391u;                              /* 2^32 / 44100 */
 }
-static int32_t fx_eq_gain_q12(int32_t gain_db)
+static int32_t fx_eq_gain_q24(int32_t gain_db)
 {
-    return (int32_t)EQ_A_Q12[clamp(gain_db, -24, 24) + 24];
+    return (int32_t)((int64_t)EQ_A_Q12[clamp(gain_db, -24, 24) + 24] << 14);
 }
-static int32_t fx_eq_sqrt_gain_q12(int32_t gain_db)
+static int32_t fx_eq_sqrt_gain_q24(int32_t gain_db)
 {
-    return (int32_t)EQ_SQRT_A_Q12[clamp(gain_db, -24, 24) + 24];
+    return (int32_t)((int64_t)EQ_SQRT_A_Q12[clamp(gain_db, -24, 24) + 24] << 14);
 }
+/* At 20 Hz 1 - cos(w) is ~4e-6: a Q15 cosine rounds it to zero and a Q14 alpha
+ * loses the pole's distance from the unit circle. sin(w/2) gives both without a
+ * subtraction of nearly equal values. The sine is Q30 and the coefficients are
+ * generated in Q26, then stored in Q25: the low corner needs the extra headroom
+ * in the arithmetic, not in the 32-bit coefficient fields. */
+static int64_t fx_eq_sin_q30(uint32_t w)
+{
+    if (w < 0x04000000u) {                             /* < 0.1 rad: x - x^3/6 + x^5/120 */
+        int64_t x = ((int64_t)w * 1686629713) >> 30;  /* x in Q30 */
+        int64_t x2 = (x * x) >> 30;
+        int64_t x3 = (x2 * x) >> 30;
+        int64_t x5 = (x3 * x2) >> 30;
+        return x - x3 / 6 + x5 / 120;
+    }
+    return (int64_t)sine_i(w) << 15;                   /* Q15 -> Q30 */
+}
+static int64_t fx_eq_cos_q30(uint32_t w)
+{
+    int64_t sh = fx_eq_sin_q30(w >> 1);                /* sin(w/2), Q30 */
+    return (1LL << 30) - ((2 * sh * sh) >> 30);
+}
+static int32_t fx_eq_sin_q26(uint32_t w) { return (int32_t)(fx_eq_sin_q30(w) >> 4); }
+static int32_t fx_eq_cos_q26(uint32_t w) { return (int32_t)(fx_eq_cos_q30(w) >> 4); }
 static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_db, int32_t q_idx)
 {
     freq_idx = clamp(freq_idx, 0, 127);
@@ -246,30 +274,26 @@ static void qg_biquad_set_peak(qg_biquad_t *eq, int32_t freq_idx, int32_t gain_d
         qg_biquad_init(eq);
         return;
     }
-    /* Map freq_idx 0..127 musically from ~40 Hz to ~16 kHz: angle = w0 in binary radians */
     uint32_t angle = fx_eq_angle(freq_idx);
-    int32_t sn = sine_i(angle);                         /* Q15 */
-    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
+    int32_t sn = fx_eq_sin_q26(angle);
+    int32_t cs = fx_eq_cos_q26(angle);
 
-    /* Q dynamic scaling: q_idx 0..127 -> Q 0.5 to 8.0 (inv_2q in Q14: 16384 at Q=0.5, 4096 at Q=2, 1024 at Q=8) */
     uint32_t q_shift = (uint32_t)q_idx >> 5;
     uint32_t q_frac = (uint32_t)q_idx & 31;
     int32_t base = 16384 >> q_shift;
     int32_t nxt = 16384 >> (q_shift + 1);
     int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
-    int32_t alpha = (sn * inv_2q) >> 15;                /* Q14 */
+    int32_t alpha = (int32_t)(((int64_t)sn * inv_2q) >> 14);  /* Q24 */
 
-    /* A = 10^(gain_db / 40) in Q12: 1.0 = 4096, exact per integer dB */
-    int32_t a_q12 = fx_eq_gain_q12(gain_db);
-    int32_t a_inv_q12 = (4096 * 4096) / a_q12;
+    int32_t a_q24 = fx_eq_gain_q24(gain_db);
+    int32_t a_inv_q24 = (int32_t)(((int64_t)BQ_U * BQ_U) / a_q24);
 
-    int32_t b0_un = 16384 + ((alpha * a_q12) >> 12);
-    int32_t b1_un = -((cs) >> 0);                       /* -2 * cs in Q14 = -cs in Q15 */
-    int32_t b2_un = 16384 - ((alpha * a_q12) >> 12);
-
-    int32_t a0_un = 16384 + ((alpha * a_inv_q12) >> 12);
-    int32_t a1_un = -((cs) >> 0);
-    int32_t a2_un = 16384 - ((alpha * a_inv_q12) >> 12);
+    int32_t b0_un = BQ_U + (int32_t)(((int64_t)alpha * a_q24) >> 26);
+    int32_t b1_un = -2 * cs;
+    int32_t b2_un = BQ_U - (int32_t)(((int64_t)alpha * a_q24) >> 26);
+    int32_t a0_un = BQ_U + (int32_t)(((int64_t)alpha * a_inv_q24) >> 26);
+    int32_t a1_un = -2 * cs;
+    int32_t a2_un = BQ_U - (int32_t)(((int64_t)alpha * a_inv_q24) >> 26);
 
     if (a0_un > 100) {
         eq->b0 = (int32_t)(((int64_t)b0_un * BQ_ONE) / a0_un);
@@ -296,29 +320,29 @@ static void qg_biquad_set_lowshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t ga
         return;
     }
     uint32_t angle = fx_eq_angle(freq_idx);
-    int32_t sn = sine_i(angle), cs = sine_i(angle + 0x40000000u);
-    int32_t a = fx_eq_gain_q12(gain_db);               /* A, Q12 */
-    int32_t sq = fx_eq_sqrt_gain_q12(gain_db);         /* sqrt(A), Q12 */
-    int32_t alpha = (sn * 2896) >> 15;                 /* Q12, S = 1: sin / sqrt(2) */
-    int32_t ap1, am1, ct, two_sq_alpha, b0, b1, b2, a0, a1, a2;
-    if (a < 512) a = 512;
-    if (sq < 512) sq = 512;
-    ap1 = a + 4096;
-    am1 = a - 4096;
-    ct = (am1 * cs) >> 15;
-    two_sq_alpha = (2 * sq * alpha) >> 12;
-    b0 = (a * ((ap1 - ct) + two_sq_alpha)) >> 12;
-    b1 = (2 * a * (am1 - ((ap1 * cs) >> 15))) >> 12;
-    b2 = (a * ((ap1 - ct) - two_sq_alpha)) >> 12;
+    int32_t sn = fx_eq_sin_q26(angle), cs = fx_eq_cos_q26(angle);
+    int32_t a = fx_eq_gain_q24(gain_db);
+    int32_t sq = fx_eq_sqrt_gain_q24(gain_db);
+    int32_t alpha = (int32_t)(((int64_t)sn * 2896) >> 12);    /* sin / sqrt(2), Q24 */
+    int64_t ap1, am1, ct, two_sq_alpha, b0, b1, b2, a0, a1, a2;
+    if (a < (BQ_U >> 3)) a = BQ_U >> 3;
+    if (sq < (BQ_U >> 3)) sq = BQ_U >> 3;
+    ap1 = (int64_t)a + BQ_U;
+    am1 = (int64_t)a - BQ_U;
+    ct = (am1 * cs) >> 26;
+    two_sq_alpha = ((int64_t)2 * sq * alpha) >> 26;
+    b0 = (a * ((ap1 - ct) + two_sq_alpha)) >> 26;
+    b1 = ((int64_t)2 * a * (am1 - ((ap1 * cs) >> 26))) >> 26;
+    b2 = (a * ((ap1 - ct) - two_sq_alpha)) >> 26;
     a0 = ap1 + ct + two_sq_alpha;
-    a1 = -2 * (am1 + ((ap1 * cs) >> 15));
+    a1 = -2 * (am1 + ((ap1 * cs) >> 26));
     a2 = ap1 + ct - two_sq_alpha;
     if (a0 > 100) {
-        eq->b0 = (int32_t)(((int64_t)b0 * BQ_ONE) / a0);
-        eq->b1 = (int32_t)(((int64_t)b1 * BQ_ONE) / a0);
-        eq->b2 = (int32_t)(((int64_t)b2 * BQ_ONE) / a0);
-        eq->a1 = (int32_t)(((int64_t)a1 * BQ_ONE) / a0);
-        eq->a2 = (int32_t)(((int64_t)a2 * BQ_ONE) / a0);
+        eq->b0 = (int32_t)((b0 * BQ_ONE) / a0);
+        eq->b1 = (int32_t)((b1 * BQ_ONE) / a0);
+        eq->b2 = (int32_t)((b2 * BQ_ONE) / a0);
+        eq->a1 = (int32_t)((a1 * BQ_ONE) / a0);
+        eq->a2 = (int32_t)((a2 * BQ_ONE) / a0);
         if (!qg_biquad_stabilize(eq)) {
             qg_biquad_init(eq);
             return;
@@ -338,29 +362,29 @@ static void qg_biquad_set_highshelf(qg_biquad_t *eq, int32_t freq_idx, int32_t g
         return;
     }
     uint32_t angle = fx_eq_angle(freq_idx);
-    int32_t sn = sine_i(angle), cs = sine_i(angle + 0x40000000u);
-    int32_t a = fx_eq_gain_q12(gain_db);
-    int32_t sq = fx_eq_sqrt_gain_q12(gain_db);
-    int32_t alpha = (sn * 2896) >> 15;
-    int32_t ap1, am1, ct, two_sq_alpha, b0, b1, b2, a0, a1, a2;
-    if (a < 512) a = 512;
-    if (sq < 512) sq = 512;
-    ap1 = a + 4096;
-    am1 = a - 4096;
-    ct = (am1 * cs) >> 15;
-    two_sq_alpha = (2 * sq * alpha) >> 12;
-    b0 = (a * ((ap1 + ct) + two_sq_alpha)) >> 12;
-    b1 = (-2 * a * (am1 + ((ap1 * cs) >> 15))) >> 12;
-    b2 = (a * ((ap1 + ct) - two_sq_alpha)) >> 12;
+    int32_t sn = fx_eq_sin_q26(angle), cs = fx_eq_cos_q26(angle);
+    int32_t a = fx_eq_gain_q24(gain_db);
+    int32_t sq = fx_eq_sqrt_gain_q24(gain_db);
+    int32_t alpha = (int32_t)(((int64_t)sn * 2896) >> 12);
+    int64_t ap1, am1, ct, two_sq_alpha, b0, b1, b2, a0, a1, a2;
+    if (a < (BQ_U >> 3)) a = BQ_U >> 3;
+    if (sq < (BQ_U >> 3)) sq = BQ_U >> 3;
+    ap1 = (int64_t)a + BQ_U;
+    am1 = (int64_t)a - BQ_U;
+    ct = (am1 * cs) >> 26;
+    two_sq_alpha = ((int64_t)2 * sq * alpha) >> 26;
+    b0 = (a * ((ap1 + ct) + two_sq_alpha)) >> 26;
+    b1 = ((int64_t)-2 * a * (am1 + ((ap1 * cs) >> 26))) >> 26;
+    b2 = (a * ((ap1 + ct) - two_sq_alpha)) >> 26;
     a0 = ap1 - ct + two_sq_alpha;
-    a1 = 2 * (am1 - ((ap1 * cs) >> 15));
+    a1 = 2 * (am1 - ((ap1 * cs) >> 26));
     a2 = ap1 - ct - two_sq_alpha;
     if (a0 > 100) {
-        eq->b0 = (int32_t)(((int64_t)b0 * BQ_ONE) / a0);
-        eq->b1 = (int32_t)(((int64_t)b1 * BQ_ONE) / a0);
-        eq->b2 = (int32_t)(((int64_t)b2 * BQ_ONE) / a0);
-        eq->a1 = (int32_t)(((int64_t)a1 * BQ_ONE) / a0);
-        eq->a2 = (int32_t)(((int64_t)a2 * BQ_ONE) / a0);
+        eq->b0 = (int32_t)((b0 * BQ_ONE) / a0);
+        eq->b1 = (int32_t)((b1 * BQ_ONE) / a0);
+        eq->b2 = (int32_t)((b2 * BQ_ONE) / a0);
+        eq->a1 = (int32_t)((a1 * BQ_ONE) / a0);
+        eq->a2 = (int32_t)((a2 * BQ_ONE) / a0);
         if (!qg_biquad_stabilize(eq)) {
             qg_biquad_init(eq);
             return;
@@ -376,23 +400,22 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
     freq_idx = clamp(freq_idx, 0, 127);
     q_idx = clamp(q_idx, 0, 127);
     uint32_t angle = fx_eq_angle(freq_idx);
-    int32_t sn = sine_i(angle);                         /* Q15 */
-    int32_t cs = sine_i(angle + 0x40000000u);           /* Q15 */
+    int32_t sn = fx_eq_sin_q26(angle);
+    int32_t cs = fx_eq_cos_q26(angle);
 
     uint32_t q_shift = (uint32_t)q_idx >> 5;
     uint32_t q_frac = (uint32_t)q_idx & 31;
     int32_t base = 16384 >> q_shift;
     int32_t nxt = 16384 >> (q_shift + 1);
     int32_t inv_2q = base - (int32_t)(((base - nxt) * q_frac) >> 5);
-    int32_t alpha = (sn * inv_2q) >> 15;                /* Q14 */
+    int32_t alpha = (int32_t)(((int64_t)sn * inv_2q) >> 14);  /* Q24 */
 
-    int32_t b0_un = 16384;
-    int32_t b1_un = -((cs) >> 0);                       /* -2 * cs in Q14 */
-    int32_t b2_un = 16384;
-
-    int32_t a0_un = 16384 + alpha;
-    int32_t a1_un = -((cs) >> 0);
-    int32_t a2_un = 16384 - alpha;
+    int32_t b0_un = BQ_U;
+    int32_t b1_un = -2 * cs;
+    int32_t b2_un = BQ_U;
+    int32_t a0_un = BQ_U + alpha;
+    int32_t a1_un = -2 * cs;
+    int32_t a2_un = BQ_U - alpha;
 
     if (a0_un > 100) {
         eq->b0 = (int32_t)(((int64_t)b0_un * BQ_ONE) / a0_un);
@@ -409,14 +432,14 @@ static void qg_biquad_set_notch(qg_biquad_t *eq, int32_t freq_idx, int32_t q_idx
     }
 }
 
-/* Q24 coefficient * Q13 sample. A LOW SHELF can need b0 > 1.0 (up to ~16x at +24 dB), and a 32-bit
+/* Q25 coefficient * Q13 sample. A LOW SHELF can need b0 > 1.0 (up to ~16x at +24 dB), and a 32-bit
  * product wrapped there: the filter then produced loud noise with no note playing. The product is
  * taken in 64 bits; the states stay inside a range no stable biquad reaches (a wrapped state rings). */
 #define BQ_LIM (1 << 26)
 static inline int32_t bq_mul(int32_t c, int32_t x) { return (int32_t)(((int64_t)c * x) >> BQ_Q); }
 static inline int32_t bq_lim(int32_t v) { return v > BQ_LIM ? BQ_LIM : v < -BQ_LIM ? -BQ_LIM : v; }
 
-/* Process block of stereo samples through biquad (Direct Form II Transposed in Q24) */
+/* Process block of stereo samples through biquad (Direct Form II Transposed in Q25) */
 static void qg_biquad_process(qg_biquad_t *eq, int32_t *l, int32_t *r, uint32_t n)
 {
     if (!eq->active)
@@ -572,7 +595,8 @@ static int32_t fx_master_eq_db_at(uint32_t w)
     int32_t gain = clamp(song.g[G_EQGAIN], -24, 24);
     int32_t q = clamp(song.g[G_EQQ], 0, 127);
     int32_t cut = clamp(song.g[G_EQFREQ], 0, 127);
-    int32_t sn, cs, e = 0, frac;
+    int64_t sn, cs;
+    int32_t e = 0, frac;
     int64_t cs2, sn2, nr, ni, dr, di;
     uint64_t n2, d2;
     uint32_t ns, ds, mag;
@@ -587,14 +611,14 @@ static int32_t fx_master_eq_db_at(uint32_t w)
         qg_biquad_set_highshelf(&eq, cut, gain);
     if (!eq.active)
         return 0;
-    sn = sine_i(w);
-    cs = sine_i(w + 0x40000000u);
-    cs2 = (((int64_t)cs * cs) - ((int64_t)sn * sn)) >> 15;
-    sn2 = (((int64_t)2 * sn * cs) >> 15);
-    nr = eq.b0 + (((int64_t)eq.b1 * cs) >> 15) + (((int64_t)eq.b2 * cs2) >> 15);
-    ni = -(((int64_t)eq.b1 * sn) >> 15) - (((int64_t)eq.b2 * sn2) >> 15);
-    dr = BQ_ONE + (((int64_t)eq.a1 * cs) >> 15) + (((int64_t)eq.a2 * cs2) >> 15);
-    di = -(((int64_t)eq.a1 * sn) >> 15) - (((int64_t)eq.a2 * sn2) >> 15);
+    sn = fx_eq_sin_q30(w);
+    cs = fx_eq_cos_q30(w);
+    cs2 = ((cs * cs) - (sn * sn)) >> 30;
+    sn2 = ((2 * sn * cs) >> 30);
+    nr = eq.b0 + ((eq.b1 * cs) >> 30) + ((eq.b2 * cs2) >> 30);
+    ni = -((eq.b1 * sn) >> 30) - ((eq.b2 * sn2) >> 30);
+    dr = BQ_ONE + ((eq.a1 * cs) >> 30) + ((eq.a2 * cs2) >> 30);
+    di = -((eq.a1 * sn) >> 30) - ((eq.a2 * sn2) >> 30);
     /* Full Q14 coefficients in 64-bit squares: >>7 lost the small denominator
      * near 20 Hz and at a low-frequency peak's center (d2 became 0, so the
      * graph fell to -24 dB). The roots are taken exactly, then the ratio is
