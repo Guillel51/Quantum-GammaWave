@@ -31,7 +31,8 @@ jobs:
           python-version: "3.13"
 
       - name: Python packages (font / icon / table generation)
-        run: pip install Pillow numpy fonttools
+        run: pip install Pillow numpy fonttools cryptography   # sign_test, key_custody_test and
+        # install_test import cryptography; without it the host job died with ModuleNotFoundError
 
       - name: generated headers (fonts, icons, palettes, shapes, tables, FM6 patches)
         run: python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"

@@ -93,9 +93,10 @@ jobs:
           JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
         run: |
           # the label the site shows must be the build record's version plus the commit it was built
-          # from (make_site.py and the installer both refuse anything else), and the record's version
-          # carries the leading v: "v1.9.0-37d857c", never "1.9.0-37d857c-preview"
-          ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/v\1/p' "$1/firmware/src/felucca.c" | head -1; }
+          # from, and nothing else: make_site.py refuses anything but "v1.9.0-8549ed4". FELUCCA_VERSION
+          # already carries the leading v, so ver() returns it as written; the old label appended
+          # "-preview" and every site build was refused.
+          ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
           # the preview: main as it is now, next to the emulator that runs it (preview/webapp/installer)
           python3 tools/build.py
           V=$(ver .)
@@ -148,7 +149,9 @@ jobs:
       # (QG-1) The portal and the emulator go up even when JieLi's toolchain is missing: the site then offers the
       # package already built for the target (firmware/packages, the published one), never a rebuild it did not do.
       - name: the site, with the published package when the target build produced none
-        if: ${{ hashFiles('build/site/index.html') == '' }}
+        # the fallback is for "there is no target package", which is what this step needs; it used to test
+        # build/site/index.html, which nothing writes before it, so it ran (and failed) on every build
+        if: ${{ hashFiles('build/felucca.fwsc') == '' }}
         run: |
           PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)
           test -s "$PKG" || { echo "::error::no package in firmware/packages and no target build"; exit 1; }
