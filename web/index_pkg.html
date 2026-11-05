@@ -895,9 +895,17 @@ const log = (t) => { $("log").textContent += t + "\n"; };
 let image = null;                 // the verified package bytes (the transport derives the image)
 let releaseManifest = null;       // the manifest that authorises exactly those bytes
 const meta = /*META*/;
-/* what install()/resume() need to verify the package themselves: an evidence object is never
-   enough, and the page's own pre-check is not what the transport relies on */
-const ctxFor = (ev, firmware = null) => ({ evidence: ev, manifest: releaseManifest, keys: meta.keys || {}, firmware });
+/* what install()/resume() need to verify the package themselves: the transport identifies the chip
+   on its own link, so no evidence is passed, and it refuses a transfer whose installed version is
+   unknown. The page remembers the version it installed itself; anything else stays refused. */
+const INSTALLED_KEY = "qg1.installed";
+const installedVersion = () => {
+  try { return localStorage.getItem(INSTALLED_KEY) || null; } catch (_) { return null; }
+};
+const rememberInstalled = () => {
+  try { if (releaseManifest && releaseManifest.version) localStorage.setItem(INSTALLED_KEY, String(releaseManifest.version)); } catch (_) {}
+};
+const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.keys || {}, firmware });
 
 let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false;
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
@@ -1035,14 +1043,14 @@ $("go").addEventListener("click", async () => {
       if (k === "loader") sayK("loader");
       if (k === "write") { sayK("write"); $("bar").value = ((74 + a) / total) * 100; }
       if (k === "reboot") sayK("reboot");
-      if (k === "done") { $("bar").value = 100; sayK("done"); }
+      if (k === "done") { $("bar").value = 100; sayK("done"); rememberInstalled(); }
     };
     const ota = await up.find((id) => /^ota-/i.test(id.model));
     if (ota) {
       const ev = await probeChip(ota.link, 1500);        /* (3.x) 0x12 on the open link, before the write */
       log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       ota.link.close();
-      sayK((await up.resume(image, step, meta.product, ctxFor(ev))) ? "done" : "stopped");
+      sayK((await up.resume(image, step, meta.product, ctxFor(installedVersion()))) ? "done" : "stopped");
     } else {
       sayK("checking");
       const fw = await fwKind(up);
@@ -1063,7 +1071,7 @@ $("go").addEventListener("click", async () => {
         } else if (!confirm(t("bkNone"))) { sayK("cancelled"); lockInstaller(false); return; }
       }
       const ev = await chipEvidence(up, meta.product.split("_")[0]);
-      await up.install(image, meta.product, step, ctxFor(ev, versionOf(fw.info)));
+      await up.install(image, meta.product, step, ctxFor(versionOf(fw.info)));
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || "");
@@ -1143,7 +1151,7 @@ $("stock-go").addEventListener("click", async () => {
       if (!confirm(t("stockConfirm"))) return;
       /* the vendor V15 has no release manifest and this project has no key that could sign it, so
          requireProof refuses it: the page does not bypass that, it lets the transport say why */
-      sayK(await up.resume(selected.image, step, selected.product, { evidence: ev, manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
     } else {
       const device = await up.find(id => id.model === "FM-1");
       if (!device) { sayK("notfound"); return; }
@@ -1157,7 +1165,7 @@ $("stock-go").addEventListener("click", async () => {
         (done,total) => sayK("backup", `${Math.round(done / Math.max(1,total) * 100)}%`));
       saveArchive(archive); link.close(); link = null;
       if (!confirm(t("stockConfirm"))) return;
-      await up.install(selected.image, selected.product, step, { evidence: ev, manifest: null, keys: meta.keys || {} });
+      await up.install(selected.image, selected.product, step, { manifest: null, keys: meta.keys || {} });
     }
   } catch (e) {
     if (e.code && TEXT[lang][e.code]) sayK(e.code,e.detail || ""); else sayK("error",e.message);
@@ -1187,11 +1195,11 @@ $("stock-direct").addEventListener("click", async () => {
       const ev = await probeChip(loader.link, 1500);
       log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       loader.link.close();
-      sayK(await up.resume(selected.image, step, selected.product, { evidence: ev, manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
     } else {
       const ev = await chipEvidence(up, selected.product.split("_")[0]);
       /* as above: the vendor V15 is not a signed release, so the transport refuses it */
-      await up.install(selected.image, selected.product, step, { evidence: ev, manifest: null, keys: meta.keys || {} });
+      await up.install(selected.image, selected.product, step, { manifest: null, keys: meta.keys || {} });
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || ""); else sayK("error", e && e.message);

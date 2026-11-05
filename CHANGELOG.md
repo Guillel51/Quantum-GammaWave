@@ -40,6 +40,14 @@
 - **Presupuesto:** app 558 200 B, paquete `ad2f3d41…`, RAM `.data+.bss` 96 452/98 304 (spare 1 852), RAM code
   22 432/24 576.
 
+## Gate de transporte: el chip lo identifica el transporte, la versión es obligatoria
+
+- `requireProof()` ya no acepta `evidence`: el chip se identifica con dos `0x12` en el enlace real
+  (`identify()`), antes de cualquier escritura, y `#serve()` sólo sirve el enlace autorizado.
+- La versión instalada pasa a ser obligatoria: sin ella un downgrade no puede descartarse, así que
+  `install()`/`resume()` la exigen (`version`) y la página recuerda la que instaló.
+- El paquete se admite antes de abrir el puerto: un proof usado o de otro producto cuesta cero frames.
+
 ## v1.8.7 — the master EQ no longer diverges at 20 Hz (2026-11-04)
 
 - **Causa raíz medida, no supuesta:** el filtro biquad maestro guardaba sus estados en enteros con la misma

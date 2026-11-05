@@ -48,6 +48,13 @@ authorisation used. Consequences:
 * the only code that sends image bytes, `#serve`, is a private method: the class exposes
   `find`, `waitFor`, `install`, `write` and `resume`, and none of them can be used to push an
   unverified buffer. A test asserts that surface, so a future public `serve()` fails the suite.
+* the transport identifies the chip itself, on the link it is about to write through
+  (`identify()` → two `0x12` replies, a fresh session token each). `requireProof()` takes no
+  evidence: a caller cannot hand in a JEDEC it never read, an identification from an earlier
+  connection is not reused, and `#serve()` refuses any link other than the one `identify()` bound.
+* the installed version is required. Neither the loader nor the handshake exposes it, so a transfer
+  whose version is unknown is refused (`version`) instead of assuming the current one. The page
+  remembers the version it installed and sends nothing else.
 
 ## 3. Who passes what
 
@@ -101,9 +108,8 @@ test process, and drives a simulated FM-1 that counts every frame it receives:
   `SECURITY_AUDIT.md`, row E).
 * **The physical part.** JEDEC and geometry come from the device's own `0x12` reply; nothing here
   proves what a particular unit's NOR is.
-* **`evidence` is data.** The transport trusts the JEDEC object it is handed; a caller with page
-  access can hand it `{ jedec: 0x856014 }` without the `0x12` exchange. Probing the link inside the
-  transport is the next step, and it needs a fake device that answers both `0x12` and `0x30`.
+* **`evidence` is gone, the probe is not.** The transport reads the JEDEC through `0x12` on its own
+  link, but a device that lies in that reply is outside anything the host can check.
 * **A script on the page can always speak MIDI itself.** `navigator.requestMIDIAccess` is available
   to any script on the origin, so this gate protects the supported paths, the protocol and the
   release chain — it is not a sandbox against an operator who opens the port by hand.

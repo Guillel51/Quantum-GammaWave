@@ -1434,12 +1434,20 @@ sys.stdout.buffer.write(b"".join(raw[i * 48:i * 48 + 47] for i in range(20)) + r
 /* ------------------------------------------------- update protocol (fm1ota.js) --- */
 const HS = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
+const crc16 = (d, c = 0) => {
+  for (const x of d) {
+    c ^= x << 8;
+    for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF;
+  }
+  return c & 0xFFFF;
+};
 
 /* an FM-1 on WebMIDI: identity, then "device asks, host answers" reads of the image */
 class FakeFM1 {
-  constructor(image, { unplugAfter = Infinity, ackLost = false } = {}) {
+  constructor(image, { unplugAfter = Infinity, ackLost = false, jedec = null, silentNor = false } = {}) {
     this.image = image; this.unplugAfter = unplugAfter; this.ackLost = ackLost; this.served = 0; this.bad = 0;
     this.frames = 0; this.upgrades = 0;   // frames the host sent, and UPGRADE commands
+    this.jedec = jedec; this.silentNor = silentNor; this.session = 0xA000; this.queries = 0;
     this.access = { inputs: new Map(), outputs: new Map() };
     this.boot("FM-1_900", "Felucca");   // the identity the test package carries
   }
@@ -1456,8 +1464,30 @@ class FakeFM1 {
     this.access.outputs.set(this.output.id, this.output);
   }
   tx(bytes) { const i = this.input; setTimeout(() => { if (i.state === "connected" && i.onmidimessage) i.onmidimessage({ data: Uint8Array.from(bytes) }); }, 1); }
+  /* 0x12 identification: the transport gate probes the link it is about to write through */
+  qry12() {
+    if (this.silentNor) return;
+    const jedec = this.jedec === null ? 0x856014 : this.jedec;
+    const b = new Array(24).fill(0);
+    b[0] = 1;
+    b[2] = (jedec >> 16) & 0xFF; b[3] = (jedec >> 8) & 0xFF; b[4] = jedec & 0xFF;
+    const cap = 0x100000;
+    b[5] = cap & 0xFF; b[6] = (cap >> 8) & 0xFF; b[7] = (cap >> 16) & 0xFF; b[8] = 0;
+    b[9] = 0; b[10] = 1; b[11] = 0; b[12] = 0x10; b[13] = 0; b[14] = 0; b[15] = 1; b[16] = 0;
+    this.session = (this.session + 1) >>> 0;
+    b[17] = this.session & 0xFF; b[18] = (this.session >> 8) & 0xFF;
+    b[19] = (this.session >> 16) & 0xFF; b[20] = (this.session >>> 24) & 0xFF;
+    b[21] = crc16(b.slice(0, 21)) & 0xFF; b[22] = (crc16(b.slice(0, 21)) >> 8) & 0xFF;
+    const c = (~b.reduce((x, y) => x + y, 0)) & 0xFF;
+    this.tx([0xF0, ...pack7([0, 0x59, 0x12, 24, 0, 0, ...b, c]), 0xF7]);
+  }
   rx(d) {
     this.frames++;
+    if (d.length > 3 && d[0] === 0xF0 && d.at(-1) === 0xF7) {
+      let u = null;
+      try { u = unpack7(d.slice(1, -1)); } catch (_) { u = null; }
+      if (u && u[0] === 0 && u[1] === 0x59 && u[2] === 0x12) { this.queries++; return this.qry12(); }
+    }
     if (eq(d, HS)) {
       const t = [...new TextEncoder().encode(this.identity)];
       const body = [0, 0x59, 0x11, 0, 0, 0, ...t, ...new Array(28 - t.length).fill(0)];
@@ -1530,7 +1560,7 @@ async function updater() {
   const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
   const pkg = packageOf(image, identity);
   const manifest = release(pkg);
-  const ctx = { evidence: { jedec: 0x856014 }, manifest, keys: PINNED };
+  const ctx = { manifest, keys: PINNED, firmware: "1.8.9" };
   ok(eq(logicalImage(pkg), image) && productOf(pkg) === identity,
     `fm1ota.js: the test package identifies as ${productOf(pkg)} and holds the 0x2000 image`);
 
@@ -1555,10 +1585,8 @@ async function updater() {
   /* the negative matrix: every refusal happens before the first frame, so the transport counters
      must all be zero (frames sent, UPGRADE commands, image bytes served) */
   const refusals = [
-    ["no context", "chip", (up) => up.install(pkg, identity)],
-    ["no chip evidence", "chip", (up) => up.install(pkg, identity, null, { manifest, keys: PINNED })],
-    ["a read-only chip", "chip", (up) => up.install(pkg, identity, null, { ...ctx, evidence: { jedec: 0xB36014 } })],
-    ["an unknown chip", "chip", (up) => up.install(pkg, identity, null, { ...ctx, evidence: { jedec: 0x123456 } })],
+    ["no context", "version", (up) => up.install(pkg, identity)],
+    ["no installed version", "version", (up) => up.install(pkg, identity, null, { manifest, keys: PINNED })],
     ["no manifest", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: null })],
     ["no pinned key", "signature", (up) => up.install(pkg, identity, null, { ...ctx, keys: {} })],
     ["an unknown key id", "signature", (up) => up.install(pkg, identity, null, { ...ctx, keys: { other: PINNED["test-1"] } })],
@@ -1571,24 +1599,29 @@ async function updater() {
     ["a downgrade below min_firmware", "signature", (up) => up.install(pkg, identity, null, { ...ctx, firmware: "0.5.0" })],
     ["a package that is not bytes", "image", (up) => up.install("package", identity, null, ctx)],
     ["an empty package", "image", (up) => up.install(new Uint8Array(0), identity, null, ctx)],
-    ["resume without a proof", "chip", (up) => up.resume(pkg, null, identity)],
-    ["write without a proof", "proof", (up) => up.write({ id: { model: "ota-" + identity, text: "ota-" + identity }, link: { send: () => true } }, pkg, null)],
+    ["resume without a context", "version", (up) => up.resume(pkg, null, identity)],
+    ["write without a product", "proof", (up) => up.write({ id: { model: "ota-" + identity, text: "ota-" + identity }, link: { send: () => true } }, pkg, null)],
+    /* the transport's own identification: these reach the device, so the counters are "no write", not "no frame" */
+    ["a read-only chip", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 3, jedec: 0xB36014 }],
+    ["an unknown chip", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, jedec: 0x123456 }],
+    ["a chip that never answers 0x12", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, silentNor: true }],
   ];
-  for (const [what, code, run] of refusals) {
-    const dev = new FakeFM1(image);
+  for (const [what, code, run, opt = {}] of refusals) {
+    const dev = new FakeFM1(image, { jedec: opt.jedec ?? null, silentNor: !!opt.silentNor });
     const e = await run(new Updater(dev.access, null, FAST)).then(() => null, (x) => x);
-    ok(e && e.code === code && dev.frames === 0 && dev.upgrades === 0 && dev.served === 0,
-      `fm1ota.js: ${what} -> '${code}', 0 frames, 0 writes, 0 bytes`);
+    const frames = opt.frames ?? 0;
+    ok(e && e.code === code && dev.frames === frames && dev.upgrades === 0 && dev.served === 0,
+      `fm1ota.js: ${what} -> '${code}', ${dev.frames} frame(s), 0 writes, 0 bytes`);
   }
 
   /* a proof is bound to the bytes it verified: a buffer changed afterwards never reaches the
      device, and a swapped package is refused even with a valid authorisation */
   {
     const live = pkg.slice(), man = release(live);
-    const proof = await M.requireProof({ pkg: live, product: identity, evidence: { jedec: 0x856014 }, manifest: man, keys: PINNED });
+    const proof = await M.requireProof({ pkg: live, product: identity, firmware: "1.8.9", manifest: man, keys: PINNED });
     live.fill(0xFF);
     const dev = new FakeFM1(image);
-    const e = await new Updater(dev.access, null, FAST).install(live, identity, null, { evidence: { jedec: 0x856014 }, manifest: man, keys: PINNED, proof })
+    const e = await new Updater(dev.access, null, FAST).install(live, identity, null, { manifest: man, keys: PINNED, firmware: "1.8.9", proof })
       .then(() => null, (x) => x);
     ok(e && e.code === "image" && dev.frames === 0 && dev.served === 0,
       "fm1ota.js: a package changed after it was verified -> 'image', no frame");
@@ -1614,7 +1647,7 @@ async function updater() {
   {
     const other = "FM-1_901", pkg2 = packageOf(image, other);
     const dev = new FakeFM1(image);                       // it answers as FM-1_900
-    const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { evidence: { jedec: 0x856014 }, manifest: release(pkg2), keys: PINNED })
+    const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { firmware: "1.8.9", manifest: release(pkg2), keys: PINNED })
       .then(() => null, (x) => x);
     ok(e && e.code === "model" && dev.upgrades === 0 && dev.served === 0,
       `fm1ota.js: a unit answering as ${dev.identity} for a ${other} package -> 'model', nothing written`);
@@ -1700,10 +1733,10 @@ qg1FeaturesCheck();
   const resumes = pkgHtml.match(/up\.resume\([^)]*\)/g) || [];
   ok(/async function chipEvidence\(/.test(pkgHtml) && /probeChip\(/.test(pkgHtml),
      "installer page: 0x12 identifies the flash before the first write frame");
-  ok(installs.length === 3 && installs.every((s) => /,\s*(ctxFor\(ev|\{ evidence: ev)/.test(s)),
-     "installer page: every install() call passes chip evidence and the manifest");
-  ok(resumes.length === 3 && resumes.every((s) => /,\s*(ctxFor\(ev|\{ evidence: ev)/.test(s)),
-     "installer page: every resume() call passes chip evidence and the manifest");
+  ok(installs.length === 3 && installs.every((s) => /,\s*(ctxFor\(|\{ manifest)/.test(s)),
+     "installer page: every install() call passes the manifest, the keys and the installed version");
+  ok(resumes.length === 3 && resumes.every((s) => /,\s*(ctxFor\(|\{ manifest)/.test(s)),
+     "installer page: every resume() call passes the manifest, the keys and the remembered version");
   ok(!/up\.write\(/.test(pkgHtml), "installer page: write() is reached only through install()/resume()");
   ok(/verifyManifest\(pkg, v\.manifest/.test(pkgHtml) && /no signed manifest/.test(pkgHtml),
      "installer page: the signed manifest is verified before INSTALL");

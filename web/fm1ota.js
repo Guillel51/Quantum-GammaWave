@@ -178,7 +178,9 @@ export class Updater {
   // when the port disappears (lost: true) instead of waiting out idleMs. Private: this is the
   // only place that sends image bytes, and it must not be reachable from outside the class —
   // install()/write() reach it only after admit() returned the verified copy.
-  async #serve(link, image, finishAddr, idleMs, onProgress) {
+  async #serve(pass, link, finishAddr, idleMs, onProgress) {
+    if (!pass || pass.link !== link) throw fail("proof", "this transfer has no admission on this link: nothing was sent.");
+    const image = pass.image;
     let served = 0, last = Date.now();
     for (;;) {
       const pkt = await link.read(1000);
@@ -210,15 +212,17 @@ export class Updater {
   // covers; the image the device reads is derived from the verified private copy (admit).
   async install(pkg, product, onStep, ctx = {}) {
     const step = onStep || (() => {});
-    const image = await admit(ctx.proof || await requireProof({ ...ctx, pkg, product }), pkg, product, ctx.evidence);
+    const proof = ctx.proof || await requireProof({ ...ctx, pkg, product });
+    const pass = await admit(proof, pkg, product);             // refuses a used or wrong proof before any frame
     const dev = await this.find((id) => !IS_OTA(id));
     if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
     const [model] = product.split("_");
     if (dev.id.model !== model || dev.id.text !== product) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
+    await identify(pass, dev.link);                            // 0x12 on this link, before any write frame
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
-    const s1 = await this.#serve(dev.link, image, 0xE0000000, 8000, (n) => step("verify", n));
+    const s1 = await this.#serve(pass, dev.link, 0xE0000000, 8000, (n) => step("verify", n));
     dev.link.close();
     if (!s1.finished) throw fail(s1.lost ? "lost" : "stopped", `the device ${s1.lost ? "was disconnected" : "stopped"} after ${s1.served} requests: nothing was written`);
     step("loader");
@@ -241,13 +245,15 @@ export class Updater {
   // public entry point, so it cannot rely on install() or resume() having done so.
   async write(ota, pkg, step, ctx = {}) {
     const product = ctx.product || null;
-    const image = await admit(ctx.proof || await requireProof({ ...ctx, pkg, product }), pkg, product, ctx.evidence);
     const model = String(ota.id.model).replace(/^ota-/i, "");
     if (!product || model !== product.split("_")[0])
       throw fail("proof", `the loader is ${ota.id.text}, the authorisation is for ${product}: nothing was sent.`);
+    const proof = ctx.proof || await requireProof({ ...ctx, pkg, product });
+    const pass = await admit(proof, pkg, product);
+    await identify(pass, ota.link);                            // 0x12 on the loader's own link
     ota.link.send(UPGRADE);
     await sleep(2000);
-    const s2 = await this.#serve(ota.link, image, 0xF0000000, 180000, (n) => step("write", n));
+    const s2 = await this.#serve(pass, ota.link, 0xF0000000, 180000, (n) => step("write", n));
     ota.link.close();
     return s2;
   }
@@ -255,7 +261,7 @@ export class Updater {
   // resume: the device is already in update mode (loader) -> true when the write finished
   async resume(pkg, onStep, product = null, ctx = {}) {
     const step = onStep || (() => {});
-    const image = await admit(ctx.proof || await requireProof({ ...ctx, pkg, product }), pkg, product, ctx.evidence);
+    await requireProof({ ...ctx, pkg, product });               // refuse a bad package before touching a port
     const model = product && product.split("_")[0];
     const ota = await this.find((id) => model ? id.model === "ota-" + model : IS_OTA(id));
     if (!ota) return false;
@@ -457,10 +463,13 @@ function versionString(v, what) {
 
 // Verify a .fwsc and everything that authorises writing it. Every refusal happens before the
 // first frame, so a caller that ignores the result has still caused nothing to be sent.
-export async function requireProof({ pkg, manifest, keys = {}, product = null, evidence = null, firmware = null } = {}) {
+export async function requireProof({ pkg, manifest, keys = {}, product = null, firmware = null } = {}) {
   if (!product || typeof product !== "string" || !product.includes("_"))
     throw fail("proof", "no product was named for this transfer: nothing was sent.");
-  requireChip(evidence);                                    // cheapest refusal first: no crypto, no frame
+  // The installed version is not optional: without it a downgrade cannot be ruled out, and neither
+  // the loader nor the handshake exposes it. Unknown version means refused, not "assume current".
+  if (firmware === null || firmware === undefined || firmware === "" || typeof firmware === "object")
+    throw fail("version", "the installed firmware version is unknown: a downgrade cannot be ruled out, so nothing was sent.");
   if (!manifest || typeof manifest !== "object")
     throw fail("signature", "No signed manifest: nothing was sent.");
   for (const f of RELEASE_FIELDS)
@@ -479,8 +488,8 @@ export async function requireProof({ pkg, manifest, keys = {}, product = null, e
     throw fail("signature", "The manifest does not describe this package: nothing was sent.");
   const image = logicalImage(bytes);
   if (!image.length) throw fail("image", "the package holds no image: nothing was sent.");
-  const proof = Object.freeze({ product, model, part: typeof evidence.part === "string" ? evidence.part : "",
-    jedec: evidence.jedec, version: checked.version, keyid: checked.keyid,
+  // No chip field here: the chip is identified by admit() on the live link, never by the caller.
+  const proof = Object.freeze({ product, model, version: checked.version, keyid: checked.keyid,
     sha256: checked.sha256, size: bytes.length, imageSize: image.length });
   PROOFS.set(proof, { image, used: false });
   return proof;
@@ -489,18 +498,29 @@ export async function requireProof({ pkg, manifest, keys = {}, product = null, e
 // Consume an authorisation and return the image to serve. Nothing is sent while this throws, and
 // the image it returns is the verified private copy: a later change to the caller's buffer cannot
 // reach the device.
-async function admit(proof, pkg, product, evidence) {
+async function admit(proof, pkg, product) {
   const rec = proof && PROOFS.get(proof);
   if (!rec) throw fail("proof", "this transfer has no verified package: nothing was sent.");
   if (rec.used) throw fail("proof", "this authorisation was already used for another transfer: nothing was sent.");
   if (product !== proof.product)
     throw fail("proof", `the authorisation is for ${proof.product}, not ${product}: nothing was sent.`);
-  requireChip(evidence);                                    // the chip policy, again, for this transfer
-  if (evidence.jedec !== proof.jedec)
-    throw fail("chip", "the chip changed since the package was verified: nothing was sent.");
   const bytes = toBytes(pkg);                                 // whatever the caller passed this time
   if (bytes.length !== proof.size || (await sha256hex(bytes)) !== proof.sha256)
     throw fail("image", "the package is not the one that was verified: nothing was sent.");
   rec.used = true;                                           // one package, one transfer
-  return rec.image;
+  return { image: rec.image, link: null, chip: null };
+}
+
+// Bind an admission to the link it will transmit on. The transport identifies the chip itself here,
+// with two 0x12 replies that carry a fresh session token each: nothing the caller holds can stand in
+// for that, an identification from an earlier connection is never reused, and #serve() refuses a link
+// other than the one this function bound.
+async function identify(pass, link) {
+  if (!pass || !(pass.link === null) || !link || typeof link.send !== "function" || typeof link.read !== "function")
+    throw fail("chip", "this transfer has no open link to identify: nothing was sent.");
+  const chip = await probeChip(link, 1500);
+  requireChip(chip);
+  pass.link = link;
+  pass.chip = chip;
+  return pass;
 }
