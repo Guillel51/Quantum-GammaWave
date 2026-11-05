@@ -1,3 +1,27 @@
+- **CI en verde con las causas reales, no con el workflow apagado:** los tres workflows llevaban rojos
+  desde `d32a600` (antes de este trabajo) y el patrón común era un fallo enmascarado por
+  `continue-on-error` o por un paso que nunca llegaba a ejecutarse. Causas encontradas y corregidas, cada
+  una reproducida en local sobre el commit que fallaba: (1) el job `host` instalaba Pillow, numpy y
+  fonttools pero `sign_test.py`, `key_custody_test.py` e `install_test.py` importan `cryptography`, así
+  que moría con `ModuleNotFoundError` en el primer `keygen` — se instala la dependencia, no se salta la
+  prueba; (2) el registro de build marcaba el árbol como sucio porque la caché del toolchain restauraba
+  en `.jieli` **dentro** del checkout y el SDK se clonaba en `$GITHUB_WORKSPACE/fw-AC79_AIoT_SDK`:
+  `--require-clean` rechazaba un build limpio, y `dirty()` ahora ignora `$AC79_SDK` y `$JIELI_TOOLCHAIN`
+  cuando apuntan dentro del árbol (el manifiesto ya los identifica por hash); (3) el `env:` de nivel de
+  workflow usaba `runner.temp`, que no existe en ese contexto, y GitHub rechazaba el fichero con **cero
+  jobs**; (4) el job de paridad WASM nunca generaba `build/gen` (`web/emu/build.sh` se negaba con "run
+  ./build.sh once first") ni creaba `build/host` antes de compilar el binario nativo, y clonaba el SDK
+  sin reintentos; (5) `web/make_site.py` rechaza cualquier etiqueta que no sea la versión del registro
+  más su commit, y el workflow pasaba `1.9.0-<sha>-preview`, de modo que el sitio nunca se construía y el
+  fallo aparecía un paso después como "no package in firmware/packages"; (6) el paso de reserva
+  comprobaba `build/site/index.html`, una ruta que nadie escribe antes de que se ejecute, así que corría
+  (y fallaba) en todos los builds. Además los dos gates de manifiesto y el de paridad publican ahora su
+  veredicto como anotación `::error::` pública: antes el único rastro era "exit code 1" y el log exige
+  permisos de administración. Estado verificado en `c70867f`: `host`, `AC791N build + memory budgets +
+  manifest`, `FELUCCA_FLASH=0` y `WASM builds and matches the native render` en verde, y
+  `emulator`/`deploy` en verde desde `d2fce1a` (sus filtros de rutas no se disparan con cambios de
+  workflow). El build real AC791N sigue dando `FM-1_982`, 611163 B, y la paridad WASM es bit a bit con
+  2,3 % de tiempo real. **Ninguna unidad física, ninguna clave real, ningún release publicado.**
 - **El SVF cuesta 26 instrucciones menos, con el mismo sonido:** los dos estados del filtro
   (`tsvf_lp`, en el camino caliente de toda voz ANALOG, NOISE y DRUM-X) se limitaban con dos
   comparaciones por muestra; ahora hay una sola comparación sin signo por límite (`clamp_sym`, el
