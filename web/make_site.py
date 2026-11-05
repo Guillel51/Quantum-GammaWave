@@ -74,40 +74,56 @@ def earlier(prev, version, product):
     return out
 
 
-def build_record(pkg_path, raw, product, version):
-    """The qg1-build-1 manifest of the build that produced `raw`, checked against it, or None.
+def build_record(pkg_path, manifest=None):
+    """the qg1-build-1 record of the build that produced this package, if it is here (tools/build_manifest.py)"""
+    cands = ([Path(manifest)] if manifest else []) + [Path(pkg_path).parent / "manifest.json",
+                                                      Path(str(pkg_path) + ".build.json")]
+    for c in cands:
+        try:
+            m = json.loads(c.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(m, dict) and m.get("schema") == "qg1-build-1":
+            return m
+    return None
 
-    A package published without its record leaves the installer's provenance gate closed (INSTALL
-    stays disabled), so this is a refusal and not a warning: a record that exists but does not describe
-    this package -- another commit, a dirty tree, another identity, other bytes -- means the site
-    would be publishing a claim it cannot support.
-    """
-    cand = Path(pkg_path).parent / "manifest.json"
-    if not cand.is_file():
-        return None
+
+def check_build_record(m, raw, product, version, pkg_path):
+    """Refuse to publish a package that contradicts its own build record. The installer checks the same
+    things again in the browser (web/fm1provenance.js): an inconsistent site must never be built."""
+    problems = []
+    art = (m.get("artifacts") or {}).get("felucca.fwsc") or {}
+    if art.get("sha256") != hashlib.sha256(raw).hexdigest():
+        problems.append(f"the package's SHA-256 is not the record's ({art.get('sha256')})")
+    if art.get("bytes") != len(raw):
+        problems.append(f"the package is {len(raw)} B, the record's {art.get('bytes')} B")
+    if m.get("identity") != product:
+        problems.append(f"the record is for {m.get('identity')!r}, the package's identity is {product!r}")
+    if m.get("dirty"):
+        problems.append("the record says the tree had uncommitted changes (" + ", ".join(map(str, m["dirty"][:4])) + ")")
+    bv, commit = str(m.get("version") or ""), str(m.get("commit") or "")
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        problems.append(f"the record's commit {commit!r} is not a full commit id")
+    suffix = version[len(bv) + 1:] if bv and version.startswith(bv + "-") else None
+    if not (bv and (version == bv or (suffix and re.fullmatch(r"[0-9a-f]{7,40}", suffix)
+                                      and commit.startswith(suffix)))):
+        problems.append(f"this is labelled {version!r}, the record says {bv!r} ({commit[:7]})")
+    emu = m.get("emulator") or {}
+    if emu.get("version") != bv:
+        problems.append(f"the emulator in the record is {emu.get('version')!r}, the firmware {bv!r}")
+    if not commit.startswith(str(emu.get("commit") or "-")):
+        problems.append(f"the emulator was built from {emu.get('commit')!r}, the firmware from {commit[:7]}")
+    if problems:
+        raise SystemExit(f"{pkg_path}: refusing to publish it: " + "; ".join(problems))
+
+
+def emulator_record(pkg_path):
+    """build/emu/manifest.json (qg1-emu-1), when the emulator was built next to this package"""
     try:
-        build = json.loads(cand.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as e:
-        raise SystemExit(f"{cand}: not readable JSON ({e}): refusing to publish it")
-    if not isinstance(build, dict) or build.get("schema") != "qg1-build-1":
-        raise SystemExit(f"{cand}: schema {build.get('schema') if isinstance(build, dict) else None!r} is not "
-                         "'qg1-build-1': refusing to publish it")
-    art = (build.get("artifacts") or {}).get("felucca.fwsc") or {}
-    digest = hashlib.sha256(raw).hexdigest()
-    if art.get("sha256") != digest or art.get("bytes") != len(raw):
-        raise SystemExit(f"{cand}: its felucca.fwsc record is not this package (sha256 {art.get('sha256')}, "
-                         f"{art.get('bytes')} B; this one {digest}, {len(raw)} B): refusing to publish it")
-    if build.get("identity") != product:
-        raise SystemExit(f"{cand}: the record is for {build.get('identity')!r}, the package is {product!r}: "
-                         "refusing to publish it")
-    if build.get("dirty"):
-        raise SystemExit(f"{cand}: built from a dirty tree ({', '.join(build['dirty'][:4])}): a published "
-                         "package must come from a clean build; refusing to publish it")
-    commit, ver = str(build.get("commit") or ""), str(build.get("version") or "")
-    if version != ver and not (version.startswith(ver + "-") and commit.startswith(version[len(ver) + 1:])):
-        raise SystemExit(f"{cand}: the site labels this package {version!r}, the record says {ver!r} at "
-                         f"{commit[:12]}: refusing to publish it")
-    return build
+        m = json.loads((Path(pkg_path).parent / "emu" / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return m if isinstance(m, dict) and m.get("schema") == "qg1-emu-1" else None
 
 
 def with_csp(html):
@@ -124,7 +140,7 @@ def with_csp(html):
     return html.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n' + meta, 1)
 
 
-def main(pkg, version, out, prev=None):
+def main(pkg, version, out, prev=None, manifest=None):
     pkg, out = Path(pkg), Path(out)
     raw = pkg.read_bytes()
     product = product_of(raw)
@@ -133,7 +149,6 @@ def main(pkg, version, out, prev=None):
     if b"FELUCCA-LOADER-1" not in raw:              # Felucca loader marker: never publish a package with vendor files
         raise SystemExit(f"{pkg}: no Felucca loader in it; the site ships only fm1pkg_make.py packages "
                          "(a package patched from an official one carries vendor files)")
-    build = build_record(pkg, raw, product, version)       # or None: the installer then refuses (fail-closed)
     html = (HERE / "index_pkg.html").read_text(encoding="utf-8")
     lib = strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8")) + "\n" + \
@@ -153,12 +168,17 @@ def main(pkg, version, out, prev=None):
     # Only the PUBLIC keys the custodian pinned (tools/fm1_keys.json) travel with the page: an
     # empty map is the honest state, and verifyManifest() then refuses every package.
     keys = json.loads((HERE.parent / "tools" / "fm1_keys.json").read_text(encoding="utf-8")).get("keys", {})
+    # (v1.9.0) the build record travels with the page (inlined, so it cannot be swapped apart from it).
+    # A package with no record is published, but the installer then refuses to install it: fail closed.
+    build = build_record(pkg, manifest)
+    if build:
+        check_build_record(build, raw, product, version, pkg)
+    emu = emulator_record(pkg)
     versions = [{"version": version, "file": name, **digest(raw), "manifest": manifest_of(Path(pkg)),
                  "build": build}] + \
-        [{**e, **digest(src.read_bytes()), "manifest": manifest_of(src),
-          "build": build_record(src, src.read_bytes(), product, e["version"])} for e, src in old]
+        [{**e, **digest(src.read_bytes()), "manifest": manifest_of(src), "build": None} for e, src in old]
     meta = json.dumps({"version": version, "product": product, "pkg": "../../firmware/" + name, **digest(raw),
-                       "stock": (HERE.parent / "FM-1.fwsc").is_file(), "keys": keys, "build": build,
+                       "stock": (HERE.parent / "FM-1.fwsc").is_file(), "keys": keys, "build": build, "emu": emu,
                        "versions": [{"version": e["version"], "pkg": "../../firmware/" + e["file"],
                                      "sha256": e["sha256"], "size": e["size"],
                                      "manifest": e.get("manifest"), "build": e.get("build")} for e in versions]})
@@ -205,11 +225,21 @@ def main(pkg, version, out, prev=None):
         shutil.rmtree(assets)
     shutil.copytree(site / "assets", assets)
     print(f"site: {out}: portal + assets, webapp/installer ({len(html)} B), webapp/editor, "
-          f"firmware/{name} ({len(raw)} B, {product})"
+          f"firmware/{name} ({len(raw)} B, {product}, "
+          + (f"build {build['version']} {build['commit'][:7]}" if build else "NO build record: the installer will refuse it")
+          + ", " + ("emulator record" if emu else "no emulator record") + ")"
           + (f", earlier: {' '.join(e['version'] for e, _ in old)}" if old else ""))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (4, 5):
+    args = sys.argv[1:]
+    manifest = None
+    if "--manifest" in args:
+        i = args.index("--manifest")
+        if i + 1 >= len(args):
+            sys.exit(__doc__)
+        manifest = args[i + 1]
+        del args[i:i + 2]
+    if len(args) not in (3, 4):
         sys.exit(__doc__)
-    main(*sys.argv[1:5])
+    main(*args[:3], args[3] if len(args) == 4 else None, manifest)

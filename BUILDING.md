@@ -78,6 +78,31 @@ end within it, 8 KiB to spare. The linker places all code first and all constant
 strings) after it (`firmware/app.ld`, `_ecode`), and constants are never called, so the reach is measured to the end
 of the code (`XIP code … B, constants … B` in the notes); constants only use up the slot.
 
+## Build identity (what produced these bytes)
+
+Every build writes `build/manifest.json` **after** the artefacts (`tools/build_manifest.py`, called by
+`tools/build.py` and refreshed by `web/emu/build.sh`). It records, together:
+
+- the exact `commit` (`GIT_COMMIT`/`GITHUB_SHA` in CI, `git rev-parse HEAD` locally) and the
+  uncommitted files (`dirty`, minus `build/`) — so a build from a modified tree says so;
+- the `version` compiled into the firmware and the package `identity`;
+- the build `config` (`FELUCCA_*`, `FELUCCA_USB_LAYOUT`), the `toolchain` (path, name and the clang
+  binary's sha256) and the `sdk` (checkout commit and the sha256 of its three files);
+- `artifacts`: sha256 and size of `felucca.bin`, `loader/ota.bin` and the package;
+- `emulator`: the WASM's version, commit, sha256 and size, so the two cannot disagree.
+
+```
+python3 tools/build_manifest.py --verify                    # after a build
+python3 tools/build_manifest.py --verify --require-clean \
+        --expect-commit "$(git rev-parse HEAD)"             # what CI runs
+```
+
+`--verify` fails on any mismatch: a changed artefact, a manifest that names another commit, a dirty
+build under `--require-clean`, a version that is not the firmware's, or a WASM built elsewhere. A
+`--release` build refuses a dirty tree outright. The target build, the storage-less configuration and
+the WASM parity check run in `.github/workflows/target.yml`; the host tests and the sanitizer runs in
+`.github/workflows/c-cpp.yml`.
+
 ## Browser emulator
 
 ```
@@ -128,34 +153,35 @@ python3 tools/fm1_install.py --info          # identity of the connected FM-1
 Or, to install your own build from the web installer, make a local copy of the site and open it from `localhost`
 (Web MIDI needs a secure context):
 
+The page carries the build record (`build/manifest.json`) compiled into it and refuses to install
+if the package it is given disagrees with that record in commit, version, product identity, size or
+sha256 — and an unrecorded package is refused too. `make_site.py` enforces the same thing on the
+machine that builds the site, so a mismatched site cannot be published in the first place. The check
+runs before the first MIDI frame, so a package that fails it is never written to the device:
+
 ```
+python3 tools/build_manifest.py --verify --require-clean
 python3 web/make_site.py build/felucca.fwsc dev /tmp/felucca-site
 cd /tmp/felucca-site && python3 -m http.server 8000
 # open http://localhost:8000/webapp/installer/
 ```
 
-### Build record and release signature
+That record proves **integrity and provenance** — these bytes are the ones this commit produced —
+not **authenticity**: without a signing key the page cannot tell a genuine Felucca build from one
+rebuilt by someone else at the same commit, and it does not pretend to. The official FM-1 V15 file
+is admitted only through its digest pinned in the source, and releases recorded before v1.9.0 have
+no record, so they are no longer installable from the page.
 
-Every `tools/build.py` run writes `build/manifest.json` (`tools/build_manifest.py`): the version as
-compiled, the commit, the files that were not committed (empty means the bytes come from exactly that
-commit), the identity, every artefact's SHA-256 and size, the toolchain and SDK hashes, and the emulator
-built from the same tree. `python3 tools/build_manifest.py --verify --require-clean` re-checks every
-claim against the files on disk.
-
-`web/make_site.py` inlines that record beside each version and refuses to publish a package it does not
-describe (other bytes, another identity, a dirty tree, a label naming another commit); the installer
-refuses a package with no record at all, so a site built without one installs nothing.
-
-Sign with the record inside the signature (`--build-manifest` puts its canonical SHA-256 in the signed
-manifest as `build_sha256`):
+When there is a key to sign with, `--build-manifest` puts the record's canonical SHA-256 inside the
+Ed25519 signature (`build_sha256`), so authenticity and provenance are checked together: the
+transport refuses a signed release that names no record, or another one.
 
 ```
 python3 tools/fm1_sign.py sign build/felucca.fwsc --key /secure/qg1-release.pem --version 1.9.0 \
     --min 1.8.0 --keyid qg1-release-1 --build-manifest build/manifest.json
 ```
 
-A release manifest that names no record is refused by the installer and by `fm1_sign.py verify`; with an
-empty `tools/fm1_keys.json` every package is refused as well (see `docs/SIGNING_CUSTODY.md`).
+With `tools/fm1_keys.json` empty every package is refused (see `docs/SIGNING_CUSTODY.md`).
 
 Installing firmware is at your own risk. If an install fails and the FM-1 no longer
 starts, recovery needs [FM-1-transporter](https://github.com/kurogedelic/FM-1-transporter).

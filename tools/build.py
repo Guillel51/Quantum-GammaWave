@@ -33,6 +33,7 @@ LDR = OUT / "loader"
 sys.path.insert(0, str(SRC / "tools"))
 import fm1pkg_make  # noqa: E402
 import lz4blk  # noqa: E402
+import build_manifest  # noqa: E402  (v1.9.0: artefact -> commit/version/config/toolchain, checked)
 
 APP_XIP = 0x02000120                # app.bin offset 0 in the XIP map; the SPL jumps here
 APP_SLOT = fm1pkg_make.APP_SLOT
@@ -401,6 +402,9 @@ def main():
         print("  FAIL ", e)
     if errors:
         raise SystemExit("build: checks failed")
+    if a.release and build_manifest.dirty():      # (v1.9.0) a release identifies itself with its commit
+        raise SystemExit("build.py: --release from a dirty tree; commit or stash first, the manifest "
+                         "could not say which code these bytes are")
     pkg = fm1pkg_make.ufw(fm1pkg_make.flash_image(img, fm1pkg_make.KEY), ota, PRODUCT)
     (OUT / name).write_bytes(pkg)
     print(f"app      {OUT / 'felucca.bin'}  {len(img)} B")
@@ -420,15 +424,10 @@ def main():
         for doc in ("LICENSE", "LICENSING.md"):
             shutil.copy(SRC / doc, rel / doc)
         print(f"release  {rel}/")
-    # The build record the installer demands before it writes a byte (web/fm1provenance.js): written
-    # last, from the artefacts as they are on disk, so every hash and size in it is final. A failure
-    # here does not fail the build, but it does make the package unpublishable, so it is reported.
-    try:
-        import build_manifest as BM
-        BM.write(BM.collect(package=name), OUT)
-    except Exception as e:                                  # noqa: BLE001 - a message, not a traceback
-        print(f"manifest {OUT / 'manifest.json'} not written ({e}): the installer refuses a package "
-              "published without its build record")
+    # (v1.9.0) the manifest is written after the artefacts, never before: it hashes what exists
+    build_manifest.write(build_manifest.collect(
+        checks={"checks": "ok" if not errors else "failed", "notes": notes, "identity": PRODUCT},
+        package=name))
     return 0
 
 

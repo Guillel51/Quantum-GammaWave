@@ -267,6 +267,25 @@ else
     echo "== skip hostsim (run ./build.sh once)"
 fi
 
+# (v1.9.0) EQ and DSP, and the host-side security tools. These tests existed but no script ran them, so a
+# regression in the master biquad, the six-track load, the chip gates, the raw restore, the signature
+# check or the installer preflight could not fail anything. They include hostsim.c, like the rest.
+for t in eq_dc_test eq_response_test eq_state_test eq_sweep_test six_track_test; do
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/$t" "tests/$t.c" -lm
+    run "EQ / load ($t): DC gain against the coefficients, 11-bit state, stability, response, six tracks" \
+        "$OUT/$t"
+done
+run "chip identification: 0x12/0x13 gates, no write frame without a verified part" python3 tests/chip_test.py
+run "raw restore: geometry, identifiers, sector alignment, readback, refusal before any erase" \
+    python3 tests/restore_test.py
+run "signed packages: manifest, hash, product / version / min_firmware, WebCrypto parity" \
+    python3 tests/sign_test.py
+if [ "${NO_PACKAGE:-0}" = 1 ]; then
+    echo "== skip installer preflight (NO_PACKAGE=1: needs build/felucca.fwsc)"
+else
+    run "installer preflight: read-only, refuses before the first write frame" python3 tests/preflight_test.py
+fi
+
 # ASan + UBSan: the stored-data and protocol paths, and short fuzz runs (fixed seeds: the same inputs every run)
 SAN="-O1 -g -fsanitize=address,undefined -fno-sanitize=signed-integer-overflow,shift,bounds,object-size,pointer-overflow"
 SAN="$SAN -fno-sanitize-recover=undefined -w"
@@ -329,6 +348,9 @@ run "README navigation contract (WEB SITE first and double width, names, links, 
 
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
+    # (v1.9.0) the installer's build provenance: no write without a verified record, and the site
+    # builder refuses a package that contradicts its own manifest
+    run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
     run "web provenance: the build record, the token and zero frames without a verdict" \
         node web/test_provenance.mjs
@@ -350,6 +372,15 @@ else
     run "browser emulator: the same song from the native build" "$OUT/emu_native" "$OUT/emu_native.f32"
     run "browser emulator: boot, keys, MIDI, screen, LEDs, PLAY, a save kept across instances, = native, cost" \
         node web/emu/emu_test.mjs build/emu/felucca.wasm "$OUT/emu_native.f32"
+fi
+
+# (v1.9.0) last, so the emulator's manifest has just been refreshed: the artefacts, the version, the
+# commit, the configuration and the WASM have to describe one another, and the verifier is tested too.
+if [ "${NO_PACKAGE:-0}" = 1 ]; then
+    echo "== skip the build manifest (NO_PACKAGE=1: no artefacts)"
+else
+    run "build manifest: artefacts, version, commit, config and the emulator agree (and a wrong one fails)" \
+        python3 tests/manifest_test.py
 fi
 
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }

@@ -389,3 +389,42 @@ to rely on CRC + rollback. This is a residual risk, stated plainly.
   criptográfico**: requieren clave en ROM y un bootloader que no se modifica aquí.
 - **Riesgo residual:** no se probó un corte de energía real, ni la recuperación USB_KEY, ni el flasheo de
   una FM-1. La protección contra brick no está demostrada.
+
+## v1.9 audit — procedencia del instalador web (2026-11-05)
+
+Antes de esta etapa el instalador verificaba CRC, límites y evidencia de chip, y después escribía. Un
+paquete bien formado pero construido desde **otro commit**, con **otra versión** o modificado después de
+fijar el manifiesto pasaba sin objeción: la página no tenía forma de saber de dónde venían esos bytes.
+
+**Qué comprueba ahora (`web/fm1provenance.js`).** Antes de abrir MIDI, `Updater.install/write/resume`
+exigen un veredicto que solo puede producir `verifyProvenance()`. Ese veredicto compara el paquete que
+se va a transmitir con el registro de build **compilado dentro de la página** (`build/manifest.json`
+inlineado por `web/make_site.py`, bajo el hash de la CSP):
+
+- `schema` esperado, producto `FM-1_982`, versión de la etiqueta igual a la del manifiesto de release;
+- tamaño exacto en bytes y SHA-256 calculado **sobre el paquete en memoria**, no sobre el archivo que se
+  validó en otro momento;
+- coherencia commit/versión entre etiqueta del sitio, manifiesto de build, manifiesto de release y
+  manifiesto del emulador;
+- para el archivo oficial de FM-1 (V15), coincidencia con el digest fijado `STOCK_V15_SHA256`.
+
+No hay caché ni service worker en el sitio, y una descarga interrumpida produce un paquete de tamaño
+distinto, que se rechaza. Un paquete **sin registro** (todas las versiones anteriores a v1.9.0, por
+ejemplo) queda **no instalable**: es una consecuencia aceptada, no un fallo. El token del veredicto es un
+`Symbol` privado del módulo, de modo que llamar al transporte desde la consola no salta la comprobación.
+`make_site.py` aplica la misma regla en la máquina que construye el sitio, con una implementación
+independiente en Python, así que un sitio incoherente no llega a publicarse.
+
+**Qué NO demuestra.** Esto es integridad y procedencia, **no autenticidad**: el registro viaja en el
+mismo sitio que el paquete, así que quien pueda servir la página puede servir ambos. No hay firma
+Ed25519 verificada en el dispositivo (sigue en diseño, ver arriba), la clave del digest oficial es un
+`pin` de este repositorio y no una raíz de confianza en ROM, y el dispositivo no verifica nada de esto:
+el gate existe en el host y en la página. Los bytes del WASM no se verifican en el navegador, solo la
+coherencia de su commit, versión y hash dentro del manifiesto.
+
+**Qué se probó.** `node web/test_provenance.mjs` (paquete válido, hash incorrecto, truncado, alterado,
+otra versión, otro producto, commit discordante, manifiesto ausente/malformado, descarga interrumpida,
+registro antiguo, y las cuatro rutas de escritura) con **cero frames, cero escrituras y cero borrados**
+en todos los casos inválidos; `node web/test_web.mjs` ejecuta el mismo protocolo con el veredicto
+presente. **No se probó en un navegador real**: no hay automatización de navegador en este entorno y Web
+MIDI necesita un contexto seguro con un dispositivo conectado.

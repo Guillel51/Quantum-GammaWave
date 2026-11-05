@@ -1913,7 +1913,7 @@ static void song_index_boot(void);
  * and unprotected; anything else leaves the firmware RAM-only rather than writing to a part
  * it cannot identify. Policy and the reason of each check: hal/fm1_flash_id.h.
  *
- * (QG-1 v1.8.8) Inside `#if FELUCCA_FLASH`: the SFC entry points (and FL_FAR, which lives in
+ * (QG-1 v1.9.0) Inside `#if FELUCCA_FLASH`: the SFC entry points (and FL_FAR, which lives in
  * hal/fm1_flash.h) only exist in a build with flash storage. It used to be compiled in every
  * build, so FELUCCA_FLASH=0 -- a documented option in BUILDING.md -- did not compile: the host
  * TUs with flash off (tests/ui_test.c, tests/editor_test.c) hit an undefined FL_FAR. */
@@ -1926,7 +1926,7 @@ static int flash_identify(void)
     r.sr = FL_FAR(fl_status_ram)();
     return fl_id_verify(&r) == FL_ID_OK;
 }
-#endif /* FELUCCA_FLASH: the SFC entry points only exist in a build with flash storage */
+#endif /* FELUCCA_FLASH: fl_jedec_ram/fl_status_ram live in hal/fm1_flash.h */
 
 static void persist_boot(void)                    /* before settings_init / panel_init */
 {

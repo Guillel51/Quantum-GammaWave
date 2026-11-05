@@ -1933,6 +1933,7 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
 {
     uint32_t i, c1 = MC_CPU() & 1u;                     /* (0.6.71) on the second core: its own buffers */
     int32_t *b = c1 ? c1_buf : part_buf;
+    t->vu -= (t->vu + 31) >> 5;                         /* (v1.9) the meter envelope: 1/32 a block, ~23 ms */
     if ((uint32_t)(t - trk) >= trk_live) {              /* (0.6.18) TRACKS 4: asleep, nothing rendered. (0.6.19) Its
                                                          * voices first fade out over a block (voice_kill: they were
                                                          * cut at once, a click), its mute let go (perform.c) */
@@ -2019,6 +2020,8 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
             or_[i] += (x * gr) >> 12;
         }
         t->peak = pk;
+        if (pk > t->vu)                                 /* the attack is immediate: a hit shows at once */
+            t->vu = pk;
     }
     if (MOD.on)
         mod_end(t);                                     /* the stored values back */
