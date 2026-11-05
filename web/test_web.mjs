@@ -1543,6 +1543,14 @@ async function updater() {
     ok(got === identity && dev.bad === 0 && dev.upgrades === 2 && dev.served > 0 && steps.at(-1) === "done",
       `fm1ota.js: a signed package installs (${dev.served} reads, ${dev.upgrades} UPGRADE frames)`);
   }
+  /* the only code that sends image bytes is private: no public method reaches link.send() */
+  {
+    const up = new Updater({ inputs: new Map(), outputs: new Map() });
+    const proto = Object.getOwnPropertyNames(Updater.prototype);
+    ok(typeof up.serve === "undefined" && !proto.includes("serve") &&
+       proto.filter((k) => k !== "constructor").sort().join(",") === "find,install,resume,waitFor,write",
+      `fm1ota.js: the transport is private (${proto.filter((k) => k !== "constructor").join(",")})`);
+  }
 
   /* the negative matrix: every refusal happens before the first frame, so the transport counters
      must all be zero (frames sent, UPGRADE commands, image bytes served) */

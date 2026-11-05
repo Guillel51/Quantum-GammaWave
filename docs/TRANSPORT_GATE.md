@@ -45,6 +45,9 @@ authorisation used. Consequences:
   decision. A loader identity must match the authorised product (`ota-<MODEL>_<n>`), or `proof`;
 * the unit that answers the handshake must report exactly the authorised identity, not merely the
   same model (`model`), and the check happens **before** the `UPGRADE` frame.
+* the only code that sends image bytes, `#serve`, is a private method: the class exposes
+  `find`, `waitFor`, `install`, `write` and `resume`, and none of them can be used to push an
+  unverified buffer. A test asserts that surface, so a future public `serve()` fails the suite.
 
 ## 3. Who passes what
 
@@ -98,6 +101,12 @@ test process, and drives a simulated FM-1 that counts every frame it receives:
   `SECURITY_AUDIT.md`, row E).
 * **The physical part.** JEDEC and geometry come from the device's own `0x12` reply; nothing here
   proves what a particular unit's NOR is.
+* **`evidence` is data.** The transport trusts the JEDEC object it is handed; a caller with page
+  access can hand it `{ jedec: 0x856014 }` without the `0x12` exchange. Probing the link inside the
+  transport is the next step, and it needs a fake device that answers both `0x12` and `0x30`.
+* **A script on the page can always speak MIDI itself.** `navigator.requestMIDIAccess` is available
+  to any script on the origin, so this gate protects the supported paths, the protocol and the
+  release chain — it is not a sandbox against an operator who opens the port by hand.
 
 ## 7. Artifacts
 

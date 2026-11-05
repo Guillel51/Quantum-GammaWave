@@ -175,8 +175,10 @@ export class Updater {
   }
 
   // serve read requests until the device asks for one of the finish addresses; stops early
-  // when the port disappears (lost: true) instead of waiting out idleMs
-  async serve(link, image, finishAddr, idleMs, onProgress) {
+  // when the port disappears (lost: true) instead of waiting out idleMs. Private: this is the
+  // only place that sends image bytes, and it must not be reachable from outside the class —
+  // install()/write() reach it only after admit() returned the verified copy.
+  async #serve(link, image, finishAddr, idleMs, onProgress) {
     let served = 0, last = Date.now();
     for (;;) {
       const pkt = await link.read(1000);
@@ -216,7 +218,7 @@ export class Updater {
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
-    const s1 = await this.serve(dev.link, image, 0xE0000000, 8000, (n) => step("verify", n));
+    const s1 = await this.#serve(dev.link, image, 0xE0000000, 8000, (n) => step("verify", n));
     dev.link.close();
     if (!s1.finished) throw fail(s1.lost ? "lost" : "stopped", `the device ${s1.lost ? "was disconnected" : "stopped"} after ${s1.served} requests: nothing was written`);
     step("loader");
@@ -245,7 +247,7 @@ export class Updater {
       throw fail("proof", `the loader is ${ota.id.text}, the authorisation is for ${product}: nothing was sent.`);
     ota.link.send(UPGRADE);
     await sleep(2000);
-    const s2 = await this.serve(ota.link, image, 0xF0000000, 180000, (n) => step("write", n));
+    const s2 = await this.#serve(ota.link, image, 0xF0000000, 180000, (n) => step("write", n));
     ota.link.close();
     return s2;
   }
