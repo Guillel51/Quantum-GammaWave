@@ -51,7 +51,8 @@ class Page(HTMLParser):
 def main(site_dir=None):
     src = SOURCE / "index.html"
     page = Page()
-    page.feed(src.read_text(encoding="utf-8"))
+    html = src.read_text(encoding="utf-8")
+    page.feed(html)
     bad = list(page.errors)
     for asset in page.assets:
         if asset.startswith(("data:", "http")):
@@ -156,6 +157,19 @@ def main(site_dir=None):
                     bad.append(f"stale emulator copy in {emu}: {a} != {b}")
                 if a.get("commit") and f'<code id="build-commit">{a["commit"]}</code>' not in (emu / "index.html").read_text(encoding="utf-8"):
                     bad.append("emulator page does not name its manifest's commit")
+
+    # the access grid: WEB SITE is the dominant box, Web Studio shares the editor's, the installer
+    # names FLASH FM-1, and the emulator is never called "Emulador" on this page
+    acc = html.split('id="accesos"', 1)[-1].split("</section>", 1)[0]
+    if ".access-card.primary { grid-column: 1; grid-row: 1 / span 2; }" not in html:
+        bad.append("the primary access card does not span both rows")
+    for want in ('WEB SITE', 'Web Emulator', 'WEB STUDIO · WEBAPP / EDITOR', 'USB INSTALLER · FLASH FM-1',
+                 'Abrir Web Emulator'):
+        if want not in acc:
+            bad.append(f"the access grid is missing {want!r}")
+    for wrong in ('Abrir el emulador', '>Emulador<', 'COPYLEFT'):
+        if wrong in acc:
+            bad.append(f"the access grid still says {wrong!r}")
 
     for line in bad:
         print(f"site: {line} FAIL")

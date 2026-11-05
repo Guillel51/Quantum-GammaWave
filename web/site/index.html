@@ -189,7 +189,11 @@
   .resource span { color: var(--muted); font-size: 12px; }
   .resource .no { color: var(--heat); font: 700 10px/1 var(--mono); }
   /* The four ecosystem accesses: Web Site first and clearly the largest. */
-  .access { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .access { display: grid; grid-template-columns: 1.7fr 1fr 1fr; grid-template-rows: auto auto; gap: 12px; }
+  /* WEB SITE is the entry point and reads as such: twice the width and both rows. */
+  .access-card.primary { grid-column: 1; grid-row: 1 / span 2; }
+  .access-card.primary b { font-size: clamp(26px, 3.4vw, 38px); }
+  .access-card.primary p { font-size: 15px; }
   .access-card { display: grid; gap: 7px; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
   .access-card:hover { border-color: var(--heat); transform: translateY(-2px); color: var(--ink); }
   .access-card .no { color: var(--faint); font: 700 10px/1 var(--mono); letter-spacing: .12em; }
@@ -312,18 +316,18 @@
           <b>Web Emulator</b>
           <span class="url">/emulator/</span>
           <p>El mismo firmware compilado a WebAssembly, con el mapa Punch-in FX, LATCH y el commit del build publicado.</p>
-          <span class="go">Abrir el emulador <span class="arrow">↗</span></span>
+          <span class="go">Abrir Web Emulator <span class="arrow">↗</span></span>
         </a>
         <a class="access-card" href="webapp/editor/">
-          <span class="no">03 / WEB STUDIO</span>
-          <b>Web Studio</b>
+          <span class="no">03 / WEB STUDIO · WEBAPP / EDITOR</span>
+          <b>Web Studio · Webapp / Editor</b>
           <span class="url">/webapp/editor/</span>
           <p>Editor del sonido real por Web MIDI, secuenciador de 16 pasos, mixer de seis pistas y proyectos.</p>
           <span class="go">Entrar al estudio <span class="arrow">↗</span></span>
         </a>
         <a class="access-card" href="webapp/installer/">
-          <span class="no">04 / INSTALADOR</span>
-          <b>Instalador USB</b>
+          <span class="no">04 / USB INSTALLER · FLASH FM-1</span>
+          <b>USB Installer · Flash FM-1</b>
           <span class="url">/webapp/installer/</span>
           <p>Identidad FM-1, tamaño del paquete y SHA-256 comprobados antes de escribir un solo byte.</p>
           <span class="go">Abrir instalador <span class="arrow">↗</span></span>
