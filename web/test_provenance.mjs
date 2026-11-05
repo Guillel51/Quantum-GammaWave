@@ -189,6 +189,27 @@ async function installWith(prov, dev = new WatchedFM1()) {
        `updater: ${what} -> 'provenance', ${dev.frames} frames, ${dev.writes} writes`);
   }
 
+  // the named failures end to end: the verdict is never minted for any of them, and a verdict is the
+  // only thing Updater accepts, so the simulated FM-1 sees nothing at all
+  const good = await record();
+  const broken = [
+    ["a truncated download", PKG.slice(0, PKG.length - 1), good, {}],
+    ["a wrong hash", PKG, { ...good, artifacts: { ...good.artifacts, "felucca.fwsc": { bytes: PKG.length, sha256: "c".repeat(64) } } }, {}],
+    ["a version label from another build", PKG, good, { version: "v1.8.9" }],
+    ["a version label naming another commit", PKG, good, { version: "v1.9.0-deadbee" }],
+    ["a record for another device", PKG, { ...good, identity: "FM-1_900" }, {}],
+    ["a record from a dirty tree", PKG, { ...good, dirty: ["firmware/src/fx.c"] }, {}],
+    ["no record at all", PKG, null, {}],
+    ["a manifest naming another commit than the emulator", PKG,
+      { ...good, emulator: { ...good.emulator, commit: "f".repeat(12) } }, {}],
+  ];
+  for (const [what, pkgv, recv, optv] of broken) {
+    const vv = (await ref(() => verifyProvenance(pkgv, recv, { product: "FM-1_982", image: IMAGE, ...optv }))).value;
+    const { err: eb, dev: db } = await installWith(vv ?? null);
+    ok(!vv && eb && eb.code === "provenance" && db.frames === 0 && db.writes === 0,
+       `updater: ${what} -> no verdict, 'provenance', ${db.frames} frames, ${db.writes} writes`);
+  }
+
   // the same for resume(): the loader is already waiting, and still nothing may be written
   const dev = new WatchedFM1("ota-FM-1_982");
   const err = (await ref(() => new Updater(dev.access, null, timing).resume(IMAGE, null, "FM-1_982", EVIDENCE, null))).error;
