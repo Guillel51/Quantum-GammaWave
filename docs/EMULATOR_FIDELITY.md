@@ -75,11 +75,11 @@ misaligned on 173 screens across 17 palettes; it cannot see a page. The site and
 emulator were therefore opened in a browser at the commit above, with the build
 regenerated so the labels would be the ones this tree produces:
 
-| page | what the screen showed |
-|---|---|
-| portal `/` | the hero, `v1.9.0-b9d7a67` in the capture caption, the three calls to action, the navigation table |
-| emulator `/emulator/` | "Switch on", then HOME: ANALOG SAW LEAD, 120 BPM, the cutoff/resonance/attack/release tiles, LFO curves, the five step dots, `v1.9.0 · build b9d7a6795aa0 · engine 0942b6b2…` in the footer |
-| emulator, FX | FX 1/3: the four columns DIST / CHORUS / DLY / REV with their labels whole, `MASTER: EQBYP SLICER:OFF WIDTH:100%` |
+| page | screenshot | what the screen showed |
+|---|---|---|
+| portal `/` | `artifacts/site-home.png` | the hero, `v1.9.0-b9d7a67` in the capture caption, the three calls to action, the navigation table |
+| emulator `/emulator/` | `artifacts/emu-home.png`, `emu-on.png` | "Switch on", then HOME: ANALOG SAW LEAD, 120 BPM, the cutoff/resonance/attack/release tiles, LFO curves, the five step dots, `v1.9.0 · build b9d7a6795aa0 · engine 0942b6b2…` in the footer |
+| emulator, FX | `artifacts/emu-fx.png` | FX 1/3: the four columns DIST / CHORUS / DLY / REV with their labels whole, `MASTER: EQBYP SLICER:OFF WIDTH:100%` |
 
 The engine hash in the footer is the SHA-256 of `build/emu/felucca.wasm` built from
 this tree, and the site's `firmware/` package was rebuilt so its name, size and hash
