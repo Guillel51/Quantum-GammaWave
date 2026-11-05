@@ -272,9 +272,9 @@ fi
 # (v1.9.0) EQ and DSP, and the host-side security tools. These tests existed but no script ran them, so a
 # regression in the master biquad, the six-track load, the chip gates, the raw restore, the signature
 # check or the installer preflight could not fail anything. They include hostsim.c, like the rest.
-for t in eq_dc_test eq_response_test eq_state_test eq_sweep_test six_track_test; do
+for t in eq_dc_test eq_response_test eq_state_test eq_sweep_test six_track_test six_track_live_test; do
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/$t" "tests/$t.c" -lm
-    run "EQ / load ($t): DC gain against the coefficients, 11-bit state, stability, response, six tracks" \
+    run "EQ / load ($t): DC gain against the coefficients, 11-bit state, stability, response, six tracks, and the six-track live scene" \
         "$OUT/$t"
 done
 run "chip identification: 0x12/0x13 gates, no write frame without a verified part" python3 tests/chip_test.py

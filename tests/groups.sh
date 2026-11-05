@@ -11,6 +11,8 @@ mkdir -p build/uifix
 run_six() {
     cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/six_track_test tests/six_track_test.c -lm
     ./build/uifix/six_track_test
+    cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/uifix/six_track_live_test tests/six_track_live_test.c -lm
+    ./build/uifix/six_track_live_test
 }
 run_ui() {
     cc -O1 -w -Ibuild/gen -Ifirmware/src -o build/uifix/semi_test tests/semi_test.c -lm
