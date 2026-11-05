@@ -1,3 +1,21 @@
+- **El SVF cuesta 26 instrucciones menos, con el mismo sonido:** los dos estados del filtro
+  (`tsvf_lp`, en el camino caliente de toda voz ANALOG, NOISE y DRUM-X) se limitaban con dos
+  comparaciones por muestra; ahora hay una sola comparación sin signo por límite (`clamp_sym`, el
+  mismo `clamp(v, -150000, 150000)` reescrito como `(unsigned)v + k > 2k` y el signo sólo cuando se
+  sale). En la desensamblación pi32v2 el bucle por muestra de `analog_render` baja de 1250 a 1228
+  bytes, la función de 609 a 603 instrucciones y su coste de 603 a 577 (**-4,3 %**, otra vez bajo su
+  presupuesto de 581). El audio es idéntico: 220 renders dorados, 0 cambiados. `tests/clamp_sym_test.c`
+  fija la identidad sobre todo el int32 (los extremos donde `v + k` desbordaría, 5 000 001 valores
+  densos, 20 000 000 pseudoaleatorios); ASan y UBSan limpios. Medición estática, no del AC791N.
+- **La carga de seis pistas, con una mano encima:** `tests/six_track_live_test.c` sostiene las diez
+  voces y, mientras suenan, mueve corte, pan, nivel, un envío y el drive en cinco períodos distintos
+  (para que coincidan en el mismo bloque), pasa una nota MIDI de un tono a otro 5 168 veces, cambia de
+  preset 60 veces y sostiene el punch-in (REPEAT 1/16 y LPF) en 16 507 bloques. Mide media, p50, p95,
+  p99, p99.9, peor bloque y deadline, con bloques tardíos, clips, muestras fuera de 16 bits, bloques en
+  silencio, el mayor salto entre muestras y la posición de memoria del render; y hashea el audio una vez
+  por segundo contra `tests/six_live_golden.txt` (61 hashes), así que un cambio en lo que suena falla
+  aunque el tiempo no cambie. Una hora de audio (4 961 250 bloques) dos veces da el mismo hash
+  `177b30fd8c1a114d` y p50 10,0 / 9,9 µs: nada deriva. `SIX_LIVE_SECS=n` alarga la corrida. Sólo host.
 - **Procedencia del build, obligatoria antes de escribir:** cada build escribe `build/manifest.json`
   (`qg1-build-1`: versión compilada, commit, archivos sin commitear, identidad, SHA-256 y tamaño de cada
   artefacto, knobs `FELUCCA_*`, hashes del toolchain y del SDK, y el emulador del mismo árbol). El
