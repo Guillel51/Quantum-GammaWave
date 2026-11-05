@@ -47,10 +47,12 @@ int main(void)
 {
     static int32_t out[2 * CTL];
     static uint64_t t[100000], h[600];
+    uint64_t *tv = t, *hv = h;                                /* a longer run needs more room than a minute */
     /* ten notes over six tracks: 3 + 2 + 2 + 1 + 1 + 1 = the ten voices */
     static const uint8_t NOTE[6][3] = {{48, 55, 64}, {41, 53, 60}, {45, 57, 69}, {50, 0, 0}, {43, 0, 0}, {36, 0, 0}};
     static const uint8_t CNT[6] = {3, 2, 2, 1, 1, 1};
-    const uint32_t blocks = (uint32_t)(60ull * FS / CTL);     /* one minute of blocks */
+    uint32_t secs = getenv("SIX_LIVE_SECS") ? (uint32_t)atoi(getenv("SIX_LIVE_SECS")) : 60u;
+    const uint32_t blocks = (uint32_t)((uint64_t)secs * FS / CTL);   /* 60 s by default; SIX_LIVE_SECS=n for longer */
     const uint32_t bsec = FS / CTL;                           /* blocks in a second */
     const uint32_t b2s = 2u * bsec;                           /* the punch-in period: two seconds */
     const uint64_t deadline = (uint64_t)CTL * 1000000ull / FS * 1000ull;
@@ -85,7 +87,12 @@ int main(void)
     check("the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1)", noted == 10u);
     check("all ten voices are sounding before the first block", voices_busy() == 10u);
     kills0 = voice_kills;
-    memset(h, 0, sizeof h);
+    if (secs != 60u) {                                        /* beyond a minute: the buffers grow, the golden does not */
+        tv = malloc((size_t)blocks * sizeof *tv);
+        hv = malloc((size_t)(secs + 2u) * sizeof *hv);
+        if (!tv || !hv) { printf("live: out of memory for a %u s run\n", secs); return 1; }
+    }
+    memset(hv, 0, (size_t)(secs + 2u) * sizeof *hv);
     for (b = 0; b < blocks; b++) {
         uint32_t ph = b % b2s, punch_now, busy;
         /* the hand: different periods on purpose, so changes land on the same block */
@@ -115,7 +122,7 @@ int main(void)
         mix_block(out, CTL);
         dt = now_ns() - dt;
         total += dt;
-        t[b] = dt;
+        tv[b] = dt;
         if (dt > worst) worst = dt;
         if (dt > deadline) late++;
         busy = voices_busy();
@@ -140,19 +147,19 @@ int main(void)
             if (nz == 0) zero_blocks++;
             if (nz < nz_min) nz_min = nz;
         }
-        if (b && b % bsec == 0u) h[nsec++] = hrun;            /* one hash per second */
+        if (b && b % bsec == 0u) hv[nsec++] = hrun;           /* one hash per second */
     }
-    h[nsec++] = hrun;
+    hv[nsec++] = hrun;
     mean = (double)total / (double)blocks;
     pct_quiet = 100.0 * (double)quiet / ((double)blocks * 2.0 * CTL);
-    qsort(t, blocks, sizeof t[0], cmp_u64);
+    qsort(tv, blocks, sizeof tv[0], cmp_u64);
     printf("live: 6 tracks, 10 voices, %u blocks of %u frames (%.0f s): %u parameter moves, %u MIDI notes,\n"
            "live:   %u preset switches, %u blocks with a punch-in effect held\n",
            blocks, CTL, (double)blocks * CTL / FS, moves, notes_moved, preset_changes, punch_blocks);
     printf("live: mean %.1f us, p50 %.1f us, p95 %.1f us, p99 %.1f us, p99.9 %.1f us, worst %.1f us, deadline %.1f us\n",
-           mean / 1000.0, (double)t[blocks / 2] / 1000.0, (double)t[(uint32_t)((double)blocks * 0.95)] / 1000.0,
-           (double)t[(uint32_t)((double)blocks * 0.99)] / 1000.0,
-           (double)t[(uint32_t)((double)blocks * 0.999)] / 1000.0, (double)worst / 1000.0, (double)deadline / 1000.0);
+           mean / 1000.0, (double)tv[blocks / 2] / 1000.0, (double)tv[(uint32_t)((double)blocks * 0.95)] / 1000.0,
+           (double)tv[(uint32_t)((double)blocks * 0.99)] / 1000.0,
+           (double)tv[(uint32_t)((double)blocks * 0.999)] / 1000.0, (double)worst / 1000.0, (double)deadline / 1000.0);
     printf("live: blocks over the deadline %u of %u (%.3f %%), peak %d, rail %u, beyond 16-bit %u, silence %.3f %%\n",
            late, blocks, 100.0 * (double)late / (double)blocks, peak, clips, beyond, pct_quiet);
     printf("live: silent blocks %u, fewest non-zero samples in a block %u of %u, largest one-sample step %d, "
@@ -166,7 +173,7 @@ int main(void)
     check("no block is entirely silent while the ten voices are held", zero_blocks == 0u);
     check("no step larger than 24000 between samples outside the punch-in (no click)", steps == 0u);
     check("the p99.9 of all blocks fits the audio deadline (host clock)",
-          t[(uint32_t)((double)blocks * 0.999)] < deadline);
+          tv[(uint32_t)((double)blocks * 0.999)] < deadline);
     check("no systematic overrun: fewer than 0.01 % of blocks late", (double)late / (double)blocks < 1e-4);
     check("the scene really moved: every hand exercised", moves > 1000u && notes_moved > 100u &&
           preset_changes > 50u && punch_blocks > 1000u);
@@ -176,6 +183,11 @@ int main(void)
         uint32_t diff = 0, seen = 0;
         FILE *f;
         if (!path) path = "tests/six_live_golden.txt";
+        if (secs != 60u) {                                    /* the recorded hashes are one minute */
+            printf("live: %u s run: the audio hash is not compared (the golden file is 60 s), last second %016llx, "
+                   "whole run %016llx\n", secs, (unsigned long long)hv[nsec - 1], (unsigned long long)hrun);
+            goto done;
+        }
         if (getenv("SIX_LIVE_ACCEPT")) {
             f = fopen(path, "w");
             if (!f) { printf("live: cannot write %s\n", path); bad++; }
@@ -199,6 +211,9 @@ int main(void)
             check("the rendered audio is the one recorded, second by second", diff == 0u && seen == nsec);
         }
     }
+done:
+    if (tv != t) free(tv);
+    if (hv != h) free(hv);
     printf(bad ? "live: %d FAILED\n" : "live: all passed\n", bad);
     return bad != 0;
 }
