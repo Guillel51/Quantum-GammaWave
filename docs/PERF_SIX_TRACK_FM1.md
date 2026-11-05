@@ -278,3 +278,33 @@ without changing what it computes, and a change that cannot be measured on an FM
 would be a guess dressed as an optimisation. The candidates, in the order they are
 worth trying, are the two `clamp` bounds in `tsvf_lp` (6 % of host time, needs a
 bit-exact formulation), the insert chain in `mix_part`, and the reverb's inner loop.
+
+### The three candidates, as they were tried (v1.9.0, after `dc647a4`)
+
+**A. `tsvf_lp`'s two state clamps — applied.** `clamp_sym(v, 150000)` is `clamp(v, -150000,
+150000)` in one unsigned compare. On the pi32v2 disassembly the ANALOG sample loop goes from
+1250 to 1228 bytes (−22 B per iteration), `analog_render` from 609 to 603 instructions and its
+cost from 603 to 577 (−4.3 %), back under its 581 budget; `tests/target_budget.py` is the
+measurement, the audio is unchanged (220 golden renders, 0 changed). The identity is locked by
+`tests/clamp_sym_test.c`.
+
+**C. `clamp16` for the delay lines, reverb combs / allpasses and slicer buffers — refused.**
+Substituting `clamp(v, -32768, 32767)` by the same one-compare form in the 12 stores of `fx.c`,
+`perform.c` and `slicer.c` was measured **worse**, not better:
+
+```
+rev_room    cost 243 -> 251   (budget 243)
+rev_spring  cost 131 -> 134   (budget 127)
+RAM code    22520 -> 22548 B  (the headroom check needs >= 2048 B, this left 2028 B: build refused)
+```
+
+Those functions are in `.hot_text` (RAM), so the extra bytes cost RAM, and with constant bounds
+clang's `-Os` codegen for the two-compare form is cheaper than an add plus an unsigned compare.
+Reverted in full; the tree is back to 97 instructions and 243 for `rev_room`, 22520 B of RAM code.
+
+**B. `mix_part`'s insert chain — no change.** At line level the cost is `sc[i] += mulq15(xs, c)`
+and its two siblings (fx.c:2014, 2016, 2017): three multiplies and three read-modify-writes per
+sample, one per send, which is the feature itself. The level and pan ramps are two multiplies and
+two adds; the peak a compare. Nothing in the loop recomputes a value the loop has already got, and
+the `clamp(x, ±xmax)` that guards `mulq15` overflow would have to become the same one-compare form
+that A shows pays off only inside a two-clamp loop — one clamp is not enough to amortise it.
