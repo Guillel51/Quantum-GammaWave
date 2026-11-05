@@ -153,6 +153,15 @@ python3 tools/fm1_install.py --info          # identity of the connected FM-1
 Or, to install your own build from the web installer, make a local copy of the site and open it from `localhost`
 (Web MIDI needs a secure context):
 
+The page carries the build record (`build/manifest.json`) compiled into it and refuses to install
+if the package it is given disagrees with that record in commit, version, product identity, size or
+sha256 — and an unrecorded package is refused too. `make_site.py` enforces the same thing on the
+machine that builds the site, so a mismatched site cannot be published in the first place:
+
+```
+python3 tools/build_manifest.py --verify --require-clean
+python3 web/make_site.py build/felucca.fwsc dev /tmp/felucca-site
+```
 ```
 python3 web/make_site.py build/felucca.fwsc dev /tmp/felucca-site
 cd /tmp/felucca-site && python3 -m http.server 8000

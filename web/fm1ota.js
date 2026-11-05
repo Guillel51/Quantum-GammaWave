@@ -7,6 +7,8 @@
 // the loader reads the whole image and writes it. Both steps are "the device
 // asks, we answer": cmd 0x30 read requests on the logical image.
 
+import { requireProvenance } from "./fm1provenance.js";
+
 const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 const MAXDATA = 512;
@@ -198,8 +200,10 @@ export class Updater {
   }
 
   // full install: running firmware -> loader -> new firmware
-  async install(image, product, onStep, evidence) {
-    requireChip(evidence);                 // before find(), before any frame
+  // (v1.9.0) provenance first, then the chip: both before find() and before any frame
+  async install(image, product, onStep, evidence, provenance) {
+    await requireProvenance(provenance, product, image);
+    requireChip(evidence);
     const step = onStep || (() => {});
     const dev = await this.find((id) => !IS_OTA(id));
     if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
@@ -215,7 +219,7 @@ export class Updater {
     await sleep(this.loaderDelay);
     const ota = await this.waitFor((id) => id.model === "ota-" + model, this.loaderWait);
     if (!ota) throw fail("noloader", "the update loader did not appear. Replug the USB cable and press Install again: the device stays in update mode until it is finished.");
-    const s2 = await this.write(ota, image, step, evidence);
+    const s2 = await this.write(ota, image, step, evidence, provenance);
     if (!s2.finished) throw fail(s2.lost ? "lost" : "stopped", `the loader ${s2.lost ? "was disconnected" : "stopped"} after ${s2.served} requests. Replug and press Install again to resume.`);
     step("reboot");
     await sleep(this.rebootDelay);
@@ -228,7 +232,8 @@ export class Updater {
   }
 
   // step 2 with the loader found by find()/waitFor()
-  async write(ota, image, step, evidence) {
+  async write(ota, image, step, evidence, provenance) {
+    await requireProvenance(provenance, null, image);
     requireChip(evidence);
     ota.link.send(UPGRADE);
     await sleep(2000);
@@ -238,13 +243,14 @@ export class Updater {
   }
 
   // resume: the device is already in update mode (loader) -> true when the write finished
-  async resume(image, onStep, product = null, evidence = null) {
+  async resume(image, onStep, product = null, evidence = null, provenance = null) {
+    await requireProvenance(provenance, product, image);
     requireChip(evidence);
     const model = product && product.split("_")[0];
     const ota = await this.find((id) => model ? id.model === "ota-" + model : IS_OTA(id));
     if (!ota) return false;
     const step = onStep || (() => {});
-    const result = await this.write(ota, image, step, evidence);
+    const result = await this.write(ota, image, step, evidence, provenance);
     if (!result.finished) return false;
     if (product) {
       step("reboot");

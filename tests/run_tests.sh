@@ -344,6 +344,9 @@ run "README navigation contract (WEB SITE first and double width, names, links, 
 
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
+    # (v1.9.0) the installer's build provenance: no write without a verified record, and the site
+    # builder refuses a package that contradicts its own manifest
+    run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
     PKG=""
     if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi

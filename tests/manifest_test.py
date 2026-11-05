@@ -15,6 +15,8 @@ Two halves:
   python3 tests/manifest_test.py
 """
 import json
+import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -44,6 +46,38 @@ def live():
     data = json.loads((ROOT / "build" / "manifest.json").read_text())
     check("live: it names this commit", data.get("commit") == BM.commit())
     check("live: it names this version", data.get("version") == BM.version())
+    # (v1.9.0) every path called uncommitted must be a path git recognises: the plain porcelain
+    # parser trimmed the first character of its first entry ("tools/build.py" -> "ools/build.py")
+    for p in data.get("dirty", []):
+        r = subprocess.run(["git", "-C", str(ROOT), "status", "--porcelain", "--", p],
+                           capture_output=True, text=True)
+        check(f"live: the dirty path {p} is one git reports", bool(r.stdout.strip()))
+
+
+def parser():
+    """The dirty list is what a reviewer checks against `git status`: it may not lose characters.
+
+    A throwaway repository with a modified file and an untracked one whose name has a space, because
+    those are the two ways the old parser could be wrong and neither shows up on a clean tree."""
+    tmp = Path(tempfile.mkdtemp(prefix="qg1-dirty-"))
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid"}
+    def git(*a):
+        return subprocess.run(["git", "-C", str(tmp), *a], capture_output=True, text=True, env=env)
+    git("init", "-q")
+    (tmp / "a.txt").write_text("a\n")
+    git("add", "a.txt")
+    git("commit", "-qm", "x")
+    (tmp / "a.txt").write_text("b\n")
+    (tmp / "b c.txt").write_text("new\n")
+    old_root = BM.ROOT
+    BM.ROOT = tmp
+    try:
+        got = BM.dirty()
+    finally:
+        BM.ROOT = old_root
+    check("parser: the first dirty path keeps its first character", "a.txt" in got)
+    check("parser: a dirty path with a space survives", "b c.txt" in got)
 
 
 def synthetic():
@@ -87,6 +121,7 @@ def synthetic():
 
 def main():
     live()
+    parser()
     synthetic()
     print("manifest test passed" if not bad else "MANIFEST TEST FAILED")
     return 1 if bad else 0

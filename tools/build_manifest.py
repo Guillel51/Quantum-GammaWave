@@ -63,11 +63,27 @@ def commit():
 
 
 def dirty():
-    """Uncommitted files, minus build/. Empty means the bytes come from exactly `commit`."""
-    out = _git("status", "--porcelain", "--untracked-files=normal")
-    files = []
-    for line in out.splitlines():
-        path = line[3:].strip().strip('"')
+    """Uncommitted files, minus build/. Empty means the bytes come from exactly `commit`.
+
+    Porcelain `-z` on purpose: the plain format's first line starts with a space, and _git() trims
+    the output, so a fixed `line[3:]` silently ate the first character of the first path
+    ("tools/build.py" was reported as "ools/build.py"). With `-z` the status is exactly two bytes
+    and the path is everything after the space, whatever it contains (spaces, quotes, newlines)."""
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "status", "--porcelain=v1", "-z",
+                              "--untracked-files=normal"], capture_output=True, text=True,
+                             check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    fields, files, i = out.split("\0"), [], 0
+    while i < len(fields):
+        entry = fields[i]
+        i += 1
+        if len(entry) < 4 or entry[2] != " ":
+            continue
+        if "R" in entry[:2] or "C" in entry[:2]:
+            i += 1                      # the rename's source follows as its own field
+        path = entry[3:]
         if path and not path.startswith("build/"):
             files.append(path)
     return files

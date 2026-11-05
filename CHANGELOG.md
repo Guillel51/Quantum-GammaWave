@@ -19,6 +19,26 @@ number no longer stands alone — `build/manifest.json` ties it to the commit th
   `web/emu/build.sh` refreshes the tree's manifest, so `v1.8.9`'s WASM-naming-`dcd39f9` can no longer
   happen. `tests/manifest_test.py` checks the live manifest **and** that the verifier refuses all five
   ways of being wrong.
+- **The installer now proves where its bytes came from, and stops when it cannot
+  (`web/fm1provenance.js`).** Before this, the update page checked the package's CRC and bounds and
+  then wrote: a package that was well-formed but built from another commit, another version, or
+  edited after the manifest was recorded went through. `verifyProvenance()` compares the package it
+  is about to transmit with the build record compiled into the page (commit, version, product
+  identity, exact size, SHA-256 of the bytes in hand) and, for the official FM-1 file, with the
+  pinned digest; `Updater.install/write/resume` refuse to send a single frame without the verdict
+  token, so the check cannot be skipped from the console or by calling the transport directly. The
+  site is built with `web/make_site.py`, which reads `build/manifest.json` and refuses to emit a site
+  whose package contradicts it (`--manifest` for another file). Anything unrecorded — every older
+  release, for instance — is refused rather than trusted. `web/test_provenance.mjs` covers a valid
+  package, a wrong hash, a truncated or edited one, a different version, another product, a
+  disagreeing commit, a missing or malformed record, an interrupted download, a cached copy of an old
+  record, and each of the four write paths, and asserts **zero frames, zero writes and zero erases**
+  in every failing case.
+- **`tools/build_manifest.py` read the dirty list wrongly.** The porcelain output was trimmed and
+  then sliced, so the first entry lost its first character (`tools/build.py` was recorded as
+  `ools/build.py`). It now uses `-z` and splits on NUL; `tests/manifest_test.py` checks the parser
+  against a throwaway repository (a modified file and an untracked name with a space) and checks that
+  every path in the live manifest is one `git status` reports.
 - **CI that can fail (`/.github/workflows/target.yml`).** New jobs: the AC791N build with the pinned
   toolchain and the pinned SDK (the manifest's SDK hashes are checked against `SDK_SHA256`), the
   artefact/commit verification with `--require-clean`, the storage-less `FELUCCA_FLASH=0` build, and
