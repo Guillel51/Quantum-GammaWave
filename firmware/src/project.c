@@ -1892,6 +1892,9 @@ static void project_load(uint32_t slot)
 
 /* settings + learned panel table: one flash object. The flash copy wins at
  * boot (the .noinit copies are garbage after a power-off). */
+/* (QG-1 v1.8.7) the flash identification policy: pure C, no SFC primitives, so it is the
+ * same code on the target and in the host tests that include this file */
+#include "../hal/fm1_flash_id.h"
 #include "settings_persist.c"
 #if FELUCCA_FLASH
 static persist_t persist_saved;
@@ -1902,12 +1905,35 @@ static uint32_t persist_retry_ms;
 static void song_index_load(void);                /* song_main.c */
 static void song_index_boot(void);
 
+/* (QG-1 v1.8.7) Identification before any write. A JEDEC ID is a bus reading, not evidence:
+ * a floating bus reads 0x000000 / 0xFFFFFF, a glitch reads a neighbour, and a part whose
+ * block-protection bits are set ignores erase/program silently (a write that "succeeds"
+ * and changes nothing). Two independent 0x9F reads must agree, the ID must be one of the two
+ * documented 1 MiB parts at its documented capacity, and the status register must be idle
+ * and unprotected; anything else leaves the firmware RAM-only rather than writing to a part
+ * it cannot identify. Policy and the reason of each check: hal/fm1_flash_id.h.
+ *
+ * (QG-1 v1.8.8) Inside `#if FELUCCA_FLASH`: the SFC entry points (and FL_FAR, which lives in
+ * hal/fm1_flash.h) only exist in a build with flash storage. It used to be compiled in every
+ * build, so FELUCCA_FLASH=0 -- a documented option in BUILDING.md -- did not compile: the host
+ * TUs with flash off (tests/ui_test.c, tests/editor_test.c) hit an undefined FL_FAR. */
+#if FELUCCA_FLASH
+static int flash_identify(void)
+{
+    fl_id_t r;
+    r.id_a = FL_FAR(fl_jedec_ram)();
+    r.id_b = FL_FAR(fl_jedec_ram)();
+    r.sr = FL_FAR(fl_status_ram)();
+    return fl_id_verify(&r) == FL_ID_OK;
+}
+#endif /* FELUCCA_FLASH: the SFC entry points only exist in a build with flash storage */
+
 static void persist_boot(void)                    /* before settings_init / panel_init */
 {
 #if FELUCCA_FLASH
     persist_t p;
     uint32_t f = irq_save();
-    flash_ok = fl_jedec_supported(FL_FAR(fl_jedec_ram)());   /* documented 1 MiB variants; unknown -> RAM-only */
+    flash_ok = flash_identify();                    /* verified part, else RAM-only */
     irq_restore(f);
     if (!flash_ok)
         return;

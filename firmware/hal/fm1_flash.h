@@ -64,7 +64,7 @@ typedef struct { uint32_t sfc_con, spi_con; } fl_saved_t;
 /* A transfer that timed out must not look like a successful erase / program / read. The
  * flag is per operation (reset in fl_enter) and checked before every entry point reports 0. */
 static volatile uint8_t fl_io_err;
-RAMINL void fl_csync(void) { __asm__ volatile("csync" ::: "memory"); }
+RAMINL void fl_csync(void) { FM1_CSYNC(); }
 /* Bounded waits: a stuck cache or SFC must fail the operation instead of hanging the device
  * (the loader runs with interrupts off, so an infinite wait would also stop its watchdog feed). */
 RAMINL int fl_cache_idle_to(uint32_t n) { while (!(CACHE_CON & 0x4000u)) if (!n--) return -1; return 0; }

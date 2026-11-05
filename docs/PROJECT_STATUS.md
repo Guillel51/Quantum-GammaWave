@@ -3,16 +3,13 @@
 **Date:** 2026-11-04
 **Target Hardware:** M-VAVE FM-1 Multitrack FM Synthesizer & Groovebox (Dual-Core JieLi AC791N SoC)
 **Branch:** `main` / `work/v18-integration`, release build `8612785`
-**Current Milestone Version:** `v1.8.6`
+**Current Milestone Version:** `v1.8.9`
 
-> **Current public build (2026-11-04):** `v1.8.6`. Firmware target, package and WASM rebuilt
-> from this tree, `NVOICE 10`; package SHA-256 `580d4275…`, WASM `61e1c5d1…`.
-> GitHub Pages serves the integrated portal, emulator, Web Studio and installer; Chromium public:
-> 60,1 FPS, seven tabs, 1440/390 without overflow, no console errors. The audit sections below are
-> historical (2026-11-02/03) and are kept as evidence, not as the current build description.
->
-> **Pending:** no physical FM-1 was flashed; signature, anti-downgrade, A/B, rollback and independent
-> recovery are not implemented. See [`docs/V1.8.6_STATUS.md`](V1.8.6_STATUS.md).
+> **Current build (2026-11-04, v1.8.9):** the master EQ rounds its loop to nearest and corrects its
+> numerator's sum, so its DC gain is the coefficients' and a -24 dB cut at 20 Hz is -24 dB;
+> `fm1_restore.py` now writes through an external programmer (not tested on hardware); no
+> production signing key exists. This branch is not merged, released or deployed. See
+> [`docs/V1.8.9_STATUS.md`](V1.8.9_STATUS.md).
 
 ### v1.6-QG — what was verified (2026-11-03)
 

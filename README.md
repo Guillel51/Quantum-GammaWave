@@ -20,11 +20,36 @@
 
 **Quantum GammaWave (QG-1)** is an independent, advanced open-source custom firmware and Web Studio workstation engineered specifically for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox** (powered by the dual-core JieLi AC791N SoC). It delivers expanded 10-voice polyphony with psychoacoustic voice stealing, an expanded warm harmonic distortion suite, full-screen audio visualization, fixed-point parametric master EQ, real-time diagnostic telemetry, 17 curated visual themes, and an extensive preset sound library.
 
-[![Portal](https://img.shields.io/badge/PROJECT-PORTAL-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/)
-[![Emulator](https://img.shields.io/badge/EMULATOR-WASM-ff9424?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/emulator/)
-[![Web Studio](https://img.shields.io/badge/WEB%20STUDIO-webapp%2Feditor-ff5500?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)
-[![USB Web Installer](https://img.shields.io/badge/USB%20INSTALLER-Flash%20FM--1-00e5a3?style=for-the-badge)](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)
-[![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg?style=for-the-badge)](LICENSE)
+<table align="center">
+  <tr>
+    <td colspan="2" align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/"><img alt="WEB SITE" src="https://img.shields.io/badge/WEB%20SITE-Quantum%20GammaWave-00e5a3?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/emulator/"><img alt="WEB EMULATOR" src="https://img.shields.io/badge/WEB%20EMULATOR-3effff?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-1f6feb?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="web/EDITOR_PROTOCOL.md"><img alt="WEBAPP / EDITOR" src="https://img.shields.io/badge/WEBAPP%20%2F%20EDITOR-ff9424?style=for-the-badge"></a>
+    </td>
+    <td align="center">
+      <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-00e5a3?style=for-the-badge"></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Guillel51/Quantum-GammaWave/releases"><img alt="FLASH FM-1" src="https://img.shields.io/badge/FLASH%20FM--1-ff5500?style=for-the-badge"></a>
+    </td>
+    <td colspan="3" align="center">
+      <a href="LICENSE"><img alt="LICENSE" src="https://img.shields.io/badge/LICENSE-repository-blue?style=for-the-badge"></a>
+    </td>
+    <td colspan="2" align="center">
+      <a href="https://www.gnu.org/licenses/gpl-3.0-standalone.html"><img alt="GPL-3.0-ONLY" src="https://img.shields.io/badge/GPL--3.0--ONLY-copyleft-blue?style=for-the-badge"></a>
+    </td>
+  </tr>
+</table>
 
 > **Quantum GammaWave (QG-1)** is dedicated firmware and workstation software engineered specifically for the M-VAVE FM-1 groovebox hardware.
 > - **Official Project Portal:** <https://guillel51.github.io/Quantum-GammaWave/>
@@ -70,13 +95,9 @@ hierarchy and a hardware-style brand bar) without changing any control id, SysEx
 handler. It was checked in Chromium at 1440 px and 390 px: seven tabs, no horizontal overflow and no console
 or request errors. The emulator remains the same real WASM firmware; the portal only links to it.
 
-**v1.8.6** is the current build: FX-section particles, the splash, the note-reactive visualizer, the
-Punch-In keyboard spacing and the Master Biquad EQ were corrected, and the firmware, native emulator,
-WASM, Web Studio, installer and portal are synchronized from this tree. Physical FM-1 validation, signed
-packages, anti-downgrade, A/B and independent recovery are still open; see
-[`docs/V1.8.6_STATUS.md`](docs/V1.8.6_STATUS.md).
+**v1.8.9** is the current build: the master EQ rounds its loop to the nearest value instead of down, so its DC gain is the coefficient's (+0.23 dB instead of -1.46 dB) and a -24 dB cut at 20 Hz reaches -24.14 dB instead of -17.61 dB; the four setters share one commit path and the RAM code budget gained 28 B. `fm1_restore.py` can write a verified backup back through an external SPI programmer. All of it is measured on the host and in the emulator: no unit, no physical restore, no production signing key. See [`docs/V1.8.9_STATUS.md`](docs/V1.8.9_STATUS.md).
 
-## What's in Quantum GammaWave (`v1.8.6`)
+## What's in Quantum GammaWave (`v1.8.9`)
 
 - **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
@@ -255,7 +276,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.8.6 build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.8.9 build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).

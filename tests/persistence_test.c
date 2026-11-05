@@ -2,6 +2,7 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Firmware save flows against NOR flash: deferred settings, retries, and failed-save rollback. */
 #define main hostsim_main
+#define HOSTSIM_FLASH_ID 1                 /* this test's own fl_jedec_ram / fl_status_ram, below */
 #include "hostsim.c"
 #undef main
 
@@ -52,6 +53,7 @@ static int st_prog(uint32_t off, const void *src, uint32_t n)
 static uint32_t irq_save(void) { return 0; }
 static void irq_restore(uint32_t f) { (void)f; }
 static uint32_t fl_jedec_ram(void) { return 0; }
+static uint32_t fl_status_ram(void) { return 0; }        /* (flash identification: see hal/fm1_flash_id.h) */
 static void fl_plain_window_init(void) {}
 #define FL_FAR(fn) (fn)
 #include "../firmware/src/storage.c"

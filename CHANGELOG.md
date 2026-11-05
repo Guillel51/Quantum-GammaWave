@@ -1,3 +1,238 @@
+- **Identificación física (0x12) en la aplicación:** el NOR contesta con el JEDEC que leyó su propio driver
+  SPI, la geometría que ese id implica, un estado y un token de sesión; dos lecturas con el mismo nonce deben
+  coincidir y traer tokens distintos. Sin respuesta, JEDEC desconocido, CRC malo, geometría que no cuadra o
+  token repetido ⇒ el instalador no envía ningún frame que pueda escribir. El loader queda fuera con
+  `FELUCCA_LOADER=1`, byte a byte igual. `tests/ota_test.c` cubre los estados 1/2/4/5/6/7 y `tests/chip_test.py`
+  el host. **No probado en hardware.**
+- **Lectura solo-lectura (0x13) y backup de dos pasadas:** hasta 256 B por petición, validación de rango,
+  CRC, sesión y longitud; `tools/fm1_backup.py` lee 1 MiB dos veces, compara byte a byte, calcula SHA-256 por
+  pasada y escribe un manifiesto `qg1-backup-1` que distingue completo, parcial, inconsistente y no
+  verificable. El test comprueba que solo sale 0x13 (nunca 0x30 ni UPGRADE). **Sin restauración: RECOVERY no
+  verificado.**
+- **Autenticidad Ed25519:** manifiesto firmado (`qg1-release-1`) con hash, producto, versión, min_firmware y
+  key id; verificación en Python y con WebCrypto, obligatoria antes de instalar. `tools/fm1_keys.json` no tiene
+  ninguna clave publicada: **todo paquete se rechaza**, que es el estado correcto hasta que exista custodio.
+- **Recuperación de una instalación cortada:** el loader no puede identificar su NOR (su código no cambia), así
+  que un FM-1 en modo update se rechaza con exit 7 salvo override de laboratorio. Limitación declarada, no
+  relajada.
+- **Presupuesto:** app 558 200 B, paquete `ad2f3d41…`, RAM `.data+.bss` 96 452/98 304 (spare 1 852), RAM code
+  22 432/24 576.
+
+## v1.8.7 — the master EQ no longer diverges at 20 Hz (2026-11-04)
+
+- **Causa raíz medida, no supuesta:** el filtro biquad maestro guardaba sus estados en enteros con la misma
+  escala que la señal. Un shelf o un peak a 20 Hz tiene sus polos a ~1e-6 del círculo unitario, así que el
+  truncamiento por muestra del lazo de realimentación se integraba: con **entrada DC 1000 la salida era
+  1 971 664** (debían ser 16 000, +24 dB) y una senoide de 20 Hz a ±24 dB trepaba hasta el clamp. Los
+  coeficientes eran correctos (su respuesta calculada da +24,1 dB a 1 Hz y +12,0 dB en la esquina), y aplicar
+  redondeo simétrico en `bq_mul` **no cambiaba nada** (mismas cifras antes y después).
+- **Corrección:** los estados del biquad pasan a `int64_t` con 10 bits fraccionarios extra (`BQ_S`), de modo que
+  la realimentación conserva precisión y el polo no se convierte en integrador. El lazo se unificó para ambos
+  canales y los umbrales de estado del silencio se escalaron con `BQ_S`. Sin cambios de coeficientes, de
+  topología audible ni de polifonía.
+- **Prueba nueva por la ruta de audio:** `tests/eq_response_test.c` inyecta senoides por `qg_biquad_process()`
+  y compara RMS (no coeficientes). 11/11 en verde: shelf +24 dB en su esquina +12,09 dB, −24 dB −11,94 dB,
+  high shelf 20 kHz +12,06 dB, peak +24 dB 20 Hz +24,01 dB, peak +12 dB en el índice 64 +12,00 dB, 1 kHz
+  plano +0,84 dB, 20 s de senoide sin llegar al clamp. Queda documentado un límite real: un corte de −24 dB a
+  20 Hz solo alcanza −17,6 dB porque los coeficientes Q25 no resuelven esa profundidad (a 650 Hz llega a
+  −23,99 dB); el test lo verifica con ese límite explícito.
+- **Presupuesto:** app 558 876 B, paquete 610 898 B, identidad `FM-1_982`; RAM `.data+.bss` 96 452/98 304,
+  RAM code 22 528/24 576 (margen 2 048 B, el mínimo exigido por el gate). Sin voces nuevas ni cambios de
+  calidad.
+
+## v1.8.9 — the master EQ's DC bias and its 20 Hz cut (2026-11-04)
+
+- **The DC bias was truncation, not the coefficients:** the loop floored every product toward -inf, and
+  with the pole 2e-6 from the unit circle that constant error is multiplied by 1/(1+a1+a2) ~ 493 000.
+  With a DC input of 1000 the measured gain was 13,492 (22.60 dB) against the 15,956 (24.06 dB) the
+  coefficients describe: -1.46 dB, stable from 1 s to 40 s.
+- **Fix:** `bq_rnd()` rounds each of the five loop products to nearest (all five: without the
+  feedforward ones the 20 Hz cut fell back to -14.8 dB) and the states carry 11 fractional bits
+  (`BQ_S` 10 -> 11). Measured: DC 1000 -> 16,384 (+0.23 dB), DC 8000 -> 127,224 (-0.03 dB), stable
+  from 1 s to 40 s. The quietest DC (100) sits at -4.38 dB because there the signal's own
+  quantisation dominates, not the loop; the test pins that as its own bound.
+- **The -24 dB cut at 20 Hz is a cut now:** the numerator is three Q25 coefficients whose rounding
+  error, with a denominator of a few LSB, ate half the depth (-17.61 dB measured). The four setters
+  share `qg_biquad_commit()`, which corrects the numerator's sum to the exact value it divided by a0:
+  -24.14 dB today, and the 20 Hz notch went from -18.7 to -45.30 dB.
+- **Budget, measured:** app 558,688 B, package 610,898 B, identity FM-1_982; RAM `.data+.bss`
+  96,452/98,304 (spare 1,852), pool 311,240 (spare 9,248), RAM code 22,500/24,576 (**2,076 B spare,
+  +28 B over v1.8.8** despite the rounding, from folding the four setters into one commit path and two
+  unsigned window compares in `.hot_text`).
+- **Real restore implemented, hardware not tested:** `fm1_restore.py --write --programmer
+  file:PATH|flashrom:DEVICE` erases, programs and reads back sector by sector (4 KiB / 256 B), then
+  reads the whole part back and compares; exit 8 when it does not come back identical, 2 when the
+  programmer fails. MIDI still has no write frame and `--write` without `--programmer` still exits 5.
+  Tested against a part simulated on a file, a bit that does not program, a flashrom that lies and one
+  that fails; **neither backend has run on hardware**.
+- **Signing and chip support unchanged:** `fm1_keys.json` still has no production key (every package
+  is refused, the correct state until a custodian exists); `0x856014` writable, `0xB36014` read-only.
+- **Restore keeps the boot area by default:** `--write` starts at 0x4000; the first 16 KiB (loader
+  and boot header) are unit-specific and need `--include-head`, which `flashrom` requires because it
+  writes the whole part.
+- **OTA reply buffer fixed (found by the merged suite):** `ota_send_big()` writes 6 header bytes,
+  n body bytes and one checksum byte, but `ota_qbuf` and `ota_rbuf` were declared `6 + n`. The
+  checksum landed one byte past the array: ASan reports a global-buffer-overflow on the 0x12 reply
+  (n = 24) and on a bare part it corrupted the neighbouring global silently. Both buffers now carry
+  the extra byte; `build/host/asan/ota_test` and the 0x13 path pass.
+- **Not verified:** hardware, physical restore, audio on a real unit.
+
+## Target build for the AC791N, portable cache barriers, rebuilt WASM
+(branch `freebuff/6ae847e`, merged into v1.8.9; its own text, kept whole)
+
+No DSP, voice count, effect, parameter, layout or project format changed. This pass produced the
+**target build** the previous one could not, and fixed what compiling it (and running the whole host
+suite) exposed.
+
+- **The firmware is now built for the AC791N.** JieLi's pi32v2 toolchain
+  (`jieli-linux-toolchains-20260730.1`, sha256 of the archive
+  `a1545cddbc451a06bac43eb5cd96d831470c42a97c5c0b1f98879a20fc7647bd`) plus the pinned SDK
+  `AC79NN_SDK_V1.2.1_2023-12-13` (its three files match `SDK_SHA256` in `tools/build.py`) produce
+  `build/felucca.bin` 556 856 B, `build/loader/ota.bin` 7 999 B and the package
+  `build/felucca.fwsc` 611 155 B (identity `FM-1_982`). Measurements and headroom:
+  [`docs/MEMORY_BUDGET.md`](docs/MEMORY_BUDGET.md).
+- **Cache barriers are portable, so the host tests that needed them compile.** `csync` / `ssync`
+  were inline asm at every call site (`fm1_usb.h`, `fm1_uart.h`, `fm1_irq.h`, `fm1_sys.h`,
+  `fm1_flash.h`, `fm1_multicore.h`): an x86 or wasm build assembled them verbatim and failed. They
+  are now `FM1_CSYNC()` / `FM1_SSYNC()` in `fm1_cc.h`, the chip's instruction on pi32v2 (same
+  expansion as before) and a compiler barrier with the same ordering on a host. `persistence_test`,
+  `backup_test` and `fm6bank_test` compile and pass — they were reported as "pre-existing failures"
+  before, and the cause was this.
+- **`FELUCCA_FLASH=0` builds again.** `flash_identify()` referenced the SFC entry points outside
+  `#if FELUCCA_FLASH`, and the TAKES reel module (`gen_reel_flash.c`) and its two call sites were
+  unguarded: a documented option in `BUILDING.md` did not compile. Fixed in `project.c`,
+  `gen_reel_flash.c` and `main.c`; the storage-less build now passes the same checks
+  (526 688 B image, 84 356 B `.data+.bss`).
+- **The loader's power-cut test no longer depends on how much the two apps differ.** `ldr_test`
+  cut at fixed byte counts (up to `0x80000`); once the old and the new app shared enough sectors,
+  fewer bytes were programmed, the "power cut" never happened and the test failed on its own
+  assumption. The cut points are now derived from the bytes the install actually programs, and the
+  counter ignores the post-commit record cleanup (cutting there is not a mid-write loss).
+- **The browser emulator builds and matches the firmware again.** Its simulated part needed
+  `fl_status_ram` once the identification existed; the stub is guarded by `HOSTSIM_FLASH_ID` so a
+  test that drives its own part keeps its own answer. WASM rebuilt at `v1.8.8`:
+  `build/emu/manifest.json` carries the version, the commit and the wasm sha256.
+
+## Integrated hardening — flash identification, OTA bounds, core-1 self-test, verified backup CLI
+(branch `freebuff/6ae847e`, merged into v1.8.9; its own text, kept whole)
+
+Hardening pass over the write paths and the second core. No DSP, voice count, effect, layout or
+parameter changed; no physical FM-1 was used and no target build was produced in this session
+(the JieLi toolchain and the AC79 SDK are not installed here). Full evidence, including what could
+**not** be run, is in [`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md).
+
+- **Flash identification is now evidence, not a single reading.** `flash_ok` used to be one `0x9F`
+  read against an allowlist. It now requires two independent reads that agree, a documented 1 MiB
+  part at its documented capacity, and a status register that is readable, idle and **not
+  block-protected** (a protected part ignores erase/program while every call returns success). Any
+  other result leaves the firmware RAM-only instead of writing to a part it cannot identify.
+  Policy: `firmware/hal/fm1_flash_id.h`; application: `flash_identify()` in `project.c`;
+  test: `tests/flash_id_test.c` (11 cases).
+- **The update path refuses packages that point outside the part.** `ota_ufw` now requires every
+  `flash.bin` / `ota.bin` range to satisfy `off <= 1 MiB && len <= 1 MiB - off` (the only form that
+  cannot wrap) and `flash.bin` to cover the app window, before anything is erased. A reply is only
+  accepted when it echoes the flags byte the request was sent with.
+- **The update loader can no longer hang for ever.** A 20-minute session deadline (`ldr_core.c`)
+  turns a host that goes quiet without unplugging into a failed write with the record intact, so the
+  next power-on resumes instead of looping.
+- **Boot cleanup covers a half-written loader.** `ota_boot_cleanup` samples the head, the first body
+  page and the record instead of four bytes, so a staging area whose first word reads `0xFFFFFFFF`
+  is still cleared.
+- **The second core must prove itself before it is used.** `fm1_mc_start` used to trust `alive`; the
+  documented failure of some units is a wrong 32-bit load under load. Eight fixed jobs with answers
+  computed on core 0 now run through the shared mailbox at boot
+  (`firmware/hal/fm1_mc_selftest.h`); one wrong word and the core is held for good, `CORES 1 (BAD
+  READ)` is reported and core 0 renders every part (`tests/mc_selftest_test.c`).
+- **The installer can no longer write to an unrelated port.** `pair_output` returned the only output
+  on the bus whatever its name; it now requires the names to match (ignoring Windows' numeric
+  suffix) and otherwise reports "FM-1 not found".
+- **New `tools/fm1_backup.py`.** Two independent reads compared byte for byte, SHA-256 per read, per
+  object and for the file, a manifest (device identity, date, method, capacity, passes, result) and
+  an explicit classification (complete / partial / inconsistent / unverifiable). Restore validates
+  manifest, file hash, every object hash and CRC, the device model and the object geometry before
+  the first write, reads every object back and compares it, and reports a selective restore as
+  partial. Archives are written `0600` outside the repository; a destination inside a git work tree
+  is refused before the device is opened. It moves **musical objects**, not raw flash, and the
+  manifest says so.
+- **README navigation** is the required two-row table: `WEB SITE` first and double width, `WEB
+  EMULATOR`, `WEB STUDIO`, `WEBAPP / EDITOR`, `USB INSTALLER`, `FLASH FM-1`; second row `LICENSE`,
+  `GPL-3.0-ONLY`. `tests/readme_nav_test.py` enforces the names, the order, the widths and that every
+  destination resolves.
+- **Documentation:** `SECURITY_AUDIT.md`, `INSTALLATION_SAFETY.md`, `BACKUP_RESTORE.md`,
+  `RECOVERY_GUIDE.md`, `EMULATOR_FIDELITY.md`, `AC791N_SECOND_CORE.md`, `MEMORY_BUDGET.md`,
+  `RELEASE_PROCESS.md`, `VALIDATION_MATRIX.md`.
+- **Still open, and the reason the verdict does not move:** no cryptographic signature on packages
+  (no key material in this tree), no anti-rollback (vendor bootloader, not modifiable), the
+  single-bank write window, and no raw-flash backup path. Installation remains **NO-GO for the main
+  unit**; the target build, the WASM rebuild and every physical check are unverified.
+
+## v1.8.8 — one master-EQ delay state had the wrong scale (2026-11-04)
+
+- **The bug, measured:** `master_eq_update()` guarded the four delay states against a state a stable
+  filter cannot reach, but `s2_r` was compared with `BQ_LIM / 2` **without the `BQ_S` shift** -- 1024x
+  below the other three. `master_eq_update()` runs on every block, so with the EQ active an ordinary
+  right-channel state looked impossible and the right delay line was cleared again and again: the left
+  channel kept its EQ and the right lost it, block after block. A new test walks the four states one by
+  one, and it fails on the old code at exactly two assertions (`s2_r = BQ_LIM/2+1` and
+  `s2_r = BQ_STATE_HI`), both of which pass now.
+- **The fix:** one predicate, `eq_state_bad()`, over `BQ_STATE_HI = (BQ_LIM << BQ_S) / 2`, used for all
+  four states, so a scale cannot drift on one of them again. No coefficient, no topology and no
+  polyphony change; the image is 16 B smaller (558 860 B).
+- **DC gain, separated and documented:** the coefficient's own DC gain for the +24 dB, 20 Hz shelf is
+  (b0+b1+b2)/(1+a1+a2) = 15.9559 (24.06 dB). The audio path returns 13.492 (22.60 dB) for a DC input of
+  1000, at 1 s and at 20 s alike: it is a settled truncation bias, not settling, because the pole sits
+  2.0e-6 from the unit circle and the per-sample truncation is multiplied by ~493 000. At the corner the
+  shelf is +12.09 dB against the +12 dB a shelf gives there. `tests/eq_dc_test.c` now measures the three
+  numbers (coefficients, processing, bias) and `tests/eq_state_test.c` covers each state.
+- **Recovery, honestly:** `tools/fm1_restore.py` validates a raw backup end to end (both passes,
+  byte-identical, full 1 MiB, hash, chip, geometry, read-only frame log) and can read the unit again and
+  list the ranges that differ. It **refuses to write**: the loader protocol serves a signed package, and
+  no raw 1 MiB write has ever been demonstrated on an FM-1 here. `docs/RECOVERY.md` says what a real
+  recovery needs.
+- **Browser:** `web/emu/browser_test.mjs` loads the built page in Chromium, checks the WASM the page
+  received against the manifest's SHA-256, the version and the commit, that the console and the network
+  stay clean, that a held key reaches the device, and that the same AudioWorklet renders sound offline
+  (peak 0.120 on a held C4). It is a separate group (`tests/groups.sh browser`) because it needs
+  Playwright's Chromium.
+
+## Unreleased — six-track load, target link and installer trust
+
+- **Six-track load test:** `tests/six_track_test.c` (new, `bash tests/groups.sh six`) runs six tracks with ten
+  sustained voices (3+2+2+1+1+1) and the master EQ for a minute of 32-frame blocks: 82 687 blocks, p50 8.6 µs,
+  p99.9 32.4 µs (all blocks, not a sample) against a 725.0 µs deadline, 0 clipped samples, 0.077 % exact zeros.
+  Silence is now judged per block (0 silent blocks, leanest block 60 of 64 non-zero samples) instead of by a
+  global ratio. `voices_busy()` and `voice_kills` are checked in every block; they prove voice-state
+  continuity, not that each of the six tracks is independently audible. Host wall clock only: target timing is
+  NOT TESTED.
+- **CI 218 (fixed):** the slower splash made the emulator smoke test stop inside the splash (it rendered 2.2 s and the
+  splash is now 2.3 s), so HOME never appeared and a key was silent. The test waits 2.5 s; the fail-closed control
+  that refused to publish without a target package was correct and is unchanged.
+- **Target build of the branch:** 610 897 B package, app 556 152 B, sha256 `a56cdcb9…`, RAM spare 2 572 B, pool spare
+  9 248 B, RAM code spare 2 112 B, DSP budgets and package bounds green. Reproducible: same hash twice.
+- **Preflight de instalación (solo lectura):** `tools/fm1_preflight.py` comprueba hash obligatorio, tamaño,
+  identidad, modelo y modo del dispositivo, y devuelve NO-GO mientras el chip físico no esté identificado
+  (exit 7). Nunca envía UPGRADE; `tests/preflight_test.py` lo verifica caso por caso dentro del grupo
+  `security`.
+- **Cortes por página en el loader:** `tests/ldr_test.c` corta la energía en cada página que el loader
+  realmente programa (32 estados con los paquetes de esta rama) y exige reanudación exacta. Los presupuestos
+  que no cortaban se informan como omitidos.
+- **Documentación:** `docs/FM1_INSTALL_SAFETY.md` reúne alternativas de identificación del chip, el diseño de
+  backup bloqueado, la máquina de estados, los niveles de recuperación y el criterio NO-GO.
+- **La identificación del chip pasa a ser obligatoria en las dos rutas de instalación:** `tools/fm1_gate.py`
+  es la única política y la CLI y la web la invocan justo antes de `UPGRADE`. Sin el JEDEC de esa unidad
+  (lector externo, `--jedec`) se rechaza con exit 7 y no se envía nada; el override de laboratorio exige
+  `FM1_LAB=1` y no existe en la web. `preflight_test.py` y `test_web.mjs` cuentan los frames del
+  dispositivo falso para demostrarlo.
+- **CI:** el workflow ejecuta ahora `web/test_web.mjs` y `tests/preflight_test.py` en el job de
+  target, para que una ruta que se salte la puerta rompa el build.
+- **Propuesta de protocolo:** `docs/JEDEC_BACKUP_SIGNING_PROPOSAL.md` define los comandos `0x12`
+  (JEDEC/geometría) y `0x13` (lectura para backup) y la firma Ed25519, sin implementarlos.
+- **Bootsplash:** `SPL_WRITE` 800 → 1100 ms and `SPL_HOLD` 900 → 1200 ms, a slower reveal and hold.
+- **Installer trust (documented, not changed):** the WebMIDI identity reply carries `model_version` and no
+  SPI NOR JEDEC id, so the installer cannot verify the physical flash before writing; the 1 MiB allowlist is
+  enforced by the firmware when it mounts flash. Recorded as BLOCKED in `docs/PERF_SIX_TRACK_FM1.md` rather
+  than papered over with a UI warning.
+
 ## v1.8.6 — FX particles, splash, note visualizer, Punch-In keyboard and Master EQ (2026-11-04)
 
 - **FX particles:** the first FX section was redrawn at `ui.frame / 16` (about 3.75 fps); it now advances on

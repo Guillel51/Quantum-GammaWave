@@ -1,6 +1,6 @@
 # QUANTUM GAMMAWAVE (QG-1) — User Manual
 
-**Firmware v1.8.6 for the M-VAVE FM-1 · [GitHub Repository](https://github.com/Guillel51/Quantum-GammaWave)**
+**Firmware v1.8.9 for the M-VAVE FM-1 · [GitHub Repository](https://github.com/Guillel51/Quantum-GammaWave)**
 
 > *Versión en español: [MANUAL.es.md](MANUAL.es.md).*
 

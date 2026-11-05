@@ -114,6 +114,12 @@ static int ldr_session(void)
     static uint16_t sc[LDR_NSEC];
     uint32_t i, k, fl_off, fl_size, ota_off, ota_len, key, s, want = ~0u, done = 0;   /* (no CRC16: no flash.bin entry) */
     int rc;
+    /* (QG-1 v1.8.7) the whole write has a deadline: a host that goes quiet without unplugging
+     * (a suspended laptop, a crashed page) used to keep the loader polling forever, which is a
+     * boot loop the user cannot leave without pulling the cable. 20 minutes is far past the ~2
+     * minutes a full write takes; on expiry ota_read() fails, the sector write is abandoned and
+     * the record stays, so the next power-on resumes. */
+    ota_deadline = ota_now_ms() + 20u * 60u * 1000u;
     /* 1. UFW header + entry list (ota.c; it leaves the entries decoded in hdr) */
     if ((rc = ota_ufw(hdr, &fl_off, &fl_size, &ota_off, &ota_len)) != 0)
         return rc;

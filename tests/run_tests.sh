@@ -123,6 +123,12 @@ run "keys and buttons: fast press, long release, bouncy contacts (one note each)
 $CC -o "$OUT/midi_uart_test" tests/midi_uart_test.c
 run "TRS MIDI parser" "$OUT/midi_uart_test"
 
+$CC -o "$OUT/flash_id_test" tests/flash_id_test.c
+run "flash identification: allowlist, two agreeing reads, 1 MiB capacity, protection -> RAM-only" "$OUT/flash_id_test"
+
+$CC -o "$OUT/mc_selftest_test" tests/mc_selftest_test.c
+run "second core: the boot self-test refuses a misread shared mailbox" "$OUT/mc_selftest_test"
+
 HALF=$(sed -n 's/^#define HALF_FRAMES \([0-9]*\).*/\1/p' firmware/src/core.h)
 $CC -O2 -DT_CDC=1 -DHALF_FRAMES=$HALF -o "$OUT/uac_test" tests/uac_test.c -lm
 run "USB audio input: descriptors (with CDC), ring and packets, 44.1 -> 48 kHz resampler, 48 kHz stream" "$OUT/uac_test"
@@ -152,8 +158,6 @@ else
     python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
     $CC -o "$OUT/ldr_test" tests/ldr_test.c
     run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
-    $CC -o "$OUT/flash_id_test" tests/flash_id_test.c
-    run "flash id allowlist: documented 1 MiB variants, unknown refused" "$OUT/flash_id_test"
 fi
 
 if [ -f build/gen/felucca_tables.h ]; then
@@ -314,6 +318,10 @@ fi
 
 run "preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
+run "backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore" \
+    python3 tests/backup_tool_test.py
+run "README navigation contract (WEB SITE first and double width, names, links, palette)" \
+    python3 tests/readme_nav_test.py
 
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs

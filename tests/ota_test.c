@@ -23,6 +23,10 @@ static int committed;
 static uint8_t committed_parm[112];
 static int32_t last_code;
 static uint8_t *corrupt_at;              /* flip a served byte (loader body) */
+static uint32_t fake_jedec = 0x856014u;  /* what the fake NOR answers to 0x9F */
+static uint32_t fake_fail_at = 0xFFFFFFFFu;   /* raw read starting here fails */
+static uint8_t qry_body[320];
+static uint32_t qry_cmd, qry_len;        /* last 0x12/0x13 reply from the device */
 
 static uint32_t pack7(const uint8_t *in, uint32_t n, uint8_t *out)
 {
@@ -56,11 +60,19 @@ static void host_reply(const uint8_t *msg, uint32_t n)       /* queue msg as a d
 /* ---- hooks ---- */
 static int ota_wire_send(const uint8_t *p, uint32_t n)
 {
-    uint8_t u[64] = {0}, m[600];
+    uint8_t u[320] = {0}, m[600];
     uint32_t d, addr, len, i, s = 0;
     if (p[0] != 0xF0 || p[n - 1] != 0xF7) { printf("bad wire framing\n"); exit(1); }
     d = unpack7h(p + 1, n - 2, u);
     if (u[2] == 0x11) { ident_replies++; return 0; }
+    if (u[2] == 0x12 || u[2] == 0x13) {          /* identification / read replies: record them */
+        uint32_t blen = u[3] | u[4] << 8 | (uint32_t)u[5] << 16;
+        if (d != 7u + blen) { printf("bad query reply length %u vs %u\n", d, blen); exit(1); }
+        qry_cmd = u[2];
+        qry_len = blen;
+        memcpy(qry_body, u + 6, blen);
+        return 0;
+    }
     if (d != 15 || u[2] != 0x30) { printf("unexpected device msg cmd %02x len %u\n", u[2], d); exit(1); }
     addr = u[7] | u[8] << 8 | u[9] << 16 | (uint32_t)u[10] << 24;
     len = u[11] | u[12] << 8 | u[13] << 16;
@@ -109,6 +121,16 @@ static int ota_prog(uint32_t off, const void *src, uint32_t n)
     return 0;
 }
 static int ota_fread(uint32_t off, void *dst, uint32_t n) { memcpy(dst, nor + off, n); return 0; }
+static uint32_t ota_jedec(void) { return fake_jedec; }
+static int ota_rawread(uint32_t off, void *p, uint32_t n)
+{
+    if (off >= sizeof nor || n > sizeof nor - off)
+        return -1;                               /* past the 1 MiB part */
+    if (fake_fail_at != 0xFFFFFFFFu && fake_fail_at >= off && fake_fail_at - off < n)
+        return -5;
+    memcpy(p, nor + off, n);
+    return 0;
+}
 static void ota_show(uint32_t step, int32_t code) { if (step == 9) last_code = code; }
 static void ota_commit(const uint8_t *parm) { committed = 1; memcpy(committed_parm, parm, 112); }
 
@@ -148,6 +170,46 @@ static void reset_dev(void)
     memcpy(nor, logical + 0x400, 0x4000);                 /* device flash head = package flash.bin head */
     rx_full = 0; requests = 0; ident_replies = 0; committed = 0; last_code = 0;
     mute_after = 0xFFFFFFFFu; corrupt_at = NULL; bad_erase = 0;
+    fake_jedec = 0x856014u; fake_fail_at = 0xFFFFFFFFu; qry_len = 0; ota_sess = 0; ota_sess_part = 0;
+}
+
+/* queue one request frame and let the device answer it */
+static void qry(uint32_t cmd, const uint8_t *body, uint32_t n)
+{
+    uint8_t m[64];
+    uint32_t i, s = 0;
+    m[0] = 0; m[1] = 0x59; m[2] = (uint8_t)cmd; m[3] = (uint8_t)n; m[4] = 0; m[5] = 0;
+    for (i = 0; i < n; i++) { m[6 + i] = body[i]; s += body[i]; }
+    m[6 + n] = (uint8_t)~s;
+    qry_len = 0; qry_cmd = 0;
+    host_reply(m, 7 + n);
+    ota_service();
+}
+
+static uint32_t qry_ident(uint32_t nonce)      /* -> status of the 0x12 reply */
+{
+    uint8_t b[7];
+    b[0] = 1;
+    b[1] = (uint8_t)nonce; b[2] = (uint8_t)(nonce >> 8);
+    b[3] = (uint8_t)(nonce >> 16); b[4] = (uint8_t)(nonce >> 24);
+    ota_wr16(b + 5, ota_crc16(b, 5, 0));
+    qry(0x12, b, 7);
+    return qry_body[1];
+}
+
+static uint32_t qry_sess(void) { return ota_rd32(qry_body + 17); }
+
+static uint32_t qry_read(uint32_t addr, uint32_t len, uint32_t sess, uint32_t *got)
+{
+    uint8_t b[13];
+    b[0] = 1;
+    ota_wr32(b + 1, addr);
+    ota_wr16(b + 5, len);
+    ota_wr32(b + 7, sess);
+    ota_wr16(b + 11, ota_crc16(b, 11, 0));
+    qry(0x13, b, 13);
+    *got = ota_rd16(qry_body + 2);
+    return qry_body[1];
 }
 
 int main(int argc, char **argv)
@@ -217,6 +279,60 @@ int main(int argc, char **argv)
         mute_after = total - 1;                            /* answer everything but the confirmation */
         rc = ota_session();
         bad += check("no 'success' -> -13, no commit, area clean", rc == -13 && !committed && area_erased());
+    }
+
+    /* ---- 0x12: physical identification ---- */
+    reset_dev();
+    fake_jedec = 0;                                        /* the NOR does not answer */
+    bad += check("0x12 no NOR answer -> status 1, no session", qry_ident(1) == 1 && qry_len == 24u && qry_sess() == 0);
+    reset_dev();
+    fake_jedec = 0x123456u;                                /* not a part we know */
+    bad += check("0x12 unknown part -> status 2, no session", qry_ident(2) == 2 && qry_sess() == 0);
+    bad += check("0x12 unknown part echoes the id, no geometry",
+                 qry_body[2] == 0x12 && qry_body[3] == 0x34 && qry_body[4] == 0x56 &&
+                 qry_body[5] == 0 && qry_body[9] == 0 && qry_body[11] == 0);
+    reset_dev();
+    bad += check("0x12 known part -> status 0", qry_ident(3) == 0 && qry_cmd == 0x12u && qry_len == 24u);
+    bad += check("0x12 reports the id it read (0x856014)",
+                 qry_body[2] == 0x85 && qry_body[3] == 0x60 && qry_body[4] == 0x14);
+    bad += check("0x12 geometry: 1 MiB / 256 / 4K / 64K",
+                 ota_rd32(qry_body + 5) == 0x100000u && ota_rd16(qry_body + 9) == 256u &&
+                 ota_rd16(qry_body + 11) == 0x1000u && ota_rd32(qry_body + 13) == 0x10000u);
+    bad += check("0x12 reply crc + session", ota_crc16(qry_body, 21, 0) == ota_rd16(qry_body + 21) && qry_sess() != 0);
+    {
+        uint32_t s1 = qry_sess(), s2;
+        bad += check("0x12 second read: same part and geometry", qry_ident(3) == 0 && ota_rd32(qry_body + 5) == 0x100000u &&
+                     qry_body[2] == 0x85 && qry_body[4] == 0x14);
+        s2 = qry_sess();
+        bad += check("0x12 second read: fresh session token", s2 != 0 && s2 != s1);
+        bad += check("0x13 reads what the NOR holds",
+                     qry_read(0x400, 256, s2, &qry_len) == 0 && qry_len == 256u && !memcmp(qry_body + 14, nor + 0x400, 256));
+        bad += check("0x13 echoes address and session",
+                     ota_rd32(qry_body + 4) == 0x400u && ota_rd32(qry_body + 8) == s2 &&
+                     ota_crc16(qry_body, 12, 0) == ota_rd16(qry_body + 12));
+        bad += check("0x13 old session refused", qry_read(0x400, 16, s1, &qry_len) == 4 && qry_len == 0);
+        bad += check("0x13 past the end refused", qry_read(0xFFFF0u, 32, s2, &qry_len) == 5 && qry_len == 0);
+        bad += check("0x13 zero length refused", qry_read(0x400, 0, s2, &qry_len) == 6);
+        bad += check("0x13 over the 512-byte cap refused", qry_read(0x400, 513, s2, &qry_len) == 6);
+        bad += check("0x13 more than one chunk refused, no surprise short read", qry_read(0x400, 257, s2, &qry_len) == 6);
+        fake_fail_at = 0x750u;                             /* fails in the middle of the chunk */
+        bad += check("0x13 read error reported, no payload", qry_read(0x700, 256, s2, &qry_len) == 6 && qry_len == 0);
+        fake_fail_at = 0xFFFFFFFFu;
+        bad += check("0x13 last chunk at the very end works", qry_read(0xFFF00u, 256, s2, &qry_len) == 0 && qry_len == 256);
+    }
+    {
+        uint8_t b[7] = {1, 9, 0, 0, 0, 0, 0};
+        reset_dev();
+        qry(0x12, b, 7);                                   /* bad request crc */
+        bad += check("0x12 bad request crc -> status 7", qry_body[1] == 7 && qry_sess() == 0);
+        b[5] = (uint8_t)ota_crc16(b, 5, 0); b[6] = (uint8_t)(ota_crc16(b, 5, 0) >> 8);
+        b[0] = 2;                                          /* wrong protocol version */
+        qry(0x12, b, 7);
+        bad += check("0x12 wrong version -> status 7", qry_body[1] == 7 && qry_sess() == 0);
+        reset_dev();
+        bad += check("0x13 without a session refused", qry_read(0, 16, 0x1234u, &qry_len) == 4);
+        bad += check("identification and reads write nothing",
+                     bad_erase == 0 && !committed && nor[0xE0000] == 0xFF && nor[0xE4F00] == 0xFF);
     }
 
     printf("%s\n", bad ? "OTA TEST FAILED" : "ota test passed");

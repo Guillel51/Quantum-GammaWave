@@ -1496,25 +1496,38 @@ async function updater() {
   const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
   const dev = new FakeFM1(image);
   const steps = [];
-  const got = await new Updater(dev.access).install(image, "FM-1_900", (k) => steps.push(k));
+  const got = await new Updater(dev.access).install(image, "FM-1_900", (k) => steps.push(k), { jedec: 0x856014 });
   ok(got === "FM-1_900" && dev.bad === 0 && steps.includes("write") && steps.at(-1) === "done",
     `fm1ota.js: install: running firmware -> loader -> Felucca (${dev.served} reads)`);
 
   const dev2 = new FakeFM1(image, { unplugAfter: 3 });
   dev2.boot("ota-FM-1_900", "Felucca Update");
   const t0 = Date.now();
-  const done = await new Updater(dev2.access).resume(image);
+  const done = await new Updater(dev2.access).resume(image, undefined, null, { jedec: 0x856014 });
   ok(done === false && Date.now() - t0 < 6000, "fm1ota.js: unplugged during the write -> stops at once");
 
   const dev3 = new FakeFM1(image, { unplugAfter: 2 });
-  const e = await new Updater(dev3.access).install(image, "FM-1_900").then(() => null, (x) => x);
+  const e = await new Updater(dev3.access).install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
   ok(e && e.code === "lost", "fm1ota.js: unplugged in step 1 -> error code 'lost'");
-  const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_900").then(() => null, (x) => x);
+  const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
   ok(e2 && e2.code === "notfound", "fm1ota.js: no device -> error code 'notfound'");
   const dev4 = new FakeFM1(image, { ackLost: true });
   const e4 = await new Updater(dev4.access, null, { loaderDelay: 10, rebootDelay: 10, rebootWait: 300 })
-    .install(image, "FM-1_900").then(() => null, (x) => x);
+    .install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
   ok(e4 && e4.code === "noreturn", "fm1ota.js: lost final ACK -> no success ('noreturn')");
+
+  const dev5 = new FakeFM1(image);
+  const e5 = await new Updater(dev5.access).install(image, "FM-1_900").then(() => null, (x) => x);
+  ok(e5 && e5.code === "chip" && dev5.served === 0,
+    "fm1ota.js: install without chip evidence -> 'chip', not one request served");
+  const dev6 = new FakeFM1(image);
+  dev6.boot("ota-FM-1_900", "Felucca Update");
+  const e6 = await new Updater(dev6.access).resume(image).then(() => null, (x) => x);
+  ok(e6 && e6.code === "chip" && dev6.served === 0,
+    "fm1ota.js: resume without chip evidence -> 'chip', not one request served");
+  const e7 = await new Updater(dev5.access).install(image, "FM-1_900", null, { jedec: 0x123456 })
+    .then(() => null, (x) => x);
+  ok(e7 && e7.code === "chip", "fm1ota.js: a JEDEC outside the allowlist -> 'chip'");
 }
 
 await editorMock();
@@ -1565,6 +1578,154 @@ function qg1FeaturesCheck() {
      "editor: contains all 8 categorized preset optgroups in selector");
 }
 qg1FeaturesCheck();
+
+
+// ---- (3.x) the installer page identifies the flash chip before any write -------------------
+{
+  const pkgHtml = readFileSync(new URL("./index_pkg.html", import.meta.url), "utf8");
+  const installs = pkgHtml.match(/up\.install\([^)]*\)/g) || [];
+  const resumes = pkgHtml.match(/up\.resume\([^)]*\)/g) || [];
+  ok(/async function chipEvidence\(/.test(pkgHtml) && /probeChip\(/.test(pkgHtml),
+     "installer page: 0x12 identifies the flash before the first write frame");
+  ok(installs.length === 3 && installs.every((s) => /,\s*ev\)$/.test(s)),
+     "installer page: every install() call passes the chip evidence");
+  ok(resumes.length === 3 && resumes.every((s) => /,\s*ev\)$/.test(s)),
+     "installer page: every resume() call passes the chip evidence");
+  ok(!/up\.write\(/.test(pkgHtml), "installer page: write() is reached only through install()/resume()");
+  ok(/verifyManifest\(pkg, v\.manifest/.test(pkgHtml) && /no signed manifest/.test(pkgHtml),
+     "installer page: the signed manifest is verified before INSTALL");
+  ok(/releaseOk/.test(pkgHtml) && /!preflightOk\(\) \|\| !releaseOk/.test(pkgHtml)
+     && /the package is not signed and verified/.test(pkgHtml),
+     "installer page: INSTALL is disabled until the package is verified");
+}
+
+// ---- 0x12 / 0x13 / Ed25519: the same policy the CLI enforces (tests/chip_test.py, tests/sign_test.py) ----
+{
+  const M = await import("./fm1ota.js");
+  const crc = (d, c = 0) => {
+    for (const b of d) {
+      c ^= b << 8;
+      for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF;
+    }
+    return c & 0xFFFF;
+  };
+  const msg = (cmd, body) => {
+    const b = [0, 0x59, cmd, body.length & 0xFF, (body.length >> 8) & 0xFF, 0, ...body];
+    let s = 0;
+    for (const x of body) s += x;
+    b.push(~s & 0xFF);
+    return [0xF0, ...M.pack7(b), 0xF7];
+  };
+  const nor = Uint8Array.from({ length: 0x100000 }, (_, i) => (i * 31 + 7) & 0xFF);
+  const fake = (opts = {}) => {
+    const dev = { q: [], sent: [], session: 0, queries: 0,
+      send(bytes) { this.sent.push(bytes); this.answer(M.unpack7(bytes.slice(1, -1))); return true; },
+      async read() { return this.q.shift() || null; },
+      answer(u) {
+        const cmd = u[2], body = u.slice(6);
+        const reply = (b) => this.q.push(msg(cmd, b));
+        this.queries++;
+        if (opts.silent) return;
+        if (cmd === 0x12) {
+          if (opts.truncated) return reply([1, 0, 0, 0]);
+          if (opts.crc) return reply([1, 0, ...Array(19).fill(0), 0xAA, 0]);
+          const jedec = opts.jedec === undefined ? 0x856014 : opts.jedec;
+          const b = new Array(24).fill(0);
+          b[0] = 1;
+          b[2] = (jedec >> 16) & 0xFF; b[3] = (jedec >> 8) & 0xFF; b[4] = jedec & 0xFF;
+          if (!opts.unknown) {
+            const cap = opts.cap || 0x100000;
+            b[5] = cap & 0xFF; b[6] = (cap >> 8) & 0xFF; b[7] = (cap >> 16) & 0xFF; b[8] = (cap >>> 24) & 0xFF;
+            b[9] = 0; b[10] = 1; b[11] = 0; b[12] = 0x10;
+            b[13] = 0; b[14] = 0; b[15] = 1; b[16] = 0;
+            this.session = (0xA500 + this.queries) >>> 0;
+            b[17] = this.session & 0xFF; b[18] = (this.session >> 8) & 0xFF;
+            b[19] = (this.session >> 16) & 0xFF; b[20] = (this.session >>> 24) & 0xFF;
+          }
+          b[2] = (jedec >> 16) & 0xFF;
+          b[1] = opts.unknown ? 2 : 0;
+          b[21] = crc(b.slice(0, 21)) & 0xFF; b[22] = (crc(b.slice(0, 21)) >> 8) & 0xFF;
+          return reply(b);
+        }
+        const addr = body[1] | (body[2] << 8) | (body[3] << 16) | (body[4] << 24);
+        const n = body[5] | (body[6] << 8);
+        const sess = body[7] | (body[8] << 8) | (body[9] << 16) | (body[10] << 24);
+        const st = sess !== this.session ? 4 : 0;
+        const h = [1, st, st ? 0 : n & 0xFF, st ? 0 : n >> 8,
+          st ? 0 : addr & 0xFF, st ? 0 : (addr >> 8) & 0xFF, st ? 0 : (addr >> 16) & 0xFF, st ? 0 : (addr >>> 24) & 0xFF,
+          st ? 0 : sess & 0xFF, st ? 0 : (sess >> 8) & 0xFF, st ? 0 : (sess >> 16) & 0xFF, st ? 0 : (sess >>> 24) & 0xFF];
+        h.push(crc(h) & 0xFF, (crc(h) >> 8) & 0xFF);
+        return reply(st ? h : h.concat(Array.from(nor.slice(addr, addr + n))));
+      } };
+    return dev;
+  };
+
+  let ev = null;
+  try { ev = await M.probeChip(fake(), 200); ok(true, "web 0x12: probe over a fake link"); }
+  catch (e) { ok(false, "web 0x12: probe (" + e.message + ")"); }
+  ok(ev && ev.jedec === 0x856014 && ev.readings === 2 && ev.block === 0x10000, "web 0x12: part and geometry");
+  for (const [opts, what] of [[{ jedec: 0x123456 }, "unknown part"], [{ unknown: true }, "status 2"],
+                              [{ truncated: true }, "truncated"], [{ crc: true }, "bad CRC"],
+                              [{ silent: true }, "no answer"], [{ cap: 0x200000 }, "geometry"]]) {
+    let refused = false;
+    try { await M.probeChip(fake(opts), 60); } catch (e) { refused = e.code === "chip"; }
+    ok(refused, "web 0x12 refuses " + what);
+  }
+  {
+    const dev = fake();
+    const e2 = await M.probeChip(dev, 200);
+    const got = await M.readFlash(dev, 0x400, 256, e2.session, 200);
+    ok(got.length === 256 && got.every((b, i) => b === nor[0x400 + i]), "web 0x13: reads the NOR's bytes");
+    let refused = false;
+    try { await M.readFlash(dev, 0x400, 256, e2.session ^ 1, 200); } catch (e) { refused = e.code === "chip"; }
+    ok(refused, "web 0x13 refuses a stale session");
+    refused = false;
+    try { await M.readFlash(dev, 0x100000 - 8, 16, e2.session, 200); } catch (e) { refused = e.code === "chip"; }
+    ok(refused, "web 0x13 refuses a read past the part");
+  }
+  {
+    const { generateKeyPairSync, sign } = await import("node:crypto");
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+    const pub = publicKey.export({ format: "jwk" }).x;
+    const pkg = new Uint8Array([1, 2, 3, 4, 5]);
+    const digest = (await import("node:crypto")).createHash("sha256").update(pkg).digest("hex");
+    const man = { format: "qg1-release-1", product: "FM-1", version: "3.0.0", min_firmware: "2.0.0",
+      sha256: digest, size: pkg.length, created: "2026-11-04T00:00:00Z", keyid: "t1" };
+    const canonical = (v) => v === null || typeof v !== "object" ? JSON.stringify(v)
+      : Array.isArray(v) ? "[" + v.map(canonical).join(",") + "]"
+      : "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonical(v[k])).join(",") + "}";
+    const sig = sign(null, Buffer.from(canonical(man)), privateKey).toString("hex");
+    const signed = { ...man, sig };
+    const pinned = { t1: Buffer.from(pub, "base64url").toString("hex") };
+    let ed25519 = true;
+    try { await crypto.subtle.importKey("raw", new Uint8Array(32), { name: "Ed25519" }, false, ["verify"]); }
+    catch (_) { ed25519 = false; }
+    if (!ed25519) {
+      console.log("web Ed25519: this runtime's WebCrypto has no Ed25519, signature checked in Python only (skipped)");
+    } else {
+      try {
+        const info = await M.verifyManifest(pkg, signed, pinned);
+        ok(info.keyid === "t1" && info.sha256 === digest, "web Ed25519: a valid manifest verifies (WebCrypto)");
+      } catch (e) { ok(false, "web Ed25519: valid manifest (" + e.message + ")"); }
+    }
+    for (const [m, keys, what] of [[{ ...signed, version: "9.9.9" }, pinned, "a tampered manifest"],
+                                   [signed, {}, "no pinned key"], [{ ...signed, product: "GW-1" }, pinned, "another product"],
+                                   [{ ...signed, sha256: "0".repeat(64) }, pinned, "a wrong hash"]]) {
+      let refused = false;
+      try { await M.verifyManifest(pkg, m, keys); } catch (e) { refused = e.code === "signature"; }
+      ok(refused, "web Ed25519 refuses " + what);
+    }
+  }
+}
+
+// ---- (3.x) one chip policy for CLI and web: the unvalidated part is write-refused --------
+{
+  const M = await import("./fm1ota.js");
+  let code = "";
+  try { M.requireChip({ jedec: 0xB36014 }); } catch (e) { code = e.code + ": " + e.message; }
+  ok(/^chip: .*not validated for writing/.test(code), "web: UCUN 0xB36014 is refused for writing");
+  ok(/P25Q80H/.test(M.requireChip({ jedec: 0x856014 })), "web: P25Q80H is the validated write part");
+}
 
 console.log(failed ? `WEB TESTS FAILED (${failed})` : "web tests passed");
 process.exit(failed ? 1 : 0);

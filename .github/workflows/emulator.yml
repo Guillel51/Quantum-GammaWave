@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install Pillow numpy fonttools
+      - run: pip install Pillow numpy fonttools cryptography
       - name: generated headers (fonts, icons, palettes, shapes, tables, samples)
         run: python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
       - uses: mymindstorm/setup-emsdk@v14
@@ -131,6 +131,16 @@ jobs:
           if [ ! -s build/felucca.dis ] || [ ! -s build/felucca.fwsc ]; then python3 tools/build.py; fi
           python3 tests/target_budget.py build/felucca.dis tests/target_budget.txt
           node web/test_pkg_bounds.mjs build/felucca.fwsc
+      # (QG-1 phase 2) The install gate is not a suggestion: both routes must refuse to start an update
+      # without the physical NOR id. test_web.mjs counts the frames the simulated FM-1 receives, and
+      # preflight_test.py does the same for the CLI (including a direct Updater.write()).
+      - name: the install gate cannot be bypassed (CLI and web)
+        if: steps.tc.outcome == 'success'
+        run: |
+          node web/test_web.mjs
+          python3 tests/preflight_test.py build/felucca.fwsc
+          python3 tests/chip_test.py
+          python3 tests/sign_test.py
       # (QG-1) The portal and the emulator go up even when JieLi's toolchain is missing: the site then offers the
       # package already built for the target (firmware/packages, the published one), never a rebuild it did not do.
       - name: the site, with the published package when the target build produced none

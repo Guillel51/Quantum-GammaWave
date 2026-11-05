@@ -106,12 +106,22 @@ def main(pkg, version, out, prev=None):
     # (QG-1) each package with its SHA-256 and size: the installer refuses bytes that do not match
     def digest(b):
         return {"sha256": hashlib.sha256(b).hexdigest(), "size": len(b)}
-    versions = [{"version": version, "file": name, **digest(raw)}] + \
-        [{**e, **digest(src.read_bytes())} for e, src in old]
+    def manifest_of(pkg_path):
+        """the release manifest written by tools/fm1_sign.py next to the package, if any"""
+        for cand in (Path(str(pkg_path) + ".manifest.json"), Path(pkg_path).with_suffix(".manifest.json")):
+            if cand.is_file():
+                return json.loads(cand.read_text(encoding="utf-8"))
+        return None
+    # Only the PUBLIC keys the custodian pinned (tools/fm1_keys.json) travel with the page: an
+    # empty map is the honest state, and verifyManifest() then refuses every package.
+    keys = json.loads((HERE.parent / "tools" / "fm1_keys.json").read_text(encoding="utf-8")).get("keys", {})
+    versions = [{"version": version, "file": name, **digest(raw), "manifest": manifest_of(Path(pkg))}] + \
+        [{**e, **digest(src.read_bytes()), "manifest": manifest_of(src)} for e, src in old]
     meta = json.dumps({"version": version, "product": product, "pkg": "../../firmware/" + name, **digest(raw),
-                       "stock": (HERE.parent / "FM-1.fwsc").is_file(),
+                       "stock": (HERE.parent / "FM-1.fwsc").is_file(), "keys": keys,
                        "versions": [{"version": e["version"], "pkg": "../../firmware/" + e["file"],
-                                     "sha256": e["sha256"], "size": e["size"]} for e in versions]})
+                                     "sha256": e["sha256"], "size": e["size"],
+                                     "manifest": e.get("manifest")} for e in versions]})
     for mark in ("/*LIB*/", "/*META*/"):
         if html.count(mark) != 1:
             raise SystemExit(f"index_pkg.html must contain {mark} once; update make_site.py")

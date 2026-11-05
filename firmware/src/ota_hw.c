@@ -21,6 +21,17 @@ static int ota_prog(uint32_t off, const void *p, uint32_t n)
     return fl_write(off, p, n);
 }
 static int ota_fread(uint32_t off, void *p, uint32_t n) { return st_read(off, p, n); }
+/* 0x12/0x13: the NOR's own id and a raw read. fl_read_ram runs from .ram_text,
+ * so it is safe while XIP is off; IRQs are off for one 256-byte read (~40 us at
+ * 50 MHz SPI), well inside the 725 us render block. Read-only: no WEL, no erase. */
+static uint32_t ota_jedec(void) { return FL_FAR(fl_jedec_ram)(); }
+static int ota_rawread(uint32_t off, void *p, uint32_t n)
+{
+    uint32_t f = irq_save();
+    int rc = FL_FAR(fl_read_ram)(off, (uint8_t *)p, n);
+    irq_restore(f);
+    return rc;
+}
 static void ota_show(uint32_t step, int32_t code)
 {
     static const char *const STEP[] = {"", "PACKAGE", "CHECK HEAD", "LOADER", "CONFIRM", "RESTART"};

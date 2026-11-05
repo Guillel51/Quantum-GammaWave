@@ -61,3 +61,24 @@ bootloader y el mapa de flash lo permitan.
 - `node web/test_pkg_faults.mjs build/felucca.fwsc`: truncados y corrupción de bytes críticos
   sobre el paquete real.
 - `tests/groups.sh security` y `tests/groups.sh web`: integración en las suites.
+
+## 6. Preflight de solo lectura y cortes por página (2026-11-04)
+
+`tools/fm1_preflight.py` (nuevo) comprueba hash obligatorio, tamaño, identidad, modelo y modo del
+dispositivo, y **se niega a autorizar** la instalación mientras el chip físico no esté identificado
+(exit 7). Nunca envía UPGRADE: `tests/preflight_test.py` lo verifica sobre el dispositivo falso, caso
+por caso (sin hash, hash distinto, otro modelo, sin dispositivo, override de laboratorio, unidad ya en
+loader).
+
+`tests/ldr_test.c` corta ahora la energía en **cada cuarta página de programa** del área de aplicación
+(el modelo de NOR aplica AND, como una NOR real) y exige que la sesión siguiente complete, que el área
+coincida byte a byte con el paquete, que la cabecera y los datos de usuario queden intactos y que no se
+escriba fuera de los rangos permitidos.
+
+| Escenario | Cobertura |
+|---|---|
+| Chip físico sin identificar | **BLOQUEADO** (preflight exit 7) |
+| Backup completo de la flash | **BLOQUEADO** (el protocolo no tiene lectura iniciada por el host) |
+| Corte en cada página de la escritura del loader | **SIMULADO EN HOST** (`ldr_test`) |
+| Corte en staging y cleanup de la app | **SIMULADO EN HOST** (`ota_cut_test`) |
+| Corte eléctrico real / brownout / recuperación | **NO VERIFICADO** |
