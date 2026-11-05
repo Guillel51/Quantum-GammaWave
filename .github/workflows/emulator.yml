@@ -92,11 +92,14 @@ jobs:
           AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
           JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
         run: |
-          ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
+          # the label the site shows must be the build record's version plus the commit it was built
+          # from (make_site.py and the installer both refuse anything else), and the record's version
+          # carries the leading v: "v1.9.0-37d857c", never "1.9.0-37d857c-preview"
+          ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/v\1/p' "$1/firmware/src/felucca.c" | head -1; }
           # the preview: main as it is now, next to the emulator that runs it (preview/webapp/installer)
           python3 tools/build.py
           V=$(ver .)
-          python3 web/make_site.py build/felucca.fwsc "${V:-dev}-${GITHUB_SHA::7}-preview" build/site_preview
+          python3 web/make_site.py build/felucca.fwsc "${V:-dev}-${GITHUB_SHA::7}" build/site_preview
           mkdir -p build/site_preview/emulator
           cp -r build/emu/. build/site_preview/emulator/
           mkdir -p build/emu/preview
