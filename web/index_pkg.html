@@ -892,8 +892,12 @@ applyLang();
 const sayK = (k, arg = "") => { lastKey = k; lastArg = arg; $("status").textContent = t(k) + arg; };
 const say = (txt) => { lastKey = null; $("status").textContent = txt; };
 const log = (t) => { $("log").textContent += t + "\n"; };
-let image = null;
+let image = null;                 // the verified package bytes (the transport derives the image)
+let releaseManifest = null;       // the manifest that authorises exactly those bytes
 const meta = /*META*/;
+/* what install()/resume() need to verify the package themselves: an evidence object is never
+   enough, and the page's own pre-check is not what the transport relies on */
+const ctxFor = (ev, firmware = null) => ({ evidence: ev, manifest: releaseManifest, keys: meta.keys || {}, firmware });
 
 let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false;
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
@@ -914,7 +918,7 @@ function fillVersions() {
 }
 async function loadVersion(i) {
   const v = versions[i] || versions[0], epoch = ++loadEpoch;
-  image = null; releaseOk = false; $("go").disabled = true;
+  image = null; releaseOk = false; releaseManifest = null; $("go").disabled = true;
   try {
     const r = await fetch(v.pkg);
     if (!r.ok) throw new Error(`${v.pkg}: HTTP ${r.status}`);
@@ -940,7 +944,8 @@ async function loadVersion(i) {
     if (epoch !== loadEpoch) return;
     releaseOk = true;
     $("pkg-hash").textContent = t("hashOk") + hash;
-    image = logicalImage(pkg);
+    image = pkg;
+    releaseManifest = v.manifest;
     say(`QUANTUM GAMMAWAVE FM-1 (${v.version}) — Ready to flash (${pkg.length.toLocaleString()} bytes)`);
     lockInstaller(writing);
   } catch (e) { if (epoch === loadEpoch) sayK("loadfail", e.message); }
@@ -1037,7 +1042,7 @@ $("go").addEventListener("click", async () => {
       const ev = await probeChip(ota.link, 1500);        /* (3.x) 0x12 on the open link, before the write */
       log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       ota.link.close();
-      sayK((await up.resume(image, step, meta.product, ev)) ? "done" : "stopped");
+      sayK((await up.resume(image, step, meta.product, ctxFor(ev))) ? "done" : "stopped");
     } else {
       sayK("checking");
       const fw = await fwKind(up);
@@ -1058,7 +1063,7 @@ $("go").addEventListener("click", async () => {
         } else if (!confirm(t("bkNone"))) { sayK("cancelled"); lockInstaller(false); return; }
       }
       const ev = await chipEvidence(up, meta.product.split("_")[0]);
-      await up.install(image, meta.product, step, ev);
+      await up.install(image, meta.product, step, ctxFor(ev, versionOf(fw.info)));
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || "");
@@ -1103,6 +1108,12 @@ function saveArchive(archive) {
   const a = document.createElement("a"); a.href = url; a.download = `GammaWave-backup-${new Date().toISOString().slice(0,10)}.json`;
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+/* the running firmware's version, for the manifest's min_firmware (the downgrade policy). The
+ * loader identity carries none: a resume passes null and relies on the signature, the bytes and
+ * the chip instead (nothing weaker: the loader is already in update mode). */
+function versionOf(info) {
+  try { const m = /(\d+\.\d+(?:\.\d+)?)/.exec(archiveInfo(info).version); return m ? m[1] : null; } catch (_) { return null; }
+}
 function archiveInfo(a) {
   let pos = a.indexOf(0); if (pos < 0) throw new Error("Invalid INFO");
   const version = String.fromCharCode(...a.slice(0,pos)); pos++;
@@ -1130,7 +1141,9 @@ $("stock-go").addEventListener("click", async () => {
       loader.link.close();
       if (!$("stock-recovery").checked) { sayK("stockNeedBackup"); return; }
       if (!confirm(t("stockConfirm"))) return;
-      sayK(await up.resume(selected.image, step, selected.product, ev) ? "done" : "stopped");
+      /* the vendor V15 has no release manifest and this project has no key that could sign it, so
+         requireProof refuses it: the page does not bypass that, it lets the transport say why */
+      sayK(await up.resume(selected.image, step, selected.product, { evidence: ev, manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
     } else {
       const device = await up.find(id => id.model === "FM-1");
       if (!device) { sayK("notfound"); return; }
@@ -1144,7 +1157,7 @@ $("stock-go").addEventListener("click", async () => {
         (done,total) => sayK("backup", `${Math.round(done / Math.max(1,total) * 100)}%`));
       saveArchive(archive); link.close(); link = null;
       if (!confirm(t("stockConfirm"))) return;
-      await up.install(selected.image, selected.product, step, ev);
+      await up.install(selected.image, selected.product, step, { evidence: ev, manifest: null, keys: meta.keys || {} });
     }
   } catch (e) {
     if (e.code && TEXT[lang][e.code]) sayK(e.code,e.detail || ""); else sayK("error",e.message);
@@ -1174,10 +1187,11 @@ $("stock-direct").addEventListener("click", async () => {
       const ev = await probeChip(loader.link, 1500);
       log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       loader.link.close();
-      sayK(await up.resume(selected.image, step, selected.product, ev) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { evidence: ev, manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
     } else {
       const ev = await chipEvidence(up, selected.product.split("_")[0]);
-      await up.install(selected.image, selected.product, step, ev);
+      /* as above: the vendor V15 is not a signed release, so the transport refuses it */
+      await up.install(selected.image, selected.product, step, { evidence: ev, manifest: null, keys: meta.keys || {} });
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || ""); else sayK("error", e && e.message);

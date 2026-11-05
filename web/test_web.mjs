@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { logicalImage, productOf } from "./fm1pkg.js";
 import { Updater, pack7, unpack7 } from "./fm1ota.js";
+import { createHash, generateKeyPairSync, sign as edSign } from "node:crypto";
 
 let failed = 0;
 const ok = (cond, what) => { console.log(`${what.padEnd(64)} ${cond ? "ok" : "FAIL"}`); if (!cond) failed++; };
@@ -1438,8 +1439,9 @@ const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 class FakeFM1 {
   constructor(image, { unplugAfter = Infinity, ackLost = false } = {}) {
     this.image = image; this.unplugAfter = unplugAfter; this.ackLost = ackLost; this.served = 0; this.bad = 0;
+    this.frames = 0; this.upgrades = 0;   // frames the host sent, and UPGRADE commands
     this.access = { inputs: new Map(), outputs: new Map() };
-    this.boot("FM-1_015", "FM-1");
+    this.boot("FM-1_900", "Felucca");   // the identity the test package carries
   }
   boot(identity, name) {
     this.identity = identity; this.waiting = null; this.queue = [];
@@ -1455,11 +1457,13 @@ class FakeFM1 {
   }
   tx(bytes) { const i = this.input; setTimeout(() => { if (i.state === "connected" && i.onmidimessage) i.onmidimessage({ data: Uint8Array.from(bytes) }); }, 1); }
   rx(d) {
+    this.frames++;
     if (eq(d, HS)) {
       const t = [...new TextEncoder().encode(this.identity)];
       const body = [0, 0x59, 0x11, 0, 0, 0, ...t, ...new Array(28 - t.length).fill(0)];
       this.tx([0xF0, ...pack7(body), 0xF7]);
     } else if (eq(d, UPGRADE)) {
+      this.upgrades++;
       this.queue = this.identity.startsWith("ota-")
         ? [...Array.from({ length: 6 }, (_, k) => [k * 512, 512]), [0xF0000000, 8]]
         : [[0, 64], [0x40, 160], [0x1000, 512], [0xE0000000, 8]];
@@ -1492,44 +1496,145 @@ class FakeFM1 {
   }
 }
 
-async function updater() {
-  const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
-  const dev = new FakeFM1(image);
-  const steps = [];
-  const got = await new Updater(dev.access).install(image, "FM-1_900", (k) => steps.push(k), { jedec: 0x856014 });
-  ok(got === "FM-1_900" && dev.bad === 0 && steps.includes("write") && steps.at(-1) === "done",
-    `fm1ota.js: install: running firmware -> loader -> Felucca (${dev.served} reads)`);
+/* An ephemeral release key signs the test packages: no production key exists or is created, and
+   the private half lives only in this process. */
+const TEST_KEY = generateKeyPairSync("ed25519");
+const PINNED = { "test-1": Buffer.from(TEST_KEY.publicKey.export({ format: "jwk" }).x, "base64url").toString("hex") };
+const canon = (v) => v === null || typeof v !== "object" ? JSON.stringify(v)
+  : Array.isArray(v) ? "[" + v.map(canon).join(",") + "]"
+  : "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canon(v[k])).join(",") + "}";
+const sha256 = (b) => createHash("sha256").update(b).digest("hex");
+const release = (pkg, over = {}) => {
+  const unsigned = { format: "qg1-release-1", product: "FM-1", version: "9.9.9", min_firmware: "1.0.0",
+    sha256: sha256(pkg), size: pkg.length, created: "2026-11-05T00:00:00Z", keyid: "test-1", ...over };
+  return { ...unsigned, sig: edSign(null, Buffer.from(canon(unsigned)), TEST_KEY.privateKey).toString("hex") };
+};
 
-  const dev2 = new FakeFM1(image, { unplugAfter: 3 });
-  dev2.boot("ota-FM-1_900", "Felucca Update");
-  const t0 = Date.now();
-  const done = await new Updater(dev2.access).resume(image, undefined, null, { jedec: 0x856014 });
-  ok(done === false && Date.now() - t0 < 6000, "fm1ota.js: unplugged during the write -> stops at once");
-
-  const dev3 = new FakeFM1(image, { unplugAfter: 2 });
-  const e = await new Updater(dev3.access).install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
-  ok(e && e.code === "lost", "fm1ota.js: unplugged in step 1 -> error code 'lost'");
-  const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
-  ok(e2 && e2.code === "notfound", "fm1ota.js: no device -> error code 'notfound'");
-  const dev4 = new FakeFM1(image, { ackLost: true });
-  const e4 = await new Updater(dev4.access, null, { loaderDelay: 10, rebootDelay: 10, rebootWait: 300 })
-    .install(image, "FM-1_900", null, { jedec: 0x856014 }).then(() => null, (x) => x);
-  ok(e4 && e4.code === "noreturn", "fm1ota.js: lost final ACK -> no success ('noreturn')");
-
-  const dev5 = new FakeFM1(image);
-  const e5 = await new Updater(dev5.access).install(image, "FM-1_900").then(() => null, (x) => x);
-  ok(e5 && e5.code === "chip" && dev5.served === 0,
-    "fm1ota.js: install without chip evidence -> 'chip', not one request served");
-  const dev6 = new FakeFM1(image);
-  dev6.boot("ota-FM-1_900", "Felucca Update");
-  const e6 = await new Updater(dev6.access).resume(image).then(() => null, (x) => x);
-  ok(e6 && e6.code === "chip" && dev6.served === 0,
-    "fm1ota.js: resume without chip evidence -> 'chip', not one request served");
-  const e7 = await new Updater(dev5.access).install(image, "FM-1_900", null, { jedec: 0x123456 })
-    .then(() => null, (x) => x);
-  ok(e7 && e7.code === "chip", "fm1ota.js: a JEDEC outside the allowlist -> 'chip'");
+/* a .fwsc whose logical image is `img`: 20 blocks of 47 image bytes, then the identity marker that
+   logicalImage() drops and productOf() reads */
+function packageOf(img, identity) {
+  const pkg = new Uint8Array(20 * 48 + img.length - 20 * 47);
+  for (let i = 0; i < 20; i++) {
+    pkg.set(img.subarray(i * 47, i * 47 + 47), i * 48);
+    const c = identity.charCodeAt(i);
+    pkg[i * 48 + 47] = Number.isNaN(c) ? 0x7D : (c + i + 1) & 0xFF;
+  }
+  pkg.set(img.subarray(20 * 47), 20 * 48);
+  return pkg;
 }
 
+async function updater() {
+  const M = await import("./fm1ota.js");
+  const FAST = { loaderDelay: 10, rebootDelay: 10, rebootWait: 3000, loaderWait: 3000 };
+  const identity = "FM-1_900";
+  const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
+  const pkg = packageOf(image, identity);
+  const manifest = release(pkg);
+  const ctx = { evidence: { jedec: 0x856014 }, manifest, keys: PINNED };
+  ok(eq(logicalImage(pkg), image) && productOf(pkg) === identity,
+    `fm1ota.js: the test package identifies as ${productOf(pkg)} and holds the 0x2000 image`);
+
+  /* positive: a signed, complete, compatible package installs, and the device gets exactly the
+     image of the package the manifest covers */
+  {
+    const dev = new FakeFM1(image);
+    const steps = [];
+    const got = await new Updater(dev.access, null, FAST).install(pkg, identity, (k) => steps.push(k), ctx);
+    ok(got === identity && dev.bad === 0 && dev.upgrades === 2 && dev.served > 0 && steps.at(-1) === "done",
+      `fm1ota.js: a signed package installs (${dev.served} reads, ${dev.upgrades} UPGRADE frames)`);
+  }
+
+  /* the negative matrix: every refusal happens before the first frame, so the transport counters
+     must all be zero (frames sent, UPGRADE commands, image bytes served) */
+  const refusals = [
+    ["no context", "chip", (up) => up.install(pkg, identity)],
+    ["no chip evidence", "chip", (up) => up.install(pkg, identity, null, { manifest, keys: PINNED })],
+    ["a read-only chip", "chip", (up) => up.install(pkg, identity, null, { ...ctx, evidence: { jedec: 0xB36014 } })],
+    ["an unknown chip", "chip", (up) => up.install(pkg, identity, null, { ...ctx, evidence: { jedec: 0x123456 } })],
+    ["no manifest", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: null })],
+    ["no pinned key", "signature", (up) => up.install(pkg, identity, null, { ...ctx, keys: {} })],
+    ["an unknown key id", "signature", (up) => up.install(pkg, identity, null, { ...ctx, keys: { other: PINNED["test-1"] } })],
+    ["a tampered manifest", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: { ...manifest, version: "9.9.8" } })],
+    ["a wrong hash", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: { ...manifest, sha256: "0".repeat(64) } })],
+    ["a wrong size", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: { ...manifest, size: manifest.size + 1 } })],
+    ["no min_firmware", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { min_firmware: undefined }) })],
+    ["a package for another product", "signature", (up) => up.install(pkg, "FM-1_901", null, { ...ctx, manifest: release(pkg, { product: "GW-1" }) })],
+    ["an ambiguous version", "version", (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { version: "latest" }) })],
+    ["a downgrade below min_firmware", "signature", (up) => up.install(pkg, identity, null, { ...ctx, firmware: "0.5.0" })],
+    ["a package that is not bytes", "image", (up) => up.install("package", identity, null, ctx)],
+    ["an empty package", "image", (up) => up.install(new Uint8Array(0), identity, null, ctx)],
+    ["resume without a proof", "chip", (up) => up.resume(pkg, null, identity)],
+    ["write without a proof", "proof", (up) => up.write({ id: { model: "ota-" + identity, text: "ota-" + identity }, link: { send: () => true } }, pkg, null)],
+  ];
+  for (const [what, code, run] of refusals) {
+    const dev = new FakeFM1(image);
+    const e = await run(new Updater(dev.access, null, FAST)).then(() => null, (x) => x);
+    ok(e && e.code === code && dev.frames === 0 && dev.upgrades === 0 && dev.served === 0,
+      `fm1ota.js: ${what} -> '${code}', 0 frames, 0 writes, 0 bytes`);
+  }
+
+  /* a proof is bound to the bytes it verified: a buffer changed afterwards never reaches the
+     device, and a swapped package is refused even with a valid authorisation */
+  {
+    const live = pkg.slice(), man = release(live);
+    const proof = await M.requireProof({ pkg: live, product: identity, evidence: { jedec: 0x856014 }, manifest: man, keys: PINNED });
+    live.fill(0xFF);
+    const dev = new FakeFM1(image);
+    const e = await new Updater(dev.access, null, FAST).install(live, identity, null, { evidence: { jedec: 0x856014 }, manifest: man, keys: PINNED, proof })
+      .then(() => null, (x) => x);
+    ok(e && e.code === "image" && dev.frames === 0 && dev.served === 0,
+      "fm1ota.js: a package changed after it was verified -> 'image', no frame");
+  }
+  {
+    const proof = await M.requireProof({ pkg, product: identity, ...ctx });
+    const swapped = packageOf(Uint8Array.from(image, (b) => b ^ 1), identity);
+    const dev = new FakeFM1(image);
+    const e = await new Updater(dev.access, null, FAST).install(swapped, identity, null, { ...ctx, proof })
+      .then(() => null, (x) => x);
+    ok(e && e.code === "image" && dev.frames === 0 && dev.served === 0,
+      "fm1ota.js: a swapped package with a valid authorisation -> 'image', no frame");
+  }
+  {
+    const proof = await M.requireProof({ pkg, product: identity, ...ctx });
+    const first = new FakeFM1(image);
+    await new Updater(first.access, null, FAST).install(pkg, identity, null, { ...ctx, proof });
+    const second = new FakeFM1(image);
+    const e = await new Updater(second.access, null, FAST).install(pkg, identity, null, { ...ctx, proof }).then(() => null, (x) => x);
+    ok(first.served > 0 && e && e.code === "proof" && second.frames === 0,
+      "fm1ota.js: one authorisation cannot be used twice -> 'proof', no frame");
+  }
+  {
+    const other = "FM-1_901", pkg2 = packageOf(image, other);
+    const dev = new FakeFM1(image);                       // it answers as FM-1_900
+    const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { evidence: { jedec: 0x856014 }, manifest: release(pkg2), keys: PINNED })
+      .then(() => null, (x) => x);
+    ok(e && e.code === "model" && dev.upgrades === 0 && dev.served === 0,
+      `fm1ota.js: a unit answering as ${dev.identity} for a ${other} package -> 'model', nothing written`);
+  }
+
+  /* a lost port still stops the transfer and reports it, after the gate has admitted the package */
+  {
+    const dev = new FakeFM1(image, { unplugAfter: 3 });
+    dev.boot("ota-" + identity, "Felucca Update");
+    const t0 = Date.now();
+    const done = await new Updater(dev.access, null, FAST).resume(pkg, undefined, identity, ctx);
+    ok(done === false && Date.now() - t0 < 6000, "fm1ota.js: unplugged during the write -> stops at once");
+  }
+  {
+    const dev = new FakeFM1(image, { unplugAfter: 2 });
+    const e = await new Updater(dev.access, null, FAST).install(pkg, identity, null, ctx).then(() => null, (x) => x);
+    ok(e && e.code === "lost", "fm1ota.js: unplugged in step 1 -> error code 'lost'");
+  }
+  {
+    const e = await new Updater({ inputs: new Map(), outputs: new Map() }, null, FAST).install(pkg, identity, null, ctx).then(() => null, (x) => x);
+    ok(e && e.code === "notfound", "fm1ota.js: no device -> error code 'notfound'");
+  }
+  {
+    const dev = new FakeFM1(image, { ackLost: true });
+    const e = await new Updater(dev.access, null, FAST).install(pkg, identity, null, ctx).then(() => null, (x) => x);
+    ok(e && e.code === "noreturn", "fm1ota.js: lost final ACK -> no success ('noreturn')");
+  }
+}
 await editorMock();
 await editorFm6Bank();
 await editorSamplePresets();
@@ -1587,10 +1692,10 @@ qg1FeaturesCheck();
   const resumes = pkgHtml.match(/up\.resume\([^)]*\)/g) || [];
   ok(/async function chipEvidence\(/.test(pkgHtml) && /probeChip\(/.test(pkgHtml),
      "installer page: 0x12 identifies the flash before the first write frame");
-  ok(installs.length === 3 && installs.every((s) => /,\s*ev\)$/.test(s)),
-     "installer page: every install() call passes the chip evidence");
-  ok(resumes.length === 3 && resumes.every((s) => /,\s*ev\)$/.test(s)),
-     "installer page: every resume() call passes the chip evidence");
+  ok(installs.length === 3 && installs.every((s) => /,\s*(ctxFor\(ev|\{ evidence: ev)/.test(s)),
+     "installer page: every install() call passes chip evidence and the manifest");
+  ok(resumes.length === 3 && resumes.every((s) => /,\s*(ctxFor\(ev|\{ evidence: ev)/.test(s)),
+     "installer page: every resume() call passes chip evidence and the manifest");
   ok(!/up\.write\(/.test(pkgHtml), "installer page: write() is reached only through install()/resume()");
   ok(/verifyManifest\(pkg, v\.manifest/.test(pkgHtml) && /no signed manifest/.test(pkgHtml),
      "installer page: the signed manifest is verified before INSTALL");

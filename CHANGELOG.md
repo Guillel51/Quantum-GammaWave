@@ -1,3 +1,15 @@
+- **Compuerta criptográfica en el transporte de actualización:** `install()`, `write()` y `resume()` de
+  `web/fm1ota.js` ya no confían en quien los llama. `requireProof()` corre antes de `find()` (un rechazo
+  cuesta cero frames) y liga los bytes (SHA-256 y tamaño exactos), el manifiesto Ed25519 con su clave
+  pinneada, la identidad que el propio paquete declara (`productOf`), la política de chip y el piso de
+  versión; `admit()` consume una autorización por transferencia, revalida el JEDEC y los bytes tal como
+  llegan en ese momento, y sirve una copia privada de la imagen verificada, así que un buffer tocado
+  después de validar no llega al equipo. `write()` verifica por su cuenta —es una entrada pública— y la
+  unidad que responde el handshake debe declarar la identidad autorizada antes del `UPGRADE`. El retorno
+  al V15 oficial queda rechazado (no existe manifiesto firmado para esos bytes). `node web/test_web.mjs`:
+  18 casos negativos con `frames = 0`, `upgrades = 0`, `served = 0`, más instalación positiva con clave
+  efímera, mutación, swap, reuso y unidad equivocada. Detalle en `docs/TRANSPORT_GATE.md` y fila 9 de
+  `docs/SECURITY_AUDIT.md`. **No se conectó ni se escribió ninguna unidad física.**
 - **Custodia de la clave de firma, impuesta por las herramientas:** `fm1_sign.py keygen` rechaza
   cualquier destino dentro del checkout (resuelto, con `..` y symlinks) y crea el archivo `0600` con
   `O_EXCL`; `sign` rechaza una clave privada guardada en el repositorio y un `--keyid` cuya clave

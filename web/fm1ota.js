@@ -6,6 +6,13 @@
 // or Felucca) reads parts of the package and stages the update loader. Step 2:
 // the loader reads the whole image and writes it. Both steps are "the device
 // asks, we answer": cmd 0x30 read requests on the logical image.
+//
+// Nothing here trusts its caller: install(), write() and resume() each verify the
+// package themselves (requireProof) and serve only the private copy that was
+// verified, so neither a direct call nor a buffer changed after the fact can
+// reach the device.
+
+import { logicalImage, productOf, sha256hex } from "./fm1pkg.js";
 
 const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
@@ -197,14 +204,15 @@ export class Updater {
     }
   }
 
-  // full install: running firmware -> loader -> new firmware
-  async install(image, product, onStep, evidence) {
-    requireChip(evidence);                 // before find(), before any frame
+  // full install: running firmware -> loader -> new firmware. `pkg` is the .fwsc the manifest
+  // covers; the image the device reads is derived from the verified private copy (admit).
+  async install(pkg, product, onStep, ctx = {}) {
     const step = onStep || (() => {});
+    const image = await admit(ctx.proof || await requireProof({ ...ctx, pkg, product }), pkg, product, ctx.evidence);
     const dev = await this.find((id) => !IS_OTA(id));
     if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
     const [model] = product.split("_");
-    if (dev.id.model !== model) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
+    if (dev.id.model !== model || dev.id.text !== product) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
@@ -215,7 +223,7 @@ export class Updater {
     await sleep(this.loaderDelay);
     const ota = await this.waitFor((id) => id.model === "ota-" + model, this.loaderWait);
     if (!ota) throw fail("noloader", "the update loader did not appear. Replug the USB cable and press Install again: the device stays in update mode until it is finished.");
-    const s2 = await this.write(ota, image, step, evidence);
+    const s2 = await this.write(ota, pkg, step, { ...ctx, product, proof: null });   // its own authorisation
     if (!s2.finished) throw fail(s2.lost ? "lost" : "stopped", `the loader ${s2.lost ? "was disconnected" : "stopped"} after ${s2.served} requests. Replug and press Install again to resume.`);
     step("reboot");
     await sleep(this.rebootDelay);
@@ -227,9 +235,14 @@ export class Updater {
     return back.id.text;
   }
 
-  // step 2 with the loader found by find()/waitFor()
-  async write(ota, image, step, evidence) {
-    requireChip(evidence);
+  // step 2 with the loader found by find()/waitFor(). It verifies the package again: it is a
+  // public entry point, so it cannot rely on install() or resume() having done so.
+  async write(ota, pkg, step, ctx = {}) {
+    const product = ctx.product || null;
+    const image = await admit(ctx.proof || await requireProof({ ...ctx, pkg, product }), pkg, product, ctx.evidence);
+    const model = String(ota.id.model).replace(/^ota-/i, "");
+    if (!product || model !== product.split("_")[0])
+      throw fail("proof", `the loader is ${ota.id.text}, the authorisation is for ${product}: nothing was sent.`);
     ota.link.send(UPGRADE);
     await sleep(2000);
     const s2 = await this.serve(ota.link, image, 0xF0000000, 180000, (n) => step("write", n));
@@ -238,13 +251,13 @@ export class Updater {
   }
 
   // resume: the device is already in update mode (loader) -> true when the write finished
-  async resume(image, onStep, product = null, evidence = null) {
-    requireChip(evidence);
+  async resume(pkg, onStep, product = null, ctx = {}) {
+    const step = onStep || (() => {});
+    const image = await admit(ctx.proof || await requireProof({ ...ctx, pkg, product }), pkg, product, ctx.evidence);
     const model = product && product.split("_")[0];
     const ota = await this.find((id) => model ? id.model === "ota-" + model : IS_OTA(id));
     if (!ota) return false;
-    const step = onStep || (() => {});
-    const result = await this.write(ota, image, step, evidence);
+    const result = await this.write(ota, pkg, step, { ...ctx, product, proof: null });
     if (!result.finished) return false;
     if (product) {
       step("reboot");
@@ -411,4 +424,81 @@ export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", fi
   }
   if (!ok) throw fail("signature", `The manifest is not signed by ${manifest.keyid}.`);
   return { keyid: manifest.keyid, version: manifest.version, sha256: digest };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The transport gate. A package is verified once, into an opaque authorisation that binds the
+// exact bytes, the manifest, the product and the chip. install(), write() and resume() each
+// consume an authorisation (one package, one transfer) and serve the private copy it holds, so
+// the bytes that were verified are the bytes that leave the host, whatever the caller still has.
+//
+// Codes: signature (manifest, signature, product, version), image (not bytes, empty, changed after
+// it was verified), chip (no, unknown or read-only JEDEC, or a different one now), proof (no,
+// wrong or already used authorisation), model (a different unit answered).
+
+const RELEASE_FIELDS = ["format", "product", "version", "min_firmware", "sha256", "size", "keyid", "sig"];
+const PROOFS = new WeakMap();
+
+function toBytes(x) {
+  if (x instanceof Uint8Array) return x.slice();
+  if (ArrayBuffer.isView(x)) return new Uint8Array(x.buffer.slice(x.byteOffset, x.byteOffset + x.byteLength));
+  if (x instanceof ArrayBuffer) return new Uint8Array(x.slice(0));
+  throw fail("image", "the package is not a byte array: nothing was sent.");
+}
+
+function versionString(v, what) {
+  const s = String(v === undefined || v === null ? "" : v);
+  if (!/^\d+(\.\d+)*$/.test(s))
+    throw fail("version", `the manifest's ${what} ${JSON.stringify(s)} is not a version: nothing was sent.`);
+  return s;
+}
+
+// Verify a .fwsc and everything that authorises writing it. Every refusal happens before the
+// first frame, so a caller that ignores the result has still caused nothing to be sent.
+export async function requireProof({ pkg, manifest, keys = {}, product = null, evidence = null, firmware = null } = {}) {
+  if (!product || typeof product !== "string" || !product.includes("_"))
+    throw fail("proof", "no product was named for this transfer: nothing was sent.");
+  requireChip(evidence);                                    // cheapest refusal first: no crypto, no frame
+  if (!manifest || typeof manifest !== "object")
+    throw fail("signature", "No signed manifest: nothing was sent.");
+  for (const f of RELEASE_FIELDS)
+    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}: nothing was sent.`);
+  versionString(manifest.version, "version");
+  versionString(manifest.min_firmware, "min_firmware");
+  if (!Number.isInteger(manifest.size) || manifest.size <= 0)
+    throw fail("signature", "The manifest's size is not a byte count: nothing was sent.");
+  const bytes = toBytes(pkg);
+  if (bytes.length <= 960) throw fail("image", "the package is too short to hold an image: nothing was sent.");
+  const model = product.split("_")[0];
+  const checked = await verifyManifest(bytes, manifest, keys, { product: model, firmware });
+  if (productOf(bytes) !== product)                             // the package's own identity, once it is authenticated
+    throw fail("proof", `the package identifies as ${productOf(bytes)}, not ${product}: nothing was sent.`);
+  if (manifest.sha256 !== checked.sha256 || manifest.size !== bytes.length)
+    throw fail("signature", "The manifest does not describe this package: nothing was sent.");
+  const image = logicalImage(bytes);
+  if (!image.length) throw fail("image", "the package holds no image: nothing was sent.");
+  const proof = Object.freeze({ product, model, part: typeof evidence.part === "string" ? evidence.part : "",
+    jedec: evidence.jedec, version: checked.version, keyid: checked.keyid,
+    sha256: checked.sha256, size: bytes.length, imageSize: image.length });
+  PROOFS.set(proof, { image, used: false });
+  return proof;
+}
+
+// Consume an authorisation and return the image to serve. Nothing is sent while this throws, and
+// the image it returns is the verified private copy: a later change to the caller's buffer cannot
+// reach the device.
+async function admit(proof, pkg, product, evidence) {
+  const rec = proof && PROOFS.get(proof);
+  if (!rec) throw fail("proof", "this transfer has no verified package: nothing was sent.");
+  if (rec.used) throw fail("proof", "this authorisation was already used for another transfer: nothing was sent.");
+  if (product !== proof.product)
+    throw fail("proof", `the authorisation is for ${proof.product}, not ${product}: nothing was sent.`);
+  requireChip(evidence);                                    // the chip policy, again, for this transfer
+  if (evidence.jedec !== proof.jedec)
+    throw fail("chip", "the chip changed since the package was verified: nothing was sent.");
+  const bytes = toBytes(pkg);                                 // whatever the caller passed this time
+  if (bytes.length !== proof.size || (await sha256hex(bytes)) !== proof.sha256)
+    throw fail("image", "the package is not the one that was verified: nothing was sent.");
+  rec.used = true;                                           // one package, one transfer
+  return rec.image;
 }

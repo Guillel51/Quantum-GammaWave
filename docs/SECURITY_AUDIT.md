@@ -25,6 +25,7 @@ with JieLi's pi32v2 toolchain, `[HARDWARE]` measured on a device. See
 | 6 | Installer pairing an input with an unrelated output | **High** | `tools/fm1_install.py` (`pair_output`) | `[HOST]` | When exactly one MIDI output existed, the function returned it whatever its name, so the package could be served to a device that never answered the handshake. | The single-output shortcut now requires the names to match (ignoring Windows' numeric suffix). Otherwise the installer reports "FM-1 not found". | `tests/install_test.py` (`pairing()`) | passed `[HOST]` |
 | 7 | Personal music archive written inside the repository | Medium | `tools/fm1_archive.py` | `[HOST]` | A new tool that writes the user's own music to disk had no destination policy; `--out .` would put it in the tree, one `git add -A` away from publication. | Archives default to `~/.local/share/qg1-backups`, mode `0600`, and a destination inside a git work tree is refused **before the device is opened** (`--allow-repo` overrides, deliberately). | `tests/backup_tool_test.py` | passed `[HOST]` |
 | 8 | Second core enabled on `alive` alone | **High** | `firmware/hal/fm1_multicore.h` | `[STATIC]` `[HOST]` | `fm1_mc_start()` trusted that core 1 reached its loop. The documented failure of these units is a *wrong 32-bit load under load* (Melodee #17/#21, fm1-x0x #10): a unit that misreads could be handed audio parts on its first block, and the check word only catches a bad job *function/argument* read. | Before the core is enabled, eight fixed jobs run with answers computed on core 0 through the shared mailbox. One wrong word, one changed job number or a late job and the core is held for good; the firmware plays on one core and reports `CORES 1 (BAD READ)`. | `tests/mc_selftest_test.c` | passed `[HOST]` |
+| 9 | A transport that wrote whatever its caller passed | **High** | `web/fm1ota.js` (`install()`, `write()`, `resume()`) | `[STATIC]` `[HOST]` | The updater checked the chip and nothing else. The manifest was verified in the page before the button was enabled, so a direct call from a console, a resumed session with stale state, or a buffer changed after the check all reached the same `link.send()` — the frame that makes the device erase and program — unverified. Nothing bound the authorisation to the bytes, the unit or the session, and `write()` was a public entry point that inherited the decision of whoever called it. | `requireProof()` runs before `find()` (zero frames on refusal) and binds the package SHA-256/size, the Ed25519 manifest with its pinned key, the package's own identity, the chip policy and the version floor; `admit()` consumes one authorisation per transfer, re-checks the JEDEC and the bytes *as passed now*, and serves a private copy of the verified image, so a later edit cannot reach the device. `write()` verifies from scratch, and the unit answering the handshake must report the authorised identity before `UPGRADE`. The vendor-V15 restore route is refused (no signed manifest exists for it). | `web/test_web.mjs`: 18 refusals asserting `frames == 0 && upgrades == 0 && served == 0`, plus positive install, mutation, swap, reuse and wrong-unit cases | passed `[HOST]` |
 
 ## 2. What is *not* fixed, and why
 
@@ -42,7 +43,10 @@ with JieLi's pi32v2 toolchain, `[HARDWARE]` measured on a device. See
   checked *before* any erase (loader step 2b), and every app sector is read, written and read back.
 * **Authenticity:** none in firmware. The web installer and `tools/fm1_install.py` require a SHA-256
   (nearby `.sha256` / `SHA256SUMS`, or `--sha256`); `web/make_site.py` publishes `sha256` and `size`
-  for every package in `firmware/versions.json`, and the page verifies the downloaded bytes.
+  for every package in `firmware/versions.json`, and the page verifies the downloaded bytes. Since
+  finding 9 the browser transport does not rely on that page check: `requireProof()` re-verifies the
+  package at the boundary of `install()`/`write()`/`resume()` and only the verified copy is served
+  ([`TRANSPORT_GATE.md`](TRANSPORT_GATE.md)).
 * **Provenance:** `web/make_site.py` refuses a package without the `FELUCCA-LOADER-1` marker, so a
   package patched from a vendor image cannot be published by accident.
 * **Secrets:** none in the tree. No private key, token or password is read, written or logged by any
@@ -52,7 +56,7 @@ with JieLi's pi32v2 toolchain, `[HARDWARE]` measured on a device. See
 
 ## 4. Residual risk
 
-With 1, 2, 3, 4, 5, 6 and 8 fixed, the remaining brick/soft-brick risk on this layout is **the
+With 1, 2, 3, 4, 5, 6, 8 and 9 fixed, the remaining brick/soft-brick risk on this layout is **the
 single-bank write window (C)** and **the missing signature (A)**. Both are structural. Nothing in
 this repository can close them without the vendor bootloader or a production key, so the honest
 verdict stays:
