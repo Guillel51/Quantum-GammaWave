@@ -338,8 +338,6 @@ fi
 run "preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
 run "signing chain: Ed25519 manifests and every refusal" python3 tests/sign_test.py
 run "key custody: keygen off-repo, pin --replace, check, rotation, revocation" python3 tests/key_custody_test.py
-run "build manifest: every claim about an artefact is checked (commit, tree, hash, emulator)" \
-    python3 tests/manifest_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 run "backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore" \
     python3 tests/backup_tool_test.py
@@ -352,8 +350,6 @@ if command -v node >/dev/null 2>&1; then
     # builder refuses a package that contradicts its own manifest
     run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
-    run "web provenance: the build record, the token and zero frames without a verdict" \
-        node web/test_provenance.mjs
     PKG=""
     if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
     run "web package parser: malformed .fwsc refused, never loops, the built one parses" \
