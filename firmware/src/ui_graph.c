@@ -727,7 +727,7 @@ static void graph_fx(const track_t *t, uint16_t c)
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
     static uint8_t vu[4], hold[4];
     static int32_t vu_trk = -1;
-    int32_t pk = t->peak < 0 ? -t->peak : t->peak;   /* the track's real post-FX peak (fx.c) */
+    int32_t pk = t->vu < 0 ? -t->vu : t->vu;   /* the track's post-FX envelope (fx.c mix_part) */
     int32_t bus[4] = {pk, fx_vu[3], fx_vu[4], fx_vu[5]};   /* DIST, chorus, delay, reverb returns */
     int32_t send[4] = {pk, fx_vu[0], fx_vu[1], fx_vu[2]};  /* what each bus actually receives */
     uint32_t i;
@@ -2330,10 +2330,9 @@ static void draw_tracks(void)
             mute = 2u;
         uint32_t hot = sel && ui.hot_t ? ui.hot_col + 1u : 0u;   /* the knob just turned (hot_col + 1): 1 LEVEL, 2 PAN,
                                                                 * 3 REV, 4 MUTE (its badge) */
-        int32_t pk = t->peak, m, pan = clamp(t->p[P_PAN], -64, 63), rv = clamp(t->p[P_REV], 0, 127);
+        int32_t pk = t->vu, m, pan = clamp(t->p[P_PAN], -64, 63), rv = clamp(t->p[P_REV], 0, 127);
         uint16_t vc = mute ? T_DIM : T_THEME;
         char b[16];
-        t->peak = 0;
         trk_short_name(c, b);
         m = mute ? 0 : meter_px(pk);
         if (m < ts.meter[c] - 1)

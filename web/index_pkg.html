@@ -1,90 +1,79 @@
 <!doctype html>
 <!-- SPDX-License-Identifier: GPL-3.0-only
      Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
-     GAMMAWAVE // WRAITH Edition for M-VAVE FM-1 -->
-<html lang="en" data-palette="gamma">
+     Quantum GammaWave (QG-1) USB installer for M-VAVE FM-1 -->
+<html lang="en" data-palette="quantum">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GAMMAWAVE // WRAITH — M-VAVE FM-1 Firmware</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%23110804%22/%3E%3Ccircle cx=%228%22 cy=%228%22 r=%225%22 fill=%22%23ffb800%22/%3E%3C/svg%3E">
+<title>QUANTUM GAMMAWAVE — Installer for M-VAVE FM-1</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23000410%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229%22 fill=%22%233adfff%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23eef4ff%22/%3E%3C/svg%3E">
 <style>
-  :root, :root[data-palette="gamma"] {
-    --bg: #070709;
-    --surf: #111116;
-    --surf2: #181820;
-    --fg: #f8f0e0;
-    --dim: #9a9284;
-    --theme: #ff9424;
-    --accent: #60e4ff;
-    --danger: #ff5252;
-    --border: #2c2824;
-    --glow: rgba(255, 148, 36, 0.18);
+  /* (v1.9.0) Quantum identity: the portal's navy field, cyan heat and violet plasma. The two
+     alternate temperatures stay in that family; the amber-and-cream Pocket GammaWave skin is gone. */
+  :root, :root[data-palette="quantum"] {
+    --bg: #000410;
+    --surf: #080e1d;
+    --surf2: #0b1426;
+    --fg: #eef4ff;
+    --dim: #9aabcc;
+    --theme: #3adfff;
+    --accent: #8fd8ff;
+    --plasma: #8b5cff;
+    --gold: #ffaa21;
+    --danger: #ff4d6d;
+    --border: #16233d;
+    --border2: #24395e;
+    --glow: rgba(58, 223, 255, 0.22);
+    --radius: 16px;
+    --sans: "Avenir Next", "Segoe UI", Inter, system-ui, sans-serif;
+    --display: "Arial Black", "Helvetica Neue", Impact, sans-serif;
+    --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
   }
-  :root[data-palette="wraith"] {
-    --bg: #08060c;
-    --surf: #130f1c;
-    --surf2: #1b1528;
-    --fg: #f4ecf8;
-    --dim: #9c8ea8;
-    --theme: #ff6088;
-    --accent: #78f0b8;
-    --danger: #ff4870;
-    --border: #32243c;
-    --glow: rgba(255, 96, 136, 0.18);
+  :root[data-palette="pulsar"] {
+    --bg: #04030c; --surf: #0b0820; --surf2: #120c2e;
+    --fg: #f2eeff; --dim: #a79fc9;
+    --theme: #8b5cff; --accent: #c9b4ff; --plasma: #3adfff; --gold: #ffd166;
+    --danger: #ff4d6d; --border: #241a44; --border2: #382a63;
+    --glow: rgba(139, 92, 255, 0.26);
   }
-  :root[data-palette="solaris"] {
-    --bg: #100a04;
-    --surf: #24180c;
-    --surf2: #342212;
-    --fg: #fff4dc;
-    --dim: #ad9a7a;
-    --theme: #ffbe28;
-    --accent: #ff5a14;
-    --danger: #ff3b30;
-    --border: #4a3418;
-    --glow: rgba(255, 190, 40, 0.22);
-  }
-  :root[data-palette="cyberpunk"] {
-    --bg: #080610;
-    --surf: #181028;
-    --surf2: #24183c;
-    --fg: #f5f0ff;
-    --dim: #9b8ab8;
-    --theme: #00f0ff;
-    --accent: #ff2882;
-    --danger: #ff0055;
-    --border: #3c2058;
-    --glow: rgba(0, 240, 255, 0.25);
-  }
-  :root[data-palette="nordic"] {
-    --bg: #060c0e;
-    --surf: #101c20;
-    --surf2: #18282e;
-    --fg: #e6f8f6;
-    --dim: #82a8a2;
-    --theme: #40e0a0;
-    --accent: #ffb450;
-    --danger: #ff5068;
-    --border: #223c38;
-    --glow: rgba(64, 224, 160, 0.20);
+  :root[data-palette="corona"] {
+    --bg: #0a0703; --surf: #14100a; --surf2: #1d170e;
+    --fg: #fff6e6; --dim: #c3b39a;
+    --theme: #ffc861; --accent: #ffe3a8; --plasma: #3adfff; --gold: #ffaa21;
+    --danger: #ff4d6d; --border: #2c2417; --border2: #463a26;
+    --glow: rgba(255, 200, 97, 0.22);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: radial-gradient(circle at 50% 0%, var(--surf2) 0%, var(--bg) 70%);
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(900px 520px at 12% -8%, rgba(139, 92, 255, 0.20), transparent 65%),
+      radial-gradient(700px 480px at 92% 2%, rgba(143, 216, 255, 0.10), transparent 65%),
+      linear-gradient(rgba(58, 223, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58, 223, 255, 0.022) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 64px 64px, 64px 64px;
+    background-attachment: fixed;
     color: var(--fg);
-    font: 14px/1.6 "IBM Plex Mono", "JetBrains Mono", "Consolas", -apple-system, BlinkMacSystemFont, "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", monospace;
+    font: 14px/1.65 var(--sans);
     min-height: 100vh;
   }
-  main { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
+  main { max-width: 900px; margin: 0 auto; padding: 36px 22px 72px; }
   header.hero {
-    border: 1px solid var(--theme);
-    background: linear-gradient(180deg, var(--surf2) 0%, var(--surf) 100%);
-    box-shadow: 0 0 28px var(--glow), inset 0 1px 0 rgba(255,255,255,0.06);
-    padding: 20px 22px;
-    margin-bottom: 24px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: linear-gradient(165deg, var(--surf2) 0%, var(--surf) 62%, var(--bg) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 40px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    padding: 26px 28px;
+    margin-bottom: 26px;
     position: relative;
+    overflow: hidden;
+  }
+  header.hero::after {
+    content: ""; position: absolute; inset: 0 auto auto 0; width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--theme), var(--plasma), transparent 78%);
+    opacity: 0.85;
   }
   .topbar {
     display: flex;
@@ -97,38 +86,45 @@
   .tag-pill {
     display: inline-block;
     font-size: 11px;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    padding: 2px 8px;
-    border: 1px solid var(--accent);
+    padding: 5px 12px;
+    border: 1px solid var(--border2);
+    border-radius: 999px;
     color: var(--accent);
-    background: rgba(96, 228, 255, 0.08);
+    background: rgba(58, 223, 255, 0.07);
   }
   .controls-top { display: flex; gap: 8px; align-items: center; }
   .btn-ghost {
     font: inherit;
-    font-size: 12px;
-    background: var(--surf);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(11, 20, 38, 0.8);
     color: var(--fg);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 6px 14px;
     cursor: pointer;
   }
   .btn-ghost:hover { border-color: var(--theme); color: var(--theme); }
   h1 {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    margin: 0 0 4px;
-    color: var(--theme);
-    text-shadow: 0 0 16px var(--glow);
+    font-family: var(--display);
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    margin: 6px 0 8px;
+    color: var(--fg);
+    text-shadow: 0 0 30px var(--glow);
   }
   .subtitle {
     font-size: 12px;
     letter-spacing: 0.14em;
     color: var(--accent);
     text-transform: uppercase;
-    margin: 0 0 14px;
+    margin: 0 0 16px;
   }
   .specs-grid {
     display: grid;
@@ -137,17 +133,21 @@
     margin-top: 14px;
   }
   .spec-card {
-    background: var(--bg);
+    background: rgba(0, 4, 16, 0.55);
     border: 1px solid var(--border);
-    padding: 8px 10px;
+    border-radius: 12px;
+    padding: 10px 12px;
     font-size: 12px;
+    color: var(--dim);
   }
-  .spec-card strong { color: var(--theme); display: block; font-size: 11px; letter-spacing: 0.08em; }
+  .spec-card strong { color: var(--theme); display: block; font-size: 11px; letter-spacing: 0.1em; margin-bottom: 2px; }
   .card {
-    background: var(--surf);
+    background: linear-gradient(180deg, var(--surf) 0%, rgba(5, 10, 24, 0.92) 100%);
     border: 1px solid var(--border);
-    padding: 18px 20px;
-    margin-bottom: 20px;
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
   }
   .card-title {
     font-size: 13px;
@@ -163,24 +163,27 @@
   p { margin: 0 0 12px; }
   button {
     font: inherit;
-    font-weight: 600;
-    background: var(--theme);
-    color: #070709;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, var(--theme), var(--accent));
+    color: #04101e;
     border: 1px solid var(--theme);
-    padding: 9px 22px;
+    border-radius: 999px;
+    padding: 11px 24px;
     cursor: pointer;
-    letter-spacing: 0.04em;
-    transition: all 0.12s ease;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
   }
   button:hover:not(:disabled) {
-    filter: brightness(1.12);
-    box-shadow: 0 0 14px var(--glow);
+    filter: brightness(1.08);
+    box-shadow: 0 0 22px var(--glow);
+    transform: translateY(-1px);
   }
   button:disabled { opacity: 0.35; cursor: default; }
   button.secondary {
-    background: transparent;
+    background: linear-gradient(180deg, rgba(11, 20, 38, 0.9), rgba(5, 10, 24, 0.9));
     color: var(--fg);
-    border-color: var(--border);
+    border-color: var(--border2);
   }
   button.secondary:hover:not(:disabled) {
     border-color: var(--accent);
@@ -190,8 +193,9 @@
     font: inherit;
     background: var(--bg);
     color: var(--fg);
-    border: 1px solid var(--border);
-    padding: 5px 8px;
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 7px 10px;
   }
   #status {
     margin-top: 14px;
@@ -203,19 +207,23 @@
   .small { color: var(--dim); font-size: 12px; }
   progress {
     width: 100%;
-    height: 8px;
+    height: 9px;
     margin-top: 14px;
     appearance: none;
     background: var(--bg);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    overflow: hidden;
   }
   progress::-webkit-progress-bar { background: var(--bg); }
-  progress::-webkit-progress-value { background: linear-gradient(90deg, var(--theme), var(--accent)); }
+  progress::-webkit-progress-value { background: linear-gradient(90deg, var(--plasma), var(--theme), var(--accent)); border-radius: 999px; }
   pre {
     color: var(--dim);
-    background: var(--bg);
+    background: rgba(0, 4, 16, 0.7);
     border: 1px solid var(--border);
-    padding: 10px;
+    border-radius: 12px;
+    font-family: var(--mono);
+    padding: 12px;
     font-size: 11px;
     white-space: pre-wrap;
     margin-top: 12px;
@@ -232,12 +240,14 @@
   .nav-btn {
     display: inline-block;
     text-decoration: none;
-    padding: 8px 14px;
-    border: 1px solid var(--accent);
+    padding: 10px 18px;
+    border: 1px solid var(--border2);
+    border-radius: 999px;
     color: var(--accent);
     font-size: 12px;
-    font-weight: 600;
-    background: rgba(96, 228, 255, 0.06);
+    font-weight: 700;
+    background: rgba(58, 223, 255, 0.06);
+    transition: background 0.12s ease, color 0.12s ease;
   }
   .nav-btn:hover { background: var(--accent); color: #070709; }
   /* Interactive Synth Preview */
@@ -255,9 +265,10 @@
     margin-top: 10px;
   }
   .ctl-box {
-    background: var(--bg);
+    background: rgba(0, 4, 16, 0.6);
     border: 1px solid var(--border);
-    padding: 6px 8px;
+    border-radius: 10px;
+    padding: 8px 10px;
     font-size: 11px;
   }
   .ctl-box label { display: flex; justify-content: space-between; color: var(--dim); margin-bottom: 3px; }
@@ -267,8 +278,9 @@
   canvas.scope {
     width: 100%;
     height: 120px;
-    background: #040406;
-    border: 1px solid var(--border);
+    background: #01030c;
+    border: 1px solid var(--border2);
+    border-radius: 12px;
     display: block;
   }
   .step-row {
@@ -278,13 +290,14 @@
     margin-top: 8px;
   }
   .step-cell {
-    height: 20px;
+    height: 22px;
     background: var(--bg);
     border: 1px solid var(--border);
+    border-radius: 5px;
     cursor: pointer;
     padding: 0;
   }
-  .step-cell.on { background: var(--theme); border-color: var(--theme); }
+  .step-cell.on { background: linear-gradient(180deg, var(--accent), var(--theme)); border-color: var(--theme); }
   .step-cell.now { outline: 2px solid var(--accent); }
 </style>
 </head>
@@ -292,13 +305,13 @@
 <main>
   <header class="hero">
     <div class="topbar">
-      <span class="tag-pill">QUANTUM GAMMAWAVE // QG-1 // DUAL-CORE AC791N</span>
+      <span class="tag-pill">QG-1 · DUAL-CORE AC791N · OPEN SOURCE FIRMWARE</span>
       <div class="controls-top">
-        <button class="btn-ghost" id="pal-toggle" type="button">THEME: GAMMA</button>
+        <button class="btn-ghost" id="pal-toggle" type="button">THEME: QUANTUM</button>
         <button class="btn-ghost" id="lang" type="button" aria-label="Language / Idioma / 语言" title="Language / Idioma / 语言"></button>
       </div>
     </div>
-    <h1>QUANTUM GAMMAWAVE // QG-1</h1>
+    <h1>Quantum GammaWave</h1>
     <div class="subtitle">10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer &amp; Groovebox Firmware for M-VAVE FM-1</div>
     <p data-t="intro" style="margin-bottom:8px"></p>
     <div class="nav-links">
@@ -308,18 +321,18 @@
       <a class="nav-btn" href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;border-color:var(--theme);font-weight:800">⚡ GITHUB REPOSITORY ↗</a>
     </div>
     <div class="specs-grid">
-      <div class="spec-card"><strong>WAVE 1 &amp; 2 + HEARTH</strong>Blazing Yellow Sun + Orbiting Moon, Gravity, Singularity, Photosphere</div>
-      <div class="spec-card"><strong>SPECTROGRAM FILTER</strong>Yellow-Orange-Purple FFT Waterfall + Orange Filter &amp; Cyan Mod Curve</div>
+      <div class="spec-card"><strong>WAVE 1 &amp; 2 + HEARTH</strong>Hearth sun, orbiting moon, gravity, singularity and photosphere</div>
+      <div class="spec-card"><strong>SPECTROGRAM FILTER</strong>Quantum FFT waterfall + filter curve and modulation trace</div>
       <div class="spec-card"><strong>4-TRACK ANALOG TAPE</strong>Live 4-Lane Audio Waveform Tape Deck + Stereo .WAV Master Bounce</div>
       <div class="spec-card"><strong>MODULAR 4-SLOT FX RACK</strong>CRUSH, DELAY, REVERB, CHORUS + Synced 1/16 PUMP &amp; MUTATE</div>
-      <div class="spec-card"><strong>PUNCH-IN FX + 6 LATCH MUTES</strong>10 key assignments, full F3–G5 keyboard, live LEDs and real peak meters</div>
+      <div class="spec-card"><strong>PUNCH-IN FX + 6 LATCH MUTES</strong>Live key assignments, full F3–G5 keyboard and real peak meters</div>
     </div>
   </header>
 
-  <!-- Interactive Browser Audio Preview of the GammaWave / WRAITH FM-1 Engine -->
+  <!-- Interactive browser audio preview of the FM-1 engine (Quantum palette) -->
   <section class="card">
     <div class="card-title">
-      <span data-t="previewTitle">GAMMAWAVE // WRAITH — LIVE BROWSER DSP PREVIEW</span>
+      <span data-t="previewTitle">QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW</span>
       <div style="display:flex;gap:6px">
         <button id="syn-play" type="button" style="padding:4px 12px;font-size:12px" data-t="synPlay">▶ PLAY SEQ</button>
         <button id="syn-dice" type="button" class="secondary" style="padding:4px 10px;font-size:12px" data-t="synDice">🎲 DICE MUTATE</button>
@@ -386,7 +399,7 @@
   <!-- Main WebMIDI Firmware Installer Card -->
   <section class="card">
     <div class="card-title"><span data-t="flashTitle">WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)</span></div>
-    <p data-t="warn" style="color:var(--theme);font-weight:600"></p>
+    <p data-t="warn" style="color:var(--gold);font-weight:700"></p>
     <p data-t="samples" class="small" style="color:var(--accent)"></p>
     <p data-t="dual" class="small" style="border-left:3px solid var(--theme);padding:4px 0 4px 12px"></p>
     <p class="small" data-t="direct"></p>
@@ -452,13 +465,13 @@
 const $ = (id) => document.getElementById(id);
 const TEXT = {
   fr: {
-    intro: "Branchez votre M-VAVE FM-1 en USB et flashez directement le firmware GAMMAWAVE // WRAITH depuis Chrome ou Edge via WebMIDI.",
+    intro: "Branchez votre M-VAVE FM-1 en USB et flashez directement le firmware QUANTUM GAMMAWAVE depuis Chrome ou Edge via WebMIDI.",
     warn: "Ne débranchez pas le câble USB pendant l'écriture du firmware.",
     samples: "Note : GAMMAWAVE/JIANT utilise la mémoire flash des samples utilisateurs (USR1–3) pour sauvegarder vos morceaux complets et banques FM6.",
     dual: "Architecture Dual-Core AC791N + HOTRAM activée : les 2 cœurs processeur calculent les 6 pistes synthé + distorsions HEARTH/BLAST/PLASMA/FLUX et filtres VOWEL/SCREAM en temps réel. (Maintenez REC au démarrage pour forcer le mode 1 cœur).",
-    install: "⚡ INSTALLER QUANTUM GAMMAWAVE v1.8.6 SUR FM-1", other: "EN / 日本語",
+    install: "⚡ INSTALLER QUANTUM GAMMAWAVE SUR FM-1", other: "EN / 日本語",
     flashTitle: "INSTALLATION WEBMIDI DU FIRMWARE (M-VAVE FM-1)",
-    previewTitle: "GAMMAWAVE // WRAITH — PRÉÉCOUTE SYNTHÉ & SCOPE DANS LE NAVIGATEUR",
+    previewTitle: "QUANTUM GAMMAWAVE — PRÉÉCOUTE SYNTHÉ & SCOPE DANS LE NAVIGATEUR",
     synPlay: "▶ JOUER SÉQUENCE", synStop: "■ STOP", synDice: "🎲 MUTATION DICE",
     firstTitle: "Vous venez d'un autre firmware custom ? Repassez d'abord par le V15 officiel",
     firstText: "L'installateur vérifie automatiquement votre FM-1 avant d'écrire : il flashe directement sur le firmware officiel V15 ou sur JIANT/GAMMAWAVE. Si un autre firmware custom est présent, utilisez la section de retour au V15 ci-dessous.",
@@ -498,16 +511,16 @@ const TEXT = {
     badpkg: "Le package firmware est endommagé. Rechargez la page.",
     nohash: "Ce package n'a pas de SHA-256 publié : rien ne sera écrit. Rechargez la page.",
     leave: "Écriture du firmware en cours. Ne fermez pas cette page !",
-    license: "Licence GPL-3.0, sans garantie. Base :",
+    license: "Licence GPL-3.0, sans garantie. Base :", theme: "THÈME : ",
   },
   en: {
-    intro: "Connect your M-VAVE FM-1 via USB and flash the GAMMAWAVE // WRAITH firmware directly from Chrome or Edge using WebMIDI.",
+    intro: "Connect your M-VAVE FM-1 via USB and flash the QUANTUM GAMMAWAVE firmware directly from Chrome or Edge using WebMIDI.",
     warn: "Do not unplug the USB cable while writing.",
     samples: "Note: GAMMAWAVE/JIANT repurposes user sample flash (USR1–3) to store full songs, chains and FM6 voice banks.",
     dual: "Dual-Core AC791N + HOTRAM active: both CPU cores render the 6 synth tracks + HEARTH/BLAST/PLASMA/FLUX distortions and VOWEL/SCREAM filters in real time. (Hold REC on power-up to force single-core mode).",
-    install: "⚡ INSTALL QUANTUM GAMMAWAVE v1.8.6 TO FM-1", other: "ES / 中文",
+    install: "⚡ INSTALL QUANTUM GAMMAWAVE TO FM-1", other: "ES / 中文",
     flashTitle: "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)",
-    previewTitle: "GAMMAWAVE // WRAITH — LIVE BROWSER DSP PREVIEW",
+    previewTitle: "QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW",
     synPlay: "▶ PLAY SEQ", synStop: "■ STOP", synDice: "🎲 DICE MUTATE",
     firstTitle: "Coming from another custom firmware? Return to official V15 first",
     firstText: "Writing straight over another custom firmware (Felucca, baudgirl, etc.) can prevent startup. Return to official V15 below first, then install GAMMAWAVE. If your FM-1 already runs official V15, JIANT, or GAMMAWAVE, go right ahead.",
@@ -561,16 +574,16 @@ const TEXT = {
     mismatch: "Written, but the FM-1 reports another version: ",
     badpkg: "The file to install is damaged. Reload the page.",
     leave: "Writing firmware. Do not close the page.",
-    license: "GPL-3.0, no warranty. Base:",
+    license: "GPL-3.0, no warranty. Base:", theme: "THEME: ",
   },
   ja: {
-    intro: "FM-1 を USB で接続し、Chrome または Edge から WebMIDI 経由で GAMMAWAVE // WRAITH ファームウェアを直接書き込みます。",
+    intro: "FM-1 を USB で接続し、Chrome または Edge から WebMIDI 経由で QUANTUM GAMMAWAVE ファームウェアを直接書き込みます。",
     warn: "書き込み中は USB ケーブルを抜かないでください。",
     samples: "注意: GAMMAWAVE/JIANT はユーザーサンプル領域 (USR1–3) を曲データと FM6 バンクの保存に使用します。",
     dual: "デュアルコア AC791N + HOTRAM 有効: 2つのコアで6トラックと新ディストーション (HEARTH/BLAST/PLASMA/FLUX)・新フィルター (VOWEL/SCREAM) を処理します。",
-    install: "⚡ QUANTUM GAMMAWAVE v1.8.6 をインストール", other: "FR / EN",
+    install: "⚡ QUANTUM GAMMAWAVE をインストール", other: "FR / EN",
     flashTitle: "WEBMIDI ファームウェアインストーラー (M-VAVE FM-1)",
-    previewTitle: "GAMMAWAVE // WRAITH — ブラウザ内蔵シンセ＆オシロスコープ試聴",
+    previewTitle: "QUANTUM GAMMAWAVE — ブラウザ内蔵シンセ＆オシロスコープ試聴",
     synPlay: "▶ シーケンス再生", synStop: "■ 停止", synDice: "🎲 DICE 生成",
     firstTitle: "他のカスタムファームウェアから入れる場合は、先に公式V15へ戻してください",
     firstText: "インストールの前に、接続された FM-1 のファームウェアを自動で確認します。公式V15 か JIANT/GAMMAWAVE のときだけ書き込みます。",
@@ -610,17 +623,17 @@ const TEXT = {
     badpkg: "ファイルが壊れています。",
     nohash: "このパッケージには公開された SHA-256 がありません。書き込みは行いません。ページを再読み込みしてください。",
     leave: "書き込み中です。ページを閉じないでください。",
-    license: "GPL-3.0、無保証。ソース:",
+    license: "GPL-3.0、無保証。ソース:", theme: "テーマ: ",
   },
 };
 TEXT.es = {
-  intro: "Conectá tu M-VAVE FM-1 por USB y grabá el firmware GAMMAWAVE // WRAITH desde Chrome o Edge con WebMIDI.",
+  intro: "Conectá tu M-VAVE FM-1 por USB y grabá el firmware QUANTUM GAMMAWAVE desde Chrome o Edge con WebMIDI.",
   warn: "No desconectes el cable USB mientras se escribe el firmware.",
   samples: "Nota: GAMMAWAVE/JIANT usa la flash de samples de usuario (USR1–3) para guardar canciones, cadenas y bancos FM6.",
   dual: "Arquitectura Dual-Core AC791N + HOTRAM activa: los dos núcleos procesan las 6 pistas, las distorsiones HEARTH/BLAST/PLASMA/FLUX y los filtros VOWEL/SCREAM en tiempo real. (Mantené REC al encender para forzar un solo núcleo).",
-  install: "⚡ INSTALAR QUANTUM GAMMAWAVE v1.8.6 EN FM-1", other: "EN / 中文",
+  install: "⚡ INSTALAR QUANTUM GAMMAWAVE EN FM-1", other: "EN / 中文",
   flashTitle: "CARGADOR DE FIRMWARE POR WEBMIDI (M-VAVE FM-1)",
-  previewTitle: "GAMMAWAVE // WRAITH — PREESCUCHA DSP Y OSCILOSCOPIO EN EL NAVEGADOR",
+  previewTitle: "QUANTUM GAMMAWAVE — PREESCUCHA DSP Y OSCILOSCOPIO EN EL NAVEGADOR",
   synPlay: "▶ TOCAR SECUENCIA", synStop: "■ PARAR", synDice: "🎲 MUTAR CON DADO",
   firstTitle: "¿Venís de otro firmware personalizado? Volvé primero al V15 oficial",
   firstText: "El instalador verifica automáticamente tu FM-1 antes de escribir: solo graba sobre el firmware oficial V15 o sobre JIANT/GAMMAWAVE. Si hay otro firmware personalizado, usá primero la sección de retorno al V15.",
@@ -674,16 +687,16 @@ TEXT.es = {
   mismatch: "Se escribió, pero el FM-1 informa otra versión: ",
   badpkg: "El archivo a instalar está dañado. Recargá la página.",
   leave: "Se está escribiendo el firmware. ¡No cierres esta página!",
-  license: "GPL-3.0, sin garantía. Base:",
+  license: "GPL-3.0, sin garantía. Base:", theme: "TEMA: ",
 };
 TEXT.zh = {
-  intro: "通过 USB 连接您的 M-VAVE FM-1，然后在 Chrome 或 Edge 中通过 WebMIDI 写入 GAMMAWAVE // WRAITH 固件。",
+  intro: "通过 USB 连接您的 M-VAVE FM-1，然后在 Chrome 或 Edge 中通过 WebMIDI 写入 QUANTUM GAMMAWAVE 固件。",
   warn: "写入固件时请勿拔下 USB 线。",
   samples: "注意：GAMMAWAVE/JIANT 会使用用户采样闪存（USR1–3）保存完整歌曲、链和 FM6 音色库。",
   dual: "AC791N 双核 + HOTRAM 已启用：两个 CPU 核心实时处理 6 条合成轨道、HEARTH/BLAST/PLASMA/FLUX 失真和 VOWEL/SCREAM 滤波器。（开机时按住 REC 可强制单核模式）。",
-  install: "⚡ 将 QUANTUM GAMMAWAVE v1.8.6 安装到 FM-1", other: "EN / ES",
+  install: "⚡ 将 QUANTUM GAMMAWAVE 安装到 FM-1", other: "EN / ES",
   flashTitle: "WebMIDI 固件写入器（M-VAVE FM-1）",
-  previewTitle: "GAMMAWAVE // WRAITH — 浏览器 DSP 试听与示波器",
+  previewTitle: "QUANTUM GAMMAWAVE — 浏览器 DSP 试听与示波器",
   synPlay: "▶ 播放序列", synStop: "■ 停止", synDice: "🎲 随机变换",
   firstTitle: "来自其他自定义固件？请先恢复官方 V15",
   firstText: "写入前安装器会自动检查 FM-1：只允许在官方 V15 或 JIANT/GAMMAWAVE 上写入。如果检测到其他自定义固件，请先使用下方的 V15 恢复功能。",
@@ -737,13 +750,13 @@ TEXT.zh = {
   mismatch: "已写入，但 FM-1 报告了另一个版本：",
   badpkg: "要安装的文件已损坏。请重新加载页面。",
   leave: "正在写入固件。请勿关闭此页面！",
-  license: "GPL-3.0，无担保。基于：",
+  license: "GPL-3.0，无担保。基于：", theme: "主题：",
 };
 /* Static header, spec cards, controls and footer. The source strings are English; data-t entries are
    applied after this pass from the semantic TEXT dictionaries. */
 const STATIC = {
   es: {
-    "GAMMAWAVE // WRAITH — M-VAVE FM-1 Firmware": "GAMMAWAVE // WRAITH — Firmware para M-VAVE FM-1",
+    "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware": "QUANTUM GAMMAWAVE — Firmware para M-VAVE FM-1",
     "THEME: GAMMA": "TEMA: GAMMA",
     "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "Polifonía de 10 voces. EQ maestro paramétrico. Saturación armónica. — Firmware avanzado de sintetizador y groovebox open source para M-VAVE FM-1",
     "⚡ GITHUB REPOSITORY ↗": "⚡ REPOSITORIO GITHUB ↗",
@@ -757,7 +770,7 @@ const STATIC = {
     "CRUSH, DELAY, REVERB, CHORUS + Synced 1/16 PUMP & MUTATE": "CRUSH, DELAY, REVERB, CHORUS + PUMP y MUTATE sincronizados a 1/16",
     "PUNCH-IN FX + 6 LATCH MUTES": "PUNCH-IN FX + 6 MUTES LATCH",
     "10 key assignments, full F3–G5 keyboard, live LEDs and real peak meters": "10 asignaciones de teclas, teclado completo F3–G5, LEDs en vivo y medidores de pico reales",
-    "GAMMAWAVE // WRAITH — LIVE BROWSER DSP PREVIEW": "GAMMAWAVE // WRAITH — PREESCUCHA DSP EN EL NAVEGADOR",
+    "QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW": "QUANTUM GAMMAWAVE — PREESCUCHA DSP EN EL NAVEGADOR",
     "▶ PLAY SEQ": "▶ TOCAR SECUENCIA",
     "🎲 DICE MUTATE": "🎲 MUTAR CON DADO",
     "TRANSFER CURVE // HEARTH": "CURVA DE TRANSFERENCIA // HEARTH",
@@ -787,7 +800,7 @@ const STATIC = {
     "all": "todas",
   },
   zh: {
-    "GAMMAWAVE // WRAITH — M-VAVE FM-1 Firmware": "GAMMAWAVE // WRAITH — M-VAVE FM-1 固件",
+    "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware": "QUANTUM GAMMAWAVE — M-VAVE FM-1 固件",
     "THEME: GAMMA": "主题：GAMMA",
     "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "10 声部复音。参数主 EQ。谐波饱和。— 适用于 M-VAVE FM-1 的高级开源合成器与 groovebox 固件",
     "⚡ GITHUB REPOSITORY ↗": "⚡ GITHUB 仓库 ↗",
@@ -801,7 +814,7 @@ const STATIC = {
     "CRUSH, DELAY, REVERB, CHORUS + Synced 1/16 PUMP & MUTATE": "CRUSH、DELAY、REVERB、CHORUS + 同步 1/16 PUMP 和 MUTATE",
     "PUNCH-IN FX + 6 LATCH MUTES": "PUNCH-IN FX + 6 个 LATCH 静音",
     "10 key assignments, full F3–G5 keyboard, live LEDs and real peak meters": "10 个按键分配、完整 F3–G5 键盘、实时 LED 和真实峰值表",
-    "GAMMAWAVE // WRAITH — LIVE BROWSER DSP PREVIEW": "GAMMAWAVE // WRAITH — 浏览器 DSP 试听",
+    "QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW": "QUANTUM GAMMAWAVE — 浏览器 DSP 试听",
     "▶ PLAY SEQ": "▶ 播放序列",
     "🎲 DICE MUTATE": "🎲 随机变换",
     "TRANSFER CURVE // HEARTH": "传输曲线 // HEARTH",
@@ -840,9 +853,9 @@ let lang = (() => {
 const t = (k) => (TEXT[lang] && TEXT[lang][k]) || TEXT.en[k] || k;
 const LANG_LABEL = { en: "EN", es: "ES", zh: "中文" };
 const TITLE = {
-  en: "GAMMAWAVE // WRAITH — M-VAVE FM-1 Firmware",
-  es: "GAMMAWAVE // WRAITH — Firmware para M-VAVE FM-1",
-  zh: "GAMMAWAVE // WRAITH — M-VAVE FM-1 固件",
+  en: "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware",
+  es: "QUANTUM GAMMAWAVE — Firmware para M-VAVE FM-1",
+  zh: "QUANTUM GAMMAWAVE — M-VAVE FM-1 固件",
 };
 let lastKey = null, lastArg = "";
 const STATIC_NODES = [];
@@ -883,9 +896,10 @@ $("lang").addEventListener("click", () => {
   applyLang();
 });
 $("pal-toggle").addEventListener("click", () => {
-  const cur = document.documentElement.dataset.palette === "wraith" ? "gamma" : "wraith";
+  const order = ["quantum", "pulsar", "corona"];
+  const cur = order[(order.indexOf(document.documentElement.dataset.palette) + 1) % order.length];
   document.documentElement.dataset.palette = cur;
-  $("pal-toggle").textContent = "THEME: " + cur.toUpperCase();
+  $("pal-toggle").textContent = t("theme") + cur.toUpperCase();
   drawCurve();
 });
 applyLang();
@@ -907,7 +921,7 @@ const rememberInstalled = () => {
 };
 const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.keys || {}, firmware });
 
-let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false;
+let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = null;
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
 const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk; $("verify").disabled = on;
   document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock || !releaseOk; if ($("stock-direct")) $("stock-direct").disabled = on || !stock || !releaseOk; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
@@ -915,7 +929,7 @@ document.querySelectorAll(".pf").forEach((c) => c.addEventListener("change", () 
 window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = t("leave"); } });
 
 const versions = meta.versions && meta.versions.length ? meta.versions
-  : [{ version: meta.version, pkg: meta.pkg, sha256: meta.sha256, size: meta.size }];
+  : [{ version: meta.version, pkg: meta.pkg, sha256: meta.sha256, size: meta.size, build: meta.build }];
 let loadEpoch = 0;
 function fillVersions() {
   const sel = $("ver"), at = sel.selectedIndex;
@@ -950,7 +964,18 @@ async function loadVersion(i) {
       await verifyManifest(pkg, v.manifest, meta.keys || {}, { product: meta.product });
     } catch (e) { log(`manifest: ${e.message}`); sayK("error", e.message); return; }
     if (epoch !== loadEpoch) return;
-    releaseOk = true;
+    /* (v1.9.0) and the build manifest: the bytes must be the artefact a clean build of a named commit
+       produced, with the same version, identity and emulator as the record. The published hash above
+       proves only that the file matches a hash shipped beside it; this proves what produced it. A
+       package from an older release, or a site built without the record, stays uninstallable. */
+    const nextImage = logicalImage(pkg);
+    let prov = null;
+    try {
+      prov = await verifyProvenance(pkg, v.build, { product: meta.product, version: v.version,
+                                                     emulator: meta.emu || null, image: nextImage });
+    } catch (e) { log(`provenance: ${e.message}`); sayK("error", e.message); return; }
+    if (epoch !== loadEpoch) return;
+    releaseOk = true; provOk = prov;
     $("pkg-hash").textContent = t("hashOk") + hash;
     image = pkg;
     releaseManifest = v.manifest;
@@ -975,7 +1000,12 @@ $("ver").addEventListener("change", () => { if (!writing) loadVersion(+$("ver").
     const sr = await fetch("../../firmware/FM-1.fwsc");
     if (sr.ok) {
       const sbytes = new Uint8Array(await sr.arrayBuffer());
-      stock = await validateStockPackage(sbytes);
+      const verified = await validateStockPackage(sbytes);
+      /* (v1.9.0) the official package has no build record of ours: its authority is the digest pinned
+         in fm1pkg.js, and the token records that it is a vendor package, not a build of this tree. */
+      verified.provenance = await verifyVendorPackage(sbytes, { product: verified.product, sha256: STOCK_V15_SHA256,
+        size: STOCK_V15_SIZE, image: verified.image });
+      stock = verified;
       lockInstaller(writing);
       /* only now is there a copy to offer (the CI-built site has none: the links stay hidden, no 404) */
       for (const id of ["stock-preload-badge", "stock-local", "stock-file-pre", "nav-stock"]) $(id).hidden = false;
@@ -1028,7 +1058,7 @@ $("first-stock").addEventListener("click", () => { $("stock").open = true; $("st
 
 $("go").addEventListener("click", async () => {
   if (writing) return;
-  if (!releaseOk) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
+  if (!releaseOk || !provOk) { sayK("error", "the package is not signed, verified and tied to its build: nothing will be written"); return; }
   lockInstaller(true);
   let midi;
   try { midi = await navigator.requestMIDIAccess({ sysex: true }); }
@@ -1106,7 +1136,10 @@ $("stock-file").addEventListener("change", async () => {
   if (!file) return;
   try {
     if (file.size !== STOCK_V15_SIZE) throw new Error("FM-1 V15 / FM-1.fwsc");
-    const verified = await validateStockPackage(new Uint8Array(await file.arrayBuffer()));
+    const sbytes = new Uint8Array(await file.arrayBuffer());
+    const verified = await validateStockPackage(sbytes);
+    verified.provenance = await verifyVendorPackage(sbytes, { product: verified.product, sha256: STOCK_V15_SHA256,
+      size: STOCK_V15_SIZE, image: verified.image });
     if (epoch !== stockFileEpoch) return;
     stock = verified; sayK("stockValid"); lockInstaller(false);
   } catch (e) { if (epoch === stockFileEpoch) sayK("stockError", e.message); }
@@ -1134,7 +1167,7 @@ function archiveInfo(a) {
 }
 $("stock-go").addEventListener("click", async () => {
   if (!stock || writing) return;
-  if (!releaseOk) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
+  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   let link = null;
   try {
@@ -1174,7 +1207,7 @@ $("stock-go").addEventListener("click", async () => {
 });
 $("stock-direct").addEventListener("click", async () => {
   if (!stock || writing) return;
-  if (!releaseOk) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
+  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   try {
     let midi;
@@ -1208,7 +1241,7 @@ $("stock-direct").addEventListener("click", async () => {
 });
 
 /* ============================================================================
- * GAMMAWAVE // WRAITH — Interactive Browser DSP Preview & Thermal Scope
+ * QUANTUM GAMMAWAVE — Interactive Browser DSP Preview & Thermal Scope
  * Mirrors firmware/src/fx.c (DT_HEARTH, DT_BLAST, DT_PLASMA, DT_FLUX) & SVF
  * ============================================================================ */
 const DTYPE_NAMES = ["SOFT", "TAPE", "HEARTH", "FLUX"];
@@ -1271,7 +1304,7 @@ function drawCurve() {
   ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
   ctx.stroke();
 
-  ctx.strokeStyle = isWraith ? "#ff6088" : "#ff9424";
+  ctx.strokeStyle = isWraith ? "#8b5cff" : "#3adfff";
   ctx.lineWidth = 2;
   ctx.beginPath();
   for (let px = 0; px < w; px++) {
@@ -1312,13 +1345,13 @@ function drawScope() {
 
   const grad = ctx.createLinearGradient(0, 0, 0, h);
   if (isWraith) {
-    grad.addColorStop(0, "#78f0b8");
-    grad.addColorStop(0.5, "#ff6088");
-    grad.addColorStop(1, "#78f0b8");
+    grad.addColorStop(0, "#3adfff");
+    grad.addColorStop(0.5, "#8b5cff");
+    grad.addColorStop(1, "#3adfff");
   } else {
-    grad.addColorStop(0, "#60e4ff");
-    grad.addColorStop(0.5, "#ff9424");
-    grad.addColorStop(1, "#60e4ff");
+    grad.addColorStop(0, "#8fd8ff");
+    grad.addColorStop(0.5, "#3adfff");
+    grad.addColorStop(1, "#8fd8ff");
   }
   ctx.strokeStyle = grad;
   ctx.lineWidth = 2;

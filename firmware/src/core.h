@@ -567,7 +567,9 @@ typedef struct track {
     uint8_t mono_note;           /* note the MONO / LEGATO / UNISON voice(s) play, 0 = none */
     uint8_t rr;                  /* POLY ROTATE: next voice to try */
     /* mix runtime */
-    int32_t peak;
+    int32_t peak;                /* the block's post-FX peak (fx.c mix_part) */
+    int32_t vu;                  /* (v1.9) a peak envelope: fast attack, ~23 ms release, so the meters see
+                                  * the audio between two UI frames instead of one 32-sample block */
     int32_t dist_hp, dist_lp1, dist_lp2;   /* DIST insert state (fx.c) */
     int32_t dist_dc, dist_hold;  /* (JIANT) RECT's DC; CRUSH's held sample */
     uint8_t dist_hc;             /* .. CRUSH's hold count */

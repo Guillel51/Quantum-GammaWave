@@ -1,0 +1,173 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The AC791N build, and the checks that only a real target build can make: the memory budgets, the
+# storage-less configuration, and the artefact <-> commit manifest. Separate from c-cpp.yml (host only,
+# no toolchain) and from emulator.yml (which publishes Pages on main): nothing here writes anywhere.
+#
+# The toolchain and the SDK are the two things this job cannot invent:
+#   * the toolchain comes from JieLi's package server through tools/get_toolchain.sh, pinned by the
+#     repository variable JIELI_TOOLCHAIN_SHA256. Without that variable the job still builds and prints
+#     the hash it got, so it can be reviewed and pinned; with it, a mirror serving something else fails
+#     before anything is unpacked.
+#   * the SDK is the pinned branch AC79NN_SDK_V1.2.1_2023-12-13; its three files are checked against
+#     SDK_SHA256 in tools/build.py through the manifest, so a different SDK cannot pass silently.
+name: target build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: target-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  AC79_SDK: ${{ github.workspace }}/fw-AC79_AIoT_SDK
+  JIELI_TOOLCHAIN: ${{ github.workspace }}/.jieli/toolchain
+
+jobs:
+  firmware:
+    name: AC791N build + memory budgets + manifest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                 # the manifest names the commit; a shallow clone still has HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install Pillow numpy fonttools
+
+      # Cached by the pinned archive hash only: an unpinned cache could hand a job a compiler nobody
+      # chose, which is exactly the false pass this workflow exists to prevent.
+      - name: toolchain cache (keyed by the pinned archive hash)
+        if: vars.JIELI_TOOLCHAIN_SHA256 != ''
+        uses: actions/cache@v4
+        with:
+          path: .jieli
+          key: jieli-${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+      - name: JieLi toolchain
+        env:
+          JIELI_TOOLCHAIN_SHA256: ${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+        run: tools/get_toolchain.sh "${{ github.workspace }}/.jieli"
+
+      - name: AC79 SDK (pinned branch)
+        run: |
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK"
+
+      - name: build (app, loader, package; the budget checks run inside)
+        run: ./build.sh
+
+      - name: the SDK is the one this tree was tested with
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          sys.path.insert(0, "tools")
+          import build
+          m = json.load(open("build/manifest.json"))
+          want, got = build.SDK_SHA256, m["sdk"]["files"]
+          bad = [n for n in want if got.get(n) != want[n]]
+          print("sdk:", {n: got.get(n, "missing")[:16] for n in want})
+          if bad:
+              sys.exit(f"the SDK files are not AC79NN_SDK_V1.2.1: {bad}")
+          EOF
+
+      - name: the artefacts identify this commit
+        env:
+          GIT_COMMIT: ${{ github.sha }}
+        run: python3 tools/build_manifest.py --verify --require-clean --expect-commit "$GITHUB_SHA"
+
+      - name: manifest and package for the record
+        uses: actions/upload-artifact@v4
+        with:
+          name: ac791n-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            build/manifest.json
+            build/felucca.bin
+            build/loader/ota.bin
+            build/felucca.fwsc
+
+  no-storage:
+    name: FELUCCA_FLASH=0 build (no storage, no OTA)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install Pillow numpy fonttools
+      - name: toolchain cache (keyed by the pinned archive hash)
+        if: vars.JIELI_TOOLCHAIN_SHA256 != ''
+        uses: actions/cache@v4
+        with:
+          path: .jieli
+          key: jieli-${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+      - name: JieLi toolchain
+        env:
+          JIELI_TOOLCHAIN_SHA256: ${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+        run: tools/get_toolchain.sh "${{ github.workspace }}/.jieli"
+      - name: AC79 SDK (pinned branch)
+        run: |
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK"
+      # v1.8.8 fixed this configuration (flash_identify, the TAKES reel and its call sites were outside
+      # their #if); nothing built it, so nothing noticed it was broken.
+      - name: build without storage
+        run: FELUCCA_FLASH=0 FELUCCA_OTA=0 ./build.sh
+      - name: its memory map
+        run: python3 tests/memory_map_test.py
+
+  emulator-parity:
+    name: WASM builds and matches the native render
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install Pillow numpy fonttools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: "3.1.50"              # the version the WASM in the tree was built with
+      - name: toolchain cache (keyed by the pinned archive hash)
+        if: vars.JIELI_TOOLCHAIN_SHA256 != ''
+        uses: actions/cache@v4
+        with:
+          path: .jieli
+          key: jieli-${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+      - name: JieLi toolchain and SDK (the emulator build needs build/gen and the package)
+        env:
+          JIELI_TOOLCHAIN_SHA256: ${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+        run: |
+          tools/get_toolchain.sh "${{ github.workspace }}/.jieli"
+          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK"
+          ./build.sh
+      - name: WASM, then parity against the native render
+        run: |
+          sh web/emu/build.sh
+          cc -O2 -ffp-contract=off -w -Ibuild/gen -Ifirmware/src -o build/host/emu_native web/emu/native_check.c -lm
+          build/host/emu_native build/host/emu_native.f32
+          node web/emu/emu_test.mjs build/emu/felucca.wasm build/host/emu_native.f32
+      - name: the installer refuses a package whose build record does not hold
+        run: |
+          node web/test_web.mjs
+          node web/test_provenance.mjs
+      - name: the WASM and the firmware are the same build
+        env:
+          GIT_COMMIT: ${{ github.sha }}
+        run: python3 tools/build_manifest.py --verify --require-clean --expect-commit "$GITHUB_SHA"

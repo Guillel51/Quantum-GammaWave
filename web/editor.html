@@ -25,7 +25,11 @@
     --plasma: #8b5cff;
     --glow: rgba(58, 223, 255, 0.22);
     --cyan-glow: rgba(96, 228, 255, 0.22);
-    /* Web Studio console palette */ --gw-c0: #090b11; --gw-c1: #232738; --gw-c2: #ffffff; --gw-c3: #040608; --gw-c4: #ff385c; --gw-c5: #0b0d14; --gw-c6: #111522; --gw-c7: #040507; --gw-c8: #262b3d; --gw-c9: #060609; --gw-c10: #1f2433; --gw-c11: #07080d;
+    --sans: "Avenir Next", "Segoe UI", Inter, system-ui, sans-serif;
+    --display: "Arial Black", "Helvetica Neue", Impact, sans-serif;
+    --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    --radius: 14px;
+    /* console surfaces, recoloured to the Quantum field */ --gw-c0: #050a18; --gw-c1: #1b2a44; --gw-c2: #ffffff; --gw-c3: #02040c; --gw-c4: #ff4d6d; --gw-c5: #070d1c; --gw-c6: #0b1426; --gw-c7: #01030c; --gw-c8: #24395e; --gw-c9: #040814; --gw-c10: #16233d; --gw-c11: #0a1426;
   }
   :root[data-theme="wraith"] {
     --bg: #050809;
@@ -52,43 +56,46 @@
       linear-gradient(90deg, rgba(96, 228, 255, 0.025) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 24px 24px, 24px 24px;
     color: var(--fg);
-    font: 13px/1.45 "IBM Plex Mono", "JetBrains Mono", "Consolas", -apple-system, BlinkMacSystemFont, monospace;
+    font: 13.5px/1.55 var(--sans);
     font-variant-numeric: tabular-nums;
   }
   main { max-width: 1220px; margin: 0 auto; padding: 18px 20px 36px; }
   h1 {
-    font-size: 21px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--theme); margin: 0 0 4px;
-    text-shadow: 0 0 18px var(--glow);
-    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-family: var(--display);
+    font-size: 26px; font-weight: 900; letter-spacing: 0.01em; text-transform: uppercase;
+    color: var(--fg); margin: 0 0 6px;
+    text-shadow: 0 0 30px var(--glow);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   }
   h1::before {
-    content: "GW-1";
-    font-size: 11px; padding: 2px 8px;
-    background: linear-gradient(135deg, var(--theme), #7fe9ff);
-    color: #050608; font-weight: 800; letter-spacing: 0.12em;
-    clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+    content: "QG-1";
+    font-family: var(--sans);
+    font-size: 11px; padding: 5px 12px;
+    background: rgba(58, 223, 255, 0.10);
+    border: 1px solid var(--line2, var(--line)); border-radius: 999px;
+    color: var(--accent); font-weight: 800; letter-spacing: 0.14em;
   }
   h2 {
     font-size: 12px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase;
-    color: var(--theme); margin: 0 0 8px; padding: 4px 8px;
-    background: linear-gradient(90deg, rgba(58, 223, 255, 0.14), rgba(96, 228, 255, 0.04));
+    color: var(--theme); margin: 0 0 10px; padding: 7px 12px;
+    background: linear-gradient(90deg, rgba(58, 223, 255, 0.12), rgba(96, 228, 255, 0.02));
     border-left: 3px solid var(--theme);
     border-bottom: 1px solid var(--line);
+    border-radius: 0 10px 10px 0;
   }
   h3 {
-    font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--accent); margin: 8px 0 4px; padding-top: 4px; border-top: 1px dashed rgba(96, 228, 255, 0.18);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--accent); margin: 10px 0 5px; padding-top: 6px; border-top: 1px solid rgba(58, 223, 255, 0.14);
   }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   .lang { float: right; font-size: 12px; color: var(--dim); text-decoration: underline; background: none; padding: 0; border: 0; }
   button {
-    font: inherit; font-weight: 700; letter-spacing: 0.04em;
-    background: linear-gradient(180deg, var(--theme), #8b5cff);
-    color: #000410; border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 4px 12px; cursor: pointer;
-    clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+    font: inherit; font-weight: 700; letter-spacing: 0.02em;
+    background: linear-gradient(135deg, var(--theme), var(--plasma));
+    color: #04101e; border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    padding: 6px 15px; cursor: pointer;
     transition: filter 0.12s, transform 0.08s, box-shadow 0.12s;
   }
   button:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 0 0 12px var(--glow); }
@@ -100,14 +107,14 @@
   }
   button.gw-btn-sec:hover:not(:disabled) { background: rgba(96, 228, 255, 0.15); box-shadow: 0 0 12px var(--cyan-glow); }
   select, input[type=text], input[type=number], input[type=search] {
-    font: inherit; color: var(--fg); background: #07080d; border: 1px solid var(--line); padding: 3px 6px; border-radius: 0;
+    font: inherit; color: var(--fg); background: #050a18; border: 1px solid var(--line); padding: 5px 8px; border-radius: 9px;
   }
   select:focus, input[type=text]:focus, input[type=number]:focus, input[type=search]:focus {
     outline: 1px solid var(--accent); border-color: var(--accent);
   }
   input[type=range] {
     width: 100%; margin: 0; accent-color: var(--theme); cursor: pointer;
-    height: 6px; background: #07080d; border: 1px solid var(--line);
+    height: 6px; background: #050a18; border: 1px solid var(--line); border-radius: 999px;
   }
   input[type=checkbox] { accent-color: var(--accent); margin: 0; }
   .bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 0 0 8px; }
@@ -120,10 +127,11 @@
   .groups { columns: 275px; column-gap: 16px; }
   .group {
     break-inside: avoid; margin: 0 0 14px;
-    background: var(--surf);
+    background: linear-gradient(180deg, var(--surf), rgba(5, 10, 24, 0.92));
     border: 1px solid var(--line);
     border-top: 2px solid var(--theme);
-    padding: 10px 12px;
+    border-radius: var(--radius);
+    padding: 12px 14px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   .row {
@@ -135,8 +143,10 @@
   .row select { width: 100%; }
   .browser {
     display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start;
-    background: var(--surf); border: 1px solid var(--line); border-top: 2px solid var(--accent);
-    padding: 12px; margin-bottom: 12px;
+    background: linear-gradient(180deg, var(--surf), rgba(5, 10, 24, 0.92));
+    border: 1px solid var(--line); border-top: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px; margin-bottom: 14px;
   }
   .browser select[size] { min-width: 170px; background: #000410; border: 1px solid var(--line); }
   .slots { display: grid; grid-template-columns: auto auto auto auto; gap: 6px 10px; align-items: center; justify-content: start; }
@@ -145,8 +155,10 @@
   td { padding: 2px 6px 2px 0; }
   td.i { color: var(--dim); text-align: right; }
   #steps {
-    background: var(--surf); border: 1px solid var(--line); border-top: 2px solid var(--accent);
-    padding: 12px; margin-top: 12px;
+    background: linear-gradient(180deg, var(--surf), rgba(5, 10, 24, 0.92));
+    border: 1px solid var(--line); border-top: 2px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px; margin-top: 14px;
   }
   #steps input[type=text] { width: 120px; }
   #steps input[type=number] { width: 48px; }
@@ -168,9 +180,9 @@
   .row.modrow { grid-template-columns: 16px 1fr 1fr 1fr 52px; }
   /* librarian: local library and the device's user bank side by side, stacked on a phone */
   .libcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px 24px; margin-top: 6px; }
-  .libcols > div { min-width: 0; background: var(--surf); border: 1px solid var(--line); border-top: 2px solid var(--theme); padding: 10px 12px; }
+  .libcols > div { min-width: 0; background: linear-gradient(180deg, var(--surf), rgba(5, 10, 24, 0.92)); border: 1px solid var(--line); border-top: 2px solid var(--theme); border-radius: var(--radius); padding: 12px 14px; }
   .libcols .bar input[type=search] { flex: 1 1 120px; min-width: 0; }
-  .list { height: 260px; overflow: auto; border: 1px solid var(--line); background: #06070b; resize: vertical; }
+  .list { height: 260px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: #040814; resize: vertical; }
   .list table { width: 100%; table-layout: fixed; }
   .list th { position: sticky; top: 0; background: var(--raise); padding: 3px 6px; border-bottom: 1px solid var(--line); }
   .list td { padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -204,11 +216,10 @@
     border-bottom: 1px solid var(--line);
   }
   @media (max-width: 600px) { .top { position: static; } }
-  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid var(--theme); margin: 8px 0 0; padding-bottom: 0; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); margin: 10px 0 0; padding-bottom: 10px; }
   .tabs button {
-    background: var(--surf); color: var(--dim); padding: 6px 13px;
-    border: 1px solid var(--line); border-bottom: 0; white-space: nowrap;
-    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+    background: rgba(11, 20, 38, 0.85); color: var(--dim); padding: 8px 16px;
+    border: 1px solid var(--line); border-radius: 999px; white-space: nowrap;
   }
   .tabs button:hover { color: var(--fg); border-color: var(--accent); }
   .tabs button[aria-selected="true"] {
@@ -420,7 +431,7 @@
     background: linear-gradient(180deg, var(--theme), #8b5cff); color: #04101e;
     border-color: #7fe9ff; border-bottom: 0; box-shadow: 0 -8px 20px rgba(139, 92, 255, .14);
   }
-  .trackbar { background: rgba(17, 11, 7, .9); border: 1px solid var(--line); border-top: 0; }
+  .trackbar { background: rgba(8, 14, 29, 0.9); border: 1px solid var(--line); border-top: 0; }
   .bar { gap: 7px 10px; }
   #status { min-height: 1.2em; color: var(--accent); font-size: 11px; }
   button {
@@ -428,52 +439,52 @@
     border: 1px solid var(--line); border-radius: 5px; clip-path: none;
     font-weight: 800; font-size: 11px; padding: 6px 12px; letter-spacing: .04em;
   }
-  button:hover:not(:disabled) { border-color: var(--theme); background: linear-gradient(180deg, #372012, #20130b); box-shadow: 0 0 14px rgba(139, 92, 255, .12); }
+  button:hover:not(:disabled) { border-color: var(--theme); filter: brightness(1.08); box-shadow: 0 0 16px var(--glow); }
   button.gw-btn-sec { background: rgba(126, 231, 245, .04); border-color: rgba(126, 231, 245, .32); color: var(--accent); }
   button.gw-btn-sec:hover:not(:disabled) { background: rgba(126, 231, 245, .10); border-color: var(--accent); }
   select, input[type=text], input[type=number], input[type=search] {
-    background: #0a0604; border-color: var(--line); border-radius: 4px; color: var(--fg); min-height: 28px;
+    background: #050a18; border-color: var(--line); border-radius: 9px; color: var(--fg); min-height: 28px;
   }
-  select:hover, input[type=text]:hover, input[type=number]:hover, input[type=search]:hover { border-color: #6b4425; }
-  input[type=range] { background: #0a0604; border-color: var(--line); accent-color: var(--theme); }
+  select:hover, input[type=text]:hover, input[type=number]:hover, input[type=search]:hover { border-color: #24395e; }
+  input[type=range] { background: #050a18; border-color: var(--line); accent-color: var(--theme); }
   .gw-deck {
-    border: 1px solid #4b2e1a; border-top: 1px solid #5d3a20; border-radius: 16px;
+    border: 1px solid #16233d; border-top: 1px solid #24395e; border-radius: 18px;
     background:
-      radial-gradient(600px 260px at 12% 0%, rgba(139, 92, 255, .12), transparent 65%),
-      linear-gradient(135deg, #1b0f08 0%, #0e0805 72%);
+      radial-gradient(600px 260px at 12% 0%, rgba(139, 92, 255, .14), transparent 65%),
+      linear-gradient(135deg, #0b1426 0%, #050a18 72%);
     padding: 18px; margin: 18px 0; box-shadow: 0 26px 70px rgba(0, 0, 0, .5);
   }
   .gw-bezel {
-    background: linear-gradient(145deg, #070403, #020101); border: 1px solid #4b2e1a; border-radius: 12px;
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 170, 33, .06), 0 0 28px rgba(139, 92, 255, .08);
+    background: linear-gradient(145deg, #01030c, #02040c); border: 1px solid #16233d; border-radius: 12px;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(58, 223, 255, .06), 0 0 28px rgba(139, 92, 255, .08);
   }
-  #gw-lcd { border-color: #3c2515; box-shadow: 0 0 22px rgba(58, 223, 255, .12); }
-  .gw-bezel-top { color: #9b8068; }
+  #gw-lcd { border-color: #16233d; box-shadow: 0 0 22px rgba(58, 223, 255, .12); }
+  .gw-bezel-top { color: var(--dim); }
   .gw-bezel-top span.led { color: var(--accent); text-shadow: 0 0 8px rgba(126, 231, 245, .5); }
-  .gw-console h2, .gw-macros-title { color: var(--gold, #7fe9ff); }
-  .gw-stat, .gw-macros { background: rgba(8, 5, 3, .56); border-color: #342216; }
+  .gw-console h2, .gw-macros-title { color: var(--accent); }
+  .gw-stat, .gw-macros { background: rgba(8, 14, 29, .6); border-color: #16233d; }
   .gw-stat { border-left-width: 2px; border-radius: 5px; }
   .gw-stat .val { color: var(--fg); }
-  .gw-stat .k { color: var(--faint, #8c7761); }
+  .gw-stat .k { color: var(--dim); }
   .gw-macros { border-radius: 7px; }
   .panel { margin: 20px 0; }
   .group, .browser, #steps, .libcols > div, .version-card {
-    background: linear-gradient(155deg, rgba(24, 15, 9, .88), rgba(10, 6, 4, .9));
-    border-color: var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0, 0, 0, .24);
+    background: linear-gradient(155deg, rgba(11, 20, 38, .9), rgba(5, 10, 24, .92));
+    border-color: var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, .24);
   }
-  .group { border-top-width: 1px; border-top-color: #5a351c; }
-  .group h2, .browser h2, .libcols h2 { color: var(--gold, #7fe9ff); }
+  .group { border-top-width: 2px; border-top-color: var(--theme); }
+  .group h2, .browser h2, .libcols h2 { color: var(--accent); }
   .browser { border-top-color: var(--accent); }
   .hint { background: rgba(126, 231, 245, .05); border: 1px solid rgba(126, 231, 245, .18); border-left: 2px solid var(--accent); border-radius: 5px; }
-  .grid button { background: #0a0604; border-color: #2e1e13; border-top-color: #402718; border-radius: 4px; }
+  .grid button { background: #050a18; border-color: #16233d; border-top-color: #24395e; border-radius: 6px; }
   .grid button.on { background: linear-gradient(180deg, rgba(58, 223, 255, .22), rgba(139, 92, 255, .08)); border-color: var(--theme); border-top-color: var(--accent); }
   .grid button.acc { background: linear-gradient(180deg, rgba(126, 231, 245, .16), rgba(58, 223, 255, .12)); }
-  .strip { background: linear-gradient(180deg, #140d08, #0b0704); border-color: var(--line); border-top-color: var(--theme); border-radius: 7px; }
+  .strip { background: linear-gradient(180deg, #0b1426, #050a18); border-color: var(--line); border-top-color: var(--theme); border-radius: 8px; }
   .strip.sel { border-color: var(--accent); box-shadow: 0 0 20px rgba(126, 231, 245, .10); }
   .list { background: #000410; border-color: var(--line); border-radius: 5px; }
   .list th { background: #0a1426; }
-  .list tr.sel td { background: var(--theme); color: #180a02; }
-  footer { border-top-color: var(--line); color: var(--faint, #8c7761); }
+  .list tr.sel td { background: var(--theme); color: #04101e; }
+  footer { border-top-color: var(--line); color: var(--dim); }
   .dim { color: var(--dim); }
   @media (max-width: 900px) {
     .gw-brandnav a:not(.hot) { display: none; }
@@ -509,7 +520,7 @@
     </nav>
     <button class="lang" id="lang"></button>
   </div>
-  <h1>QUANTUM GAMMAWAVE — FM-1 Web Studio Workstation (v1.8.6)</h1>
+  <h1>Quantum GammaWave — FM-1 Web Studio Workstation</h1>
   <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>10-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
   <header class="top">
@@ -575,10 +586,10 @@
           <button type="button" class="gw-btn-sec" id="gw-export-json-pc" title="Save complete 64-step song project (.gw1.json) to PC">📦 SAVE .GW1</button>
         </div>
       </div>
-      <!-- STEP 2: CONFIGURABLE 49-GENRE SONG & TRACK GENERATOR -->
+      <!-- STEP 2: CONFIGURABLE SONG & TRACK GENERATOR -->
       <div class="gw-macros" style="border-color:#8b5cff;background:rgba(168,85,247,.06)">
         <div class="gw-macros-title">
-          <span style="color:#d8b4fe">2️⃣ STEP 2 — 49-GENRE SONG GENERATOR (HW: [HOME]+[SELECT] or [OCT-]+[PLAY], then [OCT+])</span>
+          <span style="color:#d8b4fe">2️⃣ STEP 2 — SONG GENERATOR (HW: [HOME]+[SELECT] or [OCT-]+[PLAY], then [OCT+])</span>
           <span id="gw-gen-last" style="color:var(--theme);font-weight:700">LAST: GAMMAWAVE 0421</span>
         </div>
         <!-- ROW 1: GENRE, SEED, ENERGY, FORM -->
@@ -2521,7 +2532,7 @@ function makeMockDevice(opt = {}) {
     slots: [null, null, null, null], songRows: [], chainPlaying: false, chainRow: 0, chainRemaining: 0,
     bank: new Array(opt.slots || 32).fill(null),     /* user presets: {engine, name, p, pattern, grid, fm6 (FM6: its patch)} */
     uiCaps: opt.legacy || opt.v3 || opt.v5 ? 0 : opt.uiCaps ?? 9,
-    palette: 11, font: 0, monitor: 0, filter: 0, bankSig: 0,   /* (GAMMAWAVE) GAMMA, the firmware's default (UI_GAMMA_INDEX) */
+    palette: 13, font: 0, monitor: 0, filter: 0, bankSig: 0,   /* QUANTUM, the firmware's default (UI_QUANTUM_INDEX) */
     vbank: { valid: false, name: "", voices: new Array(32).fill(null) }, vtx: null,   /* (0.6.11) FM6's voice bank */
     /* firmware/src/ui_palettes.h order: GREY .. MONO 0..9, THERMAL 10, GAMMA 11, WRAITH 12, QUANTUM 13, SOLARIS 14, CYBERPUNK 15, NORDIC 16 */
     palettes: ["GREY", "GREEN", "AMBER", "ICE", "VIOLET", "ROSE", "PAPER", "HI-CON", "NIGHT", "MONO", "THERMAL", "GAMMA", "WRAITH", "QUANTUM", "SOLARIS", "CYBERPUNK", "NORDIC"],
@@ -3298,7 +3309,7 @@ const TEXT = {
     putDone: "本体に書き込みました: スロット ", storedSlot: "本体に保存しました: スロット ", erasedSlot: "消去しました: スロット ",
     loadedUser: "音色を読み込みました（シーケンスはそのまま。パターンは本体の SEQ > PHRASES から。SAVE 長押しで元に戻せます）: ", reloaded: "本体で音色が変わったので読み直しました", readingBank: "スロットを読み込み中",
     badEngine: "このファームウェアにないエンジンです: ", flashFail: "書き込みに失敗しました（rc {rc}）",
-    installer: "Quantum GammaWave インストーラー",
+    installer: "USB インストーラー",
     tabSeq: "シーケンサー", tabTracks: "トラック", tabSettings: "設定",
     needDevice: "FM-1 を接続すると編集できます。",
     bankConnect: "FM-1 を接続すると本体のユーザープリセットも扱えます。", bankNone: "このファームウェアにはユーザープリセットがありません。",
@@ -3395,7 +3406,7 @@ const TEXT = {
     putDone: "Written to the device: slot ", storedSlot: "Stored on the device: slot ", erasedSlot: "Erased slot ",
     loadedUser: "Sound loaded (the sequence stays; its pattern is on the device under SEQ > PHRASES; hold SAVE to undo): ", reloaded: "The sound changed on the device: read again", readingBank: "Reading the slots",
     badEngine: "This firmware has no such engine: ", flashFail: "Write failed (rc {rc})",
-    installer: "Quantum GammaWave installer",
+    installer: "USB installer",
     tabSeq: "Sequencer", tabTracks: "Tracks", tabSettings: "Settings",
     needDevice: "Connect the FM-1 to edit.",
     bankConnect: "Connect the FM-1 to see its user presets too.", bankNone: "This firmware has no user presets.",
@@ -6058,7 +6069,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("v1.8.6", 120, 194);
+      ctx.fillText("v1.9.0", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";

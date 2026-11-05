@@ -219,7 +219,7 @@ async function editorMock() {
   let prefs = await E.readDevicePreferences(rq, info, names);
   /* (QUANTUM GAMMAWAVE) firmware/src/ui_palettes.h: GREY .. MONO 0..9, THERMAL 10, GAMMA 11, WRAITH 12, QUANTUM 13, SOLARIS 14, CYBERPUNK 15, NORDIC 16 */
   ok(info.uiCaps === 9 && prefs.palettes.join() === "GREY,GREEN,AMBER,ICE,VIOLET,ROSE,PAPER,HI-CON,NIGHT,MONO,THERMAL,GAMMA,WRAITH,QUANTUM,SOLARIS,CYBERPUNK,NORDIC" &&
-     prefs.state.palette === 11 && prefs.palettes[prefs.state.palette] === "GAMMA",
+     prefs.state.palette === 13 && prefs.palettes[prefs.state.palette] === "QUANTUM",
      "editor: preference capabilities (palette, favorites) and palette names");
   const pal = E.parse[E.CMD.UI_SET](await rq(E.req.uiSet(0, 2)));
   ok(pal.rc === 0 && pal.palette === 2, "editor: display preference 0 (palette) round trip");
@@ -1710,7 +1710,7 @@ function qg1FeaturesCheck() {
 
   // 2. 17 visual themes
   ok(html.includes('"SOLARIS", "CYBERPUNK", "NORDIC"'), "editor: contains new themes SOLARIS, CYBERPUNK, NORDIC");
-  ok(pkgHtml.includes('data-palette="solaris"') && pkgHtml.includes('data-palette="cyberpunk"') && pkgHtml.includes('data-palette="nordic"'), "installer: contains css styles for 3 new themes");
+  ok(pkgHtml.includes('data-palette="quantum"') && pkgHtml.includes('data-palette="pulsar"') && pkgHtml.includes('data-palette="corona"'), "installer: contains css styles for 3 new themes");
 
   // 3. Preset library expansion & categorization in Web Studio
   ok(html.includes('label="🌌 AMBIENT &amp; ATMOSPHERES"') &&

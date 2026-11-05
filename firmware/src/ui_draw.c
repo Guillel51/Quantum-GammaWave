@@ -557,11 +557,13 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
     }
     key[n + 11] = 0;
     uw = unit[0] ? text_w(&AF_S, unit) + UNIT_GAP : 0;
-    if (text_w(vf, val) + uw > room)
+    /* (v1.9) what has to fit is the ink, not the advance: the advance of "CHORUS" is under the card's
+     * width while its ink ran into the border, so the card kept the M face and the S never came. */
+    if (ink_w(vf, val) + uw > room - 2)
         vf = &AF_S;
     /* (QG-1 stage 3) the value matters more than its unit: when even the small font cannot hold both,
      * the unit goes and the value is drawn whole. Before, cv_text_fit cut the value instead ("1…"). */
-    if (uw && text_w(vf, val) + uw > room) {
+    if (uw && ink_w(vf, val) + uw > room - 2) {
         uw = 0;
         unit = "";
     }
