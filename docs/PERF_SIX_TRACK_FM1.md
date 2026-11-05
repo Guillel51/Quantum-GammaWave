@@ -219,3 +219,62 @@ The test now waits 2 500 ms; the same WASM reports HOME (246 colours), a key
 
 The fail-closed control was not the cause: it correctly refused to publish when
 no target package existed. It must stay as it is.
+
+## Baseline of the integrated tree (v1.9.0, `d32a600`)
+
+The numbers above belong to `perf/six-track-hardening` (`fa94ec5`). This is the same
+harness run again on the tree that now carries the Quantum identity and the
+transport hardening, so the optimisation work has a measured starting point. Host
+only; nothing here is a cycle count of an FM-1.
+
+```
+build            : ./build.sh, clean tree, d32a600
+image            : 559 844 B; RAM .data+.bss 96 484 B of 98 304 (1 820 B left);
+                   pool 311 240 B, spare 9 248 B; RAM code 22 520 B of 24 576
+package          : build/felucca.fwsc 611 163 B, identity FM-1_982, app 581 564 B
+                   sha256 f157c893708e…
+emulator         : build/emu/felucca.wasm, built from the same commit
+```
+
+Six tracks, ten voices, DIST/CHORUS/DELAY/REVERB per track and the master EQ,
+one minute of 32-frame blocks (82 687), three runs of the same binary
+(`cc -O1`, as `tests/run_tests.sh` builds it):
+
+| run | p50 | p99 | p99.9 | mean | worst | late |
+|---|---|---|---|---|---|---|
+| 1 | 9.2 µs | 16.2 µs | 27.3 µs | 9.6 µs | 3 044.6 µs | 5 / 82 687 |
+| 2 | 9.2 µs | 16.3 µs | 22.9 µs | 9.4 µs | 1 505.3 µs | 2 / 82 687 |
+| 3 | 9.2 µs | 17.5 µs | 32.6 µs | 10.0 µs | 2 382.8 µs | 4 / 82 687 |
+
+Deadline 725.0 µs. The audio was identical in the three runs (peak 19 918, rail 0,
+zero samples 3 964 = 0.075 %), while the worst block moved by a factor of two and
+the late count with it: those blocks are this shared VM preempting the process, not
+the DSP. p99 is 2.2–2.4 % of the block and p99.9 3.2–4.5 %; that is the margin the
+host clock shows, and it says nothing about the AC791N.
+
+Static cost of the same tree (`tests/target_budget.py`, pi32v2 disassembly):
+`analog_render` 603 (budget 581), `phase_render` 108 (budget 102) — unchanged by the
+integration, both inside the +10 % tolerance.
+
+### Where the host time goes (gprof, `-O1 -pg`, same scene)
+
+| % | function | note |
+|---|---|---|
+| 44.0 | `analog_dispatch` | the ANALOG per-sample loop (the six tracks play preset 0) |
+| 24.2 | `mix_part` | per-block: voices, inserts, pan, sends |
+| 9.9 | `fx_buses` | chorus / delay / reverb buses |
+| 5.5 | `qg_biquad_process` | master EQ |
+| 4.4 | `rev_room` | ROOM reverb |
+
+Line level: `clamp` (`dsp.c:14`, twice per sample per voice inside `tsvf_lp`) 6.0 %,
+`tsvf_lp` 3.6 %, the oscillator/mix line of `analog_render` 3.0 %, `softclip` 3.0 %,
+`qg_biquad_process` 2.4 %. `analog_render`'s loop is already lean on the target:
+no divides inside it, one call (`an_pw`) outside it, 20 divides in the function's
+setup only.
+
+That profile is the reason no code change is claimed in this section: the per-sample
+loop is ~155 instructions of fixed-point math with no redundant work left to remove
+without changing what it computes, and a change that cannot be measured on an FM-1
+would be a guess dressed as an optimisation. The candidates, in the order they are
+worth trying, are the two `clamp` bounds in `tsvf_lp` (6 % of host time, needs a
+bit-exact formulation), the insert chain in `mix_part`, and the reverb's inner loop.
