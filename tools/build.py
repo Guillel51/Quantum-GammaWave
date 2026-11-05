@@ -420,6 +420,15 @@ def main():
         for doc in ("LICENSE", "LICENSING.md"):
             shutil.copy(SRC / doc, rel / doc)
         print(f"release  {rel}/")
+    # The build record the installer demands before it writes a byte (web/fm1provenance.js): written
+    # last, from the artefacts as they are on disk, so every hash and size in it is final. A failure
+    # here does not fail the build, but it does make the package unpublishable, so it is reported.
+    try:
+        import build_manifest as BM
+        BM.write(BM.collect(package=name), OUT)
+    except Exception as e:                                  # noqa: BLE001 - a message, not a traceback
+        print(f"manifest {OUT / 'manifest.json'} not written ({e}): the installer refuses a package "
+              "published without its build record")
     return 0
 
 
