@@ -68,19 +68,27 @@ installers. That is the correct released state, not a bug.
 
 Procedure for the custodian:
 
-1. Generate the release key **offline** (`fm1_sign.py keygen`), never on a networked host.
+0. `python3 tools/fm1_sign.py check` reports the state; `--require-key` makes an empty pin set an
+   error (the release gate while no key exists).
+1. Generate the release key **offline** (`fm1_sign.py keygen`), never on a networked host. The
+   command refuses any destination that resolves inside the checkout, through `..` or a symlink, and
+   creates the file `0600` without ever truncating an existing one.
 2. Keep the private key on encrypted offline media, two copies in separate places, access
-   limited to the release signer.
+   limited to the release signer. `sign` refuses a key stored inside the repository.
 3. Publish only the public key: `fm1_sign.py pin KEY.pub --keyid qg1-release-1`. `make_site.py`
    now ships `tools/fm1_keys.json` to the page as `meta.keys`, so pinning is enough for the
    web installer to start verifying; no code change is needed.
 4. Sign each package (`fm1_sign.py sign ... --keyid ...`) and keep the manifest next to the
-   package: `make_site.py` publishes it per version as `meta.versions[i].manifest`.
+   package: `make_site.py` publishes it per version as `meta.versions[i].manifest`. `sign` refuses a
+   `keyid` whose pinned key is not the one the private key belongs to.
 5. Rotation: add the new key id, keep the old one pinned while old packages are still
-   distributed, then remove it. Revocation is removing the key id from the map; packages
-   signed with it stop verifying.
+   distributed, then remove it. Moving an id to a different key needs `pin --replace`. Revocation
+   is removing the key id from the map; packages signed with it stop verifying with `key`.
 6. Loss of the private key is not recoverable in-place: a new key id must be pinned and a
    new package signed.
+
+Full procedure, roles and the release checklist: [`SIGNING_CUSTODY.md`](SIGNING_CUSTODY.md).
+`tests/key_custody_test.py` runs the whole cycle with an ephemeral key.
 
 What the signature does **not** do: it does not make the device verify what it boots. The
 stock loader checks no signature, so this is not secure boot and must not be described as

@@ -90,6 +90,8 @@ run_security() {
     python3 tests/install_test.py
     python3 tests/preflight_test.py
     python3 tests/gate_test.py
+    python3 tests/sign_test.py
+    python3 tests/key_custody_test.py
     node web/test_backup.mjs
     python3 tests/restore_test.py
     if [ -f build/felucca.fwsc ]; then node web/test_pkg_bounds.mjs build/felucca.fwsc; node web/test_pkg_faults.mjs build/felucca.fwsc; fi

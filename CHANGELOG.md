@@ -1,3 +1,13 @@
+- **Custodia de la clave de firma, impuesta por las herramientas:** `fm1_sign.py keygen` rechaza
+  cualquier destino dentro del checkout (resuelto, con `..` y symlinks) y crea el archivo `0600` con
+  `O_EXCL`; `sign` rechaza una clave privada guardada en el repositorio y un `--keyid` cuya clave
+  pinneada no es la del par que firma; `pin` exige `--replace` para mover un id a otra clave y valida
+  la clave (32 B crudos, 64 hex o PEM Ed25519, y nombra un punto EC de 65 B como lo que es); un
+  `fm1_keys.json` corrupto rechaza todo en vez de leerse con tolerancia; `check [--require-key]`
+  reporta el estado (hoy: ninguna clave pinneada, todo paquete se rechaza). `tests/key_custody_test.py`
+  corre generación, pin, rotación y revocación con una clave efímera, y `tests/sign_test.py` entra en
+  `run_tests.sh` y en el grupo `security`. Procedimiento, roles y checklist en
+  `docs/SIGNING_CUSTODY.md`. **No se generó ninguna clave real y no se tocó ninguna unidad.**
 - **Identificación física (0x12) en la aplicación:** el NOR contesta con el JEDEC que leyó su propio driver
   SPI, la geometría que ese id implica, un estado y un token de sesión; dos lecturas con el mismo nonce deben
   coincidir y traer tokens distintos. Sin respuesta, JEDEC desconocido, CRC malo, geometría que no cuadra o

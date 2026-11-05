@@ -41,9 +41,11 @@ a release should add:
 | package sha256 / size | `web/make_site.py` | yes |
 | WASM sha256 / size | `tools/package_emu.py` | yes |
 | test results | `tests/run_tests.sh` exit status + summary | manual |
-| signature | Ed25519 over the package | **missing** |
+| signature | `fm1_sign.py sign` -> `PACKAGE.fwsc.manifest.json`, beside the package | yes; `make_site.py` publishes it per version. **Nothing is signed yet: no key is pinned** (`docs/SIGNING_CUSTODY.md`) |
 
-The missing fields are the reason the process is documented as *not yet releasable*.
+The machine-readable configuration block is still manual, and no production key exists, which is why
+the process is documented as *not yet releasable*. The hash, size and signature paths are in place and
+tested.
 
 ## 3. Gates
 
@@ -55,12 +57,17 @@ The missing fields are the reason the process is documented as *not yet releasab
    demonstrated (`docs/INSTALLATION_SAFETY.md` §4).
 5. A signed package, an anti-downgrade story and an independent recovery path
    (`docs/SECURITY_AUDIT.md` A–C) — otherwise the release is a laboratory build.
+6. Key custody: `python3 tools/fm1_sign.py check --require-key` passes, the private key is outside
+   the checkout, and the pin diff was reviewed (`docs/SIGNING_CUSTODY.md`). While no key is pinned
+   this gate fails by design and no package may be called signed.
 
 ## 4. Vocabulary (do not blur these)
 
 * **last commit** — the newest change; not a release.
 * **last build** — what CI produced; not necessarily installable.
-* **signed package** — a `.fwsc` with a verified signature. *None exist yet.*
+* **signed package** — a `.fwsc` whose manifest verifies against a pinned key. The chain is
+  implemented and tested (`tests/sign_test.py`, `tests/key_custody_test.py`); *no package has been
+  signed for release yet, because no key is pinned.*
 * **release** — a published, versioned, hashed artefact with notes.
 * **laboratory build** — software-verified, no physical validation.
 * **approved for hardware** — demonstrated on the target, with the owner's decision recorded.

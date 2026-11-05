@@ -20,16 +20,23 @@ This is authenticity, not secure boot: the stock loader does not check
 signatures, so the chain is only as strong as the installer that runs it.
 
   fm1_sign.py keygen --out /secure/qg1-release.pem --keyid qg1-release-1
-  fm1_sign.py pin KEY.pub --keyid qg1-release-1 [--keys tools/fm1_keys.json]
+  fm1_sign.py pin KEY.pub --keyid qg1-release-1 [--replace] [--keys tools/fm1_keys.json]
   fm1_sign.py sign PACKAGE.fwsc --key /secure/qg1-release.pem --version 3.0.0 \
               --min 2.9.0 --keyid qg1-release-1 [--out PACKAGE.manifest.json]
   fm1_sign.py verify PACKAGE.fwsc --manifest PACKAGE.manifest.json [--keys ...] \
               [--product FM-1] [--firmware 2.9.0]
+  fm1_sign.py check [--keys ...] [--require-key]
+
+Custody is enforced here, not merely documented: keygen refuses any --out that resolves inside this
+checkout, sign refuses a private key stored in it, sign refuses a --keyid whose pinned key is not the
+one the private key belongs to, pin refuses to change an id without --replace, and a malformed pin
+file refuses every package instead of being read leniently.
 """
 import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +44,9 @@ from pathlib import Path
 FORMAT = "qg1-release-1"
 HERE = Path(__file__).resolve().parent
 KEYS = HERE / "fm1_keys.json"
+REPO = HERE.parent
+KEYID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+_HEX64 = re.compile(r"^(?:0[xX])?([0-9a-fA-F]{64})$")
 
 
 class SignatureError(Exception):
@@ -64,13 +74,75 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def inside_repo(path):
+    """True when `path` resolves inside this checkout: private key material must never land there."""
+    try:
+        Path(path).resolve().relative_to(REPO)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def public_hex(value):
+    """-> 64 lowercase hex characters, from 32 raw bytes, hex text or a PEM public key file."""
+    if isinstance(value, str):
+        value = value.encode()
+    if not isinstance(value, (bytes, bytearray)):
+        raise SignatureError("key", "a public key must be bytes or hex text")
+    raw = bytes(value)
+    if b"-----BEGIN" in raw:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+        try:
+            key = serialization.load_pem_public_key(raw)
+        except Exception as e:              # any parse failure is a refusal, never a fallback
+            raise SignatureError("key", "the PEM public key could not be read: %s" % e)
+        if not isinstance(key, Ed25519PublicKey):
+            raise SignatureError("key", "that PEM key is not Ed25519")
+        return key.public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+    m = _HEX64.match(raw.decode("ascii", "ignore").strip())
+    if m:
+        return m.group(1).lower()
+    if len(raw) == 32:
+        return raw.hex()
+    if len(raw) == 65 and raw[0] == 4:      # an uncompressed EC point is not Ed25519
+        raise SignatureError("key", "that is an uncompressed EC point, not an Ed25519 public key")
+    raise SignatureError("key", "an Ed25519 public key is 32 raw bytes or 64 hex characters, this is %d byte(s)"
+                         % len(raw))
+
+
+def public_of_private(private_key_bytes):
+    """-> the public key that belongs to a private key, so a manifest cannot name the wrong key id."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    try:
+        key = serialization.load_pem_private_key(private_key_bytes, password=None)
+    except Exception as e:
+        raise SignatureError("key", "the private key could not be read: %s" % e)
+    if not isinstance(key, Ed25519PrivateKey):
+        raise SignatureError("key", "that private key is not Ed25519")
+    return key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+
+
 def pinned(path=KEYS):
+    """-> {key id: 32 raw bytes}. A missing file pins nothing; a malformed entry refuses everything."""
     path = Path(path)
     if not path.exists():
         return {}
-    data = json.loads(path.read_text())
-    keys = data.get("keys", data)
-    return {k: bytes.fromhex(v) for k, v in keys.items()}
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, ValueError) as e:
+        raise SignatureError("keys", "%s is not readable JSON: %s" % (path, e))
+    keys = data.get("keys", data) if isinstance(data, dict) else None
+    if not isinstance(keys, dict):
+        raise SignatureError("keys", "%s: 'keys' must be an object of key id -> public key" % path)
+    out = {}
+    for kid, value in keys.items():
+        try:
+            out[kid] = bytes.fromhex(public_hex(value))
+        except SignatureError as e:
+            raise SignatureError("keys", "%s: key %r is invalid: %s" % (path, kid, e))
+    return out
 
 
 def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, created=None):
@@ -129,9 +201,12 @@ def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None):
     if len(pkg_bytes) != int(manifest["size"]):
         raise SignatureError("size", "package is %d bytes, the manifest says %s"
                              % (len(pkg_bytes), manifest["size"]))
+    key = keys[keyid]
+    if not isinstance(key, (bytes, bytearray)) or len(key) != 32:
+        raise SignatureError("key", "the pinned key %r is not a 32-byte Ed25519 public key" % keyid)
     payload = {k: v for k, v in manifest.items() if k != "sig"}
     try:
-        Ed25519PublicKey.from_public_bytes(keys[keyid]).verify(sig, canonical(payload))
+        Ed25519PublicKey.from_public_bytes(bytes(key)).verify(sig, canonical(payload))
     except InvalidSignature:
         raise SignatureError("signature", "the manifest is not signed by %r" % keyid)
     if firmware is not None and version_tuple(firmware) < version_tuple(manifest["min_firmware"]):
@@ -147,33 +222,85 @@ def keygen(out, keyid):
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+    if not KEYID.fullmatch(keyid or ""):
+        raise SignatureError("keyid", "%r is not a key id: use [A-Za-z0-9][A-Za-z0-9._-]{0,63}" % (keyid,))
     out = Path(out)
-    if out.exists():
-        raise SignatureError("exists", "%s already exists, refusing to overwrite a key" % out)
+    if inside_repo(out):
+        raise SignatureError("custody", "refusing to write a private key inside the repository: %s resolves under "
+                                        "%s. Generate it offline and keep it outside the checkout" % (out, REPO))
+    if not out.parent.is_dir():
+        raise SignatureError("path", "%s: the directory does not exist" % out.parent)
     key = Ed25519PrivateKey.generate()
-    out.write_bytes(key.private_bytes(serialization.Encoding.PEM,
-                                      serialization.PrivateFormat.PKCS8,
-                                      serialization.NoEncryption()))
+    pem = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                            serialization.NoEncryption())
+    try:
+        # O_EXCL + 0600: never an existing file, and never a moment where the key is world-readable
+        fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        raise SignatureError("exists", "%s already exists, refusing to overwrite a key" % out)
+    with os.fdopen(fd, "wb") as f:
+        f.write(pem)
     os.chmod(out, 0o600)
     pub = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-    print("private key: %s (mode 600, keep it out of the repository)" % out)
+    print("private key: %s (mode 600, outside the checkout: keep a second copy offline)" % out)
     print("public key (%s): %s" % (keyid, pub.hex()))
+    print("next: pin that public key with `fm1_sign.py pin KEY.pub --keyid %s`" % keyid)
     return pub.hex()
 
 
-def pin(pub_path, keyid, keys_path=KEYS):
-    raw = Path(pub_path).read_bytes()
-    text = raw.decode(errors="ignore").strip()
-    pub = bytes.fromhex(text) if len(text) in (64, 66) and "\n" not in text else raw
-    if len(pub) == 65 and pub[0] == 4:      # an uncompressed EC point is not Ed25519
-        raise SignatureError("key", "that is not an Ed25519 raw public key")
-    if len(pub) != 32:
-        raise SignatureError("key", "an Ed25519 public key is 32 bytes, this is %d" % len(pub))
+def pin(pub_path, keyid, keys_path=KEYS, replace=False):
+    """Trust one public key. Moving an id to a different key is a trust decision: it needs replace."""
+    if not KEYID.fullmatch(keyid or ""):
+        raise SignatureError("keyid", "%r is not a key id: use [A-Za-z0-9][A-Za-z0-9._-]{0,63}" % (keyid,))
+    try:
+        raw = Path(pub_path).read_bytes()
+    except OSError as e:
+        raise SignatureError("key", "cannot read %s: %s" % (pub_path, e))
+    pub = public_hex(raw)
     keys_path = Path(keys_path)
-    data = json.loads(keys_path.read_text()) if keys_path.exists() else {"keys": {}}
-    data.setdefault("keys", {})[keyid] = pub.hex()
+    if keys_path.exists():
+        try:
+            data = json.loads(keys_path.read_text())
+        except (OSError, ValueError) as e:
+            raise SignatureError("keys", "%s is not readable JSON: %s" % (keys_path, e))
+        if not isinstance(data, dict):
+            raise SignatureError("keys", "%s must hold an object" % keys_path)
+    else:
+        data = {"keys": {}}
+    keys = data.setdefault("keys", {})
+    if not isinstance(keys, dict):
+        raise SignatureError("keys", "%s: 'keys' must be an object" % keys_path)
+    known = keys.get(keyid)
+    if known is not None:
+        if str(known).lower() == pub:
+            print("%r is already pinned to %s in %s" % (keyid, pub, keys_path))
+            return pub
+        if not replace:
+            raise SignatureError("key", "%r is already pinned to %s; --replace is needed to trust a different key "
+                                         "under the same id" % (keyid, known))
+        print("replacing %r: %s -> %s" % (keyid, known, pub))
+    keys[keyid] = pub
     keys_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
-    print("pinned %s = %s in %s" % (keyid, pub.hex(), keys_path))
+    print("pinned %s = %s in %s" % (keyid, pub, keys_path))
+    return pub
+
+
+def check(keys_path=KEYS, require_key=False):
+    """Report the pinned keys. An empty pin set is a state (fail-closed), not an error, unless required."""
+    path = Path(keys_path)
+    if not path.exists():
+        raise SignatureError("keys", "%s does not exist: nothing is trusted and every package is refused" % path)
+    keys = pinned(path)
+    if not keys:
+        if require_key:
+            raise SignatureError("keys", "%s pins no key: every package is refused (fail-closed)" % path)
+        print("%s pins no key: every package is refused (fail-closed)" % path)
+        print("a release key is generated outside this checkout and pinned here: docs/SIGNING_CUSTODY.md")
+        return {}
+    print("%s pins %d key(s):" % (path, len(keys)))
+    for kid in sorted(keys):
+        print("  %-24s %s" % (kid, keys[kid].hex()))
+    return keys
 
 
 def main(argv=None):
@@ -186,6 +313,8 @@ def main(argv=None):
     p.add_argument("pub")
     p.add_argument("--keyid", required=True)
     p.add_argument("--keys", default=str(KEYS))
+    p.add_argument("--replace", action="store_true",
+                   help="trust a different key under an id that is already pinned (a trust decision)")
     s = sub.add_parser("sign", help="sign a package")
     s.add_argument("package")
     s.add_argument("--key", required=True)
@@ -194,12 +323,17 @@ def main(argv=None):
     s.add_argument("--keyid", required=True)
     s.add_argument("--product", default="FM-1")
     s.add_argument("--out")
+    s.add_argument("--keys", default=str(KEYS),
+                   help="the pin file the key id must match (default tools/fm1_keys.json)")
     v = sub.add_parser("verify", help="verify a package against its manifest")
     v.add_argument("package")
     v.add_argument("--manifest", required=True)
     v.add_argument("--keys", default=str(KEYS))
     v.add_argument("--product", default="FM-1")
     v.add_argument("--firmware")
+    c = sub.add_parser("check", help="report the pinned public keys (fail-closed state included)")
+    c.add_argument("--keys", default=str(KEYS))
+    c.add_argument("--require-key", action="store_true", help="exit 1 when no key is pinned")
     a = ap.parse_args(argv)
 
     try:
@@ -207,15 +341,27 @@ def main(argv=None):
             keygen(a.out, a.keyid)
             return 0
         if a.cmd == "pin":
-            pin(a.pub, a.keyid, a.keys)
+            pin(a.pub, a.keyid, a.keys, a.replace)
             return 0
         if a.cmd == "sign":
+            if inside_repo(a.key):
+                raise SignatureError("custody", "the private key is inside the repository (%s): key material in the "
+                                                "checkout is treated as leaked. Sign from a key kept outside it"
+                                     % a.key)
             raw = Path(a.package).read_bytes()
+            pem = Path(a.key).read_bytes()
+            derived = public_of_private(pem)
+            try:
+                trusted = pinned(a.keys)    # a broken pin file cannot block signing; `check` reports it
+            except SignatureError:
+                trusted = {}
+            if a.keyid in trusted and trusted[a.keyid].hex() != derived:
+                raise SignatureError("key", "this private key is not the one pinned as %r (%s): the manifest would "
+                                             "never verify" % (a.keyid, trusted[a.keyid].hex()))
+            if a.keyid not in trusted:
+                print("note: %r is not pinned; its public key is %s" % (a.keyid, derived), file=sys.stderr)
             man = manifest_for(raw, a.version, a.min, a.product, a.keyid)
-            if a.keyid not in pinned():
-                print("note: %r is not pinned yet; run `pin` with its public key" % a.keyid,
-                      file=sys.stderr)
-            out = sign_manifest(man, Path(a.key).read_bytes())
+            out = sign_manifest(man, pem)
             dest = Path(a.out or (a.package + ".manifest.json"))
             dest.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
             print("signed %s -> %s (key %s, sha256 %s)" % (a.package, dest, a.keyid, out["sha256"]))
@@ -227,7 +373,13 @@ def main(argv=None):
             print("verified: %s version %s, key %s, sha256 %s"
                   % (info["product"], info["version"], info["keyid"], info["sha256"]))
             return 0
+        if a.cmd == "check":
+            check(a.keys, a.require_key)
+            return 0
     except SignatureError as e:
+        print("refused: %s" % e, file=sys.stderr)
+        return 1
+    except OSError as e:
         print("refused: %s" % e, file=sys.stderr)
         return 1
     return 2

@@ -5,7 +5,8 @@ verifier). **No release key exists yet**, so `tools/fm1_keys.json` pins nothing 
 package is refused: that is the released, fail-closed state.
 
 This is authenticity (who built these bytes), not secure boot. The stock loader does not check
-signatures, so the chain is only as strong as the installer that runs it.
+signatures, so the chain is only as strong as the installer that runs it. The procedure for the
+custodian — ceremony, pinning, rotation, revocation — is in [`SIGNING_CUSTODY.md`](SIGNING_CUSTODY.md).
 
 ## Manifest (`qg1-release-1`)
 
@@ -35,7 +36,13 @@ python3 tools/fm1_sign.py pin qg1-release.pub --keyid qg1-release-1    # writes 
 python3 tools/fm1_sign.py sign build/felucca.fwsc --key /secure/qg1-release.pem \
         --version 3.0.0 --min 2.9.0 --keyid qg1-release-1
 python3 tools/fm1_sign.py verify build/felucca.fwsc --manifest build/felucca.fwsc.manifest.json
+python3 tools/fm1_sign.py check [--require-key]                        # the pinned ids, or fail-closed
 ```
+
+`keygen` refuses a destination inside this checkout, `sign` refuses a private key stored there and a
+`keyid` that does not match the private key, and `pin` needs `--replace` to move an id to a different
+key. A malformed pin file refuses every package instead of being read leniently, and
+`check --require-key` is the release gate.
 
 The installer runs the same verification (`tools/fm1_sign.py:verify`) after identifying the
 chip and before the confirmation prompt; the web page has `verifyManifest` in
@@ -46,7 +53,8 @@ refuse.
 
 - The **private key never enters the repository, the client or the web page.** It lives on the
   custodian's machine or an HSM (`/secure/...` above), mode 600, and is never committed.
-- `tools/fm1_keys.json` holds **public** keys only, and is reviewed like code.
+- `tools/fm1_keys.json` holds **public** keys only, and is reviewed like code. A private key found
+  inside the checkout is treated as leaked; the tooling will not create or use one there.
 - Generation, rotation and revocation are written down here and exist as commands, but the
   custodian is a person, not this repository: **no key has been generated for release**, and
   generating one is an act of the project owner.
