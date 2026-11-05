@@ -305,10 +305,31 @@ static void delay_edge(void)
     song.g[G_DMOD] = 20;
     song.g[G_DTIME] = GP[G_DTIME].def;
 }
+/* (v1.9) the meters read an envelope, not one 32-sample block: a held note has to keep the bar up on
+ * every block of a UI frame (the frame samples the DSP once and used to catch a single near-zero block),
+ * and silence has to leave it dark (HOME drew a floor of 24/96 so a quiet track looked like it played). */
+static void meter_envelope(void)
+{
+    int32_t out[2 * CTL];
+    uint32_t i, lit = 0;
+    fresh();
+    trk_note_on(&trk[0], 60, 100);
+    for (i = 0; i < 40u; i++) {
+        mix_block(out, CTL);
+        if (trk[0].vu > 0)
+            lit++;
+    }
+    check("(v1.9) a held note keeps the meter envelope up on every block", lit == 40u && trk[0].vu > 64);
+    trk_note_off(&trk[0], 60);
+    for (i = 0; i < 4000u; i++)
+        mix_block(out, CTL);
+    check("(v1.9) after the release the envelope falls to silence, so no bar stays lit", trk[0].vu == 0);
+}
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     delay_edge();
+    meter_envelope();
     usb_level();
     boot_keys();
     overload(); dma();

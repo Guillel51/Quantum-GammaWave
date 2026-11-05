@@ -687,17 +687,15 @@ static void graph_ecosys(void)
     for (c = 0; c < NTRK; c++) {
         track_t *t = &trk[c];
         int32_t x = 104 + (int32_t)c * 21, y = 95, w = 19, h = 20;
-        int32_t v = t->peak * 256 / 7000;
+        int32_t v = t->vu * 256 / 7000;
         int sel = (c == song.sel), muted = (t->p[P_MUTE] || c >= trk_live);
         char num[2] = {(char)('1' + c), 0};
         if (v > 256) v = 256;
-        if (dt) {
-            t->peak = 0;
+        if (dt)
             en[c] = v > en[c] ? v : en[c] + (v - en[c]) / 4;
-        }
         cv_rrect(x, y, w, h, 2, sel ? T_RAISE : T_BG, T_BG);
         cv_text_in(x, y + 1, w, &AF_S, num, sel ? T_ACCENT : muted ? T_DIM : T_TEXT, sel ? T_RAISE : T_BG);
-        gw_hbar(x + 2, y + 14, w - 4, 4, 3, muted ? 0 : (en[c] > 32 ? en[c] : (sel ? 96 : 24)), 72);
+        gw_hbar(x + 2, y + 14, w - 4, 4, 3, muted ? 0 : en[c], 72);   /* (v1.9) no floor: silence reads as silence */
     }
     gw_note_particles(8, 66, 224, 52);
 }
