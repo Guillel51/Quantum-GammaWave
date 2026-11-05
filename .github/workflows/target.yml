@@ -54,7 +54,9 @@ jobs:
         if: vars.JIELI_TOOLCHAIN_SHA256 != ''
         uses: actions/cache@v4
         with:
-          path: .jieli
+          # the compiler is restored to the same place JIELI_TOOLCHAIN names; `path: .jieli` put it
+          # inside the checkout, where it counted as an uncommitted directory and failed the record
+          path: ${{ github.workspace }}/../jieli
           key: jieli-${{ vars.JIELI_TOOLCHAIN_SHA256 }}
       - name: JieLi toolchain
         env:
@@ -91,7 +93,11 @@ jobs:
       - name: the artefacts identify this commit
         env:
           GIT_COMMIT: ${{ github.sha }}
-        run: python3 tools/build_manifest.py --verify --require-clean --expect-commit "$GITHUB_SHA"
+        run: |
+          out=$(python3 tools/build_manifest.py --verify --require-clean --expect-commit "$GITHUB_SHA" 2>&1); rc=$?
+          printf '%s\n' "$out"
+          [ "$rc" -eq 0 ] || echo "::error::$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-500)"
+          exit "$rc"
 
       - name: manifest and package for the record
         uses: actions/upload-artifact@v4
@@ -119,7 +125,9 @@ jobs:
         if: vars.JIELI_TOOLCHAIN_SHA256 != ''
         uses: actions/cache@v4
         with:
-          path: .jieli
+          # the compiler is restored to the same place JIELI_TOOLCHAIN names; `path: .jieli` put it
+          # inside the checkout, where it counted as an uncommitted directory and failed the record
+          path: ${{ github.workspace }}/../jieli
           key: jieli-${{ vars.JIELI_TOOLCHAIN_SHA256 }}
       - name: JieLi toolchain
         env:
@@ -161,7 +169,9 @@ jobs:
         if: vars.JIELI_TOOLCHAIN_SHA256 != ''
         uses: actions/cache@v4
         with:
-          path: .jieli
+          # the compiler is restored to the same place JIELI_TOOLCHAIN names; `path: .jieli` put it
+          # inside the checkout, where it counted as an uncommitted directory and failed the record
+          path: ${{ github.workspace }}/../jieli
           key: jieli-${{ vars.JIELI_TOOLCHAIN_SHA256 }}
       - name: JieLi toolchain and SDK (the emulator build needs build/gen and the package)
         env:
@@ -173,6 +183,9 @@ jobs:
           ./build.sh
       - name: WASM, then parity against the native render
         run: |
+          # web/emu/build.sh needs build/gen (the generated tables) and the package: it refuses with
+          # "run ./build.sh once first" and this job used to never build them
+          python3 tools/build.py
           sh web/emu/build.sh
           cc -O2 -ffp-contract=off -w -Ibuild/gen -Ifirmware/src -o build/host/emu_native web/emu/native_check.c -lm
           build/host/emu_native build/host/emu_native.f32
@@ -184,4 +197,8 @@ jobs:
       - name: the WASM and the firmware are the same build
         env:
           GIT_COMMIT: ${{ github.sha }}
-        run: python3 tools/build_manifest.py --verify --require-clean --expect-commit "$GITHUB_SHA"
+        run: |
+          out=$(python3 tools/build_manifest.py --verify --require-clean --expect-commit "$GITHUB_SHA" 2>&1); rc=$?
+          printf '%s\n' "$out"
+          [ "$rc" -eq 0 ] || echo "::error::$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-500)"
+          exit "$rc"
