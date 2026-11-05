@@ -156,17 +156,21 @@ Or, to install your own build from the web installer, make a local copy of the s
 The page carries the build record (`build/manifest.json`) compiled into it and refuses to install
 if the package it is given disagrees with that record in commit, version, product identity, size or
 sha256 — and an unrecorded package is refused too. `make_site.py` enforces the same thing on the
-machine that builds the site, so a mismatched site cannot be published in the first place:
+machine that builds the site, so a mismatched site cannot be published in the first place. The check
+runs before the first MIDI frame, so a package that fails it is never written to the device:
 
 ```
 python3 tools/build_manifest.py --verify --require-clean
 python3 web/make_site.py build/felucca.fwsc dev /tmp/felucca-site
-```
-```
-python3 web/make_site.py build/felucca.fwsc dev /tmp/felucca-site
 cd /tmp/felucca-site && python3 -m http.server 8000
 # open http://localhost:8000/webapp/installer/
 ```
+
+That record proves **integrity and provenance** — these bytes are the ones this commit produced —
+not **authenticity**: without a signing key the page cannot tell a genuine Felucca build from one
+rebuilt by someone else at the same commit, and it does not pretend to. The official FM-1 V15 file
+is admitted only through its digest pinned in the source, and releases recorded before v1.9.0 have
+no record, so they are no longer installable from the page.
 
 Installing firmware is at your own risk. If an install fails and the FM-1 no longer
 starts, recovery needs [FM-1-transporter](https://github.com/kurogedelic/FM-1-transporter).

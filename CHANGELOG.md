@@ -39,6 +39,28 @@ number no longer stands alone — `build/manifest.json` ties it to the commit th
   `ools/build.py`). It now uses `-z` and splits on NUL; `tests/manifest_test.py` checks the parser
   against a throwaway repository (a modified file and an untracked name with a space) and checks that
   every path in the live manifest is one `git status` reports.
+- **Installer provenance (`web/fm1provenance.js`).** The web installer used to trust whatever
+  `versions/*.json` and the package said. It now verifies the package against the build record
+  **before** anything reaches MIDI: `verifyProvenance()` compares the package's sha256 and size with
+  `build/manifest.json`, the site label, the release and emulator manifests, the device identity and
+  the version, and returns a verdict that `Updater.install()/write()/resume()` demand as a sealed
+  token — a caller cannot build a passing one by hand. No verdict, a verdict for another image, a
+  truncated package, a wrong hash, a mismatched commit or manifest, a manifest that is absent or
+  malformed, a stale cached response and a failed validation all end in `code: 'provenance'` with
+  **zero frames sent and zero writes**: the check happens before `requireChip()` and before the first
+  `send()`. Nothing about it is an override button, and nothing is remembered between loads. This is
+  integrity and provenance, **not authenticity**: without a signing key the installer cannot tell a
+  genuine Felucca from a rebuilt one, and the page says so; the official FM-1 V15 vendor file is
+  admitted only through the compiled `STOCK_V15_SHA256` pin. `web/make_site.py` reads the same record
+  and refuses to build the site at all when the package contradicts it, so a mismatched page cannot
+  be published by accident. `web/test_provenance.mjs` (wired into `tests/run_tests.sh`,
+  `target.yml` and `emulator.yml`) covers the valid package and 26 ways of being wrong, each
+  asserting zero frames and zero writes, plus the page's own guards.
+- **`dirty()` was truncating.** `tools/build_manifest.py` parsed plain `git status --porcelain` and
+  sliced `line[3:]`, but git trims leading spaces from that output, so the first dirty path lost its
+  first character (`tools/build.py` was recorded as `ools/build.py`). It now reads `-z`, and
+  `tests/manifest_test.py` builds a throwaway repository to check both a modified and a
+  space-containing untracked path survive.
 - **CI that can fail (`/.github/workflows/target.yml`).** New jobs: the AC791N build with the pinned
   toolchain and the pinned SDK (the manifest's SDK hashes are checked against `SDK_SHA256`), the
   artefact/commit verification with `--require-clean`, the storage-less `FELUCCA_FLASH=0` build, and
