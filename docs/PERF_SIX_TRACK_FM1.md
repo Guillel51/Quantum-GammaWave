@@ -308,3 +308,48 @@ sample, one per send, which is the feature itself. The level and pan ramps are t
 two adds; the peak a compare. Nothing in the loop recomputes a value the loop has already got, and
 the `clamp(x, ±xmax)` that guards `mulq15` overflow would have to become the same one-compare form
 that A shows pays off only inside a two-clamp loop — one clamp is not enough to amortise it.
+
+## The live scene: the six tracks with a hand on the instrument (`9a5ef87`)
+
+`tests/six_track_test.c` holds ten voices and measures them; it never touches the
+instrument while they sound, which is the state the player is actually in.
+`tests/six_track_live_test.c` does: on the same six tracks and the same ten voices,
+
+* a cutoff sweep on track 1 every 4 blocks, pan on 2 every 6, level on 3 every 8, a
+  reverb send on 4 every 9 and drive on 5 every 10 — five different periods, so the
+  changes land on the same block;
+* a MIDI note handed between two pitches (50 <-> 52) every 16 blocks, 5 168 times;
+* a preset switch on the one-note track once a second, 60 times;
+* the punch-in lane, REPEAT 1/16 and LPF, pressed and released on a two-second
+  cycle: an effect held in 16 507 of the blocks.
+
+Every block is measured; the audio is hashed once a second.
+
+```
+60 s, 82 687 blocks, three runs, -O1 (and the same at -O2):
+  mean 8.8..10.5 us, p50 8.5..10.0, p95 9.6..15.3, p99 15.8..18.1,
+  p99.9 24.9..29.8, worst 109.0..2138.5 us, deadline 725.0 us
+  late 0..2 of 82 687 (0.000..0.002 %), peak 19 880..20 757, rail 0
+  samples beyond 16-bit 0, silent blocks 0, fewest non-zero samples 60 of 64
+  largest one-sample step 14 456..16 275 (threshold 24 000), steps over it 0
+  audio: 61 of 61 seconds match tests/six_live_golden.txt, at -O1 and at -O2
+
+1 h, 4 961 250 blocks, two runs (-O1):
+  mean 10.9 / 10.3 us, p50 10.0 / 9.9, p95 14.6 / 12.9, p99 17.7 / 17.3,
+  p99.9 29.5 / 27.0, worst 6280.6 / 834.3 us (this VM), late 50 / 1 of 4 961 250
+  rail 0, beyond 16-bit 0, silent blocks 0, whole-run hash 177b30fd8c1a114d twice
+```
+
+The last line is the point of the long run: two hours of rendering, four million
+blocks each, produce the same hash, so nothing in the engine drifts, leaks or
+accumulates state as the scene is played. The late blocks are the host's scheduler,
+not the DSP: p50 moves by 0.1 us between runs while the worst block moves by a
+factor of seven, and the audio is identical either way.
+
+What this does **not** measure: the AC791N. `target_budget.py` remains the only
+target-side number (static instructions, exact), and the device's timing, its
+`.data+.bss` behaviour under the same scene and its real underruns are hardware
+questions. The stack is not instrumented on the host; `tests/memory_map_test.py`
+reads the linker's sections, and the heap is not in play at all: the firmware links
+no allocator and the render path allocates nothing. The latency of the scene is the
+block itself, 32 frames at 44.1 kHz = 0.73 ms, plus what the FX add.
