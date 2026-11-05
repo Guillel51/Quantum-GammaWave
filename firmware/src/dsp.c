@@ -12,6 +12,13 @@ static inline int32_t mulq16(int32_t a, uint32_t k)
     return (int32_t)(((a >> 16) * (int32_t)k) + (int32_t)(((uint32_t)(a & 0xFFFF) * k) >> 16));
 }
 static inline int32_t clamp(int32_t v, int32_t lo, int32_t hi) { return v < lo ? lo : v > hi ? hi : v; }
+/* the same, bounded +-k and in one unsigned compare: v outside +-k is exactly
+ * (unsigned)v + k > 2k (no overflow: unsigned wraps, and the sum is 0..2k inside the range),
+ * and only then does the sign choose the bound. Also used by the SVF's two state clamps. */
+static inline int32_t clamp_sym(int32_t v, int32_t k)
+{
+    return (uint32_t)v + (uint32_t)k > (uint32_t)(2 * k) ? (v < 0 ? -k : k) : v;
+}
 
 /* sine, linearly interpolated between the 1024 table points (plain lookup: THD -55 dB) */
 static inline int32_t sine_i(uint32_t ph)
@@ -105,8 +112,8 @@ static inline int32_t tsvf_lp(const tsvf_t *c, int32_t in, int32_t *ic1, int32_t
     int32_t v3 = in - *ic2;
     int32_t v1 = (c->a1 * *ic1 + c->a2 * v3) >> 13;
     int32_t v2 = *ic2 + ((c->a2 * *ic1 + c->a3 * v3) >> 13);
-    *ic1 = clamp(2 * v1 - *ic1, -150000, 150000);
-    *ic2 = clamp(2 * v2 - *ic2, -150000, 150000);
+    *ic1 = clamp_sym(2 * v1 - *ic1, 150000);
+    *ic2 = clamp_sym(2 * v2 - *ic2, 150000);
     return v2;
 }
 
