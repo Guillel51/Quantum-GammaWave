@@ -2524,10 +2524,12 @@ static void graph_home_viz(uint16_t c)
                 cv_rect(bx + 4, 181, 1, 2, T_DIM);
         }
 
-        /* A field of drifting embers, deterministic and cheap: no allocation, one sine per particle per frame.
+        /* HOME has no particles: the ember field belongs to the full-screen visualizer only, and
+         * graph_home_viz draws both. Removing it from HOME alone keeps it where it was designed.
+         * A field of drifting embers, deterministic and cheap: no allocation, one sine per particle per frame.
          * The vertical speed was ~21-45 units/frame, which read as frozen on the panel; 55-109 keeps the same
          * 18 particles and the same three primitives, so the draw cost does not grow with the motion. */
-        for (i = 0; i < 18u; i++) {
+        for (i = 0; ui.home_viz && i < 18u; i++) {
             int32_t px = 24 + (int32_t)((i * 11u + (i % 5u) * 7u) % 198u);
             int32_t py = 88 + (int32_t)((bg_sin(ui.frame * (55u + (i % 7u) * 9u) + i * 4096u) * (14 + (i % 6u) * 3)) >> 15);
             int32_t lvl = (bg_sin(ui.frame * (39u + (i % 5u) * 8u) + i * 3072u) + 32768) >> 9;
