@@ -161,10 +161,25 @@ def main():
     signed.mkdir()
     p = signed / "p.fwsc"
     p.write_bytes(raw)
+    # the build record the release must name, and the sign/verify pair that carries it
+    record = signed / "manifest.json"
+    record.write_text(json.dumps({"schema": "qg1-build-1", "version": "1.9.0", "commit": "0" * 40,
+                                  "dirty": [], "identity": "FM-1_982",
+                                  "artifacts": {"felucca.fwsc": {"sha256": S.__dict__["hashlib"].sha256(raw).hexdigest(),
+                                                                 "bytes": len(raw)}}}))
     ok(S.main(["sign", str(p), "--key", str(priv), "--version", "1.9.0", "--min", "1.8.0",
-               "--keyid", "qg1-release-1"]) == 0, "CLI sign: the pinned key -> 0")
-    ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json", "--keys", str(keys)]) == 0,
+               "--keyid", "qg1-release-1", "--build-manifest", str(record)]) == 0,
+       "CLI sign: the pinned key and its build record -> 0")
+    ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json", "--keys", str(keys),
+               "--build-manifest", str(record)]) == 0,
        "CLI verify: against the pinned key -> 0")
+    other_record = signed / "other.json"
+    other_record.write_text(json.dumps({"schema": "qg1-build-1", "commit": "1" * 40}))
+    ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json", "--keys", str(keys),
+               "--build-manifest", str(other_record)]) == 1,
+       "CLI verify: against another build record -> 1")
+    ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json", "--keys", str(keys)]) == 0,
+       "CLI verify: the record it names is enough (no record given) -> 0")
     ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json"]) == 1,
        "CLI verify: against the repository's empty pins -> 1")
     ok(S.main(["check", "--keys", str(empty)]) == 0, "CLI check: empty pin set -> 0")

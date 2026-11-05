@@ -1,3 +1,14 @@
+- **Procedencia del build, obligatoria antes de escribir:** cada build escribe `build/manifest.json`
+  (`qg1-build-1`: versión compilada, commit, archivos sin commitear, identidad, SHA-256 y tamaño de cada
+  artefacto, knobs `FELUCCA_*`, hashes del toolchain y del SDK, y el emulador del mismo árbol). El
+  transporte ya no acepta un paquete sin ese registro: `requireProof()` exige un veredicto de
+  `verifyProvenance()` (bytes y tamaño exactos, árbol limpio, commit completo, identidad y versión bien
+  formadas, emulador del mismo commit) **antes de `find()`**, y el manifiesto de release firmado debe
+  nombrar el registro (`build_sha256`, digest canónico) o se rechaza — así la firma cubre el registro y
+  no sólo el paquete. `web/make_site.py` se niega a publicar un paquete que su registro no describe
+  (otro commit, árbol sucio, otros bytes) y `fm1_sign.py` gana `--build-manifest` en `sign`/`verify`.
+  Pruebas: `web/test_provenance.mjs`, `tests/manifest_test.py`, más casos en `web/test_web.mjs` y
+  `tests/sign_test.py`; todos en `tests/run_tests.sh`. **Ninguna unidad física.**
 - **Compuerta criptográfica en el transporte de actualización:** `install()`, `write()` y `resume()` de
   `web/fm1ota.js` ya no confían en quien los llama. `requireProof()` corre antes de `find()` (un rechazo
   cuesta cero frames) y liga los bytes (SHA-256 y tamaño exactos), el manifiesto Ed25519 con su clave

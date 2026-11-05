@@ -145,8 +145,24 @@ def pinned(path=KEYS):
     return out
 
 
-def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, created=None):
-    return {
+def record_sha256(path):
+    """The digest of a build record (build/manifest.json), over its canonical JSON.
+
+    Not the file's bytes: the installer holds the record as parsed JSON (inlined in the page), so
+    both sides hash sorted keys with no spaces and the signature covers the same value the transport
+    compares against the record it verified. ASCII escapes match json.dumps' default in JS too.
+    """
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise SignatureError("record", "%s is not readable JSON: %s" % (path, e))
+    if not isinstance(data, dict):
+        raise SignatureError("record", "%s is not a build record (not an object)" % (path,))
+    return hashlib.sha256(canonical(data)).hexdigest()
+
+
+def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, created=None, build_sha256=None):
+    out = {
         "format": FORMAT,
         "product": product,
         "version": str(version),
@@ -156,6 +172,9 @@ def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, create
         "created": created or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "keyid": keyid or "",
     }
+    if build_sha256:
+        out["build_sha256"] = str(build_sha256)
+    return out
 
 
 def sign_manifest(manifest, private_key_bytes):
@@ -170,7 +189,7 @@ def sign_manifest(manifest, private_key_bytes):
     return out
 
 
-def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None):
+def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha256=None, require_build=False):
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -209,6 +228,17 @@ def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None):
         Ed25519PublicKey.from_public_bytes(bytes(key)).verify(sig, canonical(payload))
     except InvalidSignature:
         raise SignatureError("signature", "the manifest is not signed by %r" % keyid)
+    # The signature covers the build record it names; the installer refuses a release that names
+    # none, so a signature over a manifest without build_sha256 is not a releasable manifest.
+    if "build_sha256" in manifest:
+        if not _HEX64.match(str(manifest["build_sha256"])):
+            raise SignatureError("record", "build_sha256 is not a SHA-256: the manifest is malformed")
+        if build_sha256 is not None and str(manifest["build_sha256"]) != str(build_sha256):
+            raise SignatureError("record", "the manifest names build record %s, this build is %s"
+                                 % (manifest["build_sha256"], build_sha256))
+    elif build_sha256 is not None or require_build:
+        raise SignatureError("record", "the manifest does not name a build record: the installer refuses "
+                                       "it, sign again with --build-manifest")
     if firmware is not None and version_tuple(firmware) < version_tuple(manifest["min_firmware"]):
         raise SignatureError("downgrade", "the package needs firmware %s, this one is %s"
                              % (manifest["min_firmware"], firmware))
@@ -323,6 +353,9 @@ def main(argv=None):
     s.add_argument("--keyid", required=True)
     s.add_argument("--product", default="FM-1")
     s.add_argument("--out")
+    s.add_argument("--build-manifest", metavar="MANIFEST",
+                   help="build/manifest.json of the build that produced the package: its canonical SHA-256 goes "
+                        "inside the signature, and the installer refuses a release that does not name one")
     s.add_argument("--keys", default=str(KEYS),
                    help="the pin file the key id must match (default tools/fm1_keys.json)")
     v = sub.add_parser("verify", help="verify a package against its manifest")
@@ -331,6 +364,8 @@ def main(argv=None):
     v.add_argument("--keys", default=str(KEYS))
     v.add_argument("--product", default="FM-1")
     v.add_argument("--firmware")
+    v.add_argument("--build-manifest", metavar="MANIFEST",
+                   help="the build record the release must name (default: require that it names one)")
     c = sub.add_parser("check", help="report the pinned public keys (fail-closed state included)")
     c.add_argument("--keys", default=str(KEYS))
     c.add_argument("--require-key", action="store_true", help="exit 1 when no key is pinned")
@@ -360,18 +395,25 @@ def main(argv=None):
                                              "never verify" % (a.keyid, trusted[a.keyid].hex()))
             if a.keyid not in trusted:
                 print("note: %r is not pinned; its public key is %s" % (a.keyid, derived), file=sys.stderr)
-            man = manifest_for(raw, a.version, a.min, a.product, a.keyid)
+            rec = record_sha256(a.build_manifest) if a.build_manifest else None
+            if not rec:
+                print("warning: no --build-manifest: the manifest names no build record, and the installer "
+                      "refuses such a release", file=sys.stderr)
+            man = manifest_for(raw, a.version, a.min, a.product, a.keyid, build_sha256=rec)
             out = sign_manifest(man, pem)
             dest = Path(a.out or (a.package + ".manifest.json"))
             dest.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
-            print("signed %s -> %s (key %s, sha256 %s)" % (a.package, dest, a.keyid, out["sha256"]))
+            print("signed %s -> %s (key %s, sha256 %s%s)"
+                  % (a.package, dest, a.keyid, out["sha256"], ", record %s" % rec[:16] if rec else ""))
             return 0
         if a.cmd == "verify":
             raw = Path(a.package).read_bytes()
             man = json.loads(Path(a.manifest).read_text())
-            info = verify(raw, man, pinned(a.keys), a.product, a.firmware)
-            print("verified: %s version %s, key %s, sha256 %s"
-                  % (info["product"], info["version"], info["keyid"], info["sha256"]))
+            rec = record_sha256(a.build_manifest) if a.build_manifest else None
+            info = verify(raw, man, pinned(a.keys), a.product, a.firmware, build_sha256=rec, require_build=True)
+            print("verified: %s version %s, key %s, sha256 %s%s"
+                  % (info["product"], info["version"], info["keyid"], info["sha256"],
+                     ", record %s" % rec[:16] if rec else ""))
             return 0
         if a.cmd == "check":
             check(a.keys, a.require_key)

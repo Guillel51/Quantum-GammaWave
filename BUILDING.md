@@ -134,5 +134,28 @@ cd /tmp/felucca-site && python3 -m http.server 8000
 # open http://localhost:8000/webapp/installer/
 ```
 
+### Build record and release signature
+
+Every `tools/build.py` run writes `build/manifest.json` (`tools/build_manifest.py`): the version as
+compiled, the commit, the files that were not committed (empty means the bytes come from exactly that
+commit), the identity, every artefact's SHA-256 and size, the toolchain and SDK hashes, and the emulator
+built from the same tree. `python3 tools/build_manifest.py --verify --require-clean` re-checks every
+claim against the files on disk.
+
+`web/make_site.py` inlines that record beside each version and refuses to publish a package it does not
+describe (other bytes, another identity, a dirty tree, a label naming another commit); the installer
+refuses a package with no record at all, so a site built without one installs nothing.
+
+Sign with the record inside the signature (`--build-manifest` puts its canonical SHA-256 in the signed
+manifest as `build_sha256`):
+
+```
+python3 tools/fm1_sign.py sign build/felucca.fwsc --key /secure/qg1-release.pem --version 1.9.0 \
+    --min 1.8.0 --keyid qg1-release-1 --build-manifest build/manifest.json
+```
+
+A release manifest that names no record is refused by the installer and by `fm1_sign.py verify`; with an
+empty `tools/fm1_keys.json` every package is refused as well (see `docs/SIGNING_CUSTODY.md`).
+
 Installing firmware is at your own risk. If an install fails and the FM-1 no longer
 starts, recovery needs [FM-1-transporter](https://github.com/kurogedelic/FM-1-transporter).

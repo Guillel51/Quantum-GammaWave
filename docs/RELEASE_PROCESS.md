@@ -27,9 +27,11 @@ Rules:
 
 ## 2. What a build record must contain
 
-`tools/build.py` and the site build already carry the version and commit; the manifest of the Web
-Emulator (`build/emu/manifest.json`) carries version, commit and the WASM hash. A complete record for
-a release should add:
+`tools/build.py` writes `build/manifest.json` (`tools/build_manifest.py`, schema `qg1-build-1`) after
+every build, `--verify --require-clean` re-checks every claim, and `web/make_site.py` refuses to
+publish a package the record does not describe. The installer (`web/fm1provenance.js`,
+`requireProof()`) refuses a package that has no record, whose tree was dirty, or whose record names
+other bytes or another identity — before the first frame.
 
 | Field | Where it comes from | Today |
 |-------|--------------------|-------|
@@ -37,15 +39,17 @@ a release should add:
 | commit | `git rev-parse HEAD` | yes (package name, emulator manifest) |
 | date | build time | yes |
 | toolchain | JieLi version, `AC79_SDK` commit | partially (documented in build logs) |
-| configuration | `FELUCCA_DUAL_CORE`, `FELUCCA_FM4`, `FELUCCA_FLASH`, … | not yet a machine-readable block |
-| package sha256 / size | `web/make_site.py` | yes |
-| WASM sha256 / size | `tools/package_emu.py` | yes |
-| test results | `tests/run_tests.sh` exit status + summary | manual |
-| signature | `fm1_sign.py sign` -> `PACKAGE.fwsc.manifest.json`, beside the package | yes; `make_site.py` publishes it per version. **Nothing is signed yet: no key is pinned** (`docs/SIGNING_CUSTODY.md`) |
+| configuration | `FELUCCA_*` knobs as the compiler saw them | yes (`config`, `qg1-build-1`) |
+| package sha256 / size | `web/make_site.py`, re-checked against the record | yes |
+| WASM sha256 / size | `build/emu/manifest.json`, folded into the record | yes, when the emulator was built |
+| test results | `tests/run_tests.sh` exit status + summary | in the record as `checks` when a build writes them; otherwise manual |
+| signature | `fm1_sign.py sign --build-manifest` -> `PACKAGE.fwsc.manifest.json`, beside the package | yes; `make_site.py` publishes it per version, and the installer refuses a manifest that does not name the record (`build_sha256`). **Nothing is signed yet: no key is pinned** (`docs/SIGNING_CUSTODY.md`) |
 
-The machine-readable configuration block is still manual, and no production key exists, which is why
-the process is documented as *not yet releasable*. The hash, size and signature paths are in place and
-tested.
+What is missing is not the format but the inputs: the toolchain and SDK hashes are "missing"/"unknown"
+in a checkout without them (a host build here), the `checks` block is only filled when the build writes
+it, and no production key exists. That is why the process is still documented as *not yet releasable*:
+the record and the signature paths are in place and tested, but the artefacts they would describe can
+only be produced with the JieLi toolchain.
 
 ## 3. Gates
 

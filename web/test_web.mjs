@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { logicalImage, productOf } from "./fm1pkg.js";
 import { Updater, pack7, unpack7 } from "./fm1ota.js";
+import { verifyProvenance } from "./fm1provenance.js";
 import { createHash, generateKeyPairSync, sign as edSign } from "node:crypto";
 
 let failed = 0;
@@ -1535,10 +1536,27 @@ const canon = (v) => v === null || typeof v !== "object" ? JSON.stringify(v)
   : "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canon(v[k])).join(",") + "}";
 const sha256 = (b) => createHash("sha256").update(b).digest("hex");
 const release = (pkg, over = {}) => {
+  const { build = buildRecord(pkg), noBuild = false, ...rest } = over;
   const unsigned = { format: "qg1-release-1", product: "FM-1", version: "9.9.9", min_firmware: "1.0.0",
-    sha256: sha256(pkg), size: pkg.length, created: "2026-11-05T00:00:00Z", keyid: "test-1", ...over };
+    sha256: sha256(pkg), size: pkg.length, created: "2026-11-05T00:00:00Z", keyid: "test-1",
+    ...(noBuild ? {} : { build_sha256: sha256(Buffer.from(canon(build))) }), ...rest };   // the signature covers the record
   return { ...unsigned, sig: edSign(null, Buffer.from(canon(unsigned)), TEST_KEY.privateKey).toString("hex") };
 };
+
+/* the build record tools/build_manifest.py writes for these bytes: the transport refuses a package
+   with no record, so every positive case here carries the record of the build that produced it */
+const BUILD_COMMIT = "0123456789abcdef0123456789abcdef01234567";
+const buildRecord = (pkg, over = {}) => ({
+  schema: "qg1-build-1", version: "v9.9.9", commit: BUILD_COMMIT, dirty: [], identity: productOf(pkg),
+  config: { FELUCCA_FLASH: "default" },
+  toolchain: { clang_sha256: "a".repeat(64), path: "/opt/toolchain" },
+  sdk: { commit: "b".repeat(40), files: {}, path: "/opt/sdk" },
+  artifacts: { "felucca.bin": { bytes: 1024, sha256: "c".repeat(64) },
+               "felucca.fwsc": { bytes: pkg.length, sha256: sha256(pkg) } },
+  emulator: { schema: "qg1-emu-1", commit: BUILD_COMMIT.slice(0, 12), version: "v9.9.9",
+              wasm_bytes: 4096, wasm_sha256: "d".repeat(64) },
+  ...over,
+});
 
 /* a .fwsc whose logical image is `img`: 20 blocks of 47 image bytes, then the identity marker that
    logicalImage() drops and productOf() reads */
@@ -1560,7 +1578,8 @@ async function updater() {
   const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
   const pkg = packageOf(image, identity);
   const manifest = release(pkg);
-  const ctx = { manifest, keys: PINNED, firmware: "1.8.9" };
+  const provenance = await verifyProvenance(pkg, buildRecord(pkg), { product: identity, image });
+  const ctx = { manifest, keys: PINNED, firmware: "1.8.9", provenance };
   ok(eq(logicalImage(pkg), image) && productOf(pkg) === identity,
     `fm1ota.js: the test package identifies as ${productOf(pkg)} and holds the 0x2000 image`);
 
@@ -1599,6 +1618,18 @@ async function updater() {
     ["a downgrade below min_firmware", "signature", (up) => up.install(pkg, identity, null, { ...ctx, firmware: "0.5.0" })],
     ["a package that is not bytes", "image", (up) => up.install("package", identity, null, ctx)],
     ["an empty package", "image", (up) => up.install(new Uint8Array(0), identity, null, ctx)],
+    /* the build record: mandatory, and about these bytes and this device */
+    ["no build record", "provenance", (up) => up.install(pkg, identity, null, { ...ctx, provenance: null })],
+    ["a hand-written build verdict", "provenance", (up) => up.install(pkg, identity, null, { ...ctx, provenance: { identity } })],
+    ["a build record for other bytes", "provenance",
+      (up) => up.install(pkg, identity, null, { ...ctx, provenance: otherBytesProv })],
+    ["a build record for another device", "provenance",
+      (up) => up.install(pkg, identity, null, { ...ctx, provenance: foreignProv })],
+    /* the signature must cover the record itself, not only the bytes */
+    ["a release naming another build record", "provenance",
+      (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { build: buildRecord(pkg, { commit: "f".repeat(40) }) }) })],
+    ["a release that does not name the record", "provenance",
+      (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { noBuild: true }) })],
     ["resume without a context", "version", (up) => up.resume(pkg, null, identity)],
     ["write without a product", "proof", (up) => up.write({ id: { model: "ota-" + identity, text: "ota-" + identity }, link: { send: () => true } }, pkg, null)],
     /* the transport's own identification: these reach the device, so the counters are "no write", not "no frame" */
@@ -1606,6 +1637,10 @@ async function updater() {
     ["an unknown chip", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, jedec: 0x123456 }],
     ["a chip that never answers 0x12", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, silentNor: true }],
   ];
+  /* two verdicts that are valid for something else: one for other bytes, one for another device */
+  const otherPkg = packageOf(Uint8Array.from(image, (b) => b ^ 1), identity);
+  const otherBytesProv = await verifyProvenance(otherPkg, buildRecord(otherPkg), { product: identity });
+  const foreignProv = await verifyProvenance(pkg, buildRecord(pkg, { identity: "FM-1_901" }), { product: "FM-1_901", image });
   for (const [what, code, run, opt = {}] of refusals) {
     const dev = new FakeFM1(image, { jedec: opt.jedec ?? null, silentNor: !!opt.silentNor });
     const e = await run(new Updater(dev.access, null, FAST)).then(() => null, (x) => x);
@@ -1618,7 +1653,7 @@ async function updater() {
      device, and a swapped package is refused even with a valid authorisation */
   {
     const live = pkg.slice(), man = release(live);
-    const proof = await M.requireProof({ pkg: live, product: identity, firmware: "1.8.9", manifest: man, keys: PINNED });
+    const proof = await M.requireProof({ pkg: live, product: identity, firmware: "1.8.9", manifest: man, keys: PINNED, provenance });
     live.fill(0xFF);
     const dev = new FakeFM1(image);
     const e = await new Updater(dev.access, null, FAST).install(live, identity, null, { manifest: man, keys: PINNED, firmware: "1.8.9", proof })
@@ -1647,7 +1682,8 @@ async function updater() {
   {
     const other = "FM-1_901", pkg2 = packageOf(image, other);
     const dev = new FakeFM1(image);                       // it answers as FM-1_900
-    const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { firmware: "1.8.9", manifest: release(pkg2), keys: PINNED })
+    const prov2 = await verifyProvenance(pkg2, buildRecord(pkg2), { product: other, image });
+    const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { firmware: "1.8.9", manifest: release(pkg2), keys: PINNED, provenance: prov2 })
       .then(() => null, (x) => x);
     ok(e && e.code === "model" && dev.upgrades === 0 && dev.served === 0,
       `fm1ota.js: a unit answering as ${dev.identity} for a ${other} package -> 'model', nothing written`);

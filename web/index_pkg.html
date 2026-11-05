@@ -894,6 +894,7 @@ const say = (txt) => { lastKey = null; $("status").textContent = txt; };
 const log = (t) => { $("log").textContent += t + "\n"; };
 let image = null;                 // the verified package bytes (the transport derives the image)
 let releaseManifest = null;       // the manifest that authorises exactly those bytes
+let releaseProvenance = null;     // the build record of those bytes, verified: no write without it
 const meta = /*META*/;
 /* what install()/resume() need to verify the package themselves: the transport identifies the chip
    on its own link, so no evidence is passed, and it refuses a transfer whose installed version is
@@ -905,11 +906,12 @@ const installedVersion = () => {
 const rememberInstalled = () => {
   try { if (releaseManifest && releaseManifest.version) localStorage.setItem(INSTALLED_KEY, String(releaseManifest.version)); } catch (_) {}
 };
-const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.keys || {}, firmware });
+const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.keys || {}, firmware,
+  provenance: releaseProvenance });
 
 let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false;
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
-const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk; $("verify").disabled = on;
+const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk || !releaseProvenance; $("verify").disabled = on;
   document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock || !releaseOk; if ($("stock-direct")) $("stock-direct").disabled = on || !stock || !releaseOk; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
 document.querySelectorAll(".pf").forEach((c) => c.addEventListener("change", () => lockInstaller(writing)));
 window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = t("leave"); } });
@@ -926,7 +928,7 @@ function fillVersions() {
 }
 async function loadVersion(i) {
   const v = versions[i] || versions[0], epoch = ++loadEpoch;
-  image = null; releaseOk = false; releaseManifest = null; $("go").disabled = true;
+  image = null; releaseOk = false; releaseManifest = null; releaseProvenance = null; $("go").disabled = true;
   try {
     const r = await fetch(v.pkg);
     if (!r.ok) throw new Error(`${v.pkg}: HTTP ${r.status}`);
@@ -949,6 +951,13 @@ async function loadVersion(i) {
     try {
       await verifyManifest(pkg, v.manifest, meta.keys || {}, { product: meta.product });
     } catch (e) { log(`manifest: ${e.message}`); sayK("error", e.message); return; }
+    /* the build record: the bytes must be the artefact a clean build of a named commit produced, the
+       record must name this same package, and the image is bound to it. No record, a dirty tree or
+       another package leaves INSTALL disabled: provenance is not a warning here. */
+    if (!v.build) { log("provenance: no build record is published with this package, so INSTALL stays off"); sayK("error", "no build record is published for this package"); return; }
+    try {
+      releaseProvenance = await verifyProvenance(pkg, v.build, { product: meta.product, version: v.version });
+    } catch (e) { log(`provenance: ${e.message}`); sayK("error", e.message); return; }
     if (epoch !== loadEpoch) return;
     releaseOk = true;
     $("pkg-hash").textContent = t("hashOk") + hash;

@@ -13,6 +13,7 @@
 // reach the device.
 
 import { logicalImage, productOf, sha256hex } from "./fm1pkg.js";
+import { requireProvenance } from "./fm1provenance.js";
 
 const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
@@ -463,7 +464,7 @@ function versionString(v, what) {
 
 // Verify a .fwsc and everything that authorises writing it. Every refusal happens before the
 // first frame, so a caller that ignores the result has still caused nothing to be sent.
-export async function requireProof({ pkg, manifest, keys = {}, product = null, firmware = null } = {}) {
+export async function requireProof({ pkg, manifest, keys = {}, product = null, firmware = null, provenance = null } = {}) {
   if (!product || typeof product !== "string" || !product.includes("_"))
     throw fail("proof", "no product was named for this transfer: nothing was sent.");
   // The installed version is not optional: without it a downgrade cannot be ruled out, and neither
@@ -488,9 +489,26 @@ export async function requireProof({ pkg, manifest, keys = {}, product = null, f
     throw fail("signature", "The manifest does not describe this package: nothing was sent.");
   const image = logicalImage(bytes);
   if (!image.length) throw fail("image", "the package holds no image: nothing was sent.");
+  // Provenance is not optional: the bytes must be the artefact a clean build of a named commit
+  // produced (or the pinned vendor file), the record must name this same package, and the image it
+  // is bound to must be the one derived from these bytes. A missing, dirty or foreign record is
+  // refused exactly like a bad signature, before any frame.
+  const prov = await requireProvenance(provenance, product, image);
+  if (prov.sha256 !== checked.sha256)
+    throw fail("provenance", "the build record names another package than the signed manifest: nothing was sent.");
+  // The signature must cover the record, not just the bytes: without this, anyone who can swap the
+  // package can swap the record too, and the record would still look clean. A release manifest with
+  // no build_sha256, or one naming another record, is refused exactly like a bad signature.
+  if (prov.kind === "build") {
+    if (!/^[0-9a-f]{64}$/.test(String(manifest.build_sha256 || "")))
+      throw fail("provenance", "the signed manifest does not name the build record: nothing was sent.");
+    if (manifest.build_sha256 !== prov.recordSha256)
+      throw fail("provenance", "the signed manifest names another build record: nothing was sent.");
+  }
   // No chip field here: the chip is identified by admit() on the live link, never by the caller.
   const proof = Object.freeze({ product, model, version: checked.version, keyid: checked.keyid,
-    sha256: checked.sha256, size: bytes.length, imageSize: image.length });
+    sha256: checked.sha256, size: bytes.length, imageSize: image.length,
+    build: prov.kind === "build" ? prov.commit : null });
   PROOFS.set(proof, { image, used: false });
   return proof;
 }
