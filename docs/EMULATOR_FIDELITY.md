@@ -67,3 +67,22 @@ build step, not a claim.
 
 The rule applied: **do not replace a working emulator with a less proven one**, and do not call a
 host simulator a full-system emulator.
+
+## 5. What was looked at, not only linted (v1.9.0 `b9d7a67`)
+
+The UI lint (`tests/ui_render.py`) proves that no label is clipped and no band is
+misaligned on 173 screens across 17 palettes; it cannot see a page. The site and the
+emulator were therefore opened in a browser at the commit above, with the build
+regenerated so the labels would be the ones this tree produces:
+
+| page | what the screen showed |
+|---|---|
+| portal `/` | the hero, `v1.9.0-b9d7a67` in the capture caption, the three calls to action, the navigation table |
+| emulator `/emulator/` | "Switch on", then HOME: ANALOG SAW LEAD, 120 BPM, the cutoff/resonance/attack/release tiles, LFO curves, the five step dots, `v1.9.0 · build b9d7a6795aa0 · engine 0942b6b2…` in the footer |
+| emulator, FX | FX 1/3: the four columns DIST / CHORUS / DLY / REV with their labels whole, `MASTER: EQBYP SLICER:OFF WIDTH:100%` |
+
+The engine hash in the footer is the SHA-256 of `build/emu/felucca.wasm` built from
+this tree, and the site's `firmware/` package was rebuilt so its name, size and hash
+are the ones `build/felucca.fwsc` has (the copy the site had was one commit older).
+This is a visual check of a host render: it says nothing about the LCD on a physical
+FM-1, and nothing about the AC791N's timing.
