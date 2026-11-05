@@ -190,12 +190,19 @@ jobs:
       - name: WASM, then parity against the native render
         run: |
           # web/emu/build.sh needs build/gen (the generated tables) and the package: it refuses with
-          # "run ./build.sh once first" and this job used to never build them
-          python3 tools/build.py
-          sh web/emu/build.sh
-          cc -O2 -ffp-contract=off -w -Ibuild/gen -Ifirmware/src -o build/host/emu_native web/emu/native_check.c -lm
-          build/host/emu_native build/host/emu_native.f32
-          node web/emu/emu_test.mjs build/emu/felucca.wasm build/host/emu_native.f32
+          # "run ./build.sh once first" and this job used to never build them. Everything is captured so
+          # a failure names the command that failed, in a public annotation, not only in the job log.
+          log=build/parity.log; mkdir -p build/host
+          {
+            python3 tools/build.py
+            sh web/emu/build.sh
+            cc -O2 -ffp-contract=off -w -Ibuild/gen -Ifirmware/src -o build/host/emu_native web/emu/native_check.c -lm
+            build/host/emu_native build/host/emu_native.f32
+            node web/emu/emu_test.mjs build/emu/felucca.wasm build/host/emu_native.f32
+          } > "$log" 2>&1; rc=$?
+          tail -40 "$log"
+          [ "$rc" -eq 0 ] || echo "::error::$(tail -25 "$log" | tr '\n' ' ' | cut -c1-600)"
+          exit "$rc"
       - name: the installer refuses a package whose build record does not hold
         run: |
           node web/test_web.mjs
