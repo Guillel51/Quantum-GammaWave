@@ -172,6 +172,37 @@ survives one bad read at these seeds", not "the fallback core path is proven".
 - **Not provable here:** physical flash behaviour, erase/program failures, brownout,
   bootloader and SPL behaviour, the loader's own write of the app area.
 
+### 6.1 The order of the write, read in the code today
+
+`firmware/loader/ldr_core.c` (`ldr_session()`) does, in this order:
+
+1. **read the whole `flash.bin` before erasing anything** (`ldr_check`), keeping a CRC16 per app
+   sector: a damaged or truncated package is refused with the flash untouched;
+2. **refuse a package that does not decrypt with this unit's key** (`ldr_chip_key` + the app head's
+   CRC), so a package for another chip key never erases;
+3. for each sector of `[0x4000, 0x93000)` **from low to high**: read it, compare with the checked
+   copy, skip it when equal, otherwise erase, program in 256-byte pieces, read back, and retry once;
+   a sector that never verifies aborts the session;
+4. only an exact `success` on `0xF0000000` clears the update record; anything else returns an error
+   and leaves the record, so the next power-on runs the loader again and the host resumes.
+
+The first sector written is therefore the app entry, and the last is the top of the app area.
+
+**First-sector-last was analysed and not adopted.** Writing the entry sector last (the pattern a boot
+stub uses) reads the entry last but leaves the *old* entry in place for the whole transfer: a cut then
+leaves an old head over a half-new image, which is still unbootable and, worse, could be booted. The
+variant that would actually help is *erase the entry sector first, write it last*, so that a cut leaves
+a blank head the SPL refuses. That depends on how this SPL treats an app head whose CRC and marker are
+blank — `0xFFFFFFFF` may be read as a valid empty entry — and that behaviour is not documented for the
+AC791N and cannot be measured here. Changing the write order on an assumption would trade a known
+failure mode (record-gated resume, which is tested in `tests/ldr_test.c`) for an unknown one, so the
+order stays as it is until a laboratory unit can show what the SPL does with a blank head.
+
+What would give independent recovery, in order of cost: (a) a stub in the first sector that survives
+a failed app write and re-enters the loader (needs the SPL's load rules); (b) a golden image in the
+staging window and a flag the SPL acts on (needs the same); (c) the vendor's ROM download mode, which
+exists but is not this project's code and is not demonstrated here.
+
 ## 7. Budgets
 
 The JieLi toolchain and the AC79 SDK are not installed in this VM, so the target package
