@@ -379,6 +379,12 @@ if [ "${NO_PACKAGE:-0}" = 1 ]; then
 else
     run "build manifest: artefacts, version, commit, config and the emulator agree (and a wrong one fails)" \
         python3 tests/manifest_test.py
+    # the real package, its real record and a signed release manifest through the transport gate: this
+    # is the only test that refuses to invent its artefacts, so it needs the build above
+    if command -v node >/dev/null 2>&1; then
+        run "release e2e: the built package, its record and a signed manifest agree end to end" \
+            node web/test_release_e2e.mjs
+    fi
 fi
 
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }

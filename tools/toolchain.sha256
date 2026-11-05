@@ -1,0 +1,12 @@
+# The JieLi Linux toolchain archive, reviewed and pinned.
+#
+# tools/get_toolchain.sh downloads https://pkgman.jieliapp.com/s/linux-toolchain (which redirects to
+# JieLi's OSS) and refuses to unpack anything whose SHA-256 is not the value below. That URL serves
+# the latest build, so when JieLi replaces it upstream this file has to be reviewed and updated in the
+# same commit that uses the new compiler: the failure is loud and names both hashes, on purpose.
+#
+# JIELI_TOOLCHAIN_SHA256 (repository variable, or the environment) overrides this file. Set it only to
+# a hash that was reviewed the same way.
+#
+# reviewed: jieli-linux-toolchains-20260730.1, clang 4.0.1 for pi32v2, 26 027 508 bytes
+a1545cddbc451a06bac43eb5cd96d831470c42a97c5c0b1f98879a20fc7647bd

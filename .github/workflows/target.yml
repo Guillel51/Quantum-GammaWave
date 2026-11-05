@@ -59,8 +59,13 @@ jobs:
 
       - name: AC79 SDK (pinned branch)
         run: |
-          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
-              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK"
+          # gitee drops connections from CI runners now and then: retry with backoff before giving up,
+          # and say which branch was expected when it does fail
+          retry() { for d in 0 5 15 30 60; do sleep $d; "$@" && return 0; done; return 1; }
+          retry git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK" \
+            || { echo "::error::could not clone the AC79 SDK branch AC79NN_SDK_V1.2.1_2023-12-13 from gitee"; exit 1; }
+          ls -l "$AC79_SDK/cpu/wl82/tools/uboot.boot"
 
       - name: build (app, loader, package; the budget checks run inside)
         run: ./build.sh
@@ -118,8 +123,13 @@ jobs:
         run: tools/get_toolchain.sh "${{ github.workspace }}/.jieli"
       - name: AC79 SDK (pinned branch)
         run: |
-          git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
-              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK"
+          # gitee drops connections from CI runners now and then: retry with backoff before giving up,
+          # and say which branch was expected when it does fail
+          retry() { for d in 0 5 15 30 60; do sleep $d; "$@" && return 0; done; return 1; }
+          retry git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+              https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK" \
+            || { echo "::error::could not clone the AC79 SDK branch AC79NN_SDK_V1.2.1_2023-12-13 from gitee"; exit 1; }
+          ls -l "$AC79_SDK/cpu/wl82/tools/uboot.boot"
       # v1.8.8 fixed this configuration (flash_identify, the TAKES reel and its call sites were outside
       # their #if); nothing built it, so nothing noticed it was broken.
       - name: build without storage
