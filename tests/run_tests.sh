@@ -277,6 +277,8 @@ for t in eq_dc_test eq_response_test eq_state_test eq_sweep_test six_track_test 
     run "EQ / load ($t): DC gain against the coefficients, 11-bit state, stability, response, six tracks, and the six-track live scene" \
         "$OUT/$t"
 done
+run "transport gate: the image bytes leave only from #serve, behind requireProof(), install/write/resume" \
+    python3 tests/transport_gate_test.py
 run "chip identification: 0x12/0x13 gates, no write frame without a verified part" python3 tests/chip_test.py
 run "raw restore: geometry, identifiers, sector alignment, readback, refusal before any erase" \
     python3 tests/restore_test.py
