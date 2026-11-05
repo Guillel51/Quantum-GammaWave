@@ -84,9 +84,30 @@ def dirty():
         if "R" in entry[:2] or "C" in entry[:2]:
             i += 1                      # the rename's source follows as its own field
         path = entry[3:]
-        if path and not path.startswith("build/"):
+        if path and not path.startswith("build/") and not _external_input(path):
             files.append(path)
     return files
+
+
+def _external_input(path):
+    """True for the toolchain and SDK directories when they sit inside this checkout.
+
+    CI clones the AC79 SDK next to the sources (`AC79_SDK=$GITHUB_WORKSPACE/fw-AC79_AIoT_SDK`) and
+    unpacks the compiler under `.jieli/`. Neither is part of what is being built from this commit, and
+    both are identified by hash in the manifest itself, so counting them as "uncommitted changes" only
+    made a clean build fail `--require-clean` with a list of files nobody wrote by hand.
+    """
+    for var in ("AC79_SDK", "JIELI_TOOLCHAIN"):
+        value = os.environ.get(var, "").strip()
+        if not value:
+            continue
+        try:
+            rel = Path(value).resolve().relative_to(ROOT.resolve()).as_posix()
+        except (OSError, ValueError):
+            continue
+        if rel and not rel.startswith("..") and (path == rel or path.startswith(rel + "/")):
+            return True
+    return False
 
 
 def version():
