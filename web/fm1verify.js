@@ -41,6 +41,15 @@
 //
 // A disconnect, a timeout or a malformed answer ends the same way: the kind is reported from
 // what was actually read, every port is closed, and there is no next step that writes.
+//
+// THE PACKAGE IS NOT THE DEVICE. The page also carries a package (this build: FM-1_982), and the
+// two identities must never be mixed on screen: "FM-1_982" is the tag of the .fwsc this page
+// offers, "FM-1_015" is what a stock FM-1 answers, and a unit that answers FM-1_982 is NOT a unit
+// running official V15 -- it is running this build. So the report carries them in two separate
+// blocks (`firmware.*` from the frame, `pkg.*` from this page's build record), and the
+// compatibility between them is a third, derived row that is explicitly informational.
+// The identity of the package is NEVER written into a device field, and the package being V15 does
+// not turn a device that answered FM-1_982 into stock: kind is decided by what the unit said.
 
 import { Updater, PORT_RE } from "./fm1ota.js";
 
@@ -76,6 +85,49 @@ function report(kind, base) {
   return { kind, found, recognised, canInstall: false, ports: base.ports, ...base };
 }
 
+// the package this page offers, described from its own build record (never from the device):
+// identity tag, the release version the site names, and the size and hash the manifest covers.
+// The hash here is the EXPECTED one -- verify only does not re-read the .fwsc -- so it says so.
+function packageOf(product, pkg) {
+  const identity = String(product || "");
+  const m = /^([^_]+)(?:_(\d+))?$/.exec(identity);
+  const p = pkg || {};
+  return {
+    identity,
+    model: m ? m[1] : "",
+    tag: m && m[2] ? m[2] : "",
+    release: String(p.version || ""),
+    size: Number(p.size || 0),
+    sha256: String(p.sha256 || ""),
+  };
+}
+
+// How this package relates to what answered. Informational: `canInstall` is false regardless, and
+// only the install path's own gate (signature, chip JEDEC, sizes) decides. A silent unit is
+// "unproven", never "compatible": nothing was read, so nothing is known about its firmware.
+function compatibility(kind, deviceModel, pkgModel) {
+  if (!pkgModel) return "no-package";
+  if (kind === "none") return "no-device";
+  if (kind === "silent") return "unproven-device";
+  if (!deviceModel || deviceModel !== pkgModel) return "blocked-model";
+  if (kind === "stock") return "replaces-stock";
+  if (kind === "ours") return "reinstall-same";
+  if (kind === "loader") return "finish-loader";
+  return "blocked-firmware";
+}
+
+// the package block, rendered in every report: the same rows whatever the device did or did not say
+function pkgFields(pkg, compat) {
+  return [
+    { key: "pkg.identity", value: pkg.identity || "-", source: "this page's build record", confidence: pkg.identity ? "high" : "none" },
+    { key: "pkg.release", value: pkg.release || "-", source: "this page's build record", confidence: pkg.release ? "high" : "none" },
+    { key: "pkg.size", value: pkg.size ? `${pkg.size} B` : "-", source: "this page's build record", confidence: pkg.size ? "high" : "none" },
+    { key: "pkg.sha256", value: pkg.sha256 ? `${pkg.sha256.slice(0, 16)}\u2026` : "-", source: "this page's build record (expected, not re-hashed here)", confidence: pkg.sha256 ? "medium" : "none" },
+    { key: "compat", value: compat, source: "device identity vs package tag", confidence: "high" },
+    { key: "install.auth", value: "none", source: "verify only never authorises an install", confidence: "high" },
+  ];
+}
+
 const MISSING = [
   ["flash.jedec", "the identity query does not carry it; 0x12 is part of the install path, not of a read-only check"],
   ["flash.size", "geometry is not in the identity answer and the running firmware refuses region reads"],
@@ -87,6 +139,7 @@ const MISSING = [
 
 export async function verifyDevice(midi, opts = {}) {
   const product = String(opts.product || "");
+  const pkg = packageOf(product, opts.pkg);
   const log = opts.log || (() => {});
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
@@ -104,10 +157,12 @@ export async function verifyDevice(midi, opts = {}) {
     // implement the query. Both are "no firmware recognised", never "no device" when a port is there
     const kind = ports.length ? "silent" : "none";
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
+    const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
       firmware: "unknown", reading: { sysex: !!midi.sysexEnabled, inputs, outputs },
+      package: pkg, compatibility: compat, authorised: false,
       /* a silent unit still tells us what its USB descriptors say: that is information, and it is
        * the only information this path gets from it */
       fields: [
@@ -117,6 +172,7 @@ export async function verifyDevice(midi, opts = {}) {
         { key: "port.name", value: port.name || "-", source: "USB-MIDI descriptor", confidence: port.name ? "high" : "none" },
         { key: "port.manufacturer", value: port.manufacturer || "-", source: "USB-MIDI descriptor", confidence: port.manufacturer ? "high" : "none" },
         { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
+        ...pkgFields(pkg, compat),
       ],
       missing: MISSING.map(([key, why]) => ({ key, why })),
     });
@@ -130,6 +186,7 @@ export async function verifyDevice(midi, opts = {}) {
   else if (product && text === product) { kind = "ours"; firmware = "gammaWave"; }
   else { kind = "other"; firmware = "other"; }
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
+  const compat = compatibility(kind, hardware, pkg.model);
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
@@ -140,12 +197,14 @@ export async function verifyDevice(midi, opts = {}) {
     { key: "port.name", value: port.name || "-", source: "USB-MIDI descriptor", confidence: port.name ? "high" : "none" },
     { key: "port.manufacturer", value: port.manufacturer || "-", source: "USB-MIDI descriptor", confidence: port.manufacturer ? "high" : "none" },
     { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
+    ...pkgFields(pkg, compat),
   ];
   const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));
   return report(kind, {
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs },
     fields, missing,
-    compatible: !!product && text === product,      /* informational: never an authorisation */
+    package: pkg, compatibility: compat, authorised: false,
+    compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
   });
 }

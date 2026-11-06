@@ -10,7 +10,7 @@
 
 import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
 import * as mod from "./fm1verify.js";
-import { Updater } from "./fm1ota.js";
+import { Updater, requireProof } from "./fm1ota.js";
 
 let bad = 0, total = 0;
 const check = (name, ok) => {
@@ -268,6 +268,115 @@ function anyWrite(sent) {
     /function showVerify\(fw\)/.test(html) && /vw|fw\.fields/.test(html) && /fw\.missing/.test(html));
   check("the Verify handler renders the report", /showVerify\(fw\)/.test(html));
   check("the panel says detection is not an authorisation", /canInstall|not an authorisation|no autoriza/.test(html));
+}
+
+// --- the package is not the device -----------------------------------------------------------
+// The reported failure: a stock FM-1 printed "Verify: official V15 (FM-1_015). This package can be
+// installed. FM-1_982". FM-1_982 is the tag of the package the page offers, and the handler appended
+// it to a sentence about the unit, so the only identifier left visible looked like the installed
+// firmware. The fixes below keep the two identities in separate fields, in separate rows, and never
+// let the package tag decide what the device is.
+{
+  const fw = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] }).midi,
+    { product: "FM-1_982", pkg: { version: "v1.9.0", size: 611163, sha256: "372a5fde126ab6f1" } });
+  const byKey = Object.fromEntries((fw.fields || []).map((f) => [f.key, f]));
+  check("stock unit: the device identity is what the unit answered (FM-1_015)",
+    byKey["firmware.identity"].value === "FM-1_015" && fw.text === "FM-1_015");
+  check("stock unit: the package is named in its own rows (FM-1_982), never as the device's identity",
+    byKey["pkg.identity"].value === "FM-1_982" && byKey["firmware.identity"].value !== "FM-1_982");
+  check("stock unit: the package rows carry the release version, the size and the expected hash, with sources",
+    byKey["pkg.release"].value === "v1.9.0" && /611163/.test(byKey["pkg.size"].value) &&
+    /^372a5fde/.test(byKey["pkg.sha256"].value) && /build record/.test(byKey["pkg.identity"].source));
+  check("stock unit + this package: compatibility says it replaces official V15, and authorisation stays none",
+    fw.compatibility === "replaces-stock" && byKey["install.auth"].value === "none" && fw.authorised === false);
+  check("stock unit: the package tag is in no device row at all",
+    !(fw.fields || []).some((f) => /^(hardware|firmware|port)\./.test(f.key) && f.value === "FM-1_982"));
+}
+{
+  // the reverse: a unit answering FM-1_982 is NOT stock, whatever the package is called. Comparing the
+  // package against FM-1_015 must never promote a device that answered something else into "stock".
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_015", pkg: { version: "v15", size: 1, sha256: "00" } });
+  check("a unit answering FM-1_982 is not stock, even when the package is a V15 one",
+    fw.kind === "other" && fw.firmware === "other" && fw.hardware === "FM-1" && fw.recognised === false);
+  check("that unit is reported with its own identity and is not offered an install",
+    fw.text === "FM-1_982" && fw.compatibility === "blocked-firmware" && fw.canInstall === false);
+  check("and it still heard nothing but the identity query", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+{
+  // our own firmware already running: a reinstall, not stock and not "another build"
+  const fw = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] }).midi,
+    { product: "FM-1_982" });
+  check("FM-1_982 + package FM-1_982: ours, same firmware (a reinstall)",
+    fw.kind === "ours" && fw.compatibility === "reinstall-same" && fw.canInstall === false);
+}
+{
+  // the loader, and a package for a different model
+  const ldr = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_982")] }).midi,
+    { product: "FM-1_982" });
+  check("the update loader + this package: it can finish the interrupted install",
+    ldr.kind === "loader" && ldr.compatibility === "finish-loader" && ldr.authorised === false);
+  const wrong = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-2_982")] }).midi,
+    { product: "FM-1_982" });
+  check("a unit of another model is blocked by model, not by firmware",
+    wrong.kind === "other" && wrong.compatibility === "blocked-model" && wrong.hardware === "");
+}
+{
+  // no answer and no port: the package block is still there, and the unit is "unproven", not compatible
+  const silent = await verifyDevice(access(["FM-1"], { "FM-1": () => [] }).midi, { product: "FM-1_982" });
+  const none = await verifyDevice(access([], {}).midi, { product: "FM-1_982" });
+  const has = (fw, key) => (fw.fields || []).some((f) => f.key === key);
+  check("a silent port: unproven, never compatible, and the package is still named",
+    silent.compatibility === "unproven-device" && has(silent, "pkg.identity") && silent.canInstall === false);
+  check("no port at all: no device to compare, and the package is still named",
+    none.compatibility === "no-device" && has(none, "pkg.identity") && none.canInstall === false);
+  check("neither of them claims an authorisation", silent.authorised === false && none.authorised === false);
+}
+{
+  // the handler and the panel: the status line speaks about the unit, the package gets its own rows
+  const fs = await import("node:fs/promises");
+  const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
+  const at = html.indexOf('$("verify").addEventListener');
+  const body = html.slice(at, html.indexOf("\n});", at));
+  check("the stock message is no longer given the package tag as an argument",
+    /sayK\("vStock"\)/.test(body) && !/sayK\("vStock"\s*,/.test(body));
+  check("the Verify handler passes the package to the report",
+    /pkg:\s*\{[^}]*version[^}]*sha256/.test(body));
+  const vstocks = [...html.matchAll(/\bvStock:\s*"([^"]*)"/g)].map((m) => m[1]);   // not navStock:
+  check("every stock message names the unit's identity and none of them names the package's",
+    vstocks.length >= 4 && vstocks.every((s) => /FM-1_015/.test(s) && !/FM-1_9\d\d/.test(s)));
+  check("the panel renders the package rows and translates the compatibility and authorisation values",
+    /vf\("compat\."\s*\+/.test(html) && /vf\("auth\."\s*\+/.test(html) && /"pkg\.identity"/.test(html));
+  const langBlocks = ["en", "es", "zh"].map((l) => html.slice(html.indexOf(`\n  ${l}: {`, html.indexOf("const VF"))));
+  check("the new panel labels exist in en, es and zh",
+    langBlocks.every((b) => ["pkg.identity", "pkg.release", "pkg.sha256", "install.auth", "compat.no-device"]
+      .every((k) => b.slice(0, b.indexOf("\n  },")).includes(`"${k}"`) || b.slice(0, b.indexOf("\n  },")).includes(`${k}:`))));
+}
+
+// --- the write routes refuse internally, not only at the buttons ---------------------------------
+// verify only is read-only by construction; this is the other half of the same property: the routes
+// that DO write cannot be reached by calling them directly with nothing to authorise them, and their
+// refusal is a count of frames, not a message.
+{
+  const sent = [];
+  const port = { name: "FM-1", state: "connected", open: async () => {}, send(b) { sent.push(Array.from(b)); } };
+  const midi = { inputs: new Map([["in", { ...port, onmidimessage: null }]]), outputs: new Map([["out", port]]) };
+  const up = new Updater(midi);
+  const link = { send(b) { sent.push(Array.from(b)); }, read: async () => null, close() {}, lost: false };
+  const ota = { link, id: { model: "ota-FM-1", text: "ota-FM-1_982" } };
+  const pkg = new Uint8Array(2000);
+  const e1 = await up.write(ota, pkg, () => {}, { product: "FM-1_982" }).then(() => null, (x) => x);
+  check("write() called directly, with no proof, is refused and sends nothing",
+    !!e1 && ["proof", "version", "signature"].includes(e1.code) && sent.length === 0);
+  const e2 = await up.resume(pkg, () => {}, "FM-1_982", {}).then(() => null, (x) => x);
+  check("resume() called directly, with no proof, is refused and sends nothing",
+    !!e2 && ["proof", "version", "signature"].includes(e2.code) && sent.length === 0);
+  const manifest = { format: "qg1-release-1", product: "FM-1", version: "1.9.0", min_firmware: "0.0",
+    sha256: "00".repeat(32), size: pkg.length, keyid: "k", sig: "00".repeat(64) };
+  const e3 = await requireProof({ pkg, manifest, keys: {}, product: "FM-1_982", firmware: "1.9.0" })
+    .then(() => null, (x) => x);
+  check("with the pinned key map empty, requireProof refuses the package: a hash is integrity, not authorship",
+    !!e3 && e3.code === "signature" && sent.length === 0);
 }
 
 console.log(`verify only: ${total} checks, ${bad} FAILED`);
