@@ -379,5 +379,27 @@ function anyWrite(sent) {
     !!e3 && e3.code === "signature" && sent.length === 0);
 }
 
+// --- the page's script parses ---------------------------------------------------------------
+// A missing comma in one language block of the page's messages took the whole installer down in the
+// browser ("SyntaxError: Unexpected identifier 'vOurs'") while every string looked right in the
+// source. The page is a module with two placeholders that make_site.py fills, so this assembles the
+// same text it produces and asks Node to parse it: no browser, no build, and the failure is loud.
+{
+  const fs = await import("node:fs/promises");
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const { execFileSync } = await import("node:child_process");
+  const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
+  const m = /<script type="module">([\s\S]*?)<\/script>/.exec(html);
+  const body = m ? m[1].replace("/*LIB*/", "").replace("/*META*/", "{}") : "";
+  const tmp = path.join(os.tmpdir(), `qg-installer-${process.pid}.mjs`);
+  await fs.writeFile(tmp, body);
+  let err = "";
+  try { execFileSync(process.execPath, ["--check", tmp], { stdio: "pipe" }); } catch (e) { err = String(e.stderr || e.message); }
+  await fs.unlink(tmp).catch(() => {});
+  check("the installer page's script parses (a missing comma is a dead installer, not a typo)", body.length > 1000 && !err);
+  if (err) console.log(err.split("\n").slice(0, 4).join("\n"));
+}
+
 console.log(`verify only: ${total} checks, ${bad} FAILED`);
 if (bad) process.exit(1);
