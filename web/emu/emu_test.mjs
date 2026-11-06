@@ -120,17 +120,27 @@ check("PLAY: the sequencer runs, PLAY's green LED", a.ex.web_playing() === 1 && 
 a.tap(B.PLAY);
 a.render(300);
 check("PLAY again stops it", a.ex.web_playing() === 0);
+// (2.0) the Punch-in map: a short hold peeks (it closes when the button is let go), four seconds pin it, and
+// FX again unlocks. The firmware's tests/ui_test.c asserts the same three, on the clock the ISR runs.
 a.ex.web_buttons(1 << B.FX);                                  // #119: FX held, its map: the effects breathe
 a.render(800);
 const brK = a.ex.web_breath_keys(), brB = a.ex.web_breath_buttons(), litK = a.ex.web_lit_keys();
 a.ex.web_buttons(0);
 a.render(300);
-const lockedK = a.ex.web_breath_keys();                      // (0.6.44: held open, nothing played, let go: locked open)
-a.tap(B.FX);                                                 // .. FX again: unlocked
-a.render(300);
-check("FX held: its button and the effects' keys breathe, none lit; let go: locked open; FX again: nothing",
-      lockedK !== 0 &&
+const peek = a.ex.web_breath_keys();                         // a peek: closed again on release
+a.ex.web_buttons(1 << B.FX);                                 // .. held past four seconds: this press pins it
+a.render(4200);
+const heldLong = a.ex.web_breath_keys() !== 0;
+a.ex.web_buttons(0);
+a.render(400);
+const pinned = a.ex.web_breath_keys(), pinnedB = a.ex.web_breath_buttons();
+a.ex.web_buttons(1 << B.FX);                                 // .. FX again: unlocked, nothing breathes
+a.render(60);
+a.ex.web_buttons(0);
+a.render(400);
+check("FX: a short hold peeks, four seconds pin the map, FX again unlocks; none of it lights a key",
       (brB >> B.FX & 1) === 1 && brK !== 0 && (brK & litK) === 0 && litK === 0 &&
+      peek === 0 && heldLong && pinned !== 0 && (pinnedB >> B.FX & 1) === 1 &&
       a.ex.web_breath_keys() === 0 && a.ex.web_breath_buttons() === 0);
 { // the page's breathing peaks against the firmware's (hal/fm1_input.h FM1_LED_BREATH_PK / _LO, /256 of lit): the
   // colour at 50 % between the dark and the lit one by the LED's share, gamma-encoded (sRGB), within 0.06
