@@ -143,9 +143,10 @@
   .card p { margin: 0; color: var(--muted); font-size: 14px; max-width: 38ch; }
   .card .tag { display: inline-block; margin-top: 16px; padding: 3px 8px; border: 1px solid var(--line2); border-radius: 99px; color: var(--gold); font: 700 9px/1.4 var(--mono); letter-spacing: .08em; }
   .card .glyph { position: absolute; right: 18px; top: 18px; width: 38px; height: 38px; color: var(--heat); opacity: .8; }
-  .showcase { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+  .showcase { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; align-items: start; }
   .shot { grid-column: span 4; margin: 0; padding: 9px; border: 1px solid var(--line); border-radius: 14px; background: #0d0805; }
   .shot.big { grid-column: span 8; }
+  .shot.wide { grid-column: span 6; }
   .shot img { border: 1px solid #142040; border-radius: 8px; width: 100%; }
   .shot figcaption { display: flex; justify-content: space-between; gap: 10px; padding: 10px 4px 2px; color: var(--muted); font: 600 10px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
   .shot figcaption b { color: var(--gold); }
@@ -237,7 +238,7 @@
     .hero-grid, .studio-band, .install-grid { grid-template-columns: 1fr; }
     .float-tag { right: 10px; }
     .card, .card.wide, .card.half { grid-column: span 6; }
-    .shot.big, .shot { grid-column: span 6; }
+    .shot.big, .shot, .shot.wide { grid-column: span 6; }
     .resources { grid-template-columns: repeat(2, 1fr); }
     .section-head { grid-template-columns: 1fr; gap: 12px; }
     .nav a:not(.top-cta) { display: none; }
@@ -253,7 +254,7 @@
     .feature-grid { display: grid; grid-template-columns: 1fr; }
     .card, .card.wide, .card.half { grid-column: auto; min-height: 0; }
     .showcase { grid-template-columns: 1fr; }
-    .shot, .shot.big { grid-column: auto; }
+    .shot, .shot.big, .shot.wide { grid-column: auto; }
     .studio-band { padding: 22px; }
     .float-tag { display: none; }
     .resources, .foot-grid { grid-template-columns: 1fr; }
@@ -410,8 +411,8 @@
       <div class="showcase">
         <figure class="shot big"><img src="assets/fw-visualizer.png" alt="El visualizador del firmware, 240 x 240: osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
         <figure class="shot"><img src="assets/fw-mixer.png" alt="La página MIXER del firmware: seis pistas con nivel, paneo, envío y mute."><figcaption><b>MIXER</b><span>SEIS PISTAS</span></figcaption></figure>
-        <figure class="shot"><img src="assets/fw-fx.png" alt="La página FX del firmware: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
-        <figure class="shot"><img src="assets/installer.png" alt="Instalador USB de Quantum GammaWave con verificación de paquete y advertencias."><figcaption><b>INSTALADOR</b><span>USB-MIDI</span></figcaption></figure>
+        <figure class="shot wide"><img src="assets/fw-fx.png" alt="La página FX del firmware: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
+        <figure class="shot wide"><img src="assets/installer.png" alt="Instalador USB de Quantum GammaWave con verificación de paquete y advertencias."><figcaption><b>INSTALADOR</b><span>USB-MIDI</span></figcaption></figure>
       </div>
     </div>
   </section>

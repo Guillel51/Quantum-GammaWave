@@ -63,7 +63,9 @@ Checks the package and the device identity before it writes anything.
 The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
 Both captures are the same viewport -- 1440 x 900, cropped from the full-page ones beside them -- so the
 two columns are the same size and neither image is stretched. They were captured in Chromium from the
-**published build `0f52f48`**, not from localhost.
+**published build `0f52f48`**, not from localhost: GitHub Pages has not redeployed since, so the portal
+in the picture is older than the screenshots it links (`artifacts/site-desktop-capturas.png` and
+`artifacts/site-mobile-capturas.png` show the checked local build instead).
 
 ---
 
