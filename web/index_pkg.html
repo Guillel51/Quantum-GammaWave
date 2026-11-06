@@ -428,6 +428,13 @@
 
     <progress id="bar" max="100" value="0"></progress>
     <p id="status" role="status" aria-live="polite"></p>
+    <section id="vrep" hidden aria-live="polite"
+             style="border:1px solid var(--border);padding:10px 12px;margin:10px 0;text-align:left">
+      <p class="small" id="vrep-head" style="margin:0 0 8px;font-weight:600"></p>
+      <dl id="vrep-rows" class="small" style="margin:0;display:grid;grid-template-columns:max-content 1fr;gap:4px 12px"></dl>
+      <p class="small" id="vrep-missing" style="margin:8px 0 0;color:var(--muted)"></p>
+      <p class="small" id="vrep-install" style="margin:6px 0 0;color:var(--muted)"></p>
+    </section>
     <pre id="log"></pre>
 
     <details id="stock" open style="margin-top:20px;border-top:1px solid var(--border);padding-top:12px">
@@ -862,6 +869,87 @@ let lang = (() => {
   return "en";
 })();
 const t = (k) => (TEXT[lang] && TEXT[lang][k]) || TEXT.en[k] || k;
+/* (verify only) the readout's own words. They live beside the panel they fill instead of inside the
+ * three TEXT blocks: every value under them is a protocol fact, and a field this path cannot read is
+ * named rather than left blank. */
+const VF = {
+  en: {
+    title: "Verify only: what was actually read",
+    install: "Detection is not an authorisation: nothing here enables INSTALL.",
+    missing: "Not readable through this path",
+    "hardware.model": "Hardware",
+    "firmware.identity": "Identity the unit reports",
+    "firmware.version": "Firmware version (its own numbering)",
+    "firmware.family": "Firmware family",
+    protocol: "Protocol used",
+    "usb.sysex": "WebMIDI SysEx access",
+    "port.name": "USB-MIDI port name",
+    "port.manufacturer": "USB-MIDI manufacturer",
+    "port.descriptorVersion": "USB descriptor version",
+    "flash.jedec": "Flash JEDEC id",
+    "flash.size": "Flash size / geometry",
+    soc: "SoC",
+    clock: "CPU clock",
+    bootloader: "Boot loader",
+    "usb.vidpid": "USB vendor / product id",
+    "fam.stock": "official V15",
+    "fam.gammaWave": "Quantum GammaWave (this package)",
+    "fam.other": "another build (JIANT or custom)",
+    "fam.loader": "update loader",
+    "fam.unknown": "not recognised",
+  },
+  es: {
+    title: "Solo verificar: lo que se leyó de verdad",
+    install: "Detectar no autoriza: nada de esto habilita INSTALL.",
+    missing: "No legible por este camino",
+    "hardware.model": "Hardware",
+    "firmware.identity": "Identidad que reporta la unidad",
+    "firmware.version": "Versión de firmware (su propia numeración)",
+    "firmware.family": "Familia de firmware",
+    protocol: "Protocolo usado",
+    "usb.sysex": "Acceso SysEx de WebMIDI",
+    "port.name": "Nombre del puerto USB-MIDI",
+    "port.manufacturer": "Fabricante USB-MIDI",
+    "port.descriptorVersion": "Versión del descriptor USB",
+    "flash.jedec": "JEDEC de la flash",
+    "flash.size": "Tamaño / geometría de la flash",
+    soc: "SoC",
+    clock: "Reloj de CPU",
+    bootloader: "Boot loader",
+    "usb.vidpid": "VID / PID de USB",
+    "fam.stock": "V15 oficial",
+    "fam.gammaWave": "Quantum GammaWave (este paquete)",
+    "fam.other": "otro build (JIANT o personalizado)",
+    "fam.loader": "loader de actualización",
+    "fam.unknown": "no reconocido",
+  },
+  zh: {
+    title: "仅校验：实际读取到的内容",
+    install: "识别并不等于授权：这里不会启用 INSTALL。",
+    missing: "此路径无法读取",
+    "hardware.model": "硬件",
+    "firmware.identity": "设备报告的标识",
+    "firmware.version": "固件版本（按其自身编号）",
+    "firmware.family": "固件族",
+    protocol: "使用的协议",
+    "usb.sysex": "WebMIDI SysEx 权限",
+    "port.name": "USB-MIDI 端口名",
+    "port.manufacturer": "USB-MIDI 厂商",
+    "port.descriptorVersion": "USB 描述符版本",
+    "flash.jedec": "Flash JEDEC 编号",
+    "flash.size": "Flash 容量 / 几何",
+    soc: "SoC",
+    clock: "CPU 时钟",
+    bootloader: "引导程序",
+    "usb.vidpid": "USB VID / PID",
+    "fam.stock": "官方 V15",
+    "fam.gammaWave": "Quantum GammaWave（本包）",
+    "fam.other": "其他固件（JIANT 或自制）",
+    "fam.loader": "升级 loader",
+    "fam.unknown": "未识别",
+  },
+};
+const vf = (k) => (VF[lang] && VF[lang][k]) || VF.en[k] || k;
 const LANG_LABEL = { en: "EN", es: "ES", zh: "中文" };
 const TITLE = {
   en: "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware",
@@ -1122,6 +1210,31 @@ $("go").addEventListener("click", async () => {
   lockInstaller(false);
 });
 
+/* (verify only) the readout on screen: every field the check actually obtained, with where it came
+ * from, and the fields this path cannot obtain, said out loud. The last line is not decoration: the
+ * panel is a diagnosis, and canInstall is false in the object it renders. */
+function showVerify(fw) {
+  const rows = $("vrep-rows");
+  $("vrep").hidden = false;
+  $("vrep-head").textContent = vf("title");
+  rows.textContent = "";
+  for (const f of fw.fields || []) {
+    const dt = document.createElement("dt");
+    dt.textContent = vf(f.key);
+    const dd = document.createElement("dd");
+    dd.style.margin = "0";
+    dd.textContent = f.key === "firmware.family" ? vf("fam." + f.value) : f.value;
+    const tag = document.createElement("span");
+    tag.style.color = "var(--muted)";
+    tag.textContent = ` \u2014 ${f.source}`;
+    dd.appendChild(tag);
+    rows.append(dt, dd);
+  }
+  const missing = (fw.missing || []).map((m) => vf(m.key));
+  $("vrep-missing").textContent = missing.length ? `${vf("missing")}: ${missing.join(", ")}` : "";
+  $("vrep-install").textContent = vf("install");
+}
+
 $("verify").addEventListener("click", async () => {
   /* (verify only) one frame type on the wire: the identity query. fm1verify.js classifies what
    * the device answers and never reaches an install, a write, a resume or a chip session. */
@@ -1139,6 +1252,7 @@ $("verify").addEventListener("click", async () => {
     else if (fw.kind === "stock") sayK("vStock", meta.product);
     else if (fw.kind === "ours") sayK("vOurs", fw.text + t("vSame"));
     else sayK("vOther", fw.text + t("vOtherTail"));   /* (7.x) detected, not recognised: FM-1_909 and the like */
+    showVerify(fw);
   } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
   finally { lockInstaller(false); }
 });

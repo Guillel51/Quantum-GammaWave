@@ -215,5 +215,60 @@ function anyWrite(sent) {
     !/\b(erase|restoreBackup|captureBackup|reboot|sendPackage)\b/.test(body));
 }
 
+// --- the diagnosis, not just the verdict -----------------------------------------------------
+{
+  // the unit that motivated this: an FM-1 running Jiant answers FM-1_909. The hardware is an FM-1;
+  // 909 is that firmware's own numbering, not a hardware revision and not a byte pattern to match.
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("JIANT on a real unit (FM-1_909): the hardware is recognised as an FM-1",
+    fw.hardware === "FM-1" && fw.kind === "other" && fw.found === true);
+  check("JIANT (FM-1_909): the firmware is reported as another build, with its own version",
+    fw.firmware === "other" && fw.version === 909 && fw.text === "FM-1_909");
+  check("JIANT (FM-1_909): canInstall stays false", fw.canInstall === false && fw.recognised === false);
+  check("JIANT (FM-1_909): still one frame type on the wire", onlyQueries(a.sent) && !anyWrite(a.sent));
+  const byKey = Object.fromEntries((fw.fields || []).map((f) => [f.key, f]));
+  check("the report names the hardware field with its source",
+    byKey["hardware.model"] && byKey["hardware.model"].value === "FM-1" && byKey["hardware.model"].source === "identity answer");
+  check("the report names the firmware family and its version",
+    byKey["firmware.family"].value === "other" && byKey["firmware.version"].value === "909");
+  check("the report says what it could not read (JEDEC, flash size, SoC, clock, VID/PID)",
+    ["flash.jedec", "flash.size", "soc", "clock", "usb.vidpid"].every((k) => (fw.missing || []).some((m) => m.key === k && m.why)));
+  check("the report never claims the SoC or the flash as a reading",
+    !(fw.fields || []).some((f) => f.key === "soc" || f.key === "flash.jedec"));
+}
+{
+  // every kind leaves canInstall false: the diagnosis never authorises an install
+  const cases = [["FM-1_015", "stock"], ["FM-1_982", "ours"], ["FM-1_909", "other"], ["ota-FM-1_982", "loader"]];
+  let allFalse = true;
+  for (const [id, kind] of cases) {
+    const a = access(["FM-1"], { "FM-1": () => [identityFrame(id)] });
+    const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+    if (fw.kind !== kind || fw.canInstall !== false) allFalse = false;
+  }
+  check("canInstall is false for stock, ours, another build and the loader", allFalse);
+}
+{
+  // the descriptors are read before any frame: a port that names its maker is reported as such
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
+  for (const port of a.midi.inputs.values()) { port.manufacturer = "M-VAVE"; port.version = "1.00"; port.id = "usb-1"; }
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const byKey = Object.fromEntries((fw.fields || []).map((f) => [f.key, f]));
+  check("the USB-MIDI manufacturer is reported when the port exposes it",
+    byKey["port.manufacturer"].value === "M-VAVE" && /descriptor/i.test(byKey["port.manufacturer"].source));
+  check("the USB descriptor version is reported too", byKey["port.descriptorVersion"].value === "1.00");
+  check("and the readout counts as a diagnosis, not as an authorisation", fw.canInstall === false);
+}
+{
+  // the page has to show it: a panel, filled from the report, with the limits named
+  const fs = await import("node:fs/promises");
+  const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
+  check("the page has a report panel and a row list", /id="vrep"/.test(html) && /id="vrep-rows"/.test(html));
+  check("the panel is filled from the report's fields and limits",
+    /function showVerify\(fw\)/.test(html) && /vw|fw\.fields/.test(html) && /fw\.missing/.test(html));
+  check("the Verify handler renders the report", /showVerify\(fw\)/.test(html));
+  check("the panel says detection is not an authorisation", /canInstall|not an authorisation|no autoriza/.test(html));
+}
+
 console.log(`verify only: ${total} checks, ${bad} FAILED`);
 if (bad) process.exit(1);
