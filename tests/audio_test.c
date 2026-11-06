@@ -325,56 +325,11 @@ static void meter_envelope(void)
         mix_block(out, CTL);
     check("(v1.9) after the release the envelope falls to silence, so no bar stays lit", trk[0].vu == 0);
 }
-/* (1.9) the master's meters are two, one per DAC channel (audio.c dac_scope / audio_out_peak). The scope
- * kept only out[2i], the left channel, so the right one had no level of its own: a part panned right moved
- * nothing and both sides of the pair showed one value. Every case here hands dac_scope a known stereo
- * signal, which is exactly what the ISR does with the master's block. */
-static void stereo_meters(void)
-{
-    int32_t out[2 * CTL];
-    uint32_t i;
-    memset(out, 0, sizeof out);
-    dac_scope(out, CTL);
-    check("(1.9) no signal: both channel meters read silence", audio_out_peak(0) == 0u && audio_out_peak(1) == 0u);
-    for (i = 0; i < CTL; i++) {                          /* mono: one level, centred */
-        out[2u * i] = (i & 1u) ? -8000 : 8000;
-        out[2u * i + 1u] = out[2u * i];
-    }
-    dac_scope(out, CTL);
-    check("(1.9) mono: the two meters read the same level",
-          audio_out_peak(0) == 8000u && audio_out_peak(1) == 8000u);
-    for (i = 0; i < CTL; i++) {                          /* hard left */
-        out[2u * i] = (i & 1u) ? -10000 : 10000;
-        out[2u * i + 1u] = 0;
-    }
-    dac_scope(out, CTL);
-    check("(1.9) hard left: the right meter stays dark instead of copying the left",
-          audio_out_peak(0) == 10000u && audio_out_peak(1) == 0u);
-    for (i = 0; i < CTL; i++) {                          /* hard right */
-        out[2u * i] = 0;
-        out[2u * i + 1u] = (i & 1u) ? -12000 : 12000;
-    }
-    dac_scope(out, CTL);
-    check("(1.9) hard right: the right meter moves (it used to stay dark)",
-          audio_out_peak(0) == 0u && audio_out_peak(1) == 12000u);
-    for (i = 0; i < CTL; i++) {                          /* unbalanced */
-        out[2u * i] = (i & 1u) ? -3000 : 3000;
-        out[2u * i + 1u] = (i & 1u) ? -9000 : 9000;
-    }
-    dac_scope(out, CTL);
-    check("(1.9) an unbalanced mix reads two different values, not one twice",
-          audio_out_peak(0) == 3000u && audio_out_peak(1) == 9000u);
-    memset(out, 0, sizeof out);
-    dac_scope(out, CTL);
-    check("(1.9) reading a peak clears it, so the next frame starts from silence",
-          audio_out_peak(0) == 0u && audio_out_peak(1) == 0u);
-}
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     delay_edge();
     meter_envelope();
-    stereo_meters();
     usb_level();
     boot_keys();
     overload(); dma();

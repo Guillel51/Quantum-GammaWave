@@ -28,34 +28,6 @@ static uint32_t audio_last_half = 2u, audio_lost;     /* (1.2.1-GW, JIANT 0.8.9)
 #define SCOPE_N 512u
 static int16_t scope_buf[SCOPE_N];
 static uint32_t scope_w;
-/* (1.9) the peak each DAC channel reaches between two UI frames. The scope used to keep the LEFT channel only
- * (out[2i]), so the right one had no meter of its own and a part panned right moved nothing: the UI showed the
- * left channel twice, or a dead right bar. Peak, not RMS: the UI applies its own hold and fall. */
-static volatile uint16_t out_pk[2];
-
-/* the peak of channel ch (0 = L, 1 = R) since this was last read, 0..32768 Q15; reading clears it */
-uint16_t audio_out_peak(uint32_t ch)
-{
-    uint32_t c = ch ? 1u : 0u;
-    uint16_t v = out_pk[c];
-    out_pk[c] = 0;
-    return v;
-}
-
-/* (1.9) one block of the master output -> the scope's history and the two channel peaks. Kept out of
- * audio_block so the host test can hand it a known stereo signal: the right channel used to be metered
- * with the left one, and a part panned right moved nothing. Every other frame, as before. */
-static void dac_scope(const int32_t *out, uint32_t n)
-{
-    uint32_t i;
-    for (i = 1; i < n; i += 2u) {                       /* the music, before the click */
-        int32_t l = out[2u * i], r = out[2u * i + 1u];
-        uint32_t al = (uint32_t)(l < 0 ? -l : l), ar = (uint32_t)(r < 0 ? -r : r);
-        scope_buf[scope_w++ & (SCOPE_N - 1u)] = (int16_t)((l + r) / 2);   /* mono, so a hard-panned part shows */
-        if (al > out_pk[0]) out_pk[0] = (uint16_t)(al > 0xFFFFu ? 0xFFFFu : al);
-        if (ar > out_pk[1]) out_pk[1] = (uint16_t)(ar > 0xFFFFu ? 0xFFFFu : ar);
-    }
-}
 
 static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 -> 24 bit */
 {
@@ -66,7 +38,8 @@ static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 
 #endif
     if (fx_usb_fixed)                                   /* USB LEVEL FIXED: USB took the full level, the DAC */
         usb_fixed_dac(out, n);                          /* (speaker, headphones) gets MASTER's (fx.c) */
-    dac_scope(out, n);                                  /* the HOME scope and the L/R peaks */
+    for (i = 1; i < n; i += 2u)                         /* the HOME scope: the music, before the click */
+        scope_buf[scope_w++ & (SCOPE_N - 1u)] = (int16_t)out[2u * i];
     click_render(out, n);                               /* the metronome (click.c): the DAC only, not USB */
     for (i = 0; i < n; i++) {
         out[2u * i] *= 1 << OUT_SHIFT;
