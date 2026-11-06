@@ -2767,15 +2767,27 @@ static void graph_master(void)
     cv_text_on(180, 57, &AF_S, duck ? "ON" : "OFF", duck ? T_ACCENT : T_DIM, T_SURF);
     cv_rrect(198, 16, 10, 38, 2, T_BG, T_RAISE);
     cv_rrect(199, 16, 8, clamp(drel, 0, 127) * 38 / 127, 2, T_THEME, T_BG);
-    /* OUT: the real master level (bg_energy on the DAC scope), segmented like a hardware VU. */
-    cv_rrect(216, 16, 8, 38, 2, T_BG, T_RAISE);
-    for (i = 1; i < 38; i += 4)
-        cv_rect(217, 16 + i, 6, 1, T_RAISE);
-    if (en > 1) {
-        int32_t oh = en * 36 / 256;
-        cv_rrect(217, 53 - oh, 6, oh, 1, heat_col(80 + en * 160 / 256), T_BG);
+    /* OUT: two meters, one per DAC channel (audio.c audio_out_peak). It was one bar fed by bg_energy,
+     * which reads the DAC scope, a single channel: a part panned right moved nothing. */
+    {
+        static uint8_t omp[2];
+        int32_t ch, live = 0;
+        for (ch = 0; ch < 2; ch++) {
+            int32_t bx = 212 + ch * 9, px, h;
+            int32_t pk = (int32_t)audio_out_peak((uint32_t)ch);
+            px = meter_px(pk) * 36 / (TS_MH - 2);
+            if (px > (int32_t)omp[ch]) omp[ch] = (uint8_t)px;
+            else if (omp[ch] > 0u) omp[ch]--;
+            h = (int32_t)omp[ch];
+            if (h > 2) live = 1;
+            cv_rrect(bx, 16, 7, 38, 2, T_BG, T_RAISE);
+            for (i = 1; i < 38; i += 4)
+                cv_rect(bx + 1, 16 + i, 5, 1, T_RAISE);
+            if (h > 0)
+                cv_rrect(bx + 1, 53 - h, 5, h, 1, heat_col(80 + h * 160 / 36), T_BG);
+        }
+        cv_text_on(208, 57, &AF_S, live ? "LIVE" : "OUT", live ? T_ACCENT : T_DIM, T_SURF);
     }
-    cv_text_on(214, 57, &AF_S, en > 2 ? "LIVE" : "OUT", en > 2 ? T_ACCENT : T_DIM, T_SURF);
 }
 
 static void draw_graph(void)

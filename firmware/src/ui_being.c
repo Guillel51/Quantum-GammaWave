@@ -292,7 +292,6 @@ static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_
  * BALANCED (1): half the sparks, a third fewer flares, the curves every 2nd column, the motion every other frame.
  * LOW (2): no sparks, eight flares, the curves every 3rd column, the motion every third frame. */
 static uint32_t vz_step(void) { return ui_viz_q >= 2u ? 3u : ui_viz_q == 1u ? 2u : 1u; }
-static uint32_t vz_sparks(void) { return ui_viz_q >= 2u ? 0u : ui_viz_q == 1u ? 7u : 14u; }
 static uint32_t vz_flares(void) { return ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 12u : 20u; }
 /* the motion's frame snapped to vz_step(): it advances in the same size steps, once per step's frames, so a lower
  * quality updates the animation less often at the same speed (the screen still repaints every frame, so nothing
@@ -301,12 +300,13 @@ static uint32_t vz_qframe(void) { uint32_t s = vz_step(); return ui.frame / s * 
 
 /* ============================================================================
  * 1. THE HEARTH (Ported from HearthVisualizer in PluginEditorComponents.h)
- *    Solar Furnace Core + Radial Flare Corona + Spark Particles + Orbiting Moon
+ *    Solar Furnace Core + Radial Flare Corona + Orbiting Moon (1.9: no particle field)
  * ============================================================================ */
 static void gw_draw_hearth(int32_t cx, int32_t cy, int32_t r_core, int32_t en, int32_t heat, int32_t sparks, uint32_t tm)
 {
     int32_t i, r_outer = r_core + 4 + (en * 4 >> 8), rx_orb = r_core + 20, ry_orb = r_core + 12;
     uint32_t moon_ang = tm / 3u + 0x2800u, nfl = vz_flares();   /* (v1.5) the flares' count and their spacing */
+    (void)sparks;                                                /* (1.9) it sized the sparks HOME no longer draws */
     int32_t mx = cx + (rx_orb * bg_sin(moon_ang + 0x4000u) >> 15);
     int32_t my = cy + (ry_orb * bg_sin(moon_ang) >> 15);
 
@@ -326,17 +326,10 @@ static void gw_draw_hearth(int32_t cx, int32_t cy, int32_t r_core, int32_t en, i
         cv_line(x0, y0, x1, y1, bg_col(110 + (wave * 7)));
     }
 
-    /* 3. Orbiting Star / Spark Particles (HearthVisualizer::stars) */
-    for (i = 0; i < (int32_t)vz_sparks(); i++) {        /* (v1.5) none at LOW */
-        uint32_t hsh = (uint32_t)(i + 1) * 2654435761u;
-        uint32_t pa = (hsh >> 16) + tm * (1u + (i & 1u)) / 4u;
-        int32_t pr = r_outer + 3 + (int32_t)(((hsh >> 8) + (tm >> 9)) % (uint32_t)(10 + (sparks >> 4)));
-        int32_t sx = cx + (pr * bg_sin(pa + 0x4000u) >> 15);
-        int32_t sy = cy + (pr * bg_sin(pa) >> 15) * 4 / 5;
-        uint16_t sc = (i & 3) == 0 ? T_TEXT : bg_col(160 + (i * 6));
-        cv_pset(sx, sy, sc);
-        if ((i & 3) == 0) cv_pset(sx + 1, sy, sc);
-    }
+    /* 3. (1.9) HOME HAS NO PARTICLES. The orbiting star field that used to sit here drew up to 14
+     * sparks around the core on every frame; the corona's flares (above) and the orbiting moon
+     * (below) are shapes of the being, not a particle field, and they stay. The visualizer keeps
+     * its ember field (ui_graph.c graph_home_viz), where particles were designed to live. */
 
     /* 4. Concentric Solar Furnace Disc (Mantle -> Golden Core -> White-Hot Singularity) */
     gw_disc(cx, cy, r_outer, bg_col(88 + heat / 3));
@@ -697,7 +690,6 @@ static void graph_ecosys(void)
         cv_text_in(x, y + 1, w, &AF_S, num, sel ? T_ACCENT : muted ? T_DIM : T_TEXT, sel ? T_RAISE : T_BG);
         gw_hbar(x + 2, y + 14, w - 4, 4, 3, muted ? 0 : en[c], 72);   /* (v1.9) no floor: silence reads as silence */
     }
-    gw_note_particles(8, 66, 224, 52);
 }
 
 /* ============================================================================

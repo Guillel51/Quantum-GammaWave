@@ -129,6 +129,9 @@ static void lcd_wake_now(void) { host_pw_log(3u); }
 #define SCOPE_N 512u                              /* audio.c: the HOME oscilloscope */
 static int16_t scope_buf[SCOPE_N];
 static uint32_t scope_w;
+/* audio.c's per-channel DAC peaks (audio_out_peak): no ISR runs in this harness, so the master's two meters
+ * read silence rather than a host value that would pretend to be measured audio */
+uint16_t audio_out_peak(uint32_t ch) { (void)ch; return 0u; }
 static uint32_t host_blit_rows;                    /* rows blitted (what a frame draws) */
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *p)
 {

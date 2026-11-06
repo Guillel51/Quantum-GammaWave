@@ -967,49 +967,36 @@ static void layer_fx(uint32_t band)
      * put three black keys in a row (places 3/4/5) and left a gap where A#4 belongs. */
     static const uint8_t BKPOS[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
     uint32_t held = perf_kill ? 0u : perf_held | perf_latched, ok = perf_avail();
-    uint32_t i, p, b, k, f, on, can, mutes = 0, heads = perf_buf_heads(), playing = perf_buf_playing();
-    char st[8], tgt[4], sel[3], dep[4];
+    uint32_t i, p, b, k, f, on, can, mutes = 0;
+    char dep[4];
     for (i = 0; i < NTRK; i++)
         mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
-    if (pb_recording) {
-        str_cpy(st, "CAP ", sizeof st);
-        fmt_int(st + 4, (int32_t)(pb_wr * 100u / PB_CAP));
-        str_cpy(st + str_len(st), "%", sizeof st - str_len(st));
-    } else if (heads) {
-        fmt_int(st, (int32_t)playing);
-        str_cpy(st + str_len(st), "/", sizeof st - str_len(st));
-        fmt_int(st + str_len(st), (int32_t)heads);
-    } else {
-        str_cpy(st, "LIVE", sizeof st);
-    }
-    tgt[0] = pfx_tgt == 0u ? 'A' : pfx_tgt == 1u ? 'S' : 'D';
-    tgt[1] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'Y' : 'R';
-    tgt[2] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'N' : 'M';
-    tgt[3] = 0;
-    sel[0] = 'T'; sel[1] = (char)('1' + song.sel % NTRK); sel[2] = 0;
     fmt_int(dep, 100 - perf_k[3]);
-    /* five compact cards, 44 x 40: the real effects' state, not extra controls. 40, not 36: the
-     * third line's ink reaches row 12 of its line (AF_S_CAP_Y 3 + the round letters' faint row),
-     * and in a 36 px card it fell 1 px past the card's edge (the UI audit's "spills out of its cell"). */
+    /* (1.9) Two cards, 110 x 40, for the two things this map really is: LATCH's state and
+     * DEPTH's value. The five 44 px cards that were here named settings the map cannot change
+     * (BANK, TARGET, TRACK, and the buffer state), and the last of them, DEPTH at x 192 + 44,
+     * ended on x 236, four pixels past the panel. Two cards, 6..116 and 124..234, stay inside
+     * the 232 px the panel gives, and each one shows only what it owns. 40 px tall, not 36: the
+     * third line's ink reaches row 12 of its line (AF_S_CAP_Y 3 + the round letters' faint row). */
     if (!band) {
-        static const int32_t CX[5] = {4, 51, 98, 145, 192};
-        for (i = 0; i < 5u; i++)
-            cv_rrect(CX[i], 3, 44, FX_CARD_H, 3, T_RAISE, T_SURF);
-        cv_text_on(CX[0] + 3, 6, &AF_S, "BANK", T_MID, T_RAISE);
-        cv_text_on(CX[0] + 3, 17, &AF_S, pfx_bank ? "B2" : "B1", pfx_bank ? T_ACCENT : T_TEXT, T_RAISE);
-        cv_text_on(CX[0] + 3, 28, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM, T_RAISE);
-        cv_text_on(CX[1] + 3, 6, &AF_S, "LATCH", T_MID, T_RAISE);
-        cv_text_on(CX[1] + 3, 17, &AF_S, perf_latch_on ? "ON" : "OFF", perf_latch_on ? T_ACCENT : T_DIM, T_RAISE);
-        cv_text_on(CX[1] + 3, 28, &AF_S, "FX", T_DIM, T_RAISE);
-        cv_text_on(CX[2] + 3, 6, &AF_S, "TARGET", T_MID, T_RAISE);
-        cv_text_on(CX[2] + 3, 17, &AF_S, tgt, T_TEXT, T_RAISE);
-        cv_text_on(CX[2] + 3, 28, &AF_S, "A#4", T_DIM, T_RAISE);
-        cv_text_on(CX[3] + 3, 6, &AF_S, "TRACK", T_MID, T_RAISE);
-        cv_text_on(CX[3] + 3, 17, &AF_S, sel, T_TEXT, T_RAISE);
-        cv_text_on(CX[3] + 3, 28, &AF_S, "SEL", T_DIM, T_RAISE);
-        cv_text_on(CX[4] + 3, 6, &AF_S, "DEPTH", T_MID, T_RAISE);
-        cv_text_on(CX[4] + 3, 17, &AF_S, dep, T_THEME, T_RAISE);
-        cv_text_on(CX[4] + 3, 28, &AF_S, "K4", T_DIM, T_RAISE);
+        static const int32_t CX2[2] = {8, 122};
+        int32_t lat = perf_latch_on != 0, dp = clamp(100 - perf_k[3], 0, 100), seg;
+        for (i = 0; i < 2u; i++)
+            cv_rrect(CX2[i], 5, 108, FX_CARD_H, 3, T_RAISE, T_SURF);   /* clear of the panel's 5 px corner */
+        /* LATCH: the engine's real flag (perform.c perf_latch_on), and what a press does with it */
+        cv_text_on(CX2[0] + 4, 8, &AF_S, "LATCH", T_MID, T_RAISE);
+        cv_text_on(CX2[0] + 4, 19, &AF_S, lat ? "ON" : "OFF", lat ? T_ACCENT : T_DIM, T_RAISE);
+        cv_text_r(CX2[0] + 104, 19, &AF_S, lat ? "TOGGLE" : "HOLD", lat ? T_TEXT : T_DIM, T_RAISE);
+        cv_text_on(CX2[0] + 4, 30, &AF_S, lat ? "EACH FX ITS OWN" : "ENABLE: MENU 40", T_DIM, T_RAISE);
+        /* DEPTH: the value K4 writes (perform.c perf_k[3], shown as 100 - it: right is deeper),
+         * and the same value as a bar, so the knob's travel is readable at a glance */
+        cv_text_on(CX2[1] + 4, 8, &AF_S, "DEPTH", T_MID, T_RAISE);
+        cv_text_on(CX2[1] + 4, 19, &AF_S, dep, T_THEME, T_RAISE);
+        cv_text_r(CX2[1] + 104, 19, &AF_S, "K4", T_DIM, T_RAISE);
+        cv_rect(CX2[1] + 4, 32, 100, 4, T_SURF);
+        for (seg = 0; seg < 20; seg++)
+            if (seg * 5 < dp)
+                cv_rect(CX2[1] + 4 + seg * 5, 32, 3, 4, seg < 13 ? T_THEME : T_ACCENT);
     }
     /* the sixteen white keys: 12 px each, a 2 px gap and a 1 px edge. White is
      * T_TEXT and black T_KEY: the old T_RAISE on both sides was why they merged. */
@@ -1031,15 +1018,17 @@ static void layer_fx(uint32_t band)
         }
     }
     /* the eleven black keys: 8 px wide, 58 px high and 6 px apart even where two
-     * sit side by side (BKPOS 0/1, 3/4/5, 7/8, 10/11). T_KEY makes the separation
-     * visible against the white keys; the 1 px edge keeps the rounded shape. */
+     * sit side by side (BKPOS 0/1, 3/4/5, 7/8, 10/11). T_KEY was the panel's own fill
+     * (QUANTUM 0x10a5 against a 0x10a5 panel), so the black keys vanished and the map
+     * read as a wall of white keys: T_BG (the darkest surface) is what makes them black
+     * again, and the 1 px T_LINE edge keeps the rounded shape. */
     for (b = 0; b < 11u; b++) {
         int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)(BKPOS[b] + 1u) - FX_BLACK_W / 2;
         for (k = 0; k < 27u; k++)
             if (key_black(k) && key_place(k) == b)
                 break;
         if (b < NTRK) {
-            uint16_t fill = (mutes >> b) & 1u ? T_ACCENT : T_KEY;
+            uint16_t fill = (mutes >> b) & 1u ? T_ACCENT : T_BG;
             char n[3] = {'T', (char)('1' + b), 0};
             cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
             fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_TEXT, fill);
@@ -1048,8 +1037,8 @@ static void layer_fx(uint32_t band)
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
             on = can && ((held >> f) & 1u);
             {
-                uint16_t fill = on ? T_ACCENT : can ? T_KEY : T_DIM;
-                uint16_t ink = on ? T_INK : can ? T_TEXT : T_BG;
+                uint16_t fill = on ? T_ACCENT : can ? T_BG : T_DIM;
+                uint16_t ink = on ? T_INK : can ? T_TEXT : T_MID;
                 cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
                 fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
             }
