@@ -208,7 +208,6 @@ jobs:
           node web/test_web.mjs
           node web/test_verify_only.mjs
           node web/test_provenance.mjs
-          node web/test_verify_only.mjs
       - name: the WASM and the firmware are the same build
         env:
           GIT_COMMIT: ${{ github.sha }}
