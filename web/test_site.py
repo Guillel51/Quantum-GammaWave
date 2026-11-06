@@ -176,6 +176,19 @@ def main(site_dir=None):
         if wrong in acc:
             bad.append(f"the access grid still says {wrong!r}")
 
+    # (7.x) the support box: a plain external link to Mercado Pago, nothing else
+    sup = html.split('id="apoyo"', 1)[-1].split("</section>", 1)[0] if 'id="apoyo"' in html else ""
+    if 'href="https://link.mercadopago.com.uy/quantumgammawave"' not in sup:
+        bad.append("the support section does not link to Mercado Pago")
+    if 'target="_blank"' not in sup or "noopener" not in sup:
+        bad.append("the support link does not open externally and safely")
+    for wrong in ("paypal", "stripe", "<form", "fetch(", "XMLHttpRequest"):
+        if wrong in sup.lower():
+            bad.append(f"the support section carries {wrong!r}: it must stay a plain link")
+    for want in ("Support Quantum GammaWave", "DONATE"):
+        if want not in sup:
+            bad.append(f"the support section is missing {want!r}")
+
     for line in bad:
         print(f"site: {line} FAIL")
     print(f"site: {len(page.ids)} ids, {len(page.assets)} images, {len(page.links)} links, "

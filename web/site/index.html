@@ -211,6 +211,17 @@
   @media (max-width: 900px) { .access { grid-template-columns: 1fr; }
     .access-card.primary, .access-card.wide { grid-column: auto; grid-row: auto; } }
   @media (max-width: 640px) { .access-card.primary { padding: 22px; } }
+  /* (7.x) the support box: small, quiet, and out of the way of the instrument */
+  .support { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 20px 22px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: rgba(3, 9, 20, .55); }
+  .support .eyebrow { color: var(--faint); }
+  .support p { margin: 6px 0 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
+  .support p.support-note { color: var(--faint); font-size: 12px; }
+  .support-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border: 1px solid rgba(58, 223, 255, .45); border-radius: 999px; color: var(--ink); text-decoration: none;
+    font: 800 11px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
+  .support-btn:hover { border-color: var(--heat); color: var(--ink); }
+  @media (max-width: 640px) { .support { flex-direction: column; align-items: flex-start; } }
   footer { border-top: 1px solid var(--line); padding: 32px 0 44px; color: var(--faint); font-size: 12px; }
   .foot-grid { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 30px; }
   footer b { color: var(--muted); }
@@ -504,6 +515,19 @@
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.md" target="_blank" rel="noopener"><span class="no">02 / DOC</span><b>Manual en inglés ↗</b><span>Operación, páginas, atajos y MIDI.</span></a>
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.es.md" target="_blank" rel="noopener"><span class="no">03 / DOC</span><b>Manual en español ↗</b><span>La misma referencia, en castellano.</span></a>
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/V1.8.9_STATUS.md" target="_blank" rel="noopener"><span class="no">04 / ESTADO</span><b>Estado y límites ↗</b><span>Matriz de integración, pruebas y pendientes.</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="apoyo" class="reveal">
+    <div class="wrap">
+      <div class="support">
+        <div>
+          <div class="eyebrow">Support Quantum GammaWave</div>
+          <p>Your voluntary contribution helps support development, maintenance, testing and future improvements.</p>
+          <p class="support-note">Free software, GPL-3.0-only: donating changes nothing about what you can use, and is never required.</p>
+        </div>
+        <a class="support-btn" href="https://link.mercadopago.com.uy/quantumgammawave" target="_blank" rel="noopener noreferrer">DONATE <span class="arrow">↗</span></a>
       </div>
     </div>
   </section>
