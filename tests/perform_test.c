@@ -42,7 +42,7 @@ static void test_signal(double fl, double al, double fr, double ar)
         in_r[t] = (int32_t)lrint(ar * sin(2 * M_PI * fr * t / FS + 1.0));
     }
 }
-static void perf_reset(void)
+static void perf_test_reset(void)
 {
     memset(&pf, 0, sizeof pf);
     memset(pb, 0, sizeof pb);
@@ -68,7 +68,7 @@ static void run(uint32_t bpm, int playing, const ev_t *ev, uint32_t nev, uint32_
 {
     uint32_t t, k = 0;
     host_tracks_init();
-    perf_reset();
+    perf_test_reset();
     perf_k[1] = run_crush;
     perf_k[3] = run_k4;
     song.g[G_BPM] = (int16_t)bpm;
@@ -209,7 +209,7 @@ static int test_too_long(void)
         uint32_t t;
         int32_t mx = 0;
         host_tracks_init();
-        perf_reset();
+        perf_test_reset();
         song.g[G_BPM] = 120;
         song.playing = 1;
         perf_start();
@@ -244,7 +244,7 @@ static void song_setup(void)
     uint32_t i;
     memset(trk, 0, sizeof trk);
     host_tracks_init();
-    perf_reset();
+    perf_test_reset();
     song.g[G_BPM] = 120;
     host_preset(t1, 0, 4);
     host_preset(t2, 1, 5);
@@ -485,7 +485,7 @@ static int test_misc(void)
     {   /* KNOB 1 left: a low-pass at once; KNOB 4: the REPEAT's level */
         test_signal(5000, 30000, 5000, 30000);
         host_tracks_init();
-        perf_reset();
+        perf_test_reset();
         song.g[G_BPM] = 120;
         song.playing = 1;
         perf_start();
@@ -504,7 +504,7 @@ static int test_misc(void)
         static int32_t ml[CTL], mr[CTL], sd[CTL], sr[CTL], z[CTL];
         uint32_t i;
         host_tracks_init();
-        perf_reset();
+        perf_test_reset();
         song.playing = 1;
         perf_k[2] = 100;
         for (t = 0; t < 1024u; t += CTL) {
@@ -550,7 +550,7 @@ static int test_cap_latch(void)
 {
     uint32_t n = 0, i;
     int bad = 0;
-    perf_reset();
+    perf_test_reset();
     perf_press(PF_LPF, 1);
     perf_press(PF_HPF, 1);
     perf_press(PF_R16, 1);
@@ -562,7 +562,7 @@ static int test_cap_latch(void)
     bad += check("a track mute still works while three effects run", (perf_held & PF_BIT(PF_M1)) != 0u);
     perf_press(PF_M1, 0);
     perf_press(PF_LPF, 0); perf_press(PF_HPF, 0); perf_press(PF_R16, 0); perf_press(PF_GATE, 0);
-    perf_reset();
+    perf_test_reset();
     perf_latch_on = 1;
     perf_press(PF_LPF, 1); perf_press(PF_LPF, 0);
     bad += check("LATCH YES: a press stays after the key is let go", (perf_latched & PF_BIT(PF_LPF)) != 0u);
@@ -571,7 +571,7 @@ static int test_cap_latch(void)
     perf_latch_on = 0;
     perf_press(PF_HPF, 1); perf_press(PF_HPF, 0);
     bad += check("LATCH NO: the effect ends with the key", !(perf_held & PF_BIT(PF_HPF)));
-    perf_reset();
+    perf_test_reset();
     return bad;
 }
 
