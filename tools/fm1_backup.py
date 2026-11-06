@@ -8,10 +8,17 @@ tools/fm1_restore.py validates before writing a part back. The *musical* archive
 objects: songs, settings, projects) lives in tools/fm1_archive.py; neither replaces the
 other and neither can touch the bootloader.
 
-Everything here is read-only: the only frames sent are 0x11 (handshake), 0x12
-(identification) and 0x13 (read). No 0x30, no UPGRADE frame, no erase, no
-program, no status-register write. `tests/backup_tool_test.py` asserts exactly
-that against a simulated FM-1.
+Everything here is read-only. Discovery sends the vendor handshake
+(F0 00 32 45 00 00 00 40 7F F7), then the read phase sends 0x12
+(identification, twice) and 0x13 (read) only -- no 0x30, no UPGRADE frame, no
+erase, no program, no status-register write -- and the manifest's frame log is
+checked against that set before the file is written. `tests/chip_test.py`
+asserts the set against a simulated FM-1.
+
+0x12 and 0x13 are frames of the QG application (firmware/src/ota.c), not of the
+stock firmware: on a stock unit this tool refuses with `no-query` instead of
+timing out, because a read over USB-MIDI cannot be the first backup. See
+docs/JEDEC_READ.md before pointing it at hardware.
 
   fm1_backup.py --out DIR [--port NAME] [--chunk 256] [--max-errors 8]
 
@@ -217,6 +224,19 @@ def run(a, backend=None):
     P.probe = with_identity
     try:
         manifest, path, bin_path = backup(link, a.out, a.chunk, a.max_errors, progress)
+    except P.ProbeError as e:
+        # The vendor handshake found the unit, so `find()` succeeded and the link is fine. What did not
+        # answer is 0x12: that frame belongs to the QG application (`firmware/src/ota.c`), and the stock
+        # firmware is a different program. Say so instead of leaving a bare timeout that reads like a
+        # cable problem -- and never offer to read the part some other way from here.
+        if e.code in ("timeout", "no-nor-answer", "release"):
+            raise BackupError("no-query",
+                              "%s answered the vendor handshake but not 0x12. 0x12 and 0x13 are frames "
+                              "of the QG application, so this unit is not running it: a read over "
+                              "USB-MIDI cannot be the first backup of a stock unit. Only an external SPI "
+                              "reader can (docs/JEDEC_READ.md)."
+                              % (ev_identity["identity"] or "the FM-1")) from None
+        raise
     finally:
         P.probe = real_probe
         link.close()
