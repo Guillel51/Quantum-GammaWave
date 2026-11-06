@@ -354,6 +354,9 @@ if command -v node >/dev/null 2>&1; then
     # builder refuses a package that contradicts its own manifest
     run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
+    # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
+    # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
+    run "web verify-only: identity reads only, zero write frames" node web/test_verify_only.mjs
     PKG=""
     if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
     run "web package parser: malformed .fwsc refused, never loops, the built one parses" \
