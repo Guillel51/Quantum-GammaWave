@@ -222,12 +222,19 @@ jobs:
       # switch over, and the previous artifact stays up until it does. This reads the published origin
       # and holds versions.json, the package, the emulator manifest, the wasm, the portal and the
       # installer to this run's commit, retrying while the switch happens rather than sampling once.
+      # (the deploy job never checked the repository out: without this the check could not even run,
+      # and run 42276334594 failed on a script that was not there while the site was serving the commit)
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/site_check.py
+          sparse-checkout-cone-mode: false
       - name: the published site is this commit (versions.json, package, wasm, portal, installer)
         run: |
-          for i in $(seq 1 12); do
+          sleep 20                                   # Pages switches after the deploy reports, not during it
+          for i in $(seq 1 20); do
             if python3 tools/site_check.py --expect-commit "${GITHUB_SHA::7}"; then exit 0; fi
-            echo "::notice::the site is not serving ${GITHUB_SHA::7} yet (attempt $i/12); waiting 15 s"
+            echo "::notice::the site is not serving ${GITHUB_SHA::7} yet (attempt $i/20); waiting 15 s"
             sleep 15
           done
-          echo "::error::the deployed site still does not serve ${GITHUB_SHA::7} after 3 minutes"
+          echo "::error::the deployed site still does not serve ${GITHUB_SHA::7} after 5 minutes"
           exit 1
