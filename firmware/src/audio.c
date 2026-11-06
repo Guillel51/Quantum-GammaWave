@@ -25,9 +25,38 @@ static volatile uint32_t t5_nested_ticks;              /* TIMER4 ticks TIMER5 sp
 static uint32_t audio_cpu_rem;                         /* keep the fractional IIR step: no low-load bias */
 static uint32_t audio_last_half = 2u, audio_lost;     /* (1.2.1-GW, JIANT 0.8.9) halves never rendered: a render past
                                                          * two halves (console) */
-#define SCOPE_N 512u
-static int16_t scope_buf[SCOPE_N];
+#define SCOPE_N 256u
+static int16_t scope_buf[SCOPE_N];                     /* the left channel: the scope draws it */
+static int16_t scope_r[SCOPE_N];                       /* (1.9) the right one: its meter had nothing to read */
 static uint32_t scope_w;
+
+/* (1.9) the peak |sample| each DAC channel reached across the scope's history, 0..32768. The main loop calls
+ * this, never the ISR: the audio path pays one store more per frame and no comparison at all, which is what
+ * keeps fm1_alnk0_irq inside the static cost budget (tests/target_budget.py). 256 frames of every other
+ * sample: ~11.6 ms of the master, the window a meter wants. */
+int32_t audio_out_peak(uint32_t ch)
+{
+    const int16_t *b = ch ? scope_r : scope_buf;
+    uint32_t i, w = scope_w;
+    int32_t pk = 0;
+    for (i = 0; i < SCOPE_N; i++) {
+        int32_t v = b[(w - 1u - i) & (SCOPE_N - 1u)];
+        if (v < 0) v = -v;
+        if (v > pk) pk = v;
+    }
+    return pk;
+}
+
+/* one block of the master output into the scope's history: both channels, one store each, nothing else */
+static void dac_scope(const int32_t *out, uint32_t n)
+{
+    uint32_t i;
+    for (i = 1; i < n; i += 2u) {                       /* the music, before the click */
+        uint32_t w = scope_w++ & (SCOPE_N - 1u);
+        scope_buf[w] = (int16_t)out[2u * i];
+        scope_r[w] = (int16_t)out[2u * i + 1u];
+    }
+}
 
 static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 -> 24 bit */
 {
@@ -38,8 +67,7 @@ static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 
 #endif
     if (fx_usb_fixed)                                   /* USB LEVEL FIXED: USB took the full level, the DAC */
         usb_fixed_dac(out, n);                          /* (speaker, headphones) gets MASTER's (fx.c) */
-    for (i = 1; i < n; i += 2u)                         /* the HOME scope: the music, before the click */
-        scope_buf[scope_w++ & (SCOPE_N - 1u)] = (int16_t)out[2u * i];
+    dac_scope(out, n);                                  /* the HOME scope: both channels of the music */
     click_render(out, n);                               /* the metronome (click.c): the DAC only, not USB */
     for (i = 0; i < n; i++) {
         out[2u * i] *= 1 << OUT_SHIFT;

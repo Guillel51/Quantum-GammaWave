@@ -325,11 +325,63 @@ static void meter_envelope(void)
         mix_block(out, CTL);
     check("(v1.9) after the release the envelope falls to silence, so no bar stays lit", trk[0].vu == 0);
 }
+/* (1.9) the master's meters are two, one per DAC channel. audio.c used to keep out[2i], the left channel,
+ * in the only buffer the UI could read, so the right meter had nothing of its own: a part panned right moved
+ * nothing and both sides showed one value. dac_scope now stores both channels and audio_out_peak reads them
+ * from the main loop, so the ISR pays one store per frame and no comparison (tests/target_budget.py). */
+static void clear_scope(void)
+{
+    memset(scope_buf, 0, sizeof scope_buf);
+    memset(scope_r, 0, sizeof scope_r);
+    scope_w = 0;
+}
+static void feed(int32_t l, int32_t r)
+{
+    int32_t out[2 * CTL];
+    uint32_t i;
+    for (i = 0; i < CTL; i++) {
+        out[2u * i] = (i & 1u) ? -l : l;
+        out[2u * i + 1u] = (i & 1u) ? -r : r;
+    }
+    dac_scope(out, CTL);
+}
+static void stereo_meters(void)
+{
+    clear_scope();
+    check("(1.9) no signal: both channel meters read silence", audio_out_peak(0) == 0 && audio_out_peak(1) == 0);
+    clear_scope(); feed(8000, 8000);
+    check("(1.9) mono: the two meters read the same level", audio_out_peak(0) == 8000 && audio_out_peak(1) == 8000);
+    clear_scope(); feed(12000, 0);
+    check("(1.9) hard left: the right meter stays dark instead of copying the left",
+          audio_out_peak(0) == 12000 && audio_out_peak(1) == 0);
+    clear_scope(); feed(0, 9000);
+    check("(1.9) hard right: the right meter moves (it used to stay dark)",
+          audio_out_peak(0) == 0 && audio_out_peak(1) == 9000);
+    clear_scope(); feed(3000, 9000);
+    check("(1.9) an unbalanced mix reads two different values, not one twice",
+          audio_out_peak(0) == 3000 && audio_out_peak(1) == 9000);
+    clear_scope(); feed(6000, 6000);
+    {
+        int32_t a0 = audio_out_peak(0), a1 = audio_out_peak(1);
+        clear_scope(); feed(3000, 3000);
+        check("(1.9) a level change moves both meters and leaves no stale peak",
+              a0 == 6000 && a1 == 6000 && audio_out_peak(0) == 3000 && audio_out_peak(1) == 3000);
+    }
+    clear_scope(); feed(12000, 12000);               /* PAN hard left .. hard right in two frames */
+    {
+        int32_t l0 = audio_out_peak(0), r0 = audio_out_peak(1);
+        clear_scope(); feed(0, 12000);
+        check("(1.9) a pan to the right takes the left meter down and the right one up",
+              l0 == 12000 && r0 == 12000 && audio_out_peak(0) == 0 && audio_out_peak(1) == 12000);
+    }
+    clear_scope();
+}
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     delay_edge();
     meter_envelope();
+    stereo_meters();
     usb_level();
     boot_keys();
     overload(); dma();

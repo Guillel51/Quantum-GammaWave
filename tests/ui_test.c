@@ -126,9 +126,21 @@ static void host_pw_log(uint32_t s)
 }
 static void lcd_power(uint32_t s) { host_pw_log(s); }
 static void lcd_wake_now(void) { host_pw_log(3u); }
-#define SCOPE_N 512u                              /* audio.c: the HOME oscilloscope */
+#define SCOPE_N 256u                              /* audio.c: the HOME oscilloscope */
 static int16_t scope_buf[SCOPE_N];
 static uint32_t scope_w;
+/* audio.c's per-channel peaks: no ISR runs in this harness, so the master's meters read the harness' scope */
+int32_t audio_out_peak(uint32_t ch)
+{
+    uint32_t i; int32_t pk = 0;
+    for (i = 0; i < SCOPE_N; i++) {
+        int32_t v = scope_buf[(scope_w - 1u - i) & (SCOPE_N - 1u)];
+        if (v < 0) v = -v;
+        if (v > pk) pk = v;
+    }
+    (void)ch;                                        /* the harness has one buffer: both read it */
+    return pk;
+}
 static uint32_t host_blit_rows;                    /* rows blitted (what a frame draws) */
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *p)
 {
