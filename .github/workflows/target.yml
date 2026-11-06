@@ -109,6 +109,16 @@ jobs:
           [ "$rc" -eq 0 ] || echo "::error::$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-500)"
           exit "$rc"
 
+      # A second build in the same job, from scratch: if the two packages differ, the tree is not
+      # reproducible and the "same commit, same bytes" claim behind the hashes above is empty.
+      - name: the same commit builds the same package twice
+        run: |
+          cp build/felucca.fwsc /tmp/first.fwsc; cp build/loader/ota.bin /tmp/first.ota
+          rm -rf build
+          ./build.sh
+          cmp /tmp/first.fwsc build/felucca.fwsc && cmp /tmp/first.ota build/loader/ota.bin
+          echo "reproducible: $(sha256sum build/felucca.fwsc)"
+
       - name: manifest and package for the record
         uses: actions/upload-artifact@v4
         with:
