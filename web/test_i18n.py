@@ -18,6 +18,9 @@ SOURCE = HERE / "site"
 SKIP = re.compile(r"^(https?:|/|#)")
 LETTERS = re.compile(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]")
 PATHLIKE = re.compile(r"^[^\s]+/[^\s]+$")
+# build tokens ({{VERSION}} and the like) are filled by web/make_site.py from the package's own
+# build record: they are not copy, so they have no translation and must not be asked for one
+TOKEN = re.compile(r"^\{\{[A-Z0-9_]+\}\}$")
 
 
 class Text(HTMLParser):
@@ -38,7 +41,7 @@ class Text(HTMLParser):
             self.stack.pop()
 
     def handle_data(self, data):
-        if not self.stack and data.strip():
+        if not self.stack and data.strip() and not TOKEN.match(data.strip()):
             self.values.append(data.strip())
 
 

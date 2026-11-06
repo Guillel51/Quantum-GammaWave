@@ -219,7 +219,14 @@ def main(pkg, version, out, prev=None, manifest=None):
     site = HERE / "site"
     if not (site / "index.html").is_file():
         raise SystemExit(f"{site / 'index.html'} is missing")
-    shutil.copy(site / "index.html", out / "index.html")
+    # the portal states the version it serves in its own HTML, not only from versions.json: a page
+    # whose static label is an old release is a page that lies when its script does not run (and the
+    # label read "v1.8.9" for two releases). The token is required, so it cannot silently go stale.
+    portal = (site / "index.html").read_text(encoding="utf-8")
+    if "{{VERSION}}" not in portal:
+        raise SystemExit("web/site/index.html: the portal has no {{VERSION}} token: its static label "
+                         "would not name the build this site serves")
+    (out / "index.html").write_text(portal.replace("{{VERSION}}", version), encoding="utf-8")
     shutil.copy(site / "i18n.js", out / "i18n.js")
     assets = out / "assets"
     if assets.exists():

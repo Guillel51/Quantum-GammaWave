@@ -218,8 +218,10 @@ function gateOf({ found, read, pkg, compat }) {
     { key: "gate.compat", state: found && read ? (compatible ? "pass" : "fail") : "unknown" },
     { key: "gate.signature", state: keys ? "unknown" : "fail" },
     { key: "gate.chip", state: "not-here" },
+    { key: "gate.flashmap", state: "unknown" },
     { key: "gate.backup", state: "unknown" },
     { key: "gate.recovery", state: "documented" },
+    { key: "gate.revalidate", state: "unknown" },
   ];
   const blocked = rows.filter((r) => r.state !== "pass").map((r) => r.key);
   return { rows, verdict: { result: "NO-GO", blocked, canInstall: false } };

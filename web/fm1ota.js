@@ -490,6 +490,9 @@ export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", fi
 
 const RELEASE_FIELDS = ["format", "product", "version", "min_firmware", "sha256", "size", "keyid", "sig"];
 const PROOFS = new WeakMap();
+// how long an authorisation stays usable: two minutes is far more than a 611 KB package needs on a
+// cable that is already enumerating, and far less than a browser tab left open on a desk
+const PROOF_TTL_MS = 120000;
 
 function toBytes(x) {
   if (x instanceof Uint8Array) return x.slice();
@@ -507,7 +510,8 @@ function versionString(v, what) {
 
 // Verify a .fwsc and everything that authorises writing it. Every refusal happens before the
 // first frame, so a caller that ignores the result has still caused nothing to be sent.
-export async function requireProof({ pkg, manifest, keys = {}, product = null, firmware = null, provenance = null } = {}) {
+export async function requireProof({ pkg, manifest, keys = {}, product = null, firmware = null, provenance = null,
+  proofTtlMs = PROOF_TTL_MS } = {}) {
   if (!product || typeof product !== "string" || !product.includes("_"))
     throw fail("proof", "no product was named for this transfer: nothing was sent.");
   // The installed version is not optional: without it a downgrade cannot be ruled out, and neither
@@ -552,7 +556,13 @@ export async function requireProof({ pkg, manifest, keys = {}, product = null, f
   const proof = Object.freeze({ product, model, version: checked.version, keyid: checked.keyid,
     sha256: checked.sha256, size: bytes.length, imageSize: image.length,
     build: prov.kind === "build" ? prov.commit : null });
-  PROOFS.set(proof, { image, used: false });
+  // An authorisation is a short-lived thing: it is made for the install the reader is looking at, not
+  // to be kept. A proof that outlives proofTtlMs is refused by admit() like a used one, so a page that
+  // was authenticated against one unit, left open, and then used on another (or after a package swap
+  // in the browser's cache) cannot carry its authorisation across. Zero is not a special case: it
+  // expires immediately, which is what a caller asking for no validity gets.
+  const ttl = Math.max(0, Number(proofTtlMs) || 0);
+  PROOFS.set(proof, { image, used: false, at: Date.now(), expires: Date.now() + ttl });
   return proof;
 }
 
@@ -563,6 +573,8 @@ async function admit(proof, pkg, product) {
   const rec = proof && PROOFS.get(proof);
   if (!rec) throw fail("proof", "this transfer has no verified package: nothing was sent.");
   if (rec.used) throw fail("proof", "this authorisation was already used for another transfer: nothing was sent.");
+  if (!(rec.expires > Date.now()))
+    throw fail("proof", `this authorisation expired ${Math.max(0, Math.round((Date.now() - rec.expires) / 1000))} s ago: nothing was sent.`);
   if (product !== proof.product)
     throw fail("proof", `the authorisation is for ${proof.product}, not ${product}: nothing was sent.`);
   const bytes = toBytes(pkg);                                 // whatever the caller passed this time

@@ -1661,6 +1661,17 @@ async function updater() {
     ok(e && e.code === "image" && dev.frames === 0 && dev.served === 0,
       "fm1ota.js: a package changed after it was verified -> 'image', no frame");
   }
+  /* an authorisation is short-lived: one asked for with no validity at all is refused before the first
+     frame, exactly like a used one. This is the "page left open" case -- the proof was made for the unit
+     the reader was looking at, and it does not survive to another install attempt. */
+  {
+    const proof = await M.requireProof({ pkg, product: identity, ...ctx, proofTtlMs: 0 });
+    const dev = new FakeFM1(image);
+    const e = await new Updater(dev.access, null, FAST).install(pkg, identity, null, { ...ctx, proof })
+      .then(() => null, (x) => x);
+    ok(e && e.code === "proof" && /expired/.test(e.message) && dev.frames === 0 && dev.served === 0 && dev.upgrades === 0,
+      "fm1ota.js: an expired authorisation -> 'proof', 0 frames, 0 writes, 0 bytes");
+  }
   {
     const proof = await M.requireProof({ pkg, product: identity, ...ctx });
     const swapped = packageOf(Uint8Array.from(image, (b) => b ^ 1), identity);

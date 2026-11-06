@@ -484,9 +484,11 @@ function anyWrite(sent) {
         fw.kind === "stock" && fw.text === "FM-1_015" && fw.package.identity === "FM-1_982");
   check("the real case: the package replaces stock V15 (same model, other tag)",
         fw.compatibility === "replaces-stock" && fw.package.size === 611163 && fw.package.sha256.startsWith("237205de"));
-  check("the checklist has its eight rows, in the installer's order",
+  check("the checklist has its ten rows, in the installer's order",
         (fw.gate || []).map((r) => r.key).join(",") ===
-        "gate.detect,gate.read,gate.package,gate.compat,gate.signature,gate.chip,gate.backup,gate.recovery");
+        "gate.detect,gate.read,gate.package,gate.compat,gate.signature,gate.chip,gate.flashmap,gate.backup,gate.recovery,gate.revalidate");
+  check("the flash map and the post-install revalidation are never claimed as established here",
+        g["gate.flashmap"] === "unknown" && g["gate.revalidate"] === "unknown");
   check("the four conditions this run can establish are pass",
         g["gate.detect"] === "pass" && g["gate.read"] === "pass" && g["gate.package"] === "pass" && g["gate.compat"] === "pass");
   check("an empty key map fails the signature row (it is not 'unknown' when no key exists at all)",
@@ -496,8 +498,9 @@ function anyWrite(sent) {
         g["gate.backup"] === "unknown" && g["gate.recovery"] === "documented");
   check("the verdict is NO-GO, lists what blocks it, and canInstall stays false",
         fw.verdict.result === "NO-GO" && fw.verdict.canInstall === false && fw.authorised === false &&
-        ["gate.signature", "gate.chip", "gate.backup", "gate.recovery"].every((k) => fw.verdict.blocked.includes(k)) &&
-        fw.verdict.blocked.length === 4);
+        ["gate.signature", "gate.chip", "gate.flashmap", "gate.backup", "gate.recovery", "gate.revalidate"]
+          .every((k) => fw.verdict.blocked.includes(k)) &&
+        fw.verdict.blocked.length === 6);
   check("a key map does not let verify only claim the signature was checked",
         (await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] }).midi,
           { product: "FM-1_982", pkg: { ...real, keys: { prod: "00".repeat(32) } } }))
