@@ -47,6 +47,11 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install Pillow numpy fonttools
+      # The strict check below asks for all three inputs, so this job installs the same Emscripten
+      # the emulator job uses rather than scoping the check down to the firmware.
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: "6.0.11"
 
       # Cached by the pinned archive hash only: an unpinned cache could hand a job a compiler nobody
       # chose, which is exactly the false pass this workflow exists to prevent.
@@ -76,7 +81,7 @@ jobs:
       # Strict on purpose: in CI a missing input is the job's failure, and the report names the
       # variable and the command that fills it instead of letting build.sh stop at the first one.
       - name: the build inputs this job fetched
-        run: python3 tools/check_build_env.py --strict --firmware
+        run: python3 tools/check_build_env.py --strict
 
       - name: build (app, loader, package; the budget checks run inside)
         run: ./build.sh
