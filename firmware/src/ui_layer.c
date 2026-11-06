@@ -90,8 +90,10 @@ static struct {
     uint8_t quiet;                     /* #39: a layer closed after it opened: KNOB 1..4 do nothing until quiet_t + */
     uint32_t quiet_t;                  /* LY_QUIET_MS (fm1_ms) */
     uint8_t used;                      /* (0.6.44) a key, a knob or OCT used in the layer since it was armed */
+    uint8_t pin;                       /* (2.0) FX held past FX_PIN_MS: this press pins the screen on let go */
 } lys;
 #define LY_QUIET_MS 250u
+#define FX_PIN_MS 4000u                    /* (2.0) a Punch-in screen pins on a four-second hold, not a tap */
 
 /* (0.6.44) FX LATCH: FX held open and let go locks its layer open, as the macros latch: its keys, knobs and map stay
  * until FX is pressed again (or another layer is held over it, for as long as it is) */
@@ -179,6 +181,7 @@ static void layer_arm(uint32_t pressed, uint32_t now)
     for (l = LAYER_FX; l < LAYER_N; l++)
         if ((pressed & ly_bit(l)) && ly_avail(l)) {
             lys.used = 0;
+            lys.pin = 0;
             ui.ly = (uint8_t)l;
             ui.ly_t0 = (now & ~15u) | 1u | (layer_allowed() ? 0u : LY_DEAD);
             return;
@@ -198,8 +201,9 @@ static void layer_let_go(uint32_t quiet)
     if (ui.ly == LAYER_FX && !perf_latch_on)
         perf_k[0] = perf_k[1] = perf_k[2] = perf_k[3] = 0;
     if (ui.ly == LAYER_FX && (ui.ly_t0 & LY_OPEN) && !(ui.ly_t0 & (LY_DEAD | LY_COMBO)) &&
-        !lys.used && !kb_layer && layer_allowed()) {
-        fx_lock = 1;                                    /* (0.6.44) held open, nothing used, let go: locked open;
+        !lys.used && lys.pin && !kb_layer && layer_allowed()) {
+        fx_lock = 1;                                    /* (2.0) held FOUR SECONDS, nothing used, let go: the map
+                                                         * stays (a short hold only peeks: it closes on release);
                                                          * (0.6.64) whatever FX LATCH (the effects' own: momentary by
                                                          * default) */
         ui_message("FX LOCKED: [FX] TO UNLOCK");
@@ -250,6 +254,9 @@ static uint32_t layer_gesture(uint32_t now, uint32_t combo)
             *t0 |= LY_OPEN | (combo ? LY_COMBO : 0u);
             layer_opened(l);
         }
+        if (l == LAYER_FX && !(*t0 & (LY_DEAD | LY_COMBO)) &&
+            now - (*t0 & ~15u) >= (uint32_t)FX_PIN_MS * 1000u * FM1_TICKS_PER_US)
+            lys.pin = 1;                                /* (2.0) four seconds: this press pins the map */
         return 0;
     }
     l = *t0 & (LY_OPEN | LY_DEAD) || combo ? 0u : l;   /* (a knob turned as it was let go: a combo, no tap) */
@@ -920,7 +927,8 @@ static void bnote(char *n, uint32_t t) { n[0] = B_NOTE[t]; n[1] = '#'; n[2] = 0;
  *
  * (1.8.1) The old top row of FILTER / CRUSH / THROW / DEPTH cards is gone. The
  * three hidden macros still work on KNOB 1..3; the fourth, DEPTH, is shown in
- * the map's header (it is the one the buffer effects need while playing). The
+ * the map's header. (2.0) Two cards, DEPTH and LATCH: BANK, TARGET and TRACK
+ * were readouts the map already shows, and OCT+ now flips LATCH from here. The
  * map itself now starts where the cards were: the keyboard is 170 px high,
  * not 122, and the white keys are 118 px tall below the cards' band. */
 static const char *const FX_BANK2[5] = {"REV", "FRZ", "TAPE", "GLCH", "RTRG"};
@@ -983,11 +991,12 @@ static void layer_fx(uint32_t band)
         int32_t lat = perf_latch_on != 0, dp = clamp(100 - perf_k[3], 0, 100), seg;
         for (i = 0; i < 2u; i++)
             cv_rrect(CX2[i], 5, 108, FX_CARD_H, 3, T_RAISE, T_SURF);   /* clear of the panel's 5 px corner */
-        /* LATCH: the engine's real flag (perform.c perf_latch_on), and what a press does with it */
-        cv_text_on(CX2[0] + 4, 8, &AF_S, "LATCH", T_MID, T_RAISE);
-        cv_text_on(CX2[0] + 4, 19, &AF_S, lat ? "ON" : "OFF", lat ? T_ACCENT : T_DIM, T_RAISE);
-        cv_text_r(CX2[0] + 104, 19, &AF_S, lat ? "TOGGLE" : "HOLD", lat ? T_TEXT : T_DIM, T_RAISE);
-        cv_text_on(CX2[0] + 4, 30, &AF_S, lat ? "EACH FX ITS OWN" : "ENABLE: MENU 40", T_DIM, T_RAISE);
+        /* LATCH: the engine's real flag (perform.c perf_latch_on), and nothing else: the card
+         * used to print "TOGGLE / HOLD" and "ENABLE: MENU 40", two instructions for a control it
+         * does not own (KNOB 1..4 are the macros here). A centred state is what it says now. */
+        GFX_HOOK_ALIGN(CX2[0], 5, CX2[0] + 108, 5 + FX_CARD_H, AL_HV, "FX LATCH state centred");
+        cv_text_in(CX2[0], 5 + CAP_IN(S, FX_CARD_H), 108, &AF_S, lat ? "Latch: On" : "Latch: Off",
+                   lat ? T_ACCENT : T_MID, T_RAISE);
         /* DEPTH: the value K4 writes (perform.c perf_k[3], shown as 100 - it: right is deeper),
          * and the same value as a bar, so the knob's travel is readable at a glance */
         cv_text_on(CX2[1] + 4, 8, &AF_S, "DEPTH", T_MID, T_RAISE);
@@ -1009,7 +1018,10 @@ static void layer_fx(uint32_t band)
         can = k < 27u && PF_IS(f) && ((ok >> f) & 1u);
         on = can && ((held >> f) & 1u);
         {
-            uint16_t fill = on ? T_ACCENT : can ? T_TEXT : T_RAISE;
+            /* (2.0) every lower key is the SAME grey: T_KEY, the keycap fill the rest of the UI
+             * uses (before, the available ones were T_BG and the unavailable ones T_DIM, so the
+             * keyboard read as white with one grey key at the end) */
+            uint16_t fill = on ? T_ACCENT : T_KEY;
             uint16_t ink = on ? T_INK : can ? T_INK : T_DIM;
             cv_rect(x, FX_KEY_Y, FX_WHITE_W, FX_KEY_H, fill);
             cv_rect(x, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
@@ -1028,16 +1040,18 @@ static void layer_fx(uint32_t band)
             if (key_black(k) && key_place(k) == b)
                 break;
         if (b < NTRK) {
-            uint16_t fill = (mutes >> b) & 1u ? T_ACCENT : T_BG;
+            uint16_t fill = (mutes >> b) & 1u ? T_ACCENT : T_DIM;   /* the mute latched: the accent, as a held key */
             char n[3] = {'T', (char)('1' + b), 0};
             cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
-            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_TEXT, fill);
+            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_INK, fill);
         } else {
             f = k < 27u ? perf_key(k) : PF_N;
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
             on = can && ((held >> f) & 1u);
             {
-                uint16_t fill = on ? T_ACCENT : can ? T_BG : T_DIM;
+                /* (2.0) the upper keys: one darker grey than the lower ones (T_DIM, 42 % from bg
+                 * to text), never T_BG: the absolute ink made them look like holes in the panel */
+                uint16_t fill = on ? T_ACCENT : T_DIM;
                 uint16_t ink = on ? T_INK : can ? T_TEXT : T_MID;
                 cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
                 fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
