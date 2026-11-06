@@ -1446,6 +1446,7 @@ static void presets_turn(int32_t s)
     const page_t *pg = cur_page();
     uint32_t g = pg->graph;
     if (ui.home || g == GR_BROWSE) {
+        ui.home_pulse = ui.frame;                        /* (2.0) a knob turned on HOME: same response */
         preset_step(s);
         ui.preset_pop_ms = fm1_ms ? fm1_ms : 1u;
         ui.force = 1;

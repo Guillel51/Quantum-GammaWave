@@ -119,6 +119,10 @@ static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
     }
 }
 #else
+/* the host's deterministic pixel builds (UI_NO_DRIFT) freeze the sparks: the pool is not there, and
+ * nothing that would add to it must fail to compile because of that */
+static void vz_np_add(int32_t x, int32_t y, int32_t vx, int32_t vy, uint16_t col, uint8_t life, uint8_t size)
+{ (void)x; (void)y; (void)vx; (void)vy; (void)col; (void)life; (void)size; }
 static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
 { (void)x0; (void)y0; (void)w; (void)h; }
 #endif
@@ -299,50 +303,83 @@ static uint32_t vz_flares(void) { return ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 
 static uint32_t vz_qframe(void) { uint32_t s = vz_step(); return ui.frame / s * s; }
 
 /* ============================================================================
- * 1. THE HEARTH (Ported from HearthVisualizer in PluginEditorComponents.h)
- *    Solar Furnace Core + Radial Flare Corona + Orbiting Moon (1.9: no particle field)
+ * 1. HOME'S SYSTEM: a small star, three orbits, four planets (2.0)
+ *    Replaces THE HEARTH's blazing sun: the concentric disc + 20 radial flares + a single moon
+ *    read as a sun seal, which is Pocket GammaWave's mark and not this instrument's. What is left
+ *    is the same vocabulary -- gw_disc, gw_orbit_ring, bg_col(heat), bg_sin and the frame counter
+ *    (vz_qframe through the caller) -- arranged as a system seen slightly from above: planets on
+ *    their own ellipses, their own speeds and their own sizes, the ones behind the star dimmed
+ *    and drawn before it, the ones in front drawn after it. No new primitive, no allocation, and
+ *    the cost is 3 rings + 5 discs + 4 sines per frame, below the sun's 20 flares + 8 discs.
+ *
+ *    Particles are NOT drawn here: gw_embers() (below) paints the bay's dust behind this, and the
+ *    interaction pulse uses the existing vz_np pool. Both are shared with the full-screen
+ *    visualizer, so the firmware keeps one particle implementation, not two.
  * ============================================================================ */
-static void gw_draw_hearth(int32_t cx, int32_t cy, int32_t r_core, int32_t en, int32_t heat, int32_t sparks, uint32_t tm)
+static void gw_planet(int32_t x, int32_t y, int32_t r, int32_t heat, int front)
 {
-    int32_t i, r_outer = r_core + 4 + (en * 4 >> 8), rx_orb = r_core + 20, ry_orb = r_core + 12;
-    uint32_t moon_ang = tm / 3u + 0x2800u, nfl = vz_flares();   /* (v1.5) the flares' count and their spacing */
-    (void)sparks;                                                /* (1.9) it sized the sparks HOME no longer draws */
-    int32_t mx = cx + (rx_orb * bg_sin(moon_ang + 0x4000u) >> 15);
-    int32_t my = cy + (ry_orb * bg_sin(moon_ang) >> 15);
+    if (r < 2) r = 2;
+    gw_disc(x, y, r + 1, ux_mix(T_BG, bg_col(60 + heat / 4), front ? 70 : 34));
+    gw_disc(x, y, r, front ? bg_col(150 + heat / 3) : ux_mix(T_BG, bg_col(120 + heat / 3), 62));
+    cv_pset(x - (r >> 1), y - (r >> 1), front ? bg_col(232) : T_DIM);   /* the lit limb, same side for all */
+}
 
-    /* 1. Elliptical Orbital Path (dotted) */
-    gw_orbit_ring(cx, cy, rx_orb, ry_orb, T_LINE, 1);
-    gw_orbit_ring(cx, cy, r_outer + 5, r_outer + 5, ux_mix(T_SURF, bg_col(64 + heat / 3), 45), 0);
-
-    /* 2. Solar Flare Corona Rays (20 smooth radial flares modulated by heat & audio) */
-    for (i = 0; i < (int32_t)nfl; i++) {                /* (v1.5) still the whole circle: the spacing is nfl's */
-        uint32_t a = (uint32_t)i * 65536u / nfl + (tm >> 2);
-        int32_t wave = (bg_sin(a * 3u - tm) + 32768) >> 12;   /* 0..16 */
-        int32_t len = 3 + ((heat + en) * (3 + (wave >> 1)) >> 8);
-        int32_t x0 = cx + ((r_outer - 1) * bg_sin(a + 0x4000u) >> 15);
-        int32_t y0 = cy + ((r_outer - 1) * bg_sin(a) >> 15);
-        int32_t x1 = cx + ((r_outer + len) * bg_sin(a + 0x4000u) >> 15);
-        int32_t y1 = cy + ((r_outer + len) * bg_sin(a) >> 15);
-        cv_line(x0, y0, x1, y1, bg_col(110 + (wave * 7)));
+static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat, uint32_t tm)
+{
+    /* three orbits, each with its own planet: radius, tilt, speed and size */
+    static const int8_t ORX[3] = {11, 20, 29};
+    static const uint8_t ORSPD[3] = {11, 17, 26};
+    static const uint8_t ORPHS[3] = {0x0000, 0x2A00, 0x5100};
+    static const uint8_t ORR[3] = {2, 3, 3};
+    int32_t i, orb_x, orb_y;
+    if (r < 3) r = 3;
+    if (r > 6) r = 6;                                 /* a star, not a sun: the planets carry the bay */
+    for (i = 0; i < 3; i++) {                        /* the paths first: they are behind everything */
+        gw_orbit_ring(cx, cy, ORX[i], ORX[i] * 2 / 3, ux_mix(T_BG, T_LINE, 50 + i * 15), 1);
     }
+    /* the planets behind the star's plane, dimmed */
+    for (i = 0; i < 3; i++) {
+        uint32_t a = (uint32_t)ORPHS[i] + tm * ORSPD[i] / 256u;
+        orb_x = cx + (ORX[i] * bg_sin(a + 0x4000u) >> 15);
+        orb_y = cy + ((ORX[i] * 2 / 3) * bg_sin(a) >> 15);
+        if (orb_y < cy)
+            gw_planet(orb_x, orb_y, ORR[i], heat + i * 20, 0);
+    }
+    /* the star: three discs, no rays -- a source, not a seal */
+    gw_disc(cx, cy, r + 1, ux_mix(T_BG, bg_col(70 + heat / 3), 58));
+    gw_disc(cx, cy, r, bg_col(168 + en / 5));
+    gw_disc(cx, cy, r * 60 / 100, bg_col(226 + en / 9));
+    gw_disc(cx, cy, r * 28 / 100, bg_col(252));
+    /* and the ones in front, at full strength, over the star's rim where they cross it */
+    for (i = 0; i < 3; i++) {
+        uint32_t a = (uint32_t)ORPHS[i] + tm * ORSPD[i] / 256u;
+        orb_x = cx + (ORX[i] * bg_sin(a + 0x4000u) >> 15);
+        orb_y = cy + ((ORX[i] * 2 / 3) * bg_sin(a) >> 15);
+        if (orb_y >= cy)
+            gw_planet(orb_x, orb_y, ORR[i], heat + i * 20, 1);
+    }
+}
 
-    /* 3. (1.9) HOME HAS NO PARTICLES. The orbiting star field that used to sit here drew up to 14
-     * sparks around the core on every frame; the corona's flares (above) and the orbiting moon
-     * (below) are shapes of the being, not a particle field, and they stay. The visualizer keeps
-     * its ember field (ui_graph.c graph_home_viz), where particles were designed to live. */
-
-    /* 4. Concentric Solar Furnace Disc (Mantle -> Golden Core -> White-Hot Singularity) */
-    gw_disc(cx, cy, r_outer, bg_col(88 + heat / 3));
-    gw_disc(cx, cy, r_core, bg_col(156 + en / 4));
-    gw_disc(cx, cy, r_core * 65 / 100, bg_col(212 + en / 8));
-    gw_disc(cx, cy, r_core * 32 / 100, bg_col(250));
-
-    /* 5. Orbiting Satellite Moon (HearthVisualizer lines 1554-1583) */
-    gw_disc(mx, my, 4, T_RAISE);
-    gw_disc(mx, my, 3, T_MID);
-    /* Sunlit crescent facing the Hearth core */
-    cv_pset(mx + (cx > mx ? 1 : -1), my + (cy > my ? 1 : -1), bg_col(220));
-    cv_pset(mx + (cx > mx ? 2 : -2), my, T_TEXT);
+/* the ambient dust of a bay: deterministic, no allocation, one sine per particle per frame. It is
+ * the same field the full-screen visualizer draws (graph_home_viz), moved here so there is one
+ * implementation: n embers drifting in a rect, dimmed to `bg` so they read as depth and never as
+ * data. MENU > VISUALIZER QUALITY thins them; PREF_ANIM_OFF stops the motion (not the field). */
+static void gw_embers(int32_t x0, int32_t y0, int32_t w, int32_t h, uint32_t n, uint32_t seed,
+                      int32_t heat0, uint16_t bg)
+{
+    uint32_t i;
+    int mono = ux.mono || settings.palette == UI_BW_INDEX;
+    if (!w || !h || !n)
+        return;
+    for (i = 0; i < n; i++) {
+        int32_t px = x0 + 1 + (int32_t)(((i * 11u + (i % 5u) * 7u + seed) * 37u) % (uint32_t)(w - 2));
+        int32_t py = y0 + h / 2 + (int32_t)((bg_sin(ui.frame * (55u + (i % 7u) * 9u) + i * 4096u + seed) * (h / 3 + (i % 6u) * 2)) >> 15);
+        int32_t lvl = (int32_t)((bg_sin(ui.frame * (39u + (i % 5u) * 8u) + i * 3072u + seed) + 32768) >> 9);
+        if (py >= y0 && py < y0 + h && px >= x0 && px < x0 + w) {
+            uint16_t pc = mono ? (lvl > 90 ? T_TEXT : T_DIM) : ux_mix(bg, bg_col(heat0 + (int32_t)i * 7), 34 + lvl / 5);
+            cv_rect(px, py, (i % 5u) == 0u ? 2 : 1, 1, pc);
+        }
+    }
 }
 
 /* ============================================================================
@@ -663,16 +700,39 @@ static void graph_ecosys(void)
     /* 1. Upper Bay (y = 2..63): FILTER + Yellow-Orange-Purple Spectrogram Waterfall + Cyan Mod Curve */
     gw_draw_forge_bay(TSEL, 8, 2, 224, 61, tot_en);
 
-    /* 2. Lower-Left Bay (x = 8..96, y = 66..118): Blazing Yellow-White Sun + Orbiting Moon */
+    /* 2. Lower-Left Bay (x = 8..96, y = 66..118): HOME'S SYSTEM -- dust, three orbits, four planets.
+     *    The dust goes first (it is the bay's depth, never in front of a planet or a value), then the
+     *    system, then -- if the last ~0.7 s had a gesture -- the pulse. Nothing here is drawn under
+     *    the mini-knobs of the right bay: those are controls, and the effects belong to this picture. */
     gw_oct_panel(8, 66, 88, 52, 4, T_BG, T_LINE, 1, T_THEME);
-    gw_draw_hearth(52, 92, 10 + (tot_en >> 6), tot_en, 210, 180, tm);
+    gw_embers(10, 67, 84, 50, ui_viz_q >= 2u ? 6u : ui_viz_q == 1u ? 10u : 16u, 0x1300u, 96, T_BG);
+    gw_draw_system(52, 92, 4 + (tot_en >> 7), tot_en, 210, tm);
+    if (ui.home_pulse) {                                    /* a HOME tap or a knob turned on HOME */
+        uint32_t age = ui.frame - ui.home_pulse;
+        if (age >= 45u) {
+            ui.home_pulse = 0;
+        } else {
+            int32_t ring = 5 + (int32_t)age;               /* 5..49 px: it dies at the bay's edge */
+            if (ring < 40)
+                gw_orbit_ring(52, 92, ring, ring * 2 / 3, ux_mix(T_BG, T_THEME, 150 - (int32_t)age * 3), 1);
+            if (!(age & 3u)) {                            /* 4 sparks a frame, from the four orbits */
+                uint32_t k = (age / 4u) & 3u;
+                int32_t ang = (int32_t)k * 16384 + (int32_t)age * 700;
+                vz_np_add(52 + (bg_sin((uint32_t)ang + 0x4000u) * ring >> 15),
+                          92 + (bg_sin((uint32_t)ang) * ring * 2 / 3 >> 15),
+                          (bg_sin((uint32_t)ang + 0x4000u) * 3 >> 15), -(1 + (int32_t)(k & 1)),
+                          bg_col(150 + (int32_t)k * 30), 16, k == 0 ? 2 : 1);
+            }
+        }
+    }
 
     /* 3. Lower-Right Bay (x = 100..232, y = 66..118): HEARTH Physics Knobs (Heat/Sparks/Weight/Force) + 6 Track Pads */
     gw_oct_panel(100, 66, 132, 52, 4, T_BG, T_LINE, 1, T_ACCENT);
-    for (c = 0; c < 4u; c++) {
+    for (c = 0; c < 4u; c++) {                             /* (2.0) 8 px, not 9: a little smaller without
+                                                            * losing the value arc or the 31 px pitch */
         int32_t kv = bg_knob(c, 0);
         int32_t kx = 118 + (int32_t)c * 31;
-        gw_mini_bakelite_knob(kx, 78, 9, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
+        gw_mini_bakelite_knob(kx, 78, 8, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
     }
     cv_rect(104, 92, 124, 1, T_LINE);
 

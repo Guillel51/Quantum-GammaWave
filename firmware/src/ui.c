@@ -216,6 +216,7 @@ static struct {
     uint8_t uboot;               /* main.c: seconds left before UPDATE MODE (OCT- + OCT+ held), 0 = none */
     uint32_t preset_pop_ms;      /* non-blocking 1.5s popup timer for PRESET knob browser */
     uint8_t home_viz;            /* 1 = full-screen integrated music visualizer on HOME -> HOME */
+    uint32_t home_pulse;         /* (2.0) the frame of the last HOME gesture: HOME's system answers with a ring and a burst */
     uint32_t ly_t0;              /* the layer button's press time | 1, LY_* bits (ui_layer.c layer_gesture) */
     uint8_t ly;                  /* the layer whose button is down (LAYER_*), 0 = none */
     uint8_t layer;               /* the layer whose map is shown (LAYER_*), 0 = none */
@@ -784,6 +785,7 @@ static void open_global(void)
 static void go_home(void)
 {
     if (ui.home) {
+        ui.home_pulse = ui.frame;                /* (2.0) HOME tapped on HOME: the system pulses */
         ui.home_viz = !ui.home_viz;              /* toggle visualizer if already at HOME */
     } else {
         ui.home = 1;

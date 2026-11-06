@@ -2529,15 +2529,11 @@ static void graph_home_viz(uint16_t c)
          * A field of drifting embers, deterministic and cheap: no allocation, one sine per particle per frame.
          * The vertical speed was ~21-45 units/frame, which read as frozen on the panel; 55-109 keeps the same
          * 18 particles and the same three primitives, so the draw cost does not grow with the motion. */
-        for (i = 0; ui.home_viz && i < 18u; i++) {
-            int32_t px = 24 + (int32_t)((i * 11u + (i % 5u) * 7u) % 198u);
-            int32_t py = 88 + (int32_t)((bg_sin(ui.frame * (55u + (i % 7u) * 9u) + i * 4096u) * (14 + (i % 6u) * 3)) >> 15);
-            int32_t lvl = (bg_sin(ui.frame * (39u + (i % 5u) * 8u) + i * 3072u) + 32768) >> 9;
-            if (py >= top_y && py < top_y + 88 && px >= 12 && px < 228) {
-                uint16_t pc = mono ? (lvl > 90 ? T_TEXT : T_DIM) : ux_mix(T_SURF, heat_col(80 + i * 8), 18 + lvl / 9);
-                cv_rect(px, py, i % 5u == 0u ? 2 : 1, 1, pc);
-            }
-        }
+        /* The ember field behind the visualizer: gw_embers() (ui_being.c) is the ONE implementation,
+         * shared with HOME's own bay, so the two screens cannot drift apart. 18 embers at HIGH, 12 at
+         * BALANCED, 6 at LOW; deterministic, no allocation, one sine per particle per frame, and all
+         * of it behind the trace, the spectrum and the labels. */
+        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 6u : ui_viz_q == 1u ? 12u : 18u, 0u, 80, T_SURF);
 
         if (pass) {
             cv_rrect(12, 184, 72, 15, 3, T_THEME, T_SURF);
