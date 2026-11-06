@@ -3140,15 +3140,12 @@ static int test_layer(void)
     for (flash = 0, i = 0; i < 22u; i++) { frame(); flash |= ui.layer; }      /* 0.35 s */
     btn_up(B_FX); frame();
     bad += check("  held 0.35 s (HOLD 0.4): still a tap, the map never shown", !flash && !ui.home);
-    /* peek: past HOLD alone, the map; letting go does nothing */
+    /* peek: past HOLD alone, the map; letting go closes it (2.0: the screen pins on four seconds, not on HOLD) */
     ui_power_on();
     btn_down(B_FX); frames(368);
     ok = !ui.layer;
     frames(64);
     ok &= ui.layer == LAYER_FX;
-    btn_up(B_FX); frame();
-    frame();                                           /* (the keys follow the lock from the next frame) */
-    ok &= ui.home && ui.layer == LAYER_FX && fx_lock;   /* (0.6.64) let go unused: locked open, FX LATCH OFF too */
     {   /* the effects momentary (FX LATCH OFF, the default): a key held plays it, let go stops it */
         uint32_t k = white(3);                         /* (the LPF key) */
         key_down(k); frame();
@@ -3156,10 +3153,59 @@ static int test_layer(void)
         key_up(k); frame();
         ok &= !(perf_held & PF_BIT(PF_LPF)) && !perf_latched;
     }
+    btn_up(B_FX); frame(); frame();
+    ok &= ui.home && !ui.layer && !fx_lock;             /* a peek: no pin, no page */
+    bad += check("FX held past HOLD: the map (not before), the effects momentary; let go: no page and no pin (four "
+                 "seconds are what pin it)", ok && ui.home);
+    /* (2.0) the Punch-in map on a real press: a short hold only peeks (it closes when the
+     * button is let go), four seconds pin it; KNOB 1 turns LATCH on and off (the setting and
+     * the engine's bit together), a key keeps its own effect after it is let go, KNOB 2 is
+     * DEPTH, and FX again closes the pinned screen. */
+    ui_power_on();
+    btn_down(B_FX); frames(1000); frame();
+    ok = ui.layer == LAYER_FX && !fx_lock;
+    btn_up(B_FX); frames(64);
+    ok &= !fx_lock && !ui.layer;                       /* a one-second hold: a peek, not a pin */
+    bad += check("Punch-in: a short hold shows the map and does not pin it", ok);
+    btn_down(B_FX); frames(4200); frame();
+    ok = ui.layer == LAYER_FX && !fx_lock;             /* still held: shown, not pinned yet */
+    btn_up(B_FX); frames(64);
+    ok &= fx_lock && ui.layer == LAYER_FX;             /* four seconds: pinned */
+    bad += check("Punch-in: held past four seconds, the map pins on release", ok);
+    ok = !perf_latch_on && !(ui_prefs & PREF_LATCH);
+    fx_latch = PREF_LATCH | PREF_ACCEL_OFF;            /* MENU > FX LATCH ON, the setting it writes */
+    frame();
+    ok &= perf_latch_on && (ui_prefs & PREF_LATCH);
+    {
+        uint32_t lp = white(3), hp = white(4);         /* the LPF and HPF keys */
+        key_down(lp); frame(); key_up(lp); frame();
+        ok &= (perf_latched & PF_BIT(PF_LPF)) != 0u && !(perf_held & PF_BIT(PF_LPF));
+        key_down(lp); frame(); key_up(lp); frame();
+        ok &= !(perf_latched & PF_BIT(PF_LPF));         /* the second press lets it go */
+        key_down(lp); frame(); key_up(lp); frame();
+        ok &= (perf_latched & PF_BIT(PF_LPF)) != 0u;    /* a third: latched again */
+        key_down(hp); frame(); key_up(hp); frame();     /* HPF: its own bit */
+        ok &= (perf_latched & PF_BIT(PF_HPF)) != 0u && (perf_latched & PF_BIT(PF_LPF)) != 0u;
+        key_down(lp); frame(); key_up(lp); frame();     /* LPF let go, HPF stays */
+        ok &= !(perf_latched & PF_BIT(PF_LPF)) && (perf_latched & PF_BIT(PF_HPF)) != 0u;
+        ok &= (perf_held & (PF_BIT(PF_LPF) | PF_BIT(PF_HPF))) == 0u;   /* nothing held: the latches alone */
+    }
+    {
+        perf_k[3] = 50;                                 /* KNOB 4: DEPTH, the buffer effects' level */
+        turn(EN_K4, 1);
+        ok &= perf_k[3] == 49;                          /* DEPTH rises to the right (100 - perf_k[3]) */
+        turn(EN_K4, -1);
+        ok &= perf_k[3] == 50;
+        perf_k[3] = 0;
+    }
+    fx_latch = PREF_ACCEL_OFF;                          /* MENU > FX LATCH OFF */
+    frame();
+    ok &= !perf_latch_on && !(ui_prefs & PREF_LATCH) && !perf_latched;   /* OFF: nothing stays latched */
+    ok &= fx_lock;                                                         /* the pinned map is still there */
     press(B_FX); frames(64);
-    ok &= !fx_lock && !ui.layer;
-    bad += check("FX held past 0.4 s: the map (not before); let go: no page, the map locked open (0.6.64), the effects "
-                 "momentary; FX again: closed", ok && ui.home);
+    ok &= !fx_lock && !ui.layer;                                           /* FX again: closed */
+    bad += check("Latch: the FX LATCH setting on and off (nothing left latched, the map stays pinned), each key "
+                 "keeps its own effect, DEPTH on KNOB 4, FX closes the pinned map", ok);
     /* the HOLD setting: 0.6 s */
     ui_power_on();
     hold(B_HOME); ui.menu_sel = MI_HOLD; turn(EN_K1, 1); turn(EN_K1, 1); ok = settings_hold == 3u; hold(B_HOME);
@@ -3257,7 +3303,7 @@ static int test_layer(void)
     usb.config = 1; mo = mo_w;
     btn_down(B_FX); key_down(white(15)); frame();
     ok = ui.layer == LAYER_FX && !gates() && mo_w == mo && !perf_held && (kb_layer >> white(15)) & 1u;
-    turn(EN_K4, -40);
+    turn(EN_K4, -40);                                  /* KNOB 4: DEPTH */
     ok &= perf_k[3] == 40;
     key_up(white(15)); btn_up(B_FX); frame();
     bad += check("FX + G5: nothing held, silent, no MIDI; KNOB 4 turns; FX let go: K4 back to 0",
@@ -8472,7 +8518,7 @@ static int test_fx_latch(void)
          * effects and the knobs are FX's without FX held; OCT- all off; FX again: unlocked, the effects stay */
         fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
         go_home(); frames(400);
-        btn_down(B_FX); frames(800); btn_up(B_FX); frames(64);
+        btn_down(B_FX); frames(4300); btn_up(B_FX); frames(64);   /* (2.0) the map pins on four seconds */
         ok = fx_lock && ui.layer == LAYER_FX;
         key_down(lpf); frame(); key_up(lpf); frame();
         turn(EN_K2, 10);

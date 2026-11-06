@@ -189,12 +189,14 @@
   .resource span { color: var(--muted); font-size: 12px; }
   .resource .no { color: var(--heat); font: 700 10px/1 var(--mono); }
   /* The four ecosystem accesses: Web Site first and clearly the largest. */
-  .access { display: grid; grid-template-columns: 1.7fr 1fr 1fr; grid-template-rows: auto auto; gap: 12px; }
+  .access { display: grid; grid-template-columns: 1.7fr 1fr 1fr; grid-template-rows: auto auto; gap: 12px; align-items: stretch; }
   /* WEB SITE is the entry point and reads as such: twice the width and both rows. */
-  .access-card.primary { grid-column: 1; grid-row: 1 / span 2; }
+  .access-card.primary { grid-column: 1; grid-row: 1 / span 2; align-content: space-between; }
+  /* (the two cells the installer shared with the old FLASH FM-1 entry: one card, both columns) */
+  .access-card.wide { grid-column: 2 / span 2; grid-row: 2; }
   .access-card.primary b { font-size: clamp(26px, 3.4vw, 38px); }
   .access-card.primary p { font-size: 15px; }
-  .access-card { display: grid; gap: 7px; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .access-card { display: grid; gap: 7px; min-height: 100%; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
   .access-card:hover { border-color: var(--heat); transform: translateY(-2px); color: var(--ink); }
   .access-card:focus-visible { outline: 2px solid var(--heat); outline-offset: 3px; border-color: var(--heat); }
   .access-card .no { color: var(--faint); font: 700 10px/1 var(--mono); letter-spacing: .12em; }
@@ -207,7 +209,8 @@
   .access-card.primary b { font-size: clamp(32px, 5.4vw, 58px); }
   .access-card.primary .url { font-size: 12px; }
   .access-card.primary p { font-size: 15px; max-width: 62ch; }
-  @media (max-width: 900px) { .access { grid-template-columns: 1fr; } .access-card.primary { grid-row: auto; } }
+  @media (max-width: 900px) { .access { grid-template-columns: 1fr; }
+    .access-card.primary, .access-card.wide { grid-column: auto; grid-row: auto; } }
   @media (max-width: 640px) { .access-card.primary { padding: 22px; } }
   footer { border-top: 1px solid var(--line); padding: 32px 0 44px; color: var(--faint); font-size: 12px; }
   .foot-grid { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 30px; }
@@ -303,7 +306,7 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Accesos</div><h2 style="margin-top:14px">Todo el ecosistema,<br>en un clic.</h2></div>
-        <p>Cuatro entradas al mismo proyecto. El Web Site es la principal y desde ahí se llega al resto; ninguna ruta depende de una redirección.</p>
+        <p>Cuatro entradas al mismo proyecto. El Web Site es la principal y desde ahí se llega al resto; el instalador USB es la única vía de escritura y ninguna ruta depende de una redirección.</p>
       </div>
       <div class="access">
         <a class="access-card primary" href="./" aria-label="Web Site, portal principal de Quantum GammaWave">
@@ -326,11 +329,11 @@
           <p>Editor del sonido real por Web MIDI, secuenciador de 16 pasos, mixer de seis pistas y proyectos.</p>
           <span class="go">Entrar al estudio <span class="arrow">↗</span></span>
         </a>
-        <a class="access-card" href="webapp/installer/">
+        <a class="access-card wide" href="webapp/installer/">
           <span class="no">04 / USB INSTALLER</span>
           <b>USB Installer</b>
           <span class="url">/webapp/installer/</span>
-          <p>El único acceso que escribe en la FM-1: identidad, tamaño y SHA-256 comprobados, y Verify Only para leer sin tocar la flash.</p>
+          <p>Identidad FM-1, tamaño del paquete y SHA-256 comprobados antes de escribir un solo byte. Incluye <b>Verify only</b>: lee la identidad del FM-1 y no envía ninguna trama de escritura.</p>
           <span class="go">Abrir instalador <span class="arrow">↗</span></span>
         </a>
       </div>

@@ -142,6 +142,7 @@ jobs:
         if: steps.tc.outcome == 'success'
         run: |
           node web/test_web.mjs
+          node web/test_verify_only.mjs
           node web/test_provenance.mjs
           node web/test_verify_only.mjs
           python3 tests/preflight_test.py build/felucca.fwsc

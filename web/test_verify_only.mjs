@@ -1,166 +1,179 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
+// "Verify only" must be read-only, not by name but on the wire.
 //
-// Verify Only, at the transport. The page's verify button must be a read of the unit's identity and
-// nothing else, so this drives the real Updater and the real BackupConnection against a simulated
-// FM-1 and records every byte the device is sent. Whatever the sequence is called, the frames it may
-// send are three: the handshake, the backup channel's INFO read, and -- only on the install path,
-// never here -- the chip probe. A write frame, an UPGRADE, a PUT: any of them fails the test.
-import { readFileSync } from "node:fs";
-import { Updater, pack7 } from "./fm1ota.js";
-import { BackupConnection } from "./fm1backup.js";
-import vm from "node:vm";
+// Every case below drives the real module (web/fm1verify.js, the one make_site.py inlines into
+// the installer page) with a fake WebMIDI access that records every byte the page sends. The
+// assertions are about that log, not about the intention of the code: after a verify, the only
+// frame on the wire is the identity query, there is no UPGRADE (F0 22 24 35 7F F7), no 0x30
+// answer, no E0000000/F0000000 acknowledgement and no archive PUT, whatever the device says,
+// however it answers, and whatever goes wrong while it answers.
 
-let fails = 0;
-const ok = (c, what) => { console.log(`${what.padEnd(74)} ${c ? "ok" : "FAIL"}`); if (!c) fails++; };
+import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
+import * as mod from "./fm1verify.js";
+import { Updater } from "./fm1ota.js";
 
-const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
-const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
-const INFO_QUERY = [240, 125, 70, 76, 1, 247];            /* BackupConnection([1, []]) */
-const isInfoQuery = (f) => f.length === 6 && f.slice(0, 6).every((v, i) => v === INFO_QUERY[i]);
-
-/* the identity the firmware answers the handshake with: 34 bytes, 0 / 0x59 / 0x11 / pad / 27 chars */
-function identityReply(text) {
-  const d = new Array(34).fill(0);
-  d[0] = 0; d[1] = 0x59; d[2] = 0x11;
-  const t = (text + "\0".repeat(27)).slice(0, 27);
-  for (let i = 0; i < 27; i++) d[6 + i] = t.charCodeAt(i) & 0x7F;
-  return [0xF0, ...pack7(d), 0xF7];
-}
-
-/* a JIANT info frame: version, engines + their names, six tracks, and the 0x4A 1 1 tag the page reads */
-function jiantInfo(version) {
-  const vs = [...version].map((c) => c.charCodeAt(0));
-  return [...vs, 0, 1, 0, 0, 0, 0, ..."ANALOG".split("").map((c) => c.charCodeAt(0)), 0, 6, 0x56, 1, 32, 0x4A, 1, 1];
-}
-
-function fakeAccess({ port = "FM-1 MIDI 1", text = "FM-1_982", info = null, silence = false } = {}) {
-  const frames = [];
-  const input = { id: "in", name: port, state: "connected", onmidimessage: null, open: async () => {} };
-  const answer = (bytes) => {
-    if (silence) return;
-    const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
-    let reply = null;
-    if (same(bytes, HS_QUERY)) reply = identityReply(text);
-    else if (isInfoQuery(bytes) && info) reply = [240, 125, 70, 76, 1, ...info, 247];
-    if (reply) setTimeout(() => { if (input.onmidimessage) input.onmidimessage({ data: new Uint8Array(reply) }); }, 0);
-  };
-  const output = {
-    id: "out", name: port, state: "connected", open: async () => {},
-    send(bytes) { frames.push(Array.from(bytes)); answer(Array.from(bytes)); },
-  };
-  return { access: { inputs: new Map([[input.id, input]]), outputs: new Map([[output.id, output]]) }, frames, input, output };
-}
-
-/* the sequence the page's verify button runs (index_pkg.html, $("verify").addEventListener), with the
- * same helpers and the same order: look for a unit already in update mode, then identify the running
- * firmware, reading its info frame when the identity says it is a JIANT/Felucca build. */
-async function verifyOnly(access, log = () => {}) {
-  const up = new Updater(access, log);
-  const ota = await up.find((id) => /^ota-/i.test(id.model));
-  if (ota) { ota.link.close(); return { kind: "loader", text: ota.id.text }; }
-  const dev = await up.find((id) => !/^ota-/i.test(id.model));
-  if (!dev) return { kind: "none" };
-  const text = dev.id.text;
-  if (text === "FM-1_015") { dev.link.close(); return { kind: "stock", text }; }
-  if (!/^FM-1_9\d\d$/.test(text)) { dev.link.close(); return { kind: "other", text }; }
-  const input = dev.link.input, output = dev.link.output;
-  dev.link.close();
-  const link = new BackupConnection(input, output);
-  try {
-    const a = await link.request([1, []], { timeout: 1000 });
-    return { kind: "jiant", text, info: a };
-  } catch (e) {
-    return { kind: "other", text: text + " (no answer)" };
-  } finally { link.close(); }
-}
-
-const framesOk = (frames, allowed, what) => {
-  const bad = frames.filter((f) => !allowed.some((a) => (typeof a === "function" ? a(f) : a.length === f.length && a.every((v, i) => v === f[i]))));
-  ok(bad.length === 0, what);
-  if (bad.length) console.log("   sent: " + bad.map((f) => f.map((v) => v.toString(16)).join(" ")).join("\n         "));
+let bad = 0, total = 0;
+const check = (name, ok) => {
+  total++;
+  if (!ok) { bad++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`);
 };
 
-/* 1. a JIANT unit: identity + one info read, nothing else */
-{
-  const info = jiantInfo("FELUCCA v0.5.1");
-  const { access, frames } = fakeAccess({ text: "FM-1_982", info });
-  const v = await verifyOnly(access);
-  ok(v.kind === "jiant" && v.text === "FM-1_982", "verify: a JIANT FM-1 is identified by its own identity");
-  ok(v.info && v.info.length === info.length && v.info.every((x, i) => x === info[i]), "verify: its info frame is read back whole");
-  framesOk(frames, [HS_QUERY, isInfoQuery], "verify: a JIANT unit is sent the handshake and one INFO read, nothing else");
-  ok(frames.filter((f) => f.length === 6).length === 1, "verify: exactly one INFO read (not a stream of them)");
-  ok(!frames.some((f) => f.length === UPGRADE.length && f.every((x, i) => x === UPGRADE[i])), "verify: UPGRADE is never sent");
+// --- the protocol constants the test recognises -------------------------------------------
+const isQuery = (b) => b.length === READ_ONLY_QUERY.length && b.every((v, i) => v === READ_ONLY_QUERY[i]);
+const isUpgrade = (b) => b.length === 6 && b[0] === 0xF0 && b[1] === 0x22 && b[2] === 0x24 && b[3] === 0x35 && b[4] === 0x7F && b[5] === 0xF7;
+const isImageAnswer = (b) => b[0] === 0xF0 && b.length > 8 && b[1] === 0x00 && b[2] === 0x59 && b[3] === 0x30;
+const isFinishAck = (b) => isImageAnswer(b) && /success/.test(String.fromCharCode(...b));
+const isArchivePut = (b) => b.length > 5 && b[0] === 0xF0 && b[1] === 0x7D && b[2] === 0x46 && b[3] === 0x4C && b[4] === 67;
+
+function identityFrame(text) {                       // 0x45 identity answer (34 bytes, 7-bit packed)
+  const d = [0, 0x59, 0x11, 0, 0, 0, ...Array.from(text.padEnd(27, "\0")).map((c) => c.charCodeAt(0)), 0];   // 6 header + 27 + 1 = 34
+  const out = []; let acc = 0, nb = 0;
+  for (const b of d) { acc |= b << nb; nb += 8; while (nb >= 7) { out.push(acc & 0x7F); acc >>>= 7; nb -= 7; } }
+  if (nb) out.push(acc & 0x7F);
+  return [0xF0, ...out, 0xF7];
 }
 
-/* 2. the JIANT tag is what makes it a JIANT: the same bytes the page's isJiantInfo() reads */
-{
-  const html = readFileSync(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const src = html.slice(html.indexOf("function isJiantInfo"), html.indexOf("async function fwKind"));
-  const isJiantInfo = vm.runInNewContext(`(${src.trim()})`);
-  const info = jiantInfo("FELUCCA v0.5.1");
-  const { access, frames } = fakeAccess({ text: "FM-1_982", info });
-  const v = await verifyOnly(access);
-  ok(isJiantInfo(v.info), "verify: the page's own isJiantInfo() accepts the frame the unit answers");
-  framesOk(frames, [HS_QUERY, isInfoQuery], "verify: and that path still sends only the two reads");
+// a fake MIDI access: one in/out pair per named port, and a script for what the device answers
+function access(names, script = {}) {
+  const sent = [];
+  const inputs = new Map(), outputs = new Map();
+  for (const name of names) {
+    const inPort = { name, state: "connected", onmidimessage: null, open: async () => {} };
+    const outPort = {
+      name, state: "connected", open: async () => {},
+      send(bytes) {
+        const b = Array.from(bytes);
+        sent.push({ name, bytes: b });
+        const answer = script[name];
+        if (answer && isQuery(b)) {
+          const frames = answer(b) || [];
+          for (const f of frames) setTimeout(() => inPort.onmidimessage && inPort.onmidimessage({ data: Uint8Array.from(f) }), 0);
+        }
+        if (answer && answer.disconnectAfter && answer.disconnectAfter(b)) {
+          inPort.state = "disconnected"; outPort.state = "disconnected";
+        }
+      },
+    };
+    inputs.set(name, inPort); outputs.set(name, outPort);
+  }
+  return { sent, midi: { inputs, outputs }, closeAll: () => { for (const p of inputs.values()) p.state = "disconnected"; } };
 }
 
-/* 3. a stock V15 unit: no info read at all, the identity is enough */
-{
-  const { access, frames } = fakeAccess({ text: "FM-1_015" });
-  const v = await verifyOnly(access);
-  ok(v.kind === "stock", "verify: official V15 is recognised from the handshake alone");
-  framesOk(frames, [HS_QUERY], "verify: a stock unit is sent the handshake only");
+// --- the verdict on any log: the identity query and nothing else ---------------------------
+function onlyQueries(sent) {
+  return sent.length > 0 && sent.every(({ bytes }) => isQuery(bytes));
+}
+function anyWrite(sent) {
+  return sent.some(({ bytes }) => isUpgrade(bytes) || isImageAnswer(bytes) || isFinishAck(bytes) || isArchivePut(bytes));
 }
 
-/* 4. another firmware: identified as unknown, still reads nothing else */
+// --- cases ---------------------------------------------------------------------------------
 {
-  const { access, frames } = fakeAccess({ text: "BAUDGIRL_200" });
-  const v = await verifyOnly(access);
-  ok(v.kind === "other" && v.text === "BAUDGIRL_200", "verify: an unknown firmware is named, not guessed at");
-  framesOk(frames, [HS_QUERY], "verify: an unknown firmware is sent the handshake only");
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("our firmware: reported as ours, with its own identity", fw.kind === "ours" && fw.text === "FM-1_982" && fw.version === 982);
+  check("our firmware: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
-
-/* 5. a unit left in update mode: the page says so and closes the port, sending nothing but the query */
 {
-  const { access, frames } = fakeAccess({ text: "ota-FM-1_982" });
-  const v = await verifyOnly(access);
-  ok(v.kind === "loader", "verify: a unit in update mode is reported as such (INSTALL finishes it)");
-  framesOk(frames, [HS_QUERY], "verify: the update-mode unit is sent the handshake only, never a resume");
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("official V15: reported as stock", fw.kind === "stock" && fw.text === "FM-1_015");
+  check("official V15: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
-
-/* 6. a unit that does not answer: the read times out and nothing else is attempted */
 {
-  const { access, frames } = fakeAccess({ text: "FM-1_982", info: jiantInfo("FELUCCA v0.5.1"), silence: true });
-  const v = await verifyOnly(access);
-  ok(v.kind === "none", "verify: a unit that never answers is 'not found', not a made-up identity");
-  ok(frames.length >= 1, "verify: it did ask (the handshake), and stopped asking after that");
+  // JIANT, or any FM-1 firmware that is not this one: its identity is reported, never "unknown"
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_210")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("JIANT/another FM-1: its identity is reported as it answered", fw.kind === "other" && fw.text === "FM-1_210" && fw.version === 210);
+  check("JIANT/another FM-1: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
-
-/* 7. the page's verify handler cannot reach a writer: the call whitelist, checked on the page itself */
 {
-  const html = readFileSync(new URL("./index_pkg.html", import.meta.url), "utf8");
+  // a firmware that does not implement the query at all (JIANT may be one): the port is named,
+  // nothing else is sent, and it is not reported as "no FM-1 found"
+  const a = access(["FM-1"], { "FM-1": () => [] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("a silent FM-1 port: reported as silent, with the port name", fw.kind === "silent" && fw.ports.includes("FM-1"));
+  check("a silent FM-1 port: only identity queries were sent", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+{
+  const a = access([], {});
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("no FM-1 at all: none, nothing sent", fw.kind === "none" && a.sent.length === 0);
+}
+{
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_982")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("the update loader: reported as loader (an install was cut off)", fw.kind === "loader" && fw.model === "ota-FM-1");
+  check("the update loader: only the identity query was sent, no resume", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+{
+  // malformed and hostile answers: a truncated frame, a wrong header, a huge blob, another command
+  const junk = [[0xF0, 0x01, 0xF7], [0xF0], [0xF0, 0x7D, 0x46, 0x4C, 65, 0xF7]];
+  for (const j of junk) {
+    const a = access(["FM-1"], { "FM-1": () => [j] });
+    const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+    check(`a malformed answer (${j.length} bytes): still silent, no write`, fw.kind === "silent" && onlyQueries(a.sent) && !anyWrite(a.sent));
+  }
+}
+{
+  // the port vanishes in the middle of the handshake
+  const a = access(["FM-1"], { "FM-1": (b) => { a.closeAll(); return []; } });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("a disconnect mid-handshake: reported, nothing else sent", (fw.kind === "silent" || fw.kind === "none") && !anyWrite(a.sent) && onlyQueries(a.sent));
+}
+{
+  // other gear on the same computer is never probed
+  const a = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_982")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("gear that is not an FM-1 is not probed at all", fw.kind === "none" && a.sent.length === 0);
+}
+{
+  // a package tag that is not this device must not make it "ours"
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_983" });
+  check("a different package tag: reported as another firmware", fw.kind === "other" && fw.text === "FM-1_982");
+}
+{
+  // the module itself: no exported way to write, no import of the writer it would need
+  const keys = Object.keys(mod).sort();
+  check("fm1verify.js exports only verifyDevice and the query it is allowed to send",
+    keys.join(",") === "READ_ONLY_QUERY,verifyDevice");
+  check("fm1verify.js exports no install/write/resume entry point",
+    !keys.some((k) => /install|write|resume|upgrade|serve|put/i.test(k)));
+}
+{
+  // and the page must call it, not a handler of its own
+  const fs = await import("node:fs/promises");
+  const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
   const at = html.indexOf('$("verify").addEventListener');
-  const end = html.indexOf('$("stock-file").addEventListener', at);
-  const handler = html.slice(at, end);
-  const forbidden = ["install(", "resume(", ".write(", "probeChip(", "#serve", "UPGRADE", "restoreBackup",
-    "captureBackup", "sendPackage", "erase", "reboot"];
-  const hit = forbidden.filter((w) => handler.includes(w));
-  ok(at > 0 && end > at, "verify: the verify handler is found in index_pkg.html");
-  ok(hit.length === 0, "verify: its source calls no writer, no loader switch and no erase" + (hit.length ? ": " + hit.join(", ") : ""));
-  ok(/fwKind\(up\)/.test(handler) && /up\.find\(/.test(handler), "verify: it identifies through fwKind() and find(), as tested above");
+  const body = html.slice(at, html.indexOf("\n});", at));
+  check("the page's Verify only button calls verifyDevice", /verifyDevice\s*\(/.test(body));
+  check("the page's Verify only handler names no write path",
+    !/\b(install|resume|write|chipEvidence|probeChip|captureBackup)\s*\(/.test(body) && !/UPGRADE/.test(body));
 }
 
-/* 8. the transport refuses to serve without an admission, even when called directly: a write needs proof,
- * and the refusal happens before the port is even opened */
 {
-  const { access, frames } = fakeAccess({ text: "FM-1_982" });
-  const up = new Updater(access);
+  // the verifier's read-only property is a property of the module, and the writer's is a refusal:
+  // install() called directly, with no proof and no installed version, must not open the port at all
+  const sent = [];
+  const port = { name: "FM-1", state: "connected", open: async () => {}, send(b) { sent.push(Array.from(b)); } };
+  const midi = { inputs: new Map([["in", { ...port, onmidimessage: null }]]), outputs: new Map([["out", port]]) };
+  const up = new Updater(midi);
   const e = await up.install(new Uint8Array(64), "FM-1_982", () => {}, {}).then(() => null, (x) => x);
-  ok(e && ["proof", "version", "signature"].includes(e.code),
-     "verify: install() without proof and version is refused fail-closed (code " + (e && e.code) + ")");
-  ok(frames.length === 0, "verify: and that refusal reaches the device as zero frames");
+  check("install() with no proof and no installed version is refused fail-closed",
+    !!e && ["proof", "version", "signature"].includes(e.code));
+  check("and that refusal reaches the device as zero frames", sent.length === 0);
+}
+{
+  // the page may not reach a write even by name: the handler's whole vocabulary is checked, not
+  // only the functions the module happens to export
+  const fs = await import("node:fs/promises");
+  const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
+  const at = html.indexOf('$("verify").addEventListener');
+  const body = html.slice(at, html.indexOf("\n});", at));
+  check("the Verify only handler names no erase, restore, backup capture or reboot",
+    !/\b(erase|restoreBackup|captureBackup|reboot|sendPackage)\b/.test(body));
 }
 
-console.log(fails ? `verify-only: ${fails} FAILED` : "verify-only: all passed");
-process.exit(fails ? 1 : 0);
+console.log(`verify only: ${total} checks, ${bad} FAILED`);
+if (bad) process.exit(1);

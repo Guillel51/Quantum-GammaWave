@@ -158,13 +158,17 @@ def main(site_dir=None):
                 if a.get("commit") and f'<code id="build-commit">{a["commit"]}</code>' not in (emu / "index.html").read_text(encoding="utf-8"):
                     bad.append("emulator page does not name its manifest's commit")
 
-    # the access grid: WEB SITE is the dominant box and the whole card is its link, Web Studio shares
-    # the editor's, the installer is one entry (the separate FLASH FM-1 access is retired), and the
-    # emulator is never called "Emulador" on this page
+    # the access grid: WEB SITE is the dominant box and fills it, Web Studio shares the editor's,
+    # USB INSTALLER is the only way in (the FLASH FM-1 entry is gone) and takes both cells it
+    # shared with it, and the emulator is never called "Emulador" on this page
     acc = html.split('id="accesos"', 1)[-1].split("</section>", 1)[0]
-    if ".access-card.primary { grid-column: 1; grid-row: 1 / span 2; }" not in html:
-        bad.append("the primary access card does not span both rows")
-    for want in ('WEB SITE', 'Web Emulator', 'WEB STUDIO · WEBAPP / EDITOR', '04 / USB INSTALLER',
+    if ".access-card.primary { grid-column: 1; grid-row: 1 / span 2; align-content: space-between; }" not in html:
+        bad.append("the primary access card does not span both rows and fill them")
+    if ".access-card { display: grid; gap: 7px; min-height: 100%;" not in html:
+        bad.append("an access card does not fill its box")
+    if ".access-card.wide { grid-column: 2 / span 2; grid-row: 2; }" not in html:
+        bad.append("USB INSTALLER does not take the two cells it shared with FLASH FM-1")
+    for want in ('WEB SITE', 'Web Emulator', 'WEB STUDIO · WEBAPP / EDITOR', 'USB INSTALLER',
                  'Abrir Web Emulator'):
         if want not in acc:
             bad.append(f"the access grid is missing {want!r}")
@@ -175,7 +179,7 @@ def main(site_dir=None):
         bad.append("the Web Site access lost its link")
     if not re.search(r'<a[^>]*class="access-card primary"[^>]*href="\./"', acc):
         bad.append("the whole Web Site card must be the link (the anchor carries the card)")
-    if '.access-card.primary { grid-row: auto; }' not in html:
+    if '.access-card.primary, .access-card.wide { grid-column: auto; grid-row: auto; }' not in html:
         bad.append("the dominant access card keeps two rows on a phone")
 
     for line in bad:
