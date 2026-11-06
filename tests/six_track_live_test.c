@@ -14,12 +14,21 @@
  * of glitches, not the AC791N's timing (tests/target_budget.py covers the static
  * budget; target timing is NOT tested here).
  *
+ * The worst block is not the DSP's until it can be shown to be: SIX_LIVE_CPU=1 adds the thread's own
+ * CPU clock beside the wall clock, and SIX_LIVE_PROBE=1 adds the page faults and context switches the
+ * block caused. A block that really did the work burns CPU; a block the host took away does not, and
+ * costs no fault and no switch. tests/host_stall_probe.c is the control: the same loop, the same
+ * clocks, no DSP at all. On this host it reports multi-millisecond outliers of its own (5.8 ms once,
+ * ~2 % of a second lost over five minutes) with zero faults, so the 1-5 ms blocks here are the host
+ * descheduling the process, never a path in the render.
+ *
  * The expected hashes live in tests/six_live_golden.txt. SIX_LIVE_ACCEPT=1
  * rewrites that file: it is for a deliberate change in the sound, and the diff is
  * the evidence that the change was deliberate.
  *
  * build: cc -O1 -w -Ibuild/gen -Ifirmware/src -Itests tests/six_track_live_test.c -lm
  */
+#include <sys/resource.h>
 #define main hostsim_main
 #include "hostsim.c"
 #undef main
@@ -35,6 +44,62 @@ static int cmp_u64(const void *a, const void *b)
     uint64_t x = *(const uint64_t *)a, y = *(const uint64_t *)b;
     return x < y ? -1 : x > y ? 1 : 0;
 }
+static uint64_t cpu_ns(void)                                /* thread CPU: wall time without being descheduled */
+{
+#if defined(CLOCK_THREAD_CPUTIME_ID)
+    struct timespec ts;
+    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts)) return 0;
+    return (uint64_t)ts.tv_sec * 1000000000u + (uint64_t)ts.tv_nsec;
+#else
+    return 0;                                               /* no such clock here: the column stays empty */
+#endif
+}
+
+/* The slowest blocks, kept with the block number they happened on. A percentile cannot say which
+ * block was slow; a single number for the worst cannot say whether the DSP did the work or the
+ * host took the CPU away. Eight of them cost one comparison per block. */
+#define SLOW_N 8
+static uint64_t slow_wall[SLOW_N], slow_cpu[SLOW_N], slow_gap[SLOW_N];
+static uint32_t slow_at[SLOW_N];
+static int64_t slow_flt[SLOW_N], slow_csw[SLOW_N];         /* page faults and switches inside the block */
+static uint32_t slow_n;
+static void slow_note(uint64_t wall, uint64_t cpu, uint64_t gap, uint32_t b, int64_t flt, int64_t csw)
+{
+    uint32_t i, j;
+    if (slow_n < SLOW_N) slow_n++;
+    else {
+        if (wall <= slow_wall[0]) return;                     /* sorted ascending: not one of the eight */
+        for (j = 1u; j < SLOW_N; j++) {                       /* make room by dropping the smallest */
+            slow_wall[j - 1u] = slow_wall[j]; slow_cpu[j - 1u] = slow_cpu[j];
+            slow_gap[j - 1u] = slow_gap[j]; slow_at[j - 1u] = slow_at[j];
+            slow_flt[j - 1u] = slow_flt[j]; slow_csw[j - 1u] = slow_csw[j];
+        }
+    }
+    i = slow_n - 1u;                                          /* append at the tail, then sink to place */
+    while (i > 0u && slow_wall[i - 1u] > wall) {
+        slow_wall[i] = slow_wall[i - 1u]; slow_cpu[i] = slow_cpu[i - 1u];
+        slow_gap[i] = slow_gap[i - 1u]; slow_at[i] = slow_at[i - 1u];
+        slow_flt[i] = slow_flt[i - 1u]; slow_csw[i] = slow_csw[i - 1u];
+        i--;
+    }
+    slow_wall[i] = wall; slow_cpu[i] = cpu; slow_gap[i] = gap; slow_at[i] = b;
+    slow_flt[i] = flt; slow_csw[i] = csw;
+}
+
+/* What the block did besides compute: a page fault the kernel served (a fault costs CPU time and is
+ * charged to this thread), or a voluntary switch. Without this a slow block is whatever we guess. */
+static void thread_counters(int64_t *flt, int64_t *csw)
+{
+#if defined(RUSAGE_THREAD)
+    struct rusage ru;
+    if (getrusage(RUSAGE_THREAD, &ru)) { *flt = -1; *csw = -1; return; }
+    *flt = (int64_t)ru.ru_minflt + (int64_t)ru.ru_majflt;
+    *csw = (int64_t)ru.ru_nvcsw + (int64_t)ru.ru_nivcsw;
+#else
+    *flt = -1; *csw = -1;
+#endif
+}
+
 static uint64_t fnv(uint64_t h, int32_t v)                  /* FNV-1a over the sample's four bytes */
 {
     uint32_t u = (uint32_t)v;
@@ -62,6 +127,10 @@ int main(void)
     uint32_t punch_blocks = 0, preset_changes = 0, notes_moved = 0, moves = 0, mpitch = 50u;
     int32_t peak = 0, step_max = 0;
     double mean, pct_quiet;
+    const int want_cpu = getenv("SIX_LIVE_CPU") != NULL;      /* two extra clock reads a block */
+    const int probe = getenv("SIX_LIVE_PROBE") != NULL;       /* and the fault/switch counters too */
+    uint64_t cdt = 0, cpu_total = 0, gap = 0, prev_end = 0;
+    int64_t f0 = 0, f1 = 0, c0 = 0, c1 = 0;
     setvbuf(stdout, NULL, _IONBF, 0);
     memset(trk, 0, sizeof trk);
     memset(&song, 0, sizeof song);
@@ -118,12 +187,19 @@ int main(void)
         if (ph == 1653u) perf_press(PF_LPF, 0);
         punch_now = ph < 275u || (ph >= 1378u && ph < 1653u);
         punch_blocks += punch_now;
+        gap = prev_end ? now_ns() - prev_end : 0;             /* bookkeeping, hashing and the hand */
+        if (probe) thread_counters(&f0, &c0);
         dt = now_ns();
+        if (want_cpu) cdt = cpu_ns();
         mix_block(out, CTL);
+        if (want_cpu) { cdt = cpu_ns() - cdt; cpu_total += cdt; }
         dt = now_ns() - dt;
+        if (probe) thread_counters(&f1, &c1);
+        prev_end = now_ns();
         total += dt;
         tv[b] = dt;
         if (dt > worst) worst = dt;
+        slow_note(dt, cdt, gap, b, probe ? f1 - f0 : -1, probe ? c1 - c0 : -1);
         if (dt > deadline) late++;
         busy = voices_busy();
         if (busy > busy_peak) busy_peak = busy;
@@ -162,6 +238,29 @@ int main(void)
            (double)tv[(uint32_t)((double)blocks * 0.999)] / 1000.0, (double)worst / 1000.0, (double)deadline / 1000.0);
     printf("live: blocks over the deadline %u of %u (%.3f %%), peak %d, rail %u, beyond 16-bit %u, silence %.3f %%\n",
            late, blocks, 100.0 * (double)late / (double)blocks, peak, clips, beyond, pct_quiet);
+    if (slow_n) {
+        printf("live: the %u slowest blocks (wall | CPU%s | before it | block | s%s):\n",
+               slow_n, want_cpu ? "" : " not measured", probe ? " | faults | switches" : "");
+        for (i = slow_n; i-- > 0u;) {
+            printf("live:   %8.1f us | %8.1f us | %8.1f us | block %8u | %.3f s%s",
+                   (double)slow_wall[i] / 1000.0, (double)slow_cpu[i] / 1000.0,
+                   (double)slow_gap[i] / 1000.0, slow_at[i], (double)slow_at[i] * CTL / FS,
+                   slow_at[i] == 0u ? " (the first)" : "");
+            if (probe) printf(" | %lld | %lld", (long long)slow_flt[i], (long long)slow_csw[i]);
+            printf("\n");
+        }
+        if (want_cpu && blocks)
+            printf("live: thread CPU %.1f us a block against %.1f us of wall\n",
+                   (double)cpu_total / (double)blocks / 1000.0, mean / 1000.0);
+        if (probe) {                                          /* what those blocks did besides compute */
+            int64_t flt = 0, csw = 0; uint32_t slow_late = 0;
+            for (i = 0; i < slow_n; i++) { flt += slow_flt[i]; csw += slow_csw[i]; slow_late += slow_wall[i] > deadline; }
+            printf("live: %u of the slow ones were over the deadline; together they caused %lld page faults and "
+                   "%lld context switches", slow_late, (long long)flt, (long long)csw);
+            if (slow_late && !flt && !csw) printf(" (still none inside a block: the host took the CPU)");
+            printf("\n");
+        }
+    }
     printf("live: silent blocks %u, fewest non-zero samples in a block %u of %u, largest one-sample step %d, "
            "steps over 24000 outside punch-in %u\n", zero_blocks, nz_min, 2u * CTL, step_max, steps);
     printf("live: heap: nothing allocated by the render path (the firmware links no allocator); the largest "
