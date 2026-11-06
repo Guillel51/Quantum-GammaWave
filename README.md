@@ -58,14 +58,20 @@ Checks the package and the device identity before it writes anything.
 
 | Public portal (`/`) | Public Web Studio (`/webapp/editor/`) |
 |---|---|
-| <img src="artifacts/public-portal-1440x900.png" width="720" height="450" alt="Quantum GammaWave portal at 1440x900"> | <img src="artifacts/public-webstudio-1440x900.png" width="720" height="450" alt="Web Studio 2.0 at 1440x900"> |
+| <img src="artifacts/public-portal-432x690.png" width="360" alt="Quantum GammaWave portal, published build"> | <img src="artifacts/public-webstudio-432x690.png" width="360" alt="Web Studio 2.0, published build"> |
 
 The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
-Both captures are the same viewport -- 1440 x 900, cropped from the full-page ones beside them -- so the
-two columns are the same size and neither image is stretched. They were captured in Chromium from the
-**published build `0f52f48`**, not from localhost: GitHub Pages has not redeployed since, so the portal
-in the picture is older than the screenshots it links (`artifacts/site-desktop-capturas.png` and
-`artifacts/site-mobile-capturas.png` show the checked local build instead).
+Both captures are the **same viewport -- 432 x 690 -- taken from GitHub Pages itself**, one after the other,
+so the two columns are the same size and neither image is stretched or cropped: what the table shows is
+what the published site served when this line was written. The wide layout is `artifacts/live-desktop-1440.png`
+(the same page rendered in a 1440 px frame, scaled down to fit the capture window, so it is evidence of
+layout and not of text rendering).
+
+The portal prints the build it is serving in the hero (`v1.9.0-<commit>`, read from
+[`firmware/versions.json`](firmware/versions.json) -- version, package file, size, SHA-256 and the build
+record of the firmware it was compiled from), and the emulator page prints its own commit and WASM hash from
+[the emulator page](https://guillel51.github.io/Quantum-GammaWave/emulator/) beside it. Both come from the same commit as
+`.github/workflows/emulator.yml` published, so a stale page is visible in the page itself.
 
 ---
 
