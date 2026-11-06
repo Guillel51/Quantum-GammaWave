@@ -541,7 +541,7 @@ const TEXT = {
     vNone: "Verify: no FM-1 found (USB data cable? another app using MIDI?)",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vStock: "Verify: official V15 (FM-1_015). This package can be installed. ",
-    vJiant: "Verify: GAMMAWAVE/JIANT firmware ", vOther: "Verify: another custom firmware: return to official V15 first. Found: ",
+    vOurs: "Verify: GAMMAWAVE/JIANT firmware ", vSilent: "Verify: an FM-1 port answered nothing (another firmware, JIANT among them, that does not implement the identity query). Nothing else was sent. Port: ", vOther: "Verify: another FM-1 firmware (JIANT or a custom build). It reports itself as: ",
     vSame: " — same identity as this package (a reinstall or another version).", vCan: " — this package can be installed over it.",
     bkSaving: "Backing up the FM-1 before writing ", bkSaved: "The backup file was downloaded. Keep it: restore it from the Web Studio if anything goes wrong. Write the firmware now?",
     bkNone: "This firmware cannot export a backup. Its songs and sounds may be lost. Write anyway?",
@@ -654,7 +654,7 @@ TEXT.es = {
   vNone: "Verificar: no se encontró ningún FM-1 (¿cable USB de datos? ¿otra aplicación usando MIDI?)",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vStock: "Verificar: V15 oficial (FM-1_015). Este paquete se puede instalar. ",
-  vJiant: "Verificar: firmware GAMMAWAVE/JIANT ", vOther: "Verificar: otro firmware personalizado; volvé primero al V15 oficial. Detectado: ",
+  vOurs: "Verificar: firmware GAMMAWAVE/JIANT ", vSilent: "Verificar: el puerto del FM-1 no respondió (otro firmware, JIANT entre ellos, que no implementa la consulta de identidad). No se envió nada más. Puerto: ", vOther: "Verificar: otro firmware de FM-1 (JIANT o una compilación propia). Se identifica como: ",
   vSame: " — misma identidad que este paquete (reinstalación u otra versión).", vCan: " — este paquete se puede instalar encima.",
   bkSaving: "Guardando copia de seguridad del FM-1 ", bkSaved: "La copia se descargó. Conservala: podés restaurarla desde Web Studio si algo falla. ¿Escribir el firmware ahora?",
   bkNone: "Este firmware no puede exportar una copia. Sus canciones y sonidos podrían perderse. ¿Escribir igual?",
@@ -717,7 +717,7 @@ TEXT.zh = {
   vNone: "校验：未找到 FM-1（USB 数据线？其他应用占用了 MIDI？）",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vStock: "校验：官方 V15（FM-1_015）。可以安装此固件包。 ",
-  vJiant: "校验：GAMMAWAVE/JIANT 固件 ", vOther: "校验：其他自定义固件；请先恢复官方 V15。检测到：",
+  vOurs: "校验：GAMMAWAVE/JIANT 固件 ", vSilent: "校验：FM-1 端口没有回应（其他固件，例如 JIANT，未实现身份查询）。未发送其他内容。端口：", vOther: "校验：其他 FM-1 固件（JIANT 或自定义构建）。其自报身份为：",
   vSame: " — 与此固件包身份相同（重装或其他版本）。", vCan: " — 可以安装此固件包。",
   bkSaving: "正在备份 FM-1 ", bkSaved: "备份已下载。请妥善保存：如有问题可在 Web Studio 中恢复。现在写入固件吗？",
   bkNone: "此固件无法导出备份，歌曲和音色可能丢失。仍要写入吗？",
@@ -1112,22 +1112,21 @@ $("go").addEventListener("click", async () => {
 });
 
 $("verify").addEventListener("click", async () => {
+  /* (verify only) one frame type on the wire: the identity query. fm1verify.js classifies what
+   * the device answers and never reaches an install, a write, a resume or a chip session. */
   if (writing) return;
   lockInstaller(true);
   try {
     let midi;
     try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
-    const up = new Updater(midi, log);
-    const ota = await up.find((id) => /^ota-/i.test(id.model));
-    if (ota) { ota.link.close(); sayK("vLoader"); return; }
-    const fw = await fwKind(up);
-    log(`verify: ${fw.kind} ${fw.text || ""}`);
+    const fw = await verifyDevice(midi, { product: meta.product, log });
+    log(`verify: ${fw.kind} ${fw.text || (fw.ports || []).join(", ")}`);
     if (fw.kind === "none") sayK("vNone");
+    else if (fw.kind === "silent") sayK("vSilent", (fw.ports || []).join(", "));
+    else if (fw.kind === "loader") sayK("vLoader");
     else if (fw.kind === "stock") sayK("vStock", meta.product);
-    else if (fw.kind === "jiant") {
-      let ver = ""; try { ver = archiveInfo(fw.info).version; } catch (_) {}
-      sayK("vJiant", `${fw.text} ${ver}` + t(fw.text === meta.product ? "vSame" : "vCan"));
-    } else sayK("vOther", fw.text);
+    else if (fw.kind === "ours") sayK("vOurs", fw.text + t("vSame"));
+    else sayK("vOther", fw.text);
   } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
   finally { lockInstaller(false); }
 });

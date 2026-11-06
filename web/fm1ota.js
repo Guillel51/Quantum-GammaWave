@@ -20,6 +20,9 @@ const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 const MAXDATA = 512;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_OTA = (id) => /^ota-/i.test(id.model);
+// the port names this page will probe (and no others): fm1verify.js reports the silent ones,
+// so one regex decides what is "an FM-1" for the installer and for the verify button
+export const PORT_RE = /fm-1|felucca|ota|composite|sinco|usb-midi/i;
 
 // The documented 1 MiB parts. The update is refused unless the caller can present the JEDEC of
 // THIS unit, read from the device or with an external reader: the identity frame carries the model
@@ -153,7 +156,7 @@ export class Updater {
     const outs = [...this.access.outputs.values()];
     for (const input of this.access.inputs.values()) {
       if (input.state === "disconnected") continue;
-      if (!/fm-1|felucca|ota|composite|sinco|usb-midi/i.test(input.name || "")) continue;   // never probe other gear
+      if (!PORT_RE.test(input.name || "")) continue;   // never probe other gear
       const output = outs.find((o) => o.name === input.name && o.state !== "disconnected");
       if (!output) continue;
       try { await input.open(); await output.open(); } catch (_) { continue; }

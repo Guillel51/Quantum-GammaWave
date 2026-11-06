@@ -206,6 +206,7 @@ jobs:
       - name: the installer refuses a package whose build record does not hold
         run: |
           node web/test_web.mjs
+          node web/test_verify_only.mjs
           node web/test_provenance.mjs
       - name: the WASM and the firmware are the same build
         env:

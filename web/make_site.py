@@ -153,6 +153,7 @@ def main(pkg, version, out, prev=None, manifest=None):
     lib = strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
+        strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1backup.js").read_text(encoding="utf-8"))
     name = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', version)}.fwsc"
     old = earlier(Path(prev), version, product) if prev else []
