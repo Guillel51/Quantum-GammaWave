@@ -155,6 +155,22 @@ static void track_dist(track_t *t, int32_t *b, uint32_t n)
     }
 }
 
+/* (2.1) A NEW PRESET: the effect state belongs to the sound that made it. This clears what the buses
+ * carry in their own registers and the short lines (chorus 4 KB, the reverb's combs and allpasses 12 KB,
+ * the pre-delay 4 KB): the old preset's chorus tail or spring ring cannot colour the new one. The delay
+ * line is 128 KB (1.49 s) and clearing it inside a block would cost more than the block itself, so the
+ * long tail is left to be overwritten by the new sound -- the honest limit, in the report.
+ * Called in main context with the audio IRQ off (ui.c apply_preset_to). */
+void fx_preset_flush(void)
+{
+    memset(&fx, 0, sizeof fx);
+    memset(cho_buf, 0, sizeof cho_buf);
+    memset(rev_comb, 0, sizeof rev_comb);
+    memset(rev_u.ap, 0, sizeof rev_u.ap);
+    memset(rpre_buf, 0, sizeof rpre_buf);
+    fx_vu[0] = fx_vu[1] = fx_vu[2] = fx_vu[3] = fx_vu[4] = fx_vu[5] = 0;
+}
+
 /* master: peak limiter in front of the soft clipper. Fast attack (~0.1 ms),
  * ~150 ms release, threshold where tanh is still nearly linear, so chords
  * get quieter instead of crushed. */
@@ -831,6 +847,13 @@ static inline int32_t spk_bass(int32_t m)
     sb_hl += (u - sb_hl) >> 3;
     return sb_hl * 3;
 }
+
+/* (2.1) GLO > MASTER reads the two master stages as they are, not as a copy: the level gain this block
+ * applies (lev_cur, 32768 = unity) and the limiter's envelope (lim_env, LIM_T = open). 32-bit aligned
+ * loads of values the ISR writes: no tearing on pi32v2, no lock, no cost in the block. */
+int32_t fx_master_g(void) { return lev_cur; }
+int32_t fx_lim_env(void) { return lim_env; }
+#define FX_LIM_T LIM_T
 
 static inline void master_out(int32_t *l, int32_t *r)
 {

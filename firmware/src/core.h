@@ -181,6 +181,12 @@ enum {                          /* global parameters */
 };
 #define G_SL_N (G_SLP15 + 1 - G_SLMODE)     /* the SLICER's globals (stored together: project.c, song_chain.c) */
 #define G_CSTER G_DHPF                 /* (JIANT 0.6.9) CHORUS STEREO -64..63: 0 as before (G_DHPF's 0), - narrower .. mono */
+/* (2.1) MASTER's page: the level and limiter stages as fx.c runs them (32768 = unity) */
+void perf_reset(void);   /* (2.1) a new preset: the punch-in latches, the macros and the buffers */
+int32_t fx_master_g(void);
+int32_t fx_lim_env(void);
+void fx_preset_flush(void);   /* (2.1) a new preset: the buses' short state and their small lines */
+
 #define G_SYNC G_DREL                   /* (the old names, for the formats' importers and their tests) */
 #define G_ENGGO G_CLIP
 #define G_DRLVL G_PUNCH

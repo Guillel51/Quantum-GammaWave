@@ -1090,6 +1090,12 @@ static void apply_preset_to(track_t *t, uint32_t pi)
     }
     load_begin(t, LOAD_SOUND);
     panic_req |= (uint8_t)(1u << trk_index(t));       /* MONO/POLY may change: release what sounds */
+    /* (2.1) a new sound starts clean: the punch-in latches and macros, the buses' short state and the
+     * reverb/chorus lines are the old preset's, not this one's (delay: see fx_preset_flush) */
+    fm1_irq_off();
+    perf_reset();
+    fx_preset_flush();
+    fm1_irq_on();
     t->user = 0;
     if (t == TSEL)
         sync_reload = 1;

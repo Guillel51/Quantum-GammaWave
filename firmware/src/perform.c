@@ -123,6 +123,33 @@ static int pb_any(void)
             return 1;
     return 0;
 }
+/* (2.1) A NEW PRESET: nothing the old one latched may follow it into the new sound. The latched
+ * punch-in effects (FX LATCH), the four macros and the buffer heads' recordings are state, not
+ * settings: the sound changed under them. Called from ui.c's preset load and engine change, in main
+ * context, with the audio IRQ off around it, so the ISR sees either side of the change and never a
+ * half-cleared map. Mutes are the player's (a latch per track is a live decision, not the preset's),
+ * so they stay. */
+static void pb_reset_all(void)
+{
+    uint32_t i;
+    for (i = 0; i < PB_HEADS; i++) {
+        pb[i].mode = BM_NONE;
+        pb[i].on = pb[i].state = 0;
+        pb[i].w = pb[i].tw = 0;
+        pb[i].rp = pb[i].len = 0;
+    }
+    pb_wr = 0;
+    pb_recording = 0;
+}
+void perf_reset(void)
+{
+    perf_kill = 1;                     /* the ISR plays the map as empty this block, not as the old one */
+    perf_latched = 0;
+    perf_held = 0;
+    perf_k[0] = perf_k[1] = perf_k[2] = perf_k[3] = 0;
+    pb_reset_all();
+}
+
 /* UI: how many heads are selected, how many are already reading, and one effect's state (0 none, 1 capture, 2 read) */
 static uint32_t perf_buf_heads(void)
 {

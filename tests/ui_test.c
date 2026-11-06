@@ -3206,6 +3206,55 @@ static int test_layer(void)
     ok &= !fx_lock && !ui.layer;                                           /* FX again: closed */
     bad += check("Latch: the FX LATCH setting on and off (nothing left latched, the map stays pinned), each key "
                  "keeps its own effect, DEPTH on KNOB 4, FX closes the pinned map", ok);
+    /* (2.1) A NEW PRESET STARTS CLEAN: the latched punch-in effects, the four macros and the buffer heads
+     * are state, not settings. Loading another sound clears them (perform.c perf_reset, fx.c
+     * fx_preset_flush), together with the buses' short lines; a track's mute is the player's and stays. */
+    {
+        uint32_t lp = white(3), mute0;
+        fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
+        frame();
+        btn_down(B_FX); frames(4200); frame();
+        key_down(lp); frame(); key_up(lp); frame();
+        ok = (perf_latched & PF_BIT(PF_LPF)) != 0u;    /* a latched effect to lose */
+        perf_k[0] = 30; perf_k[1] = 20; perf_k[2] = 10; perf_k[3] = 40;
+        pb[0].mode = BM_LOOP; pb[0].on = 1; pb[0].len = 1000u;     /* a recorded buffer, from the old sound */
+        mute0 = (uint32_t)(trk[1].p[P_MUTE] != 0);
+        trk[1].p[P_MUTE] = 1;                           /* the player muted T2: that stays */
+        apply_preset_to(trk, 1);                        /* another factory sound, as PRESETS loads it */
+        ok &= !perf_latched && !perf_k[0] && !perf_k[1] && !perf_k[2] && !perf_k[3];
+        ok &= pb[0].mode == BM_NONE && !pb[0].on && !pb[0].len;
+        ok &= trk[1].p[P_MUTE] == 1;                    /* the mute is the player's, not the preset's */
+        ok &= fx_vu[0] == 0 && fx_vu[4] == 0;           /* the buses' meters start from silence again */
+        trk[1].p[P_MUTE] = (int16_t)mute0;
+        bad += check("a preset change clears the latched punch-in map, the macros and the buffer heads; the "
+                     "player's mutes stay", ok);
+    /* (2.1) GLO > MONITOR: every row it prints comes from a writer, and the page repaints when those
+     * numbers move. The complaint was that only POLYPHONY seemed to work; the figures below are the
+     * ones the audio ISR and the buses publish (song.cpu_q8, load_diag, mc_fx_tk), so if the page did
+     * not redraw the pixels would not change. Nothing here is a constant. */
+    {
+        static uint16_t snap[240 * 240];
+        uint32_t i, diff = 0, cx0 = song.cpu_q8, pk0 = (uint32_t)load_diag.peak, tk0 = mc_fx_tk;
+        go_title("MONITOR");
+        song.cpu_q8 = 40u; load_diag.peak = 40u; mc_fx_tk = 100u; fm1_ms += 120u;
+        frame(); frame();
+        memcpy(snap, host_screen, sizeof snap);
+        song.cpu_q8 = 90u; load_diag.peak = 90u; mc_fx_tk = 400u; fm1_ms += 120u;
+        frame(); frame();
+        for (i = 0; i < 240u * 240u; i++)
+            diff += snap[i] != host_screen[i];
+        ok = diff > 3;                                  /* the CPU, PEAK and BUS TICKS rows changed: a
+                                                         * 2-digit figure differs in its digits, and the
+                                                         * band's hash tests above prove the mapping */
+        song.cpu_q8 = cx0; load_diag.peak = (int16_t)pk0; mc_fx_tk = tk0;
+        frame();
+        bad += check("GLO > MONITOR: the page repaints when CPU / PEAK / BUS TICKS move (the rows are not "
+                     "frozen figures)", ok);
+    }
+        fx_latch = PREF_ACCEL_OFF;
+        press(B_FX); frames(64);
+        ui_power_on();
+    }
     /* the HOLD setting: 0.6 s */
     ui_power_on();
     hold(B_HOME); ui.menu_sel = MI_HOLD; turn(EN_K1, 1); turn(EN_K1, 1); ok = settings_hold == 3u; hold(B_HOME);
