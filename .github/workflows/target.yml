@@ -131,6 +131,8 @@ jobs:
           cp build/felucca.fwsc /tmp/first.fwsc; cp build/loader/ota.bin /tmp/first.ota
           cp build/emu/felucca.wasm /tmp/first.wasm
           rm -rf build
+          # the emulator build refuses a tree without build/gen, and a wiped build is exactly that
+          python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
           sh web/emu/build.sh
           ./build.sh
           cmp /tmp/first.fwsc build/felucca.fwsc && cmp /tmp/first.ota build/loader/ota.bin
