@@ -12,8 +12,11 @@ export AC79_SDK="${AC79_SDK:-$HOME/fw-AC79_AIoT_SDK}"
 PY="${PYTHON:-python3}"
 
 "$PY" -c 'import PIL' 2>/dev/null || { echo "build.sh: $PY has no Pillow (pip3 install Pillow)"; exit 1; }
-[ -x "$JIELI_TOOLCHAIN/pi32v2/bin/clang" ] || { echo "build.sh: no toolchain in $JIELI_TOOLCHAIN (run tools/get_toolchain.sh)"; exit 1; }
-[ -f "$AC79_SDK/cpu/wl82/tools/uboot.boot" ] || { echo "build.sh: no JieLi AC79 SDK in $AC79_SDK"; exit 1; }
+# Say what this host has and what it lacks before failing on the first missing piece: "no toolchain"
+# alone sends people to the wrong directory when the SDK is the one that is missing.
+envcheck() { "$PY" tools/check_build_env.py || true; }
+[ -x "$JIELI_TOOLCHAIN/pi32v2/bin/clang" ] || { envcheck; echo "build.sh: no toolchain in $JIELI_TOOLCHAIN (run tools/get_toolchain.sh)"; exit 1; }
+[ -f "$AC79_SDK/cpu/wl82/tools/uboot.boot" ] || { envcheck; echo "build.sh: no JieLi AC79 SDK in $AC79_SDK (see docs/BUILD_AC791N.md)"; exit 1; }
 if [ "$(uname -s)" != Linux ] || [ "$(uname -m)" != x86_64 ]; then
     docker info >/dev/null 2>&1 || { echo "build.sh: Docker is not running"; exit 1; }
 fi
