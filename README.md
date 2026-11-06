@@ -58,10 +58,12 @@ Checks the package and the device identity before it writes anything.
 
 | Public portal (`/`) | Public Web Studio (`/webapp/editor/`) |
 |---|---|
-| ![Quantum GammaWave portal](artifacts/public-site-1440.png) | ![Web Studio 2.0](artifacts/public-webstudio-1440.png) |
+| <img src="artifacts/public-portal-1440x900.png" width="720" height="450" alt="Quantum GammaWave portal at 1440x900"> | <img src="artifacts/public-webstudio-1440x900.png" width="720" height="450" alt="Web Studio 2.0 at 1440x900"> |
 
 The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
-The screenshots above were captured in Chromium from the **published build `0f52f48`**, not from localhost.
+Both captures are the same viewport -- 1440 x 900, cropped from the full-page ones beside them -- so the
+two columns are the same size and neither image is stretched. They were captured in Chromium from the
+**published build `0f52f48`**, not from localhost.
 
 ---
 

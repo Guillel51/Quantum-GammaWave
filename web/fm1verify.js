@@ -103,11 +103,22 @@ export async function verifyDevice(midi, opts = {}) {
     // no answer: either nothing is plugged in, or something named like an FM-1 is and it does not
     // implement the query. Both are "no firmware recognised", never "no device" when a port is there
     const kind = ports.length ? "silent" : "none";
+    const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
       firmware: "unknown", reading: { sysex: !!midi.sysexEnabled, inputs, outputs },
-      fields: [], missing: MISSING.map(([key, why]) => ({ key, why })),
+      /* a silent unit still tells us what its USB descriptors say: that is information, and it is
+       * the only information this path gets from it */
+      fields: [
+        { key: "hardware.model", value: ports.length ? "FM-1" : "unknown", source: ports.length ? "port name" : "none", confidence: ports.length ? "medium" : "none" },
+        { key: "protocol", value: "MIDI SysEx identity query (read only)", source: "this module", confidence: "high" },
+        { key: "usb.sysex", value: midi.sysexEnabled ? "granted" : "not granted", source: "WebMIDI", confidence: "high" },
+        { key: "port.name", value: port.name || "-", source: "USB-MIDI descriptor", confidence: port.name ? "high" : "none" },
+        { key: "port.manufacturer", value: port.manufacturer || "-", source: "USB-MIDI descriptor", confidence: port.manufacturer ? "high" : "none" },
+        { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
+      ],
+      missing: MISSING.map(([key, why]) => ({ key, why })),
     });
   }
   const { text, model, version } = dev.id;
