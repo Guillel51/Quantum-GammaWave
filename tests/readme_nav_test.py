@@ -8,7 +8,8 @@ three rows: WEB SITE alone and dominant on the first (the entry point, the large
 other accesses on the second, the licence filed small at the bottom. The names, their order
 and their relative size are requirements (WEB SITE full width and tallest, the emulator called
 "Emulator" and never "Emulador", Web Studio and WEBAPP / EDITOR sharing one box, USB INSTALLER
-next to FLASH FM-1, LICENSE and GPL 3.0 small and last, and no COPYLEFT anywhere), and every
+as the only way onto an FM-1 -- the separate FLASH FM-1 access is retired --, LICENSE and GPL 3.0
+small and last, and no COPYLEFT anywhere), and every
 link must resolve: an in-repo path must exist, a destination on the published site must be one
 of the routes web/make_site.py and the Pages workflow build, and any other URL must be one of
 the project's known external homes.
@@ -30,7 +31,7 @@ EXTERNAL = {"https://github.com/Guillel51/Quantum-GammaWave/releases",
             "https://www.gnu.org/licenses/gpl-3.0-standalone.html"}
 
 ROW1 = ["WEB SITE"]                                      # the entry point, alone and dominant
-ROW2 = ["WEB EMULATOR", "WEB STUDIO + WEBAPP / EDITOR", "USB INSTALLER", "FLASH FM-1"]
+ROW2 = ["WEB EMULATOR", "WEB STUDIO + WEBAPP / EDITOR", "USB INSTALLER"]
 ROW3 = ["LICENSE", "GPL 3.0", "REPOSITORY"]             # small, at the foot
 
 
@@ -100,9 +101,8 @@ def main():
         bad.append("the emulator access must say Emulator, never EMULADOR")
     if any(c[1] == "WEB STUDIO" for c in r1 + r2):
         bad.append("WEB STUDIO must share one box with WEBAPP / EDITOR")
-    if [c[1] for c in r2] and "USB INSTALLER" in labels2 and "FLASH FM-1" in labels2:
-        if labels2.index("FLASH FM-1") != labels2.index("USB INSTALLER") + 1:
-            bad.append("USB INSTALLER and FLASH FM-1 must be adjacent")
+    if "FLASH FM-1" in [c[1] for c in r1 + r2 + r3] or "FLASH FM-1" in nav:
+        bad.append("FLASH FM-1 is retired: the USB INSTALLER is the only way onto an FM-1")
     if "COPYLEFT" in nav.upper():
         bad.append("the COPYLEFT text is retired from the navigation")
 
@@ -134,7 +134,8 @@ def main():
             bad.append(f"{label}: {href} does not exist in the repository")
 
     # the palette the table asks for: the Quantum dark identity, cyan / blue / orange / green
-    for colour in ("00e5a3", "3effff", "1f6feb", "ff9424", "ff5500"):
+    # (1.9) ff5500 went with the retired FLASH FM-1 badge; the installer keeps ff9424
+    for colour in ("00e5a3", "3effff", "1f6feb", "ff9424"):
         if colour not in nav:
             bad.append(f"the Quantum accent {colour} is missing from the navigation")
 

@@ -27,8 +27,7 @@
   <tr>
     <td align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/emulator/"><img alt="WEB EMULATOR" src="https://img.shields.io/badge/WEB%20EMULATOR-EMULATOR-00e5a3?style=for-the-badge&labelColor=000410" height="38"></a></td>
     <td align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO + WEBAPP / EDITOR" src="https://img.shields.io/badge/WEB%20STUDIO%20%2B%20WEBAPP%20%2F%20EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="38"></a></td>
-    <td align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="38"></a></td>
-    <td align="center"><a href="https://github.com/Guillel51/Quantum-GammaWave/releases"><img alt="FLASH FM-1" src="https://img.shields.io/badge/FLASH%20FM--1-ff5500?style=for-the-badge&labelColor=000410" height="38"></a></td>
+    <td colspan="2" align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="38"></a></td>
   </tr>
   <tr>
     <td align="center"><a href="LICENSE"><img alt="LICENSE" src="https://img.shields.io/badge/LICENSE-REPOSITORY-24395e?style=for-the-badge&labelColor=000410" height="20"></a></td>
