@@ -185,7 +185,10 @@ static double usb_run(uint32_t fixed, uint32_t master, int dac_is_tap_scaled_ok[
     for (b = 0; b < 400u; b++) {                       /* ~0.3 s */
         audio_block(out, 32);
         for (i = 0; i < 64u; i++) {
-            int32_t want = fixed ? ((host_tap[i] * (int32_t)master) >> 12) << OUT_SHIFT : host_tap[i] << OUT_SHIFT;
+            /* the firmware multiplies by 1 << OUT_SHIFT (audio_block); a left shift of a negative sample would
+             * be undefined, so the test says what the firmware does */
+            int32_t want = fixed ? ((host_tap[i] * (int32_t)master) >> 12) * (1 << OUT_SHIFT)
+                                 : host_tap[i] * (1 << OUT_SHIFT);
             if (out[i] != want) dac_is_tap_scaled_ok[0] = 0;
         }
         if (b >= 100u) { usb += block_rms(host_tap, 32); dac += block_rms(out, 32) / (1 << OUT_SHIFT); }
@@ -376,12 +379,35 @@ static void stereo_meters(void)
     }
     clear_scope();
 }
+/* (1.9) the ring wraps and the window is the newest 256 frames. A loud passage that has scrolled out of it must
+ * not still own the meter, and a block written after it must: this is the index arithmetic the ISR and the screen
+ * share, tested where it can be seen rather than only in the field. */
+static void scope_window(void)
+{
+    int32_t out[2 * CTL];
+    uint32_t blk, i;
+    clear_scope();
+    for (blk = 0; blk < 40u; blk++) {                 /* 40 blocks x 16 frames = 640: the 256-frame ring wraps */
+        int32_t l = blk < 20u ? 20000 : 1000;         /* the loud part is 320 frames back: out of the window */
+        int32_t r = blk < 20u ? 1000 : 20000;
+        for (i = 0; i < CTL; i++) { out[2u * i] = l; out[2u * i + 1u] = r; }
+        dac_scope(out, CTL);
+    }
+    check("(1.9) the scope's window is the newest frames: a passage that scrolled out owns neither meter",
+          audio_out_peak(0) == 1000 && audio_out_peak(1) == 20000);
+    clear_scope();
+    feed(1, 1);                                        /* one block only: the window is mostly the cleared ring */
+    check("(1.9) after a wrap and a clear the meters start from the new block, not from the old one",
+          audio_out_peak(0) == 1 && audio_out_peak(1) == 1);
+    clear_scope();
+}
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     delay_edge();
     meter_envelope();
     stereo_meters();
+    scope_window();
     usb_level();
     boot_keys();
     overload(); dma();
