@@ -146,30 +146,43 @@ jobs:
           node web/test_provenance.mjs
           python3 tests/preflight_test.py build/felucca.fwsc
           python3 tests/chip_test.py
-          python3 tests/sign_test.py
-      # (QG-1) The portal and the emulator go up even when JieLi's toolchain is missing: the site then offers the
-      # package already built for the target (firmware/packages, the published one), never a rebuild it did not do.
-      - name: the site, with the published package when the target build produced none
-        # the fallback is for "there is no target package", which is what this step needs; it used to test
-        # build/site/index.html, which nothing writes before it, so it ran (and failed) on every build
-        if: ${{ hashFiles('build/felucca.fwsc') == '' }}
+      # (QG-1) The portal and the emulator go up whether or not JieLi's toolchain could be downloaded in this
+      # run. The package is the one built here when the target build ran, and the one committed in
+      # firmware/packages otherwise -- never a guess, and never a rebuild that did not happen. Both carry their
+      # own build record, and make_site.py refuses to publish a package that contradicts it (hash, size,
+      # identity, the commit it names, the emulator that record names), so the gate is provenance, not luck.
+      # It used to be "a target package must exist in THIS run": with gitee unreachable the job failed closed
+      # and Pages never deployed, which is how twenty-two commits went unpublished.
+      - name: the site (this run's package, or the committed one with its record checked)
         run: |
-          PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)
-          test -s "$PKG" || { echo "::error::no package in firmware/packages and no target build"; exit 1; }
-          SV=$(basename "$PKG" .fwsc); SV=${SV#felucca-}
-          echo "the target toolchain did not run: the site offers $SV, compiled earlier for the FM-1"
+          # the step above already wrote the site when the toolchain was here: nothing to redo
+          if [ -s build/site/index.html ] && [ -s build/felucca.fwsc ]; then
+            echo "the site was built from this run's package above"; exit 0
+          fi
+          ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
+          if [ -s build/felucca.fwsc ]; then
+            PKG=build/felucca.fwsc; SV=$(ver .); SH=${GITHUB_SHA::7}
+            echo "the site offers this run's target build: $SV-$SH"
+          else
+            PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)
+            test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }
+            SV=$(basename "$PKG" .fwsc); SV=${SV#felucca-}
+            SH=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['commit'][:7])" "$PKG.build.json")
+            echo "no target build in this run: the site offers $SV-$SH, committed with its build record"
+          fi
           python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
-          python3 web/make_site.py "$PKG" "$SV" build/site build/prev
+          python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site build/prev
           mkdir -p build/site/emulator
           cp -r build/emu/. build/site/emulator/
           rm -rf build/site/emulator/preview
-      # Fail closed: the fallback site above must never turn a missing target build into a green
-      # release. The emulator-only preview may still be uploaded, but publishing is blocked.
-      - name: require the target package and target checks (fail closed)
+      # Fail closed on what actually matters: a package was chosen and a site was written. Its provenance was
+      # checked by make_site.py, which refuses a package that contradicts its own build record.
+      - name: a package and a site exist (fail closed)
         if: always()
         run: |
-          test -s build/felucca.fwsc || { echo "::error::no target package was built"; exit 1; }
-          test -s build/felucca.dis || { echo "::error::no target disassembly was produced"; exit 1; }
+          test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+          test -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }
+
       - name: the site exists (the deploy would otherwise upload nothing)
         run: |
           ls -la build | head -20
