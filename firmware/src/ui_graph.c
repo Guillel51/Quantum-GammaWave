@@ -2472,6 +2472,12 @@ static void graph_home_viz(uint16_t c)
             }
         }
 
+        /* The bay's dust, before anything is measured on it: the ember field is behind the trace, the
+         * phase plot, the spectrum bars and every label (2.0: it used to be painted after the bars, so it
+         * sat in front of the data). gw_embers() is ui_being.c's one implementation, shared with HOME's
+         * own bay; 18 embers at HIGH, 12 at BALANCED, 6 at LOW, deterministic and allocation-free. */
+        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 6u : ui_viz_q == 1u ? 12u : 18u, 0u, 80, T_SURF);
+
         /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
         cv_rect(12, cy, 144, 1, T_LINE);
         for (i = 0; i < 4u; i++)
@@ -2523,17 +2529,6 @@ static void graph_home_viz(uint16_t c)
             if (!song.playing && (uint32_t)((ui.frame / 6u + i) % 16u) == 0u)
                 cv_rect(bx + 4, 181, 1, 2, T_DIM);
         }
-
-        /* HOME has no particles: the ember field belongs to the full-screen visualizer only, and
-         * graph_home_viz draws both. Removing it from HOME alone keeps it where it was designed.
-         * A field of drifting embers, deterministic and cheap: no allocation, one sine per particle per frame.
-         * The vertical speed was ~21-45 units/frame, which read as frozen on the panel; 55-109 keeps the same
-         * 18 particles and the same three primitives, so the draw cost does not grow with the motion. */
-        /* The ember field behind the visualizer: gw_embers() (ui_being.c) is the ONE implementation,
-         * shared with HOME's own bay, so the two screens cannot drift apart. 18 embers at HIGH, 12 at
-         * BALANCED, 6 at LOW; deterministic, no allocation, one sine per particle per frame, and all
-         * of it behind the trace, the spectrum and the labels. */
-        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 6u : ui_viz_q == 1u ? 12u : 18u, 0u, 80, T_SURF);
 
         if (pass) {
             cv_rrect(12, 184, 72, 15, 3, T_THEME, T_SURF);
