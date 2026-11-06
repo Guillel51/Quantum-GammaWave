@@ -272,6 +272,8 @@ def cli(args, dev, answer=True):
     old, sys.stderr = sys.stderr, err
     try:
         rc = I.main(args, backend=dev, out=out, ask=lambda _p: answer)
+    except SystemExit as e:                    # argparse: an unknown flag ends the CLI, not the test run
+        rc = int(e.code or 0)
     finally:
         sys.stderr = old
     return rc, out.getvalue(), err.getvalue()
@@ -381,7 +383,8 @@ def errors():
     ok(rc == 2 and "no Felucca update loader" in err and dev.sent == [], "package without the loader marker -> exit 2, no MIDI")
     dev = FakeFM1(I.logical_image(package(marker=False)))
     rc, out, err = cli([plain, "--yes", "--force"], dev)
-    ok(rc == 0 and dev.bad == 0, "... installs with --force")
+    ok(rc == 2 and "unrecognized arguments" in err and dev.sent == [],
+       "... and there is no --force to override it: the flag is not accepted, no MIDI sent")
     rc, out, err = cli([pkgfile("short.fwsc", b"\0" * 100), "--yes"], FakeFM1(image))
     ok(rc == 2 and "too short" in err, "not a package -> exit 2")
     rc, out, err = cli([str(TMP / "missing.fwsc"), "--yes"], FakeFM1(image))

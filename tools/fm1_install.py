@@ -9,7 +9,7 @@ step 2, the loader reads the whole package and writes it. In both steps the
 device asks (SysEx read requests on the logical image) and we answer. Then
 the FM-1 restarts and the installed identity is checked.
 
-  fm1_install.py PACKAGE.fwsc [--port NAME] [--yes] [--force] [--sha256 HEX]
+  fm1_install.py PACKAGE.fwsc [--port NAME] [--yes] [--sha256 HEX]
   fm1_install.py PACKAGE.fwsc --verify-only   (identifies the unit and the package, writes nothing)
   fm1_install.py PACKAGE.fwsc --manifest PACKAGE.manifest.json [--keys FILE]
   fm1_install.py FM-1.fwsc            (the official V15 file: back to the stock firmware)
@@ -55,7 +55,7 @@ FINISH_CHECK, FINISH_WRITE = 0xE0000000, 0xF0000000
 MAXDATA = 512
 BLOCKS, BLK, KEEP = 20, 0x30, 0x2F
 LOADER_MARK = b"FELUCCA-LOADER-1"
-# the unmodified official FM-1 V15 (FM-1.fwsc from M-VAVE): returning to it is allowed without --force,
+# the unmodified official FM-1 V15 (FM-1.fwsc from M-VAVE): returning to it needs no loader marker,
 # as the web installer's "Return to official V15" (web/fm1pkg.js validateStockPackage)
 STOCK_V15_SHA256 = "db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a"
 PORT_RE = re.compile(r"fm-1|felucca|ota|composite|sinco|usb-midi", re.I)   # never probe other gear
@@ -466,7 +466,7 @@ def check_sha256(raw, path, want=None):
     return got, True
 
 
-def load_package(path, force, sha=None):
+def load_package(path, sha=None):
     try:
         raw = open(path, "rb").read()
     except OSError as e:
@@ -476,10 +476,13 @@ def load_package(path, force, sha=None):
     if not re.fullmatch(r"[^_]+_\d+", product):
         raise InstallError("badpkg", f"{path}: not an FM-1 package (identity {product!r})")
     official = hashlib.sha256(raw).hexdigest() == STOCK_V15_SHA256
-    if LOADER_MARK not in raw and not official and not force:
+    # No escape flag: a package without the Felucca loader cannot be written, because the unit would come
+    # back with no loader to finish or repeat the update from, and only a programmer could recover it.
+    if LOADER_MARK not in raw and not official:
         raise InstallError("badpkg", f"{path}: no Felucca update loader in this package; only Felucca's own "
-                                     "packages and the unmodified official V15 (FM-1.fwsc) are installed "
-                                     "(--force overrides)")
+                                     "packages and the unmodified official V15 (FM-1.fwsc) are installed. "
+                                     "There is no override: a package without a loader can only be recovered "
+                                     "with an external programmer")
     return product, logical_image(raw), digest
 
 
@@ -566,7 +569,7 @@ def run(a, backend, out, ask):
         print(f"{dev.id.text}  [{mode}]  port: {dev.name}", file=out)
         return 0
     evidence = evidence_of(a)
-    product, image, got = load_package(a.package, a.force, a.sha256)
+    product, image, got = load_package(a.package, a.sha256)
     with open(a.package, "rb") as f:
         raw_package = f.read()
     print(f"package: {product}  ({a.package})", file=out)
@@ -625,7 +628,6 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     ap.add_argument("--info", action="store_true", help="print the identity of the connected FM-1")
     ap.add_argument("--port", metavar="NAME", help="MIDI port to use (part of its name)")
     ap.add_argument("--yes", action="store_true", help="do not ask for confirmation")
-    ap.add_argument("--force", action="store_true", help="install a package without the Felucca loader marker")
     ap.add_argument("--sha256", metavar="HEX", help="the package's expected SHA-256 (required; else PACKAGE.sha256 / SHA256SUMS)")
     ap.add_argument("--verify-only", action="store_true", help="check the package and the connected FM-1, write nothing")
     ap.add_argument("--jedec", metavar="HEX", help="lab only, needs FM1_LAB=1: a JEDEC id typed by hand "

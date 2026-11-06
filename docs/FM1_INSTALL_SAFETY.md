@@ -163,7 +163,7 @@ No se recomienda ningún procedimiento de recuperación que no esté en los nive
 | NOR distinta de las documentadas | Media | Alto (brick) | Ninguna antes de escribir: el instalador no lee el JEDEC | Este documento §2 |
 | Corte de energía durante la escritura de la aplicación | Baja-media | Alto | Registro + reanudación + verificación por sector | `ldr_test` (host) |
 | Sin firma: el SHA-256 no prueba autoría | Media | Alto | Hash obligatorio; firma sólo propuesta en `docs/PHASE0_SECURITY.md` | `install_test.py` |
-| Sin anti-rollback en el arranque | Media | Medio | El instalador no ofrece versiones antiguas; `--force` lo salta | `PHASE0_SECURITY.md` |
+| Sin anti-rollback en el arranque | Media | Medio | El instalador no ofrece versiones antiguas y ya no existe `--force`; el arranque sigue sin contador monótono | `PHASE0_SECURITY.md` |
 | Sin backup completo posible | Alta | Alto | — | §3 |
 | Timing real en AC791N sin medir | Alta | Medio | Presupuestos estáticos y build target | `docs/PERF_SIX_TRACK_FM1.md` |
 

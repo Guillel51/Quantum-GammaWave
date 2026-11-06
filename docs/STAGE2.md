@@ -131,7 +131,8 @@ Comprobado (con `tests/install_test.py`, 100 % en verde aquí, y `web/test_web.m
   (modelo), y no escribe nada (el test lo comprueba con `dev.sent == []`); con otro modelo, exit 6.
 * **Identidad antes de escribir**: `Updater.install()` compara el modelo del FM-1 con el del paquete
   antes de `check()` / `write()`; el paquete se identifica por `product_of` y la marca
-  `FELUCCA-LOADER-1` (o el V15 oficial, o `--force`).
+  `FELUCCA-LOADER-1` (o el V15 oficial, y nada más: `--force` se retiró, porque un paquete sin loader
+  sólo se recupera con un programador externo).
 * **Backup antes de flashear** (web, solo firmware GammaWave/JIANT): `captureBackup` se espera
   completa, se descarga y se pide confirmación antes de `up.install()`; si el firmware no deja hacer
   backup, se avisa y se pide confirmación explícita.

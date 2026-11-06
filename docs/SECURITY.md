@@ -198,7 +198,7 @@ Archivos: `tools/fm1_install.py` (CLI), `web/fm1ota.js` (paso 1 y 2 en el navega
 | Paquete sin marcador de loader / no es paquete / archivo inexistente → exit 2 | `fm1_install.py` | **ok** |
 | Solo comprobar, sin escribir (`--verify-only`) | `fm1_install.py` | **ok** |
 | **Reanudación**: si el equipo sigue en modo de actualización de un intento cortado, termina la escritura | `fm1_install.py` docstring + `install: device already in update mode -> finishes the write` | **ok** |
-| Volver a V15 oficial sin `--force` (hash `STOCK_V15_SHA256`) | `fm1_install.py` | **ok** con `--force` cuando no coincide |
+| Volver a V15 oficial (hash `STOCK_V15_SHA256`); un paquete sin marcador de loader, no | `fm1_install.py` | **ok**, y sin escape: `--force` ya no existe |
 | Nunca se sondea otro equipo que no sea FM-1 (`PORT_RE`) | `fm1_install.py` | **ok** |
 | Límites del parser (512 KB sin final de lista rechazado, sin bucle) | `test_pkg_bounds.mjs` | **ok** |
 | El borrado de registros no toca VM, autosave/FM6 ni USR aunque su cola parezca un registro | `ldr_core.c`, `ldr_test` | **ok** (SIMULADO; ventana `[0xE0000,0xE9000)`, sin `[0xE5000,0xE8000)`) |
