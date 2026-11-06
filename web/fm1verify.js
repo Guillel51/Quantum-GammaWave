@@ -165,6 +165,23 @@ function platformFields() {
   return PLATFORM.map(([key, value, source]) => ({ key, value, source: `${source} (documented, not read from the unit)`, confidence: "documented" }));
 }
 
+// What the read-only exchange measured about itself. These rows exist because they are true and
+// knowable: how many frames went out, on which port, and how long the answer took. They say nothing
+// about the unit's flash, clock or boot loader, which is why those stay in `missing`.
+function probeFields(probe, port) {
+  const p = probe || {};
+  const rows = [
+    { key: "query.frames", value: String(p.frames || 0), source: "identity frames this page sent (read-only)", confidence: "high" },
+    { key: "query.answer", value: p.answered ? p.answered : "no answer", source: p.answered ? "the port that answered" : "every probed port stayed silent", confidence: p.answered ? "high" : "none" },
+    { key: "query.latencyMs", value: p.latencyMs === null || p.latencyMs === undefined ? "-" : `${p.latencyMs} ms`, source: "measured from the first frame to the answer", confidence: p.latencyMs === null || p.latencyMs === undefined ? "none" : "high" },
+    { key: "port.state", value: (port && port.state) || "-", source: "USB-MIDI descriptor", confidence: port && port.state ? "high" : "none" },
+    { key: "port.type", value: (port && port.type) || "-", source: "USB-MIDI descriptor", confidence: port && port.type ? "high" : "none" },
+    { key: "usb.secureContext", value: (typeof isSecureContext === "boolean" ? (isSecureContext ? "yes" : "no") : "unknown"), source: "this browsing context (WebMIDI needs it)", confidence: "high" },
+  ];
+  if (p.probed && p.probed.length > 1) rows.push({ key: "query.ports", value: p.probed.join(", "), source: "every port this page probed", confidence: "high" });
+  return rows;
+}
+
 const MISSING = [
   ["flash.jedec", "the identity query does not carry it; 0x12 is part of the install path, not of a read-only check"],
   ["flash.size", "geometry is not in the identity answer and the running firmware refuses region reads"],
@@ -172,7 +189,41 @@ const MISSING = [
   ["clock", "no register or query exposes it without a firmware-specific protocol"],
   ["bootloader", "which loader last ran is only visible through the ota-<model> port, when it is up"],
   ["usb.vidpid", "WebMIDI does not expose USB vendor/product ids to the page"],
+  ["usb.serial", "WebMIDI exposes a port id, not the descriptor's serial number or a chip-unique id"],
+  ["device.fuse", "no documented read-only command reports the OTP/fuse state of this SoC"],
 ];
+
+function partsOf(pkg) {
+  const n = Object.keys((pkg && pkg.keys) || {}).length;
+  return { keys: n };
+}
+
+// The nine conditions an install has to satisfy, in the order the installer walks them, each with
+// the state this read-only check can actually establish. It is the same list the install path uses,
+// printed here so the reader sees where the chain stops instead of a disabled button with no reason:
+//   pass        established by evidence obtained in this run
+//   fail        contradicted by what was read
+//   unknown     this path cannot establish it (it would need a write-capable session or a backup)
+//   not-here    deliberately not done by verify only (the chip session is part of the install path)
+//   documented  only a document asserts it; nothing on this unit demonstrated it
+// Nothing in this function can return "pass" for a condition that needs a key, a chip session or a
+// recovery test: those are exactly the three that keep the installer closed.
+function gateOf({ found, read, pkg, compat }) {
+  const { keys } = partsOf(pkg);
+  const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader";
+  const rows = [
+    { key: "gate.detect", state: found ? "pass" : "fail" },
+    { key: "gate.read", state: read ? "pass" : "unknown" },
+    { key: "gate.package", state: pkg && pkg.identity ? "pass" : "fail" },
+    { key: "gate.compat", state: found && read ? (compatible ? "pass" : "fail") : "unknown" },
+    { key: "gate.signature", state: keys ? "unknown" : "fail" },
+    { key: "gate.chip", state: "not-here" },
+    { key: "gate.backup", state: "unknown" },
+    { key: "gate.recovery", state: "documented" },
+  ];
+  const blocked = rows.filter((r) => r.state !== "pass").map((r) => r.key);
+  return { rows, verdict: { result: "NO-GO", blocked, canInstall: false } };
+}
 
 export async function verifyDevice(midi, opts = {}) {
   const product = String(opts.product || "");
@@ -193,12 +244,14 @@ export async function verifyDevice(midi, opts = {}) {
     // no answer: either nothing is plugged in, or something named like an FM-1 is and it does not
     // implement the query. Both are "no firmware recognised", never "no device" when a port is there
     const kind = ports.length ? "silent" : "none";
+    const probe = up.lastProbe;
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
+    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat });
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
-      firmware: "unknown", reading: { sysex: !!midi.sysexEnabled, inputs, outputs },
+      firmware: "unknown", reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
       package: pkg, compatibility: compat, authorised: false,
       /* a silent unit still tells us what its USB descriptors say: that is information, and it is
        * the only information this path gets from it */
@@ -209,9 +262,11 @@ export async function verifyDevice(midi, opts = {}) {
         { key: "port.name", value: port.name || "-", source: "USB-MIDI descriptor", confidence: port.name ? "high" : "none" },
         { key: "port.manufacturer", value: port.manufacturer || "-", source: "USB-MIDI descriptor", confidence: port.manufacturer ? "high" : "none" },
         { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
+        ...probeFields(probe, port),
         ...platformFields(),
         ...pkgFields(pkg, compat),
       ],
+      gate: gate.rows, verdict: gate.verdict,
       missing: MISSING.map(([key, why]) => ({ key, why })),
     });
   }
@@ -223,8 +278,10 @@ export async function verifyDevice(midi, opts = {}) {
   else if (text === "FM-1_015") { kind = "stock"; firmware = "stock"; }
   else if (product && text === product) { kind = "ours"; firmware = "gammaWave"; }
   else { kind = "other"; firmware = "other"; }
+  const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
   const compat = compatibility(kind, hardware, pkg.model);
+  const gate = gateOf({ found: true, read: true, pkg, compat });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
@@ -235,14 +292,15 @@ export async function verifyDevice(midi, opts = {}) {
     { key: "port.name", value: port.name || "-", source: "USB-MIDI descriptor", confidence: port.name ? "high" : "none" },
     { key: "port.manufacturer", value: port.manufacturer || "-", source: "USB-MIDI descriptor", confidence: port.manufacturer ? "high" : "none" },
     { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
+    ...probeFields(probe, port),
     ...platformFields(),
     ...pkgFields(pkg, compat),
   ];
   const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));
   return report(kind, {
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
-    reading: { sysex: !!midi.sysexEnabled, inputs, outputs },
-    fields, missing,
+    reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
+    fields, missing, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
     compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
   });

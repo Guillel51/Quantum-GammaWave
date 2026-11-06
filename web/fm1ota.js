@@ -126,19 +126,26 @@ class Link {
   close() { this.input.onmidimessage = null; }
 }
 
+// The identity query, with what it cost on the wire. Verify Only reports those numbers (how many
+// read-only frames went out and how long the answer took) because they are the only thing this
+// exchange can measure about the unit: there is no JEDEC, no clock and no boot-loader id in the
+// answer, and a report that printed one would be inventing it.
 async function handshake(link, tries = 3) {
   link.drain();
+  const t0 = Date.now();
+  let frames = 0;
   for (let t = 0; t < tries; t++) {
-    if (!link.send(HS_QUERY)) return null;
+    if (!link.send(HS_QUERY)) return { id: null, frames, latencyMs: null, sendFailed: true };
+    frames++;
     const end = Date.now() + 1000;
     while (Date.now() < end) {
       const p = await link.read(end - Date.now());
       if (!p) break;
       const id = parseIdentity(p);
-      if (id) return id;
+      if (id) return { id, frames, latencyMs: Date.now() - t0, sendFailed: false };
     }
   }
-  return null;
+  return { id: null, frames, latencyMs: null, sendFailed: false };
 }
 
 export class Updater {
@@ -149,11 +156,16 @@ export class Updater {
     this.loaderWait = timing.loaderWait ?? 30000;
     this.rebootDelay = timing.rebootDelay ?? 3000;
     this.rebootWait = timing.rebootWait ?? 40000;
+    // what the last find() put on the wire and what came back. Read-only bookkeeping: a
+    // diagnostic needs to say how many identity frames it sent and whether any of them was answered.
+    this.lastProbe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false };
   }
 
   // every in/out pair with the same port name that answers the handshake
   async find(filter) {
     const outs = [...this.access.outputs.values()];
+    const probe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false };
+    this.lastProbe = probe;
     for (const input of this.access.inputs.values()) {
       if (input.state === "disconnected") continue;
       if (!PORT_RE.test(input.name || "")) continue;   // never probe other gear
@@ -161,8 +173,15 @@ export class Updater {
       if (!output) continue;
       try { await input.open(); await output.open(); } catch (_) { continue; }
       const link = new Link(input, output);
-      const id = await handshake(link, 2);
-      if (id && (!filter || filter(id))) return { link, id, name: input.name };
+      probe.probed.push(input.name);
+      const hs = await handshake(link, 2);
+      probe.frames += hs.frames;
+      probe.sendFailed = probe.sendFailed || !!hs.sendFailed;
+      if (hs.latencyMs !== null && probe.latencyMs === null) probe.latencyMs = hs.latencyMs;
+      if (hs.id && (!filter || filter(hs.id))) {
+        probe.answered = input.name;
+        return { link, id: hs.id, name: input.name };
+      }
       link.close();
     }
     return null;
@@ -170,11 +189,14 @@ export class Updater {
 
   async waitFor(filter, ms) {
     const end = Date.now() + ms;
+    let first = null;
     while (Date.now() < end) {
       const dev = await this.find(filter);
-      if (dev) return dev;
+      first = first || this.lastProbe;               // keep the first look: that is the diagnosis
+      if (dev) { this.lastProbe = first; return dev; }
       await sleep(1000);
     }
+    this.lastProbe = first || this.lastProbe;
     return null;
   }
 

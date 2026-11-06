@@ -432,6 +432,8 @@
              style="border:1px solid var(--border);padding:10px 12px;margin:10px 0;text-align:left">
       <p class="small" id="vrep-head" style="margin:0 0 8px;font-weight:600"></p>
       <dl id="vrep-rows" class="small" style="margin:0;display:grid;grid-template-columns:max-content 1fr;gap:4px 12px"></dl>
+      <p class="small" id="vrep-verdict" style="margin:10px 0 4px;font-weight:600"></p>
+      <dl id="vrep-gate" class="small" style="margin:0;display:grid;grid-template-columns:max-content max-content;gap:4px 12px"></dl>
       <p class="small" id="vrep-missing" style="margin:8px 0 0;color:var(--muted)"></p>
       <p class="small" id="vrep-install" style="margin:6px 0 0;color:var(--muted)"></p>
     </section>
@@ -874,6 +876,31 @@ const VF = {
     title: "Verify only: what was actually read",
     install: "Detection is not an authorisation: nothing here enables INSTALL.",
     missing: "Not readable through this path",
+    verdict: "Result",
+    blocked: "Blocked by",
+    nothingBlocked: "nothing",
+    "state.pass": "established in this run",
+    "state.fail": "refused: contradicted or absent",
+    "state.unknown": "cannot be established without a write session",
+    "state.not-here": "deliberately not done by verify only",
+    "state.documented": "documented only, not demonstrated on this unit",
+    "gate.detect": "1. FM-1 detected",
+    "gate.read": "2. Identity and version read",
+    "gate.package": "3. Package identified",
+    "gate.compat": "4. Compatibility with the unit",
+    "gate.signature": "5. Signature and provenance",
+    "gate.chip": "6. Flash chip, sizes and bounds",
+    "gate.backup": "7. Backup of this unit",
+    "gate.recovery": "8. Recovery path",
+    "query.frames": "Identity frames sent",
+    "query.answer": "Answer came from",
+    "query.latencyMs": "Answer latency",
+    "query.ports": "Ports probed",
+    "port.state": "Port state",
+    "port.type": "Port type",
+    "usb.secureContext": "Secure context",
+    "usb.serial": "USB serial number",
+    "device.fuse": "OTP / fuse state",
     "hardware.model": "Hardware",
     "firmware.identity": "Identity the unit reports",
     "firmware.version": "Firmware version (its own numbering)",
@@ -924,6 +951,31 @@ const VF = {
     title: "Solo verificar: lo que se leyó de verdad",
     install: "Detectar no autoriza: nada de esto habilita INSTALL.",
     missing: "No legible por este camino",
+    verdict: "Resultado",
+    blocked: "Bloqueado por",
+    nothingBlocked: "nada",
+    "state.pass": "establecido en esta ejecución",
+    "state.fail": "rechazado: faltaba o se contradice",
+    "state.unknown": "no puede establecerse sin una sesión de escritura",
+    "state.not-here": "no lo hace esta verificación, a propósito",
+    "state.documented": "solo documentado, no demostrado en esta unidad",
+    "gate.detect": "1. FM-1 detectado",
+    "gate.read": "2. Identidad y versión leídas",
+    "gate.package": "3. Paquete identificado",
+    "gate.compat": "4. Compatibilidad con la unidad",
+    "gate.signature": "5. Firma y procedencia",
+    "gate.chip": "6. Chip flash, tamaños y límites",
+    "gate.backup": "7. Backup de esta unidad",
+    "gate.recovery": "8. Camino de recuperación",
+    "query.frames": "Tramas de identidad enviadas",
+    "query.answer": "Respondió",
+    "query.latencyMs": "Latencia de la respuesta",
+    "query.ports": "Puertos sondeados",
+    "port.state": "Estado del puerto",
+    "port.type": "Tipo de puerto",
+    "usb.secureContext": "Contexto seguro",
+    "usb.serial": "Número de serie USB",
+    "device.fuse": "Estado de fusibles / OTP",
     "hardware.model": "Hardware",
     "firmware.identity": "Identidad que reporta la unidad",
     "firmware.version": "Versión de firmware (su propia numeración)",
@@ -974,6 +1026,31 @@ const VF = {
     title: "仅校验：实际读取到的内容",
     install: "识别并不等于授权：这里不会启用 INSTALL。",
     missing: "此路径无法读取",
+    verdict: "结果",
+    blocked: "受阻于",
+    nothingBlocked: "无",
+    "state.pass": "本次运行已确认",
+    "state.fail": "拒绝：缺失或相互矛盾",
+    "state.unknown": "没有写入会话无法确认",
+    "state.not-here": "本校验按设计不做这一步",
+    "state.documented": "仅有文档，未在本机验证",
+    "gate.detect": "1. 已检测到 FM-1",
+    "gate.read": "2. 已读取标识与版本",
+    "gate.package": "3. 已识别固件包",
+    "gate.compat": "4. 与本机的兼容性",
+    "gate.signature": "5. 签名与来源",
+    "gate.chip": "6. Flash 芯片、容量与边界",
+    "gate.backup": "7. 本机备份",
+    "gate.recovery": "8. 恢复路径",
+    "query.frames": "已发送的识别帧",
+    "query.answer": "响应来源",
+    "query.latencyMs": "响应延迟",
+    "query.ports": "已探测端口",
+    "port.state": "端口状态",
+    "port.type": "端口类型",
+    "usb.secureContext": "安全上下文",
+    "usb.serial": "USB 序列号",
+    "device.fuse": "熔丝 / OTP 状态",
     "hardware.model": "硬件",
     "firmware.identity": "设备报告的标识",
     "firmware.version": "固件版本（按其自身编号）",
@@ -1305,6 +1382,22 @@ function showVerify(fw) {
     dd.appendChild(tag);
     rows.append(dt, dd);
   }
+  /* the nine conditions, each with the state this read-only run could establish, and the verdict that
+   * follows: NO-GO while any of them is not a pass. The page does not decide this; fm1verify.js does. */
+  const g = $("vrep-gate");
+  g.textContent = "";
+  for (const row of fw.gate || []) {
+    const dt = document.createElement("dt");
+    dt.textContent = vf(row.key);
+    const dd = document.createElement("dd");
+    dd.style.margin = "0";
+    dd.style.color = row.state === "pass" ? "var(--ok, #63d68a)" : "var(--muted)";
+    dd.textContent = vf("state." + row.state);
+    g.append(dt, dd);
+  }
+  const v = fw.verdict || {};
+  $("vrep-verdict").textContent = `${vf("verdict")}: ${v.result || "NO-GO"} \u2014 ` +
+    (v.blocked && v.blocked.length ? `${vf("blocked")}: ${v.blocked.map((k) => vf(k)).join(", ")}` : vf("nothingBlocked"));
   const missing = (fw.missing || []).map((m) => vf(m.key));
   $("vrep-missing").textContent = missing.length ? `${vf("missing")}: ${missing.join(", ")}` : "";
   $("vrep-install").textContent = vf("install");

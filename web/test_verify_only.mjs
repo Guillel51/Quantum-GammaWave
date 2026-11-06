@@ -268,6 +268,12 @@ function anyWrite(sent) {
     /function showVerify\(fw\)/.test(html) && /vw|fw\.fields/.test(html) && /fw\.missing/.test(html));
   check("the Verify handler renders the report", /showVerify\(fw\)/.test(html));
   check("the panel says detection is not an authorisation", /canInstall|not an authorisation|no autoriza/.test(html));
+  check("the panel renders the checklist and the verdict, not only the field list",
+    /id="vrep-gate"/.test(html) && /id="vrep-verdict"/.test(html) &&
+    /for \(const row of fw\.gate \|\| \[\]\)/.test(html) && /fw\.verdict/.test(html));
+  check("every checklist row and state has words in the three languages",
+    ["en", "es", "zh"].every((l) => new RegExp(`\\b${l}: \\{`).test(html)) &&
+    (html.match(/"gate\.detect"/g) || []).length === 3 && (html.match(/"state\.pass"/g) || []).length === 3);
 }
 
 // --- the package is not the device -----------------------------------------------------------
@@ -429,6 +435,84 @@ function anyWrite(sent) {
         st.every((f) => f.source !== "identity answer"));
   const devRows = (fw.fields || []).filter((f) => /^(hardware|firmware)\./.test(f.key));
   check("every device row still cites the identity answer", devRows.length > 0 && devRows.every((f) => f.source === "identity answer"));
+}
+
+// --- what the read-only exchange measured about itself -----------------------------------------
+// These are the only extra numbers a read-only check can honestly produce: how many identity frames
+// went out, on which port, and how long the answer took. They are reported with the run, and they are
+// the reason the report does not need to pretend it read a JEDEC id, a clock or a boot-loader id.
+{
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const row = (k) => (fw.fields || []).find((f) => f.key === k) || {};
+  const p = fw.reading.probe || {};
+  check("the report counts the identity frames it actually sent (1 here)",
+        p.frames === a.sent.length && a.sent.length === 1 && row("query.frames").value === "1");
+  check("the report measures the answer latency instead of guessing it",
+        typeof p.latencyMs === "number" && p.latencyMs >= 0 && /^\d+ ms$/.test(row("query.latencyMs").value) &&
+        row("query.latencyMs").source === "measured from the first frame to the answer");
+  check("the report names the port that answered",
+        p.answered === "FM-1" && row("query.answer").value === "FM-1");
+  check("the port's descriptor state and type are reported as descriptor data, not as device data",
+        row("port.state").source === "USB-MIDI descriptor" && row("port.type").source === "USB-MIDI descriptor");
+  check("the browsing context's secure-context state is reported (WebMIDI needs it)",
+        row("usb.secureContext").source === "this browsing context (WebMIDI needs it)");
+}
+{
+  /* a port that never answers: two identity frames, no latency, and the report says "no answer" */
+  const a = access(["FM-1"], { "FM-1": () => [] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const row = (k) => (fw.fields || []).find((f) => f.key === k) || {};
+  check("silent unit: both identity frames are counted and the report says no answer",
+        fw.kind === "silent" && a.sent.length === 2 && fw.reading.probe.frames === 2 &&
+        row("query.answer").value === "no answer" && row("query.latencyMs").value === "-");
+  check("silent unit: still only identity queries on the wire", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+
+// --- the nine conditions, and the verdict that follows from them -------------------------------
+// The installer's own checklist, printed by the read-only path: each row says what this run could
+// establish. A read-only check cannot pass the signature, the chip session, the backup or a recovery
+// demonstration, so the verdict is NO-GO whatever the unit answered. That is the point: the panel has
+// to show where the chain stops, not just a disabled button.
+{
+  const real = { version: "v1.9.0-1ef1b07", size: 611163,
+    sha256: "237205de6df87963b07fe29c2a2b285fa8ee4972c7d89ddc77bd5d897f50e115", keys: {} };
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: real });
+  const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+  check("the real case: FM-1_015 answered, the package offered is FM-1_982",
+        fw.kind === "stock" && fw.text === "FM-1_015" && fw.package.identity === "FM-1_982");
+  check("the real case: the package replaces stock V15 (same model, other tag)",
+        fw.compatibility === "replaces-stock" && fw.package.size === 611163 && fw.package.sha256.startsWith("237205de"));
+  check("the checklist has its eight rows, in the installer's order",
+        (fw.gate || []).map((r) => r.key).join(",") ===
+        "gate.detect,gate.read,gate.package,gate.compat,gate.signature,gate.chip,gate.backup,gate.recovery");
+  check("the four conditions this run can establish are pass",
+        g["gate.detect"] === "pass" && g["gate.read"] === "pass" && g["gate.package"] === "pass" && g["gate.compat"] === "pass");
+  check("an empty key map fails the signature row (it is not 'unknown' when no key exists at all)",
+        g["gate.signature"] === "fail");
+  check("the chip session is marked as not done by verify only, never as pass", g["gate.chip"] === "not-here");
+  check("backup is unknown and recovery is documentation only, never pass",
+        g["gate.backup"] === "unknown" && g["gate.recovery"] === "documented");
+  check("the verdict is NO-GO, lists what blocks it, and canInstall stays false",
+        fw.verdict.result === "NO-GO" && fw.verdict.canInstall === false && fw.authorised === false &&
+        ["gate.signature", "gate.chip", "gate.backup", "gate.recovery"].every((k) => fw.verdict.blocked.includes(k)) &&
+        fw.verdict.blocked.length === 4);
+  check("a key map does not let verify only claim the signature was checked",
+        (await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] }).midi,
+          { product: "FM-1_982", pkg: { ...real, keys: { prod: "00".repeat(32) } } }))
+          .gate.find((r) => r.key === "gate.signature").state === "unknown");
+  check("no report row claims a JEDEC id, a clock or a flash geometry was read",
+        !(fw.fields || []).some((f) => /jedec|clock|geometry/i.test(f.key) && f.confidence !== "documented"));
+}
+{
+  /* a unit that answers another firmware: the model still matches, so compatibility is decided by what
+     the unit said, and the checklist says the firmware is not one this installer may replace */
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+  check("another JIANT build: compatibility fails in the checklist and the verdict is still NO-GO",
+        fw.kind === "other" && fw.compatibility === "blocked-firmware" && g["gate.compat"] === "fail" && fw.verdict.result === "NO-GO");
 }
 
 console.log(`verify only: ${total} checks, ${bad} FAILED`);
