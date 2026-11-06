@@ -20,6 +20,21 @@ const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 const MAXDATA = 512;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_OTA = (id) => /^ota-/i.test(id.model);
+
+// A stock M-VAVE FM-1 reports FM-1_0NN in the vendor's numbering; every Felucca identity is
+// FM-1_9NN (911 for Pocket GammaWave, 982 for Quantum GammaWave). A first install therefore
+// starts from a device that is not the package's identity, and the package's identity is the one
+// that must be reported afterwards (install() checks it again once the unit comes back).
+// Only the stock versions this project has actually read are donors, and only as an origin.
+const STOCK_DONOR_VERSIONS = new Set([15]);
+export const donorIdentity = (id, product, firmware) => {
+  const model = String(product).split("_")[0];
+  if (!id || id.model !== model) return false;               // never across models
+  if (!(id.version < 100) || !STOCK_DONOR_VERSIONS.has(id.version)) return false;
+  const v = String(firmware ?? "").replace(/^v/i, "").trim();
+  if (!v) return true;                                       // nothing to contradict it
+  return STOCK_DONOR_VERSIONS.has(Number.parseInt(v, 10));    // V15 is the donor this project read
+};
 // the port names this page will probe (and no others): fm1verify.js reports the silent ones,
 // so one regex decides what is "an FM-1" for the installer and for the verify button
 export const PORT_RE = /fm-1|felucca|ota|composite|sinco|usb-midi/i;
@@ -243,7 +258,10 @@ export class Updater {
     const dev = await this.find((id) => !IS_OTA(id));
     if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
     const [model] = product.split("_");
-    if (dev.id.model !== model || dev.id.text !== product) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
+    const isTarget = dev.id.text === product;
+    const isDonor = !isTarget && donorIdentity(dev.id, product, ctx.firmware);
+    if (!isTarget && !isDonor) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
+    if (isDonor) step("donor", dev.id.text);                    // a stock FM-1 is admitted as the origin only
     await identify(pass, dev.link);                            // 0x12 on this link, before any write frame
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
