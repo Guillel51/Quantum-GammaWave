@@ -158,16 +158,21 @@ def main(site_dir=None):
                 if a.get("commit") and f'<code id="build-commit">{a["commit"]}</code>' not in (emu / "index.html").read_text(encoding="utf-8"):
                     bad.append("emulator page does not name its manifest's commit")
 
-    # the access grid: WEB SITE is the dominant box, Web Studio shares the editor's, the installer
-    # names FLASH FM-1, and the emulator is never called "Emulador" on this page
+    # the access grid: WEB SITE is the dominant box and fills it, Web Studio shares the editor's,
+    # USB INSTALLER is the only way in (the FLASH FM-1 entry is gone) and takes both cells it
+    # shared with it, and the emulator is never called "Emulador" on this page
     acc = html.split('id="accesos"', 1)[-1].split("</section>", 1)[0]
-    if ".access-card.primary { grid-column: 1; grid-row: 1 / span 2; }" not in html:
-        bad.append("the primary access card does not span both rows")
-    for want in ('WEB SITE', 'Web Emulator', 'WEB STUDIO · WEBAPP / EDITOR', 'USB INSTALLER · FLASH FM-1',
+    if ".access-card.primary { grid-column: 1; grid-row: 1 / span 2; align-content: space-between; }" not in html:
+        bad.append("the primary access card does not span both rows and fill them")
+    if ".access-card { display: grid; gap: 7px; min-height: 100%;" not in html:
+        bad.append("an access card does not fill its box")
+    if ".access-card.wide { grid-column: 2 / span 2; grid-row: 2; }" not in html:
+        bad.append("USB INSTALLER does not take the two cells it shared with FLASH FM-1")
+    for want in ('WEB SITE', 'Web Emulator', 'WEB STUDIO · WEBAPP / EDITOR', 'USB INSTALLER',
                  'Abrir Web Emulator'):
         if want not in acc:
             bad.append(f"the access grid is missing {want!r}")
-    for wrong in ('Abrir el emulador', '>Emulador<', 'COPYLEFT'):
+    for wrong in ('Abrir el emulador', '>Emulador<', 'COPYLEFT', 'FLASH FM-1', 'Flash FM-1'):
         if wrong in acc:
             bad.append(f"the access grid still says {wrong!r}")
 
