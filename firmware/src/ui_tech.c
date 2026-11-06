@@ -105,17 +105,46 @@ static void tech_dist(const track_t *t)
     }
 }
 
-/* DLY: the echoes. span: six of them */
+/* DLY: the echoes, as the bus really produces them. Six repeats, their height from MIX and FDBK as
+ * before, but the picture is now driven by the delay's own traffic (fx.c fx_vu[1] = what the bus
+ * receives, fx_vu[4] = what it returns):
+ *   - the tap whose repeat is sounding right now (the time since the last loud send, in units of TIME)
+ *     is lit, so the picture shows the rhythm of the repeats instead of a fixed comb;
+ *   - every bar breathes with the real return level (a 1 px bob, its depth from the level itself): the
+ *     animation stops the moment the bus is silent, because its only source is the audio it carries;
+ *   - the rounds fall by FDBK as the DSP does, so a long feedback keeps bouncing and a short one lands.
+ * Nothing here feeds the DSP: it reads fx_vu, delay_samples() and song.g the same frame the buses write
+ * them. */
 static void tech_dly(void)
 {
     int32_t time = (int32_t)delay_samples(), mix = song.g[G_DMIX], fb = song.g[G_DFDBK], amp = mix * 1000 / 127, n;
     int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, base = TK_Y1 - 4, h = 88, tone = song.g[G_DCOLOR] - 64;
+    int32_t in = clamp(fx_vu[1], 0, 7000), wet = clamp(fx_vu[4], 0, 7000);   /* the bus's real input and return */
+    static uint32_t hit_ms;                            /* when it last received a loud send */
+    static int32_t hit_amp;
+    int32_t now_tap = -1;
+    if (in > 600 && (int32_t)(fm1_ms - hit_ms) > 8) {  /* a new hit: the first repeat starts here */
+        hit_ms = fm1_ms;
+        hit_amp = in;
+    }
+    if (time > 0 && hit_amp > 600 && (int32_t)(fm1_ms - hit_ms) < time * 7)
+        now_tap = (int32_t)((fm1_ms - hit_ms) / (uint32_t)time);   /* 0..6: which repeat is out now */
     tk_axes(x0, TK_Y0, x0 + w, base);
     cv_rect(x0, base - h, 3, h, T_TEXT);                /* the dry hit */
     for (n = 1; n <= 6 && amp > 4; n++) {
         int32_t x = x0 + n * w / 7, bh = amp * h / 1000;
         int32_t heat = clamp(60 + amp * 180 / 1000 + tone * n, 8, 250);   /* (the tone: each repeat warmer / colder) */
-        cv_rect(x - 2, base - bh, 4, bh, heat_col(heat));
+        int lit = n - 1 == now_tap, k, bob = 0;
+        if (wet > 2 && lit) {                          /* the repeat sounding: a 1..3 px bounce, from the level */
+            int32_t d = 1 + wet * 2 / 7000;
+            for (k = 0; k < d; k++)
+                cv_rect(x - 3 - k / 2, base - bh - 2 - k, 6 + k, 1, heat_col(heat));
+        } else if (wet > 2) {                          /* the others, still ringing: a quiet shimmer, level-scaled */
+            bob = (int32_t)((bg_sin((uint32_t)(n * 4096) + ui.frame * 1600u) * (wet * 2)) >> 15);
+            bob = clamp(bob, -2, 2);
+            bh += bob;
+        }
+        cv_rect(x - 2, base - bh, 4, bh, lit ? T_ACCENT : heat_col(heat));
         amp = amp * (fb > 100 ? 100 : fb) / 100;        /* (past 100: it grows, held at the top here) */
         if (fb > 100) amp = 1000;
     }

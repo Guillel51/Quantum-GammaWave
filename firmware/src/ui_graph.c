@@ -642,87 +642,93 @@ static void graph_grid(const track_t *t, uint16_t c)
     if (song.playing && seq_src(t, t->seq_idx) < len && seq_src(t, t->seq_idx) / 16u == ui.bank)
         cv_rect(40 + (int32_t)(seq_src(t, t->seq_idx) % 16u) * 12, y0 - 1, 10, 3, T_TEXT);
 }
-/* (QG-1) Modern SCL (Scale & Quantum Harmonics) Dashboard:
- * Visualizes a complete chromatic octave with physical white and black piano keys,
- * active scale degree markers, root key highlight, note names, and scale metadata. */
+/* (QG-1) SCL: the scale on a real keyboard. The old screen drew seven 26 px white cells with the
+ * accidental's name floating on a 40 px black bar, its active state as a separate 24 px chip at the
+ * bottom of the key, and the black keys at hand-written x offsets (B_OFFSET 18 / 48 / 108 / ...): the
+ * two halves did not line up and an in-scale note read in two places at once. Now one keyboard:
+ *   - seven white keys, 30 px wide, 1 px apart, from x 12 to 228, y 24 to 92;
+ *   - the five black keys 18 px wide, 42 px tall, centred on the seam after their white key (C# after C,
+ *     D# after D, F# after F, ...), so every black key sits where a piano puts it;
+ *   - an in-scale key is filled with the graph's colour (the track's accent), the root with T_ACCENT,
+ *     the rest of the chromatic octave stays T_RAISE / T_BG: the mask the engine plays, drawn once;
+ *   - the note name at the foot of each white key and inside each black key.
+ * The title (ROOT + SCALE) is a full-width line over the keys, so it can never overlap a key again. */
 static void graph_scale(const track_t *t, uint16_t c)
 {
-    static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
-    static const uint8_t W_INDEX[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
-    static const uint8_t B_OFFSET[12] = {0, 18, 0, 48, 0, 0, 108, 0, 138, 0, 168, 0};
-    uint32_t i, mask = scale_mask(t);
-    int32_t y0 = 6;
-    int32_t x_base = 22;
+    static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};   /* C C# D D# E F F# G G# A A# B */
+    static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};    /* the white key it belongs to */
+    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u;
+    const int32_t x0 = 12, kw = 30, kg = 1, y0 = 24, kh = 68, bw = 18, bh = 42;
 
-    /* Enclosure panel */
-    if (ux.chamfer && !ux.style) {
+    if (ux.chamfer && !ux.style)
         gw_oct_panel(8, 2, 224, 92, 5, T_BG, T_LINE, 1, c);
-    } else {
+    else
         cv_rrect(8, 2, 224, 92, 4, T_SURF, T_BG);
-    }
 
-    /* 1. Draw 7 White Piano Keys. A plain rect, not a cv_rrect: a rounded cell here would be as tall as the
-     * whole key, so it would still run under the black keys, and the accidental's name (drawn on the black
-     * key) would touch a cell it is not inside. The fill is identical; only the cell hook is gone. */
-    for (i = 0; i < 7u; i++) {
-        int32_t kx = x_base + (int32_t)i * 28;
-        cv_rect(kx, y0 + 10, 26, 68, T_RAISE);
-    }
-
-    /* 2. Highlight In-Scale Natural Notes on White Keys */
+    /* the seven white keys */
+    for (i = 0; i < 7u; i++)
+        cv_rect(x0 + (int32_t)i * (kw + kg), y0, kw, kh, T_RAISE);
+    /* what the scale plays, on the naturals: the whole key lights, not a chip on it */
     for (i = 0; i < 12u; i++) {
-        if (!BLACK[i]) {
-            uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
-            int in = (mask >> deg) & 1u;
-            int is_root = (deg == 0u);
-            int32_t kx = x_base + (int32_t)W_INDEX[i] * 28;
-            if (in) {
-                uint16_t col = is_root ? T_ACCENT : c;
-                cv_rrect(kx + 2, y0 + 52, 22, 24, 2, col, T_RAISE);
-                cv_text_in(kx + 2, y0 + 56, 22, &AF_S, N_NOTE[i], T_INK, col);
-            } else {
-                cv_text_in(kx + 2, y0 + 56, 22, &AF_S, N_NOTE[i], T_DIM, T_RAISE);
-            }
+        uint32_t deg = (i + 12u - root) % 12u;
+        int32_t kx = x0 + (int32_t)W_KEY[i] * (kw + kg);
+        if (BLACK[i])
+            continue;
+        if ((mask >> deg) & 1u) {
+            uint16_t col = deg == 0u ? T_ACCENT : c;
+            cv_rect(kx, y0, kw, kh, col);
+            cv_text_in(kx, y0 + kh - 15, kw, &AF_S, N_NOTE[i], T_INK, col);
+        } else {
+            cv_text_in(kx, y0 + kh - 15, kw, &AF_S, N_NOTE[i], T_DIM, T_RAISE);
         }
     }
-
-    /* 3. Draw 5 Black Piano Keys (Accidentals) Over White Keys */
+    /* the five accidentals, over the seam they belong to */
     for (i = 0; i < 12u; i++) {
-        if (BLACK[i]) {
-            uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
-            int in = (mask >> deg) & 1u;
-            int is_root = (deg == 0u);
-            int32_t kx = x_base + (int32_t)B_OFFSET[i];
-            uint16_t fill = in ? (is_root ? T_ACCENT : (ux.chamfer ? heat_col(180) : c)) : T_BG;
-            uint16_t txt = in ? T_INK : T_DIM;
-
-            cv_rrect(kx, y0 + 10, 18, 40, 2, fill, T_SURF);
-            cv_frame(kx, y0 + 10, 18, 40, T_LINE);
-            cv_text_in(kx, y0 + 20, 18, &AF_S, N_NOTE[i], txt, fill);
-        }
+        uint32_t deg = (i + 12u - root) % 12u;
+        int32_t kx;
+        int in, is_root;
+        uint16_t fill, ink;
+        if (!BLACK[i])
+            continue;
+        kx = x0 + (int32_t)W_KEY[i] * (kw + kg) + kw + kg / 2 - bw / 2;
+        in = (mask >> deg) & 1u;
+        is_root = deg == 0u;
+        fill = in ? (is_root ? T_ACCENT : c) : T_BG;
+        ink = in ? T_INK : T_MID;
+        cv_rrect(kx, y0, bw, bh, 2, fill, T_BG);
+        cv_frame(kx, y0, bw, bh, in ? fill : T_LINE);
+        GFX_HOOK_ALIGN(kx, y0, kx + bw, y0 + bh, AL_HV, "SCL accidental name in its key");
+        cv_text_in(kx, y0 + CAP_IN(S, bh), bw, &AF_S, N_NOTE[i], ink, fill);
     }
-
-    /* Top scale title banner */
+    /* the title line: ROOT + SCALE at the left, QUANTIZED at the right, over the keys */
     {
         char sb[24];
-        str_cpy(sb, N_NOTE[(uint32_t)t->p[P_ROOT] % 12u], sizeof sb);
+        str_cpy(sb, N_NOTE[root], sizeof sb);
         str_cpy(sb + str_len(sb), " ", 2);
         str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
-        cv_text(16, y0 - 4, &AF_S, sb, T_THEME);          /* (3 px clear of the keys at y0 + 10) */
-        if (t->p[P_QUANT]) {
-            cv_text_r(224, y0 - 4, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
-        }
+        cv_text_on(12, 8, &AF_S, sb, T_THEME, T_SURF);
+        if (t->p[P_QUANT])
+            cv_text_r(228, 8, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
     }
 }
 static void panel_note(const char *a, const char *b, const char *c);
 static void panel_alert(uint32_t id, const char *a);
-/* (QG-1) FX: a compact modular 4-channel rack. One sub-panel per send, each with the effect's own
- * icon and name along the top, a scaled micro-fader down its right-hand side and the send's value or
- * distortion topology tag (SOFT/TAPE/HRTH/FLUX) under the name. Under them the global bus telemetry
- * (EQ, Slicer, M/S Width), measured field by field so nothing clips, overlaps or leaves its cell. */
+/* (QG-1) FX: four send channels and the three master modules that act on them, each in its own box.
+ * (2.1) What changed and why:
+ *   - the channel names are whole ("CHORUS", "DELAY", "REVERB", not the CHOR/REV the 53 px card could
+ *     not hold next to a 12 px icon): the name is its own line now, the icon sits over the value, and
+ *     the slim meter keeps the right-hand column, so nothing is abbreviated and nothing is clipped;
+ *   - the value is AF_S, one size down from the AF_M it was: four 2-digit numbers plus their meters fit
+ *     without touching the card's edge on any palette or style;
+ *   - the single "MASTER: EQ:BYP SLICER:OFF WIDTH:100%" ribbon at the bottom is gone. It packed three
+ *     unrelated readouts into one 16 px strip (the "empty square" under the meters) and WIDTH is the
+ *     STEREO M/S page's own control. In its place, three independent modules, each with its box, its
+ *     icon and its real value: EQ (song.g[G_EQMODE], G_EQGAIN), DEPTH (song.g[G_SLDEP], the slicer's
+ *     gate) and SLICER (song.g[G_SLMODE], lit while sl.idx is running). No animation, no invented
+ *     number: every figure is read from the same global the DSP reads. */
 static void graph_fx(const track_t *t, uint16_t c)
 {
-    static const char *const FX_LABELS[4] = {"DIST", "CHOR", "DLY", "REV"};
+    static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
     static uint8_t vu[4], hold[4];
@@ -737,35 +743,30 @@ static void graph_fx(const track_t *t, uint16_t c)
         vu_trk = (int32_t)(t - trk);
     }
 
-    /* One quiet rack: four equal channels, a clean level meter, the send's value and its parameter bar.
-     * No fader substitute: DIST is the track's post-FX peak, CHOR/DLY/REV are their real
-     * wet-return peaks; the thin tick marks each bus's actual input. */
-    cv_rrect(4, 2, 232, 72, 4, T_SURF, T_BG);
+    cv_rrect(4, 2, 232, 66, 4, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
-        int32_t mx = cx + 41, my = 24, mh = 33;
+        int32_t mx = cx + 43, my = 18, mh = 42;
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
         int32_t hpx = lvl * mh / 7000;
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         int32_t seg;
         char num[8];
 
-        cv_rrect(cx, 4, 53, 68, 3, T_SURF, T_BG);
-        cv_icon_on(cx + 4, 6, 12, FX_ICON[i], T_MID, T_SURF);
-        cv_text_on(cx + 19, 4, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);
-        if (pk > 64)
-            cv_rect(cx + 46, 7, 3, 3, T_ACCENT);
-        else
-            cv_rect(cx + 46, 7, 3, 3, T_LINE);
-
+        cv_rrect(cx, 4, 53, 62, 3, T_SURF, T_BG);
+        cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);   /* the whole name, on its own line */
+        cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, T_SURF);
         fmt_int(num, val);
-        cv_text_on(cx + 5, 20, &AF_M, num, val ? T_TEXT : T_DIM, T_SURF);
-        cv_text_on(cx + 5, 38, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
+        cv_text_on(cx + 18, 18, &AF_S, num, val ? T_TEXT : T_DIM, T_SURF);
+        cv_text_on(cx + 3, 40, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, T_SURF);
+        if (pk > 64)                                  /* the track is producing sound now */
+            cv_rect(cx + 46, 6, 3, 3, T_ACCENT);
+        else
+            cv_rect(cx + 46, 6, 3, 3, T_LINE);
 
-        /* One slim 7 px meter, a real level and its peak cap; the send's number is already above it, so the
-         * duplicate 34 px bar is gone. A 1 px tick shows what the bus actually receives. */
+        /* One slim 7 px meter, a real level and its peak cap; a 1 px tick shows what the bus receives. */
         cv_rect(mx, my, 7, mh, T_BG);
         for (seg = 0; seg < mh; seg += 5)
             cv_rect(mx, my + mh - 1 - seg, 7, 1, T_RAISE);
@@ -781,23 +782,55 @@ static void graph_fx(const track_t *t, uint16_t c)
             cv_rect(mx + 6, my + mh - inpx, 1, 1, T_MID);
     }
 
-    /* Bottom Global Master FX Telemetry Ribbon. Laid out right to left, each field measured against
-     * the one after it, so the four can never collide whatever their values are: SLICER:ON/OFF used to
-     * overlap WIDTH:100% by 5 px at the right-hand end. */
+    /* the three master modules, 72 px wide and 28 tall (70 .. 98). The icon and the module's name sit on
+     * the first line, its value at the left of the second and the bar at the right of it: label and value
+     * on the same line did not fit (the lint measured EQ 23..37 against BYPASS 31..71), and AF_S is the
+     * smallest ink the panel has. Every figure is the global the DSP reads. */
     {
-        static const char *const EQ_N[2] = {"EQ:BYP", "EQ:ON"};
-        char sl[12], wb[16];
-        uint16_t eq_c = song.g[G_EQMODE] ? T_THEME : T_MID, sl_c = song.g[G_SLMODE] ? T_ACCENT : T_MID;
-        int32_t x;
-        str_cpy(sl, song.g[G_SLMODE] ? "SLICER:ON" : "SLICER:OFF", sizeof sl);
-        str_cpy(wb, "WIDTH:", sizeof wb);
-        fmt_int(wb + 6, (int32_t)song.g[G_MWIDTH] * 100 / 64);
-        str_cpy(wb + str_len(wb), "%", 2);
-        cv_rrect(6, 76, 228, 16, 3, T_SURF, T_BG);
-        x = cv_text_r(230, 78, &AF_S, wb, T_TEXT, T_SURF);
-        x = cv_text_r(x - 6, 78, &AF_S, sl, sl_c, T_SURF);
-        x = cv_text_r(x - 6, 78, &AF_S, EQ_N[song.g[G_EQMODE] != 0], eq_c, T_SURF);
-        cv_text_r(x - 6, 78, &AF_S, "MASTER:", T_DIM, T_SURF);
+        static const int32_t MX3[3] = {4, 82, 160};
+        static const uint16_t IC[3] = {ICON_TONE, ICON_LEVEL, ICON_STEPS};
+        static const char *const NM[3] = {"EQ", "DEPTH", "SLICER"};
+        uint32_t m;
+        char vb[12];
+        for (m = 0; m < 3u; m++) {
+            cv_rrect(MX3[m], 70, 72, 28, 3, T_SURF, T_BG);
+            cv_icon_on(MX3[m] + 4, 72, 12, IC[m], T_MID, T_SURF);
+            cv_text_on(MX3[m] + 19, 72, &AF_S, NM[m], T_DIM, T_SURF);
+            cv_rect(MX3[m] + 42, 90, 26, 3, T_BG);        /* the bar's track, right of the value */
+        }
+        /* EQ: its mode (N_EQMODE) and the gain it applies; BYP when off, so the box never reads as on */
+        {
+            uint32_t em = (uint32_t)clamp(song.g[G_EQMODE], 0, 4);
+            int32_t gdb = (int32_t)clamp(song.g[G_EQGAIN], -24, 24);
+            int32_t px = (gdb + 24) * 26 / 48;            /* -24 .. +24 dB across the 26 px bar */
+            if (em) {
+                str_cpy(vb, N_EQMODE[em], sizeof vb);
+                cv_text_on(MX3[0] + 4, 85, &AF_S, vb, T_THEME, T_SURF);
+                cv_rect(MX3[0] + 42 + px, 90, 2, 3, T_ACCENT);   /* where the gain sits, off centre = not flat */
+            } else {
+                cv_text_on(MX3[0] + 4, 85, &AF_S, "BYP", T_DIM, T_SURF);
+                cv_rect(MX3[0] + 54, 90, 2, 3, T_DIM);    /* flat, 0 dB: the centre of the bar */
+            }
+        }
+        /* DEPTH: the slicer's gate (song.g[G_SLDEP], 0..127) and the bar for its travel */
+        {
+            int32_t d = clamp(song.g[G_SLDEP], 0, 127), seg;
+            fmt_int(vb, d * 100 / 127);
+            str_cpy(vb + str_len(vb), "%", 2);
+            cv_text_on(MX3[1] + 4, 85, &AF_S, vb, d ? T_TEXT : T_DIM, T_SURF);
+            for (seg = 0; seg < 13; seg++)
+                if (seg * 10 < d * 26 / 127 * 10 / 5)
+                    cv_rect(MX3[1] + 42 + seg * 2, 90, 2, 3, song.g[G_SLMODE] ? T_THEME : T_DIM);
+        }
+        /* SLICER: OFF / GATE / STUT, and its 16 steps lit at the one running (slicer.c sl.idx) */
+        {
+            uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k;
+            str_cpy(vb, N_SLCR[sm], sizeof vb);
+            cv_text_on(MX3[2] + 4, 85, &AF_S, vb, sm ? T_THEME : T_DIM, T_SURF);
+            if (sm)
+                for (k = 0; k < 16u; k++)                 /* 16 steps in 26 px: a 1 px step, 1 px apart */
+                    cv_rect(MX3[2] + 42 + (int32_t)k * 2, 90, 1, 3, k == (sl.idx & 15u) ? T_ACCENT : T_RAISE);
+        }
     }
 }
 /* SLICER and SL BUS pages (JIANT 0.6.3: one, on a bus): the pattern's 16 steps, a 'x' step a full bar; a '.' step: GATE
@@ -2777,6 +2810,53 @@ static void graph_master(void)
                 cv_rrect(bx + 1, 53 - h, 5, h, 1, heat_col(80 + h * 160 / 36), T_BG);
         }
         cv_text_on(208, 57, &AF_S, live ? "LIVE" : "OUT", live ? T_ACCENT : T_DIM, T_SURF);
+    }
+
+    /* (2.1) The band under the three graphs: the four figures the master actually moves, each in its own
+     * box instead of the forty empty pixels the page left there. Every one is read from the stage that
+     * applies it this block, never calculated for the screen:
+     *   LEVEL  fx_master_g()  the gain master_out puts on the mix (32768 = unity)
+     *   LIMIT  fx_lim_env()   the limiter's envelope against LIM_T: how much it is holding down now
+     *   LOAD   song.cpu_q8    the audio's own load, averaged, the same figure GLO > MONITOR prints
+     *   PEAK   load_diag.peak the worst block since power-on
+     * A bar follows each value at its own scale; nothing animates on its own. */
+    {
+        static const int32_t MX4[4] = {4, 62, 120, 178};
+        static const char *const NM4[4] = {"LVL", "LIM", "CPU", "PK"};
+        int32_t v4[4], r4[4], k;
+        char b4[8];
+        v4[0] = (int32_t)fx_master_g();                /* 0..32768 */
+        r4[0] = 32768;
+        v4[1] = (int32_t)fx_lim_env();                 /* FX_LIM_T (open) down to the limiter's floor */
+        r4[1] = FX_LIM_T;
+        v4[2] = (int32_t)(song.cpu_q8 * 100u / 256u);  /* % */
+        r4[2] = 100;
+        v4[3] = (int32_t)load_diag.peak;
+        r4[3] = 100;
+        for (k = 0; k < 4; k++) {
+            int32_t bx = MX4[k], pct = r4[k] ? clamp(v4[k] * 100 / r4[k], 0, 100) : 0;
+            uint16_t col = k == 1 ? (v4[1] < r4[1] * 90 / 100 ? T_ACCENT : T_THEME)
+                          : k == 2 ? (v4[2] > 78 ? T_ACCENT : T_THEME) : k == 3 ? (v4[3] > 78 ? T_ACCENT : T_THEME) : T_THEME;
+            cv_rrect(bx, 80, 54, 18, 3, T_SURF, T_BG);
+            cv_text_on(bx + 4, 81, &AF_S, NM4[k], T_DIM, T_SURF);
+            cv_rect(bx + 4, 94, 46, 3, T_BG);
+            if (pct > 0)
+                cv_rect(bx + 4, 94, pct * 46 / 100, 3, col);
+            if (k == 1) {                              /* LIMIT: the bar is the gain left, so a hold reads short */
+                b4[0] = 0;
+                fmt_int(b4, pct);
+                str_cpy(b4 + str_len(b4), "%", 2);
+            } else if (k == 0) {
+                b4[0] = 0;
+                fmt_int(b4, pct);
+                str_cpy(b4 + str_len(b4), "%", 2);
+            } else {
+                b4[0] = 0;
+                fmt_int(b4, v4[k]);
+                str_cpy(b4 + str_len(b4), "%", 2);
+            }
+            cv_text_r(bx + 50, 81, &AF_S, b4, v4[k] && (k != 1 || pct < 100) ? T_TEXT : T_DIM, T_SURF);
+        }
     }
 }
 

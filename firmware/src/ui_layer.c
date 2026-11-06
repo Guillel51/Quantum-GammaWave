@@ -1040,19 +1040,27 @@ static void layer_fx(uint32_t band)
             if (key_black(k) && key_place(k) == b)
                 break;
         if (b < NTRK) {
-            uint16_t fill = (mutes >> b) & 1u ? T_ACCENT : T_DIM;   /* the mute latched: the accent, as a held key */
+            /* (2.1) T1..T6: the six latched track mutes. Black when open, the accent when the mute is
+             * on (the real seq.c bit, not a copy), so the map shows which tracks are muted now. */
+            int32_t latched = (mutes >> b) & 1u;
+            uint16_t fill = latched ? T_ACCENT : T_BG;
             char n[3] = {'T', (char)('1' + b), 0};
             cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
-            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_INK, fill);
+            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, latched ? T_INK : T_TEXT, fill);
+            if (latched)                             /* a lit cap: the mute reads at a glance, as a held key */
+                cv_rect(x + 1, FX_KEY_Y + 1, FX_BLACK_W - 2, 1, T_INK);
         } else {
             f = k < 27u ? perf_key(k) : PF_N;
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
             on = can && ((held >> f) & 1u);
             {
-                /* (2.0) the upper keys: one darker grey than the lower ones (T_DIM, 42 % from bg
-                 * to text), never T_BG: the absolute ink made them look like holes in the panel */
-                uint16_t fill = on ? T_ACCENT : T_DIM;
-                uint16_t ink = on ? T_INK : can ? T_TEXT : T_MID;
+                /* (2.1) The upper keys are BLACK, as a keyboard's are: T_BG, the darkest surface, with a
+                 * T_LINE edge so the rounded shape reads on every palette. T_DIM (42 % from bg to text)
+                 * sat too close to the white keys' T_KEY (78 %) and the map read as one wall of keys:
+                 * the black keys are the accidentals (T1..T6, VIB, GATE, ...) and must look like them.
+                 * A latched mute keeps the accent, a held effect too. */
+                uint16_t fill = on ? T_ACCENT : T_BG;
+                uint16_t ink = on ? T_INK : can ? T_TEXT : T_DIM;
                 cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
                 fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
             }
