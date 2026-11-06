@@ -21,6 +21,7 @@ signatures, so the chain is only as strong as the installer that runs it.
 
   fm1_sign.py keygen --out /secure/qg1-release.pem --keyid qg1-release-1
   fm1_sign.py pin KEY.pub --keyid qg1-release-1 [--replace] [--keys tools/fm1_keys.json]
+  fm1_sign.py unpin --keyid qg1-release-1 [--allow-empty]     # revocation, not an edit of the JSON
   fm1_sign.py sign PACKAGE.fwsc --key /secure/qg1-release.pem --version 3.0.0 \
               --min 2.9.0 --keyid qg1-release-1 [--out PACKAGE.manifest.json]
   fm1_sign.py verify PACKAGE.fwsc --manifest PACKAGE.manifest.json [--keys ...] \
@@ -315,6 +316,38 @@ def pin(pub_path, keyid, keys_path=KEYS, replace=False):
     return pub
 
 
+def unpin(keyid, keys_path=KEYS, allow_empty=False):
+    """Revoke one key id: the packages it signed stop verifying, the others are untouched.
+
+    Revocation is an operation, not an edit: it has to name the id, it refuses an id that is not
+    pinned (so a typo cannot look like a revocation), and it refuses to leave the ring empty unless
+    --allow-empty says so out loud -- an empty ring is the fail-closed state, and reaching it by
+    accident would hide a mistake behind "every package is refused anyway".
+    """
+    if not KEYID.fullmatch(keyid or ""):
+        raise SignatureError("keyid", "%r is not a key id: use [A-Za-z0-9][A-Za-z0-9._-]{0,63}" % (keyid,))
+    path = Path(keys_path)
+    if not path.exists():
+        raise SignatureError("keys", "%s does not exist: nothing is trusted and nothing can be revoked" % path)
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, ValueError) as e:
+        raise SignatureError("keys", "%s is not readable JSON: %s" % (path, e))
+    keys = data.get("keys") if isinstance(data, dict) else None
+    if not isinstance(keys, dict):
+        raise SignatureError("keys", "%s: 'keys' must be an object" % path)
+    if keyid not in keys:
+        raise SignatureError("key", "%r is not pinned in %s: nothing to revoke" % (keyid, path))
+    del keys[keyid]
+    if not keys and not allow_empty:
+        raise SignatureError("keys", "revoking %r would leave no key pinned: pass --allow-empty if that state "
+                                     "is what you mean" % keyid)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+    print("revoked %r from %s (%d key(s) left: %s)"
+          % (keyid, path, len(keys), ", ".join(sorted(keys)) or "none"))
+    return sorted(keys)
+
+
 def check(keys_path=KEYS, require_key=False):
     """Report the pinned keys. An empty pin set is a state (fail-closed), not an error, unless required."""
     path = Path(keys_path)
@@ -366,6 +399,11 @@ def main(argv=None):
     v.add_argument("--firmware")
     v.add_argument("--build-manifest", metavar="MANIFEST",
                    help="the build record the release must name (default: require that it names one)")
+    u = sub.add_parser("unpin", help="revoke a pinned key id (packages it signed stop verifying)")
+    u.add_argument("--keyid", required=True)
+    u.add_argument("--keys", default=str(KEYS))
+    u.add_argument("--allow-empty", action="store_true",
+                   help="allow a revocation that leaves no key pinned (the fail-closed state)")
     c = sub.add_parser("check", help="report the pinned public keys (fail-closed state included)")
     c.add_argument("--keys", default=str(KEYS))
     c.add_argument("--require-key", action="store_true", help="exit 1 when no key is pinned")
@@ -377,6 +415,9 @@ def main(argv=None):
             return 0
         if a.cmd == "pin":
             pin(a.pub, a.keyid, a.keys, a.replace)
+            return 0
+        if a.cmd == "unpin":
+            unpin(a.keyid, a.keys, a.allow_empty)
             return 0
         if a.cmd == "sign":
             if inside_repo(a.key):

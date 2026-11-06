@@ -126,18 +126,23 @@ Rotate on a schedule, on a suspected exposure, or when the signing host changes.
    once is the normal transition state.
 3. Re-sign the packages that are still distributed with the new key.
 4. Ship an installer build that carries both pins, and let the old packages age out.
-5. Only then remove the old id (`pin --replace` is *not* used for this: delete the entry, review
-   the diff) and confirm the old package is now refused with `key`.
+5. Only then revoke the old id with `fm1_sign.py unpin --keyid qg1-release-1`, commit the pin
+   diff, and confirm the old package is now refused with `key`. (`--replace` is *not* for this: it
+   moves an id to a different key, which is a different decision. `unpin` refuses an id that is not
+   pinned, so a typo cannot pass for a revocation, and it refuses to leave the ring empty unless
+   `--allow-empty` says so.)
 
-`tests/key_custody_test.py` performs exactly this cycle with an ephemeral key: two ids accepted,
-the old package still verifying, then the old id removed and the old package refused.
+`tests/key_custody_test.py` performs this cycle with an ephemeral key, and `tests/sign_test.py`
+does it again as operations: two ids pinned and both verifying, `unpin` removing one, the revoked
+key's package refused with `key` while the other key's still verifies, the last key needing
+`--allow-empty`, and re-pinning being an explicit `pin`.
 
 ## 6. Revocation and compromise
 
 There is no online revocation list: an installer trusts the pin file it ships with.
 
-* **Revoke an id** by deleting it from `tools/fm1_keys.json` and shipping a new installer build.
-  Packages signed with it stop verifying, with the code `key`.
+* **Revoke an id** with `fm1_sign.py unpin --keyid <id>` and ship a new installer build. Packages
+  signed with it stop verifying, with the code `key`.
 * **Suspected compromise** means everything signed with that id after the suspected moment is
   hostile, including packages already published. Delete the pin, publish a new key id, and say so
   in the release notes: users must reinstall from a package signed by the new id.

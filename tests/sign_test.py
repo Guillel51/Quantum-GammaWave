@@ -102,6 +102,35 @@ def main():
     refuses("version", lambda: S.verify(raw, S.sign_manifest(S.manifest_for(raw, "2.0.0", "3.0.0", "FM-1", "test-1", build_sha256=rec),
                                                              priv.read_bytes()), pin), "min newer than version")
 
+    # (1.9) rotation and revocation, as operations rather than as edits to a JSON file: a second key
+    # is pinned beside the first, a package signed by either verifies, revoking one id takes only that
+    # id's packages out, and a revocation that would leave nothing trusted has to be asked for.
+    priv_b = TMP / "key-b.pem"
+    S.keygen(priv_b, "test-2")
+    key_b = serialization.load_pem_private_key(priv_b.read_bytes(), password=None)
+    pub_b = TMP / "key-b.pub"
+    pub_b.write_text(key_b.public_key().public_bytes(serialization.Encoding.Raw,
+                                                     serialization.PublicFormat.Raw).hex())
+    S.pin(pub_b, "test-2", keys)
+    both = S.pinned(keys)
+    ok(set(both) == {"test-1", "test-2"}, "rotation: two keys pinned, the ring holds both")
+    signed_b = S.sign_manifest(S.manifest_for(raw, "3.0.0", "2.9.0", "FM-1", "test-2", build_sha256=rec),
+                               priv_b.read_bytes())
+    ok(S.verify(raw, signed_b, both)["keyid"] == "test-2", "rotation: a package signed by the new key verifies")
+    ok(S.verify(raw, signed, both)["keyid"] == "test-1", "rotation: the old key's package still verifies")
+    refuses("key", lambda: S.pin(pub_b, "test-1", keys), "pin: an id moved to another key without --replace")
+    ok(S.unpin("test-1", keys) == ["test-2"], "revocation: unpin removes the id and names what is left")
+    after = S.pinned(keys)
+    ok(set(after) == {"test-2"}, "revocation: the revoked id is gone from the ring")
+    refuses("key", lambda: S.verify(raw, signed, after), "revocation: a package signed by the revoked key")
+    ok(S.verify(raw, signed_b, after)["keyid"] == "test-2", "revocation: the other key is untouched")
+    refuses("key", lambda: S.unpin("missing", keys), "unpin: an id that is not pinned (a typo is not a revocation)")
+    refuses("keys", lambda: S.unpin("test-2", keys), "unpin: the last key needs --allow-empty")
+    ok(S.unpin("test-2", keys, allow_empty=True) == [], "unpin: --allow-empty reaches the fail-closed state")
+    refuses("key", lambda: S.verify(raw, signed_b, S.pinned(keys)), "an empty ring verifies nothing")
+    S.pin(pub, "test-1", keys)                                  # put the ring back for the CLI checks below
+    ok(set(S.pinned(keys)) == {"test-1"}, "re-pinning a revoked key is an explicit pin")
+
     man_path = TMP / "pkg.manifest.json"
     man_path.write_text(json.dumps(signed))
     ok(S.main(["verify", str(pkg), "--manifest", str(man_path), "--keys", str(keys),
