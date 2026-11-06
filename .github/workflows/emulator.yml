@@ -209,3 +209,12 @@ jobs:
           echo "Pages: $(tr -d '\n' < /tmp/pages.json)"
       - id: deployment
         uses: actions/deploy-pages@v4
+      # Pages answers "Deployment failed, try again later." from deployment_failed, a terminal status the
+      # action stops polling on: the artifact is fine and the build job is green (runs 42261322522 and
+      # 42267114599 both died here, after the site had been built and uploaded). A second attempt is what
+      # GitHub's own issue tracker recommends for this status, and it is the only retry this workflow makes.
+      - name: Deploy to GitHub Pages (one retry, Pages' deployment_failed is transient)
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 600000
