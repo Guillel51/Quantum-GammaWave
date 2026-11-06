@@ -22,6 +22,10 @@ def run(*cmd):
 
 def main():
     strict = "--strict" in sys.argv[1:]
+    # --firmware: the caller builds the firmware only, so emcc is not an input there. The target
+    # workflow's firmware job has no emsdk step, and demanding one made that job red for a tool it
+    # never uses.
+    firmware_only = "--firmware" in sys.argv[1:]
     rows, missing = [], []
 
     tool = Path(os.environ.get("JIELI_TOOLCHAIN") or Path.home() / ".jieli" / "toolchain")
@@ -59,11 +63,15 @@ def main():
     else:
         print("\nno package in build/: nothing has been compiled here yet")
 
+    blocking = [m for m in missing if not (firmware_only and m == "emscripten")]
     if missing:
         print(f"\nmissing for a full build: {', '.join(missing)}")
+        if firmware_only and "emscripten" in missing and not blocking:
+            print("the firmware build does not need emscripten; only the emulator does")
         print("see docs/BUILD_AC791N.md; host tests do not need these")
+    if blocking:
         return 1 if strict else 0
-    print("\nall build tools present")
+    print("\nall build tools this target needs are present")
     return 0
 
 

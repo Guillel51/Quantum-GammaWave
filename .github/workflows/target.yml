@@ -76,7 +76,7 @@ jobs:
       # Strict on purpose: in CI a missing input is the job's failure, and the report names the
       # variable and the command that fills it instead of letting build.sh stop at the first one.
       - name: the build inputs this job fetched
-        run: python3 tools/check_build_env.py --strict
+        run: python3 tools/check_build_env.py --strict --firmware
 
       - name: build (app, loader, package; the budget checks run inside)
         run: ./build.sh
@@ -192,6 +192,9 @@ jobs:
               https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK" \
             || { echo "::error::could not clone the AC79 SDK branch AC79NN_SDK_V1.2.1_2023-12-13 from gitee"; exit 1; }
           ls -l "$AC79_SDK/cpu/wl82/tools/uboot.boot"
+      - name: the build inputs this job fetched
+        run: python3 tools/check_build_env.py --strict
+
       - name: WASM, then parity against the native render
         run: |
           # web/emu/build.sh needs build/gen (the generated tables) and the package: it refuses with
