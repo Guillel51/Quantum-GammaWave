@@ -19,12 +19,17 @@ flashrom -p ch341a_spi --flash-name            # the part id, for --jedec below
 flashrom -p ch341a_spi -r pass-a.bin           # first read
 flashrom -p ch341a_spi -r pass-b.bin           # independent second read
 python3 tools/spi_dump.py --a pass-a.bin --b pass-b.bin --out backup/unit-01 \
-        --jedec 0x………… --app-end 0x…………
+        --jedec 0x………… --app-end 0x93000
 ```
 
-`--app-end` is optional and deliberately not defaulted: the end of the application image differs per
-layout, and a guessed value turns a good dump into a rejected one. Leave it out until the map is
-known; the erased-page check only runs when you supply it.
+`--app-end 0x93000` is `LDR_APP_HI` (`docs/HARDWARE_SPECS_FM1.md`, the loader's own limit), not a
+guess: the package image ends at `0x93000` and the part is `0x100000`. Everything from `0x93000` to
+`0x100000` is the region the application never overwrites — settings, projects, the objects a user
+would lose. It is the part of the dump that matters most, and it is exactly the part nobody has ever
+read.
+
+The flag stays optional and undefaulted because the layout is a property of the part, not of this
+file: without it the erased-page check is skipped rather than run against an assumed boundary.
 
 What the verifier rejects, each with the offset that caused it:
 
