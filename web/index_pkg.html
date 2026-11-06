@@ -899,6 +899,16 @@ const VF = {
     "pkg.size": "Package size",
     "pkg.sha256": "Package sha256 (expected)",
     compat: "Compatibility (informational only)",
+    "pkg.build": "Package build",
+    "pkg.binary": "Firmware image",
+    "pkg.loader": "Loader in the package",
+    "install.why": "Why nothing is authorised",
+    "why.no-key": "no signing key in this build",
+    "why.signed": "a key is present",
+    "static.soc": "SoC (documented)",
+    "static.cpu": "CPU (documented)",
+    "static.ram": "RAM and budget (documented)",
+    "static.flash": "Flash (documented)",
     "install.auth": "Install authorisation",
     "compat.no-package": "no package selected",
     "compat.no-device": "no device to compare",
@@ -939,6 +949,16 @@ const VF = {
     "pkg.size": "Tamaño del paquete",
     "pkg.sha256": "sha256 del paquete (esperado)",
     compat: "Compatibilidad (solo informativa)",
+    "pkg.build": "Build del paquete",
+    "pkg.binary": "Imagen de firmware",
+    "pkg.loader": "Loader del paquete",
+    "install.why": "Por qué no hay autorización",
+    "why.no-key": "sin clave de firma en este build",
+    "why.signed": "hay una clave",
+    "static.soc": "SoC (documentado)",
+    "static.cpu": "CPU (documentado)",
+    "static.ram": "RAM y presupuesto (documentado)",
+    "static.flash": "Flash (documentado)",
     "install.auth": "Autorización de instalación",
     "compat.no-package": "no hay paquete seleccionado",
     "compat.no-device": "no hay dispositivo con el que comparar",
@@ -979,6 +999,16 @@ const VF = {
     "pkg.size": "固件包大小",
     "pkg.sha256": "固件包 sha256（预期值）",
     compat: "兼容性（仅供参考）",
+    "pkg.build": "包构建",
+    "pkg.binary": "固件镜像",
+    "pkg.loader": "包内加载器",
+    "install.why": "为何未获授权",
+    "why.no-key": "此构建没有签名密钥",
+    "why.signed": "存在密钥",
+    "static.soc": "SoC（文档）",
+    "static.cpu": "CPU（文档）",
+    "static.ram": "RAM 与预算（文档）",
+    "static.flash": "闪存（文档）",
     "install.auth": "安装授权",
     "compat.no-package": "未选择固件包",
     "compat.no-device": "没有可比较的设备",
@@ -1267,7 +1297,8 @@ function showVerify(fw) {
     dd.style.margin = "0";
     dd.textContent = f.key === "firmware.family" ? vf("fam." + f.value)
       : f.key === "compat" ? vf("compat." + f.value)
-      : f.key === "install.auth" ? vf("auth." + f.value) : f.value;
+      : f.key === "install.auth" ? vf("auth." + f.value)
+      : f.key === "install.why" ? vf("why." + f.value) : f.value;
     const tag = document.createElement("span");
     tag.style.color = "var(--muted)";
     tag.textContent = ` \u2014 ${f.source}`;
@@ -1288,7 +1319,7 @@ $("verify").addEventListener("click", async () => {
     let midi;
     try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
     const fw = await verifyDevice(midi, { product: meta.product, log,
-      pkg: { version: meta.version, size: meta.size, sha256: meta.sha256 } });
+      pkg: { version: meta.version, size: meta.size, sha256: meta.sha256, build: meta.build, keys: meta.keys } });
     log(`verify: ${fw.kind} found=${fw.found} recognised=${fw.recognised} id=${fw.text || "-"}` +
         (fw.ports.length ? ` ports=${fw.ports.join(", ")}` : ""));
     if (fw.kind === "none") sayK("vNone");

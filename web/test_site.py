@@ -69,20 +69,24 @@ def main(site_dir=None):
     for word in FORBIDDEN:
         if word.lower() in text.lower():
             bad.append(f"forbidden copy: {word}")
-    # Web Site is the primary access and must come before every other one.
+    # (2.0) the portal is the page you are on, so it does not list itself: three accesses, the emulator
+    # first (the highlighted one), then the studio, then the installer. A link to "./" inside "./" is the
+    # redundant "Website" section this check used to require.
     at = text.find('id="accesos"')
     if at < 0:
         bad.append("no access section")
     else:
-        order = [text.find(h, at) for h in ('href="./"', 'href="emulator/"', 'href="webapp/editor/"',
+        order = [text.find(h, at) for h in ('href="emulator/"', 'href="webapp/editor/"',
                                             'href="webapp/installer/"')]
         if any(i < 0 for i in order):
-            bad.append("the access section misses one of the four links")
+            bad.append("the access section misses one of the three links")
         elif order != sorted(order):
-            bad.append("Web Site is not the first access")
+            bad.append("the emulator is not the first access")
         primary = text[at:order[1]] if order[1] > 0 else ""
         if 'class="access-card primary"' not in primary:
-            bad.append("Web Site is not the highlighted access")
+            bad.append("the emulator is not the highlighted access")
+        if 'href="./"' in text[at:at + text[at:].find("</section>")]:
+            bad.append("the access section links to the portal itself")
     if "location.hash === \"#emu\"" in text:
         bad.append("the portal still redirects a #emu hash to the emulator")
     if "TODO" in text or "lorem ipsum" in text.lower():
@@ -166,19 +170,19 @@ def main(site_dir=None):
         bad.append("the primary access card does not span both rows and fill them")
     if ".access-card { display: grid; gap: 7px; min-height: 100%;" not in html:
         bad.append("an access card does not fill its box")
-    if ".access-card.wide { grid-column: 2 / span 2; grid-row: 2; }" not in html:
-        bad.append("USB INSTALLER does not take the two cells it shared with FLASH FM-1")
-    for want in ('WEB SITE', 'Web Emulator', 'WEB STUDIO · WEBAPP / EDITOR', 'USB INSTALLER',
+    if ".access-card.wide { grid-column: 2; grid-row: 2; }" not in html:
+        bad.append("USB INSTALLER does not sit under the studio in the second column")
+    for want in ('WEB EMULATOR', 'Web Emulator', 'WEB STUDIO · WEBAPP / EDITOR', 'USB INSTALLER',
                  'Abrir Web Emulator'):
         if want not in acc:
             bad.append(f"the access grid is missing {want!r}")
+    if 'WEB SITE' in acc:
+        bad.append("the access grid still lists the portal inside the portal")
     for wrong in ('Abrir el emulador', '>Emulador<', 'COPYLEFT', 'FLASH FM-1', 'Flash FM-1'):
         if wrong in acc:
             bad.append(f"the access grid still says {wrong!r}")
-    if 'WEB SITE' not in acc or 'href="./"' not in acc:
-        bad.append("the Web Site access lost its link")
-    if not re.search(r'<a[^>]*class="access-card primary"[^>]*href="\./"', acc):
-        bad.append("the whole Web Site card must be the link (the anchor carries the card)")
+    if not re.search(r'<a[^>]*class="access-card primary"[^>]*href="emulator/"', acc):
+        bad.append("the whole emulator card must be the link (the anchor carries the card)")
     if '.access-card.primary, .access-card.wide { grid-column: auto; grid-row: auto; }' not in html:
         bad.append("the dominant access card keeps two rows on a phone")
 

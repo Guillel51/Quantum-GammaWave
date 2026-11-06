@@ -92,6 +92,12 @@ function packageOf(product, pkg) {
   const identity = String(product || "");
   const m = /^([^_]+)(?:_(\d+))?$/.exec(identity);
   const p = pkg || {};
+  /* the build record the package carries (make_site.py embeds it): the binary and the loader it
+   * was packed from, and the commit it was built at. It describes the PACKAGE, not the unit. */
+  const b = p.build || {};
+  const art = b.artifacts || {};
+  const bin = art["felucca.bin"] || {};
+  const loader = art["loader/ota.bin"] || {};
   return {
     identity,
     model: m ? m[1] : "",
@@ -99,6 +105,12 @@ function packageOf(product, pkg) {
     release: String(p.version || ""),
     size: Number(p.size || 0),
     sha256: String(p.sha256 || ""),
+    commit: String(b.commit || ""),
+    version: String(b.version || ""),
+    binary: Number(bin.bytes || 0),
+    binarySha: String(bin.sha256 || ""),
+    loader: Number(loader.bytes || 0),
+    keys: (pkg && pkg.keys) || {},
   };
 }
 
@@ -116,16 +128,41 @@ function compatibility(kind, deviceModel, pkgModel) {
   return "blocked-firmware";
 }
 
-// the package block, rendered in every report: the same rows whatever the device did or did not say
+// the package block, rendered in every report: the same rows whatever the device did or did not say.
+// Every value here comes from the page's own build record -- it is the package, never the unit.
 function pkgFields(pkg, compat) {
-  return [
+  const nkeys = Object.keys(pkg.keys || {}).length;
+  const rows = [
     { key: "pkg.identity", value: pkg.identity || "-", source: "this page's build record", confidence: pkg.identity ? "high" : "none" },
     { key: "pkg.release", value: pkg.release || "-", source: "this page's build record", confidence: pkg.release ? "high" : "none" },
     { key: "pkg.size", value: pkg.size ? `${pkg.size} B` : "-", source: "this page's build record", confidence: pkg.size ? "high" : "none" },
     { key: "pkg.sha256", value: pkg.sha256 ? `${pkg.sha256.slice(0, 16)}\u2026` : "-", source: "this page's build record (expected, not re-hashed here)", confidence: pkg.sha256 ? "medium" : "none" },
-    { key: "compat", value: compat, source: "device identity vs package tag", confidence: "high" },
-    { key: "install.auth", value: "none", source: "verify only never authorises an install", confidence: "high" },
   ];
+  if (pkg.commit) rows.push({ key: "pkg.build", value: `${pkg.version || "?"} ${pkg.commit.slice(0, 7)}`,
+    source: "the build record inside the package", confidence: "high" });
+  if (pkg.binary) rows.push({ key: "pkg.binary", value: `${pkg.binary} B${pkg.binarySha ? ` ${pkg.binarySha.slice(0, 12)}\u2026` : ""}`,
+    source: "the build record's artifact list", confidence: "high" });
+  if (pkg.loader) rows.push({ key: "pkg.loader", value: `${pkg.loader} B`, source: "the build record's artifact list", confidence: "high" });
+  rows.push({ key: "compat", value: compat, source: "device identity vs package tag", confidence: "high" });
+  rows.push({ key: "install.auth", value: "none", source: "verify only never authorises an install", confidence: "high" });
+  /* why nothing can be authorised yet, said in the one place the reader is looking for a verdict */
+  rows.push({ key: "install.why", value: nkeys ? "signed" : "no-key", source: nkeys
+    ? `${nkeys} key(s) in this build's key map`
+    : "this build's key map is empty: a signature can be neither made nor checked", confidence: "high" });
+  return rows;
+}
+
+// The platform this firmware is built for. Documented, not measured: none of it is read from the unit
+// by any command this page may send, and saying "documented" is the difference between a report and a
+// guess. They are printed with the rest so nobody has to guess them either.
+const PLATFORM = [
+  ["static.soc", "AC791N / WL82 (JieLi)", "this repository's hardware notes"],
+  ["static.cpu", "dual-core pi32v2, 32-bit LE, single-precision FPU", "this repository's hardware notes"],
+  ["static.ram", "578 KB SRAM; this firmware's .data+.bss budget is 96 KiB", "the linker script and the budget tests"],
+  ["static.flash", "1 MiB SPI NOR, XIP at 0x02000000; JEDEC 0x856014 / 0xB36014", "the flash identification table"],
+];
+function platformFields() {
+  return PLATFORM.map(([key, value, source]) => ({ key, value, source: `${source} (documented, not read from the unit)`, confidence: "documented" }));
 }
 
 const MISSING = [
@@ -172,6 +209,7 @@ export async function verifyDevice(midi, opts = {}) {
         { key: "port.name", value: port.name || "-", source: "USB-MIDI descriptor", confidence: port.name ? "high" : "none" },
         { key: "port.manufacturer", value: port.manufacturer || "-", source: "USB-MIDI descriptor", confidence: port.manufacturer ? "high" : "none" },
         { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
+        ...platformFields(),
         ...pkgFields(pkg, compat),
       ],
       missing: MISSING.map(([key, why]) => ({ key, why })),
@@ -197,6 +235,7 @@ export async function verifyDevice(midi, opts = {}) {
     { key: "port.name", value: port.name || "-", source: "USB-MIDI descriptor", confidence: port.name ? "high" : "none" },
     { key: "port.manufacturer", value: port.manufacturer || "-", source: "USB-MIDI descriptor", confidence: port.manufacturer ? "high" : "none" },
     { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
+    ...platformFields(),
     ...pkgFields(pkg, compat),
   ];
   const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));

@@ -45,12 +45,15 @@
       linear-gradient(rgba(58, 223, 255, .025) 1px, transparent 1px),
       linear-gradient(90deg, rgba(58, 223, 255, .025) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 64px 64px, 64px 64px;
-    background-attachment: fixed;
+    /* (2.0) no background-attachment: fixed: a fixed, four-layer background repaints the whole viewport on
+     * every scroll frame, which is the first thing a phone gives up on. The gradients scroll with the page
+     * now -- the look is the same at rest, and the scroll is the browser's own. */
   }
   body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: .22;
-    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.16) 3px 4px);
-    mix-blend-mode: multiply;
+    /* (2.0) the scanlines are gone from the viewport: a fixed overlay composited with mix-blend-mode: multiply
+     * forces the compositor to re-blend the whole screen every frame. The page keeps its panels, grids and
+     * hairlines; the full-screen CRT texture is what went, and it was the only thing blending. */
+    content: none;
   }
   ::selection { background: var(--heat); color: #04101e; }
   a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
@@ -74,7 +77,9 @@
   .top {
     position: sticky; top: 0; z-index: 30;
     border-bottom: 1px solid rgba(58, 223, 255, .18);
-    background: rgba(0, 4, 16, .86); backdrop-filter: blur(14px) saturate(130%);
+    /* (2.0) no backdrop-filter: a 14 px blur behind a sticky bar is recomputed on every scroll frame. At 94 %
+     * opacity the bar reads the same over this page's dark background, and costs nothing to move. */
+    background: rgba(0, 4, 16, .94);
   }
   .top .wrap { min-height: 70px; display: flex; align-items: center; gap: 22px; }
   .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
@@ -189,12 +194,11 @@
   .resource b { display: block; margin: 14px 0 4px; font-size: 14px; }
   .resource span { color: var(--muted); font-size: 12px; }
   .resource .no { color: var(--heat); font: 700 10px/1 var(--mono); }
-  /* The four ecosystem accesses: Web Site first and clearly the largest. */
-  .access { display: grid; grid-template-columns: 1.7fr 1fr 1fr; grid-template-rows: auto auto; gap: 12px; align-items: stretch; }
-  /* WEB SITE is the entry point and reads as such: twice the width and both rows. */
+  /* (2.0) three ecosystem accesses, not four: the portal is the page you are on, so it no longer links to
+   * itself. The emulator is the entry point and takes the left half; the studio and the installer stack. */
+  .access { display: grid; grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; align-items: stretch; }
   .access-card.primary { grid-column: 1; grid-row: 1 / span 2; align-content: space-between; }
-  /* (the two cells the installer shared with the old FLASH FM-1 entry: one card, both columns) */
-  .access-card.wide { grid-column: 2 / span 2; grid-row: 2; }
+  .access-card.wide { grid-column: 2; grid-row: 2; }
   .access-card.primary b { font-size: clamp(26px, 3.4vw, 38px); }
   .access-card.primary p { font-size: 15px; }
   .access-card { display: grid; gap: 7px; min-height: 100%; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
@@ -318,31 +322,25 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Accesos</div><h2 style="margin-top:14px">Todo el ecosistema,<br>en un clic.</h2></div>
-        <p>Cuatro entradas al mismo proyecto. El Web Site es la principal y desde ahí se llega al resto; el instalador USB es la única vía de escritura y ninguna ruta depende de una redirección.</p>
+        <p>Tres entradas al mismo proyecto desde este mismo portal: emulador, estudio e instalador. El instalador USB es la única vía de escritura y ninguna ruta depende de una redirección.</p>
       </div>
       <div class="access">
-        <a class="access-card primary" href="./" aria-label="Web Site, portal principal de Quantum GammaWave">
-          <span class="no">01 / WEB SITE</span>
-          <span class="access-title"><b>Web Site</b><span class="url">https://guillel51.github.io/Quantum-GammaWave/</span></span>
-          <p>El portal principal: firmware, capturas reales del build publicado, instalación verificada y versiones.</p>
-          <span class="go">Entrar al sitio <span class="arrow">→</span></span>
-        </a>
-        <a class="access-card" href="emulator/">
-          <span class="no">02 / WEB EMULATOR</span>
+        <a class="access-card primary" href="emulator/">
+          <span class="no">01 / WEB EMULATOR</span>
           <b>Web Emulator</b>
           <span class="url">/emulator/</span>
           <p>El mismo firmware compilado a WebAssembly, con el mapa Punch-in FX, LATCH y el commit del build publicado.</p>
           <span class="go">Abrir Web Emulator <span class="arrow">↗</span></span>
         </a>
         <a class="access-card" href="webapp/editor/">
-          <span class="no">03 / WEB STUDIO · WEBAPP / EDITOR</span>
+          <span class="no">02 / WEB STUDIO · WEBAPP / EDITOR</span>
           <b>Web Studio · Webapp / Editor</b>
           <span class="url">/webapp/editor/</span>
           <p>Editor del sonido real por Web MIDI, secuenciador de 16 pasos, mixer de seis pistas y proyectos.</p>
           <span class="go">Entrar al estudio <span class="arrow">↗</span></span>
         </a>
         <a class="access-card wide" href="webapp/installer/">
-          <span class="no">04 / USB INSTALLER</span>
+          <span class="no">03 / USB INSTALLER</span>
           <b>USB Installer</b>
           <span class="url">/webapp/installer/</span>
           <p>Identidad FM-1, tamaño del paquete y SHA-256 comprobados antes de escribir un solo byte. Incluye <b>Verify only</b>: lee la identidad del FM-1 y no envía ninguna trama de escritura.</p>
@@ -369,7 +367,7 @@
         <article class="card">
           <svg class="glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 28h32M8 28V13M16 28V8M24 28V17M32 28V11" stroke="currentColor" stroke-width="2"/></svg>
           <span class="num">02 / SECUENCIADOR</span>
-          <h3>PATTERNS, MUTATE y GEN</h3>
+          <h3>PATTERNS y MUTATE</h3>
           <p>Cuatro compases, hasta 16 pasos por página, probabilidad, ratchets, swing y mutación. Los patrones se escriben y se mutan en el instrumento, no son un demo de audio.</p>
           <span class="tag">A-A-A-A' · EUCLID · FEEL</span>
         </article>
@@ -383,8 +381,8 @@
         <article class="card wide">
           <span class="num">04 / EN VIVO</span>
           <h3>La HOME no es un fondo</h3>
-          <p>Espectro reactivo al audio real, sol Hearth con corona y partículas, luna orbitando, franja de seis pistas y visualizador a pantalla completa. Todo dibujado por el firmware en 240 × 240, sin bitmaps en flash.</p>
-          <span class="tag">PARTÍCULAS CON LÍMITES · CALIDAD AJUSTABLE</span>
+          <p>Un sistema con tres órbitas y cuatro planetas, nebulosa y estrellas fijas sobre la gráfica reactiva, y partículas detrás del visualizador a pantalla completa (HOME dos veces). Todo dibujado por el firmware en 240 × 240, sin bitmaps en flash.</p>
+          <span class="tag">RESPUESTA AL GESTO · CALIDAD AJUSTABLE</span>
         </article>
         <article class="card">
           <span class="num">05 / CONECTIVIDAD</span>
@@ -409,10 +407,10 @@
         <p>Pantallas del firmware, renderizadas por su propio código a 240 × 240 y ampliadas sin interpolar. Sin marcos de emulador, sin controles y sin teclado físico: lo que ves es lo que muestra el instrumento.</p>
       </div>
       <div class="showcase">
-        <figure class="shot big"><img src="assets/fw-visualizer.png" alt="El visualizador del firmware, 240 x 240: osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
-        <figure class="shot"><img src="assets/fw-mixer.png" alt="La página MIXER del firmware: seis pistas con nivel, paneo, envío y mute."><figcaption><b>MIXER</b><span>SEIS PISTAS</span></figcaption></figure>
-        <figure class="shot wide"><img src="assets/fw-fx.png" alt="La página FX del firmware: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
-        <figure class="shot wide"><img src="assets/installer.png" alt="Instalador USB de Quantum GammaWave con verificación de paquete y advertencias."><figcaption><b>INSTALADOR</b><span>USB-MIDI</span></figcaption></figure>
+        <figure class="shot big"><img loading="lazy" decoding="async" src="assets/fw-visualizer.png" alt="El visualizador del firmware, 240 x 240: osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
+        <figure class="shot"><img loading="lazy" decoding="async" src="assets/fw-mixer.png" alt="La página MIXER del firmware: seis pistas con nivel, paneo, envío y mute."><figcaption><b>MIXER</b><span>SEIS PISTAS</span></figcaption></figure>
+        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/fw-fx.png" alt="La página FX del firmware: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
+        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/installer.png" alt="Instalador USB de Quantum GammaWave con verificación de paquete y advertencias."><figcaption><b>INSTALADOR</b><span>USB-MIDI</span></figcaption></figure>
       </div>
     </div>
   </section>
@@ -432,7 +430,7 @@
           </ul>
           <a class="btn primary" href="webapp/editor/">Entrar al Web Studio <span class="arrow">→</span></a>
         </div>
-        <div class="studio-shot"><img src="assets/webstudio.png" alt="Interfaz del Web Studio: panel de hardware a la izquierda, telemetría y controles a la derecha."></div>
+        <div class="studio-shot"><img loading="lazy" decoding="async" src="assets/webstudio.png" alt="Interfaz del Web Studio: panel de hardware a la izquierda, telemetría y controles a la derecha."></div>
       </div>
     </div>
   </section>

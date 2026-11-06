@@ -401,5 +401,35 @@ function anyWrite(sent) {
   if (err) console.log(err.split("\n").slice(0, 4).join("\n"));
 }
 
+// --- the report says where every number came from ----------------------------------------------
+// The panel is a diagnosis, so a value that was not read from the unit must not look read from the unit.
+// The build record and the key map are the two things the page knows and the unit cannot, and both are
+// printed under their own labels; the platform block is documented, and says so in every row.
+{
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: {
+    version: "v1.9.0", size: 611163, sha256: "306964883e271ba3",
+    build: { commit: "abcdef0123456789abcdef0123456789abcdef01", version: "v1.9.0",
+             artifacts: { "felucca.bin": { bytes: 559552, sha256: "c25cc427a24ab682" },
+                          "loader/ota.bin": { bytes: 8007, sha256: "468fb0e20eddf855" } } },
+    keys: {},
+  } });
+  const row = (k) => (fw.fields || []).find((f) => f.key === k) || {};
+  check("the report names the package's build commit (the package's, not the unit's)",
+        String(row("pkg.build").value || "").includes("abcdef0") &&
+        row("pkg.build").source === "the build record inside the package");
+  check("the report names the image and the loader the package was packed from",
+        String(row("pkg.binary").value || "").startsWith("559552 B") && String(row("pkg.loader").value || "").startsWith("8007 B"));
+  check("with an empty key map the report says no-key, and says why",
+        row("install.why").value === "no-key" && /key map is empty/.test(row("install.why").source || ""));
+  const st = (fw.fields || []).filter((f) => String(f.key).startsWith("static."));
+  check("the platform block is present and every row is marked documented, never read",
+        st.length === 4 && st.every((f) => f.confidence === "documented" && /not read from the unit/.test(f.source)));
+  check("no row from the platform block claims to have been answered by the device",
+        st.every((f) => f.source !== "identity answer"));
+  const devRows = (fw.fields || []).filter((f) => /^(hardware|firmware)\./.test(f.key));
+  check("every device row still cites the identity answer", devRows.length > 0 && devRows.every((f) => f.source === "identity answer"));
+}
+
 console.log(`verify only: ${total} checks, ${bad} FAILED`);
 if (bad) process.exit(1);
