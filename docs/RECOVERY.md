@@ -4,6 +4,10 @@ Este documento separa tres cosas que suelen confundirse: **copia de seguridad**,
 **recuperación independiente**. Sólo la primera está demostrada en software. Ninguna de las tres está
 demostrada en hardware aquí: no hay unidad física en este repositorio.
 
+Antes de tocar una unidad, `docs/FM1_PHYSICAL_PREREQUISITES.md` reúne qué está demostrado, qué es
+sólo un reporte de terceros y qué operaciones están prohibidas mientras no exista una copia leída,
+verificada y con hash en mano.
+
 ## 1. Qué hay implementado
 
 | Pieza | Herramienta | Qué hace | Estado |
