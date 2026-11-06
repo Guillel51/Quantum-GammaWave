@@ -113,9 +113,21 @@ def validate(man, raw, bin_path):
     need(dev.get("identity") and IDENTITY_RE.match(str(dev["identity"])), "identity",
          f"device identity {dev.get('identity')!r} is not an FM-1 identity")
     sent = man.get("commands_sent")
-    need(isinstance(sent, list) and sent, "readonly", "the manifest does not record the frames that were sent")
-    need(all(c in READ_ONLY for c in sent), "readonly",
-         f"the backup recorded commands {sent}, outside read-only 0x11/0x12/0x13")
+    need(isinstance(sent, list), "readonly", "the manifest does not record the frames that were sent")
+    if man.get("source") == "external-spi":
+        # No MIDI phase happened, so there is no frame log to check. What the manifest must prove instead
+        # is that the programmer only ever read: exactly two reads, in order, and nothing else. A manifest
+        # that claims the external source without that receipt is refused like any other bad archive.
+        prog = man.get("programmer") or {}
+        need(sent == [], "readonly", f"an external read recorded MIDI frames: {sent}")
+        need(prog.get("ops") == ["read", "read"], "readonly",
+             f"the programmer's operations are {prog.get('ops')!r}, not exactly two reads")
+        need(prog.get("type") in ("file", "flashrom"), "programmer",
+             f"the manifest names no programmer: {prog.get('type')!r}")
+    else:
+        need(bool(sent), "readonly", "the manifest does not record the frames that were sent")
+        need(all(c in READ_ONLY for c in sent), "readonly",
+             f"the backup recorded commands {sent}, outside read-only 0x11/0x12/0x13")
     for k in ("page", "sector", "block"):
         need(isinstance(dev.get(k), int) and dev[k] > 0, "geometry", f"the manifest has no {k} size")
     return {"sha256": sha, "size": size, "jedec": dev["jedec"], "part": dev.get("part"),

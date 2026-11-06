@@ -147,6 +147,7 @@ jobs:
           python3 tests/preflight_test.py build/felucca.fwsc
           python3 tests/chip_test.py
           python3 tests/flash_evidence_test.py
+          python3 tests/flash_read_test.py
       # (QG-1) The portal and the emulator go up whether or not JieLi's toolchain could be downloaded in this
       # run. The package is the one built here when the target build ran, and the one committed in
       # firmware/packages otherwise -- never a guess, and never a rebuild that did not happen. Both carry their

@@ -44,9 +44,11 @@ Two consequences, and they matter more than any of the tooling below:
 1. **The procedure cannot produce the first backup of a stock unit.** Against a stock V15 the tool now
    says exactly that — `refused: FM-1_015 answered the vendor handshake but not 0x12 … only an external
    SPI reader can` — instead of leaving a timeout that reads like a bad cable.
-2. **The only first backup is a hardware one:** an external SPI NOR reader on the part, with the image
-   taken off the chip directly. That is outside this repository and outside this session; nothing here
-   can substitute for it, and no amount of host testing turns a simulated answer into a real one.
+2. **The only first backup is a hardware one:** an external SPI NOR reader on the part. That procedure,
+   the materials and the acceptance criteria are in [FLASH_READER.md](FLASH_READER.md), and
+   `tools/fm1_flash_read.py` writes the archive it produces in this same manifest format, so
+   `tools/fm1_restore.py` accepts it. Nothing here can substitute for it, and no amount of host testing
+   turns a simulated answer into a real one: the hardware half needs the unit and a clip.
 
 After QG is installed, this read is exactly what it claims to be: a two-pass, read-only dump used to
 record the unit's state and to corroborate the geometry on later sessions.

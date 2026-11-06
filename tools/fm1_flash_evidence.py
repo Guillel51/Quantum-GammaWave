@@ -107,12 +107,29 @@ def check_bundle(bundle, second=None, out_json=None):
         for want, key in ((1, "capacity"), (2, "page"), (3, "sector"), (4, "block")):
             check("the geometry agrees with the part on %s" % key, dev.get(key) == known[want],
                   "%r vs %r" % (dev.get(key), known[want]))
-    check("two 0x12 identifications were taken, not one",
-          "two readings" in str(dev.get("identification") or ""), dev.get("identification"))
-    check("the unit identified as a stock FM-1 this project may start from",
-          bool(IDENTITY.match(str(dev.get("identity") or ""))), dev.get("identity"))
-    check("the firmware the unit reported is recorded", str(dev.get("firmware") or "") != "",
-          dev.get("firmware"))
+    external = man.get("source") == "external-spi"
+    if external:
+        prog = man.get("programmer") or {}
+        check("the read came from an external programmer, and the manifest says which",
+              prog.get("type") in ("file", "flashrom")
+              and bool(prog.get("device") or prog.get("path")),
+              prog.get("type"))
+        check("the programmer ran exactly two reads, in order", prog.get("ops") == ["read", "read"],
+              prog.get("ops"))
+        check("the JEDEC was declared, and the manifest says where from",
+              "marking" in str(dev.get("jedec_source") or ""), dev.get("jedec_source"))
+        if dev.get("part_name_agrees") is False:
+            check("the programmer's detected part name agrees with the declared JEDEC", False,
+                  man.get("part_name_reported"))
+        elif dev.get("part_name_agrees") is True:
+            check("the programmer's detected part name agrees with the declared JEDEC", True)
+    else:
+        check("two 0x12 identifications were taken, not one",
+              "two readings" in str(dev.get("identification") or ""), dev.get("identification"))
+        check("the unit identified as a stock FM-1 this project may start from",
+              bool(IDENTITY.match(str(dev.get("identity") or ""))), dev.get("identity"))
+        check("the firmware the unit reported is recorded", str(dev.get("firmware") or "") != "",
+              dev.get("firmware"))
 
     # the read itself
     check("two passes were run", man.get("passes") == 2, man.get("passes"))
@@ -157,26 +174,31 @@ def check_bundle(bundle, second=None, out_json=None):
     else:
         check("no second pass file means the two passes were identical", man.get("identical") is True)
 
-    # the log: read-only by what was actually sent
+    # the transport: read-only by what was actually sent (or, externally, by what was never sent)
     cmds = man.get("commands")
     counts = man.get("command_counts") or {}
     known = isinstance(cmds, list) and all(isinstance(c, int) for c in cmds)
     check("the frame log is a list of command bytes", known, type(cmds).__name__)
-    if known:
+    if known and external:
+        check("an external read sent no frames at all", cmds == [] and man.get("frames") in (0, None)
+              and (man.get("commands_sent") == []), (len(cmds), man.get("frames")))
+    elif known:
         extra = sorted({c for c in cmds if c not in READ_ONLY})
         check("every logged frame is 0x11, 0x12 or 0x13", not extra,
               "unexpected: %s" % ", ".join("0x%02X" % c for c in extra))
         check("the log has frames in it", len(cmds) > 0, len(cmds))
+
     def hexkey(c):
         try:
             return int(str(c), 16)
         except ValueError:
             return None
 
-    check("the recorded command counts are read-only too",
-          bool(counts) and all(hexkey(c) in READ_ONLY for c in counts), list(counts))
-    check("the tool's own summary lists only read-only commands",
-          all(c in READ_ONLY for c in (man.get("commands_sent") or [0x11])), man.get("commands_sent"))
+    if not external:
+        check("the recorded command counts are read-only too",
+              bool(counts) and all(hexkey(c) in READ_ONLY for c in counts), list(counts))
+        check("the tool's own summary lists only read-only commands",
+              all(c in READ_ONLY for c in (man.get("commands_sent") or [0x11])), man.get("commands_sent"))
 
     second_ok = None
     if second:
@@ -205,6 +227,7 @@ def finish(bundle, man, out_json, second=None, second_ok=None, part=None):
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "bundle": str(bundle),
         "source_manifest": (man or {}).get("tool"),
+        "source": (man or {}).get("source") or "device-0x12",
         "device": (man or {}).get("device"),
         "image": {
             "size": (man or {}).get("size"),
@@ -220,6 +243,10 @@ def finish(bundle, man, out_json, second=None, second_ok=None, part=None):
         "result": {
             "status": "verified-read" if good else "failed",
             "failed": names,
+            # an external read with no FM-1_0NN in it is a verified read of *a* part, not of *this*
+            # unit: the restore tool refuses it, and the record says so instead of letting a green
+            # "verified-read" imply more than it can.
+            "restorable": bool(((man or {}).get("device") or {}).get("identity")),
             # this is the part-specific half: a read-only part is a verified read and NOT a green
             # light for writing, which is why the record says it separately instead of folding it in
             "write_capable_part": bool(part and part.get("writable")),

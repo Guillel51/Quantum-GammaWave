@@ -284,6 +284,8 @@ run "transport gate: the image bytes leave only from #serve, behind requireProof
 run "chip identification: 0x12/0x13 gates, no write frame without a verified part" python3 tests/chip_test.py
 run "flash evidence: a read bundle verifies only against its own bytes and its read-only frame log" \
     python3 tests/flash_evidence_test.py
+run "external read: the first backup of a stock unit, two reads, and the restore hand-off" \
+    python3 tests/flash_read_test.py
 run "raw restore: geometry, identifiers, sector alignment, readback, refusal before any erase" \
     python3 tests/restore_test.py
 run "signed packages: manifest, hash, product / version / min_firmware, WebCrypto parity" \
