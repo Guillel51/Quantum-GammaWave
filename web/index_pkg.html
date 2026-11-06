@@ -512,7 +512,15 @@ const TEXT = {
     nohash: "Ce package n'a pas de SHA-256 publié : rien ne sera écrit. Rechargez la page.",
     leave: "Écriture du firmware en cours. Ne fermez pas cette page !",
     license: "Licence GPL-3.0, sans garantie. Base :", theme: "THÈME : ",
-  },
+      vNone: "Vérifier : aucun FM-1 n'a répondu (câble USB de données ? une autre application utilise le MIDI ?). Rien n'a été envoyé.",
+    vSilent: "Vérifier : un port FM-1 n'a rien répondu, donc aucun firmware n'a été reconnu (JIANT et d'autres builds peuvent ne pas implémenter la requête d'identité). Rien d'autre n'a été envoyé. Port : ",
+    vLoader: "Vérifier : le FM-1 est en mode mise à jour (une installation précédente a été interrompue). INSTALLER termine l'écriture.",
+    vStock: "Vérifier : FM-1 détecté, V15 officiel (FM-1_015). Ce paquet peut être installé par-dessus. ",
+    vOurs: "Vérifier : FM-1 détecté, ce firmware ",
+    vOther: "Vérifier : un FM-1 a été détecté, mais son firmware n'est pas un de ceux que cet installateur connaît. Il se nomme : ",
+    vOtherTail: " \u2014 lecture seule : rien n'a été écrit, et ce n'est pas une autorisation d'installation.",
+    vSame: " \u2014 même identité que ce paquet.",
+},
   en: {
     intro: "Connect your M-VAVE FM-1 via USB and flash the QUANTUM GAMMAWAVE firmware directly from Chrome or Edge using WebMIDI.",
     warn: "Do not unplug the USB cable while writing.",
@@ -538,11 +546,11 @@ const TEXT = {
     pf4: "I will not unplug while writing. If it is cut off, I reconnect and press INSTALL again: the update loader finishes the write.",
     hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ",
     nohash: "This package has no published SHA-256: nothing will be written. Reload the page.",
-    vNone: "Verify: no FM-1 found (USB data cable? another app using MIDI?)",
+    vNone: "Verify: no FM-1 answered (USB data cable? another app using MIDI?). Nothing was sent.",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
-    vStock: "Verify: official V15 (FM-1_015). This package can be installed. ",
-    vOurs: "Verify: GAMMAWAVE/JIANT firmware ", vSilent: "Verify: an FM-1 port answered nothing (another firmware, JIANT among them, that does not implement the identity query). Nothing else was sent. Port: ", vOther: "Verify: another FM-1 firmware (JIANT or a custom build). It reports itself as: ",
-    vSame: " — same identity as this package (a reinstall or another version).", vCan: " — this package can be installed over it.",
+    vStock: "Verify: FM-1 detected, official V15 (FM-1_015). This package can be installed over it. ",
+    vOurs: "Verify: FM-1 detected, this firmware ", vSilent: "Verify: an FM-1 port answered nothing (another firmware, JIANT among them, that does not implement the identity query). Nothing else was sent. Port: ", vOther: "Vérifier : un FM-1 a été détecté, mais son firmware n'est pas un de ceux que cet installateur connaît. Il se nomme : ", vOtherTail: " — lecture seule : rien n'a été écrit, et ce n'est pas une autorisation d'installation.", vOtherTail: " \u2014 read only: nothing was written, and this is not an install authorisation.",
+    vSame: " \u2014 same identity as this package.", vCan: " — this package can be installed over it.",
     bkSaving: "Backing up the FM-1 before writing ", bkSaved: "The backup file was downloaded. Keep it: restore it from the Web Studio if anything goes wrong. Write the firmware now?",
     bkNone: "This firmware cannot export a backup. Its songs and sounds may be lost. Write anyway?",
     cancelled: "Cancelled: nothing was written.",
@@ -575,7 +583,10 @@ const TEXT = {
     badpkg: "The file to install is damaged. Reload the page.",
     leave: "Writing firmware. Do not close the page.",
     license: "GPL-3.0, no warranty. Base:", theme: "THEME: ",
-  },
+      vSilent: "Verify: an FM-1 port answered nothing, so no firmware was recognised (JIANT and other builds may not implement the identity query). Nothing else was sent. Port: ",
+    vOther: "Verify: an FM-1 was detected, but its firmware is not one this installer knows. It reports itself as: ",
+    vOtherTail: " \u2014 read only: nothing was written, and this is not an install authorisation.",
+},
   ja: {
     intro: "FM-1 を USB で接続し、Chrome または Edge から WebMIDI 経由で QUANTUM GAMMAWAVE ファームウェアを直接書き込みます。",
     warn: "書き込み中は USB ケーブルを抜かないでください。",
@@ -654,7 +665,7 @@ TEXT.es = {
   vNone: "Verificar: no se encontró ningún FM-1 (¿cable USB de datos? ¿otra aplicación usando MIDI?)",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vStock: "Verificar: V15 oficial (FM-1_015). Este paquete se puede instalar. ",
-  vOurs: "Verificar: firmware GAMMAWAVE/JIANT ", vSilent: "Verificar: el puerto del FM-1 no respondió (otro firmware, JIANT entre ellos, que no implementa la consulta de identidad). No se envió nada más. Puerto: ", vOther: "Verificar: otro firmware de FM-1 (JIANT o una compilación propia). Se identifica como: ",
+  vOurs: "Verificar: firmware GAMMAWAVE/JIANT ", vSilent: "Verificar: el puerto del FM-1 no respondió (otro firmware, JIANT entre ellos, que no implementa la consulta de identidad). No se envió nada más. Puerto: ", vOther: "Verificar: se detectó un FM-1, pero su firmware no es uno de los que este instalador conoce. Se identifica como: ", vOtherTail: " — solo lectura: no se escribió nada y esto no autoriza la instalación.",
   vSame: " — misma identidad que este paquete (reinstalación u otra versión).", vCan: " — este paquete se puede instalar encima.",
   bkSaving: "Guardando copia de seguridad del FM-1 ", bkSaved: "La copia se descargó. Conservala: podés restaurarla desde Web Studio si algo falla. ¿Escribir el firmware ahora?",
   bkNone: "Este firmware no puede exportar una copia. Sus canciones y sonidos podrían perderse. ¿Escribir igual?",
@@ -717,7 +728,7 @@ TEXT.zh = {
   vNone: "校验：未找到 FM-1（USB 数据线？其他应用占用了 MIDI？）",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vStock: "校验：官方 V15（FM-1_015）。可以安装此固件包。 ",
-  vOurs: "校验：GAMMAWAVE/JIANT 固件 ", vSilent: "校验：FM-1 端口没有回应（其他固件，例如 JIANT，未实现身份查询）。未发送其他内容。端口：", vOther: "校验：其他 FM-1 固件（JIANT 或自定义构建）。其自报身份为：",
+  vOurs: "校验：GAMMAWAVE/JIANT 固件 ", vSilent: "校验：FM-1 端口没有回应（其他固件，例如 JIANT，未实现身份查询）。未发送其他内容。端口：", vOther: "校验：检测到一台 FM-1，但其固件不是本安装器所认识的固件。其自报身份为：", vOtherTail: " — 只读：未写入任何内容，也不构成安装授权。",
   vSame: " — 与此固件包身份相同（重装或其他版本）。", vCan: " — 可以安装此固件包。",
   bkSaving: "正在备份 FM-1 ", bkSaved: "备份已下载。请妥善保存：如有问题可在 Web Studio 中恢复。现在写入固件吗？",
   bkNone: "此固件无法导出备份，歌曲和音色可能丢失。仍要写入吗？",
@@ -1120,13 +1131,14 @@ $("verify").addEventListener("click", async () => {
     let midi;
     try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
     const fw = await verifyDevice(midi, { product: meta.product, log });
-    log(`verify: ${fw.kind} ${fw.text || (fw.ports || []).join(", ")}`);
+    log(`verify: ${fw.kind} found=${fw.found} recognised=${fw.recognised} id=${fw.text || "-"}` +
+        (fw.ports.length ? ` ports=${fw.ports.join(", ")}` : ""));
     if (fw.kind === "none") sayK("vNone");
     else if (fw.kind === "silent") sayK("vSilent", (fw.ports || []).join(", "));
     else if (fw.kind === "loader") sayK("vLoader");
     else if (fw.kind === "stock") sayK("vStock", meta.product);
     else if (fw.kind === "ours") sayK("vOurs", fw.text + t("vSame"));
-    else sayK("vOther", fw.text);
+    else sayK("vOther", fw.text + t("vOtherTail"));   /* (7.x) detected, not recognised: FM-1_909 and the like */
   } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
   finally { lockInstaller(false); }
 });

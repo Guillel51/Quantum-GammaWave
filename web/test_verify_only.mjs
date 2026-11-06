@@ -88,6 +88,46 @@ function anyWrite(sent) {
   check("JIANT/another FM-1: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
+  // the unit this was reported from: a real FM-1 running JIANT answers FM-1_909. It is a device,
+  // its firmware is simply not one this installer knows, and verify must say exactly that.
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  check("FM-1_909 (JIANT): detected as an FM-1, model and version read from the frame",
+    fw.kind === "other" && fw.found === true && fw.model === "FM-1" && fw.version === 909 && fw.text === "FM-1_909");
+  check("FM-1_909 (JIANT): the firmware is reported as not recognised, and no install is authorised",
+    fw.recognised === false && fw.canInstall === false);
+  check("FM-1_909 (JIANT): only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+{
+  // every answer says what it is: found / recognised / canInstall, and only the reading one moves
+  const cases = [["FM-1_015", "stock", true], ["FM-1_982", "ours", true], ["ota-FM-1_982", "loader", true],
+                 ["FM-1_909", "other", false], ["FM-1_210", "other", false]];
+  for (const [id, kind, ok] of cases) {
+    const a = access(["FM-1"], { "FM-1": () => [identityFrame(id)] });
+    const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+    check(`${id}: kind ${kind}, recognised ${ok}, never an install authorisation`,
+      fw.kind === kind && fw.found === true && fw.recognised === ok && fw.canInstall === false);
+  }
+}
+{
+  // the texts the button can print must exist in every language of the page, and say what happened
+  const fs = await import("node:fs/promises");
+  const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
+  const at = html.indexOf('$("verify").addEventListener');
+  const body = html.slice(at, html.indexOf("\n});", at));
+  const keys = [...body.matchAll(/sayK\("(v[A-Za-z]+)"/g)].map((m) => m[1]);
+  check("the button names its messages", keys.length >= 5 && keys.includes("vOther"));
+  const langs = ["en", "fr", "es", "zh"];
+  const missing = [];
+  for (const k of keys) {
+    const n = (html.match(new RegExp(k + ": \"", "g")) || []).length;
+    if (n < langs.length) missing.push(`${k} x${n}`);
+  }
+  check("every message exists in en / fr / es / zh (a missing key printed the key itself)", !missing.length);
+  check("the not-recognised message says the device was detected and that nothing was written",
+    /detected, but its firmware is not one this installer knows/.test(html) && /nothing was written/.test(html));
+}
+{
   // a firmware that does not implement the query at all (JIANT may be one): the port is named,
   // nothing else is sent, and it is not reported as "no FM-1 found"
   const a = access(["FM-1"], { "FM-1": () => [] });

@@ -31,6 +31,17 @@ import { Updater, PORT_RE } from "./fm1ota.js";
 // the one frame Verify Only may put on the wire (tests/test_verify_only.mjs checks the log)
 export const READ_ONLY_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 
+// every answer carries the same shape, and none of them authorises an install: verify only reads.
+//   found        an FM-1 answered (or, for "silent", a port that looks like one is connected)
+//   recognised   this installer knows the firmware that answered
+//   canInstall   false, always: only the install path, with the manifest, the chip and the sizes,
+//                decides that, and it decides it on its own
+function report(kind, base) {
+  const found = kind !== "none";
+  const recognised = kind === "stock" || kind === "ours" || kind === "loader";
+  return { kind, found, recognised, canInstall: false, ports: base.ports, ...base };
+}
+
 export async function verifyDevice(midi, opts = {}) {
   const product = String(opts.product || "");
   const log = opts.log || (() => {});
@@ -45,13 +56,20 @@ export async function verifyDevice(midi, opts = {}) {
     log(`verify: ${e && e.message}`);
     dev = null;
   }
-  if (!dev)
-    return { kind: ports.length ? "silent" : "none", text: "", model: "", version: 0, ports };
+  if (!dev) {
+    // no answer: either nothing is plugged in, or something named like an FM-1 is and it does not
+    // implement the query. Both are "no firmware recognised", never "no device" when a port is there
+    const kind = ports.length ? "silent" : "none";
+    return report(kind, { text: "", model: "", version: 0, ports });
+  }
   const { text, model, version } = dev.id;
   dev.link.close();
   const base = { text, model, version, ports };
-  if (/^ota-/i.test(model)) return { kind: "loader", ...base };
-  if (text === "FM-1_015") return { kind: "stock", ...base };
-  if (product && text === product) return { kind: "ours", ...base };
-  return { kind: "other", ...base };
+  // the identity frame carries "<MODEL>_<version>" and nothing else. FM-1_909 is a real FM-1 whose
+  // firmware is not one this installer knows: its own numbering (JIANT's, or a custom build's),
+  // not a byte pattern to match against. The device is recognised, the firmware is not.
+  if (/^ota-/i.test(model)) return report("loader", base);
+  if (text === "FM-1_015") return report("stock", base);
+  if (product && text === product) return report("ours", base);
+  return report("other", base);
 }
