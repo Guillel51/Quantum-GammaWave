@@ -77,9 +77,10 @@
   .top {
     position: sticky; top: 0; z-index: 30;
     border-bottom: 1px solid rgba(58, 223, 255, .18);
-    /* (2.0) no backdrop-filter: a 14 px blur behind a sticky bar is recomputed on every scroll frame. At 94 %
-     * opacity the bar reads the same over this page's dark background, and costs nothing to move. */
-    background: rgba(0, 4, 16, .94);
+    /* (2.0) no backdrop-filter: a 14 px blur behind a sticky bar is recomputed on every scroll frame.
+     * Opaque, not 94 %: the headings under it are white, and 6 % of a white headline is visible through the
+     * bar as ghost text once the page scrolls. The colour is --bg, so the bar and the page agree. */
+    background: var(--bg);
   }
   .top .wrap { min-height: 70px; display: flex; align-items: center; gap: 22px; }
   .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
