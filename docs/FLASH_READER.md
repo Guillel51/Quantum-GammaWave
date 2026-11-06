@@ -1,9 +1,15 @@
-# The first backup: reading the FM-1's flash with an external programmer
+# The fallback first backup: reading the FM-1's flash with an external programmer
 
-This is the only read path that does not need the unit to boot anything. The MIDI path
-(`tools/fm1_backup.py`, docs/JEDEC_READ.md) needs the QG application because `0x12` and `0x13` are its
-frames; a stock V15 unit has never answered them here. A programmer reads the part directly, so the
-first backup of a stock unit is a hardware read, and it is the input that a proven recovery route needs.
+**There is now a safer route that comes first.** M-Flasher reads a stock V15 unit over its own USB
+cable, through the chip's ROM download mode, with the loader in RAM: no case opening, no clip, and a
+whole-part CRC32 computed by the chip (docs/M-FLASHER.md, and `tools/fm1_mflasher.py` imports its
+backup). Use this page when the unit does not enumerate as `WL82 UBOOT1.00` at all, when the ROM mode
+cannot be reached, or when the flash has to be read with the board off the FM-1's MCU.
+
+An external programmer reads the part directly, with no firmware involved: it is the only read path
+that needs nothing running on the unit. The MIDI path (`tools/fm1_backup.py`, docs/JEDEC_READ.md) needs
+the QG application because `0x12` and `0x13` are its frames; a stock V15 unit has never answered them
+here.
 
 `tools/fm1_flash_read.py` does the software half: two reads with the same programmer operation, a
 byte-for-byte comparison, and a `qg1-backup-1` manifest that `tools/fm1_restore.py` already validates.

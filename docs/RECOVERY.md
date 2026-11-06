@@ -93,12 +93,16 @@ Por defecto `--write` empieza en `0x4000`: los primeros 16 KiB son el loader y l
 cabecera de arranque, que son propios de cada unidad. `--include-head` los escribe
 también y es obligatorio para el backend `flashrom`, que no puede escribir parcial.
 
-El archivo que restaura puede venir del camino MIDI (`tools/fm1_backup.py`, sólo con QG ejecutándose) o
-del lector externo (`tools/fm1_flash_read.py`, el único que sirve para el primer backup de una unidad
-stock; procedimiento en `docs/FLASH_READER.md`). Ambos escriben el mismo manifiesto `qg1-backup-1`; el
-externo añade `source: external-spi` y el recibo del programador (exactamente dos lecturas), y el
-restaurador exige ese recibo en lugar del log de frames, porque no hubo fase MIDI. La identidad tiene que
-estar en la imagen: un archivo que no se puede atar a una unidad no se restaura.
+El archivo que restaura puede venir de tres caminos, y todos escriben el mismo manifiesto `qg1-backup-1`:
+el MIDI (`tools/fm1_backup.py`, sólo con QG ejecutándose), la importación de M-Flasher
+(`tools/fm1_mflasher.py`, el camino normal para una unidad stock: modo ROM del chip, loader en RAM, parte
+entera leída; procedimiento en `docs/M-FLASHER.md`), o el lector externo (`tools/fm1_flash_read.py`,
+cuando la unidad no enumera en absoluto; `docs/FLASH_READER.md`). El importador de M-Flasher añade
+`source: mflasher-ram-loader`, `flash_writes: 0`, las escrituras de RAM que sí ocurrieron y el CRC32 del
+chip o una segunda copia; el lector externo añade `source: external-spi` y su recibo de dos lecturas. El
+restaurador exige ese recibo en lugar del log de frames, porque no hubo fase MIDI, y la identidad tiene
+que salir de la imagen (el `app.bin` descifrado o, si no se puede decodificar, sus bytes): un archivo que
+no se puede atar a una unidad no se restaura.
 
 Borra sector a sector (4 KiB), programa página a página (256 B), relee cada sector, después relee el
 part completo y compara. Devuelve 8 si algo no vuelve idéntico, 2 si el programador falla, 5 si no se

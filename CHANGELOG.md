@@ -1,3 +1,15 @@
+- **El primer backup de una unidad stock ya no necesita abrir el equipo, y el instalador perdió su último atajo:**
+  M-Flasher 0.9.1 (`9da825b`, MIT) lee la flash entera por el modo ROM del chip, con el loader en RAM y el
+  CRC32 calculado por el silicio; su acción de backup sólo lee (`src/ops.rs`), y ahora `tools/fm1_mflasher.py`
+  convierte su pareja `.bin`/`.json` en un archivo `qg1-backup-1` que `fm1_restore.py` valida, exigiendo dos
+  backups idénticos o el CRC32 del chip, y decodificando la identidad del `app.bin` con la clave `0x980F`
+  (`tools/fm1_image.py`). Ese decodificador corrige una premisa falsa: el dump stock público **no** contiene
+  `FM-1_` en claro, así que buscar la cadena en los bytes fallaba justo en el caso que importa. Además se
+  retiraron `--jedec`, `--allow-unidentified-chip` y `FM1_LAB` de `fm1_install.py`, `fm1_preflight.py` y
+  `fm1_gate.py`: el preflight lee ahora `0x12` como el instalador y decide con la misma función, y no queda
+  ninguna variable de entorno ni bandera que aporte un chip o salte la firma. Probado con `mflasher_test.py`
+  (32 comprobaciones, incluido el dump real importado y restaurado) y el resto de suites del gate. **Sigue sin
+  habilitarse la instalación**: la clave de producción no está fijada y ningún requisito físico se demostró aquí.**
 - **CI en verde con las causas reales, no con el workflow apagado:** los tres workflows llevaban rojos
   desde `d32a600` (antes de este trabajo) y el patrón común era un fallo enmascarado por
   `continue-on-error` o por un paso que nunca llegaba a ejecutarse. Causas encontradas y corregidas, cada

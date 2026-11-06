@@ -47,9 +47,12 @@ refused("FM-1_982", "FM-1_982", 0x1000000, "chip_unknown",
 d = G.authorise("FM-1_982", "FM-1_982", 0xB36014)
 check("gate: authorise() reports chip_read_only without raising",
       d["allowed"] is False and d["reason"] == "chip_read_only" and d["chip"] is None)
-d = G.authorise("FM-1_982", "FM-1_982", 0xB36014, lab=True)
-check("gate: the lab override says so and is never silent",
-      d["allowed"] is True and d["reason"] == "lab" and "lab override" in d["detail"])
+d = G.authorise("FM-1_982", "FM-1_982", 0xB36014)
+check("gate: there is no lab override left that turns a readable part into a writable one",
+      d["allowed"] is False and d["code"] == "chip")
+check("gate: the capability table and the write allowlist are the same decision",
+      all(G.capabilities(j)["write_app"] == (j in G.PRODUCTION_JEDEC) for j in G.CAPABILITIES)
+      and set(G.CAPABILITIES) == set(G.KNOWN_JEDEC))
 d = G.authorise("FM-1_982", "ota-FM-1_982", 0x856014)
 check("gate: the loader's identity names the same model",
       d["allowed"] is True and d["reason"] == "identified" and d["chip"]["jedec"] == "0x856014")

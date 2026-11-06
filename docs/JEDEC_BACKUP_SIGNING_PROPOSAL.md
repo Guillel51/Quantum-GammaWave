@@ -47,9 +47,12 @@ es la que corre durante el paso 1, así que basta con ella para la identificaci�
 
 - Un dispositivo con app antigua no responde `0x12`: el instalador interpreta timeout como
   `chip_not_identified` y se niega. No hay degradación silenciosa.
-- La primera instalación de un firmware con `0x12` requiere evidencia externa (alternativa D,
-  `--jedec`), porque la app que la recibe todavía es la vieja. A partir de esa versión, el comando
-  responde y la evidencia es del propio dispositivo.
+- La primera instalación de un firmware con `0x12` no la hace este instalador: la app que recibe el
+  paquete es la vieja y no responde. Se hace con M-Flasher sobre un backup verificado (docs/M-FLASHER.md
+  §6), que escribe la zona de aplicación y deja el loader como está. A partir de esa versión, el comando
+  responde, la evidencia es del propio dispositivo, y este instalador es el que actualiza.
+- Un JEDEC escrito a mano no era evidencia y `--jedec` ya no existe: la alternativa D de este documento
+  (evidencia externa) queda como procedimiento de backup y de recuperación, no como puerta del instalador.
 - Añadirlo al **loader** es un cambio separado y no es necesario para escribir: el loader sólo necesita
   que el host ya tenga la evidencia. Se recomienda igualmente para que `resume` pueda revalidar tras un
   corte; eso sí toca el loader y necesita autorización.

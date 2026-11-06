@@ -9,10 +9,10 @@ pure function: no MIDI, no files, no environment reads except the explicit `lab`
 argument, so it can be tested on its own.
 
 The rule is evidence, not memory: a write is allowed only when the caller can
-present the physical NOR identity of *this* unit, read from the device or with an
-external reader (`--jedec`), and that identity is in the documented allowlist.
-Nothing in the current protocol reports it, so in practice the answer today is
-NO-GO and the installers refuse to start.
+present the physical NOR identity of *this* unit, read from the device with 0x12
+in the same session, and that identity is in the documented allowlist. There is
+no argument that supplies a chip and no lab switch: a JEDEC typed by hand is not
+evidence of the part in front of the installer.
 """
 import re
 
@@ -30,6 +30,34 @@ READ_ONLY_JEDEC = {
 }
 KNOWN_JEDEC = {**PRODUCTION_JEDEC, **READ_ONLY_JEDEC}
 MAX_PACKAGE = 0x100000        # the part is 1 MiB; the image is the whole flash
+
+# The four questions are answered separately, because "readable" never implies "writable" and a write
+# another project performed never implies one this project validated. docs/M-FLASHER.md §5 explains
+# each cell; this table is what the tools answer, so the two cannot drift apart.
+CAPABILITIES = {
+    0x856014: {"part": "Puya P25Q80H", "read": True, "backup": True, "write_app": True,
+               "bootloader": True, "qg_install": True,
+               "basis": "documented OEM part; the write path is the one every test in this repo drives"},
+    0xB36014: {"part": "UCUN UC25HQ80", "read": True, "backup": True, "write_app": False,
+               "bootloader": False, "qg_install": False,
+               "basis": "readable and backed up in the field; no QG-1 write validated, and m-bootloader "
+                        "has a report of a UCUN unit that did not boot"},
+}
+
+
+def capabilities(jedec):
+    """-> the capability row for a part, or None when the id is not documented here."""
+    return CAPABILITIES.get(jedec)
+
+
+def matrix():
+    """-> the rows as text, for a terminal or a document that wants to quote the code."""
+    cols = ("read", "backup", "write_app", "bootloader", "qg_install")
+    out = ["JEDEC     part             " + " ".join("%s" % c for c in cols)]
+    for j, row in sorted(CAPABILITIES.items()):
+        out.append("0x%06X  %-16s " % (j, row["part"]) + " ".join(
+            ("yes" if row[c] else "no ").ljust(len(c)) for c in cols))
+    return "\n".join(out)
 
 
 class Refusal(Exception):
@@ -57,9 +85,8 @@ def check_chip(jedec):
     """-> the chip description when the evidence is complete and the part may be written."""
     if jedec is None:
         raise Refusal("chip", "chip_not_identified",
-                      "the physical NOR was not identified: the identity packet carries the model "
-                      "only and the protocol has no host-initiated flash read. Read the JEDEC with an "
-                      "external reader (--jedec) or wait for the loader command")
+                      "the physical NOR was not identified on this unit: 0x12 has to answer with a part "
+                      "in the documented allowlist before anything is written")
     try:
         jedec = int(jedec)
     except (TypeError, ValueError):
@@ -77,25 +104,25 @@ def check_chip(jedec):
     return {"jedec": f"0x{jedec:06X}", "part": PRODUCTION_JEDEC[jedec]}
 
 
-def authorise(product, identity_text, jedec=None, lab=False):
+def authorise(product, identity_text, jedec=None):
     """-> {'allowed', 'reason', 'code', 'detail', 'chip'} without raising, for reports."""
     try:
         check_identity(product, identity_text)
         chip = check_chip(jedec)
-        if lab:
-            return {"allowed": True, "reason": "lab", "code": None,
-                    "detail": "lab override: the chip was not identified", "chip": chip}
         return {"allowed": True, "reason": "identified", "code": None, "detail": "", "chip": chip}
     except Refusal as e:
-        if lab and e.code == "chip":
-            return {"allowed": True, "reason": "lab", "code": None,
-                    "detail": "lab override: the chip was not identified", "chip": None}
         return {"allowed": False, "reason": e.reason, "code": e.code, "detail": e.detail, "chip": None}
 
 
-def require(product, identity_text, jedec=None, lab=False):
+def require(product, identity_text, jedec=None):
     """Raise Refusal unless this exact unit may be written. Called right before UPGRADE."""
-    d = authorise(product, identity_text, jedec, lab)
+    d = authorise(product, identity_text, jedec)
     if not d["allowed"]:
         raise Refusal(d["code"], d["reason"], d["detail"])
     return d
+
+
+if __name__ == "__main__":
+    import sys
+    print(matrix())
+    sys.exit(0)

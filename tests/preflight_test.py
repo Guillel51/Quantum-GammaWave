@@ -35,7 +35,10 @@ def check(what, ok):
 
 def run(pkg, dev=None, argv_extra=()):
     out = io.StringIO()
-    rc = P.main([pkg, *argv_extra], backend=dev, out=out)
+    try:
+        rc = P.main([pkg, *argv_extra], backend=dev, out=out)
+    except SystemExit as e:          # argparse: an unknown flag ends the CLI, not the test run
+        rc = int(e.code or 0)
     return rc, out.getvalue()
 
 
@@ -57,17 +60,26 @@ def main():
 
     dev = T.FakeFM1(image, identity=product, name="Felucca")
     rc, out = run(good, dev)
-    check("a package with its published hash and a matching device reaches the chip gate",
-          rc == P.EXIT["chip"] and "unknown" in out and "no-go" in out)
+    check("a package with its published hash and an identified chip reads as ready",
+          rc == 0 and "0x856014" in out and "ready" in out)
 
     rep_path = os.path.join(tmp, "report.json")
     rc, out = run(good, T.FakeFM1(image, identity=product, name="Felucca"), ["--json", rep_path])
     rep = json.load(open(rep_path))
     check("the report is written and states that nothing was written",
           rep["writes"] is False and rep["package"]["sha256"] == hashlib.sha256(raw).hexdigest() and
-          rep["package"]["product"] == product and rep["verdict"] == "no-go")
-    check("the report names the chip as unidentified with a reason",
-          rep["chip"]["identified"] is False and rep["chip"]["jedec"] is None and rep["chip"]["why"])
+          rep["package"]["product"] == product and rep["verdict"] == "ready")
+    check("the report records the chip that answered 0x12 and that the gate allowed it",
+          rep["chip"]["identified"] is True and rep["chip"]["jedec"] == "0x856014"
+          and rep["gate"]["allowed"] is True)
+
+    rc, out = run(good, T.FakeFM1(image, identity=product, name="Felucca", jedec=0xB36014))
+    check("a readable part that may not be written is a NO-GO here too",
+          rc == P.EXIT["chip"] and "no-go" in out)
+
+    rc, out = run(good, T.FakeFM1(image, identity=product, name="Felucca", query_fault="silent"))
+    check("a unit that does not answer 0x12 stays a NO-GO with its reason",
+          rc == P.EXIT["chip"] and "0x12" in out)
 
     d = T.FakeFM1(image, identity=product, name="Felucca")
     run(good, d)
@@ -86,8 +98,8 @@ def main():
     check("another model: refused", rc == P.EXIT["model"])
 
     rc, _ = run(good, T.FakeFM1(image, identity="FM-1_905", name="Felucca"))
-    check("another version of the same model reaches the chip gate (a downgrade is a different decision)",
-          rc == P.EXIT["chip"])
+    check("another version of the same model reaches the gate (a downgrade is a different decision)",
+          rc == 0)
 
     nod = T.FakeFM1(image, identity=product, name="Felucca")
     nod.connected = False
@@ -95,8 +107,7 @@ def main():
     check("no device answering: refused", rc == P.EXIT["notfound"])
 
     rc, out = run(good, T.FakeFM1(image, identity=product, name="Felucca"), ["--allow-unidentified-chip"])
-    check("the lab override passes the gate and still writes nothing",
-          rc == 0 and "lab-override" in out)
+    check("there is no flag that passes the gate without the chip", rc == 2)
 
     rc, _ = run(good, T.FakeFM1(image, identity="ota-" + product, name="Felucca Update"))
     check("a device left in update mode is reported and still gated", rc == P.EXIT["chip"])
@@ -107,7 +118,10 @@ def main():
     # ---- the gate lives inside the installer, not in a program the user must remember
     def inst(pkg, args=(), dev_identity=product, after=product, fault=None):
         d = T.FakeFM1(image, identity=dev_identity, name="Felucca", after_write=after, query_fault=fault)
-        rc = I.main([pkg, "--yes", *args], backend=d, out=io.StringIO())
+        try:
+            rc = I.main([pkg, "--yes", *args], backend=d, out=io.StringIO())
+        except SystemExit as e:
+            rc = int(e.code or 0)
         return rc, d
 
     rc, d = inst(good, fault="silent")
@@ -115,24 +129,20 @@ def main():
     check("a device that cannot answer 0x12: no UPGRADE sent", d.upgrades == 0)
 
     rc, d = inst(good, ("--jedec", "123456"))
-    check("a typed JEDEC is not evidence: usage error, nothing sent", rc == 2 and d.upgrades == 0)
+    check("a typed JEDEC is not evidence: no such flag, nothing sent", rc == 2 and d.upgrades == 0)
 
     rc, d = inst(good, ("--allow-unidentified-chip",))
-    check("lab override without FM1_LAB=1: usage error, nothing sent", rc == 2 and d.upgrades == 0)
+    check("an unidentified chip cannot be allowed: no such flag, nothing sent",
+          rc == 2 and d.upgrades == 0)
 
     os.environ["FM1_LAB"] = "1"
     try:
         rc, d = inst(good, ("--jedec", "856014"))
+        rc2, d2 = inst(good, ("--allow-unidentified-chip",))
     finally:
         del os.environ["FM1_LAB"]
-    check("a typed JEDEC with FM1_LAB=1 is a lab install only", rc == 0 and d.upgrades >= 1)
-
-    os.environ["FM1_LAB"] = "1"
-    try:
-        rc, d = inst(good, ("--allow-unidentified-chip",))
-    finally:
-        del os.environ["FM1_LAB"]
-    check("lab override with FM1_LAB=1: runs (harness only)", rc == 0 and d.upgrades >= 1)
+    check("FM1_LAB=1 changes nothing: the flags are gone and no frame is sent",
+          rc == 2 and d.upgrades == 0 and rc2 == 2 and d2.upgrades == 0)
 
     d6 = T.FakeFM1(image, identity="ota-" + product, name="Felucca Update", after_write=product)
     up6 = I.Updater(d6)

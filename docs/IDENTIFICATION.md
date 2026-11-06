@@ -78,10 +78,13 @@ latest identification, and any failed re-identification clears it.
 | another model | identity check | refused before any query is sent |
 
 **The first install of a package that carries `0x12` cannot use `0x12`,** because the firmware
-answering is the old one. The only paths are: (a) an external reader whose output the installer
-trusts as evidence for this unit, or (b) the lab override (`FM1_LAB=1`). The lab override is
-not a production path: a JEDEC id typed by a person is not evidence, and
-`--jedec` now needs `FM1_LAB=1` and is documented as lab-only.
+answering is the old one. And that is the end of it now: a typed JEDEC is not evidence, so `--jedec`,
+`--allow-unidentified-chip` and `FM1_LAB` were removed and the installer has no way to accept a chip it
+did not read. So **a stock V15 unit cannot be installed by this installer at all**, and that is the
+honest answer rather than a missing flag: on stock there is no `0x12` to read. The first install is a
+different operation with a different tool: a verified backup, then M-Flasher installing the package as a
+firmware image (it checks the model, the chip key and the app CRCs itself, and writes the app area only),
+and from then on this installer is what updates QG-1 to QG-1. See docs/M-FLASHER.md §6.
 
 ## Cost
 

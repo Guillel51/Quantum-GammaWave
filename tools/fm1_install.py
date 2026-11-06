@@ -27,9 +27,11 @@ install finishes the write. Needs mido with python-rtmidi.
      against tools/fm1_keys.json (public keys only). Nothing is trusted while
      that file has no key.
 
-A JEDEC id typed by hand (--jedec) and --allow-unidentified-chip are LAB
-overrides: both need FM1_LAB=1 and neither exists in the web installer. The
-SHA-256 on its own is integrity, not authenticity.
+There is no override, no environment variable and no flag that supplies
+either: --jedec, --allow-unidentified-chip and FM1_LAB were removed, because a
+JEDEC typed by hand is not evidence of the chip in the unit and a package
+without a signature is not authentic. The SHA-256 on its own is integrity, not
+authenticity.
 
 Exit codes: 0 done, 1 cancelled or other error, 2 bad arguments or package,
 3 FM-1 not found, 4 connection lost or the device stopped, 5 timeout (no
@@ -347,22 +349,24 @@ class Updater:
         identify (its code is unchanged), so this must happen before step 1, and the
         evidence is only good for the install that follows on the same port."""
         if dev.id.loader:
-            raise InstallError("chip", "the FM-1 is already in update mode, so it cannot identify its NOR. "
-                                       "An install cut off in the middle can only be finished with the lab "
-                                       "override (FM1_LAB=1), which is not a normal path")
+            # The loader cannot answer 0x12, and this installer does not write without it: there is no
+            # flag that supplies a chip. An install cut off in the middle is finished by restoring the
+            # backup with M-Flasher (docs/M-FLASHER.md), which writes the whole part it just read.
+            raise InstallError("chip", "the FM-1 is already in update mode, so it cannot identify its NOR and this "
+                                       "installer does not write without that. Restore your backup with "
+                                       "M-Flasher (docs/M-FLASHER.md), then install again from a running unit")
         try:
             ev = PROBE.probe(dev.link)
         except PROBE.ProbeError as e:
             raise InstallError("chip", f"the NOR could not be identified ({e.code}: {e}). "
                                        f"The update was not started: nothing was sent")
-        ev["lab"] = False
         return ev
 
     def gate(self, dev, product, evidence):
         """The physical NOR must be identified for THIS unit before a frame that can write is sent."""
         ev = evidence or {}
         try:
-            GATE.require(product, dev.id.text, jedec=ev.get("jedec"), lab=bool(ev.get("lab")))
+            GATE.require(product, dev.id.text, jedec=ev.get("jedec"))
         except GATE.Refusal as e:
             code = "model" if e.code == "model" else "chip"
             raise InstallError(code, f"{e.reason}: {e.detail}. The update was not started: nothing was sent")
@@ -518,33 +522,12 @@ class Progress:
             self.line = False
 
 
-def evidence_of(a):
-    """-> a lab override (both flags need FM1_LAB=1). Without one, the caller must probe with 0x12:
-    a JEDEC id typed by hand is not evidence of the chip on this unit."""
-    lab = os.environ.get("FM1_LAB") == "1"
-    if a.allow_unidentified_chip or a.jedec:
-        if not lab:
-            raise InstallError("usage", "--jedec and --allow-unidentified-chip are lab overrides and need "
-                                        "FM1_LAB=1 in the environment. A JEDEC id typed by hand is not "
-                                        "evidence of the chip in the unit; the installer reads it with 0x12")
-        if a.jedec:
-            try:
-                return {"jedec": int(a.jedec, 16), "lab": True}
-            except ValueError:
-                raise InstallError("usage", f"--jedec {a.jedec!r} is not a hexadecimal id (e.g. 856014)")
-        return {"lab": True}
-    return None
-
-
 def signed_of(a, raw, product, firmware):
-    """-> the verified manifest (or None for a lab run without one). No key pinned, no install."""
+    """-> the verified manifest. No key pinned, no install, and no environment variable changes that."""
     path = a.manifest or (a.package + ".manifest.json")
     if not os.path.exists(path):
-        if os.environ.get("FM1_LAB") != "1":
-            raise InstallError("badpkg", f"no signed manifest at {path}. A package is installed only with "
-                                          f"its Ed25519 manifest (fm1_sign.py); FM1_LAB=1 skips it in the lab")
-        print("warning: no signed manifest: this is a lab install", file=sys.stderr)
-        return None
+        raise InstallError("badpkg", f"no signed manifest at {path}. A package is installed only with "
+                                      f"its Ed25519 manifest (fm1_sign.py); there is no override")
     try:
         with open(path, encoding="utf-8") as f:
             man = json.load(f)
@@ -568,7 +551,6 @@ def run(a, backend, out, ask):
         mode = "update loader (update not finished)" if dev.id.loader else "running"
         print(f"{dev.id.text}  [{mode}]  port: {dev.name}", file=out)
         return 0
-    evidence = evidence_of(a)
     product, image, got = load_package(a.package, a.sha256)
     with open(a.package, "rb") as f:
         raw_package = f.read()
@@ -582,23 +564,22 @@ def run(a, backend, out, ask):
     if model_of(dev.id.text) != model_of(product):      # before the probe: never interrogate other gear
         dev.link.close()
         raise InstallError("model", f"the device is {dev.id.text}, the package is for {product}")
-    if not (evidence or {}).get("lab"):
-        evidence = up.probe(dev)
-        print("chip:    JEDEC %06X %s, %d KiB, page %d, sector %d, block %d (two readings, session %08X)"
-              % (evidence["jedec"], evidence["part"], evidence["cap"] // 1024, evidence["page"],
-                 evidence["sector"], evidence["block"], evidence["session"]), file=out)
+    # Always read the part on this unit: there is no flag that sets the chip, so the JEDEC below is
+    # what the silicon answered, twice, in this session.
+    evidence = up.probe(dev)
+    print("chip:    JEDEC %06X %s, %d KiB, page %d, sector %d, block %d (two readings, session %08X)"
+          % (evidence["jedec"], evidence["part"], evidence["cap"] // 1024, evidence["page"],
+             evidence["sector"], evidence["block"], evidence["session"]), file=out)
     signed = signed_of(a, raw_package, model_of(product), dev.id.version)
     if a.verify_only:
         dev.link.close()
         if model_of(dev.id.text) != model_of(product):
             raise InstallError("model", f"the device is {dev.id.text}, the package is for {product}")
-        d = GATE.authorise(product, dev.id.text, jedec=(evidence or {}).get("jedec"),
-                           lab=bool((evidence or {}).get("lab")))
+        d = GATE.authorise(product, dev.id.text, jedec=evidence["jedec"])
         print("preflight: " + ("allowed" if d["allowed"] else f"blocked ({d['reason']})") +
               (f" - {d['detail']}" if d["detail"] else ""), file=out)
         same = dev.id.text.removeprefix("ota-") == product
-        print("signed:  " + (f"{signed['version']} key {signed['keyid']}" if signed else
-              "none (lab override)"), file=out)
+        print(f"signed:  {signed['version']} key {signed['keyid']}", file=out)
         print("verify:  the package can be installed on this FM-1" + (" (same identity: a reinstall or another version)"
               if same else "") + "; nothing was written", file=out)
         return 0
@@ -630,12 +611,8 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     ap.add_argument("--yes", action="store_true", help="do not ask for confirmation")
     ap.add_argument("--sha256", metavar="HEX", help="the package's expected SHA-256 (required; else PACKAGE.sha256 / SHA256SUMS)")
     ap.add_argument("--verify-only", action="store_true", help="check the package and the connected FM-1, write nothing")
-    ap.add_argument("--jedec", metavar="HEX", help="lab only, needs FM1_LAB=1: a JEDEC id typed by hand "
-                                                  "(e.g. 856014). Not evidence: the installer reads 0x12")
-    ap.add_argument("--allow-unidentified-chip", action="store_true",
-                    help="lab only, needs FM1_LAB=1: install without a chip identification")
     ap.add_argument("--manifest", metavar="FILE", help="signed manifest (default PACKAGE.fwsc.manifest.json); "
-                                                       "without one the install needs FM1_LAB=1")
+                                                       "an install without one is refused")
     ap.add_argument("--keys", metavar="FILE", default=str(SIGN.KEYS), help="pinned Ed25519 public keys")
     a = ap.parse_args(argv)
     if bool(a.info) == bool(a.package):

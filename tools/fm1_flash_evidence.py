@@ -32,9 +32,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
+    import fm1_image as IMG        # decodes the boot/app tables so the image can speak for itself
     import fm1_probe as P          # the one geometry table: JEDEC -> (part, cap, page, sector, block)
 except ImportError:                # imported from the repository root, where tools/ is not on the path
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import fm1_image as IMG
     import fm1_probe as P
 
 FORMAT_IN = "qg1-backup-1"
@@ -107,17 +109,28 @@ def check_bundle(bundle, second=None, out_json=None):
         for want, key in ((1, "capacity"), (2, "page"), (3, "sector"), (4, "block")):
             check("the geometry agrees with the part on %s" % key, dev.get(key) == known[want],
                   "%r vs %r" % (dev.get(key), known[want]))
-    external = man.get("source") == "external-spi"
+    external = man.get("source") in ("external-spi", "mflasher-ram-loader")
     if external:
         prog = man.get("programmer") or {}
-        check("the read came from an external programmer, and the manifest says which",
-              prog.get("type") in ("file", "flashrom")
-              and bool(prog.get("device") or prog.get("path")),
-              prog.get("type"))
-        check("the programmer ran exactly two reads, in order", prog.get("ops") == ["read", "read"],
-              prog.get("ops"))
-        check("the JEDEC was declared, and the manifest says where from",
-              "marking" in str(dev.get("jedec_source") or ""), dev.get("jedec_source"))
+        if man.get("source") == "external-spi":
+            check("the read came from an external programmer, and the manifest says which",
+                  prog.get("type") in ("file", "flashrom")
+                  and bool(prog.get("device") or prog.get("path")),
+                  prog.get("type"))
+            check("the programmer ran exactly two reads, in order", prog.get("ops") == ["read", "read"],
+                  prog.get("ops"))
+            check("the JEDEC was declared, and the manifest says where from",
+                  "marking" in str(dev.get("jedec_source") or ""), dev.get("jedec_source"))
+        else:
+            check("the read came from M-Flasher's RAM loader", prog.get("type") == "mflasher",
+                  prog.get("type"))
+            check("M-Flasher's backup wrote nothing to the flash",
+                  prog.get("flash_writes") == 0, prog.get("flash_writes"))
+            check("the read was checked by a second backup or the chip's CRC32",
+                  prog.get("ops") == ["read", "read"] or bool(man.get("verified_by")),
+                  man.get("verified_by"))
+            check("the JEDEC was read from the chip, and the manifest says so",
+                  "chip" in str(dev.get("jedec_source") or ""), dev.get("jedec_source"))
         if dev.get("part_name_agrees") is False:
             check("the programmer's detected part name agrees with the declared JEDEC", False,
                   man.get("part_name_reported"))
@@ -131,8 +144,11 @@ def check_bundle(bundle, second=None, out_json=None):
         check("the firmware the unit reported is recorded", str(dev.get("firmware") or "") != "",
               dev.get("firmware"))
 
-    # the read itself
-    check("two passes were run", man.get("passes") == 2, man.get("passes"))
+    # the read itself: two reads, or M-Flasher's one read checked against the CRC32 the chip computed
+    chip_verified = (man.get("source") == "mflasher-ram-loader"
+                     and "chip's own CRC32" in str(man.get("verified_by") or ""))
+    check("two passes were run, or the chip's own CRC32 agreed with the one read",
+          man.get("passes") == 2 or (man.get("passes") == 1 and chip_verified), man.get("passes"))
     check("the result is complete", man.get("status") == "complete", man.get("status"))
     check("no range was left unread", not man.get("unread_ranges"), man.get("unread_ranges"))
     check("no read error is recorded", not man.get("errors"), len(man.get("errors") or []))
@@ -163,6 +179,25 @@ def check_bundle(bundle, second=None, out_json=None):
             check("the .sha256 sidecar names this image and this hash",
                   len(first) == 2 and first[0] == real and first[1] == a_path.name,
                   " ".join(first[:2]))
+        if external:
+            # The structure has to agree with the manifest: a JSON is not evidence by itself.
+            try:
+                info = IMG.analyse(a_path.read_bytes())
+            except IMG.ImageError as e:
+                # not every readable part is a JieLi-structured one (a bare programmer read of a
+                # blank part, say): then the identity still has to be in the bytes somewhere.
+                check("the image's JieLi structures decode, or its identity is in its bytes",
+                      str(dev.get("identity") or "").encode() in a_path.read_bytes(),
+                      "%s: %s" % (e.code, e))
+            else:
+                check("the image's JieLi structures decode", True)
+                check("the image's firmware verifies (app.bin and its CRC16)",
+                      info["app_status"] == "ok", info["app_status"])
+                check("the image decodes to the identity the manifest names",
+                      info["identity"] == dev.get("identity"),
+                      "%r vs %r" % (info["identity"], dev.get("identity")))
+                check("the image declares the FM-1 flash layout", info["fm1_layout"],
+                      info["layout_evidence"])
     b_name = files.get("pass_b")
     if b_name:
         b_path = base / b_name
@@ -180,7 +215,7 @@ def check_bundle(bundle, second=None, out_json=None):
     known = isinstance(cmds, list) and all(isinstance(c, int) for c in cmds)
     check("the frame log is a list of command bytes", known, type(cmds).__name__)
     if known and external:
-        check("an external read sent no frames at all", cmds == [] and man.get("frames") in (0, None)
+        check("a non-MIDI read sent no frames at all", cmds == [] and man.get("frames") in (0, None)
               and (man.get("commands_sent") == []), (len(cmds), man.get("frames")))
     elif known:
         extra = sorted({c for c in cmds if c not in READ_ONLY})

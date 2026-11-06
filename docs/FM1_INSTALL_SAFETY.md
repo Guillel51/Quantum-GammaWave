@@ -51,12 +51,12 @@ antes de enviar `UPGRADE`**, no al abrir la aplicación:
   solo frame. `resume` no tiene camino alternativo: comparte `write`.
 - Web: `install()`, `write()` y `resume()` llaman a `requireChip(evidence)` antes de tocar WebMIDI.
   Ningún parámetro de URL puede aportar la evidencia.
-- Evidencia aceptada: `--jedec 856014` / `{jedec: 0x856014}`, es decir el ID leído **en esa unidad** con
-  un lector externo (alternativa D), y sólo si está en la allowlist documentada. `0xFFFFFF`, `0`,
-  `0xFFFFFFFF` y cualquier valor fuera de la lista se rechazan.
-- Override de laboratorio: exige `--allow-unidentified-chip` **y** `FM1_LAB=1` en el entorno; sin la
-  variable es un error de uso (exit 2) y no se envía nada. No existe en la ruta web ni en el sitio
-  publicado.
+- Evidencia aceptada: sólo el `0x12` leído por el instalador **en esa unidad**, dos veces, en la misma
+  sesión, y sólo si el ID está en la allowlist de escritura. `0xFFFFFF`, `0`, `0xFFFFFFFF`, `0xB36014`
+  (legible, sin escritura validada) y cualquier valor fuera de la lista se rechazan.
+- **No hay override.** `--jedec`, `--allow-unidentified-chip` y `FM1_LAB` se retiraron de `fm1_install.py`,
+  `fm1_preflight.py` y `fm1_gate.py`: un ID escrito a mano no es evidencia y ninguna variable de entorno
+  cambia la política. La ruta web nunca los tuvo.
 
 Pruebas que lo demuestran, contando los frames del dispositivo simulado (`upgrades`/`served`):
 `tests/preflight_test.py` (instalador sin evidencia, JEDEC desconocido, override sin variable,
@@ -71,11 +71,12 @@ Pruebas que lo demuestran, contando los frames del dispositivo simulado (`upgrad
 - paquete ilegible, demasiado grande, identidad inválida o sin loader ⇒ rechazo (exit 2);
 - dispositivo ausente ⇒ rechazo (exit 3);
 - modelo distinto ⇒ rechazo (exit 6);
-- **chip no identificado ⇒ NO-GO (exit 7)**, que es el caso normal hoy;
-- `--allow-unidentified-chip` existe sólo para un banco de laboratorio y **no escribe nada**.
+- **chip no identificado ⇒ NO-GO (exit 7)**, que es el caso normal en una unidad stock;
+- no hay bandera ni variable que lo convierta en GO: `--allow-unidentified-chip` se retiró junto con
+  `--jedec` y `FM1_LAB`, y el preflight usa exactamente la misma lectura y la misma decisión.
 
-El override se llama por su nombre para que quede en el registro; no hay un camino silencioso que
-convierta “no sé qué chip es” en “adelante”.
+El preflight no es un segundo criterio: llama a `GATE.authorise`, igual que el instalador, así que no
+puede decir “adelante” donde el instalador diría que no, ni al revés.
 
 El diseño concreto de los comandos que lo desbloquean (formato, validación, compatibilidad y
 transición) está en `docs/JEDEC_BACKUP_SIGNING_PROPOSAL.md`. CI ejecuta las pruebas de la puerta en las
@@ -194,10 +195,12 @@ Estado: **IMPLEMENTED, HOST TESTED, TARGET COMPILED.** Nada de esto se probó en
 Reglas nuevas, sin excepciones en la ruta de producción:
 
 1. Escribir exige `0x12` de **esta** unidad, leído por el instalador, dos veces, coincidente.
-2. Un JEDEC escrito a mano (`--jedec`) y `--allow-unidentified-chip` son de laboratorio y exigen `FM1_LAB=1`.
+2. Un JEDEC escrito a mano no es evidencia: `--jedec` y `--allow-unidentified-chip` ya no existen, y
+   `FM1_LAB` no cambia nada. El preflight usa la misma lectura y la misma decisión (`GATE.authorise`).
 3. Escribir exige un manifiesto firmado que verifique contra las claves públicas fijadas; sin clave fijada,
-   todo se rechaza.
-4. Un FM-1 en modo update (instalación cortada) **no puede identificarse**: se rechaza con exit 7. Terminar una
-   instalación cortada requiere el override de laboratorio. Es una limitación declarada, no un fallo silencioso.
+   todo se rechaza, y no hay variable que lo salte.
+4. Un FM-1 en modo update (instalación cortada) **no puede identificarse**: se rechaza con exit 7. Se sale de
+   ahí restaurando el backup con M-Flasher (docs/M-FLASHER.md), que escribe la parte entera que acaba de leer, y
+   volviendo a instalar desde una unidad arrancada.
 5. El loader no cambia: `FELUCCA_LOADER=1` excluye el código de consulta, y el CRC/tamaño del loader siguen
    siendo los mismos.

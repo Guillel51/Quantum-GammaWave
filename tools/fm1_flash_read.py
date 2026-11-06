@@ -17,9 +17,11 @@ What it will not do: write, erase, program, set a status register, or run flashr
 
 The JEDEC is *declared* from the part's marking, because a generic programmer reads the silicon but
 does not run the vendor's 0x9F identification; the manifest says so (`jedec_source`). The identity is
-not declared: it is searched in the image (the vendor firmware stores `FM-1_0NN`), and an identity the
-owner states must be found there or the read is refused. A manifest with no identity found is still
-written, and tools/fm1_restore.py refuses it: an archive nobody can tie to a unit is not restorable.
+not declared: it is decoded out of the image (the stock firmware keeps `FM-1_0NN` encrypted inside
+app.bin, so a plain search finds nothing on a real unit -- tools/fm1_image.py decodes the app area),
+and an identity the owner states must be found there or the read is refused. A manifest with no
+identity found is still written, and tools/fm1_restore.py refuses it: an archive nobody can tie to a
+unit is not restorable.
 """
 import argparse
 import hashlib
@@ -34,9 +36,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 try:
+    import fm1_image as IMG
     import fm1_probe as P
 except ImportError:                # imported from the repository root, where tools/ is not on the path
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import fm1_image as IMG
     import fm1_probe as P
 
 TOOL = "fm1_flash_read 1.0"
@@ -117,18 +121,31 @@ def build_manifest(a, b, facts, ops, jedec, identity_want):
         raise ReadError("chip", "0x%06X is not a part this project documents (%s)"
                         % (jedec, ", ".join("0x%06X" % k for k in P.PARTS)))
     part, cap, page, sector, block = P.PARTS[jedec]
-    hits = scan_identity(a)
+    hits = scan_identity(a)                 # plain occurrences, for the record
+    decoded, why = "", ""
+    try:
+        info = IMG.analyse(a)
+    except IMG.ImageError as e:
+        why = str(e)
+    else:
+        decoded = info["identity"]
+        if info["app_status"] != "ok":
+            why = "the firmware in the image does not verify (%s)" % info["app_status"]
     if identity_want:
-        if identity_want not in hits:
-            raise ReadError("identity", "%s does not appear in the image (found: %s). A read that does "
-                                        "not contain the identity on the label is not this unit's, so "
-                                        "nothing was written."
-                            % (identity_want, ", ".join(sorted(hits)) or "none"))
+        if identity_want not in (decoded, *hits):
+            raise ReadError("identity", "%s does not appear in the image (decoded: %s; found in the "
+                                        "bytes: %s). A read that does not contain the identity on the "
+                                        "label is not this unit's, so nothing was written."
+                            % (identity_want, decoded or "none", ", ".join(sorted(hits)) or "none"))
         identity = identity_want
+    elif decoded:
+        identity = decoded
     elif len(hits) == 1:
         identity = next(iter(hits))
     else:
         identity = ""                        # none, or several: not a fact this tool may pick
+    if not identity and why:
+        print("note: %s" % why, file=sys.stderr)
     same = bool(a) and a == b
     if not a:
         status = "unverifiable"
@@ -148,7 +165,9 @@ def build_manifest(a, b, facts, ops, jedec, identity_want):
         "programmer": dict(facts, ops=ops),
         "device": {
             "identity": identity,
-            "identity_source": "searched in the image (FM-1_0NN)" if identity else "not found in the image",
+            "identity_source": ("decoded from app.bin in the image" if decoded else
+                                "searched in the image bytes (FM-1_0NN)" if identity else
+                                "not found in the image"),
             "product": "FM-1",
             "firmware": "",
             "jedec": "0x%06X" % jedec,
