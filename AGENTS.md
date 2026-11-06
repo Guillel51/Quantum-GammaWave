@@ -48,7 +48,7 @@ This generates in `build/gen/`:
   ```
 
 ### Browser Emulator (WebAssembly)
-- Requires `emcc` (Emscripten v3.1.50+ or v6.0.11):
+- Requires `emcc` (Emscripten v6.0.11, the version CI installs and the WASM is built with):
   ```bash
   sh web/emu/build.sh
   ```

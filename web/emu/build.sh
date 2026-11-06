@@ -12,6 +12,13 @@ set -e
 cd "$(dirname "$0")/../.."
 [ -f build/gen/felucca_tables.h ] || { echo "emu: run ./build.sh once first (build/gen)"; exit 1; }
 command -v emcc >/dev/null 2>&1 || { echo "emu: no emcc (Emscripten)"; exit 1; }
+# One version everywhere: .github/workflows/target.yml installs EMU_EMCC and docs/BUILD_AC791N.md
+# documents it. Another compiler usually still works, so this warns instead of refusing, but the
+# parity check compares bit for bit and a silent version drift is what makes it hard to trust.
+EMU_EMCC="${EMU_EMCC:-6.0.11}"
+have="$(emcc --version 2>/dev/null | sed -n '1s/.*) \([0-9][0-9.]*\).*/\1/p')"
+[ -n "$have" ] && [ "$have" != "$EMU_EMCC" ] && \
+    echo "emu: emcc $have, the pinned version is $EMU_EMCC (docs/BUILD_AC791N.md)"
 VERSION=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c)
 mkdir -p build/emu/fonts
 # shellcheck disable=SC2086

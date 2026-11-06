@@ -169,7 +169,7 @@ jobs:
           node-version: "20"
       - uses: mymindstorm/setup-emsdk@v14
         with:
-          version: "3.1.50"              # the version the WASM in the tree was built with
+          version: "6.0.11"              # pinned in one place: docs/BUILD_AC791N.md and web/emu/build.sh warn on another
       - name: toolchain cache (keyed by the pinned archive hash)
         if: vars.JIELI_TOOLCHAIN_SHA256 != ''
         uses: actions/cache@v4

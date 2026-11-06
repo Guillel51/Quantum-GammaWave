@@ -7,7 +7,7 @@ executed against a real AC791N build, `[WASM]` executed in Node against the Emsc
 
 Environment: Linux x86-64, gcc 13 (`cc`), Python 3 (Pillow/fontTools/numpy), Node 20,
 **JieLi pi32v2 toolchain `jieli-linux-toolchains-20260730.1`**, **AC79 SDK
-`AC79NN_SDK_V1.2.1_2023-12-13`** (three files match `SDK_SHA256`), **Emscripten 3.1.50**.
+`AC79NN_SDK_V1.2.1_2023-12-13`** (three files match `SDK_SHA256`), **Emscripten 6.0.11** (the emulator workflow installs the same version).
 No FM-1, no MIDI hardware, no browser automation.
 
 ## 1. Integration
