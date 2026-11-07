@@ -21,13 +21,16 @@ import re
 # for a new part means that record, not a datasheet and not another project's allowlist.
 PRODUCTION_JEDEC = {
     0x856014: "Puya P25Q80H (1 MiB)",
+    # docs/JEDEC_COMPATIBILITY.md: the same 1 MiB geometry, page/sector/block sizes, command set
+    # (9F/05/35/06/02/20/D8/03/0B) and status bits as the Puya part, from UCUN's datasheet, and a
+    # third-party FM-1 with this id took a full firmware install and kept settings and projects
+    # across a power cycle. The bootloader column stays false: this project never writes it, and
+    # the one field report of a UCUN unit that did not boot was a bootloader install.
+    0xB36014: "UCUN UC25HQ80 (1 MiB)",
 }
-# Identified and readable, never written on an FM-1 here. The community m-bootloader
-# notes a UCUN UC25HQ80 unit that did not boot after its bootloader was installed, so
-# this id is not trusted with a write until a lab unit proves it.
-READ_ONLY_JEDEC = {
-    0xB36014: "UCUN UC25HQ80 (1 MiB): readable, not validated for writing on an FM-1",
-}
+# Identified and readable, never written here. Empty today: the two documented parts are both
+# writable, and anything else is refused as unknown rather than listed here.
+READ_ONLY_JEDEC = {}
 KNOWN_JEDEC = {**PRODUCTION_JEDEC, **READ_ONLY_JEDEC}
 MAX_PACKAGE = 0x100000        # the part is 1 MiB; the image is the whole flash
 
@@ -38,10 +41,12 @@ CAPABILITIES = {
     0x856014: {"part": "Puya P25Q80H", "read": True, "backup": True, "write_app": True,
                "bootloader": True, "qg_install": True,
                "basis": "documented OEM part; the write path is the one every test in this repo drives"},
-    0xB36014: {"part": "UCUN UC25HQ80", "read": True, "backup": True, "write_app": False,
-               "bootloader": False, "qg_install": False,
-               "basis": "readable and backed up in the field; no QG-1 write validated, and m-bootloader "
-                        "has a report of a UCUN unit that did not boot"},
+    0xB36014: {"part": "UCUN UC25HQ80", "read": True, "backup": True, "write_app": True,
+               "bootloader": False, "qg_install": True,
+               "basis": "UCUN datasheet: same 1 MiB geometry, 256 B page, 4 KiB sector, 64 KiB block, "
+                        "02/20/D8/05/06/9F commands and WIP/WEL bits; a third-party FM-1 with this id "
+                        "installed a full firmware image and kept settings and a project across a power "
+                        "cycle (Felucca #320). The bootloader is never written by this project"},
 }
 
 

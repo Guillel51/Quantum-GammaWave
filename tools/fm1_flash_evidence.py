@@ -43,7 +43,7 @@ FORMAT_IN = "qg1-backup-1"
 FORMAT_OUT = "qg1-flash-evidence-1"
 READ_ONLY = {0x11, 0x12, 0x13}
 # reading is allowed on both documented parts; writing is only validated on the OEM one
-WRITABLE = {0x856014}
+WRITABLE = {0x856014, 0xB36014}   # docs/JEDEC_COMPATIBILITY.md: both documented 1 MiB parts
 IDENTITY = re.compile(r"^FM-1_0\d\d$")     # a stock unit: the donor the installer may start from
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 

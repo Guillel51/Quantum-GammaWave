@@ -146,14 +146,15 @@ def main():
     ok(code == 0 and "the second read's image is byte-identical to the first" in text,
        "two independent reads that agree verify")
 
-    # 8. a read-only part is a verified read and still not a write authorisation
+    # 8. the UCUN part is a verified read, marked write-capable, and it still authorises nothing:
+    #    the part is not the unit, and no read of it is evidence about this FM-1
     ro = FakeFM1(b"", jedec=0xB36014)
-    ro_dir, ro_man, _, _ = bundle(tmp, "read-ro", ro)
-    rec2 = Path(tmp) / "evidence-ro.json"
+    ro_dir, ro_man, _, _ = bundle(tmp, "read-ucun", ro)
+    rec2 = Path(tmp) / "evidence-ucun.json"
     code, text = run(ro_dir, out_json=rec2)
     doc2 = json.loads(rec2.read_text())
-    ok(code == 0 and doc2["result"]["write_capable_part"] is False and doc2["result"]["authorises_install"] is False,
-       "a read-only part verifies as a read and is marked not write-capable")
+    ok(code == 0 and doc2["result"]["write_capable_part"] is True and doc2["result"]["authorises_install"] is False,
+       "the UCUN part verifies as a read, is marked write-capable, and still authorises nothing")
 
     print("flash evidence: %d checks, %d FAILED" % (8 + 12, failed))
     return 1 if failed else 0

@@ -1633,7 +1633,6 @@ async function updater() {
     ["resume without a context", "version", (up) => up.resume(pkg, null, identity)],
     ["write without a product", "proof", (up) => up.write({ id: { model: "ota-" + identity, text: "ota-" + identity }, link: { send: () => true } }, pkg, null)],
     /* the transport's own identification: these reach the device, so the counters are "no write", not "no frame" */
-    ["a read-only chip", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 3, jedec: 0xB36014 }],
     ["an unknown chip", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, jedec: 0x123456 }],
     ["a chip that never answers 0x12", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, silentNor: true }],
   ];
@@ -1911,13 +1910,17 @@ qg1FeaturesCheck();
   }
 }
 
-// ---- (3.x) one chip policy for CLI and web: the unvalidated part is write-refused --------
+// ---- (3.x) one chip policy for CLI and web: both documented parts, and nothing else --------
 {
   const M = await import("./fm1ota.js");
+  ok(/P25Q80H/.test(M.requireChip({ jedec: 0x856014 })), "web: P25Q80H is a validated write part");
+  ok(/UC25HQ80/.test(M.requireChip({ jedec: 0xB36014 })), "web: UC25HQ80 is a validated write part");
   let code = "";
-  try { M.requireChip({ jedec: 0xB36014 }); } catch (e) { code = e.code + ": " + e.message; }
-  ok(/^chip: .*not validated for writing/.test(code), "web: UCUN 0xB36014 is refused for writing");
-  ok(/P25Q80H/.test(M.requireChip({ jedec: 0x856014 })), "web: P25Q80H is the validated write part");
+  try { M.requireChip({ jedec: 0x123456 }); } catch (e) { code = e.code + ": " + e.message; }
+  ok(/^chip: .*allowlist/.test(code), "web: an undocumented part is refused for writing");
+  code = "";
+  try { M.requireChip({ jedec: 0xFFFFFF }); } catch (e) { code = e.code + ": " + e.message; }
+  ok(/^chip: .*no usable JEDEC/.test(code), "web: a blank JEDEC is refused for writing");
 }
 
 console.log(failed ? `WEB TESTS FAILED (${failed})` : "web tests passed");

@@ -112,16 +112,18 @@ The four questions are different, and this project answers them separately. "Rea
 | JEDEC | Part | Read | Backup (read twice + CRC32) | Write app area | m-bootloader / boot area | QG-1 install through this project's installer |
 | --- | --- | --- | --- | --- | --- | --- |
 | `0x856014` | Puya P25Q80H | yes — documented OEM part | yes | yes | yes (stock bootloader only; m-bootloader is a separate decision) | allowed by `fm1_gate`; still needs a signed package and `0x12` on that unit |
-| `0xB36014` | UCUN UC25HQ80 | yes | yes | done by other projects through the same ROM loader (MvaveFM1Unbricker requires it) | **not validated**: M-Flasher warns, m-bootloader has a report of a UCUN unit that did not boot | **refused** (`chip_read_only`): readable, backed up, not writable by this project yet |
+| `0xB36014` | UCUN UC25HQ80 | yes | yes | done by other projects through the same ROM loader (MvaveFM1Unbricker requires it) | **not written by this project**: the boot area is out of scope on every part | **allowed by `fm1_gate`**: datasheet parity plus a third-party FM-1 that installed a full image and kept its data across a power cycle (docs/JEDEC_COMPATIBILITY.md); still needs a signed package and `0x12` on that unit |
 
 The same table exists in code — `python3 tools/fm1_gate.py` prints it, `fm1_gate.CAPABILITIES` is what
 the installer consults, and `tests/gate_test.py` fails if the two ever disagree.
 
-Rows are promoted by evidence, not by datasheets: a part becomes writable here when a unit with that
-part has been read, backed up, written and read back with a matching CRC32, and the record is in this
-repository. `0xB36014` also has the "newer units locked into a firmware" reports that motivated
-MvaveFM1Unbricker; the ROM loader is how those units are recovered, and that is not the same thing as
-this project having validated a write on one.
+Rows are promoted by evidence, and the full record for `0xB36014` — geometry, command set, the
+polled-timing argument and the third-party install with persistence — is in
+[JEDEC_COMPATIBILITY.md](JEDEC_COMPATIBILITY.md). A part becomes writable when a unit with that part
+has taken a whole image and kept its data; for `0xB36014` that record exists (another project's
+installer, same part, same ROM loader family), and the boot area stays out of scope on every part
+because the one bad field report was a bootloader install. A QG-1 install on that unit is still
+unproven, and the gate keeps asking for this unit's own `0x12` and a signed package.
 
 ## 6. The first install, and why the installer still says no
 

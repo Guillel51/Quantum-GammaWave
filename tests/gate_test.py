@@ -33,8 +33,10 @@ def refused(product, identity, jedec, reason, what):
 
 check("gate: P25Q80H is the validated write part",
       G.check_chip(0x856014)["part"].startswith("Puya"))
-refused("FM-1_982", "FM-1_982", 0xB36014, "chip_read_only",
-        "gate: UCUN 0xB36014 is refused for writing (read-only until a lab unit proves it)")
+check("gate: UCUN 0xB36014 is a write part too (datasheet parity plus a field install)",
+      G.check_chip(0xB36014)["part"].startswith("UCUN"))
+check("gate: the bootloader is never a write target, on either part",
+      G.capabilities(0x856014)["bootloader"] is True and G.capabilities(0xB36014)["bootloader"] is False)
 refused("FM-1_982", "FM-1_982", 0x123456, "chip_unknown", "gate: an unknown JEDEC is refused")
 refused("FM-1_982", "FM-1_982", None, "chip_not_identified", "gate: no evidence is refused")
 refused("FM-1_982", "FM-1_982", 0xFFFFFF, "chip_not_identified", "gate: a blank answer is refused")
@@ -45,11 +47,11 @@ refused("FM-1_982", "FM-1_982", 0x1000000, "chip_unknown",
         "gate: an id wider than the JEDEC field is refused")
 
 d = G.authorise("FM-1_982", "FM-1_982", 0xB36014)
-check("gate: authorise() reports chip_read_only without raising",
-      d["allowed"] is False and d["reason"] == "chip_read_only" and d["chip"] is None)
-d = G.authorise("FM-1_982", "FM-1_982", 0xB36014)
-check("gate: there is no lab override left that turns a readable part into a writable one",
-      d["allowed"] is False and d["code"] == "chip")
+check("gate: authorise() allows the UCUN part for an identified unit",
+      d["allowed"] is True and d["reason"] == "identified" and d["chip"]["jedec"] == "0xB36014")
+d = G.authorise("FM-1_982", "FM-1_982", 0x123456)
+check("gate: there is no lab override, so an unknown part is still refused",
+      d["allowed"] is False and d["code"] == "chip" and d["reason"] == "chip_unknown")
 check("gate: the capability table and the write allowlist are the same decision",
       all(G.capabilities(j)["write_app"] == (j in G.PRODUCTION_JEDEC) for j in G.CAPABILITIES)
       and set(G.CAPABILITIES) == set(G.KNOWN_JEDEC))

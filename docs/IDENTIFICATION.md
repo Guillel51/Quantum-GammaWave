@@ -54,7 +54,8 @@ Reply (body = 24 bytes):
   to fail. A geometry that did not match the part would not survive this.
 - **From the datasheet, keyed by that JEDEC id:** page 256 B, sector 4 KiB, block 64 KiB. The
   table in `firmware/src/ota.c` (`OTA_PARTS`) has exactly two entries, `0x856014` and
-  `0xB36014`; anything else is status 2. These numbers are not measured on the part, and the
+  `0xB36014` (both writable: docs/JEDEC_COMPATIBILITY.md); anything else is status 2. These numbers
+  come from the parts' datasheets, not from a measurement on the unit in front of you, and the
   manifest says so.
 
 ## Session and replay

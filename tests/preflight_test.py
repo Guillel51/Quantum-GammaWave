@@ -74,7 +74,11 @@ def main():
           and rep["gate"]["allowed"] is True)
 
     rc, out = run(good, T.FakeFM1(image, identity=product, name="Felucca", jedec=0xB36014))
-    check("a readable part that may not be written is a NO-GO here too",
+    check("the UCUN part passes the same preflight as the Puya one",
+          rc == 0 and "0xB36014" in out and "ready" in out)
+
+    rc, out = run(good, T.FakeFM1(image, identity=product, name="Felucca", jedec=0x123456))
+    check("an undocumented part stays a NO-GO with its reason",
           rc == P.EXIT["chip"] and "no-go" in out)
 
     rc, out = run(good, T.FakeFM1(image, identity=product, name="Felucca", query_fault="silent"))

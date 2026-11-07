@@ -105,6 +105,18 @@
 - **Presupuesto:** app 558 200 B, paquete `ad2f3d41…`, RAM `.data+.bss` 96 452/98 304 (spare 1 852), RAM code
   22 432/24 576.
 
+## Flash: the UCUN UC25HQ80 (0xB36014) is a write part, with its evidence on the page
+
+- The gate, the web installer and the evidence record now accept both documented 1 MiB parts and
+  refuse anything else. `docs/JEDEC_COMPATIBILITY.md` holds the case: UCUN's datasheet (same geometry,
+  `02`/`20`/`D8`/`05`/`06`/`9F`, WIP/WEL, 3 ms page and 10 ms erase maxima), the firmware's polled
+  `WIP` waits that make those maxima irrelevant, and a third-party FM-1 with this id that installed a
+  full image and then kept settings and a project across a complete power cycle (Felucca #320).
+- The boot area stays out of scope on every part, so the `bootloader` column stays `False` for `0xB36014`.
+- `tests/gate_test.py`, `tests/flash_evidence_test.py`, `tests/preflight_test.py` and
+  `web/test_web.mjs` cover both ids, the unknown id and the blank answer, and fail if the three policy
+  copies drift apart.
+
 ## Gate de transporte: el chip lo identifica el transporte, la versión es obligatoria
 
 - `requireProof()` ya no acepta `evidence`: el chip se identifica con dos `0x12` en el enlace real

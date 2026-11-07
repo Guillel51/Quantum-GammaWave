@@ -52,8 +52,9 @@ antes de enviar `UPGRADE`**, no al abrir la aplicación:
 - Web: `install()`, `write()` y `resume()` llaman a `requireChip(evidence)` antes de tocar WebMIDI.
   Ningún parámetro de URL puede aportar la evidencia.
 - Evidencia aceptada: sólo el `0x12` leído por el instalador **en esa unidad**, dos veces, en la misma
-  sesión, y sólo si el ID está en la allowlist de escritura. `0xFFFFFF`, `0`, `0xFFFFFFFF`, `0xB36014`
-  (legible, sin escritura validada) y cualquier valor fuera de la lista se rechazan.
+  sesión, y sólo si el ID está en la allowlist de escritura (`0x856014` y `0xB36014`; la evidencia de
+  ambos está en [JEDEC_COMPATIBILITY.md](JEDEC_COMPATIBILITY.md)). `0xFFFFFF`, `0`, `0xFFFFFFFF` y
+  cualquier valor fuera de la lista se rechazan con `chip_unknown`.
 - **No hay override.** `--jedec`, `--allow-unidentified-chip` y `FM1_LAB` se retiraron de `fm1_install.py`,
   `fm1_preflight.py` y `fm1_gate.py`: un ID escrito a mano no es evidencia y ninguna variable de entorno
   cambia la política. La ruta web nunca los tuvo.
@@ -204,3 +205,20 @@ Reglas nuevas, sin excepciones en la ruta de producción:
    volviendo a instalar desde una unidad arrancada.
 5. El loader no cambia: `FELUCCA_LOADER=1` excluye el código de consulta, y el CRC/tamaño del loader siguen
    siendo los mismos.
+
+## Verify Only: dos etapas, y ninguna sustituye a la otra
+
+"Verify Only: 101 comprobaciones, cero escrituras" acredita **sólo** la etapa previa. Son dos:
+
+1. **Pre-install Verify Only** (implementada; `web/test_verify_only.mjs`, 101 checks, cero frames de
+   escritura): identidad del modelo, `0x12` con JEDEC y geometría, evidencia de backup, firma del
+   paquete, compatibilidad del paquete con la unidad y presupuesto de tamaño. Todo lectura; el
+   resultado es "listo" o el motivo exacto del NO-GO, nunca una autorización por sí mismo.
+2. **Post-install Verify** (definida, **no validada físicamente**): versión e identidad instaladas,
+   integridad del firmware, integridad de los objetos persistentes, reinicio completo, guardado y
+   recuperación de un proyecto, ajustes persistentes tras ciclo de alimentación, audio, MIDI, seis
+   pistas y FX, y comprobación de que no se modificó nada fuera de los rangos autorizados. Esta etapa
+   no puede marcarse GO hasta que exista una instalación real y sus resultados.
+
+La revalidación posterior está por tanto **GO CONDITIONAL**: el procedimiento y sus comprobaciones
+existen y se ejecutan contra el emulador y los simuladores, pero la evidencia física es la que falta.
