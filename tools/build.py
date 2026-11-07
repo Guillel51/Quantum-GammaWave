@@ -181,7 +181,11 @@ def build_loader():
 
 # (JIANT 0.6.78) core 0's hottest audio code, run from RAM (app.ld .hot_text, src/core.h FELUCCA_HOTRAM): the mix, the
 # master, the FX layer, the SLICER, and core 0's own copies of a part's mix and the buses (core 1 runs the flash ones)
-HOT_FNS = ("mix_block", "mix_part_m0", "fx_run0", "perf_begin", "perf_pre", "perf_block", "perf_master", "slicer_bus")
+# (3.1) perf_begin left the set: the .ram_text no-call check proves nothing in RAM reaches it, and it
+# costs 700 B of the 2 KiB reserve. Its only caller is the XIP block orchestrator, so flash-off audio
+# never depended on its placement -- the 316 B the reserve was short by came from the FX echo train
+# (2cfe514) landing inside always-inlined fx_run0, and this is the least invasive way back under it.
+HOT_FNS = ("mix_block", "mix_part_m0", "fx_run0", "perf_pre", "perf_block", "perf_master", "slicer_bus")
 
 
 def hot_sections(ir):
