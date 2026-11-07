@@ -7,6 +7,17 @@
 static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
 volatile int32_t fx_vu[6];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses) */
+/* (3.0) the delay's echo train (core.h): the wet return peaked inside each repeat's own window.
+ * No allocation, no division per sample: a countdown walks the window, and the peaks decay once a
+ * block so a train that has finished reads as finished. */
+volatile int32_t fx_dly_rep[6];
+volatile uint8_t fx_dly_gen;
+volatile uint16_t fx_dly_frac;
+static int32_t drp_pk[6];                 /* this train's peaks, 0..32767 */
+static uint32_t drp_left;                 /* samples left in the window being peaked */
+static uint32_t drp_t0;                   /* the write position the train started at */
+static int32_t *drp_cur;                  /* the window's peak (0: the hit itself, nothing peaks) */
+static uint8_t drp_gen;
 static const uint16_t REV_COMB[4] = {1116, 1188, 1277, 1356};
 static const uint16_t REV_AP[2] = {556, 441};
 static int16_t rev_comb[1116 + 1188 + 1277 + 1356] __attribute__((section(".pool")));
@@ -169,6 +180,8 @@ void fx_preset_flush(void)
     memset(rev_u.ap, 0, sizeof rev_u.ap);
     memset(rpre_buf, 0, sizeof rpre_buf);
     fx_vu[0] = fx_vu[1] = fx_vu[2] = fx_vu[3] = fx_vu[4] = fx_vu[5] = 0;
+    {   int32_t k; for (k = 0; k < 6; k++) { fx_dly_rep[k] = 0; drp_pk[k] = 0; }
+        fx_dly_gen = 0; fx_dly_frac = 0; drp_cur = 0; drp_gen = 0; drp_left = 0; drp_t0 = 0; }
 }
 
 /* master: peak limiter in front of the soft clipper. Fast attack (~0.1 ms),
@@ -1659,6 +1672,16 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         fxg_quiet = any ? 0u : fxg_quiet < 0xFFFFFFu ? fxg_quiet + 1u : fxg_quiet;
     }                                                   /* (0.6.19: it opens over ~6 ms, fx_gate: at once, the
                                                          * residue in the lines stepped in: a tick on the next note) */
+    /* (3.0) a transient at the delay's send starts a train: repeat 1 is heard one delay time
+     * later, and each window that follows peaks what the line really returns in it. A hit within
+     * half a period of the last one is the same train (fast notes keep echoing, they do not
+     * strobe the page), and the windows simply carry on. */
+    if (vin1 > 400 && (!drp_cur || (uint32_t)(fx.dly_w - drp_t0) > dl / 2u)) {
+        int32_t k;
+        for (k = 0; k < 6; k++) drp_pk[k] = 0;
+        drp_t0 = fx.dly_w; drp_gen = 0; drp_cur = 0;
+        drp_left = dl ? dl : 1u;
+    }
     int32_t fb = dly_fb(song.g[G_DFDBK]), tn = song.g[G_DCOLOR] - 64;   /* (JIANT 0.4) TONE: one knob, low-pass .. open .. low cut */
     int32_t wm, dwm, dig = song.g[G_DTYPE] == 1;        /* (0.6.89: TONE in the middle: each repeat the very copy) */
     tone_t dtn, rtn;
@@ -1805,6 +1828,23 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         }
         fx.dly_w++;
         dlout = mulq15(x * 2, fx.dm_cur);
+        /* (3.0) the echo train: the window is walked by the line's own sample clock, not by the
+         * signal, so a quiet pass still moves the train on (with FEEDBK 0 the first echo has to
+         * land in repeat 1 even though nothing at all precedes it) */
+        if (drp_left && !--drp_left) {
+            if (drp_gen >= 6) {                         /* six repeats shown: the train is over */
+                drp_cur = 0;
+                drp_left = 0;
+            } else {
+                drp_left = dl ? dl : 1u;
+                drp_gen++;
+                drp_cur = &drp_pk[drp_gen - 1];
+            }
+        }
+        if (drp_cur) {
+            int32_t ad = dlout < 0 ? -dlout : dlout;
+            if (ad > *drp_cur) *drp_cur = ad;
+        }
         y += dlout;
         wet[i] = y;
         { int32_t a = dlout < 0 ? -dlout : dlout; if (a > dlpk) dlpk = a; }
@@ -1814,6 +1854,20 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             fx_sl[i] += side;
             fx_sr[i] -= side;
         }
+    }
+    {   /* (3.0) publish the train. While it runs the six peaks are what came back, held, so a long
+         * TIME still shows all the repeats it has produced; once the sixth window has closed they
+         * fade (0.8 % a block, ~90 ms to half) until the page goes quiet -- a repeat that has died
+         * reads as gone instead of staying lit. fx_dly_frac is how far the current window has come. */
+        int32_t k;
+        for (k = 0; k < 6; k++) {
+            if (!drp_cur && drp_pk[k] > 0)
+                drp_pk[k] -= (drp_pk[k] >> 7) + 1;      /* to zero, not to 255: a shift alone stalls */
+
+            fx_dly_rep[k] = drp_pk[k];
+        }
+        fx_dly_gen = (uint8_t)(drp_cur ? drp_gen : 0);
+        fx_dly_frac = dl ? (uint16_t)(((dl - drp_left) << 8) / dl) : 0;
     }
     rt = (uint32_t)song.g[G_RTYPE] <= 4u ? song.g[G_RTYPE] : 0;
     rt = REV_LITE[sys_load % 3u][rt];                   /* (0.6.29) LOAD LITE: SHIMMER, CLOUD as ROOM, RESO as SPRING; ECO:

@@ -105,52 +105,53 @@ static void tech_dist(const track_t *t)
     }
 }
 
-/* DLY: the echoes, as the bus really produces them. Six repeats, their height from MIX and FDBK as
- * before, but the picture is now driven by the delay's own traffic (fx.c fx_vu[1] = what the bus
- * receives, fx_vu[4] = what it returns):
- *   - the tap whose repeat is sounding right now (the time since the last loud send, in units of TIME)
- *     is lit, so the picture shows the rhythm of the repeats instead of a fixed comb;
- *   - every bar breathes with the real return level (a 1 px bob, its depth from the level itself): the
- *     animation stops the moment the bus is silent, because its only source is the audio it carries;
- *   - the rounds fall by FDBK as the DSP does, so a long feedback keeps bouncing and a short one lands.
- * Nothing here feeds the DSP: it reads fx_vu, delay_samples() and song.g the same frame the buses write
- * them. */
+/* DLY: the echo train, as the bus really produces it. Six windows one delay time apart, each holding
+ * the peak the delay line returned inside it (fx.c fx_dly_rep: repeat 1 .. 6 of the last hit);
+ * fx_dly_gen is the repeat sounding now and fx_dly_frac how far into it the line has come.
+ * It is not a level meter and it is not inferred from the mix level: a hit starts the train, repeat
+ * n appears in window n whether or not anything else is playing, a repeat that came back softer
+ * shows a shorter bar, and with no echoes there are no bars at all. Nothing here feeds the DSP: it
+ * reads three published numbers and song.g the frame the buses write them. */
+static int32_t dly_bh(int32_t pk, int32_t h)      /* 0..32767 -> 0..h, 6 dB a step: a train falls by
+                                                   * FEEDBK, and a linear bar would hide that */
+{
+    int32_t b = 0;
+    if (pk < 32)
+        return 0;
+    while (pk > 63) {                             /* 10 steps of an octave, then full */
+        pk >>= 1;
+        b++;
+    }
+    return clamp((h * (b + 1)) / 10, 2, h);
+}
 static void tech_dly(void)
 {
-    int32_t time = (int32_t)delay_samples(), mix = song.g[G_DMIX], fb = song.g[G_DFDBK], amp = mix * 1000 / 127, n;
-    int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, base = TK_Y1 - 4, h = 88, tone = song.g[G_DCOLOR] - 64;
-    int32_t in = clamp(fx_vu[1], 0, 7000), wet = clamp(fx_vu[4], 0, 7000);   /* the bus's real input and return */
-    static uint32_t hit_ms;                            /* when it last received a loud send */
-    static int32_t hit_amp;
-    int32_t now_tap = -1;
-    if (in > 600 && (int32_t)(fm1_ms - hit_ms) > 8) {  /* a new hit: the first repeat starts here */
-        hit_ms = fm1_ms;
-        hit_amp = in;
-    }
-    if (time > 0 && hit_amp > 600 && (int32_t)(fm1_ms - hit_ms) < time * 7)
-        now_tap = (int32_t)((fm1_ms - hit_ms) / (uint32_t)time);   /* 0..6: which repeat is out now */
+    int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, base = TK_Y1 - 4, h = 84, n;
+    int32_t gen = (int32_t)fx_dly_gen, frac = (int32_t)fx_dly_frac, on = song.g[G_DMIX] > 0;
     tk_axes(x0, TK_Y0, x0 + w, base);
-    cv_rect(x0, base - h, 3, h, T_TEXT);                /* the dry hit */
-    for (n = 1; n <= 6 && amp > 4; n++) {
-        int32_t x = x0 + n * w / 7, bh = amp * h / 1000;
-        int32_t heat = clamp(60 + amp * 180 / 1000 + tone * n, 8, 250);   /* (the tone: each repeat warmer / colder) */
-        int lit = n - 1 == now_tap, k, bob = 0;
-        if (wet > 2 && lit) {                          /* the repeat sounding: a 1..3 px bounce, from the level */
-            int32_t d = 1 + wet * 2 / 7000;
-            for (k = 0; k < d; k++)
-                cv_rect(x - 3 - k / 2, base - bh - 2 - k, 6 + k, 1, heat_col(heat));
-        } else if (wet > 2) {                          /* the others, still ringing: a quiet shimmer, level-scaled */
-            bob = (int32_t)((bg_sin((uint32_t)(n * 4096) + ui.frame * 1600u) * (wet * 2)) >> 15);
-            bob = clamp(bob, -2, 2);
-            bh += bob;
-        }
-        cv_rect(x - 2, base - bh, 4, bh, lit ? T_ACCENT : heat_col(heat));
-        amp = amp * (fb > 100 ? 100 : fb) / 100;        /* (past 100: it grows, held at the top here) */
-        if (fb > 100) amp = 1000;
+    cv_rect(x0, base - h, 1, h, T_RAISE);         /* the hit the train starts from */
+    cv_rect(x0 - 1, base - h, 3, 1, T_MID);
+    for (n = 0; n < 6; n++) {
+        int32_t pk = clamp((int32_t)fx_dly_rep[n], 0, 32767);
+        int32_t x = x0 + (n + 1) * w / 7, bh = dly_bh(pk, h), lit = gen == n + 1;
+        cv_rect(x - 3, base - 1, 7, 1, T_RAISE);                     /* the seat: six slots, always */
+        if (!on || !bh)
+            continue;                                                /* no repeat, no bar */
+        /* one hue for the whole train, its strength from the peak: this is an echo train, not a
+         * level meter, and a rainbow of bars read as one */
+        cv_rect(x - 2, base - bh, 5, bh, lit ? T_TEXT : ux_mix(T_BG, T_ACCENT, 60 + pk * 110 / 32767));
+        if (lit) {                                                   /* the repeat sounding now */
+            cv_rect(x - 3, base - bh - 2, 7, 1, T_ACCENT);
+            cv_rect(x - 3, base - 1, 7, 1, T_ACCENT);
+        } else if (bh > 5)
+            cv_rect(x - 2, base - bh, 5, 1, T_MID);                   /* a top edge, so the fall reads */
     }
-    if (song.playing && time > 0) {                     /* the playhead: where the echo period is now */
-        int32_t x = x0 + (int32_t)((ms_clock % (uint32_t)(time * 7)) * (uint32_t)w / (uint32_t)(time * 7));
-        cv_rect(x, TK_Y0, 1, base - TK_Y0, T_MID);
+    if (!on)
+        return;
+    {   /* the beat of the train: a tick on the axis where the line is now, nothing taller */
+        int32_t sx = x0 + (int32_t)((int64_t)(gen * 256 + frac) * w / (7 * 256));
+        cv_rect(sx, base - 4, 1, 4, T_TEXT);
+        cv_rect(sx - 1, base - 4, 3, 1, T_TEXT);
     }
 }
 

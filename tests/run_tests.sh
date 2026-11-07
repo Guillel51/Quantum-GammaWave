@@ -46,6 +46,10 @@
 #                   slots (at most +5 %), demos in build/mod_demo/.
 # PERFORM (tests/perform_test.c): the FX hold layer (src/perform.c): 1/16 starts, stereo buffer effects, the
 #                   too-long REPEAT, the SLICER interplay, silent layer keys, idle bit-identical, cost; build/perform_demo/;
+# DELAY (tests/dly_echo_test.c): the echo train the FX > DLY page draws (src/fx.c fx_dly_rep): silence shows
+#                   nothing, a hit lights repeat 1 one TIME later, FEEDBK 0 leaves one pass, FEEDBK 60 falls by
+#                   about FEEDBK, MIX 0 nothing, the bars follow the peaks linearly (not a level), PING-PONG too,
+#                   and the train ends (no bar left lit after it has died).
 # REVERB (tests/reverb_test.c): REVERB TYPE (src/fx.c): ROOM bit for bit as before, SPRING's decay against SIZE,
 #                   its chirp (group delay rising with frequency), stability at the corners, level, a model change
 #                   without a click, its cost against ROOM (+30 % at most); demos in build/fx_demo/.
@@ -249,6 +253,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "FX layer effects: on the 1/16, stereo, too-long REPEAT, SLICER, silent keys, idle bit-identical, clicks, cost, demos" "$OUT/perform_test" build/perform_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/reverb_test" tests/reverb_test.c -lm
     run "REVERB TYPE: ROOM bit-identical, SPRING decay / chirp / stability / level, model change, cost, demos" "$OUT/reverb_test" build/fx_demo
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/dly_echo_test" tests/dly_echo_test.c -lm
+    run "DELAY echo train: the repeats FX > DLY draws, one TIME apart, falling by FEEDBK, none without echoes" "$OUT/dly_echo_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
