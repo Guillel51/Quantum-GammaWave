@@ -1907,8 +1907,14 @@ static const char *eng_abbr(const char *name)
 static void list_row(int32_t y, int sel, const char *tag, uint16_t tc, const char *name, uint16_t nc, int32_t x1)
 {
     uint16_t bg = sel ? T_THEME : T_SURF;
-    if (sel)
+    /* (1.7) PRESETS and PROJECT are painted by this one row, so their chrome lands here once: the
+     * picked row is a bevel like MENU's -- a light edge on top, a shadow under it -- and the rows
+     * below it keep the page's own rule (nothing else about the row changed: same text, same ink). */
+    if (sel) {
         cv_rrect(6, y, 228, 16, 4, T_THEME, T_SURF);
+        cv_rect(12, y, 216, 1, ux_mix(T_THEME, T_TEXT, 34));
+        cv_rect(12, y + 15, 216, 1, ux_mix(T_THEME, T_BG, 34));
+    }
     GFX_HOOK_ALIGN(0, y, 0, y + 16, AL_V, "list row text centred up/down");
     cv_text_on(14, y + CAP_IN(S, 16), &AF_S, tag, sel ? T_INK : tc, bg);
     if (name[0])
