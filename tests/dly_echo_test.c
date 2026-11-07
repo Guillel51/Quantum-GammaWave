@@ -64,6 +64,7 @@ static void burst(int32_t amp, uint32_t burst, uint32_t blocks)
             c[i] = r[i] = 0;
         }
         fx_buses(c, d, r, w, CTL);
+        fx_dly_train(CTL);                             /* (3.0) the train steps once per block: what fx_run_t does */
         snap_max();
     }
 }
@@ -96,6 +97,7 @@ int main(void)
     for (b = 0; b < 40u; b++) {
         for (i = 0; i < CTL; i++) c[i] = d[i] = r[i] = 0;
         fx_buses(c, d, r, w, CTL);
+        fx_dly_train(CTL);                             /* (3.0) the train steps once per block: what fx_run_t does */
     }
     snap();
     check("silence: no repeat is measured, so no bar can light", !pk[0] && !pk[1] && !pk[2] && !pk[3] && !pk[4] && !pk[5]);
@@ -113,6 +115,7 @@ int main(void)
                 c[i] = r[i] = 0;
             }
             fx_buses(c, d, r, w, CTL);
+            fx_dly_train(CTL);
             snap();
             for (k = 0; k < 6; k++)
                 if (pk[k] > 0 && first[k] == 0xFFFFFFFFu)
@@ -190,12 +193,14 @@ int main(void)
     for (b = 0; b < 300u; b++) {                     /* a hit */
         for (i = 0; i < CTL; i++) { d[i] = b < 2u ? noise(20000) : 0; c[i] = r[i] = 0; }
         fx_buses(c, d, r, w, CTL);
+        fx_dly_train(CTL);                             /* (3.0) the train steps once per block: what fx_run_t does */
     }
     snap();
     check("while the train rings, the page has something to show", pk[0] > 0 || pk[1] > 0 || pk[2] > 0);
     for (b = 0; b < 6000u; b++) {                    /* ~4.4 s of silence */
         for (i = 0; i < CTL; i++) c[i] = d[i] = r[i] = 0;
         fx_buses(c, d, r, w, CTL);
+        fx_dly_train(CTL);                             /* (3.0) the train steps once per block: what fx_run_t does */
     }
     snap();
     printf("dlx: after 4 s of silence: %d %d %d %d %d %d\n", pk[0], pk[1], pk[2], pk[3], pk[4], pk[5]);
