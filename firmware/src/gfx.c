@@ -22,6 +22,7 @@ typedef struct {
 } aafont_t;
 typedef struct { const char *name; uint16_t bg, surf, text, theme, accent; } ui_pal_t;
 typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
+#include <string.h>                      /* memcpy: the canvas clear copies one row at a time */
 #include "ui_fonts.h"                   /* AF_S 12 px / 400, AF_M 15 px / 500, AF_L 28 px / 600 */
 #include "ui_palettes.h"
 #include "ui_keycaps.h"                 /* KC_*: the keycaps / badges (tools/gen_aa_keycaps.py), KNOB_* arcs */
@@ -205,8 +206,21 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
     cv_cy1 = (int16_t)h;
     cv_bg = bg;
     n = w * h;
-    for (i = 0; i < n; i++)
-        cv_px[i] = s;
+    {   /* (1.7) one row, then a copy per row: the clear was a store per pixel (21 120 of them for a graph
+         * strip, twice a frame on the visualizer); it is now a memcpy of w * 2 bytes per row, the same
+         * bytes in the same order. 480 B of .bss for the row; the pixels do not change */
+        static uint16_t row[240];
+        uint32_t y;
+        if (w > 240u) {
+            for (i = 0; i < n; i++)
+                cv_px[i] = s;
+        } else {
+            for (i = 0; i < w; i++)
+                row[i] = s;
+            for (y = 0; y < h; y++)
+                memcpy(cv_px + y * w, row, w * sizeof row[0]);
+        }
+    }
 }
 
 /* (GEN fix) screen rows the canvases leave alone (cv_hole0 .. cv_hole1 - 1; cv_hole1 0: none): the GEN screen's
