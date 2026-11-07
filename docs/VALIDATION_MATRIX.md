@@ -123,3 +123,25 @@ Rows 1–3, 7 (map for a specific unit), 8, 9, 12 (target RAM/CPU) and 13–14 o
 stay **NO-GO**: each needs a target build or a reading from the owner's unit, and neither exists in this
 environment. Row 11 (stress and stability) is **GO** on the host evidence above. Row 10 (protected write
 paths) stays **GO CONDITIONAL** on the same evidence as before.
+
+## 10. Update — 2026-11-07, target build attempted here (toolchain installed)
+
+The JieLi toolchain was installed in this sandbox from the pinned archive and verified:
+
+| Step | Result |
+|---|---|
+| `tools/get_toolchain.sh` | **pass**: sha256 `a1545cdd…7647bd` matches `tools/toolchain.sha256`, `jieli-linux-toolchains-20260730.1`, `pi32v2/bin/clang` reports **clang 4.0.1** |
+| AC79 SDK | present at `~/fw-AC79_AIoT_SDK` (`cpu/wl82/tools/uboot.boot` found) but **not** the pinned `AC79NN_SDK_V1.2.1`: the build warns `SDK uboot.boot differs from AC79NN_SDK_V1.2.1` and `SDK cfg/eq_cfg_hw.bin differs …; the package will not match the reference` |
+| `./build.sh` (`ulimit -n 9000`) | **compiles and links**: image 565 436 B, `.data+.bss` 96 056 / 98 304 B, pool spare 9 248 B, XIP code 402 420 B, RAM code 22 844 / 24 576 B, `.ram_text` 1 193 insns with no calls |
+| the build's own gate | **FAIL `RAM code headroom 1732 B < 2048 B`** → `build: checks failed`, **no `.fwsc`, no manifest** |
+| same build at `7871c14` (before any of this session's UI work) | **identical**: `RAM code 22844 B`, same `FAIL` — the headroom failure is pre-existing on `main`, not a regression from the visual work |
+
+What that means, plainly: the target toolchain works here and the firmware links, but the repository refuses to
+package it because 316 B of RAM code would have to be freed before the 2 048 B headroom rule is met. That is a
+bounded code change (a hot function moved out of `.hot_text`, or made smaller), and it must be measured against
+`tests/target_budget.py` and the audio golden renders — it is **not** a budget to relax, because `.ram_text` is
+what runs with the flash off.
+
+Even after that, a package built with the SDK present here would **not** be byte-reproducible against the
+reference: the SDK is not `AC79NN_SDK_V1.2.1`. Signing and releasing a package built against an unpinned SDK
+would make the signature cover an artefact that the project cannot rebuild, which is exactly what §5 forbids.
