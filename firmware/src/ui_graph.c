@@ -1349,6 +1349,10 @@ static void graph_fm6(const track_t *t, uint16_t c, uint32_t sel)   /* sel < 6: 
         y[k] = bus - 6 - FM_BH - 23 * (int32_t)(FM6_CELL[alg][k] >> 4);
         if (car >> k & 1u) { cl = x[k] < cl ? x[k] : cl; cr = x[k] > cr ? x[k] : cr; }
     }
+    for (k = 0; k < 9u; k++)                          /* (1.7) the chart's reticle: a 16-bit grid, 24 px steps */
+        cv_rect(24 + (int32_t)k * 23, 20, 1, 82, T_GRID);
+    cv_rect(PANEL_X0, 20, PANEL_W, 1, T_LINE);
+
     for (k = 0; k < 6u; k++) {                       /* into k: its sources down to its jog row, across, down */
         for (j = 0; j < 6u; j++)
             if (m[k] >> j & 1u) {
@@ -1372,7 +1376,7 @@ static void graph_fm6(const track_t *t, uint16_t c, uint32_t sel)   /* sel < 6: 
         uint16_t f = hotset >> k & 1u ? T_ACCENT : c, fill = k == sel ? T_ACCENT : fill_c ? f : T_RAISE;
         char n[2] = {(char)('1' + k), 0};
         FM6_CHART_HOOK(FMH_BOX, k, 0);
-        cv_rrect(x[k] - 10, y[k], 21, FM_BH, 3, fill, T_SURF);
+        gw_bevel(x[k] - 10, y[k], 21, FM_BH, fill, ux_mix(fill, T_TEXT, 40), ux_mix(fill, T_BG, 42));
         GFX_HOOK_ALIGN(x[k] - 10, y[k], x[k] + 11, y[k] + FM_BH, AL_HV, "FM6 operator number in its box");
         cv_text_in(x[k] - 10, y[k] + CAP_IN(S, FM_BH), 21, &AF_S, n, fill_c || k == sel ? T_INK : on ? f : T_DIM, fill);
     }
@@ -1416,6 +1420,8 @@ static void graph_fm6env(const track_t *t, uint16_t c)
     x[4] = x[5] - FEGW(op[FP_R1 + 3]);
     y[4] = y[3];
     y[5] = y[0];
+    for (k = 1; k < 4; k++)                          /* (1.7) the level guides, a quarter of the scale each */
+        cv_rect(PANEL_X0, top + k * (bot - top) / 4, PANEL_W, 1, T_GRID);
     cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
     cv_rect(x[4], top, 1, bot - top + 1, T_RAISE);   /* the key let go */
     for (k = 0; k < 5; k++)                          /* (3: the hold, no stage of its own) */

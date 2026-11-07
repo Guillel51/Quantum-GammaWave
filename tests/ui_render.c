@@ -1884,6 +1884,23 @@ int main(int argc, char **argv)
             fprintf(rep, "  HOME, a frame without force (lazy strips): %.1f us, %llu texts\n",
                     (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 4) * 1e6, (unsigned long long)(n_text / (N * 4)));
         }
+        {   /* (1.7) what the new chrome costs: the splash's written steps (the hold rewrites nothing) and
+             * HOME's visualizer, its busiest screen, redrawn whole */
+            clock_t c0;
+            int pg;
+            double sp;
+            c0 = clock();
+            for (i = 0; i < N; i++)
+                for (pg = 0; pg < 256; pg++)
+                    splash_sig((uint32_t)pg, 0);
+            sp = (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 256.0) * 1e6;
+            setup(S_HOME_VIZ); pal(1); draw(S_HOME_VIZ);
+            px_visited = n_text = 0;
+            c0 = clock();
+            for (i = 0; i < N * 4; i++) { ui.force = 1; draw_graph(); ui.force = 0; nscr = npend = 0; }
+            fprintf(rep, "  splash: one written frame %.1f us; HOME's visualizer %.1f us a frame\n",
+                    sp, (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 4) * 1e6);
+        }
         {   /* the STEP page's piano roll: its panel alone redrawn, and a frame that changes nothing (the signature only) */
             static const int G[] = {S_ROLL_CHORDS, S_ROLL_PLAYING, S_DRUM};
             for (k = 0; k < 3u; k++) {
