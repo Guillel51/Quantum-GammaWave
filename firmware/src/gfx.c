@@ -441,6 +441,50 @@ static const uint16_t *ramp(uint16_t fg, uint16_t bg)
 }
 
 /* w x h nibbles, rows back to back, at canvas (x, y) */
+/* (QG-1 1.7) 16-BIT CHROME ---------------------------------------------------------------
+ * The plates, keys and meters are built the way the 16-bit consoles built theirs: a flat
+ * face, one lighter edge, one darker edge, and a two-colour ordered dither where a smooth
+ * gradient would have gone. All three are plain fills on the canvas the page already owns:
+ * no state, no allocation, and no colour of their own -- the caller passes the palette's
+ * tokens, so GREY / MONO / FLAT / LINE keep working unchanged. */
+static void gw_bevel(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, uint16_t hi, uint16_t lo)
+{
+    cv_rect(x, y, w, h, face);
+    cv_rect(x, y, w, 1, hi);
+    cv_rect(x, y, 1, h, hi);
+    cv_rect(x, y + h - 1, w, 1, lo);
+    cv_rect(x + w - 1, y, 1, h, lo);
+}
+/* a 4 x 4 ordered dither: `pct` of the pixels take `b`, the rest `a`. Its levels are the
+ * fixed steps a 16-bit palette had for a gradient, and the pattern never moves, so a static
+ * frame stays static (the splash's hold rewrites nothing). */
+static void gw_dither(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t a, uint16_t b, int32_t pct)
+{
+    static const uint8_t BAY[16] = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
+    int32_t i, j;
+    if (pct <= 0 || w <= 0 || h <= 0)
+        return;
+    if (pct >= 100) {
+        cv_rect(x, y, w, h, b);
+        return;
+    }
+    for (j = 0; j < h; j++)
+        for (i = 0; i < w; i++)
+            cv_rect(x + i, y + j, 1, 1, (int32_t)BAY[(j & 3) * 4 + (i & 3)] * 100 / 16 < pct ? b : a);
+}
+/* a segmented meter, bottom up: `seg` px blocks with a 1 px gap, the ones under the level
+ * lit. The empty blocks are drawn too -- a 16-bit meter always shows its scale. */
+static void gw_seg_v(int32_t x, int32_t y, int32_t w, int32_t h, int32_t lvl, int32_t seg,
+                     uint16_t on, uint16_t off)
+{
+    int32_t b;
+    for (b = 0; b * (seg + 1) < h; b++) {
+        int32_t by = y + h - (b + 1) * seg - b;
+        if (by < y)
+            break;
+        cv_rect(x, by, w, seg, b * (seg + 1) < lvl ? on : off);
+    }
+}
 static void cv_alpha(int32_t x, int32_t y, uint32_t w, uint32_t h, const uint8_t *d, const uint16_t *rv)
 {
     uint32_t k = 0, gx, gy;
