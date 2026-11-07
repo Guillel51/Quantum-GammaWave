@@ -432,6 +432,18 @@ static uint16_t value_col(uint16_t vc, int32_t ratio)
 {
     return ux.chamfer && vc == T_THEME && ratio >= 0 ? ux_mix(gauge_col(ratio), T_TEXT, 20) : vc;
 }
+/* (QG-1 1.7) A card's 16-bit edge: one lighter line along its top and left (inside the rounded
+ * corner), one darker along its bottom and right. Every knob card on every page is drawn by
+ * draw_column / draw_column_tall, so the chamfer reaches all 173 screens from here instead of
+ * from a per-page copy -- and it is two colours, not a shadow: no extra state, no cost. */
+static void card_edge(int32_t w, int32_t h)
+{
+    uint16_t hi = ux_mix(T_SURF, T_TEXT, 16);
+    cv_rect(3, 0, w - 6, 1, hi);
+    cv_rect(0, 3, 1, h - 6, hi);
+    cv_rect(3, h - 1, w - 6, 1, T_BG);
+    cv_rect(w - 1, 3, 1, h - 6, T_BG);
+}
 static void draw_column_tall(uint32_t c, const char *label, const char *val, const char *unit, uint16_t vc, int32_t ratio,
                              uint32_t icon, int hot, int mot, int32_t kid)
 {
@@ -442,6 +454,7 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
     uint32_t ic = mot ? ICON_X_MOTION : icon, isz = 16u;
     cv_begin(COL_W, LG_CARD_H, T_BG);
     cv_rrect(0, 0, COL_W, LG_CARD_H, 4, T_SURF, T_BG);
+    card_edge(COL_W, LG_CARD_H);
     {   /* the knob: "K1" .. "K4" on a pill */
         uint16_t fill = hot ? T_ACCENT : label[0] || val[0] ? T_KEY : T_DIM;
         mw = ink_w(&AF_M, k) + 10;
@@ -598,6 +611,7 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         }
         cv_begin(COL_W, COL_H, T_BG);
         cv_rrect(0, 0, COL_W, COL_H, 4, T_SURF, T_BG);
+        card_edge(COL_W, COL_H);
         if (ux.chamfer && !ux.style && hot) {
             cv_rect(4, 0, COL_W - 8, 1, T_ACCENT);
             cv_rect(0, 4, 1, COL_H - 8, T_ACCENT);
