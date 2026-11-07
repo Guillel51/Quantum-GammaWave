@@ -200,6 +200,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
         {   /* (0.6.17) MENU > ABOUT's numbers (voice.c load_diag) */
             uint32_t pc = us * 100u / (HALF_FRAMES * 1000000u / FS);
             if (pc > load_diag.peak) load_diag.peak = pc;
+            if (us) load_diag.valid = 1u;                /* (3.0) there is a measurement to show */
             load_diag.late = felucca_dbg.late;
             load_diag.shed = shed_count;
         }

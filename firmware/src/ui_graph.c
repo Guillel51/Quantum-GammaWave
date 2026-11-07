@@ -1018,7 +1018,7 @@ static void graph_slpitch(uint16_t c)
  * a writer; none is a constant. */
 static void graph_diag(uint16_t c)
 {
-    uint32_t i, active_voices = 0, n1 = 0, n0;
+    uint32_t i, active_voices = 0, n1 = 0, n0, step = 0, slen = 1;
     char b[48];
     for (i = 0; i < trk_live; i++) {
         uint32_t v;
@@ -1039,16 +1039,29 @@ static void graph_diag(uint16_t c)
     /* Row 1: MULTICORE STATUS. mc_status() already spells the whole state ("CORES 2", "CORES 1 (FAULT)"), the
      * fallback and the fault included, so the caption must not repeat it */
     cv_text(16, 8, &AF_S, "MULTICORE", T_MID);
-    cv_text_r(224, 8, &AF_S, mc_status(), T_THEME, T_SURF);
+    if (fx_trips) {                                 /* the buses reset out of range (fx.c fx_trip): a fault */
+        b[0] = 0;
+        str_cpy(b, mc_status(), sizeof b);
+        str_cpy(b + str_len(b), " TRIP ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)fx_trips);
+        cv_text_r(224, 8, &AF_S, b, T_ACCENT, T_SURF);
+    } else
+        cv_text_r(224, 8, &AF_S, mc_status(), T_THEME, T_SURF);
 
-    /* Row 2: REAL CPU LOAD & PEAK (audio.c song.cpu_q8, load_diag.peak) */
+    /* Row 2: the audio's own load (audio.c song.cpu_q8, averaged) and the worst block since power-on.
+     * (3.0) With nothing measured -- the host and the browser emulator do not advance the tick inside the
+     * render -- it says N/A: a 0 % there was a measurement that never happened. */
     cv_text(16, 22, &AF_S, "CPU LOAD", T_MID);
-    b[0] = 0;
-    fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
-    str_cpy(b + str_len(b), "% (PK ", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), (int32_t)load_diag.peak);
-    str_cpy(b + str_len(b), "%)", sizeof b - str_len(b));
-    cv_text_r(224, 22, &AF_S, b, song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
+    if (load_diag.valid) {
+        b[0] = 0;
+        fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
+        str_cpy(b + str_len(b), "% (PK ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)load_diag.peak);
+        str_cpy(b + str_len(b), "%)", sizeof b - str_len(b));
+    } else {
+        str_cpy(b, "N/A", sizeof b);
+    }
+    cv_text_r(224, 22, &AF_S, b, !load_diag.valid ? T_MID : song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
 
     /* Row 3: HOW THE PARTS SPLIT, and how long core 1's last job took (its own stamp on the shared TIMER4) */
     cv_text(16, 36, &AF_S, "CORE SPLIT", T_MID);
@@ -1064,6 +1077,12 @@ static void graph_diag(uint16_t c)
         str_cpy(b + str_len(b), "us", sizeof b - str_len(b));
     }
 #endif
+    if (mc_fx_tk) {                                 /* the buses' own block ticks (fx.c fx_run) */
+        str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)mc_fx_tk);
+        str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
+    } else
+        str_cpy(b + str_len(b), " N/A TK", sizeof b - str_len(b));
     cv_text_r(224, 36, &AF_S, b, n1 ? T_THEME : T_TEXT, T_SURF);
 
     /* Row 4: POLYPHONY (active voices across all live tracks) */
@@ -1075,39 +1094,50 @@ static void graph_diag(uint16_t c)
     str_cpy(b + str_len(b), " VOICES", sizeof b - str_len(b));
     cv_text_r(224, 50, &AF_S, b, active_voices + 1u >= NVOICE ? T_ACCENT : T_TEXT, T_SURF);
 
-    /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS */
+    /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS (a muted track reads dim, a sounding one accent) */
     for (i = 0; i < 6u; i++) {
         int32_t tx = 16 + (int32_t)i * 35;
         uint32_t v, tv = 0;
         char tb[4] = {'T', (char)('1' + i), 0, 0};
-        if (i < trk_live) {
+        int32_t live = i < trk_live;
+        if (live) {
             for (v = 0; v < NVOICE; v++) if (trk[i].v[v].active) tv++;
         }
-        cv_text(tx, 64, &AF_S, tb, i < trk_live ? T_DIM : T_LINE);
-        cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : T_RAISE, T_SURF);
+        cv_text(tx, 64, &AF_S, tb, live ? T_DIM : T_LINE);
+        cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : live && !trk[i].p[P_MUTE] ? T_RAISE : T_LINE, T_SURF);
     }
 
-    /* Row 6: BUS TICKS & HARDWARE SANITY (no fabricated constants) */
-    cv_text(16, 78, &AF_S, "BUS TICKS", T_MID);
-    if (mc_fx_tk) {
-        b[0] = 0;
-        fmt_int(b, (int32_t)mc_fx_tk);
-        str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
-    } else {
-        str_cpy(b, "N/A", sizeof b);
-    }
-    if (fx_trips) {
-        str_cpy(b + str_len(b), " [TRIP]", sizeof b - str_len(b));
-    }
-    cv_text_r(224, 78, &AF_S, b, fx_trips ? T_ACCENT : T_TEXT, T_SURF);
-
-    /* Row 7: BLOCKS THAT MISSED THEIR DEADLINE, and the voices shed for it (the overload fallback) */
-    cv_text(16, 92, &AF_S, "LATE/SHED", T_MID);
+    /* Row 6: the sequencer's real position (seq.c seq_src: the step the selected part plays now) */
+    cv_text(16, 78, &AF_S, "SEQ", T_MID);
+    slen = (uint32_t)clamp(TSEL->p[P_SLEN], 1, NSTEP);
+    step = seq_src(TSEL, TSEL->seq_idx);
     b[0] = 0;
-    fmt_int(b, (int32_t)load_diag.late);
-    str_cpy(b + str_len(b), " / ", sizeof b - str_len(b));
+    str_cpy(b, song.playing ? "PLAY " : "STOP ", sizeof b);
+    fmt_int(b + str_len(b), (int32_t)(step < slen ? step + 1u : 0u));
+    str_cpy(b + str_len(b), "/", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)slen);
+    str_cpy(b + str_len(b), "  ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), bar_n + (song.playing ? 1u : 0u));   /* (the bar it is on now) */
+    str_cpy(b + str_len(b), " BAR", sizeof b - str_len(b));
+    cv_text_r(224, 78, &AF_S, b, song.playing ? T_ACCENT : T_TEXT, T_SURF);
+
+    /* Row 7: the three FX returns (fx.c fx_vu[3..5], the buses' measured peaks) and the blocks that missed
+     * their deadline with the voices shed for them. A bus that has never returned anything is a dash, not a 0. */
+    cv_text(16, 92, &AF_S, "FX RET", T_MID);
+    b[0] = 0;
+    for (i = 0; i < 3u; i++) {                      /* chorus, delay, reverb: what each bus returns */
+        int32_t v = clamp((int32_t)fx_vu[3 + i], 0, 32767);
+        str_cpy(b + str_len(b), i ? " " : "", sizeof b - str_len(b));
+        if (!v)
+            str_cpy(b + str_len(b), "-", sizeof b - str_len(b));
+        else
+            fmt_int(b + str_len(b), v * 99 / 32767);   /* 0..99: the return's own peak */
+    }
+    str_cpy(b + str_len(b), "  LATE ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)load_diag.late);
+    str_cpy(b + str_len(b), "/", sizeof b - str_len(b));
     fmt_int(b + str_len(b), (int32_t)load_diag.shed);
-    cv_text_r(224, 92, &AF_S, b, (load_diag.late || load_diag.shed) ? T_ACCENT : T_TEXT, T_SURF);
+    cv_text_r(224, 92, &AF_S, b, load_diag.late || load_diag.shed ? T_ACCENT : T_TEXT, T_SURF);
 }
 
 /* MOD page: the four slots as rows "1 LFO > CUT +50%", the one KNOB 2..4 edit selected, slots that do
@@ -1808,7 +1838,7 @@ static uint32_t graph_signature(void)
                 av = av + (trk[k].v[v].active != 0);
         }
         h = (h ^ song.cpu_q8 * 3329u ^ load_diag.peak * 1931u ^ load_diag.late * 2671u ^
-             load_diag.shed * 6151u) * 16777619u;
+             load_diag.shed * 6151u ^ (load_diag.valid ? 1u : 0u) * 7919u) * 16777619u;   /* (3.0) N/A -> % */
         h = (h ^ mc_fx_tk * 40503u ^ fx_trips * 7919u ^ trk_live * 104729u ^ av * 131u) * 16777619u;
         /* (QG-1 v1.5) the rows added on top of those: the part split, core 1's job and the multicore state.
          * Without these the page kept the figure it first drew: mc_status() and CORE SPLIT never moved, because

@@ -2379,7 +2379,11 @@ static int test_mono_screens(void)
     for (e = 0; e < NPALETTES; e++) {               /* the other palettes are not gray: the check sees colour */
         ui_power_on(); palette_set(e); ui.force = 1; ui_draw();
         ok = screen_gray();
-        if (e == UI_GREY_INDEX ? !ok : ok) bad += check("palette colour shows on HOME", 0);
+        if (e == UI_GREY_INDEX ? !ok : ok) {
+            char msg[64];
+            snprintf(msg, sizeof msg, "palette colour shows on HOME: %s (%u)", UI_PALETTES[e].name, e);
+            bad += check(msg, 0);
+        }
     }
     palette_set(UI_GREY_INDEX);
     return bad;
@@ -10340,14 +10344,20 @@ static int qg_monitor_follows(void)
     uint32_t a, b, c, l0, l1;
     ui_power_on();
     go_title("MONITOR"); frame(); frame();
+    bad += check("GLO > MONITOR: with no block ever timed, CPU LOAD says N/A, not 0 %", !load_diag.valid);
     song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
     a = qg_band(8, 232, 108, 122);                      /* row 2: Y_GRAPH 76 + GOY 11 + 22 */
-    song.cpu_q8 = 200u; fm1_ms += 120u; frame(); frame();
-    b = qg_band(8, 232, 108, 122);
-    song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
-    c = qg_band(8, 232, 108, 122);
-    bad += check("GLO > MONITOR: the CPU LOAD row is drawn from song.cpu_q8 (same value, same pixels)",
-                 a != b && a == c);
+    load_diag.valid = 1u;                               /* (3.0) an ISR has measured a block now */
+    fm1_ms += 120u; frame(); frame();
+    {   /* .. and from then on the row is a function of that measurement and of nothing else */
+        uint32_t z = qg_band(8, 232, 108, 122);
+        song.cpu_q8 = 200u; fm1_ms += 120u; frame(); frame();
+        b = qg_band(8, 232, 108, 122);
+        song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
+        c = qg_band(8, 232, 108, 122);
+        bad += check("GLO > MONITOR: once measured, the CPU LOAD row shows song.cpu_q8 (same value, same pixels)",
+                     a != z && z != b && z == c);
+    }
     l0 = qg_band(8, 232, 176, 192);                    /* row 7: 76 + 11 + 92 */
     load_diag.late = 5; load_diag.shed = 2; fm1_ms += 120u; frame(); frame();
     l1 = qg_band(8, 232, 176, 192);

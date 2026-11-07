@@ -339,7 +339,10 @@ static uint32_t trk_vmode(const track_t *t)
 static volatile uint8_t load_tight;
 /* (0.6.17) what the audio did since power-on, for MENU > ABOUT (audio.c fills it): the slowest half's share of its
  * time (%), the halves that came late (each a click), the voices the overload guard faded */
-static struct { volatile uint32_t peak, late, shed; } load_diag;
+/* (3.0) valid: set the first time a block really measured its own time. On the host and in the browser
+ * emulator fm1_ticks() does not advance inside the render, so the load reads 0; the monitor used to print
+ * that 0 % as if it were a measurement. A counter nothing wrote is N/A, never a number. */
+static struct { volatile uint32_t peak, late, shed, valid; } load_diag;
 /* (JIANT 0.6.70) the budget shared by all parts: NVOICE, LOAD ECO ECO_VOICES (4 parts with reverb and delay still
  * crackled on ECO: the peaks are the voices, a tail ringing on each part as the next hits come) */
 static uint32_t voice_cap(void) { return sys_load == LOAD_ECO ? ECO_VOICES : NVOICE; }
