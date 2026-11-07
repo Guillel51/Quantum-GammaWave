@@ -2978,6 +2978,13 @@ static void draw_graph(void)
         gr_ms = fm1_ms;
     }
     ui.graph_sig = sig;
+    if (ui.home_viz) {                               /* (1.7) the visualizer owns the whole body: its two bands
+                                                      * cover rows 26..201, so the page's panel under them (234 wide,
+                                                      * graph_h tall) was painted and then covered whole -- a third
+                                                      * of the frame paid for nothing. It starts on its own canvas */
+        graph_home_viz(ACC);
+        return;
+    }
     cv_begin(240, graph_h(), T_BG);
     cv_rrect(3, 0, 234, graph_h(), 5, T_SURF, T_BG);   /* the panel (MENU > LARGE: the strip) */
     cv_bg = T_SURF;                                  /* (text drawn with cv_text lands on it) */
