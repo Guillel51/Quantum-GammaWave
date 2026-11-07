@@ -232,3 +232,23 @@ CI build until that version is installed. And no physical evidence exists in thi
 read, no geometry, no owner's backup, no recovery demonstration — so the installer's own gate stays closed
 on a real unit until that evidence is recorded; nothing in this section was produced by a device, and no
 write of any kind was sent to one.
+
+## 13. Update — 2026-11-07, the rebase onto ed34528, rebuilt and re-signed
+
+`main` gained `ed34528` (the echo train stepped from flash) while this work was in flight, so the two
+fixes now sit on the same tree: `fx_run0` no longer carries the train and `perf_begin` is out of
+`.hot_text`. Measured on the rebased tree (AC791N build, host x86, pinned SDK):
+
+| Item | Value |
+|---|---|
+| RAM code | **21 768 B of 24 576** (headroom **2 808 B**) |
+| `.ram_text` | no calls |
+| SDK warnings | **0** (`AC79NN_SDK_V1.2.1` content matches) |
+| package | 611 163 B, `FM-1_982`, sha256 `2b6c592c51d74dc6…` |
+| build record | commit `95b21a8`, `dirty: []`, emulator `95b21a8` |
+| signature | `verified: FM-1 version 1.9.0, key qg1-release-1` |
+| site | `make_site` builds portal + installer + `firmware/felucca-v1.9.0-95b21a8.fwsc` |
+
+The earlier §11/§12 figures (22 144 / 22 488 B, sha `1eb84cbd`) are the pre-integration trees; the numbers
+above supersede them. Host suite: HOST TESTS FAILED (4977 `ok` lines). Physical evidence is still absent, so nothing here
+was produced by, or sent to, a unit.
