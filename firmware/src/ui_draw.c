@@ -590,6 +590,10 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
     if (strip) {                                        /* rolling: the value strip only */
         cv_begin(COL_W, ROLL_H, T_SURF);
         cv_oy = -ROLL_Y;
+        /* (1.7) the strip clears to the card's own SURF, so it also cleared the card's 16-bit edge where the
+         * two cross. Draw it again on the strip's canvas: what lies outside it is clipped, and a rolled
+         * frame stays pixel-identical to a forced redraw (ui_test: the roll and the 150 000-frame soak) */
+        card_edge(COL_W, COL_H);
     } else {
         char ov[16];                                    /* the value drawn before (in the cache key) */
         const char *k = ui.col[c];
