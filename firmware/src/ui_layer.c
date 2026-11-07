@@ -1018,14 +1018,20 @@ static void layer_fx(uint32_t band)
         can = k < 27u && PF_IS(f) && ((ok >> f) & 1u);
         on = can && ((held >> f) & 1u);
         {
-            /* (2.0) every lower key is the SAME grey: T_KEY, the keycap fill the rest of the UI
-             * uses (before, the available ones were T_BG and the unavailable ones T_DIM, so the
-             * keyboard read as white with one grey key at the end) */
-            uint16_t fill = on ? T_ACCENT : T_KEY;
-            uint16_t ink = on ? T_INK : can ? T_INK : T_DIM;
+            /* (3.0) the white keys are the palette's LIGHT grey (T_KEYW), not the white keycap fill:
+             * on the panel the old T_KEY read as paper white and the map looked printed, not played.
+             * Held: the accent fills the key and its label goes to the ink; an unavailable key keeps
+             * the same body with a muted label, so the keyboard stays one instrument on every theme. */
+            /* (3.0) MONO and GREY have no accent that separates from a white key (the accent is the
+             * text), so a held key there goes to the dark grey with a light label instead: still one
+             * rule -- a held key is the one that does not look like an idle key -- on every palette */
+            uint16_t hf = (ux.mono || ux.bw) ? T_KEYB : T_ACCENT;
+            uint16_t fill = on ? hf : T_KEYW;
+            uint16_t ink = on ? ((ux.mono || ux.bw) ? T_TEXT : T_INK) : can ? T_INK : ux_mix(T_INK, T_KEYW, 45);
             cv_rect(x, FX_KEY_Y, FX_WHITE_W, FX_KEY_H, fill);
-            cv_rect(x, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
-            cv_rect(x + FX_WHITE_W - 1, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
+            cv_rect(x, FX_KEY_Y, 1, FX_KEY_H, ux_mix(T_KEYW, T_TEXT, 30));      /* a lit left edge */
+            cv_rect(x + FX_WHITE_W - 1, FX_KEY_Y, 1, FX_KEY_H, T_KEYB);         /* the gap to its neighbour */
+            cv_rect(x, FX_KEY_Y + FX_KEY_H - 1, FX_WHITE_W, 1, on ? T_INK : T_KEYB);
             fx_vtext(x, FX_WHITE_W, FX_WHITE_LABEL_Y, FX_WHITE_LABEL_H, fx_white_name(p), ink, fill);
         }
     }
@@ -1043,9 +1049,9 @@ static void layer_fx(uint32_t band)
             /* (2.1) T1..T6: the six latched track mutes. Black when open, the accent when the mute is
              * on (the real seq.c bit, not a copy), so the map shows which tracks are muted now. */
             int32_t latched = (mutes >> b) & 1u;
-            uint16_t fill = latched ? T_ACCENT : T_BG;
+            uint16_t fill = latched ? T_ACCENT : T_KEYB;                   /* (3.0) the accidentals' grey */
             char n[3] = {'T', (char)('1' + b), 0};
-            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
+            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, ux_mix(T_KEYB, T_TEXT, 22));
             fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, latched ? T_INK : T_TEXT, fill);
             if (latched)                             /* a lit cap: the mute reads at a glance, as a held key */
                 cv_rect(x + 1, FX_KEY_Y + 1, FX_BLACK_W - 2, 1, T_INK);
@@ -1054,15 +1060,15 @@ static void layer_fx(uint32_t band)
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
             on = can && ((held >> f) & 1u);
             {
-                /* (2.1) The upper keys are BLACK, as a keyboard's are: T_BG, the darkest surface, with a
-                 * T_LINE edge so the rounded shape reads on every palette. T_DIM (42 % from bg to text)
-                 * sat too close to the white keys' T_KEY (78 %) and the map read as one wall of keys:
-                 * the black keys are the accidentals (T1..T6, VIB, GATE, ...) and must look like them.
-                 * A latched mute keeps the accent, a held effect too. */
-                uint16_t fill = on ? T_ACCENT : T_BG;
-                uint16_t ink = on ? T_INK : can ? T_TEXT : T_DIM;
-                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
+                /* (3.0) The accidentals are the palette's DARK grey (T_KEYB), not the background: on the
+                 * panel the old T_BG holes made them read as gaps between the white keys. Two greys, one
+                 * clear step apart, on every theme; a held effect takes the accent and the ink. */
+                uint16_t fill = on ? T_ACCENT : T_KEYB;
+                uint16_t ink = on ? T_INK : can ? T_TEXT : ux_mix(T_TEXT, T_KEYB, 55);
+                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, ux_mix(T_KEYB, T_TEXT, 22));
                 fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
+                if (on)                                                        /* held: a lit cap */
+                    cv_rect(x + 2, FX_KEY_Y + 1, FX_BLACK_W - 4, 1, T_INK);
             }
         }
     }

@@ -83,7 +83,11 @@ static uint8_t cv_flip;          /* cv_alpha_hc: the cell mirrored left <-> righ
 static struct {
     uint16_t bg, surf, text, theme, accent;
     uint16_t mid, dim, line, sel, tint, ink, rec, raise, key, lane, grid;
+    uint16_t key_w, key_b;       /* (3.0) the keyboard's two greys: a light key and a dark one, both
+                                  * derived from this palette so every theme keeps its own warmth */
     uint8_t light, mono;
+    uint8_t bw;                  /* (3.0) MONO is the palette being DRAWN (for the graphics that must keep to black,
+                                  * white and its one grey, which used to test settings.palette instead) */
     uint8_t chamfer;             /* (JIANT 0.5) the JIANT palette: corners cut on the diagonal (cv_rrect), not rounded */
     uint8_t style;               /* MENU > STYLE (ui.c style_apply): ST_FLAT, ST_LINE */
     uint32_t gen;                /* bumped by palette_set (the text ramps follow) */
@@ -108,6 +112,8 @@ static struct {
 #define T_REC ux.rec             /* REC: fixed red (GREY, MONO: the accent) */
 #define T_RAISE ux.raise         /* a raised area on a surface: stubs, guides, slots, chips, button wells */
 #define T_KEY ux.key             /* a keycap's fill (its label: T_INK; unavailable: a T_DIM fill) */
+#define T_KEYW ux.key_w          /* (3.0) a keyboard's white key: the light grey of every palette */
+#define T_KEYB ux.key_b          /* .. and its black key: the darker grey, one clear step under it */
 #define T_LANE ux.lane           /* the piano roll: an in-scale row (SURF -> THEME 10 %) */
 #define T_GRID ux.grid           /* the piano roll: a step line (SURF -> TEXT 6 %; beats and C rows: RAISE) */
 #define NPALETTES UI_NPALETTES
@@ -144,6 +150,7 @@ static void palette_set(uint32_t i)
     const ui_pal_t *p = &UI_PALETTES[i % NPALETTES];
     i %= NPALETTES;
     ux.mono = i == UI_GREY_INDEX;
+    ux.bw = i == UI_BW_INDEX;
     ux.chamfer = i == UI_JIANT_INDEX || i == UI_GAMMA_INDEX || i == UI_WRAITH_INDEX || i == UI_QUANTUM_INDEX ||
                  i == UI_SOLARIS_INDEX || i == UI_CYBER_INDEX || i == UI_NORDIC_INDEX;
     ux.bg = p->bg; ux.surf = ux.style ? p->bg : p->surf; ux.text = p->text; ux.theme = p->theme; ux.accent = p->accent;
@@ -155,13 +162,18 @@ static void palette_set(uint32_t i)
     ux.ink = p->bg;
     ux.raise = ux_mix(p->surf, p->text, UI_RAISE_PCT);
     ux.key = ux_mix(p->bg, p->text, UI_KEY_PCT);
+    /* (3.0) the Punch-in FX keyboard: a light grey and a darker one, two clear steps apart on every
+     * palette (66 % and 26 % from the background to the text), never the background itself, so the
+     * accidentals read as keys and not as holes */
+    ux.key_w = ux_mix(p->bg, p->text, 66);
+    ux.key_b = ux_mix(p->bg, p->text, 26);
     ux.lane = ux_mix(ux.surf, p->theme, 10);
     ux.grid = ux_mix(ux.surf, p->text, 6);
     ux.light = ux_luma(p->bg) > 128u;
     ux.rec = ux.mono ? p->accent : ux.light ? UI_REC_LIGHT : UI_REC_DARK;
     if (i == UI_BW_INDEX) {                      /* MONO: black and white, set, not blended (tools/gen_ui_palettes.py) */
-        ux.mid = ux.sel = ux.key = ux.rec = p->text;   /* a selection, a keycap, REC: white, its INK black */
-        ux.dim = ux.line = ux.raise = ux.lane = UI_BW_GREY;   /* the one grey: inactive, tracks, wells */
+        ux.mid = ux.sel = ux.key = ux.key_w = ux.rec = p->text;   /* a selection, a keycap, REC: white, its INK black */
+        ux.dim = ux.line = ux.raise = ux.lane = ux.key_b = UI_BW_GREY;   /* the one grey: inactive, tracks, wells */
         ux.tint = ux.grid = p->bg;
     }
     ux.gen++;                                    /* the text ramps change with the coverage curve */
