@@ -1860,12 +1860,36 @@ int main(int argc, char **argv)
                 for (pg = 0; pg < 256; pg++)
                     splash_sig((uint32_t)pg, 0);
             sp = (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 256.0) * 1e6;
-            setup(S_HOME_VIZ); pal(1); draw(S_HOME_VIZ);
-            px_visited = n_text = 0;
+            {   /* the visualizer's own breakdown: HIGH against LOW, the difference being the embers
+                 * and the trace's sampling step (ui_being.c vz_step / vz_flares) */
+                double vh, vl;
+                setup(S_HOME_VIZ); pal(1); draw(S_HOME_VIZ); ui_viz_q = 0;
+                px_visited = n_text = 0;
+                c0 = clock();
+                for (i = 0; i < N * 4; i++) { ui.force = 1; draw_graph(); ui.force = 0; nscr = npend = 0; }
+                vh = (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 4) * 1e6;
+                ui_viz_q = 2;
+                c0 = clock();
+                for (i = 0; i < N * 4; i++) { ui.force = 1; draw_graph(); ui.force = 0; nscr = npend = 0; }
+                vl = (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 4) * 1e6;
+                ui_viz_q = 0;
+                fprintf(rep, "  splash: one written frame %.1f us; HOME's visualizer %.1f us a frame HIGH, "
+                             "%.1f us at LOW (the embers and the step)\n", sp, vh, vl);
+            }
+        {   /* the floor under the visualizer: its two 240 x 88 bands cleared and blitted with nothing
+             * drawn. If this is the cost, the page is blit-bound and no amount of drawing is cheaper. */
+            clock_t c0;
+            uint32_t bd;
             c0 = clock();
-            for (i = 0; i < N * 4; i++) { ui.force = 1; draw_graph(); ui.force = 0; nscr = npend = 0; }
-            fprintf(rep, "  splash: one written frame %.1f us; HOME's visualizer %.1f us a frame\n",
-                    sp, (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 4) * 1e6);
+            for (i = 0; i < N * 4; i++)
+                for (bd = 0; bd < 2u; bd++) {
+                    cv_begin(240, 88, T_BG);
+                    cv_blit(0, 26u + bd * 88u);
+                    nscr = npend = 0;
+                }
+            fprintf(rep, "  visualizer floor: the two bands alone %.1f us a frame\n",
+                    (double)(clock() - c0) / CLOCKS_PER_SEC / (N * 4) * 1e6);
+        }
         }
         {   /* the STEP page's piano roll: its panel alone redrawn, and a frame that changes nothing (the signature only) */
             static const int G[] = {S_ROLL_CHORDS, S_ROLL_PLAYING, S_DRUM};

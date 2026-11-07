@@ -2555,11 +2555,11 @@ static void graph_home_viz(uint16_t c)
                 int32_t sv = snap[(trig + (uint32_t)x) & (SCOPE_N - 1u)];
                 int32_t y = cy - (sv * amp) / peak;
                 y = clamp(y, cy - amp, cy + amp);
-                if (x) {
-                    uint16_t glow = mono ? T_DIM : ux_mix(T_SURF, heat_col(54 + (y > cy ? y - cy : cy - y) * 190 / amp), 38);
+                if (x) {                                 /* (1.7) one 2 px pass. The 3 px glow under it was a second
+                                                          * line per segment and a ux_mix per pixel of reach: measured
+                                                          * at 144 line calls a frame for a blur the panel cannot hold */
                     uint16_t core = mono ? T_TEXT : heat_col(76 + (y > cy ? y - cy : cy - y) * 178 / amp);
-                    cv_line_t(12 + x - 2, py, 12 + x, y, glow, 3);
-                    cv_line_t(12 + x - 2, py, 12 + x, y, core, 1);
+                    cv_line_t(12 + x - 2, py, 12 + x, y, core, 2);
                 }
                 py = y;
             }
@@ -2576,7 +2576,7 @@ static void graph_home_viz(uint16_t c)
         cv_rect(172, 97, 48, 1, T_LINE);
         if (peak > 1400) {
             int32_t px = 196, py = 98;
-            for (i = 0; i <= 64u; i += 2) {
+            for (i = 0; i <= 64u; i += 3) {             /* (1.7) every third sample: the orbit keeps its shape */
                 int32_t ox = 196 + (snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
                 int32_t oy = 98 + (snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
                 ox = clamp(ox, 168, 224);
