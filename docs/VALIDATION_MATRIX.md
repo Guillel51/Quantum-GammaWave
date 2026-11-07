@@ -145,3 +145,41 @@ what runs with the flash off.
 Even after that, a package built with the SDK present here would **not** be byte-reproducible against the
 reference: the SDK is not `AC79NN_SDK_V1.2.1`. Signing and releasing a package built against an unpinned SDK
 would make the signature cover an artefact that the project cannot rebuild, which is exactly what §5 forbids.
+
+## 11. Update — 2026-11-07, the RAM-code reserve met: the package builds
+
+The 316 B §10 was short by came from `2cfe514` (the FX echo train measured inside `always_inline`
+`fx_buses`, i.e. inside `fx_run0`), not from the visual work. Two measured attempts:
+
+| Attempt | RAM code | Verdict |
+|---|---|---|
+| walk the echo train per block on the peak the bus already takes (`dlpk`) | 23 028 B | **rejected**: 184 B *worse* than the per-sample walk and `dly_echo_test` failed; reverted |
+| `perf_begin` out of `HOT_FNS` (`244cc99`) | **22 144 B** (headroom **2 432 B**) | **kept** |
+
+`perf_begin` was in `.hot_text` as a placement assumption, not a requirement: the build's own check
+reports `.ram_text: 1 193 insns, no calls`, so no RAM code reaches it, and its only caller is the XIP
+block orchestrator — flash-off audio never depended on it being in RAM. The 2 048 B reserve is **not**
+relaxed; it is met with 384 B to spare.
+
+A second target-only defect surfaced here and is fixed in `7a3149f`: `cv_begin` cleared the frame with
+`memcpy` per row, and the AC791N build has **no libc**, so `string.h` does not exist and the link failed
+outright (`fatal error: 'string.h' file not found`). The row is now copied element by element.
+
+| Step | Result (class: AC791N build, host x86) |
+|---|---|
+| `./build.sh` | **pass**: image 565 424 B, `.data+.bss` 96 056 / 98 304, pool spare 9 248 B, RAM code 22 144 / 24 576 B, `.ram_text` 1 193 insns no calls |
+| `build/felucca.fwsc` | **produced**: 611 163 B, identity `FM-1_982`, record `dirty: []`, commit `7a3149f` |
+| `tools/build_manifest.py --verify` | **ok**: version, commit, config, artefacts and the emulator agree |
+| `tests/preflight_test.py` | **all passed** |
+| `tests/install_test.py` | **passed** (`logical_image / product_of == fm1pkg.js`, loader marker; the official V15 restore still skipped: no `FM-1_v15.fwsc`) |
+| `tests/target_budget.py build/felucca.dis` | **within budget**: every line at or under (`perf_block` 367/522, `rev_spring` 131/127, DRUM path 1 189/1 191) |
+| `NO_PACKAGE=1 ./tests/run_tests.sh` | **4 394 `ok`, 2 FAILED**, both in `web/test_provenance.mjs` §5 |
+
+The two failures are the site checks, and they fail *because a package now exists*: its manifest carries
+`emulator: null` (no `emcc` in this sandbox, so `web/emu/build.sh` cannot run), and `make_site.py` refuses a
+record whose emulator is not the same release — which is the rule working, not a test to relax. With no
+package in `build/`, the same block skips. They will pass in CI, where Emscripten is installed.
+
+Still **not** releasable, and not for software reasons: the SDK here is not `AC79NN_SDK_V1.2.1`, so the
+package is not byte-reproducible (§5); `tools/fm1_keys.json` pins no key, so an installer refuses it; and no
+emulator record can be produced without `emcc`.
