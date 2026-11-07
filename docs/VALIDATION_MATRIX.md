@@ -98,3 +98,28 @@ CI runs, and every software check that can run here passes — but nothing has r
 **GO for laboratory validation on a secondary unit**, with the caveats in
 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md): no signature custody yet, no anti-rollback, single-bank
 update window, and no raw flash backup path verified on hardware.
+
+## 9. Update — 2026-11-07, host-only pass at `66b8743`
+
+This section records only what was executed in that session, on this machine. Where it contradicts a
+claim above, this section is later and the claim is to be treated as historical.
+
+| Check | Label | Result |
+|-------|-------|--------|
+| Host suite, whole script | `[HOST]` | **pass**: `NO_PACKAGE=1 tests/run_tests.sh` → `ALL HOST TESTS PASSED`, exit 0, 4 984 `ok` lines |
+| install, backup CLI, web, provenance, M-Flasher, editor, project format, robustness | `[HOST]` | pass inside that run |
+| Verify Only | `[HOST]` | **101 checks, 0 FAILED** |
+| Signing / key custody / gate / chip / flash evidence | `[HOST]` | `sign_test.py` (39), `key_custody_test.py` (55), `gate_test.py` (14), `chip_test.py` (38), `flash_evidence_test.py` (16) all pass |
+| Render sweep | `[HOST]` | 173 screens × 17 palettes, **0 lint findings**, 2 643 176 alignment measurements, **0 off by 1 px** |
+| Render determinism | `[HOST]` | two runs of the same binary: **0 differing files** (the earlier "226 frames differ" was `git describe` changing `splash`/`about`/`about_rec`, not a layout change) |
+| Regression found and fixed | `[HOST]` | `card_edge` drew the card's side lines, the rolling value strip cleared them and did not repaint them: **5 `ui_test` checks failed**, the 150 000-frame soak counted **84 stale cards**. Fixed in `66b8743`; the whole suite passes again |
+| AC791N target build | `[TARGET]` | **not run today**: `JIELI_TOOLCHAIN` and `AC79_SDK` are unset in this sandbox and `build/` holds no `.fwsc`; `tools/build_manifest.py --verify` refuses (`no manifest`) |
+| Emulator rebuild | `[WASM]` | **not run today**: no `emcc`; `web/emu` has no built manifest in this tree |
+| Preflight | `[HOST]` | **not run**: refuses without `build/felucca.fwsc` (correct behaviour, not a failure) |
+| Production signature | `[STATIC]` | `tools/fm1_keys.json` still has `keys: {}` — no pinned public key, so every package is refused. Unchanged, and not faked |
+| Installer gate | `[STATIC]` + `[HOST]` | `canInstall` is `false` in every answer of `web/fm1verify.js` and the tests assert it (`test_verify_only.mjs`) |
+
+Rows 1–3, 7 (map for a specific unit), 8, 9, 12 (target RAM/CPU) and 13–14 of the 14-requirement matrix
+stay **NO-GO**: each needs a target build or a reading from the owner's unit, and neither exists in this
+environment. Row 11 (stress and stability) is **GO** on the host evidence above. Row 10 (protected write
+paths) stays **GO CONDITIONAL** on the same evidence as before.
