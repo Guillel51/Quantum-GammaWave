@@ -2562,6 +2562,12 @@ static void graph_home_viz(uint16_t c)
                 py = y;
             }
         }
+        /* (2.2) Note-reactive sparks, inside the scope field only. The pool has an owner now: the bay
+         * this screen hands in is the only place its sparks are drawn, so they never reach the header
+         * band, the spectrum floor or another page. Two canvas passes a frame draw, the pool advances once. */
+        vz_np_layer(VZ_OWN_VIZ);
+        gw_note_particles(12, 64, 144, 67);
+
         /* Phase plot: x(t) against x(t - tau), inside its own quiet reticle. */
         cv_rrect(164, 64, 64, 67, 3, T_SURF, T_GRID);
         cv_rect(196, 72, 1, 51, T_GRID);
@@ -2762,6 +2768,12 @@ static void graph_song(void)
 /* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
 static void graph_master(void)
 {
+    /* (2.2) the master VU's geometry: two long rows on the band under the graphs, right of the CLIP
+     * captions (x 108.. is free there; the lower boxes start at y 80, the captions end at y 66) */
+#define VU_X0 108
+#define VU_W 108
+#define VU_Y0 67
+#define VU_H 6
     cv_oy = 0;                                       /* this panel is laid out on its own 0..100 scale */
     if (str_eq(cur_page()->title, "STEREO M/S")) {     /* M/S width: the two sides separate with M-WIDE */
         int32_t wd = clamp(song.g[G_MWIDTH], 0, 127), off = 8 + wd * 52 / 127, i;
@@ -2821,25 +2833,40 @@ static void graph_master(void)
     cv_text_on(180, 57, &AF_S, duck ? "ON" : "OFF", duck ? T_ACCENT : T_DIM, T_SURF);
     cv_rrect(198, 16, 10, 38, 2, T_BG, T_RAISE);
     cv_rrect(199, 16, 8, clamp(drel, 0, 127) * 38 / 127, 2, T_THEME, T_BG);
-    /* OUT: two meters, one per DAC channel (audio.c audio_out_peak reads the scope's L and R history). It
-     * was one bar fed by bg_energy, which is the left channel: a part panned right moved nothing. */
+    /* OUT: the master's stereo VU. (2.2) It was two 7 x 38 px slivers at the far right -- the smallest
+     * meter on the panel, and the one figure the page could not read at a glance. The band under the three
+     * graphs was empty, so the meter lives there now: one long row per DAC channel (108 px of travel, the
+     * scale's quarters marked), a peak cap that holds and falls, and the page's own OUT caption, which reads
+     * CLIP while the lamp is latched. Every value is audio_out_peak(): the peak of the very ring the DAC
+     * just wrote (audio.c), so a part panned right moves its own row and nothing here is derived from the
+     * left channel, from a fader or from a shape drawn for the screen. */
     {
-        static uint8_t omp[2];                       /* the meters' px: instant rise, 1 a frame fall */
-        int32_t ch, live = 0;
+        static uint8_t vpx[2], vhold[2];             /* lit px and the held peak, per channel */
+        static uint8_t clip_hold;                    /* frames the CLIP lamp has left */
+        int32_t ch, k, live = 0;
         for (ch = 0; ch < 2; ch++) {
-            int32_t bx = 212 + ch * 9, px, h;
-            px = meter_px(audio_out_peak((uint32_t)ch)) * 36 / (TS_MH - 2);
-            if (px > (int32_t)omp[ch]) omp[ch] = (uint8_t)px;
-            else if (omp[ch] > 0u) omp[ch]--;
-            h = (int32_t)omp[ch];
-            if (h > 2) live = 1;
-            cv_rrect(bx, 16, 7, 38, 2, T_BG, T_RAISE);
-            for (i = 1; i < 38; i += 4)
-                cv_rect(bx + 1, 16 + i, 5, 1, T_RAISE);
-            if (h > 0)
-                cv_rrect(bx + 1, 53 - h, 5, h, 1, heat_col(80 + h * 160 / 36), T_BG);
+            int32_t pk = audio_out_peak((uint32_t)ch);
+            int32_t px = meter_px(pk) * VU_W / (TS_MH - 2);
+            int32_t y = VU_Y0 + ch * (VU_H + 1);
+            cv_rect(VU_X0, y, VU_W, VU_H, T_BG);
+            if (px > (int32_t)vpx[ch]) vpx[ch] = (uint8_t)px;       /* instant rise */
+            else if (vpx[ch] > 0u) vpx[ch]--;                       /* a px a frame back down */
+            if (px > (int32_t)vhold[ch]) vhold[ch] = (uint8_t)px;   /* the cap rises with the bar, */
+            else if (vhold[ch] > 2u) vhold[ch]--;                   /* then holds and falls a px a frame */
+            if (pk >= 32700) clip_hold = 90;                        /* full scale: the caption latches */
+            if (vpx[ch]) {
+                cv_rect(VU_X0, y, vpx[ch], VU_H, heat_col(70 + (int32_t)vpx[ch] * 150 / VU_W));
+                live = 1;
+            }
+            for (k = 3; k > 0; k--)                                 /* the scale's quarters, over the bar */
+                cv_rect(VU_X0 + k * VU_W / 4, y, 1, VU_H, T_BG);
+            if (vhold[ch] > 2)
+                cv_rect(VU_X0 + vhold[ch] - 2, y, 2, VU_H, T_TEXT);  /* the held peak */
         }
-        cv_text_on(208, 57, &AF_S, live ? "LIVE" : "OUT", live ? T_ACCENT : T_DIM, T_SURF);
+        if (clip_hold)
+            clip_hold--;
+        cv_text_on(208, 57, &AF_S, clip_hold ? "CLIP" : live ? "LIVE" : "OUT",
+                   clip_hold || live ? T_ACCENT : T_DIM, T_SURF);
     }
 
     /* (2.1) The band under the three graphs: the four figures the master actually moves, each in its own
