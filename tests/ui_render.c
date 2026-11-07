@@ -1667,6 +1667,40 @@ int main(int argc, char **argv)
     char path[600];
     uint32_t p, s;
     static const char *const SHOW[] = {"GREY", "MONO", "GREEN", "PAPER", "NIGHT", "THERMAL", "GAMMA", "WRAITH", "QUANTUM"};   /* (NIGHT: #50, to review) */
+    /* QG_DUMP=<screen>[,<palette>]: render one screen into /tmp/qg_dump.ppm for a visual review.
+     * It is the same draw() the suite measures, so what it shows is what the panel gets; the
+     * palette is an index into the generated table (13 QUANTUM, 15 CYBERPUNK, 16 NORDIC, 0 GREY,
+     * 9 MONO, ...). No effect on the measurements: the run exits right after the frame. */
+    if (getenv("QG_DUMP")) {
+        unsigned scr = 0u, pal_i = UI_QUANTUM_INDEX, yy, xx;
+        sscanf(getenv("QG_DUMP"), "%u,%u", &scr, &pal_i);
+        state();
+        setup(scr >= S_COUNT ? S_HOME : scr);
+        pal(pal_i);
+        if (getenv("QG_DUMP_FX")) {   /* the echo train as the bus measures it (tests/dly_echo_test),
+                                       * put in after setup so the page has something to draw */
+            static const int32_t T[6] = {15463, 6515, 2747, 1159, 489, 208};
+            int k;
+            for (k = 0; k < 6; k++) fx_dly_rep[k] = T[k];
+            fx_dly_gen = 2; fx_dly_frac = 96;
+        }
+        draw(scr >= S_COUNT ? S_HOME : scr);
+        {
+            FILE *f = fopen("/tmp/qg_dump.ppm", "wb");
+            if (!f) { fprintf(stderr, "cannot write /tmp/qg_dump.ppm\n"); return 1; }
+            fprintf(f, "P6 240 240 255\n");
+            for (yy = 0; yy < 240u; yy++)
+                for (xx = 0; xx < 240u; xx++) {
+                    uint16_t c = swap16(host_screen[yy * 240u + xx]);
+                    unsigned char rgb[3] = {(unsigned char)(((c >> 11) & 31) * 255 / 31),
+                                            (unsigned char)(((c >> 5) & 63) * 255 / 63),
+                                            (unsigned char)((c & 31) * 255 / 31)};
+                    fwrite(rgb, 1, 3, f);
+                }
+            fclose(f);
+        }
+        return 0;
+    }
     snprintf(path, sizeof path, "%s/report.txt", out);
     rep = fopen(path, "w");
     if (!rep) { fprintf(stderr, "cannot write %s\n", path); return 1; }

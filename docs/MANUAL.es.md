@@ -1117,6 +1117,10 @@ disponible mientras suena un tema (**STOP TO EDIT**). Guarda un solo paso, en RA
   hacia arriba un corte de graves que barre de ~70 Hz a ~3 kHz, los dos con un pico en el corte: las repeticiones se
   oscurecen o afinan y se angostan a una banda en cada pasada (estilo dub), y en los extremos con FEEDBK alto el lazo
   autooscila en esa banda.
+- La página **DLY** dibuja la **cadena de repeticiones** del último golpe: seis ranuras, una por eco, cada una a un
+  **TIME** de la anterior, con la altura medida por lo que la línea devuelve de verdad en esa ventana (no es un
+  medidor de volumen: sin ecos no hay barras, y dos repeticiones de igual fuerza se dibujan iguales sea cual sea el
+  MIX). La repetición que suena en este momento va marcada, y la caída de las barras es la de **FEEDBK**.
 - **DLY 2**: **WIDE** (el eco derecho más tarde), y el delay **GRAIN**: **PITCH** (±12 semitonos por repetición) y
   **SPRAY**. Con LOAD LITE o ECO el delay GRAIN suena como un delay común (la tarjeta dice LITE / ECO). **MOD**
   (0.6.86): la deriva de la cinta, WOW lento y FLUTTER rápido sobre las repeticiones (0, por defecto: nada, copias

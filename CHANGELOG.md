@@ -10,6 +10,61 @@
   ninguna variable de entorno ni bandera que aporte un chip o salte la firma. Probado con `mflasher_test.py`
   (32 comprobaciones, incluido el dump real importado y restaurado) y el resto de suites del gate. **Sigue sin
   habilitarse la instalación**: la clave de producción no está fijada y ningún requisito físico se demostró aquí.**
+- **HOME: los planetas existen, giran con el reloj y contestan a lo que suena.** El cuerpo de cada planeta se
+  dibujaba con un `span` que se recorría una sola vez y nunca volvía a subir: en la primera fila caía a 0 y
+  todas las demás filas lo heredaban, así que el planeta quedaba de 1 px y lo único visible era el disco de
+  atmósfera — de ahí los discos grises planos. Ahora el ancho de cada fila se recalcula por fila (raíz entera
+  de `r² - dy²`, sin libm), y el planeta se ve: terminador real orientado a la estrella (`lx`/`ly`), tres zonas
+  tonales en la cara iluminada, limbo oscuro de 1 px, anillo de atmósfera, especular y, en el más externo, el
+  anillo pasando por detrás. Tamaños 3/5/6 → **4/6/7** px con órbitas 15/25/34 → 16/26/34 y una velocidad
+  moderadamente mayor (7/5/4 unidades de 16 bits por ms: 9,4 s / 13,1 s / 16,4 s por vuelta). El movimiento es
+  una función de `fm1_ms`, no un acumulador por frame, así que no depende del frame rate ni de la energía del
+  audio y nunca salta. Los tres anillos salen de una tabla de 24 puntos (`gw_ring_tab`) en vez de 144 llamadas
+  a `sine_i` por frame, y los planetas se pintan ordenados por su `y` cuando pasan por delante de la estrella,
+  de modo que dos cuerpos que se cruzan no se leen como una mancha de dos colores. La reacción musical sigue
+  por parejas de pistas (1/4 → planeta 0, 2/5 → 1, 3/6 → 2): una nota suma excitación (aditiva: un acorde o
+  una nota rápida apilan, no reinician), que decae y mueve radio, calor, la estela sobre la órbita, chispas y
+  el destello de la estrella; ahora además calienta el propio anillo de la órbita. Coste medido en el host
+  (`build/host/ui_render`, cc -O1): HOME completo 154,7 → 173,1 µs (+12 %) y un frame sin `force` 44,3 → 49,8 µs,
+  para un 45 % más de píxeles de cuerpo (220 → 319) y bastante más detalle. **Verificado en host**, no en el
+  AC791N (aquí no hay toolchain pi32v2).
+- **FX > DLY: las barras son las repeticiones del delay, no un vúmetro.** El motor no publicaba ninguna señal de
+  eco, así que la página deducía "qué repetición suena" del nivel del envío y hacía botar las barras con el
+  retorno: eso es un medidor de volumen. `fx_buses` mide ahora, dentro de su propio bucle y sin asignaciones,
+  el pico que la línea devuelve en cada ventana de un tiempo de delay (`fx_dly_rep[0..5]`, `fx_dly_gen`,
+  `fx_dly_frac`): un golpe en el envío arma el tren, la repetición n aparece en la ventana n, cae con FEEDBK y
+  la ventana se cierra al terminar la sexta, con un decaimiento por bloque que llega a 0. La página (FX > DLY)
+  dibuja seis ranuras fijas y una barra por repetición que existió, con una sola tonalidad y la repetición que
+  suena marcada; sin ecos no hay barras. El audio no cambia: 220 renders dorados, **0 cambiados**. Nuevo
+  `tests/dly_echo_test.c` (en `run_tests.sh`): silencio → nada; la repetición 1 llega exactamente un TIME
+  después; FEEDBK 0 deja una sola pasada; FEEDBK 60 da cuatro repeticiones que caen ~42 % cada una; MIX 0 no
+  mide nada; el doble de MIX duplica los picos (la barra sigue al eco, no al nivel); PING-PONG igual; y tras
+  4 s de silencio todo vuelve a 0 (nada queda encendido). **Probado en host.**
+- **Punch-in FX: un teclado, dos grises, en los 17 temas.** Dos tokens nuevos derivados de cada paleta —
+  `T_KEYW` (66 % del fondo al texto) y `T_KEYB` (26 %) — sustituyen a la tecla blanca de keycap y a los agujeros
+  `T_BG` de las negras: las blancas son gris claro, las negras gris oscuro, con borde propio, canto iluminado y
+  borde inferior, y se distinguen entre sí en QUANTUM, CYBERPUNK, NORDIC, GREY, MONO y el resto. Una tecla
+  pulsada toma el acento con la tinta encima y una línea de tope; en GREY/MONO, donde el acento es el propio
+  texto, la pulsada va al gris oscuro con etiqueta clara, que es la única forma de que "pulsada" se distinga de
+  "blanca" en un tema sin color. `tests/theme_test.c` fija ahora el contraste etiqueta/gris claro, etiqueta/gris
+  oscuro y gris claro contra gris oscuro en cada paleta. **Verificado en host en las 17 paletas.**
+- **GLO > MONITOR: N/A cuando no hay medida, y las filas que faltaban.** `load_diag.valid` se activa la primera
+  vez que un bloque mide de verdad su tiempo, así que en el host y en el emulador WASM —donde `fm1_ticks()` no
+  avanza dentro del render— la carga dice **N/A** en vez de un 0 % que parecía una medición. La fila de buses
+  sigue ahí (con "N/A TK" cuando nadie la ha escrito) y junto a ella el aviso de TRIP cuando un bus se reinicia
+  fuera de rango. Dos filas nuevas con datos que cambian solos: **SEQ** (estado, paso y compás reales de la pista
+  seleccionada, `seq_src`/`bar_n`) y **FX RET** (los tres retornos medidos, `fx_vu[3..5]`, con "–" cuando un bus
+  nunca ha devuelto nada) más LATE/SHED. Todo se lee de contadores que el audio ya escribe: ni una consulta
+  costosa ni un cálculo dentro del hilo de audio.
+- **GREY y MONO quedan grises de verdad (el resto del camino).** La saturación por canal de `ux_mix` ya entró en
+  `73bd12c`; lo que faltaba era a quién le preguntan los gráficos de HOME: miraban `settings.palette` en vez de
+  `ux.bw` (el MONO que se está dibujando), así que una paleta MONO guardada seguía dibujando en color. Ahora
+  `bg_col`, `gw_embers` y el mini-knob leen `ux.mono || ux.bw`, y `tests/ui_render.c` cuenta **0** píxeles
+  tintados en GREY y MONO sobre las 173 pantallas.
+- **`ui_render` puede mirar una pantalla a ojo:** `QG_DUMP=<pantalla>[,<paleta>]` dibuja una sola pantalla con el
+  `draw()` real y escribe un PPM (y `QG_DUMP_FX` pone un tren de ecos medido en FX > DLY). Así se revisaron el
+  teclado nuevo, la página del delay y el monitor, pixel a pixel, en las 17 paletas.
+
 - **CI en verde con las causas reales, no con el workflow apagado:** los tres workflows llevaban rojos
   desde `d32a600` (antes de este trabajo) y el patrón común era un fallo enmascarado por
   `continue-on-error` o por un paso que nunca llegaba a ejecutarse. Causas encontradas y corregidas, cada

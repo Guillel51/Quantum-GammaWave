@@ -221,6 +221,11 @@ muted. On the **MIXER**, asleep tracks are greyed and say OFF.
 | SL PITCH | STEP | PITCH | LEN | QUANT |
 | DLY | TIME | FEEDBK | TONE | MIX |
 | DLY 2 | WIDE | PITCH | SPRAY | MOD |
+
+The **DLY** page draws the **echo train** of the last hit: six slots, one per repeat, each one **TIME** after the
+one before, its height measured from what the line really returns inside that window. It is not a level meter:
+with no echoes there are no bars, and two repeats of equal strength draw equally tall whatever MIX is doing. The
+repeat sounding right now is marked, and the fall of the bars is FEEDBK's own.
 | DLY 3 | TYPE (ANALOG / DIGITAL) | PING (OFF / ON) | — | — |
 | REVERB | TYPE | SIZE | DAMP (RESO: FOLLOW) | PRE (SHIMMER/CLOUD: AIR; RESO: PITCH) |
 | REVERB 2 | MOD | RATE | FILT | WIDE |
