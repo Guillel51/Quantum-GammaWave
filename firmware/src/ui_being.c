@@ -19,14 +19,23 @@ static int32_t bg_sin(uint32_t ang) { return sine_i(ang << 16); }   /* Q15 */
  * a note-on emits a small fan, a new note on a reused voice releases the old one, and
  * note-off emits a short outward burst. Bounded storage, no allocation, UI-side only.
  * The host's deterministic pixel tests set UI_NO_DRIFT, which also freezes these. */
+/* (2.2) the pool's owner, outside UI_NO_DRIFT: the constant and the setter exist in both builds */
+enum { VZ_OWN_NONE = 0, VZ_OWN_HOME, VZ_OWN_VIZ };
+static uint8_t vz_np_owner;
+static uint32_t vz_np_drawn = 0xFFFFFFFFu;   /* the frame the pool last advanced in (two passes: once) */
 #ifndef UI_NO_DRIFT
 #define UI_NO_DRIFT 0
 #endif
 #if !UI_NO_DRIFT
 #define VZ_NP_MAX 40
+/* (2.2) WHO a spark belongs to. The pool is one fixed array that every screen drawing sparks shares.
+ * Without an owner, a spark born on HOME was painted by whichever screen next drew the pool -- which is
+ * how they turned up over the EDIT ribbon's bands (CHR among them) and over the six cells under it. A
+ * spark is now drawn, and only advanced, by the screen that owns it, inside the rect that screen hands
+ * in; a spark that leaves that rect is dropped instead of being carried to another screen. */
 typedef struct {
     int16_t x, y, vx, vy;
-    uint8_t life, max, size;
+    uint8_t life, max, size, own;
     uint16_t col;
 } vz_np_t;
 typedef struct {
@@ -48,7 +57,9 @@ static void vz_np_add(int32_t x, int32_t y, int32_t vx, int32_t vy, uint16_t col
     p->life = p->max = life;
     p->size = size;
     p->col = col;
+    p->own = vz_np_owner;                            /* (2.2) the screen that gave birth to it */
 }
+static void vz_np_layer(uint8_t l) { vz_np_owner = l; }
 static void vz_np_scan(int32_t x0, int32_t y0, int32_t w, int32_t h)
 {
     uint32_t t, i;
@@ -95,27 +106,35 @@ static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
 {
     uint32_t i;
     int32_t l, top = y0 + 1, bot = y0 + h - 1;
+    int adv = ui.frame != vz_np_drawn;               /* (2.2) the full-screen visualizer draws two canvas
+                                                      * bands a frame: the pool advances once, both bands draw */
+    uint8_t own = vz_np_owner;
+    if (adv)
+        vz_np_drawn = ui.frame;
     vz_np_scan(x0, y0, w, h);
     for (i = 0; i < VZ_NP_MAX; i++) {
         vz_np_t *p = &vz_np[i];
         int32_t ox, oy;
-        if (!p->life)
+        if (!p->life || p->own != own)               /* (2.2) another screen's spark: not ours to move or draw */
             continue;
         ox = p->x;
         oy = p->y;
-        p->x = (int16_t)(p->x + p->vx / 2);
-        p->y = (int16_t)(p->y + p->vy / 2);
-        p->vy = (int16_t)clamp(p->vy + 1, -8, 8);
-        p->vx = (int16_t)clamp(p->vx * 15 / 16, -8, 8);
+        if (adv) {
+            p->x = (int16_t)(p->x + p->vx / 2);
+            p->y = (int16_t)(p->y + p->vy / 2);
+            p->vy = (int16_t)clamp(p->vy + 1, -8, 8);
+            p->vx = (int16_t)clamp(p->vx * 15 / 16, -8, 8);
+        }
         if (p->x < x0 - 2 || p->x > x0 + w + 2 || p->y < top - 2 || p->y > bot + 2) {
-            p->life = 0;
+            p->life = 0;                            /* out of its own bay: dropped, never carried elsewhere */
             continue;
         }
         l = 42 + (int32_t)p->life * 100 / p->max;
         if (ox >= x0 && ox < x0 + w && oy >= top && oy < bot && (ox != p->x || oy != p->y))
             cv_line(ox, oy, p->x, p->y, ux_mix(T_BG, p->col, l / 2));
         cv_rect(p->x, p->y, p->size, p->size, ux_mix(T_BG, p->col, l));
-        p->life--;
+        if (adv)
+            p->life--;
     }
 }
 #else
@@ -123,6 +142,7 @@ static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
  * nothing that would add to it must fail to compile because of that */
 static void vz_np_add(int32_t x, int32_t y, int32_t vx, int32_t vy, uint16_t col, uint8_t life, uint8_t size)
 { (void)x; (void)y; (void)vx; (void)vy; (void)col; (void)life; (void)size; }
+static void vz_np_layer(uint8_t l) { (void)l; }
 static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
 { (void)x0; (void)y0; (void)w; (void)h; }
 #endif
@@ -741,9 +761,13 @@ static void graph_being(const track_t *t)
         gw_hbar(128, by, 98, 6, 11, clamp(k[c], 0, 256), 72 + (int32_t)c * 36);
     }
 
-    /* 3. Lower Bay: WRAITH 6-Band Character Ribbon / 5-Band Vowel Ribbon */
+    /* 3. Lower Bay: WRAITH 6-Band Character Ribbon / 5-Band Vowel Ribbon.
+     * (2.2) The ribbon is a CONTROL: six bands with their names, their glyphs and a playhead. The note
+     * sparks used to be painted straight over it -- gw_note_particles(8, 86, 224, 32), the ribbon's own
+     * rect -- which is exactly why they appeared on CHR and on the cells under it, and why HOME's own
+     * gesture sparks landed there too (the pool had no owner). Nothing is drawn over the ribbon now: the
+     * sparks belong to HOME's bay and to the full-screen visualizer, each inside its own rect. */
     gw_draw_wraith_ribbon(t, 8, 86, 224, 32);
-    gw_note_particles(8, 86, 224, 32);
 }
 
 /* ============================================================================
@@ -799,6 +823,11 @@ static void graph_ecosys(void)
                 gw_disc(52, 92, 4 + (tot_en >> 7) + (int32_t)((24u - age) / 8u), bg_col(255));
         }
     }
+
+    /* (2.2) HOME's gesture sparks, inside the bay that owns them and nowhere else. They were emitted here
+     * since 2.0 but the only screen that drew the pool was EDIT, so they were painted on its ribbon. */
+    vz_np_layer(VZ_OWN_HOME);
+    gw_note_particles(8, 66, 88, 52);
 
     /* 3. Lower-Right Bay (x = 100..232, y = 66..118): HEARTH Physics Knobs (Heat/Sparks/Weight/Force) + 6 Track Pads */
     gw_oct_panel(100, 66, 132, 52, 4, T_BG, T_LINE, 1, T_ACCENT);
