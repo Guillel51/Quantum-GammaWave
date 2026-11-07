@@ -642,73 +642,99 @@ static void graph_grid(const track_t *t, uint16_t c)
     if (song.playing && seq_src(t, t->seq_idx) < len && seq_src(t, t->seq_idx) / 16u == ui.bank)
         cv_rect(40 + (int32_t)(seq_src(t, t->seq_idx) % 16u) * 12, y0 - 1, 10, 3, T_TEXT);
 }
-/* (QG-1) SCL: the scale on a real keyboard. The old screen drew seven 26 px white cells with the
- * accidental's name floating on a 40 px black bar, its active state as a separate 24 px chip at the
- * bottom of the key, and the black keys at hand-written x offsets (B_OFFSET 18 / 48 / 108 / ...): the
- * two halves did not line up and an in-scale note read in two places at once. Now one keyboard:
- *   - seven white keys, 30 px wide, 1 px apart, from x 12 to 228, y 24 to 92;
- *   - the five black keys 18 px wide, 42 px tall, centred on the seam after their white key (C# after C,
- *     D# after D, F# after F, ...), so every black key sits where a piano puts it;
- *   - an in-scale key is filled with the graph's colour (the track's accent), the root with T_ACCENT,
- *     the rest of the chromatic octave stays T_RAISE / T_BG: the mask the engine plays, drawn once;
- *   - the note name at the foot of each white key and inside each black key.
- * The title (ROOT + SCALE) is a full-width line over the keys, so it can never overlap a key again. */
+/* (QG-1 1.7) SCL: the scale on a real keyboard, in the 16-bit chrome HOME already speaks.
+ * Every key is a bevel -- a flat face, one lighter edge, one darker edge -- where the page
+ * used to paint flat rectangles, and the card uses its whole height: the footer line carries
+ * the two values this page owns (TRANS, CHORD), which is what used to leave the lower half of
+ * the card empty (measured: 60 px of nothing under the keys).
+ *   - seven white keys, 30 px wide and 1 px apart, from x 12 to 228, y 26 to 100;
+ *   - five black keys 18 px wide and 46 tall, centred on the seam after their white key, so
+ *     every accidental sits where a piano puts it;
+ *   - in the scale the face is the track's colour and the root the accent, with the degree
+ *     (1..7) written on the key; out of the scale the key stays recessed in the card;
+ *   - the title (ROOT + SCALE, QUANTIZED) sits above the keys, never on one.
+ * Every figure read here is the parameter the engine plays. */
+static int scl_degree(uint32_t mask, uint32_t root, uint32_t note)
+{
+    uint32_t k;
+    int d = 0;
+    for (k = 0; k < 12u; k++) {
+        uint32_t pc = (root + k) % 12u;
+        if (!((mask >> pc) & 1u))
+            continue;
+        if (pc == note)
+            return d + 1;
+        d++;
+    }
+    return 0;
+}
 static void graph_scale(const track_t *t, uint16_t c)
 {
     static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};   /* C C# D D# E F F# G G# A A# B */
     static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};    /* the white key it belongs to */
+    static const uint8_t W_NOTE[7] = {0, 2, 4, 5, 7, 9, 11};                   /* C D E F G A B */
     uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u;
-    const int32_t x0 = 12, kw = 30, kg = 1, y0 = 24, kh = 68, bw = 18, bh = 42;
+    const int32_t x0 = 12, kw = 30, kg = 1, y0 = 24, kh = 62, bw = 18, bh = 40;
+    char sb[24];
 
     if (ux.chamfer && !ux.style)
-        gw_oct_panel(8, 2, 224, 92, 5, T_BG, T_LINE, 1, c);
+        gw_oct_panel(8, 2, 224, 118, 5, T_BG, T_LINE, 1, c);
     else
-        cv_rrect(8, 2, 224, 92, 4, T_SURF, T_BG);
+        cv_rrect(8, 2, 224, 118, 4, T_SURF, T_BG);
 
-    /* the seven white keys */
-    for (i = 0; i < 7u; i++)
-        cv_rect(x0 + (int32_t)i * (kw + kg), y0, kw, kh, T_RAISE);
-    /* what the scale plays, on the naturals: the whole key lights, not a chip on it */
-    for (i = 0; i < 12u; i++) {
-        uint32_t deg = (i + 12u - root) % 12u;
-        int32_t kx = x0 + (int32_t)W_KEY[i] * (kw + kg);
-        if (BLACK[i])
-            continue;
-        if ((mask >> deg) & 1u) {
-            uint16_t col = deg == 0u ? T_ACCENT : c;
-            cv_rect(kx, y0, kw, kh, col);
-            cv_text_in(kx, y0 + kh - 15, kw, &AF_S, N_NOTE[i], T_INK, col);
-        } else {
-            cv_text_in(kx, y0 + kh - 15, kw, &AF_S, N_NOTE[i], T_DIM, T_RAISE);
+    /* the title line, above the keys */
+    str_cpy(sb, N_NOTE[root], sizeof sb);
+    str_cpy(sb + str_len(sb), " ", 2);
+    str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
+    cv_text_on(12, 7, &AF_S, sb, T_THEME, T_SURF);
+    if (t->p[P_QUANT])
+        cv_text_r(228, 7, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
+
+    /* the seven naturals: a bevel each, the scale's mask as their colour */
+    for (i = 0; i < 7u; i++) {
+        uint32_t note = W_NOTE[i], deg = (note + 12u - root) % 12u;
+        int32_t kx = x0 + (int32_t)i * (kw + kg);
+        int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
+        uint16_t face = in ? (is_root ? T_ACCENT : c) : T_SURF;
+        gw_bevel(kx, y0, kw, kh, face, ux_mix(face, T_TEXT, in ? 46 : 20), ux_mix(face, T_BG, in ? 34 : 62));
+        if (in) {
+            int dg = scl_degree(mask, root, note);
+            char db[4];
+            fmt_int(db, dg);
+            cv_text_on(kx + 3, y0 + 3, &AF_S, db, T_INK, face);
         }
+        cv_text_in(kx, y0 + kh - 15, kw, &AF_S, N_NOTE[note], in ? T_INK : T_DIM, face);
     }
-    /* the five accidentals, over the seam they belong to */
+    /* the five accidentals, bevels too, over the seam they belong to */
     for (i = 0; i < 12u; i++) {
         uint32_t deg = (i + 12u - root) % 12u;
         int32_t kx;
         int in, is_root;
-        uint16_t fill, ink;
+        uint16_t face, ink;
         if (!BLACK[i])
             continue;
         kx = x0 + (int32_t)W_KEY[i] * (kw + kg) + kw + kg / 2 - bw / 2;
         in = (mask >> deg) & 1u;
-        is_root = deg == 0u;
-        fill = in ? (is_root ? T_ACCENT : c) : T_BG;
+        is_root = in && deg == 0u;
+        face = in ? (is_root ? T_ACCENT : c) : T_BG;
         ink = in ? T_INK : T_MID;
-        cv_rrect(kx, y0, bw, bh, 2, fill, T_BG);
-        cv_frame(kx, y0, bw, bh, in ? fill : T_LINE);
+        gw_bevel(kx, y0, bw, bh, face, ux_mix(face, T_TEXT, in ? 46 : 30), T_BG);
+        cv_rect(kx, y0 + bh, bw, 2, T_BG);            /* its shadow on the naturals */
         GFX_HOOK_ALIGN(kx, y0, kx + bw, y0 + bh, AL_HV, "SCL accidental name in its key");
-        cv_text_in(kx, y0 + CAP_IN(S, bh), bw, &AF_S, N_NOTE[i], ink, fill);
+        cv_text_in(kx, y0 + CAP_IN(S, bh), bw, &AF_S, N_NOTE[i], ink, face);
     }
-    /* the title line: ROOT + SCALE at the left, QUANTIZED at the right, over the keys */
+
+    /* the footer: what this page's two other values are, so the card is not half empty */
+    cv_rect(12, 89, 216, 1, T_LINE);
     {
-        char sb[24];
-        str_cpy(sb, N_NOTE[root], sizeof sb);
-        str_cpy(sb + str_len(sb), " ", 2);
-        str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
-        cv_text_on(12, 8, &AF_S, sb, T_THEME, T_SURF);
-        if (t->p[P_QUANT])
-            cv_text_r(228, 8, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
+        char fb[24], tb[8];
+        fmt_int(tb, t->p[P_TRANS]);
+        str_cpy(fb, "TRANS ", sizeof fb);
+        str_cpy(fb + str_len(fb), t->p[P_TRANS] > 0 ? "+" : "", 2);
+        str_cpy(fb + str_len(fb), tb, sizeof fb - str_len(fb));
+        cv_text_on(12, 91, &AF_S, fb, T_MID, T_SURF);
+        cv_text_r(228, 91, &AF_S, t->p[P_CHRD] ? "CHORD ON" : "CHORD OFF",
+                  t->p[P_CHRD] ? T_ACCENT : T_DIM, T_SURF);
     }
 }
 static void panel_note(const char *a, const char *b, const char *c);
@@ -2525,13 +2551,11 @@ static void graph_home_viz(uint16_t c)
             cv_text(14, 30, &AF_S, "QG-1 QUANTUM SCOPE", T_THEME);
             cv_text_r(226, 30, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
             cv_rect(14, 43, 212, 1, T_LINE);
-            for (i = 0; i < trk_live && i < 6u; i++) {
-                int32_t vx = 16 + (int32_t)i * 35;
-                int32_t vpk = trk[i].peak > 0 ? trk[i].peak * 18 / 32767 : 0;
-                vpk = clamp(vpk, 0, 18);
-                cv_rect(vx, 49, 22, 3, T_RAISE);
-                if (vpk > 0)
-                    cv_rect(vx, 49, vpk, 3, i == song.sel ? T_ACCENT : T_THEME);
+            for (i = 0; i < trk_live && i < 6u; i++) {   /* (1.7) seven blocks a track, the 16-bit meter */
+                int32_t vx = 16 + (int32_t)i * 35, k;
+                int32_t nb = trk[i].peak > 0 ? clamp(trk[i].peak * 7 / 32767, 0, 7) : 0;
+                for (k = 0; k < 7; k++)
+                    cv_rect(vx + k * 3, 49, 2, 3, k < nb ? (i == song.sel ? T_ACCENT : T_THEME) : T_RAISE);
             }
         }
 
@@ -2547,6 +2571,8 @@ static void graph_home_viz(uint16_t c)
             cv_rect(12 + (int32_t)i * 48, 64, 1, 66, T_GRID);
         cv_rect(12, 64, 144, 1, T_GRID);
         cv_rect(12, 130, 144, 1, T_GRID);
+        for (i = 0; i < 18u; i++)                        /* (1.7) the field's scale, every 8 px */
+            cv_rect(12 + (int32_t)i * 8, 126, 1, 4, T_GRID);
         {
             int32_t py = cy, x;
             for (x = 0; x <= 144; x += 2) {
@@ -2587,13 +2613,12 @@ static void graph_home_viz(uint16_t c)
         /* Spectrum floor: 16 slim bars, with peak marks, below the trace. */
         cv_rect(12, 180, 216, 1, T_LINE);
         for (i = 0; i < 16u; i++) {
-            int32_t bx = 14 + (int32_t)i * 13, bh = bars[i] * 26 / 34;
-            if (bh > 0) {
-                uint16_t bcol = mono ? T_TEXT : heat_col(38 + (int32_t)i * 13);
-                cv_rect(bx, 179 - bh, 9, bh, bcol);
-            }
+            int32_t bx = 14 + (int32_t)i * 13, bh = bars[i] * 26 / 34, ph = (int32_t)peak_decay[i] * 26 / 34;
+            /* (1.7) the floor is a 16-bit meter: 2 px blocks with the scale always drawn, and the
+             * peak a 1 px cap over it. A solid bar hid how loud the band was, not just that it was. */
+            gw_seg_v(bx, 153, 9, 26, bh, 2, mono ? T_TEXT : heat_col(38 + (int32_t)i * 13), T_RAISE);
             if (peak_decay[i] > 1)
-                cv_rect(bx, 179 - (int32_t)peak_decay[i] * 26 / 34 - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
+                cv_rect(bx, 152 - ph, 9, 1, mono ? T_TEXT : T_ACCENT);
             /* an ambient scan tick: a UI marker, never presented as measured level */
             if (!song.playing && (uint32_t)((ui.frame / 6u + i) % 16u) == 0u)
                 cv_rect(bx + 4, 181, 1, 2, T_DIM);

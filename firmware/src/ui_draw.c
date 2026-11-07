@@ -1421,139 +1421,109 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     uint32_t sig;
     (void)ms;
     /* One signature per progress step: the hold is still a single static frame, while every
-     * step of the written part moves the depth field, the core sparks and the waves. */
+     * step of the written part moves the field, the core and the rail. */
     sig = 0x51470000u | (mono ? 0x01000000u : 0u) | (prog << 8);
     if (sig == spl_shown)
         return;
     spl_shown = sig;
     cv_begin(240, SPL_ART_H, T_BG);
-    cv_rrect(4, 2, 232, SPL_ART_H - 10, 10, card, T_BG);
 
-    /* corner brackets and a hairline: the same quiet instrument frame as HOME */
-    cv_rect(12, 8, 14, 1, rule);
-    cv_rect(12, 8, 1, 10, rule);
-    cv_rect(214, 8, 14, 1, rule);
-    cv_rect(227, 8, 1, 10, rule);
-    cv_rect(12, 108, 216, 1, T_LINE);
+    /* (1.7) The splash is the instrument's face, not a poster: the whole band is one plate in
+     * the same 16-bit chrome the bays use -- a face, a lighter edge, a shadow -- and every mark
+     * on it is a function of prog. The old one left the top and the bottom of the band black,
+     * floated the wordmark in the star field and closed with a hairline rail (measured: 96 px of
+     * the 124 were empty, and the card covered 114 of them). */
+    gw_bevel(4, 2, 232, SPL_ART_H - 6, card, ux_mix(card, T_TEXT, mono ? 40 : 16), T_BG);
 
-    /* a deep field: three parallax layers of stars, plus a few short trails. All of it is
-     * derived from the progress, so it is identical on the host and the target. */
-    for (i = 0; i < 44; i++) {
+    /* the header: what is starting, and how far it has got (the boot's own progress) */
+    cv_text_on(10, 6, &AF_S, "BOOT", T_MID, card);
+    {
+        char pb[8];
+        fmt_int(pb, prog * 100 / 256);
+        str_cpy(pb + str_len(pb), "%", 2);
+        cv_text_r(228, 6, &AF_S, pb, rule, card);
+    }
+    cv_rect(10, 18, 220, 1, T_LINE);
+
+    /* the star field: three parallax layers, behind everything, derived from the progress */
+    for (i = 0; i < 34; i++) {
         uint32_t h = spl_hash((uint32_t)i + 1u);
-        int32_t depth = 1 + (int32_t)(h >> 29);      /* 1..8: nearer stars drift farther */
+        int32_t depth = 1 + (int32_t)(h >> 29);
         int32_t sx = 12 + (int32_t)(((h >> 8) % 216u + (uint32_t)(prog * (uint32_t)depth / 9u)) % 216u);
-        int32_t sy = 8 + (int32_t)(((h >> 16) % 96u + (uint32_t)(prog * (uint32_t)(depth + 2) / 28u)) % 96u);
+        int32_t sy = 24 + (int32_t)(((h >> 16) % 78u + (uint32_t)(prog * (uint32_t)(depth + 2) / 34u)) % 78u);
         uint16_t sc = mono ? (depth > 4 ? T_TEXT : T_DIM)
                            : ux_mix(card, bg_col(58 + depth * 22 + (int32_t)((h >> 4) & 31)), 28 + depth * 5);
         int32_t sz = (depth >= 7 && (h & 7u) == 0u) ? 2 : 1;
-        if (sx > 8 && sx < 231 && sy > 8 && sy < 108)
+        if (sx > 8 && sx < 231 && sy > 22 && sy < 104)
             cv_rect(sx, sy, sz, sz, sc);
-        if ((i % 9) == 0 && sx > 8 && sx < 231 && sy > 12 && sy < 106)
-            cv_rect(sx, sy - 2, 1, 2, mono ? T_DIM : ux_mix(card, T_THEME, 35));
     }
 
-    /* the wordmark: seven block letters, built by the same glyphs as the QG logo; the
-     * letters rise into place one after another instead of appearing as a static block */
+    /* the wordmark on its plate: seven block letters rising into place, one after another */
+    gw_bevel(8, 22, 126, 24, ux_mix(card, T_BG, mono ? 0 : 40), T_LINE, T_BG);
     for (i = 0; i < 7; i++) {
-        int32_t at = 10 + i * 10;
+        int32_t at = 8 + i * 9;
         if ((int32_t)prog >= at) {
             int32_t slide = (int32_t)prog - at;
-            int32_t ly = 15 + (slide < 18 ? (18 - slide) / 3 : 0);
-            gw_logo_letter("QUANTUM"[i], 104 + i * 17, ly, 14, 16,
+            int32_t ly = 26 + (slide < 16 ? (16 - slide) / 3 : 0);
+            gw_logo_letter("QUANTUM"[i], 12 + i * 17, ly, 13, 15,
                            mono ? T_TEXT : (i == 0 ? T_ACCENT : T_THEME));
         }
     }
-    cv_rect(104, 35, 120, 1, T_LINE);
+    cv_rect(8, 48, 126, 1, T_LINE);              /* the plate's rule fills with the progress */
     if (prog > 0u)
-        cv_rect(104, 35, (int32_t)(120u * prog / 256u), 1, rule);
+        cv_rect(8, 48, (int32_t)(126u * prog / 256u), 1, rule);
 
-    {   /* the quantum core: a solar disc, its corona, three orbits and travelling electrons */
-        int32_t cx = 57, cy = 65;
+    {   /* the core: a dithered disc under three orbit rings, one electron on each */
+        int32_t cx = 46, cy = 66;
         if (mono) {
-            gw_disc(cx, cy, 32, T_RAISE);
-            gw_disc(cx, cy, 24, T_DIM);
+            gw_disc(cx, cy, 20, T_RAISE);
+            gw_disc(cx, cy, 14, T_DIM);
         } else {
-            for (i = 3; i >= 0; i--)
-                gw_disc(cx, cy, 32 - i * 6, ux_mix(card, bg_col(52 + (3 - i) * 34), 58 - i * 9));
+            gw_dither(cx - 20, cy - 20, 41, 41, ux_mix(card, bg_col(52), 30), ux_mix(card, bg_col(120), 40), 30);
+            gw_disc(cx, cy, 16, ux_mix(card, T_THEME, 34));
+            gw_disc(cx, cy, 8, ux_mix(card, T_ACCENT, 70));
         }
-        gw_orbit_ring(cx, cy, 46, 46, mono ? T_DIM : T_LINE, 1);
-        gw_orbit_ring(cx, cy, 38, 38, mono ? T_TEXT : T_THEME, 0);
-        gw_orbit_ring(cx, cy - 1, 18, 18, mono ? T_TEXT : T_ACCENT, 0);
-        cv_line_t(cx + 7, cy + 6, cx + 19, cy + 18, mono ? T_TEXT : T_ACCENT, 3);
-        gw_disc(cx, cy - 1, 3, card);
+        gw_orbit_ring(cx, cy, 30, 30, mono ? T_DIM : T_LINE, 1);
+        gw_orbit_ring(cx, cy, 24, 24, mono ? T_TEXT : T_THEME, 0);
+        gw_orbit_ring(cx, cy, 12, 12, mono ? T_TEXT : T_ACCENT, 0);
         {
             uint32_t an = (uint32_t)(24 + prog * 5u) << 6;
-            int32_t ex = cx + (int32_t)((46 * bg_sin((int32_t)an)) >> 15);
-            int32_t ey = cy - (int32_t)((46 * bg_sin((int32_t)an + 0x4000)) >> 15);
-            int32_t ex2 = cx + (int32_t)((39 * bg_sin((int32_t)an + 0x8000)) >> 15);
-            int32_t ey2 = cy - (int32_t)((39 * bg_sin((int32_t)an + 0xC000)) >> 15);
-            int32_t k;
-            for (k = 1; k <= 3; k++) {                /* the electrons leave a short trail */
-                int32_t tr = k * 4;
-                int32_t tx = cx + (int32_t)(((46 - tr) * bg_sin((int32_t)an - k * 900)) >> 15);
-                int32_t ty = cy - (int32_t)(((46 - tr) * bg_sin((int32_t)an - k * 900 + 0x4000)) >> 15);
-                cv_rect(tx, ty, 2, 2, mono ? T_DIM : ux_mix(card, T_ACCENT, 60 - k * 12));
-            }
-            gw_disc(ex, ey, 4, mono ? T_TEXT : T_ACCENT);
+            int32_t ex = cx + (int32_t)((30 * bg_sin((int32_t)an)) >> 15);
+            int32_t ey = cy - (int32_t)((30 * bg_sin((int32_t)an + 0x4000)) >> 15);
             gw_disc(ex, ey, 2, mono ? T_TEXT : T_ACCENT);
             if (prog > 48u) {
-                gw_disc(ex2, ey2, 3, mono ? T_DIM : T_THEME);
-                cv_line_t(ex, ey, ex2, ey2, mono ? T_TEXT : T_LINE, 1);
+                int32_t ex2 = cx + (int32_t)((24 * bg_sin((int32_t)an + 0x8000)) >> 15);
+                int32_t ey2 = cy - (int32_t)((24 * bg_sin((int32_t)an + 0xC000)) >> 15);
+                gw_disc(ex2, ey2, 1, mono ? T_DIM : T_THEME);
             }
-        }
-        /* sparks with depth: their angle and distance both advance with the progress */
-        for (i = 0; i < 32; i++) {
-            uint32_t h = spl_hash((uint32_t)i + 0x51u);
-            int32_t rr = 34 + (int32_t)(((h >> 8) + (uint32_t)prog * (2u + (uint32_t)(i % 3))) % 42u);
-            int32_t px = cx + (int32_t)((rr * bg_sin((h >> 16) + 0x2000 + prog * 170u)) >> 15);
-            int32_t py = cy - (int32_t)((rr * bg_sin((h >> 16) + prog * 170u)) >> 15);
-            int32_t br = 70 + (int32_t)((h >> 4) & 63) + (32 - i) * 2;
-            if (px > 8 && px < 228 && py > 8 && py < 108)
-                cv_rect(px, py, (i % 7 == 0 || rr > 70) ? 2 : 1, (i % 7 == 0 || rr > 70) ? 2 : 1,
-                        mono ? T_DIM : ux_mix(card, i % 3 ? T_THEME : T_ACCENT, br > 160 ? 160 : br));
-        }
-        /* solar ticks: heat radiating from the core, with a longer flare every third one */
-        for (i = 0; i < 12; i++) {
-            int32_t rr = 51 + (i % 3) * 3;
-            int32_t tx = cx + (int32_t)((rr * bg_sin(i * 5461 + 0x2000 + prog * 90u)) >> 15);
-            int32_t ty = cy - (int32_t)((rr * bg_sin(i * 5461 + prog * 90u)) >> 15);
-            if (i % 3 == 0) {
-                int32_t tx2 = cx + (int32_t)(((rr + 5) * bg_sin(i * 5461 + 0x2000 + prog * 90u)) >> 15);
-                int32_t ty2 = cy - (int32_t)(((rr + 5) * bg_sin(i * 5461 + prog * 90u)) >> 15);
-                cv_line_t(tx, ty, tx2, ty2, mono ? T_DIM : T_THEME, 1);
-            }
-            cv_rect(tx, ty, 2, 2, mono ? T_DIM : (i % 2 ? T_ACCENT : T_THEME));
         }
     }
 
-    /* three waves write themselves under the wordmark, the middle one carrying the accent */
+    /* three waves write themselves to the right of the core, the middle one in the accent */
     for (i = 0; i < 3; i++) {
-        int32_t w = (int32_t)(prog * 122u / 256u), ax = 104, ay = 52 + i * 15;
+        int32_t w = (int32_t)(prog * 124u / 256u), ax = 96, ay = 56 + i * 12;
         int32_t ph = i * 100 + (int32_t)(prog * 3u);
         for (x = 0; x < w; x++) {
-            y = ay + (int32_t)((6 * bg_sin((x * 300 + ph * 64) & 0xFFFF)) >> 15);
-            cv_rect(ax + x, y, 1, 2, mono ? (i == 1 ? T_TEXT : T_DIM) : (i == 1 ? T_ACCENT : T_THEME));
+            y = ay + (int32_t)((5 * bg_sin((x * 300 + ph * 64) & 0xFFFF)) >> 15);
+            cv_rect(ax + x, y, 2, 2, mono ? (i == 1 ? T_TEXT : T_DIM) : (i == 1 ? T_ACCENT : T_THEME));
         }
     }
 
-    /* a scan line follows the writing edge without leaving the panel */
-    {
-        int32_t scan = 10 + (int32_t)(prog * 94u / 256u);
-        cv_rect(12, scan, 216, 1, mono ? T_DIM : ux_mix(card, T_ACCENT, 22));
-    }
+    /* the horizon the rail grows out of: one dithered band, two colours in 16 fixed steps */
+    gw_dither(12, 90, 216, 4, card, mono ? T_RAISE : ux_mix(card, T_THEME, 30), 34);
 
-    /* the spectral horizon: sixteen segments rise from the baseline as the boot advances */
-    cv_rect(24, 104, 190, 1, T_LINE);
+    /* the rail: sixteen beveled blocks, each filled as far as the boot has written it */
+    cv_rect(12, 96, 216, 1, T_LINE);
     for (i = 0; i < (int32_t)SPL_BARS; i++) {
         int32_t grow = 8 + (int32_t)(prog * 9u / 256u);
-        int32_t h = SPL_BAR[i] * grow / 38;
-        int32_t bx = 25 + i * 12;
+        int32_t h = 3 + SPL_BAR[i] * grow / 60;
+        int32_t bx = 13 + i * 13;
         uint16_t bc = mono ? (i < lit ? T_TEXT : T_DIM)
                            : (i < lit ? ((uint32_t)i + 1u == (uint32_t)lit ? T_ACCENT : T_THEME) : T_LINE);
-        cv_rrect(bx, 103 - h, 8, h, 2, bc, card);
+        gw_bevel(bx, 95 - h, 9, h, bc, ux_mix(bc, T_TEXT, 40), ux_mix(bc, T_BG, 45));
     }
     if (prog < 256u)
-        gw_disc(25 + (int32_t)(prog * 184u / 256u), 106, 3, mono ? T_TEXT : T_ACCENT);
+        gw_disc(13 + (int32_t)(prog * 196u / 256u), 99, 3, mono ? T_TEXT : T_ACCENT);
     cv_blit(0, SPL_SY);
 }
 static void draw_splash(void)
