@@ -22,7 +22,6 @@ typedef struct {
 } aafont_t;
 typedef struct { const char *name; uint16_t bg, surf, text, theme, accent; } ui_pal_t;
 typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
-#include <string.h>                      /* memcpy: the canvas clear copies one row at a time */
 #include "ui_fonts.h"                   /* AF_S 12 px / 400, AF_M 15 px / 500, AF_L 28 px / 600 */
 #include "ui_palettes.h"
 #include "ui_keycaps.h"                 /* KC_*: the keycaps / badges (tools/gen_aa_keycaps.py), KNOB_* arcs */
@@ -217,8 +216,11 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
         } else {
             for (i = 0; i < w; i++)
                 row[i] = s;
-            for (y = 0; y < h; y++)
-                memcpy(cv_px + y * w, row, w * sizeof row[0]);
+            for (y = 0; y < h; y++) {                /* (the target has no libc: the row is copied here) */
+                uint16_t *d = cv_px + y * w;
+                for (i = 0; i < w; i++)
+                    d[i] = row[i];
+            }
         }
     }
 }
