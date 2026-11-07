@@ -118,13 +118,19 @@ static uint16_t ux_mix(uint16_t a, uint16_t b, int32_t pct)
 {
     static const uint8_t SH[3] = {11, 5, 0}, MK[3] = {31, 63, 31};
     uint32_t out = 0, k;
+    /* pct may overshoot 100 % on purpose (a spark, a rim that pops): every channel saturates at its
+     * own width here, because an unclamped 5-bit result shifts its bits into the next channel and a
+     * GREY or MONO screen ends up with a coloured pixel (648 of them in tests/ui_render.c). */
     if (ux.mono) {
-        int32_t x = a >> 11, d = ((b >> 11) - x) * pct;
-        return ux_gray((uint32_t)(x + (d + (d >= 0 ? 50 : -50)) / 100));
+        int32_t x = a >> 11, d = ((b >> 11) - x) * pct, v = x + (d + (d >= 0 ? 50 : -50)) / 100;
+        return ux_gray((uint32_t)(v < 0 ? 0 : v > 31 ? 31 : v));
     }
     for (k = 0; k < 3u; k++) {
         int32_t x = (a >> SH[k]) & MK[k], d = (((b >> SH[k]) & MK[k]) - x) * pct;
-        out |= (uint32_t)(x + (d + (d >= 0 ? 50 : -50)) / 100) << SH[k];
+        int32_t v = x + (d + (d >= 0 ? 50 : -50)) / 100;
+        if (v < 0) v = 0;
+        if ((uint32_t)v > MK[k]) v = MK[k];
+        out |= (uint32_t)v << SH[k];
     }
     return (uint16_t)out;
 }
