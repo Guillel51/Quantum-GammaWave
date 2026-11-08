@@ -270,8 +270,14 @@ jobs:
           fetch-depth: 0
       - name: the committed release is signed by the pinned key and describes this tree
         run: |
-          python3 -m pip install --quiet cryptography
-          python3 tools/fm1_sign.py verify release/felucca-v1.9.0.fwsc \
+          # Ubuntu 24.04 marks its system Python as externally managed, so a bare `pip install` fails
+          # there; a venv is the reliable way to get `cryptography` for the verifier.
+          PY=python3
+          if ! python3 -c 'import cryptography' >/dev/null 2>&1; then
+            python3 -m venv /tmp/qgvenv && /tmp/qgvenv/bin/pip install --quiet cryptography
+            PY=/tmp/qgvenv/bin/python
+          fi
+          "$PY" tools/fm1_sign.py verify release/felucca-v1.9.0.fwsc \
               --manifest release/felucca-v1.9.0.manifest.json \
               --build-manifest release/build-manifest.json
       - name: hashes, identity, version and the record agree with the files
@@ -305,6 +311,8 @@ jobs:
           print(f"release: {sha} v1.9.0 FM-1_982 from {r['commit'][:7]}, signature and record agree")
           PY
       - name: tag v1.9.0 at the commit the package was built from
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           COMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
           if git rev-parse -q --verify refs/tags/v1.9.0 >/dev/null; then
@@ -313,7 +321,10 @@ jobs:
             echo "tag v1.9.0 already points at the record's commit"
           else
             git tag -a v1.9.0 "$COMMIT" -m "Quantum GammaWave v1.9.0"
-            git push origin refs/tags/v1.9.0
+            # the checkout's token pushes the tag; the API is the fallback when it cannot, and it is
+            # the same trust decision either way: the tag points at the commit the package names
+            git push origin refs/tags/v1.9.0 ||
+              gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v1.9.0" -f sha="$COMMIT" >/dev/null
             echo "tag v1.9.0 created at $COMMIT"
           fi
       - name: the GitHub Release carries the signed package, its manifest and the record
@@ -333,5 +344,7 @@ jobs:
         run: |
           mkdir -p /tmp/dl && gh release download v1.9.0 --dir /tmp/dl --clobber
           cd /tmp/dl && sha256sum -c "$GITHUB_WORKSPACE/release/SHA256SUMS"
-          python3 "$GITHUB_WORKSPACE/tools/fm1_sign.py" verify felucca-v1.9.0.fwsc \
+          PY=python3
+          python3 -c 'import cryptography' >/dev/null 2>&1 || PY=/tmp/qgvenv/bin/python
+          "$PY" "$GITHUB_WORKSPACE/tools/fm1_sign.py" verify felucca-v1.9.0.fwsc \
               --manifest felucca-v1.9.0.manifest.json --build-manifest build-manifest.json
