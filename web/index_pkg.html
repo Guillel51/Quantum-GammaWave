@@ -440,13 +440,13 @@
       <p class="small" id="vrep-missing" style="margin:8px 0 0;color:var(--muted)"></p>
       <p class="small" id="vrep-install" style="margin:6px 0 0;color:var(--muted)"></p>
       <details id="vrep-mflasher" style="margin-top:10px;padding:8px 10px;border:1px dashed var(--border);border-radius:4px" hidden>
-        <summary style="cursor:pointer;font-weight:600;color:var(--accent)" id="vrep-mflasher-title">🛡️ Respaldo no destructivo previo (M-Flasher 0.9.1)</summary>
+        <summary style="cursor:pointer;font-weight:600;color:var(--accent)" id="vrep-mflasher-title">🛡️ Respaldo no destructivo previo (M-Flasher 0.9.x / 0.9.4)</summary>
         <div class="small" style="margin-top:6px;line-height:1.5" id="vrep-mflasher-body">
           <p style="margin:4px 0">Para habilitar la instalación de forma segura sobre un equipo en firmware de fábrica (V15/V16), debe existir un respaldo íntegro de 1 MiB de la memoria flash.</p>
           <ol style="margin:4px 0;padding-left:20px">
             <li>Encender el FM-1 en modo <b>ROM UBOOT</b> manteniendo presionadas las teclas <code>OCT-</code> + <code>OCT+</code> + <code>HOME</code> mientras se conecta el cable USB (o enviar SysEx <code>F0 22 24 35 7D F7</code>).</li>
             <li>El dispositivo enumerará como unidad SCSI <code>WL82 UBOOT1.00</code> en su sistema operativo.</li>
-            <li>Ejecutar la herramienta comunitaria <b>M-Flasher 0.9.1</b> para volcar la flash:
+            <li>Ejecutar la herramienta comunitaria <b>M-Flasher 0.9.4</b> (o 0.9.x) para volcar la flash:
               <br><code style="background:var(--bg);padding:2px 4px;border:1px solid var(--border)">m-flasher read --out backup_fm1_stock.bin --size 1M</code></li>
             <li>Este volcado es <b>100% de solo lectura</b> (ejecuta un loader en SRAM volátil sin escribir en la flash).</li>
             <li>Guarde el archivo <code>backup_fm1_stock.bin</code> en un lugar seguro antes de proceder.</li>

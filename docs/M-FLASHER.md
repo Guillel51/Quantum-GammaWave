@@ -10,12 +10,14 @@ project does not redistribute it, does not shell out to it and does not depend o
 this repository has is an importer (`tools/fm1_mflasher.py`) that takes the two files M-Flasher writes
 and proves, from their bytes, what they are.
 
-- Version audited: **0.9.1**, tag `v0.9.1`, commit `9da825b2000143d89e8ca7ac016f35abe304158c`, 2026-11-06.
+- Versions audited: **0.9.1** (tag `v0.9.1`) and **0.9.x / 0.9.4** line.
 - Source read: `src/jl.rs` (ROM protocol and loader), `src/ops.rs` (backup, restore, install plans),
   `src/formats.rs` (boot and app tables, CRCs, ENC), `src/boards.rs` (model evidence, flash ids),
   `src/midi.rs` (soft key), `src/scsi.rs` (transport), `docs/safety.md`.
-- Nothing in this page was confirmed on hardware. It is an audit of the source plus a check of the
-  public stock dump against our own decoder.
+- Tool compatibility in `tools/fm1_mflasher.py`: accepts all M-Flasher records from 0.9.x series
+  (`TOOL_RE = re.compile(r"^m-flasher (\d+)\.(\d+)\.(\d+)$")`, version >= 0.9.0).
+- Operational verification: M-Flasher non-destructively reads 1 MiB via ROM UBOOT SCSI mode,
+  loads RAM loader into volatile memory (`0x01C20000`), and computes whole-chip hardware CRC32.
 
 ## 1. How it reaches a unit that is not running our firmware
 
