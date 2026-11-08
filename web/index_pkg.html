@@ -435,6 +435,8 @@
       <dl id="vrep-rows" class="small" style="margin:0;display:grid;grid-template-columns:max-content 1fr;gap:4px 12px"></dl>
       <p class="small" id="vrep-verdict" style="margin:10px 0 4px;font-weight:600"></p>
       <dl id="vrep-gate" class="small" style="margin:0;display:grid;grid-template-columns:max-content max-content;gap:4px 12px"></dl>
+      <ul id="vrep-states" class="small" aria-label="states"
+          style="margin:10px 0 0;padding:0;list-style:none;display:grid;gap:2px"></ul>
       <p class="small" id="vrep-missing" style="margin:8px 0 0;color:var(--muted)"></p>
       <p class="small" id="vrep-install" style="margin:6px 0 0;color:var(--muted)"></p>
     </section>
@@ -885,6 +887,14 @@ const VF = {
     "state.unknown": "cannot be established without a write session",
     "state.not-here": "deliberately not done by verify only",
     "state.documented": "documented only, not demonstrated on this unit",
+    "st.DIAGNOSTIC READY": "the page ran and reported what it saw",
+    "st.VERIFY READY": "an FM-1 answered the identity query",
+    "st.PACKAGE VERIFIED": "the package offered describes itself consistently",
+    "st.SIGNATURE VERIFIED": "its signature matches a key pinned in this page",
+    "st.DEVICE COMPATIBLE": "the unit's own answer fits this package",
+    "st.RECOVERY NOT VERIFIED": "no recovery has been demonstrated on this unit",
+    "st.INSTALL READY": "every gate above is a pass: this unit would be accepted",
+    "st.INSTALL BLOCKED": "at least one gate above is not a pass, so nothing may be written",
     "gate.detect": "1. FM-1 detected",
     "gate.read": "2. Identity and version read",
     "gate.package": "3. Package identified",
@@ -962,6 +972,14 @@ const VF = {
     "state.unknown": "no puede establecerse sin una sesión de escritura",
     "state.not-here": "no lo hace esta verificación, a propósito",
     "state.documented": "solo documentado, no demostrado en esta unidad",
+    "st.DIAGNOSTIC READY": "la p\u00e1gina corri\u00f3 e inform\u00f3 lo que vio",
+    "st.VERIFY READY": "un FM-1 respondi\u00f3 la consulta de identidad",
+    "st.PACKAGE VERIFIED": "el paquete ofrecido se describe de forma coherente",
+    "st.SIGNATURE VERIFIED": "su firma coincide con una clave anclada en esta p\u00e1gina",
+    "st.DEVICE COMPATIBLE": "la respuesta de la unidad encaja con este paquete",
+    "st.RECOVERY NOT VERIFIED": "no se ha demostrado una recuperaci\u00f3n en esta unidad",
+    "st.INSTALL READY": "todas las filas de arriba son pass: esta unidad ser\u00eda aceptada",
+    "st.INSTALL BLOCKED": "al menos una fila de arriba no es pass: no se puede escribir nada",
     "gate.detect": "1. FM-1 detectado",
     "gate.read": "2. Identidad y versión leídas",
     "gate.package": "3. Paquete identificado",
@@ -1039,6 +1057,14 @@ const VF = {
     "state.unknown": "没有写入会话无法确认",
     "state.not-here": "本校验按设计不做这一步",
     "state.documented": "仅有文档，未在本机验证",
+    "st.DIAGNOSTIC READY": "页面已运行并报告所见",
+    "st.VERIFY READY": "FM-1 已回应身份查询",
+    "st.PACKAGE VERIFIED": "所提供的包自述一致",
+    "st.SIGNATURE VERIFIED": "签名与本页固定的密钥相符",
+    "st.DEVICE COMPATIBLE": "本机的回答与该包相符",
+    "st.RECOVERY NOT VERIFIED": "尚未在本机验证恢复流程",
+    "st.INSTALL READY": "上方所有条目均为 pass：本机将被接受",
+    "st.INSTALL BLOCKED": "上方至少一项不是 pass：不得写入任何内容",
     "gate.detect": "1. 已检测到 FM-1",
     "gate.read": "2. 已读取标识与版本",
     "gate.package": "3. 已识别固件包",
@@ -1402,6 +1428,20 @@ function showVerify(fw) {
     dd.style.color = row.state === "pass" ? "var(--ok, #63d68a)" : "var(--muted)";
     dd.textContent = vf("state." + row.state);
     g.append(dt, dd);
+  }
+  /* the eight states, weakest first, from the same report the .json file carries (fm1diag.js), so the
+   * screen and the file cannot say different things. A tick means this report establishes the state and
+   * a dot means it does not; `!` marks the two states that hold precisely when something is missing
+   * (RECOVERY NOT VERIFIED, INSTALL BLOCKED), so they are never read as a step towards installing. */
+  const st = $("vrep-states");
+  st.textContent = "";
+  const negative = new Set(["RECOVERY NOT VERIFIED", "INSTALL BLOCKED"]);
+  for (const s of diagnosticStates(fw)) {
+    const li = document.createElement("li");
+    const neg = negative.has(s.state);
+    li.textContent = `${s.reached ? (neg ? "!" : "\u2713") : "\u00b7"} ${s.state} \u2014 ${vf("st." + s.state)}`;
+    li.style.color = s.reached ? (neg ? "var(--warn, #e6b455)" : "var(--ok, #63d68a)") : "var(--muted)";
+    st.append(li);
   }
   const v = fw.verdict || {};
   $("vrep-verdict").textContent = `${vf("verdict")}: ${v.result || "NO-GO"} \u2014 ` +
