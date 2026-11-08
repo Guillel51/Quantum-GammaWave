@@ -38,16 +38,17 @@ new buffer, so shared RAM does not grow and the mailbox stays 128 bytes / two ca
 
 | Region | Measured | Budget | Headroom |
 |--------|----------|--------|----------|
-| App image (`build/felucca.bin`) | 531 172 B | 568 KiB (581 632 B) | **50 460 B** |
+| App image (`build/felucca.bin`) | 531 204 B | 568 KiB (581 632 B) | **50 428 B** |
 | `.data + .bss` | 96 088 B | 98 304 B | **2 216 B** |
 | RAM code (`.ram_text` + `.c1_text` + `.hot_text`) | 19 444 B | 24 576 B | **5 132 B** |
 | Pool spare (`POOL_END - pool_top`) | 9 248 B (pool 311 240 B) | ≥ 8 192 B | **1 056 B** |
-| XIP code / constants | 371 564 B / rest | constants only use slot | calls reach 88 948 B past the code |
+| XIP code / constants | 371 564 B / rest | constants only use slot | calls reach 88 920 B past the code |
 | Loader image / `ota.bin` | 9 096 B at `0x01C0A800` / 7 650 B | `0x14000` B | large |
 | Package (`build/felucca.fwsc`) | 610 806 B, sha256 `5c80a092…` | — | — |
 
 These are the numbers the `-Oz` build (documented in `docs/VALIDATION_MATRIX.md` §16) leaves, measured on
-this tree: 531 172 B of image, 19 444 B of RAM code and 2 216 B of `.data+.bss` headroom. The RAM headroom
+this tree: 531 204 B of image (the voice-stealing change of VALIDATION_MATRIX §22 added 32 B), 19 444 B of
+RAM code and 2 216 B of `.data+.bss` headroom. The RAM headroom
 did not move: `-Oz` buys flash and RAM code, never `.bss`, which is why the 12-voice question (VALI-
 DATION_MATRIX §19) is a linker question and not a compiler one — 12 voices need 2 256 B of `.bss` and the
 build has 2 216 B, so it overflows by exactly 40 B.

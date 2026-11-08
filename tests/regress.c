@@ -625,6 +625,102 @@ static int chk_budget(char *msg, uint32_t n)
     return worst <= NVOICE && vworst <= 4u && !fading && R.free_s >= 0 && voice_kills > kills0;
 }
 
+/* How loud is a voice when the shared budget takes it? Two POLY parts hold five notes each (the budget is 10), and
+ * the OLDER five are the loud ones: a soft pad arrives last at velocity 24, a loud lead has been sounding at 120.
+ * More notes then come in one at a time and the policy has to choose a victim among the held, non-bass voices.
+ * Taking the oldest (this project's rule before the quietest) cuts a voice the listener can hear, while a quiet
+ * voice of a later note is right there. The number reported is the amp envelope of each taken voice at the block
+ * before the fade: 0..32767, and ~8000 is roughly -12 dB, audible as a disappearance. */
+static int chk_steal_quiet(char *msg, uint32_t n)
+{
+    static const uint8_t LOUD[5] = {48, 52, 55, 59, 62};
+    static const uint8_t SOFT[5] = {50, 53, 57, 60, 64};
+    static const uint8_t MORE[4] = {67, 69, 71, 74};
+    int32_t before[NPART][NVOICE];
+    uint8_t bnote[NPART][NVOICE];
+    uint32_t bage[NPART][NVOICE];
+    char trace[200];
+    uint32_t i, p, k, killed = 0, loud = 0, worst = 0, kills0 = voice_kills;
+    int64_t sum = 0;
+    host_tracks_init();
+    for (p = 0; p < 2u; p++) {
+        host_preset(&trk[p], 0, 0);
+        trk[p].p[P_VOICE] = V_POLY;
+        trk[p].p[P_AMODE] = 0;
+        trk[p].p[P_SUS] = 127;
+        trk[p].p[P_ATK] = 0;
+        trk[p].p[P_DEC] = 0;
+        trk[p].p[P_LEVEL] = 127;
+    }
+    for (i = 0; i < 5u; i++)
+        trk_note_on(&trk[i & 1u], LOUD[i], 120);        /* the older five: loud */
+    blk();
+    blk();
+    for (i = 0; i < 5u; i++)
+        trk_note_on(&trk[i & 1u], SOFT[i], 24);         /* the newer five: soft, and they take the last voices */
+    for (k = 0; k < 8u; k++)
+        blk();
+    for (p = 0; p < NPART; p++)
+        for (i = 0; i < NVOICE; i++) {
+            before[p][i] = trk[p].v[i].active ? trk[p].v[i].env_out : 0;
+            bnote[p][i] = trk[p].v[i].active ? trk[p].v[i].note : 0;
+            bage[p][i] = trk[p].v[i].age;
+        }
+    if (getenv("STEAL_DEBUG")) {                         /* what the ten voices are, before the stealing starts */
+        printf("steal debug: 10 held ->");
+        for (p = 0; p < NPART; p++)
+            for (i = 0; i < NVOICE; i++)
+                if (trk[p].v[i].active)
+                    printf(" p%ui%u[n%u st%u env%ld age%u g%u]", p, i, trk[p].v[i].note, trk[p].v[i].stage,
+                           (long)trk[p].v[i].env_out, trk[p].v[i].age, trk[p].v[i].gate);
+        printf("\n");
+    }
+    trace[0] = 0;
+    for (i = 0; i < 4u; i++) {                          /* one more note at a time: each asks for a voice */
+        uint32_t b, q;
+        trk_note_on(&trk[i & 1u], MORE[i], 120);
+        for (b = 0; b < 10u; b++) {                     /* the fading voice's ~6 ms have to pass, or the budget is
+                                                         * still short by one and the next note is free */
+            int32_t prev[NPART][NVOICE];
+            uint8_t pnote[NPART][NVOICE];
+            uint32_t page[NPART][NVOICE];
+            memcpy(prev, before, sizeof prev);
+            memcpy(pnote, bnote, sizeof pnote);
+            memcpy(page, bage, sizeof page);
+            blk();
+            for (p = 0; p < NPART; p++)
+                for (q = 0; q < NVOICE; q++) {
+                    voice_t *v = &trk[p].v[q];
+                    /* a voice is lost when it starts fading (taken from another part) or when its slot is
+                     * restarted in place (taken from this part, no fade at all: the harsher of the two) */
+                    int lost = pnote[p][q] && (v->stage == 4u || v->note != pnote[p][q] || v->age != page[p][q]);
+                    if (lost) {
+                        int32_t lvl = prev[p][q];
+                        killed++;
+                        sum += lvl;
+                        worst = (uint32_t)lvl > worst ? (uint32_t)lvl : worst;
+                        loud += lvl >= 8000;
+                        if (strlen(trace) < sizeof trace - 28)
+                            sprintf(trace + strlen(trace), " %u:n%u env%ld", p + 1u, pnote[p][q], (long)lvl);
+                        before[p][q] = -1;              /* counted once */
+                        bnote[p][q] = v->stage == 4u ? 0 : v->note;
+                        bage[p][q] = v->age;
+                        continue;
+                    }
+                    before[p][q] = v->active ? v->env_out : 0;
+                    bnote[p][q] = v->active ? v->note : 0;
+                    bage[p][q] = v->age;
+                }
+        }
+    }
+    rel_at = fpos;
+    finish();
+    snprintf(msg, n, "10 held (5 loud at v120, 5 soft at v24), 4 more notes: %u taken (kills %u), mean envelope %lld, "
+             "worst %u, %u of them audible (>= 8000); parts:notes %s", killed, voice_kills - kills0,
+             killed ? (long long)(sum / (int64_t)killed) : 0, worst, loud, trace[0] ? trace : " (none)");
+    return killed > 0 && loud == 0;                     /* a steal must not cut a voice you can hear */
+}
+
 /* MIDI packets in one audio block can reuse a voice before its stolen tail fades. */
 static int chk_retrigger_budget(char *msg, uint32_t n)
 {
@@ -1324,6 +1420,7 @@ int main(int argc, char **argv)
     add(J_CHECK, "voices: note-offs after live voice mode changes")->check = chk_mode_release;
     add(J_CHECK, "voices: a stolen voice fades")->check = chk_steal_fade;
     add(J_CHECK, "voices: a bass note given up does not click (0.6.74)")->check = chk_kill_bass;
+    add(J_CHECK, "voices: stealing takes a quiet voice, not a loud one")->check = chk_steal_quiet;
     add(J_CHECK, "voices: MONO keeps its note")->check = chk_keep_mono;
     add(J_CHECK, "voices: LEGATO keeps its note")->check = chk_keep_legato;
     add(J_CHECK, "voices: UNISON keeps its note")->check = chk_keep_unison;

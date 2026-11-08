@@ -367,9 +367,17 @@ static uint32_t lowest_held(const track_t *t)           /* index of the lowest h
 /* the voice to give up for a new one (see the top); soft: only released voices and
  * extra voices of other non-POLY parts (also ones left after a mode change).
  * Returns its index, *pp its part; NVOICE = none */
+/* (2026-11-08) How much of a voice the listener can still hear: the amp envelope of its last control tick times the
+ * part's level. The same measure quiet_tail uses for a dying release, extended to voices that are still held: a pad
+ * note at velocity 24 reads 6143 here while the lead beside it reads 30718, and taking the pad is not something
+ * anybody hears. */
+static uint32_t v_energy(const track_t *t, const voice_t *v)
+{
+    return (uint32_t)v->env_out * (uint32_t)(t->p[P_LEVEL] + 1);
+}
 static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
 {
-    uint32_t p, i, best = NVOICE, cat = 4;
+    uint32_t p, i, best = NVOICE, cat = 4, best_e = 0xFFFFFFFFu;
     for (p = 0; p < NPART; p++) {
         track_t *t = &trk[p];
         uint32_t mode = trk_vmode(t);
@@ -378,7 +386,7 @@ static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
             continue;
         for (i = 0; i < NVOICE; i++) {
             const voice_t *v = &t->v[i];
-            uint32_t c;
+            uint32_t c, e;
             if (!v->active || v->stage == 4u)
                 continue;
             if (!v->gate)
@@ -389,9 +397,15 @@ static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
                 c = 3;                                  /* held, not the bass */
             else
                 continue;
-            if (c < cat || (c == cat && best < NVOICE && v->age < (*pp)->v[best].age)) {
+            e = v_energy(t, v);
+            /* (2026-11-08) within a class the quietest goes first, the oldest on a tie: a release tail about to die
+             * is the cheapest thing to lose, and so is the soft note of a chord beside the loud one. Until now the
+             * oldest won, so a note held since the start of the phrase was cut while a fresh quiet note kept its
+             * voice; the in-place path made that worse, restarting the loud voice with no fade at all. */
+            if (c < cat || (c == cat && (e < best_e || (e == best_e && best < NVOICE && v->age < (*pp)->v[best].age)))) {
                 cat = c;
                 best = i;
+                best_e = e;
                 *pp = t;
             }
         }

@@ -450,7 +450,7 @@ regression.
 
 Host suite at 10 voices on this tree: every check passes except those two.
 
-## 17. Update — 2026-11-08, v1.9.0 published: tag, release and site on one package
+## 20. Update — 2026-11-08, v1.9.0 published: tag, release and site on one package
 
 **v1.9.0 is published.** Tag `v1.9.0` → `7eb9636`, GitHub Release `Quantum GammaWave v1.9.0` (not a draft,
 not a pre-release), four assets, and Pages serving the same bytes. Everything below was read from the public
@@ -522,7 +522,7 @@ dump of *that* unit, the verification of that dump, a rehearsed recovery, and th
 Nothing in this pass sent a write, erase, bootloader change or recovery command to any unit. See
 `docs/FORENSIC_FM1_VIABILITY.md`.
 
-## 20. Update — 2026-11-08, the 3.1 tree rebuilt here, and it reproduces the published package
+## 21. Update — 2026-11-08, the 3.1 tree rebuilt here, and it reproduces the published package
 
 This pass fetched the pinned toolchain and SDK into another machine and rebuilt the tree the owner's visual
 pass landed in, then built the emulator, then ran what only those builds can check. It exists to answer one
@@ -550,3 +550,40 @@ NORDIC, FX 1 and the held punch-in map: the degree labels sit only on in-scale k
 and B stay recessed), exactly three accidentals carry a strip (D#, G#, A#), the spectrum caps stay inside rows
 153–178, and the map's header (`LATCH:NO`), LATCH card and `KEYS · FX · K1-4 MACRO · OCT+ LATCH` footer agree
 with the engine flags. No further defect was found, and none was invented to have something to change.
+## 22. Update — 2026-11-08, voice stealing takes the quietest voice, and it shows in a test
+
+The policy in `voice.c` documented itself as "the oldest released, else the oldest held voice of a POLY part that is
+not its lowest note". A test written for this pass found what "oldest" costs: a chord held from the start of the
+phrase is cut note by note while a fresh *quiet* note next to it keeps its voice, and when the victim is the part's
+own the voice is restarted **in place, with no fade at all** — the harshest outcome of the two, and the one the
+older comment did not mention.
+
+The scenario is deterministic: two POLY parts hold ten notes (the budget), the five **older** ones at velocity 120
+(env 30718 of 32767, around -0.6 dB) and the five **newer** ones at velocity 24 (env 6143, around -14 dB). Four more
+notes then arrive one at a time and the engine has to choose. The test (`voices: stealing takes a quiet voice, not
+a loud one`, `tests/regress.c`) counts every voice that is lost — fading after a cross-part take, or restarted in
+place — and records its envelope the block before.
+
+| Policy | Voices taken | Mean envelope at the take | Worst | Audible (>= 8000, ~-12 dB) |
+|---|---|---|---|---|
+| oldest first (before) | 6 | 17 408 | **30 718** | **3** (notes 55, 59, 62: the loud sustained ones, two in place) |
+| quietest first, oldest on a tie (now) | 4 | 6 143 | 6 143 | **0** |
+
+The new rule keeps the classes exactly as they were (released tails first, then extra UNISON voices, then held
+voices of a POLY part that are not its bass, and the lowest held note of every part stays protected); inside a class
+the voice with the lowest `env_out x (level + 1)` goes first, and age only breaks a tie. A release tail about to die
+is still the cheapest thing to lose, and so is the soft note of a chord beside the loud one. It is the same measure
+`quiet_tail` already used for dying releases, now applied to the voices that are still held.
+
+Evidence, by class:
+
+* **Host x86, verified**: `tests/regress.c` as above; 220 golden renders, **0 changed** — the improvement is
+  invisible in every existing render, because none of them steals under contention; all voice and routing checks
+  pass; the CPU gate reads PASS.
+* **Target compiled**: the same tree builds, image 531 172 -> **531 204 B (+32 B of flash)**, `.data+.bss` 96 088 B
+  (unchanged, **0 B of RAM**), RAM code 19 444 B (unchanged), pool spare 9 248 B. The extra work is one multiply per
+  candidate voice on the note-on path (at most 60, never per sample).
+* **Hardware**: none. No unit was touched; this is not a claim about how it sounds on the FM-1.
+
+Retrigger, mono/legato/unison, sustain, the bass protection, the note-off paths and the engine-switch fade are
+untouched by this change, and their existing checks pass unchanged.
