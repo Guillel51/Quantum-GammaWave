@@ -117,10 +117,15 @@ def check_build_record(m, raw, product, version, pkg_path):
         raise SystemExit(f"{pkg_path}: refusing to publish it: " + "; ".join(problems))
 
 
-def emulator_record(pkg_path):
-    """build/emu/manifest.json (qg1-emu-1), when the emulator was built next to this package"""
+def emulator_record(pkg_path, emu_manifest=None):
+    """build/emu/manifest.json (qg1-emu-1), when the emulator was built next to this package.
+
+    `emu_manifest` names the emulator the site will actually serve. It matters when the package is a
+    committed release: the site copies this run's `build/emu`, so the record in versions.json has to be
+    this run's too, or the page describes an emulator that is not on the site."""
+    path = Path(emu_manifest) if emu_manifest else Path(pkg_path).parent / "emu" / "manifest.json"
     try:
-        m = json.loads((Path(pkg_path).parent / "emu" / "manifest.json").read_text(encoding="utf-8"))
+        m = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
     return m if isinstance(m, dict) and m.get("schema") == "qg1-emu-1" else None
@@ -140,7 +145,7 @@ def with_csp(html):
     return html.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n' + meta, 1)
 
 
-def main(pkg, version, out, prev=None, manifest=None):
+def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     pkg, out = Path(pkg), Path(out)
     raw = pkg.read_bytes()
     product = product_of(raw)
@@ -175,7 +180,7 @@ def main(pkg, version, out, prev=None, manifest=None):
     build = build_record(pkg, manifest)
     if build:
         check_build_record(build, raw, product, version, pkg)
-    emu = emulator_record(pkg)
+    emu = emulator_record(pkg, emu_manifest)
     versions = [{"version": version, "file": name, **digest(raw), "manifest": manifest_of(Path(pkg)),
                  "build": build}] + \
         [{**e, **digest(src.read_bytes()), "manifest": manifest_of(src), "build": None} for e, src in old]
@@ -242,13 +247,17 @@ def main(pkg, version, out, prev=None, manifest=None):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    manifest = None
-    if "--manifest" in args:
-        i = args.index("--manifest")
-        if i + 1 >= len(args):
-            sys.exit(__doc__)
-        manifest = args[i + 1]
-        del args[i:i + 2]
+    manifest = emu_manifest = None
+    for flag, name in (("--manifest", "manifest"), ("--emu", "emu_manifest")):
+        if flag in args:
+            i = args.index(flag)
+            if i + 1 >= len(args):
+                sys.exit(__doc__)
+            if name == "manifest":
+                manifest = args[i + 1]
+            else:
+                emu_manifest = args[i + 1]
+            del args[i:i + 2]
     if len(args) not in (3, 4):
         sys.exit(__doc__)
-    main(*args[:3], args[3] if len(args) == 4 else None, manifest)
+    main(*args[:3], args[3] if len(args) == 4 else None, manifest, emu_manifest)

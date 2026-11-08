@@ -450,33 +450,39 @@ regression.
 
 Host suite at 10 voices on this tree: every check passes except those two.
 
-## 17. Update — 2026-11-08, release v1.9.0: what is published and what is not
+## 17. Update — 2026-11-08, release v1.9.0: rebuilt at the commit it ships from
 
-| Item | State | Evidence |
+The previous version of this section guessed that the publishing job lacked permission to create refs. The
+run log says otherwise, and it says exactly where publication stopped. That log is evidence of the `[CI]`
+class; it was copied out of the runner into `ci/log/42477957388-failure` by `.github/workflows/ci_diag.yml`,
+because the Actions API needs a credential this checkout does not have and the runner has one.
+
+### What the log shows (emulator run 42477957388)
+
+- `GITHUB_TOKEN Permissions: Contents: write, Metadata: read`. The job's token **can** create refs and
+  releases, and the probe step ("this token may create refs and releases") **passed**. The permission theory
+  was wrong.
+- `publish` failed in the check step: `##[error]the source changed after the build: firmware/src/ui_being.c`.
+  Not a false positive. `main` had moved past the signed package (`e784b70`) with the owner's UI pass, so the
+  package no longer described the tree it was asked to publish. The check did its job.
+- `deploy` failed with `the deployed site still does not serve 6cafeb6 after 5 minutes`: `versions.json` is
+  keyed by the *build record's* commit while the check demanded `GITHUB_SHA`. No commit can satisfy that,
+  because the package is always built before the commit that adds it to `release/`.
+
+### What changed because of it
+
+| Item | State now | Evidence |
 |---|---|---|
-| Signed package | **built, signed, verified** | 610 806 B, `FM-1_982`, sha256 `5c80a092…`, `verified: FM-1 version 1.9.0, key qg1-release-1` (`[HOST]`) |
-| Signature, manifest and record in the tree | **committed** | `release/felucca-v1.9.0.fwsc`, `.manifest.json`, `build-manifest.json`, `SHA256SUMS`, `emu/manifest.json` |
-| Public site | **serving the signed release** | `firmware/versions.json` on Pages: `v1.9.0-<record>`, sha256 `5c80a092…`, with its manifest |
-| Installer page | **updated** | `webapp/installer/` contains the diagnostic export and the eight states |
-| Emulator / WASM | **same commit as the firmware** | `build/emu/manifest.json` (Emscripten 6.0.11), the record names it |
-| Tag `v1.9.0` | **NOT created** | `https://github.com/Guillel51/Quantum-GammaWave/tree/v1.9.0` → 404 |
-| GitHub Release | **NOT published** | `/releases` is empty |
+| Package | **rebuilt and re-signed at `6cafeb6`**, the tree it ships from | 610 806 B, `FM-1_982`, sha256 `80ad995c…`, `verified: FM-1 version 1.9.0, key qg1-release-1` (`[HOST]`) |
+| RAM code | 19 284 B of 24 576, pool spare 9 248 B | target build log (`[TARGET]`) |
+| `release/` | package, manifest, record, `SHA256SUMS`, emulator record, all of the same build | `git diff <record>..HEAD -- firmware tools web/emu` is empty (`[HOST]`) |
+| Site `versions.json` | names the emulator the site actually serves | `make_site.py --emu build/emu/manifest.json`; before, it named the emulator committed beside the package while the site copied this run's build |
+| Deploy check | holds the package and the emulator separately, each to its own commit and hash | `site_check.py --expect-commit <record> --expect-sha256 <signed> --expect-emu-commit <GITHUB_SHA>`, run against a locally served site: 14 ok (`[HOST]`); a wrong commit or a wrong hash still fails it |
+| Installer panel | prints the eight states, from the same report the JSON carries | `web/index_pkg.html`, `web/fm1diag.js`; 108 checks, 0 FAILED (`[HOST]`) |
 
-The publishing job exists (`.github/workflows/emulator.yml`, job `publish`) and does, in this order: a probe that
-creates and deletes one tag to test the token, `fm1_sign.py verify` against the pinned key, the hash/identity/version/record
-checks, the "nothing under `firmware`, `tools` or `web/emu` changed since the recorded build" check, tag creation
-(`git push`, API fallback), `gh release create`, and a re-download of the published assets with `sha256sum -c` and
-a second signature verification. Every one of those steps was executed locally against the committed files and
-passes (`[HOST]`); the first version of the job also failed for two real reasons that are now fixed: it compared
-`1.9.0` with `v1.9.0`, and `*.fwsc` in `.gitignore` had kept the package itself out of the tree.
+### What is still only software, and is not claimed otherwise
 
-Two candidate causes remain for the tag not appearing, and neither is a code defect I can read from here: the
-repository's **GITHUB_TOKEN permission** (Settings → Actions → General → Workflow permissions: with the
-read-only default, `permissions: contents: write` in a workflow cannot create a ref or a release) or a failure
-inside that job whose log this environment cannot fetch — the GitHub REST API answers `rate limit exceeded`
-for this host and there is no authenticated `gh`. The site deploys, which uses `pages: write` and `id-token`,
-so workflow writes are not blocked wholesale.
-
-**Nothing was published by hand, no tag was fabricated, and no release is claimed.** The single action that
-unblocks it is the repository setting above; the job is idempotent and publishes on the next push to `main`
-with no further change.
+Every gate that needs readings from the owner's unit is unchanged and open: the JEDEC and geometry of *that*
+unit, a 1 MiB dump of *that* unit, the verification of that dump, a rehearsed recovery, and the first
+controlled write. No write, erase, bootloader change or recovery command was sent to any FM-1 in this pass.
+See `docs/FORENSIC_FM1_VIABILITY.md` for the risk statement and the three conditions only the owner can meet.

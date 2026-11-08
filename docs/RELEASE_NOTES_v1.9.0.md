@@ -13,8 +13,13 @@ Firmware for the **M-VAVE FM-1** (JieLi AC791N / WL82), with its browser emulato
   emulator, `dirty: []`.
 - `SHA256SUMS` — the hashes of the three files above.
 
-The release workflow re-verifies the signature, the hashes and the identity before publishing, and downloads
-the published assets again to check them a second time.
+This package is build `6cafeb6`: `sha256 80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2`,
+610 806 B, `FM-1_982`, built from a clean tree (`dirty: []`) and signed with `qg1-release-1`. It contains the
+UI pass of `9e6a1e4` (palette and panel work, punch-in map), which is why it was rebuilt: a package that does
+not describe the tree it ships from is not a release.
+
+The release workflow re-verifies the signature, the hashes and the identity before publishing, downloads the
+published assets again to check them a second time, and tags exactly the commit this record names.
 
 ## Install status, stated exactly
 
@@ -34,9 +39,9 @@ Details, per requirement: [`docs/FORENSIC_FM1_VIABILITY.md`](../docs/FORENSIC_FM
 
 ## What changed in 1.9.0
 
-- The AC791N RAM code fits its budget again with both fixes in place: the delay's echo train is stepped from
-  flash (`fx_vu` once per block) and `perf_begin` left `.hot_text`, and the AC791N image is built at `-Oz`. RAM code 19 444 B of 24 576
-  (headroom 5 132 B), `.ram_text` with no calls.
+- The AC791N RAM code fits its budget with both fixes in place: the delay's echo train is stepped from
+  flash (`fx_vu` once per block) and `perf_begin` left `.hot_text`, and the AC791N image is built at `-Oz`.
+  RAM code 19 284 B of 24 576 (headroom 5 292 B), `.ram_text` with no calls, pool spare 9 248 B.
 - The target build links against the pinned `AC79NN_SDK_V1.2.1_2023-12-13`: the three files in `SDK_SHA256`
   match, and two builds produce the same bytes.
 - Production signing: one key pinned, fail-closed, with rotation and revocation covered by tests; a package
@@ -44,7 +49,9 @@ Details, per requirement: [`docs/FORENSIC_FM1_VIABILITY.md`](../docs/FORENSIC_FM
 - Installer: `Verify Only` reports what it read and what it could not, `canInstall` stays false there, and the
   page can now export the whole report as `qg1-diagnostic-1` JSON — no keys, no tokens, no secrets.
 - Eight named installation states (`DIAGNOSTIC READY` … `INSTALL READY`, `INSTALL BLOCKED`) derived from the
-  gate rows, so a lower state can never be shown as a higher one.
+  gate rows, so a lower state can never be shown as a higher one — and now printed on the panel as well as in
+  the JSON, so the screen and the file cannot disagree. The two that hold when something is missing
+  (`RECOVERY NOT VERIFIED`, `INSTALL BLOCKED`) are marked apart from the ones that are evidence of progress.
 - The emulator is built with Emscripten **6.0.11**, the version the workflows pin, from the same commit as
   the firmware.
 

@@ -199,9 +199,10 @@ jobs:
           fi
           python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
           if [ -n "$MAN" ]; then
-            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$REC"
+            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$REC" \
+              --emu build/emu/manifest.json
           else
-            python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site build/prev
+            python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site build/prev --emu build/emu/manifest.json
           fi
           mkdir -p build/site/emulator
           cp -r build/emu/. build/site/emulator/
@@ -257,17 +258,34 @@ jobs:
       # and run 42276334594 failed on a script that was not there while the site was serving the commit)
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: tools/site_check.py
+          sparse-checkout: |
+            tools/site_check.py
+            release/
           sparse-checkout-cone-mode: false
-      - name: the published site is this commit (versions.json, package, wasm, portal, installer)
+      - name: the published site is the release it offers (versions.json, package, wasm, portal, installer)
         run: |
+          # Two artefacts, two commits, and neither of them is HEAD by design. The package is a signed
+          # release committed under release/, built at the commit its record names; the emulator is this
+          # run's build. This used to demand ${GITHUB_SHA} of both, which no release commit can satisfy:
+          # the package is built before the commit that adds it. So: hold the package to the signed bytes
+          # and the record's commit, and the emulator to the commit that built it.
+          EXPECT=(--expect-emu-commit "$GITHUB_SHA")
+          if ls release/*.fwsc >/dev/null 2>&1; then
+            R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
+            S=$(sha256sum "$(ls release/*.fwsc | head -1)" | cut -d" " -f1)
+            EXPECT+=(--expect-commit "$R" --expect-sha256 "$S")
+            echo "expecting the signed release ${S:0:16} from ${R:0:7}, emulator ${GITHUB_SHA:0:7}"
+          else
+            EXPECT+=(--expect-commit "$GITHUB_SHA")
+            echo "expecting this run's package and emulator at ${GITHUB_SHA:0:7}"
+          fi
           sleep 20                                   # Pages switches after the deploy reports, not during it
           for i in $(seq 1 20); do
-            if python3 tools/site_check.py --expect-commit "${GITHUB_SHA::7}"; then exit 0; fi
-            echo "::notice::the site is not serving ${GITHUB_SHA::7} yet (attempt $i/20); waiting 15 s"
+            if python3 tools/site_check.py "${EXPECT[@]}"; then exit 0; fi
+            echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"
             sleep 15
           done
-          echo "::error::the deployed site still does not serve ${GITHUB_SHA::7} after 5 minutes"
+          echo "::error::the deployed site still does not serve the expected artefacts after 5 minutes"
           exit 1
 
   # The signed package is committed under release/ because the private key is not: no workflow can sign,

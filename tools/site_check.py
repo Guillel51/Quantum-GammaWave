@@ -11,7 +11,7 @@ the checkout. This reads the published origin over HTTPS and holds every artefac
 page claims:
 
   versions.json      the newest entry: version label, package file, size, SHA-256, build commit,
-                     identity and the emulator record of the same build
+                     identity and the emulator record of the emulator served beside it
   the package        that file, downloaded: its size and SHA-256 must be the versions.json ones
   emulator/manifest  its commit must be the package's, its wasm size and hash must be the file's
   emulator/felucca.wasm  downloaded: size and SHA-256 must be the manifest's
@@ -20,6 +20,12 @@ page claims:
 
     python3 tools/site_check.py                     # the public site, newest version
     python3 tools/site_check.py --url http://127.0.0.1:8000 --expect-commit fd53c29
+
+`--expect-commit` is the commit the *package* was built from, which is the build record's commit and
+not necessarily HEAD: a release stays the release while main moves on. `--expect-sha256` holds the
+package to the exact signed bytes, and `--expect-emu-commit` names the emulator build that this run
+copied to the site -- the two are different artefacts with different commits, and the check says
+which is which instead of pretending they are the same commit.
 
 Exit code 0 only when every line says ok. Anything that cannot be fetched or parsed is a failure, not
 a skip: a site whose files cannot be read is not a site that can be trusted.
@@ -56,7 +62,9 @@ def sha256(b):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="check that the published site serves one build")
     ap.add_argument("--url", default=DEFAULT_URL)
-    ap.add_argument("--expect-commit", default=None, help="the commit the published site must name")
+    ap.add_argument("--expect-commit", default=None, help="the commit the published package was built from")
+    ap.add_argument("--expect-sha256", default=None, help="the package's SHA-256, when it is a known artefact")
+    ap.add_argument("--expect-emu-commit", default=None, help="the commit the served emulator was built from")
     args = ap.parse_args(argv)
     base = args.url.rstrip("/") + "/"
 
@@ -75,8 +83,12 @@ def main(argv=None):
     ok("versions.json names a version and a full commit",
        bool(version) and len(commit) == 40, "%r %r" % (version, commit[:7]))
     if args.expect_commit:
-        ok("the published version is the commit asked for",
+        ok("the published package is the commit asked for",
            commit.startswith(args.expect_commit), "%s vs %s" % (commit[:7], args.expect_commit))
+    if args.expect_sha256:
+        ok("the published package is the signed artefact",
+           str(top.get("sha256")) == args.expect_sha256,
+           "%s vs %s" % (str(top.get("sha256"))[:16], args.expect_sha256[:16]))
 
     pkg_url = base + "firmware/" + str(top.get("file") or "")
     try:
@@ -96,8 +108,13 @@ def main(argv=None):
         ok("emulator/manifest.json is readable", False, str(e))
         emu = {}
     if emu:
-        ok("the emulator was built from the package's commit", commit.startswith(str(emu.get("commit") or "")),
-           "%r vs %s" % (emu.get("commit"), commit[:7]))
+        if args.expect_emu_commit:
+            ok("the emulator is the build this run copied up",
+               str(emu.get("commit") or "").startswith(args.expect_emu_commit),
+               "%r vs %s" % (emu.get("commit"), args.expect_emu_commit))
+        else:
+            ok("the emulator names the commit it was built from", bool(emu.get("commit")),
+               "%r" % (emu.get("commit"),))
         ok("the emulator names the same version", emu.get("version") == build.get("version"),
            "%r vs %r" % (emu.get("version"), build.get("version")))
         if emu_rec:
