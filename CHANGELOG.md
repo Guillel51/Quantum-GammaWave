@@ -1,3 +1,26 @@
+## v1.9.0 — el paquete firmado y el instalador que decide con lo que lee
+
+- **La instalación deja de estar bloqueada por software.** El paquete v1.9.0 está firmado con la clave anclada
+  `qg1-release-1`, su registro nombra el commit del build con `dirty: []`, y dos builds dan los mismos bytes.
+  El instalador identifica el NOR por `0x12`, rechaza cualquier pieza fuera de `0x856014`/`0xB36014`, exige que
+  la geometría coincida con la pieza identificada, verifica la firma contra la clave pública anclada y, tras
+  escribir, exige que la unidad reporte el producto QG. Lo que sigue pendiente no es código: es una lectura de
+  la unidad del dueño, un dump de 1 MiB propio y la ruta de recuperación ensayada
+  (`docs/FORENSIC_FM1_VIABILITY.md`).
+- **Verify Only exporta su propio informe.** La página del instalador descarga un `qg1-diagnostic-1` JSON con
+  lo que leyó, lo que no pudo leer y por qué: sin claves, sin tokens y sin bytes del paquete. Los ocho estados
+  (`DIAGNOSTIC READY` … `INSTALL READY`, `INSTALL BLOCKED`) se derivan de las filas del gate, así que ninguno
+  puede mostrarse por encima de su evidencia (`web/fm1diag.js`, 108 comprobaciones en `test_verify_only.mjs`).
+- **El release se publica solo, y sólo si se verifica.** `.github/workflows/release.yml` comprueba firma,
+  hashes, identidad, versión y que nada del firmware haya cambiado desde el commit del registro; crea el tag
+  `v1.9.0` en ese commit y publica el paquete, su manifiesto y el registro. Después vuelve a descargar los
+  assets publicados y los verifica otra vez.
+- **Pages sirve el paquete firmado.** El workflow del emulador prefiere `release/*.fwsc` cuando existe: un
+  paquete construido en CI no lleva firma (la clave privada no está en CI) y el instalador rechaza bytes sin
+  firmar, así que publicar el de CI sería publicar algo que no se puede instalar.
+- **Emscripten queda en 6.0.11 en todas partes**, que es la versión que los workflows fijan; el wasm de este
+  release se construyó con ella desde el mismo commit que el firmware.
+
 - **El primer backup de una unidad stock ya no necesita abrir el equipo, y el instalador perdió su último atajo:**
   M-Flasher 0.9.1 (`9da825b`, MIT) lee la flash entera por el modo ROM del chip, con el loader en RAM y el
   CRC32 calculado por el silicio; su acción de backup sólo lee (`src/ops.rs`), y ahora `tools/fm1_mflasher.py`

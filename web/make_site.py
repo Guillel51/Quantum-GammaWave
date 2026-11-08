@@ -150,7 +150,8 @@ def main(pkg, version, out, prev=None, manifest=None):
         raise SystemExit(f"{pkg}: no Felucca loader in it; the site ships only fm1pkg_make.py packages "
                          "(a package patched from an official one carries vendor files)")
     html = (HERE / "index_pkg.html").read_text(encoding="utf-8")
-    lib = strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
+    lib = strip_module((HERE / "fm1diag.js").read_text(encoding="utf-8")) + "\n" + \
+    strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
