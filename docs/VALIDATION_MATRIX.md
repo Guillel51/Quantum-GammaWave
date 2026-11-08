@@ -615,3 +615,26 @@ Nothing in this pass weakened a gate: the model rule is narrower than the name-b
 rather than the presence of a key in a map. The blocked gates are unchanged and physical: the unit's own
 JEDEC and geometry, a 1 MiB dump of that unit, that dump's verification, a rehearsed recovery, the first
 controlled write. See `docs/FORENSIC_FM1_VIABILITY.md`.
+
+## 24. Update — 2026-11-08, the public site now serves the release's emulator, not main's
+
+Deploying the installer fix exposed the next coupling, in the live page itself:
+`Error: The emulator was built from 55a7be2, the firmware from 7eb9636: they are not the same build.`
+`fm1provenance.js` holds the package to the emulator its own build record names — a good rule — but the
+Pages workflow copied **this run's** `build/emu` (main, which has advanced past the release) into the site.
+As soon as `main` is ahead of the last release, the public site serves an emulator from another tree and its
+own installer refuses its own package. The `deploy` job had been saying so in the only place nobody read:
+`site: versions.json's emulator record is the emulator's wasm  FAIL`.
+
+The fix is not to relax the rule but to satisfy it: when the site serves the committed release, it now builds
+that release's emulator from the release commit and serves **that** one, so package, record, emulator and
+installer are one release again. The release emulator is reproducible — built here from `7eb9636` it produced
+`3d039f75bbc8…`/1 073 325 B, byte for byte the wasm `release/emu/manifest.json` names (`[HOST]`, emsdk
+6.0.11). The preview channel (`/emulator/` under `preview/`) still shows main.
+
+Checked locally against the real artefacts: `site_check.py` with `--expect-commit 7eb9636
+--expect-sha256 80ad995c… --expect-emu-commit 7eb9636` → **all checks passed**, and the installer loaded in a
+browser reports `Ready to flash (610,806 bytes)` with `#go.disabled === false` and no device attached
+(`[HOST]`, HeadlessChrome). `deploy` now expects the release commit of the emulator it serves, and
+`GITHUB_SHA` only when there is no committed release to serve.
+
