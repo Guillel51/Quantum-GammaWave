@@ -13,7 +13,7 @@ Firmware for the **M-VAVE FM-1** (JieLi AC791N / WL82), with its browser emulato
   emulator, `dirty: []`.
 - `SHA256SUMS` — the hashes of the three files above.
 
-This package is build `6cafeb6`: `sha256 80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2`,
+This package is build `6c22cad`: `sha256 80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2`,
 610 806 B, `FM-1_982`, built from a clean tree (`dirty: []`) and signed with `qg1-release-1`. It contains the
 UI pass of `9e6a1e4` (palette and panel work, punch-in map), which is why it was rebuilt: a package that does
 not describe the tree it ships from is not a release.

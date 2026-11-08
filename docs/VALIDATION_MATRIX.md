@@ -473,7 +473,7 @@ because the Actions API needs a credential this checkout does not have and the r
 
 | Item | State now | Evidence |
 |---|---|---|
-| Package | **rebuilt and re-signed at `6cafeb6`**, the tree it ships from | 610 806 B, `FM-1_982`, sha256 `80ad995c…`, `verified: FM-1 version 1.9.0, key qg1-release-1` (`[HOST]`) |
+| Package | **rebuilt and re-signed at `6c22cad`**, the tree it ships from | 610 806 B, `FM-1_982`, sha256 `80ad995c…`, `verified: FM-1 version 1.9.0, key qg1-release-1` (`[HOST]`) |
 | RAM code | 19 284 B of 24 576, pool spare 9 248 B | target build log (`[TARGET]`) |
 | `release/` | package, manifest, record, `SHA256SUMS`, emulator record, all of the same build | `git diff <record>..HEAD -- firmware tools web/emu` is empty (`[HOST]`) |
 | Site `versions.json` | names the emulator the site actually serves | `make_site.py --emu build/emu/manifest.json`; before, it named the emulator committed beside the package while the site copied this run's build |
