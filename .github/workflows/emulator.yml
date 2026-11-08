@@ -124,16 +124,34 @@ jobs:
             SH=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["commit"][:7])' "$REC")
             echo "the public site offers the signed release: $PKG ($SV-$SH)"
           fi
+          # The public site is ONE release: its package AND its emulator. When it serves the signed
+          # release, the emulator must be the one built beside that package, not the one this run built
+          # from main -- the installer holds the package to the emulator its own record names
+          # (fm1provenance.js), so a main ahead of the release would otherwise serve an emulator from
+          # another tree and be refused by its own page. The release emulator is reproducible from the
+          # release commit with this toolchain (3d039f75bbc8 for 7eb9636), so it is built here.
+          EMU_SRC=build/emu
+          if [ -n "$RELMAN" ]; then
+            R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
+            rm -rf /tmp/reltree build/emu_release
+            git worktree add -q --detach /tmp/reltree "$R"
+            ( cd /tmp/reltree &&
+              python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
+              sh web/emu/build.sh >/dev/null )
+            cp -r /tmp/reltree/build/emu build/emu_release
+            EMU_SRC=build/emu_release
+            echo "the public site serves the release's emulator: $(python3 -c 'import json;print(json.load(open("build/emu_release/manifest.json"))["wasm_sha256"][:16])')"
+          fi
           # (0.6.46) the versions the site offers now stay installable (the last few, web/fetch_prev.py)
           python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
           if [ -n "$RELMAN" ]; then
-            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$RELMAN"
+            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$RELMAN" --emu "$EMU_SRC/manifest.json"
           else
-            python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
+            python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev --emu "$EMU_SRC/manifest.json"
           fi
           # the portal is / and the emulator keeps a stable /emulator/ path; installer and editor keep /webapp/
           mkdir -p build/site/emulator
-          cp -r build/emu/. build/site/emulator/
+          cp -r "$EMU_SRC/." build/site/emulator/
           rm -rf build/site/emulator/preview
           # the artifact and preview copy stay emulator-shaped, with the preview portal at /preview/
           mkdir -p build/emu/preview
