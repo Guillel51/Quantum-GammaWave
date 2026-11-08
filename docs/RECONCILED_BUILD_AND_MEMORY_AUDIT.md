@@ -1,16 +1,16 @@
 # RECONCILED BUILD, PROVENANCE, AND MEMORY AUDIT (QG-1)
 
 ## 1. Procedencia y Relación de Commits
-- **HEAD en desarrollo / tests:** `b9095db` / `4a53031` (contiene validaciones, fault injection, matrices multi-chip y suites de seguridad pre-instalación).
-- **Firmware Release Oficial compilado:** `release/felucca-v1.9.0.fwsc`
-  - **Commit de compilación target:** `7eb9636f58f442ccbfb8440dec0aa61e55203889`
+- **HEAD en desarrollo / tests de seguridad (PR #73):** `9417b006e57f18cb026e582ce17104721cb95b28` (contiene validaciones, fault injection, matrices multi-chip, suites de producción criptográfica y reconciliación documental).
+- **Firmware Release Oficial compilado y firmado:** `release/felucca-v1.9.0.fwsc`
+  - **Commit histórico de compilación target:** `7eb9636f58f442ccbfb8440dec0aa61e55203889`
   - **Tamaño exacto:** 610.806 bytes
   - **SHA-256 oficial publicado:** `80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2`
-  - **Firma Ed25519:** Verificada con clave anclada `qg1-release-1`
-- **Recompilación limpia target realizada en este entorno:**
+  - **Firma Ed25519:** Verificada con clave anclada `qg1-release-1` (`70b6036fd33da3297a41da2141c5d135b3efce2d815d55911fc4f9b1d07fcd40`)
+- **Recompilación limpia target realizada en este entorno (`build.sh`):**
   - **Compilador:** JieLi Clang 4.0.1 (pi32v2), archive SHA `a1545cddbc45...`, clang binary SHA `c45189ee624d...`
   - **SDK:** `fw-AC79_AIoT_SDK` commit `0617f4cc`
-  - **Artefactos generados:** `build/felucca.bin` (532.120 B), `build/loader/ota.bin` (7.650 B), `build/felucca.fwsc` (610.806 B).
+  - **Artefactos generados:** `build/felucca.bin` (532.120 B), `build/loader/ota.bin` (7.650 B), `build/felucca.fwsc` (610.806 B, SHA-256 `985f7441...`).
 
 ## 2. Conciliación Unificada de Memoria AC791N (JieLi WL82)
 A lo largo de las campañas de optimización de Quantum GammaWave, los reportes registraron distintas mediciones intermedias. Esta tabla unifica y reconcilia definitivamente los valores:
