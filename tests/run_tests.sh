@@ -379,6 +379,10 @@ if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
     # (v1.9.0) the installer's build provenance: no write without a verified record, and the site
     # builder refuses a package that contradicts its own manifest
+    # the provenance test below refuses a site whose emulator and firmware name different commits, and until now a
+    # forgotten `sh web/emu/build.sh` surfaced as two red make_site lines. Say it plainly first; the verdict stays
+    # with the test, not with this line.
+    python3 tools/emu_stamp.py || true
     run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
