@@ -438,3 +438,14 @@ comparison entirely**. The ns per sample are measured and printed, and the `CPU_
 the pass/fail line is not enforced there. That is a gap in the harness, not in the firmware, and it is the next
 thing to fix (a per-host ns baseline, created on first run and compared afterwards, since ns are not portable
 across machines the way the instruction count is).
+
+One more thing this pass hit, so the next one does not lose an hour to it: a `NO_PACKAGE=1` run on a tree
+whose `build/emu` predates `HEAD` ends with `HOST TESTS FAILED` and exactly two red checks, both from
+`web/test_provenance.mjs` (`make_site: a clean record and its package build the site`, and the CSP one). The
+reason is printed by `make_site.py` itself: `refusing to publish it: the emulator was built from 'ea8a8a5e9aa9',
+the firmware from 32ecee5`. Nothing is wrong with the firmware or with the check — the check is doing exactly
+what it is for. The emulator is a build artefact and is rebuilt in the same commit by `emulator.yml`, so CI does
+not see this. Either rebuild `build/emu` at `HEAD` or read those two red lines as "stale emulator", never as a
+regression.
+
+Host suite at 10 voices on this tree: every check passes except those two.
