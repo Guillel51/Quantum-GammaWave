@@ -354,3 +354,37 @@ package for a dirty record it did not have; it now treats a path that *contains*
 that input. `tests/key_custody_test.py` had the same shape of problem for the pinned key (§14 records
 the fix); with both in place the host suite is green again: 4 999 `ok` lines, `ALL HOST TESTS PASSED`,
 and `web/test_provenance.mjs` passes with an emulator built from this tree.
+
+## 17. Update — 2026-11-08, what is left after `-Oz`: three measurements and no dead weight
+
+Before touching anything else the obvious suspects were measured on the built image, and each came back empty:
+
+| Suspect | Measurement | Result |
+|---|---|---|
+| dead code | app link with `--gc-sections` (it was not passed) | **32 B** — there is no unreferenced function left, so the flag was not kept |
+| duplicated constants | SHA-256 of every symbol in the read-only image, grouped | **68 B** in 3 pairs (identical 24 B function bodies), i.e. LLVM already merged them |
+| read-only data sitting in RAM | symbols in `.data` | **734 B total** for 62 symbols, all runtime state: the 96 KiB is `.bss` buffers |
+
+So the RAM margin can only grow by sharing buffers whose lifetimes are proven disjoint, and the 26.5 KB
+candidate set (`proj_scratch`, `sec_stage`, `undo_st`) is exactly the one whose lifetimes can overlap: an
+autosave can run during PLAY, and a mutation can run with a song loaded. That is not a measurement this
+environment can make, and a wrong call there corrupts a project on a unit. Not done, by decision, with the
+numbers above showing why nothing cheaper was left.
+
+Two things were added instead of guessed at. `CPU_SPREAD=1` in `tests/regress.c` now reports, per CPU row, the
+**p50/p95/p99/p99.9/max of each 32-sample block** and how many blocks went over the 725 us budget — the mean
+alone cannot see a dropout. Class: host x86, wall clock, opt-in (it costs a clock read per block and its
+outliers are the host's: the same rows showed a single 4-5 ms block that no other run reproduced, which is a
+page fault or a preemption, not the DSP). On the heaviest mix (`cpu/mix/6parts_full`, six parts, a different
+engine each, 8 notes each, four sends open):
+
+| CPU row | p50 | p95 | p99 | p99.9 | max | blocks over 725 us |
+|---|---|---|---|---|---|---|
+| `cpu/mix/6parts_full` | 14.1 us | 17.6 us | 24.6 us | 45.6 us | 52.0 us | 0 |
+| `cpu/mix/idle` | 2.9 us | 3.0 us | 6.1 us | 30.1 us | 31.3 us | 0 |
+
+And the RAM-code headroom left by `-Oz` (5 132 B) is **not** being filled with more hot functions: the only
+metric available here is a static instruction count, and moving code between XIP and SRAM does not change it,
+so a claim that it helps the device would be a hunch. `tests/target_budget.py` also shows the dominant line is
+the key/LED scan ISR (27 338 of 34 002), whose loops are bit-banged GPIO with settling delays that exist to
+make the hardware work: shortening them is not an optimisation, it is a bug.

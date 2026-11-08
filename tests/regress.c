@@ -19,7 +19,11 @@
  *    ~1 %, unlike wall time), compared with CPU_FILE (tests/cpu_baseline.txt) at +-25 %; the ns per
  *    sample are this process's CPU time (cpu_ns below), not the wall clock, so they hold on a loaded
  *    Linux host where a job's ~15 ms window would otherwise swing +-30 %. A count over the budget
- *    fails, one far under it only warns.
+ *    fails, one far under it only warns. CPU_SPREAD=1 additionally prints, per CPU row, p50/p95/p99/p99.9/max
+ *    of each measured block and how many blocks went over the 725 us a 32-sample block has: a mean that fits
+ *    can still hide a dropout every second. That pass reads the clock around every block, so it is opt-in and
+ *    its numbers are wall clock on the host (a preemption or a page fault shows up as a 4 ms outlier), never
+ *    the device's.
  * 4. voices: the shared budget of 8 across 4 parts, stolen voices fade (no step), MONO / LEGATO /
  *    UNISON keep their note under pressure, the VOICE engine's 4-voice cap, release frees voices, and
  *    no hanging note after the note-offs on any routing (USB channels 1..4, others while the
@@ -336,6 +340,40 @@ static uint64_t cpu_ns(void)
     return (uint64_t)ru.ru_utime.tv_sec * 1000000000u + (uint64_t)ru.ru_utime.tv_usec * 1000u
          + (uint64_t)ru.ru_stime.tv_sec * 1000000000u + (uint64_t)ru.ru_stime.tv_usec * 1000u;
 }
+/* (QG) the mean says nothing about the worst block, and a mean that fits can still be a dropout every second.
+ * CPU_SPREAD=1 records each measured block and prints p50/p95/p99/p99.9/max plus the blocks over the 32-sample
+ * budget (32 / 44.1 kHz = 725 us). Opt-in because it costs a clock read per block and the numbers are wall clock
+ * on this host, not the process CPU time the mean uses: class host x86, and a bound, never a device measurement. */
+#define SPREAD_MAX 8192
+static uint32_t spread_ns[SPREAD_MAX];
+static uint32_t spread_n;
+static int spread_seen = -1;                      /* -1 not looked at yet, 0 off, 1 on */
+static int spread_cmp(const void *a, const void *b)
+{
+    uint32_t x = *(const uint32_t *)a, y = *(const uint32_t *)b;
+    return x < y ? -1 : x > y;
+}
+static uint32_t spread_at(double q)
+{
+    uint32_t i = (uint32_t)(q * (spread_n ? spread_n - 1u : 0u) + 0.5);
+    return spread_ns[i];
+}
+static void spread_report(const char *name, uint32_t want)
+{
+    uint32_t i, over = 0;
+    if (spread_n < 8u)
+        return;
+    qsort(spread_ns, spread_n, sizeof spread_ns[0], spread_cmp);
+    for (i = 0; i < spread_n; i++)
+        if (spread_ns[i] > 725000u)
+            over++;
+    printf("cpu spread: %-24s %u of %u blocks, p50 %.1f p95 %.1f p99 %.1f p99.9 %.1f max %.1f us"
+           ", %u over 725 us  (wall clock, host x86)\\n",
+           name, spread_n, want, spread_at(0.50) / 1e3, spread_at(0.95) / 1e3, spread_at(0.99) / 1e3,
+           spread_at(0.999) / 1e3, spread_ns[spread_n - 1] / 1e3, over);
+    fflush(stdout);
+}
+
 static void job_cpu(const job_t *j)
 {
     static const uint8_t NOTES[8] = {48, 52, 55, 59, 60, 64, 67, 71};
@@ -343,6 +381,9 @@ static void job_cpu(const job_t *j)
     const uint8_t (*parts)[3] = j->parts;
     uint32_t p, i, k, nb = FS / CTL, drums_on = parts[3][2] == DRUM_HITS;
     uint64_t i0, t0;
+    if (spread_seen < 0)
+        spread_seen = getenv("CPU_SPREAD") != NULL;   /* (QG) same code path either way, only the clock reads differ */
+    spread_n = 0;
     host_tracks_init();
     for (p = 0; p < NPART; p++) {
         host_preset(&trk[p], parts[p][0], parts[p][1]);
@@ -371,12 +412,22 @@ static void job_cpu(const job_t *j)
             drum_hit((k * CTL) / (FS / 8u));
         if (j->e == 0xFE && clk.env <= 0)
             click_req = 2;                              /* idle_click: the metronome sounding all the time */
+        if (spread_seen > 0 && k >= nb / 2u && spread_n < SPREAD_MAX) {
+            uint64_t b0 = now_ns();
+            mix_block(last_out, CTL);
+            if (j->e == 0xFE)
+                click_render(last_out, CTL);
+            spread_ns[spread_n++] = (uint32_t)(now_ns() - b0);
+            continue;
+        }
         mix_block(last_out, CTL);
         if (j->e == 0xFE)
             click_render(last_out, CTL);                /* (audio.c audio_block: after the master) */
     }
     R.ns = (double)(cpu_ns() - t0) / (nb * CTL);
     R.ipc = i0 ? (double)(instr_now() - i0) / (nb * CTL) : 0;
+    if (spread_seen)
+        spread_report(j->name, nb);
 }
 
 static int run_job_body(job_t *j)
