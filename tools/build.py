@@ -208,6 +208,11 @@ def build_app():
         v = os.environ.get(flag)    # unset: the default in firmware/src/felucca.c
         if v in ("0", "1"):
             flags.append(f"-D{flag}={v}")
+    v = os.environ.get("FELUCCA_VOICES")       # firmware/src/core.h NVOICE: 10 is shipped, 12 is the experiment
+    if v in ("10", "12"):
+        flags.append(f"-DNVOICE={v}")
+    elif v:
+        raise SystemExit(f"build: FELUCCA_VOICES={v!r} (the measured profiles are 10 and 12)")
     v = os.environ.get("FELUCCA_USB_LAYOUT")   # firmware/src/usb.c: how the USB composite presents itself (#67), 0..3
     if v in ("0", "1", "2", "3"):
         flags.append(f"-DFELUCCA_USB_LAYOUT={v}")

@@ -403,3 +403,38 @@ metric available here is a static instruction count, and moving code between XIP
 so a claim that it helps the device would be a hunch. `tests/target_budget.py` also shows the dominant line is
 the key/LED scan ISR (27 338 of 34 002), whose loops are bit-banged GPIO with settling delays that exist to
 make the hardware work: shortening them is not an optimisation, it is a bug.
+
+## 19. Update — 2026-11-08, the 12-voice question answered by the linker (no unit touched)
+
+The experiment was run properly this time: the voice count is now a real build knob (`FELUCCA_VOICES=12` for
+`tools/build.py`, `POLY=12 ./tests/run_tests.sh` for the host), and the stale comment in `core.h` that claimed
+`POLY=12` already worked (neither script implemented it) is gone. Both scripts refuse anything but 10 or 12, so
+a typo cannot produce a build whose voice count nobody wrote down. 10 remains the shipped value; every golden
+render, budget and release artefact in this repository is still taken at 10.
+
+| Question | Measurement | Result |
+|---|---|---|
+| Does it fit? | `FELUCCA_VOICES=12` target link | **No. `section .bss will not fit in region RAM` / `region RAM overflowed by 40 bytes`** |
+| How much does it need? | 2 216 B free, over by 40 B, 2 extra voices x 6 parts | **2 256 B = 188 B per voice** (`sizeof(voice_t)`), i.e. the RAM margin would be **−40 B** |
+| Does the sound change? | `POLY=12` host suite, 220 golden renders | **2 changed**: `mode/ANALOG/UNISON` and `mode/VOICE/UNISON` |
+| Why does UNISON change? | `voice.c trk_nvoice()` | UNISON stacks as many voices as the engine may use, so more voices is a different timbre, not only more notes |
+| What does it cost in CPU? | `POLY=12` host x86, CPU time per sample, 3 alternating runs, median | `cpu/mix/6parts_full` 410 -> **465 ns** (+13 %); `cpu/mix/3parts_full_drums` 337 -> **368 ns** (+9 %) |
+
+The earlier estimate of "+1 056 B, 11.6 % CPU" was wrong on memory by more than a factor of two: the real cost is
+2 256 B, and it does not fit. `-Oz` (section 16) bought 34 KB of flash and 2.3 KB of RAM-code headroom and
+**zero bytes of `.data+.bss`**, so it could not have changed this: the two voices need RAM the build does not
+have, and freeing it would mean sharing the 26.5 KB of staging buffers (section 18 says why that is not a
+measurement this environment can make) or shipping with no margin at all.
+
+**Decision: rejected for the stable firmware.** It fails the first requirement — it does not link — and even
+with 2 256 B found it would change two shipped UNISON sounds and cost 9-13 % CPU on the heaviest mix. It stays
+as a reproducible experiment behind the two knobs above, which is what "keep it experimental" has to mean if it
+is to mean anything.
+
+Also found in this pass, and worth recording because it weakens a check rather than a feature: on a host whose
+kernel does not expose `proc_pid_rusage` instructions (this Linux one does not), `tests/regress.c` prints
+`no instruction counter on this host (proc_pid_rusage); the budget is not checked` and **skips the CPU budget
+comparison entirely**. The ns per sample are measured and printed, and the `CPU_SPREAD` percentiles work, but
+the pass/fail line is not enforced there. That is a gap in the harness, not in the firmware, and it is the next
+thing to fix (a per-host ns baseline, created on first run and compared afterwards, since ns are not portable
+across machines the way the instruction count is).

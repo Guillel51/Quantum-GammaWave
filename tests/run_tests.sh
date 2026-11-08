@@ -112,6 +112,14 @@ cd "$(dirname "$0")/.."
 OUT=build/host
 mkdir -p "$OUT"
 CC="${CC:-cc} -O1 -Wall -Wno-unused-function"
+# POLY=12 builds every host test with NVOICE=12 (firmware/src/core.h): the 12-voice experiment, measured
+# against the shipped 10 with exactly the same presets, goldens and CPU rows. Anything else is refused, so a
+# typo cannot quietly produce a build whose voice count nobody wrote down.
+case "${POLY:-10}" in
+    10) ;;
+    12) CC="$CC -DNVOICE=12"; echo "poly: 12 voices (NVOICE=12; the shipped build is 10)" ;;
+    *)  echo "poly: POLY=${POLY:?} (the measured profiles are 10 and 12)" >&2; exit 2 ;;
+esac
 fail=0
 run() { echo "== $1"; shift; "$@" || fail=1; }
 
