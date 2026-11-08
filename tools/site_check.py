@@ -59,6 +59,14 @@ def sha256(b):
     return hashlib.sha256(b).hexdigest()
 
 
+def same_commit(a, b):
+    """Two ids for one commit: the manifests carry 12 characters, CI carries 40 and a person types 7.
+    Comparing a 12-character id against a 40-character one with startswith() says no to the same
+    commit, which is how this check failed a site that was correct."""
+    a, b = str(a or ""), str(b or "")
+    return bool(a) and bool(b) and len(min(a, b, key=len)) >= 7 and (a.startswith(b) or b.startswith(a))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="check that the published site serves one build")
     ap.add_argument("--url", default=DEFAULT_URL)
@@ -84,7 +92,7 @@ def main(argv=None):
        bool(version) and len(commit) == 40, "%r %r" % (version, commit[:7]))
     if args.expect_commit:
         ok("the published package is the commit asked for",
-           commit.startswith(args.expect_commit), "%s vs %s" % (commit[:7], args.expect_commit))
+           same_commit(commit, args.expect_commit), "%s vs %s" % (commit[:7], args.expect_commit))
     if args.expect_sha256:
         ok("the published package is the signed artefact",
            str(top.get("sha256")) == args.expect_sha256,
@@ -110,7 +118,7 @@ def main(argv=None):
     if emu:
         if args.expect_emu_commit:
             ok("the emulator is the build this run copied up",
-               str(emu.get("commit") or "").startswith(args.expect_emu_commit),
+               same_commit(emu.get("commit"), args.expect_emu_commit),
                "%r vs %s" % (emu.get("commit"), args.expect_emu_commit))
         else:
             ok("the emulator names the commit it was built from", bool(emu.get("commit")),

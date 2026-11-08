@@ -389,7 +389,12 @@ jobs:
             [ "$HAVE" = "$COMMIT" ] || { echo "::error::v1.9.0 already points at $HAVE, the package was built at $COMMIT"; exit 1; }
             echo "tag v1.9.0 already points at the record's commit"
           else
-            git tag -a v1.9.0 "$COMMIT" -m "Quantum GammaWave v1.9.0"
+            # An annotated tag needs a committer and a fresh runner has no identity: `git tag -a` died
+            # with "empty ident name (for <runner@...>) not allowed", which is why every earlier run
+            # left no tag behind -- the rest of the job had already passed. The identity is the
+            # workflow's, not a person's.
+            git -c user.name="qg1 release" -c user.email="qg1-release@users.noreply.github.com" \
+              tag -a v1.9.0 "$COMMIT" -m "Quantum GammaWave v1.9.0"
             # the checkout's token pushes the tag; the API is the fallback when it cannot, and it is
             # the same trust decision either way: the tag points at the commit the package names
             git push origin refs/tags/v1.9.0 ||
