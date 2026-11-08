@@ -214,6 +214,7 @@ const PROBE_WHY = {
   "no-ports": "this browser sees no MIDI device at all: no input and no output",
   "no-match": "MIDI ports exist, but none carries a name this installer recognises",
   "no-pair": "a port looks like an FM-1, but it has no output of the same name",
+  "unpaired": "MIDI ports exist and were probed, but none answered the identity query",
   "send-failed": "the port refused the identity frame",
   "silent": "every probed port stayed silent",
   "answered": "the port that answered",
@@ -302,7 +303,10 @@ export async function verifyDevice(midi, opts = {}) {
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
   const ports = inputs.filter((p) => PORT_RE.test(p.name)).map((p) => p.name);
-  const up = new Updater(midi, log);            // find() sends the identity query only
+  // probeAll: Verify Only asks "is my unit visible at all?", so it probes every in/out pair it can
+  // see, not only the ones whose Windows descriptor says FM-1. find() sends the identity query and
+  // nothing else either way.
+  const up = new Updater(midi, log, { probeAll: true });
   let dev = null;
   try {
     dev = await up.find();
@@ -313,8 +317,10 @@ export async function verifyDevice(midi, opts = {}) {
   if (!dev) {
     // no answer: either nothing is plugged in, or something named like an FM-1 is and it does not
     // implement the query. Both are "no firmware recognised", never "no device" when a port is there
-    const kind = ports.length ? "silent" : "none";
     const probe = up.lastProbe;
+    /* a port that was probed and did not answer is "silent", even when its name is not one this
+     * installer recognises: that is what was done and what came back */
+    const kind = (ports.length || (probe.probed || []).length) ? "silent" : "none";
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
     const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig });

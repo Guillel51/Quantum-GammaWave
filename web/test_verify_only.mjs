@@ -114,8 +114,8 @@ function anyWrite(sent) {
   // the texts the button can print must exist in every language of the page, and say what happened
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   const keys = [...body.matchAll(/sayK\("(v[A-Za-z]+)"/g)].map((m) => m[1]);
   check("the button names its messages", keys.length >= 5 && keys.includes("vOther"));
   const langs = ["en", "fr", "es", "zh"];
@@ -165,8 +165,28 @@ function anyWrite(sent) {
 {
   // other gear on the same computer is never probed
   const a = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_982")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
-  check("gear that is not an FM-1 is not probed at all", fw.kind === "none" && a.sent.length === 0);
+  const found = await new Updater(a.midi).find();          // the install path: no probeAll
+  check("the install path never probes gear that is not an FM-1", found === null && a.sent.length === 0);
+  const b = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_982")] });
+  const fw = await verifyDevice(b.midi, { product: "FM-1_982" });
+  check("Verify Only probes it, with the read-only query and nothing else",
+    fw.kind === "ours" && onlyQueries(b.sent) && !anyWrite(b.sent));
+}
+{
+  // Windows exposes one device under two different names. Pairing by exact name found nothing, so the
+  // unit looked absent even though both directions were there.
+  const sent = [];
+  const input = { name: "MIDIIN2 (FM-1 Midi)", state: "connected", onmidimessage: null, open: async () => {} };
+  const output = { name: "MIDIOUT2 (FM-1 Midi)", state: "connected", open: async () => {},
+    send(bytes) {
+      const b = Array.from(bytes);
+      sent.push({ name: output.name, bytes: b });        // same shape the fake access records
+      if (isQuery(b)) setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from(identityFrame("FM-1_015")) }), 0);
+    } };
+  const midi = { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) };
+  const fw = await verifyDevice(midi, { product: "FM-1_982" });
+  check("one unit under two Windows names (MIDIIN2 / MIDIOUT2) is paired and read",
+    fw.kind === "stock" && fw.text === "FM-1_015" && onlyQueries(sent) && !anyWrite(sent));
 }
 {
   // a package tag that is not this device must not make it "ours"
@@ -186,14 +206,17 @@ function anyWrite(sent) {
     !keys.some((k) => /install|write|resume|upgrade|serve|put/i.test(k)));
 }
 {
-  // and the page must call it, not a handler of its own
+  // and the page must call it, not a handler of its own. The handler is a named function now (a port
+  // change re-runs it), so the check reads that function, from its definition to its closing brace.
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   check("the page's Verify only button calls verifyDevice", /verifyDevice\s*\(/.test(body));
   check("the page's Verify only handler names no write path",
     !/\b(install|resume|write|chipEvidence|probeChip|captureBackup)\s*\(/.test(body) && !/UPGRADE/.test(body));
+  check("a port change re-runs Verify Only instead of needing a reload",
+    /addEventListener\("statechange"/.test(html) && /if \(lastVerify && !writing\) runVerify\(\)/.test(html));
 }
 
 {
@@ -213,8 +236,8 @@ function anyWrite(sent) {
   // only the functions the module happens to export
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   check("the Verify only handler names no erase, restore, backup capture or reboot",
     !/\b(erase|restoreBackup|captureBackup|reboot|sendPackage)\b/.test(body));
 }
@@ -346,8 +369,8 @@ function anyWrite(sent) {
   // the handler and the panel: the status line speaks about the unit, the package gets its own rows
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   check("the stock message is no longer given the package tag as an argument",
     /sayK\("vStock"\)/.test(body) && !/sayK\("vStock"\s*,/.test(body));
   check("the Verify handler passes the package to the report",
@@ -623,9 +646,9 @@ function anyWrite(sent) {
     /* unrelated gear is never probed, and the report says which case this was */
     const other = access(["Some Synth"]);
     const fwO = await verifyDevice(other.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha, build: rec, keys } });
-    check("an unrecognised port is not probed and is reported as such",
-          fwO.kind === "none" && fwO.reading.probe.reason === "no-match" && fwO.reading.probe.frames === 0 &&
-          other.sent.length === 0);
+    check("a unit whose descriptor says nothing is still probed, and reported as silent",
+          fwO.kind === "silent" && fwO.reading.probe.reason === "silent" && fwO.reading.probe.frames > 0 &&
+          onlyQueries(other.sent) && !anyWrite(other.sent));
   } else {
     console.log("skip: release/ is not in the tree, so the offline package cases cannot run against real bytes");
   }

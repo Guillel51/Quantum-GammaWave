@@ -638,3 +638,31 @@ browser reports `Ready to flash (610,806 bytes)` with `#go.disabled === false` a
 (`[HOST]`, HeadlessChrome). `deploy` now expects the release commit of the emulator it serves, and
 `GITHUB_SHA` only when there is no committed release to serve.
 
+## 25. Update — 2026-11-08, a visible port can no longer be missed, and one that is absent cannot be conjured
+
+The second real Verify Only report says, in the new rows, exactly what is and is not true: `pkg.verified`
+passes, `gate.signature` is `pass`, `SIGNATURE VERIFIED` is reached — and `ports.inputs: 0`,
+`ports.outputs: 0`, `query.answer` sourced as *"this browser sees no MIDI device at all: no input and no
+output"*. The installer is enabled and the package is trusted; the operating system is not presenting the
+unit. That is not something a web page can fix, and this pass does not pretend otherwise. What it can do is
+make sure a unit that *is* presented is never missed:
+
+| Change | Why it existed |
+|---|---|
+| pairing by normalised descriptor, not exact name | Windows exposes one device as `MIDIIN2 (FM-1 Midi)` and `MIDIOUT2 (FM-1 Midi)`; compared literally, every such unit looked like "an input with no output" and nothing was probed |
+| Verify Only probes every in/out pair (`probeAll`) | a unit whose Windows descriptor does not say FM-1 was unreachable; the only frame sent is the read-only identity query, and the answer, never the name, decides what it is. The **install** path keeps the name filter and is proven never to probe foreign gear |
+| `statechange` re-runs Verify Only | plugging the unit in while the page is open needed a reload; now the page logs `ports changed: N in / N out` and re-reads, read-only |
+| an empty list says what it means | `vNoPorts` in EN/ES/ZH: with the unit powered and a data cable, an empty list means this system is not presenting it (charge-only cable, unit off, or another program holding the port — Windows gives one client exclusive access per port) |
+
+Evidence (`[HOST]`, simulated device, not hardware): with a fake WebMIDI stack exposing one unit under those
+two Windows names and answering the vendor handshake as a stock V15, the page reports
+`Verify: FM-1 detected, it answers official V15 (FM-1_015)`, `ports 1 in / 1 out`, gate rows 1–5 **pass**,
+and the states `VERIFY READY`, `PACKAGE VERIFIED`, `SIGNATURE VERIFIED`, `DEVICE COMPATIBLE` reached, with
+`INSTALL READY` still not reached. `verify only: 126 checks, 0 FAILED`.
+
+What this does **not** establish: any reading from the owner's unit. With `0 in / 0 out` there is nothing to
+read, and no software change on this side can create a port the OS does not publish. The gates that remain
+need the unit (identity, JEDEC, backup, recovery) — and on a **stock** unit the JEDEC is refused by design,
+because `0x12` is answered only by QG (`docs/JEDEC_READ.md` §1): the first backup of a stock unit is a
+hardware SPI read.
+

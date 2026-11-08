@@ -559,6 +559,7 @@ const TEXT = {
     hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ",
     nohash: "This package has no published SHA-256: nothing will be written. Reload the page.",
     vNone: "Verify: no FM-1 answered. MIDI ports this browser enumerated:",
+    vNoPorts: " \u2014 with the unit powered and a data cable, an empty list means this system is not presenting it: a charge-only cable, the unit switched off, or another program holding the port (Windows gives one client exclusive access per port). Nothing was sent.",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vStock: "Verify: FM-1 detected, it answers official V15 (FM-1_015). Nothing was written. ",
     vOurs: "Verify: FM-1 detected, this firmware ", vSilent: "Verify: an FM-1 port answered nothing (another firmware, JIANT among them, that does not implement the identity query). Nothing else was sent. Port: ", vOther: "Verify: an FM-1 was detected, but its firmware is not one this installer knows. It reports itself as: ", vOtherTail: " \u2014 read only: nothing was written, and this is not an install authorisation.",
@@ -672,6 +673,7 @@ TEXT.es = {
   hashOk: "SHA-256 del paquete verificado ✓ ", badhash: "El paquete no coincide con su SHA-256 publicado: no se escribirá nada. Recargá la página. ",
   nohash: "Este paquete no tiene SHA-256 publicado: no se escribirá nada. Recargá la página.",
   vNone: "Verificar: no respondió ningún FM-1. Puertos MIDI que enumeró este navegador:",
+  vNoPorts: " — con la unidad encendida y un cable de datos, una lista vacía significa que este sistema no la está presentando: cable sólo de carga, unidad apagada, u otro programa con el puerto tomado (Windows da acceso exclusivo a un cliente por puerto). No se envió nada.",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vStock: "Verificar: se detectó un FM-1 y responde V15 oficial (FM-1_015). No se escribió nada. ",
   vOurs: "Verificar: firmware GAMMAWAVE/JIANT ", vSilent: "Verificar: el puerto del FM-1 no respondió (otro firmware, JIANT entre ellos, que no implementa la consulta de identidad). No se envió nada más. Puerto: ", vOther: "Verificar: se detectó un FM-1, pero su firmware no es uno de los que este instalador conoce. Se identifica como: ", vOtherTail: " — solo lectura: no se escribió nada y esto no autoriza la instalación.",
@@ -735,6 +737,7 @@ TEXT.zh = {
   hashOk: "固件包 SHA-256 已验证 ✓ ", badhash: "固件包与公布的 SHA-256 不匹配：不会写入任何内容。请重新加载页面。 ",
   nohash: "此固件包没有公布 SHA-256：不会写入任何内容。请重新加载页面。",
   vNone: "校验：没有 FM-1 回应。此浏览器枚举到的 MIDI 端口：",
+  vNoPorts: " — 若设备已开机并使用数据线，列表为空说明系统没有呈现它：仅充电线、设备未开机，或其他程序占用了端口（Windows 每个端口只允许一个客户端独占）。未发送任何内容。",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vStock: "校验：检测到 FM-1，其回应为官方 V15（FM-1_015）。未写入任何内容。",
   vOurs: "校验：GAMMAWAVE/JIANT 固件 ", vSilent: "校验：FM-1 端口没有回应（其他固件，例如 JIANT，未实现身份查询）。未发送其他内容。端口：", vOther: "校验：检测到一台 FM-1，但其固件不是本安装器所认识的固件。其自报身份为：", vOtherTail: " — 只读：未写入任何内容，也不构成安装授权。",
@@ -1473,7 +1476,7 @@ function showVerify(fw) {
   $("vrep-install").textContent = vf("install");
 }
 
-$("verify").addEventListener("click", async () => {
+async function runVerify() {
   /* (verify only) one frame type on the wire: the identity query. fm1verify.js classifies what
    * the device answers and never reaches an install, a write, a resume or a chip session. */
   if (writing) return;
@@ -1481,6 +1484,7 @@ $("verify").addEventListener("click", async () => {
   try {
     let midi;
     try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
+    watchPorts(midi);
     const fw = await verifyDevice(midi, { product: meta.product, log, signature: releaseSig,
       pkg: { version: meta.version, size: meta.size, sha256: meta.sha256, build: meta.build, keys: meta.keys } });
     log(`verify: ${fw.kind} found=${fw.found} recognised=${fw.recognised} id=${fw.text || "-"}` +
@@ -1489,7 +1493,8 @@ $("verify").addEventListener("click", async () => {
       /* the counts are the whole point: "another app is using MIDI" is a guess when this browser saw
          zero ports, and a different problem when it saw ports none of which looks like an FM-1 */
       const pr = (fw.reading && fw.reading.probe) || {}, cc = pr.counts || {};
-      sayK("vNone", ` ${cc.inputs || 0} in / ${cc.outputs || 0} out`);
+      sayK("vNone", ` ${cc.inputs || 0} in / ${cc.outputs || 0} out` +
+        ((cc.inputs || 0) === 0 && (cc.outputs || 0) === 0 ? t("vNoPorts") : ""));
     }
     else if (fw.kind === "silent") sayK("vSilent", (fw.ports || []).join(", "));
     else if (fw.kind === "loader") sayK("vLoader");
@@ -1505,7 +1510,24 @@ $("verify").addEventListener("click", async () => {
     $("diag").disabled = false;
   } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
   finally { lockInstaller(false); }
-});
+}
+$("verify").addEventListener("click", runVerify);
+/* Plugging the unit in while this page is open must not need a reload: WebMIDI reports a state change,
+ * and a Verify Only that has already run is re-run against the new set of ports. The frame it sends is
+ * the read-only identity query, so this cannot write anything either. */
+let midiAccess = null;
+function watchPorts(midi) {
+  if (!midi || midi === midiAccess || typeof midi.addEventListener !== "function") return;
+  midiAccess = midi;
+  try {
+    midi.addEventListener("statechange", () => {
+      let ins = 0, outs = 0;
+      try { ins = midi.inputs.size; outs = midi.outputs.size; } catch (_) {}
+      log(`ports changed: ${ins} in / ${outs} out`);
+      if (lastVerify && !writing) runVerify();
+    });
+  } catch (_) {}
+}
 /* The diagnostic file is the very object the panel rendered, so the screen and the file cannot
  * disagree. It carries no key material, no session token and no package bytes (see diagnosticJson). */
 $("diag").addEventListener("click", () => {

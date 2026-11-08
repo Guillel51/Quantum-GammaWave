@@ -66,6 +66,15 @@ export function requireChip(evidence) {
 // mismatch (detail: the identity the device reports), badreq
 function fail(code, msg, detail = "") { const e = new Error(msg); e.code = code; e.detail = detail; return e; }
 
+/* One device, two directions, two different Windows names: "MIDIIN2 (FM-1 Midi)" and
+ * "MIDIOUT2 (FM-1 Midi)". Strip the direction prefix, the index and the brackets to compare. */
+export function normPort(name) {
+  return String(name || "").toLowerCase()
+    .replace(/^\s*midi\s*(in|out)\s*\d*\s*/i, "")
+    .replace(/[()\[\]]/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
 export function pack7(data) {
   const out = []; let acc = 0, nb = 0;
   for (const b of data) {
@@ -172,11 +181,17 @@ export class Updater {
     this.loaderWait = timing.loaderWait ?? 30000;
     this.rebootDelay = timing.rebootDelay ?? 3000;
     this.rebootWait = timing.rebootWait ?? 40000;
+    /* Verify Only probes every in/out pair it can see; the install path keeps the name filter. */
+    this.probeAll = !!timing.probeAll;
     // what the last find() put on the wire and what came back. Read-only bookkeeping: a
     // diagnostic needs to say how many identity frames it sent and whether any of them was answered.
     this.lastProbe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false };
   }
 
+  // Windows exposes the two directions of one device under names that are not equal:
+  // "MIDIIN2 (FM-1 Midi)" on the input and "MIDIOUT2 (FM-1 Midi)" on the output. Pairing them by
+  // exact name skipped every such unit -- it looked like "a port with no output" and nothing was
+  // ever probed. Comparing the descriptor without the direction prefix and the index pairs them.
   // every in/out pair with the same port name that answers the handshake
   async find(filter) {
     const outs = [...this.access.outputs.values()];
@@ -191,10 +206,20 @@ export class Updater {
       reason: "no-ports", counts: { inputs: ins.length, outputs: outs.length },
       seen: { inputs: ins.map((p) => String(p.name || "")), outputs: outs.map((p) => String(p.name || "")) } };
     this.lastProbe = probe;
-    for (const input of ins) {
-      if (input.state === "disconnected") continue;
-      if (!PORT_RE.test(input.name || "")) continue;   // never probe other gear
-      const output = outs.find((o) => o.name === input.name && o.state !== "disconnected");
+    /* By default only ports that look like an FM-1 are probed: a device with another name is other
+     * gear, and this installer does not talk to other gear. Verify Only passes `probeAll`, because
+     * there the question is "is my unit visible at all?" and the only frame sent is the read-only
+     * identity query; a unit whose Windows descriptor does not say FM-1 is otherwise unreachable.
+     * Name-matched pairs are still tried first, so the common case does not change. */
+    const cands = ins
+      .filter((i) => i.state !== "disconnected")
+      .map((i) => ({ input: i, named: PORT_RE.test(i.name || "") }))
+      .filter((c) => c.named || this.probeAll)
+      .sort((a, b) => (b.named ? 1 : 0) - (a.named ? 1 : 0));
+    probe.probedAll = !!this.probeAll;
+    for (const { input } of cands) {
+      const output = outs.find((o) => o.state !== "disconnected" &&
+        (o.name === input.name || normPort(o.name) === normPort(input.name)));
       if (!output) continue;
       try { await input.open(); await output.open(); } catch (_) { continue; }
       const link = new Link(input, output);
@@ -213,7 +238,7 @@ export class Updater {
     if (probe.probed.length) probe.reason = probe.sendFailed ? "send-failed" : "silent";
     else if (!probe.counts.inputs) probe.reason = "no-ports";
     else if (probe.seen.inputs.some((n) => PORT_RE.test(n))) probe.reason = "no-pair";
-    else probe.reason = "no-match";
+    else probe.reason = probe.probedAll ? "unpaired" : "no-match";
     return null;
   }
 
