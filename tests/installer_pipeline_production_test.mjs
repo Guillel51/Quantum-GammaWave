@@ -86,7 +86,7 @@ try {
 assert.strictEqual(threwUnknown, true, "Unknown JEDEC must be rejected from write path");
 console.log("  ok   requireChip enforces writable allowlist fail-closed on production code");
 
-// 4. Test verifyManifest with Ephemeral Ed25519 Keypair
+// 4. Test verifyManifest and requireProof with Ephemeral Ed25519 Keypair
 const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
 const rawPub = publicKey.export({ format: "der", type: "spki" }).subarray(-32);
 const pinnedKeys = { "test-key-1": rawPub.toString("hex") };
@@ -144,10 +144,35 @@ for (const [modManifest, modKeys, expectedErr, what] of [
 }
 console.log("  ok   verifyManifest rejects tampered manifests, wrong hashes, and unpinned keys");
 
+// 4.3 Direct requireProof negative tests
+for (const [modArgs, expectedCode, what] of [
+  [{ pkg: testPkg, manifest: signedManifest, keys: pinnedKeys, product: null, firmware: "1.0.0" }, "proof", "no product"],
+  [{ pkg: testPkg, manifest: null, keys: pinnedKeys, product: "FM-1_982", firmware: "1.0.0" }, "signature", "no manifest"],
+  [{ pkg: testPkg, manifest: signedManifest, keys: {}, product: "FM-1_982", firmware: "1.0.0" }, "signature", "untrusted key"],
+  [{ pkg: Buffer.alloc(500, 0), manifest: signedManifest, keys: pinnedKeys, product: "FM-1_982", firmware: "1.0.0" }, "image", "truncated package (< 960 B)"],
+  [{ pkg: testPkg, manifest: signedManifest, keys: pinnedKeys, product: "FM-1_982", firmware: null }, "version", "unknown firmware version"]
+]) {
+  let threw = false;
+  try {
+    await requireProof(modArgs);
+  } catch (e) {
+    threw = (e.code === expectedCode);
+  }
+  assert.strictEqual(threw, true, `requireProof must reject ${what}`);
+}
+console.log("  ok   requireProof directly rejects invalid contexts, untrusted keys, and bad arguments");
+
 // 5. Test Updater negative write paths & zero frame guarantees
 const updater = new Updater();
 
 // Scenario A: Missing proof context
+let sentUpFrames = [];
+const fakeTransport = {
+  send: (f) => { sentUpFrames.push(f); return true; },
+  read: async () => null,
+  close: () => {}
+};
+
 let threwNoContext = false;
 try {
   await updater.install(testPkg, "FM-1_982", () => {}, null); // ctx is null
