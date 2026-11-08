@@ -1,7 +1,7 @@
 # RECONCILED BUILD, PROVENANCE, AND MEMORY AUDIT (QG-1)
 
 ## 1. Procedencia y Relación de Commits
-- **HEAD en desarrollo / tests de seguridad (PR #73):** `7977c882a9a4cf9cd30e475cbfa26be5f93e9dd1` (contiene validaciones, fault injection, matrices multi-chip, suites de producción criptográfica y reconciliación documental).
+- **HEAD en desarrollo / tests de seguridad (PR #73):** `e62d382b81b2abce3daea2bb28a335d8f22efa7b` (contiene validaciones, fault injection, matrices multi-chip, suites de producción criptográfica y reconciliación documental).
 - **Firmware Release Oficial compilado y firmado:** `release/felucca-v1.9.0.fwsc`
   - **Commit histórico de compilación target:** `7eb9636f58f442ccbfb8440dec0aa61e55203889`
   - **Tamaño exacto:** 610.806 bytes
