@@ -54,8 +54,10 @@ jobs:
                   sys.exit(f"::error::{why}")
           need(m["sha256"] == sha, "the signature does not describe these bytes")
           need(m["size"] == len(raw), "the signed size is not the file's size")
-          need(m["version"] == r["version"] == "v1.9.0", "the version is not v1.9.0")
-          need(r["identity"] == m["product"] == "FM-1_982", "the identity is not FM-1_982")
+          # the signature names the firmware version (1.9.0) and the product family (FM-1); the record
+          # names the same version with its tag prefix (v1.9.0) and the full identity (FM-1_982)
+          need(m["version"] == "1.9.0" and r["version"].lstrip("v") == "1.9.0", "the version is not 1.9.0")
+          need(m["product"] == "FM-1" and r["identity"] == "FM-1_982", "the identity is not FM-1_982")
           need(r["dirty"] == [], "the record says the tree was dirty")
           need(sums.get("felucca-v1.9.0.fwsc") == sha, "SHA256SUMS disagrees with the package")
           need(sums.get("felucca-v1.9.0.manifest.json") == hashlib.sha256(open(man,"rb").read()).hexdigest(),
