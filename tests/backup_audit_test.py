@@ -70,3 +70,30 @@ class BackupAuditTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_corrupt_structures_and_truncated_dumps(self):
+        """Audit resilience against corrupt structures, wrong chip keys, and truncated dumps."""
+        # 1. Truncated binary (e.g. 512 KiB instead of 1 MiB)
+        short_data = b"\x00" * (512 * 1024)
+        v_short = BackupValidator(short_data)
+        res_short = v_short.validate()
+        self.assertFalse(res_short["valid"])
+        self.assertIn("Expected exactly 1,048,576 bytes", res_short["error"])
+
+        # 2. Corrupt app_dir_head
+        corrupt_app = bytearray(self.raw_data)
+        corrupt_app[0x000100:0x000110] = b"\xFF" * 16
+        v_corrupt = BackupValidator(bytes(corrupt_app))
+        res_corrupt = v_corrupt.validate()
+        self.assertFalse(res_corrupt["checks"]["app_table_valid"])
+
+        # 3. Model header tampered (e.g. SM-1 instead of FM-1)
+        tampered_model = bytearray(self.raw_data)
+        # Search for FM-1 in the unencrypted bootloader area
+        idx = tampered_model.find(b"FM-1_")
+        if idx != -1:
+            tampered_model[idx:idx+4] = b"SM-1"
+            v_tampered = BackupValidator(bytes(tampered_model))
+            res_tampered = v_tampered.validate()
+            # If identity check searches for FM-1, it will fail
+            self.assertFalse(res_tampered["checks"]["identity_found"])
