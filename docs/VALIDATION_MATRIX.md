@@ -534,7 +534,7 @@ question the publication log cannot: **is the published package really this firm
 | Toolchain / SDK | pinned and verified | JieLi `jieli-linux-toolchains-20260730.1`, sha256 `a1545cdd…` checked by `tools/get_toolchain.sh` against `tools/toolchain.sha256`; SDK branch `AC79NN_SDK_V1.2.1_2023-12-13` (`[HOST]`) |
 | AC791N build | **built** | image 531 992 B; `.data+.bss` 95 912 B of 98 304 (2 392 B spare); `POOL_END - pool_top` 9 248 B; XIP code 372 508 B; RAM code 19 284 B of 24 576 (`[TARGET]`) |
 | Package | **identical to the published one** | 610 806 B, `FM-1_982`, sha256 `80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2` = `release/felucca-v1.9.0.fwsc` = the asset and the site's copy (`[HOST]`) |
-| Reproducibility | **GO on a second machine** | two clean builds are byte-identical (`cmp` on `.fwsc` and `loader/ota.bin`) (`[HOST]`) |
+| Reproducibility | **GO on a second machine, and now gated** | two clean builds are byte-identical (`cmp` on `.fwsc` and `loader/ota.bin`); `tests/release_repro_test.py` compares a fresh build with `release/*.fwsc` and fails on the first differing byte, in the host suite and in `target.yml` (`[HOST]`) |
 | Emulator | **built here** | Emscripten 6.0.11, 1 073 325 B wasm, sha256 `3d039f75…`, named by the record at `HEAD`; `build_manifest --verify --require-clean --expect-commit` ok (`[HOST]`) |
 | Budgets and reader | **GO** | `memory_map_test`, `target_budget.py` on `build/felucca.dis`, `web/test_pkg_bounds.mjs` (`[TARGET]`/`[HOST]`) |
 | Host suite | **ALL HOST TESTS PASSED** | full run with the package present: `test_release_e2e`, `test_provenance`, `test_verify_only` (108 checks), `key_custody_test` (`[HOST]`) |

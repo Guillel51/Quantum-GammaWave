@@ -170,6 +170,10 @@ else
     python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
     $CC -o "$OUT/ldr_test" tests/ldr_test.c
     run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+
+    # (QG-1) the signed package must be the one this tree builds: a release nobody can rebuild is a
+    # release nobody can audit. Skips (with a notice) when the record names an older tree.
+    run "the signed release reproduces from this tree, byte for byte" python3 tests/release_repro_test.py
 fi
 
 if [ -f build/gen/felucca_tables.h ]; then
