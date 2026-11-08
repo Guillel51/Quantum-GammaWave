@@ -10,8 +10,9 @@ const ok = (cond, what) => { assert.ok(cond, what); n++; console.log("ok  " + wh
 ok(donorIdentity(id("FM-1_015"), QG, "15"), "stock V15 is admitted as a donor");
 ok(donorIdentity(id("FM-1_015"), QG, "V15"), "the donor firmware may be written V15");
 ok(donorIdentity(id("FM-1_015"), QG, ""), "no firmware string does not contradict the identity");
-ok(!donorIdentity(id("FM-1_015"), QG, "16"), "stock V16 is not a donor this project has read");
-ok(!donorIdentity(id("FM-1_016"), QG, "15"), "an unread stock version is refused even when firmware says V15");
+ok(donorIdentity(id("FM-1_016"), QG, "16"), "stock V16 is admitted as a donor");
+ok(donorIdentity(id("FM-1_016"), QG, "V16"), "the donor firmware may be written V16");
+ok(!donorIdentity(id("FM-1_017"), QG, "17"), "an unread stock version V17 is refused");
 ok(!donorIdentity(id("FM-1_982"), QG, "15"), "the target identity is not a donor");
 ok(!donorIdentity(id("GW-1_015"), QG, "15"), "never across models");
 ok(!donorIdentity(id("FM-1_911"), QG, "15"), "Pocket GammaWave 911 is not a stock donor");

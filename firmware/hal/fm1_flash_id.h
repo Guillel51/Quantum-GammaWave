@@ -20,8 +20,16 @@
 #pragma once
 #include <stdint.h>
 
-#define FL_JEDEC_P25Q80H 0x856014u
-#define FL_JEDEC_B36014  0xB36014u
+#define FL_JEDEC_P25Q80H 0x856014u             /* Puya P25Q80H (documented OEM) */
+#define FL_JEDEC_B36014  0xB36014u             /* UCUN UC25HQ80 (documented variant) */
+
+/* Documented 1 MiB SPI NOR chips known in FM-1 / AC791N hardware ecosystem.
+ * Read-only & backup support enabled; writes strictly restricted to verified production parts. */
+#define FL_JEDEC_GD25Q80 0xC84014u             /* GigaDevice GD25Q80E / GD25Q80C */
+#define FL_JEDEC_W25Q80  0xEF4014u             /* Winbond W25Q80DV / W25Q80DL */
+#define FL_JEDEC_ZB25Q80 0x5E4014u             /* Zbit ZB25VQ80 */
+#define FL_JEDEC_BY25D80 0x684014u             /* BoyaMicro BY25D80 */
+#define FL_JEDEC_XM25Q80 0x204014u             /* XMC XM25QH80B */
 
 #define FL_CAPACITY_1MIB 0x14u                 /* JEDEC byte 3: 2^0x14 = 1 MiB (8 Mbit) */
 
@@ -46,9 +54,24 @@ enum {
     FL_ID_PROTECTED   = -4                     /* status register busy or block-protected */
 };
 
-static inline int fl_jedec_supported(uint32_t id)
+static inline int fl_jedec_writable(uint32_t id)
 {
     return id == FL_JEDEC_P25Q80H || id == FL_JEDEC_B36014;
+}
+
+static inline int fl_jedec_readable(uint32_t id)
+{
+    return fl_jedec_writable(id) ||
+           id == FL_JEDEC_GD25Q80 ||
+           id == FL_JEDEC_W25Q80  ||
+           id == FL_JEDEC_ZB25Q80 ||
+           id == FL_JEDEC_BY25D80 ||
+           id == FL_JEDEC_XM25Q80;
+}
+
+static inline int fl_jedec_supported(uint32_t id)
+{
+    return fl_jedec_writable(id);
 }
 
 static inline int fl_jedec_capacity_ok(uint32_t id)
