@@ -450,39 +450,74 @@ regression.
 
 Host suite at 10 voices on this tree: every check passes except those two.
 
-## 17. Update — 2026-11-08, release v1.9.0: rebuilt at the commit it ships from
+## 17. Update — 2026-11-08, v1.9.0 published: tag, release and site on one package
 
-The previous version of this section guessed that the publishing job lacked permission to create refs. The
-run log says otherwise, and it says exactly where publication stopped. That log is evidence of the `[CI]`
-class; it was copied out of the runner into `ci/log/42477957388-failure` by `.github/workflows/ci_diag.yml`,
-because the Actions API needs a credential this checkout does not have and the runner has one.
+**v1.9.0 is published.** Tag `v1.9.0` → `7eb9636`, GitHub Release `Quantum GammaWave v1.9.0` (not a draft,
+not a pre-release), four assets, and Pages serving the same bytes. Everything below was read from the public
+URLs afterwards, with no credential: that is the `[PUBLIC]` class, not a plan.
 
-### What the log shows (emulator run 42477957388)
-
-- `GITHUB_TOKEN Permissions: Contents: write, Metadata: read`. The job's token **can** create refs and
-  releases, and the probe step ("this token may create refs and releases") **passed**. The permission theory
-  was wrong.
-- `publish` failed in the check step: `##[error]the source changed after the build: firmware/src/ui_being.c`.
-  Not a false positive. `main` had moved past the signed package (`e784b70`) with the owner's UI pass, so the
-  package no longer described the tree it was asked to publish. The check did its job.
-- `deploy` failed with `the deployed site still does not serve 6cafeb6 after 5 minutes`: `versions.json` is
-  keyed by the *build record's* commit while the check demanded `GITHUB_SHA`. No commit can satisfy that,
-  because the package is always built before the commit that adds it to `release/`.
-
-### What changed because of it
-
-| Item | State now | Evidence |
+| Item | State | Evidence |
 |---|---|---|
-| Package | **rebuilt and re-signed at `7eb9636`**, the tree it ships from | 610 806 B, `FM-1_982`, sha256 `80ad995c…`, `verified: FM-1 version 1.9.0, key qg1-release-1` (`[HOST]`) |
-| RAM code | 19 284 B of 24 576, pool spare 9 248 B | target build log (`[TARGET]`) |
-| `release/` | package, manifest, record, `SHA256SUMS`, emulator record, all of the same build | `git diff <record>..HEAD -- firmware tools web/emu` is empty (`[HOST]`) |
-| Site `versions.json` | names the emulator the site actually serves | `make_site.py --emu build/emu/manifest.json`; before, it named the emulator committed beside the package while the site copied this run's build |
-| Deploy check | holds the package and the emulator separately, each to its own commit and hash | `site_check.py --expect-commit <record> --expect-sha256 <signed> --expect-emu-commit <GITHUB_SHA>`, run against a locally served site: 14 ok (`[HOST]`); a wrong commit or a wrong hash still fails it |
-| Installer panel | prints the eight states, from the same report the JSON carries | `web/index_pkg.html`, `web/fm1diag.js`; 108 checks, 0 FAILED (`[HOST]`) |
+| Tag | **created** | `refs/tags/v1.9.0` = annotated `a7bd0c6c`, peeling to `7eb9636f58f4…` (`[PUBLIC]`) |
+| Release | **published** | `releases/tag/v1.9.0` → HTTP 200, name `Quantum GammaWave v1.9.0`, `draft: false`, `prerelease: false` (`[PUBLIC]`) |
+| Assets | **four, downloaded and checked** | `felucca-v1.9.0.fwsc` 610 806 B, `felucca-v1.9.0.manifest.json` 492 B, `build-manifest.json` 2 414 B, `SHA256SUMS` 267 B (`[PUBLIC]`) |
+| Hashes | **match** | `sha256sum -c SHA256SUMS` on the downloaded files: three `OK` (`[PUBLIC]`) |
+| Signature | **verified on the downloaded asset** | `verified: FM-1 version 1.9.0, key qg1-release-1, sha256 80ad995c…, record abcf3914…` (`[PUBLIC]`) |
+| Release = tree | **byte-identical** | `cmp` against `release/` for all four files (`[PUBLIC]`) |
+| Pages | **same package** | `firmware/versions.json`: `v1.9.0-7eb9636`, sha256 `80ad995c…`, 610 806 B, record `7eb9636`, emulator `7eb9636` (wasm 1 073 325 B) (`[PUBLIC]`) |
+| Site package = release | **byte-identical** | downloaded `firmware/felucca-v1.9.0-7eb9636.fwsc`, sha256 `80ad995c…`, `cmp` clean (`[PUBLIC]`) |
+| Installer page | **live and parsed** | inline module 175 933 B, `node --check` clean, CSP hash matches the script, `qg1-diagnostic-1` and `#vrep-states` present, no key material (`[PUBLIC]`) |
+| Workflow | **green end to end** | run 42482503161: build, deploy and publish all success (`[PUBLIC]`, log in `ci/log/42482503161-success`) |
 
-### What is still only software, and is not claimed otherwise
+### Why the tag had never existed
 
-Every gate that needs readings from the owner's unit is unchanged and open: the JEDEC and geometry of *that*
-unit, a 1 MiB dump of *that* unit, the verification of that dump, a rehearsed recovery, and the first
-controlled write. No write, erase, bootloader change or recovery command was sent to any FM-1 in this pass.
-See `docs/FORENSIC_FM1_VIABILITY.md` for the risk statement and the three conditions only the owner can meet.
+Three real defects, each found in the run log rather than guessed. The Actions API is rate-limited from this
+host and there is no `gh` credential here, so `.github/workflows/ci_diag.yml` copies the finished run's log
+into `ci/log/<run>-<conclusion>`: the runner has the token, and a branch can be read without one.
+
+1. **`git tag -a` had no committer.** `fatal: empty ident name (for <runner@…>) not allowed`. A fresh runner
+   has no git identity, so every earlier publish run passed its checks and died at the tag, exit 128. The tag
+   now carries the workflow's own identity (`-c user.name=… -c user.email=…`), verified in a scratch repo
+   with the identity removed.
+2. **The package described a tree that was no longer `main`.** The log's own words:
+   `the source changed after the build: firmware/src/ui_being.c`. The owner's UI pass had landed after the
+   package was signed. Rather than relax the check, the package was rebuilt and re-signed at the commit it
+   ships from; the package bytes are unchanged (`80ad995c`) because nothing that reaches them changed, only
+   the record, which names its commit.
+3. **The deploy check asked for something impossible.** It demanded `GITHUB_SHA` of a `versions.json` keyed by
+   the *build record's* commit — and the package is always built before the commit that adds it to `release/`.
+   The site also recorded the emulator committed beside the release while it copied this run's build. Now
+   `make_site.py --emu` records the emulator actually served, and the check holds the package to its record
+   commit and signed hash and the emulator to `GITHUB_SHA`, comparing ids as prefixes (a 12-character manifest
+   id against a 40-character SHA was the fourth bug, and it failed a site that was correct).
+
+Idempotence: the publish job first asks whether `v1.9.0` already names this build *and* has a release, and
+stops there if it does — so a later commit cannot silently republish different bytes, and a finished release
+does not turn CI red forever.
+
+### The installer's eight states, audited
+
+| State | True only when | Cannot be shown without |
+|---|---|---|
+| `DIAGNOSTIC READY` | a read-only run produced a report | the report itself |
+| `VERIFY READY` | an FM-1 answered the identity query | `kind != none` |
+| `PACKAGE VERIFIED` | the offered package describes itself consistently | gate row `gate.package` |
+| `SIGNATURE VERIFIED` | an Ed25519 signature was checked against a pinned key | gate row `gate.signature` |
+| `DEVICE COMPATIBLE` | the unit's own answer fits this package | gate row `gate.compat` |
+| `RECOVERY NOT VERIFIED` | no recovery was demonstrated on this unit | `gate.recovery != pass` |
+| `INSTALL READY` | **every** gate row is a pass **and** `verdict.canInstall` | both, together |
+| `INSTALL BLOCKED` | the complement of the previous line | never writable |
+
+`INSTALL READY` is computed from the gate rows and the verdict; there is no path to it that skips a row, and
+`RECOVERY NOT VERIFIED` / `INSTALL BLOCKED` are marked apart from the states that represent evidence so they
+cannot be read as progress. Verify Only stays read-only: it sends the identity query and never opens a chip
+session, so `flash.jedec` is reported as "cannot be established without a write session", never as read. The
+diagnostic export carries no key, no token and no package bytes, and a person can save it after Verify Only
+without starting an install. 108 checks, 0 failed (`[HOST]`).
+
+### What is still not done, and is nobody's fault but physics
+
+The gates that need the owner's unit are unchanged and open: the JEDEC and geometry of *that* FM-1, a 1 MiB
+dump of *that* unit, the verification of that dump, a rehearsed recovery, and the first controlled write.
+Nothing in this pass sent a write, erase, bootloader change or recovery command to any unit. See
+`docs/FORENSIC_FM1_VIABILITY.md`.
