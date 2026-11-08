@@ -268,6 +268,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # A job that cannot create a ref cannot publish anything, and the failure would look like a
+      # signing problem. This says which permission is missing before the checks run. It creates one
+      # tag and deletes it immediately; nothing else in the repository is touched.
+      - name: this token may create refs and releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          code=$(curl -s -o /tmp/probe.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs" \
+            -d "{\"ref\":\"refs/tags/qg-ci-permission-probe\",\"sha\":\"$GITHUB_SHA\"}")
+          if [ "$code" != "201" ]; then
+            echo "::error::GITHUB_TOKEN cannot create a ref (HTTP $code). Settings > Actions > General > Workflow permissions must be 'Read and write permissions'; with the repository default (read-only) no workflow can publish a tag or a release."
+            exit 1
+          fi
+          curl -s -X DELETE -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs/tags/qg-ci-permission-probe" >/dev/null
+          echo "the token can create refs: publishing is possible from this job"
       - name: the committed release is signed by the pinned key and describes this tree
         run: |
           # Ubuntu 24.04 marks its system Python as externally managed, so a bare `pip install` fails
