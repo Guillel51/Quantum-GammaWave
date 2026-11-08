@@ -113,9 +113,24 @@ jobs:
             (cd /tmp/stable && python3 tools/build.py)
             PKG=/tmp/stable/build/felucca.fwsc; SV=$(ver /tmp/stable); SH=${S::7}
           fi
+          # The signed release wins over every package built here: the private key is not in CI, so a
+          # package built in this run has no signature and the installer refuses it. release/ carries
+          # the bytes a person signed, with their manifest and the record that binds them.
+          RELMAN=""
+          RELPKG=$(ls release/*.fwsc 2>/dev/null | head -1 || true)
+          if [ -n "$RELPKG" ]; then
+            PKG=$RELPKG; REC=release/build-manifest.json; RELMAN=$REC
+            SV=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"].lstrip("v"))' "$REC")
+            SH=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["commit"][:7])' "$REC")
+            echo "the public site offers the signed release: $PKG ($SV-$SH)"
+          fi
           # (0.6.46) the versions the site offers now stay installable (the last few, web/fetch_prev.py)
           python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
-          python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
+          if [ -n "$RELMAN" ]; then
+            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$RELMAN"
+          else
+            python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev
+          fi
           # the portal is / and the emulator keeps a stable /emulator/ path; installer and editor keep /webapp/
           mkdir -p build/site/emulator
           cp -r build/emu/. build/site/emulator/
