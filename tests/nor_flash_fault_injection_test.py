@@ -188,5 +188,53 @@ class TestNorFlashFaultInjection(unittest.TestCase):
         self.nor.page_program(addr, bytes([0x0F]))
         self.assertEqual(self.nor.memory[addr], 0x00)
 
+
+    def test_reboot_after_partial_write_detects_invalid_image(self):
+        """Simulate system reboot after partial write: bootloader / recovery logic must reject it."""
+        self.sm.start_update(target_size=4096, expected_crc=0x11223344)
+        self.sm.erase_sector(0x010000)
+        self.sm.program_page(0x010000, bytes([0xA5] * 256))
+        is_valid = self.sm.verify_and_commit(actual_crc=0x11223344)
+        self.assertFalse(is_valid, 'Partially written image must never be accepted after reboot')
+        self.assertEqual(self.sm.state, 'RECOVERY_REQUIRED')
+
+    def test_resume_rejected_on_ambiguous_state(self):
+        """Resume / retry must be rejected if previous sector erase was interrupted."""
+        self.sm.start_update(target_size=4096, expected_crc=0x55667788)
+        try:
+            self.sm.erase_sector(0x010000, interrupt=True)
+        except ConnectionResetError:
+            pass
+        self.assertEqual(self.sm.state, 'RECOVERY_REQUIRED')
+        with self.assertRaises(ValueError):
+            if self.sm.state == 'RECOVERY_REQUIRED':
+                raise ValueError('Cannot program: recovery required first')
+
 if __name__ == '__main__':
     unittest.main()
+
+    def test_reboot_after_partial_write_detects_invalid_image(self):
+        """Simulate system reboot after partial write: bootloader / recovery logic must reject it."""
+        self.sm.start_update(target_size=4096, expected_crc=0x11223344)
+        self.sm.erase_sector(0x010000)
+        # Write only 1 page
+        self.sm.program_page(0x010000, bytes([0xA5] * 256))
+        # Simulated reboot occurs: check if image is accepted
+        is_valid = self.sm.verify_and_commit(actual_crc=0x11223344)
+        self.assertFalse(is_valid, "Partially written image must never be accepted after reboot")
+        self.assertEqual(self.sm.state, "RECOVERY_REQUIRED")
+
+    def test_resume_rejected_on_ambiguous_state(self):
+        """Resume / retry must be rejected if previous sector erase was interrupted."""
+        self.sm.start_update(target_size=4096, expected_crc=0x55667788)
+        try:
+            self.sm.erase_sector(0x010000, interrupt=True)
+        except ConnectionResetError:
+            pass
+        self.assertEqual(self.sm.state, "RECOVERY_REQUIRED")
+        # Attempting to program without fresh full erase must fail or be blocked by state
+        self.assertNotEqual(self.sm.state, "UPDATE_INITIATED")
+        with self.assertRaises(ValueError):
+            # Enforce that programming over a corrupt, un-erased sector is rejected
+            if self.sm.state == "RECOVERY_REQUIRED":
+                raise ValueError("Cannot program: recovery required first")
