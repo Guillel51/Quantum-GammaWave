@@ -6,41 +6,45 @@
 # callee's loops are the callee's line), and says nothing about cycles, memory or the device.
 # DRUM_PATH is the sum of the DRUM path's lines below: exactly as tight as its parts, plus the
 # guard that they cannot each sit at +9 % while the path grows.
-analog_render 581
-phase_render 102
-lofi_render 253
-formant_render 312
-wheel_render 267
+# These are the numbers of the -Oz profile (tools/build.py CFLAGS) with the always_inline audio
+# helpers (dsp.c, pitch_inc): the whole table was compared against -Os before the switch, so a
+# later move back or forward is measured, not assumed. dx_run is the one line that grew (+4 %,
+# 409 -> 426: its calls became inlined code); every other audio line here went down.
+analog_render 148
+phase_render 84
+lofi_render 197
+formant_render 229
+wheel_render 258
 wheel_block 86
-analog_ext 782
-analog_morph 808
-analog_dirty 229
-lofi_byte_render 164
+analog_ext 157
+analog_morph 89
+analog_dirty 84
+lofi_byte_render 87
 drum_render 10
-noise_render 256
-fm6_render 378
-fm6_op_run 72
-fm6_op_fb 26
-dx_run 409
-dx_layer 105
+noise_render 201
+fm6_render 322
+fm6_op_run 42
+fm6_op_fb 17
+dx_run 426
+dx_layer 91
 dx_run_sn 276
 drum_out 169
-drum_side_ramp 44
-drum_side_add 30
-drum_add 22
-drum_mix 126
-slicer_bus 819
+drum_side_ramp 26
+drum_side_add 20
+drum_add 12
+drum_mix 123
+slicer_bus 801
 fm1_alnk0_irq 270
-fm1_timer5_irq 33439
+fm1_timer5_irq 27338
 click_render 30
-mod_begin 166
-mod_voice 30
-mod_end 7
+mod_begin 35
+mod_voice 18
+mod_end 6
 perf_begin 28
-perf_mute 21
+perf_mute 19
 perf_pre 31
-perf_block 522
+perf_block 253
 perf_master 32
 rev_room 243
-rev_spring 127
-DRUM_PATH 1191
+rev_spring 126
+DRUM_PATH 1153

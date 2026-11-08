@@ -105,7 +105,12 @@ def _external_input(path):
             rel = Path(value).resolve().relative_to(ROOT.resolve()).as_posix()
         except (OSError, ValueError):
             continue
-        if rel and not rel.startswith("..") and (path == rel or path.startswith(rel + "/")):
+        # `path == rel` is a tracked file inside the toolchain; `rel.startswith(path)` is what
+        # `git status --untracked-files=normal` reports instead: the untracked directory itself
+        # (`.tools/`), which contains the external input. Both are the same directory, so neither
+        # is a change to what is being built from this commit.
+        if rel and not rel.startswith("..") and (path == rel or path.startswith(rel + "/")
+                                                 or rel.startswith(path.rstrip("/") + "/")):
             return True
     return False
 
