@@ -54,7 +54,7 @@ typedef struct {
 } layer_t;
 static const layer_t LAYERS[LAYER_N] = {
     {0, 0, 0, "", {{0, 0}, {0, 0}, {0, 0}}},
-    {B_FX, LK_HOLD, FAM_HOME, "[FX] HOLD", {{KC_KEYS, "EFFECTS"}, {KC_K14, "MACROS"}, {0, 0}}},   /* (LET GO: the header's HOLD) */
+    {B_FX, LK_HOLD, FAM_HOME, "[FX] HOLD", {{KC_KEYS, "FX"}, {KC_K14, "MACRO"}, {KC_OCTUP, "LATCH"}}},   /* (LET GO: the header's HOLD) */
     {B_GLO, LK_SET, FAM_HOME, "[GLO] SET", {{KC_PLAY, "RESTART"}, {KC_GLO, "DONE"}, {0, 0}}},
     {B_SCL, LK_SET, FAM_SCL, "[SCL] SET", {{KC_KEYS, "ROOT"}, {KC_SCL, "DONE"}, {0, 0}}},
     {B_EDIT, LK_SET, FAM_EDIT, "[EDIT] SET", {{KC_KEYS, "INIT / RECALL"}, {KC_EDIT, "DONE"}, {0, 0}}},
@@ -75,7 +75,7 @@ static const page_t *ly_page(uint32_t l) { return l == LAYER_SCL ? &LY_SCL : l =
 #define LY_DEAD 8u                     /* .. pressed where there is no layer: does nothing */
 enum { LY_INIT, LY_RECALL };          /* EDIT: the white keys F3 G3 */
 #define layer_seen (favorites.factory[15][31])   /* bit l: layer l opened once (a byte no engine uses) */
-static const khint_t FX_LATCH_FOOT[3] = {{KC_KEYS, "YES / NO"}, {KC_K14, "MACROS"}, {KC_OCTDN, "ALL OFF"}};
+static const khint_t FX_LATCH_FOOT[3] = {{KC_KEYS, "FX"}, {KC_OCTUP, "LATCH"}, {KC_OCTDN, "ALL OFF"}};
 static const khint_t MAC_LATCH_FOOT[3] = {{KC_K14, "M1-M4"}, {KC_SELECT, "DICE"}, {KC_LFO, "DONE"}};   /* (MACRO latched) */
 
 static struct {
@@ -673,16 +673,30 @@ static void layer_oct_open(uint32_t pressed)
 /* OCT- / OCT+ in a SET layer: no octave (TONIC: no put back; FX LATCH: OCT- all off). Returns the taps left */
 static uint32_t layer_oct(uint32_t pressed, uint32_t oct)
 {
-    uint32_t dn = panel.btn[B_OCTDN], up = panel.btn[B_OCTUP], mine;
-    if (layer_set_open())
+    uint32_t dn = panel.btn[B_OCTDN], up = panel.btn[B_OCTUP], mine, set = (uint32_t)layer_set_open();
+    if (set || ui.ly == LAYER_FX)                       /* FX: OCT- all off, OCT+ LATCH (3.1) */
         lys.oct |= (uint8_t)(((pressed >> dn) & 1u) | ((pressed >> up) & 1u) << 1);
     if (ui.ly && (pressed & (1u << dn | 1u << up)))
         lys.used = 1;                                   /* (0.6.44: an OCT with it: no FX lock) */
     mine = oct & lys.oct;
-    if ((mine & 1u) && lys.l == LAYER_FX) {             /* OCT- (FX LATCH): every effect and macro off */
+    if (!set && (ui.ly == LAYER_FX || lys.oct))
+        mine &= 2u;                                     /* LATCH off: only OCT+ is the map's; OCT- is the octave
+                                                         * (lys.oct: the press began on the open map) */
+    if ((mine & 1u) && set && lys.l == LAYER_FX) {      /* OCT- (FX LATCH): every effect and macro off */
         perf_latched = 0;
         perf_k[0] = perf_k[1] = perf_k[2] = perf_k[3] = 0;
         ui_message("FX ALL OFF");
+    }
+    if ((mine & 2u) && lys.l == LAYER_FX) {             /* (3.1) OCT+: FX LATCH on / off, saved. This is the
+                                                         * path the map's card has always advertised and the one
+                                                         * that was missing: without it the setting could only be
+                                                         * changed in MENU > CONTROL, so the card stayed OFF. */
+        ui_prefs ^= PREF_LATCH;
+        perf_latched = 0;                               /* no effect survives the change of mode */
+        perf_latch_on = (uint8_t)((ui_prefs & PREF_LATCH) != 0u);
+        settings_save();
+        ui.force = 1;
+        ui_message(perf_latch_on ? "FX LATCH ON" : "FX LATCH OFF");
     }
     if (lys.l == LAYER_SAVE && (mine & 2u)) {           /* SAVE + OCT+: STORE the music into the section playing */
         if (live.cur < 0)
@@ -940,7 +954,8 @@ static const char *const FX_BLACK[5] = {"VIB", "TGT", "GATE", "RTRG", "DIVE"};
 #define FX_KEY_X0 9                              /* 16 x 12 px keys, 2 px apart: 222 px, x 9..230 */
 #define FX_WHITE_W 12
 #define FX_WHITE_GAP 2
-#define FX_BLACK_W 8
+#define FX_BLACK_W 10                              /* (3.1) 10, not 8: the M of M1..M6 is 9 px wide in AF_S;
+                                                    * the pitch is unchanged (14 px a white key) */
 #define FX_BLACK_H 58
 #define FX_WHITE_LABEL_Y (FX_KEY_Y + FX_BLACK_H + 3)   /* below the black keys: no overlap */
 #define FX_WHITE_LABEL_H (FX_KEY_H - FX_BLACK_H - 3)
@@ -1050,7 +1065,9 @@ static void layer_fx(uint32_t band)
              * on (the real seq.c bit, not a copy), so the map shows which tracks are muted now. */
             int32_t latched = (mutes >> b) & 1u;
             uint16_t fill = latched ? T_ACCENT : T_KEYB;                   /* (3.0) the accidentals' grey */
-            char n[3] = {'T', (char)('1' + b), 0};
+            /* (3.1) M1..M6: these six keys are the track MUTES, and the owner asked for the map to say so.
+             * The key each one is bound to did not move (BKPOS and key_place are untouched). */
+            char n[3] = {'M', (char)('1' + b), 0};
             cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, ux_mix(T_KEYB, T_TEXT, 22));
             fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, latched ? T_INK : T_TEXT, fill);
             if (latched)                             /* a lit cap: the mute reads at a glance, as a held key */

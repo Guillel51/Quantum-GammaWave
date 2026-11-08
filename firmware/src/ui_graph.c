@@ -668,14 +668,51 @@ static int scl_degree(uint32_t mask, uint32_t root, uint32_t note)
     }
     return 0;
 }
+/* (3.1) a piano key: rounded, 1 px contour, drawn from rows and corner pixels. It is deliberately not
+ * a cv_rrect: the keys overlap (the accidentals sit over the naturals) and a registered cell would be
+ * reported as spilled by the very text the key owns. Same ink, no lint hook, identical on the panel. */
+static void scl_key(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t face, uint16_t brd, uint16_t under)
+{
+    int32_t i, j;
+    cv_rect(x + r, y, w - 2 * r, h, face);
+    cv_rect(x, y + r, r, h - 2 * r, face);
+    cv_rect(x + w - r, y + r, r, h - 2 * r, face);
+    for (j = 0; j < r; j++)
+        for (i = 0; i < r; i++) {
+            int32_t s = i + j;
+            if (s >= r) {
+                cv_pset(x + i, y + j, s == r ? brd : under);
+                cv_pset(x + w - 1 - i, y + j, s == r ? brd : under);
+                cv_pset(x + i, y + h - 1 - j, s == r ? brd : under);
+                cv_pset(x + w - 1 - i, y + h - 1 - j, s == r ? brd : under);
+            }
+        }
+    cv_rect(x + r, y, w - 2 * r, 1, brd);
+    cv_rect(x + r, y + h - 1, w - 2 * r, 1, brd);
+    cv_rect(x, y + r, 1, h - 2 * r, brd);
+    cv_rect(x + w - 1, y + r, 1, h - 2 * r, brd);
+}
+
 static void graph_scale(const track_t *t, uint16_t c)
 {
     static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};   /* C C# D D# E F F# G G# A A# B */
     static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};    /* the white key it belongs to */
     static const uint8_t W_NOTE[7] = {0, 2, 4, 5, 7, 9, 11};                   /* C D E F G A B */
-    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u;
-    const int32_t x0 = 12, kw = 30, kg = 1, y0 = 24, kh = 62, bw = 18, bh = 40;
+    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u, live = 0;
+    /* (3.1) the piano, measured: 7 white keys 29 px wide with a 2 px gap (12..228), 60 px tall,
+     * five black keys 18 x 38 centred on their seam. Both are rounded bevels with a 1 px contour,
+     * a light grey face for the naturals and a darker one for the accidentals, so the layout reads
+     * as a keyboard on every theme instead of a wall of one colour. The scale is shown by a 2 px
+     * top strip (ROOT: accent, other degrees: theme), not by filling whole keys orange and cyan:
+     * that combination was the one the owner called unattractive, and it fought every palette. */
+    const int32_t x0 = 12, kw = 29, kg = 2, y0 = 25, kh = 60, bw = 18, bh = 38;
     char sb[24];
+
+    for (i = 0; i < NVOICE; i++) {                   /* the notes the selected track is sounding now */
+        const voice_t *v = &t->v[i];
+        if (v->active && v->gate && v->note < 128u)
+            live |= 1u << (v->note % 12u);
+    }
 
     if (ux.chamfer && !ux.style)
         gw_oct_panel(8, 2, 224, 118, 5, T_BG, T_LINE, 1, c);
@@ -690,41 +727,57 @@ static void graph_scale(const track_t *t, uint16_t c)
     if (t->p[P_QUANT])
         cv_text_r(228, 7, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
 
-    /* the seven naturals: a bevel each, the scale's mask as their colour */
+    /* the seven naturals */
     for (i = 0; i < 7u; i++) {
         uint32_t note = W_NOTE[i], deg = (note + 12u - root) % 12u;
         int32_t kx = x0 + (int32_t)i * (kw + kg);
         int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
-        uint16_t face = in ? (is_root ? T_ACCENT : c) : T_SURF;
-        gw_bevel(kx, y0, kw, kh, face, ux_mix(face, T_TEXT, in ? 46 : 20), ux_mix(face, T_BG, in ? 34 : 62));
-        if (in) {
-            int dg = scl_degree(mask, root, note);
+        int sound = (live >> note) & 1u;
+        uint16_t face = in ? T_KEYW : ux_mix(T_KEYW, T_BG, 24);
+        uint16_t brd = ux_mix(face, T_BG, 58);
+        uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        if (sound)
+            face = ux_mix(face, T_THEME, 34);
+        scl_key(kx, y0, kw, kh, 4, face, brd, T_SURF);
+        if (strip)
+            cv_rect(kx + 2, y0 + 1, kw - 4, 2, strip);
+        cv_rect(kx + kw - 1, y0 + 3, 1, kh - 6, ux_mix(face, T_BG, 32));
+        if (in) {                                     /* the degree, on the free bottom row: the accidentals
+                                                       * end 6 px above it, so nothing overlaps */
             char db[4];
-            fmt_int(db, dg);
-            cv_text_on(kx + 3, y0 + 3, &AF_S, db, T_INK, face);
+            fmt_int(db, scl_degree(mask, root, note));
+            cv_text_on(kx + 3, y0 + kh - 15, &AF_S, db, T_INK, face);
         }
-        cv_text_in(kx, y0 + kh - 15, kw, &AF_S, N_NOTE[note], in ? T_INK : T_DIM, face);
+        cv_text_r(kx + kw - 4, y0 + kh - 15, &AF_S, N_NOTE[note], in ? T_INK : T_DIM, face);
+        if (sound)                                    /* the note is sounding: one clear bar */
+            cv_rect(kx + 2, y0 + kh - 4, kw - 4, 2, T_ACCENT);
     }
-    /* the five accidentals, bevels too, over the seam they belong to */
+    /* the five accidentals, over the seam they belong to */
     for (i = 0; i < 12u; i++) {
         uint32_t deg = (i + 12u - root) % 12u;
         int32_t kx;
-        int in, is_root;
-        uint16_t face, ink;
+        int in, is_root, sound;
+        uint16_t face, ink, strip;
         if (!BLACK[i])
             continue;
         kx = x0 + (int32_t)W_KEY[i] * (kw + kg) + kw + kg / 2 - bw / 2;
         in = (mask >> deg) & 1u;
         is_root = in && deg == 0u;
-        face = in ? (is_root ? T_ACCENT : c) : T_BG;
-        ink = in ? T_INK : T_MID;
-        gw_bevel(kx, y0, bw, bh, face, ux_mix(face, T_TEXT, in ? 46 : 30), T_BG);
+        sound = (live >> i) & 1u;
+        face = sound ? ux_mix(T_KEYB, T_THEME, 46) : T_KEYB;
+        ink = in ? T_TEXT : T_MID;
+        strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        scl_key(kx, y0, bw, bh, 3, face, ux_mix(T_KEYB, T_TEXT, 24), T_BG);
+        if (strip)
+            cv_rect(kx + 2, y0 + bh - 3, bw - 4, 2, strip);
         cv_rect(kx, y0 + bh, bw, 2, T_BG);            /* its shadow on the naturals */
         GFX_HOOK_ALIGN(kx, y0, kx + bw, y0 + bh, AL_HV, "SCL accidental name in its key");
         cv_text_in(kx, y0 + CAP_IN(S, bh), bw, &AF_S, N_NOTE[i], ink, face);
+        if (sound)
+            cv_rect(kx + 2, y0 + bh - 3, bw - 4, 2, T_TEXT);
     }
 
-    /* the footer: what this page's two other values are, so the card is not half empty */
+    /* the footer: what this page's two other values are */
     cv_rect(12, 89, 216, 1, T_LINE);
     {
         char fb[24], tb[8];
@@ -783,23 +836,32 @@ static void graph_fx(const track_t *t, uint16_t c)
         cv_rrect(cx, 4, 53, 62, 3, T_SURF, T_BG);
         cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);   /* the whole name, on its own line */
         cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, T_SURF);
-        fmt_int(num, val);
+        /* (3.1) the four sends are MIDI 0..127 inside (presets, automation, the DSP's own maths keep
+         * that range) and 0..100 % on screen: the conversion happens here, once, for the label. */
+        fmt_int(num, (val * 100 + 63) / 127);
+        str_cpy(num + str_len(num), "%", sizeof num - str_len(num));
         cv_text_on(cx + 18, 18, &AF_S, num, val ? T_TEXT : T_DIM, T_SURF);
         cv_text_on(cx + 3, 40, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, T_SURF);
         if (pk > 64)                                  /* the track is producing sound now */
-            cv_rect(cx + 46, 6, 3, 3, T_ACCENT);
+            cv_rect(cx + 47, 6, 3, 3, T_ACCENT);
         else
-            cv_rect(cx + 46, 6, 3, 3, T_LINE);
+            cv_rect(cx + 47, 6, 3, 3, T_LINE);
 
         /* One slim 7 px meter, a real level and its peak cap; a 1 px tick shows what the bus receives. */
         cv_rect(mx, my, 7, mh, T_BG);
         for (seg = 0; seg < mh; seg += 5)
             cv_rect(mx, my + mh - 1 - seg, 7, 1, T_RAISE);
+        /* (3.1) a meter's cap is a row of its own slot: the lit height and the peak are clamped to
+         * 0..mh before they become a coordinate, so neither can be drawn above my or below my+mh-1. */
+        if (hpx > mh) hpx = mh;
+        if (inpx > mh) inpx = mh;
         if (hpx > vu[i]) vu[i] = (uint8_t)hpx;
         else if (vu[i] > 0u) vu[i]--;
         if (hpx > hold[i]) hold[i] = (uint8_t)hpx;
         else if (hold[i] > 0u) hold[i]--;
+        if (vu[i] > (uint8_t)mh) vu[i] = (uint8_t)mh;
+        if (hold[i] > (uint8_t)mh) hold[i] = (uint8_t)mh;
         if (vu[i] > 0u)
             cv_rect(mx + 1, my + mh - vu[i], 5, vu[i], i == 0 ? c : T_THEME);
         if (hold[i] > 0u)
@@ -2630,7 +2692,10 @@ static void graph_home_viz(uint16_t c)
              * peak a 1 px cap over it. A solid bar hid how loud the band was, not just that it was. */
             gw_seg_v(bx, 153, 9, 26, bh, 2, mono ? T_TEXT : heat_col(38 + (int32_t)i * 13), T_RAISE);
             if (peak_decay[i] > 1)
-                cv_rect(bx, 152 - ph, 9, 1, mono ? T_TEXT : T_ACCENT);
+                /* (3.1) the cap is a coordinate of THIS meter, not of the page: it used to be
+                 * drawn at 152 - ph, up to 27 px above the 153..178 field, so the peak marks
+                 * floated over the scope. The field's top row is 153, its bottom 178. */
+                cv_rect(bx, clamp(178 - ph, 153, 178), 9, 1, mono ? T_TEXT : T_ACCENT);
             /* an ambient scan tick: a UI marker, never presented as measured level */
             if (!song.playing && (uint32_t)((ui.frame / 6u + i) % 16u) == 0u)
                 cv_rect(bx + 4, 181, 1, 2, T_DIM);
@@ -2805,11 +2870,14 @@ static void graph_song(void)
 /* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
 static void graph_master(void)
 {
-    /* (2.2) the master VU's geometry: two long rows on the band under the graphs, right of the CLIP
-     * captions (x 108.. is free there; the lower boxes start at y 80, the captions end at y 66) */
+    /* (3.1) the master VU's geometry. The four LVL / LIM / CPU / PK boxes that used to fill y 80..98
+     * are gone (the owner asked for them out of MASTER), so the meters take that band: y 80 and 87, with
+     * their caption on the graphs' caption line at y 66. The meter is 46 px below PUNCH's state word, so
+     * the old collision with the "OFF" above it cannot happen; every value it draws is still
+     * audio_out_peak(), the same ring the DAC writes. */
 #define VU_X0 108
 #define VU_W 108
-#define VU_Y0 67
+#define VU_Y0 80
 #define VU_H 6
     cv_oy = 0;                                       /* this panel is laid out on its own 0..100 scale */
     if (str_eq(cur_page()->title, "STEREO M/S")) {     /* M/S width: the two sides separate with M-WIDE */
@@ -2902,56 +2970,15 @@ static void graph_master(void)
         }
         if (clip_hold)
             clip_hold--;
-        cv_text_on(208, 57, &AF_S, clip_hold ? "CLIP" : live ? "LIVE" : "OUT",
+        /* (3.1) one caption, not two LIVEs: CLIP's own state already reads LIVE at the left.
+         * The meter says OUT, and lights while it moves. */
+        cv_text_on(VU_X0, 66, &AF_S, clip_hold ? "CLIP" : "OUT",
                    clip_hold || live ? T_ACCENT : T_DIM, T_SURF);
     }
 
-    /* (2.1) The band under the three graphs: the four figures the master actually moves, each in its own
-     * box instead of the forty empty pixels the page left there. Every one is read from the stage that
-     * applies it this block, never calculated for the screen:
-     *   LEVEL  fx_master_g()  the gain master_out puts on the mix (32768 = unity)
-     *   LIMIT  fx_lim_env()   the limiter's envelope against LIM_T: how much it is holding down now
-     *   LOAD   song.cpu_q8    the audio's own load, averaged, the same figure GLO > MONITOR prints
-     *   PEAK   load_diag.peak the worst block since power-on
-     * A bar follows each value at its own scale; nothing animates on its own. */
-    {
-        static const int32_t MX4[4] = {4, 62, 120, 178};
-        static const char *const NM4[4] = {"LVL", "LIM", "CPU", "PK"};
-        int32_t v4[4], r4[4], k;
-        char b4[8];
-        v4[0] = (int32_t)fx_master_g();                /* 0..32768 */
-        r4[0] = 32768;
-        v4[1] = (int32_t)fx_lim_env();                 /* FX_LIM_T (open) down to the limiter's floor */
-        r4[1] = FX_LIM_T;
-        v4[2] = (int32_t)(song.cpu_q8 * 100u / 256u);  /* % */
-        r4[2] = 100;
-        v4[3] = (int32_t)load_diag.peak;
-        r4[3] = 100;
-        for (k = 0; k < 4; k++) {
-            int32_t bx = MX4[k], pct = r4[k] ? clamp(v4[k] * 100 / r4[k], 0, 100) : 0;
-            uint16_t col = k == 1 ? (v4[1] < r4[1] * 90 / 100 ? T_ACCENT : T_THEME)
-                          : k == 2 ? (v4[2] > 78 ? T_ACCENT : T_THEME) : k == 3 ? (v4[3] > 78 ? T_ACCENT : T_THEME) : T_THEME;
-            cv_rrect(bx, 80, 54, 18, 3, T_SURF, T_BG);
-            cv_text_on(bx + 4, 81, &AF_S, NM4[k], T_DIM, T_SURF);
-            cv_rect(bx + 4, 94, 46, 3, T_BG);
-            if (pct > 0)
-                cv_rect(bx + 4, 94, pct * 46 / 100, 3, col);
-            if (k == 1) {                              /* LIMIT: the bar is the gain left, so a hold reads short */
-                b4[0] = 0;
-                fmt_int(b4, pct);
-                str_cpy(b4 + str_len(b4), "%", 2);
-            } else if (k == 0) {
-                b4[0] = 0;
-                fmt_int(b4, pct);
-                str_cpy(b4 + str_len(b4), "%", 2);
-            } else {
-                b4[0] = 0;
-                fmt_int(b4, v4[k]);
-                str_cpy(b4 + str_len(b4), "%", 2);
-            }
-            cv_text_r(bx + 50, 81, &AF_S, b4, v4[k] && (k != 1 || pct < 100) ? T_TEXT : T_DIM, T_SURF);
-        }
-    }
+    /* (3.1) The LVL / LIM / CPU / PK band is gone by request: MASTER shows what it controls (CLIP,
+     * PUNCH, DUCK, REL) and the output meters, not the CPU or the limiter's internal envelope. The
+     * space it held is the VU's now, so the page has no empty hole and nothing moved off the panel. */
 }
 
 static void draw_graph(void)

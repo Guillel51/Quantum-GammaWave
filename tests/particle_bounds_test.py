@@ -70,8 +70,13 @@ check("p->own = vz_np_owner" in body(being, "vz_np_add"),
 draw = body(being, "gw_note_particles")
 check("p->own != own" in draw, "the draw loop skips another screen's sparks")
 check("p->life = 0" in draw, "a spark leaving its own bay is dropped, not carried elsewhere")
-check("p->x < x0 - 2 || p->x > x0 + w + 2 || p->y < top - 2 || p->y > bot + 2" in draw,
-      "the draw is clipped to the rect the caller hands in")
+check("p->x < x0 || p->x > rgt || p->y < top || p->y > bot" in draw,
+      "the draw is clipped to the exact rect the caller hands in (no 2 px overshoot)")
+check("ex = p->x + p->size > rgt + 1 ? rgt + 1 : p->x + p->size" in draw and
+      "ey = p->y + p->size > bot + 1 ? bot + 1 : p->y + p->size" in draw,
+      "a 2 px spark is truncated at the bay's edge, not drawn past it")
+check("ox >= x0 && ox <= rgt && oy >= top && oy <= bot" in draw,
+      "the trail is only drawn when both of its ends are inside the bay")
 check("VZ_NP_MAX" in being and "malloc" not in being and "calloc" not in being,
       "the pool is a fixed array: no allocation on the UI or audio path")
 
@@ -83,7 +88,7 @@ check(body(being, "graph_being") and not calls_in(body(being, "graph_being")),
 
 # ---- where the sparks DO belong, each inside its own screen's free area ----
 home = calls_in(body(being, "graph_ecosys"))
-check(home == [(8, 66, 88, 52)], "HOME draws the pool in its own bay (8,66,88,52): %s" % (home,))
+check(home == [(9, 67, 86, 50)], "HOME draws the pool inside its bay (9,67,86,50): %s" % (home,))
 viz = calls_in(body(graph, "graph_home_viz"))
 check(viz == [(12, 64, 144, 67)], "the visualizer draws it in its scope field (12,64,144,67): %s" % (viz,))
 
@@ -100,6 +105,38 @@ check(home and home[0][0] + home[0][2] <= 100, "HOME: its bay stays left of the 
 # y 180. The scope field is between them.
 check(viz and viz[0][1] >= 64 and viz[0][0] + viz[0][2] <= 164 and viz[0][1] + viz[0][3] <= 180,
       "VISUALIZER: its bay is the scope field, clear of header, phase plot and spectrum")
+
+# ---- the HOME solar system: every orbit and planet inside its bay ----------
+# The bay is the clip (sys_box); the geometry must not lean on the clip for its size, or a
+# planet would be cut at the edge rather than drawn whole. The check is arithmetic, on the
+# tables the draw uses: orbit radius + planet radius + a 2 px margin fits in the half bay.
+def nums(name, text):
+    m = re.search(r"\b" + name + r"\s*\[[^\]]*\]\s*=\s*\{([^}]*)\}", text)
+    return [int(v) for v in re.findall(r"-?\d+", m.group(1))] if m else []
+
+def call_ints(name, text):
+    m = re.search(r"\b" + name + r"\s*\(\s*(-?\d+[^)]*)\)", text)   # (a call, not the prototype)
+    return [int(v) for v in re.findall(r"-?\d+", m.group(1))] if m else []
+
+orx, orys, orr = nums("ORX", being), nums("ORYS", being), nums("ORR", being)
+box = call_ints("sys_box", being)
+sysc = call_ints("gw_draw_system", being)
+check(len(orx) == 3 and len(orys) == 3 and len(orr) == 3 and len(box) == 4 and len(sysc) >= 2,
+      "HOME: the solar system's orbit tables, its clip and its call are all found")
+if len(orx) == 3 and len(orr) == 3 and len(box) == 4 and len(sysc) >= 2:
+    bx, by, bw, bh = box
+    cx, cy = sysc[0], sysc[1]
+    hw, hh = min(cx - bx, bx + bw - cx), min(cy - by, by + bh - cy)
+    worst = 0
+    for i in range(3):
+        ex = orx[i] + orr[i] + 2
+        ey = orx[i] * orys[i] // 100 + orr[i] + 2
+        worst = max(worst, ex - hw, ey - hh)
+    check(bx >= 0 and by >= 0 and bx + bw <= 240 and by + bh <= 240,
+          "HOME: the solar system's clip is inside the 240x240 screen")
+    check(worst <= 0, "HOME: every orbit and planet fits its bay with 2 px to spare (worst %d)" % worst)
+    check(cx - bx >= 8 and bx + bw - cx >= 8 and cy - by >= 8 and by + bh - cy >= 8,
+          "HOME: the system is centred in its bay (no orbit pushed to an edge)")
 
 print("\nparticles: %d failed checks" % len(fails))
 sys.exit(1 if fails else 0)

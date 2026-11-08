@@ -3210,6 +3210,23 @@ static int test_layer(void)
     ok &= !fx_lock && !ui.layer;                                           /* FX again: closed */
     bad += check("Latch: the FX LATCH setting on and off (nothing left latched, the map stays pinned), each key "
                  "keeps its own effect, DEPTH on KNOB 4, FX closes the pinned map", ok);
+    {   /* (3.1) FX + OCT+ is the LATCH switch the map's card has always advertised. Before this path
+         * existed the card could only be read, never changed from the map: the setting stayed OFF. */
+        uint32_t oct0;
+        ui_power_on();
+        btn_down(B_FX); frames(100); frame();
+        oct0 = song.octave;
+        btn_down(B_OCTUP); frame();
+        btn_up(B_OCTUP); frame();
+        ok = perf_latch_on && (ui_prefs & PREF_LATCH) != 0u && song.octave == oct0;
+        key_down(white(3)); frame(); key_up(white(3)); frame();      /* F3 = LPF, latched */
+        ok &= (perf_latched & PF_BIT(PF_LPF)) != 0u;
+        btn_down(B_OCTUP); frame(); btn_up(B_OCTUP); frame();
+        ok &= !perf_latch_on && !(ui_prefs & PREF_LATCH) && !perf_latched;
+        btn_up(B_FX); frame();
+        bad += check("FX + OCT+ toggles LATCH from the map (the setting and the engine's bit), OCT+ is not an "
+                     "octave, a second press clears the latches", ok);
+    }
     /* (2.1) A NEW PRESET STARTS CLEAN: the latched punch-in effects, the four macros and the buffer heads
      * are state, not settings. Loading another sound clears them (perform.c perf_reset, fx.c
      * fx_preset_flush), together with the buses' short lines; a track's mute is the player's and stays. */
@@ -3377,6 +3394,29 @@ static int test_layer(void)
     project_load(2);
     bad += check("REVERB page: TYPE ROOM -> SPRING .. CLOUD on KNOB 1 (SIZE, DAMP beside it); a project keeps CLOUD",
                  ok && song.g[G_RTYPE] == 4);
+    {   /* (3.1) the reverb graph answers the notes: rev_tick reads the bus's real return (fx_vu[5], the
+         * reverb return meter), not a clock; its rings move while it sounds and settle when the tail does */
+        int32_t hi, ph0;
+        ui_power_on();
+        song.g[G_RTYPE] = 0;                           /* ROOM: the impulse response graph */
+        go_title("REVERB");
+        fx_vu[5] = 0;
+        frame();
+        ok = rev_act == 0 && rev_ph == 0;              /* silence: still */
+        fx_vu[5] = 30000;
+        frame();
+        hi = rev_act;
+        ok &= hi > 180 && rev_ph != 0;                 /* the note: lit and moving */
+        ph0 = rev_ph;
+        frames(32);                                    /* (the page is redrawn every other frame) */
+        ok &= rev_act == hi && rev_ph == ((ph0 + 4) & 255);   /* it holds while the return does */
+        fx_vu[5] = 0;
+        frames(200);
+        ok &= rev_act < hi / 2 && rev_act > 0;         /* the tail falls, frame by frame */
+        frames(1200);
+        ok &= rev_act == 0 && rev_ph == 0;             /* and settles: no cost when there is no tail */
+        bad += check("REVERB graph: the rings follow the bus's return and fall with the tail (host)", ok);
+    }
     {   /* (0.5.1) the DRUM-X kit's X-MOD kept by a project (the kit's reserved bytes) */
         static const uint8_t XM[4] = {6, 90, 4, 70};
         memcpy(dx_mot, XM, 4);
@@ -8539,7 +8579,12 @@ static int test_fx_latch(void)
         btn_up(B_FX); frame();
         ok &= !ui.layer && ui.home == h && ui.page == pg;
     }
-    btn_down(B_FX); frame(); frames(800); press(B_OCTUP); btn_up(B_FX); frame();
+    btn_down(B_FX); frame(); frames(800); press(B_OCTUP);
+    ok &= song.octave == -1 && perf_latch_on && (ui_prefs & PREF_LATCH);   /* (3.1) the map's OCT+: LATCH */
+    press(B_OCTUP);                                               /* again: off, and still no octave */
+    ok &= song.octave == -1 && !perf_latch_on && !(ui_prefs & PREF_LATCH);
+    btn_up(B_FX); frame();
+    press(B_OCTUP);                                               /* no FX: the octave, as always */
     ok &= song.octave == 0;
     btn_down(B_FX); frame(); btn_up(B_FX); frame();               /* FX tap: its page still */
     ok &= !ui.home && cur_page()->fam == FAM_FX;

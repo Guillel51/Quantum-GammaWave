@@ -2011,7 +2011,9 @@ static void ui_input_frame(void)
     if (((pressed >> panel.btn[B_SAVE]) & 1u) && ui.ly == LAYER_SAVE)
         ui.save_t0 |= 2u;                               /* (SAVE too: layer_tap opens its pages) */
     layer_oct_open(pressed);                            /* (OCT± with a SET layer's button down: it opens now) */
-    oct = oct_taps(pressed, ui.menu || ui.confirm || act_cols() || name_on() || layer_set_open());
+    oct = oct_taps(pressed, ui.menu || ui.confirm || act_cols() || name_on() || layer_set_open() ||
+                   (ui.ly == LAYER_FX && !(ui.ly_t0 & 8u)));   /* (3.1) the FX map's own OCT±: its LATCH switch
+                                                         * and, with LATCH off, the octave */
     oct = layer_oct(pressed, oct);                      /* (a SET layer's OCT-: put back) */
     layer_masks();                                      /* seq.c: keys pressed with a layer's button are its own */
     {   /* (0.6.6) a page button held + PRESETS: its pages (page_jump); not in the menu, a dialog, NAME. (0.6.67) A
@@ -2371,7 +2373,10 @@ static void ui_input_frame(void)
         case B_OCTDN:
         case B_OCTUP: {
             uint32_t both = (1u << panel.btn[B_OCTDN]) | (1u << panel.btn[B_OCTUP]);
-            if (act_cols() || layer_set_open())         /* action pages: enter / back (below); SET layers: OCT- */
+            if (act_cols() || layer_set_open() ||       /* action pages: enter / back (below); SET layers: OCT- */
+                (b == B_OCTUP && ui.ly == LAYER_FX))    /* (3.1) with FX armed, OCT+ is the map's LATCH switch
+                                                         * (ui_layer.c layer_oct); OCT- stays the octave while
+                                                         * LATCH is off, as it always was */
                 break;
             if (!ui.home && !ui.menu && !ui.confirm && cur_page()->graph == GR_MUTATE) {   /* (0.6.43) KEEP, FREEZE */
                 if (b == B_OCTUP) { mut_keep(); ui_message("ANCHOR: THE MUSIC NOW"); }

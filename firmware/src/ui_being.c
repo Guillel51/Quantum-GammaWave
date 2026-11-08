@@ -30,7 +30,7 @@ static uint32_t vz_np_drawn = 0xFFFFFFFFu;   /* the frame the pool last advanced
 #define UI_NO_DRIFT 0
 #endif
 #if !UI_NO_DRIFT
-#define VZ_NP_MAX 40
+#define VZ_NP_MAX 28
 /* (2.2) WHO a spark belongs to. The pool is one fixed array that every screen drawing sparks shares.
  * Without an owner, a spark born on HOME was painted by whichever screen next drew the pool -- which is
  * how they turned up over the EDIT ribbon's bands (CHR among them) and over the six cells under it. A
@@ -87,8 +87,8 @@ static void vz_np_scan(int32_t x0, int32_t y0, int32_t w, int32_t h)
                             vz_np_add(n->x, n->y, (k - 1) * 2, -1 - (k & 1), col, 11, 1);
                     }
                     for (k = 0; k < 3; k++)
-                        vz_np_add(nx + (k - 1) * 2, ny, (k - 1) * 2, -2 - (k & 1), col,
-                                  14 + (uint8_t)((v->vel ? v->vel : 100u) / 24u), k == 1 ? 2 : 1);
+                        vz_np_add(nx + (k - 1) * 2, ny, (k - 1) * 2, -1 - (k & 1), col,
+                                  8 + (uint8_t)((v->vel ? v->vel : 100u) / 32u), k == 1 ? 2 : 1);
                 }
                 n->seen = 1;
                 n->note = v->note;
@@ -96,10 +96,9 @@ static void vz_np_scan(int32_t x0, int32_t y0, int32_t w, int32_t h)
                 n->x = (int16_t)nx;
                 n->y = (int16_t)ny;
             } else if (n->seen) {                    /* note-off: a short burst where it was */
-                int k;
-                for (k = 0; k < 4; k++)
-                    vz_np_add(n->x + (k & 1) * 3 - 1, n->y + ((k >> 1) & 1) * 3 - 1,
-                              (k & 1 ? 2 : -2), (k >> 1 ? 2 : -2), col, 13, 1);
+                int k;                    for (k = 0; k < 4; k++)
+                        vz_np_add(n->x + (k & 1) * 3 - 1, n->y + ((k >> 1) & 1) * 3 - 1,
+                                  (k & 1 ? 2 : -2), (k >> 1 ? 2 : -2), col, 8, 1);
                 n->seen = 0;
             }
         }
@@ -108,7 +107,7 @@ static void vz_np_scan(int32_t x0, int32_t y0, int32_t w, int32_t h)
 static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
 {
     uint32_t i;
-    int32_t l, top = y0 + 1, bot = y0 + h - 1;
+    int32_t l, top = y0, bot = y0 + h - 1, rgt = x0 + w - 1;
     int adv = ui.frame != vz_np_drawn;               /* (2.2) the full-screen visualizer draws two canvas
                                                       * bands a frame: the pool advances once, both bands draw */
     uint8_t own = vz_np_owner;
@@ -117,7 +116,7 @@ static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
     vz_np_scan(x0, y0, w, h);
     for (i = 0; i < VZ_NP_MAX; i++) {
         vz_np_t *p = &vz_np[i];
-        int32_t ox, oy;
+        int32_t ox, oy, ex, ey;
         if (!p->life || p->own != own)               /* (2.2) another screen's spark: not ours to move or draw */
             continue;
         ox = p->x;
@@ -125,17 +124,23 @@ static void gw_note_particles(int32_t x0, int32_t y0, int32_t w, int32_t h)
         if (adv) {
             p->x = (int16_t)(p->x + p->vx / 2);
             p->y = (int16_t)(p->y + p->vy / 2);
-            p->vy = (int16_t)clamp(p->vy + 1, -8, 8);
-            p->vx = (int16_t)clamp(p->vx * 15 / 16, -8, 8);
+            p->vy = (int16_t)clamp(p->vy + 1, -6, 6);
+            p->vx = (int16_t)clamp(p->vx * 15 / 16, -6, 6);
         }
-        if (p->x < x0 - 2 || p->x > x0 + w + 2 || p->y < top - 2 || p->y > bot + 2) {
-            p->life = 0;                            /* out of its own bay: dropped, never carried elsewhere */
+        /* (3.1) a spark is the bay's, strictly: it is dropped the frame it touches the edge, and neither its
+         * trail nor its 2 px body is allowed to paint one pixel outside the rect it was handed. The old test
+         * allowed 2 px of overshoot and drew the ghost line to a point that could already be outside. */
+        if (p->x < x0 || p->x > rgt || p->y < top || p->y > bot) {
+            p->life = 0;
             continue;
         }
         l = 42 + (int32_t)p->life * 100 / p->max;
-        if (ox >= x0 && ox < x0 + w && oy >= top && oy < bot && (ox != p->x || oy != p->y))
+        ex = p->x + p->size > rgt + 1 ? rgt + 1 : p->x + p->size;
+        ey = p->y + p->size > bot + 1 ? bot + 1 : p->y + p->size;
+        if (ox >= x0 && ox <= rgt && oy >= top && oy <= bot && (ox != p->x || oy != p->y))
             cv_line(ox, oy, p->x, p->y, ux_mix(T_BG, p->col, l / 2));
-        cv_rect(p->x, p->y, p->size, p->size, ux_mix(T_BG, p->col, l));
+        if (ex > p->x && ey > p->y)
+            cv_rect(p->x, p->y, ex - p->x, ey - p->y, ux_mix(T_BG, p->col, l));
         if (adv)
             p->life--;
     }
@@ -395,35 +400,48 @@ static void gw_ring_tab(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t
  * row between them, an atmosphere ring, a specular and two surface bands. Row spans come from a
  * monotone walk of the circle's half width (no sqrt, no table): the widest row is r px.
  * lx/ly: the unit-ish direction of the star from the planet, -1 / 0 / 1 each. */
+static void sys_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c);   /* the bay's clip (below) */
+static void sys_pset(int32_t x, int32_t y, uint16_t c);
+static int32_t gw_span(int32_t r, int32_t dy)                /* the row's half width, no sqrt, no libm */
+{
+    int32_t s;
+    for (s = r; s > 0 && s * s + dy * dy > r * r; s--)
+        ;
+    return s;
+}
 static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, int32_t ly, int ringed)
 {
-    int32_t dy, span, lo, hi, t;
+    int32_t dy, span, atm, lo, hi, t, tz;
     /* (3.0) a phase, not a crescent patch: the light comes from the star, so the terminator is the line
      * where the surface normal turns away from it, and each row is lit from that line to the lit limb.
-     * The old planet was one flat heat colour with a slightly darker disc on it and read as a grey blob.
-     * dark: near the panel; lit: the thermal tone lifted toward the palette's text; the terminator and
-     * the limb get their own pixels. */
+     * (3.1) every row goes through sys_rect/sys_pset: the body, its atmosphere and its ring are clipped by
+     * the bay itself, and the radii are small (2..5 px + effects) so the shading reads at 240 x 240. */
     uint16_t base = bg_col(heat - 70);                         /* the planet's own tone on the thermal ramp */
     uint16_t litc = ux_mix(base, T_TEXT, 46);                 /* the sunlit surface */
     uint16_t mid = ux_mix(T_BG, base, 66);                    /* the surface away from it: dark, not a hole */
     uint16_t dark = ux_mix(T_BG, base, 30);                   /* the far limb, one pixel of it */
     uint16_t term = ux_mix(litc, mid, 55), edge = ux_mix(litc, T_TEXT, 55);
+    uint16_t atmc = ux_mix(T_BG, bg_col(heat + 30), 38);
     if (r < 2) r = 2;
+    if (r > 5) r = 5;
     if (ringed)                                                /* the ring first: the body hides its middle, so it
                                                                 * reads as one ring passing behind the planet */
-        gw_ring_tab(x, y, r + 4, 2, ux_mix(T_BG, bg_col(heat + 40), 72), 0);
-    gw_disc(x, y, r + 1, ux_mix(T_BG, bg_col(heat + 30), 34));  /* the atmosphere: the 1 px ring the body leaves */
+        gw_ring_tab(x, y, r + 3, 2, ux_mix(T_BG, bg_col(heat + 40), 72), 0);
+    for (dy = -(r + 1); dy <= r + 1; dy++) {                   /* the atmosphere: the 1 px ring the body leaves */
+        atm = gw_span(r + 1, dy);
+        span = gw_span(r, dy);
+        if (atm > span) {
+            sys_pset(x - atm, y + dy, atmc);
+            sys_pset(x + atm, y + dy, atmc);
+        }
+    }
     for (dy = -r; dy <= r; dy++) {
-        /* this row's half width, recomputed for every row: an integer square root of r^2 - dy^2
-         * (r is at most a handful of pixels, so the walk costs nothing and needs no libm) */
-        for (span = r; span > 0 && span * span + dy * dy > r * r; span--)
-            ;
+        span = gw_span(r, dy);
         if (!span && dy)
             continue;
-        cv_rect(x - span, y + dy, 2 * span + 1, 1, mid);
-        /* the far limb, one pixel: the body's edge away from the star */
-        if (span)
-            cv_pset(x + (lx > 0 ? -span : span), y + dy, dark);
+        sys_rect(x - span, y + dy, 2 * span + 1, 1, mid);
+        if (span)                                              /* the far limb, one pixel */
+            sys_pset(x + (lx > 0 ? -span : span), y + dy, dark);
         /* the phase: dx * lx + dy * ly >= 0 is lit; lx is +-1, so the terminator crosses every row */
         t = -dy * ly;
         lo = -span;
@@ -434,24 +452,22 @@ static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx,
             hi = t;
         if (hi < lo)
             continue;
-        if (lo > -span)                                        /* the terminator: one pixel of the blend */
-            cv_pset(x + lo - 1, y + dy, term);
+        if (lo > -span)
+            sys_pset(x + lo - 1, y + dy, term);
         else if (hi < span)
-            cv_pset(x + hi + 1, y + dy, term);
-        if (hi - lo > 1) {                                    /* the lit surface as three tonal zones (a
-                                                                * sphere falling away from the light), not a
-                                                                * hard band: the top lifts, the equator is the
-                                                                * lit tone, the bottom sinks toward the dark */
-            int32_t tz = dy * 3 / (2 * r + 1);                 /* -1 top third, 0 middle, +1 bottom */
-            uint16_t zone = tz < 0 ? ux_mix(litc, T_TEXT, 18) : tz > 0 ? ux_mix(litc, mid, 30) : litc;
-            cv_rect(x + lo, y + dy, hi - lo + 1, 1, zone);
-            cv_pset(x + (lx > 0 ? hi : lo), y + dy, edge);
+            sys_pset(x + hi + 1, y + dy, term);
+        if (hi - lo > 0) {                                    /* the lit surface, tone by row: a sphere
+                                                                * falling away from the light */
+            tz = dy * 3 / (2 * r + 1);
+            sys_rect(x + lo, y + dy, hi - lo + 1, 1,
+                     tz < 0 ? ux_mix(litc, T_TEXT, 18) : tz > 0 ? ux_mix(litc, mid, 30) : litc);
+            sys_pset(x + (lx > 0 ? hi : lo), y + dy, edge);
         }
     }
     if (r >= 3) {                                              /* the specular, where the light lands */
         int32_t sx = x + lx * (r - 2) * 2 / 3, sy = y + ly * (r - 2) * 2 / 3;
-        cv_pset(sx, sy, ux_mix(bg_col(240), T_TEXT, 75));
-        cv_pset(sx - lx, sy - ly, ux_mix(litc, T_TEXT, 45));
+        sys_pset(sx, sy, ux_mix(bg_col(240), T_TEXT, 75));
+        sys_pset(sx - lx, sy - ly, ux_mix(litc, T_TEXT, 45));
     }
 }
 
@@ -494,115 +510,202 @@ static void gw_planet_excite(int on)
 }
 #endif
 
-/* the bay's sky: a nebula band, six stars that twinkle on their own phase, and the system over them */
+/* (3.1) HOME's bay is a real clip, not a suggestion. Every primitive the system draws goes through these
+ * row/pixel helpers, so a body, a ring, a corona, a trail or a gesture spark can never paint outside the
+ * 88 x 52 px square the panel gives it. The check is four compares per call -- no clip stack, no state to
+ * save and restore in gfx.c's hot path. */
+static int16_t sys_x0 = 9, sys_y0 = 67, sys_x1 = 94, sys_y1 = 116;
+static void sys_box(int32_t x0, int32_t y0, int32_t w, int32_t h)
+{
+    sys_x0 = (int16_t)(x0 + 1);
+    sys_y0 = (int16_t)(y0 + 1);
+    sys_x1 = (int16_t)(x0 + w - 2);
+    sys_y1 = (int16_t)(y0 + h - 2);
+}
+static void sys_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
+{
+    int32_t x1 = x + w, y1 = y + h;
+    if (x < sys_x0) x = sys_x0;
+    if (y < sys_y0) y = sys_y0;
+    if (x1 > sys_x1 + 1) x1 = sys_x1 + 1;
+    if (y1 > sys_y1 + 1) y1 = sys_y1 + 1;
+    if (x1 > x && y1 > y)
+        cv_rect(x, y, x1 - x, y1 - y, c);
+}
+static void sys_pset(int32_t x, int32_t y, uint16_t c)
+{
+    if (x >= sys_x0 && x <= sys_x1 && y >= sys_y0 && y <= sys_y1)
+        cv_pset(x, y, c);
+}
+static void sys_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c)
+{
+    /* the segments here are short and the endpoints are already inside by construction: clamp both so a
+     * trail cannot leave the square, and skip a segment whose point is outside (a clamped line would join
+     * the wrong place) */
+    if (x0 < sys_x0 || x0 > sys_x1 || y0 < sys_y0 || y0 > sys_y1 ||
+        x1 < sys_x0 || x1 > sys_x1 || y1 < sys_y0 || y1 > sys_y1)
+        return;
+    cv_line(x0, y0, x1, y1, c);
+}
+/* half an orbit: the far half (behind the star) or the near one, from the same 24-entry table */
+static void gw_ring_semi(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int back)
+{
+    uint32_t k;
+    int32_t px = cx + rx, py = cy;
+    for (k = 0; k < 24u; k++) {
+        int32_t x = cx + (rx * GW_RING[k][0] >> 15), y = cy + (ry * GW_RING[k][1] >> 15);
+        int32_t mx = (px + x) / 2, my = (py + y) / 2;
+        if (((my < cy) ? 1 : 0) == back) {
+            sys_line(px, py, mx, my, col);
+            sys_line(mx, my, x, y, col);
+        }
+        px = x;
+        py = y;
+    }
+}
+
+/* the bay's sky: a fixed star field with its own twinkle phases, two faint nebula bands, and the system over
+ * them. Every position is precomputed: the per-frame cost is one sine per star (slowed to a quarter of the
+ * frame rate), no per-pixel trigonometry, and no allocation. */
 static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat)
 {
-    /* three orbits: radius, tilt, rate (16-bit units a millisecond) and planet size */
-    static const int8_t ORX[3] = {16, 26, 34};
-    static const uint8_t ORMS[3] = {7, 5, 4};                  /* 9.4 s, 13.1 s, 16.4 s a turn at 240 x 240 */
+    /* three orbits: radius, tilt, rate (16-bit units a millisecond) and planet size. (3.1) SIZES are derived
+     * from the bay, not chosen by eye: for orbit i the room left is min(half_w - ORX[i], half_h - ORY[i]);
+     * the outer body is 4 px + 1 px atmosphere + a 3 px ring = 8 px, against 10 px of room, so it keeps a
+     * 2 px margin at its widest point on every side. The old 4 / 6 / 7 px bodies (with a 4 px ring on the
+     * last) needed 11 px and crossed the edge. */
+    static const int8_t ORX[3] = {14, 23, 32};
+    static const uint8_t ORMS[3] = {7, 5, 4};                  /* 9.4 s, 13.1 s, 16.4 s a turn */
     static const uint16_t ORPHS[3] = {0x0000, 0x2800, 0x5000};
-    static const uint8_t ORR[3] = {4, 6, 7};                   /* 4 / 6 / 8 px: the bodies carry the bay now */
-    static const uint8_t ORYS[3] = {52, 46, 40};               /* each orbit its own tilt: three ellipses */
-    static const uint8_t STARX[6] = {4, 11, 27, 61, 74, 80};
-    static const uint8_t STARY[6] = {7, 41, 12, 44, 9, 34};
-    int32_t i, orb_x, orb_y, a, big = 0, fr_x[3], fr_y[3];
-    int8_t fr_i[3];
-    uint32_t tm = fm1_ms;
+    static const uint8_t ORR[3] = {2, 3, 4};
+    static const uint8_t ORYS[3] = {54, 48, 42};               /* tilt: ry = 7 / 11 / 13 px */
+    /* fixed stars: x, y in the bay, size (1..3), luminance, twinkle phase */
+    static const uint8_t ST[14][5] = {
+        {4, 4, 2, 150, 11}, {13, 2, 1, 110, 47}, {31, 5, 1, 90, 83}, {46, 2, 2, 170, 29},
+        {66, 6, 1, 120, 61}, {79, 13, 2, 190, 7}, {7, 19, 1, 80, 97}, {21, 15, 1, 140, 53},
+        {38, 10, 1, 100, 23}, {57, 19, 2, 160, 71}, {82, 34, 1, 95, 37}, {5, 37, 1, 115, 89},
+        {27, 43, 2, 175, 19}, {69, 41, 1, 105, 67}
+    };
+    /* the nebula: two dithered bands, positions from a table (the old per-pixel sine cost 44 lookups a frame) */
+    static const uint8_t NEB[2][12] = {
+        {6, 22, 13, 21, 21, 22, 29, 21, 38, 22, 47, 21},
+        {30, 30, 40, 29, 49, 30, 58, 29, 67, 30, 76, 29}
+    };
+    int32_t i, j, orb_x[3], orb_y[3], order[3], a, big = 0;
+    uint32_t tm = fm1_ms, twf = ui.frame >> 2;
+    uint16_t star_ink = ux_mix(T_BG, T_THEME, 26), star_dim = ux_mix(T_BG, T_ACCENT, 18);
     if (r < 4) r = 4;
-    if (r > 8) r = 8;                                 /* a star, not a sun: the planets carry the bay */
-    /* the nebula: three dithered bands, a couple of pixels of contrast, behind everything else */
-    for (i = 0; i < 3; i++) {
-        int32_t ny = cy - 15 + i * 14, nx;
-        uint16_t nc = ux_mix(T_BG, i == 1 ? T_THEME : T_ACCENT, i == 1 ? 26 : 16);
-        for (nx = cx - 33 + i * 4; nx < cx + 29 - i * 5; nx += 3)
-            cv_pset(nx, ny + (int32_t)(bg_sin((uint32_t)(nx * 1900 + i * 9000)) >> 14), nc);
+    if (r > 6) r = 6;                                 /* a star, not a sun: the planets carry the bay */
+    for (i = 0; i < 2; i++) {
+        uint16_t nc = i ? star_dim : star_ink;
+        for (j = 0; j < 12; j += 2)
+            sys_pset(sys_x0 + NEB[i][j], sys_y0 + NEB[i][j + 1], nc);
     }
-    for (i = 0; i < 6; i++) {                          /* fixed stars, each twinkling on its own phase */
-        int32_t tw = (int32_t)((bg_sin((tm >> 4) * (2u + (uint32_t)i) + (uint32_t)i * 8192u) + 32768) >> 10);
-        cv_pset(cx - 40 + STARX[i], cy - 24 + STARY[i], ux_mix(T_BG, bg_col(200), 40 + tw / 6));
-    }
-    for (i = 0; i < 3; i++) {                          /* the paths first: they are behind everything; a
-                                                        * planet whose tracks sound warms its own path */
-        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(heat + i * 18), 40 + pl_ex[i] / 4)
-                                    : ux_mix(T_BG, T_LINE, 46 + i * 16);
-        gw_ring_tab(cx, cy, ORX[i], ORX[i] * ORYS[i] / 100, oc, 1);
-    }
-    /* each planet's place on its own ellipse: a pure function of the clock, so no frame rate and no
-     * audio level can bend it; the excitation only adds a fraction of a degree of lead */
-    for (i = 0; i < 3; i++) {
-        int32_t ex = pl_ex[i];
-        a = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i]));
-        orb_x = cx + (ORX[i] * bg_sin((uint32_t)a + 0x4000u) >> 15);
-        orb_y = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)a) >> 15);
-        if (!UI_NO_DRIFT && ex > 32) {
-            /* the comet trail on the orbit: the arc the planet just crossed, warming with the note */
-            int32_t k;
-            for (k = 1; k <= 4; k++) {
-                int32_t aa = a - k * (512 + ex * 3);
-                int32_t nx = cx + (ORX[i] * bg_sin((uint32_t)aa + 0x4000u) >> 15);
-                int32_t ny = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)aa) >> 15);
-                cv_line(nx - 1, ny, nx + 1, ny, ux_mix(T_BG, bg_col(heat + i * 18 + ex / 2), ex * (5 - k) / 18));
-            }
+    for (i = 0; i < 14; i++) {                         /* a slow twinkle, one sine a star, a quarter rate */
+        int32_t tw = (int32_t)((bg_sin((twf * (2u + (uint32_t)(i & 3u)) + ST[i][4]) << 8) + 32768) >> 11);
+        int32_t x = sys_x0 + 1 + ST[i][0], y = sys_y0 + 2 + ST[i][1];
+        uint16_t core = ux_mix(T_BG, bg_col(150 + ST[i][3] / 3 + tw), 46 + tw);
+        uint16_t halo = ux_mix(T_BG, core, 55);
+        switch (ST[i][2]) {
+        case 1:
+            sys_pset(x, y, core);
+            break;
+        case 2:
+            sys_pset(x, y, core);
+            sys_pset(x - 1, y, halo);
+            sys_pset(x + 1, y, halo);
+            sys_pset(x, y - 1, halo);
+            sys_pset(x, y + 1, halo);
+            break;
+        default:
+            sys_pset(x, y, ux_mix(core, T_TEXT, 60));
+            sys_pset(x - 1, y, core);
+            sys_pset(x + 1, y, core);
+            sys_pset(x, y - 1, core);
+            sys_pset(x, y + 1, core);
+            sys_pset(x - 2, y, halo);
+            sys_pset(x + 2, y, halo);
+            sys_pset(x, y - 2, halo);
+            sys_pset(x, y + 2, halo);
+            break;
         }
-        if (orb_y < cy)
-            gw_sphere(orb_x, orb_y, ORR[i] + ex / 192, heat + i * 18 + ex / 2,
-                      orb_x < cx ? 1 : -1, orb_y < cy ? -1 : 1, i == 2);
-        if (ex > big) big = ex;
     }
-    /* the star: the corona, three discs of its own and a sparkle while the patch sounds; the
-     * biggest planet's note lifts it a pixel, so the system answers as a whole */
-    gw_disc(cx, cy, r + 3, ux_mix(T_BG, bg_col(70 + heat / 3), 26 + big / 12));
-    gw_disc(cx, cy, r + 2, ux_mix(T_BG, bg_col(70 + heat / 3), 44 + big / 10));
-    gw_disc(cx, cy, r + 1, ux_mix(T_BG, bg_col(70 + heat / 3), 58 + big / 8));
+    /* the far half of each path first: it passes behind the star and behind the front planets */
+    for (i = 0; i < 3; i++) {
+        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(heat + i * 18), 34 + pl_ex[i] / 5)
+                                    : ux_mix(T_BG, T_LINE, 40 + i * 14);
+        gw_ring_semi(cx, cy, ORX[i], ORX[i] * ORYS[i] / 100, oc, 1);
+    }
+    /* each planet's place on its own ellipse: a pure function of the clock, so no frame rate and no audio
+     * level can bend it; the excitation only lifts its radius and its glow */
+    for (i = 0; i < 3; i++) {
+        a = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i]));
+        orb_x[i] = cx + (ORX[i] * bg_sin((uint32_t)a + 0x4000u) >> 15);
+        orb_y[i] = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)a) >> 15);
+        order[i] = i;
+    }
+    for (i = 0; i < 3; i++)                            /* farthest (top) first, so overlaps read as depth */
+        for (j = i + 1; j < 3; j++)
+            if (orb_y[order[j]] < orb_y[order[i]]) {
+                int32_t t = order[i];
+                order[i] = order[j];
+                order[j] = t;
+            }
+    for (i = 0; i < 3; i++) {
+        int32_t pi = order[i];
+        if (orb_y[pi] >= cy)
+            continue;
+        if (!UI_NO_DRIFT && pl_ex[pi] > 32) {          /* a short afterglow arc under the body, not a second orbit */
+            uint16_t gc = ux_mix(T_BG, bg_col(heat + pi * 18 + pl_ex[pi] / 3), 60);
+            sys_line(orb_x[pi] - 2, orb_y[pi] + 2, orb_x[pi] + 2, orb_y[pi] + 2, gc);
+        }
+        gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 256, heat + pi * 18 + pl_ex[pi] / 2,
+                  orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, pi == 2);
+        if (pl_ex[pi] > big) big = pl_ex[pi];
+    }
+    /* the star: two corona rings, three discs of its own and a sparkle while the patch sounds; the biggest
+     * planet's note lifts it a pixel, so the system answers as a whole */
+    gw_disc(cx, cy, r + 2, ux_mix(T_BG, bg_col(70 + heat / 3), 30 + big / 14));
+    gw_disc(cx, cy, r + 1, ux_mix(T_BG, bg_col(70 + heat / 3), 54 + big / 11));
     gw_disc(cx, cy, r, bg_col(170 + en / 5));
     gw_disc(cx, cy, r * 62 / 100, bg_col(228 + en / 9));
     gw_disc(cx, cy, r * 30 / 100, bg_col(252));
     if (en > 40 || big > 48) {                          /* a four-point sparkle while it sounds */
-        int32_t sp = 3 + en / 60 + big / 96, s;
-        for (s = 1; s < sp; s++) {
+        int32_t sp = 2 + en / 70 + big / 110, s;
+        for (s = 1; s <= sp; s++) {
             uint16_t sc = ux_mix(T_BG, bg_col(246), 170 - s * 24);
-            cv_pset(cx + r + 2 + s, cy, sc);
-            cv_pset(cx - r - 2 - s, cy, sc);
-            cv_pset(cx, cy + r + 2 + s, sc);
-            cv_pset(cx, cy - r - 2 - s, sc);
+            sys_pset(cx + r + 1 + s, cy, sc);
+            sys_pset(cx - r - 1 - s, cy, sc);
+            sys_pset(cx, cy + r + 1 + s, sc);
+            sys_pset(cx, cy - r - 1 - s, sc);
         }
     }
-    /* and the ones in front, at full strength, over the star's rim where they cross it. Painted
-     * bottom first, so when two bodies overlap the one nearer the viewer keeps its whole silhouette:
-     * without it a small planet over a big one read as one two-tone blob. */
+    /* the near half of each path, over the star, then the planets in front from the top down */
     for (i = 0; i < 3; i++) {
-        int32_t ex = pl_ex[i], j;
-        a = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i]));
-        orb_x = cx + (ORX[i] * bg_sin((uint32_t)a + 0x4000u) >> 15);
-        orb_y = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)a) >> 15);
-        for (j = 0; j < i; j++)                       /* keep the front pass sorted by screen y */
-            if (fr_y[j] > orb_y)
-                break;
-        if (j < i) {
-            int32_t k;
-            for (k = i; k > j; k--) {
-                fr_x[k] = fr_x[k - 1];
-                fr_y[k] = fr_y[k - 1];
-                fr_i[k] = fr_i[k - 1];
+        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(heat + i * 18 + pl_ex[i] / 3), 46 + pl_ex[i] / 4)
+                                    : ux_mix(T_BG, T_LINE, 52 + i * 14);
+        gw_ring_semi(cx, cy, ORX[i], ORX[i] * ORYS[i] / 100, oc, 0);
+        if (!UI_NO_DRIFT && pl_ex[i] > 16) {           /* the note's trail on its own orbit, 3 px, short */
+            int32_t k, aa0 = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i]));
+            for (k = 1; k <= 3; k++) {
+                int32_t aa = aa0 - k * (400 + pl_ex[i] * 2);
+                int32_t nx = cx + (ORX[i] * bg_sin((uint32_t)aa + 0x4000u) >> 15);
+                int32_t ny = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)aa) >> 15);
+                sys_pset(nx, ny, ux_mix(T_BG, bg_col(heat + i * 18 + pl_ex[i] / 2), pl_ex[i] * (4 - k) / 14));
             }
         }
-        fr_x[j] = orb_x;
-        fr_y[j] = orb_y;
-        fr_i[j] = (int8_t)i;
     }
     for (i = 0; i < 3; i++) {
-        int32_t pi = fr_i[i], ex = pl_ex[pi];
-        orb_x = fr_x[i];
-        orb_y = fr_y[i];
-        if (orb_y >= cy)
-            gw_sphere(orb_x, orb_y, ORR[pi] + ex / 192, heat + pi * 18 + ex / 2,
-                      orb_x < cx ? 1 : -1, orb_y < cy ? -1 : 1, pi == 2);
-        if (UI_NO_DRIFT || ex <= 48)
+        int32_t pi = order[i], ex = pl_ex[pi];
+        if (orb_y[pi] < cy)
+            continue;
+        gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + ex / 256, heat + pi * 18 + ex / 2,
+                  orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, pi == 2);
+        if (UI_NO_DRIFT || ex <= 40)
             continue;
         {   /* the note's sparks: the same bounded pool the other visualizers draw */
             uint16_t pc = bg_col(heat + pi * 18 + ex / 3);
-            vz_np_add(orb_x, orb_y, (orb_x < cx ? -2 : 2), -2, pc, 14, 2);
-            vz_np_add(orb_x, orb_y + 1, (orb_x < cx ? 1 : -1), -1, pc, 11, 1);
+            vz_np_add(orb_x[pi], orb_y[pi], (orb_x[pi] < cx ? -2 : 2), -2, pc, 9, 1);
         }
     }
 }
@@ -981,41 +1084,45 @@ static void graph_ecosys(void)
      *    system, then -- if the last ~0.7 s had a gesture -- the pulse. Nothing here is drawn under
      *    the mini-knobs of the right bay: those are controls, and the effects belong to this picture. */
     gw_oct_panel(8, 66, 88, 52, 4, T_BG, T_LINE, 1, T_THEME);
-    gw_embers(10, 67, 84, 50, ui_viz_q >= 2u ? 6u : ui_viz_q == 1u ? 10u : 16u, 0x1300u, 96, T_BG);
-    gw_draw_system(52, 92, 6 + (tot_en >> 7), tot_en, 210);
+    sys_box(8, 66, 88, 52);                                 /* (3.1) the bay is the clip */
+    gw_embers(10, 67, 84, 50, ui_viz_q >= 2u ? 4u : ui_viz_q == 1u ? 7u : 11u, 0x1300u, 96, T_BG);
+    gw_draw_system(52, 92, 4 + (tot_en >> 8), tot_en, 210);
     if (ui.home_pulse) {                                    /* a HOME tap or a knob turned on HOME */
         uint32_t age = ui.frame - ui.home_pulse;
         if (age >= 64u) {
             ui.home_pulse = 0;
         } else {
-            int32_t ring = 4 + (int32_t)age;               /* 4..67 px: two waves, the second a beat behind */
+            /* (3.1) the rings used to grow to 46 px around a 6 px star, so the outermost one crossed the bay:
+             * their widest radius is now the bay's own (36 x 24 px), and the echo is smaller still */
+            int32_t ring = 4 + (int32_t)age;
             int32_t i, ang;
-            if (ring < 42)
+            if (ring < 36)
                 gw_orbit_ring(52, 92, ring, ring * 2 / 3, ux_mix(T_BG, T_THEME, 170 - (int32_t)age * 3), 1);
-            if (age > 14u && ring < 46)                    /* the echo: narrower, greener, a little later */
+            if (age > 14u && ring < 34)                    /* the echo: narrower, greener, a little later */
                 gw_orbit_ring(52, 92, (ring - 14) * 3 / 4 + 2, ((ring - 14) * 3 / 4 + 2) * 2 / 3,
                               ux_mix(T_BG, bg_col(120), 120 - (int32_t)age), 1);
             for (i = 0; i < 2; i++) {                      /* two sparks a frame, spiralling out of the orbits */
                 if ((age & 3u) == (uint32_t)i) {
                     uint32_t k = (age / 4u) & 3u;
+                    int32_t sr = ring > 30 ? 30 : ring;
                     ang = (int32_t)k * 16384 + (int32_t)age * 620 + i * 2400;
-                    vz_np_add(52 + (bg_sin((uint32_t)ang + 0x4000u) * ring >> 15),
-                              92 + (bg_sin((uint32_t)ang) * ring * 2 / 3 >> 15),
+                    vz_np_add(52 + (bg_sin((uint32_t)ang + 0x4000u) * sr >> 15),
+                              92 + (bg_sin((uint32_t)ang) * sr * 2 / 3 >> 15),
                               (bg_sin((uint32_t)ang + 0x4000u) * 3 >> 15), -(1 + (int32_t)(k & 1)),
-                              bg_col(150 + (int32_t)k * 30 + i * 40), 16, k == 0 ? 2 : 1);
+                              bg_col(150 + (int32_t)k * 30 + i * 40), 8, k == 0 ? 1 : 1);
                 }
             }
             /* the star itself brightens for the first half of the pulse: the system answers, it does not
              * just gain a ring. One extra disc, so the cost does not grow with the gesture */
             if (age < 24u)
-                gw_disc(52, 92, 5 + (tot_en >> 7) + (int32_t)((24u - age) / 8u), bg_col(255));
+                gw_disc(52, 92, 4 + (tot_en >> 8) + (int32_t)((24u - age) / 10u), bg_col(255));
         }
     }
 
     /* (2.2) HOME's gesture sparks, inside the bay that owns them and nowhere else. They were emitted here
      * since 2.0 but the only screen that drew the pool was EDIT, so they were painted on its ribbon. */
     vz_np_layer(VZ_OWN_HOME);
-    gw_note_particles(8, 66, 88, 52);
+    gw_note_particles(9, 67, 86, 50);
 
     /* 3. Lower-Right Bay (x = 100..232, y = 66..118): HEARTH Physics Knobs (Heat/Sparks/Weight/Force) + 6 Track Pads */
     gw_oct_panel(100, 66, 132, 52, 4, T_BG, T_LINE, 1, T_ACCENT);

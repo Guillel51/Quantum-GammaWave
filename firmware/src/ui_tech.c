@@ -168,6 +168,33 @@ static void tech_dly2(void)
     }
 }
 
+/* (3.1) THE REVERB ANSWERS THE NOTES. fx_vu[5] is the peak the reverb bus actually returned this
+ * frame (fx.c publishes it), so the picture follows the effect, not a timer: a note starts a tail,
+ * the envelope rises at once and falls slowly, and the expansion phase only advances while there is
+ * something to show. One compare and one shift a frame; no per-sample work, no allocation, and no
+ * lock between the DSP and the UI (the UI reads the published peak, as every other meter does). */
+static uint8_t rev_act;
+static int32_t rev_ph;
+static uint32_t rev_fr = 0xFFFFFFFFu;
+static void rev_tick(void)
+{
+    int32_t lvl;
+    if (rev_fr == ui.frame)
+        return;
+    rev_fr = ui.frame;
+    lvl = clamp((int32_t)fx_vu[5], 0, 32767) * 255 / 32767;
+    if (lvl >= (int32_t)rev_act)
+        rev_act = (uint8_t)lvl;                         /* (3.1) the note: lit at once */
+    else                                                /* the tail: fall towards the level it has now (7/8 a
+                                                         * drawn frame): no oscillation under a steady return, one
+                                                         * multiply and a shift, and it reaches 0 -- the graph rests */
+        rev_act = (uint8_t)(lvl + (((int32_t)rev_act - lvl) * 7 >> 3));
+    if (rev_act > 4)
+        rev_ph = (rev_ph + 4) & 255;
+    else
+        rev_ph = 0;
+}
+
 /* REVERB: the impulse response */
 static void tech_rev(void)
 {
@@ -175,6 +202,7 @@ static void tech_rev(void)
     int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, base = TK_Y1 - 4, h = 92, len = 40 + size * (w - 50) / 127;
     int32_t gap = song.g[G_RTYPE] <= 1 ? clamp(pre, 0, 100) * 40 / 100 : 0;   /* (PRE: ROOM, SPRING; else AIR) */
     int32_t i, ty = song.g[G_RTYPE], mod = song.g[G_RMOD];
+    rev_tick();
     tk_axes(x0, TK_Y0, x0 + w, base);
     if (ty == 3) {                                      /* RESO: four strings, each a comb's teeth at its pitch, ringing as
                                                          * long as SIZE lets them, as bright as DAMP leaves them */
@@ -195,7 +223,7 @@ static void tech_rev(void)
                                                          * (and warms / cools it), MOD splits it into octave layers;
                                                          * the grains playing now bigger; FREEZE: a line over them */
         int32_t air = clamp(pre, -24, 24), cy = (TK_Y0 + base) / 2 - air * 30 / 24, nd = 24 + song.g[G_RRATE] / 3;
-        int32_t spread = 40 + size * (w - 40) / 127, live = bg_energy() > 2, k;
+        int32_t spread = 40 + size * (w - 40) / 127, live = bg_energy() > 2 || rev_act > 6, k;
         uint32_t fr = live ? ui.frame : 0u;
         for (i = 0; i < nd; i++) {
             uint32_t hsh = (uint32_t)(i + 1) * 2654435761u, sp = 1u + (hsh >> 28);
@@ -222,11 +250,24 @@ static void tech_rev(void)
             cv_rect(x0 + 4, TK_Y0 + 4, w - 8, 1, T_ACCENT);
         return;
     }
+    if (rev_act > 10) {                                 /* the tail's answer: three wavefronts leaving the hit,
+                                                         * drawn before the data so they never hide it */
+        int32_t cxr = x0 + 6 + gap + len / 2, cyr = base - 40, k, rad = 5 + (rev_ph & 63);
+        for (k = 0; k < 3; k++) {
+            int32_t rr = rad + k * 13;
+            if (rr > 54)
+                continue;
+            gw_orbit_ring(cxr, cyr, rr, rr * 2 / 3,
+                          ux_mix(T_BG, bg_col(150 + rev_act / 3), 40 + k * 22), 1);
+        }
+    }
     cv_rect(x0, base - h, 3, h, T_TEXT);                /* the dry hit */
     for (i = 0; i < len && x0 + 6 + gap + i < x0 + w; i += 2) {
         int32_t env = 1000 - i * 1000 / len, r = (int32_t)(((uint32_t)(i + 7) * 2654435761u) >> 22) % 1000;
         int32_t bh = env * (400 + r * 6 / 10) / 1000 * h / 1000;
-        int32_t heat = clamp(env * 230 / 1000 - i * damp / (len + 1), 6, 236);
+        int32_t heat = clamp(env * 230 / 1000 - i * damp / (len + 1) + (int32_t)rev_act / 8, 6, 246);
+        if (rev_act > 4)                                /* the tail breathes with what the bus returns */
+            bh += bh * (int32_t)rev_act / 900;
         if (spring)
             bh = bh * (600 + (bg_sin((uint32_t)(i * i * 9)) >> 6) * 400 / 512) / 1000;
         if (bh > 0)
@@ -245,11 +286,16 @@ static void tech_rev2(void)
 {
     int32_t mod = tk(0), wide = tk(3), filt = song.g[G_RFILT], x0 = TK_X0 + 6, w = PANEL_W - 12, mid = (TK_Y0 + TK_Y1) / 2;
     int32_t i, ph = bg_energy() > 2 ? (int32_t)ui.frame * (8 + tk(1) / 20) : 0;
+    rev_tick();
     cv_rect(x0, mid, w, 1, T_RAISE);
+    if (rev_act > 10) {                                 /* REVERB 2 answers the note as REVERB does */
+        int32_t rad = 8 + (rev_ph & 63);
+        gw_orbit_ring(x0 + w / 2, mid, rad, rad / 2, ux_mix(T_BG, bg_col(150 + rev_act / 3), 90), 0);
+    }
     for (i = 0; i < w; i += 2) {
         int32_t env = 1000 - i * 1000 / w, wob = (bg_sin((uint32_t)(i * 700 + ph * 64)) * mod / 1000) >> 12;
-        int32_t bh = env * 44 / 1000, off = wide * 6 / 1000;
-        int32_t heat = clamp(env * 200 / 1000 + filt, 6, 236);
+        int32_t bh = env * (44 + (int32_t)rev_act * 26 / 255) / 1000, off = wide * 6 / 1000;
+        int32_t heat = clamp(env * 200 / 1000 + filt + (int32_t)rev_act / 8, 6, 246);
         if (bh <= 0) continue;
         cv_rect(x0 + i + wob, mid - 2 - off - bh, 1, bh, heat_col(heat));
         cv_rect(x0 + i - wob, mid + 2 + off, 1, bh, heat_col(heat - 12));

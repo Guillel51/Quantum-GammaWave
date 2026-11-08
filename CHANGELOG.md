@@ -21,6 +21,38 @@
 - **Emscripten queda en 6.0.11 en todas partes**, que es la versión que los workflows fijan; el wasm de este
   release se construyó con ella desde el mismo commit que el firmware.
 
+- **3.1 — la pasada visual que el dueño pidió, medida y probada.** HOME: el sistema solar se redibuja con
+  planetas de 2/3/4 px (órbitas 14/23/32, radios verticales 7/11/13), estrellas fijas precalculadas con
+  parpadeo lento, dos bandas de nebulosa por tabla, sombreado por fases con terminador, atmósfera, anillo sólo
+  en el exterior, orden por profundidad y estelas cortas; el recorte es un `sys_box` local (no toca el camino
+  caliente de `gfx.c`) y el pool de partículas baja a 28 con vidas 8–9, gravedad menor y un clip exacto del
+  rect (un cuerpo de 2 px se trunca en el borde, la estela sólo se pinta si sus dos extremos están dentro).
+  Visualizador: el tope del espectro se queda en su caja (`clamp(178-ph,153,178)`: antes flotaba hasta 27 px
+  fuera) y los medidores de envío se clampan a su altura. FX 1: DIST/CHORUS/DELAY/REVERB se muestran en 0–100 %
+  (`(val*100+63)/127`) sin cambiar el rango MIDI interno 0–127 ni los presets. SCL: teclado rediseñado (teclas
+  29×60, negras 18×38, franjas de escala en el color del tema, grado y nota abajo, barra de nota sonando) para
+  que deje de leerse como teclas naranjas/celestes enteras y sea coherente en los nueve temas. Punch-in FX: las
+  seis teclas de mute dicen **M1–M6** (la asignación MIDI no se movió; `FX_BLACK_W` 8 → 10 para que la M quepa)
+  y el pie anuncia `OCT+ LATCH`. **FX LATCH ahora se cambia desde el mapa**: con FX armado, OCT+ alterna
+  `PREF_LATCH` y `perf_latch_on`, limpia los latches, guarda el ajuste y lo dice ("FX LATCH ON/OFF"); con LATCH
+  en OFF, OCT- sigue siendo la octava y OCT+ deja de serlo mientras el mapa está abierto; con LATCH en ON,
+  OCT- sigue siendo ALL OFF. Dos defectos de fondo corregidos en el camino: `oct_taps()` no registraba la
+  pulsación de OCT± con el mapa FX abierto y LATCH en OFF (el tap moría antes de `layer_oct`), y el primer
+  OCT- tras abrir el mapa se lo comía la máscara del LATCH (una pulsación que empezaba en el mapa y se soltaba
+  con el mapa ya cerrado, como el CANCEL de un dado, se quedaba sin efecto). Master FX: fuera la banda
+  `UN: 100% / CPU / PK`, VU a y 80/87 con un solo rótulo `OUT`/`CLIP` en (108,66), sin solaparse. REVERB: la
+  animación lee el retorno real del bus (`fx_vu[5]`) con una envolvente balística (sube al instante, baja 7/8
+  hacia el nivel actual por frame dibujado: sin oscilar bajo un retorno constante, sin división y llegando a 0)
+  y la fase mueve los anillos; nada por muestra. **Medido en host x86 (cc -O1), no en el AC791N** (tres
+  pasadas de cada árbol, mediana): HOME redibujo completo 151,1–151,6 → 164,1–164,6 µs (+8,6 %), frame sin
+  `force` 44,1–44,9 → 45,1–45,2 µs (+1,6 %), visualizador 79,4–79,5 → 83,0–83,2 µs/frame HIGH (+4,6 %);
+  `.data` 58 016 B en ambos y `.bss` 5 010 016 → 5 010 048 B (+32 B, `size` de `build/ui_render`, que incluye
+  el harness host y no es el presupuesto del linker). Verificación: `tests/ui_test` 868 comprobaciones, 0 fallos (incluye el nuevo
+  `FX + OCT+ toggles LATCH` y el de la reverb, que exige que los anillos sigan al retorno y decaigan hasta 0);
+  barrido de render 173 pantallas × 17 paletas, **0 hallazgos de lint**, 2 643 516 medidas de alineación y
+  **0 desviaciones de 1 px**; `tests/particle_bounds_test.py` gana las guardas geométricas del sistema solar
+  (órbita + planeta + 2 px dentro de la caja, sistema centrado). Sigue **sin build AC791N** (faltan
+  `JIELI_TOOLCHAIN` y `AC79_SDK`) y sin emulador (`emcc` ausente): nada de esto es una validación de hardware.
 - **El primer backup de una unidad stock ya no necesita abrir el equipo, y el instalador perdió su último atajo:**
   M-Flasher 0.9.1 (`9da825b`, MIT) lee la flash entera por el modo ROM del chip, con el loader en RAM y el
   CRC32 calculado por el silicio; su acción de backup sólo lee (`src/ops.rs`), y ahora `tools/fm1_mflasher.py`
