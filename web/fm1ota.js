@@ -180,9 +180,18 @@ export class Updater {
   // every in/out pair with the same port name that answers the handshake
   async find(filter) {
     const outs = [...this.access.outputs.values()];
-    const probe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false };
+    const ins = [...this.access.inputs.values()];
+    /* `reason` is the whole diagnosis in one word, and it is the difference between "your cable is
+     * charge-only" and "another program is holding the port": no-ports (this browser sees no MIDI
+     * device at all), no-match (inputs exist, none looks like an FM-1), no-pair (an input without an
+     * output of the same name), send-failed (the port refused the frame), silent (sent, unanswered),
+     * answered. `seen` names every port WebMIDI exposed, so a report can show what the browser saw
+     * instead of guessing why nothing came back. */
+    const probe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false,
+      reason: "no-ports", counts: { inputs: ins.length, outputs: outs.length },
+      seen: { inputs: ins.map((p) => String(p.name || "")), outputs: outs.map((p) => String(p.name || "")) } };
     this.lastProbe = probe;
-    for (const input of this.access.inputs.values()) {
+    for (const input of ins) {
       if (input.state === "disconnected") continue;
       if (!PORT_RE.test(input.name || "")) continue;   // never probe other gear
       const output = outs.find((o) => o.name === input.name && o.state !== "disconnected");
@@ -196,10 +205,15 @@ export class Updater {
       if (hs.latencyMs !== null && probe.latencyMs === null) probe.latencyMs = hs.latencyMs;
       if (hs.id && (!filter || filter(hs.id))) {
         probe.answered = input.name;
+        probe.reason = "answered";
         return { link, id: hs.id, name: input.name };
       }
       link.close();
     }
+    if (probe.probed.length) probe.reason = probe.sendFailed ? "send-failed" : "silent";
+    else if (!probe.counts.inputs) probe.reason = "no-ports";
+    else if (probe.seen.inputs.some((n) => PORT_RE.test(n))) probe.reason = "no-pair";
+    else probe.reason = "no-match";
     return null;
   }
 
@@ -456,7 +470,15 @@ export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", fi
     if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
   const pub = keys && keys[manifest.keyid];
   if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
-  if (manifest.product !== product) throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
+  /* The manifest names the PRODUCT ("FM-1"); this page and the install path name the IDENTITY of
+   * the build ("FM-1_982"). Comparing them literally refused every package this project published --
+   * "The package is for FM-1, not FM-1_982" -- which left INSTALL disabled on the live page for
+   * everyone, with or without a unit attached. The model is what a package may not cross: an FM-1
+   * package can never be accepted for another model, and a manifest that names a model plus a number
+   * still only matches its own model. */
+  const modelOf = (p) => String(p === undefined || p === null ? "" : p).split("_")[0];
+  if (!modelOf(manifest.product) || modelOf(manifest.product) !== modelOf(product))
+    throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
     .map((b) => b.toString(16).padStart(2, "0")).join("");
   if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");

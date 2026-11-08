@@ -558,7 +558,7 @@ const TEXT = {
     pf4: "I will not unplug while writing. If it is cut off, I reconnect and press INSTALL again: the update loader finishes the write.",
     hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ",
     nohash: "This package has no published SHA-256: nothing will be written. Reload the page.",
-    vNone: "Verify: no FM-1 answered (USB data cable? another app using MIDI?). Nothing was sent.",
+    vNone: "Verify: no FM-1 answered. MIDI ports this browser enumerated:",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vStock: "Verify: FM-1 detected, it answers official V15 (FM-1_015). Nothing was written. ",
     vOurs: "Verify: FM-1 detected, this firmware ", vSilent: "Verify: an FM-1 port answered nothing (another firmware, JIANT among them, that does not implement the identity query). Nothing else was sent. Port: ", vOther: "Verify: an FM-1 was detected, but its firmware is not one this installer knows. It reports itself as: ", vOtherTail: " \u2014 read only: nothing was written, and this is not an install authorisation.",
@@ -671,7 +671,7 @@ TEXT.es = {
   pf4: "No voy a desconectar durante la escritura. Si se corta, reconecto y pulso INSTALAR otra vez: el loader termina la escritura.",
   hashOk: "SHA-256 del paquete verificado ✓ ", badhash: "El paquete no coincide con su SHA-256 publicado: no se escribirá nada. Recargá la página. ",
   nohash: "Este paquete no tiene SHA-256 publicado: no se escribirá nada. Recargá la página.",
-  vNone: "Verificar: no se encontró ningún FM-1 (¿cable USB de datos? ¿otra aplicación usando MIDI?)",
+  vNone: "Verificar: no respondió ningún FM-1. Puertos MIDI que enumeró este navegador:",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vStock: "Verificar: se detectó un FM-1 y responde V15 oficial (FM-1_015). No se escribió nada. ",
   vOurs: "Verificar: firmware GAMMAWAVE/JIANT ", vSilent: "Verificar: el puerto del FM-1 no respondió (otro firmware, JIANT entre ellos, que no implementa la consulta de identidad). No se envió nada más. Puerto: ", vOther: "Verificar: se detectó un FM-1, pero su firmware no es uno de los que este instalador conoce. Se identifica como: ", vOtherTail: " — solo lectura: no se escribió nada y esto no autoriza la instalación.",
@@ -734,7 +734,7 @@ TEXT.zh = {
   pf4: "写入过程中我不会拔线。如果中断，我会重新连接并再次点击安装：更新加载器会完成写入。",
   hashOk: "固件包 SHA-256 已验证 ✓ ", badhash: "固件包与公布的 SHA-256 不匹配：不会写入任何内容。请重新加载页面。 ",
   nohash: "此固件包没有公布 SHA-256：不会写入任何内容。请重新加载页面。",
-  vNone: "校验：未找到 FM-1（USB 数据线？其他应用占用了 MIDI？）",
+  vNone: "校验：没有 FM-1 回应。此浏览器枚举到的 MIDI 端口：",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vStock: "校验：检测到 FM-1，其回应为官方 V15（FM-1_015）。未写入任何内容。",
   vOurs: "校验：GAMMAWAVE/JIANT 固件 ", vSilent: "校验：FM-1 端口没有回应（其他固件，例如 JIANT，未实现身份查询）。未发送其他内容。端口：", vOther: "校验：检测到一台 FM-1，但其固件不是本安装器所认识的固件。其自报身份为：", vOtherTail: " — 只读：未写入任何内容，也不构成安装授权。",
@@ -937,7 +937,12 @@ const VF = {
     "pkg.identity": "Package offered here (not the unit)",
     "pkg.release": "Package release version",
     "pkg.size": "Package size",
-    "pkg.sha256": "Package sha256 (expected)",
+    "pkg.sha256": "Package sha256",
+    "pkg.verified": "Package checked here (hash, identity, signature)",
+    "ports.inputs": "MIDI inputs this browser enumerated",
+    "ports.outputs": "MIDI outputs this browser enumerated",
+    "ports.seen": "Port names WebMIDI exposed",
+    "why.verified": "the package's signature was checked in this run",
     compat: "Compatibility (informational only)",
     "pkg.build": "Package build",
     "pkg.binary": "Firmware image",
@@ -1022,7 +1027,12 @@ const VF = {
     "pkg.identity": "Paquete que ofrece esta página (no la unidad)",
     "pkg.release": "Versión de release del paquete",
     "pkg.size": "Tamaño del paquete",
-    "pkg.sha256": "sha256 del paquete (esperado)",
+    "pkg.sha256": "sha256 del paquete",
+    "pkg.verified": "Paquete comprobado aquí (hash, identidad, firma)",
+    "ports.inputs": "Entradas MIDI que enumeró este navegador",
+    "ports.outputs": "Salidas MIDI que enumeró este navegador",
+    "ports.seen": "Nombres de puerto que expuso WebMIDI",
+    "why.verified": "la firma del paquete se comprobó en esta ejecución",
     compat: "Compatibilidad (solo informativa)",
     "pkg.build": "Build del paquete",
     "pkg.binary": "Imagen de firmware",
@@ -1107,7 +1117,12 @@ const VF = {
     "pkg.identity": "本页面提供的固件包（非设备）",
     "pkg.release": "固件包发布版本",
     "pkg.size": "固件包大小",
-    "pkg.sha256": "固件包 sha256（预期值）",
+    "pkg.sha256": "固件包 sha256",
+    "pkg.verified": "此处已核验的固件包（哈希、身份、签名）",
+    "ports.inputs": "此浏览器枚举到的 MIDI 输入",
+    "ports.outputs": "此浏览器枚举到的 MIDI 输出",
+    "ports.seen": "WebMIDI 暴露的端口名称",
+    "why.verified": "本次运行已核验该包的签名",
     compat: "兼容性（仅供参考）",
     "pkg.build": "包构建",
     "pkg.binary": "固件镜像",
@@ -1204,6 +1219,10 @@ const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.key
   provenance: provOk });
 
 let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = null, lastVerify = null;
+/* the offline half of the trust chain, kept from the load: the bytes were hashed here and the
+   manifest was checked against the pinned key. It needs no unit, so Verify Only reports it even
+   when nothing is plugged in -- and it is the same object chooseImage() already trusted. */
+let releaseSig = null;
 const buildOf = (b) => (typeof b === "string" ? b : (b && b.commit) || "");
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
 const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk || !provOk; $("verify").disabled = on;
@@ -1223,7 +1242,7 @@ function fillVersions() {
 }
 async function loadVersion(i) {
   const v = versions[i] || versions[0], epoch = ++loadEpoch;
-  image = null; releaseOk = false; releaseManifest = null; provOk = null; $("go").disabled = true;
+  image = null; releaseOk = false; releaseManifest = null; provOk = null; releaseSig = null; $("go").disabled = true;
   try {
     const r = await fetch(v.pkg);
     if (!r.ok) throw new Error(`${v.pkg}: HTTP ${r.status}`);
@@ -1244,8 +1263,11 @@ async function loadVersion(i) {
        page. No manifest, or no pinned key, leaves INSTALL disabled: the bytes are not trusted. */
     if (!v.manifest) { sayK("error", "no signed manifest is published for this package"); return; }
     try {
-      await verifyManifest(pkg, v.manifest, meta.keys || {}, { product: meta.product });
-    } catch (e) { log(`manifest: ${e.message}`); sayK("error", e.message); return; }
+      const vm = await verifyManifest(pkg, v.manifest, meta.keys || {}, { product: meta.product });
+      releaseSig = { state: "pass", keyid: vm.keyid, version: vm.version, sha256: hash, size: pkg.length,
+        detail: `key ${vm.keyid}, ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
+    } catch (e) { log(`manifest: ${e.message}`); releaseSig = { state: "fail", keyid: "", version: "",
+      sha256: hash, size: pkg.length, detail: e.message }; sayK("error", e.message); return; }
     /* (v1.9.0) and the build manifest: the bytes must be the artefact a clean build of a named commit
        produced, with the same version, identity and emulator as the record. The published hash above
        proves only that the file matches a hash shipped beside it; this proves what produced it. A
@@ -1459,11 +1481,16 @@ $("verify").addEventListener("click", async () => {
   try {
     let midi;
     try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
-    const fw = await verifyDevice(midi, { product: meta.product, log,
+    const fw = await verifyDevice(midi, { product: meta.product, log, signature: releaseSig,
       pkg: { version: meta.version, size: meta.size, sha256: meta.sha256, build: meta.build, keys: meta.keys } });
     log(`verify: ${fw.kind} found=${fw.found} recognised=${fw.recognised} id=${fw.text || "-"}` +
         (fw.ports.length ? ` ports=${fw.ports.join(", ")}` : ""));
-    if (fw.kind === "none") sayK("vNone");
+    if (fw.kind === "none") {
+      /* the counts are the whole point: "another app is using MIDI" is a guess when this browser saw
+         zero ports, and a different problem when it saw ports none of which looks like an FM-1 */
+      const pr = (fw.reading && fw.reading.probe) || {}, cc = pr.counts || {};
+      sayK("vNone", ` ${cc.inputs || 0} in / ${cc.outputs || 0} out`);
+    }
     else if (fw.kind === "silent") sayK("vSilent", (fw.ports || []).join(", "));
     else if (fw.kind === "loader") sayK("vLoader");
     /* (7.x) the status line speaks about the device only. It used to append meta.product -- the tag of

@@ -587,3 +587,31 @@ Evidence, by class:
 
 Retrigger, mono/legato/unison, sustain, the bass protection, the note-off paths and the engine-switch fade are
 untouched by this change, and their existing checks pass unchanged.
+
+## 23. Update — 2026-11-08, the installer was refusing its own package
+
+The first real Verify Only report (`qg1-diagnostic-v1.9.0-7eb9636-7eb9636.json`) carried one line that
+explained the whole block: **`manifest: The package is for FM-1, not FM-1_982.`** The signed manifest names
+the *product* (`FM-1`); the page and the install path name the *identity of the build* (`FM-1_982`); and
+`verifyManifest` compared them with `!==`. Every package this project ever published was refused by its own
+installer, `releaseOk` never became true, and **INSTALL was disabled on the live page for everyone**, with or
+without a unit attached. The unit never got a chance to be the problem.
+
+Three fixes, each with the evidence that produced it:
+
+| Defect | What it did | Fix | Evidence |
+|---|---|---|---|
+| Product compared to identity | refused every published package before any device was involved | the manifest's product is matched to the *model* of the identity, never across models | live page: `Error: The package is for FM-1, not FM-1_982.` · fixed build: `Ready to flash (610,806 bytes)` (`[PUBLIC]`, browser) |
+| Signature reported as "cannot be established without a write session" | the one gate that needs no hardware was marked unknowable, so `SIGNATURE VERIFIED` was unreachable | `verifyPackage()` re-hashes the bytes, reads the package's own identity, and checks Ed25519 against the pinned key — offline | `verifyPackage`: `pass`, `key qg1-release-1`, `610806 B`, sha256 `80ad995c…` (`[HOST]`, Node 26 WebCrypto over the released bytes) |
+| A report could not say *why* nothing answered | `query.frames: 0` sat next to "every probed port stayed silent" when the browser had enumerated **zero** ports | `Updater.find()` now records `reason` (`no-ports` / `no-match` / `no-pair` / `send-failed` / `silent` / `answered`), the input and output counts, and every port name WebMIDI exposed | `web/test_verify_only.mjs`: zero-port, silent-port and foreign-port cases (`[HOST]`) |
+
+`INSTALL` now enables (`#go.disabled === false` after the four preflight boxes) on the fixed build with **no
+device connected**, while `INSTALL READY` still requires every gate row to pass — which still needs the unit.
+Verify Only now reaches `PACKAGE VERIFIED` and `SIGNATURE VERIFIED` and still cannot reach `VERIFY READY`,
+`DEVICE COMPATIBLE` or `INSTALL READY` without an answer from the unit. `verify only: 123 checks, 0 FAILED`.
+
+Nothing in this pass weakened a gate: the model rule is narrower than the name-based comparison it replaces
+(it can never accept another model), and the signature check is a real Ed25519 verification of the real bytes
+rather than the presence of a key in a map. The blocked gates are unchanged and physical: the unit's own
+JEDEC and geometry, a 1 MiB dump of that unit, that dump's verification, a rehearsed recovery, the first
+controlled write. See `docs/FORENSIC_FM1_VIABILITY.md`.

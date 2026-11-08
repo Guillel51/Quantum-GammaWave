@@ -51,7 +51,8 @@
 // The identity of the package is NEVER written into a device field, and the package being V15 does
 // not turn a device that answered FM-1_982 into stock: kind is decided by what the unit said.
 
-import { Updater, PORT_RE } from "./fm1ota.js";
+import { Updater, PORT_RE, verifyManifest } from "./fm1ota.js";
+import { productOf } from "./fm1pkg.js";
 
 // the one frame Verify Only may put on the wire (tests/test_verify_only.mjs checks the log)
 export const READ_ONLY_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
@@ -114,6 +115,37 @@ function packageOf(product, pkg) {
   };
 }
 
+/* named apart from the page's own sha256hex(): make_site.py inlines this module into the page's
+ * single module scope, so two functions with one name are a SyntaxError, not a shadow. */
+async function digestHex(bytes) {
+  const d = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// The package against the signed manifest and the pinned key -- offline, and therefore true even when
+// no unit is attached. It answers one question and does not throw: `state` is "pass" or "fail", and
+// `detail` says why, so the report can print the refusal instead of a stack trace. It never returns
+// "pass" for bytes that are not the ones the build record names: the hash is recomputed here, the
+// package's own identity is read out of the container, and only then is the Ed25519 signature checked.
+export async function verifyPackage(bytes, { manifest = null, keys = {}, product = "", sha256 = "", size = 0 } = {}) {
+  const out = { state: "fail", keyid: "", version: "", sha256: "", size: 0, detail: "" };
+  try {
+    if (!bytes || typeof bytes.length !== "number" || !bytes.length) throw new Error("there are no package bytes to check");
+    const buf = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    out.size = buf.length;
+    out.sha256 = await digestHex(buf);
+    if (size && buf.length !== size) throw new Error(`the package is ${buf.length} B, the build record says ${size} B`);
+    if (sha256 && out.sha256 !== sha256) throw new Error("the package's SHA-256 is not the build record's");
+    if (product && productOf(buf) !== product) throw new Error(`the package identifies as ${productOf(buf)}, not ${product}`);
+    const v = await verifyManifest(buf, manifest, keys, { product });
+    out.state = "pass"; out.keyid = v.keyid; out.version = v.version;
+    out.detail = `key ${v.keyid}, ${buf.length} B, sha256 ${out.sha256.slice(0, 16)}\u2026`;
+  } catch (e) {
+    out.detail = String((e && e.message) || e);
+  }
+  return out;
+}
+
 // How this package relates to what answered. Informational: `canInstall` is false regardless, and
 // only the install path's own gate (signature, chip JEDEC, sizes) decides. A silent unit is
 // "unproven", never "compatible": nothing was read, so nothing is known about its firmware.
@@ -130,14 +162,23 @@ function compatibility(kind, deviceModel, pkgModel) {
 
 // the package block, rendered in every report: the same rows whatever the device did or did not say.
 // Every value here comes from the page's own build record -- it is the package, never the unit.
-function pkgFields(pkg, compat) {
+function pkgFields(pkg, compat, sig = null) {
   const nkeys = Object.keys(pkg.keys || {}).length;
   const rows = [
     { key: "pkg.identity", value: pkg.identity || "-", source: "this page's build record", confidence: pkg.identity ? "high" : "none" },
     { key: "pkg.release", value: pkg.release || "-", source: "this page's build record", confidence: pkg.release ? "high" : "none" },
     { key: "pkg.size", value: pkg.size ? `${pkg.size} B` : "-", source: "this page's build record", confidence: pkg.size ? "high" : "none" },
-    { key: "pkg.sha256", value: pkg.sha256 ? `${pkg.sha256.slice(0, 16)}\u2026` : "-", source: "this page's build record (expected, not re-hashed here)", confidence: pkg.sha256 ? "medium" : "none" },
+    { key: "pkg.sha256", value: pkg.sha256 ? `${pkg.sha256.slice(0, 16)}\u2026` : "-", source: sig && sig.state === "pass"
+      ? "the build record, and the bytes re-hashed here: they match"
+      : "this page's build record (expected, not re-hashed here)", confidence: sig && sig.state === "pass" ? "high" : (pkg.sha256 ? "medium" : "none") },
   ];
+  /* the offline half of the trust chain: the bytes were hashed here, the manifest was checked against
+   * a pinned key, and the package's own identity was read out of it. Every word of it was measured in
+   * this run -- without a unit, which is why it can be true on a page where nothing is plugged in. */
+  if (sig) rows.push({ key: "pkg.verified", value: sig.state === "pass" ? `${sig.keyid || "?"} \u00b7 ${sig.size} B` : "failed",
+    source: sig.state === "pass" ? `Ed25519 verified here over the package's own bytes: ${String(sig.detail || "").slice(0, 96)}`
+      : `not verified here: ${String(sig.detail || "no reason given").slice(0, 120)}`,
+    confidence: "high" });
   if (pkg.commit) rows.push({ key: "pkg.build", value: `${pkg.version || "?"} ${pkg.commit.slice(0, 7)}`,
     source: "the build record inside the package", confidence: "high" });
   if (pkg.binary) rows.push({ key: "pkg.binary", value: `${pkg.binary} B${pkg.binarySha ? ` ${pkg.binarySha.slice(0, 12)}\u2026` : ""}`,
@@ -146,9 +187,10 @@ function pkgFields(pkg, compat) {
   rows.push({ key: "compat", value: compat, source: "device identity vs package tag", confidence: "high" });
   rows.push({ key: "install.auth", value: "none", source: "verify only never authorises an install", confidence: "high" });
   /* why nothing can be authorised yet, said in the one place the reader is looking for a verdict */
-  rows.push({ key: "install.why", value: nkeys ? "signed" : "no-key", source: nkeys
-    ? `${nkeys} key(s) in this build's key map`
-    : "this build's key map is empty: a signature can be neither made nor checked", confidence: "high" });
+  rows.push({ key: "install.why", value: sig && sig.state === "pass" ? "verified" : (nkeys ? "signed" : "no-key"),
+    source: sig && sig.state === "pass" ? "the package's signature was checked in this run"
+      : nkeys ? `${nkeys} key(s) in this build's key map; this run did not check the package against them`
+      : "this build's key map is empty: a signature can be neither made nor checked", confidence: "high" });
   return rows;
 }
 
@@ -168,11 +210,32 @@ function platformFields() {
 // What the read-only exchange measured about itself. These rows exist because they are true and
 // knowable: how many frames went out, on which port, and how long the answer took. They say nothing
 // about the unit's flash, clock or boot loader, which is why those stay in `missing`.
+const PROBE_WHY = {
+  "no-ports": "this browser sees no MIDI device at all: no input and no output",
+  "no-match": "MIDI ports exist, but none carries a name this installer recognises",
+  "no-pair": "a port looks like an FM-1, but it has no output of the same name",
+  "send-failed": "the port refused the identity frame",
+  "silent": "every probed port stayed silent",
+  "answered": "the port that answered",
+};
+
 function probeFields(probe, port) {
   const p = probe || {};
+  const c = p.counts || {};
+  const seen = p.seen || {};
   const rows = [
     { key: "query.frames", value: String(p.frames || 0), source: "identity frames this page sent (read-only)", confidence: "high" },
-    { key: "query.answer", value: p.answered ? p.answered : "no answer", source: p.answered ? "the port that answered" : "every probed port stayed silent", confidence: p.answered ? "high" : "none" },
+    { key: "query.answer", value: p.answered ? p.answered : "no answer",
+      source: p.answered ? PROBE_WHY.answered : (PROBE_WHY[p.reason] || PROBE_WHY.silent),
+      confidence: p.answered ? "high" : "none" },
+    /* what the browser itself saw: the counts are the difference between a cable that carries no data
+     * and a unit that is there but does not answer, and a report that omitted them sent the reader to
+     * "another app is using MIDI" when the page had not seen a single port. */
+    { key: "ports.inputs", value: String(c.inputs === undefined ? "-" : c.inputs), source: "WebMIDI, this browser (read only)", confidence: "high" },
+    { key: "ports.outputs", value: String(c.outputs === undefined ? "-" : c.outputs), source: "WebMIDI, this browser (read only)", confidence: "high" },
+    { key: "ports.seen", value: [...(seen.inputs || []), ...(seen.outputs || [])].length
+      ? [...new Set([...(seen.inputs || []), ...(seen.outputs || [])])].join(", ") : "-",
+      source: "USB-MIDI descriptors this browser enumerated", confidence: (seen.inputs || seen.outputs) ? "high" : "none" },
     { key: "query.latencyMs", value: p.latencyMs === null || p.latencyMs === undefined ? "-" : `${p.latencyMs} ms`, source: "measured from the first frame to the answer", confidence: p.latencyMs === null || p.latencyMs === undefined ? "none" : "high" },
     { key: "port.state", value: (port && port.state) || "-", source: "USB-MIDI descriptor", confidence: port && port.state ? "high" : "none" },
     { key: "port.type", value: (port && port.type) || "-", source: "USB-MIDI descriptor", confidence: port && port.type ? "high" : "none" },
@@ -208,7 +271,7 @@ function partsOf(pkg) {
 //   documented  only a document asserts it; nothing on this unit demonstrated it
 // Nothing in this function can return "pass" for a condition that needs a key, a chip session or a
 // recovery test: those are exactly the three that keep the installer closed.
-function gateOf({ found, read, pkg, compat }) {
+function gateOf({ found, read, pkg, compat, sig = null }) {
   const { keys } = partsOf(pkg);
   const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader";
   const rows = [
@@ -216,7 +279,11 @@ function gateOf({ found, read, pkg, compat }) {
     { key: "gate.read", state: read ? "pass" : "unknown" },
     { key: "gate.package", state: pkg && pkg.identity ? "pass" : "fail" },
     { key: "gate.compat", state: found && read ? (compatible ? "pass" : "fail") : "unknown" },
-    { key: "gate.signature", state: keys ? "unknown" : "fail" },
+    /* The signature is a property of the package, not of the unit: these bytes, the signed manifest
+     * and the pinned key decide it, and all three are already on this page. It used to be "unknown"
+     * until a write session existed, which was both false and the reason the installer could never
+     * say it trusted what it was about to write. */
+    { key: "gate.signature", state: sig ? (sig.state === "pass" ? "pass" : "fail") : (keys ? "unknown" : "fail") },
     { key: "gate.chip", state: "not-here" },
     { key: "gate.flashmap", state: "unknown" },
     { key: "gate.backup", state: "unknown" },
@@ -230,6 +297,7 @@ function gateOf({ found, read, pkg, compat }) {
 export async function verifyDevice(midi, opts = {}) {
   const product = String(opts.product || "");
   const pkg = packageOf(product, opts.pkg);
+  const sig = opts.signature || null;       // the offline check of the package (verifyPackage)
   const log = opts.log || (() => {});
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
@@ -249,7 +317,7 @@ export async function verifyDevice(midi, opts = {}) {
     const probe = up.lastProbe;
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
-    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat });
+    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig });
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
@@ -266,8 +334,9 @@ export async function verifyDevice(midi, opts = {}) {
         { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
         ...probeFields(probe, port),
         ...platformFields(),
-        ...pkgFields(pkg, compat),
+        ...pkgFields(pkg, compat, sig),
       ],
+      signature: sig,
       gate: gate.rows, verdict: gate.verdict,
       missing: MISSING.map(([key, why]) => ({ key, why })),
     });
@@ -283,7 +352,7 @@ export async function verifyDevice(midi, opts = {}) {
   const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
   const compat = compatibility(kind, hardware, pkg.model);
-  const gate = gateOf({ found: true, read: true, pkg, compat });
+  const gate = gateOf({ found: true, read: true, pkg, compat, sig });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
@@ -296,13 +365,13 @@ export async function verifyDevice(midi, opts = {}) {
     { key: "port.descriptorVersion", value: port.version || "-", source: "USB-MIDI descriptor", confidence: port.version ? "high" : "none" },
     ...probeFields(probe, port),
     ...platformFields(),
-    ...pkgFields(pkg, compat),
+    ...pkgFields(pkg, compat, sig),
   ];
   const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));
   return report(kind, {
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
-    fields, missing, gate: gate.rows, verdict: gate.verdict,
+    fields, missing, signature: sig, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
     compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
   });

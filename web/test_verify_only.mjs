@@ -11,7 +11,7 @@
 import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
 import * as mod from "./fm1verify.js";
 import * as diag from "./fm1diag.js";
-import { Updater, requireProof } from "./fm1ota.js";
+import { Updater, requireProof, verifyManifest } from "./fm1ota.js";
 
 let bad = 0, total = 0;
 const check = (name, ok) => {
@@ -177,8 +177,11 @@ function anyWrite(sent) {
 {
   // the module itself: no exported way to write, no import of the writer it would need
   const keys = Object.keys(mod).sort();
-  check("fm1verify.js exports only verifyDevice and the query it is allowed to send",
-    keys.join(",") === "READ_ONLY_QUERY,verifyDevice");
+  /* verifyPackage is an offline check of the package bytes against the manifest: it opens no port
+     and has no way to send anything, so it belongs to the read-only surface exactly as verifyDevice
+     does. What must not exist is an install/write/resume entry point, and that is the next check. */
+  check("fm1verify.js exports only the read-only surface: verifyDevice, verifyPackage and the query",
+    keys.join(",") === "READ_ONLY_QUERY,verifyDevice,verifyPackage");
   check("fm1verify.js exports no install/write/resume entry point",
     !keys.some((k) => /install|write|resume|upgrade|serve|put/i.test(k)));
 }
@@ -540,6 +543,92 @@ function anyWrite(sent) {
         j.fields.length === (fw.fields || []).length && j.verdict.result === fw.verdict.result);
   check("the export carries no key material and no session token",
         !/PRIVATE KEY|BEGIN |session|token|secret/i.test(JSON.stringify(j)));
+}
+
+
+{
+  /* THE PACKAGE IS CHECKED WITHOUT A UNIT, AND THE PRODUCT IS NOT THE IDENTITY.
+   *
+   * Two defects met here and both are covered below against the real release bytes:
+   *   - the signed manifest names the PRODUCT ("FM-1"), the page names the IDENTITY of the build
+   *     ("FM-1_982"), and comparing them literally refused every published package -- so `releaseOk`
+   *     stayed false and INSTALL was disabled on the live page for everyone, hardware or not;
+   *   - the signature gate was reported as "cannot be established without a write session", which was
+   *     false: these bytes, the manifest and the pinned key decide it, and all three are on the page.
+   * A package check needs bytes, so it runs only when the release is in the tree; the model rule and
+   * the state machine are checked in every case.
+   */
+  const fs = await import("node:fs");
+  const rel = (f) => { try { return new Uint8Array(fs.readFileSync(new URL(`../release/${f}`, import.meta.url))); } catch (_) { return null; } };
+  const man = (() => { try { return JSON.parse(fs.readFileSync(new URL("../release/felucca-v1.9.0.manifest.json", import.meta.url), "utf8")); } catch (_) { return null; } })();
+  const keys = (() => { try { return JSON.parse(fs.readFileSync(new URL("../tools/fm1_keys.json", import.meta.url), "utf8")).keys || {}; } catch (_) { return {}; } })();
+  const rec = (() => { try { return JSON.parse(fs.readFileSync(new URL("../release/build-manifest.json", import.meta.url), "utf8")); } catch (_) { return null; } })();
+  const bytes = rel("felucca-v1.9.0.fwsc");
+
+  if (bytes && man && rec) {
+    const identity = String(rec.identity || "");
+    const sha = String(rec.artifacts && rec.artifacts["felucca.fwsc"] ? rec.artifacts["felucca.fwsc"].sha256 : "");
+    const size = Number(rec.artifacts && rec.artifacts["felucca.fwsc"] ? rec.artifacts["felucca.fwsc"].bytes : 0);
+
+    /* the regression: a manifest for the product accepts the identity of that product's build */
+    let accepted = true;
+    try { await verifyManifest(bytes, man, keys, { product: identity }); } catch (_) { accepted = false; }
+    check("a manifest naming the product (FM-1) is accepted for the build's identity (FM-1_982)", accepted);
+    let crossed = false;
+    try { await verifyManifest(bytes, man, keys, { product: "FM-2_982" }); } catch (_) { crossed = true; }
+    check("the same manifest is refused for another model: a package never crosses models", crossed);
+
+    /* the offline package check itself */
+    const good = await mod.verifyPackage(bytes, { manifest: man, keys, product: identity, sha256: sha, size });
+    check("the released package verifies offline: hash, identity and Ed25519 against the pinned key",
+          good.state === "pass" && good.keyid === man.keyid && good.sha256 === sha && good.size === size);
+    const wrongHash = await mod.verifyPackage(bytes, { manifest: man, keys, product: identity, sha256: "00".repeat(32), size });
+    check("a package whose bytes are not the record's hash is refused", wrongHash.state === "fail" && /SHA-256|sha256/.test(wrongHash.detail));
+    const tampered = bytes.slice(); tampered[4000] ^= 0xFF;
+    const bad = await mod.verifyPackage(tampered, { manifest: man, keys, product: identity, sha256: sha, size });
+    check("one altered byte is refused before any device is involved", bad.state === "fail");
+    const otherModel = await mod.verifyPackage(bytes, { manifest: man, keys, product: "FM-2_982", sha256: sha, size });
+    check("the released package is refused for another model", otherModel.state === "fail");
+    const noKey = await mod.verifyPackage(bytes, { manifest: man, keys: {}, product: identity, sha256: sha, size });
+    check("with no pinned key nothing is trusted, not even the real package", noKey.state === "fail");
+    const forged = { ...man }; forged.size = man.size + 1;
+    const forgedCheck = await mod.verifyPackage(bytes, { manifest: forged, keys, product: identity, sha256: sha, size });
+    check("a manifest edited after signing is refused", forgedCheck.state === "fail");
+
+    /* and it reaches the installer's own state machine without a unit attached */
+    const none = access([]);
+    const fw = await verifyDevice(none.midi, { product: identity, signature: good,
+      pkg: { version: `v${man.version}-${String(rec.commit).slice(0, 7)}`, size, sha256: sha, build: rec, keys } });
+    const st = Object.fromEntries(diag.diagnosticStates(fw).map((s) => [s.state, s.reached]));
+    const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+    check("with no unit, the package still reaches PACKAGE VERIFIED and SIGNATURE VERIFIED",
+          st["PACKAGE VERIFIED"] && st["SIGNATURE VERIFIED"] && g["gate.signature"] === "pass");
+    check("no unit still means no VERIFY READY, no DEVICE COMPATIBLE and NO-GO",
+          !st["VERIFY READY"] && !st["DEVICE COMPATIBLE"] && fw.verdict.result === "NO-GO" && st["INSTALL BLOCKED"]);
+    check("an empty WebMIDI reports zero inputs and zero outputs, and says so",
+          fw.reading.probe.counts.inputs === 0 && fw.reading.probe.counts.outputs === 0 &&
+          fw.reading.probe.reason === "no-ports" && fw.reading.probe.frames === 0);
+    check("the report shows the signature as checked here, not as expected",
+          (fw.fields || []).some((f) => f.key === "pkg.verified" && /verified/i.test(f.source)));
+
+    /* a port that looks like an FM-1 but stays silent is a different diagnosis from no port at all */
+    const silent = access(["FM-1"]);
+    const fwS = await verifyDevice(silent.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha, build: rec, keys } });
+    check("a silent FM-1 port is reported as silent, not as absent",
+          fwS.kind === "silent" && fwS.reading.probe.reason === "silent" && fwS.reading.probe.frames > 0);
+    check("a silent port still reaches SIGNATURE VERIFIED but never DEVICE COMPATIBLE",
+          Object.fromEntries(diag.diagnosticStates(fwS).map((s) => [s.state, s.reached]))["SIGNATURE VERIFIED"] &&
+          !fwS.compatible);
+
+    /* unrelated gear is never probed, and the report says which case this was */
+    const other = access(["Some Synth"]);
+    const fwO = await verifyDevice(other.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha, build: rec, keys } });
+    check("an unrecognised port is not probed and is reported as such",
+          fwO.kind === "none" && fwO.reading.probe.reason === "no-match" && fwO.reading.probe.frames === 0 &&
+          other.sent.length === 0);
+  } else {
+    console.log("skip: release/ is not in the tree, so the offline package cases cannot run against real bytes");
+  }
 }
 
 console.log(`verify only: ${total} checks, ${bad} FAILED`);
