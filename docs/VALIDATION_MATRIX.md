@@ -278,3 +278,24 @@ signature from another key under that id is refused as `signature`, a key id it 
 `AC79NN_SDK_V1.2.1_2023-12-13` tag reproduces the pinned hashes in seconds instead of a full vendor clone.
 The package built from it is byte-identical to the earlier tree: 611 163 B, sha256 `2b6c592c…`, RAM code
 21 768 B of 24 576. Class: AC791N build, host x86; no device was involved.
+
+## 15. Update — 2026-11-08, the fourteen requirements decided one by one
+
+The forensic report is `docs/FORENSIC_FM1_VIABILITY.md`. It replaces the blanket "everything is NO-GO" with a
+per-requirement decision, and eight rows move on evidence that exists in this tree:
+
+| Row | Old state | New state | Why |
+|---|---|---|---|
+| 3 signature + pinned key | NO-GO | **GO** | `qg1-release-1` pinned, package verified, refusal tests green |
+| 10 protected write paths | GO CONDITIONAL | **GO** | `ldr_core.c` writes only `[0x4000,0x93000)`, whole-package CRC before any erase, head never written, official loader gated by an exact head match |
+| 11 stress and stability | GO | **GO** | 5 201 `ok`, ASan/UBSan fuzz, golden renders |
+| 13 installer/emulator/site sync | NO-GO | **GO** | wasm, firmware and package from one commit; `make_site` refuses a mismatched record |
+| 14 post-install revalidation | NO-GO | **GO** | the device must report the QG product after reboot or the installer raises `mismatch` |
+| 1, 2 reproducible build, whole package | NO-GO | **GO** | byte-identical rebuilds, 611 163 B `FM-1_982` |
+| 4, 5, 6 unit identity, JEDEC/geometry, write compatibility | NO-GO | **GO CONDITIONAL** | implemented and host tested; needs one `0x11`/`0x12` reading on the owner's unit |
+| 7 memory map | NO-GO | **GO CONDITIONAL** | table in the report; the `[0xFC000,0xFF000)` window is undocumented |
+| 8 verified prior backup | NO-GO | **NO-GO** | no dump of that unit can exist here, and the installer cannot take one before the first write |
+| 9 demonstrated recovery | NO-GO | **GO CONDITIONAL** | external ROM-UBOOT restore is documented on FM-1; QG's own raw restore is refused by design |
+
+No requirement moved on a simulation alone, and row 8 stays NO-GO because a file that does not exist cannot be
+verified. The verdict is `GO CONTROLLED` for the software path and `GO CONDITIONAL` for the first physical write.
