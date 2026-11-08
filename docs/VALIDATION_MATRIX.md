@@ -521,3 +521,32 @@ The gates that need the owner's unit are unchanged and open: the JEDEC and geome
 dump of *that* unit, the verification of that dump, a rehearsed recovery, and the first controlled write.
 Nothing in this pass sent a write, erase, bootloader change or recovery command to any unit. See
 `docs/FORENSIC_FM1_VIABILITY.md`.
+
+## 20. Update — 2026-11-08, the 3.1 tree rebuilt here, and it reproduces the published package
+
+This pass fetched the pinned toolchain and SDK into another machine and rebuilt the tree the owner's visual
+pass landed in, then built the emulator, then ran what only those builds can check. It exists to answer one
+question the publication log cannot: **is the published package really this firmware?** Every figure is
+`[HOST]` or `[TARGET]`; no unit was involved, and nothing here is a second publication.
+
+| Item | State | Evidence |
+|---|---|---|
+| Toolchain / SDK | pinned and verified | JieLi `jieli-linux-toolchains-20260730.1`, sha256 `a1545cdd…` checked by `tools/get_toolchain.sh` against `tools/toolchain.sha256`; SDK branch `AC79NN_SDK_V1.2.1_2023-12-13` (`[HOST]`) |
+| AC791N build | **built** | image 531 992 B; `.data+.bss` 95 912 B of 98 304 (2 392 B spare); `POOL_END - pool_top` 9 248 B; XIP code 372 508 B; RAM code 19 284 B of 24 576 (`[TARGET]`) |
+| Package | **identical to the published one** | 610 806 B, `FM-1_982`, sha256 `80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2` = `release/felucca-v1.9.0.fwsc` = the asset and the site's copy (`[HOST]`) |
+| Reproducibility | **GO on a second machine** | two clean builds are byte-identical (`cmp` on `.fwsc` and `loader/ota.bin`) (`[HOST]`) |
+| Emulator | **built here** | Emscripten 6.0.11, 1 073 325 B wasm, sha256 `3d039f75…`, named by the record at `HEAD`; `build_manifest --verify --require-clean --expect-commit` ok (`[HOST]`) |
+| Budgets and reader | **GO** | `memory_map_test`, `target_budget.py` on `build/felucca.dis`, `web/test_pkg_bounds.mjs` (`[TARGET]`/`[HOST]`) |
+| Host suite | **ALL HOST TESTS PASSED** | full run with the package present: `test_release_e2e`, `test_provenance`, `test_verify_only` (108 checks), `key_custody_test` (`[HOST]`) |
+
+The value of this section is the equality, not a new claim: an independent rebuild, in another checkout and
+another toolchain directory, produces the same 610 806 bytes that `release/`, the Release asset and Pages
+serve, so "the published package is this firmware" stops being an inference. It also corrects a figure: the
+record of the package built at `e784b70` carried `.data+.bss` 96 088 B, and this tree spends 95 912 B — the
+visual pass did not take RAM from anywhere.
+
+The visual pass itself was re-read at 3–6× on HOME (solar bay and scope), SCL in QUANTUM, CYBERPUNK and
+NORDIC, FX 1 and the held punch-in map: the degree labels sit only on in-scale keys (C MIN: C, D, F, G; E, A
+and B stay recessed), exactly three accidentals carry a strip (D#, G#, A#), the spectrum caps stay inside rows
+153–178, and the map's header (`LATCH:NO`), LATCH card and `KEYS · FX · K1-4 MACRO · OCT+ LATCH` footer agree
+with the engine flags. No further defect was found, and none was invented to have something to change.

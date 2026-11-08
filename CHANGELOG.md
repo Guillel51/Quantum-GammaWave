@@ -11,7 +11,7 @@
   lo que leyó, lo que no pudo leer y por qué: sin claves, sin tokens y sin bytes del paquete. Los ocho estados
   (`DIAGNOSTIC READY` … `INSTALL READY`, `INSTALL BLOCKED`) se derivan de las filas del gate, así que ninguno
   puede mostrarse por encima de su evidencia (`web/fm1diag.js`, 108 comprobaciones en `test_verify_only.mjs`).
-- **El release se publica solo, y sólo si se verifica.** `.github/workflows/release.yml` comprueba firma,
+- **El release se publica solo, y sólo si se verifica.** el job `publish` de `.github/workflows/emulator.yml` comprueba firma,
   hashes, identidad, versión y que nada del firmware haya cambiado desde el commit del registro; crea el tag
   `v1.9.0` en ese commit y publica el paquete, su manifiesto y el registro. Después vuelve a descargar los
   assets publicados y los verifica otra vez.
@@ -51,8 +51,18 @@
   `FX + OCT+ toggles LATCH` y el de la reverb, que exige que los anillos sigan al retorno y decaigan hasta 0);
   barrido de render 173 pantallas × 17 paletas, **0 hallazgos de lint**, 2 643 516 medidas de alineación y
   **0 desviaciones de 1 px**; `tests/particle_bounds_test.py` gana las guardas geométricas del sistema solar
-  (órbita + planeta + 2 px dentro de la caja, sistema centrado). Sigue **sin build AC791N** (faltan
-  `JIELI_TOOLCHAIN` y `AC79_SDK`) y sin emulador (`emcc` ausente): nada de esto es una validación de hardware.
+  (órbita + planeta + 2 px dentro de la caja, sistema centrado). **Build AC791N de este mismo árbol** (clase
+  `[HOST]`: toolchain JieLi `20260730.1` verificada por sha256 y SDK `AC79NN_SDK_V1.2.1_2023-12-13`): imagen
+  531 992 B, `.data+.bss` 95 912 B de 98 304 (2 392 B libres), pool spare 9 248 B, paquete 610 806 B `FM-1_982`,
+  sha256 `80ad995c…`, idéntico byte a byte en dos builds limpios; `memory_map_test`, `target_budget`,
+  `test_pkg_bounds` y `build_manifest --verify --require-clean` en verde. Esos bytes son **los mismos que el
+  paquete firmado de `release/`**: un rebuild independiente en otra máquina reproduce el artefacto publicado, y
+  el `.data+.bss` de 95 912 B sustituye a los 96 088 B de la entrega anterior (la pasada visual no costó RAM).
+  También se construyó el emulador aquí (Emscripten 6.0.11, wasm 1 073 325 B, sha256 `3d039f75…`, registrado en
+  el manifiesto al mismo commit) y la suite host completa pasó con el paquete presente. El paquete publicado —tag
+  `v1.9.0`, el Release y la copia de Pages, sha256 `80ad995c…`— es exactamente el que sale de este árbol, así que
+  un segundo build independiente confirma que el artefacto publicado es este firmware. Nada de esto es una
+  validación de hardware.
 - **El primer backup de una unidad stock ya no necesita abrir el equipo, y el instalador perdió su último atajo:**
   M-Flasher 0.9.1 (`9da825b`, MIT) lee la flash entera por el modo ROM del chip, con el loader en RAM y el
   CRC32 calculado por el silicio; su acción de backup sólo lee (`src/ops.rs`), y ahora `tools/fm1_mflasher.py`
