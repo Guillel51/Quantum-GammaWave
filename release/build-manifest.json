@@ -1,16 +1,16 @@
 {
   "artifacts": {
     "felucca.bin": {
-      "bytes": 565160,
-      "sha256": "5433ca283baf5f8d82231b60ad41f32dd728dbaa36bc2ed7b6db1ec7f5ab9eed"
+      "bytes": 531172,
+      "sha256": "486972288660a3a1bcd4619cc8d55453f6a5d99c4a89b5fd467ce94980522717"
     },
     "felucca.fwsc": {
-      "bytes": 611163,
-      "sha256": "deb7e343c82990ffec6c3bda7a157c589d04e6584a994cb8cf485d7b67ce97d6"
+      "bytes": 610806,
+      "sha256": "5c80a092f3869bc7fe2f392645e1e9276509a1ee6789eb48efcad3ff513ed567"
     },
     "loader/ota.bin": {
-      "bytes": 8007,
-      "sha256": "468fb0e20eddf855a32bbcccb51f8eda770478b7214ba3937680a7308f73acbf"
+      "bytes": 7650,
+      "sha256": "6ef564ab631d6a3b29b77ddaba2fda179da5202b224ba743b8f1f9abfa276e3a"
     }
   },
   "checks": {
@@ -18,13 +18,13 @@
     "identity": "FM-1_982",
     "notes": [
       ".ram_text: 1193 insns, no calls",
-      "image 565160 B; RAM .data+.bss 96056 B of 98304; pool 311240 B, spare 9248 B",
-      "XIP code 403228 B, constants 139416 B",
-      "RAM code 21768 B of 24576; calls reach 57284 B past the code's end",
+      "image 531172 B; RAM .data+.bss 96088 B of 98304; pool 311240 B, spare 9248 B",
+      "XIP code 371564 B, constants 139416 B",
+      "RAM code 19444 B of 24576; calls reach 88948 B past the code's end",
       "register access: hal/ only (src/, loader/ clean)"
     ]
   },
-  "commit": "9be83cfca618dd1ad59e1927c3b3ea8f698de390",
+  "commit": "26d7a6bc3563c2afbe80204ed3e93fb243f92dfb",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -45,7 +45,7 @@
   },
   "dirty": [],
   "emulator": {
-    "commit": "9be83cfca618",
+    "commit": "26d7a6bc3563",
     "version": "v1.9.0",
     "wasm_bytes": 1066409,
     "wasm_sha256": "ebfe121803823c9a6f0b7e977c2eab6254b40472bad1340043e903f21b6e5614"

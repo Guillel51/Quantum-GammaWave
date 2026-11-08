@@ -354,3 +354,19 @@ package for a dirty record it did not have; it now treats a path that *contains*
 that input. `tests/key_custody_test.py` had the same shape of problem for the pinned key (§14 records
 the fix); with both in place the host suite is green again: 4 999 `ok` lines, `ALL HOST TESTS PASSED`,
 and `web/test_provenance.mjs` passes with an emulator built from this tree.
+
+## 16. Update — 2026-11-08, the `-Oz` tree rebuilt and re-signed for the release
+
+`main` gained the `-Oz` profile (`933c7d8`) while the release was being assembled, so the package was rebuilt
+and re-signed on that tree rather than shipping bytes that no longer described it:
+
+| Item | Value | Class |
+|---|---|---|
+| RAM code | **19 444 B of 24 576** (headroom **5 132 B**), calls reach 88 948 B | `[TARGET]` |
+| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` | `[TARGET]` |
+| build record | commit `26d7a6b`, `dirty: []` | `[TARGET]` |
+| signature | `verified: FM-1 version 1.9.0, key qg1-release-1` | `[HOST]` |
+| emulator | 1 066 409 B wasm, Emscripten **6.0.11**, same commit as the firmware | `[WASM]` |
+
+The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these. Nothing here
+was measured on a device.

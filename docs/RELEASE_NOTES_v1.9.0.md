@@ -35,8 +35,8 @@ Details, per requirement: [`docs/FORENSIC_FM1_VIABILITY.md`](../docs/FORENSIC_FM
 ## What changed in 1.9.0
 
 - The AC791N RAM code fits its budget again with both fixes in place: the delay's echo train is stepped from
-  flash (`fx_vu` once per block) and `perf_begin` left `.hot_text`. RAM code 21 768 B of 24 576, headroom
-  2 808 B, `.ram_text` with no calls.
+  flash (`fx_vu` once per block) and `perf_begin` left `.hot_text`, and the AC791N image is built at `-Oz`. RAM code 19 444 B of 24 576
+  (headroom 5 132 B), `.ram_text` with no calls.
 - The target build links against the pinned `AC79NN_SDK_V1.2.1_2023-12-13`: the three files in `SDK_SHA256`
   match, and two builds produce the same bytes.
 - Production signing: one key pinned, fail-closed, with rotation and revocation covered by tests; a package
