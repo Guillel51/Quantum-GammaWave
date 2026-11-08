@@ -415,6 +415,7 @@
       <label class="small"><span data-t="verLabel"></span> <select id="ver"></select></label>
       <button id="go" disabled data-t="install"></button>
       <button id="verify" class="secondary" type="button" data-t="verifyOnly"></button>
+      <button id="diag" class="secondary" type="button" disabled title="Download the read-only report as JSON: no keys, no tokens, no secrets">⬇ DIAGNOSTIC .JSON</button>
     </div>
     <fieldset id="preflight" class="small" style="border:1px solid var(--border);padding:8px 12px;margin:0 0 10px">
       <legend data-t="pfTitle"></legend>
@@ -1176,7 +1177,8 @@ const rememberInstalled = () => {
 const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.keys || {}, firmware,
   provenance: provOk });
 
-let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = null;
+let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = null, lastVerify = null;
+const buildOf = (b) => (typeof b === "string" ? b : (b && b.commit) || "");
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
 const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk || !provOk; $("verify").disabled = on;
   document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock || !releaseOk; if ($("stock-direct")) $("stock-direct").disabled = on || !stock || !releaseOk; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
@@ -1432,8 +1434,27 @@ $("verify").addEventListener("click", async () => {
     else if (fw.kind === "ours") sayK("vOurs", fw.text + t("vSame"));
     else sayK("vOther", fw.text + t("vOtherTail"));   /* (7.x) detected, not recognised: FM-1_909 and the like */
     showVerify(fw);
+    lastVerify = fw;
+    $("diag").disabled = false;
   } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
   finally { lockInstaller(false); }
+});
+/* The diagnostic file is the very object the panel rendered, so the screen and the file cannot
+ * disagree. It carries no key material, no session token and no package bytes (see diagnosticJson). */
+$("diag").addEventListener("click", () => {
+  if (!lastVerify) return;
+  const build = buildOf(meta.build);
+  const report = diagnosticJson(lastVerify, { page: {
+    build, version: meta.version || "", product: meta.product || "",
+    sha256: meta.sha256 || "", size: meta.size || 0,
+    keys: Object.keys(meta.keys || {}).length,
+    href: location.href, userAgent: navigator.userAgent } });
+  const name = `qg1-diagnostic-${meta.version || "unknown"}-${(build || "nocommit").slice(0, 7)}.json`;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 1)], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  log(`diagnostic: ${name} (${report.states.filter((s) => s.reached).map((s) => s.state).join(", ")})`);
 });
 $("stock-file").addEventListener("change", async () => {
   const epoch = ++stockFileEpoch, file = $("stock-file").files[0]; stock = null; lockInstaller(false);

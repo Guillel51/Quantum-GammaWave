@@ -10,6 +10,7 @@
 
 import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
 import * as mod from "./fm1verify.js";
+import * as diag from "./fm1diag.js";
 import { Updater, requireProof } from "./fm1ota.js";
 
 let bad = 0, total = 0;
@@ -516,6 +517,29 @@ function anyWrite(sent) {
   const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
   check("another JIANT build: compatibility fails in the checklist and the verdict is still NO-GO",
         fw.kind === "other" && fw.compatibility === "blocked-firmware" && g["gate.compat"] === "fail" && fw.verdict.result === "NO-GO");
+}
+
+{
+  /* the eight named states and the exportable report: a state can never sit above its evidence, and
+     the file a user attaches carries no key material and no session token */
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const pkgHere = { version: "1.9.0", size: 611163, sha256: "ab".repeat(32), build: "abc1234",
+    keys: { prod: "00".repeat(32) } };
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: pkgHere });
+  const states = diag.diagnosticStates(fw);
+  const st = Object.fromEntries(states.map((s) => [s.state, s.reached]));
+  check("the eight states are named and ordered", states.map((s) => s.state).join("|") === diag.DIAGNOSTIC_STATE_ORDER.join("|"));
+  check("a stock unit reaches VERIFY READY and DEVICE COMPATIBLE", st["VERIFY READY"] && st["DEVICE COMPATIBLE"]);
+  check("verify only never reaches SIGNATURE VERIFIED or INSTALL READY",
+        !st["SIGNATURE VERIFIED"] && !st["INSTALL READY"] && st["INSTALL BLOCKED"]);
+  check("recovery is reported as not verified, never as a pass", st["RECOVERY NOT VERIFIED"]);
+  const j = diag.diagnosticJson(fw, { page: { build: "abc1234", version: "1.9.0" } });
+  check("the export is a qg1-diagnostic-1 document with all eight states",
+        j.schema === "qg1-diagnostic-1" && j.states.length === 8);
+  check("the export repeats the report's own fields and verdict",
+        j.fields.length === (fw.fields || []).length && j.verdict.result === fw.verdict.result);
+  check("the export carries no key material and no session token",
+        !/PRIVATE KEY|BEGIN |session|token|secret/i.test(JSON.stringify(j)));
 }
 
 console.log(`verify only: ${total} checks, ${bad} FAILED`);

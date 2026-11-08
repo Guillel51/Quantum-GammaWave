@@ -158,12 +158,21 @@ jobs:
       # and Pages never deployed, which is how twenty-two commits went unpublished.
       - name: the site (this run's package, or the committed one with its record checked)
         run: |
-          # the step above already wrote the site when the toolchain was here: nothing to redo
-          if [ -s build/site/index.html ] && [ -s build/felucca.fwsc ]; then
-            echo "the site was built from this run's package above"; exit 0
-          fi
           ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
-          if [ -s build/felucca.fwsc ]; then
+          MAN=""; REC=""
+          if ls release/*.fwsc >/dev/null 2>&1; then
+            # The signed release is what people should install: a package built in this run carries no
+            # signature (the private key is not in CI) and the installer refuses unsigned bytes. So when
+            # release/ holds one, the site serves that package, its signature and its build record.
+            PKG=$(ls release/*.fwsc | head -1)
+            REC=release/build-manifest.json
+            MAN="${PKG%.fwsc}.manifest.json"; test -s "$MAN" || MAN=""
+            SV=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"].lstrip("v"))' "$REC")
+            SH=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["commit"][:7])' "$REC")
+            echo "the site offers the signed release: $PKG ($SV-$SH)"
+          elif [ -s build/site/index.html ] && [ -s build/felucca.fwsc ]; then
+            echo "the site was built from this run's package above"; exit 0
+          elif [ -s build/felucca.fwsc ]; then
             PKG=build/felucca.fwsc; SV=$(ver .); SH=${GITHUB_SHA::7}
             echo "the site offers this run's target build: $SV-$SH"
           else
@@ -174,7 +183,11 @@ jobs:
             echo "no target build in this run: the site offers $SV-$SH, committed with its build record"
           fi
           python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
-          python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site build/prev
+          if [ -n "$MAN" ]; then
+            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$REC"
+          else
+            python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site build/prev
+          fi
           mkdir -p build/site/emulator
           cp -r build/emu/. build/site/emulator/
           rm -rf build/site/emulator/preview
