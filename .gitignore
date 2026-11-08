@@ -2,6 +2,9 @@ build/
 .DS_Store
 __pycache__/
 *.fwsc
+# ... except the signed release: it is committed on purpose, because the private key is not in the
+# repository and no workflow can produce a signed package. The release job verifies it before publishing.
+!release/*.fwsc
 node_modules/
 
 # the pi32v2 toolchain and the AC79 SDK when they are unpacked inside the checkout (tools/get_toolchain.sh,
