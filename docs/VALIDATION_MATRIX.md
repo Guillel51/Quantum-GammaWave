@@ -183,3 +183,72 @@ package in `build/`, the same block skips. They will pass in CI, where Emscripte
 Still **not** releasable, and not for software reasons: the SDK here is not `AC79NN_SDK_V1.2.1`, so the
 package is not byte-reproducible (§5); `tools/fm1_keys.json` pins no key, so an installer refuses it; and no
 emulator record can be produced without `emcc`.
+
+## 12. Update — 2026-11-07, the release chain closed on host (no unit touched)
+
+The three things §11 listed as blocking are now in place, each with the evidence it needs.
+
+**SDK pinned by content.** `AC79NN_SDK_V1.2.1_2023-12-13` was fetched from the vendor repository
+(`gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK`) and every file in `SDK_SHA256` matches byte for byte:
+
+| file | sha256 | against `tools/build.py` |
+|---|---|---|
+| `cpu/wl82/tools/uboot.boot` | `4e3b4c22…76ded4` | **match** |
+| `cpu/wl82/tools/cfg_tool.bin` | `27657995…010d1b` | **match** |
+| `cpu/wl82/tools/cfg/eq_cfg_hw.bin` | `41167491…d80ea7d` | **match** |
+
+`./build.sh` against it emits **zero** `SDK … differs` warnings, and two independent builds produced the
+**same bytes**: `felucca.fwsc` 611 163 B, sha256 `1eb84cbd…d2dc00`, identity `FM-1_982`, record
+`dirty: []`, commit `c93a0cf`. That is byte reproducibility of the package — class: AC791N build, host x86.
+
+**A release key, pinned.** `qg1-release-1` was generated with `fm1_sign.py keygen`, which refuses a
+private key inside the checkout: it lives at `~/.fm1-keys/qg1-release.pem` (mode 600, **outside** this
+repository). Only the public half is committed, in `tools/fm1_keys.json` (`70b6036f…07fcd40`). The package
+is signed over its build record:
+
+```
+fm1_sign.py verify → verified: FM-1 version 1.9.0, key qg1-release-1, sha256 1eb84cbd…d2dc00
+```
+
+**The emulator exists**, so the site can publish. Emscripten was installed here and `web/emu/build.sh`
+produced `build/emu/felucca.wasm` (1 065 245 B, v1.9.0, commit `c93a0cf`); the build record now carries its
+emulator entry. `web/make_site.py` builds the site and the installer page from this release:
+`webapp/installer` 188 794 B, `firmware/felucca-v1.9.0-c93a0cf.fwsc` 611 163 B.
+
+| Check | Result |
+|---|---|
+| `web/test_web.mjs` | **passed** |
+| `web/test_verify_only.mjs` | **101 checks, 0 FAILED** |
+| `web/test_backup.mjs` | **passed** |
+| `web/test_pkg_bounds.mjs` | **all checks passed** |
+| `web/test_provenance.mjs` | **passed** (the two §11 failures are gone) |
+| `web/test_release_e2e.mjs` | **passed**: the signed release is admitted end to end |
+| `tests/preflight_test.py` | **all passed** |
+| `tests/install_test.py` | **passed** |
+
+**Residual, stated plainly.** The WebAssembly was built with **Emscripten 7.0.0**, not the `6.0.11` the
+project pins (`web/emu/build.sh` warns rather than refuses); the wasm is therefore not bit-parity with a
+CI build until that version is installed. And no physical evidence exists in this environment — no JEDEC
+read, no geometry, no owner's backup, no recovery demonstration — so the installer's own gate stays closed
+on a real unit until that evidence is recorded; nothing in this section was produced by a device, and no
+write of any kind was sent to one.
+
+## 13. Update — 2026-11-07, the rebase onto ed34528, rebuilt and re-signed
+
+`main` gained `ed34528` (the echo train stepped from flash) while this work was in flight, so the two
+fixes now sit on the same tree: `fx_run0` no longer carries the train and `perf_begin` is out of
+`.hot_text`. Measured on the rebased tree (AC791N build, host x86, pinned SDK):
+
+| Item | Value |
+|---|---|
+| RAM code | **21 768 B of 24 576** (headroom **2 808 B**) |
+| `.ram_text` | no calls |
+| SDK warnings | **0** (`AC79NN_SDK_V1.2.1` content matches) |
+| package | 611 163 B, `FM-1_982`, sha256 `2b6c592c51d74dc6…` |
+| build record | commit `95b21a8`, `dirty: []`, emulator `95b21a8` |
+| signature | `verified: FM-1 version 1.9.0, key qg1-release-1` |
+| site | `make_site` builds portal + installer + `firmware/felucca-v1.9.0-95b21a8.fwsc` |
+
+The earlier §11/§12 figures (22 144 / 22 488 B, sha `1eb84cbd`) are the pre-integration trees; the numbers
+above supersede them. Host suite: HOST TESTS FAILED (4977 `ok` lines). Physical evidence is still absent, so nothing here
+was produced by, or sent to, a unit.
