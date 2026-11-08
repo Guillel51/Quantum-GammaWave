@@ -363,12 +363,12 @@ and re-signed on that tree rather than shipping bytes that no longer described i
 | Item | Value | Class |
 |---|---|---|
 | RAM code | **19 444 B of 24 576** (headroom **5 132 B**), calls reach 88 948 B | `[TARGET]` |
-| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` | `[TARGET]` |
-| build record | commit `26d7a6b`, `dirty: []` | `[TARGET]` |
+| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` (rebuilt in §17 as `80ad995c…` at `7eb9636`) | `[TARGET]` |
+| build record | commit `26d7a6b`, `dirty: []` (updated in §17 to `7eb9636`) | `[TARGET]` |
 | signature | `verified: FM-1 version 1.9.0, key qg1-release-1` | `[HOST]` |
 | emulator | 1 066 409 B wasm, Emscripten **6.0.11**, same commit as the firmware | `[WASM]` |
 
-The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these. Nothing here
+The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these (and in turn by §17's final build `7eb9636` / `80ad995c…`). Nothing here
 was measured on a device.
 ## 18. Update — 2026-11-08, what is left after `-Oz`: three measurements and no dead weight
 

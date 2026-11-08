@@ -44,9 +44,9 @@ new buffer, so shared RAM does not grow and the mailbox stays 128 bytes / two ca
 | Pool spare (`POOL_END - pool_top`) | 9 248 B (pool 311 240 B) | ≥ 8 192 B | **1 056 B** |
 | XIP code / constants | 371 564 B / rest | constants only use slot | calls reach 88 920 B past the code |
 | Loader image / `ota.bin` | 9 096 B at `0x01C0A800` / 7 650 B | `0x14000` B | large |
-| Package (`build/felucca.fwsc`) | 610 806 B, sha256 `5c80a092…` | — | — |
+| Package (`build/felucca.fwsc`) | 610 806 B, sha256 `80ad995c…` (rebuilt & signed at `7eb9636`) | — | — |
 
-These are the numbers the `-Oz` build (documented in `docs/VALIDATION_MATRIX.md` §16) leaves, measured on
+These are the numbers the `-Oz` build (documented in `docs/VALIDATION_MATRIX.md` §16/§17) leaves, measured on
 this tree: 531 204 B of image (the voice-stealing change of VALIDATION_MATRIX §22 added 32 B), 19 444 B of
 RAM code and 2 216 B of `.data+.bss` headroom. The RAM headroom
 did not move: `-Oz` buys flash and RAM code, never `.bss`, which is why the 12-voice question (VALI-

@@ -1461,7 +1461,11 @@ function showVerify(fw) {
   const st = $("vrep-states");
   st.textContent = "";
   const negative = new Set(["RECOVERY NOT VERIFIED", "INSTALL BLOCKED"]);
+  const isInstallBlocked = !((fw.verdict && fw.verdict.canInstall) && (fw.gate || []).every((r) => r.state === "pass"));
   for (const s of diagnosticStates(fw)) {
+    /* If installation is blocked, do not render INSTALL READY as an unreached candidate alongside INSTALL BLOCKED,
+       to prevent any ambiguity between diagnostic pass and installation authorisation. */
+    if (s.state === "INSTALL READY" && isInstallBlocked) continue;
     const li = document.createElement("li");
     const neg = negative.has(s.state);
     li.textContent = `${s.reached ? (neg ? "!" : "\u2713") : "\u00b7"} ${s.state} \u2014 ${vf("st." + s.state)}`;
