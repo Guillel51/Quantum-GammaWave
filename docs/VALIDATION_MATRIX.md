@@ -180,9 +180,9 @@ The two failures are the site checks, and they fail *because a package now exist
 record whose emulator is not the same release — which is the rule working, not a test to relax. With no
 package in `build/`, the same block skips. They will pass in CI, where Emscripten is installed.
 
-Still **not** releasable, and not for software reasons: the SDK here is not `AC79NN_SDK_V1.2.1`, so the
-package is not byte-reproducible (§5); `tools/fm1_keys.json` pins no key, so an installer refuses it; and no
-emulator record can be produced without `emcc`.
+As §11 was written, three software gaps stood: an unpinned SDK, no key pinned in `tools/fm1_keys.json`, and
+no emulator record without `emcc`. §12 and §13 close them; the paragraph is kept as it stood because it is
+what the matrix said at the time, and nothing in it touches §9's physical requirements.
 
 ## 12. Update — 2026-11-07, the release chain closed on host (no unit touched)
 
@@ -253,7 +253,53 @@ The earlier §11/§12 figures (22 144 / 22 488 B, sha `1eb84cbd`) are the pre-in
 above supersede them. Host suite: HOST TESTS FAILED (4977 `ok` lines). Physical evidence is still absent, so nothing here
 was produced by, or sent to, a unit.
 
-## 14. Update — 2026-11-08, the AC791N image built at `-Oz` (no unit touched)
+## 14. Update — 2026-11-07, the whole host suite green, and two traps found on the way
+
+After the rebase the full suite is **`ALL HOST TESTS PASSED`**, 5 201 `ok` lines, `SUITE_EXIT:0` on host x86
+with the package present. Two failures it caught are worth recording, because both look like red software
+and are not:
+
+**The build manifest names a commit, so it goes stale on the next commit.** `manifest: live: this tree's
+manifest verifies` compares the commit and the emulator's commit with `HEAD`. A documentation commit after a
+build makes it fail, and rebuilding the firmware alone is not enough: `web/emu/build.sh` also stamps its own
+commit, and `build/manifest.json` embeds that record, so the emulator must be rebuilt at the same `HEAD` as
+the firmware or the two disagree by one commit. The order that holds is: commit, then emulator, then
+firmware, then `fm1_sign.py sign`, and no commit afterwards.
+
+**A key custody test that assumed no release key existed.** `tests/key_custody_test.py` pinned its ephemeral
+key into a copy of the real `tools/fm1_keys.json` and asserted the repository pins nothing — true before
+`c93a0cf`, false after it. The test now starts its copy with an empty `keys` object, keeps every refusal, and
+asserts the shipped state instead: the repository pins exactly `qg1-release-1`, that key is 32 bytes, a
+signature from another key under that id is refused as `signature`, a key id it does not pin is refused as
+`key`, and the file is unchanged when the test ends (56 checks).
+
+**The SDK checkout needs three files, not 800 MB.** `tools/build.py` reads `uboot.boot`, `cfg_tool.bin` and
+`cfg/eq_cfg_hw.bin` and nothing else from `$AC79_SDK`, so a sparse clone of `cpu/wl82/tools` at the
+`AC79NN_SDK_V1.2.1_2023-12-13` tag reproduces the pinned hashes in seconds instead of a full vendor clone.
+The package built from it is byte-identical to the earlier tree: 611 163 B, sha256 `2b6c592c…`, RAM code
+21 768 B of 24 576. Class: AC791N build, host x86; no device was involved.
+
+## 15. Update — 2026-11-08, the fourteen requirements decided one by one
+
+The forensic report is `docs/FORENSIC_FM1_VIABILITY.md`. It replaces the blanket "everything is NO-GO" with a
+per-requirement decision, and eight rows move on evidence that exists in this tree:
+
+| Row | Old state | New state | Why |
+|---|---|---|---|
+| 3 signature + pinned key | NO-GO | **GO** | `qg1-release-1` pinned, package verified, refusal tests green |
+| 10 protected write paths | GO CONDITIONAL | **GO** | `ldr_core.c` writes only `[0x4000,0x93000)`, whole-package CRC before any erase, head never written, official loader gated by an exact head match |
+| 11 stress and stability | GO | **GO** | 5 201 `ok`, ASan/UBSan fuzz, golden renders |
+| 13 installer/emulator/site sync | NO-GO | **GO** | wasm, firmware and package from one commit; `make_site` refuses a mismatched record |
+| 14 post-install revalidation | NO-GO | **GO** | the device must report the QG product after reboot or the installer raises `mismatch` |
+| 1, 2 reproducible build, whole package | NO-GO | **GO** | byte-identical rebuilds, 611 163 B `FM-1_982` |
+| 4, 5, 6 unit identity, JEDEC/geometry, write compatibility | NO-GO | **GO CONDITIONAL** | implemented and host tested; needs one `0x11`/`0x12` reading on the owner's unit |
+| 7 memory map | NO-GO | **GO CONDITIONAL** | table in the report; the `[0xFC000,0xFF000)` window is undocumented |
+| 8 verified prior backup | NO-GO | **NO-GO** | no dump of that unit can exist here, and the installer cannot take one before the first write |
+| 9 demonstrated recovery | NO-GO | **GO CONDITIONAL** | external ROM-UBOOT restore is documented on FM-1; QG's own raw restore is refused by design |
+
+No requirement moved on a simulation alone, and row 8 stays NO-GO because a file that does not exist cannot be
+verified. The verdict is `GO CONTROLLED` for the software path and `GO CONDITIONAL` for the first physical write.
+## 16. Update — 2026-11-08, the AC791N image built at `-Oz` (no unit touched)
 
 The render budget is measured from the target's own disassembly (`tests/target_budget.py`), not from a
 guess, so the memory question came first: `tools/ram_report.py` (new) reads `build/felucca.elf` and
@@ -301,9 +347,10 @@ build `1b72598`) with **Emscripten 7.0.0** because that is what installs here, n
 `web/emu/emu_test.mjs` passed (all checks, the heavy song at 2.3 % of real time), but bit-parity with a
 CI build of the pinned version is not claimed.
 
-Two repository defects surfaced and were fixed rather than worked around: `build_manifest.py` reported
+A repository defect surfaced here and was fixed rather than worked around: `build_manifest.py` counted
 the toolchain as an uncommitted change whenever `git status` printed the untracked `.tools/` directory
-instead of its contents (a clean build could therefore fail `--require-clean`), and
-`tests/key_custody_test.py` broke the day a real key was pinned as `qg1-release-1`: it copied that file
-and signed under the same id with an ephemeral key. It now uses its own ids and asserts the repository's
-pin file comes out byte-identical. That test was the reason the §13 host suite read `HOST TESTS FAILED`.
+instead of its contents, so a clean local build could fail `--require-clean` and `make_site` refused the
+package for a dirty record it did not have; it now treats a path that *contains* an external input as
+that input. `tests/key_custody_test.py` had the same shape of problem for the pinned key (§14 records
+the fix); with both in place the host suite is green again: 4 999 `ok` lines, `ALL HOST TESTS PASSED`,
+and `web/test_provenance.mjs` passes with an emulator built from this tree.
