@@ -136,9 +136,12 @@ jobs:
             rm -rf /tmp/reltree build/emu_release
             git worktree prune
             git worktree add -f -q --detach /tmp/reltree "$R"      # -f: another step may have registered this path
+            # GITHUB_SHA/GIT_COMMIT are unset on purpose: tools/package_emu.py prefers them over
+            # `git rev-parse HEAD`, so with them in the environment this emulator would carry the run's
+            # commit while holding the release's bytes -- a manifest that names a build it is not.
             ( cd /tmp/reltree &&
-              python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
-              sh web/emu/build.sh >/dev/null )
+              env -u GITHUB_SHA -u GIT_COMMIT python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
+              env -u GITHUB_SHA -u GIT_COMMIT sh web/emu/build.sh >/dev/null )
             cp -r /tmp/reltree/build/emu build/emu_release
             EMU_SRC=build/emu_release
             echo "the public site serves the release's emulator: $(python3 -c 'import json;print(json.load(open("build/emu_release/manifest.json"))["wasm_sha256"][:16])')"
@@ -231,9 +234,12 @@ jobs:
             rm -rf /tmp/reltree build/emu_release
             git worktree prune
             git worktree add -f -q --detach /tmp/reltree "$R"      # -f: another step may have registered this path
+            # GITHUB_SHA/GIT_COMMIT are unset on purpose: tools/package_emu.py prefers them over
+            # `git rev-parse HEAD`, so with them in the environment this emulator would carry the run's
+            # commit while holding the release's bytes -- a manifest that names a build it is not.
             ( cd /tmp/reltree &&
-              python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
-              sh web/emu/build.sh >/dev/null )
+              env -u GITHUB_SHA -u GIT_COMMIT python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
+              env -u GITHUB_SHA -u GIT_COMMIT sh web/emu/build.sh >/dev/null )
             cp -r /tmp/reltree/build/emu build/emu_release
             EMU_SRC=build/emu_release
             echo "the site serves the release's emulator: $(python3 -c 'import json;print(json.load(open("build/emu_release/manifest.json"))["wasm_sha256"][:16])')"
