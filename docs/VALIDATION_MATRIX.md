@@ -252,3 +252,58 @@ fixes now sit on the same tree: `fx_run0` no longer carries the train and `perf_
 The earlier §11/§12 figures (22 144 / 22 488 B, sha `1eb84cbd`) are the pre-integration trees; the numbers
 above supersede them. Host suite: HOST TESTS FAILED (4977 `ok` lines). Physical evidence is still absent, so nothing here
 was produced by, or sent to, a unit.
+
+## 14. Update — 2026-11-08, the AC791N image built at `-Oz` (no unit touched)
+
+The render budget is measured from the target's own disassembly (`tests/target_budget.py`), not from a
+guess, so the memory question came first: `tools/ram_report.py` (new) reads `build/felucca.elf` and
+prints every linker region and the largest symbols, taking the section from `objdump -t` because the
+linker's placement wins over what a `__attribute__((section))` in the source suggests. With that in hand
+the whole image was rebuilt at `-Oz` instead of `-Os`.
+
+`-Oz` alone shrank everything and cost exactly two lines: the audio helpers that the source had marked
+`inline` stopped being inlined into `dx_run` and `dx_run_sn`, so the two heaviest drum loops grew
+(+196 % and +56 %) and took the `DRUM_PATH` sum with them. Marking those helpers `always_inline`
+(`mulq16`, `sine_i`, `softclip`, `noise32`, `tsvf_coef_k` in `dsp.c`, and the generated `pitch_inc`)
+recovered the loops; `dv_kb` deliberately stays a call, because inlining it moved three divisions into
+the hit loop and cost more than the call it removed.
+
+| Region / metric | `-Os` (`ed34528`) | `-Oz` (`1b72598`) | Change |
+|---|---|---|---|
+| image | 565 160 B | **531 172 B** | −33 988 B |
+| XIP code | 403 228 B | **371 564 B** | −31 664 B |
+| XIP constants | 139 416 B | 139 416 B | 0 |
+| RAM `.data+.bss` | 96 056 B | 96 088 B | **+32 B** |
+| RAM region (`ram_report`) | 96 036 used | 96 068 used (2 236 free) | +32 B |
+| pool used / spare | 318 432 / 9 248 B | 318 432 / 9 248 B | 0 |
+| RAM code | 21 768 B of 24 576 | **19 444 B** (headroom **5 132 B**) | −2 324 B |
+| NOINIT | 15 572 B of 15 696 | 15 572 B | 0 |
+| package | 611 163 B | **610 806 B** | −357 B |
+| summed loop cost | 44 045 | **34 002** | −22.8 % |
+| `analog_render` / `analog_morph` / `analog_ext` | 577 / 764 / 686 | 148 / 89 / 157 | −74 % / −88 % / −77 % |
+| `fm1_timer5_irq` (key/LED scan) | 34 988 | 27 338 | −22 % |
+| `dx_run` / `DRUM_PATH` | 409 / 1 189 | **426 / 1 153** | +4 % / −3 % |
+
+Class of measurement: **AC791N build** (pi32v2 clang, pinned SDK, static instruction count from the
+disassembly) and **host x86** (`regress`, the golden renders and the CPU baseline). None of it is a
+cycle count on an FM-1, and the +32 B of RAM is the honest direction of the trade: 32 bytes of `.data`
+for 34 KB of flash and 2.3 KB of RAM-code headroom.
+
+What this does **not** say: nothing about a physical unit, and the loop cost is a static count of a
+function's own loops, not a CPU margin.
+
+**The release chain is stale after this commit, on purpose.** The firmware bytes changed, so the signed
+package of §13 (`611 163 B`, sha `2b6c592c…`) no longer describes this tree, and the published site still
+names that build. Re-signing needs the release private key, which by design lives outside the checkout
+(`~/.fm1-keys/`, `docs/SIGNING_CUSTODY.md`) and is **not** present in this environment: nothing here
+could sign, so nothing here was published. The emulator was rebuilt from this tree (WASM 1 065 573 B,
+build `1b72598`) with **Emscripten 7.0.0** because that is what installs here, not the pinned `6.0.11`:
+`web/emu/emu_test.mjs` passed (all checks, the heavy song at 2.3 % of real time), but bit-parity with a
+CI build of the pinned version is not claimed.
+
+Two repository defects surfaced and were fixed rather than worked around: `build_manifest.py` reported
+the toolchain as an uncommitted change whenever `git status` printed the untracked `.tools/` directory
+instead of its contents (a clean build could therefore fail `--require-clean`), and
+`tests/key_custody_test.py` broke the day a real key was pinned as `qg1-release-1`: it copied that file
+and signed under the same id with an ephemeral key. It now uses its own ids and asserts the repository's
+pin file comes out byte-identical. That test was the reason the §13 host suite read `HOST TESTS FAILED`.
