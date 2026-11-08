@@ -301,10 +301,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: is there anything to publish (the tag and the release already name this build)
+        id: state
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
+          HAVE=$(git rev-list -n1 v1.9.0 2>/dev/null || true)
+          if [ "$HAVE" = "$COMMIT" ] && gh release view v1.9.0 >/dev/null 2>&1; then
+            echo "v1.9.0 already is this build (${COMMIT:0:7}) and has a release: nothing to publish"
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "v1.9.0 is not this build yet (tag ${HAVE:-none}, package ${COMMIT:0:7}): publishing"
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
       # A job that cannot create a ref cannot publish anything, and the failure would look like a
       # signing problem. This says which permission is missing before the checks run. It creates one
       # tag and deletes it immediately; nothing else in the repository is touched.
       - name: this token may create refs and releases
+        if: steps.state.outputs.needed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -320,6 +335,7 @@ jobs:
             "https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs/tags/qg-ci-permission-probe" >/dev/null
           echo "the token can create refs: publishing is possible from this job"
       - name: the committed release is signed by the pinned key and describes this tree
+        if: steps.state.outputs.needed == 'true'
         run: |
           # Ubuntu 24.04 marks its system Python as externally managed, so a bare `pip install` fails
           # there; a venv is the reliable way to get `cryptography` for the verifier.
@@ -332,6 +348,7 @@ jobs:
               --manifest release/felucca-v1.9.0.manifest.json \
               --build-manifest release/build-manifest.json
       - name: hashes, identity, version and the record agree with the files
+        if: steps.state.outputs.needed == 'true'
         run: |
           python3 - <<'PY'
           import hashlib, json, subprocess, sys
@@ -362,6 +379,7 @@ jobs:
           print(f"release: {sha} v1.9.0 FM-1_982 from {r['commit'][:7]}, signature and record agree")
           PY
       - name: tag v1.9.0 at the commit the package was built from
+        if: steps.state.outputs.needed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -379,6 +397,7 @@ jobs:
             echo "tag v1.9.0 created at $COMMIT"
           fi
       - name: the GitHub Release carries the signed package, its manifest and the record
+        if: steps.state.outputs.needed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -390,6 +409,7 @@ jobs:
               --notes-file docs/RELEASE_NOTES_v1.9.0.md
           fi
       - name: the published assets are the files that were verified
+        if: steps.state.outputs.needed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
