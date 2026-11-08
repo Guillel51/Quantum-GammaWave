@@ -34,17 +34,23 @@ rest of the window is not available to the application. Treating 578 KB as usabl
 The self-test deliberately uses `fm1_mc_box.pad0` (spare words on core 0's cache line) instead of a
 new buffer, so shared RAM does not grow and the mailbox stays 128 bytes / two cache lines.
 
-### 2.1 Measured image — v1.9.0 (the integrated tree), `./build.sh`, identity `FM-1_982`
+### 2.1 Measured image — the tree at v1.9.0 after the `-Oz` campaign, `./build.sh`, identity `FM-1_982`
 
 | Region | Measured | Budget | Headroom |
 |--------|----------|--------|----------|
-| App image (`build/felucca.bin`) | 559 536 B | 568 KiB (581 632 B) | **22 096 B** |
-| `.data + .bss` | 96 452 B | 98 304 B | **1 852 B** |
-| RAM code (`.ram_text` + `.c1_text` + `.hot_text`) | 22 500 B | 24 576 B | **2 076 B** |
-| Pool spare (`POOL_END - pool_top`) | 9 248 B | ≥ 8 192 B | **1 056 B** |
-| XIP code / constants | 397 056 B / 139 232 B | constants only use slot | calls reach 63 456 B past the code |
-| Loader image / `ota.bin` | 9 524 B at `0x01C0A800` / 8 007 B | `0x14000` B | large |
-| Package (`build/felucca.fwsc`) | 611 163 B | — | — |
+| App image (`build/felucca.bin`) | 531 172 B | 568 KiB (581 632 B) | **50 460 B** |
+| `.data + .bss` | 96 088 B | 98 304 B | **2 216 B** |
+| RAM code (`.ram_text` + `.c1_text` + `.hot_text`) | 19 444 B | 24 576 B | **5 132 B** |
+| Pool spare (`POOL_END - pool_top`) | 9 248 B (pool 311 240 B) | ≥ 8 192 B | **1 056 B** |
+| XIP code / constants | 371 564 B / rest | constants only use slot | calls reach 88 948 B past the code |
+| Loader image / `ota.bin` | 9 096 B at `0x01C0A800` / 7 650 B | `0x14000` B | large |
+| Package (`build/felucca.fwsc`) | 610 806 B, sha256 `5c80a092…` | — | — |
+
+These are the numbers the `-Oz` build (documented in `docs/VALIDATION_MATRIX.md` §16) leaves, measured on
+this tree: 531 172 B of image, 19 444 B of RAM code and 2 216 B of `.data+.bss` headroom. The RAM headroom
+did not move: `-Oz` buys flash and RAM code, never `.bss`, which is why the 12-voice question (VALI-
+DATION_MATRIX §19) is a linker question and not a compiler one — 12 voices need 2 256 B of `.bss` and the
+build has 2 216 B, so it overflows by exactly 40 B.
 
 ### 2.2 Where the RAM goes (measured, `objdump -t` on `build/felucca.elf`)
 
@@ -95,3 +101,38 @@ never with a smaller test set.
 * No new persistent parameter, no change to `P_COUNT`, project sizes or SysEx layouts.
 * No voice-count change: 10 stays 10.
 * Nothing moved from flash to RAM: the self-test and the identification policy are read-only code.
+
+## 5. The host CPU gate (what it is, and what it is not)
+
+`tests/regress.c` measures every preset and mix as 1 s of rendering after a 0.5 s settle, in its own child
+process, and keeps two baselines:
+
+* **Instructions per sample** (`tests/cpu_baseline.txt`), where the kernel exports a counter
+  (`proc_pid_rusage`, macOS). This is deterministic for a given source, ISA and compiler: a row +25 % over
+  its baseline is a regression, and that is a hard failure.
+* **A per-host index** (`tests/cpu_ns_baseline.txt`), everywhere else. The index is the process CPU ns per
+  sample divided by the ns per step of a fixed integer workload timed in the same child, and the job is
+  measured `CPU_NS_REPS` (3) times with the smallest window counted. Absolute ns are not portable between
+  machines and are not stable on a shared one, so they are never compared across hosts: the file has one
+  `[host] architecture | processor | compiler` block per machine, and a host with no block reads
+  **NOT MEASURED** (never `PASS`).
+
+What this VM taught (and why the gate is shaped that way): with 1 s windows the same binary, run twice back
+to back, swings 40-100 % on individual rows — SMT siblings stall FP-heavy and integer-heavy engines
+differently — while the median of all 207 rows stayed at 1.00 thanks to the calibration workload. So the
+gate is the **median** (+20 %), and a single row +40 % over is printed as a note to confirm, not as a
+failure. That still catches what matters: a lost `-O2`/`-Oz`, a shared loop, a hot path that doubled. It
+does not catch a 20 % regression in one engine on this host, and does not pretend to: the instruction
+baseline is the precise one, and CI runs it where the kernel offers the counter.
+
+Creating or replacing a baseline is deliberate (`BUDGET_UPDATE=1`), never the first run of a new host: it
+rewrites *this host's* block only and keeps every other one, so a commit moves one machine's numbers.
+
+```bash
+BUDGET_UPDATE=1 ./build/host/regress tests/golden.txt tests/cpu_baseline.txt   # this host's block only
+CPU_NS_BASE=/tmp/other.txt ./build/host/regress tests/golden.txt tests/cpu_baseline.txt
+```
+
+Proof the ns gate bites: with this host's own baseline scaled by 0.5 (a synthetic 100 % regression) the
+run prints `CPU ns: FAIL (every job on this host is 101 % slower than its baseline …)` and exits 1; on the
+unmodified baseline it prints `CPU ns: PASS (207 rows …, host median 1.00 …)` and exits 0.

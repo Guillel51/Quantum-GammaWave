@@ -28,8 +28,17 @@
  *    UNISON keep their note under pressure, the VOICE engine's 4-voice cap, release frees voices, and
  *    no hanging note after the note-offs on any routing (USB channels 1..4, others while the
  *    selected track changes, the keys while the selected track changes, with ARP and the voice modes).
- * env: GOLDEN_UPDATE=1 rewrites GOLDEN_FILE, BUDGET_UPDATE=1 rewrites CPU_FILE (on purpose: review the
- * diff), VERBOSE=1 prints every render's numbers, JOBS=n children at once (default 8). */
+ * env: GOLDEN_UPDATE=1 rewrites GOLDEN_FILE, BUDGET_UPDATE=1 rewrites CPU_FILE and this host's block of the ns
+ * baseline, VERBOSE=1 prints every render's numbers, JOBS=n children at once (default 8), CPU_SPREAD=1 adds the
+ * per-block percentiles, CPU_NS_BASE=path points the ns baseline somewhere else.
+ *
+ * CPU, the two gates: where the kernel counts instructions (macOS, proc_pid_rusage) every job is held to
+ * CPU_FILE row by row, +-25 %. Where it does not (Linux), the same jobs are held to a per-host block of
+ * tests/cpu_ns_baseline.txt: the ns per sample divided by a fixed calibration workload timed in the same child,
+ * the smallest of CPU_NS_REPS windows. The median of all the rows is the gate (+20 %); a single row more than
+ * +40 % over is printed as a note, because on a shared machine (this VM swings 40-100 % row to row) a per-row
+ * verdict would be a coin toss. A host with no block, or a host whose median is far from its baseline, is
+ * NOT MEASURED, never a pass. */
 #define main hostsim_main
 #include "hostsim.c"
 #undef main
@@ -37,6 +46,7 @@
 #include <libproc.h>
 #endif
 #include <sys/resource.h>
+#include <sys/utsname.h>
 
 /* ------------------------------------------------------------- limits --- */
 #define LIM_NEAR 30000            /* |sample| at or above: "near full scale" (the limiter holds ~18000) */
@@ -52,6 +62,22 @@
 #endif
 #define CPU_TOL 0.25              /* +-25 %, and at least CPU_SLACK instructions (light presets) */
 #define CPU_SLACK 20
+/* Where the kernel cannot count instructions (Linux has no proc_pid_rusage), the same jobs are held to a baseline
+ * of an index, keyed by this host: architecture, processor and compiler. A host with no block in
+ * tests/cpu_ns_baseline.txt is NOT MEASURED, never a pass, because ns are not portable between machines the way an
+ * instruction count is. Each CPU job runs its measured window CPU_NS_REPS times and the smallest one counts: other
+ * work on the host can only slow an estimate down, so the minimum is the honest reading of what the job costs.
+ * The index is that minimum divided by a fixed integer workload timed in the same child (cpu_calib): on a shared
+ * machine the absolute ns move with whatever else is running, the ratio does not. */
+/* +40 %, not the +25 % the instruction baseline allows: on a shared machine a row's own ns move that much between
+ * runs of the same binary (SMT siblings stall differently for FP-heavy and integer-heavy engines), and a gate that
+ * fails on that is a gate nobody trusts. It still catches the regressions that matter here: a lost -O2/-Oz, a hot
+ * path that grew, a preset doing twice the work. The precise gate stays the instruction count where the kernel
+ * offers one. */
+#define CPU_NS_TOL 0.40           /* a row this far over its baseline is reported, not failed */
+#define CPU_NS_AGG_TOL 0.20       /* the median of all rows IS the gate: -O0, a lost flag, a shared loop move it */
+#define CPU_NS_REPS 3             /* windows per job, the smallest counted */
+#define CPU_NS_CONFIRM 2          /* extra measurements of a row that came out over, before it is a regression */
 
 /* ------------------------------------------------------------ results --- */
 typedef struct {
@@ -59,7 +85,7 @@ typedef struct {
     uint32_t frames, over, near, vmax, ok;     /* ok: a scenario's own checks passed */
     int32_t peak, tail_peak, tail_dc, tmin, tmax;
     double dc, free_s;                         /* free_s: s from the last note-off until all voices free, -1 never */
-    double ipc, ns;                            /* CPU: instructions and ns per sample */
+    double ipc, ns, cal;                       /* CPU: instructions and ns per sample, ns per calibration step */
     char msg[512];
 } res_t;
 
@@ -374,6 +400,8 @@ static void spread_report(const char *name, uint32_t want)
     fflush(stdout);
 }
 
+static double cpu_calib(void);
+
 static void job_cpu(const job_t *j)
 {
     static const uint8_t NOTES[8] = {48, 52, 55, 59, 60, 64, 67, 71};
@@ -399,8 +427,16 @@ static void job_cpu(const job_t *j)
         for (i = 0; i < parts[p][2]; i++)
             trk_note_on(&trk[p], ENGINES[parts[p][0]]->oneshot ? KIT[i] : NOTES[i] + 12u * p, 100);
     }
-    for (k = 0; k < nb / 2u + nb; k++) {
-        if (k == nb / 2u) {
+    for (k = 0; k < nb / 2u + nb * CPU_NS_REPS; k++) {
+        if (k == nb / 2u) {                             /* the settling done: a measured window starts */
+            i0 = instr_now();
+            t0 = cpu_ns();
+        } else if (k > nb / 2u && (k - nb / 2u) % nb == 0) {   /* a window ended: keep the smaller */
+            double ns = (double)(cpu_ns() - t0) / (nb * CTL), ipv = i0 ? (double)(instr_now() - i0) / (nb * CTL) : 0;
+            if (!R.ns || ns < R.ns) {
+                R.ns = ns;
+                R.ipc = ipv;
+            }
             i0 = instr_now();
             t0 = cpu_ns();
         }
@@ -412,7 +448,7 @@ static void job_cpu(const job_t *j)
             drum_hit((k * CTL) / (FS / 8u));
         if (j->e == 0xFE && clk.env <= 0)
             click_req = 2;                              /* idle_click: the metronome sounding all the time */
-        if (spread_seen > 0 && k >= nb / 2u && spread_n < SPREAD_MAX) {
+        if (spread_seen > 0 && k >= nb / 2u && k < nb / 2u + nb && spread_n < SPREAD_MAX) {
             uint64_t b0 = now_ns();
             mix_block(last_out, CTL);
             if (j->e == 0xFE)
@@ -424,8 +460,7 @@ static void job_cpu(const job_t *j)
         if (j->e == 0xFE)
             click_render(last_out, CTL);                /* (audio.c audio_block: after the master) */
     }
-    R.ns = (double)(cpu_ns() - t0) / (nb * CTL);
-    R.ipc = i0 ? (double)(instr_now() - i0) / (nb * CTL) : 0;
+    R.cal = cpu_calib();                    /* the same host at the same moment: what the ns rows are divided by */
     if (spread_seen)
         spread_report(j->name, nb);
 }
@@ -1056,6 +1091,141 @@ static const char *kv_get(const kv_t *kv, uint32_t n, const char *name)
     return 0;
 }
 
+/* ----------------------------------------------------- host fingerprint --- */
+/* What a ns baseline is allowed to be compared against: the same kernel family, the same architecture, the same
+ * processor and the same compiler. Clock speed, load and page placement are deliberately absent: the first is why
+ * ns are worthless across machines, the other two are why each job is measured CPU_NS_REPS times. */
+/* A fixed integer workload with nothing to do with audio, measured in the same child as each CPU job: when the host
+ * is busy (another build on this machine, a busy SMT sibling, a lower clock) it slows this down in the same
+ * proportion as it slows a render, so the ratio of the two is what the ns baseline holds. Absolute ns on a shared
+ * machine swung 25-100 % between runs of the same binary; the ratio is the only number here that means anything. */
+#define CALIB_ITERS 1000000u
+static volatile uint64_t calib_sink;      /* volatile, or the compiler drops the whole loop as dead: the workload
+                                           * has to run, which is the one thing this function is for */
+static double cpu_calib(void)
+{
+    uint32_t i, rep;
+    double best = 0;
+    for (rep = 0; rep < 3; rep++) {
+        uint64_t x = 0x9E3779B97F4A7C15ull ^ (uint64_t)rep, t0 = cpu_ns();
+        for (i = 0; i < CALIB_ITERS; i++) {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            x *= 0x2545F4914F6CDD1Dull;
+        }
+        calib_sink = x;
+        x = (uint64_t)(cpu_ns() - t0);
+        if (!best || (double)x < best)
+            best = (double)x;
+    }
+    return best / CALIB_ITERS;                 /* ns per calibration step */
+}
+
+static void host_fp(char *d, size_t n)
+{
+    struct utsname u;
+    char cpu[96] = "?", line[256];
+    FILE *f = fopen("/proc/cpuinfo", "r");
+    if (f) {
+        while (fgets(line, sizeof line, f))
+            if (!strncmp(line, "model name", 10) || !strncmp(line, "Hardware", 8) ||
+                !strncmp(line, "cpu model", 9)) {
+                char *c = strchr(line, ':');
+                if (c) {
+                    size_t k;
+                    snprintf(cpu, sizeof cpu, "%s", c + 1);
+                    for (k = 0; cpu[k]; k++)
+                        if (cpu[k] == '\n' || cpu[k] == '\r' || (k && cpu[k] == ' ' && cpu[k - 1] == ' '))
+                            cpu[k] = k && cpu[k] == ' ' ? 0 : ' ';
+                    cpu[strcspn(cpu, "\r\n")] = 0;
+                    while (*cpu == ' ')
+                        memmove(cpu, cpu + 1, strlen(cpu));
+                }
+                break;
+            }
+        fclose(f);
+    } else {
+        snprintf(cpu, sizeof cpu, "%s", "unknown cpu");
+    }
+    if (uname(&u))
+        snprintf(d, n, "unknown|%s", __VERSION__);
+    else
+        snprintf(d, n, "%s %s|%s|%s", u.sysname, u.machine, cpu, __VERSION__);
+}
+
+/* the rows of this host's block in the ns baseline, 0 when the file has no block for this host (or no file) */
+static uint32_t load_ns_base(const char *path, const char *fp, kv_t *kv, uint32_t max)
+{
+    FILE *f = fopen(path, "r");
+    char line[256];
+    uint32_t n = 0;
+    int in = 0;
+    if (!f)
+        return 0;
+    while (fgets(line, sizeof line, f)) {
+        if (line[0] == '[') {
+            size_t l = strlen(line);
+            while (l && (line[l - 1] == '\n' || line[l - 1] == '\r'))
+                line[--l] = 0;
+            in = !strncmp(line, "[host] ", 7) && !strcmp(line + 7, fp);
+            continue;
+        }
+        if (!in || line[0] == '#' || line[0] == '\n')
+            continue;
+        if (n < max && sscanf(line, "%63s %63s", kv[n].name, kv[n].val) == 2)
+            n++;
+    }
+    fclose(f);
+    return n;
+}
+
+/* BUDGET_UPDATE=1 rewrites this host's block, keeping every other host's: a deliberate act, never the first run */
+static int write_ns_base(const char *path, const char *fp, const kv_t *kv, uint32_t n)
+{
+    char tmp[512], line[256];
+    FILE *o;
+    uint32_t i;
+    FILE *in = fopen(path, "r");
+    snprintf(tmp, sizeof tmp, "%s.new", path);
+    if (!(o = fopen(tmp, "w"))) {
+        perror(tmp);
+        return 1;
+    }
+    fprintf(o, "# FELUCCA host CPU index baseline (tests/regress.c): process CPU ns per 44.1 kHz sample, the smaller\n"
+               "# of %d measured windows per job, divided by the ns per step of a fixed calibration workload timed in the\n"
+               "# same child (the host's own speed and load cancel). One block per host (architecture, processor,\n"
+               "# compiler); a host with no block is NOT MEASURED, never a pass. The check allows +%.0f %% inside it.\n"
+               "# Written only by BUDGET_UPDATE=1.\n",
+            CPU_NS_REPS, CPU_NS_TOL * 100);
+    if (in) {                                   /* every other host's block, as it was */
+        int skip = 0;
+        while (fgets(line, sizeof line, in)) {
+            if (line[0] == '[') {
+                size_t l = strlen(line);
+                while (l && (line[l - 1] == '\n' || line[l - 1] == '\r'))
+                    line[--l] = 0;
+                skip = !strncmp(line, "[host] ", 7) && !strcmp(line + 7, fp);
+                if (!skip)
+                    fprintf(o, "\n%s\n", line);
+                continue;
+            }
+            if (!skip && line[0] != '#')
+                fputs(line, o);
+        }
+        fclose(in);
+    }
+    fprintf(o, "\n[host] %s\n", fp);
+    fprintf(o, "# %u rows, recorded %s\n", n, __DATE__);
+    for (i = 0; i < n; i++)
+        fprintf(o, "%s %s\n", kv[i].name, kv[i].val);
+    if (fclose(o) || rename(tmp, path)) {
+        perror(path);
+        return 1;
+    }
+    return 0;
+}
+
 static void slug(char *d, const char *s, size_t n)
 {
     size_t i = 0;
@@ -1338,9 +1508,131 @@ int main(int argc, char **argv)
             c_warn++;
         }
     }
-    if (!J[c0].r.ipc)
-        printf("regress: CPU: no instruction counter on this host (proc_pid_rusage); the budget is not checked\n");
-    else if (cupd) {
+    if (!J[c0].r.ipc) {
+        /* No kernel instruction counter here (proc_pid_rusage is Apple's): hold the same jobs to this host's ns
+         * baseline instead. ns are compared only inside a host block, and a host with no block is NOT MEASURED. */
+        static kv_t nsb[MAXJ], rows[MAXJ];
+        char fp[192], nspath[256];
+        const char *env = getenv("CPU_NS_BASE"), *cp = strrchr(cpath, '/');
+        uint32_t nns, nr = 0, compared = 0, over = 0;
+        if (env)
+            snprintf(nspath, sizeof nspath, "%s", env);
+        else if (cp)
+            snprintf(nspath, sizeof nspath, "%.*scpu_ns_baseline.txt", (int)(cp - cpath + 1), cpath);
+        else
+            snprintf(nspath, sizeof nspath, "cpu_ns_baseline.txt");
+        host_fp(fp, sizeof fp);
+        nns = load_ns_base(nspath, fp, nsb, MAXJ);
+        for (i = c0; i < c1 && nr < MAXJ; i++)
+            if (!J[i].crashed) {
+                snprintf(rows[nr].name, sizeof rows[nr].name, "%s", J[i].name);
+                snprintf(rows[nr].val, sizeof rows[nr].val, "%.2f",
+                         J[i].r.ns / (J[i].r.cal > 0 ? J[i].r.cal : 1.0));
+                nr++;
+            }
+        if (cupd) {
+            if (write_ns_base(nspath, fp, rows, nr))
+                return 2;
+            printf("regress: CPU ns baseline %s rewritten (%u rows for host '%s')\n", nspath, nr, fp);
+        } else if (!nns) {
+            printf("regress: CPU ns: NOT MEASURED (%s has no block for this host: '%s'; BUDGET_UPDATE=1 records one)\n",
+                   nspath, fp);
+        } else {
+            /* Two passes: first the ratio of every row to its baseline, then the median of those ratios. A busy host
+             * is slow across the board, so the median moves with it and the rows are compared to each other's drift
+             * (v / m); a regression in one engine leaves the median where it was and the row stands out. When even the
+             * median is far off, the host is not the one the baseline was taken on and nothing is compared at all:
+             * NOT MEASURED, never a pass. */
+            static double ratio[MAXJ];
+            double med, sorted[MAXJ];
+            uint32_t nm = 0, k;
+            for (i = c0; i < c1; i++) {
+                const char *want = kv_get(nsb, nns, J[i].name);
+                double b, v = J[i].r.ns / (J[i].r.cal > 0 ? J[i].r.cal : 1.0);
+                ratio[i] = 0;
+                if (J[i].crashed)
+                    continue;
+                if (!want) {
+                    printf("regress: CPU ns %s: %.2f (index), no baseline here (BUDGET_UPDATE=1 adds it)\n",
+                           J[i].name, v);
+                    continue;
+                }
+                b = atof(want);
+                if (b <= 0)
+                    continue;
+                ratio[i] = v / b;
+                sorted[nm++] = ratio[i];
+            }
+            med = 1.0;
+            if (nm) {
+                for (k = 1; k < nm; k++) {                  /* the array is a few hundred long: insertion sort */
+                    double t = sorted[k];
+                    uint32_t m = k;
+                    while (m && sorted[m - 1] > t) {
+                        sorted[m] = sorted[m - 1];
+                        m--;
+                    }
+                    sorted[m] = t;
+                }
+                med = nm & 1u ? sorted[nm / 2u] : (sorted[nm / 2u - 1u] + sorted[nm / 2u]) / 2.0;
+            }
+            if (!nm) {
+                printf("regress: CPU ns: NOT MEASURED (no row of this host has a baseline)\n");
+            } else if (med > 1 + CPU_NS_AGG_TOL) {
+                printf("regress: CPU ns: FAIL (every job on this host is %.0f %% slower than its baseline: a build flag, "
+                       "a shared loop or a slower machine; the rows cannot tell those apart, so the median speaks)\n",
+                       (med - 1) * 100);
+                c_fail++;
+            } else {
+                /* A row that comes out over is measured again before it is called a regression: one busy moment on a
+                 * shared host can double a single job, sustained extra work cannot. The best of the repeats is what
+                 * the verdict uses, and only the rows already over are repeated, so a normal run pays nothing. */
+                for (i = c0; i < c1; i++) {
+                    uint32_t rep;
+                    double b = ratio[i] / med;
+                    if (!ratio[i] || J[i].crashed || b <= 1 + CPU_NS_TOL)
+                        continue;
+                    for (rep = 0; rep < CPU_NS_CONFIRM; rep++) {
+                        double again;
+                        memset(&R, 0, sizeof R);
+                        job_cpu(&J[i]);
+                        again = J[i].r.ns / (J[i].r.cal > 0 ? J[i].r.cal : 1.0);
+                        if (again > 0 && again < ratio[i]) {
+                            ratio[i] = again;
+                            J[i].r.ns = R.ns;
+                            J[i].r.cal = R.cal;
+                        }
+                    }
+                }
+                for (i = c0; i < c1; i++) {
+                    double b = ratio[i] / med;
+                    if (!ratio[i] || J[i].crashed)
+                        continue;
+                    compared++;
+                    if (!med)
+                        continue;
+                    if (b > 1 + CPU_NS_TOL) {
+                        /* A note, not a failure: on a shared host a row's own ns move that far between runs of the same
+                         * binary (the six rows that do it here are the same kind of engine each time, and they are
+                         * back under the line on the next run). The verdict is the median. */
+                        printf("regress: CPU ns note  %s: %.1f ns / sample = %.2f x its baseline against a host median "
+                               "of %.2f (+%.0f %%): confirm before calling it a regression\n", J[i].name, J[i].r.ns,
+                               ratio[i], med, (b - 1) * 100);
+                        over++;
+                        c_warn++;
+                    } else if (b < 1 - CPU_NS_TOL) {
+                        printf("regress: CPU ns note  %s: %.1f ns / sample = %.2f x its baseline (%.0f %% of the host "
+                               "median): faster? BUDGET_UPDATE=1 to keep it\n", J[i].name, J[i].r.ns, ratio[i],
+                               (b - 1) * 100);
+                        c_warn++;
+                    }
+                }
+                printf("regress: CPU ns: PASS (%u rows against host '%s', host median %.2f, aggregate limit +%.0f %%, "
+                       "%u row(s) over +%.0f %% noted)\n",
+                       compared, fp, med, CPU_NS_AGG_TOL * 100, over, CPU_NS_TOL * 100);
+            }
+        }
+    } else if (cupd) {
         FILE *f = fopen(cpath, "w");
         if (!f) {
             perror(cpath);
