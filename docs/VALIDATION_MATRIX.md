@@ -180,9 +180,9 @@ The two failures are the site checks, and they fail *because a package now exist
 record whose emulator is not the same release — which is the rule working, not a test to relax. With no
 package in `build/`, the same block skips. They will pass in CI, where Emscripten is installed.
 
-Still **not** releasable, and not for software reasons: the SDK here is not `AC79NN_SDK_V1.2.1`, so the
-package is not byte-reproducible (§5); `tools/fm1_keys.json` pins no key, so an installer refuses it; and no
-emulator record can be produced without `emcc`.
+As §11 was written, three software gaps stood: an unpinned SDK, no key pinned in `tools/fm1_keys.json`, and
+no emulator record without `emcc`. §12 and §13 close them; the paragraph is kept as it stood because it is
+what the matrix said at the time, and nothing in it touches §9's physical requirements.
 
 ## 12. Update — 2026-11-07, the release chain closed on host (no unit touched)
 
@@ -252,3 +252,29 @@ fixes now sit on the same tree: `fx_run0` no longer carries the train and `perf_
 The earlier §11/§12 figures (22 144 / 22 488 B, sha `1eb84cbd`) are the pre-integration trees; the numbers
 above supersede them. Host suite: HOST TESTS FAILED (4977 `ok` lines). Physical evidence is still absent, so nothing here
 was produced by, or sent to, a unit.
+
+## 14. Update — 2026-11-07, the whole host suite green, and two traps found on the way
+
+After the rebase the full suite is **`ALL HOST TESTS PASSED`**, 5 201 `ok` lines, `SUITE_EXIT:0` on host x86
+with the package present. Two failures it caught are worth recording, because both look like red software
+and are not:
+
+**The build manifest names a commit, so it goes stale on the next commit.** `manifest: live: this tree's
+manifest verifies` compares the commit and the emulator's commit with `HEAD`. A documentation commit after a
+build makes it fail, and rebuilding the firmware alone is not enough: `web/emu/build.sh` also stamps its own
+commit, and `build/manifest.json` embeds that record, so the emulator must be rebuilt at the same `HEAD` as
+the firmware or the two disagree by one commit. The order that holds is: commit, then emulator, then
+firmware, then `fm1_sign.py sign`, and no commit afterwards.
+
+**A key custody test that assumed no release key existed.** `tests/key_custody_test.py` pinned its ephemeral
+key into a copy of the real `tools/fm1_keys.json` and asserted the repository pins nothing — true before
+`c93a0cf`, false after it. The test now starts its copy with an empty `keys` object, keeps every refusal, and
+asserts the shipped state instead: the repository pins exactly `qg1-release-1`, that key is 32 bytes, a
+signature from another key under that id is refused as `signature`, a key id it does not pin is refused as
+`key`, and the file is unchanged when the test ends (56 checks).
+
+**The SDK checkout needs three files, not 800 MB.** `tools/build.py` reads `uboot.boot`, `cfg_tool.bin` and
+`cfg/eq_cfg_hw.bin` and nothing else from `$AC79_SDK`, so a sparse clone of `cpu/wl82/tools` at the
+`AC79NN_SDK_V1.2.1_2023-12-13` tag reproduces the pinned hashes in seconds instead of a full vendor clone.
+The package built from it is byte-identical to the earlier tree: 611 163 B, sha256 `2b6c592c…`, RAM code
+21 768 B of 24 576. Class: AC791N build, host x86; no device was involved.

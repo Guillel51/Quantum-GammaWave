@@ -1,8 +1,10 @@
 # Package authenticity: Ed25519
 
-Status: **IMPLEMENTED, HOST TESTED** (Python `cryptography`, and WebCrypto in the browser
-verifier). **No release key exists yet**, so `tools/fm1_keys.json` pins nothing and every
-package is refused: that is the released, fail-closed state.
+Status: **IMPLEMENTED, HOST TESTED, ONE RELEASE KEY PINNED** (Python `cryptography`, and WebCrypto
+in the browser verifier). `tools/fm1_keys.json` pins exactly `qg1-release-1`
+(`70b6036f…07fcd40`); its private half lives at `~/.fm1-keys/qg1-release.pem`, outside this
+checkout. Removing that entry returns the chain to the original fail-closed state, in which every
+package is refused.
 
 This is authenticity (who built these bytes), not secure boot. The stock loader does not check
 signatures, so the chain is only as strong as the installer that runs it. The procedure for the
