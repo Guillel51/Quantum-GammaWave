@@ -11,7 +11,7 @@
 import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
 import * as mod from "./fm1verify.js";
 import * as diag from "./fm1diag.js";
-import { Updater, requireProof, verifyManifest } from "./fm1ota.js";
+import { Updater, requireProof, verifyManifest, requireChip, chipCheck, pack7, unpack7 } from "./fm1ota.js";
 
 let bad = 0, total = 0;
 const check = (name, ok) => {
@@ -652,6 +652,106 @@ function anyWrite(sent) {
   } else {
     console.log("skip: release/ is not in the tree, so the offline package cases cannot run against real bytes");
   }
+}
+
+/* ---- the chip gate, read only: two 0x12 queries on the link the unit already answers on ----
+ * "cannot be established without a write session" was the wrong answer for a query that is itself a
+ * read. On a unit running QG this returns the JEDEC and the geometry; on a stock V15 it returns the
+ * silence, which is also a fact about that unit. Either way the wire holds nothing but queries. */
+{
+  /* the firmware's CRC-16/CCITT, written out here on purpose: if the module's copy changes and this
+   * one does not, the replies below stop decoding and the test fails instead of quietly agreeing */
+  const crc16 = (data) => {
+    let c = 0;
+    for (const b of data) {
+      c ^= b << 8;
+      for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF;
+    }
+    return c & 0xFFFF;
+  };
+  const chipReply = (jedec, session, opt = {}) => {
+    const cap = opt.cap ?? 0x100000, page = opt.page ?? 256, sector = opt.sector ?? 0x1000, block = opt.block ?? 0x10000;
+    const r = new Array(24).fill(0);
+    r[0] = 1; r[1] = opt.status ?? 0;
+    r[2] = (jedec >> 16) & 0xFF; r[3] = (jedec >> 8) & 0xFF; r[4] = jedec & 0xFF;
+    r[5] = cap & 0xFF; r[6] = (cap >> 8) & 0xFF; r[7] = (cap >> 16) & 0xFF; r[8] = (cap >>> 24) & 0xFF;
+    r[9] = page & 0xFF; r[10] = (page >> 8) & 0xFF;
+    r[11] = sector & 0xFF; r[12] = (sector >> 8) & 0xFF;
+    r[13] = block & 0xFF; r[14] = (block >> 8) & 0xFF; r[15] = (block >> 16) & 0xFF; r[16] = (block >>> 24) & 0xFF;
+    r[17] = session & 0xFF; r[18] = (session >> 8) & 0xFF; r[19] = (session >> 16) & 0xFF; r[20] = (session >>> 24) & 0xFF;
+    const c = crc16(r.slice(0, 21)); r[21] = c & 0xFF; r[22] = (c >> 8) & 0xFF;
+    let s = 0; for (const x of r) s += x;
+    return [0xF0, ...pack7([0, 0x59, 0x12, 24, 0, 0, ...r, ~s & 0xFF]), 0xF7];
+  };
+  /* a unit that answers the identity handshake, and 0x12 only when `chip` is given; `chip` may be a
+   * function so the two identifications in one probe can carry different sessions */
+  const unit = (name, chip) => {
+    const sent = [];
+    let n = 0;
+    const input = { name, state: "connected", onmidimessage: null, open: async () => {} };
+    const output = { name, state: "connected", open: async () => {}, send(bytes) {
+      const b = Array.from(bytes);
+      sent.push({ name, bytes: b });
+      let cmd = null;
+      try { cmd = unpack7(b.slice(1, -1))[2]; } catch (_) { cmd = null; }
+      let f = null;
+      if (isQuery(b)) f = identityFrame("FM-1_015");        // the handshake the installer probes with
+      else if (cmd === 0x12 && chip) f = chipReply(typeof chip === "function" ? chip()[0] : chip, ++n);
+      if (f) setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from(f) }), 0);
+    } };
+    return { sent, midi: { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) } };
+  };
+  const cmdOf = (b) => { try { return unpack7(b.slice(1, -1))[2]; } catch (_) { return null; } };
+  const onlyHexQueries = (sent) => sent.every(({ bytes: b }) =>
+    b[0] === 0xF0 && b[b.length - 1] === 0xF7 && [0x11, 0x12, 0x13].includes(cmdOf(b)));
+
+  /* a stock V15: the identity handshake is answered, 0x12 is not -- the case the owner's unit is in */
+  const stock = unit("FM-1 Midi", null);
+  const noChip = await chipCheck(stock.midi, { timeoutMs: 300 });
+  check("a stock unit that ignores 0x12: reported, not invented",
+        noChip.ok === false && noChip.code === "chip" && /0x12/.test(noChip.why));
+  check("the chip check sent the identity query and one 0x12, and nothing that writes",
+        stock.sent.filter(({ bytes: b }) => cmdOf(b) === 0x12).length === 1 &&
+        stock.sent.filter(({ bytes: b }) => isQuery(b)).length === 1 &&
+        !anyWrite(stock.sent) && !stock.sent.some(({ bytes: b }) => isUpgrade(b)) && onlyHexQueries(stock.sent));
+
+  /* a unit running QG on the documented part: the real JEDEC, the geometry, a fresh token each time */
+  const qg = unit("FM-1 Midi", () => [0x856014]);
+  const chipOk = await chipCheck(qg.midi, { timeoutMs: 300 });
+  check("a unit answering 0x12: the JEDEC and geometry are the chip's own answer",
+        chipOk.ok === true && chipOk.jedec === 0x856014 && chipOk.part === "P25Q80H" &&
+        chipOk.cap === 0x100000 && chipOk.sector === 0x1000 && chipOk.readings === 2 && chipOk.writable === true);
+  check("the chip check never opens the update path, even when the chip answers",
+        !qg.sent.some(({ bytes: b }) => isUpgrade(b)) && !anyWrite(qg.sent) && onlyHexQueries(qg.sent));
+
+  /* one of the five read-only parts: identified, and refused for writing by the same answer */
+  const ro = unit("FM-1 Midi", () => [0xC84014]);
+  const chipRo = await chipCheck(ro.midi, { timeoutMs: 300 });
+  check("a read-only part is identified and reported as not writable",
+        chipRo.ok === true && chipRo.jedec === 0xC84014 && chipRo.part === "GD25Q80" && chipRo.writable === false);
+  let refused = null;
+  try { requireChip({ jedec: chipRo.jedec, writable: chipRo.writable }); } catch (e) { refused = e; }
+  check("that same answer is refused by requireChip before any write frame", !!refused && refused.code === "chip");
+
+  /* a part whose JEDEC is not in the table: refused rather than reported as this unit's chip */
+  const unknown = unit("FM-1 Midi", () => [0x123456]);
+  const chipUnknown = await chipCheck(unknown.midi, { timeoutMs: 300 });
+  check("a JEDEC outside the documented table is refused, not guessed",
+        chipUnknown.ok === false && chipUnknown.code === "chip" && /not a part we know/.test(chipUnknown.why));
+
+  /* no unit at all: the check says so instead of reporting a chip */
+  const none = await chipCheck({ inputs: new Map(), outputs: new Map() }, { timeoutMs: 300 });
+  check("no FM-1 port: no chip is claimed", none.ok === false && none.code === "notfound");
+
+  /* and the gate reads that answer: a refusal is a failed gate, a pass is still not an install */
+  const refusedGate = await verifyDevice(stock.midi, { product: "FM-1_982", chip: noChip });
+  const chipRow = refusedGate.gate.find((r) => r.key === "gate.chip");
+  check("the report's chip gate is a fail when the unit refused 0x12",
+        chipRow && chipRow.state === "fail" && refusedGate.verdict.canInstall === false);
+  const passedGate = await verifyDevice(qg.midi, { product: "FM-1_982", chip: chipOk });
+  const chipRow2 = passedGate.gate.find((r) => r.key === "gate.chip");
+  check("the chip gate passes on a real answer, and the install is still not authorised here",
+        chipRow2 && chipRow2.state === "pass" && passedGate.verdict.canInstall === false);
 }
 
 console.log(`verify only: ${total} checks, ${bad} FAILED`);

@@ -467,6 +467,25 @@ export async function probeChip(link, timeoutMs = 1000) {
   return { ...b, writable: !!(QRY_PARTS[b.jedec] && QRY_PARTS[b.jedec].writable), readings: 2, source: "device-0x12" };
 }
 
+/* The chip gate, read only: two 0x12 identifications on the link the unit is already answering on --
+ * no UPGRADE, no 0x30, no write frame of any kind. It exists because "cannot be established without a
+ * write session" was the wrong answer for a query that is itself read-only: on a unit running QG this
+ * returns the real JEDEC and geometry, and on a stock V15 it returns the refusal, which is also a fact
+ * about that unit and is better than a gate that says nothing. */
+export async function chipCheck(midi, { log = () => {}, timeoutMs = 1500 } = {}) {
+  const up = new Updater(midi, log);                   // name filter only: never probes foreign gear
+  let dev = null;
+  try { dev = await up.find(); } catch (_) { dev = null; }
+  if (!dev) return { ok: false, code: "notfound", why: "no FM-1 port answered the identity query" };
+  try {
+    const chip = await probeChip(dev.link, timeoutMs);
+    return { ok: true, jedec: chip.jedec, part: chip.part, cap: chip.cap, page: chip.page,
+      sector: chip.sector, block: chip.block, writable: chip.writable, readings: chip.readings };
+  } catch (e) {
+    return { ok: false, code: (e && e.code) || "chip", why: String((e && e.message) || e) };
+  } finally { try { dev.link.close(); } catch (_) {} }
+}
+
 // one 0x13 read (<= 256 bytes), fully validated; read-only
 export async function readFlash(link, addr, len, session, timeoutMs = 1000) {
   if (!(len > 0) || len > QRY_CHUNK) throw fail("chip", "a single read is 1..256 bytes");

@@ -722,3 +722,30 @@ carries `continue-on-error: true`, so a failure inside it does not fail the run 
 conclusion was `success`). The steps after it — the target compiler checks and *a package and a site exist
 (fail closed)* — are enforced, so a missing package is still caught; a broken assertion inside that step is
 not.
+
+## 27. Update — 2026-11-09, the chip gate is now a read, not a write session
+
+Gate 6 ("flash chip, sizes and bounds") used to say *deliberately not done by verify only*, and the row for
+it read *cannot be established without a write session*. That was wrong about the protocol: `0x12` is the
+identification query and it is read-only, so the only reason a stock unit cannot answer it is that the
+vendor firmware does not implement it (`docs/JEDEC_READ.md` §1) — not that answering it would require a
+write.
+
+The installer now has a **CHECK CHIP (read only)** action, next to Verify Only. It sends the identity
+handshake and then two `0x12` identifications on the same link (`chipCheck()` in `web/fm1ota.js`, built on
+`probeChip()`), and never opens the update path: no `F0 22 24 35 7F F7`, no `0x30`, no archive PUT. On a
+unit running QG it fills gate 6 with the chip's own JEDEC and geometry and says whether the part is one
+this installer writes; on a stock V15 it reports the refusal (`The FM-1 did not answer 0x12: nothing was
+sent.`), which is a measured fact about that unit instead of an empty cell. The report gains
+`chip.jedec`, `chip.geometry`, `chip.write` — or `chip.refused` — and the JSON carries the same block.
+
+A passing gate 6 does **not** authorise anything: the verdict still requires the recovery, backup and
+post-install gates, and on this project's unit those are physical. `INSTALL BLOCKED` is unchanged.
+
+Evidence (`[HOST]`, simulated devices, no unit): `web/test_verify_only.mjs` now has ten more cases,
+`136 checks, 0 FAILED` — a stock unit that ignores `0x12` (reported, one query on the wire, nothing that
+writes), a unit answering `0x856014` (JEDEC, geometry, fresh session token, still no UPGRADE), a read-only
+part `0xC84014` (identified, `writable: false`, refused by `requireChip()`), an unknown JEDEC, no port at
+all, and both directions of the gate row in the report. The site still builds with the page
+(`web/make_site.py`, 610 806-byte release package). What is **not** established: that any unit answers
+`0x12` here, because none was available.

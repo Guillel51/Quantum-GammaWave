@@ -220,6 +220,22 @@ const PROBE_WHY = {
   "answered": "the port that answered",
 };
 
+/* What a read-only 0x12 identification measured, or why it refused. Read from the unit, not documented:
+ * the JEDEC and geometry are the chip's own answer, and the refusal is the unit's own silence. */
+function chipFields(chip) {
+  if (!chip) return [];
+  if (!chip.ok) return [{ key: "chip.refused", value: chip.code || "refused",
+    source: String(chip.why || "").slice(0, 160), confidence: "high" }];
+  return [
+    { key: "chip.jedec", value: "0x" + Number(chip.jedec).toString(16).toUpperCase().padStart(6, "0") + " " + (chip.part || ""),
+      source: "two 0x12 identifications of this unit (read only)", confidence: "high" },
+    { key: "chip.geometry", value: `${Number(chip.cap || 0)} B · page ${Number(chip.page || 0)} · sector ${Number(chip.sector || 0)} · block ${Number(chip.block || 0)}`,
+      source: "the identification answer, cross-checked between the two replies", confidence: "high" },
+    { key: "chip.write", value: chip.writable ? "a validated write part" : "not a part this installer writes",
+      source: "the flash identification table and the two identical answers", confidence: "high" },
+  ];
+}
+
 function probeFields(probe, port) {
   const p = probe || {};
   const c = p.counts || {};
@@ -272,7 +288,7 @@ function partsOf(pkg) {
 //   documented  only a document asserts it; nothing on this unit demonstrated it
 // Nothing in this function can return "pass" for a condition that needs a key, a chip session or a
 // recovery test: those are exactly the three that keep the installer closed.
-function gateOf({ found, read, pkg, compat, sig = null }) {
+function gateOf({ found, read, pkg, compat, sig = null, chip = null }) {
   const { keys } = partsOf(pkg);
   const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader";
   const rows = [
@@ -285,7 +301,8 @@ function gateOf({ found, read, pkg, compat, sig = null }) {
      * until a write session existed, which was both false and the reason the installer could never
      * say it trusted what it was about to write. */
     { key: "gate.signature", state: sig ? (sig.state === "pass" ? "pass" : "fail") : (keys ? "unknown" : "fail") },
-    { key: "gate.chip", state: "not-here" },
+    /* "not-here" only while nobody asked: a read-only 0x12 check answers it without any write. */
+    { key: "gate.chip", state: chip ? (chip.ok ? "pass" : "fail") : "not-here" },
     { key: "gate.flashmap", state: "unknown" },
     { key: "gate.backup", state: "unknown" },
     { key: "gate.recovery", state: "documented" },
@@ -299,6 +316,7 @@ export async function verifyDevice(midi, opts = {}) {
   const product = String(opts.product || "");
   const pkg = packageOf(product, opts.pkg);
   const sig = opts.signature || null;       // the offline check of the package (verifyPackage)
+  const chip = opts.chip || null;           // a read-only 0x12 check, when one was run
   const log = opts.log || (() => {});
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
@@ -323,7 +341,7 @@ export async function verifyDevice(midi, opts = {}) {
     const kind = (ports.length || (probe.probed || []).length) ? "silent" : "none";
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
-    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig });
+    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig, chip });
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
@@ -341,8 +359,9 @@ export async function verifyDevice(midi, opts = {}) {
         ...probeFields(probe, port),
         ...platformFields(),
         ...pkgFields(pkg, compat, sig),
+        ...chipFields(chip),
       ],
-      signature: sig,
+      signature: sig, chip,
       gate: gate.rows, verdict: gate.verdict,
       missing: MISSING.map(([key, why]) => ({ key, why })),
     });
@@ -358,7 +377,7 @@ export async function verifyDevice(midi, opts = {}) {
   const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
   const compat = compatibility(kind, hardware, pkg.model);
-  const gate = gateOf({ found: true, read: true, pkg, compat, sig });
+  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
@@ -372,12 +391,13 @@ export async function verifyDevice(midi, opts = {}) {
     ...probeFields(probe, port),
     ...platformFields(),
     ...pkgFields(pkg, compat, sig),
+    ...chipFields(chip),
   ];
   const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));
   return report(kind, {
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
-    fields, missing, signature: sig, gate: gate.rows, verdict: gate.verdict,
+    fields, missing, signature: sig, chip, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
     compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
   });

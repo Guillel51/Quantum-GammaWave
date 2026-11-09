@@ -415,6 +415,7 @@
       <label class="small"><span data-t="verLabel"></span> <select id="ver"></select></label>
       <button id="go" disabled data-t="install"></button>
       <button id="verify" class="secondary" type="button" data-t="verifyOnly"></button>
+      <button id="chip" class="secondary" type="button" disabled data-t="chipCheck"></button>
       <button id="diag" class="secondary" type="button" disabled title="Download the read-only report as JSON: no keys, no tokens, no secrets">⬇ DIAGNOSTIC .JSON</button>
     </div>
     <fieldset id="preflight" class="small" style="border:1px solid var(--border);padding:8px 12px;margin:0 0 10px">
@@ -567,6 +568,7 @@ const TEXT = {
       + "this page does not run it and does not ship it.",
     mfCaveat: "Documented from that tool's source, not demonstrated on a unit by this project. Read that document first: "
       + "the physical key combination varies with firmware.",
+    chipCheck: "🧪 Check chip (read only)",
     verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
     pf1: "The FM-1 is connected straight to the computer with a USB data cable (no hub).",
     pf2: "The computer is on mains power and will not sleep; the FM-1 is charged.",
@@ -575,6 +577,8 @@ const TEXT = {
     hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ",
     nohash: "This package has no published SHA-256: nothing will be written. Reload the page.",
     vNone: "Verify: no FM-1 answered. MIDI ports this browser enumerated:",
+    chipOk: "Chip: identified by its own 0x12 answer",
+    chipNo: "Chip: this unit did not answer its JEDEC",
     vNoPorts: " \u2014 with the unit powered and a data cable, an empty list means this system is not presenting it: a charge-only cable, the unit switched off, or another program holding the port (Windows gives one client exclusive access per port). Nothing was sent.",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vStock: "Verify: FM-1 detected, it answers official V15 (FM-1_015). Nothing was written. ",
@@ -689,6 +693,7 @@ TEXT.es = {
     + "esta página no lo ejecuta ni lo distribuye.",
   mfCaveat: "Documentado a partir del código de esa herramienta, no demostrado en una unidad por este proyecto. Leé primero ese documento: "
     + "la combinación física de teclas cambia según el firmware.",
+  chipCheck: "🧪 Comprobar chip (solo lectura)",
   verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
   pf1: "El FM-1 está conectado directamente a la computadora con un cable USB de datos (sin hub).",
   pf2: "La computadora está enchufada a la red y no va a suspenderse; el FM-1 tiene batería.",
@@ -697,6 +702,8 @@ TEXT.es = {
   hashOk: "SHA-256 del paquete verificado ✓ ", badhash: "El paquete no coincide con su SHA-256 publicado: no se escribirá nada. Recargá la página. ",
   nohash: "Este paquete no tiene SHA-256 publicado: no se escribirá nada. Recargá la página.",
   vNone: "Verificar: no respondió ningún FM-1. Puertos MIDI que enumeró este navegador:",
+  chipOk: "Chip: identificado por su propia respuesta 0x12",
+  chipNo: "Chip: esta unidad no dio su JEDEC",
   vNoPorts: " — con la unidad encendida y un cable de datos, una lista vacía significa que este sistema no la está presentando: cable sólo de carga, unidad apagada, u otro programa con el puerto tomado (Windows da acceso exclusivo a un cliente por puerto). No se envió nada.",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vStock: "Verificar: se detectó un FM-1 y responde V15 oficial (FM-1_015). No se escribió nada. ",
@@ -760,6 +767,7 @@ TEXT.zh = {
     + "并用仅存在于 RAM 中的 loader 读取存储器。docs/M-FLASHER.md 逐步记录了该流程及其出处；"
     + "本页面既不执行也不分发它。",
   mfCaveat: "依据该工具的源代码记录，本项目未在任何设备上验证。请先阅读该文档：物理按键组合因固件而异。",
+  chipCheck: "🧪 检查闪存芯片（只读）",
   verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
   pf1: "FM-1 已通过 USB 数据线直接连接到电脑（不使用集线器）。",
   pf2: "电脑已连接电源且不会休眠；FM-1 电量充足。",
@@ -768,6 +776,8 @@ TEXT.zh = {
   hashOk: "固件包 SHA-256 已验证 ✓ ", badhash: "固件包与公布的 SHA-256 不匹配：不会写入任何内容。请重新加载页面。 ",
   nohash: "此固件包没有公布 SHA-256：不会写入任何内容。请重新加载页面。",
   vNone: "校验：没有 FM-1 回应。此浏览器枚举到的 MIDI 端口：",
+  chipOk: "闪存芯片：已由其自身的 0x12 应答识别",
+  chipNo: "闪存芯片：该设备没有返回 JEDEC",
   vNoPorts: " — 若设备已开机并使用数据线，列表为空说明系统没有呈现它：仅充电线、设备未开机，或其他程序占用了端口（Windows 每个端口只允许一个客户端独占）。未发送任何内容。",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vStock: "校验：检测到 FM-1，其回应为官方 V15（FM-1_015）。未写入任何内容。",
@@ -1260,6 +1270,7 @@ let releaseSig = null;
 const buildOf = (b) => (typeof b === "string" ? b : (b && b.commit) || "");
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
 const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk || !provOk; $("verify").disabled = on;
+  $("chip").disabled = on || !lastVerify || !lastVerify.kind || lastVerify.kind === "none";
   document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock || !releaseOk; if ($("stock-direct")) $("stock-direct").disabled = on || !stock || !releaseOk; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
 document.querySelectorAll(".pf").forEach((c) => c.addEventListener("change", () => lockInstaller(writing)));
 window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = t("leave"); } });
@@ -1552,6 +1563,22 @@ async function runVerify() {
   finally { lockInstaller(false); }
 }
 $("verify").addEventListener("click", runVerify);
+/* The chip gate, read only. Two 0x12 identifications of the unit that already answered the identity
+ * query: no UPGRADE, no 0x30, no write frame. On a unit running QG it produces the real JEDEC and
+ * geometry; on a stock V15 it produces the refusal, and either way the report says which it was. */
+$("chip").addEventListener("click", async () => {
+  if (writing || !lastVerify || !midiAccess) return;
+  lockInstaller(true);
+  try {
+    const r = await chipCheck(midiAccess, { log });
+    log(`chip: ${r.ok ? `0x${Number(r.jedec).toString(16)} ${r.part}` : `${r.code} ${r.why}`}`);
+    lastVerify = { ...lastVerify, chip: r };
+    showVerify(lastVerify);
+    $("diag").disabled = false;
+    sayK(r.ok ? "chipOk" : "chipNo", r.ok ? ` 0x${Number(r.jedec).toString(16).toUpperCase()} ${r.part}` : ` ${r.why}`);
+  } catch (e) { sayK("error", e && e.message); log(String(e && e.stack || e)); }
+  finally { lockInstaller(false); }
+});
 /* Plugging the unit in while this page is open must not need a reload: WebMIDI reports a state change,
  * and a Verify Only that has already run is re-run against the new set of ports. The frame it sends is
  * the read-only identity query, so this cannot write anything either. */
