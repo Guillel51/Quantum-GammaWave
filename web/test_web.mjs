@@ -1745,14 +1745,21 @@ await packages();
 await updater();
 installerCheck();
 
-// QG-1 PR #10 Feature Assertions: 17 Themes, 42 New Presets, 4 Distortions
+// QG-1 PR #10 Feature Assertions: 17 Themes, the categorised preset library, 4 Distortions
 function qg1FeaturesCheck() {
   const html = readFileSync(new URL("./editor.html", import.meta.url), "utf8");
   const pkgHtml = readFileSync(new URL("./index_pkg.html", import.meta.url), "utf8");
 
-  // 1. Distortion topologies
+  // 1. Distortion topologies (Web Studio)
   ok(html.includes('"SOFT", "TAPE", "HEARTH", "FLUX"'), "editor: 4 distortion topologies include SOFT, TAPE, HEARTH, FLUX");
-  ok(pkgHtml.includes('value="0" selected>SOFT (Warm Tanh)</option>'), "installer: SOFT distortion is option 0");
+
+  // 1b. (3.2) the installer page has no DSP preview: the section, its canvases, its controls and its synth loop are
+  // gone, not hidden. This replaces the old "SOFT distortion is option 0" check, which only ever proved that the
+  // preview's own <select> was still there.
+  ok(!/LIVE BROWSER DSP PREVIEW/i.test(pkgHtml) && !/id="scope-cv"/.test(pkgHtml) &&
+     !/id="syn-(play|dice|preset|dtype|ftype|drive|cut|res)"/.test(pkgHtml) && !/function drawScope\(/.test(pkgHtml) &&
+     !/PRESET_CFG/.test(pkgHtml) && !/class="synth-grid"/.test(pkgHtml),
+     "installer: the LIVE BROWSER DSP PREVIEW is gone (section, canvases, controls and synth loop)");
 
   // 2. 17 visual themes
   ok(html.includes('"SOLARIS", "CYBERPUNK", "NORDIC"'), "editor: contains new themes SOLARIS, CYBERPUNK, NORDIC");

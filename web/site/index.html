@@ -495,8 +495,8 @@
         </div>
         <div>
           <div class="warning" style="border-left-color:var(--cyan)">
-            <h3 style="color:var(--cyan)">Qué cambia en v1.8.9</h3>
-            <p>El EQ maestro deja de divergir en 20 Hz: sus estados llevan 10 bits fraccionarios más, así que el polo deja de integrarse (entrada DC 1000 daba 1 971 664; ahora da 13 492). La base mantiene <b>10 voces</b>, el EQ maestro endurecido, el teclado Punch-in FX rediseñado y la biblioteca de 200 sonidos. En v1.8.9 los cuatro estados de retardo del EQ usan la misma escala: el canal derecho ya no pierde su EQ bloque tras bloque. El sitio y el Web Studio 2.0 son parte de esta entrega; la firma de paquetes y el arranque seguro quedan fuera hasta tener soporte real de bootloader.</p>
+            <h3 style="color:var(--cyan)">Qué cambia en v1.9.0</h3>
+            <p>El paquete va firmado con la clave anclada qg1-release-1 y el instalador decide con lo que lee: identifica el NOR por 0x12, exige que la geometría coincida con la pieza, verifica la firma contra la clave pública anclada y, después de escribir, pide a la unidad que reporte el producto QG. Verify Only exporta su propio informe de diagnóstico, y Pages sirve el paquete firmado del release, no uno construido en CI. El wasm se compiló con Emscripten 6.0.11 desde el mismo commit, y la pasada visual 3.2 entra en este árbol: LATCH de PUNCH-IN encendido por defecto con su matriz, DEPTH en KNOB 2, cuatro planetas en HOME y un splash nuevo de 3,1 s. Ninguna instalación se ha ejecutado en una FM-1 física.</p>
             <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Leer changelog completo ↗</a>
           </div>
         </div>
@@ -514,7 +514,7 @@
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener"><span class="no">01 / GIT</span><b>Repositorio GitHub ↗</b><span>Firmware, herramientas, pruebas y releases.</span></a>
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.md" target="_blank" rel="noopener"><span class="no">02 / DOC</span><b>Manual en inglés ↗</b><span>Operación, páginas, atajos y MIDI.</span></a>
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.es.md" target="_blank" rel="noopener"><span class="no">03 / DOC</span><b>Manual en español ↗</b><span>La misma referencia, en castellano.</span></a>
-        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/V1.8.9_STATUS.md" target="_blank" rel="noopener"><span class="no">04 / ESTADO</span><b>Estado y límites ↗</b><span>Matriz de integración, pruebas y pendientes.</span></a>
+        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/VALIDATION_MATRIX.md" target="_blank" rel="noopener"><span class="no">04 / ESTADO</span><b>Estado y límites ↗</b><span>Matriz de integración, pruebas y pendientes.</span></a>
       </div>
     </div>
   </section>

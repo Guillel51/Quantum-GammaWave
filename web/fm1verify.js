@@ -51,7 +51,8 @@
 // The identity of the package is NEVER written into a device field, and the package being V15 does
 // not turn a device that answered FM-1_982 into stock: kind is decided by what the unit said.
 
-import { Updater, PORT_RE, verifyManifest } from "./fm1ota.js";
+import { Updater, PORT_RE, verifyManifest, isOurLoader } from "./fm1ota.js";
+import { derive, describe, unobservable } from "./fm1state.js";
 import { productOf } from "./fm1pkg.js";
 
 // the one frame Verify Only may put on the wire (tests/test_verify_only.mjs checks the log)
@@ -82,7 +83,7 @@ function hardwareOf(model) {
 //                decides that, and it decides it on its own
 function report(kind, base) {
   const found = kind !== "none";
-  const recognised = kind === "stock" || kind === "ours" || kind === "loader";
+  const recognised = kind === "stock" || kind === "ours" || kind === "ourloader" || kind === "otherloader";
   return { kind, found, recognised, canInstall: false, ports: base.ports, ...base };
 }
 
@@ -156,7 +157,12 @@ function compatibility(kind, deviceModel, pkgModel) {
   if (!deviceModel || deviceModel !== pkgModel) return "blocked-model";
   if (kind === "stock") return "replaces-stock";
   if (kind === "ours") return "reinstall-same";
-  if (kind === "loader") return "finish-loader";
+  if (kind === "ourloader") return "finish-loader";
+  /* Both loaders answer "ota-FM-1", and the name alone says nothing: the unit's own update mode
+   * (the vendor's, the one a stock FM-1 enters) and this project's loader (ota-FM-1_900). Only the
+   * version separates them, so a loader that is not ours is reported as foreign -- readable, never
+   * a target. */
+  if (kind === "otherloader") return "foreign-loader";
   return "blocked-firmware";
 }
 
@@ -357,6 +363,7 @@ export async function verifyDevice(midi, opts = {}) {
     /* a port that was probed and did not answer is "silent", even when its name is not one this
      * installer recognises: that is what was done and what came back */
     const kind = (ports.length || (probe.probed || []).length) ? "silent" : "none";
+    const state = derive({ fw: { kind } });
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
     const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig, chip, record });
@@ -379,7 +386,9 @@ export async function verifyDevice(midi, opts = {}) {
         ...pkgFields(pkg, compat, sig),
         ...chipFields(chip),
         ...recordFields(record),
+        { key: "state.current", value: describe(state), source: "derived here: no usable identity answer", confidence: "high" },
       ],
+      state,
       signature: sig, chip, record,
       gate: gate.rows, verdict: gate.verdict,
       missing: MISSING.map(([key, why]) => ({ key, why })),
@@ -389,7 +398,13 @@ export async function verifyDevice(midi, opts = {}) {
   dev.link.close();
   const hardware = hardwareOf(model);
   let kind, firmware;
-  if (/^ota-/i.test(model)) { kind = "loader"; firmware = "loader"; }
+  if (/^ota-/i.test(model)) {
+    /* /^ota-/ is the shape of the update loader, not a claim about whose it is: isOurLoader() reads
+     * the version (900 is this project's, FM-1 015's vendor loader is 015). Splitting them here is
+     * what stops the report from calling a foreign loader "a interrupted install to finish". */
+    kind = isOurLoader(dev.id) ? "ourloader" : "otherloader";
+    firmware = isOurLoader(dev.id) ? "loader" : "vendorLoader";
+  }
   else if (text === "FM-1_015") { kind = "stock"; firmware = "stock"; }
   else if (product && text === product) { kind = "ours"; firmware = "gammaWave"; }
   else { kind = "other"; firmware = "other"; }
@@ -413,8 +428,17 @@ export async function verifyDevice(midi, opts = {}) {
     ...chipFields(chip),
     ...recordFields(record),
   ];
-  const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));
+  /* the boot loader of a unit sitting in its update loader is not readable through that loader, so
+   * the field is dropped there -- for both loaders, ours and the vendor's, since neither answers. */
+  const missing = MISSING.filter(([key]) => key !== "bootloader" || !/loader$/.test(kind)).map(([key, why]) => ({ key, why }));
+  /* The named state, derived from what was read, printed with the transport's blind spots next to
+   * it: a reader must be able to tell "observed" from "this page cannot observe that at all". */
+  const state = derive({ fw: { kind }, chip });
+  fields.push({ key: "state.current", value: describe(state), source: "derived here from the identity answer and, when it exists, the chip reading", confidence: "high" });
+  fields.push({ key: "state.unobservable", value: `${unobservable().length} of ${17}: `
+    + `${unobservable().map((u) => u.id).join(", ")}`, source: "WebMIDI exposes no VID:PID and no mass-storage device; the loader erases inside its write pass (docs/FM1_MODES.md)", confidence: "high" });
   return report(kind, {
+    state,
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
     fields, missing, signature: sig, chip, record, gate: gate.rows, verdict: gate.verdict,
