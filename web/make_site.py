@@ -226,7 +226,11 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
         encoding="utf-8")
     for doc in ("LICENSE", "LICENSING.md"):
         shutil.copy(HERE.parent / doc, fw / doc)
-    shutil.copy(HERE / "editor.html", ed / "index.html")
+    # the editor names the build it is too: the token is required, so the page cannot go stale silently
+    editor = (HERE / "editor.html").read_text(encoding="utf-8")
+    if "{{VERSION}}" not in editor:
+        raise SystemExit("web/editor.html: no {{VERSION}} token: the studio would not name the build it serves")
+    (ed / "index.html").write_text(editor.replace("{{VERSION}}", version), encoding="utf-8")
     for f in ("fukiai.ttf", "FUKIAI-LICENSE.txt", "fm1backup.js", "preset_categories.json"):
         if (HERE / f).exists():
             shutil.copy(HERE / f, ed / f)

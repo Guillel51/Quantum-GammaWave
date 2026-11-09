@@ -29,3 +29,19 @@ DSP, not `ui_draw.c` or `ui_being.c`, and `node web/emu/emu_test.mjs` runs green
 | `emu_boot1.png` | the emulator after the splash: HOME, with the preset it loaded |
 
 No hardware was involved in any of these.
+
+**Web Studio** (`studio_*.png`): the Web Studio page in the Cloud browser at 432 px, mock device
+(`?mock=1`), taken during the ecosystem pass of 2026-11-09 — after the pass, not before it, so they show the state the
+repository now ships. This is browser rendering of the page, **not** firmware drawing: nothing here is a claim about
+the FM-1's own screen.
+
+| file | what it shows |
+|---|---|
+| `studio_after.png` | the top of the page after the pass: the brand bar now reads `WEB STUDIO // QG-1`, the simulated device reports `v1.9.0 (MOCK)`, and the theme button says `STUDIO THEME: GAMMA` |
+| `studio_deck_after.png` | the LCD deck with one `select` (`AUTO — follows the tab`) and `FULLSCREEN` where ten buttons used to be, and the telemetry cards above the demo block |
+| `studio_generator_open.png` | step 2 opened: every generator control still there (style, genre, seed, energy, form, the AUTO song parts, complex/swing/human, `GENERATE PIECE`), with the hardware hint above it |
+| `studio_punch_opened.png` | choosing `PUNCH-IN FX` in the select repainted the 240×240 LCD (footer `PUNCH`), and the tape block opened with its own controls |
+
+The same session measured the DOM: every `<summary>` 16 px high with no clipping, ten `<option>`s in the select, and no
+console or request errors. `web/test_web.mjs` runs the page's protocol slice under Node, where `document` does not
+exist and the page therefore reports `dev` — that is the intended behaviour, not a fallback that hides a version.

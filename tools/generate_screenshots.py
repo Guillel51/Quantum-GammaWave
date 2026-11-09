@@ -3,8 +3,19 @@
 Generate real firmware UI screenshots and composite assets for Quantum GammaWave (QG-1).
 """
 import os
+import re
 import subprocess
 from PIL import Image
+
+
+def firmware_version():
+    """FELUCCA_VERSION from firmware/src/felucca.c: the screenshots state the version the firmware carries, not
+    a copy typed into this script (it said v1.8.6 while the tree shipped v1.9.0)."""
+    src = open("firmware/src/felucca.c", encoding="utf-8").read()
+    m = re.search(r'#define\s+FELUCCA_VERSION\s+"([^"]+)"', src)
+    if not m:
+        raise SystemExit("generate_screenshots: FELUCCA_VERSION not found in firmware/src/felucca.c")
+    return m.group(1)
 
 def shrink(im):
     """The same pixels in fewer bytes: a palette image when the render has at most 256 colours and the
@@ -233,6 +244,22 @@ int main(int argc, char **argv) {
     setup(S_HOME); pal(UI_GAMMA_INDEX); draw(S_HOME);
     write_ppm("assets/screenshots", "gamma", "theme_gamma_home");
 
+    /* 3.2: the screens the pass changed, captured from the same drawing code the firmware links */
+    setup(S_SPLASH); pal(UI_QUANTUM_INDEX); draw(S_SPLASH);
+    write_ppm("assets/screenshots", "quantum", "26_boot_splash");
+
+    setup(S_DLY); pal(UI_QUANTUM_INDEX); draw(S_DLY);
+    write_ppm("assets/screenshots", "quantum", "27_delay_bars");
+
+    setup(S_REVERB_RESO); pal(UI_QUANTUM_INDEX); draw(S_REVERB_RESO);
+    write_ppm("assets/screenshots", "quantum", "28_reverb_reso");
+
+    setup(S_REVERB_CLOUD); pal(UI_QUANTUM_INDEX); draw(S_REVERB_CLOUD);
+    write_ppm("assets/screenshots", "quantum", "29_reverb_cloud");
+
+    setup(S_FX_HELD); pal(UI_QUANTUM_INDEX); draw(S_FX_HELD);
+    write_ppm("assets/screenshots", "quantum", "30_punch_in_latch");
+
     return 0;
 }
 """
@@ -240,7 +267,9 @@ int main(int argc, char **argv) {
         f.write(src + "\n" + custom_main)
 
     os.makedirs("assets/screenshots/ppm", exist_ok=True)
-    subprocess.run(["gcc", "-O1", "-w", "-DFELUCCA_VERSION=\"v1.8.6\"",
+    version = firmware_version()
+    print(f"screens: FELUCCA_VERSION {version}")
+    subprocess.run(["gcc", "-O1", "-w", f'-DFELUCCA_VERSION="{version}"',
                     "-Ibuild/gen", "-Ifirmware/src", "-Itests",
                     "-o", "/tmp/gen_screens", "/tmp/gen_screens.c", "-lm"], check=True)
     subprocess.run(["/tmp/gen_screens"], check=True)

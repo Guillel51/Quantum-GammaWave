@@ -58,17 +58,15 @@ Checks the package and the device identity before it writes anything.
 
 | Public portal (`/`) | Public Web Studio (`/webapp/editor/`) |
 |---|---|
-| <img src="artifacts/public-portal-432x690.png" width="360" alt="Quantum GammaWave portal, published build"> | <img src="artifacts/public-webstudio-432x690.png" width="360" alt="Web Studio 2.0, published build"> |
+| <img src="artifacts/public-portal-432x690.png" width="360" alt="Quantum GammaWave portal, published build"> | <img src="artifacts/public-webstudio-432x690.png" width="360" alt="Web Studio, mock device at 432 px"> |
 
 The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
-Both captures are the **same viewport -- 432 x 690 -- taken from GitHub Pages itself**, one after the other,
-so the two columns are the same size and neither image is stretched or cropped: what the table shows is
-what the published site served when this line was written. The wide layout is `artifacts/live-desktop-1440.png`
-(the same page rendered in a 1440 px frame, scaled down to fit the capture window, so it is evidence of
-layout and not of text rendering).
+Both captures were taken in one session at the **same viewport -- 432 x 690**, portal first and then the Web
+Studio in mock mode (`?mock=1`, no FM-1 attached), so the two columns are the same size and neither image is
+stretched or cropped: what the table shows is what those pages rendered when this line was written.
 
 The portal prints the build it is serving in the hero (`v1.9.0-<commit>`, read from
-[`firmware/versions.json`](firmware/versions.json) -- version, package file, size, SHA-256 and the build
+[`firmware/versions.json`](https://guillel51.github.io/Quantum-GammaWave/firmware/versions.json) -- version, package file, size, SHA-256 and the build
 record of the firmware it was compiled from), and the emulator page prints its own commit and WASM hash from
 [the emulator page](https://guillel51.github.io/Quantum-GammaWave/emulator/) beside it. Both come from the same commit as
 `.github/workflows/emulator.yml` published, so a stale page is visible in the page itself.
@@ -85,22 +83,39 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## Web portal and Web Studio 2.0 (2026-11-04)
+## The published build: `v1.9.0`
 
-The project now has one official entry point: the **Solar Heat / Quantum** portal at
+The project has one official entry point: the **Solar Heat / Quantum** portal at
 <https://guillel51.github.io/Quantum-GammaWave/>. It presents the firmware, real screenshots, compatibility,
 installation warnings, version metadata and direct access to the emulator (`/emulator/`), the USB installer
 (`/webapp/installer/`) and the Web Studio (`/webapp/editor/`). Existing installer and editor URLs are kept;
-the emulator now lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
+the emulator lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
 
-The Web Studio has a new presentation layer (deep charcoal, solar amber, cyan data accents, clearer
-hierarchy and a hardware-style brand bar) without changing any control id, SysEx frame, tab or protocol
-handler. It was checked in Chromium at 1440 px and 390 px: seven tabs, no horizontal overflow and no console
-or request errors. The emulator remains the same real WASM firmware; the portal only links to it.
+The Web Studio carries the presentation layer (deep charcoal, solar amber, cyan data accents, a hardware-style
+brand bar) over the same control ids, SysEx frames, tabs and protocol handlers: this pass changed how it is
+reached, not what it sends.
 
-**v1.8.9** is the current build: the master EQ rounds its loop to the nearest value instead of down, so its DC gain is the coefficient's (+0.23 dB instead of -1.46 dB) and a -24 dB cut at 20 Hz reaches -24.14 dB instead of -17.61 dB; the four setters share one commit path and the RAM code budget gained 28 B. `fm1_restore.py` can write a verified backup back through an external SPI programmer. All of it is measured on the host and in the emulator: no unit, no physical restore, no production signing key. See [`docs/V1.8.9_STATUS.md`](docs/V1.8.9_STATUS.md).
+**`v1.9.0` is the current and published build**, and it is the one the installer is allowed to write:
 
-## What's in Quantum GammaWave (`v1.8.9`)
+- the package is signed with the anchored key `qg1-release-1`, its build record names the commit it came from
+  (`dirty: []`) and two builds of it give the same bytes;
+- the installer identifies the NOR by `0x12`, refuses any piece outside `0x856014`/`0xB36014`, requires the
+  geometry to match the identified piece, checks the signature against the anchored public key and, after
+  writing, requires the unit to report the QG product;
+- *Verify Only* downloads a `qg1-diagnostic-1` JSON with what it read, what it could not read and why — no
+  keys, no tokens, no package bytes — and the eight states (`DIAGNOSTIC READY` … `INSTALL READY`,
+  `INSTALL BLOCKED`) are derived from the gate's own rows, so none can be shown above its evidence;
+- the `publish` job of `.github/workflows/emulator.yml` tags `v1.9.0` on the build record's commit, publishes
+  package, manifest and record, then downloads the published assets and verifies them again; Pages serves
+  `release/*.fwsc` when it exists, because a package built in CI has no signature;
+- Emscripten is pinned to **6.0.11** everywhere, and the WASM this site serves was built with it from the same
+  commit as the firmware.
+
+What that build does **not** claim: no install has been run on a physical FM-1, no recovery route has been
+rehearsed on one, and this workspace holds no signing key. See [`CHANGELOG.md`](CHANGELOG.md) for v1.9.0 and
+[`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md) for what each claim rests on.
+
+## What's in Quantum GammaWave (`v1.9.0`)
 
 - **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
@@ -113,8 +128,9 @@ or request errors. The emulator remains the same real WASM firmware; the portal 
   - **`SOLARIS`:** Radiant solar gold, stellar corona amber, and forge embers on deep charcoal.
   - **`CYBERPUNK`:** High-contrast synthwave neon grid with electric cyan and laser magenta highlights.
   - **`NORDIC`:** Arctic obsidian black with emerald aurora borealis gradients and warm beacon accents.
-- **Expanded Sound Library (+42 Original Presets):**
-  - Meticulously designed across all synthesis engines into 8 organized musical categories:
+- **A 200-sound factory library across 8 engines** (ANALOG 56, FM6 29, PHASE 25, LOFI 25, FORMANT 20, WHEEL 18,
+  NOISE 17, DRUM 10 browsable kits; two retired DRUM kits stay at indices 10 and 11 so old projects load the
+  kit they saved). Among them, the project's own signature sounds, in 8 musical categories:
     - *Ambient:* Borealis Pad, Cosmic Winds, Polar Aurora, Space Lullaby.
     - *Drones:* Nebula Drone, Abyss Drone, Cyber Drone, Vox Drone, Wraith Drone.
     - *Bells:* Crypt Bell, Temple Bell, Tibet Bowl, Shrine Bell, Chime Tree.
@@ -279,7 +295,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.8.9 build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v1.9.0 build/site   # the Web Studio + USB installer
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -287,6 +303,25 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 ---
 
 ## Changelog
+
+The per-release record, with the measurements behind each line, is [`CHANGELOG.md`](CHANGELOG.md). The recent
+milestones, in one line each:
+
+### `v1.9.0` — the signed package, and an installer that decides on what it reads
+
+The package is signed with the anchored key `qg1-release-1` and reproducible from its build record; the
+installer gates on the chip id, the piece geometry, the signature and the product the unit reports after the
+write, and *Verify Only* exports the diagnostic JSON it derived those states from. Pages serves the signed
+package, not a CI one. The 3.2 visual pass lands in the same tree (PUNCH-IN LATCH on by default with its
+matrix, DEPTH on KNOB 2, FX percentages right-aligned, the SCL keyboard, seven delay bars, RESO and CLOUD as
+different particles, four HOME planets and a new 3.1 s boot splash), measured at 174 screens × 17 palettes with
+0 lint findings.
+
+### `v1.8.6` … `v1.8.9` — the master EQ, corrected three times
+
+The EQ's 20 Hz cut, the scale of one delay state and the DC bias of its rounding loop, each found by test and
+fixed in turn (`v1.8.6` also brought the FX particles, the splash rework, the note visualizer and the Punch-In
+keyboard). No hardware was used: these are host and emulator measurements.
 
 ### `v1.7-QG` — UI Evolution & Hardware Validation
 

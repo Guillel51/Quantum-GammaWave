@@ -250,55 +250,6 @@
     transition: background 0.12s ease, color 0.12s ease;
   }
   .nav-btn:hover { background: var(--accent); color: #070709; }
-  /* Interactive Synth Preview */
-  .synth-grid {
-    display: grid;
-    grid-template-columns: 1fr 220px;
-    gap: 14px;
-    align-items: start;
-  }
-  @media (max-width: 640px) { .synth-grid { grid-template-columns: 1fr; } }
-  .synth-controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-    gap: 8px;
-    margin-top: 10px;
-  }
-  .ctl-box {
-    background: rgba(0, 4, 16, 0.6);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 8px 10px;
-    font-size: 11px;
-  }
-  .ctl-box label { display: flex; justify-content: space-between; color: var(--dim); margin-bottom: 3px; }
-  .ctl-box label span.val { color: var(--fg); font-weight: 600; }
-  .ctl-box input[type="range"] { width: 100%; accent-color: var(--theme); margin: 0; }
-  .ctl-box select { width: 100%; font-size: 11px; padding: 3px; }
-  canvas.scope {
-    width: 100%;
-    height: 120px;
-    background: #01030c;
-    border: 1px solid var(--border2);
-    border-radius: 12px;
-    display: block;
-  }
-  .step-row {
-    display: grid;
-    grid-template-columns: repeat(16, 1fr);
-    gap: 2px;
-    margin-top: 8px;
-  }
-  .step-cell {
-    height: 22px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    cursor: pointer;
-    padding: 0;
-  }
-  .step-cell.on { background: linear-gradient(180deg, var(--accent), var(--theme)); border-color: var(--theme); }
-  .step-cell.now { outline: 2px solid var(--accent); }
 </style>
 </head>
 <body>
@@ -328,73 +279,6 @@
       <div class="spec-card"><strong>PUNCH-IN FX + 6 LATCH MUTES</strong>Live key assignments, full F3–G5 keyboard and real peak meters</div>
     </div>
   </header>
-
-  <!-- Interactive browser audio preview of the FM-1 engine (Quantum palette) -->
-  <section class="card">
-    <div class="card-title">
-      <span data-t="previewTitle">QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW</span>
-      <div style="display:flex;gap:6px">
-        <button id="syn-play" type="button" style="padding:4px 12px;font-size:12px" data-t="synPlay">▶ PLAY SEQ</button>
-        <button id="syn-dice" type="button" class="secondary" style="padding:4px 10px;font-size:12px" data-t="synDice">🎲 DICE MUTATE</button>
-      </div>
-    </div>
-    <div class="synth-grid">
-      <div>
-        <canvas id="scope-cv" class="scope" width="460" height="120"></canvas>
-        <div class="step-row" id="seq-steps"></div>
-      </div>
-      <div>
-        <canvas id="curve-cv" class="scope" width="220" height="120"></canvas>
-        <div class="small" style="margin-top:6px;text-align:center" id="curve-label">TRANSFER CURVE // HEARTH</div>
-      </div>
-    </div>
-    <div class="synth-controls">
-      <div class="ctl-box">
-        <label><span>PRESET</span></label>
-        <select id="syn-preset">
-          <option value="0">INGOT SUB (ANALOG)</option>
-          <option value="1">WORM REESE (ANALOG)</option>
-          <option value="2">SCREAM 303 (ACID)</option>
-          <option value="3">HEARTH LD (ANALOG)</option>
-          <option value="4">PLASMA CORE (PHASE)</option>
-          <option value="5">WRAITH PAD (ANALOG)</option>
-          <option value="6">BLACK CHOIR (VOICE)</option>
-          <option value="7">GEIGER BIT (LOFI)</option>
-        </select>
-      </div>
-      <div class="ctl-box">
-        <label><span>DIST TYPE</span></label>
-        <select id="syn-dtype">
-          <option value="0" selected>SOFT (Warm Tanh)</option>
-          <option value="1">TAPE (Cubic Polynomial)</option>
-          <option value="2">HEARTH (Tube Heat + Sub)</option>
-          <option value="3">FLUX (Thermal Tape Drift)</option>
-        </select>
-      </div>
-      <div class="ctl-box">
-        <label><span>FILTER TYPE</span></label>
-        <select id="syn-ftype">
-          <option value="0">LP (Lowpass)</option>
-          <option value="4">VOWEL (Formant)</option>
-          <option value="5" selected>SCREAM (Fold Res)</option>
-          <option value="1">HP (Highpass)</option>
-          <option value="2">BP (Bandpass)</option>
-        </select>
-      </div>
-      <div class="ctl-box">
-        <label><span>DIST DRIVE</span><span class="val" id="v-drive">68%</span></label>
-        <input type="range" id="syn-drive" min="0" max="127" value="86">
-      </div>
-      <div class="ctl-box">
-        <label><span>CUTOFF</span><span class="val" id="v-cut">58%</span></label>
-        <input type="range" id="syn-cut" min="5" max="127" value="74">
-      </div>
-      <div class="ctl-box">
-        <label><span>RESONANCE</span><span class="val" id="v-res">72%</span></label>
-        <input type="range" id="syn-res" min="0" max="127" value="92">
-      </div>
-    </div>
-  </section>
 
   <!-- Main WebMIDI Firmware Installer Card -->
   <section class="card">
@@ -499,8 +383,6 @@ const TEXT = {
     dual: "Architecture Dual-Core AC791N + HOTRAM activée : les 2 cœurs processeur calculent les 6 pistes synthé + distorsions HEARTH/BLAST/PLASMA/FLUX et filtres VOWEL/SCREAM en temps réel. (Maintenez REC au démarrage pour forcer le mode 1 cœur).",
     install: "⚡ INSTALLER QUANTUM GAMMAWAVE SUR FM-1", other: "EN / 日本語",
     flashTitle: "INSTALLATION WEBMIDI DU FIRMWARE (M-VAVE FM-1)",
-    previewTitle: "QUANTUM GAMMAWAVE — PRÉÉCOUTE SYNTHÉ & SCOPE DANS LE NAVIGATEUR",
-    synPlay: "▶ JOUER SÉQUENCE", synStop: "■ STOP", synDice: "🎲 MUTATION DICE",
     firstTitle: "Vous venez d'un autre firmware custom ? Repassez d'abord par le V15 officiel",
     firstText: "L'installateur vérifie automatiquement votre FM-1 avant d'écrire : il flashe directement sur le firmware officiel V15 ou sur JIANT/GAMMAWAVE. Si un autre firmware custom est présent, utilisez la section de retour au V15 ci-dessous.",
     firstStock: "Repasser d'abord en V15 officiel",
@@ -556,8 +438,6 @@ const TEXT = {
     dual: "Dual-Core AC791N + HOTRAM active: both CPU cores render the 6 synth tracks + HEARTH/BLAST/PLASMA/FLUX distortions and VOWEL/SCREAM filters in real time. (Hold REC on power-up to force single-core mode).",
     install: "⚡ INSTALL QUANTUM GAMMAWAVE TO FM-1", other: "ES / 中文",
     flashTitle: "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)",
-    previewTitle: "QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW",
-    synPlay: "▶ PLAY SEQ", synStop: "■ STOP", synDice: "🎲 DICE MUTATE",
     firstTitle: "Coming from another custom firmware? Return to official V15 first",
     firstText: "Writing straight over another custom firmware (Felucca, baudgirl, etc.) can prevent startup. Return to official V15 below first, then install GAMMAWAVE. If your FM-1 already runs official V15, JIANT, or GAMMAWAVE, go right ahead.",
     firstStock: "Return to official V15 first",
@@ -635,8 +515,6 @@ const TEXT = {
     dual: "デュアルコア AC791N + HOTRAM 有効: 2つのコアで6トラックと新ディストーション (HEARTH/BLAST/PLASMA/FLUX)・新フィルター (VOWEL/SCREAM) を処理します。",
     install: "⚡ QUANTUM GAMMAWAVE をインストール", other: "FR / EN",
     flashTitle: "WEBMIDI ファームウェアインストーラー (M-VAVE FM-1)",
-    previewTitle: "QUANTUM GAMMAWAVE — ブラウザ内蔵シンセ＆オシロスコープ試聴",
-    synPlay: "▶ シーケンス再生", synStop: "■ 停止", synDice: "🎲 DICE 生成",
     firstTitle: "他のカスタムファームウェアから入れる場合は、先に公式V15へ戻してください",
     firstText: "インストールの前に、接続された FM-1 のファームウェアを自動で確認します。公式V15 か JIANT/GAMMAWAVE のときだけ書き込みます。",
     firstStock: "先に公式V15へ戻す",
@@ -685,8 +563,6 @@ TEXT.es = {
   dual: "Arquitectura Dual-Core AC791N + HOTRAM activa: los dos núcleos procesan las 6 pistas, las distorsiones HEARTH/BLAST/PLASMA/FLUX y los filtros VOWEL/SCREAM en tiempo real. (Mantené REC al encender para forzar un solo núcleo).",
   install: "⚡ INSTALAR QUANTUM GAMMAWAVE EN FM-1", other: "EN / 中文",
   flashTitle: "CARGADOR DE FIRMWARE POR WEBMIDI (M-VAVE FM-1)",
-  previewTitle: "QUANTUM GAMMAWAVE — PREESCUCHA DSP Y OSCILOSCOPIO EN EL NAVEGADOR",
-  synPlay: "▶ TOCAR SECUENCIA", synStop: "■ PARAR", synDice: "🎲 MUTAR CON DADO",
   firstTitle: "¿Venís de otro firmware personalizado? Volvé primero al V15 oficial",
   firstText: "El instalador verifica automáticamente tu FM-1 antes de escribir: solo graba sobre el firmware oficial V15 o sobre JIANT/GAMMAWAVE. Si hay otro firmware personalizado, usá primero la sección de retorno al V15.",
   firstStock: "Volver primero al V15 oficial",
@@ -764,8 +640,6 @@ TEXT.zh = {
   dual: "AC791N 双核 + HOTRAM 已启用：两个 CPU 核心实时处理 6 条合成轨道、HEARTH/BLAST/PLASMA/FLUX 失真和 VOWEL/SCREAM 滤波器。（开机时按住 REC 可强制单核模式）。",
   install: "⚡ 将 QUANTUM GAMMAWAVE 安装到 FM-1", other: "EN / ES",
   flashTitle: "WebMIDI 固件写入器（M-VAVE FM-1）",
-  previewTitle: "QUANTUM GAMMAWAVE — 浏览器 DSP 试听与示波器",
-  synPlay: "▶ 播放序列", synStop: "■ 停止", synDice: "🎲 随机变换",
   firstTitle: "来自其他自定义固件？请先恢复官方 V15",
   firstText: "写入前安装器会自动检查 FM-1：只允许在官方 V15 或 JIANT/GAMMAWAVE 上写入。如果检测到其他自定义固件，请先使用下方的 V15 恢复功能。",
   firstStock: "先恢复官方 V15",
@@ -853,25 +727,6 @@ const STATIC = {
     "CRUSH, DELAY, REVERB, CHORUS + Synced 1/16 PUMP & MUTATE": "CRUSH, DELAY, REVERB, CHORUS + PUMP y MUTATE sincronizados a 1/16",
     "PUNCH-IN FX + 6 LATCH MUTES": "PUNCH-IN FX + 6 MUTES LATCH",
     "10 key assignments, full F3–G5 keyboard, live LEDs and real peak meters": "10 asignaciones de teclas, teclado completo F3–G5, LEDs en vivo y medidores de pico reales",
-    "QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW": "QUANTUM GAMMAWAVE — PREESCUCHA DSP EN EL NAVEGADOR",
-    "▶ PLAY SEQ": "▶ TOCAR SECUENCIA",
-    "🎲 DICE MUTATE": "🎲 MUTAR CON DADO",
-    "TRANSFER CURVE // HEARTH": "CURVA DE TRANSFERENCIA // HEARTH",
-    "PRESET": "PRESET",
-    "DIST TYPE": "TIPO DE DISTORSIÓN",
-    "SOFT (Warm Tanh)": "SUAVE (Tanh cálido)",
-    "TAPE (Cubic Polynomial)": "CINTA (polinomio cúbico)",
-    "HEARTH (Tube Heat + Sub)": "HEARTH (calor de válvula + sub)",
-    "FLUX (Thermal Tape Drift)": "FLUX (deriva térmica de cinta)",
-    "FILTER TYPE": "TIPO DE FILTRO",
-    "LP (Lowpass)": "LP (paso bajo)",
-    "VOWEL (Formant)": "VOWEL (formante)",
-    "SCREAM (Fold Res)": "SCREAM (resonancia plegada)",
-    "HP (Highpass)": "HP (paso alto)",
-    "BP (Bandpass)": "BP (paso banda)",
-    "DIST DRIVE": "DRIVE DE DISTORSIÓN",
-    "CUTOFF": "CORTE",
-    "RESONANCE": "RESONANCIA",
     "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)": "CARGADOR DE FIRMWARE WEBMIDI (M-VAVE FM-1)",
     "Portal & Emulator": "Portal y Emulador",
     "GitHub Source": "Código en GitHub",
@@ -897,25 +752,6 @@ const STATIC = {
     "CRUSH, DELAY, REVERB, CHORUS + Synced 1/16 PUMP & MUTATE": "CRUSH、DELAY、REVERB、CHORUS + 同步 1/16 PUMP 和 MUTATE",
     "PUNCH-IN FX + 6 LATCH MUTES": "PUNCH-IN FX + 6 个 LATCH 静音",
     "10 key assignments, full F3–G5 keyboard, live LEDs and real peak meters": "10 个按键分配、完整 F3–G5 键盘、实时 LED 和真实峰值表",
-    "QUANTUM GAMMAWAVE — LIVE BROWSER DSP PREVIEW": "QUANTUM GAMMAWAVE — 浏览器 DSP 试听",
-    "▶ PLAY SEQ": "▶ 播放序列",
-    "🎲 DICE MUTATE": "🎲 随机变换",
-    "TRANSFER CURVE // HEARTH": "传输曲线 // HEARTH",
-    "PRESET": "预设",
-    "DIST TYPE": "失真类型",
-    "SOFT (Warm Tanh)": "柔和（温暖 Tanh）",
-    "TAPE (Cubic Polynomial)": "磁带（三次多项式）",
-    "HEARTH (Tube Heat + Sub)": "HEARTH（电子管热度 + Sub）",
-    "FLUX (Thermal Tape Drift)": "FLUX（热磁带漂移）",
-    "FILTER TYPE": "滤波器类型",
-    "LP (Lowpass)": "LP（低通）",
-    "VOWEL (Formant)": "VOWEL（共振峰）",
-    "SCREAM (Fold Res)": "SCREAM（折叠共振）",
-    "HP (Highpass)": "HP（高通）",
-    "BP (Bandpass)": "BP（带通）",
-    "DIST DRIVE": "失真驱动",
-    "CUTOFF": "截止",
-    "RESONANCE": "共振",
     "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)": "WebMIDI 固件写入器（M-VAVE FM-1）",
     "Portal & Emulator": "门户与模拟器",
     "GitHub Source": "GitHub 源码",
@@ -1767,246 +1603,6 @@ $("stock-direct").addEventListener("click", async () => {
   } finally { lockInstaller(false); }
 });
 
-/* ============================================================================
- * QUANTUM GAMMAWAVE — Interactive Browser DSP Preview & Thermal Scope
- * Mirrors firmware/src/fx.c (DT_HEARTH, DT_BLAST, DT_PLASMA, DT_FLUX) & SVF
- * ============================================================================ */
-const DTYPE_NAMES = ["SOFT", "TAPE", "HEARTH", "FLUX"];
-const PRESET_CFG = [
-  { name: "INGOT SUB",  dtype: 2, ftype: 0, drive: 76, cut: 48, res: 42, base: 36, notes: [36,36,48,36, 0,39,36,43, 36,36,48,36, 41,0,39,36] },
-  { name: "WORM REESE", dtype: 1, ftype: 5, drive: 92, cut: 68, res: 84, base: 38, notes: [38,38,38,50, 38,41,41,38, 36,36,48,36, 37,37,49,37] },
-  { name: "SCREAM 303", dtype: 2, ftype: 5, drive: 88, cut: 80, res: 112,base: 45, notes: [45,45,57,45, 0,48,45,55,  45,0,57,52,  45,48,0,50] },
-  { name: "HEARTH LD",  dtype: 2, ftype: 0, drive: 96, cut: 94, res: 64, base: 57, notes: [57,0,60,64,  57,69,64,60,  55,0,59,62,  64,60,57,0] },
-  { name: "PLASMA CORE",dtype: 0, ftype: 4, drive: 98, cut: 86, res: 88, base: 40, notes: [40,52,40,0,  40,55,52,40,  43,55,43,0,  41,53,48,40] },
-  { name: "WRAITH PAD", dtype: 1, ftype: 4, drive: 64, cut: 72, res: 76, base: 48, notes: [48,55,60,63, 48,55,60,67,  46,53,58,62, 44,51,56,60] },
-  { name: "BLACK CHOIR",dtype: 2, ftype: 4, drive: 58, cut: 78, res: 96, base: 50, notes: [50,57,62,65, 50,57,62,69,  48,55,60,64, 45,52,57,61] },
-  { name: "GEIGER BIT", dtype: 3, ftype: 5, drive: 108,cut: 92, res: 90, base: 48, notes: [48,0,60,48,  63,48,0,55,   48,60,67,48, 58,55,48,0] },
-];
-
-let seqNotes = PRESET_CFG[0].notes.slice();
-let curStep = 0, playing = false, actx = null, scriptNode = null;
-let ph1 = 0, ph2 = 0, subPh = 0, lpf1 = 0, bpf1 = 0, lpf2 = 0, bpf2 = 0, env = 0, curFreq = 110;
-let stepTimer = 0;
-const scopeBuf = new Float32Array(460);
-
-function distShapeJS(x, type, drive01) {
-  const g = 1 + drive01 * 7.0;
-  let u = x * g;
-  switch (type | 0) {
-    case 0: { // SOFT: musical asymmetric soft clip (even harmonics)
-      const b0 = Math.tanh(2400 / 32768);
-      return Math.tanh((u * 32768 + 2400) / 32768) - b0;
-    }
-    case 1: { // TAPE: cubic polynomial soft warmth
-      let v = Math.max(-1.5, Math.min(1.5, u));
-      let out = v - (v * v * v) / 3.0;
-      return Math.max(-1, Math.min(1, Math.tanh(out)));
-    }
-    case 2: { // HEARTH: asymmetric warm tube + HF sparks + sub weight
-      const b = u + 0.18 * u * u;
-      const sat = Math.tanh(b);
-      const spk = Math.sin(u * 2.4) * 0.22 * drive01;
-      return Math.max(-1, Math.min(1, sat * 0.88 + spk));
-    }
-    default: { // FLUX: thermal bias drift + tape head roll-off
-      const q = Math.round(u * 6) / 6;
-      const t = q / (1 + 0.8 * Math.abs(q));
-      return t + 0.12 * Math.sin(u * 8.0);
-    }
-  }
-}
-
-function drawCurve() {
-  const cv = $("curve-cv"), ctx = cv.getContext("2d");
-  const w = cv.width, h = cv.height;
-  const dtype = +$("syn-dtype").value;
-  const drive = +$("syn-drive").value / 127;
-  const isWraith = document.documentElement.dataset.palette === "wraith";
-  ctx.fillStyle = "#040406";
-  ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = "#222028";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
-  ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
-  ctx.stroke();
-
-  ctx.strokeStyle = isWraith ? "#8b5cff" : "#3adfff";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  for (let px = 0; px < w; px++) {
-    const x = (px / (w - 1)) * 2 - 1;
-    const y = distShapeJS(x, dtype, drive);
-    const py = h / 2 - y * (h * 0.42);
-    if (px === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
-  $("curve-label").textContent = `TRANSFER CURVE // ${DTYPE_NAMES[dtype] || "HEARTH"}`;
-}
-
-function renderStepButtons() {
-  const box = $("seq-steps");
-  box.textContent = "";
-  seqNotes.forEach((n, i) => {
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "step-cell" + (n > 0 ? " on" : "") + (playing && i === curStep ? " now" : "");
-    b.title = `Step ${i + 1}`;
-    b.addEventListener("click", () => {
-      seqNotes[i] = seqNotes[i] ? 0 : (PRESET_CFG[+$("syn-preset").value].base + [0, 3, 7, 10, 12][i % 5]);
-      renderStepButtons();
-    });
-    box.appendChild(b);
-  });
-}
-
-function drawScope() {
-  const cv = $("scope-cv"), ctx = cv.getContext("2d");
-  const w = cv.width, h = cv.height;
-  const isWraith = document.documentElement.dataset.palette === "wraith";
-  ctx.fillStyle = "rgba(4, 4, 6, 0.38)";
-  ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = "#1d1b22";
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
-
-  const grad = ctx.createLinearGradient(0, 0, 0, h);
-  if (isWraith) {
-    grad.addColorStop(0, "#3adfff");
-    grad.addColorStop(0.5, "#8b5cff");
-    grad.addColorStop(1, "#3adfff");
-  } else {
-    grad.addColorStop(0, "#8fd8ff");
-    grad.addColorStop(0.5, "#3adfff");
-    grad.addColorStop(1, "#8fd8ff");
-  }
-  ctx.strokeStyle = grad;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  for (let x = 0; x < w; x++) {
-    const y = h / 2 - scopeBuf[x] * (h * 0.42);
-    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-  if (playing) requestAnimationFrame(drawScope);
-}
-
-function startSynth() {
-  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  if (actx.state === "suspended") actx.resume();
-  const sr = actx.sampleRate;
-  scriptNode = actx.createScriptProcessor(1024, 0, 2);
-  const stepSamples = Math.floor(sr * (60 / 122) / 4);
-  scriptNode.onaudioprocess = (e) => {
-    const L = e.outputBuffer.getChannelData(0);
-    const R = e.outputBuffer.getChannelData(1);
-    const dtype = +$("syn-dtype").value;
-    const ftype = +$("syn-ftype").value;
-    const drive = +$("syn-drive").value / 127;
-    const cutNorm = +$("syn-cut").value / 127;
-    const resNorm = +$("syn-res").value / 127;
-
-    for (let i = 0; i < L.length; i++) {
-      if (stepTimer <= 0) {
-        stepTimer = stepSamples;
-        curStep = (curStep + 1) & 15;
-        const note = seqNotes[curStep];
-        if (note > 0) {
-          curFreq = 440 * Math.pow(2, (note - 69) / 12);
-          env = 1.0;
-        }
-        setTimeout(renderStepButtons, 0);
-      }
-      stepTimer--;
-      env *= 0.99935;
-
-      ph1 = (ph1 + curFreq / sr) % 1;
-      ph2 = (ph2 + (curFreq * 1.007) / sr) % 1;
-      subPh = (subPh + (curFreq * 0.5) / sr) % 1;
-
-      const saw1 = ph1 * 2 - 1;
-      const saw2 = ph2 * 2 - 1;
-      const sub = Math.sin(subPh * Math.PI * 2) * 0.45;
-      let raw = (saw1 * 0.45 + saw2 * 0.45 + sub) * env;
-
-      // SVF filter with VOWEL & SCREAM modes
-      const fc = Math.min(0.42, 0.015 + Math.pow(cutNorm + env * 0.35, 2.2) * 0.38);
-      const damp = Math.max(0.06, 1.0 - resNorm * 0.9);
-      const hp = raw - lpf1 - damp * bpf1;
-      bpf1 += fc * hp;
-      lpf1 += fc * bpf1;
-
-      let flt = lpf1;
-      if (ftype === 1) flt = hp;
-      else if (ftype === 2) flt = bpf1;
-      else if (ftype === 4) { // VOWEL dual formant peak
-        const hp2 = raw - lpf2 - 0.15 * bpf2;
-        bpf2 += Math.min(0.45, fc * 2.15) * hp2;
-        lpf2 += Math.min(0.45, fc * 2.15) * bpf2;
-        flt = lpf1 * 0.5 + bpf1 * 0.85 + bpf2 * 0.7;
-      } else if (ftype === 5) { // SCREAM self-oscillating folded resonance
-        const scream = Math.sin(bpf1 * (2.2 + resNorm * 4.5));
-        flt = lpf1 * 0.75 + scream * (0.35 + resNorm * 0.55);
-      }
-
-      const shaped = distShapeJS(flt, dtype, drive) * 0.38;
-      L[i] = shaped;
-      R[i] = shaped;
-      if (i < scopeBuf.length) scopeBuf[i] = shaped * 1.8;
-    }
-  };
-  scriptNode.connect(actx.destination);
-  playing = true;
-  $("syn-play").textContent = t("synStop");
-  renderStepButtons();
-  drawScope();
-}
-
-function stopSynth() {
-  if (scriptNode) { scriptNode.disconnect(); scriptNode = null; }
-  playing = false;
-  $("syn-play").textContent = t("synPlay");
-  renderStepButtons();
-}
-
-$("syn-play").addEventListener("click", () => { if (playing) stopSynth(); else startSynth(); });
-$("syn-dice").addEventListener("click", () => {
-  const p = PRESET_CFG[+$("syn-preset").value];
-  const scale = [0, 1, 3, 5, 7, 8, 10, 12];
-  seqNotes = seqNotes.map((_, i) => (i % 4 === 0 || Math.random() < 0.62)
-    ? p.base + scale[Math.floor(Math.random() * scale.length)]
-    : 0);
-  $("syn-cut").value = 35 + Math.floor(Math.random() * 85);
-  $("syn-res").value = 40 + Math.floor(Math.random() * 82);
-  $("syn-drive").value = 45 + Math.floor(Math.random() * 78);
-  updateSynthLabels();
-  renderStepButtons();
-  drawCurve();
-});
-$("syn-preset").addEventListener("change", () => {
-  const p = PRESET_CFG[+$("syn-preset").value];
-  $("syn-dtype").value = p.dtype;
-  $("syn-ftype").value = p.ftype;
-  $("syn-drive").value = p.drive;
-  $("syn-cut").value = p.cut;
-  $("syn-res").value = p.res;
-  seqNotes = p.notes.slice();
-  updateSynthLabels();
-  renderStepButtons();
-  drawCurve();
-});
-function updateSynthLabels() {
-  $("v-drive").textContent = Math.round(+$("syn-drive").value * 100 / 127) + "%";
-  $("v-cut").textContent = Math.round(+$("syn-cut").value * 100 / 127) + "%";
-  $("v-res").textContent = Math.round(+$("syn-res").value * 100 / 127) + "%";
-}
-["syn-dtype", "syn-ftype", "syn-drive", "syn-cut", "syn-res"].forEach((id) => {
-  $(id).addEventListener("input", () => { updateSynthLabels(); drawCurve(); });
-});
-updateSynthLabels();
-renderStepButtons();
-drawCurve();
-drawScope();
 </script>
 </body>
 </html>

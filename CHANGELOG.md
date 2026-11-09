@@ -1,3 +1,38 @@
+## 2026-11-09 — el ecosistema al día: instalador, Web Studio, capturas y documentación
+
+No cambia el firmware, así que el paquete firmado `v1.9.0` sigue describiendo este árbol. Lo que cambia es lo que
+el repositorio, el portal, la página del instalador y el Web Studio dicen, y cada afirmación de aquí tiene su
+prueba en `docs/VALIDATION_MATRIX.md` §30.
+
+- **La página del instalador pierde el preview del navegador.** La sección `QUANTUM GAMMAWAVE — LIVE BROWSER DSP
+  PREVIEW` se va entera: rótulo, gráfico, textos, botones, sus reglas CSS, su bloque de script (~14,5 KB) y las
+  claves `previewTitle/synPlay/synDice/synStop` con sus frases en los dos diccionarios. No queda contenedor vacío:
+  debajo del gate está el gate. `web/test_web.mjs` pasa a exigir la ausencia en vez de comprobar una opción de la
+  demo borrada.
+- **El Web Studio enseña menos y dice la verdad.** Los diez botones de vista del LCD son un `<select>` con las
+  mismas diez vistas más `FULLSCREEN` (GEN y VIZ siguen pasando página al reelegirse, y el clic en el lienzo
+  sincroniza el selector); los pasos 2, 3 y 4 del deck están plegados en `<details>` con un resumen de una línea y
+  el atajo de hardware dentro. La página lleva `data-version="{{VERSION}}"`, que `web/make_site.py` exige y rellena
+  como el token del portal, así que el dispositivo simulado reporta `v1.9.0` y no el `v1.0` que decía. `PALETTE`
+  pasa a `STUDIO THEME` (repinta la página, no la paleta del aparato) y la barra de marca deja de anunciar
+  `WEB STUDIO 2.0`, que no es una versión publicada.
+- **Banner nuevo, dibujado por código.** `tools/generate_banner.py` compone 1600×560 desde la paleta QUANTUM
+  decodificada de `ui_palettes.h`: campo de estrellas, planeta anillado con dos lunas y órbitas, wordmark Michroma,
+  cinco fichas y la versión leída de `felucca.c`. La ficha de presets decía **207** y ahora dice **200**: las tablas
+  del firmware tienen 200 sonidos navegables más dos kits DRUM retirados que siguen en los índices 10 y 11
+  (`tests/preset_library_test.py`).
+- **Capturas regeneradas.** `tools/generate_screenshots.py` lee `FELUCCA_VERSION` de `firmware/src/felucca.c`
+  (decía v1.8.6) y renderiza la UI actual; se añaden `26_boot_splash`, `27_delay_bars`, `28_reverb_reso`,
+  `29_reverb_cloud` y `30_punch_in_latch`, y las 25 anteriores se vuelven a renderizar.
+- **El portal deja de anunciar 1.8.9.** La tarjeta decía «Qué cambia en v1.8.9» en un sitio que ya servía 1.9.0;
+  ahora describe 1.9.0 (paquete firmado, los cuatro gates del instalador, el informe de diagnóstico, Emscripten
+  6.0.11 y la pasada 3.2) y dice sin rodeos que no se ha instalado nada en una FM-1 física. El enlace de estado
+  apunta a la matriz de validación, y `web/test_i18n.py` pasa con las entradas EN y ZH nuevas.
+- **README puesto al día.** La sección de build actual nombraba 1.8.9; ahora es la de 1.9.0, con lo que ese build
+  hace y lo que no reclama. El changelog deja de saltar de v1.7 a v1.9. El enlace a `firmware/versions.json` es
+  absoluto, porque ese archivo sólo existe en el sitio publicado. La cifra de la biblioteca se comprueba contra su
+  test (200). Las dos capturas de interfaz son nuevas, a un solo viewport (432 × 690).
+
 ## v1.9.0 — el paquete firmado y el instalador que decide con lo que lee
 
 - **La instalación deja de estar bloqueada por software.** El paquete v1.9.0 está firmado con la clave anclada
