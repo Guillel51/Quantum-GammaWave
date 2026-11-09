@@ -42,6 +42,12 @@ POOL_END = 0x01C70000            # (JIANT 0.6.78) app.ld: POOL's end
 RAMTEXT_END = 0x01C76800         # .. RAMTEXT's end (0x01C70800 + 0x6000, the user stack's guard band)
 LOADER_NAME = b"usb_hid_ota.bin"    # the file name the SPL looks for
 DOCKER_IMAGE = os.environ.get("JIELI_DOCKER_IMAGE", "debian:bookworm-slim")
+# (opt baseline, measured) -Oz here is not "size before speed": on pi32v2 it is the level at which this
+# clang turns the constant divisions into shifts and multiplies. Built at -Os the same sources put 20
+# hardware divides into analog_render's block loop (target_budget cost 148 -> 674, +355 %), and -O2 does
+# not fit XIP at all (116 068 B over). A per-function -O2 would need an attribute this clang does not
+# have (it only has minsize, tools/size_fns.py, which -Oz already applies): keep -Oz unless a
+# measurement on the unit says otherwise.
 CFLAGS = ["-Oz", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-function"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
