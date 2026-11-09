@@ -8,9 +8,17 @@ import { verifyDevice, READ_ONLY_QUERY } from "../web/fm1verify.js";
 
 console.log("Starting production installer pipeline verification...");
 
-// 1. Load real production release package & manifest
-const pkgBytes = fs.readFileSync("release/felucca-v1.9.0.fwsc");
-assert.strictEqual(pkgBytes.length, 610806, "Release package size must be exactly 610806 bytes");
+// 1. Load the real release package: the file the build record names, not a name typed here, so a
+// new release does not need this test edited and a renamed package cannot slip past it.
+if (!fs.existsSync("release/build-manifest.json")) {
+  console.log("skip: release/ is not in the tree, so the production package cases cannot run");
+  process.exit(0);
+}
+const record = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
+const pkgPath = `release/felucca-${record.version}.fwsc`;
+const pkgBytes = fs.readFileSync(pkgPath);
+assert.strictEqual(pkgBytes.length, record.artifacts["felucca.fwsc"].bytes,
+  `${pkgPath} must be the ${record.artifacts["felucca.fwsc"].bytes}-byte package its own build record names`);
 
 // Helper to create fake MIDI access matching WebMIDI interface
 function createMockMidi(names, script = {}) {
