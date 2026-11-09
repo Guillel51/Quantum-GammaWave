@@ -439,6 +439,14 @@
           style="margin:10px 0 0;padding:0;list-style:none;display:grid;gap:2px"></ul>
       <p class="small" id="vrep-missing" style="margin:8px 0 0;color:var(--muted)"></p>
       <p class="small" id="vrep-install" style="margin:6px 0 0;color:var(--muted)"></p>
+      <details id="vrep-mflasher" style="margin-top:10px;padding:8px 10px;border:1px dashed var(--border);border-radius:4px" hidden>
+        <summary style="cursor:pointer;font-weight:600;color:var(--accent)" data-t="mfTitle"></summary>
+        <div class="small" style="margin-top:6px;line-height:1.5">
+          <p style="margin:4px 0" data-t="mfWhat"></p>
+          <p style="margin:4px 0" data-t="mfHow"></p>
+          <p style="margin:4px 0;color:var(--muted)" data-t="mfCaveat"></p>
+        </div>
+      </details>
     </section>
     <pre id="log"></pre>
 
@@ -551,6 +559,14 @@ const TEXT = {
     editor: "🎛️ Open Web Studio Editor (Live USB)",
     editorMock: "🧪 Try Web Studio Editor (Mock Device Simulator)",
     verLabel: "Version:", verOld: "You can install the latest release or roll back to an earlier build.", latest: "latest", manual: "Manual:",
+    mfTitle: "The first backup of a stock unit (third-party tool)",
+    mfWhat: "A stock unit cannot be read through this page: neither Verify Only nor INSTALL can read its flash, "
+      + "because the vendor firmware does not answer the read query. Before anything is written, its whole 1 MiB has to be read once.",
+    mfHow: "M-Flasher (MIT, jvitkauskas) is the documented way: it reboots the unit into the chip's ROM download mode over USB "
+      + "and reads the part from a loader that lives in RAM only. docs/M-FLASHER.md walks the procedure with its sources; "
+      + "this page does not run it and does not ship it.",
+    mfCaveat: "Documented from that tool's source, not demonstrated on a unit by this project. Read that document first: "
+      + "the physical key combination varies with firmware.",
     verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
     pf1: "The FM-1 is connected straight to the computer with a USB data cable (no hub).",
     pf2: "The computer is on mains power and will not sleep; the FM-1 is charged.",
@@ -665,6 +681,14 @@ TEXT.es = {
   editor: "🎛️ Abrir Web Studio (USB en vivo)",
   editorMock: "🧪 Probar Web Studio (simulador sin FM-1)",
   verLabel: "Versión del paquete:", verOld: "Podés instalar la última versión o volver a una anterior.", latest: "última", manual: "Manual:",
+  mfTitle: "El primer respaldo de una unidad de fábrica (herramienta de terceros)",
+  mfWhat: "Una unidad de fábrica no se puede leer desde esta página: ni Verify Only ni INSTALL pueden leer su flash, "
+    + "porque el firmware del fabricante no responde a la consulta de lectura. Antes de escribir nada hay que leer una vez su 1 MiB completo.",
+  mfHow: "M-Flasher (MIT, jvitkauskas) es el camino documentado: reinicia la unidad en el modo de descarga ROM del chip por USB "
+    + "y lee la memoria con un loader que vive solo en RAM. docs/M-FLASHER.md recorre el procedimiento con sus fuentes; "
+    + "esta página no lo ejecuta ni lo distribuye.",
+  mfCaveat: "Documentado a partir del código de esa herramienta, no demostrado en una unidad por este proyecto. Leé primero ese documento: "
+    + "la combinación física de teclas cambia según el firmware.",
   verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
   pf1: "El FM-1 está conectado directamente a la computadora con un cable USB de datos (sin hub).",
   pf2: "La computadora está enchufada a la red y no va a suspenderse; el FM-1 tiene batería.",
@@ -729,6 +753,13 @@ TEXT.zh = {
   editor: "🎛️ 打开 Web Studio（USB 实时）",
   editorMock: "🧪 试用 Web Studio（无硬件模拟器）",
   verLabel: "固件包版本：", verOld: "您可以安装最新版本或回退到较早版本。", latest: "最新", manual: "手册：",
+  mfTitle: "出厂设备的首次备份（第三方工具）",
+  mfWhat: "出厂设备无法通过本页面读取：Verify Only 与 INSTALL 都无法读取其闪存，因为厂商固件不响应读取查询。"
+    + "在写入任何内容之前，必须先完整读取一次 1 MiB。",
+  mfHow: "M-Flasher（MIT，jvitkauskas）是文档记载的途径：它通过 USB 让设备进入芯片的 ROM 下载模式，"
+    + "并用仅存在于 RAM 中的 loader 读取存储器。docs/M-FLASHER.md 逐步记录了该流程及其出处；"
+    + "本页面既不执行也不分发它。",
+  mfCaveat: "依据该工具的源代码记录，本项目未在任何设备上验证。请先阅读该文档：物理按键组合因固件而异。",
   verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
   pf1: "FM-1 已通过 USB 数据线直接连接到电脑（不使用集线器）。",
   pf2: "电脑已连接电源且不会休眠；FM-1 电量充足。",
@@ -1461,7 +1492,11 @@ function showVerify(fw) {
   const st = $("vrep-states");
   st.textContent = "";
   const negative = new Set(["RECOVERY NOT VERIFIED", "INSTALL BLOCKED"]);
+  const isInstallBlocked = !((fw.verdict && fw.verdict.canInstall) && (fw.gate || []).every((r) => r.state === "pass"));
   for (const s of diagnosticStates(fw)) {
+    /* If installation is blocked, do not render INSTALL READY as an unreached candidate alongside INSTALL BLOCKED,
+       to prevent any ambiguity between diagnostic pass and installation authorisation. */
+    if (s.state === "INSTALL READY" && isInstallBlocked) continue;
     const li = document.createElement("li");
     const neg = negative.has(s.state);
     li.textContent = `${s.reached ? (neg ? "!" : "\u2713") : "\u00b7"} ${s.state} \u2014 ${vf("st." + s.state)}`;
@@ -1474,6 +1509,11 @@ function showVerify(fw) {
   const missing = (fw.missing || []).map((m) => vf(m.key));
   $("vrep-missing").textContent = missing.length ? `${vf("missing")}: ${missing.join(", ")}` : "";
   $("vrep-install").textContent = vf("install");
+  const mfGuide = $("vrep-mflasher");
+  if (mfGuide) {
+    /* Show M-Flasher guidance specifically when stock firmware is detected and install is blocked */
+    mfGuide.hidden = !(fw.kind === "stock" || isInstallBlocked);
+  }
 }
 
 async function runVerify() {

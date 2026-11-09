@@ -317,6 +317,12 @@ run "raw restore: geometry, identifiers, sector alignment, readback, refusal bef
     python3 tests/restore_test.py
 run "signed packages: manifest, hash, product / version / min_firmware, WebCrypto parity" \
     python3 tests/sign_test.py
+# (PR #73) the gate's refusal matrix and the backup audit: both import tools/fm1_gate.py and
+# tools/fm1_image.py and assert on the real refusal codes, so a regression in either fails here.
+run "install gate: read-only chips, unknown JEDEC, model and identity refusals before any write" \
+    python3 tests/negative_write_test.py
+run "backup audit: region bounds, bootloader never written, dump and restore evidence agree" \
+    python3 tests/backup_audit_test.py
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip installer preflight (NO_PACKAGE=1: needs build/felucca.fwsc)"
 else
@@ -394,6 +400,10 @@ if command -v node >/dev/null 2>&1; then
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
     # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
     run "web verify-only: identity reads only, zero write frames" node web/test_verify_only.mjs
+    # (PR #73) the production pipeline against the real release package the build record names:
+    # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
+    run "web installer pipeline: the real package, and a refusal for every partial authorisation" \
+        node tests/installer_pipeline_production_test.mjs
     PKG=""
     if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
     run "web package parser: malformed .fwsc refused, never loops, the built one parses" \

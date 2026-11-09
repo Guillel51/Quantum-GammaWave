@@ -363,12 +363,12 @@ and re-signed on that tree rather than shipping bytes that no longer described i
 | Item | Value | Class |
 |---|---|---|
 | RAM code | **19 444 B of 24 576** (headroom **5 132 B**), calls reach 88 948 B | `[TARGET]` |
-| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` | `[TARGET]` |
-| build record | commit `26d7a6b`, `dirty: []` | `[TARGET]` |
+| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` (rebuilt in §17 as `80ad995c…` at `7eb9636`) | `[TARGET]` |
+| build record | commit `26d7a6b`, `dirty: []` (updated in §17 to `7eb9636`) | `[TARGET]` |
 | signature | `verified: FM-1 version 1.9.0, key qg1-release-1` | `[HOST]` |
 | emulator | 1 066 409 B wasm, Emscripten **6.0.11**, same commit as the firmware | `[WASM]` |
 
-The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these. Nothing here
+The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these (and in turn by §17's final build `7eb9636` / `80ad995c…`). Nothing here
 was measured on a device.
 ## 18. Update — 2026-11-08, what is left after `-Oz`: three measurements and no dead weight
 
@@ -666,3 +666,59 @@ need the unit (identity, JEDEC, backup, recovery) — and on a **stock** unit th
 because `0x12` is answered only by QG (`docs/JEDEC_READ.md` §1): the first backup of a stock unit is a
 hardware SPI read.
 
+## 26. Update — 2026-11-09, PR #73 reviewed before merge: kept, corrected, removed
+
+The branch `jules-16051787961813429323-dfe6ca9b` (17 commits, `9aa1a1b`) was reviewed file by file against
+`4e8d6b6`. This section records the decision for each part, because a merge that only says "reviewed" says
+nothing.
+
+**Kept.** The multi-chip allowlist, because it fails closed on both installers: `fl_jedec_writable()` still
+returns only Puya `0x856014` and UCUN `0xB36014`; `tools/fm1_gate.py` refuses a `READ_ONLY_JEDEC` id with
+`chip_read_only` before `PRODUCTION_JEDEC` is consulted; `requireChip()` in `web/fm1ota.js` refuses
+`READ_ONLY_JEDEC` before `KNOWN_JEDEC`, and `probeChip()` reports `writable: false` for those five parts.
+Reading and backing up more parts is not writing them. `tests/negative_write_test.py` and
+`tests/backup_audit_test.py` (both import `tools/fm1_gate.py` and `tools/fm1_image.py`) and
+`tests/installer_pipeline_production_test.mjs` (the real `Updater`/`requireProof` against the release
+package the build record names) stay. The documentation of the chip matrix, the flash map and the
+M-Flasher import likewise stays: it is sourced (`docs/M-FLASHER.md` cites the files in that tool) and it
+does not claim a measurement of our own.
+
+**Corrected.** (1) `STOCK_DONOR_VERSIONS` had been widened to `{15, 16}` with no unit read, no document and
+no report behind it, while the comment above it says only the stock versions this project has actually read
+are donors; it is `{15}` again and `web/test_donor.mjs` encodes that limit again (`stock V16 is not a donor
+this project has read`). A donor is a stock unit an install may start from, so this is the one place where
+an unverified widening is a write risk, not a convenience. (2) The installer's M-Flasher panel was Spanish
+only inside a page that is EN/ES/ZH, and it printed an `m-flasher read --out … --size 1M` command and an
+`OCT-`+`OCT+`+`HOME` combination as fact although neither is in the audited sources; it now has `data-t`
+keys in the three languages and says what it is: documented from that tool's source, not demonstrated on a
+unit here, with the key combination left to `docs/M-FLASHER.md`. (3) `tests/installer_pipeline_production_test.mjs`
+had the release path and size typed in; it now resolves the package from `release/build-manifest.json`, so a
+new release does not need the test edited and a renamed package cannot slip past it.
+
+**Removed, and why.** `tests/installer_pipeline_gates_test.py`, `tests/nor_flash_fault_injection_test.py` and
+`tests/power_cut_sim_test.py` do not test this repository: each defines its own `InstallerEngine`,
+`SimulatedSpiNor` or `FakeOtaTransport` inside the test file and asserts on that. They pass whatever the
+installer does, they duplicate `SUPPORTED_DONOR_VERSIONS` (so they would have kept asserting V16 after the
+correction above), and a green run of them proves nothing about `tools/` or `web/`. The behaviour they name
+is covered by real code: `tests/chip_test.py`, `tests/transport_gate_test.py`, `tests/install_test.py`,
+`tests/backup_test.c` and `web/test_web.mjs` (the 0x12/0x13 gate, the UPGRADE gate, the loader's own
+before-any-write refusals). `tests/ota_fault_injection_test.mjs`
+only round-tripped `pack7`/`unpack7` and called it fault injection. `tools/fm1_backup_validator.py` had no
+caller and no test and re-implements what `tools/fm1_flash_evidence.py` already does with a test
+(`tests/spi_dump_test.py`).
+
+**Enforced.** None of the six new test files ran in CI, and `tests/run_tests.sh` did not name them either: the
+PR added coverage that nothing executed. The three that test real modules are now steps in
+`tests/run_tests.sh`, which is what the `host tests` workflow runs.
+
+**Class of this evidence.** `[HOST]`: the host suite on `9aa1a1b`, the JS suites, the gate and package tests.
+Nothing here was measured on a device, and the merge changes no gate: the owner's unit stays at
+`INSTALL BLOCKED`. The published release (`release/`, built at `7eb9636`) is untouched and is still the only
+signed package; the commits merged here are not in it, and no package was rebuilt, signed or published for
+this review.
+
+**Known hole, reported not fixed.** The `emulator` workflow's step *the package, the installer and the editor*
+carries `continue-on-error: true`, so a failure inside it does not fail the run (on `9aa1a1b` the step's own
+conclusion was `success`). The steps after it — the target compiler checks and *a package and a site exist
+(fail closed)* — are enforced, so a missing package is still caught; a broken assertion inside that step is
+not.

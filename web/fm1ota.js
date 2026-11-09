@@ -46,8 +46,18 @@ export const PORT_RE = /fm-1|felucca|ota|composite|sinco|usb-midi/i;
 // Both documented 1 MiB parts are writable, exactly as tools/fm1_gate.py says: one policy for
 // both installers. The UCUN evidence (datasheet parity plus a third-party FM-1 that installed a
 // full image and kept its data across a power cycle) is in docs/JEDEC_COMPATIBILITY.md.
-const KNOWN_JEDEC = { 0x856014: "Puya P25Q80H (1 MiB)", 0xB36014: "UCUN UC25HQ80 (1 MiB)" };
-const READ_ONLY_JEDEC = {};
+const PRODUCTION_JEDEC = {
+  0x856014: "Puya P25Q80H (1 MiB)",
+  0xB36014: "UCUN UC25HQ80 (1 MiB)",
+};
+const READ_ONLY_JEDEC = {
+  0xC84014: "GigaDevice GD25Q80 (1 MiB)",
+  0xEF4014: "Winbond W25Q80 (1 MiB)",
+  0x5E4014: "Zbit ZB25VQ80 (1 MiB)",
+  0x684014: "BoyaMicro BY25D80 (1 MiB)",
+  0x204014: "XMC XM25QH80B (1 MiB)",
+};
+const KNOWN_JEDEC = { ...PRODUCTION_JEDEC, ...READ_ONLY_JEDEC };
 
 export function requireChip(evidence) {
   const jedec = evidence && evidence.jedec;
@@ -376,6 +386,11 @@ const QRY_CAP = 0x100000;
 const QRY_PARTS = {
   0x856014: { part: "P25Q80H", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: true },
   0xB36014: { part: "UC25HQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: true },
+  0xC84014: { part: "GD25Q80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0xEF4014: { part: "W25Q80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x5E4014: { part: "ZB25VQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x684014: { part: "BY25D80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x204014: { part: "XM25QH80B", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
 };
 const QRY_STATUS = { 1: "no NOR answer", 2: "unknown part", 3: "capacity not corroborated", 4: "no session",
   5: "range", 6: "length or read error", 7: "malformed request" };
