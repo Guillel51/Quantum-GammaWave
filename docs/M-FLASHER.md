@@ -10,14 +10,18 @@ project does not redistribute it, does not shell out to it and does not depend o
 this repository has is an importer (`tools/fm1_mflasher.py`) that takes the two files M-Flasher writes
 and proves, from their bytes, what they are.
 
-- Versions audited: **0.9.1** (tag `v0.9.1`) and **0.9.x / 0.9.4** line.
+- Version audited: **0.9.1**, tag `v0.9.1`, commit `9da825b2000143d89e8ca7ac016f35abe304158c`, 2026-11-06.
+- The `0.9.x` line (including 0.9.4) is accepted by `tools/fm1_mflasher.py` through
+  `TOOL_RE = re.compile(r"^m-flasher (\d+)\.(\d+)\.(\d+)$")` with version >= 0.9.0. Only 0.9.1 was read
+  here: for any other point release, the record format is assumed, not audited.
 - Source read: `src/jl.rs` (ROM protocol and loader), `src/ops.rs` (backup, restore, install plans),
   `src/formats.rs` (boot and app tables, CRCs, ENC), `src/boards.rs` (model evidence, flash ids),
   `src/midi.rs` (soft key), `src/scsi.rs` (transport), `docs/safety.md`.
-- Tool compatibility in `tools/fm1_mflasher.py`: accepts all M-Flasher records from 0.9.x series
-  (`TOOL_RE = re.compile(r"^m-flasher (\d+)\.(\d+)\.(\d+)$")`, version >= 0.9.0).
-- Operational verification: M-Flasher non-destructively reads 1 MiB via ROM UBOOT SCSI mode,
-  loads RAM loader into volatile memory (`0x01C20000`), and computes whole-chip hardware CRC32.
+- What that source does, as read: it reads 1 MiB through ROM UBOOT SCSI mode with a loader that lives in
+  RAM (`0x01C20000`) and checks the read against the CRC32 the chip computes over the whole part.
+- Nothing in this page was confirmed on hardware. It is an audit of the source plus a check of the
+  public stock dump against our own decoder; entering ROM download mode is not something this project has
+  done to a unit.
 
 ## 1. How it reaches a unit that is not running our firmware
 
