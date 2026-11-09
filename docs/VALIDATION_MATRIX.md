@@ -750,7 +750,7 @@ all, and both directions of the gate row in the report. The site still builds wi
 (`web/make_site.py`, 610 806-byte release package). What is **not** established: that any unit answers
 `0x12` here, because none was available.
 
-## 28. Update — 2026-11-09, the owner's unit is a known chip with a known backup: first install enabled
+## 28. Update — 2026-11-09, the owner's unit is a known chip with a known backup (install path: superseded by §30.1)
 
 The owner ran M-Flasher 0.9.4 against the unit and kept its record (`fm1-20261108-161613.json`):
 
@@ -822,7 +822,149 @@ The remaining defect the owner reported (an FX value spilling past the meter) is
 render sweep’s alignment lint reports 0 off-by-one measurements over 73 places, and 0 lint findings over 174 screens
 × 17 palettes.
 
-## 30. Update — 2026-11-09, the ecosystem pass: what the repository, the site and the captures say now
+## 30. Decision — 2026-11-09: what the owner's unit can and cannot be installed by
+
+### 30.1 §28 was too generous, and why
+
+§28 enabled a donor path: a stock unit plus a verified record could take `UPGRADE` from this page. Reading
+the firmware settled it the other way. The update loader is built with `FELUCCA_LOADER=1`, which compiles
+`0x12` out (`firmware/src/ota.c`), so the loader link can never identify the chip — the page used to send
+`0x12` there and refuse, which is exactly the "I put it in update mode and the installer does not recognise
+it" report. And a stock unit's own update mode is the **vendor's** program (`ota-FM-1_015`), not this
+project's loader: this project has never seen it accept a Felucca image, so offering it one is the one
+action that could leave the app area written by a loader that validates a different format.
+
+Both are now decided in code, before any frame:
+
+| What answers | Verdict | Where |
+|---|---|---|
+| `FM-1_9NN` + `0x12` | install proceeds; the loader link inherits that attempt's app-link reading | `install()` → `write({chipContinuity})` |
+| `ota-FM-1_900` | resume; needs the attempt's reading or a hashed record, else `loaderchip` | `write()` |
+| `ota-FM-1_015` | `foreignloader`, zero frames | `write()`, `install()`, page |
+| `FM-1_015` | `stockfirst`, zero frames, M-Flasher panel | `install()`, page |
+
+### 30.2 Gate-by-gate, with the class of each piece of evidence
+
+| Gate | State for **this unit** | Evidence | Class | What it would take to close it |
+|---|---|---|---|---|
+| Reproducible AC791N build | GO | build record + pinned toolchain; every release byte is the artefact the manifest names | `[CI]` | — |
+| Whole QG package | GO | `release/felucca-v1.9.0.fwsc`, 610 806 B, sha256 `80ad995c…`, every app file's CRC16 | `[HOST]` | — |
+| Production signature, pinned key | GO | Ed25519 over the canonical manifest, three refusals in `web/test_web.mjs` | `[HOST]` | — |
+| Unit identity | GO | handshake answers; the record names `FM-1 015 (stock)`, unit id `4150353835313708` | `[HW]`, third-party tool record | — |
+| **Real JEDEC and geometry** | **GO for this unit** | `0x856014` (Puya P25Q80H, 1 MiB) read by M-Flasher's `ONLINE_DEVICE` on this unit, recorded 2026-11-08; the part is in the write allowlist | `[HW]`, third-party read | nothing — this is the reading the page could never take on stock |
+| Flash write compatibility | **GO CONDITIONAL** | the part is in the allowlist; the write itself has never been executed on this unit, and the loader's region check plus per-sector readback are what contain it | `[HW]` identity + `[HOST]` behaviour | one successful install on any P25Q80H unit |
+| Applicable memory map | GO | `docs/FLASH_MAP_AND_RECOVERY_FORENSICS.md`; the loader refuses anything outside `0x4000..0x93000` / staging / stock record | `[STATIC]` + `[HOST]` | — |
+| **Verified prior backup** | **GO CONDITIONAL** | a 1 MiB read exists with sha256 `38c66ae7…` **inside the record**; the `.bin` itself was not shared, so this page has hashed nothing yet, and the chip's CRC32 is not in the record | `[HW]`, tool record only | the owner loads the `.bin` (the page hashes it) **and** a second backup or the CRC32; `fm1_mflasher.py import --second` already demands that |
+| **Demonstrated recovery** | **NO-GO** | M-Flasher restore of this unit's own dump is available and audited from source; it has never been run on this unit, and no boot-area write exists in this project | `[STATIC]` | one restore executed on a unit that is not the only one |
+| Protected write paths | GO | boot head, SPL, `isd_config`, VM, autosave, FM6, USR are out of the loader's `_Static_assert`ed window; the package never reaches `0xFF000` | `[STATIC]` + `[HOST]` | — |
+| Stress and stability | GO for the write loop | `ldr_test` cut matrix: 32 real cut points, all resumed and finished exact | `[HOST]` | a real power cut |
+| RAM/CPU headroom, post-install revalidation | GO CONDITIONAL / NO-GO | budgets measured on host and target build; the post-install check list exists but has never run on a unit | `[HOST]` / `[STATIC]` | one installed unit |
+| Installer/emulator/site sync | **NO-GO (one check)** | `tools/site_check.py` fails exactly one line: `versions.json`'s emulator record (`3d039f75…`, from the signed release build) is not the wasm the site serves (`c83c8bfb…`). Same commit, same flags, same emcc version string, same 1 073 325 B — and two separate CI rebuilds both produced `c83c8bfb`, so the pipeline is stable and reproduces its own bytes; what is not reproduced is the release record's build, whose inputs or emsdk snapshot differed while the version string did not. Treat it as a stale record, not flaky output | `[CI]` | rebuild the emulator with the exact emsdk the record was made with (or re-record it from a reproducible build) and verify the hash matches; needs `emcc`, absent here |
+
+### 30.3 The decision
+
+- **First install on this stock FM-1 by this page: NO-GO, and it is not a missing flag.** It is one
+  program on the unit (`ota-FM-1_015`) that nobody has read, and one protocol (`0x12`) the stock
+  application does not implement. The circularity is real, not bureaucratic.
+- **First install by M-Flasher `Install firmware`: GO CONDITIONAL**, and it is the documented route:
+  it takes the same `.fwsc`, checks model, chip key and app CRCs, writes `[0x4000, len)` only, keeps the
+  bootloader and cannot touch the head. Conditional on the backup being verified first (two reads or the
+  CRC32) and on the owner accepting that recovery has not been executed on this unit.
+- **Update on a unit already running QG: GO CONDITIONAL**, and for the first time the path is coherent end
+  to end: the chip gate on the loader link is satisfied by the same attempt's app-link `0x12` (or a hashed
+  record when resuming), the loader verifies every sector and commits only on an exact `success`, and a
+  dropped link is now reported as "nothing written" or "resumable sector write" instead of one message for
+  both.
+
+### 30.4 What is classified as what
+
+- **Real and critical:** recovery not demonstrated on hardware; the stock unit's own update mode being a
+  program nobody has read. Neither can be closed from software here.
+- **Correctable and corrected:** the loader link requiring `0x12` (it cannot answer), a redundant chip
+  probe on a different connection, a single message for two different drop states, the false promise in
+  `RECOVERY_GUIDE.md` that any `ota-` unit could be resumed, and §28's donor path.
+- **False or redundant:** "the installer is blocked because no unit answers `0x12`" as a statement about
+  *this* unit's chip — the chip is known; what was missing was a path that could use it.
+- **Acceptable and documented:** the write has never run on this unit, the emulator is not reproducible,
+  and a real power cut has not been staged.
+
+### 30.5 Evidence added in this change (`[HOST]`, simulated units)
+
+`web/test_update_mode.mjs`, 15 checks, 0 FAILED: a QG unit updates through a loader that answers no chip
+query (two `UPGRADE`s, every byte matched); a resume with no chip fact is refused as `loaderchip` with
+zero `UPGRADE`; the same resume with the record completes; the vendor loader is refused as
+`foreignloader` with zero bytes offered; a stock unit is refused as `stockfirst` with the message naming
+M-Flasher; and an answered `0x12` that names a read-only part is refused even when a record is loaded.
+`web/test_record.mjs` (24 checks) now asserts the other direction: a record does **not** authorise an
+install on a stock unit. `web/test_web.mjs` and `web/test_verify_only.mjs` (136) stay green.
+
+---
+
+## 31. Community research round: what it changed, and what it did not
+
+Sources read for this entry: `jvitkauskas/m-bootloader` (`README.md`, `docs/SPEC.md` §4/§5/§6/§10/§11.6/
+§11.7 and the read/write sources), `jvitkauskas/m-flasher` (README, `docs/safety.md`, `docs/usage.md`,
+`src/ops.rs`), `AL-255/FM-1-RE` (`docs/io/11-ota-protocol.md`, `analysis/device/ota-loader/`,
+`tools/fm1_ota.py`), `Quixotic7/MvaveFM1Unbricker` (`fm1_unbrick.py`, `UNBRICK-GUIDE.md`),
+`Quixotic7/TransitFM1`, `kurogedelic/FM-1-transporter` (`docs/PROTOCOL.md`), and the FM-1 Developers'
+Wiki pages listed in `docs/FM1_MODES.md` §5. Everything below is classified in that document.
+
+### 31.1 What the research settled
+
+| question | answer | consequence for this repository |
+|---|---|---|
+| What does the `sha256` in the M-Flasher record hash? | the **whole 1 MiB image as read in that run** (`src/ops.rs`, 0.9.4 — same code as 0.9.1) | the record still binds a model and a chip and nothing else; consistency needs a second read or the chip's CRC32, which the JSON does not carry |
+| Can a full 1 MiB backup keep the stock boot loader? | yes, by two routes, neither of them a browser: M-Flasher over ROM mode, or m-bootloader's RAM stage | the page keeps accepting a *verifiable* dump and stops implying it can take one |
+| Does the m-bootloader stage write flash? | no (`SPEC.md` §10/§11.7, chunk reads `0x23`); but the firmware-update route overwrites the staging area *before* it runs | route B is not read-only for `~0xE3000..0xE7F00`; documented, with the user-data banks it abuts |
+| Is the ROM mode reachable from WebMIDI? | no: `4C4A:8057` is mass storage/SCSI and WebMIDI exposes no VID/PID | `ENTERING_DOWNLOAD_MODE` / `ROM_DEVICE_DETECTED` declared unobservable rather than faked |
+| Does the single-bank risk have a size? | yes: the app is written in address order, entry sector first, so the exposure is the remaining 1167-chunk write | documented as a window, not as a corner |
+| Is there a protection that closes it? | TransitFM1's stub does for *updates*; its own first install from V15 has 17 unprotected cut points | no change to the first-install decision; a candidate for the update path once hardware evidence exists |
+| Is `ota-` one thing? | no: `ota-FM-1_900` is this project's loader, any other version is the vendor's update mode | **code change**: the verify report now splits `ourloader` / `otherloader`, and only the former is a resumable state |
+
+### 31.2 Gates, after the research
+
+| requirement | state | why it did not improve |
+|---|---|---|
+| unit identity | GO | model, version and chip are read or bound; the record is `modelOnly` and the chip gate has three sources of decreasing strength |
+| verified prior backup | GO CONDITIONAL | the meaning of the record's hash is now established, and the two routes are documented; *this unit's* dump still does not exist, and only a host tool can take it |
+| demonstrated recovery | NO-GO | no project has demonstrated recovery **from this unit's state**; MvaveFM1Unbricker and TransitFM1 are `[3rd-hw]` on other units and are cited, not adopted |
+| protected write paths | GO CONDITIONAL | the loader verifies per sector and refuses to commit; the stock first install remains single-bank and unprotected for the whole pass |
+| ROM-mode access from the installer | NOT APPLICABLE | not a transport WebMIDI has; the honest state is "unobservable", and it is now named |
+| mode identification | GO | four identities documented, two of them (the loaders) now distinguished by code, with the blind spots declared |
+
+Nothing above was relaxed to make a button appear. The two changes are an added distinction the
+evidence supports (the two loaders) and an honest refusal (`READY_TO_INSTALL` cannot be reached from
+a firmware name, only from steps the loader reported).
+
+### 31.3 The decision is unchanged, and now it says why in one place
+
+**First install on this stock FM-1 by this page: NO-GO.** The blocker is not a gate that could be
+rewritten: it is that the program which would receive the image (`ota-FM-1_015`) has never been read
+by anyone, and the stock app does not implement the one command that would identify the chip on the
+same link. The route that *has* been used on stock units is M-Flasher's, which is why the page's
+`stockfirst` message names it instead of offering a path it cannot take.
+
+**First install by M-Flasher / by a host tool over ROM mode: GO CONDITIONAL**, on a verified dump of
+*this* unit first (two reads or the CRC32), and on the owner accepting that recovery has not been
+executed on this unit.
+
+**Update on a unit already running QG: GO CONDITIONAL**, unchanged from §30.3, with the loader split
+of §31.1 making the foreign-loader refusal visible in the report instead of only in the error path.
+
+### 31.4 Evidence added in this entry (`[HOST]`)
+
+`web/fm1state.js` + `web/test_state.mjs`, **65 checks, 0 FAILED**: seventeen named states, four of
+them declared unobservable over WebMIDI with their reasons; `derive()` maps only observations (no
+port → `DEVICE_NOT_CONNECTED`, a name alone never reaches `READY_TO_INSTALL`); the image transfer is
+not called a write and the write is not called a verification pass; a lost link inside the write pass
+is `RECOVERY_REQUIRED` while the same loss before it is `FAILED_SAFE`; every state has advice, and the
+destructive ones say not to cut the power. `web/test_verify_only.mjs` grew to **140 checks**: the
+vendor's loader is now `otherloader` / `foreign-loader` with zero frames sent, while `ota-FM-1_900`
+keeps `finish-loader`. `web/test_update_mode.mjs` (15), `web/test_record.mjs` (24) and
+`web/test_web.mjs` stay green. No behaviour on the wire changed: the classification is a report and a
+message.
+
+## 32. Update — 2026-11-09, the ecosystem pass: what the repository, the site and the captures say now
 
 The order was to bring everything around the firmware to the state the firmware is in, and to publish nothing that
 is not demonstrated. The firmware sources did not change in this pass, so the signed `v1.9.0` package still

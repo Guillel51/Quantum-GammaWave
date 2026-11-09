@@ -2,7 +2,7 @@
 
 No cambia el firmware, así que el paquete firmado `v1.9.0` sigue describiendo este árbol. Lo que cambia es lo que
 el repositorio, el portal, la página del instalador y el Web Studio dicen, y cada afirmación de aquí tiene su
-prueba en `docs/VALIDATION_MATRIX.md` §30.
+prueba en `docs/VALIDATION_MATRIX.md` §32.
 
 - **La página del instalador pierde el preview del navegador.** La sección `QUANTUM GAMMAWAVE — LIVE BROWSER DSP
   PREVIEW` se va entera: rótulo, gráfico, textos, botones, sus reglas CSS, su bloque de script (~14,5 KB) y las

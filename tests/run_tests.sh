@@ -407,7 +407,15 @@ if command -v node >/dev/null 2>&1; then
     # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
     # its dump hashed in the page, and the donor install path that accepts them -- with the wire
     # assertions that nothing is sent without them.
-    run "web chip record: M-Flasher record + dump, and the donor install path" node web/test_record.mjs
+    run "web chip record: M-Flasher record + dump, and what it does not authorise" node web/test_record.mjs
+    # (first install) a unit sitting in its update mode answers the handshake and not 0x12, so the
+    # chip gate on the loader link comes from the same attempt or from the record -- and a unit's own
+    # update mode is never fed a Felucca image.
+    run "web update mode: loader links, foreign loaders, and the resume path" node web/test_update_mode.mjs
+    # (state machine) the seventeen named states: each one tied to an observation this page can make,
+    # or declared unreachable with its reason -- WebMIDI cannot see the ROM mode, and the loader has no
+    # separate erase or verify phase.
+    run "web state: the named states, the four blind spots, and who may unplug" node web/test_state.mjs
     # (PR #73) the production pipeline against the real release package the build record names:
     # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
     run "web installer pipeline: the real package, and a refusal for every partial authorisation" \

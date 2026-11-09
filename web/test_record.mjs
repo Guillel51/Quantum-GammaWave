@@ -98,9 +98,11 @@ refuses(() => checkPart({ jedec: 0x123456, flash: "0x123456" }), "chip", "an unk
           "a record whose dump was never hashed: refused");
 }
 
-/* --- the install path: a stock donor, with and without the record --- */
-const HS = Uint8Array.from(READ_ONLY_QUERY);
+/* --- what the record does NOT do: it never turns a stock unit into a destination --- */
+/* the release chain and a stock unit: enough to drive install() and count what it sends */
+const HS = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
+const cmdOf = (b) => { try { const d = []; let acc = 0, nb = 0; for (const v of b.slice(1, -1)) { acc |= v << nb; nb += 7; while (nb >= 8) { d.push(acc & 0xFF); acc >>>= 8; nb -= 8; } } return d[2]; } catch (_) { return null; } };
 function identityFrame(text) {
   const d = [0, 0x59, 0x11, 0, 0, 0, ...Array.from(text.padEnd(27, "\0")).map((c) => c.charCodeAt(0)), 0];
   const out = []; let acc = 0, nb = 0;
@@ -108,82 +110,41 @@ function identityFrame(text) {
   if (nb) out.push(acc & 0x7F);
   return [0xF0, ...out, 0xF7];
 }
-const cmdOf = (b) => { try { const d = []; let acc = 0, nb = 0; for (const v of b.slice(1, -1)) { acc |= v << nb; nb += 7; while (nb >= 8) { d.push(acc & 0xFF); acc >>>= 8; nb -= 8; } } return d[2]; } catch (_) { return null; } };
-
-/* the release package, the real signed manifest and its build record */
-const fs = await import("node:fs");
-const pkg = fs.readFileSync("release/felucca-v1.9.0.fwsc");
-/* the real chain: the signed release manifest, the build record and the pinned keys. That is what an
- * install authorisation is made of, so the path under test is the one a user actually gets. */
-const manifest = JSON.parse(fs.readFileSync("release/felucca-v1.9.0.manifest.json", "utf-8"));
-const build = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
-const emu = JSON.parse(fs.readFileSync("release/emu/manifest.json", "utf-8"));
-const keys = JSON.parse(fs.readFileSync("tools/fm1_keys.json", "utf-8")).keys || {};
-const prov = await verifyProvenance(pkg, build, { emulator: emu });
-const ctxFor = () => ({ manifest, keys, firmware: "15", provenance: prov });
-/* a stock FM-1: it answers the handshake, ignores 0x12, and never hands over to the loader here --
- * the point of the case is what the page sends before that, not the transfer itself */
-function stockUnit() {
+/* a stock FM-1: it answers the handshake and nothing else the installer asks of it */
+function stockUnit(text = "FM-1_015") {
   const sent = [];
   const input = { name: "FM-1 Midi", state: "connected", onmidimessage: null, open: async () => {} };
   const output = { name: "FM-1 Midi", state: "connected", open: async () => {}, send(bytes) {
     const b = Array.from(bytes);
     sent.push(b);
     if (b.length === HS.length && b.every((v, i) => v === HS[i]))
-      setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from(identityFrame("FM-1_015")) }), 0);
-    else if (b.length === 6 && b.every((v, i) => v === UPGRADE[i]))
-      setTimeout(() => { input.state = "disconnected"; output.state = "disconnected"; }, 20);
+      setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from(identityFrame(text)) }), 0);
   } };
   return { sent, midi: { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) } };
 }
-{
-  const u = stockUnit();
-  const up = new Updater(u.midi);
-  const proof = await requireProof({ ...ctxFor(), pkg, product: "FM-1_982" });
-  const err = await up.install(pkg, "FM-1_982", () => {}, { ...ctxFor(), proof }).catch((e) => e);
-  ok(err && err.code === "chip", "a stock unit without a chip record: refused with code \"chip\"");
-  ok(!u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
-     "...and UPGRADE was never sent: a stock unit is not written on a guess");
-}
-{
-  const dump = new Uint8Array(DUMP_BYTES);
-  const sha = crypto.createHash("sha256").update(dump).digest("hex");
-  const ev = await verifyDump(parseRecord(JSON.stringify({ ...JSON.parse(OWNER), sha256: sha })), dump);
-  const chipRecord = recordFor(ev, { model: "FM-1", version: 15, text: "FM-1_015" });
+const fs = await import("node:fs");
+const pkg = fs.readFileSync("release/felucca-v1.9.0.fwsc");
+const manifest = JSON.parse(fs.readFileSync("release/felucca-v1.9.0.manifest.json", "utf-8"));
+const build = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
+const emu = JSON.parse(fs.readFileSync("release/emu/manifest.json", "utf-8"));
+const keys = JSON.parse(fs.readFileSync("tools/fm1_keys.json", "utf-8")).keys || {};
+const prov = await verifyProvenance(pkg, build, { emulator: emu });
+const ctxFor = () => ({ manifest, keys, firmware: "15", provenance: prov });
+const chipRecord = recordFor(
+  await verifyDump(parseRecord(JSON.stringify({ ...JSON.parse(OWNER), sha256: crypto.createHash("sha256").update(new Uint8Array(DUMP_BYTES)).digest("hex") })),
+                   new Uint8Array(DUMP_BYTES)),
+  { model: "FM-1", version: 15, text: "FM-1_015" });
 
+{
   const u = stockUnit();
-  const up = new Updater(u.midi);
+  const up = new Updater(u.midi, () => {});
   const proof = await requireProof({ ...ctxFor(), pkg, product: "FM-1_982" });
   const err = await up.install(pkg, "FM-1_982", () => {}, { ...ctxFor(), proof, chipRecord }).catch((e) => e);
-  const upgrades = u.sent.filter((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])).length;
-  const queries12 = u.sent.filter((b) => cmdOf(b) === 0x12).length;
-  ok(queries12 === 0, "with a verified record the page never asks a stock unit for 0x12");
-  ok(upgrades === 1, "and it does send UPGRADE, once, on that same link");
-  ok(err && (err.code === "lost" || err.code === "stopped" || err.code === "noloader"),
-     `the unit that does not hand over stops the install with an error, not a silent write (${err && err.code})`);
-}
-{
-  // a record kept from another version cannot stand in for this unit
-  const dump = new Uint8Array(DUMP_BYTES);
-  const sha = crypto.createHash("sha256").update(dump).digest("hex");
-  const ev = await verifyDump(parseRecord(JSON.stringify({ ...JSON.parse(OWNER), sha256: sha })), dump);
-  const other = { ...recordFor(ev, { model: "FM-1", version: 15, text: "FM-1_015" }), version: 16 };
-  const u = stockUnit();
-  const up = new Updater(u.midi);
-  const proof = await requireProof({ ...ctxFor(), pkg, product: "FM-1_982" });
-  const err = await up.install(pkg, "FM-1_982", () => {}, { ...ctxFor(), proof, chipRecord: other }).catch((e) => e);
-  ok(err && err.code === "chip" && !u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
-     "a record for another firmware version is refused before UPGRADE");
-}
-{
-  // an unverified record (no dump hashed) authorises nothing
-  const u = stockUnit();
-  const up = new Updater(u.midi);
-  const proof = await requireProof({ ...ctxFor(), pkg, product: "FM-1_982" });
-  const rec2 = { ...recordFor({ ...parseRecord(OWNER), verified: true, dumpBytes: DUMP_BYTES }, { model: "FM-1", version: 15, text: "FM-1_015" }), verified: false };
-  const err = await up.install(pkg, "FM-1_982", () => {}, { ...ctxFor(), proof, chipRecord: rec2 }).catch((e) => e);
-  ok(err && err.code === "chip" && !u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
-     "an unverified record is refused before UPGRADE");
+  ok(err && err.code === "stockfirst", `a stock unit with a verified record is still refused as "stockfirst" (${err && err.code})`);
+  ok(!u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
+     "...and it still receives no UPGRADE: a chip reading is not an installation");
+  ok(u.sent.every((b) => !(b.length > 3 && b[0] === 0xF0 && cmdOf(b) === 0x30)),
+     "...nor was any image byte offered to it");
 }
 
 console.log(`chip record: ${n} checks, 0 FAILED`);

@@ -101,7 +101,10 @@ function anyWrite(sent) {
 }
 {
   // every answer says what it is: found / recognised / canInstall, and only the reading one moves
-  const cases = [["FM-1_015", "stock", true], ["FM-1_982", "ours", true], ["ota-FM-1_982", "loader", true],
+  // the two loaders share the port name and are told apart by the version the unit answers:
+  // 900 is this project's loader (resumable), any other is the vendor's update mode (not a target).
+  const cases = [["FM-1_015", "stock", true], ["FM-1_982", "ours", true], ["ota-FM-1_900", "ourloader", true],
+                 ["ota-FM-1_015", "otherloader", true],
                  ["FM-1_909", "other", false], ["FM-1_210", "other", false]];
   for (const [id, kind, ok] of cases) {
     const a = access(["FM-1"], { "FM-1": () => [identityFrame(id)] });
@@ -142,10 +145,19 @@ function anyWrite(sent) {
   check("no FM-1 at all: none, nothing sent", fw.kind === "none" && a.sent.length === 0);
 }
 {
-  const a = access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_982")] });
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_900")] });
   const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
-  check("the update loader: reported as loader (an install was cut off)", fw.kind === "loader" && fw.model === "ota-FM-1");
-  check("the update loader: only the identity query was sent, no resume", onlyQueries(a.sent) && !anyWrite(a.sent));
+  check("this project's loader (ota-FM-1_900): ourloader, an install was cut off",
+    fw.kind === "ourloader" && fw.model === "ota-FM-1" && fw.compatibility === "finish-loader");
+  check("this project's loader: only the identity query was sent, no resume", onlyQueries(a.sent) && !anyWrite(a.sent));
+  /* The vendor's own update mode answers the same port name. Calling it "a loader we can resume"
+   * is the mistake that would feed a Felucca image to a program nobody has shown to accept one, so
+   * the report has to say foreign, and say it without sending a frame. */
+  const b = access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_015")] });
+  const fw2 = await verifyDevice(b.midi, { product: "FM-1_982" });
+  check("the vendor's update mode (ota-FM-1_015): otherloader, reported as foreign, not resumable",
+    fw2.kind === "otherloader" && fw2.compatibility === "foreign-loader" && fw2.compatible === false);
+  check("the vendor's update mode: nothing was sent to it", onlyQueries(b.sent) && !anyWrite(b.sent));
 }
 {
   // malformed and hostile answers: a truncated frame, a wrong header, a huge blob, another command
@@ -266,7 +278,8 @@ function anyWrite(sent) {
 }
 {
   // every kind leaves canInstall false: the diagnosis never authorises an install
-  const cases = [["FM-1_015", "stock"], ["FM-1_982", "ours"], ["FM-1_909", "other"], ["ota-FM-1_982", "loader"]];
+  const cases = [["FM-1_015", "stock"], ["FM-1_982", "ours"], ["FM-1_909", "other"],
+                 ["ota-FM-1_900", "ourloader"], ["ota-FM-1_015", "otherloader"]];
   let allFalse = true;
   for (const [id, kind] of cases) {
     const a = access(["FM-1"], { "FM-1": () => [identityFrame(id)] });
@@ -345,10 +358,14 @@ function anyWrite(sent) {
 }
 {
   // the loader, and a package for a different model
-  const ldr = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_982")] }).midi,
+  const ldr = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_900")] }).midi,
     { product: "FM-1_982" });
-  check("the update loader + this package: it can finish the interrupted install",
-    ldr.kind === "loader" && ldr.compatibility === "finish-loader" && ldr.authorised === false);
+  check("this project's loader + this package: it can finish the interrupted install",
+    ldr.kind === "ourloader" && ldr.compatibility === "finish-loader" && ldr.authorised === false);
+  const vend = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_015")] }).midi,
+    { product: "FM-1_982" });
+  check("the vendor's loader + this package: blocked as foreign, never \"finish the install\"",
+    vend.kind === "otherloader" && vend.compatibility === "foreign-loader" && vend.compatible === false);
   const wrong = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-2_982")] }).midi,
     { product: "FM-1_982" });
   check("a unit of another model is blocked by model, not by firmware",

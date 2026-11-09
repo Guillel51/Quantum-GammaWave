@@ -1,0 +1,213 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// The update-mode path: what the installer does when the program answering is an update loader.
+//
+// Two facts drive every case here, both from this repository's own firmware:
+//   * the loader is built with FELUCCA_LOADER=1, which compiles 0x12 out (firmware/src/ota.c,
+//     docs/IDENTIFICATION.md), so it cannot identify the chip;
+//   * a stock unit's own update mode is a different program ("ota-FM-1_015"), which never agreed to
+//     take a Felucca image.
+// So the chip gate on the loader link can only come from the same attempt's app-link reading or from
+// an M-Flasher record whose dump the page hashed -- and a foreign loader must be refused before a
+// single write frame. Every case asserts the frames, not the intention.
+import assert from "node:assert";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import { Updater, requireProof, pack7, isOurLoader } from "./fm1ota.js";
+import { logicalImage } from "./fm1pkg.js";
+import { verifyProvenance } from "./fm1provenance.js";
+import { parseRecord, verifyDump, recordFor, DUMP_BYTES } from "./fm1record.js";
+
+let n = 0;
+const ok = (cond, what) => { assert.ok(cond, what); n++; console.log("ok  " + what); };
+const HS = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
+const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
+const eq = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+
+function unpack7(bytes) {
+  const out = []; let acc = 0, nb = 0;
+  for (const v of bytes) { acc |= v << nb; nb += 7; while (nb >= 8) { out.push(acc & 0xFF); acc >>>= 8; nb -= 8; } }
+  return out;
+}
+function crc16(a) {
+  let c = 0;
+  for (const x of a) { c ^= x << 8; for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF; }
+  return c & 0xFFFF;
+}
+
+/* A unit that can be either program: the app (answers 0x12, stages the loader) or a loader (no 0x12
+ * at all, or one that answers a part this installer must refuse). */
+class Unit {
+  constructor(image, { identity, nor = true, jedec = 0x856014, writes = 3 } = {}) {
+    this.image = image; this.nor = nor; this.jedec = jedec; this.writes = writes;
+    this.frames = 0; this.upgrades = 0; this.queries = 0; this.served = 0; this.session = 0x7000;
+    this.access = { inputs: new Map(), outputs: new Map() };
+    this.boot(identity, identity.startsWith("ota-") ? "Felucca Update" : "Felucca");
+  }
+  boot(identity, name) {
+    this.identity = identity; this.waiting = null; this.queue = [];
+    for (const m of [this.access.inputs, this.access.outputs]) { for (const p of m.values()) p.state = "disconnected"; m.clear(); }
+    const id = Math.random().toString(36).slice(2);
+    this.input = { id: "i" + id, name, state: "connected", onmidimessage: null, open: async () => {} };
+    this.output = { id: "o" + id, name, state: "connected", open: async () => {}, send: (d) => {
+      if (this.output.state !== "connected") throw new Error("InvalidStateError");
+      setTimeout(() => this.rx(Array.from(d)), 1);
+    } };
+    this.access.inputs.set(this.input.id, this.input);
+    this.access.outputs.set(this.output.id, this.output);
+  }
+  tx(bytes) { const i = this.input; setTimeout(() => { if (i.state === "connected" && i.onmidimessage) i.onmidimessage({ data: Uint8Array.from(bytes) }); }, 1); }
+  qry12() {
+    this.queries++;
+    if (!this.nor) return;                                  // a loader: the query code is not in the build
+    const b = new Array(24).fill(0);
+    b[0] = 1;
+    b[2] = (this.jedec >> 16) & 0xFF; b[3] = (this.jedec >> 8) & 0xFF; b[4] = this.jedec & 0xFF;
+    const cap = 0x100000;
+    b[5] = cap & 0xFF; b[6] = (cap >> 8) & 0xFF; b[7] = (cap >> 16) & 0xFF; b[8] = 0;
+    b[9] = 0; b[10] = 1; b[11] = 0; b[12] = 0x10; b[13] = 0; b[14] = 0; b[15] = 1; b[16] = 0;
+    this.session = (this.session + 1) >>> 0;
+    b[17] = this.session & 0xFF; b[18] = (this.session >> 8) & 0xFF;
+    b[19] = (this.session >> 16) & 0xFF; b[20] = (this.session >>> 24) & 0xFF;
+    b[21] = crc16(b.slice(0, 21)) & 0xFF; b[22] = (crc16(b.slice(0, 21)) >> 8) & 0xFF;
+    const c = (~b.reduce((x, y) => x + y, 0)) & 0xFF;
+    this.tx([0xF0, ...pack7([0, 0x59, 0x12, 24, 0, 0, ...b, c]), 0xF7]);
+  }
+  rx(d) {
+    this.frames++;
+    if (d.length > 3 && d[0] === 0xF0 && d.at(-1) === 0xF7) {
+      let u = null;
+      try { u = unpack7(d.slice(1, -1)); } catch (_) { u = null; }
+      if (u && u[0] === 0 && u[1] === 0x59 && u[2] === 0x12) return this.qry12();
+    }
+    if (eq(d, HS)) {
+      const t = [...new TextEncoder().encode(this.identity)];
+      this.tx([0xF0, ...pack7([0, 0x59, 0x11, 0, 0, 0, ...t, ...new Array(28 - t.length).fill(0)]), 0xF7]);
+    } else if (eq(d, UPGRADE)) {
+      this.upgrades++;
+      this.queue = this.identity.startsWith("ota-")
+        ? [...Array.from({ length: this.writes }, (_, k) => [k * 512, 512]), [0xF0000000, 8]]
+        : [[0, 64], [0x40, 160], [0x1000, 512], [0xE0000000, 8]];
+      this.next();
+    } else if (this.waiting) {
+      const u = unpack7(d.slice(1, -1));
+      const [addr, len] = this.waiting;
+      const fin = addr >= 0xE0000000;
+      const got = u.slice(14, 14 + (fin ? 8 : len));
+      const want = fin ? [...new TextEncoder().encode("success"), 0] : Array.from(this.image.subarray(addr, addr + len));
+      if (!eq(got, want)) this.served = -1e9;                  // a wrong byte, not a slow unit
+      this.waiting = null;
+      if (this.served > -1e8) this.served++;
+      if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_900", "Felucca Update"), 200);
+      else if (addr === 0xF0000000) setTimeout(() => this.boot(this.after, "Felucca"), 200);
+      else this.next();
+    }
+  }
+  next() {
+    const r = this.queue.shift();
+    if (!r) return;
+    this.waiting = r;
+    const [addr, len] = r;
+    const u = [0, 0x59, 0x30, 0, 0, 0, 0, addr & 0xFF, (addr >>> 8) & 0xFF, (addr >>> 16) & 0xFF, (addr >>> 24) & 0xFF, len & 0xFF, len >> 8, 0];
+    let s = 0;
+    for (let i = 6; i < 14; i++) s += u[i];
+    u.push(~s & 0xFF);
+    this.tx([0xF0, ...pack7(u), 0xF7]);
+  }
+}
+
+/* the real release chain: the package people install, and the record/provenance the page needs */
+const pkg = fs.readFileSync("release/felucca-v1.9.0.fwsc");
+/* the device reads the LOGICAL image of the package (fm1pkg.js), not the container file */
+const image = logicalImage(pkg);
+const manifest = JSON.parse(fs.readFileSync("release/felucca-v1.9.0.manifest.json", "utf-8"));
+const build = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
+const emu = JSON.parse(fs.readFileSync("release/emu/manifest.json", "utf-8"));
+const keys = JSON.parse(fs.readFileSync("tools/fm1_keys.json", "utf-8")).keys || {};
+const prov = await verifyProvenance(pkg, build, { emulator: emu });
+const PRODUCT = "FM-1_982";
+const ctxFor = (extra = {}) => ({ manifest, keys, firmware: "15", provenance: prov, ...extra });
+
+const OWNER = JSON.stringify({
+  model: "FM-1", bootloader: "stock (M-VAVE)", firmware: "FM-1 015 (stock)", app: "OK",
+  "chip key": "0x980F", flash: "0x856014", "unit id": "4150353835313708",
+  loader: "M-Flasher 1.3, CPU at 96 MHz",
+  sha256: "38c66ae7c36b46f2fad1c0f8a041ba257934b1b46a73d4085216c60e78f2d9cd",
+  saved: "20261108-161613", tool: "m-flasher 0.9.4",
+});
+const dump = new Uint8Array(DUMP_BYTES);
+const dumpSha = crypto.createHash("sha256").update(dump).digest("hex");
+const chipRecord = recordFor(
+  await verifyDump(parseRecord(JSON.stringify({ ...JSON.parse(OWNER), sha256: dumpSha })), dump),
+  { model: "FM-1", version: 15, text: "FM-1_015" });
+
+ok(isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_900", version: 900 }) === true &&
+   isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_015", version: 15 }) === false &&
+   isOurLoader({ model: "FM-1", text: "FM-1_982", version: 982 }) === false,
+   "the loader sentinel (900) tells this project's loader from a unit's own update mode");
+
+const fast = { loaderDelay: 60, rebootDelay: 60 };
+const run = async (unit, ctx) => {
+  const up = new Updater(unit.access, () => {}, fast);
+  const proof = await requireProof({ ...ctx, pkg, product: PRODUCT });
+  return up.install(pkg, PRODUCT, () => {}, { ...ctx, proof }).catch((e) => e);
+};
+
+/* 1. The real-world fix: a unit running QG updates through a loader that cannot answer 0x12.
+ *    The chip fact is the app link's own 0x12 from the same attempt, and the write completes. */
+{
+  const u = new Unit(image, { identity: PRODUCT });
+  u.after = PRODUCT;
+  const before = u.upgrades;
+  const res = await run(u, ctxFor());
+  ok(res === PRODUCT, `a QG unit updates through a loader with no chip query (result ${JSON.stringify(res && res.message || res)})`);
+  ok(u.upgrades === before + 2, "the app took UPGRADE once and the loader took it once: two separate programs");
+  ok(u.served > 0 && u.served < 1e8, `every byte the device asked for matched the package (${u.served} requests)`);
+}
+
+/* 2. The same unit, but the page opens with the loader already up (an interrupted install): without a
+ *    record there is no chip fact at all, and the refusal must be that, not a generic timeout. */
+{
+  const u = new Unit(image, { identity: "ota-FM-1_900", nor: false });
+  const err = await run(u, ctxFor());
+  ok(err && err.code === "loaderchip", `a resumed install with no chip record is refused as "loaderchip" (${err && err.code})`);
+  ok(u.upgrades === 0, "...and the loader received no UPGRADE: nothing is written on a guess");
+}
+
+/* 3. With the record and its hashed dump, the same resume goes through: the chip fact is this unit's
+ *    own part, read out of band, and the loader's model matches the record's. */
+{
+  const u = new Unit(image, { identity: "ota-FM-1_900", nor: false });
+  u.after = PRODUCT;
+  const res = await run(u, ctxFor({ chipRecord }));
+  ok(res === PRODUCT, `a resumed install completes with the M-Flasher record (${JSON.stringify(res && res.message || res)})`);
+  ok(u.served > 0 && u.served < 1e8, "and the loader got the bytes it asked for, all of them");
+}
+
+/* 4. A stock unit's own update mode is not our loader: no image may go there. */
+{
+  const u = new Unit(image, { identity: "ota-FM-1_015", nor: false });
+  const err = await run(u, ctxFor({ chipRecord }));
+  ok(err && err.code === "foreignloader", `the unit's own update mode is refused as "foreignloader" (${err && err.code})`);
+  ok(u.upgrades === 0 && u.served === 0, "...with zero UPGRADE and zero bytes offered to it");
+}
+
+/* 5. A stock unit running its app is not a destination for this page at all: the first install is
+ *    M-Flasher's, and the record does not change that. */
+{
+  const u = new Unit(image, { identity: "FM-1_015", nor: false });
+  const err = await run(u, ctxFor({ chipRecord }));
+  ok(err && err.code === "stockfirst", `a stock unit is refused as "stockfirst" (${err && err.code})`);
+  ok(/M-Flasher/.test(String(err && err.message)), "and the message names the tool that does the first install");
+  ok(u.upgrades === 0 && u.served === 0, "...with zero UPGRADE and zero bytes sent");
+}
+
+/* 6. An answered 0x12 decides, even when it is a part this installer does not write: the record must
+ *    not be able to paper over a chip that answered and was refused. */
+{
+  const u = new Unit(image, { identity: "ota-FM-1_900", nor: true, jedec: 0xC84014 });   // read-only GD25Q80
+  const err = await run(u, ctxFor({ chipRecord }));
+  ok(err && err.code === "chip", `a loader that answers with a read-only part is refused (${err && err.code})`);
+  ok(u.upgrades === 0, "...and the record did not stand in for the answer: no UPGRADE");
+}
+
+console.log(`update mode: ${n} checks, 0 FAILED`);

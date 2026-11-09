@@ -415,6 +415,11 @@ const TEXT = {
     notfound: "M-VAVE FM-1 non détecté. Vérifiez que leFM-1 est allumé, branché avec un câble USB de données, et fermez les autres logiciels MIDI (DAW).",
     model: "L'appareil connecté n'est pas un M-VAVE FM-1.",
     lost: "Connexion USB perdue. Rebranchez le FM-1 et cliquez à nouveau sur Installer.",
+    stockfirst: "Cette unité exécute le firmware d'origine. Cette page met à jour une unité qui exécute déjà Quantum GammaWave ; la première installation sur un FM-1 d'origine se fait avec « Install firmware » de M-Flasher, qui n'écrit que la zone d'application et conserve le bootloader et les données d'usine. Rien n'a été envoyé à l'unité.",
+    foreignloader: "L'unité est dans son propre mode de mise à jour, pas dans le loader de ce projet. Une image Quantum GammaWave ne doit pas y être envoyée : rien n'a été envoyé. Redémarrez l'unité et installez uniquement depuis une unité qui exécute Quantum GammaWave.",
+    loaderchip: "Le loader de mise à jour ne peut pas identifier la puce flash (sa compilation n'inclut pas la requête) et aucun relevé de puce n'est chargé : rien n'a été envoyé. Chargez le relevé M-Flasher avec son dump, ou redémarrez pour installer depuis le firmware en cours.",
+    lostIdle: "Le lien USB a été perdu avant l'écriture du premier octet : rien n'a changé sur l'unité. Rebranchez le câble (ou redémarrez) et réessayez.",
+    lostWriting: "Le lien USB a été perdu pendant que le loader écrivait. Le loader vérifie chaque secteur et n'a pas validé, donc rien n'est perdu : rebranchez le câble et appuyez de nouveau sur Installer. Ne coupez pas l'alimentation pendant l'écriture.",
     noloader: "FM-1 en mode mise à jour introuvable. Rebranchez le câble USB et réessayez.",
     noreturn: "Le FM-1 n'a pas redémarré automatiquement. Éteignez-le puis rallumez-le.",
     mismatch: "Écriture terminée, mais le FM-1 annonce une autre version : ",
@@ -425,6 +430,7 @@ const TEXT = {
       vNone: "Vérifier : aucun FM-1 n'a répondu (câble USB de données ? une autre application utilise le MIDI ?). Rien n'a été envoyé.",
     vSilent: "Vérifier : un port FM-1 n'a rien répondu, donc aucun firmware n'a été reconnu (JIANT et d'autres builds peuvent ne pas implémenter la requête d'identité). Rien d'autre n'a été envoyé. Port : ",
     vLoader: "Vérifier : le FM-1 est en mode mise à jour (une installation précédente a été interrompue). INSTALLER termine l'écriture.",
+    vVendorLoader: "Vérifier : l'unité est dans son propre mode mise à jour (le loader du fabricant). Cette page ne peut pas terminer cette installation ; rien n'a été envoyé.",
     vStock: "Vérifier : FM-1 détecté, il répond V15 officiel (FM-1_015). Rien n'a été écrit. ",
     vOurs: "Vérifier : FM-1 détecté, ce firmware ",
     vOther: "Vérifier : un FM-1 a été détecté, mais son firmware n'est pas un de ceux que cet installateur connaît. Il se nomme : ",
@@ -456,8 +462,8 @@ const TEXT = {
     mfCaveat: "Documented from that tool's source, not demonstrated on a unit by this project. Read that document first: "
       + "the physical key combination varies with firmware.",
     chipCheck: "🧪 Check chip (read only)",
-    recTitle: "Chip identification from M-Flasher (first install on a stock unit)",
-    recWhat: "A stock unit does not answer the chip query, so this page cannot read its flash. Drop the record M-Flasher wrote next to a full 1 MiB backup and that backup itself: the dump is hashed here, in this page, and must be the one the record names. Only then is the chip fact used, and only for a stock donor.",
+    recTitle: "Chip identification from M-Flasher (read-only report, and the chip fact a resumed write needs)",
+    recWhat: "A stock unit does not answer the chip query, so this page cannot read its flash. Drop the record M-Flasher wrote next to a full 1 MiB backup and that backup itself: the dump is hashed here, in this page, and must be the one the record names (its sha256 covers the whole 1 MiB image). The record then feeds the read-only report and the chip gate of a resumed write on the update loader. It is not an installation: the first install on a stock unit is M-Flasher's Install firmware.",
     recJson: "M-Flasher record (.json):",
     recDump: "Its dump (.bin, 1 MiB):",
     verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
@@ -472,6 +478,7 @@ const TEXT = {
     chipNo: "Chip: this unit did not answer its JEDEC",
     vNoPorts: " \u2014 with the unit powered and a data cable, an empty list means this system is not presenting it: a charge-only cable, the unit switched off, or another program holding the port (Windows gives one client exclusive access per port). Nothing was sent.",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
+    vVendorLoader: "Verify: the unit is in its own update mode (the vendor's loader). This page cannot finish that install; nothing was sent.",
     vStock: "Verify: FM-1 detected, it answers official V15 (FM-1_015). Nothing was written. ",
     vOurs: "Verify: FM-1 detected, this firmware ", vSilent: "Verify: an FM-1 port answered nothing (another firmware, JIANT among them, that does not implement the identity query). Nothing else was sent. Port: ", vOther: "Verify: an FM-1 was detected, but its firmware is not one this installer knows. It reports itself as: ", vOtherTail: " \u2014 read only: nothing was written, and this is not an install authorisation.",
     vSame: " \u2014 same identity as this package.", vCan: " — this package can be installed over it.",
@@ -501,6 +508,11 @@ const TEXT = {
     notfound: "FM-1 not found. Check the USB data cable, close other MIDI apps, and press Install again.",
     model: "The connected device is not an FM-1.",
     lost: "The USB connection was lost. Replug it and press Install again.",
+    stockfirst: "This unit runs the stock firmware. This page updates a unit that already runs Quantum GammaWave; the first install on a stock FM-1 is done with M-Flasher's Install firmware, which writes only the app area and keeps the bootloader and the factory data. Nothing was sent to the unit.",
+    foreignloader: "The unit is in its own update mode, not this project's loader. A Quantum GammaWave image must not be sent to that program: nothing was sent. Power-cycle the unit and install only from a unit running Quantum GammaWave.",
+    loaderchip: "The update loader cannot identify the flash chip (its build has no chip query) and no chip record is loaded: nothing was sent. Load the M-Flasher record with its dump, or power-cycle and install from the running firmware.",
+    lostIdle: "The USB link dropped before a single byte was written: nothing on the unit changed. Replug the cable (or power-cycle the unit) and try again.",
+    lostWriting: "The USB link dropped while the loader was writing. The loader verifies every sector and did not commit, so nothing is lost: replug the cable and press Install again to finish. Do not power the unit off while it is writing.",
     noloader: "The FM-1 in update mode was not found. Replug the USB cable and press Install again.",
     noreturn: "The FM-1 did not come back automatically. Power-cycle it.",
     mismatch: "Written, but the FM-1 reports another version: ",
@@ -547,6 +559,11 @@ const TEXT = {
     notfound: "FM-1 が見つかりません。USB ケーブルと他の MIDI アプリを確認してください。",
     model: "接続されている機器は FM-1 ではありません。",
     lost: "USB の接続が切れました。",
+    stockfirst: "この FM-1 は純正ファームウェアです。このページは Quantum GammaWave が動作中の FM-1 を更新するためのものです。純正機への最初の書き込みは M-Flasher の Install firmware で行います（アプリ領域のみ書き込み、ブートローダーと工場データは保持）。本体には何も送信していません。",
+    foreignloader: "本体は独自のアップデートモードで、このプロジェクトのローダーではありません。Quantum GammaWave のイメージをそのプログラムへ送ってはいけません。何も送信していません。電源を入れ直し、Quantum GammaWave が動作中の本体からのみインストールしてください。",
+    loaderchip: "アップデートローダーはフラッシュチップを識別できません（ビルドにチップ照会が含まれていません）。チップ記録も読み込まれていないため、何も送信していません。M-Flasher の記録と dump を読み込むか、電源を入れ直して起動中のファームウェアから実行してください。",
+    lostIdle: "1 バイトも書き込む前に USB 接続が切れました。本体は変化していません。ケーブルを挿し直す（または電源を入れ直す）して再試行してください。",
+    lostWriting: "ローダーが書き込み中に USB 接続が切れました。ローダーはセクターごとに検証し確定していないため失われたものはありません。ケーブルを挿し直して「インストール」を押すと完了します。書き込み中は電源を切らないでください。",
     noloader: "書き込みモードの FM-1 が見つかりません。",
     noreturn: "FM-1 が戻ってきません。電源を入れ直してください。",
     mismatch: "書き込みは終わりましたが、別のバージョンを報告しています: ",
@@ -581,8 +598,8 @@ TEXT.es = {
   mfCaveat: "Documentado a partir del código de esa herramienta, no demostrado en una unidad por este proyecto. Leé primero ese documento: "
     + "la combinación física de teclas cambia según el firmware.",
   chipCheck: "🧪 Comprobar chip (solo lectura)",
-  recTitle: "Identificación del chip desde M-Flasher (primera instalación en una unidad de fábrica)",
-  recWhat: "Una unidad de fábrica no responde a la consulta del chip, así que esta página no puede leer su flash. Cargá el registro que M-Flasher escribió junto a un respaldo completo de 1 MiB y ese respaldo: el dump se hashea acá, en esta página, y tiene que ser el que el registro nombra. Sólo entonces se usa el dato del chip, y sólo para un donante de fábrica.",
+  recTitle: "Identificación del chip desde M-Flasher (informe de solo lectura, y el dato que necesita una escritura reanudada)",
+  recWhat: "Una unidad de fábrica no responde a la consulta del chip, así que esta página no puede leer su flash. Cargá el registro que M-Flasher escribió junto a un respaldo completo de 1 MiB y ese respaldo: el dump se hashea acá, en esta página, y tiene que ser el que el registro nombra (su sha256 cubre la imagen de 1 MiB entera). Después el registro alimenta el informe de solo lectura y el gate del chip de una escritura reanudada en el loader. No es una instalación: la primera en una unidad de fábrica la hace el «Install firmware» de M-Flasher.",
   recJson: "Registro de M-Flasher (.json):",
   recDump: "Su dump (.bin, 1 MiB):",
   verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
@@ -597,6 +614,7 @@ TEXT.es = {
   chipNo: "Chip: esta unidad no dio su JEDEC",
   vNoPorts: " — con la unidad encendida y un cable de datos, una lista vacía significa que este sistema no la está presentando: cable sólo de carga, unidad apagada, u otro programa con el puerto tomado (Windows da acceso exclusivo a un cliente por puerto). No se envió nada.",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
+  vVendorLoader: "Verificar: la unidad está en su propio modo actualización (el loader del fabricante). Esta página no puede terminar esa instalación; no se envió nada.",
   vStock: "Verificar: se detectó un FM-1 y responde V15 oficial (FM-1_015). No se escribió nada. ",
   vOurs: "Verificar: firmware GAMMAWAVE/JIANT ", vSilent: "Verificar: el puerto del FM-1 no respondió (otro firmware, JIANT entre ellos, que no implementa la consulta de identidad). No se envió nada más. Puerto: ", vOther: "Verificar: se detectó un FM-1, pero su firmware no es uno de los que este instalador conoce. Se identifica como: ", vOtherTail: " — solo lectura: no se escribió nada y esto no autoriza la instalación.",
   vSame: " — misma identidad que este paquete (reinstalación u otra versión).", vCan: " — este paquete se puede instalar encima.",
@@ -626,6 +644,11 @@ TEXT.es = {
   notfound: "No se encontró el FM-1. Revisá el cable USB de datos, cerrá otras apps MIDI y pulsá Instalar otra vez.",
   model: "El dispositivo conectado no es un FM-1.",
   lost: "Se perdió la conexión USB. Reconectá el FM-1 y pulsá Instalar otra vez.",
+  stockfirst: "Esta unidad corre el firmware de fábrica. Esta página actualiza una unidad que ya corre Quantum GammaWave; la primera instalación en un FM-1 de fábrica la hace el «Install firmware» de M-Flasher, que escribe sólo el área de aplicación y conserva el bootloader y los datos de fábrica. No se envió nada a la unidad.",
+  foreignloader: "La unidad está en su propio modo de actualización, no en el loader de este proyecto. Una imagen de Quantum GammaWave no debe enviarse a ese programa: no se envió nada. Apagá y encendé la unidad e instalá sólo desde una unidad que ya corra Quantum GammaWave.",
+  loaderchip: "El loader de actualización no puede identificar el chip (su build no incluye la consulta) y no hay registro de chip cargado: no se envió nada. Cargá el registro de M-Flasher con su dump, o apagá y encendé para instalar desde el firmware en ejecución.",
+  lostIdle: "Se perdió el enlace USB antes de escribir un solo byte: nada cambió en la unidad. Reconectá el cable (o apagá y encendé) y volvé a intentar.",
+  lostWriting: "Se perdió el enlace USB mientras el loader escribía. El loader verifica cada sector y no confirmó, así que no se perdió nada: reconectá el cable y pulsá Instalar otra vez para terminar. No apagues la unidad mientras escribe.",
   noloader: "No se encontró el FM-1 en modo actualización. Reconectá el USB y pulsá Instalar otra vez.",
   noreturn: "El FM-1 no volvió solo. Apagalo y encendelo de nuevo.",
   mismatch: "Se escribió, pero el FM-1 informa otra versión: ",
@@ -657,8 +680,8 @@ TEXT.zh = {
     + "本页面既不执行也不分发它。",
   mfCaveat: "依据该工具的源代码记录，本项目未在任何设备上验证。请先阅读该文档：物理按键组合因固件而异。",
   chipCheck: "🧪 检查闪存芯片（只读）",
-  recTitle: "来自 M-Flasher 的闪存芯片识别（出厂设备的首次安装）",
-  recWhat: "出厂设备不响应芯片查询，因此本页面无法读取其闪存。请放入 M-Flasher 在完整 1 MiB 备份旁写下的记录，以及该备份本身：页面会在本地对 dump 计算哈希，且必须与记录中的哈希一致。只有在此之后才会使用该芯片信息，并且仅用于出厂 donor。",
+  recTitle: "来自 M-Flasher 的闪存芯片识别（只读报告，以及恢复写入所需的芯片信息）",
+  recWhat: "出厂设备不响应芯片查询，因此本页面无法读取其闪存。请放入 M-Flasher 在完整 1 MiB 备份旁写下的记录，以及该备份本身：页面会在本地对 dump 计算哈希，且必须与记录中的哈希一致（其 sha256 覆盖完整的 1 MiB 镜像）。该记录随后用于只读报告，以及在更新 loader 上恢复写入时的芯片校验。它不是安装：出厂设备的首次安装由 M-Flasher 的 Install firmware 完成。",
   recJson: "M-Flasher 记录（.json）：",
   recDump: "对应的 dump（.bin，1 MiB）：",
   verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
@@ -673,6 +696,7 @@ TEXT.zh = {
   chipNo: "闪存芯片：该设备没有返回 JEDEC",
   vNoPorts: " — 若设备已开机并使用数据线，列表为空说明系统没有呈现它：仅充电线、设备未开机，或其他程序占用了端口（Windows 每个端口只允许一个客户端独占）。未发送任何内容。",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
+  vVendorLoader: "校验：设备处于其自身的更新模式（厂商 loader）。本页面无法完成该安装；未发送任何数据。",
   vStock: "校验：检测到 FM-1，其回应为官方 V15（FM-1_015）。未写入任何内容。",
   vOurs: "校验：GAMMAWAVE/JIANT 固件 ", vSilent: "校验：FM-1 端口没有回应（其他固件，例如 JIANT，未实现身份查询）。未发送其他内容。端口：", vOther: "校验：检测到一台 FM-1，但其固件不是本安装器所认识的固件。其自报身份为：", vOtherTail: " — 只读：未写入任何内容，也不构成安装授权。",
   vSame: " — 与此固件包身份相同（重装或其他版本）。", vCan: " — 可以安装此固件包。",
@@ -702,6 +726,11 @@ TEXT.zh = {
   notfound: "未找到 FM-1。请检查 USB 数据线，关闭其他 MIDI 应用，然后再次点击安装。",
   model: "连接的设备不是 FM-1。",
   lost: "USB 连接已断开。请重新连接 FM-1 并再次点击安装。",
+  stockfirst: "此设备运行出厂固件。本页面只更新已运行 Quantum GammaWave 的设备；出厂 FM-1 的首次安装请使用 M-Flasher 的 Install firmware（仅写入应用区，保留 bootloader 与出厂数据）。未向设备发送任何数据。",
+  foreignloader: "设备处于其自带的更新模式，而不是本项目的 loader。不得向该程序发送 Quantum GammaWave 镜像：未发送任何数据。请重新开机关机，并仅从已运行 Quantum GammaWave 的设备安装。",
+  loaderchip: "更新 loader 无法识别闪存芯片（其构建不包含芯片查询），也没有加载芯片记录：未发送任何数据。请加载 M-Flasher 记录及其 dump，或重新开机后从运行中的固件安装。",
+  lostIdle: "在写入任何字节之前 USB 连接已断开：设备没有变化。请重新插拔线缆（或重新开机）后重试。",
+  lostWriting: "loader 写入过程中 USB 连接断开。loader 逐扇区校验且未提交，因此没有丢失数据：请重新插拔线缆并再次点击安装以完成。写入过程中请勿断电。",
   noloader: "未找到处于更新模式的 FM-1。请重新连接 USB 并再次点击安装。",
   noreturn: "FM-1 未自动重启。请关机后再开机。",
   mismatch: "已写入，但 FM-1 报告了另一个版本：",
@@ -786,6 +815,8 @@ const VF = {
     "state.unknown": "cannot be established without a write session",
     "state.not-here": "deliberately not done by verify only",
     "state.documented": "documented only, not demonstrated on this unit",
+    "state.current": "State: what this page actually observed",
+    "state.unobservable": "States this transport cannot observe (WebMIDI exposes no VID:PID and no mass-storage device)",
     "st.DIAGNOSTIC READY": "the page ran and reported what it saw",
     "st.VERIFY READY": "an FM-1 answered the identity query",
     "st.PACKAGE VERIFIED": "the package offered describes itself consistently",
@@ -862,6 +893,7 @@ const VF = {
     "compat.replaces-stock": "the package is built to replace official V15",
     "compat.reinstall-same": "same firmware: a reinstall",
     "compat.finish-loader": "the package can finish the interrupted install",
+    "compat.foreign-loader": "blocked: the unit is in its own update mode (the vendor's loader), not this project's; nothing was sent",
     "auth.none": "none — only the install path (signature, chip, sizes) can authorise one",
   },
   es: {
@@ -876,6 +908,8 @@ const VF = {
     "state.unknown": "no puede establecerse sin una sesión de escritura",
     "state.not-here": "no lo hace esta verificación, a propósito",
     "state.documented": "solo documentado, no demostrado en esta unidad",
+    "state.current": "Estado: lo que esta página observó realmente",
+    "state.unobservable": "Estados que este transporte no puede observar (WebMIDI no expone VID/PID ni dispositivos de almacenamiento masivo)",
     "st.DIAGNOSTIC READY": "la p\u00e1gina corri\u00f3 e inform\u00f3 lo que vio",
     "st.VERIFY READY": "un FM-1 respondi\u00f3 la consulta de identidad",
     "st.PACKAGE VERIFIED": "el paquete ofrecido se describe de forma coherente",
@@ -952,6 +986,7 @@ const VF = {
     "compat.replaces-stock": "el paquete está hecho para reemplazar V15 oficial",
     "compat.reinstall-same": "mismo firmware: reinstalación",
     "compat.finish-loader": "el paquete puede terminar la instalación interrumpida",
+    "compat.foreign-loader": "bloqueado: la unidad está en su propio modo update (el loader del fabricante), no en el de este proyecto; no se envió nada",
     "auth.none": "ninguna — solo la ruta de instalación (firma, chip, tamaños) puede autorizar una",
   },
   zh: {
@@ -966,6 +1001,8 @@ const VF = {
     "state.unknown": "没有写入会话无法确认",
     "state.not-here": "本校验按设计不做这一步",
     "state.documented": "仅有文档，未在本机验证",
+    "state.current": "状态：本页面实际观察到的内容",
+    "state.unobservable": "此传输方式无法观察的状态（WebMIDI 不提供 VID/PID，也无法访问大容量存储设备）",
     "st.DIAGNOSTIC READY": "页面已运行并报告所见",
     "st.VERIFY READY": "FM-1 已回应身份查询",
     "st.PACKAGE VERIFIED": "所提供的包自述一致",
@@ -1042,6 +1079,7 @@ const VF = {
     "compat.replaces-stock": "该固件包用于替换官方 V15",
     "compat.reinstall-same": "相同固件：重新安装",
     "compat.finish-loader": "该固件包可以完成被中断的安装",
+    "compat.foreign-loader": "已阻止：设备处于其自身的更新模式（厂商 loader），而不是本项目的 loader；未发送任何数据",
     "auth.none": "无 — 只有安装流程（签名、芯片、大小）才能授权",
   },
 };
@@ -1297,8 +1335,13 @@ $("go").addEventListener("click", async () => {
   try {
     const up = new Updater(midi, log);
     const total = 74 + 1167;
+    /* Which phase the unit is in, so a dropped link can say what it actually cost: nothing before the
+     * loader starts writing, a resumable sector write after it. */
+    let phase = "idle";
     const step = (k, a) => {
       log(`${k} ${a ?? ""}`);
+      if (k === "start" || k === "verify") phase = "prepare";
+      if (k === "write") phase = "write";
       if (k === "start") sayK("start");
       if (k === "verify") { sayK("verify"); $("bar").value = (a / total) * 100; }
       if (k === "loader") sayK("loader");
@@ -1306,11 +1349,16 @@ $("go").addEventListener("click", async () => {
       if (k === "reboot") sayK("reboot");
       if (k === "done") { $("bar").value = 100; sayK("done"); rememberInstalled(); }
     };
+    /* A unit sitting in its update mode answers the handshake and NOT 0x12: the loader's build has no
+     * chip query (firmware/src/ota.c, FELUCCA_LOADER=1). Asking it here is what turned "Update Mode
+     * not recognised" into a dead end -- the page threw before it could resume, and the only way out
+     * looked like a power cycle. The transport decides the chip gate now (a live 0x12, the same
+     * attempt's app-link reading, or a record whose dump was hashed here) and says why if it cannot. */
     const ota = await up.find((id) => /^ota-/i.test(id.model));
     if (ota) {
-      const ev = await probeChip(ota.link, 1500);        /* (3.x) 0x12 on the open link, before the write */
-      log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
+      log(`loader: ${ota.id.text}${ota.id.version === 900 ? " (this project's)" : " (the unit's own update mode)"}`);
       ota.link.close();
+      phase = "prepare";
       sayK((await up.resume(image, step, meta.product, ctxFor(installedVersion()))) ? "done" : "stopped");
     } else {
       sayK("checking");
@@ -1318,6 +1366,10 @@ $("go").addEventListener("click", async () => {
       log(`firmware: ${fw.kind} ${fw.text || ""}`);
       if (fw.kind === "none") { sayK("notfound"); lockInstaller(false); return; }
       if (fw.kind === "other") { sayK("otherfw", fw.text); $("stock").open = true; lockInstaller(false); return; }
+      /* A stock unit is not a destination for this page: its app has no 0x12 and its own update mode
+       * is the vendor's program, which has never been shown to take a Felucca image. Saying so here
+       * sends not one frame. The first install is M-Flasher's (docs/M-FLASHER.md §6). */
+      if (fw.kind === "stock") { sayK("stockfirst"); $("stock").open = true; lockInstaller(false); return; }
       if (fw.kind === "jiant") {                 /* (QG-1) a backup first, always: songs, sounds, settings */
         let ai = null;
         try { ai = archiveInfo(fw.info); } catch (_) {}
@@ -1331,11 +1383,16 @@ $("go").addEventListener("click", async () => {
           if (!confirm(t("bkSaved"))) { sayK("cancelled"); lockInstaller(false); return; }
         } else if (!confirm(t("bkNone"))) { sayK("cancelled"); lockInstaller(false); return; }
       }
-      const ev = await chipEvidence(up, meta.product.split("_")[0]);
+      /* install() identifies the chip on the very link it will write through: a reading taken on
+       * another connection and passed in would be exactly the stale evidence the gate refuses. */
       await up.install(image, meta.product, step, ctxFor(versionOf(fw.info)));
     }
   } catch (e) {
-    if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || "");
+    /* The same "lost" means two different things: nothing was written, or a sector write was
+     * interrupted. Reporting one as the other is how a user powers off a unit mid-write. */
+    if ((e && (e.code === "lost" || e.code === "stopped")) && phase === "write") sayK("lostWriting");
+    else if (e && (e.code === "lost" || e.code === "stopped")) sayK("lostIdle");
+    else if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || "");
     else sayK("error", e && e.message);
     log(String(e && e.stack || e));
   }
@@ -1430,7 +1487,8 @@ async function runVerify() {
         ((cc.inputs || 0) === 0 && (cc.outputs || 0) === 0 ? t("vNoPorts") : ""));
     }
     else if (fw.kind === "silent") sayK("vSilent", (fw.ports || []).join(", "));
-    else if (fw.kind === "loader") sayK("vLoader");
+    else if (fw.kind === "ourloader") sayK("vLoader");
+    else if (fw.kind === "otherloader") sayK("vVendorLoader");
     /* (7.x) the status line speaks about the device only. It used to append meta.product -- the tag of
      * the package THIS PAGE offers (FM-1_982) -- to a sentence about what the unit answered, so a stock
      * FM-1 read as "official V15 (FM-1_015). ... FM-1_982": two identities in one line, and the package's
