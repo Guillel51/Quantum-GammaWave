@@ -27,6 +27,7 @@ DSP, not `ui_draw.c` or `ui_being.c`, and `node web/emu/emu_test.mjs` runs green
 | `emu_splash_strip.png` | nine frames sampled from the emulator's own canvas across one boot: 17 % → 36 % → 64 % → 92 % → 100 % → hold → hand-over |
 | `emu_splash_early.png` | the first second of the same animation (the name being written, 13 % / 20 %) |
 | `emu_boot1.png` | the emulator after the splash: HOME, with the preset it loaded |
+| `emu_published_home.png` | the **published** emulator (guillel51.github.io, build `7eb9636f58f4`, engine `c83c8bfb…`, 1 073 325 B) after pressing *Switch on*, drawing the same HOME screen as the 3.2 captures — read back from the live page on 2026-11-09 |
 
 No hardware was involved in any of these.
 
