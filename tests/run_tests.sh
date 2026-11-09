@@ -33,6 +33,10 @@
 #                   one-step undo of both (SAVE held), REC on TRACKS / SEQ / ARP, STEP and ARP while recording,
 #                   MIDI IN ROUT, saves refused while playing and the OVERWRITE? dialog, MUTE on TRACKS KNOB 1,
 #                   the DRUM grid (keys, knobs, LEDs, pages, live recording into it, BEAT from PATTERNS).
+# DSP: the polyBLEP residual's one-compare fast path (tests/blep_test.c) against the reference formulation
+#                   bit for bit: both window edges, the sub-1 Hz incs whose d is 0, the increments past Nyquist
+#                   (where the windows overlap) and 10 000 000 random pairs, so an "almost the same" residual
+#                   cannot reach the oscillators unseen.
 # Audio / persistence / editor: the real C paths against simulated DMA and NOR flash: bounded overload
 #                   fades, shared-voice limits, deferred settings and retries, failed-save rollback, the autosave
 #                   (1.2: when it writes, the power-on restore, damaged copies, a write cut short, wear over a session),
@@ -236,6 +240,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Ifirmware/hal -o "$OUT/clamp_sym_test" tests/clamp_sym_test.c -lm
     run "DSP: the SVF's one-compare clamp is exactly clamp(v, -150000, 150000) over all of int32" "$OUT/clamp_sym_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/blep_test" tests/blep_test.c -lm
+    run "DSP: the polyBLEP fast path is the reference, bit for bit (both window edges, the increments past Nyquist, 10 M pairs)" "$OUT/blep_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/click_test" tests/click_test.c -lm
     run "metronome and count-in: beats sample for sample (internal and external clock), accent, level, MASTER, not in USB, count-in timing, notes onto step 1" "$OUT/click_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/persistence_test" tests/persistence_test.c -lm

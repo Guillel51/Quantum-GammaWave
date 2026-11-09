@@ -68,7 +68,12 @@ typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
 #define AL_N(n) ((uint32_t)(n) << 8)
 
 #define CV_MAX (240u * 124u)      /* the graph strip is 240 x 124 */
-static uint16_t cv_px[CV_MAX] __attribute__((section(".pool")));
+/* (ISO C11 6.5.2.3) Union type-punning provides well-defined 32-bit word access without strict-aliasing UB */
+static union {
+    uint16_t px[CV_MAX];
+    uint32_t w32[CV_MAX / 2u];
+} cv_buf __attribute__((section(".pool"), aligned(4)));
+#define cv_px (cv_buf.px)
 static uint32_t cv_w, cv_h;
 static uint16_t cv_bg;           /* what cv_begin cleared the canvas to */
 static uint8_t cv_scroll;        /* 1: drawing a scrolled view (its text may run past the canvas) */
@@ -205,23 +210,14 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
     cv_cy1 = (int16_t)h;
     cv_bg = bg;
     n = w * h;
-    {   /* (1.7) one row, then a copy per row: the clear was a store per pixel (21 120 of them for a graph
-         * strip, twice a frame on the visualizer); it is now a memcpy of w * 2 bytes per row, the same
-         * bytes in the same order. 480 B of .bss for the row; the pixels do not change */
-        static uint16_t row[240];
-        uint32_t y;
-        if (w > 240u) {
-            for (i = 0; i < n; i++)
-                cv_px[i] = s;
-        } else {
-            for (i = 0; i < w; i++)
-                row[i] = s;
-            for (y = 0; y < h; y++) {                /* (the target has no libc: the row is copied here) */
-                uint16_t *d = cv_px + y * w;
-                for (i = 0; i < w; i++)
-                    d[i] = row[i];
-            }
-        }
+    {   /* (32-bit word fill via union) 2 pixels per 32-bit word store: faster than row copy,
+         * identical bytes, zero strict aliasing UB, and eliminates 480 B of .bss row buffer */
+        uint32_t s32 = ((uint32_t)s << 16) | s;
+        uint32_t words = n >> 1;
+        for (i = 0; i < words; i++)
+            cv_buf.w32[i] = s32;
+        if (n & 1u)
+            cv_buf.px[n - 1u] = s;
     }
 }
 

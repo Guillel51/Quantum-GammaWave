@@ -1013,7 +1013,6 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
  * ============================================================================ */
 static void graph_being(const track_t *t)
 {
-    int32_t en = bg_energy();
     uint32_t c;
     int32_t k[4];
     for (c = 0; c < 4u; c++) {
