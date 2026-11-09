@@ -749,3 +749,50 @@ part `0xC84014` (identified, `writable: false`, refused by `requireChip()`), an 
 all, and both directions of the gate row in the report. The site still builds with the page
 (`web/make_site.py`, 610 806-byte release package). What is **not** established: that any unit answers
 `0x12` here, because none was available.
+
+## 28. Update — 2026-11-09, the owner's unit is a known chip with a known backup: first install enabled
+
+The owner ran M-Flasher 0.9.4 against the unit and kept its record (`fm1-20261108-161613.json`):
+
+| Field | Value | Class |
+|---|---|---|
+| identity | `FM-1 015 (stock)`, bootloader `stock (M-VAVE)`, app `OK` | `[HW]`, tool record |
+| **flash** | **`0x856014`** (Puya P25Q80H), chip key `0x980F` | `[HW]`, M-Flasher's own `ONLINE_DEVICE` read |
+| unit id | `4150353835313708` | `[HW]`, tool record |
+| backup | 1 MiB dump, sha256 `38c66ae7c36b46f2fad1c0f8a041ba257934b1b46a73d4085216c60e78f2d9cd` | `[HW]`, tool record |
+| tool | `m-flasher 0.9.4` (loader 1.3) | `[HW]`, tool record |
+
+Gates 6 and 8 were the two the page could not answer on a stock unit. They are now answered, and not by
+optional: **gate 6** is the chip's own identification, read by the tool that can reach the chip's ROM mode;
+**gate 8** is a full 1 MiB read whose SHA-256 the page recomputes from the bytes the owner loads.
+
+**What changed in the software.** A stock unit answers the handshake but not `0x12`, so `install()` used to
+refuse on the *running* firmware's link before `UPGRADE` — which made a first install impossible by
+construction, not by evidence. The install path now accepts a chip fact taken out of band, on one
+condition and one only: the device is a **stock donor** (the same rule as before: same model, version in
+`STOCK_DONOR_VERSIONS`), the record parses, its part is one this project writes (`0x856014`/`0xB36014`, the
+read-only five are refused by name), and **the page has hashed the dump itself** and got the record's hash
+(`web/fm1record.js`, `bindRecord()` in `web/fm1ota.js`). A unit already running QG is still identified on
+its own link with `0x12`; a record never stands in for that. Without a verified record nothing is sent: the
+suite asserts both directions on the wire.
+
+**What this does not prove, said plainly.** The record is a claim until its dump is hashed here; the page
+does that when the file is loaded, and refuses the pair otherwise. It does not prove the write works on
+this part — `0x856014` is a writable part *in the allowlist*, not a write demonstrated on this unit. It
+does not demonstrate recovery: the route is M-Flasher restoring that same dump, which is available and
+audited but has not been tried on this unit. And the 1 MiB read was taken by a third-party tool; this
+project verified its hash only when the bytes are loaded.
+
+**Security state.** Nothing about the write path was relaxed: the signature, the package identity, the
+model, the image hash, the one-use authorisation and the TTL are unchanged, the boot area is still never
+written by QG, and `INSTALL BLOCKED` remains the verdict until the gates above are satisfied *for this
+unit at that moment*. What is no longer impossible is the first install on a stock unit whose chip and
+backup are known — the case this repository was built for.
+
+Evidence (`[HOST]`, simulated unit): `web/test_record.mjs`, 28 checks, 0 FAILED — the owner's record parses
+to `0x856014`/P25Q80H; a read-only part, another model, a non-stock bootloader, a bad hash and a 1 MiB − 1
+byte dump are each refused; a verified record and the answering unit agree, and the same record against
+another firmware version is refused; with the record, the install sends **zero** `0x12` frames and exactly
+one `UPGRADE`, and a unit that does not hand over ends in an error, never a silent write; without it, the
+install refuses with `chip` and sends no `UPGRADE` at all. `web/test_verify_only.mjs` (136) and
+`web/test_web.mjs` stay green.

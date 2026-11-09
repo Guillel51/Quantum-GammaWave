@@ -236,6 +236,22 @@ function chipFields(chip) {
   ];
 }
 
+/* The chip fact and the backup, both from the record M-Flasher wrote and from the dump this page
+ * hashed against it. "verified here" is literal: the bytes were hashed in the browser. */
+function recordFields(record) {
+  if (!record) return [];
+  if (!record.ok) return [{ key: "record.refused", value: record.code || "refused",
+    source: String(record.why || "").slice(0, 160), confidence: "high" }];
+  return [
+    { key: "record.chip", value: `${record.model} · flash 0x${Number(record.jedec).toString(16).toUpperCase().padStart(6, "0")} ${record.part || ""}`,
+      source: "M-Flasher's reading of this unit's NOR, carried in its record", confidence: "high" },
+    { key: "record.backup", value: `${record.dumpBytes} B · sha256 ${String(record.dumpSha256).slice(0, 16)}…`,
+      source: "the dump's SHA-256, computed in this page from the bytes loaded here", confidence: "high" },
+    { key: "record.source", value: record.tool || "M-Flasher",
+      source: "the tool and version the record names", confidence: "high" },
+  ];
+}
+
 function probeFields(probe, port) {
   const p = probe || {};
   const c = p.counts || {};
@@ -288,7 +304,7 @@ function partsOf(pkg) {
 //   documented  only a document asserts it; nothing on this unit demonstrated it
 // Nothing in this function can return "pass" for a condition that needs a key, a chip session or a
 // recovery test: those are exactly the three that keep the installer closed.
-function gateOf({ found, read, pkg, compat, sig = null, chip = null }) {
+function gateOf({ found, read, pkg, compat, sig = null, chip = null, record = null }) {
   const { keys } = partsOf(pkg);
   const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader";
   const rows = [
@@ -301,10 +317,11 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null }) {
      * until a write session existed, which was both false and the reason the installer could never
      * say it trusted what it was about to write. */
     { key: "gate.signature", state: sig ? (sig.state === "pass" ? "pass" : "fail") : (keys ? "unknown" : "fail") },
-    /* "not-here" only while nobody asked: a read-only 0x12 check answers it without any write. */
-    { key: "gate.chip", state: chip ? (chip.ok ? "pass" : "fail") : "not-here" },
+    /* A stock unit cannot answer 0x12, so its chip fact comes from the record out of band -- and only
+     * when the page hashed the dump the record names. Both are readings; neither is a write. */
+    { key: "gate.chip", state: chip ? (chip.ok ? "pass" : "fail") : (record && record.ok ? "pass" : "not-here") },
     { key: "gate.flashmap", state: "unknown" },
-    { key: "gate.backup", state: "unknown" },
+    { key: "gate.backup", state: record && record.ok ? "pass" : "unknown" },
     { key: "gate.recovery", state: "documented" },
     { key: "gate.revalidate", state: "unknown" },
   ];
@@ -317,6 +334,7 @@ export async function verifyDevice(midi, opts = {}) {
   const pkg = packageOf(product, opts.pkg);
   const sig = opts.signature || null;       // the offline check of the package (verifyPackage)
   const chip = opts.chip || null;           // a read-only 0x12 check, when one was run
+  const record = opts.record || null;       // an M-Flasher record whose dump was hashed here
   const log = opts.log || (() => {});
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
@@ -341,7 +359,7 @@ export async function verifyDevice(midi, opts = {}) {
     const kind = (ports.length || (probe.probed || []).length) ? "silent" : "none";
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
-    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig, chip });
+    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig, chip, record });
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
@@ -360,8 +378,9 @@ export async function verifyDevice(midi, opts = {}) {
         ...platformFields(),
         ...pkgFields(pkg, compat, sig),
         ...chipFields(chip),
+        ...recordFields(record),
       ],
-      signature: sig, chip,
+      signature: sig, chip, record,
       gate: gate.rows, verdict: gate.verdict,
       missing: MISSING.map(([key, why]) => ({ key, why })),
     });
@@ -377,7 +396,7 @@ export async function verifyDevice(midi, opts = {}) {
   const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
   const compat = compatibility(kind, hardware, pkg.model);
-  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip });
+  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, record });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
@@ -392,12 +411,13 @@ export async function verifyDevice(midi, opts = {}) {
     ...platformFields(),
     ...pkgFields(pkg, compat, sig),
     ...chipFields(chip),
+    ...recordFields(record),
   ];
   const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));
   return report(kind, {
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
-    fields, missing, signature: sig, chip, gate: gate.rows, verdict: gate.verdict,
+    fields, missing, signature: sig, chip, record, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
     compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
   });

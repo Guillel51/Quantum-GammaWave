@@ -312,7 +312,10 @@ export class Updater {
     const isDonor = !isTarget && donorIdentity(dev.id, product, ctx.firmware);
     if (!isTarget && !isDonor) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
     if (isDonor) step("donor", dev.id.text);                    // a stock FM-1 is admitted as the origin only
-    await identify(pass, dev.link);                            // 0x12 on this link, before any write frame
+    // A donor does not answer 0x12 (docs/JEDEC_READ.md §1), so its chip fact comes from the record and
+    // its dump; a unit already running QG is identified on the link itself, exactly as before.
+    if (isDonor && ctx.chipRecord) await bindRecord(pass, dev.link, ctx.chipRecord, dev.id);
+    else await identify(pass, dev.link);                       // 0x12 on this link, before any write frame
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
@@ -664,6 +667,28 @@ async function admit(proof, pkg, product) {
     throw fail("image", "the package is not the one that was verified: nothing was sent.");
   rec.used = true;                                           // one package, one transfer
   return { image: rec.image, link: null, chip: null };
+}
+
+// Bind an admission to the link with a chip identification taken out of band: the record M-Flasher
+// wrote next to a full 1 MiB read, already checked against the dump's hash by the page (fm1record.js).
+// It exists because a stock unit answers the handshake but not 0x12, so a first install could never
+// reach the wire: the chip fact is real, it was just not obtainable over MIDI. Only a donor may take
+// this path -- a unit already running QG is identified on its own link, as before -- and the record
+// must name this model and this firmware version, so a record kept from another unit cannot stand in.
+async function bindRecord(pass, link, rec, id) {
+  if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
+  if (!link || typeof link.send !== "function" || typeof link.read !== "function")
+    throw fail("chip", "this transfer has no open link to bind: nothing was sent.");
+  if (!rec || rec.ok !== true || rec.verified !== true)
+    throw fail("chip", "the chip record was not checked against its dump: nothing was sent.");
+  if (!/^[0-9a-f]{64}$/i.test(String(rec.dumpSha256 || "")))
+    throw fail("chip", "the chip record carries no dump hash: nothing was sent.");
+  if (!id || rec.model !== id.model || Number(rec.version) !== Number(id.version))
+    throw fail("chip", `the record is for ${rec.model} ${rec.version}, the unit answered ${id && id.text}: nothing was sent.`);
+  const part = requireChip({ jedec: rec.jedec });      // the allowlist, once more, on the record's id
+  pass.link = link;
+  pass.chip = { jedec: rec.jedec, part: rec.part || part, readings: 0, source: rec.source || "record" };
+  return pass;
 }
 
 // Bind an admission to the link it will transmit on. The transport identifies the chip itself here,

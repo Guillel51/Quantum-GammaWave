@@ -408,6 +408,13 @@
       <p style="margin:0 0 8px;font-weight:600;color:var(--theme)" data-t="firstTitle"></p>
       <p class="small" style="margin:0 0 10px" data-t="firstText"></p>
       <p style="margin:0 0 10px"><button id="first-stock" class="secondary" data-t="firstStock"></button></p>
+      <div style="border:1px solid var(--border);padding:8px 10px;margin:0 0 10px">
+        <p class="small" style="margin:0 0 6px" data-t="recTitle"></p>
+        <p class="small" style="margin:0 0 8px" data-t="recWhat"></p>
+        <p class="small" style="margin:0 0 6px"><label><span data-t="recJson"></span> <input id="rec-json" type="file" accept=".json,application/json"></label></p>
+        <p class="small" style="margin:0"><label><span data-t="recDump"></span> <input id="rec-dump" type="file" accept=".bin,application/octet-stream"></label></p>
+        <p class="small" id="rec-state" style="margin:8px 0 0;color:var(--muted)"></p>
+      </div>
       <p class="small" style="margin:0" data-t="firstOk"></p>
     </div>
 
@@ -569,6 +576,10 @@ const TEXT = {
     mfCaveat: "Documented from that tool's source, not demonstrated on a unit by this project. Read that document first: "
       + "the physical key combination varies with firmware.",
     chipCheck: "🧪 Check chip (read only)",
+    recTitle: "Chip identification from M-Flasher (first install on a stock unit)",
+    recWhat: "A stock unit does not answer the chip query, so this page cannot read its flash. Drop the record M-Flasher wrote next to a full 1 MiB backup and that backup itself: the dump is hashed here, in this page, and must be the one the record names. Only then is the chip fact used, and only for a stock donor.",
+    recJson: "M-Flasher record (.json):",
+    recDump: "Its dump (.bin, 1 MiB):",
     verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
     pf1: "The FM-1 is connected straight to the computer with a USB data cable (no hub).",
     pf2: "The computer is on mains power and will not sleep; the FM-1 is charged.",
@@ -694,6 +705,10 @@ TEXT.es = {
   mfCaveat: "Documentado a partir del código de esa herramienta, no demostrado en una unidad por este proyecto. Leé primero ese documento: "
     + "la combinación física de teclas cambia según el firmware.",
   chipCheck: "🧪 Comprobar chip (solo lectura)",
+  recTitle: "Identificación del chip desde M-Flasher (primera instalación en una unidad de fábrica)",
+  recWhat: "Una unidad de fábrica no responde a la consulta del chip, así que esta página no puede leer su flash. Cargá el registro que M-Flasher escribió junto a un respaldo completo de 1 MiB y ese respaldo: el dump se hashea acá, en esta página, y tiene que ser el que el registro nombra. Sólo entonces se usa el dato del chip, y sólo para un donante de fábrica.",
+  recJson: "Registro de M-Flasher (.json):",
+  recDump: "Su dump (.bin, 1 MiB):",
   verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
   pf1: "El FM-1 está conectado directamente a la computadora con un cable USB de datos (sin hub).",
   pf2: "La computadora está enchufada a la red y no va a suspenderse; el FM-1 tiene batería.",
@@ -768,6 +783,10 @@ TEXT.zh = {
     + "本页面既不执行也不分发它。",
   mfCaveat: "依据该工具的源代码记录，本项目未在任何设备上验证。请先阅读该文档：物理按键组合因固件而异。",
   chipCheck: "🧪 检查闪存芯片（只读）",
+  recTitle: "来自 M-Flasher 的闪存芯片识别（出厂设备的首次安装）",
+  recWhat: "出厂设备不响应芯片查询，因此本页面无法读取其闪存。请放入 M-Flasher 在完整 1 MiB 备份旁写下的记录，以及该备份本身：页面会在本地对 dump 计算哈希，且必须与记录中的哈希一致。只有在此之后才会使用该芯片信息，并且仅用于出厂 donor。",
+  recJson: "M-Flasher 记录（.json）：",
+  recDump: "对应的 dump（.bin，1 MiB）：",
   verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
   pf1: "FM-1 已通过 USB 数据线直接连接到电脑（不使用集线器）。",
   pf2: "电脑已连接电源且不会休眠；FM-1 电量充足。",
@@ -1259,8 +1278,35 @@ const installedVersion = () => {
 const rememberInstalled = () => {
   try { if (releaseManifest && releaseManifest.version) localStorage.setItem(INSTALLED_KEY, String(releaseManifest.version)); } catch (_) {}
 };
+/* the chip identification taken out of band: the record, and the dump it hashes to. Both are
+ * checked here; recordFor() (fm1record.js) is the only thing that turns them into evidence, and
+ * install() only accepts it for a stock donor. */
+let recJson = null, recDump = null, chipRecord = null;
+const recState = (text) => { if ($("rec-state")) $("rec-state").textContent = text; };
+async function recCheck() {
+  chipRecord = null;
+  if (!recJson) { recState(""); return; }
+  try {
+    const rec = parseRecord(recJson);
+    const part = checkPart(rec);
+    if (!recDump) { recState(`${rec.model} · ${rec.flash} ${part.part} · ${rec.tool} — now its dump (${DUMP_BYTES} B)`); return; }
+    const ev = await verifyDump(rec, recDump);
+    chipRecord = { ...ev, ok: true, part: part.part };
+    recState(`✓ ${ev.model} · ${ev.flash} ${part.part} · dump ${ev.dumpBytes} B · sha256 ${ev.dumpSha256.slice(0, 16)}…`);
+    log(`record: ${ev.flash} ${part.part}, dump ${ev.dumpSha256.slice(0, 16)}… verified here`);
+  } catch (e) { recState("✗ " + (e && e.message)); log(`record: refused — ${e && e.message}`); }
+}
+$("rec-json").addEventListener("change", async (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  recJson = f ? await f.text() : null; await recCheck();
+});
+$("rec-dump").addEventListener("change", async (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  recDump = f ? new Uint8Array(await f.arrayBuffer()) : null; await recCheck();
+});
+
 const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.keys || {}, firmware,
-  provenance: provOk });
+  provenance: provOk, chipRecord });
 
 let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = null, lastVerify = null;
 /* the offline half of the trust chain, kept from the load: the bytes were hashed here and the

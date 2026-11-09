@@ -394,6 +394,10 @@ if command -v node >/dev/null 2>&1; then
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
     # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
     run "web verify-only: identity reads only, zero write frames" node web/test_verify_only.mjs
+    # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
+    # its dump hashed in the page, and the donor install path that accepts them -- with the wire
+    # assertions that nothing is sent without them.
+    run "web chip record: M-Flasher record + dump, and the donor install path" node web/test_record.mjs
     # (PR #73) the production pipeline against the real release package the build record names:
     # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
     run "web installer pipeline: the real package, and a refusal for every partial authorisation" \
