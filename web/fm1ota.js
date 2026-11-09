@@ -26,14 +26,14 @@ const IS_OTA = (id) => /^ota-/i.test(id.model);
 // starts from a device that is not the package's identity, and the package's identity is the one
 // that must be reported afterwards (install() checks it again once the unit comes back).
 // Only the stock versions this project has actually read are donors, and only as an origin.
-const STOCK_DONOR_VERSIONS = new Set([15, 16]);
+const STOCK_DONOR_VERSIONS = new Set([15]);
 export const donorIdentity = (id, product, firmware) => {
   const model = String(product).split("_")[0];
   if (!id || id.model !== model) return false;               // never across models
   if (!(id.version < 100) || !STOCK_DONOR_VERSIONS.has(id.version)) return false;
   const v = String(firmware ?? "").replace(/^v/i, "").trim();
   if (!v) return true;                                       // nothing to contradict it
-  return STOCK_DONOR_VERSIONS.has(Number.parseInt(v, 10));    // V15 or V16 official donors
+  return STOCK_DONOR_VERSIONS.has(Number.parseInt(v, 10));    // V15 is the donor this project read
 };
 // the port names this page will probe (and no others): fm1verify.js reports the silent ones,
 // so one regex decides what is "an FM-1" for the installer and for the verify button
