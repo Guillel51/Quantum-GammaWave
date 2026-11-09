@@ -87,7 +87,13 @@ def main(argv=None):
     top = versions[0]
     version, build = top.get("version", ""), top.get("build") or {}
     commit = str(build.get("commit") or "")
-    emu_rec = build.get("emulator") or {}
+    # (M3.4) the emulator record the SITE declares for what it serves. It used to be read out of the
+    # package's build record, which names the emulator built with that package: when the site serves a
+    # committed release beside this run's emulator (the normal state), the two are different builds by
+    # design and the check failed every run for a site that was correct. versions.json now carries the
+    # served emulator's own record; the package's one stays where it belongs, next to the package.
+    emu_rec = top.get("emulator") or {}
+    pkg_emu_rec = build.get("emulator") or {}
     ok("versions.json names a version and a full commit",
        bool(version) and len(commit) == 40, "%r %r" % (version, commit[:7]))
     if args.expect_commit:
@@ -123,13 +129,31 @@ def main(argv=None):
         else:
             ok("the emulator names the commit it was built from", bool(emu.get("commit")),
                "%r" % (emu.get("commit"),))
-        ok("the emulator names the same version", emu.get("version") == build.get("version"),
-           "%r vs %r" % (emu.get("version"), build.get("version")))
+        # The emulator is main's build and the package is the committed release: they name the same
+        # version only while main has not moved past the release. A version that differs is a fact about
+        # two artefacts, not a broken site, so it is named and not failed.
+        if emu.get("version") == build.get("version"):
+            ok("the emulator names the same version", True, "%r" % (emu.get("version"),))
+        else:
+            print("site: the emulator is %r, the package %r (the emulator follows main, the package is the "
+                  "release): not a mismatch" % (emu.get("version"), build.get("version")))
         if emu_rec:
             ok("versions.json's emulator record is the emulator's wasm",
                emu_rec.get("wasm_sha256") == emu.get("wasm_sha256") and
                emu_rec.get("wasm_bytes") == emu.get("wasm_bytes"),
                "record %r/%r" % (str(emu_rec.get("wasm_sha256"))[:12], emu_rec.get("wasm_bytes")))
+        elif pkg_emu_rec:
+            # A site written before versions.json carried the served emulator's own record declares none.
+            # If the package's record happens to describe the served emulator, hold it to it; if it does
+            # not (a release package beside this run's emulator), say so instead of failing a correct site.
+            if same_commit(pkg_emu_rec.get("commit"), emu.get("commit")):
+                ok("versions.json's emulator record is the emulator's wasm",
+                   pkg_emu_rec.get("wasm_sha256") == emu.get("wasm_sha256"),
+                   "record %r" % (str(pkg_emu_rec.get("wasm_sha256"))[:12],))
+            else:
+                print("site: versions.json declares no emulator of its own; the package's record is %r "
+                      "(served emulator %r) - not comparable"
+                      % (str(pkg_emu_rec.get("commit"))[:7], str(emu.get("commit"))[:7]))
         try:
             wasm = get(base + "emulator/felucca.wasm", binary=True)
         except (urllib.error.URLError, OSError) as e:

@@ -190,8 +190,12 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     if build:
         check_build_record(build, raw, product, version, pkg)
     emu = emulator_record(pkg, emu_manifest)
+    # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
+    # not the one the package's build record names when the package is a committed release: the release
+    # pins the emulator built with it, the site copies the one built now. Both are true, so both are
+    # published, each under its own key, and tools/site_check.py holds each to its own claim.
     versions = [{"version": version, "file": name, **digest(raw), "manifest": manifest_of(Path(pkg)),
-                 "build": build}] + \
+                 "build": build, "emulator": emu}] + \
         [{**e, **digest(src.read_bytes()), "manifest": manifest_of(src), "build": None} for e, src in old]
     meta = json.dumps({"version": version, "product": product, "pkg": "../../firmware/" + name, **digest(raw),
                        "stock": (HERE.parent / "FM-1.fwsc").is_file(), "keys": keys, "build": build, "emu": emu,

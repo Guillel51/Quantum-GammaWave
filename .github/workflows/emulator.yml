@@ -266,13 +266,17 @@ jobs:
         run: |
           ls -la build | head -20
           test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
+      # (M3.4) main only. The public site is one artefact and Pages keeps the last one published, so a
+      # side branch that deployed could (and did) put an older tree back over main's: the site went from
+      # the new build back to v1.9.0-7eb9636 with no push to main in between. A branch that wants to be
+      # seen publishes an artifact, not the site.
       - uses: actions/upload-pages-artifact@v3
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: build/site
   deploy:
     needs: build
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/perf/security-hardening' || github.ref == 'refs/heads/work/v18-integration') && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     steps:
       # (QG-1 stage 2) deploy-pages fails with "Get Pages site failed (404)" when Pages has never been
