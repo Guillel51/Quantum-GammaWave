@@ -1,0 +1,685 @@
+# emulator run 42640087300 (cancelled) at 86e8ca642472d202435dd0490d203c3f08c4998b
+
+## jobs
+- build: completed / cancelled
+    step FAILED: 15 the install gate cannot be bypassed (CLI and web) -> cancelled
+- publish: completed / success
+- deploy: completed / cancelled
+
+## publish job
+publish	Set up job	﻿2026-11-09T14:59:39.9659036Z Current runner version: '2.338.2'
+publish	Set up job	2026-11-09T14:59:39.9688420Z ##[group]Runner Image Provisioner
+publish	Set up job	2026-11-09T14:59:39.9689440Z Hosted Compute Agent
+publish	Set up job	2026-11-09T14:59:39.9690461Z Version: 20261028.624
+publish	Set up job	2026-11-09T14:59:39.9691224Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+publish	Set up job	2026-11-09T14:59:39.9692222Z Build Date: 2026-10-28T21:51:42Z
+publish	Set up job	2026-11-09T14:59:39.9693110Z Worker ID: {3cc34005-c58f-4134-8ac3-ccc3a6a8c85c}
+publish	Set up job	2026-11-09T14:59:39.9693929Z Region: centralus
+publish	Set up job	2026-11-09T14:59:39.9695109Z Cloud: Azure
+publish	Set up job	2026-11-09T14:59:39.9695809Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9697476Z ##[group]Operating System
+publish	Set up job	2026-11-09T14:59:39.9698302Z Ubuntu
+publish	Set up job	2026-11-09T14:59:39.9698927Z 24.04.5
+publish	Set up job	2026-11-09T14:59:39.9699799Z LTS
+publish	Set up job	2026-11-09T14:59:39.9700495Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9701170Z ##[group]Runner Image
+publish	Set up job	2026-11-09T14:59:39.9701907Z Image: ubuntu-24.04
+publish	Set up job	2026-11-09T14:59:39.9702569Z Version: 20261101.360.1
+publish	Set up job	2026-11-09T14:59:39.9703914Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+publish	Set up job	2026-11-09T14:59:39.9706072Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+publish	Set up job	2026-11-09T14:59:39.9707270Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9708510Z ##[group]GITHUB_TOKEN Permissions
+publish	Set up job	2026-11-09T14:59:39.9711046Z Contents: write
+publish	Set up job	2026-11-09T14:59:39.9711783Z Metadata: read
+publish	Set up job	2026-11-09T14:59:39.9712467Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9715274Z Secret source: Actions
+publish	Set up job	2026-11-09T14:59:39.9716529Z Cache mode: write
+publish	Set up job	2026-11-09T14:59:39.9717872Z Prepare workflow directory
+publish	Set up job	2026-11-09T14:59:40.0007553Z Prepare all required actions
+publish	Set up job	2026-11-09T14:59:40.0049871Z Getting action download info
+publish	Set up job	2026-11-09T14:59:40.2176833Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+publish	Set up job	2026-11-09T14:59:40.4187089Z Complete job name: publish
+publish	Run actions/checkout@v4	﻿2026-11-09T14:59:40.4993979Z ##[group]Run actions/checkout@v4
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4994681Z with:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4995037Z   fetch-depth: 0
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4995429Z   repository: Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4998550Z   token: ***
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4998913Z   ssh-strict: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4999276Z   ssh-user: git
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4999806Z   persist-credentials: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5000210Z   clean: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5000581Z   sparse-checkout-cone-mode: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5001003Z   fetch-tags: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5001374Z   show-progress: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5001740Z   lfs: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5002080Z   submodules: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5002460Z   set-safe-directory: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5002870Z   allow-unsafe-pr-checkout: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5003490Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6916496Z Syncing repository: Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6918620Z ##[group]Getting Git version info
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6919343Z Working directory is '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6920698Z [command]/usr/bin/git version
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6978646Z git version 2.56.0
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6995884Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7008779Z Temporarily overriding HOME='/home/runner/work/_temp/de6218b8-4a11-427c-a47c-defb799392da' before making global git config changes
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7010963Z Adding repository directory to the temporary git global config as a safe directory
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7013529Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7058701Z Deleting the contents of '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7066001Z ##[group]Initializing the repository
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7067033Z [command]/usr/bin/git init /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7208782Z hint: Using 'master' as the name for the initial branch. This default branch name
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7210680Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7212038Z hint: to use in all of your new repositories, which will suppress this warning,
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7213428Z hint: call:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7214336Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7215044Z hint: 	git config --global init.defaultBranch <name>
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7215776Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7216470Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7217559Z hint: 'development'. The just-created branch can be renamed via this command:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7218454Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7218957Z hint: 	git branch -m <name>
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7219504Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7220423Z hint: Disable this message with "git config set advice.defaultBranchName false"
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7221718Z Initialized empty Git repository in /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/.git/
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7227632Z [command]/usr/bin/git remote add origin https://github.com/Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7270642Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7271605Z ##[group]Disabling automatic garbage collection
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7274413Z [command]/usr/bin/git config --local gc.auto 0
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7306085Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7306984Z ##[group]Setting up auth
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7318066Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7354801Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7666885Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7709998Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7922792Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7962347Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8165853Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8208555Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8209275Z ##[group]Fetching the repository
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8217738Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1388874Z From https://github.com/Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1390592Z  * [new branch]      audit/fm1-no-hardware   -> origin/audit/fm1-no-hardware
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1392268Z  * [new branch]      audit/v1.9-fm1-safety   -> origin/audit/v1.9-fm1-safety
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1394065Z  * [new branch]      ci/log/42477957388-failure -> origin/ci/log/42477957388-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1395729Z  * [new branch]      ci/log/42480813211-cancelled -> origin/ci/log/42480813211-cancelled
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1397612Z  * [new branch]      ci/log/42481111801-failure -> origin/ci/log/42481111801-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1399826Z  * [new branch]      ci/log/42482503161-success -> origin/ci/log/42482503161-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1402005Z  * [new branch]      ci/log/42487327176-failure -> origin/ci/log/42487327176-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1404192Z  * [new branch]      ci/log/42489190170-failure -> origin/ci/log/42489190170-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1405946Z  * [new branch]      ci/log/42491501704-failure -> origin/ci/log/42491501704-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1407400Z  * [new branch]      ci/log/42492623156-failure -> origin/ci/log/42492623156-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1408696Z  * [new branch]      ci/log/42493220934-failure -> origin/ci/log/42493220934-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1410312Z  * [new branch]      ci/log/42494872221-success -> origin/ci/log/42494872221-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1411893Z  * [new branch]      ci/log/42498953885-success -> origin/ci/log/42498953885-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1413798Z  * [new branch]      ci/log/42506413781-success -> origin/ci/log/42506413781-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1415529Z  * [new branch]      ci/log/42506417545-success -> origin/ci/log/42506417545-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1417305Z  * [new branch]      ci/log/42507567885-success -> origin/ci/log/42507567885-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1418958Z  * [new branch]      ci/log/42508876242-success -> origin/ci/log/42508876242-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1420919Z  * [new branch]      ci/log/42512809371-success -> origin/ci/log/42512809371-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1422676Z  * [new branch]      ci/log/42512814434-success -> origin/ci/log/42512814434-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1424407Z  * [new branch]      ci/log/42515184085-success -> origin/ci/log/42515184085-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1426231Z  * [new branch]      ci/log/42515187306-success -> origin/ci/log/42515187306-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1428269Z  * [new branch]      ci/log/42517068771-success -> origin/ci/log/42517068771-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1430498Z  * [new branch]      ci/log/42520174117-success -> origin/ci/log/42520174117-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1432493Z  * [new branch]      ci/log/42520177312-success -> origin/ci/log/42520177312-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1434563Z  * [new branch]      ci/log/42522233792-success -> origin/ci/log/42522233792-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1436562Z  * [new branch]      ci/log/42523775428-success -> origin/ci/log/42523775428-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1438530Z  * [new branch]      ci/log/42526253496-success -> origin/ci/log/42526253496-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1440646Z  * [new branch]      ci/log/42527302972-success -> origin/ci/log/42527302972-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1442732Z  * [new branch]      ci/log/42528407466-success -> origin/ci/log/42528407466-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1445008Z  * [new branch]      ci/log/42529060993-success -> origin/ci/log/42529060993-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1447137Z  * [new branch]      ci/log/42530578798-success -> origin/ci/log/42530578798-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1449541Z  * [new branch]      ci/log/42531273223-success -> origin/ci/log/42531273223-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1451834Z  * [new branch]      ci/log/42531890284-success -> origin/ci/log/42531890284-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1453945Z  * [new branch]      ci/log/42532370251-success -> origin/ci/log/42532370251-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1456009Z  * [new branch]      ci/log/42539802427-success -> origin/ci/log/42539802427-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1458209Z  * [new branch]      ci/log/42539807465-success -> origin/ci/log/42539807465-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1460601Z  * [new branch]      ci/log/42540683798-success -> origin/ci/log/42540683798-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1462625Z  * [new branch]      ci/log/42545290225-success -> origin/ci/log/42545290225-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1464657Z  * [new branch]      ci/log/42545294469-success -> origin/ci/log/42545294469-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1466631Z  * [new branch]      ci/log/42558316159-success -> origin/ci/log/42558316159-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1468606Z  * [new branch]      ci/log/42558320548-success -> origin/ci/log/42558320548-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1470924Z  * [new branch]      ci/log/42559329079-failure -> origin/ci/log/42559329079-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1472855Z  * [new branch]      ci/log/42560318284-success -> origin/ci/log/42560318284-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1474749Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1476675Z  * [new branch]      ci/log/42560692112-success -> origin/ci/log/42560692112-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1478567Z  * [new branch]      ci/log/42565723149-success -> origin/ci/log/42565723149-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1480640Z  * [new branch]      ci/log/42565727774-success -> origin/ci/log/42565727774-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1482551Z  * [new branch]      ci/log/42565730642-failure -> origin/ci/log/42565730642-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1484751Z  * [new branch]      ci/log/42567371258-failure -> origin/ci/log/42567371258-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1487616Z  * [new branch]      ci/log/42572808302-success -> origin/ci/log/42572808302-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1490406Z  * [new branch]      ci/log/42572815172-failure -> origin/ci/log/42572815172-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1492816Z  * [new branch]      ci/log/42576644769-failure -> origin/ci/log/42576644769-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1495024Z  * [new branch]      ci/log/42578600477-cancelled -> origin/ci/log/42578600477-cancelled
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1497281Z  * [new branch]      ci/log/42579301366-failure -> origin/ci/log/42579301366-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1499163Z  * [new branch]      ci/log/42584658558-failure -> origin/ci/log/42584658558-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1501700Z  * [new branch]      ci/log/42594694076-failure -> origin/ci/log/42594694076-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1504256Z  * [new branch]      ci/log/42630043326-failure -> origin/ci/log/42630043326-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1506581Z  * [new branch]      ci/log/42632140799-success -> origin/ci/log/42632140799-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1508470Z  * [new branch]      ci/log/42634271273-success -> origin/ci/log/42634271273-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1510487Z  * [new branch]      ci/log/42635269246-success -> origin/ci/log/42635269246-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1513238Z  * [new branch]      cleanup-qg1-docs-identity-14719576721255766213 -> origin/cleanup-qg1-docs-identity-14719576721255766213
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1515667Z  * [new branch]      cline/13ey37k1          -> origin/cline/13ey37k1
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1517262Z  * [new branch]      cline/hrqxkss8          -> origin/cline/hrqxkss8
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1518940Z  * [new branch]      dev/quantum-integral    -> origin/dev/quantum-integral
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1521097Z  * [new branch]      devin/1793394967-quantum-v1.4 -> origin/devin/1793394967-quantum-v1.4
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1523292Z  * [new branch]      devin/quantum-v1.3      -> origin/devin/quantum-v1.3
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1525513Z  * [new branch]      docs/qg15-live-audit    -> origin/docs/qg15-live-audit
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1528738Z  * [new branch]      feat/quantum-real-screenshots-and-about-update-492979775632194395 -> origin/feat/quantum-real-screenshots-and-about-update-492979775632194395
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1532080Z  * [new branch]      feat/rebrand-security-p2 -> origin/feat/rebrand-security-p2
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1533888Z  * [new branch]      feat/ui-redesign-qg1    -> origin/feat/ui-redesign-qg1
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1535593Z  * [new branch]      feat/v1.5-hardening     -> origin/feat/v1.5-hardening
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1537222Z  * [new branch]      feat/v1.6-qg            -> origin/feat/v1.6-qg
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1538744Z  * [new branch]      feat/v1.7-qg            -> origin/feat/v1.7-qg
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1540558Z  * [new branch]      feat/v1.7-visual-presets -> origin/feat/v1.7-visual-presets
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1542982Z  * [new branch]      feature/audit-cleanup-qg1-9393018041995724673 -> origin/feature/audit-cleanup-qg1-9393018041995724673
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1546353Z  * [new branch]      feature/fix-home-viz-and-drum-presets-12092529543400008897 -> origin/feature/fix-home-viz-and-drum-presets-12092529543400008897
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1550475Z  * [new branch]      feature/qg1-ui-nav-themes-presets-10550540118776558527 -> origin/feature/qg1-ui-nav-themes-presets-10550540118776558527
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1554496Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1557491Z  * [new branch]      fix/p1-extra-tab        -> origin/fix/p1-extra-tab
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1559151Z  * [new branch]      fix/v1.7-ci-budget      -> origin/fix/v1.7-ci-budget
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1561004Z  * [new branch]      fix/v1.7-ui-audit       -> origin/fix/v1.7-ui-audit
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1562973Z  * [new branch]      freebuff/4549bd389852a9607bba2622 -> origin/freebuff/4549bd389852a9607bba2622
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1565289Z  * [new branch]      freebuff/6ae847e53332b13a021ccec4 -> origin/freebuff/6ae847e53332b13a021ccec4
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1567615Z  * [new branch]      integ/v1.8.9            -> origin/integ/v1.8.9
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1569220Z  * [new branch]      integ/v1.9-identity     -> origin/integ/v1.9-identity
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1571102Z  * [new branch]      integ/v1.9-security     -> origin/integ/v1.9-security
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1573094Z  * [new branch]      jules-16051787961813429323-dfe6ca9b -> origin/jules-16051787961813429323-dfe6ca9b
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1575398Z  * [new branch]      jules-17619888464711981417-633f1e53 -> origin/jules-17619888464711981417-633f1e53
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1577353Z  * [new branch]      main                    -> origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1579734Z  * [new branch]      opt/performance-baseline -> origin/opt/performance-baseline
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1582493Z  * [new branch]      perf/deep-opt-consumption-cleanup-14085799576697135698 -> origin/perf/deep-opt-consumption-cleanup-14085799576697135698
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1585128Z  * [new branch]      perf/integral-audit     -> origin/perf/integral-audit
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1586858Z  * [new branch]      perf/security-hardening -> origin/perf/security-hardening
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1588702Z  * [new branch]      perf/six-track-hardening -> origin/perf/six-track-hardening
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1590662Z  * [new branch]      release/v1.5-qg         -> origin/release/v1.5-qg
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1592782Z  * [new branch]      review/installer-chip-check -> origin/review/installer-chip-check
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1595110Z  * [new branch]      security/transport-require-proof -> origin/security/transport-require-proof
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1597563Z  * [new branch]      security/transport-session-probe -> origin/security/transport-session-probe
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1599735Z  * [new branch]      work/fm1-signing-custody -> origin/work/fm1-signing-custody
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1601674Z  * [new branch]      work/v18-integration    -> origin/work/v18-integration
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1603095Z  * [new tag]         v1.9.0                  -> v1.9.0
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1606249Z [command]/usr/bin/git branch --list --remote origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1607546Z   origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1609491Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1610903Z 86e8ca642472d202435dd0490d203c3f08c4998b
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1613460Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1614799Z ##[group]Determining the checkout info
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1616276Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1617130Z [command]/usr/bin/git sparse-checkout disable
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1619697Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1622708Z ##[group]Checking out the ref
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1624092Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3301054Z Switched to a new branch 'main'
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3304043Z branch 'main' set up to track 'origin/main'.
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3319945Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3366061Z [command]/usr/bin/git log -1 --format=%H
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3399895Z 86e8ca642472d202435dd0490d203c3f08c4998b
+publish	is there anything to publish (the tag and the release already name this build)	﻿2026-11-09T14:59:44.3671124Z ##[group]Run COMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3673616Z ^[[36;1mCOMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3675450Z ^[[36;1mHAVE=$(git rev-list -n1 v1.9.0 2>/dev/null || true)^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3676887Z ^[[36;1mif [ "$HAVE" = "$COMMIT" ] && gh release view v1.9.0 >/dev/null 2>&1; then^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3678668Z ^[[36;1m  echo "v1.9.0 already is this build (${COMMIT:0:7}) and has a release: nothing to publish"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3680408Z ^[[36;1m  echo "needed=false" >> "$GITHUB_OUTPUT"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3681447Z ^[[36;1melse^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3682684Z ^[[36;1m  echo "v1.9.0 is not this build yet (tag ${HAVE:-none}, package ${COMMIT:0:7}): publishing"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3684453Z ^[[36;1m  echo "needed=true" >> "$GITHUB_OUTPUT"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3685480Z ^[[36;1mfi^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3707401Z shell: /usr/bin/bash -e {0}
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3708324Z env:
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3715798Z   GH_TOKEN: ***
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3716546Z ##[endgroup]
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.8400242Z v1.9.0 already is this build (7eb9636) and has a release: nothing to publish
+publish	Post Run actions/checkout@v4	﻿2026-11-09T14:59:44.8655298Z Post job cleanup.
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9362890Z [command]/usr/bin/git version
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9400067Z git version 2.56.0
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9436025Z Temporarily overriding HOME='/home/runner/work/_temp/7cfa0b73-51ba-4afe-b0dd-a635d5c1473d' before making global git config changes
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9437019Z Adding repository directory to the temporary git global config as a safe directory
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9443297Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9483487Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9521638Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9747082Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9772396Z http.https://github.com/.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9801874Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9861212Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:45.0097626Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:45.0136259Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+publish	Complete job	﻿2026-11-09T14:59:45.0510912Z Cleaning up orphan processes
+publish	Complete job	2026-11-09T14:59:45.0843179Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
+## failed steps, any job
+build	Set up job	2026-11-09T14:59:40.4164228Z Version: 20261101.360.1
+build	Set up job	2026-11-09T14:59:40.4164799Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-09T14:59:41.2915218Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-09T14:59:44.2484046Z  * [new branch]      ci/log/42487327176-failure -> origin/ci/log/42487327176-failure
+build	Run actions/checkout@v4	2026-11-09T14:59:44.2494049Z  * [new branch]      ci/log/42529060993-success -> origin/ci/log/42529060993-success
+build	Run actions/checkout@v4	2026-11-09T14:59:44.2500750Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-09T14:59:44.2504037Z  * [new branch]      ci/log/42576644769-failure -> origin/ci/log/42576644769-failure
+build	Run actions/checkout@v4	2026-11-09T14:59:44.2516055Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-09T14:59:47.2404630Z   Downloading cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-09T14:59:50.4611403Z Successfully installed Pillow-13.0.0 cffi-2.1.1 cryptography-50.0.2 fonttools-4.68.0 numpy-2.5.4 pycparser-3.12
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T14:59:54.6767820Z Downloading: /home/runner/work/_temp/833fef69-a757-4d19-a595-9e99270f3f9e/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/f6264d4a4dd9ba24a9f0a5702835a44d1463de13/wasm-binaries.tar.xz, 304047688 Bytes
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T15:00:26.9904222Z    releases-f6264d4a4dd9ba24a9f0a5702835a44d1463de13-64bit
+build	the emulator	2026-11-09T15:00:39.8275294Z emu: packaged 1079658 B wasm, v1.9.0, build 86e8ca642472, sha256 8c21befd1403573226e548487333d934c029a302d75f55de9983522a253bd055
+build	Run actions/setup-node@v4	2026-11-09T15:00:39.8422069Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	Run actions/setup-node@v4	2026-11-09T15:00:39.8422449Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/setup-node@v4	2026-11-09T15:00:39.8422777Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	JieLi toolchain and SDK files (cached)	2026-11-09T15:00:46.6440366Z with:
+build	JieLi toolchain and SDK files (cached)	2026-11-09T15:00:46.6440498Z   path: ~/.jieli
+build	the package, the installer and the editor	2026-11-09T15:00:48.5887404Z ^[[36;1mfi^[[0m
+build	the package, the installer and the editor	2026-11-09T15:00:58.5050034Z site: build/site_preview: portal + assets, webapp/installer (254049 B), webapp/editor, firmware/felucca-v1.9.0-86e8ca6.fwsc (610806 B, FM-1_982, build v1.9.0 86e8ca6, emulator record)
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-09T15:01:13.3951404Z target: analog_render     235 instructions,  148 in loops, 0 divides, 12 calls there: cost   148 (budget 148) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:01:23.9340357Z live: INFO 53 01 03, no RELOAD echo of an editor PRESET, nothing after its STEP_SET ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:01:29.4034939Z editor: 7 tabs, one panel each (sound fm6 sequencer tracks library projects settings) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:01:29.4037315Z editor: last tab in localStorage (try/catch) and in the URL hash ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:01:57.5924224Z ok   official V15: only the identity query was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0125294Z verify only: 154 checks, 0 FAILED
+build	a package and a site exist (fail closed)	﻿2026-11-09T15:02:16.0257405Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0257854Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0258219Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+
+## tail
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:05.6186018Z ok   a malformed answer (6 bytes): still silent, no write
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6216261Z ok   a disconnect mid-handshake: reported, nothing else sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6216921Z ok   the install path never probes gear that is not an FM-1
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6230576Z ok   Verify Only probes it, with the read-only query and nothing else
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6245400Z ok   one unit under two Windows names (MIDIIN2 / MIDIOUT2) is paired and read
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6248005Z ok   a different package tag: reported as another firmware
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6248393Z ok   fm1verify.js exports only the read-only surface: verifyDevice, verifyPackage and the query
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6249597Z ok   fm1verify.js exports no install/write/resume entry point
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6257512Z ok   the page's Verify only button calls verifyDevice
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6257920Z ok   the page's Verify only handler names no write path
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6258333Z ok   a port change re-runs Verify Only instead of needing a reload
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6262756Z ok   install() with no proof and no installed version is refused fail-closed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6263160Z ok   and that refusal reaches the device as zero frames
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6268825Z ok   the Verify only handler names no erase, restore, backup capture or reboot
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6281414Z ok   JIANT on a real unit (FM-1_909): the hardware is recognised as an FM-1
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6282146Z ok   JIANT (FM-1_909): the firmware is reported as another build, with its own version
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6282537Z ok   JIANT (FM-1_909): canInstall stays false
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6282856Z ok   JIANT (FM-1_909): still one frame type on the wire
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6283211Z ok   the report names the hardware field with its source
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6283576Z ok   the report names the firmware family and its version
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6283995Z ok   the report says what it could not read (JEDEC, flash size, SoC, clock, VID/PID)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6284280Z ok   the report never claims the SoC or the flash as a reading
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6341480Z ok   canInstall is false for stock, ours, another build and the loader
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6354129Z ok   the USB-MIDI manufacturer is reported when the port exposes it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6354493Z ok   the USB descriptor version is reported too
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6354866Z ok   and the readout counts as a diagnosis, not as an authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6359319Z ok   the page has a report panel and a row list
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6360900Z ok   the panel is filled from the report's fields and limits
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6361236Z ok   the Verify handler renders the report
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6361722Z ok   the panel says detection is not an authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6362593Z ok   the panel renders the checklist and the verdict, not only the field list
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6364911Z ok   every checklist row and state has words in the three languages
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6377596Z ok   stock unit: the device identity is what the unit answered (FM-1_015)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6378115Z ok   stock unit: the package is named in its own rows (FM-1_982), never as the device's identity
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6378745Z ok   stock unit: the package rows carry the release version, the size and the expected hash, with sources
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6379276Z ok   stock unit + this package: compatibility says it replaces official V15, and authorisation stays none
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6379617Z ok   stock unit: the package tag is in no device row at all
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6390699Z ok   a unit answering FM-1_982 is not stock, even when the package is a V15 one
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6391175Z ok   that unit is reported with its own identity and is not offered an install
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6391517Z ok   and it still heard nothing but the identity query
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6402661Z ok   FM-1_982 + package FM-1_982: ours, same firmware (a reinstall)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6414439Z ok   this project's loader + this package: it can finish the interrupted install
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6426154Z ok   the vendor's loader + this package: blocked as foreign, never "finish the install"
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:07.6437812Z ok   a unit of another model is blocked by model, not by firmware
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6455800Z ok   a silent port: unproven, never compatible, and the package is still named
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6456371Z ok   no port at all: no device to compare, and the package is still named
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6456967Z ok   neither of them claims an authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6467270Z ok   the stock message is no longer given the package tag as an argument
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6467706Z ok   the Verify handler passes the package to the report
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6469000Z ok   every stock message names the unit's identity and none of them names the package's
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6470004Z ok   the panel renders the package rows and translates the compatibility and authorisation values
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6471893Z ok   the new panel labels exist in en, es and zh
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6474240Z ok   write() called directly, with no proof, is refused and sends nothing
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6475002Z ok   resume() called directly, with no proof, is refused and sends nothing
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6477959Z ok   with the pinned key map empty, requireProof refuses the package: a hash is integrity, not authorship
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6697057Z ok   the installer page's script parses (a missing comma is a dead installer, not a typo)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6710671Z ok   the report names the package's build commit (the package's, not the unit's)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6711210Z ok   the report names the image and the loader the package was packed from
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6711654Z ok   with an empty key map the report says no-key, and says why
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6712158Z ok   the platform block is present and every row is marked documented, never read
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6712658Z ok   no row from the platform block claims to have been answered by the device
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6712993Z ok   every device row still cites the identity answer
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6724865Z ok   the report counts the identity frames it actually sent (1 here)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6725323Z ok   the report measures the answer latency instead of guessing it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6725659Z ok   the report names the port that answered
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6725957Z ok   the port's descriptor state and type are reported as descriptor data, not as device data
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:09.6726311Z ok   the browsing context's secure-context state is reported (WebMIDI needs it)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6743189Z ok   silent unit: both identity frames are counted and the report says no answer
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6743615Z ok   silent unit: still only identity queries on the wire
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6756140Z ok   the real case: FM-1_015 answered, the package offered is FM-1_982
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6756839Z ok   the real case: the package replaces stock V15 (same model, other tag)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6757193Z ok   the checklist has its ten rows, in the installer's order
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6757596Z ok   without an image size the flash map stays unknown, and the post-install identity is an obligation, not a precondition
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6757999Z ok   the four conditions this run can establish are pass
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6758308Z ok   an empty key map fails the signature row (it is not 'unknown' when no key exists at all)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6758626Z ok   the chip session is marked as not done by verify only, never as pass
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6758985Z ok   with no record and no dump, backup and recovery are unknown -- never pass, never 'documented'
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6759335Z ok   the verdict is NO-GO, lists what blocks it, and cannot install on either path
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6769181Z ok   a key map does not let verify only claim the signature was checked
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6770821Z ok   no report row claims a JEDEC id, a clock or a flash geometry was read
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6784153Z ok   two agreeing readings: the chip and the backup are established, as corroboration
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6784705Z ok   the map is established from the package, not from a write session
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6785117Z ok   recovery is covered (verified backup + a tool over the written range), never 'exercised'
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6785490Z ok   the signature is still the blocker when no key is present, and nothing claims otherwise
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6785860Z ok   the verdict names M-Flasher as the path, so a stock unit is never read as page-installable
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6786183Z ok   the read-only path still sent nothing but identity queries
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6797004Z ok   a prepared stock unit is GO-HOST: the host writes, this page still does not
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6797408Z ok   its limitations are named, not hidden
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6798233Z ok   GO-HOST is not an authorisation to send anything
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6798844Z ok   the diagnostic file says RECOVERY AVAILABLE honestly: covered, still not exercised
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6811661Z ok   a unit already running QG: the installer's own path is GO
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6812143Z ok   the chip is not a gap here: the install reads it with 0x12 before its first write frame
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6812656Z ok   an update needs no full-flash dump, and its recovery is the loader's resume
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6813085Z ok   verify only still sent nothing but the identity query
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6824091Z ok   another JIANT build: compatibility fails in the checklist and the verdict is still NO-GO
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6836504Z ok   the eight states are named and ordered
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6836855Z ok   a stock unit reaches VERIFY READY and DEVICE COMPATIBLE
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6837262Z ok   verify only never reaches SIGNATURE VERIFIED or INSTALL READY
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6837654Z ok   recovery is reported as not verified, never as a pass
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6839584Z ok   the export is a qg1-diagnostic-1 document with all eight states
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6839990Z ok   the export repeats the report's own fields and verdict
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6840572Z ok   the export carries no key material and no session token
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6891612Z ok   a manifest naming the product (FM-1) is accepted for the build's identity (FM-1_982)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6892155Z ok   the same manifest is refused for another model: a package never crosses models
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6907067Z ok   the released package verifies offline: hash, identity and Ed25519 against the pinned key
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6912613Z ok   a package whose bytes are not the record's hash is refused
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6920419Z ok   one altered byte is refused before any device is involved
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6924009Z ok   the released package is refused for another model
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6927924Z ok   with no pinned key nothing is trusted, not even the real package
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6935173Z ok   a manifest edited after signing is refused
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6936549Z ok   with no unit, the package still reaches PACKAGE VERIFIED and SIGNATURE VERIFIED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6937022Z ok   no unit still means no VERIFY READY, no DEVICE COMPATIBLE and NO-GO
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6937470Z ok   an empty WebMIDI reports zero inputs and zero outputs, and says so
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:11.6937904Z ok   the report shows the signature as checked here, not as expected
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:13.6954267Z ok   a silent FM-1 port is reported as silent, not as absent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:13.6954842Z ok   a silent port still reaches SIGNATURE VERIFIED but never DEVICE COMPATIBLE
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:15.6970757Z ok   a unit whose descriptor says nothing is still probed, and reported as silent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:15.9996566Z ok   a stock unit that ignores 0x12: reported, not invented
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:15.9997504Z ok   the chip check sent the identity query and one 0x12, and nothing that writes
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0036328Z ok   a unit answering 0x12: the JEDEC and geometry are the chip's own answer
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0036891Z ok   the chip check never opens the update path, even when the chip answers
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0071230Z ok   a read-only part is identified and reported as not writable
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0071732Z ok   that same answer is refused by requireChip before any write frame
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0095190Z ok   a JEDEC outside the documented table is refused, not guessed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0095529Z ok   no FM-1 port: no chip is claimed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0107964Z ok   the report's chip gate is a fail when the unit refused 0x12
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0124885Z ok   the chip gate passes on a real answer, and the install is still not authorised here
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0125294Z verify only: 154 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T15:02:16.0226033Z ##[error]The operation was canceled.
+build	a package and a site exist (fail closed)	﻿2026-11-09T15:02:16.0257405Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0257854Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0258219Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0274910Z shell: /usr/bin/bash -e {0}
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0275058Z env:
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0275211Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0275456Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0275691Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0276047Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0276267Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0276666Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0277652Z   PATH: /home/runner/work/_temp/833fef69-a757-4d19-a595-9e99270f3f9e/emsdk-main:/home/runner/work/_temp/833fef69-a757-4d19-a595-9e99270f3f9e/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0278631Z   EMSDK: /home/runner/work/_temp/833fef69-a757-4d19-a595-9e99270f3f9e/emsdk-main
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0278969Z   EMSDK_NODE: /home/runner/work/_temp/833fef69-a757-4d19-a595-9e99270f3f9e/emsdk-main/node/24.19.0_64bit/bin/node
+build	a package and a site exist (fail closed)	2026-11-09T15:02:16.0279238Z ##[endgroup]
+build	Post Run actions/checkout@v4	﻿2026-11-09T15:02:16.0387672Z Post job cleanup.
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.0946526Z [command]/usr/bin/git version
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.0979352Z git version 2.56.0
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1002469Z Temporarily overriding HOME='/home/runner/work/_temp/b1b58ee2-87db-4b5a-a943-976b9accdd1b' before making global git config changes
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1003264Z Adding repository directory to the temporary git global config as a safe directory
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1004407Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1036247Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1066949Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1267347Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1293456Z http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1306126Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1340592Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1546675Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	Post Run actions/checkout@v4	2026-11-09T15:02:16.1583613Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	Complete job	﻿2026-11-09T15:02:16.1904493Z Cleaning up orphan processes
+build	Complete job	2026-11-09T15:02:16.2077760Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/setup-node@v4, actions/setup-python@v5, actions/upload-artifact@v4, mymindstorm/setup-emsdk@v14. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+publish	Set up job	﻿2026-11-09T14:59:39.9659036Z Current runner version: '2.338.2'
+publish	Set up job	2026-11-09T14:59:39.9688420Z ##[group]Runner Image Provisioner
+publish	Set up job	2026-11-09T14:59:39.9689440Z Hosted Compute Agent
+publish	Set up job	2026-11-09T14:59:39.9690461Z Version: 20261028.624
+publish	Set up job	2026-11-09T14:59:39.9691224Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+publish	Set up job	2026-11-09T14:59:39.9692222Z Build Date: 2026-10-28T21:51:42Z
+publish	Set up job	2026-11-09T14:59:39.9693110Z Worker ID: {3cc34005-c58f-4134-8ac3-ccc3a6a8c85c}
+publish	Set up job	2026-11-09T14:59:39.9693929Z Region: centralus
+publish	Set up job	2026-11-09T14:59:39.9695109Z Cloud: Azure
+publish	Set up job	2026-11-09T14:59:39.9695809Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9697476Z ##[group]Operating System
+publish	Set up job	2026-11-09T14:59:39.9698302Z Ubuntu
+publish	Set up job	2026-11-09T14:59:39.9698927Z 24.04.5
+publish	Set up job	2026-11-09T14:59:39.9699799Z LTS
+publish	Set up job	2026-11-09T14:59:39.9700495Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9701170Z ##[group]Runner Image
+publish	Set up job	2026-11-09T14:59:39.9701907Z Image: ubuntu-24.04
+publish	Set up job	2026-11-09T14:59:39.9702569Z Version: 20261101.360.1
+publish	Set up job	2026-11-09T14:59:39.9703914Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+publish	Set up job	2026-11-09T14:59:39.9706072Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+publish	Set up job	2026-11-09T14:59:39.9707270Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9708510Z ##[group]GITHUB_TOKEN Permissions
+publish	Set up job	2026-11-09T14:59:39.9711046Z Contents: write
+publish	Set up job	2026-11-09T14:59:39.9711783Z Metadata: read
+publish	Set up job	2026-11-09T14:59:39.9712467Z ##[endgroup]
+publish	Set up job	2026-11-09T14:59:39.9715274Z Secret source: Actions
+publish	Set up job	2026-11-09T14:59:39.9716529Z Cache mode: write
+publish	Set up job	2026-11-09T14:59:39.9717872Z Prepare workflow directory
+publish	Set up job	2026-11-09T14:59:40.0007553Z Prepare all required actions
+publish	Set up job	2026-11-09T14:59:40.0049871Z Getting action download info
+publish	Set up job	2026-11-09T14:59:40.2176833Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+publish	Set up job	2026-11-09T14:59:40.4187089Z Complete job name: publish
+publish	Run actions/checkout@v4	﻿2026-11-09T14:59:40.4993979Z ##[group]Run actions/checkout@v4
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4994681Z with:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4995037Z   fetch-depth: 0
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4995429Z   repository: Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4998550Z   token: ***
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4998913Z   ssh-strict: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4999276Z   ssh-user: git
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.4999806Z   persist-credentials: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5000210Z   clean: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5000581Z   sparse-checkout-cone-mode: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5001003Z   fetch-tags: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5001374Z   show-progress: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5001740Z   lfs: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5002080Z   submodules: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5002460Z   set-safe-directory: true
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5002870Z   allow-unsafe-pr-checkout: false
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.5003490Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6916496Z Syncing repository: Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6918620Z ##[group]Getting Git version info
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6919343Z Working directory is '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6920698Z [command]/usr/bin/git version
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6978646Z git version 2.56.0
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.6995884Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7008779Z Temporarily overriding HOME='/home/runner/work/_temp/de6218b8-4a11-427c-a47c-defb799392da' before making global git config changes
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7010963Z Adding repository directory to the temporary git global config as a safe directory
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7013529Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7058701Z Deleting the contents of '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7066001Z ##[group]Initializing the repository
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7067033Z [command]/usr/bin/git init /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7208782Z hint: Using 'master' as the name for the initial branch. This default branch name
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7210680Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7212038Z hint: to use in all of your new repositories, which will suppress this warning,
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7213428Z hint: call:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7214336Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7215044Z hint: 	git config --global init.defaultBranch <name>
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7215776Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7216470Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7217559Z hint: 'development'. The just-created branch can be renamed via this command:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7218454Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7218957Z hint: 	git branch -m <name>
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7219504Z hint:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7220423Z hint: Disable this message with "git config set advice.defaultBranchName false"
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7221718Z Initialized empty Git repository in /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/.git/
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7227632Z [command]/usr/bin/git remote add origin https://github.com/Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7270642Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7271605Z ##[group]Disabling automatic garbage collection
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7274413Z [command]/usr/bin/git config --local gc.auto 0
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7306085Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7306984Z ##[group]Setting up auth
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7318066Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7354801Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7666885Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7709998Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7922792Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.7962347Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8165853Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8208555Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8209275Z ##[group]Fetching the repository
+publish	Run actions/checkout@v4	2026-11-09T14:59:40.8217738Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1388874Z From https://github.com/Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1390592Z  * [new branch]      audit/fm1-no-hardware   -> origin/audit/fm1-no-hardware
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1392268Z  * [new branch]      audit/v1.9-fm1-safety   -> origin/audit/v1.9-fm1-safety
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1394065Z  * [new branch]      ci/log/42477957388-failure -> origin/ci/log/42477957388-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1395729Z  * [new branch]      ci/log/42480813211-cancelled -> origin/ci/log/42480813211-cancelled
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1397612Z  * [new branch]      ci/log/42481111801-failure -> origin/ci/log/42481111801-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1399826Z  * [new branch]      ci/log/42482503161-success -> origin/ci/log/42482503161-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1402005Z  * [new branch]      ci/log/42487327176-failure -> origin/ci/log/42487327176-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1404192Z  * [new branch]      ci/log/42489190170-failure -> origin/ci/log/42489190170-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1405946Z  * [new branch]      ci/log/42491501704-failure -> origin/ci/log/42491501704-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1407400Z  * [new branch]      ci/log/42492623156-failure -> origin/ci/log/42492623156-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1408696Z  * [new branch]      ci/log/42493220934-failure -> origin/ci/log/42493220934-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1410312Z  * [new branch]      ci/log/42494872221-success -> origin/ci/log/42494872221-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1411893Z  * [new branch]      ci/log/42498953885-success -> origin/ci/log/42498953885-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1413798Z  * [new branch]      ci/log/42506413781-success -> origin/ci/log/42506413781-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1415529Z  * [new branch]      ci/log/42506417545-success -> origin/ci/log/42506417545-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1417305Z  * [new branch]      ci/log/42507567885-success -> origin/ci/log/42507567885-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1418958Z  * [new branch]      ci/log/42508876242-success -> origin/ci/log/42508876242-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1420919Z  * [new branch]      ci/log/42512809371-success -> origin/ci/log/42512809371-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1422676Z  * [new branch]      ci/log/42512814434-success -> origin/ci/log/42512814434-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1424407Z  * [new branch]      ci/log/42515184085-success -> origin/ci/log/42515184085-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1426231Z  * [new branch]      ci/log/42515187306-success -> origin/ci/log/42515187306-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1428269Z  * [new branch]      ci/log/42517068771-success -> origin/ci/log/42517068771-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1430498Z  * [new branch]      ci/log/42520174117-success -> origin/ci/log/42520174117-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1432493Z  * [new branch]      ci/log/42520177312-success -> origin/ci/log/42520177312-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1434563Z  * [new branch]      ci/log/42522233792-success -> origin/ci/log/42522233792-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1436562Z  * [new branch]      ci/log/42523775428-success -> origin/ci/log/42523775428-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1438530Z  * [new branch]      ci/log/42526253496-success -> origin/ci/log/42526253496-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1440646Z  * [new branch]      ci/log/42527302972-success -> origin/ci/log/42527302972-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1442732Z  * [new branch]      ci/log/42528407466-success -> origin/ci/log/42528407466-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1445008Z  * [new branch]      ci/log/42529060993-success -> origin/ci/log/42529060993-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1447137Z  * [new branch]      ci/log/42530578798-success -> origin/ci/log/42530578798-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1449541Z  * [new branch]      ci/log/42531273223-success -> origin/ci/log/42531273223-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1451834Z  * [new branch]      ci/log/42531890284-success -> origin/ci/log/42531890284-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1453945Z  * [new branch]      ci/log/42532370251-success -> origin/ci/log/42532370251-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1456009Z  * [new branch]      ci/log/42539802427-success -> origin/ci/log/42539802427-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1458209Z  * [new branch]      ci/log/42539807465-success -> origin/ci/log/42539807465-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1460601Z  * [new branch]      ci/log/42540683798-success -> origin/ci/log/42540683798-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1462625Z  * [new branch]      ci/log/42545290225-success -> origin/ci/log/42545290225-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1464657Z  * [new branch]      ci/log/42545294469-success -> origin/ci/log/42545294469-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1466631Z  * [new branch]      ci/log/42558316159-success -> origin/ci/log/42558316159-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1468606Z  * [new branch]      ci/log/42558320548-success -> origin/ci/log/42558320548-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1470924Z  * [new branch]      ci/log/42559329079-failure -> origin/ci/log/42559329079-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1472855Z  * [new branch]      ci/log/42560318284-success -> origin/ci/log/42560318284-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1474749Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1476675Z  * [new branch]      ci/log/42560692112-success -> origin/ci/log/42560692112-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1478567Z  * [new branch]      ci/log/42565723149-success -> origin/ci/log/42565723149-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1480640Z  * [new branch]      ci/log/42565727774-success -> origin/ci/log/42565727774-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1482551Z  * [new branch]      ci/log/42565730642-failure -> origin/ci/log/42565730642-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1484751Z  * [new branch]      ci/log/42567371258-failure -> origin/ci/log/42567371258-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1487616Z  * [new branch]      ci/log/42572808302-success -> origin/ci/log/42572808302-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1490406Z  * [new branch]      ci/log/42572815172-failure -> origin/ci/log/42572815172-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1492816Z  * [new branch]      ci/log/42576644769-failure -> origin/ci/log/42576644769-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1495024Z  * [new branch]      ci/log/42578600477-cancelled -> origin/ci/log/42578600477-cancelled
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1497281Z  * [new branch]      ci/log/42579301366-failure -> origin/ci/log/42579301366-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1499163Z  * [new branch]      ci/log/42584658558-failure -> origin/ci/log/42584658558-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1501700Z  * [new branch]      ci/log/42594694076-failure -> origin/ci/log/42594694076-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1504256Z  * [new branch]      ci/log/42630043326-failure -> origin/ci/log/42630043326-failure
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1506581Z  * [new branch]      ci/log/42632140799-success -> origin/ci/log/42632140799-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1508470Z  * [new branch]      ci/log/42634271273-success -> origin/ci/log/42634271273-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1510487Z  * [new branch]      ci/log/42635269246-success -> origin/ci/log/42635269246-success
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1513238Z  * [new branch]      cleanup-qg1-docs-identity-14719576721255766213 -> origin/cleanup-qg1-docs-identity-14719576721255766213
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1515667Z  * [new branch]      cline/13ey37k1          -> origin/cline/13ey37k1
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1517262Z  * [new branch]      cline/hrqxkss8          -> origin/cline/hrqxkss8
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1518940Z  * [new branch]      dev/quantum-integral    -> origin/dev/quantum-integral
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1521097Z  * [new branch]      devin/1793394967-quantum-v1.4 -> origin/devin/1793394967-quantum-v1.4
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1523292Z  * [new branch]      devin/quantum-v1.3      -> origin/devin/quantum-v1.3
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1525513Z  * [new branch]      docs/qg15-live-audit    -> origin/docs/qg15-live-audit
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1528738Z  * [new branch]      feat/quantum-real-screenshots-and-about-update-492979775632194395 -> origin/feat/quantum-real-screenshots-and-about-update-492979775632194395
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1532080Z  * [new branch]      feat/rebrand-security-p2 -> origin/feat/rebrand-security-p2
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1533888Z  * [new branch]      feat/ui-redesign-qg1    -> origin/feat/ui-redesign-qg1
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1535593Z  * [new branch]      feat/v1.5-hardening     -> origin/feat/v1.5-hardening
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1537222Z  * [new branch]      feat/v1.6-qg            -> origin/feat/v1.6-qg
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1538744Z  * [new branch]      feat/v1.7-qg            -> origin/feat/v1.7-qg
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1540558Z  * [new branch]      feat/v1.7-visual-presets -> origin/feat/v1.7-visual-presets
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1542982Z  * [new branch]      feature/audit-cleanup-qg1-9393018041995724673 -> origin/feature/audit-cleanup-qg1-9393018041995724673
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1546353Z  * [new branch]      feature/fix-home-viz-and-drum-presets-12092529543400008897 -> origin/feature/fix-home-viz-and-drum-presets-12092529543400008897
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1550475Z  * [new branch]      feature/qg1-ui-nav-themes-presets-10550540118776558527 -> origin/feature/qg1-ui-nav-themes-presets-10550540118776558527
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1554496Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1557491Z  * [new branch]      fix/p1-extra-tab        -> origin/fix/p1-extra-tab
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1559151Z  * [new branch]      fix/v1.7-ci-budget      -> origin/fix/v1.7-ci-budget
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1561004Z  * [new branch]      fix/v1.7-ui-audit       -> origin/fix/v1.7-ui-audit
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1562973Z  * [new branch]      freebuff/4549bd389852a9607bba2622 -> origin/freebuff/4549bd389852a9607bba2622
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1565289Z  * [new branch]      freebuff/6ae847e53332b13a021ccec4 -> origin/freebuff/6ae847e53332b13a021ccec4
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1567615Z  * [new branch]      integ/v1.8.9            -> origin/integ/v1.8.9
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1569220Z  * [new branch]      integ/v1.9-identity     -> origin/integ/v1.9-identity
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1571102Z  * [new branch]      integ/v1.9-security     -> origin/integ/v1.9-security
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1573094Z  * [new branch]      jules-16051787961813429323-dfe6ca9b -> origin/jules-16051787961813429323-dfe6ca9b
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1575398Z  * [new branch]      jules-17619888464711981417-633f1e53 -> origin/jules-17619888464711981417-633f1e53
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1577353Z  * [new branch]      main                    -> origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1579734Z  * [new branch]      opt/performance-baseline -> origin/opt/performance-baseline
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1582493Z  * [new branch]      perf/deep-opt-consumption-cleanup-14085799576697135698 -> origin/perf/deep-opt-consumption-cleanup-14085799576697135698
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1585128Z  * [new branch]      perf/integral-audit     -> origin/perf/integral-audit
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1586858Z  * [new branch]      perf/security-hardening -> origin/perf/security-hardening
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1588702Z  * [new branch]      perf/six-track-hardening -> origin/perf/six-track-hardening
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1590662Z  * [new branch]      release/v1.5-qg         -> origin/release/v1.5-qg
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1592782Z  * [new branch]      review/installer-chip-check -> origin/review/installer-chip-check
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1595110Z  * [new branch]      security/transport-require-proof -> origin/security/transport-require-proof
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1597563Z  * [new branch]      security/transport-session-probe -> origin/security/transport-session-probe
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1599735Z  * [new branch]      work/fm1-signing-custody -> origin/work/fm1-signing-custody
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1601674Z  * [new branch]      work/v18-integration    -> origin/work/v18-integration
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1603095Z  * [new tag]         v1.9.0                  -> v1.9.0
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1606249Z [command]/usr/bin/git branch --list --remote origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1607546Z   origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1609491Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1610903Z 86e8ca642472d202435dd0490d203c3f08c4998b
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1613460Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1614799Z ##[group]Determining the checkout info
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1616276Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1617130Z [command]/usr/bin/git sparse-checkout disable
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1619697Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1622708Z ##[group]Checking out the ref
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.1624092Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3301054Z Switched to a new branch 'main'
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3304043Z branch 'main' set up to track 'origin/main'.
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3319945Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3366061Z [command]/usr/bin/git log -1 --format=%H
+publish	Run actions/checkout@v4	2026-11-09T14:59:44.3399895Z 86e8ca642472d202435dd0490d203c3f08c4998b
+publish	is there anything to publish (the tag and the release already name this build)	﻿2026-11-09T14:59:44.3671124Z ##[group]Run COMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3673616Z ^[[36;1mCOMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3675450Z ^[[36;1mHAVE=$(git rev-list -n1 v1.9.0 2>/dev/null || true)^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3676887Z ^[[36;1mif [ "$HAVE" = "$COMMIT" ] && gh release view v1.9.0 >/dev/null 2>&1; then^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3678668Z ^[[36;1m  echo "v1.9.0 already is this build (${COMMIT:0:7}) and has a release: nothing to publish"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3680408Z ^[[36;1m  echo "needed=false" >> "$GITHUB_OUTPUT"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3681447Z ^[[36;1melse^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3682684Z ^[[36;1m  echo "v1.9.0 is not this build yet (tag ${HAVE:-none}, package ${COMMIT:0:7}): publishing"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3684453Z ^[[36;1m  echo "needed=true" >> "$GITHUB_OUTPUT"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3685480Z ^[[36;1mfi^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3707401Z shell: /usr/bin/bash -e {0}
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3708324Z env:
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3715798Z   GH_TOKEN: ***
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.3716546Z ##[endgroup]
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T14:59:44.8400242Z v1.9.0 already is this build (7eb9636) and has a release: nothing to publish
+publish	Post Run actions/checkout@v4	﻿2026-11-09T14:59:44.8655298Z Post job cleanup.
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9362890Z [command]/usr/bin/git version
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9400067Z git version 2.56.0
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9436025Z Temporarily overriding HOME='/home/runner/work/_temp/7cfa0b73-51ba-4afe-b0dd-a635d5c1473d' before making global git config changes
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9437019Z Adding repository directory to the temporary git global config as a safe directory
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9443297Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9483487Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9521638Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9747082Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9772396Z http.https://github.com/.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9801874Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:44.9861212Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:45.0097626Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+publish	Post Run actions/checkout@v4	2026-11-09T14:59:45.0136259Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+publish	Complete job	﻿2026-11-09T14:59:45.0510912Z Cleaning up orphan processes
+publish	Complete job	2026-11-09T14:59:45.0843179Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
+## gh stderr
+log not found: 129240213615
