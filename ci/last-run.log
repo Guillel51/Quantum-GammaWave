@@ -1,0 +1,720 @@
+# emulator run 42576644769 (failure) at 556b15c8f81da610a68511139513b18302648f8c
+
+## jobs
+- build: completed / success
+- publish: completed / success
+- deploy: completed / failure
+    step FAILED: 6 the published site is the release it offers (versions.json, package, wasm, portal, installer) -> failure
+
+## publish job
+publish	Set up job	﻿2026-11-09T07:01:24.5321212Z Current runner version: '2.338.2'
+publish	Set up job	2026-11-09T07:01:24.5357293Z ##[group]Runner Image Provisioner
+publish	Set up job	2026-11-09T07:01:24.5358646Z Hosted Compute Agent
+publish	Set up job	2026-11-09T07:01:24.5359593Z Version: 20261028.624
+publish	Set up job	2026-11-09T07:01:24.5360670Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+publish	Set up job	2026-11-09T07:01:24.5361901Z Build Date: 2026-10-28T21:51:42Z
+publish	Set up job	2026-11-09T07:01:24.5363093Z Worker ID: {b132f075-6d01-4ae1-908d-f2a2f77fdbb6}
+publish	Set up job	2026-11-09T07:01:24.5364551Z Region: westcentralus
+publish	Set up job	2026-11-09T07:01:24.5365688Z Cloud: Azure
+publish	Set up job	2026-11-09T07:01:24.5366683Z ##[endgroup]
+publish	Set up job	2026-11-09T07:01:24.5369622Z ##[group]Operating System
+publish	Set up job	2026-11-09T07:01:24.5370684Z Ubuntu
+publish	Set up job	2026-11-09T07:01:24.5371800Z 24.04.5
+publish	Set up job	2026-11-09T07:01:24.5372793Z LTS
+publish	Set up job	2026-11-09T07:01:24.5374073Z ##[endgroup]
+publish	Set up job	2026-11-09T07:01:24.5375085Z ##[group]Runner Image
+publish	Set up job	2026-11-09T07:01:24.5376139Z Image: ubuntu-24.04
+publish	Set up job	2026-11-09T07:01:24.5377194Z Version: 20261101.360.1
+publish	Set up job	2026-11-09T07:01:24.5379179Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+publish	Set up job	2026-11-09T07:01:24.5382350Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+publish	Set up job	2026-11-09T07:01:24.5384409Z ##[endgroup]
+publish	Set up job	2026-11-09T07:01:24.5386506Z ##[group]GITHUB_TOKEN Permissions
+publish	Set up job	2026-11-09T07:01:24.5389422Z Contents: write
+publish	Set up job	2026-11-09T07:01:24.5390679Z Metadata: read
+publish	Set up job	2026-11-09T07:01:24.5391656Z ##[endgroup]
+publish	Set up job	2026-11-09T07:01:24.5394943Z Secret source: Actions
+publish	Set up job	2026-11-09T07:01:24.5396606Z Cache mode: write
+publish	Set up job	2026-11-09T07:01:24.5397901Z Prepare workflow directory
+publish	Set up job	2026-11-09T07:01:24.5748474Z Prepare all required actions
+publish	Set up job	2026-11-09T07:01:24.5801929Z Getting action download info
+publish	Set up job	2026-11-09T07:01:24.8440769Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+publish	Set up job	2026-11-09T07:01:25.0535003Z Complete job name: publish
+publish	Run actions/checkout@v4	﻿2026-11-09T07:01:25.1435425Z ##[group]Run actions/checkout@v4
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1436318Z with:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1436756Z   fetch-depth: 0
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1437247Z   repository: Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1440882Z   token: ***
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1441319Z   ssh-strict: true
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1441772Z   ssh-user: git
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1442218Z   persist-credentials: true
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1442721Z   clean: true
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1443178Z   sparse-checkout-cone-mode: true
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1443894Z   fetch-tags: false
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1444359Z   show-progress: true
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1444810Z   lfs: false
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1445220Z   submodules: false
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1445667Z   set-safe-directory: true
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1446177Z   allow-unsafe-pr-checkout: false
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.1446951Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4012569Z Syncing repository: Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4015603Z ##[group]Getting Git version info
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4016901Z Working directory is '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4018894Z [command]/usr/bin/git version
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4080899Z git version 2.56.0
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4111661Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4118698Z Temporarily overriding HOME='/home/runner/work/_temp/5e7d7a08-d09c-48f6-a9dd-aa0215bbc0be' before making global git config changes
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4121686Z Adding repository directory to the temporary git global config as a safe directory
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4124551Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4172396Z Deleting the contents of '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4177641Z ##[group]Initializing the repository
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4181489Z [command]/usr/bin/git init /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4292815Z hint: Using 'master' as the name for the initial branch. This default branch name
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4294978Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4296738Z hint: to use in all of your new repositories, which will suppress this warning,
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4298465Z hint: call:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4299184Z hint:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4300073Z hint: 	git config --global init.defaultBranch <name>
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4301169Z hint:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4302200Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4304060Z hint: 'development'. The just-created branch can be renamed via this command:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4305411Z hint:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4306146Z hint: 	git branch -m <name>
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4306990Z hint:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4308456Z hint: Disable this message with "git config set advice.defaultBranchName false"
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4311316Z Initialized empty Git repository in /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/.git/
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4325241Z [command]/usr/bin/git remote add origin https://github.com/Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4374986Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4376386Z ##[group]Disabling automatic garbage collection
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4378169Z [command]/usr/bin/git config --local gc.auto 0
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4412856Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4414470Z ##[group]Setting up auth
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4420152Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4460615Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4863160Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.4916995Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.5177282Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.5221785Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.5459970Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.5509409Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.5510329Z ##[group]Fetching the repository
+publish	Run actions/checkout@v4	2026-11-09T07:01:25.5522390Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6848411Z From https://github.com/Guillel51/Quantum-GammaWave
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6851383Z  * [new branch]      audit/fm1-no-hardware   -> origin/audit/fm1-no-hardware
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6854146Z  * [new branch]      audit/v1.9-fm1-safety   -> origin/audit/v1.9-fm1-safety
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6856951Z  * [new branch]      ci/log/42477957388-failure -> origin/ci/log/42477957388-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6859886Z  * [new branch]      ci/log/42480813211-cancelled -> origin/ci/log/42480813211-cancelled
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6862675Z  * [new branch]      ci/log/42481111801-failure -> origin/ci/log/42481111801-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6866176Z  * [new branch]      ci/log/42482503161-success -> origin/ci/log/42482503161-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6869031Z  * [new branch]      ci/log/42487327176-failure -> origin/ci/log/42487327176-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6871789Z  * [new branch]      ci/log/42489190170-failure -> origin/ci/log/42489190170-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6874815Z  * [new branch]      ci/log/42491501704-failure -> origin/ci/log/42491501704-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6877620Z  * [new branch]      ci/log/42492623156-failure -> origin/ci/log/42492623156-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6880518Z  * [new branch]      ci/log/42493220934-failure -> origin/ci/log/42493220934-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6882584Z  * [new branch]      ci/log/42494872221-success -> origin/ci/log/42494872221-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6884881Z  * [new branch]      ci/log/42498953885-success -> origin/ci/log/42498953885-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6887332Z  * [new branch]      ci/log/42506413781-success -> origin/ci/log/42506413781-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6889492Z  * [new branch]      ci/log/42506417545-success -> origin/ci/log/42506417545-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6891755Z  * [new branch]      ci/log/42507567885-success -> origin/ci/log/42507567885-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6894984Z  * [new branch]      ci/log/42508876242-success -> origin/ci/log/42508876242-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6897270Z  * [new branch]      ci/log/42512809371-success -> origin/ci/log/42512809371-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6899542Z  * [new branch]      ci/log/42512814434-success -> origin/ci/log/42512814434-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6901762Z  * [new branch]      ci/log/42515184085-success -> origin/ci/log/42515184085-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6904285Z  * [new branch]      ci/log/42515187306-success -> origin/ci/log/42515187306-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6906841Z  * [new branch]      ci/log/42517068771-success -> origin/ci/log/42517068771-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6909417Z  * [new branch]      ci/log/42520174117-success -> origin/ci/log/42520174117-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6912497Z  * [new branch]      ci/log/42520177312-success -> origin/ci/log/42520177312-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6916747Z  * [new branch]      ci/log/42522233792-success -> origin/ci/log/42522233792-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6920978Z  * [new branch]      ci/log/42523775428-success -> origin/ci/log/42523775428-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6925373Z  * [new branch]      ci/log/42526253496-success -> origin/ci/log/42526253496-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6929136Z  * [new branch]      ci/log/42527302972-success -> origin/ci/log/42527302972-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6932861Z  * [new branch]      ci/log/42528407466-success -> origin/ci/log/42528407466-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6937617Z  * [new branch]      ci/log/42529060993-success -> origin/ci/log/42529060993-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6941424Z  * [new branch]      ci/log/42530578798-success -> origin/ci/log/42530578798-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6945471Z  * [new branch]      ci/log/42531273223-success -> origin/ci/log/42531273223-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6949314Z  * [new branch]      ci/log/42531890284-success -> origin/ci/log/42531890284-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6951910Z  * [new branch]      ci/log/42532370251-success -> origin/ci/log/42532370251-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6954743Z  * [new branch]      ci/log/42539802427-success -> origin/ci/log/42539802427-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6957320Z  * [new branch]      ci/log/42539807465-success -> origin/ci/log/42539807465-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6960590Z  * [new branch]      ci/log/42540683798-success -> origin/ci/log/42540683798-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6963375Z  * [new branch]      ci/log/42545290225-success -> origin/ci/log/42545290225-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6966286Z  * [new branch]      ci/log/42545294469-success -> origin/ci/log/42545294469-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6969536Z  * [new branch]      ci/log/42558316159-success -> origin/ci/log/42558316159-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6973667Z  * [new branch]      ci/log/42558320548-success -> origin/ci/log/42558320548-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6978096Z  * [new branch]      ci/log/42559329079-failure -> origin/ci/log/42559329079-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6982125Z  * [new branch]      ci/log/42560318284-success -> origin/ci/log/42560318284-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6986261Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6990061Z  * [new branch]      ci/log/42560692112-success -> origin/ci/log/42560692112-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6993985Z  * [new branch]      ci/log/42565723149-success -> origin/ci/log/42565723149-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6997385Z  * [new branch]      ci/log/42565727774-success -> origin/ci/log/42565727774-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.6999887Z  * [new branch]      ci/log/42565730642-failure -> origin/ci/log/42565730642-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7002269Z  * [new branch]      ci/log/42567371258-failure -> origin/ci/log/42567371258-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7005203Z  * [new branch]      ci/log/42572808302-success -> origin/ci/log/42572808302-success
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7008690Z  * [new branch]      ci/log/42572815172-failure -> origin/ci/log/42572815172-failure
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7012043Z  * [new branch]      cleanup-qg1-docs-identity-14719576721255766213 -> origin/cleanup-qg1-docs-identity-14719576721255766213
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7015360Z  * [new branch]      cline/13ey37k1          -> origin/cline/13ey37k1
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7017392Z  * [new branch]      cline/hrqxkss8          -> origin/cline/hrqxkss8
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7019512Z  * [new branch]      dev/quantum-integral    -> origin/dev/quantum-integral
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7021947Z  * [new branch]      devin/1793394967-quantum-v1.4 -> origin/devin/1793394967-quantum-v1.4
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7024633Z  * [new branch]      devin/quantum-v1.3      -> origin/devin/quantum-v1.3
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7026819Z  * [new branch]      docs/qg15-live-audit    -> origin/docs/qg15-live-audit
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7031274Z  * [new branch]      feat/quantum-real-screenshots-and-about-update-492979775632194395 -> origin/feat/quantum-real-screenshots-and-about-update-492979775632194395
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7036878Z  * [new branch]      feat/rebrand-security-p2 -> origin/feat/rebrand-security-p2
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7040867Z  * [new branch]      feat/ui-redesign-qg1    -> origin/feat/ui-redesign-qg1
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7044886Z  * [new branch]      feat/v1.5-hardening     -> origin/feat/v1.5-hardening
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7048280Z  * [new branch]      feat/v1.6-qg            -> origin/feat/v1.6-qg
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7051402Z  * [new branch]      feat/v1.7-qg            -> origin/feat/v1.7-qg
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7055027Z  * [new branch]      feat/v1.7-visual-presets -> origin/feat/v1.7-visual-presets
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7059717Z  * [new branch]      feature/audit-cleanup-qg1-9393018041995724673 -> origin/feature/audit-cleanup-qg1-9393018041995724673
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7064425Z  * [new branch]      feature/fix-home-viz-and-drum-presets-12092529543400008897 -> origin/feature/fix-home-viz-and-drum-presets-12092529543400008897
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7070138Z  * [new branch]      feature/qg1-ui-nav-themes-presets-10550540118776558527 -> origin/feature/qg1-ui-nav-themes-presets-10550540118776558527
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7075093Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7078383Z  * [new branch]      fix/p1-extra-tab        -> origin/fix/p1-extra-tab
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7080650Z  * [new branch]      fix/v1.7-ci-budget      -> origin/fix/v1.7-ci-budget
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7084216Z  * [new branch]      fix/v1.7-ui-audit       -> origin/fix/v1.7-ui-audit
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7088473Z  * [new branch]      freebuff/4549bd389852a9607bba2622 -> origin/freebuff/4549bd389852a9607bba2622
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7093452Z  * [new branch]      freebuff/6ae847e53332b13a021ccec4 -> origin/freebuff/6ae847e53332b13a021ccec4
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7097701Z  * [new branch]      integ/v1.8.9            -> origin/integ/v1.8.9
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7100882Z  * [new branch]      integ/v1.9-identity     -> origin/integ/v1.9-identity
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7104691Z  * [new branch]      integ/v1.9-security     -> origin/integ/v1.9-security
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7107385Z  * [new branch]      jules-16051787961813429323-dfe6ca9b -> origin/jules-16051787961813429323-dfe6ca9b
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7110459Z  * [new branch]      jules-17619888464711981417-633f1e53 -> origin/jules-17619888464711981417-633f1e53
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7112866Z  * [new branch]      main                    -> origin/main
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7115823Z  * [new branch]      opt/performance-baseline -> origin/opt/performance-baseline
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7119852Z  * [new branch]      perf/deep-opt-consumption-cleanup-14085799576697135698 -> origin/perf/deep-opt-consumption-cleanup-14085799576697135698
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7123510Z  * [new branch]      perf/integral-audit     -> origin/perf/integral-audit
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7126148Z  * [new branch]      perf/security-hardening -> origin/perf/security-hardening
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7128545Z  * [new branch]      perf/six-track-hardening -> origin/perf/six-track-hardening
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7130733Z  * [new branch]      release/v1.5-qg         -> origin/release/v1.5-qg
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7132999Z  * [new branch]      review/installer-chip-check -> origin/review/installer-chip-check
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7135980Z  * [new branch]      security/transport-require-proof -> origin/security/transport-require-proof
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7138873Z  * [new branch]      security/transport-session-probe -> origin/security/transport-session-probe
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7141466Z  * [new branch]      work/fm1-signing-custody -> origin/work/fm1-signing-custody
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7143663Z  * [new branch]      work/v18-integration    -> origin/work/v18-integration
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7145711Z  * [new tag]         v1.9.0                  -> v1.9.0
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7149042Z [command]/usr/bin/git branch --list --remote origin/main
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7150510Z   origin/main
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7152996Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7154929Z 556b15c8f81da610a68511139513b18302648f8c
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7158059Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7159655Z ##[group]Determining the checkout info
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7161493Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7162559Z [command]/usr/bin/git sparse-checkout disable
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7165926Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7169547Z ##[group]Checking out the ref
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.7171297Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.8924678Z Switched to a new branch 'main'
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.8930506Z branch 'main' set up to track 'origin/main'.
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.8956619Z ##[endgroup]
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.9012968Z [command]/usr/bin/git log -1 --format=%H
+publish	Run actions/checkout@v4	2026-11-09T07:01:27.9054626Z 556b15c8f81da610a68511139513b18302648f8c
+publish	is there anything to publish (the tag and the release already name this build)	﻿2026-11-09T07:01:27.9329762Z ##[group]Run COMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9332502Z ^[[36;1mCOMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9334858Z ^[[36;1mHAVE=$(git rev-list -n1 v1.9.0 2>/dev/null || true)^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9336506Z ^[[36;1mif [ "$HAVE" = "$COMMIT" ] && gh release view v1.9.0 >/dev/null 2>&1; then^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9338529Z ^[[36;1m  echo "v1.9.0 already is this build (${COMMIT:0:7}) and has a release: nothing to publish"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9340324Z ^[[36;1m  echo "needed=false" >> "$GITHUB_OUTPUT"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9341494Z ^[[36;1melse^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9342919Z ^[[36;1m  echo "v1.9.0 is not this build yet (tag ${HAVE:-none}, package ${COMMIT:0:7}): publishing"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9344994Z ^[[36;1m  echo "needed=true" >> "$GITHUB_OUTPUT"^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9346145Z ^[[36;1mfi^[[0m
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9370787Z shell: /usr/bin/bash -e {0}
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9371862Z env:
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9380088Z   GH_TOKEN: ***
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:27.9380993Z ##[endgroup]
+publish	is there anything to publish (the tag and the release already name this build)	2026-11-09T07:01:30.5520172Z v1.9.0 already is this build (7eb9636) and has a release: nothing to publish
+publish	Post Run actions/checkout@v4	﻿2026-11-09T07:01:30.5806466Z Post job cleanup.
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.6699198Z [command]/usr/bin/git version
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.6743802Z git version 2.56.0
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.6784123Z Temporarily overriding HOME='/home/runner/work/_temp/893c0793-bb32-4c75-ae1f-171797f62731' before making global git config changes
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.6785468Z Adding repository directory to the temporary git global config as a safe directory
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.6790319Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.6830973Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.6872002Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.7162332Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.7195897Z http.https://github.com/.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.7209410Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.7247236Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.7517744Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+publish	Post Run actions/checkout@v4	2026-11-09T07:01:30.7570073Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+publish	Complete job	﻿2026-11-09T07:01:30.7990488Z Cleaning up orphan processes
+publish	Complete job	2026-11-09T07:01:30.8391029Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
+## failed steps, any job
+build	Set up job	2026-11-09T07:01:24.3712400Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-09T07:01:25.3975877Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-09T07:01:28.3748117Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-09T07:01:28.3772642Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-09T07:01:33.1649404Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 322.0 MB/s  0:00:00
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T07:01:40.0403836Z (node:2415) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T07:01:40.0404908Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T07:01:44.0266771Z Downloading: /home/runner/work/_temp/3de6bf23-0650-45f6-86ba-ceadca117a6a/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/f6264d4a4dd9ba24a9f0a5702835a44d1463de13/wasm-binaries.tar.xz, 304047688 Bytes
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T07:02:13.9140467Z Setting the following tools as active:
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T07:02:13.9142255Z 
+build	the emulator	2026-11-09T07:02:35.2908360Z emu: packaged 1079658 B wasm, v1.9.0, build 556b15c8f81d, sha256 8c21befd1403573226e548487333d934c029a302d75f55de9983522a253bd055
+build	the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)	2026-11-09T07:02:40.7264035Z emu: all ok
+build	the package, the installer and the editor	2026-11-09T07:03:00.7135422Z face S: ChakraPetch-Medium.ttf 12px h16 base12  105 glyphs x 4  data 9523 B + table 3360 B + kern 3366 B (1122 pairs) = 16259 B   digit adv 7.00px
+build	the package, the installer and the editor	2026-11-09T07:03:00.7140444Z 2 extra bytes in post.stringData array
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-09T07:03:25.6341403Z flash: no app_dir_head is refused                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:03:29.1364049Z editor: PROJECT save                                             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:10.4041423Z ok   JIANT/another FM-1: its identity is reported as it answered
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:10.4042430Z ok   JIANT/another FM-1: only the identity query was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:28.8357381Z verify only: 136 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:32.2053684Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:33.2116366Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:33.2133089Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:33.2142275Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:33.2144853Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:33.2152403Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:33.2158642Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:37.2692974Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:43.2318461Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:43.4184049Z note: the flash header does not check out: not a readable boot area
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:43.4306842Z flash read: 16 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:43.5940370Z two backups that differ are refused                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T07:04:43.5942265Z a record from another tool is refused                                      ok
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T07:04:43.6058403Z ^[[36;1m  PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T07:04:43.6059003Z ^[[36;1m  test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	﻿2026-11-09T07:04:44.7884606Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-09T07:04:44.7885640Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-09T07:04:44.7886341Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T07:04:44.7988558Z ^[[36;1mtest -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }^[[0m
+build	Run actions/upload-pages-artifact@v3	2026-11-09T07:04:44.8403910Z shell: /usr/bin/sh -e {0}
+build	Run actions/upload-pages-artifact@v3	2026-11-09T07:04:44.8404326Z env:
+build	Run actions/upload-pages-artifact@v3	2026-11-09T07:04:44.8404763Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-09T07:04:44.8604049Z ##[endgroup]
+deploy	Set up job	2026-11-09T07:04:53.4198751Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-09T07:04:54.3730741Z ^[[36;1m  echo "::error::GitHub Pages is not enabled for Guillel51/Quantum-GammaWave: deploy-pages would fail with HTTP 404. Enable it once, Settings > Pages > Build and deployment > Source: GitHub Actions (no workflow change is needed)."^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-09T07:04:54.3754043Z shell: /usr/bin/bash -e {0}
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-09T07:04:56.4256373Z Pages: {"url":"https://api.github.com/repos/Guillel51/Quantum-GammaWave/pages","status":null,"cname":null,"custom_404":false,"html_url":"https://guillel51.github.io/Quantum-GammaWave/","build_type":"workflow","source":{"branch":"main","path":"/"},"public":true,"protected_domain_state":null,"pending_domain_unverified_at":null,"https_enforced":true}
+deploy	Run actions/deploy-pages@v4	﻿2026-11-09T07:04:56.4403933Z ##[group]Run actions/deploy-pages@v4
+deploy	Run actions/deploy-pages@v4	2026-11-09T07:04:56.4404538Z with:
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1134229Z hint: 	git branch -m <name>
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0160542Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2006834Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9124913Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5214947Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0204391Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5080265Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0027592Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5380942Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0120491Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5094228Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5099365Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0136651Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8854156Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6140453Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6148090Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1922662Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6860763Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1782291Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6809670Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1770189Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6732601Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1301766Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6422011Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6422370Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6422713Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6426581Z site: 1 FAILED
+
+## tail
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1134945Z hint: Disable this message with "git config set advice.defaultBranchName false"
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1135679Z Initialized empty Git repository in /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/.git/
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1138793Z [command]/usr/bin/git remote add origin https://github.com/Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1182544Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1183405Z ##[group]Disabling automatic garbage collection
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1186666Z [command]/usr/bin/git config --local gc.auto 0
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1220143Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1220639Z ##[group]Setting up auth
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1226396Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1264213Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1595452Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1631715Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1835287Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.1871861Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.2076704Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.2118842Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.2119333Z ##[group]Fetching the repository
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.2128108Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin +556b15c8f81da610a68511139513b18302648f8c:refs/remotes/origin/main
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5266740Z From https://github.com/Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5267823Z  * [new ref]         556b15c8f81da610a68511139513b18302648f8c -> origin/main
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5270711Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5271247Z ##[group]Determining the checkout info
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5272771Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5273443Z ##[group]Setting up sparse checkout
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5287226Z [command]/usr/bin/git config core.sparseCheckout true
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5330902Z [command]/usr/bin/git rev-parse --git-path info/sparse-checkout
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5360115Z .git/info/sparse-checkout
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5367487Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5367960Z ##[group]Checking out the ref
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.5371828Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.9948814Z Switched to a new branch 'main'
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.9951972Z branch 'main' set up to track 'origin/main'.
+deploy	Run actions/checkout@v4	2026-11-09T07:05:03.9957833Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-09T07:05:04.0004506Z [command]/usr/bin/git log -1 --format=%H
+deploy	Run actions/checkout@v4	2026-11-09T07:05:04.0032935Z 556b15c8f81da610a68511139513b18302648f8c
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	﻿2026-11-09T07:05:04.0151650Z ##[group]Run # Two artefacts, two commits, and neither of them is HEAD by design. The package is a signed
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0152228Z ^[[36;1m# Two artefacts, two commits, and neither of them is HEAD by design. The package is a signed^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0152723Z ^[[36;1m# release committed under release/, built at the commit its record names; the emulator is this^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0153412Z ^[[36;1m# run's build. This used to demand ${GITHUB_SHA} of both, which no release commit can satisfy:^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0154010Z ^[[36;1m# the package is built before the commit that adds it. So: hold the package to the signed bytes^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0154459Z ^[[36;1m# and the record's commit, and the emulator to the commit that built it.^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0154787Z ^[[36;1mif ls release/*.fwsc >/dev/null 2>&1; then^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0155170Z ^[[36;1m  R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0155589Z ^[[36;1m  S=$(sha256sum "$(ls release/*.fwsc | head -1)" | cut -d" " -f1)^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0156040Z ^[[36;1m  # the site serves the release's emulator, so that is the commit to expect -- not this run's^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0156484Z ^[[36;1m  EXPECT=(--expect-emu-commit "$R" --expect-commit "$R" --expect-sha256 "$S")^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0156903Z ^[[36;1m  echo "expecting the signed release ${S:0:16} from ${R:0:7} and its emulator"^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0157401Z ^[[36;1melse^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0157724Z ^[[36;1m  EXPECT=(--expect-emu-commit "$GITHUB_SHA" --expect-commit "$GITHUB_SHA")^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0158115Z ^[[36;1m  echo "expecting this run's package and emulator at ${GITHUB_SHA:0:7}"^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0158405Z ^[[36;1mfi^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0158671Z ^[[36;1msleep 20                                   # Pages switches after the deploy reports, not during it^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0159001Z ^[[36;1mfor i in $(seq 1 20); do^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0159291Z ^[[36;1m  if python3 tools/site_check.py "${EXPECT[@]}"; then exit 0; fi^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0159723Z ^[[36;1m  echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0160071Z ^[[36;1m  sleep 15^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0160242Z ^[[36;1mdone^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0160542Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0160892Z ^[[36;1mexit 1^[[0m
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0179088Z shell: /usr/bin/bash -e {0}
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0179301Z ##[endgroup]
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:04.0447252Z expecting the signed release 80ad995caf9147f2 from 7eb9636 and its emulator
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2000995Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2001488Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2001866Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2002218Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2002619Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2002999Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2003519Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2003963Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2004391Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2004724Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2005061Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2005400Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2005740Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2006547Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2006834Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:25.2101381Z ##[notice]the site is not serving the expected artefacts yet (attempt 1/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9118318Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9118933Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9119325Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9119689Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9120141Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9120688Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9121235Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9121733Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9122163Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9122582Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9122931Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9123897Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9124261Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9124629Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9124913Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:40.9222278Z ##[notice]the site is not serving the expected artefacts yet (attempt 2/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5207015Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5207737Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5208271Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5208830Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5209322Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5209866Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5210383Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5211045Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5211703Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5212190Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5212702Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5213424Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5213944Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5214492Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5214947Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:05:56.5298017Z ##[notice]the site is not serving the expected artefacts yet (attempt 3/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0198282Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0198980Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0199391Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0199759Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0200118Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0200922Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0201260Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0201685Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0202118Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0202438Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0202765Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0203385Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0203742Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0204105Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0204391Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:12.0288077Z ##[notice]the site is not serving the expected artefacts yet (attempt 4/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5074765Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5075255Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5076051Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5076407Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5076750Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5077094Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5077444Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5077865Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5078297Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5078618Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5078950Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5079293Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5079639Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5079991Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5080265Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:27.5162179Z ##[notice]the site is not serving the expected artefacts yet (attempt 5/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0018399Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0020122Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0020760Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0021284Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0021802Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0022324Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0022859Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0023655Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0024283Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0024762Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0025250Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0025753Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0026686Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0027193Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0027592Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:43.0108307Z ##[notice]the site is not serving the expected artefacts yet (attempt 6/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5375266Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5375873Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5376257Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5376622Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5376961Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5377298Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5377690Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5378115Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5378546Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5379270Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5379600Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5379959Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5380315Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5380665Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5380942Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:06:58.5466255Z ##[notice]the site is not serving the expected artefacts yet (attempt 7/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0114501Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0115230Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0115812Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0116378Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0116954Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0117293Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0117646Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0118072Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0118508Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0118854Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0119190Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0119531Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0119872Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0120219Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0120491Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:14.0205396Z ##[notice]the site is not serving the expected artefacts yet (attempt 8/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5091277Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5091942Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5092504Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5093202Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5094228Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5094744Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5095247Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5095883Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5096497Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5096958Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5097452Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5097940Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5098441Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5098964Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5099365Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:29.5200570Z ##[notice]the site is not serving the expected artefacts yet (attempt 9/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0130773Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0131777Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0132149Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0132507Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0132846Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0133391Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0133736Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0134183Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0134618Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0134944Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0135303Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0135664Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0136022Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0136372Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0136651Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:07:45.0224402Z ##[notice]the site is not serving the expected artefacts yet (attempt 10/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8847989Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8848705Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8849093Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8849459Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8849817Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8850176Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8850516Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8850960Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8851384Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8851724Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8852059Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8852908Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8853493Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8853853Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8854156Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:00.8949268Z ##[notice]the site is not serving the expected artefacts yet (attempt 11/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6139753Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6140453Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6141027Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6141584Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6142108Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6142702Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6143366Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6144025Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6145144Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6145631Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6146157Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6146665Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6147173Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6147682Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6148090Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:16.6231369Z ##[notice]the site is not serving the expected artefacts yet (attempt 12/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1917306Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1917871Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1918294Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1918650Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1919008Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1919379Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1919739Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1920184Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1920634Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1920971Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1921310Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1921666Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1922027Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1922377Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.1922662Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:32.2006856Z ##[notice]the site is not serving the expected artefacts yet (attempt 13/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6855173Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6855674Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6856487Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6856857Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6857197Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6857542Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6857899Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6858325Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6858757Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6859081Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6859413Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6859749Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6860105Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6860470Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6860763Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:08:47.6946948Z ##[notice]the site is not serving the expected artefacts yet (attempt 14/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1776142Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1776854Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1777441Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1778005Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1778555Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1778988Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1779386Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1779829Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1780268Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1780621Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1780961Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1781309Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1781660Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1782012Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1782291Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:03.1862761Z ##[notice]the site is not serving the expected artefacts yet (attempt 15/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6801302Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6801997Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6802546Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6803302Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6803842Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6804381Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6804921Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6805563Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6806211Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6807257Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6807756Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6808263Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6808761Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6809285Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6809670Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:18.6948348Z ##[notice]the site is not serving the expected artefacts yet (attempt 16/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1758612Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1760836Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1761578Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1762350Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1763007Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1763845Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1764490Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1765769Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1766515Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1767147Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1767767Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1768394Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1769024Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1769660Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1770189Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:34.1848784Z ##[notice]the site is not serving the expected artefacts yet (attempt 17/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6724894Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6725621Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6726167Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6726720Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6727240Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6727759Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6728288Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6728966Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6729625Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6730122Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6730638Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6731160Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6731671Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6732208Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6732601Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:09:49.6819717Z ##[notice]the site is not serving the expected artefacts yet (attempt 18/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1293221Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1294674Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1295220Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1295793Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1296349Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1296864Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1297383Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1298029Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1298653Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1299145Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1299652Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1300143Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1300647Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1301158Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1301766Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:05.1381899Z ##[notice]the site is not serving the expected artefacts yet (attempt 19/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6420985Z site: versions.json names a version and a full commit                    ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6421640Z site: the published package is the commit asked for                      ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6422011Z site: the published package is the signed artefact                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6422370Z site: the package's size is versions.json's                              ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6422713Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6423297Z site: the emulator is the build this run copied up                       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6423691Z site: the emulator names the same version                                ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6424123Z site: versions.json's emulator record is the emulator's wasm             FAIL  record '3d039f75bbc8'/1073325
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6424566Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6424912Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6425255Z site: the portal prints the published version                            ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6425597Z site: the portal offers the emulator                                     ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6425942Z site: the installer offers the published version                         ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6426292Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6426581Z site: 1 FAILED
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:20.6518524Z ##[notice]the site is not serving the expected artefacts yet (attempt 20/20); waiting 15 s
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:35.6539288Z ##[error]the deployed site still does not serve the expected artefacts after 5 minutes
+deploy	the published site is the release it offers (versions.json, package, wasm, portal, installer)	2026-11-09T07:10:35.6542342Z ##[error]Process completed with exit code 1.
+deploy	Post Run actions/checkout@v4	﻿2026-11-09T07:10:35.6632369Z Post job cleanup.
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7373920Z [command]/usr/bin/git version
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7410528Z git version 2.56.0
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7442654Z Temporarily overriding HOME='/home/runner/work/_temp/51ad3de5-8a82-49a3-8fb8-42c60aceba25' before making global git config changes
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7443787Z Adding repository directory to the temporary git global config as a safe directory
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7447687Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7489723Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7528137Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7795202Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7884920Z http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7896188Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.7942473Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.8190694Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy	Post Run actions/checkout@v4	2026-11-09T07:10:35.8233213Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy	Complete job	﻿2026-11-09T07:10:35.8602736Z Cleaning up orphan processes
+deploy	Complete job	2026-11-09T07:10:35.8898640Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/deploy-pages@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
