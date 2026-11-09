@@ -1,0 +1,456 @@
+# emulator run 42560324030 (success) at e369aa6746c206618ce2b8ed464b9529137a8f9c
+
+## jobs
+- build: completed / success
+- publish: completed / skipped
+- deploy: completed / skipped
+
+## publish job
+
+## failed steps, any job
+build	Set up job	2026-11-09T04:10:36.7271901Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-09T04:10:36.7764046Z Prepare all required actions
+build	Set up job	2026-11-09T04:10:37.4567808Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-09T04:10:40.0827422Z  * [new branch]      feat/v1.6-qg                             -> origin/feat/v1.6-qg
+build	Run actions/checkout@v4	2026-11-09T04:10:40.0832783Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run actions/checkout@v4	2026-11-09T04:10:40.2694040Z 
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-09T04:10:43.3840404Z Collecting numpy
+build	Run mymindstorm/setup-emsdk@v14	2026-11-09T04:10:53.9846326Z Downloading: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/f6264d4a4dd9ba24a9f0a5702835a44d1463de13/wasm-binaries.tar.xz, 304047688 Bytes
+build	the emulator as an artifact (every branch, every PR)	2026-11-09T04:11:50.3213080Z Artifact download URL: https://github.com/Guillel51/Quantum-GammaWave/actions/runs/42560324030/artifacts/13648453669
+build	JieLi toolchain and SDK files (cached)	2026-11-09T04:11:50.3403836Z   EMSDK: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main
+build	JieLi toolchain and SDK files (cached)	2026-11-09T04:11:50.3404899Z   EMSDK_NODE: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/node/24.19.0_64bit/bin/node
+build	the package, the installer and the editor	2026-11-09T04:11:51.1340385Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-09T04:12:32.1504038Z target: mod_begin          87 instructions,   35 in loops, 0 divides,  1 calls there: cost    35 (budget 35) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:12:38.7422508Z librarian: UP_LIST, 32 slots in 2 frames                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:12:45.8440397Z v4: WATCH 1 answers 1 as before (no TRACK_CHANGED pushes)        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:12:48.4223435Z library file: .. of 91 parameters (1.0.x, no lane levels then)   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:12:48.6820403Z editor: last tab in localStorage (try/catch) and in the URL hash ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:16.8422609Z installer: JIANT (its tag) may be written over                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:26.9842274Z ok   the USB-MIDI manufacturer is reported when the port exposes it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.0583373Z verify only: 126 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4219438Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4281874Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4298111Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4309773Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4316337Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4328081Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4503404Z two readings disagree -> mismatch                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4506422Z the NOR does not answer -> no-nor-answer                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4521446Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4684030Z the UCUN part verifies as a read, is marked write-capable, and still authorises nothing ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4684647Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6680309Z flash read: 16 checks, 0 FAILED
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8420539Z ^[[36;1m  test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8422338Z ^[[36;1m  echo "no target build in this run: the site offers $SV-$SH, committed with its build record"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8422789Z ^[[36;1mfi^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8440440Z ^[[36;1mcp -r "$EMU_SRC/." build/site/emulator/^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8463422Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8464222Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	﻿2026-11-09T04:13:50.1795772Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1796652Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1797652Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1900440Z ^[[36;1mtest -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }^[[0m
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7454045Z [command]/usr/bin/git version
+
+## tail
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0381225Z ok   verify only never reaches SIGNATURE VERIFIED or INSTALL READY
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0381718Z ok   recovery is reported as not verified, never as a pass
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0384119Z ok   the export is a qg1-diagnostic-1 document with all eight states
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0384626Z ok   the export repeats the report's own fields and verdict
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0385881Z ok   the export carries no key material and no session token
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0466032Z ok   a manifest naming the product (FM-1) is accepted for the build's identity (FM-1_982)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0466776Z ok   the same manifest is refused for another model: a package never crosses models
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0489143Z ok   the released package verifies offline: hash, identity and Ed25519 against the pinned key
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0496856Z ok   a package whose bytes are not the record's hash is refused
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0508496Z ok   one altered byte is refused before any device is involved
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0513811Z ok   the released package is refused for another model
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0519815Z ok   with no pinned key nothing is trusted, not even the real package
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0531265Z ok   a manifest edited after signing is refused
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0533454Z ok   with no unit, the package still reaches PACKAGE VERIFIED and SIGNATURE VERIFIED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0534252Z ok   no unit still means no VERIFY READY, no DEVICE COMPATIBLE and NO-GO
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0534871Z ok   an empty WebMIDI reports zero inputs and zero outputs, and says so
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:31.0535479Z ok   the report shows the signature as checked here, not as expected
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:33.0552990Z ok   a silent FM-1 port is reported as silent, not as absent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:33.0553811Z ok   a silent port still reaches SIGNATURE VERIFIED but never DEVICE COMPATIBLE
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.0582205Z ok   a unit whose descriptor says nothing is still probed, and reported as silent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.0583373Z verify only: 126 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1004593Z provenance: a clean record and the package it names pass                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1014107Z provenance: the token carries the package's and the image's digests          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1019187Z provenance refuses no record at all                                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1020440Z provenance refuses a malformed record (not an object)                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1021643Z provenance refuses another schema                                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1022830Z provenance refuses a missing field                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1023979Z provenance refuses a short commit                                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1025154Z provenance refuses a malformed version                                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1027664Z provenance refuses a malformed identity                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1030043Z provenance refuses a dirty tree                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1031316Z provenance refuses a dirty list that is not a list                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1032600Z provenance refuses no artefacts                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1034172Z provenance refuses no package entry                                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1036323Z provenance refuses no firmware image entry                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1038216Z provenance refuses a zero size                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1039396Z provenance refuses a SHA-256 that is not hex                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1041581Z provenance refuses an empty package                                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1049485Z provenance refuses another package of the same size                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1051461Z provenance refuses a truncated download                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1053662Z provenance refuses a package the record is not for                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1056719Z provenance refuses a device the record is not for                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1060297Z provenance refuses a version label from another build                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1062665Z provenance refuses a version label naming another commit                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1065443Z provenance refuses an emulator from another commit                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1069071Z provenance refuses an emulator from another version                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1071439Z provenance refuses an emulator with no wasm digest                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1073148Z provenance refuses no emulator record                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1075107Z provenance refuses a second emulator manifest that disagrees                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1076089Z provenance: the truncated case above is a size mismatch, not a hash match    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1077429Z provenance: the size error names the interrupted download                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1080993Z provenance: a label carrying the record's own commit passes                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1082932Z provenance: a label with one extra commit digit is refused                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1087583Z token: the verified token is accepted                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1089436Z token: no token -> refused                                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1090723Z token: a shallow copy still carries the verdict (same facts), and is accepted ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1091961Z token: a JSON round-trip (the symbol is lost) is not a verdict               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1093186Z token: a hand-written object with the same fields is refused                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1094421Z token: another device identity is refused                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1095610Z token: an image other than the one verified is refused                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1104336Z token: a vendor package is marked as a pin, not a build                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1105419Z vendor: a file that is not the pinned official one is refused                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1106451Z vendor: a truncated vendor file is refused                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1115393Z install path: no verdict -> 'provenance', nothing is handed to the updater   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1116533Z install path: a forged verdict -> 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1117948Z install path: a verdict for another device -> 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1119196Z install path: a verdict for other bytes -> 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1121383Z install path: a truncated download -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1123155Z install path: a wrong hash -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1125214Z install path: a version label from another build -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1126719Z install path: a version label naming another commit -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1130224Z install path: a record for another device -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1144525Z install path: a record from a dirty tree -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1145929Z install path: no record at all -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1147697Z install path: a manifest naming another commit than the emulator -> no verdict, 'provenance', nothing is handed to the updater ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1149171Z install path: the package's own record mints a verdict, and the guard lets it through ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1150344Z page: the build verdict is obtained before INSTALL is enabled                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1151399Z page: a package with no build record is refused                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1152418Z page: INSTALL refuses without both verdicts                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1153489Z page: every install() call hands the transport its authorisation context (3) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1154548Z page: every resume() call hands the transport its authorisation context (3)  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1155571Z page: write() is never called directly                                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1156600Z page: the official package is admitted only through its pinned digest        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1157766Z page: the stock paths refuse without a vendor verdict                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.1614513Z make_site: a record whose SHA-256 is not the package's refuses to build the site ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.2027324Z make_site: a record naming another commit than the label refuses to build the site ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.2564468Z make_site: a clean record and its package build the site, with the record inlined ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.2573942Z make_site: the record travels inside the page's CSP-protected script, not as a separate file ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.2662979Z updater: no record in the release -> 'provenance', 0 frame(s), 0 UPGRADE     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.2669681Z updater: a release naming another record -> 'provenance', 0 frame(s), 0 UPGRADE ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:35.2675235Z updater: no verdict at all -> 'provenance', 0 frame(s), 0 UPGRADE            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:37.2772665Z updater: the record inside the signature opens the door (1 UPGRADE, then 'badreq') ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:37.2773808Z provenance tests passed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4115391Z refused: /tmp/fm1pf-84g9lxtc/bare.fwsc: no SHA-256 published (pass --sha256, or put PACKAGE.sha256 / SHA256SUMS next to it): nothing written. A hash is integrity, not authenticity: it proves the bytes are the published ones, not who published them
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4131782Z refused: /tmp/fm1pf-84g9lxtc/bad.fwsc: SHA-256 bc8e3fba7bb2ac95819ab53bbee6f183441dbfbe568c11588081d9b3ef72cf86 does not match 0000000000000000000000000000000000000000000000000000000000000000 (/tmp/fm1pf-84g9lxtc/bad.fwsc.sha256): damaged or altered, nothing written
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4153079Z refused: model_mismatch: device XY-9_001 vs package FM-1_982
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4208015Z refused: device_not_found: no FM-1 port answered the handshake
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4216772Z usage: preflight_test.py [-h] [--sha256 HEX] [--port NAME] [--json FILE]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4217849Z                          [--info]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4218441Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4219438Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:38.4245813Z refused: no_midi: needs mido and python-rtmidi (pip install mido python-rtmidi)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4281874Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4295808Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4296769Z                          [--verify-only] [--manifest FILE] [--keys FILE]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4297525Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4298111Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4306725Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4308017Z                          [--verify-only] [--manifest FILE] [--keys FILE]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4308777Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4309773Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4313837Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4314759Z                          [--verify-only] [--manifest FILE] [--keys FILE]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4315443Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4316337Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4321713Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4322543Z                          [--verify-only] [--manifest FILE] [--keys FILE]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4323017Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4328081Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4330337Z a package with its published hash and an identified chip reads as ready  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4330990Z the report is written and states that nothing was written                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4331630Z the report records the chip that answered 0x12 and that the gate allowed it ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4332248Z the UCUN part passes the same preflight as the Puya one                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4332854Z an undocumented part stays a NO-GO with its reason                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4333733Z a unit that does not answer 0x12 stays a NO-GO with its reason           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4334343Z the preflight never starts an update (no UPGRADE frame)                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4334938Z no published hash anywhere: refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4335515Z a hash that does not match: refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4336083Z another model: refused                                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4336744Z another version of the same model reaches the gate (a downgrade is a different decision) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4337680Z no device answering: refused                                             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4338252Z there is no flag that passes the gate without the chip                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4338814Z a device left in update mode is reported and still gated                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4339382Z a package that does not exist: refused                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4340118Z a device that cannot answer 0x12: refused (exit 7)                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4340680Z a device that cannot answer 0x12: no UPGRADE sent                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4341234Z a typed JEDEC is not evidence: no such flag, nothing sent                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4341810Z an unidentified chip cannot be allowed: no such flag, nothing sent       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4342386Z FM1_LAB=1 changes nothing: the flags are gone and no frame is sent       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4342959Z a direct Updater.write() without evidence is refused too                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:39.4343363Z preflight: all passed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4497931Z 0x12 identifies the part and its geometry                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4499105Z page / sector / block                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4499874Z probe: two readings                                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4500647Z probe: fresh session                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4501440Z unknown JEDEC -> unknown-part                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4502215Z truncated reply -> frame                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4502808Z bad reply CRC -> crc                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4503404Z two readings disagree -> mismatch                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4504029Z geometry not the part's -> geometry                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4504633Z no session token -> no-session                                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4505216Z no answer -> timeout                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4505805Z device disconnected -> lost                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4506422Z the NOR does not answer -> no-nor-answer                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4507318Z 0x13 returns exactly the NOR's bytes                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4507940Z zero length -> length                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4508534Z more than one chunk -> length                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4509113Z past the end -> range                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4509700Z stale session -> no-session                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4510304Z device read error -> length-or-read                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4510916Z reply for another address -> address                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4511508Z chunked read range                                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4512091Z backup: complete                                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4512687Z backup: sha256 of the part                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4513696Z backup: the two passes agree                                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4514185Z backup: exact size                                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4514736Z backup records the 0x12 pair and sends read frames only (no 0x30, no UPGRADE) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4515350Z backup manifest keeps the real order: identification first, then every read ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4515913Z manifest: identity and geometry                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4516400Z manifest on disk                                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4516884Z backup: passes differ -> inconsistent                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4517547Z inconsistent keeps both passes, no final hash                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4518065Z backup: unread ranges -> partial, not complete                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4518566Z partial backup keeps the errors                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4519137Z a 0x12 answer already in the queue is not mistaken for the answer to this request ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4519881Z a 0x13 reply carrying an older session is refused as stale         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4520459Z a stock unit (vendor handshake, no 0x12) is refused as no-query, not a cable fault ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4521030Z the refusal sent 0x12 only: no UPGRADE, nothing written            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:43.4521446Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4673689Z a complete read-only bundle verifies                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4674474Z the frame log is checked, not assumed                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4675149Z the evidence record is written                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4675798Z the record says verified-read                                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4676462Z the record never authorises an install                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4677462Z a P25Q80H read is marked write-capable (the part, not the unit)        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4678171Z the record carries the image's size and hash                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4678817Z the record's own hash covers the record                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4679451Z the record states what a read does not prove                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4680101Z a changed image byte fails the check                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4680726Z a 0x30 in the log fails the check                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4681356Z an unknown JEDEC id fails the check                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4681982Z a partial read fails the check                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4682619Z a second read that disagrees fails the check                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4683269Z two independent reads that agree verify                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4684030Z the UCUN part verifies as a read, is marked write-capable, and still authorises nothing ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.4684647Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6512370Z note: the flash header does not check out: not a readable boot area
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6527851Z note: the image is 524288 bytes; a full FM-1 part is 1048576 (1 MiB)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6547857Z note: the flash header does not check out: not a readable boot area
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6665785Z a stable part reads complete                                             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6666581Z the manifest records the external source and exactly two reads           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6667668Z no MIDI frame is claimed for an external read                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6668412Z the identity came from the image, not from a declaration                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6669140Z the JEDEC is declared and labelled as such                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6669954Z the hash and size are the part's                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6670954Z the .sha256 sidecar is written                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6671689Z restore validates an external archive and gets the identity from it      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6672490Z a declared identity absent from the image is refused and nothing is written ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6673273Z two reads that differ are inconsistent, with no final hash               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6674014Z a short read is partial, not a smaller chip                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6674721Z an undocumented JEDEC is refused                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6675461Z a programmer part name that contradicts the declaration is refused       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6676212Z an image with no identity is complete and says restore will refuse it    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6677200Z restore refuses an archive that cannot be tied to a unit                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6678056Z a programmer operation other than two reads is refused by restore        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6679012Z the evidence checker verifies an external bundle and its restorability   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6679773Z the external record never authorises an install                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.6680309Z flash read: 16 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8292923Z the decoder gets the identity, the app CRC and the layout out of the image ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8293910Z app.bin verifies and the stock bootloader is recognised                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8294669Z a short image is refused as a size, not decoded                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8295411Z a single read with no chip CRC32 is not complete                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8296179Z the archive records one pass and the identity the image decodes to         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8297565Z restore refuses an unverifiable import                                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8298395Z the chip's CRC32 over the whole part completes the archive                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8299169Z the record says what verified it                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8299889Z restore accepts it and takes the identity from the decoded app             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8300642Z nothing written, nothing sent over MIDI                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8301365Z a chip CRC32 that disagrees is refused                                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8302087Z two identical backups complete the archive                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8302867Z the record says two reads                                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8303526Z two backups that differ are refused                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8304195Z a .json whose hash is not the file's is refused                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8304860Z a record from another tool is refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8305570Z a UCUN part imports as evidence and is marked not write-authorised         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8306287Z the archive is restorable but not installable                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8307238Z an undocumented JEDEC is refused                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8307961Z a unit whose chip key this project does not know is refused                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8308655Z an SMK-37 layout is not accepted as an FM-1 backup                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8309322Z an app.bin whose CRC fails is refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8310002Z a manifest that renames the unit is refused                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8310793Z a record that admits a flash write is refused                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8311843Z an import that claims a MIDI frame is refused                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8312708Z the evidence checker calls it a verified read of a restorable archive      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8374528Z and still does not authorise an install                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8375226Z the real stock dump                                                        skipped (set FM1_REAL_DUMP)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8375552Z 
+build	the install gate cannot be bypassed (CLI and web)	2026-11-09T04:13:49.8375675Z mflasher tests passed
+build	the site (this run's package, or the committed one with its record checked)	﻿2026-11-09T04:13:49.8410191Z ##[group]Run ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8411002Z ^[[36;1mver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8411480Z ^[[36;1mMAN=""; REC=""^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8411767Z ^[[36;1mif ls release/*.fwsc >/dev/null 2>&1; then^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8412273Z ^[[36;1m  # The signed release is what people should install: a package built in this run carries no^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8412946Z ^[[36;1m  # signature (the private key is not in CI) and the installer refuses unsigned bytes. So when^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8413745Z ^[[36;1m  # release/ holds one, the site serves that package, its signature and its build record.^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8414232Z ^[[36;1m  PKG=$(ls release/*.fwsc | head -1)^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8414565Z ^[[36;1m  REC=release/build-manifest.json^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8414987Z ^[[36;1m  MAN="${PKG%.fwsc}.manifest.json"; test -s "$MAN" || MAN=""^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8415578Z ^[[36;1m  SV=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"].lstrip("v"))' "$REC")^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8416242Z ^[[36;1m  SH=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["commit"][:7])' "$REC")^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8416811Z ^[[36;1m  echo "the site offers the signed release: $PKG ($SV-$SH)"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8417566Z ^[[36;1melif [ -s build/site/index.html ] && [ -s build/felucca.fwsc ]; then^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8418057Z ^[[36;1m  echo "the site was built from this run's package above"; exit 0^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8418459Z ^[[36;1melif [ -s build/felucca.fwsc ]; then^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8418852Z ^[[36;1m  PKG=build/felucca.fwsc; SV=$(ver .); SH=${GITHUB_SHA::7}^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8419276Z ^[[36;1m  echo "the site offers this run's target build: $SV-$SH"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8419640Z ^[[36;1melse^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8419917Z ^[[36;1m  PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8420539Z ^[[36;1m  test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8421117Z ^[[36;1m  SV=$(basename "$PKG" .fwsc); SV=${SV#felucca-}^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8421657Z ^[[36;1m  SH=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['commit'][:7])" "$PKG.build.json")^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8422338Z ^[[36;1m  echo "no target build in this run: the site offers $SV-$SH, committed with its build record"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8422789Z ^[[36;1mfi^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8423190Z ^[[36;1m# The public site is ONE release: its package AND its emulator. When it serves the committed^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8423851Z ^[[36;1m# release, the emulator has to be the one built beside that package, not the one this run built^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8424477Z ^[[36;1m# from main -- the installer holds the package to the emulator its own record names^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8425081Z ^[[36;1m# (fm1provenance.js), so a main that advanced past the release would otherwise serve an^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8425688Z ^[[36;1m# emulator from another tree and be refused by its own page. The release emulator is^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8426299Z ^[[36;1m# reproducible from the release commit with this same toolchain, so it is built here.^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8426746Z ^[[36;1mEMU_SRC=build/emu^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8427184Z ^[[36;1mif [ -s build/emu_release/manifest.json ]; then^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8427672Z ^[[36;1m  EMU_SRC=build/emu_release            # the step above already built the release's emulator^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8428165Z ^[[36;1m  echo "reusing the release emulator built above"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8428654Z ^[[36;1melif [ -s release/build-manifest.json ] && ls release/*.fwsc >/dev/null 2>&1; then^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8429287Z ^[[36;1m  R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8429797Z ^[[36;1m  rm -rf /tmp/reltree build/emu_release^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8430285Z ^[[36;1m  git worktree prune^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8430761Z ^[[36;1m  git worktree add -f -q --detach /tmp/reltree "$R"      # -f: another step may have registered this path^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8431415Z ^[[36;1m  # GITHUB_SHA/GIT_COMMIT are unset on purpose: tools/package_emu.py prefers them over^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8432042Z ^[[36;1m  # `git rev-parse HEAD`, so with them in the environment this emulator would carry the run's^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8432676Z ^[[36;1m  # commit while holding the release's bytes -- a manifest that names a build it is not.^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8433146Z ^[[36;1m  ( cd /tmp/reltree &&^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8433846Z ^[[36;1m    env -u GITHUB_SHA -u GIT_COMMIT python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8434535Z ^[[36;1m    env -u GITHUB_SHA -u GIT_COMMIT sh web/emu/build.sh >/dev/null )^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8434978Z ^[[36;1m  cp -r /tmp/reltree/build/emu build/emu_release^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8435318Z ^[[36;1m  EMU_SRC=build/emu_release^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8435979Z ^[[36;1m  echo "the site serves the release's emulator: $(python3 -c 'import json;print(json.load(open("build/emu_release/manifest.json"))["wasm_sha256"][:16])')"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8436626Z ^[[36;1mfi^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8437249Z ^[[36;1mpython3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8437826Z ^[[36;1mif [ -n "$MAN" ]; then^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8438247Z ^[[36;1m  python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$REC" \^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8438729Z ^[[36;1m    --emu "$EMU_SRC/manifest.json"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8439037Z ^[[36;1melse^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8439443Z ^[[36;1m  python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site build/prev --emu "$EMU_SRC/manifest.json"^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8439900Z ^[[36;1mfi^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8440121Z ^[[36;1mmkdir -p build/site/emulator^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8440440Z ^[[36;1mcp -r "$EMU_SRC/." build/site/emulator/^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8440776Z ^[[36;1mrm -rf build/site/emulator/preview^[[0m
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8461972Z shell: /usr/bin/bash -e {0}
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8462239Z env:
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8462516Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8462979Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8463422Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8463822Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8464222Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8464626Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8466541Z   PATH: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main:/home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8468690Z   EMSDK: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8469323Z   EMSDK_NODE: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/node/24.19.0_64bit/bin/node
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.8469837Z ##[endgroup]
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.9036133Z the site offers the signed release: release/felucca-v1.9.0.fwsc (1.9.0-7eb9636)
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:49.9037750Z reusing the release emulator built above
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:50.1004671Z fetch_prev: 6 earlier package(s): v1.9.0-7eb9636 v1.8.9-59bd6c9 v1.8.6-fa94ec5 v1.7-QG-e61e4b8 v1.5-QG-4682fef v1.4-QG-9fb0549
+build	the site (this run's package, or the committed one with its record checked)	2026-11-09T04:13:50.1659618Z site: build/site: portal + assets, webapp/installer (213894 B), webapp/editor, firmware/felucca-v1.9.0-7eb9636.fwsc (610806 B, FM-1_982, build v1.9.0 7eb9636, emulator record), earlier: v1.8.9-59bd6c9 v1.8.6-fa94ec5 v1.7-QG-e61e4b8 v1.5-QG-4682fef v1.4-QG-9fb0549
+build	a package and a site exist (fail closed)	﻿2026-11-09T04:13:50.1795772Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1796652Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1797652Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1819065Z shell: /usr/bin/bash -e {0}
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1819334Z env:
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1819615Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1820086Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1820534Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1820946Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1821343Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1821742Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1823686Z   PATH: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main:/home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1825633Z   EMSDK: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1826265Z   EMSDK_NODE: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/node/24.19.0_64bit/bin/node
+build	a package and a site exist (fail closed)	2026-11-09T04:13:50.1826777Z ##[endgroup]
+build	the site exists (the deploy would otherwise upload nothing)	﻿2026-11-09T04:13:50.1899540Z ##[group]Run ls -la build | head -20
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1899891Z ^[[36;1mls -la build | head -20^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1900440Z ^[[36;1mtest -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1920070Z shell: /usr/bin/bash -e {0}
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1920348Z env:
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1920627Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1921088Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1921544Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1921947Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1922353Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1922777Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1924701Z   PATH: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main:/home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1926684Z   EMSDK: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1927633Z   EMSDK_NODE: /home/runner/work/_temp/4df66fac-5b68-4fcc-a13b-d1ce3e67130d/emsdk-main/node/24.19.0_64bit/bin/node
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1928152Z ##[endgroup]
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1985940Z total 55712
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1986695Z drwxr-xr-x  9 runner runner     4096 Nov  9 04:12 .
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1987596Z drwxr-xr-x 14 runner runner     4096 Nov  9 04:10 ..
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1988143Z -rw-r--r--  1 runner runner      148 Nov  9 04:12 c1text.bin
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1988677Z -rw-r--r--  1 runner runner      724 Nov  9 04:11 crt0.o
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1989192Z -rw-r--r--  1 runner runner      748 Nov  9 04:12 data.bin
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1989674Z drwxr-xr-x  4 runner runner     4096 Nov  9 04:12 emu
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1990599Z drwxr-xr-x  3 runner runner     4096 Nov  9 04:12 emu_release
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1991449Z -rw-r--r--  1 runner runner   532088 Nov  9 04:12 felucca.bin
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1992197Z -rw-r--r--  1 runner runner  7818300 Nov  9 04:12 felucca.dis
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1992683Z -rwxr-xr-x  1 runner runner   609548 Nov  9 04:12 felucca.elf
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1993352Z -rw-r--r--  1 runner runner   610806 Nov  9 04:12 felucca.fwsc
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1993801Z -rw-r--r--  1 runner runner 14407164 Nov  9 04:11 felucca.ll
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1994247Z -rw-r--r--  1 runner runner  1337072 Nov  9 04:12 felucca.o
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1994712Z -rw-r--r--  1 runner runner  8348528 Nov  9 04:12 felucca_hot.ll
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1995182Z -rw-r--r--  1 runner runner  8348315 Nov  9 04:12 felucca_opt.ll
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1995669Z -rw-r--r--  1 runner runner 14414148 Nov  9 04:11 felucca_size.ll
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1996133Z -rw-r--r--  1 runner runner      604 Nov  9 04:11 fm1_isr.o
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1996651Z -rw-r--r--  1 runner runner     2908 Nov  9 04:11 fm1_vec.o
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-09T04:13:50.1997358Z drwxr-xr-x  2 runner runner     4096 Nov  9 04:10 gen
+build	Post JieLi toolchain and SDK files (cached)	﻿2026-11-09T04:13:50.2089077Z Post job cleanup.
+build	Post JieLi toolchain and SDK files (cached)	2026-11-09T04:13:50.3234827Z Cache hit occurred on the primary key jieli-ac79-v1, not saving cache.
+build	Post JieLi toolchain and SDK files (cached)	2026-11-09T04:13:50.3237161Z (node:2912) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Post JieLi toolchain and SDK files (cached)	2026-11-09T04:13:50.3239333Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Post Run actions/setup-node@v4	﻿2026-11-09T04:13:50.3367775Z Post job cleanup.
+build	Post Run actions/setup-node@v4	2026-11-09T04:13:50.4708157Z (node:2920) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Post Run actions/setup-node@v4	2026-11-09T04:13:50.4709275Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Post Run actions/setup-python@v5	﻿2026-11-09T04:13:50.4927325Z Post job cleanup.
+build	Post Run actions/setup-python@v5	2026-11-09T04:13:50.6266564Z (node:2929) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Post Run actions/setup-python@v5	2026-11-09T04:13:50.6268164Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Post Run actions/checkout@v4	﻿2026-11-09T04:13:50.6484879Z Post job cleanup.
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7454045Z [command]/usr/bin/git version
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7504476Z git version 2.56.0
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7549442Z Temporarily overriding HOME='/home/runner/work/_temp/81a7dadd-9045-4159-9d1b-76c65499c9ad' before making global git config changes
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7550922Z Adding repository directory to the temporary git global config as a safe directory
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7556202Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7600936Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7667687Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7949588Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7981102Z http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.7996489Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.8040531Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.8342013Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	Post Run actions/checkout@v4	2026-11-09T04:13:50.8390646Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	Complete job	﻿2026-11-09T04:13:50.8812889Z Cleaning up orphan processes
+build	Complete job	2026-11-09T04:13:50.9182309Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/setup-node@v4, actions/setup-python@v5, actions/upload-artifact@v4, mymindstorm/setup-emsdk@v14. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
