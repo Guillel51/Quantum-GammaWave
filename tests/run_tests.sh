@@ -33,6 +33,10 @@
 #                   one-step undo of both (SAVE held), REC on TRACKS / SEQ / ARP, STEP and ARP while recording,
 #                   MIDI IN ROUT, saves refused while playing and the OVERWRITE? dialog, MUTE on TRACKS KNOB 1,
 #                   the DRUM grid (keys, knobs, LEDs, pages, live recording into it, BEAT from PATTERNS).
+# DSP: the polyBLEP residual's one-compare fast path (tests/blep_test.c) against the reference formulation
+#                   bit for bit: both window edges, the sub-1 Hz incs whose d is 0, the increments past Nyquist
+#                   (where the windows overlap) and 10 000 000 random pairs, so an "almost the same" residual
+#                   cannot reach the oscillators unseen.
 # Audio / persistence / editor: the real C paths against simulated DMA and NOR flash: bounded overload
 #                   fades, shared-voice limits, deferred settings and retries, failed-save rollback, the autosave
 #                   (1.2: when it writes, the power-on restore, damaged copies, a write cut short, wear over a session),
@@ -240,6 +244,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Ifirmware/hal -o "$OUT/clamp_sym_test" tests/clamp_sym_test.c -lm
     run "DSP: the SVF's one-compare clamp is exactly clamp(v, -150000, 150000) over all of int32" "$OUT/clamp_sym_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/blep_test" tests/blep_test.c -lm
+    run "DSP: the polyBLEP fast path is the reference, bit for bit (both window edges, the increments past Nyquist, 10 M pairs)" "$OUT/blep_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/click_test" tests/click_test.c -lm
     run "metronome and count-in: beats sample for sample (internal and external clock), accent, level, MASTER, not in USB, count-in timing, notes onto step 1" "$OUT/click_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/persistence_test" tests/persistence_test.c -lm
@@ -315,6 +321,12 @@ run "raw restore: geometry, identifiers, sector alignment, readback, refusal bef
     python3 tests/restore_test.py
 run "signed packages: manifest, hash, product / version / min_firmware, WebCrypto parity" \
     python3 tests/sign_test.py
+# (PR #73) the gate's refusal matrix and the backup audit: both import tools/fm1_gate.py and
+# tools/fm1_image.py and assert on the real refusal codes, so a regression in either fails here.
+run "install gate: read-only chips, unknown JEDEC, model and identity refusals before any write" \
+    python3 tests/negative_write_test.py
+run "backup audit: region bounds, bootloader never written, dump and restore evidence agree" \
+    python3 tests/backup_audit_test.py
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip installer preflight (NO_PACKAGE=1: needs build/felucca.fwsc)"
 else
@@ -392,6 +404,14 @@ if command -v node >/dev/null 2>&1; then
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
     # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
     run "web verify-only: identity reads only, zero write frames" node web/test_verify_only.mjs
+    # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
+    # its dump hashed in the page, and the donor install path that accepts them -- with the wire
+    # assertions that nothing is sent without them.
+    run "web chip record: M-Flasher record + dump, and the donor install path" node web/test_record.mjs
+    # (PR #73) the production pipeline against the real release package the build record names:
+    # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
+    run "web installer pipeline: the real package, and a refusal for every partial authorisation" \
+        node tests/installer_pipeline_production_test.mjs
     PKG=""
     if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
     run "web package parser: malformed .fwsc refused, never loops, the built one parses" \

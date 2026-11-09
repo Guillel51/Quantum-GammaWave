@@ -11,7 +11,7 @@
 import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
 import * as mod from "./fm1verify.js";
 import * as diag from "./fm1diag.js";
-import { Updater, requireProof } from "./fm1ota.js";
+import { Updater, requireProof, verifyManifest, requireChip, chipCheck, pack7, unpack7 } from "./fm1ota.js";
 
 let bad = 0, total = 0;
 const check = (name, ok) => {
@@ -114,8 +114,8 @@ function anyWrite(sent) {
   // the texts the button can print must exist in every language of the page, and say what happened
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   const keys = [...body.matchAll(/sayK\("(v[A-Za-z]+)"/g)].map((m) => m[1]);
   check("the button names its messages", keys.length >= 5 && keys.includes("vOther"));
   const langs = ["en", "fr", "es", "zh"];
@@ -165,8 +165,28 @@ function anyWrite(sent) {
 {
   // other gear on the same computer is never probed
   const a = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_982")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
-  check("gear that is not an FM-1 is not probed at all", fw.kind === "none" && a.sent.length === 0);
+  const found = await new Updater(a.midi).find();          // the install path: no probeAll
+  check("the install path never probes gear that is not an FM-1", found === null && a.sent.length === 0);
+  const b = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_982")] });
+  const fw = await verifyDevice(b.midi, { product: "FM-1_982" });
+  check("Verify Only probes it, with the read-only query and nothing else",
+    fw.kind === "ours" && onlyQueries(b.sent) && !anyWrite(b.sent));
+}
+{
+  // Windows exposes one device under two different names. Pairing by exact name found nothing, so the
+  // unit looked absent even though both directions were there.
+  const sent = [];
+  const input = { name: "MIDIIN2 (FM-1 Midi)", state: "connected", onmidimessage: null, open: async () => {} };
+  const output = { name: "MIDIOUT2 (FM-1 Midi)", state: "connected", open: async () => {},
+    send(bytes) {
+      const b = Array.from(bytes);
+      sent.push({ name: output.name, bytes: b });        // same shape the fake access records
+      if (isQuery(b)) setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from(identityFrame("FM-1_015")) }), 0);
+    } };
+  const midi = { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) };
+  const fw = await verifyDevice(midi, { product: "FM-1_982" });
+  check("one unit under two Windows names (MIDIIN2 / MIDIOUT2) is paired and read",
+    fw.kind === "stock" && fw.text === "FM-1_015" && onlyQueries(sent) && !anyWrite(sent));
 }
 {
   // a package tag that is not this device must not make it "ours"
@@ -177,20 +197,26 @@ function anyWrite(sent) {
 {
   // the module itself: no exported way to write, no import of the writer it would need
   const keys = Object.keys(mod).sort();
-  check("fm1verify.js exports only verifyDevice and the query it is allowed to send",
-    keys.join(",") === "READ_ONLY_QUERY,verifyDevice");
+  /* verifyPackage is an offline check of the package bytes against the manifest: it opens no port
+     and has no way to send anything, so it belongs to the read-only surface exactly as verifyDevice
+     does. What must not exist is an install/write/resume entry point, and that is the next check. */
+  check("fm1verify.js exports only the read-only surface: verifyDevice, verifyPackage and the query",
+    keys.join(",") === "READ_ONLY_QUERY,verifyDevice,verifyPackage");
   check("fm1verify.js exports no install/write/resume entry point",
     !keys.some((k) => /install|write|resume|upgrade|serve|put/i.test(k)));
 }
 {
-  // and the page must call it, not a handler of its own
+  // and the page must call it, not a handler of its own. The handler is a named function now (a port
+  // change re-runs it), so the check reads that function, from its definition to its closing brace.
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   check("the page's Verify only button calls verifyDevice", /verifyDevice\s*\(/.test(body));
   check("the page's Verify only handler names no write path",
     !/\b(install|resume|write|chipEvidence|probeChip|captureBackup)\s*\(/.test(body) && !/UPGRADE/.test(body));
+  check("a port change re-runs Verify Only instead of needing a reload",
+    /addEventListener\("statechange"/.test(html) && /if \(lastVerify && !writing\) runVerify\(\)/.test(html));
 }
 
 {
@@ -210,8 +236,8 @@ function anyWrite(sent) {
   // only the functions the module happens to export
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   check("the Verify only handler names no erase, restore, backup capture or reboot",
     !/\b(erase|restoreBackup|captureBackup|reboot|sendPackage)\b/.test(body));
 }
@@ -343,8 +369,8 @@ function anyWrite(sent) {
   // the handler and the panel: the status line speaks about the unit, the package gets its own rows
   const fs = await import("node:fs/promises");
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
-  const at = html.indexOf('$("verify").addEventListener');
-  const body = html.slice(at, html.indexOf("\n});", at));
+  const at = html.indexOf("async function runVerify()");
+  const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
   check("the stock message is no longer given the package tag as an argument",
     /sayK\("vStock"\)/.test(body) && !/sayK\("vStock"\s*,/.test(body));
   check("the Verify handler passes the package to the report",
@@ -540,6 +566,192 @@ function anyWrite(sent) {
         j.fields.length === (fw.fields || []).length && j.verdict.result === fw.verdict.result);
   check("the export carries no key material and no session token",
         !/PRIVATE KEY|BEGIN |session|token|secret/i.test(JSON.stringify(j)));
+}
+
+
+{
+  /* THE PACKAGE IS CHECKED WITHOUT A UNIT, AND THE PRODUCT IS NOT THE IDENTITY.
+   *
+   * Two defects met here and both are covered below against the real release bytes:
+   *   - the signed manifest names the PRODUCT ("FM-1"), the page names the IDENTITY of the build
+   *     ("FM-1_982"), and comparing them literally refused every published package -- so `releaseOk`
+   *     stayed false and INSTALL was disabled on the live page for everyone, hardware or not;
+   *   - the signature gate was reported as "cannot be established without a write session", which was
+   *     false: these bytes, the manifest and the pinned key decide it, and all three are on the page.
+   * A package check needs bytes, so it runs only when the release is in the tree; the model rule and
+   * the state machine are checked in every case.
+   */
+  const fs = await import("node:fs");
+  const rel = (f) => { try { return new Uint8Array(fs.readFileSync(new URL(`../release/${f}`, import.meta.url))); } catch (_) { return null; } };
+  const man = (() => { try { return JSON.parse(fs.readFileSync(new URL("../release/felucca-v1.9.0.manifest.json", import.meta.url), "utf8")); } catch (_) { return null; } })();
+  const keys = (() => { try { return JSON.parse(fs.readFileSync(new URL("../tools/fm1_keys.json", import.meta.url), "utf8")).keys || {}; } catch (_) { return {}; } })();
+  const rec = (() => { try { return JSON.parse(fs.readFileSync(new URL("../release/build-manifest.json", import.meta.url), "utf8")); } catch (_) { return null; } })();
+  const bytes = rel("felucca-v1.9.0.fwsc");
+
+  if (bytes && man && rec) {
+    const identity = String(rec.identity || "");
+    const sha = String(rec.artifacts && rec.artifacts["felucca.fwsc"] ? rec.artifacts["felucca.fwsc"].sha256 : "");
+    const size = Number(rec.artifacts && rec.artifacts["felucca.fwsc"] ? rec.artifacts["felucca.fwsc"].bytes : 0);
+
+    /* the regression: a manifest for the product accepts the identity of that product's build */
+    let accepted = true;
+    try { await verifyManifest(bytes, man, keys, { product: identity }); } catch (_) { accepted = false; }
+    check("a manifest naming the product (FM-1) is accepted for the build's identity (FM-1_982)", accepted);
+    let crossed = false;
+    try { await verifyManifest(bytes, man, keys, { product: "FM-2_982" }); } catch (_) { crossed = true; }
+    check("the same manifest is refused for another model: a package never crosses models", crossed);
+
+    /* the offline package check itself */
+    const good = await mod.verifyPackage(bytes, { manifest: man, keys, product: identity, sha256: sha, size });
+    check("the released package verifies offline: hash, identity and Ed25519 against the pinned key",
+          good.state === "pass" && good.keyid === man.keyid && good.sha256 === sha && good.size === size);
+    const wrongHash = await mod.verifyPackage(bytes, { manifest: man, keys, product: identity, sha256: "00".repeat(32), size });
+    check("a package whose bytes are not the record's hash is refused", wrongHash.state === "fail" && /SHA-256|sha256/.test(wrongHash.detail));
+    const tampered = bytes.slice(); tampered[4000] ^= 0xFF;
+    const bad = await mod.verifyPackage(tampered, { manifest: man, keys, product: identity, sha256: sha, size });
+    check("one altered byte is refused before any device is involved", bad.state === "fail");
+    const otherModel = await mod.verifyPackage(bytes, { manifest: man, keys, product: "FM-2_982", sha256: sha, size });
+    check("the released package is refused for another model", otherModel.state === "fail");
+    const noKey = await mod.verifyPackage(bytes, { manifest: man, keys: {}, product: identity, sha256: sha, size });
+    check("with no pinned key nothing is trusted, not even the real package", noKey.state === "fail");
+    const forged = { ...man }; forged.size = man.size + 1;
+    const forgedCheck = await mod.verifyPackage(bytes, { manifest: forged, keys, product: identity, sha256: sha, size });
+    check("a manifest edited after signing is refused", forgedCheck.state === "fail");
+
+    /* and it reaches the installer's own state machine without a unit attached */
+    const none = access([]);
+    const fw = await verifyDevice(none.midi, { product: identity, signature: good,
+      pkg: { version: `v${man.version}-${String(rec.commit).slice(0, 7)}`, size, sha256: sha, build: rec, keys } });
+    const st = Object.fromEntries(diag.diagnosticStates(fw).map((s) => [s.state, s.reached]));
+    const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+    check("with no unit, the package still reaches PACKAGE VERIFIED and SIGNATURE VERIFIED",
+          st["PACKAGE VERIFIED"] && st["SIGNATURE VERIFIED"] && g["gate.signature"] === "pass");
+    check("no unit still means no VERIFY READY, no DEVICE COMPATIBLE and NO-GO",
+          !st["VERIFY READY"] && !st["DEVICE COMPATIBLE"] && fw.verdict.result === "NO-GO" && st["INSTALL BLOCKED"]);
+    check("an empty WebMIDI reports zero inputs and zero outputs, and says so",
+          fw.reading.probe.counts.inputs === 0 && fw.reading.probe.counts.outputs === 0 &&
+          fw.reading.probe.reason === "no-ports" && fw.reading.probe.frames === 0);
+    check("the report shows the signature as checked here, not as expected",
+          (fw.fields || []).some((f) => f.key === "pkg.verified" && /verified/i.test(f.source)));
+
+    /* a port that looks like an FM-1 but stays silent is a different diagnosis from no port at all */
+    const silent = access(["FM-1"]);
+    const fwS = await verifyDevice(silent.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha, build: rec, keys } });
+    check("a silent FM-1 port is reported as silent, not as absent",
+          fwS.kind === "silent" && fwS.reading.probe.reason === "silent" && fwS.reading.probe.frames > 0);
+    check("a silent port still reaches SIGNATURE VERIFIED but never DEVICE COMPATIBLE",
+          Object.fromEntries(diag.diagnosticStates(fwS).map((s) => [s.state, s.reached]))["SIGNATURE VERIFIED"] &&
+          !fwS.compatible);
+
+    /* unrelated gear is never probed, and the report says which case this was */
+    const other = access(["Some Synth"]);
+    const fwO = await verifyDevice(other.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha, build: rec, keys } });
+    check("a unit whose descriptor says nothing is still probed, and reported as silent",
+          fwO.kind === "silent" && fwO.reading.probe.reason === "silent" && fwO.reading.probe.frames > 0 &&
+          onlyQueries(other.sent) && !anyWrite(other.sent));
+  } else {
+    console.log("skip: release/ is not in the tree, so the offline package cases cannot run against real bytes");
+  }
+}
+
+/* ---- the chip gate, read only: two 0x12 queries on the link the unit already answers on ----
+ * "cannot be established without a write session" was the wrong answer for a query that is itself a
+ * read. On a unit running QG this returns the JEDEC and the geometry; on a stock V15 it returns the
+ * silence, which is also a fact about that unit. Either way the wire holds nothing but queries. */
+{
+  /* the firmware's CRC-16/CCITT, written out here on purpose: if the module's copy changes and this
+   * one does not, the replies below stop decoding and the test fails instead of quietly agreeing */
+  const crc16 = (data) => {
+    let c = 0;
+    for (const b of data) {
+      c ^= b << 8;
+      for (let i = 0; i < 8; i++) c = c & 0x8000 ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF;
+    }
+    return c & 0xFFFF;
+  };
+  const chipReply = (jedec, session, opt = {}) => {
+    const cap = opt.cap ?? 0x100000, page = opt.page ?? 256, sector = opt.sector ?? 0x1000, block = opt.block ?? 0x10000;
+    const r = new Array(24).fill(0);
+    r[0] = 1; r[1] = opt.status ?? 0;
+    r[2] = (jedec >> 16) & 0xFF; r[3] = (jedec >> 8) & 0xFF; r[4] = jedec & 0xFF;
+    r[5] = cap & 0xFF; r[6] = (cap >> 8) & 0xFF; r[7] = (cap >> 16) & 0xFF; r[8] = (cap >>> 24) & 0xFF;
+    r[9] = page & 0xFF; r[10] = (page >> 8) & 0xFF;
+    r[11] = sector & 0xFF; r[12] = (sector >> 8) & 0xFF;
+    r[13] = block & 0xFF; r[14] = (block >> 8) & 0xFF; r[15] = (block >> 16) & 0xFF; r[16] = (block >>> 24) & 0xFF;
+    r[17] = session & 0xFF; r[18] = (session >> 8) & 0xFF; r[19] = (session >> 16) & 0xFF; r[20] = (session >>> 24) & 0xFF;
+    const c = crc16(r.slice(0, 21)); r[21] = c & 0xFF; r[22] = (c >> 8) & 0xFF;
+    let s = 0; for (const x of r) s += x;
+    return [0xF0, ...pack7([0, 0x59, 0x12, 24, 0, 0, ...r, ~s & 0xFF]), 0xF7];
+  };
+  /* a unit that answers the identity handshake, and 0x12 only when `chip` is given; `chip` may be a
+   * function so the two identifications in one probe can carry different sessions */
+  const unit = (name, chip) => {
+    const sent = [];
+    let n = 0;
+    const input = { name, state: "connected", onmidimessage: null, open: async () => {} };
+    const output = { name, state: "connected", open: async () => {}, send(bytes) {
+      const b = Array.from(bytes);
+      sent.push({ name, bytes: b });
+      let cmd = null;
+      try { cmd = unpack7(b.slice(1, -1))[2]; } catch (_) { cmd = null; }
+      let f = null;
+      if (isQuery(b)) f = identityFrame("FM-1_015");        // the handshake the installer probes with
+      else if (cmd === 0x12 && chip) f = chipReply(typeof chip === "function" ? chip()[0] : chip, ++n);
+      if (f) setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from(f) }), 0);
+    } };
+    return { sent, midi: { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) } };
+  };
+  const cmdOf = (b) => { try { return unpack7(b.slice(1, -1))[2]; } catch (_) { return null; } };
+  const onlyHexQueries = (sent) => sent.every(({ bytes: b }) =>
+    b[0] === 0xF0 && b[b.length - 1] === 0xF7 && [0x11, 0x12, 0x13].includes(cmdOf(b)));
+
+  /* a stock V15: the identity handshake is answered, 0x12 is not -- the case the owner's unit is in */
+  const stock = unit("FM-1 Midi", null);
+  const noChip = await chipCheck(stock.midi, { timeoutMs: 300 });
+  check("a stock unit that ignores 0x12: reported, not invented",
+        noChip.ok === false && noChip.code === "chip" && /0x12/.test(noChip.why));
+  check("the chip check sent the identity query and one 0x12, and nothing that writes",
+        stock.sent.filter(({ bytes: b }) => cmdOf(b) === 0x12).length === 1 &&
+        stock.sent.filter(({ bytes: b }) => isQuery(b)).length === 1 &&
+        !anyWrite(stock.sent) && !stock.sent.some(({ bytes: b }) => isUpgrade(b)) && onlyHexQueries(stock.sent));
+
+  /* a unit running QG on the documented part: the real JEDEC, the geometry, a fresh token each time */
+  const qg = unit("FM-1 Midi", () => [0x856014]);
+  const chipOk = await chipCheck(qg.midi, { timeoutMs: 300 });
+  check("a unit answering 0x12: the JEDEC and geometry are the chip's own answer",
+        chipOk.ok === true && chipOk.jedec === 0x856014 && chipOk.part === "P25Q80H" &&
+        chipOk.cap === 0x100000 && chipOk.sector === 0x1000 && chipOk.readings === 2 && chipOk.writable === true);
+  check("the chip check never opens the update path, even when the chip answers",
+        !qg.sent.some(({ bytes: b }) => isUpgrade(b)) && !anyWrite(qg.sent) && onlyHexQueries(qg.sent));
+
+  /* one of the five read-only parts: identified, and refused for writing by the same answer */
+  const ro = unit("FM-1 Midi", () => [0xC84014]);
+  const chipRo = await chipCheck(ro.midi, { timeoutMs: 300 });
+  check("a read-only part is identified and reported as not writable",
+        chipRo.ok === true && chipRo.jedec === 0xC84014 && chipRo.part === "GD25Q80" && chipRo.writable === false);
+  let refused = null;
+  try { requireChip({ jedec: chipRo.jedec, writable: chipRo.writable }); } catch (e) { refused = e; }
+  check("that same answer is refused by requireChip before any write frame", !!refused && refused.code === "chip");
+
+  /* a part whose JEDEC is not in the table: refused rather than reported as this unit's chip */
+  const unknown = unit("FM-1 Midi", () => [0x123456]);
+  const chipUnknown = await chipCheck(unknown.midi, { timeoutMs: 300 });
+  check("a JEDEC outside the documented table is refused, not guessed",
+        chipUnknown.ok === false && chipUnknown.code === "chip" && /not a part we know/.test(chipUnknown.why));
+
+  /* no unit at all: the check says so instead of reporting a chip */
+  const none = await chipCheck({ inputs: new Map(), outputs: new Map() }, { timeoutMs: 300 });
+  check("no FM-1 port: no chip is claimed", none.ok === false && none.code === "notfound");
+
+  /* and the gate reads that answer: a refusal is a failed gate, a pass is still not an install */
+  const refusedGate = await verifyDevice(stock.midi, { product: "FM-1_982", chip: noChip });
+  const chipRow = refusedGate.gate.find((r) => r.key === "gate.chip");
+  check("the report's chip gate is a fail when the unit refused 0x12",
+        chipRow && chipRow.state === "fail" && refusedGate.verdict.canInstall === false);
+  const passedGate = await verifyDevice(qg.midi, { product: "FM-1_982", chip: chipOk });
+  const chipRow2 = passedGate.gate.find((r) => r.key === "gate.chip");
+  check("the chip gate passes on a real answer, and the install is still not authorised here",
+        chipRow2 && chipRow2.state === "pass" && passedGate.verdict.canInstall === false);
 }
 
 console.log(`verify only: ${total} checks, ${bad} FAILED`);

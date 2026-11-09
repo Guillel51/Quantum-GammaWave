@@ -363,12 +363,12 @@ and re-signed on that tree rather than shipping bytes that no longer described i
 | Item | Value | Class |
 |---|---|---|
 | RAM code | **19 444 B of 24 576** (headroom **5 132 B**), calls reach 88 948 B | `[TARGET]` |
-| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` | `[TARGET]` |
-| build record | commit `26d7a6b`, `dirty: []` | `[TARGET]` |
+| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` (rebuilt in §17 as `80ad995c…` at `7eb9636`) | `[TARGET]` |
+| build record | commit `26d7a6b`, `dirty: []` (updated in §17 to `7eb9636`) | `[TARGET]` |
 | signature | `verified: FM-1 version 1.9.0, key qg1-release-1` | `[HOST]` |
 | emulator | 1 066 409 B wasm, Emscripten **6.0.11**, same commit as the firmware | `[WASM]` |
 
-The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these. Nothing here
+The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these (and in turn by §17's final build `7eb9636` / `80ad995c…`). Nothing here
 was measured on a device.
 ## 18. Update — 2026-11-08, what is left after `-Oz`: three measurements and no dead weight
 
@@ -587,7 +587,216 @@ Evidence, by class:
 
 Retrigger, mono/legato/unison, sustain, the bass protection, the note-off paths and the engine-switch fade are
 untouched by this change, and their existing checks pass unchanged.
-## 23. Update — 2026-11-09, the 3.2 visual pass: what was fixed, and the class of each proof
+
+## 23. Update — 2026-11-08, the installer was refusing its own package
+
+The first real Verify Only report (`qg1-diagnostic-v1.9.0-7eb9636-7eb9636.json`) carried one line that
+explained the whole block: **`manifest: The package is for FM-1, not FM-1_982.`** The signed manifest names
+the *product* (`FM-1`); the page and the install path name the *identity of the build* (`FM-1_982`); and
+`verifyManifest` compared them with `!==`. Every package this project ever published was refused by its own
+installer, `releaseOk` never became true, and **INSTALL was disabled on the live page for everyone**, with or
+without a unit attached. The unit never got a chance to be the problem.
+
+Three fixes, each with the evidence that produced it:
+
+| Defect | What it did | Fix | Evidence |
+|---|---|---|---|
+| Product compared to identity | refused every published package before any device was involved | the manifest's product is matched to the *model* of the identity, never across models | live page: `Error: The package is for FM-1, not FM-1_982.` · fixed build: `Ready to flash (610,806 bytes)` (`[PUBLIC]`, browser) |
+| Signature reported as "cannot be established without a write session" | the one gate that needs no hardware was marked unknowable, so `SIGNATURE VERIFIED` was unreachable | `verifyPackage()` re-hashes the bytes, reads the package's own identity, and checks Ed25519 against the pinned key — offline | `verifyPackage`: `pass`, `key qg1-release-1`, `610806 B`, sha256 `80ad995c…` (`[HOST]`, Node 26 WebCrypto over the released bytes) |
+| A report could not say *why* nothing answered | `query.frames: 0` sat next to "every probed port stayed silent" when the browser had enumerated **zero** ports | `Updater.find()` now records `reason` (`no-ports` / `no-match` / `no-pair` / `send-failed` / `silent` / `answered`), the input and output counts, and every port name WebMIDI exposed | `web/test_verify_only.mjs`: zero-port, silent-port and foreign-port cases (`[HOST]`) |
+
+`INSTALL` now enables (`#go.disabled === false` after the four preflight boxes) on the fixed build with **no
+device connected**, while `INSTALL READY` still requires every gate row to pass — which still needs the unit.
+Verify Only now reaches `PACKAGE VERIFIED` and `SIGNATURE VERIFIED` and still cannot reach `VERIFY READY`,
+`DEVICE COMPATIBLE` or `INSTALL READY` without an answer from the unit. `verify only: 123 checks, 0 FAILED`.
+
+Nothing in this pass weakened a gate: the model rule is narrower than the name-based comparison it replaces
+(it can never accept another model), and the signature check is a real Ed25519 verification of the real bytes
+rather than the presence of a key in a map. The blocked gates are unchanged and physical: the unit's own
+JEDEC and geometry, a 1 MiB dump of that unit, that dump's verification, a rehearsed recovery, the first
+controlled write. See `docs/FORENSIC_FM1_VIABILITY.md`.
+
+## 24. Update — 2026-11-08, the public site now serves the release's emulator, not main's
+
+Deploying the installer fix exposed the next coupling, in the live page itself:
+`Error: The emulator was built from 55a7be2, the firmware from 7eb9636: they are not the same build.`
+`fm1provenance.js` holds the package to the emulator its own build record names — a good rule — but the
+Pages workflow copied **this run's** `build/emu` (main, which has advanced past the release) into the site.
+As soon as `main` is ahead of the last release, the public site serves an emulator from another tree and its
+own installer refuses its own package. The `deploy` job had been saying so in the only place nobody read:
+`site: versions.json's emulator record is the emulator's wasm  FAIL`.
+
+The fix is not to relax the rule but to satisfy it: when the site serves the committed release, it now builds
+that release's emulator from the release commit and serves **that** one, so package, record, emulator and
+installer are one release again. The release emulator is reproducible — built here from `7eb9636` it produced
+`3d039f75bbc8…`/1 073 325 B, byte for byte the wasm `release/emu/manifest.json` names (`[HOST]`, emsdk
+6.0.11). The preview channel (`/emulator/` under `preview/`) still shows main.
+
+Checked locally against the real artefacts: `site_check.py` with `--expect-commit 7eb9636
+--expect-sha256 80ad995c… --expect-emu-commit 7eb9636` → **all checks passed**, and the installer loaded in a
+browser reports `Ready to flash (610,806 bytes)` with `#go.disabled === false` and no device attached
+(`[HOST]`, HeadlessChrome). `deploy` now expects the release commit of the emulator it serves, and
+`GITHUB_SHA` only when there is no committed release to serve.
+
+## 25. Update — 2026-11-08, a visible port can no longer be missed, and one that is absent cannot be conjured
+
+The second real Verify Only report says, in the new rows, exactly what is and is not true: `pkg.verified`
+passes, `gate.signature` is `pass`, `SIGNATURE VERIFIED` is reached — and `ports.inputs: 0`,
+`ports.outputs: 0`, `query.answer` sourced as *"this browser sees no MIDI device at all: no input and no
+output"*. The installer is enabled and the package is trusted; the operating system is not presenting the
+unit. That is not something a web page can fix, and this pass does not pretend otherwise. What it can do is
+make sure a unit that *is* presented is never missed:
+
+| Change | Why it existed |
+|---|---|
+| pairing by normalised descriptor, not exact name | Windows exposes one device as `MIDIIN2 (FM-1 Midi)` and `MIDIOUT2 (FM-1 Midi)`; compared literally, every such unit looked like "an input with no output" and nothing was probed |
+| Verify Only probes every in/out pair (`probeAll`) | a unit whose Windows descriptor does not say FM-1 was unreachable; the only frame sent is the read-only identity query, and the answer, never the name, decides what it is. The **install** path keeps the name filter and is proven never to probe foreign gear |
+| `statechange` re-runs Verify Only | plugging the unit in while the page is open needed a reload; now the page logs `ports changed: N in / N out` and re-reads, read-only |
+| an empty list says what it means | `vNoPorts` in EN/ES/ZH: with the unit powered and a data cable, an empty list means this system is not presenting it (charge-only cable, unit off, or another program holding the port — Windows gives one client exclusive access per port) |
+
+Evidence (`[HOST]`, simulated device, not hardware): with a fake WebMIDI stack exposing one unit under those
+two Windows names and answering the vendor handshake as a stock V15, the page reports
+`Verify: FM-1 detected, it answers official V15 (FM-1_015)`, `ports 1 in / 1 out`, gate rows 1–5 **pass**,
+and the states `VERIFY READY`, `PACKAGE VERIFIED`, `SIGNATURE VERIFIED`, `DEVICE COMPATIBLE` reached, with
+`INSTALL READY` still not reached. `verify only: 126 checks, 0 FAILED`.
+
+What this does **not** establish: any reading from the owner's unit. With `0 in / 0 out` there is nothing to
+read, and no software change on this side can create a port the OS does not publish. The gates that remain
+need the unit (identity, JEDEC, backup, recovery) — and on a **stock** unit the JEDEC is refused by design,
+because `0x12` is answered only by QG (`docs/JEDEC_READ.md` §1): the first backup of a stock unit is a
+hardware SPI read.
+
+## 26. Update — 2026-11-09, PR #73 reviewed before merge: kept, corrected, removed
+
+The branch `jules-16051787961813429323-dfe6ca9b` (17 commits, `9aa1a1b`) was reviewed file by file against
+`4e8d6b6`. This section records the decision for each part, because a merge that only says "reviewed" says
+nothing.
+
+**Kept.** The multi-chip allowlist, because it fails closed on both installers: `fl_jedec_writable()` still
+returns only Puya `0x856014` and UCUN `0xB36014`; `tools/fm1_gate.py` refuses a `READ_ONLY_JEDEC` id with
+`chip_read_only` before `PRODUCTION_JEDEC` is consulted; `requireChip()` in `web/fm1ota.js` refuses
+`READ_ONLY_JEDEC` before `KNOWN_JEDEC`, and `probeChip()` reports `writable: false` for those five parts.
+Reading and backing up more parts is not writing them. `tests/negative_write_test.py` and
+`tests/backup_audit_test.py` (both import `tools/fm1_gate.py` and `tools/fm1_image.py`) and
+`tests/installer_pipeline_production_test.mjs` (the real `Updater`/`requireProof` against the release
+package the build record names) stay. The documentation of the chip matrix, the flash map and the
+M-Flasher import likewise stays: it is sourced (`docs/M-FLASHER.md` cites the files in that tool) and it
+does not claim a measurement of our own.
+
+**Corrected.** (1) `STOCK_DONOR_VERSIONS` had been widened to `{15, 16}` with no unit read, no document and
+no report behind it, while the comment above it says only the stock versions this project has actually read
+are donors; it is `{15}` again and `web/test_donor.mjs` encodes that limit again (`stock V16 is not a donor
+this project has read`). A donor is a stock unit an install may start from, so this is the one place where
+an unverified widening is a write risk, not a convenience. (2) The installer's M-Flasher panel was Spanish
+only inside a page that is EN/ES/ZH, and it printed an `m-flasher read --out … --size 1M` command and an
+`OCT-`+`OCT+`+`HOME` combination as fact although neither is in the audited sources; it now has `data-t`
+keys in the three languages and says what it is: documented from that tool's source, not demonstrated on a
+unit here, with the key combination left to `docs/M-FLASHER.md`. (3) `tests/installer_pipeline_production_test.mjs`
+had the release path and size typed in; it now resolves the package from `release/build-manifest.json`, so a
+new release does not need the test edited and a renamed package cannot slip past it.
+
+**Removed, and why.** `tests/installer_pipeline_gates_test.py`, `tests/nor_flash_fault_injection_test.py` and
+`tests/power_cut_sim_test.py` do not test this repository: each defines its own `InstallerEngine`,
+`SimulatedSpiNor` or `FakeOtaTransport` inside the test file and asserts on that. They pass whatever the
+installer does, they duplicate `SUPPORTED_DONOR_VERSIONS` (so they would have kept asserting V16 after the
+correction above), and a green run of them proves nothing about `tools/` or `web/`. The behaviour they name
+is covered by real code: `tests/chip_test.py`, `tests/transport_gate_test.py`, `tests/install_test.py`,
+`tests/backup_test.c` and `web/test_web.mjs` (the 0x12/0x13 gate, the UPGRADE gate, the loader's own
+before-any-write refusals). `tests/ota_fault_injection_test.mjs`
+only round-tripped `pack7`/`unpack7` and called it fault injection. `tools/fm1_backup_validator.py` had no
+caller and no test and re-implements what `tools/fm1_flash_evidence.py` already does with a test
+(`tests/spi_dump_test.py`).
+
+**Enforced.** None of the six new test files ran in CI, and `tests/run_tests.sh` did not name them either: the
+PR added coverage that nothing executed. The three that test real modules are now steps in
+`tests/run_tests.sh`, which is what the `host tests` workflow runs.
+
+**Class of this evidence.** `[HOST]`: the host suite on `9aa1a1b`, the JS suites, the gate and package tests.
+Nothing here was measured on a device, and the merge changes no gate: the owner's unit stays at
+`INSTALL BLOCKED`. The published release (`release/`, built at `7eb9636`) is untouched and is still the only
+signed package; the commits merged here are not in it, and no package was rebuilt, signed or published for
+this review.
+
+**Known hole, reported not fixed.** The `emulator` workflow's step *the package, the installer and the editor*
+carries `continue-on-error: true`, so a failure inside it does not fail the run (on `9aa1a1b` the step's own
+conclusion was `success`). The steps after it — the target compiler checks and *a package and a site exist
+(fail closed)* — are enforced, so a missing package is still caught; a broken assertion inside that step is
+not.
+
+## 27. Update — 2026-11-09, the chip gate is now a read, not a write session
+
+Gate 6 ("flash chip, sizes and bounds") used to say *deliberately not done by verify only*, and the row for
+it read *cannot be established without a write session*. That was wrong about the protocol: `0x12` is the
+identification query and it is read-only, so the only reason a stock unit cannot answer it is that the
+vendor firmware does not implement it (`docs/JEDEC_READ.md` §1) — not that answering it would require a
+write.
+
+The installer now has a **CHECK CHIP (read only)** action, next to Verify Only. It sends the identity
+handshake and then two `0x12` identifications on the same link (`chipCheck()` in `web/fm1ota.js`, built on
+`probeChip()`), and never opens the update path: no `F0 22 24 35 7F F7`, no `0x30`, no archive PUT. On a
+unit running QG it fills gate 6 with the chip's own JEDEC and geometry and says whether the part is one
+this installer writes; on a stock V15 it reports the refusal (`The FM-1 did not answer 0x12: nothing was
+sent.`), which is a measured fact about that unit instead of an empty cell. The report gains
+`chip.jedec`, `chip.geometry`, `chip.write` — or `chip.refused` — and the JSON carries the same block.
+
+A passing gate 6 does **not** authorise anything: the verdict still requires the recovery, backup and
+post-install gates, and on this project's unit those are physical. `INSTALL BLOCKED` is unchanged.
+
+Evidence (`[HOST]`, simulated devices, no unit): `web/test_verify_only.mjs` now has ten more cases,
+`136 checks, 0 FAILED` — a stock unit that ignores `0x12` (reported, one query on the wire, nothing that
+writes), a unit answering `0x856014` (JEDEC, geometry, fresh session token, still no UPGRADE), a read-only
+part `0xC84014` (identified, `writable: false`, refused by `requireChip()`), an unknown JEDEC, no port at
+all, and both directions of the gate row in the report. The site still builds with the page
+(`web/make_site.py`, 610 806-byte release package). What is **not** established: that any unit answers
+`0x12` here, because none was available.
+
+## 28. Update — 2026-11-09, the owner's unit is a known chip with a known backup: first install enabled
+
+The owner ran M-Flasher 0.9.4 against the unit and kept its record (`fm1-20261108-161613.json`):
+
+| Field | Value | Class |
+|---|---|---|
+| identity | `FM-1 015 (stock)`, bootloader `stock (M-VAVE)`, app `OK` | `[HW]`, tool record |
+| **flash** | **`0x856014`** (Puya P25Q80H), chip key `0x980F` | `[HW]`, M-Flasher's own `ONLINE_DEVICE` read |
+| unit id | `4150353835313708` | `[HW]`, tool record |
+| backup | 1 MiB dump, sha256 `38c66ae7c36b46f2fad1c0f8a041ba257934b1b46a73d4085216c60e78f2d9cd` | `[HW]`, tool record |
+| tool | `m-flasher 0.9.4` (loader 1.3) | `[HW]`, tool record |
+
+Gates 6 and 8 were the two the page could not answer on a stock unit. They are now answered, and not by
+optional: **gate 6** is the chip's own identification, read by the tool that can reach the chip's ROM mode;
+**gate 8** is a full 1 MiB read whose SHA-256 the page recomputes from the bytes the owner loads.
+
+**What changed in the software.** A stock unit answers the handshake but not `0x12`, so `install()` used to
+refuse on the *running* firmware's link before `UPGRADE` — which made a first install impossible by
+construction, not by evidence. The install path now accepts a chip fact taken out of band, on one
+condition and one only: the device is a **stock donor** (the same rule as before: same model, version in
+`STOCK_DONOR_VERSIONS`), the record parses, its part is one this project writes (`0x856014`/`0xB36014`, the
+read-only five are refused by name), and **the page has hashed the dump itself** and got the record's hash
+(`web/fm1record.js`, `bindRecord()` in `web/fm1ota.js`). A unit already running QG is still identified on
+its own link with `0x12`; a record never stands in for that. Without a verified record nothing is sent: the
+suite asserts both directions on the wire.
+
+**What this does not prove, said plainly.** The record is a claim until its dump is hashed here; the page
+does that when the file is loaded, and refuses the pair otherwise. It does not prove the write works on
+this part — `0x856014` is a writable part *in the allowlist*, not a write demonstrated on this unit. It
+does not demonstrate recovery: the route is M-Flasher restoring that same dump, which is available and
+audited but has not been tried on this unit. And the 1 MiB read was taken by a third-party tool; this
+project verified its hash only when the bytes are loaded.
+
+**Security state.** Nothing about the write path was relaxed: the signature, the package identity, the
+model, the image hash, the one-use authorisation and the TTL are unchanged, the boot area is still never
+written by QG, and `INSTALL BLOCKED` remains the verdict until the gates above are satisfied *for this
+unit at that moment*. What is no longer impossible is the first install on a stock unit whose chip and
+backup are known — the case this repository was built for.
+
+Evidence (`[HOST]`, simulated unit): `web/test_record.mjs`, 28 checks, 0 FAILED — the owner's record parses
+to `0x856014`/P25Q80H; a read-only part, another model, a non-stock bootloader, a bad hash and a 1 MiB − 1
+byte dump are each refused; a verified record and the answering unit agree, and the same record against
+another firmware version is refused; with the record, the install sends **zero** `0x12` frames and exactly
+one `UPGRADE`, and a unit that does not hand over ends in an error, never a silent write; without it, the
+install refuses with `chip` and sends no `UPGRADE` at all. `web/test_verify_only.mjs` (136) and
+`web/test_web.mjs` stay green.
+## 29. Update — 2026-11-09, the 3.2 visual pass: what was fixed, and the class of each proof
 
 The pass was ordered with one priority (the PUNCH-IN LATCH), ten visual defects, and a rule: nothing counts unless it
 is visible and checkable in the project's own emulator. This section records each item, its state, and the class of

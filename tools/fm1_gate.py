@@ -28,9 +28,16 @@ PRODUCTION_JEDEC = {
     # the one field report of a UCUN unit that did not boot was a bootloader install.
     0xB36014: "UCUN UC25HQ80 (1 MiB)",
 }
-# Identified and readable, never written here. Empty today: the two documented parts are both
-# writable, and anything else is refused as unknown rather than listed here.
-READ_ONLY_JEDEC = {}
+# Identified and readable, never written here. 1 MiB SPI NOR chips known in the FM-1 and AC791N
+# ecosystem: non-destructive diagnostics and backup are permitted; writes are strictly rejected
+# until a lab unit and physical test proves write and power-cut cycle safety.
+READ_ONLY_JEDEC = {
+    0xC84014: "GigaDevice GD25Q80 (1 MiB)",
+    0xEF4014: "Winbond W25Q80 (1 MiB)",
+    0x5E4014: "Zbit ZB25VQ80 (1 MiB)",
+    0x684014: "BoyaMicro BY25D80 (1 MiB)",
+    0x204014: "XMC XM25QH80B (1 MiB)",
+}
 KNOWN_JEDEC = {**PRODUCTION_JEDEC, **READ_ONLY_JEDEC}
 MAX_PACKAGE = 0x100000        # the part is 1 MiB; the image is the whole flash
 
@@ -47,6 +54,21 @@ CAPABILITIES = {
                         "02/20/D8/05/06/9F commands and WIP/WEL bits; a third-party FM-1 with this id "
                         "installed a full firmware image and kept settings and a project across a power "
                         "cycle (Felucca #320). The bootloader is never written by this project"},
+    0xC84014: {"part": "GigaDevice GD25Q80", "read": True, "backup": True, "write_app": False,
+               "bootloader": False, "qg_install": False,
+               "basis": "Known 1 MiB part in JieLi reference designs; read/backup supported, write blocked until hardware verified"},
+    0xEF4014: {"part": "Winbond W25Q80", "read": True, "backup": True, "write_app": False,
+               "bootloader": False, "qg_install": False,
+               "basis": "Standard 1 MiB SPI NOR; read/backup supported, write blocked until hardware verified"},
+    0x5E4014: {"part": "Zbit ZB25VQ80", "read": True, "backup": True, "write_app": False,
+               "bootloader": False, "qg_install": False,
+               "basis": "1 MiB SPI NOR; read/backup supported, write blocked until hardware verified"},
+    0x684014: {"part": "BoyaMicro BY25D80", "read": True, "backup": True, "write_app": False,
+               "bootloader": False, "qg_install": False,
+               "basis": "1 MiB SPI NOR; read/backup supported, write blocked until hardware verified"},
+    0x204014: {"part": "XMC XM25QH80B", "read": True, "backup": True, "write_app": False,
+               "bootloader": False, "qg_install": False,
+               "basis": "1 MiB SPI NOR; read/backup supported, write blocked until hardware verified"},
 }
 
 

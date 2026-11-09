@@ -137,6 +137,13 @@ def with_csp(html):
     m = re.search(r'<script type="module">(.*?)</script>', html, re.S)
     if not m or html.count("<script") != 1:
         raise SystemExit("index_pkg.html: expected exactly one inline module script (the CSP hashes it)")
+    # Every module is concatenated into the page's single scope, so two top-level declarations with one
+    # name are a SyntaxError on load: the page would be blank while every source test still passed.
+    declared = re.findall(r"^(?:const|let|var|function|class|async function)\s+([A-Za-z_$][\w$]*)", m.group(1), re.M)
+    dup = sorted({d for d in declared if declared.count(d) > 1})
+    if dup:
+        raise SystemExit(f"index_pkg.html: duplicate top-level declaration(s) {dup} -- the inlined modules "
+                         "share one scope and the page would not load")
     h = base64.b64encode(hashlib.sha256(m.group(1).encode("utf-8")).digest()).decode()
     csp = (f"default-src 'none'; script-src 'sha256-{h}'; style-src 'unsafe-inline'; img-src 'self' data: blob:; "
            "connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; "
@@ -158,6 +165,7 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     lib = strip_module((HERE / "fm1diag.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8")) + "\n" + \
+        strip_module((HERE / "fm1record.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1backup.js").read_text(encoding="utf-8"))

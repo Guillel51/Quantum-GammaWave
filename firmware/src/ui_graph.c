@@ -2569,27 +2569,28 @@ static void draw_tracks(void)
  * - 6-track mini VU activity meter across top reticle.
  * - Orbital phase space trajectory x(t) vs x(t - tau).
  * - High-contrast, crystal-clear bottom telemetry & exit hint [HOME] EXIT. */
+static int16_t scope_snap[SCOPE_N];
+
 static void graph_home_viz(uint16_t c)
 {
-    static int16_t snap[SCOPE_N];
     static uint8_t peak_decay[16];
     uint32_t w = scope_w, i, trig = 0, pass;
     int32_t peak = 1000, bars[16];
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
-        snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
-        if (snap[i] > peak) peak = snap[i];
-        else if (-snap[i] > peak) peak = -snap[i];
+        scope_snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
+        if (scope_snap[i] > peak) peak = scope_snap[i];
+        else if (-scope_snap[i] > peak) peak = -scope_snap[i];
     }
     for (i = 1; i < SCOPE_N - 240u; i++)
-        if (snap[i - 1] < 0 && snap[i] >= 0) { trig = i; break; }
+        if (scope_snap[i - 1] < 0 && scope_snap[i] >= 0) { trig = i; break; }
 
     /* One measurement per frame: the two band passes draw the same bars and peak caps. */
     for (i = 0; i < 16u; i++) {
         int32_t bsum = 0, j;
         for (j = 0; j < 8; j++) {
-            int32_t val = snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
+            int32_t val = scope_snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
             if (val < 0) val = -val;
             bsum += val;
         }
@@ -2641,7 +2642,7 @@ static void graph_home_viz(uint16_t c)
         {
             int32_t py = cy, x;
             for (x = 0; x <= 144; x += 2) {
-                int32_t sv = snap[(trig + (uint32_t)x) & (SCOPE_N - 1u)];
+                int32_t sv = scope_snap[(trig + (uint32_t)x) & (SCOPE_N - 1u)];
                 int32_t y = cy - (sv * amp) / peak;
                 y = clamp(y, cy - amp, cy + amp);
                 if (x) {                                 /* (1.7) one 2 px pass. The 3 px glow under it was a second
@@ -2666,8 +2667,8 @@ static void graph_home_viz(uint16_t c)
         if (peak > 1400) {
             int32_t px = 196, py = 98;
             for (i = 0; i <= 64u; i += 3) {             /* (1.7) every third sample: the orbit keeps its shape */
-                int32_t ox = 196 + (snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
-                int32_t oy = 98 + (snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
+                int32_t ox = 196 + (scope_snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
+                int32_t oy = 98 + (scope_snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
                 ox = clamp(ox, 168, 224);
                 oy = clamp(oy, 72, 123);
                 if (i) cv_line(px, py, ox, oy, mono ? T_TEXT : T_ACCENT);
@@ -2707,24 +2708,23 @@ static void graph_home_viz(uint16_t c)
  * a flat line on it; MENU > SCREEN OFF keeps it from staying on the panel for hours) */
 static void graph_scope(uint16_t c)
 {
-    static int16_t snap[SCOPE_N];
     uint32_t w = scope_w, i, trig = 0;
     int32_t cy = (int32_t)cv_h / 2, py = cy, x, peak = 1500, a = cv_h == H_GRAPH ? 46 : cy - 6;   /* (LARGE: the strip) */
     for (i = 0; i < SCOPE_N; i++) {
-        snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
-        if (snap[i] > peak)
-            peak = snap[i];
-        else if (-snap[i] > peak)
-            peak = -snap[i];
+        scope_snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
+        if (scope_snap[i] > peak)
+            peak = scope_snap[i];
+        else if (-scope_snap[i] > peak)
+            peak = -scope_snap[i];
     }
     for (i = 1; i < SCOPE_N - 240u; i++)
-        if (snap[i - 1] < 0 && snap[i] >= 0) {
+        if (scope_snap[i - 1] < 0 && scope_snap[i] >= 0) {
             trig = i;
             break;
         }
     cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
     for (x = 0; x < PANEL_W; x++) {
-        int32_t y = cy - snap[trig + (uint32_t)x] * a / peak;    /* auto-scaled */
+        int32_t y = cy - scope_snap[trig + (uint32_t)x] * a / peak;    /* auto-scaled */
         if (x)                                                   /* GAMMA / WRAITH / JIANT: each stroke as hot as it is loud */
             cv_line_t(PANEL_X0 - 1 + x, py, PANEL_X0 + x, y, ux.chamfer ?
                       heat_col(40 + (y > cy ? y - cy : cy - y) * 216 / a) : c, 2);

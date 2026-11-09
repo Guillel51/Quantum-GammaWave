@@ -46,8 +46,18 @@ export const PORT_RE = /fm-1|felucca|ota|composite|sinco|usb-midi/i;
 // Both documented 1 MiB parts are writable, exactly as tools/fm1_gate.py says: one policy for
 // both installers. The UCUN evidence (datasheet parity plus a third-party FM-1 that installed a
 // full image and kept its data across a power cycle) is in docs/JEDEC_COMPATIBILITY.md.
-const KNOWN_JEDEC = { 0x856014: "Puya P25Q80H (1 MiB)", 0xB36014: "UCUN UC25HQ80 (1 MiB)" };
-const READ_ONLY_JEDEC = {};
+const PRODUCTION_JEDEC = {
+  0x856014: "Puya P25Q80H (1 MiB)",
+  0xB36014: "UCUN UC25HQ80 (1 MiB)",
+};
+const READ_ONLY_JEDEC = {
+  0xC84014: "GigaDevice GD25Q80 (1 MiB)",
+  0xEF4014: "Winbond W25Q80 (1 MiB)",
+  0x5E4014: "Zbit ZB25VQ80 (1 MiB)",
+  0x684014: "BoyaMicro BY25D80 (1 MiB)",
+  0x204014: "XMC XM25QH80B (1 MiB)",
+};
+const KNOWN_JEDEC = { ...PRODUCTION_JEDEC, ...READ_ONLY_JEDEC };
 
 export function requireChip(evidence) {
   const jedec = evidence && evidence.jedec;
@@ -65,6 +75,15 @@ export function requireChip(evidence) {
 // errors carry a code the pages translate: notfound, model, stopped, noloader, lost, noreturn,
 // mismatch (detail: the identity the device reports), badreq
 function fail(code, msg, detail = "") { const e = new Error(msg); e.code = code; e.detail = detail; return e; }
+
+/* One device, two directions, two different Windows names: "MIDIIN2 (FM-1 Midi)" and
+ * "MIDIOUT2 (FM-1 Midi)". Strip the direction prefix, the index and the brackets to compare. */
+export function normPort(name) {
+  return String(name || "").toLowerCase()
+    .replace(/^\s*midi\s*(in|out)\s*\d*\s*/i, "")
+    .replace(/[()\[\]]/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
 
 export function pack7(data) {
   const out = []; let acc = 0, nb = 0;
@@ -172,20 +191,45 @@ export class Updater {
     this.loaderWait = timing.loaderWait ?? 30000;
     this.rebootDelay = timing.rebootDelay ?? 3000;
     this.rebootWait = timing.rebootWait ?? 40000;
+    /* Verify Only probes every in/out pair it can see; the install path keeps the name filter. */
+    this.probeAll = !!timing.probeAll;
     // what the last find() put on the wire and what came back. Read-only bookkeeping: a
     // diagnostic needs to say how many identity frames it sent and whether any of them was answered.
     this.lastProbe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false };
   }
 
+  // Windows exposes the two directions of one device under names that are not equal:
+  // "MIDIIN2 (FM-1 Midi)" on the input and "MIDIOUT2 (FM-1 Midi)" on the output. Pairing them by
+  // exact name skipped every such unit -- it looked like "a port with no output" and nothing was
+  // ever probed. Comparing the descriptor without the direction prefix and the index pairs them.
   // every in/out pair with the same port name that answers the handshake
   async find(filter) {
     const outs = [...this.access.outputs.values()];
-    const probe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false };
+    const ins = [...this.access.inputs.values()];
+    /* `reason` is the whole diagnosis in one word, and it is the difference between "your cable is
+     * charge-only" and "another program is holding the port": no-ports (this browser sees no MIDI
+     * device at all), no-match (inputs exist, none looks like an FM-1), no-pair (an input without an
+     * output of the same name), send-failed (the port refused the frame), silent (sent, unanswered),
+     * answered. `seen` names every port WebMIDI exposed, so a report can show what the browser saw
+     * instead of guessing why nothing came back. */
+    const probe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false,
+      reason: "no-ports", counts: { inputs: ins.length, outputs: outs.length },
+      seen: { inputs: ins.map((p) => String(p.name || "")), outputs: outs.map((p) => String(p.name || "")) } };
     this.lastProbe = probe;
-    for (const input of this.access.inputs.values()) {
-      if (input.state === "disconnected") continue;
-      if (!PORT_RE.test(input.name || "")) continue;   // never probe other gear
-      const output = outs.find((o) => o.name === input.name && o.state !== "disconnected");
+    /* By default only ports that look like an FM-1 are probed: a device with another name is other
+     * gear, and this installer does not talk to other gear. Verify Only passes `probeAll`, because
+     * there the question is "is my unit visible at all?" and the only frame sent is the read-only
+     * identity query; a unit whose Windows descriptor does not say FM-1 is otherwise unreachable.
+     * Name-matched pairs are still tried first, so the common case does not change. */
+    const cands = ins
+      .filter((i) => i.state !== "disconnected")
+      .map((i) => ({ input: i, named: PORT_RE.test(i.name || "") }))
+      .filter((c) => c.named || this.probeAll)
+      .sort((a, b) => (b.named ? 1 : 0) - (a.named ? 1 : 0));
+    probe.probedAll = !!this.probeAll;
+    for (const { input } of cands) {
+      const output = outs.find((o) => o.state !== "disconnected" &&
+        (o.name === input.name || normPort(o.name) === normPort(input.name)));
       if (!output) continue;
       try { await input.open(); await output.open(); } catch (_) { continue; }
       const link = new Link(input, output);
@@ -196,10 +240,15 @@ export class Updater {
       if (hs.latencyMs !== null && probe.latencyMs === null) probe.latencyMs = hs.latencyMs;
       if (hs.id && (!filter || filter(hs.id))) {
         probe.answered = input.name;
+        probe.reason = "answered";
         return { link, id: hs.id, name: input.name };
       }
       link.close();
     }
+    if (probe.probed.length) probe.reason = probe.sendFailed ? "send-failed" : "silent";
+    else if (!probe.counts.inputs) probe.reason = "no-ports";
+    else if (probe.seen.inputs.some((n) => PORT_RE.test(n))) probe.reason = "no-pair";
+    else probe.reason = probe.probedAll ? "unpaired" : "no-match";
     return null;
   }
 
@@ -263,7 +312,10 @@ export class Updater {
     const isDonor = !isTarget && donorIdentity(dev.id, product, ctx.firmware);
     if (!isTarget && !isDonor) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
     if (isDonor) step("donor", dev.id.text);                    // a stock FM-1 is admitted as the origin only
-    await identify(pass, dev.link);                            // 0x12 on this link, before any write frame
+    // A donor does not answer 0x12 (docs/JEDEC_READ.md §1), so its chip fact comes from the record and
+    // its dump; a unit already running QG is identified on the link itself, exactly as before.
+    if (isDonor && ctx.chipRecord) await bindRecord(pass, dev.link, ctx.chipRecord, dev.id);
+    else await identify(pass, dev.link);                       // 0x12 on this link, before any write frame
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
@@ -337,6 +389,11 @@ const QRY_CAP = 0x100000;
 const QRY_PARTS = {
   0x856014: { part: "P25Q80H", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: true },
   0xB36014: { part: "UC25HQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: true },
+  0xC84014: { part: "GD25Q80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0xEF4014: { part: "W25Q80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x5E4014: { part: "ZB25VQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x684014: { part: "BY25D80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x204014: { part: "XM25QH80B", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
 };
 const QRY_STATUS = { 1: "no NOR answer", 2: "unknown part", 3: "capacity not corroborated", 4: "no session",
   5: "range", 6: "length or read error", 7: "malformed request" };
@@ -413,6 +470,25 @@ export async function probeChip(link, timeoutMs = 1000) {
   return { ...b, writable: !!(QRY_PARTS[b.jedec] && QRY_PARTS[b.jedec].writable), readings: 2, source: "device-0x12" };
 }
 
+/* The chip gate, read only: two 0x12 identifications on the link the unit is already answering on --
+ * no UPGRADE, no 0x30, no write frame of any kind. It exists because "cannot be established without a
+ * write session" was the wrong answer for a query that is itself read-only: on a unit running QG this
+ * returns the real JEDEC and geometry, and on a stock V15 it returns the refusal, which is also a fact
+ * about that unit and is better than a gate that says nothing. */
+export async function chipCheck(midi, { log = () => {}, timeoutMs = 1500 } = {}) {
+  const up = new Updater(midi, log);                   // name filter only: never probes foreign gear
+  let dev = null;
+  try { dev = await up.find(); } catch (_) { dev = null; }
+  if (!dev) return { ok: false, code: "notfound", why: "no FM-1 port answered the identity query" };
+  try {
+    const chip = await probeChip(dev.link, timeoutMs);
+    return { ok: true, jedec: chip.jedec, part: chip.part, cap: chip.cap, page: chip.page,
+      sector: chip.sector, block: chip.block, writable: chip.writable, readings: chip.readings };
+  } catch (e) {
+    return { ok: false, code: (e && e.code) || "chip", why: String((e && e.message) || e) };
+  } finally { try { dev.link.close(); } catch (_) {} }
+}
+
 // one 0x13 read (<= 256 bytes), fully validated; read-only
 export async function readFlash(link, addr, len, session, timeoutMs = 1000) {
   if (!(len > 0) || len > QRY_CHUNK) throw fail("chip", "a single read is 1..256 bytes");
@@ -456,7 +532,15 @@ export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", fi
     if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
   const pub = keys && keys[manifest.keyid];
   if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
-  if (manifest.product !== product) throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
+  /* The manifest names the PRODUCT ("FM-1"); this page and the install path name the IDENTITY of
+   * the build ("FM-1_982"). Comparing them literally refused every package this project published --
+   * "The package is for FM-1, not FM-1_982" -- which left INSTALL disabled on the live page for
+   * everyone, with or without a unit attached. The model is what a package may not cross: an FM-1
+   * package can never be accepted for another model, and a manifest that names a model plus a number
+   * still only matches its own model. */
+  const modelOf = (p) => String(p === undefined || p === null ? "" : p).split("_")[0];
+  if (!modelOf(manifest.product) || modelOf(manifest.product) !== modelOf(product))
+    throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
   const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
     .map((b) => b.toString(16).padStart(2, "0")).join("");
   if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");
@@ -583,6 +667,28 @@ async function admit(proof, pkg, product) {
     throw fail("image", "the package is not the one that was verified: nothing was sent.");
   rec.used = true;                                           // one package, one transfer
   return { image: rec.image, link: null, chip: null };
+}
+
+// Bind an admission to the link with a chip identification taken out of band: the record M-Flasher
+// wrote next to a full 1 MiB read, already checked against the dump's hash by the page (fm1record.js).
+// It exists because a stock unit answers the handshake but not 0x12, so a first install could never
+// reach the wire: the chip fact is real, it was just not obtainable over MIDI. Only a donor may take
+// this path -- a unit already running QG is identified on its own link, as before -- and the record
+// must name this model and this firmware version, so a record kept from another unit cannot stand in.
+async function bindRecord(pass, link, rec, id) {
+  if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
+  if (!link || typeof link.send !== "function" || typeof link.read !== "function")
+    throw fail("chip", "this transfer has no open link to bind: nothing was sent.");
+  if (!rec || rec.ok !== true || rec.verified !== true)
+    throw fail("chip", "the chip record was not checked against its dump: nothing was sent.");
+  if (!/^[0-9a-f]{64}$/i.test(String(rec.dumpSha256 || "")))
+    throw fail("chip", "the chip record carries no dump hash: nothing was sent.");
+  if (!id || rec.model !== id.model || Number(rec.version) !== Number(id.version))
+    throw fail("chip", `the record is for ${rec.model} ${rec.version}, the unit answered ${id && id.text}: nothing was sent.`);
+  const part = requireChip({ jedec: rec.jedec });      // the allowlist, once more, on the record's id
+  pass.link = link;
+  pass.chip = { jedec: rec.jedec, part: rec.part || part, readings: 0, source: rec.source || "record" };
+  return pass;
 }
 
 // Bind an admission to the link it will transmit on. The transport identifies the chip itself here,

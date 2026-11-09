@@ -55,6 +55,7 @@ export function diagnosticJson(report, extra = {}) {
       hardware: r.hardware || "", hardwareSource: r.hardwareSource || "",
       ports: r.ports || [], compatibility: r.compatibility || "", authorised: !!r.authorised,
     },
+    chip: r.chip || null,          // a read-only 0x12 check, when one was run
     fields: r.fields || [],
     missing: r.missing || [],
     gate: r.gate || [],
