@@ -987,3 +987,28 @@ and each line below names the class of the proof.
 | Host suites | **PASS** | `tests/run_tests.sh` with `NO_PACKAGE=1`: native runners, ASan/UBSan, the lint/alignment sweep, the golden renders and every web test. See the commit for the run. | host x86 |
 | Physical FM-1 | **NOT TESTED** | No unit was touched, no install was attempted. Nothing in this pass is a claim about the hardware. | none |
 | "2.0" as a version | **NOT PUBLISHED** | The tree stays `v1.9.0`. A 2.0 release would need a new signed package (the `qg1-release-1` private key is not in this environment) and, before that, the physical evidence the gates ask for. Nothing was tagged, packaged or published as 2.0. | n/a |
+
+## 33. Update — 2026-11-09, 3.3: two channels, 2.0, and a surface that turns
+
+The first complaint of this mission was that the public emulator showed firmware older than the repository.
+The cause was structural, not a cache: the site published *one* release — package and emulator from the signed
+commit — because `fm1provenance.js` holds a package to the emulator its own build record names. While `main`
+ran ahead of the release, the only way to keep that binding was to serve old pages. This pass splits the site
+into two channels and moves the version to 2.0. Everything below names its class; nothing here is a claim about
+physical hardware.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| Root channel = this tree | **IMPLEMENTED, COMPILED, TESTED LOCAL** | `.github/workflows/emulator.yml` builds `build/site` from `build/felucca.fwsc` and `build/emu` of the same run, passes the run's own build record to `make_site.py` (which checks hash, size, identity, commit and the emulator that record names) and copies the run's emulator to `/emulator/`. The root installer therefore publishes an **unsigned** package and refuses to install it — fail-closed, stated on the page. | workflow + `make_site.py` checks |
+| `/release/` channel = signed `v1.9.0` | **IMPLEMENTED, COMPILED, TESTED LOCAL** | Built inside a worktree at the release commit: `make_site.py` from that tree with `release/felucca-v1.9.0.fwsc`, `release/build-manifest.json` and the emulator built from the same commit, then copied to `build/site/release/`. Portal, installer, package and emulator of that channel all name `7eb9636`. | workflow + emulator build from that commit |
+| Published-site gate | **REWRITTEN** | `tools/site_check.py` now runs twice: the root against `$GITHUB_SHA` (package and emulator), `/release/` against the release record's commit and the signed package's SHA-256. | CI step |
+| Build identifier | **IMPLEMENTED, TESTED LOCAL** | `tools/package_emu.py` writes `built` (UTC, or `SOURCE_DATE_EPOCH` when set) into `build/emu/manifest.json` and stamps it into the page; the footer shows version · build · built · engine SHA-256 · size, and `window.__QG_EMU__` exposes the same. The page still refuses to run when the WASM it downloads does not hash to the value baked into it. | static + emulator manifest |
+| Version 2.0.0 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` is `v2.0.0`; the AC791N build and the WASM both carry it. The signed package that can be installed remains `v1.9.0`, and the portal says so beside the 2.0 note. | target build + WASM |
+| SCL keyboard | **IMPLEMENTED, RENDERED** | `scl_key()` draws a 3 px corner (6 px in 3.2, which turned a 29 px key into a lozenge). `tests/ui_render` re-rendered every screen in 17 palettes: 0 lint findings, 0 alignment findings. | host render |
+| HOME planets: axial rotation | **IMPLEMENTED, RENDERED** | `gw_sphere()` takes a rotation phase and two surface features per planet; `x = r·sin(phase)` packs them toward the limb, `cos(phase)` hides them behind the body, each planet has its own rate (`ROTMS`) and the feature tone falls off toward the terminator. Cost per planet and frame: two sine pairs and at most four pixels — no new table, no new RAM. | host render + code |
+| HOME planets: the note | **IMPLEMENTED, RENDERED** | `pl_flash[]` is set to 256 on a note-on and decays four times faster than `pl_ex`; it lifts the lit face (`lit_top`, `lit_low`) and the limb (`edge`) for the first frames, so the strike reads before the afterglow. | host render + code |
+| Audio audit (LATCH, Punch-In, every control → DSP) | **PENDING** | Not done in this pass. The claims of 3.2 about LATCH remain host-state and interface tests; no test yet renders audio, releases the key and measures that a latched effect still changes the signal. | none |
+| Cheap musical improvements (micro-detune, stealing, saturation) | **NOT STARTED** | Deliberately not attempted after the ecosystem work: each one changes renders, and none was measured. Listed as pending rather than guessed. | none |
+| Host suites | **PASS** | `NO_PACKAGE=1 ./tests/run_tests.sh`, plus the web/provenance/site/i18n tests and `web/emu/emu_test.mjs` (all ok, heavy song 2.3 % of real time). | host x86 |
+| Public site | **PENDING** | Verified after the deploy: see the commit that follows this one. | — |
+| Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing in this pass is a claim about the hardware. | none |

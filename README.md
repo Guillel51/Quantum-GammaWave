@@ -83,7 +83,7 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## The published build: `v1.9.0`
+## The published build: `v2.0.0`
 
 The project has one official entry point: the **Solar Heat / Quantum** portal at
 <https://guillel51.github.io/Quantum-GammaWave/>. It presents the firmware, real screenshots, compatibility,
@@ -91,31 +91,31 @@ installation warnings, version metadata and direct access to the emulator (`/emu
 (`/webapp/installer/`) and the Web Studio (`/webapp/editor/`). Existing installer and editor URLs are kept;
 the emulator lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
 
-The Web Studio carries the presentation layer (deep charcoal, solar amber, cyan data accents, a hardware-style
-brand bar) over the same control ids, SysEx frames, tabs and protocol handlers: this pass changed how it is
-reached, not what it sends.
+**The site now has two channels, and they are not the same build.**
 
-**`v1.9.0` is the current and published build**, and it is the one the installer is allowed to write:
+- **`/` is this tree.** The emulator at `/emulator/` is compiled from the same commit as the package the
+  page offers, and its footer prints the version, the commit, the build date, the WASM's SHA-256 and its
+  size. The page refuses to run if the file it downloads does not hash to the value baked into it, and it
+  reloads itself once when a newer manifest is published, so a cached page cannot keep serving an old engine.
+- **`/release/` is the signed release, `v1.9.0`.** The installer holds a package to the emulator its own build
+  record names, so that channel is built from the release commit — portal, installer, package and emulator
+  together — instead of pairing a release package with a newer emulator. This is the one the installer is
+  allowed to write, and the only one it accepts.
 
-- the package is signed with the anchored key `qg1-release-1`, its build record names the commit it came from
-  (`dirty: []`) and two builds of it give the same bytes;
-- the installer identifies the NOR by `0x12`, refuses any piece outside `0x856014`/`0xB36014`, requires the
-  geometry to match the identified piece, checks the signature against the anchored public key and, after
-  writing, requires the unit to report the QG product;
-- *Verify Only* downloads a `qg1-diagnostic-1` JSON with what it read, what it could not read and why — no
-  keys, no tokens, no package bytes — and the eight states (`DIAGNOSTIC READY` … `INSTALL READY`,
-  `INSTALL BLOCKED`) are derived from the gate's own rows, so none can be shown above its evidence;
-- the `publish` job of `.github/workflows/emulator.yml` tags `v1.9.0` on the build record's commit, publishes
-  package, manifest and record, then downloads the published assets and verifies them again; Pages serves
-  `release/*.fwsc` when it exists, because a package built in CI has no signature;
-- Emscripten is pinned to **6.0.11** everywhere, and the WASM this site serves was built with it from the same
-  commit as the firmware.
+Why the root cannot be installed: a package built in CI carries no signature (the private key is not in this
+repository or in CI), so the installer publishes it and refuses to write it. That is fail-closed by design,
+not a setting to flip. The 2.0 package needs the custodian's signature before it can replace 1.9.0 in
+`/release/`; until then `/release/` keeps serving `v1.9.0`, whose record names its own commit with `dirty: []`.
 
-What that build does **not** claim: no install has been run on a physical FM-1, no recovery route has been
-rehearsed on one, and this workspace holds no signing key. See [`CHANGELOG.md`](CHANGELOG.md) for v1.9.0 and
+Both channels verify: SHA-256 and size against the published metadata, the Ed25519 manifest against the
+anchored public key `qg1-release-1`, and the build record (commit, identity, toolchain, SDK files, the
+emulator's own WASM hash). Emscripten is pinned to **6.0.11** everywhere.
+
+What neither channel claims: no install has been run on a physical FM-1, no recovery route has been
+rehearsed on one, and this workspace holds no signing key. See [`CHANGELOG.md`](CHANGELOG.md) and
 [`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md) for what each claim rests on.
 
-## What's in Quantum GammaWave (`v1.9.0`)
+## What's in Quantum GammaWave (`v2.0.0`)
 
 - **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.

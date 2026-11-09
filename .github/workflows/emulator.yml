@@ -103,63 +103,13 @@ jobs:
           python3 web/make_site.py build/felucca.fwsc "${V:-dev}-${GITHUB_SHA::7}" build/site_preview
           mkdir -p build/site_preview/emulator
           cp -r build/emu/. build/site_preview/emulator/
+          # (3.3) This step only builds what the ARTIFACT carries: the preview bundle for a downloaded
+          # emulator. The published site is assembled in its own step below, which serves this run's build
+          # at the root and the signed release in its own channel -- including the release's emulator,
+          # built from the release commit, so no page is ever paired with a package it does not describe.
+          rm -rf build/emu/preview
           mkdir -p build/emu/preview
-          cp -r build/site_preview/index.html build/site_preview/assets build/site_preview/webapp build/site_preview/firmware build/site_preview/emulator build/emu/preview/
-          # the public installer: the approved commit (web/STABLE), built from its own sources
-          S=$(tr -d ' \n' < web/STABLE 2>/dev/null || true)
-          PKG=build/felucca.fwsc; SV=${V:-dev}; SH=${GITHUB_SHA::7}
-          if [ -n "$S" ] && git cat-file -e "$S^{commit}" 2>/dev/null; then
-            git worktree add -f /tmp/stable "$S"
-            (cd /tmp/stable && python3 tools/build.py)
-            PKG=/tmp/stable/build/felucca.fwsc; SV=$(ver /tmp/stable); SH=${S::7}
-          fi
-          # The signed release wins over every package built here: the private key is not in CI, so a
-          # package built in this run has no signature and the installer refuses it. release/ carries
-          # the bytes a person signed, with their manifest and the record that binds them.
-          RELMAN=""
-          RELPKG=$(ls release/*.fwsc 2>/dev/null | head -1 || true)
-          if [ -n "$RELPKG" ]; then
-            PKG=$RELPKG; REC=release/build-manifest.json; RELMAN=$REC
-            SV=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"].lstrip("v"))' "$REC")
-            SH=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["commit"][:7])' "$REC")
-            echo "the public site offers the signed release: $PKG ($SV-$SH)"
-          fi
-          # The public site is ONE release: its package AND its emulator. When it serves the signed
-          # release, the emulator must be the one built beside that package, not the one this run built
-          # from main -- the installer holds the package to the emulator its own record names
-          # (fm1provenance.js), so a main ahead of the release would otherwise serve an emulator from
-          # another tree and be refused by its own page. The release emulator is reproducible from the
-          # release commit with this toolchain (3d039f75bbc8 for 7eb9636), so it is built here.
-          EMU_SRC=build/emu
-          if [ -n "$RELMAN" ]; then
-            R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
-            rm -rf /tmp/reltree build/emu_release
-            git worktree prune
-            git worktree add -f -q --detach /tmp/reltree "$R"      # -f: another step may have registered this path
-            # GITHUB_SHA/GIT_COMMIT are unset on purpose: tools/package_emu.py prefers them over
-            # `git rev-parse HEAD`, so with them in the environment this emulator would carry the run's
-            # commit while holding the release's bytes -- a manifest that names a build it is not.
-            ( cd /tmp/reltree &&
-              env -u GITHUB_SHA -u GIT_COMMIT python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
-              env -u GITHUB_SHA -u GIT_COMMIT sh web/emu/build.sh >/dev/null )
-            cp -r /tmp/reltree/build/emu build/emu_release
-            EMU_SRC=build/emu_release
-            echo "the public site serves the release's emulator: $(python3 -c 'import json;print(json.load(open("build/emu_release/manifest.json"))["wasm_sha256"][:16])')"
-          fi
-          # (0.6.46) the versions the site offers now stay installable (the last few, web/fetch_prev.py)
-          python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
-          if [ -n "$RELMAN" ]; then
-            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$RELMAN" --emu "$EMU_SRC/manifest.json"
-          else
-            python3 web/make_site.py "$PKG" "${SV:-dev}-$SH" build/site build/prev --emu "$EMU_SRC/manifest.json"
-          fi
-          # the portal is / and the emulator keeps a stable /emulator/ path; installer and editor keep /webapp/
-          mkdir -p build/site/emulator
-          cp -r "$EMU_SRC/." build/site/emulator/
-          rm -rf build/site/emulator/preview
-          # the artifact and preview copy stay emulator-shaped, with the preview portal at /preview/
-          mkdir -p build/emu/preview
-          cp -r build/site/index.html build/site/assets build/site/webapp build/site/firmware build/emu/preview/
+          cp -r build/site_preview/. build/emu/preview/
       # (QG-1 stage 2/3) the two checks that need the target compiler, on main and on every PR. On main the step
       # above has just built the package; on a PR (no site, no deploy) this is the only build. Not
       # continue-on-error: a regression here is the point of running them.
@@ -193,67 +143,66 @@ jobs:
       # identity, the commit it names, the emulator that record names), so the gate is provenance, not luck.
       # It used to be "a target package must exist in THIS run": with gitee unreachable the job failed closed
       # and Pages never deployed, which is how twenty-two commits went unpublished.
-      - name: the site (this run's package, or the committed one with its record checked)
+      - name: the site (this build at /, the signed release at /release/)
         run: |
           ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
-          MAN=""; REC=""
-          if ls release/*.fwsc >/dev/null 2>&1; then
-            # The signed release is what people should install: a package built in this run carries no
-            # signature (the private key is not in CI) and the installer refuses unsigned bytes. So when
-            # release/ holds one, the site serves that package, its signature and its build record.
-            PKG=$(ls release/*.fwsc | head -1)
-            REC=release/build-manifest.json
-            MAN="${PKG%.fwsc}.manifest.json"; test -s "$MAN" || MAN=""
-            SV=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["version"].lstrip("v"))' "$REC")
-            SH=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["commit"][:7])' "$REC")
-            echo "the site offers the signed release: $PKG ($SV-$SH)"
-          elif [ -s build/site/index.html ] && [ -s build/felucca.fwsc ]; then
-            echo "the site was built from this run's package above"; exit 0
-          elif [ -s build/felucca.fwsc ]; then
-            PKG=build/felucca.fwsc; SV=$(ver .); SH=${GITHUB_SHA::7}
-            echo "the site offers this run's target build: $SV-$SH"
+          SH=${GITHUB_SHA::7}
+          # (3.3) WHAT THE ROOT SERVES IS THIS TREE. Until 3.2 the public emulator was the release's, built
+          # from the release commit, so a visitor saw firmware older than the repository -- the owner's
+          # first complaint about the site. The root is now this run's build: its emulator, its package and
+          # its build record. A package built here carries no signature (the private key is not in CI), so
+          # the root installer publishes it and refuses to install it; the signed release keeps its own
+          # channel below, page, package and emulator from one commit.
+          if [ -s build/felucca.fwsc ]; then
+            PKG=build/felucca.fwsc; SV=$(ver .)
+            echo "the root serves this run's build: $SV-$SH"
           else
             PKG=$(ls firmware/packages/*.fwsc 2>/dev/null | head -1)
             test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }
             SV=$(basename "$PKG" .fwsc); SV=${SV#felucca-}
             SH=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['commit'][:7])" "$PKG.build.json")
-            echo "no target build in this run: the site offers $SV-$SH, committed with its build record"
+            echo "no target build in this run: the root serves $SV-$SH from firmware/packages"
           fi
-          # The public site is ONE release: its package AND its emulator. When it serves the committed
-          # release, the emulator has to be the one built beside that package, not the one this run built
-          # from main -- the installer holds the package to the emulator its own record names
-          # (fm1provenance.js), so a main that advanced past the release would otherwise serve an
-          # emulator from another tree and be refused by its own page. The release emulator is
-          # reproducible from the release commit with this same toolchain, so it is built here.
-          EMU_SRC=build/emu
-          if [ -s build/emu_release/manifest.json ]; then
-            EMU_SRC=build/emu_release            # the step above already built the release's emulator
-            echo "reusing the release emulator built above"
-          elif [ -s release/build-manifest.json ] && ls release/*.fwsc >/dev/null 2>&1; then
+          # the record of this run's own build, when the build wrote one: make_site.py checks it against
+          # the bytes (hash, size, identity, the commit it names, the emulator that record names) and
+          # refuses a tree with uncommitted changes, so a CI run is exactly the case it can accept.
+          REC=""
+          if [ -s build/manifest.json ] && [ "$PKG" = build/felucca.fwsc ]; then REC=build/manifest.json; fi
+          mkdir -p build/emu
+          python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site ${REC:+--manifest "$REC"} \
+            --emu build/emu/manifest.json
+          mkdir -p build/site/emulator
+          cp -r build/emu/. build/site/emulator/
+          rm -rf build/site/emulator/preview
+          # THE SIGNED RELEASE, in its own channel. The installer holds a package to the emulator its own
+          # record names (fm1provenance.js), so this channel is built from the release commit -- portal,
+          # page, package and emulator together -- instead of pairing a release package with this run's
+          # emulator, which is what made the release installable only by serving stale pages.
+          if [ -s release/build-manifest.json ] && ls release/*.fwsc >/dev/null 2>&1; then
             R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
-            rm -rf /tmp/reltree build/emu_release
+            RELPKG=$(ls release/*.fwsc | head -1)
+            RSV=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["version"].lstrip("v"))')
+            rm -rf /tmp/relsite build/site_release build/emu_release
             git worktree prune
-            git worktree add -f -q --detach /tmp/reltree "$R"      # -f: another step may have registered this path
+            git worktree add -f -q --detach /tmp/relsite "$R"
             # GITHUB_SHA/GIT_COMMIT are unset on purpose: tools/package_emu.py prefers them over
-            # `git rev-parse HEAD`, so with them in the environment this emulator would carry the run's
-            # commit while holding the release's bytes -- a manifest that names a build it is not.
-            ( cd /tmp/reltree &&
+            # `git rev-parse HEAD`, and with them set this emulator would carry the run's commit while
+            # holding the release's bytes -- a manifest that names a build it is not.
+            ( cd /tmp/relsite &&
               env -u GITHUB_SHA -u GIT_COMMIT python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
               env -u GITHUB_SHA -u GIT_COMMIT sh web/emu/build.sh >/dev/null )
-            cp -r /tmp/reltree/build/emu build/emu_release
-            EMU_SRC=build/emu_release
-            echo "the site serves the release's emulator: $(python3 -c 'import json;print(json.load(open("build/emu_release/manifest.json"))["wasm_sha256"][:16])')"
-          fi
-          python3 web/fetch_prev.py "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}" build/prev || true
-          if [ -n "$MAN" ]; then
-            python3 web/make_site.py "$PKG" "v${SV}-${SH}" build/site build/prev --manifest "$REC" \
-              --emu "$EMU_SRC/manifest.json"
+            cp -r /tmp/relsite/build/emu build/emu_release
+            python3 /tmp/relsite/web/make_site.py "$RELPKG" "v${RSV}-${R:0:7}" build/site_release \
+              --manifest release/build-manifest.json --emu build/emu_release/manifest.json
+            mkdir -p build/site_release/emulator
+            cp -r build/emu_release/. build/site_release/emulator/
+            rm -rf build/site_release/emulator/preview
+            rm -rf build/site/release
+            cp -r build/site_release build/site/release
+            echo "the signed release is served at /release/: $RELPKG (${RSV}-${R:0:7})"
           else
-            python3 web/make_site.py "$PKG" "${SV}-${SH}" build/site build/prev --emu "$EMU_SRC/manifest.json"
+            echo "::warning::no signed package under release/: this run publishes no installable channel"
           fi
-          mkdir -p build/site/emulator
-          cp -r "$EMU_SRC/." build/site/emulator/
-          rm -rf build/site/emulator/preview
       # Fail closed on what actually matters: a package was chosen and a site was written. Its provenance was
       # checked by make_site.py, which refuses a package that contradicts its own build record.
       - name: a package and a site exist (fail closed)
@@ -309,26 +258,26 @@ jobs:
             tools/site_check.py
             release/
           sparse-checkout-cone-mode: false
-      - name: the published site is the release it offers (versions.json, package, wasm, portal, installer)
+      - name: the published site serves this build at / and the signed release at /release/
         run: |
-          # Two artefacts, two commits, and neither of them is HEAD by design. The package is a signed
-          # release committed under release/, built at the commit its record names; the emulator is this
-          # run's build. This used to demand ${GITHUB_SHA} of both, which no release commit can satisfy:
-          # the package is built before the commit that adds it. So: hold the package to the signed bytes
-          # and the record's commit, and the emulator to the commit that built it.
+          # Two channels, and each is held to its own commit. The root is this run's build: package,
+          # emulator and record all name $GITHUB_SHA. The release channel under /release/ is the signed
+          # package from the commit its record names, with the emulator built from that same commit -- the
+          # pairing the installer's provenance check demands.
+          REL=""
           if ls release/*.fwsc >/dev/null 2>&1; then
             R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
             S=$(sha256sum "$(ls release/*.fwsc | head -1)" | cut -d" " -f1)
-            # the site serves the release's emulator, so that is the commit to expect -- not this run's
-            EXPECT=(--expect-emu-commit "$R" --expect-commit "$R" --expect-sha256 "$S")
-            echo "expecting the signed release ${S:0:16} from ${R:0:7} and its emulator"
-          else
-            EXPECT=(--expect-emu-commit "$GITHUB_SHA" --expect-commit "$GITHUB_SHA")
-            echo "expecting this run's package and emulator at ${GITHUB_SHA:0:7}"
+            REL="$R $S"
+            echo "the release channel must carry ${S:0:16} from ${R:0:7}"
           fi
           sleep 20                                   # Pages switches after the deploy reports, not during it
           for i in $(seq 1 20); do
-            if python3 tools/site_check.py "${EXPECT[@]}"; then exit 0; fi
+            if python3 tools/site_check.py --expect-emu-commit "$GITHUB_SHA" --expect-commit "$GITHUB_SHA" \
+                 && { [ -z "$REL" ] || python3 tools/site_check.py --url "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/release/" \
+                      --expect-commit "${REL%% *}" --expect-emu-commit "${REL%% *}" --expect-sha256 "${REL##* }"; }; then
+              exit 0
+            fi
             echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"
             sleep 15
           done

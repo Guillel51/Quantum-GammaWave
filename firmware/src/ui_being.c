@@ -364,6 +364,9 @@ static uint32_t vz_qframe(void) { uint32_t s = vz_step(); return ui.frame / s * 
 #define NPL 4                             /* (3.2) four planets: the third is the ringed giant, the fourth a
                                            * small rocky one inside, so the system has a moon as well as a sun */
 static int16_t pl_ex[NPL];                /* each planet's excitation, 0..256: a note-on adds, it decays */
+static int16_t pl_flash[NPL];             /* (3.3) the note's own light, 0..256: set by a note-on, decays
+                                           * faster than the excitation, so the strike reads as a strike and
+                                           * the afterglow as an afterglow */
 #if !UI_NO_DRIFT
 static uint8_t pl_seen[NTRK][NVOICE];     /* the note each voice held on the last scan (+1; 0: nothing) */
 #endif
@@ -414,9 +417,11 @@ static int32_t gw_span(int32_t r, int32_t dy)                /* the row's half w
 /* kind: 0 rocky (craters), 1 banded (a gas giant), 2 ocean (a bright specular and a thick
  * atmosphere), 3 ringed (the giant with its ring). (3.2) they were three identical discs with
  * different radii; each now has its own surface, and a note makes it grow up to two pixels. */
-static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, int32_t ly, int kind)
+static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, int32_t ly, int kind,
+                      uint32_t rot, int32_t flash)
 {
-    int32_t dy, span, atm, lo, hi, t, tz;
+    int32_t dy, span, atm, lo, hi, t, tz, lift;
+    uint16_t edge, lit_top, lit_low;
     /* (3.0) a phase, not a crescent patch: the light comes from the star, so the terminator is the line
      * where the surface normal turns away from it, and each row is lit from that line to the lit limb.
      * (3.1) every row goes through sys_rect/sys_pset: the body, its atmosphere and its ring are clipped by
@@ -425,8 +430,14 @@ static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx,
     uint16_t litc = ux_mix(base, T_TEXT, 46);                 /* the sunlit surface */
     uint16_t mid = ux_mix(T_BG, base, 66);                    /* the surface away from it: dark, not a hole */
     uint16_t dark = ux_mix(T_BG, base, 30);                   /* the far limb, one pixel of it */
-    uint16_t term = ux_mix(litc, mid, 55), edge = ux_mix(litc, T_TEXT, 55);
-    uint16_t atmc = ux_mix(T_BG, bg_col(heat + 30), 38);
+    uint16_t term = ux_mix(litc, mid, 55), atmc = ux_mix(T_BG, bg_col(heat + 30), 38);
+    /* (3.3) a note is a strike of light, not only a bigger body: the lit face and its limb brighten for the
+     * first frames of pl_flash and fall back as it decays. Both tones are computed once, not per pixel. */
+    lift = flash > 0 ? (flash >> 4) : 0;
+    if (lift > 70) lift = 70;
+    edge = ux_mix(litc, T_TEXT, 55 + lift);
+    lit_top = ux_mix(litc, T_TEXT, 18 + lift);
+    lit_low = ux_mix(litc, mid, 30 - (lift >> 1));
     if (r < 2) r = 2;
     if (r > 6) r = 6;
     if (kind == 3)                                                /* the ring first: the body hides its middle, so it
@@ -464,9 +475,35 @@ static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx,
         if (hi - lo > 0) {                                    /* the lit surface, tone by row: a sphere
                                                                 * falling away from the light */
             tz = dy * 3 / (2 * r + 1);
-            sys_rect(x + lo, y + dy, hi - lo + 1, 1,
-                     tz < 0 ? ux_mix(litc, T_TEXT, 18) : tz > 0 ? ux_mix(litc, mid, 30) : litc);
+            sys_rect(x + lo, y + dy, hi - lo + 1, 1, tz < 0 ? lit_top : tz > 0 ? lit_low : litc);
             sys_pset(x + (lx > 0 ? hi : lo), y + dy, edge);
+        }
+    }
+    /* (3.3) THE SURFACE TURNS. Until 3.2 a body was a shaded disc on an orbit: the system rotated, but
+     * nothing on any planet moved, so each one read as a still picture on a carousel. Two features now sit
+     * on their own longitudes of the body and sweep across the lit face: x = r * sin(phase) packs them
+     * toward the limb as they go round, cos(phase) hides them behind it, and the tone falls off as they
+     * leave the light. One sine pair and at most two pixels per feature per planet per frame -- the cost of
+     * the specular it joins, and no table and no allocation. */
+    if (r >= 3) {
+        int32_t k;
+        for (k = 0; k < 2; k++) {
+            uint32_t ph = rot + (k ? 0x6C00u : 0x2400u);
+            int32_t sp2 = bg_sin(ph) >> 15, cp2 = bg_sin(ph + 0x4000u) >> 15;
+            int32_t fy = k ? (r + 1) / 2 : -((r + 1) / 2), span2, fx;
+            if (cp2 < 2)                                       /* round the back: nothing to see */
+                continue;
+            span2 = gw_span(r, fy);
+            if (span2 < 1)
+                continue;
+            fx = (r * sp2) >> 15;
+            if (fx > span2) fx = span2;
+            if (fx < -span2) fx = -span2;
+            if (fx * lx + fy * ly < 0)                          /* on the dark side: hidden */
+                continue;
+            sys_pset(x + fx, y + fy, ux_mix(litc, mid, 74 - (cp2 >> 12)));
+            if (fx + 1 <= span2)
+                sys_pset(x + fx + 1, y + fy, ux_mix(litc, T_TEXT, 24 + (cp2 >> 12)));
         }
     }
     if (kind == 0 && r >= 3) {                                 /* rocky: two craters, a pixel each, on the lit side */
@@ -513,11 +550,15 @@ static void gw_planet_excite(int on)
         }
     }
     for (g = 0; g < NPL; g++) {
-        int32_t e = pl_ex[g];
-        if (hit[g])
+        int32_t e = pl_ex[g], f = pl_flash[g];
+        if (hit[g]) {
             e += 120 + (int32_t)vel[g] * 3 / 2;               /* a boom, and the velocity on top */
+            f = 256;                                          /* (3.3) and the light of the strike */
+        }
         e -= (e >> 3) + (e ? 1 : 0);                          /* ~8 frames to 1/e: a note's afterglow */
+        f -= (f >> 2) + (f ? 1 : 0);                          /* ~4 frames: the strike is shorter */
         pl_ex[g] = (int16_t)clamp(e, 0, 256);
+        pl_flash[g] = (int16_t)clamp(f, 0, 256);
     }
 }
 #else
@@ -526,6 +567,7 @@ static void gw_planet_excite(int on)
 {
     (void)on;
     pl_ex[0] = pl_ex[1] = pl_ex[2] = pl_ex[3] = 0;
+    pl_flash[0] = pl_flash[1] = pl_flash[2] = pl_flash[3] = 0;
 }
 #endif
 
@@ -596,6 +638,10 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     static const int8_t ORX[4] = {11, 18, 26, 33};             /* (3.2) a fourth orbit, 11 px inside the first:
                                                                 * a moon, so the system is not three rings and a sun */
     static const uint8_t ORMS[4] = {9, 7, 6, 5};               /* 7.3 s, 9.4 s, 10.9 s, 13.1 s a turn (was 9-16 s) */
+    /* (3.3) the body's own spin, 16-bit turn units a millisecond: 3.1 s, 4.7 s, 3.9 s and 2.5 s a turn. Faster
+     * than the orbit on purpose -- a moon that spins in step with its orbit reads as a cut-out -- and each one
+     * its own rate, so no two bodies turn together. */
+    static const uint8_t ROTMS[4] = {21, 14, 17, 26};
     static const uint16_t ORPHS[4] = {0x0000, 0x2A00, 0x5200, 0x7A00};
     static const uint8_t ORR[4] = {3, 4, 4, 5};                /* 1.5x to 2.5x the area of the old 2 / 3 / 4 */
     static const uint8_t ORYS[4] = {70, 60, 52, 44};           /* tilt: ry = 8 / 11 / 14 / 15 px */
@@ -612,7 +658,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         {6, 22, 13, 21, 21, 22, 29, 21, 38, 22, 47, 21},
         {30, 30, 40, 29, 49, 30, 58, 29, 67, 30, 76, 29}
     };
-    int32_t i, j, orb_x[NPL], orb_y[NPL], order[NPL], a, big = 0;
+    int32_t i, j, orb_x[NPL], orb_y[NPL], orb_rot[NPL], order[NPL], a, big = 0;
     uint32_t tm = fm1_ms, twf = ui.frame >> 2;
     uint16_t star_ink = ux_mix(T_BG, T_THEME, 26), star_dim = ux_mix(T_BG, T_ACCENT, 18);
     if (r < 4) r = 4;
@@ -663,6 +709,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         a = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i]));
         orb_x[i] = cx + (ORX[i] * bg_sin((uint32_t)a + 0x4000u) >> 15);
         orb_y[i] = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)a) >> 15);
+        /* its own spin, also a pure function of the clock: the surface phase never follows the orbit */
+        orb_rot[i] = (int32_t)(uint16_t)(tm * (uint32_t)ROTMS[i] + ORPHS[i] * 3u);
         order[i] = i;
     }
     for (i = 0; i < NPL; i++)                          /* farthest (top) first, so overlaps read as depth */
@@ -681,7 +729,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
             sys_line(orb_x[pi] - 2, orb_y[pi] + 2, orb_x[pi] + 2, orb_y[pi] + 2, gc);
         }
         gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96, heat + pi * 18 + pl_ex[pi] / 2,
-                  orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi]);
+                  orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi],
+                  (uint32_t)orb_rot[pi], pl_flash[pi]);
         if (pl_ex[pi] > big) big = pl_ex[pi];
     }
     /* the star: two corona rings, three discs of its own and a sparkle while the patch sounds; the biggest
@@ -721,7 +770,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         if (orb_y[pi] < cy)
             continue;
         gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + ex / 96, heat + pi * 18 + ex / 2,
-                  orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi]);
+                  orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi],
+                  (uint32_t)orb_rot[pi], pl_flash[pi]);
         if (!UI_NO_DRIFT && ex > 40) {                 /* (3.2) the note's ring: the body answers at once,
                                                         * two pixels out, and fades with its own excitation */
             int32_t rr = ORR[pi] + 2 + ex / 80;

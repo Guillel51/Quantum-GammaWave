@@ -3,6 +3,7 @@
 # Package the already-built emulator WASM into the browser page and its manifest.
 # This is deliberately separate from emcc: it can be run to verify/package an existing
 # build without pretending that a stale binary was recompiled.
+import datetime
 import hashlib
 import json
 import os
@@ -61,6 +62,13 @@ def main():
     digest = hashlib.sha256(blob).hexdigest()
     sha = commit()
     preview = " (preview)" if os.environ.get("EMU_PREVIEW", "1") != "0" else ""
+    # (3.3) THE BUILD'S DATE, IN THE PAGE AND IN THE MANIFEST. The footer already names the version, the
+    # commit and the wasm's SHA-256; a date is what tells a reader whether the page in front of them is the
+    # build of tonight or the one from last week. SOURCE_DATE_EPOCH makes it reproducible when a caller
+    # needs two builds of one tree to be identical files.
+    _epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    built = datetime.datetime.fromtimestamp(int(_epoch), datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") \
+        if _epoch and _epoch.isdigit() else datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     html = SRC.read_text()
     for key, value in {
         "@VERSION@": version,
@@ -68,6 +76,7 @@ def main():
         "@COMMIT@": sha,
         "@WASM_SHA@": digest,
         "@WASM_SIZE@": str(len(blob)),
+        "@BUILT@": built,
     }.items():
         html = html.replace(key, value)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -86,6 +95,7 @@ def main():
         "config": {"EMU_OPT": os.environ.get("EMU_OPT", "-O2"),
                    "EMU_CFLAGS": os.environ.get("EMU_CFLAGS", ""),
                    "EMU_PREVIEW": os.environ.get("EMU_PREVIEW", "1")},
+        "built": built,
         "emcc": emcc_version(),
         "dirty": dirty,
     }, indent=2, sort_keys=True) + "\n")

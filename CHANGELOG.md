@@ -1,3 +1,37 @@
+## 2026-11-09 — 2.0: el emulador público pasa a ser este árbol, y los planetas giran
+
+La queja era concreta: el emulador publicado mostraba un firmware más viejo que el repositorio. La causa no era
+caché ni un workflow roto, era la arquitectura del sitio: se publicaba *un* release — paquete y emulador del
+commit firmado — porque el instalador ata un paquete al emulador que su registro nombra. Con `main` por delante
+del release, la única forma de no romper esa atadura era servir páginas viejas. Ahora son dos canales.
+
+- **`/` sirve este árbol.** El emulador, el paquete y el registro de build salen del mismo commit; el pie de la
+  página dice versión, commit, fecha de compilación, SHA-256 del wasm y tamaño, y la página se niega a arrancar
+  si el archivo descargado no coincide con el hash que lleva escrito. Un manifest más nuevo la recarga una vez,
+  así que una página cacheada no puede seguir sirviendo un motor viejo.
+- **`/release/` conserva el release firmado (`v1.9.0`).** Ese canal se construye desde el commit del release
+  — portal, instalador, paquete y emulador juntos — en vez de emparejar un paquete firmado con un emulador más
+  nuevo. Es el único paquete que el instalador acepta, y sigue siéndolo: el 2.0 necesita la firma del custodio.
+- **El paquete de la portada es el de `main` y no está firmado**, así que el instalador lo publica y se niega a
+  escribirlo. Eso es fail-closed, no un ajuste pendiente, y la portada lo dice en la tarjeta de versión, en la
+  nota de versiones y en el primer párrafo de Instalación, con enlace al canal firmado.
+- **Las teclas de SCL dejan de ser pastillas.** La pasada 3.2 les puso una esquina de 6 px sobre una tecla de
+  29 px; vuelven a 3 px, con el mismo bisel, el mismo contorno de 1 px y la misma fila iluminada.
+- **Los planetas de HOME giran sobre su eje.** Antes el sistema orbitaba y cada cuerpo era una imagen fija dando
+  vueltas; ahora cada planeta lleva dos rasgos de superficie en sus propias longitudes que barren la cara
+  iluminada — `x = r·sin(fase)` los comprime contra el limbo y `cos(fase)` los esconde por detrás — con su
+  propia velocidad de giro (2,5 s a 4,7 s por vuelta) y una inclinación de brillo que cae hacia el terminador.
+  Una nota enciende el planeta: `pl_flash` sube la cara iluminada y su limbo durante los primeros fotogramas y
+  decae más rápido que la excitación, así que el golpe se lee como golpe y el rescoldo como rescoldo. Coste:
+  un par de senos y hasta cuatro píxeles por planeta y fotograma, sin tabla nueva y sin memoria nueva.
+- **La versión es `v2.0.0`.** El firmware, el wasm, el sitio, el Web Studio y la documentación dicen lo mismo; el
+  paquete firmado que se puede instalar sigue diciendo `v1.9.0` porque es el que está firmado, y ambas cosas se
+  ven a la vez en la portada.
+
+Verificación de esta pasada en `docs/VALIDATION_MATRIX.md` §33: build AC791N y wasm de este árbol, suite de host,
+emulador de Node, las dos páginas leídas del sitio público por HTTPS y el navegador sobre la URL real. Nada de
+esto es una prueba en hardware: ninguna FM-1 física ha sido escrita.
+
 ## 2026-11-09 — el ecosistema al día: instalador, Web Studio, capturas y documentación
 
 No cambia el firmware, así que el paquete firmado `v1.9.0` sigue describiendo este árbol. Lo que cambia es lo que

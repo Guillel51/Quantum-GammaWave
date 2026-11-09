@@ -660,9 +660,9 @@ static void graph_grid(const track_t *t, uint16_t c)
  * reported as spilled by the very text the key owns. Same ink, no lint hook, identical on the panel. */
 static void scl_key(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t face, uint16_t brd, uint16_t under)
 {
-    /* (3.2) a softer key: a 6 px round (was 4 on the naturals), a corner pixel blended into the
-     * card instead of a hard stair, a 1 px contour and one lit row on top. Still rows and single
-     * pixels only: nine rects and four corner loops, the same order of cost as before. */
+    /* (3.3) a corner, not a pill: 3 px (6 in 3.2 read as a lozenge on a 29 px key), a corner
+     * pixel blended into the card instead of a hard stair, a 1 px contour and one lit row on top.
+     * Still rows and single pixels only: nine rects and four corner loops, as before. */
     int32_t i, j;
     cv_rect(x + r, y, w - 2 * r, h, face);
     cv_rect(x, y + r, r, h - 2 * r, face);
@@ -729,7 +729,7 @@ static void graph_scale(const track_t *t, uint16_t c)
         uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
         if (sound)
             face = ux_mix(face, T_THEME, 34);
-        scl_key(kx, y0, kw, kh, 6, face, brd, T_SURF);
+        scl_key(kx, y0, kw, kh, 3, face, brd, T_SURF);
         if (strip)
             cv_rect(kx + 2, y0 + 1, kw - 4, 2, strip);
         cv_rect(kx + kw - 1, y0 + 3, 1, kh - 6, ux_mix(face, T_BG, 32));
@@ -755,7 +755,7 @@ static void graph_scale(const track_t *t, uint16_t c)
         face = sound ? ux_mix(T_KEYB, T_THEME, 46) : T_KEYB;
         ink = in ? T_TEXT : T_MID;
         strip = is_root ? T_ACCENT : in ? T_THEME : 0;
-        scl_key(kx, y0, bw, bh, 6, face, ux_mix(T_KEYB, T_TEXT, 24), T_BG);
+        scl_key(kx, y0, bw, bh, 3, face, ux_mix(T_KEYB, T_TEXT, 24), T_BG);
         if (strip)
             cv_rect(kx + 2, y0 + bh - 3, bw - 4, 2, strip);
         cv_rect(kx, y0 + bh, bw, 2, T_BG);            /* its shadow on the naturals */
