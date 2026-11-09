@@ -124,27 +124,76 @@ static int32_t dly_bh(int32_t pk, int32_t h)      /* 0..32767 -> 0..h, 6 dB a st
     }
     return clamp((h * (b + 1)) / 10, 2, h);
 }
+/* (3.2) The six bars, drawn the way the owner asked for: they are always there -- a 3 px rest when
+ * no repeat has come back -- they grow with the peak the line returned, they carry a small bounce on
+ * a new hit, their tops are rounded and they are 7 px wide instead of 5. The state is six bytes: a
+ * rise lands at once (the bounce is 2..3 px above it), a fall eases by one pixel a frame, so the train
+ * settles visibly instead of snapping. Six compares and six adds a DRAWN frame; the peaks come from
+ * the bus (fx_dly_rep), nothing here runs per sample and nothing feeds the DSP. */
+#define DLY_MIN 3                                     /* the rest height of a bar with no signal */
+static uint8_t dly_h[6], dly_b[6];                    /* drawn height, bounce on top of it */
+static uint32_t dly_fr = 0xFFFFFFFFu;
+static void dly_tick(int32_t h)
+{
+    uint32_t i;
+    if (dly_fr == ui.frame)
+        return;
+    dly_fr = ui.frame;
+    for (i = 0; i < 6u; i++) {
+        int32_t t = dly_bh(clamp((int32_t)fx_dly_rep[i], 0, 32767), h);
+        if (t < DLY_MIN)
+            t = DLY_MIN;                                           /* (3.2) the rest: a bar is always there */
+        if (t >= (int32_t)dly_h[i] + 2) {                          /* a hit: the bar jumps, then springs back */
+            dly_h[i] = (uint8_t)t;
+            dly_b[i] = 3;
+        } else if (t > (int32_t)dly_h[i]) {
+            dly_h[i] = (uint8_t)t;
+        } else if (dly_h[i] > DLY_MIN) {
+            dly_h[i]--;                                             /* the fall: a pixel a frame */
+        }
+        if (dly_b[i])
+            dly_b[i]--;
+    }
+}
+static void dly_bar(int32_t x, int32_t base, int32_t bh, uint16_t c, uint16_t cap)
+{
+    /* 7 px wide (x - 3 .. x + 3), the top two rows inset: a rounded head, not a cut post */
+    int32_t top = base - bh;
+    if (bh > 2) {
+        cv_rect(x - 1, top, 2, 1, c);
+        cv_rect(x - 2, top + 1, 5, 1, c);
+        cv_rect(x - 3, top + 2, 7, bh - 2, c);
+        cv_rect(x - 3, top + 2, 7, 1, cap);
+    } else if (bh > 0) {
+        cv_rect(x - 1, top, 2, 1, c);
+        cv_rect(x - 2, top + 1, 5, bh - 1, c);
+    }
+}
 static void tech_dly(void)
 {
     int32_t x0 = TK_X0 + 6, w = PANEL_W - 12, base = TK_Y1 - 4, h = 84, n;
     int32_t gen = (int32_t)fx_dly_gen, frac = (int32_t)fx_dly_frac, on = song.g[G_DMIX] > 0;
     tk_axes(x0, TK_Y0, x0 + w, base);
+    dly_tick(h);
     cv_rect(x0, base - h, 1, h, T_RAISE);         /* the hit the train starts from */
     cv_rect(x0 - 1, base - h, 3, 1, T_MID);
     for (n = 0; n < 6; n++) {
         int32_t pk = clamp((int32_t)fx_dly_rep[n], 0, 32767);
-        int32_t x = x0 + (n + 1) * w / 7, bh = dly_bh(pk, h), lit = gen == n + 1;
+        int32_t x = x0 + (n + 1) * w / 7, lit = on && gen == n + 1;
+        int32_t bh = (int32_t)dly_h[n] + (on ? (int32_t)dly_b[n] : 0);
+        uint16_t bc, cap;
         cv_rect(x - 3, base - 1, 7, 1, T_RAISE);                     /* the seat: six slots, always */
-        if (!on || !bh)
-            continue;                                                /* no repeat, no bar */
-        /* one hue for the whole train, its strength from the peak: this is an echo train, not a
-         * level meter, and a rainbow of bars read as one */
-        cv_rect(x - 2, base - bh, 5, bh, lit ? T_TEXT : ux_mix(T_BG, T_ACCENT, 60 + pk * 110 / 32767));
+        if (bh > h)
+            bh = h;
+        bc = !on ? ux_mix(T_BG, T_LINE, 80)
+                  : lit ? T_TEXT
+                        : ux_mix(T_BG, T_ACCENT, 70 + pk * 100 / 32767);
+        cap = ux_mix(bc, lit ? T_TEXT : T_BG, lit ? 60 : 45);
+        dly_bar(x, base, bh, bc, cap);
         if (lit) {                                                   /* the repeat sounding now */
-            cv_rect(x - 3, base - bh - 2, 7, 1, T_ACCENT);
+            cv_rect(x - 3, base - bh - 3, 7, 1, T_ACCENT);
             cv_rect(x - 3, base - 1, 7, 1, T_ACCENT);
-        } else if (bh > 5)
-            cv_rect(x - 2, base - bh, 5, 1, T_MID);                   /* a top edge, so the fall reads */
+        }
     }
     if (!on)
         return;
@@ -204,17 +253,42 @@ static void tech_rev(void)
     int32_t i, ty = song.g[G_RTYPE], mod = song.g[G_RMOD];
     rev_tick();
     tk_axes(x0, TK_Y0, x0 + w, base);
-    if (ty == 3) {                                      /* RESO: four strings, each a comb's teeth at its pitch, ringing as
-                                                         * long as SIZE lets them, as bright as DAMP leaves them */
+    if (ty == 3) {                                      /* RESO: the room's four strings resolved into combs, each
+                                                         * ringing as long as SIZE lets it and as bright as DAMP leaves
+                                                         * it, with the energy travelling along it */
+        /* (3.2) RESO and CLOUD were the same picture twice (the owner: "los que tienen la nueva animacion
+         * tienen todos la misma"). RESO is now a RESOLVER: fixed strings, a comb whose teeth get finer as
+         * SIZE rises, and DOTS RUNNING ALONG each string (the resolution's energy), brighter with what the
+         * bus returns. CLOUD below is a swarm that breathes and puffs. Different geometry, different motion,
+         * both from tables and ui.frame: no per-pixel trigonometry, no allocation. */
+        int32_t nd = 3 + song.g[G_RRATE] / 32, fr = (int32_t)(ui.frame & 63u);
         for (i = 0; i < 4; i++) {
             int32_t x = x0 + 30 + i * 44 + (mod > 64 && i >= 2 ? 10 : 0), k, hh = 30 + size * 55 / 127;
-            for (k = 0; k < 6; k++) {
+            int32_t len = clamp(hh * 3 / 2, 20, w - (x - x0) - 8);
+            uint16_t sc = heat_col(clamp(200 - i * 22 - damp / 2 + (int32_t)rev_act / 6, 20, 236));
+            for (k = 0; k < 6; k++) {                       /* the comb: six teeth, finer as SIZE rises */
                 int32_t th = hh - k * hh / (3 + (127 - size) / 20 + 1), yy;
-                if (th <= 0) break;
+                if (th <= 0)
+                    break;
                 yy = base - th;
                 cv_rect(x + k * (6 + i), yy, 2, th, heat_col(clamp(220 - k * 30 - damp, 20, 236)));
             }
             cv_rect(x - 2, base - hh - 6, 1, hh + 6, T_MID);
+            cv_rect(x - 2, base - hh - 6, len, 1, ux_mix(T_BG, sc, 55));    /* the string itself */
+            for (k = 0; k < nd; k++) {                      /* the energy running out along it: the resolution */
+                int32_t ph = (fr * (2 + i) + k * (len / nd) + i * 7) % len;
+                int32_t y = base - hh - 6 + (ph * (hh + 6) / len);
+                uint16_t dc = ux_mix(T_BG, bg_col(clamp(150 + (int32_t)rev_act / 2 + ph * 90 / len, 40, 250)),
+                                     70 + (int32_t)rev_act / 4);
+                cv_rect(x - 2 + ph, y, 2, 1, dc);
+                if ((k & 1) == 0)
+                    cv_pset(x - 2 + ph - 1, y, ux_mix(T_BG, dc, 45));      /* a soft head on every other one */
+            }
+        }
+        if (rev_act > 10) {                             /* a note: the four strings answer together, one ring */
+            int32_t rr = 6 + (rev_ph & 31);
+            gw_orbit_ring(x0 + w / 2, base - 34, rr + 22, (rr + 22) / 2,
+                          ux_mix(T_BG, bg_col(160 + (int32_t)rev_act / 3), 40 + (int32_t)rev_act / 6), 1);
         }
         return;
     }
@@ -223,18 +297,30 @@ static void tech_rev(void)
                                                          * (and warms / cools it), MOD splits it into octave layers;
                                                          * the grains playing now bigger; FREEZE: a line over them */
         int32_t air = clamp(pre, -24, 24), cy = (TK_Y0 + base) / 2 - air * 30 / 24, nd = 24 + song.g[G_RRATE] / 3;
-        int32_t spread = 40 + size * (w - 40) / 127, live = bg_energy() > 2 || rev_act > 6, k;
+        int32_t breath = 1000 + (bg_sin((uint32_t)ui.frame * 900u) >> 7) * 40 / 256,   /* the cloud fills and empties */
+                grow = 1000 + (int32_t)rev_act * 8 / 5;                                 /* .. and a note pushes it out */
+        int32_t spread = (40 + size * (w - 40) / 127) * clamp(breath * grow / 1000, 700, 1600) / 1000;
+        int32_t live = bg_energy() > 2 || rev_act > 6, k;
         uint32_t fr = live ? ui.frame : 0u;
+        /* (3.2) CLOUD: a swarm, not strings. Three depths of grain (far small and dim, near large and
+         * bright), the whole cloud breathing, MOD splitting it into octave layers, and on a note a puff
+         * that leaves the middle -- a shape RESO does not have. Same table field as before. */
         for (i = 0; i < nd; i++) {
             uint32_t hsh = (uint32_t)(i + 1) * 2654435761u, sp = 1u + (hsh >> 28);
+            int32_t depth = (int32_t)((hsh >> 26) % 3u), sz = depth == 0 ? 1 : depth == 1 ? 2 : 3;
             int32_t lane = (int32_t)((hsh >> 20) % 100u) < mod * 3 / 4 ? (int32_t)((hsh >> 24) % 3u) + 1 : 0;
             int32_t dx = (int32_t)(((hsh >> 8) + fr * sp) % (uint32_t)spread);
-            int32_t gx = x0 + w - 6 - dx, wob = (bg_sin((hsh >> 6) + fr * 900u) * 4) >> 15;
+            int32_t gx = x0 + w - 6 - dx, wob = (bg_sin((hsh >> 6) + fr * 900u) * (3 + depth * 2)) >> 15;
             int32_t gy = cy - (lane == 1 ? 24 : lane == 2 ? -24 : lane == 3 ? 12 : 0) + (int32_t)((hsh >> 4) % 13u) - 6 + wob;
-            int32_t fade = 1000 - dx * 1000 / spread;    /* (older, further back: cooler) */
-            uint16_t c = heat_col(clamp(fade * 200 / 1000 + air * 2 - damp / 3 + 20, 8, 240));
-            if (gy > TK_Y0 + 1 && gy < base - 2)
-                cv_rect(gx, gy, 2, 2, c);
+            int32_t fade = 1000 - dx * 1000 / (spread ? spread : 1);    /* (older, further back: cooler) */
+            uint16_t c = heat_col(clamp(fade * (140 + depth * 30) / 1000 + air * 2 - damp / 3 + 20, 8, 240));
+            if (gy > TK_Y0 + 1 && gy < base - 2 && gx > x0 && gx < x0 + w - 2)
+                cv_rect(gx, gy, sz, sz, c);
+        }
+        if (rev_act > 8) {                              /* the puff: the note's front leaving the cloud */
+            int32_t pr = 4 + (rev_ph & 63), ph2 = 26 + (rev_ph & 31);
+            gw_orbit_ring(x0 + w / 2, cy, pr + ph2, (pr + ph2) * 2 / 3,
+                          ux_mix(T_BG, bg_col(200), clamp(120 + (int32_t)rev_act / 2 - pr * 2, 20, 220)), 1);
         }
         for (k = 0; k < (int32_t)CL_N; k++) {            /* the grains now: their place in their life, their pitch */
             int32_t gx, gy, up;

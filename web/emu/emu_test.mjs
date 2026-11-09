@@ -4,7 +4,7 @@
 // tests/host/emu_test.mjs (charlesvestal/fm1-x0x, GPL-3.0).
 //   node web/emu/emu_test.mjs build/emu/felucca.wasm [NATIVE.f32]
 // Checks: it boots (splash, then HOME on the screen, the HOME LED; the power-on LED sweep under the splash, over by
-// 1 s), a held key sounds and lights its LED, PLAY
+// 1 s; the splash's own length is read from firmware/src/ui_draw.c, never hardcoded), a held key sounds and lights its LED, PLAY
 // starts the sequencer (PLAY's green LED), a user preset saved from the panel (SAVE, OCT+, OCT+) reaches the flash,
 // and the flash sectors kept as the page keeps them bring it back in a fresh instance; the same gestures twice
 // give the same audio (deterministic), with NATIVE.f32 (web/emu/native_check.c) the native build's, bit for bit.
@@ -14,6 +14,15 @@ import fs from "fs";
 import { storeSectors, restoreSectors } from "./worklet.js";
 
 const wasmPath = process.argv[2] || "build/emu/felucca.wasm", nativePath = process.argv[3];
+// The splash is the firmware's, not the test's: SPL_WRITE + SPL_HOLD are read from ui_draw.c so a longer
+// (or shorter) boot screen moves this budget with it instead of leaving the test looking at the splash
+// while it expects HOME -- which is what a hardcoded 2.3 s did in the 3.2 pass (keys blocked under the
+// splash read as "a key sounds: peak 0.000").
+const splashMs = (() => {
+  const src = fs.readFileSync(new URL("../../firmware/src/ui_draw.c", import.meta.url), "utf8");
+  const n = (k) => Number((src.match(new RegExp(`#define\\s+${k}\\s+\\(?(\\d+)u`)) || [])[1] || 0);
+  return n("SPL_WRITE") + n("SPL_HOLD") || 2300;
+})();
 const bytes = fs.readFileSync(wasmPath);
 const B = { FX: 0, SCL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11, OCTDN: 12, OCTUP: 13 };
 const EN = { SELECT: 0, ALGO: 1, PRESETS: 2, K1: 3, K2: 4, K3: 5, K4: 6 };
@@ -67,7 +76,7 @@ const splash = colours(a.screen());
 }
 a.render(800);
 check("  over by 1 s (~0.70 s)", a.ex.web_anim_levels() === 0);
-a.render(1500);                                               // (QG-1: SPL_WRITE 1100 + SPL_HOLD 1200 = 2.3 s of splash, then HOME)
+a.render(Math.max(300, splashMs - 1000 + 400));                // (QG-1: SPL_WRITE + SPL_HOLD of splash, then HOME)
 const home = a.screen();
 check(`boots: the splash, then HOME (${colours(home)} colours), the HOME LED lit`,
       splash > 1 && colours(home) > 4 && (a.ex.web_lit_buttons() >> B.HOME & 1) === 1);
@@ -181,7 +190,8 @@ check("a fresh instance with the kept sectors has it; one without does not",
 // ---- deterministic: the same gestures, the same samples
 async function song() {
   const d = await device(null);
-  d.render(500);
+  d.render(splashMs + 200);          // the boot screen blocks input (kb_boot_hold): PLAY must come after it,
+                                     // and how long "it" is comes from ui_draw.c, not from a 500 ms guess
   d.ex.web_test_heavy();
   d.tap(B.PLAY);
   d.rec = true;

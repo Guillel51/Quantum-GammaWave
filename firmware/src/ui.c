@@ -79,10 +79,16 @@ static uint32_t up_gen;                      /* bumped on every user bank change
  * keeps it so */
 static void prefs_update(void)
 {
-    if (prefs_rev < 2u) {                              /* (0.6.64) FX LATCH OFF again (the punch-in effects momentary:
-                                                        * held FX locks the FX screen open instead), once */
-        ui_prefs &= (uint8_t)~PREF_LATCH;
-        prefs_rev = 2u;
+    if (prefs_rev < 3u) {                              /* (3.2) FX LATCH ON once, for everyone: the punch-in
+                                                        * effects hold after the key and FX are let go, which is
+                                                        * what the map promises. 0.6.64 had turned it OFF again by
+                                                        * default and the only switch left was MENU > CONTROL; a
+                                                        * unit that never found it played the map momentary for
+                                                        * ever and read the latch as broken. Turning it OFF
+                                                        * (MENU, or FX + OCT+ in the map) still sticks: this runs
+                                                        * once, on the settings' revision. */
+        ui_prefs |= (uint8_t)PREF_LATCH;
+        prefs_rev = 3u;
         settings_save();
     }
 }

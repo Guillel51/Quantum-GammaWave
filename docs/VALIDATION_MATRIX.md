@@ -534,7 +534,7 @@ question the publication log cannot: **is the published package really this firm
 | Toolchain / SDK | pinned and verified | JieLi `jieli-linux-toolchains-20260730.1`, sha256 `a1545cdd…` checked by `tools/get_toolchain.sh` against `tools/toolchain.sha256`; SDK branch `AC79NN_SDK_V1.2.1_2023-12-13` (`[HOST]`) |
 | AC791N build | **built** | image 531 992 B; `.data+.bss` 95 912 B of 98 304 (2 392 B spare); `POOL_END - pool_top` 9 248 B; XIP code 372 508 B; RAM code 19 284 B of 24 576 (`[TARGET]`) |
 | Package | **identical to the published one** | 610 806 B, `FM-1_982`, sha256 `80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2` = `release/felucca-v1.9.0.fwsc` = the asset and the site's copy (`[HOST]`) |
-| Reproducibility | **GO on a second machine** | two clean builds are byte-identical (`cmp` on `.fwsc` and `loader/ota.bin`) (`[HOST]`) |
+| Reproducibility | **GO on a second machine, and now gated** | two clean builds are byte-identical (`cmp` on `.fwsc` and `loader/ota.bin`); `tests/release_repro_test.py` compares a fresh build with `release/*.fwsc` and fails on the first differing byte, in the host suite and in `target.yml` (`[HOST]`) |
 | Emulator | **built here** | Emscripten 6.0.11, 1 073 325 B wasm, sha256 `3d039f75…`, named by the record at `HEAD`; `build_manifest --verify --require-clean --expect-commit` ok (`[HOST]`) |
 | Budgets and reader | **GO** | `memory_map_test`, `target_budget.py` on `build/felucca.dis`, `web/test_pkg_bounds.mjs` (`[TARGET]`/`[HOST]`) |
 | Host suite | **ALL HOST TESTS PASSED** | full run with the package present: `test_release_e2e`, `test_provenance`, `test_verify_only` (108 checks), `key_custody_test` (`[HOST]`) |
@@ -750,7 +750,7 @@ all, and both directions of the gate row in the report. The site still builds wi
 (`web/make_site.py`, 610 806-byte release package). What is **not** established: that any unit answers
 `0x12` here, because none was available.
 
-## 28. Update — 2026-11-09, the owner's unit is a known chip with a known backup: first install enabled
+## 28. Update — 2026-11-09, the owner's unit is a known chip with a known backup (install path: superseded by §30.1)
 
 The owner ran M-Flasher 0.9.4 against the unit and kept its record (`fm1-20261108-161613.json`):
 
@@ -796,10 +796,35 @@ another firmware version is refused; with the record, the install sends **zero**
 one `UPGRADE`, and a unit that does not hand over ends in an error, never a silent write; without it, the
 install refuses with `chip` and sends no `UPGRADE` at all. `web/test_verify_only.mjs` (136) and
 `web/test_web.mjs` stay green.
+## 29. Update — 2026-11-09, the 3.2 visual pass: what was fixed, and the class of each proof
 
-## 29. Decision — 2026-11-09: what the owner's unit can and cannot be installed by
+The pass was ordered with one priority (the PUNCH-IN LATCH), ten visual defects, and a rule: nothing counts unless it
+is visible and checkable in the project's own emulator. This section records each item, its state, and the class of
+evidence — never one class presented as another.
 
-### 29.1 §28 was too generous, and why
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| PUNCH-IN LATCH: root cause | **FIXED** | The engine was already correct: `test_punch_latch_matrix()` (15 keys of bank 1, three at once and the fourth refused, FX released, six mutes, bank change on A#4, LATCH OFF) passes. The defect was reachability: the mode shipped **OFF** and its switch lived only in MENU and in a hidden combo whose footer vanished exactly when LATCH was off. `prefs_update()` now turns `PREF_LATCH` on once per settings revision (`prefs_rev = 3`) and the map card reads `OCT+ TO SWITCH`. | host x86 (`tests/ui_test.c`), layout in `tests/ui_render.c` |
+| FX percentage at 100 % | **FIXED** | The value is right-aligned against its meter (`cv_text_r(mx - 2, …)`) in `graph_fx()` and the DEPTH module, so it cannot reach the card edge on any palette. | host render, 240 px |
+| SCL white keys | **FIXED** | The degree digit is gone (the key says `C`, not `1 C`); `scl_degree()` removed as dead code; `scl_key()` uses a 6 px round with a mixed corner pixel and a single lit row. | host render `docs/evidence/3.2/host_scl.png` |
+| Delay bars | **FIXED** | `dly_tick()`/`dly_bar()`: always visible (minimum 3 px), 7 px wide, rounded tips, instant rise with a 3 px bounce, 1 px per frame fall. No new work in the audio path — the bars read the published level. | host render `host_dly.png` |
+| RESO vs CLOUD | **FIXED** | Two different pictures: RESO is a resolver (four combs, energy dots running along the strings, one ring per note); CLOUD is a swarm at three depths that breathes with `rev_act` and puffs on a note. A `reverb_cloud` scene was added to the sweep so both are rendered, not described. | host render `host_reverb_reso.png`, `host_reverb_cloud.png` |
+| HOME planets | **FIXED** | Four bodies (`NPL 4`): rock with craters, banded, ocean, ringed; orbits 11/18/26/33 with tilt, note ring and per-note excitation. `particle_bounds_test.py` now takes the planet count from `NPL` and checks every orbit against the bay arithmetic. | host render `host_home.png`; `tests/particle_bounds_test.py` |
+| Boot splash | **FIXED** | New 16-bit identity: deep wash, three elliptical nebulae mixed on the sky's own colour, 40 stars in three layers, `QUANTUM`/`GAMMAWAVE` in the project's block alphabet (with G and V, which were missing), ringed planet with two moons, 16-block rail, BOOT/% readout, hand-over to HOME; 3.1 s. Audio, MIDI and init start before it, as before. | `ui_render` timeline (775 steps of 4 ms, 176 change pixels) + emulator capture `docs/evidence/3.2/emu_splash_strip.png` |
+| DEPTH on KNOB 2 | **FIXED** | `layer_knob()` maps KNOB 2 to DEPTH and KNOB 4 to CRUSH (engine slots unchanged); tests updated (`EN_K2`/`EN_K4`, `rc_run`, `#102`, `#40`). | host x86 `tests/ui_test.c` |
+| Memory | **PASS** | AC791N build (merged tree, commit 585d05d): image 535 204 B, `.data+.bss` 94 936 B of 98 304, pool spare 9 248 B (gate: >= 8 KiB). | target compiled |
+| Bootloader, partitions, loader | **UNTOUCHED** | No file under `bootloader/`, `loader/` or the partition tables changed in this tree. | source diff |
+| Emulator | **PASS** | wasm 1 086 293 B, sha256 `36e1dce6…`; the splash stages and HOME render in the browser emulator; the dev server answers 200 for `/` and `/felucca.wasm`. | emulator (wasm) |
+| Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing here is a claim about the hardware. | none |
+| Signed release | **BLOCKED** | `release/` predates this tree; the reproducibility gate skips and `publish` cannot verify. Re-signing needs the `qg1-release-1` key, which is not in this environment. No package was published. | n/a |
+
+The remaining defect the owner reported (an FX value spilling past the meter) is closed in the layout above; the
+render sweep’s alignment lint reports 0 off-by-one measurements over 73 places, and 0 lint findings over 174 screens
+× 17 palettes.
+
+## 30. Decision — 2026-11-09: what the owner's unit can and cannot be installed by
+
+### 30.1 §28 was too generous, and why
 
 §28 enabled a donor path: a stock unit plus a verified record could take `UPGRADE` from this page. Reading
 the firmware settled it the other way. The update loader is built with `FELUCCA_LOADER=1`, which compiles
@@ -818,7 +843,7 @@ Both are now decided in code, before any frame:
 | `ota-FM-1_015` | `foreignloader`, zero frames | `write()`, `install()`, page |
 | `FM-1_015` | `stockfirst`, zero frames, M-Flasher panel | `install()`, page |
 
-### 29.2 Gate-by-gate, with the class of each piece of evidence
+### 30.2 Gate-by-gate, with the class of each piece of evidence
 
 | Gate | State for **this unit** | Evidence | Class | What it would take to close it |
 |---|---|---|---|---|
@@ -836,7 +861,7 @@ Both are now decided in code, before any frame:
 | RAM/CPU headroom, post-install revalidation | GO CONDITIONAL / NO-GO | budgets measured on host and target build; the post-install check list exists but has never run on a unit | `[HOST]` / `[STATIC]` | one installed unit |
 | Installer/emulator/site sync | **NO-GO (one check)** | `tools/site_check.py` fails exactly one line: the signed release record's emulator (`3d039f75…`) is not the rebuilt wasm (`c83c8bfb…`) — same commit, flags, emcc and size, so the emulator build is not byte-reproducible | `[CI]` | pin or make the emulator build deterministic; it needs `emcc`, absent here |
 
-### 29.3 The decision
+### 30.3 The decision
 
 - **First install on this stock FM-1 by this page: NO-GO, and it is not a missing flag.** It is one
   program on the unit (`ota-FM-1_015`) that nobody has read, and one protocol (`0x12`) the stock
@@ -851,7 +876,7 @@ Both are now decided in code, before any frame:
   dropped link is now reported as "nothing written" or "resumable sector write" instead of one message for
   both.
 
-### 29.4 What is classified as what
+### 30.4 What is classified as what
 
 - **Real and critical:** recovery not demonstrated on hardware; the stock unit's own update mode being a
   program nobody has read. Neither can be closed from software here.
@@ -863,7 +888,7 @@ Both are now decided in code, before any frame:
 - **Acceptable and documented:** the write has never run on this unit, the emulator is not reproducible,
   and a real power cut has not been staged.
 
-### 29.5 Evidence added in this change (`[HOST]`, simulated units)
+### 30.5 Evidence added in this change (`[HOST]`, simulated units)
 
 `web/test_update_mode.mjs`, 15 checks, 0 FAILED: a QG unit updates through a loader that answers no chip
 query (two `UPGRADE`s, every byte matched); a resume with no chip fact is refused as `loaderchip` with

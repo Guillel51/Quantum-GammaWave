@@ -21,6 +21,25 @@
 - **Emscripten queda en 6.0.11 en todas partes**, que es la versión que los workflows fijan; el wasm de este
   release se construyó con ella desde el mismo commit que el firmware.
 
+- **3.2 — el LATCH por defecto, DEPTH en el knob 2, y todo lo que se ve, probado en el emulador.** El LATCH de
+  PUNCH-IN no fallaba en el motor: sus 15 teclas, el límite de tres simultáneos, el NOTE OFF que lo libera, los seis
+  mutes y el cambio de banco ya pasaban una matriz nueva y completa (`tests/ui_test.c`). El defecto era alcanzarlo:
+  el modo venía en OFF y su interruptor sólo estaba en MENU y en un combo oculto cuyo footer desaparecía justo con
+  el LATCH apagado. Ahora `prefs_update()` lo enciende una vez por revisión de ajustes (`prefs_rev = 3`) y la tarjeta
+  del mapa dice `OCT+ TO SWITCH`. DEPTH pasa a KNOB 2 y CRUSH a KNOB 4 (los slots del motor no cambian). Los
+  porcentajes de FX se alinean a la derecha contra su medidor y ya no tocan el borde al llegar a 100 %. SCL deja el
+  dígito de grado (las teclas blancas dicen sólo la nota) y sus teclas se suavizan con esquina mezclada y un solo
+  píxel de luz. El Delay dibuja sus siete barras siempre visibles (3 px de mínimo, 7 de ancho, puntas redondeadas,
+  subida instantánea con 3 px de rebote y bajada de 1 px por frame, sin trabajo extra en audio). RESO y CLOUD dejan
+  de ser la misma partícula: RESO es un resolutor con cuatro cuerdas y puntos de energía recorriéndolas; CLOUD es un
+  enjambre de tres profundidades que respira y hace un "puff" en cada nota. HOME pasa a cuatro planetas (rocoso con
+  cráteres, bandas, océano, anillado) con órbitas más grandes, anillo de nota y excitación por nota. El Boot Splash
+  se rehace como identidad de 16 bits: cielo con tres nebulosas elípticas y cuarenta estrellas en tres capas,
+  `QUANTUM`/`GAMMAWAVE` en alfabeto de bloque propio, planeta anillado con dos lunas, riel de dieciséis bloques,
+  BOOT/% y hand-over a HOME, 3.1 s en total (antes 2.3 s) sin retrasar audio, MIDI ni init. Medido: `ui_render`
+  con 174 pantallas × 17 paletas, 0 hallazgos de lint y 0 desalineaciones; la línea de tiempo del splash son 775
+  pasos de 4 ms, 176 cambian píxeles; el emulador se compiló (wasm 1 086 293 B en la captura, 1 079 658 B tras fusionar la
+  rama de instalador/optimización) y la secuencia se capturó dentro del emulador. El build AC791N compila (imagen 535 204 B) con `.data+.bss` 94 936 B de 98 304 y 9 248 B de spare en el pool.
 - **3.1 — la pasada visual que el dueño pidió, medida y probada.** HOME: el sistema solar se redibuja con
   planetas de 2/3/4 px (órbitas 14/23/32, radios verticales 7/11/13), estrellas fijas precalculadas con
   parpadeo lento, dos bandas de nebulosa por tabla, sombreado por fases con terminador, atmósfera, anillo sólo
