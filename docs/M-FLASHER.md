@@ -182,7 +182,8 @@ So the installer now does three different things, and says which one it did:
 | `FM-1_015` (stock application) | refuses (`stockfirst`), opens the M-Flasher panel, and sends nothing. |
 
 **The first install is M-Flasher's.** `Install firmware` takes the same `.fwsc`, checks the model, the chip
-key and every app file's CRC16, plans the write sector by sector, and touches `[0x4000, len)` only — the
+key and every app file's CRC16, plans the write sector by sector (§11 traces those checks on this
+release, one by one), and touches `[0x4000, len)` only — the
 bootloader, the SPL head and `isd_config` stay. It is a third-party program this project does not
 redistribute; what this project did is audit it and wrap its *record* (this page), not its writer.
 `plan_firmware` defaults to `[BOOT_AREA, len)`, so the boot area is kept unless the package itself carries a
@@ -332,3 +333,66 @@ is two independent reads of the same 1 MiB that agree, which is the corroboratio
 is not a hash this project computed: the dumps are on the owner's disk. The installer reports the pair
 as `corroborated` and says so, and a dump dropped next to a record upgrades it to `pass` because then
 the page hashes the bytes itself.
+
+## 11. What M-Flasher checks before its first erase, applied to this release
+
+`Install firmware` is the first install on a stock unit (§6), so the question "will it take this
+package" has a precise answer: the refusals in `Session::plan_firmware` (`src/ops.rs`) and the
+container rules in `Package::parse` (`src/formats.rs`), in that order. `tools/fm1_mflasher_accept.py`
+re-implements exactly those and applies them to a `.fwsc` here, printing each rule with its class:
+
+- **`[SRC]`** — the rule as read in M-Flasher 0.9.4, tag `v0.9.4` (`src/formats.rs`, `src/ops.rs`,
+  `src/boards.rs`). It is quoted, not executed: the tool that performs the install is M-Flasher's.
+- **`[HOST]`** — the value computed in this repository from the package's bytes, now.
+
+```
+python3 tools/fm1_mflasher_accept.py release/felucca-v1.9.0.fwsc
+  ok   the bytes this asks about          610806 B, sha256 80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2
+```
+
+| # | Rule M-Flasher applies | Where in it | This release | Class |
+| --- | --- | --- | --- | --- |
+| 1 | at least `0x1000` bytes | `Package::parse` | 610 806 B | `[HOST]` |
+| 2 | the identity is woven into byte 47 of the first 48-byte blocks, one character per block | `Package::parse` | `FM-1_982`, 20 blocks | `[HOST]` |
+| 3 | header CRC16 over bytes 2..63 | `Package::parse` | matches | `[HOST]` |
+| 4 | file-list CRC16, stored in the header | `Package::parse` | matches (2 entries: `flash.bin`, `ota.bin`) | `[HOST]` |
+| 5 | `flash.bin` is type 0 and its CRC16 matches the list | `Package::parse` | 602 112 B (`0x93000`), CRC16 `0xCC18`, matches | `[HOST]` |
+| 6 | the image is longer than the boot area and a whole number of 4 KiB sectors | `Package::parse` | 147 sectors | `[HOST]` |
+| 7 | the package's model is one the identified board accepts | `plan_firmware` | `FM-1` ∈ {`FM-1`, `MiniFM`} | `[SRC]`+`[HOST]` |
+| 8 | the image is not larger than the flash | `plan_firmware` | 602 112 B ≤ 1 048 576 B | `[SRC]`+`[HOST]` |
+| 9 | every `attr 0x82` app file decrypts with the unit's chip key and its CRC16 matches | `plan_firmware` → `app_files_status` | `app.bin` 581 564 B CRC16 `0xE643`; `cfg_tool.bin` 383 B CRC16 `0x2E75`, under `0x980F` | `[SRC]`+`[HOST]` |
+| 10 | the write is `[0x4000, len)` and no changed sector may fall outside it | `plan_firmware` → `Plan::new` | `0x04000-0x92FFF`, 143 sectors, boot area kept | `[SRC]`+`[HOST]` |
+| 11 | nothing reaches the unit's factory data | `boards.rs` `FM1.factory` | the image ends at `0x92FFF`; factory is `0xFF000+` | `[HOST]` |
+| 12 | before the first erase of a session, a backup is saved; each written run is verified by the chip's CRC32, retried once | `ops.rs` `apply` | not reached by this trace — M-Flasher's own run | `[SRC]` |
+
+Every one of those passes on `release/felucca-v1.9.0.fwsc`. What that establishes is narrow and worth
+stating: **the package will not be refused**. The model and the chip key are answered again by the unit
+when M-Flasher opens it (`Analysis::new` reads the image it took, `READ_KEY` returns the key), so a
+package that passes here can still be refused on a unit that turns out to be another model or to
+report another chip key. Nothing in this trace writes, and nothing in it is a substitute for the
+backup of §10 or for the signature check the browser performs.
+
+Negative controls, so the trace is not a rubber stamp — `tests/mflasher_accept_test.py` mutates the
+release and requires each refusal, in M-Flasher's own wording:
+
+| Mutation | Refusal it must produce |
+| --- | --- |
+| a byte of `app.bin`, every container CRC recomputed so the package is consistent with itself | `does not decrypt with this unit's chip key (0x980F)` |
+| a byte of the package header | `damaged one (header CRC)` |
+| a byte of the flash image | `damaged firmware package (flash.bin CRC)` |
+| the first identity character (`F` → `S`) | `this package is for the SM-1, the connected unit is a FM-1` |
+| the same package under chip key `0xFFFF` | `does not decrypt with this unit's chip key (0xFFFF)` |
+| the image cut to a non-sector size | `damaged firmware package` / `unexpected flash image size` |
+
+```
+python3 tools/fm1_mflasher_accept.py release/felucca-v1.9.0.fwsc \
+    --dump backup/stock-01/fm1.bin --unit-model "FM-1"           # exact sector plan
+python3 tests/mflasher_accept_test.py                           # 14 checks, 0 FAILED
+```
+
+With `--dump` the plan is computed against the unit's own image (the sectors that actually differ, and
+the `runs` M-Flasher will erase); without it the trace reports the bound, which is the whole app area.
+`--unit-model` is the model the unit's installed firmware reports (`Analysis::new` decodes it out of
+`app.bin`); it only drives the cross-model warning, which M-Flasher prints when the unit runs another
+model's firmware. This unit's stock firmware reports `FM-1`, the same model as the package, so that
+warning does not apply to it.

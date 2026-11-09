@@ -1053,8 +1053,9 @@ write path changed — `install()` refuses a stock donor with `stockfirst` exact
   `corroborated` to `pass`, because then the page hashes the 1 MiB itself. Two records are the second
   best thing, and they are labelled as that.
 - **AC791N build and target budgets**: unchanged, no toolchain here (§31.4).
-- **The emulator record mismatch**: unchanged, `site_check` keeps its one FAIL until a build with the
-  pinned emsdk re-records it (§30.2).
+- **The emulator record mismatch**: closed after this entry, not by re-recording the emulator (§30.2)
+  but by publishing the record of the emulator the site actually serves, beside the package's own
+  record; `tools/site_check.py` now holds each artefact to its own claim and passes 14/14.
 
 ### 33.5 Tests in this entry (`[HOST]`)
 
@@ -1083,3 +1084,27 @@ The same audit turned up two rows that were only wrong for a unit *already* runn
 `canInstall: true`, `path: "this-page"`, `gate.chip: at-install`, `gate.backup: not-required`, and
 nothing but the identity query on the wire. The public installer's write path is unchanged: it already
 wrote to a QG unit; what changed is that its *report* no longer calls that path blocked.
+
+## 34. Would M-Flasher take the release? Its own checks, traced on the bytes
+
+The first install is M-Flasher's `Install firmware` (§33.1, docs/M-FLASHER.md §6), so the release has to
+pass *its* refusals, not this project's. `tools/fm1_mflasher_accept.py` re-implements them from the
+audited source and applies them here; the full table with the value of every row is docs/M-FLASHER.md
+§11. Summary, with the class of each fact:
+
+| Check | Rule from | Result on `release/felucca-v1.9.0.fwsc` | Class |
+| --- | --- | --- | --- |
+| container parses: identity weave, header CRC16, file-list CRC16, `flash.bin` type 0 + CRC16 | `formats.rs Package::parse` | `FM-1_982`, 20 identity blocks, 610 806 B, image 602 112 B CRC16 `0xCC18`, second entry `ota.bin` 7 650 B | `[HOST]` values, `[SRC]` rules |
+| model accepted by the board | `ops.rs plan_firmware`, `boards.rs FM1` | `FM-1` ∈ {`FM-1`, `MiniFM`} | `[HOST]` |
+| image not larger than the flash | `ops.rs plan_firmware` | 602 112 ≤ 1 048 576 B | `[HOST]` |
+| every `attr 0x82` app file decrypts with the chip key and its CRC16 matches | `app_files_status` | `app.bin` 581 564 B `0xE643`, `cfg_tool.bin` 383 B `0x2E75`, under `0x980F` | `[HOST]` |
+| write range and sectors | `plan_firmware`, `Plan::new` | `0x04000-0x92FFF`, 143 sectors, boot area kept, factory data (`0xFF000+`) untouched | `[HOST]` |
+
+What it does **not** establish: that the unit accepts the write, and that M-Flasher performed it. The
+model and chip key are answered again by the unit when the tool opens it, and the write, its read-back
+verification and the session backup are M-Flasher's own run (`ops.rs apply`). No unit was touched here.
+
+The trace is a program, not a reading, because a checker that only prints "ok" proves nothing:
+`tests/mflasher_accept_test.py` mutates the release six ways and requires M-Flasher's own refusal
+wording for each (damaged `app.bin` under a rebuilt container, damaged header, damaged image, `F`→`S`
+identity, `0xFFFF` chip key, non-sector image size) — **14 checks, 0 FAILED**. `[HOST]`
