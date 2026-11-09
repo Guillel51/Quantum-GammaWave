@@ -897,3 +897,69 @@ zero `UPGRADE`; the same resume with the record completes; the vendor loader is 
 M-Flasher; and an answered `0x12` that names a read-only part is refused even when a record is loaded.
 `web/test_record.mjs` (24 checks) now asserts the other direction: a record does **not** authorise an
 install on a stock unit. `web/test_web.mjs` and `web/test_verify_only.mjs` (136) stay green.
+
+---
+
+## 31. Community research round: what it changed, and what it did not
+
+Sources read for this entry: `jvitkauskas/m-bootloader` (`README.md`, `docs/SPEC.md` §4/§5/§6/§10/§11.6/
+§11.7 and the read/write sources), `jvitkauskas/m-flasher` (README, `docs/safety.md`, `docs/usage.md`,
+`src/ops.rs`), `AL-255/FM-1-RE` (`docs/io/11-ota-protocol.md`, `analysis/device/ota-loader/`,
+`tools/fm1_ota.py`), `Quixotic7/MvaveFM1Unbricker` (`fm1_unbrick.py`, `UNBRICK-GUIDE.md`),
+`Quixotic7/TransitFM1`, `kurogedelic/FM-1-transporter` (`docs/PROTOCOL.md`), and the FM-1 Developers'
+Wiki pages listed in `docs/FM1_MODES.md` §5. Everything below is classified in that document.
+
+### 31.1 What the research settled
+
+| question | answer | consequence for this repository |
+|---|---|---|
+| What does the `sha256` in the M-Flasher record hash? | the **whole 1 MiB image as read in that run** (`src/ops.rs`, 0.9.4 — same code as 0.9.1) | the record still binds a model and a chip and nothing else; consistency needs a second read or the chip's CRC32, which the JSON does not carry |
+| Can a full 1 MiB backup keep the stock boot loader? | yes, by two routes, neither of them a browser: M-Flasher over ROM mode, or m-bootloader's RAM stage | the page keeps accepting a *verifiable* dump and stops implying it can take one |
+| Does the m-bootloader stage write flash? | no (`SPEC.md` §10/§11.7, chunk reads `0x23`); but the firmware-update route overwrites the staging area *before* it runs | route B is not read-only for `~0xE3000..0xE7F00`; documented, with the user-data banks it abuts |
+| Is the ROM mode reachable from WebMIDI? | no: `4C4A:8057` is mass storage/SCSI and WebMIDI exposes no VID/PID | `ENTERING_DOWNLOAD_MODE` / `ROM_DEVICE_DETECTED` declared unobservable rather than faked |
+| Does the single-bank risk have a size? | yes: the app is written in address order, entry sector first, so the exposure is the remaining 1167-chunk write | documented as a window, not as a corner |
+| Is there a protection that closes it? | TransitFM1's stub does for *updates*; its own first install from V15 has 17 unprotected cut points | no change to the first-install decision; a candidate for the update path once hardware evidence exists |
+| Is `ota-` one thing? | no: `ota-FM-1_900` is this project's loader, any other version is the vendor's update mode | **code change**: the verify report now splits `ourloader` / `otherloader`, and only the former is a resumable state |
+
+### 31.2 Gates, after the research
+
+| requirement | state | why it did not improve |
+|---|---|---|
+| unit identity | GO | model, version and chip are read or bound; the record is `modelOnly` and the chip gate has three sources of decreasing strength |
+| verified prior backup | GO CONDITIONAL | the meaning of the record's hash is now established, and the two routes are documented; *this unit's* dump still does not exist, and only a host tool can take it |
+| demonstrated recovery | NO-GO | no project has demonstrated recovery **from this unit's state**; MvaveFM1Unbricker and TransitFM1 are `[3rd-hw]` on other units and are cited, not adopted |
+| protected write paths | GO CONDITIONAL | the loader verifies per sector and refuses to commit; the stock first install remains single-bank and unprotected for the whole pass |
+| ROM-mode access from the installer | NOT APPLICABLE | not a transport WebMIDI has; the honest state is "unobservable", and it is now named |
+| mode identification | GO | four identities documented, two of them (the loaders) now distinguished by code, with the blind spots declared |
+
+Nothing above was relaxed to make a button appear. The two changes are an added distinction the
+evidence supports (the two loaders) and an honest refusal (`READY_TO_INSTALL` cannot be reached from
+a firmware name, only from steps the loader reported).
+
+### 31.3 The decision is unchanged, and now it says why in one place
+
+**First install on this stock FM-1 by this page: NO-GO.** The blocker is not a gate that could be
+rewritten: it is that the program which would receive the image (`ota-FM-1_015`) has never been read
+by anyone, and the stock app does not implement the one command that would identify the chip on the
+same link. The route that *has* been used on stock units is M-Flasher's, which is why the page's
+`stockfirst` message names it instead of offering a path it cannot take.
+
+**First install by M-Flasher / by a host tool over ROM mode: GO CONDITIONAL**, on a verified dump of
+*this* unit first (two reads or the CRC32), and on the owner accepting that recovery has not been
+executed on this unit.
+
+**Update on a unit already running QG: GO CONDITIONAL**, unchanged from §30.3, with the loader split
+of §31.1 making the foreign-loader refusal visible in the report instead of only in the error path.
+
+### 31.4 Evidence added in this entry (`[HOST]`)
+
+`web/fm1state.js` + `web/test_state.mjs`, **65 checks, 0 FAILED**: seventeen named states, four of
+them declared unobservable over WebMIDI with their reasons; `derive()` maps only observations (no
+port → `DEVICE_NOT_CONNECTED`, a name alone never reaches `READY_TO_INSTALL`); the image transfer is
+not called a write and the write is not called a verification pass; a lost link inside the write pass
+is `RECOVERY_REQUIRED` while the same loss before it is `FAILED_SAFE`; every state has advice, and the
+destructive ones say not to cut the power. `web/test_verify_only.mjs` grew to **140 checks**: the
+vendor's loader is now `otherloader` / `foreign-loader` with zero frames sent, while `ota-FM-1_900`
+keeps `finish-loader`. `web/test_update_mode.mjs` (15), `web/test_record.mjs` (24) and
+`web/test_web.mjs` stay green. No behaviour on the wire changed: the classification is a report and a
+message.

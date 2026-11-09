@@ -157,6 +157,10 @@ unproven, and the gate keeps asking for this unit's own `0x12` and a signed pack
 
 ## 6. The first install, and what the browser installer does instead of it
 
+The transports behind this section — why the ROM mode is reachable from a host program and not from
+the page, what the record's `sha256` covers, and what the m-bootloader RAM-stage route costs — are
+laid out with their evidence classes in `docs/FM1_MODES.md`.
+
 The QG-1 installer writes through a loader it stages with `UPGRADE`, and the chip gate that protects that
 write is answered by `0x12`. Two facts, both from this repository's own firmware, decide what that means:
 

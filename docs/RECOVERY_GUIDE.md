@@ -7,6 +7,10 @@ here was executed on hardware during this work.** `[HARDWARE]` items are procedu
 The golden rule: **do not write to the flash head, the bootloader or the ROM.** Every method below
 works around them, never through them.
 
+Which paths exist, what each can read and write, which of them a browser can reach at all, and how
+big the unprotected window of a stock install is: `docs/FM1_MODES.md`. It separates what the
+community projects have demonstrated on their own units from what has been demonstrated on this one.
+
 ---
 
 ## 0. Decide which state you are in
