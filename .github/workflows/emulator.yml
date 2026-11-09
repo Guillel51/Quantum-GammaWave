@@ -100,7 +100,8 @@ jobs:
           # the preview: main as it is now, next to the emulator that runs it (preview/webapp/installer)
           python3 tools/build.py
           V=$(ver .)
-          python3 web/make_site.py build/felucca.fwsc "${V:-dev}-${GITHUB_SHA::7}" build/site_preview
+          python3 web/make_site.py build/felucca.fwsc "${V:-dev}-${GITHUB_SHA::7}" build/site_preview \
+            --emu build/emu/manifest.json
           mkdir -p build/site_preview/emulator
           cp -r build/emu/. build/site_preview/emulator/
           mkdir -p build/emu/preview
@@ -254,6 +255,19 @@ jobs:
           mkdir -p build/site/emulator
           cp -r "$EMU_SRC/." build/site/emulator/
           rm -rf build/site/emulator/preview
+          # (M3.4) the preview channel goes up too, at /preview/: main's sources with the emulator that runs
+          # them. The root keeps the signed release beside the emulator built with it (what a person
+          # installs is what they can try); main's work — LATCH, punch-in, the splash, HOME, the planets,
+          # RESO, CLOUD, delay, the FX screens — stops being invisible until the next release. The channel
+          # was built above and never published, which is how "the emulator is old" was both true and only
+          # half the story.
+          if [ -s build/site_preview/index.html ] && [ -s build/site_preview/emulator/manifest.json ]; then
+            rm -rf build/site/preview
+            cp -r build/site_preview build/site/preview
+            echo "preview: main's site at /preview/, emulator $(python3 -c 'import json;print(json.load(open("build/site_preview/emulator/manifest.json"))["commit"])')"
+          else
+            echo "::warning::no preview site in this run: /preview/ will not be published"
+          fi
       # Fail closed on what actually matters: a package was chosen and a site was written. Its provenance was
       # checked by make_site.py, which refuses a package that contradicts its own build record.
       - name: a package and a site exist (fail closed)
@@ -337,6 +351,25 @@ jobs:
             sleep 15
           done
           echo "::error::the deployed site still does not serve the expected artefacts after 5 minutes"
+          exit 1
+      # (M3.4) and /preview/ is this run, not last week's: it carries main's sources and the emulator
+      # built from them, so its manifest must name this commit. Without this the channel could be stale
+      # for weeks and nobody would know, which is exactly what happened to the root before.
+      - name: the preview channel serves this run (main's emulator at /preview/)
+        run: |
+          BASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+          WANT="${GITHUB_SHA:0:12}"
+          for i in $(seq 1 20); do
+            C=$(curl -fsS "$BASE/preview/emulator/manifest.json" 2>/dev/null \
+                | python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit",""))' 2>/dev/null) || C=""
+            if [ "$C" = "$WANT" ]; then
+              echo "preview: /preview/ serves $C"
+              exit 0
+            fi
+            echo "::notice::/preview/ is not serving $WANT yet ($C, attempt $i/20); waiting 15 s"
+            sleep 15
+          done
+          echo "::error::/preview/ still does not serve $WANT"
           exit 1
 
   # The signed package is committed under release/ because the private key is not: no workflow can sign,
