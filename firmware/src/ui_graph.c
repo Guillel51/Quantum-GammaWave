@@ -650,44 +650,35 @@ static void graph_grid(const track_t *t, uint16_t c)
  *   - seven white keys, 30 px wide and 1 px apart, from x 12 to 228, y 26 to 100;
  *   - five black keys 18 px wide and 46 tall, centred on the seam after their white key, so
  *     every accidental sits where a piano puts it;
- *   - in the scale the face is the track's colour and the root the accent, with the degree
- *     (1..7) written on the key; out of the scale the key stays recessed in the card;
+ *   - in the scale the face is the track's colour and the root the accent; out of the scale the
+ *     key stays recessed in the card. (3.2) the naturals name their note and nothing else: the
+ *     degree digit that sat beside it read as a key number, not as a scale degree;
  *   - the title (ROOT + SCALE, QUANTIZED) sits above the keys, never on one.
  * Every figure read here is the parameter the engine plays. */
-static int scl_degree(uint32_t mask, uint32_t root, uint32_t note)
-{
-    uint32_t k;
-    int d = 0;
-    for (k = 0; k < 12u; k++) {
-        uint32_t pc = (root + k) % 12u;
-        if (!((mask >> pc) & 1u))
-            continue;
-        if (pc == note)
-            return d + 1;
-        d++;
-    }
-    return 0;
-}
 /* (3.1) a piano key: rounded, 1 px contour, drawn from rows and corner pixels. It is deliberately not
  * a cv_rrect: the keys overlap (the accidentals sit over the naturals) and a registered cell would be
  * reported as spilled by the very text the key owns. Same ink, no lint hook, identical on the panel. */
 static void scl_key(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t face, uint16_t brd, uint16_t under)
 {
+    /* (3.2) a softer key: a 6 px round (was 4 on the naturals), a corner pixel blended into the
+     * card instead of a hard stair, a 1 px contour and one lit row on top. Still rows and single
+     * pixels only: nine rects and four corner loops, the same order of cost as before. */
     int32_t i, j;
     cv_rect(x + r, y, w - 2 * r, h, face);
     cv_rect(x, y + r, r, h - 2 * r, face);
     cv_rect(x + w - r, y + r, r, h - 2 * r, face);
     for (j = 0; j < r; j++)
         for (i = 0; i < r; i++) {
-            int32_t s = i + j;
-            if (s >= r) {
-                cv_pset(x + i, y + j, s == r ? brd : under);
-                cv_pset(x + w - 1 - i, y + j, s == r ? brd : under);
-                cv_pset(x + i, y + h - 1 - j, s == r ? brd : under);
-                cv_pset(x + w - 1 - i, y + h - 1 - j, s == r ? brd : under);
-            }
+            int32_t d2 = (r - i) * (r - i) + (r - j) * (r - j), rr = r * r;
+            uint16_t cc = d2 > rr + r ? under : d2 > rr - r ? ux_mix(brd, under, 50) : brd;
+            if (i + j + 1 < r)
+                continue;
+            cv_pset(x + r - i, y + r - j, cc);
+            cv_pset(x + w - 1 - (r - i), y + r - j, cc);
+            cv_pset(x + r - i, y + h - 1 - (r - j), cc);
+            cv_pset(x + w - 1 - (r - i), y + h - 1 - (r - j), cc);
         }
-    cv_rect(x + r, y, w - 2 * r, 1, brd);
+    cv_rect(x + r, y, w - 2 * r, 1, ux_mix(brd, face, 55));       /* the lit top: a bevel, not a frame */
     cv_rect(x + r, y + h - 1, w - 2 * r, 1, brd);
     cv_rect(x, y + r, 1, h - 2 * r, brd);
     cv_rect(x + w - 1, y + r, 1, h - 2 * r, brd);
@@ -738,16 +729,13 @@ static void graph_scale(const track_t *t, uint16_t c)
         uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
         if (sound)
             face = ux_mix(face, T_THEME, 34);
-        scl_key(kx, y0, kw, kh, 4, face, brd, T_SURF);
+        scl_key(kx, y0, kw, kh, 6, face, brd, T_SURF);
         if (strip)
             cv_rect(kx + 2, y0 + 1, kw - 4, 2, strip);
         cv_rect(kx + kw - 1, y0 + 3, 1, kh - 6, ux_mix(face, T_BG, 32));
-        if (in) {                                     /* the degree, on the free bottom row: the accidentals
-                                                       * end 6 px above it, so nothing overlaps */
-            char db[4];
-            fmt_int(db, scl_degree(mask, root, note));
-            cv_text_on(kx + 3, y0 + kh - 15, &AF_S, db, T_INK, face);
-        }
+        /* (3.2) the naturals carry their NOTE NAME only: the degree digit ("1 C", "3 D") sat
+         * beside it and read as a key number the player could press. The scale is already
+         * said twice -- the strip on top and the face -- and the accidentals never had it. */
         cv_text_r(kx + kw - 4, y0 + kh - 15, &AF_S, N_NOTE[note], in ? T_INK : T_DIM, face);
         if (sound)                                    /* the note is sounding: one clear bar */
             cv_rect(kx + 2, y0 + kh - 4, kw - 4, 2, T_ACCENT);
@@ -767,7 +755,7 @@ static void graph_scale(const track_t *t, uint16_t c)
         face = sound ? ux_mix(T_KEYB, T_THEME, 46) : T_KEYB;
         ink = in ? T_TEXT : T_MID;
         strip = is_root ? T_ACCENT : in ? T_THEME : 0;
-        scl_key(kx, y0, bw, bh, 3, face, ux_mix(T_KEYB, T_TEXT, 24), T_BG);
+        scl_key(kx, y0, bw, bh, 6, face, ux_mix(T_KEYB, T_TEXT, 24), T_BG);
         if (strip)
             cv_rect(kx + 2, y0 + bh - 3, bw - 4, 2, strip);
         cv_rect(kx, y0 + bh, bw, 2, T_BG);            /* its shadow on the naturals */
@@ -840,7 +828,10 @@ static void graph_fx(const track_t *t, uint16_t c)
          * that range) and 0..100 % on screen: the conversion happens here, once, for the label. */
         fmt_int(num, (val * 100 + 63) / 127);
         str_cpy(num + str_len(num), "%", sizeof num - str_len(num));
-        cv_text_on(cx + 18, 18, &AF_S, num, val ? T_TEXT : T_DIM, T_SURF);
+        /* (3.2) right-aligned to the meter's left edge, not drawn from a fixed x: "100 %" is one
+         * glyph wider than "99 %" and the old fixed x put its % over the meter's column (the
+         * owner's overflow). 2 px of air, whatever the value, on every palette and style. */
+        cv_text_r(mx - 2, 18, &AF_S, num, val ? T_TEXT : T_DIM, T_SURF);
         cv_text_on(cx + 3, 40, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, T_SURF);
         if (pk > 64)                                  /* the track is producing sound now */
@@ -905,7 +896,7 @@ static void graph_fx(const track_t *t, uint16_t c)
             int32_t d = clamp(song.g[G_SLDEP], 0, 127), seg;
             fmt_int(vb, d * 100 / 127);
             str_cpy(vb + str_len(vb), "%", 2);
-            cv_text_on(MX3[1] + 4, 85, &AF_S, vb, d ? T_TEXT : T_DIM, T_SURF);
+            cv_text_r(MX3[1] + 40, 85, &AF_S, vb, d ? T_TEXT : T_DIM, T_SURF);   /* (3.2) clear of its bar */
             for (seg = 0; seg < 13; seg++)
                 if (seg * 10 < d * 26 / 127 * 10 / 5)
                     cv_rect(MX3[1] + 42 + seg * 2, 90, 2, 3, song.g[G_SLMODE] ? T_THEME : T_DIM);

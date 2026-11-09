@@ -645,7 +645,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_CONFIRM_SEQ, S_CONFIRM_PROJ, S_CONFIRM_USER, S_CONFIRM_PAT, S_CONFIRM_MOTION, S_CONFIRM_ERASE,
        S_MENU, S_MENU_SPEAKER, S_ABOUT, S_ABOUT_REC, S_ABOUT_CREDITS, S_ABOUT_END, S_UBOOT, S_CALIBRATION, S_SPLASH,
        S_BATT0, S_BATT1, S_BATT2, S_BATT3, S_BATT_USB, S_MOTION_REC, S_MOTION_OFF, S_MOTION_CARD, S_SONG_HOME,
-       S_FX_PEEK, S_FX_HELD, S_FX_WAIT, S_FX_HARM, S_MENU_HOLD, S_MENU_LEDS, S_MENU_END, S_MENU_SYSTEM, S_MENU_SLIDE, S_REVERB, S_REVERB_RESO,
+       S_FX_PEEK, S_FX_HELD, S_FX_WAIT, S_FX_HARM, S_MENU_HOLD, S_MENU_LEDS, S_MENU_END, S_MENU_SYSTEM, S_MENU_SLIDE, S_REVERB, S_REVERB_RESO, S_REVERB_CLOUD,
        S_GLO_PEEK, S_GLO_ACTIVE, S_GLO_EXT, S_SCL_PEEK, S_SCL_ACTIVE, S_EDIT_PEEK, S_EDIT_ACTIVE, S_EDIT_USER, S_EDIT_DRUM, S_LAYER_HINT, S_LAYER_LOCK, S_LAYER_LOCK_FX, S_LAYER_SONG, S_LAYER_SONG_CHAIN,
        S_SEQ_TOOLS, S_SEQ_TOOLS_DRUM, S_SEQ_TOOLS_SONG,
        S_NAME_USER, S_NAME_TYPING, S_NAME_123, S_NAME_EMPTY, S_NAME_FULL, S_NAME_PLAYING, S_PROJECT_NAMED, S_SONG_NAMED,
@@ -663,7 +663,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "edit_noise", "alg_1", "alg_2", "alg_3", "alg_4", "alg_5", "alg_6", "alg_7", "alg_8", "op_level", "fm6_alg_01", "fm6_alg_05", "fm6_alg_22", "fm6_alg_32", "drumx", "drumx_hit", "dx_sound", "dx_sound2", "confirm_seq", "confirm_project", "confirm_user", "confirm_pattern",
     "confirm_motion", "confirm_erase", "menu", "menu_speaker", "about", "about_rec", "about_credits", "about_end", "uboot", "calibration", "splash",
     "batt_0", "batt_1", "batt_2", "batt_3", "batt_usb", "motion_rec", "motion_off", "motion_card", "song_home",
-    "perform_peek", "perform_held", "perform_wait", "perform_harm", "menu_hold", "menu_leds", "menu_end", "menu_system", "menu_slide", "reverb_spring", "reverb_reso",
+    "perform_peek", "perform_held", "perform_wait", "perform_harm", "menu_hold", "menu_leds", "menu_end", "menu_system", "menu_slide", "reverb_spring", "reverb_reso", "reverb_cloud",
     "layer_glo_peek", "layer_glo_active", "layer_glo_ext", "layer_scl_peek", "layer_scl_active", "layer_edit_peek",
     "layer_edit_active", "layer_edit_user", "layer_edit_drum", "layer_hint", "layer_lock", "layer_lock_fx", "layer_song", "layer_song_chain",
     "layer_seq_tools", "layer_seq_tools_drum", "layer_seq_tools_song",
@@ -1073,6 +1073,9 @@ static void setup(int s)
         break;
     case S_REVERB: go_title("REVERB"); song.g[G_RTYPE] = 1; ui.hot_col = 0; ui.hot_t = 30; break;   /* TYPE: SPRING */
     case S_REVERB_RESO: go_title("REVERB"); song.g[G_RTYPE] = 3; song.g[G_RDAMP] = 2; song.g[G_RPRE] = 4; break;   /* (0.6.5) PITCH, FOLW */
+    case S_REVERB_CLOUD: go_title("REVERB"); song.g[G_RTYPE] = 4; song.g[G_RSIZE] = 108; song.g[G_RRATE] = 96;
+        song.g[G_RMOD] = 72; song.g[G_RPRE] = 12; fx_vu[5] = 21000; break;   /* (3.2) the second reverb picture: a
+        * swarm that breathes and puffs -- rendered so RESO and CLOUD can be compared side by side, not described */
     case S_MENU_HOLD: ui.menu = 1; ui.menu_sel = MI_HOLD; settings_hold = 2; break;
     case S_MENU_LEDS: ui.menu = 1; ui.menu_sel = MI_LEDS; settings_leds = LEDS_INV; break;
     case S_MENU_END: ui.menu = 1; ui.menu_sel = MI_COUNT - 1u; ui_prefs = 0xFF; ui_rec_prefs = 0x2A; break;   /* the last row,
@@ -1259,16 +1262,34 @@ static void draw(int s)
             }
             spl_anim = anim0;
             ui_prefs = prefs0;
-            {   /* the frame the whole timeline left must be the frame a whole draw produces: the guard may only
-                 * skip work, never pixels. */
-                uint16_t end[sizeof host_screen / sizeof host_screen[0]];
+            {   /* the frame the whole timeline leaves must be the frame a whole draw produces: the guard may
+                 * only skip work, never pixels. (3.2) The hold ends in SPL_FADE ms of HAND-OVER -- the sky
+                 * contracting toward HOME's bay -- so the frame compared is the one where the art is still
+                 * whole, and the last frame must then be DIFFERENT, or the hand-over never ran. */
+                uint16_t end[sizeof host_screen / sizeof host_screen[0]], last[sizeof host_screen / sizeof host_screen[0]];
+                uint32_t whole_ms = SPL_WRITE + SPL_HOLD - SPL_FADE;
+                uint8_t ap = spl_anim;
+                uint32_t pp = ui_prefs;
+                memcpy(last, host_screen, sizeof last);
+                spl_anim = 1;                            /* (the loop's state, put back before the comparison) */
+                ui_prefs &= ~(uint32_t)PREF_ANIM_OFF;
+                splash_write(whole_ms);
                 memcpy(end, host_screen, sizeof end);
                 spl_anim = 0;
                 draw_splash();
-                spl_anim = anim0;
+                spl_anim = ap;
+                ui_prefs = pp;
                 if (memcmp(end, host_screen, sizeof end)) {
-                    if (rep) fprintf(rep, "FIND %-26s the splash timeline's last frame is not the whole splash\n",
-                                     cur_name);
+                    uint32_t q, nd = 0, fq = 0;
+                    for (q = 0; q < (uint32_t)(sizeof end / sizeof end[0]); q++)
+                        if (end[q] != host_screen[q]) { if (!nd) fq = q; nd++; }
+                    if (rep) fprintf(rep, "FIND %-26s the splash timeline's whole frame is not the whole splash "
+                                     "(%u px, first %u,%u: %04x vs %04x)\n", cur_name, nd, fq % 240u, fq / 240u,
+                                     end[fq], host_screen[fq]);
+                    nfind++;
+                }
+                if (!memcmp(last, end, sizeof end)) {
+                    if (rep) fprintf(rep, "FIND %-26s the splash's hand-over draws nothing new\n", cur_name);
                     nfind++;
                 }
             }

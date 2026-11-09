@@ -121,14 +121,19 @@ def call_ints(name, text):
 orx, orys, orr = nums("ORX", being), nums("ORYS", being), nums("ORR", being)
 box = call_ints("sys_box", being)
 sysc = call_ints("gw_draw_system", being)
-check(len(orx) == 3 and len(orys) == 3 and len(orr) == 3 and len(box) == 4 and len(sysc) >= 2,
-      "HOME: the solar system's orbit tables, its clip and its call are all found")
-if len(orx) == 3 and len(orr) == 3 and len(box) == 4 and len(sysc) >= 2:
+# (3.2) the number of planets comes from the source (NPL: HOME drew three, it draws four), so a fifth
+# orbit would be checked too instead of quietly leaving the tables a size behind the draw. The check is
+# the same arithmetic on every orbit: no table is exempt.
+m = re.search(r"#define\s+NPL\s+(\d+)", being)
+npl = int(m.group(1)) if m else 3
+check(len(orx) == npl and len(orys) == npl and len(orr) == npl and len(box) == 4 and len(sysc) >= 2,
+      "HOME: the solar system's %d orbit tables, its clip and its call are all found" % npl)
+if len(orx) == npl and len(orr) == npl and len(orys) == npl and len(box) == 4 and len(sysc) >= 2:
     bx, by, bw, bh = box
     cx, cy = sysc[0], sysc[1]
     hw, hh = min(cx - bx, bx + bw - cx), min(cy - by, by + bh - cy)
     worst = 0
-    for i in range(3):
+    for i in range(npl):
         ex = orx[i] + orr[i] + 2
         ey = orx[i] * orys[i] // 100 + orr[i] + 2
         worst = max(worst, ex - hw, ey - hh)

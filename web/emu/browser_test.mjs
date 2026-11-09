@@ -17,6 +17,13 @@ import { chromium } from "playwright";
 const args = process.argv.slice(2);
 const DIR = path.resolve(args.find((a) => !a.startsWith("--")) || "build/emu");
 const HEADED = args.includes("--headed");
+// The splash's length is the firmware's (firmware/src/ui_draw.c), so a longer boot screen moves the wait and
+// the offline key press with it instead of playing a note the splash is still blocking (3.2: 2.3 s -> 3.1 s).
+const SPLASH_S = (() => {
+  const src = fs.readFileSync(path.resolve("firmware/src/ui_draw.c"), "utf8");
+  const n = (k) => Number((src.match(new RegExp(`#define\\s+${k}\\s+\\(?(\\d+)u`)) || [])[1] || 0);
+  return (n("SPL_WRITE") + n("SPL_HOLD") || 2300) / 1000;
+})();
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8", ".wasm": "application/wasm", ".json": "application/json",
   ".woff": "font/woff", ".woff2": "font/woff2", ".png": "image/png", ".css": "text/css" };
@@ -90,8 +97,8 @@ try {
                                               build: document.getElementById("build-commit")?.textContent || "" }));
   check("the footer shows that hash and build", footer.hash === emu?.wasmSha && footer.build === manifest.commit);
 
-  /* boot: 2.3 s of splash, then HOME; the screen must be drawn, not left black */
-  await page.waitForTimeout(3200);
+  /* boot: the splash the firmware declares, then HOME; the screen must be drawn, not left black */
+  await page.waitForTimeout(Math.round(SPLASH_S * 1000) + 500);
   const screen = await page.evaluate(() => {
     const c = document.getElementById("screen");
     const ctx = c.getContext("2d");
@@ -127,7 +134,7 @@ try {
   /* the same worklet, offline: the module the page serves has to render audio by itself */
   const audio = await page.evaluate(async () => {
     const buf = await (await fetch("felucca.wasm", { cache: "no-store" })).arrayBuffer();
-    const rate = 44100, secs = 4;
+    const rate = 44100, secs = Math.ceil(SPLASH_S + 2);
     const ctx = new OfflineAudioContext(2, rate * secs, rate);
     await ctx.audioWorklet.addModule(`worklet.js?offline=${Date.now()}`);
     const node = new AudioWorkletNode(ctx, "felucca", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
@@ -140,14 +147,14 @@ try {
     });
     node.port.postMessage({ type: "load", wasm: buf }, [buf]);
     const info = await ready;
-    ctx.suspend(3.0).then(() => {                    // the splash is over by 2.3 s: play after it
+    ctx.suspend(SPLASH_S + 0.2).then(() => {         // the splash is over: play after it
       node.port.postMessage({ type: "keys", mask: 1 << 7 });
       ctx.resume();
     });
     const out = await ctx.startRendering();
     const l = out.getChannelData(0);
     let peak = 0, sumsq = 0, n = 0;
-    for (let i = Math.floor(rate * 3.1); i < l.length; i++) {
+    for (let i = Math.floor(rate * (SPLASH_S + 0.3)); i < l.length; i++) {
       const v = l[i];
       if (Math.abs(v) > peak) peak = Math.abs(v);
       sumsq += v * v;
@@ -156,7 +163,7 @@ try {
     return { rate: info.rate, frames: out.length, peak, rms: Math.sqrt(sumsq / Math.max(n, 1)) };
   });
   check("the worklet reports the device rate (44100)", audio.rate === 44100, `${audio.rate}`);
-  check("the worklet renders the whole 4 s offline", audio.frames === 4 * 44100, `${audio.frames} frames`);
+  check("the worklet renders the whole offline buffer", audio.frames === Math.ceil(SPLASH_S + 2) * 44100, `${audio.frames} frames`);
   check("a held key makes sound through the worklet in Chromium", audio.peak > 0.01, `peak ${audio.peak.toFixed(3)}`);
   check("no console errors", consoleErrors.length === 0, consoleErrors.slice(0, 3).join(" | "));
   check("no uncaught page errors", pageErrors.length === 0, pageErrors.slice(0, 3).join(" | "));
