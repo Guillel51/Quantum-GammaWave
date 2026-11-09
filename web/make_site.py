@@ -214,6 +214,16 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     for f in fw.glob("felucca-*.fwsc"):            # the current package and the earlier ones kept, nothing else
         f.unlink()
     (inst / "index.html").write_text(html, encoding="utf-8")
+    # (plan) the page that answers "what will M-Flasher write" without pretending to install: it reads
+    # the signed release's own versions.json, hashes the package, and runs the acceptance trace and the
+    # sector plan on the owner's dump. Same two modules as the installer's card, nothing else.
+    plan = (HERE / "plan.html").read_text(encoding="utf-8")
+    if plan.count("/*LIB*/") != 1:
+        raise SystemExit("plan.html must contain /*LIB*/ once")
+    plib = strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
+        strip_module((HERE / "fm1accept.js").read_text(encoding="utf-8"))
+    (out / "plan").mkdir(parents=True, exist_ok=True)
+    (out / "plan" / "index.html").write_text(with_csp(plan.replace("/*LIB*/", plib)), encoding="utf-8")
     shutil.copy(pkg, fw / name)
     if (HERE.parent / "FM-1.fwsc").is_file():
         shutil.copy(HERE.parent / "FM-1.fwsc", fw / "FM-1.fwsc")

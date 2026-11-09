@@ -10,7 +10,7 @@ echo.
 echo   This window opens the installer. No Python, Node, Rust or compiler is
 echo   needed to install the firmware: the page does the checks itself.
 echo.
-echo   STEP 0 - PLAN BEFORE YOU WRITE (first card on the page):
+echo   STEP 0 - PLAN BEFORE YOU WRITE (the page this window opens):
 echo     Load your M-Flasher dump (the 1 MiB .bin) under
 echo     "Before you write anything". The page then runs M-Flasher's own
 echo     checks on the release package and shows the exact sectors it will
@@ -26,9 +26,12 @@ echo   Allow Web MIDI when the browser asks: that is the page talking to the FM-
 echo   Use a data USB cable, plugged straight into the computer, no hub.
 echo.
 
-rem The installable channel: the signed release, page + package + emulator from one commit.
-rem The site root serves this tree's build, which carries no signature and refuses to install.
-set "SITE=https://guillel51.github.io/Quantum-GammaWave/release/webapp/installer/"
+rem STEP 0 opens the plan page: it reads the signed release's package, runs M-Flasher's own
+rem checks on it, and prints the exact sectors M-Flasher will erase, using this PC's dump.
+rem STEP 1 is the signed release's installer (the site root serves an unsigned build that
+rem the installer itself refuses).
+set "SITE=https://guillel51.github.io/Quantum-GammaWave/plan/"
+set "INSTALL=https://guillel51.github.io/Quantum-GammaWave/release/webapp/installer/"
 set "LOCAL_PAGE="
 if exist "%~dp0webapp\installer\index.html" set "LOCAL_PAGE=%~dp0"
 if not defined LOCAL_PAGE if exist "%~dp0release\webapp\installer\index.html" set "LOCAL_PAGE=%~dp0release\"
@@ -53,12 +56,12 @@ if defined LOCAL_PAGE if defined PY_CMD (
     goto :eof
 )
 
-echo   Opening the signed release's installer over HTTPS.
-echo   Nothing has to be installed on this PC.
-echo   %SITE%
+echo   Opening the plan page over HTTPS. Nothing has to be installed on this PC.
+echo   Plan:    %SITE%
+echo   Install: %INSTALL%
 echo.
 start "" "%SITE%"
-echo   The browser is opening. Keep this window: the steps above are the check
-echo   list, and the page's first card is the plan for your own dump.
+echo   The browser is opening the plan page. Load your dump there, read the sectors,
+echo   then use its "Continue to the signed installer" button.
 echo.
 pause

@@ -406,11 +406,15 @@ above on the release the page offers as soon as the package loads, and when the 
 with the runs M-Flasher will erase, and how many sectors already match and are left alone. Nothing in
 that card talks to the unit, and it works before the cable is plugged in.
 
-`launch_browser_installer.bat` opens that page and prints the same steps. It no longer requires
+`launch_browser_installer.bat` opens `/plan/` and prints the same steps. It no longer requires
 Python: with a local copy and Python present it serves the folder over `localhost` (Web MIDI needs
-HTTPS or localhost), and otherwise it opens the signed release's channel over HTTPS --
-`/release/webapp/installer/`, because the site root serves this tree's build, which carries no
-signature and refuses to install. In both channels the plan card is the first thing on the page. The only manual step left in the whole path is choosing the dump and the
+HTTPS or localhost), and otherwise it opens that page over HTTPS. `/plan/` exists as its own page
+for a structural reason: the signed channel at `/release/` is built from the release commit, so its
+installer page cannot carry a change made after that commit, while the root installer serves this
+tree's unsigned build and refuses to install. So the plan page reads the signed release's own
+`versions.json`, hashes the package against the SHA-256 published with it, runs the same checks and
+the same sector plan on the owner's dump, writes nothing, and links to
+`/release/webapp/installer/` for the browser updater. The only manual step left in the whole path is choosing the dump and the
 package in that card — no commands, no toolchain, no installs.
 
 `node web/test_accept.mjs` — **20 checks, 0 FAILED**: the release passes, a blank app area is 143
