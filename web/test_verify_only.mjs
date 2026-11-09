@@ -531,26 +531,101 @@ function anyWrite(sent) {
   check("the checklist has its ten rows, in the installer's order",
         (fw.gate || []).map((r) => r.key).join(",") ===
         "gate.detect,gate.read,gate.package,gate.compat,gate.signature,gate.chip,gate.flashmap,gate.backup,gate.recovery,gate.revalidate");
-  check("the flash map and the post-install revalidation are never claimed as established here",
-        g["gate.flashmap"] === "unknown" && g["gate.revalidate"] === "unknown");
+  /* the map is a property of the package, so it can be established without a write -- but only when the
+     build record names the image size. The post-install identity is `after`: the install verifies it,
+     and requiring it in advance would be requiring the result to prove itself. */
+  check("without an image size the flash map stays unknown, and the post-install identity is an obligation, not a precondition",
+        g["gate.flashmap"] === "unknown" && g["gate.revalidate"] === "after" &&
+        !fw.verdict.blocked.includes("gate.revalidate"));
   check("the four conditions this run can establish are pass",
         g["gate.detect"] === "pass" && g["gate.read"] === "pass" && g["gate.package"] === "pass" && g["gate.compat"] === "pass");
   check("an empty key map fails the signature row (it is not 'unknown' when no key exists at all)",
         g["gate.signature"] === "fail");
   check("the chip session is marked as not done by verify only, never as pass", g["gate.chip"] === "not-here");
-  check("backup is unknown and recovery is documentation only, never pass",
-        g["gate.backup"] === "unknown" && g["gate.recovery"] === "documented");
-  check("the verdict is NO-GO, lists what blocks it, and canInstall stays false",
-        fw.verdict.result === "NO-GO" && fw.verdict.canInstall === false && fw.authorised === false &&
-        ["gate.signature", "gate.chip", "gate.flashmap", "gate.backup", "gate.recovery", "gate.revalidate"]
+  check("with no record and no dump, backup and recovery are unknown -- never pass, never 'documented'",
+        g["gate.backup"] === "unknown" && g["gate.recovery"] === "unknown");
+  check("the verdict is NO-GO, lists what blocks it, and cannot install on either path",
+        fw.verdict.result === "NO-GO" && fw.verdict.canInstall === false && fw.verdict.canInstallHost === false &&
+        fw.authorised === false &&
+        ["gate.signature", "gate.chip", "gate.flashmap", "gate.backup", "gate.recovery"]
           .every((k) => fw.verdict.blocked.includes(k)) &&
-        fw.verdict.blocked.length === 6);
+        fw.verdict.blocked.length === 5);
   check("a key map does not let verify only claim the signature was checked",
         (await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] }).midi,
           { product: "FM-1_982", pkg: { ...real, keys: { prod: "00".repeat(32) } } }))
           .gate.find((r) => r.key === "gate.signature").state === "unknown");
   check("no report row claims a JEDEC id, a clock or a flash geometry was read",
         !(fw.fields || []).some((f) => /jedec|clock|geometry/i.test(f.key) && f.confidence !== "documented"));
+}
+{
+  /* The owner's own evidence: two M-Flasher readings of one stock unit that agree on the whole 1 MiB, a
+     signed package whose image fits `[0x4000, 0x93000)`, and a unit that answers its identity. This is
+     the case the checklist used to call "blocked by gates 6..10": the chip, the map and the backup are
+     all knowable, recovery is covered by a documented tool, and the only thing this page cannot do is
+     write to a stock app -- a transport limit, not a missing gate. */
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
+    build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
+  const corroborated = { ok: true, readings: 2, dumpSha256: "38".repeat(32), jedec: 0x856014, flash: "0x856014",
+    model: "FM-1", unitId: "4150353835313708", tool: "m-flasher 0.9.4",
+    saved: ["20261109-102008", "20261109-102035"], source: "2 m-flasher records of this unit, same dump hash" };
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built, corroborated });
+  const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+  check("two agreeing readings: the chip and the backup are established, as corroboration",
+        g["gate.chip"] === "corroborated" && g["gate.backup"] === "corroborated");
+  check("the map is established from the package, not from a write session",
+        g["gate.flashmap"] === "pass");
+  check("recovery is covered (verified backup + a tool over the written range), never 'exercised'",
+        g["gate.recovery"] === "covered" && fw.verdict.limitations.includes("recovery-not-exercised"));
+  check("the signature is still the blocker when no key is present, and nothing claims otherwise",
+        g["gate.signature"] === "unknown" && fw.verdict.result === "NO-GO" &&
+        fw.verdict.blocked.length === 1 && fw.verdict.blocked[0] === "gate.signature");
+  check("the verdict names M-Flasher as the path, so a stock unit is never read as page-installable",
+        fw.verdict.path === "m-flasher" && fw.verdict.canInstall === false && fw.verdict.canInstallHost === false);
+  check("the read-only path still sent nothing but identity queries", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+{
+  /* the same unit and package with the signature checked: every precondition is a pass or a covered
+     limitation, so the honest verdict for a stock unit is GO for the host install and still no write
+     from this page. */
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
+    build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
+  const corroborated = { ok: true, readings: 2, dumpSha256: "38".repeat(32), jedec: 0x856014, flash: "0x856014",
+    model: "FM-1", unitId: "4150353835313708", tool: "m-flasher 0.9.4",
+    saved: ["20261109-102008", "20261109-102035"], source: "2 m-flasher records of this unit, same dump hash" };
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built, corroborated,
+    signature: { state: "pass", keyid: "qg1-release-1", size: 610806, sha256: "80".repeat(32), detail: "checked" } });
+  check("a prepared stock unit is GO-HOST: the host writes, this page still does not",
+        fw.verdict.result === "GO-HOST" && fw.verdict.canInstallHost === true && fw.verdict.canInstall === false &&
+        fw.verdict.blocked.length === 0 && fw.verdict.path === "m-flasher");
+  check("its limitations are named, not hidden", fw.verdict.limitations.includes("recovery-not-exercised") &&
+        fw.verdict.limitations.includes("dump-not-hashed-here"));
+  check("GO-HOST is not an authorisation to send anything", fw.authorised === false && onlyQueries(a.sent) && !anyWrite(a.sent));
+  check("the diagnostic file says RECOVERY AVAILABLE honestly: covered, still not exercised",
+        (() => { const st = Object.fromEntries(diag.diagnosticStates(fw).map((s) => [s.state, s.reached]));
+          return st["INSTALL READY"] === true && st["INSTALL BLOCKED"] === false && st["RECOVERY NOT VERIFIED"] === false; })());
+}
+{
+  /* The path that already exists on the wire: a unit running this firmware. Here the installer IS the
+     writer, the chip is identified by the install's own 0x12 on the same link, and an interrupted
+     update is resumable by design -- so nothing about a full-flash dump belongs in this list. This is
+     the case that used to say "recovery not verified" and block an update that the transport supports. */
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
+    build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built,
+    signature: { state: "pass", keyid: "qg1-release-1", size: 610806, sha256: "80".repeat(32), detail: "checked" } });
+  const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+  check("a unit already running QG: the installer's own path is GO", fw.kind === "ours" &&
+        fw.verdict.result === "GO" && fw.verdict.canInstall === true && fw.verdict.path === "this-page" &&
+        fw.verdict.blocked.length === 0);
+  check("the chip is not a gap here: the install reads it with 0x12 before its first write frame",
+        g["gate.chip"] === "at-install");
+  check("an update needs no full-flash dump, and its recovery is the loader's resume",
+        g["gate.backup"] === "not-required" && g["gate.recovery"] === "covered" &&
+        fw.verdict.limitations.includes("update-resumable-not-exercised"));
+  check("verify only still sent nothing but the identity query", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
   /* a unit that answers another firmware: the model still matches, so compatibility is decided by what

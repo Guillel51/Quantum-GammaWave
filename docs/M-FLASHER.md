@@ -182,7 +182,8 @@ So the installer now does three different things, and says which one it did:
 | `FM-1_015` (stock application) | refuses (`stockfirst`), opens the M-Flasher panel, and sends nothing. |
 
 **The first install is M-Flasher's.** `Install firmware` takes the same `.fwsc`, checks the model, the chip
-key and every app file's CRC16, plans the write sector by sector, and touches `[0x4000, len)` only — the
+key and every app file's CRC16, plans the write sector by sector (§11 traces those checks on this
+release, one by one), and touches `[0x4000, len)` only — the
 bootloader, the SPL head and `isd_config` stay. It is a third-party program this project does not
 redistribute; what this project did is audit it and wrap its *record* (this page), not its writer.
 `plan_firmware` defaults to `[BOOT_AREA, len)`, so the boot area is kept unless the package itself carries a
@@ -265,3 +266,133 @@ mode and identified the part — not that a `.bin` was kept or is consistent.
 
 The practical order that follows, for a stock unit: two `backup` runs (read-only, no bootloader change),
 compare them, import the pair, and only then decide about any write.
+
+## 10. The Windows 10 procedure, step by step, and what each step proves
+
+Written for the unit whose record is `fm1-20261109-102008.json` / `fm1-20261109-102035.json`: stock
+FM-1, firmware 015, JEDEC `0x856014`, unit id `4150353835313708`. Nothing here writes flash. The labels
+are the ones M-Flasher 0.9.4 uses; a later build may rename a button without changing the operation.
+
+0. **What you need.** M-Flasher 0.9.4 (the version that produced both records — there is no reason to
+   change tools in the middle of a backup). Get it from its releases page as the single Windows
+   executable, not from a mirror. The unit, its USB-C data cable, a USB-A port directly on the machine,
+   mains power, and about 2 GB free. Close every DAW, editor and browser tab that can open MIDI.
+1. **Read the unit while it is still normal.** Open M-Flasher and connect. It shows `FM-1_015`,
+   bootloader stock, app `OK`, chip key `0x980F`, flash `0x856014`. This is the state the record
+   describes, and if any field differs, stop: the rest of this page is written for this state.
+2. **`DOWNLOAD MODE`.** The tool sends SysEx `F0 22 24 35 7D F7` and the running firmware reboots into
+   the chip's ROM loader. **The FM-1 stops being a MIDI device at this point** — that is the expected
+   result, not a failure, and no file was written.
+3. **Confirm the ROM mode before reading anything.** In Windows, Device Manager (or `Get-PnpDevice`)
+   shows the unit as `WL82 UBOOT1.00`; M-Flasher reconnects to it by itself. Two checks: the MIDI port
+   list is empty for this unit, and the storage/UBOOT device is present. If the device shows up with a
+   warning sign, the ROM loader is there but the driver is not — install the tool's own driver
+   instructions (WinUSB) before continuing. Do not read "the port disappeared" as a dead unit: in ROM
+   mode there is no MIDI port by construction.
+4. **`Back up the whole flash`.** It reads `0x000000..0x0FFFFF` — app, boot head, factory data, user
+   regions — and writes two files: the `.bin` (exactly 1 048 576 bytes) and the `.json` next to it. The
+   `.json` carries the part's identification and the SHA-256 of the image it just read. Neither file is
+   a write: `apply()`, the only function that erases or programs, is unreachable from this action (§2).
+5. **Leave ROM mode with `restart`.** The unit reboots into stock 015 and answers MIDI again. Nothing
+   was written; if it does not come back, power-cycle it — the ROM loader is in the mask ROM and always
+   answers.
+6. **Second, independent reading.** Close M-Flasher, unplug the cable, replug it, and repeat steps 1–5
+   in a new session, saving to a different filename. Two reads in one session share too much state to
+   count as independent.
+7. **Compare, on the machine, before trusting either file.**
+   ```
+   certutil -hashfile fm1-20261109-102008\fm1.bin SHA256
+   certutil -hashfile fm1-20261109-102035\fm1.bin SHA256
+   fc /b fm1-20261109-102008\fm1.bin fm1-20261109-102035\fm1.bin
+   ```
+   `fc /b` prints nothing when the files are identical. Two identical SHA-256 values *are* byte
+   identity, so a CRC32 is only needed when you have a single read and no second one to compare —
+   then read the chip's CRC32 with the tool's own verification and record it next to the dump.
+8. **What makes the backup valid** (all of these, or it is not a backup yet): both files are exactly
+   1 048 576 bytes; `fc /b` reports no differences; the two SHA-256 values are equal; the record says
+   `0x980F` / `0x856014`; the record's own `sha256` equals the value both reads produced; the `.json`
+   is kept beside each `.bin`.
+9. **Keep it everywhere.** One copy outside the repository (an external disk, a cloud folder you
+   control), one on different physical storage. Do not publish the dump or the unit id: it holds the
+   unit's presets, its factory data and a stable identifier.
+10. **Only then** is an install a decision rather than a gamble. On this unit that is M-Flasher's
+    `Install firmware` with the release `.fwsc` — the same container this project signs — which writes
+    `[0x4000, 0x93000)` and leaves `0x0000..0x3FFF` alone. The browser installer offers the honest
+    alternative: it reports the unit, the package and the backup, and still writes nothing to a stock
+    app (there is no `UPGRADE` path in stock 015 to write through).
+
+If step 2 or 3 fails on this unit — no ROM mode, no `WL82 UBOOT1.00` — then M-Flasher cannot read it,
+and `jl-uboot-tool` is the documented fallback: it loads the same kind of loader into RAM over the ROM
+protocol, so a read stays a read. Do not mix the two tools in one session.
+
+### What the two records already establish
+
+`fm1-20261109-102008.json` and `fm1-20261109-102035.json` name the same unit, the same part, the same
+tool and the **same `sha256`** (`38c66ae7…`), with two different `saved` stamps 27 seconds apart. That
+is two independent reads of the same 1 MiB that agree, which is the corroboration step 8 asks for. It
+is not a hash this project computed: the dumps are on the owner's disk. The installer reports the pair
+as `corroborated` and says so, and a dump dropped next to a record upgrades it to `pass` because then
+the page hashes the bytes itself.
+
+## 11. What M-Flasher checks before its first erase, applied to this release
+
+`Install firmware` is the first install on a stock unit (§6), so the question "will it take this
+package" has a precise answer: the refusals in `Session::plan_firmware` (`src/ops.rs`) and the
+container rules in `Package::parse` (`src/formats.rs`), in that order. `tools/fm1_mflasher_accept.py`
+re-implements exactly those and applies them to a `.fwsc` here, printing each rule with its class:
+
+- **`[SRC]`** — the rule as read in M-Flasher 0.9.4, tag `v0.9.4` (`src/formats.rs`, `src/ops.rs`,
+  `src/boards.rs`). It is quoted, not executed: the tool that performs the install is M-Flasher's.
+- **`[HOST]`** — the value computed in this repository from the package's bytes, now.
+
+```
+python3 tools/fm1_mflasher_accept.py release/felucca-v1.9.0.fwsc
+  ok   the bytes this asks about          610806 B, sha256 80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2
+```
+
+| # | Rule M-Flasher applies | Where in it | This release | Class |
+| --- | --- | --- | --- | --- |
+| 1 | at least `0x1000` bytes | `Package::parse` | 610 806 B | `[HOST]` |
+| 2 | the identity is woven into byte 47 of the first 48-byte blocks, one character per block | `Package::parse` | `FM-1_982`, 20 blocks | `[HOST]` |
+| 3 | header CRC16 over bytes 2..63 | `Package::parse` | matches | `[HOST]` |
+| 4 | file-list CRC16, stored in the header | `Package::parse` | matches (2 entries: `flash.bin`, `ota.bin`) | `[HOST]` |
+| 5 | `flash.bin` is type 0 and its CRC16 matches the list | `Package::parse` | 602 112 B (`0x93000`), CRC16 `0xCC18`, matches | `[HOST]` |
+| 6 | the image is longer than the boot area and a whole number of 4 KiB sectors | `Package::parse` | 147 sectors | `[HOST]` |
+| 7 | the package's model is one the identified board accepts | `plan_firmware` | `FM-1` ∈ {`FM-1`, `MiniFM`} | `[SRC]`+`[HOST]` |
+| 8 | the image is not larger than the flash | `plan_firmware` | 602 112 B ≤ 1 048 576 B | `[SRC]`+`[HOST]` |
+| 9 | every `attr 0x82` app file decrypts with the unit's chip key and its CRC16 matches | `plan_firmware` → `app_files_status` | `app.bin` 581 564 B CRC16 `0xE643`; `cfg_tool.bin` 383 B CRC16 `0x2E75`, under `0x980F` | `[SRC]`+`[HOST]` |
+| 10 | the write is `[0x4000, len)` and no changed sector may fall outside it | `plan_firmware` → `Plan::new` | `0x04000-0x92FFF`, 143 sectors, boot area kept | `[SRC]`+`[HOST]` |
+| 11 | nothing reaches the unit's factory data | `boards.rs` `FM1.factory` | the image ends at `0x92FFF`; factory is `0xFF000+` | `[HOST]` |
+| 12 | before the first erase of a session, a backup is saved; each written run is verified by the chip's CRC32, retried once | `ops.rs` `apply` | not reached by this trace — M-Flasher's own run | `[SRC]` |
+
+Every one of those passes on `release/felucca-v1.9.0.fwsc`. What that establishes is narrow and worth
+stating: **the package will not be refused**. The model and the chip key are answered again by the unit
+when M-Flasher opens it (`Analysis::new` reads the image it took, `READ_KEY` returns the key), so a
+package that passes here can still be refused on a unit that turns out to be another model or to
+report another chip key. Nothing in this trace writes, and nothing in it is a substitute for the
+backup of §10 or for the signature check the browser performs.
+
+Negative controls, so the trace is not a rubber stamp — `tests/mflasher_accept_test.py` mutates the
+release and requires each refusal, in M-Flasher's own wording:
+
+| Mutation | Refusal it must produce |
+| --- | --- |
+| a byte of `app.bin`, every container CRC recomputed so the package is consistent with itself | `does not decrypt with this unit's chip key (0x980F)` |
+| a byte of the package header | `damaged one (header CRC)` |
+| a byte of the flash image | `damaged firmware package (flash.bin CRC)` |
+| the first identity character (`F` → `S`) | `this package is for the SM-1, the connected unit is a FM-1` |
+| the same package under chip key `0xFFFF` | `does not decrypt with this unit's chip key (0xFFFF)` |
+| the image cut to a non-sector size | `damaged firmware package` / `unexpected flash image size` |
+
+```
+python3 tools/fm1_mflasher_accept.py release/felucca-v1.9.0.fwsc \
+    --dump backup/stock-01/fm1.bin --unit-model "FM-1"           # exact sector plan
+python3 tests/mflasher_accept_test.py                           # 14 checks, 0 FAILED
+```
+
+With `--dump` the plan is computed against the unit's own image (the sectors that actually differ, and
+the `runs` M-Flasher will erase); without it the trace reports the bound, which is the whole app area.
+`--unit-model` is the model the unit's installed firmware reports (`Analysis::new` decodes it out of
+`app.bin`); it only drives the cross-model warning, which M-Flasher prints when the unit runs another
+model's firmware. This unit's stock firmware reports `FM-1`, the same model as the package, so that
+warning does not apply to it.

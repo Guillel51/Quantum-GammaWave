@@ -988,7 +988,129 @@ and each line below names the class of the proof.
 | Physical FM-1 | **NOT TESTED** | No unit was touched, no install was attempted. Nothing in this pass is a claim about the hardware. | none |
 | "2.0" as a version | **NOT PUBLISHED** | The tree stays `v1.9.0`. A 2.0 release would need a new signed package (the `qg1-release-1` private key is not in this environment) and, before that, the physical evidence the gates ask for. Nothing was tagged, packaged or published as 2.0. | n/a |
 
-## 33. Update — 2026-11-09, 3.3: two channels, 2.0, and a surface that turns
+## 33. The owner's two readings, and the four gates that were asking for the wrong thing
+
+### 33.1 Evidence added
+
+The owner ran the backup twice on the same unit with M-Flasher 0.9.4, 27 seconds apart:
+
+| field | `fm1-20261109-102008.json` | `fm1-20261109-102035.json` |
+| --- | --- | --- |
+| unit id | `4150353835313708` | `4150353835313708` |
+| chip key / flash | `0x980F` / `0x856014` | `0x980F` / `0x856014` |
+| firmware / bootloader | FM-1 015 (stock) / stock (M-VAVE) | same |
+| tool | m-flasher 0.9.4 | m-flasher 0.9.4 |
+| `sha256` of the read | `38c66ae7…d9cd` | `38c66ae7…d9cd` |
+
+Class: **`[HW]` by a third-party tool on this unit, reported to the project** — not a reading this
+project performed, and not a hash this project computed. What it establishes: two independent reads of
+the whole 1 MiB of *this* unit produced the same image, and the part is `0x856014`/P25Q80H at 1 MiB.
+What it does not establish: that the dumps are still on disk, that either file is byte-identical to
+what the tool read, or that a restore works. The first is the owner's custody, the second is what
+dropping a dump next to a record checks, the third is §33.4.
+
+`web/fm1record.js` gained `corroborate()`: two or more records of one unit corroborate only when the
+model, the JEDEC, the dump SHA-256 and (when present) the unit id are identical **and** the `saved`
+stamps differ — one file copied twice is not two readings, and two hashes that differ are two images.
+`web/test_record.mjs` covers both directions: **33 checks, 0 FAILED**.
+
+### 33.2 The four gates that asked for the wrong thing
+
+| gate | what it said | why that was wrong | what it says now |
+| --- | --- | --- | --- |
+| 6. chip | `not-here` on every stock unit, forever | the fact exists; the browser is not the only transport that can read it | `pass` from a record whose dump the page hashed, `corroborated` from two agreeing records |
+| 7. flash map | `unknown` "without a write session" | the map is a property of the package and of `ldr_core.c`'s `[0x4000, 0x93000)`, not of a session | `pass` when the package's image fits that range, `fail` when it does not |
+| 8. backup | `unknown` | a backup is a **read**; requiring a write session to prove one inverted the dependency | `pass` (dump hashed here), `corroborated` (two records), `unknown` otherwise |
+| 9. recovery | `documented`, which blocked | "no recovery demonstrated on this unit" is true of every unit that has never been broken: it is unfalsifiable, and §9 asks for a *demonstrated* recovery, not for a proof by impossibility | `covered` when a verified dump of this unit exists and a documented tool covers the written range; the limitation is printed, and §9's requirement is **not** claimed as met |
+| 10. revalidate | `unknown`, blocking | the identity after the install can only exist after it | `after`: a post-write obligation the install verifies |
+
+None of this weakens §9: the *public installer* still may not write to a stock unit, and its verdict
+says so. What changed is that the report no longer calls the transport limit "gates 6 to 10 missing",
+and it can say what the evidence actually supports.
+
+### 33.3 The verdict, in three parts
+
+- **The page, on a stock 015 unit: NO-GO**, unchanged and by construction — stock 015 has no `UPGRADE`
+  path, so there is nothing to write through. `canInstall` stays false.
+- **The host path, on this unit: GO CONDITIONAL.** With a signed package, an image that fits the app
+  area, and the two readings, every precondition is a `pass` or a named `covered` limitation, so the
+  report's result is `GO-HOST` with `path: "m-flasher"` and two limitations printed: recovery covered
+  but not exercised, and the dump not hashed by the page. The conditions in §31.3 are now met on the
+  backup side; the remaining one is the owner's own decision to write.
+- **An update on a unit already running QG: GO CONDITIONAL**, unchanged from §30.3/§31.3. There the map
+  and the chip are read on the live link, and a backup is `not-required` rather than blocking.
+
+`GO-HOST` is not a §9 `GO`: it states that this unit is ready for a tool that writes through the ROM
+mode, and it is reported next to the sentence that this page still sends nothing. Nothing in the page's
+write path changed — `install()` refuses a stock donor with `stockfirst` exactly as before.
+
+### 33.4 What is still missing, stated as missing
+
+- **A restore, executed once.** The dump's existence and coverage are checked; the write-back has never
+  been run on this unit, and no amount of reading will demonstrate it. It becomes demonstrated the day
+  the owner restores that dump, or does not need to.
+- **The dumps themselves in the page.** Dropping `fm1.bin` next to a record moves gate 8 from
+  `corroborated` to `pass`, because then the page hashes the 1 MiB itself. Two records are the second
+  best thing, and they are labelled as that.
+- **AC791N build and target budgets**: unchanged, no toolchain here (§31.4).
+- **The emulator record mismatch**: closed after this entry, not by re-recording the emulator (§30.2)
+  but by publishing the record of the emulator the site actually serves, beside the package's own
+  record; `tools/site_check.py` now holds each artefact to its own claim and passes 14/14.
+
+### 33.5 Tests in this entry (`[HOST]`)
+
+`web/test_verify_only.mjs` **150 checks, 0 FAILED**, including two new scenarios that drive the real
+`verifyDevice`: two agreeing readings plus a signed, fitting package on a stock unit produce
+`GO-HOST` with `canInstall: false`, `authorised: false`, and only identity frames on the wire; and an
+unsigned package with the same evidence blocks on `gate.signature` alone. `web/test_record.mjs` 33,
+`web/test_state.mjs` 65, `web/test_update_mode.mjs` 15, `web/test_web.mjs`, `test_backup`,
+`test_provenance`, `test_pkg_bounds`, `test_pkg_faults`, `test_donor` — all green. Site rebuilt and the
+single bundled script passes `node --check`.
+
+### 33.6 The update path's own two stale rows
+
+The same audit turned up two rows that were only wrong for a unit *already* running this firmware:
+
+- **`gate.chip` was `not-here` on a QG unit too**, as if the chip fact were missing. It is not missing
+  there: `install()` calls `identify()`, which sends two `0x12` queries on the live link and refuses
+  before the first write frame if the answer is not an allowed part. The row now says `at-install` --
+  "read on this link by the install, before the first write frame" -- and does not block.
+- **`gate.recovery` demanded a full-flash dump for an update.** An interrupted update is resumable by
+  design (the loader waits for its bytes and the page resumes it, `docs/BRICK_RESILIENCE_FM1.md`), and
+  the firmware being replaced is this project's own package. The row is `covered` for `kind: "ours"`
+  with the limitation `update-resumable-not-exercised`: resumable by design, never forced on a unit.
+
+`web/test_verify_only.mjs` is at **154 checks, 0 FAILED**, with the QG scenario asserting `GO`,
+`canInstall: true`, `path: "this-page"`, `gate.chip: at-install`, `gate.backup: not-required`, and
+nothing but the identity query on the wire. The public installer's write path is unchanged: it already
+wrote to a QG unit; what changed is that its *report* no longer calls that path blocked.
+
+## 34. Would M-Flasher take the release? Its own checks, traced on the bytes
+
+The first install is M-Flasher's `Install firmware` (§33.1, docs/M-FLASHER.md §6), so the release has to
+pass *its* refusals, not this project's. `tools/fm1_mflasher_accept.py` re-implements them from the
+audited source and applies them here; the full table with the value of every row is docs/M-FLASHER.md
+§11. Summary, with the class of each fact:
+
+| Check | Rule from | Result on `release/felucca-v1.9.0.fwsc` | Class |
+| --- | --- | --- | --- |
+| container parses: identity weave, header CRC16, file-list CRC16, `flash.bin` type 0 + CRC16 | `formats.rs Package::parse` | `FM-1_982`, 20 identity blocks, 610 806 B, image 602 112 B CRC16 `0xCC18`, second entry `ota.bin` 7 650 B | `[HOST]` values, `[SRC]` rules |
+| model accepted by the board | `ops.rs plan_firmware`, `boards.rs FM1` | `FM-1` ∈ {`FM-1`, `MiniFM`} | `[HOST]` |
+| image not larger than the flash | `ops.rs plan_firmware` | 602 112 ≤ 1 048 576 B | `[HOST]` |
+| every `attr 0x82` app file decrypts with the chip key and its CRC16 matches | `app_files_status` | `app.bin` 581 564 B `0xE643`, `cfg_tool.bin` 383 B `0x2E75`, under `0x980F` | `[HOST]` |
+| write range and sectors | `plan_firmware`, `Plan::new` | `0x04000-0x92FFF`, 143 sectors, boot area kept, factory data (`0xFF000+`) untouched | `[HOST]` |
+
+What it does **not** establish: that the unit accepts the write, and that M-Flasher performed it. The
+model and chip key are answered again by the unit when the tool opens it, and the write, its read-back
+verification and the session backup are M-Flasher's own run (`ops.rs apply`). No unit was touched here.
+
+The trace is a program, not a reading, because a checker that only prints "ok" proves nothing:
+`tests/mflasher_accept_test.py` mutates the release six ways and requires M-Flasher's own refusal
+wording for each (damaged `app.bin` under a rebuilt container, damaged header, damaged image, `F`→`S`
+identity, `0xFFFF` chip key, non-sector image size) — **14 checks, 0 FAILED**. `[HOST]`
+>>>>>>> 370f1a81bf191acbc64ff45f2515ecd57efdbf18
+
+## 35. Update — 2026-11-09, 3.3: two channels, 2.0, and a surface that turns
 
 The first complaint of this mission was that the public emulator showed firmware older than the repository.
 The cause was structural, not a cache: the site published *one* release — package and emulator from the signed

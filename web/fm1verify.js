@@ -258,6 +258,18 @@ function recordFields(record) {
   ];
 }
 
+/* Two independent readings of this unit, agreeing on the whole 1 MiB. Reported as corroboration and
+ * named that way: the page did not hash the dumps, so it says what it checked (two records, same
+ * hash, different timestamps) instead of borrowing the authority of a hash it computed. */
+function corroboratedFields(c) {
+  if (!c) return [];
+  return [
+    { key: "record.readings", value: `${c.readings} readings \u00b7 ${c.flash} ${c.part || ""}`, source: c.source || "M-Flasher records", confidence: "high" },
+    { key: "record.agreement", value: `sha256 ${String(c.dumpSha256).slice(0, 16)}\u2026 · saved ${c.saved.join(", ")}`,
+      source: "the SHA-256 M-Flasher computed for each read, compared here: they are the same image", confidence: "high" },
+  ];
+}
+
 function probeFields(probe, port) {
   const p = probe || {};
   const c = p.counts || {};
@@ -300,19 +312,40 @@ function partsOf(pkg) {
   return { keys: n };
 }
 
-// The nine conditions an install has to satisfy, in the order the installer walks them, each with
-// the state this read-only check can actually establish. It is the same list the install path uses,
-// printed here so the reader sees where the chain stops instead of a disabled button with no reason:
-//   pass        established by evidence obtained in this run
-//   fail        contradicted by what was read
-//   unknown     this path cannot establish it (it would need a write-capable session or a backup)
-//   not-here    deliberately not done by verify only (the chip session is part of the install path)
-//   documented  only a document asserts it; nothing on this unit demonstrated it
-// Nothing in this function can return "pass" for a condition that needs a key, a chip session or a
-// recovery test: those are exactly the three that keep the installer closed.
-function gateOf({ found, read, pkg, compat, sig = null, chip = null, record = null }) {
+// The regions, from the loader that writes them (firmware/loader/ldr_core.c: LDR_APP_LO/LDR_APP_HI).
+// A package whose image does not fit here is refused by the loader itself, so it is checked before.
+const APP_LO = 0x4000, APP_HI = 0x93000;
+
+/* The ten conditions, in the order the installer walks them, each with the state the evidence actually
+ * supports. Two lessons are baked into the list below, because both cost this project a false block:
+ *
+ *   - a condition that is only knowable AFTER the write (the identity the unit reports afterwards) is
+ *     not a precondition. It is listed as `after`: the install verifies it, and requiring it in advance
+ *     is requiring the result to prove itself;
+ *   - "no recovery has been demonstrated on this unit" is true of every unit that has never been
+ *     broken. The precondition that can be met is that a verified dump of this unit exists and that a
+ *     documented tool covers exactly the range the install overwrites. That is `covered`: weaker than
+ *     `pass`, stronger than "unknown", and it is named so nobody reads it as a demonstration.
+ *
+ * states:
+ *   pass          established here, by this run or by this unit's own record
+ *   corroborated  two independent readings of this unit agree (fm1record.js corroborate())
+ *   covered       a verified backup plus a documented tool covering the written range; never exercised
+ *   fail          contradicted by what was read
+ *   unknown       this path cannot establish it yet
+ *   not-here      verify only does not do it and nothing else does either yet (a loader that cannot
+ *                 answer 0x12 with no record in hand)
+ *   at-install    this read-only run does not identify the chip, but the install path does -- with a
+ *                 live 0x12 on the same link, before the first write frame (identify() in fm1ota.js)
+ *   not-required  the update path does not need it (a unit already running this firmware)
+ *   after         a post-write obligation, verified by the install, never a precondition
+ */
+function gateOf({ found, read, pkg, compat, sig = null, chip = null, record = null, corroborated = null, kind = "none" }) {
   const { keys } = partsOf(pkg);
   const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader";
+  const image = Number((pkg && pkg.binary) || 0);
+  const fits = image > 0 && APP_LO + image <= APP_HI;
+  const backup = record && record.ok ? "pass" : (corroborated && corroborated.ok ? "corroborated" : "unknown");
   const rows = [
     { key: "gate.detect", state: found ? "pass" : "fail" },
     { key: "gate.read", state: read ? "pass" : "unknown" },
@@ -323,16 +356,45 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, record = nu
      * until a write session existed, which was both false and the reason the installer could never
      * say it trusted what it was about to write. */
     { key: "gate.signature", state: sig ? (sig.state === "pass" ? "pass" : "fail") : (keys ? "unknown" : "fail") },
-    /* A stock unit cannot answer 0x12, so its chip fact comes from the record out of band -- and only
-     * when the page hashed the dump the record names. Both are readings; neither is a write. */
-    { key: "gate.chip", state: chip ? (chip.ok ? "pass" : "fail") : (record && record.ok ? "pass" : "not-here") },
-    { key: "gate.flashmap", state: "unknown" },
-    { key: "gate.backup", state: record && record.ok ? "pass" : "unknown" },
-    { key: "gate.recovery", state: "documented" },
-    { key: "gate.revalidate", state: "unknown" },
+    /* A stock unit cannot answer 0x12, so its chip fact comes from the record out of band -- either
+     * the record whose dump the page hashed, or two records of this unit that agree. Both are readings. */
+    { key: "gate.chip", state: chip ? (chip.ok ? "pass" : "fail")
+      : (record && record.ok ? "pass" : (corroborated && corroborated.ok ? "corroborated"
+        : (kind === "ours" ? "at-install" : "not-here"))) },
+    /* The map is a property of the package and of the loader's own limits, not of a write session:
+     * the image has to fit `[0x4000, 0x93000)` and the boot head is never in any write range. */
+    { key: "gate.flashmap", state: image ? (fits ? "pass" : "fail") : "unknown" },
+    { key: "gate.backup", state: kind === "ours" && !record ? "not-required" : backup },
+    /* Recovery, per path. On a unit already running this firmware, an interrupted update is resumable
+     * by design (the loader waits for the bytes and the page resumes it) and the firmware it is
+     * replacing is this project's own, so an update does not need a full-flash dump to be recoverable.
+     * On a stock unit it does: the first install overwrites an app area whose only copy is that dump. */
+    { key: "gate.recovery", state: kind === "ours" ? "covered"
+      : ((backup === "pass" || backup === "corroborated") && fits ? "covered" : "unknown") },
+    { key: "gate.revalidate", state: "after" },
   ];
-  const blocked = rows.filter((r) => r.state !== "pass").map((r) => r.key);
-  return { rows, verdict: { result: "NO-GO", blocked, canInstall: false } };
+  /* What each path needs. This page writes to a unit that already runs this firmware (and to its own
+   * loader); it never writes to a stock app, because that app has no UPGRADE path at all. The host path
+   * writes the same app area through the chip's ROM mode and keeps the bootloader -- a different
+   * transport, so a different list. */
+  const page = kind === "ours" || kind === "ourloader";
+  const okPage = { pass: 1, "not-required": 1, covered: 1, "at-install": 1 };
+  const okHost = { pass: 1, corroborated: 1, covered: 1 };
+  const ok = page ? okPage : okHost;
+  const required = rows.filter((r) => r.state !== "after" && !(page && r.key === "gate.read" && kind === "ourloader"));
+  const blocking = required.filter((r) => !ok[r.state]).map((r) => r.key);
+  const limitations = [];
+  if (rows.find((r) => r.key === "gate.recovery").state === "covered")
+    limitations.push(kind === "ours" ? "update-resumable-not-exercised" : "recovery-not-exercised");
+  if (rows.find((r) => r.key === "gate.backup").state === "corroborated")
+    limitations.push("dump-not-hashed-here");
+  const ready = blocking.length === 0 && found && read && pkg && pkg.identity;
+  const verdict = ready
+    ? { result: page ? "GO" : "GO-HOST", path: page ? "this-page" : "m-flasher", blocked: [],
+        canInstall: page, canInstallHost: !page, limitations }
+    : { result: "NO-GO", path: page ? "this-page" : "m-flasher", blocked: blocking,
+        canInstall: false, canInstallHost: false, limitations };
+  return { rows, verdict };
 }
 
 export async function verifyDevice(midi, opts = {}) {
@@ -341,6 +403,7 @@ export async function verifyDevice(midi, opts = {}) {
   const sig = opts.signature || null;       // the offline check of the package (verifyPackage)
   const chip = opts.chip || null;           // a read-only 0x12 check, when one was run
   const record = opts.record || null;       // an M-Flasher record whose dump was hashed here
+  const corroborated = opts.corroborated || null;  // two records of this unit that agree (no dump here)
   const log = opts.log || (() => {});
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
@@ -366,7 +429,7 @@ export async function verifyDevice(midi, opts = {}) {
     const state = derive({ fw: { kind } });
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
-    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig, chip, record });
+    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig, chip, record, corroborated, kind });
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
@@ -386,10 +449,11 @@ export async function verifyDevice(midi, opts = {}) {
         ...pkgFields(pkg, compat, sig),
         ...chipFields(chip),
         ...recordFields(record),
+        ...corroboratedFields(corroborated),
         { key: "state.current", value: describe(state), source: "derived here: no usable identity answer", confidence: "high" },
       ],
       state,
-      signature: sig, chip, record,
+      signature: sig, chip, record, corroborated,
       gate: gate.rows, verdict: gate.verdict,
       missing: MISSING.map(([key, why]) => ({ key, why })),
     });
@@ -411,7 +475,7 @@ export async function verifyDevice(midi, opts = {}) {
   const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
   const compat = compatibility(kind, hardware, pkg.model);
-  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, record });
+  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, record, corroborated, kind });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
@@ -427,6 +491,7 @@ export async function verifyDevice(midi, opts = {}) {
     ...pkgFields(pkg, compat, sig),
     ...chipFields(chip),
     ...recordFields(record),
+    ...corroboratedFields(corroborated),
   ];
   /* the boot loader of a unit sitting in its update loader is not readable through that loader, so
    * the field is dropped there -- for both loaders, ours and the vendor's, since neither answers. */
@@ -441,7 +506,7 @@ export async function verifyDevice(midi, opts = {}) {
     state,
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
-    fields, missing, signature: sig, chip, record, gate: gate.rows, verdict: gate.verdict,
+    fields, missing, signature: sig, chip, record, corroborated, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
     compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
   });

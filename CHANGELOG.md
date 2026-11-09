@@ -28,7 +28,7 @@ del release, la única forma de no romper esa atadura era servir páginas viejas
   paquete firmado que se puede instalar sigue diciendo `v1.9.0` porque es el que está firmado, y ambas cosas se
   ven a la vez en la portada.
 
-Verificación de esta pasada en `docs/VALIDATION_MATRIX.md` §33: build AC791N y wasm de este árbol, suite de host,
+Verificación de esta pasada en `docs/VALIDATION_MATRIX.md` §35: build AC791N y wasm de este árbol, suite de host,
 emulador de Node, las dos páginas leídas del sitio público por HTTPS y el navegador sobre la URL real. Nada de
 esto es una prueba en hardware: ninguna FM-1 física ha sido escrita.
 

@@ -238,8 +238,17 @@ class WatchedFM1 {
 {
   const pkg = join(ROOT, "build/felucca.fwsc");
   const man = join(ROOT, "build/manifest.json");
-  if (!existsSync(pkg) || !existsSync(man)) {
+  // The record has to name the emulator this site would publish beside the package (make_site.py's
+  // check_build_record holds them to one commit). A tree that built the firmware and not the emulator
+  // has a record with `emulator: null`, and that is a missing artefact, not a broken page: it used to
+  // surface here as "make_site: a clean record ... FAIL" pointing at make_site.py, which was right all
+  // along. Say what is actually missing and skip, the same way a web-only checkout does.
+  const fwRecord = existsSync(man) ? JSON.parse(readFileSync(man, "utf8")) : null;
+  if (!existsSync(pkg) || !fwRecord) {
     console.log("make_site: no build/felucca.fwsc + manifest.json here, site checks skipped (a web-only checkout)");
+  } else if (!fwRecord.emulator) {
+    console.log("make_site: the build record names no emulator (build/emu/manifest.json was not there when "
+                + "it was written: run sh web/emu/build.sh first), site checks skipped");
   } else {
     const dir = mkdtempSync(join(tmpdir(), "qg1-site-"));
     const raw = readFileSync(pkg), build = JSON.parse(readFileSync(man, "utf8"));

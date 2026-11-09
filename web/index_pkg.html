@@ -295,7 +295,7 @@
       <div style="border:1px solid var(--border);padding:8px 10px;margin:0 0 10px">
         <p class="small" style="margin:0 0 6px" data-t="recTitle"></p>
         <p class="small" style="margin:0 0 8px" data-t="recWhat"></p>
-        <p class="small" style="margin:0 0 6px"><label><span data-t="recJson"></span> <input id="rec-json" type="file" accept=".json,application/json"></label></p>
+        <p class="small" style="margin:0 0 6px"><label><span data-t="recJson"></span> <input id="rec-json" type="file" multiple accept=".json,application/json"></label></p>
         <p class="small" style="margin:0"><label><span data-t="recDump"></span> <input id="rec-dump" type="file" accept=".bin,application/octet-stream"></label></p>
         <p class="small" id="rec-state" style="margin:8px 0 0;color:var(--muted)"></p>
       </div>
@@ -463,7 +463,7 @@ const TEXT = {
       + "the physical key combination varies with firmware.",
     chipCheck: "🧪 Check chip (read only)",
     recTitle: "Chip identification from M-Flasher (read-only report, and the chip fact a resumed write needs)",
-    recWhat: "A stock unit does not answer the chip query, so this page cannot read its flash. Drop the record M-Flasher wrote next to a full 1 MiB backup and that backup itself: the dump is hashed here, in this page, and must be the one the record names (its sha256 covers the whole 1 MiB image). The record then feeds the read-only report and the chip gate of a resumed write on the update loader. It is not an installation: the first install on a stock unit is M-Flasher's Install firmware.",
+    recWhat: "A stock unit does not answer the chip query, so this page cannot read its flash. Drop the record M-Flasher wrote next to a full 1 MiB backup and that backup itself: the dump is hashed here, in this page, and must be the one the record names (its sha256 covers the whole 1 MiB image). If you took two readings, drop both records: matching timestamps apart, they must name the same image, and the page reports that as corroboration -- it does not hash the dumps. The record then feeds the read-only report and the chip gate of a resumed write on the update loader. It is not an installation: the first install on a stock unit is M-Flasher's Install firmware.",
     recJson: "M-Flasher record (.json):",
     recDump: "Its dump (.bin, 1 MiB):",
     verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
@@ -599,7 +599,7 @@ TEXT.es = {
     + "la combinación física de teclas cambia según el firmware.",
   chipCheck: "🧪 Comprobar chip (solo lectura)",
   recTitle: "Identificación del chip desde M-Flasher (informe de solo lectura, y el dato que necesita una escritura reanudada)",
-  recWhat: "Una unidad de fábrica no responde a la consulta del chip, así que esta página no puede leer su flash. Cargá el registro que M-Flasher escribió junto a un respaldo completo de 1 MiB y ese respaldo: el dump se hashea acá, en esta página, y tiene que ser el que el registro nombra (su sha256 cubre la imagen de 1 MiB entera). Después el registro alimenta el informe de solo lectura y el gate del chip de una escritura reanudada en el loader. No es una instalación: la primera en una unidad de fábrica la hace el «Install firmware» de M-Flasher.",
+  recWhat: "Una unidad de fábrica no responde a la consulta del chip, así que esta página no puede leer su flash. Cargá el registro que M-Flasher escribió junto a un respaldo completo de 1 MiB y ese respaldo: el dump se hashea acá, en esta página, y tiene que ser el que el registro nombra (su sha256 cubre la imagen de 1 MiB entera). Si hiciste dos lecturas, cargá los dos registros: con timestamps distintos, tienen que nombrar la misma imagen, y la página lo informa como corroboración — no hashea los dumps. Después el registro alimenta el informe de solo lectura y el gate del chip de una escritura reanudada en el loader. No es una instalación: la primera en una unidad de fábrica la hace el «Install firmware» de M-Flasher.",
   recJson: "Registro de M-Flasher (.json):",
   recDump: "Su dump (.bin, 1 MiB):",
   verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
@@ -681,7 +681,7 @@ TEXT.zh = {
   mfCaveat: "依据该工具的源代码记录，本项目未在任何设备上验证。请先阅读该文档：物理按键组合因固件而异。",
   chipCheck: "🧪 检查闪存芯片（只读）",
   recTitle: "来自 M-Flasher 的闪存芯片识别（只读报告，以及恢复写入所需的芯片信息）",
-  recWhat: "出厂设备不响应芯片查询，因此本页面无法读取其闪存。请放入 M-Flasher 在完整 1 MiB 备份旁写下的记录，以及该备份本身：页面会在本地对 dump 计算哈希，且必须与记录中的哈希一致（其 sha256 覆盖完整的 1 MiB 镜像）。该记录随后用于只读报告，以及在更新 loader 上恢复写入时的芯片校验。它不是安装：出厂设备的首次安装由 M-Flasher 的 Install firmware 完成。",
+  recWhat: "出厂设备不响应芯片查询，因此本页面无法读取其闪存。请放入 M-Flasher 在完整 1 MiB 备份旁写下的记录，以及该备份本身：页面会在本地对 dump 计算哈希，且必须与记录中的哈希一致（其 sha256 覆盖完整的 1 MiB 镜像）。如果你做了两次读取，请放入两份记录：时间戳不同，但必须指向同一镜像；页面会把它报告为相互印证——它不会对 dump 做哈希。该记录随后用于只读报告，以及在更新 loader 上恢复写入时的芯片校验。它不是安装：出厂设备的首次安装由 M-Flasher 的 Install firmware 完成。",
   recJson: "M-Flasher 记录（.json）：",
   recDump: "对应的 dump（.bin，1 MiB）：",
   verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
@@ -815,6 +815,18 @@ const VF = {
     "state.unknown": "cannot be established without a write session",
     "state.not-here": "deliberately not done by verify only",
     "state.documented": "documented only, not demonstrated on this unit",
+    "state.corroborated": "two independent readings of this unit agree",
+    "state.covered": "a verified backup plus a tool that covers the written range, never exercised",
+    "state.after": "a post-write obligation the install verifies, not a precondition",
+    "state.not-required": "not needed on the update path",
+    "state.at-install": "read on this link by the install, before the first write frame",
+    "limit.update-resumable-not-exercised": "an interrupted update is resumable by design; no interruption was forced on a unit",
+    "path.this-page": "this page's installer",
+    "path.m-flasher": "M-Flasher, host install",
+    "limit.recovery-not-exercised": "recovery covered by a documented tool, not exercised on this unit",
+    "limit.dump-not-hashed-here": "the dump is on your disk: this page compared two records, it did not hash the 1 MiB",
+    "record.readings": "Independent readings of this unit (M-Flasher records)",
+    "record.agreement": "What the readings agree on",
     "state.current": "State: what this page actually observed",
     "state.unobservable": "States this transport cannot observe (WebMIDI exposes no VID:PID and no mass-storage device)",
     "st.DIAGNOSTIC READY": "the page ran and reported what it saw",
@@ -822,9 +834,9 @@ const VF = {
     "st.PACKAGE VERIFIED": "the package offered describes itself consistently",
     "st.SIGNATURE VERIFIED": "its signature matches a key pinned in this page",
     "st.DEVICE COMPATIBLE": "the unit's own answer fits this package",
-    "st.RECOVERY NOT VERIFIED": "no recovery has been demonstrated on this unit",
-    "st.INSTALL READY": "every gate above is a pass: this unit would be accepted",
-    "st.INSTALL BLOCKED": "at least one gate above is not a pass, so nothing may be written",
+    "st.RECOVERY NOT VERIFIED": "no verified backup of this unit plus a tool covering the written range, or recovery never exercised on it",
+    "st.INSTALL READY": "every precondition is met: this unit is ready for the path the verdict names (M-Flasher does the first install on a stock unit; this page writes to a unit already running QG)",
+    "st.INSTALL BLOCKED": "at least one precondition is not met, so nothing may be written",
     "gate.detect": "1. FM-1 detected",
     "gate.read": "2. Identity and version read",
     "gate.package": "3. Package identified",
@@ -908,6 +920,18 @@ const VF = {
     "state.unknown": "no puede establecerse sin una sesión de escritura",
     "state.not-here": "no lo hace esta verificación, a propósito",
     "state.documented": "solo documentado, no demostrado en esta unidad",
+    "state.corroborated": "dos lecturas independientes de esta unidad coinciden",
+    "state.covered": "backup verificado más una herramienta que cubre el rango escrito; nunca ejercitada",
+    "state.after": "obligación posterior a la escritura que la instalación verifica, no un requisito previo",
+    "state.not-required": "no hace falta en la ruta de actualización",
+    "state.at-install": "se lee en este enlace durante la instalación, antes del primer frame de escritura",
+    "limit.update-resumable-not-exercised": "una actualización interrumpida se reanuda por diseño; no se forzó ninguna interrupción en una unidad",
+    "path.this-page": "instalador de esta página",
+    "path.m-flasher": "M-Flasher, instalación desde el host",
+    "limit.recovery-not-exercised": "recuperación cubierta por una herramienta documentada, no ejercitada en esta unidad",
+    "limit.dump-not-hashed-here": "el dump está en tu disco: esta página comparó dos registros, no hasheó el MiB",
+    "record.readings": "Lecturas independientes de esta unidad (registros de M-Flasher)",
+    "record.agreement": "En qué coinciden las lecturas",
     "state.current": "Estado: lo que esta página observó realmente",
     "state.unobservable": "Estados que este transporte no puede observar (WebMIDI no expone VID/PID ni dispositivos de almacenamiento masivo)",
     "st.DIAGNOSTIC READY": "la p\u00e1gina corri\u00f3 e inform\u00f3 lo que vio",
@@ -915,8 +939,8 @@ const VF = {
     "st.PACKAGE VERIFIED": "el paquete ofrecido se describe de forma coherente",
     "st.SIGNATURE VERIFIED": "su firma coincide con una clave anclada en esta p\u00e1gina",
     "st.DEVICE COMPATIBLE": "la respuesta de la unidad encaja con este paquete",
-    "st.RECOVERY NOT VERIFIED": "no se ha demostrado una recuperaci\u00f3n en esta unidad",
-    "st.INSTALL READY": "todas las filas de arriba son pass: esta unidad ser\u00eda aceptada",
+    "st.RECOVERY NOT VERIFIED": "sin backup verificado de esta unidad m\u00e1s una herramienta que cubra el rango escrito, o recuperaci\u00f3n nunca ejercitada en ella",
+    "st.INSTALL READY": "se cumplen todos los requisitos previos: la unidad est\u00e1 lista para el camino que nombra el veredicto (la primera instalaci\u00f3n en una unidad de f\u00e1brica la hace M-Flasher; esta p\u00e1gina escribe en una que ya corre QG)",
     "st.INSTALL BLOCKED": "al menos una fila de arriba no es pass: no se puede escribir nada",
     "gate.detect": "1. FM-1 detectado",
     "gate.read": "2. Identidad y versión leídas",
@@ -1001,6 +1025,18 @@ const VF = {
     "state.unknown": "没有写入会话无法确认",
     "state.not-here": "本校验按设计不做这一步",
     "state.documented": "仅有文档，未在本机验证",
+    "state.corroborated": "本机的两次独立读取一致",
+    "state.covered": "已验证的备份，加上覆盖写入范围的工具；从未实际执行",
+    "state.after": "写入之后由安装过程验证的义务，不是前置条件",
+    "state.not-required": "升级路径不需要",
+    "state.at-install": "在安装时通过同一链路读取，在第一个写入帧之前",
+    "limit.update-resumable-not-exercised": "中断的升级按设计可恢复；未在实机上强制中断",
+    "path.this-page": "本页安装器",
+    "path.m-flasher": "M-Flasher，主机安装",
+    "limit.recovery-not-exercised": "恢复路径有文档工具覆盖，但未在本机执行",
+    "limit.dump-not-hashed-here": "dump 在你的磁盘上：本页比较了两份记录，并没有对 1 MiB 做哈希",
+    "record.readings": "本机的独立读取（M-Flasher 记录）",
+    "record.agreement": "读取之间一致的内容",
     "state.current": "状态：本页面实际观察到的内容",
     "state.unobservable": "此传输方式无法观察的状态（WebMIDI 不提供 VID/PID，也无法访问大容量存储设备）",
     "st.DIAGNOSTIC READY": "页面已运行并报告所见",
@@ -1008,8 +1044,8 @@ const VF = {
     "st.PACKAGE VERIFIED": "所提供的包自述一致",
     "st.SIGNATURE VERIFIED": "签名与本页固定的密钥相符",
     "st.DEVICE COMPATIBLE": "本机的回答与该包相符",
-    "st.RECOVERY NOT VERIFIED": "尚未在本机验证恢复流程",
-    "st.INSTALL READY": "上方所有条目均为 pass：本机将被接受",
+    "st.RECOVERY NOT VERIFIED": "没有本机已验证的备份加上覆盖写入范围的工具，或未在本机实际执行过恢复",
+    "st.INSTALL READY": "所有前置条件均满足：本机已准备好走结论指定的路径（出厂设备的首次安装由 M-Flasher 完成；本页仅向已运行 QG 的设备写入）",
     "st.INSTALL BLOCKED": "上方至少一项不是 pass：不得写入任何内容",
     "gate.detect": "1. 已检测到 FM-1",
     "gate.read": "2. 已读取标识与版本",
@@ -1155,24 +1191,45 @@ const rememberInstalled = () => {
 /* the chip identification taken out of band: the record, and the dump it hashes to. Both are
  * checked here; recordFor() (fm1record.js) is the only thing that turns them into evidence, and
  * install() only accepts it for a stock donor. */
-let recJson = null, recDump = null, chipRecord = null;
+let recJson = null, recDump = null, chipRecord = null, recPair = null;
 const recState = (text) => { if ($("rec-state")) $("rec-state").textContent = text; };
+/* One record is one reading. Two records of the same unit that agree on the whole 1 MiB -- same dump
+ * SHA-256, same chip, same unit id, different `saved` stamps -- are the corroboration the backup is
+ * supposed to have, and they are reported as that: corroboration, not a hash computed here. The dump
+ * itself is still what turns the record into the chip fact a write may use (chipRecord). */
 async function recCheck() {
-  chipRecord = null;
-  if (!recJson) { recState(""); return; }
+  chipRecord = null; recPair = null;
+  if (!recJson || !recJson.length) { recState(""); return; }
   try {
-    const rec = parseRecord(recJson);
-    const part = checkPart(rec);
-    if (!recDump) { recState(`${rec.model} · ${rec.flash} ${part.part} · ${rec.tool} — now its dump (${DUMP_BYTES} B)`); return; }
+    const recs = recJson.map(parseRecord);
+    const part = checkPart(recs[0]);
+    if (recs.length > 1) {
+      recPair = { ...corroborate(recs), part: part.part };
+      if (!recDump) {
+        recState(`\u2713 ${recPair.readings} readings of ${recPair.model} \u00b7 ${recPair.flash} ${part.part} \u00b7 same sha256 ${recPair.dumpSha256.slice(0, 16)}\u2026 \u2014 now the dump (${DUMP_BYTES} B)`);
+        return;
+      }
+    }
+    const rec = recs[0];
+    if (!recDump) { recState(`${rec.model} \u00b7 ${rec.flash} ${part.part} \u00b7 ${rec.tool} \u2014 now its dump (${DUMP_BYTES} B)`); return; }
     const ev = await verifyDump(rec, recDump);
     chipRecord = { ...ev, ok: true, part: part.part };
-    recState(`✓ ${ev.model} · ${ev.flash} ${part.part} · dump ${ev.dumpBytes} B · sha256 ${ev.dumpSha256.slice(0, 16)}…`);
-    log(`record: ${ev.flash} ${part.part}, dump ${ev.dumpSha256.slice(0, 16)}… verified here`);
-  } catch (e) { recState("✗ " + (e && e.message)); log(`record: refused — ${e && e.message}`); }
+    /* the pair and the dump must be the same image: a second reading that disagrees with the bytes
+     * loaded here is not corroboration, it is a different backup */
+    if (recPair && recPair.dumpSha256 !== ev.dumpSha256) {
+      recPair = null;
+      recState(`\u2717 the dump hashes to ${ev.dumpSha256.slice(0, 16)}\u2026, the records name ${ev.dumpSha256.slice(0, 16)}\u2026: they are not the same image`);
+      log("record: refused \u2014 the records and the dump are different images");
+      return;
+    }
+    recState(`\u2713 ${ev.model} \u00b7 ${ev.flash} ${part.part} \u00b7 dump ${ev.dumpBytes} B \u00b7 sha256 ${ev.dumpSha256.slice(0, 16)}\u2026` + (recPair ? ` \u00b7 ${recPair.readings} readings agree` : ""));
+    log(`record: ${ev.flash} ${part.part}, dump ${ev.dumpSha256.slice(0, 16)}\u2026 verified here`);
+  } catch (e) { recState("\u2717 " + (e && e.message)); log(`record: refused \u2014 ${e && e.message}`); }
 }
 $("rec-json").addEventListener("change", async (ev) => {
-  const f = ev.target.files && ev.target.files[0];
-  recJson = f ? await f.text() : null; await recCheck();
+  const files = [...((ev.target.files) || [])];
+  recJson = files.length ? await Promise.all(files.map((f) => f.text())) : null;
+  await recCheck();
 });
 $("rec-dump").addEventListener("change", async (ev) => {
   const f = ev.target.files && ev.target.files[0];
@@ -1442,7 +1499,8 @@ function showVerify(fw) {
   const st = $("vrep-states");
   st.textContent = "";
   const negative = new Set(["RECOVERY NOT VERIFIED", "INSTALL BLOCKED"]);
-  const isInstallBlocked = !((fw.verdict && fw.verdict.canInstall) && (fw.gate || []).every((r) => r.state === "pass"));
+  const vd = fw.verdict || {};
+  const isInstallBlocked = !(vd.canInstall || vd.canInstallHost);
   for (const s of diagnosticStates(fw)) {
     /* If installation is blocked, do not render INSTALL READY as an unreached candidate alongside INSTALL BLOCKED,
        to prevent any ambiguity between diagnostic pass and installation authorisation. */
@@ -1454,8 +1512,10 @@ function showVerify(fw) {
     st.append(li);
   }
   const v = fw.verdict || {};
-  $("vrep-verdict").textContent = `${vf("verdict")}: ${v.result || "NO-GO"} \u2014 ` +
-    (v.blocked && v.blocked.length ? `${vf("blocked")}: ${v.blocked.map((k) => vf(k)).join(", ")}` : vf("nothingBlocked"));
+  $("vrep-verdict").textContent = `${vf("verdict")}: ${v.result || "NO-GO"}` +
+    (v.path ? ` (${vf("path." + v.path)})` : "") + ` \u2014 ` +
+    (v.blocked && v.blocked.length ? `${vf("blocked")}: ${v.blocked.map((k) => vf(k)).join(", ")}` : vf("nothingBlocked")) +
+    (v.limitations && v.limitations.length ? ` \u2014 ${v.limitations.map((k) => vf("limit." + k)).join("; ")}` : "");
   const missing = (fw.missing || []).map((m) => vf(m.key));
   $("vrep-missing").textContent = missing.length ? `${vf("missing")}: ${missing.join(", ")}` : "";
   $("vrep-install").textContent = vf("install");
@@ -1476,6 +1536,7 @@ async function runVerify() {
     try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
     watchPorts(midi);
     const fw = await verifyDevice(midi, { product: meta.product, log, signature: releaseSig,
+      record: chipRecord, corroborated: recPair,
       pkg: { version: meta.version, size: meta.size, sha256: meta.sha256, build: meta.build, keys: meta.keys } });
     log(`verify: ${fw.kind} found=${fw.found} recognised=${fw.recognised} id=${fw.text || "-"}` +
         (fw.ports.length ? ` ports=${fw.ports.join(", ")}` : ""));
