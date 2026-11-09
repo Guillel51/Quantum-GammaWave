@@ -581,7 +581,7 @@ const TEXT = {
     mfCaveat: "Documented from that tool's source, not demonstrated on a unit by this project. Read that document first: "
       + "the physical key combination varies with firmware.",
     chipCheck: "🧪 Check chip (read only)",
-    recTitle: "Chip identification from M-Flasher (first install on a stock unit)",
+    recTitle: "Chip identification from M-Flasher (read-only report, and the chip fact a resumed write needs)",
     recWhat: "A stock unit does not answer the chip query, so this page cannot read its flash. Drop the record M-Flasher wrote next to a full 1 MiB backup and that backup itself: the dump is hashed here, in this page, and must be the one the record names (its sha256 covers the whole 1 MiB image). The record then feeds the read-only report and the chip gate of a resumed write on the update loader. It is not an installation: the first install on a stock unit is M-Flasher's Install firmware.",
     recJson: "M-Flasher record (.json):",
     recDump: "Its dump (.bin, 1 MiB):",
@@ -720,7 +720,7 @@ TEXT.es = {
   mfCaveat: "Documentado a partir del código de esa herramienta, no demostrado en una unidad por este proyecto. Leé primero ese documento: "
     + "la combinación física de teclas cambia según el firmware.",
   chipCheck: "🧪 Comprobar chip (solo lectura)",
-  recTitle: "Identificación del chip desde M-Flasher (primera instalación en una unidad de fábrica)",
+  recTitle: "Identificación del chip desde M-Flasher (informe de solo lectura, y el dato que necesita una escritura reanudada)",
   recWhat: "Una unidad de fábrica no responde a la consulta del chip, así que esta página no puede leer su flash. Cargá el registro que M-Flasher escribió junto a un respaldo completo de 1 MiB y ese respaldo: el dump se hashea acá, en esta página, y tiene que ser el que el registro nombra (su sha256 cubre la imagen de 1 MiB entera). Después el registro alimenta el informe de solo lectura y el gate del chip de una escritura reanudada en el loader. No es una instalación: la primera en una unidad de fábrica la hace el «Install firmware» de M-Flasher.",
   recJson: "Registro de M-Flasher (.json):",
   recDump: "Su dump (.bin, 1 MiB):",
@@ -803,7 +803,7 @@ TEXT.zh = {
     + "本页面既不执行也不分发它。",
   mfCaveat: "依据该工具的源代码记录，本项目未在任何设备上验证。请先阅读该文档：物理按键组合因固件而异。",
   chipCheck: "🧪 检查闪存芯片（只读）",
-  recTitle: "来自 M-Flasher 的闪存芯片识别（出厂设备的首次安装）",
+  recTitle: "来自 M-Flasher 的闪存芯片识别（只读报告，以及恢复写入所需的芯片信息）",
   recWhat: "出厂设备不响应芯片查询，因此本页面无法读取其闪存。请放入 M-Flasher 在完整 1 MiB 备份旁写下的记录，以及该备份本身：页面会在本地对 dump 计算哈希，且必须与记录中的哈希一致（其 sha256 覆盖完整的 1 MiB 镜像）。该记录随后用于只读报告，以及在更新 loader 上恢复写入时的芯片校验。它不是安装：出厂设备的首次安装由 M-Flasher 的 Install firmware 完成。",
   recJson: "M-Flasher 记录（.json）：",
   recDump: "对应的 dump（.bin，1 MiB）：",
