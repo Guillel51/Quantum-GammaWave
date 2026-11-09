@@ -26,9 +26,12 @@ echo   Allow Web MIDI when the browser asks: that is the page talking to the FM-
 echo   Use a data USB cable, plugged straight into the computer, no hub.
 echo.
 
-set "SITE=https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"
+rem The installable channel: the signed release, page + package + emulator from one commit.
+rem The site root serves this tree's build, which carries no signature and refuses to install.
+set "SITE=https://guillel51.github.io/Quantum-GammaWave/release/webapp/installer/"
 set "LOCAL_PAGE="
 if exist "%~dp0webapp\installer\index.html" set "LOCAL_PAGE=%~dp0"
+if not defined LOCAL_PAGE if exist "%~dp0release\webapp\installer\index.html" set "LOCAL_PAGE=%~dp0release\"
 if not defined LOCAL_PAGE if exist "%~dp0build\site\webapp\installer\index.html" set "LOCAL_PAGE=%~dp0build\site"
 
 set "PY_CMD="
@@ -50,7 +53,8 @@ if defined LOCAL_PAGE if defined PY_CMD (
     goto :eof
 )
 
-echo   Opening the public installer over HTTPS (nothing to install on this PC):
+echo   Opening the signed release's installer over HTTPS.
+echo   Nothing has to be installed on this PC.
 echo   %SITE%
 echo.
 start "" "%SITE%"

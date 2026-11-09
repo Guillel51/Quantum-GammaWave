@@ -408,8 +408,9 @@ that card talks to the unit, and it works before the cable is plugged in.
 
 `launch_browser_installer.bat` opens that page and prints the same steps. It no longer requires
 Python: with a local copy and Python present it serves the folder over `localhost` (Web MIDI needs
-HTTPS or localhost), and otherwise it opens the public HTTPS installer, where the plan card is the
-first thing on the page. The only manual step left in the whole path is choosing the dump and the
+HTTPS or localhost), and otherwise it opens the signed release's channel over HTTPS --
+`/release/webapp/installer/`, because the site root serves this tree's build, which carries no
+signature and refuses to install. In both channels the plan card is the first thing on the page. The only manual step left in the whole path is choosing the dump and the
 package in that card — no commands, no toolchain, no installs.
 
 `node web/test_accept.mjs` — **20 checks, 0 FAILED**: the release passes, a blank app area is 143
