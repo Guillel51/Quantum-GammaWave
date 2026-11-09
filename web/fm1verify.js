@@ -333,7 +333,10 @@ const APP_LO = 0x4000, APP_HI = 0x93000;
  *   covered       a verified backup plus a documented tool covering the written range; never exercised
  *   fail          contradicted by what was read
  *   unknown       this path cannot establish it yet
- *   not-here      verify only does not do it (the chip session belongs to the install path)
+ *   not-here      verify only does not do it and nothing else does either yet (a loader that cannot
+ *                 answer 0x12 with no record in hand)
+ *   at-install    this read-only run does not identify the chip, but the install path does -- with a
+ *                 live 0x12 on the same link, before the first write frame (identify() in fm1ota.js)
  *   not-required  the update path does not need it (a unit already running this firmware)
  *   after         a post-write obligation, verified by the install, never a precondition
  */
@@ -356,12 +359,18 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, record = nu
     /* A stock unit cannot answer 0x12, so its chip fact comes from the record out of band -- either
      * the record whose dump the page hashed, or two records of this unit that agree. Both are readings. */
     { key: "gate.chip", state: chip ? (chip.ok ? "pass" : "fail")
-      : (record && record.ok ? "pass" : (corroborated && corroborated.ok ? "corroborated" : "not-here")) },
+      : (record && record.ok ? "pass" : (corroborated && corroborated.ok ? "corroborated"
+        : (kind === "ours" ? "at-install" : "not-here"))) },
     /* The map is a property of the package and of the loader's own limits, not of a write session:
      * the image has to fit `[0x4000, 0x93000)` and the boot head is never in any write range. */
     { key: "gate.flashmap", state: image ? (fits ? "pass" : "fail") : "unknown" },
     { key: "gate.backup", state: kind === "ours" && !record ? "not-required" : backup },
-    { key: "gate.recovery", state: (backup === "pass" || backup === "corroborated") && fits ? "covered" : "unknown" },
+    /* Recovery, per path. On a unit already running this firmware, an interrupted update is resumable
+     * by design (the loader waits for the bytes and the page resumes it) and the firmware it is
+     * replacing is this project's own, so an update does not need a full-flash dump to be recoverable.
+     * On a stock unit it does: the first install overwrites an app area whose only copy is that dump. */
+    { key: "gate.recovery", state: kind === "ours" ? "covered"
+      : ((backup === "pass" || backup === "corroborated") && fits ? "covered" : "unknown") },
     { key: "gate.revalidate", state: "after" },
   ];
   /* What each path needs. This page writes to a unit that already runs this firmware (and to its own
@@ -369,14 +378,14 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, record = nu
    * writes the same app area through the chip's ROM mode and keeps the bootloader -- a different
    * transport, so a different list. */
   const page = kind === "ours" || kind === "ourloader";
-  const okPage = { pass: 1, "not-required": 1, covered: 1 };
+  const okPage = { pass: 1, "not-required": 1, covered: 1, "at-install": 1 };
   const okHost = { pass: 1, corroborated: 1, covered: 1 };
   const ok = page ? okPage : okHost;
   const required = rows.filter((r) => r.state !== "after" && !(page && r.key === "gate.read" && kind === "ourloader"));
   const blocking = required.filter((r) => !ok[r.state]).map((r) => r.key);
   const limitations = [];
   if (rows.find((r) => r.key === "gate.recovery").state === "covered")
-    limitations.push("recovery-not-exercised");
+    limitations.push(kind === "ours" ? "update-resumable-not-exercised" : "recovery-not-exercised");
   if (rows.find((r) => r.key === "gate.backup").state === "corroborated")
     limitations.push("dump-not-hashed-here");
   const ready = blocking.length === 0 && found && read && pkg && pkg.identity;

@@ -607,6 +607,27 @@ function anyWrite(sent) {
           return st["INSTALL READY"] === true && st["INSTALL BLOCKED"] === false && st["RECOVERY NOT VERIFIED"] === false; })());
 }
 {
+  /* The path that already exists on the wire: a unit running this firmware. Here the installer IS the
+     writer, the chip is identified by the install's own 0x12 on the same link, and an interrupted
+     update is resumable by design -- so nothing about a full-flash dump belongs in this list. This is
+     the case that used to say "recovery not verified" and block an update that the transport supports. */
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
+    build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built,
+    signature: { state: "pass", keyid: "qg1-release-1", size: 610806, sha256: "80".repeat(32), detail: "checked" } });
+  const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+  check("a unit already running QG: the installer's own path is GO", fw.kind === "ours" &&
+        fw.verdict.result === "GO" && fw.verdict.canInstall === true && fw.verdict.path === "this-page" &&
+        fw.verdict.blocked.length === 0);
+  check("the chip is not a gap here: the install reads it with 0x12 before its first write frame",
+        g["gate.chip"] === "at-install");
+  check("an update needs no full-flash dump, and its recovery is the loader's resume",
+        g["gate.backup"] === "not-required" && g["gate.recovery"] === "covered" &&
+        fw.verdict.limitations.includes("update-resumable-not-exercised"));
+  check("verify only still sent nothing but the identity query", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+{
   /* a unit that answers another firmware: the model still matches, so compatibility is decided by what
      the unit said, and the checklist says the firmware is not one this installer may replace */
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });

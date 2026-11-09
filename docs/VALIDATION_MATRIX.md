@@ -1065,3 +1065,21 @@ unsigned package with the same evidence blocks on `gate.signature` alone. `web/t
 `web/test_state.mjs` 65, `web/test_update_mode.mjs` 15, `web/test_web.mjs`, `test_backup`,
 `test_provenance`, `test_pkg_bounds`, `test_pkg_faults`, `test_donor` — all green. Site rebuilt and the
 single bundled script passes `node --check`.
+
+### 33.6 The update path's own two stale rows
+
+The same audit turned up two rows that were only wrong for a unit *already* running this firmware:
+
+- **`gate.chip` was `not-here` on a QG unit too**, as if the chip fact were missing. It is not missing
+  there: `install()` calls `identify()`, which sends two `0x12` queries on the live link and refuses
+  before the first write frame if the answer is not an allowed part. The row now says `at-install` --
+  "read on this link by the install, before the first write frame" -- and does not block.
+- **`gate.recovery` demanded a full-flash dump for an update.** An interrupted update is resumable by
+  design (the loader waits for its bytes and the page resumes it, `docs/BRICK_RESILIENCE_FM1.md`), and
+  the firmware being replaced is this project's own package. The row is `covered` for `kind: "ours"`
+  with the limitation `update-resumable-not-exercised`: resumable by design, never forced on a unit.
+
+`web/test_verify_only.mjs` is at **154 checks, 0 FAILED**, with the QG scenario asserting `GO`,
+`canInstall: true`, `path: "this-page"`, `gate.chip: at-install`, `gate.backup: not-required`, and
+nothing but the identity query on the wire. The public installer's write path is unchanged: it already
+wrote to a QG unit; what changed is that its *report* no longer calls that path blocked.
