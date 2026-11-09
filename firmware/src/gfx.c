@@ -68,7 +68,12 @@ typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
 #define AL_N(n) ((uint32_t)(n) << 8)
 
 #define CV_MAX (240u * 124u)      /* the graph strip is 240 x 124 */
-static uint16_t cv_px[CV_MAX] __attribute__((section(".pool"), aligned(4)));
+/* (ISO C11 6.5.2.3) Union type-punning provides well-defined 32-bit word access without strict-aliasing UB */
+static union {
+    uint16_t px[CV_MAX];
+    uint32_t w32[CV_MAX / 2u];
+} cv_buf __attribute__((section(".pool"), aligned(4)));
+#define cv_px (cv_buf.px)
 static uint32_t cv_w, cv_h;
 static uint16_t cv_bg;           /* what cv_begin cleared the canvas to */
 static uint8_t cv_scroll;        /* 1: drawing a scrolled view (its text may run past the canvas) */
@@ -205,15 +210,14 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
     cv_cy1 = (int16_t)h;
     cv_bg = bg;
     n = w * h;
-    {   /* (32-bit word fill) 2 pixels per 32-bit word store: faster than row copy,
-         * identical bytes, and eliminates 480 B of .bss row buffer */
-        uint32_t *p32 = (uint32_t *)cv_px;
+    {   /* (32-bit word fill via union) 2 pixels per 32-bit word store: faster than row copy,
+         * identical bytes, zero strict aliasing UB, and eliminates 480 B of .bss row buffer */
         uint32_t s32 = ((uint32_t)s << 16) | s;
         uint32_t words = n >> 1;
         for (i = 0; i < words; i++)
-            p32[i] = s32;
+            cv_buf.w32[i] = s32;
         if (n & 1u)
-            cv_px[n - 1u] = s;
+            cv_buf.px[n - 1u] = s;
     }
 }
 
