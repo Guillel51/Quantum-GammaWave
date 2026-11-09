@@ -265,3 +265,70 @@ mode and identified the part — not that a `.bin` was kept or is consistent.
 
 The practical order that follows, for a stock unit: two `backup` runs (read-only, no bootloader change),
 compare them, import the pair, and only then decide about any write.
+
+## 10. The Windows 10 procedure, step by step, and what each step proves
+
+Written for the unit whose record is `fm1-20261109-102008.json` / `fm1-20261109-102035.json`: stock
+FM-1, firmware 015, JEDEC `0x856014`, unit id `4150353835313708`. Nothing here writes flash. The labels
+are the ones M-Flasher 0.9.4 uses; a later build may rename a button without changing the operation.
+
+0. **What you need.** M-Flasher 0.9.4 (the version that produced both records — there is no reason to
+   change tools in the middle of a backup). Get it from its releases page as the single Windows
+   executable, not from a mirror. The unit, its USB-C data cable, a USB-A port directly on the machine,
+   mains power, and about 2 GB free. Close every DAW, editor and browser tab that can open MIDI.
+1. **Read the unit while it is still normal.** Open M-Flasher and connect. It shows `FM-1_015`,
+   bootloader stock, app `OK`, chip key `0x980F`, flash `0x856014`. This is the state the record
+   describes, and if any field differs, stop: the rest of this page is written for this state.
+2. **`DOWNLOAD MODE`.** The tool sends SysEx `F0 22 24 35 7D F7` and the running firmware reboots into
+   the chip's ROM loader. **The FM-1 stops being a MIDI device at this point** — that is the expected
+   result, not a failure, and no file was written.
+3. **Confirm the ROM mode before reading anything.** In Windows, Device Manager (or `Get-PnpDevice`)
+   shows the unit as `WL82 UBOOT1.00`; M-Flasher reconnects to it by itself. Two checks: the MIDI port
+   list is empty for this unit, and the storage/UBOOT device is present. If the device shows up with a
+   warning sign, the ROM loader is there but the driver is not — install the tool's own driver
+   instructions (WinUSB) before continuing. Do not read "the port disappeared" as a dead unit: in ROM
+   mode there is no MIDI port by construction.
+4. **`Back up the whole flash`.** It reads `0x000000..0x0FFFFF` — app, boot head, factory data, user
+   regions — and writes two files: the `.bin` (exactly 1 048 576 bytes) and the `.json` next to it. The
+   `.json` carries the part's identification and the SHA-256 of the image it just read. Neither file is
+   a write: `apply()`, the only function that erases or programs, is unreachable from this action (§2).
+5. **Leave ROM mode with `restart`.** The unit reboots into stock 015 and answers MIDI again. Nothing
+   was written; if it does not come back, power-cycle it — the ROM loader is in the mask ROM and always
+   answers.
+6. **Second, independent reading.** Close M-Flasher, unplug the cable, replug it, and repeat steps 1–5
+   in a new session, saving to a different filename. Two reads in one session share too much state to
+   count as independent.
+7. **Compare, on the machine, before trusting either file.**
+   ```
+   certutil -hashfile fm1-20261109-102008\fm1.bin SHA256
+   certutil -hashfile fm1-20261109-102035\fm1.bin SHA256
+   fc /b fm1-20261109-102008\fm1.bin fm1-20261109-102035\fm1.bin
+   ```
+   `fc /b` prints nothing when the files are identical. Two identical SHA-256 values *are* byte
+   identity, so a CRC32 is only needed when you have a single read and no second one to compare —
+   then read the chip's CRC32 with the tool's own verification and record it next to the dump.
+8. **What makes the backup valid** (all of these, or it is not a backup yet): both files are exactly
+   1 048 576 bytes; `fc /b` reports no differences; the two SHA-256 values are equal; the record says
+   `0x980F` / `0x856014`; the record's own `sha256` equals the value both reads produced; the `.json`
+   is kept beside each `.bin`.
+9. **Keep it everywhere.** One copy outside the repository (an external disk, a cloud folder you
+   control), one on different physical storage. Do not publish the dump or the unit id: it holds the
+   unit's presets, its factory data and a stable identifier.
+10. **Only then** is an install a decision rather than a gamble. On this unit that is M-Flasher's
+    `Install firmware` with the release `.fwsc` — the same container this project signs — which writes
+    `[0x4000, 0x93000)` and leaves `0x0000..0x3FFF` alone. The browser installer offers the honest
+    alternative: it reports the unit, the package and the backup, and still writes nothing to a stock
+    app (there is no `UPGRADE` path in stock 015 to write through).
+
+If step 2 or 3 fails on this unit — no ROM mode, no `WL82 UBOOT1.00` — then M-Flasher cannot read it,
+and `jl-uboot-tool` is the documented fallback: it loads the same kind of loader into RAM over the ROM
+protocol, so a read stays a read. Do not mix the two tools in one session.
+
+### What the two records already establish
+
+`fm1-20261109-102008.json` and `fm1-20261109-102035.json` name the same unit, the same part, the same
+tool and the **same `sha256`** (`38c66ae7…`), with two different `saved` stamps 27 seconds apart. That
+is two independent reads of the same 1 MiB that agree, which is the corroboration step 8 asks for. It
+is not a hash this project computed: the dumps are on the owner's disk. The installer reports the pair
+as `corroborated` and says so, and a dump dropped next to a record upgrades it to `pass` because then
+the page hashes the bytes itself.

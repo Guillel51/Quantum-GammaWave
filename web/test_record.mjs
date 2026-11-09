@@ -10,7 +10,7 @@ import crypto from "node:crypto";
 import { Updater, requireProof, pack7 } from "./fm1ota.js";
 import { verifyProvenance } from "./fm1provenance.js";
 import { READ_ONLY_QUERY } from "./fm1verify.js";
-import { parseRecord, checkPart, verifyDump, recordFor, firmwareOf, DUMP_BYTES } from "./fm1record.js";
+import { parseRecord, checkPart, verifyDump, recordFor, firmwareOf, corroborate, DUMP_BYTES } from "./fm1record.js";
 
 let n = 0;
 const ok = (cond, what) => { assert.ok(cond, what); n++; console.log("ok  " + what); };
@@ -145,6 +145,39 @@ const chipRecord = recordFor(
      "...and it still receives no UPGRADE: a chip reading is not an installation");
   ok(u.sent.every((b) => !(b.length > 3 && b[0] === 0xF0 && cmdOf(b) === 0x30)),
      "...nor was any image byte offered to it");
+}
+
+/* Two readings of one unit are what a backup is supposed to be: the same image twice, taken apart.
+ * The two files the owner holds (20261109-102008 and -102035) are that case, and the rules below are
+ * what stops a copy of one file -- or a pair that disagrees -- from passing as corroboration. */
+{
+  const second = JSON.stringify({ ...JSON.parse(OWNER), saved: "20261109-102035" });
+  const pair = corroborate([parseRecord(OWNER), parseRecord(second)]);
+  ok(pair.ok === true && pair.readings === 2 && pair.flash === "0x856014",
+     "two records of the same unit with the same dump hash corroborate: two readings, one image");
+  ok(pair.dumpSha256 === rec.dumpSha256 && pair.saved.length === 2 &&
+     pair.saved[0] === "20261108-161613" && pair.saved[1] === "20261109-102035",
+     "the corroboration keeps both stamps, oldest first, and the hash both agree on");
+  const third = JSON.stringify({ ...JSON.parse(OWNER), saved: "20261109-103000" });
+  ok(corroborate([parseRecord(OWNER), parseRecord(second), parseRecord(third)]).readings === 3,
+     "three readings are still one corroboration (the count is what is reported)");
+
+  refuses(() => corroborate([rec]), "record", "one record is one reading: it cannot corroborate itself");
+  refuses(() => corroborate([parseRecord(OWNER), rec]), "record",
+    "the same `saved` timestamp twice is one reading copied, not two");
+  const other = JSON.stringify({ ...JSON.parse(OWNER), saved: "20261109-110000",
+    sha256: "00".repeat(32) });
+  refuses(() => corroborate([parseRecord(OWNER), parseRecord(other)]), "record",
+    "two readings that hash differently are two images, not corroboration");
+  const unit = JSON.stringify({ ...JSON.parse(OWNER), saved: "20261109-110000", "unit id": "4150353835319999" });
+  refuses(() => corroborate([parseRecord(OWNER), parseRecord(unit)]), "record",
+    "a record from another unit cannot corroborate this one");
+  const chip = JSON.stringify({ ...JSON.parse(OWNER), saved: "20261109-110000", flash: "0xB36014" });
+  refuses(() => corroborate([parseRecord(OWNER), parseRecord(chip)]), "record",
+    "two different chips are two different units");
+  const noStamp = JSON.stringify({ ...JSON.parse(OWNER), saved: undefined });
+  refuses(() => corroborate([parseRecord(OWNER), parseRecord(noStamp)]), "record",
+    "a record with no `saved` stamp cannot be told from a copy");
 }
 
 console.log(`chip record: ${n} checks, 0 FAILED`);

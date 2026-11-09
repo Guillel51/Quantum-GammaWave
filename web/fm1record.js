@@ -75,6 +75,38 @@ export function checkPart(rec) {
   throw Object.assign(new Error(`JEDEC ${rec.flash} is not in the documented 1 MiB allowlist: nothing was sent.`), { code: "chip" });
 }
 
+/* Two readings of the same unit, taken independently, are the only thing that turns "a backup exists"
+ * into "the unit can be put back": a single read that nobody repeated is a claim, and a read that was
+ * repeated and disagreed is two different images. `saved` must differ, because two files with the same
+ * timestamp are one reading copied -- the tool writes that field, and a copy cannot fake a later one
+ * without also claiming a reading that has a different hash. Everything else must agree exactly.
+ *
+ * This is corroboration, not proof: the files are on the reader's disk, and the page cannot see when
+ * they were written. It is reported as such, and it lets the report say "two readings agree" instead
+ * of "unknown" -- which is what the evidence actually is. */
+export function corroborate(records) {
+  const recs = (records || []).filter(Boolean);
+  if (recs.length < 2)
+    throw recFail("One record is one reading: drop the second record M-Flasher wrote for the same unit as well.");
+  const [a] = recs;
+  for (const r of recs) {
+    if (r.model !== a.model) throw recFail(`The records name different models (${a.model}, ${r.model}): not one unit.`);
+    if (r.jedec !== a.jedec) throw recFail(`The records name different chips (${a.flash}, ${r.flash}): not one unit.`);
+    if (r.dumpSha256 !== a.dumpSha256)
+      throw recFail(`The readings hash differently (${a.dumpSha256.slice(0, 16)}\u2026, ${r.dumpSha256.slice(0, 16)}\u2026):`
+        + " two reads that disagree are two different images, so take a third read before trusting either.");
+    if (r.unitId && a.unitId && r.unitId !== a.unitId)
+      throw recFail(`The records name different units (${a.unitId}, ${r.unitId}): a dump from another unit cannot stand in.`);
+    if (!r.saved || !a.saved) throw recFail("A record carries no `saved` timestamp: it cannot be told from a copy.");
+  }
+  const stamps = recs.map((r) => r.saved);
+  if (new Set(stamps).size !== stamps.length)
+    throw recFail("Two records carry the same `saved` timestamp: that is one reading, not two.");
+  return { ok: true, readings: recs.length, dumpSha256: a.dumpSha256, jedec: a.jedec, flash: a.flash,
+    model: a.model, unitId: a.unitId || null, tool: a.tool, saved: stamps.slice().sort(),
+    source: `${recs.length} m-flasher records of this unit, same dump hash` };
+}
+
 // The dump, hashed here. This is what turns "a backup exists" into "these 1 MiB hash to the record".
 export async function verifyDump(rec, bytes) {
   const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
