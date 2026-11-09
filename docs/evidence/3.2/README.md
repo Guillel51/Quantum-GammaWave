@@ -17,8 +17,10 @@ sweep's lint and alignment pass — not a device and not the emulator.
 | `host_reverb_cloud.png` | REVERB, type CLOUD: the swarm at three depths (a new sweep scene, so both are rendered) |
 | `host_layer_scl_active.png` | the SCL layer card held over HOME |
 
-**Emulator** (`emu_*.png`): the real WebAssembly build (`build/emu/felucca.wasm`, 1 086 293 B, sha256 `36e1dce6…`) in
-the Cloud browser, the canvas read back at 240×240.
+**Emulator** (`emu_*.png`): the real WebAssembly build in the Cloud browser, the canvas read back at 240×240. The
+captures were taken with the 3.2 build (1 086 293 B, sha256 `36e1dce6…`) before the installer/optimisation branch was
+merged in; the merged tree builds 1 079 658 B (sha256 `8c21befd…`) and draws the same screens — the merge changed the
+DSP, not `ui_draw.c` or `ui_being.c`, and `node web/emu/emu_test.mjs` runs green on the merged binary.
 
 | file | what it shows |
 |---|---|

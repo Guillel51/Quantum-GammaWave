@@ -38,8 +38,8 @@
   `QUANTUM`/`GAMMAWAVE` en alfabeto de bloque propio, planeta anillado con dos lunas, riel de dieciséis bloques,
   BOOT/% y hand-over a HOME, 3.1 s en total (antes 2.3 s) sin retrasar audio, MIDI ni init. Medido: `ui_render`
   con 174 pantallas × 17 paletas, 0 hallazgos de lint y 0 desalineaciones; la línea de tiempo del splash son 775
-  pasos de 4 ms, 176 cambian píxeles; el emulador se compiló (wasm 1 086 293 B) y la secuencia se capturó dentro
-  del emulador. El build AC791N compila (imagen 535 204 B) con `.data+.bss` 94 936 B de 98 304 y 9 248 B de spare en el pool.
+  pasos de 4 ms, 176 cambian píxeles; el emulador se compiló (wasm 1 086 293 B en la captura, 1 079 658 B tras fusionar la
+  rama de instalador/optimización) y la secuencia se capturó dentro del emulador. El build AC791N compila (imagen 535 204 B) con `.data+.bss` 94 936 B de 98 304 y 9 248 B de spare en el pool.
 - **3.1 — la pasada visual que el dueño pidió, medida y probada.** HOME: el sistema solar se redibuja con
   planetas de 2/3/4 px (órbitas 14/23/32, radios verticales 7/11/13), estrellas fijas precalculadas con
   parpadeo lento, dos bandas de nebulosa por tabla, sombreado por fases con terminador, atmósfera, anillo sólo
