@@ -796,3 +796,79 @@ another firmware version is refused; with the record, the install sends **zero**
 one `UPGRADE`, and a unit that does not hand over ends in an error, never a silent write; without it, the
 install refuses with `chip` and sends no `UPGRADE` at all. `web/test_verify_only.mjs` (136) and
 `web/test_web.mjs` stay green.
+
+## 29. Decision — 2026-11-09: what the owner's unit can and cannot be installed by
+
+### 29.1 §28 was too generous, and why
+
+§28 enabled a donor path: a stock unit plus a verified record could take `UPGRADE` from this page. Reading
+the firmware settled it the other way. The update loader is built with `FELUCCA_LOADER=1`, which compiles
+`0x12` out (`firmware/src/ota.c`), so the loader link can never identify the chip — the page used to send
+`0x12` there and refuse, which is exactly the "I put it in update mode and the installer does not recognise
+it" report. And a stock unit's own update mode is the **vendor's** program (`ota-FM-1_015`), not this
+project's loader: this project has never seen it accept a Felucca image, so offering it one is the one
+action that could leave the app area written by a loader that validates a different format.
+
+Both are now decided in code, before any frame:
+
+| What answers | Verdict | Where |
+|---|---|---|
+| `FM-1_9NN` + `0x12` | install proceeds; the loader link inherits that attempt's app-link reading | `install()` → `write({chipContinuity})` |
+| `ota-FM-1_900` | resume; needs the attempt's reading or a hashed record, else `loaderchip` | `write()` |
+| `ota-FM-1_015` | `foreignloader`, zero frames | `write()`, `install()`, page |
+| `FM-1_015` | `stockfirst`, zero frames, M-Flasher panel | `install()`, page |
+
+### 29.2 Gate-by-gate, with the class of each piece of evidence
+
+| Gate | State for **this unit** | Evidence | Class | What it would take to close it |
+|---|---|---|---|---|
+| Reproducible AC791N build | GO | build record + pinned toolchain; every release byte is the artefact the manifest names | `[CI]` | — |
+| Whole QG package | GO | `release/felucca-v1.9.0.fwsc`, 610 806 B, sha256 `80ad995c…`, every app file's CRC16 | `[HOST]` | — |
+| Production signature, pinned key | GO | Ed25519 over the canonical manifest, three refusals in `web/test_web.mjs` | `[HOST]` | — |
+| Unit identity | GO | handshake answers; the record names `FM-1 015 (stock)`, unit id `4150353835313708` | `[HW]`, third-party tool record | — |
+| **Real JEDEC and geometry** | **GO for this unit** | `0x856014` (Puya P25Q80H, 1 MiB) read by M-Flasher's `ONLINE_DEVICE` on this unit, recorded 2026-11-08; the part is in the write allowlist | `[HW]`, third-party read | nothing — this is the reading the page could never take on stock |
+| Flash write compatibility | **GO CONDITIONAL** | the part is in the allowlist; the write itself has never been executed on this unit, and the loader's region check plus per-sector readback are what contain it | `[HW]` identity + `[HOST]` behaviour | one successful install on any P25Q80H unit |
+| Applicable memory map | GO | `docs/FLASH_MAP_AND_RECOVERY_FORENSICS.md`; the loader refuses anything outside `0x4000..0x93000` / staging / stock record | `[STATIC]` + `[HOST]` | — |
+| **Verified prior backup** | **GO CONDITIONAL** | a 1 MiB read exists with sha256 `38c66ae7…` **inside the record**; the `.bin` itself was not shared, so this page has hashed nothing yet, and the chip's CRC32 is not in the record | `[HW]`, tool record only | the owner loads the `.bin` (the page hashes it) **and** a second backup or the CRC32; `fm1_mflasher.py import --second` already demands that |
+| **Demonstrated recovery** | **NO-GO** | M-Flasher restore of this unit's own dump is available and audited from source; it has never been run on this unit, and no boot-area write exists in this project | `[STATIC]` | one restore executed on a unit that is not the only one |
+| Protected write paths | GO | boot head, SPL, `isd_config`, VM, autosave, FM6, USR are out of the loader's `_Static_assert`ed window; the package never reaches `0xFF000` | `[STATIC]` + `[HOST]` | — |
+| Stress and stability | GO for the write loop | `ldr_test` cut matrix: 32 real cut points, all resumed and finished exact | `[HOST]` | a real power cut |
+| RAM/CPU headroom, post-install revalidation | GO CONDITIONAL / NO-GO | budgets measured on host and target build; the post-install check list exists but has never run on a unit | `[HOST]` / `[STATIC]` | one installed unit |
+| Installer/emulator/site sync | **NO-GO (one check)** | `tools/site_check.py` fails exactly one line: the signed release record's emulator (`3d039f75…`) is not the rebuilt wasm (`c83c8bfb…`) — same commit, flags, emcc and size, so the emulator build is not byte-reproducible | `[CI]` | pin or make the emulator build deterministic; it needs `emcc`, absent here |
+
+### 29.3 The decision
+
+- **First install on this stock FM-1 by this page: NO-GO, and it is not a missing flag.** It is one
+  program on the unit (`ota-FM-1_015`) that nobody has read, and one protocol (`0x12`) the stock
+  application does not implement. The circularity is real, not bureaucratic.
+- **First install by M-Flasher `Install firmware`: GO CONDITIONAL**, and it is the documented route:
+  it takes the same `.fwsc`, checks model, chip key and app CRCs, writes `[0x4000, len)` only, keeps the
+  bootloader and cannot touch the head. Conditional on the backup being verified first (two reads or the
+  CRC32) and on the owner accepting that recovery has not been executed on this unit.
+- **Update on a unit already running QG: GO CONDITIONAL**, and for the first time the path is coherent end
+  to end: the chip gate on the loader link is satisfied by the same attempt's app-link `0x12` (or a hashed
+  record when resuming), the loader verifies every sector and commits only on an exact `success`, and a
+  dropped link is now reported as "nothing written" or "resumable sector write" instead of one message for
+  both.
+
+### 29.4 What is classified as what
+
+- **Real and critical:** recovery not demonstrated on hardware; the stock unit's own update mode being a
+  program nobody has read. Neither can be closed from software here.
+- **Correctable and corrected:** the loader link requiring `0x12` (it cannot answer), a redundant chip
+  probe on a different connection, a single message for two different drop states, the false promise in
+  `RECOVERY_GUIDE.md` that any `ota-` unit could be resumed, and §28's donor path.
+- **False or redundant:** "the installer is blocked because no unit answers `0x12`" as a statement about
+  *this* unit's chip — the chip is known; what was missing was a path that could use it.
+- **Acceptable and documented:** the write has never run on this unit, the emulator is not reproducible,
+  and a real power cut has not been staged.
+
+### 29.5 Evidence added in this change (`[HOST]`, simulated units)
+
+`web/test_update_mode.mjs`, 15 checks, 0 FAILED: a QG unit updates through a loader that answers no chip
+query (two `UPGRADE`s, every byte matched); a resume with no chip fact is refused as `loaderchip` with
+zero `UPGRADE`; the same resume with the record completes; the vendor loader is refused as
+`foreignloader` with zero bytes offered; a stock unit is refused as `stockfirst` with the message naming
+M-Flasher; and an answered `0x12` that names a read-only part is refused even when a record is loaded.
+`web/test_record.mjs` (24 checks) now asserts the other direction: a record does **not** authorise an
+install on a stock unit. `web/test_web.mjs` and `web/test_verify_only.mjs` (136) stay green.

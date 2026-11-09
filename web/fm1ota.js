@@ -20,6 +20,13 @@ const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 const MAXDATA = 512;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_OTA = (id) => /^ota-/i.test(id.model);
+/* The update loader this project ships calls itself `ota-<model>_900` (firmware/loader/loader.c); a
+ * stock unit's own update mode is another program that calls itself `ota-FM-1_015`. Both answer the
+ * handshake and NEITHER answers 0x12 -- the loader is built with FELUCCA_LOADER=1, which compiles the
+ * query out, and 0x12 is this project's extension anyway. So the chip gate on a loader link cannot
+ * come from that link, and a Felucca image must never be offered to a loader that never agreed to
+ * take it. Both facts are decided here, once. */
+export const isOurLoader = (id) => !!(id && /^ota-/i.test(id.model)) && Number(id.version) === 900;
 
 // A stock M-VAVE FM-1 reports FM-1_0NN in the vendor's numbering; every Felucca identity is
 // FM-1_9NN (911 for Pocket GammaWave, 982 for Quantum GammaWave). A first install therefore
@@ -306,16 +313,40 @@ export class Updater {
     const proof = ctx.proof || await requireProof({ ...ctx, pkg, product });
     const pass = await admit(proof, pkg, product);             // refuses a used or wrong proof before any frame
     const dev = await this.find((id) => !IS_OTA(id));
-    if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
+    if (!dev) {
+      /* The most common real-world case is not "no device": it is a unit sitting in its update
+       * mode, which answers nothing on the app personality because there is no app. Power-cycling
+       * it there is what makes an interrupted install unrecoverable in practice, so this path
+       * resumes instead of asking for a reboot. */
+      const loader = await this.find((id) => IS_OTA(id));
+      if (!loader) throw fail("notfound", "no FM-1 answered. If the unit is in its own update mode (WL82 "
+        + "UBOOT / USB storage) no browser can reach it: power it off and on again; if it shows as an FM-1 "
+        + "MIDI port, another program may be holding it.");
+      const ours = isOurLoader(loader.id);
+      loader.link.close();
+      if (!ours) throw fail("foreignloader", `the unit is in its own update mode (${loader.id.text}), not `
+        + "this project's loader: a Felucca image must not be fed to it, and nothing was sent.");
+      // fresh authorisation: the one admitted above belongs to the transfer that did not start
+      const ok = await this.resume(pkg, step, product, { ...ctx, proof: null });
+      if (!ok) throw fail("stopped", "the loader stopped before the write finished. Replug the USB cable and press Install again.");
+      return product;
+    }
     const [model] = product.split("_");
     const isTarget = dev.id.text === product;
     const isDonor = !isTarget && donorIdentity(dev.id, product, ctx.firmware);
     if (!isTarget && !isDonor) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
-    if (isDonor) step("donor", dev.id.text);                    // a stock FM-1 is admitted as the origin only
-    // A donor does not answer 0x12 (docs/JEDEC_READ.md §1), so its chip fact comes from the record and
-    // its dump; a unit already running QG is identified on the link itself, exactly as before.
-    if (isDonor && ctx.chipRecord) await bindRecord(pass, dev.link, ctx.chipRecord, dev.id);
-    else await identify(pass, dev.link);                       // 0x12 on this link, before any write frame
+    /* A stock unit is not a destination this page can write to. Its app has no 0x12, and its own
+     * update mode is the vendor's program: this project has never seen it take a Feluccaa image, so
+     * offering one there is the one action that could leave the app area half-written by a loader
+     * that was never asked. The first install is M-Flasher's job (docs/M-FLASHER.md §6); this page
+     * is the updater for a unit that already runs Quantum GammaWave. */
+    if (isDonor) {
+      dev.link.close();
+      throw fail("stockfirst", `this unit runs stock ${dev.id.text}. The first install of Quantum GammaWave `
+        + "on a stock FM-1 is done by M-Flasher's Install firmware, which writes the app area and keeps the "
+        + `bootloader and the factory data (docs/M-FLASHER.md §6). Nothing was sent to this unit.`);
+    }
+    await identify(pass, dev.link);                            // 0x12 on this link, before any write frame
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
@@ -326,7 +357,10 @@ export class Updater {
     await sleep(this.loaderDelay);
     const ota = await this.waitFor((id) => id.model === "ota-" + model, this.loaderWait);
     if (!ota) throw fail("noloader", "the update loader did not appear. Replug the USB cable and press Install again: the device stays in update mode until it is finished.");
-    const s2 = await this.write(ota, pkg, step, { ...ctx, product, proof: null });   // its own authorisation
+    /* `chipContinuity`: the 0x12 this attempt already read on the app link, seconds ago, on this
+     * cable. It is the only chip fact available here, because the loader's own build excludes the
+     * query; write() prefers a live 0x12 when the program answers one. */
+    const s2 = await this.write(ota, pkg, step, { ...ctx, product, proof: null, chipContinuity: pass.chip });
     if (!s2.finished) throw fail(s2.lost ? "lost" : "stopped", `the loader ${s2.lost ? "was disconnected" : "stopped"} after ${s2.served} requests. Replug and press Install again to resume.`);
     step("reboot");
     await sleep(this.rebootDelay);
@@ -345,9 +379,35 @@ export class Updater {
     const model = String(ota.id.model).replace(/^ota-/i, "");
     if (!product || model !== product.split("_")[0])
       throw fail("proof", `the loader is ${ota.id.text}, the authorisation is for ${product}: nothing was sent.`);
+    /* Authorisation first: a direct call with no proof is refused as "proof", never as anything
+     * about the unit. Only then does what the link says about itself matter. */
     const proof = ctx.proof || await requireProof({ ...ctx, pkg, product });
     const pass = await admit(proof, pkg, product);
-    await identify(pass, ota.link);                            // 0x12 on the loader's own link
+    /* The loader that answers must be this project's. A stock unit's own update mode is a different
+     * program with the same protocol family; it never agreed to take a Felucca image, and feeding it
+     * one is how an app area gets half-written by something that validates a different format. */
+    if (!ctx.allowForeignLoader && !isOurLoader(ota.id))
+      throw fail("foreignloader", `the device is in its own update mode (${ota.id.text}), not this `
+        + "project's loader: nothing was sent.");
+    /* The chip gate, in order of strength: a live 0x12 on this very link; the 0x12 this install
+     * attempt read on the app link (same unit, same cable, seconds earlier); or a record whose dump
+     * the page hashed. The loader can never answer the first, so without one of the other two a
+     * resumed write has no chip fact at all -- and says so instead of writing on a guess. */
+    const chip = await probeChip(ota.link, 1500, { optional: true });
+    if (chip) {
+      requireChip(chip);                      // answered: the answer decides, with no fallback
+      pass.link = ota.link;
+      pass.chip = chip;
+    } else if (ctx.chipContinuity) {
+      bindChip(pass, ota.link, ctx.chipContinuity, "0x12 on the app link of this same attempt");
+    } else if (ctx.chipRecord) {
+      await bindRecord(pass, ota.link, ctx.chipRecord, ota.id, { modelOnly: true });
+    } else {
+      ota.link.close();
+      throw fail("loaderchip", "this unit's update loader cannot identify the flash chip (its build has "
+        + "no chip query) and no chip record was loaded for it: nothing was sent. Load the M-Flasher "
+        + "record and its dump, or power-cycle the unit and start the install from the running firmware.");
+    }
     ota.link.send(UPGRADE);
     await sleep(2000);
     const s2 = await this.#serve(pass, ota.link, 0xF0000000, 180000, (n) => step("write", n));
@@ -428,6 +488,15 @@ function qryDecode(pkt) {
 }
 
 async function qryAsk(link, cmd, body, timeoutMs) {
+  const r = await qryAskOrNull(link, cmd, body, timeoutMs);
+  if (r === null) throw fail("chip", `The FM-1 did not answer 0x${cmd.toString(16)}: nothing was sent.`);
+  return r;
+}
+
+/* Silence as a value, for the one case where it is the expected answer: an update loader does not
+ * contain the query code, so a 0x12 sent to it gets no reply at all. A frame that refuses to be
+ * sent still throws -- a dead cable is not "this program cannot answer". */
+async function qryAskOrNull(link, cmd, body, timeoutMs) {
   if (!link.send(qryFrame(cmd, body))) throw fail("chip", "The FM-1 was disconnected: nothing was sent.");
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
@@ -436,13 +505,14 @@ async function qryAsk(link, cmd, body, timeoutMs) {
     const r = qryDecode(p);
     if (r && r.cmd === cmd) return r.body;
   }
-  throw fail("chip", `The FM-1 did not answer 0x${cmd.toString(16)}: nothing was sent.`);
+  return null;
 }
 
-async function qryIdentify(link, nonce, timeoutMs) {
+async function qryIdentify(link, nonce, timeoutMs, { optional = false } = {}) {
   const body = [QRY_PROTO, ...nonce];
   body.push(qryCrc16(body) & 0xFF, (qryCrc16(body) >> 8) & 0xFF);
-  const r = await qryAsk(link, 0x12, body, timeoutMs);
+  const r = optional ? await qryAskOrNull(link, 0x12, body, timeoutMs) : await qryAsk(link, 0x12, body, timeoutMs);
+  if (r === null) return null;                       // silence: the caller decides what it means
   if (r.length !== 24) throw fail("chip", "Truncated identification reply: nothing was sent.");
   if (qryCrc16(r.slice(0, 21)) !== (r[21] | (r[22] << 8)))
     throw fail("chip", "The identification reply's CRC is wrong: nothing was sent.");
@@ -460,10 +530,15 @@ async function qryIdentify(link, nonce, timeoutMs) {
 }
 
 // two identifications of the same unit: same part, a fresh token each time
-export async function probeChip(link, timeoutMs = 1000) {
+/* `optional` turns silence into `null` (a loader link, where no answer is the expected answer) and
+ * leaves every other failure a throw: a refusal, a bad CRC or one answer followed by silence are
+ * refusals, never "not identified". */
+export async function probeChip(link, timeoutMs = 1000, { optional = false } = {}) {
   const nonce = Array.from(crypto.getRandomValues(new Uint8Array(4)));
-  const a = await qryIdentify(link, nonce, timeoutMs);
-  const b = await qryIdentify(link, nonce, timeoutMs);
+  const a = await qryIdentify(link, nonce, timeoutMs, { optional });
+  if (a === null) return null;
+  const b = await qryIdentify(link, nonce, timeoutMs, { optional });
+  if (b === null) throw fail("chip", "The FM-1 answered one identification and not the second: nothing was sent.");
   for (const k of ["jedec", "cap", "page", "sector", "block"])
     if (a[k] !== b[k]) throw fail("chip", `Two identifications disagree on ${k}: nothing was sent.`);
   if (a.session === b.session) throw fail("chip", "The device reused a session token: the reply may be old.");
@@ -675,7 +750,7 @@ async function admit(proof, pkg, product) {
 // reach the wire: the chip fact is real, it was just not obtainable over MIDI. Only a donor may take
 // this path -- a unit already running QG is identified on its own link, as before -- and the record
 // must name this model and this firmware version, so a record kept from another unit cannot stand in.
-async function bindRecord(pass, link, rec, id) {
+async function bindRecord(pass, link, rec, id, { modelOnly = false } = {}) {
   if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
   if (!link || typeof link.send !== "function" || typeof link.read !== "function")
     throw fail("chip", "this transfer has no open link to bind: nothing was sent.");
@@ -683,7 +758,10 @@ async function bindRecord(pass, link, rec, id) {
     throw fail("chip", "the chip record was not checked against its dump: nothing was sent.");
   if (!/^[0-9a-f]{64}$/i.test(String(rec.dumpSha256 || "")))
     throw fail("chip", "the chip record carries no dump hash: nothing was sent.");
-  if (!id || rec.model !== id.model || Number(rec.version) !== Number(id.version))
+  /* A loader calls itself ota-FM-1_900; the model it belongs to is the part before the underscore,
+   * with the ota- prefix stripped -- the same rule write() uses to check the authorisation. */
+  const idModel = String((id && id.model) || "").replace(/^ota-/i, "");
+  if (!id || rec.model !== idModel || (!modelOnly && Number(rec.version) !== Number(id.version)))
     throw fail("chip", `the record is for ${rec.model} ${rec.version}, the unit answered ${id && id.text}: nothing was sent.`);
   const part = requireChip({ jedec: rec.jedec });      // the allowlist, once more, on the record's id
   pass.link = link;
@@ -702,5 +780,20 @@ async function identify(pass, link) {
   requireChip(chip);
   pass.link = link;
   pass.chip = chip;
+  return pass;
+}
+
+/* Bind a chip fact that was NOT read on this link. It exists for exactly one program: the update
+ * loader, which cannot answer 0x12 because its build excludes the query. The fact still has to be
+ * about this unit's part -- either the 0x12 of the app link in the same attempt (seconds earlier,
+ * same cable, after which the unit only rebooted into the loader this project just staged) or an
+ * M-Flasher record whose dump the page hashed. Neither can be supplied by a caller as a bare JEDEC:
+ * both go through requireChip, the same allowlist as a link identification. */
+function bindChip(pass, link, chip, source) {
+  if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
+  if (!link || typeof link.send !== "function") throw fail("chip", "this transfer has no open link: nothing was sent.");
+  requireChip(chip);
+  pass.link = link;
+  pass.chip = { ...chip, source };
   return pass;
 }
