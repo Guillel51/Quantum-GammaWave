@@ -1,3 +1,17 @@
+## 2026-11-10 — el BI-QUAD EQ y la página RETRIG, dibujados como son
+
+- **MASTER EQ con el lenguaje de EDIT > FILTER.** Rejilla logarítmica nombrada, escala de dB en un canal que la
+  curva no cruza, la energía de la banda de fondo, el área entre la curva y 0 dB rellena para que un corte y un
+  realce se lean de un vistazo, y el punto de control con su frecuencia y ganancia escritas. La curva es el mismo
+  biquad que corre el audio. El barrido de pantallas pasó de 42 hallazgos de lint a 0.
+- **RETRIG dibuja el reloj que el control tiene ahora.** `NOTE` son cuatro rampas que vuelven arriba en cada nota;
+  `FREE` es una sola rampa con un punto donde cada nota se le suma. Antes el dibujo decía lo contrario del DSP. La
+  página nunca había estado en el barrido (sólo existe en LOFI BYTE/FLOAT): ahora sí, en los dos relojes.
+- Capturas antes/después en `docs/evidence/3.4/`; suite completa en verde (`ALL HOST TESTS PASSED`).
+- Los rediseños de EDIT de LOFI, MORPH y FM6, HOME y el visualizador, las optimizaciones y las dos funciones nuevas
+  **no** están en esta pasada: las funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene
+  byte de sobra, lo que pide una versión de formato nueva.
+
 ## 2026-11-10 — LOFI `T.CLK` audible, y la suite entera en verde
 
 - **LOFI RETRIG no hacía nada, y ahora sí.** El parámetro existía y llegaba al DSP, pero el único punto que lo

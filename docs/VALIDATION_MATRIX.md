@@ -1233,3 +1233,15 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. `install_test.py`, `web/test_web.mjs`, `web/test_backup.mjs`, `web/test_pkg_bounds.mjs`: pasan. | host | host |
 | Rediseño de EDIT (LOFI, MORPH, FM6), gráficas unificadas, BI-QUAD EQ, HOME y visualizador | **NOT STARTED** | Esta pasada sólo lleva el arreglo de motor de `T.CLK` y los dos fallos de la suite. Los rediseños visuales siguen pendientes y no se declaran hechos. | — | — |
 | FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+## 40. Update — 2026-11-10, dos gráficas medidas: el BI-QUAD EQ y T.CLK
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| BI-QUAD EQ en el idioma de EDIT > FILTER | **RENDERED** | `tech_master_eq()` (ui_tech.c): rejilla logarítmica nombrada (20 / 100 / 1k / 20k), escala de dB en un canal izquierdo que la curva no cruza (+12 / 0 / −12), la energía de la banda de fondo, el área entre la curva y 0 dB rellena, y el punto de control con su frecuencia y ganancia ("20 Hz +11.8 dB"). La curva sigue siendo `fx_master_eq_hz_db()`, el mismo biquad que corre el audio. | render en host | host |
+| El lint del barrido de pantallas | **PASS** | 42 hallazgos → **0** (las etiquetas 10k y 20k se solapaban); alineación **0 de 2 645 631** mediciones fuera por 1 px o más. | `tests/ui_render.c` | host |
+| La página RETRIG dibuja el reloj que tiene | **RENDERED** | `tech_retrig()`: `NOTE` cuatro rampas que vuelven arriba en cada nota, `FREE` una sola rampa con un punto donde cada nota se le suma. Antes dibujaba al revés (la rampa continua era el valor que ahora reinicia). | render en host | host |
+| La página RETRIG en el barrido | **PASS** | Entra al barrido (sólo existe en LOFI BYTE/FLOAT y nunca había estado): 174 → 176 pantallas, ambas en `docs/evidence/3.4/`. | `tests/ui_render.c` | host |
+| Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. | host | host |
+| Rediseño de EDIT de LOFI / MORPH / FM6, HOME y visualizador, optimizaciones, MICRO-START y modulación aleatoria | **NOT DONE** | Sin cambios en esta pasada. Las dos funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene byte de sobra (`project.c` §límites: P_COUNT 123, sin hueco); eso exige una versión de formato nueva, no un atajo. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
