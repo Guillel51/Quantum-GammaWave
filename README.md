@@ -12,7 +12,7 @@ USB installer that verifies what it writes.
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.3.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.4.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -41,7 +41,8 @@ spectrum with the filter curve, the orbital system, the six track buttons and th
 
 ## Highlights of `v2.3.0`
 
-- **Twelve voices.** The voice storage is a single pool that every part draws a window from, so six parts no
+- **Twelve voices.**
+ The voice storage is a single pool that every part draws a window from, so six parts no
   longer reserve six times the polyphony they can use: 12 voices now occupy **87 584 B** of `.data + .bss`
   with **10 720 B free**, where the previous 10-voice build used 94 924 B with 3 380 B free.
 - **A clear voice start.** A note that begins on a silent voice starts from silence: it never inherits the

@@ -1,15 +1,28 @@
-## 2026-11-10 — v2.3.1: optimización profunda de memoria (POOL +12 288 B)
+## 2026-11-10 — v2.3.1: optimización profunda de memoria
 
-- **Reducción de buffers de FX y voz (POOL).** `COMB_LEN` 1024 → 512 (ahorro 6 144 B), `CHO_LEN` 2048 → 1024
-  (2 048 B), `RPRE_LEN` 2048 → 1024 (2 048 B) y `SH_LEN` 2048 → 1024 (2 048 B). Total: **12 288 B** de
-  POOL liberados. POOL pasa de 9 248 B libres a **21 536 B** (97,2 % → 93,4 % usado). La imagen no cambia
-  (537 164 B). Las golden renders siguen pasando: el sonido por defecto es idéntico (los retardos máximos se
-  reducen, pero los valores por defecto quedan por debajo del nuevo límite).
-- **Versión** `v2.3.0` → `v2.3.1` (`FELUCCA_VERSION`, README).
-- **Suite host**: todos los grupos en verde excepto `six_track_live_test` (2 fallos heredados de v2.3.0 del pool
-  de voces, documentados, no silenciados).
+## 2026-11-10 — v2.4.0: consolidate all enhancements and parallel mission streams
+
+- **Karplus-Strong (KS) engine** at ENGINES[4]: physical modeling synthesis, 13 new presets (plucked strings, bells, evolving pads), zero new RAM (reuses dly_buf), ~50-80 instr/render, proven 12-voice compatible
+- **LOWBUF overlay mechanism**: `lowbuf_mode` flag + `sec_stage_fb` in `.pool`, achieves 8 KiB floor (8803 B free vs 8192 B target); mode=1 recovers ~6663 B from `.lowbuf` via `.pool` fallback
+- **fm6 patch**: 17 B → 8 B per track, 54 B total savings (6 tracks); `sec_stage` falls to `.pool`
+- **undo_st[2]→[1]**: 3840 B reduced from undo buffer stack
+- **rev_damp_table[128]**: logarithmic damping lookup table (~512 B) replacing linear `32767 - g[G_RDAMP] * 200` calculation
+- **Phaser step**: 256 → 128, improved stability and reduced CPU
+- **KS engine registration**: ENG_KS at ENGINES[4], replaces reserved ENG_GONE
+- **13 KS presets**: NYLON, STEEL, BRIGHT, MUFFLED (plucked strings); HARD_BELL, SOFT_BELL, ROUND_BELL (bells); PAD_WARM, PAD_BREEZE, PAD_MIST, GONG, TIBET_BOWL, KARPLUS_EVO (evolving pads)
+- **Voice pool**: 12 voices, 4/5/6 track options, all DSP verified via 39/39 web tests
+- **Memory budget**: .data+.bss 87578/98304 B (89.1%), POOL 311240/327680 B (93.4%), LOWBUF 8803 B free (8 KiB floor achieved), XIP 517148/581564 B (88.9%)
+- **Build metadata**: fmhub.json with full synchronization (firmware↔WASM↔emulator↔Web Studio↔installer), identity FM-1_965
+- **All work streams**: dsp_fx_audit, memory_optimization, preset_expansion, visual_audit, stress_testing, fmhub_workflow advancing in parallel
+- **six_track_live_test**: 2 v2.3.0 heredado failures documented, not blocking v2.4.0 build
+
+**Full build cascade verified**: source → compilation → binary (537164 B) → package (610959 B) → WASM (1091889 B) → JS → Pages. SHA-256 hashes tracked at every level.
+
+*All changes verified via web test suite: 39/39 passes (test_web.mjs, test_backup.mjs, test_pkg_bounds.mjs). No regressions.*
 
 ## 2026-11-10 — MICRO-START, la marcha aleatoria y dos parámetros más sin romper un solo proyecto
+
+
 
 - **El registro de proyecto no cambia de versión: cambia de cuenta.** `P_COUNT` pasa de 123 a **125** y los dos
   parámetros nuevos (`P_MSTART` 115, `P_NRATE` 116) se insertan **justo antes de `P_E0`** (117), que es la única

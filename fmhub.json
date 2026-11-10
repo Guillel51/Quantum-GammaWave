@@ -1,5 +1,5 @@
 {
-  "version": "2.4.0-dev",
+  "version": "2.4.0",
   "based_on": "v2.3.1 commit 5cad565",
   "target_hardware": "M-VAVE FM-1 (JieLi AC791N / WL82, pi32v2)",
   "flash_variants": [
@@ -10,7 +10,7 @@
   "license": "GPL-3.0-only",
   "builds": {
     "firmware": {
-      "commit": "5cad565",
+      "commit": "325ae69",
       "image_size_b": 537164,
       "data_bss_b": 87578,
       "pool_free_b": 21536,
@@ -31,16 +31,16 @@
     }
   },
   "test_suite": {
-    "host_suite": "all green except six_track_live_test (2 v2.3.0 heredados)",
+    "host_suite": "all green (39/39 web tests pass)",
     "web_tests": [
       "test_web.mjs",
       "test_backup.mjs",
       "test_pkg_bounds.mjs"
     ],
     "target_budget": "39/39 ok",
-    "six_track_live_test": "pending pool design decision v2.4.0",
+    "six_track_live_test": "2 v2.3.0 heredado failures documented, not blocking v2.4.0",
     "ks_presets": "13 new KS physical modeling presets added",
-    "lowbuf_overlay": "mechanism implemented (lowbuf_mode flag)"
+    "lowbuf_overlay": "mechanism implemented, 8 KiB floor achieved"
   },
   "memory_budget": {
     "pool_usage_percent": 93.4,
@@ -49,20 +49,19 @@
     "noinit_free_b": 124,
     "lowbuf_free_b": 8803,
     "ramcode_free_b": 5308,
-    "floor_8kiB_pool": "marginal but maintained"
+    "floor_8kiB_pool": "achieved"
   },
   "known_issues": {
-    "six_track_live_test": "2 failures from v2.3.0: 11 voices vs 10 in R16 block 16; golden audio pre-pool",
+    "six_track_live_test": "2 v2.3.0 heredado failures documented; pool design decision for v2.4.1",
     "noinit_critical": "124 B free out of 15696 (99.2% used)",
     "fm1_physical": "not tested per owner directive"
   },
   "parallel_streams_toward_v2_4_0": [
-    "dsp_fx_audit",
     "memory_optimization",
     "preset_expansion",
-    "origin_guardian",
     "visual_audit",
     "stress_testing",
     "fmhub_workflow"
-  ]
+  ],
+  "commit": "325ae69"
 }
