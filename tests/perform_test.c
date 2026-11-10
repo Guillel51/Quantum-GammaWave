@@ -597,6 +597,27 @@ static int test_meters(void)
     for (i = 0; i < 4u * FS; i += CTL)
         mix_block(o, CTL);
     bad += check("VU meters: silence falls back to zero", fx_vu[0] == 0 && fx_vu[3] == 0);
+
+    /* (2.1) HOME's two meters are two mono meters: the mix's left peak and its right peak, each taken
+     * from its own channel. The right one used to show the phase correlation -- a parameter of the mix,
+     * not signal -- so it stood still whatever was played. Checked on a stereo effect, where the two
+     * channels really differ: on a centred mono note the two peaks coincide and the check would prove
+     * nothing about whether one is copied onto the other. */
+    song.g[G_WIDTH] = 0;
+    song.g[G_RWIDE] = 0;
+    t1->p[P_PAN] = 0;
+    t1->p[P_CHOR] = 100;
+    trk_note_on(t1, 60, 100);
+    for (i = 0; i < 2u * FS; i += CTL)
+        mix_block(o, CTL);
+    bad += check("VU meters: a note on a stereo effect moves the left meter", fx_vu[6] > 0);
+    bad += check("VU meters: ... and the right one, from its own channel", fx_vu[7] > 0);
+    bad += check("VU meters: the two meters are two signals, not one copied onto the other",
+                 fx_vu[6] != fx_vu[7]);
+    trk_note_off(t1, 60);
+    t1->p[P_CHOR] = 0;
+    for (i = 0; i < 6u * FS; i += CTL)
+        mix_block(o, CTL);
     return bad;
 }
 

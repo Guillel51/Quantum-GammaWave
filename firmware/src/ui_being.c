@@ -361,8 +361,9 @@ static uint32_t vz_qframe(void) { uint32_t s = vz_step(); return ui.frame / s * 
  *    order as before: 3 rings + 3 spheres + 5 star discs + 4 sines. The three orbit rings are
  *    drawn from a 24-entry unit circle (gw_ring_tab) instead of 48 sine_i calls a ring.
  * ============================================================================ */
-#define NPL 4                             /* (3.2) four planets: the third is the ringed giant, the fourth a
-                                           * small rocky one inside, so the system has a moon as well as a sun */
+#define NPL 5                             /* (3.2) four planets: the third is the ringed giant, the fourth a
+                                           * small rocky one inside, so the system has a moon as well as a sun;
+                                           * (2.1) a fifth, a frozen world on the outermost path */
 static int16_t pl_ex[NPL];                /* each planet's excitation, 0..256: a note-on adds, it decays */
 static int16_t pl_flash[NPL];             /* (3.3) the note's own light, 0..256: set by a note-on, decays
                                            * faster than the excitation, so the strike reads as a strike and
@@ -519,6 +520,14 @@ static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx,
         sys_rect(x - gw_span(r, 1) + 1, y + 1, 2 * gw_span(r, 1) - 1, 1, ux_mix(mid, T_BG, 60));
     } else if (kind == 2 && r >= 3) {                          /* ocean: a lit crescent and one horizon line */
         sys_rect(x - gw_span(r, 0) + 1, y + r / 2, 2 * gw_span(r, r / 2) - 1, 1, ux_mix(litc, T_TEXT, 30));
+    } else if (kind == 4 && r >= 3) {                          /* (2.1) frozen: two caps and a crevasse. A body
+                                                                * that reads at once as ice -- bright at both poles,
+                                                                * one dark line across the middle -- so the fifth
+                                                                * planet is not another grey rock */
+        int32_t cw = gw_span(r, 1);
+        sys_rect(x - cw + 1, y - r + 1, 2 * cw - 1, 1, ux_mix(litc, T_TEXT, 55));
+        sys_rect(x - cw + 1, y + r - 1, 2 * cw - 1, 1, ux_mix(litc, T_TEXT, 40));
+        sys_rect(x - gw_span(r, 0) + 2, y, 2 * gw_span(r, 0) - 3, 1, ux_mix(mid, T_BG, 55));
     }
     if (r >= 3) {                                              /* the specular, where the light lands */
         int32_t sx = x + lx * (r - 2) * 2 / 3, sy = y + ly * (r - 2) * 2 / 3;
@@ -566,7 +575,7 @@ static void gw_planet_excite(int on)
 static void gw_planet_excite(int on)
 {
     (void)on;
-    pl_ex[0] = pl_ex[1] = pl_ex[2] = pl_ex[3] = 0;
+    { uint32_t k; for (k = 0; k < NPL; k++) pl_ex[k] = 0; }
     pl_flash[0] = pl_flash[1] = pl_flash[2] = pl_flash[3] = 0;
 }
 #endif
@@ -635,17 +644,20 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
      * the outer body is 4 px + 1 px atmosphere + a 3 px ring = 8 px, against 10 px of room, so it keeps a
      * 2 px margin at its widest point on every side. The old 4 / 6 / 7 px bodies (with a 4 px ring on the
      * last) needed 11 px and crossed the edge. */
-    static const int8_t ORX[4] = {11, 18, 26, 33};             /* (3.2) a fourth orbit, 11 px inside the first:
-                                                                * a moon, so the system is not three rings and a sun */
-    static const uint8_t ORMS[4] = {9, 7, 6, 5};               /* 7.3 s, 9.4 s, 10.9 s, 13.1 s a turn (was 9-16 s) */
+    static const int8_t ORX[5] = {11, 18, 26, 33, 38};         /* (3.2) a fourth orbit, 11 px inside the first:
+                                                                * a moon, so the system is not three rings and a sun;
+                                                                * (2.1) a fifth outside it, 38 + 3 + 1 = 42 of the
+                                                                * bay's 44, so it keeps its margin */
+    static const uint8_t ORMS[5] = {9, 7, 6, 5, 4};            /* 7.3 s .. 16.4 s a turn (was 9-16 s) */
     /* (3.3) the body's own spin, 16-bit turn units a millisecond: 3.1 s, 4.7 s, 3.9 s and 2.5 s a turn. Faster
      * than the orbit on purpose -- a moon that spins in step with its orbit reads as a cut-out -- and each one
      * its own rate, so no two bodies turn together. */
-    static const uint8_t ROTMS[4] = {21, 14, 17, 26};
-    static const uint16_t ORPHS[4] = {0x0000, 0x2A00, 0x5200, 0x7A00};
-    static const uint8_t ORR[4] = {3, 4, 4, 5};                /* 1.5x to 2.5x the area of the old 2 / 3 / 4 */
-    static const uint8_t ORYS[4] = {70, 60, 52, 44};           /* tilt: ry = 8 / 11 / 14 / 15 px */
-    static const uint8_t ORK[4] = {0, 1, 2, 3};                /* rocky, banded, ocean, ringed */
+    static const uint8_t ROTMS[5] = {21, 14, 17, 26, 31};
+    static const uint16_t ORPHS[5] = {0x0000, 0x2A00, 0x5200, 0x7A00, 0x3E00};
+    static const uint8_t ORR[5] = {4, 5, 5, 6, 3};             /* (2.1) each body one pixel larger than 3.3 --
+                                                                * the outer one 6 px + ring, still 1 px of margin */
+    static const uint8_t ORYS[5] = {70, 60, 52, 44, 36};       /* tilt: ry = 8 / 11 / 14 / 15 / 13 px */
+    static const uint8_t ORK[5] = {0, 1, 2, 3, 4};             /* rocky, banded, ocean, ringed, frozen */
     /* fixed stars: x, y in the bay, size (1..3), luminance, twinkle phase */
     static const uint8_t ST[14][5] = {
         {4, 4, 2, 150, 11}, {13, 2, 1, 110, 47}, {31, 5, 1, 90, 83}, {46, 2, 2, 170, 29},
@@ -1074,13 +1086,20 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
         }
     }
 
-    /* 6. Right-Side Stereo Width (W) & Phase Correlation (P) Meters (ScopeViewComponent) */
+    /* 6. The two mono meters: the mix's own left and right peaks (fx.c fx_vu[6..7]). These bars used to
+     * show the stereo width and the phase correlation -- two parameters of the mix, not signal -- so the
+     * right one stood still whatever was played while the left moved with the notes. It was not a lost
+     * update: it was measuring a constant. Two channels, two envelopes, neither one copied onto the
+     * other, and both read the audio the listener hears. */
     {
-        int32_t mx = x0 + w - 20, wid = clamp(64 + song.g[G_WIDTH] + song.g[G_RWIDE] / 2, 24, 240);
-        int32_t corr = clamp(210 - (song.g[G_CSTER] > 0 ? song.g[G_CSTER] : -song.g[G_CSTER]), 80, 248);
+        int32_t mx = x0 + w - 22, mh = gh - 6;
+        int32_t gl = clamp((int32_t)fx_vu[6] * 256 / 9000, 0, 256);
+        int32_t gr = clamp((int32_t)fx_vu[7] * 256 / 9000, 0, 256);
         cv_rect(mx - 3, gy0, 1, gh, T_LINE);
-        gw_plasma_bar(mx + 1, gy0 + 2, 6, gh - 4, 8, (en ? (wid * (128 + en / 2) >> 8) : wid / 2), 60);
-        gw_plasma_bar(mx + 10, gy0 + 2, 6, gh - 4, 8, corr, 110);
+        gw_plasma_bar(mx + 1, gy0 + 2, 7, mh, 8, gl, 60);
+        gw_plasma_bar(mx + 10, gy0 + 2, 7, mh, 8, gr, 96);
+        cv_rect(mx + 3, gy0 + 3 + mh, 3, 1, T_DIM);        /* L and R, a dot under each bar */
+        cv_rect(mx + 12, gy0 + 3 + mh, 3, 1, T_DIM);
     }
 }
 
