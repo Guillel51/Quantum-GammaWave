@@ -621,6 +621,56 @@ static int test_meters(void)
     return bad;
 }
 
+/* --------------------------------------------------- 7c2. FX LATCH --- */
+/* The owner asked for this more than once: FX LATCH must keep an effect -- and a mute -- on after
+ * the key is let go, until it is pressed again, and it must survive a change of FX bank. Checked on
+ * the six latch mutes T1..T6 and on an effect, and the mute is checked on the audio, not the bit:
+ * the latched track's own vu has to fall to nothing while the others keep sounding. */
+static int test_latch(void)
+{
+    int bad = 0;
+    uint32_t i, k;
+    int32_t o[2 * CTL];
+    song_setup();
+    perf_latch_on = 1;
+    perf_press(PF_M1, 1);
+    perf_press(PF_M1, 0);
+    bad += check("LATCH: mute T1 stays after the key is let go", (perf_latched & PF_BIT(PF_M1)) != 0u);
+    for (i = 0; i < 2u * FS; i += CTL)
+        mix_block(o, CTL);
+    bad += check("LATCH: the latched mute T1 silences its track", trk[0].vu == 0);
+    bad += check("LATCH: ... and the others keep sounding", trk[1].vu > 0);
+    /* the six mutes are not limited by the three effects' budget: all six at once */
+    for (k = 1; k < NTRK; k++) {
+        perf_press(PF_M1 + k, 1);
+        perf_press(PF_M1 + k, 0);
+    }
+    bad += check("LATCH: the six mutes latch together",
+                 (perf_latched & (((1u << NTRK) - 1u) << PF_M1)) == (((1u << NTRK) - 1u) << PF_M1));
+    for (k = 0; k < NTRK; k++) {                        /* and each lets go on its own second press */
+        perf_press(PF_M1 + k, 1);
+        perf_press(PF_M1 + k, 0);
+    }
+    bad += check("LATCH: a second press releases each mute",
+                 (perf_latched & (((1u << NTRK) - 1u) << PF_M1)) == 0u);
+    /* an effect, then a change of bank: the latch is the effect's, not the bank's */
+    perf_press(PF_LPF, 1);
+    perf_press(PF_LPF, 0);
+    bad += check("LATCH: an effect stays after the key is let go", (perf_latched & PF_BIT(PF_LPF)) != 0u);
+    perf_press(PF_TGT, 1);                              /* a long A#4: held past 600 ms, the second */
+    fm1_ms += 700u;                                     /* FX bank; a tap would step the MIDI track */
+    perf_press(PF_TGT, 0);
+    bad += check("LATCH: the bank changed", pfx_bank == 1u);
+    bad += check("LATCH: the effect latched in the other bank keeps working",
+                 (perf_latched & PF_BIT(PF_LPF)) != 0u);
+    perf_press(PF_LPF, 1);
+    perf_press(PF_LPF, 0);
+    bad += check("LATCH: and it releases from the other bank too", (perf_latched & PF_BIT(PF_LPF)) == 0u);
+    perf_latch_on = 0;
+    perf_test_reset();
+    return bad;
+}
+
 /* ------------------------------------------- 7d. three buffer heads --- */
 static uint32_t out_hash(uint32_t a, uint32_t b)
 {
@@ -1152,6 +1202,7 @@ int main(int argc, char **argv)
     bad += test_cap_latch();
     bad += test_buffer_combinations();
     bad += test_meters();
+    bad += test_latch();
     bad += test_cost();
     if (argc > 1)
         demos(argv[1]);
