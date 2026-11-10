@@ -116,6 +116,30 @@ def release_manifest(pkg_path):
     return None
 
 
+def signed_release(directory):
+    """(package, manifest) of the signed release in `directory`, if the bytes still match its hash.
+
+    The release is the installable artefact: it is what a custodian signed, what the GitHub release
+    publishes and what the installer is allowed to write. `main` keeps moving (the emulator, the page),
+    so the site serves this package for the install while it shows the build it is serving it with."""
+    try:
+        manifests = sorted(Path(directory).glob("*.manifest.json"))
+    except OSError:
+        return None
+    for man_path in manifests:
+        pkg_path = Path(str(man_path)[: -len(".manifest.json")])
+        try:
+            man = json.loads(man_path.read_text(encoding="utf-8"))
+            raw = pkg_path.read_bytes()
+        except (OSError, ValueError):
+            continue
+        if (man.get("format") == "qg1-release-1" and isinstance(man.get("images"), dict)
+                and str(man.get("sha256", "")).lower() == hashlib.sha256(raw).hexdigest()
+                and int(man.get("size", -1)) == len(raw)):
+            return pkg_path, man
+    return None
+
+
 def pinned_keys():
     """only the PUBLIC keys (hex) the custodian pinned: they travel with the page, nothing else does"""
     try:
@@ -163,6 +187,20 @@ def with_csp(html):
 
 def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     pkg, out = Path(pkg), Path(out)
+    # (signed release) the install comes from the signed release, not from this build, when the two are
+    # not the same bytes: main moves, a signature does not. The page then says which commit it installs
+    # and which build of main the emulator beside it came from.
+    signed_manifest = None
+    rel = signed_release(HERE.parent / "release")
+    if rel:
+        rel_pkg, rel_man = rel
+        if hashlib.sha256(pkg.read_bytes()).hexdigest() != str(rel_man["sha256"]).lower():
+            print(f"site: this build is not the signed release: installing release/{rel_pkg.name} "
+                  f"{rel_man['version']} (signed by {rel_man['keyid']})")
+            pkg = rel_pkg
+            signed_manifest = rel_man
+            version = "v" + str(rel_man["version"]) + "-" + str((rel_man.get("build") or {})
+                                                               .get("commit", ""))[:7]
     raw = pkg.read_bytes()
     product = product_of(raw)
     if not re.fullmatch(r"FM-1_9\d\d", product):
@@ -184,7 +222,7 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     def digest(b):
         return {"sha256": hashlib.sha256(b).hexdigest(), "size": len(b)}
     # (v1.9.0) the build record travels with the page (inlined): the verify report shows it
-    build = build_record(pkg, manifest)
+    build = (signed_manifest.get("build") if signed_manifest else None) or build_record(pkg, manifest)
     emu = emulator_record(pkg, emu_manifest)
     # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
     # not the one the package's build record names when the package is a committed release: the release

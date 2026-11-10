@@ -178,7 +178,7 @@ def images_of(record):
 
 
 def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, created=None, build_sha256=None,
-                 images=None):
+                 images=None, build=None):
     out = {
         "format": FORMAT,
         "product": product,
@@ -193,6 +193,11 @@ def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, create
         out["build_sha256"] = str(build_sha256)
     if images:
         out["images"] = {str(k): str(v) for k, v in sorted(images.items())}
+    # The record travels inside the signature: the commit, the toolchain and the artefact list of the
+    # build that produced these bytes. A page that serves the signed release can then show, and check,
+    # the build it installs without trusting a second file.
+    if build:
+        out["build"] = build
     return out
 
 
@@ -470,11 +475,13 @@ def main(argv=None):
             if a.keyid not in trusted:
                 print("note: %r is not pinned; its public key is %s" % (a.keyid, derived), file=sys.stderr)
             rec = record_sha256(a.build_manifest) if a.build_manifest else None
-            imgs = images_of(json.loads(Path(a.build_manifest).read_text())) if a.build_manifest else None
+            record = json.loads(Path(a.build_manifest).read_text()) if a.build_manifest else None
+            imgs = images_of(record) if record else None
             if not rec:
                 print("warning: no --build-manifest: the manifest names no build record, and the installer "
                       "refuses such a release", file=sys.stderr)
-            man = manifest_for(raw, a.version, a.min, a.product, a.keyid, build_sha256=rec, images=imgs)
+            man = manifest_for(raw, a.version, a.min, a.product, a.keyid, build_sha256=rec, images=imgs,
+                               build=record)
             out = sign_manifest(man, pem)
             dest = Path(a.out or (a.package + ".manifest.json"))
             dest.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
