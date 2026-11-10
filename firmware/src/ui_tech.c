@@ -440,10 +440,40 @@ static int32_t eq_param_hz(void)                    /* the cutoff the audio filt
 {
     return (int32_t)EQ_HZ[clamp(song.g[G_EQFREQ], 0, 127)];
 }
+/* "30" / "1.2k": the frequency the control point sits on, as the page reads it */
+static void eq_hz_txt(char *b, int32_t hz, int32_t n)
+{
+    char t[8];
+    if (hz < 1000) {
+        fmt_int(b, hz);
+        return;
+    }
+    fmt_int(t, hz / 1000);
+    str_cpy(b, t, (uint32_t)n);
+    str_cpy(b + str_len(b), ".", (uint32_t)n - str_len(b));
+    fmt_int(t, (hz % 1000) / 100);
+    str_cpy(b + str_len(b), t, (uint32_t)n - str_len(b));
+    str_cpy(b + str_len(b), "k", (uint32_t)n - str_len(b));
+}
+/* Q24.8 dB -> "+9.6 dB" */
+static void eq_db_txt(char *b, int32_t q8, int32_t n)
+{
+    char t[8];
+    int32_t a = q8 < 0 ? -q8 : q8;
+    b[0] = 0;
+    str_cpy(b, q8 < 0 ? "-" : "+", (uint32_t)n);
+    fmt_int(t, a / 256);
+    str_cpy(b + str_len(b), t, (uint32_t)n - str_len(b));
+    str_cpy(b + str_len(b), ".", (uint32_t)n - str_len(b));
+    fmt_int(t, (a % 256) * 10 / 256);
+    str_cpy(b + str_len(b), t, (uint32_t)n - str_len(b));
+    str_cpy(b + str_len(b), " dB", (uint32_t)n - str_len(b));
+}
 static void tech_master_eq(void)
 {
     int32_t mode = clamp(song.g[G_EQMODE], 0, 4);
-    int32_t y0 = TK_Y0, mid_y = y0 + 56, i, px = 14, py = mid_y;
+    int32_t y0 = TK_Y0, gx0 = 32, gw = 192, gtop = y0 + 20, gbot = y0 + 84, i;
+    int32_t mid_y = y0 + 53, px = gx0, py = mid_y;
     static const char *const MODES[] = {"BYPASS", "PEAK/BELL", "NOTCH", "LOW SHELF", "HIGH SHELF"};
 
     gw_oct_panel(8, y0 - 2, 224, 104, 4, T_BG, T_LINE, mode > 0, T_ACCENT);
@@ -451,39 +481,78 @@ static void tech_master_eq(void)
     cv_text_on(16, y0 + 4, &AF_S, "MASTER BIQUAD EQ", T_THEME, T_RAISE);
     cv_text_on(140, y0 + 4, &AF_S, MODES[mode], mode ? T_ACCENT : T_DIM, T_RAISE);
 
-    /* the 0 dB line, the +/-12 dB guides (the curve spans +/-24 dB) and the log grid */
-    cv_rect(14, mid_y, 212, 1, T_LINE);
-    cv_rect(14, mid_y - 22, 212, 1, T_RAISE);
-    cv_rect(14, mid_y + 22, 212, 1, T_RAISE);
-    for (i = 1; i < 4; i++)
-        cv_rect(14 + (int32_t)i * 53, y0 + 18, 1, 76, T_RAISE);
-
-    /* gain labels centred on their guides; the frequency labels have their own row */
-    cv_text_on(20, mid_y - 29, &AF_S, "+12", T_DIM, T_BG);
-    cv_text_on(20, mid_y - 8, &AF_S, "0", T_DIM, T_BG);
-    cv_text_on(20, mid_y + 13, &AF_S, "-12", T_DIM, T_BG);
-    cv_text_on(eq_hz_x(125) - 4, y0 + 88, &AF_S, "125", T_DIM, T_BG);
-    cv_text_on(eq_hz_x(2000) - 4, y0 + 88, &AF_S, "2k", T_DIM, T_BG);
-    cv_text_r(226, y0 + 88, &AF_S, "20k", T_DIM, T_BG);
-
+    /* (3.4) EDIT > FILTER's bay is the reference and this is its language: the plot has a named logarithmic grid,
+     * a dB scale in a left gutter that the curve never crosses, the band's own energy behind it as a backdrop, the
+     * area between the curve and 0 dB filled so a boost and a cut read at a glance, and the control point with its
+     * frequency and gain written on it. The curve is fx_master_eq_hz_db(), the very biquad the audio path runs, so
+     * this is a drawing of the filter and not of the knobs. */
+    cv_rect(gx0, mid_y, gw, 1, T_LINE);
+    cv_rect(gx0, mid_y - 22, gw, 1, T_RAISE);
+    cv_rect(gx0, mid_y + 22, gw, 1, T_RAISE);
     {
-        int32_t mark_hz = eq_param_hz();
-        int32_t mark_x = clamp(eq_hz_x(mark_hz), 14, 226);
-        int32_t mark_db = fx_master_eq_hz_db(mark_hz);
-        int32_t mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), y0 + 19, y0 + 93);
-        cv_rect(mark_x, y0 + 18, 1, 76, T_LINE);
-        for (i = 0; i <= 212; i++) {
-            int32_t db = fx_master_eq_hz_db(eq_hz_at(i));
-            int32_t y = clamp(mid_y - db * 44 / (24 * 256), y0 + 19, y0 + 93);
+        int32_t mark_hz = eq_param_hz(), mark_x = gx0, mark_y, mark_db;
+        char b[32];
+        /* Hz -> x on the plot: the axis table spans 212 px and the plot 192, in its own frame */
+        #define EQ_X(hz) (gx0 + (clamp(eq_hz_x(hz), 14, 226) - 14) * gw / 212)
+        for (i = 0; i < 3; i++) {
+            static const int32_t GL[3] = {100, 1000, 10000};
+            static const char *const GN[3] = {"100", "1k", "10k"};
+            int32_t gx = EQ_X(GL[i]);
+            cv_rect(gx, gtop, 1, gbot - gtop, T_GRID);
+            if (i < 2)                                 /* (10k's line has no room for a name before 20k's) */
+                cv_text_on(gx - 7, y0 + 87, &AF_S, GN[i], T_DIM, T_BG);
+        }
+        cv_rect(gx0, gtop, 1, gbot - gtop, T_GRID);
+        cv_text_on(10, y0 + 87, &AF_S, "20", T_LINE, T_BG);
+        cv_text_r(230, y0 + 87, &AF_S, "20k", T_LINE, T_BG);
+        /* the gain scale, in the gutter: the plot runs +-24 dB, so +12 and -12 sit halfway to each end */
+        cv_text_on(10, mid_y - 30, &AF_S, "+12", T_DIM, T_BG);
+        cv_text_on(14, mid_y - 6, &AF_S, "0", T_DIM, T_BG);
+        cv_text_on(8, mid_y + 18, &AF_S, "-12", T_DIM, T_BG);
+        /* the band's energy, under everything: what the EQ is shaping, not a measurement of the EQ */
+        for (i = 0; i < 28; i++) {
+            int32_t bx = gx0 + 2 + i * (gw - 4) / 28, bw = (gw - 4) / 28 - 1;
+            uint32_t idx = (scope_w - 128u + (uint32_t)i * 4u) & (SCOPE_N - 1u);
+            int32_t s = scope_buf[idx] - scope_buf[(idx + 2u) & (SCOPE_N - 1u)];
+            int32_t bh;
+            if (s < 0)
+                s = -s;
+            bh = clamp(s * 14 / 9000 + 2, 2, 14);
+            cv_rect(bx, gbot - bh, bw < 1 ? 1 : bw, bh, ux_mix(T_BG, bg_col(68), 42));
+        }
+        mark_x = EQ_X(mark_hz);
+        mark_db = fx_master_eq_hz_db(mark_hz);
+        mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), gtop, gbot);
+        for (i = 0; i <= gw; i++) {
+            int32_t db = fx_master_eq_hz_db(eq_hz_at(i * 212 / gw));
+            int32_t y = clamp(mid_y - db * 44 / (24 * 256), gtop, gbot);
+            if (db > 0 && y < mid_y)
+                cv_rect(gx0 + i, y, 1, mid_y - y, ux_mix(T_BG, T_THEME, 40));
+            else if (db < 0 && y > mid_y)
+                cv_rect(gx0 + i, mid_y, 1, y - mid_y, ux_mix(T_BG, T_ACCENT, 40));
             if (i) {
                 int32_t pct = clamp(45 + (mid_y - y) * 4, 0, 100);
-                cv_line_t(px, py, 14 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);
+                cv_line_t(px, py, gx0 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);
             }
-            px = 14 + i;
+            px = gx0 + i;
             py = y;
         }
-        if (mode > 0)
-            cv_rrect(mark_x - 2, mark_y - 2, 5, 5, 2, T_ACCENT, T_BG);
+        if (mode > 0) {
+            cv_rect(mark_x, gtop, 1, gbot - gtop, T_LINE);          /* the point's frequency */
+            cv_rect(mark_x - 3, mark_y - 3, 7, 7, T_ACCENT);        /* and where the curve is on it */
+            cv_rect(mark_x - 1, mark_y - 1, 3, 3, T_TEXT);
+        }
+        /* its reading, in a chip at the plot's top right: "30 Hz +9.6 dB" */
+        b[0] = 0;
+        eq_hz_txt(b, mark_hz, (int32_t)sizeof b);
+        str_cpy(b + str_len(b), " Hz ", (uint32_t)sizeof b - str_len(b));
+        eq_db_txt(b + str_len(b), mark_db, (int32_t)sizeof b - str_len(b));
+        {
+            int32_t tw = (int32_t)str_len(b) * 7 + 6;
+            cv_rect(gx0 + gw - tw, gtop - 1, tw, 11, T_RAISE);
+            cv_text_on(gx0 + gw - tw + 3, gtop, &AF_S, b, mode > 0 ? T_TEXT : T_DIM, T_RAISE);
+        }
+        #undef EQ_X
     }
 }
 
