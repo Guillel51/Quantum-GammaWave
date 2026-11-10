@@ -46,7 +46,6 @@
 
   <div class="row">
     <a class="btn primary" id="next" href="../webapp/installer/"></a>
-    <a class="btn" id="mf" href="https://github.com/jvitkauskas/m-flasher" target="_blank" rel="noopener">M-Flasher (GitHub)</a>
   </div>
   <p class="small muted" data-t="foot" style="margin-top:16px"></p>
 </main>
@@ -56,9 +55,9 @@ const $ = (id) => document.getElementById(id);
 const PT = {
   en: {
     title: "The plan before you write",
-    lead: "Your dump and the package this site serves, and the sectors the installer will erase. This page runs M-Flasher's own checks on the package and plans the write from your bytes; nothing is sent to the unit and nothing is written from here.",
+    lead: "Your dump and the package this site serves, and the sectors the installer will erase. This page runs the same checks on the package that the installer runs and plans the write from your bytes; nothing is sent to the unit and nothing is written from here.",
     dump: "Your dump (.bin, 1 MiB):",
-    checks: "M-Flasher's checks on this package",
+    checks: "The installer's checks on this package",
     pkgline: "package",
     next: "Continue to the installer",
     foot: "The install itself is the installer's. On a stock unit it stages this package's loader, which reads the flash chip and refuses a part the firmware does not write before erasing anything; it writes only what differs inside 0x04000–0x92FFF and keeps the boot area and the factory data.",
@@ -66,22 +65,22 @@ const PT = {
     accListCrc: "files in the list", accFlashCrc: "flash.bin CRC16", accModel: "model",
     accSize: "fits the 1 MiB part", accAppFile: "app file, decrypted, CRC16", accKey: "chip key",
     accRange: "write range", accSectors: "sectors", accBoot: "boot area kept", accFactory: "factory data",
-    refuseContainer: "M-Flasher refuses this package:", refuseModel: "M-Flasher refuses this package — another model:",
-    refuseSize: "M-Flasher refuses this package — larger than the flash:",
-    refuseKey: "M-Flasher refuses this package — its firmware does not decrypt with the unit's chip key:",
-    refuseFactory: "M-Flasher refuses this package — it reaches the factory data:",
+    refuseContainer: "The installer refuses this package:", refuseModel: "The installer refuses this package — another model:",
+    refuseSize: "The installer refuses this package — larger than the flash:",
+    refuseKey: "The installer refuses this package — its firmware does not decrypt with the unit's chip key:",
+    refuseFactory: "The installer refuses this package — it reaches the factory data:",
     bound: "At most %n sectors: the whole app area. Load your dump for the exact plan.",
     exact: "Writes %n sectors (%k KiB): %r",
     unchanged: "The other %n sectors already match and are left alone.",
     badDump: "That file is %n B: a dump of this unit is 1048576 B. Not used.",
     badPkg: "The release package could not be loaded or does not match its published SHA-256.",
-    note: "What this cannot say: what your unit will answer when M-Flasher opens it — it identifies the model and the chip key again before writing.",
+    note: "What this cannot say: what your unit will answer when the installer opens it — it identifies the model and the chip key again before writing.",
   },
   es: {
     title: "El plan antes de escribir",
-    lead: "Tu dump y el paquete que sirve este sitio, y los sectores que va a borrar el instalador. Esta página corre las comprobaciones del propio M-Flasher sobre el paquete y planifica la escritura con tus bytes; no se envía nada a la unidad y desde acá no se escribe nada.",
+    lead: "Tu dump y el paquete que sirve este sitio, y los sectores que va a borrar el instalador. Esta página corre sobre el paquete las mismas comprobaciones que hace el instalador y planifica la escritura con tus bytes; no se envía nada a la unidad y desde acá no se escribe nada.",
     dump: "Tu dump (.bin, 1 MiB):",
-    checks: "Comprobaciones de M-Flasher sobre este paquete",
+    checks: "Las comprobaciones del instalador sobre este paquete",
     pkgline: "paquete",
     next: "Seguir al instalador",
     foot: "La instalación la hace el propio instalador. En una unidad de fábrica prepara el loader de este paquete, que lee el chip de flash y rechaza una parte que el firmware no escribe antes de borrar nada; escribe sólo lo que difiere dentro de 0x04000–0x92FFF y conserva el área de arranque y los datos de fábrica.",
@@ -90,16 +89,16 @@ const PT = {
     accSize: "entra en la parte de 1 MiB", accAppFile: "fichero de la app, descifrado, CRC16", accKey: "chip key",
     accRange: "rango de escritura", accSectors: "sectores", accBoot: "área de arranque conservada",
     accFactory: "datos de fábrica",
-    refuseContainer: "M-Flasher rechaza este paquete:", refuseModel: "M-Flasher rechaza este paquete — es de otro modelo:",
-    refuseSize: "M-Flasher rechaza este paquete — es más grande que el flash:",
-    refuseKey: "M-Flasher rechaza este paquete — su firmware no descifra con la chip key de la unidad:",
-    refuseFactory: "M-Flasher rechaza este paquete — llega a los datos de fábrica:",
+    refuseContainer: "El instalador rechaza este paquete:", refuseModel: "El instalador rechaza este paquete — es de otro modelo:",
+    refuseSize: "El instalador rechaza este paquete — es más grande que el flash:",
+    refuseKey: "El instalador rechaza este paquete — su firmware no descifra con la chip key de la unidad:",
+    refuseFactory: "El instalador rechaza este paquete — llega a los datos de fábrica:",
     bound: "Como máximo %n sectores: toda el área de aplicación. Cargá tu dump para el plan exacto.",
     exact: "Escribe %n sectores (%k KiB): %r",
     unchanged: "Los otros %n sectores ya coinciden y no se tocan.",
     badDump: "Ese archivo tiene %n B: el dump de esta unidad es de 1048576 B. No se usó.",
     badPkg: "No se pudo cargar el paquete del release, o no coincide con su SHA-256 publicado.",
-    note: "Lo que esto no puede decir: qué va a contestar tu unidad cuando M-Flasher la abra — vuelve a identificar el modelo y la chip key antes de escribir.",
+    note: "Lo que esto no puede decir: qué va a contestar tu unidad cuando la abra el instalador — vuelve a identificar el modelo y la chip key antes de escribir.",
   },
 };
 let lang = (() => { try { return localStorage.getItem("qg-plan-lang") === "es" ? "es" : "en"; } catch (_) { return "en"; } })();

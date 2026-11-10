@@ -323,7 +323,7 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Accesos</div><h2 style="margin-top:14px">Todo el ecosistema,<br>en un clic.</h2></div>
-        <p>Tres entradas al mismo proyecto desde este mismo portal: emulador, estudio e instalador. El instalador USB es la única vía de escritura y ninguna ruta depende de una redirección.</p>
+        <p>El mismo proyecto desde un solo portal: emulador, estudio, instalador, plan previo y el canal Preview. El instalador USB es la única vía de escritura y ninguna ruta depende de una redirección.</p>
       </div>
       <div class="access">
         <a class="access-card primary" href="emulator/">
@@ -340,12 +340,26 @@
           <p>Editor del sonido real por Web MIDI, secuenciador de 16 pasos, mixer de seis pistas y proyectos.</p>
           <span class="go">Entrar al estudio <span class="arrow">↗</span></span>
         </a>
-        <a class="access-card wide" href="webapp/installer/">
-          <span class="no">03 / USB INSTALLER</span>
+        <a class="access-card primary" href="webapp/installer/">
+          <span class="no">03 / USB INSTALLER · ESTABLE</span>
           <b>USB Installer</b>
           <span class="url">/webapp/installer/</span>
-          <p>Identidad FM-1, tamaño del paquete y SHA-256 comprobados antes de escribir un solo byte. Incluye <b>Verify only</b>: lee la identidad del FM-1 y no envía ninguna trama de escritura.</p>
+          <p>Comprueba el SHA-256 del paquete, la firma Ed25519 de la clave qg1-release-1 y los hashes del firmware antes de habilitar INSTALL. Después el loader lee el chip real de la unidad y rechaza cualquier otro antes de borrar nada.</p>
           <span class="go">Abrir instalador <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card" href="plan/">
+          <span class="no">04 / PLAN PREVIO</span>
+          <b>Plan de instalación</b>
+          <span class="url">/plan/</span>
+          <p>Los sectores que se borran y se escriben, el rango 0x04000–0x92FFF y los datos de fábrica que se conservan. Corre sobre el paquete las mismas comprobaciones del instalador, sin conectar la unidad.</p>
+          <span class="go">Ver el plan <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card wide" href="preview/">
+          <span class="no">05 / PREVIEW · MAIN</span>
+          <b>Preview</b>
+          <span class="url">/preview/</span>
+          <p>El build actual de main con su propio emulador y su commit. No es instalable: el paquete todavía no está firmado y el instalador de ese canal lo explica en lugar de habilitar INSTALL. Sirve para escuchar lo que viene.</p>
+          <span class="go">Abrir Preview <span class="arrow">↗</span></span>
         </a>
       </div>
     </div>
@@ -394,8 +408,8 @@
         <article class="card">
           <span class="num">06 / SEGURIDAD</span>
           <h3>Instalador con verificación</h3>
-          <p>Identidad FM-1, tamaño, estructura del paquete y SHA-256 obligatorio antes de escribir. Reanudación del loader si se corta el USB.</p>
-          <span class="tag">INTEGRIDAD ≠ FIRMA · LEER LÍMITES</span>
+          <p>SHA-256, firma Ed25519 contra la clave fijada en la página y los hashes del firmware dentro de la firma, antes de habilitar INSTALL. El loader además identifica el chip en la unidad y rechaza uno desconocido sin borrar nada.</p>
+          <span class="tag">FIRMA MÁS INTEGRIDAD MÁS CHIP REAL</span>
         </article>
       </div>
     </div>
@@ -411,7 +425,8 @@
         <figure class="shot big"><img loading="lazy" decoding="async" src="assets/fw-visualizer.png" alt="El visualizador del firmware, 240 x 240: osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
         <figure class="shot"><img loading="lazy" decoding="async" src="assets/fw-mixer.png" alt="La página MIXER del firmware: seis pistas con nivel, paneo, envío y mute."><figcaption><b>MIXER</b><span>SEIS PISTAS</span></figcaption></figure>
         <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/fw-fx.png" alt="La página FX del firmware: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
-        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/installer.png" alt="Instalador USB de Quantum GammaWave con verificación de paquete y advertencias."><figcaption><b>INSTALADOR</b><span>USB-MIDI</span></figcaption></figure>
+        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/fw-master.png" alt="La página MASTER del firmware: clip, punch, duck y el VU de salida."><figcaption><b>MASTER</b><span>CLIP · PUNCH · DUCK</span></figcaption></figure>
+        <figure class="shot"><img loading="lazy" decoding="async" src="assets/fw-presets.png" alt="La biblioteca de presets del firmware, siete filas por categoría."><figcaption><b>PRESETS</b><span>200 SONIDOS</span></figcaption></figure>
       </div>
     </div>
   </section>
@@ -431,7 +446,7 @@
           </ul>
           <a class="btn primary" href="webapp/editor/">Entrar al Web Studio <span class="arrow">→</span></a>
         </div>
-        <div class="studio-shot"><img loading="lazy" decoding="async" src="assets/webstudio.png" alt="Interfaz del Web Studio: panel de hardware a la izquierda, telemetría y controles a la derecha."></div>
+        <div class="studio-shot"><img loading="lazy" decoding="async" src="assets/fw-home.png" alt="El panel del firmware a 240 x 240, tal como lo muestra el Web Studio en su vista de hardware."><figcaption class="mono muted" style="margin-top:10px;font-size:11px">Panel real del firmware, 240 × 240. El estudio lo muestra en vivo en /emulator/.</figcaption></div>
       </div>
     </div>
   </section>
@@ -440,18 +455,18 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Instalación</div><h2 style="margin-top:14px">Cuatro pasos,<br>con los ojos abiertos.</h2></div>
-        <p>El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada sirve el build de main; cada versión publicada está en los <a href="https://github.com/Guillel51/Quantum-GammaWave/releases" target="_blank" rel="noopener">releases de GitHub</a>.</p>
+        <p>El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada instala el release firmado 2.0.0; el build que sigue a main vive en la página Preview.</p>
       </div>
       <div class="install-grid">
         <ol class="steps">
-          <li><div><b>Verificá el modelo</b><span>La FM-1 debe responder como <code>FM-1_9xx</code>. El instalador se niega a escribir en otro modelo o en un paquete de otra identidad.</span></div></li>
-          <li><div><b>Comprobá el SHA-256</b><span>El hash del paquete se compara antes de enviar un solo byte. Si falta o no coincide, no se escribe nada.</span></div></li>
+          <li><div><b>Mirá la firma</b><span>El instalador muestra el SHA-256 del paquete y la clave que lo firmó, qg1-release-1. Si la firma no verifica, INSTALL queda deshabilitado y la página dice por qué.</span></div></li>
+          <li><div><b>Verificá el modelo y el chip</b><span>La FM-1 debe responder como FM-1_9xx, y el loader lee el chip de flash en la unidad: sólo 0x856014 y 0xB36014. Cualquier otro se rechaza antes del primer borrado, sin dump ni herramienta aparte.</span></div></li>
           <li><div><b>Conectá y respirá</b><span>Usá un cable USB de datos, cerrá otras aplicaciones MIDI y no desconectes durante la escritura. El loader puede reanudarse si el puerto se cae.</span></div></li>
           <li><div><b>Reiniciá y verificá</b><span>La FM-1 vuelve sola y reporta la identidad instalada. Si no vuelve, desconectá y volvé a conectar; no inicies otro flasheo a ciegas.</span></div></li>
         </ol>
         <aside class="warning">
           <h3>Límites reales, no letra chica</h3>
-          <p>La instalación verifica la integridad (los bytes son los publicados, por SHA-256) y el loader de actualización comprueba el chip flash antes de borrar nada. No hay secure boot.</p>
+          <p>La instalación verifica la autenticidad (firma Ed25519 contra la clave fijada) y la integridad (SHA-256 y los hashes del firmware dentro de la firma), y el loader comprueba el chip y la geometría del flash antes de borrar nada. No hay secure boot.</p>
           <ul>
             <li>No hay actualización A/B ni rollback autónomo del bootloader.</li>
             <li>Un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.</li>
@@ -468,7 +483,7 @@
           <tr><td>M-VAVE FM-1 / JieLi AC791N</td><td><span class="pill ok">SÍ</span></td><td>Toolchain y mapa del SDK; build target reproducible.</td></tr>
           <tr><td>Web Emulator</td><td><span class="pill ok">SÍ</span></td><td>Compila el mismo firmware y compara el DSP nativo bit a bit.</td></tr>
           <tr><td>Web Studio por Web MIDI</td><td><span class="pill ok">SÍ</span></td><td>Protocolo y dispositivo simulado en la suite web.</td></tr>
-          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Integridad y límites probados en host; instalación probada en FM-1 con los dos chips.</td></tr>
+          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Firma, integridad, plan y loader probados en host, sin unidad física: los dos chips están permitidos por el código, no medidos en hardware.</td></tr>
           <tr><td>Recuperación tras brick</td><td><span class="pill no">NO VERIFICADA</span></td><td>Requiere bootloader/partition support que este proyecto no modifica.</td></tr>
         </tbody>
       </table>
@@ -495,8 +510,8 @@
         </div>
         <div>
           <div class="warning" style="border-left-color:var(--cyan)">
-            <h3 style="color:var(--cyan)">Qué cambia en v2.1.1</h3>
-            <p>El emulador de esta portada es el build actual: mismo commit que el firmware, con su versión, su commit y el SHA-256 del wasm en el pie de la página. El instalador ofrece ese mismo paquete de main y comprueba su SHA-256 y su tamaño antes de escribir. En 2.0: las teclas de SCL vuelven a una esquina de 3 px, los planetas de HOME giran sobre su propio eje con la superficie en movimiento y la nota los enciende, y el Web Studio abre con un selector de vistas en lugar de diez botones. En 2.1.1 esa rotación queda verificada en el navegador (dos capturas y el recuento de píxeles en docs/evidence/3.3/), el filtro de LATCH se mide en audio renderizado y cada versión se publica como release de GitHub desde su tag.</p>
+            <h3 style="color:var(--cyan)">Qué cambia en v2.0.0</h3>
+            <p>Esta portada es el canal estable: instala el paquete firmado de release y su emulador se compiló desde el mismo commit que produjo esos bytes, con la versión, el commit y el SHA-256 del wasm en el pie de la página. En 2.0 el release ya no necesita ningún paso manual con M-Flasher, la firma viaja con el build que firma y el instalador la exige antes de habilitar INSTALL. Lo que sigue en main se ve en el canal Preview, marcado como no instalable hasta que se firme.</p>
             <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Leer changelog completo ↗</a>
             <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/releases" target="_blank" rel="noopener">Releases en GitHub ↗</a>
           </div>
@@ -589,7 +604,7 @@
     text("hero-build", v.version || "QG-1");
     text("foot-build", (v.version || "QG-1") + " // " + String(v.sha256 || "").slice(0, 12) + "…");
     text("ver-state", t("HASH DEL SITIO"));
-    text("ver-note", t("El instalador exige este SHA-256 antes de escribir. Integridad verificada; autenticidad criptográfica pendiente."));
+    text("ver-note", t("El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas."));
   }
   fetch("firmware/versions.json", { cache: "no-cache" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })

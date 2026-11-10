@@ -13,7 +13,11 @@
   The emulator is copied to OUT/emulator by the Pages workflow: the portal is the root, and the
   installer / editor keep their existing /webapp/ paths.
 
-  web/make_site.py build/felucca-X.Y.fwsc X.Y OUT_DIR [PREV_DIR]
+  web/make_site.py build/felucca-X.Y.fwsc X.Y OUT_DIR [PREV_DIR] [--manifest REC] [--emu EMU_MANIFEST]
+                  [--no-release]
+
+--no-release builds a preview: it publishes THIS package even when it is not the signed release, so /preview/
+always shows main and says it is not installable until a custodian signs it.
 
 PREV_DIR (JIANT 0.6.46): what web/fetch_prev.py downloaded from the live site, its firmware/versions.json and its
 packages: up to KEEP_OLD earlier versions (the newest build of each) stay installable next to the current one
@@ -185,13 +189,13 @@ def with_csp(html):
     return html.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n' + meta, 1)
 
 
-def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
+def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_release=True):
     pkg, out = Path(pkg), Path(out)
     # (signed release) the install comes from the signed release, not from this build, when the two are
     # not the same bytes: main moves, a signature does not. The page then says which commit it installs
     # and which build of main the emulator beside it came from.
     signed_manifest = None
-    rel = signed_release(HERE.parent / "release")
+    rel = signed_release(HERE.parent / "release") if use_release else None
     if rel:
         rel_pkg, rel_man = rel
         if hashlib.sha256(pkg.read_bytes()).hexdigest() != str(rel_man["sha256"]).lower():
@@ -221,7 +225,10 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     # (QG-1) each package with its SHA-256 and size: the installer refuses bytes that do not match
     def digest(b):
         return {"sha256": hashlib.sha256(b).hexdigest(), "size": len(b)}
-    # (v1.9.0) the build record travels with the page (inlined): the verify report shows it
+    # (v1.9.0) the build record travels with the page (inlined): the verify report shows it. When the package
+    # served IS the signed release, the record comes from the signature even if it was passed explicitly.
+    if signed_manifest is None:
+        signed_manifest = release_manifest(pkg)
     build = (signed_manifest.get("build") if signed_manifest else None) or build_record(pkg, manifest)
     emu = emulator_record(pkg, emu_manifest)
     # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
@@ -314,7 +321,14 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     if "{{VERSION}}" not in portal:
         raise SystemExit("web/site/index.html: the portal has no {{VERSION}} token: its static label "
                          "would not name the build this site serves")
-    (out / "index.html").write_text(portal.replace("{{VERSION}}", version), encoding="utf-8")
+    portal = portal.replace("{{VERSION}}", version)
+    if not use_release:            # built as /preview/: its own portal links back to the stable root
+        portal = portal.replace('href="preview/"', 'href="../"')
+        (out / "preview").mkdir(exist_ok=True)
+        (out / "preview" / "index.html").write_text(   # and a card that points here still lands somewhere
+            '<!doctype html><meta charset="utf-8"><title>Preview</title>'
+            '<meta http-equiv="refresh" content="0; url=../"><a href="../">Preview</a>\n', encoding="utf-8")
+    (out / "index.html").write_text(portal, encoding="utf-8")
     shutil.copy(site / "i18n.js", out / "i18n.js")
     assets = out / "assets"
     if assets.exists():
@@ -331,6 +345,8 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
 if __name__ == "__main__":
     args = sys.argv[1:]
     manifest = emu_manifest = None
+    use_release = "--no-release" not in args
+    args = [a for a in args if a != "--no-release"]
     for flag, name in (("--manifest", "manifest"), ("--emu", "emu_manifest")):
         if flag in args:
             i = args.index(flag)
@@ -343,4 +359,4 @@ if __name__ == "__main__":
             del args[i:i + 2]
     if len(args) not in (3, 4):
         sys.exit(__doc__)
-    main(*args[:3], args[3] if len(args) == 4 else None, manifest, emu_manifest)
+    main(*args[:3], args[3] if len(args) == 4 else None, manifest, emu_manifest, use_release)

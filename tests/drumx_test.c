@@ -54,6 +54,10 @@ static track_t *kitx(int16_t morph, int16_t tune)
     lev_env = 0; lev_g = lev_cur = 32768; lev_dg = 0; lim_env = LIM_T;   /* (0.5.1: the slow leveler from rest each time) */
     memset(mp_seen, 0, sizeof mp_seen); memset(dist_w, 0, sizeof dist_w);   /* (0.6.8: the parts' LEVEL / PAN / DST blend from rest too) */
     host_preset(t, ENGI_DRUM, 0);
+    /* (2.2) the PUNCH checks below measure a hit's boost, not the bank's levelling: since sounds carry
+     * their own level (preset_level.c, DRUM 0 is 120) this synthetic kit is pinned at 100, the level it
+     * was written against. At 120 the hit sits further into the knee and the boost is absorbed there. */
+    t->p[P_LEVEL] = 100;
     t->p[P_E0] = morph;
     t->p[P_E1] = tune;
     for (i = 0; i < 4u; i++)

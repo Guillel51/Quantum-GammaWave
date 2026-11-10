@@ -149,16 +149,21 @@ def main(site_dir=None):
                 target = (built.parent / href.split("#", 1)[0].split("?", 1)[0]).resolve()
                 if not (target.is_file() or (target.is_dir() and (target / "index.html").is_file())):
                     bad.append(f"link goes nowhere from {built.relative_to(out)}: {href}")
+        # (v2.0.0) the site's emulator is the one its own record names: the root serves the emulator built
+        # from the commit of the signed package, /preview serves this build's. Comparing that copy with
+        # build/emu would call the stable channel stale for doing exactly what it is meant to do.
         emu, built = out / "emulator", HERE.parent / "build" / "emu"
-        if (emu / "manifest.json").is_file() and (built / "manifest.json").is_file():
+        versions = out / "firmware" / "versions.json"
+        if (emu / "manifest.json").is_file() and versions.is_file():
             try:
                 a = json.loads((emu / "manifest.json").read_text(encoding="utf-8"))
-                b = json.loads((built / "manifest.json").read_text(encoding="utf-8"))
-            except ValueError as e:
+                b = (json.loads(versions.read_text(encoding="utf-8"))[0].get("emulator") or {})
+            except (ValueError, IndexError) as e:
                 bad.append(f"bad emulator manifest: {e}")
             else:
-                if a != b:
-                    bad.append(f"stale emulator copy in {emu}: {a} != {b}")
+                if b and a.get("commit") != b.get("commit"):
+                    bad.append(f"the emulator beside this site is not the one its record names "
+                               f"({a.get('commit')} != {b.get('commit')}) in {emu}")
                 if a.get("commit") and f'<code id="build-commit">{a["commit"]}</code>' not in (emu / "index.html").read_text(encoding="utf-8"):
                     bad.append("emulator page does not name its manifest's commit")
 

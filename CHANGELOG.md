@@ -17,6 +17,32 @@
 - Los rediseños de EDIT (LOFI, MORPH, FM6), las gráficas unificadas, BI-QUAD EQ, HOME y el visualizador **no**
   entran en esta pasada y quedan declarados como pendientes.
 
+## 2026-11-10 — v2.0.0 publicado: firma real, release real, dos canales
+
+- **La firma Ed25519 vuelve y es la que decide.** `release/felucca-2.0.0.fwsc` (610 959 B, SHA-256
+  `c423b17c…9bd2`) está firmado con la clave existente `qg1-release-1` (pública `70b6036f…fcd40`, fijada en
+  `tools/fm1_keys.json` y en la página). El instalador verifica el SHA-256 del paquete, la firma contra esa
+  clave y los hashes de `felucca.bin` y `loader/ota.bin` antes de habilitar INSTALL; sin las tres, sigue
+  deshabilitado y dice cuál falló. La entrada de abajo («sin firma en el repo») queda como historia.
+- **La firma nombra el firmware, no el archivo.** `images` son la imagen de la app y el loader —los hashes que
+  todo registro de build usa—, y el paquete se cubre con `sha256`. Con el nombre del `.fwsc` dentro de `images`
+  el sitio rechazaba una firma válida, porque ese nombre cambia con la etiqueta de la versión.
+- **El manifiesto firmado lleva su registro de build** (`qg1-build-1`): commit, versión y hashes de los
+  artefactos viajan dentro de la firma, así la página que instala dice qué commit escribe sin fiarse de otro
+  archivo.
+- **Dos canales, sin ambigüedad.** `/` es estable: el release firmado y un emulador compilado desde el mismo
+  commit que produjo el paquete. `/preview/` es `main` como está ahora, con su emulador y su commit, y el
+  instalador de ese canal se niega a habilitar INSTALL porque el paquete no está firmado.
+- **Sin requisito manual de M-Flasher** (ya no aparece ni en el instalador, ni en `/plan/`, ni en las cadenas
+  en/es/zh): el loader que la unidad de fábrica prepara lee el chip (`0x856014` / `0xB36014`) y rechaza
+  cualquier otro antes del primer borrado.
+- **Release publicado:** tag `v2.0.0` → `896797e`, con el paquete, su manifiesto y `SHA256SUMS` descargados de
+  vuelta y verificados. Compilado aquí con el toolchain AC791N (`./build.sh --release 2.0.0`).
+- Suites: `sign_test`, `key_custody_test`, `install_test`, `gate_test`, `mflasher_test`, `mflasher_accept_test`
+  (14), `test_accept` (20), `test_state` (65), `test_update_mode` (12), `test_verify_only` (150), `test_web`,
+  `test_sign` (12), `test_backup`, `test_site`, `test_i18n`, `test_installer_i18n`, `tests/ldr_test` (28) y
+  `tests/flash_id_test`. **Ninguna unidad física fue tocada**: los dos chips están permitidos por código, no
+  medidos en hardware.
 ## 2026-11-10 — 2.1.1: el árbol, medido; la instalación, la que está firmada
 
 - **La versión es `v2.1.1`** en el firmware, el wasm, el sitio y esta documentación. Lo que se instala sigue
