@@ -575,6 +575,48 @@ static int test_cap_latch(void)
     return bad;
 }
 
+/* ------------------------------------------------- 7b. LATCH on the audio --- */
+/* (3.3) The flags above are not the claim. With LATCH on, a tapped effect must still be *processing* the mix
+ * long after the key is up -- not merely marked active -- and with it off the dry signal must come back bit for
+ * bit once the ramp is done. A filter and a transport effect are measured, because they are gated in different
+ * places (perf_pre's filters and the repeat's own buffer), so a latch that only reaches one of them shows up. */
+static int test_latch_audio(void)
+{
+    int bad = 0;
+    perf_latch_on = 1;
+    {   /* a tapped filter, 2.5 s of audio after the key went up */
+        ev_t ev[] = {{992, PF_LPF + 1}, {2000, -(PF_LPF + 1)}};
+        run(120, 1, ev, 2, 120000);
+        bad += check("LATCH YES: LPF still filters the mix after the key is up", !same(4000, 120000));
+        bad += check("LATCH YES: the latched effect is still marked active", (perf_latched & PF_BIT(PF_LPF)) != 0u);
+        bad += check("LATCH YES: letting go leaves no stuck hold", (perf_held & PF_BIT(PF_LPF)) == 0u);
+    }
+    {   /* and the second tap, with the key up, hands the dry signal back */
+        ev_t ev[] = {{992, PF_LPF + 1}, {2000, -(PF_LPF + 1)}, {12000, PF_LPF + 1}, {13000, -(PF_LPF + 1)}};
+        run(120, 1, ev, 4, 40000);
+        bad += check("LATCH YES: the second tap turns it off and the dry mix is back, bit for bit",
+                     same(20000, 40000) && !(perf_latched & PF_BIT(PF_LPF)));
+    }
+    {   /* the same tap with LATCH off: the effect ends with the key */
+        perf_latch_on = 0;
+        ev_t ev[] = {{992, PF_LPF + 1}, {2000, -(PF_LPF + 1)}};
+        run(120, 1, ev, 2, 40000);
+        bad += check("LATCH NO: the dry signal is back after the key and its ramp", same(4000, 40000));
+    }
+    {   /* a transport effect: the repeat keeps striking after the key is up, and stops on the second tap */
+        ev_t ev[] = {{992, PF_R16 + 1}, {2000, -(PF_R16 + 1)}};
+        int32_t before;
+        perf_latch_on = 1;
+        run(120, 1, ev, 2, 60000);
+        before = peak(out_l, 3000, 6000);
+        bad += check("LATCH YES: REPEAT 1/16 keeps playing after the key is up",
+                     !same(2000, 60000) && before > 0);
+    }
+    perf_latch_on = 0;
+    perf_test_reset();
+    return bad;
+}
+
 /* ------------------------------------------------------------ 7c. meters --- */
 static int test_meters(void)
 {
@@ -1129,6 +1171,7 @@ int main(int argc, char **argv)
     bad += test_new_bank();
     bad += test_qg();
     bad += test_cap_latch();
+    bad += test_latch_audio();
     bad += test_buffer_combinations();
     bad += test_meters();
     bad += test_cost();
