@@ -1,0 +1,562 @@
+# emulator run 42761402580 (failure) at c14365d968393c5d529113b078991ab013311e77
+
+## jobs
+- build: completed / success
+- deploy: completed / failure
+    step FAILED: 6 the published site serves this build -> failure
+
+## publish job
+
+## failed steps, any job
+build	Set up job	2026-11-10T05:19:29.0815394Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-10T05:19:30.1194272Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-10T05:19:31.2682404Z ##[group]Initializing the repository
+build	Run actions/checkout@v4	2026-11-10T05:19:35.9386791Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-10T05:19:35.9530154Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:46.1867404Z (node:2434) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:46.6282129Z [command]/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/emsdk update
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:47.0909628Z Downloading: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/downloads/HEAD.zip from https://github.com/emscripten-core/emsdk/archive/HEAD.zip, 224024 Bytes
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:47.1173970Z Unpacking '/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/downloads/HEAD.zip' to '/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main'
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:47.1320607Z [command]/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/emsdk install 6.0.11
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:47.3704914Z Downloading: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/downloads/node-v24.19.0-linux-x64.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/deps/node-v24.19.0-linux-x64.tar.xz, 31633904 Bytes
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:49.9657127Z Unpacking '/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/downloads/node-v24.19.0-linux-x64.tar.xz' to '/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit'
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:19:49.9662645Z Downloading: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/f6264d4a4dd9ba24a9f0a5702835a44d1463de13/wasm-binaries.tar.xz, 304047688 Bytes
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:12.0271461Z Unpacking '/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz' to '/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream'
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.0558406Z [command]/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/emsdk activate 6.0.11
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.1828984Z     /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.1829908Z     /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.1831658Z     source "/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/emsdk_env.sh"
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.1833658Z     echo 'source "/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/emsdk_env.sh"' >> $HOME/.bash_profile
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.1934113Z [command]/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/emsdk construct_env
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3191086Z PATH += /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3192065Z PATH += /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3196420Z PATH = /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3200155Z EMSDK = /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3204088Z EMSDK_NODE = /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3207945Z export PATH="/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games";
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3211626Z export EMSDK="/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main";
+build	Run mymindstorm/setup-emsdk@v14	2026-11-10T05:20:20.3212934Z export EMSDK_NODE="/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node";
+build	the emulator	2026-11-10T05:20:20.3502596Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the emulator	2026-11-10T05:20:20.3504550Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	the emulator	2026-11-10T05:20:20.3505507Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	Run actions/setup-node@v4	2026-11-10T05:20:41.0255616Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	Run actions/setup-node@v4	2026-11-10T05:20:41.0257639Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	Run actions/setup-node@v4	2026-11-10T05:20:41.0258270Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)	2026-11-10T05:20:45.0422971Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)	2026-11-10T05:20:45.0425138Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	the emulator boots, plays, saves (smoke test; the cost check relaxed for shared runners)	2026-11-10T05:20:45.0425759Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	the emulator as an artifact (every branch, every PR)	2026-11-10T05:20:46.2079157Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the emulator as an artifact (every branch, every PR)	2026-11-10T05:20:46.2081115Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	the emulator as an artifact (every branch, every PR)	2026-11-10T05:20:46.2081738Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	JieLi toolchain and SDK files (cached)	﻿2026-11-10T05:20:47.9434041Z ##[group]Run actions/cache@v4
+build	JieLi toolchain and SDK files (cached)	2026-11-10T05:20:47.9440682Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	JieLi toolchain and SDK files (cached)	2026-11-10T05:20:47.9442665Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	JieLi toolchain and SDK files (cached)	2026-11-10T05:20:47.9443295Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	JieLi toolchain and SDK files	2026-11-10T05:20:49.9919726Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	JieLi toolchain and SDK files	2026-11-10T05:20:49.9921687Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	JieLi toolchain and SDK files	2026-11-10T05:20:49.9922322Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	the package, the installer and the editor	2026-11-10T05:20:50.0110712Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the package, the installer and the editor	2026-11-10T05:20:50.0112685Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	the package, the installer and the editor	2026-11-10T05:20:50.0113335Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	the package, the installer and the editor	2026-11-10T05:21:07.4340326Z icons total 8177 B -> /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/build/gen/ui_icons.h   (87 legacy names + 36 new)
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-10T05:21:07.5274044Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-10T05:21:07.5280193Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-10T05:21:07.5283832Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-10T05:21:07.5285310Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	target compiler checks (DSP budget of the render loops, the .fwsc reader on the package)	2026-11-10T05:21:07.7403817Z flash: a header CRC mismatch is refused                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:07.8271010Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:07.8273029Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:07.8273682Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:09.8203403Z editor: out-of-range palette refused                             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:12.8403533Z DRUM: E0 is MRPH (DRUM-X's morph; Felucca's KIT retired)         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:21.4220303Z v4: v3 firmware -> WATCH 1, no TRACK_PARAM (pan by select / restore) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:21.6340453Z FM6 import: bank without checksum and F7 (EOF)                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:21.6445422Z FM6 import: junk and another maker's message around the voices   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:22.3788404Z FM6: a short record or a fifth track: rc 1                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:23.9194228Z library: .. also when the layout is unchanged (only those written) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:24.1403776Z editor: icons hidden until the font has loaded                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:21:41.0714043Z fm1ota.js: unplugged during the write -> stops at once           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:00.4032799Z ok   a malformed answer (6 bytes): still silent, no write
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:02.4221548Z ok   the panel is filled from the report's fields and limits
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:02.4222397Z ok   the Verify handler renders the report
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:02.4223210Z ok   the panel says detection is not an authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:02.4224442Z ok   the panel renders the checklist and the verdict, not only the field list
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:02.4228362Z ok   every checklist row and state has words in the three languages
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:10.8125957Z verify only: 150 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:11.9125900Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:12.9186709Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:12.9203773Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:12.9214478Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:12.9225974Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:12.9238648Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:16.9894037Z a 0x13 reply carrying an older session is refused as stale         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:16.9895404Z the refusal sent 0x12 only: no UPGRADE, nothing written            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:16.9895851Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:22.8905745Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-10T05:22:23.0859427Z flash read: 16 checks, 0 FAILED
+build	the site (this build)	2026-11-10T05:22:23.2614491Z ^[[36;1m  test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }^[[0m
+build	the site (this build)	2026-11-10T05:22:23.2654043Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the site (this build)	2026-11-10T05:22:23.2656930Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the site (this build)	2026-11-10T05:22:23.2659081Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	the site (this build)	2026-11-10T05:22:23.2659720Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	a package and a site exist (fail closed)	﻿2026-11-10T05:22:23.3515051Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-10T05:22:23.3515978Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-10T05:22:23.3516725Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-10T05:22:23.3542936Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	a package and a site exist (fail closed)	2026-11-10T05:22:23.3545413Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	a package and a site exist (fail closed)	2026-11-10T05:22:23.3546066Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-10T05:22:23.3620800Z ^[[36;1mtest -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-10T05:22:23.3645600Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-10T05:22:23.3648004Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-10T05:22:23.3648913Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.3812141Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.3814125Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.3814952Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4031861Z shell: /usr/bin/sh -e {0}
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4032177Z env:
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4032516Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4033061Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4033620Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4034114Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4034610Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4035284Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4037624Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4040039Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4040810Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4041437Z   INPUT_PATH: build/site
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4041733Z ##[endgroup]
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4134404Z ./firmware/LICENSES/MIT-Fukiai.txt
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4250006Z   PATH: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main:/home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4251930Z   EMSDK: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main
+build	Run actions/upload-pages-artifact@v3	2026-11-10T05:22:23.4252560Z   EMSDK_NODE: /home/runner/work/_temp/254ecb5f-de35-422a-a4da-53b925b3ff93/emsdk-main/node/24.19.0_64bit/bin/node
+deploy	Set up job	2026-11-10T05:22:33.8047653Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+deploy	Set up job	2026-11-10T05:22:33.8324040Z Prepare all required actions
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-10T05:22:35.1095462Z ^[[36;1m  echo "::error::GitHub Pages is not enabled for Guillel51/Quantum-GammaWave: deploy-pages would fail with HTTP 404. Enable it once, Settings > Pages > Build and deployment > Source: GitHub Actions (no workflow change is needed)."^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-10T05:22:35.7283003Z Pages: {"url":"https://api.github.com/repos/Guillel51/Quantum-GammaWave/pages","status":null,"cname":null,"custom_404":false,"html_url":"https://guillel51.github.io/Quantum-GammaWave/","build_type":"workflow","source":{"branch":"main","path":"/"},"public":true,"protected_domain_state":null,"pending_domain_unverified_at":null,"https_enforced":true}
+deploy	Run actions/deploy-pages@v4	2026-11-10T05:22:42.4224271Z Getting Pages deployment status...
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8214038Z hint: call:
+deploy	the published site serves this build	2026-11-10T05:22:43.7342312Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the published site serves this build	2026-11-10T05:23:04.5539810Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:23:20.3176637Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:23:36.3060758Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:23:51.9073411Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:07.4872666Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:22.7774023Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:38.0266902Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:53.4760635Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:08.8382061Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:24.1914033Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1919740Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:39.7150737Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:55.9849279Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:11.9557480Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:27.3526544Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:42.6835082Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:58.7325167Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:27:14.0383860Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:27:29.2546899Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:27:44.6067386Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:28:00.2150898Z site: 1 FAILED
+
+## tail
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7159438Z   persist-credentials: true
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7159645Z   clean: true
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7159814Z   fetch-depth: 1
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7159988Z   fetch-tags: false
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7160193Z   show-progress: true
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7160381Z   lfs: false
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7160556Z   submodules: false
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7160740Z   set-safe-directory: true
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7160959Z   allow-unsafe-pr-checkout: false
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7161181Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7987555Z Syncing repository: Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7989237Z ##[group]Getting Git version info
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7989735Z Working directory is '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.7990274Z [command]/usr/bin/git version
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8018801Z git version 2.56.0
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8037460Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8049364Z Temporarily overriding HOME='/home/runner/work/_temp/07979aa2-cfb7-4b58-a6ed-6e6844ab1375' before making global git config changes
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8050493Z Adding repository directory to the temporary git global config as a safe directory
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8053872Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8101626Z Deleting the contents of '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8104852Z ##[group]Initializing the repository
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8108049Z [command]/usr/bin/git init /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8211944Z hint: Using 'master' as the name for the initial branch. This default branch name
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8212749Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8213450Z hint: to use in all of your new repositories, which will suppress this warning,
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8214038Z hint: call:
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8214356Z hint:
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8214753Z hint: 	git config --global init.defaultBranch <name>
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8215221Z hint:
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8215623Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8216368Z hint: 'development'. The just-created branch can be renamed via this command:
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8216925Z hint:
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8217264Z hint: 	git branch -m <name>
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8217849Z hint:
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8218652Z hint: Disable this message with "git config set advice.defaultBranchName false"
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8222314Z Initialized empty Git repository in /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/.git/
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8234966Z [command]/usr/bin/git remote add origin https://github.com/Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8277787Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8290975Z ##[group]Disabling automatic garbage collection
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8300232Z [command]/usr/bin/git config --local gc.auto 0
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8333180Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8333991Z ##[group]Setting up auth
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8340587Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8377752Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8734726Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8770541Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.8975996Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.9011793Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.9230282Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.9283858Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.9294169Z ##[group]Fetching the repository
+deploy	Run actions/checkout@v4	2026-11-10T05:22:42.9295011Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin +c14365d968393c5d529113b078991ab013311e77:refs/remotes/origin/main
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3454795Z From https://github.com/Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3455757Z  * [new ref]         c14365d968393c5d529113b078991ab013311e77 -> origin/main
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3467723Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3468255Z ##[group]Determining the checkout info
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3470853Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3471322Z ##[group]Setting up sparse checkout
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3474970Z [command]/usr/bin/git config core.sparseCheckout true
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3512478Z [command]/usr/bin/git rev-parse --git-path info/sparse-checkout
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3539310Z .git/info/sparse-checkout
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3545460Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3545799Z ##[group]Checking out the ref
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.3549030Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.7135147Z Switched to a new branch 'main'
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.7139791Z branch 'main' set up to track 'origin/main'.
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.7145026Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.7189836Z [command]/usr/bin/git log -1 --format=%H
+deploy	Run actions/checkout@v4	2026-11-10T05:22:43.7218833Z c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	﻿2026-11-10T05:22:43.7339383Z ##[group]Run sleep 20                                   # Pages switches after the deploy reports, not during it
+deploy	the published site serves this build	2026-11-10T05:22:43.7339859Z ^[[36;1msleep 20                                   # Pages switches after the deploy reports, not during it^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7340192Z ^[[36;1mfor i in $(seq 1 20); do^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7340583Z ^[[36;1m  if python3 tools/site_check.py --expect-emu-commit "$GITHUB_SHA" --expect-commit "$GITHUB_SHA"; then^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7340978Z ^[[36;1m    exit 0^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7341153Z ^[[36;1m  fi^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7341467Z ^[[36;1m  echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7341829Z ^[[36;1m  sleep 15^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7342002Z ^[[36;1mdone^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7342312Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7342656Z ^[[36;1mexit 1^[[0m
+deploy	the published site serves this build	2026-11-10T05:22:43.7361358Z shell: /usr/bin/bash -e {0}
+deploy	the published site serves this build	2026-11-10T05:22:43.7361610Z ##[endgroup]
+deploy	the published site serves this build	2026-11-10T05:23:04.5531361Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5532201Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:23:04.5532853Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5533937Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5534458Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5535166Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:23:04.5535865Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5536423Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5536938Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5537509Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5538054Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5538848Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5539419Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:23:04.5539810Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:23:04.5628230Z ##[notice]the site is not serving the expected artefacts yet (attempt 1/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:23:20.3142675Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3143479Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:23:20.3169246Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3169958Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3170572Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3171397Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:23:20.3172228Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3172824Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3173363Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3173933Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3174527Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3175143Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3176221Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:23:20.3176637Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:23:20.3241417Z ##[notice]the site is not serving the expected artefacts yet (attempt 2/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:23:36.3054969Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3055569Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:23:36.3056088Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3056445Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3056790Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3057258Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:23:36.3057729Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3058104Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3058661Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3059001Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3059744Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3060109Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3060467Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:23:36.3060758Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:23:36.3136867Z ##[notice]the site is not serving the expected artefacts yet (attempt 3/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:23:51.9065778Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9066632Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:23:51.9067350Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9067881Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9068575Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9069309Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:23:51.9070012Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9070509Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9070988Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9071496Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9072000Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9072518Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9073009Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:23:51.9073411Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:23:51.9149195Z ##[notice]the site is not serving the expected artefacts yet (attempt 4/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:24:07.4866888Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4867521Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:24:07.4867986Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4868532Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4868913Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4869804Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:24:07.4870281Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4870638Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4870968Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4871324Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4871670Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4872019Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4872377Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:24:07.4872666Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:07.4949177Z ##[notice]the site is not serving the expected artefacts yet (attempt 5/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:24:22.7768121Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7768987Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:24:22.7769528Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7770300Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7770666Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7771157Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:24:22.7771636Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7771998Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7772337Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7772699Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7773044Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7773383Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7773732Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:24:22.7774023Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:22.7850962Z ##[notice]the site is not serving the expected artefacts yet (attempt 6/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:24:38.0258903Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0259718Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:24:38.0260392Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0260911Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0261462Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0262125Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:24:38.0262850Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0263388Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0263898Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0264420Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0264910Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0265407Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0265953Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:24:38.0266902Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:38.0341161Z ##[notice]the site is not serving the expected artefacts yet (attempt 7/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:24:53.4753196Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4753947Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:24:53.4754661Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4755203Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4755739Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4756458Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:24:53.4757184Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4757757Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4758280Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4758883Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4759245Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4759990Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4760343Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:24:53.4760635Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:24:53.4837093Z ##[notice]the site is not serving the expected artefacts yet (attempt 8/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:25:08.8374408Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8375174Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:25:08.8375833Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8376300Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8376839Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8377535Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:25:08.8378187Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8378898Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8379396Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8379935Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8380483Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8381045Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8381616Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:25:08.8382061Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:08.8457597Z ##[notice]the site is not serving the expected artefacts yet (attempt 9/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:25:24.1914033Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1914647Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:25:24.1915138Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1915499Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1915840Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1916300Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:25:24.1917170Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1917519Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1917842Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1918187Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1918746Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1919114Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1919464Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:25:24.1919740Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:24.1997720Z ##[notice]the site is not serving the expected artefacts yet (attempt 10/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:25:39.7144782Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7145521Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:25:39.7145991Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7146340Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7147140Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7147632Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:25:39.7148101Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7148679Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7149006Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7149366Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7149721Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7150073Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7150449Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:25:39.7150737Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:39.7230570Z ##[notice]the site is not serving the expected artefacts yet (attempt 11/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:25:55.9841258Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9842092Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:25:55.9842764Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9843276Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9843832Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9844547Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:25:55.9845259Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9845786Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9846279Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9846775Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9847284Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9847777Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9848276Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:25:55.9849279Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:25:55.9928223Z ##[notice]the site is not serving the expected artefacts yet (attempt 12/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:26:11.9549615Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9550454Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:26:11.9551200Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9551706Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9552217Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9552914Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:26:11.9553635Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9554172Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9554660Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9555153Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9555652Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9556573Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9557083Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:26:11.9557480Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:11.9634999Z ##[notice]the site is not serving the expected artefacts yet (attempt 13/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:26:27.3521224Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3521975Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:26:27.3522501Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3522870Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3523211Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3523667Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:26:27.3524150Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3524501Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3524823Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3525180Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3525533Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3525894Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3526263Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:26:27.3526544Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:27.3602745Z ##[notice]the site is not serving the expected artefacts yet (attempt 14/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:26:42.6828005Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6828944Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:26:42.6829681Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6830241Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6830779Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6831508Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:26:42.6832649Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6833009Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6833340Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6833708Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6834051Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6834408Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6834799Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:26:42.6835082Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:42.6909401Z ##[notice]the site is not serving the expected artefacts yet (attempt 15/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:26:58.7317595Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7319211Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:26:58.7319954Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7320502Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7321522Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7322249Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:26:58.7322781Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7323137Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7323466Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7323813Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7324162Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7324525Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7324882Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:26:58.7325167Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:26:58.7410325Z ##[notice]the site is not serving the expected artefacts yet (attempt 16/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:27:14.0312742Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0313591Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:27:14.0314602Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0315224Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0315778Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0316483Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:27:14.0317187Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0317698Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0318180Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0318859Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0319348Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0319860Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0320673Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:27:14.0383860Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:27:14.0413229Z ##[notice]the site is not serving the expected artefacts yet (attempt 17/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:27:29.2539023Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2539870Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:27:29.2540617Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2541122Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2541643Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2542342Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:27:29.2543062Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2543574Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2544065Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2544549Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2545063Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2545995Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2546510Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:27:29.2546899Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:27:29.2620852Z ##[notice]the site is not serving the expected artefacts yet (attempt 18/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:27:44.6061086Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6061854Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:27:44.6062505Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6063080Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6063619Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6064367Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:27:44.6064936Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6065332Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6065678Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6066038Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6066380Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6066729Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6067097Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:27:44.6067386Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:27:44.6145416Z ##[notice]the site is not serving the expected artefacts yet (attempt 19/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:28:00.2145091Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2145749Z site: the published package is the commit asked for                      FAIL  2500153 vs c14365d968393c5d529113b078991ab013311e77
+deploy	the published site serves this build	2026-11-10T05:28:00.2146239Z site: the package's size is versions.json's                              ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2146593Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2146936Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2147405Z site: the emulator is 'v2.1.1', the package 'v2.0.0' (the emulator follows main, the package is the release): not a mismatch
+deploy	the published site serves this build	2026-11-10T05:28:00.2148289Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2148875Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2149208Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2149549Z site: the portal prints the published version                            ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2149892Z site: the portal offers the emulator                                     ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2150247Z site: the installer offers the published version                         ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2150615Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves this build	2026-11-10T05:28:00.2150898Z site: 1 FAILED
+deploy	the published site serves this build	2026-11-10T05:28:00.2225392Z ##[notice]the site is not serving the expected artefacts yet (attempt 20/20); waiting 15 s
+deploy	the published site serves this build	2026-11-10T05:28:15.2243576Z ##[error]the deployed site still does not serve the expected artefacts after 5 minutes
+deploy	the published site serves this build	2026-11-10T05:28:15.2245923Z ##[error]Process completed with exit code 1.
+deploy	Post Run actions/checkout@v4	﻿2026-11-10T05:28:15.2333119Z Post job cleanup.
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3002113Z [command]/usr/bin/git version
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3038638Z git version 2.56.0
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3071528Z Temporarily overriding HOME='/home/runner/work/_temp/f3058f41-d03e-40d5-8377-a9e3f1ec5286' before making global git config changes
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3072503Z Adding repository directory to the temporary git global config as a safe directory
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3076108Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3113116Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3145838Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3373129Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3397654Z http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3409443Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3441715Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3701743Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy	Post Run actions/checkout@v4	2026-11-10T05:28:15.3740004Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy	Complete job	﻿2026-11-10T05:28:15.4096815Z Cleaning up orphan processes
+deploy	Complete job	2026-11-10T05:28:15.4379719Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/deploy-pages@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
