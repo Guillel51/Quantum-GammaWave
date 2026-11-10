@@ -752,23 +752,34 @@ static void tech_autopan(const track_t *t)
     }
 }
 
-/* (0.6.12) RETRIG (LOFI BYTE / FLOAT): the formula's time over four notes (their ticks under it): RTRG ON a ramp from 0
- * at each note (the formula from its start every time), OFF one ramp running on under them */
+/* RETRIG (LOFI BYTE / FLOAT): T.CLK, the formula's clock, over four notes (their ticks under it).
+ * NOTE: the formula restarts at every note, so each note is a ramp from 0 and the sound repeats.
+ * FREE: the track's clock carries the formula on and the notes join it where it stands -- the ramp never goes
+ * back, and each tick sits on the point of it that note starts from. That is what the DSP does (eng_lofi.c
+ * lofi_note_on: t = fm1_ms * 8 in FREE, 0 in NOTE), so the drawing is a reading of it, not an illustration. */
 static void tech_retrig(const track_t *t)
 {
-    int32_t x0 = TK_X0 + 10, w = PANEL_W - 20, base = TK_Y1 - 12, top = TK_Y0 + 10, on = t->p[P_LRTRG] != 0, i, py = base;
+    int32_t x0 = TK_X0 + 10, w = PANEL_W - 20, base = TK_Y1 - 12, top = TK_Y0 + 10;
+    int32_t freerun = t->p[P_LRTRG] != 0, i, py = base, seg = w / 4;
+
     for (i = 0; i < 4; i++)                              /* the notes */
-        cv_rect(x0 + i * w / 4, base + 3, 3, 6, T_ACCENT);
+        cv_rect(x0 + i * seg, base + 3, 3, 6, T_ACCENT);
     for (i = 0; i <= w; i++) {
-        int32_t ph = on ? (i % (w / 4)) * 1000 / (w / 4) : i * 1000 / w;
+        int32_t ph = freerun ? i * 1000 / w : (i % seg) * 1000 / seg;
         int32_t y = base - ph * (base - top) / 1000;
-        if (i && !(on && i % (w / 4) == 0))
+        if (i && !(!freerun && i % seg == 0))
             cv_line_t(x0 + i - 1, py, x0 + i, y, heat_y(y, base, top, T_THEME), 2);
         else if (i)
-            cv_rect(x0 + i, y, 1, py - y + 1, T_RAISE);  /* (back to 0) */
+            cv_rect(x0 + i, y, 1, py - y + 1, T_RAISE);  /* (back to the top) */
         py = y;
     }
-    cv_text(x0, TK_Y0, &AF_S, on ? "FROM THE START, EVERY NOTE" : "THE FORMULA RUNS ON", T_DIM);
+    for (i = 1; i < 4; i++) {                            /* where the 2nd..4th notes start on that ramp */
+        int32_t x = x0 + i * seg;
+        int32_t ph = freerun ? i * 1000 / 4 : 0;
+        int32_t y = base - ph * (base - top) / 1000;
+        cv_rrect(x - 2, (freerun ? y : base) - 2, 5, 5, 2, freerun ? T_TEXT : T_DIM, T_BG);
+    }
+    cv_text(x0, TK_Y0, &AF_S, freerun ? "RUNS ON: THE NOTE JOINS IT" : "RESTARTS AT EVERY NOTE", T_DIM);
 }
 
 /* the page's technical graph, if it has one (1) */

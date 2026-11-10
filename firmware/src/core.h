@@ -223,6 +223,7 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
 #define ENGI_ANALOG 0u           /* (JIANT 0.5: named for its FILTER page) */
 #define ENGI_PHYS 9u
 #define ENGI_DRUM 10u
+#define ENGI_LOFI 3u             /* LOFI (engines.c ENGINES[3]): BYTE / FLOAT's T.CLK lives here */
 #define ENGI_GRAIN 8u
 #define ENGI_SLICE 13u
 #define ENGI_SAMPLE 4u
