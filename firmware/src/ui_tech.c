@@ -481,16 +481,17 @@ static void tech_master_eq(void)
     cv_text_on(16, y0 + 4, &AF_S, "MASTER BIQUAD EQ", T_THEME, T_RAISE);
     cv_text_on(140, y0 + 4, &AF_S, MODES[mode], mode ? T_ACCENT : T_DIM, T_RAISE);
 
-    /* (3.4) EDIT > FILTER's bay is the reference and this is its language: the plot has a named logarithmic grid,
-     * a dB scale in a left gutter that the curve never crosses, the band's own energy behind it as a backdrop, the
-     * area between the curve and 0 dB filled so a boost and a cut read at a glance, and the control point with its
-     * frequency and gain written on it. The curve is fx_master_eq_hz_db(), the very biquad the audio path runs, so
-     * this is a drawing of the filter and not of the knobs. */
+    /* (3.4) EDIT > FILTER's bay is the reference and this is its language: a named logarithmic grid, a dB scale in
+     * a gutter the curve never crosses, the band's own energy behind it as a backdrop, the area between the curve
+     * and 0 dB filled so a boost and a cut read at a glance, the shelf's plateau and the bell's width drawn from the
+     * parameters, and the control point with its frequency and gain written on it. Every number comes from
+     * fx_master_eq_hz_db(), the Q24 biquad the audio path runs: a drawing of the filter, not of the knobs. */
     cv_rect(gx0, mid_y, gw, 1, T_LINE);
     cv_rect(gx0, mid_y - 22, gw, 1, T_RAISE);
     cv_rect(gx0, mid_y + 22, gw, 1, T_RAISE);
     {
-        int32_t mark_hz = eq_param_hz(), mark_x = gx0, mark_y, mark_db;
+        int32_t mark_hz = eq_param_hz(), mark_x, mark_y, mark_db;
+        int32_t gain_db = clamp(song.g[G_EQGAIN], -24, 24), q = clamp(song.g[G_EQQ], 0, 127);
         char b[32];
         /* Hz -> x on the plot: the axis table spans 212 px and the plot 192, in its own frame */
         #define EQ_X(hz) (gx0 + (clamp(eq_hz_x(hz), 14, 226) - 14) * gw / 212)
@@ -526,7 +527,7 @@ static void tech_master_eq(void)
         for (i = 0; i <= gw; i++) {
             int32_t db = fx_master_eq_hz_db(eq_hz_at(i * 212 / gw));
             int32_t y = clamp(mid_y - db * 44 / (24 * 256), gtop, gbot);
-            if (db > 0 && y < mid_y)
+            if (db > 0 && y < mid_y)                         /* (3.2) the fill says lift or cut at a glance */
                 cv_rect(gx0 + i, y, 1, mid_y - y, ux_mix(T_BG, T_THEME, 40));
             else if (db < 0 && y > mid_y)
                 cv_rect(gx0 + i, mid_y, 1, y - mid_y, ux_mix(T_BG, T_ACCENT, 40));
@@ -536,6 +537,30 @@ static void tech_master_eq(void)
             }
             px = gx0 + i;
             py = y;
+        }
+        /* (3.2) What the shape means, which the knob's own number cannot say: a shelf settles on a plateau (dashed,
+         * on its side of the corner), a bell and a notch have a width the Q gives them (a bracket at the band's
+         * level, end ticks included). A corner at the axis edge would leave no plateau to dash, so the line is held
+         * to a readable length on its own side. */
+        if (mode == 3 || mode == 4) {
+            int32_t py2 = clamp(mid_y - gain_db * 44 / 24, gtop, gbot);
+            int32_t xa = mode == 3 ? gx0 : mark_x + 1, xb = mode == 3 ? mark_x : gx0 + gw;
+            if (mode == 3 && xb < gx0 + 30)
+                xb = gx0 + 30;
+            if (mode == 4 && xa > gx0 + gw - 30)
+                xa = gx0 + gw - 30;
+            for (i = xa; i + 2 < xb; i += 6)
+                cv_rect(i, py2, 3, 1, T_MID);
+        } else if (mode == 1 || mode == 2) {
+            int32_t qx = 8 + q;                            /* Q ~ qx / 16: 0,5 .. 8,4 */
+            int32_t half = mark_hz * 8 / qx;               /* half the band's width, Hz */
+            int32_t xa = EQ_X(mark_hz - half < 20 ? 20 : mark_hz - half);
+            int32_t xb = EQ_X(mark_hz + half > 20000 ? 20000 : mark_hz + half);
+            if (xb - xa > 2) {
+                cv_rect(xa, mark_y, xb - xa, 1, T_DIM);
+                cv_rect(xa, mark_y - 2, 1, 5, T_DIM);
+                cv_rect(xb - 1, mark_y - 2, 1, 5, T_DIM);
+            }
         }
         if (mode > 0) {
             cv_rect(mark_x, gtop, 1, gbot - gtop, T_LINE);          /* the point's frequency */
@@ -549,8 +574,11 @@ static void tech_master_eq(void)
         eq_db_txt(b + str_len(b), mark_db, (int32_t)sizeof b - str_len(b));
         {
             int32_t tw = (int32_t)str_len(b) * 7 + 6;
-            cv_rect(gx0 + gw - tw, gtop - 1, tw, 11, T_RAISE);
-            cv_text_on(gx0 + gw - tw + 3, gtop, &AF_S, b, mode > 0 ? T_TEXT : T_DIM, T_RAISE);
+            /* the chip goes to the side of the plot the band is not on, so it never sits on the curve or on the
+             * shelf's plateau: a lift reads at the bottom, a cut at the top */
+            int32_t chip_y = mark_y < mid_y ? gbot - 11 : gtop - 1;
+            cv_rect(gx0 + gw - tw, chip_y, tw, 11, T_RAISE);
+            cv_text_on(gx0 + gw - tw + 3, chip_y + 1, &AF_S, b, mode > 0 ? T_TEXT : T_DIM, T_RAISE);
         }
         #undef EQ_X
     }
