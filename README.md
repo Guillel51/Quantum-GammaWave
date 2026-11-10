@@ -24,8 +24,6 @@ USB installer that verifies what it writes.
 - **Build cascade**: all layers (firmware↔WASM↔emu↔Studio↔installer) remain synchronized with SHA-256 verification
 - **Known issues**: `six_track_live_test` resolved; `noinit_critical` (124 B free, 99.2% used) and `fm1_physical` (not tested per owner directive) remain
 
-
-
 </div>
 
 ---
@@ -53,7 +51,8 @@ spectrum with the filter curve, the orbital system, the six track buttons and th
 
 ## Highlights of `v2.3.0`
 
-- **Twelve voices.** The voice storage is a single pool that every part draws a window from, so six parts no
+- **Twelve voices.**
+ The voice storage is a single pool that every part draws a window from, so six parts no
   longer reserve six times the polyphony they can use: 12 voices now occupy **87 584 B** of `.data + .bss`
   with **10 720 B free**, where the previous 10-voice build used 94 924 B with 3 380 B free.
 - **A clear voice start.** A note that begins on a silent voice starts from silence: it never inherits the
