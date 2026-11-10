@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Release: push a tag like v1.9.1 and this builds the firmware, makes a GitHub release with the package
+# attached, and tells mutant.cloud about it. How to: docs/RELEASE.es.md.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write                        # create the release
+  id-token: write                        # mutant.cloud checks which repo is calling
+
+env:
+  AC79_SDK: ${{ github.workspace }}/../AC79_SDK
+  JIELI_TOOLCHAIN: ${{ github.workspace }}/../jieli/toolchain
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install Pillow numpy fonttools
+      - name: JieLi toolchain
+        env:
+          JIELI_TOOLCHAIN_SHA256: ${{ vars.JIELI_TOOLCHAIN_SHA256 }}
+        run: tools/get_toolchain.sh "${{ github.workspace }}/../jieli"
+      - name: AC79 SDK
+        run: |
+          retry() { for d in 0 5 15 30 60; do sleep $d; "$@" && return 0; done; return 1; }
+          retry git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$AC79_SDK"
+      - name: build
+        run: ./build.sh --release "${GITHUB_REF_NAME#v}"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/release-*/*.fwsc
+            build/release-*/*-app.bin
+            build/release-*/SHA256SUMS
+          fail_on_unmatched_files: true
+      # GitHub's release list lags a new release by a few seconds, and mutant.cloud reads that list
+      - name: wait for the release to be listed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 30); do
+            gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name' | grep -qx "$GITHUB_REF_NAME" && exit 0
+            sleep 5
+          done
+          echo "::error::$GITHUB_REF_NAME never showed up in the release list"
+          exit 1
+      - uses: konsumer/mutantcloud@main
