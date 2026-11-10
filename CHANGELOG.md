@@ -37,6 +37,80 @@
   build differs at sample 1 on this host. It does the same at `9fbb8c0` without this change (measured in a clean
   worktree), so it is an Emscripten/host-toolchain artefact here, not a regression of the identity work; the
   emulator itself is deterministic (twice the same samples) and renders the same song.
+## 2026-11-10 — auditoría del coste real de una voz, símbolo por símbolo
+
+- **Reconstruido el baseline compilando los dos perfiles en el HEAD real del remoto**, no en cifras históricas: 10 voces →
+  imagen **537 532 B**, XIP 517 428/64 136, `.data+.bss` **94 924/98 304** (3 380 libres), POOL 318 432/9 248,
+  LOWBUF 26 532/2 140, RAMTEXT 19 356/5 220, NOINIT 15 572/124, `target_budget` **39/39**. 12 voces → imagen
+  537 980 B, XIP 517 876, `.bss` **97 196** (1 108 libres), todo lo demás igual, `target_budget` **39/39**.
+- **Nuevo: atribución exacta del coste de una voz** diffeando los símbolos RAM de los dos perfiles
+  (`ram_report.py --json`): `drw_v` **+552 B/voz** (6 × 92), `trk[k].v[]` **+528 B/voz** (6 × 88), `vz_nv`
+  +48 B, `pl_seen` +6 B → **1 134 B por voz**, y **`fm6_note`, `drum_kit` y `dx_core` no crecen con NVOICE**.
+  Por tanto una voz cuesta **189 B por pista** (88 + 92 + 8 + 1): los 11 340 B que ocupan seis pistas de diez
+  voces son `6 × 10 × 189`, y la dimensión que escala es exactamente la que colapsa un pool global.
+- **Economía del pool, en bytes medidos:** 12 slots → 2 268 B y **9 072 B liberados** (`.bss` libre 12 452 B);
+  14 → 8 694 B (12 074); 16 → 8 316 B (11 696); 18 → 7 938 B (11 318). Y el dato incómodo: repartidos en fijo,
+  12 slots son **2 por pista**, peor que hoy. El pool sólo paga con **ventanas dinámicas** por pista.
+- **Alcance real del cambio, contado:** `trk[k].v[i]` se escribe en **100 sitios de 18 archivos** (`voice.c` 44,
+  `ui_graph.c` 7, `editor.c` 7, `ui_input.c` 6, `fx.c` 6, `seq.c` 5, …) más 3 de `drw_v`. Por eso el diseño que
+  no toca esos 100 sitios es la ventana contigua deslizante (`voice_t *v` → `vpool[]`, base móvil), y por eso
+  **el prototipo no se mezcla**: la rama `exp/voice-pool` se creó y se descartó sin commit, con la contabilidad
+  medida como entregable y el allocator a medio mover fuera del árbol.
+- Verificado también en este HEAD que `st_buf` y `gen_keep` siguen en `.bss` (§5 documenta el experimento
+  revertido): 94 924 B, exactamente el baseline anterior.
+- Documentado en `docs/TRACKS_VOICES_3.4.md` §6 con las tres tablas.
+
+## 2026-11-10 — el BI-QUAD EQ y la página RETRIG, dibujados como son
+
+- **MASTER EQ con el lenguaje de EDIT > FILTER.** Rejilla logarítmica nombrada, escala de dB en un canal que la
+  curva no cruza, la energía de la banda de fondo, el área entre la curva y 0 dB rellena para que un corte y un
+  realce se lean de un vistazo, y el punto de control con su frecuencia y ganancia escritas. La curva es el mismo
+  biquad que corre el audio. El barrido de pantallas pasó de 42 hallazgos de lint a 0.
+- **RETRIG dibuja el reloj que el control tiene ahora.** `NOTE` son cuatro rampas que vuelven arriba en cada nota;
+  `FREE` es una sola rampa con un punto donde cada nota se le suma. Antes el dibujo decía lo contrario del DSP. La
+  página nunca había estado en el barrido (sólo existe en LOFI BYTE/FLOAT): ahora sí, en los dos relojes.
+- Capturas antes/después en `docs/evidence/3.4/`; suite completa en verde (`ALL HOST TESTS PASSED`).
+- Los rediseños de EDIT de LOFI, MORPH y FM6, HOME y el visualizador, las optimizaciones y las dos funciones nuevas
+  **no** están en esta pasada: las funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene
+  byte de sobra, lo que pide una versión de formato nueva.
+
+## 2026-11-10 — el atajo de mover buffers al POOL, medido y descartado
+
+- **Moví `st_buf` (3 840 B) y `gen_keep` (2 176 B) de `.bss` a `.pool`** —los dos son estado del lazo principal,
+  nunca del bloque de audio— y ambos perfiles se recompilaron: `.bss` libre 3 380 → **7 220 B** (10 voces) y
+  1 108 → **7 124 B** (12 voces). El precio: `.pool` libre 9 248 → **3 232 B**, por debajo del piso de **8 KiB**
+  que fija `docs/OPTIMIZATION_BASELINE.md` (esa región lleva también el stack del segundo núcleo). Mover sólo
+  `st_buf` deja 5 408 B: tampoco. **Revertido**; el árbol vuelve a 3 380 / 9 248.
+- **Lo que enseña:** el muro de `.bss` no se rodea moviendo estado del lazo principal al POOL, porque al POOL le
+  quedan 1 056 B sobre su propio piso. Para reequilibrar haría falta liberar ≥ 3 232 B de `.pool` sin tocar un
+  buffer de audio (línea de delay 131 072 B, canvas 59 520 B, cloud y slicer 32 768 B cada uno, banco de comb
+  12 288 B): ninguno puede encogerse sin cambiar el instrumento. La única vía que libera `.bss` **y** deja los
+  buffers de audio en paz es el **pool global de voces** (72 slots → 16).
+- Documentado en `docs/TRACKS_VOICES_3.4.md` §5 con las cifras de los dos perfiles.
+
+## 2026-11-10 — TRACKS 4 / 5 / 6, y lo que cuesta de verdad tener 12 voces
+
+- **`MENU > TRACKS` y `GLO > SYSTEM` ahora recorren 4 ECO / 5 BAL / 6 FULL.** El modo vive en
+  `favorites.factory[15][18]` (0 cuatro, 1 cinco, 2 seis; 0 en cualquier ajuste anterior = las cuatro pistas que
+  tenía) y el bit viejo de seis pistas se sigue escribiendo cuando el modo es 6, así que volver a un build
+  anterior no pierde dos pistas. Las pistas dormidas ya se apagaban bien (`fx.c mix_part`, 0.6.18/0.6.19): sus
+  voces se desvanecen, su mute se suelta y no se renderiza nada de ellas; una nota dirigida a una pista dormida
+  lo dice en pantalla y ahora nombra la pista correcta (`T6 ASLEEP` en modo 5, `T5-T6 ASLEEP` en modo 4).
+- **12 voces: medido, no habilitado.** Con `FELUCCA_VOICES=12`: RAM estática **97 196 / 98 304 B** (1 108 B
+  libres) contra **94 924** (3 380 libres) a 10 voces; imagen **537 980 B** contra 537 532. O sea **2 272 B**
+  por 12 slots, ~**189 B** por voz. Recomendación medida: seguir en **10**; a 12 la RAM queda al 98,9 % y aquí
+  no hay forma de medir el stack del camino de audio en el target.
+- **El pool global de voces, con números.** La reserva por pista son 72 slots a 12 voces (~13,6 KiB); un pool
+  único de 16 slots costaría ~3,0 KiB, así que devolvería **hasta ~10,6 KiB**. No se implementó: no es ahorro de
+  bytes sino cambio de propiedad (UNISON, LEGATO, POLY por pista, `voice_kill` al dormir, `fm6_note`, DRUM-X,
+  medidores por pista y protocolo del editor asumen `trk[k].v[i]`). Análisis completo en
+  `docs/TRACKS_VOICES_3.4.md`.
+- **Sin tocar DSP**: ni una división, ni un bucle, ni un buffer. `TIMER5`, `dx_run`, los buses y el core FM6
+  quedan como estaban.
+- **Pruebas:** `ui_test` verde con los cuatro modos y sus mensajes, ALGORITHM deteniéndose en T5/T6 según el
+  modo, y las comprobaciones del bit heredado; `ui_render` 176 pantallas × 17 paletas con 0 hallazgos y 0 de
+  2 648 808 desviaciones de alineación; `regress` **220 golden, 0 cambiados**; `target_budget` **39/39**;
+  compilación AC791N de los dos perfiles.
 
 ## 2026-11-10 — la suite completa, la firma por ssh y el build reproducible, medidos
 
@@ -60,6 +134,25 @@
 - **Sigue abierto:** leer el estado de las ejecuciones de Actions. No hay token `gh` en esta máquina y la API
   pública está limitada por IP; lo verificado es el resultado (Release con los bytes correctos, sitio sirviendo
   2.1.1), no el color de los runs. No se reporta como verde lo que no se pudo leer.
+
+## 2026-11-10 — EDIT: LOFI estrena panel propio, MORPH dice dónde está
+
+- **LOFI EDIT ya no es el panel genérico.** Sus dos páginas (`CHIP` y `TONE`) caían en el "being" que comparten
+  casi todos los motores (WAVE 1 / WAVE 2 / MIXER), que no distingue un chip de un órgano. Ahora dibujan lo que
+  este motor es, y sólo con los parámetros que el DSP lee: la traza real de la salida, el conversor y la forma
+  de onda **por su nombre** (tomados de los propios descriptores EDIT del motor, así que una forma nueva no
+  obliga a tocar la UI), el ancho de pulso sobre su periodo, la escalera del crusher encendida hasta donde llega
+  `CRUSH`, y una línea de tiempo de `T.CLK` donde **`NOTE` reinicia la fase en cada nota** y **`FREE` la deja
+  correr** mientras la nota se suma. Es el mismo dato que ya sonaba: no se añadió ni un parámetro.
+- **MORPH: la posición, visible.** La curva ya era la mezcla real, pero el panel no decía cuánto del recorrido
+  A→B estaba hecho. El borde inferior del panel es ahora ese recorrido, con la marca en el punto del knob.
+- **Medido, no supuesto.** `tests/ui_render.c` incorpora `edit_lofi` y `edit_lofi_free`, así que el barrido
+  cubre las dos páginas y las dos posiciones de `T.CLK`: **176 pantallas × 17 paletas, 0 hallazgos** de lint, 0
+  tintas sobre su propio color, 0 píxeles fuera de gris/neutro, y **0 de 2 648 608** mediciones de alineación
+  desviadas. `regress`: **220 golden renders, 0 cambiados**. `ui_test` verde. Imagen AC791N **537 328 B**
+  (+828 B de código), RAM **94 924 B sin cambio**, POOL libre **9 248 B**, `target_budget` **39/39**.
+- **Lo que sigue pendiente, dicho:** el rediseño de maquetación de **FM6** y del resto de los motores, y la
+  matriz de trazabilidad completa. Se ven a Preview; el release instalable sigue siendo el **2.1.1** firmado.
 
 ## 2026-11-10 — v2.1.1 firmado y publicado: la clave ya no está donde se compila
 

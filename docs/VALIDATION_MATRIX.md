@@ -1257,9 +1257,24 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | `live` (segundo a segundo) | **FIXED (golden regenerado)** | Los 61 hashes quedaron viejos cuando `93c0fac` hizo que un sonido lleve su propio nivel; el propio test documenta `SIX_LIVE_ACCEPT=1` para un cambio de sonido deliberado. Regenerado y verificado: **0 de 61 segundos** de diferencia. | `tests/six_live_golden.txt` | host |
 | Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. `install_test.py`, `web/test_web.mjs`, `web/test_backup.mjs`, `web/test_pkg_bounds.mjs`: pasan. | host | host |
 | BI-QUAD EQ (MASTER EQ): la gráfica | **DONE** | La curva ya salía de `fx_master_eq_hz_db()`, el mismo biquad Q24 que corre el audio. Añadido: el área entre la respuesta y 0 dB (una columna de 1 px por columna de píxel, teñida con `ux_mix(T_BG, T_ACCENT, 18)`), la meseta que LOW SHELF / HIGH SHELF alcanzan (guiones en `T_MID`, sostenidos ≥30 px cuando la esquina cae en el borde del eje) y el ancho que Q da a PEAK/NOTCH (corchete con topes en el nivel de la banda). Nada nuevo se lee del DSP: son los mismos cuatro parámetros. | `tests/ui_render.c`: 174 pantallas × 17 paletas, **0 hallazgos** de lint, 0 tintas sobre su color, 0 píxeles fuera de gris/neutro, alineación **0 de 2 645 631**; `regress` **220 golden, 0 cambiados**; `ui_test` verde; XIP **+400 B**, RAM **sin cambio** (94 924 B); `target_budget` **39/39**. | render + lint + build AC791N |
-| Rediseño de maquetación de EDIT (LOFI, MORPH, FM6) y del resto de motores | **NOT STARTED** | Lo que se comprobó esta pasada: LOFI ya presenta `T.CLK` como `NOTE`/`FREE` (el `F_INT` con lista de nombres de `params.c` resuelve a nombre, no a 0/1) y su motor está medido en `tests/lofi_tclk_test.c`; FM6 EDIT ya dibuja algoritmo, rutas, lazo de feedback, portadores y el operador elegido con su frecuencia. Lo que **no** se hizo es el rediseño de maquetación que pide el pedido: no se declara hecho. | lectura de `params.c`, `eng_lofi.c`, `ui_graph.c` | host |
+| Rediseño de maquetación de EDIT (LOFI, MORPH, FM6) y del resto de motores | **PARTIAL** | Lo que se comprobó esta pasada: LOFI ya presenta `T.CLK` como `NOTE`/`FREE` (el `F_INT` con lista de nombres de `params.c` resuelve a nombre, no a 0/1) y su motor está medido en `tests/lofi_tclk_test.c`; FM6 EDIT ya dibuja algoritmo, rutas, lazo de feedback, portadores y el operador elegido con su frecuencia. Lo que **no** se hizo es el rediseño de maquetación que pide el pedido. (3.4) **LOFI sí cambió** (ver la fila de abajo: panel propio) y **MORPH** ganó el indicador de posición; FM6 y los demás motores siguen con lo que tenían. | lectura de `params.c`, `eng_lofi.c`, `ui_graph.c` | host |
+| LOFI EDIT: panel propio (3.4) | **DONE** | Las dos páginas de LOFI caían en el "being" genérico (WAVE 1 / WAVE 2 / MIXER), que no dice nada de este motor. Ahora `ui_graph.c graph_lofi()` dibuja, con los parámetros que lee el DSP: la traza real del master (`gw_live_trace`), el conversor y la forma de onda **por su nombre** tomado de los descriptores EDIT del propio motor (`ENGINES[e]->edit[k].names`, así que añadir una forma no requiere tocar la UI), el ancho de pulso sobre su periodo, la escalera del crusher encendida hasta donde llega `P_E3`, y una línea de tiempo de `T.CLK` donde `NOTE` reinicia la fase en cada nota y `FREE` la deja correr. `tests/ui_render.c` tiene ahora `edit_lofi` y `edit_lofi_free` (176 pantallas), así que el barrido la mide. | `ui_render` 176×17: 0 lint, 0 tintas, 0 fuera de gris/neutro, alineación 0 de 2 648 608; `regress` 220 golden 0 cambiados; `ui_test` verde; imagen AC791N 537 328 B (+828 B de código), RAM 94 924 B sin cambio, `target_budget` 39/39 | render + lint + build |
+| MORPH: dónde está el morph, no sólo cómo suena (3.4) | **DONE** | La curva ya era la mezcla real (`an_morph` / `pd_wave` / `lofi_mto`), pero el panel no decía **cuánto** del recorrido A→B estaba hecho. Se añadió el recorrido en el borde inferior del panel con su marca en la posición del knob, teñido hasta ella. Sin estado nuevo. | `ui_render` (morph, GREY y MONO incluidos) 0 hallazgos; goldens sin cambio | render + lint |
 | HOME, planetas, partículas y visualizador | **SHIPPED, sin cambios en esta pasada** | Verificado leyendo el código: cada planeta recibe las notas de su par de pistas (`gw_planet_excite`, 1/4, 2/5, 3/6), con brillo, anillo de posluz, arco de estela y dos chispas del pool; la superficie gira por planeta (3.3); el visualizador dibuja traza, plano de fase, 16 bandas, embers y chispas reactivas. No se rediseñó nada: no había un defecto reproducible que justificara tocarlo. | lectura de `ui_being.c`, renders del barrido | host |
 | FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+## 40. Update — 2026-11-10, dos gráficas medidas: el BI-QUAD EQ y T.CLK
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| BI-QUAD EQ en el idioma de EDIT > FILTER | **RENDERED** | `tech_master_eq()` (ui_tech.c): rejilla logarítmica nombrada (20 / 100 / 1k / 20k), escala de dB en un canal izquierdo que la curva no cruza (+12 / 0 / −12), la energía de la banda de fondo, el área entre la curva y 0 dB rellena, y el punto de control con su frecuencia y ganancia ("20 Hz +11.8 dB"). La curva sigue siendo `fx_master_eq_hz_db()`, el mismo biquad que corre el audio. | render en host | host |
+| El lint del barrido de pantallas | **PASS** | 42 hallazgos → **0** (las etiquetas 10k y 20k se solapaban); alineación **0 de 2 645 631** mediciones fuera por 1 px o más. | `tests/ui_render.c` | host |
+| La página RETRIG dibuja el reloj que tiene | **RENDERED** | `tech_retrig()`: `NOTE` cuatro rampas que vuelven arriba en cada nota, `FREE` una sola rampa con un punto donde cada nota se le suma. Antes dibujaba al revés (la rampa continua era el valor que ahora reinicia). | render en host | host |
+| La página RETRIG en el barrido | **PASS** | Entra al barrido (sólo existe en LOFI BYTE/FLOAT y nunca había estado): 174 → 176 pantallas, ambas en `docs/evidence/3.4/`. | `tests/ui_render.c` | host |
+| Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. | host | host |
+| Rediseño de EDIT de LOFI / MORPH / FM6, HOME y visualizador, optimizaciones, MICRO-START y modulación aleatoria | **NOT DONE** | Sin cambios en esta pasada. Las dos funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene byte de sobra (`project.c` §límites: P_COUNT 123, sin hueco); eso exige una versión de formato nueva, no un atajo. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
 ---
 
 ## 2026-11-10 (third pass) — the suite, the ssh signer and reproducibility, measured
@@ -1289,3 +1304,19 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | WASM/native bit-for-bit parity | **FAILS HERE, PRE-EXISTING** | `emu_test.mjs` differs at sample 1 both on this tree and in a clean worktree at `9fbb8c0`: an artefact of this host's toolchain, not of the change; the emulator is still deterministic and renders the song | host, unattributed |
 | GitHub Pages | **PENDING THE PUSH** | the site is generated from the signed release; the live check is recorded after the deploy | — |
 | physical FM-1 | **NOT MEASURED** | no unit was touched. What a real device answers after an install, and whether the hub marks the card, are hardware/hub checks that only a unit and the hub can make | — |
+## 41. Update — 2026-11-10, HEAD `94a6a4c` medido: host, AC791N y wasm
+
+| Medición | Valor | Clase |
+|---|---|---|
+| Suite host completa | `NO_PACKAGE=1 sh tests/run_tests.sh` → **ALL HOST TESTS PASSED**, `EXIT=0` | host x86 |
+| Barrido de pantallas | 178 pantallas × 17 paletas, **0 hallazgos** de lint, **0 de 2 650 362** mediciones de alineación fuera por 1 px o más | host render |
+| Imagen AC791N | **538 356 B**; `.data+.bss` **94 944 de 98 304** (3 360 libres); pool 311 240 B, **9 248 de sobra**; código en RAM 19 356 de 24 576 | build AC791N |
+| Paquete / loader | `build/felucca.fwsc` **610 959 B**, loader **7 803 B**, identidad **FM-1_982**, v2.1.1 en `94a6a4c` | build AC791N |
+| Emulador | wasm **1 094 538 B**, `94a6a4c03cab`, sha256 `b1c3f9fd…` | build wasm |
+| `editor_test` | Verde. `main` lo tenía **rojo**: MENU > TRACKS pasó a `4 ECO / 5 BAL / 6 FULL` y la expectativa seguía en `{"4","6"}`; corregida con la regla real (sólo 6 escribe el bit que lee el firmware viejo). | host |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada, ninguna escritura. | — |
+
+Por lo que **no** hay en esta pasada: MICRO-START y modulación aleatoria no están implementadas. No hay byte libre
+en el registro de proyecto (`P_COUNT` 123, `project.c` §límites) y añadir un parámetro exige una versión de formato
+nueva; hacerlo de otro modo habría roto los presets y proyectos ya guardados. Tampoco entran aquí las
+optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
