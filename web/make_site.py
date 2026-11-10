@@ -321,7 +321,14 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     if "{{VERSION}}" not in portal:
         raise SystemExit("web/site/index.html: the portal has no {{VERSION}} token: its static label "
                          "would not name the build this site serves")
-    (out / "index.html").write_text(portal.replace("{{VERSION}}", version), encoding="utf-8")
+    portal = portal.replace("{{VERSION}}", version)
+    if not use_release:            # built as /preview/: its own portal links back to the stable root
+        portal = portal.replace('href="preview/"', 'href="../"')
+        (out / "preview").mkdir(exist_ok=True)
+        (out / "preview" / "index.html").write_text(   # and a card that points here still lands somewhere
+            '<!doctype html><meta charset="utf-8"><title>Preview</title>'
+            '<meta http-equiv="refresh" content="0; url=../"><a href="../">Preview</a>\n', encoding="utf-8")
+    (out / "index.html").write_text(portal, encoding="utf-8")
     shutil.copy(site / "i18n.js", out / "i18n.js")
     assets = out / "assets"
     if assets.exists():
