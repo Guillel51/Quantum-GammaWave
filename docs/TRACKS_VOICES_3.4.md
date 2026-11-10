@@ -109,3 +109,63 @@ without touching an audio buffer — the pool's big citizens are the delay line 
 (59 520 B), the cloud and slicer buffers (32 768 B each) and the comb bank (12 288 B), none of which can
 shrink without changing the instrument. That is exactly why the **global voice pool** is the only route that
 both frees `.bss` (the 72 slots → 16) and leaves the audio buffers alone.
+
+## 6. Where the per-voice bytes actually are (measured, symbol by symbol)
+
+`tools/ram_report.py --json` on the two profiles (`FELUCCA_VOICES=10` and `=12`, same toolchain, same tree)
+gives the growth of every named RAM symbol, so the cost of a voice is no longer an average:
+
+| symbol | 10 voices | 12 voices | growth | per added voice | what it is |
+|---|---|---|---|---|---|
+| `drw_v` (eng_wheel.c) | 5 520 B | 6 624 B | **+1 104 B** | 552 B (6 × 92) | the wheel engine's per-voice state |
+| `trk[k].v[]` (core.h) | 15 600 B | 16 656 B | **+1 056 B** | 528 B (6 × 88) | `voice_t` itself, 88 B per part-slot |
+| `vz_nv` | 480 B | 576 B | +96 B | 48 B (6 × 8) | the visualiser's per-voice note cache |
+| `pl_seen` | 60 B | 72 B | +12 B | 6 B (6 × 1) | voice-stealing "already counted" marks |
+| everything else | — | — | **0** | 0 | **`fm6_note`, `drum_kit`, `dx_core` do not grow with NVOICE** |
+| **total** | 94 924 B | 97 196 B | **+2 272 B** | **1 134 B** | (2 × 1 134 plus 4 B of alignment) |
+
+Two things follow that we did not know before this measurement:
+
+- **A voice costs 189 B of storage per part** (88 + 92 + 8 + 1), not 189 B once: the 11 340 B that six parts
+  of ten voices hold is `6 × 10 × 189`. The per-engine FM6, drum and wheel *kits* are separate and fixed.
+- **The per-slot dimension is the only one that scales**, which is exactly the dimension a global pool
+  collapses. Nothing else in RAM has to move for it.
+
+### What a global pool is worth, in bytes
+
+Slots today: 6 parts × 10 = **60 slots, 11 340 B**. A shared pool holds `S` slots and every part draws from it:
+
+| pool | storage | freed from `.bss` | `.bss` free (10-voice base) | notes per part if evenly split |
+|---|---|---|---|---|
+| 12 slots | 2 268 B | **9 072 B** | **12 452 B** | 2 — needs borrowing, see below |
+| 14 slots | 2 646 B | **8 694 B** | 12 074 B | 2 |
+| 16 slots | 3 024 B | **8 316 B** | 11 696 B | 2 |
+| 18 slots | 3 402 B | **7 938 B** | 11 318 B | 3 |
+
+The point of the last column: **a fixed split does not work**. Twelve slots over six parts is two each, worse
+than today's ten. The pool only pays off with *dynamic* windows — a part that is playing four notes holds four
+adjacent slots, and a part that is idle holds none, borrowing from its neighbours. That is the whole design
+problem, and it is a semantics problem, not a byte-counting one.
+
+### What has to change, exactly
+
+`trk[k].v[i]` is written at **100 sites in 18 files** (`voice.c` 44, `ui_graph.c` 7, `editor.c` 7,
+`ui_input.c` 6, `fx.c` 6, `seq.c` 5, `ui_tech.c` 4, `gfx.c` 4, `mod.c` 3, and ten files with 1-2), plus
+`drw_v[3]` uses of the wheel's per-slot array. Every one of them assumes the part's voices are a contiguous
+array it can index. So the design that keeps those 100 sites untouched is **a contiguous sliding window per
+part**: `voice_t *v` points into one global `vpool[VOICE_SLOTS]`, a part owns `[base, base + n)` and grows or
+shrinks by trading boundary slots with its neighbours at a block boundary. Indexing stays `trk[k].v[i]`;
+only the base moves. The open questions are the ones a prototype must answer with tests, not prose:
+
+- compaction relocates live voices (a 88 B memmove) — only safe at a block start, with the second core's
+  engine state quiesced, and it must not desynchronise `drw_v`, `vz_nv` and `pl_seen`, which ride along;
+- stealing must stay per-part first, global second, and never take a slot from a part that is under its own
+  POLY limit while the thief is at it;
+- UNISON groups are 2-4 slots of one note: a window move must not split a group;
+- `sizeof trk[k].v` and every `memset(trk[k].v, …)` has to be audited (they would shrink to a pointer).
+
+Until a prototype passes the equivalence suite (six parts, twelve notes, UNISON, LEGATO, sustain, mute, preset
+change under load, FM6 and DRUM-X under load), **the pool stays unmerged and the shipped instrument stays at
+ten voices**. Branch `exp/voice-pool` was created for it and deleted again without a commit: the measured
+accounting above is the part of the work that is finished, and pretending otherwise would put a half-moved
+allocator in a tree that thousands of lines of UI and editor code index into.
