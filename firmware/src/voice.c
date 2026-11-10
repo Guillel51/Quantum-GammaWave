@@ -684,6 +684,19 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     const engine_t *e = ENGINES[t->engine];
     int sounding = v->active && v->stage != 0;
     uint32_t ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2];
+#if FELUCCA_VRESET
+    if (!sounding) {                                /* (3.6) a voice that is not sounding starts from silence: the
+                                                     * oscillator and filter state of whatever note used this slot
+                                                     * before is not inherited. Off by default: it changes the sound
+                                                     * of the shipped layout (36 renders), see docs/VOICE_POOL.md */
+        uint32_t z;
+        for (z = 0; z < 3u; z++)
+            v->ph[z] = 0;
+        for (z = 0; z < 8u; z++)
+            v->s[z] = 0;
+        v->fine = 0;
+    }
+#endif
     int32_t s0 = v->s[0], s1 = v->s[1], s4 = v->s[4], s5 = v->s[5], s6 = v->s[6], s7 = v->s[7];
     uint32_t keep = e->keep;
     v->note = (uint8_t)note;
@@ -698,7 +711,8 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     v->mvel = t->m_vel;                                 /* mod.c: the note's VEL and RAND */
     v->pat = 0;                                         /* (QG-1 1.6) a new key starts with no poly pressure */
     v->mrnd = t->m_rnd;
-    t->m_vi = (uint8_t)VSLOT(v);
+    t->m_vi = (uint8_t)vindex(t, v);                 /* (3.6) the window index, as v - t->v was: mod.c reads
+                                                     * V(t, m_vi), and a pool slot is not a window index */
     glide_set(t, v, glide);
     if (!sounding) {
         v->env = 0;

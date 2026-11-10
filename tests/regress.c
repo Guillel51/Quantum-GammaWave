@@ -80,12 +80,14 @@
 #define CPU_NS_CONFIRM 2          /* extra measurements of a row that came out over, before it is a regression */
 
 /* ------------------------------------------------------------ results --- */
+static FILE *dump_f;                           /* (3.6) DUMP_DIR: this render's samples, for tests/pool_equiv.sh */
 typedef struct {
     uint64_t hash;
     uint32_t frames, over, near, vmax, ok;     /* ok: a scenario's own checks passed */
     int32_t peak, tail_peak, tail_dc, tmin, tmax;
     double dc, free_s;                         /* free_s: s from the last note-off until all voices free, -1 never */
     double ipc, ns, cal;                       /* CPU: instructions and ns per sample, ns per calibration step */
+    double rms;                                /* (3.6) of the render's samples, 0..32767 */
     char msg[512];
 } res_t;
 
@@ -121,6 +123,8 @@ static void blk(void)
     mix_block(o, CTL);
     for (i = 0; i < 2u * CTL; i++) {
         int32_t x = o[i], a = x < 0 ? -x : x;
+        if (dump_f)
+            fwrite(&x, sizeof x, 1, dump_f);        /* (3.6) DUMP_DIR: the samples, to diff two builds */
         uint32_t u = (uint32_t)x;
         for (k = 0; k < 4u; k++) {
             R.hash ^= (u >> (8u * k)) & 0xFFu;
@@ -136,6 +140,12 @@ static void blk(void)
             R.tmin = x < R.tmin ? x : R.tmin;
             R.tmax = x > R.tmax ? x : R.tmax;
         }
+    }
+    {
+        double sq = 0;
+        for (i = 0; i < 2u * CTL; i++)
+            sq += (double)o[i] * (double)o[i];
+        R.rms += sq;
     }
     k = busy_now();
     if (k > R.vmax)
@@ -467,7 +477,16 @@ static void job_cpu(const job_t *j)
 
 static int run_job_body(job_t *j)
 {
+    const char *dd = getenv("DUMP_DIR");
     memset(&R, 0, sizeof R);
+    if (dd) {                                  /* one file a render, named as the render */
+        char path[512], *c = path;
+        c += snprintf(c, 128, "%s/", dd);
+        for (const char *n = j->name; *n && c < path + 480; n++)
+            *c++ = (*n == '/') ? '_' : *n;
+        *c = 0;
+        dump_f = fopen(path, "wb");
+    }
     switch (j->kind) {
     case J_PRESET:
         job_preset(j);
@@ -1537,8 +1556,9 @@ int main(int argc, char **argv)
      * Not a test on its own: a tool for tests/pool_equiv.sh, which sets the tolerances. */
     if (getenv("GOLDEN_METRICS"))
         for (i = g0; i < g1; i++)
-            printf("METRIC %s %ld %ld %.6f %u\n", J[i].name, (long)J[i].r.peak, (long)J[i].r.tail_peak,
-                   J[i].r.dc, J[i].r.vmax);
+            printf("METRIC %s %ld %ld %.6f %u %.2f\n", J[i].name, (long)J[i].r.peak, (long)J[i].r.tail_peak,
+                   J[i].r.dc, J[i].r.vmax,
+                   J[i].r.frames ? sqrt(J[i].r.rms / (double)(2u * J[i].r.frames)) : 0.0);
     for (i = 0; i < ng; i++) {                      /* in the file, not rendered any more */
         uint32_t k, found = 0;
         for (k = g0; k < g1 && !found; k++)

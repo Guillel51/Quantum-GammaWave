@@ -181,10 +181,18 @@ static void wheel_note_on(track_t *t, voice_t *v)
     for (k = 0; k < NVOICE; k++)                        /* single trigger: another key of the part held? */
         if (&V(t, k) != v && V(t, k).active && V(t, k).gate && V(t, k).stage != 4u)
             held = 1;
-    if (!V->init) {                                     /* the wheels: spread start phases, then free running */
-        for (k = 0; k < DRW_NP; k++)
-            V->ph[k] = (k * 0x9E3779B9u) ^ (vi * 0x7F4A7C15u);
-        V->nz = 0x13579BDF + (int32_t)vi;
+    if (!V->init || (!V->gate && FELUCCA_WSEED)) {      /* the wheels: spread start phases, then free running.
+                                                         * (3.6) the spread is the voice's place in its part, not
+                                                         * the pool slot it happens to sit in, and a slot with no
+                                                         * note on it seeds again: FELUCCA_WSEED=1, else as before */
+        uint32_t id = FELUCCA_WSEED ? vindex(t, v) : vi;
+        for (k = 0; k < DRW_NP; k++) {
+            V->ph[k] = (k * 0x9E3779B9u) ^ (id * 0x7F4A7C15u);
+            if (FELUCCA_WSEED && !V->gate)
+                V->gp[k] = 0;                           /* (3.6) a slot with no note starts its ramps from 0,
+                                                             * as a virgin slot of the old layout did */
+        }
+        V->nz = 0x13579BDF + (int32_t)id;
         V->init = 1;
     }
     V->perc = held ? 0 : 32767;

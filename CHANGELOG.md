@@ -71,6 +71,21 @@
   worktree), so it is an Emscripten/host-toolchain artefact here, not a regression of the identity work; the
   emulator itself is deterministic (twice the same samples) and renders the same song.
 
+## 3.7 voices: the three causes of the pool's sound difference, one at a time
+
+- `m_vi` stored a pool slot where `mod.c` reads a window index: the matrix's ENV destination followed the
+  wrong voice. It stores `vindex` again (no change to the shipped render).
+- The difference between the pooled and the old layout is per-slot state, measured one cause at a time:
+  a voice inherits the oscillator / filter state of the slot it lands in (25 -> 19 renders with
+  `FELUCCA_VRESET=1`), WHEEL seeds its wheels from the slot number instead of the voice's place in its part
+  (19 -> 14 with `FELUCCA_WSEED=1`), and the remaining 14 are the chord order, which depends on the window.
+  Both switches are off by default: together they change **49** of the 220 shipped renders.
+- `tests/pool_equiv.sh` now bounds peak, RMS and tail, and `tests/regress.c` gained RMS plus `DUMP_DIR` raw
+  samples, so a per-sample diff of one render is one command. As shipped the pool moves 32 of 220 renders
+  (2 % peak / 2 % RMS / 1 % tail); voice counts and release tails match everywhere.
+- Nothing merged: `main` keeps 10 voices and the per-part arrays. `docs/VOICE_POOL.md` §6 compares the
+  alternatives by memory and by how much of the sound they preserve.
+
 ## 3.6 voices: the pool's allocator fixed, its sound still not identical
 
 - `trk_vcap` / `trk_nvoice`: the engine's cap and the window are separate things now. UNISON asks for its

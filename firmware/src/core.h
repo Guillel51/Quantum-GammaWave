@@ -47,6 +47,15 @@ int32_t fx_master_eq_hz_db(int32_t hz);
                                   * Fewer slots is what the pool is for: FELUCCA_VPOOL=N (tools/build.py). */
 #endif
 #define VDEAD (VPOOLN - 1)            /* the pool's last slot: inert, and never granted to a part */
+/* (3.6) the experiments behind docs/VOICE_POOL.md. Both change the sound of the instrument (see that page), so
+ * both are OFF by default and no shipped profile sets them. */
+#ifndef FELUCCA_VRESET
+#define FELUCCA_VRESET 0              /* 1: a voice starting from silence clears its oscillator / filter state */
+#endif
+#ifndef FELUCCA_WSEED
+#define FELUCCA_WSEED 0               /* 1: WHEEL seeds its wheels from the voice's place in its part, and
+                                       * reseeds a slot that has no note (not from the pool slot number) */
+#endif
 #define NPART 6                  /* synth parts: tracks 1..6 (JIANT 0.6: was 4) */
 #define NTRK NPART               /* tracks (the formats and the protocol count these): every track is a part */
 #define NSTEP 64
