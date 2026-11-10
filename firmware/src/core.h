@@ -29,10 +29,10 @@ int32_t fx_master_eq_hz_db(int32_t hz);
 
 /* ------------------------------------------------------------ sizes --- */
 #ifndef NVOICE
-#define NVOICE 10                /* voices per part, and the budget shared by all parts. Overridable so the 12-voice
-                                  * experiment can be built and measured against it: FELUCCA_VOICES=12 for the target
-                                  * (tools/build.py) and POLY=12 for the host tests (tests/run_tests.sh). The shipped
-                                  * value is 10, which is what every golden render and CPU budget is taken at. */
+#define NVOICE 12                /* voices per part, and the budget shared by all parts (3.8: was 10). The pool
+                                  * (below) is what made 12 affordable: at 12 voices the .bss is smaller than the
+                                  * 10-voice build of 3.7 was. Overridable: FELUCCA_VOICES=10/12 for the target
+                                  * (tools/build.py) and POLY=10/12 for the host tests (tests/run_tests.sh). */
 #endif
 /* (3.5) the voice pool. A part used to own NVOICE voice_t of storage of its own, so six parts reserved
  * NPART * NVOICE slots for a budget of NVOICE voices that sound at once. Now one pool holds the storage and
@@ -42,19 +42,22 @@ int32_t fx_master_eq_hz_db(int32_t hz);
  * VDEAD is the pool's inert slot: a window's tail (entries vn..NVOICE-1) points at it, so a scan that still
  * runs to NVOICE reads a voice that is never active, never free and never stolen. Nothing is granted it. */
 #ifndef VPOOLN
-#define VPOOLN (NPART * NVOICE + 1)   /* slots in the pool (its inert slot included). NPART * NVOICE + 1 here,
-                                  * so a window of NVOICE per part fits and this build behaves as it always did.
-                                  * Fewer slots is what the pool is for: FELUCCA_VPOOL=N (tools/build.py). */
+#define VPOOLN (NVOICE + NPART)       /* slots in the pool (its inert slot included): the budget plus one slot
+                                  * of slack for every other part, which is what lets a single part reach its
+                                  * own cap while five parts keep one each (measured, docs/VOICE_POOL.md).
+                                  * FELUCCA_VPOOL=N overrides it (tools/build.py). */
 #endif
 #define VDEAD (VPOOLN - 1)            /* the pool's last slot: inert, and never granted to a part */
 /* (3.6) the experiments behind docs/VOICE_POOL.md. Both change the sound of the instrument (see that page), so
  * both are OFF by default and no shipped profile sets them. */
 #ifndef FELUCCA_VRESET
-#define FELUCCA_VRESET 0              /* 1: a voice starting from silence clears its oscillator / filter state */
+#define FELUCCA_VRESET 1              /* a voice starting from silence clears its oscillator / filter state: the
+                                       * pool lends slots between parts, and nothing may inherit another note's
+                                       * oscillators. 0 restores the pre-pool sound exactly (docs/VOICE_POOL.md) */
 #endif
 #ifndef FELUCCA_WSEED
-#define FELUCCA_WSEED 0               /* 1: WHEEL seeds its wheels from the voice's place in its part, and
-                                       * reseeds a slot that has no note (not from the pool slot number) */
+#define FELUCCA_WSEED 1               /* WHEEL seeds its wheels from the voice's place in its part, and reseeds a
+                                       * slot with no note on it, never from the pool slot number */
 #endif
 #define NPART 6                  /* synth parts: tracks 1..6 (JIANT 0.6: was 4) */
 #define NTRK NPART               /* tracks (the formats and the protocol count these): every track is a part */
