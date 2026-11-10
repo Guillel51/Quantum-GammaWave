@@ -131,6 +131,55 @@ signature and `min_firmware`. Then:
 * record the package hash and the manifest in the release log;
 * `min_firmware` is signed too, so it cannot be lowered by a mirror.
 
+### 4.1 Signing where the key lives
+
+A build machine -- a CI runner above all -- should never be able to sign. From 2.1.1 the release is made in
+two halves that meet at a file, and only one of them touches the key:
+
+```bash
+# 1. the machine that built it (no key, and none can be given to it): freeze exactly what will be signed
+python3 tools/fm1_sign.py request build/felucca-2.1.1.fwsc --version 2.1.1 --min 1.0.0 \
+        --keyid qg1-release-1 --build-manifest build/manifest.json --out build/sign-request.json
+
+# 2. the machine that holds the key: sign those frozen bytes, not "the project"
+python3 tools/fm1_sign.py sign --request build/sign-request.json \
+        --signer-cmd "ssh signer-host python3 tools/fm1_sign.py sign-stdin --key /secure/qg1-release.pem" \
+        --out release/felucca-2.1.1.fwsc.manifest.json
+```
+
+The request (`qg1-sign-request-1`) pins the package's SHA-256 and size, the firmware image hashes, the build
+record and its digest, the version, `min_firmware`, the key id and the timestamp. The manifest that comes back
+is the signature over exactly that JSON: if the build changes afterwards, the signature cannot be reused for
+it.
+
+`--signer-cmd` is a shell command with one contract: the canonical manifest on stdin, the 64-byte Ed25519
+signature on stdout (hex or base64). `sign-stdin` is this repository's side of it -- read stdin, sign, print
+the hex -- and it refuses a key that resolves inside the checkout like every other path. The signature the
+command returns is verified against the pin (or `--expect-pub` for an id that is not pinned yet) **before**
+the manifest is written: a signer holding another key, printing nonsense, or exiting non-zero produces no
+file. That is why `--key` and `--signer-cmd` are mutually exclusive, and why neither one, on its own, is
+accepted.
+
+What this buys, and what it does not:
+
+| | |
+|---|---|
+| The key is not in CI | `emulator.yml` writes `build/sign-request.json` and uploads it as an artifact; it never receives a private key, and no secret is configured for one |
+| The key is not in the process that has the package | the custodian signs a 2 KB JSON that names bytes they did not build |
+| A signature cannot be replayed onto another build | the request froze the hash, the images and the record inside what is signed |
+| What is written is what was verified | `sign` re-verifies the returned signature against the pin before writing; `verify` does it again on the release side |
+| Still not protected | a hostile signing host, a wrong `--expect-pub` chosen by the operator, and the browser origin (see §7) |
+
+The remote host in the example must run the same reviewed `tools/fm1_sign.py`; `ssh signer-host ...` is a
+convenience, not a trust anchor -- the anchor is the pinned public key, which never leaves the repository.
+A smartcard or HSM helper works the same way: it wraps the module and prints the signature.
+
+`tests/sign_request_test.py` exercises the cycle with an ephemeral key: request -> `--key` and request ->
+`--signer-cmd` produce the same manifest byte for byte, and every wrong path (nonsense output, failing
+command, other key, no pin and no `--expect-pub`, both flags, neither flag, a package that is not the one the
+request froze, an edited manifest) is refused. `signed-release.yml` runs it, plus `key_custody_test.py`, on
+every change to `release/` or to the signer.
+
 ## 5. Rotation
 
 Rotate on a schedule, on a suspected exposure, or when the signing host changes.

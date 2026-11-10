@@ -1217,6 +1217,31 @@ JavaScript error standing between a verified package and a startable install. Wh
 what that specific unit answers when the installer opens it (JEDEC, geometry, identity), whether a dump of it
 exists, or whether a recovery has been rehearsed. Those gates are unchanged and open, and they are physics, not
 code — see §20 and `docs/FORENSIC_FM1_VIABILITY.md`.
+---
+
+## 2026-11-10 (later) — v2.1.1: the install is 2.1.1, signed where the key lives
+
+The previous block said the installable package was `2.0.0` and that signing `2.1.1` needed a key that is not in
+this repository or in CI. Both facts changed here, and neither was faked: the package was signed with the key on a
+host that holds it, and the build that produced it never saw a key.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `release/felucca-2.1.1.fwsc` | **SIGNED, VERIFIED** | 610 959 B, SHA-256 `81c80e36…c563`, identity `FM-1_982`, `images` = `felucca.bin` `88b3088a…`, `loader/ota.bin` `dc5dd00a…`; `fm1_sign.py verify` passes against the pin | cryptography |
+| the package's build record | **BUILT HERE** | `./build.sh --release 2.1.1` with `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK`, from commit `61ae47b`; record inside the signature | AC791N toolchain |
+| signing without the key in the build | **IMPLEMENTED, TESTED** | `request` freezes the bytes; `sign --signer-cmd` signs them elsewhere and verifies the returned signature against the pin before writing; `--key` and `--signer-cmd` produce identical manifests | host |
+| CI can ask, not sign | **IMPLEMENTED** | `emulator.yml` writes `build/sign-request.json` and uploads `sign-request-<sha>`; no signing secret exists in Actions | workflow definition (not executed in CI yet) |
+| every committed package verifies | **IMPLEMENTED** | `signed-release.yml`: each `release/*.fwsc` against its manifest and pin, no `.fwsc` without a manifest, `SHA256SUMS` exact, custody + request tests | workflow definition (not executed in CI yet) |
+| the newest release wins | **TESTED** | with `2.0.0` and `2.1.1` both signed, `web/make_site.py` publishes 2.1.1, and the workflow picks the same one by version; `test_site` 0 FAILED on `/` and `/preview/` | host |
+| the portal's copy | **FIXED** | it claimed to install 2.0.0 while installing 2.1.1; it now names the newest signed release and the version panel reads `versions.json` | host, string check |
+| the two tests the 2.1.1 entry left open | **PASS HERE** | `drumx_test` → "all checks ok"; `six_track_live_test` → "all passed", 61/61 s against the golden | host |
+| whole suite before publishing | **NOT RUN IN FULL** | `tests/run_tests.sh` was not run end to end in this pass; what ran is listed above and in `CHANGELOG.md` | — |
+| install on a physical FM-1 | **NOT TESTED** | no unit here; JEDEC `0x856014` / `0xB36014`, geometry and write behaviour remain unmeasured on hardware | — |
+
+The custody model is unchanged in what it does not protect: the loader still verifies no signature (authenticity of
+the package, not secure boot), a hostile signing host is outside the model, and the browser origin still decides
+what the page runs. What changed is that the key no longer has to be on the machine that builds, and a runner can no
+longer sign even if it wanted to: it can only produce a request.
 
 ## 39. Update — 2026-11-10, LOFI `T.CLK` audible, y los dos fallos rojos, verdes
 

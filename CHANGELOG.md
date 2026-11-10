@@ -12,6 +12,39 @@
   **no** están en esta pasada: las funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene
   byte de sobra, lo que pide una versión de formato nueva.
 
+## 2026-11-10 — v2.1.1 firmado y publicado: la clave ya no está donde se compila
+
+- **`release/felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`, identidad FM-1_982) está firmado** con
+  `qg1-release-1` y es lo que el canal estable instala. Compilado aquí con el toolchain AC791N desde el commit
+  `61ae47b`; `verify` lo acepta contra la clave fijada en `tools/fm1_keys.json`.
+- **La firma se hizo sin la clave junto al build.** `fm1_sign.py request` congela el paquete en un documento
+  `qg1-sign-request-1` (SHA-256, tamaño, hashes de `felucca.bin` y `loader/ota.bin`, registro de build, versión,
+  `min_firmware`, id de clave y fecha) sin tocar ninguna clave. `fm1_sign.py sign --signer-cmd` entrega ese JSON
+  canónico a un comando que sí tiene la clave —en esta pasada, `sign-stdin` sobre el mismo host— y **verifica la
+  firma contra la clave fijada antes de escribir el manifiesto**: un firmante con otra clave, basura en stdout o
+  un exit distinto de cero no producen archivo. `--key` y `--signer-cmd` son mutuamente excluyentes.
+- **CI puede pedir una firma pero no firmar.** `emulator.yml` genera `build/sign-request.json` y lo sube como
+  artefacto `sign-request-<sha>`; **no** hay secreto de firma en Actions. `signed-release.yml` (nuevo) verifica en
+  cada push a `main` que cada `.fwsc` de `release/` verifique contra su manifiesto y la clave fijada, que no haya
+  un `.fwsc` sin manifiesto, que `SHA256SUMS` describa exactamente el directorio, y corre las pruebas de custodia.
+- **El sitio y el CI eligen el release más nuevo por número de versión**, no por el primer nombre del directorio:
+  con dos versiones firmadas, `felucca-2.0.0` ordena antes que `felucca-2.1.1` y la selección anterior habría
+  dejado el canal estable en 2.0.0. La misma selección alimenta el worktree del emulador, la portada y el chequeo
+  del deploy.
+- **`tests/sign_request_test.py` (nuevo, 27 comprobaciones):** las dos vías (`--key` y `--signer-cmd`) escriben el
+  mismo manifiesto byte a byte —la firma Ed25519 es determinista— y se rechazan los caminos equivocados: salida que
+  no es una firma, comando que falla, clave distinta a la fijada, sin pin ni `--expect-pub`, las dos banderas,
+  ninguna, un paquete que no es el congelado, una versión que el documento no lleva, un manifiesto editado después
+  de firmar, y `sign-stdin` con la clave dentro del checkout.
+- **El copy del portal ya no dice 2.0.0**: describía la versión anterior en la portada que instala 2.1.1. Ahora
+  nombra el release firmado más reciente y el panel de versión lo concreta desde `versions.json`.
+- **Medido aquí, en esta pasada:** build AC791N real de 2.1.1, firma y `verify`, `sign_test` (12),
+  `key_custody_test`, `sign_request_test` (27), `test_site` sobre los dos canales (0 FAILED), `test_i18n`,
+  `test_installer_i18n`, y los dos que la entrada de 2.1.1 daba por abiertos: `drumx_test` termina en «all checks
+  ok» y `six_track_live_test` en «all passed» (61 de 61 segundos contra el golden). La suite completa
+  (`tests/run_tests.sh`) no se corrió entera en esta pasada.
+- **Lo que no cambia:** nada se probó en una FM-1 física; la compatibilidad con `0x856014` y `0xB36014` sigue sin
+  medirse en hardware, y el loader no verifica firmas (esto es autenticidad del paquete, no arranque seguro).
 ## 2026-11-10 — LOFI `T.CLK` audible, y la suite entera en verde
 
 - **LOFI RETRIG no hacía nada, y ahora sí.** El parámetro existía y llegaba al DSP, pero el único punto que lo
@@ -30,6 +63,36 @@
 - **La suite entera pasa**: `NO_PACKAGE=1 sh tests/run_tests.sh` termina en `ALL HOST TESTS PASSED`.
 - Los rediseños de EDIT (LOFI, MORPH, FM6), las gráficas unificadas, BI-QUAD EQ, HOME y el visualizador **no**
   entran en esta pasada y quedan declarados como pendientes.
+
+## 2026-11-10 — 2.1.1, comprobado por donde se usa: la página publicada y el DSP
+
+Esta pasada no añade pantallas: comprueba con instrumentos lo que ya había en el árbol, y arregla lo que un
+instrumento encontró mal.
+
+- **El instalador publicado, abierto como lo abre un visitante.** La página responde 200 y no deja ni un mensaje
+  de consola; sus tres peticiones (página, `.fwsc`, `.manifest.json`) responden 200; ofrece `v2.0.0-2500153`,
+  610 959 B, «Ready to flash», con `SHA-256 verificado ✓ c423b17c…` y `Ed25519 qg1-release-1`; enseña el plan
+  antes de escribir (143 sectores, `0x04000-0x92FFF`, boot `0x00000-0x03FFF` intacto, factory `0xFF000`), e
+  **INSTALL está deshabilitado hasta marcar las cuatro confirmaciones y se habilita al marcarlas**. No había
+  defecto de implementación que desbloquear: el botón lo cierra la evidencia y nada más. Registro y clase de la
+  medición: `docs/VALIDATION_MATRIX.md` §22.
+- **`tests/fx_probe.c`, un arnés para lo que no se podía medir.** El PHASER mide **23,6 dB de peine** entre
+  200 Hz y 6 kHz y **0 de salto** al cambiar DEPTH; M-WIDE da r = **1,000** a 0 (mono), **−0,003** a 64 y
+  **−0,59 con +3,8 dB** a 127; el EQ (`LOW SH −24`, `PEAK +12`) es monótono y llega a **+11,7 dB a 665 Hz**.
+  La primera versión del arnés decía «1,7 dB, débil» porque medía un tono fijo mientras barría el LFO: estaba
+  mal el instrumento, no el phaser, y por eso el DSP no se tocó.
+- **DRUM-X PUNCH era el que estaba mal.** Pasaba **+0,4 dB** porque el kit sintético del test cargaba a nivel
+  120; con el kit a 100 (como suena) el PUNCH da **+4,2 dB**. `tests/drumx_test.c` lo fija y el golden live
+  (61 s) se regeneró a propósito.
+- **Un medidor, no dos.** El MIXER dibuja ahora con `gw_plasma_bar()`, la función de HOME, en vez de una barra
+  propia: los seis tracks se leen con la misma escala y los mismos segmentos en las dos pantallas.
+- **El barrido de UI, a cero.** 174 pantallas × 17 paletas: **0 hallazgos** del lint de maquetación, 0 tintas
+  sobre su propio color, 0 píxeles fuera de gris/neutro en GREY y MONO, y **2 645 631 mediciones** de alineación
+  en 73 puntos con **0 desviaciones de 1 px**. Los 220 renders golden siguen idénticos y `target_budget`
+  informa **39 ok, ninguna fuera**.
+- **La firma sigue siendo la que bloquea.** `~/.fm1-keys/` no existe en esta máquina: no hay clave privada
+  `qg1-release-1` que usar, y no se genera una nueva porque eso movería la identidad de confianza de la página.
+  Lo que se instala sigue siendo **2.0.0**, firmado.
 
 ## 2026-11-10 — v2.0.0 publicado: firma real, release real, dos canales
 

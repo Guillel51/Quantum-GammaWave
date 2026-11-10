@@ -120,16 +120,30 @@ def release_manifest(pkg_path):
     return None
 
 
+def version_key(value):
+    """(2, 1, 1) from "2.1.1": what "newest" means, so release/ can hold more than one signed package.
+
+    Sorted names would put 2.0.0 after 2.1.1 only by luck of the digits; a version that is not three
+    numbers sorts below everything rather than winning by accident."""
+    try:
+        return tuple(int(x) for x in str(value).strip().lstrip("v").split("."))
+    except (TypeError, ValueError):
+        return (0,)
+
+
 def signed_release(directory):
-    """(package, manifest) of the signed release in `directory`, if the bytes still match its hash.
+    """(package, manifest) of the NEWEST signed release in `directory`, if its bytes still match its hash.
 
     The release is the installable artefact: it is what a custodian signed, what the GitHub release
     publishes and what the installer is allowed to write. `main` keeps moving (the emulator, the page),
-    so the site serves this package for the install while it shows the build it is serving it with."""
+    so the site serves this package for the install while it shows the build it is serving it with.
+    When release/ holds several signed packages -- the previous one stays published while a new one is
+    cut -- the newest version wins, and it wins by version, not by file name."""
     try:
-        manifests = sorted(Path(directory).glob("*.manifest.json"))
+        manifests = list(Path(directory).glob("*.manifest.json"))
     except OSError:
         return None
+    best = None
     for man_path in manifests:
         pkg_path = Path(str(man_path)[: -len(".manifest.json")])
         try:
@@ -137,11 +151,14 @@ def signed_release(directory):
             raw = pkg_path.read_bytes()
         except (OSError, ValueError):
             continue
-        if (man.get("format") == "qg1-release-1" and isinstance(man.get("images"), dict)
+        if not (man.get("format") == "qg1-release-1" and isinstance(man.get("images"), dict)
                 and str(man.get("sha256", "")).lower() == hashlib.sha256(raw).hexdigest()
                 and int(man.get("size", -1)) == len(raw)):
-            return pkg_path, man
-    return None
+            continue
+        key = version_key(man.get("version"))
+        if best is None or key > best[0]:
+            best = (key, pkg_path, man)
+    return (best[1], best[2]) if best else None
 
 
 def pinned_keys():

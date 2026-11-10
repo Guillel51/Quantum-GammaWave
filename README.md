@@ -99,7 +99,7 @@ the emulator lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for o
 
 The site has two clearly labelled channels over one entry point:
 
-- **Stable (`/`)** — the signed release `v2.0.0`: the package from [`release/`](release), its
+- **Stable (`/`)** — the newest signed release, currently `v2.1.1`: the package from [`release/`](release), its
   `qg1-release-1` Ed25519 manifest, the build record the signature carries, and an emulator compiled from the
   **same commit that produced the package**. The installer verifies the SHA-256, the signature against the key
   pinned in the page and `tools/fm1_keys.json`, and `felucca.bin` / `loader/ota.bin` against that record before
@@ -289,8 +289,9 @@ and the acceptance trace it runs on the package.
 > **Read [`docs/SECURITY.md`](docs/SECURITY.md) before flashing anything.** It documents what the update protocol actually verifies (CRC, no signature), why an interrupted write cannot roll back on this single-bank layout, the community recovery ladder, and an honest audit of this repository's own installer — including what has *not* been tested on hardware. No install is declared safe without an independently demonstrated recovery path.
 
 You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** —
-`felucca-2.0.0.fwsc` (610 959 B, SHA-256 `c423b17c…9bd2`) next to its `.manifest.json` and `SHA256SUMS`, so the
+`felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`) next to its `.manifest.json` and `SHA256SUMS`, so the
 download can be checked without trusting the page that served it (the build tooling keeps Felucca's file name).
+`release/` keeps the previous signed package too: the site installs the newest version, chosen by version number.
 
 ---
 
@@ -312,6 +313,14 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 
 The per-release record, with the measurements behind each line, is [`CHANGELOG.md`](CHANGELOG.md). The recent
 milestones, in one line each:
+
+### `v2.1.1` — signed with the key held outside the build, published as the stable channel
+
+The package is built here with the AC791N toolchain from `61ae47b` and signed with `qg1-release-1` in a
+separate step: the build is frozen into a signing request, the request is signed where the key lives, and the
+signature is verified against the pinned public key before it is written — so CI can produce a release
+candidate and never hold a key. `release/felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`) is what the
+portal installs, with the emulator compiled from that same commit; `main` continues at `/preview/`.
 
 ### `v2.0.0` — signed, published, and installable from stock V15 without a second tool
 
