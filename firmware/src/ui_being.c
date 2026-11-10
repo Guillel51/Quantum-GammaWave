@@ -442,8 +442,11 @@ static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx,
     if (r < 2) r = 2;
     if (r > 6) r = 6;
     if (kind == 3)                                                /* the ring first: the body hides its middle, so it
-                                                                * reads as one ring passing behind the planet */
-        gw_ring_tab(x, y, r + 3, 2, ux_mix(T_BG, bg_col(heat + 40), 72), 0);
+                                                                * reads as one ring passing behind the planet. (2.2)
+                                                                * the ring answers a note too: the flash lifts its
+                                                                * edge, so the giant is not the one body that never
+                                                                * reacts */
+        gw_ring_tab(x, y, r + 3, 2, ux_mix(T_BG, bg_col(heat + 40), 72 + (lift >> 1)), 0);
     for (dy = -(r + 1); dy <= r + 1; dy++) {                   /* the atmosphere: the 1 px ring the body leaves */
         atm = gw_span(r + 1, dy);
         span = gw_span(r, dy);
@@ -653,7 +656,10 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
      * than the orbit on purpose -- a moon that spins in step with its orbit reads as a cut-out -- and each one
      * its own rate, so no two bodies turn together. */
     static const uint8_t ROTMS[5] = {21, 14, 17, 26, 31};
-    static const uint16_t ORPHS[5] = {0x0000, 0x2A00, 0x5200, 0x7A00, 0x3E00};
+    /* (2.2) the starting angles, spread evenly round the ellipse (72 degrees apart) instead of the old
+     * near-misses: four of them began within a third of a turn, so the bodies bunched into one blob beside
+     * the star for most of the first second. They still drift apart on their own rates. */
+    static const uint16_t ORPHS[5] = {0x0000, 0x1999, 0x3333, 0x4CCC, 0x6666};
     static const uint8_t ORR[5] = {4, 5, 5, 6, 3};             /* (2.1) each body one pixel larger than 3.3 --
                                                                 * the outer one 6 px + ring, still 1 px of margin */
     static const uint8_t ORYS[5] = {70, 60, 52, 44, 36};       /* tilt: ry = 8 / 11 / 14 / 15 / 13 px */
@@ -672,6 +678,19 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     };
     int32_t i, j, orb_x[NPL], orb_y[NPL], orb_rot[NPL], order[NPL], a, big = 0;
     uint32_t tm = fm1_ms, twf = ui.frame >> 2;
+    /* (2.2) THE SYSTEM IS NOT A CLOCKWORK. Every orbit ran at a constant rate for ever, so the bay
+     * repeated itself exactly: the same configuration every seven and a half seconds, and an eye reads
+     * that as a mechanism, not as space. One slow field -- a sine of the clock, ~47 s a turn -- now
+     * stretches and compresses each orbit a little, weighted by its index, and its tilt with it: the
+     * paths breathe together but never in step, and one sine pays for the whole system. */
+    int32_t wob = bg_sin(tm * 3u);
+    int32_t tilt_wob = bg_sin(tm * 3u + 0x2000u) >> 12;   /* +-8: the tilt must stay a few pixels */
+    int32_t orb_ry[NPL];
+    for (i = 0; i < NPL; i++) {                        /* the tilt the path and its planet both use */
+        orb_ry[i] = ORX[i] * ORYS[i] / 100 + tilt_wob * (i + 1) / 24;
+        if (orb_ry[i] < ORX[i] * 30 / 100)
+            orb_ry[i] = ORX[i] * 30 / 100;             /* the ellipse never closes up into a line */
+    }
     uint16_t star_ink = ux_mix(T_BG, T_THEME, 26), star_dim = ux_mix(T_BG, T_ACCENT, 18);
     if (r < 4) r = 4;
     if (r > 6) r = 6;                                 /* a star, not a sun: the planets carry the bay */
@@ -712,15 +731,17 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     /* the far half of each path first: it passes behind the star and behind the front planets */
     for (i = 0; i < NPL; i++) {
         uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(heat + i * 18), 34 + pl_ex[i] / 5)
-                                    : ux_mix(T_BG, T_LINE, 40 + i * 14);
-        gw_ring_semi(cx, cy, ORX[i], ORX[i] * ORYS[i] / 100, oc, 1);
+                                    : ux_mix(T_BG, T_LINE, 26 + i * 10);   /* (2.2) fainter at rest: five
+                                                                          * ellipses in one 88 px bay were
+                                                                          * reading as a wire frame */
+        gw_ring_semi(cx, cy, ORX[i], orb_ry[i], oc, 1);
     }
     /* each planet's place on its own ellipse: a pure function of the clock, so no frame rate and no audio
      * level can bend it; the excitation only lifts its radius and its glow */
     for (i = 0; i < NPL; i++) {
-        a = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i]));
+        a = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i] + (uint32_t)(wob >> 6) * (uint32_t)(i + 1)));
         orb_x[i] = cx + (ORX[i] * bg_sin((uint32_t)a + 0x4000u) >> 15);
-        orb_y[i] = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)a) >> 15);
+        orb_y[i] = cy + (orb_ry[i] * bg_sin((uint32_t)a) >> 15);
         /* its own spin, also a pure function of the clock: the surface phase never follows the orbit */
         orb_rot[i] = (int32_t)(uint16_t)(tm * (uint32_t)ROTMS[i] + ORPHS[i] * 3u);
         order[i] = i;
@@ -766,13 +787,14 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     for (i = 0; i < NPL; i++) {
         uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(heat + i * 18 + pl_ex[i] / 3), 46 + pl_ex[i] / 4)
                                     : ux_mix(T_BG, T_LINE, 52 + i * 14);
-        gw_ring_semi(cx, cy, ORX[i], ORX[i] * ORYS[i] / 100, oc, 0);
+        gw_ring_semi(cx, cy, ORX[i], orb_ry[i], oc, 0);
         if (!UI_NO_DRIFT && pl_ex[i] > 16) {           /* the note's trail on its own orbit, 3 px, short */
-            int32_t k, aa0 = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i]));
+            int32_t k, aa0 = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i] +
+                                                   (uint32_t)(wob >> 6) * (uint32_t)(i + 1)));
             for (k = 1; k <= 3; k++) {
                 int32_t aa = aa0 - k * (400 + pl_ex[i] * 2);
                 int32_t nx = cx + (ORX[i] * bg_sin((uint32_t)aa + 0x4000u) >> 15);
-                int32_t ny = cy + ((ORX[i] * ORYS[i] / 100) * bg_sin((uint32_t)aa) >> 15);
+                int32_t ny = cy + (orb_ry[i] * bg_sin((uint32_t)aa) >> 15);
                 sys_pset(nx, ny, ux_mix(T_BG, bg_col(heat + i * 18 + pl_ex[i] / 2), pl_ex[i] * (4 - k) / 14));
             }
         }

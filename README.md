@@ -89,7 +89,7 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## The published build: `v2.0.0`
+## The published build: `v2.1.1`
 
 The project has one official entry point: the **Solar Heat / Quantum** portal at
 <https://guillel51.github.io/Quantum-GammaWave/>. It presents the firmware, real screenshots, compatibility,
@@ -115,7 +115,7 @@ Every tagged version is built by CI and attached to a [GitHub release](https://g
 (`docs/RELEASE.es.md`); the release pipeline verifies the signed pair in `release/` and publishes those exact bytes.
 Emscripten is pinned to **6.0.11** everywhere.
 
-## What's in Quantum GammaWave (`v2.0.0`)
+## What's in Quantum GammaWave (`v2.1.1`)
 
 - **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
@@ -326,11 +326,23 @@ INSTALL on the SHA-256, the Ed25519 signature against the pinned key and the fir
 family is still unmeasured on hardware.
 
 ### `v1.9.0` — the signed package, and an installer that decides on what it reads
+### `v2.1.1` — one channel, releases from tags, and two claims checked properly
 
-The package is signed with the anchored key `qg1-release-1` and reproducible from its build record; the
-installer gates on the chip id, the piece geometry, the signature and the product the unit reports after the
-write, and *Verify Only* exports the diagnostic JSON it derived those states from. Pages serves the signed
-package, not a CI one. The 3.2 visual pass lands in the same tree (PUNCH-IN LATCH on by default with its
+The site serves the `main` build and the installer may install it: it checks the published SHA-256 and size
+before writing, and the loader reads the flash chip before erasing anything. Every version is built by CI from
+its tag and attached to a GitHub release (`release.yml`, `docs/RELEASE.es.md`); there is no signed channel and
+no provenance record to gate on any more (#89). In this pass the HOME planets' rotation was verified in the
+browser -- two captures 2.6 s apart, 868 of 57 600 pixels changed, and 576 changing in a 300 ms window, more
+than an orbit of 7-13 s per turn can move -- and `tests/perform_test.c`
+measures LATCH on rendered audio instead of a flag: with LATCH on the filter still filters after the key is
+released, the second touch returns the dry signal bit for bit, and REPEAT 1/16 keeps sounding. The dead
+`/preview/` deployment check is gone.
+
+### `v1.9.0` — an installer that decides on what it reads
+
+The installer gates on the chip id, the piece geometry and the product the unit reports after the write, and
+*Verify Only* exports the diagnostic JSON it derived those states from. (That release was signed with the
+anchored key `qg1-release-1`; #89 replaced the signing scheme with GitHub releases and hash/size checks.) The 3.2 visual pass lands in the same tree (PUNCH-IN LATCH on by default with its
 matrix, DEPTH on KNOB 2, FX percentages right-aligned, the SCL keyboard, seven delay bars, RESO and CLOUD as
 different particles, four HOME planets and a new 3.1 s boot splash), measured at 174 screens × 17 palettes with
 0 lint findings.

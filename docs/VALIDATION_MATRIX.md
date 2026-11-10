@@ -1108,7 +1108,6 @@ The trace is a program, not a reading, because a checker that only prints "ok" p
 `tests/mflasher_accept_test.py` mutates the release six ways and requires M-Flasher's own refusal
 wording for each (damaged `app.bin` under a rebuilt container, damaged header, damaged image, `F`→`S`
 identity, `0xFFFF` chip key, non-sector image size) — **14 checks, 0 FAILED**. `[HOST]`
->>>>>>> 370f1a81bf191acbc64ff45f2515ecd57efdbf18
 
 ## 35. Update — 2026-11-09, 3.3: two channels, 2.0, and a surface that turns
 
@@ -1132,7 +1131,7 @@ physical hardware.
 | Audio audit (LATCH, Punch-In, every control → DSP) | **PENDING** | Not done in this pass. The claims of 3.2 about LATCH remain host-state and interface tests; no test yet renders audio, releases the key and measures that a latched effect still changes the signal. | none |
 | Cheap musical improvements (micro-detune, stealing, saturation) | **NOT STARTED** | Deliberately not attempted after the ecosystem work: each one changes renders, and none was measured. Listed as pending rather than guessed. | none |
 | Host suites | **PASS** | `NO_PACKAGE=1 ./tests/run_tests.sh`, plus the web/provenance/site/i18n tests and `web/emu/emu_test.mjs` (all ok, heavy song 2.3 % of real time). | host x86 |
-| Public site | **PENDING** | Verified after the deploy: see the commit that follows this one. | — |
+| Public site | **CONFIRMED (root channel)** | After the deploy of `ebb9253`, `tools/site_check.py --expect-commit ebb9253... --expect-emu-commit ebb9253...` read the published origin: 14/14, the package at the commit asked for, the emulator built from that commit, its wasm size and SHA-256. The `/release/` channel failed the same gate — that is §36. | public site over HTTPS |
 | Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing in this pass is a claim about the hardware. | none |
 
 ## 2026-11-10 — the M-Flasher report leaves the install path
@@ -1173,3 +1172,24 @@ a page that refused to install because of that would be the bug this mission set
 | Host suites | **PASS** | `sign_test`, `key_custody_test`, `install_test`, `gate_test`, `mflasher_test`, `mflasher_accept_test` (14), `test_i18n`, `test_installer_i18n`, `test_accept` (20), `test_state` (65), `test_update_mode` (12), `test_verify_only` (150), `test_web`, `test_sign` (12), `test_backup`, `test_site` (19 ids / 6 images / 30 links, 0 FAILED). | host |
 | Physical FM-1, `0x856014` | **NOT TESTED** | No unit was touched. The plan, the allowlist and the resume path are host evidence only. | none |
 | Physical FM-1, `0xB36014` | **NOT TESTED** | Same. The second part is accepted by `flash_id_test`; no measurement on a unit. | none |
+
+## 38. Update — 2026-11-10, 2.1.1: el árbol en 2.1.1, la instalación en el release firmado
+
+`main` cambió dos veces mientras esta pasada escribía. Primero #87/#89 quitaron la firma y el canal firmado;
+después volvieron, con `release/felucca-2.0.0.fwsc` firmado y el sitio ofreciendo ese paquete. La versión de
+este árbol es **2.1.1** y el paquete que se puede instalar sigue siendo el **2.0.0 firmado**: firmar un 2.1.1
+necesita la clave privada `qg1-release-1`, que no está en este repositorio ni en CI, y esta pasada **no puede
+producirla**. Es un bloqueo, no una tarea hecha.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| Versión del árbol 2.1.1 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` es `v2.1.1`; el build AC791N (imagen 535 504 B, paquete 610 959 B, identidad FM-1_982) y el wasm (1 083 360 B, `d6d9827e…`) lo llevan. El paquete firmado que se instala sigue diciendo 2.0.0 y la portada lo dice. | build AC791N + wasm | AC791N + wasm |
+| Release 2.1.1 firmado | **BLOCKED (no key)** | No hay clave privada `qg1-release-1` en el repositorio ni en CI, y no se inventa ni se pide por chat. Sin firma, el instalador se niega a escribir el paquete, que es el comportamiento correcto. | `tools/fm1_keys.json` (sólo pública), `release/` | — |
+| Audio de LATCH | **PASS (rendered audio)** | `tests/perform_test.c::test_latch_audio()`: con LATCH ON el filtro sigue filtrando tras soltar; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF vuelve seca; REPEAT 1/16 sigue sonando. | render en host | host |
+| Rotación de los planetas de HOME | **VERIFIED IN THE BROWSER** | Emulador de este build servido en local y abierto en el navegador cloud: dos capturas separadas 2,6 s, **868 de 57 600 píxeles cambian**; en 300 ms cambian **576**, más de lo que mueve una órbita de 7–13 s por vuelta: gira la superficie, no sólo la órbita. Recorte ×4 y diferencia en `docs/evidence/3.3/`. | navegador cloud | navegador |
+| SCL con esquina de 3 px | **RENDERED** | `scl_key()` con esquina de 3 px; `tests/ui_render` 174 pantallas × 17 paletas, 0 hallazgos. | host render | host |
+| Aserciones contra el contrato de `P_LEVEL` | **FIXED** | `93c0fac` hizo que un sonido lleve su propio nivel; cinco aserciones de `ui_test`/`editor_test` seguían exigiendo el contrato viejo. Ahora comprueban `LEVEL == preset_level_of(engine, preset)` y que el load **empuja** ese nivel. Ambos binarios pasan enteros. | `tests/ui_test.c`, `tests/editor_test.c` | host |
+| `drumx` PUNCH y `live` (segundo a segundo) | **FAIL — not this pass** | Fallan en `main` antes de tocar nada: `firmware/src` aquí difiere de `main` en una línea (la versión). Son consecuencia de que el nivel del sonido entre en todo render. No se tocan aquí. | `NO_PACKAGE=1 sh tests/run_tests.sh` | host |
+| Matriz Control → Parámetro → Destino DSP → Efecto audible | **STILL PENDING** | No se hizo; lo único medido en audio es LATCH. | — | — |
+| Mejoras musicales baratas | **NOT STARTED** | Sin cambios. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
