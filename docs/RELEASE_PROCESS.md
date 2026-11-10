@@ -80,3 +80,8 @@ only be produced with the JieLi toolchain.
 
 Publishing Pages or a GitHub Release is an owner action. Nothing in this repository publishes on its
 own, and a green CI run is not an authorisation to install anything.
+
+## 6. Making a release
+
+Push a `v*` tag; `.github/workflows/release.yml` builds it, attaches the package to a GitHub release and
+notifies mutant.cloud. Step by step (in Spanish): [RELEASE.es.md](RELEASE.es.md).
