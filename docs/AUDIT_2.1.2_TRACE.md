@@ -135,3 +135,15 @@ git switch main && git merge --ff-only reconcile/main-2.1.2
 ```
 
 If `main` has moved again, merge it *into* `reconcile/main-2.1.2` first and push that — never reset.
+
+## 6. Landed
+
+`abf5e82` is on `main`: a merge whose second parent is `8a45d20`, so both lines are in the history and
+neither was rewritten. `main` now carries the 2.3.0 work (`5cc49e8`), the 2.1.2 release and identity
+`FM-1_965`, the audit's three fixes, and the nine files only the other line had. Nothing was forced and
+no file was dropped from either side. `release/felucca-2.1.2.fwsc` is still
+`1f52bf091586dde4cd08139fec637f40e70f3216fb78d690d8ff2eb3a08ba303`.
+
+Case left open, deliberately: `web/test_provenance.mjs` is in the tree but not in CI, because the 2.1.2
+installer page does not wire `web/fm1provenance.js` yet. Porting that guard is the next step, not a
+silent removal.
