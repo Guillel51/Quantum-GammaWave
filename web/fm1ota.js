@@ -189,6 +189,62 @@ async function handshake(link, tries = 3) {
   return { id: null, frames, latencyMs: null, sendFailed: false };
 }
 
+export function canonJson(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(canonJson).join(",") + "]";
+  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonJson(v[k])).join(",") + "}";
+}
+
+function hexBytes(hex) {
+  if (typeof hex !== "string" || hex.length % 2) throw fail("signature", "not a hex string");
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    const b = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(b)) throw fail("signature", "not a hex string");
+    out[i] = b;
+  }
+  return out;
+}
+
+// The Ed25519 manifest of tools/fm1_sign.py, verified with WebCrypto. `keys` maps key id -> public
+// key (hex). An empty map trusts nothing, so every package is refused: that is the released state.
+export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", firmware = null } = {}) {
+  if (!manifest || manifest.format !== "qg1-release-1") throw fail("signature", "No signed manifest.");
+  for (const f of ["product", "version", "min_firmware", "sha256", "size", "keyid", "sig"])
+    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
+  const pub = keys && keys[manifest.keyid];
+  if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
+  /* The manifest names the PRODUCT ("FM-1"); this page and the install path name the IDENTITY of
+   * the build ("FM-1_982"). Comparing them literally refused every package this project published --
+   * "The package is for FM-1, not FM-1_982" -- which left INSTALL disabled on the live page for
+   * everyone, with or without a unit attached. The model is what a package may not cross: an FM-1
+   * package can never be accepted for another model, and a manifest that names a model plus a number
+   * still only matches its own model. */
+  const modelOf = (p) => String(p === undefined || p === null ? "" : p).split("_")[0];
+  if (!modelOf(manifest.product) || modelOf(manifest.product) !== modelOf(product))
+    throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");
+  if (pkg.byteLength !== manifest.size) throw fail("signature", "The package size is not the manifest's.");
+  if (firmware) {
+    const a = String(firmware).split(".").map(Number), b = String(manifest.min_firmware).split(".").map(Number);
+    for (let i = 0; i < Math.max(a.length, b.length); i++)
+      if ((a[i] || 0) < (b[i] || 0)) throw fail("signature", `The package needs firmware ${manifest.min_firmware}.`);
+  }
+  const unsigned = Object.fromEntries(Object.entries(manifest).filter(([k]) => k !== "sig"));
+  let ok = false;
+  try {
+    const key = await crypto.subtle.importKey("raw", hexBytes(pub), { name: "Ed25519" }, false, ["verify"]);
+    ok = await crypto.subtle.verify({ name: "Ed25519" }, key, hexBytes(manifest.sig),
+                                     new TextEncoder().encode(canonJson(unsigned)));
+  } catch (e) {
+    throw fail("signature", `WebCrypto cannot check Ed25519 here: ${e.message}`);
+  }
+  if (!ok) throw fail("signature", `The manifest is not signed by ${manifest.keyid}.`);
+  return { keyid: manifest.keyid, version: manifest.version, sha256: digest };
+}
+
 export class Updater {
   constructor(access, log, timing = {}) {
     this.access = access;
