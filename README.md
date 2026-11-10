@@ -1,5 +1,7 @@
 <div align="center">
 
+![Quantum GammaWave banner](assets/branding/quantum_banner.png)
+
 # QUANTUM GAMMAWAVE
 
 **Twelve voices. Six tracks. Eight synthesis engines. One M-VAVE FM-1.**
