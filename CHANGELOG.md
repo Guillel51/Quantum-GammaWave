@@ -1,3 +1,17 @@
+## 2026-11-10 — el atajo de mover buffers al POOL, medido y descartado
+
+- **Moví `st_buf` (3 840 B) y `gen_keep` (2 176 B) de `.bss` a `.pool`** —los dos son estado del lazo principal,
+  nunca del bloque de audio— y ambos perfiles se recompilaron: `.bss` libre 3 380 → **7 220 B** (10 voces) y
+  1 108 → **7 124 B** (12 voces). El precio: `.pool` libre 9 248 → **3 232 B**, por debajo del piso de **8 KiB**
+  que fija `docs/OPTIMIZATION_BASELINE.md` (esa región lleva también el stack del segundo núcleo). Mover sólo
+  `st_buf` deja 5 408 B: tampoco. **Revertido**; el árbol vuelve a 3 380 / 9 248.
+- **Lo que enseña:** el muro de `.bss` no se rodea moviendo estado del lazo principal al POOL, porque al POOL le
+  quedan 1 056 B sobre su propio piso. Para reequilibrar haría falta liberar ≥ 3 232 B de `.pool` sin tocar un
+  buffer de audio (línea de delay 131 072 B, canvas 59 520 B, cloud y slicer 32 768 B cada uno, banco de comb
+  12 288 B): ninguno puede encogerse sin cambiar el instrumento. La única vía que libera `.bss` **y** deja los
+  buffers de audio en paz es el **pool global de voces** (72 slots → 16).
+- Documentado en `docs/TRACKS_VOICES_3.4.md` §5 con las cifras de los dos perfiles.
+
 ## 2026-11-10 — TRACKS 4 / 5 / 6, y lo que cuesta de verdad tener 12 voces
 
 - **`MENU > TRACKS` y `GLO > SYSTEM` ahora recorren 4 ECO / 5 BAL / 6 FULL.** El modo vive en

@@ -85,3 +85,27 @@ large, and it is the only route to more voices on this part.
 - No DSP change: no division replaced, no loop rewritten, no buffer resized.
 - `TIMER5`, `dx_run`, the effect buses and the FM6 core are as they were.
 - No new engine.
+
+## 5. The obvious shortcut, measured and rejected
+
+The cheapest way to make twelve voices fit looked like rebalancing the two RAM regions: `.bss` is what runs
+out, and `.pool` (the audio buffers' region) had 9 248 B spare. Two objects are plainly main-loop state, never
+touched by an audio block: `storage.c`'s `st_buf` (3 840 B, the flash driver's staging buffer) and `gen.c`'s
+`gen_keep` (2 176 B, the two patterns the generator holds for its preview and its UNDO). Both were moved to
+`.pool` by section attribute and both profiles rebuilt:
+
+| | `.bss` free | `.pool` free | twelve voices: `.bss` free |
+|---|---|---|---|
+| shipped | 3 380 B | **9 248 B** | 1 108 B |
+| both moved to `.pool` | **7 220 B** | 3 232 B | **7 124 B** |
+
+It works, and it is **not shippable**: `docs/OPTIMIZATION_BASELINE.md` sets a floor of **8 KiB free in POOL**
+(the region also carries the second core's stack), and this leaves 3 232 B. Moving only `st_buf` leaves
+5 408 B — still under the floor. The moves were **reverted**; the tree is back at 3 380 / 9 248.
+
+What that leaves: the `.bss` wall cannot be walked around by moving main-loop state into the pool, because the
+pool has only 1 056 B of slack above its own floor. A rebalance would need ≥ 3 232 B of `.pool` freed first
+without touching an audio buffer — the pool's big citizens are the delay line (131 072 B), the canvas
+(59 520 B), the cloud and slicer buffers (32 768 B each) and the comb bank (12 288 B), none of which can
+shrink without changing the instrument. That is exactly why the **global voice pool** is the only route that
+both frees `.bss` (the 72 slots → 16) and leaves the audio buffers alone.
