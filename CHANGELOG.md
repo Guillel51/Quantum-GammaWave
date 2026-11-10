@@ -1,4 +1,14 @@
-<<<<<<< HEAD
+## 2026-11-10 — v2.3.1: optimización profunda de memoria (POOL +12 288 B)
+
+- **Reducción de buffers de FX y voz (POOL).** `COMB_LEN` 1024 → 512 (ahorro 6 144 B), `CHO_LEN` 2048 → 1024
+  (2 048 B), `RPRE_LEN` 2048 → 1024 (2 048 B) y `SH_LEN` 2048 → 1024 (2 048 B). Total: **12 288 B** de
+  POOL liberados. POOL pasa de 9 248 B libres a **21 536 B** (97,2 % → 93,4 % usado). La imagen no cambia
+  (537 164 B). Las golden renders siguen pasando: el sonido por defecto es idéntico (los retardos máximos se
+  reducen, pero los valores por defecto quedan por debajo del nuevo límite).
+- **Versión** `v2.3.0` → `v2.3.1` (`FELUCCA_VERSION`, README).
+- **Suite host**: todos los grupos en verde excepto `six_track_live_test` (2 fallos heredados de v2.3.0 del pool
+  de voces, documentados, no silenciados).
+
 ## 2026-11-10 — MICRO-START, la marcha aleatoria y dos parámetros más sin romper un solo proyecto
 
 - **El registro de proyecto no cambia de versión: cambia de cuenta.** `P_COUNT` pasa de 123 a **125** y los dos
@@ -35,7 +45,6 @@
   `project_test` comprueba que el packed conserva `M.STRT`/`N.RATE` y que un FUN7 los devuelve por defecto con el
   valor del motor intacto.
 
-=======
 ## 2026-11-10 — twelve voices, one pool, and a clear voice start (`v2.3.0`)
 
 - **The pool.** A part no longer owns a fixed block of eight voices with its own keys. Every part holds a
@@ -181,7 +190,6 @@
 - The dynamic windows (12 / 13 slots) do **not** pass: 3 to 5 voice / routing checks fail on mode changes
   and engine caps (`docs/VOICE_POOL.md` §4). It stays on `exp/voice-pool`; `main` keeps 10 voices and the
   per-part arrays.
->>>>>>> 5cc49e80980837ae5879167f36745751cc1c6b88
 ## 2026-11-10 — auditoría del coste real de una voz, símbolo por símbolo
 
 - **Reconstruido el baseline compilando los dos perfiles en el HEAD real del remoto**, no en cifras históricas: 10 voces →
