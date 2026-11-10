@@ -109,6 +109,35 @@ jobs:
           rm -rf build/emu/preview
           mkdir -p build/emu/preview
           cp -r build/site_preview/. build/emu/preview/
+      # (v2.1.1) A build in CI is a candidate, not a release: the signing key is not here and never will be. This
+      # freezes the bytes into a qg1-sign-request-1 document -- package hash and size, the firmware image hashes,
+      # the build record, the version and a timestamp -- which a custodian signs where the key lives, offline or
+      # on a host reachable only by them, and commits back as release/PACKAGE.fwsc.manifest.json. CI then verifies
+      # that signature with the public pin before anything is published. When the version is already signed there
+      # is nothing to ask for.
+      - name: the build as a signing request (the key is not in CI)
+        if: steps.tc.outcome == 'success'
+        continue-on-error: true
+        run: |
+          ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
+          V=$(ver .); V=${V#v}
+          if [ -f "release/felucca-$V.fwsc.manifest.json" ]; then
+            echo "release/$V is already signed: no request to make"
+            exit 0
+          fi
+          KID=$(python3 -c "import json;k=json.load(open('tools/fm1_keys.json')).get('keys') or {};print(sorted(k)[0] if k else '')")
+          [ -n "$KID" ] || { echo "::warning::no key is pinned: a request would name no key id"; exit 0; }
+          python3 tools/fm1_sign.py request build/felucca.fwsc --version "$V" --min 1.0.0 --keyid "$KID" \
+            --build-manifest build/manifest.json --out build/sign-request.json
+      - name: the signing request as an artifact
+        if: steps.tc.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: sign-request-${{ github.sha }}
+          path: build/sign-request.json
+          if-no-files-found: ignore
+          retention-days: 14
       # (QG-1 stage 2/3) the two checks that need the target compiler, on main and on every PR. On main the step
       # above has just built the package; on a PR (no site, no deploy) this is the only build. Not
       # continue-on-error: a regression here is the point of running them.
@@ -138,18 +167,37 @@ jobs:
       # from main: the page that installs `release/felucca-2.0.0.fwsc` must run the code that produced those
       # bytes. main's emulator goes to /preview/, so "try it before installing" and "install it" are two
       # different, labelled things. A worktree keeps both in one job with one emsdk.
+      # (v2.1.1) release/ holds every signed package now, and the one that counts is the newest by version, not
+      # the first name in the directory: "felucca-2.0.0" sorts before "felucca-2.1.1", so the old selection kept
+      # serving the previous release after the new one was signed. One selection feeds the emulator worktree, the
+      # root site and the deploy check, so they cannot disagree about which release is live.
+      - name: the newest signed release (package, version, commit)
+        id: rel
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import glob, json
+          def key(v):
+              try: return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))
+              except (TypeError, ValueError): return (0,)
+          best = None
+          for m in glob.glob("release/*.manifest.json"):
+              try: d = json.load(open(m))
+              except (OSError, ValueError): continue
+              if d.get("format") != "qg1-release-1" or not isinstance(d.get("images"), dict): continue
+              k = key(d.get("version"))
+              if best is None or k > best[0]: best = (k, m[:-len(".manifest.json")], d)
+          if best is None:
+              print("pkg="); print("version="); print("commit=")
+          else:
+              _, pkg, d = best
+              print("pkg=" + pkg)
+              print("version=" + str(d.get("version")))
+              print("commit=" + str((d.get("build") or {}).get("commit", "")))
+          EOF
+          echo "newest signed release: '${{ steps.rel.outputs.version }}' (${{ steps.rel.outputs.pkg }})"
       - name: the emulator of the signed release's commit
         run: |
-          REL=$(python3 - <<'EOF'
-          import glob, json
-          m = sorted(glob.glob("release/*.manifest.json"))
-          if not m:
-              raise SystemExit("no release manifest: /preview only")
-          d = json.load(open(m[0]))
-          b = d.get("build") or {}
-          print(b.get("commit", ""))
-          EOF
-          )
+          REL="${{ steps.rel.outputs.commit }}"
           echo "release commit: '${REL}'"
           if [ -n "$REL" ]; then
             git worktree add ../release-tree "$REL"
@@ -188,9 +236,10 @@ jobs:
           # the root: the signed release, its own emulator, its own build record -- and this run's emulator
           # only if the release manifest names it (it does not: it names the one built with the package, which
           # is ../release-tree/build/emu above).
-          RELPKG=$(ls release/*.fwsc 2>/dev/null | head -1)
+          RELPKG="${{ steps.rel.outputs.pkg }}"
+          RELVER="${{ steps.rel.outputs.version }}"
           if [ -n "${REL:-}" ] && [ -s "$REL_EMU/manifest.json" ] && [ -s "$RELPKG" ]; then
-            python3 web/make_site.py "$RELPKG" "v$(python3 -c "import json,glob;print(json.load(open(sorted(glob.glob('release/*.manifest.json'))[0]))['version'])")-${REL:0:7}" \
+            python3 web/make_site.py "$RELPKG" "v${RELVER}-${REL:0:7}" \
               build/site --emu "$REL_EMU/manifest.json"
             mkdir -p build/site/emulator
             cp -r "$REL_EMU"/. build/site/emulator/
@@ -288,8 +337,16 @@ jobs:
           # run's: main moves, the signature does not.
           REL=$(python3 - <<'EOF'
           import glob, json
-          m = sorted(glob.glob("release/*.manifest.json"))
-          print(((json.load(open(m[0])).get("build") or {}).get("commit", "")) if m else "")
+          def key(v):
+              try: return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))
+              except (TypeError, ValueError): return (0,)
+          best = None
+          for m in glob.glob("release/*.manifest.json"):
+              try: d = json.load(open(m))
+              except (OSError, ValueError): continue
+              k = key(d.get("version"))
+              if best is None or k > best[0]: best = (k, d)
+          print(((best[1].get("build") or {}).get("commit", "")) if best else "")
           EOF
           )
           echo "the signed release was built from '${REL:-nothing}'"
