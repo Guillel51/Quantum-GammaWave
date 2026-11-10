@@ -1383,3 +1383,55 @@ No se tocó el test para ocultar el fallo; queda pendiente de decisión de dise�
 Lo que **no** está en esta pasada: el rediseño de HOME/visualizadores, la auditoría de EDIT motor por motor, las
 mejoras de FX más allá de MASTER EQ, y la optimización de CPU/RAM. Las páginas nuevas y el barrido están
 medidos; no hay captura revisada a ojo de `VOICE 2`, sólo el lint del barrido.
+
+## 43. Update — 2026-11-10, installer validation and measured defaults
+
+The b8a9be7 pass verified the published installer against the live page:
+- All HTTP responses 200, signed package `2.0.0` of 610 959 B with SHA-256 verified against `qg1-release-1`
+- Install button gated by four confirmations (gate rows + nothing else)
+- Custody model: loader verifies no signature (authenticity, not secure boot)
+- Key no longer needs to be on build machine; runner can only produce request, not sign
+- Previous installer claimed `2.0.0` while installing `2.1.1`; now names newest signed release
+
+Parameter measurements (P_COUNT/P_E0):
+- `P_COUNT`: 123 → 125; `P_E0`: 115 → 117
+- Inserted just before `P_E0` (117), the only position the count map supports
+- `params_by_count` reads all older projects/presets with their own `np` (123, 99, 91, 89, 69, 57...)
+- Motor IDs move only if register was written with different count
+- Format round-trip: `proj_pack` → `proj_import` conserves M.STRT 91, N.RATE 4, motor value -7
+- FUN7/FUNB: fixed grid cannot support 125 parameters (8 B more measured); writes 123, moves 8 motor params to last slots
+
+MICRO-START audio:
+- `M.STRT` 0: 64/64 onsets in same sample; 127: onsets 96..864 samples, 6 of 7 notes moved
+- Level ±0.00 dB; first sample 196, max step 3802 (no click)
+- Retrieger of a sounding voice: does not move
+
+N.RATE (audio):
+- Hold blocks with real transport: 1/1 2756, 1/2 1378, 1/4 689, 1/8 345, 1/16 172, 46 ms 64
+- Signal difference 1/1 vs 1/16 in same destination: 0.406
+
+Seed per track:
+- `mod_noise((t - trk) * 7919 + 0x1234, …)`: six tracks do not share sequence
+
+Host suite:
+- `NO_PACKAGE=1 sh tests/run_tests.sh` → all groups green except six_track_live_test
+- 178 screens × 17 palettes, 0 lint findings, 0 alignment measurements outside
+- `target_budget`: 39/39 ok, 0 over budget
+- AC791N image: 537 164 B (baseline 539 836, -2 672); `.data+.bss` 87 632 / 98 304 (10 672 free, +48)
+- Pool: 311 240 B, 9 248 surplus
+- RAM code: 19 408 / 24 576
+- Package: 610 959 B, loader 9 236 B, identity FM-1_965, v2.3.0
+- Emulator: wasm 1 091 889 B, build 55c7b0e20eb0, sha256 887414c4d2b3d4ee47d7a9f76bf14b8d76ecbc07e9ccfcf080e80da39746e4c6
+- FM-1 física: NOT TESTED (no unit touched, no writing)
+
+Fallo heredado de v2.3.0 (no introducido por esta pasada):
+- `six_track_live_test` cuenta 11 voces activas en bloque 16 del R16 en lugar de 10
+- (Pool de 12 voces por pista ya no roba; audio dorado data del pre-pool)
+- No se tocó el test para ocultar el fallo; pendiente decisión diseño pool
+
+Lo que **no** está en esta pasada:
+- Rediseño de HOME/visualizadores
+- Auditoría de EDIT motor por motor
+- Mejoras de FX más allá de MASTER EQ
+- Optimización de CPU/RAM
+- Páginas nuevas y barrido medidos; sin captura revisada a ojo de VOICE 2, sólo lint del barrido.
