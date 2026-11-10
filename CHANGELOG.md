@@ -17,6 +17,36 @@
 - Los rediseños de EDIT (LOFI, MORPH, FM6), las gráficas unificadas, BI-QUAD EQ, HOME y el visualizador **no**
   entran en esta pasada y quedan declarados como pendientes.
 
+## 2026-11-10 — 2.1.1, comprobado por donde se usa: la página publicada y el DSP
+
+Esta pasada no añade pantallas: comprueba con instrumentos lo que ya había en el árbol, y arregla lo que un
+instrumento encontró mal.
+
+- **El instalador publicado, abierto como lo abre un visitante.** La página responde 200 y no deja ni un mensaje
+  de consola; sus tres peticiones (página, `.fwsc`, `.manifest.json`) responden 200; ofrece `v2.0.0-2500153`,
+  610 959 B, «Ready to flash», con `SHA-256 verificado ✓ c423b17c…` y `Ed25519 qg1-release-1`; enseña el plan
+  antes de escribir (143 sectores, `0x04000-0x92FFF`, boot `0x00000-0x03FFF` intacto, factory `0xFF000`), e
+  **INSTALL está deshabilitado hasta marcar las cuatro confirmaciones y se habilita al marcarlas**. No había
+  defecto de implementación que desbloquear: el botón lo cierra la evidencia y nada más. Registro y clase de la
+  medición: `docs/VALIDATION_MATRIX.md` §22.
+- **`tests/fx_probe.c`, un arnés para lo que no se podía medir.** El PHASER mide **23,6 dB de peine** entre
+  200 Hz y 6 kHz y **0 de salto** al cambiar DEPTH; M-WIDE da r = **1,000** a 0 (mono), **−0,003** a 64 y
+  **−0,59 con +3,8 dB** a 127; el EQ (`LOW SH −24`, `PEAK +12`) es monótono y llega a **+11,7 dB a 665 Hz**.
+  La primera versión del arnés decía «1,7 dB, débil» porque medía un tono fijo mientras barría el LFO: estaba
+  mal el instrumento, no el phaser, y por eso el DSP no se tocó.
+- **DRUM-X PUNCH era el que estaba mal.** Pasaba **+0,4 dB** porque el kit sintético del test cargaba a nivel
+  120; con el kit a 100 (como suena) el PUNCH da **+4,2 dB**. `tests/drumx_test.c` lo fija y el golden live
+  (61 s) se regeneró a propósito.
+- **Un medidor, no dos.** El MIXER dibuja ahora con `gw_plasma_bar()`, la función de HOME, en vez de una barra
+  propia: los seis tracks se leen con la misma escala y los mismos segmentos en las dos pantallas.
+- **El barrido de UI, a cero.** 174 pantallas × 17 paletas: **0 hallazgos** del lint de maquetación, 0 tintas
+  sobre su propio color, 0 píxeles fuera de gris/neutro en GREY y MONO, y **2 645 631 mediciones** de alineación
+  en 73 puntos con **0 desviaciones de 1 px**. Los 220 renders golden siguen idénticos y `target_budget`
+  informa **39 ok, ninguna fuera**.
+- **La firma sigue siendo la que bloquea.** `~/.fm1-keys/` no existe en esta máquina: no hay clave privada
+  `qg1-release-1` que usar, y no se genera una nueva porque eso movería la identidad de confianza de la página.
+  Lo que se instala sigue siendo **2.0.0**, firmado.
+
 ## 2026-11-10 — v2.0.0 publicado: firma real, release real, dos canales
 
 - **La firma Ed25519 vuelve y es la que decide.** `release/felucca-2.0.0.fwsc` (610 959 B, SHA-256
