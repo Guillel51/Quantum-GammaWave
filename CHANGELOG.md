@@ -1,3 +1,33 @@
+## 2026-11-10 — twelve voices, one pool, and a clear voice start (`v2.3.0`)
+
+- **The pool.** A part no longer owns a fixed block of eight voices with its own keys. Every part holds a
+  *window* into one global pool (`vpool[]`, `VPOOLN = NVOICE + NPART` = 18 with twelve voices), a part that
+  needs a voice takes the window from a part that can spare it, and the window only shrinks when the pool has
+  nothing left to hand out. This is what the polyphony can grow into: six parts no longer reserve six times
+  the state they can use.
+- **Twelve voices, measured.** `NVOICE` defaults to **12** and `tests/run_tests.sh`'s `POLY` with it (the
+  10-voice build is still one flag away: `FELUCCA_VOICES=10`, and `FELUCCA_VPOOL=N` sets a pool by hand). The
+  AC791N build with twelve voices puts **87 584 B** in `.data + .bss` with **10 720 B free**; the 10-voice
+  build it replaces used 94 924 B with 3 380 B free. Image 539 836 B, POOL 318 432 B (9 248 free), LOWBUF
+  26 532 B, RAMCODE 19 268 B, NOINIT 15 572 B.
+- **A voice that starts from silence starts from silence.** A note that takes a voice the pool reports as
+  silent clears the oscillator, filter and envelope state and reseeds WHEEL by the part's logical index
+  rather than by its current slot (`FELUCCA_VRESET=1`, `FELUCCA_WSEED=1`, both now the default). Before, a
+  note could inherit the tail state of whatever used that slot last.
+- **What that cost, in audio.** The change is audible — it is a different instrument on the same presets — so
+  **55 golden renders were re-rendered** and the whole suite re-baselined in one reviewable commit:
+  `tests/regress` 220 renders, 0 changed; `tests/ui_test` green; `tests/target_budget` 39/39.
+- **The rest is unchanged.** Eight engines, the 200-sound library, the sequencer, the effects, MIDI/SysEx,
+  projects and presets from earlier versions load and play as before.
+- **Presentation.** The README is rewritten around the firmware as it is today, the site and the Web Studio
+  copy follow it, the old HOME/visualizer paragraph is gone, and no surface calls the GEN page a song
+  generator. Version `v2.3.0`, identity unchanged at `FM-1_965`.
+- **Not measured:** a physical FM-1. Twelve voices are proven by the host suite and the static AC791N budget,
+  not by listening on hardware; stack depth and interrupt timing on the unit are not measured here.
+- **No signed package.** `v2.3.0` ships no `.fwsc` in this repository: signing needs the custodian key, which
+  is not here, and an unsigned package would be refused by the installer (fail-closed). The build and a
+  `sign` request are reproducible with the commands in `BUILDING.md`.
+
 ## 2026-11-10 — an independent audit of 2.1.2: two checks that could not fail, and did not
 
 - **The parity failure was the harness, not the compiler.** `web/emu/emu_test.mjs` renders `splashMs + 200`

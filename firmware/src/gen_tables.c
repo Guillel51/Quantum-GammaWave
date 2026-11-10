@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * JIANT (0.6.91) the song generator's knowledge, as constant tables (gen.c reads them; included by it). Everything a
+ * JIANT (0.6.91) the generator's knowledge, as constant tables (gen.c reads them; included by it). Everything a
  * genre knows is written here, nothing is computed: a genre is a row, its drums a map of priorities (after Mutable
  * Instruments' Grids: a level a step a lane, a hit where the level clears the density), its bass one of ~50 archetypes
  * written against the kick (funk, post punk, jazz, reggae, house, techno, hip hop ..), its chords a progression with a
@@ -337,7 +337,7 @@ static const uint8_t SR_ALT[SR_N][2] = {
     [SR_WALL] = {SR_STRINGS, SR_PAD}, [SR_GTR] = {SR_PLUCK, SR_KEYS}, [SR_SINEKEY] = {SR_KEYS, SR_BELL}, [SR_EBMBASS] = {SR_ROCKBASS, SR_ACID},
     [SR_808GLIDE] = {SR_808GLIDE, SR_SUB},
 };
-/* the names the song generator never picks (the cheerful, the odd), whatever the role */
+/* the names the generator never picks (the cheerful, the odd), whatever the role */
 static const char *const GEN_NEVER[] = {"ARCADE", "BYTEBEAT", "GOSPEL", "ROCK DRIVE", "METAL", "BYTE VAR", "FLOAT FM",
                                         "FLOAT ARP", "BYTE TONE"};
 

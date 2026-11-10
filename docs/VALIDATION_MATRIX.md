@@ -1341,3 +1341,17 @@ Por lo que **no** hay en esta pasada: MICRO-START y modulación aleatoria no est
 en el registro de proyecto (`P_COUNT` 123, `project.c` §límites) y añadir un parámetro exige una versión de formato
 nueva; hacerlo de otro modo habría roto los presets y proyectos ya guardados. Tampoco entran aquí las
 optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
+
+## Pasada `v2.3.0` — doce voces con el pool
+
+| Comprobación | Resultado | Cómo |
+|---|---|---|
+| Build AC791N, 12 voces por defecto | **ok**: imagen 539 836 B, `.data + .bss` **87 584 B** de 98 304 (10 720 libres), POOL 311 240 B (9 248 libres), XIP 379 876 B, RAM code 19 268 B de 24 576, NOINIT 15 572 B | `python3 tools/build.py` (toolchain + AC79_SDK) |
+| Paquete | `build/felucca.fwsc` 610 959 B, identity `FM-1_965`, manifiesto `v2.3.0` | el mismo build |
+| Golden renders | **220 renders, 0 changed**, 0 health failures, 0 voice/routing fallos, 0 CPU sobre presupuesto | `tests/regress` con `tests/golden.txt` (55 baselines re-renderizados en el commit del pool) |
+| UI | **all passed** | `tests/ui_test` |
+| Presupuesto de tamaño | **39/39** | `tests/target_budget` |
+| Perfil de 10 voces | compila: `FELUCCA_VOICES=10 python3 tools/build.py` | flag del build |
+| Sitio | `test_i18n.py` todas las cadenas con EN y ZH; `test_site.py` 19 ids / 7 imágenes / 31 enlaces, 0 fallos; `test_web.mjs` verde; `test_installer_i18n.py` verde | host |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada. Ni la polifonía de 12 voces ni el margen de pila se midieron en hardware. | — |
+| Release firmado 2.3.0 | **NO PUBLICADO**: la firma exige la clave del custodio, que no está en este árbol; el instalador rechaza un paquete sin firmar (fail-closed). | — |

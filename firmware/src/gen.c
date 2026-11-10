@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * JIANT (0.6.91) the song generator, second version: HOME + SELECT opens GEN, a screen of three pages (GENRE SEED
+ * JIANT (0.6.91) the generator, second version: HOME + SELECT opens GEN, a screen of three pages (GENRE SEED
  * ENERGY FORM; DRUMS BASS CHORDS ARP; LEAD COMPLEX SWING HUMAN), OCT+ makes the piece, HOME (or OCT-) is done. Included by
  * ui_input.c after song_dice.c (whose helpers it shares: the roles, dhold, euclid, dtonic, dname_has, dlevel ..).
  *
