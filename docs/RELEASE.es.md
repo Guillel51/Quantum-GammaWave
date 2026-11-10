@@ -52,11 +52,18 @@ Si la firma no verifica, el workflow falla y no publica nada.
 
 ## 3. El sitio
 
-GitHub Pages compila `main` y publica el paquete que sale de ese build. `web/make_site.py` busca en
-`release/` un manifiesto cuyo SHA-256 sea **exactamente el de los bytes que va a servir**; si lo
-encuentra publica la firma al lado del paquete y el instalador la verifica contra la clave fijada en
-`tools/fm1_keys.json`. Si no coincide —porque el firmware cambió y todavía no se firmó— el sitio
-sigue publicado, pero el instalador dice por qué y deja INSTALL deshabilitado.
+GitHub Pages compila `main` en cada push, pero **lo que se instala es el release firmado**: `web/make_site.py`
+busca en `release/` un manifiesto cuyo SHA-256 sea exactamente el de los bytes de al lado y, si lo encuentra,
+publica *esos* bytes como paquete instalable —con el registro de build que la firma lleva dentro, así la
+página dice qué commit va a escribir— aunque el build de `main` sea otro. El emulador sí es siempre el de
+`main`, y el pie lo nombra. `main` cambia todo el tiempo; una firma no puede seguirlo, y un instalador que
+se negara a instalar por eso sería el problema, no la protección.
+
+El instalador verifica el SHA-256 del paquete y la firma Ed25519 contra la clave fijada en
+`tools/fm1_keys.json`, y contrasta los hashes de `felucca.bin` y `loader/ota.bin` con el registro de build
+que sirve la página. Si algo no cuadra, INSTALL queda deshabilitado y la página dice cuál de las tres
+comprobaciones falló. Cuando `main` tiene firmware nuevo sin firmar, el sitio sigue instalando la última
+versión firmada: para publicar esa nueva hay que firmarla (sección 1).
 
 ## Si algo falla
 
