@@ -1,3 +1,26 @@
+## 2026-11-10 — auditoría del coste real de una voz, símbolo por símbolo
+
+- **Reconstruido el baseline compilando los dos perfiles en el HEAD real del remoto**, no en cifras históricas: 10 voces →
+  imagen **537 532 B**, XIP 517 428/64 136, `.data+.bss` **94 924/98 304** (3 380 libres), POOL 318 432/9 248,
+  LOWBUF 26 532/2 140, RAMTEXT 19 356/5 220, NOINIT 15 572/124, `target_budget` **39/39**. 12 voces → imagen
+  537 980 B, XIP 517 876, `.bss` **97 196** (1 108 libres), todo lo demás igual, `target_budget` **39/39**.
+- **Nuevo: atribución exacta del coste de una voz** diffeando los símbolos RAM de los dos perfiles
+  (`ram_report.py --json`): `drw_v` **+552 B/voz** (6 × 92), `trk[k].v[]` **+528 B/voz** (6 × 88), `vz_nv`
+  +48 B, `pl_seen` +6 B → **1 134 B por voz**, y **`fm6_note`, `drum_kit` y `dx_core` no crecen con NVOICE**.
+  Por tanto una voz cuesta **189 B por pista** (88 + 92 + 8 + 1): los 11 340 B que ocupan seis pistas de diez
+  voces son `6 × 10 × 189`, y la dimensión que escala es exactamente la que colapsa un pool global.
+- **Economía del pool, en bytes medidos:** 12 slots → 2 268 B y **9 072 B liberados** (`.bss` libre 12 452 B);
+  14 → 8 694 B (12 074); 16 → 8 316 B (11 696); 18 → 7 938 B (11 318). Y el dato incómodo: repartidos en fijo,
+  12 slots son **2 por pista**, peor que hoy. El pool sólo paga con **ventanas dinámicas** por pista.
+- **Alcance real del cambio, contado:** `trk[k].v[i]` se escribe en **100 sitios de 18 archivos** (`voice.c` 44,
+  `ui_graph.c` 7, `editor.c` 7, `ui_input.c` 6, `fx.c` 6, `seq.c` 5, …) más 3 de `drw_v`. Por eso el diseño que
+  no toca esos 100 sitios es la ventana contigua deslizante (`voice_t *v` → `vpool[]`, base móvil), y por eso
+  **el prototipo no se mezcla**: la rama `exp/voice-pool` se creó y se descartó sin commit, con la contabilidad
+  medida como entregable y el allocator a medio mover fuera del árbol.
+- Verificado también en este HEAD que `st_buf` y `gen_keep` siguen en `.bss` (§5 documenta el experimento
+  revertido): 94 924 B, exactamente el baseline anterior.
+- Documentado en `docs/TRACKS_VOICES_3.4.md` §6 con las tres tablas.
+
 ## 2026-11-10 — el BI-QUAD EQ y la página RETRIG, dibujados como son
 
 - **MASTER EQ con el lenguaje de EDIT > FILTER.** Rejilla logarítmica nombrada, escala de dB en un canal que la
