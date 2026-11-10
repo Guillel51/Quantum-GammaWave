@@ -1286,3 +1286,20 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | custody guard under a copied tool | **REFUSES** | first attempt on that host: `refused: the private key is inside the repository (release.pem)` — the copied tool treats its own parent as the repository | host |
 | released package is reproducible | **REPRODUCED** | worktree at `61ae47b` + `./build.sh --release 2.1.1` → `81c80e365bf9ecec…c563`, the same SHA-256 as `release/felucca-2.1.1.fwsc`, same `build_sha256 83cebf6d…` | AC791N toolchain |
 | Actions run conclusions | **NOT READABLE HERE** | no `gh` token on this machine and the public API is rate-limited by IP; the outcome was verified instead (release assets downloaded and verified, site serving 2.1.1) | — |
+
+## 41. Update — 2026-11-10, HEAD `94a6a4c` medido: host, AC791N y wasm
+
+| Medición | Valor | Clase |
+|---|---|---|
+| Suite host completa | `NO_PACKAGE=1 sh tests/run_tests.sh` → **ALL HOST TESTS PASSED**, `EXIT=0` | host x86 |
+| Barrido de pantallas | 178 pantallas × 17 paletas, **0 hallazgos** de lint, **0 de 2 650 362** mediciones de alineación fuera por 1 px o más | host render |
+| Imagen AC791N | **538 356 B**; `.data+.bss` **94 944 de 98 304** (3 360 libres); pool 311 240 B, **9 248 de sobra**; código en RAM 19 356 de 24 576 | build AC791N |
+| Paquete / loader | `build/felucca.fwsc` **610 959 B**, loader **7 803 B**, identidad **FM-1_982**, v2.1.1 en `94a6a4c` | build AC791N |
+| Emulador | wasm **1 094 538 B**, `94a6a4c03cab`, sha256 `b1c3f9fd…` | build wasm |
+| `editor_test` | Verde. `main` lo tenía **rojo**: MENU > TRACKS pasó a `4 ECO / 5 BAL / 6 FULL` y la expectativa seguía en `{"4","6"}`; corregida con la regla real (sólo 6 escribe el bit que lee el firmware viejo). | host |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada, ninguna escritura. | — |
+
+Por lo que **no** hay en esta pasada: MICRO-START y modulación aleatoria no están implementadas. No hay byte libre
+en el registro de proyecto (`P_COUNT` 123, `project.c` §límites) y añadir un parámetro exige una versión de formato
+nueva; hacerlo de otro modo habría roto los presets y proyectos ya guardados. Tampoco entran aquí las
+optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
