@@ -1,3 +1,19 @@
+## 2026-11-10 — el instalador no pide ningún informe de M-Flasher
+
+- **Fuera el informe de M-Flasher** del flujo visible: se quitaron la caja de "registro + dump", la guía de
+  M-Flasher del panel de verificación, sus cadenas en en/es/zh, `web/fm1record.js` y su test. La identificación
+  del chip la hace la unidad: el loader del paquete lee el chip antes de borrar nada (`ldr_flash_known`) y una
+  unidad que ya corre QG responde 0x12 en su propio enlace. Las comprobaciones de seguridad siguen en pie
+  (modelo, geometría, allowlist de partes, rango de escritura `[0x4000, 0x93000)`, datos de fábrica).
+- **El plan antes de escribir** es su propia página (`/plan/`): lee el paquete que sirve el sitio, lo hashea
+  contra su SHA-256 publicado y muestra, con el dump del usuario, los sectores exactos que se van a escribir.
+  El lanzador de Windows abre esa página primero.
+- **`tests/fixtures/felucca-v1.9.0.fwsc`** vuelve al repo (610806 B, sha256 `80ad995c…`): el CHANGELOG lo
+  prometía, tres tests lo necesitaban y sin él dos suites no corrían.
+- Créditos: Pocket GammaWave queda a nombre de **Frederic Valente (@fvalente)** y se suma
+  **David Konsumer (@konsumer)** por la primera instalación en stock, el chequeo de chip del loader, la
+  reanudación y los releases por tag.
+
 ## 2026-11-10 — releases de GitHub, sin firma en el repo
 
 - **Un solo canal.** El sitio sirve el build de `main` y el instalador lo puede instalar: comprueba el SHA-256 y

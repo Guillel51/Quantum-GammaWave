@@ -136,7 +136,6 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     lib = strip_module((HERE / "fm1diag.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1accept.js").read_text(encoding="utf-8")) + "\n" + \
-        strip_module((HERE / "fm1record.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1state.js").read_text(encoding="utf-8")) + "\n" + \

@@ -56,12 +56,12 @@ const $ = (id) => document.getElementById(id);
 const PT = {
   en: {
     title: "The plan before you write",
-    lead: "Your dump and the signed release, and the sectors M-Flasher will erase. This page runs M-Flasher's own checks on the package; nothing is sent to the unit and nothing is written from here.",
+    lead: "Your dump and the package this site serves, and the sectors the installer will erase. This page runs M-Flasher's own checks on the package and plans the write from your bytes; nothing is sent to the unit and nothing is written from here.",
     dump: "Your dump (.bin, 1 MiB):",
     checks: "M-Flasher's checks on this package",
-    pkgline: "release package",
-    next: "Continue to the signed installer",
-    foot: "The first install is M-Flasher's «Install firmware» with this same package. It keeps the boot area and the factory data, and verifies every sector it writes.",
+    pkgline: "package",
+    next: "Continue to the installer",
+    foot: "The install itself is the installer's. On a stock unit it stages this package's loader, which reads the flash chip and refuses a part the firmware does not write before erasing anything; it writes only what differs inside 0x04000–0x92FFF and keeps the boot area and the factory data.",
     accContainer: "package (identity)", accImage: "flash image", accHeaderCrc: "header CRC16",
     accListCrc: "files in the list", accFlashCrc: "flash.bin CRC16", accModel: "model",
     accSize: "fits the 1 MiB part", accAppFile: "app file, decrypted, CRC16", accKey: "chip key",
@@ -79,12 +79,12 @@ const PT = {
   },
   es: {
     title: "El plan antes de escribir",
-    lead: "Tu dump y el release firmado, y los sectores que va a borrar M-Flasher. Esta página corre las comprobaciones del propio M-Flasher sobre el paquete; no se envía nada a la unidad y desde acá no se escribe nada.",
+    lead: "Tu dump y el paquete que sirve este sitio, y los sectores que va a borrar el instalador. Esta página corre las comprobaciones del propio M-Flasher sobre el paquete y planifica la escritura con tus bytes; no se envía nada a la unidad y desde acá no se escribe nada.",
     dump: "Tu dump (.bin, 1 MiB):",
     checks: "Comprobaciones de M-Flasher sobre este paquete",
-    pkgline: "paquete del release",
-    next: "Seguir al instalador firmado",
-    foot: "La primera instalación la hace el «Install firmware» de M-Flasher con este mismo paquete. Conserva el área de arranque y los datos de fábrica, y verifica cada sector que escribe.",
+    pkgline: "paquete",
+    next: "Seguir al instalador",
+    foot: "La instalación la hace el propio instalador. En una unidad de fábrica prepara el loader de este paquete, que lee el chip de flash y rechaza una parte que el firmware no escribe antes de borrar nada; escribe sólo lo que difiere dentro de 0x04000–0x92FFF y conserva el área de arranque y los datos de fábrica.",
     accContainer: "paquete (identidad)", accImage: "imagen de flash", accHeaderCrc: "CRC16 de cabecera",
     accListCrc: "ficheros en la lista", accFlashCrc: "CRC16 de flash.bin", accModel: "modelo",
     accSize: "entra en la parte de 1 MiB", accAppFile: "fichero de la app, descifrado, CRC16", accKey: "chip key",
@@ -163,13 +163,12 @@ $("lang").addEventListener("click", () => {
   paint();
 });
 
-/* the signed release, from the channel that serves it: its own versions.json names the file and its
-   SHA-256, and the bytes are hashed here before any check runs on them */
+/* the package this site serves: its own versions.json names the file and the SHA-256 published with it,
+   and the bytes are hashed here before any check runs on them */
 (async () => {
   try {
-    /* versions.json names the file beside it, and its SHA-256; the signed channel first, this tree's
-       build only as a fallback, and the path is built from that same base (the `pkg` field in there is
-       relative to the installer page, which is not where this page lives) */
+    /* versions.json names the file beside it and its SHA-256; the path is built from the same base (the
+       `pkg` field in there is relative to the installer page, which is not where this page lives) */
     let done = false;
     for (const base of ["../firmware/"]) {
       const vres = await fetch(base + "versions.json");

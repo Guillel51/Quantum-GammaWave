@@ -17,10 +17,12 @@ echo     checks on the release package and shows the exact sectors it will
 echo     erase: 0x04000-0x92FFF, and only the ones that differ from your unit.
 echo     Nothing is sent to the FM-1 while you read that plan.
 echo.
-echo   STEP 1 - the first install on a stock unit is M-Flasher's
-echo     "Install firmware" with the same .fwsc: it keeps the boot area and the
-echo     factory data, and verifies every sector it writes.
-echo   STEP 2 - after that the unit runs QG, and this page is its updater.
+echo   STEP 1 - open INSTALL (the button at the top of that page) and press
+echo     "INSTALL FIRMWARE". On a stock unit the page stages this package's
+echo     loader, which checks the flash chip before erasing anything; it writes
+echo     only what differs inside 0x04000-0x92FFF and keeps the boot area and
+echo     the factory data.
+echo   STEP 2 - after that the unit runs QG, and this same page is its updater.
 echo.
 echo   Allow Web MIDI when the browser asks: that is the page talking to the FM-1.
 echo   Use a data USB cable, plugged straight into the computer, no hub.
@@ -60,6 +62,6 @@ echo   Install: %INSTALL%
 echo.
 start "" "%SITE%"
 echo   The browser is opening the plan page. Load your dump there, read the sectors,
-echo   then use its "Continue to the signed installer" button.
+echo   then press "Continue to the installer".
 echo.
 pause
