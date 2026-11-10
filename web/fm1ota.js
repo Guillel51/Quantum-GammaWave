@@ -662,7 +662,23 @@ function toBytes(x) {
 // Check a .fwsc before any frame: its identity is the product, it holds an image and, when the site
 // published one (versions.json), its SHA-256 is that hash. A caller that ignores the result has still
 // caused nothing to be sent.
-export async function requireProof({ pkg, product = null, sha256 = null, proofTtlMs = PROOF_TTL_MS } = {}) {
+export async function requireProof({ pkg, product = null, sha256 = null, proofTtlMs = PROOF_TTL_MS,
+  provenance = undefined, manifest = undefined } = {}) {
+  // (v2.4.0) the build provenance is checked before anything else: a package without a verified
+  // build record (or one whose record does not match the signed release) is refused as "provenance",
+  // so a caller that skips the page (console, stale resume) still writes nothing.
+  if (provenance !== undefined) {
+    const prov = provenance;
+    if (!prov || typeof prov !== "object" || prov.schema !== "qg1-provenance-1" || prov.identity !== product)
+      throw fail("provenance", "This package has no verified build provenance: nothing was sent.");
+    const m = manifest && typeof manifest === "object" ? manifest : null;
+    // vendor packages (official V15) carry no build record: their provenance is the pinned digest
+    if (prov.recordSha256) {
+      const expected = m ? (m.build_sha256 || (m.build && m.build.recordSha256) || null) : null;
+      if (!expected || expected !== prov.recordSha256)
+        throw fail("provenance", "The build record does not match the signed release: nothing was sent.");
+    }
+  }
   if (!product || typeof product !== "string" || !product.includes("_"))
     throw fail("proof", "no product was named for this transfer: nothing was sent.");
   const bytes = toBytes(pkg);

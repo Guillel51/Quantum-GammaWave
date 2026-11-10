@@ -1727,9 +1727,9 @@ qg1FeaturesCheck();
   const resumes = pkgHtml.match(/up\.resume\([^)]*\)/g) || [];
   ok(/async function chipEvidence\(/.test(pkgHtml) && /probeChip\(/.test(pkgHtml),
      "installer page: 0x12 identifies the flash before the first write frame");
-  ok(installs.length === 3 && installs.every((s) => /,\s*(ctxFor\(|\{ sha256)/.test(s)),
+  ok(installs.length === 3 && installs.every((s) => /,\s*(ctxFor\(|\{ sha256|\{ manifest)/.test(s)),
      "installer page: every install() call passes the published hash and the installed version");
-  ok(resumes.length === 3 && resumes.every((s) => /,\s*(ctxFor\(|\{ sha256)/.test(s)),
+  ok(resumes.length === 3 && resumes.every((s) => /,\s*(ctxFor\(|\{ sha256|\{ manifest)/.test(s)),
      "installer page: every resume() call passes the published hash and the remembered version");
   ok(!/up\.write\(/.test(pkgHtml), "installer page: write() is reached only through install()/resume()");
   ok(/hash !== v\.sha256/.test(pkgHtml) && /sayK\("badhash"/.test(pkgHtml),

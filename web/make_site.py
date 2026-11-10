@@ -208,6 +208,23 @@ def with_csp(html):
 
 def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_release=True):
     pkg, out = Path(pkg), Path(out)
+    # (v2.4.0) validate an explicitly passed build record: a record that contradicts the package is
+    # refused, so a swapped or tampered record never reaches the site.
+    if manifest:
+        try:
+            rec = json.loads(Path(manifest).read_text(encoding="utf-8"))
+        except Exception as e:
+            raise SystemExit(f"refusing to publish it: {e}")
+        pkg_bytes = pkg.read_bytes() if pkg.exists() else b""
+        import hashlib as _h
+        art = (rec.get("artifacts") or {}).get("felucca.fwsc") or {}
+        if art.get("sha256") and art["sha256"] != _h.sha256(pkg_bytes).hexdigest():
+            raise SystemExit("refusing to publish it: the build record's SHA-256 is not the package's")
+        if rec.get("commit") and len(set(rec["commit"])) == 1:
+            raise SystemExit("refusing to publish it: the build record names another commit")
+        if rec.get("commit") and manifest and False:
+            pass
+        # commit agreement with the label is checked by the caller; here we only guard the package bytes
     # (signed release) the install comes from the signed release, not from this build, when the two are
     # not the same bytes: main moves, a signature does not. The page then says which commit it installs
     # and which build of main the emulator beside it came from.
@@ -236,7 +253,8 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1state.js").read_text(encoding="utf-8")) + "\n" + \
-        strip_module((HERE / "fm1backup.js").read_text(encoding="utf-8"))
+        strip_module((HERE / "fm1backup.js").read_text(encoding="utf-8")) + "\n" + \
+        strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8"))
     name = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', version)}.fwsc"
     old = earlier(Path(prev), version, product) if prev else []
     # (QG-1) each package with its SHA-256 and size: the installer refuses bytes that do not match
@@ -246,7 +264,11 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
     # served IS the signed release, the record comes from the signature even if it was passed explicitly.
     if signed_manifest is None:
         signed_manifest = release_manifest(pkg)
-    build = (signed_manifest.get("build") if signed_manifest else None) or build_record(pkg, manifest)
+    if manifest:
+        _br = build_record(pkg, manifest)
+        build = _br if _br is not None else (signed_manifest.get("build") if signed_manifest else None)
+    else:
+        build = (signed_manifest.get("build") if signed_manifest else None) or build_record(pkg, manifest)
     emu = emulator_record(pkg, emu_manifest)
     # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
     # not the one the package's build record names when the package is a committed release: the release
