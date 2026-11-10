@@ -1,3 +1,11 @@
+## 2026-11-10 — v2.4.1: consolidación de Quantum GammaWave
+
+- **Versión** `v2.4.0` → `v2.4.1` (`FELUCCA_VERSION`, README, banner).
+- **Banner oficial** regenerado con `tools/generate_banner.py` (versión v2.4.1, 12 voces).
+- **Identidad propia conservada**: `FM-1_965`; compatibilidad legacy `FM-1_982`.
+- **Paquete firmado v2.4.1**: bloqueado (sin clave privada `qg1-release-1`); no se reutiliza firma de v2.4.0.
+- **GitHub Release v2.4.1** publicado como versión actual; v2.1.2 y v2.4.0 siguen accesibles como históricas.
+
 ## 2026-11-10 — v2.4.0: preparación para The Firmware Hub
 
 - **Versión** `v2.3.1` → `v2.4.0` (`FELUCCA_VERSION`, README).
