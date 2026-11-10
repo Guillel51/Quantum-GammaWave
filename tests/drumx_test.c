@@ -62,6 +62,13 @@ static track_t *kitx(int16_t morph, int16_t tune)
     t->p[P_E1] = tune;
     for (i = 0; i < 4u; i++)
         t->p[P_DIST + i] = 0;
+    /* (2.1) the four modulation slots off as well: a preset that routes an LFO at PUNCH or CLIP would put its
+     * own movement into the bus, and the master checks below are transfers of the knob, not of the LFO */
+    for (i = 0; i < 4u; i++) {
+        t->p[P_M1SRC + (int16_t)(3u * i)] = 0;
+        t->p[P_M1DST + (int16_t)(3u * i)] = 0;
+        t->p[P_M1AMT + (int16_t)(3u * i)] = 0;
+    }
     return t;
 }
 /* lane l struck, n samples of the left output into buf; returns the voice still sounding at the end */
@@ -324,12 +331,16 @@ int main(int argc, char **argv)
     }
     {
         double e0, t0, e1, t1;
+        /* (2.1) a sound carries its own level now, so the fader is pinned instead of inherited: PUNCH is a
+         * transfer, and it has to be measured at one operating point (the kick's check below does the same) */
         track_t *t = kitx(64, 64);
+        t->p[P_LEVEL] = 60;
         song.g[G_PUNCH] = 0;
         strike(t, 1, FS / 4u);
         e0 = rms(0, FS / 200u);
         t0 = rms(FS / 20u, FS / 4u);
         t = kitx(64, 64);
+        t->p[P_LEVEL] = 60;
         song.g[G_PUNCH] = 100;
         strike(t, 1, FS / 4u);
         e1 = rms(0, FS / 200u);
@@ -531,15 +542,23 @@ int main(int argc, char **argv)
         int32_t o[2 * CTL], pk;
         track_t *t = kitx(64, 64), *s2 = &trk[1];
         uint32_t m;
+        /* (2.1) both runs start from a fresh kitx with the fader pinned: the sound carries its own level now,
+         * and the previous block leaves the master leveler where a first strike would inherit it. PUNCH is a
+         * transfer, so it is measured twice at the same operating point (level 60, the limiter's headroom) */
+        t = kitx(64, 64);
+        t->p[P_LEVEL] = 60;
         song.g[G_PUNCH] = 0;
-        t->p[P_LEVEL] = 60;                              /* (under the master's limiter: PUNCH itself measured) */
+        strike(t, 0, FS / 4u);                            /* warm-up: the leveler from rest, discarded */
+        t = kitx(64, 64);
+        t->p[P_LEVEL] = 60;
+        song.g[G_PUNCH] = 0;
         strike(t, 0, FS / 4u);
         e0 = rms(0, FS * 8u / 1000u);
         b0 = rms(FS / 50u, FS / 15u);
         t0 = rms(FS / 10u, FS / 5u);
         t = kitx(64, 64);
-        song.g[G_PUNCH] = 100;
         t->p[P_LEVEL] = 60;
+        song.g[G_PUNCH] = 100;
         strike(t, 0, FS / 4u);
         e1 = rms(0, FS * 8u / 1000u);
         b1 = rms(FS / 50u, FS / 15u);

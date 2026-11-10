@@ -213,7 +213,13 @@ static const param_desc_t GP[G_COUNT] = {
     [G_MWIDTH] = PD("M-WIDE", F_PCT, 0, 127, 64),
 };
 
-static const param_desc_t LOFI_RTRG = {"RTRG", F_ONOFF, 0, 1, 0, 0, 0};   /* (0.6.12) P_LRTRG on a LOFI track */
+/* (2.1) P_LRTRG on a LOFI track: the formula's clock. NOTE (the default) starts every note from the formula's
+ * designed start, which is what every factory LOFI BYTE/FLOAT sound expects; FREE leaves the formula running on
+ * the track clock and each note joins it where it is, so successive notes land on different points of it (the way
+ * bytebeat is heard when it is left running). It was a plain ON/OFF called RTRG whose ON only mattered on a
+ * retrigger of a sounding voice -- in POLY, where every note is a fresh voice, it changed nothing at all. */
+static const char *const N_TCLK[] = {"NOTE", "FREE", 0};
+static const param_desc_t LOFI_RTRG = {"T.CLK", F_INT, 0, 1, 0, N_TCLK, 0};
 static const param_desc_t TRK_CHANCE = {"CHANCE", F_PCTINV, 0, 127, 0, 0, 0};   /* (0.6.37) P_TCHAN: 0 = 100 % */
 static const param_desc_t MORPH_DESC = {"MORPH", F_PCT, 0, 127, 0, 0, 0};   /* (0.6.45) P_MORPH */
 static const char *const N_CLEN[] = {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",

@@ -7036,7 +7036,8 @@ static int test_song_layer(void)
     return bad;
 }
 
-/* (0.6.12) LOFI BYTE / FLOAT's RTRG: a note on a sounding voice restarts the formula's time (off: it runs on) */
+/* (2.1) LOFI BYTE / FLOAT's T.CLK: NOTE leaves the formula running on a retriggered voice, FREE takes its time
+ * from the track clock, so the note joins the formula where it is instead of starting it again */
 static int test_lofi_rtrg(void)
 {
     int bad = 0;
@@ -7054,11 +7055,13 @@ static int test_lofi_rtrg(void)
     bad += check("RETRIG: OFF, a note again: FLOAT's time runs on", v->ph[0] == 12345u && v->ph[1] == 12345u);
     t->p[P_LRTRG] = 1;
     v->ph[0] = v->ph[1] = 12345u;
+    fm1_ms = 3000u;                                     /* (the track clock: 8 steps a millisecond) */
     trk_note_on(t, 62, 100);                            /* (MONO: another key retriggers; the same one held does not) */
-    bad += check("  ON: the formula from its start", v->ph[0] == 0u && v->ph[1] == 0u);
+    bad += check("  FREE: the formula's time comes from the track clock", v->ph[0] == 0u &&
+                 v->s[2] == 24000 && v->ph[1] == (24000u << 8));
     go_title("RETRIG");
-    bad += check("  the RETRIG page: LOFI FLOAT's, RTRG on KNOB 1", str_eq(cur_page()->title, "RETRIG") &&
-                 str_eq(track_desc(t, P_LRTRG)->label, "RTRG"));
+    bad += check("  the RETRIG page: LOFI FLOAT's, T.CLK on KNOB 1", str_eq(cur_page()->title, "RETRIG") &&
+                 str_eq(track_desc(t, P_LRTRG)->label, "T.CLK"));
     t->p[P_E1] = 0;
     bad += check("  not on LOFI's other waves", !page_visible(ui.page));
     return bad;

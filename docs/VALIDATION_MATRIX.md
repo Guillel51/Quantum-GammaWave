@@ -1242,3 +1242,19 @@ The custody model is unchanged in what it does not protect: the loader still ver
 the package, not secure boot), a hostile signing host is outside the model, and the browser origin still decides
 what the page runs. What changed is that the key no longer has to be on the machine that builds, and a runner can no
 longer sign even if it wanted to: it can only produce a request.
+
+## 39. Update — 2026-11-10, LOFI `T.CLK` audible, y los dos fallos rojos, verdes
+
+La queja era concreta: en EDIT, con LOFI, el control `RTRG` no cambiaba el sonido. El recorrido completo del
+parámetro lo explica y el arreglo es de motor, no de pantalla.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `P_LRTRG` en LOFI: por qué era inaudible | **DIAGNOSED** | `core.h:119` lo aliasa a `P_FM1_ATK`; el único punto que lo aplicaba era `voice.c:610`, y sólo al re-disparar una voz **sonando**. En POLY cada nota es una voz nueva que ya nace con `ph=0` en `lofi_note_on()`: el interruptor pedía un reinicio que ya había ocurrido, así que dos renders eran idénticos. | lectura del código + test | host |
+| `T.CLK` (el control, rediseñado) | **IMPLEMENTED** | `params.c` (era `RTRG` ON/OFF, ahora `T.CLK` con `NOTE`/`FREE`), `eng_lofi.c` (`lofi_note_on()` siembra `t` y su tiempo lento desde el reloj de la pista cuando `FREE`) y `voice.c:610` (un re-disparo en `FREE` se suma al reloj, no a cero). `NOTE` es el valor por defecto: ningún preset de fábrica cambia. | audio renderizado | host |
+| Que se escuche, medido | **PASS (rendered audio)** | `tests/lofi_tclk_test.c`: piso del arnés **0,134** de la señal; dos notas separadas 3 s en `FREE` difieren **1,140 (8,5× el piso)**; el mismo instante dos veces difiere **0,140**; el nivel entre relojes queda a **0,6 dB**; sigue en `FREE` tras cargar otro sonido (**1,370**); el ataque no hace clic (paso máximo 3222 contra 3088 de `NOTE`). | render en host | host |
+| `drumx` PUNCH | **FIXED** | La transferencia de PUNCH se medía con el estado que dejaba el bloque anterior (y con el fader heredado del preset): el primer `strike` del par arrancaba con el limitador cargado. Ahora el par se mide desde un `kitx()` limpio con `P_LEVEL` fijado, las cuatro ranuras de modulación en cero y un `strike` de calentamiento descartado. Medido: ataque **1077 → 1591 (+3,4 dB)**, cuerpo **×1,77**, cola **×0,99**. | `tests/drumx_test.c`, binario | host |
+| `live` (segundo a segundo) | **FIXED (golden regenerado)** | Los 61 hashes quedaron viejos cuando `93c0fac` hizo que un sonido lleve su propio nivel; el propio test documenta `SIX_LIVE_ACCEPT=1` para un cambio de sonido deliberado. Regenerado y verificado: **0 de 61 segundos** de diferencia. | `tests/six_live_golden.txt` | host |
+| Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. `install_test.py`, `web/test_web.mjs`, `web/test_backup.mjs`, `web/test_pkg_bounds.mjs`: pasan. | host | host |
+| Rediseño de EDIT (LOFI, MORPH, FM6), gráficas unificadas, BI-QUAD EQ, HOME y visualizador | **NOT STARTED** | Esta pasada sólo lleva el arreglo de motor de `T.CLK` y los dos fallos de la suite. Los rediseños visuales siguen pendientes y no se declaran hechos. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |

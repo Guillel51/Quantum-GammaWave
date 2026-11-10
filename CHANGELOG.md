@@ -31,6 +31,54 @@
   (`tests/run_tests.sh`) no se corrió entera en esta pasada.
 - **Lo que no cambia:** nada se probó en una FM-1 física; la compatibilidad con `0x856014` y `0xB36014` sigue sin
   medirse en hardware, y el loader no verifica firmas (esto es autenticidad del paquete, no arranque seguro).
+## 2026-11-10 — LOFI `T.CLK` audible, y la suite entera en verde
+
+- **LOFI RETRIG no hacía nada, y ahora sí.** El parámetro existía y llegaba al DSP, pero el único punto que lo
+  aplicaba era el re-disparo de una voz **sonando**: en POLY cada nota es una voz nueva que ya nace en cero, así
+  que el interruptor pedía un reinicio que ya había ocurrido. Pasa a ser **`T.CLK`**, el reloj de la fórmula:
+  `NOTE` (por defecto, y lo que esperan los presets de fábrica) arranca cada nota desde el principio; `FREE` deja
+  la fórmula corriendo sobre el reloj de la pista y la nota se suma donde está, así dos notas seguidas son dos
+  lecturas distintas de la misma fórmula en marcha. Medido en `tests/lofi_tclk_test.c`, en audio: piso del arnés
+  0,134 de la señal, `FREE` separa dos notas en 1,140 (8,5× el piso), el nivel se mantiene a 0,6 dB, sobrevive a
+  un cambio de sonido y no hace clic en el ataque.
+- **`drumx` PUNCH, verde por la razón correcta.** La transferencia se medía con el limitador que dejaba el bloque
+  anterior y con el fader que traía el preset. El par se mide ahora desde un kit limpio, con el nivel fijado, la
+  matriz de modulación en cero y un golpe de calentamiento descartado: ataque +3,4 dB, cuerpo ×1,77, cola ×0,99.
+- **`live` (segundo a segundo), verde.** Los 61 hashes eran de antes de que un sonido llevara su propio nivel;
+  regenerados con el procedimiento que el propio test documenta (`SIX_LIVE_ACCEPT=1`).
+- **La suite entera pasa**: `NO_PACKAGE=1 sh tests/run_tests.sh` termina en `ALL HOST TESTS PASSED`.
+- Los rediseños de EDIT (LOFI, MORPH, FM6), las gráficas unificadas, BI-QUAD EQ, HOME y el visualizador **no**
+  entran en esta pasada y quedan declarados como pendientes.
+
+## 2026-11-10 — 2.1.1, comprobado por donde se usa: la página publicada y el DSP
+
+Esta pasada no añade pantallas: comprueba con instrumentos lo que ya había en el árbol, y arregla lo que un
+instrumento encontró mal.
+
+- **El instalador publicado, abierto como lo abre un visitante.** La página responde 200 y no deja ni un mensaje
+  de consola; sus tres peticiones (página, `.fwsc`, `.manifest.json`) responden 200; ofrece `v2.0.0-2500153`,
+  610 959 B, «Ready to flash», con `SHA-256 verificado ✓ c423b17c…` y `Ed25519 qg1-release-1`; enseña el plan
+  antes de escribir (143 sectores, `0x04000-0x92FFF`, boot `0x00000-0x03FFF` intacto, factory `0xFF000`), e
+  **INSTALL está deshabilitado hasta marcar las cuatro confirmaciones y se habilita al marcarlas**. No había
+  defecto de implementación que desbloquear: el botón lo cierra la evidencia y nada más. Registro y clase de la
+  medición: `docs/VALIDATION_MATRIX.md` §22.
+- **`tests/fx_probe.c`, un arnés para lo que no se podía medir.** El PHASER mide **23,6 dB de peine** entre
+  200 Hz y 6 kHz y **0 de salto** al cambiar DEPTH; M-WIDE da r = **1,000** a 0 (mono), **−0,003** a 64 y
+  **−0,59 con +3,8 dB** a 127; el EQ (`LOW SH −24`, `PEAK +12`) es monótono y llega a **+11,7 dB a 665 Hz**.
+  La primera versión del arnés decía «1,7 dB, débil» porque medía un tono fijo mientras barría el LFO: estaba
+  mal el instrumento, no el phaser, y por eso el DSP no se tocó.
+- **DRUM-X PUNCH era el que estaba mal.** Pasaba **+0,4 dB** porque el kit sintético del test cargaba a nivel
+  120; con el kit a 100 (como suena) el PUNCH da **+4,2 dB**. `tests/drumx_test.c` lo fija y el golden live
+  (61 s) se regeneró a propósito.
+- **Un medidor, no dos.** El MIXER dibuja ahora con `gw_plasma_bar()`, la función de HOME, en vez de una barra
+  propia: los seis tracks se leen con la misma escala y los mismos segmentos en las dos pantallas.
+- **El barrido de UI, a cero.** 174 pantallas × 17 paletas: **0 hallazgos** del lint de maquetación, 0 tintas
+  sobre su propio color, 0 píxeles fuera de gris/neutro en GREY y MONO, y **2 645 631 mediciones** de alineación
+  en 73 puntos con **0 desviaciones de 1 px**. Los 220 renders golden siguen idénticos y `target_budget`
+  informa **39 ok, ninguna fuera**.
+- **La firma sigue siendo la que bloquea.** `~/.fm1-keys/` no existe en esta máquina: no hay clave privada
+  `qg1-release-1` que usar, y no se genera una nueva porque eso movería la identidad de confianza de la página.
+  Lo que se instala sigue siendo **2.0.0**, firmado.
 
 ## 2026-11-10 — v2.0.0 publicado: firma real, release real, dos canales
 
