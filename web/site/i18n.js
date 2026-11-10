@@ -6,7 +6,8 @@
 
   var TEXT = {
     en: {
-"El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas.": "The installer requires this SHA-256 and the Ed25519 signature before it enables INSTALL: integrity and authenticity verified.",
+"Qué cambia en v2.0.0": "WHAT CHANGES IN v2.0.0",
+      "El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas.": "The installer requires this SHA-256 and the Ed25519 signature before it enables INSTALL: integrity and authenticity verified.",
       "MASTER": "MASTER",
       "PRESETS": "PRESETS",
       "La página MASTER del firmware: clip, punch, duck y el VU de salida.": "The firmware's MASTER page: clip, punch, duck and the output VU.",
@@ -280,7 +281,8 @@
       "El emulador de esta portada es el build actual: mismo commit que el firmware, con su versión, su commit y el SHA-256 del wasm en el pie de la página. El instalador ofrece ese mismo paquete de main y comprueba su SHA-256 y su tamaño antes de escribir. En 2.0: las teclas de SCL vuelven a una esquina de 3 px, los planetas de HOME giran sobre su propio eje con la superficie en movimiento y la nota los enciende, y el Web Studio abre con un selector de vistas en lugar de diez botones. En 2.1.1 esa rotación queda verificada en el navegador (dos capturas y el recuento de píxeles en docs/evidence/3.3/), el filtro de LATCH se mide en audio renderizado y cada versión se publica como release de GitHub desde su tag.": "This portal's emulator is the current build: the same commit as the firmware, with its version, its commit and the wasm's SHA-256 in the page footer. The portal's installer offers that same main package. In 2.0: the SCL keys go back to a 3 px corner, HOME's planets spin on their own axis with their surface moving and a note lights them, and Web Studio opens with a view selector instead of ten buttons. In 2.1.1 that rotation is verified in the browser (two captures and the pixel count in docs/evidence/3.3/), the LATCH filter is measured on rendered audio, and every version is published as a GitHub release from its tag.",
       "Releases en GitHub ↗": "Releases on GitHub ↗",
     zh: {
-"El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas.": "安装器在启用 INSTALL 之前要求该 SHA-256 与 Ed25519 签名：完整性与真实性均已校验。",
+"Qué cambia en v2.0.0": "v2.0.0 的变化",
+      "El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas.": "安装器在启用 INSTALL 之前要求该 SHA-256 与 Ed25519 签名：完整性与真实性均已校验。",
       "MASTER": "MASTER",
       "PRESETS": "预设",
       "La página MASTER del firmware: clip, punch, duck y el VU de salida.": "固件的 MASTER 页面：clip、punch、duck 与输出 VU。",
