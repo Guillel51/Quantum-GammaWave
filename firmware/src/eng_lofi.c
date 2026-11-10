@@ -8,6 +8,7 @@
  * CHIP = STEP: a 4-bit stepped volume envelope with a frame-clock divider replaces the
  * ADSR curve (lofi_amp), the triangle becomes a 32-step 4-bit staircase, the pulse
  * duties are 12.5 / 25 / 50 / 75 %; CRSH then sets the envelope (shown as "DCY"). */
+#define ENGI_LOFI 3u             /* engines.c ENGINES[] (append-only): the index ui_graph.c dispatches on */
 static const char *const N_CHIP[] = {"4BIT", "4B/2", "8BIT", "1BIT", "STEP"};
 static const char *const N_RWAVE[] = {"PLS", "TRI", "SAW", "NOIS", "WRAM", "BYTE", "FLOAT"};
 static const char *const N_RARP[] = {"OFF", "OCT", "MAJ", "MIN"};
