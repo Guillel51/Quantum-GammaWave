@@ -174,6 +174,12 @@ The remote host in the example must run the same reviewed `tools/fm1_sign.py`; `
 convenience, not a trust anchor -- the anchor is the pinned public key, which never leaves the repository.
 A smartcard or HSM helper works the same way: it wraps the module and prints the signature.
 
+Measured on 2026-11-10 against the released build: an `sshd` on loopback with `ForceCommand` limited to
+`sign-stdin`, and `sign --request --signer-cmd "ssh …"` over it, returned the **byte-identical** manifest
+and signature that `release/felucca-2.1.1.fwsc.manifest.json` carries. That proves the procedure and the
+contract; the machine and the uid were the same, so it is not evidence of a physical separation -- a real
+custodian signs on a host that holds nothing else, which is the point of `--signer-cmd`.
+
 `tests/sign_request_test.py` exercises the cycle with an ephemeral key: request -> `--key` and request ->
 `--signer-cmd` produce the same manifest byte for byte, and every wrong path (nonsense output, failing
 command, other key, no pin and no `--expect-pub`, both flags, neither flag, a package that is not the one the

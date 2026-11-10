@@ -1,3 +1,26 @@
+## 2026-11-10 — la suite completa, la firma por ssh y el build reproducible, medidos
+
+- **Suite completa: `ALL HOST TESTS PASSED`.** `NO_PACKAGE=1 ./tests/run_tests.sh` sobre `c8715e4`, de punta a
+  punta: **4 822 comprobaciones `ok`, 0 `FAIL`, 0 grupos con fallos**. Dos bloques se saltaron por diseño y lo
+  dicen en el log: el emulador de navegador (no hay `emcc` en esta máquina) y el manifiesto de build
+  (`NO_PACKAGE=1` no produce artefactos). Clase de la medición: host x86_64, runners nativos.
+- **Firma desde un host aparte, por ssh.** Se levantó un `sshd` propio en `127.0.0.1:2222` con `ForceCommand`
+  limitado a `sign-stdin`, la clave `0400` en su propio directorio y una copia del tool: el proceso de build
+  nunca tuvo la clave. `fm1_sign.py sign --request … --signer-cmd "ssh -p 2222 …"` devolvió un manifiesto
+  **idéntico byte a byte** al publicado: misma firma `20842d8f…`, mismo `sha256 81c80e36…`, y `verify` lo
+  acepta. Es la misma máquina y el mismo uid, así que prueba el procedimiento y el contrato del firmante, **no**
+  una separación física ni un HSM: eso queda declarado, no insinuado.
+- **El guard de custodia rechaza de verdad.** El primer intento en ese host fue `refused: the private key is
+  inside the repository (release.pem): key material in the checkout is treated as leaked` — la copia del tool
+  considera repositorio a su propio padre, y la clave estaba dentro. Se movió la clave fuera de ese árbol y
+  volvió a firmar. No fue un obstáculo a rodear: fue la comprobación haciendo su trabajo.
+- **El paquete publicado es reproducible.** Un `git worktree` en `61ae47b` y `./build.sh --release 2.1.1`
+  producen `81c80e365bf9ecec…c563`: el **mismo SHA-256** que `release/felucca-2.1.1.fwsc`, con el mismo
+  registro de build (`build_sha256 83cebf6d…`). Los bytes no dependen de cuándo se compilen.
+- **Sigue abierto:** leer el estado de las ejecuciones de Actions. No hay token `gh` en esta máquina y la API
+  pública está limitada por IP; lo verificado es el resultado (Release con los bytes correctos, sitio sirviendo
+  2.1.1), no el color de los runs. No se reporta como verde lo que no se pudo leer.
+
 ## 2026-11-10 — v2.1.1 firmado y publicado: la clave ya no está donde se compila
 
 - **`release/felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`, identidad FM-1_982) está firmado** con

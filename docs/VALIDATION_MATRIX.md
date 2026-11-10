@@ -1258,3 +1258,14 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. `install_test.py`, `web/test_web.mjs`, `web/test_backup.mjs`, `web/test_pkg_bounds.mjs`: pasan. | host | host |
 | Rediseño de EDIT (LOFI, MORPH, FM6), gráficas unificadas, BI-QUAD EQ, HOME y visualizador | **NOT STARTED** | Esta pasada sólo lleva el arreglo de motor de `T.CLK` y los dos fallos de la suite. Los rediseños visuales siguen pendientes y no se declaran hechos. | — | — |
 | FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+---
+
+## 2026-11-10 (third pass) — the suite, the ssh signer and reproducibility, measured
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| whole host suite | **PASSED** | `NO_PACKAGE=1 ./tests/run_tests.sh` on `c8715e4`: 4 822 `ok` lines, 0 `FAIL`, `ALL HOST TESTS PASSED`; two blocks skipped by design (browser emulator: no `emcc` here; build manifest: `NO_PACKAGE=1`) | host x86_64, native runners |
+| signing from a second host over ssh | **VERIFIED** | own `sshd` on `127.0.0.1:2222`, `ForceCommand` limited to `sign-stdin`, key `0400` outside the checkout; `sign --request --signer-cmd "ssh …"` returned the **byte-identical** published manifest (sig `20842d8f…`), which `verify` accepts | ssh transport, same machine and uid: the procedure and the contract, not a physical boundary |
+| custody guard under a copied tool | **REFUSES** | first attempt on that host: `refused: the private key is inside the repository (release.pem)` — the copied tool treats its own parent as the repository | host |
+| released package is reproducible | **REPRODUCED** | worktree at `61ae47b` + `./build.sh --release 2.1.1` → `81c80e365bf9ecec…c563`, the same SHA-256 as `release/felucca-2.1.1.fwsc`, same `build_sha256 83cebf6d…` | AC791N toolchain |
+| Actions run conclusions | **NOT READABLE HERE** | no `gh` token on this machine and the public API is rate-limited by IP; the outcome was verified instead (release assets downloaded and verified, site serving 2.1.1) | — |
