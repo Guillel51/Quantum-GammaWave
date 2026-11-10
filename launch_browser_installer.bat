@@ -26,15 +26,13 @@ echo   Allow Web MIDI when the browser asks: that is the page talking to the FM-
 echo   Use a data USB cable, plugged straight into the computer, no hub.
 echo.
 
-rem STEP 0 opens the plan page: it reads the signed release's package, runs M-Flasher's own
+rem STEP 0 opens the plan page: it reads the site's package, runs M-Flasher's own
 rem checks on it, and prints the exact sectors M-Flasher will erase, using this PC's dump.
-rem STEP 1 is the signed release's installer (the site root serves an unsigned build that
-rem the installer itself refuses).
+rem STEP 1 is the site's installer.
 set "SITE=https://guillel51.github.io/Quantum-GammaWave/plan/"
-set "INSTALL=https://guillel51.github.io/Quantum-GammaWave/release/webapp/installer/"
+set "INSTALL=https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"
 set "LOCAL_PAGE="
 if exist "%~dp0webapp\installer\index.html" set "LOCAL_PAGE=%~dp0"
-if not defined LOCAL_PAGE if exist "%~dp0release\webapp\installer\index.html" set "LOCAL_PAGE=%~dp0release\"
 if not defined LOCAL_PAGE if exist "%~dp0build\site\webapp\installer\index.html" set "LOCAL_PAGE=%~dp0build\site"
 
 set "PY_CMD="

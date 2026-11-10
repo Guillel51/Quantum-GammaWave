@@ -91,29 +91,13 @@ installation warnings, version metadata and direct access to the emulator (`/emu
 (`/webapp/installer/`) and the Web Studio (`/webapp/editor/`). Existing installer and editor URLs are kept;
 the emulator lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
 
-**The site now has two channels, and they are not the same build.**
+The site serves the current `main` build: the emulator at `/emulator/` is compiled from the same commit as
+the package the installer offers, and its footer prints the version, the commit, the build date, the WASM's
+SHA-256 and its size. The installer checks the package's SHA-256 and size against the published metadata
+before it writes anything, and the update loader checks the flash chip before it erases anything.
 
-- **`/` is this tree.** The emulator at `/emulator/` is compiled from the same commit as the package the
-  page offers, and its footer prints the version, the commit, the build date, the WASM's SHA-256 and its
-  size. The page refuses to run if the file it downloads does not hash to the value baked into it, and it
-  reloads itself once when a newer manifest is published, so a cached page cannot keep serving an old engine.
-- **`/release/` is the signed release, `v1.9.0`.** The installer holds a package to the emulator its own build
-  record names, so that channel is built from the release commit — portal, installer, package and emulator
-  together — instead of pairing a release package with a newer emulator. This is the one the installer is
-  allowed to write, and the only one it accepts.
-
-Why the root cannot be installed: a package built in CI carries no signature (the private key is not in this
-repository or in CI), so the installer publishes it and refuses to write it. That is fail-closed by design,
-not a setting to flip. The 2.0 package needs the custodian's signature before it can replace 1.9.0 in
-`/release/`; until then `/release/` keeps serving `v1.9.0`, whose record names its own commit with `dirty: []`.
-
-Both channels verify: SHA-256 and size against the published metadata, the Ed25519 manifest against the
-anchored public key `qg1-release-1`, and the build record (commit, identity, toolchain, SDK files, the
-emulator's own WASM hash). Emscripten is pinned to **6.0.11** everywhere.
-
-What neither channel claims: no install has been run on a physical FM-1, no recovery route has been
-rehearsed on one, and this workspace holds no signing key. See [`CHANGELOG.md`](CHANGELOG.md) and
-[`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md) for what each claim rests on.
+Every tagged version is built by CI and attached to a [GitHub release](https://github.com/Guillel51/Quantum-GammaWave/releases)
+(`docs/RELEASE.es.md`). Emscripten is pinned to **6.0.11** everywhere.
 
 ## What's in Quantum GammaWave (`v2.0.0`)
 

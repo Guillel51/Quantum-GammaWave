@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { Package } from "./fm1pkg.js";
 import { acceptance, sectorPlan, hexRange, ACCEPT_FLASH_MAX, ACCEPT_BOOT_AREA } from "./fm1accept.js";
 
-const PKG = "release/felucca-v1.9.0.fwsc";
+const PKG = "tests/fixtures/felucca-v1.9.0.fwsc";
 let n = 0;
 const ok = (cond, what) => { assert.ok(cond, what); n++; console.log("ok  " + what); };
 

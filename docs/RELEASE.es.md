@@ -42,7 +42,6 @@ Un release es una versión publicada en GitHub con el paquete `.fwsc` adjunto. L
 
 ## Notas
 
-- El paquete que compila CI **no está firmado** (la clave privada no está en GitHub, ver `docs/SIGNING_CUSTODY.md`).
-  Si querés publicar el manifiesto firmado, firmalo en tu computadora y adjuntalo al release a mano.
+- El sitio (GitHub Pages) sirve el build de `main`; el instalador comprueba el SHA-256 del paquete antes de escribir.
 - `JIELI_TOOLCHAIN_SHA256` (Settings → Secrets and variables → Actions → Variables) fija el hash del toolchain,
   igual que en `target.yml`.

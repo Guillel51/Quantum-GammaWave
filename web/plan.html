@@ -45,7 +45,7 @@
   </section>
 
   <div class="row">
-    <a class="btn primary" id="next" href="../release/webapp/installer/"></a>
+    <a class="btn primary" id="next" href="../webapp/installer/"></a>
     <a class="btn" id="mf" href="https://github.com/jvitkauskas/m-flasher" target="_blank" rel="noopener">M-Flasher (GitHub)</a>
   </div>
   <p class="small muted" data-t="foot" style="margin-top:16px"></p>
@@ -171,7 +171,7 @@ $("lang").addEventListener("click", () => {
        build only as a fallback, and the path is built from that same base (the `pkg` field in there is
        relative to the installer page, which is not where this page lives) */
     let done = false;
-    for (const base of ["../release/firmware/", "../firmware/"]) {
+    for (const base of ["../firmware/"]) {
       const vres = await fetch(base + "versions.json");
       if (!vres.ok) continue;
       const versions = await vres.json();

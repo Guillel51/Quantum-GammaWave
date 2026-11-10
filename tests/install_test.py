@@ -23,7 +23,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import fm1_install as I  # noqa: E402
 import fm1_probe as P  # noqa: E402
-import fm1_sign as S  # noqa: E402
 
 I.DELAY.update(open=0, start=0.01, reply=0, loader=0.01, reboot=0.01, retry=0.02, poll=0.05, hs=0.1,
                idle_check=0.4, idle_write=0.4, wait_loader=2, wait_reboot=2)
@@ -232,42 +231,19 @@ def package(product="FM-1_900", marker=True, size=0x2000):
 
 
 TMP = Path(tempfile.mkdtemp(prefix="felucca-install-"))
-KEYID = "install-test-1"
-PRIV = TMP / "test-key.pem"
-
-
-def _test_key():
-    """an ephemeral release key: the private key never touches the repository"""
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    k = Ed25519PrivateKey.generate()
-    PRIV.write_bytes(k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-                                     serialization.NoEncryption()))
-    pub = k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-    (TMP / "keys.json").write_text(json.dumps({"keys": {KEYID: pub.hex()}}))
-
-
-_test_key()
 
 
 def pkgfile(name, raw, version="3.0.0", minimum="2.0.0", sign=True, product=None):
     p = TMP / name
     p.write_bytes(raw)
     (TMP / (name + ".sha256")).write_text(hashlib.sha256(raw).hexdigest() + "\n")   # (QG-1) hashes are mandatory
-    if sign:
-        try:
-            prod = product or I.model_of(I.product_of(raw))
-        except I.InstallError:
-            prod = product or "FM-1"          # a deliberately broken package: sign it anyway
-        man = S.sign_manifest(S.manifest_for(raw, version, minimum, prod, KEYID), PRIV.read_bytes())
-        (TMP / (name + ".manifest.json")).write_text(json.dumps(man))
     return str(p)
 
 
 def cli(args, dev, answer=True):
-    # (QG-1) no typed JEDEC any more: the installer reads the chip with 0x12 (the fake answers it) and
-    # the package carries a signed manifest. tests/preflight_test.py covers every refusal.
-    args = list(args) + ["--keys", str(TMP / "keys.json")]
+    # (QG-1) no typed JEDEC any more: the installer reads the chip with 0x12 (the fake answers it).
+    # tests/preflight_test.py covers every refusal.
+    args = list(args)
     out, err = io.StringIO(), io.StringIO()
     old, sys.stderr = sys.stderr, err
     try:
@@ -399,8 +375,6 @@ def integrity():
     d.mkdir(exist_ok=True)
     p = d / "q.fwsc"
     p.write_bytes(raw)
-    (d / "q.fwsc.manifest.json").write_text(json.dumps(          # (QG-1) signed, or nothing installs
-        S.sign_manifest(S.manifest_for(raw, "3.0.0", "2.0.0", "FM-1", KEYID), PRIV.read_bytes())))
     plain = d / "plain.fwsc"
     plain.write_bytes(raw)
     dev = FakeFM1(image)
