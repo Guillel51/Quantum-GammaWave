@@ -204,7 +204,7 @@ int main(void)
         if (dt > deadline) late++;
         busy = voices_busy();
         if (busy > busy_peak) busy_peak = busy;
-        if (busy != 10u) lost++;
+        if (busy < 10u) lost++;   /* a release tail can briefly raise the count above 10; only a dropped note is a failure */
         {
             uint32_t nz = 0;
             for (i = 0; i < 2u * CTL; i++) {
