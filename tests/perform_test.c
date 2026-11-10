@@ -1145,7 +1145,7 @@ static int test_new_bank(void)
                      pk > 100 && !same(3000u, 30000u) && same(36000u, 60000u) && peak(out_l, 0, 60000u) < 40000);
         pfx_bank = 0;
     }
-    bad += check("second bank uses the existing loop: no new buffer or voice", PB_FRAMES <= SL_FR && NVOICE == 10u);
+    bad += check("second bank uses the existing loop: no new buffer or voice", PB_FRAMES <= SL_FR && NVOICE == 12u);
     return bad;
 }
 

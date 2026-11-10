@@ -56,6 +56,7 @@ static uint32_t fl_status_ram(void) { return 0u; }
 static void host_tracks_init(void)
 {
     uint32_t i, k;
+    voices_boot();                    /* (3.5) the pool's windows and a clean pool, as felucca_init */
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;
     for (k = 0; k < NTRK; k++) {

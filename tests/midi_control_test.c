@@ -237,7 +237,8 @@ static int usb_burst_test(void)
  * from every channel; a switch to CH1-4 lets go of what channels 5..16 held */
 static int any_gate(void)
 {
-    for (uint32_t i = 0; i < NTRK * NVOICE; i++) if (V(&trk[i / NVOICE], i % NVOICE).active && V(&trk[i / NVOICE], i % NVOICE).gate) return 1;
+    for (uint32_t i = 0; i < NTRK * NVOICE; i++)
+        if (V(&trk[i / NVOICE], i % NVOICE).active && V(&trk[i / NVOICE], i % NVOICE).gate) return 1;
     return 0;
 }
 static int route_test(void)
