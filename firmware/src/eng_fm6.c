@@ -366,7 +366,7 @@ static fm6_note_t *fm6_note_of(track_t *t, voice_t *v)
     uint32_t i;
     if (t < &trk[0] || t >= &trk[NPART])
         return 0;
-    i = (uint32_t)(v - t->v);
+    i = vindex(t, v);
     return i < FM6_POLY ? &fm6_note[t - trk][i] : 0;
 }
 

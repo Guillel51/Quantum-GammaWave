@@ -671,8 +671,8 @@ static void tech_dest(const track_t *t, int lfo)
         src = mulq15(t->lfo_val, t->lfo_fade);
     else
         for (i = 0; i < NVOICE; i++)
-            if (t->v[i].stage && t->v[i].stage < 4u && (t->v[i].env >> 9) > src)
-                src = t->v[i].env >> 9;                 /* Q15 */
+            if (V(t, i).stage && V(t, i).stage < 4u && (V(t, i).env >> 9) > src)
+                src = V(t, i).env >> 9;                 /* Q15 */
     for (c = 0; c < 4; c++) {
         int32_t x = CARD_X(c) + 22, amt = tk_amt((uint32_t)c), bh = amt * half / 500, live = bh * src / 32767;
         cv_rect(x - 6, mid, 25, 1, T_RAISE);
@@ -695,8 +695,8 @@ static void tech_voice(const track_t *t)
     int32_t sw = PANEL_W / (int32_t)NVOICE, glide = t->p[P_GLIDE], py = 0, x;
     for (i = 0; i < NVOICE; i++) {
         int32_t x0 = TK_X0 + (int32_t)i * sw + 2, h = 40, lv = 0;
-        if (t->v[i].stage && t->v[i].stage < 4u)
-            lv = (int32_t)(((int64_t)t->v[i].env * h) >> 24);
+        if (V(t, i).stage && V(t, i).stage < 4u)
+            lv = (int32_t)(((int64_t)V(t, i).env * h) >> 24);
         cv_rrect(x0, TK_Y0, sw - 4, h, 2, i < nv ? T_RAISE : T_LINE, T_SURF);
         if (lv > 0)
             cv_rect(x0 + 1, TK_Y0 + h - lv, sw - 6, lv, heat_col(60 + lv * 190 / h));

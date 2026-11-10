@@ -298,7 +298,7 @@ static __attribute__((noinline)) void mod_voice(track_t *t, voice_t *v, vmod_t *
     mod_t *const mp = &MOD;                          /* (0.6.71) this core's */
     int32_t pit = mp->pit, cut = mp->cut, shp = mp->shp, gain = mp->gain, env = m->envq15;
     uint32_t k;
-    if (v == &t->v[t->m_vi])
+    if (v == &V(t, t->m_vi))
         t->m_env = env;                                 /* ENV of the latest note, for per-block destinations */
     /* (1.7) the per-voice sources resolved once, outside the slot loop: a vsrc is always one of these
      * (MS_VOICE), so the loop does one indexed load instead of re-testing the source every slot. That
@@ -341,8 +341,8 @@ static void mod_pat(track_t *t, uint32_t note, uint32_t val)
 {
     uint32_t i;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate && t->v[i].note == (uint8_t)note)
-            t->v[i].pat = (uint8_t)(val > 127u ? 127u : val);
+        if (V(t, i).active && V(t, i).gate && V(t, i).note == (uint8_t)note)
+            V(t, i).pat = (uint8_t)(val > 127u ? 127u : val);
 }
 
 /* a MIDI controller for track t (seq.c events_block): CC1 / CC11 / channel aftertouch; CC121 resets them */

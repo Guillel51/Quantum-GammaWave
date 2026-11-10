@@ -70,6 +70,19 @@
   build differs at sample 1 on this host. It does the same at `9fbb8c0` without this change (measured in a clean
   worktree), so it is an Emscripten/host-toolchain artefact here, not a regression of the identity work; the
   emulator itself is deterministic (twice the same samples) and renders the same song.
+
+## 3.5 voices: the storage moves into one pool (research branch, not enabled)
+
+- `voice_t v[NVOICE]` per part is now `voice_t vpool[VPOOLN]` with a window per part (`track_t.vidx` /
+  `vn`) and `V(t, i)` in `core.h` as the lvalue every caller already used. 100 call sites converted; the
+  220 golden renders are identical at the shipped pool shape (`VPOOLN = NPART * NVOICE + 1`), which is the
+  proof that the change is transparent.
+- Measured on AC791N: 12 voices with a 17-slot pool use **87364 B** of `.bss` (10940 B free) against
+  **94924 B** (3380 B free) for the 10 voices of today. Pool, NOINIT, delay, canvas, cloud/slicer and comb
+  untouched.
+- The dynamic windows (12 / 13 slots) do **not** pass: 3 to 5 voice / routing checks fail on mode changes
+  and engine caps (`docs/VOICE_POOL.md` §4). It stays on `exp/voice-pool`; `main` keeps 10 voices and the
+  per-part arrays.
 ## 2026-11-10 — auditoría del coste real de una voz, símbolo por símbolo
 
 - **Reconstruido el baseline compilando los dos perfiles en el HEAD real del remoto**, no en cifras históricas: 10 voces →

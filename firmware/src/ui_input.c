@@ -259,8 +259,8 @@ static uint32_t voice_leds(void)
     if (e->oneshot || (e->keys && e->keys(t, 0) >= 0))
         return 0;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate && t->v[i].note < 128u) {
-            have[t->v[i].note >> 5] |= 1u << (t->v[i].note & 31u);
+        if (V(t, i).active && V(t, i).gate && V(t, i).note < 128u) {
+            have[V(t, i).note >> 5] |= 1u << (V(t, i).note & 31u);
             any = 1;
         }
     for (k = 0; any && k < 27u; k++) {

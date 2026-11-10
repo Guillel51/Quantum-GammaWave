@@ -1317,8 +1317,8 @@ static __attribute__((noinline)) void rev_reso(const int32_t *rev_in, int32_t *o
         const track_t *ft = &trk[fol - 1u];
         uint32_t lo = 0xFFu;
         for (k = 0; k < NVOICE; k++)
-            if (ft->v[k].active && ft->v[k].gate && ft->v[k].note < lo)
-                lo = ft->v[k].note;
+            if (V(ft, k).active && V(ft, k).gate && V(ft, k).note < lo)
+                lo = V(ft, k).note;
         if (lo != 0xFFu)
             fx.rs_root = (uint8_t)(lo + 1u);
         if (fx.rs_root) {
@@ -1976,9 +1976,9 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
                                                          * cut at once, a click), its mute let go (perform.c) */
         uint32_t k, on = 0;
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].active) {
-                if (t->v[k].stage != 4u)
-                    voice_kill(&t->v[k]);
+            if (V(t, k).active) {
+                if (V(t, k).stage != 4u)
+                    voice_kill(&V(t, k));
                 on = 1;
             }
         pf.mg[(uint32_t)(t - trk) % NTRK] = 32768;
@@ -2173,7 +2173,7 @@ static uint32_t mc_cost(const track_t *t)               /* a part's share of the
     const engine_t *e = ENGINES[t->engine];
     uint32_t k, v = 0, w = e == &ENG_FM6 ? 4u : e == &ENG_LOFI || e == &ENG_NOISE ? 2u : 3u;
     for (k = 0; k < NVOICE; k++)
-        v += t->v[k].active;
+        v += V(t, k).active;
     return v ? 1u + v * w : 0u;
 }
 /* (0.6.73) what each part really took, measured as it renders (on either core: TIMER4, 24 MHz), smoothed over a few

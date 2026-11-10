@@ -221,6 +221,11 @@ def build_app():
         flags.append(f"-DNVOICE={v}")
     elif v:
         raise SystemExit(f"build: FELUCCA_VOICES={v!r} (the measured profiles are 10 and 12)")
+    v = os.environ.get("FELUCCA_VPOOL")        # firmware/src/core.h VPOOLN: the voice pool's slots (3.5)
+    if v and v.isdigit() and 0 < int(v) < 320:
+        flags.append(f"-DVPOOLN={v}")
+    elif v:
+        raise SystemExit(f"build: FELUCCA_VPOOL={v!r} (a slot count, 1..319)")
     v = os.environ.get("FELUCCA_USB_LAYOUT")   # firmware/src/usb.c: how the USB composite presents itself (#67), 0..3
     if v in ("0", "1", "2", "3"):
         flags.append(f"-DFELUCCA_USB_LAYOUT={v}")

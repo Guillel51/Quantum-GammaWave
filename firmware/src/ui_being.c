@@ -73,7 +73,7 @@ static void vz_np_scan(int32_t x0, int32_t y0, int32_t w, int32_t h)
         return;
     for (t = 0; t < NTRK; t++) {
         for (i = 0; i < NVOICE; i++) {
-            const voice_t *v = &trk[t].v[i];
+            const voice_t *v = &V(&trk[t], i);
             vz_nv_t *n = &vz_nv[t][i];
             int on = v->active && v->gate && v->note < 128u;
             int32_t nx = x0 + 6 + (int32_t)v->note * (w - 12) / 127;
@@ -550,7 +550,7 @@ static void gw_planet_excite(int on)
     for (t = 0; t < NTRK; t++) {
         int sounding = on && t < trk_live && !trk[t].p[P_MUTE];
         for (i = 0; i < NVOICE; i++) {
-            const voice_t *v = &trk[t].v[i];
+            const voice_t *v = &V(&trk[t], i);
             int live = sounding && v->active && v->gate && v->note < 128u;
             uint8_t tag = live ? (uint8_t)(v->note + 1u) : 0u;
             if (live && pl_seen[t][i] != tag) {

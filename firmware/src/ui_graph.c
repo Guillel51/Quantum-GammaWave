@@ -67,8 +67,8 @@ static void graph_adsr(const track_t *t, uint16_t c)
         const voice_t *bv = 0;                          /* level as a dot on the curve, a line down to the axis */
         int32_t lvl, x;
         for (i = 0; i < NVOICE; i++)
-            if (t->v[i].stage && t->v[i].stage < 4u && (!bv || t->v[i].env > bv->env))
-                bv = &t->v[i];
+            if (V(t, i).stage && V(t, i).stage < 4u && (!bv || V(t, i).env > bv->env))
+                bv = &V(t, i);
         if (bv) {
             lvl = (int32_t)(((int64_t)bv->env * 1000) >> 24);
             if (bv->stage == 1u)
@@ -707,7 +707,7 @@ static void graph_scale(const track_t *t, uint16_t c)
     char sb[24];
 
     for (i = 0; i < NVOICE; i++) {                   /* the notes the selected track is sounding now */
-        const voice_t *v = &t->v[i];
+        const voice_t *v = &V(t, i);
         if (v->active && v->gate && v->note < 128u)
             live |= 1u << (v->note % 12u);
     }
@@ -1109,7 +1109,7 @@ static void graph_diag(uint16_t c)
     for (i = 0; i < trk_live; i++) {
         uint32_t v;
         for (v = 0; v < NVOICE; v++)
-            if (trk[i].v[v].active) active_voices++;
+            if (V(&trk[i], v).active) active_voices++;
     }
     for (i = 0; i < NPART; i++)                     /* the parts core 1 took in the last block */
         n1 += (mc_mask_last >> i) & 1u;
@@ -1187,7 +1187,7 @@ static void graph_diag(uint16_t c)
         char tb[4] = {'T', (char)('1' + i), 0, 0};
         int32_t live = i < trk_live;
         if (live) {
-            for (v = 0; v < NVOICE; v++) if (trk[i].v[v].active) tv++;
+            for (v = 0; v < NVOICE; v++) if (V(&trk[i], v).active) tv++;
         }
         cv_text(tx, 64, &AF_S, tb, live ? T_DIM : T_LINE);
         cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : live && !trk[i].p[P_MUTE] ? T_RAISE : T_LINE, T_SURF);
@@ -1870,7 +1870,7 @@ static uint32_t graph_signature(void)
         h ^= (t->lfo_ph >> 23) * 2654435761u ^ (uint32_t)(t->lfo_val * t->lfo_fade >> 22);
     if (pg->graph == GR_ADSR)                        /* the envelope's dot: every voice's stage and level */
         for (i = 0; i < NVOICE; i++)
-            h = (h ^ ((uint32_t)t->v[i].stage << 24 | (uint32_t)t->v[i].env >> 16)) * 16777619u;
+            h = (h ^ ((uint32_t)V(t, i).stage << 24 | (uint32_t)V(t, i).env >> 16)) * 16777619u;
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u + ui.uslot * 104729u +
@@ -1978,7 +1978,7 @@ static uint32_t graph_signature(void)
         for (k = 0; k < trk_live; k++) {
             uint32_t v;
             for (v = 0; v < NVOICE; v++)
-                av = av + (trk[k].v[v].active != 0);
+                av = av + (V(&trk[k], v).active != 0);
         }
         h = (h ^ song.cpu_q8 * 3329u ^ load_diag.peak * 1931u ^ load_diag.late * 2671u ^
              load_diag.shed * 6151u ^ (load_diag.valid ? 1u : 0u) * 7919u) * 16777619u;   /* (3.0) N/A -> % */
