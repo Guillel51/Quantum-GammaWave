@@ -39,7 +39,11 @@ const raw = new Uint8Array(readFileSync(PKG));
 const acc = acceptance(raw);
 
 ok(acc.ok, "the release passes every check M-Flasher makes before its first erase");
-ok(acc.product === "FM-1_965", "the container parses as " + acc.product);
+/* The numbers below are the 1.9.0 fixture's, and so is its identity: it answered FM-1_982, and a fixture
+ * that suddenly answered the current number would be a rewritten fixture, not evidence. The number this
+ * project ships is checked on the signed release and against the tree's own PRODUCT, below -- commit
+ * 03d3f80 changed this line to the new identity and left the fixture, so the suite has been red since. */
+ok(acc.product === "FM-1_982", `${PKG} parses as its own identity, ${acc.product} (a 1.9.0 fixture)`);
 ok(acc.model === "FM-1", "its model, as M-Flasher reads it, is " + acc.model);
 ok(acc.image === 0x93000, `the flash image is ${acc.image} B`);
 ok(acc.checks.some((c) => c.key === "accKey" && c.ok), "the chip key 0x980F decrypts every app file");
@@ -47,6 +51,28 @@ const app = acc.pkg.appFiles();
 ok(app.length === 2 && app.every((f) => f.ok), `app files checked: ${app.map((f) => f.name).join(", ")}`);
 ok(app.find((f) => f.name === "app.bin").size === 581564, "app.bin is 581564 B");
 ok(app.find((f) => f.name === "cfg_tool.bin").crc === 0x2e75, "cfg_tool.bin CRC16 is 0x2E75");
+
+/* (audit 2026-11-10) What the project publishes: the newest signed release in release/ must pass the same
+ * acceptance checks, and the identity in its bytes must be the one tools/build.py declares. A fixture can
+ * prove the plan; only the release can prove the number that ships. */
+const PRODUCT = (() => {
+  const src = readFileSync("tools/build.py", "utf8");
+  const m = src.match(/^PRODUCT\s*=\s*"([^"]+)"/m);
+  return m ? m[1] : null;
+})();
+const newest = (() => {
+  try {
+    return fs.readdirSync("release").filter((n) => /^felucca-\d+\.\d+\.\d+\.fwsc$/.test(n)).sort().pop() || null;
+  } catch (_) { return null; }
+})();
+if (newest && PRODUCT) {
+  const a2 = acceptance(new Uint8Array(readFileSync(`release/${newest}`)));
+  ok(a2.ok, `the signed release passes the same checks: ${newest}`);
+  ok(a2.product === PRODUCT, `release/${newest} answers ${a2.product}, the tree's PRODUCT (${PRODUCT})`);
+  ok(a2.model === "FM-1", "its model is FM-1");
+} else {
+  console.log("skip: no signed release in release/ to check the shipped identity against");
+}
 
 // the plan, before any dump is loaded: the whole range is the bound
 const bound = sectorPlan(acc.pkg, null);

@@ -28,7 +28,11 @@ int main(int argc, char **argv)
         return 2;
     web_nor_erase();
     web_boot();
-    render(500);
+    /* The same pre-recording stretch as emu_test.mjs's song(): the splash (SPL_WRITE + SPL_HOLD, read from
+     * ui_draw.c here because this file includes it) plus 200 ms. A hardcoded 500 ms compared two different
+     * performances: the recorder started 2.8 s earlier than in the browser, so the LFO/sequencer phase at the
+     * first recorded sample differed and the "bit for bit" check failed at sample 1 on every host. */
+    render(SPL_WRITE + SPL_HOLD + 200);
     web_test_heavy();
     web_buttons(1u << B_PLAY);
     render(60);

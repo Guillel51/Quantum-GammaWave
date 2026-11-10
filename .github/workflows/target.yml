@@ -251,6 +251,10 @@ jobs:
           node web/test_web.mjs
           node web/test_verify_only.mjs
           node web/test_provenance.mjs
+          # (audit 2026-11-10) The host suite runs with NO_PACKAGE=1 in CI, so the checks that need a
+          # package never ran there: web/test_accept.mjs went red in 03d3f80 (it kept the 1.9.0 fixture
+          # and demanded the new identity) and no workflow noticed. Here a package exists, so it runs.
+          node web/test_accept.mjs
       - name: the WASM and the firmware are the same build
         env:
           GIT_COMMIT: ${{ github.sha }}

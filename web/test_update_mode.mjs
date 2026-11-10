@@ -156,11 +156,12 @@ ok(isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_965", version: 965 }) === tr
    "the loader's own identity (965, 900 before docs/IDENTITY.md) tells this project's loader from a unit's own update mode");
 
 const fast = { loaderDelay: 60, rebootDelay: 60 };
-const run = async (unit, ctx) => {
+const runPkg = async (unit, packageBytes, product, ctx) => {
   const up = new Updater(unit.access, () => {}, fast);
-  const proof = await requireProof({ ...ctx, pkg, product: PRODUCT });
-  return up.install(pkg, PRODUCT, () => {}, { ...ctx, proof }).catch((e) => e);
+  const proof = await requireProof({ ...ctx, pkg: packageBytes, product });
+  return up.install(packageBytes, product, () => {}, { ...ctx, proof }).catch((e) => e);
 };
+const run = (unit, ctx) => runPkg(unit, pkg, PRODUCT, ctx);
 
 /* 1. The real-world fix: a unit running QG updates through a loader that cannot answer 0x12.
  *    The chip fact is the app link's own 0x12 from the same attempt, and the write completes. */
@@ -172,6 +173,34 @@ const run = async (unit, ctx) => {
   ok(res === PRODUCT, `a QG unit updates through a loader with no chip query (result ${JSON.stringify(res && res.message || res)})`);
   ok(u.upgrades === before + 2, "the app took UPGRADE once and the loader took it once: two separate programs");
   ok(u.served > 0 && u.served < 1e8, `every byte the device asked for matched the package (${u.served} requests)`);
+}
+
+/* 1b. THE TRANSITION (docs/IDENTITY.md). A unit still on 2.1.1 answers FM-1_982: it is this firmware on
+ *     its previous identity, so the very same install has to work -- and leave the unit answering the new
+ *     number. This is the promise the change was made for, and it is the one case nothing else covers:
+ *     Verify Only classifies it, but only a full transfer proves it can actually be updated. */
+{
+  /* The package must be one whose identity is NOT the unit's, or this case would pass for the wrong
+   * reason: the fixture above is 1.9.0 and answers the same 982 the legacy unit does. So it uses the
+   * newest signed release in release/ (what the site actually installs), and says so if there is none
+   * instead of pretending. */
+  const rel = ["release/felucca-2.1.2.fwsc", "release/felucca-2.0.0.fwsc"]
+    .map((f) => { try { return { f, b: fs.readFileSync(f) }; } catch (_) { return null; } })
+    .find((r) => r && productOf(r.b) !== PRODUCT);
+  if (!rel) {
+    console.log("skip: no signed release with an identity other than the fixture's (the transition case needs one)");
+  } else {
+    const target = productOf(rel.b);
+    const legacy = ["FM-1_982"].find((id) => id !== target);
+    const u = new Unit(logicalImage(rel.b), { identity: legacy });
+    u.after = target;
+    const before = u.upgrades;
+    const res = await runPkg(u, rel.b, target, ctxFor());
+    ok(res === target, `a unit on the previous identity (${legacy}) updates to ${target}, from ${rel.f} (${JSON.stringify(res && res.message || res)})`);
+    ok(u.upgrades === before + 2, "...through both programs: the app took UPGRADE once and the loader once");
+    ok(u.served > 0 && u.served < 1e8, `...and every byte it asked for matched the release (${u.served} requests)`);
+    ok(u.identity === target, `...coming back as ${target}, not as the old number`);
+  }
 }
 
 /* 2. The same unit, but the page opens with the loader already up (an interrupted install): with no

@@ -1301,9 +1301,30 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | installer, Verify Only, forward compatibility | **VERIFIED** | `security` and `web` groups green; `tests/install_test.py` (from V15, resume, every refusal), `tests/preflight_test.py`, `web/test_verify_only.mjs` 153 checks (incl. the legacy-identity block), `web/test_update_mode.mjs` with the identity read out of the package | host, simulated devices |
 | a unit that answers `FM-1_015` is still stock | **VERIFIED** | `web/test_verify_only.mjs`: `FM-1_015` → `stock`, compatibility `replaces-stock`, never `ours`; the legacy rule only ever matches `FM-1_982` | host, simulated devices |
 | emulator and build record | **VERIFIED (identity)** | WASM rebuilt with `emcc 6.0.11`; `build/emu/manifest.json` `"identity": "FM-1_965"`; `package_emu.py` now reads `PRODUCT` from `build.py` | host, emcc |
-| WASM/native bit-for-bit parity | **FAILS HERE, PRE-EXISTING** | `emu_test.mjs` differs at sample 1 both on this tree and in a clean worktree at `9fbb8c0`: an artefact of this host's toolchain, not of the change; the emulator is still deterministic and renders the song | host, unattributed |
+| WASM/native bit-for-bit parity | **FIXED — the harness was wrong, not the toolchain** | It differed at sample 1 on this tree and in a clean worktree at `9fbb8c0` for one reason: the two harnesses recorded **different performances**. `emu_test.mjs` renders `splashMs + 200` before recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`), `native_check.c` hardcoded `render(500)`, so the native recorder started 2.8 s earlier and the sequencer/LFO phase at the first sample differed. `native_check.c` now renders `SPL_WRITE + SPL_HOLD + 200` from `ui_draw.c` (same translation unit): **bit for bit, 88 200 frames**, `emcc 6.0.11` on this host. The earlier "artefact of this host's toolchain" reading was wrong and is withdrawn | host, WASM + native |
 | GitHub Pages | **PENDING THE PUSH** | the site is generated from the signed release; the live check is recorded after the deploy | — |
 | physical FM-1 | **NOT MEASURED** | no unit was touched. What a real device answers after an install, and whether the hub marks the card, are hardware/hub checks that only a unit and the hub can make | — |
+
+---
+
+## 2026-11-10 (independent audit of 2.1.2) — two traceability defects, both fixed
+
+Read this table as the audit's own record: every row was produced in this pass, on this host, from the
+published bytes, and nothing here was taken from an earlier report without re-measuring it.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| chain identity → package → signature → installer → site | **VERIFIED** | package sha256 `1f52bf09…a303` (610 959 B) matches `release/SHA256SUMS`, the live download and the installer page; Ed25519 verified **without project code** (`cryptography`, own canonical JSON) against the pinned `qg1-release-1`; loader `ota-FM-1_965` and identity `FM-1_965` decoded from the bytes with an independent parser | host + live HTTP |
+| `release/v2.1.2` = tag `v2.1.2` = `bbca837`; package built from `03d3f80` | **VERIFIED** | `git ls-remote` for both refs; `build/felucca.fwsc` reproducible in a worktree at `03d3f80` with the same sha256 | host, git |
+| the transition a 2.1.1 unit needs | **VERIFIED** | `web/test_update_mode.mjs` case 1b drives the **signed** `release/felucca-2.1.2.fwsc` against a simulated unit answering `FM-1_982`: `gammaWaveLegacy`, `upgrade-legacy`, admitted, installed; the same bytes relabelled to another model or given a false hash are refused. 16 checks, 0 failed | host, simulated device |
+| the live emulator named a commit its bytes did not come from | **FIXED** | `/emulator/` said `bbca837179dd` while `versions.json` said `03d3f80` and the WASM sha256 `0d437cfe…` is the `03d3f80` build: `tools/package_emu.py` read `GITHUB_SHA` (the deploy) before the worktree's HEAD. It now asks the tree first; rebuilt in a worktree at `03d3f80` **with `GITHUB_SHA` set**, the page and the record both say `03d3f80ed385` | live site, then host rebuild |
+| the deploy could not catch that | **FIXED** | nothing ran `web/test_site.py` in the `deploy` job. It now does: the same page relabelled to the deploy's commit is reported `emulator page does not name its manifest's commit FAIL` (negative control run here) | workflow + host |
+| WASM/native parity | **FIXED** | see the row above: harness alignment, `bit for bit` | host |
+| host suite at the release commit | **RED, FIXED** | `tests/run_tests.sh` at `bbca837` ends `HOST TESTS FAILED`: `web/test_accept.mjs` asserted `FM-1_965` on the 1.9.0 fixture, which answers `FM-1_982`. Since `03d3f80`. It now checks the fixture's own identity and runs the same acceptance on `release/felucca-2.1.2.fwsc`, which must answer the tree's `PRODUCT`: 23 checks, 0 failed. CI was blind to it because the host suite runs `NO_PACKAGE=1`; `target.yml` now runs it | host |
+| the host suite end to end | **PASS** | `tests/run_tests.sh` after the three fixes: `ALL HOST TESTS PASSED`, 0 failed, including the WASM/native parity and the transition case | host |
+| hub catalogue | **VERIFIED** | `catalog.json`, `updated 2026-11-10 12:27 UTC`, 175 listings: `FM-1_965` free; `FM-1_982` → GuitChordi, `FM-1_981` → Pocket GammaWave; 22 listings declare no identity | live HTTP |
+| submission to the hub | **NOT SENT** | requirements read and documented; sending a mail in the user's name was not authorised | — |
+
 ## 41. Update — 2026-11-10, HEAD `94a6a4c` medido: host, AC791N y wasm
 
 | Medición | Valor | Clase |

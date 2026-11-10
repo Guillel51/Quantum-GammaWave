@@ -18,16 +18,26 @@ OUT = ROOT / "build" / "emu"
 
 
 def commit():
-    """The build's commit: CI's SHA, or the local checkout's, so two builds of one version differ."""
+    """The commit of the sources this WASM was built from, so two builds of one version differ.
+
+    The tree comes first, not the environment. On CI the checkout *is* GITHUB_SHA, so both agree; but the
+    stable channel's emulator is built in a worktree at the signed release's commit, and there GITHUB_SHA is
+    the deploy's commit. Reading it first labelled a WASM built from 03d3f80 as bbca837 -- the page named a
+    commit its bytes did not come from, while versions.json said 03d3f80 (measured on the live site,
+    2026-11-10). git answers for the worktree it is run in; the environment is the fallback for a checkout
+    without a repository."""
+    try:
+        value = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short=12", "HEAD"],
+                               capture_output=True, text=True, check=True).stdout.strip()
+        if value:
+            return value
+    except (OSError, subprocess.CalledProcessError):
+        pass
     for env in ("GIT_COMMIT", "GITHUB_SHA"):
         value = os.environ.get(env, "").strip()
         if value:
             return value[:12]
-    try:
-        return subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short=12", "HEAD"],
-                              capture_output=True, text=True, check=True).stdout.strip() or "unknown"
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
+    return "unknown"
 
 
 def emcc_version():

@@ -1,3 +1,36 @@
+## 2026-11-10 — an independent audit of 2.1.2: two checks that could not fail, and did not
+
+- **The parity failure was the harness, not the compiler.** `web/emu/emu_test.mjs` renders `splashMs + 200`
+  before it starts recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`); `web/emu/native_check.c`
+  hardcoded `render(500)`. Two harnesses, two performances: the native recorder started 2.8 s earlier, the
+  sequencer and LFO phase at the first sample differed, and "bit for bit" could not hold — on this tree or in
+  a clean worktree at `9fbb8c0`, which is why it was taken for a toolchain artefact. The native harness now
+  takes the same stretch from `ui_draw.c`, in the same translation unit it already includes:
+  **bit for bit, 88 200 frames**, `emcc 6.0.11`.
+- **The stable emulator named a commit its bytes did not come from.** `/emulator/` displayed
+  `bbca837179dd` while its record and its WASM said `03d3f80` (`0d437cfe…`): `tools/package_emu.py` read
+  `GITHUB_SHA` before the worktree's own HEAD, and the deploy builds the stable emulator in a worktree at the
+  signed release's commit, where `GITHUB_SHA` is the deploy. The tree now decides and the environment is the
+  fallback — the same rule in `tools/build_manifest.py` — so the page, the record and the bytes agree.
+- **And the deploy could not have noticed.** `web/test_site.py` already refuses a page that does not name its
+  manifest's commit, but nothing ran it in the `deploy` job, so the contradiction was published. The job runs
+  it now, before the artifact is uploaded; the published page's own relabelling is reported as
+  `emulator page does not name its manifest's commit FAIL`.
+- **The host suite was red at the release commit, and no workflow could see it.** `web/test_accept.mjs`
+  keeps its golden numbers for the 1.9.0 fixture (`tests/fixtures/felucca-v1.9.0.fwsc`, which answers
+  `FM-1_982` — that is what it is), but `03d3f80` changed its identity assertion to `FM-1_965` without
+  changing the package it reads: the check could only pass by rewriting the fixture. It now reads the
+  fixture's own identity and checks the shipped one where it exists — the newest signed release in
+  `release/` passes the same acceptance and must answer the tree's `PRODUCT`. CI never noticed because
+  `.github/workflows/c-cpp.yml` runs the host suite with `NO_PACKAGE=1`, which skips every package check;
+  the job that does build a package (`target.yml`) runs `test_accept.mjs` now.
+- **The 2.1.1 → 2.1.2 transition is now tested with the signed package, not a fixture.**
+  `web/test_update_mode.mjs` case 1b drives `release/felucca-2.1.2.fwsc` against a simulated unit answering
+  `FM-1_982` (`gammaWaveLegacy`, `upgrade-legacy`, admitted), and refuses the same bytes under another model
+  or with a false hash. The earlier case used the 1.9.0 fixture and passed for the wrong reason.
+- Nothing was published: no new release, no new key, no change to the pinned public key or to the identity.
+  The signed package of 2.1.2 is the one already in `release/`.
+
 ## 2026-11-10 — the identity is Quantum GammaWave's own: `FM-1_965`
 
 - **The conflict, stated plainly.** This firmware answered `FM-1_982`, and so does **GuitChordi 0.1.0-beta.1**
