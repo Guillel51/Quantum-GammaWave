@@ -1531,6 +1531,14 @@ int main(int argc, char **argv)
             printf("  %-44s %s  %5.1f s  peak %5d  dc %6.1f  free %5.2f s  tail %3d dc %3d  voices %u\n", j->name,
                    hs, (double)r->frames / FS, r->peak, r->dc, r->free_s, r->tail_peak, r->tail_dc, r->vmax);
     }
+    /* (3.6) GOLDEN_METRICS=1: the level of every render, one line each, so two builds of this firmware can be
+     * compared as audio instead of as hashes (the voice pool changes which slot a note lands in, and a slot
+     * carries residual filter state; what has to match is the sound, not the byte order it was summed in).
+     * Not a test on its own: a tool for tests/pool_equiv.sh, which sets the tolerances. */
+    if (getenv("GOLDEN_METRICS"))
+        for (i = g0; i < g1; i++)
+            printf("METRIC %s %ld %ld %.6f %u\n", J[i].name, (long)J[i].r.peak, (long)J[i].r.tail_peak,
+                   J[i].r.dc, J[i].r.vmax);
     for (i = 0; i < ng; i++) {                      /* in the file, not rendered any more */
         uint32_t k, found = 0;
         for (k = g0; k < g1 && !found; k++)

@@ -71,6 +71,21 @@
   worktree), so it is an Emscripten/host-toolchain artefact here, not a regression of the identity work; the
   emulator itself is deterministic (twice the same samples) and renders the same song.
 
+## 3.6 voices: the pool's allocator fixed, its sound still not identical
+
+- `trk_vcap` / `trk_nvoice`: the engine's cap and the window are separate things now. UNISON asks for its
+  whole spread before it starts (`voice_grow_to`), and POLY asks for a slot when all of its own are
+  sounding, so a part with two slots is no longer stuck at two voices.
+- `voices_boot` splits `VDEAD / NPART` and never hands out the inert slot (a pool of 18 used to give it to
+  the sixth part as a window).
+- Every voice / routing check passes at `VPOOLN >= NVOICE + NPART`: 0 failed at 10 voices / 16 slots and
+  at 12 voices / 18 slots, against 3 to 9 failures below that. `.bss` 87084 B (11220 free) at 10 voices
+  and 87564 B (10740 free) at 12, against 94924 / 3380 for today's 10.
+- `tests/pool_equiv.sh` (and `GOLDEN_METRICS=1`) compares two builds as audio: 25 of 220 renders move
+  their peak by up to 1.4 dB while their tails and voice counts match exactly, because a chord's phases
+  depend on which slot each note lands in. That is a change of the instrument's sound, so the pool stays
+  unmerged: `main` keeps 10 voices and the per-part arrays (`docs/VOICE_POOL.md` §5).
+
 ## 3.5 voices: the storage moves into one pool (research branch, not enabled)
 
 - `voice_t v[NVOICE]` per part is now `voice_t vpool[VPOOLN]` with a window per part (`track_t.vidx` /

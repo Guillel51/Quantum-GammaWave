@@ -31,19 +31,26 @@ static uint8_t vown[VPOOLN];
 /* power-on: every part gets its own window of NVOICE slots (or VPOOLN / NPART when the pool is smaller) */
 void voices_boot(void)
 {
-    uint32_t p, i;
+    uint32_t p, i, share;
     for (i = 0; i < VPOOLN; i++) {
         memset(&vpool[i], 0, sizeof(voice_t));
         vown[i] = 0;
     }
     vdead_init();
+    /* the first share of the pool: an even split of the slots that can be granted (VDEAD never is), and at
+     * least one each, because MONO and LEGATO read their voice at index 0 */
+    share = VDEAD / NPART;
+    if (share < 1u)
+        share = 1u;
+    if (share > NVOICE)
+        share = NVOICE;
     for (p = 0; p < NPART; p++) {
         track_t *t = &trk[p];
         for (i = 0; i < NVOICE; i++)
             t->vidx[i] = (uint8_t)VDEAD;
-        for (i = 0; i < VPOOLN / NPART && i < NVOICE; i++)
-            t->vidx[i] = (uint8_t)(p * (VPOOLN / NPART) + i);
-        t->vn = (uint8_t)(VPOOLN / NPART < NVOICE ? VPOOLN / NPART : NVOICE);
+        for (i = 0; i < share; i++)
+            t->vidx[i] = (uint8_t)(p * share + i);
+        t->vn = (uint8_t)share;
         for (i = 0; i < t->vn; i++)
             vown[t->vidx[i]] = (uint8_t)(p + 1u);
     }
@@ -88,6 +95,15 @@ claim:
     memset(&vpool[s], 0, sizeof(voice_t));
     t->vn++;
     return 1;
+}
+
+/* (3.5) a part that is about to need `want` voices asks for them first: UNISON spreads its whole cap in one
+ * note, so it must not be left with the slots of the last phrase. One slot at a time, each one idle, so the
+ * loan is the same deterministic answer whatever the caller */
+static void voice_grow_to(track_t *t, uint32_t want)
+{
+    while (t->vn < want && voice_window_grow(t))
+        ;
 }
 static uint32_t vage;                                   /* voice ages: one clock for every part */
 static int32_t lfo_wave(track_t *t, uint32_t ph)
@@ -393,15 +409,21 @@ static volatile uint8_t sys_load;
 #define LITE_FM6_POLY 2u
 #define ECO_POLY 4u
 #define ECO_VOICES 6u            /* (0.6.70) LOAD ECO: the voices all parts share (NVOICE else) */
-static uint32_t trk_nvoice(const track_t *t)
+/* the cap the engine and the load setting give a part: what trk_nvoice returned before the pool */
+static uint32_t trk_vcap(const track_t *t)
 {
     uint32_t c = ENGINES[t->engine]->poly;
     if (sys_load && t->engine == ENGI_FM6 && c > LITE_FM6_POLY)
         c = LITE_FM6_POLY;
     if (sys_load == LOAD_ECO && !ENGINES[t->engine]->oneshot && (!c || c > ECO_POLY))
         c = ECO_POLY;
-    c = c && c < NVOICE ? c : NVOICE;
-    return c < t->vn ? c : t->vn;                   /* (3.5) never more than the slots it holds */
+    return c && c < NVOICE ? c : NVOICE;
+}
+/* (3.5) the voices it can use right now: its cap, and never more than the slots its window holds */
+static uint32_t trk_nvoice(const track_t *t)
+{
+    uint32_t c = trk_vcap(t);
+    return c < t->vn ? c : t->vn;
 }
 
 /* the part's voice mode: P_VOICE, POLY for an engine of hits (engine_t.oneshot: DRUM) */
@@ -712,7 +734,10 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
  * engine's voice cap, spread by DETUNE over the same width) */
 static void mono_play(track_t *t, uint32_t note, uint32_t vel, int retrig, int glide)
 {
-    uint32_t mode = (uint32_t)t->p[P_VOICE], nv = mode == V_UNISON ? trk_nvoice(t) : 1u, i;
+    uint32_t mode = (uint32_t)t->p[P_VOICE], nv, i;
+    if (mode == V_UNISON && t->vn < trk_vcap(t))
+        voice_grow_to(t, trk_vcap(t));              /* (3.5) the whole spread, not what the last phrase left */
+    nv = mode == V_UNISON ? trk_nvoice(t) : 1u;
     for (i = 0; i < nv; i++) {
         voice_t *v = &V(t, i);
         int32_t k = 2 * (int32_t)i - (int32_t)(nv - 1u);   /* -7 .. 7 */

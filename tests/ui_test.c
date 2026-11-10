@@ -9474,11 +9474,11 @@ static int test_click_menu(void)
         song.g[G_RTYPE] = 4; mix_block(o, CTL); mix_block(o, CTL);
         ok &= fx.rtype == 0u;                           /* CLOUD as ROOM */
         ft.engine = ENGI_FM6;
-        ok &= trk_nvoice(&ft) == LITE_FM6_POLY;         /* FM6: two voices */
+        ok &= trk_vcap(&ft) == LITE_FM6_POLY;         /* FM6: two voices */
         song.g[G_RTYPE] = 2; go_title("REVERB"); frame();
         ok &= strstr(ui.col[0], "|SHIMR|LITE") != 0;   /* the card says it is swapped */
         load_put(2u);
-        ok &= !sys_load && trk_nvoice(&ft) == FM6_POLY;
+        ok &= !sys_load && trk_vcap(&ft) == FM6_POLY;
         song.g[G_RTYPE] = 2; mix_block(o, CTL); mix_block(o, CTL);
         ok &= fx.rtype == 2u;                           /* FULL: SHIMMER again */
         press(B_HOME); frame();
@@ -9493,11 +9493,11 @@ static int test_click_menu(void)
             load_put(0u);
             song.g[G_RTYPE] = 0; mix_block(o, CTL); mix_block(o, CTL);
             ok &= sys_load == LOAD_ECO && fx.rtype == 1u && !slicer_on() && song.g[G_SLMODE] == 1;
-            ok &= trk_nvoice(&ft) == ECO_POLY;
+            ok &= trk_vcap(&ft) == ECO_POLY;
             ft.engine = ENGI_FM6;
-            ok &= trk_nvoice(&ft) == LITE_FM6_POLY;
+            ok &= trk_vcap(&ft) == LITE_FM6_POLY;
             ft.engine = ENGI_DRUM;
-            ok &= trk_nvoice(&ft) == (ENGINES[ENGI_DRUM]->poly ? ENGINES[ENGI_DRUM]->poly : NVOICE);
+            ok &= trk_vcap(&ft) == (ENGINES[ENGI_DRUM]->poly ? ENGINES[ENGI_DRUM]->poly : NVOICE);
             for (i = 0; i < NPAGES; i++) {
                 int sl = PAGES[i].graph == GR_SLCR || PAGES[i].graph == GR_SLPIT || str_eq(PAGES[i].title, "CHORUS");
                 if (sl) hidden &= !page_visible(i);
