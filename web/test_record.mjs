@@ -140,11 +140,13 @@ const chipRecord = recordFor(
   const up = new Updater(u.midi, () => {});
   const proof = await requireProof({ ...ctxFor(), pkg, product: "FM-1_982" });
   const err = await up.install(pkg, "FM-1_982", () => {}, { ...ctxFor(), proof, chipRecord }).catch((e) => e);
-  ok(err && err.code === "stockfirst", `a stock unit with a verified record is still refused as "stockfirst" (${err && err.code})`);
-  ok(!u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
-     "...and it still receives no UPGRADE: a chip reading is not an installation");
-  ok(u.sent.every((b) => !(b.length > 3 && b[0] === 0xF0 && cmdOf(b) === 0x30)),
-     "...nor was any image byte offered to it");
+  /* a stock unit installs: its updater stages this package's loader, which checks the chip itself
+   * (firmware/loader/loader.c); this fake unit never asks for the package, so the install stops there */
+  ok(err && err.code === "stopped", `a stock unit is not refused (${err && err.code})`);
+  ok(u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
+     "...it receives UPGRADE: its own updater starts this package's loader");
+  ok(u.sent.every((b) => !(b.length > 3 && b[0] === 0xF0 && cmdOf(b) === 0x12)),
+     "...and it is never asked for its chip, which it cannot answer");
 }
 
 /* Two readings of one unit are what a backup is supposed to be: the same image twice, taken apart.
