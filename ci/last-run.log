@@ -1,0 +1,342 @@
+# emulator run 42752667069 (cancelled) at 83a101286acc44bbb3128d04051bf46c3ed0579e
+
+## jobs
+- build: completed / cancelled
+    step FAILED: 4 Run pip install Pillow numpy fonttools cryptography -> cancelled
+    step FAILED: 17 a package and a site exist (fail closed) -> failure
+- deploy: completed / cancelled
+
+## publish job
+
+## failed steps, any job
+build	Set up job	2026-11-10T03:57:03.2663145Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-10T03:57:04.1136500Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8440495Z with:
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4155266Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4174041Z  * [new branch]      cleanup-qg1-docs-identity-14719576721255766213 -> origin/cleanup-qg1-docs-identity-14719576721255766213
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4188156Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4220242Z   origin/main
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4404143Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.7094032Z Installing collected packages: pycparser, Pillow, numpy, fonttools, cffi, cryptography
+build	a package and a site exist (fail closed)	﻿2026-11-10T03:57:12.8041032Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8041737Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8042299Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+
+## tail
+build	Set up job	﻿2026-11-10T03:57:03.2629989Z Current runner version: '2.338.2'
+build	Set up job	2026-11-10T03:57:03.2652557Z ##[group]Runner Image Provisioner
+build	Set up job	2026-11-10T03:57:03.2653315Z Hosted Compute Agent
+build	Set up job	2026-11-10T03:57:03.2653794Z Version: 20261028.624
+build	Set up job	2026-11-10T03:57:03.2654412Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+build	Set up job	2026-11-10T03:57:03.2655050Z Build Date: 2026-10-28T21:51:42Z
+build	Set up job	2026-11-10T03:57:03.2655693Z Worker ID: {d0b710ba-6345-498e-9cbb-a45433e719db}
+build	Set up job	2026-11-10T03:57:03.2656290Z Region: northcentralus
+build	Set up job	2026-11-10T03:57:03.2656767Z Cloud: Azure
+build	Set up job	2026-11-10T03:57:03.2657276Z ##[endgroup]
+build	Set up job	2026-11-10T03:57:03.2658409Z ##[group]Operating System
+build	Set up job	2026-11-10T03:57:03.2659256Z Ubuntu
+build	Set up job	2026-11-10T03:57:03.2659724Z 24.04.5
+build	Set up job	2026-11-10T03:57:03.2660167Z LTS
+build	Set up job	2026-11-10T03:57:03.2660646Z ##[endgroup]
+build	Set up job	2026-11-10T03:57:03.2661151Z ##[group]Runner Image
+build	Set up job	2026-11-10T03:57:03.2661729Z Image: ubuntu-24.04
+build	Set up job	2026-11-10T03:57:03.2662234Z Version: 20261101.360.1
+build	Set up job	2026-11-10T03:57:03.2663145Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-10T03:57:03.2664654Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+build	Set up job	2026-11-10T03:57:03.2665455Z ##[endgroup]
+build	Set up job	2026-11-10T03:57:03.2666436Z ##[group]GITHUB_TOKEN Permissions
+build	Set up job	2026-11-10T03:57:03.2668111Z Contents: read
+build	Set up job	2026-11-10T03:57:03.2668677Z Metadata: read
+build	Set up job	2026-11-10T03:57:03.2669319Z Pages: write
+build	Set up job	2026-11-10T03:57:03.2669827Z ##[endgroup]
+build	Set up job	2026-11-10T03:57:03.2671583Z Secret source: Actions
+build	Set up job	2026-11-10T03:57:03.2672485Z Cache mode: write
+build	Set up job	2026-11-10T03:57:03.2673118Z Prepare workflow directory
+build	Set up job	2026-11-10T03:57:03.2939004Z Prepare all required actions
+build	Set up job	2026-11-10T03:57:03.2978255Z Getting action download info
+build	Set up job	2026-11-10T03:57:03.5942579Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+build	Set up job	2026-11-10T03:57:03.6805126Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+build	Set up job	2026-11-10T03:57:03.7813671Z Download action repository 'mymindstorm/setup-emsdk@v14' (SHA:6ab9eb1bda2574c4ddb79809fc9247783eaf9021)
+build	Set up job	2026-11-10T03:57:04.0036803Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+build	Set up job	2026-11-10T03:57:04.1136500Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Set up job	2026-11-10T03:57:04.2836103Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+build	Set up job	2026-11-10T03:57:04.4017340Z Download action repository 'actions/upload-pages-artifact@v3' (SHA:56afc609e74202658d3ffba0e8f6dda462b719fa)
+build	Set up job	2026-11-10T03:57:04.6382786Z Getting action download info
+build	Set up job	2026-11-10T03:57:04.7466618Z Complete job name: build
+build	Run actions/checkout@v4	﻿2026-11-10T03:57:04.8439362Z ##[group]Run actions/checkout@v4
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8440495Z with:
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8441130Z   fetch-depth: 0
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8441862Z   repository: Guillel51/Quantum-GammaWave
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8449380Z   token: ***
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8450038Z   ssh-strict: true
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8450740Z   ssh-user: git
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8451424Z   persist-credentials: true
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8452156Z   clean: true
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8452842Z   sparse-checkout-cone-mode: true
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8453656Z   fetch-tags: false
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8454352Z   show-progress: true
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8455029Z   lfs: false
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8455659Z   submodules: false
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8456346Z   set-safe-directory: true
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8457134Z   allow-unsafe-pr-checkout: false
+build	Run actions/checkout@v4	2026-11-10T03:57:04.8458239Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1779010Z Syncing repository: Guillel51/Quantum-GammaWave
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1781295Z ##[group]Getting Git version info
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1781970Z Working directory is '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1783024Z [command]/usr/bin/git version
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1891070Z git version 2.56.0
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1930859Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1938974Z Temporarily overriding HOME='/home/runner/work/_temp/81c59e14-c8a4-46af-9511-50bf01bda188' before making global git config changes
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1941678Z Adding repository directory to the temporary git global config as a safe directory
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1943339Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1993744Z Deleting the contents of '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+build	Run actions/checkout@v4	2026-11-10T03:57:05.1997544Z ##[group]Initializing the repository
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2001643Z [command]/usr/bin/git init /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2124435Z hint: Using 'master' as the name for the initial branch. This default branch name
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2130021Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2132550Z hint: to use in all of your new repositories, which will suppress this warning,
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2134298Z hint: call:
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2136353Z hint:
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2137198Z hint: 	git config --global init.defaultBranch <name>
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2138076Z hint:
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2139021Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2140151Z hint: 'development'. The just-created branch can be renamed via this command:
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2141079Z hint:
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2141806Z hint: 	git branch -m <name>
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2142530Z hint:
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2143435Z hint: Disable this message with "git config set advice.defaultBranchName false"
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2144807Z Initialized empty Git repository in /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/.git/
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2148745Z [command]/usr/bin/git remote add origin https://github.com/Guillel51/Quantum-GammaWave
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2195747Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2196614Z ##[group]Disabling automatic garbage collection
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2199534Z [command]/usr/bin/git config --local gc.auto 0
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2235092Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2236132Z ##[group]Setting up auth
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2241925Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2279775Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2632255Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2672566Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2892090Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	Run actions/checkout@v4	2026-11-10T03:57:05.2933325Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	Run actions/checkout@v4	2026-11-10T03:57:05.3168922Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+build	Run actions/checkout@v4	2026-11-10T03:57:05.3217329Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:05.3229589Z ##[group]Fetching the repository
+build	Run actions/checkout@v4	2026-11-10T03:57:05.3230987Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4121421Z From https://github.com/Guillel51/Quantum-GammaWave
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4124878Z  * [new branch]      audit/fm1-no-hardware   -> origin/audit/fm1-no-hardware
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4126186Z  * [new branch]      audit/v1.9-fm1-safety   -> origin/audit/v1.9-fm1-safety
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4126819Z  * [new branch]      ci/log/42477957388-failure -> origin/ci/log/42477957388-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4127436Z  * [new branch]      ci/log/42480813211-cancelled -> origin/ci/log/42480813211-cancelled
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4128004Z  * [new branch]      ci/log/42481111801-failure -> origin/ci/log/42481111801-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4129165Z  * [new branch]      ci/log/42482503161-success -> origin/ci/log/42482503161-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4129720Z  * [new branch]      ci/log/42487327176-failure -> origin/ci/log/42487327176-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4130293Z  * [new branch]      ci/log/42489190170-failure -> origin/ci/log/42489190170-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4130884Z  * [new branch]      ci/log/42491501704-failure -> origin/ci/log/42491501704-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4131458Z  * [new branch]      ci/log/42492623156-failure -> origin/ci/log/42492623156-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4132015Z  * [new branch]      ci/log/42493220934-failure -> origin/ci/log/42493220934-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4132666Z  * [new branch]      ci/log/42494872221-success -> origin/ci/log/42494872221-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4133285Z  * [new branch]      ci/log/42498953885-success -> origin/ci/log/42498953885-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4133950Z  * [new branch]      ci/log/42506413781-success -> origin/ci/log/42506413781-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4134664Z  * [new branch]      ci/log/42506417545-success -> origin/ci/log/42506417545-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4135336Z  * [new branch]      ci/log/42507567885-success -> origin/ci/log/42507567885-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4135934Z  * [new branch]      ci/log/42508876242-success -> origin/ci/log/42508876242-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4136483Z  * [new branch]      ci/log/42512809371-success -> origin/ci/log/42512809371-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4137039Z  * [new branch]      ci/log/42512814434-success -> origin/ci/log/42512814434-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4137593Z  * [new branch]      ci/log/42515184085-success -> origin/ci/log/42515184085-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4138167Z  * [new branch]      ci/log/42515187306-success -> origin/ci/log/42515187306-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4138733Z  * [new branch]      ci/log/42517068771-success -> origin/ci/log/42517068771-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4139490Z  * [new branch]      ci/log/42520174117-success -> origin/ci/log/42520174117-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4140205Z  * [new branch]      ci/log/42520177312-success -> origin/ci/log/42520177312-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4140923Z  * [new branch]      ci/log/42522233792-success -> origin/ci/log/42522233792-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4141564Z  * [new branch]      ci/log/42523775428-success -> origin/ci/log/42523775428-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4142161Z  * [new branch]      ci/log/42526253496-success -> origin/ci/log/42526253496-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4142740Z  * [new branch]      ci/log/42527302972-success -> origin/ci/log/42527302972-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4143464Z  * [new branch]      ci/log/42528407466-success -> origin/ci/log/42528407466-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4144398Z  * [new branch]      ci/log/42529060993-success -> origin/ci/log/42529060993-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4145025Z  * [new branch]      ci/log/42530578798-success -> origin/ci/log/42530578798-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4145636Z  * [new branch]      ci/log/42531273223-success -> origin/ci/log/42531273223-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4146236Z  * [new branch]      ci/log/42531890284-success -> origin/ci/log/42531890284-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4146830Z  * [new branch]      ci/log/42532370251-success -> origin/ci/log/42532370251-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4147447Z  * [new branch]      ci/log/42539802427-success -> origin/ci/log/42539802427-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4148031Z  * [new branch]      ci/log/42539807465-success -> origin/ci/log/42539807465-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4148609Z  * [new branch]      ci/log/42540683798-success -> origin/ci/log/42540683798-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4151310Z  * [new branch]      ci/log/42545290225-success -> origin/ci/log/42545290225-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4152006Z  * [new branch]      ci/log/42545294469-success -> origin/ci/log/42545294469-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4152615Z  * [new branch]      ci/log/42558316159-success -> origin/ci/log/42558316159-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4153198Z  * [new branch]      ci/log/42558320548-success -> origin/ci/log/42558320548-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4154093Z  * [new branch]      ci/log/42559329079-failure -> origin/ci/log/42559329079-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4154685Z  * [new branch]      ci/log/42560318284-success -> origin/ci/log/42560318284-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4155266Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4155862Z  * [new branch]      ci/log/42560692112-success -> origin/ci/log/42560692112-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4156468Z  * [new branch]      ci/log/42565723149-success -> origin/ci/log/42565723149-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4157058Z  * [new branch]      ci/log/42565727774-success -> origin/ci/log/42565727774-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4157660Z  * [new branch]      ci/log/42565730642-failure -> origin/ci/log/42565730642-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4158250Z  * [new branch]      ci/log/42567371258-failure -> origin/ci/log/42567371258-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4159222Z  * [new branch]      ci/log/42572808302-success -> origin/ci/log/42572808302-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4159824Z  * [new branch]      ci/log/42572815172-failure -> origin/ci/log/42572815172-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4160443Z  * [new branch]      ci/log/42576644769-failure -> origin/ci/log/42576644769-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4161084Z  * [new branch]      ci/log/42578600477-cancelled -> origin/ci/log/42578600477-cancelled
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4161714Z  * [new branch]      ci/log/42579301366-failure -> origin/ci/log/42579301366-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4162306Z  * [new branch]      ci/log/42584658558-failure -> origin/ci/log/42584658558-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4162891Z  * [new branch]      ci/log/42594694076-failure -> origin/ci/log/42594694076-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4163497Z  * [new branch]      ci/log/42630043326-failure -> origin/ci/log/42630043326-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4164094Z  * [new branch]      ci/log/42632140799-success -> origin/ci/log/42632140799-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4164660Z  * [new branch]      ci/log/42634271273-success -> origin/ci/log/42634271273-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4165219Z  * [new branch]      ci/log/42635269246-success -> origin/ci/log/42635269246-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4165830Z  * [new branch]      ci/log/42639428930-cancelled -> origin/ci/log/42639428930-cancelled
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4166437Z  * [new branch]      ci/log/42640087300-cancelled -> origin/ci/log/42640087300-cancelled
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4167048Z  * [new branch]      ci/log/42640524730-success -> origin/ci/log/42640524730-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4167632Z  * [new branch]      ci/log/42644715508-failure -> origin/ci/log/42644715508-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4168249Z  * [new branch]      ci/log/42651350090-failure -> origin/ci/log/42651350090-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4169520Z  * [new branch]      ci/log/42656093427-failure -> origin/ci/log/42656093427-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4170178Z  * [new branch]      ci/log/42731139714-failure -> origin/ci/log/42731139714-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4170773Z  * [new branch]      ci/log/42731566425-failure -> origin/ci/log/42731566425-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4171383Z  * [new branch]      ci/log/42733675103-success -> origin/ci/log/42733675103-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4171974Z  * [new branch]      ci/log/42736038855-failure -> origin/ci/log/42736038855-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4172573Z  * [new branch]      ci/log/42742806195-success -> origin/ci/log/42742806195-success
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4173182Z  * [new branch]      ci/log/42742956973-failure -> origin/ci/log/42742956973-failure
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4174041Z  * [new branch]      cleanup-qg1-docs-identity-14719576721255766213 -> origin/cleanup-qg1-docs-identity-14719576721255766213
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4174859Z  * [new branch]      cline/13ey37k1          -> origin/cline/13ey37k1
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4175398Z  * [new branch]      cline/hrqxkss8          -> origin/cline/hrqxkss8
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4175953Z  * [new branch]      dev/quantum-integral    -> origin/dev/quantum-integral
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4176628Z  * [new branch]      devin/1793394967-quantum-v1.4 -> origin/devin/1793394967-quantum-v1.4
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4177515Z  * [new branch]      devin/quantum-v1.3      -> origin/devin/quantum-v1.3
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4178098Z  * [new branch]      docs/qg15-live-audit    -> origin/docs/qg15-live-audit
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4179698Z  * [new branch]      feat/quantum-real-screenshots-and-about-update-492979775632194395 -> origin/feat/quantum-real-screenshots-and-about-update-492979775632194395
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4180857Z  * [new branch]      feat/rebrand-security-p2 -> origin/feat/rebrand-security-p2
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4181473Z  * [new branch]      feat/ui-redesign-qg1    -> origin/feat/ui-redesign-qg1
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4182053Z  * [new branch]      feat/v1.5-hardening     -> origin/feat/v1.5-hardening
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4182613Z  * [new branch]      feat/v1.6-qg            -> origin/feat/v1.6-qg
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4183116Z  * [new branch]      feat/v1.7-qg            -> origin/feat/v1.7-qg
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4183700Z  * [new branch]      feat/v1.7-visual-presets -> origin/feat/v1.7-visual-presets
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4184542Z  * [new branch]      feature/audit-cleanup-qg1-9393018041995724673 -> origin/feature/audit-cleanup-qg1-9393018041995724673
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4185679Z  * [new branch]      feature/fix-home-viz-and-drum-presets-12092529543400008897 -> origin/feature/fix-home-viz-and-drum-presets-12092529543400008897
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4186961Z  * [new branch]      feature/qg1-ui-nav-themes-presets-10550540118776558527 -> origin/feature/qg1-ui-nav-themes-presets-10550540118776558527
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4188156Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4189350Z  * [new branch]      fix/p1-extra-tab        -> origin/fix/p1-extra-tab
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4189920Z  * [new branch]      fix/v1.7-ci-budget      -> origin/fix/v1.7-ci-budget
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4190473Z  * [new branch]      fix/v1.7-ui-audit       -> origin/fix/v1.7-ui-audit
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4191138Z  * [new branch]      freebuff/4549bd389852a9607bba2622 -> origin/freebuff/4549bd389852a9607bba2622
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4191915Z  * [new branch]      freebuff/6ae847e53332b13a021ccec4 -> origin/freebuff/6ae847e53332b13a021ccec4
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4192557Z  * [new branch]      integ/v1.8.9            -> origin/integ/v1.8.9
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4193087Z  * [new branch]      integ/v1.9-identity     -> origin/integ/v1.9-identity
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4193633Z  * [new branch]      integ/v1.9-security     -> origin/integ/v1.9-security
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4194286Z  * [new branch]      jules-16051787961813429323-dfe6ca9b -> origin/jules-16051787961813429323-dfe6ca9b
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4195351Z  * [new branch]      jules-17619888464711981417-633f1e53 -> origin/jules-17619888464711981417-633f1e53
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4195964Z  * [new branch]      main                    -> origin/main
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4196498Z  * [new branch]      opt/performance-baseline -> origin/opt/performance-baseline
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4197475Z  * [new branch]      perf/deep-opt-consumption-cleanup-14085799576697135698 -> origin/perf/deep-opt-consumption-cleanup-14085799576697135698
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4198433Z  * [new branch]      perf/integral-audit     -> origin/perf/integral-audit
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4199188Z  * [new branch]      perf/security-hardening -> origin/perf/security-hardening
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4199820Z  * [new branch]      perf/six-track-hardening -> origin/perf/six-track-hardening
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4200394Z  * [new branch]      release/v1.5-qg         -> origin/release/v1.5-qg
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4201080Z  * [new branch]      review/installer-chip-check -> origin/review/installer-chip-check
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4201833Z  * [new branch]      security/transport-require-proof -> origin/security/transport-require-proof
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4202632Z  * [new branch]      security/transport-session-probe -> origin/security/transport-session-probe
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4203318Z  * [new branch]      work/fm1-signing-custody -> origin/work/fm1-signing-custody
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4204163Z  * [new branch]      work/v18-integration    -> origin/work/v18-integration
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4204636Z  * [new tag]         v1.9.0                  -> v1.9.0
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4205971Z [command]/usr/bin/git branch --list --remote origin/main
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4220242Z   origin/main
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4244339Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4263755Z 83a101286acc44bbb3128d04051bf46c3ed0579e
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4288513Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4289568Z ##[group]Determining the checkout info
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4290305Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4290828Z [command]/usr/bin/git sparse-checkout disable
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4357350Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4398678Z ##[group]Checking out the ref
+build	Run actions/checkout@v4	2026-11-10T03:57:07.4404143Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+build	Run actions/checkout@v4	2026-11-10T03:57:07.6062186Z Switched to a new branch 'main'
+build	Run actions/checkout@v4	2026-11-10T03:57:07.6066230Z branch 'main' set up to track 'origin/main'.
+build	Run actions/checkout@v4	2026-11-10T03:57:07.6125081Z ##[endgroup]
+build	Run actions/checkout@v4	2026-11-10T03:57:07.6128354Z [command]/usr/bin/git log -1 --format=%H
+build	Run actions/checkout@v4	2026-11-10T03:57:07.6159451Z 83a101286acc44bbb3128d04051bf46c3ed0579e
+build	Run actions/setup-python@v5	﻿2026-11-10T03:57:07.6383178Z ##[group]Run actions/setup-python@v5
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6383442Z with:
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6383626Z   python-version: 3.13
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6383811Z   check-latest: false
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6385903Z   token: ***
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6386083Z   update-environment: true
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6386279Z   allow-prereleases: false
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6386471Z   freethreaded: false
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.6386653Z ##[endgroup]
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.7498736Z ##[group]Installed versions
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.7574212Z (node:2136) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.7574945Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.7575426Z Successfully set up CPython (3.13.18)
+build	Run actions/setup-python@v5	2026-11-10T03:57:07.7575989Z ##[endgroup]
+build	Run pip install Pillow numpy fonttools cryptography	﻿2026-11-10T03:57:07.7732122Z ##[group]Run pip install Pillow numpy fonttools cryptography
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7732571Z ^[[36;1mpip install Pillow numpy fonttools cryptography^[[0m
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7823043Z shell: /usr/bin/bash -e {0}
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7823304Z env:
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7823551Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7823921Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7824257Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7824557Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7824862Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7825172Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:07.7825480Z ##[endgroup]
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:08.7282009Z Collecting Pillow
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:08.7680303Z   Downloading pillow-13.0.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:08.9097400Z Collecting numpy
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:08.9157016Z   Downloading numpy-2.5.4-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.0212139Z Collecting fonttools
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.0252592Z   Downloading fonttools-4.68.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (139 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.1815786Z Collecting cryptography
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.1851761Z   Downloading cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (4.4 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.2692141Z Collecting cffi>=2.0.0 (from cryptography)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.2727007Z   Downloading cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.2901342Z Collecting pycparser (from cffi>=2.0.0->cryptography)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.2935402Z   Downloading pycparser-3.12-py3-none-any.whl.metadata (9.7 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.3029738Z Downloading pillow-13.0.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7.1 MB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.3963217Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.1/7.1 MB 77.6 MB/s  0:00:00
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.4000401Z Downloading numpy-2.5.4-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.5377487Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 121.4 MB/s  0:00:00
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.5480562Z Downloading fonttools-4.68.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.4 MB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.5763833Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.4/5.4 MB 199.4 MB/s  0:00:00
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.5804299Z Downloading cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl (4.8 MB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.6062193Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.8/4.8 MB 189.0 MB/s  0:00:00
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.6099558Z Downloading cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (221 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.6155567Z Downloading pycparser-3.12-py3-none-any.whl (62 kB)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:09.7094032Z Installing collected packages: pycparser, Pillow, numpy, fonttools, cffi, cryptography
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:12.7091092Z 
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:12.7103845Z Successfully installed Pillow-13.0.0 cffi-2.1.1 cryptography-50.0.2 fonttools-4.68.0 numpy-2.5.4 pycparser-3.12
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:12.7111107Z 
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:12.7111367Z [notice] A new release of pip is available: 26.2.2 -> 26.3
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:12.7111842Z [notice] To update, run: pip install --upgrade pip
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-10T03:57:12.7960673Z ##[error]The operation was canceled.
+build	a package and a site exist (fail closed)	﻿2026-11-10T03:57:12.8041032Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8041737Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8042299Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8060209Z shell: /usr/bin/bash -e {0}
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8060416Z env:
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8060638Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8060976Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8061312Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8061615Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8061899Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8062189Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8062493Z ##[endgroup]
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8111076Z ls: cannot access 'firmware/packages/*.fwsc': No such file or directory
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8121326Z ##[error]no package anywhere
+build	a package and a site exist (fail closed)	2026-11-10T03:57:12.8122805Z ##[error]Process completed with exit code 1.
+build	Post Run actions/checkout@v4	﻿2026-11-10T03:57:12.8227748Z Post job cleanup.
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.8931748Z [command]/usr/bin/git version
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.8971352Z git version 2.56.0
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9002880Z Temporarily overriding HOME='/home/runner/work/_temp/e6b561f3-f0c8-4d4f-acf7-30568f0f33e5' before making global git config changes
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9003897Z Adding repository directory to the temporary git global config as a safe directory
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9008035Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9048537Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9100228Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9346798Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9375410Z http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9385484Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9424094Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9682870Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	Post Run actions/checkout@v4	2026-11-10T03:57:12.9725006Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	Complete job	﻿2026-11-10T03:57:13.0102813Z Cleaning up orphan processes
+build	Complete job	2026-11-10T03:57:13.0375295Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
+## gh stderr
+log not found: 129619862466
