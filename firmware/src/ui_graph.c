@@ -2533,9 +2533,12 @@ static void draw_tracks(void)
             }
             GFX_HOOK_ALIGN(KB_X, KB_Y, KB_X + 2 * KNOB_BIG_R, KB_Y + 2 * KNOB_BIG_R, AL_HV, "mixer level value in its knob");
             cv_text_in(KB_X, KB_Y + CAP_IN(S, 2 * KNOB_BIG_R), 2 * KNOB_BIG_R, &AF_S, v, hot == 1u ? T_ACCENT : lvl ? vc : T_DIM, T_SURF);
+            /* (2.2) THE SAME INSTRUMENT AS HOME. This meter drew a solid 4 px bar while HOME drew eight
+             * lit segments on the heat ramp, so the two meters of one device read as two instruments --
+             * that is the audit's finding, and the reason this is one call now: gw_plasma_bar is the bar
+             * HOME draws, at the same 0..256 scale and on the same heat walk. */
             cv_rrect(45, TS_MY, 4, TS_MH, 2, T_RAISE, T_SURF);
-            if (ts.meter[c])
-                cv_rrect(45, TS_MY + TS_MH - 1 - ts.meter[c], 4, ts.meter[c] + 1, ts.meter[c] >= 4 ? 2 : 0, T_MID, T_RAISE);
+            gw_plasma_bar(45, TS_MY, 4, TS_MH, 8, (int32_t)ts.meter[c] * 256 / (TS_MH - 2), 60);
         }
         {   /* PAN (from the centre) and the REV send: captions, knobs, values */
             char v[8];
