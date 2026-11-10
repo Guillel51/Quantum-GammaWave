@@ -1193,3 +1193,27 @@ producirla**. Es un bloqueo, no una tarea hecha.
 | Matriz Control → Parámetro → Destino DSP → Efecto audible | **STILL PENDING** | No se hizo; lo único medido en audio es LATCH. | — | — |
 | Mejoras musicales baratas | **NOT STARTED** | Sin cambios. | — | — |
 | FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+## 22. Update — 2026-11-10, the published installer, opened and exercised
+
+The question this answers is narrow: **does the installer the public is being given actually work, and is its
+INSTALL button blocked by a defect or by the gates it is supposed to have?** It was opened in a cloud browser
+(Chrome, no FM-1 attached) and driven as a visitor would. Class: `[SITE]`, published page, network and console.
+No unit was involved and no byte was written to anything.
+
+| what was checked | what it said |
+|---|---|
+| the page itself | 200, and no console message of any kind |
+| the three requests it makes | page, `firmware/felucca-v2.0.0-2500153.fwsc`, its `.manifest.json`: 200, 200, 200 |
+| the package it offers | `QUANTUM GAMMAWAVE FM-1 (v2.0.0-2500153) — Ready to flash (610,959 bytes)` |
+| its integrity | `Package SHA-256 verified ✓ c423b17c…`, `Ed25519 qg1-release-1` |
+| the plan it shows before writing | write range `0x04000-0x92FFF`, 143 sectors, boot area `0x00000-0x03FFF` kept, factory `0xFF000` |
+| INSTALL with the confirmations unticked | `disabled = true` |
+| INSTALL with all four ticked | `disabled = false` |
+
+So the button is gated exactly by the four confirmations and by nothing else: the package verifies against the
+pinned key, the manifest matches the bytes, and there is no stale gate, no cache or service-worker shadow, and no
+JavaScript error standing between a verified package and a startable install. What this cannot say, and does not:
+what that specific unit answers when the installer opens it (JEDEC, geometry, identity), whether a dump of it
+exists, or whether a recovery has been rehearsed. Those gates are unchanged and open, and they are physics, not
+code — see §20 and `docs/FORENSIC_FM1_VIABILITY.md`.
