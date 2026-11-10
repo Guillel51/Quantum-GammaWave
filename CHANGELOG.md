@@ -1,3 +1,15 @@
+## 2026-11-10 — v2.4.0: preparación para The Firmware Hub
+
+- **Versión** `v2.3.1` → `v2.4.0` (`FELUCCA_VERSION`, README).
+- **Publicación oficial en The Firmware Hub**: `fmhub.json` en la raíz con el esquema oficial (what, author, kinds,
+  play, editor, cheat, image, color); `.github/workflows/release.yml` integrado con el workflow compartido
+  `zvenson/fm1-build/.github/workflows/build.yml@v1` (permisos contents/id-token/attestations write), build
+  `./build.sh --release "${GITHUB_REF_NAME#v}"`, paquetes `build/*.fwsc`, tests `sh tests/run_tests.sh`.
+- **Identidad propia conservada**: `FM-1_965` (firmware, loader `ota-FM-1_965`, paquete, manifiestos, release).
+- **Compatibilidad legacy**: `FM-1_982` se conserva sin reclamarla como identidad exclusiva.
+- **Pruebas físicas del Hub**: pendientes (requieren unidad física del dueño; no simuladas ni reemplazadas por
+  resultados del emulador).
+
 ## 2026-11-10 — v2.3.1: optimización profunda de memoria (POOL +12 288 B)
 
 - **Reducción de buffers de FX y voz (POOL).** `COMB_LEN` 1024 → 512 (ahorro 6 144 B), `CHO_LEN` 2048 → 1024
