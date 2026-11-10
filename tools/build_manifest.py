@@ -13,7 +13,7 @@ next to:
   * `commit`   -- the exact commit (`GIT_COMMIT`/`GITHUB_SHA` in CI, `git rev-parse HEAD` locally);
   * `dirty`    -- the worktree files that were not committed, minus `build/` (empty: reproducible);
   * `version`  -- `FELUCCA_VERSION` as compiled;
-  * `identity` -- the package identity (`FM-1_982`);
+  * `identity` -- the package identity (`FM-1_965`);
   * `config`   -- the build knobs that change the code (`FELUCCA_*`, `FELUCCA_USB_LAYOUT`);
   * `toolchain`/`sdk` -- what compiled it and the SDK files it linked, by hash;
   * `checks`   -- the build's own checks and their results.

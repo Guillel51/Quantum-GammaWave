@@ -46,7 +46,7 @@ function identityFrame(text) {
 
 // 2. Test verifyDevice (Verify Only surface) directly with production code
 const mock = createMockMidi(["FM-1"], { "FM-1": () => identityFrame("FM-1_015") });
-const devReport = await verifyDevice(mock.midi, { product: "FM-1_982" });
+const devReport = await verifyDevice(mock.midi, { product: "FM-1_965" });
 
 assert.strictEqual(devReport.recognised, true, "FM-1_015 must be recognized");
 assert.strictEqual(devReport.canInstall, false, "Verify Only MUST NOT authorize installation (canInstall must be false)");
@@ -89,13 +89,13 @@ console.log("  ok   requireChip enforces writable allowlist fail-closed on produ
 // 4. requireProof: the package's identity, size and published SHA-256
 const testPkg = pkgBytes;
 const testSha = crypto.createHash("sha256").update(testPkg).digest("hex");
-const proof = await requireProof({ pkg: testPkg, product: "FM-1_982", sha256: testSha });
+const proof = await requireProof({ pkg: testPkg, product: "FM-1_965", sha256: testSha });
 assert.strictEqual(proof.sha256, testSha, "the proof binds the package's hash");
 for (const [modArgs, expectedCode, what] of [
   [{ pkg: testPkg, product: null, sha256: testSha }, "proof", "no product"],
   [{ pkg: testPkg, product: "FM-1_901", sha256: testSha }, "proof", "another identity"],
-  [{ pkg: testPkg, product: "FM-1_982", sha256: "0".repeat(64) }, "image", "wrong SHA-256"],
-  [{ pkg: Buffer.alloc(500, 0), product: "FM-1_982" }, "image", "truncated package (< 960 B)"]
+  [{ pkg: testPkg, product: "FM-1_965", sha256: "0".repeat(64) }, "image", "wrong SHA-256"],
+  [{ pkg: Buffer.alloc(500, 0), product: "FM-1_965" }, "image", "truncated package (< 960 B)"]
 ]) {
   let threw = false;
   try {
@@ -112,7 +112,7 @@ const updater = new Updater({ inputs: new Map(), outputs: new Map() });
 let threwSwapped = false;
 const swappedPkg = Buffer.alloc(1024, 0x55);
 try {
-  await updater.install(swappedPkg, "FM-1_982", () => {}, { sha256: testSha, firmware: "1.0.0" });
+  await updater.install(swappedPkg, "FM-1_965", () => {}, { sha256: testSha, firmware: "1.0.0" });
 } catch (e) {
   threwSwapped = (e.code === "image" || e.code === "proof");
 }

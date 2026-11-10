@@ -56,6 +56,12 @@ def main():
     if not m:
         raise SystemExit("package_emu: FELUCCA_VERSION not found")
     version = m.group(1)
+    # the identity the WASM answers with is the same single constant the package is built with
+    # (tools/build.py PRODUCT, docs/IDENTITY.md), read here instead of copied
+    m = re.search(r'^PRODUCT = "([^"]+)"', (ROOT / "tools" / "build.py").read_text(), re.M)
+    if not m:
+        raise SystemExit("package_emu: PRODUCT not found in tools/build.py")
+    product = m.group(1)
     if not WASM.exists():
         raise SystemExit("package_emu: build/emu/felucca.wasm not found; compile it first")
     blob = WASM.read_bytes()
@@ -91,7 +97,7 @@ def main():
         "commit": sha,
         "wasm_sha256": digest,
         "wasm_bytes": len(blob),
-        "identity": "FM-1_982",
+        "identity": product,
         "config": {"EMU_OPT": os.environ.get("EMU_OPT", "-O2"),
                    "EMU_CFLAGS": os.environ.get("EMU_CFLAGS", ""),
                    "EMU_PREVIEW": os.environ.get("EMU_PREVIEW", "1")},

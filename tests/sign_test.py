@@ -60,7 +60,7 @@ def main():
     # the build record the signature will name: what tools/build_manifest.py writes
     rec_path = TMP / "manifest.json"
     rec_path.write_text(json.dumps({"schema": "qg1-build-1", "version": "3.0.0",
-                                    "commit": "0" * 40, "dirty": [], "identity": "FM-1_982",
+                                    "commit": "0" * 40, "dirty": [], "identity": "FM-1_965",
                                     "artifacts": {"felucca.fwsc": {"sha256": man_sha(raw), "bytes": len(raw)}}}))
     rec = S.record_sha256(rec_path)
     man = S.manifest_for(raw, "3.0.0", "2.9.0", "FM-1", "test-1", build_sha256=rec)

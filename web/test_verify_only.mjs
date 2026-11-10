@@ -12,6 +12,7 @@ import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
 import * as mod from "./fm1verify.js";
 import * as diag from "./fm1diag.js";
 import { Updater, requireProof, requireChip, chipCheck, pack7, unpack7 } from "./fm1ota.js";
+import { productOf } from "./fm1pkg.js";
 
 let bad = 0, total = 0;
 const check = (name, ok) => {
@@ -70,21 +71,21 @@ function anyWrite(sent) {
 
 // --- cases ---------------------------------------------------------------------------------
 {
-  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
-  check("our firmware: reported as ours, with its own identity", fw.kind === "ours" && fw.text === "FM-1_982" && fw.version === 982);
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_965")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
+  check("our firmware: reported as ours, with its own identity", fw.kind === "ours" && fw.text === "FM-1_965" && fw.version === 965);
   check("our firmware: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   check("official V15: reported as stock", fw.kind === "stock" && fw.text === "FM-1_015");
   check("official V15: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
   // JIANT, or any FM-1 firmware that is not this one: its identity is reported, never "unknown"
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_210")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   check("JIANT/another FM-1: its identity is reported as it answered", fw.kind === "other" && fw.text === "FM-1_210" && fw.version === 210);
   check("JIANT/another FM-1: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
@@ -92,7 +93,7 @@ function anyWrite(sent) {
   // the unit this was reported from: a real FM-1 running JIANT answers FM-1_909. It is a device,
   // its firmware is simply not one this installer knows, and verify must say exactly that.
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   check("FM-1_909 (JIANT): detected as an FM-1, model and version read from the frame",
     fw.kind === "other" && fw.found === true && fw.model === "FM-1" && fw.version === 909 && fw.text === "FM-1_909");
   check("FM-1_909 (JIANT): the firmware is reported as not recognised, and no install is authorised",
@@ -103,12 +104,12 @@ function anyWrite(sent) {
   // every answer says what it is: found / recognised / canInstall, and only the reading one moves
   // the two loaders share the port name and are told apart by the version the unit answers:
   // 900 is this project's loader (resumable), any other is the vendor's update mode (not a target).
-  const cases = [["FM-1_015", "stock", true], ["FM-1_982", "ours", true], ["ota-FM-1_900", "ourloader", true],
+  const cases = [["FM-1_015", "stock", true], ["FM-1_965", "ours", true], ["ota-FM-1_965", "ourloader", true],
                  ["ota-FM-1_015", "otherloader", true],
                  ["FM-1_909", "other", false], ["FM-1_210", "other", false]];
   for (const [id, kind, ok] of cases) {
     const a = access(["FM-1"], { "FM-1": () => [identityFrame(id)] });
-    const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+    const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
     check(`${id}: kind ${kind}, recognised ${ok}, never an install authorisation`,
       fw.kind === kind && fw.found === true && fw.recognised === ok && fw.canInstall === false);
   }
@@ -135,26 +136,26 @@ function anyWrite(sent) {
   // a firmware that does not implement the query at all (JIANT may be one): the port is named,
   // nothing else is sent, and it is not reported as "no FM-1 found"
   const a = access(["FM-1"], { "FM-1": () => [] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   check("a silent FM-1 port: reported as silent, with the port name", fw.kind === "silent" && fw.ports.includes("FM-1"));
   check("a silent FM-1 port: only identity queries were sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
   const a = access([], {});
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   check("no FM-1 at all: none, nothing sent", fw.kind === "none" && a.sent.length === 0);
 }
 {
-  const a = access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_900")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
-  check("this project's loader (ota-FM-1_900): ourloader, an install was cut off",
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_965")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
+  check("this project's loader (ota-FM-1_965): ourloader, an install was cut off",
     fw.kind === "ourloader" && fw.model === "ota-FM-1" && fw.compatibility === "finish-loader");
   check("this project's loader: only the identity query was sent, no resume", onlyQueries(a.sent) && !anyWrite(a.sent));
   /* The vendor's own update mode answers the same port name. Calling it "a loader we can resume"
    * is the mistake that would feed a Felucca image to a program nobody has shown to accept one, so
    * the report has to say foreign, and say it without sending a frame. */
   const b = access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_015")] });
-  const fw2 = await verifyDevice(b.midi, { product: "FM-1_982" });
+  const fw2 = await verifyDevice(b.midi, { product: "FM-1_965" });
   check("the vendor's update mode (ota-FM-1_015): otherloader, reported as foreign, not resumable",
     fw2.kind === "otherloader" && fw2.compatibility === "foreign-loader" && fw2.compatible === false);
   check("the vendor's update mode: nothing was sent to it", onlyQueries(b.sent) && !anyWrite(b.sent));
@@ -164,23 +165,23 @@ function anyWrite(sent) {
   const junk = [[0xF0, 0x01, 0xF7], [0xF0], [0xF0, 0x7D, 0x46, 0x4C, 65, 0xF7]];
   for (const j of junk) {
     const a = access(["FM-1"], { "FM-1": () => [j] });
-    const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+    const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
     check(`a malformed answer (${j.length} bytes): still silent, no write`, fw.kind === "silent" && onlyQueries(a.sent) && !anyWrite(a.sent));
   }
 }
 {
   // the port vanishes in the middle of the handshake
   const a = access(["FM-1"], { "FM-1": (b) => { a.closeAll(); return []; } });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   check("a disconnect mid-handshake: reported, nothing else sent", (fw.kind === "silent" || fw.kind === "none") && !anyWrite(a.sent) && onlyQueries(a.sent));
 }
 {
   // other gear on the same computer is never probed
-  const a = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_982")] });
+  const a = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_965")] });
   const found = await new Updater(a.midi).find();          // the install path: no probeAll
   check("the install path never probes gear that is not an FM-1", found === null && a.sent.length === 0);
-  const b = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_982")] });
-  const fw = await verifyDevice(b.midi, { product: "FM-1_982" });
+  const b = access(["Roland JUNO-X", "Microphone"], { "Roland JUNO-X": () => [identityFrame("FM-1_965")] });
+  const fw = await verifyDevice(b.midi, { product: "FM-1_965" });
   check("Verify Only probes it, with the read-only query and nothing else",
     fw.kind === "ours" && onlyQueries(b.sent) && !anyWrite(b.sent));
 }
@@ -196,15 +197,15 @@ function anyWrite(sent) {
       if (isQuery(b)) setTimeout(() => input.onmidimessage && input.onmidimessage({ data: Uint8Array.from(identityFrame("FM-1_015")) }), 0);
     } };
   const midi = { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) };
-  const fw = await verifyDevice(midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(midi, { product: "FM-1_965" });
   check("one unit under two Windows names (MIDIIN2 / MIDIOUT2) is paired and read",
     fw.kind === "stock" && fw.text === "FM-1_015" && onlyQueries(sent) && !anyWrite(sent));
 }
 {
   // a package tag that is not this device must not make it "ours"
-  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_965")] });
   const fw = await verifyDevice(a.midi, { product: "FM-1_983" });
-  check("a different package tag: reported as another firmware", fw.kind === "other" && fw.text === "FM-1_982");
+  check("a different package tag: reported as another firmware", fw.kind === "other" && fw.text === "FM-1_965");
 }
 {
   // the module itself: no exported way to write, no import of the writer it would need
@@ -238,7 +239,7 @@ function anyWrite(sent) {
   const port = { name: "FM-1", state: "connected", open: async () => {}, send(b) { sent.push(Array.from(b)); } };
   const midi = { inputs: new Map([["in", { ...port, onmidimessage: null }]]), outputs: new Map([["out", port]]) };
   const up = new Updater(midi);
-  const e = await up.install(new Uint8Array(64), "FM-1_982", () => {}, {}).then(() => null, (x) => x);
+  const e = await up.install(new Uint8Array(64), "FM-1_965", () => {}, {}).then(() => null, (x) => x);
   check("install() with no real package is refused fail-closed",
     !!e && ["proof", "image"].includes(e.code));
   check("and that refusal reaches the device as zero frames", sent.length === 0);
@@ -259,7 +260,7 @@ function anyWrite(sent) {
   // the unit that motivated this: an FM-1 running Jiant answers FM-1_909. The hardware is an FM-1;
   // 909 is that firmware's own numbering, not a hardware revision and not a byte pattern to match.
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   check("JIANT on a real unit (FM-1_909): the hardware is recognised as an FM-1",
     fw.hardware === "FM-1" && fw.kind === "other" && fw.found === true);
   check("JIANT (FM-1_909): the firmware is reported as another build, with its own version",
@@ -278,12 +279,12 @@ function anyWrite(sent) {
 }
 {
   // every kind leaves canInstall false: the diagnosis never authorises an install
-  const cases = [["FM-1_015", "stock"], ["FM-1_982", "ours"], ["FM-1_909", "other"],
-                 ["ota-FM-1_900", "ourloader"], ["ota-FM-1_015", "otherloader"]];
+  const cases = [["FM-1_015", "stock"], ["FM-1_965", "ours"], ["FM-1_909", "other"],
+                 ["ota-FM-1_965", "ourloader"], ["ota-FM-1_015", "otherloader"]];
   let allFalse = true;
   for (const [id, kind] of cases) {
     const a = access(["FM-1"], { "FM-1": () => [identityFrame(id)] });
-    const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+    const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
     if (fw.kind !== kind || fw.canInstall !== false) allFalse = false;
   }
   check("canInstall is false for stock, ours, another build and the loader", allFalse);
@@ -292,7 +293,7 @@ function anyWrite(sent) {
   // the descriptors are read before any frame: a port that names its maker is reported as such
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
   for (const port of a.midi.inputs.values()) { port.manufacturer = "M-VAVE"; port.version = "1.00"; port.id = "usb-1"; }
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   const byKey = Object.fromEntries((fw.fields || []).map((f) => [f.key, f]));
   check("the USB-MIDI manufacturer is reported when the port exposes it",
     byKey["port.manufacturer"].value === "M-VAVE" && /descriptor/i.test(byKey["port.manufacturer"].source));
@@ -318,63 +319,77 @@ function anyWrite(sent) {
 
 // --- the package is not the device -----------------------------------------------------------
 // The reported failure: a stock FM-1 printed "Verify: official V15 (FM-1_015). This package can be
-// installed. FM-1_982". FM-1_982 is the tag of the package the page offers, and the handler appended
+// installed. FM-1_965". FM-1_965 is the tag of the package the page offers, and the handler appended
 // it to a sentence about the unit, so the only identifier left visible looked like the installed
 // firmware. The fixes below keep the two identities in separate fields, in separate rows, and never
 // let the package tag decide what the device is.
 {
   const fw = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] }).midi,
-    { product: "FM-1_982", pkg: { version: "v1.9.0", size: 611163, sha256: "372a5fde126ab6f1" } });
+    { product: "FM-1_965", pkg: { version: "v1.9.0", size: 611163, sha256: "372a5fde126ab6f1" } });
   const byKey = Object.fromEntries((fw.fields || []).map((f) => [f.key, f]));
   check("stock unit: the device identity is what the unit answered (FM-1_015)",
     byKey["firmware.identity"].value === "FM-1_015" && fw.text === "FM-1_015");
-  check("stock unit: the package is named in its own rows (FM-1_982), never as the device's identity",
-    byKey["pkg.identity"].value === "FM-1_982" && byKey["firmware.identity"].value !== "FM-1_982");
+  check("stock unit: the package is named in its own rows (FM-1_965), never as the device's identity",
+    byKey["pkg.identity"].value === "FM-1_965" && byKey["firmware.identity"].value !== "FM-1_965");
   check("stock unit: the package rows carry the release version, the size and the expected hash, with sources",
     byKey["pkg.release"].value === "v1.9.0" && /611163/.test(byKey["pkg.size"].value) &&
     /^372a5fde/.test(byKey["pkg.sha256"].value) && /build record/.test(byKey["pkg.identity"].source));
   check("stock unit + this package: compatibility says it replaces official V15, and authorisation stays none",
     fw.compatibility === "replaces-stock" && byKey["install.auth"].value === "none" && fw.authorised === false);
   check("stock unit: the package tag is in no device row at all",
-    !(fw.fields || []).some((f) => /^(hardware|firmware|port)\./.test(f.key) && f.value === "FM-1_982"));
+    !(fw.fields || []).some((f) => /^(hardware|firmware|port)\./.test(f.key) && f.value === "FM-1_965"));
 }
 {
-  // the reverse: a unit answering FM-1_982 is NOT stock, whatever the package is called. Comparing the
+  // the reverse: a unit answering FM-1_965 is NOT stock, whatever the package is called. Comparing the
   // package against FM-1_015 must never promote a device that answered something else into "stock".
-  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_965")] });
   const fw = await verifyDevice(a.midi, { product: "FM-1_015", pkg: { version: "v15", size: 1, sha256: "00" } });
-  check("a unit answering FM-1_982 is not stock, even when the package is a V15 one",
+  check("a unit answering FM-1_965 is not stock, even when the package is a V15 one",
     fw.kind === "other" && fw.firmware === "other" && fw.hardware === "FM-1" && fw.recognised === false);
   check("that unit is reported with its own identity and is not offered an install",
-    fw.text === "FM-1_982" && fw.compatibility === "blocked-firmware" && fw.canInstall === false);
+    fw.text === "FM-1_965" && fw.compatibility === "blocked-firmware" && fw.canInstall === false);
   check("and it still heard nothing but the identity query", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
+  // the transition (docs/IDENTITY.md): a unit still running 2.1.1 answers FM-1_982. It is this
+  // firmware on its previous identity, so the new package is an update for it -- reported apart from a
+  // reinstall, and never confused with another project that may answer the same old number.
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
+  check("a unit on the previous identity (FM-1_982): ours, not another build",
+    fw.kind === "ours" && fw.firmware === "gammaWaveLegacy" && fw.text === "FM-1_982");
+  check("... and the package is an update for it, not a reinstall",
+    fw.compatibility === "upgrade-legacy" && fw.compatible === true && fw.canInstall === false);
+  check("... with the previous identity in the device rows, never in the package rows",
+    (fw.fields || []).some((f) => f.key === "firmware.identity" && f.value === "FM-1_982") &&
+    (fw.fields || []).some((f) => f.key === "pkg.identity" && f.value === "FM-1_965"));
+}
+{
   // our own firmware already running: a reinstall, not stock and not "another build"
-  const fw = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] }).midi,
-    { product: "FM-1_982" });
-  check("FM-1_982 + package FM-1_982: ours, same firmware (a reinstall)",
+  const fw = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_965")] }).midi,
+    { product: "FM-1_965" });
+  check("FM-1_965 + package FM-1_965: ours, same firmware (a reinstall)",
     fw.kind === "ours" && fw.compatibility === "reinstall-same" && fw.canInstall === false);
 }
 {
   // the loader, and a package for a different model
-  const ldr = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_900")] }).midi,
-    { product: "FM-1_982" });
+  const ldr = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_965")] }).midi,
+    { product: "FM-1_965" });
   check("this project's loader + this package: it can finish the interrupted install",
     ldr.kind === "ourloader" && ldr.compatibility === "finish-loader" && ldr.authorised === false);
   const vend = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("ota-FM-1_015")] }).midi,
-    { product: "FM-1_982" });
+    { product: "FM-1_965" });
   check("the vendor's loader + this package: blocked as foreign, never \"finish the install\"",
     vend.kind === "otherloader" && vend.compatibility === "foreign-loader" && vend.compatible === false);
   const wrong = await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-2_982")] }).midi,
-    { product: "FM-1_982" });
+    { product: "FM-1_965" });
   check("a unit of another model is blocked by model, not by firmware",
     wrong.kind === "other" && wrong.compatibility === "blocked-model" && wrong.hardware === "");
 }
 {
   // no answer and no port: the package block is still there, and the unit is "unproven", not compatible
-  const silent = await verifyDevice(access(["FM-1"], { "FM-1": () => [] }).midi, { product: "FM-1_982" });
-  const none = await verifyDevice(access([], {}).midi, { product: "FM-1_982" });
+  const silent = await verifyDevice(access(["FM-1"], { "FM-1": () => [] }).midi, { product: "FM-1_965" });
+  const none = await verifyDevice(access([], {}).midi, { product: "FM-1_965" });
   const has = (fw, key) => (fw.fields || []).some((f) => f.key === key);
   check("a silent port: unproven, never compatible, and the package is still named",
     silent.compatibility === "unproven-device" && has(silent, "pkg.identity") && silent.canInstall === false);
@@ -413,12 +428,12 @@ function anyWrite(sent) {
   const midi = { inputs: new Map([["in", { ...port, onmidimessage: null }]]), outputs: new Map([["out", port]]) };
   const up = new Updater(midi);
   const link = { send(b) { sent.push(Array.from(b)); }, read: async () => null, close() {}, lost: false };
-  const ota = { link, id: { model: "ota-FM-1", text: "ota-FM-1_982" } };
+  const ota = { link, id: { model: "ota-FM-1", text: "ota-FM-1_965" } };
   const pkg = new Uint8Array(2000);
-  const e1 = await up.write(ota, pkg, () => {}, { product: "FM-1_982" }).then(() => null, (x) => x);
+  const e1 = await up.write(ota, pkg, () => {}, { product: "FM-1_965" }).then(() => null, (x) => x);
   check("write() called directly, with no proof, is refused and sends nothing",
     !!e1 && ["proof", "image"].includes(e1.code) && sent.length === 0);
-  const e2 = await up.resume(pkg, () => {}, "FM-1_982", {}).then(() => null, (x) => x);
+  const e2 = await up.resume(pkg, () => {}, "FM-1_965", {}).then(() => null, (x) => x);
   check("resume() called directly, with no proof, is refused and sends nothing",
     !!e2 && ["proof", "image"].includes(e2.code) && sent.length === 0);
 }
@@ -451,7 +466,7 @@ function anyWrite(sent) {
 // printed under their own labels; the platform block is documented, and says so in every row.
 {
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: {
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965", pkg: {
     version: "v1.9.0", size: 611163, sha256: "306964883e271ba3",
     build: { commit: "abcdef0123456789abcdef0123456789abcdef01", version: "v1.9.0",
              artifacts: { "felucca.bin": { bytes: 559552, sha256: "c25cc427a24ab682" },
@@ -480,7 +495,7 @@ function anyWrite(sent) {
 // the reason the report does not need to pretend it read a JEDEC id, a clock or a boot-loader id.
 {
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   const row = (k) => (fw.fields || []).find((f) => f.key === k) || {};
   const p = fw.reading.probe || {};
   check("the report counts the identity frames it actually sent (1 here)",
@@ -498,7 +513,7 @@ function anyWrite(sent) {
 {
   /* a port that never answers: two identity frames, no latency, and the report says "no answer" */
   const a = access(["FM-1"], { "FM-1": () => [] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   const row = (k) => (fw.fields || []).find((f) => f.key === k) || {};
   check("silent unit: both identity frames are counted and the report says no answer",
         fw.kind === "silent" && a.sent.length === 2 && fw.reading.probe.frames === 2 &&
@@ -515,10 +530,10 @@ function anyWrite(sent) {
   const real = { version: "v1.9.0-1ef1b07", size: 611163,
     sha256: "237205de6df87963b07fe29c2a2b285fa8ee4972c7d89ddc77bd5d897f50e115", keys: {} };
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: real });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965", pkg: real });
   const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
-  check("the real case: FM-1_015 answered, the package offered is FM-1_982",
-        fw.kind === "stock" && fw.text === "FM-1_015" && fw.package.identity === "FM-1_982");
+  check("the real case: FM-1_015 answered, the package offered is FM-1_965",
+        fw.kind === "stock" && fw.text === "FM-1_015" && fw.package.identity === "FM-1_965");
   check("the real case: the package replaces stock V15 (same model, other tag)",
         fw.compatibility === "replaces-stock" && fw.package.size === 611163 && fw.package.sha256.startsWith("237205de"));
   check("the checklist has its ten rows, in the installer's order",
@@ -545,7 +560,7 @@ function anyWrite(sent) {
         fw.verdict.blocked.length === 2);
   check("a key map does not let verify only claim the signature was checked",
         (await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] }).midi,
-          { product: "FM-1_982", pkg: { ...real, keys: { prod: "00".repeat(32) } } }))
+          { product: "FM-1_965", pkg: { ...real, keys: { prod: "00".repeat(32) } } }))
           .gate.find((r) => r.key === "gate.signature").state === "unknown");
   check("no report row claims a JEDEC id, a clock or a flash geometry was read",
         !(fw.fields || []).some((f) => /jedec|clock|geometry/i.test(f.key) && f.confidence !== "documented"));
@@ -557,7 +572,7 @@ function anyWrite(sent) {
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
   const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
     build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965", pkg: built });
   const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
   check("the chip is decided by the unit at install, and no report is asked of the user",
         g["gate.chip"] === "at-install" && g["gate.backup"] === "not-required");
@@ -579,7 +594,7 @@ function anyWrite(sent) {
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
   const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
     build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built,
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965", pkg: built,
     signature: { state: "pass", keyid: "qg1-release-1", size: 610806, sha256: "80".repeat(32), detail: "checked" } });
   check("a stock unit with a checked package is GO: this page installs it",
         fw.verdict.result === "GO" && fw.verdict.canInstall === true && fw.verdict.canInstallHost === false &&
@@ -595,10 +610,10 @@ function anyWrite(sent) {
      writer, the chip is identified by the install's own 0x12 on the same link, and an interrupted
      update is resumable by design -- so nothing about a full-flash dump belongs in this list. This is
      the case that used to say "recovery not verified" and block an update that the transport supports. */
-  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_982")] });
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_965")] });
   const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
     build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built,
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965", pkg: built,
     signature: { state: "pass", keyid: "qg1-release-1", size: 610806, sha256: "80".repeat(32), detail: "checked" } });
   const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
   check("a unit already running QG: the installer's own path is GO", fw.kind === "ours" &&
@@ -615,7 +630,7 @@ function anyWrite(sent) {
   /* a unit that answers another firmware: the model still matches, so compatibility is decided by what
      the unit said, and the checklist says the firmware is not one this installer may replace */
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_909")] });
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982" });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
   const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
   check("another JIANT build: compatibility fails in the checklist and the verdict is still NO-GO",
         fw.kind === "other" && fw.compatibility === "blocked-firmware" && g["gate.compat"] === "fail" && fw.verdict.result === "NO-GO");
@@ -626,7 +641,7 @@ function anyWrite(sent) {
      the file a user attaches carries no key material and no session token */
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
   const pkgHere = { version: "1.9.0", size: 611163, sha256: "ab".repeat(32), build: "abc1234" };
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: pkgHere });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965", pkg: pkgHere });
   const states = diag.diagnosticStates(fw);
   const st = Object.fromEntries(states.map((s) => [s.state, s.reached]));
   check("the eight states are named and ordered", states.map((s) => s.state).join("|") === diag.DIAGNOSTIC_STATE_ORDER.join("|"));
@@ -652,7 +667,9 @@ function anyWrite(sent) {
   const { createHash } = await import("node:crypto");
   const bytes = (() => { try { return new Uint8Array(fs.readFileSync(new URL("../tests/fixtures/felucca-v1.9.0.fwsc", import.meta.url))); } catch (_) { return null; } })();
   if (bytes) {
-    const identity = "FM-1_982";
+    /* the fixture is a historical release: the identity that decides is the one in its own bytes, so
+     * this check keeps working after docs/IDENTITY.md moved the project to a new number */
+    const identity = productOf(bytes);
     const sha = createHash("sha256").update(bytes).digest("hex");
     const size = bytes.length;
     const good = await mod.verifyPackage(bytes, { product: identity, sha256: sha, size });
@@ -793,11 +810,11 @@ function anyWrite(sent) {
   check("no FM-1 port: no chip is claimed", none.ok === false && none.code === "notfound");
 
   /* and the gate reads that answer: a refusal is a failed gate, a pass is still not an install */
-  const refusedGate = await verifyDevice(stock.midi, { product: "FM-1_982", chip: noChip });
+  const refusedGate = await verifyDevice(stock.midi, { product: "FM-1_965", chip: noChip });
   const chipRow = refusedGate.gate.find((r) => r.key === "gate.chip");
   check("the report's chip gate is a fail when the unit refused 0x12",
         chipRow && chipRow.state === "fail" && refusedGate.verdict.canInstall === false);
-  const passedGate = await verifyDevice(qg.midi, { product: "FM-1_982", chip: chipOk });
+  const passedGate = await verifyDevice(qg.midi, { product: "FM-1_965", chip: chipOk });
   const chipRow2 = passedGate.gate.find((r) => r.key === "gate.chip");
   check("the chip gate passes on a real answer, and the install is still not authorised here",
         chipRow2 && chipRow2.state === "pass" && passedGate.verdict.canInstall === false);

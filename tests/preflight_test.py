@@ -148,7 +148,9 @@ def main():
     check("FM1_LAB=1 changes nothing: the flags are gone and no frame is sent",
           rc == 2 and d.upgrades == 0 and rc2 == 2 and d2.upgrades == 0)
 
-    d6 = T.FakeFM1(image, identity="ota-" + product, name="Felucca Update", after_write=product)
+    # a loader that is not this project's (Felucca's own 919, not ours): the host cannot vouch for the
+    # NOR it will erase through, so nothing may be sent
+    d6 = T.FakeFM1(image, identity="ota-FM-1_919", name="Felucca Update", after_write=product)
     up6 = I.Updater(d6)
     dev6 = up6.find()
     err = None
@@ -156,8 +158,20 @@ def main():
         up6.write(dev6, image, lambda *a: None)
     except I.InstallError as e:
         err = e
-    check("a direct Updater.write() without evidence is refused too",
+    check("a direct Updater.write() through a foreign loader, without evidence, is refused too",
           err is not None and err.code == "chip" and d6.upgrades == 0)
+
+    # this project's own loader is the one exception, and it is the documented one: it identifies the
+    # chip itself before it erases (firmware/loader/loader.c ldr_flash_known), so the upgrade starts
+    d7 = T.FakeFM1(image, identity="ota-" + product, name="Felucca Update", after_write=product)
+    up7 = I.Updater(d7)
+    dev7 = up7.find()
+    try:
+        up7.write(dev7, image, lambda *a: None)
+    except I.InstallError:
+        pass
+    check("this project's loader (" + product + ") may take the image without host evidence",
+          d7.upgrades == 1)
 
     print("preflight: all passed" if not fails else f"preflight: {fails} FAILED")
     return 0 if not fails else 1

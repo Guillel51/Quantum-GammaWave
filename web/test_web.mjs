@@ -1449,7 +1449,7 @@ class FakeFM1 {
     this.frames = 0; this.upgrades = 0;   // frames the host sent, and UPGRADE commands
     this.jedec = jedec; this.silentNor = silentNor; this.session = 0xA000; this.queries = 0;
     this.access = { inputs: new Map(), outputs: new Map() };
-    this.boot("FM-1_900", "Felucca");   // the identity the test package carries
+    this.boot("FM-1_965", "Felucca");   // the identity the test package carries
   }
   boot(identity, name) {
     this.identity = identity; this.waiting = null; this.queue = [];
@@ -1507,9 +1507,9 @@ class FakeFM1 {
       this.waiting = null;
       this.served++;
       if (this.served >= this.unplugAfter) { this.input.state = this.output.state = "disconnected"; return; }
-      if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_900", "Felucca Update"), 300);
+      if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_965", "Felucca Update"), 300);
       else if (addr === 0xF0000000) {
-        if (!this.ackLost) setTimeout(() => this.boot("FM-1_900", "Felucca"), 300);
+        if (!this.ackLost) setTimeout(() => this.boot("FM-1_965", "Felucca"), 300);
       } else this.next();
     }
   }
@@ -1544,7 +1544,7 @@ function packageOf(img, identity) {
 async function updater() {
   const M = await import("./fm1ota.js");
   const FAST = { loaderDelay: 10, rebootDelay: 10, rebootWait: 3000, loaderWait: 3000 };
-  const identity = "FM-1_900";
+  const identity = "FM-1_965";
   const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
   const pkg = packageOf(image, identity);
   const ctx = { sha256: sha256(pkg), firmware: "1.8.9" };
@@ -1632,7 +1632,7 @@ async function updater() {
   }
   {
     const other = "FM-1_901", pkg2 = packageOf(image, other);
-    const dev = new FakeFM1(image);                       // it answers as FM-1_900
+    const dev = new FakeFM1(image);                       // it answers as FM-1_965
     const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { firmware: "1.8.9" })
       .then(() => null, (x) => x);
     ok(e && e.code === "model" && dev.upgrades === 0 && dev.served === 0,

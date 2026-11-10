@@ -176,7 +176,7 @@ def main():
     # the build record the release must name, and the sign/verify pair that carries it
     record = signed / "manifest.json"
     record.write_text(json.dumps({"schema": "qg1-build-1", "version": "1.9.0", "commit": "0" * 40,
-                                  "dirty": [], "identity": "FM-1_982",
+                                  "dirty": [], "identity": "FM-1_965",
                                   "artifacts": {"felucca.fwsc": {"sha256": S.__dict__["hashlib"].sha256(raw).hexdigest(),
                                                                  "bytes": len(raw)}}}))
     ok(S.main(["sign", str(p), "--key", str(priv), "--version", "1.9.0", "--min", "1.8.0",

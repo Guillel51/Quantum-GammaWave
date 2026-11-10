@@ -15,7 +15,7 @@ mecanismo de arranque.
 
 | Comando | Dirección | Qué hace |
 |---|---|---|
-| `0x11` | dispositivo → host | identidad: 34 bytes, texto del modelo en `d[6:33]` (`FM-1_982`, o `ota-FM-1_982` en el loader) |
+| `0x11` | dispositivo → host | identidad: 34 bytes, texto del modelo en `d[6:33]` (`FM-1_965`, o `ota-FM-1_965` en el loader) |
 | `0x30` | dispositivo → host | el dispositivo pide un rango del **paquete**; el host responde con esos bytes |
 | `0xF0000000` / `0xE0000000` | dispositivo → host | confirmación final de escritura / de chequeo |
 

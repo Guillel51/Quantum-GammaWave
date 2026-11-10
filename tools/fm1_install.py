@@ -356,10 +356,11 @@ class Updater:
         """The physical NOR must be identified for THIS unit before a frame that can write is sent."""
         try:
             if evidence is None:
-                # no chip fact on the host: only this project's loader (ota-<model>_900) may take the image,
-                # because it is the one that checks the chip before writing
+                # no chip fact on the host: only this project's loader (ota-<model>_965, or _900 in the
+                # packages up to 2.1.1) may take the image, because it is the one that checks the chip
+                # before writing
                 GATE.check_identity(product, dev.id.text)
-                if dev.id.loader and dev.id.version != 900:
+                if dev.id.loader and dev.id.version not in (965, 900):
                     raise InstallError("chip", f"the FM-1 is in its own update mode ({dev.id.text}), not this "
                                                "project's loader: nothing was sent")
                 return

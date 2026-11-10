@@ -42,16 +42,16 @@
 // A disconnect, a timeout or a malformed answer ends the same way: the kind is reported from
 // what was actually read, every port is closed, and there is no next step that writes.
 //
-// THE PACKAGE IS NOT THE DEVICE. The page also carries a package (this build: FM-1_982), and the
-// two identities must never be mixed on screen: "FM-1_982" is the tag of the .fwsc this page
-// offers, "FM-1_015" is what a stock FM-1 answers, and a unit that answers FM-1_982 is NOT a unit
+// THE PACKAGE IS NOT THE DEVICE. The page also carries a package (this build: FM-1_965), and the
+// two identities must never be mixed on screen: "FM-1_965" is the tag of the .fwsc this page
+// offers, "FM-1_015" is what a stock FM-1 answers, and a unit that answers FM-1_965 is NOT a unit
 // running official V15 -- it is running this build. So the report carries them in two separate
 // blocks (`firmware.*` from the frame, `pkg.*` from this page's build record), and the
 // compatibility between them is a third, derived row that is explicitly informational.
 // The identity of the package is NEVER written into a device field, and the package being V15 does
-// not turn a device that answered FM-1_982 into stock: kind is decided by what the unit said.
+// not turn a device that answered FM-1_965 into stock: kind is decided by what the unit said.
 
-import { Updater, PORT_RE, isOurLoader } from "./fm1ota.js";
+import { Updater, PORT_RE, isOurLoader, LEGACY_IDS } from "./fm1ota.js";
 import { derive, describe, unobservable } from "./fm1state.js";
 import { productOf } from "./fm1pkg.js";
 
@@ -149,18 +149,21 @@ export async function verifyPackage(bytes, { product = "", sha256 = "", size = 0
 // How this package relates to what answered. Informational: `canInstall` is false regardless, and
 // only the install path's own gate (signature, chip JEDEC, sizes) decides. A silent unit is
 // "unproven", never "compatible": nothing was read, so nothing is known about its firmware.
-function compatibility(kind, deviceModel, pkgModel) {
+function compatibility(kind, deviceModel, pkgModel, legacy = false) {
   if (!pkgModel) return "no-package";
   if (kind === "none") return "no-device";
   if (kind === "silent") return "unproven-device";
   if (!deviceModel || deviceModel !== pkgModel) return "blocked-model";
   if (kind === "stock") return "replaces-stock";
+  /* an identity this project used before docs/IDENTITY.md: the firmware is ours, the number is old, so
+   * this is an update and not a reinstall of the same tag. */
+  if (kind === "ours" && legacy) return "upgrade-legacy";
   if (kind === "ours") return "reinstall-same";
   if (kind === "ourloader") return "finish-loader";
   /* Both loaders answer "ota-FM-1", and the name alone says nothing: the unit's own update mode
-   * (the vendor's, the one a stock FM-1 enters) and this project's loader (ota-FM-1_900). Only the
-   * version separates them, so a loader that is not ours is reported as foreign -- readable, never
-   * a target. */
+   * (the vendor's, the one a stock FM-1 enters) and this project's loader (ota-FM-1_965, or
+   * ota-FM-1_900 in the packages up to 2.1.1). Only the version separates them, so a loader that is
+   * not ours is reported as foreign -- readable, never a target. */
   if (kind === "otherloader") return "foreign-loader";
   return "blocked-firmware";
 }
@@ -304,7 +307,8 @@ const APP_LO = 0x4000, APP_HI = 0x93000;
  *   after         a post-write obligation, verified by the install, never a precondition
  */
 function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "none" }) {
-  const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader";
+  const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader"
+    || compat === "upgrade-legacy";
   const image = Number((pkg && pkg.binary) || 0);
   const fits = image > 0 && APP_LO + image <= APP_HI;
   const rows = [
@@ -416,17 +420,20 @@ export async function verifyDevice(midi, opts = {}) {
   let kind, firmware;
   if (/^ota-/i.test(model)) {
     /* /^ota-/ is the shape of the update loader, not a claim about whose it is: isOurLoader() reads
-     * the version (900 is this project's, FM-1 015's vendor loader is 015). Splitting them here is
+     * the version (965, or 900 before docs/IDENTITY.md; FM-1 015's vendor loader is 015). Splitting
      * what stops the report from calling a foreign loader "a interrupted install to finish". */
     kind = isOurLoader(dev.id) ? "ourloader" : "otherloader";
     firmware = isOurLoader(dev.id) ? "loader" : "vendorLoader";
   }
   else if (text === "FM-1_015") { kind = "stock"; firmware = "stock"; }
-  else if (product && text === product) { kind = "ours"; firmware = "gammaWave"; }
+  else if (product && (text === product || LEGACY_IDS.includes(text))) {
+    /* same project, an identity it used before docs/IDENTITY.md (2.1.1 answered FM-1_982) */
+    kind = "ours"; firmware = text === product ? "gammaWave" : "gammaWaveLegacy";
+  }
   else { kind = "other"; firmware = "other"; }
   const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
-  const compat = compatibility(kind, hardware, pkg.model);
+  const compat = compatibility(kind, hardware, pkg.model, firmware === "gammaWaveLegacy");
   const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, kind });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
@@ -458,6 +465,7 @@ export async function verifyDevice(midi, opts = {}) {
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
     fields, missing, signature: sig, chip, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
-    compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
+    compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader"
+      || compat === "upgrade-legacy",
   });
 }

@@ -39,7 +39,7 @@ const raw = new Uint8Array(readFileSync(PKG));
 const acc = acceptance(raw);
 
 ok(acc.ok, "the release passes every check M-Flasher makes before its first erase");
-ok(acc.product === "FM-1_982", "the container parses as " + acc.product);
+ok(acc.product === "FM-1_965", "the container parses as " + acc.product);
 ok(acc.model === "FM-1", "its model, as M-Flasher reads it, is " + acc.model);
 ok(acc.image === 0x93000, `the flash image is ${acc.image} B`);
 ok(acc.checks.some((c) => c.key === "accKey" && c.ok), "the chip key 0x980F decrypts every app file");
