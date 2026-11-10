@@ -6,7 +6,7 @@
 
   var TEXT = {
     en: {
-"Qué cambia en v2.0.0": "WHAT CHANGES IN v2.0.0",
+"El canal estable y el Preview": "THE STABLE CHANNEL AND THE PREVIEW",
       "El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas.": "The installer requires this SHA-256 and the Ed25519 signature before it enables INSTALL: integrity and authenticity verified.",
       "MASTER": "MASTER",
       "PRESETS": "PRESETS",
@@ -29,7 +29,7 @@
       "Abrir Preview": "Open Preview",
       "SHA-256, firma Ed25519 contra la clave fijada en la página y los hashes del firmware dentro de la firma, antes de habilitar INSTALL. El loader además identifica el chip en la unidad y rechaza uno desconocido sin borrar nada.": "SHA-256, an Ed25519 signature checked against the key pinned in the page, and the firmware hashes inside the signature, before INSTALL is enabled. The loader also identifies the chip on the unit and refuses an unknown part without erasing anything.",
       "FIRMA MÁS INTEGRIDAD MÁS CHIP REAL": "SIGNATURE PLUS INTEGRITY PLUS THE REAL CHIP",
-      "El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada instala el release firmado 2.0.0; el build que sigue a main vive en la página Preview.": "The web installer works over USB-MIDI. It needs no special drivers in Chrome or Edge, but it does need a data cable and the right package. This portal installs the signed 2.0.0 release; the build that follows main lives on the Preview page.",
+      "El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada instala el release firmado más reciente (la versión exacta está en el panel de arriba); el build que sigue a main vive en la página Preview.": "The web installer works over USB-MIDI. It needs no special drivers in Chrome or Edge, but it does need a data cable and the right package. This portal installs the newest signed release (the exact version is in the panel above); the build that follows main lives on the Preview page.",
       "Mirá la firma": "Look at the signature",
       "El instalador muestra el SHA-256 del paquete y la clave que lo firmó, qg1-release-1. Si la firma no verifica, INSTALL queda deshabilitado y la página dice por qué.": "The installer shows the package's SHA-256 and the key that signed it, qg1-release-1. If the signature does not verify, INSTALL stays disabled and the page says why.",
       "Verificá el modelo y el chip": "Check the model and the chip",
@@ -281,7 +281,7 @@
       "El emulador de esta portada es el build actual: mismo commit que el firmware, con su versión, su commit y el SHA-256 del wasm en el pie de la página. El instalador ofrece ese mismo paquete de main y comprueba su SHA-256 y su tamaño antes de escribir. En 2.0: las teclas de SCL vuelven a una esquina de 3 px, los planetas de HOME giran sobre su propio eje con la superficie en movimiento y la nota los enciende, y el Web Studio abre con un selector de vistas en lugar de diez botones. En 2.1.1 esa rotación queda verificada en el navegador (dos capturas y el recuento de píxeles en docs/evidence/3.3/), el filtro de LATCH se mide en audio renderizado y cada versión se publica como release de GitHub desde su tag.": "This portal's emulator is the current build: the same commit as the firmware, with its version, its commit and the wasm's SHA-256 in the page footer. The portal's installer offers that same main package. In 2.0: the SCL keys go back to a 3 px corner, HOME's planets spin on their own axis with their surface moving and a note lights them, and Web Studio opens with a view selector instead of ten buttons. In 2.1.1 that rotation is verified in the browser (two captures and the pixel count in docs/evidence/3.3/), the LATCH filter is measured on rendered audio, and every version is published as a GitHub release from its tag.",
       "Releases en GitHub ↗": "Releases on GitHub ↗",
     zh: {
-"Qué cambia en v2.0.0": "v2.0.0 的变化",
+"El canal estable y el Preview": "稳定频道与 Preview",
       "El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas.": "安装器在启用 INSTALL 之前要求该 SHA-256 与 Ed25519 签名：完整性与真实性均已校验。",
       "MASTER": "MASTER",
       "PRESETS": "预设",
@@ -304,7 +304,7 @@
       "Abrir Preview": "打开 Preview",
       "SHA-256, firma Ed25519 contra la clave fijada en la página y los hashes del firmware dentro de la firma, antes de habilitar INSTALL. El loader además identifica el chip en la unidad y rechaza uno desconocido sin borrar nada.": "在启用 INSTALL 之前：SHA-256、用页面中固定的密钥校验的 Ed25519 签名，以及签名内的固件哈希。loader 还会识别设备上的芯片，遇到未知器件时不擦除任何内容。",
       "FIRMA MÁS INTEGRIDAD MÁS CHIP REAL": "签名 + 完整性 + 真实芯片",
-      "El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada instala el release firmado 2.0.0; el build que sigue a main vive en la página Preview.": "网页安装器通过 USB-MIDI 工作。在 Chrome 或 Edge 中不需要特殊驱动，但需要数据线和正确的包。本站安装已签名的 2.0.0 发布版；跟随 main 的构建位于 Preview 页面。",
+      "El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada instala el release firmado más reciente (la versión exacta está en el panel de arriba); el build que sigue a main vive en la página Preview.": "网页安装器通过 USB-MIDI 工作。在 Chrome 或 Edge 中不需要特殊驱动，但需要数据线和正确的包。本站安装最新的已签名发布版（确切版本见上方面板）；跟随 main 的构建位于 Preview 页面。",
       "Mirá la firma": "查看签名",
       "El instalador muestra el SHA-256 del paquete y la clave que lo firmó, qg1-release-1. Si la firma no verifica, INSTALL queda deshabilitado y la página dice por qué.": "安装器会显示包的 SHA-256 和签名密钥 qg1-release-1。如果签名校验失败，INSTALL 保持禁用，页面会说明原因。",
       "Verificá el modelo y el chip": "校验型号与芯片",
