@@ -18,7 +18,7 @@ community projects have demonstrated on their own units from what has been demon
 | Symptom | State | First action |
 |---------|-------|--------------|
 | Boots, plays, USB-MIDI answers | running | normal install, backup first |
-| Appears as `ota-FM-1_900` | this project's update loader (an install was interrupted) | re-run the installer: it resumes. It cannot ask the loader for the chip, so load the M-Flasher record + dump first, or it refuses with `loaderchip` and writes nothing. |
+| Appears as `ota-FM-1_900` | this project's update loader (an install was interrupted) | re-run the installer: it resumes. The loader reads the chip itself before erasing anything, so nothing has to be loaded first. |
 | Appears as `ota-FM-1_015` | the unit's own update mode | do **not** feed it a Felucca image: power-cycle without holding keys and install only from a unit running Quantum GammaWave, or use M-Flasher |
 | Appears as `FM-1_015` after a failed install | stock firmware, app broken | install a package again |
 | No USB device, blank screen, no LEDs | boot chain | USB_KEY / Mask-ROM or an external programmer |

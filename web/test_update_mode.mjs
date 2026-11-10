@@ -6,15 +6,14 @@
 //     docs/IDENTIFICATION.md), so it cannot identify the chip;
 //   * a stock unit's own update mode is a different program ("ota-FM-1_015"), which never agreed to
 //     take a Felucca image.
-// So the chip gate on the loader link can only come from the same attempt's app-link reading or from
-// an M-Flasher record whose dump the page hashed -- and a foreign loader must be refused before a
-// single write frame. Every case asserts the frames, not the intention.
+// So the chip gate on the loader link is the loader's own check (it refuses a part the firmware does
+// not write before erasing anything) or the same attempt's app-link reading -- and a foreign loader
+// must be refused before a single write frame. Every case asserts the frames, not the intention.
 import assert from "node:assert";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { Updater, requireProof, pack7, isOurLoader } from "./fm1ota.js";
 import { logicalImage } from "./fm1pkg.js";
-import { parseRecord, verifyDump, recordFor, DUMP_BYTES } from "./fm1record.js";
 
 let n = 0;
 const ok = (cond, what) => { assert.ok(cond, what); n++; console.log("ok  " + what); };
@@ -115,24 +114,37 @@ class Unit {
 }
 
 /* the real release chain: the package people install, and the record/provenance the page needs */
-const pkg = fs.readFileSync("tests/fixtures/felucca-v1.9.0.fwsc");
+/* The package people install: the release fixture when this checkout carries one, otherwise whatever
+ * it built (CI builds one before running the tools). No fixture, no case: the run says so and stops. */
+function findPackage() {
+  const cands = ["tests/fixtures/felucca-v1.9.0.fwsc"];
+  for (const dir of ["build", "tests/fixtures"]) {
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch (_) { continue; }
+    for (const n of names) if (n.endsWith(".fwsc")) cands.push(`${dir}/${n}`);
+  }
+  let dirs = [];
+  try { dirs = fs.readdirSync("build").filter((n) => n.startsWith("release-")); } catch (_) {}
+  for (const d of dirs) {
+    let names = [];
+    try { names = fs.readdirSync(`build/${d}`); } catch (_) { continue; }
+    for (const n of names) if (n.endsWith(".fwsc")) cands.push(`build/${d}/${n}`);
+  }
+  const ok = cands.filter((p) => { try { return fs.statSync(p).size > 0; } catch (_) { return false; } });
+  /* a package this project built beats a scratch file left in build/ */
+  ok.sort((a, b) => (/felucca/.test(b) ? 1 : 0) - (/felucca/.test(a) ? 1 : 0));
+  return ok[0] || null;
+}
+const pkgPath = findPackage();
+if (!pkgPath) {
+  console.log("skip: no package in this checkout (tests/fixtures or build/felucca-*.fwsc)");
+  process.exit(0);
+}
+const pkg = fs.readFileSync(pkgPath);
 /* the device reads the LOGICAL image of the package (fm1pkg.js), not the container file */
 const image = logicalImage(pkg);
 const PRODUCT = "FM-1_982";
 const ctxFor = (extra = {}) => ({ firmware: "15", ...extra });
-
-const OWNER = JSON.stringify({
-  model: "FM-1", bootloader: "stock (M-VAVE)", firmware: "FM-1 015 (stock)", app: "OK",
-  "chip key": "0x980F", flash: "0x856014", "unit id": "4150353835313708",
-  loader: "M-Flasher 1.3, CPU at 96 MHz",
-  sha256: "38c66ae7c36b46f2fad1c0f8a041ba257934b1b46a73d4085216c60e78f2d9cd",
-  saved: "20261108-161613", tool: "m-flasher 0.9.4",
-});
-const dump = new Uint8Array(DUMP_BYTES);
-const dumpSha = crypto.createHash("sha256").update(dump).digest("hex");
-const chipRecord = recordFor(
-  await verifyDump(parseRecord(JSON.stringify({ ...JSON.parse(OWNER), sha256: dumpSha })), dump),
-  { model: "FM-1", version: 15, text: "FM-1_015" });
 
 ok(isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_900", version: 900 }) === true &&
    isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_015", version: 15 }) === false &&
@@ -168,25 +180,15 @@ const run = async (unit, ctx) => {
   ok(u.upgrades === 1, "...the loader took UPGRADE once");
 }
 
-/* 3. With the record and its hashed dump, the same resume goes through: the chip fact is this unit's
- *    own part, read out of band, and the loader's model matches the record's. */
-{
-  const u = new Unit(image, { identity: "ota-FM-1_900", nor: false });
-  u.after = PRODUCT;
-  const res = await run(u, ctxFor({ chipRecord }));
-  ok(res === PRODUCT, `a resumed install completes with the M-Flasher record (${JSON.stringify(res && res.message || res)})`);
-  ok(u.served > 0 && u.served < 1e8, "and the loader got the bytes it asked for, all of them");
-}
-
-/* 4. A stock unit's own update mode is not our loader: no image may go there. */
+/* 3. A stock unit's own update mode is not our loader: no image may go there. */
 {
   const u = new Unit(image, { identity: "ota-FM-1_015", nor: false });
-  const err = await run(u, ctxFor({ chipRecord }));
+  const err = await run(u, ctxFor());
   ok(err && err.code === "foreignloader", `the unit's own update mode is refused as "foreignloader" (${err && err.code})`);
   ok(u.upgrades === 0 && u.served === 0, "...with zero UPGRADE and zero bytes offered to it");
 }
 
-/* 5. A stock unit running its app installs: it cannot answer 0x12, its updater starts this package's
+/* 4. A stock unit running its app installs: it cannot answer 0x12, its updater starts this package's
  *    loader, and the loader checks the chip itself (firmware/loader/loader.c). */
 {
   const u = new Unit(image, { identity: "FM-1_015", nor: false });
@@ -196,13 +198,13 @@ const run = async (unit, ctx) => {
   ok(u.upgrades === 2, "...the stock app took UPGRADE once and the loader took it once");
 }
 
-/* 6. An answered 0x12 decides, even when it is a part this installer does not write: the record must
- *    not be able to paper over a chip that answered and was refused. */
+/* 5. An answered 0x12 decides, even when it is a part this installer does not write: nothing on the
+ *    host can paper over a chip that answered and was refused. */
 {
   const u = new Unit(image, { identity: "ota-FM-1_900", nor: true, jedec: 0xC84014 });   // read-only GD25Q80
-  const err = await run(u, ctxFor({ chipRecord }));
+  const err = await run(u, ctxFor());
   ok(err && err.code === "chip", `a loader that answers with a read-only part is refused (${err && err.code})`);
-  ok(u.upgrades === 0, "...and the record did not stand in for the answer: no UPGRADE");
+  ok(u.upgrades === 0, "...and nothing on the host stood in for the answer: no UPGRADE");
 }
 
 console.log(`update mode: ${n} checks, 0 FAILED`);

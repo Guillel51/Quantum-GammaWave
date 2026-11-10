@@ -8,9 +8,9 @@ chip before it erases anything. Every version is built by CI from its tag (`rele
 
 ## What changed
 
-- **HOME's planets turn, and it was checked in the browser.** Two captures of the panel 2.6 s apart: 602 of
-  57 600 pixels change, 595 of them inside the system bay. In a 300 ms window 427 pixels change inside that
-  bay — more than an orbit of 7–13 s per turn can move — so the surface is turning, not just the orbit.
+- **HOME's planets turn, and it was checked in the browser.** Two captures of the panel 2.6 s apart: 868 of
+  57 600 pixels change. In a 300 ms window 576 pixels change — more than an orbit of 7–13 s per turn can
+  move — so what moves is each body's surface, not just its orbit.
   Evidence: `docs/evidence/3.3/` (`home-rotation-1.png`, `home-rotation-2.png`, the cropped pair and the
   difference image).
 - **SCL keys keep a 3 px corner**, not the 6 px lozenge of 3.2; `tests/ui_render` re-rendered all 174 screens

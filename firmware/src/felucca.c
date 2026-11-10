@@ -70,6 +70,7 @@
 
 /* ----------------------------------------------------------- sound --- */
 #include "core.h"
+#include "preset_level.c"        /* (2.1) the measured level of every factory preset */
 #include "engines.c"             /* dsp.c, the eng_*.c files, the factory patterns */
 #include "params.c"
 #include "mod.c"               /* the modulation matrix, used by voice.c and fx.c */

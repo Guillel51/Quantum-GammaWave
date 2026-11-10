@@ -551,21 +551,16 @@ function anyWrite(sent) {
         !(fw.fields || []).some((f) => /jedec|clock|geometry/i.test(f.key) && f.confidence !== "documented"));
 }
 {
-  /* The owner's own evidence: two M-Flasher readings of one stock unit that agree on the whole 1 MiB, a
-     signed package whose image fits `[0x4000, 0x93000)`, and a unit that answers its identity. This is
-     the case the checklist used to call "blocked by gates 6..10": the chip, the map and the backup are
-     all knowable, recovery is covered by a documented tool, and the only thing this page cannot do is
-     write to a stock app -- a transport limit, not a missing gate. */
+  /* A stock unit whose package's image fits `[0x4000, 0x93000)` and which answers its identity. The
+     installer asks the user for no report from another tool: the chip is identified on the unit by
+     the update loader this project stages (ldr_flash_known), and V15 needs no full-flash dump. */
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
   const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
     build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
-  const corroborated = { ok: true, readings: 2, dumpSha256: "38".repeat(32), jedec: 0x856014, flash: "0x856014",
-    model: "FM-1", unitId: "4150353835313708", tool: "m-flasher 0.9.4",
-    saved: ["20261109-102008", "20261109-102035"], source: "2 m-flasher records of this unit, same dump hash" };
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built, corroborated });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built });
   const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
-  check("two agreeing readings: the chip and the backup are established, as corroboration",
-        g["gate.chip"] === "corroborated" && g["gate.backup"] === "corroborated");
+  check("the chip is decided by the unit at install, and no report is asked of the user",
+        g["gate.chip"] === "at-install" && g["gate.backup"] === "not-required");
   check("the map is established from the package, not from a write session",
         g["gate.flashmap"] === "pass");
   check("recovery is covered (an interrupted install resumes), never 'exercised'",
@@ -584,16 +579,12 @@ function anyWrite(sent) {
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
   const built = { version: "1.9.0", size: 610806, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
     build: { commit: "7eb9636", artifacts: { "felucca.bin": { bytes: 531992 }, "loader/ota.bin": { bytes: 7650 } } } };
-  const corroborated = { ok: true, readings: 2, dumpSha256: "38".repeat(32), jedec: 0x856014, flash: "0x856014",
-    model: "FM-1", unitId: "4150353835313708", tool: "m-flasher 0.9.4",
-    saved: ["20261109-102008", "20261109-102035"], source: "2 m-flasher records of this unit, same dump hash" };
-  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built, corroborated,
+  const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built,
     signature: { state: "pass", keyid: "qg1-release-1", size: 610806, sha256: "80".repeat(32), detail: "checked" } });
   check("a stock unit with a checked package is GO: this page installs it",
         fw.verdict.result === "GO" && fw.verdict.canInstall === true && fw.verdict.canInstallHost === false &&
         fw.verdict.blocked.length === 0 && fw.verdict.path === "this-page");
-  check("its limitations are named, not hidden", fw.verdict.limitations.includes("update-resumable-not-exercised") &&
-        fw.verdict.limitations.includes("dump-not-hashed-here"));
+  check("its limitations are named, not hidden", fw.verdict.limitations.includes("update-resumable-not-exercised"));
   check("GO-HOST is not an authorisation to send anything", fw.authorised === false && onlyQueries(a.sent) && !anyWrite(a.sent));
   check("the diagnostic file says RECOVERY AVAILABLE honestly: covered, still not exercised",
         (() => { const st = Object.fromEntries(diag.diagnosticStates(fw).map((s) => [s.state, s.reached]));

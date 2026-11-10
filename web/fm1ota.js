@@ -394,8 +394,6 @@ export class Updater {
       pass.chip = chip;
     } else if (ctx.chipContinuity) {
       bindChip(pass, ota.link, ctx.chipContinuity, "0x12 on the app link of this same attempt");
-    } else if (ctx.chipRecord) {
-      await bindRecord(pass, ota.link, ctx.chipRecord, ota.id, { modelOnly: true });
     } else {
       /* no chip fact on the host: this project's loader (checked above) reads the chip itself and
        * refuses to erase anything on a part the firmware does not write (loader.c ldr_flash_known) */
@@ -637,31 +635,6 @@ async function admit(proof, pkg, product) {
   return { image: rec.image, link: null, chip: null };
 }
 
-// Bind an admission to the link with a chip identification taken out of band: the record M-Flasher
-// wrote next to a full 1 MiB read, already checked against the dump's hash by the page (fm1record.js).
-// It exists because a stock unit answers the handshake but not 0x12, so a first install could never
-// reach the wire: the chip fact is real, it was just not obtainable over MIDI. Only a donor may take
-// this path -- a unit already running QG is identified on its own link, as before -- and the record
-// must name this model and this firmware version, so a record kept from another unit cannot stand in.
-async function bindRecord(pass, link, rec, id, { modelOnly = false } = {}) {
-  if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
-  if (!link || typeof link.send !== "function" || typeof link.read !== "function")
-    throw fail("chip", "this transfer has no open link to bind: nothing was sent.");
-  if (!rec || rec.ok !== true || rec.verified !== true)
-    throw fail("chip", "the chip record was not checked against its dump: nothing was sent.");
-  if (!/^[0-9a-f]{64}$/i.test(String(rec.dumpSha256 || "")))
-    throw fail("chip", "the chip record carries no dump hash: nothing was sent.");
-  /* A loader calls itself ota-FM-1_900; the model it belongs to is the part before the underscore,
-   * with the ota- prefix stripped -- the same rule write() uses to check the authorisation. */
-  const idModel = String((id && id.model) || "").replace(/^ota-/i, "");
-  if (!id || rec.model !== idModel || (!modelOnly && Number(rec.version) !== Number(id.version)))
-    throw fail("chip", `the record is for ${rec.model} ${rec.version}, the unit answered ${id && id.text}: nothing was sent.`);
-  const part = requireChip({ jedec: rec.jedec });      // the allowlist, once more, on the record's id
-  pass.link = link;
-  pass.chip = { jedec: rec.jedec, part: rec.part || part, readings: 0, source: rec.source || "record" };
-  return pass;
-}
-
 // Bind an admission to the link it will transmit on. The transport identifies the chip itself here,
 // with two 0x12 replies that carry a fresh session token each: nothing the caller holds can stand in
 // for that, an identification from an earlier connection is never reused, and #serve() refuses a link
@@ -687,11 +660,11 @@ function bindLink(pass, link) {
 }
 
 /* Bind a chip fact that was NOT read on this link. It exists for exactly one program: the update
- * loader, which cannot answer 0x12 because its build excludes the query. The fact still has to be
- * about this unit's part -- either the 0x12 of the app link in the same attempt (seconds earlier,
- * same cable, after which the unit only rebooted into the loader this project just staged) or an
- * M-Flasher record whose dump the page hashed. Neither can be supplied by a caller as a bare JEDEC:
- * both go through requireChip, the same allowlist as a link identification. */
+ * loader, which cannot answer 0x12 because its build excludes the query. The fact has to be about
+ * this unit's part -- the 0x12 of the app link in the same attempt (seconds earlier, same cable,
+ * after which the unit only rebooted into the loader this project just staged). It cannot be
+ * supplied by a caller as a bare JEDEC: it goes through requireChip, the same allowlist as a link
+ * identification. */
 function bindChip(pass, link, chip, source) {
   if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
   if (!link || typeof link.send !== "function") throw fail("chip", "this transfer has no open link: nothing was sent.");

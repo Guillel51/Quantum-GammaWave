@@ -75,7 +75,8 @@ area, not of a file name, not of the chip's whole physical part if it were large
 that matter for this project's gate:
 
 - A dump whose SHA-256 equals the record's is *that read*, byte for byte. That is a check of the file
-  against the record, and nothing more: it is what `web/fm1record.js` can re-derive in the page.
+  against the record, and nothing more -- any host tool can re-derive it (`sha256sum`). The installer
+  no longer asks for the record: the chip is identified on the unit (see below).
 - It is **not** a proof that the read was complete or consistent. That proof is the chip's CRC32 (or a
   second read), and M-Flasher performs it *inside the tool*, before it ever writes the `.json`; the
   value is not stored. `tools/fm1_mflasher.py import` therefore demands a second, byte-identical backup
@@ -177,7 +178,7 @@ So the installer now does three different things, and says which one it did:
 | Unit answers as | What the page does |
 |---|---|
 | `FM-1_9NN`, answers `0x12` | normal update: `0x12` twice on the app link, `UPGRADE`, the loader, the write. The loader link takes the chip fact from **that same attempt's app-link reading** (a `0x12` is still tried first, so a future loader that answers one decides). |
-| `ota-FM-1_900` (this project's loader, an interrupted install) | resumes. With no chip fact available it refuses (`loaderchip`) and asks for the M-Flasher record + dump, which is enough: the part identity does not depend on which program is running. |
+| `ota-FM-1_900` (this project's loader, an interrupted install) | resumes. The loader reads the chip itself before it erases anything (`firmware/loader/loader.c` `ldr_flash_known`) and refuses a part the firmware does not write, so the installer asks for no record and no dump here. |
 | `ota-FM-1_015` (the unit's own update mode) | refuses (`foreignloader`) with zero frames sent: a Felucca image must not be offered to it. |
 | `FM-1_015` (stock application) | refuses (`stockfirst`), opens the M-Flasher panel, and sends nothing. |
 

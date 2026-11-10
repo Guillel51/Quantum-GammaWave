@@ -392,7 +392,6 @@ if command -v node >/dev/null 2>&1; then
     # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
     # its dump hashed in the page, and the donor install path that accepts them -- with the wire
     # assertions that nothing is sent without them.
-    run "web chip record: M-Flasher record + dump, and what it does not authorise" node web/test_record.mjs
     # (first install) a unit sitting in its update mode answers the handshake and not 0x12, so the
     # chip gate on the loader link comes from the same attempt or from the record -- and a unit's own
     # update mode is never fed a Felucca image.

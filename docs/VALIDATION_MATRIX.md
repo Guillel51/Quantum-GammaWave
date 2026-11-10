@@ -1108,7 +1108,6 @@ The trace is a program, not a reading, because a checker that only prints "ok" p
 `tests/mflasher_accept_test.py` mutates the release six ways and requires M-Flasher's own refusal
 wording for each (damaged `app.bin` under a rebuilt container, damaged header, damaged image, `F`→`S`
 identity, `0xFFFF` chip key, non-sector image size) — **14 checks, 0 FAILED**. `[HOST]`
->>>>>>> 370f1a81bf191acbc64ff45f2515ecd57efdbf18
 
 ## 35. Update — 2026-11-09, 3.3: two channels, 2.0, and a surface that turns
 
@@ -1135,7 +1134,23 @@ physical hardware.
 | Public site | **CONFIRMED (root channel)** | After the deploy of `ebb9253`, `tools/site_check.py --expect-commit ebb9253... --expect-emu-commit ebb9253...` read the published origin: 14/14, the package at the commit asked for, the emulator built from that commit, its wasm size and SHA-256. The `/release/` channel failed the same gate — that is §36. | public site over HTTPS |
 | Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing in this pass is a claim about the hardware. | none |
 
-## 36. Update — 2026-11-10, 2.1.1: una versión por tag, y dos afirmaciones medidas de verdad
+## 2026-11-10 — the M-Flasher report leaves the install path
+
+The entries above that describe a chip fact taken out of band (`web/fm1record.js`, `bindRecord()`, the
+28-check `web/test_record.mjs`) are history, not the current mechanism. Since PR #88 the loader a stock
+unit stages reads the flash chip itself (`firmware/loader/loader.c` `ldr_flash_known`) and refuses a part
+the firmware does not write before it erases anything, and a unit already running QG answers `0x12` on its
+own link. The installer therefore asks the user for no record and no dump: the record box, the M-Flasher
+panel, `web/fm1record.js` and its test were removed in `eaa55a9`, together with the `loaderchip` message
+they produced. What the gates still require is what they always required — model, geometry, the part
+allowlist (`0x856014`, `0xB36014`), the write range `[0x4000, 0x93000)`, the factory-data boundary and the
+post-install identity — and those are decided on the unit, at install time.
+
+Class of evidence for the removal: `[HOST]` (`web/test_verify_only.mjs` 150, `web/test_update_mode.mjs` 12,
+`web/test_web.mjs`, `web/test_installer_i18n.py`) plus a real browser against the published page. Nothing
+here is a measurement on a physical unit.
+
+## 37. Update — 2026-11-10, 2.1.1: una versión por tag, y dos afirmaciones medidas de verdad
 
 La 3.3 cerró con `/release/` sirviendo el paquete firmado `v1.9.0` y negándose a escribir **su propio**
 paquete. Esta pasada encuentra la causa y la documenta, pero el arreglo que le habría correspondido ya no
@@ -1150,9 +1165,9 @@ muerto. Nada de esta pasada es una prueba sobre hardware.
 | Paso de despliegue `/preview/` | **REMOVED** | `emulator.yml` seguía esperando `/preview/emulator/manifest.json`, un canal eliminado en 3.3: cada despliegue habría publicado y después terminado en rojo. Ya no está; la puerta que queda es `tools/site_check.py` contra el commit y el build que acaban de subir. | workflow | — |
 | Versión 2.1.1 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` es `v2.1.1`; el build AC791N (imagen 535 504 B, paquete 610 806 B, identidad FM-1_982) y el wasm (1 080 687 B) lo llevan. El release lo publica CI desde el tag `v2.1.1` (`release.yml`): paquete, `.bin` de la app y `SHA256SUMS` adjuntos. | build AC791N + wasm de este árbol | AC791N + wasm |
 | Audio de LATCH | **PASS (rendered audio)** | `tests/perform_test.c::test_latch_audio()`: con LATCH ON el filtro sigue filtrando después de soltar la tecla; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF vuelve seca; REPEAT 1/16 sigue sonando tras soltar. Render, no una variable booleana. | `tests/perform_test.c` | host |
-| Rotación de los planetas de HOME | **VERIFIED IN THE BROWSER** | Dos capturas del panel del emulador separadas 2,6 s: 602 de 57 600 píxeles cambian, **595 dentro de la bahía del sistema** y 7 fuera; en una ventana de 300 ms cambian **427 píxeles de la bahía**, más de lo que puede mover una órbita de 7–13 s por vuelta. Capturas y recorte en `docs/evidence/3.3/`. | navegador cloud sobre el emulador servido en local | navegador |
+| Rotación de los planetas de HOME | **VERIFIED IN THE BROWSER** | Emulador de este build (`180ae85`, wasm `d6d9827e…`, 1 083 360 B) servido en local y abierto en el navegador cloud. Dos capturas separadas 2,6 s: **868 de 57 600 píxeles cambian**; en una ventana de **300 ms cambian 576**, más de lo que puede mover un cuerpo cuya órbita tarda 7–13 s por vuelta, así que lo que se mueve es la superficie de cada planeta y no solo la órbita. En el recorte de la bahía: 753 de 11 466 píxeles. Capturas, recorte ×4 y diferencia en `docs/evidence/3.3/`. | navegador cloud sobre el emulador servido en local | navegador |
 | SCL con esquina de 3 px | **RENDERED** | `scl_key()` dibuja esquina de 3 px; `tests/ui_render` regenera 174 pantallas × 17 paletas con 0 hallazgos de lint y 0 de alineación. | host render | host |
-| Host suites | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh` → `ALL HOST TESTS PASSED`; `web/test_web.mjs`, `web/test_i18n.py` verdes; el emulador de Node (`web/emu/emu_test.mjs`) "all ok". | host x86 | host |
+| Host suites | **FAIL, por dos comprobaciones ajenas a este pase** | `NO_PACKAGE=1 sh tests/run_tests.sh` termina en `HOST TESTS FAILED`. Lo que falla son `drumx` (PUNCH 100: el ataque del snare sube 0,48 dB donde el test pide ≥2; el cuerpo del kick 1240→1624 con el ataque 1668→1598) y `live` ("the rendered audio is the one recorded, second by second"). Ninguna de las dos toca código de este pase: el diff de `firmware/src` contra `main` es **una línea**, la versión. Vienen de `93c0fac` ("a sound now carries its own level"), que cambia el nivel con que carga cada preset y por lo tanto todo render. Lo que sí se arregló aquí: tres aserciones de `tests/ui_test.c` y dos de `tests/editor_test.c` que todavía exigían el contrato viejo ("un load no toca P_LEVEL"); ahora comprueban el nuevo — `LEVEL` es el del sonido, medido en `preset_level.c` — y `editor_test` gana una comprobación de que el load **empuja** ese nivel. Los dos binarios pasan enteros. `web/test_web.mjs`, `web/test_verify_only.mjs`, `web/test_pkg_bounds.mjs`, `web/test_i18n.py` verdes; el emulador de Node, "all ok", 2,0 % del tiempo real. | host x86 | host |
 | Matriz Control → Parámetro → Destino DSP → Efecto audible | **STILL PENDING** | No se hizo y no se declara hecha. Lo único medido en audio es LATCH. | — | — |
 | Mejoras musicales baratas | **NOT STARTED** | Sin cambios: cada una altera renders y ninguna se midió. | — | — |
 | FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. Ninguna afirmación de esta pasada es sobre el hardware. | — | — |

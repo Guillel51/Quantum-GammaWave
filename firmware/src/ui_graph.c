@@ -2080,10 +2080,9 @@ static void graph_preset_pop(void)
     for (r = -2; r <= 2; r++) {
         int32_t ry = y0 + 4 + (r + 2) * 15;
         int32_t x1 = x0 + w - 16;
-        char tag[6], nm[16], pt[4], pn[13];
+        char tag[6], nm[16];
         uint32_t index = preset_visible(cur, total, (uint32_t)(r + 3));
         int sel = (index == cur);
-        int32_t hint = sel ? preset_pat_hint() : -1;
         uint16_t row_bg;
 
         if (index >= total) continue;
@@ -2098,10 +2097,10 @@ static void graph_preset_pop(void)
 
         row_bg = sel ? T_THEME : T_SURF;
         if (favorite_has(e, k)) x1 -= 14;
-        if (hint >= 0) {
-            pat_label((uint32_t)hint, pt, pn);
-            x1 -= (text_w(&AF_S, pt) + 6);
-        }
+        /* (2.1) no pattern number here. `preset_pat_hint` was drawn as four bare characters at the right
+         * of the name, and on a popup that is up for 1.5 s they read as a random number stuck to the
+         * preset. The hint belongs to the pattern list, where the row is labelled and the number means
+         * something; the popup keeps the name and the favourite's star. */
 
         if (sel) {
             cv_rrect(x0 + 4, ry, w - 8, 14, 3, T_THEME, T_SURF);
@@ -2113,9 +2112,6 @@ static void graph_preset_pop(void)
             cv_free_text(x0 + 46, ry + 1, &AF_S, nm, T_TEXT, T_SURF, x1 - (x0 + 46));
         }
 
-        if (hint >= 0) {
-            cv_text_r(favorite_has(e, k) ? x0 + w - 20 : x0 + w - 8, ry + 1, &AF_S, pt, sel ? T_INK : T_ACCENT, row_bg);
-        }
         if (favorite_has(e, k)) {
             cv_icon_in(x0 + w - 16, ry, 0, 14, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
         }

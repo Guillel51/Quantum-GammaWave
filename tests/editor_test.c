@@ -203,10 +203,12 @@ static int framing(void)
     bad += check("realtime bytes interleaved in SysEx do not enter the editor frame",
                  host_wire_n == 7u && host_wire[4] == ED_PING && host_wire[5] == 0);
     ota_frame_done(); host_wire_n = 0;
-    for (i = 0; i < sizeof aborted; i++) sysex_byte(aborted[i]);
-    ed_service(); host_drain();
-    bad += check("a non-realtime status aborts SysEx without changing parameters",
-                 !sx_ready && !host_wire_n && TSEL->p[P_LEVEL] == TP[P_LEVEL].def);
+    {   const int16_t lv = TSEL->p[P_LEVEL];      /* (2.1) the level the sound loaded with, not the menu default */
+        for (i = 0; i < sizeof aborted; i++) sysex_byte(aborted[i]);
+        ed_service(); host_drain();
+        bad += check("a non-realtime status aborts SysEx without changing parameters",
+                     !sx_ready && !host_wire_n && TSEL->p[P_LEVEL] == lv);
+    }
     bad += check("a valid request works after an aborted frame", request(ED_PING, 0, 0) == 7u);
     ota_frame_done();
     midi_in_event(0x467DF004u);                          /* F0 7D 46 */
@@ -578,13 +580,31 @@ static int live_sync(void)
     bad += check("WATCH after a USB reset starts over", !sync_pass());
 
     /* PRESET */
-    TSEL->p[P_LEVEL] = 33;                               /* pending; a sound load keeps P_LEVEL */
+    /* (2.1) a sound now carries its own level: the load sets P_LEVEL from preset_level_of(), so the pending
+     * frame this test watches is seeded with the level preset 2 loads with -- otherwise the load would add a
+     * second, different P_LEVEL frame on top of the pending one and "one CHANGED stays" would be an accident */
+    TSEL->p[P_LEVEL] = (int16_t)preset_level_of(TSEL->eng_req % NENGINES, 2);
     a[0] = 0; a[1] = 2;
     request(ED_PRESET, a, 2);
     sync_pass();
     bad += check("the editor's own PRESET: no RELOAD, no CHANGED for what it loaded, a pending CHANGED stays",
                  TSEL->preset == 2 && !wire_frames(ED_RELOAD, 0) && wire_frames(ED_CHANGED, &x) == 1u &&
                  x[1] == P_LEVEL && !sync_pass());
+    {   /* and the load does push the sound's own level, which is the 2.1 contract: pick a preset whose
+         * measured level differs from the one on the fader, so the frame is about the load and not luck */
+        const uint32_t eng = TSEL->eng_req % NENGINES, n = ENGINES[eng]->npresets;
+        uint32_t k, pick = 0;
+        for (k = 0; k < n; k++)
+            if ((int16_t)preset_level_of(eng, k) != TSEL->p[P_LEVEL]) { pick = k; break; }
+        if (pick) {
+            const int16_t want = (int16_t)preset_level_of(eng, pick);
+            a[1] = (uint8_t)pick;
+            request(ED_PRESET, a, 2);
+            bad += check("..a load pushes the sound's own LEVEL",
+                         wire_frames(ED_CHANGED, &x) == 1u && x[1] == P_LEVEL && ed_rv(x + 2) == want &&
+                         TSEL->p[P_LEVEL] == want);
+        }
+    }
     for (i = 0; i < 3u; i++) {                           /* any preset of any engine */
         a[0] = (uint8_t)(i ? 12u : 4u); a[1] = (uint8_t)i;
         request(ED_PRESET, a, 2);

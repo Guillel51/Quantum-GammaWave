@@ -2,11 +2,36 @@
 // The trace the installer page shows before a first install: M-Flasher's own conditions on the release,
 // and the exact sector plan against a dump. Nothing here touches a unit.
 import assert from "node:assert";
-import { readFileSync } from "node:fs";
+import fs, { readFileSync } from "node:fs";
 import { Package } from "./fm1pkg.js";
 import { acceptance, sectorPlan, hexRange, ACCEPT_FLASH_MAX, ACCEPT_BOOT_AREA } from "./fm1accept.js";
 
-const PKG = "tests/fixtures/felucca-v1.9.0.fwsc";
+/* The package people install: the release fixture when this checkout carries one, otherwise whatever
+ * it built (CI builds one before running the tools). No fixture, no case: the run says so and stops. */
+function findPackage() {
+  const cands = ["tests/fixtures/felucca-v1.9.0.fwsc"];
+  for (const dir of ["build", "tests/fixtures"]) {
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch (_) { continue; }
+    for (const n of names) if (n.endsWith(".fwsc")) cands.push(`${dir}/${n}`);
+  }
+  let dirs = [];
+  try { dirs = fs.readdirSync("build").filter((n) => n.startsWith("release-")); } catch (_) {}
+  for (const d of dirs) {
+    let names = [];
+    try { names = fs.readdirSync(`build/${d}`); } catch (_) { continue; }
+    for (const n of names) if (n.endsWith(".fwsc")) cands.push(`build/${d}/${n}`);
+  }
+  const ok = cands.filter((p) => { try { return fs.statSync(p).size > 0; } catch (_) { return false; } });
+  /* a package this project built beats a scratch file left in build/ */
+  ok.sort((a, b) => (/felucca/.test(b) ? 1 : 0) - (/felucca/.test(a) ? 1 : 0));
+  return ok[0] || null;
+}
+const PKG = findPackage();
+if (!PKG) {
+  console.log("skip: no package in this checkout (tests/fixtures or build/felucca-*.fwsc)");
+  process.exit(0);
+}
 let n = 0;
 const ok = (cond, what) => { assert.ok(cond, what); n++; console.log("ok  " + what); };
 

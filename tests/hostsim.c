@@ -31,6 +31,7 @@
 #undef memcmp
 static struct { volatile uint32_t notes, buttons; } fm1_in;
 #include "../firmware/src/core.h"
+#include "../firmware/src/preset_level.c"      /* (2.1) the level each factory preset loads with */
 #include "../firmware/src/engines.c"
 #include "../firmware/src/params.c"
 #include "../firmware/src/mod.c"
@@ -127,6 +128,7 @@ static void host_preset_values(track_t *t, uint32_t e, uint32_t pi, const preset
             t->p[p->x[i].id - 1u] = (int16_t)clamp(p->x[i].v, TP[p->x[i].id - 1u].min, TP[p->x[i].id - 1u].max);
     if (!fm6_bank_read)                           /* (1.2-GW) no store here: FM6's built-in bank, GW-1 KEYS (fm6_vbank.c) */
         host_rom_bank();
+    t->p[P_LEVEL] = (int16_t)preset_level_of(e, pi);   /* (2.1) the sound's own level (ui.c) */
     fm6_track_loaded(t);                          /* FM6: the preset's patch (ui.c apply_preset_to) */
 }
 static void host_preset_req(track_t *t, uint32_t e, uint32_t pi)

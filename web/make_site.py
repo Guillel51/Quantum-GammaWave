@@ -136,7 +136,6 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     lib = strip_module((HERE / "fm1diag.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1accept.js").read_text(encoding="utf-8")) + "\n" + \
-        strip_module((HERE / "fm1record.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1state.js").read_text(encoding="utf-8")) + "\n" + \
@@ -187,6 +186,14 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     for e, src in old:
         shutil.copy(src, fw / e["file"])
     (fw / "versions.json").write_text(json.dumps(versions, indent=1) + "\n", encoding="utf-8")
+    # the same facts in `sha256sum -c` form, beside the bytes: the package, and -- when the package
+    # carries its build record -- the app image and the loader it was made from, so a download can be
+    # checked against the build it says it is without trusting the page that served it.
+    sums = [f"{hashlib.sha256(raw).hexdigest()}  {name}"]
+    for art, meta in sorted(((build or {}).get("artifacts") or {}).items()):
+        if isinstance(meta, dict) and meta.get("sha256"):
+            sums.append(f"{meta['sha256']}  {art}  ({meta.get('bytes', '?')} B, from the build record)")
+    (fw / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
     lic = HERE.parent / "LICENSES"                  # the package holds JieLi SDK files (Apache-2.0): their
     (fw / "LICENSES").mkdir(exist_ok=True)          # licence travels next to it, with Felucca's own
     names = sorted(f.name for f in lic.glob("*.txt"))

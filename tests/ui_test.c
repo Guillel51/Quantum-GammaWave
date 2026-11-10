@@ -3,7 +3,8 @@
 /* Host test of the UI (firmware/src/ui*.c with the sound sources of hostsim.c;
  * the display and the HAL are stubs, the buttons and knobs are driven through them):
  *   SOUNDS     a sound load (PRESETS knob / page, TOOLS INIT, user preset) changes the sound only: the
- *              steps, LEN DIV SWING GATE, ARP, SCL, the SLICER and the mix stay the track's. Power-on:
+ *              steps, LEN DIV SWING GATE, ARP, SCL, the SLICER and the sends stay the track's; LEVEL is
+ *              the sound's own, measured (2.1, preset_level.c). Power-on:
  *              every sequencer empty.
  *   PATTERNS   SEQ > PATTERNS: KNOB 1 PAT (factory patterns, then user presets that hold one), OCT+
  *              LOAD; over the user's steps the REPLACE? dialog (OCT- / OCT+); the PRESETS hint.
@@ -425,8 +426,9 @@ static int test_sound_loads(void)
     turn(EN_PRESET, 1);                           /* HOME: the next preset */
     bad += check("PRESETS on HOME loads the sound: steps, LEN, DIV untouched", t->preset == (uint8_t)((before.preset + 1u) % ENGINES[0]->npresets) &&
                  !memcmp(t->step, before.step, sizeof t->step) && t->p[P_SLEN] == 32 && t->p[P_SDIV] == 1);
-    bad += check("..ARP, SCL, the SLICER and the mix stay the track's", t->p[P_AMODE] == 2 && t->p[P_AOCT] == 3 && t->p[P_SCALE] == 2 &&
-                 t->p[P_TRANS] == 5 && t->p[P_SLCR] == SL_GATE && t->p[P_SLPAT] == 4 && t->p[P_LEVEL] == 90);
+    bad += check("..ARP, SCL, the SLICER and the sends stay the track's; LEVEL is the sound's own", t->p[P_AMODE] == 2 && t->p[P_AOCT] == 3 && t->p[P_SCALE] == 2 &&
+                 t->p[P_TRANS] == 5 && t->p[P_SLCR] == SL_GATE && t->p[P_SLPAT] == 4 &&
+                 t->p[P_LEVEL] == (int16_t)preset_level_of(t->eng_req % NENGINES, t->preset));
     bad += check("..and no warning about the sequence", !msg_is("T1 SEQ REPLACED"));
     for (i = 0; i < ENGINES[0]->npresets; i++)
         if (str_eq(ENGINES[0]->presets[i].name, "RAVE"))
@@ -1613,13 +1615,16 @@ static int test_tracks(void)
     open_family(FAM_TRK);
     before = trk[0];
     turn(EN_PRESET, 1);
-    bad += check("#94 MIXER: the PRESETS knob loads the next sound; the steps and the mix stay",
+    bad += check("#94 MIXER: the PRESETS knob loads the next sound; the steps stay, LEVEL is the sound's own",
                  trk[0].preset != before.preset && !memcmp(trk[0].step, before.step, sizeof before.step) &&
-                 trk[0].p[P_LEVEL] == before.p[P_LEVEL] && cur_page()->graph == GR_TRK);
+                 trk[0].p[P_LEVEL] == (int16_t)preset_level_of(trk[0].eng_req % NENGINES, trk[0].preset) &&
+                 cur_page()->graph == GR_TRK);
     turn(EN_K4, 1);
     bad += check("MIXER KNOB 4 right: MUTE ON (the selected track stays)", trk[0].p[P_MUTE] == 1 && song.sel == 0);
-    turn(EN_K1, -3);
-    bad += check("KNOB 1 changes LEVEL only (MUTE stays)", trk[0].p[P_MUTE] == 1 && trk[0].p[P_LEVEL] == before.p[P_LEVEL] - 3);
+    {   const int16_t lvl = trk[0].p[P_LEVEL];     /* the level the sound loaded with */
+        turn(EN_K1, -3);
+        bad += check("KNOB 1 changes LEVEL only (MUTE stays)", trk[0].p[P_MUTE] == 1 && trk[0].p[P_LEVEL] == lvl - 3);
+    }
     turn(EN_K2, 2);
     bad += check("KNOB 2 changes PAN", trk[0].p[P_PAN] == before.p[P_PAN] + 2);
     turn(EN_K4, -1);

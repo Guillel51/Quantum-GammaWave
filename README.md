@@ -297,8 +297,8 @@ The site serves the `main` build and the installer may install it: it checks the
 before writing, and the loader reads the flash chip before erasing anything. Every version is built by CI from
 its tag and attached to a GitHub release (`release.yml`, `docs/RELEASE.es.md`); there is no signed channel and
 no provenance record to gate on any more (#89). In this pass the HOME planets' rotation was verified in the
-browser -- two captures 2.6 s apart, 595 of the 602 changed pixels inside the system bay, and 427 pixels
-changing inside it in 300 ms, more than an orbit of 7-13 s per turn can move -- and `tests/perform_test.c`
+browser -- two captures 2.6 s apart, 868 of 57 600 pixels changed, and 576 changing in a 300 ms window, more
+than an orbit of 7-13 s per turn can move -- and `tests/perform_test.c`
 measures LATCH on rendered audio instead of a flag: with LATCH on the filter still filters after the key is
 released, the second touch returns the dry signal bit for bit, and REPEAT 1/16 keeps sounding. The dead
 `/preview/` deployment check is gone.
@@ -401,11 +401,12 @@ keyboard). No hardware was used: these are host and emulator measurements.
 **Quantum GammaWave (`QG-1`)** is free and open-source software released under **[GPL-3.0-only](LICENSE)**.
 
 Built upon the work of:
-- **Pocket GammaWave (GW-1)** by Leo Kuroshita / Hügelton Instruments & ShadowTune.
+- **[Pocket GammaWave (GW-1)](https://github.com/fvalente/GammaWave-FM1)** by [Frederic Valente (@fvalente)](https://github.com/fvalente) — the GammaWave screens and palettes, the shift deck, the generator genres, the VOWEL / SCREAM filters and the Web Studio additions (see [LICENSING.md](LICENSING.md)).
 - **[Felucca](https://github.com/hugelton/Felucca)** by [Hügelton Instruments](https://hugelton.com) (Leo Kuroshita, [@kurogedelic](https://github.com/kurogedelic)) — core FM-1 hardware abstraction, bootloader, engines, and the [Fukiai](https://github.com/hugelton/Fukiai) icon font ([MIT](LICENSES/MIT-Fukiai.txt)).
 - **[JIANT FM](https://github.com/juanjiant-bit/JIANT)** — DRUM-X synthesis engine, dual-core audio scheduler, procedural generator foundation, and thermal font pipeline.
 - **[SLOOP](https://github.com/isod89/sloop-fm1)** by isod89 — multi-section song arranger and live `SONG REC` architecture.
 - **[Melodee](https://github.com/keremimo/melodee)** (keremimo) & **[fm1-x0x](https://github.com/charlesvestal/fm1-x0x)** (Charles Vestal) — AC791N second-core startup, memory-read guard, and WebAssembly browser emulator architecture.
+- **Installer and releases**: [David Konsumer (@konsumer)](https://github.com/konsumer) — the first install on a stock V15 unit (both flash variants, `0x856014` and `0xB36014`), the loader's own chip check, install resume, the tag-driven release workflow and the shift to GitHub releases.
 - **DSP & fonts**: `msfa` 6-op FM from [Dexed](https://github.com/asb2m10/dexed) ([Apache-2.0](LICENSES/Apache-2.0-msfa.txt)); formant synthesis after [klattsch](https://github.com/tgies/klattsch) (MIT); [Chakra Petch](LICENSES/OFL-ChakraPetch.txt), [IBM Plex Mono](LICENSES/OFL-IBMPlexMono.txt), [Michroma](LICENSES/OFL-Michroma.txt), and [DotGothic16](LICENSES/OFL-DotGothic16.txt) (SIL OFL 1.1).
 
 *M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is an independent open-source project and is not affiliated with or endorsed by M-VAVE or Hügelton Instruments.*
