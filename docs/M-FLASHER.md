@@ -75,7 +75,8 @@ area, not of a file name, not of the chip's whole physical part if it were large
 that matter for this project's gate:
 
 - A dump whose SHA-256 equals the record's is *that read*, byte for byte. That is a check of the file
-  against the record, and nothing more: it is what `web/fm1record.js` can re-derive in the page.
+  against the record, and nothing more -- any host tool can re-derive it (`sha256sum`). The installer
+  no longer asks for the record: the chip is identified on the unit (see below).
 - It is **not** a proof that the read was complete or consistent. That proof is the chip's CRC32 (or a
   second read), and M-Flasher performs it *inside the tool*, before it ever writes the `.json`; the
   value is not stored. `tools/fm1_mflasher.py import` therefore demands a second, byte-identical backup

@@ -1134,3 +1134,19 @@ physical hardware.
 | Host suites | **PASS** | `NO_PACKAGE=1 ./tests/run_tests.sh`, plus the web/provenance/site/i18n tests and `web/emu/emu_test.mjs` (all ok, heavy song 2.3 % of real time). | host x86 |
 | Public site | **PENDING** | Verified after the deploy: see the commit that follows this one. | — |
 | Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing in this pass is a claim about the hardware. | none |
+
+## 2026-11-10 — the M-Flasher report leaves the install path
+
+The entries above that describe a chip fact taken out of band (`web/fm1record.js`, `bindRecord()`, the
+28-check `web/test_record.mjs`) are history, not the current mechanism. Since PR #88 the loader a stock
+unit stages reads the flash chip itself (`firmware/loader/loader.c` `ldr_flash_known`) and refuses a part
+the firmware does not write before it erases anything, and a unit already running QG answers `0x12` on its
+own link. The installer therefore asks the user for no record and no dump: the record box, the M-Flasher
+panel, `web/fm1record.js` and its test were removed in `eaa55a9`, together with the `loaderchip` message
+they produced. What the gates still require is what they always required — model, geometry, the part
+allowlist (`0x856014`, `0xB36014`), the write range `[0x4000, 0x93000)`, the factory-data boundary and the
+post-install identity — and those are decided on the unit, at install time.
+
+Class of evidence for the removal: `[HOST]` (`web/test_verify_only.mjs` 150, `web/test_update_mode.mjs` 12,
+`web/test_web.mjs`, `web/test_installer_i18n.py`) plus a real browser against the published page. Nothing
+here is a measurement on a physical unit.
