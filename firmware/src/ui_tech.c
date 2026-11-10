@@ -525,13 +525,17 @@ static void tech_master(void)
             }
         }
 
-        /* Right Bay (x = 180..232): GLOBALS Master Knob + Clip/Stereo/Pump 1/16 Meters */
+        /* Right Bay (x = 180..232): GLOBALS Master Knob + L / R / PUMP meters. The first two are the
+         * master's real peaks (fx_vu[6..7], the same envelope HOME reads), not a shape drawn from the
+         * envelope generator: a meter that moves with the knobs but not with the audio is a lie, and the
+         * owner has been told one of those before. PUMP is the duck gain -- zero when DUCK is off, because
+         * then nothing is pumping. */
         gw_oct_panel(180, y0 - 2, 52, 102, 4, T_BG, T_LINE, 1, T_ACCENT);
         gw_mini_bakelite_knob(206, y0 + 16, 9, clamp(180 + clip, 0, 256), T_THEME);
         cv_rect(185, y0 + 32, 42, 1, T_LINE);
-        gw_plasma_bar(188, y0 + 37, 8, 58, 9, clamp(en + 48, 24, 250), 64);
-        gw_plasma_bar(201, y0 + 37, 8, 58, 9, clamp(en + (punch >> 1) + 40, 24, 250), 96);
-        gw_plasma_bar(214, y0 + 37, 10, 58, 9, duck ? (duck_g1 * 256 / 32767) : 220, 140);
+        gw_plasma_bar(188, y0 + 37, 8, 58, 9, clamp(fx_vu[6] * 256 / 32767, 0, 256), 64);
+        gw_plasma_bar(201, y0 + 37, 8, 58, 9, clamp(fx_vu[7] * 256 / 32767, 0, 256), 96);
+        gw_plasma_bar(214, y0 + 37, 10, 58, 9, duck ? clamp(duck_g1 * 256 / 32767, 0, 256) : 0, 140);
         return;
     }
     tk_axes(x0, y0, x0 + s, y0 + s);
