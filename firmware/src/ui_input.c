@@ -1099,7 +1099,7 @@ static void edit_param(uint32_t slot, int32_t steps)
     *vp = (int16_t)v;
     if (vp == &trks_ui) {                               /* (0.6.18) GLO > SYSTEM's TRKS: the MENU's setting, saved */
         trks_put(v);
-        ui_message(v ? "6 TRACKS: MORE CPU" : "4 TRACKS: T5-T6 ASLEEP");
+        ui_message(v == 2 ? "6 TRACKS: FULL" : v == 1 ? "5 TRACKS: T6 ASLEEP" : "4 TRACKS: T5-T6 ASLEEP");
         settings_save();
         return;
     }
@@ -1971,9 +1971,9 @@ static void ui_input_frame(void)
             for (k = trk_live; k < NTRK; k++)
                 if (!seq_is_empty(&trk[k]) && !trk[k].p[P_MUTE]) said = 1;
         if (asleep_hit) { asleep_hit = 0; said |= quiet; }
-        if (said) {
-            ui_say("T5-T6 ASLEEP: ", "");
-            str_cpy(ui.msg2, "GLO>SYSTEM>TRACKS 6", sizeof ui.msg2);
+        if (said) {                                     /* (3.4) which tracks are asleep depends on the mode */
+            ui_say(trk_live == 5u ? "T6 ASLEEP: " : "T5-T6 ASLEEP: ", "");
+            str_cpy(ui.msg2, trk_live == 6u ? "GLO>SYSTEM>LOAD" : "GLO>SYSTEM>TRACKS", sizeof ui.msg2);
             said_ms = fm1_ms | 1u;
         }
         sel0 = song.sel;

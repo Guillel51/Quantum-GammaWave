@@ -1636,12 +1636,23 @@ static int test_tracks(void)
         trks_put(0);
         for (k = 0; k < 8u; k++) turn(EN_ALGO, 1);
         bad += check("TRACKS 4: ALGORITHM stops at T4", song.sel == 3);
-        trks_put(1);
+        trks_put(2);                                   /* (3.4) 2 is six tracks now: 1 is five */
         for (k = 0; k < 8u; k++) turn(EN_ALGO, 1);
         bad += check("TRACKS 6: ALGORITHM reaches T6", song.sel == 5);
+        trks_put(1);                                   /* (3.4) 5 TRACKS: T6 asleep, T5 the last offered */
+        for (k = 0; k < 8u; k++) turn(EN_ALGO, 1);
+        bad += check("TRACKS 5: ALGORITHM stops at T5", song.sel == 4);
+        bad += check("TRACKS 5: trk_live is 5", trk_live == 5u);
         trks_put(0);
         ui_input();
         bad += check("TRACKS 6 -> 4 on T6: T4 selected", song.sel == 3);
+        bad += check("TRACKS 4: trk_live is 4", trk_live == 4u);
+        trks_put(1);
+        bad += check("TRACKS 5: the older six-track bit stays clear", (ui_rec_prefs & (PREF_SIX >> 8)) == 0);
+        trks_put(2);
+        bad += check("TRACKS 6: the older six-track bit is set", (ui_rec_prefs & (PREF_SIX >> 8)) != 0);
+        bad += check("TRACKS 6: trk_live is 6", trk_live == 6u);
+        trks_put(0);
         for (k = 0; k < 8u; k++) turn(EN_ALGO, -1);
         bad += check("ALGORITHM back down to T1", song.sel == 0);
         turn(EN_ALGO, 1);
@@ -9373,21 +9384,23 @@ static int test_click_menu(void)
     turn(EN_K4, 1); ok &= cin_bars == 1u;
     turn(EN_K4, 1); ok &= cin_bars == 2u;
     turn(EN_PRESET, 1); ok &= ui.menu_sel == MI_TRACKS;
-    turn(EN_K1, -1); frame(); ok &= trk_live == 4u && !(ui_rec_prefs & 0x80u);   /* (0.6.18) TRACKS 4 */
-    turn(EN_K1, 1); frame(); ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u);   /* 6 */
+    trks_put(0); frame(); ok &= trk_live == 4u && !(ui_rec_prefs & 0x80u) && menu_get(MI_TRACKS) == 0u;
+    turn(EN_K1, 1); frame(); ok &= trk_live == 5u && !(ui_rec_prefs & 0x80u) && menu_get(MI_TRACKS) == 1u;   /* (3.4) 5 */
+    turn(EN_K1, 1); frame(); ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u) && menu_get(MI_TRACKS) == 2u;   /* 6 */
+    turn(EN_K1, 1); frame(); ok &= trk_live == NTRK;                                  /* stops at six */
     turn(EN_PRESET, 1); ok &= ui.menu_sel == MI_LOWCUT;   /* (wraps within AUDIO) */
     press(B_HOME);
     ok &= !ui.menu;
     bad += check("MENU > AUDIO: PRESETS to CLICK, CLICK LEVEL, COUNT-IN, TRACKS; knobs / OCT step them, applied at once", ok);
     {   /* (0.6.18) TRACKS 4 LOW: T5 takes no note and sounds nothing (its voices off); TRACKS 6: it plays again */
         uint32_t k, on = 0, sel = song.sel;
-        ui_rec_prefs &= (uint8_t)~0x80u; frame();
+        trks_put(0); frame();
         trk_note_on(&trk[4], 60, 100);
         events_block(CTL);
         for (k = 0; k < NVOICE; k++) on |= trk[4].v[k].active | trk[4].v[k].gate;
         ok = trk_live == 4u && !on;
         trk_all_off(&trk[4]);
-        ui_rec_prefs |= 0x80u; frame();
+        trks_put(2); frame();
         trk_note_on(&trk[4], 60, 100);
         events_block(CTL);
         for (k = 0; k < NVOICE; k++) on |= trk[4].v[k].gate;
@@ -9396,23 +9409,25 @@ static int test_click_menu(void)
         events_block(CTL);
         song.sel = (uint8_t)sel; ui.msg_t = 0; ui.msg[0] = ui.msg2[0] = 0; frame();
         bad += check("TRACKS 4 FULL: T5 asleep (no note, no voice); 6 wakes it", ok);
-        ui_rec_prefs &= (uint8_t)~0x80u; frame();       /* (0.6.28) a note sent to it: the screen says why it is silent */
+        trks_put(0); frame();                           /* (0.6.28) a note sent to it: the screen says why it is silent */
         ui.msg_t = 0; ui.msg[0] = 0; fm1_ms += 5000u;
         trk_note_on(&trk[4], 60, 100); frame();
-        ok = msg_is("T5-T6 ASLEEP: ") && str_eq(ui.msg2, "GLO>SYSTEM>TRACKS 6");
+        ok = msg_is("T5-T6 ASLEEP: ") && str_eq(ui.msg2, "GLO>SYSTEM>TRACKS");
         ui.msg_t = 0; ui.msg[0] = ui.msg2[0] = 0;
-        ui_rec_prefs |= 0x80u; frame();
-        bad += check("TRACKS 4: a note for T5 says T5-T6 ASLEEP, GLO>SYSTEM>TRACKS 6", ok);
+        trks_put(2); frame();
+        bad += check("TRACKS 4: a note for T5 says T5-T6 ASLEEP, GLO>SYSTEM>TRACKS", ok);
     }
     {   /* (0.6.19) GLO > SYSTEM's TRKS (KNOB 2): the same setting, both ways */
         go_title("SYSTEM");
-        turn(EN_K1, -1); frame();
+        trks_put(0); frame();
         ok = trk_live == 4u && !(ui_rec_prefs & 0x80u) && trks_ui == 0;
+        turn(EN_K1, 1); frame();                        /* (3.4) 4 -> 5 -> 6 */
+        ok &= trk_live == 5u && !(ui_rec_prefs & 0x80u) && trks_ui == 1 && msg_is("5 TRACKS: T6 ASLEEP");
         turn(EN_K1, 1); frame();
-        ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u) && trks_ui == 1 && msg_is("6 TRACKS: MORE CPU");
-        ui_rec_prefs &= (uint8_t)~0x80u; frame();
+        ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u) && trks_ui == 2 && msg_is("6 TRACKS: FULL");
+        trks_put(0); frame();
         ok &= trks_ui == 0;                             /* (MENU's change shown there) */
-        ui_rec_prefs |= 0x80u; frame();
+        trks_put(2); frame();
         ok &= load_ui == 2 && sys_load == LOAD_FULL;    /* (0.6.30) KNOB 2 LOAD: FULL, the default */
         turn(EN_K2, -1); frame();
         ok &= load_ui == 1 && sys_load == LOAD_LITE && ui_load == 1u && msg_is("LOAD LITE: LIGHTER FX");
@@ -9421,7 +9436,7 @@ static int test_click_menu(void)
         load_put(2u); frame();
         ok &= load_ui == 2 && sys_load == LOAD_FULL && !ui_load;
         ui.msg_t = 0; ui.msg[0] = 0; press(B_HOME); frame();
-        bad += check("GLO > SYSTEM: KNOB 1 TRACKS 4 / 6, KNOB 2 LOAD ECO / LITE / FULL, the MENU's settings both ways", ok);
+        bad += check("GLO > SYSTEM: KNOB 1 TRACKS 4 / 5 / 6, KNOB 2 LOAD ECO / LITE / FULL, the MENU's settings both ways", ok);
     }
     {   /* (0.6.57) LOAD LITE / ECO: the panel's animation at most every 50 / 70 ms; FULL as it changes; a new page
          * at once; the values snap (no rolling digits) */

@@ -1,3 +1,27 @@
+## 2026-11-10 — TRACKS 4 / 5 / 6, y lo que cuesta de verdad tener 12 voces
+
+- **`MENU > TRACKS` y `GLO > SYSTEM` ahora recorren 4 ECO / 5 BAL / 6 FULL.** El modo vive en
+  `favorites.factory[15][18]` (0 cuatro, 1 cinco, 2 seis; 0 en cualquier ajuste anterior = las cuatro pistas que
+  tenía) y el bit viejo de seis pistas se sigue escribiendo cuando el modo es 6, así que volver a un build
+  anterior no pierde dos pistas. Las pistas dormidas ya se apagaban bien (`fx.c mix_part`, 0.6.18/0.6.19): sus
+  voces se desvanecen, su mute se suelta y no se renderiza nada de ellas; una nota dirigida a una pista dormida
+  lo dice en pantalla y ahora nombra la pista correcta (`T6 ASLEEP` en modo 5, `T5-T6 ASLEEP` en modo 4).
+- **12 voces: medido, no habilitado.** Con `FELUCCA_VOICES=12`: RAM estática **97 196 / 98 304 B** (1 108 B
+  libres) contra **94 924** (3 380 libres) a 10 voces; imagen **537 980 B** contra 537 532. O sea **2 272 B**
+  por 12 slots, ~**189 B** por voz. Recomendación medida: seguir en **10**; a 12 la RAM queda al 98,9 % y aquí
+  no hay forma de medir el stack del camino de audio en el target.
+- **El pool global de voces, con números.** La reserva por pista son 72 slots a 12 voces (~13,6 KiB); un pool
+  único de 16 slots costaría ~3,0 KiB, así que devolvería **hasta ~10,6 KiB**. No se implementó: no es ahorro de
+  bytes sino cambio de propiedad (UNISON, LEGATO, POLY por pista, `voice_kill` al dormir, `fm6_note`, DRUM-X,
+  medidores por pista y protocolo del editor asumen `trk[k].v[i]`). Análisis completo en
+  `docs/TRACKS_VOICES_3.4.md`.
+- **Sin tocar DSP**: ni una división, ni un bucle, ni un buffer. `TIMER5`, `dx_run`, los buses y el core FM6
+  quedan como estaban.
+- **Pruebas:** `ui_test` verde con los cuatro modos y sus mensajes, ALGORITHM deteniéndose en T5/T6 según el
+  modo, y las comprobaciones del bit heredado; `ui_render` 176 pantallas × 17 paletas con 0 hallazgos y 0 de
+  2 648 808 desviaciones de alineación; `regress` **220 golden, 0 cambiados**; `target_budget` **39/39**;
+  compilación AC791N de los dos perfiles.
+
 ## 2026-11-10 — la suite completa, la firma por ssh y el build reproducible, medidos
 
 - **Suite completa: `ALL HOST TESTS PASSED`.** `NO_PACKAGE=1 ./tests/run_tests.sh` sobre `c8715e4`, de punta a
