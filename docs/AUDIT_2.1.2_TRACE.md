@@ -110,3 +110,28 @@ and the installer tests need a human decision, not a global replace.
 
 The decision that must be made first, and that only the owner can make: **which line `main` should carry**.
 Until it is made, this branch is the safe home of the three fixes and of this record.
+
+## 5. The reconciliation, and why it is on a branch and not on `main`
+
+`reconcile/main-2.1.2` (`cac5e9c`) merges this line into `main` with **`4e8d6b6` as first parent**, so it
+is a fast-forward the moment `main` holds still. It keeps both sides: the 2.1.2 tree, the identity
+`FM-1_965`, the signed packages byte for byte (`1f52bf091…a303`), and the nine files only the other line
+had — `web/fm1provenance.js`, `web/test_provenance.mjs`, `web/test_release_e2e.mjs`,
+`release/build-manifest.json`, `release/emu/manifest.json`, `release/felucca-v1.9.0.manifest.json`,
+`tools/gen_banner.py` and two site images.
+
+`web/test_provenance.mjs` fails on this tree because the 2.1.2 installer page does not wire the
+provenance guard that lives on the other line. The file is kept; the CI step is not run, and the reason
+is written next to it in `.github/workflows/target.yml`. That is the one real carry-over left.
+
+Two pushes to `main` were rejected as non-fast-forward while this was being written, and
+`git ls-remote` alternated between `5cc49e8` and `4e8d6b6` between reads: another session is rewriting
+`main` while this work is finished. Nothing was forced. To land this:
+
+```bash
+git fetch origin
+git branch --track reconcile origin/reconcile/main-2.1.2   # or: git switch reconcile/main-2.1.2
+git switch main && git merge --ff-only reconcile/main-2.1.2
+```
+
+If `main` has moved again, merge it *into* `reconcile/main-2.1.2` first and push that — never reset.
