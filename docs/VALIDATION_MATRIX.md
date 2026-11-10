@@ -1271,3 +1271,21 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | custody guard under a copied tool | **REFUSES** | first attempt on that host: `refused: the private key is inside the repository (release.pem)` — the copied tool treats its own parent as the repository | host |
 | released package is reproducible | **REPRODUCED** | worktree at `61ae47b` + `./build.sh --release 2.1.1` → `81c80e365bf9ecec…c563`, the same SHA-256 as `release/felucca-2.1.1.fwsc`, same `build_sha256 83cebf6d…` | AC791N toolchain |
 | Actions run conclusions | **NOT READABLE HERE** | no `gh` token on this machine and the public API is rate-limited by IP; the outcome was verified instead (release assets downloaded and verified, site serving 2.1.1) | — |
+
+---
+
+## 2026-11-10 (fourth pass) — the identity `FM-1_965`, measured end to end
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| the number is free on the hub | **VERIFIED** | `tools/check_identity.py` against `catalog.json` (`updated 2026-11-10 12:27 UTC`, 175 listings): `FREE`; `FM-1_982` answers `TAKEN — GuitChordi`; `FM-1_015` is refused by name; thirteen `FM-1_9NN` numbers passed and five of those sit inside another project's longer range | live catalogue, read over HTTP |
+| AC791N build with the new identity | **BUILT** | `./build.sh --release 2.1.2` on `03d3f80` (`dirty: []`): app 536 500 B, package 610 959 B `identity FM-1_965`, RAM 94 944/98 304 B, all `ok` checks | AC791N toolchain |
+| the identity is in the bytes | **VERIFIED** | `FM-1_965` present in `felucca.bin`, in `build/loader/ota.bin` and in the 20 marker bytes the container carries; the manifest's build record says `FM-1_965` | host, on the release bytes |
+| SysEx identification | **VERIFIED** | `tests/ota_test.c`: `identity frame is FM-1_965`, plus the 0x12/0x13 identification and read matrices | host, native |
+| `.fwsc` generation, SHA-256, Ed25519 | **VERIFIED** | `fm1_sign.py request` → `sign` with the custodian key → `verify`: `FM-1 version 2.1.2, key qg1-release-1, sha256 1f52bf09…a303`; `SHA256SUMS` regenerated and checked | host + the pinned public key |
+| installer, Verify Only, forward compatibility | **VERIFIED** | `security` and `web` groups green; `tests/install_test.py` (from V15, resume, every refusal), `tests/preflight_test.py`, `web/test_verify_only.mjs` 153 checks (incl. the legacy-identity block), `web/test_update_mode.mjs` with the identity read out of the package | host, simulated devices |
+| a unit that answers `FM-1_015` is still stock | **VERIFIED** | `web/test_verify_only.mjs`: `FM-1_015` → `stock`, compatibility `replaces-stock`, never `ours`; the legacy rule only ever matches `FM-1_982` | host, simulated devices |
+| emulator and build record | **VERIFIED (identity)** | WASM rebuilt with `emcc 6.0.11`; `build/emu/manifest.json` `"identity": "FM-1_965"`; `package_emu.py` now reads `PRODUCT` from `build.py` | host, emcc |
+| WASM/native bit-for-bit parity | **FAILS HERE, PRE-EXISTING** | `emu_test.mjs` differs at sample 1 both on this tree and in a clean worktree at `9fbb8c0`: an artefact of this host's toolchain, not of the change; the emulator is still deterministic and renders the song | host, unattributed |
+| GitHub Pages | **PENDING THE PUSH** | the site is generated from the signed release; the live check is recorded after the deploy | — |
+| physical FM-1 | **NOT MEASURED** | no unit was touched. What a real device answers after an install, and whether the hub marks the card, are hardware/hub checks that only a unit and the hub can make | — |

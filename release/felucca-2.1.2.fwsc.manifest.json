@@ -1,0 +1,87 @@
+{
+  "build": {
+    "artifacts": {
+      "felucca-2.1.2.fwsc": {
+        "bytes": 610959,
+        "sha256": "1f52bf091586dde4cd08139fec637f40e70f3216fb78d690d8ff2eb3a08ba303"
+      },
+      "felucca.bin": {
+        "bytes": 536500,
+        "sha256": "7cfb8f819f04e38ff455a9719e5bcc0a2702056df3a90fed34815f340b8c0300"
+      },
+      "loader/ota.bin": {
+        "bytes": 7803,
+        "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+      }
+    },
+    "checks": {
+      "checks": "ok",
+      "identity": "FM-1_965",
+      "notes": [
+        ".ram_text: 1193 insns, no calls",
+        "image 536500 B; RAM .data+.bss 94944 B of 98304; pool 311240 B, spare 9248 B",
+        "XIP code 376580 B, constants 139816 B",
+        "RAM code 19356 B of 24576; calls reach 83932 B past the code's end",
+        "register access: hal/ only (src/, loader/ clean)"
+      ]
+    },
+    "commit": "03d3f80ed3859eba8f375c387c2585d3221c711f",
+    "config": {
+      "FELUCCA_CDC": "default",
+      "FELUCCA_CDC_DEFAULT": "default",
+      "FELUCCA_FLASH": "default",
+      "FELUCCA_FM4": "default",
+      "FELUCCA_HOTRAM": "default",
+      "FELUCCA_ICONS": "default",
+      "FELUCCA_OTA": "default",
+      "FELUCCA_OTA_DRYRUN": "default",
+      "FELUCCA_OTA_RAMONLY": "default",
+      "FELUCCA_SIZE": "default",
+      "FELUCCA_SLICE": "default",
+      "FELUCCA_UAC": "default",
+      "FELUCCA_UAC_48K": "default",
+      "FELUCCA_UAC_TONE": "default",
+      "FELUCCA_UART": "default",
+      "FELUCCA_USB_LAYOUT": "default"
+    },
+    "dirty": [],
+    "emulator": {
+      "commit": "9fbb8c0bc86e",
+      "version": "v2.1.1",
+      "wasm_bytes": 1085625,
+      "wasm_sha256": "efddd6a0ad094a0a7286e21868447c26792f5432f01ea83188598aa293f934cf"
+    },
+    "identity": "FM-1_965",
+    "schema": "qg1-build-1",
+    "sdk": {
+      "commit": "0617f4cc09685332aaf1104893718291c54ee5bb",
+      "files": {
+        "cfg/eq_cfg_hw.bin": "179ac9f4501d2cf8c3bdbc06fcda1e46228b7ace7e339342c767bb6568de57d8",
+        "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
+        "uboot.boot": "64ccc63e4df3238046fadb200f1b134311d8fe6ec6e3ccb8c8b81379231b867e"
+      },
+      "path": "/workspace/homes/4549bd389852a9607bba2622/fw-AC79_AIoT_SDK"
+    },
+    "toolchain": {
+      "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
+      "name": "jieli-linux-toolchains-20260730.1",
+      "path": "/workspace/homes/4549bd389852a9607bba2622/.jieli/toolchain",
+      "version": "clang version 4.0.1 () ()"
+    },
+    "version": "v2.1.2"
+  },
+  "build_sha256": "b90a42fdd23149811299880b97f9207b10a7106d22c3fd55bdc6c4ad75010ac1",
+  "created": "2026-11-10T12:56:32Z",
+  "format": "qg1-release-1",
+  "images": {
+    "felucca.bin": "7cfb8f819f04e38ff455a9719e5bcc0a2702056df3a90fed34815f340b8c0300",
+    "loader/ota.bin": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+  },
+  "keyid": "qg1-release-1",
+  "min_firmware": "1.0.0",
+  "product": "FM-1",
+  "sha256": "1f52bf091586dde4cd08139fec637f40e70f3216fb78d690d8ff2eb3a08ba303",
+  "sig": "f60f18dbd6bb7884645f26c0b3b396be1d90c24402c03dca9bab9db9eb8a19220995a128f4bfeb4e01946d5073369bfa14d173a46d56feb50d6a371f3a830c03",
+  "size": 610959,
+  "version": "2.1.2"
+}

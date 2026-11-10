@@ -89,7 +89,7 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## The published build: `v2.1.1`
+## The published build: `v2.1.2`
 
 The project has one official entry point: the **Solar Heat / Quantum** portal at
 <https://guillel51.github.io/Quantum-GammaWave/>. It presents the firmware, real screenshots, compatibility,
@@ -99,7 +99,7 @@ the emulator lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for o
 
 The site has two clearly labelled channels over one entry point:
 
-- **Stable (`/`)** — the newest signed release, currently `v2.1.1`: the package from [`release/`](release), its
+- **Stable (`/`)** — the newest signed release, currently `v2.1.2`: the package from [`release/`](release), its
   `qg1-release-1` Ed25519 manifest, the build record the signature carries, and an emulator compiled from the
   **same commit that produced the package**. The installer verifies the SHA-256, the signature against the key
   pinned in the page and `tools/fm1_keys.json`, and `felucca.bin` / `loader/ota.bin` against that record before
@@ -115,7 +115,7 @@ Every tagged version is built by CI and attached to a [GitHub release](https://g
 (`docs/RELEASE.es.md`); the release pipeline verifies the signed pair in `release/` and publishes those exact bytes.
 Emscripten is pinned to **6.0.11** everywhere.
 
-## What's in Quantum GammaWave (`v2.1.1`)
+## What's in Quantum GammaWave (`v2.1.2`)
 
 - **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
@@ -289,7 +289,7 @@ and the acceptance trace it runs on the package.
 > **Read [`docs/SECURITY.md`](docs/SECURITY.md) before flashing anything.** It documents what the update protocol actually verifies (CRC, no signature), why an interrupted write cannot roll back on this single-bank layout, the community recovery ladder, and an honest audit of this repository's own installer — including what has *not* been tested on hardware. No install is declared safe without an independently demonstrated recovery path.
 
 You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** —
-`felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`) next to its `.manifest.json` and `SHA256SUMS`, so the
+`felucca-2.1.2.fwsc` (610 959 B, SHA-256 `1f52bf09…a303`) next to its `.manifest.json` and `SHA256SUMS`, so the
 download can be checked without trusting the page that served it (the build tooling keeps Felucca's file name).
 `release/` keeps the previous signed package too: the site installs the newest version, chosen by version number.
 
@@ -313,6 +313,15 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 
 The per-release record, with the measurements behind each line, is [`CHANGELOG.md`](CHANGELOG.md). The recent
 milestones, in one line each:
+
+### `v2.1.2` — its own identity: `FM-1_965`
+
+The firmware answered `FM-1_982`, which is also what **GuitChordi** answers, so The Firmware Hub could not tell the
+two apart and marked neither card as on the unit. The hub keeps no registry — its catalogue is the only register —
+so the number was chosen by reading it (`tools/check_identity.py`, 2026-11-10): 965 is claimed by no listing's
+product and by no listing's answered range. The app and the loader now answer `FM-1_965` / `ota-FM-1_965`; a unit
+still on 2.1.1 is recognised as this firmware on its previous identity, so it updates instead of being refused.
+The full record, with the free candidates and the rules, is [`docs/IDENTITY.md`](docs/IDENTITY.md).
 
 ### `v2.1.1` — signed with the key held outside the build, published as the stable channel
 

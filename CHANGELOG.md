@@ -1,3 +1,43 @@
+## 2026-11-10 — the identity is Quantum GammaWave's own: `FM-1_965`
+
+- **The conflict, stated plainly.** This firmware answered `FM-1_982`, and so does **GuitChordi 0.1.0-beta.1**
+  (`FM-1_982` in the hub's catalogue). A shared identity breaks nothing at the cable, but The Firmware Hub uses the
+  answer for one thing only — marking the card of the firmware you actually have — and with two firmwares fitting
+  the same number it marks neither. The number is now **`FM-1_965`**.
+- **Chosen by measuring, not by guessing.** The hub has no registry; `https://thefirmwarehub.com/catalog.json`
+  (175 listings, `updated 2026-11-10 12:27 UTC`) is what its live table renders from, and it claims a number in two
+  ways: the exact `product` a project's newest package reports, and the `ident` range it has answered across
+  releases (`FM-1_91\d` for Felucca, `FM-1_94[1-9]` for Bytemania). `tools/check_identity.py` reads both and exits
+  0 only when neither covers the number; thirteen numbers of `FM-1_9NN` passed, 965 was taken, and five of the
+  others sit inside another project's longer range. The record — candidates, rules, source, date — is
+  [`docs/IDENTITY.md`](docs/IDENTITY.md).
+- **One constant, and everything downstream of it.** `tools/build.py` `PRODUCT` feeds the package markers
+  (`fm1pkg_make.ufw`), the app's `-DFELUCCA_ID`, the AC791N package, the site (`web/make_site.py` reads the
+  identity out of the package), the emulator's build record (`tools/package_emu.py`, now reading `PRODUCT` instead
+  of a copy) and the installer's own idea of what it writes. The update loader answers `ota-FM-1_965` — still
+  `FM-1_9NN`, which is the range the hub and this installer resume an interrupted update in.
+- **A unit on 2.1.1 is not stranded.** It answers the old number, so `web/fm1ota.js` keeps `FM-1_982` as a legacy
+  identity of this firmware: the model still has to match, the 0x12 chip identification still runs before any
+  write, and the manifest still has to verify. Verify Only reports it as `gammaWaveLegacy` with compatibility
+  `upgrade-legacy` — an update, not a reinstall of the same tag. `isOurLoader` likewise still accepts
+  `ota-FM-1_900`, the loader the 2.1.1 packages carried; a loader that is neither is still foreign.
+- **Release:** `release/felucca-2.1.2.fwsc`, **610 959 B**, SHA-256 `1f52bf091586…a303`, manifest `fcf4ccb1…e2e9`,
+  signed by `qg1-release-1` from build `03d3f80` (`dirty: []`), identity in the manifest's build record:
+  `FM-1_965`. `verify` OK; `SHA256SUMS` covers all three signed releases.
+- **Measured after the change:** AC791N build with the identity reported by `build.py`; `FM-1_965` found in
+  `felucca.bin`, in `build/loader/ota.bin` and in the 20 marker bytes of the package; `tests/ota_test.c`'s
+  handshake check `identity frame is FM-1_965`; `tests/install_test.py` (install from V15, resume, every refusal)
+  and `tests/preflight_test.py` green, with the preflight case for a foreign loader now exercised through
+  `ota-FM-1_919` and a new case proving this project's own loader may take the image without host evidence;
+  `web/test_verify_only.mjs` 153 checks including the legacy-identity block; `web/test_update_mode.mjs` green with
+  the package identity read from the bytes; the whole `security` and `web` groups; the emulator rebuilt and its
+  manifest saying `FM-1_965`. **Not measured:** a physical FM-1 — no unit was touched, so what a real device
+  answers after an install is still a hardware check.
+- **One failure, not ours:** `web/emu/emu_test.mjs`'s bit-for-bit parity between the WASM build and the native
+  build differs at sample 1 on this host. It does the same at `9fbb8c0` without this change (measured in a clean
+  worktree), so it is an Emscripten/host-toolchain artefact here, not a regression of the identity work; the
+  emulator itself is deterministic (twice the same samples) and renders the same song.
+
 ## 2026-11-10 — la suite completa, la firma por ssh y el build reproducible, medidos
 
 - **Suite completa: `ALL HOST TESTS PASSED`.** `NO_PACKAGE=1 ./tests/run_tests.sh` sobre `c8715e4`, de punta a
