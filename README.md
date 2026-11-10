@@ -38,8 +38,31 @@ It is a whole ecosystem built around one firmware:
 
 ![HOME](web/site/assets/fw-home.png)
 
-*HOME, rendered by the firmware's own sources at 240 × 240 (×3): the track, its four edit parameters, the
-spectrum with the filter curve, the orbital system, the six track buttons and the engine/sound line.*
+## Gallery
+
+Quantum GammaWave screenshot gallery. All images rendered from the firmware at 240×240 (×3 scale for GitHub).
+
+| | | | |
+|---|---|---|---|
+| **HOME** | `quantum_01_home.png` | **EDIT: ANALOG** | `quantum_02_edit_analog.png` |
+| **FM6** | `quantum_03_fm6_algorithm.png` | **TRACK MAP** | `quantum_04_track_map.png` |
+| **SEQUENCER** | `quantum_05_sequencer.png` | **SEQ: ROLL** | `quantum_06_seq_roll.png` |
+| **DRUM-X** | `quantum_07_drum_x.png` | **MORPH** | `quantum_08_drum_morph.png` |
+| **PHASE** | `quantum_09_macro_layer.png` | **MOTION SEQ** | `quantum_10_motion_seq.png` |
+| **LOFI** | `quantum_11_punch_in_fx.png` | **FX RACK** | `quantum_12_fx_rack.png` |
+| **MIXER** | `quantum_13_mixer.png` | **SONG CHAINS** | `quantum_14_song_chains.png` |
+| **SCALES/CHORDS** | `quantum_15_scales_chords.png` | **MODERN ARP** | `quantum_16_modern_arp.png` |
+| **MOTION LOCKS** | `quantum_17_motion_locks.png` | **FULLSCREEN VISUALIZER** | `quantum_18_fullscreen_visualizer.png` |
+| **PROJECT SLOTS** | `quantum_19_project_slots.png` | **HARMONIC PERFORMANCE** | `quantum_20_harmonic_performance.png` |
+| **MASTER EQ** | `quantum_21_master_eq.png` | **TRANSIENT PRESETS** | `quantum_22_transient_presets.png` |
+| **GLO/TELEMETRY** | `quantum_23_glo2_telemetry.png` | **ABOUT/CREDITS** | `quantum_24_about_credits.png` |
+| **MASTER BUS** | `quantum_25_master_bus.png` | **BOOT SPLASH** | `quantum_26_boot_splash.png` |
+| **DELAY BARs** | `quantum_27_delay_bars.png` | **REVERB: RESO** | `quantum_28_reverb_reso.png` |
+| **REVERB: CLOUD** | `quantum_29_reverb_cloud.png` | **PUNCH IN LATCH** | `quantum_30_punch_in_latch.png` |
+
+*All screenshots rendered from the firmware at 240×240, scaled ×3 for GitHub display. Use the original PNGs at `assets/screenshots/` for highest quality.*
+
+---
 
 ## Highlights of `v2.3.0`
 
