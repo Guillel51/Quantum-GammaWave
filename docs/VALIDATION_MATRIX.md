@@ -1150,3 +1150,26 @@ post-install identity — and those are decided on the unit, at install time.
 Class of evidence for the removal: `[HOST]` (`web/test_verify_only.mjs` 150, `web/test_update_mode.mjs` 12,
 `web/test_web.mjs`, `web/test_installer_i18n.py`) plus a real browser against the published page. Nothing
 here is a measurement on a physical unit.
+
+## 2026-11-10 — v2.0.0 published: the install comes from the signed release
+
+The two channels of section 35 are gone. The root installer now installs the **signed release** and nothing
+else: `make_site.py` looks for `release/*.fwsc` with a matching `*.manifest.json`, checks that the bytes still
+hash to the value the manifest names, and serves *that* package — labelled with the `qg1-build-1` record the
+signature carries, so the page shows the commit of what it will write. A build of `main` that is not those
+bytes is still published (and still installs nothing) until a custodian signs it again; the emulator is always
+this run's build, and the footer names it. `main` moves every few minutes; a signature cannot follow it, and
+a page that refused to install because of that would be the bug this mission set out to remove.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `v2.0.0` tag | **PUBLISHED** | `refs/tags/v2.0.0` → `896797e` on GitHub, created by `release.yml` when the `release/v2.0.0` branch was pushed. | GitHub ref |
+| GitHub Release | **PUBLISHED, DOWNLOADED BACK** | `releases/tag/v2.0.0`: `felucca-2.0.0.fwsc` (610 959 B), `felucca-2.0.0.fwsc.manifest.json`, `SHA256SUMS`. The downloaded package hashes to `c423b17c…9bd2`, byte-identical to `release/`, and its manifest verifies with `tools/fm1_sign.py`. | release assets |
+| Ed25519 identity | **VERIFIED, KEY UNCHANGED** | `key qg1-release-1`, public `70b6036f…fcd40`, pinned in the page and in `tools/fm1_keys.json`; the signature was made with the existing private key, not a new one. Five mutations (package byte, signature, version, image hash, unknown keyid) are refused by both the Python and the browser verifier. | CLI + browser |
+| What the signature names | **FIRMWARE, NOT THE FILE NAME** | `images` = `felucca.bin` and `loader/ota.bin` (the hashes every build record uses); the package's own hash is `sha256`, and its name changes with the site's label. Naming the package inside `images` made a valid signature look wrong against a record that never has that name. | code + page |
+| Site | **PUBLISHED, RENDERED** | `…/webapp/installer/`: "v2.0.0-2500153 — Ready to flash (610,959 bytes)", "Package SHA-256 verified ✓ c423b17c… · Ed25519 qg1-release-1", 14-row plan card, the four confirmations, `INSTALL` enabled; no record box, no dump input. Checked again against a build of a newer `main` (`3bdc09d4`) to prove the page keeps installing the signed bytes. | browser |
+| Build | **COMPILED HERE** | `./build.sh --release 2.0.0` with `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK`: app and loader built, package 610 959 B, reproducible to `c423b17c…` on a rebuild. | AC791N toolchain |
+| Loader | **PASS** | `tests/ldr_test` from an older package to `release/felucca-2.0.0.fwsc`: 28 checks — write windows, factory data kept, resume after a cut, wrong final ACK, damaged head refused, same-package re-run erases nothing. `tests/flash_id_test` passes (`0x856014`, `0xB36014` accepted, `0x000000`/`0xFFFFFF` answered as unknown). | host |
+| Host suites | **PASS** | `sign_test`, `key_custody_test`, `install_test`, `gate_test`, `mflasher_test`, `mflasher_accept_test` (14), `test_i18n`, `test_installer_i18n`, `test_accept` (20), `test_state` (65), `test_update_mode` (12), `test_verify_only` (150), `test_web`, `test_sign` (12), `test_backup`, `test_site` (19 ids / 6 images / 30 links, 0 FAILED). | host |
+| Physical FM-1, `0x856014` | **NOT TESTED** | No unit was touched. The plan, the allowlist and the resume path are host evidence only. | none |
+| Physical FM-1, `0xB36014` | **NOT TESTED** | Same. The second part is accepted by `flash_id_test`; no measurement on a unit. | none |
