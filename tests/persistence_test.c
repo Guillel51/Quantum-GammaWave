@@ -298,10 +298,10 @@ static int autosave_test(void)
     as_run(60000u);
     ok = as.writes == 2u;
     fm1_in.notes = 0;
-    trk[1].v[0].active = 1;                              /* .. its release still sounding */
+    V(&trk[1], 0).active = 1;                              /* .. its release still sounding */
     as_run(20000u);
     ok &= as.writes == 2u;
-    trk[1].v[0].active = 0;
+    V(&trk[1], 0).active = 0;
     as_run(9000u);
     ok &= as.writes == 2u;
     as_run(1500u);

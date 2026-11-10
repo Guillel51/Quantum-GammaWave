@@ -980,7 +980,7 @@ static int test_pfx(void)
             trk_note_on(t1, 60, 100);
             for (i = 0; i < 22016u; i += CTL) mix_block(o, CTL);
             for (v = 0; v < NVOICE; v++)
-                if (t1->v[v].active && t1->v[v].env > env) env = t1->v[v].env;
+                if (V(t1, v).active && V(t1, v).env > env) env = V(t1, v).env;
             during = t1->p[P_SUS];
             perf_press(PF_DSHT, 0);
             mix_block(o, CTL);
@@ -1040,8 +1040,8 @@ static int test_pfx(void)
                 uint32_t v;
                 trk_note_on(t1, 57, 100);
                 for (v = 0; v < NVOICE; v++)
-                    if (t1->v[v].active && t1->v[v].note == 57 && t1->v[v].gate) {
-                        int32_t d = t1->v[v].pitch16 - 57 * 16;
+                    if (V(t1, v).active && V(t1, v).note == 57 && V(t1, v).gate) {
+                        int32_t d = V(t1, v).pitch16 - 57 * 16;
                         moved += m ? d != 0 : (uint32_t)(d != 0) * 100u;
                         far += d > 12 * 16 || d < -12 * 16;
                     }
@@ -1064,9 +1064,9 @@ static int test_pfx(void)
         for (i = 0; i < 4u * 22016u; i += CTL) {
             mix_block(o, CTL);
             for (v = 0; v < NVOICE; v++)
-                if (t1->v[v].active && t1->v[v].gate) {
-                    seen |= t1->v[v].note == 50u;           /* (step 1: A2 45, +5) */
-                    wrong |= t1->v[v].note == 45u || t1->v[v].note == 65u;
+                if (V(t1, v).active && V(t1, v).gate) {
+                    seen |= V(t1, v).note == 50u;           /* (step 1: A2 45, +5) */
+                    wrong |= V(t1, v).note == 45u || V(t1, v).note == 65u;
                 }
         }
         transport_req = 2;

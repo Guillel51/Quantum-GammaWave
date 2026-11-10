@@ -10,9 +10,9 @@ int main(void)
 {
     int32_t a[CTL], b[CTL], g[4];
     track_t *t = &trk[0];
-    voice_t *v = &t->v[0], *v2 = &t->v[1];
+    voice_t *v = &V(t, 0), *v2 = &V(t, 1);
     vmod_t m = {0};
-    memset(trk, 0, sizeof trk); host_tracks_init();
+    memset(trk, 0, sizeof trk); host_tracks_init(); voices_boot();
     for (uint32_t i = 0; i < NENGINES; i++) if (ENGINES[i] == &ENG_DIGITAL) host_preset(t, i, 0);
     m.inc = pitch_inc(60 * 16); m.amp0 = m.amp1 = m.envq15 = 32767; m.shape = 64 << 8;
     v->vel = 96; v->note = 60; v->gate = 1;

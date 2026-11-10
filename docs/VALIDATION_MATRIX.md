@@ -1367,13 +1367,18 @@ optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
 | MICRO-START (audio) | `M.STRT` 0: 64/64 onsets en la misma muestra; 127: onsets 96..864 muestras, 6 de 7 notas movidas; nivel ±0,00 dB; primer sample 196, paso máximo 3802 (sin click); retrigger de una voz sonando: no se mueve | host x86, render real (`voice.c`, `track_render`) |
 | `N.RATE` (audio) | bloques del hold con el transporte real: 1/1 **2756**, 1/2 **1378**, 1/4 **689**, 1/8 **345**, 1/16 **172**, 46 ms **64**; diferencia de señal 1/1 vs 1/16 en el mismo destino: **0,406** | host x86 |
 | Semilla por pista | `mod_noise((t - trk) * 7919 + 0x1234, …)`: seis pistas no comparten secuencia | código |
-| Suite host | `NO_PACKAGE=1 sh tests/run_tests.sh` → **ALL HOST TESTS PASSED**, `EXIT=0` | host x86_64 |
+| Suite host | `NO_PACKAGE=1 sh tests/run_tests.sh` → **all groups green except six_track_live_test**, `EXIT=1` | host x86_64 |
 | Barrido de pantallas | 178 pantallas × 17 paletas, **0 hallazgos** de lint, 0 mediciones de alineación fuera; la página `VOICE 2` entra en el barrido por `NPAGES` | host render |
 | `target_budget` | **39/39 ok**, 0 sobre presupuesto | análisis de imagen AC791N |
-| Imagen AC791N | **538 984 B** (baseline 538 356, +628); `.data+.bss` **94 992 / 98 304** (3 312 libres, +48); pool 311 240 B, **9 248 de sobra**; RAM code 19 408 / 24 576 | build AC791N |
-| Paquete | **610 959 B**, loader 7 803 B, identidad FM-1_982, v2.1.1 | build AC791N |
-| Emulador | wasm **1 094 532 B**, build `55136922cd7c` (dirty), sha256 `628107b4…` | build wasm |
+| Imagen AC791N | **537 164 B** (baseline 539 836, -2 672); `.data+.bss` **87 632 / 98 304** (10 672 libres, +48); pool 311 240 B, **9 248 de sobra**; RAM code 19 408 / 24 576 | build AC791N |
+| Paquete | **610 959 B**, loader 9 236 B, identidad FM-1_965, v2.3.0 | build AC791N |
+| Emulador | wasm **1 091 889 B**, build `55c7b0e20eb0` (dirty), sha256 `887414c4d2b3d4ee47d7a9f76bf14b8d76ecbc07e9ccfcf080e80da39746e4c6` | build wasm |
 | FM-1 física | **NOT TESTED**: ninguna unidad tocada, ninguna escritura | — |
+
+Fallo heredado de `v2.3.0` (no introducido por esta pasada): `six_track_live_test` cuenta 11 voces activas en el
+bloque 16 del R16 en lugar de 10 (el R16 re-strikea notas; con el pool de 12 voces por pista ya no se roba), y el
+audio dorado data del pre-pool. Se reproduce idéntico en un worktree limpio de `FETCH_HEAD` (commit `9a5ef87`).
+No se tocó el test para ocultar el fallo; queda pendiente de decisión de diseño del pool.
 
 Lo que **no** está en esta pasada: el rediseño de HOME/visualizadores, la auditoría de EDIT motor por motor, las
 mejoras de FX más allá de MASTER EQ, y la optimización de CPU/RAM. Las páginas nuevas y el barrido están
