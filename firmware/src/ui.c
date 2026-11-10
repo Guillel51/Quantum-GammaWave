@@ -79,10 +79,16 @@ static uint32_t up_gen;                      /* bumped on every user bank change
  * keeps it so */
 static void prefs_update(void)
 {
-    if (prefs_rev < 2u) {                              /* (0.6.64) FX LATCH OFF again (the punch-in effects momentary:
-                                                        * held FX locks the FX screen open instead), once */
-        ui_prefs &= (uint8_t)~PREF_LATCH;
-        prefs_rev = 2u;
+    if (prefs_rev < 3u) {                              /* (3.2) FX LATCH ON once, for everyone: the punch-in
+                                                        * effects hold after the key and FX are let go, which is
+                                                        * what the map promises. 0.6.64 had turned it OFF again by
+                                                        * default and the only switch left was MENU > CONTROL; a
+                                                        * unit that never found it played the map momentary for
+                                                        * ever and read the latch as broken. Turning it OFF
+                                                        * (MENU, or FX + OCT+ in the map) still sticks: this runs
+                                                        * once, on the settings' revision. */
+        ui_prefs |= (uint8_t)PREF_LATCH;
+        prefs_rev = 3u;
         settings_save();
     }
 }
@@ -106,6 +112,9 @@ static void prefs_update(void)
 #define ui_splash (favorites.factory[15][19])       /* 0 FULL (default), 1 SHORT, 2 OFF (main.c boot) */
 #define midi_out_mode (favorites.factory[15][24])   /* (JIANT 0.6.72) MENU > MIDI OUT (seq.c MO_*): 0 KEYS (older settings,
                                                 * as ever), 1 CLOCK, 2 ALL, 3 OFF; a byte no engine uses */
+#define ui_trks (favorites.factory[15][18])    /* (3.4) MENU > TRACKS: 0 four (ECO), 1 five (BALANCED), 2 six (FULL);
+                                                * a byte of engine 15's block (a bitmap of favourites for an engine that
+                                                * does not exist), 0 in every older setting = the four tracks it had */
 #define PREF_SIX (0x80u << 8)                  /* (JIANT 0.6.18) MENU > TRACKS 6: all six tracks play; clear (the
                                                 * default): 4, T5 and T6 asleep (voice.c trk_live) */
 enum { RP_CLICK, RP_LEVEL, RP_COUNTIN };
@@ -120,14 +129,20 @@ static void rp_apply(void)                             /* the settings into clic
     click_mode = (uint8_t)rp_get(RP_CLICK);
     click_lvl = (uint8_t)rp_get(RP_LEVEL);
     cin_bars = (uint8_t)rp_get(RP_COUNTIN);
-    trk_live = (ui_rec_prefs & (PREF_SIX >> 8)) ? NTRK : 4u;
+    /* (3.4) TRACKS 4 / 5 / 6. Older settings carry only the bit (6 or 4), so a bit with no byte means six. */
+    if (!ui_trks && (ui_rec_prefs & (PREF_SIX >> 8)))
+        ui_trks = 2u;
+    trk_live = 4u + (ui_trks < 3u ? ui_trks : 0u);
     sys_load = (uint8_t)(ui_load <= LOAD_ECO ? ui_load : LOAD_FULL);   /* (0.6.30) LOAD (voice.c) */
-    trks_ui = trk_live == NTRK;                         /* (GLO > SYSTEM's TRACKS and LOAD show them) */
+    trks_ui = (int16_t)(trk_live - 4u);                 /* (GLO > SYSTEM's TRACKS and LOAD show them) */
     load_ui = (int16_t)(LOAD_ECO - sys_load);
 }
-static void trks_put(uint32_t v)                       /* TRACKS: 0 four, 1 six */
+static void trks_put(uint32_t v)                       /* TRACKS: 0 four, 1 five, 2 six */
 {
-    ui_rec_prefs = (uint8_t)(v ? ui_rec_prefs | PREF_SIX >> 8 : ui_rec_prefs & ~(PREF_SIX >> 8));
+    ui_trks = (uint8_t)(v < 3u ? v : 0u);
+    /* the six-track choice also writes the bit older firmware reads (MENU > TRACKS 6), so a unit that goes
+     * back to an older build keeps six tracks instead of silently losing two */
+    ui_rec_prefs = (uint8_t)(v == 2u ? ui_rec_prefs | PREF_SIX >> 8 : ui_rec_prefs & ~(PREF_SIX >> 8));
     rp_apply();
 }
 /* (0.6.30) LOAD as MENU and GLO > SYSTEM step it, the lightest first: 0 ECO, 1 LITE, 2 FULL */
@@ -1126,6 +1141,12 @@ static void apply_preset_to(track_t *t, uint32_t pi)
                 t->p[pr->x[i].id - 1u] = (int16_t)clamp(pr->x[i].v, TP[pr->x[i].id - 1u].min, TP[pr->x[i].id - 1u].max);
     }
     fm6_track_loaded(t);                              /* FM6: the preset's patch (its SLOT) */
+    /* (2.1) THE SOUND'S OWN LEVEL. Until now a preset left P_LEVEL as the track had it, so the same
+     * fader gave -11 dBFS on SCREAM LEAD and -38.6 on STATIC HAZE: changing sound jumped by up to
+     * 27.6 dB, which is what "the presets are not levelled" meant. The value comes from a measured
+     * render of the preset itself (tools/gen_preset_levels.py writes preset_level.c), so it is a
+     * property of the sound and not a taste. The user's fader still moves the track from there. */
+    t->p[P_LEVEL] = (int16_t)preset_level_of(t->eng_req % NENGINES, pi);
     load_end(t);
 }
 

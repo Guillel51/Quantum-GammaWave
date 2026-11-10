@@ -8,7 +8,12 @@
 #include <stdint.h>
 
 /* (1.8) Audio meters published by fx.c: 0..2 the chorus/delay/reverb sends, 3..5 their wet returns. */
-extern volatile int32_t fx_vu[6];
+extern volatile int32_t fx_vu[8];
+/* (2.1) the level a factory preset loads with, measured from its own render (preset_level.c,
+ * tools/gen_preset_levels.py): 100 is the fader's own, untouched, 0..127 are LEVEL_Q12 indices */
+uint8_t preset_level_of(uint32_t e, uint32_t pi);   /* 0..2 the chorus/delay/reverb sends, 3..5 their wet returns,
+                                     * (2.1) 6..7 the mix's own left and right peaks: the two mono
+                                     * meters HOME shows */
 /* (3.0) The delay's echo train, measured -- not inferred from a level. A hit at the delay's send
  * starts repeat 1 one delay time later, repeat 2 one time after that, and so on; fx_buses peaks the
  * wet return inside each of those windows (fx_dly_rep[0] is repeat 1). Zero when nothing is ringing,
@@ -218,6 +223,7 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
 #define ENGI_ANALOG 0u           /* (JIANT 0.5: named for its FILTER page) */
 #define ENGI_PHYS 9u
 #define ENGI_DRUM 10u
+#define ENGI_LOFI 3u             /* LOFI (engines.c ENGINES[3]): BYTE / FLOAT's T.CLK lives here */
 #define ENGI_GRAIN 8u
 #define ENGI_SLICE 13u
 #define ENGI_SAMPLE 4u

@@ -42,16 +42,17 @@
 // A disconnect, a timeout or a malformed answer ends the same way: the kind is reported from
 // what was actually read, every port is closed, and there is no next step that writes.
 //
-// THE PACKAGE IS NOT THE DEVICE. The page also carries a package (this build: FM-1_982), and the
-// two identities must never be mixed on screen: "FM-1_982" is the tag of the .fwsc this page
-// offers, "FM-1_015" is what a stock FM-1 answers, and a unit that answers FM-1_982 is NOT a unit
+// THE PACKAGE IS NOT THE DEVICE. The page also carries a package (this build: FM-1_965), and the
+// two identities must never be mixed on screen: "FM-1_965" is the tag of the .fwsc this page
+// offers, "FM-1_015" is what a stock FM-1 answers, and a unit that answers FM-1_965 is NOT a unit
 // running official V15 -- it is running this build. So the report carries them in two separate
 // blocks (`firmware.*` from the frame, `pkg.*` from this page's build record), and the
 // compatibility between them is a third, derived row that is explicitly informational.
 // The identity of the package is NEVER written into a device field, and the package being V15 does
-// not turn a device that answered FM-1_982 into stock: kind is decided by what the unit said.
+// not turn a device that answered FM-1_965 into stock: kind is decided by what the unit said.
 
-import { Updater, PORT_RE, verifyManifest } from "./fm1ota.js";
+import { Updater, PORT_RE, isOurLoader, LEGACY_IDS } from "./fm1ota.js";
+import { derive, describe, unobservable } from "./fm1state.js";
 import { productOf } from "./fm1pkg.js";
 
 // the one frame Verify Only may put on the wire (tests/test_verify_only.mjs checks the log)
@@ -82,7 +83,7 @@ function hardwareOf(model) {
 //                decides that, and it decides it on its own
 function report(kind, base) {
   const found = kind !== "none";
-  const recognised = kind === "stock" || kind === "ours" || kind === "loader";
+  const recognised = kind === "stock" || kind === "ours" || kind === "ourloader" || kind === "otherloader";
   return { kind, found, recognised, canInstall: false, ports: base.ports, ...base };
 }
 
@@ -111,7 +112,6 @@ function packageOf(product, pkg) {
     binary: Number(bin.bytes || 0),
     binarySha: String(bin.sha256 || ""),
     loader: Number(loader.bytes || 0),
-    keys: (pkg && pkg.keys) || {},
   };
 }
 
@@ -122,12 +122,12 @@ async function digestHex(bytes) {
   return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// The package against the signed manifest and the pinned key -- offline, and therefore true even when
+// The package against the hash the site published with it -- offline, and therefore true even when
 // no unit is attached. It answers one question and does not throw: `state` is "pass" or "fail", and
 // `detail` says why, so the report can print the refusal instead of a stack trace. It never returns
-// "pass" for bytes that are not the ones the build record names: the hash is recomputed here, the
-// package's own identity is read out of the container, and only then is the Ed25519 signature checked.
-export async function verifyPackage(bytes, { manifest = null, keys = {}, product = "", sha256 = "", size = 0 } = {}) {
+// "pass" for bytes that are not the published ones: the hash is recomputed here and the package's own
+// identity is read out of the container.
+export async function verifyPackage(bytes, { product = "", sha256 = "", size = 0 } = {}) {
   const out = { state: "fail", keyid: "", version: "", sha256: "", size: 0, detail: "" };
   try {
     if (!bytes || typeof bytes.length !== "number" || !bytes.length) throw new Error("there are no package bytes to check");
@@ -137,9 +137,9 @@ export async function verifyPackage(bytes, { manifest = null, keys = {}, product
     if (size && buf.length !== size) throw new Error(`the package is ${buf.length} B, the build record says ${size} B`);
     if (sha256 && out.sha256 !== sha256) throw new Error("the package's SHA-256 is not the build record's");
     if (product && productOf(buf) !== product) throw new Error(`the package identifies as ${productOf(buf)}, not ${product}`);
-    const v = await verifyManifest(buf, manifest, keys, { product });
-    out.state = "pass"; out.keyid = v.keyid; out.version = v.version;
-    out.detail = `key ${v.keyid}, ${buf.length} B, sha256 ${out.sha256.slice(0, 16)}\u2026`;
+    if (!sha256) throw new Error("no published SHA-256 to check the package against");
+    out.state = "pass"; out.keyid = "sha256";
+    out.detail = `${buf.length} B, sha256 ${out.sha256.slice(0, 16)}\u2026`;
   } catch (e) {
     out.detail = String((e && e.message) || e);
   }
@@ -149,21 +149,28 @@ export async function verifyPackage(bytes, { manifest = null, keys = {}, product
 // How this package relates to what answered. Informational: `canInstall` is false regardless, and
 // only the install path's own gate (signature, chip JEDEC, sizes) decides. A silent unit is
 // "unproven", never "compatible": nothing was read, so nothing is known about its firmware.
-function compatibility(kind, deviceModel, pkgModel) {
+function compatibility(kind, deviceModel, pkgModel, legacy = false) {
   if (!pkgModel) return "no-package";
   if (kind === "none") return "no-device";
   if (kind === "silent") return "unproven-device";
   if (!deviceModel || deviceModel !== pkgModel) return "blocked-model";
   if (kind === "stock") return "replaces-stock";
+  /* an identity this project used before docs/IDENTITY.md: the firmware is ours, the number is old, so
+   * this is an update and not a reinstall of the same tag. */
+  if (kind === "ours" && legacy) return "upgrade-legacy";
   if (kind === "ours") return "reinstall-same";
-  if (kind === "loader") return "finish-loader";
+  if (kind === "ourloader") return "finish-loader";
+  /* Both loaders answer "ota-FM-1", and the name alone says nothing: the unit's own update mode
+   * (the vendor's, the one a stock FM-1 enters) and this project's loader (ota-FM-1_965, or
+   * ota-FM-1_900 in the packages up to 2.1.1). Only the version separates them, so a loader that is
+   * not ours is reported as foreign -- readable, never a target. */
+  if (kind === "otherloader") return "foreign-loader";
   return "blocked-firmware";
 }
 
 // the package block, rendered in every report: the same rows whatever the device did or did not say.
 // Every value here comes from the page's own build record -- it is the package, never the unit.
 function pkgFields(pkg, compat, sig = null) {
-  const nkeys = Object.keys(pkg.keys || {}).length;
   const rows = [
     { key: "pkg.identity", value: pkg.identity || "-", source: "this page's build record", confidence: pkg.identity ? "high" : "none" },
     { key: "pkg.release", value: pkg.release || "-", source: "this page's build record", confidence: pkg.release ? "high" : "none" },
@@ -176,7 +183,7 @@ function pkgFields(pkg, compat, sig = null) {
    * a pinned key, and the package's own identity was read out of it. Every word of it was measured in
    * this run -- without a unit, which is why it can be true on a page where nothing is plugged in. */
   if (sig) rows.push({ key: "pkg.verified", value: sig.state === "pass" ? `${sig.keyid || "?"} \u00b7 ${sig.size} B` : "failed",
-    source: sig.state === "pass" ? `Ed25519 verified here over the package's own bytes: ${String(sig.detail || "").slice(0, 96)}`
+    source: sig.state === "pass" ? `re-hashed here, matches the published SHA-256: ${String(sig.detail || "").slice(0, 96)}`
       : `not verified here: ${String(sig.detail || "no reason given").slice(0, 120)}`,
     confidence: "high" });
   if (pkg.commit) rows.push({ key: "pkg.build", value: `${pkg.version || "?"} ${pkg.commit.slice(0, 7)}`,
@@ -187,10 +194,9 @@ function pkgFields(pkg, compat, sig = null) {
   rows.push({ key: "compat", value: compat, source: "device identity vs package tag", confidence: "high" });
   rows.push({ key: "install.auth", value: "none", source: "verify only never authorises an install", confidence: "high" });
   /* why nothing can be authorised yet, said in the one place the reader is looking for a verdict */
-  rows.push({ key: "install.why", value: sig && sig.state === "pass" ? "verified" : (nkeys ? "signed" : "no-key"),
-    source: sig && sig.state === "pass" ? "the package's signature was checked in this run"
-      : nkeys ? `${nkeys} key(s) in this build's key map; this run did not check the package against them`
-      : "this build's key map is empty: a signature can be neither made nor checked", confidence: "high" });
+  rows.push({ key: "install.why", value: sig && sig.state === "pass" ? "verified" : "unchecked",
+    source: sig && sig.state === "pass" ? "the package's SHA-256 was checked in this run"
+      : "this run did not check the package's bytes", confidence: "high" });
   return rows;
 }
 
@@ -219,6 +225,22 @@ const PROBE_WHY = {
   "silent": "every probed port stayed silent",
   "answered": "the port that answered",
 };
+
+/* What a read-only 0x12 identification measured, or why it refused. Read from the unit, not documented:
+ * the JEDEC and geometry are the chip's own answer, and the refusal is the unit's own silence. */
+function chipFields(chip) {
+  if (!chip) return [];
+  if (!chip.ok) return [{ key: "chip.refused", value: chip.code || "refused",
+    source: String(chip.why || "").slice(0, 160), confidence: "high" }];
+  return [
+    { key: "chip.jedec", value: "0x" + Number(chip.jedec).toString(16).toUpperCase().padStart(6, "0") + " " + (chip.part || ""),
+      source: "two 0x12 identifications of this unit (read only)", confidence: "high" },
+    { key: "chip.geometry", value: `${Number(chip.cap || 0)} B · page ${Number(chip.page || 0)} · sector ${Number(chip.sector || 0)} · block ${Number(chip.block || 0)}`,
+      source: "the identification answer, cross-checked between the two replies", confidence: "high" },
+    { key: "chip.write", value: chip.writable ? "a validated write part" : "not a part this installer writes",
+      source: "the flash identification table and the two identical answers", confidence: "high" },
+  ];
+}
 
 function probeFields(probe, port) {
   const p = probe || {};
@@ -257,48 +279,89 @@ const MISSING = [
   ["device.fuse", "no documented read-only command reports the OTP/fuse state of this SoC"],
 ];
 
-function partsOf(pkg) {
-  const n = Object.keys((pkg && pkg.keys) || {}).length;
-  return { keys: n };
-}
+// The regions, from the loader that writes them (firmware/loader/ldr_core.c: LDR_APP_LO/LDR_APP_HI).
+// A package whose image does not fit here is refused by the loader itself, so it is checked before.
+const APP_LO = 0x4000, APP_HI = 0x93000;
 
-// The nine conditions an install has to satisfy, in the order the installer walks them, each with
-// the state this read-only check can actually establish. It is the same list the install path uses,
-// printed here so the reader sees where the chain stops instead of a disabled button with no reason:
-//   pass        established by evidence obtained in this run
-//   fail        contradicted by what was read
-//   unknown     this path cannot establish it (it would need a write-capable session or a backup)
-//   not-here    deliberately not done by verify only (the chip session is part of the install path)
-//   documented  only a document asserts it; nothing on this unit demonstrated it
-// Nothing in this function can return "pass" for a condition that needs a key, a chip session or a
-// recovery test: those are exactly the three that keep the installer closed.
-function gateOf({ found, read, pkg, compat, sig = null }) {
-  const { keys } = partsOf(pkg);
-  const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader";
+/* The ten conditions, in the order the installer walks them, each with the state the evidence actually
+ * supports. Two lessons are baked into the list below, because both cost this project a false block:
+ *
+ *   - a condition that is only knowable AFTER the write (the identity the unit reports afterwards) is
+ *     not a precondition. It is listed as `after`: the install verifies it, and requiring it in advance
+ *     is requiring the result to prove itself;
+ *   - "no recovery has been demonstrated on this unit" is true of every unit that has never been
+ *     broken. The precondition that can be met is that a verified dump of this unit exists and that a
+ *     documented tool covers exactly the range the install overwrites. That is `covered`: weaker than
+ *     `pass`, stronger than "unknown", and it is named so nobody reads it as a demonstration.
+ *
+ * states:
+ *   pass          established here, by this run or by this unit's own record
+ *   covered       a verified backup plus a documented tool covering the written range; never exercised
+ *   fail          contradicted by what was read
+ *   unknown       this path cannot establish it yet
+ *   not-here      verify only does not do it and nothing else does either yet (a loader that cannot
+ *                 answer 0x12 with no record in hand)
+ *   at-install    this read-only run does not identify the chip, but the install path does -- with a
+ *                 live 0x12 on the same link, before the first write frame (identify() in fm1ota.js)
+ *   not-required  the update path does not need it (a unit already running this firmware)
+ *   after         a post-write obligation, verified by the install, never a precondition
+ */
+function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "none" }) {
+  const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader"
+    || compat === "upgrade-legacy";
+  const image = Number((pkg && pkg.binary) || 0);
+  const fits = image > 0 && APP_LO + image <= APP_HI;
   const rows = [
     { key: "gate.detect", state: found ? "pass" : "fail" },
     { key: "gate.read", state: read ? "pass" : "unknown" },
     { key: "gate.package", state: pkg && pkg.identity ? "pass" : "fail" },
     { key: "gate.compat", state: found && read ? (compatible ? "pass" : "fail") : "unknown" },
-    /* The signature is a property of the package, not of the unit: these bytes, the signed manifest
-     * and the pinned key decide it, and all three are already on this page. It used to be "unknown"
-     * until a write session existed, which was both false and the reason the installer could never
-     * say it trusted what it was about to write. */
-    { key: "gate.signature", state: sig ? (sig.state === "pass" ? "pass" : "fail") : (keys ? "unknown" : "fail") },
-    { key: "gate.chip", state: "not-here" },
-    { key: "gate.flashmap", state: "unknown" },
-    { key: "gate.backup", state: "unknown" },
-    { key: "gate.recovery", state: "documented" },
-    { key: "gate.revalidate", state: "unknown" },
+    /* The package's bytes against the SHA-256 the site published with them: a property of the package,
+     * not of the unit, so it is decided here. */
+    { key: "gate.signature", state: sig ? (sig.state === "pass" ? "pass" : "fail") : "unknown" },
+    /* The identification happens on the unit, at install time, and nowhere else: a unit running QG
+     * answers 0x12 on the app link before the first write frame, and this project's update loader --
+     * the one a stock unit stages from its own updater -- reads the chip itself and refuses to erase
+     * anything on a part the firmware does not write (firmware/loader/loader.c ldr_flash_known). So
+     * there is no chip fact on the host, and none is asked of the user: the page cannot read one here,
+     * and the write cannot happen without one. */
+    { key: "gate.chip", state: chip ? (chip.ok ? "pass" : "fail")
+      : (kind === "ours" || kind === "stock" || kind === "ourloader" ? "at-install" : "not-here") },
+    /* The map is a property of the package and of the loader's own limits, not of a write session:
+     * the image has to fit `[0x4000, 0x93000)` and the boot head is never in any write range. */
+    { key: "gate.flashmap", state: image ? (fits ? "pass" : "fail") : "unknown" },
+    /* An interrupted install is resumable by design (the loader waits for the bytes and the page resumes
+     * it), and a stock unit's firmware is M-VAVE's published V15 file, so neither needs a full-flash dump
+     * -- and this page does not ask for one: it takes no report from another tool as a condition. */
+    { key: "gate.backup", state: kind === "ours" || kind === "stock" ? "not-required" : "unknown" },
+    { key: "gate.recovery", state: kind === "ours" || kind === "stock" ? "covered" : "unknown" },
+    { key: "gate.revalidate", state: "after" },
   ];
-  const blocked = rows.filter((r) => r.state !== "pass").map((r) => r.key);
-  return { rows, verdict: { result: "NO-GO", blocked, canInstall: false } };
+  /* What each path needs. This page writes to a stock unit, a unit already running this firmware and
+   * its own loader. The host path (M-Flasher) writes the same app area through the chip's ROM mode. */
+  const page = kind === "ours" || kind === "ourloader" || kind === "stock";
+  const okPage = { pass: 1, "not-required": 1, covered: 1, "at-install": 1 };
+  const okHost = { pass: 1, covered: 1 };
+  const ok = page ? okPage : okHost;
+  const required = rows.filter((r) => r.state !== "after" && !(page && r.key === "gate.read" && kind === "ourloader"));
+  const blocking = required.filter((r) => !ok[r.state]).map((r) => r.key);
+  const limitations = [];
+  if (rows.find((r) => r.key === "gate.recovery").state === "covered")
+    limitations.push(kind === "ours" || kind === "stock" ? "update-resumable-not-exercised" : "recovery-not-exercised");
+  const ready = blocking.length === 0 && found && read && pkg && pkg.identity;
+  const verdict = ready
+    ? { result: page ? "GO" : "GO-HOST", path: page ? "this-page" : "m-flasher", blocked: [],
+        canInstall: page, canInstallHost: !page, limitations }
+    : { result: "NO-GO", path: page ? "this-page" : "m-flasher", blocked: blocking,
+        canInstall: false, canInstallHost: false, limitations };
+  return { rows, verdict };
 }
 
 export async function verifyDevice(midi, opts = {}) {
   const product = String(opts.product || "");
   const pkg = packageOf(product, opts.pkg);
   const sig = opts.signature || null;       // the offline check of the package (verifyPackage)
+  const chip = opts.chip || null;           // a read-only 0x12 check, when one was run
   const log = opts.log || (() => {});
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
@@ -321,9 +384,10 @@ export async function verifyDevice(midi, opts = {}) {
     /* a port that was probed and did not answer is "silent", even when its name is not one this
      * installer recognises: that is what was done and what came back */
     const kind = (ports.length || (probe.probed || []).length) ? "silent" : "none";
+    const state = derive({ fw: { kind } });
     const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "" };
     const compat = compatibility(kind, ports.length ? "FM-1" : "", pkg.model);
-    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig });
+    const gate = gateOf({ found: ports.length > 0, read: false, pkg, compat, sig, chip, kind });
     return report(kind, {
       text: "", model: "", version: 0, ports,
       hardware: ports.length ? "FM-1" : "", hardwareSource: ports.length ? "port name" : "",
@@ -341,8 +405,11 @@ export async function verifyDevice(midi, opts = {}) {
         ...probeFields(probe, port),
         ...platformFields(),
         ...pkgFields(pkg, compat, sig),
+        ...chipFields(chip),
+        { key: "state.current", value: describe(state), source: "derived here: no usable identity answer", confidence: "high" },
       ],
-      signature: sig,
+      state,
+      signature: sig, chip,
       gate: gate.rows, verdict: gate.verdict,
       missing: MISSING.map(([key, why]) => ({ key, why })),
     });
@@ -351,14 +418,23 @@ export async function verifyDevice(midi, opts = {}) {
   dev.link.close();
   const hardware = hardwareOf(model);
   let kind, firmware;
-  if (/^ota-/i.test(model)) { kind = "loader"; firmware = "loader"; }
+  if (/^ota-/i.test(model)) {
+    /* /^ota-/ is the shape of the update loader, not a claim about whose it is: isOurLoader() reads
+     * the version (965, or 900 before docs/IDENTITY.md; FM-1 015's vendor loader is 015). Splitting
+     * what stops the report from calling a foreign loader "a interrupted install to finish". */
+    kind = isOurLoader(dev.id) ? "ourloader" : "otherloader";
+    firmware = isOurLoader(dev.id) ? "loader" : "vendorLoader";
+  }
   else if (text === "FM-1_015") { kind = "stock"; firmware = "stock"; }
-  else if (product && text === product) { kind = "ours"; firmware = "gammaWave"; }
+  else if (product && (text === product || LEGACY_IDS.includes(text))) {
+    /* same project, an identity it used before docs/IDENTITY.md (2.1.1 answered FM-1_982) */
+    kind = "ours"; firmware = text === product ? "gammaWave" : "gammaWaveLegacy";
+  }
   else { kind = "other"; firmware = "other"; }
   const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
-  const compat = compatibility(kind, hardware, pkg.model);
-  const gate = gateOf({ found: true, read: true, pkg, compat, sig });
+  const compat = compatibility(kind, hardware, pkg.model, firmware === "gammaWaveLegacy");
+  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, kind });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
@@ -372,13 +448,24 @@ export async function verifyDevice(midi, opts = {}) {
     ...probeFields(probe, port),
     ...platformFields(),
     ...pkgFields(pkg, compat, sig),
+    ...chipFields(chip),
   ];
-  const missing = MISSING.filter(([key]) => key !== "bootloader" || kind !== "loader").map(([key, why]) => ({ key, why }));
+  /* the boot loader of a unit sitting in its update loader is not readable through that loader, so
+   * the field is dropped there -- for both loaders, ours and the vendor's, since neither answers. */
+  const missing = MISSING.filter(([key]) => key !== "bootloader" || !/loader$/.test(kind)).map(([key, why]) => ({ key, why }));
+  /* The named state, derived from what was read, printed with the transport's blind spots next to
+   * it: a reader must be able to tell "observed" from "this page cannot observe that at all". */
+  const state = derive({ fw: { kind }, chip });
+  fields.push({ key: "state.current", value: describe(state), source: "derived here from the identity answer and, when it exists, the chip reading", confidence: "high" });
+  fields.push({ key: "state.unobservable", value: `${unobservable().length} of ${17}: `
+    + `${unobservable().map((u) => u.id).join(", ")}`, source: "WebMIDI exposes no VID:PID and no mass-storage device; the loader erases inside its write pass (docs/FM1_MODES.md)", confidence: "high" });
   return report(kind, {
+    state,
     text, model, version, ports, hardware, hardwareSource: "identity answer", firmware,
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
-    fields, missing, signature: sig, gate: gate.rows, verdict: gate.verdict,
+    fields, missing, signature: sig, chip, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
-    compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader",
+    compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader"
+      || compat === "upgrade-legacy",
   });
 }

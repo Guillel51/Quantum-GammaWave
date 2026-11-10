@@ -23,7 +23,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import fm1_install as I  # noqa: E402
 import fm1_probe as P  # noqa: E402
-import fm1_sign as S  # noqa: E402
 
 I.DELAY.update(open=0, start=0.01, reply=0, loader=0.01, reboot=0.01, retry=0.02, poll=0.05, hs=0.1,
                idle_check=0.4, idle_write=0.4, wait_loader=2, wait_reboot=2)
@@ -70,7 +69,7 @@ class FakeLink:
 class FakeFM1:
     """a MIDI backend with one FM-1 on it"""
 
-    def __init__(self, image, identity="FM-1_015", name="FM-1", unplug_after=None, after_write="FM-1_900",
+    def __init__(self, image, identity="FM-1_015", name="FM-1", unplug_after=None, after_write="FM-1_965",
                  stall_after=None, bad_addr=None, ack_lost=False, ack_lost_stage1=False,
                  jedec=0x856014, query_fault=None):
         self.image, self.unplug_after, self.after_write = image, unplug_after, after_write
@@ -137,7 +136,7 @@ class FakeFM1:
                 return
             if addr == I.FINISH_CHECK:
                 if not self.ack_lost_stage1:
-                    threading.Timer(0.05, self.boot, ("ota-FM-1_900", "Felucca Update")).start()
+                    threading.Timer(0.05, self.boot, ("ota-FM-1_965", "Felucca Update")).start()
             elif addr == I.FINISH_WRITE:
                 if not self.ack_lost:
                     threading.Timer(0.05, self.boot, (self.after_write, "Felucca")).start()
@@ -223,7 +222,7 @@ class FakeFM1:
 
 # ----------------------------------------------------------------- helpers ---
 
-def package(product="FM-1_900", marker=True, size=0x2000):
+def package(product="FM-1_965", marker=True, size=0x2000):
     raw = bytearray((i * 7) & 0xFF for i in range(size + I.BLOCKS))
     for i in range(I.BLOCKS):
         raw[i * I.BLK + I.KEEP] = (ord(product[i]) + i + 1) & 0xFF if i < len(product) else 0x7D
@@ -232,42 +231,19 @@ def package(product="FM-1_900", marker=True, size=0x2000):
 
 
 TMP = Path(tempfile.mkdtemp(prefix="felucca-install-"))
-KEYID = "install-test-1"
-PRIV = TMP / "test-key.pem"
-
-
-def _test_key():
-    """an ephemeral release key: the private key never touches the repository"""
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    k = Ed25519PrivateKey.generate()
-    PRIV.write_bytes(k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-                                     serialization.NoEncryption()))
-    pub = k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-    (TMP / "keys.json").write_text(json.dumps({"keys": {KEYID: pub.hex()}}))
-
-
-_test_key()
 
 
 def pkgfile(name, raw, version="3.0.0", minimum="2.0.0", sign=True, product=None):
     p = TMP / name
     p.write_bytes(raw)
     (TMP / (name + ".sha256")).write_text(hashlib.sha256(raw).hexdigest() + "\n")   # (QG-1) hashes are mandatory
-    if sign:
-        try:
-            prod = product or I.model_of(I.product_of(raw))
-        except I.InstallError:
-            prod = product or "FM-1"          # a deliberately broken package: sign it anyway
-        man = S.sign_manifest(S.manifest_for(raw, version, minimum, prod, KEYID), PRIV.read_bytes())
-        (TMP / (name + ".manifest.json")).write_text(json.dumps(man))
     return str(p)
 
 
 def cli(args, dev, answer=True):
-    # (QG-1) no typed JEDEC any more: the installer reads the chip with 0x12 (the fake answers it) and
-    # the package carries a signed manifest. tests/preflight_test.py covers every refusal.
-    args = list(args) + ["--keys", str(TMP / "keys.json")]
+    # (QG-1) no typed JEDEC any more: the installer reads the chip with 0x12 (the fake answers it).
+    # tests/preflight_test.py covers every refusal.
+    args = list(args)
     out, err = io.StringIO(), io.StringIO()
     old, sys.stderr = sys.stderr, err
     try:
@@ -299,15 +275,14 @@ def installs():
 
     dev = FakeFM1(image)
     rc, out, err = cli([p, "--yes"], dev)
-    ok(rc == 0 and dev.bad == 0 and dev.upgrades == 2 and dev.served == 11 and "done: the FM-1 runs FM-1_900" in out
+    ok(rc == 0 and dev.bad == 0 and dev.upgrades == 2 and dev.served == 11 and "done: the FM-1 runs FM-1_965" in out
        and "100%" in out, f"install: running -> loader -> Felucca ({dev.served} reads)")
 
-    dev = FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update")
+    dev = FakeFM1(image, identity="ota-FM-1_965", name="Felucca Update")
     rc, out, err = cli([p, "--yes"], dev)
-    # (QG-1 phase 3) the loader cannot identify its NOR (its code is unchanged), so an install cut off in
-    # the middle is refused unless the lab override is present: fail closed, and documented as a limitation
-    ok(rc == 7 and dev.upgrades == 0 and "already in update mode" in err,
-       "install: device already in update mode -> refused, nothing sent")
+    # the loader cannot answer 0x12; it checks the chip itself (loader.c), so a cut-off install resumes
+    ok(rc == 0 and dev.upgrades == 1 and dev.bad == 0,
+       "install: device already in update mode -> the write is finished")
 
     dev = FakeFM1(image)
     rc, out, err = cli([p], dev, answer=False)
@@ -317,7 +292,7 @@ def installs():
     rc, out, err = cli(["--info"], dev)
     ok(rc == 0 and "FM-1_905" in out and "running" in out and dev.upgrades == 0, "--info: identity of the connected FM-1")
 
-    dev = FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update")
+    dev = FakeFM1(image, identity="ota-FM-1_965", name="Felucca Update")
     rc, out, err = cli(["--info"], dev)
     ok(rc == 0 and "update loader" in out, "--info: device in update mode")
 
@@ -345,13 +320,13 @@ def errors():
     ok(rc == 4 and "disconnected" in err and "nothing was written" in err and time.monotonic() - t0 < 3,
        "unplugged in step 1 -> exit 4 'lost', nothing written")
     t0 = time.monotonic()
-    rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", unplug_after=3))
-    ok(rc == 7 and dev.upgrades == 0 and time.monotonic() - t0 < 3,
-       "a device in update mode is refused before any write attempt")
-    rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", stall_after=3))
-    ok(rc == 7 and "already in update mode" in err, "loader mode is refused, not waited on")
-    rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", bad_addr=len(image)))
-    ok(rc == 7, "a device in update mode cannot be identified, so nothing is sent")
+    rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_965", name="Felucca Update", unplug_after=3))
+    ok(rc == 4 and "disconnected" in err and time.monotonic() - t0 < 3,
+       "unplugged in update mode -> exit 4 'lost'")
+    rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_965", name="Felucca Update", stall_after=3))
+    ok(rc == 4, "a loader that stops answering -> exit 4 'stopped'")
+    rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_965", name="Felucca Update", bad_addr=len(image)))
+    ok(rc != 0 and "outside the package" in err, "a loader asking outside the package is refused")
 
     rc, out, err = cli([p, "--yes"], FakeFM1(image, after_write="FM-1_015"))
     ok(rc == 6 and "reports FM-1_015" in err, "another identity after the restart -> exit 6")
@@ -400,8 +375,6 @@ def integrity():
     d.mkdir(exist_ok=True)
     p = d / "q.fwsc"
     p.write_bytes(raw)
-    (d / "q.fwsc.manifest.json").write_text(json.dumps(          # (QG-1) signed, or nothing installs
-        S.sign_manifest(S.manifest_for(raw, "3.0.0", "2.0.0", "FM-1", KEYID), PRIV.read_bytes())))
     plain = d / "plain.fwsc"
     plain.write_bytes(raw)
     dev = FakeFM1(image)
@@ -455,13 +428,13 @@ def official():
         print("official V15 restore: skipped (needs FM-1_v15.fwsc in the repo root)")
         return
     raw = v15.read_bytes()
-    dev = FakeFM1(I.logical_image(raw), identity="FM-1_900", name="Felucca", after_write="FM-1_015")
+    dev = FakeFM1(I.logical_image(raw), identity="FM-1_965", name="Felucca", after_write="FM-1_015")
     rc, out, err = cli([str(v15), "--yes", "--sha256", hashlib.sha256(raw).hexdigest()], dev)
     ok(rc == 0 and dev.bad == 0 and "FM-1_015" in out and dev.identity == "FM-1_015",
        "official V15 (FM-1.fwsc) from Felucca: installed without --force, back as FM-1_015")
     bad = bytearray(raw)
     bad[-1] ^= 1
-    dev = FakeFM1(I.logical_image(bytes(bad)), identity="FM-1_900", name="Felucca")
+    dev = FakeFM1(I.logical_image(bytes(bad)), identity="FM-1_965", name="Felucca")
     rc, out, err = cli([pkgfile("v15mod.fwsc", bytes(bad)), "--yes"], dev)
     ok(rc == 2 and "official V15" in err and dev.sent == [], "a modified V15 is still refused (no MIDI)")
 

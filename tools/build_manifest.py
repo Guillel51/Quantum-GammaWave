@@ -13,7 +13,7 @@ next to:
   * `commit`   -- the exact commit (`GIT_COMMIT`/`GITHUB_SHA` in CI, `git rev-parse HEAD` locally);
   * `dirty`    -- the worktree files that were not committed, minus `build/` (empty: reproducible);
   * `version`  -- `FELUCCA_VERSION` as compiled;
-  * `identity` -- the package identity (`FM-1_982`);
+  * `identity` -- the package identity (`FM-1_965`);
   * `config`   -- the build knobs that change the code (`FELUCCA_*`, `FELUCCA_USB_LAYOUT`);
   * `toolchain`/`sdk` -- what compiled it and the SDK files it linked, by hash;
   * `checks`   -- the build's own checks and their results.
@@ -54,12 +54,19 @@ def _git(*args):
 
 
 def commit():
-    """The commit that produced these bytes: the CI's SHA when it is set, else the checkout's."""
+    """The commit that produced these bytes: the checkout's own HEAD, else the CI's SHA.
+
+    The tree decides, because a build can run in a worktree at another commit (the stable emulator is
+    built at the signed release's), where GITHUB_SHA names the deploy, not the sources. Same rule as
+    tools/package_emu.py, measured on the live site on 2026-11-10."""
+    head = _git("rev-parse", "HEAD")
+    if head:
+        return head
     for env in ("GIT_COMMIT", "GITHUB_SHA"):
         value = os.environ.get(env, "").strip()
         if value:
             return value
-    return _git("rev-parse", "HEAD") or "unknown"
+    return "unknown"
 
 
 def dirty():

@@ -13,7 +13,11 @@
   The emulator is copied to OUT/emulator by the Pages workflow: the portal is the root, and the
   installer / editor keep their existing /webapp/ paths.
 
-  web/make_site.py build/felucca-X.Y.fwsc X.Y OUT_DIR [PREV_DIR]
+  web/make_site.py build/felucca-X.Y.fwsc X.Y OUT_DIR [PREV_DIR] [--manifest REC] [--emu EMU_MANIFEST]
+                  [--no-release]
+
+--no-release builds a preview: it publishes THIS package even when it is not the signed release, so /preview/
+always shows main and says it is not installable until a custodian signs it.
 
 PREV_DIR (JIANT 0.6.46): what web/fetch_prev.py downloaded from the live site, its firmware/versions.json and its
 packages: up to KEEP_OLD earlier versions (the newest build of each) stay installable next to the current one
@@ -88,33 +92,83 @@ def build_record(pkg_path, manifest=None):
     return None
 
 
-def check_build_record(m, raw, product, version, pkg_path):
-    """Refuse to publish a package that contradicts its own build record. The installer checks the same
-    things again in the browser (web/fm1provenance.js): an inconsistent site must never be built."""
-    problems = []
-    art = (m.get("artifacts") or {}).get("felucca.fwsc") or {}
-    if art.get("sha256") != hashlib.sha256(raw).hexdigest():
-        problems.append(f"the package's SHA-256 is not the record's ({art.get('sha256')})")
-    if art.get("bytes") != len(raw):
-        problems.append(f"the package is {len(raw)} B, the record's {art.get('bytes')} B")
-    if m.get("identity") != product:
-        problems.append(f"the record is for {m.get('identity')!r}, the package's identity is {product!r}")
-    if m.get("dirty"):
-        problems.append("the record says the tree had uncommitted changes (" + ", ".join(map(str, m["dirty"][:4])) + ")")
-    bv, commit = str(m.get("version") or ""), str(m.get("commit") or "")
-    if not re.fullmatch(r"[0-9a-f]{40}", commit):
-        problems.append(f"the record's commit {commit!r} is not a full commit id")
-    suffix = version[len(bv) + 1:] if bv and version.startswith(bv + "-") else None
-    if not (bv and (version == bv or (suffix and re.fullmatch(r"[0-9a-f]{7,40}", suffix)
-                                      and commit.startswith(suffix)))):
-        problems.append(f"this is labelled {version!r}, the record says {bv!r} ({commit[:7]})")
-    emu = m.get("emulator") or {}
-    if emu.get("version") != bv:
-        problems.append(f"the emulator in the record is {emu.get('version')!r}, the firmware {bv!r}")
-    if not commit.startswith(str(emu.get("commit") or "-")):
-        problems.append(f"the emulator was built from {emu.get('commit')!r}, the firmware from {commit[:7]}")
-    if problems:
-        raise SystemExit(f"{pkg_path}: refusing to publish it: " + "; ".join(problems))
+def release_manifest(pkg_path):
+    """the release manifest tools/fm1_sign.py wrote next to the package, if it is here.
+
+    It is the authenticity half of the chain: an Ed25519 signature over a canonical JSON of the
+    manifest, by a key the custodian pinned in tools/fm1_keys.json. The site publishes it beside the
+    bytes; a package without one is published with `manifest: null`, and the installer then refuses to
+    enable INSTALL -- that is the released state, not an error to work around."""
+    import hashlib
+    raw = Path(pkg_path).read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    cands = [Path(str(pkg_path) + ".manifest.json"), Path(pkg_path).with_suffix(".manifest.json")]
+    # the committed release: its manifest is used only for the exact bytes being served, so a site can
+    # never publish a signature that belongs to a different package
+    try:
+        cands += sorted((HERE.parent / "release").glob("*.manifest.json"))
+    except OSError:
+        pass
+    for cand in cands:
+        try:
+            m = json.loads(cand.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if (isinstance(m, dict) and m.get("format") == "qg1-release-1"
+                and str(m.get("sha256", "")).lower() == digest and int(m.get("size", -1)) == len(raw)):
+            return m
+    return None
+
+
+def version_key(value):
+    """(2, 1, 1) from "2.1.1": what "newest" means, so release/ can hold more than one signed package.
+
+    Sorted names would put 2.0.0 after 2.1.1 only by luck of the digits; a version that is not three
+    numbers sorts below everything rather than winning by accident."""
+    try:
+        return tuple(int(x) for x in str(value).strip().lstrip("v").split("."))
+    except (TypeError, ValueError):
+        return (0,)
+
+
+def signed_release(directory):
+    """(package, manifest) of the NEWEST signed release in `directory`, if its bytes still match its hash.
+
+    The release is the installable artefact: it is what a custodian signed, what the GitHub release
+    publishes and what the installer is allowed to write. `main` keeps moving (the emulator, the page),
+    so the site serves this package for the install while it shows the build it is serving it with.
+    When release/ holds several signed packages -- the previous one stays published while a new one is
+    cut -- the newest version wins, and it wins by version, not by file name."""
+    try:
+        manifests = list(Path(directory).glob("*.manifest.json"))
+    except OSError:
+        return None
+    best = None
+    for man_path in manifests:
+        pkg_path = Path(str(man_path)[: -len(".manifest.json")])
+        try:
+            man = json.loads(man_path.read_text(encoding="utf-8"))
+            raw = pkg_path.read_bytes()
+        except (OSError, ValueError):
+            continue
+        if not (man.get("format") == "qg1-release-1" and isinstance(man.get("images"), dict)
+                and str(man.get("sha256", "")).lower() == hashlib.sha256(raw).hexdigest()
+                and int(man.get("size", -1)) == len(raw)):
+            continue
+        key = version_key(man.get("version"))
+        if best is None or key > best[0]:
+            best = (key, pkg_path, man)
+    return (best[1], best[2]) if best else None
+
+
+def pinned_keys():
+    """only the PUBLIC keys (hex) the custodian pinned: they travel with the page, nothing else does"""
+    try:
+        doc = json.loads((HERE.parent / "tools" / "fm1_keys.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    keys = doc.get("keys") if isinstance(doc, dict) else None
+    return {k: v for k, v in (keys or {}).items() if isinstance(v, str)} if isinstance(keys, dict) else {}
 
 
 def emulator_record(pkg_path, emu_manifest=None):
@@ -137,6 +191,13 @@ def with_csp(html):
     m = re.search(r'<script type="module">(.*?)</script>', html, re.S)
     if not m or html.count("<script") != 1:
         raise SystemExit("index_pkg.html: expected exactly one inline module script (the CSP hashes it)")
+    # Every module is concatenated into the page's single scope, so two top-level declarations with one
+    # name are a SyntaxError on load: the page would be blank while every source test still passed.
+    declared = re.findall(r"^(?:const|let|var|function|class|async function)\s+([A-Za-z_$][\w$]*)", m.group(1), re.M)
+    dup = sorted({d for d in declared if declared.count(d) > 1})
+    if dup:
+        raise SystemExit(f"index_pkg.html: duplicate top-level declaration(s) {dup} -- the inlined modules "
+                         "share one scope and the page would not load")
     h = base64.b64encode(hashlib.sha256(m.group(1).encode("utf-8")).digest()).decode()
     csp = (f"default-src 'none'; script-src 'sha256-{h}'; style-src 'unsafe-inline'; img-src 'self' data: blob:; "
            "connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; "
@@ -145,8 +206,22 @@ def with_csp(html):
     return html.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n' + meta, 1)
 
 
-def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
+def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_release=True):
     pkg, out = Path(pkg), Path(out)
+    # (signed release) the install comes from the signed release, not from this build, when the two are
+    # not the same bytes: main moves, a signature does not. The page then says which commit it installs
+    # and which build of main the emulator beside it came from.
+    signed_manifest = None
+    rel = signed_release(HERE.parent / "release") if use_release else None
+    if rel:
+        rel_pkg, rel_man = rel
+        if hashlib.sha256(pkg.read_bytes()).hexdigest() != str(rel_man["sha256"]).lower():
+            print(f"site: this build is not the signed release: installing release/{rel_pkg.name} "
+                  f"{rel_man['version']} (signed by {rel_man['keyid']})")
+            pkg = rel_pkg
+            signed_manifest = rel_man
+            version = "v" + str(rel_man["version"]) + "-" + str((rel_man.get("build") or {})
+                                                               .get("commit", ""))[:7]
     raw = pkg.read_bytes()
     product = product_of(raw)
     if not re.fullmatch(r"FM-1_9\d\d", product):
@@ -157,38 +232,40 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     html = (HERE / "index_pkg.html").read_text(encoding="utf-8")
     lib = strip_module((HERE / "fm1diag.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
-        strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8")) + "\n" + \
+    strip_module((HERE / "fm1accept.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
+        strip_module((HERE / "fm1state.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1backup.js").read_text(encoding="utf-8"))
     name = f"felucca-{re.sub(r'[^A-Za-z0-9.-]', '-', version)}.fwsc"
     old = earlier(Path(prev), version, product) if prev else []
     # (QG-1) each package with its SHA-256 and size: the installer refuses bytes that do not match
     def digest(b):
         return {"sha256": hashlib.sha256(b).hexdigest(), "size": len(b)}
-    def manifest_of(pkg_path):
-        """the release manifest written by tools/fm1_sign.py next to the package, if any"""
-        for cand in (Path(str(pkg_path) + ".manifest.json"), Path(pkg_path).with_suffix(".manifest.json")):
-            if cand.is_file():
-                return json.loads(cand.read_text(encoding="utf-8"))
-        return None
-    # Only the PUBLIC keys the custodian pinned (tools/fm1_keys.json) travel with the page: an
-    # empty map is the honest state, and verifyManifest() then refuses every package.
-    keys = json.loads((HERE.parent / "tools" / "fm1_keys.json").read_text(encoding="utf-8")).get("keys", {})
-    # (v1.9.0) the build record travels with the page (inlined, so it cannot be swapped apart from it).
-    # A package with no record is published, but the installer then refuses to install it: fail closed.
-    build = build_record(pkg, manifest)
-    if build:
-        check_build_record(build, raw, product, version, pkg)
+    # (v1.9.0) the build record travels with the page (inlined): the verify report shows it. When the package
+    # served IS the signed release, the record comes from the signature even if it was passed explicitly.
+    if signed_manifest is None:
+        signed_manifest = release_manifest(pkg)
+    build = (signed_manifest.get("build") if signed_manifest else None) or build_record(pkg, manifest)
     emu = emulator_record(pkg, emu_manifest)
-    versions = [{"version": version, "file": name, **digest(raw), "manifest": manifest_of(Path(pkg)),
-                 "build": build}] + \
-        [{**e, **digest(src.read_bytes()), "manifest": manifest_of(src), "build": None} for e, src in old]
+    # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
+    # not the one the package's build record names when the package is a committed release: the release
+    # pins the emulator built with it, the site copies the one built now. Both are true, so both are
+    # published, each under its own key, and tools/site_check.py holds each to its own claim.
+    rel_manifest = release_manifest(pkg)
+    keys = pinned_keys()
+    versions = [{"version": version, "file": name, **digest(raw), "build": build, "emulator": emu,
+                 "manifest": name + ".manifest.json" if rel_manifest else None}] + \
+        [{**e, **digest(src.read_bytes()), "build": None,
+          "manifest": e["file"] + ".manifest.json" if release_manifest(src) else None}
+         for e, src in old]
     meta = json.dumps({"version": version, "product": product, "pkg": "../../firmware/" + name, **digest(raw),
-                       "stock": (HERE.parent / "FM-1.fwsc").is_file(), "keys": keys, "build": build, "emu": emu,
+                       "stock": (HERE.parent / "FM-1.fwsc").is_file(), "build": build, "emu": emu, "keys": keys,
                        "versions": [{"version": e["version"], "pkg": "../../firmware/" + e["file"],
                                      "sha256": e["sha256"], "size": e["size"],
-                                     "manifest": e.get("manifest"), "build": e.get("build")} for e in versions]})
+                                     "manifest": ("../../firmware/" + e["file"] + ".manifest.json")
+                                     if e.get("manifest") else None,
+                                     "build": e.get("build")} for e in versions]})
     for mark in ("/*LIB*/", "/*META*/"):
         if html.count(mark) != 1:
             raise SystemExit(f"index_pkg.html must contain {mark} once; update make_site.py")
@@ -200,12 +277,37 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     for f in fw.glob("felucca-*.fwsc"):            # the current package and the earlier ones kept, nothing else
         f.unlink()
     (inst / "index.html").write_text(html, encoding="utf-8")
+    # (plan) the page that answers "what will M-Flasher write" without pretending to install: it reads
+    # the signed release's own versions.json, hashes the package, and runs the acceptance trace and the
+    # sector plan on the owner's dump. Same two modules as the installer's card, nothing else.
+    plan = (HERE / "plan.html").read_text(encoding="utf-8")
+    if plan.count("/*LIB*/") != 1:
+        raise SystemExit("plan.html must contain /*LIB*/ once")
+    plib = strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
+        strip_module((HERE / "fm1accept.js").read_text(encoding="utf-8"))
+    (out / "plan").mkdir(parents=True, exist_ok=True)
+    (out / "plan" / "index.html").write_text(with_csp(plan.replace("/*LIB*/", plib)), encoding="utf-8")
     shutil.copy(pkg, fw / name)
+    if rel_manifest:
+        (fw / (name + ".manifest.json")).write_text(json.dumps(rel_manifest, indent=1, sort_keys=True) + "\n",
+                                                    encoding="utf-8")
     if (HERE.parent / "FM-1.fwsc").is_file():
         shutil.copy(HERE.parent / "FM-1.fwsc", fw / "FM-1.fwsc")
     for e, src in old:
         shutil.copy(src, fw / e["file"])
+        m = release_manifest(src)
+        if m:
+            (fw / (e["file"] + ".manifest.json")).write_text(json.dumps(m, indent=1, sort_keys=True) + "\n",
+                                                             encoding="utf-8")
     (fw / "versions.json").write_text(json.dumps(versions, indent=1) + "\n", encoding="utf-8")
+    # the same facts in `sha256sum -c` form, beside the bytes: the package, and -- when the package
+    # carries its build record -- the app image and the loader it was made from, so a download can be
+    # checked against the build it says it is without trusting the page that served it.
+    sums = [f"{hashlib.sha256(raw).hexdigest()}  {name}"]
+    for art, meta in sorted(((build or {}).get("artifacts") or {}).items()):
+        if isinstance(meta, dict) and meta.get("sha256"):
+            sums.append(f"{meta['sha256']}  {art}  ({meta.get('bytes', '?')} B, from the build record)")
+    (fw / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
     lic = HERE.parent / "LICENSES"                  # the package holds JieLi SDK files (Apache-2.0): their
     (fw / "LICENSES").mkdir(exist_ok=True)          # licence travels next to it, with Felucca's own
     names = sorted(f.name for f in lic.glob("*.txt"))
@@ -218,7 +320,11 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
         encoding="utf-8")
     for doc in ("LICENSE", "LICENSING.md"):
         shutil.copy(HERE.parent / doc, fw / doc)
-    shutil.copy(HERE / "editor.html", ed / "index.html")
+    # the editor names the build it is too: the token is required, so the page cannot go stale silently
+    editor = (HERE / "editor.html").read_text(encoding="utf-8")
+    if "{{VERSION}}" not in editor:
+        raise SystemExit("web/editor.html: no {{VERSION}} token: the studio would not name the build it serves")
+    (ed / "index.html").write_text(editor.replace("{{VERSION}}", version), encoding="utf-8")
     for f in ("fukiai.ttf", "FUKIAI-LICENSE.txt", "fm1backup.js", "preset_categories.json"):
         if (HERE / f).exists():
             shutil.copy(HERE / f, ed / f)
@@ -232,7 +338,14 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     if "{{VERSION}}" not in portal:
         raise SystemExit("web/site/index.html: the portal has no {{VERSION}} token: its static label "
                          "would not name the build this site serves")
-    (out / "index.html").write_text(portal.replace("{{VERSION}}", version), encoding="utf-8")
+    portal = portal.replace("{{VERSION}}", version)
+    if not use_release:            # built as /preview/: its own portal links back to the stable root
+        portal = portal.replace('href="preview/"', 'href="../"')
+        (out / "preview").mkdir(exist_ok=True)
+        (out / "preview" / "index.html").write_text(   # and a card that points here still lands somewhere
+            '<!doctype html><meta charset="utf-8"><title>Preview</title>'
+            '<meta http-equiv="refresh" content="0; url=../"><a href="../">Preview</a>\n', encoding="utf-8")
+    (out / "index.html").write_text(portal, encoding="utf-8")
     shutil.copy(site / "i18n.js", out / "i18n.js")
     assets = out / "assets"
     if assets.exists():
@@ -240,14 +353,17 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     shutil.copytree(site / "assets", assets)
     print(f"site: {out}: portal + assets, webapp/installer ({len(html)} B), webapp/editor, "
           f"firmware/{name} ({len(raw)} B, {product}, "
-          + (f"build {build['version']} {build['commit'][:7]}" if build else "NO build record: the installer will refuse it")
+          + (f"build {build['version']} {build['commit'][:7]}" if build else "no build record")
           + ", " + ("emulator record" if emu else "no emulator record") + ")"
+          + (f", signed by {rel_manifest['keyid']}" if rel_manifest else ", NO manifest: INSTALL will refuse it")
           + (f", earlier: {' '.join(e['version'] for e, _ in old)}" if old else ""))
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     manifest = emu_manifest = None
+    use_release = "--no-release" not in args
+    args = [a for a in args if a != "--no-release"]
     for flag, name in (("--manifest", "manifest"), ("--emu", "emu_manifest")):
         if flag in args:
             i = args.index(flag)
@@ -260,4 +376,4 @@ if __name__ == "__main__":
             del args[i:i + 2]
     if len(args) not in (3, 4):
         sys.exit(__doc__)
-    main(*args[:3], args[3] if len(args) == 4 else None, manifest, emu_manifest)
+    main(*args[:3], args[3] if len(args) == 4 else None, manifest, emu_manifest, use_release)

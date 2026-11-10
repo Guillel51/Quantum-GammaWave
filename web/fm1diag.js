@@ -5,9 +5,12 @@
 // deliberately just verifyDevice and the read-only query).
 
 /* The eight states the installer speaks in, weakest first. Each one is derived from the gate rows
- * above and can never exceed them: `INSTALL READY` needs every row to be a pass, so a lower state
- * cannot be shown as a higher one. `RECOVERY NOT VERIFIED` is a state, not a note: no recovery has
- * been demonstrated on any unit from this page, and until one is, that is the honest name for it. */
+ * above and can never exceed them. `INSTALL READY` follows the verdict, which knows which path it is
+ * talking about: a verified unit whose dump exists is ready for the host install (M-Flasher) even when
+ * this page must not write to it, and the page's own installer is ready only on a unit that already
+ * runs this firmware. `RECOVERY NOT VERIFIED` is a state, not a note: it holds until a verified dump of
+ * this unit exists and a documented tool covers the range an install overwrites -- and even then it
+ * means "covered", never "exercised". */
 export const DIAGNOSTIC_STATE_ORDER = Object.freeze([
   "DIAGNOSTIC READY", "VERIFY READY", "PACKAGE VERIFIED", "SIGNATURE VERIFIED",
   "DEVICE COMPATIBLE", "RECOVERY NOT VERIFIED", "INSTALL READY", "INSTALL BLOCKED"]);
@@ -15,17 +18,20 @@ export const DIAGNOSTIC_STATE_ORDER = Object.freeze([
 export function diagnosticStates(report) {
   const rows = (report && report.gate) || [];
   const state = (key) => (rows.find((r) => r.key === key) || {}).state;
-  const allPass = rows.length > 0 && rows.every((r) => r.state === "pass");
-  const installReady = !!report && allPass && !!(report.verdict && report.verdict.canInstall);
+  const v = (report && report.verdict) || {};
+  const installReady = !!(report && (v.canInstall || v.canInstallHost));
+  const recoveryCovered = ["pass", "covered"].includes(state("gate.recovery"));
   const why = {
     "DIAGNOSTIC READY": "the page ran a read-only exchange and reported what it saw",
     "VERIFY READY": "an FM-1 answered the identity query",
     "PACKAGE VERIFIED": "the package this page offers describes itself consistently",
-    "SIGNATURE VERIFIED": "a signature was checked against a pinned key in this page",
+    "SIGNATURE VERIFIED": "the package was checked against its published SHA-256 in this page",
     "DEVICE COMPATIBLE": "the unit's own answer is compatible with this package",
-    "RECOVERY NOT VERIFIED": "no recovery was demonstrated on this unit",
-    "INSTALL READY": "every gate row is a pass and the installer would accept this unit",
-    "INSTALL BLOCKED": "at least one gate row is not a pass",
+    "RECOVERY NOT VERIFIED": "no verified dump of this unit plus a tool covering the written range, or none demonstrated",
+    "INSTALL READY": v.path === "m-flasher"
+      ? "this unit is ready for the host install (M-Flasher writes the app area and keeps the bootloader); this page still does not write to a stock unit"
+      : "every precondition is met and this page's installer would accept this unit",
+    "INSTALL BLOCKED": "at least one precondition is not met",
   };
   const reached = {
     "DIAGNOSTIC READY": !!report,
@@ -33,7 +39,7 @@ export function diagnosticStates(report) {
     "PACKAGE VERIFIED": state("gate.package") === "pass",
     "SIGNATURE VERIFIED": state("gate.signature") === "pass",
     "DEVICE COMPATIBLE": state("gate.compat") === "pass",
-    "RECOVERY NOT VERIFIED": state("gate.recovery") !== "pass",
+    "RECOVERY NOT VERIFIED": !recoveryCovered,
     "INSTALL READY": installReady,
     "INSTALL BLOCKED": !installReady,
   };
@@ -55,6 +61,7 @@ export function diagnosticJson(report, extra = {}) {
       hardware: r.hardware || "", hardwareSource: r.hardwareSource || "",
       ports: r.ports || [], compatibility: r.compatibility || "", authorised: !!r.authorised,
     },
+    chip: r.chip || null,          // a read-only 0x12 check, when one was run
     fields: r.fields || [],
     missing: r.missing || [],
     gate: r.gate || [],

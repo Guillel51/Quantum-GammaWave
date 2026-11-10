@@ -84,7 +84,7 @@ def main():
 
     # 3. the identity on the label that is not in the image: refused, not written
     code, text = run("--out", str(tmp / "read-02"), "--programmer", "file:%s" % p,
-                     "--jedec", "0x856014", "--identity", "FM-1_900", "--yes")
+                     "--jedec", "0x856014", "--identity", "FM-1_965", "--yes")
     ok(code == 1 and "does not appear in the image" in text and not (tmp / "read-02").exists(),
        "a declared identity absent from the image is refused and nothing is written")
 

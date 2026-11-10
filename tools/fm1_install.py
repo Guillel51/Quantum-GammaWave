@@ -11,7 +11,6 @@ the FM-1 restarts and the installed identity is checked.
 
   fm1_install.py PACKAGE.fwsc [--port NAME] [--yes] [--sha256 HEX]
   fm1_install.py PACKAGE.fwsc --verify-only   (identifies the unit and the package, writes nothing)
-  fm1_install.py PACKAGE.fwsc --manifest PACKAGE.manifest.json [--keys FILE]
   fm1_install.py FM-1.fwsc            (the official V15 file: back to the stock firmware)
   fm1_install.py --info [--port NAME]
 
@@ -20,18 +19,13 @@ install finishes the write. Needs mido with python-rtmidi.
 
 (QG-1) Two things are required before a frame that can write leaves the host:
 
-  1. the physical NOR is identified on THIS unit with command 0x12 (two
-     readings, same part, fresh session token each time), and
-  2. the package carries a signed manifest: Ed25519 over canonical JSON with
-     the package's SHA-256, product, version and min_firmware, verified
-     against tools/fm1_keys.json (public keys only). Nothing is trusted while
-     that file has no key.
-
-There is no override, no environment variable and no flag that supplies
-either: --jedec, --allow-unidentified-chip and FM1_LAB were removed, because a
-JEDEC typed by hand is not evidence of the chip in the unit and a package
-without a signature is not authentic. The SHA-256 on its own is integrity, not
-authenticity.
+  1. the flash chip is one the firmware writes: a unit running QG identifies it
+     with command 0x12 (two readings, same part, fresh session token each
+     time); a stock unit, or one already in update mode, cannot answer 0x12,
+     so this project's update loader checks the chip itself before it erases
+     anything (firmware/loader/loader.c ldr_flash_known), and
+  2. the package's SHA-256 is the published one (--sha256, PACKAGE.sha256 or
+     SHA256SUMS next to it, as a GitHub release ships them).
 
 Exit codes: 0 done, 1 cancelled or other error, 2 bad arguments or package,
 3 FM-1 not found, 4 connection lost or the device stopped, 5 timeout (no
@@ -49,7 +43,6 @@ import time
 
 import fm1_gate as GATE
 import fm1_probe as PROBE
-import fm1_sign as SIGN
 
 HS_QUERY = bytes([0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7])
 UPGRADE = bytes([0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7])
@@ -348,13 +341,10 @@ class Updater:
         """0x12 on the running app: the identification of THIS unit. The loader cannot
         identify (its code is unchanged), so this must happen before step 1, and the
         evidence is only good for the install that follows on the same port."""
-        if dev.id.loader:
-            # The loader cannot answer 0x12, and this installer does not write without it: there is no
-            # flag that supplies a chip. An install cut off in the middle is finished by restoring the
-            # backup with M-Flasher (docs/M-FLASHER.md), which writes the whole part it just read.
-            raise InstallError("chip", "the FM-1 is already in update mode, so it cannot identify its NOR and this "
-                                       "installer does not write without that. Restore your backup with "
-                                       "M-Flasher (docs/M-FLASHER.md), then install again from a running unit")
+        if dev.id.loader or dev.id.version < 100:
+            # A stock unit (FM-1_0NN) and the update loader cannot answer 0x12. Nothing is read here:
+            # this project's loader checks the chip itself before it erases anything (loader.c).
+            return None
         try:
             ev = PROBE.probe(dev.link)
         except PROBE.ProbeError as e:
@@ -364,9 +354,17 @@ class Updater:
 
     def gate(self, dev, product, evidence):
         """The physical NOR must be identified for THIS unit before a frame that can write is sent."""
-        ev = evidence or {}
         try:
-            GATE.require(product, dev.id.text, jedec=ev.get("jedec"))
+            if evidence is None:
+                # no chip fact on the host: only this project's loader (ota-<model>_965, or _900 in the
+                # packages up to 2.1.1) may take the image, because it is the one that checks the chip
+                # before writing
+                GATE.check_identity(product, dev.id.text)
+                if dev.id.loader and dev.id.version not in (965, 900):
+                    raise InstallError("chip", f"the FM-1 is in its own update mode ({dev.id.text}), not this "
+                                               "project's loader: nothing was sent")
+                return
+            GATE.require(product, dev.id.text, jedec=evidence.get("jedec"))
         except GATE.Refusal as e:
             code = "model" if e.code == "model" else "chip"
             raise InstallError(code, f"{e.reason}: {e.detail}. The update was not started: nothing was sent")
@@ -421,7 +419,7 @@ class Updater:
     def install(self, dev, image, product, step=lambda *a: None, evidence=None):
         """running firmware -> loader -> new firmware; dev from find(). A device already in
         update mode only needs the write."""
-        if evidence is None:
+        if evidence is None and not dev.id.loader and dev.id.version >= 100:
             evidence = self.probe(dev)
         self.gate(dev, product, evidence)
         if model_of(dev.id.text) != model_of(product):
@@ -522,25 +520,6 @@ class Progress:
             self.line = False
 
 
-def signed_of(a, raw, product, firmware):
-    """-> the verified manifest. No key pinned, no install, and no environment variable changes that."""
-    path = a.manifest or (a.package + ".manifest.json")
-    if not os.path.exists(path):
-        raise InstallError("badpkg", f"no signed manifest at {path}. A package is installed only with "
-                                      f"its Ed25519 manifest (fm1_sign.py); there is no override")
-    try:
-        with open(path, encoding="utf-8") as f:
-            man = json.load(f)
-        info = SIGN.verify(raw, man, SIGN.pinned(a.keys), product, firmware=firmware)
-    except (OSError, ValueError) as e:
-        raise InstallError("badpkg", f"cannot read the manifest {path}: {e}")
-    except SIGN.SignatureError as e:
-        raise InstallError("badpkg", f"the package is not authentic: {e}. Nothing was written")
-    print(f"signed:  {info['product']} {info['version']} (key {info['keyid']}, min {info['min_firmware']})",
-          file=sys.stderr)
-    return info
-
-
 def run(a, backend, out, ask):
     up = Updater(backend, a.port)
     if a.info:
@@ -552,8 +531,6 @@ def run(a, backend, out, ask):
         print(f"{dev.id.text}  [{mode}]  port: {dev.name}", file=out)
         return 0
     product, image, got = load_package(a.package, a.sha256)
-    with open(a.package, "rb") as f:
-        raw_package = f.read()
     print(f"package: {product}  ({a.package})", file=out)
     print(f"sha256:  {got}  (verified)", file=out)
     dev = up.find()
@@ -567,19 +544,27 @@ def run(a, backend, out, ask):
     # Always read the part on this unit: there is no flag that sets the chip, so the JEDEC below is
     # what the silicon answered, twice, in this session.
     evidence = up.probe(dev)
-    print("chip:    JEDEC %06X %s, %d KiB, page %d, sector %d, block %d (two readings, session %08X)"
-          % (evidence["jedec"], evidence["part"], evidence["cap"] // 1024, evidence["page"],
-             evidence["sector"], evidence["block"], evidence["session"]), file=out)
-    signed = signed_of(a, raw_package, model_of(product), dev.id.version)
+    if evidence is None:
+        print("chip:    checked by the update loader before it writes (this FM-1 cannot answer 0x12)", file=out)
+    else:
+        print("chip:    JEDEC %06X %s, %d KiB, page %d, sector %d, block %d (two readings, session %08X)"
+              % (evidence["jedec"], evidence["part"], evidence["cap"] // 1024, evidence["page"],
+                 evidence["sector"], evidence["block"], evidence["session"]), file=out)
     if a.verify_only:
         dev.link.close()
         if model_of(dev.id.text) != model_of(product):
             raise InstallError("model", f"the device is {dev.id.text}, the package is for {product}")
-        d = GATE.authorise(product, dev.id.text, jedec=evidence["jedec"])
+        if evidence is None:
+            try:
+                GATE.check_identity(product, dev.id.text)
+                d = {"allowed": True, "reason": "", "detail": "the update loader checks the chip"}
+            except GATE.Refusal as e:
+                d = {"allowed": False, "reason": e.reason, "detail": e.detail}
+        else:
+            d = GATE.authorise(product, dev.id.text, jedec=evidence["jedec"])
         print("preflight: " + ("allowed" if d["allowed"] else f"blocked ({d['reason']})") +
               (f" - {d['detail']}" if d["detail"] else ""), file=out)
         same = dev.id.text.removeprefix("ota-") == product
-        print(f"signed:  {signed['version']} key {signed['keyid']}", file=out)
         print("verify:  the package can be installed on this FM-1" + (" (same identity: a reinstall or another version)"
               if same else "") + "; nothing was written", file=out)
         return 0
@@ -611,9 +596,6 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     ap.add_argument("--yes", action="store_true", help="do not ask for confirmation")
     ap.add_argument("--sha256", metavar="HEX", help="the package's expected SHA-256 (required; else PACKAGE.sha256 / SHA256SUMS)")
     ap.add_argument("--verify-only", action="store_true", help="check the package and the connected FM-1, write nothing")
-    ap.add_argument("--manifest", metavar="FILE", help="signed manifest (default PACKAGE.fwsc.manifest.json); "
-                                                       "an install without one is refused")
-    ap.add_argument("--keys", metavar="FILE", default=str(SIGN.KEYS), help="pinned Ed25519 public keys")
     a = ap.parse_args(argv)
     if bool(a.info) == bool(a.package):
         ap.error("give a PACKAGE.fwsc or --info")

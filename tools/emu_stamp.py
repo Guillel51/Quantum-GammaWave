@@ -46,6 +46,16 @@ def short(sha):
     return (sha or "?")[:7]
 
 
+def same(a, b):
+    """Two ids for one commit: build/emu writes 12 characters, HEAD and the firmware manifest carry 40.
+    Comparing them with != says the same commit is different, which reads as "the emulator is stale" over
+    and over for an emulator that is exactly this tree's. The shorter one must be a prefix, and 7
+    characters is the floor (the shortest id a person types)."""
+    a, b = str(a or ""), str(b or "")
+    n = min(len(a), len(b))
+    return n >= 7 and a[:n] == b[:n]
+
+
 def check():
     """(state, message) — the one function the suite and a human share."""
     emu = read("build/emu/manifest.json")
@@ -60,9 +70,9 @@ def check():
         return "unversioned", "build/emu/manifest.json names no commit: rebuild it with sh web/emu/build.sh"
     f = (fw or {}).get("commit")
     parts = []
-    if f and f != e:
+    if f and not same(f, e):
         parts.append(f"the firmware manifest is {short(f)}")
-    if h and h != e:
+    if h and not same(h, e):
         parts.append(f"HEAD is {short(h)}")
     if not parts:
         return "ok", f"build/emu is this tree ({short(e)}, emcc {emu.get('emcc', '?').split()[-1] if emu.get('emcc') else '?'})"

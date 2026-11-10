@@ -401,7 +401,7 @@ exigen un veredicto que solo puede producir `verifyProvenance()`. Ese veredicto 
 se va a transmitir con el registro de build **compilado dentro de la página** (`build/manifest.json`
 inlineado por `web/make_site.py`, bajo el hash de la CSP):
 
-- `schema` esperado, producto `FM-1_982`, versión de la etiqueta igual a la del manifiesto de release;
+- `schema` esperado, producto `FM-1_965`, versión de la etiqueta igual a la del manifiesto de release;
 - tamaño exacto en bytes y SHA-256 calculado **sobre el paquete en memoria**, no sobre el archivo que se
   validó en otro momento;
 - coherencia commit/versión entre etiqueta del sitio, manifiesto de build, manifiesto de release y

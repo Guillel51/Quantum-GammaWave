@@ -1,8 +1,19 @@
 # Signing key custody (Ed25519)
 
-Status: **the chain of custody is implemented and tested on the host; no release key exists.**
-`tools/fm1_keys.json` pins no public key, so both installers refuse every package. That is the
-correct released state: fail-closed, not a bug to work around.
+Status: **one release key, `qg1-release-1`, pinned and in use.**
+
+| | |
+|---|---|
+| key id | `qg1-release-1` |
+| public key (Ed25519, 32 bytes) | `70b6036fd33da3297a41da2141c5d135b3efce2d815d55911fc4f9b1d07fcd40` |
+| pinned in | `tools/fm1_keys.json` (travels with the page, so the installer checks it in the browser) |
+| private half | outside the repository, `~/.fm1-keys/qg1-release.pem`, mode `0600`, directory `0700` |
+| what it signs | `release/*.manifest.json`: the canonical JSON of the manifest, which names the package's SHA-256, its size, the version and the firmware image hashes |
+
+A build that is not signed with that key is refused by the installer, whatever its hash: the page
+enables INSTALL only after `verifyManifest` (WebCrypto Ed25519) passes against the pinned key, and
+`tools/fm1_sign.py verify` refuses the same things again on the release side. With no key pinned,
+everything is refused — that fail-closed state is still the default of the code, not a special case.
 
 This page is the procedure a custodian follows. It is not a key, and this repository never holds
 the private half.
@@ -26,6 +37,9 @@ The rules below are in `tools/fm1_sign.py` and the tests fail if any of them sto
 
 ```bash
 python3 tools/fm1_sign.py check                    # prints the pinned keys, or the fail-closed state
+python3 tools/fm1_sign.py sign build/felucca-X.Y.Z.fwsc \
+    --key ~/.fm1-keys/qg1-release.pem --keyid qg1-release-1 \
+    --version X.Y.Z --min 1.0.0 --build-manifest build/manifest.json
 python3 tools/fm1_sign.py check --require-key      # exit 1 while no key is pinned (use in release CI)
 python3 tests/key_custody_test.py                  # the whole cycle, with an ephemeral key
 ```
@@ -116,6 +130,61 @@ signature and `min_firmware`. Then:
   `meta.versions[i].manifest`);
 * record the package hash and the manifest in the release log;
 * `min_firmware` is signed too, so it cannot be lowered by a mirror.
+
+### 4.1 Signing where the key lives
+
+A build machine -- a CI runner above all -- should never be able to sign. From 2.1.1 the release is made in
+two halves that meet at a file, and only one of them touches the key:
+
+```bash
+# 1. the machine that built it (no key, and none can be given to it): freeze exactly what will be signed
+python3 tools/fm1_sign.py request build/felucca-2.1.1.fwsc --version 2.1.1 --min 1.0.0 \
+        --keyid qg1-release-1 --build-manifest build/manifest.json --out build/sign-request.json
+
+# 2. the machine that holds the key: sign those frozen bytes, not "the project"
+python3 tools/fm1_sign.py sign --request build/sign-request.json \
+        --signer-cmd "ssh signer-host python3 tools/fm1_sign.py sign-stdin --key /secure/qg1-release.pem" \
+        --out release/felucca-2.1.1.fwsc.manifest.json
+```
+
+The request (`qg1-sign-request-1`) pins the package's SHA-256 and size, the firmware image hashes, the build
+record and its digest, the version, `min_firmware`, the key id and the timestamp. The manifest that comes back
+is the signature over exactly that JSON: if the build changes afterwards, the signature cannot be reused for
+it.
+
+`--signer-cmd` is a shell command with one contract: the canonical manifest on stdin, the 64-byte Ed25519
+signature on stdout (hex or base64). `sign-stdin` is this repository's side of it -- read stdin, sign, print
+the hex -- and it refuses a key that resolves inside the checkout like every other path. The signature the
+command returns is verified against the pin (or `--expect-pub` for an id that is not pinned yet) **before**
+the manifest is written: a signer holding another key, printing nonsense, or exiting non-zero produces no
+file. That is why `--key` and `--signer-cmd` are mutually exclusive, and why neither one, on its own, is
+accepted.
+
+What this buys, and what it does not:
+
+| | |
+|---|---|
+| The key is not in CI | `emulator.yml` writes `build/sign-request.json` and uploads it as an artifact; it never receives a private key, and no secret is configured for one |
+| The key is not in the process that has the package | the custodian signs a 2 KB JSON that names bytes they did not build |
+| A signature cannot be replayed onto another build | the request froze the hash, the images and the record inside what is signed |
+| What is written is what was verified | `sign` re-verifies the returned signature against the pin before writing; `verify` does it again on the release side |
+| Still not protected | a hostile signing host, a wrong `--expect-pub` chosen by the operator, and the browser origin (see §7) |
+
+The remote host in the example must run the same reviewed `tools/fm1_sign.py`; `ssh signer-host ...` is a
+convenience, not a trust anchor -- the anchor is the pinned public key, which never leaves the repository.
+A smartcard or HSM helper works the same way: it wraps the module and prints the signature.
+
+Measured on 2026-11-10 against the released build: an `sshd` on loopback with `ForceCommand` limited to
+`sign-stdin`, and `sign --request --signer-cmd "ssh …"` over it, returned the **byte-identical** manifest
+and signature that `release/felucca-2.1.1.fwsc.manifest.json` carries. That proves the procedure and the
+contract; the machine and the uid were the same, so it is not evidence of a physical separation -- a real
+custodian signs on a host that holds nothing else, which is the point of `--signer-cmd`.
+
+`tests/sign_request_test.py` exercises the cycle with an ephemeral key: request -> `--key` and request ->
+`--signer-cmd` produce the same manifest byte for byte, and every wrong path (nonsense output, failing
+command, other key, no pin and no `--expect-pub`, both flags, neither flag, a package that is not the one the
+request froze, an edited manifest) is refused. `signed-release.yml` runs it, plus `key_custody_test.py`, on
+every change to `release/` or to the signer.
 
 ## 5. Rotation
 

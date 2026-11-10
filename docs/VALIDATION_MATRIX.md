@@ -363,12 +363,12 @@ and re-signed on that tree rather than shipping bytes that no longer described i
 | Item | Value | Class |
 |---|---|---|
 | RAM code | **19 444 B of 24 576** (headroom **5 132 B**), calls reach 88 948 B | `[TARGET]` |
-| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` | `[TARGET]` |
-| build record | commit `26d7a6b`, `dirty: []` | `[TARGET]` |
+| package | **610 806 B**, `FM-1_982`, sha256 `5c80a092…` (rebuilt in §17 as `80ad995c…` at `7eb9636`) | `[TARGET]` |
+| build record | commit `26d7a6b`, `dirty: []` (updated in §17 to `7eb9636`) | `[TARGET]` |
 | signature | `verified: FM-1 version 1.9.0, key qg1-release-1` | `[HOST]` |
 | emulator | 1 066 409 B wasm, Emscripten **6.0.11**, same commit as the firmware | `[WASM]` |
 
-The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these. Nothing here
+The figures in §13 (21 768 B, `2b6c592c`) describe the `-Os` tree and are superseded by these (and in turn by §17's final build `7eb9636` / `80ad995c…`). Nothing here
 was measured on a device.
 ## 18. Update — 2026-11-08, what is left after `-Oz`: three measurements and no dead weight
 
@@ -534,7 +534,7 @@ question the publication log cannot: **is the published package really this firm
 | Toolchain / SDK | pinned and verified | JieLi `jieli-linux-toolchains-20260730.1`, sha256 `a1545cdd…` checked by `tools/get_toolchain.sh` against `tools/toolchain.sha256`; SDK branch `AC79NN_SDK_V1.2.1_2023-12-13` (`[HOST]`) |
 | AC791N build | **built** | image 531 992 B; `.data+.bss` 95 912 B of 98 304 (2 392 B spare); `POOL_END - pool_top` 9 248 B; XIP code 372 508 B; RAM code 19 284 B of 24 576 (`[TARGET]`) |
 | Package | **identical to the published one** | 610 806 B, `FM-1_982`, sha256 `80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2` = `release/felucca-v1.9.0.fwsc` = the asset and the site's copy (`[HOST]`) |
-| Reproducibility | **GO on a second machine** | two clean builds are byte-identical (`cmp` on `.fwsc` and `loader/ota.bin`) (`[HOST]`) |
+| Reproducibility | **GO on a second machine, and now gated** | two clean builds are byte-identical (`cmp` on `.fwsc` and `loader/ota.bin`); `tests/release_repro_test.py` compares a fresh build with `release/*.fwsc` and fails on the first differing byte, in the host suite and in `target.yml` (`[HOST]`) |
 | Emulator | **built here** | Emscripten 6.0.11, 1 073 325 B wasm, sha256 `3d039f75…`, named by the record at `HEAD`; `build_manifest --verify --require-clean --expect-commit` ok (`[HOST]`) |
 | Budgets and reader | **GO** | `memory_map_test`, `target_budget.py` on `build/felucca.dis`, `web/test_pkg_bounds.mjs` (`[TARGET]`/`[HOST]`) |
 | Host suite | **ALL HOST TESTS PASSED** | full run with the package present: `test_release_e2e`, `test_provenance`, `test_verify_only` (108 checks), `key_custody_test` (`[HOST]`) |
@@ -666,3 +666,678 @@ need the unit (identity, JEDEC, backup, recovery) — and on a **stock** unit th
 because `0x12` is answered only by QG (`docs/JEDEC_READ.md` §1): the first backup of a stock unit is a
 hardware SPI read.
 
+## 26. Update — 2026-11-09, PR #73 reviewed before merge: kept, corrected, removed
+
+The branch `jules-16051787961813429323-dfe6ca9b` (17 commits, `9aa1a1b`) was reviewed file by file against
+`4e8d6b6`. This section records the decision for each part, because a merge that only says "reviewed" says
+nothing.
+
+**Kept.** The multi-chip allowlist, because it fails closed on both installers: `fl_jedec_writable()` still
+returns only Puya `0x856014` and UCUN `0xB36014`; `tools/fm1_gate.py` refuses a `READ_ONLY_JEDEC` id with
+`chip_read_only` before `PRODUCTION_JEDEC` is consulted; `requireChip()` in `web/fm1ota.js` refuses
+`READ_ONLY_JEDEC` before `KNOWN_JEDEC`, and `probeChip()` reports `writable: false` for those five parts.
+Reading and backing up more parts is not writing them. `tests/negative_write_test.py` and
+`tests/backup_audit_test.py` (both import `tools/fm1_gate.py` and `tools/fm1_image.py`) and
+`tests/installer_pipeline_production_test.mjs` (the real `Updater`/`requireProof` against the release
+package the build record names) stay. The documentation of the chip matrix, the flash map and the
+M-Flasher import likewise stays: it is sourced (`docs/M-FLASHER.md` cites the files in that tool) and it
+does not claim a measurement of our own.
+
+**Corrected.** (1) `STOCK_DONOR_VERSIONS` had been widened to `{15, 16}` with no unit read, no document and
+no report behind it, while the comment above it says only the stock versions this project has actually read
+are donors; it is `{15}` again and `web/test_donor.mjs` encodes that limit again (`stock V16 is not a donor
+this project has read`). A donor is a stock unit an install may start from, so this is the one place where
+an unverified widening is a write risk, not a convenience. (2) The installer's M-Flasher panel was Spanish
+only inside a page that is EN/ES/ZH, and it printed an `m-flasher read --out … --size 1M` command and an
+`OCT-`+`OCT+`+`HOME` combination as fact although neither is in the audited sources; it now has `data-t`
+keys in the three languages and says what it is: documented from that tool's source, not demonstrated on a
+unit here, with the key combination left to `docs/M-FLASHER.md`. (3) `tests/installer_pipeline_production_test.mjs`
+had the release path and size typed in; it now resolves the package from `release/build-manifest.json`, so a
+new release does not need the test edited and a renamed package cannot slip past it.
+
+**Removed, and why.** `tests/installer_pipeline_gates_test.py`, `tests/nor_flash_fault_injection_test.py` and
+`tests/power_cut_sim_test.py` do not test this repository: each defines its own `InstallerEngine`,
+`SimulatedSpiNor` or `FakeOtaTransport` inside the test file and asserts on that. They pass whatever the
+installer does, they duplicate `SUPPORTED_DONOR_VERSIONS` (so they would have kept asserting V16 after the
+correction above), and a green run of them proves nothing about `tools/` or `web/`. The behaviour they name
+is covered by real code: `tests/chip_test.py`, `tests/transport_gate_test.py`, `tests/install_test.py`,
+`tests/backup_test.c` and `web/test_web.mjs` (the 0x12/0x13 gate, the UPGRADE gate, the loader's own
+before-any-write refusals). `tests/ota_fault_injection_test.mjs`
+only round-tripped `pack7`/`unpack7` and called it fault injection. `tools/fm1_backup_validator.py` had no
+caller and no test and re-implements what `tools/fm1_flash_evidence.py` already does with a test
+(`tests/spi_dump_test.py`).
+
+**Enforced.** None of the six new test files ran in CI, and `tests/run_tests.sh` did not name them either: the
+PR added coverage that nothing executed. The three that test real modules are now steps in
+`tests/run_tests.sh`, which is what the `host tests` workflow runs.
+
+**Class of this evidence.** `[HOST]`: the host suite on `9aa1a1b`, the JS suites, the gate and package tests.
+Nothing here was measured on a device, and the merge changes no gate: the owner's unit stays at
+`INSTALL BLOCKED`. The published release (`release/`, built at `7eb9636`) is untouched and is still the only
+signed package; the commits merged here are not in it, and no package was rebuilt, signed or published for
+this review.
+
+**Known hole, reported not fixed.** The `emulator` workflow's step *the package, the installer and the editor*
+carries `continue-on-error: true`, so a failure inside it does not fail the run (on `9aa1a1b` the step's own
+conclusion was `success`). The steps after it — the target compiler checks and *a package and a site exist
+(fail closed)* — are enforced, so a missing package is still caught; a broken assertion inside that step is
+not.
+
+## 27. Update — 2026-11-09, the chip gate is now a read, not a write session
+
+Gate 6 ("flash chip, sizes and bounds") used to say *deliberately not done by verify only*, and the row for
+it read *cannot be established without a write session*. That was wrong about the protocol: `0x12` is the
+identification query and it is read-only, so the only reason a stock unit cannot answer it is that the
+vendor firmware does not implement it (`docs/JEDEC_READ.md` §1) — not that answering it would require a
+write.
+
+The installer now has a **CHECK CHIP (read only)** action, next to Verify Only. It sends the identity
+handshake and then two `0x12` identifications on the same link (`chipCheck()` in `web/fm1ota.js`, built on
+`probeChip()`), and never opens the update path: no `F0 22 24 35 7F F7`, no `0x30`, no archive PUT. On a
+unit running QG it fills gate 6 with the chip's own JEDEC and geometry and says whether the part is one
+this installer writes; on a stock V15 it reports the refusal (`The FM-1 did not answer 0x12: nothing was
+sent.`), which is a measured fact about that unit instead of an empty cell. The report gains
+`chip.jedec`, `chip.geometry`, `chip.write` — or `chip.refused` — and the JSON carries the same block.
+
+A passing gate 6 does **not** authorise anything: the verdict still requires the recovery, backup and
+post-install gates, and on this project's unit those are physical. `INSTALL BLOCKED` is unchanged.
+
+Evidence (`[HOST]`, simulated devices, no unit): `web/test_verify_only.mjs` now has ten more cases,
+`136 checks, 0 FAILED` — a stock unit that ignores `0x12` (reported, one query on the wire, nothing that
+writes), a unit answering `0x856014` (JEDEC, geometry, fresh session token, still no UPGRADE), a read-only
+part `0xC84014` (identified, `writable: false`, refused by `requireChip()`), an unknown JEDEC, no port at
+all, and both directions of the gate row in the report. The site still builds with the page
+(`web/make_site.py`, 610 806-byte release package). What is **not** established: that any unit answers
+`0x12` here, because none was available.
+
+## 28. Update — 2026-11-09, the owner's unit is a known chip with a known backup (install path: superseded by §30.1)
+
+The owner ran M-Flasher 0.9.4 against the unit and kept its record (`fm1-20261108-161613.json`):
+
+| Field | Value | Class |
+|---|---|---|
+| identity | `FM-1 015 (stock)`, bootloader `stock (M-VAVE)`, app `OK` | `[HW]`, tool record |
+| **flash** | **`0x856014`** (Puya P25Q80H), chip key `0x980F` | `[HW]`, M-Flasher's own `ONLINE_DEVICE` read |
+| unit id | `4150353835313708` | `[HW]`, tool record |
+| backup | 1 MiB dump, sha256 `38c66ae7c36b46f2fad1c0f8a041ba257934b1b46a73d4085216c60e78f2d9cd` | `[HW]`, tool record |
+| tool | `m-flasher 0.9.4` (loader 1.3) | `[HW]`, tool record |
+
+Gates 6 and 8 were the two the page could not answer on a stock unit. They are now answered, and not by
+optional: **gate 6** is the chip's own identification, read by the tool that can reach the chip's ROM mode;
+**gate 8** is a full 1 MiB read whose SHA-256 the page recomputes from the bytes the owner loads.
+
+**What changed in the software.** A stock unit answers the handshake but not `0x12`, so `install()` used to
+refuse on the *running* firmware's link before `UPGRADE` — which made a first install impossible by
+construction, not by evidence. The install path now accepts a chip fact taken out of band, on one
+condition and one only: the device is a **stock donor** (the same rule as before: same model, version in
+`STOCK_DONOR_VERSIONS`), the record parses, its part is one this project writes (`0x856014`/`0xB36014`, the
+read-only five are refused by name), and **the page has hashed the dump itself** and got the record's hash
+(`web/fm1record.js`, `bindRecord()` in `web/fm1ota.js`). A unit already running QG is still identified on
+its own link with `0x12`; a record never stands in for that. Without a verified record nothing is sent: the
+suite asserts both directions on the wire.
+
+**What this does not prove, said plainly.** The record is a claim until its dump is hashed here; the page
+does that when the file is loaded, and refuses the pair otherwise. It does not prove the write works on
+this part — `0x856014` is a writable part *in the allowlist*, not a write demonstrated on this unit. It
+does not demonstrate recovery: the route is M-Flasher restoring that same dump, which is available and
+audited but has not been tried on this unit. And the 1 MiB read was taken by a third-party tool; this
+project verified its hash only when the bytes are loaded.
+
+**Security state.** Nothing about the write path was relaxed: the signature, the package identity, the
+model, the image hash, the one-use authorisation and the TTL are unchanged, the boot area is still never
+written by QG, and `INSTALL BLOCKED` remains the verdict until the gates above are satisfied *for this
+unit at that moment*. What is no longer impossible is the first install on a stock unit whose chip and
+backup are known — the case this repository was built for.
+
+Evidence (`[HOST]`, simulated unit): `web/test_record.mjs`, 28 checks, 0 FAILED — the owner's record parses
+to `0x856014`/P25Q80H; a read-only part, another model, a non-stock bootloader, a bad hash and a 1 MiB − 1
+byte dump are each refused; a verified record and the answering unit agree, and the same record against
+another firmware version is refused; with the record, the install sends **zero** `0x12` frames and exactly
+one `UPGRADE`, and a unit that does not hand over ends in an error, never a silent write; without it, the
+install refuses with `chip` and sends no `UPGRADE` at all. `web/test_verify_only.mjs` (136) and
+`web/test_web.mjs` stay green.
+## 29. Update — 2026-11-09, the 3.2 visual pass: what was fixed, and the class of each proof
+
+The pass was ordered with one priority (the PUNCH-IN LATCH), ten visual defects, and a rule: nothing counts unless it
+is visible and checkable in the project's own emulator. This section records each item, its state, and the class of
+evidence — never one class presented as another.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| PUNCH-IN LATCH: root cause | **FIXED** | The engine was already correct: `test_punch_latch_matrix()` (15 keys of bank 1, three at once and the fourth refused, FX released, six mutes, bank change on A#4, LATCH OFF) passes. The defect was reachability: the mode shipped **OFF** and its switch lived only in MENU and in a hidden combo whose footer vanished exactly when LATCH was off. `prefs_update()` now turns `PREF_LATCH` on once per settings revision (`prefs_rev = 3`) and the map card reads `OCT+ TO SWITCH`. | host x86 (`tests/ui_test.c`), layout in `tests/ui_render.c` |
+| FX percentage at 100 % | **FIXED** | The value is right-aligned against its meter (`cv_text_r(mx - 2, …)`) in `graph_fx()` and the DEPTH module, so it cannot reach the card edge on any palette. | host render, 240 px |
+| SCL white keys | **FIXED** | The degree digit is gone (the key says `C`, not `1 C`); `scl_degree()` removed as dead code; `scl_key()` uses a 6 px round with a mixed corner pixel and a single lit row. | host render `docs/evidence/3.2/host_scl.png` |
+| Delay bars | **FIXED** | `dly_tick()`/`dly_bar()`: always visible (minimum 3 px), 7 px wide, rounded tips, instant rise with a 3 px bounce, 1 px per frame fall. No new work in the audio path — the bars read the published level. | host render `host_dly.png` |
+| RESO vs CLOUD | **FIXED** | Two different pictures: RESO is a resolver (four combs, energy dots running along the strings, one ring per note); CLOUD is a swarm at three depths that breathes with `rev_act` and puffs on a note. A `reverb_cloud` scene was added to the sweep so both are rendered, not described. | host render `host_reverb_reso.png`, `host_reverb_cloud.png` |
+| HOME planets | **FIXED** | Four bodies (`NPL 4`): rock with craters, banded, ocean, ringed; orbits 11/18/26/33 with tilt, note ring and per-note excitation. `particle_bounds_test.py` now takes the planet count from `NPL` and checks every orbit against the bay arithmetic. | host render `host_home.png`; `tests/particle_bounds_test.py` |
+| Boot splash | **FIXED** | New 16-bit identity: deep wash, three elliptical nebulae mixed on the sky's own colour, 40 stars in three layers, `QUANTUM`/`GAMMAWAVE` in the project's block alphabet (with G and V, which were missing), ringed planet with two moons, 16-block rail, BOOT/% readout, hand-over to HOME; 3.1 s. Audio, MIDI and init start before it, as before. | `ui_render` timeline (775 steps of 4 ms, 176 change pixels) + emulator capture `docs/evidence/3.2/emu_splash_strip.png` |
+| DEPTH on KNOB 2 | **FIXED** | `layer_knob()` maps KNOB 2 to DEPTH and KNOB 4 to CRUSH (engine slots unchanged); tests updated (`EN_K2`/`EN_K4`, `rc_run`, `#102`, `#40`). | host x86 `tests/ui_test.c` |
+| Memory | **PASS** | AC791N build (merged tree, commit 585d05d): image 535 204 B, `.data+.bss` 94 936 B of 98 304, pool spare 9 248 B (gate: >= 8 KiB). | target compiled |
+| Bootloader, partitions, loader | **UNTOUCHED** | No file under `bootloader/`, `loader/` or the partition tables changed in this tree. | source diff |
+| Emulator | **PASS** | wasm 1 086 293 B, sha256 `36e1dce6…`; the splash stages and HOME render in the browser emulator; the dev server answers 200 for `/` and `/felucca.wasm`. | emulator (wasm) |
+| Published site, after the push | **PASS (same release as the package)** | The Pages run deployed `688d804`; the portal now carries `Qué cambia en v1.9.0`, the editor page reports `data-version="v1.9.0-7eb9636"` with the brand `WEB STUDIO // QG-1`, the installer page contains no `LIVE BROWSER DSP PREVIEW`, and `firmware/versions.json` names `v1.9.0-7eb9636` with sha256 `80ad995c…`, size 610 806 B — the bytes in `release/`. The served emulator is deliberately the one built from that same commit (`release/build-manifest.json` -> `7eb9636`): wasm 1 073 325 B, sha256 `c83c8bfb…`, `dirty: []`, Emscripten 6.0.11. That is the release, not `main`, which is why it does not equal the 1 079 658 B this tree builds; the workflow builds it from the release commit precisely so the installer cannot be refused by its own page. | published site read back over HTTP |
+| Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing here is a claim about the hardware. | none |
+| Signed release | **BLOCKED** | `release/` predates this tree; the reproducibility gate skips and `publish` cannot verify. Re-signing needs the `qg1-release-1` key, which is not in this environment. No package was published. | n/a |
+
+The remaining defect the owner reported (an FX value spilling past the meter) is closed in the layout above; the
+render sweep’s alignment lint reports 0 off-by-one measurements over 73 places, and 0 lint findings over 174 screens
+× 17 palettes.
+
+## 30. Decision — 2026-11-09: what the owner's unit can and cannot be installed by
+
+### 30.1 §28 was too generous, and why
+
+§28 enabled a donor path: a stock unit plus a verified record could take `UPGRADE` from this page. Reading
+the firmware settled it the other way. The update loader is built with `FELUCCA_LOADER=1`, which compiles
+`0x12` out (`firmware/src/ota.c`), so the loader link can never identify the chip — the page used to send
+`0x12` there and refuse, which is exactly the "I put it in update mode and the installer does not recognise
+it" report. And a stock unit's own update mode is the **vendor's** program (`ota-FM-1_015`), not this
+project's loader: this project has never seen it accept a Felucca image, so offering it one is the one
+action that could leave the app area written by a loader that validates a different format.
+
+Both are now decided in code, before any frame:
+
+| What answers | Verdict | Where |
+|---|---|---|
+| `FM-1_9NN` + `0x12` | install proceeds; the loader link inherits that attempt's app-link reading | `install()` → `write({chipContinuity})` |
+| `ota-FM-1_900` | resume; needs the attempt's reading or a hashed record, else `loaderchip` | `write()` |
+| `ota-FM-1_015` | `foreignloader`, zero frames | `write()`, `install()`, page |
+| `FM-1_015` | `stockfirst`, zero frames, M-Flasher panel | `install()`, page |
+
+### 30.2 Gate-by-gate, with the class of each piece of evidence
+
+| Gate | State for **this unit** | Evidence | Class | What it would take to close it |
+|---|---|---|---|---|
+| Reproducible AC791N build | GO | build record + pinned toolchain; every release byte is the artefact the manifest names | `[CI]` | — |
+| Whole QG package | GO | `release/felucca-v1.9.0.fwsc`, 610 806 B, sha256 `80ad995c…`, every app file's CRC16 | `[HOST]` | — |
+| Production signature, pinned key | GO | Ed25519 over the canonical manifest, three refusals in `web/test_web.mjs` | `[HOST]` | — |
+| Unit identity | GO | handshake answers; the record names `FM-1 015 (stock)`, unit id `4150353835313708` | `[HW]`, third-party tool record | — |
+| **Real JEDEC and geometry** | **GO for this unit** | `0x856014` (Puya P25Q80H, 1 MiB) read by M-Flasher's `ONLINE_DEVICE` on this unit, recorded 2026-11-08; the part is in the write allowlist | `[HW]`, third-party read | nothing — this is the reading the page could never take on stock |
+| Flash write compatibility | **GO CONDITIONAL** | the part is in the allowlist; the write itself has never been executed on this unit, and the loader's region check plus per-sector readback are what contain it | `[HW]` identity + `[HOST]` behaviour | one successful install on any P25Q80H unit |
+| Applicable memory map | GO | `docs/FLASH_MAP_AND_RECOVERY_FORENSICS.md`; the loader refuses anything outside `0x4000..0x93000` / staging / stock record | `[STATIC]` + `[HOST]` | — |
+| **Verified prior backup** | **GO CONDITIONAL** | a 1 MiB read exists with sha256 `38c66ae7…` **inside the record**; the `.bin` itself was not shared, so this page has hashed nothing yet, and the chip's CRC32 is not in the record | `[HW]`, tool record only | the owner loads the `.bin` (the page hashes it) **and** a second backup or the CRC32; `fm1_mflasher.py import --second` already demands that |
+| **Demonstrated recovery** | **NO-GO** | M-Flasher restore of this unit's own dump is available and audited from source; it has never been run on this unit, and no boot-area write exists in this project | `[STATIC]` | one restore executed on a unit that is not the only one |
+| Protected write paths | GO | boot head, SPL, `isd_config`, VM, autosave, FM6, USR are out of the loader's `_Static_assert`ed window; the package never reaches `0xFF000` | `[STATIC]` + `[HOST]` | — |
+| Stress and stability | GO for the write loop | `ldr_test` cut matrix: 32 real cut points, all resumed and finished exact | `[HOST]` | a real power cut |
+| RAM/CPU headroom, post-install revalidation | GO CONDITIONAL / NO-GO | budgets measured on host and target build; the post-install check list exists but has never run on a unit | `[HOST]` / `[STATIC]` | one installed unit |
+| Installer/emulator/site sync | **NO-GO (one check)** | `tools/site_check.py` fails exactly one line: `versions.json`'s emulator record (`3d039f75…`, from the signed release build) is not the wasm the site serves (`c83c8bfb…`). Same commit, same flags, same emcc version string, same 1 073 325 B — and two separate CI rebuilds both produced `c83c8bfb`, so the pipeline is stable and reproduces its own bytes; what is not reproduced is the release record's build, whose inputs or emsdk snapshot differed while the version string did not. Treat it as a stale record, not flaky output | `[CI]` | rebuild the emulator with the exact emsdk the record was made with (or re-record it from a reproducible build) and verify the hash matches; needs `emcc`, absent here |
+
+### 30.3 The decision
+
+- **First install on this stock FM-1 by this page: NO-GO, and it is not a missing flag.** It is one
+  program on the unit (`ota-FM-1_015`) that nobody has read, and one protocol (`0x12`) the stock
+  application does not implement. The circularity is real, not bureaucratic.
+- **First install by M-Flasher `Install firmware`: GO CONDITIONAL**, and it is the documented route:
+  it takes the same `.fwsc`, checks model, chip key and app CRCs, writes `[0x4000, len)` only, keeps the
+  bootloader and cannot touch the head. Conditional on the backup being verified first (two reads or the
+  CRC32) and on the owner accepting that recovery has not been executed on this unit.
+- **Update on a unit already running QG: GO CONDITIONAL**, and for the first time the path is coherent end
+  to end: the chip gate on the loader link is satisfied by the same attempt's app-link `0x12` (or a hashed
+  record when resuming), the loader verifies every sector and commits only on an exact `success`, and a
+  dropped link is now reported as "nothing written" or "resumable sector write" instead of one message for
+  both.
+
+### 30.4 What is classified as what
+
+- **Real and critical:** recovery not demonstrated on hardware; the stock unit's own update mode being a
+  program nobody has read. Neither can be closed from software here.
+- **Correctable and corrected:** the loader link requiring `0x12` (it cannot answer), a redundant chip
+  probe on a different connection, a single message for two different drop states, the false promise in
+  `RECOVERY_GUIDE.md` that any `ota-` unit could be resumed, and §28's donor path.
+- **False or redundant:** "the installer is blocked because no unit answers `0x12`" as a statement about
+  *this* unit's chip — the chip is known; what was missing was a path that could use it.
+- **Acceptable and documented:** the write has never run on this unit, the emulator is not reproducible,
+  and a real power cut has not been staged.
+
+### 30.5 Evidence added in this change (`[HOST]`, simulated units)
+
+`web/test_update_mode.mjs`, 15 checks, 0 FAILED: a QG unit updates through a loader that answers no chip
+query (two `UPGRADE`s, every byte matched); a resume with no chip fact is refused as `loaderchip` with
+zero `UPGRADE`; the same resume with the record completes; the vendor loader is refused as
+`foreignloader` with zero bytes offered; a stock unit is refused as `stockfirst` with the message naming
+M-Flasher; and an answered `0x12` that names a read-only part is refused even when a record is loaded.
+`web/test_record.mjs` (24 checks) now asserts the other direction: a record does **not** authorise an
+install on a stock unit. `web/test_web.mjs` and `web/test_verify_only.mjs` (136) stay green.
+
+---
+
+## 31. Community research round: what it changed, and what it did not
+
+Sources read for this entry: `jvitkauskas/m-bootloader` (`README.md`, `docs/SPEC.md` §4/§5/§6/§10/§11.6/
+§11.7 and the read/write sources), `jvitkauskas/m-flasher` (README, `docs/safety.md`, `docs/usage.md`,
+`src/ops.rs`), `AL-255/FM-1-RE` (`docs/io/11-ota-protocol.md`, `analysis/device/ota-loader/`,
+`tools/fm1_ota.py`), `Quixotic7/MvaveFM1Unbricker` (`fm1_unbrick.py`, `UNBRICK-GUIDE.md`),
+`Quixotic7/TransitFM1`, `kurogedelic/FM-1-transporter` (`docs/PROTOCOL.md`), and the FM-1 Developers'
+Wiki pages listed in `docs/FM1_MODES.md` §5. Everything below is classified in that document.
+
+### 31.1 What the research settled
+
+| question | answer | consequence for this repository |
+|---|---|---|
+| What does the `sha256` in the M-Flasher record hash? | the **whole 1 MiB image as read in that run** (`src/ops.rs`, 0.9.4 — same code as 0.9.1) | the record still binds a model and a chip and nothing else; consistency needs a second read or the chip's CRC32, which the JSON does not carry |
+| Can a full 1 MiB backup keep the stock boot loader? | yes, by two routes, neither of them a browser: M-Flasher over ROM mode, or m-bootloader's RAM stage | the page keeps accepting a *verifiable* dump and stops implying it can take one |
+| Does the m-bootloader stage write flash? | no (`SPEC.md` §10/§11.7, chunk reads `0x23`); but the firmware-update route overwrites the staging area *before* it runs | route B is not read-only for `~0xE3000..0xE7F00`; documented, with the user-data banks it abuts |
+| Is the ROM mode reachable from WebMIDI? | no: `4C4A:8057` is mass storage/SCSI and WebMIDI exposes no VID/PID | `ENTERING_DOWNLOAD_MODE` / `ROM_DEVICE_DETECTED` declared unobservable rather than faked |
+| Does the single-bank risk have a size? | yes: the app is written in address order, entry sector first, so the exposure is the remaining 1167-chunk write | documented as a window, not as a corner |
+| Is there a protection that closes it? | TransitFM1's stub does for *updates*; its own first install from V15 has 17 unprotected cut points | no change to the first-install decision; a candidate for the update path once hardware evidence exists |
+| Is `ota-` one thing? | no: `ota-FM-1_900` is this project's loader, any other version is the vendor's update mode | **code change**: the verify report now splits `ourloader` / `otherloader`, and only the former is a resumable state |
+
+### 31.2 Gates, after the research
+
+| requirement | state | why it did not improve |
+|---|---|---|
+| unit identity | GO | model, version and chip are read or bound; the record is `modelOnly` and the chip gate has three sources of decreasing strength |
+| verified prior backup | GO CONDITIONAL | the meaning of the record's hash is now established, and the two routes are documented; *this unit's* dump still does not exist, and only a host tool can take it |
+| demonstrated recovery | NO-GO | no project has demonstrated recovery **from this unit's state**; MvaveFM1Unbricker and TransitFM1 are `[3rd-hw]` on other units and are cited, not adopted |
+| protected write paths | GO CONDITIONAL | the loader verifies per sector and refuses to commit; the stock first install remains single-bank and unprotected for the whole pass |
+| ROM-mode access from the installer | NOT APPLICABLE | not a transport WebMIDI has; the honest state is "unobservable", and it is now named |
+| mode identification | GO | four identities documented, two of them (the loaders) now distinguished by code, with the blind spots declared |
+
+Nothing above was relaxed to make a button appear. The two changes are an added distinction the
+evidence supports (the two loaders) and an honest refusal (`READY_TO_INSTALL` cannot be reached from
+a firmware name, only from steps the loader reported).
+
+### 31.3 The decision is unchanged, and now it says why in one place
+
+**First install on this stock FM-1 by this page: NO-GO.** The blocker is not a gate that could be
+rewritten: it is that the program which would receive the image (`ota-FM-1_015`) has never been read
+by anyone, and the stock app does not implement the one command that would identify the chip on the
+same link. The route that *has* been used on stock units is M-Flasher's, which is why the page's
+`stockfirst` message names it instead of offering a path it cannot take.
+
+**First install by M-Flasher / by a host tool over ROM mode: GO CONDITIONAL**, on a verified dump of
+*this* unit first (two reads or the CRC32), and on the owner accepting that recovery has not been
+executed on this unit.
+
+**Update on a unit already running QG: GO CONDITIONAL**, unchanged from §30.3, with the loader split
+of §31.1 making the foreign-loader refusal visible in the report instead of only in the error path.
+
+### 31.4 Evidence added in this entry (`[HOST]`)
+
+`web/fm1state.js` + `web/test_state.mjs`, **65 checks, 0 FAILED**: seventeen named states, four of
+them declared unobservable over WebMIDI with their reasons; `derive()` maps only observations (no
+port → `DEVICE_NOT_CONNECTED`, a name alone never reaches `READY_TO_INSTALL`); the image transfer is
+not called a write and the write is not called a verification pass; a lost link inside the write pass
+is `RECOVERY_REQUIRED` while the same loss before it is `FAILED_SAFE`; every state has advice, and the
+destructive ones say not to cut the power. `web/test_verify_only.mjs` grew to **140 checks**: the
+vendor's loader is now `otherloader` / `foreign-loader` with zero frames sent, while `ota-FM-1_900`
+keeps `finish-loader`. `web/test_update_mode.mjs` (15), `web/test_record.mjs` (24) and
+`web/test_web.mjs` stay green. No behaviour on the wire changed: the classification is a report and a
+message.
+
+## 32. Update — 2026-11-09, the ecosystem pass: what the repository, the site and the captures say now
+
+The order was to bring everything around the firmware to the state the firmware is in, and to publish nothing that
+is not demonstrated. The firmware sources did not change in this pass, so the signed `v1.9.0` package still
+describes this tree; what changed is what the repository, the portal, the installer page and the Web Studio *say*,
+and each line below names the class of the proof.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| Installer page: `LIVE BROWSER DSP PREVIEW` | **REMOVED** | The section is gone whole — heading, markup, the `.synth-grid/.scope/.step-row/.step-cell/.ctl-box` rules, the ~14.5 KB script block and the `previewTitle/synPlay/synDice/synStop` keys with their sentences in both dictionaries. No empty container is left behind: the page below the gate is the gate. `web/test_web.mjs` now asserts the absence instead of the old soft-distortion option. | static + node test |
+| Web Studio: the LCD deck | **SIMPLIFIED** | Ten `data-lcd-view` buttons became one `<select id="gw-lcd-view">` with the same ten views plus a `⛶ FULLSCREEN` button. GEN and VIZ still page through their four pages when chosen again, and a canvas click cycles the view and re-syncs the select. In the browser: choosing PUNCH-IN FX repainted the 240×240 LCD (canvas pixels changed), the select and the LCD agree, no console errors. | cloud browser (Chromium) |
+| Web Studio: the deck's lower half | **SIMPLIFIED** | Steps 2, 3 and 4 are now `<details class="gw-macros">`, collapsed, with a one-line summary (name left, live status right, triangle pinned) and the hardware shortcut moved into the body. Measured in the browser: every summary 16 px high, no clipping; opening the tape block shows its 12 buttons and the generator's 2, the Wraith block's 15. | cloud browser, DOM measurements |
+| Web Studio: the version it claims | **FIXED** | The mock device reported `FELUCCA v1.0 (MOCK)`, so the page said "QUANTUM GAMMAWAVE v1.0" while the product is 1.9.0. The page now carries `data-version="{{VERSION}}"`, which `web/make_site.py` requires and fills exactly as it does the portal's token, and the mock reports that build (`v1.9.0`); opened straight from the repository the page says "dev". `web/test_web.mjs` evaluates the protocol slice without a document, so it sees "dev" and stays honest. | cloud browser, node test |
+| Web Studio: two labels that lied | **FIXED** | `PALETTE: GAMMA` is now `STUDIO THEME: GAMMA` (it repaints this page; the device's 17 palettes are set on the unit), and the brand bar no longer says `WEB STUDIO 2.0`, because 2.0 is not a published version. | cloud browser |
+| Repository banner | **REGENERATED** | `tools/generate_banner.py` (new) draws 1600×560 from the QUANTUM palette decoded out of `ui_palettes.h`: starfield, ringed planet with two moons and orbits, Michroma wordmark, tagline, five chips and the version read from `felucca.c`. The preset chip claimed **207** and now says **200**: the firmware tables hold 200 browsable sounds plus two retired DRUM entries kept at indices 10/11 (`tests/preset_library_test.py`, ANALOG 56 · FM6 29 · PHASE 25 · LOFI 25 · FORMANT 20 · WHEEL 18 · NOISE 17 · DRUM 10). | generator + image |
+| Screenshots | **REGENERATED** | `tools/generate_screenshots.py` reads `FELUCCA_VERSION` from `firmware/src/felucca.c` (it said v1.8.6) and renders the current UI; the gallery gained `26_boot_splash`, `27_delay_bars`, `28_reverb_reso`, `29_reverb_cloud` and `30_punch_in_latch`. All 25 existing captures were re-rendered, not re-used. | host render (`ui_render`) |
+| Portal "what's new" card | **FIXED** | The card said *Qué cambia en v1.8.9* on a site whose version reader showed 1.9.0. It now describes v1.9.0 (signed package, the installer's four gates, the diagnostic JSON, Emscripten 6.0.11, the 3.2 visual pass) and says plainly that no install has been run on a physical FM-1. The status link points at this matrix instead of `V1.8.9_STATUS.md`. `web/test_i18n.py` passes with new EN and ZH entries. | static + python test |
+| README | **FIXED** | The "current build" section named v1.8.9 and linked `docs/V1.8.9_STATUS.md`; it is now the v1.9.0 section above, listing what that build does and what it does not claim. The changelog no longer jumps from v1.7 to v1.9. The `firmware/versions.json` link is absolute, because that file exists only on the published site (the Pages workflow writes it) and the relative link was broken in the repository. The sound-library figure was checked against the test (200) instead of the older "+42" phrasing. The two interface captures are new, at one viewport (432 × 690), portal first and Web Studio in mock mode second. | static |
+| Emulator chain | **PASS** | Rebuilt from this tree with Emscripten 6.0.11: wasm 1 079 658 B, sha256 `8c21befd1403573226e548487333d934c029a302d75f55de9983522a253bd055`, `v1.9.0`, commit `a634a1a` (marked dirty: this pass' uncommitted tree). `web/emu/emu_test.mjs` passes end to end — breath peaks, SAVE + OCT+ + OCT+ user preset persistence across a simulated reboot, the heavy song twice with identical samples, 1 s of it rendered in 20.4 ms (2.0 % of real time). | emulator (WASM under Node) |
+| Host suites | **PASS** | `tests/run_tests.sh` with `NO_PACKAGE=1`: native runners, ASan/UBSan, the lint/alignment sweep, the golden renders and every web test. See the commit for the run. | host x86 |
+| Physical FM-1 | **NOT TESTED** | No unit was touched, no install was attempted. Nothing in this pass is a claim about the hardware. | none |
+| "2.0" as a version | **NOT PUBLISHED** | The tree stays `v1.9.0`. A 2.0 release would need a new signed package (the `qg1-release-1` private key is not in this environment) and, before that, the physical evidence the gates ask for. Nothing was tagged, packaged or published as 2.0. | n/a |
+
+## 33. The owner's two readings, and the four gates that were asking for the wrong thing
+
+### 33.1 Evidence added
+
+The owner ran the backup twice on the same unit with M-Flasher 0.9.4, 27 seconds apart:
+
+| field | `fm1-20261109-102008.json` | `fm1-20261109-102035.json` |
+| --- | --- | --- |
+| unit id | `4150353835313708` | `4150353835313708` |
+| chip key / flash | `0x980F` / `0x856014` | `0x980F` / `0x856014` |
+| firmware / bootloader | FM-1 015 (stock) / stock (M-VAVE) | same |
+| tool | m-flasher 0.9.4 | m-flasher 0.9.4 |
+| `sha256` of the read | `38c66ae7…d9cd` | `38c66ae7…d9cd` |
+
+Class: **`[HW]` by a third-party tool on this unit, reported to the project** — not a reading this
+project performed, and not a hash this project computed. What it establishes: two independent reads of
+the whole 1 MiB of *this* unit produced the same image, and the part is `0x856014`/P25Q80H at 1 MiB.
+What it does not establish: that the dumps are still on disk, that either file is byte-identical to
+what the tool read, or that a restore works. The first is the owner's custody, the second is what
+dropping a dump next to a record checks, the third is §33.4.
+
+`web/fm1record.js` gained `corroborate()`: two or more records of one unit corroborate only when the
+model, the JEDEC, the dump SHA-256 and (when present) the unit id are identical **and** the `saved`
+stamps differ — one file copied twice is not two readings, and two hashes that differ are two images.
+`web/test_record.mjs` covers both directions: **33 checks, 0 FAILED**.
+
+### 33.2 The four gates that asked for the wrong thing
+
+| gate | what it said | why that was wrong | what it says now |
+| --- | --- | --- | --- |
+| 6. chip | `not-here` on every stock unit, forever | the fact exists; the browser is not the only transport that can read it | `pass` from a record whose dump the page hashed, `corroborated` from two agreeing records |
+| 7. flash map | `unknown` "without a write session" | the map is a property of the package and of `ldr_core.c`'s `[0x4000, 0x93000)`, not of a session | `pass` when the package's image fits that range, `fail` when it does not |
+| 8. backup | `unknown` | a backup is a **read**; requiring a write session to prove one inverted the dependency | `pass` (dump hashed here), `corroborated` (two records), `unknown` otherwise |
+| 9. recovery | `documented`, which blocked | "no recovery demonstrated on this unit" is true of every unit that has never been broken: it is unfalsifiable, and §9 asks for a *demonstrated* recovery, not for a proof by impossibility | `covered` when a verified dump of this unit exists and a documented tool covers the written range; the limitation is printed, and §9's requirement is **not** claimed as met |
+| 10. revalidate | `unknown`, blocking | the identity after the install can only exist after it | `after`: a post-write obligation the install verifies |
+
+None of this weakens §9: the *public installer* still may not write to a stock unit, and its verdict
+says so. What changed is that the report no longer calls the transport limit "gates 6 to 10 missing",
+and it can say what the evidence actually supports.
+
+### 33.3 The verdict, in three parts
+
+- **The page, on a stock 015 unit: NO-GO**, unchanged and by construction — stock 015 has no `UPGRADE`
+  path, so there is nothing to write through. `canInstall` stays false.
+- **The host path, on this unit: GO CONDITIONAL.** With a signed package, an image that fits the app
+  area, and the two readings, every precondition is a `pass` or a named `covered` limitation, so the
+  report's result is `GO-HOST` with `path: "m-flasher"` and two limitations printed: recovery covered
+  but not exercised, and the dump not hashed by the page. The conditions in §31.3 are now met on the
+  backup side; the remaining one is the owner's own decision to write.
+- **An update on a unit already running QG: GO CONDITIONAL**, unchanged from §30.3/§31.3. There the map
+  and the chip are read on the live link, and a backup is `not-required` rather than blocking.
+
+`GO-HOST` is not a §9 `GO`: it states that this unit is ready for a tool that writes through the ROM
+mode, and it is reported next to the sentence that this page still sends nothing. Nothing in the page's
+write path changed — `install()` refuses a stock donor with `stockfirst` exactly as before.
+
+### 33.4 What is still missing, stated as missing
+
+- **A restore, executed once.** The dump's existence and coverage are checked; the write-back has never
+  been run on this unit, and no amount of reading will demonstrate it. It becomes demonstrated the day
+  the owner restores that dump, or does not need to.
+- **The dumps themselves in the page.** Dropping `fm1.bin` next to a record moves gate 8 from
+  `corroborated` to `pass`, because then the page hashes the 1 MiB itself. Two records are the second
+  best thing, and they are labelled as that.
+- **AC791N build and target budgets**: unchanged, no toolchain here (§31.4).
+- **The emulator record mismatch**: closed after this entry, not by re-recording the emulator (§30.2)
+  but by publishing the record of the emulator the site actually serves, beside the package's own
+  record; `tools/site_check.py` now holds each artefact to its own claim and passes 14/14.
+
+### 33.5 Tests in this entry (`[HOST]`)
+
+`web/test_verify_only.mjs` **150 checks, 0 FAILED**, including two new scenarios that drive the real
+`verifyDevice`: two agreeing readings plus a signed, fitting package on a stock unit produce
+`GO-HOST` with `canInstall: false`, `authorised: false`, and only identity frames on the wire; and an
+unsigned package with the same evidence blocks on `gate.signature` alone. `web/test_record.mjs` 33,
+`web/test_state.mjs` 65, `web/test_update_mode.mjs` 15, `web/test_web.mjs`, `test_backup`,
+`test_provenance`, `test_pkg_bounds`, `test_pkg_faults`, `test_donor` — all green. Site rebuilt and the
+single bundled script passes `node --check`.
+
+### 33.6 The update path's own two stale rows
+
+The same audit turned up two rows that were only wrong for a unit *already* running this firmware:
+
+- **`gate.chip` was `not-here` on a QG unit too**, as if the chip fact were missing. It is not missing
+  there: `install()` calls `identify()`, which sends two `0x12` queries on the live link and refuses
+  before the first write frame if the answer is not an allowed part. The row now says `at-install` --
+  "read on this link by the install, before the first write frame" -- and does not block.
+- **`gate.recovery` demanded a full-flash dump for an update.** An interrupted update is resumable by
+  design (the loader waits for its bytes and the page resumes it, `docs/BRICK_RESILIENCE_FM1.md`), and
+  the firmware being replaced is this project's own package. The row is `covered` for `kind: "ours"`
+  with the limitation `update-resumable-not-exercised`: resumable by design, never forced on a unit.
+
+`web/test_verify_only.mjs` is at **154 checks, 0 FAILED**, with the QG scenario asserting `GO`,
+`canInstall: true`, `path: "this-page"`, `gate.chip: at-install`, `gate.backup: not-required`, and
+nothing but the identity query on the wire. The public installer's write path is unchanged: it already
+wrote to a QG unit; what changed is that its *report* no longer calls that path blocked.
+
+## 34. Would M-Flasher take the release? Its own checks, traced on the bytes
+
+The first install is M-Flasher's `Install firmware` (§33.1, docs/M-FLASHER.md §6), so the release has to
+pass *its* refusals, not this project's. `tools/fm1_mflasher_accept.py` re-implements them from the
+audited source and applies them here; the full table with the value of every row is docs/M-FLASHER.md
+§11. Summary, with the class of each fact:
+
+| Check | Rule from | Result on `release/felucca-v1.9.0.fwsc` | Class |
+| --- | --- | --- | --- |
+| container parses: identity weave, header CRC16, file-list CRC16, `flash.bin` type 0 + CRC16 | `formats.rs Package::parse` | `FM-1_982`, 20 identity blocks, 610 806 B, image 602 112 B CRC16 `0xCC18`, second entry `ota.bin` 7 650 B | `[HOST]` values, `[SRC]` rules |
+| model accepted by the board | `ops.rs plan_firmware`, `boards.rs FM1` | `FM-1` ∈ {`FM-1`, `MiniFM`} | `[HOST]` |
+| image not larger than the flash | `ops.rs plan_firmware` | 602 112 ≤ 1 048 576 B | `[HOST]` |
+| every `attr 0x82` app file decrypts with the chip key and its CRC16 matches | `app_files_status` | `app.bin` 581 564 B `0xE643`, `cfg_tool.bin` 383 B `0x2E75`, under `0x980F` | `[HOST]` |
+| write range and sectors | `plan_firmware`, `Plan::new` | `0x04000-0x92FFF`, 143 sectors, boot area kept, factory data (`0xFF000+`) untouched | `[HOST]` |
+
+What it does **not** establish: that the unit accepts the write, and that M-Flasher performed it. The
+model and chip key are answered again by the unit when the tool opens it, and the write, its read-back
+verification and the session backup are M-Flasher's own run (`ops.rs apply`). No unit was touched here.
+
+The trace is a program, not a reading, because a checker that only prints "ok" proves nothing:
+`tests/mflasher_accept_test.py` mutates the release six ways and requires M-Flasher's own refusal
+wording for each (damaged `app.bin` under a rebuilt container, damaged header, damaged image, `F`→`S`
+identity, `0xFFFF` chip key, non-sector image size) — **14 checks, 0 FAILED**. `[HOST]`
+
+## 35. Update — 2026-11-09, 3.3: two channels, 2.0, and a surface that turns
+
+The first complaint of this mission was that the public emulator showed firmware older than the repository.
+The cause was structural, not a cache: the site published *one* release — package and emulator from the signed
+commit — because `fm1provenance.js` holds a package to the emulator its own build record names. While `main`
+ran ahead of the release, the only way to keep that binding was to serve old pages. This pass splits the site
+into two channels and moves the version to 2.0. Everything below names its class; nothing here is a claim about
+physical hardware.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| Root channel = this tree | **IMPLEMENTED, COMPILED, TESTED LOCAL** | `.github/workflows/emulator.yml` builds `build/site` from `build/felucca.fwsc` and `build/emu` of the same run, passes the run's own build record to `make_site.py` (which checks hash, size, identity, commit and the emulator that record names) and copies the run's emulator to `/emulator/`. The root installer therefore publishes an **unsigned** package and refuses to install it — fail-closed, stated on the page. | workflow + `make_site.py` checks |
+| `/release/` channel = signed `v1.9.0` | **IMPLEMENTED, COMPILED, TESTED LOCAL** | Built inside a worktree at the release commit: `make_site.py` from that tree with `release/felucca-v1.9.0.fwsc`, `release/build-manifest.json` and the emulator built from the same commit, then copied to `build/site/release/`. Portal, installer, package and emulator of that channel all name `7eb9636`. | workflow + emulator build from that commit |
+| Published-site gate | **REWRITTEN** | `tools/site_check.py` now runs twice: the root against `$GITHUB_SHA` (package and emulator), `/release/` against the release record's commit and the signed package's SHA-256. | CI step |
+| Build identifier | **IMPLEMENTED, TESTED LOCAL** | `tools/package_emu.py` writes `built` (UTC, or `SOURCE_DATE_EPOCH` when set) into `build/emu/manifest.json` and stamps it into the page; the footer shows version · build · built · engine SHA-256 · size, and `window.__QG_EMU__` exposes the same. The page still refuses to run when the WASM it downloads does not hash to the value baked into it. | static + emulator manifest |
+| Version 2.0.0 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` is `v2.0.0`; the AC791N build and the WASM both carry it. The signed package that can be installed remains `v1.9.0`, and the portal says so beside the 2.0 note. | target build + WASM |
+| SCL keyboard | **IMPLEMENTED, RENDERED** | `scl_key()` draws a 3 px corner (6 px in 3.2, which turned a 29 px key into a lozenge). `tests/ui_render` re-rendered every screen in 17 palettes: 0 lint findings, 0 alignment findings. | host render |
+| HOME planets: axial rotation | **IMPLEMENTED, RENDERED** | `gw_sphere()` takes a rotation phase and two surface features per planet; `x = r·sin(phase)` packs them toward the limb, `cos(phase)` hides them behind the body, each planet has its own rate (`ROTMS`) and the feature tone falls off toward the terminator. Cost per planet and frame: two sine pairs and at most four pixels — no new table, no new RAM. | host render + code |
+| HOME planets: the note | **IMPLEMENTED, RENDERED** | `pl_flash[]` is set to 256 on a note-on and decays four times faster than `pl_ex`; it lifts the lit face (`lit_top`, `lit_low`) and the limb (`edge`) for the first frames, so the strike reads before the afterglow. | host render + code |
+| Audio audit (LATCH, Punch-In, every control → DSP) | **PENDING** | Not done in this pass. The claims of 3.2 about LATCH remain host-state and interface tests; no test yet renders audio, releases the key and measures that a latched effect still changes the signal. | none |
+| Cheap musical improvements (micro-detune, stealing, saturation) | **NOT STARTED** | Deliberately not attempted after the ecosystem work: each one changes renders, and none was measured. Listed as pending rather than guessed. | none |
+| Host suites | **PASS** | `NO_PACKAGE=1 ./tests/run_tests.sh`, plus the web/provenance/site/i18n tests and `web/emu/emu_test.mjs` (all ok, heavy song 2.3 % of real time). | host x86 |
+| Public site | **CONFIRMED (root channel)** | After the deploy of `ebb9253`, `tools/site_check.py --expect-commit ebb9253... --expect-emu-commit ebb9253...` read the published origin: 14/14, the package at the commit asked for, the emulator built from that commit, its wasm size and SHA-256. The `/release/` channel failed the same gate — that is §36. | public site over HTTPS |
+| Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing in this pass is a claim about the hardware. | none |
+
+## 2026-11-10 — the M-Flasher report leaves the install path
+
+The entries above that describe a chip fact taken out of band (`web/fm1record.js`, `bindRecord()`, the
+28-check `web/test_record.mjs`) are history, not the current mechanism. Since PR #88 the loader a stock
+unit stages reads the flash chip itself (`firmware/loader/loader.c` `ldr_flash_known`) and refuses a part
+the firmware does not write before it erases anything, and a unit already running QG answers `0x12` on its
+own link. The installer therefore asks the user for no record and no dump: the record box, the M-Flasher
+panel, `web/fm1record.js` and its test were removed in `eaa55a9`, together with the `loaderchip` message
+they produced. What the gates still require is what they always required — model, geometry, the part
+allowlist (`0x856014`, `0xB36014`), the write range `[0x4000, 0x93000)`, the factory-data boundary and the
+post-install identity — and those are decided on the unit, at install time.
+
+Class of evidence for the removal: `[HOST]` (`web/test_verify_only.mjs` 150, `web/test_update_mode.mjs` 12,
+`web/test_web.mjs`, `web/test_installer_i18n.py`) plus a real browser against the published page. Nothing
+here is a measurement on a physical unit.
+
+## 2026-11-10 — v2.0.0 published: the install comes from the signed release
+
+The two channels of section 35 are gone. The root installer now installs the **signed release** and nothing
+else: `make_site.py` looks for `release/*.fwsc` with a matching `*.manifest.json`, checks that the bytes still
+hash to the value the manifest names, and serves *that* package — labelled with the `qg1-build-1` record the
+signature carries, so the page shows the commit of what it will write. A build of `main` that is not those
+bytes is still published (and still installs nothing) until a custodian signs it again; the emulator is always
+this run's build, and the footer names it. `main` moves every few minutes; a signature cannot follow it, and
+a page that refused to install because of that would be the bug this mission set out to remove.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `v2.0.0` tag | **PUBLISHED** | `refs/tags/v2.0.0` → `896797e` on GitHub, created by `release.yml` when the `release/v2.0.0` branch was pushed. | GitHub ref |
+| GitHub Release | **PUBLISHED, DOWNLOADED BACK** | `releases/tag/v2.0.0`: `felucca-2.0.0.fwsc` (610 959 B), `felucca-2.0.0.fwsc.manifest.json`, `SHA256SUMS`. The downloaded package hashes to `c423b17c…9bd2`, byte-identical to `release/`, and its manifest verifies with `tools/fm1_sign.py`. | release assets |
+| Ed25519 identity | **VERIFIED, KEY UNCHANGED** | `key qg1-release-1`, public `70b6036f…fcd40`, pinned in the page and in `tools/fm1_keys.json`; the signature was made with the existing private key, not a new one. Five mutations (package byte, signature, version, image hash, unknown keyid) are refused by both the Python and the browser verifier. | CLI + browser |
+| What the signature names | **FIRMWARE, NOT THE FILE NAME** | `images` = `felucca.bin` and `loader/ota.bin` (the hashes every build record uses); the package's own hash is `sha256`, and its name changes with the site's label. Naming the package inside `images` made a valid signature look wrong against a record that never has that name. | code + page |
+| Site | **PUBLISHED, RENDERED** | `…/webapp/installer/`: "v2.0.0-2500153 — Ready to flash (610,959 bytes)", "Package SHA-256 verified ✓ c423b17c… · Ed25519 qg1-release-1", 14-row plan card, the four confirmations, `INSTALL` enabled; no record box, no dump input. Checked again against a build of a newer `main` (`3bdc09d4`) to prove the page keeps installing the signed bytes. | browser |
+| Build | **COMPILED HERE** | `./build.sh --release 2.0.0` with `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK`: app and loader built, package 610 959 B, reproducible to `c423b17c…` on a rebuild. | AC791N toolchain |
+| Loader | **PASS** | `tests/ldr_test` from an older package to `release/felucca-2.0.0.fwsc`: 28 checks — write windows, factory data kept, resume after a cut, wrong final ACK, damaged head refused, same-package re-run erases nothing. `tests/flash_id_test` passes (`0x856014`, `0xB36014` accepted, `0x000000`/`0xFFFFFF` answered as unknown). | host |
+| Host suites | **PASS** | `sign_test`, `key_custody_test`, `install_test`, `gate_test`, `mflasher_test`, `mflasher_accept_test` (14), `test_i18n`, `test_installer_i18n`, `test_accept` (20), `test_state` (65), `test_update_mode` (12), `test_verify_only` (150), `test_web`, `test_sign` (12), `test_backup`, `test_site` (19 ids / 6 images / 30 links, 0 FAILED). | host |
+| Physical FM-1, `0x856014` | **NOT TESTED** | No unit was touched. The plan, the allowlist and the resume path are host evidence only. | none |
+| Physical FM-1, `0xB36014` | **NOT TESTED** | Same. The second part is accepted by `flash_id_test`; no measurement on a unit. | none |
+
+## 38. Update — 2026-11-10, 2.1.1: el árbol en 2.1.1, la instalación en el release firmado
+
+`main` cambió dos veces mientras esta pasada escribía. Primero #87/#89 quitaron la firma y el canal firmado;
+después volvieron, con `release/felucca-2.0.0.fwsc` firmado y el sitio ofreciendo ese paquete. La versión de
+este árbol es **2.1.1** y el paquete que se puede instalar sigue siendo el **2.0.0 firmado**: firmar un 2.1.1
+necesita la clave privada `qg1-release-1`, que no está en este repositorio ni en CI, y esta pasada **no puede
+producirla**. Es un bloqueo, no una tarea hecha.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| Versión del árbol 2.1.1 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` es `v2.1.1`; el build AC791N (imagen 535 504 B, paquete 610 959 B, identidad FM-1_982) y el wasm (1 083 360 B, `d6d9827e…`) lo llevan. El paquete firmado que se instala sigue diciendo 2.0.0 y la portada lo dice. | build AC791N + wasm | AC791N + wasm |
+| Release 2.1.1 firmado | **BLOCKED (no key)** | No hay clave privada `qg1-release-1` en el repositorio ni en CI, y no se inventa ni se pide por chat. Sin firma, el instalador se niega a escribir el paquete, que es el comportamiento correcto. | `tools/fm1_keys.json` (sólo pública), `release/` | — |
+| Audio de LATCH | **PASS (rendered audio)** | `tests/perform_test.c::test_latch_audio()`: con LATCH ON el filtro sigue filtrando tras soltar; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF vuelve seca; REPEAT 1/16 sigue sonando. | render en host | host |
+| Rotación de los planetas de HOME | **VERIFIED IN THE BROWSER** | Emulador de este build servido en local y abierto en el navegador cloud: dos capturas separadas 2,6 s, **868 de 57 600 píxeles cambian**; en 300 ms cambian **576**, más de lo que mueve una órbita de 7–13 s por vuelta: gira la superficie, no sólo la órbita. Recorte ×4 y diferencia en `docs/evidence/3.3/`. | navegador cloud | navegador |
+| SCL con esquina de 3 px | **RENDERED** | `scl_key()` con esquina de 3 px; `tests/ui_render` 174 pantallas × 17 paletas, 0 hallazgos. | host render | host |
+| Aserciones contra el contrato de `P_LEVEL` | **FIXED** | `93c0fac` hizo que un sonido lleve su propio nivel; cinco aserciones de `ui_test`/`editor_test` seguían exigiendo el contrato viejo. Ahora comprueban `LEVEL == preset_level_of(engine, preset)` y que el load **empuja** ese nivel. Ambos binarios pasan enteros. | `tests/ui_test.c`, `tests/editor_test.c` | host |
+| `drumx` PUNCH y `live` (segundo a segundo) | **FAIL — not this pass** | Fallan en `main` antes de tocar nada: `firmware/src` aquí difiere de `main` en una línea (la versión). Son consecuencia de que el nivel del sonido entre en todo render. No se tocan aquí. | `NO_PACKAGE=1 sh tests/run_tests.sh` | host |
+| Matriz Control → Parámetro → Destino DSP → Efecto audible | **STILL PENDING** | No se hizo; lo único medido en audio es LATCH. | — | — |
+| Mejoras musicales baratas | **NOT STARTED** | Sin cambios. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+## 22. Update — 2026-11-10, the published installer, opened and exercised
+
+The question this answers is narrow: **does the installer the public is being given actually work, and is its
+INSTALL button blocked by a defect or by the gates it is supposed to have?** It was opened in a cloud browser
+(Chrome, no FM-1 attached) and driven as a visitor would. Class: `[SITE]`, published page, network and console.
+No unit was involved and no byte was written to anything.
+
+| what was checked | what it said |
+|---|---|
+| the page itself | 200, and no console message of any kind |
+| the three requests it makes | page, `firmware/felucca-v2.0.0-2500153.fwsc`, its `.manifest.json`: 200, 200, 200 |
+| the package it offers | `QUANTUM GAMMAWAVE FM-1 (v2.0.0-2500153) — Ready to flash (610,959 bytes)` |
+| its integrity | `Package SHA-256 verified ✓ c423b17c…`, `Ed25519 qg1-release-1` |
+| the plan it shows before writing | write range `0x04000-0x92FFF`, 143 sectors, boot area `0x00000-0x03FFF` kept, factory `0xFF000` |
+| INSTALL with the confirmations unticked | `disabled = true` |
+| INSTALL with all four ticked | `disabled = false` |
+
+So the button is gated exactly by the four confirmations and by nothing else: the package verifies against the
+pinned key, the manifest matches the bytes, and there is no stale gate, no cache or service-worker shadow, and no
+JavaScript error standing between a verified package and a startable install. What this cannot say, and does not:
+what that specific unit answers when the installer opens it (JEDEC, geometry, identity), whether a dump of it
+exists, or whether a recovery has been rehearsed. Those gates are unchanged and open, and they are physics, not
+code — see §20 and `docs/FORENSIC_FM1_VIABILITY.md`.
+---
+
+## 2026-11-10 (later) — v2.1.1: the install is 2.1.1, signed where the key lives
+
+The previous block said the installable package was `2.0.0` and that signing `2.1.1` needed a key that is not in
+this repository or in CI. Both facts changed here, and neither was faked: the package was signed with the key on a
+host that holds it, and the build that produced it never saw a key.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `release/felucca-2.1.1.fwsc` | **SIGNED, VERIFIED** | 610 959 B, SHA-256 `81c80e36…c563`, identity `FM-1_982`, `images` = `felucca.bin` `88b3088a…`, `loader/ota.bin` `dc5dd00a…`; `fm1_sign.py verify` passes against the pin | cryptography |
+| the package's build record | **BUILT HERE** | `./build.sh --release 2.1.1` with `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK`, from commit `61ae47b`; record inside the signature | AC791N toolchain |
+| signing without the key in the build | **IMPLEMENTED, TESTED** | `request` freezes the bytes; `sign --signer-cmd` signs them elsewhere and verifies the returned signature against the pin before writing; `--key` and `--signer-cmd` produce identical manifests | host |
+| CI can ask, not sign | **IMPLEMENTED** | `emulator.yml` writes `build/sign-request.json` and uploads `sign-request-<sha>`; no signing secret exists in Actions | workflow definition (not executed in CI yet) |
+| every committed package verifies | **IMPLEMENTED** | `signed-release.yml`: each `release/*.fwsc` against its manifest and pin, no `.fwsc` without a manifest, `SHA256SUMS` exact, custody + request tests | workflow definition (not executed in CI yet) |
+| the newest release wins | **TESTED** | with `2.0.0` and `2.1.1` both signed, `web/make_site.py` publishes 2.1.1, and the workflow picks the same one by version; `test_site` 0 FAILED on `/` and `/preview/` | host |
+| the portal's copy | **FIXED** | it claimed to install 2.0.0 while installing 2.1.1; it now names the newest signed release and the version panel reads `versions.json` | host, string check |
+| the two tests the 2.1.1 entry left open | **PASS HERE** | `drumx_test` → "all checks ok"; `six_track_live_test` → "all passed", 61/61 s against the golden | host |
+| whole suite before publishing | **NOT RUN IN FULL** | `tests/run_tests.sh` was not run end to end in this pass; what ran is listed above and in `CHANGELOG.md` | — |
+| install on a physical FM-1 | **NOT TESTED** | no unit here; JEDEC `0x856014` / `0xB36014`, geometry and write behaviour remain unmeasured on hardware | — |
+
+The custody model is unchanged in what it does not protect: the loader still verifies no signature (authenticity of
+the package, not secure boot), a hostile signing host is outside the model, and the browser origin still decides
+what the page runs. What changed is that the key no longer has to be on the machine that builds, and a runner can no
+longer sign even if it wanted to: it can only produce a request.
+
+## 39. Update — 2026-11-10, LOFI `T.CLK` audible, y los dos fallos rojos, verdes
+
+La queja era concreta: en EDIT, con LOFI, el control `RTRG` no cambiaba el sonido. El recorrido completo del
+parámetro lo explica y el arreglo es de motor, no de pantalla.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `P_LRTRG` en LOFI: por qué era inaudible | **DIAGNOSED** | `core.h:119` lo aliasa a `P_FM1_ATK`; el único punto que lo aplicaba era `voice.c:610`, y sólo al re-disparar una voz **sonando**. En POLY cada nota es una voz nueva que ya nace con `ph=0` en `lofi_note_on()`: el interruptor pedía un reinicio que ya había ocurrido, así que dos renders eran idénticos. | lectura del código + test | host |
+| `T.CLK` (el control, rediseñado) | **IMPLEMENTED** | `params.c` (era `RTRG` ON/OFF, ahora `T.CLK` con `NOTE`/`FREE`), `eng_lofi.c` (`lofi_note_on()` siembra `t` y su tiempo lento desde el reloj de la pista cuando `FREE`) y `voice.c:610` (un re-disparo en `FREE` se suma al reloj, no a cero). `NOTE` es el valor por defecto: ningún preset de fábrica cambia. | audio renderizado | host |
+| Que se escuche, medido | **PASS (rendered audio)** | `tests/lofi_tclk_test.c`: piso del arnés **0,134** de la señal; dos notas separadas 3 s en `FREE` difieren **1,140 (8,5× el piso)**; el mismo instante dos veces difiere **0,140**; el nivel entre relojes queda a **0,6 dB**; sigue en `FREE` tras cargar otro sonido (**1,370**); el ataque no hace clic (paso máximo 3222 contra 3088 de `NOTE`). | render en host | host |
+| `drumx` PUNCH | **FIXED** | La transferencia de PUNCH se medía con el estado que dejaba el bloque anterior (y con el fader heredado del preset): el primer `strike` del par arrancaba con el limitador cargado. Ahora el par se mide desde un `kitx()` limpio con `P_LEVEL` fijado, las cuatro ranuras de modulación en cero y un `strike` de calentamiento descartado. Medido: ataque **1077 → 1591 (+3,4 dB)**, cuerpo **×1,77**, cola **×0,99**. | `tests/drumx_test.c`, binario | host |
+| `live` (segundo a segundo) | **FIXED (golden regenerado)** | Los 61 hashes quedaron viejos cuando `93c0fac` hizo que un sonido lleve su propio nivel; el propio test documenta `SIX_LIVE_ACCEPT=1` para un cambio de sonido deliberado. Regenerado y verificado: **0 de 61 segundos** de diferencia. | `tests/six_live_golden.txt` | host |
+| Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. `install_test.py`, `web/test_web.mjs`, `web/test_backup.mjs`, `web/test_pkg_bounds.mjs`: pasan. | host | host |
+| BI-QUAD EQ (MASTER EQ): la gráfica | **DONE** | La curva ya salía de `fx_master_eq_hz_db()`, el mismo biquad Q24 que corre el audio. Añadido: el área entre la respuesta y 0 dB (una columna de 1 px por columna de píxel, teñida con `ux_mix(T_BG, T_ACCENT, 18)`), la meseta que LOW SHELF / HIGH SHELF alcanzan (guiones en `T_MID`, sostenidos ≥30 px cuando la esquina cae en el borde del eje) y el ancho que Q da a PEAK/NOTCH (corchete con topes en el nivel de la banda). Nada nuevo se lee del DSP: son los mismos cuatro parámetros. | `tests/ui_render.c`: 174 pantallas × 17 paletas, **0 hallazgos** de lint, 0 tintas sobre su color, 0 píxeles fuera de gris/neutro, alineación **0 de 2 645 631**; `regress` **220 golden, 0 cambiados**; `ui_test` verde; XIP **+400 B**, RAM **sin cambio** (94 924 B); `target_budget` **39/39**. | render + lint + build AC791N |
+| Rediseño de maquetación de EDIT (LOFI, MORPH, FM6) y del resto de motores | **PARTIAL** | Lo que se comprobó esta pasada: LOFI ya presenta `T.CLK` como `NOTE`/`FREE` (el `F_INT` con lista de nombres de `params.c` resuelve a nombre, no a 0/1) y su motor está medido en `tests/lofi_tclk_test.c`; FM6 EDIT ya dibuja algoritmo, rutas, lazo de feedback, portadores y el operador elegido con su frecuencia. Lo que **no** se hizo es el rediseño de maquetación que pide el pedido. (3.4) **LOFI sí cambió** (ver la fila de abajo: panel propio) y **MORPH** ganó el indicador de posición; FM6 y los demás motores siguen con lo que tenían. | lectura de `params.c`, `eng_lofi.c`, `ui_graph.c` | host |
+| LOFI EDIT: panel propio (3.4) | **DONE** | Las dos páginas de LOFI caían en el "being" genérico (WAVE 1 / WAVE 2 / MIXER), que no dice nada de este motor. Ahora `ui_graph.c graph_lofi()` dibuja, con los parámetros que lee el DSP: la traza real del master (`gw_live_trace`), el conversor y la forma de onda **por su nombre** tomado de los descriptores EDIT del propio motor (`ENGINES[e]->edit[k].names`, así que añadir una forma no requiere tocar la UI), el ancho de pulso sobre su periodo, la escalera del crusher encendida hasta donde llega `P_E3`, y una línea de tiempo de `T.CLK` donde `NOTE` reinicia la fase en cada nota y `FREE` la deja correr. `tests/ui_render.c` tiene ahora `edit_lofi` y `edit_lofi_free` (176 pantallas), así que el barrido la mide. | `ui_render` 176×17: 0 lint, 0 tintas, 0 fuera de gris/neutro, alineación 0 de 2 648 608; `regress` 220 golden 0 cambiados; `ui_test` verde; imagen AC791N 537 328 B (+828 B de código), RAM 94 924 B sin cambio, `target_budget` 39/39 | render + lint + build |
+| MORPH: dónde está el morph, no sólo cómo suena (3.4) | **DONE** | La curva ya era la mezcla real (`an_morph` / `pd_wave` / `lofi_mto`), pero el panel no decía **cuánto** del recorrido A→B estaba hecho. Se añadió el recorrido en el borde inferior del panel con su marca en la posición del knob, teñido hasta ella. Sin estado nuevo. | `ui_render` (morph, GREY y MONO incluidos) 0 hallazgos; goldens sin cambio | render + lint |
+| HOME, planetas, partículas y visualizador | **SHIPPED, sin cambios en esta pasada** | Verificado leyendo el código: cada planeta recibe las notas de su par de pistas (`gw_planet_excite`, 1/4, 2/5, 3/6), con brillo, anillo de posluz, arco de estela y dos chispas del pool; la superficie gira por planeta (3.3); el visualizador dibuja traza, plano de fase, 16 bandas, embers y chispas reactivas. No se rediseñó nada: no había un defecto reproducible que justificara tocarlo. | lectura de `ui_being.c`, renders del barrido | host |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+## 40. Update — 2026-11-10, dos gráficas medidas: el BI-QUAD EQ y T.CLK
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| BI-QUAD EQ en el idioma de EDIT > FILTER | **RENDERED** | `tech_master_eq()` (ui_tech.c): rejilla logarítmica nombrada (20 / 100 / 1k / 20k), escala de dB en un canal izquierdo que la curva no cruza (+12 / 0 / −12), la energía de la banda de fondo, el área entre la curva y 0 dB rellena, y el punto de control con su frecuencia y ganancia ("20 Hz +11.8 dB"). La curva sigue siendo `fx_master_eq_hz_db()`, el mismo biquad que corre el audio. | render en host | host |
+| El lint del barrido de pantallas | **PASS** | 42 hallazgos → **0** (las etiquetas 10k y 20k se solapaban); alineación **0 de 2 645 631** mediciones fuera por 1 px o más. | `tests/ui_render.c` | host |
+| La página RETRIG dibuja el reloj que tiene | **RENDERED** | `tech_retrig()`: `NOTE` cuatro rampas que vuelven arriba en cada nota, `FREE` una sola rampa con un punto donde cada nota se le suma. Antes dibujaba al revés (la rampa continua era el valor que ahora reinicia). | render en host | host |
+| La página RETRIG en el barrido | **PASS** | Entra al barrido (sólo existe en LOFI BYTE/FLOAT y nunca había estado): 174 → 176 pantallas, ambas en `docs/evidence/3.4/`. | `tests/ui_render.c` | host |
+| Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. | host | host |
+| Rediseño de EDIT de LOFI / MORPH / FM6, HOME y visualizador, optimizaciones, MICRO-START y modulación aleatoria | **NOT DONE** | Sin cambios en esta pasada. Las dos funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene byte de sobra (`project.c` §límites: P_COUNT 123, sin hueco); eso exige una versión de formato nueva, no un atajo. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+---
+
+## 2026-11-10 (third pass) — the suite, the ssh signer and reproducibility, measured
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| whole host suite | **PASSED** | `NO_PACKAGE=1 ./tests/run_tests.sh` on `c8715e4`: 4 822 `ok` lines, 0 `FAIL`, `ALL HOST TESTS PASSED`; two blocks skipped by design (browser emulator: no `emcc` here; build manifest: `NO_PACKAGE=1`) | host x86_64, native runners |
+| signing from a second host over ssh | **VERIFIED** | own `sshd` on `127.0.0.1:2222`, `ForceCommand` limited to `sign-stdin`, key `0400` outside the checkout; `sign --request --signer-cmd "ssh …"` returned the **byte-identical** published manifest (sig `20842d8f…`), which `verify` accepts | ssh transport, same machine and uid: the procedure and the contract, not a physical boundary |
+| custody guard under a copied tool | **REFUSES** | first attempt on that host: `refused: the private key is inside the repository (release.pem)` — the copied tool treats its own parent as the repository | host |
+| released package is reproducible | **REPRODUCED** | worktree at `61ae47b` + `./build.sh --release 2.1.1` → `81c80e365bf9ecec…c563`, the same SHA-256 as `release/felucca-2.1.1.fwsc`, same `build_sha256 83cebf6d…` | AC791N toolchain |
+| Actions run conclusions | **NOT READABLE HERE** | no `gh` token on this machine and the public API is rate-limited by IP; the outcome was verified instead (release assets downloaded and verified, site serving 2.1.1) | — |
+
+---
+
+## 2026-11-10 (fourth pass) — the identity `FM-1_965`, measured end to end
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| the number is free on the hub | **VERIFIED** | `tools/check_identity.py` against `catalog.json` (`updated 2026-11-10 12:27 UTC`, 175 listings): `FREE`; `FM-1_982` answers `TAKEN — GuitChordi`; `FM-1_015` is refused by name; thirteen `FM-1_9NN` numbers passed and five of those sit inside another project's longer range | live catalogue, read over HTTP |
+| AC791N build with the new identity | **BUILT** | `./build.sh --release 2.1.2` on `03d3f80` (`dirty: []`): app 536 500 B, package 610 959 B `identity FM-1_965`, RAM 94 944/98 304 B, all `ok` checks | AC791N toolchain |
+| the identity is in the bytes | **VERIFIED** | `FM-1_965` present in `felucca.bin`, in `build/loader/ota.bin` and in the 20 marker bytes the container carries; the manifest's build record says `FM-1_965` | host, on the release bytes |
+| SysEx identification | **VERIFIED** | `tests/ota_test.c`: `identity frame is FM-1_965`, plus the 0x12/0x13 identification and read matrices | host, native |
+| `.fwsc` generation, SHA-256, Ed25519 | **VERIFIED** | `fm1_sign.py request` → `sign` with the custodian key → `verify`: `FM-1 version 2.1.2, key qg1-release-1, sha256 1f52bf09…a303`; `SHA256SUMS` regenerated and checked | host + the pinned public key |
+| installer, Verify Only, forward compatibility | **VERIFIED** | `security` and `web` groups green; `tests/install_test.py` (from V15, resume, every refusal), `tests/preflight_test.py`, `web/test_verify_only.mjs` 153 checks (incl. the legacy-identity block), `web/test_update_mode.mjs` with the identity read out of the package | host, simulated devices |
+| a unit that answers `FM-1_015` is still stock | **VERIFIED** | `web/test_verify_only.mjs`: `FM-1_015` → `stock`, compatibility `replaces-stock`, never `ours`; the legacy rule only ever matches `FM-1_982` | host, simulated devices |
+| emulator and build record | **VERIFIED (identity)** | WASM rebuilt with `emcc 6.0.11`; `build/emu/manifest.json` `"identity": "FM-1_965"`; `package_emu.py` now reads `PRODUCT` from `build.py` | host, emcc |
+| WASM/native bit-for-bit parity | **FIXED — the harness was wrong, not the toolchain** | It differed at sample 1 on this tree and in a clean worktree at `9fbb8c0` for one reason: the two harnesses recorded **different performances**. `emu_test.mjs` renders `splashMs + 200` before recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`), `native_check.c` hardcoded `render(500)`, so the native recorder started 2.8 s earlier and the sequencer/LFO phase at the first sample differed. `native_check.c` now renders `SPL_WRITE + SPL_HOLD + 200` from `ui_draw.c` (same translation unit): **bit for bit, 88 200 frames**, `emcc 6.0.11` on this host. The earlier "artefact of this host's toolchain" reading was wrong and is withdrawn | host, WASM + native |
+| GitHub Pages | **VERIFIED (before the audit's push), re-deploy pending** | The root served `v2.1.2-03d3f80` with package sha256 `1f52bf09…a303` and emulator wasm `0d437cfe…`; `/preview` served `v2.1.2-bbca837`, `manifest: null` (INSTALL refuses it); no service worker anywhere in the site, so no stale copy can outlive a deploy; the HTML is `max-age=600`. After `af2c002` the stable emulator's label must read `03d3f80ed385` — that deploy had not completed when this row was written | live HTTP |
+| physical FM-1 | **NOT MEASURED** | no unit was touched. What a real device answers after an install, and whether the hub marks the card, are hardware/hub checks that only a unit and the hub can make | — |
+
+---
+
+## 2026-11-10 (independent audit of 2.1.2) — two traceability defects, both fixed
+
+Read this table as the audit's own record: every row was produced in this pass, on this host, from the
+published bytes, and nothing here was taken from an earlier report without re-measuring it.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| chain identity → package → signature → installer → site | **VERIFIED** | package sha256 `1f52bf09…a303` (610 959 B) matches `release/SHA256SUMS`, the live download and the installer page; Ed25519 verified **without project code** (`cryptography`, own canonical JSON) against the pinned `qg1-release-1`; loader `ota-FM-1_965` and identity `FM-1_965` decoded from the bytes with an independent parser | host + live HTTP |
+| `release/v2.1.2` = tag `v2.1.2` = `bbca837`; package built from `03d3f80` | **VERIFIED** | `git ls-remote` for both refs; `build/felucca.fwsc` reproducible in a worktree at `03d3f80` with the same sha256 | host, git |
+| the transition a 2.1.1 unit needs | **VERIFIED** | `web/test_update_mode.mjs` case 1b drives the **signed** `release/felucca-2.1.2.fwsc` against a simulated unit answering `FM-1_982`: `gammaWaveLegacy`, `upgrade-legacy`, admitted, installed; the same bytes relabelled to another model or given a false hash are refused. 16 checks, 0 failed | host, simulated device |
+| the live emulator named a commit its bytes did not come from | **FIXED** | `/emulator/` said `bbca837179dd` while `versions.json` said `03d3f80` and the WASM sha256 `0d437cfe…` is the `03d3f80` build: `tools/package_emu.py` read `GITHUB_SHA` (the deploy) before the worktree's HEAD. It now asks the tree first; rebuilt in a worktree at `03d3f80` **with `GITHUB_SHA` set**, the page and the record both say `03d3f80ed385` | live site, then host rebuild |
+| the deploy could not catch that | **FIXED** | nothing ran `web/test_site.py` in the `deploy` job. It now does: the same page relabelled to the deploy's commit is reported `emulator page does not name its manifest's commit FAIL` (negative control run here) | workflow + host |
+| WASM/native parity | **FIXED** | see the row above: harness alignment, `bit for bit` | host |
+| host suite at the release commit | **RED, FIXED** | `tests/run_tests.sh` at `bbca837` ends `HOST TESTS FAILED`: `web/test_accept.mjs` asserted `FM-1_965` on the 1.9.0 fixture, which answers `FM-1_982`. Since `03d3f80`. It now checks the fixture's own identity and runs the same acceptance on `release/felucca-2.1.2.fwsc`, which must answer the tree's `PRODUCT`: 23 checks, 0 failed. CI was blind to it because the host suite runs `NO_PACKAGE=1`; `target.yml` now runs it | host |
+| the host suite end to end | **PASS** | `tests/run_tests.sh` after the three fixes: `ALL HOST TESTS PASSED`, 0 failed, including the WASM/native parity and the transition case | host |
+| hub catalogue | **VERIFIED** | `catalog.json`, `updated 2026-11-10 12:27 UTC`, 175 listings: `FM-1_965` free; `FM-1_982` → GuitChordi, `FM-1_981` → Pocket GammaWave; 22 listings declare no identity | live HTTP |
+| submission to the hub | **NOT SENT** | requirements read and documented; sending a mail in the user's name was not authorised | — |
+
+## 41. Update — 2026-11-10, HEAD `94a6a4c` medido: host, AC791N y wasm
+
+| Medición | Valor | Clase |
+|---|---|---|
+| Suite host completa | `NO_PACKAGE=1 sh tests/run_tests.sh` → **ALL HOST TESTS PASSED**, `EXIT=0` | host x86 |
+| Barrido de pantallas | 178 pantallas × 17 paletas, **0 hallazgos** de lint, **0 de 2 650 362** mediciones de alineación fuera por 1 px o más | host render |
+| Imagen AC791N | **538 356 B**; `.data+.bss` **94 944 de 98 304** (3 360 libres); pool 311 240 B, **9 248 de sobra**; código en RAM 19 356 de 24 576 | build AC791N |
+| Paquete / loader | `build/felucca.fwsc` **610 959 B**, loader **7 803 B**, identidad **FM-1_982**, v2.1.1 en `94a6a4c` | build AC791N |
+| Emulador | wasm **1 094 538 B**, `94a6a4c03cab`, sha256 `b1c3f9fd…` | build wasm |
+| `editor_test` | Verde. `main` lo tenía **rojo**: MENU > TRACKS pasó a `4 ECO / 5 BAL / 6 FULL` y la expectativa seguía en `{"4","6"}`; corregida con la regla real (sólo 6 escribe el bit que lee el firmware viejo). | host |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada, ninguna escritura. | — |
+
+Por lo que **no** hay en esta pasada: MICRO-START y modulación aleatoria no están implementadas. No hay byte libre
+en el registro de proyecto (`P_COUNT` 123, `project.c` §límites) y añadir un parámetro exige una versión de formato
+nueva; hacerlo de otro modo habría roto los presets y proyectos ya guardados. Tampoco entran aquí las
+optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.

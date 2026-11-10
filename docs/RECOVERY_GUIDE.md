@@ -7,6 +7,10 @@ here was executed on hardware during this work.** `[HARDWARE]` items are procedu
 The golden rule: **do not write to the flash head, the bootloader or the ROM.** Every method below
 works around them, never through them.
 
+Which paths exist, what each can read and write, which of them a browser can reach at all, and how
+big the unprotected window of a stock install is: `docs/FM1_MODES.md`. It separates what the
+community projects have demonstrated on their own units from what has been demonstrated on this one.
+
 ---
 
 ## 0. Decide which state you are in
@@ -14,7 +18,8 @@ works around them, never through them.
 | Symptom | State | First action |
 |---------|-------|--------------|
 | Boots, plays, USB-MIDI answers | running | normal install, backup first |
-| Appears as `ota-FM-1_015` / `ota-FM-1_900` | update loader | re-run the installer; it resumes the write |
+| Appears as `ota-FM-1_900` | this project's update loader (an install was interrupted) | re-run the installer: it resumes. The loader reads the chip itself before erasing anything, so nothing has to be loaded first. |
+| Appears as `ota-FM-1_015` | the unit's own update mode | do **not** feed it a Felucca image: power-cycle without holding keys and install only from a unit running Quantum GammaWave, or use M-Flasher |
 | Appears as `FM-1_015` after a failed install | stock firmware, app broken | install a package again |
 | No USB device, blank screen, no LEDs | boot chain | USB_KEY / Mask-ROM or an external programmer |
 | Boots, then resets in a loop | record left behind | clear the update record (loader does this), then reinstall |

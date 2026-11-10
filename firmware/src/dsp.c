@@ -32,19 +32,19 @@ static inline int32_t osc_sine(uint32_t ph) { return sine_i(ph); }
 /* polyBLEP residual (Q15) around a wrap of a phase accumulator */
 static inline int32_t blep(uint32_t ph, uint32_t inc)
 {
+    if (ph >= inc && ph <= ~inc)
+        return 0;
     uint32_t d = inc >> 15;
-    int32_t x;
     if (!d)
         return 0;
     if (ph < inc) {
-        x = (int32_t)(ph / d);                       /* 0..32767 */
+        int32_t x = (int32_t)(ph / d);                       /* 0..32767 */
         return x + x - ((x * x) >> 15) - 32768;
     }
-    if (ph > 0xFFFFFFFFu - inc) {
-        x = -(int32_t)((0xFFFFFFFFu - ph) / d);       /* -32767..0 */
+    {
+        int32_t x = -(int32_t)((0xFFFFFFFFu - ph) / d);       /* -32767..0 */
         return ((x * x) >> 15) + x + x + 32768;
     }
-    return 0;
 }
 
 static inline int32_t osc_saw(uint32_t ph, uint32_t inc)

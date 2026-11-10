@@ -6,7 +6,8 @@
 #define CHO_LEN 2048u
 static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
-volatile int32_t fx_vu[6];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses) */
+volatile int32_t fx_vu[8];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses); (2.1)
+                              * 6..7 the mix's left and right peaks, the two mono meters of HOME */
 /* (3.0) the delay's echo train (core.h): the wet return peaked inside each repeat's own window.
  * No allocation, no division per sample: a countdown walks the window, and the peaks decay once a
  * block so a train that has finished reads as finished. */
@@ -179,7 +180,7 @@ void fx_preset_flush(void)
     memset(rev_comb, 0, sizeof rev_comb);
     memset(rev_u.ap, 0, sizeof rev_u.ap);
     memset(rpre_buf, 0, sizeof rpre_buf);
-    fx_vu[0] = fx_vu[1] = fx_vu[2] = fx_vu[3] = fx_vu[4] = fx_vu[5] = 0;
+    fx_vu[0] = fx_vu[1] = fx_vu[2] = fx_vu[3] = fx_vu[4] = fx_vu[5] = fx_vu[6] = fx_vu[7] = 0;
     {   int32_t k; for (k = 0; k < 6; k++) { fx_dly_rep[k] = 0; drp_pk[k] = 0; }
         fx_dly_gen = 0; fx_dly_frac = 0; drp_on = 0; drp_gen = 0; drp_left = 0; drp_t0 = 0; }
 }
@@ -2264,11 +2265,13 @@ static __attribute__((noinline)) void fx_dly_train(uint32_t n)
     int32_t pk = fx_vu[4];
     if (!dl)
         dl = 1u;
-    if (fx_vu[1] > 400 && (!drp_on || drp_gen == 0u || (uint32_t)(fx.dly_w - drp_t0) > dl / 2u)) {
-        for (k = 0; k < 6; k++) {
-            drp_pk[k] = 0;
-            fx_dly_rep[k] = 0;
-        }
+    if (fx_vu[1] > 400 && (!drp_on || (uint32_t)(fx.dly_w - drp_t0) > dl / 2u)) {
+        /* (2.1) A new hit re-phases the train, it does not erase it. This used to clear drp_pk and
+         * fx_dly_rep here, so a second note inside half a delay time wiped the repeats the first one
+         * had already measured: a single note bounced and a phrase showed nothing, because the six bars
+         * were reset before any of them could be read. The peaks keep their maxima now -- a repeat that
+         * came back is still in the line when the next hit lands -- and only the window phase restarts,
+         * so every new activity gets its own answer over the one that is fading. */
         drp_t0 = fx.dly_w;
         drp_gen = 0;
         drp_on = 1;
@@ -2498,6 +2501,24 @@ static __attribute__((noinline)) void mix_block(int32_t *out, uint32_t n)   /* (
         qg_biquad_process(&master_eq, mix_l, mix_r, n);
     }
     lev_block(n);                                       /* (JIANT 0.5) the leveler: the loudness held */
+    {   /* (2.1) HOME's two mono meters: the left and the right peak of the mix the master is about to
+         * take. Measured here, once, because both exits below need it -- the FX layer's path (perf ->
+         * perf_master) returns before the loop at the end of this function, so a meter read there showed
+         * zero whenever the layer was on: the reading was missing, the signal was not. Each channel its
+         * own peak and its own envelope; nothing is copied from one channel onto the other. MASTER is
+         * applied after this, so the meters read the mix, not the volume knob. */
+        int32_t pkl = 0, pkr = 0, a;
+        for (i = 0; i < n; i++) {
+            a = mix_l[i] < 0 ? -mix_l[i] : mix_l[i];
+            if (a > pkl) pkl = a;
+            a = mix_r[i] < 0 ? -mix_r[i] : mix_r[i];
+            if (a > pkr) pkr = a;
+        }
+        fx_vu[6] -= (fx_vu[6] + 31) >> 5;               /* the envelope the tracks' vu uses: immediate */
+        fx_vu[7] -= (fx_vu[7] + 31) >> 5;               /* attack, ~23 ms release at the block rate */
+        if (pkl > fx_vu[6]) fx_vu[6] = pkl;
+        if (pkr > fx_vu[7]) fx_vu[7] = pkr;
+    }
     if (perf) {
         perf_master(out, n);
         return;

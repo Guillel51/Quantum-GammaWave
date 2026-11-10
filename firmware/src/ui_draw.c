@@ -1369,8 +1369,13 @@ static void draw_columns(void)
  * it is all rects and lines in the saved palette (settings_init runs before this), so it costs no frame
  * buffer and follows the theme. Written over SPL_WRITE ms by splash_write (MENU > ANIM OFF: whole at once);
  * SHORT draws it whole and holds it SPL_SHORT; OFF has no splash at all (main.c skips this entirely). */
-#define SPL_WRITE 1100u                             /* ms: the screen written (800 -> 1100: slower reveal, asked 2026-11) */
-#define SPL_HOLD 1200u                              /* .. then shown whole, before the UI (900 -> 1200: slower, asked 2026-11) */
+#define SPL_WRITE 1500u                             /* (3.2) ms: the screen written (1100 -> 1500: the new sky needs
+                                                     * a moment more, and the owner asked for about a second) */
+#define SPL_HOLD 1600u                              /* (3.2) .. then shown whole (1200 -> 1600): 3.1 s from the
+                                                     * switch to HOME, against 2.3 s. AUDIO, MIDI and the keys are
+                                                     * already up before the first pixel: this is presentation only,
+                                                     * SPL_FADE of the hold is the hand-over. */
+#define SPL_FADE 380u                                /* (3.2) the last ms of the hold: the sky hands over to HOME */
 #define SPL_SHORT 300u                              /* (QG-1 v1.5) MENU > STARTUP SPLASH SHORT: drawn whole and held
                                                      * this long, with no writing animation (OFF: main.c skips the
                                                      * splash entirely; the hardware init is the same in all three) */
@@ -1383,10 +1388,14 @@ static uint8_t spl_anim;                            /* main.c: 1 = the signature
 static uint32_t spl_shown;                          /* (QG-1 v1.5) the art's signature actually on screen: splash_sig is
                                                      * a no-op while it matches, so the splash's hold does not rewrite a
                                                      * still 240x124 art every 4 ms. 0 = nothing trusted yet */
-/* Bold geometric block glyph renderer for "QUANTUM" in QG-1 StandaloneLogoComponent (no font hook side-effects) */
-static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
+/* The QG block alphabet (no font hook side effects: it is a shape, not text). t is the stroke: 3 px on
+ * the big word, 2 px on the small one, so both keep the same weight on a 240 px panel. (3.2) G and V
+ * were missing, which is why GAMMAWAVE could only ever show "AMMAWE". */
+static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t t)
 {
-    int32_t t = 3, mw = w / 2;
+    int32_t mw = w / 2;
+    if (t < 1) t = 1;
+    if (t > w / 3) t = w / 3;
     if (ch == 'Q') {
         cv_rect(x, y, w, t, c);
         cv_rect(x, y, t, h - 2, c);
@@ -1408,12 +1417,31 @@ static void gw_logo_letter(char ch, int32_t x, int32_t y, int32_t w, int32_t h, 
         cv_line_t(x + t, y, x + w - t, y + h, c, 2);
     } else if (ch == 'T') {
         cv_rect(x, y, w, t, c);
-        cv_rect(x + mw - 1, y, t, h, c);
+        cv_rect(x + mw - t / 2, y, t, h, c);
     } else if (ch == 'M') {
         cv_rect(x, y, t, h, c);
         cv_rect(x + w - t, y, t, h, c);
         cv_line_t(x + t, y + 1, x + mw, y + h / 2, c, 2);
         cv_line_t(x + w - t - 1, y + 1, x + mw, y + h / 2, c, 2);
+    } else if (ch == 'G') {                             /* (3.2) C with the bar: the GAMMAWAVE's own */
+        cv_rect(x, y, w, t, c);
+        cv_rect(x, y, t, h, c);
+        cv_rect(x, y + h - t, w, t, c);
+        cv_rect(x + w - t, y + h / 2, t, h / 2, c);
+        cv_rect(x + w / 2, y + h / 2, w / 2, t, c);
+    } else if (ch == 'V') {
+        cv_line_t(x, y, x + mw, y + h, c, t);
+        cv_line_t(x + w - 1, y, x + mw, y + h, c, t);
+    } else if (ch == 'W') {
+        cv_rect(x, y, t, h, c);
+        cv_rect(x + w - t, y, t, h, c);
+        cv_line_t(x + t, y + h, x + mw, y + h / 3, c, 2);
+        cv_line_t(x + w - t - 1, y + h, x + mw, y + h / 3, c, 2);
+    } else if (ch == 'E') {
+        cv_rect(x, y, t, h, c);
+        cv_rect(x, y, w, t, c);
+        cv_rect(x, y + h / 2 - t / 2, w - 2, t, c);
+        cv_rect(x, y + h - t, w, t, c);
     }
 }
 
@@ -1431,117 +1459,193 @@ static uint32_t spl_hash(uint32_t x)                 /* a cheap deterministic fi
 {
     x ^= x >> 16; x *= 0x7FEB352Du; x ^= x >> 15; x *= 0x846CA68Bu; return x ^ (x >> 16);
 }
+/* the sky's own colour at canvas row ys (0..123) for a boot at prog: one expression, so a nebula or a
+ * planet's halo is mixed ON the wash instead of over it (the rectangles the first cut left) */
+static uint16_t spl_wash(uint32_t prog, int32_t ys)
+{
+    int32_t i = clamp(ys / 2, 0, 61), f = (int32_t)(prog * (uint32_t)(6 + i * 26 / 62) / 256u);
+    if (ux.mono || settings.palette == UI_BW_INDEX)
+        return T_BG;
+    return ux_mix(T_BG, heat_col(10 + i * 26 / 62), 6 + f);
+}
+/* a nebula: an ellipse of dithered cloud whose density falls off to the sky at its rim, each row
+ * mixed ON that row's wash. A rectangular dither (the first cut) leaves four straight edges. */
+static void spl_cloud(uint32_t prog, int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t heat,
+                      int32_t a, int32_t pct, int32_t seed)
+{
+    static const uint8_t BAY[16] = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
+    int32_t x, y, nx, ny, q, k;
+    for (y = cy - ry; y <= cy + ry; y++) {
+        uint16_t bg = spl_wash(prog, y), c = ux_mix(bg, heat, a);
+        ny = (y - cy) * 256 / ry;
+        for (x = cx - rx; x <= cx + rx; x++) {
+            nx = (x - cx) * 256 / rx;
+            q = nx * nx + ny * ny;
+            if (q >= 65536)
+                continue;
+            k = (int32_t)BAY[((y + seed) & 3) * 4 + ((x + seed) & 3)];
+            if (k * 100 / 16 < pct * (65536 - q) / 65536)
+                cv_pset(x, y, c);
+        }
+    }
+}
 static void splash_sig(uint32_t prog, uint32_t ms)
 {
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
     uint16_t card = mono ? T_BG : T_SURF, rule = mono ? T_TEXT : T_THEME;
-    int32_t i, x, y, lit = (int32_t)(prog * SPL_BARS / 256u);
-    uint32_t sig;
-    (void)ms;
-    /* One signature per progress step: the hold is still a single static frame, while every
-     * step of the written part moves the field, the core and the rail. */
-    sig = 0x51470000u | (mono ? 0x01000000u : 0u) | (prog << 8);
+    int32_t i, lit = (int32_t)(prog * SPL_BARS / 256u);
+    /* the hand-over: its own step count once the boot reaches SPL_WRITE + SPL_HOLD - SPL_FADE, else 0 */
+    uint32_t hand = SPL_WRITE + SPL_HOLD - SPL_FADE;
+    uint32_t sig, tail = ms > hand ? ms - hand : 0u;
+    /* (3.2) THE SPLASH IS HOME'S UNIVERSE, OPENING. The old frame was a plate with a wordmark, a core
+     * and three waves -- a screen about a program. This one is the instrument's own sky: a deep field
+     * that fades up, nebulae, forty stars in three depths, the name set in the QG block letters (both
+     * words, not one), a power rail, a ringed planet that grows out of the name and then settles where
+     * HOME's star sits, and a last 300 ms that hands the sky over to the panel. Every mark is a
+     * function of the boot's progress (and, for those 300 ms, of the clock): no stored picture, no
+     * allocation, no per-pixel trigonometry, and nothing in it is drawn twice while it holds.
+     * sig: prog while the screen writes itself; the hand-over's own step while it hands over. */
+    sig = 0x51470100u | (mono ? 1u : 0u) | (tail ? 0x80000000u | (tail & 0x1FFu) << 16 : prog << 8);
     if (sig == spl_shown)
         return;
     spl_shown = sig;
     cv_begin(240, SPL_ART_H, T_BG);
 
-    /* (1.7) The splash is the instrument's face, not a poster: the whole band is one plate in
-     * the same 16-bit chrome the bays use -- a face, a lighter edge, a shadow -- and every mark
-     * on it is a function of prog. The old one left the top and the bottom of the band black,
-     * floated the wordmark in the star field and closed with a hairline rail (measured: 96 px of
-     * the 124 were empty, and the card covered 114 of them). */
-    gw_bevel(4, 2, 232, SPL_ART_H - 6, card, ux_mix(card, T_TEXT, mono ? 40 : 16), T_BG);
-
-    /* the header: what is starting, and how far it has got (the boot's own progress) */
-    cv_text_on(10, 6, &AF_S, "BOOT", T_MID, card);
+    /* 1. THE DEEP FIELD: a wash from near-black to a dark theme, two rows a step (62 rects, not 124
+     * rows and not seven bands), lifted as the boot comes up. */
+    for (i = 0; i < 62; i++)
+        cv_rect(0, 2 + i * 2, 240, 2, spl_wash(prog, (int32_t)i * 2));
+    /* 2. NEBULAE: three soft elliptical clouds, wider and brighter as the sky comes up, each row
+     * mixed on its own wash so they never show an edge */
+    if (!mono) {
+        spl_cloud(prog, 52, 26, 46, 13, heat_col(60), 22 + (int32_t)prog / 22, 34, 3);
+        spl_cloud(prog, 150, 18, 52, 11, heat_col(180), 20 + (int32_t)prog / 26, 30, 9);
+        spl_cloud(prog, 118, 74, 74, 15, heat_col(20), 18 + (int32_t)prog / 30, 26, 6);
+    }
+    /* 3. FORTY STARS, three depths: the near ones bigger and brighter, each layer drifting at its own
+     * speed; one in five wears a cross of light. */
+    for (i = 0; i < 40; i++) {
+        uint32_t h = spl_hash((uint32_t)i * 7u + 3u);
+        int32_t depth = 1 + (int32_t)(h >> 29);
+        int32_t sx = 6 + (int32_t)(((h >> 8) % 228u + (uint32_t)(prog * (uint32_t)depth / 7u)) % 228u);
+        int32_t sy = 6 + (int32_t)(((h >> 16) % 112u + (uint32_t)(prog * (uint32_t)(depth + 1) / 40u)) % 112u);
+        uint16_t sc = mono ? (depth > 4 ? T_TEXT : T_DIM)
+                           : ux_mix(T_BG, heat_col(70 + depth * 26 + (int32_t)((h >> 4) & 23)), 40 + depth * 6);
+        int32_t sz = depth >= 7 ? 2 : 1;
+        cv_pset(sx, sy, sc);
+        if (sz > 1)
+            cv_pset(sx + 1, sy, ux_mix(T_BG, sc, 70));
+        if ((h & 7u) == 1u) {                          /* the cross */
+            cv_pset(sx - 1, sy, ux_mix(T_BG, sc, 60));
+            cv_pset(sx + 1, sy, ux_mix(T_BG, sc, 60));
+            cv_pset(sx, sy - 1, ux_mix(T_BG, sc, 60));
+            cv_pset(sx, sy + 1, ux_mix(T_BG, sc, 60));
+        }
+    }
+    /* 4. THE NAME, in the QG block letters: QUANTUM large, GAMMAWAVE under it a size down, both rising
+     * into place letter by letter. This is the splash's typography: 3 px strokes on a 240 px panel. */
+    for (i = 0; i < 7; i++) {
+        int32_t at = 6 + i * 5;
+        if ((int32_t)prog >= at) {
+            int32_t slide = (int32_t)prog - at, ly = 22 + (slide < 18 ? (18 - slide) / 3 : 0);
+            gw_logo_letter("QUANTUM"[i], 60 + i * 17, ly, 13, 15,
+                           mono ? T_TEXT : (i == 0 ? T_ACCENT : T_THEME), 3);
+        }
+    }
+    for (i = 0; i < 9; i++) {
+        int32_t at = 42 + i * 4;
+        if ((int32_t)prog >= at) {
+            int32_t slide = (int32_t)prog - at, ly = 42 + (slide < 14 ? (14 - slide) / 4 : 0);
+            gw_logo_letter("GAMMAWAVE"[i], 50 + i * 16, ly, 13, 13,
+                           mono ? (i == 0 ? T_TEXT : T_DIM) : (i < 5 ? ux_mix(T_THEME, T_TEXT, 40) : T_ACCENT), 2);
+        }
+    }
+    /* 5. THE POWER RAIL under the name: it fills with the boot, and at the end an energy pulse runs the
+     * whole width once (the name "switches on"). */
+    cv_rect(60, 56, 120, 1, ux_mix(card, T_LINE, 90));
+    if (prog > 60u) {
+        int32_t w = (int32_t)(120u * (prog - 60u) / 196u);
+        if (w > 120) w = 120;
+        cv_rect(60, 56, w, 1, rule);
+        if (prog < 256u)
+            cv_rect(60 + w - 1, 55, 2, 3, mono ? T_TEXT : T_ACCENT);
+    }
+    {   /* the pulse: a bright bar sweeping the rail, once the name is whole */
+        int32_t ph = (int32_t)prog - 210;
+        if (ph > 0) {
+            int32_t px = 60 + (ph * 120 / 46);
+            if (px < 180)
+                for (i = 0; i < 5; i++)
+                    cv_rect(px - i * 2, 56, 1, 1, ux_mix(card, mono ? T_TEXT : bg_col(230), 200 - i * 34));
+        }
+    }
+    /* 6. THE PLANET: HOME's own world, opening. A shaded disc with a ring and two moons, it grows from
+     * 3 px to 18 as the boot completes -- the protagonist of the screen, the same body HOME draws --
+     * and its ring turns. Behind it, the light of the star it will be. */
+    {
+        int32_t pr = 3 + (int32_t)(prog * 15u / 256u), px = 120, py = 84;
+        int32_t an = (int32_t)(prog * 6u) & 0xFFFF, k;
+        gw_disc(px, py, pr + 7, ux_mix(spl_wash(prog, py), mono ? T_RAISE : heat_col(70), 22 + (int32_t)prog / 10));
+        gw_disc(px, py, pr + 3, ux_mix(spl_wash(prog, py), mono ? T_MID : heat_col(110), 36 + (int32_t)prog / 8));
+        gw_disc(px, py, pr, mono ? T_MID : bg_col(150 + (int32_t)prog / 3));
+        if (!mono) {                                   /* the lit side, and the sea's own line */
+            gw_disc(px - pr / 3, py - pr / 3, pr / 2, bg_col(170 + (int32_t)prog / 6));
+            cv_rect(px - pr / 2, py + pr / 3, pr, 1, bg_col(90));
+        }
+        for (k = 0; k < 24; k++) {                     /* the ring: a dotted ellipse round the body */
+            int32_t a1 = (k * 65536 / 24 + an) & 0xFFFF;
+            int32_t rx2 = pr + 11, ry2 = (pr + 11) * 30 / 100;
+            int32_t qx = px + (rx2 * bg_sin((uint32_t)a1 + 0x4000u) >> 15);
+            int32_t qy = py + (ry2 * bg_sin((uint32_t)a1) >> 15);
+            if (k & 1)
+                cv_pset(qx, qy, mono ? T_TEXT : ux_mix(card, bg_col(210), 170));
+        }
+        for (k = 0; k < 2; k++) {                      /* two moons on their own paths */
+            int32_t a2 = (int32_t)(prog * (uint32_t)(9 + k * 5) + k * 20000) & 0xFFFF;
+            int32_t mx = px + ((pr + 20 + k * 5) * bg_sin((uint32_t)a2 + 0x4000u) >> 15);
+            int32_t my = py + ((pr + 20 + k * 5) * 34 / 100 * bg_sin((uint32_t)a2) >> 15);
+            gw_disc(mx, my, 1, mono ? T_TEXT : (k ? T_THEME : T_ACCENT));
+        }
+    }
+    /* 7. THE HAND-OVER: the last SPL_FADE ms before HOME. The sky closes in, the rings of the world
+     * open out, and the picture contracts toward the bay HOME draws the system in (x 52, y 92) so the
+     * panel takes over from the same place. */
+    if (tail) {
+        int32_t f = (int32_t)(tail * 256u / SPL_FADE);
+        if (f < 0) f = 0;
+        if (f > 256) f = 256;
+        int32_t rx = 14 + f * 90 / 256, ry = (14 + f * 90 / 256) * 2 / 3;
+        for (i = 0; i < 3; i++)
+            gw_orbit_ring(52, 84, rx + i * 12, ry + i * 8, ux_mix(card, mono ? T_TEXT : bg_col(160 + i * 30),
+                                                                  60 + f / 4 + i * 20), 1);
+        if (f > 60) {                                  /* the last frame: the star where HOME puts it */
+            int32_t k = (f - 60) * 8 / 196;
+            gw_disc(120 - (120 - 52) * (f - 60) / 196, 92 - 8 * (f - 60) / 196, 12 + k,
+                    mono ? T_TEXT : bg_col(240));
+        }
+    }
+    /* 8. THE READOUT: what is starting and how far it has got, in the smallest ink the panel has and
+     * clear of the art (the two lines under the band carry the version and the project). */
+    cv_text_on(8, 3, &AF_S, "BOOT", T_MID, T_BG);
     {
         char pb[8];
         fmt_int(pb, prog * 100 / 256);
         str_cpy(pb + str_len(pb), "%", 2);
-        cv_text_r(228, 6, &AF_S, pb, rule, card);
+        cv_text_r(232, 3, &AF_S, pb, rule, T_BG);
     }
-    cv_rect(10, 18, 220, 1, T_LINE);
-
-    /* the star field: three parallax layers, behind everything, derived from the progress */
-    for (i = 0; i < 34; i++) {
-        uint32_t h = spl_hash((uint32_t)i + 1u);
-        int32_t depth = 1 + (int32_t)(h >> 29);
-        int32_t sx = 12 + (int32_t)(((h >> 8) % 216u + (uint32_t)(prog * (uint32_t)depth / 9u)) % 216u);
-        int32_t sy = 24 + (int32_t)(((h >> 16) % 78u + (uint32_t)(prog * (uint32_t)(depth + 2) / 34u)) % 78u);
-        uint16_t sc = mono ? (depth > 4 ? T_TEXT : T_DIM)
-                           : ux_mix(card, bg_col(58 + depth * 22 + (int32_t)((h >> 4) & 31)), 28 + depth * 5);
-        int32_t sz = (depth >= 7 && (h & 7u) == 0u) ? 2 : 1;
-        if (sx > 8 && sx < 231 && sy > 22 && sy < 104)
-            cv_rect(sx, sy, sz, sz, sc);
-    }
-
-    /* the wordmark on its plate: seven block letters rising into place, one after another */
-    gw_bevel(8, 22, 126, 24, ux_mix(card, T_BG, mono ? 0 : 40), T_LINE, T_BG);
-    for (i = 0; i < 7; i++) {
-        int32_t at = 8 + i * 9;
-        if ((int32_t)prog >= at) {
-            int32_t slide = (int32_t)prog - at;
-            int32_t ly = 26 + (slide < 16 ? (16 - slide) / 3 : 0);
-            gw_logo_letter("QUANTUM"[i], 12 + i * 17, ly, 13, 15,
-                           mono ? T_TEXT : (i == 0 ? T_ACCENT : T_THEME));
-        }
-    }
-    cv_rect(8, 48, 126, 1, T_LINE);              /* the plate's rule fills with the progress */
-    if (prog > 0u)
-        cv_rect(8, 48, (int32_t)(126u * prog / 256u), 1, rule);
-
-    {   /* the core: a dithered disc under three orbit rings, one electron on each */
-        int32_t cx = 46, cy = 66;
-        if (mono) {
-            gw_disc(cx, cy, 20, T_RAISE);
-            gw_disc(cx, cy, 14, T_DIM);
-        } else {
-            gw_dither(cx - 20, cy - 20, 41, 41, ux_mix(card, bg_col(52), 30), ux_mix(card, bg_col(120), 40), 30);
-            gw_disc(cx, cy, 16, ux_mix(card, T_THEME, 34));
-            gw_disc(cx, cy, 8, ux_mix(card, T_ACCENT, 70));
-        }
-        gw_orbit_ring(cx, cy, 30, 30, mono ? T_DIM : T_LINE, 1);
-        gw_orbit_ring(cx, cy, 24, 24, mono ? T_TEXT : T_THEME, 0);
-        gw_orbit_ring(cx, cy, 12, 12, mono ? T_TEXT : T_ACCENT, 0);
-        {
-            uint32_t an = (uint32_t)(24 + prog * 5u) << 6;
-            int32_t ex = cx + (int32_t)((30 * bg_sin((int32_t)an)) >> 15);
-            int32_t ey = cy - (int32_t)((30 * bg_sin((int32_t)an + 0x4000)) >> 15);
-            gw_disc(ex, ey, 2, mono ? T_TEXT : T_ACCENT);
-            if (prog > 48u) {
-                int32_t ex2 = cx + (int32_t)((24 * bg_sin((int32_t)an + 0x8000)) >> 15);
-                int32_t ey2 = cy - (int32_t)((24 * bg_sin((int32_t)an + 0xC000)) >> 15);
-                gw_disc(ex2, ey2, 1, mono ? T_DIM : T_THEME);
-            }
-        }
-    }
-
-    /* three waves write themselves to the right of the core, the middle one in the accent */
-    for (i = 0; i < 3; i++) {
-        int32_t w = (int32_t)(prog * 124u / 256u), ax = 96, ay = 56 + i * 12;
-        int32_t ph = i * 100 + (int32_t)(prog * 3u);
-        for (x = 0; x < w; x++) {
-            y = ay + (int32_t)((5 * bg_sin((x * 300 + ph * 64) & 0xFFFF)) >> 15);
-            cv_rect(ax + x, y, 2, 2, mono ? (i == 1 ? T_TEXT : T_DIM) : (i == 1 ? T_ACCENT : T_THEME));
-        }
-    }
-
-    /* the horizon the rail grows out of: one dithered band, two colours in 16 fixed steps */
-    gw_dither(12, 90, 216, 4, card, mono ? T_RAISE : ux_mix(card, T_THEME, 30), 34);
-
-    /* the rail: sixteen beveled blocks, each filled as far as the boot has written it */
-    cv_rect(12, 96, 216, 1, T_LINE);
+    /* 9. THE RAIL: sixteen beveled blocks along the bottom, each filled as far as the boot has written,
+     * and the playhead on its leading edge. It is the one thing that says how far the start has got. */
+    cv_rect(12, 112, 216, 1, ux_mix(card, T_LINE, 90));
     for (i = 0; i < (int32_t)SPL_BARS; i++) {
         int32_t grow = 8 + (int32_t)(prog * 9u / 256u);
-        int32_t h = 3 + SPL_BAR[i] * grow / 60;
+        int32_t h = 2 + SPL_BAR[i] * grow / 70;
         int32_t bx = 13 + i * 13;
         uint16_t bc = mono ? (i < lit ? T_TEXT : T_DIM)
                            : (i < lit ? ((uint32_t)i + 1u == (uint32_t)lit ? T_ACCENT : T_THEME) : T_LINE);
-        gw_bevel(bx, 95 - h, 9, h, bc, ux_mix(bc, T_TEXT, 40), ux_mix(bc, T_BG, 45));
+        gw_bevel(bx, 111 - h, 9, h, bc, ux_mix(bc, T_TEXT, 40), ux_mix(bc, T_BG, 45));
     }
     if (prog < 256u)
-        gw_disc(13 + (int32_t)(prog * 196u / 256u), 99, 3, mono ? T_TEXT : T_ACCENT);
+        gw_disc(13 + (int32_t)(prog * 196u / 256u), 116, 2, mono ? T_TEXT : T_ACCENT);
     cv_blit(0, SPL_SY);
 }
 static void draw_splash(void)

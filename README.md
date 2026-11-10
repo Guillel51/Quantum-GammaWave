@@ -46,7 +46,13 @@ Runs the firmware as WebAssembly, no install and no hardware.
 Editor, sequencer and telemetry over Web MIDI, or in mock mode without an FM-1.
 
 **USB Installer** | [guillel51.github.io/Quantum-GammaWave/webapp/installer/](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)
-Checks the package and the device identity before it writes anything.
+Checks the package's SHA-256 and its Ed25519 signature, then the device identity, before it enables **INSTALL**.
+
+**Install plan** | [guillel51.github.io/Quantum-GammaWave/plan/](https://guillel51.github.io/Quantum-GammaWave/plan/)
+What the install will erase and write, sector by sector, before you connect anything.
+
+**Preview** | [guillel51.github.io/Quantum-GammaWave/preview/](https://guillel51.github.io/Quantum-GammaWave/preview/)
+The next build of `main`, in its own emulator. Not installable until a custodian signs it: the installer there says so.
 
 > **Quantum GammaWave (QG-1)** is dedicated firmware and workstation software engineered specifically for the M-VAVE FM-1 groovebox hardware.
 > - **GitHub Repository:** <https://github.com/Guillel51/Quantum-GammaWave>
@@ -58,20 +64,18 @@ Checks the package and the device identity before it writes anything.
 
 | Public portal (`/`) | Public Web Studio (`/webapp/editor/`) |
 |---|---|
-| <img src="artifacts/public-portal-432x690.png" width="360" alt="Quantum GammaWave portal, published build"> | <img src="artifacts/public-webstudio-432x690.png" width="360" alt="Web Studio 2.0, published build"> |
+| <img src="artifacts/public-portal-432x690.png" width="360" alt="Quantum GammaWave portal, published build"> | <img src="artifacts/public-webstudio-432x690.png" width="360" alt="Web Studio, mock device at 432 px"> |
 
 The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
-Both captures are the **same viewport -- 432 x 690 -- taken from GitHub Pages itself**, one after the other,
-so the two columns are the same size and neither image is stretched or cropped: what the table shows is
-what the published site served when this line was written. The wide layout is `artifacts/live-desktop-1440.png`
-(the same page rendered in a 1440 px frame, scaled down to fit the capture window, so it is evidence of
-layout and not of text rendering).
+Both captures were taken in one session at the **same viewport -- 432 x 690**, portal first and then the Web
+Studio in mock mode (`?mock=1`, no FM-1 attached), so the two columns are the same size and neither image is
+stretched or cropped: what the table shows is what those pages rendered when this line was written.
 
-The portal prints the build it is serving in the hero (`v1.9.0-<commit>`, read from
-[`firmware/versions.json`](firmware/versions.json) -- version, package file, size, SHA-256 and the build
+The portal prints the build it is serving in the hero (`v2.0.0-<commit>`, read from
+[`firmware/versions.json`](https://guillel51.github.io/Quantum-GammaWave/firmware/versions.json) -- version, package file, size, SHA-256 and the build
 record of the firmware it was compiled from), and the emulator page prints its own commit and WASM hash from
-[the emulator page](https://guillel51.github.io/Quantum-GammaWave/emulator/) beside it. Both come from the same commit as
-`.github/workflows/emulator.yml` published, so a stale page is visible in the page itself.
+[the emulator page](https://guillel51.github.io/Quantum-GammaWave/emulator/) beside it. The stable portal serves the
+signed release and the emulator built from the commit that produced it, so a stale page is visible in the page itself.
 
 ---
 
@@ -85,22 +89,33 @@ Independence does not erase where it comes from. Quantum GammaWave descends from
 
 ---
 
-## Web portal and Web Studio 2.0 (2026-11-04)
+## The published build: `v2.1.2`
 
-The project now has one official entry point: the **Solar Heat / Quantum** portal at
+The project has one official entry point: the **Solar Heat / Quantum** portal at
 <https://guillel51.github.io/Quantum-GammaWave/>. It presents the firmware, real screenshots, compatibility,
 installation warnings, version metadata and direct access to the emulator (`/emulator/`), the USB installer
 (`/webapp/installer/`) and the Web Studio (`/webapp/editor/`). Existing installer and editor URLs are kept;
-the emulator now lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
+the emulator lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
 
-The Web Studio has a new presentation layer (deep charcoal, solar amber, cyan data accents, clearer
-hierarchy and a hardware-style brand bar) without changing any control id, SysEx frame, tab or protocol
-handler. It was checked in Chromium at 1440 px and 390 px: seven tabs, no horizontal overflow and no console
-or request errors. The emulator remains the same real WASM firmware; the portal only links to it.
+The site has two clearly labelled channels over one entry point:
 
-**v1.8.9** is the current build: the master EQ rounds its loop to the nearest value instead of down, so its DC gain is the coefficient's (+0.23 dB instead of -1.46 dB) and a -24 dB cut at 20 Hz reaches -24.14 dB instead of -17.61 dB; the four setters share one commit path and the RAM code budget gained 28 B. `fm1_restore.py` can write a verified backup back through an external SPI programmer. All of it is measured on the host and in the emulator: no unit, no physical restore, no production signing key. See [`docs/V1.8.9_STATUS.md`](docs/V1.8.9_STATUS.md).
+- **Stable (`/`)** — the newest signed release, currently `v2.1.2`: the package from [`release/`](release), its
+  `qg1-release-1` Ed25519 manifest, the build record the signature carries, and an emulator compiled from the
+  **same commit that produced the package**. The installer verifies the SHA-256, the signature against the key
+  pinned in the page and `tools/fm1_keys.json`, and `felucca.bin` / `loader/ota.bin` against that record before
+  it enables INSTALL; without all three it stays disabled and says which one failed. The update loader then reads
+  the flash chip and the geometry on the unit before it erases anything.
+- **Preview (`/preview/`)** — `main` as it is now: its emulator, its (unsigned) package and its own build record,
+  labelled with its commit. INSTALL is refused there by design until the package is signed; it exists to see and
+  hear changes before they are released.
 
-## What's in Quantum GammaWave (`v1.8.9`)
+The install plan (`/plan/`) runs the same acceptance trace and sector plan the installer does, without a unit.
+
+Every tagged version is built by CI and attached to a [GitHub release](https://github.com/Guillel51/Quantum-GammaWave/releases)
+(`docs/RELEASE.es.md`); the release pipeline verifies the signed pair in `release/` and publishes those exact bytes.
+Emscripten is pinned to **6.0.11** everywhere.
+
+## What's in Quantum GammaWave (`v2.1.2`)
 
 - **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
 - **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
@@ -113,8 +128,9 @@ or request errors. The emulator remains the same real WASM firmware; the portal 
   - **`SOLARIS`:** Radiant solar gold, stellar corona amber, and forge embers on deep charcoal.
   - **`CYBERPUNK`:** High-contrast synthwave neon grid with electric cyan and laser magenta highlights.
   - **`NORDIC`:** Arctic obsidian black with emerald aurora borealis gradients and warm beacon accents.
-- **Expanded Sound Library (+42 Original Presets):**
-  - Meticulously designed across all synthesis engines into 8 organized musical categories:
+- **A 200-sound factory library across 8 engines** (ANALOG 56, FM6 29, PHASE 25, LOFI 25, FORMANT 20, WHEEL 18,
+  NOISE 17, DRUM 10 browsable kits; two retired DRUM kits stay at indices 10 and 11 so old projects load the
+  kit they saved). Among them, the project's own signature sounds, in 8 musical categories:
     - *Ambient:* Borealis Pad, Cosmic Winds, Polar Aurora, Space Lullaby.
     - *Drones:* Nebula Drone, Abyss Drone, Cyber Drone, Vox Drone, Wraith Drone.
     - *Bells:* Crypt Bell, Temple Bell, Tibet Bowl, Shrine Bell, Chime Tree.
@@ -186,7 +202,7 @@ Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Españo
 
 ## Firmware Renderer Gallery
 
-All screenshots below are native 240×240 renders produced directly by the Quantum GammaWave (QG-1) firmware drawing code. They are **renderer output, not photographs of a physical FM-1**; the current branch regenerated the full gallery with `tools/generate_screenshots.py`.
+All screenshots below are native 240×240 renders produced directly by the Quantum GammaWave (QG-1) firmware drawing code at `v2.0.0`. They are **renderer output, not photographs of a physical FM-1**; the whole gallery was regenerated from the current sources with `tools/generate_screenshots.py`, so the planets and their orbits on HOME, the six-track mixer, the preset overlay and the boot splash are the ones the firmware actually draws.
 
 ### 1. Quantum Signature Suite & Core Views
 
@@ -258,17 +274,24 @@ Some synth tracks run on the FM-1's second core, with per-block checksums and a 
 > --verify-only / --sha256`. Recovery guide (es): [docs/INSTALL.es.md](docs/INSTALL.es.md). Emulator while coding:
 > `python3 tools/emu_dev.py` (rebuilds on every change and reloads the page).
 
-1. **Open the USB web installer** in Chrome, Edge or Opera (it needs Web MIDI):
-   **<https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>**
-2. Connect the **M-VAVE FM-1** with a USB data cable and switch it on.
-3. **Coming from another custom firmware (Felucca, baudgirl, etc.)?** Click **Return to official V15 first** (which also backs up your flash), then click **Install**.
-4. **Coming from official V15, JIANT, or earlier firmware?** Click **Install** directly. Don't unplug the cable until flashing completes.
+1. **Read the plan first** (no hardware needed): **<https://guillel51.github.io/Quantum-GammaWave/plan/>** lists
+the sectors the install rewrites, the range it never touches (`0x04000–0x92FFF`, factory data above `0xFF000` kept)
+and the acceptance trace it runs on the package.
+2. **Open the USB web installer** in Chrome, Edge or Opera (it needs Web MIDI):
+   **<https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>**. It shows the package's SHA-256 and the
+   Ed25519 key it verified (`qg1-release-1`); if either check fails, **INSTALL stays disabled**.
+3. Connect the **M-VAVE FM-1** with a USB data cable and switch it on.
+4. **Coming from another custom firmware (Felucca, baudgirl, etc.)?** Click **Return to official V15 first** (which also backs up your flash), then click **Install**.
+5. **Coming from official V15, JIANT, or earlier firmware?** Click **Install** directly. Don't unplug the cable until flashing completes. No M-Flasher step, no dump to paste: the loader reads the flash chip (`0x856014` or `0xB36014`) on the unit and refuses any other part before it erases a single sector.
 
 *Quantum GammaWave uses the FM-1's user sample flash (`USR1–3`) to store 8 multi-section songs and the 32-voice FM6 user bank. Back up any custom WAV samples from stock firmware before flashing.*
 
 > **Read [`docs/SECURITY.md`](docs/SECURITY.md) before flashing anything.** It documents what the update protocol actually verifies (CRC, no signature), why an interrupted write cannot roll back on this single-bank layout, the community recovery ladder, and an honest audit of this repository's own installer — including what has *not* been tested on hardware. No install is declared safe without an independently demonstrated recovery path.
 
-You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** (named `felucca-<version>.fwsc`, e.g. `felucca-v1.5-QG.fwsc` — the build tooling keeps Felucca's file name).
+You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** —
+`felucca-2.1.2.fwsc` (610 959 B, SHA-256 `1f52bf09…a303`) next to its `.manifest.json` and `SHA256SUMS`, so the
+download can be checked without trusting the page that served it (the build tooling keeps Felucca's file name).
+`release/` keeps the previous signed package too: the site installs the newest version, chosen by version number.
 
 ---
 
@@ -279,7 +302,7 @@ See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK 
 ```bash
 ./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
 sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.8.9 build/site   # the Web Studio + USB installer
+python3 web/make_site.py build/felucca.fwsc v2.0.0-<commit> build/site --no-release  # a preview site (main)
 ```
 
 On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
@@ -287,6 +310,66 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 ---
 
 ## Changelog
+
+The per-release record, with the measurements behind each line, is [`CHANGELOG.md`](CHANGELOG.md). The recent
+milestones, in one line each:
+
+### `v2.1.2` — its own identity: `FM-1_965`
+
+The firmware answered `FM-1_982`, which is also what **GuitChordi** answers, so The Firmware Hub could not tell the
+two apart and marked neither card as on the unit. The hub keeps no registry — its catalogue is the only register —
+so the number was chosen by reading it (`tools/check_identity.py`, 2026-11-10): 965 is claimed by no listing's
+product and by no listing's answered range. The app and the loader now answer `FM-1_965` / `ota-FM-1_965`; a unit
+still on 2.1.1 is recognised as this firmware on its previous identity, so it updates instead of being refused.
+The full record, with the free candidates and the rules, is [`docs/IDENTITY.md`](docs/IDENTITY.md).
+
+### `v2.1.1` — signed with the key held outside the build, published as the stable channel
+
+The package is built here with the AC791N toolchain from `61ae47b` and signed with `qg1-release-1` in a
+separate step: the build is frozen into a signing request, the request is signed where the key lives, and the
+signature is verified against the pinned public key before it is written — so CI can produce a release
+candidate and never hold a key. `release/felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`) is what the
+portal installs, with the emulator compiled from that same commit; `main` continues at `/preview/`.
+
+### `v2.0.0` — signed, published, and installable from stock V15 without a second tool
+
+The package is built here with the AC791N toolchain, signed with the anchored key `qg1-release-1` and published
+as a [GitHub release](https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v2.0.0); Pages installs exactly
+those bytes and runs an emulator compiled from the commit that produced them, while `main` continues at
+`/preview/`. The manual M-Flasher step is gone: the loader a stock V15 unit stages reads the NOR chip itself,
+accepts only `0x856014` and `0xB36014`, and refuses anything else before the first erase. The installer gates
+INSTALL on the SHA-256, the Ed25519 signature against the pinned key and the firmware hashes inside the signature;
+`/plan/` shows the sector plan and the acceptance trace without a unit. Host suites, the loader trace
+(28 checks) and the flash-id test pass; **no physical unit was touched**, so compatibility with either chip
+family is still unmeasured on hardware.
+
+### `v1.9.0` — the signed package, and an installer that decides on what it reads
+### `v2.1.1` — one channel, releases from tags, and two claims checked properly
+
+The site serves the `main` build and the installer may install it: it checks the published SHA-256 and size
+before writing, and the loader reads the flash chip before erasing anything. Every version is built by CI from
+its tag and attached to a GitHub release (`release.yml`, `docs/RELEASE.es.md`); there is no signed channel and
+no provenance record to gate on any more (#89). In this pass the HOME planets' rotation was verified in the
+browser -- two captures 2.6 s apart, 868 of 57 600 pixels changed, and 576 changing in a 300 ms window, more
+than an orbit of 7-13 s per turn can move -- and `tests/perform_test.c`
+measures LATCH on rendered audio instead of a flag: with LATCH on the filter still filters after the key is
+released, the second touch returns the dry signal bit for bit, and REPEAT 1/16 keeps sounding. The dead
+`/preview/` deployment check is gone.
+
+### `v1.9.0` — an installer that decides on what it reads
+
+The installer gates on the chip id, the piece geometry and the product the unit reports after the write, and
+*Verify Only* exports the diagnostic JSON it derived those states from. (That release was signed with the
+anchored key `qg1-release-1`; #89 replaced the signing scheme with GitHub releases and hash/size checks.) The 3.2 visual pass lands in the same tree (PUNCH-IN LATCH on by default with its
+matrix, DEPTH on KNOB 2, FX percentages right-aligned, the SCL keyboard, seven delay bars, RESO and CLOUD as
+different particles, four HOME planets and a new 3.1 s boot splash), measured at 174 screens × 17 palettes with
+0 lint findings.
+
+### `v1.8.6` … `v1.8.9` — the master EQ, corrected three times
+
+The EQ's 20 Hz cut, the scale of one delay state and the DC bias of its rounding loop, each found by test and
+fixed in turn (`v1.8.6` also brought the FX particles, the splash rework, the note visualizer and the Punch-In
+keyboard). No hardware was used: these are host and emulator measurements.
 
 ### `v1.7-QG` — UI Evolution & Hardware Validation
 
@@ -371,11 +454,12 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 **Quantum GammaWave (`QG-1`)** is free and open-source software released under **[GPL-3.0-only](LICENSE)**.
 
 Built upon the work of:
-- **Pocket GammaWave (GW-1)** by Leo Kuroshita / Hügelton Instruments & ShadowTune.
+- **[Pocket GammaWave (GW-1)](https://github.com/fvalente/GammaWave-FM1)** by [Frederic Valente (@fvalente)](https://github.com/fvalente) — the GammaWave screens and palettes, the shift deck, the generator genres, the VOWEL / SCREAM filters and the Web Studio additions (see [LICENSING.md](LICENSING.md)).
 - **[Felucca](https://github.com/hugelton/Felucca)** by [Hügelton Instruments](https://hugelton.com) (Leo Kuroshita, [@kurogedelic](https://github.com/kurogedelic)) — core FM-1 hardware abstraction, bootloader, engines, and the [Fukiai](https://github.com/hugelton/Fukiai) icon font ([MIT](LICENSES/MIT-Fukiai.txt)).
 - **[JIANT FM](https://github.com/juanjiant-bit/JIANT)** — DRUM-X synthesis engine, dual-core audio scheduler, procedural generator foundation, and thermal font pipeline.
 - **[SLOOP](https://github.com/isod89/sloop-fm1)** by isod89 — multi-section song arranger and live `SONG REC` architecture.
 - **[Melodee](https://github.com/keremimo/melodee)** (keremimo) & **[fm1-x0x](https://github.com/charlesvestal/fm1-x0x)** (Charles Vestal) — AC791N second-core startup, memory-read guard, and WebAssembly browser emulator architecture.
+- **Installer and releases**: [David Konsumer (@konsumer)](https://github.com/konsumer) — the first install on a stock V15 unit (both flash variants, `0x856014` and `0xB36014`), the loader's own chip check, install resume, the tag-driven release workflow and the shift to GitHub releases.
 - **DSP & fonts**: `msfa` 6-op FM from [Dexed](https://github.com/asb2m10/dexed) ([Apache-2.0](LICENSES/Apache-2.0-msfa.txt)); formant synthesis after [klattsch](https://github.com/tgies/klattsch) (MIT); [Chakra Petch](LICENSES/OFL-ChakraPetch.txt), [IBM Plex Mono](LICENSES/OFL-IBMPlexMono.txt), [Michroma](LICENSES/OFL-Michroma.txt), and [DotGothic16](LICENSES/OFL-DotGothic16.txt) (SIL OFL 1.1).
 
 *M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is an independent open-source project and is not affiliated with or endorsed by M-VAVE or Hügelton Instruments.*

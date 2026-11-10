@@ -615,9 +615,14 @@ static void layer_knob(uint32_t k, int32_t s)
     uint32_t l = layer_open();
     lys.used = 1;
     if (l == LAYER_FX) {                                /* perform.c perf_k, not recorded */
-        if (k == 3u)
+        /* (3.2) DEPTH lives on KNOB 2, under its own card in the map's left/right pair, and CRUSH
+         * moves to KNOB 4: the owner reached for the second knob for the effect's level every time.
+         * The engine keeps its slots (perf_k[1] CRUSH, perf_k[3] DEPTH); only the knob that writes
+         * them changed, so the DSP, the saved presets and the metering are untouched. */
+        uint32_t m = k == 1u ? 3u : k == 3u ? 1u : k;
+        if (m == 3u)
             s = -s;                                     /* DEPTH (100 - perf_k[3]) rises to the right (#40: it fell) */
-        perf_k[k] = (int8_t)clamp(perf_k[k] + accel(EN_K1 + k, s, k ? 100 : 200), k ? 0 : -100, 100);   /* (#126) */
+        perf_k[m] = (int8_t)clamp(perf_k[m] + accel(EN_K1 + k, s, m ? 100 : 200), m ? 0 : -100, 100);   /* (#126) */
     } else if (l == LAYER_GLO) {                        /* T1..T4 LEVEL (T5, T6 selected: T3..T6), recorded as on MIXER */
         track_t *t = &trk[k + trk_base4()];
         int16_t *vp = &t->p[P_LEVEL];
@@ -1012,11 +1017,14 @@ static void layer_fx(uint32_t band)
         GFX_HOOK_ALIGN(CX2[0], 5, CX2[0] + 108, 5 + FX_CARD_H, AL_HV, "FX LATCH state centred");
         cv_text_in(CX2[0], 5 + CAP_IN(S, FX_CARD_H), 108, &AF_S, lat ? "Latch: On" : "Latch: Off",
                    lat ? T_ACCENT : T_MID, T_RAISE);
+        /* (3.2) the card says how to change it. The only in-map path is OCT+, and the footer that
+         * names it only appeared once LATCH was already on: the state the owner could not leave. */
+        cv_text_on(CX2[0] + 6, 26, &AF_S, "OCT+ TO SWITCH", T_DIM, T_RAISE);
         /* DEPTH: the value K4 writes (perform.c perf_k[3], shown as 100 - it: right is deeper),
          * and the same value as a bar, so the knob's travel is readable at a glance */
         cv_text_on(CX2[1] + 4, 8, &AF_S, "DEPTH", T_MID, T_RAISE);
         cv_text_on(CX2[1] + 4, 19, &AF_S, dep, T_THEME, T_RAISE);
-        cv_text_r(CX2[1] + 104, 19, &AF_S, "K4", T_DIM, T_RAISE);
+        cv_text_r(CX2[1] + 104, 19, &AF_S, "K2", T_DIM, T_RAISE);     /* (3.2) DEPTH is KNOB 2 */
         cv_rect(CX2[1] + 4, 32, 100, 4, T_SURF);
         for (seg = 0; seg < 20; seg++)
             if (seg * 5 < dp)

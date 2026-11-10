@@ -35,10 +35,10 @@
 #define FELUCCA_HOTRAM 1         /* (JIANT 0.6.78, experimental) core 0's hottest audio code in RAM (core.h) */
 #endif
 #ifndef FELUCCA_ID
-#define FELUCCA_ID "FM-1_900"    /* package identity (build.py: the .fwsc marker string) */
+#define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.9.0" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor */
+#define FELUCCA_VERSION "v2.1.2" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor */
 /* (v1.9.0: the integrated tree. v1.8.8 was the AC791N-build line, v1.8.9 the EQ/restore line; this
  * tree contains both, so it is neither -- the number states which code it is, and
  * tools/build_manifest.py ties it to the commit that produced the artefact. */
@@ -70,6 +70,7 @@
 
 /* ----------------------------------------------------------- sound --- */
 #include "core.h"
+#include "preset_level.c"        /* (2.1) the measured level of every factory preset */
 #include "engines.c"             /* dsp.c, the eng_*.c files, the factory patterns */
 #include "params.c"
 #include "mod.c"               /* the modulation matrix, used by voice.c and fx.c */

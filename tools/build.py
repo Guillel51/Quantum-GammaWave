@@ -42,6 +42,12 @@ POOL_END = 0x01C70000            # (JIANT 0.6.78) app.ld: POOL's end
 RAMTEXT_END = 0x01C76800         # .. RAMTEXT's end (0x01C70800 + 0x6000, the user stack's guard band)
 LOADER_NAME = b"usb_hid_ota.bin"    # the file name the SPL looks for
 DOCKER_IMAGE = os.environ.get("JIELI_DOCKER_IMAGE", "debian:bookworm-slim")
+# (opt baseline, measured) -Oz here is not "size before speed": on pi32v2 it is the level at which this
+# clang turns the constant divisions into shifts and multiplies. Built at -Os the same sources put 20
+# hardware divides into analog_render's block loop (target_budget cost 148 -> 674, +355 %), and -O2 does
+# not fit XIP at all (116 068 B over). A per-function -O2 would need an attribute this clang does not
+# have (it only has minsize, tools/size_fns.py, which -Oz already applies): keep -Oz unless a
+# measurement on the unit says otherwise.
 CFLAGS = ["-Oz", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-function"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
@@ -52,7 +58,9 @@ SDK_SHA256 = {
     "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
 }
 
-PRODUCT = "FM-1_982"                # unique Quantum GammaWave package identity (FM-1_9NN resumable loader range; 981: GW-1)
+PRODUCT = "FM-1_965"                # Quantum GammaWave's own identity, checked free in the hub's catalogue and
+#                                   recorded in docs/IDENTITY.md (was FM-1_982, shared with GuitChordi). FM-1_9NN
+#                                   is the range the hub and this installer resume (981: Pocket GammaWave).
 VERSION = None                      # FELUCCA_VERSION for release builds (default: firmware/src/felucca.c)
 
 
@@ -383,7 +391,7 @@ def main():
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
     a = ap.parse_args()
     name = "felucca.fwsc"
-    if a.release:                   # (1.1.1-GW) the identity stays PRODUCT (QG-1: FM-1_982) for every build: The Firmware Hub
+    if a.release:                   # (1.1.1-GW) the identity stays PRODUCT (QG-1: FM-1_965) for every build: The Firmware Hub
         # knows Pocket GammaWave by it (Felucca's FM-1_9XY per release gave 1.1 FM-1_911, Felucca 1.1's own)
         m = re.fullmatch(r"(\d)\.(\d)(?:\.\d){0,2}(-[A-Za-z0-9]+)?", a.release)
         if not m:

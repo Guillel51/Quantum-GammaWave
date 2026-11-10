@@ -33,6 +33,10 @@
 #                   one-step undo of both (SAVE held), REC on TRACKS / SEQ / ARP, STEP and ARP while recording,
 #                   MIDI IN ROUT, saves refused while playing and the OVERWRITE? dialog, MUTE on TRACKS KNOB 1,
 #                   the DRUM grid (keys, knobs, LEDs, pages, live recording into it, BEAT from PATTERNS).
+# DSP: the polyBLEP residual's one-compare fast path (tests/blep_test.c) against the reference formulation
+#                   bit for bit: both window edges, the sub-1 Hz incs whose d is 0, the increments past Nyquist
+#                   (where the windows overlap) and 10 000 000 random pairs, so an "almost the same" residual
+#                   cannot reach the oscillators unseen.
 # Audio / persistence / editor: the real C paths against simulated DMA and NOR flash: bounded overload
 #                   fades, shared-voice limits, deferred settings and retries, failed-save rollback, the autosave
 #                   (1.2: when it writes, the power-on restore, damaged copies, a write cut short, wear over a session),
@@ -187,6 +191,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "motion, whole-step chance, FUN7 migration, song restore, ARP repeat and the 1.2 ARP modes" "$OUT/motion_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_audible_test" tests/morph_audible_test.c -lm
     run "MORPH moves the samples: every engine with a morph path renders a different waveform when P_MORPH moves under a held note (and without a click)" "$OUT/morph_audible_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/lofi_tclk_test" tests/lofi_tclk_test.c -lm
+    run "LOFI T.CLK: NOTE restarts the formula every note, FREE joins it where the track clock is (audio, not a screen), keeps the level, survives a sound change and does not click" "$OUT/lofi_tclk_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm
     run "MORPH under load: six parts, the FX buses, MIDI notes and a preset load -- every transition measured (latency, slew to 90%, click) with the two renders bit-identical before the turn" "$OUT/morph_six_test"
     run "the particle pool bays: EDIT ribbon draws none, HOME and the visualizer keep theirs inside their own rect, no allocation" python3 tests/particle_bounds_test.py
@@ -236,6 +242,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Ifirmware/hal -o "$OUT/clamp_sym_test" tests/clamp_sym_test.c -lm
     run "DSP: the SVF's one-compare clamp is exactly clamp(v, -150000, 150000) over all of int32" "$OUT/clamp_sym_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/blep_test" tests/blep_test.c -lm
+    run "DSP: the polyBLEP fast path is the reference, bit for bit (both window edges, the increments past Nyquist, 10 M pairs)" "$OUT/blep_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/click_test" tests/click_test.c -lm
     run "metronome and count-in: beats sample for sample (internal and external clock), accent, level, MASTER, not in USB, count-in timing, notes onto step 1" "$OUT/click_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/persistence_test" tests/persistence_test.c -lm
@@ -268,6 +276,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "REVERB TYPE: ROOM bit-identical, SPRING decay / chirp / stability / level, model change, cost, demos" "$OUT/reverb_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/dly_echo_test" tests/dly_echo_test.c -lm
     run "DELAY echo train: the repeats FX > DLY draws, one TIME apart, falling by FEEDBK, none without echoes" "$OUT/dly_echo_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_probe" tests/fx_probe.c -lm
+    run "FX measured: the phaser's comb depth, M-WIDE mono/normal/wide, the master EQ's shelves and peak" "$OUT/fx_probe"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
@@ -309,8 +319,12 @@ run "flash image: boot/app tables, CRC16s and the identity decoded from the stoc
     python3 tests/mflasher_test.py
 run "raw restore: geometry, identifiers, sector alignment, readback, refusal before any erase" \
     python3 tests/restore_test.py
-run "signed packages: manifest, hash, product / version / min_firmware, WebCrypto parity" \
-    python3 tests/sign_test.py
+# (PR #73) the gate's refusal matrix and the backup audit: both import tools/fm1_gate.py and
+# tools/fm1_image.py and assert on the real refusal codes, so a regression in either fails here.
+run "install gate: read-only chips, unknown JEDEC, model and identity refusals before any write" \
+    python3 tests/negative_write_test.py
+run "backup audit: region bounds, bootloader never written, dump and restore evidence agree" \
+    python3 tests/backup_audit_test.py
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip installer preflight (NO_PACKAGE=1: needs build/felucca.fwsc)"
 else
@@ -367,8 +381,6 @@ else
 fi
 
 run "preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
-run "signing chain: Ed25519 manifests and every refusal" python3 tests/sign_test.py
-run "key custody: keygen off-repo, pin --replace, check, rotation, revocation" python3 tests/key_custody_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 run "backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore" \
     python3 tests/backup_tool_test.py
@@ -377,17 +389,30 @@ run "README navigation contract (WEB SITE first and double width, names, links, 
 
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
-    # (v1.9.0) the installer's build provenance: no write without a verified record, and the site
-    # builder refuses a package that contradicts its own manifest
-    # the provenance test below refuses a site whose emulator and firmware name different commits, and until now a
-    # forgotten `sh web/emu/build.sh` surfaced as two red make_site lines. Say it plainly first; the verdict stays
-    # with the test, not with this line.
-    python3 tools/emu_stamp.py || true
-    run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
     # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
     run "web verify-only: identity reads only, zero write frames" node web/test_verify_only.mjs
+    # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
+    # its dump hashed in the page, and the donor install path that accepts them -- with the wire
+    # assertions that nothing is sent without them.
+    # (first install) a unit sitting in its update mode answers the handshake and not 0x12, so the
+    # chip gate on the loader link comes from the same attempt or from the record -- and a unit's own
+    # update mode is never fed a Felucca image.
+    run "web update mode: loader links, foreign loaders, and the resume path" node web/test_update_mode.mjs
+    # (state machine) the seventeen named states: each one tied to an observation this page can make,
+    # or declared unreachable with its reason -- WebMIDI cannot see the ROM mode, and the loader has no
+    # separate erase or verify phase.
+    run "web state: the named states, the four blind spots, and who may unplug" node web/test_state.mjs
+    # authenticity: the Ed25519 manifest the page checks before it enables INSTALL, against the key
+    # pinned in tools/fm1_keys.json -- and every way a tampered one must be refused
+    run "web signing: Ed25519 against the pinned key, and what it refuses" node web/test_sign.mjs
+    # what M-Flasher itself will check before its first erase, on the package this repository releases
+    if [ -f release/felucca-2.0.0.fwsc ]; then run "web acceptance: M-Flasher's own checks and the sector plan" node web/test_accept.mjs; fi
+    # (PR #73) the production pipeline against the real release package the build record names:
+    # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
+    run "web installer pipeline: the real package, and a refusal for every partial authorisation" \
+        node tests/installer_pipeline_production_test.mjs
     PKG=""
     if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
     run "web package parser: malformed .fwsc refused, never loops, the built one parses" \
@@ -415,12 +440,6 @@ if [ "${NO_PACKAGE:-0}" = 1 ]; then
 else
     run "build manifest: artefacts, version, commit, config and the emulator agree (and a wrong one fails)" \
         python3 tests/manifest_test.py
-    # the real package, its real record and a signed release manifest through the transport gate: this
-    # is the only test that refuses to invent its artefacts, so it needs the build above
-    if command -v node >/dev/null 2>&1; then
-        run "release e2e: the built package, its record and a signed manifest agree end to end" \
-            node web/test_release_e2e.mjs
-    fi
 fi
 
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }

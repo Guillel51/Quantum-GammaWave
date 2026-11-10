@@ -607,8 +607,12 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
             v->s[6] = s6;
         if (keep & 0x80u)
             v->s[7] = s7;
-        if (e == &ENG_LOFI && t->p[P_LRTRG] && t->p[P_E1] >= RW_BYTE)   /* (0.6.12) RTRG: BYTE's / FLOAT's time from 0 */
-            v->ph[0] = v->ph[1] = 0;
+        if (e == &ENG_LOFI && t->p[P_LRTRG] && t->p[P_E1] >= RW_BYTE) {   /* (2.1) T.CLK = FREE: join the formula */
+            uint32_t ft = (fm1_ms * 8u) & 0x00FFFFFFu;                    /* (the same clock lofi_note_on reads) */
+            v->s[2] = (int32_t)ft;
+            v->ph[0] = 0u;
+            v->ph[1] = ft << 8;
+        }
     }
 }
 

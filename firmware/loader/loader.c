@@ -3,7 +3,7 @@
 /* Felucca update loader (device side). Runs from RAM, started by the SPL from
  * an update record, with interrupts off: USB is polled from the main loop.
  * It is a USB-MIDI device "Felucca Update" (1209:0002) that answers the
- * M-UPGRADE update protocol as "ota-FM-1_900" (hosts look for "ota-"), and
+ * M-UPGRADE update protocol as "ota-FM-1_965" (hosts look for "ota-"), and
  * writes the app area only (ldr_core.c). The UBOOT soft key works here too.
  * Single compilation unit. */
 #include <stdint.h>
@@ -12,7 +12,7 @@
 #define FELUCCA_OTA 1
 #define FELUCCA_OTA_DRYRUN 0
 #define FELUCCA_USB_PID 0x0002
-#define FELUCCA_ID "ota-FM-1_900"
+#define FELUCCA_ID "ota-FM-1_965"     /* the package's own identity, as docs/IDENTITY.md records it */
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "fm1_time.h"
 #include "fm1_sys.h"
@@ -80,6 +80,15 @@ static int ldr_prog(uint32_t off, const void *p, uint32_t n)
 static void ldr_record_clear(void)
 {
     fm1_updata_parm_clear();                        /* CRC 0: the SPL ignores it on a warm reset */
+}
+/* the same check as the app (project.c flash_identify): two JEDEC reads, a known part, an unprotected status */
+static int ldr_flash_known(void)
+{
+    fl_id_t r;
+    r.id_a = fl_jedec_ram();
+    r.id_b = fl_jedec_ram();
+    r.sr = fl_status_ram();
+    return fl_id_verify(&r) == FL_ID_OK;
 }
 static void ldr_progress(uint32_t done, uint32_t total) { (void)done; (void)total; ldr_poll(); }
 #include "ldr_core.c"

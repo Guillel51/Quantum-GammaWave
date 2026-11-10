@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Release: publish the signed release that is committed in release/.
+#
+# Two triggers, one meaning:
+#   * a tag vX.Y.Z                  (git push origin v2.0.0)
+#   * a branch release/vX.Y.Z       (a push to a branch, for environments that cannot push tags)
+# Both name the version; the workflow verifies the committed package against its Ed25519 manifest
+# before anything is published, and attaches those exact bytes. Nothing is rebuilt here: the release
+# is the artefact the custodian signed, so the release and the site cannot drift apart.
+#
+# How to cut one: docs/RELEASE.es.md.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+    branches: ['release/**']
+
+permissions:
+  contents: write                        # create the release
+  id-token: write                        # mutant.cloud checks which repo is calling
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install cryptography
+      - name: the version this push names
+        id: v
+        run: |
+          ref="${GITHUB_REF_NAME}"
+          case "$ref" in
+            v*)        V="${ref#v}" ;;
+            release/v*) V="${ref#release/v}" ;;
+            *) echo "::error::$ref names no version"; exit 1 ;;
+          esac
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+      - name: the signed package is in release/, and it verifies
+        env:
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          pkg="release/felucca-${V}.fwsc"
+          man="${pkg}.manifest.json"
+          test -f "$pkg" || { echo "::error::$pkg is not in this tree"; exit 1; }
+          test -f "$man" || { echo "::error::$man is not in this tree"; exit 1; }
+          python3 tools/fm1_sign.py verify "$pkg" --manifest "$man" --product FM-1
+          python3 - "$man" "$V" <<'PY'
+          import json, sys
+          man, version = json.load(open(sys.argv[1])), sys.argv[2]
+          if str(man.get("version")) != version:
+              raise SystemExit(f"::error::the manifest is version {man.get('version')}, this push names {version}")
+          if not man.get("images"):
+              raise SystemExit("::error::the manifest names no firmware images")
+          print(f"signed by {man['keyid']}: {man['sha256']} ({man['size']} B)")
+          PY
+      - name: publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.v.outputs.tag }}
+          name: Quantum GammaWave ${{ steps.v.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release/felucca-${{ steps.v.outputs.version }}.fwsc
+            release/felucca-${{ steps.v.outputs.version }}.fwsc.manifest.json
+            release/SHA256SUMS
+      # GitHub's release list lags a new release by a few seconds, and mutant.cloud reads that list
+      - name: wait for the release to be listed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          for i in $(seq 30); do
+            gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[].tag_name' | grep -qx "$TAG" && exit 0
+            sleep 5
+          done
+          echo "::error::$TAG never showed up in the release list"
+          exit 1
+      - uses: konsumer/mutantcloud@main

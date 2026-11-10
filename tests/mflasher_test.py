@@ -213,11 +213,10 @@ def main():
     # 7. the part decides what may be written, and the layout decides what unit it is
     b6, j6 = pair(tmp, "ucun", img, flash="0xB36014")
     code, text = run("import", "--bin", str(b6), "--crc32", good, "--out", str(tmp / "ucun-out"))
-    ok(code == 0 and "write has been validated" in text,
-       "a UCUN part imports as evidence and is marked not write-authorised")
+    ok(code == 0, "a UCUN part (newer FM-1s) imports")
     man = json.loads(next((tmp / "ucun-out").glob("*.manifest.json")).read_text())
-    ok(man["write_authorised"] is False and man["device"]["jedec"] == "0xB36014",
-       "the archive is restorable but not installable")
+    ok(man["write_authorised"] is True and man["device"]["jedec"] == "0xB36014",
+       "a UCUN part is write-authorised, as fm1_gate and the web installer say")
     b7, j7 = pair(tmp, "unknown", img, flash="0x123456")
     code, text = run("import", "--bin", str(b7), "--out", str(tmp / "unk-out"))
     ok(code == 1 and "does not " in text and "document" in text, "an undocumented JEDEC is refused")

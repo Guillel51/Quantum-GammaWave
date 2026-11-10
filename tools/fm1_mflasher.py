@@ -44,9 +44,9 @@ import fm1_probe as P  # noqa: E402
 TOOL = "fm1_mflasher 1.0"
 FORMAT = "qg1-backup-1"
 SOURCE = "mflasher-ram-loader"
-# What this project has validated for writing. A UCUN part is readable and its backup is valid
-# evidence, but no QG-1 build has been written to one, so it is not authorised for a write.
-WRITE_OK = {0x856014}
+# What this project writes: the same two parts as tools/fm1_gate.py and the firmware
+# (hal/fm1_flash_id.h). Newer FM-1s ship with the UCUN part.
+WRITE_OK = {0x856014, 0xB36014}
 TOOL_RE = re.compile(r"^m-flasher (\d+)\.(\d+)\.(\d+)$")
 
 
