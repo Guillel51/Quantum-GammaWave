@@ -1313,11 +1313,16 @@ async function loadVersion(i) {
       const manifest = await mres.json();
       if (epoch !== loadEpoch) return;
       const sig = await verifyManifest(pkg, manifest, meta.keys || {}, { product: meta.product });
-      if (manifest.build_sha256 && meta.build) {
-        const rec = await sha256hex(new TextEncoder().encode(canonJson(meta.build)));
-        if (rec !== manifest.build_sha256)
-          throw new Error("the manifest names a different build record than this page: they are not the same release");
-      }
+      /* What the signature is tied to: the firmware images the package carries. The .fwsc is
+       * reproducible, so a later commit that does not touch the firmware rebuilds the same bytes and
+       * the same signature still applies; the moment the image changes, the hashes stop matching and
+       * INSTALL stays disabled until the custodian signs the new build. */
+      const arts = (meta.build && meta.build.artifacts) || {};
+      const signed = manifest.images || {};
+      const bad = Object.keys(signed).filter((n) => String((arts[n] || {}).sha256 || "").toLowerCase()
+        !== String(signed[n]).toLowerCase());
+      if (Object.keys(signed).length && bad.length)
+        throw new Error(`the signature names firmware this build does not have (${bad.join(", ")})`);
       releaseSig = { state: "pass", keyid: sig.keyid, version: sig.version, sha256: hash, size: pkg.length,
         detail: `Ed25519 ${sig.keyid} \u00b7 ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
     } catch (e) {

@@ -95,12 +95,23 @@ def release_manifest(pkg_path):
     manifest, by a key the custodian pinned in tools/fm1_keys.json. The site publishes it beside the
     bytes; a package without one is published with `manifest: null`, and the installer then refuses to
     enable INSTALL -- that is the released state, not an error to work around."""
-    for cand in (Path(str(pkg_path) + ".manifest.json"), Path(pkg_path).with_suffix(".manifest.json")):
+    import hashlib
+    raw = Path(pkg_path).read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    cands = [Path(str(pkg_path) + ".manifest.json"), Path(pkg_path).with_suffix(".manifest.json")]
+    # the committed release: its manifest is used only for the exact bytes being served, so a site can
+    # never publish a signature that belongs to a different package
+    try:
+        cands += sorted((HERE.parent / "release").glob("*.manifest.json"))
+    except OSError:
+        pass
+    for cand in cands:
         try:
             m = json.loads(cand.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if isinstance(m, dict) and m.get("format") == "qg1-release-1":
+        if (isinstance(m, dict) and m.get("format") == "qg1-release-1"
+                and str(m.get("sha256", "")).lower() == digest and int(m.get("size", -1)) == len(raw)):
             return m
     return None
 
@@ -182,14 +193,16 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     rel_manifest = release_manifest(pkg)
     keys = pinned_keys()
     versions = [{"version": version, "file": name, **digest(raw), "build": build, "emulator": emu,
-                 "manifest": "../firmware/" + name + ".manifest.json" if rel_manifest else None}] + \
+                 "manifest": name + ".manifest.json" if rel_manifest else None}] + \
         [{**e, **digest(src.read_bytes()), "build": None,
-          "manifest": "../firmware/" + e["file"] + ".manifest.json" if release_manifest(src) else None}
+          "manifest": e["file"] + ".manifest.json" if release_manifest(src) else None}
          for e, src in old]
     meta = json.dumps({"version": version, "product": product, "pkg": "../../firmware/" + name, **digest(raw),
                        "stock": (HERE.parent / "FM-1.fwsc").is_file(), "build": build, "emu": emu, "keys": keys,
                        "versions": [{"version": e["version"], "pkg": "../../firmware/" + e["file"],
-                                     "sha256": e["sha256"], "size": e["size"], "manifest": e.get("manifest"),
+                                     "sha256": e["sha256"], "size": e["size"],
+                                     "manifest": ("../../firmware/" + e["file"] + ".manifest.json")
+                                     if e.get("manifest") else None,
                                      "build": e.get("build")} for e in versions]})
     for mark in ("/*LIB*/", "/*META*/"):
         if html.count(mark) != 1:

@@ -162,7 +162,20 @@ def record_sha256(path):
     return hashlib.sha256(canonical(data)).hexdigest()
 
 
-def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, created=None, build_sha256=None):
+def images_of(record):
+    """{artefact: sha256} from a qg1-build-1 record: what the package's signature is tied to.
+
+    The package bytes are reproducible -- the same sources and toolchain give the same .fwsc on any
+    commit that does not touch the firmware -- while the build record names the commit that produced
+    it. Signing the image hashes lets a page prove that the firmware inside the package is the one the
+    custodian signed, whatever commit rebuilt it, and still refuse the moment those bytes change."""
+    arts = (record or {}).get("artifacts") if isinstance(record, dict) else None
+    return {k: str(v.get("sha256")) for k, v in (arts or {}).items()
+            if isinstance(v, dict) and v.get("sha256")}
+
+
+def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, created=None, build_sha256=None,
+                 images=None):
     out = {
         "format": FORMAT,
         "product": product,
@@ -175,6 +188,8 @@ def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, create
     }
     if build_sha256:
         out["build_sha256"] = str(build_sha256)
+    if images:
+        out["images"] = {str(k): str(v) for k, v in sorted(images.items())}
     return out
 
 
@@ -190,7 +205,8 @@ def sign_manifest(manifest, private_key_bytes):
     return out
 
 
-def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha256=None, require_build=False):
+def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha256=None, require_build=False,
+           images=None):
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -231,6 +247,20 @@ def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha25
         raise SignatureError("signature", "the manifest is not signed by %r" % keyid)
     # The signature covers the build record it names; the installer refuses a release that names
     # none, so a signature over a manifest without build_sha256 is not a releasable manifest.
+    # The images, when both sides name them: a signature over the firmware the package carries.
+    if "images" in manifest:
+        imgs = manifest["images"]
+        if not isinstance(imgs, dict) or not imgs:
+            raise SignatureError("images", "the manifest's images are not a map")
+        for name, value in imgs.items():
+            if not isinstance(value, str) or not _HEX64.match(value):
+                raise SignatureError("images", "%s is not a SHA-256" % (name,))
+        if images is not None:
+            missing = sorted(set(imgs) - set(images))
+            wrong = sorted(k for k in set(imgs) & set(images) if imgs[k] != images[k])
+            if missing or wrong:
+                raise SignatureError("images", "the signature names images this build does not have (%s)"
+                                     % ", ".join(missing + wrong))
     if "build_sha256" in manifest:
         if not _HEX64.match(str(manifest["build_sha256"])):
             raise SignatureError("record", "build_sha256 is not a SHA-256: the manifest is malformed")
@@ -437,10 +467,11 @@ def main(argv=None):
             if a.keyid not in trusted:
                 print("note: %r is not pinned; its public key is %s" % (a.keyid, derived), file=sys.stderr)
             rec = record_sha256(a.build_manifest) if a.build_manifest else None
+            imgs = images_of(json.loads(Path(a.build_manifest).read_text())) if a.build_manifest else None
             if not rec:
                 print("warning: no --build-manifest: the manifest names no build record, and the installer "
                       "refuses such a release", file=sys.stderr)
-            man = manifest_for(raw, a.version, a.min, a.product, a.keyid, build_sha256=rec)
+            man = manifest_for(raw, a.version, a.min, a.product, a.keyid, build_sha256=rec, images=imgs)
             out = sign_manifest(man, pem)
             dest = Path(a.out or (a.package + ".manifest.json"))
             dest.write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
@@ -451,7 +482,9 @@ def main(argv=None):
             raw = Path(a.package).read_bytes()
             man = json.loads(Path(a.manifest).read_text())
             rec = record_sha256(a.build_manifest) if a.build_manifest else None
-            info = verify(raw, man, pinned(a.keys), a.product, a.firmware, build_sha256=rec, require_build=True)
+            imgs = images_of(json.loads(Path(a.build_manifest).read_text())) if a.build_manifest else None
+            info = verify(raw, man, pinned(a.keys), a.product, a.firmware, build_sha256=rec, require_build=True,
+                          images=imgs)
             print("verified: %s version %s, key %s, sha256 %s%s"
                   % (info["product"], info["version"], info["keyid"], info["sha256"],
                      ", record %s" % rec[:16] if rec else ""))
