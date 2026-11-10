@@ -1,3 +1,39 @@
+## 2026-11-10 — MICRO-START, la marcha aleatoria y dos parámetros más sin romper un solo proyecto
+
+- **El registro de proyecto no cambia de versión: cambia de cuenta.** `P_COUNT` pasa de 123 a **125** y los dos
+  parámetros nuevos (`P_MSTART` 115, `P_NRATE` 116) se insertan **justo antes de `P_E0`** (117), que es la única
+  posición que el mapa por cuenta admite: un registro guarda `np = b[66]`, los primeros `np - 8` son los comunes
+  en orden y los últimos 8 son `P_E0..P_E7`, así que todo proyecto y preset anterior se lee con sus 123 y los
+  nuevos toman su valor por defecto. FUNC sigue siendo *packed*; no hay formato nuevo, ni offset movido, ni byte
+  reutilizado. (El primer intento los puso tras la matriz, en 61/62: el mapa por cuenta habría leído otro
+  parámetro en cada proyecto viejo. Detectado por `project_test`, corregido antes de commitear.)
+- **El escritor FUN7/FUNB no puede representarlos y ahora lo dice.** Su rejilla fija aguantaba 123 parámetros y
+  125 ya no caben (8 bytes de más, medido): escribe 123, coloca los ocho valores del motor en los últimos ocho
+  huecos del registro y **baja los ids de los eventos de movimiento** a la numeración del registro, para que su
+  lector los vuelva a subir. `M.STRT` y `N.RATE` vuelven en su valor por defecto, igual que cualquier parámetro
+  que un registro antiguo no tenía.
+- **MICRO-START (`M.STRT`, EDIT > VOICE 2).** La voz nueva espera un número aleatorio de bloques (0..27,
+  ≈ 0..19,6 ms) **antes de sonar**, sin avanzar la envolvente: silencio, no un ataque recortado, así que no hay
+  click ni cola de chorus que lo delate. Con el control a 0 el onset es exactamente el de antes (64 de 64 notas en
+  la misma muestra); a 127 los onsets se reparten entre 96 y 864 muestras y 6 de 7 notas se mueven; nivel
+  ±0,00 dB y primer sample 196 con paso máximo 3802 (sin discontinuidad). Un retrigger de una voz que ya suena no
+  se mueve.
+- **La marcha aleatoria ya existía como fuente (`MS_NOISE`); lo que faltaba era el ritmo.** `N.RATE` la hace
+  musical y sincronizada: 1/1, 1/2, 1/4, 1/8, 1/16 del transporte o los 46 ms libres de siempre (el valor por
+  defecto, último de la lista para que el orden del knob y el del editor coincidan). Medido con el transporte
+  real: 2756 / 1378 / 689 / 345 / 172 / 64 bloques, y 0,406 de diferencia de señal entre 1/1 y 1/16 en el mismo
+  destino. Cada pista tiene su propia semilla, así que seis pistas no repiten la secuencia.
+- **Página nueva `VOICE 2`** en el ciclo de EDIT de todos los motores (después de VOICE), con `M.STRT` y
+  `N.RATE`; el ciclo esperado de `ui_test` se actualiza en ANALOG, FM6, DIGITAL y DRUM.
+- **Dos fallos que ya estaban en `main` y se han arreglado de paso:** `editor_test` no enlazaba (su camino de
+  knobs llegaba a `accel`, que vivía en `ui_input.c`, un archivo que el test no compila) — `accel` se ha movido a
+  `ui.c`, junto a `ev_knob`, que es quien la llama; y `N_NRATE` llevaba terminador `0`, con lo que `PE()` fijaba
+  `max = 6` y el barrido de pantallas leía un `names[6]` nulo y **segfaultaba**: sin terminador, como el resto de
+  tablas de enum.
+- **Pruebas de audio nuevas** (`tests/microstart_test.c`, 6 comprobaciones, todas verdes) y de formato:
+  `project_test` comprueba que el packed conserva `M.STRT`/`N.RATE` y que un FUN7 los devuelve por defecto con el
+  valor del motor intacto.
+
 ## 2026-11-10 — auditoría del coste real de una voz, símbolo por símbolo
 
 - **Reconstruido el baseline compilando los dos perfiles en el HEAD real del remoto**, no en cifras históricas: 10 voces →

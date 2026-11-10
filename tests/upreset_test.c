@@ -320,7 +320,8 @@ int main(void)
         r.p[i] = (int16_t)(2000 + i);
     up_params(&r, v, def);
     ok = P_SLCR == 45 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_SOFS &&
-         P_POFS + 1 == P_LN0 && P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_E0 && P_E0 == 115 && P_COUNT == 123;
+         P_POFS + 1 == P_LN0 && P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_MSTART &&
+         P_NRATE + 1 == P_E0 && P_E0 == 117 && P_COUNT == 125;
     for (i = 0; i < 45u; i++)
         ok &= v[i] == (int16_t)(2000 + i);
     for (i = P_SLCR; i < P_E0; i++)

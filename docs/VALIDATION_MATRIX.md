@@ -1303,3 +1303,26 @@ Por lo que **no** hay en esta pasada: MICRO-START y modulación aleatoria no est
 en el registro de proyecto (`P_COUNT` 123, `project.c` §límites) y añadir un parámetro exige una versión de formato
 nueva; hacerlo de otro modo habría roto los presets y proyectos ya guardados. Tampoco entran aquí las
 optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
+
+## 42. Update — 2026-11-10, dos parámetros nuevos sin versión de formato: medido
+
+| Medición | Valor | Clase |
+|---|---|---|
+| `P_COUNT` / `P_E0` | **123 → 125** / **115 → 117**; `P_MSTART` 115, `P_NRATE` 116, insertados justo antes de `P_E0` | código |
+| Compatibilidad de registros | `params_by_count` lee todo proyecto/preset anterior con su propio `np` (123, 99, 91, 89, 69, 57…) y deja los nuevos en su valor por defecto; los ids del motor se mueven **solo** si el registro se escribió con otra cuenta | `project_test`, `upreset_test`, `backup_test`, `motion_test` |
+| Ida y vuelta del formato | `proj_pack` → `proj_import`: `M.STRT` 91, `N.RATE` 4 y el valor del motor −7 se conservan; un FUN7 (123 huecos) los devuelve a 0 y 5 (46 ms) con el motor intacto | host x86 |
+| Función FUN7/FUNB | la rejilla fija no admite 125 parámetros (**8 B de más**, medido con `sizeof`): escribe 123, mueve los ocho del motor a los últimos huecos y baja los ids del movimiento; sin esto el registro invadía el kit y el nombre | host, `project_test` |
+| MICRO-START (audio) | `M.STRT` 0: 64/64 onsets en la misma muestra; 127: onsets 96..864 muestras, 6 de 7 notas movidas; nivel ±0,00 dB; primer sample 196, paso máximo 3802 (sin click); retrigger de una voz sonando: no se mueve | host x86, render real (`voice.c`, `track_render`) |
+| `N.RATE` (audio) | bloques del hold con el transporte real: 1/1 **2756**, 1/2 **1378**, 1/4 **689**, 1/8 **345**, 1/16 **172**, 46 ms **64**; diferencia de señal 1/1 vs 1/16 en el mismo destino: **0,406** | host x86 |
+| Semilla por pista | `mod_noise((t - trk) * 7919 + 0x1234, …)`: seis pistas no comparten secuencia | código |
+| Suite host | `NO_PACKAGE=1 sh tests/run_tests.sh` → **ALL HOST TESTS PASSED**, `EXIT=0` | host x86_64 |
+| Barrido de pantallas | 178 pantallas × 17 paletas, **0 hallazgos** de lint, 0 mediciones de alineación fuera; la página `VOICE 2` entra en el barrido por `NPAGES` | host render |
+| `target_budget` | **39/39 ok**, 0 sobre presupuesto | análisis de imagen AC791N |
+| Imagen AC791N | **538 984 B** (baseline 538 356, +628); `.data+.bss` **94 992 / 98 304** (3 312 libres, +48); pool 311 240 B, **9 248 de sobra**; RAM code 19 408 / 24 576 | build AC791N |
+| Paquete | **610 959 B**, loader 7 803 B, identidad FM-1_982, v2.1.1 | build AC791N |
+| Emulador | wasm **1 094 532 B**, build `55136922cd7c` (dirty), sha256 `628107b4…` | build wasm |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada, ninguna escritura | — |
+
+Lo que **no** está en esta pasada: el rediseño de HOME/visualizadores, la auditoría de EDIT motor por motor, las
+mejoras de FX más allá de MASTER EQ, y la optimización de CPU/RAM. Las páginas nuevas y el barrido están
+medidos; no hay captura revisada a ojo de `VOICE 2`, sólo el lint del barrido.

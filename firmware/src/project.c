@@ -175,7 +175,10 @@ _Static_assert(sizeof(dx_lane_t[8]) == 88u && PROJ_DX_OFF == 3216u, "the kit's p
 #define G_GX_END G_SLMODE                       /* (0.6.3: the SLICER's globals after them, in their own block) */
 _Static_assert(37u + 1u + (G_GX_END - G_NSTORE) <= 48u, "the new globals in the punch-in block's spare bytes");
 _Static_assert(G_GX_END - G_NSTORE == 10u, "marker 3 holds ten new globals");
-_Static_assert(68u + PROJ_LT * (P_COUNT + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) <= PROJ_PFX_OFF,
+/* the count those formats stored, not today's: a FUNB-era record is read with the np it carries (123, the last count
+ * any of them wrote), so a parameter added to today's firmware cannot make an older record longer than it was */
+#define PROJ_NP_VB 123u
+_Static_assert(68u + PROJ_LT * (PROJ_NP_VB + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) <= PROJ_PFX_OFF,
                "the punch-in lane after the serialized part");
 typedef struct {                               /* a track of format 4, read only */
     int16_t p[PROJ_NP_V4];
@@ -909,16 +912,29 @@ static int proj_pack(project_store_t *out, const project_t *q)
 static int proj_pack_vb(project_store_t *out, const project_t *q)
 {
     uint8_t *b = out->raw; uint32_t pos = 68u, t, i; uint32_t magic = PROJ_MAGIC_VB, size = PROJ_STORE_SIZE, sum;
+    uint32_t np = PROJ_NP_VB;   /* (the count a FUN7 record's fixed layout holds: 125 no longer fit, by 8 bytes) */
     for (t = 0; t < PROJ_LT; t++)
         for (i = 0; i < FM6_PACKED; i++)
             if (q->fm6[t][i] > 127u) return 0;
     if (!chain_valid(&q->chain) || !motion_valid(&q->motion) || P_COUNT > 127u) return 0;
+    /* (3.5) A FUN7 record's fixed layout holds PROJ_NP_VB parameters (123), the count that filled it, so this
+     * writer -- the legacy one, only a test uses it -- writes that count and maps today's values into it the way the
+     * reader maps them the other way round: the common ones in order, the eight engine values last. The parameters
+     * added since (M.STRT, N.RATE) have no slot in a FUN7 record and are not written; a newer firmware reading it
+     * puts them at their defaults, which is what the count map already does. Writing today's 125 into the old layout
+     * would run the last track past the punch-in block and over the kit. */
+    if (68u + PROJ_LT * (np + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) > PROJ_PFX_OFF)
+        return 0;
     memset(out, 0, sizeof *out); memcpy(b, &magic, 4); memcpy(b + 4, &size, 4);
-    memcpy(b + 8, q->g, G_NSTORE * 2u); b[62] = q->sel; b[63] = q->parts; b[64] = q->phys; b[66] = P_COUNT;
+    memcpy(b + 8, q->g, G_NSTORE * 2u); b[62] = q->sel; b[63] = q->parts; b[64] = q->phys; b[66] = (uint8_t)np;
     for (t = 0; t < PROJ_LT; t++) {
-        for (i = 0; i < P_COUNT; i++) {
-            if (q->t[t].p[i] < -64 || q->t[t].p[i] > 127) return 0;
-            b[pos++] = (uint8_t)(q->t[t].p[i] + 64);
+        for (i = 0; i < np; i++) {
+            /* The common values go in order and the eight engine ones land in the last eight slots, where a FUN7
+             * reader looks for them. M.STRT and N.RATE have no slot in a 123-parameter record: they come back at
+             * their defaults, which is what the count map does for any parameter a record predates. */
+            int32_t v = q->t[t].p[i < np - 8u ? i : P_E0 + i - (np - 8u)];
+            if (v < -64 || v > 127) return 0;
+            b[pos++] = (uint8_t)(v + 64);
         }
         b[pos++] = q->t[t].engine; b[pos++] = q->t[t].preset;
         for (i = 0; i < NSTEP; i++) {
@@ -935,7 +951,16 @@ static int proj_pack_vb(project_store_t *out, const project_t *q)
     }
     if (pos + sizeof q->chain + sizeof q->motion > PROJ_DX_OFF || !dx_kit_ok(q->dx)) return 0;
     memcpy(b + pos, &q->chain, sizeof q->chain); pos += sizeof q->chain;
-    memcpy(b + pos, &q->motion, sizeof q->motion);
+    {   /* the motion carries today's parameter ids: the engine ones go down to the record's numbering, where its
+         * reader (which maps them up by count) finds the same parameter again */
+        motion_store_t ms = q->motion;
+        for (i = 0; i < MOTION_MAX; i++) {
+            uint8_t id = (uint8_t)(ms.event[i].param & 0x7Fu);
+            if (id >= P_E0)
+                ms.event[i].param = (uint8_t)((ms.event[i].param & MOTION_LOCK) | (id - (P_COUNT - np)));
+        }
+        memcpy(b + pos, &ms, sizeof ms);
+    }
     memcpy(b + PROJ_PFX_OFF, q->pfx_lane, sizeof q->pfx_lane);
     b[PROJ_PFX_OFF + sizeof q->pfx_lane] = q->pfx_ltgt > 2u ? 0u : q->pfx_ltgt;
     for (i = 0; i < 4u; i++)

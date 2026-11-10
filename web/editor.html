@@ -2549,7 +2549,10 @@ function makeMockDevice(opt = {}) {
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
     D("CUT", F.CUTOFF, 0, 127, 127), D("RES", F.PCT, 0, 127, 0));                       /* 113, 114: the other engines' */
-  const P_COUNT = 123, G_COUNT = 75, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(D("M.STRT", F.PCT, 0, 127, 0),                                               /* 115: (3.5) a note starts a
+                                                                                        * little late, at random */
+    E("N.RATE", ["1/1", "1/2", "1/4", "1/8", "1/16", "46ms"], 5));                      /* 116: the random wander's hold */
+  const P_COUNT = 125, G_COUNT = 75, NSTEP = 64, P_E0 = 117, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* tracks (firmware v3): four synth parts (1.0), six (JIANT 0.6); engine / preset / p / step below are the selected track's */

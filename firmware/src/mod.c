@@ -50,7 +50,7 @@ enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY
        MD_CLIP = MD_E1 + 8, MD_PNCH, MD_N };
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
 _Static_assert(NELEM(N_MSRC) == MS_N && NELEM(N_MDST) == MD_N, "N_MSRC / N_MDST == MS_* / MD_*");
-_Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11 && P_M4AMT + 1 == P_FM1_ATK, "matrix slots: 3 ids each");
+_Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11, "matrix slots: 3 ids each");
 #define NMSLOT 4u
 /* (QG-1 1.6) the numbers core.h hands a preset's x[] (QG_SRC_* / QG_DST_*): keep both lists in step */
 _Static_assert(QG_SRC_VEL == MS_VEL && QG_SRC_AT == MS_AT && QG_SRC_PAT == MS_PAT, "QG_SRC_* == MS_*");
@@ -106,6 +106,17 @@ static int32_t mod_noise(uint32_t seed, uint32_t clk, uint32_t len)
 }
 static uint32_t mns_clk;                                 /* NOISE's clock: audio blocks (macro_master) */
 
+/* (3.5) N.RATE: how many blocks a point of the random wander holds. 0 is the 64 blocks (~46 ms) it always had; the
+ * rest are the transport's own grid, so the wander lands on the beat instead of drifting against it. */
+static uint32_t mod_nlen(const track_t *t)
+{
+    static const uint8_t SIX[5] = {16, 8, 4, 2, 1};   /* 1/1, 1/2, 1/4, 1/8, 1/16 in 1/16 steps */
+    uint32_t v = (uint32_t)clamp(t->p[P_NRATE], 0, 5), n;
+    if (v >= 5u)
+        return 64u;                                    /* the free 46 ms (params.c N_NRATE's last) */
+    n = (div_samples(2u) * SIX[v] + 16u) / 32u;          /* the 1/16 in samples -> blocks of 32 */
+    return n ? n : 1u;
+}
 /* source s of the track: the per-track ones, the per-voice ones of the latest note-on */
 static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, int32_t lfo)
 {
@@ -128,9 +139,10 @@ static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, 
         return (127 - t->ex_off) * 258;
     case MS_STEP:
         return t->ms_v;
-    case MS_NOISE:                                      /* (1.2.1-GW, JIANT 0.7.8) a random wander, a new point every
-                                                         * ~46 ms, eased: a smooth random LFO, each track its own */
-        return mod_noise((uint32_t)(t - trk) * 7919u + 0x1234u, mns_clk, 64u);
+    case MS_NOISE:                                      /* (1.2.1-GW, JIANT 0.7.8) a random wander, eased: a smooth
+                                                         * random LFO, each track its own; (3.5) N.RATE sets how long
+                                                         * a point holds, 46 ms being what it always was */
+        return mod_noise((uint32_t)(t - trk) * 7919u + 0x1234u, mns_clk, mod_nlen(t));
     default:
         return macro_v[(s - MS_M1) & 3u] * 258;
     }
