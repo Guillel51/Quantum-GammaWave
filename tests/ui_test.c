@@ -3835,12 +3835,12 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 }
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "MORPH", "FILTER", "VOICE", "VOICE 2", "EDIT 1"};   /* (JIANT 0.5:
-                                                         * ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2) */
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "MORPH", "FILTER", "VOICE", "EDIT 1"};   /* (JIANT 0.5: ANALOG's
+                                                         * FILTER; 0.6.45: MORPH) */
     static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "FILTER", "VOICE",
-                                        "VOICE 2", "EDIT 1"};   /* (the part's FILTER; 0.6.10: FM6's operator pages) */
+                                        "EDIT 1"};   /* (the part's FILTER; 0.6.10: FM6's operator pages) */
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "FILTER", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
-                                        "OP LEVEL", "VOICE", "VOICE 2", "EDIT 1"};
+                                        "OP LEVEL", "VOICE", "EDIT 1"};
     int bad = 0, ok;
     uint32_t i;
     ui_power_on();
@@ -3852,22 +3852,22 @@ static int test_edit_cycle(void)
         ok &= !str_eq(PAGES[i].title, "ENGINE");
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
-    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 MORPH FILTER VOICE VOICE 2 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
+    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 MORPH FILTER VOICE EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
 #if FELUCCA_FM4
     set_engine_of(TSEL, 1);
-    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 FILTER OP1..OP4 ENV OP LEVEL VOICE VOICE 2 EDIT 1",
+    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 FILTER OP1..OP4 ENV OP LEVEL VOICE EDIT 1",
                  engine_cycle(CYC_D, NELEM(CYC_D)));
 #else
     set_engine_of(TSEL, ENGI_DIGITAL);
-    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 FILTER VOICE VOICE 2 EDIT 1",
+    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 FILTER VOICE EDIT 1",
                  TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     (void)CYC_D;
 #endif
     {   /* #97: a DRUM track's lane levels on EDIT > LANES (KICK SNARE CLAP HATCL) and LANES 2 (HATOP TOM RIM BELL) */
         static const char *const CYC_K[] = {"EDIT 1", "EDIT 2", "KIT 3", "X-MOD", "FILTER", "SOUND", "SOUND 2", "SOUND 3",
-                                            "SOUND 4", "LEVELS", "LEVELS 2", "STEREO", "VOICE", "VOICE 2", "EDIT 1"};
+                                            "SOUND 4", "LEVELS", "LEVELS 2", "STEREO", "VOICE", "EDIT 1"};
         set_engine_of(TSEL, ENGI_DRUM);
-        bad += check("EDIT cycle (DRUM, 0.6.58): the kit's (KIT KIT 2 KIT 3 X-MOD FILTER), a sound's (SOUND 1..4), then the volumes and the stereo (LEVELS LEVELS 2 STEREO), VOICE, VOICE 2",
+        bad += check("EDIT cycle (DRUM, 0.6.58): the kit's (KIT KIT 2 KIT 3 X-MOD FILTER), a sound's (SOUND 1..4), then the volumes and the stereo (LEVELS LEVELS 2 STEREO), VOICE",
                      engine_cycle(CYC_K, NELEM(CYC_K)));
         {   /* (0.6.58) KIT 3 turns BP and FEEDBK only; STEREO's KNOB 1 is IMAGE */
             uint8_t t0 = dx_tone;

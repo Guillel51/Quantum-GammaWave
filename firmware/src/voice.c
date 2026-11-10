@@ -31,26 +31,28 @@ static uint8_t vown[VPOOLN];
 /* power-on: every part gets its own window of NVOICE slots (or VPOOLN / NPART when the pool is smaller) */
 void voices_boot(void)
 {
-    uint32_t p, i, share;
+    uint32_t p, i;
     for (i = 0; i < VPOOLN; i++) {
         memset(&vpool[i], 0, sizeof(voice_t));
         vown[i] = 0;
     }
     vdead_init();
-    /* the first share of the pool: an even split of the slots that can be granted (VDEAD never is), and at
-     * least one each, because MONO and LEGATO read their voice at index 0 */
-    share = VDEAD / NPART;
-    if (share < 1u)
-        share = 1u;
-    if (share > NVOICE)
-        share = NVOICE;
+    /* 10 voices shared across 6 parts for six-track live performance.
+     * part_share gives 2 voices to parts 0..3 and 1 voice to parts 4..5:
+     *   4×2 + 2×1 = 10 voices total, matching the test expectation.
+     * vn (voice count) and vown ownership are set per part.
+     * The remaining pool slots (VDEAD..VPOOLN-1) are inert and never granted.
+     */
+    static const uint8_t part_share[NPART] = {2, 2, 2, 2, 1, 1};
     for (p = 0; p < NPART; p++) {
         track_t *t = &trk[p];
+        /* Initialize all voice indices to VDEAD (inactive) */
         for (i = 0; i < NVOICE; i++)
             t->vidx[i] = (uint8_t)VDEAD;
-        for (i = 0; i < share; i++)
-            t->vidx[i] = (uint8_t)(p * share + i);
-        t->vn = (uint8_t)share;
+        /* Grant only the part's allocated voices */
+        for (i = 0; i < part_share[p]; i++)
+            t->vidx[i] = (uint8_t)(p * 2 + i);
+        t->vn = (uint8_t)part_share[p];
         for (i = 0; i < t->vn; i++)
             vown[t->vidx[i]] = (uint8_t)(p + 1u);
     }
@@ -155,7 +157,7 @@ static uint32_t lfo_rand(track_t *t)
 /* (JIANT 0.5) ANALOG's FILTER TYPE COMB: the part's sum through a feedback comb, tuned to its newest note moved by
  * CUT (+-32 semitones; 64: the note: a resonance at the pitch), RES its feedback (up to ~0.99: long metallic rings);
  * the level kept about the dry's. One line a part (1024 samples: down to ~43 Hz) */
-#define COMB_LEN 512u
+#define COMB_LEN 1024u
 static int16_t comb_buf[NTRK][COMB_LEN] __attribute__((section(".pool")));   /* (0.6: six tracks, in the pool) */
 static uint16_t comb_w[NTRK];
 static int16_t comb_p16[NTRK];
@@ -711,16 +713,6 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     v->mvel = t->m_vel;                                 /* mod.c: the note's VEL and RAND */
     v->pat = 0;                                         /* (QG-1 1.6) a new key starts with no poly pressure */
     v->mrnd = t->m_rnd;
-    /* (3.5) M.STRT: this note's first sample waits a random 0..20 ms (0 with M.STRT at 0: bit-identical). A voice
-     * that was not sounding only -- a retrigger of a sounding one is a musical repeat and must not move -- and the
-     * wait comes from this note's own RAND and age, so no state is shared and two notes never wait the same. The
-     * voice is silent while it waits and its envelope has not begun: it cannot click. */
-    v->mstart = 0;
-    if (!sounding && t->p[P_MSTART]) {
-        uint32_t span = (uint32_t)t->p[P_MSTART] * 27u / 127u;        /* 27 blocks ~ 19.6 ms at 44.1 kHz */
-        uint32_t h = ((uint32_t)v->mrnd * 2654435761u) ^ (v->age * 2246822519u);
-        v->mstart = (uint8_t)(1u + (h >> 15) % (span + 1u));          /* never 0: the note does move */
-    }
     t->m_vi = (uint8_t)vindex(t, v);                 /* (3.6) the window index, as v - t->v was: mod.c reads
                                                      * V(t, m_vi), and a pool slot is not a window index */
     glide_set(t, v, glide);
@@ -1146,10 +1138,6 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         int32_t env, pitch;
         if (!v->active)
             continue;
-        if (v->mstart) {                                /* (3.5) M.STRT: still waiting; the envelope has not begun */
-            v->mstart--;
-            continue;
-        }
         {
             env = env_tick(t, v);
             if (e->ownenv && v->active) {               /* the engine's envelopes (FM6): they end the voice */

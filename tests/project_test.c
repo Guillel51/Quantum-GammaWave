@@ -186,9 +186,8 @@ static void old_image(uint8_t *o, const project_store_t *st, uint32_t np, uint32
     memcpy(o, &magic, 4); memcpy(o + 4, &size, 4);
     o[66] = (uint8_t)np;
     for (t = 0; t < PROJ_LT; t++) {
-        for (j = 0; j < np; j++)   /* (the fixture is a FUN7 record: PROJ_NP_VB slots a track, its engines last) */
-            o[pos++] = b[src + (j < np - 8u ? j : (PROJ_NP_VB - 8u) + j - (np - 8u))];
-        src += PROJ_NP_VB;
+        for (j = 0; j < np; j++) o[pos++] = b[src + (j < np - 8u ? j : P_E0 + j - (np - 8u))];
+        src += P_COUNT;
         memcpy(o + pos, b + src, 2u + NSTEP * 9u);
         pos += 2u + NSTEP * 9u; src += 2u + NSTEP * 9u;
     }
@@ -196,8 +195,8 @@ static void old_image(uint8_t *o, const project_store_t *st, uint32_t np, uint32
     old_motion = pos + sizeof(chain_config_t) + 4u;
     for (k = 0; k < MOTION_MAX; k++) {
         uint8_t *p = o + old_motion + k * 4u + 1u;
-        if ((*p & 0x7Fu) >= PROJ_NP_VB - 8u)   /* (the fixture's ids: its engines are its last eight) */
-            *p = (uint8_t)((*p & MOTION_LOCK) | ((*p & 0x7Fu) - (PROJ_NP_VB - np)));
+        if ((*p & 0x7Fu) >= P_E0)
+            *p = (uint8_t)((*p & MOTION_LOCK) | ((*p & 0x7Fu) - (P_COUNT - np)));
     }
     if (size == PROJ_STORE_VA) {
         memcpy(o + fm6 - 96u - 48u, b + PROJ_PFX_OFF, 37u);   /* (the lane, its tracks, the macros: no new globals) */
@@ -230,8 +229,7 @@ int main(void)
 
     bad += check("layout: SLICER after DETUNE, then the matrix just before P_E0",
                  P_SLCR == P_DETUNE + 1 && P_SLDEPTH + 1 == P_M1SRC && P_M4AMT + 1 == P_FM1_ATK && P_FM4_LEVEL + 1 == P_SOFS && P_POFS + 1 == P_LN0 &&
-                 P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_MSTART && P_NRATE + 1 == P_E0 &&
-                 P_E0 == 117 && P_COUNT == PROJ_NP_V3 + 68u &&
+                 P_LN7 + 1 == P_DTYPE && P_MS15 + 1 == P_FTYPE && P_FRES + 1 == P_E0 && P_E0 == 115 && P_COUNT == PROJ_NP_V3 + 66u &&
                  PROJ_NP_V3 == PROJ_NP_V2 + 4u);
     bad += check("FUNB fits one flash object (its whole payload), the retained cache in NOINIT",
                  sizeof(project_store_t) == 4096u - 256u && 0xC8u + 4u * sizeof(project_store_t) <= 0x3D50u);
@@ -486,7 +484,7 @@ int main(void)
         uint32_t i, zero = 1;
         bad += check("FUNB name at the end of the reserved tail, the FM6 patches and the kit before it, after the data (48: the punch-in block, no spare)",
                      PROJ_NAME_OFF == 3824u && PROJ_FM6_OFF == 3312u && PROJ_DX_OFF == 3216u &&
-                     68u + PROJ_LT * (PROJ_NP_VB + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) + 48u ==
+                     68u + PROJ_LT * (P_COUNT + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) + 48u ==
                      PROJ_DX_OFF);
         memset(&a, 0, sizeof a);
         a.magic = PROJ_MAGIC; a.size = sizeof a; a.parts = NPART; a.phys = PROJ_PHYS;
@@ -656,23 +654,10 @@ int main(void)
                 f.motion.event[2] = (motion_event_t){3u << 6 | 5u, (uint8_t)(P_LN2 | MOTION_LOCK), 40};
                 f.motion.event[3] = (motion_event_t){3u << 6 | 6u, (uint8_t)(P_E5 | MOTION_LOCK), -3};
                 f.sum = proj_sum(&f);
-                ok = proj_pack(&st, &f) && proj_import(&g, &st, sizeof st) && !memcmp(&f.motion, &g.motion, sizeof f.motion);
-                bad += check("FUNC round trip: locks on a lane level (P_LN2) and an engine value (P_E5) kept", ok &&
-                             g.motion.event[2].param == (P_LN2 | MOTION_LOCK) && g.motion.event[3].param == (P_E5 | MOTION_LOCK));
-                {   /* (3.5) the two parameters added last (M.STRT, N.RATE) travel in the packed format, and a FUN7
-                     * record -- which has no slot for them -- brings them back at their defaults */
-                    project_t h = f, k;
-                    h.t[1].p[P_MSTART] = 91; h.t[1].p[P_NRATE] = 4;
-                    h.t[1].p[P_E5] = -7;
-                    h.sum = proj_sum(&h);
-                    ok = proj_pack(&st, &h) && proj_import(&k, &st, sizeof st) &&
-                         k.t[1].p[P_MSTART] == 91 && k.t[1].p[P_NRATE] == 4 && k.t[1].p[P_E5] == -7 &&
-                         k.t[2].p[P_MSTART] == h.t[2].p[P_MSTART] && k.t[3].p[P_NRATE] == h.t[3].p[P_NRATE];
-                    bad += check("FUNC: M.STRT and N.RATE (and the engine values beside them) kept", ok);
-                    ok = proj_pack_vb(&st, &h) && proj_import(&k, &st, sizeof st) &&
-                         k.t[1].p[P_MSTART] == 0 && k.t[1].p[P_NRATE] == 5 /* 46 ms, its default */ && k.t[1].p[P_E5] == -7;
-                    bad += check("FUN7: the same project, its two new values at their defaults, the engine value kept", ok);
-                }
+                ok = proj_pack_vb(&st, &f) && proj_import(&g, &st, sizeof st) && !memcmp(&f.motion, &g.motion, sizeof f.motion);
+                bad += check("FUN9 round trip: locks on a lane level (P_LN2) and an engine value (P_E5) kept", ok &&
+                             st.raw[68u + PROJ_LT * (P_COUNT + 2u + NSTEP * 9u) + sizeof(chain_config_t) + 4u + 8u + 1u] ==
+                             (P_LN2 | MOTION_LOCK) && g.motion.event[3].param == (P_E5 | MOTION_LOCK));
             }
             e.motion.count = 3;   /* a FUN8 of a 1.1 development build (91 parameters) could hold a lock: its E5 then */
             e.motion.event[2] = (motion_event_t){3u << 6 | 6u, (uint8_t)(P_E5 | MOTION_LOCK), -3};

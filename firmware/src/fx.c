@@ -3,7 +3,7 @@
 /* Effects: per-track DIST insert, then sends into three
  * shared buses (chorus, tempo delay, reverb). Mono buses, stereo dry mix. */
 #define DLY_LEN 65536u           /* 1.49 s: 1/4 at 40 BPM fits */
-#define CHO_LEN 1024u
+#define CHO_LEN 2048u
 static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
 volatile int32_t fx_vu[8];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses); (2.1)
@@ -27,7 +27,7 @@ static union {                          /* ROOM's allpasses; SPRING's allpass ch
     int32_t sp[(556 + 441) / 2];
 } rev_u __attribute__((section(".pool")));
 #define rev_ap (rev_u.ap)
-#define RPRE_LEN 1024u                   /* (JIANT) the reverb's pre-delay line, at half rate (4 KB): up to 92 ms */
+#define RPRE_LEN 2048u                   /* (JIANT) the reverb's pre-delay line, at half rate (4 KB): up to 92 ms */
 static int16_t rpre_buf[RPRE_LEN] __attribute__((section(".pool")));
 static int32_t rpre_out[CTL];                     /* .. the block out of it (the reverb's input) */
 static struct {
@@ -1077,7 +1077,7 @@ static int32_t rev_size(void)
 static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *out, uint32_t n)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = rev_damp_table[song.g[G_RDAMP]];
+    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200;
     for (i = 0; i < n; i++) {
         int32_t a = 0;
         int16_t *c = rev_comb;
@@ -1113,7 +1113,7 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
 static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = rev_damp_table[song.g[G_RDAMP]], m1[4], dm[4];
+    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200, m1[4], dm[4];
     int32_t depth = song.g[G_RMOD] ? 64 + song.g[G_RMOD] * song.g[G_RMOD] * 4 : 0;   /* Q8 samples: 0.25 .. 252 (~5.7 ms) */
     fx.rm_ph += LFO_INC[song.g[G_RRATE] & 127];
     for (k = 0; k < 4u; k++) {
@@ -1246,7 +1246,7 @@ static __attribute__((noinline)) void rev_spring_side(uint32_t n, int32_t wd)
  *                (MOD: the more, the oftener) an octave up / down or a fifth up; RATE their density, DAMP the tone,
  *                WIDE them left and right. SIZE full: FREEZE (the line stops being written: the cloud holds) */
 static uint32_t scale_mask(const track_t *t);           /* seq.c */
-#define SH_LEN 1024u
+#define SH_LEN 2048u
 static int16_t shim_buf[SH_LEN] __attribute__((section(".pool")));
 static int32_t shim_fb[CTL];
 /* (0.6.12) AIR (G_RPRE on SHIMMER and CLOUD, -24..24 st): the pitch moved, the tone with it. A semitone count as a
@@ -1562,7 +1562,7 @@ static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t 
      * Feedback 0.366: three clear notches, still inside the stable all-pass range. */
     int32_t d = clamp(depth, 0, 12192);
     int32_t sweep, a, v, y2 = 0, k, tgt, step;
-    step = 128;
+    step = 256;
     if (fx_ph_d < d)
         fx_ph_d = d - fx_ph_d < step ? d : fx_ph_d + step;
     else if (fx_ph_d > d)
@@ -2145,7 +2145,6 @@ static int mc_run(void (*f)(uint32_t), uint32_t a)      /* (the host: at once, a
 }
 static int mc_wait(void) { return 0; }
 #define mc_live() (mc_host != 0)
-#include "rev_damp_table.h"
 #endif
 static volatile uint8_t mc_off;                          /* REC held at power-on: one core this session (main.c) */
 static volatile int8_t mc_cur = -1;                      /* the part core 1 is in (a job given up: its matrix put back) */

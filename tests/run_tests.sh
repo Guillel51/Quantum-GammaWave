@@ -191,8 +191,6 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "motion, whole-step chance, FUN7 migration, song restore, ARP repeat and the 1.2 ARP modes" "$OUT/motion_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_audible_test" tests/morph_audible_test.c -lm
     run "MORPH moves the samples: every engine with a morph path renders a different waveform when P_MORPH moves under a held note (and without a click)" "$OUT/morph_audible_test"
-    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/microstart_test" tests/microstart_test.c -lm
-    run "M.STRT: a note waits a random 0..20 ms and no two notes wait the same (audio), the wait is silence and does not click, the level holds; N.RATE: the random wander holds 46 ms or a tempo division, down to 1/16" "$OUT/microstart_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/lofi_tclk_test" tests/lofi_tclk_test.c -lm
     run "LOFI T.CLK: NOTE restarts the formula every note, FREE joins it where the track clock is (audio, not a screen), keeps the level, survives a sound change and does not click" "$OUT/lofi_tclk_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm

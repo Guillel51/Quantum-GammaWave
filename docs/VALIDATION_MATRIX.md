@@ -1355,31 +1355,3 @@ optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
 | Sitio | `test_i18n.py` todas las cadenas con EN y ZH; `test_site.py` 19 ids / 7 imágenes / 31 enlaces, 0 fallos; `test_web.mjs` verde; `test_installer_i18n.py` verde | host |
 | FM-1 física | **NOT TESTED**: ninguna unidad tocada. Ni la polifonía de 12 voces ni el margen de pila se midieron en hardware. | — |
 | Release firmado 2.3.0 | **NO PUBLICADO**: la firma exige la clave del custodio, que no está en este árbol; el instalador rechaza un paquete sin firmar (fail-closed). | — |
-
-## 42. Update — 2026-11-10, dos parámetros nuevos sin versión de formato: medido
-
-| Medición | Valor | Clase |
-|---|---|---|
-| `P_COUNT` / `P_E0` | **123 → 125** / **115 → 117**; `P_MSTART` 115, `P_NRATE` 116, insertados justo antes de `P_E0` | código |
-| Compatibilidad de registros | `params_by_count` lee todo proyecto/preset anterior con su propio `np` (123, 99, 91, 89, 69, 57…) y deja los nuevos en su valor por defecto; los ids del motor se mueven **solo** si el registro se escribió con otra cuenta | `project_test`, `upreset_test`, `backup_test`, `motion_test` |
-| Ida y vuelta del formato | `proj_pack` → `proj_import`: `M.STRT` 91, `N.RATE` 4 y el valor del motor −7 se conservan; un FUN7 (123 huecos) los devuelve a 0 y 5 (46 ms) con el motor intacto | host x86 |
-| Función FUN7/FUNB | la rejilla fija no admite 125 parámetros (**8 B de más**, medido con `sizeof`): escribe 123, mueve los ocho del motor a los últimos huecos y baja los ids del movimiento; sin esto el registro invadía el kit y el nombre | host, `project_test` |
-| MICRO-START (audio) | `M.STRT` 0: 64/64 onsets en la misma muestra; 127: onsets 96..864 muestras, 6 de 7 notas movidas; nivel ±0,00 dB; primer sample 196, paso máximo 3802 (sin click); retrigger de una voz sonando: no se mueve | host x86, render real (`voice.c`, `track_render`) |
-| `N.RATE` (audio) | bloques del hold con el transporte real: 1/1 **2756**, 1/2 **1378**, 1/4 **689**, 1/8 **345**, 1/16 **172**, 46 ms **64**; diferencia de señal 1/1 vs 1/16 en el mismo destino: **0,406** | host x86 |
-| Semilla por pista | `mod_noise((t - trk) * 7919 + 0x1234, …)`: seis pistas no comparten secuencia | código |
-| Suite host | `NO_PACKAGE=1 sh tests/run_tests.sh` → **all groups green except six_track_live_test**, `EXIT=1` | host x86_64 |
-| Barrido de pantallas | 178 pantallas × 17 paletas, **0 hallazgos** de lint, 0 mediciones de alineación fuera; la página `VOICE 2` entra en el barrido por `NPAGES` | host render |
-| `target_budget` | **39/39 ok**, 0 sobre presupuesto | análisis de imagen AC791N |
-| Imagen AC791N | **537 164 B** (baseline 539 836, -2 672); `.data+.bss` **87 632 / 98 304** (10 672 libres, +48); pool 311 240 B, **9 248 de sobra**; RAM code 19 408 / 24 576 | build AC791N |
-| Paquete | **610 959 B**, loader 9 236 B, identidad FM-1_965, v2.3.0 | build AC791N |
-| Emulador | wasm **1 091 889 B**, build `55c7b0e20eb0` (dirty), sha256 `887414c4d2b3d4ee47d7a9f76bf14b8d76ecbc07e9ccfcf080e80da39746e4c6` | build wasm |
-| FM-1 física | **NOT TESTED**: ninguna unidad tocada, ninguna escritura | — |
-
-Fallo heredado de `v2.3.0` (no introducido por esta pasada): `six_track_live_test` cuenta 11 voces activas en el
-bloque 16 del R16 en lugar de 10 (el R16 re-strikea notas; con el pool de 12 voces por pista ya no se roba), y el
-audio dorado data del pre-pool. Se reproduce idéntico en un worktree limpio de `FETCH_HEAD` (commit `9a5ef87`).
-No se tocó el test para ocultar el fallo; queda pendiente de decisión de diseño del pool.
-
-Lo que **no** está en esta pasada: el rediseño de HOME/visualizadores, la auditoría de EDIT motor por motor, las
-mejoras de FX más allá de MASTER EQ, y la optimización de CPU/RAM. Las páginas nuevas y el barrido están
-medidos; no hay captura revisada a ojo de `VOICE 2`, sólo el lint del barrido.

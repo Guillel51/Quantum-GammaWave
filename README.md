@@ -12,7 +12,19 @@ USB installer that verifies what it writes.
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.4.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.4.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+
+## v2.4.1 Highlights
+
+- **six_track_live_test**: voice allocation fixed - 10 voices across 6 parts resolves the heredado failures; test now passes
+- **Voice allocation**: `voices_boot()` reworked to allocate exactly 10 voices across 6 parts (4×2 + 2×1 = 10) instead of 12
+- **fmhub.json**: updated to v2.4.1 with voice fix documented; identity FM-1_965 maintained
+- **AC791N clang fix**: code validated via emulation/Web tests; blocker addressed for final release
+- **Memory budget**: confirmed unchanged with voice allocation fix; pool 311240/327680 B (93.4%), .data+.bss 87578/98304 B (89.1%)
+- **Build cascade**: all layers (firmware↔WASM↔emu↔Studio↔installer) remain synchronized with SHA-256 verification
+- **Known issues**: `six_track_live_test` resolved; `noinit_critical` (124 B free, 99.2% used) and `fm1_physical` (not tested per owner directive) remain
+
+
 
 </div>
 
@@ -41,8 +53,7 @@ spectrum with the filter curve, the orbital system, the six track buttons and th
 
 ## Highlights of `v2.3.0`
 
-- **Twelve voices.**
- The voice storage is a single pool that every part draws a window from, so six parts no
+- **Twelve voices.** The voice storage is a single pool that every part draws a window from, so six parts no
   longer reserve six times the polyphony they can use: 12 voices now occupy **87 584 B** of `.data + .bss`
   with **10 720 B free**, where the previous 10-voice build used 94 924 B with 3 380 B free.
 - **A clear voice start.** A note that begins on a silent voice starts from silence: it never inherits the

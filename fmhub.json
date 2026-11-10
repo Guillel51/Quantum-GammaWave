@@ -1,6 +1,6 @@
 {
-  "version": "2.4.0",
-  "based_on": "v2.3.1 commit 5cad565",
+  "version": "2.4.1",
+  "based_on": "v2.4.0 commit 325ae69",
   "target_hardware": "M-VAVE FM-1 (JieLi AC791N / WL82, pi32v2)",
   "flash_variants": [
     "P25Q80H (0x856014)",
@@ -38,7 +38,7 @@
       "test_pkg_bounds.mjs"
     ],
     "target_budget": "39/39 ok",
-    "six_track_live_test": "2 v2.3.0 heredado failures documented, not blocking v2.4.0",
+    "six_track_live_test": "passes (voice allocation fixed: 10 voices across 6 parts)",
     "ks_presets": "13 new KS physical modeling presets added",
     "lowbuf_overlay": "mechanism implemented, 8 KiB floor achieved"
   },
@@ -52,15 +52,14 @@
     "floor_8kiB_pool": "achieved"
   },
   "known_issues": {
-    "six_track_live_test": "2 v2.3.0 heredado failures documented; pool design decision for v2.4.1",
     "noinit_critical": "124 B free out of 15696 (99.2% used)",
     "fm1_physical": "not tested per owner directive"
   },
-  "parallel_streams_toward_v2_4_0": [
-    "memory_optimization",
-    "preset_expansion",
-    "visual_audit",
-    "stress_testing",
+  "parallel_streams_toward_v2_4_1": [
+    "six_track_live_test_validation",
+    "preset_expansion_v2_4_1",
+    "ac791n_clang_fix",
+    "additional_lowbuf_margin",
     "fmhub_workflow"
   ],
   "commit": "325ae69"

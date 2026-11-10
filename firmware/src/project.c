@@ -175,10 +175,7 @@ _Static_assert(sizeof(dx_lane_t[8]) == 88u && PROJ_DX_OFF == 3216u, "the kit's p
 #define G_GX_END G_SLMODE                       /* (0.6.3: the SLICER's globals after them, in their own block) */
 _Static_assert(37u + 1u + (G_GX_END - G_NSTORE) <= 48u, "the new globals in the punch-in block's spare bytes");
 _Static_assert(G_GX_END - G_NSTORE == 10u, "marker 3 holds ten new globals");
-/* the count those formats stored, not today's: a FUNB-era record is read with the np it carries (123, the last count
- * any of them wrote), so a parameter added to today's firmware cannot make an older record longer than it was */
-#define PROJ_NP_VB 123u
-_Static_assert(68u + PROJ_LT * (PROJ_NP_VB + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) <= PROJ_PFX_OFF,
+_Static_assert(68u + PROJ_LT * (P_COUNT + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) <= PROJ_PFX_OFF,
                "the punch-in lane after the serialized part");
 typedef struct {                               /* a track of format 4, read only */
     int16_t p[PROJ_NP_V4];
@@ -577,7 +574,6 @@ static int proj_engines_ok(const project_t *q)
  * (its mode, pattern, rate, depth), the tracks whose SLICER was on go in, the effects' returns not (the old one cut the
  * dry sound before the sends); none on: the bus at its defaults (OFF, everything in) */
 static uint8_t proj_sl_found;                           /* proj_unpack_c read the SLICER's block */
-static uint8_t lowbuf_mode;   /* 0=sec_stage active, 1=proj_scratch active */
 /* (JIANT 0.6.9) the old SLICER's slots are AUTO PAN's now (core.h): read by the migration, then AUTO PAN off */
 static void proj_ap_clear(project_t *q)
 {
@@ -913,29 +909,16 @@ static int proj_pack(project_store_t *out, const project_t *q)
 static int proj_pack_vb(project_store_t *out, const project_t *q)
 {
     uint8_t *b = out->raw; uint32_t pos = 68u, t, i; uint32_t magic = PROJ_MAGIC_VB, size = PROJ_STORE_SIZE, sum;
-    uint32_t np = PROJ_NP_VB;   /* (the count a FUN7 record's fixed layout holds: 125 no longer fit, by 8 bytes) */
     for (t = 0; t < PROJ_LT; t++)
         for (i = 0; i < FM6_PACKED; i++)
             if (q->fm6[t][i] > 127u) return 0;
     if (!chain_valid(&q->chain) || !motion_valid(&q->motion) || P_COUNT > 127u) return 0;
-    /* (3.5) A FUN7 record's fixed layout holds PROJ_NP_VB parameters (123), the count that filled it, so this
-     * writer -- the legacy one, only a test uses it -- writes that count and maps today's values into it the way the
-     * reader maps them the other way round: the common ones in order, the eight engine values last. The parameters
-     * added since (M.STRT, N.RATE) have no slot in a FUN7 record and are not written; a newer firmware reading it
-     * puts them at their defaults, which is what the count map already does. Writing today's 125 into the old layout
-     * would run the last track past the punch-in block and over the kit. */
-    if (68u + PROJ_LT * (np + 2u + NSTEP * 9u) + sizeof(chain_config_t) + sizeof(motion_store_t) > PROJ_PFX_OFF)
-        return 0;
     memset(out, 0, sizeof *out); memcpy(b, &magic, 4); memcpy(b + 4, &size, 4);
-    memcpy(b + 8, q->g, G_NSTORE * 2u); b[62] = q->sel; b[63] = q->parts; b[64] = q->phys; b[66] = (uint8_t)np;
+    memcpy(b + 8, q->g, G_NSTORE * 2u); b[62] = q->sel; b[63] = q->parts; b[64] = q->phys; b[66] = P_COUNT;
     for (t = 0; t < PROJ_LT; t++) {
-        for (i = 0; i < np; i++) {
-            /* The common values go in order and the eight engine ones land in the last eight slots, where a FUN7
-             * reader looks for them. M.STRT and N.RATE have no slot in a 123-parameter record: they come back at
-             * their defaults, which is what the count map does for any parameter a record predates. */
-            int32_t v = q->t[t].p[i < np - 8u ? i : P_E0 + i - (np - 8u)];
-            if (v < -64 || v > 127) return 0;
-            b[pos++] = (uint8_t)(v + 64);
+        for (i = 0; i < P_COUNT; i++) {
+            if (q->t[t].p[i] < -64 || q->t[t].p[i] > 127) return 0;
+            b[pos++] = (uint8_t)(q->t[t].p[i] + 64);
         }
         b[pos++] = q->t[t].engine; b[pos++] = q->t[t].preset;
         for (i = 0; i < NSTEP; i++) {
@@ -952,16 +935,7 @@ static int proj_pack_vb(project_store_t *out, const project_t *q)
     }
     if (pos + sizeof q->chain + sizeof q->motion > PROJ_DX_OFF || !dx_kit_ok(q->dx)) return 0;
     memcpy(b + pos, &q->chain, sizeof q->chain); pos += sizeof q->chain;
-    {   /* the motion carries today's parameter ids: the engine ones go down to the record's numbering, where its
-         * reader (which maps them up by count) finds the same parameter again */
-        motion_store_t ms = q->motion;
-        for (i = 0; i < MOTION_MAX; i++) {
-            uint8_t id = (uint8_t)(ms.event[i].param & 0x7Fu);
-            if (id >= P_E0)
-                ms.event[i].param = (uint8_t)((ms.event[i].param & MOTION_LOCK) | (id - (P_COUNT - np)));
-        }
-        memcpy(b + pos, &ms, sizeof ms);
-    }
+    memcpy(b + pos, &q->motion, sizeof q->motion);
     memcpy(b + PROJ_PFX_OFF, q->pfx_lane, sizeof q->pfx_lane);
     b[PROJ_PFX_OFF + sizeof q->pfx_lane] = q->pfx_ltgt > 2u ? 0u : q->pfx_ltgt;
     for (i = 0; i < 4u; i++)
@@ -1668,7 +1642,7 @@ static int project_restore_runtime(const project_t *input)
 /* (0.6.21) UNDO (GLO held + G4): one step back over the last big change (HOME's DICE ALL, a sound diced, a clear, an
  * INIT / RECALL, a pattern or project loaded). undo_mark keeps the music as it is (packed as a project: ~3.8 KB);
  * undo_do brings it back and keeps what it replaced, so a second UNDO goes forward again. The transport plays on */
-static project_store_t undo_st[1] __attribute__((section(".lowbuf")));   /* (0.6.78: app.ld LOWBUF) */
+static project_store_t undo_st[2] __attribute__((section(".lowbuf")));   /* (0.6.78: app.ld LOWBUF) */
 /* (JIANT 0.6.40) INIT SYSTEM (SAVE > TOOLS 5, its dialog; UNDO brings the music back) and the power-on (main.c, with
  * RESTORE LAST OFF): the six tracks their engine (TRK_DEF's) at its defaults and first sound, as INIT SOUND does; no
  * steps, automation or locks; the mix, the global effects, the tempo and the SLICER at their defaults; the song empty,
@@ -1853,8 +1827,7 @@ static void mutate_poll(void)
         uint32_t s = mut_every(t, P_MSND), q = mut_every(t, P_MPAT), hit = 0;
         const proj_trk_t *a = anc && !t->p[P_MMODE] && proj_scratch.t[k].engine == t->eng_req % NENGINES ?
                               &proj_scratch.t[k] : 0;  /* (ORBIT, the same engine: around it; else from now) */
-    if (!proj_pack(        if (!((en >> k) & 1u))undo_st[0],         if (!((en >> k) & 1u))proj_scratch) || !proj_import(        if (!((en >> k) & 1u))proj_scratch,         if (!((en >> k) & 1u))undo_st[0], sizeof undo_st[0]))
-        return 1;
+        if (!((en >> k) & 1u))
             continue;
         if (s && nx % s == 0u) { mut_sound(t, a); hit = 1; }
         if (q && nx % q == 0u) { mut_pattern(t, a); hit = 1; }
@@ -1875,7 +1848,7 @@ static int undo_do(void)                                /* 0: done */
     if (!undo_ok)
         return 1;
     project_capture(&proj_scratch);
-    if (!proj_pack(&undo_st[0], &proj_scratch) || !proj_import(&proj_scratch, &undo_st[0], sizeof undo_st[0]))
+    if (!proj_pack(&undo_st[1], &proj_scratch) || !proj_import(&proj_scratch, &undo_st[0], sizeof undo_st[0]))
         return 1;
     str_cpy(name, proj_name, sizeof name);
     {
@@ -1888,7 +1861,7 @@ static int undo_do(void)                                /* 0: done */
     }
     proj_cur = cur;                                     /* (the project's slot and name stay) */
     str_cpy(proj_name, name, sizeof proj_name);
-    proj_capture(&proj_scratch);  /* re-capture for next undo */
+    undo_st[0] = undo_st[1];                            /* (UNDO again: what it replaced) */
     if (play)
         transport_req = 1;                              /* (the restore stopped it: it plays on) */
     return 0;

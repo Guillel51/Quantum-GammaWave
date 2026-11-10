@@ -138,9 +138,6 @@ enum {                          /* per-track parameters */
     P_MS0, P_MS15 = P_MS0 + 15,                /* rate and slew, its 16 levels */
     P_FTYPE,                                   /* (JIANT 0.5) the filter's type: LP HP BP COMB (eng_analog.c, voice.c) */
     P_FCUT, P_FRES,                            /* .. every other engine's: a filter on the part's sum (voice.c track_filter) */
-    P_MSTART, P_NRATE,                         /* (3.5) last of the common ones, as the count map wants them: M.STRT, a
-                                               * note starts a little late, at random (voice.c); N.RATE, how long the
-                                               * random wander (mod.c MS_NOISE) holds a point */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,
     P_COUNT
 };
@@ -347,7 +344,6 @@ typedef struct {
     uint32_t ph[3];
     int32_t s[8];                /* engine state (filters, envs) */
     uint32_t age;
-    uint8_t mstart;              /* (3.5) M.STRT: blocks of silence before this note's first sample (0: none) */
     uint8_t mvel;                /* mod.c: the note-on velocity (before UNISON scaling) and RAND of the note */
     uint8_t pat;                 /* (QG-1 1.6) this key's polyphonic aftertouch (MIDI 0xA0), 0 = none */
     uint8_t gacc;                /* (0.6.82) the glide's fraction of a 1/16 st carried (gstep Q8) */

@@ -133,14 +133,14 @@ static uint32_t gated(const track_t *t)
 {
     uint32_t i, n = 0;
     for (i = 0; i < NVOICE; i++)
-        n += V(t, i).gate != 0;
+        n += t->v[i].gate != 0;
     return n;
 }
 static int gated_note(const track_t *t, uint32_t note)
 {
     uint32_t i;
     for (i = 0; i < NVOICE; i++)
-        if (V(t, i).gate && V(t, i).note == note)
+        if (t->v[i].gate && t->v[i].note == note)
             return 1;
     return 0;
 }
@@ -150,9 +150,9 @@ static int stray(const track_t *t)
 {
     uint32_t i, k;
     for (i = 0; i < NVOICE; i++) {
-        if (!V(t, i).gate)
+        if (!t->v[i].gate)
             continue;
-        for (k = 0; k < t->seq_n && t->seq_notes[k] != V(t, i).note; k++)
+        for (k = 0; k < t->seq_n && t->seq_notes[k] != t->v[i].note; k++)
             ;
         if (k == t->seq_n)
             return 1;

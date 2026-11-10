@@ -69,14 +69,6 @@ static int song_stage(uint32_t s, uint32_t row)
     if (!proj_import(p, &proj_slot[s & 3u], sizeof(project_store_t)))
         return 1;
     sec_stage.ready = 0;
-
-/* LOWBUF overlay: switch based on lowbuf_mode */
-if (lowbuf_mode) {
-    /* proj_scratch has .lowbuf, sec_stage uses fallback in .pool */
-    sec_stage = sec_stage_fb;
-} else {
-    /* sec_stage has .lowbuf, proj_scratch falls back to proj_slot */
-}
     for (k = 0; k < NTRK; k++) {
         sec_trk_t *d = &sec_stage.t[k];
         const proj_trk_t *t = &p->t[k];

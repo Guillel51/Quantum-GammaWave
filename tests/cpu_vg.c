@@ -111,7 +111,7 @@ int main(void)
         vg_section(name);
         if (!i) {                                   /* (a self-check: the part does sound) */
             uint32_t k, n = 0;
-            for (k = 0; k < NVOICE; k++) n += V(&trk[0], k).active;
+            for (k = 0; k < NVOICE; k++) n += trk[0].v[k].active;
             if (n < 4u) { printf("cpu_vg: the part does not sound (%u voices)\n", n); return 1; }
         }
     }

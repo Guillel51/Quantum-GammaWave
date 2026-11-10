@@ -18,9 +18,6 @@ static const uint16_t DTIME_MS[48] = {5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 17, 19,
 static const char *const N_SCALE[] = {"CHR", "MAJ", "MIN", "DOR", "MIX", "PEN", "MPEN", "HARM",
                                     "PHRY", "LYD", "LOC", "MEL", "BLUES", "WHOLE", "DIMHW", "DIMWH"};
 static const char *const N_ONOFF[] = {"OFF", "ON"};
-static const char *const N_NRATE[] = {"1/1", "1/2", "1/4", "1/8", "1/16", "46ms"};   /* (3.5) mod.c MS_NOISE's hold:
-                                     * the tempo's grid, then the free 46 ms it always was (the default, last so the
-                                     * editor's list order is the knob's) */
 static const char *const N_DLYTYPE[] = {"ANALOG", "DIGITAL", 0};   /* (0.6.90) DLY 3 > TYPE */
 static const char *const N_EQMODE[] = {"OFF", "PEAK", "NOTCH", "LOWSH", "HIGHSH", 0};
 static const char *const N_CHOTYPE[] = {"CHORUS", "PHASER", 0};   /* (QG-1) CHORUS > TYPE */
@@ -101,8 +98,6 @@ static const param_desc_t TP[P_COUNT] = {
     [P_GLIDE] = PD("GLIDE", F_TIME, 0, 127, 0),
     [P_GLMODE] = PE("MODE", N_GLMODE, 0),
     [P_PRIO] = PE("PRIO", N_PRIO, 0),
-    [P_MSTART] = PD("M.STRT", F_PCT, 0, 127, 0),     /* (3.5) 0: every note starts at once, as before */
-    [P_NRATE] = PE("N.RATE", N_NRATE, 5),            /* (3.5) the random wander's hold: 46 ms, tempo-synced */
     [P_ALLOC] = PE("ALLOC", N_ALLOC, 0),
     [P_DETUNE] = PD("DETUNE", F_INT, 0, 127, 40),
     [P_PAN] = PD("PAN", F_BIPCT, -64, 63, 0),
@@ -583,8 +578,6 @@ static const page_t PAGES[] = {
     {"OP4 ENV", FAM_EDIT, SC_TRACK, GR_ADSR, {P_FM4_ATK, P_FM4_DEC, P_FM4_SUS, P_FM4_REL}},
     {"OP LEVEL", FAM_EDIT, SC_TRACK, GR_NONE, {P_FM1_LEVEL, P_FM2_LEVEL, P_FM3_LEVEL, P_FM4_LEVEL}},
     {"VOICE", FAM_EDIT, SC_TRACK, GR_NONE, {P_VOICE, P_GLIDE, P_GLMODE, P_PRIO}},
-    {"VOICE 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_MSTART, P_NRATE, 0xFF, 0xFF}},   /* (3.5) the note's start scatter and
-                                                 * the random source's rate: how a part varies from note to note */
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, G_TUNE}},
     {"SYSTEM", FAM_GLO, SC_GLOBAL, GR_NONE, {G_TRKS, G_LOADP, G_ROUTE, G_INFO}},   /* (0.6.18) TRACKS 4 / 6; (0.6.30)
                                                          * LOAD ECO / LITE / FULL (the USB card: the header's icon) */
