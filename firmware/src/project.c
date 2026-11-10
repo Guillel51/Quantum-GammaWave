@@ -577,6 +577,7 @@ static int proj_engines_ok(const project_t *q)
  * (its mode, pattern, rate, depth), the tracks whose SLICER was on go in, the effects' returns not (the old one cut the
  * dry sound before the sends); none on: the bus at its defaults (OFF, everything in) */
 static uint8_t proj_sl_found;                           /* proj_unpack_c read the SLICER's block */
+static uint8_t lowbuf_mode;   /* 0=sec_stage active, 1=proj_scratch active */
 /* (JIANT 0.6.9) the old SLICER's slots are AUTO PAN's now (core.h): read by the migration, then AUTO PAN off */
 static void proj_ap_clear(project_t *q)
 {
@@ -1667,7 +1668,7 @@ static int project_restore_runtime(const project_t *input)
 /* (0.6.21) UNDO (GLO held + G4): one step back over the last big change (HOME's DICE ALL, a sound diced, a clear, an
  * INIT / RECALL, a pattern or project loaded). undo_mark keeps the music as it is (packed as a project: ~3.8 KB);
  * undo_do brings it back and keeps what it replaced, so a second UNDO goes forward again. The transport plays on */
-static project_store_t undo_st[2] __attribute__((section(".lowbuf")));   /* (0.6.78: app.ld LOWBUF) */
+static project_store_t undo_st[1] __attribute__((section(".lowbuf")));   /* (0.6.78: app.ld LOWBUF) */
 /* (JIANT 0.6.40) INIT SYSTEM (SAVE > TOOLS 5, its dialog; UNDO brings the music back) and the power-on (main.c, with
  * RESTORE LAST OFF): the six tracks their engine (TRK_DEF's) at its defaults and first sound, as INIT SOUND does; no
  * steps, automation or locks; the mix, the global effects, the tempo and the SLICER at their defaults; the song empty,
@@ -1852,7 +1853,8 @@ static void mutate_poll(void)
         uint32_t s = mut_every(t, P_MSND), q = mut_every(t, P_MPAT), hit = 0;
         const proj_trk_t *a = anc && !t->p[P_MMODE] && proj_scratch.t[k].engine == t->eng_req % NENGINES ?
                               &proj_scratch.t[k] : 0;  /* (ORBIT, the same engine: around it; else from now) */
-        if (!((en >> k) & 1u))
+    if (!proj_pack(        if (!((en >> k) & 1u))undo_st[0],         if (!((en >> k) & 1u))proj_scratch) || !proj_import(        if (!((en >> k) & 1u))proj_scratch,         if (!((en >> k) & 1u))undo_st[0], sizeof undo_st[0]))
+        return 1;
             continue;
         if (s && nx % s == 0u) { mut_sound(t, a); hit = 1; }
         if (q && nx % q == 0u) { mut_pattern(t, a); hit = 1; }
@@ -1873,7 +1875,7 @@ static int undo_do(void)                                /* 0: done */
     if (!undo_ok)
         return 1;
     project_capture(&proj_scratch);
-    if (!proj_pack(&undo_st[1], &proj_scratch) || !proj_import(&proj_scratch, &undo_st[0], sizeof undo_st[0]))
+    if (!proj_pack(&undo_st[0], &proj_scratch) || !proj_import(&proj_scratch, &undo_st[0], sizeof undo_st[0]))
         return 1;
     str_cpy(name, proj_name, sizeof name);
     {
@@ -1886,7 +1888,7 @@ static int undo_do(void)                                /* 0: done */
     }
     proj_cur = cur;                                     /* (the project's slot and name stay) */
     str_cpy(proj_name, name, sizeof proj_name);
-    undo_st[0] = undo_st[1];                            /* (UNDO again: what it replaced) */
+    proj_capture(&proj_scratch);  /* re-capture for next undo */
     if (play)
         transport_req = 1;                              /* (the restore stopped it: it plays on) */
     return 0;

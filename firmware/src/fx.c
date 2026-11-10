@@ -1077,7 +1077,7 @@ static int32_t rev_size(void)
 static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *out, uint32_t n)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200;
+    int32_t size = rev_size(), damp = rev_damp_table[song.g[G_RDAMP]];
     for (i = 0; i < n; i++) {
         int32_t a = 0;
         int16_t *c = rev_comb;
@@ -1113,7 +1113,7 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
 static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200, m1[4], dm[4];
+    int32_t size = rev_size(), damp = rev_damp_table[song.g[G_RDAMP]], m1[4], dm[4];
     int32_t depth = song.g[G_RMOD] ? 64 + song.g[G_RMOD] * song.g[G_RMOD] * 4 : 0;   /* Q8 samples: 0.25 .. 252 (~5.7 ms) */
     fx.rm_ph += LFO_INC[song.g[G_RRATE] & 127];
     for (k = 0; k < 4u; k++) {
@@ -1562,7 +1562,7 @@ static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t 
      * Feedback 0.366: three clear notches, still inside the stable all-pass range. */
     int32_t d = clamp(depth, 0, 12192);
     int32_t sweep, a, v, y2 = 0, k, tgt, step;
-    step = 256;
+    step = 128;
     if (fx_ph_d < d)
         fx_ph_d = d - fx_ph_d < step ? d : fx_ph_d + step;
     else if (fx_ph_d > d)
@@ -2145,6 +2145,7 @@ static int mc_run(void (*f)(uint32_t), uint32_t a)      /* (the host: at once, a
 }
 static int mc_wait(void) { return 0; }
 #define mc_live() (mc_host != 0)
+#include "rev_damp_table.h"
 #endif
 static volatile uint8_t mc_off;                          /* REC held at power-on: one core this session (main.c) */
 static volatile int8_t mc_cur = -1;                      /* the part core 1 is in (a job given up: its matrix put back) */

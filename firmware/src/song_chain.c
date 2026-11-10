@@ -72,6 +72,12 @@ static struct {
     volatile uint8_t ready;           /* main: staged; ISR: taken (0) */
     uint8_t row, section;             /* the song row it is for (SEC_LIVE: a live jump), the section (0..3) */
 } sec_stage __attribute__((section(".lowbuf")));   /* (0.6.78: app.ld LOWBUF) */
+
+/* LOWBUF overlay fallback: when lowbuf_mode=1, sec_stage uses this instead of .lowbuf */
+static sec_stage_t sec_stage_fb __attribute__((section(".pool")));   /* fallback in .pool, frees .lowbuf for proj_scratch when mode=1 */
+
+/* LOWBUF overlay: when lowbuf_mode=1, proj_scratch uses .lowbuf and sec_stage falls back here */
+static sec_stage_t sec_stage_fb;   /* fallback: same size, in .pool instead of .lowbuf */
 static struct {
     chain_config_t config;
     volatile uint8_t armed, running, row, remaining;   /* remaining: the bars of the row still to play */

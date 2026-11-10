@@ -51,7 +51,7 @@ static const engine_t *const ENGINES[NENGINES] = {
 #endif
     &ENG_PHASE,                  /* 2 */
     &ENG_LOFI,                   /* 3 */
-    &ENG_GONE,                   /* 4: reserved (SAMPLE, retired in JIANT) */
+    &ENG_KS,                      /* 4: KS physical modeling - plucked strings */
     &ENG_FORMANT,                /* 5 VOICE (eng_formant.c: "voice" is a sounding note in voice.c) */
     &ENG_GONE,                   /* 6: reserved (TRIO, folded into ANALOG in JIANT 0.4: core.h analog_from_trio) */
     &ENG_WHEEL,                  /* 7 */

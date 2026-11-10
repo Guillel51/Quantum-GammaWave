@@ -1,0 +1,68 @@
+{
+  "version": "2.4.0-dev",
+  "based_on": "v2.3.1 commit 5cad565",
+  "target_hardware": "M-VAVE FM-1 (JieLi AC791N / WL82, pi32v2)",
+  "flash_variants": [
+    "P25Q80H (0x856014)",
+    "UCUN UC25HQ80 (0xB36014)"
+  ],
+  "identity": "FM-1_965",
+  "license": "GPL-3.0-only",
+  "builds": {
+    "firmware": {
+      "commit": "5cad565",
+      "image_size_b": 537164,
+      "data_bss_b": 87578,
+      "pool_free_b": 21536,
+      "xip_free_b": 64416,
+      "ac791n": true,
+      "wasm": true,
+      "overlay_available": true
+    },
+    "wasm": {
+      "size_b": 1091889,
+      "sha256": "cd20388c1f31ac37c225f74880db3a72848125ea31b3c683a832d6c7147fef3e",
+      "v2": "3.1"
+    },
+    "package": {
+      "size_b": 610959,
+      "loader_b": 9236,
+      "identity": "FM-1_965"
+    }
+  },
+  "test_suite": {
+    "host_suite": "all green except six_track_live_test (2 v2.3.0 heredados)",
+    "web_tests": [
+      "test_web.mjs",
+      "test_backup.mjs",
+      "test_pkg_bounds.mjs"
+    ],
+    "target_budget": "39/39 ok",
+    "six_track_live_test": "pending pool design decision v2.4.0",
+    "ks_presets": "13 new KS physical modeling presets added",
+    "lowbuf_overlay": "mechanism implemented (lowbuf_mode flag)"
+  },
+  "memory_budget": {
+    "pool_usage_percent": 93.4,
+    "ram_data_bss_percent": 89.1,
+    "xip_usage_percent": 88.9,
+    "noinit_free_b": 124,
+    "lowbuf_free_b": 8803,
+    "ramcode_free_b": 5308,
+    "floor_8kiB_pool": "marginal but maintained"
+  },
+  "known_issues": {
+    "six_track_live_test": "2 failures from v2.3.0: 11 voices vs 10 in R16 block 16; golden audio pre-pool",
+    "noinit_critical": "124 B free out of 15696 (99.2% used)",
+    "fm1_physical": "not tested per owner directive"
+  },
+  "parallel_streams_toward_v2_4_0": [
+    "dsp_fx_audit",
+    "memory_optimization",
+    "preset_expansion",
+    "origin_guardian",
+    "visual_audit",
+    "stress_testing",
+    "fmhub_workflow"
+  ]
+}

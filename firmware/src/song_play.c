@@ -41,6 +41,7 @@ static void sec_apply(void)
     motion_base_valid = 0;
     live.cur = (int8_t)sec_stage.section;
     sec_stage.ready = 0;
+    lowbuf_mode = 0;   /* 0=sec_stage active */
     chain.applied = 1;
 }
 /* (JIANT) the scene in effect onto what the section brought: its mutes; a row's own scene also the macros and the
