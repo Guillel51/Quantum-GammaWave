@@ -21,6 +21,25 @@
   pública está limitada por IP; lo verificado es el resultado (Release con los bytes correctos, sitio sirviendo
   2.1.1), no el color de los runs. No se reporta como verde lo que no se pudo leer.
 
+## 2026-11-10 — EDIT: LOFI estrena panel propio, MORPH dice dónde está
+
+- **LOFI EDIT ya no es el panel genérico.** Sus dos páginas (`CHIP` y `TONE`) caían en el "being" que comparten
+  casi todos los motores (WAVE 1 / WAVE 2 / MIXER), que no distingue un chip de un órgano. Ahora dibujan lo que
+  este motor es, y sólo con los parámetros que el DSP lee: la traza real de la salida, el conversor y la forma
+  de onda **por su nombre** (tomados de los propios descriptores EDIT del motor, así que una forma nueva no
+  obliga a tocar la UI), el ancho de pulso sobre su periodo, la escalera del crusher encendida hasta donde llega
+  `CRUSH`, y una línea de tiempo de `T.CLK` donde **`NOTE` reinicia la fase en cada nota** y **`FREE` la deja
+  correr** mientras la nota se suma. Es el mismo dato que ya sonaba: no se añadió ni un parámetro.
+- **MORPH: la posición, visible.** La curva ya era la mezcla real, pero el panel no decía cuánto del recorrido
+  A→B estaba hecho. El borde inferior del panel es ahora ese recorrido, con la marca en el punto del knob.
+- **Medido, no supuesto.** `tests/ui_render.c` incorpora `edit_lofi` y `edit_lofi_free`, así que el barrido
+  cubre las dos páginas y las dos posiciones de `T.CLK`: **176 pantallas × 17 paletas, 0 hallazgos** de lint, 0
+  tintas sobre su propio color, 0 píxeles fuera de gris/neutro, y **0 de 2 648 608** mediciones de alineación
+  desviadas. `regress`: **220 golden renders, 0 cambiados**. `ui_test` verde. Imagen AC791N **537 328 B**
+  (+828 B de código), RAM **94 924 B sin cambio**, POOL libre **9 248 B**, `target_budget` **39/39**.
+- **Lo que sigue pendiente, dicho:** el rediseño de maquetación de **FM6** y del resto de los motores, y la
+  matriz de trazabilidad completa. Se ven a Preview; el release instalable sigue siendo el **2.1.1** firmado.
+
 ## 2026-11-10 — v2.1.1 firmado y publicado: la clave ya no está donde se compila
 
 - **`release/felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`, identidad FM-1_982) está firmado** con
