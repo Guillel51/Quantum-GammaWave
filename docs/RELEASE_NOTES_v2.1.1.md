@@ -1,49 +1,38 @@
 # Quantum GammaWave v2.1.1
 
-**This release is not the installable channel.** It carries the WebAssembly emulator built from this
-tag's commit and the build record that describes it. The package a CI run builds carries no Ed25519
-signature — the private key lives off the repository — so the installer publishes it and refuses to write
-it. That is fail-closed by design.
+The site serves this build: the emulator at `/emulator/` and the package the installer offers are compiled
+from the same commit, and the emulator's footer prints its version, commit, build date, WASM SHA-256 and size.
+The installer checks the published SHA-256 and size before it writes, and the update loader reads the flash
+chip before it erases anything. Every version is built by CI from its tag (`release.yml`,
+`docs/RELEASE.es.md`), and this release carries `felucca-2.1.1.fwsc`, the app `.bin` and `SHA256SUMS`.
 
-**Installing a package means the signed release, `v1.9.0`**, at
-<https://guillel51.github.io/Quantum-GammaWave/release/>: that channel serves the signed package with its
-manifest, its record and the anchored key `qg1-release-1`. A signed `v2.1.1` needs the custodian's key.
+## What changed
 
-## What changed in 2.1.1
-
-`/release/` was refusing its own package. Its installer was told the emulator served beside it *was* the
-release; `fm1provenance.js` then compared that emulator's WASM hash with the one the signed build record
-names and concluded "the site mixes two builds". The record names 1 073 325 B of `3d039f75…`; the same
-commit rebuilt with the pinned Emscripten 6.0.11 and the same flags gives 1 073 325 B of `c83c8bfb…` — the
-same size and a different hash, because that build is not reproducible byte for byte.
-
-The channel's installer is now written without `--emu`: it holds the package to its signed record and to
-the anchored key, and claims nothing about a rebuilt emulator. The emulator still lives there, built from
-the same commit, with its own hash in the footer.
-
-Also in this release:
-
-- `tools/site_check.py --no-emulator`, so the release channel's gate checks its commit, its package bytes
-  and its pages instead of a pairing that channel does not make.
-- The dead `/preview/` step in `emulator.yml` is gone; it would have failed every deploy after publishing.
-- A per-version GitHub Release job: tag, wasm, manifest and `SHA256SUMS`, published once per version.
-
-Carried from 2.0: the SCL keys' 3 px corner, HOME's planets spinning on their own axis with a note
-lighting them, the Web Studio's view selector, and the two-channel site (this tree at `/`, the signed
-release at `/release/`).
-
-## Assets
-
-| File | What it is |
-|---|---|
-| `felucca.wasm` | The firmware compiled by Emscripten 6.0.11 at this tag's commit, unmodified. |
-| `manifest.json` | The emulator's own record: commit, version, Emscripten version, size, SHA-256. |
-| `SHA256SUMS` | The two files above. |
-
-Read the record first; it is the only thing here that says what the wasm is.
+- **HOME's planets turn, and it was checked in the browser.** Two captures of the panel 2.6 s apart: 602 of
+  57 600 pixels change, 595 of them inside the system bay. In a 300 ms window 427 pixels change inside that
+  bay — more than an orbit of 7–13 s per turn can move — so the surface is turning, not just the orbit.
+  Evidence: `docs/evidence/3.3/` (`home-rotation-1.png`, `home-rotation-2.png`, the cropped pair and the
+  difference image).
+- **SCL keys keep a 3 px corner**, not the 6 px lozenge of 3.2; `tests/ui_render` re-rendered all 174 screens
+  in 17 palettes with 0 lint and 0 alignment findings.
+- **LATCH measured on rendered audio**, not on a flag: `tests/perform_test.c::test_latch_audio()` releases the
+  key and checks that the filter still filters with LATCH on, that the second touch returns the dry signal bit
+  for bit, that LATCH off returns dry, and that REPEAT 1/16 keeps sounding.
+- **The dead `/preview/` deployment check is gone.** It waited on a channel that no longer exists, so every
+  deploy would have gone red after publishing.
 
 ## What this release does not claim
 
-No install has been run on a physical FM-1. No recovery route has been rehearsed on one. The DSP audit
-(every control measured at the output) and the music-side improvements are still open and listed as such in
-`docs/VALIDATION_MATRIX.md` §36. Bench numbers are host numbers.
+No install has been run on a physical FM-1 and no recovery route has been rehearsed on one. The
+control-by-control DSP audit (control → parameter → DSP destination → audible effect) and the low-cost musical
+improvements are still open and are listed as such in `docs/VALIDATION_MATRIX.md` §36. Bench numbers are host
+numbers.
+
+## The signed channel
+
+`/release/` and the Ed25519 signing scheme were removed in #89. Their last defect is recorded rather than
+fixed, because the code it lived in is gone: the signed build record named an emulator of 1 073 325 B and
+`3d039f75…`, and the same commit rebuilt with the pinned Emscripten 6.0.11 produced 1 073 325 B and
+`c83c8bfb…` — the same size and different bytes — so a page that declared the served emulator *was* that
+release refused the very package the record signed. With one channel and hash/size checks, no page claims a
+provenance it cannot prove.

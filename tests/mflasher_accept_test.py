@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
 """The M-Flasher acceptance trace, and the refusals that prove it is not a rubber stamp.
 
-The fixture is the signed release in `release/`. A checker that only ever prints "ok" proves nothing,
+The fixture is the v1.9.0 release in `tests/fixtures/`. A checker that only ever prints "ok" proves nothing,
 so every refusal M-Flasher's `plan_firmware`/`Package::parse` makes is reproduced here by mutating that
 package: a damaged app file, a damaged header, a damaged flash image, a foreign model and a foreign
 chip key. Each one must be refused, and with M-Flasher's own wording.
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import fm1_mflasher_accept as A  # noqa: E402
 
-PKG = ROOT / "release" / "felucca-v1.9.0.fwsc"
+PKG = ROOT / "tests" / "fixtures" / "felucca-v1.9.0.fwsc"
 failed = 0
 
 

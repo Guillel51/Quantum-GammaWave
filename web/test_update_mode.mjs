@@ -14,7 +14,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { Updater, requireProof, pack7, isOurLoader } from "./fm1ota.js";
 import { logicalImage } from "./fm1pkg.js";
-import { verifyProvenance } from "./fm1provenance.js";
 import { parseRecord, verifyDump, recordFor, DUMP_BYTES } from "./fm1record.js";
 
 let n = 0;
@@ -116,16 +115,11 @@ class Unit {
 }
 
 /* the real release chain: the package people install, and the record/provenance the page needs */
-const pkg = fs.readFileSync("release/felucca-v1.9.0.fwsc");
+const pkg = fs.readFileSync("tests/fixtures/felucca-v1.9.0.fwsc");
 /* the device reads the LOGICAL image of the package (fm1pkg.js), not the container file */
 const image = logicalImage(pkg);
-const manifest = JSON.parse(fs.readFileSync("release/felucca-v1.9.0.manifest.json", "utf-8"));
-const build = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
-const emu = JSON.parse(fs.readFileSync("release/emu/manifest.json", "utf-8"));
-const keys = JSON.parse(fs.readFileSync("tools/fm1_keys.json", "utf-8")).keys || {};
-const prov = await verifyProvenance(pkg, build, { emulator: emu });
 const PRODUCT = "FM-1_982";
-const ctxFor = (extra = {}) => ({ manifest, keys, firmware: "15", provenance: prov, ...extra });
+const ctxFor = (extra = {}) => ({ firmware: "15", ...extra });
 
 const OWNER = JSON.stringify({
   model: "FM-1", bootloader: "stock (M-VAVE)", firmware: "FM-1 015 (stock)", app: "OK",
@@ -164,13 +158,14 @@ const run = async (unit, ctx) => {
   ok(u.served > 0 && u.served < 1e8, `every byte the device asked for matched the package (${u.served} requests)`);
 }
 
-/* 2. The same unit, but the page opens with the loader already up (an interrupted install): without a
- *    record there is no chip fact at all, and the refusal must be that, not a generic timeout. */
+/* 2. The same unit, but the page opens with the loader already up (an interrupted install): with no
+ *    chip fact on the host, this project's loader checks the chip itself (loader.c), so it resumes. */
 {
   const u = new Unit(image, { identity: "ota-FM-1_900", nor: false });
-  const err = await run(u, ctxFor());
-  ok(err && err.code === "loaderchip", `a resumed install with no chip record is refused as "loaderchip" (${err && err.code})`);
-  ok(u.upgrades === 0, "...and the loader received no UPGRADE: nothing is written on a guess");
+  u.after = PRODUCT;
+  const res = await run(u, ctxFor());
+  ok(res === PRODUCT, `a resumed install with no chip record completes (${JSON.stringify(res && res.message || res)})`);
+  ok(u.upgrades === 1, "...the loader took UPGRADE once");
 }
 
 /* 3. With the record and its hashed dump, the same resume goes through: the chip fact is this unit's
@@ -191,14 +186,14 @@ const run = async (unit, ctx) => {
   ok(u.upgrades === 0 && u.served === 0, "...with zero UPGRADE and zero bytes offered to it");
 }
 
-/* 5. A stock unit running its app is not a destination for this page at all: the first install is
- *    M-Flasher's, and the record does not change that. */
+/* 5. A stock unit running its app installs: it cannot answer 0x12, its updater starts this package's
+ *    loader, and the loader checks the chip itself (firmware/loader/loader.c). */
 {
   const u = new Unit(image, { identity: "FM-1_015", nor: false });
-  const err = await run(u, ctxFor({ chipRecord }));
-  ok(err && err.code === "stockfirst", `a stock unit is refused as "stockfirst" (${err && err.code})`);
-  ok(/M-Flasher/.test(String(err && err.message)), "and the message names the tool that does the first install");
-  ok(u.upgrades === 0 && u.served === 0, "...with zero UPGRADE and zero bytes sent");
+  u.after = PRODUCT;
+  const res = await run(u, ctxFor());
+  ok(res === PRODUCT, `a stock unit installs (${JSON.stringify(res && res.message || res)})`);
+  ok(u.upgrades === 2, "...the stock app took UPGRADE once and the loader took it once");
 }
 
 /* 6. An answered 0x12 decides, even when it is a part this installer does not write: the record must

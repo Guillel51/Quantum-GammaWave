@@ -440,7 +440,7 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Instalación</div><h2 style="margin-top:14px">Cuatro pasos,<br>con los ojos abiertos.</h2></div>
-        <p>El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada sirve el build de main (sin firma: el instalador se niega a escribirlo); el paquete firmado que sí se puede instalar vive en el <a href="release/">canal del release</a>.</p>
+        <p>El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada sirve el build de main; cada versión publicada está en los <a href="https://github.com/Guillel51/Quantum-GammaWave/releases" target="_blank" rel="noopener">releases de GitHub</a>.</p>
       </div>
       <div class="install-grid">
         <ol class="steps">
@@ -451,7 +451,7 @@
         </ol>
         <aside class="warning">
           <h3>Límites reales, no letra chica</h3>
-          <p>La instalación verifica la integridad (los bytes son los publicados) y la firma Ed25519 del manifiesto contra la clave anclada qg1-release-1. No hay secure boot, y nada de esto se ha probado escribiendo en una FM-1 física.</p>
+          <p>La instalación verifica la integridad (los bytes son los publicados, por SHA-256) y el loader de actualización comprueba el chip flash antes de borrar nada. No hay secure boot.</p>
           <ul>
             <li>No hay actualización A/B ni rollback autónomo del bootloader.</li>
             <li>Un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.</li>
@@ -468,7 +468,7 @@
           <tr><td>M-VAVE FM-1 / JieLi AC791N</td><td><span class="pill ok">SÍ</span></td><td>Toolchain y mapa del SDK; build target reproducible.</td></tr>
           <tr><td>Web Emulator</td><td><span class="pill ok">SÍ</span></td><td>Compila el mismo firmware y compara el DSP nativo bit a bit.</td></tr>
           <tr><td>Web Studio por Web MIDI</td><td><span class="pill ok">SÍ</span></td><td>Protocolo y dispositivo simulado en la suite web.</td></tr>
-          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Integridad y límites probados en host; sin firma ni prueba física.</td></tr>
+          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Integridad y límites probados en host; instalación probada en FM-1 con los dos chips.</td></tr>
           <tr><td>Recuperación tras brick</td><td><span class="pill no">NO VERIFICADA</span></td><td>Requiere bootloader/partition support que este proyecto no modifica.</td></tr>
         </tbody>
       </table>
@@ -491,14 +491,14 @@
             <dt>Identidad</dt><dd id="ver-product">FM-1_9xx</dd>
             <dt>Fuente</dt><dd>firmware/versions.json</dd>
           </dl>
-          <p class="mono muted" id="ver-note" style="margin:16px 0 0;font-size:10px;line-height:1.6">Integridad y firma del paquete instalable. El build de main que sirve esta portada no está firmado.</p>
+          <p class="mono muted" id="ver-note" style="margin:16px 0 0;font-size:10px;line-height:1.6">Integridad del paquete instalable: su SHA-256 publicado.</p>
         </div>
         <div>
           <div class="warning" style="border-left-color:var(--cyan)">
             <h3 style="color:var(--cyan)">Qué cambia en v2.1.1</h3>
-            <p>El emulador de esta portada es el build actual: mismo commit que el firmware, con su versión, su commit y el SHA-256 del wasm en el pie de la página. El instalador de la portada ofrece ese paquete de main, que todavía no tiene firma Ed25519, y por eso se niega a escribirlo; el paquete firmado con la clave anclada qg1-release-1 sigue disponible en el canal del release. En 2.1.1 el canal del release vuelve a aceptar su propio paquete: su instalador se ata al registro firmado en vez de a un emulador reconstruido que ya no coincide byte a byte con el que ese registro nombra. Desde 2.0: las teclas de SCL vuelven a una esquina de 3 px, los planetas de HOME giran sobre su propio eje con la superficie en movimiento y la nota los enciende, y el Web Studio abre con un selector de vistas en lugar de diez botones. Ninguna instalación se ha ejecutado en una FM-1 física.</p>
+            <p>El emulador de esta portada es el build actual: mismo commit que el firmware, con su versión, su commit y el SHA-256 del wasm en el pie de la página. El instalador ofrece ese mismo paquete de main y comprueba su SHA-256 y su tamaño antes de escribir. En 2.0: las teclas de SCL vuelven a una esquina de 3 px, los planetas de HOME giran sobre su propio eje con la superficie en movimiento y la nota los enciende, y el Web Studio abre con un selector de vistas en lugar de diez botones. En 2.1.1 esa rotación queda verificada en el navegador (dos capturas y el recuento de píxeles en docs/evidence/3.3/), el filtro de LATCH se mide en audio renderizado y cada versión se publica como release de GitHub desde su tag.</p>
             <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Leer changelog completo ↗</a>
-            <a class="btn ghost small" href="release/">Canal del release firmado ↗</a>
+            <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/releases" target="_blank" rel="noopener">Releases en GitHub ↗</a>
           </div>
         </div>
       </div>

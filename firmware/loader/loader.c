@@ -81,6 +81,15 @@ static void ldr_record_clear(void)
 {
     fm1_updata_parm_clear();                        /* CRC 0: the SPL ignores it on a warm reset */
 }
+/* the same check as the app (project.c flash_identify): two JEDEC reads, a known part, an unprotected status */
+static int ldr_flash_known(void)
+{
+    fl_id_t r;
+    r.id_a = fl_jedec_ram();
+    r.id_b = fl_jedec_ram();
+    r.sr = fl_status_ram();
+    return fl_id_verify(&r) == FL_ID_OK;
+}
 static void ldr_progress(uint32_t done, uint32_t total) { (void)done; (void)total; ldr_poll(); }
 #include "ldr_core.c"
 

@@ -12,7 +12,7 @@ name: emulator
 on:
   push:
     paths: ["firmware/**", "web/**", "tools/**", "tests/target_budget.txt", "tests/target_budget.py", "build.sh",
-            "release/**", "docs/RELEASE_NOTES_v1.9.0.md", ".github/workflows/emulator.yml"]
+            ".github/workflows/emulator.yml"]
   pull_request:
     paths: ["firmware/**", "web/**", "tools/**", "tests/target_budget.txt", "tests/target_budget.py", "build.sh",
             ".github/workflows/emulator.yml"]
@@ -105,9 +105,7 @@ jobs:
           mkdir -p build/site_preview/emulator
           cp -r build/emu/. build/site_preview/emulator/
           # (3.3) This step only builds what the ARTIFACT carries: the preview bundle for a downloaded
-          # emulator. The published site is assembled in its own step below, which serves this run's build
-          # at the root and the signed release in its own channel -- including the release's emulator,
-          # built from the release commit, so no page is ever paired with a package it does not describe.
+          # emulator. The published site is assembled in its own step below.
           rm -rf build/emu/preview
           mkdir -p build/emu/preview
           cp -r build/site_preview/. build/emu/preview/
@@ -131,7 +129,6 @@ jobs:
         run: |
           node web/test_web.mjs
           node web/test_verify_only.mjs
-          node web/test_provenance.mjs
           python3 tests/preflight_test.py build/felucca.fwsc
           python3 tests/chip_test.py
           python3 tests/flash_evidence_test.py
@@ -144,16 +141,12 @@ jobs:
       # identity, the commit it names, the emulator that record names), so the gate is provenance, not luck.
       # It used to be "a target package must exist in THIS run": with gitee unreachable the job failed closed
       # and Pages never deployed, which is how twenty-two commits went unpublished.
-      - name: the site (this build at /, the signed release at /release/)
+      - name: the site (this build)
         run: |
           ver() { sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' "$1/firmware/src/felucca.c" | head -1; }
           SH=${GITHUB_SHA::7}
-          # (3.3) WHAT THE ROOT SERVES IS THIS TREE. Until 3.2 the public emulator was the release's, built
-          # from the release commit, so a visitor saw firmware older than the repository -- the owner's
-          # first complaint about the site. The root is now this run's build: its emulator, its package and
-          # its build record. A package built here carries no signature (the private key is not in CI), so
-          # the root installer publishes it and refuses to install it; the signed release keeps its own
-          # channel below, page, package and emulator from one commit.
+          # the site serves this run's build: its emulator, its package and its build record. Tagged
+          # releases are built by release.yml and attached to a GitHub release.
           if [ -s build/felucca.fwsc ]; then
             PKG=build/felucca.fwsc; SV=$(ver .)
             echo "the root serves this run's build: $SV-$SH"
@@ -175,41 +168,6 @@ jobs:
           mkdir -p build/site/emulator
           cp -r build/emu/. build/site/emulator/
           rm -rf build/site/emulator/preview
-          # THE SIGNED RELEASE, in its own channel. The installer holds a package to the emulator its own
-          # record names (fm1provenance.js), so this channel is built from the release commit -- portal,
-          # page, package and emulator together -- instead of pairing a release package with this run's
-          # emulator, which is what made the release installable only by serving stale pages.
-          if [ -s release/build-manifest.json ] && ls release/*.fwsc >/dev/null 2>&1; then
-            R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
-            RELPKG=$(ls release/*.fwsc | head -1)
-            RSV=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["version"].lstrip("v"))')
-            rm -rf /tmp/relsite build/site_release build/emu_release
-            git worktree prune
-            git worktree add -f -q --detach /tmp/relsite "$R"
-            # GITHUB_SHA/GIT_COMMIT are unset on purpose: tools/package_emu.py prefers them over
-            # `git rev-parse HEAD`, and with them set this emulator would carry the run's commit while
-            # holding the release's bytes -- a manifest that names a build it is not.
-            ( cd /tmp/relsite &&
-              env -u GITHUB_SHA -u GIT_COMMIT python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" >/dev/null &&
-              env -u GITHUB_SHA -u GIT_COMMIT sh web/emu/build.sh >/dev/null )
-            cp -r /tmp/relsite/build/emu build/emu_release
-            # NO --emu ON PURPOSE. The signed record names the emulator built with the package
-            # (3d039f75...); this pinned toolchain rebuilds that commit into 1 073 325 different bytes
-            # (c83c8bfb...), so a page told "the served emulator is this release" would refuse the very
-            # package the release signed -- that is what /release/ did until 2.1.1. Without --emu the
-            # installer holds the package to its own signed record (and still to the anchored key), and
-            # the emulator beside it is what it is: same commit, rebuilt now, and its footer says so.
-            python3 /tmp/relsite/web/make_site.py "$RELPKG" "v${RSV}-${R:0:7}" build/site_release \
-              --manifest release/build-manifest.json
-            mkdir -p build/site_release/emulator
-            cp -r build/emu_release/. build/site_release/emulator/
-            rm -rf build/site_release/emulator/preview
-            rm -rf build/site/release
-            cp -r build/site_release build/site/release
-            echo "the signed release is served at /release/: $RELPKG (${RSV}-${R:0:7})"
-          else
-            echo "::warning::no signed package under release/: this run publishes no installable channel"
-          fi
       # Fail closed on what actually matters: a package was chosen and a site was written. Its provenance was
       # checked by make_site.py, which refuses a package that contradicts its own build record.
       - name: a package and a site exist (fail closed)
@@ -267,29 +225,12 @@ jobs:
         with:
           sparse-checkout: |
             tools/site_check.py
-            release/
           sparse-checkout-cone-mode: false
-      - name: the published site serves this build at / and the signed release at /release/
+      - name: the published site serves this build
         run: |
-          # Two channels, and each is held to its own commit. The root is this run's build: package,
-          # emulator and record all name $GITHUB_SHA. The release channel under /release/ is the signed
-          # package from the commit its record names, with the emulator built from that same commit -- the
-          # pairing the installer's provenance check demands.
-          REL=""
-          if ls release/*.fwsc >/dev/null 2>&1; then
-            R=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
-            S=$(sha256sum "$(ls release/*.fwsc | head -1)" | cut -d" " -f1)
-            REL="$R $S"
-            echo "the release channel must carry ${S:0:16} from ${R:0:7}"
-          fi
-          # --no-emulator: the release channel's installer is written without --emu (see the site step),
-          # so it does not claim the served emulator is the one the record names. site_check still holds
-          # that channel to its commit, its package bytes and its pages.
           sleep 20                                   # Pages switches after the deploy reports, not during it
           for i in $(seq 1 20); do
-            if python3 tools/site_check.py --expect-emu-commit "$GITHUB_SHA" --expect-commit "$GITHUB_SHA" \
-                 && { [ -z "$REL" ] || python3 tools/site_check.py --no-emulator --url "https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/release/" \
-                      --expect-commit "${REL%% *}" --expect-sha256 "${REL##* }"; }; then
+            if python3 tools/site_check.py --expect-emu-commit "$GITHUB_SHA" --expect-commit "$GITHUB_SHA"; then
               exit 0
             fi
             echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"
@@ -297,184 +238,3 @@ jobs:
           done
           echo "::error::the deployed site still does not serve the expected artefacts after 5 minutes"
           exit 1
-  # The signed package is committed under release/ because the private key is not: no workflow can sign,
-  # and a package built by CI would carry no signature at all. This job publishes exactly the bytes that
-  # were signed off-repo, after checking them, and refuses anything that does not describe this tree.
-  # It lives here, next to the site, because this is the workflow that runs on every push to main.
-  publish:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: is there anything to publish (the tag and the release already name this build)
-        id: state
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          COMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
-          HAVE=$(git rev-list -n1 v1.9.0 2>/dev/null || true)
-          if [ "$HAVE" = "$COMMIT" ] && gh release view v1.9.0 >/dev/null 2>&1; then
-            echo "v1.9.0 already is this build (${COMMIT:0:7}) and has a release: nothing to publish"
-            echo "needed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "v1.9.0 is not this build yet (tag ${HAVE:-none}, package ${COMMIT:0:7}): publishing"
-            echo "needed=true" >> "$GITHUB_OUTPUT"
-          fi
-      # A job that cannot create a ref cannot publish anything, and the failure would look like a
-      # signing problem. This says which permission is missing before the checks run. It creates one
-      # tag and deletes it immediately; nothing else in the repository is touched.
-      - name: this token may create refs and releases
-        if: steps.state.outputs.needed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          code=$(curl -s -o /tmp/probe.json -w "%{http_code}" -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs" \
-            -d "{\"ref\":\"refs/tags/qg-ci-permission-probe\",\"sha\":\"$GITHUB_SHA\"}")
-          if [ "$code" != "201" ]; then
-            echo "::error::GITHUB_TOKEN cannot create a ref (HTTP $code). Settings > Actions > General > Workflow permissions must be 'Read and write permissions'; with the repository default (read-only) no workflow can publish a tag or a release."
-            exit 1
-          fi
-          curl -s -X DELETE -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/git/refs/tags/qg-ci-permission-probe" >/dev/null
-          echo "the token can create refs: publishing is possible from this job"
-      - name: the committed release is signed by the pinned key and describes this tree
-        if: steps.state.outputs.needed == 'true'
-        run: |
-          # Ubuntu 24.04 marks its system Python as externally managed, so a bare `pip install` fails
-          # there; a venv is the reliable way to get `cryptography` for the verifier.
-          PY=python3
-          if ! python3 -c 'import cryptography' >/dev/null 2>&1; then
-            python3 -m venv /tmp/qgvenv && /tmp/qgvenv/bin/pip install --quiet cryptography
-            PY=/tmp/qgvenv/bin/python
-          fi
-          "$PY" tools/fm1_sign.py verify release/felucca-v1.9.0.fwsc \
-              --manifest release/felucca-v1.9.0.manifest.json \
-              --build-manifest release/build-manifest.json
-      - name: hashes, identity, version and the record agree with the files
-        if: steps.state.outputs.needed == 'true'
-        run: |
-          python3 - <<'PY'
-          import hashlib, json, subprocess, sys
-          pkg, man, rec = "release/felucca-v1.9.0.fwsc", "release/felucca-v1.9.0.manifest.json", "release/build-manifest.json"
-          raw = open(pkg, "rb").read(); sha = hashlib.sha256(raw).hexdigest()
-          m, r = json.load(open(man)), json.load(open(rec))
-          sums = {}
-          for line in open("release/SHA256SUMS", encoding="utf-8"):
-              if line.strip():
-                  h, name = line.split(); sums[name] = h
-          def need(cond, why):
-              if not cond:
-                  sys.exit(f"::error::{why}")
-          need(m["sha256"] == sha, "the signature does not describe these bytes")
-          need(m["size"] == len(raw), "the signed size is not the file's size")
-          need(m["version"] == "1.9.0" and r["version"].lstrip("v") == "1.9.0", "the version is not 1.9.0")
-          need(m["product"] == "FM-1" and r["identity"] == "FM-1_982", "the identity is not FM-1_982")
-          need(r["dirty"] == [], "the record says the tree was dirty")
-          need(sums.get("felucca-v1.9.0.fwsc") == sha, "SHA256SUMS disagrees with the package")
-          need(sums.get("felucca-v1.9.0.manifest.json") == hashlib.sha256(open(man, "rb").read()).hexdigest(),
-               "SHA256SUMS disagrees with the manifest")
-          need(r["artifacts"]["felucca.fwsc"]["sha256"] == sha, "the build record names another package")
-          need(r["artifacts"]["felucca.fwsc"]["bytes"] == len(raw), "the build record has another size")
-          subprocess.run(["git", "merge-base", "--is-ancestor", r["commit"], "HEAD"], check=True)
-          changed = subprocess.run(["git", "diff", "--name-only", f'{r["commit"]}..HEAD', "--",
-                                    "firmware", "tools", "web/emu"], capture_output=True, text=True).stdout.strip()
-          need(not changed, f"the source changed after the build: {changed}")
-          print(f"release: {sha} v1.9.0 FM-1_982 from {r['commit'][:7]}, signature and record agree")
-          PY
-      - name: tag v1.9.0 at the commit the package was built from
-        if: steps.state.outputs.needed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          COMMIT=$(python3 -c 'import json;print(json.load(open("release/build-manifest.json"))["commit"])')
-          if git rev-parse -q --verify refs/tags/v1.9.0 >/dev/null; then
-            HAVE=$(git rev-list -n1 v1.9.0)
-            [ "$HAVE" = "$COMMIT" ] || { echo "::error::v1.9.0 already points at $HAVE, the package was built at $COMMIT"; exit 1; }
-            echo "tag v1.9.0 already points at the record's commit"
-          else
-            # An annotated tag needs a committer and a fresh runner has no identity: `git tag -a` died
-            # with "empty ident name (for <runner@...>) not allowed", which is why every earlier run
-            # left no tag behind -- the rest of the job had already passed. The identity is the
-            # workflow's, not a person's.
-            git -c user.name="qg1 release" -c user.email="qg1-release@users.noreply.github.com" \
-              tag -a v1.9.0 "$COMMIT" -m "Quantum GammaWave v1.9.0"
-            # the checkout's token pushes the tag; the API is the fallback when it cannot, and it is
-            # the same trust decision either way: the tag points at the commit the package names
-            git push origin refs/tags/v1.9.0 ||
-              gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/v1.9.0" -f sha="$COMMIT" >/dev/null
-            echo "tag v1.9.0 created at $COMMIT"
-          fi
-      - name: the GitHub Release carries the signed package, its manifest and the record
-        if: steps.state.outputs.needed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          FILES="release/felucca-v1.9.0.fwsc release/felucca-v1.9.0.manifest.json release/build-manifest.json release/SHA256SUMS"
-          if gh release view v1.9.0 >/dev/null 2>&1; then
-            gh release upload v1.9.0 $FILES --clobber
-          else
-            gh release create v1.9.0 $FILES --title "Quantum GammaWave v1.9.0" \
-              --notes-file docs/RELEASE_NOTES_v1.9.0.md
-          fi
-      - name: the published assets are the files that were verified
-        if: steps.state.outputs.needed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p /tmp/dl && gh release download v1.9.0 --dir /tmp/dl --clobber
-          cd /tmp/dl && sha256sum -c "$GITHUB_WORKSPACE/release/SHA256SUMS"
-          PY=python3
-          python3 -c 'import cryptography' >/dev/null 2>&1 || PY=/tmp/qgvenv/bin/python
-          "$PY" "$GITHUB_WORKSPACE/tools/fm1_sign.py" verify felucca-v1.9.0.fwsc \
-              --manifest felucca-v1.9.0.manifest.json --build-manifest build-manifest.json
-
-  # (2.1.1) The version this tree names gets a GitHub Release of its own: tag v<version> at the commit that
-  # built the emulator, and the emulator's own wasm, manifest and page attached to it. It is NOT the
-  # installable channel and says so: a package built in CI carries no signature (the private key lives off
-  # the repository), so writing it is refused by the installer. Installing means /release/, which serves the
-  # signed v1.9.0 from its own commit. One tag and one release per version: a push that still says the same
-  # version finds both and does nothing.
-  release-version:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    needs: build
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: emulator-${{ github.sha }}
-          path: build/emu
-      - name: tag and release this version (once per version)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
-          test -n "$V" || { echo "::error::firmware/src/felucca.c names no version"; exit 1; }
-          if gh release view "$V" >/dev/null 2>&1; then
-            echo "$V already has a release (tag $(git rev-list -n1 "$V" 2>/dev/null | cut -c1-7)): nothing to do"
-            exit 0
-          fi
-          NOTES="docs/RELEASE_NOTES_${V}.md"
-          test -s "$NOTES" || { echo "::error::$NOTES is missing: a release without notes is a tag with a file"; exit 1; }
-          test -s build/emu/felucca.wasm || { echo "::error::the emulator artifact carries no felucca.wasm"; exit 1; }
-          if git rev-parse -q --verify "refs/tags/$V" >/dev/null; then
-            echo "tag $V already exists at $(git rev-list -n1 "$V" | cut -c1-7)"
-          else
-            git -c user.name="qg1 release" -c user.email="qg1-release@users.noreply.github.com" \
-              tag -a "$V" -m "Quantum GammaWave $V"
-            git push origin "refs/tags/$V" ||
-              gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$V" -f sha="$GITHUB_SHA" >/dev/null
-          fi
-          mkdir -p /tmp/rel && cp build/emu/felucca.wasm build/emu/manifest.json /tmp/rel/
-          ( cd /tmp/rel && sha256sum felucca.wasm manifest.json > SHA256SUMS )
-          gh release create "$V" /tmp/rel/felucca.wasm /tmp/rel/manifest.json /tmp/rel/SHA256SUMS \
-            --title "Quantum GammaWave $V" --notes-file "$NOTES"
-          echo "published $V with the emulator built from ${GITHUB_SHA:0:7}"

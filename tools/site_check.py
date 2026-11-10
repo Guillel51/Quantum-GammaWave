@@ -73,10 +73,6 @@ def main(argv=None):
     ap.add_argument("--expect-commit", default=None, help="the commit the published package was built from")
     ap.add_argument("--expect-sha256", default=None, help="the package's SHA-256, when it is a known artefact")
     ap.add_argument("--expect-emu-commit", default=None, help="the commit the served emulator was built from")
-    ap.add_argument("--no-emulator", action="store_true",
-                    help="this channel serves no emulator of its own (the signed release, whose recorded emulator "
-                         "the pinned toolchain cannot rebuild byte for byte): skip the emulator block instead of "
-                         "failing a page that never claims one")
     args = ap.parse_args(argv)
     base = args.url.rstrip("/") + "/"
 
@@ -120,14 +116,8 @@ def main(argv=None):
         ok("the package's SHA-256 is versions.json's", sha256(pkg) == top.get("sha256"),
            sha256(pkg)[:16] + " vs " + str(top.get("sha256"))[:16])
 
-    if args.no_emulator:
-        # The signed release declares the emulator it was built with (its record hashes those bytes) but does
-        # not serve one: the pinned toolchain rebuilds that commit into different bytes of the same size, so a
-        # served emulator here could never be the one the package's record names. The install page is checked
-        # against the package and the record; the portal's emulator link points at the root, the current build.
-        emu = {}
     try:
-        emu = {} if args.no_emulator else json.loads(get(base + "emulator/manifest.json"))
+        emu = json.loads(get(base + "emulator/manifest.json"))
     except (urllib.error.URLError, ValueError, OSError) as e:
         ok("emulator/manifest.json is readable", False, str(e))
         emu = {}

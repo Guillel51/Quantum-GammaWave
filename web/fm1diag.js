@@ -25,7 +25,7 @@ export function diagnosticStates(report) {
     "DIAGNOSTIC READY": "the page ran a read-only exchange and reported what it saw",
     "VERIFY READY": "an FM-1 answered the identity query",
     "PACKAGE VERIFIED": "the package this page offers describes itself consistently",
-    "SIGNATURE VERIFIED": "a signature was checked against a pinned key in this page",
+    "SIGNATURE VERIFIED": "the package was checked against its published SHA-256 in this page",
     "DEVICE COMPATIBLE": "the unit's own answer is compatible with this package",
     "RECOVERY NOT VERIFIED": "no verified dump of this unit plus a tool covering the written range, or none demonstrated",
     "INSTALL READY": v.path === "m-flasher"

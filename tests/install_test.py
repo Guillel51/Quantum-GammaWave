@@ -23,7 +23,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import fm1_install as I  # noqa: E402
 import fm1_probe as P  # noqa: E402
-import fm1_sign as S  # noqa: E402
 
 I.DELAY.update(open=0, start=0.01, reply=0, loader=0.01, reboot=0.01, retry=0.02, poll=0.05, hs=0.1,
                idle_check=0.4, idle_write=0.4, wait_loader=2, wait_reboot=2)
@@ -232,42 +231,19 @@ def package(product="FM-1_900", marker=True, size=0x2000):
 
 
 TMP = Path(tempfile.mkdtemp(prefix="felucca-install-"))
-KEYID = "install-test-1"
-PRIV = TMP / "test-key.pem"
-
-
-def _test_key():
-    """an ephemeral release key: the private key never touches the repository"""
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    k = Ed25519PrivateKey.generate()
-    PRIV.write_bytes(k.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-                                     serialization.NoEncryption()))
-    pub = k.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-    (TMP / "keys.json").write_text(json.dumps({"keys": {KEYID: pub.hex()}}))
-
-
-_test_key()
 
 
 def pkgfile(name, raw, version="3.0.0", minimum="2.0.0", sign=True, product=None):
     p = TMP / name
     p.write_bytes(raw)
     (TMP / (name + ".sha256")).write_text(hashlib.sha256(raw).hexdigest() + "\n")   # (QG-1) hashes are mandatory
-    if sign:
-        try:
-            prod = product or I.model_of(I.product_of(raw))
-        except I.InstallError:
-            prod = product or "FM-1"          # a deliberately broken package: sign it anyway
-        man = S.sign_manifest(S.manifest_for(raw, version, minimum, prod, KEYID), PRIV.read_bytes())
-        (TMP / (name + ".manifest.json")).write_text(json.dumps(man))
     return str(p)
 
 
 def cli(args, dev, answer=True):
-    # (QG-1) no typed JEDEC any more: the installer reads the chip with 0x12 (the fake answers it) and
-    # the package carries a signed manifest. tests/preflight_test.py covers every refusal.
-    args = list(args) + ["--keys", str(TMP / "keys.json")]
+    # (QG-1) no typed JEDEC any more: the installer reads the chip with 0x12 (the fake answers it).
+    # tests/preflight_test.py covers every refusal.
+    args = list(args)
     out, err = io.StringIO(), io.StringIO()
     old, sys.stderr = sys.stderr, err
     try:
@@ -304,10 +280,9 @@ def installs():
 
     dev = FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update")
     rc, out, err = cli([p, "--yes"], dev)
-    # (QG-1 phase 3) the loader cannot identify its NOR (its code is unchanged), so an install cut off in
-    # the middle is refused unless the lab override is present: fail closed, and documented as a limitation
-    ok(rc == 7 and dev.upgrades == 0 and "already in update mode" in err,
-       "install: device already in update mode -> refused, nothing sent")
+    # the loader cannot answer 0x12; it checks the chip itself (loader.c), so a cut-off install resumes
+    ok(rc == 0 and dev.upgrades == 1 and dev.bad == 0,
+       "install: device already in update mode -> the write is finished")
 
     dev = FakeFM1(image)
     rc, out, err = cli([p], dev, answer=False)
@@ -346,12 +321,12 @@ def errors():
        "unplugged in step 1 -> exit 4 'lost', nothing written")
     t0 = time.monotonic()
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", unplug_after=3))
-    ok(rc == 7 and dev.upgrades == 0 and time.monotonic() - t0 < 3,
-       "a device in update mode is refused before any write attempt")
+    ok(rc == 4 and "disconnected" in err and time.monotonic() - t0 < 3,
+       "unplugged in update mode -> exit 4 'lost'")
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", stall_after=3))
-    ok(rc == 7 and "already in update mode" in err, "loader mode is refused, not waited on")
+    ok(rc == 4, "a loader that stops answering -> exit 4 'stopped'")
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", bad_addr=len(image)))
-    ok(rc == 7, "a device in update mode cannot be identified, so nothing is sent")
+    ok(rc != 0 and "outside the package" in err, "a loader asking outside the package is refused")
 
     rc, out, err = cli([p, "--yes"], FakeFM1(image, after_write="FM-1_015"))
     ok(rc == 6 and "reports FM-1_015" in err, "another identity after the restart -> exit 6")
@@ -400,8 +375,6 @@ def integrity():
     d.mkdir(exist_ok=True)
     p = d / "q.fwsc"
     p.write_bytes(raw)
-    (d / "q.fwsc.manifest.json").write_text(json.dumps(          # (QG-1) signed, or nothing installs
-        S.sign_manifest(S.manifest_for(raw, "3.0.0", "2.0.0", "FM-1", KEYID), PRIV.read_bytes())))
     plain = d / "plain.fwsc"
     plain.write_bytes(raw)
     dev = FakeFM1(image)

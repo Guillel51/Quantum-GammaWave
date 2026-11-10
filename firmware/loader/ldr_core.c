@@ -29,6 +29,8 @@
  * Hooks from the platform (loader.c, ldr_test.c):
  *   ldr_fread(off, p, n)  ldr_erase(off)  ldr_prog(off, p, n)   flash, 0 = ok
  *   ldr_record_clear()    forget the RAM update record
+ *   ldr_flash_known()     the flash chip is one the firmware writes (hal/fm1_flash_id.h); else nothing
+ *                         is written, the update records go and the firmware that is there starts again
  *   ldr_progress(done, total)
  * plus the ota.c hooks (frames, time, idle). */
 #define LDR_APP_LO 0x4000u
@@ -44,6 +46,7 @@ static int ldr_fread(uint32_t off, void *p, uint32_t n);
 static int ldr_erase(uint32_t off);
 static int ldr_prog(uint32_t off, const void *p, uint32_t n);
 static void ldr_record_clear(void);
+static int ldr_flash_known(void);
 static void ldr_progress(uint32_t done, uint32_t total);
 
 /* SFC cipher: per 32-byte block, key ^ (block offset >> 2) */
@@ -108,6 +111,29 @@ static int ldr_check(uint32_t fl_off, uint32_t fl_size, uint32_t want, uint16_t 
     return crc == want ? 0 : -12;
 }
 
+/* forget the update: the RAM record and every flash record, so the SPL boots the app that is there */
+static void ldr_records_drop(void)
+{
+    uint8_t zero[80];
+    uint32_t s, z;
+    ldr_record_clear();
+    for (z = 0; z < sizeof zero; z++)
+        zero[z] = 0;
+    for (s = LDR_REC_HI; s > LDR_REC_LO; s -= 0x1000u) {   /* flash records: 4K boundary - 256 */
+        uint8_t r[80];
+        if (s - 0x1000u >= LDR_AUTO_LO && s - 0x1000u < LDR_AUTO_HI)
+            continue;                                /* autosave/FM6: user data that may look like one */
+        if (ldr_fread(s - 0x100u, r, 80))
+            break;
+        if (ota_rd16(r + 6) == 0x5441u && ota_rd16(r) && ota_rd16(r) == ota_crc16(r + 2, 78, 0)) {
+            if (s - 0x1000u == 0xE8000u)
+                ldr_prog(s - 0x100u, zero, sizeof zero);   /* stock VM backup: invalidate the record in place */
+            else
+                ldr_erase(s - 0x1000u);
+        }
+    }
+}
+
 static int ldr_session(void)
 {
     static uint8_t hdr[0x400], sec[0x1000], cur[0x1000];
@@ -136,6 +162,12 @@ static int ldr_session(void)
     ldr_sfc(sec, 32, 0, key);
     if (ota_crc16(sec + 2, 30, 0) != ota_rd16(sec))
         return -6;                                       /* package for another chip key */
+    /* 2a. the flash chip: the host does not know it (a stock unit cannot say), so the loader checks it.
+     * On a part the firmware does not write, nothing is erased: the records go and the old app starts. */
+    if (!ldr_flash_known()) {
+        ldr_records_drop();
+        return -15;
+    }
     /* 2b. the whole package first: nothing is erased for a damaged one */
     if ((rc = ldr_check(fl_off, fl_size, want, sc, sec)) != 0)
         return rc;
@@ -179,25 +211,6 @@ static int ldr_session(void)
             break;
     if (i == 4u)
         return -14;                                 /* missing or wrong final ACK: no commit */
-    ldr_record_clear();
-    {
-        uint8_t zero[80];
-        uint32_t z;
-        for (z = 0; z < sizeof zero; z++)
-            zero[z] = 0;
-        for (s = LDR_REC_HI; s > LDR_REC_LO; s -= 0x1000u) {   /* flash records: 4K boundary - 256 */
-            uint8_t r[80];
-            if (s - 0x1000u >= LDR_AUTO_LO && s - 0x1000u < LDR_AUTO_HI)
-                continue;                                /* autosave/FM6: user data that may look like one */
-            if (ldr_fread(s - 0x100u, r, 80))
-                break;
-            if (ota_rd16(r + 6) == 0x5441u && ota_rd16(r) && ota_rd16(r) == ota_crc16(r + 2, 78, 0)) {
-                if (s - 0x1000u == 0xE8000u)
-                    ldr_prog(s - 0x100u, zero, sizeof zero);   /* stock VM backup: invalidate the record in place */
-                else
-                    ldr_erase(s - 0x1000u);
-            }
-        }
-    }
+    ldr_records_drop();
     return 0;
 }

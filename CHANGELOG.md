@@ -1,33 +1,36 @@
-## 2026-11-10 — 2.1.1: el canal del release vuelve a aceptar su propio paquete
+## 2026-11-10 — 2.1.1: la versión que un tag publica
 
-El fallo que abrió esta pasada es de los que no perdonan: `/release/` servía el paquete firmado `v1.9.0` con un
-emulador construido ahora desde el mismo commit, y su instalador se negaba a escribir **su propio** paquete.
+- **La versión es `v2.1.1`** en el firmware, el wasm, el sitio, el Web Studio y esta documentación. El release
+  lo compila y lo publica CI a partir del tag `v2.1.1` (`release.yml`, `docs/RELEASE.es.md`), con el paquete
+  y su registro adjuntos.
+- **El canal firmado ya no existe, y su último fallo queda documentado.** La pasada anterior cerró con
+  `/release/` sirviendo el paquete `v1.9.0` y negándose a escribirlo: el registro nombraba un emulador
+  (`3d039f75…`, 1 073 325 B) que este toolchain **no reconstruye byte a byte** (mismo tamaño, `c83c8bfb…`),
+  y la página, construida con `--emu`, afirmaba que el emulador servido era el de ese release. #89 quitó la
+  firma, el canal y el registro de procedencia: hoy hay un solo canal —el build de `main`—, el instalador
+  decide con el SHA-256 y el tamaño publicados, y el loader comprueba el chip antes de borrar. Ninguna página
+  afirma ya una procedencia que no puede probar.
+- **Un paso muerto menos en el despliegue.** `emulator.yml` seguía esperando `/preview/emulator/manifest.json`,
+  un canal eliminado: cada despliegue habría publicado y después terminado en rojo. Ya no está; la puerta que
+  queda es `tools/site_check.py` contra el commit y el build que acaban de subir.
+- **El audio de LATCH, medido.** `tests/perform_test.c` gana `test_latch_audio()`: con LATCH ON el filtro
+  sigue filtrando después de soltar la tecla; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF
+  vuelve seca; REPEAT 1/16 sigue sonando después de soltar. Es audio renderizado, no una variable booleana.
+- **Los planetas de HOME, verificados en el navegador.** Dos capturas del panel separadas 2,6 s: 602 de 57 600
+  píxeles cambian, 595 dentro de la bahía del sistema; a 300 ms cambian 427 píxeles de esa bahía, más de lo
+  que puede mover una órbita de 7–13 s por vuelta — la superficie gira. Evidencia en `docs/evidence/3.3/`,
+  detalle en `docs/VALIDATION_MATRIX.md` §36.
+- **Lo que sigue abierto:** la matriz Control → Parámetro → Destino DSP → Efecto audible y las mejoras
+  musicales baratas no se hicieron y se listan como pendientes; nada de esta pasada se probó en hardware.
 
-- **La causa.** El emulador del registro firmado pesa 1 073 325 B y tiene SHA-256 `3d039f75…`. Ese commit,
-  reconstruido con el mismo Emscripten 6.0.11 y las mismas banderas, da **el mismo tamaño y otra huella**
-  (`c83c8bfb…`): la compilación no es bit a bit reproducible. El canal se construía con `--emu`, así que la
-  página declaraba que el emulador servido *era* el de ese release; `fm1provenance.js` comparaba la huella de
-  ese emulador con la del registro y concluía "the site mixes two builds", que es exactamente lo que hacía.
-- **El arreglo.** El instalador de `/release/` se escribe sin `--emu`: ata el paquete a **su registro firmado**
-  y a la clave anclada `qg1-release-1`, sin afirmar nada sobre un emulador reconstruido. El emulador de ese
-  canal sigue ahí, del mismo commit, con su propia huella en el pie; lo que no hace es reclamar ser el que el
-  registro nombra. Comprobado contra los bytes publicados: con la declaración antigua el verificador rechaza
-  ("different wasm"), sin ella acepta (`kind: build`, registro `abcf3914…`).
-- **La puerta del sitio lo dice.** `tools/site_check.py` gana `--no-emulator` para ese canal: sigue exigiendo
-  commit, bytes del paquete y páginas, y no exige un emparejamiento emulador↔registro que ese canal no hace.
-  La comprobación vieja habría fallado para siempre y la nueva falla solo si el paquete o las páginas mienten.
-- **Un paso muerto menos.** `emulator.yml` seguía comprobando `/preview/emulator/manifest.json`, un canal que
-  ya no existe: cada despliegue habría terminado en rojo después de publicar. Eliminado.
-- **Release por versión.** Un trabajo nuevo publica `v2.1.1` en GitHub — etiqueta en el commit que construyó el
-  emulador, y el wasm, su manifest y un `SHA256SUMS` como adjuntos — una sola vez por versión. Sus notas dicen
-  lo que es y lo que no: **no es el canal instalable**, porque un paquete de CI no lleva firma. Instalar sigue
-  siendo `/release/`, con el `v1.9.0` firmado.
-- **La versión es `v2.1.1`** en el firmware, el wasm, el sitio, el Web Studio y esta documentación. El paquete
-  firmado que se puede instalar sigue diciendo `v1.9.0`, y ambas cosas se ven a la vez en la portada.
+## 2026-11-10 — releases de GitHub, sin firma en el repo
 
-Verificación en `docs/VALIDATION_MATRIX.md` §36: build AC791N y wasm de este árbol, suite de host, emulador de
-Node, el canal del release leído del sitio público con `site_check --no-emulator` (14/14) y el navegador sobre
-la URL real. Nada de esto es una prueba en hardware: ninguna FM-1 física ha sido escrita.
+- **Un solo canal.** El sitio sirve el build de `main` y el instalador lo puede instalar: comprueba el SHA-256 y
+  el tamaño publicados antes de escribir, y el loader comprueba el chip flash antes de borrar nada.
+- **Los releases son releases de GitHub**, compilados por CI desde un tag (`release.yml`, `docs/RELEASE.es.md`).
+  Ya no hay `release/` en el repo, ni firma Ed25519, ni registro de procedencia que el instalador exija.
+- Se quitaron `tools/fm1_sign.py`, `tools/fm1_keys.json`, `web/fm1provenance.js` y sus tests. El paquete
+  v1.9.0 queda como fixture de tests en `tests/fixtures/`.
 
 ## 2026-11-09 — 2.0: el emulador público pasa a ser este árbol, y los planetas giran
 

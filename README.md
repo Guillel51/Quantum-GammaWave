@@ -65,7 +65,7 @@ Both captures were taken in one session at the **same viewport -- 432 x 690**, p
 Studio in mock mode (`?mock=1`, no FM-1 attached), so the two columns are the same size and neither image is
 stretched or cropped: what the table shows is what those pages rendered when this line was written.
 
-The portal prints the build it is serving in the hero (`v1.9.0-<commit>`, read from
+The portal prints the build it is serving in the hero (`v2.1.1-<commit>`, read from
 [`firmware/versions.json`](https://guillel51.github.io/Quantum-GammaWave/firmware/versions.json) -- version, package file, size, SHA-256 and the build
 record of the firmware it was compiled from), and the emulator page prints its own commit and WASM hash from
 [the emulator page](https://guillel51.github.io/Quantum-GammaWave/emulator/) beside it. Both come from the same commit as
@@ -91,31 +91,13 @@ installation warnings, version metadata and direct access to the emulator (`/emu
 (`/webapp/installer/`) and the Web Studio (`/webapp/editor/`). Existing installer and editor URLs are kept;
 the emulator lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
 
-**The site now has two channels, and they are not the same build.**
+The site serves the current `main` build: the emulator at `/emulator/` is compiled from the same commit as
+the package the installer offers, and its footer prints the version, the commit, the build date, the WASM's
+SHA-256 and its size. The installer checks the package's SHA-256 and size against the published metadata
+before it writes anything, and the update loader checks the flash chip before it erases anything.
 
-- **`/` is this tree.** The emulator at `/emulator/` is compiled from the same commit as the package the
-  page offers, and its footer prints the version, the commit, the build date, the WASM's SHA-256 and its
-  size. The page refuses to run if the file it downloads does not hash to the value baked into it, and it
-  reloads itself once when a newer manifest is published, so a cached page cannot keep serving an old engine.
-- **`/release/` is the signed release, `v1.9.0`.** Pages, installer and package come from the release commit,
-  and the installer holds the package to the emulator **its signed record names** rather than to whichever
-  emulator the site happens to serve: that commit rebuilt with the pinned Emscripten gives the same 1 073 325 B
-  and a different hash (`c83c8bfb…` against the recorded `3d039f75…`), so a page that claimed the served
-  emulator *was* this release would refuse the very package the release signed. This is the one channel the
-  installer is allowed to write, and the only one it accepts.
-
-Why the root cannot be installed: a package built in CI carries no signature (the private key is not in this
-repository or in CI), so the installer publishes it and refuses to write it. That is fail-closed by design,
-not a setting to flip. The 2.1.1 package needs the custodian's signature before it can replace 1.9.0 in
-`/release/`; until then `/release/` keeps serving `v1.9.0`, whose record names its own commit with `dirty: []`.
-
-Both channels verify: SHA-256 and size against the published metadata, the Ed25519 manifest against the
-anchored public key `qg1-release-1`, and the build record (commit, identity, toolchain, SDK files, the
-emulator the record names). Emscripten is pinned to **6.0.11** everywhere.
-
-What neither channel claims: no install has been run on a physical FM-1, no recovery route has been
-rehearsed on one, and this workspace holds no signing key. See [`CHANGELOG.md`](CHANGELOG.md) and
-[`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md) for what each claim rests on.
+Every tagged version is built by CI and attached to a [GitHub release](https://github.com/Guillel51/Quantum-GammaWave/releases)
+(`docs/RELEASE.es.md`). Emscripten is pinned to **6.0.11** everywhere.
 
 ## What's in Quantum GammaWave (`v2.1.1`)
 
@@ -309,12 +291,23 @@ On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (e
 The per-release record, with the measurements behind each line, is [`CHANGELOG.md`](CHANGELOG.md). The recent
 milestones, in one line each:
 
-### `v1.9.0` — the signed package, and an installer that decides on what it reads
+### `v2.1.1` — one channel, releases from tags, and two claims checked properly
 
-The package is signed with the anchored key `qg1-release-1` and reproducible from its build record; the
-installer gates on the chip id, the piece geometry, the signature and the product the unit reports after the
-write, and *Verify Only* exports the diagnostic JSON it derived those states from. Pages serves the signed
-package, not a CI one. The 3.2 visual pass lands in the same tree (PUNCH-IN LATCH on by default with its
+The site serves the `main` build and the installer may install it: it checks the published SHA-256 and size
+before writing, and the loader reads the flash chip before erasing anything. Every version is built by CI from
+its tag and attached to a GitHub release (`release.yml`, `docs/RELEASE.es.md`); there is no signed channel and
+no provenance record to gate on any more (#89). In this pass the HOME planets' rotation was verified in the
+browser -- two captures 2.6 s apart, 595 of the 602 changed pixels inside the system bay, and 427 pixels
+changing inside it in 300 ms, more than an orbit of 7-13 s per turn can move -- and `tests/perform_test.c`
+measures LATCH on rendered audio instead of a flag: with LATCH on the filter still filters after the key is
+released, the second touch returns the dry signal bit for bit, and REPEAT 1/16 keeps sounding. The dead
+`/preview/` deployment check is gone.
+
+### `v1.9.0` — an installer that decides on what it reads
+
+The installer gates on the chip id, the piece geometry and the product the unit reports after the write, and
+*Verify Only* exports the diagnostic JSON it derived those states from. (That release was signed with the
+anchored key `qg1-release-1`; #89 replaced the signing scheme with GitHub releases and hash/size checks.) The 3.2 visual pass lands in the same tree (PUNCH-IN LATCH on by default with its
 matrix, DEPTH on KNOB 2, FX percentages right-aligned, the SCL keyboard, seven delay bars, RESO and CLOUD as
 different particles, four HOME planets and a new 3.1 s boot splash), measured at 174 screens × 17 palettes with
 0 lint findings.

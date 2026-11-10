@@ -92,7 +92,7 @@ run_security() {
     python3 tests/install_test.py
     python3 tests/preflight_test.py
     # what M-Flasher itself will check before it erases anything, on the committed release
-    if [ -f release/felucca-v1.9.0.fwsc ]; then python3 tests/mflasher_accept_test.py; fi
+    if [ -f tests/fixtures/felucca-v1.9.0.fwsc ]; then python3 tests/mflasher_accept_test.py; fi
     python3 tests/gate_test.py
     python3 tests/sign_test.py
     python3 tests/key_custody_test.py

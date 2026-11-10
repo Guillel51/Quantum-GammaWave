@@ -8,7 +8,6 @@
 import assert from "node:assert";
 import crypto from "node:crypto";
 import { Updater, requireProof, pack7 } from "./fm1ota.js";
-import { verifyProvenance } from "./fm1provenance.js";
 import { READ_ONLY_QUERY } from "./fm1verify.js";
 import { parseRecord, checkPart, verifyDump, recordFor, firmwareOf, corroborate, DUMP_BYTES } from "./fm1record.js";
 
@@ -123,13 +122,8 @@ function stockUnit(text = "FM-1_015") {
   return { sent, midi: { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) } };
 }
 const fs = await import("node:fs");
-const pkg = fs.readFileSync("release/felucca-v1.9.0.fwsc");
-const manifest = JSON.parse(fs.readFileSync("release/felucca-v1.9.0.manifest.json", "utf-8"));
-const build = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
-const emu = JSON.parse(fs.readFileSync("release/emu/manifest.json", "utf-8"));
-const keys = JSON.parse(fs.readFileSync("tools/fm1_keys.json", "utf-8")).keys || {};
-const prov = await verifyProvenance(pkg, build, { emulator: emu });
-const ctxFor = () => ({ manifest, keys, firmware: "15", provenance: prov });
+const pkg = fs.readFileSync("tests/fixtures/felucca-v1.9.0.fwsc");
+const ctxFor = () => ({ firmware: "15" });
 const chipRecord = recordFor(
   await verifyDump(parseRecord(JSON.stringify({ ...JSON.parse(OWNER), sha256: crypto.createHash("sha256").update(new Uint8Array(DUMP_BYTES)).digest("hex") })),
                    new Uint8Array(DUMP_BYTES)),
@@ -140,11 +134,13 @@ const chipRecord = recordFor(
   const up = new Updater(u.midi, () => {});
   const proof = await requireProof({ ...ctxFor(), pkg, product: "FM-1_982" });
   const err = await up.install(pkg, "FM-1_982", () => {}, { ...ctxFor(), proof, chipRecord }).catch((e) => e);
-  ok(err && err.code === "stockfirst", `a stock unit with a verified record is still refused as "stockfirst" (${err && err.code})`);
-  ok(!u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
-     "...and it still receives no UPGRADE: a chip reading is not an installation");
-  ok(u.sent.every((b) => !(b.length > 3 && b[0] === 0xF0 && cmdOf(b) === 0x30)),
-     "...nor was any image byte offered to it");
+  /* a stock unit installs: its updater stages this package's loader, which checks the chip itself
+   * (firmware/loader/loader.c); this fake unit never asks for the package, so the install stops there */
+  ok(err && err.code === "stopped", `a stock unit is not refused (${err && err.code})`);
+  ok(u.sent.some((b) => b.length === 6 && b.every((v, i) => v === UPGRADE[i])),
+     "...it receives UPGRADE: its own updater starts this package's loader");
+  ok(u.sent.every((b) => !(b.length > 3 && b[0] === 0xF0 && cmdOf(b) === 0x12)),
+     "...and it is never asked for its chip, which it cannot answer");
 }
 
 /* Two readings of one unit are what a backup is supposed to be: the same image twice, taken apart.

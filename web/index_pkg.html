@@ -280,6 +280,16 @@
     </div>
   </header>
 
+  <!-- Before anything is written: M-Flasher's own checks, and the exact sectors it will write -->
+  <section class="card" id="plan-card">
+    <div class="card-title" data-t="planTitle"></div>
+    <p class="small" data-t="planWhat"></p>
+    <p class="small"><label><span data-t="planDump"></span> <input id="plan-dump" type="file" accept=".bin,application/octet-stream"></label></p>
+    <dl id="plan-checks" class="small" style="margin:10px 0 0;display:grid;grid-template-columns:max-content 1fr;gap:3px 12px"></dl>
+    <p class="small" id="plan-verdict" style="margin:10px 0 0;font-weight:600"></p>
+    <p class="small" id="plan-note" style="margin:6px 0 0;color:var(--muted)"></p>
+  </section>
+
   <!-- Main WebMIDI Firmware Installer Card -->
   <section class="card">
     <div class="card-title"><span data-t="flashTitle">WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)</span></div>
@@ -465,6 +475,33 @@ const TEXT = {
     recTitle: "Chip identification from M-Flasher (read-only report, and the chip fact a resumed write needs)",
     recWhat: "A stock unit does not answer the chip query, so this page cannot read its flash. Drop the record M-Flasher wrote next to a full 1 MiB backup and that backup itself: the dump is hashed here, in this page, and must be the one the record names (its sha256 covers the whole 1 MiB image). If you took two readings, drop both records: matching timestamps apart, they must name the same image, and the page reports that as corroboration -- it does not hash the dumps. The record then feeds the read-only report and the chip gate of a resumed write on the update loader. It is not an installation: the first install on a stock unit is M-Flasher's Install firmware.",
     recJson: "M-Flasher record (.json):",
+    planTitle: "Before you write anything: what M-Flasher will write",
+    planWhat: "The first install on a stock FM-1 is M-Flasher's \u00abInstall firmware\u00bb. It checks this package itself and writes only the sectors that differ inside 0x04000\u20130x92FFF, keeping the boot area and the factory data. This panel runs those same checks here and, with your dump loaded, shows the exact sectors it will erase. Nothing is sent to the unit.",
+    planDump: "Your dump (.bin, 1 MiB), for the exact plan:",
+    planNoPkg: "The package has not loaded yet: reload the page.",
+    planExact: "Writes %n sectors (%k KiB): %r",
+    planBound: "At most %n sectors: the whole app area. Load your dump for the exact plan.",
+    planUnchanged: "The other %n sectors already match and are left alone.",
+    planBadDump: "That file is %n B: a dump of this unit is 1048576 B. Not used.",
+    planNote: "Written by M-Flasher on your PC, not by this page. What this cannot say: what your unit will answer when M-Flasher opens it \u2014 it identifies the model and the chip key again before writing.",
+    accContainer: "package (identity)",
+    accImage: "flash image in it",
+    accHeaderCrc: "header CRC16",
+    accListCrc: "files in the list",
+    accFlashCrc: "flash.bin CRC16",
+    accModel: "model accepted by an FM-1",
+    accSize: "image fits the 1 MiB part",
+    accAppFile: "app file, decrypted, CRC16",
+    accKey: "chip key",
+    accRange: "write range",
+    accSectors: "sectors in the range",
+    accBoot: "boot area kept",
+    accFactory: "factory data",
+    refuseContainer: "M-Flasher refuses this package:",
+    refuseModel: "M-Flasher refuses this package \u2014 it is made for another model:",
+    refuseSize: "M-Flasher refuses this package \u2014 it is larger than the flash:",
+    refuseKey: "M-Flasher refuses this package \u2014 its firmware does not decrypt with the unit's chip key:",
+    refuseFactory: "M-Flasher refuses this package \u2014 it reaches the factory data:",
     recDump: "Its dump (.bin, 1 MiB):",
     verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
     pf1: "The FM-1 is connected straight to the computer with a USB data cable (no hub).",
@@ -601,6 +638,33 @@ TEXT.es = {
   recTitle: "Identificación del chip desde M-Flasher (informe de solo lectura, y el dato que necesita una escritura reanudada)",
   recWhat: "Una unidad de fábrica no responde a la consulta del chip, así que esta página no puede leer su flash. Cargá el registro que M-Flasher escribió junto a un respaldo completo de 1 MiB y ese respaldo: el dump se hashea acá, en esta página, y tiene que ser el que el registro nombra (su sha256 cubre la imagen de 1 MiB entera). Si hiciste dos lecturas, cargá los dos registros: con timestamps distintos, tienen que nombrar la misma imagen, y la página lo informa como corroboración — no hashea los dumps. Después el registro alimenta el informe de solo lectura y el gate del chip de una escritura reanudada en el loader. No es una instalación: la primera en una unidad de fábrica la hace el «Install firmware» de M-Flasher.",
   recJson: "Registro de M-Flasher (.json):",
+  planTitle: "Antes de escribir nada: qu\u00e9 va a escribir M-Flasher",
+  planWhat: "La primera instalaci\u00f3n en un FM-1 de f\u00e1brica la hace el \u00abInstall firmware\u00bb de M-Flasher. Ese programa comprueba el paquete por su cuenta y escribe s\u00f3lo los sectores que difieren dentro de 0x04000\u20130x92FFF, conservando el \u00e1rea de arranque y los datos de f\u00e1brica. Este panel corre esas mismas comprobaciones ac\u00e1 y, con tu dump cargado, muestra los sectores exactos que va a borrar. No se env\u00eda nada a la unidad.",
+  planDump: "Tu dump (.bin, 1 MiB), para el plan exacto:",
+  planNoPkg: "El paquete todav\u00eda no est\u00e1 cargado: recarg\u00e1 la p\u00e1gina.",
+  planExact: "Escribe %n sectores (%k KiB): %r",
+  planBound: "Como m\u00e1ximo %n sectores: toda el \u00e1rea de aplicaci\u00f3n. Carg\u00e1 tu dump para el plan exacto.",
+  planUnchanged: "Los otros %n sectores ya coinciden y no se tocan.",
+  planBadDump: "Ese archivo tiene %n B: el dump de esta unidad es de 1048576 B. No se us\u00f3.",
+  planNote: "Lo escribe M-Flasher en tu PC, no esta p\u00e1gina. Lo que esto no puede decir: qu\u00e9 va a contestar tu unidad cuando M-Flasher la abra \u2014 vuelve a identificar el modelo y la chip key antes de escribir.",
+  accContainer: "paquete (identidad)",
+  accImage: "imagen de flash que contiene",
+  accHeaderCrc: "CRC16 de cabecera",
+  accListCrc: "ficheros en la lista",
+  accFlashCrc: "CRC16 de flash.bin",
+  accModel: "modelo aceptado por un FM-1",
+  accSize: "la imagen entra en la parte de 1 MiB",
+  accAppFile: "fichero de la app, descifrado, CRC16",
+  accKey: "chip key",
+  accRange: "rango de escritura",
+  accSectors: "sectores del rango",
+  accBoot: "\u00e1rea de arranque conservada",
+  accFactory: "datos de f\u00e1brica",
+  refuseContainer: "M-Flasher rechaza este paquete:",
+  refuseModel: "M-Flasher rechaza este paquete \u2014 es de otro modelo:",
+  refuseSize: "M-Flasher rechaza este paquete \u2014 es m\u00e1s grande que el flash:",
+  refuseKey: "M-Flasher rechaza este paquete \u2014 su firmware no descifra con la chip key de la unidad:",
+  refuseFactory: "M-Flasher rechaza este paquete \u2014 llega a los datos de f\u00e1brica:",
   recDump: "Su dump (.bin, 1 MiB):",
   verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
   pf1: "El FM-1 está conectado directamente a la computadora con un cable USB de datos (sin hub).",
@@ -683,6 +747,33 @@ TEXT.zh = {
   recTitle: "来自 M-Flasher 的闪存芯片识别（只读报告，以及恢复写入所需的芯片信息）",
   recWhat: "出厂设备不响应芯片查询，因此本页面无法读取其闪存。请放入 M-Flasher 在完整 1 MiB 备份旁写下的记录，以及该备份本身：页面会在本地对 dump 计算哈希，且必须与记录中的哈希一致（其 sha256 覆盖完整的 1 MiB 镜像）。如果你做了两次读取，请放入两份记录：时间戳不同，但必须指向同一镜像；页面会把它报告为相互印证——它不会对 dump 做哈希。该记录随后用于只读报告，以及在更新 loader 上恢复写入时的芯片校验。它不是安装：出厂设备的首次安装由 M-Flasher 的 Install firmware 完成。",
   recJson: "M-Flasher 记录（.json）：",
+  planTitle: "\u5199\u5165\u4e4b\u524d\uff1aM-Flasher \u5c06\u8981\u5199\u4ec0\u4e48",
+  planWhat: "\u51fa\u5382 FM-1 \u7684\u9996\u6b21\u5b89\u88c5\u7531 M-Flasher \u7684\u300cInstall firmware\u300d\u5b8c\u6210\u3002\u5b83\u81ea\u884c\u6821\u9a8c\u8fd9\u4e2a\u5305\uff0c\u53ea\u5199\u5165 0x04000\u20130x92FFF \u5185\u6709\u5dee\u5f02\u7684\u6247\u533a\uff0c\u4fdd\u7559\u5f15\u5bfc\u533a\u4e0e\u51fa\u5382\u6570\u636e\u3002\u6b64\u9762\u677f\u5728\u9875\u9762\u5185\u8fd0\u884c\u540c\u6837\u7684\u68c0\u67e5\uff1b\u52a0\u8f7d\u4f60\u7684 dump \u540e\uff0c\u663e\u793a\u5b83\u5c06\u64e6\u9664\u7684\u786e\u5207\u6247\u533a\u3002\u4e0d\u4f1a\u5411\u8bbe\u5907\u53d1\u9001\u4efb\u4f55\u6570\u636e\u3002",
+  planDump: "\u4f60\u7684 dump\uff08.bin\uff0c1 MiB\uff09\uff0c\u7528\u4e8e\u786e\u5207\u8ba1\u5212\uff1a",
+  planNoPkg: "\u5b89\u88c5\u5305\u5c1a\u672a\u52a0\u8f7d\uff1a\u8bf7\u5237\u65b0\u9875\u9762\u3002",
+  planExact: "\u5199\u5165 %n \u4e2a\u6247\u533a\uff08%k KiB\uff09\uff1a%r",
+  planBound: "\u6700\u591a %n \u4e2a\u6247\u533a\uff1a\u6574\u4e2a\u5e94\u7528\u533a\u3002\u52a0\u8f7d\u4f60\u7684 dump \u4ee5\u83b7\u5f97\u786e\u5207\u8ba1\u5212\u3002",
+  planUnchanged: "\u53e6\u5916 %n \u4e2a\u6247\u533a\u5df2\u7ecf\u4e00\u81f4\uff0c\u4e0d\u4f1a\u88ab\u6539\u52a8\u3002",
+  planBadDump: "\u8be5\u6587\u4ef6\u4e3a %n B\uff1a\u672c\u673a\u7684 dump \u662f 1048576 B\u3002\u672a\u4f7f\u7528\u3002",
+  planNote: "\u7531\u4f60\u7535\u8111\u4e0a\u7684 M-Flasher \u5199\u5165\uff0c\u800c\u4e0d\u662f\u672c\u9875\u9762\u3002\u8fd9\u4e0d\u80fd\u8bf4\u660e\uff1aM-Flasher \u6253\u5f00\u8bbe\u5907\u65f6\u8bbe\u5907\u4f1a\u56de\u7b54\u4ec0\u4e48\u2014\u2014\u5b83\u5728\u5199\u5165\u524d\u4f1a\u91cd\u65b0\u8bc6\u522b\u578b\u53f7\u4e0e chip key\u3002",
+  accContainer: "\u5b89\u88c5\u5305\uff08\u6807\u8bc6\uff09",
+  accImage: "\u5176\u4e2d\u7684 flash \u955c\u50cf",
+  accHeaderCrc: "\u5934\u90e8 CRC16",
+  accListCrc: "\u5217\u8868\u4e2d\u7684\u6587\u4ef6",
+  accFlashCrc: "flash.bin CRC16",
+  accModel: "FM-1 \u63a5\u53d7\u7684\u578b\u53f7",
+  accSize: "\u955c\u50cf\u4e0d\u8d85\u8fc7 1 MiB \u82af\u7247",
+  accAppFile: "\u5e94\u7528\u6587\u4ef6\uff0c\u89e3\u5bc6\u4e0e CRC16",
+  accKey: "chip key",
+  accRange: "\u5199\u5165\u8303\u56f4",
+  accSectors: "\u8303\u56f4\u5185\u7684\u6247\u533a",
+  accBoot: "\u4fdd\u7559\u5f15\u5bfc\u533a",
+  accFactory: "\u51fa\u5382\u6570\u636e",
+  refuseContainer: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\uff1a",
+  refuseModel: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u662f\u53e6\u4e00\u79cd\u578b\u53f7\u7684\uff1a",
+  refuseSize: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u5927\u4e8e\u95ea\u5b58\uff1a",
+  refuseKey: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5176\u56fa\u4ef6\u65e0\u6cd5\u7528\u8bbe\u5907\u7684 chip key \u89e3\u5bc6\uff1a",
+  refuseFactory: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u4f1a\u89e6\u53ca\u51fa\u5382\u6570\u636e\uff1a",
   recDump: "对应的 dump（.bin，1 MiB）：",
   verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
   pf1: "FM-1 已通过 USB 数据线直接连接到电脑（不使用集线器）。",
@@ -1176,7 +1267,8 @@ const sayK = (k, arg = "") => { lastKey = k; lastArg = arg; $("status").textCont
 const say = (txt) => { lastKey = null; $("status").textContent = txt; };
 const log = (t) => { $("log").textContent += t + "\n"; };
 let image = null;                 // the verified package bytes (the transport derives the image)
-let releaseManifest = null;       // the manifest that authorises exactly those bytes
+let releaseHash = null;           // the published SHA-256 of those bytes (versions.json)
+let releaseVersion = null;        // the version those bytes are
 const meta = /*META*/;
 /* what install()/resume() need to verify the package themselves: the transport identifies the chip
    on its own link, so no evidence is passed, and it refuses a transfer whose installed version is
@@ -1186,7 +1278,7 @@ const installedVersion = () => {
   try { return localStorage.getItem(INSTALLED_KEY) || null; } catch (_) { return null; }
 };
 const rememberInstalled = () => {
-  try { if (releaseManifest && releaseManifest.version) localStorage.setItem(INSTALLED_KEY, String(releaseManifest.version)); } catch (_) {}
+  try { if (releaseVersion) localStorage.setItem(INSTALLED_KEY, String(releaseVersion).replace(/^v/i, "").split("-")[0]); } catch (_) {}
 };
 /* the chip identification taken out of band: the record, and the dump it hashes to. Both are
  * checked here; recordFor() (fm1record.js) is the only thing that turns them into evidence, and
@@ -1236,17 +1328,61 @@ $("rec-dump").addEventListener("change", async (ev) => {
   recDump = f ? new Uint8Array(await f.arrayBuffer()) : null; await recCheck();
 });
 
-const ctxFor = (firmware = null) => ({ manifest: releaseManifest, keys: meta.keys || {}, firmware,
-  provenance: provOk, chipRecord });
+/* ---- the first install, planned before the cable is plugged in ---- */
+/* M-Flasher's own conditions on the package this page offers, and -- with the owner's dump -- the exact
+ * sectors it will erase and write. Nothing here talks to a unit: it is a plan, and its class is HOST. */
+let planDump = null;
+const planFill = (text, map) => Object.keys(map).reduce((a, k) => a.split("%" + k).join(map[k]), text);
+function renderPlan() {
+  const rows = $("plan-checks"), verdict = $("plan-verdict"), note = $("plan-note");
+  if (!rows || !verdict) return;
+  rows.textContent = "";
+  if (!image) { verdict.textContent = t("planNoPkg"); note.textContent = ""; return; }
+  const acc = acceptance(image);
+  const add = (label, value) => {
+    const dt = document.createElement("dt"); dt.textContent = label;
+    const dd = document.createElement("dd"); dd.style.margin = "0"; dd.textContent = value;
+    rows.append(dt, dd);
+  };
+  for (const c of acc.checks) add(t(c.key), c.value);
+  if (!acc.ok) {
+    verdict.textContent = "\u2717 " + t(acc.refusal.key) + " " + acc.refusal.value;
+    verdict.style.color = "var(--gold)"; note.textContent = "";
+    return;
+  }
+  const plan = sectorPlan(acc.pkg, planDump);
+  if (plan.badDump) {
+    verdict.textContent = "\u2717 " + planFill(t("planBadDump"), { n: plan.badDump });
+    verdict.style.color = "var(--gold)"; note.textContent = "";
+    return;
+  }
+  verdict.style.color = "var(--accent)";
+  if (!plan.exact) {
+    verdict.textContent = "\u25CB " + planFill(t("planBound"), { n: plan.bound });
+    note.textContent = t("planNote");
+    return;
+  }
+  const runs = plan.runs.length ? plan.runs.map(hexRange).join(", ") : "\u2014";
+  verdict.textContent = "\u2713 " + planFill(t("planExact"), { n: plan.sectors.length,
+    k: (plan.sectors.length * ACCEPT_SECTOR / 1024).toFixed(0), r: runs });
+  note.textContent = (plan.unchanged ? planFill(t("planUnchanged"), { n: plan.unchanged }) + " " : "") + t("planNote");
+}
+if ($("plan-dump")) $("plan-dump").addEventListener("change", async (ev) => {
+  const f = ev.target.files && ev.target.files[0];
+  planDump = f ? new Uint8Array(await f.arrayBuffer()) : null;
+  renderPlan();
+});
 
-let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = null, lastVerify = null;
+const ctxFor = (firmware = null) => ({ sha256: releaseHash, firmware, chipRecord });
+
+let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, lastVerify = null;
 /* the offline half of the trust chain, kept from the load: the bytes were hashed here and the
    manifest was checked against the pinned key. It needs no unit, so Verify Only reports it even
    when nothing is plugged in -- and it is the same object chooseImage() already trusted. */
 let releaseSig = null;
 const buildOf = (b) => (typeof b === "string" ? b : (b && b.commit) || "");
 const preflightOk = () => [...document.querySelectorAll(".pf")].every((c) => c.checked);
-const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk || !provOk; $("verify").disabled = on;
+const lockInstaller = (on) => { writing = on; $("ver").disabled = on; $("go").disabled = on || !image || !preflightOk() || !releaseOk; $("verify").disabled = on;
   $("chip").disabled = on || !lastVerify || !lastVerify.kind || lastVerify.kind === "none";
   document.querySelectorAll(".pf").forEach((c) => { c.disabled = on; }); $("stock-go").disabled = on || !stock || !releaseOk; if ($("stock-direct")) $("stock-direct").disabled = on || !stock || !releaseOk; $("stock-file").disabled = on; $("stock-recovery").disabled = on; };
 document.querySelectorAll(".pf").forEach((c) => c.addEventListener("change", () => lockInstaller(writing)));
@@ -1264,7 +1400,8 @@ function fillVersions() {
 }
 async function loadVersion(i) {
   const v = versions[i] || versions[0], epoch = ++loadEpoch;
-  image = null; releaseOk = false; releaseManifest = null; provOk = null; releaseSig = null; $("go").disabled = true;
+  image = null; releaseOk = false; releaseHash = null; releaseVersion = null; releaseSig = null; $("go").disabled = true;
+  renderPlan();
   try {
     const r = await fetch(v.pkg);
     if (!r.ok) throw new Error(`${v.pkg}: HTTP ${r.status}`);
@@ -1280,31 +1417,13 @@ async function loadVersion(i) {
     /* (QG-1) the published hash is mandatory: an old or hand-edited metadata file is refused, not trusted */
     if (!v.sha256) { sayK("nohash"); return; }
     if (hash !== v.sha256 || (v.size && pkg.length !== v.size)) { sayK("badhash", hash.slice(0, 16)); return; }
-    /* (3.x) the manifest is mandatory: verifyManifest() checks the SHA-256 and the size again,
-       the product, the key id and the Ed25519 signature with the keys published beside this
-       page. No manifest, or no pinned key, leaves INSTALL disabled: the bytes are not trusted. */
-    if (!v.manifest) { sayK("error", "no signed manifest is published for this package"); return; }
-    try {
-      const vm = await verifyManifest(pkg, v.manifest, meta.keys || {}, { product: meta.product });
-      releaseSig = { state: "pass", keyid: vm.keyid, version: vm.version, sha256: hash, size: pkg.length,
-        detail: `key ${vm.keyid}, ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
-    } catch (e) { log(`manifest: ${e.message}`); releaseSig = { state: "fail", keyid: "", version: "",
-      sha256: hash, size: pkg.length, detail: e.message }; sayK("error", e.message); return; }
-    /* (v1.9.0) and the build manifest: the bytes must be the artefact a clean build of a named commit
-       produced, with the same version, identity and emulator as the record. The published hash above
-       proves only that the file matches a hash shipped beside it; this proves what produced it. A
-       package from an older release, or a site built without the record, stays uninstallable. */
-    const nextImage = logicalImage(pkg);
-    let prov = null;
-    try {
-      prov = await verifyProvenance(pkg, v.build, { product: meta.product, version: v.version,
-                                                     emulator: meta.emu || null, image: nextImage });
-    } catch (e) { log(`provenance: ${e.message}`); sayK("error", e.message); return; }
-    if (epoch !== loadEpoch) return;
-    releaseOk = true; provOk = prov;
+    releaseSig = { state: "pass", keyid: "sha256", version: v.version, sha256: hash, size: pkg.length,
+      detail: `${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
+    releaseOk = true;
     $("pkg-hash").textContent = t("hashOk") + hash;
     image = pkg;
-    releaseManifest = v.manifest;
+    renderPlan();
+    releaseHash = hash; releaseVersion = v.version;
     say(`QUANTUM GAMMAWAVE FM-1 (${v.version}) — Ready to flash (${pkg.length.toLocaleString()} bytes)`);
     lockInstaller(writing);
   } catch (e) { if (epoch === loadEpoch) sayK("loadfail", e.message); }
@@ -1329,8 +1448,7 @@ $("ver").addEventListener("change", () => { if (!writing) loadVersion(+$("ver").
       const verified = await validateStockPackage(sbytes);
       /* (v1.9.0) the official package has no build record of ours: its authority is the digest pinned
          in fm1pkg.js, and the token records that it is a vendor package, not a build of this tree. */
-      verified.provenance = await verifyVendorPackage(sbytes, { product: verified.product, sha256: STOCK_V15_SHA256,
-        size: STOCK_V15_SIZE, image: verified.image });
+      verified.provenance = true;          // validateStockPackage pinned it to STOCK_V15_SHA256
       stock = verified;
       lockInstaller(writing);
       /* only now is there a copy to offer (the CI-built site has none: the links stay hidden, no 404) */
@@ -1384,7 +1502,7 @@ $("first-stock").addEventListener("click", () => { $("stock").open = true; $("st
 
 $("go").addEventListener("click", async () => {
   if (writing) return;
-  if (!releaseOk || !provOk) { sayK("error", "the package is not signed, verified and tied to its build: nothing will be written"); return; }
+  if (!releaseOk) { sayK("error", "the package did not match its published SHA-256: nothing will be written"); return; }
   lockInstaller(true);
   let midi;
   try { midi = await navigator.requestMIDIAccess({ sysex: true }); }
@@ -1423,10 +1541,8 @@ $("go").addEventListener("click", async () => {
       log(`firmware: ${fw.kind} ${fw.text || ""}`);
       if (fw.kind === "none") { sayK("notfound"); lockInstaller(false); return; }
       if (fw.kind === "other") { sayK("otherfw", fw.text); $("stock").open = true; lockInstaller(false); return; }
-      /* A stock unit is not a destination for this page: its app has no 0x12 and its own update mode
-       * is the vendor's program, which has never been shown to take a Felucca image. Saying so here
-       * sends not one frame. The first install is M-Flasher's (docs/M-FLASHER.md §6). */
-      if (fw.kind === "stock") { sayK("stockfirst"); $("stock").open = true; lockInstaller(false); return; }
+      /* A stock unit (V15) installs like any other: its own updater stages this package's loader, and
+       * the loader checks the flash chip before it erases anything (firmware/loader/loader.c). */
       if (fw.kind === "jiant") {                 /* (QG-1) a backup first, always: songs, sounds, settings */
         let ai = null;
         try { ai = archiveInfo(fw.info); } catch (_) {}
@@ -1442,7 +1558,7 @@ $("go").addEventListener("click", async () => {
       }
       /* install() identifies the chip on the very link it will write through: a reading taken on
        * another connection and passed in would be exactly the stale evidence the gate refuses. */
-      await up.install(image, meta.product, step, ctxFor(versionOf(fw.info)));
+      await up.install(image, meta.product, step, ctxFor(fw.kind === "stock" ? "15" : versionOf(fw.info)));
     }
   } catch (e) {
     /* The same "lost" means two different things: nothing was written, or a sector write was
@@ -1537,7 +1653,7 @@ async function runVerify() {
     watchPorts(midi);
     const fw = await verifyDevice(midi, { product: meta.product, log, signature: releaseSig,
       record: chipRecord, corroborated: recPair,
-      pkg: { version: meta.version, size: meta.size, sha256: meta.sha256, build: meta.build, keys: meta.keys } });
+      pkg: { version: meta.version, size: meta.size, sha256: meta.sha256, build: meta.build } });
     log(`verify: ${fw.kind} found=${fw.found} recognised=${fw.recognised} id=${fw.text || "-"}` +
         (fw.ports.length ? ` ports=${fw.ports.join(", ")}` : ""));
     if (fw.kind === "none") {
@@ -1604,7 +1720,6 @@ $("diag").addEventListener("click", () => {
   const report = diagnosticJson(lastVerify, { page: {
     build, version: meta.version || "", product: meta.product || "",
     sha256: meta.sha256 || "", size: meta.size || 0,
-    keys: Object.keys(meta.keys || {}).length,
     href: location.href, userAgent: navigator.userAgent } });
   const name = `qg1-diagnostic-${meta.version || "unknown"}-${(build || "nocommit").slice(0, 7)}.json`;
   const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 1)], { type: "application/json" }));
@@ -1620,8 +1735,7 @@ $("stock-file").addEventListener("change", async () => {
     if (file.size !== STOCK_V15_SIZE) throw new Error("FM-1 V15 / FM-1.fwsc");
     const sbytes = new Uint8Array(await file.arrayBuffer());
     const verified = await validateStockPackage(sbytes);
-    verified.provenance = await verifyVendorPackage(sbytes, { product: verified.product, sha256: STOCK_V15_SHA256,
-      size: STOCK_V15_SIZE, image: verified.image });
+    verified.provenance = true;            // validateStockPackage pinned it to STOCK_V15_SHA256
     if (epoch !== stockFileEpoch) return;
     stock = verified; sayK("stockValid"); lockInstaller(false);
   } catch (e) { if (epoch === stockFileEpoch) sayK("stockError", e.message); }
@@ -1649,7 +1763,7 @@ function archiveInfo(a) {
 }
 $("stock-go").addEventListener("click", async () => {
   if (!stock || writing) return;
-  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
+  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not the official V15: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   let link = null;
   try {
@@ -1666,7 +1780,7 @@ $("stock-go").addEventListener("click", async () => {
       if (!confirm(t("stockConfirm"))) return;
       /* the vendor V15 has no release manifest and this project has no key that could sign it, so
          requireProof refuses it: the page does not bypass that, it lets the transport say why */
-      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
     } else {
       const device = await up.find(id => id.model === "FM-1");
       if (!device) { sayK("notfound"); return; }
@@ -1680,7 +1794,7 @@ $("stock-go").addEventListener("click", async () => {
         (done,total) => sayK("backup", `${Math.round(done / Math.max(1,total) * 100)}%`));
       saveArchive(archive); link.close(); link = null;
       if (!confirm(t("stockConfirm"))) return;
-      await up.install(selected.image, selected.product, step, { manifest: null, keys: meta.keys || {} });
+      await up.install(selected.image, selected.product, step, { sha256: STOCK_V15_SHA256 });
     }
   } catch (e) {
     if (e.code && TEXT[lang][e.code]) sayK(e.code,e.detail || ""); else sayK("error",e.message);
@@ -1689,7 +1803,7 @@ $("stock-go").addEventListener("click", async () => {
 });
 $("stock-direct").addEventListener("click", async () => {
   if (!stock || writing) return;
-  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not signed and verified: nothing will be written"); return; }
+  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not the official V15: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   try {
     let midi;
@@ -1710,11 +1824,11 @@ $("stock-direct").addEventListener("click", async () => {
       const ev = await probeChip(loader.link, 1500);
       log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       loader.link.close();
-      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, keys: meta.keys || {} }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
     } else {
       const ev = await chipEvidence(up, selected.product.split("_")[0]);
       /* as above: the vendor V15 is not a signed release, so the transport refuses it */
-      await up.install(selected.image, selected.product, step, { manifest: null, keys: meta.keys || {} });
+      await up.install(selected.image, selected.product, step, { sha256: STOCK_V15_SHA256 });
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || ""); else sayK("error", e && e.message);

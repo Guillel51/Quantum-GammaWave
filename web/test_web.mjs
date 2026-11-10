@@ -16,8 +16,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { logicalImage, productOf } from "./fm1pkg.js";
 import { Updater, pack7, unpack7 } from "./fm1ota.js";
-import { verifyProvenance } from "./fm1provenance.js";
-import { createHash, generateKeyPairSync, sign as edSign } from "node:crypto";
+import { createHash } from "node:crypto";
 
 let failed = 0;
 const ok = (cond, what) => { console.log(`${what.padEnd(64)} ${cond ? "ok" : "FAIL"}`); if (!cond) failed++; };
@@ -1527,36 +1526,7 @@ class FakeFM1 {
   }
 }
 
-/* An ephemeral release key signs the test packages: no production key exists or is created, and
-   the private half lives only in this process. */
-const TEST_KEY = generateKeyPairSync("ed25519");
-const PINNED = { "test-1": Buffer.from(TEST_KEY.publicKey.export({ format: "jwk" }).x, "base64url").toString("hex") };
-const canon = (v) => v === null || typeof v !== "object" ? JSON.stringify(v)
-  : Array.isArray(v) ? "[" + v.map(canon).join(",") + "]"
-  : "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canon(v[k])).join(",") + "}";
 const sha256 = (b) => createHash("sha256").update(b).digest("hex");
-const release = (pkg, over = {}) => {
-  const { build = buildRecord(pkg), noBuild = false, ...rest } = over;
-  const unsigned = { format: "qg1-release-1", product: "FM-1", version: "9.9.9", min_firmware: "1.0.0",
-    sha256: sha256(pkg), size: pkg.length, created: "2026-11-05T00:00:00Z", keyid: "test-1",
-    ...(noBuild ? {} : { build_sha256: sha256(Buffer.from(canon(build))) }), ...rest };   // the signature covers the record
-  return { ...unsigned, sig: edSign(null, Buffer.from(canon(unsigned)), TEST_KEY.privateKey).toString("hex") };
-};
-
-/* the build record tools/build_manifest.py writes for these bytes: the transport refuses a package
-   with no record, so every positive case here carries the record of the build that produced it */
-const BUILD_COMMIT = "0123456789abcdef0123456789abcdef01234567";
-const buildRecord = (pkg, over = {}) => ({
-  schema: "qg1-build-1", version: "v9.9.9", commit: BUILD_COMMIT, dirty: [], identity: productOf(pkg),
-  config: { FELUCCA_FLASH: "default" },
-  toolchain: { clang_sha256: "a".repeat(64), path: "/opt/toolchain" },
-  sdk: { commit: "b".repeat(40), files: {}, path: "/opt/sdk" },
-  artifacts: { "felucca.bin": { bytes: 1024, sha256: "c".repeat(64) },
-               "felucca.fwsc": { bytes: pkg.length, sha256: sha256(pkg) } },
-  emulator: { schema: "qg1-emu-1", commit: BUILD_COMMIT.slice(0, 12), version: "v9.9.9",
-              wasm_bytes: 4096, wasm_sha256: "d".repeat(64) },
-  ...over,
-});
 
 /* a .fwsc whose logical image is `img`: 20 blocks of 47 image bytes, then the identity marker that
    logicalImage() drops and productOf() reads */
@@ -1577,20 +1547,18 @@ async function updater() {
   const identity = "FM-1_900";
   const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
   const pkg = packageOf(image, identity);
-  const manifest = release(pkg);
-  const provenance = await verifyProvenance(pkg, buildRecord(pkg), { product: identity, image });
-  const ctx = { manifest, keys: PINNED, firmware: "1.8.9", provenance };
+  const ctx = { sha256: sha256(pkg), firmware: "1.8.9" };
   ok(eq(logicalImage(pkg), image) && productOf(pkg) === identity,
     `fm1ota.js: the test package identifies as ${productOf(pkg)} and holds the 0x2000 image`);
 
-  /* positive: a signed, complete, compatible package installs, and the device gets exactly the
-     image of the package the manifest covers */
+  /* positive: a complete, compatible package with its published hash installs, and the device gets
+     exactly the image of the package */
   {
     const dev = new FakeFM1(image);
     const steps = [];
     const got = await new Updater(dev.access, null, FAST).install(pkg, identity, (k) => steps.push(k), ctx);
     ok(got === identity && dev.bad === 0 && dev.upgrades === 2 && dev.served > 0 && steps.at(-1) === "done",
-      `fm1ota.js: a signed package installs (${dev.served} reads, ${dev.upgrades} UPGRADE frames)`);
+      `fm1ota.js: a package with its published hash installs (${dev.served} reads, ${dev.upgrades} UPGRADE frames)`);
   }
   /* the only code that sends image bytes is private: no public method reaches link.send() */
   {
@@ -1604,42 +1572,15 @@ async function updater() {
   /* the negative matrix: every refusal happens before the first frame, so the transport counters
      must all be zero (frames sent, UPGRADE commands, image bytes served) */
   const refusals = [
-    ["no context", "version", (up) => up.install(pkg, identity)],
-    ["no installed version", "version", (up) => up.install(pkg, identity, null, { manifest, keys: PINNED })],
-    ["no manifest", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: null })],
-    ["no pinned key", "signature", (up) => up.install(pkg, identity, null, { ...ctx, keys: {} })],
-    ["an unknown key id", "signature", (up) => up.install(pkg, identity, null, { ...ctx, keys: { other: PINNED["test-1"] } })],
-    ["a tampered manifest", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: { ...manifest, version: "9.9.8" } })],
-    ["a wrong hash", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: { ...manifest, sha256: "0".repeat(64) } })],
-    ["a wrong size", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: { ...manifest, size: manifest.size + 1 } })],
-    ["no min_firmware", "signature", (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { min_firmware: undefined }) })],
-    ["a package for another product", "signature", (up) => up.install(pkg, "FM-1_901", null, { ...ctx, manifest: release(pkg, { product: "GW-1" }) })],
-    ["an ambiguous version", "version", (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { version: "latest" }) })],
-    ["a downgrade below min_firmware", "signature", (up) => up.install(pkg, identity, null, { ...ctx, firmware: "0.5.0" })],
+    ["a wrong hash", "image", (up) => up.install(pkg, identity, null, { ...ctx, sha256: "0".repeat(64) })],
+    ["a package for another product", "proof", (up) => up.install(pkg, "FM-1_901", null, ctx)],
     ["a package that is not bytes", "image", (up) => up.install("package", identity, null, ctx)],
     ["an empty package", "image", (up) => up.install(new Uint8Array(0), identity, null, ctx)],
-    /* the build record: mandatory, and about these bytes and this device */
-    ["no build record", "provenance", (up) => up.install(pkg, identity, null, { ...ctx, provenance: null })],
-    ["a hand-written build verdict", "provenance", (up) => up.install(pkg, identity, null, { ...ctx, provenance: { identity } })],
-    ["a build record for other bytes", "provenance",
-      (up) => up.install(pkg, identity, null, { ...ctx, provenance: otherBytesProv })],
-    ["a build record for another device", "provenance",
-      (up) => up.install(pkg, identity, null, { ...ctx, provenance: foreignProv })],
-    /* the signature must cover the record itself, not only the bytes */
-    ["a release naming another build record", "provenance",
-      (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { build: buildRecord(pkg, { commit: "f".repeat(40) }) }) })],
-    ["a release that does not name the record", "provenance",
-      (up) => up.install(pkg, identity, null, { ...ctx, manifest: release(pkg, { noBuild: true }) })],
-    ["resume without a context", "version", (up) => up.resume(pkg, null, identity)],
     ["write without a product", "proof", (up) => up.write({ id: { model: "ota-" + identity, text: "ota-" + identity }, link: { send: () => true } }, pkg, null)],
     /* the transport's own identification: these reach the device, so the counters are "no write", not "no frame" */
     ["an unknown chip", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, jedec: 0x123456 }],
     ["a chip that never answers 0x12", "chip", (up) => up.install(pkg, identity, null, ctx), { frames: 2, silentNor: true }],
   ];
-  /* two verdicts that are valid for something else: one for other bytes, one for another device */
-  const otherPkg = packageOf(Uint8Array.from(image, (b) => b ^ 1), identity);
-  const otherBytesProv = await verifyProvenance(otherPkg, buildRecord(otherPkg), { product: identity });
-  const foreignProv = await verifyProvenance(pkg, buildRecord(pkg, { identity: "FM-1_901" }), { product: "FM-1_901", image });
   for (const [what, code, run, opt = {}] of refusals) {
     const dev = new FakeFM1(image, { jedec: opt.jedec ?? null, silentNor: !!opt.silentNor });
     const e = await run(new Updater(dev.access, null, FAST)).then(() => null, (x) => x);
@@ -1651,11 +1592,11 @@ async function updater() {
   /* a proof is bound to the bytes it verified: a buffer changed afterwards never reaches the
      device, and a swapped package is refused even with a valid authorisation */
   {
-    const live = pkg.slice(), man = release(live);
-    const proof = await M.requireProof({ pkg: live, product: identity, firmware: "1.8.9", manifest: man, keys: PINNED, provenance });
+    const live = pkg.slice();
+    const proof = await M.requireProof({ pkg: live, product: identity, ...ctx });
     live.fill(0xFF);
     const dev = new FakeFM1(image);
-    const e = await new Updater(dev.access, null, FAST).install(live, identity, null, { manifest: man, keys: PINNED, firmware: "1.8.9", proof })
+    const e = await new Updater(dev.access, null, FAST).install(live, identity, null, { ...ctx, proof })
       .then(() => null, (x) => x);
     ok(e && e.code === "image" && dev.frames === 0 && dev.served === 0,
       "fm1ota.js: a package changed after it was verified -> 'image', no frame");
@@ -1692,8 +1633,7 @@ async function updater() {
   {
     const other = "FM-1_901", pkg2 = packageOf(image, other);
     const dev = new FakeFM1(image);                       // it answers as FM-1_900
-    const prov2 = await verifyProvenance(pkg2, buildRecord(pkg2), { product: other, image });
-    const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { firmware: "1.8.9", manifest: release(pkg2), keys: PINNED, provenance: prov2 })
+    const e = await new Updater(dev.access, null, FAST).install(pkg2, other, null, { firmware: "1.8.9" })
       .then(() => null, (x) => x);
     ok(e && e.code === "model" && dev.upgrades === 0 && dev.served === 0,
       `fm1ota.js: a unit answering as ${dev.identity} for a ${other} package -> 'model', nothing written`);
@@ -1786,19 +1726,18 @@ qg1FeaturesCheck();
   const resumes = pkgHtml.match(/up\.resume\([^)]*\)/g) || [];
   ok(/async function chipEvidence\(/.test(pkgHtml) && /probeChip\(/.test(pkgHtml),
      "installer page: 0x12 identifies the flash before the first write frame");
-  ok(installs.length === 3 && installs.every((s) => /,\s*(ctxFor\(|\{ manifest)/.test(s)),
-     "installer page: every install() call passes the manifest, the keys and the installed version");
-  ok(resumes.length === 3 && resumes.every((s) => /,\s*(ctxFor\(|\{ manifest)/.test(s)),
-     "installer page: every resume() call passes the manifest, the keys and the remembered version");
+  ok(installs.length === 3 && installs.every((s) => /,\s*(ctxFor\(|\{ sha256)/.test(s)),
+     "installer page: every install() call passes the published hash and the installed version");
+  ok(resumes.length === 3 && resumes.every((s) => /,\s*(ctxFor\(|\{ sha256)/.test(s)),
+     "installer page: every resume() call passes the published hash and the remembered version");
   ok(!/up\.write\(/.test(pkgHtml), "installer page: write() is reached only through install()/resume()");
-  ok(/verifyManifest\(pkg, v\.manifest/.test(pkgHtml) && /no signed manifest/.test(pkgHtml),
-     "installer page: the signed manifest is verified before INSTALL");
-  ok(/releaseOk/.test(pkgHtml) && /!preflightOk\(\) \|\| !releaseOk/.test(pkgHtml)
-     && /the package is not signed and verified/.test(pkgHtml),
+  ok(/hash !== v\.sha256/.test(pkgHtml) && /sayK\("badhash"/.test(pkgHtml),
+     "installer page: the package's SHA-256 is checked before INSTALL");
+  ok(/releaseOk/.test(pkgHtml) && /!preflightOk\(\) \|\| !releaseOk/.test(pkgHtml),
      "installer page: INSTALL is disabled until the package is verified");
 }
 
-// ---- 0x12 / 0x13 / Ed25519: the same policy the CLI enforces (tests/chip_test.py, tests/sign_test.py) ----
+// ---- 0x12 / 0x13: the same policy the CLI enforces (tests/chip_test.py) ----
 {
   const M = await import("./fm1ota.js");
   const crc = (d, c = 0) => {
@@ -1881,39 +1820,6 @@ qg1FeaturesCheck();
     refused = false;
     try { await M.readFlash(dev, 0x100000 - 8, 16, e2.session, 200); } catch (e) { refused = e.code === "chip"; }
     ok(refused, "web 0x13 refuses a read past the part");
-  }
-  {
-    const { generateKeyPairSync, sign } = await import("node:crypto");
-    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-    const pub = publicKey.export({ format: "jwk" }).x;
-    const pkg = new Uint8Array([1, 2, 3, 4, 5]);
-    const digest = (await import("node:crypto")).createHash("sha256").update(pkg).digest("hex");
-    const man = { format: "qg1-release-1", product: "FM-1", version: "3.0.0", min_firmware: "2.0.0",
-      sha256: digest, size: pkg.length, created: "2026-11-04T00:00:00Z", keyid: "t1" };
-    const canonical = (v) => v === null || typeof v !== "object" ? JSON.stringify(v)
-      : Array.isArray(v) ? "[" + v.map(canonical).join(",") + "]"
-      : "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonical(v[k])).join(",") + "}";
-    const sig = sign(null, Buffer.from(canonical(man)), privateKey).toString("hex");
-    const signed = { ...man, sig };
-    const pinned = { t1: Buffer.from(pub, "base64url").toString("hex") };
-    let ed25519 = true;
-    try { await crypto.subtle.importKey("raw", new Uint8Array(32), { name: "Ed25519" }, false, ["verify"]); }
-    catch (_) { ed25519 = false; }
-    if (!ed25519) {
-      console.log("web Ed25519: this runtime's WebCrypto has no Ed25519, signature checked in Python only (skipped)");
-    } else {
-      try {
-        const info = await M.verifyManifest(pkg, signed, pinned);
-        ok(info.keyid === "t1" && info.sha256 === digest, "web Ed25519: a valid manifest verifies (WebCrypto)");
-      } catch (e) { ok(false, "web Ed25519: valid manifest (" + e.message + ")"); }
-    }
-    for (const [m, keys, what] of [[{ ...signed, version: "9.9.9" }, pinned, "a tampered manifest"],
-                                   [signed, {}, "no pinned key"], [{ ...signed, product: "GW-1" }, pinned, "another product"],
-                                   [{ ...signed, sha256: "0".repeat(64) }, pinned, "a wrong hash"]]) {
-      let refused = false;
-      try { await M.verifyManifest(pkg, m, keys); } catch (e) { refused = e.code === "signature"; }
-      ok(refused, "web Ed25519 refuses " + what);
-    }
   }
 }
 
