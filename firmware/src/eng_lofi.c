@@ -372,6 +372,15 @@ static void lofi_note_on(track_t *t, voice_t *v)
     v->s[2] = t->p[P_E1] >= RW_BYTE ? 0 : 0x7FFF;   /* LFSR (BYTE, FLOAT: its time t, from 0) */
     if (t->p[P_E1] >= RW_BYTE)                          /* (BYTE: its slow time; FLOAT: its phase, a step at once) */
         v->ph[1] = 0u;
+    /* (2.1) T.CLK = FREE: the formula is not restarted at the note. t and its slow time come from the track's
+     * clock (8 steps a millisecond, the C4 rate BYTE runs at), so this note joins the formula where it is and
+     * two notes in a row are two different readings of it -- which is what makes the control audible in POLY,
+     * where every note is a fresh voice and a reset-to-zero was indistinguishable from the default. */
+    if (t->p[P_E1] >= RW_BYTE && t->p[P_LRTRG]) {
+        uint32_t ft = (fm1_ms * 8u) & 0x00FFFFFFu;
+        v->s[2] = (int32_t)ft;
+        v->ph[1] = ft << 8;                             /* the slow time, Q8, at the same pace */
+    }
     v->s[3] = 0;                 /* (BYTE: its smoothing's first pole; SWEEP retired in 0.4) */
     v->ph[2] = 0;                /* (.. its second; FLOAT: its patch's own state) */
     v->s[4] = v->s[5] = 0;       /* (JIANT 0.4) the filter's two states */

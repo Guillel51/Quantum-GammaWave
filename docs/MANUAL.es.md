@@ -245,7 +245,7 @@ a la derecha); apretá OCT+ para ejecutarla.
 | --- | --- | --- | --- | --- | --- |
 | EDIT 1 | E1 | E2 | E3 | E4 | todos los motores (ver [4](#4-motores)) |
 | EDIT 2 | E5 | E6 | E7 | E8 | todos los motores |
-| RETRIG | RTRG | — | — | — | LOFI con WAVE en BYTE o FLOAT |
+| RETRIG | T.CLK | — | — | — | LOFI con WAVE en BYTE o FLOAT |
 | MORPH | MORPH | — | — | — | ANALOG (SAW..SIN), PHASE, LOFI (hasta WRAM) |
 | OPERATOR | OP | RATIO / FIXED | FINE | LEVEL | FM6 |
 | OP ENV | OP | STAGE | RATE | LEVEL | FM6 |
@@ -424,7 +424,11 @@ click; las notas siguen.
   - **FLOAT** (floatbeat): CHIP pasa a ser la resolución (4BIT, 4B/2, FULL, 1BIT), KNOB 3 **ALGO** (32 fórmulas
     hechas de senos), KNOB 4 **VAR**; EDIT 2: **MOTION, FEEDBK, BEND, LOOP**. Mantené una tecla: la fórmula suena en
     esa tonalidad.
-  - Página **RETRIG** (BYTE / FLOAT): **RTRG ON** reinicia la fórmula desde el principio en cada nota.
+  - Página **RETRIG** (BYTE / FLOAT): **T.CLK** es el reloj de la fórmula. `NOTE` (por defecto) arranca cada nota
+    desde el principio de la fórmula, así una nota suena siempre igual. `FREE` deja la fórmula corriendo sobre el
+    reloj de la pista: la nota se suma donde está, así dos notas seguidas son dos lecturas distintas de la misma
+    fórmula en marcha (como se escucha el bytebeat cuando queda sonando). El control cambia las muestras, no el
+    dibujo: en una pista POLY el viejo interruptor `RTRG` era inaudible porque una voz nueva ya arrancaba en cero.
 - **MORPH** (EDIT > MORPH, en ANALOG, PHASE y LOFI): la onda se desliza de forma continua hacia las siguientes (en
   ANALOG SAW > SQR > TRI > SIN, en PHASE hacia su forma siguiente, en LOFI hacia la onda siguiente hasta WRAM). 0 = la
   onda tal como la elegiste. En ANALOG y LOFI la modulación **SHAPE** también mueve el morph, así un LFO o una

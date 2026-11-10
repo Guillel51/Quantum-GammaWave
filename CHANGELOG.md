@@ -1,3 +1,22 @@
+## 2026-11-10 — LOFI `T.CLK` audible, y la suite entera en verde
+
+- **LOFI RETRIG no hacía nada, y ahora sí.** El parámetro existía y llegaba al DSP, pero el único punto que lo
+  aplicaba era el re-disparo de una voz **sonando**: en POLY cada nota es una voz nueva que ya nace en cero, así
+  que el interruptor pedía un reinicio que ya había ocurrido. Pasa a ser **`T.CLK`**, el reloj de la fórmula:
+  `NOTE` (por defecto, y lo que esperan los presets de fábrica) arranca cada nota desde el principio; `FREE` deja
+  la fórmula corriendo sobre el reloj de la pista y la nota se suma donde está, así dos notas seguidas son dos
+  lecturas distintas de la misma fórmula en marcha. Medido en `tests/lofi_tclk_test.c`, en audio: piso del arnés
+  0,134 de la señal, `FREE` separa dos notas en 1,140 (8,5× el piso), el nivel se mantiene a 0,6 dB, sobrevive a
+  un cambio de sonido y no hace clic en el ataque.
+- **`drumx` PUNCH, verde por la razón correcta.** La transferencia se medía con el limitador que dejaba el bloque
+  anterior y con el fader que traía el preset. El par se mide ahora desde un kit limpio, con el nivel fijado, la
+  matriz de modulación en cero y un golpe de calentamiento descartado: ataque +3,4 dB, cuerpo ×1,77, cola ×0,99.
+- **`live` (segundo a segundo), verde.** Los 61 hashes eran de antes de que un sonido llevara su propio nivel;
+  regenerados con el procedimiento que el propio test documenta (`SIX_LIVE_ACCEPT=1`).
+- **La suite entera pasa**: `NO_PACKAGE=1 sh tests/run_tests.sh` termina en `ALL HOST TESTS PASSED`.
+- Los rediseños de EDIT (LOFI, MORPH, FM6), las gráficas unificadas, BI-QUAD EQ, HOME y el visualizador **no**
+  entran en esta pasada y quedan declarados como pendientes.
+
 ## 2026-11-10 — 2.1.1: el árbol, medido; la instalación, la que está firmada
 
 - **La versión es `v2.1.1`** en el firmware, el wasm, el sitio y esta documentación. Lo que se instala sigue
