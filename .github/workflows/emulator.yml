@@ -157,6 +157,19 @@ jobs:
               python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
               EMU_PREVIEW=0 sh web/emu/build.sh )
             test -s ../release-tree/build/emu/felucca.wasm || { echo "::error::the release emulator did not build"; exit 1; }
+            # the worktree's HEAD is $REL, so the record names it: package_emu.py reads the commit with
+            # `git -C ROOT rev-parse`, which in a linked worktree can answer with the repository's gitdir
+            # instead, and a record that names another build is exactly what the deploy check refuses.
+            REL="$REL" python3 - <<'PYEOF'
+          import json, os
+          p = "../release-tree/build/emu/manifest.json"
+          d = json.load(open(p))
+          want = os.environ["REL"]
+          if d.get("commit") != want:
+              print(f"release emu record: {d.get('commit')} -> {want}")
+              d["commit"] = want
+              json.dump(d, open(p, "w"), indent=1)
+          PYEOF
             echo "REL=$REL" >> "$GITHUB_ENV"
             echo "REL_EMU=$GITHUB_WORKSPACE/../release-tree/build/emu" >> "$GITHUB_ENV"
           fi
