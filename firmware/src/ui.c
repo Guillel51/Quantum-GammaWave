@@ -1132,6 +1132,12 @@ static void apply_preset_to(track_t *t, uint32_t pi)
                 t->p[pr->x[i].id - 1u] = (int16_t)clamp(pr->x[i].v, TP[pr->x[i].id - 1u].min, TP[pr->x[i].id - 1u].max);
     }
     fm6_track_loaded(t);                              /* FM6: the preset's patch (its SLOT) */
+    /* (2.1) THE SOUND'S OWN LEVEL. Until now a preset left P_LEVEL as the track had it, so the same
+     * fader gave -11 dBFS on SCREAM LEAD and -38.6 on STATIC HAZE: changing sound jumped by up to
+     * 27.6 dB, which is what "the presets are not levelled" meant. The value comes from a measured
+     * render of the preset itself (tools/gen_preset_levels.py writes preset_level.c), so it is a
+     * property of the sound and not a taste. The user's fader still moves the track from there. */
+    t->p[P_LEVEL] = (int16_t)preset_level_of(t->eng_req % NENGINES, pi);
     load_end(t);
 }
 
