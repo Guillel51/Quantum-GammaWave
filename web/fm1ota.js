@@ -335,18 +335,12 @@ export class Updater {
     const isTarget = dev.id.text === product;
     const isDonor = !isTarget && donorIdentity(dev.id, product, ctx.firmware);
     if (!isTarget && !isDonor) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
-    /* A stock unit is not a destination this page can write to. Its app has no 0x12, and its own
-     * update mode is the vendor's program: this project has never seen it take a Feluccaa image, so
-     * offering one there is the one action that could leave the app area half-written by a loader
-     * that was never asked. The first install is M-Flasher's job (docs/M-FLASHER.md §6); this page
-     * is the updater for a unit that already runs Quantum GammaWave. */
-    if (isDonor) {
-      dev.link.close();
-      throw fail("stockfirst", `this unit runs stock ${dev.id.text}. The first install of Quantum GammaWave `
-        + "on a stock FM-1 is done by M-Flasher's Install firmware, which writes the app area and keeps the "
-        + `bootloader and the factory data (docs/M-FLASHER.md §6). Nothing was sent to this unit.`);
-    }
-    await identify(pass, dev.link);                            // 0x12 on this link, before any write frame
+    /* A stock unit cannot answer 0x12. Its own updater (M-UPGRADE) only stages this package's loader
+     * (ota.bin), and that loader checks the flash chip itself before it erases anything
+     * (firmware/loader/loader.c ldr_flash_known): on a part the firmware does not write, it drops the
+     * update and the stock app starts again. A unit running QG answers 0x12, and its answer decides. */
+    if (isDonor) bindLink(pass, dev.link);
+    else await identify(pass, dev.link);                       // 0x12 on this link, before any write frame
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
@@ -360,7 +354,8 @@ export class Updater {
     /* `chipContinuity`: the 0x12 this attempt already read on the app link, seconds ago, on this
      * cable. It is the only chip fact available here, because the loader's own build excludes the
      * query; write() prefers a live 0x12 when the program answers one. */
-    const s2 = await this.write(ota, pkg, step, { ...ctx, product, proof: null, chipContinuity: pass.chip });
+    const s2 = await this.write(ota, pkg, step, { ...ctx, product, proof: null,
+      chipContinuity: pass.chip && pass.chip.jedec ? pass.chip : null });
     if (!s2.finished) throw fail(s2.lost ? "lost" : "stopped", `the loader ${s2.lost ? "was disconnected" : "stopped"} after ${s2.served} requests. Replug and press Install again to resume.`);
     step("reboot");
     await sleep(this.rebootDelay);
@@ -403,10 +398,9 @@ export class Updater {
     } else if (ctx.chipRecord) {
       await bindRecord(pass, ota.link, ctx.chipRecord, ota.id, { modelOnly: true });
     } else {
-      ota.link.close();
-      throw fail("loaderchip", "this unit's update loader cannot identify the flash chip (its build has "
-        + "no chip query) and no chip record was loaded for it: nothing was sent. Load the M-Flasher "
-        + "record and its dump, or power-cycle the unit and start the install from the running firmware.");
+      /* no chip fact on the host: this project's loader (checked above) reads the chip itself and
+       * refuses to erase anything on a part the firmware does not write (loader.c ldr_flash_known) */
+      bindLink(pass, ota.link);
     }
     ota.link.send(UPGRADE);
     await sleep(2000);
@@ -780,6 +774,16 @@ async function identify(pass, link) {
   requireChip(chip);
   pass.link = link;
   pass.chip = chip;
+  return pass;
+}
+
+/* Bind the link with no chip fact on the host: only for this project's loader, which checks the chip
+ * itself before any erase (firmware/loader/loader.c ldr_flash_known). */
+function bindLink(pass, link) {
+  if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
+  if (!link || typeof link.send !== "function") throw fail("chip", "this transfer has no open link: nothing was sent.");
+  pass.link = link;
+  pass.chip = { jedec: null, part: "checked by the update loader", readings: 0, source: "loader" };
   return pass;
 }
 

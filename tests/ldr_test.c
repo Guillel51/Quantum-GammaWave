@@ -122,6 +122,8 @@ static int ldr_prog(uint32_t off, const void *p, uint32_t n)
     return 0;
 }
 static void ldr_record_clear(void) { record_cleared++; }
+static int flash_unknown;                      /* the chip is not one the firmware writes */
+static int ldr_flash_known(void) { return !flash_unknown; }
 static void ldr_progress(uint32_t done, uint32_t total) { (void)done; (void)total; }
 #include "../firmware/loader/ldr_core.c"
 
@@ -211,6 +213,19 @@ int main(int argc, char **argv)
         bad += check("damaged package (flash.bin CRC) refused, nothing erased", rc == -12 && erases == 0 &&
                      !memcmp(nor + 0x4000, old + ofo + 0x4000, 0x93000 - 0x4000) && nor[0xE4F06] == 0x41);
         logical[at] ^= 0x01;
+        requests = 0;
+    }
+    /* an unknown flash chip: the app area is not touched, the records go so the old app starts again */
+    {
+        flash_unknown = 1;
+        rc = ldr_session();
+        bad += check("unknown flash chip refused, app area kept, records dropped", rc == -15 &&
+                     !memcmp(nor + 0x4000, old + ofo + 0x4000, 0x93000 - 0x4000) && record_cleared &&
+                     nor[0xE4F06] == 0xFF && nor[0xE8F06] == 0x00);
+        flash_unknown = 0;
+        put_record(0xE4F00);
+        put_record(0xE8F00);
+        record_cleared = 0;
         requests = 0;
     }
     /* a sector that comes in different the second time (a transfer error after the check) is read again */

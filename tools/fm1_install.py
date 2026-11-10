@@ -20,8 +20,11 @@ install finishes the write. Needs mido with python-rtmidi.
 
 (QG-1) Two things are required before a frame that can write leaves the host:
 
-  1. the physical NOR is identified on THIS unit with command 0x12 (two
-     readings, same part, fresh session token each time), and
+  1. the flash chip is one the firmware writes: a unit running QG identifies it
+     with command 0x12 (two readings, same part, fresh session token each
+     time); a stock unit, or one already in update mode, cannot answer 0x12,
+     so this project's update loader checks the chip itself before it erases
+     anything (firmware/loader/loader.c ldr_flash_known), and
   2. the package carries a signed manifest: Ed25519 over canonical JSON with
      the package's SHA-256, product, version and min_firmware, verified
      against tools/fm1_keys.json (public keys only). Nothing is trusted while
@@ -348,13 +351,10 @@ class Updater:
         """0x12 on the running app: the identification of THIS unit. The loader cannot
         identify (its code is unchanged), so this must happen before step 1, and the
         evidence is only good for the install that follows on the same port."""
-        if dev.id.loader:
-            # The loader cannot answer 0x12, and this installer does not write without it: there is no
-            # flag that supplies a chip. An install cut off in the middle is finished by restoring the
-            # backup with M-Flasher (docs/M-FLASHER.md), which writes the whole part it just read.
-            raise InstallError("chip", "the FM-1 is already in update mode, so it cannot identify its NOR and this "
-                                       "installer does not write without that. Restore your backup with "
-                                       "M-Flasher (docs/M-FLASHER.md), then install again from a running unit")
+        if dev.id.loader or dev.id.version < 100:
+            # A stock unit (FM-1_0NN) and the update loader cannot answer 0x12. Nothing is read here:
+            # this project's loader checks the chip itself before it erases anything (loader.c).
+            return None
         try:
             ev = PROBE.probe(dev.link)
         except PROBE.ProbeError as e:
@@ -364,9 +364,16 @@ class Updater:
 
     def gate(self, dev, product, evidence):
         """The physical NOR must be identified for THIS unit before a frame that can write is sent."""
-        ev = evidence or {}
         try:
-            GATE.require(product, dev.id.text, jedec=ev.get("jedec"))
+            if evidence is None:
+                # no chip fact on the host: only this project's loader (ota-<model>_900) may take the image,
+                # because it is the one that checks the chip before writing
+                GATE.check_identity(product, dev.id.text)
+                if dev.id.loader and dev.id.version != 900:
+                    raise InstallError("chip", f"the FM-1 is in its own update mode ({dev.id.text}), not this "
+                                               "project's loader: nothing was sent")
+                return
+            GATE.require(product, dev.id.text, jedec=evidence.get("jedec"))
         except GATE.Refusal as e:
             code = "model" if e.code == "model" else "chip"
             raise InstallError(code, f"{e.reason}: {e.detail}. The update was not started: nothing was sent")
@@ -421,7 +428,7 @@ class Updater:
     def install(self, dev, image, product, step=lambda *a: None, evidence=None):
         """running firmware -> loader -> new firmware; dev from find(). A device already in
         update mode only needs the write."""
-        if evidence is None:
+        if evidence is None and not dev.id.loader and dev.id.version >= 100:
             evidence = self.probe(dev)
         self.gate(dev, product, evidence)
         if model_of(dev.id.text) != model_of(product):
@@ -567,15 +574,25 @@ def run(a, backend, out, ask):
     # Always read the part on this unit: there is no flag that sets the chip, so the JEDEC below is
     # what the silicon answered, twice, in this session.
     evidence = up.probe(dev)
-    print("chip:    JEDEC %06X %s, %d KiB, page %d, sector %d, block %d (two readings, session %08X)"
-          % (evidence["jedec"], evidence["part"], evidence["cap"] // 1024, evidence["page"],
-             evidence["sector"], evidence["block"], evidence["session"]), file=out)
+    if evidence is None:
+        print("chip:    checked by the update loader before it writes (this FM-1 cannot answer 0x12)", file=out)
+    else:
+        print("chip:    JEDEC %06X %s, %d KiB, page %d, sector %d, block %d (two readings, session %08X)"
+              % (evidence["jedec"], evidence["part"], evidence["cap"] // 1024, evidence["page"],
+                 evidence["sector"], evidence["block"], evidence["session"]), file=out)
     signed = signed_of(a, raw_package, model_of(product), dev.id.version)
     if a.verify_only:
         dev.link.close()
         if model_of(dev.id.text) != model_of(product):
             raise InstallError("model", f"the device is {dev.id.text}, the package is for {product}")
-        d = GATE.authorise(product, dev.id.text, jedec=evidence["jedec"])
+        if evidence is None:
+            try:
+                GATE.check_identity(product, dev.id.text)
+                d = {"allowed": True, "reason": "", "detail": "the update loader checks the chip"}
+            except GATE.Refusal as e:
+                d = {"allowed": False, "reason": e.reason, "detail": e.detail}
+        else:
+            d = GATE.authorise(product, dev.id.text, jedec=evidence["jedec"])
         print("preflight: " + ("allowed" if d["allowed"] else f"blocked ({d['reason']})") +
               (f" - {d['detail']}" if d["detail"] else ""), file=out)
         same = dev.id.text.removeprefix("ota-") == product

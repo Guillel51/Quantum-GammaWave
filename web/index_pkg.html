@@ -1561,10 +1561,8 @@ $("go").addEventListener("click", async () => {
       log(`firmware: ${fw.kind} ${fw.text || ""}`);
       if (fw.kind === "none") { sayK("notfound"); lockInstaller(false); return; }
       if (fw.kind === "other") { sayK("otherfw", fw.text); $("stock").open = true; lockInstaller(false); return; }
-      /* A stock unit is not a destination for this page: its app has no 0x12 and its own update mode
-       * is the vendor's program, which has never been shown to take a Felucca image. Saying so here
-       * sends not one frame. The first install is M-Flasher's (docs/M-FLASHER.md §6). */
-      if (fw.kind === "stock") { sayK("stockfirst"); $("stock").open = true; lockInstaller(false); return; }
+      /* A stock unit (V15) installs like any other: its own updater stages this package's loader, and
+       * the loader checks the flash chip before it erases anything (firmware/loader/loader.c). */
       if (fw.kind === "jiant") {                 /* (QG-1) a backup first, always: songs, sounds, settings */
         let ai = null;
         try { ai = archiveInfo(fw.info); } catch (_) {}
@@ -1580,7 +1578,7 @@ $("go").addEventListener("click", async () => {
       }
       /* install() identifies the chip on the very link it will write through: a reading taken on
        * another connection and passed in would be exactly the stale evidence the gate refuses. */
-      await up.install(image, meta.product, step, ctxFor(versionOf(fw.info)));
+      await up.install(image, meta.product, step, ctxFor(fw.kind === "stock" ? "15" : versionOf(fw.info)));
     }
   } catch (e) {
     /* The same "lost" means two different things: nothing was written, or a sector write was

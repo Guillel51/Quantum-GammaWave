@@ -304,10 +304,9 @@ def installs():
 
     dev = FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update")
     rc, out, err = cli([p, "--yes"], dev)
-    # (QG-1 phase 3) the loader cannot identify its NOR (its code is unchanged), so an install cut off in
-    # the middle is refused unless the lab override is present: fail closed, and documented as a limitation
-    ok(rc == 7 and dev.upgrades == 0 and "already in update mode" in err,
-       "install: device already in update mode -> refused, nothing sent")
+    # the loader cannot answer 0x12; it checks the chip itself (loader.c), so a cut-off install resumes
+    ok(rc == 0 and dev.upgrades == 1 and dev.bad == 0,
+       "install: device already in update mode -> the write is finished")
 
     dev = FakeFM1(image)
     rc, out, err = cli([p], dev, answer=False)
@@ -346,12 +345,12 @@ def errors():
        "unplugged in step 1 -> exit 4 'lost', nothing written")
     t0 = time.monotonic()
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", unplug_after=3))
-    ok(rc == 7 and dev.upgrades == 0 and time.monotonic() - t0 < 3,
-       "a device in update mode is refused before any write attempt")
+    ok(rc == 4 and "disconnected" in err and time.monotonic() - t0 < 3,
+       "unplugged in update mode -> exit 4 'lost'")
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", stall_after=3))
-    ok(rc == 7 and "already in update mode" in err, "loader mode is refused, not waited on")
+    ok(rc == 4, "a loader that stops answering -> exit 4 'stopped'")
     rc, out, err = cli([p, "--yes"], FakeFM1(image, identity="ota-FM-1_900", name="Felucca Update", bad_addr=len(image)))
-    ok(rc == 7, "a device in update mode cannot be identified, so nothing is sent")
+    ok(rc != 0 and "outside the package" in err, "a loader asking outside the package is refused")
 
     rc, out, err = cli([p, "--yes"], FakeFM1(image, after_write="FM-1_015"))
     ok(rc == 6 and "reports FM-1_015" in err, "another identity after the restart -> exit 6")
