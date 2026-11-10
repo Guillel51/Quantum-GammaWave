@@ -1150,24 +1150,46 @@ Class of evidence for the removal: `[HOST]` (`web/test_verify_only.mjs` 150, `we
 `web/test_web.mjs`, `web/test_installer_i18n.py`) plus a real browser against the published page. Nothing
 here is a measurement on a physical unit.
 
-## 37. Update — 2026-11-10, 2.1.1: una versión por tag, y dos afirmaciones medidas de verdad
+## 2026-11-10 — v2.0.0 published: the install comes from the signed release
 
-La 3.3 cerró con `/release/` sirviendo el paquete firmado `v1.9.0` y negándose a escribir **su propio**
-paquete. Esta pasada encuentra la causa y la documenta, pero el arreglo que le habría correspondido ya no
-existe: #87/#89 reemplazaron el canal firmado por releases de GitHub compilados desde un tag, borraron
-`release/`, `fm1provenance.js` y la firma. Lo que sí se hizo: publicar la versión como `2.1.1` por ese camino,
-medir el audio de LATCH, verificar la rotación de los planetas en el navegador y quitar un paso de despliegue
-muerto. Nada de esta pasada es una prueba sobre hardware.
+The two channels of section 35 are gone. The root installer now installs the **signed release** and nothing
+else: `make_site.py` looks for `release/*.fwsc` with a matching `*.manifest.json`, checks that the bytes still
+hash to the value the manifest names, and serves *that* package — labelled with the `qg1-build-1` record the
+signature carries, so the page shows the commit of what it will write. A build of `main` that is not those
+bytes is still published (and still installs nothing) until a custodian signs it again; the emulator is always
+this run's build, and the footer names it. `main` moves every few minutes; a signature cannot follow it, and
+a page that refused to install because of that would be the bug this mission set out to remove.
 
 | Item | State | Evidence | Class |
 |---|---|---|---|
-| La causa del rechazo del canal firmado | **FOUND (the code it lived in was removed)** | El registro firmado nombraba un emulador de 1 073 325 B y `3d039f75…`; ese commit, reconstruido con el mismo Emscripten 6.0.11 (`a0014542…`) y las mismas banderas (`EMU_OPT=-O2`, `EMU_PREVIEW=0`), da **el mismo tamaño y otra huella**, `c83c8bfb…`. La compilación del emulador no es reproducible bit a bit. El canal se construía con `--emu`, así que la página declaraba que el emulador servido era el del release y `fm1provenance.js` comparaba dos huellas distintas: "the site mixes two builds". #89 eliminó la firma, el canal y el registro; con un solo canal y comprobación de SHA-256 y tamaño, ninguna página afirma una procedencia que no puede probar. | reconstrucción del commit del release en un worktree limpio, dos veces, mismo hash; comparación con el registro | host |
-| Paso de despliegue `/preview/` | **REMOVED** | `emulator.yml` seguía esperando `/preview/emulator/manifest.json`, un canal eliminado en 3.3: cada despliegue habría publicado y después terminado en rojo. Ya no está; la puerta que queda es `tools/site_check.py` contra el commit y el build que acaban de subir. | workflow | — |
-| Versión 2.1.1 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` es `v2.1.1`; el build AC791N (imagen 535 504 B, paquete 610 806 B, identidad FM-1_982) y el wasm (1 080 687 B) lo llevan. El release lo publica CI desde el tag `v2.1.1` (`release.yml`): paquete, `.bin` de la app y `SHA256SUMS` adjuntos. | build AC791N + wasm de este árbol | AC791N + wasm |
-| Audio de LATCH | **PASS (rendered audio)** | `tests/perform_test.c::test_latch_audio()`: con LATCH ON el filtro sigue filtrando después de soltar la tecla; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF vuelve seca; REPEAT 1/16 sigue sonando tras soltar. Render, no una variable booleana. | `tests/perform_test.c` | host |
-| Rotación de los planetas de HOME | **VERIFIED IN THE BROWSER** | Emulador de este build (`180ae85`, wasm `d6d9827e…`, 1 083 360 B) servido en local y abierto en el navegador cloud. Dos capturas separadas 2,6 s: **868 de 57 600 píxeles cambian**; en una ventana de **300 ms cambian 576**, más de lo que puede mover un cuerpo cuya órbita tarda 7–13 s por vuelta, así que lo que se mueve es la superficie de cada planeta y no solo la órbita. En el recorte de la bahía: 753 de 11 466 píxeles. Capturas, recorte ×4 y diferencia en `docs/evidence/3.3/`. | navegador cloud sobre el emulador servido en local | navegador |
-| SCL con esquina de 3 px | **RENDERED** | `scl_key()` dibuja esquina de 3 px; `tests/ui_render` regenera 174 pantallas × 17 paletas con 0 hallazgos de lint y 0 de alineación. | host render | host |
-| Host suites | **FAIL, por dos comprobaciones ajenas a este pase** | `NO_PACKAGE=1 sh tests/run_tests.sh` termina en `HOST TESTS FAILED`. Lo que falla son `drumx` (PUNCH 100: el ataque del snare sube 0,48 dB donde el test pide ≥2; el cuerpo del kick 1240→1624 con el ataque 1668→1598) y `live` ("the rendered audio is the one recorded, second by second"). Ninguna de las dos toca código de este pase: el diff de `firmware/src` contra `main` es **una línea**, la versión. Vienen de `93c0fac` ("a sound now carries its own level"), que cambia el nivel con que carga cada preset y por lo tanto todo render. Lo que sí se arregló aquí: tres aserciones de `tests/ui_test.c` y dos de `tests/editor_test.c` que todavía exigían el contrato viejo ("un load no toca P_LEVEL"); ahora comprueban el nuevo — `LEVEL` es el del sonido, medido en `preset_level.c` — y `editor_test` gana una comprobación de que el load **empuja** ese nivel. Los dos binarios pasan enteros. `web/test_web.mjs`, `web/test_verify_only.mjs`, `web/test_pkg_bounds.mjs`, `web/test_i18n.py` verdes; el emulador de Node, "all ok", 2,0 % del tiempo real. | host x86 | host |
-| Matriz Control → Parámetro → Destino DSP → Efecto audible | **STILL PENDING** | No se hizo y no se declara hecha. Lo único medido en audio es LATCH. | — | — |
-| Mejoras musicales baratas | **NOT STARTED** | Sin cambios: cada una altera renders y ninguna se midió. | — | — |
-| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. Ninguna afirmación de esta pasada es sobre el hardware. | — | — |
+| `v2.0.0` tag | **PUBLISHED** | `refs/tags/v2.0.0` → `896797e` on GitHub, created by `release.yml` when the `release/v2.0.0` branch was pushed. | GitHub ref |
+| GitHub Release | **PUBLISHED, DOWNLOADED BACK** | `releases/tag/v2.0.0`: `felucca-2.0.0.fwsc` (610 959 B), `felucca-2.0.0.fwsc.manifest.json`, `SHA256SUMS`. The downloaded package hashes to `c423b17c…9bd2`, byte-identical to `release/`, and its manifest verifies with `tools/fm1_sign.py`. | release assets |
+| Ed25519 identity | **VERIFIED, KEY UNCHANGED** | `key qg1-release-1`, public `70b6036f…fcd40`, pinned in the page and in `tools/fm1_keys.json`; the signature was made with the existing private key, not a new one. Five mutations (package byte, signature, version, image hash, unknown keyid) are refused by both the Python and the browser verifier. | CLI + browser |
+| What the signature names | **FIRMWARE, NOT THE FILE NAME** | `images` = `felucca.bin` and `loader/ota.bin` (the hashes every build record uses); the package's own hash is `sha256`, and its name changes with the site's label. Naming the package inside `images` made a valid signature look wrong against a record that never has that name. | code + page |
+| Site | **PUBLISHED, RENDERED** | `…/webapp/installer/`: "v2.0.0-2500153 — Ready to flash (610,959 bytes)", "Package SHA-256 verified ✓ c423b17c… · Ed25519 qg1-release-1", 14-row plan card, the four confirmations, `INSTALL` enabled; no record box, no dump input. Checked again against a build of a newer `main` (`3bdc09d4`) to prove the page keeps installing the signed bytes. | browser |
+| Build | **COMPILED HERE** | `./build.sh --release 2.0.0` with `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK`: app and loader built, package 610 959 B, reproducible to `c423b17c…` on a rebuild. | AC791N toolchain |
+| Loader | **PASS** | `tests/ldr_test` from an older package to `release/felucca-2.0.0.fwsc`: 28 checks — write windows, factory data kept, resume after a cut, wrong final ACK, damaged head refused, same-package re-run erases nothing. `tests/flash_id_test` passes (`0x856014`, `0xB36014` accepted, `0x000000`/`0xFFFFFF` answered as unknown). | host |
+| Host suites | **PASS** | `sign_test`, `key_custody_test`, `install_test`, `gate_test`, `mflasher_test`, `mflasher_accept_test` (14), `test_i18n`, `test_installer_i18n`, `test_accept` (20), `test_state` (65), `test_update_mode` (12), `test_verify_only` (150), `test_web`, `test_sign` (12), `test_backup`, `test_site` (19 ids / 6 images / 30 links, 0 FAILED). | host |
+| Physical FM-1, `0x856014` | **NOT TESTED** | No unit was touched. The plan, the allowlist and the resume path are host evidence only. | none |
+| Physical FM-1, `0xB36014` | **NOT TESTED** | Same. The second part is accepted by `flash_id_test`; no measurement on a unit. | none |
+
+## 38. Update — 2026-11-10, 2.1.1: el árbol en 2.1.1, la instalación en el release firmado
+
+`main` cambió dos veces mientras esta pasada escribía. Primero #87/#89 quitaron la firma y el canal firmado;
+después volvieron, con `release/felucca-2.0.0.fwsc` firmado y el sitio ofreciendo ese paquete. La versión de
+este árbol es **2.1.1** y el paquete que se puede instalar sigue siendo el **2.0.0 firmado**: firmar un 2.1.1
+necesita la clave privada `qg1-release-1`, que no está en este repositorio ni en CI, y esta pasada **no puede
+producirla**. Es un bloqueo, no una tarea hecha.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| Versión del árbol 2.1.1 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` es `v2.1.1`; el build AC791N (imagen 535 504 B, paquete 610 959 B, identidad FM-1_982) y el wasm (1 083 360 B, `d6d9827e…`) lo llevan. El paquete firmado que se instala sigue diciendo 2.0.0 y la portada lo dice. | build AC791N + wasm | AC791N + wasm |
+| Release 2.1.1 firmado | **BLOCKED (no key)** | No hay clave privada `qg1-release-1` en el repositorio ni en CI, y no se inventa ni se pide por chat. Sin firma, el instalador se niega a escribir el paquete, que es el comportamiento correcto. | `tools/fm1_keys.json` (sólo pública), `release/` | — |
+| Audio de LATCH | **PASS (rendered audio)** | `tests/perform_test.c::test_latch_audio()`: con LATCH ON el filtro sigue filtrando tras soltar; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF vuelve seca; REPEAT 1/16 sigue sonando. | render en host | host |
+| Rotación de los planetas de HOME | **VERIFIED IN THE BROWSER** | Emulador de este build servido en local y abierto en el navegador cloud: dos capturas separadas 2,6 s, **868 de 57 600 píxeles cambian**; en 300 ms cambian **576**, más de lo que mueve una órbita de 7–13 s por vuelta: gira la superficie, no sólo la órbita. Recorte ×4 y diferencia en `docs/evidence/3.3/`. | navegador cloud | navegador |
+| SCL con esquina de 3 px | **RENDERED** | `scl_key()` con esquina de 3 px; `tests/ui_render` 174 pantallas × 17 paletas, 0 hallazgos. | host render | host |
+| Aserciones contra el contrato de `P_LEVEL` | **FIXED** | `93c0fac` hizo que un sonido lleve su propio nivel; cinco aserciones de `ui_test`/`editor_test` seguían exigiendo el contrato viejo. Ahora comprueban `LEVEL == preset_level_of(engine, preset)` y que el load **empuja** ese nivel. Ambos binarios pasan enteros. | `tests/ui_test.c`, `tests/editor_test.c` | host |
+| `drumx` PUNCH y `live` (segundo a segundo) | **FAIL — not this pass** | Fallan en `main` antes de tocar nada: `firmware/src` aquí difiere de `main` en una línea (la versión). Son consecuencia de que el nivel del sonido entre en todo render. No se tocan aquí. | `NO_PACKAGE=1 sh tests/run_tests.sh` | host |
+| Matriz Control → Parámetro → Destino DSP → Efecto audible | **STILL PENDING** | No se hizo; lo único medido en audio es LATCH. | — | — |
+| Mejoras musicales baratas | **NOT STARTED** | Sin cambios. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |

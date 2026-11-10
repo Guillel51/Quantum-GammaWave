@@ -400,6 +400,11 @@ if command -v node >/dev/null 2>&1; then
     # or declared unreachable with its reason -- WebMIDI cannot see the ROM mode, and the loader has no
     # separate erase or verify phase.
     run "web state: the named states, the four blind spots, and who may unplug" node web/test_state.mjs
+    # authenticity: the Ed25519 manifest the page checks before it enables INSTALL, against the key
+    # pinned in tools/fm1_keys.json -- and every way a tampered one must be refused
+    run "web signing: Ed25519 against the pinned key, and what it refuses" node web/test_sign.mjs
+    # what M-Flasher itself will check before its first erase, on the package this repository releases
+    if [ -f release/felucca-2.0.0.fwsc ]; then run "web acceptance: M-Flasher's own checks and the sector plan" node web/test_accept.mjs; fi
     # (PR #73) the production pipeline against the real release package the build record names:
     # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
     run "web installer pipeline: the real package, and a refusal for every partial authorisation" \

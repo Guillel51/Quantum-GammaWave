@@ -1,10 +1,10 @@
 # Quantum GammaWave v2.1.1
 
-The site serves this build: the emulator at `/emulator/` and the package the installer offers are compiled
-from the same commit, and the emulator's footer prints its version, commit, build date, WASM SHA-256 and size.
-The installer checks the published SHA-256 and size before it writes, and the update loader reads the flash
-chip before it erases anything. Every version is built by CI from its tag (`release.yml`,
-`docs/RELEASE.es.md`), and this release carries `felucca-2.1.1.fwsc`, the app `.bin` and `SHA256SUMS`.
+The emulator at `/emulator/` is this tree, and its footer prints its version, commit, build date, WASM
+SHA-256 and size. **The installable package is the signed one**, currently `2.0.0`: signing `2.1.1` needs the
+private key `qg1-release-1`, which is not in this repository or in CI, so this pass cannot produce it. The
+installer checks the published SHA-256 and size before it writes, and the update loader reads the flash chip
+before it erases anything.
 
 ## What changed
 

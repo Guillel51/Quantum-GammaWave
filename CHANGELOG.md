@@ -1,26 +1,24 @@
-## 2026-11-10 — 2.1.1: la versión que un tag publica
+## 2026-11-10 — 2.1.1: el árbol, medido; la instalación, la que está firmada
 
-- **La versión es `v2.1.1`** en el firmware, el wasm, el sitio, el Web Studio y esta documentación. El release
-  lo compila y lo publica CI a partir del tag `v2.1.1` (`release.yml`, `docs/RELEASE.es.md`), con el paquete
-  y su registro adjuntos.
-- **El canal firmado ya no existe, y su último fallo queda documentado.** La pasada anterior cerró con
-  `/release/` sirviendo el paquete `v1.9.0` y negándose a escribirlo: el registro nombraba un emulador
-  (`3d039f75…`, 1 073 325 B) que este toolchain **no reconstruye byte a byte** (mismo tamaño, `c83c8bfb…`),
-  y la página, construida con `--emu`, afirmaba que el emulador servido era el de ese release. #89 quitó la
-  firma, el canal y el registro de procedencia: hoy hay un solo canal —el build de `main`—, el instalador
-  decide con el SHA-256 y el tamaño publicados, y el loader comprueba el chip antes de borrar. Ninguna página
-  afirma ya una procedencia que no puede probar.
-- **Un paso muerto menos en el despliegue.** `emulator.yml` seguía esperando `/preview/emulator/manifest.json`,
-  un canal eliminado: cada despliegue habría publicado y después terminado en rojo. Ya no está; la puerta que
-  queda es `tools/site_check.py` contra el commit y el build que acaban de subir.
+- **La versión es `v2.1.1`** en el firmware, el wasm, el sitio y esta documentación. Lo que se instala sigue
+  siendo el paquete **firmado**, hoy `2.0.0`: firmar un 2.1.1 necesita la clave privada `qg1-release-1`, que
+  no está en el repositorio ni en CI. Queda como bloqueo declarado, no como tarea hecha.
+- **La rotación de los planetas de HOME, medida en el navegador.** Emulador servido en local y abierto en el
+  navegador cloud: dos capturas separadas 2,6 s, **868 de 57 600 píxeles cambian**; en una ventana de 300 ms
+  cambian **576**, más de lo que mueve una órbita de 7–13 s por vuelta, así que gira la superficie de cada
+  cuerpo y no sólo la órbita. Capturas, recorte ×4 y diferencia en `docs/evidence/3.3/`.
 - **El audio de LATCH, medido.** `tests/perform_test.c` gana `test_latch_audio()`: con LATCH ON el filtro
   sigue filtrando después de soltar la tecla; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF
-  vuelve seca; REPEAT 1/16 sigue sonando después de soltar. Es audio renderizado, no una variable booleana.
-- **Los planetas de HOME, verificados en el navegador.** Dos capturas del panel separadas 2,6 s: 868 de 57 600
-  píxeles cambian; a 300 ms cambian 576, más de lo que puede mover una órbita de 7–13 s por vuelta — la
-  superficie gira. Evidencia en `docs/evidence/3.3/`, detalle en `docs/VALIDATION_MATRIX.md` §37.
-- **Lo que sigue abierto:** la matriz Control → Parámetro → Destino DSP → Efecto audible y las mejoras
-  musicales baratas no se hicieron y se listan como pendientes; nada de esta pasada se probó en hardware.
+  vuelve seca; REPEAT 1/16 sigue sonando tras soltar. Audio renderizado, no una variable booleana.
+- **Cinco aserciones que quedaron viejas, corregidas.** El commit que hizo que un sonido lleve su propio nivel
+  (`preset_level.c`) dejó a `ui_test` y `editor_test` exigiendo el contrato anterior ("un load no toca
+  `LEVEL`"). Ahora comprueban el nuevo — `LEVEL` es el del sonido, medido — y `editor_test` verifica además
+  que el load **empuja** ese nivel. Los dos binarios pasan enteros.
+- **Lo que sigue abierto:** `drumx` (PUNCH) y `live` (segundo a segundo) fallan en `main` antes de esta
+  pasada, por el mismo cambio de nivel entrando en todo render; no se tocan aquí. La matriz Control →
+  Parámetro → Destino DSP → Efecto audible y las mejoras musicales baratas siguen pendientes. Nada de esto se
+  probó en hardware.
+
 ## 2026-11-10 — el instalador no pide ningún informe de M-Flasher
 
 - **Fuera el informe de M-Flasher** del flujo visible: se quitaron la caja de "registro + dump", la guía de
