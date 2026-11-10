@@ -471,6 +471,20 @@ static void tech_master_eq(void)
         int32_t mark_x = clamp(eq_hz_x(mark_hz), 14, 226);
         int32_t mark_db = fx_master_eq_hz_db(mark_hz);
         int32_t mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), y0 + 19, y0 + 93);
+        int32_t gain_db = clamp(song.g[G_EQGAIN], -24, 24), q = clamp(song.g[G_EQQ], 0, 127);
+
+        /* (3.2) The magnitude the DSP applies, as an area and not only a line: one thin column per
+         * pixel column, from the response to 0 dB. A curve tells the shape; the fill tells at a glance
+         * whether a band lifts or cuts, which is the first thing a parametric EQ has to say. */
+        if (mode > 0)
+            for (i = 0; i <= 212; i++) {
+                int32_t y = clamp(mid_y - fx_master_eq_hz_db(eq_hz_at(i)) * 44 / (24 * 256), y0 + 19, y0 + 93);
+                uint16_t fl = ux_mix(T_BG, T_ACCENT, 18);
+                if (y < mid_y)
+                    cv_rect(14 + i, y, 1, mid_y - y, fl);
+                else if (y > mid_y)
+                    cv_rect(14 + i, mid_y, 1, y - mid_y, fl);
+            }
         cv_rect(mark_x, y0 + 18, 1, 76, T_LINE);
         for (i = 0; i <= 212; i++) {
             int32_t db = fx_master_eq_hz_db(eq_hz_at(i));
@@ -481,6 +495,31 @@ static void tech_master_eq(void)
             }
             px = 14 + i;
             py = y;
+        }
+        /* (3.2) What the shape means, which the parameter's own number cannot say: a shelf settles on
+         * a plateau (dashed, on its side of the corner), a bell and a notch have a width the Q gives
+         * them (a bracket at the band's level, end ticks included). All of it from the parameters the
+         * audio path reads -- nothing here is a decorative curve. */
+        if (mode == 3 || mode == 4) {                       /* LOW SHELF / HIGH SHELF */
+            int32_t py2 = clamp(mid_y - gain_db * 44 / 24, y0 + 19, y0 + 93);
+            int32_t xa = mode == 3 ? 14 : mark_x + 1, xb = mode == 3 ? mark_x : 226;
+            /* A corner at the axis edge (30 Hz, 20 kHz) would leave no plateau to dashes, so the line
+             * is held to a readable length on its own side: the shelf's level is information, not
+             * decoration, and a corner clamped to x 14 must not erase it. */
+            if (mode == 3 && xb < 44) xb = 44;
+            if (mode == 4 && xa > 196) xa = 196;
+            for (i = xa; i + 2 < xb; i += 6)
+                cv_rect(i, py2, 3, 1, T_MID);
+        } else if (mode == 1 || mode == 2) {                /* PEAK/BELL, NOTCH */
+            int32_t qx = 8 + q;                            /* Q ~ qx / 16: 0,5 .. 8,4 */
+            int32_t half = mark_hz * 8 / qx;               /* half the band's width, Hz */
+            int32_t xa = clamp(eq_hz_x(mark_hz - half < 20 ? 20 : mark_hz - half), 14, 226);
+            int32_t xb = clamp(eq_hz_x(mark_hz + half > 20000 ? 20000 : mark_hz + half), 14, 226);
+            if (xb - xa > 2) {
+                cv_rect(xa, mark_y, xb - xa, 1, T_DIM);
+                cv_rect(xa, mark_y - 2, 1, 5, T_DIM);
+                cv_rect(xb - 1, mark_y - 2, 1, 5, T_DIM);
+            }
         }
         if (mode > 0)
             cv_rrect(mark_x - 2, mark_y - 2, 5, 5, 2, T_ACCENT, T_BG);
