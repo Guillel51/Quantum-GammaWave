@@ -768,10 +768,10 @@ static void test_new_types(void)
         jrun(0, burst, FS / 2u, &side);
         p2 = fx.rs_per[0];
         song.g[G_RPRE] = 0; song.g[G_RDAMP] = 1;        /* FOLW T1: its note G (67) */
-        trk[0].v[0].active = 1; trk[0].v[0].gate = 1; trk[0].v[0].note = 67;
+        V(&trk[0], 0).active = 1; V(&trk[0], 0).gate = 1; V(&trk[0], 0).note = 67;
         jrun(0, burst, FS / 2u, &side);
         pf = fx.rs_per[0];
-        trk[0].v[0].active = trk[0].v[0].gate = 0;      /* let go: the chord stays */
+        V(&trk[0], 0).active = V(&trk[0], 0).gate = 0;      /* let go: the chord stays */
         jrun(0, burst, FS / 2u, &side);
         pg = fx.rs_per[0];
         printf("reverb: RESO bass string period C %u, +2 steps %u (%.3f), FOLW G %u (%.3f), held %u\n", p0, p2,

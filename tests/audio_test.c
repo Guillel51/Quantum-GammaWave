@@ -57,7 +57,7 @@ static voice_t *held(track_t *t, uint32_t note)
 {
     uint32_t i;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].note == note) return &t->v[i];
+        if (V(t, i).active && V(t, i).note == note) return &V(t, i);
     return 0;
 }
 static void overload(void)
@@ -94,7 +94,7 @@ static void overload(void)
     trk[0].p[P_VOICE] = V_UNISON;
     trk_note_on(&trk[0], 55, 100);
     shed_voice(); mix_block(out, CTL);
-    check("UNISON loses an extra voice and retains its lead", trk[0].v[0].active && trk[0].v[0].gate && voices_busy() == NVOICE - 1u);
+    check("UNISON loses an extra voice and retains its lead", V(&trk[0], 0).active && V(&trk[0], 0).gate && voices_busy() == NVOICE - 1u);
 
     for (mode = V_MONO; mode <= V_LEGATO; mode++) {
         fresh(); trk[0].p[P_VOICE] = V_POLY;
@@ -102,7 +102,7 @@ static void overload(void)
         trk[0].p[P_VOICE] = (int16_t)mode;
         shed_voice(); mix_block(out, CTL);
         check("overload can reclaim stale POLY voices after a MONO / LEGATO change",
-              shed_count == 1u && trk[0].v[0].gate && voices_busy() == NVOICE - 1u);
+              shed_count == 1u && V(&trk[0], 0).gate && voices_busy() == NVOICE - 1u);
     }
 
     fresh();

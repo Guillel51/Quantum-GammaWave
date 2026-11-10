@@ -101,7 +101,7 @@ static int play(void)
     n = run(t, passes(t, 1), 0, 0, 0);
     ok = 0;
     for (h = 0; h < NVOICE; h++)
-        ok |= t->v[h].note == DRUM_LANE_NOTE[DV_KICK] && t->v[h].vel == 127u;
+        ok |= V(t, h).note == DRUM_LANE_NOTE[DV_KICK] && V(t, h).vel == 127u;
     bad += check("  DRUM grid: BD + CH at x3, 6 hits, BD accented", n == 6u && ok);
     step_set_chance(&t->step[0], 0);
     seq_start();
@@ -370,7 +370,7 @@ static uint32_t run_notes(track_t *t, uint32_t blocks, uint8_t *nt, uint32_t max
         seq_tick(t, CTL);
         for (a = v0 + 1u; a <= vage; a++)
             for (k = 0; k < NVOICE; k++)
-                if (t->v[k].age == a && n < max) nt[n++] = t->v[k].note;
+                if (V(t, k).age == a && n < max) nt[n++] = V(t, k).note;
     }
     return n;
 }
@@ -572,8 +572,8 @@ static int components2(void)
         run_notes(t, 2, nt, sizeof nt);
         ok = 0;
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].active && t->v[k].note == 60u)
-                ok = t->v[k].pitch16 == 72 * 16 && t->v[k].pitch_cur < 72 * 16 && t->v[k].gstep > 0;
+            if (V(t, k).active && V(t, k).note == 60u)
+                ok = V(t, k).pitch16 == 72 * 16 && V(t, k).pitch_cur < 72 * 16 && V(t, k).gstep > 0;
         bad += check("BEND +12: the note glides to 72 over the step", ok);
     }
     {   /* ECHO x3: three note-ons in a step, each softer */
@@ -584,7 +584,7 @@ static int components2(void)
             v0 = vage;
             seq_tick(t, CTL);
             for (k = 0; k < NVOICE; k++)
-                if (t->v[k].age > v0 && nv < 8u) vel[nv++] = t->v[k].vel;
+                if (V(t, k).age > v0 && nv < 8u) vel[nv++] = V(t, k).vel;
         }
         bad += check("ECHO x3: three in the step, each softer", nv == 3u && vel[0] > vel[1] && vel[1] > vel[2]);
     }
@@ -651,7 +651,7 @@ static int components2(void)
         t = pat(2, P2); t->p[P_REL] = 127; t->p[P_SGATE] = 30; t->step[1].comp = CP_KILL;
         for (k = 1; k < NTRK; k++) trk[k].p[P_MUTE] = 1;
         for (i = 0; i < step_len(t, 0) / CTL + 30u; i++) mix_block(o, CTL);   /* (step 2 and its fade) */
-        for (k = 0; k < NVOICE; k++) { old |= t->v[k].active && t->v[k].note == 48u; mine |= t->v[k].active && t->v[k].note == 67u; }
+        for (k = 0; k < NVOICE; k++) { old |= V(t, k).active && V(t, k).note == 48u; mine |= V(t, k).active && V(t, k).note == 67u; }
         bad += check("KILL: what sounded (a long release) cut, its own note on", !old && mine);
     }
     {   /* SEQ > COMP: KNOB 2 to the new TYPES, KNOB 3 their value (JUMP: any step) */
@@ -684,7 +684,7 @@ static uint32_t onsets(track_t *t, uint32_t *at, uint32_t max)   /* one step: th
         uint32_t v0 = vage;
         seq_tick(t, CTL);
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].age > v0 && n < max) { at[n++] = b; break; }
+            if (V(t, k).age > v0 && n < max) { at[n++] = b; break; }
     }
     return n;
 }
@@ -823,7 +823,7 @@ static int human(void)
             for (; v0 < vage; v0++) {
                 uint32_t off = (b - st) * CTL, vel = 0;
                 for (k = 0; k < NVOICE; k++)
-                    if (t->v[k].active && t->v[k].age == v0 + 1u) vel = t->v[k].vel;
+                    if (V(t, k).active && V(t, k).age == v0 + 1u) vel = V(t, k).vel;
                 if (off > len / 2u) early++;           /* (a note just before a step: early) */
                 if (off < lo) lo = off;
                 if (off > hi) hi = off;

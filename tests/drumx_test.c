@@ -49,7 +49,7 @@ static track_t *kitx(int16_t morph, int16_t tune)
     uint32_t i, k;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < NVOICE; i++)
-            trk[k].v[i].active = 0;
+            V(&trk[k], i).active = 0;
     host_tracks_init();
     lev_env = 0; lev_g = lev_cur = 32768; lev_dg = 0; lim_env = LIM_T;   /* (0.5.1: the slow leveler from rest each time) */
     memset(mp_seen, 0, sizeof mp_seen); memset(dist_w, 0, sizeof dist_w);   /* (0.6.8: the parts' LEVEL / PAN / DST blend from rest too) */
@@ -84,7 +84,7 @@ static int strike(track_t *t, uint32_t l, uint32_t n)
             buf[k + i] = o[2 * i];
     }
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active)
+        if (V(t, i).active)
             return 1;
     return 0;
 }
@@ -525,7 +525,7 @@ int main(int argc, char **argv)
                 step = abs(buf[i] - buf[i - 1]) > step ? abs(buf[i] - buf[i - 1]) : step;
             r = rms(FS / 100u, FS / 50u);                /* (the same window, muted at 20 ms) */
             for (i = 0; i < NVOICE; i++)
-                act |= t->v[i].active;
+                act |= V(t, i).active;
             snprintf(nm, sizeof nm, "group mutes (%s): a ringing kick muted: ends, no click", "X");
             check(nm, !act && r < ref / 20 && step <= own + own / 5, "RMS %.0f (unmuted %.0f), step %d (own %d)", r, ref,
                   step, own);
