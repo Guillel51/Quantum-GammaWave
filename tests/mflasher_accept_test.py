@@ -95,6 +95,8 @@ n = pkg["blocks"]
 code, out = run(raw)
 ok(code == 0 and "Every pre-write check M-Flasher makes passes" in out,
    "the release passes every check M-Flasher makes before its first erase")
+# the fixture is the 1.9.0 package, and its identity is the one that release carried (docs/IDENTITY.md
+# moved the project to FM-1_965 only in 2.1.2): a historical package is not rewritten by the change 
 ok(pkg["identity"] == "FM-1_982", "the container's identity is %r" % pkg["identity"])
 ok(pkg["model"] == "FM-1", "its model, as M-Flasher reads it, is %r" % pkg["model"])
 ok(len(pkg["flash"]) == 0x93000, "the flash image is 0x93000 B (%d sectors)" % (len(pkg["flash"]) // A.SECTOR))

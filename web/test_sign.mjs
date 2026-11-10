@@ -25,13 +25,13 @@ const pkg = new Uint8Array(fs.readFileSync(path.join(release, pkgPath)));
 const manifest = JSON.parse(fs.readFileSync(path.join(release, pkgPath + ".manifest.json"), "utf8"));
 const keys = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "..", "tools", "fm1_keys.json"), "utf8")).keys;
 
-const pass = await verifyManifest(pkg, manifest, keys, { product: "FM-1_982" });
+const pass = await verifyManifest(pkg, manifest, keys, { product: "FM-1_965" });
 ok(pass.keyid === "qg1-release-1" && pass.sha256 === manifest.sha256,
    "the published package verifies against the pinned key, and names itself");
 
-/* the manifest names the product's MODEL (FM-1); the page names the build's identity (FM-1_982) */
+/* the manifest names the product's MODEL (FM-1); the page names the build's identity (FM-1_965) */
 ok((await verifyManifest(pkg, manifest, keys, { product: "FM-1" })).keyid === "qg1-release-1",
-   "a manifest for FM-1 is accepted for FM-1_982: the model is what a package may not cross");
+   "a manifest for FM-1 is accepted for FM-1_965: the model is what a package may not cross");
 
 await refused(() => verifyManifest(pkg, manifest, keys, { product: "FM-2_982" }), "signature",
   "a manifest for FM-1 is refused for another model");

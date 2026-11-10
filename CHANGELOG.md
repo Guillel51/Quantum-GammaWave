@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## 2026-11-10 — MICRO-START, la marcha aleatoria y dos parámetros más sin romper un solo proyecto
 
 - **El registro de proyecto no cambia de versión: cambia de cuenta.** `P_COUNT` pasa de 123 a **125** y los dos
@@ -34,6 +35,153 @@
   `project_test` comprueba que el packed conserva `M.STRT`/`N.RATE` y que un FUN7 los devuelve por defecto con el
   valor del motor intacto.
 
+=======
+## 2026-11-10 — twelve voices, one pool, and a clear voice start (`v2.3.0`)
+
+- **The pool.** A part no longer owns a fixed block of eight voices with its own keys. Every part holds a
+  *window* into one global pool (`vpool[]`, `VPOOLN = NVOICE + NPART` = 18 with twelve voices), a part that
+  needs a voice takes the window from a part that can spare it, and the window only shrinks when the pool has
+  nothing left to hand out. This is what the polyphony can grow into: six parts no longer reserve six times
+  the state they can use.
+- **Twelve voices, measured.** `NVOICE` defaults to **12** and `tests/run_tests.sh`'s `POLY` with it (the
+  10-voice build is still one flag away: `FELUCCA_VOICES=10`, and `FELUCCA_VPOOL=N` sets a pool by hand). The
+  AC791N build with twelve voices puts **87 584 B** in `.data + .bss` with **10 720 B free**; the 10-voice
+  build it replaces used 94 924 B with 3 380 B free. Image 539 836 B, POOL 318 432 B (9 248 free), LOWBUF
+  26 532 B, RAMCODE 19 268 B, NOINIT 15 572 B.
+- **A voice that starts from silence starts from silence.** A note that takes a voice the pool reports as
+  silent clears the oscillator, filter and envelope state and reseeds WHEEL by the part's logical index
+  rather than by its current slot (`FELUCCA_VRESET=1`, `FELUCCA_WSEED=1`, both now the default). Before, a
+  note could inherit the tail state of whatever used that slot last.
+- **What that cost, in audio.** The change is audible — it is a different instrument on the same presets — so
+  **55 golden renders were re-rendered** and the whole suite re-baselined in one reviewable commit:
+  `tests/regress` 220 renders, 0 changed; `tests/ui_test` green; `tests/target_budget` 39/39.
+- **The rest is unchanged.** Eight engines, the 200-sound library, the sequencer, the effects, MIDI/SysEx,
+  projects and presets from earlier versions load and play as before.
+- **Presentation.** The README is rewritten around the firmware as it is today, the site and the Web Studio
+  copy follow it, the old HOME/visualizer paragraph is gone, and no surface calls the GEN page a song
+  generator. Version `v2.3.0`, identity unchanged at `FM-1_965`.
+- **Not measured:** a physical FM-1. Twelve voices are proven by the host suite and the static AC791N budget,
+  not by listening on hardware; stack depth and interrupt timing on the unit are not measured here.
+- **No signed package.** `v2.3.0` ships no `.fwsc` in this repository: signing needs the custodian key, which
+  is not here, and an unsigned package would be refused by the installer (fail-closed). The build and a
+  `sign` request are reproducible with the commands in `BUILDING.md`.
+
+## 2026-11-10 — an independent audit of 2.1.2: two checks that could not fail, and did not
+
+- **The parity failure was the harness, not the compiler.** `web/emu/emu_test.mjs` renders `splashMs + 200`
+  before it starts recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`); `web/emu/native_check.c`
+  hardcoded `render(500)`. Two harnesses, two performances: the native recorder started 2.8 s earlier, the
+  sequencer and LFO phase at the first sample differed, and "bit for bit" could not hold — on this tree or in
+  a clean worktree at `9fbb8c0`, which is why it was taken for a toolchain artefact. The native harness now
+  takes the same stretch from `ui_draw.c`, in the same translation unit it already includes:
+  **bit for bit, 88 200 frames**, `emcc 6.0.11`.
+- **The stable emulator named a commit its bytes did not come from.** `/emulator/` displayed
+  `bbca837179dd` while its record and its WASM said `03d3f80` (`0d437cfe…`): `tools/package_emu.py` read
+  `GITHUB_SHA` before the worktree's own HEAD, and the deploy builds the stable emulator in a worktree at the
+  signed release's commit, where `GITHUB_SHA` is the deploy. The tree now decides and the environment is the
+  fallback — the same rule in `tools/build_manifest.py` — so the page, the record and the bytes agree.
+- **And the deploy could not have noticed.** `web/test_site.py` already refuses a page that does not name its
+  manifest's commit, but nothing ran it in the `deploy` job, so the contradiction was published. The job runs
+  it now, before the artifact is uploaded; the published page's own relabelling is reported as
+  `emulator page does not name its manifest's commit FAIL`.
+- **The host suite was red at the release commit, and no workflow could see it.** `web/test_accept.mjs`
+  keeps its golden numbers for the 1.9.0 fixture (`tests/fixtures/felucca-v1.9.0.fwsc`, which answers
+  `FM-1_982` — that is what it is), but `03d3f80` changed its identity assertion to `FM-1_965` without
+  changing the package it reads: the check could only pass by rewriting the fixture. It now reads the
+  fixture's own identity and checks the shipped one where it exists — the newest signed release in
+  `release/` passes the same acceptance and must answer the tree's `PRODUCT`. CI never noticed because
+  `.github/workflows/c-cpp.yml` runs the host suite with `NO_PACKAGE=1`, which skips every package check;
+  the job that does build a package (`target.yml`) runs `test_accept.mjs` now.
+- **The 2.1.1 → 2.1.2 transition is now tested with the signed package, not a fixture.**
+  `web/test_update_mode.mjs` case 1b drives `release/felucca-2.1.2.fwsc` against a simulated unit answering
+  `FM-1_982` (`gammaWaveLegacy`, `upgrade-legacy`, admitted), and refuses the same bytes under another model
+  or with a false hash. The earlier case used the 1.9.0 fixture and passed for the wrong reason.
+- Nothing was published: no new release, no new key, no change to the pinned public key or to the identity.
+  The signed package of 2.1.2 is the one already in `release/`.
+
+## 2026-11-10 — the identity is Quantum GammaWave's own: `FM-1_965`
+
+- **The conflict, stated plainly.** This firmware answered `FM-1_982`, and so does **GuitChordi 0.1.0-beta.1**
+  (`FM-1_982` in the hub's catalogue). A shared identity breaks nothing at the cable, but The Firmware Hub uses the
+  answer for one thing only — marking the card of the firmware you actually have — and with two firmwares fitting
+  the same number it marks neither. The number is now **`FM-1_965`**.
+- **Chosen by measuring, not by guessing.** The hub has no registry; `https://thefirmwarehub.com/catalog.json`
+  (175 listings, `updated 2026-11-10 12:27 UTC`) is what its live table renders from, and it claims a number in two
+  ways: the exact `product` a project's newest package reports, and the `ident` range it has answered across
+  releases (`FM-1_91\d` for Felucca, `FM-1_94[1-9]` for Bytemania). `tools/check_identity.py` reads both and exits
+  0 only when neither covers the number; thirteen numbers of `FM-1_9NN` passed, 965 was taken, and five of the
+  others sit inside another project's longer range. The record — candidates, rules, source, date — is
+  [`docs/IDENTITY.md`](docs/IDENTITY.md).
+- **One constant, and everything downstream of it.** `tools/build.py` `PRODUCT` feeds the package markers
+  (`fm1pkg_make.ufw`), the app's `-DFELUCCA_ID`, the AC791N package, the site (`web/make_site.py` reads the
+  identity out of the package), the emulator's build record (`tools/package_emu.py`, now reading `PRODUCT` instead
+  of a copy) and the installer's own idea of what it writes. The update loader answers `ota-FM-1_965` — still
+  `FM-1_9NN`, which is the range the hub and this installer resume an interrupted update in.
+- **A unit on 2.1.1 is not stranded.** It answers the old number, so `web/fm1ota.js` keeps `FM-1_982` as a legacy
+  identity of this firmware: the model still has to match, the 0x12 chip identification still runs before any
+  write, and the manifest still has to verify. Verify Only reports it as `gammaWaveLegacy` with compatibility
+  `upgrade-legacy` — an update, not a reinstall of the same tag. `isOurLoader` likewise still accepts
+  `ota-FM-1_900`, the loader the 2.1.1 packages carried; a loader that is neither is still foreign.
+- **Release:** `release/felucca-2.1.2.fwsc`, **610 959 B**, SHA-256 `1f52bf091586…a303`, manifest `fcf4ccb1…e2e9`,
+  signed by `qg1-release-1` from build `03d3f80` (`dirty: []`), identity in the manifest's build record:
+  `FM-1_965`. `verify` OK; `SHA256SUMS` covers all three signed releases.
+- **Measured after the change:** AC791N build with the identity reported by `build.py`; `FM-1_965` found in
+  `felucca.bin`, in `build/loader/ota.bin` and in the 20 marker bytes of the package; `tests/ota_test.c`'s
+  handshake check `identity frame is FM-1_965`; `tests/install_test.py` (install from V15, resume, every refusal)
+  and `tests/preflight_test.py` green, with the preflight case for a foreign loader now exercised through
+  `ota-FM-1_919` and a new case proving this project's own loader may take the image without host evidence;
+  `web/test_verify_only.mjs` 153 checks including the legacy-identity block; `web/test_update_mode.mjs` green with
+  the package identity read from the bytes; the whole `security` and `web` groups; the emulator rebuilt and its
+  manifest saying `FM-1_965`. **Not measured:** a physical FM-1 — no unit was touched, so what a real device
+  answers after an install is still a hardware check.
+- **One failure, not ours:** `web/emu/emu_test.mjs`'s bit-for-bit parity between the WASM build and the native
+  build differs at sample 1 on this host. It does the same at `9fbb8c0` without this change (measured in a clean
+  worktree), so it is an Emscripten/host-toolchain artefact here, not a regression of the identity work; the
+  emulator itself is deterministic (twice the same samples) and renders the same song.
+
+## 3.7 voices: the three causes of the pool's sound difference, one at a time
+
+- `m_vi` stored a pool slot where `mod.c` reads a window index: the matrix's ENV destination followed the
+  wrong voice. It stores `vindex` again (no change to the shipped render).
+- The difference between the pooled and the old layout is per-slot state, measured one cause at a time:
+  a voice inherits the oscillator / filter state of the slot it lands in (25 -> 19 renders with
+  `FELUCCA_VRESET=1`), WHEEL seeds its wheels from the slot number instead of the voice's place in its part
+  (19 -> 14 with `FELUCCA_WSEED=1`), and the remaining 14 are the chord order, which depends on the window.
+  Both switches are off by default: together they change **49** of the 220 shipped renders.
+- `tests/pool_equiv.sh` now bounds peak, RMS and tail, and `tests/regress.c` gained RMS plus `DUMP_DIR` raw
+  samples, so a per-sample diff of one render is one command. As shipped the pool moves 32 of 220 renders
+  (2 % peak / 2 % RMS / 1 % tail); voice counts and release tails match everywhere.
+- Nothing merged: `main` keeps 10 voices and the per-part arrays. `docs/VOICE_POOL.md` §6 compares the
+  alternatives by memory and by how much of the sound they preserve.
+
+## 3.6 voices: the pool's allocator fixed, its sound still not identical
+
+- `trk_vcap` / `trk_nvoice`: the engine's cap and the window are separate things now. UNISON asks for its
+  whole spread before it starts (`voice_grow_to`), and POLY asks for a slot when all of its own are
+  sounding, so a part with two slots is no longer stuck at two voices.
+- `voices_boot` splits `VDEAD / NPART` and never hands out the inert slot (a pool of 18 used to give it to
+  the sixth part as a window).
+- Every voice / routing check passes at `VPOOLN >= NVOICE + NPART`: 0 failed at 10 voices / 16 slots and
+  at 12 voices / 18 slots, against 3 to 9 failures below that. `.bss` 87084 B (11220 free) at 10 voices
+  and 87564 B (10740 free) at 12, against 94924 / 3380 for today's 10.
+- `tests/pool_equiv.sh` (and `GOLDEN_METRICS=1`) compares two builds as audio: 25 of 220 renders move
+  their peak by up to 1.4 dB while their tails and voice counts match exactly, because a chord's phases
+  depend on which slot each note lands in. That is a change of the instrument's sound, so the pool stays
+  unmerged: `main` keeps 10 voices and the per-part arrays (`docs/VOICE_POOL.md` §5).
+
+## 3.5 voices: the storage moves into one pool (research branch, not enabled)
+
+- `voice_t v[NVOICE]` per part is now `voice_t vpool[VPOOLN]` with a window per part (`track_t.vidx` /
+  `vn`) and `V(t, i)` in `core.h` as the lvalue every caller already used. 100 call sites converted; the
+  220 golden renders are identical at the shipped pool shape (`VPOOLN = NPART * NVOICE + 1`), which is the
+  proof that the change is transparent.
+- Measured on AC791N: 12 voices with a 17-slot pool use **87364 B** of `.bss` (10940 B free) against
+  **94924 B** (3380 B free) for the 10 voices of today. Pool, NOINIT, delay, canvas, cloud/slicer and comb
+  untouched.
+- The dynamic windows (12 / 13 slots) do **not** pass: 3 to 5 voice / routing checks fail on mode changes
+  and engine caps (`docs/VOICE_POOL.md` §4). It stays on `exp/voice-pool`; `main` keeps 10 voices and the
+  per-part arrays.
+>>>>>>> 5cc49e80980837ae5879167f36745751cc1c6b88
 ## 2026-11-10 — auditoría del coste real de una voz, símbolo por símbolo
 
 - **Reconstruido el baseline compilando los dos perfiles en el HEAD real del remoto**, no en cifras históricas: 10 voces →

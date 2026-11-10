@@ -2083,7 +2083,7 @@ static int autosave_quiet(void)
         return 0;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < NVOICE; i++)
-            if (trk[k].v[i].active)
+            if (V(&trk[k], i).active)
                 return 0;
     return 1;
 }

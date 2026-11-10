@@ -25,18 +25,18 @@ class NegativeWriteTest(unittest.TestCase):
         read_only_chips = [0xC84014, 0xEF4014, 0x5E4014, 0x684014, 0x204014]
         for jedec in read_only_chips:
             with self.assertRaises(gate.Refusal) as ctx:
-                gate.require("FM-1_982", "FM-1_015", jedec)
+                gate.require("FM-1_965", "FM-1_015", jedec)
             self.assertEqual(ctx.exception.reason, "chip_read_only")
 
         # Unknown / floating / shorted bus must raise Refusal
         for bad_jedec in [0x000000, 0xFFFFFF, 0xFFFFFFFF, 0x123456, None]:
             with self.assertRaises(gate.Refusal):
-                gate.require("FM-1_982", "FM-1_015", bad_jedec)
+                gate.require("FM-1_965", "FM-1_015", bad_jedec)
 
     def test_model_mismatch_refused(self):
         # Cannot cross product models
         with self.assertRaises(gate.Refusal) as ctx:
-            gate.require("FM-1_982", "GW-1_015", 0x856014)
+            gate.require("FM-1_965", "GW-1_015", 0x856014)
         self.assertEqual(ctx.exception.reason, "model_mismatch")
 
     def test_unverified_image_boundaries(self):

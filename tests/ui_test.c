@@ -208,6 +208,7 @@ static void ui_power_on(void)
     memset(up_bank, 0, sizeof up_bank);
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;
+    voices_boot();                                /* (3.5) the pool's windows, as felucca_init */
     load_depth++;
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
@@ -391,7 +392,7 @@ static int gm_hits_play(track_t *t)
             for (i = 0; i < 2u * CTL; i++)
                 e += (uint64_t)(o[i] < 0 ? -o[i] : o[i]);
             for (i = 0; i < NVOICE; i++)
-                lane |= t->v[i].active && t->v[i].note == N[k] && (uint32_t)t->v[i].s[0] == L[k];
+                lane |= V(t, i).active && V(t, i).note == N[k] && (uint32_t)V(t, i).s[0] == L[k];
         }
         trk_note_off(t, N[k]);
         ok &= ENGINES[t->engine] == &ENG_DRUM && drum_lane(N[k]) == L[k] && lane && e > 0;
@@ -597,7 +598,7 @@ static int test_transitions(void)
     for (b = 0; b < 4u; b++) events_block(CTL), mix_block(o, CTL);
     ok = t->xf_on && t->xf_len == 16u;
     for (b = 0; b < 40u; b++) events_block(CTL), mix_block(o, CTL);
-    for (k = 0, held = 0; k < NVOICE; k++) held |= t->v[k].active && t->v[k].gate && t->v[k].note == 60u;
+    for (k = 0, held = 0; k < NVOICE; k++) held |= V(t, k).active && V(t, k).gate && V(t, k).note == 60u;
     ok &= t->engine == 3u && held;
     bad += check("another engine under a held note: faded out over 16 blocks, the note on in the new engine", ok);
     trk_note_off(t, 60);
@@ -614,7 +615,7 @@ static int test_transitions(void)
     trk_note_on(t, 57, 100);
     for (b = 0; b < 60u; b++) mix_block(o, CTL);
     j1 = tr_jump(t, 30u, 7u, 2, 1);
-    for (k = 0, held = 0; k < NVOICE; k++) held |= t->v[k].active && t->v[k].gate && t->v[k].note == 57u;
+    for (k = 0, held = 0; k < NVOICE; k++) held |= V(t, k).active && V(t, k).gate && V(t, k).note == 57u;
     ok = held;
     t->p[P_E0] = 3; for (b = 0; b < 60u; b++) mix_block(o, CTL);
     j0 = tr_jump(t, 30u, 7u, 2, 0);
@@ -1204,7 +1205,7 @@ static int test_rec(void)
 static uint32_t gated_notes(const track_t *t)
 {
     uint32_t i, n = 0;
-    for (i = 0; i < NVOICE; i++) n += t->v[i].gate != 0;
+    for (i = 0; i < NVOICE; i++) n += V(t, i).gate != 0;
     return n;
 }
 
@@ -1268,13 +1269,13 @@ static int test_midi(void)
         for (i = 0; i < MQ; i++) midi_in_event(0x643C9909u);
         midi_in_event(0x003C8908u);                      /* note-off lost to a full ring */
         events_block(CTL);
-        for (i = 0; i < NTRK * NVOICE; i++) held += trk[i / NVOICE].v[i % NVOICE].gate;
+        for (i = 0; i < NTRK * NVOICE; i++) held += V(&trk[i / NVOICE], i % NVOICE).gate;
         bad += check("MIDI overflow releases held notes and latched ARP, keeps transport running",
                      !held && !trk[1].nheld && !trk[1].arp_phys && !mn_get(0, 60) &&
                      !mn_get(1, 64) && !midi_in_overflow && mi_r == mi_w && song.playing);
         midi_in_event(0x643D9009u);
         events_block(CTL);
-        bad += check("MIDI accepts a fresh note after overflow recovery", mn_get(0, 61) == 1u && trk[0].v[0].gate);
+        bad += check("MIDI accepts a fresh note after overflow recovery", mn_get(0, 61) == 1u && V(&trk[0], 0).gate);
     }
     {
         const page_t *pg = &PAGES[page_first(FAM_GLO) + 1u];
@@ -3127,7 +3128,7 @@ static uint32_t gates(void)                        /* voices of every track with
     uint32_t p, i, n = 0;
     for (p = 0; p < NTRK; p++)
         for (i = 0; i < NVOICE; i++)
-            n += trk[p].v[i].gate != 0;
+            n += V(&trk[p], i).gate != 0;
     return n;
 }
 static uint32_t white(uint32_t w) { return key_at(0, w); }
@@ -4779,9 +4780,9 @@ static int test_step_rec(void)
         while (t->seq_idx == 0u) events_block(CTL);
         for (i = 0; i < NSTEP && !t->step[i].n; i++) ;
         while (t->seq_idx != i) events_block(CTL);
-        for (b2 = 0; b2 < NVOICE; b2++) first += t->v[b2].active && t->v[b2].gate;
+        for (b2 = 0; b2 < NVOICE; b2++) first += V(t, b2).active && V(t, b2).gate;
         for (b2 = 0; b2 < 200u; b2++) events_block(CTL);
-        for (b2 = 0; b2 < NVOICE; b2++) later += t->v[b2].active && t->v[b2].gate;
+        for (b2 = 0; b2 < NVOICE; b2++) later += V(t, b2).active && V(t, b2).gate;
         ok = first == 1u && later == 3u;
         bad += check("STRUM, playing back: the step's chord comes in one note after another (1, then all 3)", ok);
         t->p[P_CSTR] = 0;
@@ -7060,7 +7061,7 @@ static int test_lofi_rtrg(void)
     set_engine_of(t, e); t->engine = t->eng_req;
     t->p[P_E1] = RW_FLOAT; t->p[P_VOICE] = V_MONO; t->p[P_SUS] = 127;   /* (held: the voice sounding) */
     trk_note_on(t, 60, 100);
-    v = &t->v[0];
+    v = &V(t, 0);
     v->ph[0] = v->ph[1] = 12345u;                       /* (the formula running: sounding, its time on) */
     trk_note_on(t, 64, 100);
     bad += check("RETRIG: OFF, a note again: FLOAT's time runs on", v->ph[0] == 12345u && v->ph[1] == 12345u);
@@ -7082,7 +7083,7 @@ static int test_lofi_rtrg(void)
 static int gate_on(const track_t *t, uint32_t note)
 {
     uint32_t i;
-    for (i = 0; i < NVOICE; i++) if (t->v[i].active && t->v[i].gate && t->v[i].note == note) return 1;
+    for (i = 0; i < NVOICE; i++) if (V(t, i).active && V(t, i).gate && V(t, i).note == note) return 1;
     return 0;
 }
 static int test_key_latch(void)
@@ -7145,14 +7146,14 @@ static int test_clear_ghosts(void)
     for (k = 0; k < NTRK; k++) {
         uint32_t v;
         on[k] = 0;
-        for (v = 0; v < NVOICE; v++) trk[k].v[v].active = 0;
+        for (v = 0; v < NVOICE; v++) V(&trk[k], v).active = 0;
     }
     for (i = 0; i < 6000u; i++) {                       /* (4 bars and more: the lane plays on) */
         int32_t o[2 * CTL];
         mix_block(o, CTL);
         for (k = 0; k < NTRK; k++) {
             uint32_t v;
-            for (v = 0; v < NVOICE; v++) on[k] += trk[k].v[v].gate;
+            for (v = 0; v < NVOICE; v++) on[k] += V(&trk[k], v).gate;
         }
     }
     for (k = 0, i = 0; k < NTRK; k++) i += on[k];
@@ -8257,20 +8258,20 @@ static int test_load_budget(void)
     trk_note_on(t, 71, 100);
     bad += check("LOAD BUDGET (0.6.18): tight, held notes and no dying tail: a new note still adds a voice",
                  voices_busy() == n0 + 1u && n0 == 3u);
-    t->v[0].gate = 0; t->v[0].stage = 3; t->v[0].env_out = 20000;   /* a loud release tail */
+    V(t, 0).gate = 0; V(t, 0).stage = 3; V(t, 0).env_out = 20000;   /* a loud release tail */
     trk_note_on(t, 74, 100);
     bad += check("  tight: a loud release tail rings out (not taken; with a sequence they all were)",
-                 voices_busy() == n0 + 2u && t->v[0].stage == 3u);
-    t->v[0].env_out = 50;                               /* the same tail nearly gone (under -50 dB) */
+                 voices_busy() == n0 + 2u && V(t, 0).stage == 3u);
+    V(t, 0).env_out = 50;                               /* the same tail nearly gone (under -50 dB) */
     trk_note_on(t, 76, 100);
     bad += check("  tight: a dying tail makes the room (the count stays)", voices_busy() == n0 + 2u);
     load_tight = 0;
-    { uint32_t i; for (i = 0; i < NVOICE; i++) if (t->v[i].note == 76) t->v[i].gate = 0, t->v[i].active = 0; }
+    { uint32_t i; for (i = 0; i < NVOICE; i++) if (V(t, i).note == 76) V(t, i).gate = 0, V(t, i).active = 0; }
     n0 = voices_busy();
     trk_note_on(t, 77, 100);
     bad += check("  calm: a new note adds a voice", voices_busy() == n0 + 1u);
     load_tight = 1;
-    trk_all_off(t); { uint32_t i; for (i = 0; i < NVOICE; i++) t->v[i].active = 0; }
+    trk_all_off(t); { uint32_t i; for (i = 0; i < NVOICE; i++) V(t, i).active = 0; }
     trk_note_on(t, 60, 100);
     bad += check("  tight with nothing sounding: the first note still plays", voices_busy() == 1u);
     load_tight = 0;
@@ -9104,9 +9105,9 @@ static uint32_t chord_sounding(const track_t *t, uint8_t *nn)
 {
     uint32_t i, n = 0, j;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate) {
-            for (j = 0; j < n && nn[j] != t->v[i].note; j++) {}
-            if (j == n && n < 8u) nn[n++] = t->v[i].note;
+        if (V(t, i).active && V(t, i).gate) {
+            for (j = 0; j < n && nn[j] != V(t, i).note; j++) {}
+            if (j == n && n < 8u) nn[n++] = V(t, i).note;
         }
     for (i = 1; i < n; i++)
         for (j = i; j > 0 && nn[j] < nn[j - 1]; j--) { uint8_t x = nn[j]; nn[j] = nn[j - 1]; nn[j - 1] = x; }
@@ -9187,7 +9188,7 @@ static int test_trans_seq(void)
     transport_req = 1; ui_input();
     for (i = 0; i < 8u; i++) events_block(CTL);
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate && t->v[i].note == 60u) f = (uint32_t)t->v[i].pitch16;
+        if (V(t, i).active && V(t, i).gate && V(t, i).note == 60u) f = (uint32_t)V(t, i).pitch16;
     ok = f == 62u * 16u;
     transport_req = 2; ui_input();
     bad += check("SCL TRANS +2: the sequence's C4 sounds D4 (as a key's would)", ok);
@@ -9254,15 +9255,15 @@ static int test_chord_glide(void)
     t->step[1].note[3] = 72; t->step[1].vel = 100; t->step[1].flags = SF_SLIDE;
     t->step[2].time = ST_NOTE; t->step[2].n = 3; t->step[2].note[0] = 60; t->step[2].note[1] = 64; t->step[2].note[2] = 67;
     t->step[2].vel = 100;
-    for (k = 0; k < NVOICE; k++) t->v[k].active = 0;    /* (0.6.87: no tail of an earlier test's notes still releasing, */
+    for (k = 0; k < NVOICE; k++) V(t, k).active = 0;    /* (0.6.87: no tail of an earlier test's notes still releasing, */
     memset(fg_set, 0, sizeof fg_set);                   /* nor the PLAYHEADS an earlier one left on: undo keeps them) */
     transport_req = 1; ui_input();
     for (i = 0; i < 8u; i++) events_block(CTL);
-    for (k = 0; k < NVOICE; k++) ages[k] = t->v[k].active ? t->v[k].age : 0u;
+    for (k = 0; k < NVOICE; k++) ages[k] = V(t, k).active ? V(t, k).age : 0u;
     while (t->seq_idx == 0u) events_block(CTL);         /* into step 2 */
     for (i = 0; i < 2u; i++) events_block(CTL);
     for (k = 0; k < NVOICE; k++) {
-        voice_t *v = &t->v[k];
+        voice_t *v = &V(t, k);
         if (!v->active || !v->gate) continue;
         nact++;
         if (ages[k] && v->age != ages[k]) continue;
@@ -9272,15 +9273,15 @@ static int test_chord_glide(void)
     {   /* the old voices: same ages, gliding toward D F A (pitch_cur between) */
         uint32_t kept = 0;
         for (k = 0; k < NVOICE; k++)
-            if (ages[k] && t->v[k].active && t->v[k].age == ages[k] && t->v[k].pitch16 != t->v[k].pitch_cur) kept++;
+            if (ages[k] && V(t, k).active && V(t, k).age == ages[k] && V(t, k).pitch16 != V(t, k).pitch_cur) kept++;
         ok &= kept == 3u;
     }
     bad += check("chord glide (SLD, POLY): 3 -> 4 notes, three voices glide on unstruck, the fourth starts and fades in", ok);
     while (t->seq_idx == 1u) events_block(CTL);         /* into step 3: four -> three */
     for (i = 0; i < 2u; i++) events_block(CTL);
     for (k = 0, nact = 0; k < NVOICE; k++) {
-        if (t->v[k].active && t->v[k].gate) nact++;
-        else if (t->v[k].active && t->v[k].stage == 3u) rel++;   /* (C5 left: the nearest new note is C5 itself) */
+        if (V(t, k).active && V(t, k).gate) nact++;
+        else if (V(t, k).active && V(t, k).stage == 3u) rel++;   /* (C5 left: the nearest new note is C5 itself) */
     }
     ok = nact == 3u && rel == 1u;
     bad += check("chord glide: 4 -> 3 notes, the one left goes to its nearest new note as it is released", ok);
@@ -9290,13 +9291,13 @@ static int test_chord_glide(void)
     t->p[P_GLIDE] = 64; t->p[P_SGATE] = 60;            /* (a short GATE: held to the next chord all the same) */
     transport_req = 1; ui_input();
     for (i = 0; i < 8u; i++) events_block(CTL);
-    for (k = 0; k < NVOICE; k++) ages[k] = t->v[k].active && t->v[k].gate ? t->v[k].age : 0u;
+    for (k = 0; k < NVOICE; k++) ages[k] = V(t, k).active && V(t, k).gate ? V(t, k).age : 0u;
     while (t->seq_idx == 0u) events_block(CTL);
     for (i = 0; i < 2u; i++) events_block(CTL);
     {
         uint32_t kept = 0;
         for (k = 0; k < NVOICE; k++)
-            if (ages[k] && t->v[k].active && t->v[k].gate && t->v[k].age == ages[k]) kept++;
+            if (ages[k] && V(t, k).active && V(t, k).gate && V(t, k).age == ages[k]) kept++;
         ok = kept == 3u;
     }
     bad += check("chord glide by itself: GLIDE on a POLY track, no SLD, a short GATE: the chord's voices go on into the next", ok);
@@ -9314,12 +9315,12 @@ static int test_chord_glide(void)
         while (t->seq_idx == 0u) mix_block(gl_o, CTL);
         mix_block(gl_o, CTL);
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].active && t->v[k].gate && t->v[k].pitch16 != t->v[k].pitch_cur) { p0 = t->v[k].pitch_cur; tgt = t->v[k].pitch16; break; }
+            if (V(t, k).active && V(t, k).gate && V(t, k).pitch16 != V(t, k).pitch_cur) { p0 = V(t, k).pitch_cur; tgt = V(t, k).pitch16; break; }
         while (t->seq_idx < 8u) mix_block(gl_o, CTL);
-        if (k < NVOICE) mid = t->v[k].pitch_cur;
+        if (k < NVOICE) mid = V(t, k).pitch_cur;
         while (t->seq_idx < 15u) mix_block(gl_o, CTL);
         for (i = 0; i < 400u && t->seq_idx == 15u; i++) mix_block(gl_o, CTL);
-        if (k < NVOICE) end = t->v[k].pitch_cur;
+        if (k < NVOICE) end = V(t, k).pitch_cur;
         ok = k < NVOICE && mid != tgt && (mid - p0) * (tgt - mid) > 0 && end == tgt;
         bad += check("chord glide over the chord's TIEs (GLIDE 127): halfway at the 8th step, there by the last", ok);
         transport_req = 2; ui_input();
@@ -9397,13 +9398,13 @@ static int test_click_menu(void)
         trks_put(0); frame();
         trk_note_on(&trk[4], 60, 100);
         events_block(CTL);
-        for (k = 0; k < NVOICE; k++) on |= trk[4].v[k].active | trk[4].v[k].gate;
+        for (k = 0; k < NVOICE; k++) on |= V(&trk[4], k).active | V(&trk[4], k).gate;
         ok = trk_live == 4u && !on;
         trk_all_off(&trk[4]);
         trks_put(2); frame();
         trk_note_on(&trk[4], 60, 100);
         events_block(CTL);
-        for (k = 0; k < NVOICE; k++) on |= trk[4].v[k].gate;
+        for (k = 0; k < NVOICE; k++) on |= V(&trk[4], k).gate;
         ok &= trk_live == NTRK && on;
         trk_all_off(&trk[4]);
         events_block(CTL);
@@ -9473,11 +9474,11 @@ static int test_click_menu(void)
         song.g[G_RTYPE] = 4; mix_block(o, CTL); mix_block(o, CTL);
         ok &= fx.rtype == 0u;                           /* CLOUD as ROOM */
         ft.engine = ENGI_FM6;
-        ok &= trk_nvoice(&ft) == LITE_FM6_POLY;         /* FM6: two voices */
+        ok &= trk_vcap(&ft) == LITE_FM6_POLY;         /* FM6: two voices */
         song.g[G_RTYPE] = 2; go_title("REVERB"); frame();
         ok &= strstr(ui.col[0], "|SHIMR|LITE") != 0;   /* the card says it is swapped */
         load_put(2u);
-        ok &= !sys_load && trk_nvoice(&ft) == FM6_POLY;
+        ok &= !sys_load && trk_vcap(&ft) == FM6_POLY;
         song.g[G_RTYPE] = 2; mix_block(o, CTL); mix_block(o, CTL);
         ok &= fx.rtype == 2u;                           /* FULL: SHIMMER again */
         press(B_HOME); frame();
@@ -9492,11 +9493,11 @@ static int test_click_menu(void)
             load_put(0u);
             song.g[G_RTYPE] = 0; mix_block(o, CTL); mix_block(o, CTL);
             ok &= sys_load == LOAD_ECO && fx.rtype == 1u && !slicer_on() && song.g[G_SLMODE] == 1;
-            ok &= trk_nvoice(&ft) == ECO_POLY;
+            ok &= trk_vcap(&ft) == ECO_POLY;
             ft.engine = ENGI_FM6;
-            ok &= trk_nvoice(&ft) == LITE_FM6_POLY;
+            ok &= trk_vcap(&ft) == LITE_FM6_POLY;
             ft.engine = ENGI_DRUM;
-            ok &= trk_nvoice(&ft) == (ENGINES[ENGI_DRUM]->poly ? ENGINES[ENGI_DRUM]->poly : NVOICE);
+            ok &= trk_vcap(&ft) == (ENGINES[ENGI_DRUM]->poly ? ENGINES[ENGI_DRUM]->poly : NVOICE);
             for (i = 0; i < NPAGES; i++) {
                 int sl = PAGES[i].graph == GR_SLCR || PAGES[i].graph == GR_SLPIT || str_eq(PAGES[i].title, "CHORUS");
                 if (sl) hidden &= !page_visible(i);

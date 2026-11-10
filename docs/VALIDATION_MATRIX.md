@@ -1287,6 +1287,44 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | released package is reproducible | **REPRODUCED** | worktree at `61ae47b` + `./build.sh --release 2.1.1` → `81c80e365bf9ecec…c563`, the same SHA-256 as `release/felucca-2.1.1.fwsc`, same `build_sha256 83cebf6d…` | AC791N toolchain |
 | Actions run conclusions | **NOT READABLE HERE** | no `gh` token on this machine and the public API is rate-limited by IP; the outcome was verified instead (release assets downloaded and verified, site serving 2.1.1) | — |
 
+---
+
+## 2026-11-10 (fourth pass) — the identity `FM-1_965`, measured end to end
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| the number is free on the hub | **VERIFIED** | `tools/check_identity.py` against `catalog.json` (`updated 2026-11-10 12:27 UTC`, 175 listings): `FREE`; `FM-1_982` answers `TAKEN — GuitChordi`; `FM-1_015` is refused by name; thirteen `FM-1_9NN` numbers passed and five of those sit inside another project's longer range | live catalogue, read over HTTP |
+| AC791N build with the new identity | **BUILT** | `./build.sh --release 2.1.2` on `03d3f80` (`dirty: []`): app 536 500 B, package 610 959 B `identity FM-1_965`, RAM 94 944/98 304 B, all `ok` checks | AC791N toolchain |
+| the identity is in the bytes | **VERIFIED** | `FM-1_965` present in `felucca.bin`, in `build/loader/ota.bin` and in the 20 marker bytes the container carries; the manifest's build record says `FM-1_965` | host, on the release bytes |
+| SysEx identification | **VERIFIED** | `tests/ota_test.c`: `identity frame is FM-1_965`, plus the 0x12/0x13 identification and read matrices | host, native |
+| `.fwsc` generation, SHA-256, Ed25519 | **VERIFIED** | `fm1_sign.py request` → `sign` with the custodian key → `verify`: `FM-1 version 2.1.2, key qg1-release-1, sha256 1f52bf09…a303`; `SHA256SUMS` regenerated and checked | host + the pinned public key |
+| installer, Verify Only, forward compatibility | **VERIFIED** | `security` and `web` groups green; `tests/install_test.py` (from V15, resume, every refusal), `tests/preflight_test.py`, `web/test_verify_only.mjs` 153 checks (incl. the legacy-identity block), `web/test_update_mode.mjs` with the identity read out of the package | host, simulated devices |
+| a unit that answers `FM-1_015` is still stock | **VERIFIED** | `web/test_verify_only.mjs`: `FM-1_015` → `stock`, compatibility `replaces-stock`, never `ours`; the legacy rule only ever matches `FM-1_982` | host, simulated devices |
+| emulator and build record | **VERIFIED (identity)** | WASM rebuilt with `emcc 6.0.11`; `build/emu/manifest.json` `"identity": "FM-1_965"`; `package_emu.py` now reads `PRODUCT` from `build.py` | host, emcc |
+| WASM/native bit-for-bit parity | **FIXED — the harness was wrong, not the toolchain** | It differed at sample 1 on this tree and in a clean worktree at `9fbb8c0` for one reason: the two harnesses recorded **different performances**. `emu_test.mjs` renders `splashMs + 200` before recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`), `native_check.c` hardcoded `render(500)`, so the native recorder started 2.8 s earlier and the sequencer/LFO phase at the first sample differed. `native_check.c` now renders `SPL_WRITE + SPL_HOLD + 200` from `ui_draw.c` (same translation unit): **bit for bit, 88 200 frames**, `emcc 6.0.11` on this host. The earlier "artefact of this host's toolchain" reading was wrong and is withdrawn | host, WASM + native |
+| GitHub Pages | **VERIFIED (before the audit's push), re-deploy pending** | The root served `v2.1.2-03d3f80` with package sha256 `1f52bf09…a303` and emulator wasm `0d437cfe…`; `/preview` served `v2.1.2-bbca837`, `manifest: null` (INSTALL refuses it); no service worker anywhere in the site, so no stale copy can outlive a deploy; the HTML is `max-age=600`. After `af2c002` the stable emulator's label must read `03d3f80ed385` — that deploy had not completed when this row was written | live HTTP |
+| physical FM-1 | **NOT MEASURED** | no unit was touched. What a real device answers after an install, and whether the hub marks the card, are hardware/hub checks that only a unit and the hub can make | — |
+
+---
+
+## 2026-11-10 (independent audit of 2.1.2) — two traceability defects, both fixed
+
+Read this table as the audit's own record: every row was produced in this pass, on this host, from the
+published bytes, and nothing here was taken from an earlier report without re-measuring it.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| chain identity → package → signature → installer → site | **VERIFIED** | package sha256 `1f52bf09…a303` (610 959 B) matches `release/SHA256SUMS`, the live download and the installer page; Ed25519 verified **without project code** (`cryptography`, own canonical JSON) against the pinned `qg1-release-1`; loader `ota-FM-1_965` and identity `FM-1_965` decoded from the bytes with an independent parser | host + live HTTP |
+| `release/v2.1.2` = tag `v2.1.2` = `bbca837`; package built from `03d3f80` | **VERIFIED** | `git ls-remote` for both refs; `build/felucca.fwsc` reproducible in a worktree at `03d3f80` with the same sha256 | host, git |
+| the transition a 2.1.1 unit needs | **VERIFIED** | `web/test_update_mode.mjs` case 1b drives the **signed** `release/felucca-2.1.2.fwsc` against a simulated unit answering `FM-1_982`: `gammaWaveLegacy`, `upgrade-legacy`, admitted, installed; the same bytes relabelled to another model or given a false hash are refused. 16 checks, 0 failed | host, simulated device |
+| the live emulator named a commit its bytes did not come from | **FIXED** | `/emulator/` said `bbca837179dd` while `versions.json` said `03d3f80` and the WASM sha256 `0d437cfe…` is the `03d3f80` build: `tools/package_emu.py` read `GITHUB_SHA` (the deploy) before the worktree's HEAD. It now asks the tree first; rebuilt in a worktree at `03d3f80` **with `GITHUB_SHA` set**, the page and the record both say `03d3f80ed385` | live site, then host rebuild |
+| the deploy could not catch that | **FIXED** | nothing ran `web/test_site.py` in the `deploy` job. It now does: the same page relabelled to the deploy's commit is reported `emulator page does not name its manifest's commit FAIL` (negative control run here) | workflow + host |
+| WASM/native parity | **FIXED** | see the row above: harness alignment, `bit for bit` | host |
+| host suite at the release commit | **RED, FIXED** | `tests/run_tests.sh` at `bbca837` ends `HOST TESTS FAILED`: `web/test_accept.mjs` asserted `FM-1_965` on the 1.9.0 fixture, which answers `FM-1_982`. Since `03d3f80`. It now checks the fixture's own identity and runs the same acceptance on `release/felucca-2.1.2.fwsc`, which must answer the tree's `PRODUCT`: 23 checks, 0 failed. CI was blind to it because the host suite runs `NO_PACKAGE=1`; `target.yml` now runs it | host |
+| the host suite end to end | **PASS** | `tests/run_tests.sh` after the three fixes: `ALL HOST TESTS PASSED`, 0 failed, including the WASM/native parity and the transition case | host |
+| hub catalogue | **VERIFIED** | `catalog.json`, `updated 2026-11-10 12:27 UTC`, 175 listings: `FM-1_965` free; `FM-1_982` → GuitChordi, `FM-1_981` → Pocket GammaWave; 22 listings declare no identity | live HTTP |
+| submission to the hub | **NOT SENT** | requirements read and documented; sending a mail in the user's name was not authorised | — |
+
 ## 41. Update — 2026-11-10, HEAD `94a6a4c` medido: host, AC791N y wasm
 
 | Medición | Valor | Clase |
@@ -1303,6 +1341,20 @@ Por lo que **no** hay en esta pasada: MICRO-START y modulación aleatoria no est
 en el registro de proyecto (`P_COUNT` 123, `project.c` §límites) y añadir un parámetro exige una versión de formato
 nueva; hacerlo de otro modo habría roto los presets y proyectos ya guardados. Tampoco entran aquí las
 optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
+
+## Pasada `v2.3.0` — doce voces con el pool
+
+| Comprobación | Resultado | Cómo |
+|---|---|---|
+| Build AC791N, 12 voces por defecto | **ok**: imagen 539 836 B, `.data + .bss` **87 584 B** de 98 304 (10 720 libres), POOL 311 240 B (9 248 libres), XIP 379 876 B, RAM code 19 268 B de 24 576, NOINIT 15 572 B | `python3 tools/build.py` (toolchain + AC79_SDK) |
+| Paquete | `build/felucca.fwsc` 610 959 B, identity `FM-1_965`, manifiesto `v2.3.0` | el mismo build |
+| Golden renders | **220 renders, 0 changed**, 0 health failures, 0 voice/routing fallos, 0 CPU sobre presupuesto | `tests/regress` con `tests/golden.txt` (55 baselines re-renderizados en el commit del pool) |
+| UI | **all passed** | `tests/ui_test` |
+| Presupuesto de tamaño | **39/39** | `tests/target_budget` |
+| Perfil de 10 voces | compila: `FELUCCA_VOICES=10 python3 tools/build.py` | flag del build |
+| Sitio | `test_i18n.py` todas las cadenas con EN y ZH; `test_site.py` 19 ids / 7 imágenes / 31 enlaces, 0 fallos; `test_web.mjs` verde; `test_installer_i18n.py` verde | host |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada. Ni la polifonía de 12 voces ni el margen de pila se midieron en hardware. | — |
+| Release firmado 2.3.0 | **NO PUBLICADO**: la firma exige la clave del custodio, que no está en este árbol; el instalador rechaza un paquete sin firmar (fail-closed). | — |
 
 ## 42. Update — 2026-11-10, dos parámetros nuevos sin versión de formato: medido
 

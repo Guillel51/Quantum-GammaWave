@@ -118,6 +118,7 @@ static void felucca_init(void)
         chain_defaults(&chain_config);
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;
+    voices_boot();                            /* (3.5) the voice pool: every part's window, the inert slot */
     load_depth++;                             /* (the power-on loads: one outer load) */
     fm6_init();                               /* every track's FM6 patch: the init voice */
     for (i = 0; i < NTRK; i++) {

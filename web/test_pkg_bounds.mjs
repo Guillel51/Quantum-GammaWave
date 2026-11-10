@@ -117,7 +117,7 @@ function buildFlash(o = {}) {
 /* a package: the 20 marker blocks and the UFW header, its entry list encrypted, the image at dataOff */
 function buildPackage(flash, o = {}) {
   const { nent = 1, dataOff = 0x800, size = flash.length, dcrc = crc16(flash), type = 0,
-          name = "flash.bin", hdrBad = false, listBad = false, product = "FM-1_900", cut = 0 } = o;
+          name = "flash.bin", hdrBad = false, listBad = false, product = "FM-1_965", cut = 0 } = o;
   const total = Math.max(BLOCKS * BLK, 0x800 + SKEW + flash.length);
   const raw = new Uint8Array(total);
   if (dataOff + SKEW + flash.length <= total) raw.set(flash, dataOff + SKEW);
@@ -157,7 +157,7 @@ function ms(fn) { const t = process.hrtime.bigint(); fn(); return Number(process
   let p = null, err = null;
   try { p = new Package(good()); } catch (e) { err = e; }
   ok(p !== null, `package: a well-formed package parses${p ? "" : ` (${err && err.message})`}`);
-  ok(!!p && p.product === "FM-1_900" && p.nent === 1 && p.flashFileOff === 0x800 + SKEW &&
+  ok(!!p && p.product === "FM-1_965" && p.nent === 1 && p.flashFileOff === 0x800 + SKEW &&
      p.flashSize === 0x400 && p.appBase === APP_BASE && p.appOff === APP_BASE + APP_ENTRY_OFF &&
      p.app.size === APP_ENTRY_SIZE && p.cfgLen === CFG_LEN,
      "package: .. its layout reads back (product, flash, app.bin, cfg)");

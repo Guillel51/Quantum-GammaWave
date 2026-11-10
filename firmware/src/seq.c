@@ -1300,7 +1300,7 @@ static void chord_glide(track_t *t, const uint8_t *nn, const uint8_t *vv, uint32
     for (i = 0; i < t->seq_n && a < 8u; i++)            /* (0.6.81) the old chord: its notes still sounding (a voice
                                                          * taken by another note is not one) */
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].active && t->v[k].gate && t->v[k].note == t->seq_notes[i]) { o[a++] = t->seq_notes[i]; break; }
+            if (V(t, k).active && V(t, k).gate && V(t, k).note == t->seq_notes[i]) { o[a++] = t->seq_notes[i]; break; }
     for (i = 0; i < m && b < 8u; i++)
         if (!((sk >> i) & 1u)) { n[b] = nn[i]; nv[b++] = vv[i]; }
     for (i = 1; i < a; i++) for (j = i; j > 0 && o[j] < o[j - 1]; j--) { uint8_t x = o[j]; o[j] = o[j - 1]; o[j - 1] = x; }
@@ -1310,7 +1310,7 @@ static void chord_glide(track_t *t, const uint8_t *nn, const uint8_t *vv, uint32
         voice_t *v = 0;
         if (i < a)
             for (k = 0; k < NVOICE; k++)
-                if (t->v[k].active && t->v[k].gate && t->v[k].note == o[i]) { v = &t->v[k]; break; }
+                if (V(t, k).active && V(t, k).gate && V(t, k).note == o[i]) { v = &V(t, k); break; }
         if (i < a && i < b && v) {                      /* a pair: the old note glides to the new */
             int32_t d;
             if (mo_out[ti][o[i]]) { mo_send(0x80u | trk_midi_ch(ti), mo_out[ti][o[i]] - 1u, 0); mo_out[ti][o[i]] = 0; }
@@ -1327,8 +1327,8 @@ static void chord_glide(track_t *t, const uint8_t *nn, const uint8_t *vv, uint32
             seq_note_on(t, n[i], nv[i]);
             if (vage != a0 && a)
                 for (k = 0; k < NVOICE; k++)
-                    if (t->v[k].age == vage && t->v[k].active) {
-                        voice_t *w = &t->v[k];
+                    if (V(t, k).age == vage && V(t, k).active) {
+                        voice_t *w = &V(t, k);
                         int32_t d;
                         w->pitch_cur = (cg_near(n[i], o, a, 1) + tr) * 16 + t->pfx_rpit;
                         d = w->pitch16 - w->pitch_cur;
@@ -1600,7 +1600,7 @@ static __attribute__((noinline)) void seq_step(track_t *t, const step_t *s, uint
                 uint32_t k2, ticks = step_samples(t, period, t->seq_idx) / CTL;
                 int32_t d = ((int32_t)(ba % 25u) - 12) * 16;
                 for (k2 = 0; k2 < NVOICE; k2++) {
-                    voice_t *v = &t->v[k2];
+                    voice_t *v = &V(t, k2);
                     if (v->age == vage && v->active) {
                         v->pitch_cur = v->pitch16;
                         v->pitch16 = clamp(v->pitch16 + d, 0, 2047);

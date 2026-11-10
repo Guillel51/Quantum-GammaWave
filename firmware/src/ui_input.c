@@ -259,8 +259,8 @@ static uint32_t voice_leds(void)
     if (e->oneshot || (e->keys && e->keys(t, 0) >= 0))
         return 0;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate && t->v[i].note < 128u) {
-            have[t->v[i].note >> 5] |= 1u << (t->v[i].note & 31u);
+        if (V(t, i).active && V(t, i).gate && V(t, i).note < 128u) {
+            have[V(t, i).note >> 5] |= 1u << (V(t, i).note & 31u);
             any = 1;
         }
     for (k = 0; any && k < 27u; k++) {
@@ -1635,7 +1635,7 @@ static void macro_dice(uint32_t mode);
 static int16_t sl_root = -1, sl_scale, sl_quant;      /* (scale_link: the song's scale) */
 #include "song_dice.c"                             /* (0.6.26) DICE ALL: a song-idea generator */
 static void project_clear(void);                     /* (1.2.1-GW, song_main.c) SAVE > TOOLS 7 */
-#include "gen.c"                                   /* (0.6.91) GEN: the song generator and its screen (HOME + SELECT) */
+#include "gen.c"                                   /* (0.6.91) GEN: the generator page (HOME + SELECT) */
 
 /* HOME / REC / SAVE: tap on release, hold 0.7 s fires once. t0 = press time | 1,
  * bit 1 = fired (or swallowed: then the release is no tap either) */
@@ -1841,7 +1841,7 @@ static int gw_oct_combo(uint32_t b)
         ui.force = 1;
         return 1;
     case B_PLAY:
-    case B_REC:                                         /* [OCT-] + [PLAY] or [REC]: 1-Click 49-Genre Song Generator (GEN) */
+    case B_REC:                                         /* [OCT-] + [PLAY] or [REC]: the GEN page, 49 genres */
         if (b == B_REC) ui.rec_t0 |= 2u;
         if (chain_busy()) ui_message("STOP TO EDIT");
         else { confirm_open(CF_DICE_ALL, song.sel); gen_open(); }

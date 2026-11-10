@@ -769,7 +769,7 @@ Hold **SAVE**:
 
 ## 8. Dice and UNDO
 
-### GENERATOR — the song generator (HOME + SELECT)
+### GENERATOR — GEN (HOME + SELECT)
 
 Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (QG-1). The screen,
 **GENERATOR 1/5**, has five pages of four settings: **SELECT** turns the page — a ring of seven: the five settings

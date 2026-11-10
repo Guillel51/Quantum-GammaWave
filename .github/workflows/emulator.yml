@@ -284,6 +284,13 @@ jobs:
         run: |
           ls -la build | head -20
           test -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }
+      # (2026-11-10) The site is checked *here* too, not only in the test job: this job builds the stable
+      # emulator inside a worktree at the release commit, and for one release the page it copied named
+      # the deploy's commit while its WASM came from the release's (package_emu.py read GITHUB_SHA first).
+      # Nothing caught it because the deploy never ran test_site.py, so it was published. Now it fails
+      # the build instead of shipping a page that contradicts its own record.
+      - name: the site is the one its records name
+        run: python3 web/test_site.py build/site
       # (M3.4) main only. The public site is one artefact and Pages keeps the last one published, so a
       # side branch that deployed could (and did) put an older tree back over main's: the site went from
       # the new build back to v1.9.0-7eb9636 with no push to main in between. A branch that wants to be

@@ -58,7 +58,9 @@ SDK_SHA256 = {
     "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
 }
 
-PRODUCT = "FM-1_982"                # unique Quantum GammaWave package identity (FM-1_9NN resumable loader range; 981: GW-1)
+PRODUCT = "FM-1_965"                # Quantum GammaWave's own identity, checked free in the hub's catalogue and
+#                                   recorded in docs/IDENTITY.md (was FM-1_982, shared with GuitChordi). FM-1_9NN
+#                                   is the range the hub and this installer resume (981: Pocket GammaWave).
 VERSION = None                      # FELUCCA_VERSION for release builds (default: firmware/src/felucca.c)
 
 
@@ -219,6 +221,11 @@ def build_app():
         flags.append(f"-DNVOICE={v}")
     elif v:
         raise SystemExit(f"build: FELUCCA_VOICES={v!r} (the measured profiles are 10 and 12)")
+    v = os.environ.get("FELUCCA_VPOOL")        # firmware/src/core.h VPOOLN: the voice pool's slots (3.5)
+    if v and v.isdigit() and 0 < int(v) < 320:
+        flags.append(f"-DVPOOLN={v}")
+    elif v:
+        raise SystemExit(f"build: FELUCCA_VPOOL={v!r} (a slot count, 1..319)")
     v = os.environ.get("FELUCCA_USB_LAYOUT")   # firmware/src/usb.c: how the USB composite presents itself (#67), 0..3
     if v in ("0", "1", "2", "3"):
         flags.append(f"-DFELUCCA_USB_LAYOUT={v}")
@@ -389,7 +396,7 @@ def main():
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
     a = ap.parse_args()
     name = "felucca.fwsc"
-    if a.release:                   # (1.1.1-GW) the identity stays PRODUCT (QG-1: FM-1_982) for every build: The Firmware Hub
+    if a.release:                   # (1.1.1-GW) the identity stays PRODUCT (QG-1: FM-1_965) for every build: The Firmware Hub
         # knows Pocket GammaWave by it (Felucca's FM-1_9XY per release gave 1.1 FM-1_911, Felucca 1.1's own)
         m = re.fullmatch(r"(\d)\.(\d)(?:\.\d){0,2}(-[A-Za-z0-9]+)?", a.release)
         if not m:

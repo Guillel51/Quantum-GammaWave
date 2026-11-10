@@ -263,7 +263,7 @@
       </div>
     </div>
     <h1>Quantum GammaWave</h1>
-    <div class="subtitle">10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer &amp; Groovebox Firmware for M-VAVE FM-1</div>
+    <div class="subtitle">12-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer &amp; Groovebox Firmware for M-VAVE FM-1</div>
     <p data-t="intro" style="margin-bottom:8px"></p>
     <div class="nav-links">
       <a class="nav-btn" href="../editor/" data-t="editor"></a>
@@ -780,7 +780,7 @@ const STATIC = {
   es: {
     "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware": "QUANTUM GAMMAWAVE — Firmware para M-VAVE FM-1",
     "THEME: GAMMA": "TEMA: GAMMA",
-    "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "Polifonía de 10 voces. EQ maestro paramétrico. Saturación armónica. — Firmware avanzado de sintetizador y groovebox open source para M-VAVE FM-1",
+    "12-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "Polifonía de 12 voces. EQ maestro paramétrico. Saturación armónica. — Firmware avanzado de sintetizador y groovebox open source para M-VAVE FM-1",
     "⚡ GITHUB REPOSITORY ↗": "⚡ REPOSITORIO GITHUB ↗",
     "WAVE 1 & 2 + HEARTH": "WAVE 1 Y 2 + HEARTH",
     "Blazing Yellow Sun + Orbiting Moon, Gravity, Singularity, Photosphere": "Sol amarillo incandescente + luna en órbita, gravedad, singularidad y fotosfera",
@@ -805,7 +805,7 @@ const STATIC = {
   zh: {
     "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware": "QUANTUM GAMMAWAVE — M-VAVE FM-1 固件",
     "THEME: GAMMA": "主题：GAMMA",
-    "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "10 声部复音。参数主 EQ。谐波饱和。— 适用于 M-VAVE FM-1 的高级开源合成器与 groovebox 固件",
+    "12-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "12 声部复音。参数主 EQ。谐波饱和。— 适用于 M-VAVE FM-1 的高级开源合成器与 groovebox 固件",
     "⚡ GITHUB REPOSITORY ↗": "⚡ GITHUB 仓库 ↗",
     "WAVE 1 & 2 + HEARTH": "WAVE 1 和 2 + HEARTH",
     "Blazing Yellow Sun + Orbiting Moon, Gravity, Singularity, Photosphere": "炽热黄色太阳 + 环绕月球、重力、奇点和光球层",
@@ -879,7 +879,7 @@ const VF = {
     "gate.backup": "8. Backup of this unit",
     "gate.flashmap": "7. Flash map and regions",
     "gate.recovery": "9. Recovery path",
-    "gate.revalidate": "10. Identity after the install (FM-1_982)",
+    "gate.revalidate": "10. Identity after the install (FM-1_965)",
     "query.frames": "Identity frames sent",
     "query.answer": "Answer came from",
     "query.latencyMs": "Answer latency",
@@ -906,6 +906,7 @@ const VF = {
     "usb.vidpid": "USB vendor / product id",
     "fam.stock": "official V15",
     "fam.gammaWave": "Quantum GammaWave (this package)",
+    "fam.gammaWaveLegacy": "Quantum GammaWave (previous identity, FM-1_982)",
     "fam.other": "another build (JIANT or custom)",
     "fam.loader": "update loader",
     "fam.unknown": "not recognised",
@@ -936,6 +937,7 @@ const VF = {
     "compat.blocked-firmware": "blocked: this installer cannot write over that firmware",
     "compat.replaces-stock": "the package is built to replace official V15",
     "compat.reinstall-same": "same firmware: a reinstall",
+    "compat.upgrade-legacy": "the same firmware on its previous identity (FM-1_982): an update",
     "compat.finish-loader": "the package can finish the interrupted install",
     "compat.foreign-loader": "blocked: the unit is in its own update mode (the vendor's loader), not this project's; nothing was sent",
     "auth.none": "none — only the install path (signature, chip, sizes) can authorise one",
@@ -980,7 +982,7 @@ const VF = {
     "gate.backup": "8. Backup de esta unidad",
     "gate.flashmap": "7. Mapa de flash y regiones",
     "gate.recovery": "9. Camino de recuperación",
-    "gate.revalidate": "10. Identidad tras la instalación (FM-1_982)",
+    "gate.revalidate": "10. Identidad tras la instalación (FM-1_965)",
     "query.frames": "Tramas de identidad enviadas",
     "query.answer": "Respondió",
     "query.latencyMs": "Latencia de la respuesta",
@@ -1007,6 +1009,7 @@ const VF = {
     "usb.vidpid": "VID / PID de USB",
     "fam.stock": "V15 oficial",
     "fam.gammaWave": "Quantum GammaWave (este paquete)",
+    "fam.gammaWaveLegacy": "Quantum GammaWave (identidad anterior, FM-1_982)",
     "fam.other": "otro build (JIANT o personalizado)",
     "fam.loader": "loader de actualización",
     "fam.unknown": "no reconocido",
@@ -1037,6 +1040,7 @@ const VF = {
     "compat.blocked-firmware": "bloqueado: este instalador no escribe sobre ese firmware",
     "compat.replaces-stock": "el paquete está hecho para reemplazar V15 oficial",
     "compat.reinstall-same": "mismo firmware: reinstalación",
+    "compat.upgrade-legacy": "el mismo firmware con su identidad anterior (FM-1_982): una actualización",
     "compat.finish-loader": "el paquete puede terminar la instalación interrumpida",
     "compat.foreign-loader": "bloqueado: la unidad está en su propio modo update (el loader del fabricante), no en el de este proyecto; no se envió nada",
     "auth.none": "ninguna — solo la ruta de instalación (firma, chip, tamaños) puede autorizar una",
@@ -1081,7 +1085,7 @@ const VF = {
     "gate.backup": "8. 本机备份",
     "gate.flashmap": "7. Flash 映射与区域",
     "gate.recovery": "9. 恢复路径",
-    "gate.revalidate": "10. 安装后的标识（FM-1_982）",
+    "gate.revalidate": "10. 安装后的标识（FM-1_965）",
     "query.frames": "已发送的识别帧",
     "query.answer": "响应来源",
     "query.latencyMs": "响应延迟",
@@ -1108,6 +1112,7 @@ const VF = {
     "usb.vidpid": "USB VID / PID",
     "fam.stock": "官方 V15",
     "fam.gammaWave": "Quantum GammaWave（本包）",
+    "fam.gammaWaveLegacy": "Quantum GammaWave（上一标识，FM-1_982）",
     "fam.other": "其他固件（JIANT 或自制）",
     "fam.loader": "升级 loader",
     "fam.unknown": "未识别",
@@ -1138,6 +1143,7 @@ const VF = {
     "compat.blocked-firmware": "已阻止：本安装器无法写入该固件",
     "compat.replaces-stock": "该固件包用于替换官方 V15",
     "compat.reinstall-same": "相同固件：重新安装",
+    "compat.upgrade-legacy": "同一固件的上一标识（FM-1_982）：这是一次升级",
     "compat.finish-loader": "该固件包可以完成被中断的安装",
     "compat.foreign-loader": "已阻止：设备处于其自身的更新模式（厂商 loader），而不是本项目的 loader；未发送任何数据",
     "auth.none": "无 — 只有安装流程（签名、芯片、大小）才能授权",
@@ -1577,8 +1583,8 @@ async function runVerify() {
     else if (fw.kind === "ourloader") sayK("vLoader");
     else if (fw.kind === "otherloader") sayK("vVendorLoader");
     /* (7.x) the status line speaks about the device only. It used to append meta.product -- the tag of
-     * the package THIS PAGE offers (FM-1_982) -- to a sentence about what the unit answered, so a stock
-     * FM-1 read as "official V15 (FM-1_015). ... FM-1_982": two identities in one line, and the package's
+     * the package THIS PAGE offers (FM-1_965) -- to a sentence about what the unit answered, so a stock
+     * FM-1 read as "official V15 (FM-1_015). ... FM-1_965": two identities in one line, and the package's
      * presented as the unit's. The package is named in the report panel, under its own rows. */
     else if (fw.kind === "stock") sayK("vStock");
     else if (fw.kind === "ours") sayK("vOurs", fw.text + t("vSame"));

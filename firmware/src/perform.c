@@ -358,7 +358,7 @@ static __attribute__((noinline)) void perf_unhush(void)   /* (out of perf_begin:
     for (k = 0; k < NTRK; k++)
         if (!pf.mg[k] && !((pf.act >> (PF_M1 + k)) & 1u)) {
             for (i = on = 0; i < NVOICE; i++)
-                on |= trk[k].v[i].active;
+                on |= V(&trk[k], i).active;
             if (!on)
                 pf.mg[k] = 32768;
         }
@@ -439,7 +439,7 @@ static __attribute__((noinline)) void perf_hush_end(uint32_t k)   /* (out of per
 {
     uint32_t i;
     for (i = 0; i < NVOICE; i++) {
-        voice_t *v = &trk[k].v[i];
+        voice_t *v = &V(&trk[k], i);
         v->active = v->gate = 0;
         v->stage = 0;
         v->env = v->env_out = 0;

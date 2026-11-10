@@ -119,6 +119,27 @@ absorb the peaks the instrument actually has (a project load stages 9 452 B in L
 that one is fine; a preset bank + undo + a song section are not). **12 voices is not viable on RAM
 headroom as the tree stands**, and no CPU claim about it can be made without a unit.
 
+### 5b. The pool changed the equation (`v2.3.0`)
+
+The §5 table measures the *old* layout: every part owning a fixed block of voices, so twelve voices meant
+reserving twelve slots plus six parts' worth of per-part state. `v2.3.0` replaced that with one global pool
+(`vpool[]`, `VPOOLN = NVOICE + NPART`) that parts take **windows** from, and the cost went the other way:
+
+| | 10 voices, per-part blocks | **12 voices, pool** |
+|---|---:|---:|
+| `.data` + `.bss` | 94 924 B | **87 584 B** |
+| free to 96 KiB | 3 380 B | **10 720 B** |
+| image | 538 356 B | **539 836 B** |
+| POOL / spare | 318 432 / 9 248 B | 311 240 / 9 248 B |
+| host `6parts_full` | — | 326.9 ns |
+| 220 golden renders | — | 0 changed after the 55 re-rendered baselines |
+
+Measured with `python3 tools/build.py` at `9f50002` + this bump (`v2.3.0`, identity `FM-1_965`):
+`.ram_text` 1 193 instructions with no calls, XIP 379 876 B, RAM code 19 268 B of 24 576, NOINIT 15 572 B,
+`tests/regress` 220 renders 0 changed / 0 health failures, `tests/ui_test` green, `tests/target_budget`
+39/39. The sentence above about 12 voices not being viable described the pre-pool layout and no longer
+describes this tree; what is still true is that nothing here is a measurement on a physical FM-1.
+
 ## 6. What this baseline rules out, and what it points at
 
 - Ruled out by measurement: global `-Os`/`-O2`; inlining the FM6 operator loops (per-block calls);
