@@ -3,8 +3,9 @@
 - **Versión** `v2.4.0` → `v2.4.1` (`FELUCCA_VERSION`, README, banner).
 - **Banner oficial** regenerado con `tools/generate_banner.py` (versión v2.4.1, 12 voces).
 - **Identidad propia conservada**: `FM-1_965`; compatibilidad legacy `FM-1_982`.
-- **Paquete firmado v2.4.1**: bloqueado (sin clave privada `qg1-release-1`); no se reutiliza firma de v2.4.0.
-- **GitHub Release v2.4.1** publicado como versión actual; v2.1.2 y v2.4.0 siguen accesibles como históricas.
+- **Paquete firmado v2.4.1**: bloqueado (sin clave privada `qg1-release-1` en este entorno); no se reutiliza firma de v2.4.0.
+- **GitHub Release v2.4.1**: no publicado aún (falta credencial para push de tag/release). La rama `v2.4.1` existe localmente haciendo referencia al commit `571dbd3`. Se requiere intervención con credenciales adecuadas para crear el tag y el Release en GitHub.
+- **Histórico**: releases v2.1.2, v2.4.0 y v1.9.0 permanecen accesibles en el repositorio.
 
 ## 2026-11-10 — v2.4.0: preparación para The Firmware Hub
 
