@@ -170,8 +170,11 @@ def images_of(record):
     it. Signing the image hashes lets a page prove that the firmware inside the package is the one the
     custodian signed, whatever commit rebuilt it, and still refuse the moment those bytes change."""
     arts = (record or {}).get("artifacts") if isinstance(record, dict) else None
+    # The package's own entry is left out: its bytes are what `sha256` in the manifest already covers,
+    # and its file name changes with the site's version label. What the signature ties to is the
+    # firmware inside -- the app image and the loader -- under the names every build record uses.
     return {k: str(v.get("sha256")) for k, v in (arts or {}).items()
-            if isinstance(v, dict) and v.get("sha256")}
+            if isinstance(v, dict) and v.get("sha256") and not k.endswith(".fwsc")}
 
 
 def manifest_for(pkg_bytes, version, minimum, product="FM-1", keyid=None, created=None, build_sha256=None,
