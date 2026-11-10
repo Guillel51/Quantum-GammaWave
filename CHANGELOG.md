@@ -1,3 +1,12 @@
+## 2026-11-10 — releases de GitHub, sin firma en el repo
+
+- **Un solo canal.** El sitio sirve el build de `main` y el instalador lo puede instalar: comprueba el SHA-256 y
+  el tamaño publicados antes de escribir, y el loader comprueba el chip flash antes de borrar nada.
+- **Los releases son releases de GitHub**, compilados por CI desde un tag (`release.yml`, `docs/RELEASE.es.md`).
+  Ya no hay `release/` en el repo, ni firma Ed25519, ni registro de procedencia que el instalador exija.
+- Se quitaron `tools/fm1_sign.py`, `tools/fm1_keys.json`, `web/fm1provenance.js` y sus tests. El paquete
+  v1.9.0 queda como fixture de tests en `tests/fixtures/`.
+
 ## 2026-11-09 — 2.0: el emulador público pasa a ser este árbol, y los planetas giran
 
 La queja era concreta: el emulador publicado mostraba un firmware más viejo que el repositorio. La causa no era

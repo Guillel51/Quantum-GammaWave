@@ -14,7 +14,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { Updater, requireProof, pack7, isOurLoader } from "./fm1ota.js";
 import { logicalImage } from "./fm1pkg.js";
-import { verifyProvenance } from "./fm1provenance.js";
 import { parseRecord, verifyDump, recordFor, DUMP_BYTES } from "./fm1record.js";
 
 let n = 0;
@@ -116,16 +115,11 @@ class Unit {
 }
 
 /* the real release chain: the package people install, and the record/provenance the page needs */
-const pkg = fs.readFileSync("release/felucca-v1.9.0.fwsc");
+const pkg = fs.readFileSync("tests/fixtures/felucca-v1.9.0.fwsc");
 /* the device reads the LOGICAL image of the package (fm1pkg.js), not the container file */
 const image = logicalImage(pkg);
-const manifest = JSON.parse(fs.readFileSync("release/felucca-v1.9.0.manifest.json", "utf-8"));
-const build = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
-const emu = JSON.parse(fs.readFileSync("release/emu/manifest.json", "utf-8"));
-const keys = JSON.parse(fs.readFileSync("tools/fm1_keys.json", "utf-8")).keys || {};
-const prov = await verifyProvenance(pkg, build, { emulator: emu });
 const PRODUCT = "FM-1_982";
-const ctxFor = (extra = {}) => ({ manifest, keys, firmware: "15", provenance: prov, ...extra });
+const ctxFor = (extra = {}) => ({ firmware: "15", ...extra });
 
 const OWNER = JSON.stringify({
   model: "FM-1", bootloader: "stock (M-VAVE)", firmware: "FM-1 015 (stock)", app: "OK",

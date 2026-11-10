@@ -88,35 +88,6 @@ def build_record(pkg_path, manifest=None):
     return None
 
 
-def check_build_record(m, raw, product, version, pkg_path):
-    """Refuse to publish a package that contradicts its own build record. The installer checks the same
-    things again in the browser (web/fm1provenance.js): an inconsistent site must never be built."""
-    problems = []
-    art = (m.get("artifacts") or {}).get("felucca.fwsc") or {}
-    if art.get("sha256") != hashlib.sha256(raw).hexdigest():
-        problems.append(f"the package's SHA-256 is not the record's ({art.get('sha256')})")
-    if art.get("bytes") != len(raw):
-        problems.append(f"the package is {len(raw)} B, the record's {art.get('bytes')} B")
-    if m.get("identity") != product:
-        problems.append(f"the record is for {m.get('identity')!r}, the package's identity is {product!r}")
-    if m.get("dirty"):
-        problems.append("the record says the tree had uncommitted changes (" + ", ".join(map(str, m["dirty"][:4])) + ")")
-    bv, commit = str(m.get("version") or ""), str(m.get("commit") or "")
-    if not re.fullmatch(r"[0-9a-f]{40}", commit):
-        problems.append(f"the record's commit {commit!r} is not a full commit id")
-    suffix = version[len(bv) + 1:] if bv and version.startswith(bv + "-") else None
-    if not (bv and (version == bv or (suffix and re.fullmatch(r"[0-9a-f]{7,40}", suffix)
-                                      and commit.startswith(suffix)))):
-        problems.append(f"this is labelled {version!r}, the record says {bv!r} ({commit[:7]})")
-    emu = m.get("emulator") or {}
-    if emu.get("version") != bv:
-        problems.append(f"the emulator in the record is {emu.get('version')!r}, the firmware {bv!r}")
-    if not commit.startswith(str(emu.get("commit") or "-")):
-        problems.append(f"the emulator was built from {emu.get('commit')!r}, the firmware from {commit[:7]}")
-    if problems:
-        raise SystemExit(f"{pkg_path}: refusing to publish it: " + "; ".join(problems))
-
-
 def emulator_record(pkg_path, emu_manifest=None):
     """build/emu/manifest.json (qg1-emu-1), when the emulator was built next to this package.
 
@@ -165,7 +136,6 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     lib = strip_module((HERE / "fm1diag.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1pkg.js").read_text(encoding="utf-8")) + "\n" + \
     strip_module((HERE / "fm1accept.js").read_text(encoding="utf-8")) + "\n" + \
-        strip_module((HERE / "fm1provenance.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1record.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1ota.js").read_text(encoding="utf-8")) + "\n" + \
         strip_module((HERE / "fm1verify.js").read_text(encoding="utf-8")) + "\n" + \
@@ -176,33 +146,20 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     # (QG-1) each package with its SHA-256 and size: the installer refuses bytes that do not match
     def digest(b):
         return {"sha256": hashlib.sha256(b).hexdigest(), "size": len(b)}
-    def manifest_of(pkg_path):
-        """the release manifest written by tools/fm1_sign.py next to the package, if any"""
-        for cand in (Path(str(pkg_path) + ".manifest.json"), Path(pkg_path).with_suffix(".manifest.json")):
-            if cand.is_file():
-                return json.loads(cand.read_text(encoding="utf-8"))
-        return None
-    # Only the PUBLIC keys the custodian pinned (tools/fm1_keys.json) travel with the page: an
-    # empty map is the honest state, and verifyManifest() then refuses every package.
-    keys = json.loads((HERE.parent / "tools" / "fm1_keys.json").read_text(encoding="utf-8")).get("keys", {})
-    # (v1.9.0) the build record travels with the page (inlined, so it cannot be swapped apart from it).
-    # A package with no record is published, but the installer then refuses to install it: fail closed.
+    # (v1.9.0) the build record travels with the page (inlined): the verify report shows it
     build = build_record(pkg, manifest)
-    if build:
-        check_build_record(build, raw, product, version, pkg)
     emu = emulator_record(pkg, emu_manifest)
     # (M3.4) `emulator` is the emulator this site serves (build/emu/manifest.json of this run), which is
     # not the one the package's build record names when the package is a committed release: the release
     # pins the emulator built with it, the site copies the one built now. Both are true, so both are
     # published, each under its own key, and tools/site_check.py holds each to its own claim.
-    versions = [{"version": version, "file": name, **digest(raw), "manifest": manifest_of(Path(pkg)),
-                 "build": build, "emulator": emu}] + \
-        [{**e, **digest(src.read_bytes()), "manifest": manifest_of(src), "build": None} for e, src in old]
+    versions = [{"version": version, "file": name, **digest(raw), "build": build, "emulator": emu}] + \
+        [{**e, **digest(src.read_bytes()), "build": None} for e, src in old]
     meta = json.dumps({"version": version, "product": product, "pkg": "../../firmware/" + name, **digest(raw),
-                       "stock": (HERE.parent / "FM-1.fwsc").is_file(), "keys": keys, "build": build, "emu": emu,
+                       "stock": (HERE.parent / "FM-1.fwsc").is_file(), "build": build, "emu": emu,
                        "versions": [{"version": e["version"], "pkg": "../../firmware/" + e["file"],
                                      "sha256": e["sha256"], "size": e["size"],
-                                     "manifest": e.get("manifest"), "build": e.get("build")} for e in versions]})
+                                     "build": e.get("build")} for e in versions]})
     for mark in ("/*LIB*/", "/*META*/"):
         if html.count(mark) != 1:
             raise SystemExit(f"index_pkg.html must contain {mark} once; update make_site.py")
@@ -268,7 +225,7 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None):
     shutil.copytree(site / "assets", assets)
     print(f"site: {out}: portal + assets, webapp/installer ({len(html)} B), webapp/editor, "
           f"firmware/{name} ({len(raw)} B, {product}, "
-          + (f"build {build['version']} {build['commit'][:7]}" if build else "NO build record: the installer will refuse it")
+          + (f"build {build['version']} {build['commit'][:7]}" if build else "no build record")
           + ", " + ("emulator record" if emu else "no emulator record") + ")"
           + (f", earlier: {' '.join(e['version'] for e, _ in old)}" if old else ""))
 

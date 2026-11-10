@@ -11,7 +11,7 @@
 import { verifyDevice, READ_ONLY_QUERY } from "./fm1verify.js";
 import * as mod from "./fm1verify.js";
 import * as diag from "./fm1diag.js";
-import { Updater, requireProof, verifyManifest, requireChip, chipCheck, pack7, unpack7 } from "./fm1ota.js";
+import { Updater, requireProof, requireChip, chipCheck, pack7, unpack7 } from "./fm1ota.js";
 
 let bad = 0, total = 0;
 const check = (name, ok) => {
@@ -233,14 +233,14 @@ function anyWrite(sent) {
 
 {
   // the verifier's read-only property is a property of the module, and the writer's is a refusal:
-  // install() called directly, with no proof and no installed version, must not open the port at all
+  // install() called directly with something that is not a package must not open the port at all
   const sent = [];
   const port = { name: "FM-1", state: "connected", open: async () => {}, send(b) { sent.push(Array.from(b)); } };
   const midi = { inputs: new Map([["in", { ...port, onmidimessage: null }]]), outputs: new Map([["out", port]]) };
   const up = new Updater(midi);
   const e = await up.install(new Uint8Array(64), "FM-1_982", () => {}, {}).then(() => null, (x) => x);
-  check("install() with no proof and no installed version is refused fail-closed",
-    !!e && ["proof", "version", "signature"].includes(e.code));
+  check("install() with no real package is refused fail-closed",
+    !!e && ["proof", "image"].includes(e.code));
   check("and that refusal reaches the device as zero frames", sent.length === 0);
 }
 {
@@ -417,16 +417,10 @@ function anyWrite(sent) {
   const pkg = new Uint8Array(2000);
   const e1 = await up.write(ota, pkg, () => {}, { product: "FM-1_982" }).then(() => null, (x) => x);
   check("write() called directly, with no proof, is refused and sends nothing",
-    !!e1 && ["proof", "version", "signature"].includes(e1.code) && sent.length === 0);
+    !!e1 && ["proof", "image"].includes(e1.code) && sent.length === 0);
   const e2 = await up.resume(pkg, () => {}, "FM-1_982", {}).then(() => null, (x) => x);
   check("resume() called directly, with no proof, is refused and sends nothing",
-    !!e2 && ["proof", "version", "signature"].includes(e2.code) && sent.length === 0);
-  const manifest = { format: "qg1-release-1", product: "FM-1", version: "1.9.0", min_firmware: "0.0",
-    sha256: "00".repeat(32), size: pkg.length, keyid: "k", sig: "00".repeat(64) };
-  const e3 = await requireProof({ pkg, manifest, keys: {}, product: "FM-1_982", firmware: "1.9.0" })
-    .then(() => null, (x) => x);
-  check("with the pinned key map empty, requireProof refuses the package: a hash is integrity, not authorship",
-    !!e3 && e3.code === "signature" && sent.length === 0);
+    !!e2 && ["proof", "image"].includes(e2.code) && sent.length === 0);
 }
 
 // --- the page's script parses ---------------------------------------------------------------
@@ -462,7 +456,6 @@ function anyWrite(sent) {
     build: { commit: "abcdef0123456789abcdef0123456789abcdef01", version: "v1.9.0",
              artifacts: { "felucca.bin": { bytes: 559552, sha256: "c25cc427a24ab682" },
                           "loader/ota.bin": { bytes: 8007, sha256: "468fb0e20eddf855" } } },
-    keys: {},
   } });
   const row = (k) => (fw.fields || []).find((f) => f.key === k) || {};
   check("the report names the package's build commit (the package's, not the unit's)",
@@ -470,8 +463,8 @@ function anyWrite(sent) {
         row("pkg.build").source === "the build record inside the package");
   check("the report names the image and the loader the package was packed from",
         String(row("pkg.binary").value || "").startsWith("559552 B") && String(row("pkg.loader").value || "").startsWith("8007 B"));
-  check("with an empty key map the report says no-key, and says why",
-        row("install.why").value === "no-key" && /key map is empty/.test(row("install.why").source || ""));
+  check("with no package check in this run the report says unchecked, and says why",
+        row("install.why").value === "unchecked" && /did not check/.test(row("install.why").source || ""));
   const st = (fw.fields || []).filter((f) => String(f.key).startsWith("static."));
   check("the platform block is present and every row is marked documented, never read",
         st.length === 4 && st.every((f) => f.confidence === "documented" && /not read from the unit/.test(f.source)));
@@ -539,17 +532,17 @@ function anyWrite(sent) {
         !fw.verdict.blocked.includes("gate.revalidate"));
   check("the four conditions this run can establish are pass",
         g["gate.detect"] === "pass" && g["gate.read"] === "pass" && g["gate.package"] === "pass" && g["gate.compat"] === "pass");
-  check("an empty key map fails the signature row (it is not 'unknown' when no key exists at all)",
-        g["gate.signature"] === "fail");
-  check("the chip session is marked as not done by verify only, never as pass", g["gate.chip"] === "not-here");
-  check("with no record and no dump, backup and recovery are unknown -- never pass, never 'documented'",
-        g["gate.backup"] === "unknown" && g["gate.recovery"] === "unknown");
-  check("the verdict is NO-GO, lists what blocks it, and cannot install on either path",
+  check("with no package check in this run, the package row is unknown, never pass",
+        g["gate.signature"] === "unknown");
+  check("the chip is checked at install (the update loader reads it), never claimed as pass here",
+        g["gate.chip"] === "at-install");
+  check("a stock unit needs no full-flash dump: V15 is M-VAVE's published file, and an install resumes",
+        g["gate.backup"] === "not-required" && g["gate.recovery"] === "covered");
+  check("the verdict is NO-GO, lists what blocks it, and cannot install",
         fw.verdict.result === "NO-GO" && fw.verdict.canInstall === false && fw.verdict.canInstallHost === false &&
-        fw.authorised === false &&
-        ["gate.signature", "gate.chip", "gate.flashmap", "gate.backup", "gate.recovery"]
-          .every((k) => fw.verdict.blocked.includes(k)) &&
-        fw.verdict.blocked.length === 5);
+        fw.authorised === false && fw.verdict.path === "this-page" &&
+        ["gate.signature", "gate.flashmap"].every((k) => fw.verdict.blocked.includes(k)) &&
+        fw.verdict.blocked.length === 2);
   check("a key map does not let verify only claim the signature was checked",
         (await verifyDevice(access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] }).midi,
           { product: "FM-1_982", pkg: { ...real, keys: { prod: "00".repeat(32) } } }))
@@ -575,13 +568,13 @@ function anyWrite(sent) {
         g["gate.chip"] === "corroborated" && g["gate.backup"] === "corroborated");
   check("the map is established from the package, not from a write session",
         g["gate.flashmap"] === "pass");
-  check("recovery is covered (verified backup + a tool over the written range), never 'exercised'",
-        g["gate.recovery"] === "covered" && fw.verdict.limitations.includes("recovery-not-exercised"));
-  check("the signature is still the blocker when no key is present, and nothing claims otherwise",
+  check("recovery is covered (an interrupted install resumes), never 'exercised'",
+        g["gate.recovery"] === "covered" && fw.verdict.limitations.includes("update-resumable-not-exercised"));
+  check("the package check is still the blocker when it did not run, and nothing claims otherwise",
         g["gate.signature"] === "unknown" && fw.verdict.result === "NO-GO" &&
         fw.verdict.blocked.length === 1 && fw.verdict.blocked[0] === "gate.signature");
-  check("the verdict names M-Flasher as the path, so a stock unit is never read as page-installable",
-        fw.verdict.path === "m-flasher" && fw.verdict.canInstall === false && fw.verdict.canInstallHost === false);
+  check("the verdict names this page as the path for a stock unit",
+        fw.verdict.path === "this-page" && fw.verdict.canInstall === false && fw.verdict.canInstallHost === false);
   check("the read-only path still sent nothing but identity queries", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
@@ -596,10 +589,10 @@ function anyWrite(sent) {
     saved: ["20261109-102008", "20261109-102035"], source: "2 m-flasher records of this unit, same dump hash" };
   const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: built, corroborated,
     signature: { state: "pass", keyid: "qg1-release-1", size: 610806, sha256: "80".repeat(32), detail: "checked" } });
-  check("a prepared stock unit is GO-HOST: the host writes, this page still does not",
-        fw.verdict.result === "GO-HOST" && fw.verdict.canInstallHost === true && fw.verdict.canInstall === false &&
-        fw.verdict.blocked.length === 0 && fw.verdict.path === "m-flasher");
-  check("its limitations are named, not hidden", fw.verdict.limitations.includes("recovery-not-exercised") &&
+  check("a stock unit with a checked package is GO: this page installs it",
+        fw.verdict.result === "GO" && fw.verdict.canInstall === true && fw.verdict.canInstallHost === false &&
+        fw.verdict.blocked.length === 0 && fw.verdict.path === "this-page");
+  check("its limitations are named, not hidden", fw.verdict.limitations.includes("update-resumable-not-exercised") &&
         fw.verdict.limitations.includes("dump-not-hashed-here"));
   check("GO-HOST is not an authorisation to send anything", fw.authorised === false && onlyQueries(a.sent) && !anyWrite(a.sent));
   check("the diagnostic file says RECOVERY AVAILABLE honestly: covered, still not exercised",
@@ -641,8 +634,7 @@ function anyWrite(sent) {
   /* the eight named states and the exportable report: a state can never sit above its evidence, and
      the file a user attaches carries no key material and no session token */
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
-  const pkgHere = { version: "1.9.0", size: 611163, sha256: "ab".repeat(32), build: "abc1234",
-    keys: { prod: "00".repeat(32) } };
+  const pkgHere = { version: "1.9.0", size: 611163, sha256: "ab".repeat(32), build: "abc1234" };
   const fw = await verifyDevice(a.midi, { product: "FM-1_982", pkg: pkgHere });
   const states = diag.diagnosticStates(fw);
   const st = Object.fromEntries(states.map((s) => [s.state, s.reached]));
@@ -650,7 +642,8 @@ function anyWrite(sent) {
   check("a stock unit reaches VERIFY READY and DEVICE COMPATIBLE", st["VERIFY READY"] && st["DEVICE COMPATIBLE"]);
   check("verify only never reaches SIGNATURE VERIFIED or INSTALL READY",
         !st["SIGNATURE VERIFIED"] && !st["INSTALL READY"] && st["INSTALL BLOCKED"]);
-  check("recovery is reported as not verified, never as a pass", st["RECOVERY NOT VERIFIED"]);
+  check("a stock unit's recovery is covered by the resumable install, not reported as missing",
+        !st["RECOVERY NOT VERIFIED"]);
   const j = diag.diagnosticJson(fw, { page: { build: "abc1234", version: "1.9.0" } });
   check("the export is a qg1-diagnostic-1 document with all eight states",
         j.schema === "qg1-diagnostic-1" && j.states.length === 8);
@@ -662,58 +655,31 @@ function anyWrite(sent) {
 
 
 {
-  /* THE PACKAGE IS CHECKED WITHOUT A UNIT, AND THE PRODUCT IS NOT THE IDENTITY.
-   *
-   * Two defects met here and both are covered below against the real release bytes:
-   *   - the signed manifest names the PRODUCT ("FM-1"), the page names the IDENTITY of the build
-   *     ("FM-1_982"), and comparing them literally refused every published package -- so `releaseOk`
-   *     stayed false and INSTALL was disabled on the live page for everyone, hardware or not;
-   *   - the signature gate was reported as "cannot be established without a write session", which was
-   *     false: these bytes, the manifest and the pinned key decide it, and all three are on the page.
-   * A package check needs bytes, so it runs only when the release is in the tree; the model rule and
-   * the state machine are checked in every case.
-   */
+  /* THE PACKAGE IS CHECKED WITHOUT A UNIT, against the real v1.9.0 bytes (tests/fixtures): its SHA-256,
+   * its size and its own identity decide it, before any device is involved. */
   const fs = await import("node:fs");
-  const rel = (f) => { try { return new Uint8Array(fs.readFileSync(new URL(`../release/${f}`, import.meta.url))); } catch (_) { return null; } };
-  const man = (() => { try { return JSON.parse(fs.readFileSync(new URL("../release/felucca-v1.9.0.manifest.json", import.meta.url), "utf8")); } catch (_) { return null; } })();
-  const keys = (() => { try { return JSON.parse(fs.readFileSync(new URL("../tools/fm1_keys.json", import.meta.url), "utf8")).keys || {}; } catch (_) { return {}; } })();
-  const rec = (() => { try { return JSON.parse(fs.readFileSync(new URL("../release/build-manifest.json", import.meta.url), "utf8")); } catch (_) { return null; } })();
-  const bytes = rel("felucca-v1.9.0.fwsc");
-
-  if (bytes && man && rec) {
-    const identity = String(rec.identity || "");
-    const sha = String(rec.artifacts && rec.artifacts["felucca.fwsc"] ? rec.artifacts["felucca.fwsc"].sha256 : "");
-    const size = Number(rec.artifacts && rec.artifacts["felucca.fwsc"] ? rec.artifacts["felucca.fwsc"].bytes : 0);
-
-    /* the regression: a manifest for the product accepts the identity of that product's build */
-    let accepted = true;
-    try { await verifyManifest(bytes, man, keys, { product: identity }); } catch (_) { accepted = false; }
-    check("a manifest naming the product (FM-1) is accepted for the build's identity (FM-1_982)", accepted);
-    let crossed = false;
-    try { await verifyManifest(bytes, man, keys, { product: "FM-2_982" }); } catch (_) { crossed = true; }
-    check("the same manifest is refused for another model: a package never crosses models", crossed);
-
-    /* the offline package check itself */
-    const good = await mod.verifyPackage(bytes, { manifest: man, keys, product: identity, sha256: sha, size });
-    check("the released package verifies offline: hash, identity and Ed25519 against the pinned key",
-          good.state === "pass" && good.keyid === man.keyid && good.sha256 === sha && good.size === size);
-    const wrongHash = await mod.verifyPackage(bytes, { manifest: man, keys, product: identity, sha256: "00".repeat(32), size });
-    check("a package whose bytes are not the record's hash is refused", wrongHash.state === "fail" && /SHA-256|sha256/.test(wrongHash.detail));
+  const { createHash } = await import("node:crypto");
+  const bytes = (() => { try { return new Uint8Array(fs.readFileSync(new URL("../tests/fixtures/felucca-v1.9.0.fwsc", import.meta.url))); } catch (_) { return null; } })();
+  if (bytes) {
+    const identity = "FM-1_982";
+    const sha = createHash("sha256").update(bytes).digest("hex");
+    const size = bytes.length;
+    const good = await mod.verifyPackage(bytes, { product: identity, sha256: sha, size });
+    check("the released package verifies offline: hash and identity",
+          good.state === "pass" && good.sha256 === sha && good.size === size);
+    const wrongHash = await mod.verifyPackage(bytes, { product: identity, sha256: "00".repeat(32), size });
+    check("a package whose bytes are not the published hash is refused", wrongHash.state === "fail" && /SHA-256|sha256/.test(wrongHash.detail));
     const tampered = bytes.slice(); tampered[4000] ^= 0xFF;
-    const bad = await mod.verifyPackage(tampered, { manifest: man, keys, product: identity, sha256: sha, size });
+    const bad = await mod.verifyPackage(tampered, { product: identity, sha256: sha, size });
     check("one altered byte is refused before any device is involved", bad.state === "fail");
-    const otherModel = await mod.verifyPackage(bytes, { manifest: man, keys, product: "FM-2_982", sha256: sha, size });
+    const otherModel = await mod.verifyPackage(bytes, { product: "FM-2_982", sha256: sha, size });
     check("the released package is refused for another model", otherModel.state === "fail");
-    const noKey = await mod.verifyPackage(bytes, { manifest: man, keys: {}, product: identity, sha256: sha, size });
-    check("with no pinned key nothing is trusted, not even the real package", noKey.state === "fail");
-    const forged = { ...man }; forged.size = man.size + 1;
-    const forgedCheck = await mod.verifyPackage(bytes, { manifest: forged, keys, product: identity, sha256: sha, size });
-    check("a manifest edited after signing is refused", forgedCheck.state === "fail");
+    const noHash = await mod.verifyPackage(bytes, { product: identity, size });
+    check("with no published hash nothing is trusted, not even the real package", noHash.state === "fail");
 
     /* and it reaches the installer's own state machine without a unit attached */
     const none = access([]);
-    const fw = await verifyDevice(none.midi, { product: identity, signature: good,
-      pkg: { version: `v${man.version}-${String(rec.commit).slice(0, 7)}`, size, sha256: sha, build: rec, keys } });
+    const fw = await verifyDevice(none.midi, { product: identity, signature: good, pkg: { version: "v1.9.0", size, sha256: sha } });
     const st = Object.fromEntries(diag.diagnosticStates(fw).map((s) => [s.state, s.reached]));
     const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
     check("with no unit, the package still reaches PACKAGE VERIFIED and SIGNATURE VERIFIED",
@@ -723,12 +689,12 @@ function anyWrite(sent) {
     check("an empty WebMIDI reports zero inputs and zero outputs, and says so",
           fw.reading.probe.counts.inputs === 0 && fw.reading.probe.counts.outputs === 0 &&
           fw.reading.probe.reason === "no-ports" && fw.reading.probe.frames === 0);
-    check("the report shows the signature as checked here, not as expected",
-          (fw.fields || []).some((f) => f.key === "pkg.verified" && /verified/i.test(f.source)));
+    check("the report shows the package as checked here, not as expected",
+          (fw.fields || []).some((f) => f.key === "pkg.verified" && /re-hashed here/.test(f.source)));
 
     /* a port that looks like an FM-1 but stays silent is a different diagnosis from no port at all */
     const silent = access(["FM-1"]);
-    const fwS = await verifyDevice(silent.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha, build: rec, keys } });
+    const fwS = await verifyDevice(silent.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha } });
     check("a silent FM-1 port is reported as silent, not as absent",
           fwS.kind === "silent" && fwS.reading.probe.reason === "silent" && fwS.reading.probe.frames > 0);
     check("a silent port still reaches SIGNATURE VERIFIED but never DEVICE COMPATIBLE",
@@ -737,12 +703,12 @@ function anyWrite(sent) {
 
     /* unrelated gear is never probed, and the report says which case this was */
     const other = access(["Some Synth"]);
-    const fwO = await verifyDevice(other.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha, build: rec, keys } });
+    const fwO = await verifyDevice(other.midi, { product: identity, signature: good, pkg: { version: "x", size, sha256: sha } });
     check("a unit whose descriptor says nothing is still probed, and reported as silent",
           fwO.kind === "silent" && fwO.reading.probe.reason === "silent" && fwO.reading.probe.frames > 0 &&
           onlyQueries(other.sent) && !anyWrite(other.sent));
   } else {
-    console.log("skip: release/ is not in the tree, so the offline package cases cannot run against real bytes");
+    console.log("skip: tests/fixtures/felucca-v1.9.0.fwsc is missing, so the offline package cases cannot run");
   }
 }
 

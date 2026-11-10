@@ -13,7 +13,6 @@
 // reach the device.
 
 import { logicalImage, productOf, sha256hex } from "./fm1pkg.js";
-import { requireProvenance } from "./fm1provenance.js";
 
 const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
@@ -432,7 +431,7 @@ export class Updater {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 0x12 identification and 0x13 read-only flash, plus the Ed25519 manifest check.
+// 0x12 identification and 0x13 read-only flash.
 // Same frames and the same policy as tools/fm1_probe.py and tools/fm1_sign.py: the web
 // page must identify the chip and verify the manifest before it enables Install. Both are
 // pure functions of the link, so the page wires them in without touching this protocol.
@@ -576,73 +575,16 @@ export async function readFlash(link, addr, len, session, timeoutMs = 1000) {
   return r.slice(14);
 }
 
-function canonJson(v) {
-  if (v === null || typeof v !== "object") return JSON.stringify(v);
-  if (Array.isArray(v)) return "[" + v.map(canonJson).join(",") + "]";
-  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonJson(v[k])).join(",") + "}";
-}
-
-function hexBytes(hex) {
-  if (typeof hex !== "string" || hex.length % 2) throw fail("signature", "not a hex string");
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    const b = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-    if (Number.isNaN(b)) throw fail("signature", "not a hex string");
-    out[i] = b;
-  }
-  return out;
-}
-
-// The Ed25519 manifest of tools/fm1_sign.py, verified with WebCrypto. `keys` maps key id -> public
-// key (hex). An empty map trusts nothing, so every package is refused: that is the released state.
-export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", firmware = null } = {}) {
-  if (!manifest || manifest.format !== "qg1-release-1") throw fail("signature", "No signed manifest.");
-  for (const f of ["product", "version", "min_firmware", "sha256", "size", "keyid", "sig"])
-    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
-  const pub = keys && keys[manifest.keyid];
-  if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
-  /* The manifest names the PRODUCT ("FM-1"); this page and the install path name the IDENTITY of
-   * the build ("FM-1_982"). Comparing them literally refused every package this project published --
-   * "The package is for FM-1, not FM-1_982" -- which left INSTALL disabled on the live page for
-   * everyone, with or without a unit attached. The model is what a package may not cross: an FM-1
-   * package can never be accepted for another model, and a manifest that names a model plus a number
-   * still only matches its own model. */
-  const modelOf = (p) => String(p === undefined || p === null ? "" : p).split("_")[0];
-  if (!modelOf(manifest.product) || modelOf(manifest.product) !== modelOf(product))
-    throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
-    .map((b) => b.toString(16).padStart(2, "0")).join("");
-  if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");
-  if (pkg.byteLength !== manifest.size) throw fail("signature", "The package size is not the manifest's.");
-  if (firmware) {
-    const a = String(firmware).split(".").map(Number), b = String(manifest.min_firmware).split(".").map(Number);
-    for (let i = 0; i < Math.max(a.length, b.length); i++)
-      if ((a[i] || 0) < (b[i] || 0)) throw fail("signature", `The package needs firmware ${manifest.min_firmware}.`);
-  }
-  const unsigned = Object.fromEntries(Object.entries(manifest).filter(([k]) => k !== "sig"));
-  let ok = false;
-  try {
-    const key = await crypto.subtle.importKey("raw", hexBytes(pub), { name: "Ed25519" }, false, ["verify"]);
-    ok = await crypto.subtle.verify({ name: "Ed25519" }, key, hexBytes(manifest.sig),
-                                     new TextEncoder().encode(canonJson(unsigned)));
-  } catch (e) {
-    throw fail("signature", `WebCrypto cannot check Ed25519 here: ${e.message}`);
-  }
-  if (!ok) throw fail("signature", `The manifest is not signed by ${manifest.keyid}.`);
-  return { keyid: manifest.keyid, version: manifest.version, sha256: digest };
-}
-
 // ---------------------------------------------------------------------------------------------
-// The transport gate. A package is verified once, into an opaque authorisation that binds the
-// exact bytes, the manifest, the product and the chip. install(), write() and resume() each
-// consume an authorisation (one package, one transfer) and serve the private copy it holds, so
-// the bytes that were verified are the bytes that leave the host, whatever the caller still has.
+// The transport gate. A package is checked once, into an opaque authorisation that binds the exact
+// bytes and the product. install(), write() and resume() each consume an authorisation (one package,
+// one transfer) and serve the private copy it holds, so the bytes that were checked are the bytes that
+// leave the host, whatever the caller still has.
 //
-// Codes: signature (manifest, signature, product, version), image (not bytes, empty, changed after
-// it was verified), chip (no, unknown or read-only JEDEC, or a different one now), proof (no,
-// wrong or already used authorisation), model (a different unit answered).
+// Codes: image (not bytes, empty, another hash, changed after it was checked), chip (unknown or
+// read-only JEDEC, or a different one now), proof (no, wrong or already used authorisation), model
+// (a different unit answered).
 
-const RELEASE_FIELDS = ["format", "product", "version", "min_firmware", "sha256", "size", "keyid", "sig"];
 const PROOFS = new WeakMap();
 // how long an authorisation stays usable: two minutes is far more than a 611 KB package needs on a
 // cable that is already enumerating, and far less than a browser tab left open on a desk
@@ -655,66 +597,23 @@ function toBytes(x) {
   throw fail("image", "the package is not a byte array: nothing was sent.");
 }
 
-function versionString(v, what) {
-  const s = String(v === undefined || v === null ? "" : v);
-  if (!/^\d+(\.\d+)*$/.test(s))
-    throw fail("version", `the manifest's ${what} ${JSON.stringify(s)} is not a version: nothing was sent.`);
-  return s;
-}
-
-// Verify a .fwsc and everything that authorises writing it. Every refusal happens before the
-// first frame, so a caller that ignores the result has still caused nothing to be sent.
-export async function requireProof({ pkg, manifest, keys = {}, product = null, firmware = null, provenance = null,
-  proofTtlMs = PROOF_TTL_MS } = {}) {
+// Check a .fwsc before any frame: its identity is the product, it holds an image and, when the site
+// published one (versions.json), its SHA-256 is that hash. A caller that ignores the result has still
+// caused nothing to be sent.
+export async function requireProof({ pkg, product = null, sha256 = null, proofTtlMs = PROOF_TTL_MS } = {}) {
   if (!product || typeof product !== "string" || !product.includes("_"))
     throw fail("proof", "no product was named for this transfer: nothing was sent.");
-  // The installed version is not optional: without it a downgrade cannot be ruled out, and neither
-  // the loader nor the handshake exposes it. Unknown version means refused, not "assume current".
-  if (firmware === null || firmware === undefined || firmware === "" || typeof firmware === "object")
-    throw fail("version", "the installed firmware version is unknown: a downgrade cannot be ruled out, so nothing was sent.");
-  if (!manifest || typeof manifest !== "object")
-    throw fail("signature", "No signed manifest: nothing was sent.");
-  for (const f of RELEASE_FIELDS)
-    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}: nothing was sent.`);
-  versionString(manifest.version, "version");
-  versionString(manifest.min_firmware, "min_firmware");
-  if (!Number.isInteger(manifest.size) || manifest.size <= 0)
-    throw fail("signature", "The manifest's size is not a byte count: nothing was sent.");
   const bytes = toBytes(pkg);
   if (bytes.length <= 960) throw fail("image", "the package is too short to hold an image: nothing was sent.");
-  const model = product.split("_")[0];
-  const checked = await verifyManifest(bytes, manifest, keys, { product: model, firmware });
-  if (productOf(bytes) !== product)                             // the package's own identity, once it is authenticated
+  if (productOf(bytes) !== product)
     throw fail("proof", `the package identifies as ${productOf(bytes)}, not ${product}: nothing was sent.`);
-  if (manifest.sha256 !== checked.sha256 || manifest.size !== bytes.length)
-    throw fail("signature", "The manifest does not describe this package: nothing was sent.");
+  const digest = await sha256hex(bytes);
+  if (sha256 && digest !== String(sha256).toLowerCase())
+    throw fail("image", "the package's SHA-256 is not the published one: nothing was sent.");
   const image = logicalImage(bytes);
   if (!image.length) throw fail("image", "the package holds no image: nothing was sent.");
-  // Provenance is not optional: the bytes must be the artefact a clean build of a named commit
-  // produced (or the pinned vendor file), the record must name this same package, and the image it
-  // is bound to must be the one derived from these bytes. A missing, dirty or foreign record is
-  // refused exactly like a bad signature, before any frame.
-  const prov = await requireProvenance(provenance, product, image);
-  if (prov.sha256 !== checked.sha256)
-    throw fail("provenance", "the build record names another package than the signed manifest: nothing was sent.");
-  // The signature must cover the record, not just the bytes: without this, anyone who can swap the
-  // package can swap the record too, and the record would still look clean. A release manifest with
-  // no build_sha256, or one naming another record, is refused exactly like a bad signature.
-  if (prov.kind === "build") {
-    if (!/^[0-9a-f]{64}$/.test(String(manifest.build_sha256 || "")))
-      throw fail("provenance", "the signed manifest does not name the build record: nothing was sent.");
-    if (manifest.build_sha256 !== prov.recordSha256)
-      throw fail("provenance", "the signed manifest names another build record: nothing was sent.");
-  }
-  // No chip field here: the chip is identified by admit() on the live link, never by the caller.
-  const proof = Object.freeze({ product, model, version: checked.version, keyid: checked.keyid,
-    sha256: checked.sha256, size: bytes.length, imageSize: image.length,
-    build: prov.kind === "build" ? prov.commit : null });
-  // An authorisation is a short-lived thing: it is made for the install the reader is looking at, not
-  // to be kept. A proof that outlives proofTtlMs is refused by admit() like a used one, so a page that
-  // was authenticated against one unit, left open, and then used on another (or after a package swap
-  // in the browser's cache) cannot carry its authorisation across. Zero is not a special case: it
-  // expires immediately, which is what a caller asking for no validity gets.
+  const proof = Object.freeze({ product, model: product.split("_")[0], sha256: digest, size: bytes.length,
+    imageSize: image.length });
   const ttl = Math.max(0, Number(proofTtlMs) || 0);
   PROOFS.set(proof, { image, used: false, at: Date.now(), expires: Date.now() + ttl });
   return proof;

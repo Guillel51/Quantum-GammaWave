@@ -28,7 +28,7 @@ Nothing here talks to a unit, writes anything, or stands in for running M-Flashe
 performs the install is M-Flasher's, and only its own run proves what it did. Exit: 0 = every check
 passes (M-Flasher would plan this install), 1 = a check refuses it, 2 = usage.
 
-  fm1_mflasher_accept.py release/felucca-v1.9.0.fwsc
+  fm1_mflasher_accept.py tests/fixtures/felucca-v1.9.0.fwsc
   fm1_mflasher_accept.py PACKAGE.fwsc --dump backup/stock-01.bin --json out.json
   fm1_mflasher_accept.py PACKAGE.fwsc --win   # M-Flasher is a Windows/macOS program: say so
 """

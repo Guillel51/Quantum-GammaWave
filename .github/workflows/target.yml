@@ -139,12 +139,6 @@ jobs:
           cmp /tmp/first.wasm build/emu/felucca.wasm
           echo "reproducible: $(sha256sum build/felucca.fwsc build/emu/felucca.wasm | tr '\n' ' ')"
 
-      # The signature says who built it; this says whether it can be built again. A release whose
-      # package no longer comes out of its own tree is a package nobody can audit, so the comparison is
-      # part of the job that has the toolchain: `cmp` against release/, failing on the first byte.
-      - name: the signed release reproduces from this tree, byte for byte
-        run: python3 tests/release_repro_test.py
-
       - name: manifest and package for the record
         uses: actions/upload-artifact@v4
         with:

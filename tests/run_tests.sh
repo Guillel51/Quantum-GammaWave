@@ -174,10 +174,6 @@ else
     python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
     $CC -o "$OUT/ldr_test" tests/ldr_test.c
     run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
-
-    # (QG-1) the signed package must be the one this tree builds: a release nobody can rebuild is a
-    # release nobody can audit. Skips (with a notice) when the record names an older tree.
-    run "the signed release reproduces from this tree, byte for byte" python3 tests/release_repro_test.py
 fi
 
 if [ -f build/gen/felucca_tables.h ]; then
@@ -319,8 +315,6 @@ run "flash image: boot/app tables, CRC16s and the identity decoded from the stoc
     python3 tests/mflasher_test.py
 run "raw restore: geometry, identifiers, sector alignment, readback, refusal before any erase" \
     python3 tests/restore_test.py
-run "signed packages: manifest, hash, product / version / min_firmware, WebCrypto parity" \
-    python3 tests/sign_test.py
 # (PR #73) the gate's refusal matrix and the backup audit: both import tools/fm1_gate.py and
 # tools/fm1_image.py and assert on the real refusal codes, so a regression in either fails here.
 run "install gate: read-only chips, unknown JEDEC, model and identity refusals before any write" \
@@ -383,8 +377,6 @@ else
 fi
 
 run "preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
-run "signing chain: Ed25519 manifests and every refusal" python3 tests/sign_test.py
-run "key custody: keygen off-repo, pin --replace, check, rotation, revocation" python3 tests/key_custody_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 run "backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore" \
     python3 tests/backup_tool_test.py
@@ -393,13 +385,6 @@ run "README navigation contract (WEB SITE first and double width, names, links, 
 
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
-    # (v1.9.0) the installer's build provenance: no write without a verified record, and the site
-    # builder refuses a package that contradicts its own manifest
-    # the provenance test below refuses a site whose emulator and firmware name different commits, and until now a
-    # forgotten `sh web/emu/build.sh` surfaced as two red make_site lines. Say it plainly first; the verdict stays
-    # with the test, not with this line.
-    python3 tools/emu_stamp.py || true
-    run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
     # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
@@ -447,12 +432,6 @@ if [ "${NO_PACKAGE:-0}" = 1 ]; then
 else
     run "build manifest: artefacts, version, commit, config and the emulator agree (and a wrong one fails)" \
         python3 tests/manifest_test.py
-    # the real package, its real record and a signed release manifest through the transport gate: this
-    # is the only test that refuses to invent its artefacts, so it needs the build above
-    if command -v node >/dev/null 2>&1; then
-        run "release e2e: the built package, its record and a signed manifest agree end to end" \
-            node web/test_release_e2e.mjs
-    fi
 fi
 
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }

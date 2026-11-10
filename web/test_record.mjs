@@ -8,7 +8,6 @@
 import assert from "node:assert";
 import crypto from "node:crypto";
 import { Updater, requireProof, pack7 } from "./fm1ota.js";
-import { verifyProvenance } from "./fm1provenance.js";
 import { READ_ONLY_QUERY } from "./fm1verify.js";
 import { parseRecord, checkPart, verifyDump, recordFor, firmwareOf, corroborate, DUMP_BYTES } from "./fm1record.js";
 
@@ -123,13 +122,8 @@ function stockUnit(text = "FM-1_015") {
   return { sent, midi: { inputs: new Map([[input.name, input]]), outputs: new Map([[output.name, output]]) } };
 }
 const fs = await import("node:fs");
-const pkg = fs.readFileSync("release/felucca-v1.9.0.fwsc");
-const manifest = JSON.parse(fs.readFileSync("release/felucca-v1.9.0.manifest.json", "utf-8"));
-const build = JSON.parse(fs.readFileSync("release/build-manifest.json", "utf-8"));
-const emu = JSON.parse(fs.readFileSync("release/emu/manifest.json", "utf-8"));
-const keys = JSON.parse(fs.readFileSync("tools/fm1_keys.json", "utf-8")).keys || {};
-const prov = await verifyProvenance(pkg, build, { emulator: emu });
-const ctxFor = () => ({ manifest, keys, firmware: "15", provenance: prov });
+const pkg = fs.readFileSync("tests/fixtures/felucca-v1.9.0.fwsc");
+const ctxFor = () => ({ firmware: "15" });
 const chipRecord = recordFor(
   await verifyDump(parseRecord(JSON.stringify({ ...JSON.parse(OWNER), sha256: crypto.createHash("sha256").update(new Uint8Array(DUMP_BYTES)).digest("hex") })),
                    new Uint8Array(DUMP_BYTES)),
