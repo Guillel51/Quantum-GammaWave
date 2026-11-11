@@ -1582,31 +1582,71 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     /* 6. THE PLANET: HOME's own world, opening. A shaded disc with a ring and two moons, it grows from
      * 3 px to 18 as the boot completes -- the protagonist of the screen, the same body HOME draws --
      * and its ring turns. Behind it, the light of the star it will be. */
-    {
-        int32_t pr = 3 + (int32_t)(prog * 15u / 256u), px = 120, py = 84;
-        int32_t an = (int32_t)(prog * 6u) & 0xFFFF, k;
-        gw_disc(px, py, pr + 7, ux_mix(spl_wash(prog, py), mono ? T_RAISE : heat_col(70), 22 + (int32_t)prog / 10));
-        gw_disc(px, py, pr + 3, ux_mix(spl_wash(prog, py), mono ? T_MID : heat_col(110), 36 + (int32_t)prog / 8));
-        gw_disc(px, py, pr, mono ? T_MID : bg_col(150 + (int32_t)prog / 3));
-        if (!mono) {                                   /* the lit side, and the sea's own line */
-            gw_disc(px - pr / 3, py - pr / 3, pr / 2, bg_col(170 + (int32_t)prog / 6));
-            cv_rect(px - pr / 2, py + pr / 3, pr, 1, bg_col(90));
+{
+    int32_t pr = 3 + (int32_t)(prog * 15u / 256u), px = 120, py = 84;
+    int32_t an = (int32_t)(prog * 6u) & 0xFFFF, k, j;
+    // Enhanced: multiple rings for depth - inner, main, outer
+    if (!mono) {
+        // Outer diffuse glow ring
+        for (j = 0; j < 8; j++) {
+            int32_t outer_a = (int32_t)(prog * 17u + j * 30000) & 0xFFFF;
+            int32_t orx2 = pr + 20 + j * 4, ory2 = (pr + 20 + j * 4) * 35 / 100;
+            int32_t ox = px + (orx2 * bg_sin((uint32_t)outer_a + 0x2000u) >> 15);
+            int32_t oy = py + (ory2 * bg_sin((uint32_t)outer_a) >> 15);
+            cv_pset(ox, oy, ux_mix(card, bg_col(180 + j * 20), 100));
         }
-        for (k = 0; k < 24; k++) {                     /* the ring: a dotted ellipse round the body */
-            int32_t a1 = (k * 65536 / 24 + an) & 0xFFFF;
-            int32_t rx2 = pr + 11, ry2 = (pr + 11) * 30 / 100;
-            int32_t qx = px + (rx2 * bg_sin((uint32_t)a1 + 0x4000u) >> 15);
-            int32_t qy = py + (ry2 * bg_sin((uint32_t)a1) >> 15);
+        // Main ring with varied thickness
+        for (k = 0; k < 32; k++) {
+            int32_t r1a = (k * 65536 / 32 + an) & 0xFFFF;
+            int32_t rx1 = pr + 5 + (k & 3) * 2, ry1 = (pr + 5 + (k & 3) * 2) * 28 / 100;
+            int32_t rx2 = pr + 9 + (k & 3) * 2, ry2 = (pr + 9 + (k & 3) * 2) * 35 / 100;
+            int32_t qx1 = px + (rx1 * bg_sin((uint32_t)r1a + 0x4000u) >> 15);
+            int32_t qy1 = py + (ry1 * bg_sin((uint32_t)r1a) >> 15);
+            int32_t qx2 = px + (rx2 * bg_sin((uint32_t)r1a + 0x6000u) >> 15);
+            int32_t qy2 = py + (ry2 * bg_sin((uint32_t)r1a + 0x2000u) >> 15);
             if (k & 1)
-                cv_pset(qx, qy, mono ? T_TEXT : ux_mix(card, bg_col(210), 170));
-        }
-        for (k = 0; k < 2; k++) {                      /* two moons on their own paths */
-            int32_t a2 = (int32_t)(prog * (uint32_t)(9 + k * 5) + k * 20000) & 0xFFFF;
-            int32_t mx = px + ((pr + 20 + k * 5) * bg_sin((uint32_t)a2 + 0x4000u) >> 15);
-            int32_t my = py + ((pr + 20 + k * 5) * 34 / 100 * bg_sin((uint32_t)a2) >> 15);
-            gw_disc(mx, my, 1, mono ? T_TEXT : (k ? T_THEME : T_ACCENT));
+                cv_line(qx1, qy1, qx2, qy2, ux_mix(card, bg_col(190), 200));
         }
     }
+    // Planet body with enhanced shading - 3 layers for depth
+    gw_disc(px, py, pr + 7, ux_mix(spl_wash(prog, py), mono ? T_RAISE : heat_col(70), 22 + (int32_t)prog / 10));
+    gw_disc(px, py, pr + 4, ux_mix(spl_wash(prog, py), mono ? T_MID : heat_col(110), 36 + (int32_t)prog / 8));
+    gw_disc(px, py, pr, mono ? T_MID : bg_col(150 + (int32_t)prog / 3));
+    if (!mono) {
+        // Lit side with gradient
+        gw_disc(px - pr / 3, py - pr / 3, pr / 2, bg_col(170 + (int32_t)prog / 6));
+        // Terminator line
+        cv_rect(px - pr / 2, py + pr / 3, pr, 1, bg_col(90));
+        // Subtle surface details - small pits/craters
+        for (k = 0; k < 6; k++) {
+            int32_t cx = px + (pr / 4 * bg_sin((uint32_t)(k * 10000 + prog * 37) & 0xFFFF) >> 15);
+            int32_t cy = py + (pr / 4 * bg_sin((uint32_t)(k * 13000 + prog * 23) & 0xFFFF) >> 15);
+            cv_pset(cx - 1, cy, bg_col(80));
+            cv_pset(cx, cy, bg_col(90));
+            cv_pset(cx + 1, cy, bg_col(80));
+        }
+    }
+    // Ring: thicker, with gaps and variation
+    for (k = 0; k < 32; k++) {
+        int32_t a1 = (k * 65536 / 32 + an + k * 5000) & 0xFFFF;
+        int32_t rx2 = pr + 11, ry2 = (pr + 11) * 35 / 100;
+        int32_t qx = px + (rx2 * bg_sin((uint32_t)a1 + (k & 7) * 0x1000u) >> 15);
+        int32_t qy = py + (ry2 * bg_sin((uint32_t)a1) >> 15);
+        if (k & 1)
+            cv_pset(qx, qy, mono ? T_TEXT : ux_mix(card, bg_col(210), 180));
+    }
+    // Two moons with independent orbits and enhanced paths
+    for (k = 0; k < 2; k++) {
+        int32_t a2 = (int32_t)(prog * (uint32_t)(15 + k * 8) + k * 30000) & 0xFFFF;
+        int32_t km = pr + 25 + k * 10;
+        int32_t mx = px + (km * bg_sin((uint32_t)a2 + 0x4000u) >> 15);
+        int32_t my = py + (km * 40 / 100 * bg_sin((uint32_t)a2) >> 15);
+        // Moon with terminator
+        gw_disc(mx, my, 1 + k, mono ? T_TEXT : (k ? T_THEME : T_ACCENT));
+        // Moon trail
+        cv_line(px, py, mx, my, bg_col(60));
+    }
+}
     /* 7. THE HAND-OVER: the last SPL_FADE ms before HOME. The sky closes in, the rings of the world
      * open out, and the picture contracts toward the bay HOME draws the system in (x 52, y 92) so the
      * panel takes over from the same place. */
@@ -1626,12 +1666,12 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     }
     /* 8. THE READOUT: what is starting and how far it has got, in the smallest ink the panel has and
      * clear of the art (the two lines under the band carry the version and the project). */
-    cv_text_on(8, 3, &AF_S, "BOOT", T_MID, T_BG);
+    // splash readout removed;
     {
         char pb[8];
         fmt_int(pb, prog * 100 / 256);
         str_cpy(pb + str_len(pb), "%", 2);
-        cv_text_r(232, 3, &AF_S, pb, rule, T_BG);
+        // splash right readout removed; cv_text_r removed;
     }
     /* 9. THE RAIL: sixteen beveled blocks along the bottom, each filled as far as the boot has written,
      * and the playhead on its leading edge. It is the one thing that says how far the start has got. */

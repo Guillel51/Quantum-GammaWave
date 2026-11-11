@@ -1266,7 +1266,7 @@ if ($("plan-dump")) $("plan-dump").addEventListener("change", async (ev) => {
 
 const ctxFor = (firmware = null) => ({ sha256: releaseHash, firmware });
 
-let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, lastVerify = null;
+let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = false, lastVerify = null;
 /* the offline half of the trust chain, kept from the load: the bytes were hashed here and the
    manifest was checked against the pinned key. It needs no unit, so Verify Only reports it even
    when nothing is plugged in -- and it is the same object chooseImage() already trusted. */
@@ -1341,7 +1341,11 @@ async function loadVersion(i) {
       sayK("badsig", String((e && e.message) || e).slice(0, 140));
       return;
     }
-    releaseOk = true;
+    if (!meta.build) { log(`provenance: no build record published with this package`); sayK("badpkg"); return; }
+    let prov = null;
+    try { prov = await verifyProvenance(pkg, v.build, { product: meta.product, version: v.version, image: null }); }
+    catch (e) { log(`provenance: ${e && e.message}`); sayK("badpkg"); return; }
+    releaseOk = true; provOk = prov;
     $("pkg-hash").textContent = t("hashOk") + hash + " \u00b7 Ed25519 " + releaseSig.keyid;
     image = pkg;
     renderPlan();
@@ -1370,7 +1374,7 @@ $("ver").addEventListener("change", () => { if (!writing) loadVersion(+$("ver").
       const verified = await validateStockPackage(sbytes);
       /* (v1.9.0) the official package has no build record of ours: its authority is the digest pinned
          in fm1pkg.js, and the token records that it is a vendor package, not a build of this tree. */
-      verified.provenance = true;          // validateStockPackage pinned it to STOCK_V15_SHA256
+      verified.provenance = await verifyVendorPackage(sbytes, { product: "FM-1_015", sha256: STOCK_V15_SHA256, size: sbytes.length, image: null });
       stock = verified;
       lockInstaller(writing);
       /* only now is there a copy to offer (the CI-built site has none: the links stay hidden, no 404) */
@@ -1424,7 +1428,7 @@ $("first-stock").addEventListener("click", () => { $("stock").open = true; $("st
 
 $("go").addEventListener("click", async () => {
   if (writing) return;
-  if (!releaseOk) { sayK("error", "the package did not match its published SHA-256: nothing will be written"); return; }
+  if (!releaseOk || !provOk) { sayK("error", "the package did not match its published SHA-256: nothing will be written"); return; }
   lockInstaller(true);
   let midi;
   try { midi = await navigator.requestMIDIAccess({ sysex: true }); }
@@ -1651,7 +1655,7 @@ $("stock-file").addEventListener("change", async () => {
     if (file.size !== STOCK_V15_SIZE) throw new Error("FM-1 V15 / FM-1.fwsc");
     const sbytes = new Uint8Array(await file.arrayBuffer());
     const verified = await validateStockPackage(sbytes);
-    verified.provenance = true;            // validateStockPackage pinned it to STOCK_V15_SHA256
+    verified.provenance = await verifyVendorPackage(sbytes, { product: "FM-1_015", sha256: STOCK_V15_SHA256, size: sbytes.length, image: null });
     if (epoch !== stockFileEpoch) return;
     stock = verified; sayK("stockValid"); lockInstaller(false);
   } catch (e) { if (epoch === stockFileEpoch) sayK("stockError", e.message); }
@@ -1696,7 +1700,7 @@ $("stock-go").addEventListener("click", async () => {
       if (!confirm(t("stockConfirm"))) return;
       /* the vendor V15 has no release manifest and this project has no key that could sign it, so
          requireProof refuses it: the page does not bypass that, it lets the transport say why */
-      sayK(await up.resume(selected.image, step, selected.product, { sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
     } else {
       const device = await up.find(id => id.model === "FM-1");
       if (!device) { sayK("notfound"); return; }
@@ -1710,7 +1714,7 @@ $("stock-go").addEventListener("click", async () => {
         (done,total) => sayK("backup", `${Math.round(done / Math.max(1,total) * 100)}%`));
       saveArchive(archive); link.close(); link = null;
       if (!confirm(t("stockConfirm"))) return;
-      await up.install(selected.image, selected.product, step, { sha256: STOCK_V15_SHA256 });
+      await up.install(selected.image, selected.product, step, { manifest: null, sha256: STOCK_V15_SHA256 });
     }
   } catch (e) {
     if (e.code && TEXT[lang][e.code]) sayK(e.code,e.detail || ""); else sayK("error",e.message);
@@ -1740,11 +1744,11 @@ $("stock-direct").addEventListener("click", async () => {
       const ev = await probeChip(loader.link, 1500);
       log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       loader.link.close();
-      sayK(await up.resume(selected.image, step, selected.product, { sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
     } else {
       const ev = await chipEvidence(up, selected.product.split("_")[0]);
       /* as above: the vendor V15 is not a signed release, so the transport refuses it */
-      await up.install(selected.image, selected.product, step, { sha256: STOCK_V15_SHA256 });
+      await up.install(selected.image, selected.product, step, { manifest: null, sha256: STOCK_V15_SHA256 });
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || ""); else sayK("error", e && e.message);

@@ -1,5 +1,7 @@
 <div align="center">
 
+![Quantum GammaWave banner](assets/branding/quantum_banner.png)
+
 # QUANTUM GAMMAWAVE
 
 **Twelve voices. Six tracks. Eight synthesis engines. One M-VAVE FM-1.**
@@ -12,7 +14,7 @@ USB installer that verifies what it writes.
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.3.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.4.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -36,8 +38,26 @@ It is a whole ecosystem built around one firmware:
 
 ![HOME](web/site/assets/fw-home.png)
 
-*HOME, rendered by the firmware's own sources at 240 × 240 (×3): the track, its four edit parameters, the
-spectrum with the filter curve, the orbital system, the six track buttons and the engine/sound line.*
+## Gallery
+
+Quantum GammaWave screenshot gallery. All images rendered from the firmware at 240×240 (×3 scale for GitHub).
+
+| | **HOME** | **EDIT: ANALOG** | **FM6** |
+|---|---|---|---|
+| **Row 1** | `![](assets/screenshots/quantum_01_home.png)` | `![](assets/screenshots/quantum_02_edit_analog.png)` | `![](assets/screenshots/quantum_03_fm6_algorithm.png)` |
+| **Row 2** | `![](assets/screenshots/quantum_04_track_map.png)` | `![](assets/screenshots/quantum_05_sequencer.png)` | `![](assets/screenshots/quantum_06_seq_roll.png)` |
+| **Row 3** | `![](assets/screenshots/quantum_07_drum_x.png)` | `![](assets/screenshots/quantum_08_drum_morph.png)` | `![](assets/screenshots/quantum_09_macro_layer.png)` |
+| **Row 4** | `![](assets/screenshots/quantum_10_motion_seq.png)` | `![](assets/screenshots/quantum_11_punch_in_fx.png)` | `![](assets/screenshots/quantum_12_fx_rack.png)` |
+| **Row 5** | `![](assets/screenshots/quantum_13_mixer.png)` | `![](assets/screenshots/quantum_14_song_chains.png)` | `![](assets/screenshots/quantum_15_scales_chords.png)` |
+| **Row 6** | `![](assets/screenshots/quantum_16_modern_arp.png)` | `![](assets/screenshots/quantum_17_motion_locks.png)` | `![](assets/screenshots/quantum_18_fullscreen_visualizer.png)` |
+| **Row 7** | `![](assets/screenshots/quantum_19_project_slots.png)` | `![](assets/screenshots/quantum_20_harmonic_performance.png)` | `![](assets/screenshots/quantum_21_master_eq.png)` |
+| **Row 8** | `![](assets/screenshots/quantum_22_transient_presets.png)` | `![](assets/screenshots/quantum_23_glo2_telemetry.png)` | `![](assets/screenshots/quantum_24_about_credits.png)` |
+| **Row 9** | `![](assets/screenshots/quantum_25_master_bus.png)` | `![](assets/screenshots/quantum_26_boot_splash.png)` | `![](assets/screenshots/quantum_27_delay_bars.png)` |
+| **Row 10** | `![](assets/screenshots/quantum_28_reverb_reso.png)` | `![](assets/screenshots/quantum_29_reverb_cloud.png)` | `![](assets/screenshots/quantum_30_punch_in_latch.png)` |
+
+*All 30 screenshots rendered from the firmware at 240×240, scaled ×3 for GitHub display. Original PNGs reside in `assets/screenshots/`.*
+
+---
 
 ## Highlights of `v2.3.0`
 

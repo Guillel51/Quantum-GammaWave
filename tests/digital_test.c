@@ -12,7 +12,7 @@ int main(void)
     track_t *t = &trk[0];
     voice_t *v, *v2;
     vmod_t m = {0};
-    memset(trk, 0, sizeof trk); host_tracks_init();
+    memset(trk, 0, sizeof trk); host_tracks_init(); voices_boot();
     /* (3.5) after the boot: a part's voices live in the pool and V(t, i) follows the window it was given */
     v = &V(t, 0); v2 = &V(t, 1);
     for (uint32_t i = 0; i < NENGINES; i++) if (ENGINES[i] == &ENG_DIGITAL) host_preset(t, i, 0);

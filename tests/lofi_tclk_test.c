@@ -119,6 +119,7 @@ static void host_reset(void)
 {
     memset(trk, 0, sizeof trk);
     memset(&song, 0, sizeof song);
+    voices_boot();                    /* (3.5) the pool: a window of slots a part, not every voice on slot 0 */
     host_tracks_init();
     memset(comb_buf, 0, sizeof comb_buf);
     memset(dly_buf, 0, sizeof dly_buf);

@@ -1422,6 +1422,36 @@ static void track_select(uint32_t i)
     page_flash();                                    /* (0.6.51) the track's number and engine shown big */
 }
 
+/* Predictable hardware response (#23): each decoded detent is one value step; a fast turn keeps its full signed
+ * detent count. KNOB ACCEL (#52; JIANT: ON by default, MENU > KNOB ACCEL OFF turns it off) multiplies a fast turn of a
+ * wide value (range > 16, not a list of names; the FX and GLO layers' knobs too, #126): the faster the turn the
+ * wider the sweep, a slow turn is fine tuning, one step per detent. The main loop reads the knobs many times a frame
+ * (main.c), so a read holds one detent as a rule: the speed is the time per detent, ACC_RATE / ms -> 40 ms x2,
+ * 27 ms x3, 20 ms x4, 10 ms x8, 5 ms x16; capped by the range: x2 up to 32, x4 up to 64, x8 up to 100, x16 above (a
+ * flick across 0..127 in a dozen detents). Only the longer of this read's and the previous read's time counts, and
+ * only while the turn goes on (both under ACC_GAP ms) in one direction: a slow turn, the first two detents of a turn,
+ * a single quick detent (a bounce) and a reversal are one step per detent, and the sign is always the detents'.
+ * ui.enc_t[role]: bits 0..23 the ms of its last read, bit 24 its direction (+1), 25..31 its ms per detent (127 slow) */
+#define ACC_GAP 60u
+#define ACC_RATE 80u
+static int32_t accel(uint32_t role, int32_t s, int32_t range)
+{
+    uint32_t now = fm1_ms & 0xFFFFFFu, st = ui.enc_t[role], up = s > 0, pi = st >> 25, a, i, m = 1;
+    if ((ui_prefs & PREF_ACCEL_OFF) || range <= 16 || !s)
+        return s;
+    a = (uint32_t)(s < 0 ? -s : s);
+    i = ((now - st) & 0xFFFFFFu) / a;                   /* ms per detent of this read */
+    if (!st || ((st >> 24) & 1u) != up || i >= ACC_GAP)
+        i = 127u;                                       /* a new turn, or reversed */
+    else if (pi < ACC_GAP) {
+        m = ACC_RATE / (i > pi ? i : pi ? pi : 1u);
+        a = range > 100 ? 16u : range > 64 ? 8u : range > 32 ? 4u : 2u;   /* (the cap) */
+        m = m < 1u ? 1u : m > a ? a : m;
+    }
+    ui.enc_t[role] = now | up << 24 | (i ? i : 1u) << 25;
+    return s * (int32_t)m;
+}
+
 #include "ui_events.c"                            /* SEQ > AUTO LIST: the locks and events as a list (an action page) */
 /* EDIT > SOUND / SOUND 2 (ui_dx.c, included by ui_input.c): the DRUM-X sound edited and its patch (0 A, 1 B) */
 static uint8_t dx_ui_lane, dx_ui_side;

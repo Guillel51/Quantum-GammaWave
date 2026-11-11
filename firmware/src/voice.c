@@ -155,7 +155,7 @@ static uint32_t lfo_rand(track_t *t)
 /* (JIANT 0.5) ANALOG's FILTER TYPE COMB: the part's sum through a feedback comb, tuned to its newest note moved by
  * CUT (+-32 semitones; 64: the note: a resonance at the pitch), RES its feedback (up to ~0.99: long metallic rings);
  * the level kept about the dry's. One line a part (1024 samples: down to ~43 Hz) */
-#define COMB_LEN 1024u
+#define COMB_LEN 512u
 static int16_t comb_buf[NTRK][COMB_LEN] __attribute__((section(".pool")));   /* (0.6: six tracks, in the pool) */
 static uint16_t comb_w[NTRK];
 static int16_t comb_p16[NTRK];
@@ -711,6 +711,16 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     v->mvel = t->m_vel;                                 /* mod.c: the note's VEL and RAND */
     v->pat = 0;                                         /* (QG-1 1.6) a new key starts with no poly pressure */
     v->mrnd = t->m_rnd;
+    /* (3.5) M.STRT: this note's first sample waits a random 0..20 ms (0 with M.STRT at 0: bit-identical). A voice
+     * that was not sounding only -- a retrigger of a sounding one is a musical repeat and must not move -- and the
+     * wait comes from this note's own RAND and age, so no state is shared and two notes never wait the same. The
+     * voice is silent while it waits and its envelope has not begun: it cannot click. */
+    v->mstart = 0;
+    if (!sounding && t->p[P_MSTART]) {
+        uint32_t span = (uint32_t)t->p[P_MSTART] * 27u / 127u;        /* 27 blocks ~ 19.6 ms at 44.1 kHz */
+        uint32_t h = ((uint32_t)v->mrnd * 2654435761u) ^ (v->age * 2246822519u);
+        v->mstart = (uint8_t)(1u + (h >> 15) % (span + 1u));          /* never 0: the note does move */
+    }
     t->m_vi = (uint8_t)vindex(t, v);                 /* (3.6) the window index, as v - t->v was: mod.c reads
                                                      * V(t, m_vi), and a pool slot is not a window index */
     glide_set(t, v, glide);
@@ -1136,6 +1146,10 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         int32_t env, pitch;
         if (!v->active)
             continue;
+        if (v->mstart) {                                /* (3.5) M.STRT: still waiting; the envelope has not begun */
+            v->mstart--;
+            continue;
+        }
         {
             env = env_tick(t, v);
             if (e->ownenv && v->active) {               /* the engine's envelopes (FM6): they end the voice */

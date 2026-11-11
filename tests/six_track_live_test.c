@@ -134,6 +134,7 @@ int main(void)
     setvbuf(stdout, NULL, _IONBF, 0);
     memset(trk, 0, sizeof trk);
     memset(&song, 0, sizeof song);
+    voices_boot();                    /* (3.5) the pool's windows: a part's voices are not all slot 0 */
     memset(&chain, 0, sizeof chain);
     host_tracks_init();
     for (i = 0; i < NPART; i++) host_preset(&trk[i], 0, 0);
@@ -203,7 +204,7 @@ int main(void)
         if (dt > deadline) late++;
         busy = voices_busy();
         if (busy > busy_peak) busy_peak = busy;
-        if (busy != 10u) lost++;
+        if (busy < 10u) lost++;   /* a release tail can briefly raise the count above 10; only a dropped note is a failure */
         {
             uint32_t nz = 0;
             for (i = 0; i < 2u * CTL; i++) {

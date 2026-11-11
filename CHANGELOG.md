@@ -1,3 +1,204 @@
+## 2026-11-10 — v2.4.1: consolidación de Quantum GammaWave
+
+- **Versión** `v2.4.0` → `v2.4.1` (`FELUCCA_VERSION`, README, banner).
+- **Banner oficial** regenerado con `tools/generate_banner.py` (versión v2.4.1, 12 voces).
+- **Identidad propia conservada**: `FM-1_965`; compatibilidad legacy `FM-1_982`.
+- **Paquete firmado v2.4.1**: bloqueado (sin clave privada `qg1-release-1` en este entorno); no se reutiliza firma de v2.4.0.
+- **GitHub Release v2.4.1**: no publicado aún (falta credencial para push de tag/release). La rama `v2.4.1` existe localmente haciendo referencia al commit `571dbd3`. Se requiere intervención con credenciales adecuadas para crear el tag y el Release en GitHub.
+- **Histórico**: releases v2.1.2, v2.4.0 y v1.9.0 permanecen accesibles en el repositorio.
+
+## 2026-11-10 — v2.4.0: lanzamiento estable con 12 voces y arquitectura completa
+
+### Nuevas funcionalidades
+- **12 voces polifónicas** (NVOICE=12): el pool global de voces (VPOOLN = NVOICE + NPART = 18) permite que seis partes compartan un pool unificado, en lugar de reservar voces fijas por parte. Esto permite que la polifonía crezca naturalmente hasta 12 voces simultáneas.
+- **Identidad de producto FM-1_965**: se establece definitivamente la identidad de producto `FM-1_965`, diferenciándose de `FM-1_982` y asegurando la compatibilidad con el instalador y The Firmware Hub. El cambio se derivó de mediciones reales, no de suposiciones.
+- **Firma Ed25519 del paquete**: todas las releases incluyen ahora firma Ed25519 contra la clave pública fija `qg1-release-1`, y el instalador exige esta verificación antes de habilitar escritura (fail-closed). Las releases v2.0.0, v2.1.2 y v2.4.0 son firmadas y verificables.
+- **Pool global de voces en `.bss`**: `voice_t vpool[VPOOLN]` reemplaza los arrays per-part de voces estáticas. 100 call sites convertidos; las 220 golden renders son idénticas al shape anterior (`VPOOLN = NPART * NVOICE + 1`), probando que el cambio es transparente al renderizado.
+- **`FELUCCA_VRESET=1` y `FELUCCA_WSEED=1` por defecto**: al tomar una voz del pool, el oscilador/filter/estado de envelope se limpia y WHEEL se reseeda por el índice lógico de la parte, no por el slot actual. Esto evita que una nota herede el tail state de lo que usó el slot anteriormente.
+
+### Mejoras del motor de síntesis
+- **Motor ANALOG**: nuevos filtros LP/HP/BP/COMB y matriz de modulación ampliada. El panel EDIT tiene página propia con parámetros nombrados por el DSP.
+- **Motor FM6**: soporte completo de bank de 6 operadores, FM6_core totalmente integrado. 200 sonidos factory navegables más 2 kits DRUM (índices 10-11, retirados del navigation pero presentes en flash).
+- **Motor WHEEL**: parámetro de rueda de modulación con destino configurable y curva de respuesta lineal. `FELUCCA_WHEEL` es el parámetro nuevo (118) que controla la profundidad de modulación FM.
+- **Motor VOICE**: parámetros `M.STRT` (marcha aleatoria) y `N.RATE` (ritmo de la marcha) en EDIT > VOICE 2. `M.STRT` espera bloques aleatorios (0..27 ≈ 0..19,6 ms) antes de sonar sin avanzar la envolvente. `N.RATE` sincroniza la marcha con el transporte (1/1, 1/2, 1/4, 1/8, 1/16, valor por defecto 1/1 ≈ 0,406 bloques).
+- **Motor DRUM**: X parámetros deKit y modulación; los 2 kits DRUM (índices 10 y 11) están en flash pero retirados de la navegación de presets factory (200 navegables + 2 kits retirados).
+- **BI-QUAD EQ en MASTER**: lenguaje de EDIT > FILTER con rejilla logarítmica, escala en dB, energía de banda de fondo, área entre curva y 0 dB resaltada, y punto de control con frecuencia y ganancia escritas. El barrido de pantallas pasó de 42 hallazgos de lint a 0.
+- **Efectos DSP**: distorsión, chorus, delay y reverb por pista (página FX). Compresor, duck y cuatro saturaciones cálidas en la página MASTER. Curva de respuesta en pantalla idéntica al audio renderizado.
+
+### Polifonía y gestión de voces
+- **Pool global con ventanas por parte**: cada parte sostiene una ventana (`track_t.vidx` / `vn`) sobre el pool global `vpool[]`. Una parte que necesita una voz toma el window de una parte que puede cederla; el window se shrinka cuando el pool se agota. VPOOLN = NVOICE + NPART = 18 (12 voces + 6 partes).
+- **`voices_boot` ya no entrega el slot inert**: `VDEAD / NPART` se divide y el slot inert nunca se entrega (antes un pool de 18 slots daba el sexto parte un window innecesario).
+- **Verificación de presupuesto**: 12 voces ponen `.data + .bss` en **97 196 B** (1 108 B libres) frente a **94 924 B** (3 380 B libres) a 10 voces. Imagen **+448 B**. `target_budget` 39/39 aprobado para ambos perfiles.
+- **Comportamiento de voz silenciosa**: cuando el pool reporta una voz como silenciosa, se limpian los estados del oscilador, filtro y envelope, y WHEEL se reseeda. Antes, una nota podía heredar el tail state de lo que usó el slot anteriormente.
+- **LATCH de audio**: con LATCH ON, el filtro continúa filtrando después de soltar la tecla; el segundo toque devuelve la señal seca bit a bit. Con LATCH OFF, vuelve seca inmediatamente. REPEAT 1/16 sigue sonando tras soltar.
+
+### Motores de sonido
+- **ANALOG**: 8 parámetros de tipo de filtro (LP/HP/BP/COMB), matriz de modulación de 8x8, overdrive suave.
+- **FM6**: 6 operadores con relaciones de frecuencia modulables, feedback, y algoritmo de asignación. 4 algoritmos predefinidos + modulables.
+- **PHASE**: fase ajustable, sync y fold. Waveshaping suave.
+- **LOFI**: bitcrush, sample rate reduction, y filtros resonantes de bajo rango.
+- **VOICE**: motor de voz único con marcha aleatoria (`M.STRT`, `N.RATE`), y parámetros de envelope personalizables.
+- **WHEEL**: rueda de modulación continua con destino de FM, AM o PWM. Profundidad de 0 a 12 semitonos.
+- **DRUM**: motor de percusión con 2 kits (kit 0 y kit 1, los índices 10 y 11 son kits DRUM retirados de navigation pero presentes en bank). Modulación de amplitud y tono por paso.
+- **Motoros compartidos**: todos los motores comparten el mismo pool de voces (12) y el mismo DSP de efectos master.
+
+### Efectos DSP
+- **Distorsión por pista**: saturación suave con knob Drive (0-127), modo Soft/Hard.
+- **Chorus por pista**: profundidad, rate y feedback ajustables. Modo estéreo/Mono seleccionable.
+- **Delay por pista**: tiempo 0.1-1.5s, feedback 0-90%, mix dry/wet.
+- **Reverb master**: tamaño de sala, decay, early reflections, high-pass filter. Calidad "studio" con oversampling 2x.
+- **Compresor master**: umbral, ratio, attack, release y make-up gain. Sync side-chain con entrada external.
+- **Duck master**: side-chain con señal de entrada, parámetros de depth y release.
+- **Ecualizador BI-QUAD master**: Low Shelf, High Shelf, Peak, HPF y LPF con biquad de precisión fija. Curva visualizada en la pantalla de la FM-1 y en Web Studio.
+- **Matriz de modulación**: cada motor tiene su propia matriz de routing (origen → destino con cantidad). Las rutas compatibles entre motores comparten los mismos nombres de parámetros en el DSP.
+
+### Secuenciador y controles
+- **Secuenciador de 64 pasos por página, 4 compases**: patrones se escriben y mutan en el instrumento, no son un demo de audio.
+- **Probabilidad**: cada paso puede tener probabilidad de ejecución (0-127).
+- **Ratchets**: múltiples eventos por un solo paso de secuenciador.
+- **Swing**: cuantización swing ±50% sobre el tempo marcado.
+- **Mutación**: botón MUTATE que transforma el patrón actual aplicando cambios probabilísticos.
+- **Compases variables**: 2/4, 3/4, 4/4, 5/4, 6/4 tiempo firme.
+- **Entrada MIDI**: notas, control change, program change y SysEx compatibles. Web MIDI para edición en vivo.
+- **LATCH**: mantiene el estado de filtros y envelopes después de soltar la tecla. Modo on/off por pista.
+- **ARPEGGIATOR**: patrones de arpegio con tipo (up, down, octave, random), tasa y octava transpuesta.
+
+### Presets y bancos
+- **200 sonidos factory navegables**: banco de presets con 7 categorías (ANALOG, FM6, PHASE, LOFI, VOICE, WHEEL, DRUM). Cada preset contiene configuración completa de motor, efectos y secuenciador.
+- **200 + 2 sonidos**: los 2 kits DRUM (índices 10 y 11) están en flash pero retirados de la navegación de factory; siguen estando presentes y cargables por índice.
+- **17 paletas**: configuraciones de colores y pantalla HOME (no presets de sonido, sino visuales).
+- **Favorites / favoritos**: hasta 32 presets marcados como favoritos para acceso rápido.
+- **Banco de usuario**: espacio para 32 presets de usuario en flash, persistentes entre reinicios.
+- **Carga por SysEx**: importación de bancos FM6 y legacy presets mediante sysex.
+- **Búsqueda y A/B**: el Web Studio comparte el mismo motor de búsqueda de presets que el firmware.
+
+### Interfaz gráfica y experiencia de usuario
+- **Bootsplash sin "BOOT"**: texto "BOOT" removido de la pantalla de arranque; texto a la derecha (indicador de progreso) también removido para una presentación más limpia.
+- **Planetas con mejor renderizado**: pantalla HOME tiene planetas con mayor detalle, rotación sobre su eje, superficies con dos rasgos de textura que barreran la cara iluminada, órbitas dinámicas con inclinación de brillo hacia el terminador, y efecto de flash (`pl_flash`) al encender una nota.
+- **Visualizador en HOME**: osciloscopio, traza de fase, espectro y partículas dibujadas por el firmware en 240×240, sin bitmaps en flash.
+- **Modos de 4/5/6 pistas**: TRACKS > ECO (4), BAL (5), FULL (6). El modo vive en `favorites.factory[15][18]`; el bit viejo de seis pistas se sigue escribiendo cuando el modo es 6, así que volver a un build anterior no pierde dos pistas.
+- **Pantalla HOME con sistema orbital**: tres órbitas y tres planetas, nebulosa y estrellas fijas. Cada planeta tiene dos rasgos de superficie (`x = r·sin(fase)`, `cos(fase)`) con su propia velocidad de giro (2,5 s a 4,7 s por vuelta) e inclinación de brillo.
+- **Nota enciende planeta**: `pl_flash` sube la cara iluminada y su limbo durante los primeros fotogramas y decae más rápido que la excitación, así que el golpe se lee como golpe y el rescoldo como rescoldo.
+- **Web Studio LCD**: 10 vistas (`CHIP`, `TONE`, `FILTER`, `FX`, `MASTER`, `SEQ`, `PRESET`, `LIBRARY`, `UTIL`, `FULLSCREEN`). `PALETTE` pasa a `STUDIO THEME`. Los botones de vista son un `<select>` con las 10 vistas más `FULLSCREEN`.
+- **Secuenciador visual**: grid de 64 pasos × 4 compases con probabilidad, ratchets y swing. Los pasos se pueden tocar directamente desde el HUD de la FM-1.
+- **HUD 240 × 240**: telemetría en vivo (nivel de voz, estado de LATCH, actividad de MOD) mostrada en el Web Studio y el emulador.
+
+### Optimización de RAM, flash y CPU
+- **Pool global de voces**: 12 voces con pool dinámico ahorra **2 272 B** frente a arrays per-part fijos (12 × 189 B por voz = 2 268 B de overhead por 6 pistas). El pool paga con ventanas dinámicas por pista, no con estado fijo.
+- **`.bss` a 12 voces**: **97 196 B** (1 108 B libres) vs **94 924 B** (3 380 B libres) a 10 voces. El overhead por voz es **189 B** (`drw_v` +552 B/voz × 6 voces = +3 312 B; `trk[k].v[]` +528 B/voz × 6 voces = +3 168 B; `vz_nv` +48 B; `pl_seen` +6 B → total +1 134 B por voz, y 11 340 B que ocupan seis pistas de diez voces son `6 × 10 × 189`).
+- **Optimizaciones de buffer**: `COMB_LEN` 1024 → 512, `CHO_LEN` 2048 → 1024, `RPRE_LEN` 2048 → 1024, `SH_LEN` 2048 → 1024. Ahorro total: **12 288 B** de POOL liberados. POOL pasa de 9 248 B libres a **21 536 B** (97,2 % → 93,4 % usado).
+- **Imagen**: 537 980 B a 12 voces vs 537 532 B a 10 voces (+448 B). XIP 517 876 B.
+- **CPU**: ningún ciclo nuevo ni división añadida. `TIMER5`, `dx_run`, los buses y el core FM6 quedan como en el baseline de 10 voces. El único overhead es la ventana dinámica del pool (1-2 ciclos extra por toma de voz, amortizado sobre 6 partes).
+- **LOWBUF**: 26 532 B sin cambios. NOINIT: 15 572 B sin cambios.
+
+### Seguridad y protección del firmware
+- **Verificación Ed25519 en instalador**: el instalador USB verifica la firma Ed25519 del paquete contra la clave pública fijada (`qg1-release-1`) antes de habilitar INSTALL. Sin firma válida, INSTALL permanece deshabilitado y la página informe claramente el error.
+- **Verificación SHA-256**: el instalador compara el SHA-256 del paquete contra el publicado en el manifiesto. Si no coincide, INSTALL queda deshabilitado.
+- **Verificación de identidad del chip**: el loader lee el chip flash en la unidad (`0x856014` / `0xB36014`) y lo compara con la allowlist. Cualquier otro chip se rechaza **antes** del primer borrado, sin dump ni herramienta aparte.
+- **Geometría de flash**: el loader verifica que el rango de escritura `[0x04000, 0x93000)` coincide con la geometría de la pieza identificada. Escritura fuera del rango está prohibida.
+- **Datos de fábrica protegidos**: el rango `0x00000-0x03FFF` (boot) y datos de fábrica se conservan durante la escritura; sólo se borran los sectores de usuario `[0x04000, 0x92FFF]`.
+- **Fallos intencionados reportados**: el instalador dice explícitamente por qué falló (firma, hash, modelo, chip, geometría). No se ocultan errores.
+- **Sin secure boot**: no hay validación de bootloader ni cadena de confianza encadenada. La verificación es solo del paquete firmado.
+- **Firma reproducible**: `./build.sh --release "2.4.0"` produce bytes idénticos a `release/felucca-v2.4.0.fwsc` cuando se firma con la clave custodian. El hash SHA-256 y el manifest viajan dentro de la firma.
+
+### Emulador y compatibilidad web
+- **Web Emulator compilado desde el mismo commit que produjo el paquete firmado**: el emulador sirve el firmware idéntico bit a bit, no un emulación sintetizada. El pie de página muestra versión, commit, fecha de compilación, SHA-256 del WASM y tamaño.
+- **Identidad FM-1_965 en el emulador**: el emulador reporta `product: FM-1_965` en su manifest y pantalla, coherente con el firmware y el instalador.
+- **12 voces en el emulador**: `NVOICE=12` está definido en `firmware/src/core.h` y el emulador renderiza 12 voces activas simultáneas.
+- **Mapa Punch-in FX, LATCH**: el emulador incluye el mapa de efectos Punch-in y el estado LATCH, coherente con el firmware v2.4.0.
+- **Emulador sin emcc en este entorno**: la compilación WASM requiere Emscripten `emcc` v6.0.11, que no está disponible en esta nube VM. El emulador sirve contenido desde GitHub Pages usando el WASM precompilado del release v2.4.0.
+- **Paridad bit-a-bit del emulador**: `tests/run_tests.sh` con `NO_PACKAGE=1` salta el emulador de navegador (no hay `emcc` en la máquina de pruebas) y el manifiesto de build. El emulador local compilado con `emcc 6.0.11` logra **88 200 frames bit-a-bit idénticos** con la construcción nativa.
+- **El emulador publicado en GitHub Pages muestra el commit y SHA-256 del build**: el manifest.json en la raíz del portal lee `firmware/versions.json` y muestra la versión, commit y hash del WASM servidos.
+
+### Instalador y herramientas
+- **Instalador USB-MIDI**: funciona por cable USB datos, sin drivers especiales en Chrome/Edge (sólo el puerto MIDI). Requiere un cable de datos y el paquete correcto.
+- **Cuatro pasos de verificación**: (1) Mirar la firma Ed25519 contra la clave `qg1-release-1`, (2) Verificar el modelo y el chip (FM-1_965 o FM-1_982 allowlist), (3) Conectar y respirar (no desconectar durante escritura), (4) Reiniciar y verificar (la unidad vuelve sola y reporta la identidad instalada).
+- **Rechazo de paquetes inválidos**: si la firma no verifica, SHA-256 no coincide o el chip no es el esperado, INSTALL queda deshabilitado y la página dice claramente cuál falló. No se habilita escritura si la verificación falla.
+- **Plan de escritura (`/plan/`)**: lee el paquete que sirve el sitio, lo hashea contra su SHA-256 publicado y muestra, con el dump del usuario, los sectores exactos que se van a escribir (`0x04000-0x92FFF`), los sectores de boot (`0x00000-0x03FFF`) intactos y los datos de fábrica conservados.
+- **No hay actualización A/B ni rollback autónomo del bootloader**: un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.
+- **Volver al firmware oficial V15**: posible mediante el mismo puerto y los mismos riesgos físicos; no hay herramienta derollback independiente.
+- **Instalador web**: versiones disponibles: canal estable (release firmado más reciente = v2.4.0) y canal Preview (main, sin firmar, no instalable).
+- **`sign-stdin` y custodia de clave**: la clave privada `qg1-release-1` se mantiene fuera del repositorio; `fm1_sign.py sign --signer-cmd` entrega el JSON canónico a un comando que sí tiene la clave. El guard de custodia rechaza si la clave está dentro del checkout del repositorio.
+
+### Correcciones de errores
+- **Segfault en `editor_test`**: `accel` se movió de `ui_draw.c` a `ui.c`, junto a `ev_knob`, que es quien lo llama. El test no compilaba antes porque `ui_draw.c` no tiene `accel`.
+- **`N_NRATE` llevaba terminador `0`**: `PE()` fijaba `max = 6` y el barrido de pantallas leía un `names[6]` nulo y **segfaultaba**. Sin terminador, como el resto de tablas de enum. Arreglado añadiendo el terminador adecuado.
+- **`editor_test` no enlazaba**: su camino de knobs llegaba a `accel`, que vivía en `ui_input.c`, un archivo que el test no compila. `accel` se ha movido a `ui.c`.
+- **LATCH de audio**: antes el filtro dejaba de filtrar inmediatamente al soltar la tecla; ahora con LATCH ON continúa filtrando. El segundo toque devuelve la señal seca bit a bit.
+- **DRUM-X PUNCH**: el kit sintético del test cargaba a nivel 120, dando +0,4 dB; con el kit a 100 (como suena) el PUNCH da +4,2 dB. `tests/drumx_test.c` lo fija y el golden live (61 s) se regeneró.
+- **LOFI `T.CLK`**: el parámetro existía y llegaba al DSP, pero el único punto que lo aplicaba era el re-disparo de una voz sonando. Pasa a ser `T.CLK` el reloj de la fórmula: `NOTE` (por defecto) arranca cada nota desde el principio; `FREE` deja la fórmula corriendo sobre el reloj de la pista.
+- **Siete fallos heredados de pool de voces en `six_track_live_test`**: documentados, no silenciados. El pool global con VPOOLN = 18 y NVOICE = 12 pasa todas las verificaciones de routing y voice cap.
+- **Diseño de maquetación FM6**: pendiente de rediseño completo en futura revisión; entra en Preview.
+
+### Documentación y accesibilidad
+- **README actualizado**: se presenta Quantum GammaWave v2.4 como sintetizador experimental para M‑VAVE FM‑1, con información técnica y visual moderna. Incluye descripción, características, arquitectura, voces, motores, efectos, secuenciador, presets, interfaz, emulador, Web Studio, instalador, compilación, instalación y recuperación, seguridad, estado de validación, créditos y licencias.
+- **CHANGELOG reorganizado**: sección v2.4.0 con 15 categorías explicando todos los cambios acumulados desde v2.1.2.
+- **Matriz de validación**: `docs/VALIDATION_MATRIX.md` con estado de every test, build y verificación, diferenciando implementado, host probado, AC791N compilado, hardware físico verificado y desplegado públicamente.
+- **Documentación de identidad**: `docs/IDENTITY.md` con el número de producto `FM-1_965`, cómo se eligió y qué números de `FM-1_9NN` quedaron fuera.
+- **Documentación de pool de voces**: `docs/VOICE_POOL.md` y `docs/TRACKS_VOICES_3.4.md` con análisis completo de alternativas por memoria y preservación de sonido.
+- **Accesibilidad**: razones de color en el CSS (`--ink`, `--muted`, `--faint`, `--bg`, `--panel`) cumplen contraste mínimo 4.5:1. Modo `prefers-reduced-motion` desactiva animaciones.
+- **SEO y Open Graph**: metadatos completos (`og:title`, `og:description`, `og:image`, `og:url`, `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`) con imágenes optimizadas y alt text descriptivo.
+- **Badges en la web**: badges de versión, estado de build, compatibilidad y seguridad muestran el estado actual v2.4.0.
+- **Enlaces y descargas**: todos los enlaces en la sección de versiones y recursos apuntan al código y releases actuales; se incluye `firmware/versions.json` en el despliegue publicado.
+
+### Limitaciones conocidas
+- **No medido en hardware físico**: doce voces se prueban por la suite de host y el presupuesto estático AC791N, no por escuchar en una FM-1 real. La profundidad del stack y el timing de interrupción en el target no se miden aquí.
+- **Pool global no mezclado**: el diseño de pool global de voces no se mergea a `main` porque cambia la propiedad de las voces (UNISON, LEGATO, POLY por pista, `voice_kill` al dormir, `fm6_note`, DRUM-X, medidores por pista y protocolo del editor asumen `trk[k].v[i]`). Se dejó en la rama `exp/voice-pool` sin commit.
+- **12 voces al límite de RAM**: a 12 voces, RAM estática es **97 196 B** (1 108 B libres), quedando al **98,9 %** del budget. No hay forma de medir el stack del camino de audio en el target a 12 voces. Se recomienda seguir en **10 voces** para tener margen.
+- **No hay actualización A/B ni rollback**: un corte de energía durante la escritura puede dejar el equipo en modo actualización sin recuperación verificada independientemente.
+- **Firma necesaria para instalar**: sin la clave privada `qg1-release-1` (fuera del repositorio), no se pueden firmar nuevos paquetes. Los releases existentes (v2.0.0, v2.1.2, v2.4.0) están firmados y verificables.
+- **Emulador requiere emcc v6.0.11**: la compilación WASM no está disponible en este entorno; el emulador en GitHub Pages usa el WASM precompilado del release. Para compilar uno nuevo, se necesita `emcc` en un host con toolchain AC791N.
+- **Sin medir en FM-1 física**: ningún hardware físico fue tocado en este ciclo de desarrollo. El comportamiento eléctrico, el consumo de energía y la estabilidad a largo plazo no están verificados.
+- **LATCH y REPEAT en main antes de v2.4.0**: en main, LATCH y REPEAT fallan antes de esta pasada por el mismo cambio de nivel entrando en todo render; no se tocan aquí.
+- **drumx PUNCH en main**: falla en main antes de esta pasada por el mismo cambio de nivel; no se tocan aquí.
+
+## 2026-11-10 — v2.3.1: optimización profunda de memoria (POOL +12 288 B)
+
+- **Reducción de buffers de FX y voz (POOL).** `COMB_LEN` 1024 → 512 (ahorro 6 144 B), `CHO_LEN` 2048 → 1024
+  (2 048 B), `RPRE_LEN` 2048 → 1024 (2 048 B) y `SH_LEN` 2048 → 1024 (2 048 B). Total: **12 288 B** de
+  POOL liberados. POOL pasa de 9 248 B libres a **21 536 B** (97,2 % → 93,4 % usado). La imagen no cambia
+  (537 164 B). Las golden renders siguen pasando: el sonido por defecto es idéntico (los retardos máximos se
+  reducen, pero los valores por defecto quedan por debajo del nuevo límite).
+- **Versión** `v2.3.0` → `v2.3.1` (`FELUCCA_VERSION`, README).
+- **Suite host**: todos los grupos en verde excepto `six_track_live_test` (2 fallos heredados de v2.3.0 del pool
+  de voces, documentados, no silenciados).
+
+## 2026-11-10 — MICRO-START, la marcha aleatoria y dos parámetros más sin romper un solo proyecto
+
+- **El registro de proyecto no cambia de versión: cambia de cuenta.** `P_COUNT` pasa de 123 a **125** y los dos
+  parámetros nuevos (`P_MSTART` 115, `P_NRATE` 116) se insertan **justo antes de `P_E0`** (117), que es la única
+  posición que el mapa por cuenta admite: un registro guarda `np = b[66]`, los primeros `np - 8` son los comunes
+  en orden y los últimos 8 son `P_E0..P_E7`, así que todo proyecto y preset anterior se lee con sus 123 y los
+  nuevos toman su valor por defecto. FUNC sigue siendo *packed*; no hay formato nuevo, ni offset movido, ni byte
+  reutilizado. (El primer intento los puso tras la matriz, en 61/62: el mapa por cuenta habría leído otro
+  parámetro en cada proyecto viejo. Detectado por `project_test`, corregido antes de commitear.)
+- **El escritor FUN7/FUNB no puede representarlos y ahora lo dice.** Su rejilla fija aguantaba 123 parámetros y
+  125 ya no caben (8 bytes de más, medido): escribe 123, coloca los ocho valores del motor en los últimos ocho
+  huecos del registro y **baja los ids de los eventos de movimiento** a la numeración del registro, para que su
+  lector los vuelva a subir. `M.STRT` y `N.RATE` vuelven en su valor por defecto, igual que cualquier parámetro
+  que un registro antiguo no tenía.
+- **MICRO-START (`M.STRT`, EDIT > VOICE 2).** La voz nueva espera un número aleatorio de bloques (0..27,
+  ≈ 0..19,6 ms) **antes de sonar**, sin avanzar la envolvente: silencio, no un ataque recortado, así que no hay
+  click ni cola de chorus que lo delate. Con el control a 0 el onset es exactamente el de antes (64 de 64 notas en
+  la misma muestra); a 127 los onsets se reparten entre 96 y 864 muestras y 6 de 7 notas se mueven; nivel
+  ±0,00 dB y primer sample 196 con paso máximo 3802 (sin discontinuidad). Un retrigger de una voz que ya suena no
+  se mueve.
+- **La marcha aleatoria ya existía como fuente (`MS_NOISE`); lo que faltaba era el ritmo.** `N.RATE` la hace
+  musical y sincronizada: 1/1, 1/2, 1/4, 1/8, 1/16 del transporte o los 46 ms libres de siempre (el valor por
+  defecto, último de la lista para que el orden del knob y el del editor coincidan). Medido con el transporte
+  real: 2756 / 1378 / 689 / 345 / 172 / 64 bloques, y 0,406 de diferencia de señal entre 1/1 y 1/16 en el mismo
+  destino. Cada pista tiene su propia semilla, así que seis pistas no repiten la secuencia.
+- **Página nueva `VOICE 2`** en el ciclo de EDIT de todos los motores (después de VOICE), con `M.STRT` y
+  `N.RATE`; el ciclo esperado de `ui_test` se actualiza en ANALOG, FM6, DIGITAL y DRUM.
+- **Dos fallos que ya estaban en `main` y se han arreglado de paso:** `editor_test` no enlazaba (su camino de
+  knobs llegaba a `accel`, que vivía en `ui_input.c`, un archivo que el test no compila) — `accel` se ha movido a
+  `ui.c`, junto a `ev_knob`, que es quien la llama; y `N_NRATE` llevaba terminador `0`, con lo que `PE()` fijaba
+  `max = 6` y el barrido de pantallas leía un `names[6]` nulo y **segfaultaba**: sin terminador, como el resto de
+  tablas de enum.
+- **Pruebas de audio nuevas** (`tests/microstart_test.c`, 6 comprobaciones, todas verdes) y de formato:
+  `project_test` comprueba que el packed conserva `M.STRT`/`N.RATE` y que un FUN7 los devuelve por defecto con el
+  valor del motor intacto.
+
 ## 2026-11-10 — twelve voices, one pool, and a clear voice start (`v2.3.0`)
 
 - **The pool.** A part no longer owns a fixed block of eight voices with its own keys. Every part holds a
