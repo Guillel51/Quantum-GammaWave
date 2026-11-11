@@ -1,30 +1,20 @@
 {
   "artifacts": {
-    "felucca-2.7.2.fwsc": {
-      "bytes": 610959,
-      "sha256": "040e0fa3f54a7567140d4a6547e690f9bc30b9a220ef3f715edc6ff9ca308bdf"
-    },
     "felucca.bin": {
       "bytes": 541680,
       "sha256": "0eb589bc35fca29afa976139a01ff5edc36856f5937864873efa12d8dc4db9c0"
+    },
+    "felucca.fwsc": {
+      "bytes": 610959,
+      "sha256": "79843ce8e754a54610d91419c00be7c94d1b7bcb5da077085fb3f471b1898edb"
     },
     "loader/ota.bin": {
       "bytes": 7803,
       "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
     }
   },
-  "checks": {
-    "checks": "ok",
-    "identity": "FM-1_965",
-    "notes": [
-      ".ram_text: 1193 insns, no calls",
-      "image 541680 B; RAM .data+.bss 87696 B of 98304; pool 305096 B, spare 15392 B",
-      "XIP code 380908 B, constants 140740 B",
-      "RAM code 19284 B of 24576; calls reach 79604 B past the code's end",
-      "register access: hal/ only (src/, loader/ clean)"
-    ]
-  },
-  "commit": "c0e2e7d498aee6938a29dd02d90875505e3b9229",
+  "checks": {},
+  "commit": "7c8e756334783488684fb1e3e18ad96e8a487624",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -45,10 +35,10 @@
   },
   "dirty": [],
   "emulator": {
-    "commit": "6373adb7b862",
-    "version": "v2.7.1",
+    "commit": "c0e2e7d498ae",
+    "version": "v2.7.2",
     "wasm_bytes": 1104856,
-    "wasm_sha256": "5f177bf65863523aae786649186d997ee37efbd15b98b11ff4cf034e0218dd09"
+    "wasm_sha256": "65faddec2cd3f0371485838a31703e04cd02ce9486a0682aa3079b8fd2e4832c"
   },
   "identity": "FM-1_965",
   "schema": "qg1-build-1",
