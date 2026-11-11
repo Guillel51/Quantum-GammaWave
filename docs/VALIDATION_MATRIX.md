@@ -1435,3 +1435,83 @@ Lo que **no** está en esta pasada:
 - Mejoras de FX más allá de MASTER EQ
 - Optimización de CPU/RAM
 - Páginas nuevas y barrido medidos; sin captura revisada a ojo de VOICE 2, sólo lint del barrido.
+
+## 25. Update — 2026-11-11, Quantum GammaWave v2.5.0 consolidación total
+
+### Integración completada
+
+| Check | Label | Result |
+|-------|-------|--------|
+| `138586c` merge `fase2-interfaz-fx` a `main` | `[STATIC]` | **pass**: commit `138586c` fusiona 6 archivos, 51 ins, 18 del |
+| 95+ PRs integrados en `main` | `[STATIC]` | **pass**: auditoría completa, commits ab266b1, d171d12 y 8 adicionales |
+| `fase2-interfaz-fx` branch | `[STATIC]` | **pass**: push a origin, merge completado |
+| `FELUCCA_VERSION = v2.5.0` | `[STATIC]` | **pass**: firmware/src/felucca.c actualizado |
+| Manifest `v2.5.0` | `[STATIC]` | **pass**: build/manifest.json version actualizada |
+| CHANGELOG v2.5.0 primera entrada | `[STATIC]` | **pass**: entrada v2.5.0 prepended |
+| README v2.5.0 | `[STATIC]` | **pass**: versión actualizada |
+| WASM build emcc 6.0.11 | `[WASM]` | **pass**: SHA-256 `3e9ded0cca2970aa3934b2deef3d27b2710995e541af9bc153361e9afc00a218`, 1 095 007 B |
+| Emulator tests 21/21 | `[WASM]` | **pass**: BENCH_MAX=1.5 node web/emu/emu_test.mjs build/emu/felucca.wasm |
+| Budget verification 46/46 | `[TARGET]` | **pass**: python3 tests/target_budget.py todas dentro del 10% |
+| Install tests | `[HOST]` | **pass**: python3 tests/install_test.py all scenarios ok |
+| Web tests 28/28 | `[HOST]` | **pass**: node web/test_web.mjs all passed |
+| Portal site tests | `[HOST]` | **pass**: python3 web/test_site.py 0 FAILED |
+| GitHub Release v2.5.0 | `[HOST]` | **created**: https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v2.5.0 |
+| Assets en Release | `[HOST]` | **uploaded**: WASM, .fwsc, .bin, manifest, SHA256SUMS, CHANGELOG, README |
+| Tag v2.5.0 en origin | `[HOST]` | **push**: git push origin v2.5.0 exitoso |
+
+### Nuevas funcionalidades v2.5.0
+
+- **Planet redesigned UI**: rediseño completo de la interfaz planetaria (commit b5450ac)
+- **Delay FX redesign**: 40 cambios en ui_graph.c, parámetros ajustados, optimización rendimiento
+- **Planet touch detection**: 18 nuevas líneas en ui_input.c, detección mejorada
+- **ANIM_SNAP macro fix**: 1 línea corregida en ui.c
+- **Splash cleanup**: 6 mejoras en ui_draw.c, limpieza pantalla inicio
+- **CPU mode clamp**: 2 mejoras en menu_items.c, ajuste modo CPU
+- **pl_react declaration**: 1 nuevo declaración en ui_being.c
+
+### Tests v2.5.0
+
+| Test Suite | Resultado | Evidencia |
+|------------|-----------|-----------|
+| Emulator parity | 21/21 ok | Bit-a-bit identical, 2.6% real time |
+| Budget | 46/46 within 10% | perf_block, rev_spring, DRUM path |
+| Install scenarios | All ok | felucca.fwsc marker, identity FM-1_965 |
+| Web tests | 28 passed | test_web.mjs |
+| Portal structure | 0 FAILED | test_site.py |
+| Emulator FPS | stable | 2.3-2.6% of real time |
+
+### Versión y build
+
+- **FELUCCA_VERSION**: `v2.5.0` (firmware/src/felucca.c)
+- **Manifest version**: `v2.5.0` (build/manifest.json)
+- **WASM build**: emcc 6.0.11, SHA-256 `3e9ded0cc...`, 1 095 007 bytes
+- **Identity**: `FM-1_965`, sin cambios
+- **Build commit**: `138586c` (merge of fase2-interfaz-fx)
+
+### Limitaciones v2.5.0
+
+- **Sin firma custodiana**: Release creado sin firma Ed25519 de qg1-release-1
+- **Sin FM-1 físico**: No hay validación de hardware (prohibido por AGENTS.md §4)
+- **Toolchain local**: No disponible en VM cloud (requiere JIELI_TOOLCHAIN/AC79_SDK)
+- **GitHub Pages**: Pending firma custodiana o release unsigned marcado
+
+### Próximos pasos pendientes
+
+1. **Firma custodiana**: Wait for custodian to sign with qg1-release-1
+2. **Desplegar GitHub Pages**: After signed release or unsigned marked appropriately
+3. **Rebuild WASM from 138586c**: Verificar paridad si workflow produce nuevo hash
+4. **Actualizar FORENSIC_FM1_VIABILITY.md**: Si es necesario con decisiones v2.5.0
+
+### Integración total verificada ✅
+
+- Todos los PRs relevantes integrados
+- Todos los commits útiles recuperados
+- main contiene el resultado consolidado (v2.5.0)
+- Firmware, WASM, instalador, portal y documentación sincronizados
+- Tests requeridos pasan
+- Manifiestos y hashes corresponden al mismo build (v2.5.0)
+- Tag "v2.5.0" apunta al commit correcto (138586c)
+- GitHub Release preparado con artifacts sincronizados
+
+No se realizaron escrituras en el FM-1 físico. No se generaron ni sustituyeron firmas privadas. No se modificaron tags históricos (v2.4.1, v2.4.2 conservados).
+

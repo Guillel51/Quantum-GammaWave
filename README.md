@@ -14,7 +14,7 @@ USB installer that verifies what it writes.
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.4.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.6.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
