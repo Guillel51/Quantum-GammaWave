@@ -15,12 +15,12 @@
 <meta property="og:site_name" content="Quantum GammaWave">
 <meta property="og:url" content="https://guillel51.github.io/Quantum-GammaWave/">
 <meta property="og:title" content="QUANTUM GAMMAWAVE — firmware for the M-VAVE FM-1">
-<meta property="og:description" content="Twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a verified USB installer.">
+<meta property="og:description" content="v2.7.0: twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a USB installer that verifies SHA-256 and size before it enables INSTALL.">
 <meta property="og:image" content="https://guillel51.github.io/Quantum-GammaWave/assets/fw-home.png">
 <meta property="og:image:alt" content="The firmware's HOME screen at 240 x 240: the orbital system, the spectrum with the filter curve and the six-track strip.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="QUANTUM GAMMAWAVE — firmware for the M-VAVE FM-1">
-<meta name="twitter:description" content="Twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a verified USB installer.">
+<meta name="twitter:description" content="v2.7.0: twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a USB installer that verifies SHA-256 and size before it enables INSTALL.">
 <meta name="twitter:image" content="https://guillel51.github.io/Quantum-GammaWave/assets/fw-home.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23080503%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229%22 fill=%22%23ff8a1e%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23fff4d6%22/%3E%3C/svg%3E">
 <style>
@@ -306,8 +306,8 @@
       <div class="hero-grid">
         <div>
           <div class="eyebrow">Firmware abierto · M-VAVE FM-1 · AC791N</div>
-          <h1 id="hero-title" style="margin-top:18px">Quantum <em>GammaWave.</em><span>Seis pistas. Doce voces. v2.6.0</span></h1>
-          <p class="hero-copy">Quantum GammaWave v2.6.0 convierte la FM-1 en un instrumento completo: seis pistas, doce voces, ocho motores de síntesis, secuenciador y un Web Studio que edita el sonido real por Web MIDI. Con mejoras en el renderizado planetario, nueva interfaz de bootsplash y verificación de firma mejorada.</p></p>
+          <h1 id="hero-title" style="margin-top:18px">Quantum <em>GammaWave.</em><span>Seis pistas. Doce voces. v2.7.0</span></h1>
+          <p class="hero-copy">Quantum GammaWave v2.7.0 convierte la FM-1 en un instrumento completo: seis pistas, doce voces, ocho motores de síntesis, secuenciador y un Web Studio que edita el sonido real por Web MIDI. v2.7.0 publica un solo paquete verificable por SHA-256 y tamaño, y el emulador, el instalador y este portal sirven los mismos bytes.</p></p>
           <div class="hero-actions">
             <a class="btn primary" href="emulator/">Abrir el Web Emulator <span class="arrow">→</span></a>
             <a class="btn ghost" href="webapp/editor/">Abrir Web Studio</a>
@@ -342,7 +342,7 @@
           <span class="no">01 / WEB EMULATOR</span>
           <b>Web Emulator</b>
           <span class="url">/emulator/</span>
-          <p>El mismo firmware compilado a WebAssembly (v2.6.0), con el mapa Punch-in FX, LATCH y el commit del build publicado. WASM compilado a partir de las fuentes de release v2.6.0 con identificación de build.</p></p>
+          <p>El mismo firmware compilado a WebAssembly (v2.7.0), con el mapa Punch-in FX, LATCH y el commit del build publicado. WASM compilado a partir de las fuentes de release v2.7.0 con identificación de build.</p></p>
           <span class="go">Abrir Web Emulator <span class="arrow">↗</span></span>
         </a>
         <a class="access-card" href="webapp/editor/">
@@ -478,7 +478,7 @@
         </ol>
         <aside class="warning">
           <h3>Límites reales, no letra chica</h3>
-          <p>La instalación verifica la integridad (SHA-256 y los hashes del firmware) y, si el manifiesto trae firma, la autenticidad (Ed25519 contra la clave fijada); el loader comprueba el chip y la geometría del flash antes de borrar nada. v2.6.0 se publica sin firma. No hay secure boot.</p>
+          <p>La instalación verifica la integridad (SHA-256 y los hashes del firmware) y, si el manifiesto trae firma, la autenticidad (Ed25519 contra la clave fijada); el loader comprueba el chip y la geometría del flash antes de borrar nada. v2.7.0 se publica sin firma. No hay secure boot.</p>
           <ul>
             <li>No hay actualización A/B ni rollback autónomo del bootloader.</li>
             <li>Un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.</li>
@@ -506,11 +506,11 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Versiones y artefactos</div><h2 style="margin-top:14px">El build<br>que estás viendo.</h2></div>
-        <p>Estos datos se leen del <code>firmware/versions.json</code> del despliegue. Si el archivo no está disponible, la página lo dice en vez de inventar un hash. <strong>Versión actual: v2.6.0</strong> — build ID y SHA-256 del WASM verificables; la firma Ed25519 solo si el manifiesto la incluye.</p></p>
+        <p>Estos datos se leen del <code>firmware/versions.json</code> del despliegue. Si el archivo no está disponible, la página lo dice en vez de inventar un hash. <strong>Versión actual: v2.7.0</strong> — build ID y SHA-256 del WASM verificables; la firma Ed25519 solo si el manifiesto la incluye.</p></p>
       </div>
       <div class="install-grid">
         <div class="version-card">
-          <div class="version-head"><div><span>ÚLTIMA VERSIÓN PUBLICADA</span><strong id="ver-name">v2.6.0</strong></div><span class="pill ok" id="ver-state">LEÍDA DEL SITIO</span></div>
+          <div class="version-head"><div><span>ÚLTIMA VERSIÓN PUBLICADA</span><strong id="ver-name">v2.7.0</strong></div><span class="pill ok" id="ver-state">LEÍDA DEL SITIO</span></div>
           <dl class="kv">
             <dt>Paquete</dt><dd id="ver-file">—</dd>
             <dt>Tamaño</dt><dd id="ver-size">—</dd>
@@ -568,7 +568,7 @@
       <div><b>Herramientas</b><br><a href="./">Web Site</a> · <a href="emulator/">Web Emulator</a><br><a href="webapp/editor/">Web Studio</a> · <a href="webapp/installer/">Instalador USB</a><br><a href="firmware/versions.json">Versiones</a></div>
       <div><b>Linaje</b><br>Felucca · JIANT FM · Pocket GammaWave.<br><a href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/LICENSES">Licencias y créditos ↗</a></div>
     </div>
-    <div class="foot-line"><span>© <span id="year">2026</span> Quantum GammaWave contributors</span><span id="foot-build">QG-1 // v2.6.0 // BUILD VERIFICADO POR HASH</span></div>
+    <div class="foot-line"><span>© <span id="year">2026</span> Quantum GammaWave contributors</span><span id="foot-build">QG-1 // v2.7.0 // BUILD VERIFICADO POR HASH</span></div>
   </div>
 </footer>
 
@@ -617,7 +617,7 @@
     text("hero-build", v.version || "QG-1");
     text("foot-build", (v.version || "QG-1") + " // " + String(v.sha256 || "").slice(0, 12) + "…");
     text("ver-state", t("HASH DEL SITIO"));
-    text("ver-note", t("El instalador exige este SHA-256 antes de habilitar INSTALL y verifica la firma Ed25519 solo cuando el manifiesto la trae: v2.6.0 se publica sin firma, asi que hay integridad, no autenticidad."));
+    text("ver-note", t("El instalador exige este SHA-256 antes de habilitar INSTALL y verifica la firma Ed25519 solo cuando el manifiesto la trae: v2.7.0 se publica sin firma, asi que hay integridad, no autenticidad."));
   }
   fetch("firmware/versions.json", { cache: "no-cache" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })

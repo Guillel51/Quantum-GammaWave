@@ -1332,7 +1332,7 @@ async function loadVersion(i) {
       if (Object.keys(signed).length && bad.length)
         throw new Error(`the signature names firmware this build does not have (${bad.join(", ")})`);
       releaseSig = { state: "pass", keyid: sig.keyid, version: sig.version, sha256: hash, size: pkg.length,
-        detail: sig && sig.keyid ? `Ed25519 ${sig.keyid} \u00b7 ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` : `SHA-256 only, unsigned package (v2.6.0 model) \u00b7 ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
+        detail: sig && sig.keyid ? `Ed25519 ${sig.keyid} \u00b7 ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` : `SHA-256 only, unsigned package (v2.7.0 model) \u00b7 ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
     } catch (e) {
       releaseSig = { state: "fail", keyid: "", version: v.version, sha256: hash, size: pkg.length,
         detail: String((e && e.message) || e) };
@@ -1346,7 +1346,7 @@ async function loadVersion(i) {
     try { prov = await verifyProvenance(pkg, v.build, { product: meta.product, version: v.version, image: null }); }
     catch (e) { log(`provenance: ${e && e.message}`); sayK("badpkg"); return; }
     releaseOk = true; provOk = prov;
-    /* v2.6.0 ships an unsigned manifest: never print "Ed25519 null" */
+    /* v2.7.0 ships an unsigned manifest: never print "Ed25519 null" */
     $("pkg-hash").textContent = t("hashOk") + hash +
       (releaseSig.keyid ? " \u00b7 Ed25519 " + releaseSig.keyid : " \u00b7 SHA-256 only, unsigned package");
     image = pkg;

@@ -1,4 +1,4 @@
-# Package integrity and authenticity (v2.6.0 model)
+# Package integrity and authenticity (SHA-256 model, since v2.6.0; current in v2.7.0)
 
 Status: **SHA-256 + size, published with the package; GitHub Artifact Attestations for traceability.**
 Ed25519 (`qg1-release-1`) is **historical/obsolete** for ordinary installs — see §"Historical".
@@ -31,6 +31,6 @@ the package and must not be presented as one.
 ## Historical (Ed25519, obsolete for installs)
 
 `tools/fm1_sign.py`, `tools/fm1_keys.json` and `qg1-release-1` remain in the tree for audit/custody
-history. They are **not** part of the active install or publish path for v2.6.0. Do not delete them
+history. They are **not** part of the active install or publish path since v2.6.0. Do not delete them
 without review; mark as obsolete rather than removing. The custodian procedure lives in
 [`SIGNING_CUSTODY.md`](SIGNING_CUSTODY.md) (historical).
