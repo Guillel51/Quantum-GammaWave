@@ -27,6 +27,13 @@
   genera), la atestacion de GitHub Artifact corresponde al workflow, y **nada se valido en una FM-1 fisica**. El
   Release `v2.6.0` de GitHub no tenia adjuntos descargables al escribir esto: publicarlos requiere una credencial de
   publicacion que esta sesion no tiene.
+- **Dos defectos reales encontrados al ejecutar la suite completa** (3 821 `ok`, 1 `FAILED`):
+  (1) `tests/reverb_test.c` comparaba el ROOM con la ley de damping lineal anterior a v2.4.0
+  (`32767 - RDAMP*200`) mientras el firmware usa la tabla logaritmica `rev_damp_table`, asi que la
+  referencia se habia quedado atras: se actualizo la copia de referencia y el ROOM vuelve a ser `ok`
+  bit a bit (1 319 924 muestras divergentes antes, 0 ahora). (2) `requireProof()` admitia el paquete
+  pero no nombraba el commit cuyo registro lo autorizo: ahora el proof lleva `build` con ese commit,
+  y `test_release_e2e.mjs` pasa esa comprobacion en lugar de fallarla.
 - **Reconstruccion definitiva sobre `main`** (`35651a5aa23e1d1cbddfe9a08fe9da9a59b8fc0b`): `main` habia quedado roto por `5ca34a3`, que al quitar
   el readout del splash se llevo la llave de cierre del bloque (`ui_draw.c` 260 `{` frente a 259 `}`); como
   `felucca.c` incluye las fuentes en una sola unidad de traduccion, el ambito abierto convertia cada archivo

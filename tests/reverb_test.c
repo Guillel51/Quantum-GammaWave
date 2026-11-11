@@ -79,7 +79,7 @@ static void ref_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_
     mw = ((osc_sine(rf.wph) * song.g[G_DMOD]) >> 12) + ((osc_sine(rf.fph) * song.g[G_DMOD]) >> 15);
     m0 = rf.wm; dwm = (mw - rf.wm) / (int32_t)n; rf.wm = m0 + dwm * (int32_t)n;
     int32_t dmix = song.g[G_DMIX] * 258;
-    int32_t size = 25000 + song.g[G_RSIZE] * 40 + song.g[G_RSIZE] * song.g[G_RSIZE] / 7, damp = 32767 - song.g[G_RDAMP] * 200;
+    int32_t size = 25000 + song.g[G_RSIZE] * 40 + song.g[G_RSIZE] * song.g[G_RSIZE] / 7, damp = 32767 - rev_damp_table[song.g[G_RDAMP]];   /* (v2.4.0) the shipped ROOM's table, not the old linear law */
     int32_t cdepth = song.g[G_CDEPTH] * 6;
     uint32_t cinc = LFO_INC[song.g[G_CRATE] & 127] / CTL;
     int32_t dcd = fx_glide(rf.cd, cdepth, n), ddm = fx_glide(rf.dm, dmix, n);

@@ -662,8 +662,10 @@ export async function requireProof({ pkg, product = null, sha256 = null, proofTt
   // (v2.4.0) the build provenance is checked before anything else: a package without a verified
   // build record (or one whose record does not match the signed release) is refused as "provenance",
   // so a caller that skips the page (console, stale resume) still writes nothing.
+  let verifiedCommit = null;
   if (provenance !== undefined) {
     const prov = provenance;
+    verifiedCommit = prov && prov.commit ? String(prov.commit) : null;
     if (!prov || typeof prov !== "object" || prov.schema !== "qg1-provenance-1" || prov.identity !== product)
       throw fail("provenance", "This package has no verified build provenance: nothing was sent.");
     const m = manifest && typeof manifest === "object" ? manifest : null;
@@ -685,8 +687,10 @@ export async function requireProof({ pkg, product = null, sha256 = null, proofTt
     throw fail("image", "the package's SHA-256 is not the published one: nothing was sent.");
   const image = logicalImage(bytes);
   if (!image.length) throw fail("image", "the package holds no image: nothing was sent.");
+  // (v2.6.0) when a verified build record authorised this transfer, the authorisation names the
+  // commit it was verified against, so a caller can bind the write to that exact tree.
   const proof = Object.freeze({ product, model: product.split("_")[0], sha256: digest, size: bytes.length,
-    imageSize: image.length });
+    imageSize: image.length, build: verifiedCommit });
   const ttl = Math.max(0, Number(proofTtlMs) || 0);
   PROOFS.set(proof, { image, used: false, at: Date.now(), expires: Date.now() + ttl });
   return proof;
