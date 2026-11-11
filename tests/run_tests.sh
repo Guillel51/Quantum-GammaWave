@@ -165,7 +165,7 @@ done
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip the package / loader tests (NO_PACKAGE=1: no ./build.sh package)"
 else
-    PKG="$(ls build/felucca*.fwsc 2>/dev/null | head -1)"
+    PKG="$(ls build/felucca*.fwsc 2>/dev/null | head -1)"    # a release build names it felucca-X.Y.fwsc
     [ -n "$PKG" ] && [ -f "$PKG" ] || { echo "run ./build.sh first (or NO_PACKAGE=1 for the host-only run)"; exit 1; }
 
     $CC -DOWN_PKG=1 -o "$OUT/ota_test" tests/ota_test.c
@@ -331,7 +331,7 @@ run "backup audit: region bounds, bootloader never written, dump and restore evi
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip installer preflight (NO_PACKAGE=1: needs build/felucca.fwsc)"
 else
-    run "installer preflight: read-only, refuses before the first write frame" python3 tests/preflight_test.py
+    run "installer preflight: read-only, refuses before the first write frame" python3 tests/preflight_test.py "$PKG"
 fi
 
 # ASan + UBSan: the stored-data and protocol paths, and short fuzz runs (fixed seeds: the same inputs every run)
@@ -354,9 +354,9 @@ else
     export ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}"
     if [ "${NO_PACKAGE:-0}" != 1 ]; then
         $SCC -o "$A/ldr_test" tests/ldr_test.c
-        run "ASan/UBSan: update loader (other app -> this build)" "$A/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+        run "ASan/UBSan: update loader (other app -> this build)" "$A/ldr_test" "$OUT/old.fwsc" "$PKG"
         $SCC -DOWN_PKG=1 -o "$A/ota_test" tests/ota_test.c
-        run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" build/felucca.fwsc
+        run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" "$PKG"
     fi
     for t in editor_test project_test backup_test robust_test fm6bank_test; do
         $SCC -o "$A/$t" tests/$t.c -lm
@@ -416,8 +416,7 @@ if command -v node >/dev/null 2>&1; then
     # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
     run "web installer pipeline: the real package, and a refusal for every partial authorisation" \
         node tests/installer_pipeline_production_test.mjs
-    PKG=""
-    if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
+    [ -n "${PKG:-}" ] || PKG="$(ls build/felucca*.fwsc 2>/dev/null | head -1)"
     run "web package parser: malformed .fwsc refused, never loops, the built one parses" \
         node web/test_pkg_bounds.mjs $PKG
 else
