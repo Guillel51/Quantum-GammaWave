@@ -75,21 +75,21 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 ## Highlights of `v2.7.1`
 
 - **One version everywhere.** `FELUCCA_VERSION` is `v2.7.1`, and the site, the installer, the emulator record
-  and this README name the same build: the portal serves `v2.7.1-5313a79`, 610 959 B, sha256
-  `64122dde…88dc`, which is the GitHub Release asset byte for byte.
+  and this README name the same build: the portal serves `v2.7.1-9102919`, 610 959 B, sha256
+  `8b1798b9…6de6`, which is the GitHub Release asset byte for byte.
 - **The package is integrity-checked, not signed.** Since v2.6.0 the model is SHA-256 + size + build record;
   Ed25519 (`qg1-release-1`) stays historical. The installer and the site say "integrity, not authenticity"
   instead of implying a signature that does not exist.
 - **ROOM is damped by the table the firmware uses.** `rev_room` and `rev_room_mod` read `rev_damp_table[]`,
   and the host reference model now carries its own copy of that curve, so a change on one side still fails
   the test (it used to compare against the pre-2.4.0 linear law).
-- **`-Oz` everywhere, with the loops recovered.** The image is 541 460 B and the package 610 959 B; the audio
+- **`-Oz` everywhere, with the loops recovered.** The image is 541 484 B and the package 610 959 B; the audio
   helpers the smaller profile stopped inlining are marked `always_inline`, so the drum and analog loops did
   not grow back.
 - **The goldens are measured, not assumed.** 216 renders moved when the engine changed and the sweep proves
   they are code, not toolchain: with the same generated headers, the older tree reproduces 220/220 and this
   one changes exactly those 216. The re-recorded six-track golden verifies 61/61 of its window.
-- **The emulator is the same release.** WASM 1 104 650 B, sha256 `2c4cf3e3…7fd43`, built with Emscripten
+- **The emulator is the same release.** WASM 1 104 650 B, sha256 `e3388879…2d03`, built with Emscripten
   6.0.11 from the recorded commit, and its manifest is the one the site serves.
 
 ## Synthesis engines

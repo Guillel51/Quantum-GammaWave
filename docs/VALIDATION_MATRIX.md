@@ -1612,3 +1612,22 @@ v2.6.0 — for v2.7.0, not retroactively.
 4. **Timbre of the re-recorded goldens** is fixed and reproducible, not approved by ear.
 5. **Nothing ran on an FM-1.** No write, erase, recovery or bootloader command was sent to any unit, and identity
    `FM-1_909` stays blocked. JEDEC, geometry, recovery and the first write remain the owner's checks.
+
+## 28. Update — 2026-11-11, v2.7.1 rebuilt from a repaired tree (no unit touched)
+
+The v2.7.1 bump arrived with **merge conflict markers committed inside `firmware/src/felucca.c`** and
+`ci_artifact/manifest.json`, so the firmware did not compile (`cc`: *version control conflict marker in file*).
+The tree keeps `FELUCCA_VERSION "v2.7.1"`, the stray `ci_artifact/` copy is gone, and everything was rebuilt
+from that repaired, committed tree (`9102919`, `dirty: []`):
+
+| Item | Value | Class |
+|---|---|---|
+| Package | `release/felucca-v2.7.1.fwsc`, 610 959 B, sha256 `8b1798b93892ffcc89956aeb3b6d5e1e8e14c1c48d3e9c472f08386fd3456de6` | `[TARGET]` |
+| Image / loader | `felucca.bin` 541 484 B, `loader/ota.bin` 7 803 B, identity `FM-1_965` | `[TARGET]` |
+| Manifest | `qg1-release-1`, `keyid: ""` (unsigned by design) → `verify`: integrity only | `[HOST]` |
+| `release/SHA256SUMS` | 22 entries, `sha256sum -c` clean | `[HOST]` |
+| WASM | 1 104 650 B, sha256 `e3388879…2d03`, Emscripten 6.0.11, commit `9102919` | `[WASM]` |
+| Host checks | `planets_test` (HOME's five bodies), `reverb_test`, `six_track_live_test` all pass | `[HOST]` |
+
+This supersedes §27's figures for v2.7.0: the portal, the installer, the emulator record and the package now
+name v2.7.1, and the v2.7.0 assets stay published as history. Nothing here was produced by, or sent to, a unit.
