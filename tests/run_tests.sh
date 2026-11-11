@@ -132,7 +132,7 @@ run() { echo "== $1"; shift; "$@" || fail=1; }
 # its #ifndef failed there and only there, named as a build step and not as a file (v2.7.1 merge, 2026-11-11).
 # Checked first, by file and line, so the next one is named here.
 markers=$(grep -rn -e '^<<<<<<< ' -e '^>>>>>>> ' --include='*.c' --include='*.h' --include='*.py' --include='*.sh' \
-    --include='*.yml' --include='*.json' firmware tests tools web .github 2>/dev/null)
+    --include='*.yml' --include='*.json' firmware tests tools web .github 2>/dev/null || true)
 if [ -n "$markers" ]; then
     echo "$markers"
     run "no source file carries a merge conflict marker" false
