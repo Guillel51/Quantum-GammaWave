@@ -27,7 +27,7 @@
   genera), la atestacion de GitHub Artifact corresponde al workflow, y **nada se valido en una FM-1 fisica**. El
   Release `v2.6.0` de GitHub no tenia adjuntos descargables al escribir esto: publicarlos requiere una credencial de
   publicacion que esta sesion no tiene.
-- **Reconstruccion definitiva sobre `main`** (`cdb72c0fb4ba5bad2c76b53a74377150c428f7e2`): `main` habia quedado roto por `5ca34a3`, que al quitar
+- **Reconstruccion definitiva sobre `main`** (`35651a5aa23e1d1cbddfe9a08fe9da9a59b8fc0b`): `main` habia quedado roto por `5ca34a3`, que al quitar
   el readout del splash se llevo la llave de cierre del bloque (`ui_draw.c` 260 `{` frente a 259 `}`); como
   `felucca.c` incluye las fuentes en una sola unidad de traduccion, el ambito abierto convertia cada archivo
   posterior en una funcion dentro de otra y la compilacion AC791N fallaba con mas de 20 errores. Se elimino la

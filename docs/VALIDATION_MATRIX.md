@@ -1528,13 +1528,13 @@ executed in Node. Nothing here is a claim about a physical FM-1.
 |---|---|---|
 | Toolchain | `jieli-linux-toolchains-20260730.1`, `pi32v2/bin/clang` = clang 4.0.1, archive pinned `a1545cdd…` | `[TARGET]` |
 | SDK | `AC79NN_SDK_V1.2.1_2023-12-13`; `uboot.boot`, `cfg_tool.bin`, `cfg/eq_cfg_hw.bin` match `SDK_SHA256` | `[TARGET]` |
-| Build commit | `cdb72c0fb4ba5bad2c76b53a74377150c428f7e2`, `dirty: []` | `[TARGET]` |
+| Build commit | `35651a5aa23e1d1cbddfe9a08fe9da9a59b8fc0b`, `dirty: []` | `[TARGET]` |
 | Image / budgets | image **541 460 B**; `.data+.bss` **87 696 / 98 304 B**; POOL spare **15 392 B**; XIP code 380 908 B + 140 520 B constants; RAM code **19 284 / 24 576 B**, `.ram_text` no calls | `[TARGET]` |
 | Package | `release/felucca-v2.6.0.fwsc` **610 959 B**, sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25`, identity `FM-1_965`, version `v2.6.0` | `[TARGET]` |
 | Release manifest | `qg1-release-1` with `images` + `build_sha256`, **no `sig`** (SHA-256 model of `docs/SIGNING.md`) | `[HOST]` |
 | Integrity gate | `fm1_sign.py verify` → `verified (integrity only, unsigned: SHA-256 model)`; same manifest with `--require-signature` → exit 1 | `[HOST]` |
 | Legacy signed release | `release/felucca-v2.4.0.fwsc` still verifies against `qg1-release-1` | `[HOST]` |
-| WASM | **1104631 B**, sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a`, Emscripten **6.0.11**, commit `cdb72c0fb4ba`, `dirty: []` | `[WASM]` |
+| WASM | **1104631 B**, sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a`, Emscripten **6.0.11**, commit `35651a5aa23e`, `dirty: []` | `[WASM]` |
 | Emulator behaviour | `web/emu/emu_test.mjs` all checks pass; heavy song twice identical; 1 s of audio in 24.2 ms (**2.4 % of real time**) | `[WASM]` |
 | Emulator manifest defect | `release/emu/manifest.json` named `ceb2e80bd43e`, a commit that does not exist; it is now the record the build produces (`73c0c662d326`) | `[STATIC]` |
 | Historical hash claims | `c1bb42fa…` and `3e9ded0c…` do not describe any build of this commit; the reproducible value is `62c4b714…` at 1 104 688 B | `[WASM]` |
