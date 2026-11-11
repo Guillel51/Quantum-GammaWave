@@ -1894,7 +1894,9 @@ int main(int argc, char **argv)
     al_off = 1;                                     /* (the alignment check is not timed) */
     /* draw cost: a full redraw of a screen (all strips), and HOME frame by frame (the scope, every other frame) */
     {
-        static const int COST[] = {S_HOME, S_PRESETS, S_STEP, S_ROLL_CHORDS, S_DRUM, S_MIXER, S_MENU, S_ABOUT_CREDITS, S_CONFIRM_PROJ};
+        static const int COST[] = {S_HOME, S_PRESETS, S_STEP, S_ROLL_CHORDS, S_DRUM, S_MIXER, S_MENU, S_ABOUT_CREDITS, S_CONFIRM_PROJ,
+                                   S_FX, S_REVERB2, S_MASTER, S_DRUMX};   /* (3.6) the FX, Reverb, Master and DRUM-X pages too:
+                                                                           * a change to those pages can be measured, not guessed */
         enum { N = 200 };
         uint32_t i, k;
         fprintf(rep, "\ndraw cost on the host (cc -O1; only the ratios mean anything on the device):\n");
