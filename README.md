@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.7.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.7.2` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -46,7 +46,7 @@ It is a whole ecosystem built around one firmware:
 | **Firmware** | what the FM-1 runs: engines, sequencer, effects, UI, MIDI |
 | **[Web emulator](https://guillel51.github.io/Quantum-GammaWave/emulator/)** | the same sources compiled to WebAssembly: the panel, playable in a browser |
 | **[Web Studio](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)** | edits the real sound over Web MIDI / SysEx, with a live hardware view |
-| **[USB installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** | checks SHA-256, the Ed25519 signature and the flash chip before it enables INSTALL |
+| **[USB installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** | checks the package's SHA-256 and the flash chip before it enables INSTALL |
 | **[Site](https://guillel51.github.io/Quantum-GammaWave/)** | the portal: current screens, download, documentation, preview channel |
 
 ![HOME](web/site/assets/fw-home.png)
@@ -72,17 +72,25 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 ---
 
-## Highlights of `v2.3.0`
+## Highlights of `v2.7.2`
 
-- **Twelve voices.** The voice storage is a single pool that every part draws a window from, so six parts no
-  longer reserve six times the polyphony they can use: 12 voices now occupy **87 584 B** of `.data + .bss`
-  with **10 720 B free**, where the previous 10-voice build used 94 924 B with 3 380 B free.
-- **A clear voice start.** A note that begins on a silent voice starts from silence: it never inherits the
-  oscillators or the filter state of whatever note used that slot before.
-- **ECO / BAL / FULL** — the same firmware at four, five or six tracks, with the CPU and the voice budget
-  following the setting.
-- **The rest of the instrument is unchanged**: eight engines, the 200-sound library, the sequencer, the
-  effects, MIDI and SysEx, projects and presets from earlier versions.
+- **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal
+  serves and `firmware/versions.json` name the same build: the portal shows the version and the commit
+  the release manifest carries, and the installer checks the package's SHA-256 and size before it writes.
+- **The package is integrity-checked, not signed.** Since v2.6.0 the model is SHA-256 + size + build record;
+  Ed25519 (`qg1-release-1`) stays historical. The installer and the site say "integrity, not authenticity"
+  instead of implying a signature that does not exist.
+- **ROOM is damped by the table the firmware uses.** `rev_room` and `rev_room_mod` read `rev_damp_table[]`,
+  and the host reference model now carries its own copy of that curve, so a change on one side still fails
+  the test (it used to compare against the pre-2.4.0 linear law).
+- **`-Oz` everywhere, with the loops recovered.** The image is 541 484 B and the package 610 959 B; the audio
+  helpers the smaller profile stopped inlining are marked `always_inline`, so the drum and analog loops did
+  not grow back.
+- **The goldens are measured, not assumed.** 216 renders moved when the engine changed and the sweep proves
+  they are code, not toolchain: with the same generated headers, the older tree reproduces 220/220 and this
+  one changes exactly those 216. The re-recorded six-track golden verifies 61/61 of its window.
+- **The emulator is the same release.** WASM 1 104 650 B, sha256 `e3388879…2d03`, built with Emscripten
+  6.0.11 from the recorded commit, and its manifest is the one the site serves.
 
 ## Synthesis engines
 
@@ -169,8 +177,10 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 
 1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
    Edge, with a data cable (not a charge-only one).
-2. It checks the package's **SHA-256**, its **Ed25519 signature** against the pinned `qg1-release-1` key and
-   the firmware hashes inside that signature. If anything fails, INSTALL stays disabled and the page says why.
+2. It re-hashes the package (**SHA-256** + size), holds it to the published record and the version floor, and
+   verifies the firmware hashes inside it. `v2.7.2` ships **unsigned by design**: that is integrity, not
+   authenticity, and the page says so instead of implying a signature. If anything fails, INSTALL stays
+   disabled and the page says why.
 3. The loader reads the **real flash chip** on the unit and refuses anything but the two parts above.
 4. The write covers `0x04000–0x92FFF`; factory data is preserved, and the loader is the recovery path.
 
@@ -221,7 +231,11 @@ sh web/emu/build.sh
 
 ## Credits and licence
 
-GPL-3.0-only. Quantum GammaWave is an evolution of **Pocket GammaWave (GW-1)** by Leo Kuroshita
-(@kurogedelic) / Hügelton Instruments, built on **JIANT FM** and **Felucca**. The original copyright notices,
+GPL-3.0-only. Quantum GammaWave is an evolution of **Pocket GammaWave (GW-1)** by **Frederic Valente
+(@fvalente)** — the GW-1 firmware line, its drum kits, its keys/trap presets and its persistence work — built on
+**JIANT FM** and **Felucca** by **Leo Kuroshita (@kurogedelic) / Hügelton Instruments**. The published installer,
+the emulator's CI and build record, the FX layer and the QUANTUM preset bank come from **Guillermo Lauria**;
+**David Konsumer (@konsumer)** did the first install on a stock unit, the loader's chip check, the resume path and
+the releases by tag. The original copyright notices,
 the credits and the texts in [`LICENSES/`](LICENSES/) are kept; the JieLi SDK files that a package carries are
 Apache-2.0, and [`LICENSING.md`](LICENSING.md) says which is which.

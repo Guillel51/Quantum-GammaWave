@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Quantum GammaWave — the tree may not contradict itself.
+#
+# Every failure this catches has already happened here at least once, and each one reached `main` without
+# anything going red: merge markers committed inside `firmware/src/felucca.c` (the firmware did not compile),
+# a `FELUCCA_VERSION` with no package in `release/`, a manifest whose hash disagreed with its bytes, a
+# `site/firmware/versions.json` naming a hash the package does not have, and an emulator record from a
+# different build than the firmware beside it.
+#
+# It runs on every push and pull request, needs no secret, reads only tracked files and takes seconds, so a
+# contradiction is reported before anything is published from it.
+name: coherence
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coherence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: the tree agrees with itself
+        run: python3 tools/coherence_check.py

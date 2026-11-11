@@ -127,6 +127,19 @@ esac
 fail=0
 run() { echo "== $1"; shift; "$@" || fail=1; }
 
+# A merge that left its markers behind compiles anyway when FELUCCA_VERSION comes in with -D, which is how the
+# host tests build; the AC791N build does not define it, so `firmware/src/felucca.c` with a `<<<<<<< HEAD` inside
+# its #ifndef failed there and only there, named as a build step and not as a file (v2.7.1 merge, 2026-11-11).
+# Checked first, by file and line, so the next one is named here.
+markers=$(grep -rn -e '^<<<<<<< ' -e '^>>>>>>> ' --include='*.c' --include='*.h' --include='*.py' --include='*.sh' \
+    --include='*.yml' --include='*.json' firmware tests tools web .github 2>/dev/null || true)
+if [ -n "$markers" ]; then
+    echo "$markers"
+    run "no source file carries a merge conflict marker" false
+else
+    run "no source file carries a merge conflict marker" true
+fi
+
 $CC -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"
 
