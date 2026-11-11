@@ -9,6 +9,32 @@
 
 /* (1.8) Audio meters published by fx.c: 0..2 the chorus/delay/reverb sends, 3..5 their wet returns. */
 extern volatile int32_t fx_vu[8];
+/* (3.6) One meter's ballistics, the FX page's four bars and any other bar that reads a bus: an immediate
+ * attack (the level the DSP measured this block is shown at once), a release that falls a quarter of the
+ * way each frame (so a peak between two frames is still seen and the bar does not snap), and a peak hold
+ * that stands 30 frames over the bar and then falls a pixel a frame. Pure arithmetic on three bytes: no
+ * state of its own, a few instructions per meter per frame. target and the result are px, 0..mh. */
+static inline int32_t fx_meter_step(uint8_t *vu, uint8_t *hold, uint8_t *hold_t, int32_t target, int32_t mh)
+{
+    int32_t v;
+    if (target < 0) target = 0;
+    if (target > mh) target = mh;
+    v = *vu;
+    if (target >= v)
+        v = target;                                   /* attack: immediate, like a real meter */
+    else
+        v -= (v - target + 3) / 4;                    /* release: a quarter of the way, a frame */
+    *vu = (uint8_t)v;
+    if (v >= (int32_t)*hold) {
+        *hold = (uint8_t)v;                           /* a new peak: the hold takes it and waits again */
+        *hold_t = 0;
+    } else if (++(*hold_t) >= 30u) {
+        *hold_t = 30u;
+        if (*hold)
+            (*hold)--;                                /* 30 frames of rest, then a pixel a frame */
+    }
+    return v;
+}
 /* (2.1) the level a factory preset loads with, measured from its own render (preset_level.c,
  * tools/gen_preset_levels.py): 100 is the fader's own, untouched, 0..127 are LEVEL_Q12 indices */
 uint8_t preset_level_of(uint32_t e, uint32_t pi);   /* 0..2 the chorus/delay/reverb sends, 3..5 their wet returns,

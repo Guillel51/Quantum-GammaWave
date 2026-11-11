@@ -4,7 +4,9 @@
 name: release
 on:
   push:
+    branches: ["main"]
     tags: ["v*"]
+  workflow_dispatch:
 jobs:
   build:
     uses: zvenson/fm1-build/.github/workflows/build.yml@v1
@@ -13,7 +15,7 @@ jobs:
       id-token: write
       attestations: write
     with:
-      build: pip install --quiet Pillow fonttools numpy && ./build.sh --release "${GITHUB_REF_NAME#v}"
+      build: V="$(sed -n 's/^#define FELUCCA_VERSION "v\?\([0-9][^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)"; pip install --quiet Pillow fonttools numpy && ./build.sh --release "$V"
       packages: build/*.fwsc
       test: sh tests/run_tests.sh
       tests-block: true

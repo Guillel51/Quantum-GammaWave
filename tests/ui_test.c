@@ -3434,6 +3434,36 @@ static int test_layer(void)
         ok &= rev_act == 0 && rev_ph == 0;             /* and settles: no cost when there is no tail */
         bad += check("REVERB graph: the rings follow the bus's return and fall with the tail (host)", ok);
     }
+
+    {   /* (3.6) PHASE's own screen: every engine's EDIT pages drew the generic being except WHEEL, LOFI,
+         * FM6 and DRUM, so the one engine built on a bent phase had no picture of it. Its screen must
+         * answer DCW (the knee) and must not be another engine's page. */
+        static uint16_t a[240 * 240], b[240 * 240];
+        int32_t page = -1, i2;
+        ui_power_on();
+        set_engine_of(TSEL, 2u);                      /* PHASE */
+        for (i2 = 0; i2 < NPAGES; i2++)
+            if (PAGES[i2].fam == FAM_EDIT && PAGES[i2].scope == SC_ENGINE) { page = i2; break; }
+        ok = page >= 0;
+        ui.home = 0;
+        ui.page = (uint8_t)page;
+        page_entered();
+        TSEL->p[P_E2] = 8;                            /* DCW near its low end */
+        memset(host_screen, 0, sizeof host_screen);
+        ui.force = 1; ui_draw();
+        memcpy(a, host_screen, sizeof a);
+        TSEL->p[P_E2] = 120;                          /* .. and near its top: the knee moves */
+        ui.force = 1; ui_draw();
+        memcpy(b, host_screen, sizeof b);
+        ok &= memcmp(a, b, sizeof a) != 0;
+        set_engine_of(TSEL, ENGI_ANALOG);             /* the same page, another engine: another screen */
+        ui.home = 0;
+        ui.page = (uint8_t)page;
+        page_entered();
+        ui.force = 1; ui_draw();
+        ok &= memcmp(b, host_screen, sizeof b) != 0;
+        bad += check("PHASE screen: its EDIT page draws the phase bend, answers DCW and is not ANALOG's", ok);
+    }
     {   /* (0.5.1) the DRUM-X kit's X-MOD kept by a project (the kit's reserved bytes) */
         static const uint8_t XM[4] = {6, 90, 4, 70};
         memcpy(dx_mot, XM, 4);

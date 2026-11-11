@@ -805,7 +805,8 @@ static void graph_fx(const track_t *t, uint16_t c)
     static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
-    static uint8_t vu[4], hold[4];
+    static uint8_t vu[4], hold[4];                /* (3.6) the meter's envelope and its peak hold */
+    static uint8_t hold_t[4];                     /* .. frames the hold has been standing still */
     static int32_t vu_trk = -1;
     int32_t pk = t->vu < 0 ? -t->vu : t->vu;   /* the track's post-FX envelope (fx.c mix_part) */
     int32_t bus[4] = {pk, fx_vu[3], fx_vu[4], fx_vu[5]};   /* DIST, chorus, delay, reverb returns */
@@ -814,6 +815,7 @@ static void graph_fx(const track_t *t, uint16_t c)
     if (vu_trk != (int32_t)(t - trk)) {              /* the meters belong to one track */
         memset(vu, 0, sizeof vu);
         memset(hold, 0, sizeof hold);
+        memset(hold_t, 0, sizeof hold_t);
         vu_trk = (int32_t)(t - trk);
     }
 
@@ -825,7 +827,6 @@ static void graph_fx(const track_t *t, uint16_t c)
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
         int32_t hpx = lvl * mh / 7000;
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
-        int32_t seg;
         char num[8];
 
         cv_rrect(cx, 4, 53, 62, 3, T_SURF, T_BG);
@@ -841,43 +842,40 @@ static void graph_fx(const track_t *t, uint16_t c)
         cv_text_r(mx - 2, 18, &AF_S, num, val ? T_TEXT : T_DIM, T_SURF);
         cv_text_on(cx + 3, 40, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, T_SURF);
-        if (pk > 64)                                  /* the track is producing sound now */
+        if (lvl >= 6800)                              /* (3.6) this bus is at full scale: it clips now */
             cv_rect(cx + 47, 6, 3, 3, T_ACCENT);
+        else if (lvl > 64)                            /* (3.6) this bus is producing sound now: its own
+                                                       * return, not the track's envelope (which lit all
+                                                       * four cards together whatever was running) */
+            cv_rect(cx + 47, 6, 3, 3, T_THEME);
         else
             cv_rect(cx + 47, 6, 3, 3, T_LINE);
 
-        /* Thicker FX meter with vibrant colors and smooth bounce */
-        cv_rect(mx, my, 12, mh, T_BG);
-        /* Controlled bounce - peak falls smoothly */
-        int32_t bounce_px = (hpx * 7 + mh * 3) / 10;
-        if (bounce_px > mh) bounce_px = mh;
-        if (bounce_px < 0) bounce_px = 0;
-        /* Per-module vibrant colors: delay gets cyan theme, others use theme */
-        if (i == 2) { /* DELAY: vibrant cyan */
-            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, T_THEME);
-        } else {
-            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, i == 0 ? c : T_THEME);
+        /* (3.6) The meter is an instrument, not a decoration. fx.c measures each bus's peak once a
+         * block (fx_vu) while the UI redraws at ~30 fps: drawing that raw peak made the bar jump with
+         * whichever block the frame happened to land on, and the peak-hold arrays were never written at
+         * all -- vu[] and hold[] stayed 0, so the trail, the hold line and the input tick were dead code
+         * drawing nothing, with the same bar drawn three times at three different lengths. Now vu[i]
+         * follows the real level with an immediate attack and a ~4-frame release, hold[i] keeps its
+         * highest point for 30 frames and then falls a pixel a frame, and one thin tick marks what the
+         * bus actually receives. Every figure is the DSP's own. */
+        cv_rect(mx, my, 12, mh, T_BG);                /* the track */
+        fx_meter_step(&vu[i], &hold[i], &hold_t[i], hpx, mh);   /* core.h: attack, release, peak hold */
+        {
+            int32_t seg, v = (int32_t)vu[i];
+            uint16_t bar = i == 0 ? c : T_THEME;      /* the DIST insert keeps the track's own colour */
+            if (v > 0) {
+                cv_rect(mx + 1, my + mh - v, 10, v, bar);
+                for (seg = mh - 7; seg > mh - v; seg -= 7)   /* a 1 px gap every 7 px: a scale */
+                    cv_rect(mx + 1, my + seg, 10, 1, T_BG);
+            }
         }
-        /* Subtle peak cap */
-        int32_t peak_px = (hpx * 2 + mh * 3) / 5;
-        if (peak_px > mh) peak_px = mh;
-        if (peak_px > bounce_px) peak_px = bounce_px;
-        if (peak_px > 0u)
-            cv_rect(mx + 2, my + mh - peak_px, 8, 1, T_ACCENT);
-        /* Fade trail for controlled dissipation */
-        if (vu[i] > 0u && vu[i] < (uint8_t)mh) {
-            cv_rect(mx + 1, my + mh - vu[i], 10, vu[i], i == 2 ? T_THEME : (i == 0 ? c : T_THEME));
-        }
-        /* Input level tick */
-        if (i && inpx > 0) {
-            cv_rect(mx + 6, my + mh - inpx, 6, 1, T_MID);
-        }
-        if (vu[i] > 0u)
-            cv_rect(mx + 1, my + mh - vu[i], 5, vu[i], i == 0 ? c : T_THEME);
-        if (hold[i] > 0u)
-            cv_rect(mx + 1, my + mh - hold[i], 5, 1, T_ACCENT);
-        if (i && inpx > 0)                            /* the actual send level: a thin input tick */
-            cv_rect(mx + 6, my + mh - inpx, 1, 1, T_MID);
+        if (hold[i] > 0u)                             /* the peak hold: one pixel over the bar */
+            cv_rect(mx + 1, my + mh - (int32_t)hold[i], 10, 1, T_ACCENT);
+        if (i && inpx > 0)                            /* what the bus receives, over the return */
+            cv_rect(mx + 4, my + mh - inpx, 4, 1, T_MID);
+        if (lvl >= 6800)                              /* full scale: the head of the meter clips */
+            cv_rect(mx + 1, my, 10, 2, T_ACCENT);
     }
 
     /* the three master modules, 72 px wide and 28 tall (70 .. 98). The icon and the module's name sit on
@@ -1340,6 +1338,56 @@ static void graph_lofi(const track_t *t, uint16_t c)
 
 /* WHEEL: the nine drawbars as rounded bars over RAISE slots (the bars of the knob just turned: the accent),
  * their footages under them */
+/* (3.6) PHASE's own screen. Its EDIT 1 and EDIT 2 pages fell through to the generic being, so the one
+ * engine whose whole character IS a bent phase had no picture of it. This is that picture and nothing
+ * invented: a phase ramp (the phase the oscillator walks, x) bent at the knee DCW puts it, drawn from the
+ * track's own P_E0..P_E7 -- the values eng_phase.c plays -- plus the figures the page does not carry.
+ * Moving DCW moves the knee and moving the page's WAVE moves what the header says, because those are the
+ * parameters; no state is kept here and no audio is read. */
+static void graph_phase(const track_t *t, uint16_t c)
+{
+    int32_t w = (int32_t)(t->p[P_E0] & 7), w2 = clamp(t->p[P_E1], 0, 8);
+    int32_t dcw = clamp(t->p[P_E2], 0, 127), env = clamp(t->p[P_E3], 0, 127);
+    int32_t dtn = clamp(t->p[P_E4], 0, 127), line = t->p[P_E5] & 1;
+    int32_t sub = clamp(t->p[P_E6], 0, 127), fb = clamp(t->p[P_E7], 0, 127);
+    int32_t x0 = PANEL_X0 + 2, x1 = 228, y0 = 26, y1 = 66;
+    int32_t knee = x0 + (x1 - x0) * (96 + dcw) / 224;   /* DCW 0: the knee mid, 127: at the right */
+    char b[40], h[40];
+
+    cv_text(PANEL_X0 + 2, 3, &AF_S, "PHASE", T_TEXT);   /* (the right header carries the rest) */
+    fmt_int(b, w);
+    str_cpy(h, "WAVE ", sizeof h);
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    fmt_int(b, w2);
+    str_cpy(h + str_len(h), line ? "  RING  W2 " : "  MIX  W2 ", sizeof h - str_len(h));
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    fmt_int(b, dtn);
+    str_cpy(h + str_len(h), "  DT ", sizeof h - str_len(h));
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    cv_text_r(228, 3, &AF_S, h, T_MID, T_SURF);
+
+    cv_rect(x0, y1, x1 - x0, 1, T_RAISE);                /* the axes */
+    cv_rect(x0, y0, 1, y1 - y0 + 1, T_RAISE);
+    cv_line_t(x0, y1, knee, y0, c, 2);                   /* the phase, bent at the knee */
+    cv_line_t(knee, y0, x1, y1, ux_mix(c, T_MID, 80), 2);
+    cv_rect(knee - 1, y0 - 4, 3, 3, T_ACCENT);           /* DCW's knee */
+
+    {   /* the three figures the page has no column for */
+        static const char *const NM[3] = {"ENV", "SUB", "FB"};
+        int32_t v[3], k;
+        v[0] = env; v[1] = sub; v[2] = fb;
+        for (k = 0; k < 3; k++) {
+            int32_t yy = 68 + k * 10;
+            cv_text(PANEL_X0 + 2, yy, &AF_S, NM[k], T_DIM);
+            cv_rect(PANEL_X0 + 40, yy + 3, 110, 3, T_RAISE);
+            if (v[k] > 0)
+                cv_rect(PANEL_X0 + 40, yy + 3, v[k] * 110 / 127, 3, c);
+            fmt_int(b, v[k] * 100 / 127);                /* percent, as the page's columns read */
+            cv_text_r(228, yy, &AF_S, b, v[k] ? T_TEXT : T_DIM, T_SURF);
+        }
+    }
+}
+
 static void graph_wheel(const track_t *t, uint16_t c)
 {
     uint32_t k;
@@ -3213,6 +3261,10 @@ static void draw_graph(void)
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {
                 cv_oy = 0;
                 graph_colony(t, -1);
+            }
+            else if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_PHASE) {
+                cv_oy = 0;
+                graph_phase(t, c);                   /* (3.6) PHASE's EDIT 1 and EDIT 2 */
             }
 #if FELUCCA_FM4
             else if ((pg->scope == SC_ENGINE || pg->id[0] == P_FM1_LEVEL) && t->eng_req % NENGINES == ENGI_DIGITAL)
