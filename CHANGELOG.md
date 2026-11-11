@@ -1,3 +1,21 @@
+## 2026-11-11 — créditos con nombre y apellido
+
+- **Créditos del linaje corregidos.** `README.md` y `MENU > ABOUT > CREDITS` atribuían Pocket GammaWave (GW-1) a
+  Hügelton Instruments; la línea GW-1 es de **Frederic Valente (@fvalente)**, como ya decían `LICENSING.md` y este
+  CHANGELOG. JIANT FM y Felucca quedan a nombre de **Leo Kuroshita (@kurogedelic) / Hügelton Instruments**.
+- **Se suman los aportes de este fork**: **Guillermo Lauria** (instalador publicado, CI y registro de build del
+  emulador, capa de FX, banco QUANTUM) en README y en el ABOUT del firmware; **David Konsumer (@konsumer)**
+  (primera instalación en una unidad de fábrica, chequeo de chip del loader, reanudación, releases por tag) en README.
+- **`firmware/src/ui_being.c`**: el encabezado decía `Copyright (C) 2026 ShadowTune / GammaWave // Wraith Custom
+  Firmware`, un titular que no aparece en ningún commit, en `LICENSES/` ni entre los colaboradores. El archivo se
+  creó en este repositorio y los mundos de HOME se desarrollaron acá: el aviso pasa a Guillel51 / Quantum
+  GammaWave, aclarando que "Wraith" es un nombre propio de este firmware (la ribbon y la barra).
+- **Marcadores de conflicto, fuera del árbol y con guard.** `firmware/src/felucca.c` llegó a `main` con un marcador de conflicto sin resolver dentro de su
+  `#ifndef FELUCCA_VERSION` y `ci_artifact/manifest.json` con el JSON partido: el build
+  AC791N no define la versión con `-D`, así que sólo el target fallaba. Los dos resueltos, `ci_artifact/` (registro
+  de build commiteado, de un commit que ya no existe) retirado, y `tests/run_tests.sh` ahora nombra cualquier
+  marcador commiteado con archivo y línea antes de compilar nada.
+
 ## 2026-11-11 — v2.7.1: el conflicto del firmware, resuelto, y el paquete reconstruido
 
 - **El arbol no compilaba.** El bump a v2.7.1 llego con marcadores de merge dentro de

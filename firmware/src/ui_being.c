@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * Copyright (C) 2026 ShadowTune / GammaWave // Wraith Custom Firmware
- * Authentic GammaWave-vst & WRAITH hardware visualizers for the 240x240 display:
+ * Copyright (C) 2026 Guillel51 / Quantum GammaWave
+ * (the file was created in this repository: "ShadowTune / GammaWave // Wraith Custom Firmware" named a holder
+ *  that no commit, no LICENSES/ text and no contributor records; the Wraith ribbon and Wraith bar are this
+ *  firmware's own names, see engines.c and the manual.)
+ * The GammaWave / Wraith visualizers the 240x240 display carries:
  *   - THE FORGE (Live Filter Frequency Response Curve + Thermal Spectrum + Dual Scope + Width/Phase Meters)
  *   - THE HEARTH (Solar Furnace Core + Radial Flare Corona + Spark Particles + Orbiting Satellite Moon)
  *   - WRAITH RIBBONS (6-Band Character Ribbon FLU/WHI/VOX/CHR/BEL/SCR & 5-Band Vowel Ribbon OO/OH/AH/EH/EE)
