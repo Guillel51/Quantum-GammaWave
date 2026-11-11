@@ -844,7 +844,9 @@ static void graph_fx(const track_t *t, uint16_t c)
                    i == 0 ? T_ACCENT : T_DIM, T_SURF);
         if (lvl >= 6800)                              /* (3.6) this bus is at full scale: it clips now */
             cv_rect(cx + 47, 6, 3, 3, T_ACCENT);
-        else if (pk > 64)                             /* the track is producing sound now */
+        else if (lvl > 64)                            /* (3.6) this bus is producing sound now: its own
+                                                       * return, not the track's envelope (which lit all
+                                                       * four cards together whatever was running) */
             cv_rect(cx + 47, 6, 3, 3, T_THEME);
         else
             cv_rect(cx + 47, 6, 3, 3, T_LINE);
