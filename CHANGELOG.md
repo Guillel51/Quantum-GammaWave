@@ -1,3 +1,68 @@
+## 2026-11-11 — v2.7.0: una sola version, y la evidencia que la sostiene
+
+- **`release/` vuelve a verificar.** `signed release` estaba rojo en `main`: `release/sign-request-v2.4.0-HISTORICAL.json`
+  era un duplicado byte a byte de `sign-request-v2.4.0.json` y no figuraba en `SHA256SUMS`. Se elimina el duplicado y
+  `release/SHA256SUMS` describe exactamente los `.fwsc` y `.json` del directorio (13 entradas, `sha256sum -c` limpio,
+  comprobado tambien con la comparacion que hace el propio workflow).
+- **La solicitud de firma describia un paquete que nunca se publico.** `release/sign-request-v2.5.0.json` nombraba el
+  build de `c6db91f` (`9752a1a6…`), pero el Release v2.5.0 se construyo desde `b5450ac` y sirve
+  `felucca.fwsc` **610 959 B** sha256 `d4f65dd1…7421`. Se regenero desde los bytes descargados del Release y su
+  registro de build quedo en `release/build-manifest-v2.5.0.json`; solicitud, registro y descarga ahora coinciden.
+- **Los tests de host llevaban un dia en rojo por dos baselines, no por merges.** `dbac783` cambio el damping de ROOM de
+  `32767 - RDAMP * 200` a `rev_damp_table[]` en `rev_room` y `rev_room_mod`, y nadie actualizo el modelo de referencia de
+  `tests/reverb_test.c` ni el golden de `tests/six_track_live_test.c`. El modelo de referencia conserva **su propia copia**
+  de la curva (asi un cambio en un solo lado sigue fallando), el golden de six-track se regrabo desde este arbol
+  (`61/61` segundos verificados) y `tests/golden.txt` se regrabo tras demostrar que los 216 renders cambiados son codigo
+  y no toolchain: con los mismos headers generados, `2e7de2a` reproduce 220/220 y `main` cambia 216.
+- **El emulador tiene una medida reproducible, no una impresion.** `web/emu/emu_test.mjs` sobre el WASM publicado:
+  17/17 checks y **1 s de la cancion pesada en 24,0 ms = 2,4 % del tiempo real** (~41x; un bloque de 60 fps cuesta
+  ~0,4 ms). Clase de la medida: emulador/WASM en host x86, no dispositivo.
+- **v2.7.0 en todo lo que sirve bytes:** `FELUCCA_VERSION "v2.7.0"`, README, `web/site/index.html`, `web/site/i18n.js`
+  (es/en/zh) y `web/index_pkg.html`. El emulador, el instalador y el portal se construyen del mismo commit y el paquete
+  sale del build de este tag, con su registro (`release/build-manifest-v2.7.0.json`) y su SHA-256 + tamano.
+
+## 2026-11-11 — v2.6.0: paquete real, WASM reproducible y el modelo SHA-256 implementado
+
+- **El modelo SHA-256 existia solo en la documentacion.** `docs/SIGNING.md` lo describia desde `c3881ad` y
+  `web/fm1ota.js` ya lo aplicaba, pero `tools/fm1_sign.py verify` seguia exigiendo `keyid` + `sig` Ed25519 de 64
+  bytes con una clave fijada, y `signed-release.yml` lo llama para cada paquete: un release v2.6.0 sin firma era
+  imposible. `verify` ahora valida siempre hash, tamano, producto, `images` y registro de build, verifica la firma
+  **cuando el manifiesto la lleva** (`qg1-release-1`, como v2.4.0) y, si no la lleva, informa `verified (integrity
+  only, unsigned: SHA-256 model)`. Quien necesita atestacion de editor pasa `--require-signature` y el manifiesto sin
+  firma se rechaza (comprobado, exit 1). Ninguna comprobacion de integridad se relajo.
+- **Paquete v2.6.0 construido desde el commit del tag** `73c0c662d3267d0a0ae27a19ff26b07116f53da1` con la toolchain
+  JieLi fijada (`jieli-linux-toolchains-20260730.1`, clang 4.0.1) y el SDK `AC79NN_SDK_V1.2.1_2023-12-13` (sus tres
+  archivos coinciden con `SDK_SHA256`): imagen **541 492 B**, `.data+.bss` **87 696 / 98 304 B**, POOL libre
+  **15 392 B**, codigo XIP 380 944 B, codigo en RAM **19 284 / 24 576 B**; paquete `release/felucca-v2.6.0.fwsc`
+  **610 959 B**, sha256 `567b72fa177ee755229b2106cd5dd7cfdacf0072bc4bcfa80aca4632972c712e`, identidad `FM-1_965`,
+  `dirty: []`. Registro en `release/build-manifest-v2.6.0.json` y manifiesto en
+  `release/felucca-v2.6.0.fwsc.manifest.json` (formato `qg1-release-1`, con `images` y `build_sha256`, sin `sig`).
+- **El WASM es reproducible y su manifiesto nombraba el commit equivocado.** Reconstruido con Emscripten **6.0.11**
+  desde el mismo commit: **1 104 688 B**, sha256
+  `62c4b7141ef59ac9b585f36dc7c13cff34eaaf2c2109f283894fd440c20af41d` — exactamente el tamano y hash que
+  `release/emu/manifest.json` declaraba, mientras ese archivo nombraba `ceb2e80bd43e`, un commit que no existe. Se
+  sustituyo por el que produce la construccion (commit `73c0c662d326`). Los otros dos valores reportados antes
+  (1 104 688 / `c1bb42fa...` y 1 095 007 / `3e9ded0c...`) no corresponden a ninguna construccion de este commit.
+- **Emulador probado, no solo compilado**: `web/emu/emu_test.mjs` sobre el WASM construido, todo en verde (arranque,
+  KNOB 1..4 por motor, PLAY/parada, mapa FX, presets de usuario persistentes, la cancion pesada dos veces con las
+  mismas muestras, 21,4 ms por segundo de audio = 2,1 % del tiempo real).
+- **Lo que sigue sin ser cierto:** el paquete v2.6.0 **no esta firmado** (no hay clave Ed25519 en este entorno y no se
+  genera), la atestacion de GitHub Artifact corresponde al workflow, y **nada se valido en una FM-1 fisica**. El
+  Release `v2.6.0` de GitHub no tenia adjuntos descargables al escribir esto: publicarlos requiere una credencial de
+  publicacion que esta sesion no tiene.
+- **Dos defectos reales encontrados al ejecutar la suite completa** (3 821 `ok`, 1 `FAILED`):
+  (1) `tests/reverb_test.c` comparaba el ROOM con la ley de damping lineal anterior a v2.4.0
+  (`32767 - RDAMP*200`) mientras el firmware usa la tabla logaritmica `rev_damp_table`, asi que la
+  referencia se habia quedado atras: se actualizo la copia de referencia y el ROOM vuelve a ser `ok`
+  bit a bit (1 319 924 muestras divergentes antes, 0 ahora). (2) `requireProof()` admitia el paquete
+  pero no nombraba el commit cuyo registro lo autorizo: ahora el proof lleva `build` con ese commit,
+  y `test_release_e2e.mjs` pasa esa comprobacion en lugar de fallarla.
+- **Reconstruccion definitiva sobre `main`** (`d3aa772cc5533671053e7a07cead9186c34f2bee`): `main` habia quedado roto por `5ca34a3`, que al quitar
+  el readout del splash se llevo la llave de cierre del bloque (`ui_draw.c` 260 `{` frente a 259 `}`); como
+  `felucca.c` incluye las fuentes en una sola unidad de traduccion, el ambito abierto convertia cada archivo
+  posterior en una funcion dentro de otra y la compilacion AC791N fallaba con mas de 20 errores. Se elimino la
+  llave huerfana y el arbol vuelve a compilar: imagen **541 460 B**, paquete **610 959 B** sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25`,
+  WASM **1104631 B** sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a` (Emscripten 6.0.11), `dirty: []`.
 ## 2026-11-11 — v2.6.0: splash screen cleanup, v2.6 release, bootsplash updates
 
 ### Splash screen updates

@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Every package in release/ is a release only if it verifies: the signature against the pinned public key,
-# the hash and size of the bytes, the firmware image hashes it names, and the build record inside it.
+# Every package in release/ is a release only if it verifies: the hash and size of the bytes, the firmware
+# image hashes it names, and the build record inside it -- and, when the manifest carries one, the Ed25519
+# signature against the pinned public key (v2.7.0 model: SHA-256 + size is the integrity gate, Ed25519 is
+# historical; see docs/SIGNING.md). An unsigned manifest is reported as integrity-only, never as signed.
 #
 # This exists because the site installs whatever is in release/ and the GitHub release publishes those exact
 # bytes. An edit to a package, a manifest signed by another key, a package dropped in without its manifest or a
@@ -31,7 +33,7 @@ jobs:
       - run: pip install cryptography
       - name: at least one key is pinned (fail-closed otherwise)
         run: python3 tools/fm1_sign.py check --require-key
-      - name: every package in release/ verifies against its own manifest
+      - name: every package in release/ verifies against its own manifest (signature when present)
         run: |
           set -euo pipefail
           shopt -s nullglob

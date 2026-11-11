@@ -1515,3 +1515,66 @@ Lo que **no** está en esta pasada:
 
 No se realizaron escrituras en el FM-1 físico. No se generaron ni sustituyeron firmas privadas. No se modificaron tags históricos (v2.4.1, v2.4.2 conservados).
 
+What is **not** in this pass: any device measurement, any emulator frame, any change to the audio
+path (none was made or measured).
+
+## 25. Update — 2026-11-11, v2.6.0 rebuilt here from the release commit (no unit touched)
+
+Every figure below was produced in this session on this machine. Classes: `[TARGET]` = AC791N build with
+the pinned pi32v2 toolchain and pinned SDK files; `[HOST]` = native x86-64; `[WASM]` = Emscripten build
+executed in Node. Nothing here is a claim about a physical FM-1.
+
+| Item | Value | Class |
+|---|---|---|
+| Toolchain | `jieli-linux-toolchains-20260730.1`, `pi32v2/bin/clang` = clang 4.0.1, archive pinned `a1545cdd…` | `[TARGET]` |
+| SDK | `AC79NN_SDK_V1.2.1_2023-12-13`; `uboot.boot`, `cfg_tool.bin`, `cfg/eq_cfg_hw.bin` match `SDK_SHA256` | `[TARGET]` |
+| Build commit | `d3aa772cc5533671053e7a07cead9186c34f2bee`, `dirty: []` | `[TARGET]` |
+| Image / budgets | image **541 460 B**; `.data+.bss` **87 696 / 98 304 B**; POOL spare **15 392 B**; XIP code 380 908 B + 140 520 B constants; RAM code **19 284 / 24 576 B**, `.ram_text` no calls | `[TARGET]` |
+| Package | `release/felucca-v2.6.0.fwsc` **610 959 B**, sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25`, identity `FM-1_965`, version `v2.6.0` | `[TARGET]` |
+| Release manifest | `qg1-release-1` with `images` + `build_sha256`, **no `sig`** (SHA-256 model of `docs/SIGNING.md`) | `[HOST]` |
+| Integrity gate | `fm1_sign.py verify` → `verified (integrity only, unsigned: SHA-256 model)`; same manifest with `--require-signature` → exit 1 | `[HOST]` |
+| Legacy signed release | `release/felucca-v2.4.0.fwsc` still verifies against `qg1-release-1` | `[HOST]` |
+| WASM | **1104631 B**, sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a`, Emscripten **6.0.11**, commit `d3aa772cc553`, `dirty: []` | `[WASM]` |
+| Emulator behaviour | `web/emu/emu_test.mjs` all checks pass; heavy song twice identical; 1 s of audio in 24.2 ms (**2.4 % of real time**) | `[WASM]` |
+| Emulator manifest defect | `release/emu/manifest.json` named `ceb2e80bd43e`, a commit that does not exist; it is now the record the build produces (`73c0c662d326`) | `[STATIC]` |
+| Historical hash claims | `c1bb42fa…` and `3e9ded0c…` do not describe any build of this commit; the reproducible value is `62c4b714…` at 1 104 688 B | `[WASM]` |
+
+**Not run, and why.** A physical unit (only the owner may do that), a browser session (no browser automation
+was used), GitHub Artifact Attestation (produced by `release.yml` in Actions, not here), and the signing of a
+v2.6.0 package (no Ed25519 private key exists in this environment, by design). The installer gate therefore
+stays closed for a first physical write: rows 4–9 of §15 still need a reading from the owner's unit.
+
+## 26. What v2.6.0 still cannot claim (2026-11-11)
+
+The public chain was verified by downloading it, not by reading a workflow conclusion:
+
+| Surface | Verified state |
+|---|---|
+| Pages root (portal + installer) | serves **v2.6.0**, package `felucca-v2.6.0-35651a5.fwsc`, `qg1-release-1` named, `72165d8d…` published |
+| Downloaded package | 610 959 B, sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25` — equals the record |
+| `/emulator/` | manifest `v2.6.0`, commit `b53ca388ad0a`, wasm 1 104 631 B sha256 `ae94611f…` |
+| Downloaded wasm | sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a` — equals the record |
+| `/preview/` | `v2.6.0`, commit `b53ca388ad0a` (main's own emulator) |
+| `release/*.fwsc` | five packages verify: four signed by `qg1-release-1`, v2.6.0 as integrity-only |
+
+**Open, with the concrete reason:**
+
+1. **The `v2.6.0` tag is not the artefact commit.** `refs/tags/v2.6.0` = `73c0c66…`; the published
+   artefacts were built from `35651a5…`, because `main` gained the splash-brace repair (`4a3c2c8`) and the
+   SDK/UI merges after the tag was cut. Rebuilding at `35651a5` changes the package (541 460 B image,
+   `72165d8d…`) from the tag build (541 492 B, `567b72fa…`), so the tag cannot be described as "the bytes
+   served". Moving a published tag or re-cutting it needs a tag push, which this session has no credential
+   for (`gh auth status`: not logged in; `cloud_git` pushes branches only).
+2. **The GitHub Release `v2.6.0` has no downloadable assets.** Its asset list is empty, and uploading
+   `felucca-v2.6.0.fwsc`, `build-manifest-v2.6.0.json` and `SHA256SUMS` needs the same missing credential.
+   The package *is* publicly downloadable from Pages, which is what the installer page uses.
+3. **No Ed25519 signature for v2.6.0** (by design: no private key exists here). `Signatures: NOT SIGNED —
+   integrity via SHA-256 + size`. GitHub Artifact Attestation is produced by `release.yml` on a tag push,
+   so it also does not cover `35651a5`.
+4. **The full host suite did not complete in this session** (the runner restarted during it). What did run:
+   `sign_test.py`, `key_custody_test.py`, `sign_request_test.py` (all green), and
+   `test_web.mjs`, `test_sign.mjs`, `test_pkg_bounds.mjs`, `test_provenance.mjs`, `test_verify_only.mjs`
+   (153 checks, 0 failed). `test_release_e2e.mjs` **skipped** (no `build/` in this checkout) — skipped, not
+   passed.
+5. **Nothing was validated on a physical FM-1.** No unit was touched, no write, erase or recovery command
+   was sent anywhere. JEDEC, geometry, recovery and the first write remain the owner's hardware checks.

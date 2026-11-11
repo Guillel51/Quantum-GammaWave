@@ -3,7 +3,7 @@
      Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments -->
 <!-- Felucca web editor. One file, no libraries. Protocol: EDITOR_PROTOCOL.md.
      Add ?mock=1 to the URL to use a built-in simulated device. -->
-<html lang="ja" data-version="v2.4.0">
+<html lang="ja" data-version="v2.6.0-1c9fa99">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2549,9 +2549,7 @@ function makeMockDevice(opt = {}) {
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
     D("CUT", F.CUTOFF, 0, 127, 127), D("RES", F.PCT, 0, 127, 0));                       /* 113, 114: the other engines' */
-  TP.push(D("M.STRT", F.PCT, 0, 127, 0),                                               /* 115: (3.5) a note starts a
-                                                                                        * little late, at random */
-    E("N.RATE", ["1/1", "1/2", "1/4", "1/8", "1/16", "46ms"], 5));                      /* 116: the random wander's hold */
+  TP.push(D("M.STRT", F.PCT, 0, 127, 0), E("N.RATE", ["1/1", "1/2", "1/4", "1/8", "1/16", "46ms"], 5));   /* 115, 116: params.c P_MSTART, P_NRATE */
   const P_COUNT = 125, G_COUNT = 75, NSTEP = 64, P_E0 = 117, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
@@ -6104,7 +6102,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("v2.4.0", 120, 194);
+      ctx.fillText("v2.6.0-1c9fa99", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";
