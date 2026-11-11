@@ -1,3 +1,8 @@
+## 2026-11-11 — v2.7.4: FX meter fix and release
+
+- **FX meter (DIST)**: the DIST bar in the FX screen now stays dark when drive is off (`P_DIST == 0`), instead of following the dry track signal. The other three buses already read `fx.c`'s real measured peaks.
+- **Release**: firmware v2.7.4, package `release/felucca-v2.7.4.fwsc`, emulator (WASM) and manifests, same commit.
+
 ## 2026-11-11 — créditos con nombre y apellido
 
 - **Créditos del linaje corregidos.** `README.md` y `MENU > ABOUT > CREDITS` atribuían Pocket GammaWave (GW-1) a
