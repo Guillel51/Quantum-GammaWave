@@ -1670,3 +1670,21 @@ and constants 140 740 B. The heaviest XIP symbols are `draw_graph` 32 038 B, `ui
 **NOINIT has 124 B and LOWBUF 2 092 B free**, so any new persistent state (MORPH A/B, a ninth engine's
 voicing tables, per-model reverb animation state) must be planned against those two regions first, not
 against the 15 KiB pool spare. Nothing in this section was measured on a unit.
+
+## 30. Update — 2026-11-11, the three release pendings, closed
+
+| Pending | State now | Evidence |
+|---|---|---|
+| Tag and Release `v2.7.1` | **closed** | annotated `6cd231d` → `85a601f`; `releases/tag/v2.7.1` 200; asset `felucca-v2.7.1.fwsc` 610 959 B `8b1798b9…6de6`; downloaded asset `cmp`-identical to `release/` and to what Pages serves |
+| Release notes | **published** | release body is the CHANGELOG entry for the tag (1 974 chars) plus the "verify what you download" paragraph: integrity, not authenticity |
+| Coherence guard | **in CI and proven** | `tools/coherence_check.py` (also runnable by hand) + `.github/workflows/coherence.yml` on every push and PR |
+
+The checks the guard performs are exactly the defects this repository already shipped once: merge markers inside
+a tracked file (the v2.7.1 firmware did not compile because of them), a `FELUCCA_VERSION` with no package in
+`release/`, a manifest whose hash or size disagrees with its bytes, a `site/firmware/versions.json` naming a
+hash the package does not have, an emulator record built from another tree, and a `SHA256SUMS` that no longer
+describes the directory. Verified locally both ways: on this tree it reports
+`coherence: ok … 843 files carry no merge marker` (exit 0), and on a tampered copy with a planted
+`<<<<<<< HEAD` and one appended byte to the package it reports the marker at the right line, the hash and size
+mismatch and the site hash mismatch, exit 1. The workflow's own run log is not readable from here (no Actions
+API credential), so the job's status is **not** claimed — the script it runs is what was verified.
