@@ -1,4 +1,4 @@
-## 2026-11-11 — pasada 3.5: los mundos de HOME, sus respuestas y la profundidad del visualizador
+## 2026-11-11 — v2.5.0: los mundos de HOME, sus respuestas y la profundidad del visualizador (pasada 3.5) los mundos de HOME, sus respuestas y la profundidad del visualizador
 
 - **Planetas con volumen** (`ui_being.c`): la cara iluminada es una rejilla 3x2 (tres bandas de latitud por dos mitades) sobre seis tonos por cuerpo, con luz de limbo, segunda atmosfera en el oceanico y el anillado, y detalles propios (mares y cresta, tres bandas y ojo de tormenta, horizonte y media luna, sombra del anillo, casquetes y grieta). Techo de radio 9 px; ningun cuerpo es ya un disco plano de un tono.
 - **Cinco reacciones distintas al tocar** (tabla `PL_POKE`): SPIN (impulso orbital y cola de cometa), SWELL (hincha y vuelve), RIPPLE (frente de onda y eco punteado), SLING (empuje radial que abre el anillo), FROST (anillo de escarcha y abanico). Son funcion pura de `ui.frame - pl_poke_t[i]`, sin acumuladores: se interrumpen y se reinician al instante, y se congelan con `PREF_ANIM_OFF`.
