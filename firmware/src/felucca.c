@@ -41,7 +41,6 @@
 <<<<<<< HEAD
 #define FELUCCA_VERSION "v2.7.1" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. Phase 2/3 integrated: planet redesign, interactions, FX, visualizer improvements. v2.7.1 release. */
 =======
-#define FELUCCA_VERSION "v2.7.0" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor */
 >>>>>>> a521fd452a928dc1eef969901c11278ccbb2d59f
 /* (v1.9.0: the integrated tree. v1.8.8 was the AC791N-build line, v1.8.9 the EQ/restore line; this
  * tree contains both, so it is neither -- the number states which code it is, and
