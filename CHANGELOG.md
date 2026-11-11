@@ -1,3 +1,9 @@
+## 2026-11-12 — v2.7.4.4: Reverb RESO animation fix and release sync
+
+- **Reverb RESO**: removed the out-of-panel glitching orbit ring and added a travelling pulse along each resonant string, with frame-rate scaling tied to the reverb return.
+- **Emulator/site/readmes**: synchronized with the rebuilt firmware and WASM.
+- **Release**: v2.7.4.4 firmware + SHA256.
+
 ## 2026-11-11 — v2.7.4.3: FX VU meters rebuilt on HOME's plasma meter
 
 - **FX meters**: replaced the old FX-section VU meters with HOME's segmented plasma meter component, reusing its design, animation and decay ballistics.

@@ -261,7 +261,7 @@ static void tech_rev(void)
          * SIZE rises, and DOTS RUNNING ALONG each string (the resolution's energy), brighter with what the
          * bus returns. CLOUD below is a swarm that breathes and puffs. Different geometry, different motion,
          * both from tables and ui.frame: no per-pixel trigonometry, no allocation. */
-        int32_t nd = 3 + song.g[G_RRATE] / 32, fr = (int32_t)(ui.frame & 63u);
+        int32_t nd = 3 + song.g[G_RRATE] / 32, fr = (int32_t)((ui.frame * (1u + (uint32_t)rev_act / 32u)) & 63u);
         for (i = 0; i < 4; i++) {
             int32_t x = x0 + 30 + i * 44 + (mod > 64 && i >= 2 ? 10 : 0), k, hh = 30 + size * 55 / 127;
             int32_t len = clamp(hh * 3 / 2, 20, w - (x - x0) - 8);
@@ -285,10 +285,19 @@ static void tech_rev(void)
                     cv_pset(x - 2 + ph - 1, y, ux_mix(T_BG, dc, 45));      /* a soft head on every other one */
             }
         }
-        if (rev_act > 10) {                             /* a note: the four strings answer together, one ring */
-            int32_t rr = 6 + (rev_ph & 31);
-            gw_orbit_ring(x0 + w / 2, base - 34, rr + 22, (rr + 22) / 2,
-                          ux_mix(T_BG, bg_col(160 + (int32_t)rev_act / 3), 40 + (int32_t)rev_act / 6), 1);
+        if (rev_act > 10) {                             /* a note: each string answers with a travelling pulse;
+                                                         * the old orbit ring wrapped outside the panel and read as a glitch */
+            int32_t i2;
+            for (i2 = 0; i2 < 4; i2++) {
+                int32_t xx = x0 + 30 + i2 * 44 + (mod > 64 && i2 >= 2 ? 10 : 0);
+                int32_t hh2 = 30 + size * 55 / 127;
+                int32_t len2 = clamp(hh2 * 3 / 2, 20, w - (xx - x0) - 8);
+                int32_t pulse = (rev_ph * (3 + i2)) % (len2 > 0 ? len2 : 1);
+                int32_t yy = base - hh2 - 6 + pulse * (hh2 + 6) / (len2 > 0 ? len2 : 1);
+                if (yy > TK_Y0 && yy < base - 2 && xx - 2 + pulse > x0 && xx - 2 + pulse < x0 + w)
+                    cv_rrect(xx - 3 + pulse, yy - 2, 5, 4, 2,
+                             ux_mix(T_BG, bg_col(220 + (int32_t)rev_act / 6), 70 + (int32_t)rev_act / 4), T_SURF);
+            }
         }
         return;
     }
