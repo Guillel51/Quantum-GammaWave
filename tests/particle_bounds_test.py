@@ -143,5 +143,40 @@ if len(orx) == npl and len(orr) == npl and len(orys) == npl and len(box) == 4 an
     check(cx - bx >= 8 and bx + bw - cx >= 8 and cy - by >= 8 and by + bh - cy >= 8,
           "HOME: the system is centred in its bay (no orbit pushed to an edge)")
 
+
+# ---- (3.5) HOME's bay answers a touch, one mechanism per world -------------------
+inp = read("ui_input.c")
+tap = body(inp, "ui_tap")
+check(bool(tap) and "gw_planet_at" in tap and "gw_planet_poke" in tap,
+      "ui_tap hit-tests the bay and pokes the body it finds")
+check("!ui.home || ui.home_viz" in tap, "ui_tap does nothing off HOME's own screen")
+poke = body(being, "gw_planet_poke")
+check("pl_poke_t[i] = ui.frame" in poke and "pl_poke_on[i] = 1u" in poke,
+      "a touch stores the frame it happened on: a re-touch restarts, nothing accumulates")
+check("vz_np_add" in poke, "the frozen world's fan comes from the bounded pool")
+check("malloc" not in being and "calloc" not in being, "the reaction path allocates nothing")
+sysdraw = body(being, "gw_draw_system") + body(being, "gw_body_react") + body(being, "gw_planet_poke")
+pk = set(re.findall(r"PK_(SPIN|SWELL|RIPPLE|SLING|FROST)", sysdraw))
+check(len(pk) == 5, "HOME's five worlds answer five mechanisms: %s" % sorted(pk))
+check("static const uint8_t PL_POKE[NPL] = {PK_SPIN, PK_SWELL, PK_RIPPLE, PK_SLING, PK_FROST}" in being,
+      "each body is bound to its own reaction (PL_POKE)")
+check("ui.frame - pl_poke_t[i]" in body(being, "pl_age"),
+      "a reaction is a function of the frame it was touched, not an accumulator")
+check("gw_ring_clip" in being and "sys_line" in body(being, "gw_ring_clip"),
+      "the touch's rings are clipped by the bay, not painted over the panel")
+deep = body(being, "gw_viz_deep")
+vizbody = body(graph, "graph_home_viz")
+check("gw_viz_deep(ui_viz_q)" in vizbody, "the visualizer draws the deep field")
+check(vizbody.find("gw_viz_deep") < vizbody.find("gw_note_particles"),
+      "the deep field is under the music's own drawing, not over it")
+check("cv_text" not in deep and "cv_rrect" not in deep,
+      "the deep field draws no text and no cell (nothing for the layout lint to collide with)")
+check("if (q >= 2u)" in deep and "return" in deep.split("if (q >= 2u)")[1][:80],
+      "the deep field is off at LOW quality")
+check("if (n > GW_EMBER_MAX)" in body(being, "gw_embers"),
+      "the dust field is capped whatever a caller asks for")
+check("bg_darken" in body(being, "bg_darken") or "ux_gray" in body(being, "bg_darken"),
+      "the deeper page stays on the gray axis (GREY / MONO keep every pixel neutral)")
+
 print("\nparticles: %d failed checks" % len(fails))
 sys.exit(1 if fails else 0)

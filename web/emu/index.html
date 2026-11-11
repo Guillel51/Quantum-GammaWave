@@ -98,6 +98,7 @@ footer small { font-size: 11px; opacity: .8; }
   <span><kbd>[</kbd> <kbd>]</kbd> OCT− OCT+ (on any keyboard layout, AltGr too)</span>
   <span><kbd>↑</kbd> <kbd>↓</kbd> SELECT</span>
   <span><kbd>←</kbd> <kbd>→</kbd> ALGORITHM</span>
+  <span>Tap a planet on HOME: its own reaction</span>
   <span><kbd>Shift</kbd>-click holds a button (e.g. <kbd>Shift</kbd>+<kbd>OCT-</kbd> then <kbd>ARP</kbd> = Solar Macros, <kbd>PLAY</kbd> = 49-Genre Gen, <kbd>HOME</kbd> = 3D Visualizer)</span>
 </p>
 
@@ -166,6 +167,14 @@ angle.MASTER = -135 + 270 * masterValue / 1023;
 const knobs = [], buttons = [], keys = [];
 const btnBy = new Map(), keyBy = new Map();                   // pointer / key code -> label bit or key
 const send = (m) => { if (node) node.port.postMessage(m); };
+// (3.5) a tap on the LCD reaches the firmware's own bay: the browser is the one front end that can point at a
+// planet (the FM-1's panel has no touch surface). Guarded, so a WASM built before the export ignores it.
+canvas.addEventListener("pointerdown", (e) => {
+  const r = canvas.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  send({ type: "tap", x: Math.floor((e.clientX - r.left) * 240 / r.width),
+                        y: Math.floor((e.clientY - r.top) * 240 / r.height) });
+});
 
 function build(name) {
   const L = LAYOUTS[name];
