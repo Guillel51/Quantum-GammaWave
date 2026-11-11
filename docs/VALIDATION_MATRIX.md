@@ -1631,3 +1631,12 @@ from that repaired, committed tree (`9102919`, `dirty: []`):
 
 This supersedes §27's figures for v2.7.0: the portal, the installer, the emulator record and the package now
 name v2.7.1, and the v2.7.0 assets stay published as history. Nothing here was produced by, or sent to, a unit.
+
+**Deployed state of v2.7.1 (`[PUBLIC]`, read from the URLs):** `firmware/versions.json` serves
+`v2.7.1-9102919`, 610 959 B, sha256 `8b1798b9…6de6`, and the downloaded file is `cmp`-identical to
+`release/felucca-v2.7.1.fwsc`; `/emulator/manifest.json` reports `v2.7.1`, commit `91029198cc89`, wasm
+1 104 650 B `e3388879…2d03`; the installer page shows `v2.7.1-9102919`, the same SHA-256, `Ready to flash
+(610,959 bytes)` and no `Ed25519 null`. The GitHub Release **v2.7.1 does not exist yet** (`releases/tag/v2.7.1`
+→ 404): the only path to it is a tag push, and no workflow in this repository creates tags (`grep 'git tag'`
+over `.github/workflows/` is empty), so it needs a credential this session does not have. The v2.7.0 release
+and its assets stay published as history.
