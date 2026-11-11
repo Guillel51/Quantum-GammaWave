@@ -40,6 +40,21 @@ static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_ENV, B_LFO, B_FX, B_SCL, B_
 static void motion_capture_ui(track_t *t, uint32_t id, int16_t v);   /* (1.1.1-GW: below, by rec_clear_auto) */
 
 static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
+/* (3.5) A TAP ON HOME'S BAY. The FM-1's own panel has no touch surface, so nothing on the device calls this:
+ * it is the entry point for the front ends that can point at the screen (the browser emulator's LCD, and the
+ * host tests). Screen coordinates; a tap anywhere but on a body is nothing at all -- not a page change, not a
+ * pulse -- so a miss is never mistaken for a gesture. */
+void ui_tap(int32_t x, int32_t y)
+{
+    int32_t p;
+    if (!ui.home || ui.home_viz || ui.menu || ui.confirm || ui.layer || name_on())
+        return;
+    p = gw_planet_at(x, y);
+    if (p < 0)
+        return;
+    gw_planet_poke(p);
+    ui.force = 1;
+}
 
 /* (JIANT 0.6.6) a page button held + PRESETS: that family's pages one by one, forwards / back (GLO: the mixer and the
  * global pages), the page shown at once with its title; the button let go stays there (its tap, its layer: not now) */
