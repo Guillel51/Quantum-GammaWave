@@ -1224,7 +1224,11 @@ static void draw(int s)
     }
     if (s == S_SPLASH) {                          /* the power-on splash (main.c, before the UI): its lines, the version
                                                    * shown FELUCCA_VERSION (run_tests.sh: src/felucca.c's) */
-        static const char WANT[] = FELUCCA_VERSION "|QUANTUM GAMMAWAVE // QG-1";   /* (QUANTUM GAMMAWAVE: under the signature) */
+        /* (v2.6.0 splash cleanup) the splash draws SPLASH_LINES = {FELUCCA_VERSION, ""}: the version
+         * alone, the name line was removed on purpose, so the lint asks for exactly that. */
+        /* (v2.7.0) the splash carries its tagline again: SPLASH_LINES = {FELUCCA_VERSION,
+         * "QUANTUM GAMMAWAVE // QG-1"}, so the lint asks for both, in order. */
+        static const char WANT[] = FELUCCA_VERSION "|QUANTUM GAMMAWAVE // QG-1";
         splash_seen[0] = 0;
         in_splash = 1;
         draw_splash();

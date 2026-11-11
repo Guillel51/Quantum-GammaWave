@@ -1371,6 +1371,28 @@ parameter changed; no physical FM-1 was used and no target build was produced in
 
 # Changelog — QUANTUM GAMMAWAVE (QG-1)
 
+## v2.7.0 — fusion de los trabajos concurrentes y artefactos reconstruidos
+
+Esta version une el trabajo de esta sesion con el que llego por `main` mientras se ejecutaba
+(`v2.7.0`, tagline del splash restaurado, goldens de 216 renders regrabados, reverb y golden de seis
+pistas corregidos) y publica artefactos reconstruidos desde ese arbol, no desde `v2.6.0`.
+
+- Firmware AC791N `v2.7.0`, commit `5313a793d6b52e1cad0375e2a0d94453e8cc018d`, identidad `FM-1_965`,
+  arbol limpio (`dirty: []`). Paquete `felucca-v2.7.0.fwsc`: 610 959 B, SHA-256
+  `64122dde0e205bb48ba4cc3c2e0d687f38a5fdc351f94e197e94f5ee988868dc` (integridad SHA-256; sin firma,
+  como el modelo v2.6.0).
+- WASM del emulador: 1 104 650 B, SHA-256
+  `2c4cf3e3ac6832ee3cf2d1be38ea7591c1d3b4bc63fbd44ef3e863b41071fd43`, construido con emcc 6.0.11 desde
+  el mismo commit.
+- Correcciones de esta sesion que siguen en pie tras la fusion: referencia ROOM contra
+  `rev_damp_table`, `requireProof()` ligado al commit verificado, instalador sin `Ed25519 null`
+  (`SHA-256 only, unsigned package`), copy del sitio sin prometer firma inexistente, y traducciones
+  EN/ZH completas (204 cadenas, 0 ausentes).
+- El lint de UI vuelve a exigir las dos lineas del splash porque v2.7.0 restauro el tagline; ambas
+  variantes del render dan 0 hallazgos y 0 medidas fuera de alineacion.
+- Los registros `v2.6.0` se conservan en `release/` como historia; lo publicado es `v2.7.0`.
+
+
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.
 
