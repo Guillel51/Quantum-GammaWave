@@ -358,6 +358,12 @@ static void tech_rev(void)
             bh = bh * (600 + (bg_sin((uint32_t)(i * i * 9)) >> 6) * 400 / 512) / 1000;
         if (bh > 0)
             cv_rect(x0 + 6 + gap + i, base - bh, 1, bh, heat_col(heat));
+        if (spring && bh > 2) {                       /* SPRING: a coil zigzag over the tail, so the model
+                                                         * is visually distinct from ROOM's straight comb */
+            int32_t zy = base - bh + (((i >> 2) & 1) ? -3 : 3);
+            if (zy > TK_Y0 && zy < base - 1)
+                cv_rect(x0 + 6 + gap + i, zy, 1, 2, heat_col(clamp(heat + 60, 0, 250)));
+        }
         if (ty == 2 && mod && i % 6 == 0 && bh > 4) {   /* SHIMMER: sparks an octave (+ AIR) over the tail, as many as MOD;
                                                          * AIR down: they sink and cool */
             int32_t air = clamp(pre, -24, 24), sy = base - bh - 6 - (i * 7 % 23) * mod / 127 - air * 18 / 24;
