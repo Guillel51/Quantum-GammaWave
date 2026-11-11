@@ -2758,7 +2758,7 @@ static void graph_home_viz(uint16_t c)
          * phase plot, the spectrum bars and every label (2.0: it used to be painted after the bars, so it
          * sat in front of the data). gw_embers() is ui_being.c's one implementation, shared with HOME's
          * own bay; 18 embers at HIGH, 12 at BALANCED, 6 at LOW, deterministic and allocation-free. */
-        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 14u : 22u, 0u, 80, vsf);
+        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 10u : ui_viz_q == 1u ? 18u : 28u, 0u, 80, vsf);
 
         /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
         cv_rect(12, cy, 144, 1, T_LINE);

@@ -1,3 +1,11 @@
+## 2026-11-11 — v2.7.4.1: UI redesign pass, planets, visualizer, FX and splash
+
+- **HOME / solar system**: deeper star field, more dust, nebula and reactive planets (spin, swell, ripple, sling, frost), all five answer taps.
+- **Visualizer**: denser reactive particles and orbital elements, improved depth and transitions.
+- **FX**: meters track real per-bus peaks; DIST meter idles when drive is off; splash timing extended ~1 s.
+- **Splash**: longer writing animation (SPL_WRITE 2500 ms) with hand-over preserved.
+- **Release**: firmware v2.7.4.1, package, manifests and hashes.
+
 ## 2026-11-11 — v2.7.4: FX meter fix and release
 
 - **FX meter (DIST)**: the DIST bar in the FX screen now stays dark when drive is off (`P_DIST == 0`), instead of following the dry track signal. The other three buses already read `fx.c`'s real measured peaks.
