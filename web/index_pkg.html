@@ -1346,7 +1346,9 @@ async function loadVersion(i) {
     try { prov = await verifyProvenance(pkg, v.build, { product: meta.product, version: v.version, image: null }); }
     catch (e) { log(`provenance: ${e && e.message}`); sayK("badpkg"); return; }
     releaseOk = true; provOk = prov;
-    $("pkg-hash").textContent = t("hashOk") + hash + " \u00b7 Ed25519 " + releaseSig.keyid;
+    /* v2.6.0 ships an unsigned manifest: never print "Ed25519 null" */
+    $("pkg-hash").textContent = t("hashOk") + hash +
+      (releaseSig.keyid ? " \u00b7 Ed25519 " + releaseSig.keyid : " \u00b7 SHA-256 only, unsigned package");
     image = pkg;
     renderPlan();
     releaseHash = hash; releaseVersion = v.version;
