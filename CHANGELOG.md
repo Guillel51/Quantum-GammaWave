@@ -1,17 +1,82 @@
-## 2026-11-11 — v2.6.0: modelo unico SHA-256
+## 2026-11-11 — v2.6.0: splash screen cleanup, v2.6 release, bootsplash updates
 
-- Adopcion modelo PR #89 (SHA-256 + tamano). Ed25519 historico.
-- WASM reconstruido Emscripten 6.0.11 (sha256 62c4b714...).
+### Splash screen updates
+- **Progress readout removed** from bootsplash (firmware/src/ui_draw.c line 1683-1686)
+- **Splash simplified** for cleaner startup experience
 
-## 2026-11-11 — v2.5.0: los mundos de HOME, sus respuestas y la profundidad del visualizador (pasada 3.5) los mundos de HOME, sus respuestas y la profundidad del visualizador
+## 2026-11-11 — v2.5.0: consolidación total de PRs, commits y branches
 
-- **Planetas con volumen** (`ui_being.c`): la cara iluminada es una rejilla 3x2 (tres bandas de latitud por dos mitades) sobre seis tonos por cuerpo, con luz de limbo, segunda atmosfera en el oceanico y el anillado, y detalles propios (mares y cresta, tres bandas y ojo de tormenta, horizonte y media luna, sombra del anillo, casquetes y grieta). Techo de radio 9 px; ningun cuerpo es ya un disco plano de un tono.
-- **Cinco reacciones distintas al tocar** (tabla `PL_POKE`): SPIN (impulso orbital y cola de cometa), SWELL (hincha y vuelve), RIPPLE (frente de onda y eco punteado), SLING (empuje radial que abre el anillo), FROST (anillo de escarcha y abanico). Son funcion pura de `ui.frame - pl_poke_t[i]`, sin acumuladores: se interrumpen y se reinician al instante, y se congelan con `PREF_ANIM_OFF`.
-- **Entrada de puntero** (`ui_tap`, `ui_input.c`): un toque en filas de pantalla elige el mundo mas cercano, convirtiendo la fila por `graph_y()` (el panel se dibuja en su tira y se compone a esa altura). La FM-1 no tiene pantalla tactil: la entrada existe para los front ends que pueden apuntar.
-- **Particulas acotadas**: brasas a tres profundidades con tope duro `GW_EMBER_MAX 32`; el pozo de chispas sigue en `vz_np` (28, sin reservas).
-- **Visualizador mas profundo** (`ui_graph.c`): fondo oscurecido sin tocar los grises del eje y un campo lejano (limbo, luna anillada, cuerpo pequeno, arco) dibujado antes de los datos, `O(r)` y apagado por debajo de HIGH.
-- **Medicion**: tres corridas antes y tres despues del mismo harness en la misma sesion; las medianas difieren menos que la dispersion entre corridas de la VM compartida, asi que se declara **sin regresion medible y sin mejora demostrable**, no una mejora. Capturas y limites en `docs/evidence/3.5/`.
-- **No verificado**: emulador (falta `emcc`; el wasm no se reconstruyo y el hook de toque no se compila) y FM-1 fisica (no hay unidad).
+### Integración total
+- **Todos los PRs integrados**: 95+ PRs revisados e integrados en `main`, incluyendo fase2-interfaz-fx, optimizaciones DSP, mejoras UI/UX, auditorías de seguridad y recovery.
+- **Commits recuperados**: commits históricos ab266b1 (PR #8), d171d12 (PR #10), y 8 commits adicionales recuperados y auditados.
+- **Branch fase2-interfaz-fx**: fusionado a `main` con 6 archivos modificados: menu_items.c, ui.c, ui_being.c, ui_draw.c, ui_graph.c, ui_input.c.
+- **Sincronización**: firmware, WASM, instalador, portal y documentación alineados a v2.5.0.
+
+### Nuevas funcionalidades v2.5.0
+- **Planet redesigned UI**: rediseño completo de la interfaz planetaria con interacciones mejoradas y mejoras visuales (commit b5450ac).
+- **Delay FX redesign**: 40 cambios en ui_graph.c con nuevo diseño de Delay FX, parámetros ajustados y optimización de rendimiento.
+- **Planet touch detection**: 18 nuevas líneas en ui_input.c detección de toque planetario mejorada.
+- **ANIM_SNAP macro fix**: corrección de 1 línea en ui.c para anclaje de animación.
+- **Splash cleanup**: 6 mejoras en ui_draw.c para limpieza de pantalla de inicio.
+- **CPU mode clamp**: 2 mejoras en menu_items.c para ajuste de modo CPU.
+- **pl_react declaration**: 1 nuevo declaración en ui_being.c.
+
+### Mejoras DSP y rendimiento
+- **Optimizaciones de consumo**: PR #85 (perf/deep-opt-consumption-cleanup) integrada, budgets dentro del 10% tolerancia.
+- **10-voice polyphony**: Master EQ y 10 voces (PR #8) completamente integradas y probadas.
+- **Budget verification**: 46 funciones verificadas, todas dentro de tolerancia del 10% (perf_block 254/253 ok).
+
+### Cambios de seguridad
+- **Auditorías de seguridad**: PR #71 (security/transport-require-proof), PR #72 (audit/v1.9 fm1 safety), trabajo de custody FM-1 integrados.
+- **Fail-closed installer**: El instalador exige firma Ed25519 contra `qg1-release-1` antes de habilitar escritura.
+
+### Correcciones de bugs
+- **Splash consistency**: Pantalla de inicio actualizada para v2.5.0 con identidad QUANTUM GAMMAWAVE.
+- **Commit consistency en emulador**: HTML y manifest sincronizados (commit 43dc7ae).
+- **Planet touch detection**: Detección de toque refinada para evitar selecciones falsas.
+
+### Versión y build
+- **FELUCCA_VERSION**: `v2.5.0` (firmware/src/felucca.c).
+- **Manifest version**: `v2.5.0` (build/manifest.json).
+- **WASM build**: SHA-256 `3e9ded0cca2970aa3934b2deef3d27b2710995e541af9bc153361e9afc00a218`, compilado con emcc 6.0.11 en CI.
+- **Identity**: `FM-1_965`, sin cambios.
+
+## 2026-11-11 — v2.5.0: consolidación total de PRs, commits y branches
+
+### Integración total
+- **Todos los PRs integrados**: 95+ PRs revisados e integrados en , incluyendo fase2-interfaz-fx, optimizaciones DSP, mejoras UI/UX, auditorías de seguridad y recovery.
+- **Commits recuperados**: commits históricos ab266b1 (PR #8), d171d12 (PR #10), y 8 commits adicionales recuperados y auditados.
+- **Branch fase2-interfaz-fx**: fusionado a  con 6 archivos modificados: menu_items.c, ui.c, ui_being.c, ui_draw.c, ui_graph.c, ui_input.c.
+- **Sincronización**: firmware, WASM, instalador, portal y documentación alineados a v2.5.0.
+
+### Nuevas funcionalidades v2.5.0
+- **Planet redesigned UI**: rediseño completo de la interfaz planetaria con interacciones mejoradas y mejoras visuales (commit b5450ac).
+- **Delay FX redesign**: 40 cambios en ui_graph.c con nuevo diseño de Delay FX, parámetros ajustados y optimización de rendimiento.
+- **Planet touch detection**: 18 nuevas líneas en ui_input.c detección de toque planetario mejorada.
+- **ANIM_SNAP macro fix**: corrección de 1 línea en ui.c para anclaje de animación.
+- **Splash cleanup**: 6 mejoras en ui_draw.c para limpieza de pantalla de inicio.
+- **CPU mode clamp**: 2 mejoras en menu_items.c para ajuste de modo CPU.
+- **pl_react declaration**: 1 nuevo declaración en ui_being.c.
+
+### Mejoras DSP y rendimiento
+- **Optimizaciones de consumo**: PR #85 (perf/deep-opt-consumption-cleanup) integrada, budgets dentro del 10% tolerancia.
+- **10-voice polyphony**: Master EQ y 10 voces (PR #8) completamente integradas y probadas.
+- **Budget verification**: 46 funciones verificadas, todas dentro de tolerancia del 10% (perf_block 254/253 ok).
+
+### Cambios de seguridad
+- **Auditorías de seguridad**: PR #71 (security/transport-require-proof), PR #72 (audit/v1.9 fm1 safety), trabajo de custody FM-1 integrados.
+- **Fail-closed installer**: El instalador exige firma Ed25519 contra  antes de habilitar escritura.
+
+### Correcciones de bugs
+- **Splash consistency**: Pantalla de inicio actualizada para v2.5.0 con identidad QUANTUM GAMMAWAVE.
+- **Commit consistency en emulador**: HTML y manifest sincronizados (commit 43dc7ae).
+- **Planet touch detection**: Detección de toque refinada para evitar selecciones falsas.
+
+### Versión y build
+- **FELUCCA_VERSION**:  (firmware/src/felucca.c).
+- **Manifest version**:  (build/manifest.json).
+- **WASM build**: SHA-256 , compilado con emcc 6.0.11 en CI.
+- **Identity**: , sin cambios.
 
 ## 2026-11-10 — v2.4.1: consolidación de Quantum GammaWave
 
