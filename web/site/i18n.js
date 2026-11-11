@@ -543,6 +543,8 @@
       "Quantum GammaWave contributors": "Quantum GammaWave 贡献者",
       "QG-1 // BUILD VERIFICADO POR HASH": "QG-1 // 构建已通过哈希验证",
       "QG-1 // v2.6.0 // BUILD VERIFICADO POR HASH": "QG-1 // v2.6.0 // 构建已通过哈希验证",
+      "QG-1 // {{VERSION}}": "QG-1 // {{VERSION}}",
+      "v2.6.0": "v2.6.0",
       "— build ID y SHA-256 del WASM verificables; la firma Ed25519 solo si el manifiesto la incluye.": "— 可校验 build ID 与 WASM 的 SHA-256；仅当清单带有签名时才校验 Ed25519 签名。",
       "Versión actual: v2.6.0": "当前版本：v2.6.0",
       "Comprueba el SHA-256 del paquete y los hashes del firmware antes de habilitar INSTALL, y la firma Ed25519 de la clave qg1-release-1 cuando el manifiesto la incluye. Después el loader lee el chip real de la unidad y rechaza cualquier otro antes de borrar nada.": "在启用 INSTALL 之前，它会校验包的 SHA-256 与固件哈希；当清单带有签名时，还会校验 qg1-release-1 的 Ed25519 签名。随后 loader 读取设备上的真实芯片，遇到其他器件会在擦除任何内容之前拒绝。",
