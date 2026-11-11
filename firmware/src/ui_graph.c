@@ -809,6 +809,11 @@ static void graph_fx(const track_t *t, uint16_t c)
     static uint8_t hold_t[4];                     /* .. frames the hold has been standing still */
     static int32_t vu_trk = -1;
     int32_t pk = t->vu < 0 ? -t->vu : t->vu;   /* the track's post-FX envelope (fx.c mix_part) */
+    /* DIST is an insert on the selected track: when it is off (P_DIST == 0) track_dist() leaves the
+     * signal untouched and its meter must stay dark, instead of following the dry track the way it
+     * used to. The other three buses already read fx.c's real measured peaks, which fall to zero
+     * when their send (or their mix) is zero. */
+    if (t->p[P_DIST] == 0) pk = 0;
     int32_t bus[4] = {pk, fx_vu[3], fx_vu[4], fx_vu[5]};   /* DIST, chorus, delay, reverb returns */
     int32_t send[4] = {pk, fx_vu[0], fx_vu[1], fx_vu[2]};  /* what each bus actually receives */
     uint32_t i;
