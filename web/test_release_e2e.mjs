@@ -77,8 +77,8 @@ const release = (over = {}, rec = record) => {
 /* the verdict, the signature and the transport, on those bytes */
 {
   const man = release();
-  const proof = await verifyManifest(pkg, man, PINNED, { product: product.split("_")[0] });
-  ok(proof.version === version && proof.sha256 === sha(pkg), "release: the WebCrypto check agrees (Ed25519)");
+  const proof = await verifyManifest(pkg, man, {}, { product: product.split("_")[0] });
+  ok(proof.version === version && proof.sha256 === sha(pkg), "release: the SHA-256 + size check agrees (v2.6.0 model)");
 
   const prov = await verifyProvenance(pkg, record, { product, version: label, image });
   ok(prov.kind === "build" && prov.recordSha256 === man.build_sha256,
@@ -91,9 +91,9 @@ const release = (over = {}, rec = record) => {
   ok(await refused(() => requireProof({ pkg, manifest: release({}, { ...record, commit: "f".repeat(40) }),
       keys: PINNED, product, firmware: "0.0.1", provenance: prov }), "provenance"),
      "release: a manifest naming another record is refused");
-  ok(await refused(() => requireProof({ pkg, manifest: release(), keys: {},
-      product, firmware: "0.0.1", provenance: prov }), "signature"),
-     "release: with no key pinned nothing is admitted");
+  // (v2.6.0) no private key is required: an empty key map no longer refuses the package.
+  // Integrity is SHA-256 + size + model + provenance; authenticity of the editor is the
+  // GitHub Artifact Attestation, not an Ed25519 signature.
   const dirty = { ...record, dirty: ["firmware/src/fx.c"] };
   ok(await refused(() => verifyProvenance(pkg, dirty, { product, version: label, image }), "provenance"),
      "release: a record of a dirty tree mints no verdict");

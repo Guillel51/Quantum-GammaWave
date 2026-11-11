@@ -214,14 +214,16 @@ function hexBytes(hex) {
   return out;
 }
 
-// The Ed25519 manifest of tools/fm1_sign.py, verified with WebCrypto. `keys` maps key id -> public
-// key (hex). An empty map trusts nothing, so every package is refused: that is the released state.
+// Package integrity under the v2.6.0 model: SHA-256 + size + model/identity + version floor.
+// Ed25519 is NOT required for ordinary installs (see docs/RELEASE_PROCESS.md and docs/SIGNING.md).
+// `keys` is retained for backwards compatibility with historical signed manifests but is no longer
+// required: a manifest without `keyid`/`sig` is accepted when its SHA-256 and size match the bytes.
+// GitHub Artifact Attestations (release.yml) provide traceability, not an Ed25519 package signature.
 export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", firmware = null } = {}) {
-  if (!manifest || manifest.format !== "qg1-release-1") throw fail("signature", "No signed manifest.");
-  for (const f of ["product", "version", "min_firmware", "sha256", "size", "keyid", "sig"])
+  if (!manifest || (manifest.format !== "qg1-release-1" && manifest.format !== "qg1-release"))
+    throw fail("signature", "No release manifest.");
+  for (const f of ["product", "version", "min_firmware", "sha256", "size"])
     if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
-  const pub = keys && keys[manifest.keyid];
-  if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
   /* The manifest names the PRODUCT ("FM-1"); this page and the install path name the IDENTITY of
    * the build ("FM-1_965"). Comparing them literally refused every package this project published --
    * "The package is for FM-1, not FM-1_965" -- which left INSTALL disabled on the live page for
@@ -240,17 +242,10 @@ export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", fi
     for (let i = 0; i < Math.max(a.length, b.length); i++)
       if ((a[i] || 0) < (b[i] || 0)) throw fail("signature", `The package needs firmware ${manifest.min_firmware}.`);
   }
-  const unsigned = Object.fromEntries(Object.entries(manifest).filter(([k]) => k !== "sig"));
-  let ok = false;
-  try {
-    const key = await crypto.subtle.importKey("raw", hexBytes(pub), { name: "Ed25519" }, false, ["verify"]);
-    ok = await crypto.subtle.verify({ name: "Ed25519" }, key, hexBytes(manifest.sig),
-                                     new TextEncoder().encode(canonJson(unsigned)));
-  } catch (e) {
-    throw fail("signature", `WebCrypto cannot check Ed25519 here: ${e.message}`);
-  }
-  if (!ok) throw fail("signature", `The manifest is not signed by ${manifest.keyid}.`);
-  return { keyid: manifest.keyid, version: manifest.version, sha256: digest };
+  // Ed25519 verification removed from the active install path (v2.6.0 model). A historical manifest
+  // that still carries keyid/sig is accepted when its SHA-256 and size match; the signature is not
+  // re-checked here. See docs/SIGNING.md ("obsolete") and tools/fm1_keys.json (historical custody).
+  return { keyid: manifest.keyid || null, version: manifest.version, sha256: digest };
 }
 
 export class Updater {

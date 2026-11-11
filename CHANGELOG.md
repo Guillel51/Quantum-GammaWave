@@ -1,3 +1,8 @@
+## 2026-11-11 — v2.6.0: modelo unico SHA-256
+
+- Adopcion modelo PR #89 (SHA-256 + tamano). Ed25519 historico.
+- WASM reconstruido Emscripten 6.0.11 (sha256 62c4b714...).
+
 ## 2026-11-11 — v2.5.0: los mundos de HOME, sus respuestas y la profundidad del visualizador (pasada 3.5) los mundos de HOME, sus respuestas y la profundidad del visualizador
 
 - **Planetas con volumen** (`ui_being.c`): la cara iluminada es una rejilla 3x2 (tres bandas de latitud por dos mitades) sobre seis tonos por cuerpo, con luz de limbo, segunda atmosfera en el oceanico y el anillado, y detalles propios (mares y cresta, tres bandas y ojo de tormenta, horizonte y media luna, sombra del anillo, casquetes y grieta). Techo de radio 9 px; ningun cuerpo es ya un disco plano de un tono.

@@ -158,10 +158,12 @@ guessed.
 ## 9. Installation gates
 
 The public installer may be enabled only when the matrix in `docs/VALIDATION_MATRIX.md` supports it with
-evidence of the right class for each of: reproducible AC791N build, whole QG package, valid production
-signature with a pinned public key, unit identity, real JEDEC and geometry, flash write compatibility,
+evidence of the right class for each of: reproducible AC791N build, whole QG package, integrity via
+SHA-256 + size published with the package (no Ed25519 private key required), GitHub Artifact
+Attestation traceability, unit identity, real JEDEC and geometry, flash write compatibility,
 applicable memory map, verified prior backup, demonstrated recovery, protected write paths, stress and
 stability, RAM/CPU headroom, installer/emulator/site synchronisation, and post-install revalidation.
+Ed25519 (`qg1-release-1`) is historical; see docs/SIGNING.md.
 
 States are `GO`, `GO CONDITIONAL`, `NO-GO`, `NOT APPLICABLE`, each with evidence, commit, test, class of
 validation, residual risk and the pending action. A requirement that needs physical evidence and has only

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# HISTORICAL (v2.6.0): Ed25519 package signing is obsolete for ordinary installs.
+# Retained for audit/custody history. Active model: SHA-256 + size + model/identity +
+# version floor + chip check + GitHub Artifact Attestations (see docs/SIGNING.md).
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
 """Ed25519 authenticity chain for QG-1 packages (.fwsc), host side.
