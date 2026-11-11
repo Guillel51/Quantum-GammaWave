@@ -8,7 +8,10 @@
 #include <stdint.h>
 
 /* (1.8) Audio meters published by fx.c: 0..2 the chorus/delay/reverb sends, 3..5 their wet returns. */
-extern volatile int32_t fx_vu[8];   /* 0..2 the chorus/delay/reverb sends, 3..5 their wet returns,
+extern volatile int32_t fx_vu[8];
+/* (2.1) the level a factory preset loads with, measured from its own render (preset_level.c,
+ * tools/gen_preset_levels.py): 100 is the fader's own, untouched, 0..127 are LEVEL_Q12 indices */
+uint8_t preset_level_of(uint32_t e, uint32_t pi);   /* 0..2 the chorus/delay/reverb sends, 3..5 their wet returns,
                                      * (2.1) 6..7 the mix's own left and right peaks: the two mono
                                      * meters HOME shows */
 /* (3.0) The delay's echo train, measured -- not inferred from a level. A hit at the delay's send
@@ -26,10 +29,35 @@ int32_t fx_master_eq_hz_db(int32_t hz);
 
 /* ------------------------------------------------------------ sizes --- */
 #ifndef NVOICE
-#define NVOICE 10                /* voices per part, and the budget shared by all parts. Overridable so the 12-voice
-                                  * experiment can be built and measured against it: FELUCCA_VOICES=12 for the target
-                                  * (tools/build.py) and POLY=12 for the host tests (tests/run_tests.sh). The shipped
-                                  * value is 10, which is what every golden render and CPU budget is taken at. */
+#define NVOICE 12                /* voices per part, and the budget shared by all parts (3.8: was 10). The pool
+                                  * (below) is what made 12 affordable: at 12 voices the .bss is smaller than the
+                                  * 10-voice build of 3.7 was. Overridable: FELUCCA_VOICES=10/12 for the target
+                                  * (tools/build.py) and POLY=10/12 for the host tests (tests/run_tests.sh). */
+#endif
+/* (3.5) the voice pool. A part used to own NVOICE voice_t of storage of its own, so six parts reserved
+ * NPART * NVOICE slots for a budget of NVOICE voices that sound at once. Now one pool holds the storage and
+ * each part publishes a window of slots into it (track_t.vidx / vn): the addresses, the sound and the
+ * allocator read the same way, but six parts no longer cost six times the storage.
+ *
+ * VDEAD is the pool's inert slot: a window's tail (entries vn..NVOICE-1) points at it, so a scan that still
+ * runs to NVOICE reads a voice that is never active, never free and never stolen. Nothing is granted it. */
+#ifndef VPOOLN
+#define VPOOLN (NVOICE + NPART)       /* slots in the pool (its inert slot included): the budget plus one slot
+                                  * of slack for every other part, which is what lets a single part reach its
+                                  * own cap while five parts keep one each (measured, docs/VOICE_POOL.md).
+                                  * FELUCCA_VPOOL=N overrides it (tools/build.py). */
+#endif
+#define VDEAD (VPOOLN - 1)            /* the pool's last slot: inert, and never granted to a part */
+/* (3.6) the experiments behind docs/VOICE_POOL.md. Both change the sound of the instrument (see that page), so
+ * both are OFF by default and no shipped profile sets them. */
+#ifndef FELUCCA_VRESET
+#define FELUCCA_VRESET 1              /* a voice starting from silence clears its oscillator / filter state: the
+                                       * pool lends slots between parts, and nothing may inherit another note's
+                                       * oscillators. 0 restores the pre-pool sound exactly (docs/VOICE_POOL.md) */
+#endif
+#ifndef FELUCCA_WSEED
+#define FELUCCA_WSEED 1               /* WHEEL seeds its wheels from the voice's place in its part, and reseeds a
+                                       * slot with no note on it, never from the pool slot number */
 #endif
 #define NPART 6                  /* synth parts: tracks 1..6 (JIANT 0.6: was 4) */
 #define NTRK NPART               /* tracks (the formats and the protocol count these): every track is a part */
@@ -220,6 +248,7 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
 #define ENGI_ANALOG 0u           /* (JIANT 0.5: named for its FILTER page) */
 #define ENGI_PHYS 9u
 #define ENGI_DRUM 10u
+#define ENGI_LOFI 3u             /* LOFI (engines.c ENGINES[3]): BYTE / FLOAT's T.CLK lives here */
 #define ENGI_GRAIN 8u
 #define ENGI_SLICE 13u
 #define ENGI_SAMPLE 4u
@@ -531,7 +560,9 @@ typedef struct track {
     uint8_t engine, preset;      /* engine: what the audio ISR renders */
     uint8_t eng_req;             /* engine the UI asked for (the ISR switches at a block start) */
     uint8_t user;                /* user preset slot + 1 the sound came from (UI), 0 = none */
-    voice_t v[NVOICE];
+    uint8_t vidx[NVOICE];        /* (3.5) the pool slots this part owns: V(t, i) is the voice at i. Ballast
+                                  * beyond vn points at VDEAD, so the scans that run to NVOICE read inert voices */
+    uint8_t vn;                  /* slots granted to this part (its window's length; <= NVOICE) */
     /* LFO */
     uint32_t lfo_ph;
     int32_t lfo_val;             /* Q15 */
@@ -629,6 +660,30 @@ typedef struct track {
     uint8_t pfx_si;              /* ARP: the next of them */
     uint32_t pfx_sc;             /* samples since the last repeat */
 } track_t;
+/* (3.5) the one storage of voices, and a part's window into it. V(t, i) is an lvalue: every use of a voice is
+ * the same expression it was when the array lived in track_t. */
+extern voice_t vpool[VPOOLN];
+#define V(t, i) vpool[(t)->vidx[(i)]]
+#define VSLOT(v) ((uint32_t)((v) - vpool))     /* a voice's pool slot: the engines' per-voice state is keyed by it */
+/* (3.5) every voice of a part back to silence (what a memset of the old per-part array did), leaving the
+ * pool's inert slot alone: it is shared, and clearing it would make it stealable */
+static inline void voices_clear(track_t *t)
+{
+    uint32_t i;
+    for (i = 0; i < NVOICE; i++)
+        if (t->vidx[i] != VDEAD)
+            memset(&V(t, i), 0, sizeof(voice_t));
+}
+/* the window index of a sounding voice (0..NVOICE-1), NVOICE when it is not this part's: what per-part,
+ * per-voice arrays of the engines are keyed by. A note-on path's helper, never per sample */
+static inline uint32_t vindex(const track_t *t, const voice_t *v)
+{
+    uint32_t i, s = VSLOT(v);
+    for (i = 0; i < NVOICE; i++)
+        if (t->vidx[i] == s)
+            return i;
+    return NVOICE;
+}
 enum { PFX_RND = 1, PFX_HALF = 2, PFX_REP = 4, PFX_DEC = 8, PFX_ATK = 16 };   /* (track_t.pfx) */
 
 typedef struct {

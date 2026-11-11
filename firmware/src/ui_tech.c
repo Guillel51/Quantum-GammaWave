@@ -440,10 +440,40 @@ static int32_t eq_param_hz(void)                    /* the cutoff the audio filt
 {
     return (int32_t)EQ_HZ[clamp(song.g[G_EQFREQ], 0, 127)];
 }
+/* "30" / "1.2k": the frequency the control point sits on, as the page reads it */
+static void eq_hz_txt(char *b, int32_t hz, int32_t n)
+{
+    char t[8];
+    if (hz < 1000) {
+        fmt_int(b, hz);
+        return;
+    }
+    fmt_int(t, hz / 1000);
+    str_cpy(b, t, (uint32_t)n);
+    str_cpy(b + str_len(b), ".", (uint32_t)n - str_len(b));
+    fmt_int(t, (hz % 1000) / 100);
+    str_cpy(b + str_len(b), t, (uint32_t)n - str_len(b));
+    str_cpy(b + str_len(b), "k", (uint32_t)n - str_len(b));
+}
+/* Q24.8 dB -> "+9.6 dB" */
+static void eq_db_txt(char *b, int32_t q8, int32_t n)
+{
+    char t[8];
+    int32_t a = q8 < 0 ? -q8 : q8;
+    b[0] = 0;
+    str_cpy(b, q8 < 0 ? "-" : "+", (uint32_t)n);
+    fmt_int(t, a / 256);
+    str_cpy(b + str_len(b), t, (uint32_t)n - str_len(b));
+    str_cpy(b + str_len(b), ".", (uint32_t)n - str_len(b));
+    fmt_int(t, (a % 256) * 10 / 256);
+    str_cpy(b + str_len(b), t, (uint32_t)n - str_len(b));
+    str_cpy(b + str_len(b), " dB", (uint32_t)n - str_len(b));
+}
 static void tech_master_eq(void)
 {
     int32_t mode = clamp(song.g[G_EQMODE], 0, 4);
-    int32_t y0 = TK_Y0, mid_y = y0 + 56, i, px = 14, py = mid_y;
+    int32_t y0 = TK_Y0, gx0 = 32, gw = 192, gtop = y0 + 20, gbot = y0 + 84, i;
+    int32_t mid_y = y0 + 53, px = gx0, py = mid_y;
     static const char *const MODES[] = {"BYPASS", "PEAK/BELL", "NOTCH", "LOW SHELF", "HIGH SHELF"};
 
     gw_oct_panel(8, y0 - 2, 224, 104, 4, T_BG, T_LINE, mode > 0, T_ACCENT);
@@ -451,39 +481,106 @@ static void tech_master_eq(void)
     cv_text_on(16, y0 + 4, &AF_S, "MASTER BIQUAD EQ", T_THEME, T_RAISE);
     cv_text_on(140, y0 + 4, &AF_S, MODES[mode], mode ? T_ACCENT : T_DIM, T_RAISE);
 
-    /* the 0 dB line, the +/-12 dB guides (the curve spans +/-24 dB) and the log grid */
-    cv_rect(14, mid_y, 212, 1, T_LINE);
-    cv_rect(14, mid_y - 22, 212, 1, T_RAISE);
-    cv_rect(14, mid_y + 22, 212, 1, T_RAISE);
-    for (i = 1; i < 4; i++)
-        cv_rect(14 + (int32_t)i * 53, y0 + 18, 1, 76, T_RAISE);
-
-    /* gain labels centred on their guides; the frequency labels have their own row */
-    cv_text_on(20, mid_y - 29, &AF_S, "+12", T_DIM, T_BG);
-    cv_text_on(20, mid_y - 8, &AF_S, "0", T_DIM, T_BG);
-    cv_text_on(20, mid_y + 13, &AF_S, "-12", T_DIM, T_BG);
-    cv_text_on(eq_hz_x(125) - 4, y0 + 88, &AF_S, "125", T_DIM, T_BG);
-    cv_text_on(eq_hz_x(2000) - 4, y0 + 88, &AF_S, "2k", T_DIM, T_BG);
-    cv_text_r(226, y0 + 88, &AF_S, "20k", T_DIM, T_BG);
-
+    /* (3.4) EDIT > FILTER's bay is the reference and this is its language: a named logarithmic grid, a dB scale in
+     * a gutter the curve never crosses, the band's own energy behind it as a backdrop, the area between the curve
+     * and 0 dB filled so a boost and a cut read at a glance, the shelf's plateau and the bell's width drawn from the
+     * parameters, and the control point with its frequency and gain written on it. Every number comes from
+     * fx_master_eq_hz_db(), the Q24 biquad the audio path runs: a drawing of the filter, not of the knobs. */
+    cv_rect(gx0, mid_y, gw, 1, T_LINE);
+    cv_rect(gx0, mid_y - 22, gw, 1, T_RAISE);
+    cv_rect(gx0, mid_y + 22, gw, 1, T_RAISE);
     {
-        int32_t mark_hz = eq_param_hz();
-        int32_t mark_x = clamp(eq_hz_x(mark_hz), 14, 226);
-        int32_t mark_db = fx_master_eq_hz_db(mark_hz);
-        int32_t mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), y0 + 19, y0 + 93);
-        cv_rect(mark_x, y0 + 18, 1, 76, T_LINE);
-        for (i = 0; i <= 212; i++) {
-            int32_t db = fx_master_eq_hz_db(eq_hz_at(i));
-            int32_t y = clamp(mid_y - db * 44 / (24 * 256), y0 + 19, y0 + 93);
+        int32_t mark_hz = eq_param_hz(), mark_x, mark_y, mark_db;
+        int32_t gain_db = clamp(song.g[G_EQGAIN], -24, 24), q = clamp(song.g[G_EQQ], 0, 127);
+        char b[32];
+        /* Hz -> x on the plot: the axis table spans 212 px and the plot 192, in its own frame */
+        #define EQ_X(hz) (gx0 + (clamp(eq_hz_x(hz), 14, 226) - 14) * gw / 212)
+        for (i = 0; i < 3; i++) {
+            static const int32_t GL[3] = {100, 1000, 10000};
+            static const char *const GN[3] = {"100", "1k", "10k"};
+            int32_t gx = EQ_X(GL[i]);
+            cv_rect(gx, gtop, 1, gbot - gtop, T_GRID);
+            if (i < 2)                                 /* (10k's line has no room for a name before 20k's) */
+                cv_text_on(gx - 7, y0 + 87, &AF_S, GN[i], T_DIM, T_BG);
+        }
+        cv_rect(gx0, gtop, 1, gbot - gtop, T_GRID);
+        cv_text_on(10, y0 + 87, &AF_S, "20", T_LINE, T_BG);
+        cv_text_r(230, y0 + 87, &AF_S, "20k", T_LINE, T_BG);
+        /* the gain scale, in the gutter: the plot runs +-24 dB, so +12 and -12 sit halfway to each end */
+        cv_text_on(10, mid_y - 30, &AF_S, "+12", T_DIM, T_BG);
+        cv_text_on(14, mid_y - 6, &AF_S, "0", T_DIM, T_BG);
+        cv_text_on(8, mid_y + 18, &AF_S, "-12", T_DIM, T_BG);
+        /* the band's energy, under everything: what the EQ is shaping, not a measurement of the EQ */
+        for (i = 0; i < 28; i++) {
+            int32_t bx = gx0 + 2 + i * (gw - 4) / 28, bw = (gw - 4) / 28 - 1;
+            uint32_t idx = (scope_w - 128u + (uint32_t)i * 4u) & (SCOPE_N - 1u);
+            int32_t s = scope_buf[idx] - scope_buf[(idx + 2u) & (SCOPE_N - 1u)];
+            int32_t bh;
+            if (s < 0)
+                s = -s;
+            bh = clamp(s * 14 / 9000 + 2, 2, 14);
+            cv_rect(bx, gbot - bh, bw < 1 ? 1 : bw, bh, ux_mix(T_BG, bg_col(68), 42));
+        }
+        mark_x = EQ_X(mark_hz);
+        mark_db = fx_master_eq_hz_db(mark_hz);
+        mark_y = clamp(mid_y - mark_db * 44 / (24 * 256), gtop, gbot);
+        for (i = 0; i <= gw; i++) {
+            int32_t db = fx_master_eq_hz_db(eq_hz_at(i * 212 / gw));
+            int32_t y = clamp(mid_y - db * 44 / (24 * 256), gtop, gbot);
+            if (db > 0 && y < mid_y)                         /* (3.2) the fill says lift or cut at a glance */
+                cv_rect(gx0 + i, y, 1, mid_y - y, ux_mix(T_BG, T_THEME, 40));
+            else if (db < 0 && y > mid_y)
+                cv_rect(gx0 + i, mid_y, 1, y - mid_y, ux_mix(T_BG, T_ACCENT, 40));
             if (i) {
                 int32_t pct = clamp(45 + (mid_y - y) * 4, 0, 100);
-                cv_line_t(px, py, 14 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);
+                cv_line_t(px, py, gx0 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);
             }
-            px = 14 + i;
+            px = gx0 + i;
             py = y;
         }
-        if (mode > 0)
-            cv_rrect(mark_x - 2, mark_y - 2, 5, 5, 2, T_ACCENT, T_BG);
+        /* (3.2) What the shape means, which the knob's own number cannot say: a shelf settles on a plateau (dashed,
+         * on its side of the corner), a bell and a notch have a width the Q gives them (a bracket at the band's
+         * level, end ticks included). A corner at the axis edge would leave no plateau to dash, so the line is held
+         * to a readable length on its own side. */
+        if (mode == 3 || mode == 4) {
+            int32_t py2 = clamp(mid_y - gain_db * 44 / 24, gtop, gbot);
+            int32_t xa = mode == 3 ? gx0 : mark_x + 1, xb = mode == 3 ? mark_x : gx0 + gw;
+            if (mode == 3 && xb < gx0 + 30)
+                xb = gx0 + 30;
+            if (mode == 4 && xa > gx0 + gw - 30)
+                xa = gx0 + gw - 30;
+            for (i = xa; i + 2 < xb; i += 6)
+                cv_rect(i, py2, 3, 1, T_MID);
+        } else if (mode == 1 || mode == 2) {
+            int32_t qx = 8 + q;                            /* Q ~ qx / 16: 0,5 .. 8,4 */
+            int32_t half = mark_hz * 8 / qx;               /* half the band's width, Hz */
+            int32_t xa = EQ_X(mark_hz - half < 20 ? 20 : mark_hz - half);
+            int32_t xb = EQ_X(mark_hz + half > 20000 ? 20000 : mark_hz + half);
+            if (xb - xa > 2) {
+                cv_rect(xa, mark_y, xb - xa, 1, T_DIM);
+                cv_rect(xa, mark_y - 2, 1, 5, T_DIM);
+                cv_rect(xb - 1, mark_y - 2, 1, 5, T_DIM);
+            }
+        }
+        if (mode > 0) {
+            cv_rect(mark_x, gtop, 1, gbot - gtop, T_LINE);          /* the point's frequency */
+            cv_rect(mark_x - 3, mark_y - 3, 7, 7, T_ACCENT);        /* and where the curve is on it */
+            cv_rect(mark_x - 1, mark_y - 1, 3, 3, T_TEXT);
+        }
+        /* its reading, in a chip at the plot's top right: "30 Hz +9.6 dB" */
+        b[0] = 0;
+        eq_hz_txt(b, mark_hz, (int32_t)sizeof b);
+        str_cpy(b + str_len(b), " Hz ", (uint32_t)sizeof b - str_len(b));
+        eq_db_txt(b + str_len(b), mark_db, (int32_t)sizeof b - str_len(b));
+        {
+            int32_t tw = (int32_t)str_len(b) * 7 + 6;
+            /* the chip goes to the side of the plot the band is not on, so it never sits on the curve or on the
+             * shelf's plateau: a lift reads at the bottom, a cut at the top */
+            int32_t chip_y = mark_y < mid_y ? gbot - 11 : gtop - 1;
+            cv_rect(gx0 + gw - tw, chip_y, tw, 11, T_RAISE);
+            cv_text_on(gx0 + gw - tw + 3, chip_y + 1, &AF_S, b, mode > 0 ? T_TEXT : T_DIM, T_RAISE);
+        }
+        #undef EQ_X
     }
 }
 
@@ -525,13 +622,17 @@ static void tech_master(void)
             }
         }
 
-        /* Right Bay (x = 180..232): GLOBALS Master Knob + Clip/Stereo/Pump 1/16 Meters */
+        /* Right Bay (x = 180..232): GLOBALS Master Knob + L / R / PUMP meters. The first two are the
+         * master's real peaks (fx_vu[6..7], the same envelope HOME reads), not a shape drawn from the
+         * envelope generator: a meter that moves with the knobs but not with the audio is a lie, and the
+         * owner has been told one of those before. PUMP is the duck gain -- zero when DUCK is off, because
+         * then nothing is pumping. */
         gw_oct_panel(180, y0 - 2, 52, 102, 4, T_BG, T_LINE, 1, T_ACCENT);
         gw_mini_bakelite_knob(206, y0 + 16, 9, clamp(180 + clip, 0, 256), T_THEME);
         cv_rect(185, y0 + 32, 42, 1, T_LINE);
-        gw_plasma_bar(188, y0 + 37, 8, 58, 9, clamp(en + 48, 24, 250), 64);
-        gw_plasma_bar(201, y0 + 37, 8, 58, 9, clamp(en + (punch >> 1) + 40, 24, 250), 96);
-        gw_plasma_bar(214, y0 + 37, 10, 58, 9, duck ? (duck_g1 * 256 / 32767) : 220, 140);
+        gw_plasma_bar(188, y0 + 37, 8, 58, 9, clamp(fx_vu[6] * 256 / 32767, 0, 256), 64);
+        gw_plasma_bar(201, y0 + 37, 8, 58, 9, clamp(fx_vu[7] * 256 / 32767, 0, 256), 96);
+        gw_plasma_bar(214, y0 + 37, 10, 58, 9, duck ? clamp(duck_g1 * 256 / 32767, 0, 256) : 0, 140);
         return;
     }
     tk_axes(x0, y0, x0 + s, y0 + s);
@@ -570,8 +671,8 @@ static void tech_dest(const track_t *t, int lfo)
         src = mulq15(t->lfo_val, t->lfo_fade);
     else
         for (i = 0; i < NVOICE; i++)
-            if (t->v[i].stage && t->v[i].stage < 4u && (t->v[i].env >> 9) > src)
-                src = t->v[i].env >> 9;                 /* Q15 */
+            if (V(t, i).stage && V(t, i).stage < 4u && (V(t, i).env >> 9) > src)
+                src = V(t, i).env >> 9;                 /* Q15 */
     for (c = 0; c < 4; c++) {
         int32_t x = CARD_X(c) + 22, amt = tk_amt((uint32_t)c), bh = amt * half / 500, live = bh * src / 32767;
         cv_rect(x - 6, mid, 25, 1, T_RAISE);
@@ -594,8 +695,8 @@ static void tech_voice(const track_t *t)
     int32_t sw = PANEL_W / (int32_t)NVOICE, glide = t->p[P_GLIDE], py = 0, x;
     for (i = 0; i < NVOICE; i++) {
         int32_t x0 = TK_X0 + (int32_t)i * sw + 2, h = 40, lv = 0;
-        if (t->v[i].stage && t->v[i].stage < 4u)
-            lv = (int32_t)(((int64_t)t->v[i].env * h) >> 24);
+        if (V(t, i).stage && V(t, i).stage < 4u)
+            lv = (int32_t)(((int64_t)V(t, i).env * h) >> 24);
         cv_rrect(x0, TK_Y0, sw - 4, h, 2, i < nv ? T_RAISE : T_LINE, T_SURF);
         if (lv > 0)
             cv_rect(x0 + 1, TK_Y0 + h - lv, sw - 6, lv, heat_col(60 + lv * 190 / h));
@@ -679,23 +780,34 @@ static void tech_autopan(const track_t *t)
     }
 }
 
-/* (0.6.12) RETRIG (LOFI BYTE / FLOAT): the formula's time over four notes (their ticks under it): RTRG ON a ramp from 0
- * at each note (the formula from its start every time), OFF one ramp running on under them */
+/* RETRIG (LOFI BYTE / FLOAT): T.CLK, the formula's clock, over four notes (their ticks under it).
+ * NOTE: the formula restarts at every note, so each note is a ramp from 0 and the sound repeats.
+ * FREE: the track's clock carries the formula on and the notes join it where it stands -- the ramp never goes
+ * back, and each tick sits on the point of it that note starts from. That is what the DSP does (eng_lofi.c
+ * lofi_note_on: t = fm1_ms * 8 in FREE, 0 in NOTE), so the drawing is a reading of it, not an illustration. */
 static void tech_retrig(const track_t *t)
 {
-    int32_t x0 = TK_X0 + 10, w = PANEL_W - 20, base = TK_Y1 - 12, top = TK_Y0 + 10, on = t->p[P_LRTRG] != 0, i, py = base;
+    int32_t x0 = TK_X0 + 10, w = PANEL_W - 20, base = TK_Y1 - 12, top = TK_Y0 + 10;
+    int32_t freerun = t->p[P_LRTRG] != 0, i, py = base, seg = w / 4;
+
     for (i = 0; i < 4; i++)                              /* the notes */
-        cv_rect(x0 + i * w / 4, base + 3, 3, 6, T_ACCENT);
+        cv_rect(x0 + i * seg, base + 3, 3, 6, T_ACCENT);
     for (i = 0; i <= w; i++) {
-        int32_t ph = on ? (i % (w / 4)) * 1000 / (w / 4) : i * 1000 / w;
+        int32_t ph = freerun ? i * 1000 / w : (i % seg) * 1000 / seg;
         int32_t y = base - ph * (base - top) / 1000;
-        if (i && !(on && i % (w / 4) == 0))
+        if (i && !(!freerun && i % seg == 0))
             cv_line_t(x0 + i - 1, py, x0 + i, y, heat_y(y, base, top, T_THEME), 2);
         else if (i)
-            cv_rect(x0 + i, y, 1, py - y + 1, T_RAISE);  /* (back to 0) */
+            cv_rect(x0 + i, y, 1, py - y + 1, T_RAISE);  /* (back to the top) */
         py = y;
     }
-    cv_text(x0, TK_Y0, &AF_S, on ? "FROM THE START, EVERY NOTE" : "THE FORMULA RUNS ON", T_DIM);
+    for (i = 1; i < 4; i++) {                            /* where the 2nd..4th notes start on that ramp */
+        int32_t x = x0 + i * seg;
+        int32_t ph = freerun ? i * 1000 / 4 : 0;
+        int32_t y = base - ph * (base - top) / 1000;
+        cv_rrect(x - 2, (freerun ? y : base) - 2, 5, 5, 2, freerun ? T_TEXT : T_DIM, T_BG);
+    }
+    cv_text(x0, TK_Y0, &AF_S, freerun ? "RUNS ON: THE NOTE JOINS IT" : "RESTARTS AT EVERY NOTE", T_DIM);
 }
 
 /* the page's technical graph, if it has one (1) */

@@ -533,7 +533,7 @@
     <button class="lang" id="lang"></button>
   </div>
   <h1>Quantum GammaWave — FM-1 Web Studio Workstation</h1>
-  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>10-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
+  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>12-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
   <header class="top">
     <div class="bar">
@@ -608,7 +608,7 @@
       <!-- STEP 2: CONFIGURABLE SONG & TRACK GENERATOR -->
       <details class="gw-macros" style="border-color:#8b5cff;background:rgba(168,85,247,.06)">
         <summary class="gw-macros-title">
-          <span style="color:#d8b4fe">2 · SONG GENERATOR</span>
+          <span style="color:#d8b4fe">2 · GENERATOR</span>
           <span id="gw-gen-last" style="color:var(--theme);font-weight:700">LAST: GAMMAWAVE 0421</span>
         </summary>
         <div class="dim" style="font-size:9px;margin:0 0 5px">HW: [HOME]+[SELECT] or [OCT-]+[PLAY] to open GEN, then [OCT+] to generate.</div>
@@ -1035,7 +1035,7 @@
   <div style="margin-top:24px;border:1px solid var(--accent);border-left:4px solid var(--theme);background:rgba(96,228,255,0.05);padding:10px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
     <div>
       <strong style="color:var(--accent);letter-spacing:0.06em">☀️ QUANTUM GAMMAWAVE (QG-1) HARDWARE WORKSTATION</strong><br>
-      <span class="dim" style="font-size:12px">10-Voice Polyphony • Peak/Notch Biquad Master EQ • 4 Warm Tape Shapes • Dual-Core AC791N DSP</span>
+      <span class="dim" style="font-size:12px">12-Voice Polyphony • Peak/Notch BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:6px 14px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a>
@@ -5941,7 +5941,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       const prefRows = [
         [ ["PALETTE", "QUANTUM"], ["ANIMATIONS", "SMOOTH (ON)"], ["KNOB ACCEL", "EXPONENTIAL"], ["LED BRIGHT", "HIGH"] ],
         [ ["HOME SELECT", "BPM / TEMPO"], ["FX LATCH", "AUTO HOLD"], ["OCTAVE RANGE", "-2 .. +2"], ["SCALE LOCK", "ENABLED"] ],
-        [ ["POLYPHONY", "10 VOICES"], ["LOAD PROFILE", "BALANCED FULL"], ["MASTER WIDTH", "STEREO EXP"], ["EQ BIQUAD", "WARM PEAK"] ],
+        [ ["POLYPHONY", "12 VOICES"], ["LOAD PROFILE", "BALANCED FULL"], ["MASTER WIDTH", "STEREO EXP"], ["EQ BIQUAD", "WARM PEAK"] ],
         /* (QG-1 v1.5) the device's MENU > EXTRA rows as the firmware reports them (MENU_DESC ids 22, 23, 24). The
          * preview shows their defaults; the device is the source of truth (EDITOR_PROTOCOL.md "MENU settings"). */
         [ ["CPU MODE", "AUTO"], ["VIS QUALITY", "HIGH"], ["STARTUP SPLASH", "FULL"], ["TRACKS", "6 VOICES"] ]
@@ -6101,7 +6101,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("v1.9.0", 120, 194);
+      ctx.fillText("{{VERSION}}", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";

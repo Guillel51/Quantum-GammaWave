@@ -33,6 +33,8 @@ SHOTS = [
     ("fw-visualizer.png", "GAMMA_home_viz.ppm", "the full-screen visualizer (HOME twice)"),
     ("fw-mixer.png", "GAMMA_mixer.ppm", "MIXER: six tracks"),
     ("fw-fx.png", "GAMMA_fx.ppm", "FX: the per-track rack"),
+    ("fw-master.png", "GAMMA_master.ppm", "MASTER: clip, punch, duck and the output VU"),
+    ("fw-presets.png", "GAMMA_presets.ppm", "the transient preset library"),
 ]
 LIGHT = (12, 22, 40)
 

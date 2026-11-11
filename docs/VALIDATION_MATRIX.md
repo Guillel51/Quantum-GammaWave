@@ -1108,7 +1108,6 @@ The trace is a program, not a reading, because a checker that only prints "ok" p
 `tests/mflasher_accept_test.py` mutates the release six ways and requires M-Flasher's own refusal
 wording for each (damaged `app.bin` under a rebuilt container, damaged header, damaged image, `F`→`S`
 identity, `0xFFFF` chip key, non-sector image size) — **14 checks, 0 FAILED**. `[HOST]`
->>>>>>> 370f1a81bf191acbc64ff45f2515ecd57efdbf18
 
 ## 35. Update — 2026-11-09, 3.3: two channels, 2.0, and a surface that turns
 
@@ -1132,5 +1131,227 @@ physical hardware.
 | Audio audit (LATCH, Punch-In, every control → DSP) | **PENDING** | Not done in this pass. The claims of 3.2 about LATCH remain host-state and interface tests; no test yet renders audio, releases the key and measures that a latched effect still changes the signal. | none |
 | Cheap musical improvements (micro-detune, stealing, saturation) | **NOT STARTED** | Deliberately not attempted after the ecosystem work: each one changes renders, and none was measured. Listed as pending rather than guessed. | none |
 | Host suites | **PASS** | `NO_PACKAGE=1 ./tests/run_tests.sh`, plus the web/provenance/site/i18n tests and `web/emu/emu_test.mjs` (all ok, heavy song 2.3 % of real time). | host x86 |
-| Public site | **PENDING** | Verified after the deploy: see the commit that follows this one. | — |
+| Public site | **CONFIRMED (root channel)** | After the deploy of `ebb9253`, `tools/site_check.py --expect-commit ebb9253... --expect-emu-commit ebb9253...` read the published origin: 14/14, the package at the commit asked for, the emulator built from that commit, its wasm size and SHA-256. The `/release/` channel failed the same gate — that is §36. | public site over HTTPS |
 | Physical FM-1 | **NOT TESTED** | No unit was touched. Nothing in this pass is a claim about the hardware. | none |
+
+## 2026-11-10 — the M-Flasher report leaves the install path
+
+The entries above that describe a chip fact taken out of band (`web/fm1record.js`, `bindRecord()`, the
+28-check `web/test_record.mjs`) are history, not the current mechanism. Since PR #88 the loader a stock
+unit stages reads the flash chip itself (`firmware/loader/loader.c` `ldr_flash_known`) and refuses a part
+the firmware does not write before it erases anything, and a unit already running QG answers `0x12` on its
+own link. The installer therefore asks the user for no record and no dump: the record box, the M-Flasher
+panel, `web/fm1record.js` and its test were removed in `eaa55a9`, together with the `loaderchip` message
+they produced. What the gates still require is what they always required — model, geometry, the part
+allowlist (`0x856014`, `0xB36014`), the write range `[0x4000, 0x93000)`, the factory-data boundary and the
+post-install identity — and those are decided on the unit, at install time.
+
+Class of evidence for the removal: `[HOST]` (`web/test_verify_only.mjs` 150, `web/test_update_mode.mjs` 12,
+`web/test_web.mjs`, `web/test_installer_i18n.py`) plus a real browser against the published page. Nothing
+here is a measurement on a physical unit.
+
+## 2026-11-10 — v2.0.0 published: the install comes from the signed release
+
+The two channels of section 35 are gone. The root installer now installs the **signed release** and nothing
+else: `make_site.py` looks for `release/*.fwsc` with a matching `*.manifest.json`, checks that the bytes still
+hash to the value the manifest names, and serves *that* package — labelled with the `qg1-build-1` record the
+signature carries, so the page shows the commit of what it will write. A build of `main` that is not those
+bytes is still published (and still installs nothing) until a custodian signs it again; the emulator is always
+this run's build, and the footer names it. `main` moves every few minutes; a signature cannot follow it, and
+a page that refused to install because of that would be the bug this mission set out to remove.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `v2.0.0` tag | **PUBLISHED** | `refs/tags/v2.0.0` → `896797e` on GitHub, created by `release.yml` when the `release/v2.0.0` branch was pushed. | GitHub ref |
+| GitHub Release | **PUBLISHED, DOWNLOADED BACK** | `releases/tag/v2.0.0`: `felucca-2.0.0.fwsc` (610 959 B), `felucca-2.0.0.fwsc.manifest.json`, `SHA256SUMS`. The downloaded package hashes to `c423b17c…9bd2`, byte-identical to `release/`, and its manifest verifies with `tools/fm1_sign.py`. | release assets |
+| Ed25519 identity | **VERIFIED, KEY UNCHANGED** | `key qg1-release-1`, public `70b6036f…fcd40`, pinned in the page and in `tools/fm1_keys.json`; the signature was made with the existing private key, not a new one. Five mutations (package byte, signature, version, image hash, unknown keyid) are refused by both the Python and the browser verifier. | CLI + browser |
+| What the signature names | **FIRMWARE, NOT THE FILE NAME** | `images` = `felucca.bin` and `loader/ota.bin` (the hashes every build record uses); the package's own hash is `sha256`, and its name changes with the site's label. Naming the package inside `images` made a valid signature look wrong against a record that never has that name. | code + page |
+| Site | **PUBLISHED, RENDERED** | `…/webapp/installer/`: "v2.0.0-2500153 — Ready to flash (610,959 bytes)", "Package SHA-256 verified ✓ c423b17c… · Ed25519 qg1-release-1", 14-row plan card, the four confirmations, `INSTALL` enabled; no record box, no dump input. Checked again against a build of a newer `main` (`3bdc09d4`) to prove the page keeps installing the signed bytes. | browser |
+| Build | **COMPILED HERE** | `./build.sh --release 2.0.0` with `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK`: app and loader built, package 610 959 B, reproducible to `c423b17c…` on a rebuild. | AC791N toolchain |
+| Loader | **PASS** | `tests/ldr_test` from an older package to `release/felucca-2.0.0.fwsc`: 28 checks — write windows, factory data kept, resume after a cut, wrong final ACK, damaged head refused, same-package re-run erases nothing. `tests/flash_id_test` passes (`0x856014`, `0xB36014` accepted, `0x000000`/`0xFFFFFF` answered as unknown). | host |
+| Host suites | **PASS** | `sign_test`, `key_custody_test`, `install_test`, `gate_test`, `mflasher_test`, `mflasher_accept_test` (14), `test_i18n`, `test_installer_i18n`, `test_accept` (20), `test_state` (65), `test_update_mode` (12), `test_verify_only` (150), `test_web`, `test_sign` (12), `test_backup`, `test_site` (19 ids / 6 images / 30 links, 0 FAILED). | host |
+| Physical FM-1, `0x856014` | **NOT TESTED** | No unit was touched. The plan, the allowlist and the resume path are host evidence only. | none |
+| Physical FM-1, `0xB36014` | **NOT TESTED** | Same. The second part is accepted by `flash_id_test`; no measurement on a unit. | none |
+
+## 38. Update — 2026-11-10, 2.1.1: el árbol en 2.1.1, la instalación en el release firmado
+
+`main` cambió dos veces mientras esta pasada escribía. Primero #87/#89 quitaron la firma y el canal firmado;
+después volvieron, con `release/felucca-2.0.0.fwsc` firmado y el sitio ofreciendo ese paquete. La versión de
+este árbol es **2.1.1** y el paquete que se puede instalar sigue siendo el **2.0.0 firmado**: firmar un 2.1.1
+necesita la clave privada `qg1-release-1`, que no está en este repositorio ni en CI, y esta pasada **no puede
+producirla**. Es un bloqueo, no una tarea hecha.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| Versión del árbol 2.1.1 | **IMPLEMENTED, COMPILED** | `FELUCCA_VERSION` es `v2.1.1`; el build AC791N (imagen 535 504 B, paquete 610 959 B, identidad FM-1_982) y el wasm (1 083 360 B, `d6d9827e…`) lo llevan. El paquete firmado que se instala sigue diciendo 2.0.0 y la portada lo dice. | build AC791N + wasm | AC791N + wasm |
+| Release 2.1.1 firmado | **BLOCKED (no key)** | No hay clave privada `qg1-release-1` en el repositorio ni en CI, y no se inventa ni se pide por chat. Sin firma, el instalador se niega a escribir el paquete, que es el comportamiento correcto. | `tools/fm1_keys.json` (sólo pública), `release/` | — |
+| Audio de LATCH | **PASS (rendered audio)** | `tests/perform_test.c::test_latch_audio()`: con LATCH ON el filtro sigue filtrando tras soltar; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF vuelve seca; REPEAT 1/16 sigue sonando. | render en host | host |
+| Rotación de los planetas de HOME | **VERIFIED IN THE BROWSER** | Emulador de este build servido en local y abierto en el navegador cloud: dos capturas separadas 2,6 s, **868 de 57 600 píxeles cambian**; en 300 ms cambian **576**, más de lo que mueve una órbita de 7–13 s por vuelta: gira la superficie, no sólo la órbita. Recorte ×4 y diferencia en `docs/evidence/3.3/`. | navegador cloud | navegador |
+| SCL con esquina de 3 px | **RENDERED** | `scl_key()` con esquina de 3 px; `tests/ui_render` 174 pantallas × 17 paletas, 0 hallazgos. | host render | host |
+| Aserciones contra el contrato de `P_LEVEL` | **FIXED** | `93c0fac` hizo que un sonido lleve su propio nivel; cinco aserciones de `ui_test`/`editor_test` seguían exigiendo el contrato viejo. Ahora comprueban `LEVEL == preset_level_of(engine, preset)` y que el load **empuja** ese nivel. Ambos binarios pasan enteros. | `tests/ui_test.c`, `tests/editor_test.c` | host |
+| `drumx` PUNCH y `live` (segundo a segundo) | **FAIL — not this pass** | Fallan en `main` antes de tocar nada: `firmware/src` aquí difiere de `main` en una línea (la versión). Son consecuencia de que el nivel del sonido entre en todo render. No se tocan aquí. | `NO_PACKAGE=1 sh tests/run_tests.sh` | host |
+| Matriz Control → Parámetro → Destino DSP → Efecto audible | **STILL PENDING** | No se hizo; lo único medido en audio es LATCH. | — | — |
+| Mejoras musicales baratas | **NOT STARTED** | Sin cambios. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+## 22. Update — 2026-11-10, the published installer, opened and exercised
+
+The question this answers is narrow: **does the installer the public is being given actually work, and is its
+INSTALL button blocked by a defect or by the gates it is supposed to have?** It was opened in a cloud browser
+(Chrome, no FM-1 attached) and driven as a visitor would. Class: `[SITE]`, published page, network and console.
+No unit was involved and no byte was written to anything.
+
+| what was checked | what it said |
+|---|---|
+| the page itself | 200, and no console message of any kind |
+| the three requests it makes | page, `firmware/felucca-v2.0.0-2500153.fwsc`, its `.manifest.json`: 200, 200, 200 |
+| the package it offers | `QUANTUM GAMMAWAVE FM-1 (v2.0.0-2500153) — Ready to flash (610,959 bytes)` |
+| its integrity | `Package SHA-256 verified ✓ c423b17c…`, `Ed25519 qg1-release-1` |
+| the plan it shows before writing | write range `0x04000-0x92FFF`, 143 sectors, boot area `0x00000-0x03FFF` kept, factory `0xFF000` |
+| INSTALL with the confirmations unticked | `disabled = true` |
+| INSTALL with all four ticked | `disabled = false` |
+
+So the button is gated exactly by the four confirmations and by nothing else: the package verifies against the
+pinned key, the manifest matches the bytes, and there is no stale gate, no cache or service-worker shadow, and no
+JavaScript error standing between a verified package and a startable install. What this cannot say, and does not:
+what that specific unit answers when the installer opens it (JEDEC, geometry, identity), whether a dump of it
+exists, or whether a recovery has been rehearsed. Those gates are unchanged and open, and they are physics, not
+code — see §20 and `docs/FORENSIC_FM1_VIABILITY.md`.
+---
+
+## 2026-11-10 (later) — v2.1.1: the install is 2.1.1, signed where the key lives
+
+The previous block said the installable package was `2.0.0` and that signing `2.1.1` needed a key that is not in
+this repository or in CI. Both facts changed here, and neither was faked: the package was signed with the key on a
+host that holds it, and the build that produced it never saw a key.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `release/felucca-2.1.1.fwsc` | **SIGNED, VERIFIED** | 610 959 B, SHA-256 `81c80e36…c563`, identity `FM-1_982`, `images` = `felucca.bin` `88b3088a…`, `loader/ota.bin` `dc5dd00a…`; `fm1_sign.py verify` passes against the pin | cryptography |
+| the package's build record | **BUILT HERE** | `./build.sh --release 2.1.1` with `JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK`, from commit `61ae47b`; record inside the signature | AC791N toolchain |
+| signing without the key in the build | **IMPLEMENTED, TESTED** | `request` freezes the bytes; `sign --signer-cmd` signs them elsewhere and verifies the returned signature against the pin before writing; `--key` and `--signer-cmd` produce identical manifests | host |
+| CI can ask, not sign | **IMPLEMENTED** | `emulator.yml` writes `build/sign-request.json` and uploads `sign-request-<sha>`; no signing secret exists in Actions | workflow definition (not executed in CI yet) |
+| every committed package verifies | **IMPLEMENTED** | `signed-release.yml`: each `release/*.fwsc` against its manifest and pin, no `.fwsc` without a manifest, `SHA256SUMS` exact, custody + request tests | workflow definition (not executed in CI yet) |
+| the newest release wins | **TESTED** | with `2.0.0` and `2.1.1` both signed, `web/make_site.py` publishes 2.1.1, and the workflow picks the same one by version; `test_site` 0 FAILED on `/` and `/preview/` | host |
+| the portal's copy | **FIXED** | it claimed to install 2.0.0 while installing 2.1.1; it now names the newest signed release and the version panel reads `versions.json` | host, string check |
+| the two tests the 2.1.1 entry left open | **PASS HERE** | `drumx_test` → "all checks ok"; `six_track_live_test` → "all passed", 61/61 s against the golden | host |
+| whole suite before publishing | **NOT RUN IN FULL** | `tests/run_tests.sh` was not run end to end in this pass; what ran is listed above and in `CHANGELOG.md` | — |
+| install on a physical FM-1 | **NOT TESTED** | no unit here; JEDEC `0x856014` / `0xB36014`, geometry and write behaviour remain unmeasured on hardware | — |
+
+The custody model is unchanged in what it does not protect: the loader still verifies no signature (authenticity of
+the package, not secure boot), a hostile signing host is outside the model, and the browser origin still decides
+what the page runs. What changed is that the key no longer has to be on the machine that builds, and a runner can no
+longer sign even if it wanted to: it can only produce a request.
+
+## 39. Update — 2026-11-10, LOFI `T.CLK` audible, y los dos fallos rojos, verdes
+
+La queja era concreta: en EDIT, con LOFI, el control `RTRG` no cambiaba el sonido. El recorrido completo del
+parámetro lo explica y el arreglo es de motor, no de pantalla.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| `P_LRTRG` en LOFI: por qué era inaudible | **DIAGNOSED** | `core.h:119` lo aliasa a `P_FM1_ATK`; el único punto que lo aplicaba era `voice.c:610`, y sólo al re-disparar una voz **sonando**. En POLY cada nota es una voz nueva que ya nace con `ph=0` en `lofi_note_on()`: el interruptor pedía un reinicio que ya había ocurrido, así que dos renders eran idénticos. | lectura del código + test | host |
+| `T.CLK` (el control, rediseñado) | **IMPLEMENTED** | `params.c` (era `RTRG` ON/OFF, ahora `T.CLK` con `NOTE`/`FREE`), `eng_lofi.c` (`lofi_note_on()` siembra `t` y su tiempo lento desde el reloj de la pista cuando `FREE`) y `voice.c:610` (un re-disparo en `FREE` se suma al reloj, no a cero). `NOTE` es el valor por defecto: ningún preset de fábrica cambia. | audio renderizado | host |
+| Que se escuche, medido | **PASS (rendered audio)** | `tests/lofi_tclk_test.c`: piso del arnés **0,134** de la señal; dos notas separadas 3 s en `FREE` difieren **1,140 (8,5× el piso)**; el mismo instante dos veces difiere **0,140**; el nivel entre relojes queda a **0,6 dB**; sigue en `FREE` tras cargar otro sonido (**1,370**); el ataque no hace clic (paso máximo 3222 contra 3088 de `NOTE`). | render en host | host |
+| `drumx` PUNCH | **FIXED** | La transferencia de PUNCH se medía con el estado que dejaba el bloque anterior (y con el fader heredado del preset): el primer `strike` del par arrancaba con el limitador cargado. Ahora el par se mide desde un `kitx()` limpio con `P_LEVEL` fijado, las cuatro ranuras de modulación en cero y un `strike` de calentamiento descartado. Medido: ataque **1077 → 1591 (+3,4 dB)**, cuerpo **×1,77**, cola **×0,99**. | `tests/drumx_test.c`, binario | host |
+| `live` (segundo a segundo) | **FIXED (golden regenerado)** | Los 61 hashes quedaron viejos cuando `93c0fac` hizo que un sonido lleve su propio nivel; el propio test documenta `SIX_LIVE_ACCEPT=1` para un cambio de sonido deliberado. Regenerado y verificado: **0 de 61 segundos** de diferencia. | `tests/six_live_golden.txt` | host |
+| Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. `install_test.py`, `web/test_web.mjs`, `web/test_backup.mjs`, `web/test_pkg_bounds.mjs`: pasan. | host | host |
+| BI-QUAD EQ (MASTER EQ): la gráfica | **DONE** | La curva ya salía de `fx_master_eq_hz_db()`, el mismo biquad Q24 que corre el audio. Añadido: el área entre la respuesta y 0 dB (una columna de 1 px por columna de píxel, teñida con `ux_mix(T_BG, T_ACCENT, 18)`), la meseta que LOW SHELF / HIGH SHELF alcanzan (guiones en `T_MID`, sostenidos ≥30 px cuando la esquina cae en el borde del eje) y el ancho que Q da a PEAK/NOTCH (corchete con topes en el nivel de la banda). Nada nuevo se lee del DSP: son los mismos cuatro parámetros. | `tests/ui_render.c`: 174 pantallas × 17 paletas, **0 hallazgos** de lint, 0 tintas sobre su color, 0 píxeles fuera de gris/neutro, alineación **0 de 2 645 631**; `regress` **220 golden, 0 cambiados**; `ui_test` verde; XIP **+400 B**, RAM **sin cambio** (94 924 B); `target_budget` **39/39**. | render + lint + build AC791N |
+| Rediseño de maquetación de EDIT (LOFI, MORPH, FM6) y del resto de motores | **PARTIAL** | Lo que se comprobó esta pasada: LOFI ya presenta `T.CLK` como `NOTE`/`FREE` (el `F_INT` con lista de nombres de `params.c` resuelve a nombre, no a 0/1) y su motor está medido en `tests/lofi_tclk_test.c`; FM6 EDIT ya dibuja algoritmo, rutas, lazo de feedback, portadores y el operador elegido con su frecuencia. Lo que **no** se hizo es el rediseño de maquetación que pide el pedido. (3.4) **LOFI sí cambió** (ver la fila de abajo: panel propio) y **MORPH** ganó el indicador de posición; FM6 y los demás motores siguen con lo que tenían. | lectura de `params.c`, `eng_lofi.c`, `ui_graph.c` | host |
+| LOFI EDIT: panel propio (3.4) | **DONE** | Las dos páginas de LOFI caían en el "being" genérico (WAVE 1 / WAVE 2 / MIXER), que no dice nada de este motor. Ahora `ui_graph.c graph_lofi()` dibuja, con los parámetros que lee el DSP: la traza real del master (`gw_live_trace`), el conversor y la forma de onda **por su nombre** tomado de los descriptores EDIT del propio motor (`ENGINES[e]->edit[k].names`, así que añadir una forma no requiere tocar la UI), el ancho de pulso sobre su periodo, la escalera del crusher encendida hasta donde llega `P_E3`, y una línea de tiempo de `T.CLK` donde `NOTE` reinicia la fase en cada nota y `FREE` la deja correr. `tests/ui_render.c` tiene ahora `edit_lofi` y `edit_lofi_free` (176 pantallas), así que el barrido la mide. | `ui_render` 176×17: 0 lint, 0 tintas, 0 fuera de gris/neutro, alineación 0 de 2 648 608; `regress` 220 golden 0 cambiados; `ui_test` verde; imagen AC791N 537 328 B (+828 B de código), RAM 94 924 B sin cambio, `target_budget` 39/39 | render + lint + build |
+| MORPH: dónde está el morph, no sólo cómo suena (3.4) | **DONE** | La curva ya era la mezcla real (`an_morph` / `pd_wave` / `lofi_mto`), pero el panel no decía **cuánto** del recorrido A→B estaba hecho. Se añadió el recorrido en el borde inferior del panel con su marca en la posición del knob, teñido hasta ella. Sin estado nuevo. | `ui_render` (morph, GREY y MONO incluidos) 0 hallazgos; goldens sin cambio | render + lint |
+| HOME, planetas, partículas y visualizador | **SHIPPED, sin cambios en esta pasada** | Verificado leyendo el código: cada planeta recibe las notas de su par de pistas (`gw_planet_excite`, 1/4, 2/5, 3/6), con brillo, anillo de posluz, arco de estela y dos chispas del pool; la superficie gira por planeta (3.3); el visualizador dibuja traza, plano de fase, 16 bandas, embers y chispas reactivas. No se rediseñó nada: no había un defecto reproducible que justificara tocarlo. | lectura de `ui_being.c`, renders del barrido | host |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+## 40. Update — 2026-11-10, dos gráficas medidas: el BI-QUAD EQ y T.CLK
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| BI-QUAD EQ en el idioma de EDIT > FILTER | **RENDERED** | `tech_master_eq()` (ui_tech.c): rejilla logarítmica nombrada (20 / 100 / 1k / 20k), escala de dB en un canal izquierdo que la curva no cruza (+12 / 0 / −12), la energía de la banda de fondo, el área entre la curva y 0 dB rellena, y el punto de control con su frecuencia y ganancia ("20 Hz +11.8 dB"). La curva sigue siendo `fx_master_eq_hz_db()`, el mismo biquad que corre el audio. | render en host | host |
+| El lint del barrido de pantallas | **PASS** | 42 hallazgos → **0** (las etiquetas 10k y 20k se solapaban); alineación **0 de 2 645 631** mediciones fuera por 1 px o más. | `tests/ui_render.c` | host |
+| La página RETRIG dibuja el reloj que tiene | **RENDERED** | `tech_retrig()`: `NOTE` cuatro rampas que vuelven arriba en cada nota, `FREE` una sola rampa con un punto donde cada nota se le suma. Antes dibujaba al revés (la rampa continua era el valor que ahora reinicia). | render en host | host |
+| La página RETRIG en el barrido | **PASS** | Entra al barrido (sólo existe en LOFI BYTE/FLOAT y nunca había estado): 174 → 176 pantallas, ambas en `docs/evidence/3.4/`. | `tests/ui_render.c` | host |
+| Suite completa | **PASS** | `NO_PACKAGE=1 sh tests/run_tests.sh`: **ALL HOST TESTS PASSED**, `EXIT=0`. | host | host |
+| Rediseño de EDIT de LOFI / MORPH / FM6, HOME y visualizador, optimizaciones, MICRO-START y modulación aleatoria | **NOT DONE** | Sin cambios en esta pasada. Las dos funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene byte de sobra (`project.c` §límites: P_COUNT 123, sin hueco); eso exige una versión de formato nueva, no un atajo. | — | — |
+| FM-1 física | **NOT TESTED** | Ninguna unidad fue tocada. | — | — |
+
+---
+
+## 2026-11-10 (third pass) — the suite, the ssh signer and reproducibility, measured
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| whole host suite | **PASSED** | `NO_PACKAGE=1 ./tests/run_tests.sh` on `c8715e4`: 4 822 `ok` lines, 0 `FAIL`, `ALL HOST TESTS PASSED`; two blocks skipped by design (browser emulator: no `emcc` here; build manifest: `NO_PACKAGE=1`) | host x86_64, native runners |
+| signing from a second host over ssh | **VERIFIED** | own `sshd` on `127.0.0.1:2222`, `ForceCommand` limited to `sign-stdin`, key `0400` outside the checkout; `sign --request --signer-cmd "ssh …"` returned the **byte-identical** published manifest (sig `20842d8f…`), which `verify` accepts | ssh transport, same machine and uid: the procedure and the contract, not a physical boundary |
+| custody guard under a copied tool | **REFUSES** | first attempt on that host: `refused: the private key is inside the repository (release.pem)` — the copied tool treats its own parent as the repository | host |
+| released package is reproducible | **REPRODUCED** | worktree at `61ae47b` + `./build.sh --release 2.1.1` → `81c80e365bf9ecec…c563`, the same SHA-256 as `release/felucca-2.1.1.fwsc`, same `build_sha256 83cebf6d…` | AC791N toolchain |
+| Actions run conclusions | **NOT READABLE HERE** | no `gh` token on this machine and the public API is rate-limited by IP; the outcome was verified instead (release assets downloaded and verified, site serving 2.1.1) | — |
+
+---
+
+## 2026-11-10 (fourth pass) — the identity `FM-1_965`, measured end to end
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| the number is free on the hub | **VERIFIED** | `tools/check_identity.py` against `catalog.json` (`updated 2026-11-10 12:27 UTC`, 175 listings): `FREE`; `FM-1_982` answers `TAKEN — GuitChordi`; `FM-1_015` is refused by name; thirteen `FM-1_9NN` numbers passed and five of those sit inside another project's longer range | live catalogue, read over HTTP |
+| AC791N build with the new identity | **BUILT** | `./build.sh --release 2.1.2` on `03d3f80` (`dirty: []`): app 536 500 B, package 610 959 B `identity FM-1_965`, RAM 94 944/98 304 B, all `ok` checks | AC791N toolchain |
+| the identity is in the bytes | **VERIFIED** | `FM-1_965` present in `felucca.bin`, in `build/loader/ota.bin` and in the 20 marker bytes the container carries; the manifest's build record says `FM-1_965` | host, on the release bytes |
+| SysEx identification | **VERIFIED** | `tests/ota_test.c`: `identity frame is FM-1_965`, plus the 0x12/0x13 identification and read matrices | host, native |
+| `.fwsc` generation, SHA-256, Ed25519 | **VERIFIED** | `fm1_sign.py request` → `sign` with the custodian key → `verify`: `FM-1 version 2.1.2, key qg1-release-1, sha256 1f52bf09…a303`; `SHA256SUMS` regenerated and checked | host + the pinned public key |
+| installer, Verify Only, forward compatibility | **VERIFIED** | `security` and `web` groups green; `tests/install_test.py` (from V15, resume, every refusal), `tests/preflight_test.py`, `web/test_verify_only.mjs` 153 checks (incl. the legacy-identity block), `web/test_update_mode.mjs` with the identity read out of the package | host, simulated devices |
+| a unit that answers `FM-1_015` is still stock | **VERIFIED** | `web/test_verify_only.mjs`: `FM-1_015` → `stock`, compatibility `replaces-stock`, never `ours`; the legacy rule only ever matches `FM-1_982` | host, simulated devices |
+| emulator and build record | **VERIFIED (identity)** | WASM rebuilt with `emcc 6.0.11`; `build/emu/manifest.json` `"identity": "FM-1_965"`; `package_emu.py` now reads `PRODUCT` from `build.py` | host, emcc |
+| WASM/native bit-for-bit parity | **FIXED — the harness was wrong, not the toolchain** | It differed at sample 1 on this tree and in a clean worktree at `9fbb8c0` for one reason: the two harnesses recorded **different performances**. `emu_test.mjs` renders `splashMs + 200` before recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`), `native_check.c` hardcoded `render(500)`, so the native recorder started 2.8 s earlier and the sequencer/LFO phase at the first sample differed. `native_check.c` now renders `SPL_WRITE + SPL_HOLD + 200` from `ui_draw.c` (same translation unit): **bit for bit, 88 200 frames**, `emcc 6.0.11` on this host. The earlier "artefact of this host's toolchain" reading was wrong and is withdrawn | host, WASM + native |
+| GitHub Pages | **VERIFIED (before the audit's push), re-deploy pending** | The root served `v2.1.2-03d3f80` with package sha256 `1f52bf09…a303` and emulator wasm `0d437cfe…`; `/preview` served `v2.1.2-bbca837`, `manifest: null` (INSTALL refuses it); no service worker anywhere in the site, so no stale copy can outlive a deploy; the HTML is `max-age=600`. After `af2c002` the stable emulator's label must read `03d3f80ed385` — that deploy had not completed when this row was written | live HTTP |
+| physical FM-1 | **NOT MEASURED** | no unit was touched. What a real device answers after an install, and whether the hub marks the card, are hardware/hub checks that only a unit and the hub can make | — |
+
+---
+
+## 2026-11-10 (independent audit of 2.1.2) — two traceability defects, both fixed
+
+Read this table as the audit's own record: every row was produced in this pass, on this host, from the
+published bytes, and nothing here was taken from an earlier report without re-measuring it.
+
+| Item | State | Evidence | Class |
+|---|---|---|---|
+| chain identity → package → signature → installer → site | **VERIFIED** | package sha256 `1f52bf09…a303` (610 959 B) matches `release/SHA256SUMS`, the live download and the installer page; Ed25519 verified **without project code** (`cryptography`, own canonical JSON) against the pinned `qg1-release-1`; loader `ota-FM-1_965` and identity `FM-1_965` decoded from the bytes with an independent parser | host + live HTTP |
+| `release/v2.1.2` = tag `v2.1.2` = `bbca837`; package built from `03d3f80` | **VERIFIED** | `git ls-remote` for both refs; `build/felucca.fwsc` reproducible in a worktree at `03d3f80` with the same sha256 | host, git |
+| the transition a 2.1.1 unit needs | **VERIFIED** | `web/test_update_mode.mjs` case 1b drives the **signed** `release/felucca-2.1.2.fwsc` against a simulated unit answering `FM-1_982`: `gammaWaveLegacy`, `upgrade-legacy`, admitted, installed; the same bytes relabelled to another model or given a false hash are refused. 16 checks, 0 failed | host, simulated device |
+| the live emulator named a commit its bytes did not come from | **FIXED** | `/emulator/` said `bbca837179dd` while `versions.json` said `03d3f80` and the WASM sha256 `0d437cfe…` is the `03d3f80` build: `tools/package_emu.py` read `GITHUB_SHA` (the deploy) before the worktree's HEAD. It now asks the tree first; rebuilt in a worktree at `03d3f80` **with `GITHUB_SHA` set**, the page and the record both say `03d3f80ed385` | live site, then host rebuild |
+| the deploy could not catch that | **FIXED** | nothing ran `web/test_site.py` in the `deploy` job. It now does: the same page relabelled to the deploy's commit is reported `emulator page does not name its manifest's commit FAIL` (negative control run here) | workflow + host |
+| WASM/native parity | **FIXED** | see the row above: harness alignment, `bit for bit` | host |
+| host suite at the release commit | **RED, FIXED** | `tests/run_tests.sh` at `bbca837` ends `HOST TESTS FAILED`: `web/test_accept.mjs` asserted `FM-1_965` on the 1.9.0 fixture, which answers `FM-1_982`. Since `03d3f80`. It now checks the fixture's own identity and runs the same acceptance on `release/felucca-2.1.2.fwsc`, which must answer the tree's `PRODUCT`: 23 checks, 0 failed. CI was blind to it because the host suite runs `NO_PACKAGE=1`; `target.yml` now runs it | host |
+| the host suite end to end | **PASS** | `tests/run_tests.sh` after the three fixes: `ALL HOST TESTS PASSED`, 0 failed, including the WASM/native parity and the transition case | host |
+| hub catalogue | **VERIFIED** | `catalog.json`, `updated 2026-11-10 12:27 UTC`, 175 listings: `FM-1_965` free; `FM-1_982` → GuitChordi, `FM-1_981` → Pocket GammaWave; 22 listings declare no identity | live HTTP |
+| submission to the hub | **NOT SENT** | requirements read and documented; sending a mail in the user's name was not authorised | — |
+
+## 41. Update — 2026-11-10, HEAD `94a6a4c` medido: host, AC791N y wasm
+
+| Medición | Valor | Clase |
+|---|---|---|
+| Suite host completa | `NO_PACKAGE=1 sh tests/run_tests.sh` → **ALL HOST TESTS PASSED**, `EXIT=0` | host x86 |
+| Barrido de pantallas | 178 pantallas × 17 paletas, **0 hallazgos** de lint, **0 de 2 650 362** mediciones de alineación fuera por 1 px o más | host render |
+| Imagen AC791N | **538 356 B**; `.data+.bss` **94 944 de 98 304** (3 360 libres); pool 311 240 B, **9 248 de sobra**; código en RAM 19 356 de 24 576 | build AC791N |
+| Paquete / loader | `build/felucca.fwsc` **610 959 B**, loader **7 803 B**, identidad **FM-1_982**, v2.1.1 en `94a6a4c` | build AC791N |
+| Emulador | wasm **1 094 538 B**, `94a6a4c03cab`, sha256 `b1c3f9fd…` | build wasm |
+| `editor_test` | Verde. `main` lo tenía **rojo**: MENU > TRACKS pasó a `4 ECO / 5 BAL / 6 FULL` y la expectativa seguía en `{"4","6"}`; corregida con la regla real (sólo 6 escribe el bit que lee el firmware viejo). | host |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada, ninguna escritura. | — |
+
+Por lo que **no** hay en esta pasada: MICRO-START y modulación aleatoria no están implementadas. No hay byte libre
+en el registro de proyecto (`P_COUNT` 123, `project.c` §límites) y añadir un parámetro exige una versión de formato
+nueva; hacerlo de otro modo habría roto los presets y proyectos ya guardados. Tampoco entran aquí las
+optimizaciones de CPU/RAM ni el rediseño de HOME y del visualizador.
+
+## Pasada `v2.3.0` — doce voces con el pool
+
+| Comprobación | Resultado | Cómo |
+|---|---|---|
+| Build AC791N, 12 voces por defecto | **ok**: imagen 539 836 B, `.data + .bss` **87 584 B** de 98 304 (10 720 libres), POOL 311 240 B (9 248 libres), XIP 379 876 B, RAM code 19 268 B de 24 576, NOINIT 15 572 B | `python3 tools/build.py` (toolchain + AC79_SDK) |
+| Paquete | `build/felucca.fwsc` 610 959 B, identity `FM-1_965`, manifiesto `v2.3.0` | el mismo build |
+| Golden renders | **220 renders, 0 changed**, 0 health failures, 0 voice/routing fallos, 0 CPU sobre presupuesto | `tests/regress` con `tests/golden.txt` (55 baselines re-renderizados en el commit del pool) |
+| UI | **all passed** | `tests/ui_test` |
+| Presupuesto de tamaño | **39/39** | `tests/target_budget` |
+| Perfil de 10 voces | compila: `FELUCCA_VOICES=10 python3 tools/build.py` | flag del build |
+| Sitio | `test_i18n.py` todas las cadenas con EN y ZH; `test_site.py` 19 ids / 7 imágenes / 31 enlaces, 0 fallos; `test_web.mjs` verde; `test_installer_i18n.py` verde | host |
+| FM-1 física | **NOT TESTED**: ninguna unidad tocada. Ni la polifonía de 12 voces ni el margen de pila se midieron en hardware. | — |
+| Release firmado 2.3.0 | **NO PUBLICADO**: la firma exige la clave del custodio, que no está en este árbol; el instalador rechaza un paquete sin firmar (fail-closed). | — |

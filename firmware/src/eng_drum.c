@@ -168,7 +168,7 @@ static drum_lane_t *drum_kit_of(const track_t *t)
 static drum_lane_t *drum_lane_of(track_t *t, const voice_t *v)
 {
     drum_lane_t *K = drum_kit_of(t), *L;
-    uint32_t i = (uint32_t)(v - t->v);
+    uint32_t i = vindex(t, v);
     if (!K || i >= NVOICE)
         return 0;
     L = &K[(uint32_t)v->s[0] & (DV_NLANE - 1u)];
@@ -183,14 +183,14 @@ static voice_t *drum_reuse(track_t *t, uint32_t note)
     voice_t *v;
     if (!owner || owner > NVOICE)
         return 0;
-    v = &t->v[owner - 1u];
+    v = &V(t, owner - 1u);
     return v->active && (uint32_t)v->s[0] == lane ? v : 0;
 }
 
 static void drum_note_on(track_t *t, voice_t *v)
 {
     drum_lane_t *K = drum_kit_of(t), *L;
-    uint32_t i = (uint32_t)(v - t->v), lane;
+    uint32_t i = vindex(t, v), lane;
     if (!K || i >= NVOICE)
         return;
     lane = drum_lane(v->note);

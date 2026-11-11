@@ -259,8 +259,8 @@ static uint32_t voice_leds(void)
     if (e->oneshot || (e->keys && e->keys(t, 0) >= 0))
         return 0;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate && t->v[i].note < 128u) {
-            have[t->v[i].note >> 5] |= 1u << (t->v[i].note & 31u);
+        if (V(t, i).active && V(t, i).gate && V(t, i).note < 128u) {
+            have[V(t, i).note >> 5] |= 1u << (V(t, i).note & 31u);
             any = 1;
         }
     for (k = 0; any && k < 27u; k++) {
@@ -1099,7 +1099,7 @@ static void edit_param(uint32_t slot, int32_t steps)
     *vp = (int16_t)v;
     if (vp == &trks_ui) {                               /* (0.6.18) GLO > SYSTEM's TRKS: the MENU's setting, saved */
         trks_put(v);
-        ui_message(v ? "6 TRACKS: MORE CPU" : "4 TRACKS: T5-T6 ASLEEP");
+        ui_message(v == 2 ? "6 TRACKS: FULL" : v == 1 ? "5 TRACKS: T6 ASLEEP" : "4 TRACKS: T5-T6 ASLEEP");
         settings_save();
         return;
     }
@@ -1665,7 +1665,7 @@ static void macro_dice(uint32_t mode);
 static int16_t sl_root = -1, sl_scale, sl_quant;      /* (scale_link: the song's scale) */
 #include "song_dice.c"                             /* (0.6.26) DICE ALL: a song-idea generator */
 static void project_clear(void);                     /* (1.2.1-GW, song_main.c) SAVE > TOOLS 7 */
-#include "gen.c"                                   /* (0.6.91) GEN: the song generator and its screen (HOME + SELECT) */
+#include "gen.c"                                   /* (0.6.91) GEN: the generator page (HOME + SELECT) */
 
 /* HOME / REC / SAVE: tap on release, hold 0.7 s fires once. t0 = press time | 1,
  * bit 1 = fired (or swallowed: then the release is no tap either) */
@@ -1871,7 +1871,7 @@ static int gw_oct_combo(uint32_t b)
         ui.force = 1;
         return 1;
     case B_PLAY:
-    case B_REC:                                         /* [OCT-] + [PLAY] or [REC]: 1-Click 49-Genre Song Generator (GEN) */
+    case B_REC:                                         /* [OCT-] + [PLAY] or [REC]: the GEN page, 49 genres */
         if (b == B_REC) ui.rec_t0 |= 2u;
         if (chain_busy()) ui_message("STOP TO EDIT");
         else { confirm_open(CF_DICE_ALL, song.sel); gen_open(); }
@@ -1971,9 +1971,9 @@ static void ui_input_frame(void)
             for (k = trk_live; k < NTRK; k++)
                 if (!seq_is_empty(&trk[k]) && !trk[k].p[P_MUTE]) said = 1;
         if (asleep_hit) { asleep_hit = 0; said |= quiet; }
-        if (said) {
-            ui_say("T5-T6 ASLEEP: ", "");
-            str_cpy(ui.msg2, "GLO>SYSTEM>TRACKS 6", sizeof ui.msg2);
+        if (said) {                                     /* (3.4) which tracks are asleep depends on the mode */
+            ui_say(trk_live == 5u ? "T6 ASLEEP: " : "T5-T6 ASLEEP: ", "");
+            str_cpy(ui.msg2, trk_live == 6u ? "GLO>SYSTEM>LOAD" : "GLO>SYSTEM>TRACKS", sizeof ui.msg2);
             said_ms = fm1_ms | 1u;
         }
         sel0 = song.sel;

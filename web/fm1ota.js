@@ -19,16 +19,24 @@ const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 const MAXDATA = 512;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_OTA = (id) => /^ota-/i.test(id.model);
-/* The update loader this project ships calls itself `ota-<model>_900` (firmware/loader/loader.c); a
- * stock unit's own update mode is another program that calls itself `ota-FM-1_015`. Both answer the
- * handshake and NEITHER answers 0x12 -- the loader is built with FELUCCA_LOADER=1, which compiles the
- * query out, and 0x12 is this project's extension anyway. So the chip gate on a loader link cannot
- * come from that link, and a Felucca image must never be offered to a loader that never agreed to
- * take it. Both facts are decided here, once. */
-export const isOurLoader = (id) => !!(id && /^ota-/i.test(id.model)) && Number(id.version) === 900;
+/* The update loader this project ships calls itself `ota-<model>_<identity>`: 965 since the identity in
+ * docs/IDENTITY.md, 900 in the packages up to 2.1.1 (the Felucca-family loader, packed with the number
+ * it was built with). A stock unit's own update mode is another program that calls itself
+ * `ota-FM-1_015`. All of them answer the handshake and NONE answers 0x12 -- the loader is built with
+ * FELUCCA_LOADER=1, which compiles the query out, and 0x12 is this project's extension anyway. So the
+ * chip gate on a loader link cannot come from that link, and a Felucca image must never be offered to
+ * a loader that never agreed to take it: both of ours did, the vendor's did not. Decided here, once. */
+export const isOurLoader = (id) =>
+  !!(id && /^ota-/i.test(id.model)) && [965, 900].includes(Number(id.version));
+
+/* The identities this project has answered. 982 is what Quantum GammaWave reported up to 2.1.1, and a
+ * unit still on that release is this firmware: it must be able to install the new package instead of
+ * being refused as "another firmware". Nothing is loosened for it -- the model still has to match, the
+ * 0x12 chip identification still runs before any write, and the package still carries its signature. */
+export const LEGACY_IDS = ["FM-1_982"];
 
 // A stock M-VAVE FM-1 reports FM-1_0NN in the vendor's numbering; every Felucca identity is
-// FM-1_9NN (911 for Pocket GammaWave, 982 for Quantum GammaWave). A first install therefore
+// FM-1_9NN (911 for Pocket GammaWave, 965 for Quantum GammaWave since docs/IDENTITY.md). A first install therefore
 // starts from a device that is not the package's identity, and the package's identity is the one
 // that must be reported afterwards (install() checks it again once the unit comes back).
 // Only the stock versions this project has actually read are donors, and only as an origin.
@@ -189,6 +197,62 @@ async function handshake(link, tries = 3) {
   return { id: null, frames, latencyMs: null, sendFailed: false };
 }
 
+export function canonJson(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(canonJson).join(",") + "]";
+  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonJson(v[k])).join(",") + "}";
+}
+
+function hexBytes(hex) {
+  if (typeof hex !== "string" || hex.length % 2) throw fail("signature", "not a hex string");
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    const b = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(b)) throw fail("signature", "not a hex string");
+    out[i] = b;
+  }
+  return out;
+}
+
+// The Ed25519 manifest of tools/fm1_sign.py, verified with WebCrypto. `keys` maps key id -> public
+// key (hex). An empty map trusts nothing, so every package is refused: that is the released state.
+export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", firmware = null } = {}) {
+  if (!manifest || manifest.format !== "qg1-release-1") throw fail("signature", "No signed manifest.");
+  for (const f of ["product", "version", "min_firmware", "sha256", "size", "keyid", "sig"])
+    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
+  const pub = keys && keys[manifest.keyid];
+  if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
+  /* The manifest names the PRODUCT ("FM-1"); this page and the install path name the IDENTITY of
+   * the build ("FM-1_965"). Comparing them literally refused every package this project published --
+   * "The package is for FM-1, not FM-1_965" -- which left INSTALL disabled on the live page for
+   * everyone, with or without a unit attached. The model is what a package may not cross: an FM-1
+   * package can never be accepted for another model, and a manifest that names a model plus a number
+   * still only matches its own model. */
+  const modelOf = (p) => String(p === undefined || p === null ? "" : p).split("_")[0];
+  if (!modelOf(manifest.product) || modelOf(manifest.product) !== modelOf(product))
+    throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");
+  if (pkg.byteLength !== manifest.size) throw fail("signature", "The package size is not the manifest's.");
+  if (firmware) {
+    const a = String(firmware).split(".").map(Number), b = String(manifest.min_firmware).split(".").map(Number);
+    for (let i = 0; i < Math.max(a.length, b.length); i++)
+      if ((a[i] || 0) < (b[i] || 0)) throw fail("signature", `The package needs firmware ${manifest.min_firmware}.`);
+  }
+  const unsigned = Object.fromEntries(Object.entries(manifest).filter(([k]) => k !== "sig"));
+  let ok = false;
+  try {
+    const key = await crypto.subtle.importKey("raw", hexBytes(pub), { name: "Ed25519" }, false, ["verify"]);
+    ok = await crypto.subtle.verify({ name: "Ed25519" }, key, hexBytes(manifest.sig),
+                                     new TextEncoder().encode(canonJson(unsigned)));
+  } catch (e) {
+    throw fail("signature", `WebCrypto cannot check Ed25519 here: ${e.message}`);
+  }
+  if (!ok) throw fail("signature", `The manifest is not signed by ${manifest.keyid}.`);
+  return { keyid: manifest.keyid, version: manifest.version, sha256: digest };
+}
+
 export class Updater {
   constructor(access, log, timing = {}) {
     this.access = access;
@@ -331,7 +395,7 @@ export class Updater {
       return product;
     }
     const [model] = product.split("_");
-    const isTarget = dev.id.text === product;
+    const isTarget = dev.id.text === product || LEGACY_IDS.includes(dev.id.text);
     const isDonor = !isTarget && donorIdentity(dev.id, product, ctx.firmware);
     if (!isTarget && !isDonor) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
     /* A stock unit cannot answer 0x12. Its own updater (M-UPGRADE) only stages this package's loader

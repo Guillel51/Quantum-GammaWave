@@ -116,12 +116,12 @@ cd "$(dirname "$0")/.."
 OUT=build/host
 mkdir -p "$OUT"
 CC="${CC:-cc} -O1 -Wall -Wno-unused-function"
-# POLY=12 builds every host test with NVOICE=12 (firmware/src/core.h): the 12-voice experiment, measured
-# against the shipped 10 with exactly the same presets, goldens and CPU rows. Anything else is refused, so a
-# typo cannot quietly produce a build whose voice count nobody wrote down.
-case "${POLY:-10}" in
-    10) ;;
-    12) CC="$CC -DNVOICE=12"; echo "poly: 12 voices (NVOICE=12; the shipped build is 10)" ;;
+# POLY=10 builds every host test with NVOICE=10 (firmware/src/core.h): the 10-voice profile, which is still
+# built and measured. The shipped value is 12. Anything else is refused, so a typo cannot quietly produce a
+# build whose voice count nobody wrote down.
+case "${POLY:-12}" in
+    12) ;;
+    10) CC="$CC -DNVOICE=10"; echo "poly: 10 voices (NVOICE=10; the shipped build is 12)" ;;
     *)  echo "poly: POLY=${POLY:?} (the measured profiles are 10 and 12)" >&2; exit 2 ;;
 esac
 fail=0
@@ -191,6 +191,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "motion, whole-step chance, FUN7 migration, song restore, ARP repeat and the 1.2 ARP modes" "$OUT/motion_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_audible_test" tests/morph_audible_test.c -lm
     run "MORPH moves the samples: every engine with a morph path renders a different waveform when P_MORPH moves under a held note (and without a click)" "$OUT/morph_audible_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/lofi_tclk_test" tests/lofi_tclk_test.c -lm
+    run "LOFI T.CLK: NOTE restarts the formula every note, FREE joins it where the track clock is (audio, not a screen), keeps the level, survives a sound change and does not click" "$OUT/lofi_tclk_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm
     run "MORPH under load: six parts, the FX buses, MIDI notes and a preset load -- every transition measured (latency, slew to 90%, click) with the two renders bit-identical before the turn" "$OUT/morph_six_test"
     run "the particle pool bays: EDIT ribbon draws none, HOME and the visualizer keep theirs inside their own rect, no allocation" python3 tests/particle_bounds_test.py
@@ -274,6 +276,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "REVERB TYPE: ROOM bit-identical, SPRING decay / chirp / stability / level, model change, cost, demos" "$OUT/reverb_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/dly_echo_test" tests/dly_echo_test.c -lm
     run "DELAY echo train: the repeats FX > DLY draws, one TIME apart, falling by FEEDBK, none without echoes" "$OUT/dly_echo_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_probe" tests/fx_probe.c -lm
+    run "FX measured: the phaser's comb depth, M-WIDE mono/normal/wide, the master EQ's shelves and peak" "$OUT/fx_probe"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
@@ -400,6 +404,11 @@ if command -v node >/dev/null 2>&1; then
     # or declared unreachable with its reason -- WebMIDI cannot see the ROM mode, and the loader has no
     # separate erase or verify phase.
     run "web state: the named states, the four blind spots, and who may unplug" node web/test_state.mjs
+    # authenticity: the Ed25519 manifest the page checks before it enables INSTALL, against the key
+    # pinned in tools/fm1_keys.json -- and every way a tampered one must be refused
+    run "web signing: Ed25519 against the pinned key, and what it refuses" node web/test_sign.mjs
+    # what M-Flasher itself will check before its first erase, on the package this repository releases
+    if [ -f release/felucca-2.0.0.fwsc ]; then run "web acceptance: M-Flasher's own checks and the sector plan" node web/test_accept.mjs; fi
     # (PR #73) the production pipeline against the real release package the build record names:
     # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
     run "web installer pipeline: the real package, and a refusal for every partial authorisation" \

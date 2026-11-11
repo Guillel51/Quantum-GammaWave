@@ -263,7 +263,7 @@
       </div>
     </div>
     <h1>Quantum GammaWave</h1>
-    <div class="subtitle">10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer &amp; Groovebox Firmware for M-VAVE FM-1</div>
+    <div class="subtitle">12-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer &amp; Groovebox Firmware for M-VAVE FM-1</div>
     <p data-t="intro" style="margin-bottom:8px"></p>
     <div class="nav-links">
       <a class="nav-btn" href="../editor/" data-t="editor"></a>
@@ -280,7 +280,7 @@
     </div>
   </header>
 
-  <!-- Before anything is written: M-Flasher's own checks, and the exact sectors it will write -->
+  <!-- Before anything is written: the same package checks the installer runs, and the exact sectors it will write -->
   <section class="card" id="plan-card">
     <div class="card-title" data-t="planTitle"></div>
     <p class="small" data-t="planWhat"></p>
@@ -410,7 +410,7 @@ const TEXT = {
     notfound: "M-VAVE FM-1 non détecté. Vérifiez que leFM-1 est allumé, branché avec un câble USB de données, et fermez les autres logiciels MIDI (DAW).",
     model: "L'appareil connecté n'est pas un M-VAVE FM-1.",
     lost: "Connexion USB perdue. Rebranchez le FM-1 et cliquez à nouveau sur Installer.",
-    stockfirst: "Cette unité exécute le firmware d'origine. Cette page met à jour une unité qui exécute déjà Quantum GammaWave ; la première installation sur un FM-1 d'origine se fait avec « Install firmware » de M-Flasher, qui n'écrit que la zone d'application et conserve le bootloader et les données d'usine. Rien n'a été envoyé à l'unité.",
+    stockfirst: "Cette unité exécute le firmware d'origine. Cette page met à jour une unité qui exécute déjà Quantum GammaWave ; sur un FM-1 d'origine, appuyez directement sur Install : l'installeur prépare le loader de ce paquet, qui n'écrit que la zone d'application et conserve le bootloader et les données d'usine. Aucun autre outil. Rien n'a été envoyé à l'unité.",
     foreignloader: "L'unité est dans son propre mode de mise à jour, pas dans le loader de ce projet. Une image Quantum GammaWave ne doit pas y être envoyée : rien n'a été envoyé. Redémarrez l'unité et installez uniquement depuis une unité qui exécute Quantum GammaWave.",
     lostIdle: "Le lien USB a été perdu avant l'écriture du premier octet : rien n'a changé sur l'unité. Rebranchez le câble (ou redémarrez) et réessayez.",
     lostWriting: "Le lien USB a été perdu pendant que le loader écrivait. Le loader vérifie chaque secteur et n'a pas validé, donc rien n'est perdu : rebranchez le câble et appuyez de nouveau sur Installer. Ne coupez pas l'alimentation pendant l'écriture.",
@@ -449,14 +449,14 @@ const TEXT = {
     verLabel: "Version:", verOld: "You can install the latest release or roll back to an earlier build.", latest: "latest", manual: "Manual:",
     chipCheck: "🧪 Check chip (read only)",
     planTitle: "Before you write anything: what the install will write",
-    planWhat: "On a stock FM-1 the install stages this package's loader, which reads the flash chip and refuses a part the firmware does not write before it erases anything. It writes only what differs inside 0x04000-0x92FFF, keeping the boot area and the factory data. This panel runs M-Flasher's own package checks here and, with your dump loaded, shows the exact sectors that will be written. Nothing is sent to the unit.",
+    planWhat: "On a stock FM-1 the install stages this package's loader, which reads the flash chip and refuses a part the firmware does not write before it erases anything. It writes only what differs inside 0x04000-0x92FFF, keeping the boot area and the factory data. This panel runs the same package checks the installer runs and, with your dump loaded, shows the exact sectors that will be written. Nothing is sent to the unit.",
     planDump: "Your dump (.bin, 1 MiB), for the exact plan:",
     planNoPkg: "The package has not loaded yet: reload the page.",
     planExact: "Writes %n sectors (%k KiB): %r",
     planBound: "At most %n sectors: the whole app area. Load your dump for the exact plan.",
     planUnchanged: "The other %n sectors already match and are left alone.",
     planBadDump: "That file is %n B: a dump of this unit is 1048576 B. Not used.",
-    planNote: "Written by M-Flasher on your PC, not by this page. What this cannot say: what your unit will answer when M-Flasher opens it \u2014 it identifies the model and the chip key again before writing.",
+    planNote: "Written by the installer on your PC, not by this page. What this cannot say: what your unit will answer when the installer opens it \u2014 it identifies the model and the chip key again before writing.",
     accContainer: "package (identity)",
     accImage: "flash image in it",
     accHeaderCrc: "header CRC16",
@@ -470,17 +470,17 @@ const TEXT = {
     accSectors: "sectors in the range",
     accBoot: "boot area kept",
     accFactory: "factory data",
-    refuseContainer: "M-Flasher refuses this package:",
-    refuseModel: "M-Flasher refuses this package \u2014 it is made for another model:",
-    refuseSize: "M-Flasher refuses this package \u2014 it is larger than the flash:",
-    refuseKey: "M-Flasher refuses this package \u2014 its firmware does not decrypt with the unit's chip key:",
-    refuseFactory: "M-Flasher refuses this package \u2014 it reaches the factory data:",
+    refuseContainer: "The installer refuses this package:",
+    refuseModel: "The installer refuses this package \u2014 it is made for another model:",
+    refuseSize: "The installer refuses this package \u2014 it is larger than the flash:",
+    refuseKey: "The installer refuses this package \u2014 its firmware does not decrypt with the unit's chip key:",
+    refuseFactory: "The installer refuses this package \u2014 it reaches the factory data:",
     verifyOnly: "🔎 Verify only (nothing is written)", pfTitle: "Before installing (all four, required)",
     pf1: "The FM-1 is connected straight to the computer with a USB data cable (no hub).",
     pf2: "The computer is on mains power and will not sleep; the FM-1 is charged.",
     pf3: "Every other app that uses MIDI (DAW, editor, other tabs) is closed.",
     pf4: "I will not unplug while writing. If it is cut off, I reconnect and press INSTALL again: the update loader finishes the write.",
-    hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ",
+    hashOk: "Package SHA-256 verified ✓ ", badhash: "The package does not match its published SHA-256: nothing will be written. Reload the page. ", badsig: "The package's Ed25519 signature does not verify against the key pinned in this page: nothing will be written.",
     nohash: "This package has no published SHA-256: nothing will be written. Reload the page.",
     vNone: "Verify: no FM-1 answered. MIDI ports this browser enumerated:",
     chipOk: "Chip: identified by its own 0x12 answer",
@@ -517,7 +517,7 @@ const TEXT = {
     notfound: "FM-1 not found. Check the USB data cable, close other MIDI apps, and press Install again.",
     model: "The connected device is not an FM-1.",
     lost: "The USB connection was lost. Replug it and press Install again.",
-    stockfirst: "This unit runs the stock firmware. This page updates a unit that already runs Quantum GammaWave; the first install on a stock FM-1 is done with M-Flasher's Install firmware, which writes only the app area and keeps the bootloader and the factory data. Nothing was sent to the unit.",
+    stockfirst: "This unit runs the stock firmware. This page updates a unit that already runs Quantum GammaWave; on a stock FM-1 press Install directly: the installer stages this package's loader, which writes only the app area and keeps the bootloader and the factory data. No second tool. Nothing was sent to the unit.",
     foreignloader: "The unit is in its own update mode, not this project's loader. A Quantum GammaWave image must not be sent to that program: nothing was sent. Power-cycle the unit and install only from a unit running Quantum GammaWave.",
     lostIdle: "The USB link dropped before a single byte was written: nothing on the unit changed. Replug the cable (or power-cycle the unit) and try again.",
     lostWriting: "The USB link dropped while the loader was writing. The loader verifies every sector and did not commit, so nothing is lost: replug the cable and press Install again to finish. Do not power the unit off while it is writing.",
@@ -567,7 +567,7 @@ const TEXT = {
     notfound: "FM-1 が見つかりません。USB ケーブルと他の MIDI アプリを確認してください。",
     model: "接続されている機器は FM-1 ではありません。",
     lost: "USB の接続が切れました。",
-    stockfirst: "この FM-1 は純正ファームウェアです。このページは Quantum GammaWave が動作中の FM-1 を更新するためのものです。純正機への最初の書き込みは M-Flasher の Install firmware で行います（アプリ領域のみ書き込み、ブートローダーと工場データは保持）。本体には何も送信していません。",
+    stockfirst: "この FM-1 は純正ファームウェアです。このページは Quantum GammaWave が動作中の FM-1 を更新するためのものです。純正機では Install をそのまま押してください。このパッケージの loader が準備され、アプリ領域のみを書き込み、ブートローダーと工場データは保持します。別のツールは不要です。本体には何も送信していません。",
     foreignloader: "本体は独自のアップデートモードで、このプロジェクトのローダーではありません。Quantum GammaWave のイメージをそのプログラムへ送ってはいけません。何も送信していません。電源を入れ直し、Quantum GammaWave が動作中の本体からのみインストールしてください。",
     lostIdle: "1 バイトも書き込む前に USB 接続が切れました。本体は変化していません。ケーブルを挿し直す（または電源を入れ直す）して再試行してください。",
     lostWriting: "ローダーが書き込み中に USB 接続が切れました。ローダーはセクターごとに検証し確定していないため失われたものはありません。ケーブルを挿し直して「インストール」を押すと完了します。書き込み中は電源を切らないでください。",
@@ -598,14 +598,14 @@ TEXT.es = {
   verLabel: "Versión del paquete:", verOld: "Podés instalar la última versión o volver a una anterior.", latest: "última", manual: "Manual:",
   chipCheck: "🧪 Comprobar chip (solo lectura)",
   planTitle: "Antes de escribir nada: qué va a escribir la instalación",
-  planWhat: "En un FM-1 de fábrica la instalación prepara el loader de este paquete, que lee el chip de flash y rechaza una parte que el firmware no escribe antes de borrar nada. Escribe sólo lo que difiere dentro de 0x04000-0x92FFF, conservando el área de arranque y los datos de fábrica. Este panel corre las comprobaciones de paquete del propio M-Flasher y, con tu dump cargado, muestra los sectores exactos que se van a escribir. No se envía nada a la unidad.",
+  planWhat: "En un FM-1 de fábrica la instalación prepara el loader de este paquete, que lee el chip de flash y rechaza una parte que el firmware no escribe antes de borrar nada. Escribe sólo lo que difiere dentro de 0x04000-0x92FFF, conservando el área de arranque y los datos de fábrica. Este panel corre las mismas comprobaciones de paquete que el instalador y, con tu dump cargado, muestra los sectores exactos que se van a escribir. No se envía nada a la unidad.",
   planDump: "Tu dump (.bin, 1 MiB), para el plan exacto:",
   planNoPkg: "El paquete todav\u00eda no est\u00e1 cargado: recarg\u00e1 la p\u00e1gina.",
   planExact: "Escribe %n sectores (%k KiB): %r",
   planBound: "Como m\u00e1ximo %n sectores: toda el \u00e1rea de aplicaci\u00f3n. Carg\u00e1 tu dump para el plan exacto.",
   planUnchanged: "Los otros %n sectores ya coinciden y no se tocan.",
   planBadDump: "Ese archivo tiene %n B: el dump de esta unidad es de 1048576 B. No se us\u00f3.",
-  planNote: "Lo escribe M-Flasher en tu PC, no esta p\u00e1gina. Lo que esto no puede decir: qu\u00e9 va a contestar tu unidad cuando M-Flasher la abra \u2014 vuelve a identificar el modelo y la chip key antes de escribir.",
+  planNote: "Lo escribe el instalador en tu PC, no esta p\u00e1gina. Lo que esto no puede decir: qu\u00e9 va a contestar tu unidad cuando el instalador la abra \u2014 vuelve a identificar el modelo y la chip key antes de escribir.",
   accContainer: "paquete (identidad)",
   accImage: "imagen de flash que contiene",
   accHeaderCrc: "CRC16 de cabecera",
@@ -619,17 +619,17 @@ TEXT.es = {
   accSectors: "sectores del rango",
   accBoot: "\u00e1rea de arranque conservada",
   accFactory: "datos de f\u00e1brica",
-  refuseContainer: "M-Flasher rechaza este paquete:",
-  refuseModel: "M-Flasher rechaza este paquete \u2014 es de otro modelo:",
-  refuseSize: "M-Flasher rechaza este paquete \u2014 es m\u00e1s grande que el flash:",
-  refuseKey: "M-Flasher rechaza este paquete \u2014 su firmware no descifra con la chip key de la unidad:",
-  refuseFactory: "M-Flasher rechaza este paquete \u2014 llega a los datos de f\u00e1brica:",
+  refuseContainer: "El instalador rechaza este paquete:",
+  refuseModel: "El instalador rechaza este paquete \u2014 es de otro modelo:",
+  refuseSize: "El instalador rechaza este paquete \u2014 es m\u00e1s grande que el flash:",
+  refuseKey: "El instalador rechaza este paquete \u2014 su firmware no descifra con la chip key de la unidad:",
+  refuseFactory: "El instalador rechaza este paquete \u2014 llega a los datos de f\u00e1brica:",
   verifyOnly: "🔎 Solo verificar (no escribe nada)", pfTitle: "Antes de instalar (los cuatro puntos son obligatorios)",
   pf1: "El FM-1 está conectado directamente a la computadora con un cable USB de datos (sin hub).",
   pf2: "La computadora está enchufada a la red y no va a suspenderse; el FM-1 tiene batería.",
   pf3: "Toda otra aplicación que use MIDI (DAW, editor, otras pestañas) está cerrada.",
   pf4: "No voy a desconectar durante la escritura. Si se corta, reconecto y pulso INSTALAR otra vez: el loader termina la escritura.",
-  hashOk: "SHA-256 del paquete verificado ✓ ", badhash: "El paquete no coincide con su SHA-256 publicado: no se escribirá nada. Recargá la página. ",
+  hashOk: "SHA-256 del paquete verificado ✓ ", badhash: "El paquete no coincide con su SHA-256 publicado: no se escribirá nada. Recargá la página. ", badsig: "La firma Ed25519 del paquete no verifica con la clave fijada en esta página: no se escribirá nada.",
   nohash: "Este paquete no tiene SHA-256 publicado: no se escribirá nada. Recargá la página.",
   vNone: "Verificar: no respondió ningún FM-1. Puertos MIDI que enumeró este navegador:",
   chipOk: "Chip: identificado por su propia respuesta 0x12",
@@ -666,7 +666,7 @@ TEXT.es = {
   notfound: "No se encontró el FM-1. Revisá el cable USB de datos, cerrá otras apps MIDI y pulsá Instalar otra vez.",
   model: "El dispositivo conectado no es un FM-1.",
   lost: "Se perdió la conexión USB. Reconectá el FM-1 y pulsá Instalar otra vez.",
-  stockfirst: "Esta unidad corre el firmware de fábrica. Esta página actualiza una unidad que ya corre Quantum GammaWave; la primera instalación en un FM-1 de fábrica la hace el «Install firmware» de M-Flasher, que escribe sólo el área de aplicación y conserva el bootloader y los datos de fábrica. No se envió nada a la unidad.",
+  stockfirst: "Esta unidad corre el firmware de fábrica. Esta página actualiza una unidad que ya corre Quantum GammaWave; en un FM-1 de fábrica se pulsa Install directamente: el instalador prepara el loader de este paquete, que escribe sólo el área de aplicación y conserva el bootloader y los datos de fábrica. Sin otra herramienta. No se envió nada a la unidad.",
   foreignloader: "La unidad está en su propio modo de actualización, no en el loader de este proyecto. Una imagen de Quantum GammaWave no debe enviarse a ese programa: no se envió nada. Apagá y encendé la unidad e instalá sólo desde una unidad que ya corra Quantum GammaWave.",
   lostIdle: "Se perdió el enlace USB antes de escribir un solo byte: nada cambió en la unidad. Reconectá el cable (o apagá y encendé) y volvé a intentar.",
   lostWriting: "Se perdió el enlace USB mientras el loader escribía. El loader verifica cada sector y no confirmó, así que no se perdió nada: reconectá el cable y pulsá Instalar otra vez para terminar. No apagues la unidad mientras escribe.",
@@ -695,14 +695,14 @@ TEXT.zh = {
   verLabel: "固件包版本：", verOld: "您可以安装最新版本或回退到较早版本。", latest: "最新", manual: "手册：",
   chipCheck: "🧪 检查闪存芯片（只读）",
   planTitle: "写入之前：安装将要写什么",
-  planWhat: "出厂 FM-1 的安装会准备好本包的 loader，它读取闪存芯片，在擦除任何内容之前就拒绝固件不写入的器件。它只写 0x04000-0x92FFF 内有差异的扇区，保留引导区与出厂数据。本面板在页面内运行 M-Flasher 自身的包校验，并在你加载 dump 后显示将要写入的确切扇区。不会向设备发送任何内容。",
+  planWhat: "出厂 FM-1 的安装会准备好本包的 loader，它读取闪存芯片，在擦除任何内容之前就拒绝固件不写入的器件。它只写 0x04000-0x92FFF 内有差异的扇区，保留引导区与出厂数据。本面板运行与安装器相同的包校验，并在你加载 dump 后显示将要写入的确切扇区。不会向设备发送任何内容。",
   planDump: "\u4f60\u7684 dump\uff08.bin\uff0c1 MiB\uff09\uff0c\u7528\u4e8e\u786e\u5207\u8ba1\u5212\uff1a",
   planNoPkg: "\u5b89\u88c5\u5305\u5c1a\u672a\u52a0\u8f7d\uff1a\u8bf7\u5237\u65b0\u9875\u9762\u3002",
   planExact: "\u5199\u5165 %n \u4e2a\u6247\u533a\uff08%k KiB\uff09\uff1a%r",
   planBound: "\u6700\u591a %n \u4e2a\u6247\u533a\uff1a\u6574\u4e2a\u5e94\u7528\u533a\u3002\u52a0\u8f7d\u4f60\u7684 dump \u4ee5\u83b7\u5f97\u786e\u5207\u8ba1\u5212\u3002",
   planUnchanged: "\u53e6\u5916 %n \u4e2a\u6247\u533a\u5df2\u7ecf\u4e00\u81f4\uff0c\u4e0d\u4f1a\u88ab\u6539\u52a8\u3002",
   planBadDump: "\u8be5\u6587\u4ef6\u4e3a %n B\uff1a\u672c\u673a\u7684 dump \u662f 1048576 B\u3002\u672a\u4f7f\u7528\u3002",
-  planNote: "\u7531\u4f60\u7535\u8111\u4e0a\u7684 M-Flasher \u5199\u5165\uff0c\u800c\u4e0d\u662f\u672c\u9875\u9762\u3002\u8fd9\u4e0d\u80fd\u8bf4\u660e\uff1aM-Flasher \u6253\u5f00\u8bbe\u5907\u65f6\u8bbe\u5907\u4f1a\u56de\u7b54\u4ec0\u4e48\u2014\u2014\u5b83\u5728\u5199\u5165\u524d\u4f1a\u91cd\u65b0\u8bc6\u522b\u578b\u53f7\u4e0e chip key\u3002",
+  planNote: "\u7531\u4f60\u7535\u8111\u4e0a\u7684\u5b89\u88c5\u5668\u5199\u5165\uff0c\u800c\u4e0d\u662f\u672c\u9875\u9762\u3002\u8fd9\u4e0d\u80fd\u8bf4\u660e\uff1a\u5b89\u88c5\u5668\u6253\u5f00\u8bbe\u5907\u65f6\u8bbe\u5907\u4f1a\u56de\u7b54\u4ec0\u4e48\u2014\u2014\u5b83\u5728\u5199\u5165\u524d\u4f1a\u91cd\u65b0\u8bc6\u522b\u578b\u53f7\u4e0e chip key\u3002",
   accContainer: "\u5b89\u88c5\u5305\uff08\u6807\u8bc6\uff09",
   accImage: "\u5176\u4e2d\u7684 flash \u955c\u50cf",
   accHeaderCrc: "\u5934\u90e8 CRC16",
@@ -716,17 +716,17 @@ TEXT.zh = {
   accSectors: "\u8303\u56f4\u5185\u7684\u6247\u533a",
   accBoot: "\u4fdd\u7559\u5f15\u5bfc\u533a",
   accFactory: "\u51fa\u5382\u6570\u636e",
-  refuseContainer: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\uff1a",
-  refuseModel: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u662f\u53e6\u4e00\u79cd\u578b\u53f7\u7684\uff1a",
-  refuseSize: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u5927\u4e8e\u95ea\u5b58\uff1a",
-  refuseKey: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5176\u56fa\u4ef6\u65e0\u6cd5\u7528\u8bbe\u5907\u7684 chip key \u89e3\u5bc6\uff1a",
-  refuseFactory: "M-Flasher \u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u4f1a\u89e6\u53ca\u51fa\u5382\u6570\u636e\uff1a",
+  refuseContainer: "\u5b89\u88c5\u5668\u62d2\u7edd\u6b64\u5b89\u88c5\u5305\uff1a",
+  refuseModel: "\u5b89\u88c5\u5668\u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u662f\u53e6\u4e00\u79cd\u578b\u53f7\u7684\uff1a",
+  refuseSize: "\u5b89\u88c5\u5668\u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u5927\u4e8e\u95ea\u5b58\uff1a",
+  refuseKey: "\u5b89\u88c5\u5668\u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5176\u56fa\u4ef6\u65e0\u6cd5\u7528\u8bbe\u5907\u7684 chip key \u89e3\u5bc6\uff1a",
+  refuseFactory: "\u5b89\u88c5\u5668\u62d2\u7edd\u6b64\u5b89\u88c5\u5305\u2014\u2014\u5b83\u4f1a\u89e6\u53ca\u51fa\u5382\u6570\u636e\uff1a",
   verifyOnly: "🔎 仅校验（不写入）", pfTitle: "安装前检查（四项均须确认）",
   pf1: "FM-1 已通过 USB 数据线直接连接到电脑（不使用集线器）。",
   pf2: "电脑已连接电源且不会休眠；FM-1 电量充足。",
   pf3: "所有其他使用 MIDI 的应用（DAW、编辑器、其他标签页）均已关闭。",
   pf4: "写入过程中我不会拔线。如果中断，我会重新连接并再次点击安装：更新加载器会完成写入。",
-  hashOk: "固件包 SHA-256 已验证 ✓ ", badhash: "固件包与公布的 SHA-256 不匹配：不会写入任何内容。请重新加载页面。 ",
+  hashOk: "固件包 SHA-256 已验证 ✓ ", badhash: "固件包与公布的 SHA-256 不匹配：不会写入任何内容。请重新加载页面。 ", badsig: "该包的 Ed25519 签名无法用本页固定的公钥验证：不会写入任何内容。",
   nohash: "此固件包没有公布 SHA-256：不会写入任何内容。请重新加载页面。",
   vNone: "校验：没有 FM-1 回应。此浏览器枚举到的 MIDI 端口：",
   chipOk: "闪存芯片：已由其自身的 0x12 应答识别",
@@ -763,7 +763,7 @@ TEXT.zh = {
   notfound: "未找到 FM-1。请检查 USB 数据线，关闭其他 MIDI 应用，然后再次点击安装。",
   model: "连接的设备不是 FM-1。",
   lost: "USB 连接已断开。请重新连接 FM-1 并再次点击安装。",
-  stockfirst: "此设备运行出厂固件。本页面只更新已运行 Quantum GammaWave 的设备；出厂 FM-1 的首次安装请使用 M-Flasher 的 Install firmware（仅写入应用区，保留 bootloader 与出厂数据）。未向设备发送任何数据。",
+  stockfirst: "此设备运行出厂固件。本页面也能完成出厂 FM-1 的首次安装：页面会准备本包的 loader，仅写入应用区，保留 bootloader 与出厂数据。未向设备发送任何数据。",
   foreignloader: "设备处于其自带的更新模式，而不是本项目的 loader。不得向该程序发送 Quantum GammaWave 镜像：未发送任何数据。请重新开机关机，并仅从已运行 Quantum GammaWave 的设备安装。",
   lostIdle: "在写入任何字节之前 USB 连接已断开：设备没有变化。请重新插拔线缆（或重新开机）后重试。",
   lostWriting: "loader 写入过程中 USB 连接断开。loader 逐扇区校验且未提交，因此没有丢失数据：请重新插拔线缆并再次点击安装以完成。写入过程中请勿断电。",
@@ -780,7 +780,7 @@ const STATIC = {
   es: {
     "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware": "QUANTUM GAMMAWAVE — Firmware para M-VAVE FM-1",
     "THEME: GAMMA": "TEMA: GAMMA",
-    "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "Polifonía de 10 voces. EQ maestro paramétrico. Saturación armónica. — Firmware avanzado de sintetizador y groovebox open source para M-VAVE FM-1",
+    "12-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "Polifonía de 12 voces. EQ maestro paramétrico. Saturación armónica. — Firmware avanzado de sintetizador y groovebox open source para M-VAVE FM-1",
     "⚡ GITHUB REPOSITORY ↗": "⚡ REPOSITORIO GITHUB ↗",
     "WAVE 1 & 2 + HEARTH": "WAVE 1 Y 2 + HEARTH",
     "Blazing Yellow Sun + Orbiting Moon, Gravity, Singularity, Photosphere": "Sol amarillo incandescente + luna en órbita, gravedad, singularidad y fotosfera",
@@ -805,7 +805,7 @@ const STATIC = {
   zh: {
     "QUANTUM GAMMAWAVE — M-VAVE FM-1 Firmware": "QUANTUM GAMMAWAVE — M-VAVE FM-1 固件",
     "THEME: GAMMA": "主题：GAMMA",
-    "10-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "10 声部复音。参数主 EQ。谐波饱和。— 适用于 M-VAVE FM-1 的高级开源合成器与 groovebox 固件",
+    "12-Voice Polyphony. Parametric Master EQ. Harmonic Saturation. — Advanced Open-Source Synthesizer & Groovebox Firmware for M-VAVE FM-1": "12 声部复音。参数主 EQ。谐波饱和。— 适用于 M-VAVE FM-1 的高级开源合成器与 groovebox 固件",
     "⚡ GITHUB REPOSITORY ↗": "⚡ GITHUB 仓库 ↗",
     "WAVE 1 & 2 + HEARTH": "WAVE 1 和 2 + HEARTH",
     "Blazing Yellow Sun + Orbiting Moon, Gravity, Singularity, Photosphere": "炽热黄色太阳 + 环绕月球、重力、奇点和光球层",
@@ -857,7 +857,7 @@ const VF = {
     "state.at-install": "read on this link by the install, before the first write frame",
     "limit.update-resumable-not-exercised": "an interrupted update is resumable by design; no interruption was forced on a unit",
     "path.this-page": "this page's installer",
-    "path.m-flasher": "M-Flasher, host install",
+    "path.this-page-stock": "this page's installer, first install on a stock unit",
     "limit.recovery-not-exercised": "recovery covered by a documented tool, not exercised on this unit",
     "limit.dump-not-hashed-here": "the dump is on your disk: this page compared two records, it did not hash the 1 MiB",
     "state.current": "State: what this page actually observed",
@@ -868,7 +868,7 @@ const VF = {
     "st.SIGNATURE VERIFIED": "its signature matches a key pinned in this page",
     "st.DEVICE COMPATIBLE": "the unit's own answer fits this package",
     "st.RECOVERY NOT VERIFIED": "no verified backup of this unit plus a tool covering the written range, or recovery never exercised on it",
-    "st.INSTALL READY": "every precondition is met: this unit is ready for the path the verdict names (M-Flasher does the first install on a stock unit; this page writes to a unit already running QG)",
+    "st.INSTALL READY": "every precondition is met: this unit is ready for the path the verdict names (a stock unit is installed from here: the page stages this package's loader, which reads the chip on the unit)",
     "st.INSTALL BLOCKED": "at least one precondition is not met, so nothing may be written",
     "gate.detect": "1. FM-1 detected",
     "gate.read": "2. Identity and version read",
@@ -879,7 +879,7 @@ const VF = {
     "gate.backup": "8. Backup of this unit",
     "gate.flashmap": "7. Flash map and regions",
     "gate.recovery": "9. Recovery path",
-    "gate.revalidate": "10. Identity after the install (FM-1_982)",
+    "gate.revalidate": "10. Identity after the install (FM-1_965)",
     "query.frames": "Identity frames sent",
     "query.answer": "Answer came from",
     "query.latencyMs": "Answer latency",
@@ -906,6 +906,7 @@ const VF = {
     "usb.vidpid": "USB vendor / product id",
     "fam.stock": "official V15",
     "fam.gammaWave": "Quantum GammaWave (this package)",
+    "fam.gammaWaveLegacy": "Quantum GammaWave (previous identity, FM-1_982)",
     "fam.other": "another build (JIANT or custom)",
     "fam.loader": "update loader",
     "fam.unknown": "not recognised",
@@ -936,6 +937,7 @@ const VF = {
     "compat.blocked-firmware": "blocked: this installer cannot write over that firmware",
     "compat.replaces-stock": "the package is built to replace official V15",
     "compat.reinstall-same": "same firmware: a reinstall",
+    "compat.upgrade-legacy": "the same firmware on its previous identity (FM-1_982): an update",
     "compat.finish-loader": "the package can finish the interrupted install",
     "compat.foreign-loader": "blocked: the unit is in its own update mode (the vendor's loader), not this project's; nothing was sent",
     "auth.none": "none — only the install path (signature, chip, sizes) can authorise one",
@@ -958,7 +960,7 @@ const VF = {
     "state.at-install": "se lee en este enlace durante la instalación, antes del primer frame de escritura",
     "limit.update-resumable-not-exercised": "una actualización interrumpida se reanuda por diseño; no se forzó ninguna interrupción en una unidad",
     "path.this-page": "instalador de esta página",
-    "path.m-flasher": "M-Flasher, instalación desde el host",
+    "path.this-page-stock": "el instalador de esta página, primera instalación en una unidad de fábrica",
     "limit.recovery-not-exercised": "recuperación cubierta por una herramienta documentada, no ejercitada en esta unidad",
     "limit.dump-not-hashed-here": "el dump está en tu disco: esta página comparó dos registros, no hasheó el MiB",
     "state.current": "Estado: lo que esta página observó realmente",
@@ -969,7 +971,7 @@ const VF = {
     "st.SIGNATURE VERIFIED": "su firma coincide con una clave anclada en esta p\u00e1gina",
     "st.DEVICE COMPATIBLE": "la respuesta de la unidad encaja con este paquete",
     "st.RECOVERY NOT VERIFIED": "sin backup verificado de esta unidad m\u00e1s una herramienta que cubra el rango escrito, o recuperaci\u00f3n nunca ejercitada en ella",
-    "st.INSTALL READY": "se cumplen todos los requisitos previos: la unidad est\u00e1 lista para el camino que nombra el veredicto (la primera instalaci\u00f3n en una unidad de f\u00e1brica la hace M-Flasher; esta p\u00e1gina escribe en una que ya corre QG)",
+    "st.INSTALL READY": "se cumplen todos los requisitos previos: la unidad est\u00e1 lista para el camino que nombra el veredicto (una unidad de f\u00e1brica se instala desde esta p\u00e1gina: prepara el loader del paquete, que lee el chip en la unidad)",
     "st.INSTALL BLOCKED": "al menos una fila de arriba no es pass: no se puede escribir nada",
     "gate.detect": "1. FM-1 detectado",
     "gate.read": "2. Identidad y versión leídas",
@@ -980,7 +982,7 @@ const VF = {
     "gate.backup": "8. Backup de esta unidad",
     "gate.flashmap": "7. Mapa de flash y regiones",
     "gate.recovery": "9. Camino de recuperación",
-    "gate.revalidate": "10. Identidad tras la instalación (FM-1_982)",
+    "gate.revalidate": "10. Identidad tras la instalación (FM-1_965)",
     "query.frames": "Tramas de identidad enviadas",
     "query.answer": "Respondió",
     "query.latencyMs": "Latencia de la respuesta",
@@ -1007,6 +1009,7 @@ const VF = {
     "usb.vidpid": "VID / PID de USB",
     "fam.stock": "V15 oficial",
     "fam.gammaWave": "Quantum GammaWave (este paquete)",
+    "fam.gammaWaveLegacy": "Quantum GammaWave (identidad anterior, FM-1_982)",
     "fam.other": "otro build (JIANT o personalizado)",
     "fam.loader": "loader de actualización",
     "fam.unknown": "no reconocido",
@@ -1037,6 +1040,7 @@ const VF = {
     "compat.blocked-firmware": "bloqueado: este instalador no escribe sobre ese firmware",
     "compat.replaces-stock": "el paquete está hecho para reemplazar V15 oficial",
     "compat.reinstall-same": "mismo firmware: reinstalación",
+    "compat.upgrade-legacy": "el mismo firmware con su identidad anterior (FM-1_982): una actualización",
     "compat.finish-loader": "el paquete puede terminar la instalación interrumpida",
     "compat.foreign-loader": "bloqueado: la unidad está en su propio modo update (el loader del fabricante), no en el de este proyecto; no se envió nada",
     "auth.none": "ninguna — solo la ruta de instalación (firma, chip, tamaños) puede autorizar una",
@@ -1059,7 +1063,7 @@ const VF = {
     "state.at-install": "在安装时通过同一链路读取，在第一个写入帧之前",
     "limit.update-resumable-not-exercised": "中断的升级按设计可恢复；未在实机上强制中断",
     "path.this-page": "本页安装器",
-    "path.m-flasher": "M-Flasher，主机安装",
+    "path.this-page-stock": "本页安装器，出厂设备首次安装",
     "limit.recovery-not-exercised": "恢复路径有文档工具覆盖，但未在本机执行",
     "limit.dump-not-hashed-here": "dump 在你的磁盘上：本页比较了两份记录，并没有对 1 MiB 做哈希",
     "state.current": "状态：本页面实际观察到的内容",
@@ -1070,7 +1074,7 @@ const VF = {
     "st.SIGNATURE VERIFIED": "签名与本页固定的密钥相符",
     "st.DEVICE COMPATIBLE": "本机的回答与该包相符",
     "st.RECOVERY NOT VERIFIED": "没有本机已验证的备份加上覆盖写入范围的工具，或未在本机实际执行过恢复",
-    "st.INSTALL READY": "所有前置条件均满足：本机已准备好走结论指定的路径（出厂设备的首次安装由 M-Flasher 完成；本页仅向已运行 QG 的设备写入）",
+    "st.INSTALL READY": "所有前置条件均满足：本机已准备好走结论指定的路径（出厂设备由本页完成首次安装：本页准备本包的 loader，由它读取设备上的芯片）",
     "st.INSTALL BLOCKED": "上方至少一项不是 pass：不得写入任何内容",
     "gate.detect": "1. 已检测到 FM-1",
     "gate.read": "2. 已读取标识与版本",
@@ -1081,7 +1085,7 @@ const VF = {
     "gate.backup": "8. 本机备份",
     "gate.flashmap": "7. Flash 映射与区域",
     "gate.recovery": "9. 恢复路径",
-    "gate.revalidate": "10. 安装后的标识（FM-1_982）",
+    "gate.revalidate": "10. 安装后的标识（FM-1_965）",
     "query.frames": "已发送的识别帧",
     "query.answer": "响应来源",
     "query.latencyMs": "响应延迟",
@@ -1108,6 +1112,7 @@ const VF = {
     "usb.vidpid": "USB VID / PID",
     "fam.stock": "官方 V15",
     "fam.gammaWave": "Quantum GammaWave（本包）",
+    "fam.gammaWaveLegacy": "Quantum GammaWave（上一标识，FM-1_982）",
     "fam.other": "其他固件（JIANT 或自制）",
     "fam.loader": "升级 loader",
     "fam.unknown": "未识别",
@@ -1138,6 +1143,7 @@ const VF = {
     "compat.blocked-firmware": "已阻止：本安装器无法写入该固件",
     "compat.replaces-stock": "该固件包用于替换官方 V15",
     "compat.reinstall-same": "相同固件：重新安装",
+    "compat.upgrade-legacy": "同一固件的上一标识（FM-1_982）：这是一次升级",
     "compat.finish-loader": "该固件包可以完成被中断的安装",
     "compat.foreign-loader": "已阻止：设备处于其自身的更新模式（厂商 loader），而不是本项目的 loader；未发送任何数据",
     "auth.none": "无 — 只有安装流程（签名、芯片、大小）才能授权",
@@ -1214,7 +1220,7 @@ const rememberInstalled = () => {
   try { if (releaseVersion) localStorage.setItem(INSTALLED_KEY, String(releaseVersion).replace(/^v/i, "").split("-")[0]); } catch (_) {}
 };
 /* ---- the first install, planned before the cable is plugged in ---- */
-/* M-Flasher's own conditions on the package this page offers, and -- with the owner's dump -- the exact
+/* The installer's own conditions on the package this page offers, and -- with the owner's dump -- the exact
  * sectors it will erase and write. Nothing here talks to a unit: it is a plan, and its class is HOST. */
 let planDump = null;
 const planFill = (text, map) => Object.keys(map).reduce((a, k) => a.split("%" + k).join(map[k]), text);
@@ -1302,10 +1308,41 @@ async function loadVersion(i) {
     /* (QG-1) the published hash is mandatory: an old or hand-edited metadata file is refused, not trusted */
     if (!v.sha256) { sayK("nohash"); return; }
     if (hash !== v.sha256 || (v.size && pkg.length !== v.size)) { sayK("badhash", hash.slice(0, 16)); return; }
-    releaseSig = { state: "pass", keyid: "sha256", version: v.version, sha256: hash, size: pkg.length,
-      detail: `${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
+    /* Authenticity, before anything else is trusted: the release manifest published beside this package
+     * is checked with Ed25519 against the public keys pinned in this build. A SHA-256 says the bytes
+     * arrived whole; only the signature says who made them, and nothing here can substitute one for the
+     * other. No manifest, an unknown key id, a signature by another key, or a manifest that names a
+     * different build record all leave INSTALL disabled. */
+    try {
+      const mres = await fetch(v.manifest || "../../firmware/manifest.json");
+      // (v2.0.0) a package with no signature is a preview, not a failed verification: say which it is.
+      if (!mres.ok) throw new Error(`this build carries no signature, so it is not installable from here `
+        + `(no release manifest for this package, HTTP ${mres.status}); the stable channel installs the signed release`);
+      const manifest = await mres.json();
+      if (epoch !== loadEpoch) return;
+      const sig = await verifyManifest(pkg, manifest, meta.keys || {}, { product: meta.product });
+      /* What the signature is tied to: the firmware images the package carries. The .fwsc is
+       * reproducible, so a later commit that does not touch the firmware rebuilds the same bytes and
+       * the same signature still applies; the moment the image changes, the hashes stop matching and
+       * INSTALL stays disabled until the custodian signs the new build. */
+      const arts = (meta.build && meta.build.artifacts) || {};
+      const signed = manifest.images || {};
+      const bad = Object.keys(signed).filter((n) => String((arts[n] || {}).sha256 || "").toLowerCase()
+        !== String(signed[n]).toLowerCase());
+      if (Object.keys(signed).length && bad.length)
+        throw new Error(`the signature names firmware this build does not have (${bad.join(", ")})`);
+      releaseSig = { state: "pass", keyid: sig.keyid, version: sig.version, sha256: hash, size: pkg.length,
+        detail: `Ed25519 ${sig.keyid} \u00b7 ${pkg.length} B, sha256 ${String(hash).slice(0, 16)}\u2026` };
+    } catch (e) {
+      releaseSig = { state: "fail", keyid: "", version: v.version, sha256: hash, size: pkg.length,
+        detail: String((e && e.message) || e) };
+      $("pkg-hash").textContent = "";
+      log(`signature: ${e && e.message}`);
+      sayK("badsig", String((e && e.message) || e).slice(0, 140));
+      return;
+    }
     releaseOk = true;
-    $("pkg-hash").textContent = t("hashOk") + hash;
+    $("pkg-hash").textContent = t("hashOk") + hash + " \u00b7 Ed25519 " + releaseSig.keyid;
     image = pkg;
     renderPlan();
     releaseHash = hash; releaseVersion = v.version;
@@ -1546,8 +1583,8 @@ async function runVerify() {
     else if (fw.kind === "ourloader") sayK("vLoader");
     else if (fw.kind === "otherloader") sayK("vVendorLoader");
     /* (7.x) the status line speaks about the device only. It used to append meta.product -- the tag of
-     * the package THIS PAGE offers (FM-1_982) -- to a sentence about what the unit answered, so a stock
-     * FM-1 read as "official V15 (FM-1_015). ... FM-1_982": two identities in one line, and the package's
+     * the package THIS PAGE offers (FM-1_965) -- to a sentence about what the unit answered, so a stock
+     * FM-1 read as "official V15 (FM-1_015). ... FM-1_965": two identities in one line, and the package's
      * presented as the unit's. The package is named in the report panel, under its own rows. */
     else if (fw.kind === "stock") sayK("vStock");
     else if (fw.kind === "ours") sayK("vOurs", fw.text + t("vSame"));

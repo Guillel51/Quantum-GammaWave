@@ -13,7 +13,7 @@ import assert from "node:assert";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { Updater, requireProof, pack7, isOurLoader } from "./fm1ota.js";
-import { logicalImage } from "./fm1pkg.js";
+import { logicalImage, productOf } from "./fm1pkg.js";
 
 let n = 0;
 const ok = (cond, what) => { assert.ok(cond, what); n++; console.log("ok  " + what); };
@@ -95,7 +95,7 @@ class Unit {
       if (!eq(got, want)) this.served = -1e9;                  // a wrong byte, not a slow unit
       this.waiting = null;
       if (this.served > -1e8) this.served++;
-      if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_900", "Felucca Update"), 200);
+      if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_965", "Felucca Update"), 200);
       else if (addr === 0xF0000000) setTimeout(() => this.boot(this.after, "Felucca"), 200);
       else this.next();
     }
@@ -143,20 +143,25 @@ if (!pkgPath) {
 const pkg = fs.readFileSync(pkgPath);
 /* the device reads the LOGICAL image of the package (fm1pkg.js), not the container file */
 const image = logicalImage(pkg);
-const PRODUCT = "FM-1_982";
+/* the identity the package itself carries: the page must name the package it was given, and this
+ * test must pass on any release, whichever number docs/IDENTITY.md has it out on */
+const PRODUCT = productOf(pkg);
 const ctxFor = (extra = {}) => ({ firmware: "15", ...extra });
 
-ok(isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_900", version: 900 }) === true &&
+ok(isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_965", version: 965 }) === true &&
+   isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_900", version: 900 }) === true &&
+   isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_919", version: 919 }) === false &&
    isOurLoader({ model: "ota-FM-1", text: "ota-FM-1_015", version: 15 }) === false &&
-   isOurLoader({ model: "FM-1", text: "FM-1_982", version: 982 }) === false,
-   "the loader sentinel (900) tells this project's loader from a unit's own update mode");
+   isOurLoader({ model: "FM-1", text: "FM-1_965", version: 965 }) === false,
+   "the loader's own identity (965, 900 before docs/IDENTITY.md) tells this project's loader from a unit's own update mode");
 
 const fast = { loaderDelay: 60, rebootDelay: 60 };
-const run = async (unit, ctx) => {
+const runPkg = async (unit, packageBytes, product, ctx) => {
   const up = new Updater(unit.access, () => {}, fast);
-  const proof = await requireProof({ ...ctx, pkg, product: PRODUCT });
-  return up.install(pkg, PRODUCT, () => {}, { ...ctx, proof }).catch((e) => e);
+  const proof = await requireProof({ ...ctx, pkg: packageBytes, product });
+  return up.install(packageBytes, product, () => {}, { ...ctx, proof }).catch((e) => e);
 };
+const run = (unit, ctx) => runPkg(unit, pkg, PRODUCT, ctx);
 
 /* 1. The real-world fix: a unit running QG updates through a loader that cannot answer 0x12.
  *    The chip fact is the app link's own 0x12 from the same attempt, and the write completes. */
@@ -170,10 +175,38 @@ const run = async (unit, ctx) => {
   ok(u.served > 0 && u.served < 1e8, `every byte the device asked for matched the package (${u.served} requests)`);
 }
 
+/* 1b. THE TRANSITION (docs/IDENTITY.md). A unit still on 2.1.1 answers FM-1_982: it is this firmware on
+ *     its previous identity, so the very same install has to work -- and leave the unit answering the new
+ *     number. This is the promise the change was made for, and it is the one case nothing else covers:
+ *     Verify Only classifies it, but only a full transfer proves it can actually be updated. */
+{
+  /* The package must be one whose identity is NOT the unit's, or this case would pass for the wrong
+   * reason: the fixture above is 1.9.0 and answers the same 982 the legacy unit does. So it uses the
+   * newest signed release in release/ (what the site actually installs), and says so if there is none
+   * instead of pretending. */
+  const rel = ["release/felucca-2.1.2.fwsc", "release/felucca-2.0.0.fwsc"]
+    .map((f) => { try { return { f, b: fs.readFileSync(f) }; } catch (_) { return null; } })
+    .find((r) => r && productOf(r.b) !== PRODUCT);
+  if (!rel) {
+    console.log("skip: no signed release with an identity other than the fixture's (the transition case needs one)");
+  } else {
+    const target = productOf(rel.b);
+    const legacy = ["FM-1_982"].find((id) => id !== target);
+    const u = new Unit(logicalImage(rel.b), { identity: legacy });
+    u.after = target;
+    const before = u.upgrades;
+    const res = await runPkg(u, rel.b, target, ctxFor());
+    ok(res === target, `a unit on the previous identity (${legacy}) updates to ${target}, from ${rel.f} (${JSON.stringify(res && res.message || res)})`);
+    ok(u.upgrades === before + 2, "...through both programs: the app took UPGRADE once and the loader once");
+    ok(u.served > 0 && u.served < 1e8, `...and every byte it asked for matched the release (${u.served} requests)`);
+    ok(u.identity === target, `...coming back as ${target}, not as the old number`);
+  }
+}
+
 /* 2. The same unit, but the page opens with the loader already up (an interrupted install): with no
  *    chip fact on the host, this project's loader checks the chip itself (loader.c), so it resumes. */
 {
-  const u = new Unit(image, { identity: "ota-FM-1_900", nor: false });
+  const u = new Unit(image, { identity: "ota-FM-1_965", nor: false });
   u.after = PRODUCT;
   const res = await run(u, ctxFor());
   ok(res === PRODUCT, `a resumed install with no chip record completes (${JSON.stringify(res && res.message || res)})`);
@@ -201,7 +234,7 @@ const run = async (unit, ctx) => {
 /* 5. An answered 0x12 decides, even when it is a part this installer does not write: nothing on the
  *    host can paper over a chip that answered and was refused. */
 {
-  const u = new Unit(image, { identity: "ota-FM-1_900", nor: true, jedec: 0xC84014 });   // read-only GD25Q80
+  const u = new Unit(image, { identity: "ota-FM-1_965", nor: true, jedec: 0xC84014 });   // read-only GD25Q80
   const err = await run(u, ctxFor());
   ok(err && err.code === "chip", `a loader that answers with a read-only part is refused (${err && err.code})`);
   ok(u.upgrades === 0, "...and nothing on the host stood in for the answer: no UPGRADE");

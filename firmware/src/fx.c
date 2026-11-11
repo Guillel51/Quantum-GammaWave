@@ -4,6 +4,27 @@
  * shared buses (chorus, tempo delay, reverb). Mono buses, stereo dry mix. */
 #define DLY_LEN 65536u           /* 1.49 s: 1/4 at 40 BPM fits */
 #define CHO_LEN 2048u
+/* Logarithmic reverb damping factor lookup table */
+static const int32_t rev_damp_table[128] = {
+    0,   100,  200,  301,  403,  505,  607,  709,  813,  916,
+   1020, 1124, 1229, 1335, 1440, 1546, 1653, 1761, 1870, 1980,
+   2091, 2203, 2316, 2430, 2545, 2661, 2778, 2896, 3014, 3133,
+   3252, 3372, 3492, 3613, 3735, 3858, 3982, 4107, 4232, 4358,
+   4485, 4612, 4740, 4869, 4998, 5128, 5259, 5390, 5522, 5655,
+   5788, 5922, 6057, 6192, 6328, 6464, 6601, 6738, 6876, 7014,
+   7153, 7292, 7432, 7572, 7713, 7854, 7996, 8138, 8281, 8424,
+   8568, 8712, 8857, 9003, 9149, 9296, 9443, 9591, 9739, 9888,
+  10037, 10187, 10337, 10488, 10639, 10790, 10942, 11094, 11247, 11399,
+  11552, 11706, 11860, 12014, 12169, 12324, 12479, 12634, 12789, 12945,
+  13100, 13257, 13413, 13570, 13727, 13885, 14043, 14202, 14360, 14519,
+  14678, 14837, 14997, 15157, 15318, 15479, 15640, 15801, 15963, 16125,
+  16287, 16450, 16613, 16776, 16939, 17102, 17266, 17430, 17594, 17758,
+  17922, 18087, 18251, 18416, 18581, 18746, 18911, 19077, 19243, 19409,
+  19575, 19742, 19908, 20075, 20242, 20409, 20576, 20744, 20911, 21079,
+  21247, 21415, 21583, 21751, 21920, 22088, 22257, 22426, 22595, 22764,
+  22933, 23102, 23271, 23441, 23610, 23780, 23949, 24119, 24289, 24459,
+  24629, 24799, 24969, 25139, 25309, 25479, 25400, 25400};
+
 static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
 volatile int32_t fx_vu[8];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses); (2.1)
@@ -1077,7 +1098,7 @@ static int32_t rev_size(void)
 static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *out, uint32_t n)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200;
+    int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]];
     for (i = 0; i < n; i++) {
         int32_t a = 0;
         int16_t *c = rev_comb;
@@ -1113,7 +1134,7 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
 static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200, m1[4], dm[4];
+    int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]], m1[4], dm[4];
     int32_t depth = song.g[G_RMOD] ? 64 + song.g[G_RMOD] * song.g[G_RMOD] * 4 : 0;   /* Q8 samples: 0.25 .. 252 (~5.7 ms) */
     fx.rm_ph += LFO_INC[song.g[G_RRATE] & 127];
     for (k = 0; k < 4u; k++) {
@@ -1317,8 +1338,8 @@ static __attribute__((noinline)) void rev_reso(const int32_t *rev_in, int32_t *o
         const track_t *ft = &trk[fol - 1u];
         uint32_t lo = 0xFFu;
         for (k = 0; k < NVOICE; k++)
-            if (ft->v[k].active && ft->v[k].gate && ft->v[k].note < lo)
-                lo = ft->v[k].note;
+            if (V(ft, k).active && V(ft, k).gate && V(ft, k).note < lo)
+                lo = V(ft, k).note;
         if (lo != 0xFFu)
             fx.rs_root = (uint8_t)(lo + 1u);
         if (fx.rs_root) {
@@ -1562,7 +1583,7 @@ static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t 
      * Feedback 0.366: three clear notches, still inside the stable all-pass range. */
     int32_t d = clamp(depth, 0, 12192);
     int32_t sweep, a, v, y2 = 0, k, tgt, step;
-    step = 256;
+    step = 128;
     if (fx_ph_d < d)
         fx_ph_d = d - fx_ph_d < step ? d : fx_ph_d + step;
     else if (fx_ph_d > d)
@@ -1976,9 +1997,9 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
                                                          * cut at once, a click), its mute let go (perform.c) */
         uint32_t k, on = 0;
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].active) {
-                if (t->v[k].stage != 4u)
-                    voice_kill(&t->v[k]);
+            if (V(t, k).active) {
+                if (V(t, k).stage != 4u)
+                    voice_kill(&V(t, k));
                 on = 1;
             }
         pf.mg[(uint32_t)(t - trk) % NTRK] = 32768;
@@ -2173,7 +2194,7 @@ static uint32_t mc_cost(const track_t *t)               /* a part's share of the
     const engine_t *e = ENGINES[t->engine];
     uint32_t k, v = 0, w = e == &ENG_FM6 ? 4u : e == &ENG_LOFI || e == &ENG_NOISE ? 2u : 3u;
     for (k = 0; k < NVOICE; k++)
-        v += t->v[k].active;
+        v += V(t, k).active;
     return v ? 1u + v * w : 0u;
 }
 /* (0.6.73) what each part really took, measured as it renders (on either core: TIMER4, 24 MHz), smoothed over a few

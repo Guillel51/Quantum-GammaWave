@@ -41,19 +41,19 @@ class BackupAuditTest(unittest.TestCase):
 
     def test_chip_authorisation_refusal(self):
         # Authorisation for writing should succeed ONLY on production chips
-        auth_puya = gate.authorise("FM-1_982", "FM-1_015", 0x856014)
+        auth_puya = gate.authorise("FM-1_965", "FM-1_015", 0x856014)
         self.assertTrue(auth_puya["allowed"])
 
-        auth_ucun = gate.authorise("FM-1_982", "FM-1_015", 0xB36014)
+        auth_ucun = gate.authorise("FM-1_965", "FM-1_015", 0xB36014)
         self.assertTrue(auth_ucun["allowed"])
 
         # Variants must be refused with chip_read_only
-        auth_gd = gate.authorise("FM-1_982", "FM-1_015", 0xC84014)
+        auth_gd = gate.authorise("FM-1_965", "FM-1_015", 0xC84014)
         self.assertFalse(auth_gd["allowed"])
         self.assertEqual(auth_gd["reason"], "chip_read_only")
 
         # Unknown JEDEC must be refused with chip_unknown
-        auth_unk = gate.authorise("FM-1_982", "FM-1_015", 0x123456)
+        auth_unk = gate.authorise("FM-1_965", "FM-1_015", 0x123456)
         self.assertFalse(auth_unk["allowed"])
         self.assertEqual(auth_unk["reason"], "chip_unknown")
 

@@ -67,8 +67,8 @@ static void graph_adsr(const track_t *t, uint16_t c)
         const voice_t *bv = 0;                          /* level as a dot on the curve, a line down to the axis */
         int32_t lvl, x;
         for (i = 0; i < NVOICE; i++)
-            if (t->v[i].stage && t->v[i].stage < 4u && (!bv || t->v[i].env > bv->env))
-                bv = &t->v[i];
+            if (V(t, i).stage && V(t, i).stage < 4u && (!bv || V(t, i).env > bv->env))
+                bv = &V(t, i);
         if (bv) {
             lvl = (int32_t)(((int64_t)bv->env * 1000) >> 24);
             if (bv->stage == 1u)
@@ -385,6 +385,13 @@ static void graph_morph(const track_t *t)
     str_cpy(b, n0, sizeof b);
     if (f && a1 != a0) { str_cpy(b + str_len(b), " > ", 4); str_cpy(b + str_len(b), n1, 8); }
     cv_text(PANEL_X0 + 2, 90, &AF_S, b, T_MID);
+    /* (3.4) WHERE the morph is, not only what it sounds like: the bottom of the panel is the travel from A to
+     * B and the marker is the position the knob is on, so the panel answers the question the page is about --
+     * how far between the two waves this sound sits -- without another number to read. */
+    cv_rect(PANEL_X0 + 1, 82, PANEL_W - 2, 5, T_RAISE);
+    if (f)
+        cv_rect(PANEL_X0 + 1, 82, (PANEL_W - 2) * f / 255, 5, ux_mix(T_RAISE, T_ACCENT, 120));
+    cv_rect(PANEL_X0 + (PANEL_W - 3) * f / 255, 79, 2, 11, T_ACCENT);
 }
 
 /* STEP page (a melodic track): a piano roll of the cursor's 16-step page. PR_ROWS semitone rows of PR_RH px,
@@ -700,7 +707,7 @@ static void graph_scale(const track_t *t, uint16_t c)
     char sb[24];
 
     for (i = 0; i < NVOICE; i++) {                   /* the notes the selected track is sounding now */
-        const voice_t *v = &t->v[i];
+        const voice_t *v = &V(t, i);
         if (v->active && v->gate && v->note < 128u)
             live |= 1u << (v->note % 12u);
     }
@@ -1102,7 +1109,7 @@ static void graph_diag(uint16_t c)
     for (i = 0; i < trk_live; i++) {
         uint32_t v;
         for (v = 0; v < NVOICE; v++)
-            if (trk[i].v[v].active) active_voices++;
+            if (V(&trk[i], v).active) active_voices++;
     }
     for (i = 0; i < NPART; i++)                     /* the parts core 1 took in the last block */
         n1 += (mc_mask_last >> i) & 1u;
@@ -1180,7 +1187,7 @@ static void graph_diag(uint16_t c)
         char tb[4] = {'T', (char)('1' + i), 0, 0};
         int32_t live = i < trk_live;
         if (live) {
-            for (v = 0; v < NVOICE; v++) if (trk[i].v[v].active) tv++;
+            for (v = 0; v < NVOICE; v++) if (V(&trk[i], v).active) tv++;
         }
         cv_text(tx, 64, &AF_S, tb, live ? T_DIM : T_LINE);
         cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : live && !trk[i].p[P_MUTE] ? T_RAISE : T_LINE, T_SURF);
@@ -1267,6 +1274,57 @@ static uint32_t str_hash(uint32_t h, const char *s)
 }
 
 
+
+/* (3.4) LOFI's EDIT pages: the chip's own panel. The two pages used to fall back to the generic being (WAVE 1 /
+ * WAVE 2 / MIXER), which says nothing about this engine. What is drawn here is its identity, from the
+ * parameters the DSP reads and from nothing else: the trace the track is producing, the converter and the
+ * waveform it is set to (their names come from the engine's own EDIT descriptors, so a new waveform needs no
+ * change here), the pulse width on its period, the crusher's staircase, and a T.CLK timeline that shows what
+ * NOTE and FREE do -- a note restarts the formula, or the formula keeps running and the note joins it where it
+ * is (eng_lofi.c lofi_note_on, voice.c's retrigger). */
+static void graph_lofi(const track_t *t, uint16_t c)
+{
+    const engine_t *e = ENGINES[t->eng_req % NENGINES];
+    int32_t chip = clamp(t->p[P_E0], 0, 4), wv = clamp(t->p[P_E1], 0, 6);
+    int32_t duty = clamp(t->p[P_E2], 0, 127), crush = clamp(t->p[P_E3], 0, 127);
+    int32_t fr = clamp(t->p[P_LRTRG], 0, 1), i, x, px = 18, py = 102;
+
+    gw_oct_panel(8, 2, 224, 68, 4, T_BG, T_LINE, 1, c);
+    cv_text_on(14, 4, &AF_S, "LOFI CHIP", T_THEME, T_BG);
+    if (e->edit[0].names && e->edit[0].names[chip])
+        cv_text_r(170, 4, &AF_S, e->edit[0].names[chip], T_ACCENT, T_BG);
+    if (e->edit[1].names && e->edit[1].names[wv])
+        cv_text_r(228, 4, &AF_S, e->edit[1].names[wv], T_MID, T_BG);
+    cv_rect(12, 20, 216, 1, T_LINE);
+    cv_rect(12, 33, 216, 1, T_GRID);
+    gw_live_trace(14, 212, 33, 12, 148);             /* the master trace: the sound this track is making */
+    cv_rect(12, 49, 216, 1, T_LINE);
+
+    /* the pulse width, on its own period */
+    cv_rect(14, 53, 96, 7, T_RAISE);
+    if (duty)
+        cv_rect(14, 53, duty * 96 / 127, 7, c);
+    /* the converter's staircase: five steps, lit as far as CRUSH keeps them */
+    for (i = 0; i < 5; i++) {
+        int32_t bh = 2 + i * 2;
+        cv_rect(150 + i * 9, 60 - bh, 7, bh, crush * 5 / 128 > i ? c : T_RAISE);
+    }
+
+    gw_oct_panel(8, 74, 224, 44, 4, T_BG, T_LINE, fr, T_ACCENT);
+    cv_text_on(14, 76, &AF_S, "T.CLK", T_THEME, T_BG);
+    cv_text_r(226, 76, &AF_S, fr ? "FREE" : "NOTE", fr ? T_ACCENT : T_MID, T_BG);
+    /* five notes across the timeline, at the spacing the formula's period has */
+    for (i = 0; i < 5; i++)
+        cv_rect(18 + (int32_t)i * 43, 91, 1, 11, T_LINE);
+    for (x = 18; x <= 230; x++) {                     /* NOTE: the phase restarts at each note; FREE: runs on */
+        int32_t y = fr ? 102 - (x - 18) * 11 / 212 : 102 - ((x - 18) % 43) * 11 / 43;
+        if (x > 18)
+            cv_line(px, py, x, y, fr ? T_ACCENT : c);
+        px = x;
+        py = y;
+    }
+    cv_text_on(14, 103, &AF_S, fr ? "runs on, note joins" : "each note restarts", T_DIM, T_BG);
+}
 
 /* WHEEL: the nine drawbars as rounded bars over RAISE slots (the bars of the knob just turned: the accent),
  * their footages under them */
@@ -1812,7 +1870,7 @@ static uint32_t graph_signature(void)
         h ^= (t->lfo_ph >> 23) * 2654435761u ^ (uint32_t)(t->lfo_val * t->lfo_fade >> 22);
     if (pg->graph == GR_ADSR)                        /* the envelope's dot: every voice's stage and level */
         for (i = 0; i < NVOICE; i++)
-            h = (h ^ ((uint32_t)t->v[i].stage << 24 | (uint32_t)t->v[i].env >> 16)) * 16777619u;
+            h = (h ^ ((uint32_t)V(t, i).stage << 24 | (uint32_t)V(t, i).env >> 16)) * 16777619u;
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u + ui.uslot * 104729u +
@@ -1920,7 +1978,7 @@ static uint32_t graph_signature(void)
         for (k = 0; k < trk_live; k++) {
             uint32_t v;
             for (v = 0; v < NVOICE; v++)
-                av = av + (trk[k].v[v].active != 0);
+                av = av + (V(&trk[k], v).active != 0);
         }
         h = (h ^ song.cpu_q8 * 3329u ^ load_diag.peak * 1931u ^ load_diag.late * 2671u ^
              load_diag.shed * 6151u ^ (load_diag.valid ? 1u : 0u) * 7919u) * 16777619u;   /* (3.0) N/A -> % */
@@ -2533,9 +2591,12 @@ static void draw_tracks(void)
             }
             GFX_HOOK_ALIGN(KB_X, KB_Y, KB_X + 2 * KNOB_BIG_R, KB_Y + 2 * KNOB_BIG_R, AL_HV, "mixer level value in its knob");
             cv_text_in(KB_X, KB_Y + CAP_IN(S, 2 * KNOB_BIG_R), 2 * KNOB_BIG_R, &AF_S, v, hot == 1u ? T_ACCENT : lvl ? vc : T_DIM, T_SURF);
+            /* (2.2) THE SAME INSTRUMENT AS HOME. This meter drew a solid 4 px bar while HOME drew eight
+             * lit segments on the heat ramp, so the two meters of one device read as two instruments --
+             * that is the audit's finding, and the reason this is one call now: gw_plasma_bar is the bar
+             * HOME draws, at the same 0..256 scale and on the same heat walk. */
             cv_rrect(45, TS_MY, 4, TS_MH, 2, T_RAISE, T_SURF);
-            if (ts.meter[c])
-                cv_rrect(45, TS_MY + TS_MH - 1 - ts.meter[c], 4, ts.meter[c] + 1, ts.meter[c] >= 4 ? 2 : 0, T_MID, T_RAISE);
+            gw_plasma_bar(45, TS_MY, 4, TS_MH, 8, (int32_t)ts.meter[c] * 256 / (TS_MH - 2), 60);
         }
         {   /* PAN (from the centre) and the REV send: captions, knobs, values */
             char v[8];
@@ -3128,6 +3189,7 @@ static void draw_graph(void)
                 break;
             }
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
+            else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_LOFI) { cv_oy = 0; graph_lofi(t, c); }
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {
                 cv_oy = 0;

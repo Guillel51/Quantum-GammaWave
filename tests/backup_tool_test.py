@@ -76,7 +76,7 @@ class FakeLink:
 class FakeFM1:
     """an FM-1 whose archive objects are dicts id -> bytes"""
 
-    def __init__(self, identity="FM-1_900", objects=None, gone=False):
+    def __init__(self, identity="FM-1_965", objects=None, gone=False):
         self.identity, self.gone, self.reads, self.writes = identity, gone, 0, []
         self.objects = objects or {i: bytes([i]) * (64 + i) for i in B.IDS}
         self.hold = None      # (id, size, crc, buf): a PUT in progress

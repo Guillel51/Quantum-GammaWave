@@ -245,7 +245,7 @@ repeat sounding right now is marked, and the fall of the bars is FEEDBK's own.
 | --- | --- | --- | --- | --- | --- |
 | EDIT 1 | E1 | E2 | E3 | E4 | every engine (see [4](#4-engines)) |
 | EDIT 2 | E5 | E6 | E7 | E8 | every engine |
-| RETRIG | RTRG | — | — | — | LOFI with WAVE on BYTE or FLOAT |
+| RETRIG | T.CLK | — | — | — | LOFI with WAVE on BYTE or FLOAT |
 | MORPH | MORPH | — | — | — | ANALOG (SAW..SIN), PHASE, LOFI (up to WRAM) |
 | OPERATOR | OP | RATIO / FIXED | FINE | LEVEL | FM6 |
 | OP ENV | OP | STAGE | RATE | LEVEL | FM6 |
@@ -415,7 +415,11 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
     crusher, BEND folds time, LOOP repeats a tiny stretch (high LOOP turns the noise into a tuned note).
   - **FLOAT** (floatbeat): CHIP becomes the resolution (4BIT, 4B/2, FULL, 1BIT), KNOB 3 **ALGO** (32 formulas made of
     sines), KNOB 4 **VAR**; EDIT 2: **MOTION, FEEDBK, BEND, LOOP**. Hold a key: the formula plays in that key.
-  - **RETRIG** page (BYTE / FLOAT): **RTRG ON** restarts the formula from the top on every note.
+  - **RETRIG** page (BYTE / FLOAT): **T.CLK** is the formula's clock. `NOTE` (the default) starts every note from
+    the top of the formula, so a note always sounds the same. `FREE` lets the formula run on the track's clock: a
+    note joins it where it is, so two notes in a row are two different readings of the same running formula (the
+    way bytebeat is heard when it is left playing). The control changes the samples, not the drawing: on a POLY
+    track the old `RTRG` switch was inaudible because a fresh voice already started at zero.
 - **MORPH** (EDIT > MORPH, on ANALOG, PHASE and LOFI): the wave slides continuously toward the next ones (on ANALOG
   SAW > SQR > TRI > SIN, on PHASE toward its next shape, on LOFI toward the next wave up to WRAM). 0 = the wave as
   chosen. On ANALOG and LOFI the **SHAPE** modulation moves the morph too, so an LFO or envelope sweeps the wave. The
@@ -765,7 +769,7 @@ Hold **SAVE**:
 
 ## 8. Dice and UNDO
 
-### GENERATOR — the song generator (HOME + SELECT)
+### GENERATOR — GEN (HOME + SELECT)
 
 Open it with **SELECT** on HOME, **HOME held + SELECT** from any page, or **OCT− held + PLAY** (QG-1). The screen,
 **GENERATOR 1/5**, has five pages of four settings: **SELECT** turns the page — a ring of seven: the five settings

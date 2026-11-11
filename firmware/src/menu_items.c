@@ -77,7 +77,6 @@ static const menu_flag_t MENU_FLAGS[] = {
     {MI_RESTORE, PREF_RESTORE_ON, {"OFF", "ON"}},      /* 1.2, #130; JIANT 0.6.40: OFF (the default), no autosave, power-on as
                                                         * INIT SYSTEM; ON, the last session back (project.c) */
     {MI_SCLLED, PREF_SCALE_LEDS, {"OFF", "ON"}},      /* 1.2, Discussion #127: ON, the keys show the scale (ui_input.c) */
-    {MI_TRACKS, PREF_SIX, {"4", "6"}},                /* (JIANT 0.6.18) 4 tracks (the default) or all 6 (voice.c trk_live) */
 };
 /* SPEAKER EQ (settings.lowcut, fx.c fx_lowcut): an EQ on the master for the small speaker, not a speaker switch
  * (#42: "OFF" read as the speaker off). FLAT is the old OFF (0, stored as before). The built-in speaker cannot be
@@ -103,6 +102,7 @@ static const char *const SELHOME_N[5] = {"BPM", "TRACK VOL", "TRACK PAN", "MASTE
 static const char *const CPU_N[3] = {"AUTO", "DUAL CORE", "SAFE SINGLE"};
 static const char *const VIZQ_N[3] = {"HIGH", "BALANCED", "LOW"};
 static const char *const SPLASH_N[3] = {"FULL", "SHORT", "OFF"};
+static const char *const TRACKS_N[3] = {"4 ECO", "5 BAL", "6 FULL"};   /* (3.4) MENU > TRACKS: trk_live 4 / 5 / 6 */
 
 /* MENU > USB SERIAL (#67). The serial console is a developer tool (README: FELUCCA_CDC). ON (the default) presents it,
  * the descriptors byte for byte as before; OFF re-enumerates as audio + MIDI only, device class 0 (the bytes of a
@@ -135,7 +135,7 @@ static const menu_flag_t *menu_flag(uint32_t row)
 static uint32_t menu_n(uint32_t row)
 {
     return row == MI_COLOR ? NPALETTES : row == MI_LOWCUT || (row >= MI_CLICK && row <= MI_COUNTIN) || row == MI_LOAD ||
-           row == MI_CPU || row == MI_VIZQ || row == MI_SPLASH ? 3u :
+           row == MI_CPU || row == MI_VIZQ || row == MI_SPLASH || row == MI_TRACKS ? 3u :
            row == MI_HOLD || row == MI_MIDIOUT ? 4u : row == MI_SELHOME ? 5u : row == MI_LEDS ? LEDS_COUNT : row == MI_SCROFF ? NELEM(SCROFF_N) : 2u;
 }
 static uint32_t menu_get(uint32_t row)
@@ -157,6 +157,7 @@ static uint32_t menu_get(uint32_t row)
     case MI_CPU: return ui_cpu_mode < 3u ? ui_cpu_mode : 0u;
     case MI_VIZQ: return ui_viz_q < 3u ? ui_viz_q : 0u;
     case MI_SPLASH: return ui_splash < 3u ? ui_splash : 0u;
+    case MI_TRACKS: return trks_ui < 3u ? (uint32_t)trks_ui : 0u;   /* (3.4) 4 / 5 / 6 tracks */
     case MI_LEDS:
         while (i + 1u < LEDS_COUNT && LEDS_MENU[i] != settings_leds)
             i++;
@@ -183,6 +184,7 @@ static const char *menu_vname(uint32_t row, uint32_t v)
     case MI_CPU: return CPU_N[v % 3u];
     case MI_VIZQ: return VIZQ_N[v % 3u];
     case MI_SPLASH: return SPLASH_N[v % 3u];
+    case MI_TRACKS: return TRACKS_N[v % 3u];
     case MI_SCROFF: return SCROFF_N[v % NELEM(SCROFF_N)];
     case MI_LEDS: return LEDS_NAME[LEDS_MENU[v % LEDS_COUNT]];
     }
@@ -218,7 +220,8 @@ static void menu_put(uint32_t row, uint32_t v)
     case MI_SELHOME: ui_sel_home = (uint8_t)(v % 5u); break;   /* (ui_input reads it at SELECT) */
     case MI_CPU: ui_cpu_mode = (uint8_t)(v % 3u); break;       /* (main.c reads it before core 1 starts) */
     case MI_VIZQ: ui_viz_q = (uint8_t)(v % 3u); ui.force = 1; break;  /* (the visualizer redraws at once) */
-    case MI_SPLASH: ui_splash = (uint8_t)(v % 3u); break;      /* (main.c reads it at the next power-on) */
+    case MI_SPLASH: ui_splash = (uint8_t)(v % 3u); break;
+    case MI_TRACKS: trks_put(v % 3u); break;         /* (ui.c: trk_live, trks_ui, the older bit) */      /* (main.c reads it at the next power-on) */
     case MI_MIDIOUT: midi_out_mode = (uint8_t)(v & 3u); break;   /* (seq.c reads it every frame: ui_input) */         /* (at once: voice.c sys_load) */
     }
 }

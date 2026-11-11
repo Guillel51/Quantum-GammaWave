@@ -460,7 +460,7 @@ static int track_sounding(const track_t *t)
     if (t->p[P_MUTE])
         return 0;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].stage && t->v[i].stage < 4u)
+        if (V(t, i).stage && V(t, i).stage < 4u)
             return 1;
     if (song.playing)
         for (i = 0; i < len && i < NSTEP; i++)

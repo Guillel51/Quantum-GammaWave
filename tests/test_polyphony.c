@@ -29,7 +29,7 @@ static uint32_t quiet_tail(track_t **pp) {
     uint32_t lowest_energy = 0xFFFFFFFFu;
     for (p = 0; p < NPART; p++) {
         for (i = 0; i < NVOICE; i++) {
-            const voice_t *v = &trk[p].v[i];
+            const voice_t *v = &V(&trk[p], i);
             if (!v->active || v->gate || v->stage == 4u || v->env_out >= 120)
                 continue;
             uint32_t energy = (uint32_t)v->env_out * (uint32_t)(trk[p].p[P_LEVEL] + 1);
@@ -47,7 +47,7 @@ static uint32_t voices_busy(void) {
     uint32_t p, i, n = 0;
     for (p = 0; p < NPART; p++)
         for (i = 0; i < NVOICE; i++)
-            n += trk[p].v[i].active && trk[p].v[i].stage != 4u;
+            n += V(&trk[p], i).active && V(&trk[p], i).stage != 4u;
     return n;
 }
 
@@ -59,7 +59,7 @@ int main(void) {
     /* 1. Allocate 10 simultaneous voices */
     for (int i = 0; i < 10; i++) {
         int track_idx = i % NPART;
-        voice_t *v = &trk[track_idx].v[i / NPART];
+        voice_t *v = &V(&trk[track_idx], i / NPART);
         v->active = 1;
         v->gate = 1;
         v->stage = 2; /* Sustain */
@@ -71,22 +71,22 @@ int main(void) {
     printf("[PASS] 10 voices sounding simultaneously verified.\n");
 
     /* 2. Release 1 voice into quiet release tail (<-40 dB, env_out < 120) */
-    trk[0].v[0].gate = 0;
-    trk[0].v[0].stage = 3; /* Release */
-    trk[0].v[0].env_out = 45; /* Inaudible tail */
+    V(&trk[0], 0).gate = 0;
+    V(&trk[0], 0).stage = 3; /* Release */
+    V(&trk[0], 0).env_out = 45; /* Inaudible tail */
 
     track_t *victim_track = NULL;
     uint32_t victim_idx = quiet_tail(&victim_track);
     assert(victim_idx == 0 && victim_track == &trk[0]);
     printf("[PASS] Psychoacoustic quiet tail correctly targeted (energy = %u).\n",
-           trk[0].v[0].env_out * (trk[0].p[P_LEVEL] + 1));
+           V(&trk[0], 0).env_out * (trk[0].p[P_LEVEL] + 1));
 
     /* 3. Ensure held notes (env_out = 2000) are NEVER targeted by quiet_tail */
     for (int i = 1; i < 10; i++) {
         int p = i % NPART;
         int v_idx = i / NPART;
-        assert(trk[p].v[v_idx].gate == 1);
-        assert(trk[p].v[v_idx].env_out >= 120);
+        assert(V(&trk[p], v_idx).gate == 1);
+        assert(V(&trk[p], v_idx).env_out >= 120);
     }
     printf("[PASS] Loud held notes protected from quiet-tail stealing.\n");
 

@@ -2,8 +2,8 @@ build/
 .DS_Store
 __pycache__/
 *.fwsc
-# ... except the signed release: it is committed on purpose, because the private key is not in the
-# repository and no workflow can produce a signed package. The release job verifies it before publishing.
+# ... except the package the installer tests read: it is a fixture, committed on purpose, because a
+# test that reads a package must read the same bytes everywhere.
 !release/*.fwsc
 node_modules/
 
@@ -16,3 +16,4 @@ artifacts/tmp/
 # a read of a real FM-1 lands here: a 1 MiB image of the unit is the owner's data (presets, objects), not
 # repository content. Keep it out of git; copy it to two places outside the tree (docs/JEDEC_READ.md).
 backup/
+!tests/fixtures/*.fwsc

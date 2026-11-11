@@ -1,0 +1,71 @@
+{
+  "artifacts": {
+    "felucca.bin": {
+      "bytes": 531992,
+      "sha256": "c4de795b3bac58003a47195464fb8836289c57c67002ec038f07467f718cbfa3"
+    },
+    "felucca.fwsc": {
+      "bytes": 610806,
+      "sha256": "80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2"
+    },
+    "loader/ota.bin": {
+      "bytes": 7650,
+      "sha256": "6ef564ab631d6a3b29b77ddaba2fda179da5202b224ba743b8f1f9abfa276e3a"
+    }
+  },
+  "checks": {
+    "checks": "ok",
+    "identity": "FM-1_982",
+    "notes": [
+      ".ram_text: 1193 insns, no calls",
+      "image 531992 B; RAM .data+.bss 95912 B of 98304; pool 311240 B, spare 9248 B",
+      "XIP code 372508 B, constants 139452 B",
+      "RAM code 19284 B of 24576; calls reach 88004 B past the code's end",
+      "register access: hal/ only (src/, loader/ clean)"
+    ]
+  },
+  "commit": "7eb9636f58f442ccbfb8440dec0aa61e55203889",
+  "config": {
+    "FELUCCA_CDC": "default",
+    "FELUCCA_CDC_DEFAULT": "default",
+    "FELUCCA_FLASH": "default",
+    "FELUCCA_FM4": "default",
+    "FELUCCA_HOTRAM": "default",
+    "FELUCCA_ICONS": "default",
+    "FELUCCA_OTA": "default",
+    "FELUCCA_OTA_DRYRUN": "default",
+    "FELUCCA_OTA_RAMONLY": "default",
+    "FELUCCA_SIZE": "default",
+    "FELUCCA_SLICE": "default",
+    "FELUCCA_UAC": "default",
+    "FELUCCA_UAC_48K": "default",
+    "FELUCCA_UAC_TONE": "default",
+    "FELUCCA_UART": "default",
+    "FELUCCA_USB_LAYOUT": "default"
+  },
+  "dirty": [],
+  "emulator": {
+    "commit": "7eb9636f58f4",
+    "version": "v1.9.0",
+    "wasm_bytes": 1073325,
+    "wasm_sha256": "3d039f75bbc8a843b24a500fd945bede19fc85398f78e5e4f877089245505487"
+  },
+  "identity": "FM-1_982",
+  "schema": "qg1-build-1",
+  "sdk": {
+    "commit": "d179b4484759423312073f5fbb232501aa491047",
+    "files": {
+      "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
+      "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
+      "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
+    },
+    "path": "/workspace/homes/4549bd389852a9607bba2622/sdk121"
+  },
+  "toolchain": {
+    "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
+    "name": "jieli-linux-toolchains-20260730.1",
+    "path": "/workspace/homes/4549bd389852a9607bba2622/.jieli/toolchain",
+    "version": "clang version 4.0.1 () ()"
+  },
+  "version": "v1.9.0"
+}
