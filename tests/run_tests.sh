@@ -127,6 +127,19 @@ esac
 fail=0
 run() { echo "== $1"; shift; "$@" || fail=1; }
 
+# A merge that left its markers behind compiles anyway when FELUCCA_VERSION comes in with -D, which is how the
+# host tests build; the AC791N build does not define it, so `firmware/src/felucca.c` with a `<<<<<<< HEAD` inside
+# its #ifndef failed there and only there, named as a build step and not as a file (v2.7.1 merge, 2026-11-11).
+# Checked first, by file and line, so the next one is named here.
+markers=$(grep -rn -e '^<<<<<<< ' -e '^>>>>>>> ' --include='*.c' --include='*.h' --include='*.py' --include='*.sh' \
+    --include='*.yml' --include='*.json' firmware tests tools web .github 2>/dev/null)
+if [ -n "$markers" ]; then
+    echo "$markers"
+    run "no source file carries a merge conflict marker" false
+else
+    run "no source file carries a merge conflict marker" true
+fi
+
 $CC -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"
 
@@ -225,6 +238,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "settings: PER1..PER4 migration, palette ids and preference preservation" "$OUT/settings_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test" tests/ui_test.c -lm
     run "UI: sounds keep steps, undo, recording, MIDI overflow, pending saves, panel recovery, drum grid, song chain, GREY gray, MONO neutral" "$OUT/ui_test"
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/planets_test" tests/planets_test.c -lm
+    run "HOME worlds: a tap reaches each of the five bodies, and only there" "$OUT/planets_test"
     run "UI: DICE ALL on its own, 50 throws in a row in one process (no state left by the test before)" \
         env UI_ONLY=dice_all UI_REPEAT_DICE=50 "$OUT/ui_test"
     FV=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c)   # (the splash, ABOUT: the real version)
