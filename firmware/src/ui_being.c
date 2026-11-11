@@ -368,6 +368,7 @@ static int16_t pl_ex[NPL];                /* each planet's excitation, 0..256: a
 static int16_t pl_flash[NPL];             /* (3.3) the note's own light, 0..256: set by a note-on, decays
                                            * faster than the excitation, so the strike reads as a strike and
                                            * the afterglow as an afterglow */
+static uint8_t pl_react[NPL];           /* (3.4) planet reaction type per planet: 0=grow, 1=shrink, 2=orbital pulse, 3=particles, 4=pulse */
 #if !UI_NO_DRIFT
 static uint8_t pl_seen[NTRK][NVOICE];     /* the note each voice held on the last scan (+1; 0: nothing) */
 #endif

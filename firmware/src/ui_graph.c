@@ -846,20 +846,32 @@ static void graph_fx(const track_t *t, uint16_t c)
         else
             cv_rect(cx + 47, 6, 3, 3, T_LINE);
 
-        /* One slim 7 px meter, a real level and its peak cap; a 1 px tick shows what the bus receives. */
-        cv_rect(mx, my, 7, mh, T_BG);
-        for (seg = 0; seg < mh; seg += 5)
-            cv_rect(mx, my + mh - 1 - seg, 7, 1, T_RAISE);
-        /* (3.1) a meter's cap is a row of its own slot: the lit height and the peak are clamped to
-         * 0..mh before they become a coordinate, so neither can be drawn above my or below my+mh-1. */
-        if (hpx > mh) hpx = mh;
-        if (inpx > mh) inpx = mh;
-        if (hpx > vu[i]) vu[i] = (uint8_t)hpx;
-        else if (vu[i] > 0u) vu[i]--;
-        if (hpx > hold[i]) hold[i] = (uint8_t)hpx;
-        else if (hold[i] > 0u) hold[i]--;
-        if (vu[i] > (uint8_t)mh) vu[i] = (uint8_t)mh;
-        if (hold[i] > (uint8_t)mh) hold[i] = (uint8_t)mh;
+        /* Thicker FX meter with vibrant colors and smooth bounce */
+        cv_rect(mx, my, 12, mh, T_BG);
+        /* Controlled bounce - peak falls smoothly */
+        int32_t bounce_px = (hpx * 7 + mh * 3) / 10;
+        if (bounce_px > mh) bounce_px = mh;
+        if (bounce_px < 0) bounce_px = 0;
+        /* Per-module vibrant colors: delay gets cyan theme, others use theme */
+        if (i == 2) { /* DELAY: vibrant cyan */
+            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, T_THEME);
+        } else {
+            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, i == 0 ? c : T_THEME);
+        }
+        /* Subtle peak cap */
+        int32_t peak_px = (hpx * 2 + mh * 3) / 5;
+        if (peak_px > mh) peak_px = mh;
+        if (peak_px > bounce_px) peak_px = bounce_px;
+        if (peak_px > 0u)
+            cv_rect(mx + 2, my + mh - peak_px, 8, 1, T_ACCENT);
+        /* Fade trail for controlled dissipation */
+        if (vu[i] > 0u && vu[i] < (uint8_t)mh) {
+            cv_rect(mx + 1, my + mh - vu[i], 10, vu[i], i == 2 ? T_THEME : (i == 0 ? c : T_THEME));
+        }
+        /* Input level tick */
+        if (i && inpx > 0) {
+            cv_rect(mx + 6, my + mh - inpx, 6, 1, T_MID);
+        }
         if (vu[i] > 0u)
             cv_rect(mx + 1, my + mh - vu[i], 5, vu[i], i == 0 ? c : T_THEME);
         if (hold[i] > 0u)
