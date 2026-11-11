@@ -314,7 +314,7 @@ def sign_manifest(manifest, private_key_bytes):
 
 
 def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha256=None, require_build=False,
-           images=None):
+           images=None, require_signature=False):
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -322,19 +322,20 @@ def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha25
         raise SignatureError("manifest", "no manifest")
     if manifest.get("format") != FORMAT:
         raise SignatureError("manifest", "format %r is not %r" % (manifest.get("format"), FORMAT))
-    for field in ("product", "version", "min_firmware", "sha256", "size", "keyid", "sig"):
+    for field in ("product", "version", "min_firmware", "sha256", "size"):
         if field not in manifest:
             raise SignatureError("manifest", "manifest has no %s" % field)
-    sig = manifest["sig"]
-    try:
-        sig = bytes.fromhex(sig)
-    except (TypeError, ValueError):
-        raise SignatureError("signature", "the signature is not hex")
-    if len(sig) != 64:
-        raise SignatureError("signature", "Ed25519 signatures are 64 bytes, this is %d" % len(sig))
-    keyid = manifest["keyid"]
-    if keyid not in keys:
-        raise SignatureError("key", "key id %r is not pinned; %d key(s) trusted" % (keyid, len(keys)))
+    # v2.6.0 model (docs/SIGNING.md): SHA-256 + size published with the package is the integrity gate
+    # for ordinary installs; Ed25519 is historical. A manifest that still carries `sig` is verified
+    # exactly as before, so a signed release keeps its authenticity, and an unsigned one is reported as
+    # integrity-only -- which a caller that demands an editor signature (require_signature) still refuses.
+    signed = bool(manifest.get("sig"))
+    if signed:
+        for field in ("keyid", "sig"):
+            if field not in manifest:
+                raise SignatureError("manifest", "manifest has no %s" % field)
+    elif require_signature:
+        raise SignatureError("signature", "the manifest is unsigned (SHA-256 model): no editor key attested it")
     if manifest["product"] != product:
         raise SignatureError("product", "the package is for %r, this is %r"
                              % (manifest["product"], product))
@@ -345,14 +346,26 @@ def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha25
     if len(pkg_bytes) != int(manifest["size"]):
         raise SignatureError("size", "package is %d bytes, the manifest says %s"
                              % (len(pkg_bytes), manifest["size"]))
-    key = keys[keyid]
-    if not isinstance(key, (bytes, bytearray)) or len(key) != 32:
-        raise SignatureError("key", "the pinned key %r is not a 32-byte Ed25519 public key" % keyid)
-    payload = {k: v for k, v in manifest.items() if k != "sig"}
-    try:
-        Ed25519PublicKey.from_public_bytes(bytes(key)).verify(sig, canonical(payload))
-    except InvalidSignature:
-        raise SignatureError("signature", "the manifest is not signed by %r" % keyid)
+    keyid = None
+    if signed:
+        sig = manifest["sig"]
+        try:
+            sig = bytes.fromhex(sig)
+        except (TypeError, ValueError):
+            raise SignatureError("signature", "the signature is not hex")
+        if len(sig) != 64:
+            raise SignatureError("signature", "Ed25519 signatures are 64 bytes, this is %d" % len(sig))
+        keyid = manifest["keyid"]
+        if keyid not in keys:
+            raise SignatureError("key", "key id %r is not pinned; %d key(s) trusted" % (keyid, len(keys)))
+        key = keys[keyid]
+        if not isinstance(key, (bytes, bytearray)) or len(key) != 32:
+            raise SignatureError("key", "the pinned key %r is not a 32-byte Ed25519 public key" % keyid)
+        payload = {k: v for k, v in manifest.items() if k != "sig"}
+        try:
+            Ed25519PublicKey.from_public_bytes(bytes(key)).verify(sig, canonical(payload))
+        except InvalidSignature:
+            raise SignatureError("signature", "the manifest is not signed by %r" % keyid)
     # The signature covers the build record it names; the installer refuses a release that names
     # none, so a signature over a manifest without build_sha256 is not a releasable manifest.
     # The images, when both sides name them: a signature over the firmware the package carries.
@@ -383,8 +396,9 @@ def verify(pkg_bytes, manifest, keys, product="FM-1", firmware=None, build_sha25
                              % (manifest["min_firmware"], firmware))
     if version_tuple(manifest["min_firmware"]) > version_tuple(manifest["version"]):
         raise SignatureError("version", "min_firmware is newer than the package")
-    return {"keyid": keyid, "version": manifest["version"], "min_firmware": manifest["min_firmware"],
-            "product": manifest["product"], "sha256": digest, "size": len(pkg_bytes)}
+    return {"keyid": keyid, "signed": signed, "version": manifest["version"],
+            "min_firmware": manifest["min_firmware"], "product": manifest["product"],
+            "sha256": digest, "size": len(pkg_bytes)}
 
 
 def keygen(out, keyid):
@@ -560,6 +574,8 @@ def main(argv=None):
     v.add_argument("--firmware")
     v.add_argument("--build-manifest", metavar="MANIFEST",
                    help="the build record the release must name (default: require that it names one)")
+    v.add_argument("--require-signature", action="store_true",
+                   help="refuse an unsigned manifest (SHA-256 model): for callers that need an editor attestation")
     u = sub.add_parser("unpin", help="revoke a pinned key id (packages it signed stop verifying)")
     u.add_argument("--keyid", required=True)
     u.add_argument("--keys", default=str(KEYS))
@@ -693,10 +709,15 @@ def main(argv=None):
             rec = record_sha256(a.build_manifest) if a.build_manifest else None
             imgs = images_of(json.loads(Path(a.build_manifest).read_text())) if a.build_manifest else None
             info = verify(raw, man, pinned(a.keys), a.product, a.firmware, build_sha256=rec, require_build=True,
-                          images=imgs)
-            print("verified: %s version %s, key %s, sha256 %s%s"
-                  % (info["product"], info["version"], info["keyid"], info["sha256"],
-                     ", record %s" % rec[:16] if rec else ""))
+                          images=imgs, require_signature=a.require_signature)
+            if info["signed"]:
+                print("verified: %s version %s, key %s, sha256 %s%s"
+                      % (info["product"], info["version"], info["keyid"], info["sha256"],
+                         ", record %s" % rec[:16] if rec else ""))
+            else:
+                print("verified (integrity only, unsigned: SHA-256 model): %s version %s, sha256 %s%s"
+                      % (info["product"], info["version"], info["sha256"],
+                         ", record %s" % rec[:16] if rec else ""))
             return 0
         if a.cmd == "check":
             check(a.keys, a.require_key)
