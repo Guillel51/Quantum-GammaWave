@@ -34,7 +34,7 @@
   bit a bit (1 319 924 muestras divergentes antes, 0 ahora). (2) `requireProof()` admitia el paquete
   pero no nombraba el commit cuyo registro lo autorizo: ahora el proof lleva `build` con ese commit,
   y `test_release_e2e.mjs` pasa esa comprobacion en lugar de fallarla.
-- **Reconstruccion definitiva sobre `main`** (`35651a5aa23e1d1cbddfe9a08fe9da9a59b8fc0b`): `main` habia quedado roto por `5ca34a3`, que al quitar
+- **Reconstruccion definitiva sobre `main`** (`41f6f707e1cd6b712433febe145e2b5201c43eb2`): `main` habia quedado roto por `5ca34a3`, que al quitar
   el readout del splash se llevo la llave de cierre del bloque (`ui_draw.c` 260 `{` frente a 259 `}`); como
   `felucca.c` incluye las fuentes en una sola unidad de traduccion, el ambito abierto convertia cada archivo
   posterior en una funcion dentro de otra y la compilacion AC791N fallaba con mas de 20 errores. Se elimino la
