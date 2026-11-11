@@ -1338,6 +1338,56 @@ static void graph_lofi(const track_t *t, uint16_t c)
 
 /* WHEEL: the nine drawbars as rounded bars over RAISE slots (the bars of the knob just turned: the accent),
  * their footages under them */
+/* (3.6) PHASE's own screen. Its EDIT 1 and EDIT 2 pages fell through to the generic being, so the one
+ * engine whose whole character IS a bent phase had no picture of it. This is that picture and nothing
+ * invented: a phase ramp (the phase the oscillator walks, x) bent at the knee DCW puts it, drawn from the
+ * track's own P_E0..P_E7 -- the values eng_phase.c plays -- plus the figures the page does not carry.
+ * Moving DCW moves the knee and moving the page's WAVE moves what the header says, because those are the
+ * parameters; no state is kept here and no audio is read. */
+static void graph_phase(const track_t *t, uint16_t c)
+{
+    int32_t w = (int32_t)(t->p[P_E0] & 7), w2 = clamp(t->p[P_E1], 0, 8);
+    int32_t dcw = clamp(t->p[P_E2], 0, 127), env = clamp(t->p[P_E3], 0, 127);
+    int32_t dtn = clamp(t->p[P_E4], 0, 127), line = t->p[P_E5] & 1;
+    int32_t sub = clamp(t->p[P_E6], 0, 127), fb = clamp(t->p[P_E7], 0, 127);
+    int32_t x0 = PANEL_X0 + 2, x1 = 228, y0 = 26, y1 = 66;
+    int32_t knee = x0 + (x1 - x0) * (96 + dcw) / 224;   /* DCW 0: the knee mid, 127: at the right */
+    char b[40], h[40];
+
+    cv_text(PANEL_X0 + 2, 3, &AF_S, "PHASE", T_TEXT);   /* (the right header carries the rest) */
+    fmt_int(b, w);
+    str_cpy(h, "WAVE ", sizeof h);
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    fmt_int(b, w2);
+    str_cpy(h + str_len(h), line ? "  RING  W2 " : "  MIX  W2 ", sizeof h - str_len(h));
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    fmt_int(b, dtn);
+    str_cpy(h + str_len(h), "  DT ", sizeof h - str_len(h));
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    cv_text_r(228, 3, &AF_S, h, T_MID, T_SURF);
+
+    cv_rect(x0, y1, x1 - x0, 1, T_RAISE);                /* the axes */
+    cv_rect(x0, y0, 1, y1 - y0 + 1, T_RAISE);
+    cv_line_t(x0, y1, knee, y0, c, 2);                   /* the phase, bent at the knee */
+    cv_line_t(knee, y0, x1, y1, ux_mix(c, T_MID, 80), 2);
+    cv_rect(knee - 1, y0 - 4, 3, 3, T_ACCENT);           /* DCW's knee */
+
+    {   /* the three figures the page has no column for */
+        static const char *const NM[3] = {"ENV", "SUB", "FB"};
+        int32_t v[3], k;
+        v[0] = env; v[1] = sub; v[2] = fb;
+        for (k = 0; k < 3; k++) {
+            int32_t yy = 68 + k * 10;
+            cv_text(PANEL_X0 + 2, yy, &AF_S, NM[k], T_DIM);
+            cv_rect(PANEL_X0 + 40, yy + 3, 110, 3, T_RAISE);
+            if (v[k] > 0)
+                cv_rect(PANEL_X0 + 40, yy + 3, v[k] * 110 / 127, 3, c);
+            fmt_int(b, v[k] * 100 / 127);                /* percent, as the page's columns read */
+            cv_text_r(228, yy, &AF_S, b, v[k] ? T_TEXT : T_DIM, T_SURF);
+        }
+    }
+}
+
 static void graph_wheel(const track_t *t, uint16_t c)
 {
     uint32_t k;
@@ -3211,6 +3261,10 @@ static void draw_graph(void)
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {
                 cv_oy = 0;
                 graph_colony(t, -1);
+            }
+            else if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_PHASE) {
+                cv_oy = 0;
+                graph_phase(t, c);                   /* (3.6) PHASE's EDIT 1 and EDIT 2 */
             }
 #if FELUCCA_FM4
             else if ((pg->scope == SC_ENGINE || pg->id[0] == P_FM1_LEVEL) && t->eng_req % NENGINES == ENGI_DIGITAL)
