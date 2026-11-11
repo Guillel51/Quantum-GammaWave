@@ -1,3 +1,24 @@
+## 2026-11-11 — v2.7.0 publicado: el Release, el sitio y el emulador son el mismo paquete
+
+- **El Release v2.7.0 tiene assets y coinciden con lo que sirve el sitio.** `felucca-2.7.0.fwsc` (610 959 B,
+  sha256 `64122dde0e205bb48ba4cc3c2e0d687f38a5fdc351f94e197e94f5ee988868dc`) y `SHA256SUMS` son byte a byte el
+  paquete de `release/` y el que Pages publica como `firmware/felucca-v2.7.0-5313a79.fwsc` (`cmp` limpio en los
+  tres). `fm1_sign.py verify` sobre la descarga del Release da `verified (integrity only, unsigned: SHA-256
+  model): FM-1 version 2.7.0`.
+- **El build es reproducible entre CI y este arbol.** El asset construido por el workflow desde el tag y el build
+  AC791N de aqui producen los mismos 610 959 bytes, asi que para v2.7.0 el tag si describe los bytes servidos (el
+  pendiente equivalente de v2.6.0 queda cerrado para esta version, no reescrito para la anterior).
+- **Emulador, instalador y portal salen del mismo registro.** `/emulator/manifest.json` es identico a
+  `release/emu/manifest.json`: `v2.7.0`, commit `5313a793d6b5`, wasm 1 104 650 B `2c4cf3e3…`, Emscripten 6.0.11,
+  identidad `FM-1_965`. El instalador en navegador muestra `v2.7.0` con ese SHA-256, `Ready to flash`, `INSTALL`
+  deshabilitado sin unidad y sin `Ed25519 null`.
+- **Suite host completa en verde en el commit publicado:** `NO_PACKAGE=1 tests/run_tests.sh` en `13ccdb3` →
+  `ALL HOST TESTS PASSED`, 4 814 `ok`, exit 0.
+- **Lo que sigue sin afirmarse:** no hay firma Ed25519 (modelo SHA-256, por diseno), la atestacion de artefactos
+  no es verificable desde aqui (la pagina publica pide sesion y la API esta limitada sin credencial; la clase es
+  "no verificado", no "ausente"), el timbre de los goldens regrabados esta fijado pero no aprobado por escucha, y
+  nada se ejecuto en una FM-1 fisica.
+
 ## 2026-11-11 — v2.7.0: una sola version, y la evidencia que la sostiene
 
 - **`release/` vuelve a verificar.** `signed release` estaba rojo en `main`: `release/sign-request-v2.4.0-HISTORICAL.json`

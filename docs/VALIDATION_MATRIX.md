@@ -1578,3 +1578,37 @@ The public chain was verified by downloading it, not by reading a workflow concl
    passed.
 5. **Nothing was validated on a physical FM-1.** No unit was touched, no write, erase or recovery command
    was sent anywhere. JEDEC, geometry, recovery and the first write remain the owner's hardware checks.
+
+## 27. Update — 2026-11-11, v2.7.0 published: release, site and emulator on one package
+
+Everything here was read from the public URLs afterwards with no credential (`[PUBLIC]`), or executed in this
+tree (`[HOST]` / `[TARGET]`). It supersedes §26 where they disagree, and closes the pendings §26 opened for
+v2.6.0 — for v2.7.0, not retroactively.
+
+| Item | State | Evidence |
+|---|---|---|
+| Tag | exists | annotated `2eb5c64`, peeling to `bedb65f8dce3…` (`git ls-remote --tags`) |
+| Release | published | `releases/tag/v2.7.0` HTTP 200, dated `2026-11-11T06:36:20Z` in `releases.atom` |
+| Assets | two, downloaded | `felucca-2.7.0.fwsc` 610 959 B, `SHA256SUMS` naming `64122dde…  build/felucca-2.7.0.fwsc` |
+| Asset hash | equals tree and site | downloaded sha256 `64122dde0e205bb48ba4cc3c2e0d687f38a5fdc351f94e197e94f5ee988868dc`; `cmp` clean against `release/felucca-v2.7.0.fwsc` |
+| Package verification | verified | `fm1_sign.py verify` on the downloaded asset against `release/felucca-v2.7.0.fwsc.manifest.json` → `verified (integrity only, unsigned: SHA-256 model): FM-1 version 2.7.0` |
+| Build reproducibility | byte-identical | the CI build from the tag and the AC791N build here (record `5313a79`, `dirty: []`, pinned toolchain/SDK) give the same 610 959 bytes: the tag does describe the bytes served |
+| Pages package | same bytes | `firmware/versions.json` single entry `v2.7.0-5313a79`, 610 959 B, `64122dde…`; downloaded copy is `cmp`-identical |
+| Emulator | same record as the tree | `/emulator/manifest.json` = `release/emu/manifest.json`: `v2.7.0`, commit `5313a793d6b5`, wasm 1 104 650 B `2c4cf3e3…`, `emcc 6.0.11`, identity `FM-1_965` |
+| Installer (browser) | verified live | `v2.7.0`, package SHA-256 matches the served file, `Ready to flash (610,959 bytes)`, `INSTALL` disabled with no unit, no `Ed25519 null` |
+| Web Studio (browser) | loaded | editor page, simulation active, 34 controls, no console errors |
+| Host suite | ALL HOST TESTS PASSED | `NO_PACKAGE=1 tests/run_tests.sh` at `13ccdb3`: 4 814 `ok`, exit 0 |
+| Main HEAD | published | `13ccdb3` on `origin/main`, with release records, site mirror and docs |
+
+**Still not claimable, with the reason:**
+
+1. **No Ed25519 signature.** v2.7.0 is integrity-only (SHA-256 + size + record) by design; no private key exists
+   here and none was requested. The installer and the site say so instead of implying a signature.
+2. **Artifact attestation is unverified here.** `release.yml` requests `attestations: write` and delegates the
+   build to `zvenson/fm1-build` on the tag push, so one is expected for the tag build; the public attestations
+   page answers `Sign in` and the REST API is rate-limited without a credential, so this file claims none.
+   Class: **not verified**, not "missing".
+3. **The release body is the workflow's own.** Editing release notes needs a credential this session lacks.
+4. **Timbre of the re-recorded goldens** is fixed and reproducible, not approved by ear.
+5. **Nothing ran on an FM-1.** No write, erase, recovery or bootloader command was sent to any unit, and identity
+   `FM-1_909` stays blocked. JEDEC, geometry, recovery and the first write remain the owner's checks.
