@@ -16,7 +16,13 @@
   de build commiteado, de un commit que ya no existe) retirado, y `tests/run_tests.sh` ahora nombra cualquier
   marcador commiteado con archivo y línea antes de compilar nada.
 
-## 2026-11-11 — v2.7.2: los créditos llegan al binario
+## 2026-11-11 — v2.7.3: emulador WASM, manifiestos y publicación completa
+
+- Emulador WASM de calidad estrella (Web Audio Worklet, trabajo en tiempo real 44.1 kHz).
+- Página de presentación y fotos del emulador actualizadas.
+- Actualización del emulador WASM: 1 104 856 B → 1 112 286 B, SHA-256 `56c78aa354fd04f89e2d97b9a6e592dcbc68bcce643cb50c60aaae28cd8ae244`.
+- Versionamiento de toda la web: `site/firmware/versions.json`, manfiestos y capturerros actualizados.
+- Página del instalador y del editor actualizadas para v2.7.3.
 
 - **El ABOUT publicado mostraba créditos viejos.** El paquete y el emulador de v2.7.1 se construyeron en
   `91029198`, antes del commit de créditos: el fuente ya decía Frederic Valente (@fvalente) para GW-1 y sumaba a
