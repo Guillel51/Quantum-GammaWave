@@ -195,7 +195,8 @@ jobs:
               print("version=" + str(d.get("version")))
               print("commit=" + str((d.get("build") or {}).get("commit", "")))
           EOF
-          echo "newest signed release: '${{ steps.rel.outputs.version }}' (${{ steps.rel.outputs.pkg }})"
+          # (the outputs this step just wrote are not visible to its own template expressions: read them back)
+          echo "newest signed release: $(sed -n 's/^version=//p' "$GITHUB_OUTPUT" | tail -1) ($(sed -n 's/^pkg=//p' "$GITHUB_OUTPUT" | tail -1))"
       - name: the emulator of the signed release's commit
         run: |
           REL="${{ steps.rel.outputs.commit }}"
@@ -204,7 +205,11 @@ jobs:
             git worktree add ../release-tree "$REL"
             ( cd ../release-tree
               python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
-              EMU_PREVIEW=0 sh web/emu/build.sh )
+              # (the release predates the fix that labels the WASM with its own tree: this build.sh passes
+              # GITHUB_SHA as the label, so point GITHUB_SHA at the release commit for this one command.
+              # Without it the WASM came from $REL and its page named this run's commit, which is exactly
+              # what site_check refused on the live site.)
+              GITHUB_SHA="$REL" EMU_PREVIEW=0 sh web/emu/build.sh )
             test -s ../release-tree/build/emu/felucca.wasm || { echo "::error::the release emulator did not build"; exit 1; }
             # The worktree's HEAD is $REL, so the record names it: package_emu.py reads the commit with
             # `git -C ROOT rev-parse` in a linked worktree, which answers with the repository's gitdir.
