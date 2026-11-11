@@ -1,3 +1,9 @@
+## 2026-11-11 — v2.7.4.2: FX visual polish, WASM rebuild and release sync
+
+- **FX**: rounded panels and improved visual consistency.
+- **Build**: firmware and WASM emulator rebuilt and manifests synchronized.
+- **Release**: v2.7.4.2 firmware + SHA256.
+
 ## 2026-11-11 — v2.7.4.1: UI redesign pass, planets, visualizer, FX and splash
 
 - **HOME / solar system**: deeper star field, more dust, nebula and reactive planets (spin, swell, ripple, sling, frost), all five answer taps.

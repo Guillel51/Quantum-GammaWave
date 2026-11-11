@@ -824,7 +824,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         vu_trk = (int32_t)(t - trk);
     }
 
-    cv_rrect(4, 2, 232, 66, 4, T_SURF, T_BG);
+    cv_rrect(4, 2, 232, 66, 6, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
@@ -834,7 +834,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         char num[8];
 
-        cv_rrect(cx, 4, 53, 62, 3, T_SURF, T_BG);
+        cv_rrect(cx, 4, 53, 62, 5, T_SURF, T_BG);
         cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);   /* the whole name, on its own line */
         cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, T_SURF);
         /* (3.1) the four sends are MIDI 0..127 inside (presets, automation, the DSP's own maths keep
