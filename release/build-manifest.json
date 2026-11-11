@@ -1,30 +1,22 @@
 {
-  "artifacts": {
-    "felucca.bin": {
-      "bytes": 531992,
-      "sha256": "c4de795b3bac58003a47195464fb8836289c57c67002ec038f07467f718cbfa3"
+  "version": "v2.4.0",
+  "identity": "FM-1_965",
+  "commit": "d0ec195954fe0c02e2fd58e8d010d81e8b34191d",
+  "sdk": {
+    "commit": "0617f4cc09685332aaf1104893718291c54ee5bb",
+    "files": {
+      "cfg/eq_cfg_hw.bin": "179ac9f4501d2cf8c3bdbc06fcda1e46228b7ace7e339342c767bb6568de57d8",
+      "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
+      "uboot.boot": "64ccc63e4df3238046fadb200f1b134311d8fe6ec6e3ccb8c8b81379231b867e"
     },
-    "felucca.fwsc": {
-      "bytes": 610806,
-      "sha256": "80ad995caf9147f28fcbe3b135e3ab8da3e4509bdfed6d4766fee09c53eafed2"
-    },
-    "loader/ota.bin": {
-      "bytes": 7650,
-      "sha256": "6ef564ab631d6a3b29b77ddaba2fda179da5202b224ba743b8f1f9abfa276e3a"
-    }
+    "path": "/workspace/homes/4549bd389852a9607bba2622/fw-AC79_AIoT_SDK"
   },
-  "checks": {
-    "checks": "ok",
-    "identity": "FM-1_982",
-    "notes": [
-      ".ram_text: 1193 insns, no calls",
-      "image 531992 B; RAM .data+.bss 95912 B of 98304; pool 311240 B, spare 9248 B",
-      "XIP code 372508 B, constants 139452 B",
-      "RAM code 19284 B of 24576; calls reach 88004 B past the code's end",
-      "register access: hal/ only (src/, loader/ clean)"
-    ]
+  "toolchain": {
+    "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
+    "name": "jieli-linux-toolchains-20260730.1",
+    "path": "/workspace/homes/4549bd389852a9607bba2622/.jieli/toolchain",
+    "version": "clang version 4.0.1 () ()"
   },
-  "commit": "7eb9636f58f442ccbfb8440dec0aa61e55203889",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -44,28 +36,25 @@
     "FELUCCA_USB_LAYOUT": "default"
   },
   "dirty": [],
-  "emulator": {
-    "commit": "7eb9636f58f4",
-    "version": "v1.9.0",
-    "wasm_bytes": 1073325,
-    "wasm_sha256": "3d039f75bbc8a843b24a500fd945bede19fc85398f78e5e4f877089245505487"
-  },
-  "identity": "FM-1_982",
-  "schema": "qg1-build-1",
-  "sdk": {
-    "commit": "d179b4484759423312073f5fbb232501aa491047",
-    "files": {
-      "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
-      "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
-      "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
+  "artifacts": {
+    "felucca.bin": {
+      "bytes": 537164,
+      "sha256": "669b9d8450fe92efeccc60630d1e5ac3199f470d2fb19bcfbc3ccab49a4f38ef"
     },
-    "path": "/workspace/homes/4549bd389852a9607bba2622/sdk121"
+    "felucca.fwsc": {
+      "bytes": 610959,
+      "sha256": "654d724f39ff84a05118d096b71edcd03bf73ea0a02106e76522bf38f7a37daa"
+    },
+    "loader/ota.bin": {
+      "bytes": 7803,
+      "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+    }
   },
-  "toolchain": {
-    "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
-    "name": "jieli-linux-toolchains-20260730.1",
-    "path": "/workspace/homes/4549bd389852a9607bba2622/.jieli/toolchain",
-    "version": "clang version 4.0.1 () ()"
-  },
-  "version": "v1.9.0"
+  "checks": {},
+  "emulator": {
+    "commit": "d0ec195954fe",
+    "version": "v2.4.0",
+    "wasm_bytes": 1091889,
+    "wasm_sha256": "255acd015ea4cc3ae182a6dfc95197a7bbcab66fb5e6dd72b901c153b4d587b1"
+  }
 }
