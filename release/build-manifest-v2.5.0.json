@@ -1,12 +1,12 @@
 {
   "artifacts": {
     "felucca.bin": {
-      "bytes": 541492,
-      "sha256": "3cc922a6c7fcdb174d31dcdcf4a3f2f150b00de7385cc2bef8ed9498e8010bb4"
+      "bytes": 537936,
+      "sha256": "4fefc6f1c20124ffcf82ba3ea0c2cc258ae8bb939074984a927e896b45bf0cdd"
     },
     "felucca.fwsc": {
       "bytes": 610959,
-      "sha256": "9752a1a6498aa4f090a234fc8a6d38a5c5b6926539301c8f9036e02808f07942"
+      "sha256": "d4f65dd1959beca64dd138da69dd26002926428240f7817bd324b4387edd7421"
     },
     "loader/ota.bin": {
       "bytes": 7803,
@@ -18,13 +18,13 @@
     "identity": "FM-1_965",
     "notes": [
       ".ram_text: 1193 insns, no calls",
-      "image 541492 B; RAM .data+.bss 87696 B of 98304; pool 305096 B, spare 15392 B",
-      "XIP code 380944 B, constants 140516 B",
-      "RAM code 19284 B of 24576; calls reach 79568 B past the code's end",
+      "image 537936 B; RAM .data+.bss 87648 B of 98304; pool 305096 B, spare 15392 B",
+      "XIP code 377396 B, constants 140528 B",
+      "RAM code 19264 B of 24576; calls reach 83116 B past the code's end",
       "register access: hal/ only (src/, loader/ clean)"
     ]
   },
-  "commit": "c6db91f01e69aa2292d15e70c5d23f27e9e39ebf",
+  "commit": "b5450ace78b03452809bc89e7c7ca3c77377542b",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -43,13 +43,11 @@
     "FELUCCA_UART": "default",
     "FELUCCA_USB_LAYOUT": "default"
   },
-  "dirty": [],
-  "emulator": {
-    "commit": "c6db91f01e69",
-    "version": "v2.5.0",
-    "wasm_bytes": 1104688,
-    "wasm_sha256": "c1bb42fa1bff1b2d08053e713b90b60cf1f15a18c010a6346479c783460b54da"
-  },
+  "dirty": [
+    "run_tests.log",
+    "site/"
+  ],
+  "emulator": null,
   "identity": "FM-1_965",
   "schema": "qg1-build-1",
   "sdk": {
@@ -59,12 +57,12 @@
       "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
       "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
     },
-    "path": "/home/runner/work/Quantum-GammaWave/Quantum-GammaWave/../AC79_SDK"
+    "path": "/workspace/homes/9173d109e69e986f8800cae9/fw-AC79_AIoT_SDK"
   },
   "toolchain": {
     "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
     "name": "jieli-linux-toolchains-20260730.1",
-    "path": "/home/runner/work/Quantum-GammaWave/Quantum-GammaWave/../jieli/toolchain",
+    "path": "/workspace/homes/9173d109e69e986f8800cae9/.jieli/toolchain",
     "version": "clang version 4.0.1 () ()"
   },
   "version": "v2.5.0"
