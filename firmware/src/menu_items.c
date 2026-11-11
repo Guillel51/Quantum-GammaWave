@@ -218,9 +218,7 @@ static void menu_put(uint32_t row, uint32_t v)
     case MI_CLICK: case MI_CLKLVL: case MI_COUNTIN: rp_put(row - MI_CLICK, v); break;   /* (at once: click.c, seq.c) */
     case MI_LOAD: load_put(v % 3u); break;
     case MI_SELHOME: ui_sel_home = (uint8_t)(v % 5u); break;   /* (ui_input reads it at SELECT) */
-    case MI_CPU: ui_cpu_mode = (uint8_t)(v % 3u); break;       /* (main.c reads it before core 1 starts) */
-    /* Ensure valid range after persist re-entry */
-    if (ui_cpu_mode > 2u) ui_cpu_mode = 0;
+    case MI_CPU: ui_cpu_mode = (uint8_t)(v % 3u); ui.force = 1; break;       /* (main.c reads it before core 1 starts) */
     case MI_VIZQ: ui_viz_q = (uint8_t)(v % 3u); ui.force = 1; break;  /* (the visualizer redraws at once) */
     case MI_SPLASH: ui_splash = (uint8_t)(v % 3u); break;
     case MI_TRACKS: trks_put(v % 3u); break;         /* (ui.c: trk_live, trks_ui, the older bit) */      /* (main.c reads it at the next power-on) */
