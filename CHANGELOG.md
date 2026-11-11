@@ -16,6 +16,16 @@
   de build commiteado, de un commit que ya no existe) retirado, y `tests/run_tests.sh` ahora nombra cualquier
   marcador commiteado con archivo y línea antes de compilar nada.
 
+## 2026-11-11 — v2.7.2: los créditos llegan al binario
+
+- **El ABOUT publicado mostraba créditos viejos.** El paquete y el emulador de v2.7.1 se construyeron en
+  `91029198`, antes del commit de créditos: el fuente ya decía Frederic Valente (@fvalente) para GW-1 y sumaba a
+  Guillermo Lauria, pero el binario servido no. v2.7.2 se construye desde este árbol, así que `MENU > ABOUT >
+  CREDITS` del paquete y del emulador publicados dicen lo mismo que `README.md`.
+- **Mismo procedimiento, sin atajos:** paquete AC791N con la toolchain pineada, manifiesto de integridad
+  (SHA-256 + tamaño, modelo de §9), emulador del mismo commit, espejo del sitio y `release/SHA256SUMS` regenerados
+  juntos; `tools/fm1_sign.py verify` sobre el paquete antes de commitear.
+
 ## 2026-11-11 — v2.7.1: el conflicto del firmware, resuelto, y el paquete reconstruido
 
 - **El arbol no compilaba.** El bump a v2.7.1 llego con marcadores de merge dentro de

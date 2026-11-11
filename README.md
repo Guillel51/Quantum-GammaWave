@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.7.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.7.2` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -72,11 +72,11 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 ---
 
-## Highlights of `v2.7.1`
+## Highlights of `v2.7.2`
 
-- **One version everywhere.** `FELUCCA_VERSION` is `v2.7.1`, and the site, the installer, the emulator record
-  and this README name the same build: the portal serves `v2.7.1-9102919`, 610 959 B, sha256
-  `8b1798b9…6de6`, which is the GitHub Release asset byte for byte.
+- **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal
+  serves and `firmware/versions.json` name the same build: the portal shows the version and the commit
+  the release manifest carries, and the installer checks the package's SHA-256 and size before it writes.
 - **The package is integrity-checked, not signed.** Since v2.6.0 the model is SHA-256 + size + build record;
   Ed25519 (`qg1-release-1`) stays historical. The installer and the site say "integrity, not authenticity"
   instead of implying a signature that does not exist.
@@ -178,7 +178,7 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
    Edge, with a data cable (not a charge-only one).
 2. It re-hashes the package (**SHA-256** + size), holds it to the published record and the version floor, and
-   verifies the firmware hashes inside it. `v2.7.1` ships **unsigned by design**: that is integrity, not
+   verifies the firmware hashes inside it. `v2.7.2` ships **unsigned by design**: that is integrity, not
    authenticity, and the page says so instead of implying a signature. If anything fails, INSTALL stays
    disabled and the page says why.
 3. The loader reads the **real flash chip** on the unit and refuses anything but the two parts above.
