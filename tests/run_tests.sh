@@ -225,6 +225,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "settings: PER1..PER4 migration, palette ids and preference preservation" "$OUT/settings_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test" tests/ui_test.c -lm
     run "UI: sounds keep steps, undo, recording, MIDI overflow, pending saves, panel recovery, drum grid, song chain, GREY gray, MONO neutral" "$OUT/ui_test"
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/planets_test" tests/planets_test.c -lm
+    run "HOME worlds: a tap reaches each of the five bodies, and only there" "$OUT/planets_test"
     run "UI: DICE ALL on its own, 50 throws in a row in one process (no state left by the test before)" \
         env UI_ONLY=dice_all UI_REPEAT_DICE=50 "$OUT/ui_test"
     FV=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c)   # (the splash, ABOUT: the real version)
