@@ -356,7 +356,7 @@
           <span class="no">03 / USB INSTALLER · ESTABLE</span>
           <b>USB Installer</b>
           <span class="url">/webapp/installer/</span>
-          <p>Comprueba el SHA-256 del paquete, la firma Ed25519 de la clave qg1-release-1 y los hashes del firmware antes de habilitar INSTALL. Después el loader lee el chip real de la unidad y rechaza cualquier otro antes de borrar nada. V2.4.0: verificación de firma y hash del firmware integrados.</p></p>
+          <p>Comprueba el SHA-256 del paquete y los hashes del firmware antes de habilitar INSTALL, y la firma Ed25519 de la clave qg1-release-1 cuando el manifiesto la incluye. Después el loader lee el chip real de la unidad y rechaza cualquier otro antes de borrar nada.</p></p>
           <span class="go">Abrir instalador <span class="arrow">↗</span></span>
         </a>
         <a class="access-card" href="plan/">
@@ -420,7 +420,7 @@
         <article class="card">
           <span class="num">06 / SEGURIDAD</span>
           <h3>Instalador con verificación</h3>
-          <p>SHA-256, firma Ed25519 contra la clave fijada en la página y los hashes del firmware dentro de la firma, antes de habilitar INSTALL. El loader además identifica el chip en la unidad y rechaza uno desconocido sin borrar nada.</p>
+          <p>SHA-256 y los hashes del firmware antes de habilitar INSTALL, y la firma Ed25519 contra la clave fijada en la página cuando el manifiesto la trae. El loader además identifica el chip en la unidad y rechaza uno desconocido sin borrar nada.</p>
           <span class="tag">FIRMA MÁS INTEGRIDAD MÁS CHIP REAL</span>
         </article>
       </div>
@@ -478,7 +478,7 @@
         </ol>
         <aside class="warning">
           <h3>Límites reales, no letra chica</h3>
-          <p>La instalación verifica la autenticidad (firma Ed25519 contra la clave fijada) y la integridad (SHA-256 y los hashes del firmware dentro de la firma), y el loader comprueba el chip y la geometría del flash antes de borrar nada. No hay secure boot.</p>
+          <p>La instalación verifica la integridad (SHA-256 y los hashes del firmware) y, si el manifiesto trae firma, la autenticidad (Ed25519 contra la clave fijada); el loader comprueba el chip y la geometría del flash antes de borrar nada. v2.6.0 se publica sin firma. No hay secure boot.</p>
           <ul>
             <li>No hay actualización A/B ni rollback autónomo del bootloader.</li>
             <li>Un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.</li>
@@ -506,7 +506,7 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Versiones y artefactos</div><h2 style="margin-top:14px">El build<br>que estás viendo.</h2></div>
-        <p>Estos datos se leen del <code>firmware/versions.json</code> del despliegue. Si el archivo no está disponible, la página lo dice en vez de inventar un hash. <strong>Versión actual: v2.6.0</strong> — build ID, SHA-256 del WASM y firma Ed25519 verificables.</p></p>
+        <p>Estos datos se leen del <code>firmware/versions.json</code> del despliegue. Si el archivo no está disponible, la página lo dice en vez de inventar un hash. <strong>Versión actual: v2.6.0</strong> — build ID y SHA-256 del WASM verificables; la firma Ed25519 solo si el manifiesto la incluye.</p></p>
       </div>
       <div class="install-grid">
         <div class="version-card">
@@ -617,7 +617,7 @@
     text("hero-build", v.version || "QG-1");
     text("foot-build", (v.version || "QG-1") + " // " + String(v.sha256 || "").slice(0, 12) + "…");
     text("ver-state", t("HASH DEL SITIO"));
-    text("ver-note", t("El instalador exige este SHA-256 y la firma Ed25519 antes de habilitar INSTALL: integridad y autenticidad verificadas."));
+    text("ver-note", t("El instalador exige este SHA-256 antes de habilitar INSTALL y verifica la firma Ed25519 solo cuando el manifiesto la trae: v2.6.0 se publica sin firma, asi que hay integridad, no autenticidad."));
   }
   fetch("firmware/versions.json", { cache: "no-cache" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
