@@ -1640,3 +1640,51 @@ name v2.7.1, and the v2.7.0 assets stay published as history. Nothing here was p
 → 404): the only path to it is a tag push, and no workflow in this repository creates tags (`grep 'git tag'`
 over `.github/workflows/` is empty), so it needs a credential this session does not have. The v2.7.0 release
 and its assets stay published as history.
+
+## 29. Update — 2026-11-11, v2.7.1 released end to end, and the measured budget behind it
+
+**The GitHub Release exists.** `refs/tags/v2.7.1` is an annotated tag `6cd231d` peeling to `85a601f`;
+`releases/tag/v2.7.1` answers 200 with two assets, `felucca-v2.7.1.fwsc` (610 959 B) and `SHA256SUMS`. The
+downloaded asset hashes to `8b1798b9…6de6`, `cmp`-identical to `release/felucca-v2.7.1.fwsc` and to what Pages
+serves. Until this pass nothing in the repository created tags, so this could not happen; the new
+`.github/workflows/tag-and-publish.yml` does, using the runner's token: it verifies the committed package for
+the version in `firmware/src/felucca.c`, tags that commit once, attests the package and publishes it, and it
+refuses to move an existing tag or overwrite an existing release.
+
+**AC791N build at the released commit (`[TARGET]`, pinned toolchain and SDK):**
+
+| Region | Size | Used | Free | Filled |
+|---|---|---|---|---|
+| XIP (`0x02000120`) | 581 564 | 521 648 | 59 916 | 89.7 % |
+| POOL (`0x01C20000`) | 327 680 | 312 288 | 15 392 | 95.3 % |
+| RAM `.data+.bss` (`0x01C08000`) | 98 304 | 87 676 | 10 628 | 89.2 % |
+| LOWBUF (`0x01C00000`) | 28 672 | 26 580 | 2 092 | 92.7 % |
+| RAMCODE (`0x01C70800`) | 24 576 | 19 284 | 5 292 | 78.5 % |
+| NOINIT (`0x01C7C000`) | 15 696 | 15 572 | 124 | 99.2 % |
+
+`felucca.bin` 541 680 B, `loader/ota.bin` 9 236 B, package 610 959 B, identity `FM-1_965`; XIP code 380 908 B
+and constants 140 740 B. The heaviest XIP symbols are `draw_graph` 32 038 B, `ui_input_frame` 30 450 B and
+`fm1_main` 18 586 B; the pool is dominated by `dly_buf` 131 072 B and `cloud_buf` 32 768 B.
+
+**What that budget says for the next version, measured rather than hoped:** flash and RAM have room, but
+**NOINIT has 124 B and LOWBUF 2 092 B free**, so any new persistent state (MORPH A/B, a ninth engine's
+voicing tables, per-model reverb animation state) must be planned against those two regions first, not
+against the 15 KiB pool spare. Nothing in this section was measured on a unit.
+
+## 30. Update — 2026-11-11, the three release pendings, closed
+
+| Pending | State now | Evidence |
+|---|---|---|
+| Tag and Release `v2.7.1` | **closed** | annotated `6cd231d` → `85a601f`; `releases/tag/v2.7.1` 200; asset `felucca-v2.7.1.fwsc` 610 959 B `8b1798b9…6de6`; downloaded asset `cmp`-identical to `release/` and to what Pages serves |
+| Release notes | **published** | release body is the CHANGELOG entry for the tag (1 974 chars) plus the "verify what you download" paragraph: integrity, not authenticity |
+| Coherence guard | **in CI and proven** | `tools/coherence_check.py` (also runnable by hand) + `.github/workflows/coherence.yml` on every push and PR |
+
+The checks the guard performs are exactly the defects this repository already shipped once: merge markers inside
+a tracked file (the v2.7.1 firmware did not compile because of them), a `FELUCCA_VERSION` with no package in
+`release/`, a manifest whose hash or size disagrees with its bytes, a `site/firmware/versions.json` naming a
+hash the package does not have, an emulator record built from another tree, and a `SHA256SUMS` that no longer
+describes the directory. Verified locally both ways: on this tree it reports
+`coherence: ok … 843 files carry no merge marker` (exit 0), and on a tampered copy with a planted
+`<<<<<<< HEAD` and one appended byte to the package it reports the marker at the right line, the hash and size
+mismatch and the site hash mismatch, exit 1. The workflow's own run log is not readable from here (no Actions
+API credential), so the job's status is **not** claimed — the script it runs is what was verified.

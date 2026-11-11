@@ -71,6 +71,32 @@ jobs:
             git push origin "refs/tags/$V"
           fi
 
+      - name: the notes, from the changelog entry for this version
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          mkdir -p build
+          python3 - "$V" <<'PY' > build/release-notes.md
+          import re, sys
+          version = sys.argv[1]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          found = None
+          for block in re.split(r"(?m)^## ", text)[1:]:
+              if version in block.split("\n", 1)[0]:
+                  found = block
+                  break
+          if found is None:
+              sys.exit("no CHANGELOG section names " + version)
+          title, _, body = found.partition("\n")
+          print("## " + title.strip())
+          print()
+          print(body.strip())
+          print()
+          print("**Verify what you download.** The package beside this release is the one `release/felucca-" + version + ".fwsc` holds; `SHA256SUMS` lists its hash and the installer checks it before it enables INSTALL. " + version + " ships unsigned by design: integrity via SHA-256 and the build record, not authenticity.")
+          PY
+          test -s build/release-notes.md
+          head -3 build/release-notes.md
+
       - name: attest the package that is published
         uses: actions/attest-build-provenance@v2
         with:
@@ -84,13 +110,14 @@ jobs:
           V="${{ steps.ver.outputs.version }}"
           P="${{ steps.ver.outputs.package }}"
           if gh release view "$V" >/dev/null 2>&1; then
-            echo "::notice::release $V already exists; nothing to publish"
+            echo "::notice::release $V already exists; refreshing its notes, leaving its assets alone"
+            gh release edit "$V" --notes-file build/release-notes.md
             exit 0
           fi
           gh release create "$V" \
             --verify-tag \
             --title "Quantum GammaWave $V" \
-            --generate-notes \
+            --notes-file build/release-notes.md \
             "$P" \
             release/SHA256SUMS
           gh release view "$V" --json tagName,isDraft,isPrerelease,assets
