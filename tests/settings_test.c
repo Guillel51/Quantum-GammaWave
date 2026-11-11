@@ -182,6 +182,24 @@ int main(void)
         p = original; assert(settings_import(&p, sizeof p) == 1);
     }
 #endif
+#ifdef FELUCCA_FAVORITES
+    {   /* CPU MODE (ui.c ui_cpu_mode, favorites.factory[15][21]): 0 AUTO, 1 DUAL CORE, 2 SAFE SINGLE kept;
+         * unknown (>2) -> AUTO; older records (no favorites) -> AUTO */
+        persist_t q;
+        uint32_t m;
+        p = original; p.magic = 0x50455233u;            /* PER3 (no favorites): AUTO */
+        assert(settings_import(&p, sizeof p - sizeof p.favorites) == 2 && favorites.factory[15][21] == 0u);
+        for (m = 0; m <= 4u; m++) {
+            p = original; p.favorites.factory[15][21] = (uint8_t)m;
+            assert(settings_import(&p, sizeof p) == 1);
+            if (m <= 2u) assert(favorites.factory[15][21] == (uint8_t)m);
+            else assert(favorites.factory[15][21] == 0u);
+            q = p; assert(settings_import(&q, sizeof q) == 1 && !memcmp(&q, &p, sizeof q));
+            settings_export(&q); assert(q.favorites.factory[15][21] == favorites.factory[15][21]);
+        }
+        p = original; assert(settings_import(&p, sizeof p) == 1);
+    }
+#endif
     assert(settings_import(&p, 3) == 0 && settings_import(&p, -1) == 0);
     assert(settings_import(&p, sizeof p - 1) == 0);
     puts("Settings: PER1/PER2/PER3 migration, palette ids, calibration, HOLD, LEDS, CLICK / COUNT-IN and independent feature preservation passed.");
