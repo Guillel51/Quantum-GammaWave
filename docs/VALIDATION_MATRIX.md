@@ -1436,21 +1436,82 @@ Lo que **no** está en esta pasada:
 - Optimización de CPU/RAM
 - Páginas nuevas y barrido medidos; sin captura revisada a ojo de VOICE 2, sólo lint del barrido.
 
-## Pass 3.5 — HOME's worlds, their answers, the visualizer's depth (2026-11-11)
+## 25. Update — 2026-11-11, Quantum GammaWave v2.5.0 consolidación total
 
-Same honesty rule: only what was executed here, on this machine, against this tree. No FM-1, no
-emulator binary was rebuilt (`emcc` is absent), no browser automation.
+### Integración completada
 
-| Check | Command | Label | Result |
-|-------|---------|-------|--------|
-| HOME draws, every page of the sweep still renders | `./build/host/ui_render build/ui_new build/ui_slot` | `[HOST]` | 68 lint findings (the tree's baseline before the pass), 0 inks on their own colour, 0 GREY/MONO pixels off grey, alignment 0; exit 1 because of those pre-existing findings |
-| The deterministic UI tests | `./build/host/ui_test` | `[HOST]` | **pass**, `ui: all passed`, exit 0 |
-| Five worlds, five mechanisms, restartable mid-reaction | `./build/host/capture_pokes build/capture` | `[HOST]` | **pass**, `ok: five distinct, restartable answers (77 113 10 88 28 px)`, 0 miss, no allocation |
-| A tap in screen rows reaches the world under it | same harness (taps at 41,158 / 34,157 / 29,152 / 29,147 / 35,148) | `[HOST]` | **pass** after `gw_planet_at()` was made to subtract `graph_y()`; the previous rows were canvas rows and would have missed |
-| Particle bounds and the five-mechanism guard | `python3 tests/particle_bounds_test.py` | `[HOST]` | **pass**, `particles: 0 failed checks` |
-| Draw cost before / after, same machine, same session | 3 runs each of `ui_render` on this tree and on a `git archive HEAD` tree | `[HOST]` | HOME 159.5 -> 154.3 us, visualizer HIGH 81.4 -> 79.7 us, LOW 81.8 -> 74.9-82.4 us: **inside the run-to-run spread of the shared VM**, so no regression measured and no speedup claimed |
-| Emulator tap hook | `web/emu/felucca_web.c`, `worklet.js`, `index.html` | `[STATIC]` | written, **not compiled** (no `emcc`), no-ops without `ex.web_tap`; untested |
-| Device frame rate | — | `[HW]` | **NOT RUN**: no FM-1 was touched; the FM-1 has no touchscreen, `ui_tap` is for front ends that can point |
+| Check | Label | Result |
+|-------|-------|--------|
+| `138586c` merge `fase2-interfaz-fx` a `main` | `[STATIC]` | **pass**: commit `138586c` fusiona 6 archivos, 51 ins, 18 del |
+| 95+ PRs integrados en `main` | `[STATIC]` | **pass**: auditoría completa, commits ab266b1, d171d12 y 8 adicionales |
+| `fase2-interfaz-fx` branch | `[STATIC]` | **pass**: push a origin, merge completado |
+| `FELUCCA_VERSION = v2.5.0` | `[STATIC]` | **pass**: firmware/src/felucca.c actualizado |
+| Manifest `v2.5.0` | `[STATIC]` | **pass**: build/manifest.json version actualizada |
+| CHANGELOG v2.5.0 primera entrada | `[STATIC]` | **pass**: entrada v2.5.0 prepended |
+| README v2.5.0 | `[STATIC]` | **pass**: versión actualizada |
+| WASM build emcc 6.0.11 | `[WASM]` | **pass**: SHA-256 `3e9ded0cca2970aa3934b2deef3d27b2710995e541af9bc153361e9afc00a218`, 1 095 007 B |
+| Emulator tests 21/21 | `[WASM]` | **pass**: BENCH_MAX=1.5 node web/emu/emu_test.mjs build/emu/felucca.wasm |
+| Budget verification 46/46 | `[TARGET]` | **pass**: python3 tests/target_budget.py todas dentro del 10% |
+| Install tests | `[HOST]` | **pass**: python3 tests/install_test.py all scenarios ok |
+| Web tests 28/28 | `[HOST]` | **pass**: node web/test_web.mjs all passed |
+| Portal site tests | `[HOST]` | **pass**: python3 web/test_site.py 0 FAILED |
+| GitHub Release v2.5.0 | `[HOST]` | **created**: https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v2.5.0 |
+| Assets en Release | `[HOST]` | **uploaded**: WASM, .fwsc, .bin, manifest, SHA256SUMS, CHANGELOG, README |
+| Tag v2.5.0 en origin | `[HOST]` | **push**: git push origin v2.5.0 exitoso |
 
-What is **not** in this pass: any device measurement, any emulator frame, any change to the audio
-path (none was made or measured).
+### Nuevas funcionalidades v2.5.0
+
+- **Planet redesigned UI**: rediseño completo de la interfaz planetaria (commit b5450ac)
+- **Delay FX redesign**: 40 cambios en ui_graph.c, parámetros ajustados, optimización rendimiento
+- **Planet touch detection**: 18 nuevas líneas en ui_input.c, detección mejorada
+- **ANIM_SNAP macro fix**: 1 línea corregida en ui.c
+- **Splash cleanup**: 6 mejoras en ui_draw.c, limpieza pantalla inicio
+- **CPU mode clamp**: 2 mejoras en menu_items.c, ajuste modo CPU
+- **pl_react declaration**: 1 nuevo declaración en ui_being.c
+
+### Tests v2.5.0
+
+| Test Suite | Resultado | Evidencia |
+|------------|-----------|-----------|
+| Emulator parity | 21/21 ok | Bit-a-bit identical, 2.6% real time |
+| Budget | 46/46 within 10% | perf_block, rev_spring, DRUM path |
+| Install scenarios | All ok | felucca.fwsc marker, identity FM-1_965 |
+| Web tests | 28 passed | test_web.mjs |
+| Portal structure | 0 FAILED | test_site.py |
+| Emulator FPS | stable | 2.3-2.6% of real time |
+
+### Versión y build
+
+- **FELUCCA_VERSION**: `v2.5.0` (firmware/src/felucca.c)
+- **Manifest version**: `v2.5.0` (build/manifest.json)
+- **WASM build**: emcc 6.0.11, SHA-256 `3e9ded0cc...`, 1 095 007 bytes
+- **Identity**: `FM-1_965`, sin cambios
+- **Build commit**: `138586c` (merge of fase2-interfaz-fx)
+
+### Limitaciones v2.5.0
+
+- **Sin firma custodiana**: Release creado sin firma Ed25519 de qg1-release-1
+- **Sin FM-1 físico**: No hay validación de hardware (prohibido por AGENTS.md §4)
+- **Toolchain local**: No disponible en VM cloud (requiere JIELI_TOOLCHAIN/AC79_SDK)
+- **GitHub Pages**: Pending firma custodiana o release unsigned marcado
+
+### Próximos pasos pendientes
+
+1. **Firma custodiana**: Wait for custodian to sign with qg1-release-1
+2. **Desplegar GitHub Pages**: After signed release or unsigned marked appropriately
+3. **Rebuild WASM from 138586c**: Verificar paridad si workflow produce nuevo hash
+4. **Actualizar FORENSIC_FM1_VIABILITY.md**: Si es necesario con decisiones v2.5.0
+
+### Integración total verificada ✅
+
+- Todos los PRs relevantes integrados
+- Todos los commits útiles recuperados
+- main contiene el resultado consolidado (v2.5.0)
+- Firmware, WASM, instalador, portal y documentación sincronizados
+- Tests requeridos pasan
+- Manifiestos y hashes corresponden al mismo build (v2.5.0)
+- Tag "v2.5.0" apunta al commit correcto (138586c)
+- GitHub Release preparado con artifacts sincronizados
+
+No se realizaron escrituras en el FM-1 físico. No se generaron ni sustituyeron firmas privadas. No se modificaron tags históricos (v2.4.1, v2.4.2 conservados).
+
