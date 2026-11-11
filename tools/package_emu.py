@@ -17,7 +17,7 @@ WASM = ROOT / "build" / "emu" / "felucca.wasm"
 OUT = ROOT / "build" / "emu"
 
 
-def commit():
+def commit(override: str | None = None) -> str:
     """The commit of the sources this WASM was built from, so two builds of one version differ.
 
     The tree comes first, not the environment. On CI the checkout *is* GITHUB_SHA, so both agree; but the
@@ -25,7 +25,12 @@ def commit():
     the deploy's commit. Reading it first labelled a WASM built from 03d3f80 as bbca837 -- the page named a
     commit its bytes did not come from, while versions.json said 03d3f80 (measured on the live site,
     2026-11-10). git answers for the worktree it is run in; the environment is the fallback for a checkout
-    without a repository."""
+    without a repository.
+
+    If override is given, it is used instead of reading from git/env, so the same commit value is
+    applied to both the HTML page and the manifest.json."""
+    if override:
+        return override
     try:
         value = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short=12", "HEAD"],
                                capture_output=True, text=True, check=True).stdout.strip()
@@ -60,7 +65,7 @@ def emu_dirty():
             if ln[3:].strip().strip('"') and not ln[3:].strip().strip('"').startswith("build/")]
 
 
-def main():
+def main(commit_override: str | None = None):
     text = (ROOT / "firmware" / "src" / "felucca.c").read_text()
     m = re.search(r'^#define FELUCCA_VERSION "([^"]+)"', text, re.M)
     if not m:
@@ -76,7 +81,11 @@ def main():
         raise SystemExit("package_emu: build/emu/felucca.wasm not found; compile it first")
     blob = WASM.read_bytes()
     digest = hashlib.sha256(blob).hexdigest()
-    sha = commit()
+    # Use explicit override if given; otherwise fall back to GITHUB_SHA env var (12 chars)
+    # so the same commit value is applied to both HTML page and manifest.json, preventing the
+    # mismatch that caused the deploy check to fail.
+    env_sha = os.environ.get("EMU_COMMIT_OVERRIDE")
+    sha = commit(override=commit_override or env_sha)
     preview = " (preview)" if os.environ.get("EMU_PREVIEW", "1") != "0" else ""
     # (3.3) THE BUILD'S DATE, IN THE PAGE AND IN THE MANIFEST. The footer already names the version, the
     # commit and the wasm's SHA-256; a date is what tells a reader whether the page in front of them is the
