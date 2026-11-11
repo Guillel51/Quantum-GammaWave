@@ -1,7 +1,32 @@
-## 2026-11-11 — v2.6.0: modelo unico SHA-256
+## 2026-11-11 — v2.6.0: paquete real, WASM reproducible y el modelo SHA-256 implementado
 
-- Adopcion modelo PR #89 (SHA-256 + tamano). Ed25519 historico.
-- WASM reconstruido Emscripten 6.0.11 (sha256 62c4b714...).
+- **El modelo SHA-256 existia solo en la documentacion.** `docs/SIGNING.md` lo describia desde `c3881ad` y
+  `web/fm1ota.js` ya lo aplicaba, pero `tools/fm1_sign.py verify` seguia exigiendo `keyid` + `sig` Ed25519 de 64
+  bytes con una clave fijada, y `signed-release.yml` lo llama para cada paquete: un release v2.6.0 sin firma era
+  imposible. `verify` ahora valida siempre hash, tamano, producto, `images` y registro de build, verifica la firma
+  **cuando el manifiesto la lleva** (`qg1-release-1`, como v2.4.0) y, si no la lleva, informa `verified (integrity
+  only, unsigned: SHA-256 model)`. Quien necesita atestacion de editor pasa `--require-signature` y el manifiesto sin
+  firma se rechaza (comprobado, exit 1). Ninguna comprobacion de integridad se relajo.
+- **Paquete v2.6.0 construido desde el commit del tag** `73c0c662d3267d0a0ae27a19ff26b07116f53da1` con la toolchain
+  JieLi fijada (`jieli-linux-toolchains-20260730.1`, clang 4.0.1) y el SDK `AC79NN_SDK_V1.2.1_2023-12-13` (sus tres
+  archivos coinciden con `SDK_SHA256`): imagen **541 492 B**, `.data+.bss` **87 696 / 98 304 B**, POOL libre
+  **15 392 B**, codigo XIP 380 944 B, codigo en RAM **19 284 / 24 576 B**; paquete `release/felucca-v2.6.0.fwsc`
+  **610 959 B**, sha256 `567b72fa177ee755229b2106cd5dd7cfdacf0072bc4bcfa80aca4632972c712e`, identidad `FM-1_965`,
+  `dirty: []`. Registro en `release/build-manifest-v2.6.0.json` y manifiesto en
+  `release/felucca-v2.6.0.fwsc.manifest.json` (formato `qg1-release-1`, con `images` y `build_sha256`, sin `sig`).
+- **El WASM es reproducible y su manifiesto nombraba el commit equivocado.** Reconstruido con Emscripten **6.0.11**
+  desde el mismo commit: **1 104 688 B**, sha256
+  `62c4b7141ef59ac9b585f36dc7c13cff34eaaf2c2109f283894fd440c20af41d` — exactamente el tamano y hash que
+  `release/emu/manifest.json` declaraba, mientras ese archivo nombraba `ceb2e80bd43e`, un commit que no existe. Se
+  sustituyo por el que produce la construccion (commit `73c0c662d326`). Los otros dos valores reportados antes
+  (1 104 688 / `c1bb42fa...` y 1 095 007 / `3e9ded0c...`) no corresponden a ninguna construccion de este commit.
+- **Emulador probado, no solo compilado**: `web/emu/emu_test.mjs` sobre el WASM construido, todo en verde (arranque,
+  KNOB 1..4 por motor, PLAY/parada, mapa FX, presets de usuario persistentes, la cancion pesada dos veces con las
+  mismas muestras, 21,4 ms por segundo de audio = 2,1 % del tiempo real).
+- **Lo que sigue sin ser cierto:** el paquete v2.6.0 **no esta firmado** (no hay clave Ed25519 en este entorno y no se
+  genera), la atestacion de GitHub Artifact corresponde al workflow, y **nada se valido en una FM-1 fisica**. El
+  Release `v2.6.0` de GitHub no tenia adjuntos descargables al escribir esto: publicarlos requiere una credencial de
+  publicacion que esta sesion no tiene.
 
 ## 2026-11-11 — v2.5.0: los mundos de HOME, sus respuestas y la profundidad del visualizador (pasada 3.5) los mundos de HOME, sus respuestas y la profundidad del visualizador
 

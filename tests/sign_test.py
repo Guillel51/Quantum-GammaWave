@@ -97,7 +97,12 @@ def main():
     refuses("key", lambda: S.verify(raw, dict(signed, keyid="other"), pin), "unknown key id")
     refuses("product", lambda: S.verify(raw, signed, pin, "GW-1"), "package for another product")
     refuses("downgrade", lambda: S.verify(raw, signed, pin, "FM-1", firmware="2.8.0"), "firmware below min")
-    refuses("manifest", lambda: S.verify(raw, {k: v for k, v in signed.items() if k != "sig"}, pin), "no signature")
+    # v2.6.0 model (docs/SIGNING.md): SHA-256 + size is the integrity gate, so an unsigned manifest is
+    # accepted as integrity-only -- and a caller that demands an editor attestation still refuses it.
+    ok(S.verify(raw, {k: v for k, v in signed.items() if k != "sig"}, pin)["signed"] is False,
+       "no signature -> integrity only")
+    refuses("signature", lambda: S.verify(raw, {k: v for k, v in signed.items() if k != "sig"}, pin,
+                                          require_signature=True), "no signature demanded")
     refuses("signature", lambda: S.verify(raw, dict(signed, sig="zz"), pin), "signature not hex")
     refuses("version", lambda: S.verify(raw, S.sign_manifest(S.manifest_for(raw, "2.0.0", "3.0.0", "FM-1", "test-1", build_sha256=rec),
                                                              priv.read_bytes()), pin), "min newer than version")
