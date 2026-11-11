@@ -1,3 +1,12 @@
+## 2026-11-11 — v2.5.0: destino único de integración
+
+- **Versión** `v2.4.1` → `v2.5.0` (`FELUCCA_VERSION`, README, banner).
+- **Emulador WASM** reconstruido con Emscripten 6.0.11 desde el mismo commit que el firmware.
+- **Solicitud de firma** `release/sign-request-v2.5.0.json` preparada para `qg1-release-1`; la de
+  `v2.4.0` se conserva como referencia histórica.
+- **Pendiente**: build AC791N (`target.yml`), firma del custodio y publicación del Release;
+  ninguno de los tres se declara hecho hasta tener su evidencia.
+
 ## 2026-11-10 — v2.4.1: consolidación de Quantum GammaWave
 
 - **Versión** `v2.4.0` → `v2.4.1` (`FELUCCA_VERSION`, README, banner).
