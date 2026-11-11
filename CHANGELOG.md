@@ -27,6 +27,12 @@
   genera), la atestacion de GitHub Artifact corresponde al workflow, y **nada se valido en una FM-1 fisica**. El
   Release `v2.6.0` de GitHub no tenia adjuntos descargables al escribir esto: publicarlos requiere una credencial de
   publicacion que esta sesion no tiene.
+- **Reconstruccion definitiva sobre `main`** (`cdb72c0fb4ba5bad2c76b53a74377150c428f7e2`): `main` habia quedado roto por `5ca34a3`, que al quitar
+  el readout del splash se llevo la llave de cierre del bloque (`ui_draw.c` 260 `{` frente a 259 `}`); como
+  `felucca.c` incluye las fuentes en una sola unidad de traduccion, el ambito abierto convertia cada archivo
+  posterior en una funcion dentro de otra y la compilacion AC791N fallaba con mas de 20 errores. Se elimino la
+  llave huerfana y el arbol vuelve a compilar: imagen **541 460 B**, paquete **610 959 B** sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25`,
+  WASM **1104631 B** sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a` (Emscripten 6.0.11), `dirty: []`.
 ## 2026-11-11 — v2.6.0: splash screen cleanup, v2.6 release, bootsplash updates
 
 ### Splash screen updates
