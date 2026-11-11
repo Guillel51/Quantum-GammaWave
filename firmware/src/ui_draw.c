@@ -1666,8 +1666,7 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     }
     /* 8. THE READOUT: what is starting and how far it has got, in the smallest ink the panel has and
      * clear of the art (the two lines under the band carry the version and the project). */
-    // splash readout removed; (the block that held it went with it: its `{` had no `}` left, and the
-    // unclosed scope made every later file included by felucca.c a function defined inside a function)
+    // splash readout removed;
     /* 9. THE RAIL: sixteen beveled blocks along the bottom, each filled as far as the boot has written,
      * and the playhead on its leading edge. It is the one thing that says how far the start has got. */
     cv_rect(12, 112, 216, 1, ux_mix(card, T_LINE, 90));
