@@ -1,3 +1,9 @@
+## 2026-11-12 — v2.7.4.5: FX VU meter routing fix and sync
+
+- **FX meters**: the Reverb meter now reflects only the reverb bus's own return; Chorus or Delay activity no longer moves it.
+- **Emulator/site/readmes**: synchronized with the rebuilt firmware and WASM.
+- **Release**: v2.7.4.5 firmware + SHA256.
+
 ## 2026-11-12 — v2.7.4.4: Reverb RESO animation fix and release sync
 
 - **Reverb RESO**: removed the out-of-panel glitching orbit ring and added a travelling pulse along each resonant string, with frame-rate scaling tied to the reverb return.
