@@ -805,9 +805,8 @@ static void graph_fx(const track_t *t, uint16_t c)
     static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
-    static uint8_t vu[4], hold[4];                /* (3.6) the meter's envelope and its peak hold */
-    static uint8_t hold_t[4];                     /* .. frames the hold has been standing still */
-    static int32_t vu_trk = -1;
+    static uint8_t meter[4];                      /* (3.7) HOME-style plasma meter, one per FX bus */
+    static int32_t meter_trk = -1;
     int32_t pk = t->vu < 0 ? -t->vu : t->vu;   /* the track's post-FX envelope (fx.c mix_part) */
     /* DIST is an insert on the selected track: when it is off (P_DIST == 0) track_dist() leaves the
      * signal untouched and its meter must stay dark, instead of following the dry track the way it
@@ -817,11 +816,9 @@ static void graph_fx(const track_t *t, uint16_t c)
     int32_t bus[4] = {pk, fx_vu[3], fx_vu[4], fx_vu[5]};   /* DIST, chorus, delay, reverb returns */
     int32_t send[4] = {pk, fx_vu[0], fx_vu[1], fx_vu[2]};  /* what each bus actually receives */
     uint32_t i;
-    if (vu_trk != (int32_t)(t - trk)) {              /* the meters belong to one track */
-        memset(vu, 0, sizeof vu);
-        memset(hold, 0, sizeof hold);
-        memset(hold_t, 0, sizeof hold_t);
-        vu_trk = (int32_t)(t - trk);
+    if (meter_trk != (int32_t)(t - trk)) {           /* the meters belong to one track */
+        memset(meter, 0, sizeof meter);
+        meter_trk = (int32_t)(t - trk);
     }
 
     cv_rrect(4, 2, 232, 66, 6, T_SURF, T_BG);
@@ -830,7 +827,6 @@ static void graph_fx(const track_t *t, uint16_t c)
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
         int32_t mx = cx + 43, my = 18, mh = 42;
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
-        int32_t hpx = lvl * mh / 7000;
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         char num[8];
 
@@ -865,18 +861,13 @@ static void graph_fx(const track_t *t, uint16_t c)
          * highest point for 30 frames and then falls a pixel a frame, and one thin tick marks what the
          * bus actually receives. Every figure is the DSP's own. */
         cv_rect(mx, my, 12, mh, T_BG);                /* the track */
-        fx_meter_step(&vu[i], &hold[i], &hold_t[i], hpx, mh);   /* core.h: attack, release, peak hold */
-        {
-            int32_t seg, v = (int32_t)vu[i];
-            uint16_t bar = i == 0 ? c : T_THEME;      /* the DIST insert keeps the track's own colour */
-            if (v > 0) {
-                cv_rect(mx + 1, my + mh - v, 10, v, bar);
-                for (seg = mh - 7; seg > mh - v; seg -= 7)   /* a 1 px gap every 7 px: a scale */
-                    cv_rect(mx + 1, my + seg, 10, 1, T_BG);
-            }
+        {   /* (3.7) HOME's own meter: the segmented plasma bar, with the same attack/decay ballistics */
+            int32_t target = clamp(lvl * 255 / 7000, 0, 255);
+            uint16_t heat0 = i == 0 ? 60u : (uint16_t)(96u + (uint32_t)i * 24u);
+            if (target > (int32_t)meter[i]) meter[i] = (uint8_t)target;
+            else if (meter[i]) meter[i]--;
+            gw_plasma_bar(mx + 1, my, 10, mh, 8, meter[i], heat0);
         }
-        if (hold[i] > 0u)                             /* the peak hold: one pixel over the bar */
-            cv_rect(mx + 1, my + mh - (int32_t)hold[i], 10, 1, T_ACCENT);
         if (i && inpx > 0)                            /* what the bus receives, over the return */
             cv_rect(mx + 4, my + mh - inpx, 4, 1, T_MID);
         if (lvl >= 6800)                              /* full scale: the head of the meter clips */

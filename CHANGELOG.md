@@ -1,3 +1,10 @@
+## 2026-11-11 — v2.7.4.3: FX VU meters rebuilt on HOME's plasma meter
+
+- **FX meters**: replaced the old FX-section VU meters with HOME's segmented plasma meter component, reusing its design, animation and decay ballistics.
+- **DSP**: verified send / wet-return / tail paths remain independent and settle to zero when effects are off.
+- **Build**: firmware and WASM emulator rebuilt for AC791N, manifests and hashes synchronized.
+- **Release**: v2.7.4.3 firmware + SHA256.
+
 ## 2026-11-11 — v2.7.4.2: FX visual polish, WASM rebuild and release sync
 
 - **FX**: rounded panels and improved visual consistency.
