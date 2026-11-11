@@ -1383,7 +1383,7 @@ static void draw_columns(void)
 #define SPL_ART_H 124                               /* .. 40 .. 163, the band ui_render measures for ink */
 #define SPL_BARS 16                                 /* the rail's bars */
 #define SPL_TY 186                                  /* the two lines under it */
-static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, ""};
+static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, "QUANTUM GAMMAWAVE // QG-1"};
 static uint8_t spl_anim;                            /* main.c: 1 = the signature to be written (splash_write) */
 static uint32_t spl_shown;                          /* (QG-1 v1.5) the art's signature actually on screen: splash_sig is
                                                      * a no-op while it matches, so the splash's hold does not rewrite a
