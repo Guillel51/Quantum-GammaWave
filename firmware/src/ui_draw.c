@@ -1383,7 +1383,7 @@ static void draw_columns(void)
 #define SPL_ART_H 124                               /* .. 40 .. 163, the band ui_render measures for ink */
 #define SPL_BARS 16                                 /* the rail's bars */
 #define SPL_TY 186                                  /* the two lines under it */
-static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, "QUANTUM GAMMAWAVE // QG-1"};
+static const char *const SPLASH_LINES[] = {FELUCCA_VERSION, ""};
 static uint8_t spl_anim;                            /* main.c: 1 = the signature to be written (splash_write) */
 static uint32_t spl_shown;                          /* (QG-1 v1.5) the art's signature actually on screen: splash_sig is
                                                      * a no-op while it matches, so the splash's hold does not rewrite a
@@ -1513,8 +1513,8 @@ static void splash_sig(uint32_t prog, uint32_t ms)
 
     /* 1. THE DEEP FIELD: a wash from near-black to a dark theme, two rows a step (62 rects, not 124
      * rows and not seven bands), lifted as the boot comes up. */
-    for (i = 0; i < 62; i++)
-        cv_rect(0, 2 + i * 2, 240, 2, spl_wash(prog, (int32_t)i * 2));
+    /* Progress indicator removed for cleaner startup */
+    /* (progress bars removed, nebula effects continue below) */
     /* 2. NEBULAE: three soft elliptical clouds, wider and brighter as the sky comes up, each row
      * mixed on its own wash so they never show an edge */
     if (!mono) {
