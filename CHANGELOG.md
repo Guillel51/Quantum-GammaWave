@@ -1,3 +1,26 @@
+## 2026-11-11 — v2.7.0: una sola version, y la evidencia que la sostiene
+
+- **`release/` vuelve a verificar.** `signed release` estaba rojo en `main`: `release/sign-request-v2.4.0-HISTORICAL.json`
+  era un duplicado byte a byte de `sign-request-v2.4.0.json` y no figuraba en `SHA256SUMS`. Se elimina el duplicado y
+  `release/SHA256SUMS` describe exactamente los `.fwsc` y `.json` del directorio (13 entradas, `sha256sum -c` limpio,
+  comprobado tambien con la comparacion que hace el propio workflow).
+- **La solicitud de firma describia un paquete que nunca se publico.** `release/sign-request-v2.5.0.json` nombraba el
+  build de `c6db91f` (`9752a1a6…`), pero el Release v2.5.0 se construyo desde `b5450ac` y sirve
+  `felucca.fwsc` **610 959 B** sha256 `d4f65dd1…7421`. Se regenero desde los bytes descargados del Release y su
+  registro de build quedo en `release/build-manifest-v2.5.0.json`; solicitud, registro y descarga ahora coinciden.
+- **Los tests de host llevaban un dia en rojo por dos baselines, no por merges.** `dbac783` cambio el damping de ROOM de
+  `32767 - RDAMP * 200` a `rev_damp_table[]` en `rev_room` y `rev_room_mod`, y nadie actualizo el modelo de referencia de
+  `tests/reverb_test.c` ni el golden de `tests/six_track_live_test.c`. El modelo de referencia conserva **su propia copia**
+  de la curva (asi un cambio en un solo lado sigue fallando), el golden de six-track se regrabo desde este arbol
+  (`61/61` segundos verificados) y `tests/golden.txt` se regrabo tras demostrar que los 216 renders cambiados son codigo
+  y no toolchain: con los mismos headers generados, `2e7de2a` reproduce 220/220 y `main` cambia 216.
+- **El emulador tiene una medida reproducible, no una impresion.** `web/emu/emu_test.mjs` sobre el WASM publicado:
+  17/17 checks y **1 s de la cancion pesada en 24,0 ms = 2,4 % del tiempo real** (~41x; un bloque de 60 fps cuesta
+  ~0,4 ms). Clase de la medida: emulador/WASM en host x86, no dispositivo.
+- **v2.7.0 en todo lo que sirve bytes:** `FELUCCA_VERSION "v2.7.0"`, README, `web/site/index.html`, `web/site/i18n.js`
+  (es/en/zh) y `web/index_pkg.html`. El emulador, el instalador y el portal se construyen del mismo commit y el paquete
+  sale del build de este tag, con su registro (`release/build-manifest-v2.7.0.json`) y su SHA-256 + tamano.
+
 ## 2026-11-11 — v2.6.0: paquete real, WASM reproducible y el modelo SHA-256 implementado
 
 - **El modelo SHA-256 existia solo en la documentacion.** `docs/SIGNING.md` lo describia desde `c3881ad` y
