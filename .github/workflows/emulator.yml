@@ -205,10 +205,11 @@ jobs:
             git worktree add ../release-tree "$REL"
             ( cd ../release-tree
               python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
-              # the script from the checked-out tree, not the release's own copy: the release predates the fix
-              # that labels the WASM with the tree it was compiled from, so its copy would stamp this run's
-              # GITHUB_SHA on a WASM built from the release commit (which is what site_check kept refusing)
-              EMU_PREVIEW=0 sh "$GITHUB_WORKSPACE/web/emu/build.sh" )
+              # (the release predates the fix that labels the WASM with its own tree: this build.sh passes
+              # GITHUB_SHA as the label, so point GITHUB_SHA at the release commit for this one command.
+              # Without it the WASM came from $REL and its page named this run's commit, which is exactly
+              # what site_check refused on the live site.)
+              GITHUB_SHA="$REL" EMU_PREVIEW=0 sh web/emu/build.sh )
             test -s ../release-tree/build/emu/felucca.wasm || { echo "::error::the release emulator did not build"; exit 1; }
             # The worktree's HEAD is $REL, so the record names it: package_emu.py reads the commit with
             # `git -C ROOT rev-parse` in a linked worktree, which answers with the repository's gitdir.
