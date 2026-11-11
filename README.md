@@ -221,7 +221,11 @@ sh web/emu/build.sh
 
 ## Credits and licence
 
-GPL-3.0-only. Quantum GammaWave is an evolution of **Pocket GammaWave (GW-1)** by Leo Kuroshita
-(@kurogedelic) / Hügelton Instruments, built on **JIANT FM** and **Felucca**. The original copyright notices,
+GPL-3.0-only. Quantum GammaWave is an evolution of **Pocket GammaWave (GW-1)** by **Frederic Valente
+(@fvalente)** — the GW-1 firmware line, its drum kits, its keys/trap presets and its persistence work — built on
+**JIANT FM** and **Felucca** by **Leo Kuroshita (@kurogedelic) / Hügelton Instruments**. The published installer,
+the emulator's CI and build record, the FX layer and the QUANTUM preset bank come from **Guillermo Lauria**;
+**David Konsumer (@konsumer)** did the first install on a stock unit, the loader's chip check, the resume path and
+the releases by tag. The original copyright notices,
 the credits and the texts in [`LICENSES/`](LICENSES/) are kept; the JieLi SDK files that a package carries are
 Apache-2.0, and [`LICENSING.md`](LICENSING.md) says which is which.

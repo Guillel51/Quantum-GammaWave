@@ -756,6 +756,25 @@ instrumento encontró mal.
   Parámetro → Destino DSP → Efecto audible y las mejoras musicales baratas siguen pendientes. Nada de esto se
   probó en hardware.
 
+## 2026-11-11 — créditos con nombre y apellido, y una sola versión
+
+- **Créditos del linaje corregidos.** `README.md` y `MENU > ABOUT > CREDITS` atribuían Pocket GammaWave (GW-1) a
+  Hügelton Instruments; el linaje GW-1 es de **Frederic Valente (@fvalente)**, como ya decía este CHANGELOG y
+  `LICENSING.md`. JIANT FM y Felucca quedan a nombre de **Leo Kuroshita (@kurogedelic) / Hügelton Instruments**.
+- **Se suman los aportes de este fork**: **Guillermo Lauria** (instalador publicado, CI y registro de build del
+  emulador, capa de FX, banco QUANTUM) en README y en el ABOUT del firmware; **David Konsumer (@konsumer)**
+  (primera instalación en una unidad de fábrica, chequeo de chip del loader, reanudación, releases por tag) en README.
+- **`firmware/src/ui_being.c`**: el encabezado decía `Copyright (C) 2026 ShadowTune / GammaWave // Wraith Custom
+  Firmware`, un titular que no aparece en ningún commit, en `LICENSES/` ni en los colaboradores. El archivo se creó
+  en este repositorio y el código de los mundos de HOME se desarrolló acá: el aviso pasa a Guillel51 / Quantum
+  GammaWave, con la aclaración de que "Wraith" es un nombre propio de este firmware (la ribbon y la barra).
+- **Una sola versión otra vez.** El árbol decía `v2.7.1` mientras el paquete publicado, el emulador de Pages y el
+  instalador son **v2.7.0**; no existe ningún paquete 2.7.1 construido ni firmado, y el commit del bump dejó
+  marcadores de conflicto en `firmware/src/felucca.c` (lo que rompió los tres jobs de `target build`). Vuelve a
+  **v2.7.0**: una versión que sólo vive en el fuente no es un release.
+- **Fuera `ci_artifact/`**: era un registro de build del emulador commiteado, con su `manifest.json` lleno de
+  marcadores de conflicto y un wasm de un commit que ya no existe; el workflow publica el suyo en cada ejecución.
+
 ## 2026-11-10 — el instalador no pide ningún informe de M-Flasher
 
 - **Fuera el informe de M-Flasher** del flujo visible: se quitaron la caja de "registro + dump", la guía de
