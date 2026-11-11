@@ -245,6 +245,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "audio: overload protection, bounded fades and DMA diagnostics" "$OUT/audio_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/master_test" tests/master_test.c -lm
     run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_meter_test" tests/fx_meter_test.c
+    run "FX meters: attack, release, peak hold (30 frames then a pixel a frame) and clamping" "$OUT/fx_meter_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Ifirmware/hal -o "$OUT/clamp_sym_test" tests/clamp_sym_test.c -lm
     run "DSP: the SVF's one-compare clamp is exactly clamp(v, -150000, 150000) over all of int32" "$OUT/clamp_sym_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/blep_test" tests/blep_test.c -lm

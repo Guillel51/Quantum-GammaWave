@@ -1708,11 +1708,16 @@ int main(int argc, char **argv)
         state();
         setup(scr >= S_COUNT ? S_HOME : scr);
         pal(pal_i);
-        if (getenv("QG_DUMP_FX")) {   /* the echo train as the bus measures it (tests/dly_echo_test),
-                                       * put in after setup so the page has something to draw */
+        if (getenv("QG_DUMP_FX")) {   /* the echo train as the bus measures it (tests/dly_echo_test) and the
+                                       * buses' peaks as fx.c publishes them (fx_vu), put in after setup so
+                                       * the FX page has real signal to draw: the delay train, the four sends /
+                                       * returns, the track's own post-FX envelope and the mix's L/R peaks */
             static const int32_t T[6] = {15463, 6515, 2747, 1159, 489, 208};
+            static const int32_t V[8] = {19000, 9200, 4300, 12400, 3100, 1600, 20500, 13800};
             int k;
             for (k = 0; k < 6; k++) fx_dly_rep[k] = T[k];
+            for (k = 0; k < 8; k++) fx_vu[k] = V[k];
+            trk[0].vu = 15600;
             fx_dly_gen = 2; fx_dly_frac = 96;
         }
         draw(scr >= S_COUNT ? S_HOME : scr);
