@@ -1,11 +1,12 @@
-## 2026-11-11 — v2.5.0: destino único de integración
+## 2026-11-11 — v2.5.0: los mundos de HOME, sus respuestas y la profundidad del visualizador (pasada 3.5) los mundos de HOME, sus respuestas y la profundidad del visualizador
 
-- **Versión** `v2.4.1` → `v2.5.0` (`FELUCCA_VERSION`, README, banner).
-- **Emulador WASM** reconstruido con Emscripten 6.0.11 desde el mismo commit que el firmware.
-- **Solicitud de firma** `release/sign-request-v2.5.0.json` preparada para `qg1-release-1`; la de
-  `v2.4.0` se conserva como referencia histórica.
-- **Pendiente**: build AC791N (`target.yml`), firma del custodio y publicación del Release;
-  ninguno de los tres se declara hecho hasta tener su evidencia.
+- **Planetas con volumen** (`ui_being.c`): la cara iluminada es una rejilla 3x2 (tres bandas de latitud por dos mitades) sobre seis tonos por cuerpo, con luz de limbo, segunda atmosfera en el oceanico y el anillado, y detalles propios (mares y cresta, tres bandas y ojo de tormenta, horizonte y media luna, sombra del anillo, casquetes y grieta). Techo de radio 9 px; ningun cuerpo es ya un disco plano de un tono.
+- **Cinco reacciones distintas al tocar** (tabla `PL_POKE`): SPIN (impulso orbital y cola de cometa), SWELL (hincha y vuelve), RIPPLE (frente de onda y eco punteado), SLING (empuje radial que abre el anillo), FROST (anillo de escarcha y abanico). Son funcion pura de `ui.frame - pl_poke_t[i]`, sin acumuladores: se interrumpen y se reinician al instante, y se congelan con `PREF_ANIM_OFF`.
+- **Entrada de puntero** (`ui_tap`, `ui_input.c`): un toque en filas de pantalla elige el mundo mas cercano, convirtiendo la fila por `graph_y()` (el panel se dibuja en su tira y se compone a esa altura). La FM-1 no tiene pantalla tactil: la entrada existe para los front ends que pueden apuntar.
+- **Particulas acotadas**: brasas a tres profundidades con tope duro `GW_EMBER_MAX 32`; el pozo de chispas sigue en `vz_np` (28, sin reservas).
+- **Visualizador mas profundo** (`ui_graph.c`): fondo oscurecido sin tocar los grises del eje y un campo lejano (limbo, luna anillada, cuerpo pequeno, arco) dibujado antes de los datos, `O(r)` y apagado por debajo de HIGH.
+- **Medicion**: tres corridas antes y tres despues del mismo harness en la misma sesion; las medianas difieren menos que la dispersion entre corridas de la VM compartida, asi que se declara **sin regresion medible y sin mejora demostrable**, no una mejora. Capturas y limites en `docs/evidence/3.5/`.
+- **No verificado**: emulador (falta `emcc`; el wasm no se reconstruyo y el hook de toque no se compila) y FM-1 fisica (no hay unidad).
 
 ## 2026-11-10 — v2.4.1: consolidación de Quantum GammaWave
 

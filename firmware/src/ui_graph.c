@@ -846,20 +846,32 @@ static void graph_fx(const track_t *t, uint16_t c)
         else
             cv_rect(cx + 47, 6, 3, 3, T_LINE);
 
-        /* One slim 7 px meter, a real level and its peak cap; a 1 px tick shows what the bus receives. */
-        cv_rect(mx, my, 7, mh, T_BG);
-        for (seg = 0; seg < mh; seg += 5)
-            cv_rect(mx, my + mh - 1 - seg, 7, 1, T_RAISE);
-        /* (3.1) a meter's cap is a row of its own slot: the lit height and the peak are clamped to
-         * 0..mh before they become a coordinate, so neither can be drawn above my or below my+mh-1. */
-        if (hpx > mh) hpx = mh;
-        if (inpx > mh) inpx = mh;
-        if (hpx > vu[i]) vu[i] = (uint8_t)hpx;
-        else if (vu[i] > 0u) vu[i]--;
-        if (hpx > hold[i]) hold[i] = (uint8_t)hpx;
-        else if (hold[i] > 0u) hold[i]--;
-        if (vu[i] > (uint8_t)mh) vu[i] = (uint8_t)mh;
-        if (hold[i] > (uint8_t)mh) hold[i] = (uint8_t)mh;
+        /* Thicker FX meter with vibrant colors and smooth bounce */
+        cv_rect(mx, my, 12, mh, T_BG);
+        /* Controlled bounce - peak falls smoothly */
+        int32_t bounce_px = (hpx * 7 + mh * 3) / 10;
+        if (bounce_px > mh) bounce_px = mh;
+        if (bounce_px < 0) bounce_px = 0;
+        /* Per-module vibrant colors: delay gets cyan theme, others use theme */
+        if (i == 2) { /* DELAY: vibrant cyan */
+            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, T_THEME);
+        } else {
+            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, i == 0 ? c : T_THEME);
+        }
+        /* Subtle peak cap */
+        int32_t peak_px = (hpx * 2 + mh * 3) / 5;
+        if (peak_px > mh) peak_px = mh;
+        if (peak_px > bounce_px) peak_px = bounce_px;
+        if (peak_px > 0u)
+            cv_rect(mx + 2, my + mh - peak_px, 8, 1, T_ACCENT);
+        /* Fade trail for controlled dissipation */
+        if (vu[i] > 0u && vu[i] < (uint8_t)mh) {
+            cv_rect(mx + 1, my + mh - vu[i], 10, vu[i], i == 2 ? T_THEME : (i == 0 ? c : T_THEME));
+        }
+        /* Input level tick */
+        if (i && inpx > 0) {
+            cv_rect(mx + 6, my + mh - inpx, 6, 1, T_MID);
+        }
         if (vu[i] > 0u)
             cv_rect(mx + 1, my + mh - vu[i], 5, vu[i], i == 0 ? c : T_THEME);
         if (hold[i] > 0u)
@@ -1854,7 +1866,7 @@ static uint32_t graph_signature(void)
     const track_t *t = TSEL;
     uint32_t h = 2166136261u, i;
     if (ui.home)
-        return h ^ (ui.frame / 2u);                  /* scope: redraw every other frame */
+        return h ^ (ui.frame / 2u) ^ gw_planet_sig();   /* (3.5) and every frame a body answers a touch */
     h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u;
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
@@ -2633,6 +2645,10 @@ static void graph_home_viz(uint16_t c)
     static uint8_t peak_decay[16];
     uint32_t w = scope_w, i, trig = 0, pass;
     int32_t peak = 1000, bars[16];
+    /* (3.5) a slightly deeper page: the panel and the space around it sit one step under the palette's own
+     * tones, so the data (the only bright thing here) leads and the field behind it recedes. bg_darken()
+     * can only move a tone down, so MONO stays black and PAPER stays legible. */
+    uint16_t vbg = bg_darken(T_BG, 14), vsf = bg_darken(T_SURF, 10);
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
@@ -2660,14 +2676,17 @@ static void graph_home_viz(uint16_t c)
 
     for (pass = 0; pass < 2u; pass++) {
         int32_t top_y = pass ? 114 : 26, cy = 100, amp = 34;
-        cv_begin(240, 88, T_BG);
+        cv_begin(240, 88, vbg);
         cv_oy = -top_y;
-        cv_bg = T_SURF;
+        cv_bg = vsf;
 
         if (ux.chamfer && !ux.style)
-            gw_oct_panel(4, 26, 232, 176, 6, T_SURF, T_LINE, 1, c);
+            gw_oct_panel(4, 26, 232, 176, 6, vsf, T_LINE, 1, c);
         else
-            cv_rrect(4, 26, 232, 176, 6, T_SURF, T_BG);
+            cv_rrect(4, 26, 232, 176, 6, vsf, vbg);
+
+        /* (3.5) the deep field, before anything is measured: the bodies the scope sits in front of */
+        gw_viz_deep(ui_viz_q);
 
         /* A single quiet frame: header, a scope field, then the spectrum floor. */
         if (!pass) {
@@ -2686,7 +2705,7 @@ static void graph_home_viz(uint16_t c)
          * phase plot, the spectrum bars and every label (2.0: it used to be painted after the bars, so it
          * sat in front of the data). gw_embers() is ui_being.c's one implementation, shared with HOME's
          * own bay; 18 embers at HIGH, 12 at BALANCED, 6 at LOW, deterministic and allocation-free. */
-        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 6u : ui_viz_q == 1u ? 12u : 18u, 0u, 80, T_SURF);
+        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 14u : 22u, 0u, 80, vsf);
 
         /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
         cv_rect(12, cy, 144, 1, T_LINE);
@@ -2718,7 +2737,7 @@ static void graph_home_viz(uint16_t c)
         gw_note_particles(12, 64, 144, 67);
 
         /* Phase plot: x(t) against x(t - tau), inside its own quiet reticle. */
-        cv_rrect(164, 64, 64, 67, 3, T_SURF, T_GRID);
+        cv_rrect(164, 64, 64, 67, 3, vsf, T_GRID);
         cv_rect(196, 72, 1, 51, T_GRID);
         cv_rect(172, 97, 48, 1, T_LINE);
         if (peak > 1400) {
@@ -2751,9 +2770,9 @@ static void graph_home_viz(uint16_t c)
         }
 
         if (pass) {
-            cv_rrect(12, 184, 72, 15, 3, T_THEME, T_SURF);
+            cv_rrect(12, 184, 72, 15, 3, T_THEME, vsf);
             cv_text_on(16, 183, &AF_S, "[HOME] EXIT", T_INK, T_THEME);
-            cv_text_r(228, 183, &AF_S, "SPECTRUM / WAVEFORM", T_TEXT, T_SURF);
+            cv_text_r(228, 183, &AF_S, "SPECTRUM / WAVEFORM", T_TEXT, vsf);
         }
 
         cv_oy = 0;

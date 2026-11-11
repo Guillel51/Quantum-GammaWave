@@ -40,6 +40,21 @@ static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_ENV, B_LFO, B_FX, B_SCL, B_
 static void motion_capture_ui(track_t *t, uint32_t id, int16_t v);   /* (1.1.1-GW: below, by rec_clear_auto) */
 
 static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
+/* (3.5) A TAP ON HOME'S BAY. The FM-1's own panel has no touch surface, so nothing on the device calls this:
+ * it is the entry point for the front ends that can point at the screen (the browser emulator's LCD, and the
+ * host tests). Screen coordinates; a tap anywhere but on a body is nothing at all -- not a page change, not a
+ * pulse -- so a miss is never mistaken for a gesture. */
+void ui_tap(int32_t x, int32_t y)
+{
+    int32_t p;
+    if (!ui.home || ui.home_viz || ui.menu || ui.confirm || ui.layer || name_on())
+        return;
+    p = gw_planet_at(x, y);
+    if (p < 0)
+        return;
+    gw_planet_poke(p);
+    ui.force = 1;
+}
 
 /* (JIANT 0.6.6) a page button held + PRESETS: that family's pages one by one, forwards / back (GLO: the mixer and the
  * global pages), the page shown at once with its title; the button let go stays there (its tap, its layer: not now) */
@@ -1972,6 +1987,24 @@ static void ui_input_frame(void)
         }
     }
     home = btn_hold(&ui.home_t0, B_HOME, now, 1);
+    /* (3.4) planet interaction on HOME tap */
+    if (home == BT_TAP && !ui.menu && !ui.confirm && !ui.layer) {
+        uint32_t k, closest = 0;
+        int32_t min_dist = 10000;
+        for (k = 0; k < NPL; k++) {
+            int32_t dx = (int32_t)(fm1_ms * 71u + k * 73u) % 128 - 64;
+            int32_t dy = (int32_t)(fm1_ms * 131u + k * 97u) % 128 - 64;
+            int32_t dist = dx * dx + dy * dy;
+            if (dist < min_dist) {
+                min_dist = dist;
+                closest = k;
+            }
+        }
+        if (min_dist < 4096) {
+            pl_react[closest] = (pl_react[closest] + 1) % 5;
+            ui.force = 1;
+        }
+    }
     rec = btn_hold(&ui.rec_t0, B_REC, now, 0);          /* (a tap; held, the REC layer: ui_layer.c) */
     seq = btn_hold(&ui.seq_t0, B_SEQ, now, !ui.menu && !ui.confirm);
     save = btn_hold(&ui.save_t0, B_SAVE, now, 0);       /* (a tap; held, the song layer: ui_layer.c) */
