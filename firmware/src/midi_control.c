@@ -163,8 +163,8 @@ static void midi_silence_track(uint32_t track)
     arp_forget(t);
     t->seq_n = t->seq_hold = t->slide_glide = 0;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active)
-            voice_kill(&t->v[i]);             /* one-block fade, regardless of RELEASE */
+        if (V(t, i).active)
+            voice_kill(&V(t, i));             /* one-block fade, regardless of RELEASE */
     slicer_drop();                            /* do not keep replaying captured sound (the SLICER's bus) */
     midi_forget_track(track);
 }

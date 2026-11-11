@@ -40,6 +40,21 @@ static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_ENV, B_LFO, B_FX, B_SCL, B_
 static void motion_capture_ui(track_t *t, uint32_t id, int16_t v);   /* (1.1.1-GW: below, by rec_clear_auto) */
 
 static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
+/* (3.5) A TAP ON HOME'S BAY. The FM-1's own panel has no touch surface, so nothing on the device calls this:
+ * it is the entry point for the front ends that can point at the screen (the browser emulator's LCD, and the
+ * host tests). Screen coordinates; a tap anywhere but on a body is nothing at all -- not a page change, not a
+ * pulse -- so a miss is never mistaken for a gesture. */
+void ui_tap(int32_t x, int32_t y)
+{
+    int32_t p;
+    if (!ui.home || ui.home_viz || ui.menu || ui.confirm || ui.layer || name_on())
+        return;
+    p = gw_planet_at(x, y);
+    if (p < 0)
+        return;
+    gw_planet_poke(p);
+    ui.force = 1;
+}
 
 /* (JIANT 0.6.6) a page button held + PRESETS: that family's pages one by one, forwards / back (GLO: the mixer and the
  * global pages), the page shown at once with its title; the button let go stays there (its tap, its layer: not now) */
@@ -259,8 +274,8 @@ static uint32_t voice_leds(void)
     if (e->oneshot || (e->keys && e->keys(t, 0) >= 0))
         return 0;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate && t->v[i].note < 128u) {
-            have[t->v[i].note >> 5] |= 1u << (t->v[i].note & 31u);
+        if (V(t, i).active && V(t, i).gate && V(t, i).note < 128u) {
+            have[V(t, i).note >> 5] |= 1u << (V(t, i).note & 31u);
             any = 1;
         }
     for (k = 0; any && k < 27u; k++) {
@@ -446,36 +461,6 @@ static void ui_leds(void)
 }
 
 /* ---------------------------------------------------------- input --- */
-/* Predictable hardware response (#23): each decoded detent is one value step; a fast turn keeps its full signed
- * detent count. KNOB ACCEL (#52; JIANT: ON by default, MENU > KNOB ACCEL OFF turns it off) multiplies a fast turn of a
- * wide value (range > 16, not a list of names; the FX and GLO layers' knobs too, #126): the faster the turn the
- * wider the sweep, a slow turn is fine tuning, one step per detent. The main loop reads the knobs many times a frame
- * (main.c), so a read holds one detent as a rule: the speed is the time per detent, ACC_RATE / ms -> 40 ms x2,
- * 27 ms x3, 20 ms x4, 10 ms x8, 5 ms x16; capped by the range: x2 up to 32, x4 up to 64, x8 up to 100, x16 above (a
- * flick across 0..127 in a dozen detents). Only the longer of this read's and the previous read's time counts, and
- * only while the turn goes on (both under ACC_GAP ms) in one direction: a slow turn, the first two detents of a turn,
- * a single quick detent (a bounce) and a reversal are one step per detent, and the sign is always the detents'.
- * ui.enc_t[role]: bits 0..23 the ms of its last read, bit 24 its direction (+1), 25..31 its ms per detent (127 slow) */
-#define ACC_GAP 60u
-#define ACC_RATE 80u
-static int32_t accel(uint32_t role, int32_t s, int32_t range)
-{
-    uint32_t now = fm1_ms & 0xFFFFFFu, st = ui.enc_t[role], up = s > 0, pi = st >> 25, a, i, m = 1;
-    if ((ui_prefs & PREF_ACCEL_OFF) || range <= 16 || !s)
-        return s;
-    a = (uint32_t)(s < 0 ? -s : s);
-    i = ((now - st) & 0xFFFFFFu) / a;                   /* ms per detent of this read */
-    if (!st || ((st >> 24) & 1u) != up || i >= ACC_GAP)
-        i = 127u;                                       /* a new turn, or reversed */
-    else if (pi < ACC_GAP) {
-        m = ACC_RATE / (i > pi ? i : pi ? pi : 1u);
-        a = range > 100 ? 16u : range > 64 ? 8u : range > 32 ? 4u : 2u;   /* (the cap) */
-        m = m < 1u ? 1u : m > a ? a : m;
-    }
-    ui.enc_t[role] = now | up << 24 | (i ? i : 1u) << 25;
-    return s * (int32_t)m;
-}
-
 /* MIXER page: KNOB 1 LEVEL, 2 PAN, 3 REV send, 4 MUTE of the selected track (right = ON, left = OFF: the
  * track itself is ALGORITHM's, on every page). Pattern length stays on SEQ. */
 static void tracks_edit(uint32_t slot, int32_t steps)
@@ -1099,7 +1084,7 @@ static void edit_param(uint32_t slot, int32_t steps)
     *vp = (int16_t)v;
     if (vp == &trks_ui) {                               /* (0.6.18) GLO > SYSTEM's TRKS: the MENU's setting, saved */
         trks_put(v);
-        ui_message(v ? "6 TRACKS: MORE CPU" : "4 TRACKS: T5-T6 ASLEEP");
+        ui_message(v == 2 ? "6 TRACKS: FULL" : v == 1 ? "5 TRACKS: T6 ASLEEP" : "4 TRACKS: T5-T6 ASLEEP");
         settings_save();
         return;
     }
@@ -1446,6 +1431,7 @@ static void presets_turn(int32_t s)
     const page_t *pg = cur_page();
     uint32_t g = pg->graph;
     if (ui.home || g == GR_BROWSE) {
+        ui.home_pulse = ui.frame;                        /* (2.0) a knob turned on HOME: same response */
         preset_step(s);
         ui.preset_pop_ms = fm1_ms ? fm1_ms : 1u;
         ui.force = 1;
@@ -1664,7 +1650,7 @@ static void macro_dice(uint32_t mode);
 static int16_t sl_root = -1, sl_scale, sl_quant;      /* (scale_link: the song's scale) */
 #include "song_dice.c"                             /* (0.6.26) DICE ALL: a song-idea generator */
 static void project_clear(void);                     /* (1.2.1-GW, song_main.c) SAVE > TOOLS 7 */
-#include "gen.c"                                   /* (0.6.91) GEN: the song generator and its screen (HOME + SELECT) */
+#include "gen.c"                                   /* (0.6.91) GEN: the generator page (HOME + SELECT) */
 
 /* HOME / REC / SAVE: tap on release, hold 0.7 s fires once. t0 = press time | 1,
  * bit 1 = fired (or swallowed: then the release is no tap either) */
@@ -1870,7 +1856,7 @@ static int gw_oct_combo(uint32_t b)
         ui.force = 1;
         return 1;
     case B_PLAY:
-    case B_REC:                                         /* [OCT-] + [PLAY] or [REC]: 1-Click 49-Genre Song Generator (GEN) */
+    case B_REC:                                         /* [OCT-] + [PLAY] or [REC]: the GEN page, 49 genres */
         if (b == B_REC) ui.rec_t0 |= 2u;
         if (chain_busy()) ui_message("STOP TO EDIT");
         else { confirm_open(CF_DICE_ALL, song.sel); gen_open(); }
@@ -1970,9 +1956,9 @@ static void ui_input_frame(void)
             for (k = trk_live; k < NTRK; k++)
                 if (!seq_is_empty(&trk[k]) && !trk[k].p[P_MUTE]) said = 1;
         if (asleep_hit) { asleep_hit = 0; said |= quiet; }
-        if (said) {
-            ui_say("T5-T6 ASLEEP: ", "");
-            str_cpy(ui.msg2, "GLO>SYSTEM>TRACKS 6", sizeof ui.msg2);
+        if (said) {                                     /* (3.4) which tracks are asleep depends on the mode */
+            ui_say(trk_live == 5u ? "T6 ASLEEP: " : "T5-T6 ASLEEP: ", "");
+            str_cpy(ui.msg2, trk_live == 6u ? "GLO>SYSTEM>LOAD" : "GLO>SYSTEM>TRACKS", sizeof ui.msg2);
             said_ms = fm1_ms | 1u;
         }
         sel0 = song.sel;
@@ -2001,6 +1987,24 @@ static void ui_input_frame(void)
         }
     }
     home = btn_hold(&ui.home_t0, B_HOME, now, 1);
+    /* (3.4) planet interaction on HOME tap */
+    if (home == BT_TAP && !ui.menu && !ui.confirm && !ui.layer) {
+        uint32_t k, closest = 0;
+        int32_t min_dist = 10000;
+        for (k = 0; k < NPL; k++) {
+            int32_t dx = (int32_t)(fm1_ms * 71u + k * 73u) % 128 - 64;
+            int32_t dy = (int32_t)(fm1_ms * 131u + k * 97u) % 128 - 64;
+            int32_t dist = dx * dx + dy * dy;
+            if (dist < min_dist) {
+                min_dist = dist;
+                closest = k;
+            }
+        }
+        if (min_dist < 4096) {
+            pl_react[closest] = (pl_react[closest] + 1) % 5;
+            ui.force = 1;
+        }
+    }
     rec = btn_hold(&ui.rec_t0, B_REC, now, 0);          /* (a tap; held, the REC layer: ui_layer.c) */
     seq = btn_hold(&ui.seq_t0, B_SEQ, now, !ui.menu && !ui.confirm);
     save = btn_hold(&ui.save_t0, B_SAVE, now, 0);       /* (a tap; held, the song layer: ui_layer.c) */
@@ -2010,7 +2014,9 @@ static void ui_input_frame(void)
     if (((pressed >> panel.btn[B_SAVE]) & 1u) && ui.ly == LAYER_SAVE)
         ui.save_t0 |= 2u;                               /* (SAVE too: layer_tap opens its pages) */
     layer_oct_open(pressed);                            /* (OCT± with a SET layer's button down: it opens now) */
-    oct = oct_taps(pressed, ui.menu || ui.confirm || act_cols() || name_on() || layer_set_open());
+    oct = oct_taps(pressed, ui.menu || ui.confirm || act_cols() || name_on() || layer_set_open() ||
+                   (ui.ly == LAYER_FX && !(ui.ly_t0 & 8u)));   /* (3.1) the FX map's own OCT±: its LATCH switch
+                                                         * and, with LATCH off, the octave */
     oct = layer_oct(pressed, oct);                      /* (a SET layer's OCT-: put back) */
     layer_masks();                                      /* seq.c: keys pressed with a layer's button are its own */
     {   /* (0.6.6) a page button held + PRESETS: its pages (page_jump); not in the menu, a dialog, NAME. (0.6.67) A
@@ -2370,7 +2376,10 @@ static void ui_input_frame(void)
         case B_OCTDN:
         case B_OCTUP: {
             uint32_t both = (1u << panel.btn[B_OCTDN]) | (1u << panel.btn[B_OCTUP]);
-            if (act_cols() || layer_set_open())         /* action pages: enter / back (below); SET layers: OCT- */
+            if (act_cols() || layer_set_open() ||       /* action pages: enter / back (below); SET layers: OCT- */
+                (b == B_OCTUP && ui.ly == LAYER_FX))    /* (3.1) with FX armed, OCT+ is the map's LATCH switch
+                                                         * (ui_layer.c layer_oct); OCT- stays the octave while
+                                                         * LATCH is off, as it always was */
                 break;
             if (!ui.home && !ui.menu && !ui.confirm && cur_page()->graph == GR_MUTATE) {   /* (0.6.43) KEEP, FREEZE */
                 if (b == B_OCTUP) { mut_keep(); ui_message("ANCHOR: THE MUSIC NOW"); }

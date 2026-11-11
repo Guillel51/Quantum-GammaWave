@@ -48,9 +48,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+import fm1_image as IMG
 import fm1_probe as P
 
 FORMAT = "qg1-backup-1"
+SOURCES = ("external-spi", "mflasher-ram-loader")
 HEAD = 0x4000          # loader + boot header: unit-specific, never written by default
 CAP = 0x100000
 READ_ONLY = {0x11, 0x12, 0x13}
@@ -98,7 +100,13 @@ def validate(man, raw, bin_path):
          f"the backup is {status!r}, not 'complete': only a complete archive can be restored "
          f"(unread ranges: {man.get('unread_ranges') or 'none'})")
     need(man.get("identical") is True, "incomplete", "the two passes are not marked identical")
-    need(man.get("passes") == 2, "incomplete", "the manifest does not record two passes")
+    # Two reads are the rule. M-Flasher's single read is accepted only when the chip's own CRC32 over
+    # the whole part agreed with it: that is a second comparison, done by the silicon, not by the host.
+    is_chip_verified = (man.get("source") == "mflasher-ram-loader"
+                        and "chip's own CRC32" in str(man.get("verified_by") or ""))
+    need(man.get("passes") == 2 or (man.get("passes") == 1 and is_chip_verified), "incomplete",
+         "the manifest records %r passes and no chip CRC32: two independent reads are the rule"
+         % (man.get("passes"),))
     size = man.get("size")
     need(size == len(raw), "size", f"the file is {len(raw)} bytes, the manifest says {size}")
     need(size == man.get("expected_size") == CAP, "size",
@@ -113,11 +121,46 @@ def validate(man, raw, bin_path):
     need(dev.get("identity") and IDENTITY_RE.match(str(dev["identity"])), "identity",
          f"device identity {dev.get('identity')!r} is not an FM-1 identity")
     sent = man.get("commands_sent")
-    need(isinstance(sent, list) and sent, "readonly", "the manifest does not record the frames that were sent")
-    need(all(c in READ_ONLY for c in sent), "readonly",
-         f"the backup recorded commands {sent}, outside read-only 0x11/0x12/0x13")
+    need(isinstance(sent, list), "readonly", "the manifest does not record the frames that were sent")
+    if man.get("source") in SOURCES:
+        # No MIDI phase happened, so there is no frame log to check. What the manifest must prove instead
+        # is that nothing wrote: exactly two reads or the chip's own CRC32 over the whole part, no flash
+        # write, and no frame. A manifest that claims one of these sources without that receipt is
+        # refused like any other bad archive.
+        prog = man.get("programmer") or {}
+        need(sent == [], "readonly", f"a non-MIDI read recorded MIDI frames: {sent}")
+        need(prog.get("flash_writes") in (0, None), "readonly",
+             f"the manifest records {prog.get('flash_writes')} bytes written to the flash")
+        if man.get("source") == "external-spi":
+            need(prog.get("ops") == ["read", "read"], "readonly",
+                 f"the programmer's operations are {prog.get('ops')!r}, not exactly two reads")
+            need(prog.get("type") in ("file", "flashrom"), "programmer",
+                 f"the manifest names no programmer: {prog.get('type')!r}")
+        else:
+            need(prog.get("type") == "mflasher", "programmer",
+                 f"the manifest names no M-Flasher read: {prog.get('type')!r}")
+            need(prog.get("ops") == ["read", "read"] or man.get("verified_by"), "readonly",
+                 "an M-Flasher archive has to be checked by a second read or the chip's CRC32")
+    else:
+        need(bool(sent), "readonly", "the manifest does not record the frames that were sent")
+        need(all(c in READ_ONLY for c in sent), "readonly",
+             f"the backup recorded commands {sent}, outside read-only 0x11/0x12/0x13")
     for k in ("page", "sector", "block"):
         need(isinstance(dev.get(k), int) and dev[k] > 0, "geometry", f"the manifest has no {k} size")
+    if man.get("source") in SOURCES:
+        # The identity is a fact about the image, not about the JSON: decode the app area and read it
+        # there. A stock image has it encrypted, so a plain search is only the fallback for an image
+        # this project cannot decode (and then the identity still has to be in the bytes).
+        try:
+            info = IMG.analyse(raw)
+        except IMG.ImageError as e:
+            need(dev["identity"].encode() in raw, "identity",
+                 f"the image's structure does not decode ({e}) and {dev['identity']} is not in its bytes")
+        else:
+            need(info["identity"] == dev["identity"], "identity",
+                 f"the image decodes to {info['identity'] or 'no identity'}, the manifest says {dev['identity']}")
+            need(info["app_status"] == "ok", "image",
+                 f"the image's firmware does not verify ({info['app_status']}): not a clean backup")
     return {"sha256": sha, "size": size, "jedec": dev["jedec"], "part": dev.get("part"),
             "identity": dev["identity"], "capacity": dev["capacity"], "sector": dev["sector"],
             "page": dev["page"], "block": dev["block"]}

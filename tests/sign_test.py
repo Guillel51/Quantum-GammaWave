@@ -60,7 +60,7 @@ def main():
     # the build record the signature will name: what tools/build_manifest.py writes
     rec_path = TMP / "manifest.json"
     rec_path.write_text(json.dumps({"schema": "qg1-build-1", "version": "3.0.0",
-                                    "commit": "0" * 40, "dirty": [], "identity": "FM-1_982",
+                                    "commit": "0" * 40, "dirty": [], "identity": "FM-1_965",
                                     "artifacts": {"felucca.fwsc": {"sha256": man_sha(raw), "bytes": len(raw)}}}))
     rec = S.record_sha256(rec_path)
     man = S.manifest_for(raw, "3.0.0", "2.9.0", "FM-1", "test-1", build_sha256=rec)
@@ -97,10 +97,44 @@ def main():
     refuses("key", lambda: S.verify(raw, dict(signed, keyid="other"), pin), "unknown key id")
     refuses("product", lambda: S.verify(raw, signed, pin, "GW-1"), "package for another product")
     refuses("downgrade", lambda: S.verify(raw, signed, pin, "FM-1", firmware="2.8.0"), "firmware below min")
-    refuses("manifest", lambda: S.verify(raw, {k: v for k, v in signed.items() if k != "sig"}, pin), "no signature")
+    # v2.6.0 model (docs/SIGNING.md): SHA-256 + size is the integrity gate, so an unsigned manifest is
+    # accepted as integrity-only -- and a caller that demands an editor attestation still refuses it.
+    ok(S.verify(raw, {k: v for k, v in signed.items() if k != "sig"}, pin)["signed"] is False,
+       "no signature -> integrity only")
+    refuses("signature", lambda: S.verify(raw, {k: v for k, v in signed.items() if k != "sig"}, pin,
+                                          require_signature=True), "no signature demanded")
     refuses("signature", lambda: S.verify(raw, dict(signed, sig="zz"), pin), "signature not hex")
     refuses("version", lambda: S.verify(raw, S.sign_manifest(S.manifest_for(raw, "2.0.0", "3.0.0", "FM-1", "test-1", build_sha256=rec),
                                                              priv.read_bytes()), pin), "min newer than version")
+
+    # (1.9) rotation and revocation, as operations rather than as edits to a JSON file: a second key
+    # is pinned beside the first, a package signed by either verifies, revoking one id takes only that
+    # id's packages out, and a revocation that would leave nothing trusted has to be asked for.
+    priv_b = TMP / "key-b.pem"
+    S.keygen(priv_b, "test-2")
+    key_b = serialization.load_pem_private_key(priv_b.read_bytes(), password=None)
+    pub_b = TMP / "key-b.pub"
+    pub_b.write_text(key_b.public_key().public_bytes(serialization.Encoding.Raw,
+                                                     serialization.PublicFormat.Raw).hex())
+    S.pin(pub_b, "test-2", keys)
+    both = S.pinned(keys)
+    ok(set(both) == {"test-1", "test-2"}, "rotation: two keys pinned, the ring holds both")
+    signed_b = S.sign_manifest(S.manifest_for(raw, "3.0.0", "2.9.0", "FM-1", "test-2", build_sha256=rec),
+                               priv_b.read_bytes())
+    ok(S.verify(raw, signed_b, both)["keyid"] == "test-2", "rotation: a package signed by the new key verifies")
+    ok(S.verify(raw, signed, both)["keyid"] == "test-1", "rotation: the old key's package still verifies")
+    refuses("key", lambda: S.pin(pub_b, "test-1", keys), "pin: an id moved to another key without --replace")
+    ok(S.unpin("test-1", keys) == ["test-2"], "revocation: unpin removes the id and names what is left")
+    after = S.pinned(keys)
+    ok(set(after) == {"test-2"}, "revocation: the revoked id is gone from the ring")
+    refuses("key", lambda: S.verify(raw, signed, after), "revocation: a package signed by the revoked key")
+    ok(S.verify(raw, signed_b, after)["keyid"] == "test-2", "revocation: the other key is untouched")
+    refuses("key", lambda: S.unpin("missing", keys), "unpin: an id that is not pinned (a typo is not a revocation)")
+    refuses("keys", lambda: S.unpin("test-2", keys), "unpin: the last key needs --allow-empty")
+    ok(S.unpin("test-2", keys, allow_empty=True) == [], "unpin: --allow-empty reaches the fail-closed state")
+    refuses("key", lambda: S.verify(raw, signed_b, S.pinned(keys)), "an empty ring verifies nothing")
+    S.pin(pub, "test-1", keys)                                  # put the ring back for the CLI checks below
+    ok(set(S.pinned(keys)) == {"test-1"}, "re-pinning a revoked key is an explicit pin")
 
     man_path = TMP / "pkg.manifest.json"
     man_path.write_text(json.dumps(signed))

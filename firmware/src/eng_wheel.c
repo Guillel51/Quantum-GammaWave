@@ -114,7 +114,7 @@ typedef struct {                 /* per voice */
 } drw_vc_t;
 
 static drw_trk_t drw_t[NPART];
-static drw_vc_t drw_v[NPART][NVOICE];
+static drw_vc_t drw_v[VPOOLN];   /* (3.5) one entry per pool slot, not per part: it follows the voice */
 
 static uint32_t drw_part(const track_t *t) { return (uint32_t)(t - trk) % NPART; }
 
@@ -176,15 +176,23 @@ static void wheel_block(track_t *t)
 
 static void wheel_note_on(track_t *t, voice_t *v)
 {
-    uint32_t vi = (uint32_t)(v - t->v) % NVOICE, k, held = 0;
-    drw_vc_t *V = &drw_v[drw_part(t)][vi];
+    uint32_t vi = VSLOT(v), k, held = 0;
+    drw_vc_t *V = &drw_v[vi];
     for (k = 0; k < NVOICE; k++)                        /* single trigger: another key of the part held? */
-        if (&t->v[k] != v && t->v[k].active && t->v[k].gate && t->v[k].stage != 4u)
+        if (&V(t, k) != v && V(t, k).active && V(t, k).gate && V(t, k).stage != 4u)
             held = 1;
-    if (!V->init) {                                     /* the wheels: spread start phases, then free running */
-        for (k = 0; k < DRW_NP; k++)
-            V->ph[k] = (k * 0x9E3779B9u) ^ (vi * 0x7F4A7C15u);
-        V->nz = 0x13579BDF + (int32_t)vi;
+    if (!V->init || (!V->gate && FELUCCA_WSEED)) {      /* the wheels: spread start phases, then free running.
+                                                         * (3.6) the spread is the voice's place in its part, not
+                                                         * the pool slot it happens to sit in, and a slot with no
+                                                         * note on it seeds again: FELUCCA_WSEED=1, else as before */
+        uint32_t id = FELUCCA_WSEED ? vindex(t, v) : vi;
+        for (k = 0; k < DRW_NP; k++) {
+            V->ph[k] = (k * 0x9E3779B9u) ^ (id * 0x7F4A7C15u);
+            if (FELUCCA_WSEED && !V->gate)
+                V->gp[k] = 0;                           /* (3.6) a slot with no note starts its ramps from 0,
+                                                             * as a virgin slot of the old layout did */
+        }
+        V->nz = 0x13579BDF + (int32_t)id;
         V->init = 1;
     }
     V->perc = held ? 0 : 32767;
@@ -196,7 +204,7 @@ static void wheel_note_on(track_t *t, voice_t *v)
 static void wheel_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const drw_trk_t *T = &drw_t[drw_part(t)];
-    drw_vc_t *V = &drw_v[drw_part(t)][(uint32_t)(v - t->v) % NVOICE];
+    drw_vc_t *V = &drw_v[VSLOT(v)];
     int32_t acc[CTL], perc1, clk0, clk1;
     uint32_t i, k;
     if (n > CTL)

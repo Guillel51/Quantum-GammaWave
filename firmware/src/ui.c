@@ -60,7 +60,7 @@ static uint32_t up_gen;                      /* bumped on every user bank change
 #define PREF_ANIM_OFF 2u                       /* MENU > ANIM OFF (#46): values snap (no rolling digits, no glide) */
 /* (0.6.57) values snap: MENU > ANIM OFF, or LOAD LITE / ECO (the rolling digits, the roll's and the tabs' glides are
  * frames drawn again for a look: the time goes to the keys and knobs instead; the beings still move) */
-#define ANIM_SNAP() ((ui_prefs & PREF_ANIM_OFF) || sys_load)
+#define ANIM_SNAP() ((ui_prefs & PREF_ANIM_OFF) || sys_load != LOAD_FULL)   /* MENU > ANIM OFF, or LOAD LITE / ECO */
 #define PREF_ACCEL_OFF 4u                      /* MENU > KNOB ACCEL OFF (#52; JIANT: ON by default, the bit now means OFF):
                                                 * fast turns of wide values x2..x16 */
 #define PREF_USB_FIXED 8u                      /* MENU > USB LEVEL FIXED: USB audio at the full level, MASTER after */
@@ -79,10 +79,16 @@ static uint32_t up_gen;                      /* bumped on every user bank change
  * keeps it so */
 static void prefs_update(void)
 {
-    if (prefs_rev < 2u) {                              /* (0.6.64) FX LATCH OFF again (the punch-in effects momentary:
-                                                        * held FX locks the FX screen open instead), once */
-        ui_prefs &= (uint8_t)~PREF_LATCH;
-        prefs_rev = 2u;
+    if (prefs_rev < 3u) {                              /* (3.2) FX LATCH ON once, for everyone: the punch-in
+                                                        * effects hold after the key and FX are let go, which is
+                                                        * what the map promises. 0.6.64 had turned it OFF again by
+                                                        * default and the only switch left was MENU > CONTROL; a
+                                                        * unit that never found it played the map momentary for
+                                                        * ever and read the latch as broken. Turning it OFF
+                                                        * (MENU, or FX + OCT+ in the map) still sticks: this runs
+                                                        * once, on the settings' revision. */
+        ui_prefs |= (uint8_t)PREF_LATCH;
+        prefs_rev = 3u;
         settings_save();
     }
 }
@@ -106,6 +112,9 @@ static void prefs_update(void)
 #define ui_splash (favorites.factory[15][19])       /* 0 FULL (default), 1 SHORT, 2 OFF (main.c boot) */
 #define midi_out_mode (favorites.factory[15][24])   /* (JIANT 0.6.72) MENU > MIDI OUT (seq.c MO_*): 0 KEYS (older settings,
                                                 * as ever), 1 CLOCK, 2 ALL, 3 OFF; a byte no engine uses */
+#define ui_trks (favorites.factory[15][18])    /* (3.4) MENU > TRACKS: 0 four (ECO), 1 five (BALANCED), 2 six (FULL);
+                                                * a byte of engine 15's block (a bitmap of favourites for an engine that
+                                                * does not exist), 0 in every older setting = the four tracks it had */
 #define PREF_SIX (0x80u << 8)                  /* (JIANT 0.6.18) MENU > TRACKS 6: all six tracks play; clear (the
                                                 * default): 4, T5 and T6 asleep (voice.c trk_live) */
 enum { RP_CLICK, RP_LEVEL, RP_COUNTIN };
@@ -120,14 +129,20 @@ static void rp_apply(void)                             /* the settings into clic
     click_mode = (uint8_t)rp_get(RP_CLICK);
     click_lvl = (uint8_t)rp_get(RP_LEVEL);
     cin_bars = (uint8_t)rp_get(RP_COUNTIN);
-    trk_live = (ui_rec_prefs & (PREF_SIX >> 8)) ? NTRK : 4u;
+    /* (3.4) TRACKS 4 / 5 / 6. Older settings carry only the bit (6 or 4), so a bit with no byte means six. */
+    if (!ui_trks && (ui_rec_prefs & (PREF_SIX >> 8)))
+        ui_trks = 2u;
+    trk_live = 4u + (ui_trks < 3u ? ui_trks : 0u);
     sys_load = (uint8_t)(ui_load <= LOAD_ECO ? ui_load : LOAD_FULL);   /* (0.6.30) LOAD (voice.c) */
-    trks_ui = trk_live == NTRK;                         /* (GLO > SYSTEM's TRACKS and LOAD show them) */
+    trks_ui = (int16_t)(trk_live - 4u);                 /* (GLO > SYSTEM's TRACKS and LOAD show them) */
     load_ui = (int16_t)(LOAD_ECO - sys_load);
 }
-static void trks_put(uint32_t v)                       /* TRACKS: 0 four, 1 six */
+static void trks_put(uint32_t v)                       /* TRACKS: 0 four, 1 five, 2 six */
 {
-    ui_rec_prefs = (uint8_t)(v ? ui_rec_prefs | PREF_SIX >> 8 : ui_rec_prefs & ~(PREF_SIX >> 8));
+    ui_trks = (uint8_t)(v < 3u ? v : 0u);
+    /* the six-track choice also writes the bit older firmware reads (MENU > TRACKS 6), so a unit that goes
+     * back to an older build keeps six tracks instead of silently losing two */
+    ui_rec_prefs = (uint8_t)(v == 2u ? ui_rec_prefs | PREF_SIX >> 8 : ui_rec_prefs & ~(PREF_SIX >> 8));
     rp_apply();
 }
 /* (0.6.30) LOAD as MENU and GLO > SYSTEM step it, the lightest first: 0 ECO, 1 LITE, 2 FULL */
@@ -216,6 +231,7 @@ static struct {
     uint8_t uboot;               /* main.c: seconds left before UPDATE MODE (OCT- + OCT+ held), 0 = none */
     uint32_t preset_pop_ms;      /* non-blocking 1.5s popup timer for PRESET knob browser */
     uint8_t home_viz;            /* 1 = full-screen integrated music visualizer on HOME -> HOME */
+    uint32_t home_pulse;         /* (2.0) the frame of the last HOME gesture: HOME's system answers with a ring and a burst */
     uint32_t ly_t0;              /* the layer button's press time | 1, LY_* bits (ui_layer.c layer_gesture) */
     uint8_t ly;                  /* the layer whose button is down (LAYER_*), 0 = none */
     uint8_t layer;               /* the layer whose map is shown (LAYER_*), 0 = none */
@@ -784,6 +800,7 @@ static void open_global(void)
 static void go_home(void)
 {
     if (ui.home) {
+        ui.home_pulse = ui.frame;                /* (2.0) HOME tapped on HOME: the system pulses */
         ui.home_viz = !ui.home_viz;              /* toggle visualizer if already at HOME */
     } else {
         ui.home = 1;
@@ -1088,6 +1105,12 @@ static void apply_preset_to(track_t *t, uint32_t pi)
     }
     load_begin(t, LOAD_SOUND);
     panic_req |= (uint8_t)(1u << trk_index(t));       /* MONO/POLY may change: release what sounds */
+    /* (2.1) a new sound starts clean: the punch-in latches and macros, the buses' short state and the
+     * reverb/chorus lines are the old preset's, not this one's (delay: see fx_preset_flush) */
+    fm1_irq_off();
+    perf_reset();
+    fx_preset_flush();
+    fm1_irq_on();
     t->user = 0;
     if (t == TSEL)
         sync_reload = 1;
@@ -1118,6 +1141,12 @@ static void apply_preset_to(track_t *t, uint32_t pi)
                 t->p[pr->x[i].id - 1u] = (int16_t)clamp(pr->x[i].v, TP[pr->x[i].id - 1u].min, TP[pr->x[i].id - 1u].max);
     }
     fm6_track_loaded(t);                              /* FM6: the preset's patch (its SLOT) */
+    /* (2.1) THE SOUND'S OWN LEVEL. Until now a preset left P_LEVEL as the track had it, so the same
+     * fader gave -11 dBFS on SCREAM LEAD and -38.6 on STATIC HAZE: changing sound jumped by up to
+     * 27.6 dB, which is what "the presets are not levelled" meant. The value comes from a measured
+     * render of the preset itself (tools/gen_preset_levels.py writes preset_level.c), so it is a
+     * property of the sound and not a taste. The user's fader still moves the track from there. */
+    t->p[P_LEVEL] = (int16_t)preset_level_of(t->eng_req % NENGINES, pi);
     load_end(t);
 }
 
@@ -1391,6 +1420,36 @@ static void track_select(uint32_t i)
     sync_reload = 1;
     ui.force = 1;
     page_flash();                                    /* (0.6.51) the track's number and engine shown big */
+}
+
+/* Predictable hardware response (#23): each decoded detent is one value step; a fast turn keeps its full signed
+ * detent count. KNOB ACCEL (#52; JIANT: ON by default, MENU > KNOB ACCEL OFF turns it off) multiplies a fast turn of a
+ * wide value (range > 16, not a list of names; the FX and GLO layers' knobs too, #126): the faster the turn the
+ * wider the sweep, a slow turn is fine tuning, one step per detent. The main loop reads the knobs many times a frame
+ * (main.c), so a read holds one detent as a rule: the speed is the time per detent, ACC_RATE / ms -> 40 ms x2,
+ * 27 ms x3, 20 ms x4, 10 ms x8, 5 ms x16; capped by the range: x2 up to 32, x4 up to 64, x8 up to 100, x16 above (a
+ * flick across 0..127 in a dozen detents). Only the longer of this read's and the previous read's time counts, and
+ * only while the turn goes on (both under ACC_GAP ms) in one direction: a slow turn, the first two detents of a turn,
+ * a single quick detent (a bounce) and a reversal are one step per detent, and the sign is always the detents'.
+ * ui.enc_t[role]: bits 0..23 the ms of its last read, bit 24 its direction (+1), 25..31 its ms per detent (127 slow) */
+#define ACC_GAP 60u
+#define ACC_RATE 80u
+static int32_t accel(uint32_t role, int32_t s, int32_t range)
+{
+    uint32_t now = fm1_ms & 0xFFFFFFu, st = ui.enc_t[role], up = s > 0, pi = st >> 25, a, i, m = 1;
+    if ((ui_prefs & PREF_ACCEL_OFF) || range <= 16 || !s)
+        return s;
+    a = (uint32_t)(s < 0 ? -s : s);
+    i = ((now - st) & 0xFFFFFFu) / a;                   /* ms per detent of this read */
+    if (!st || ((st >> 24) & 1u) != up || i >= ACC_GAP)
+        i = 127u;                                       /* a new turn, or reversed */
+    else if (pi < ACC_GAP) {
+        m = ACC_RATE / (i > pi ? i : pi ? pi : 1u);
+        a = range > 100 ? 16u : range > 64 ? 8u : range > 32 ? 4u : 2u;   /* (the cap) */
+        m = m < 1u ? 1u : m > a ? a : m;
+    }
+    ui.enc_t[role] = now | up << 24 | (i ? i : 1u) << 25;
+    return s * (int32_t)m;
 }
 
 #include "ui_events.c"                            /* SEQ > AUTO LIST: the locks and events as a list (an action page) */

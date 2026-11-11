@@ -117,6 +117,7 @@ static int32_t menu_document(int32_t y, int draw)
     uint32_t i;
     if (draw) {
         cv_text(6, y + 2, &AF_L, "GAMMAWAVE", T_THEME);
+        cv_rect(6, y + 34, 224, 1, T_LINE);           /* (1.7) the wordmark's rule */
         cv_text(6, y + 38, &AF_S, "QUANTUM GAMMAWAVE (QG-1) // FM-1", T_TEXT);
         cv_text(6, y + 58, &AF_M, FELUCCA_VERSION, T_THEME);
         cv_text_r(232, y + 61, &AF_S, __DATE__, T_MID, T_BG);
@@ -126,6 +127,7 @@ static int32_t menu_document(int32_t y, int draw)
         cv_text(6, y + 138, &AF_S, "GUILLEL51 GITHUB", T_THEME);
         cv_text(6, y + 156, &AF_S, "QUANTUM GAMMAWAVE", T_ACCENT);
         cv_text(6, y + 174, &AF_S, "OCT+: SECRET VIZ", T_THEME);
+        gw_bevel(152, y + 116, 86, 86, T_SURF, ux_mix(T_SURF, T_TEXT, 16), T_BG);   /* (1.7) the QR's plate */
         draw_about_qr(158, y + 122);
     }
     {   /* (0.6.17) the audio's load since power-on (voice.c load_diag): to tell what happened when it clicked */
@@ -266,6 +268,7 @@ static void menu_head(void)
         draw_rec_mark(x - 20, T_BG);
         menu_dots();
     }
+    cv_rect(8, H_HEAD - 1, 224, 1, T_LINE);           /* (1.7) the header's rule */
     cv_blit(0, Y_HEAD);
 }
 
@@ -389,8 +392,11 @@ static void menu_row(uint32_t k, uint32_t row)
     int sel = row == ui.menu_sel;
     uint16_t bg = sel ? T_THEME : T_SURF, fg = sel ? T_INK : T_TEXT, val = sel ? T_INK : T_THEME;
     const char *v = row < MI_VALUES ? menu_vname(row, menu_get(row)) : "";
-    if (sel)
+    if (sel) {
         cv_rrect(MR_X, y, MR_W, h, 6, T_THEME, T_SURF);
+        cv_rect(MR_X + 6, y, MR_W - 12, 1, ux_mix(T_THEME, T_TEXT, 34));     /* (1.7) the row is a bevel too */
+        cv_rect(MR_X + 6, y + h - 1, MR_W - 12, 1, ux_mix(T_THEME, T_BG, 34));
+    }
     else if (k && row - 1u != ui.menu_sel)             /* a rule from the row above (none beside the selected one) */
         cv_rect(MR_X + 6, y - 1, MR_W - 12, 1, ux.style ? T_RULE : T_LINE);
     GFX_HOOK_ALIGN(0, y, 0, y + h, AL_V, "menu row name centred up/down");
@@ -512,8 +518,14 @@ static void draw_menu(void)
         cv_oy = -top_y;                               /* drawn in screen rows */
         if (!pass)
             menu_tabs();
-        if (!ux.style)                                /* FLAT: the rows' panel */
-            cv_rrect(4, MP_Y, 232, mr_y(n) - mr_gap() + MP_PAD - MP_Y, 8, T_SURF, T_BG);
+        if (!ux.style) {                              /* FLAT: the rows' panel, in the cards' 16-bit edge */
+            int32_t ph = mr_y(n) - mr_gap() + MP_PAD - MP_Y;
+            cv_rrect(4, MP_Y, 232, ph, 8, T_SURF, T_BG);
+            cv_rect(12, MP_Y, 216, 1, ux_mix(T_SURF, T_TEXT, 16));
+            cv_rect(4, MP_Y + 8, 1, ph - 16, ux_mix(T_SURF, T_TEXT, 16));
+            cv_rect(12, MP_Y + ph - 1, 216, 1, T_BG);
+            cv_rect(235, MP_Y + 8, 1, ph - 16, T_BG);
+        }
         for (k = 0; k < n; k++)
             if (mr_y(k) + mr_h() > top_y && mr_y(k) - 1 < top_y + (int32_t)cv_h)
                 menu_row(k, first + k);

@@ -54,7 +54,8 @@ Reply (body = 24 bytes):
   to fail. A geometry that did not match the part would not survive this.
 - **From the datasheet, keyed by that JEDEC id:** page 256 B, sector 4 KiB, block 64 KiB. The
   table in `firmware/src/ota.c` (`OTA_PARTS`) has exactly two entries, `0x856014` and
-  `0xB36014`; anything else is status 2. These numbers are not measured on the part, and the
+  `0xB36014` (both writable: docs/JEDEC_COMPATIBILITY.md); anything else is status 2. These numbers
+  come from the parts' datasheets, not from a measurement on the unit in front of you, and the
   manifest says so.
 
 ## Session and replay
@@ -72,16 +73,20 @@ latest identification, and any failed re-identification clears it.
 | app with `0x12` | status 0, twice | installation may proceed |
 | app without `0x12` (older firmware) | silence, then timeout | refused: **absence is not compatibility** |
 | app that does not start | handshake silence or a timeout | refused |
-| loader only (interrupted install) | identity `ota-FM-1_900` | refused: the loader cannot identify, and its code is unchanged |
+| loader only (interrupted install) | identity `ota-FM-1_900` | **resumes**. The loader's build has no query, so the chip is not read by the host: this project's loader reads it itself before it erases anything (`firmware/loader/loader.c` `ldr_flash_known`) and refuses a part the firmware does not write. No report is asked of the user. |
+| the unit's own update mode | identity `ota-FM-1_015` | refused as `foreignloader`, zero frames: a Felucca image is not offered to the vendor's loader |
 | unknown answer, bad length, bad CRC | `frame` / `crc` | refused |
 | device unplugged | `lost` | refused |
 | another model | identity check | refused before any query is sent |
 
 **The first install of a package that carries `0x12` cannot use `0x12`,** because the firmware
-answering is the old one. The only paths are: (a) an external reader whose output the installer
-trusts as evidence for this unit, or (b) the lab override (`FM1_LAB=1`). The lab override is
-not a production path: a JEDEC id typed by a person is not evidence, and
-`--jedec` now needs `FM1_LAB=1` and is documented as lab-only.
+answering is the old one. And that is the end of it now: a typed JEDEC is not evidence, so `--jedec`,
+`--allow-unidentified-chip` and `FM1_LAB` were removed and the installer has no way to accept a chip it
+did not read. So **a stock V15 unit cannot be installed by this installer at all**, and that is the
+honest answer rather than a missing flag: on stock there is no `0x12` to read. The first install is a
+different operation with a different tool: a verified backup, then M-Flasher installing the package as a
+firmware image (it checks the model, the chip key and the app CRCs itself, and writes the app area only),
+and from then on this installer is what updates QG-1 to QG-1. See docs/M-FLASHER.md §6.
 
 ## Cost
 

@@ -4,9 +4,42 @@
  * shared buses (chorus, tempo delay, reverb). Mono buses, stereo dry mix. */
 #define DLY_LEN 65536u           /* 1.49 s: 1/4 at 40 BPM fits */
 #define CHO_LEN 2048u
+/* Logarithmic reverb damping factor lookup table */
+static const int32_t rev_damp_table[128] = {
+    0,   100,  200,  301,  403,  505,  607,  709,  813,  916,
+   1020, 1124, 1229, 1335, 1440, 1546, 1653, 1761, 1870, 1980,
+   2091, 2203, 2316, 2430, 2545, 2661, 2778, 2896, 3014, 3133,
+   3252, 3372, 3492, 3613, 3735, 3858, 3982, 4107, 4232, 4358,
+   4485, 4612, 4740, 4869, 4998, 5128, 5259, 5390, 5522, 5655,
+   5788, 5922, 6057, 6192, 6328, 6464, 6601, 6738, 6876, 7014,
+   7153, 7292, 7432, 7572, 7713, 7854, 7996, 8138, 8281, 8424,
+   8568, 8712, 8857, 9003, 9149, 9296, 9443, 9591, 9739, 9888,
+  10037, 10187, 10337, 10488, 10639, 10790, 10942, 11094, 11247, 11399,
+  11552, 11706, 11860, 12014, 12169, 12324, 12479, 12634, 12789, 12945,
+  13100, 13257, 13413, 13570, 13727, 13885, 14043, 14202, 14360, 14519,
+  14678, 14837, 14997, 15157, 15318, 15479, 15640, 15801, 15963, 16125,
+  16287, 16450, 16613, 16776, 16939, 17102, 17266, 17430, 17594, 17758,
+  17922, 18087, 18251, 18416, 18581, 18746, 18911, 19077, 19243, 19409,
+  19575, 19742, 19908, 20075, 20242, 20409, 20576, 20744, 20911, 21079,
+  21247, 21415, 21583, 21751, 21920, 22088, 22257, 22426, 22595, 22764,
+  22933, 23102, 23271, 23441, 23610, 23780, 23949, 24119, 24289, 24459,
+  24629, 24799, 24969, 25139, 25309, 25479, 25400, 25400};
+
 static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
-volatile int32_t fx_vu[6];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses) */
+volatile int32_t fx_vu[8];   /* (1.8) real bus peaks: sends 0..2, wet returns 3..5 (fx_buses); (2.1)
+                              * 6..7 the mix's left and right peaks, the two mono meters of HOME */
+/* (3.0) the delay's echo train (core.h): the wet return peaked inside each repeat's own window.
+ * No allocation, no division per sample: a countdown walks the window, and the peaks decay once a
+ * block so a train that has finished reads as finished. */
+volatile int32_t fx_dly_rep[6];
+volatile uint8_t fx_dly_gen;
+volatile uint16_t fx_dly_frac;
+static int32_t drp_pk[6];                 /* this train's peaks, 0..32767 */
+static uint32_t drp_left;                 /* samples left in the window being peaked */
+static uint32_t drp_t0;                   /* the write position the train started at */
+static uint8_t drp_on;                    /* a train is running (the hit's own window is 0) */
+static uint8_t drp_gen;                   /* the window being measured: 0 the hit, 1..6 the repeats */
 static const uint16_t REV_COMB[4] = {1116, 1188, 1277, 1356};
 static const uint16_t REV_AP[2] = {556, 441};
 static int16_t rev_comb[1116 + 1188 + 1277 + 1356] __attribute__((section(".pool")));
@@ -153,6 +186,24 @@ static void track_dist(track_t *t, int32_t *b, uint32_t n)
         y = mulq15(t->dist_lp2, mk);
         b[i] = full ? y : b[i] + ((((y - b[i]) >> 2) * (w0 + dw * (i + 1))) >> 10);   /* (>> 2: fits 32 bits) */
     }
+}
+
+/* (2.1) A NEW PRESET: the effect state belongs to the sound that made it. This clears what the buses
+ * carry in their own registers and the short lines (chorus 4 KB, the reverb's combs and allpasses 12 KB,
+ * the pre-delay 4 KB): the old preset's chorus tail or spring ring cannot colour the new one. The delay
+ * line is 128 KB (1.49 s) and clearing it inside a block would cost more than the block itself, so the
+ * long tail is left to be overwritten by the new sound -- the honest limit, in the report.
+ * Called in main context with the audio IRQ off (ui.c apply_preset_to). */
+void fx_preset_flush(void)
+{
+    memset(&fx, 0, sizeof fx);
+    memset(cho_buf, 0, sizeof cho_buf);
+    memset(rev_comb, 0, sizeof rev_comb);
+    memset(rev_u.ap, 0, sizeof rev_u.ap);
+    memset(rpre_buf, 0, sizeof rpre_buf);
+    fx_vu[0] = fx_vu[1] = fx_vu[2] = fx_vu[3] = fx_vu[4] = fx_vu[5] = fx_vu[6] = fx_vu[7] = 0;
+    {   int32_t k; for (k = 0; k < 6; k++) { fx_dly_rep[k] = 0; drp_pk[k] = 0; }
+        fx_dly_gen = 0; fx_dly_frac = 0; drp_on = 0; drp_gen = 0; drp_left = 0; drp_t0 = 0; }
 }
 
 /* master: peak limiter in front of the soft clipper. Fast attack (~0.1 ms),
@@ -832,6 +883,13 @@ static inline int32_t spk_bass(int32_t m)
     return sb_hl * 3;
 }
 
+/* (2.1) GLO > MASTER reads the two master stages as they are, not as a copy: the level gain this block
+ * applies (lev_cur, 32768 = unity) and the limiter's envelope (lim_env, LIM_T = open). 32-bit aligned
+ * loads of values the ISR writes: no tearing on pi32v2, no lock, no cost in the block. */
+int32_t fx_master_g(void) { return lev_cur; }
+int32_t fx_lim_env(void) { return lim_env; }
+#define FX_LIM_T LIM_T
+
 static inline void master_out(int32_t *l, int32_t *r)
 {
     int32_t al, ar, a;
@@ -1040,7 +1098,7 @@ static int32_t rev_size(void)
 static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *out, uint32_t n)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200;
+    int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]];
     for (i = 0; i < n; i++) {
         int32_t a = 0;
         int16_t *c = rev_comb;
@@ -1076,7 +1134,7 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
 static __attribute__((noinline)) void rev_room_mod(const int32_t *rev_in, int32_t *out, uint32_t n, int32_t wd)
 {
     uint32_t i, k;
-    int32_t size = rev_size(), damp = 32767 - song.g[G_RDAMP] * 200, m1[4], dm[4];
+    int32_t size = rev_size(), damp = 32767 - rev_damp_table[song.g[G_RDAMP]], m1[4], dm[4];
     int32_t depth = song.g[G_RMOD] ? 64 + song.g[G_RMOD] * song.g[G_RMOD] * 4 : 0;   /* Q8 samples: 0.25 .. 252 (~5.7 ms) */
     fx.rm_ph += LFO_INC[song.g[G_RRATE] & 127];
     for (k = 0; k < 4u; k++) {
@@ -1280,8 +1338,8 @@ static __attribute__((noinline)) void rev_reso(const int32_t *rev_in, int32_t *o
         const track_t *ft = &trk[fol - 1u];
         uint32_t lo = 0xFFu;
         for (k = 0; k < NVOICE; k++)
-            if (ft->v[k].active && ft->v[k].gate && ft->v[k].note < lo)
-                lo = ft->v[k].note;
+            if (V(ft, k).active && V(ft, k).gate && V(ft, k).note < lo)
+                lo = V(ft, k).note;
         if (lo != 0xFFu)
             fx.rs_root = (uint8_t)(lo + 1u);
         if (fx.rs_root) {
@@ -1525,7 +1583,7 @@ static inline int32_t cho_phaser(int32_t x, uint32_t ph, int32_t depth, int32_t 
      * Feedback 0.366: three clear notches, still inside the stable all-pass range. */
     int32_t d = clamp(depth, 0, 12192);
     int32_t sweep, a, v, y2 = 0, k, tgt, step;
-    step = 256;
+    step = 128;
     if (fx_ph_d < d)
         fx_ph_d = d - fx_ph_d < step ? d : fx_ph_d + step;
     else if (fx_ph_d > d)
@@ -1939,9 +1997,9 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
                                                          * cut at once, a click), its mute let go (perform.c) */
         uint32_t k, on = 0;
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].active) {
-                if (t->v[k].stage != 4u)
-                    voice_kill(&t->v[k]);
+            if (V(t, k).active) {
+                if (V(t, k).stage != 4u)
+                    voice_kill(&V(t, k));
                 on = 1;
             }
         pf.mg[(uint32_t)(t - trk) % NTRK] = 32768;
@@ -2136,7 +2194,7 @@ static uint32_t mc_cost(const track_t *t)               /* a part's share of the
     const engine_t *e = ENGINES[t->engine];
     uint32_t k, v = 0, w = e == &ENG_FM6 ? 4u : e == &ENG_LOFI || e == &ENG_NOISE ? 2u : 3u;
     for (k = 0; k < NVOICE; k++)
-        v += t->v[k].active;
+        v += V(t, k).active;
     return v ? 1u + v * w : 0u;
 }
 /* (0.6.73) what each part really took, measured as it renders (on either core: TIMER4, 24 MHz), smoothed over a few
@@ -2216,6 +2274,69 @@ static int fx_insane(uint32_t n)
         m |= ((uint32_t)fx_wet[i] + FX_SANE) | ((uint32_t)fx_sl[i] + FX_SANE);
     return m >= 2u * FX_SANE;
 }
+/* (3.0) The delay's echo train, measured one block at a time from what the line really returns:
+ * `fx_vu[4]` is the wet peak fx_buses has already taken, so this costs nothing per sample -- and it
+ * lives here, in flash, called once a block, because the hot copy (fx_run0, RAM) has two kilobytes of
+ * headroom for the whole section and a meter has no business eating them. A transient at the delay's
+ * send arms the train (a second one within half a period is the same train: fast notes keep echoing),
+ * each window lasts one TIME, and a window holds the loudest block that fell inside it. */
+static __attribute__((noinline)) void fx_dly_train(uint32_t n)
+{
+    uint32_t dl = delay_samples(), k;
+    int32_t pk = fx_vu[4];
+    if (!dl)
+        dl = 1u;
+    if (fx_vu[1] > 400 && (!drp_on || (uint32_t)(fx.dly_w - drp_t0) > dl / 2u)) {
+        /* (2.1) A new hit re-phases the train, it does not erase it. This used to clear drp_pk and
+         * fx_dly_rep here, so a second note inside half a delay time wiped the repeats the first one
+         * had already measured: a single note bounced and a phrase showed nothing, because the six bars
+         * were reset before any of them could be read. The peaks keep their maxima now -- a repeat that
+         * came back is still in the line when the next hit lands -- and only the window phase restarts,
+         * so every new activity gets its own answer over the one that is fading. */
+        drp_t0 = fx.dly_w;
+        drp_gen = 0;
+        drp_on = 1;
+        drp_left = dl;
+    }
+    if (drp_on) {                                       /* the block's peak goes to the window that holds
+                                                         * most of it: a block is 0.7 ms, so the worst
+                                                         * case is a third of a millisecond of error, and a
+                                                         * repeat is never read in two bars at once */
+        if (drp_left < n && drp_left * 2u < n) {         /* most of this block is past the boundary */
+            if (drp_gen >= 6u) {                        /* six repeats shown: the train is over */
+                drp_on = 0;
+                drp_gen = 0;
+                drp_left = 0;
+            } else {
+                drp_gen++;
+                drp_left = dl;
+            }
+        }
+        if (drp_on && drp_gen >= 1u) {                  /* the hit's own window peaks nothing: it is repeat 0 */
+            k = (uint32_t)drp_gen - 1u;
+            if (pk > drp_pk[k])
+                drp_pk[k] = pk;
+            drp_left = drp_left > n ? drp_left - n : 0u;
+            if (!drp_left) {
+                if (drp_gen >= 6u) {                    /* six repeats shown: the train is over */
+                    drp_on = 0;
+                    drp_gen = 0;
+                } else {
+                    drp_gen++;
+                    drp_left = dl;
+                }
+            }
+        } else if (drp_on)
+            drp_left = drp_left > n ? drp_left - n : 0u;
+    }
+    for (k = 0; k < 6; k++) {                           /* held while it rings, then the fade: a repeat */
+        if (!drp_on && drp_pk[k] > 0)                   /* that has died reads as gone, not as lit */
+            drp_pk[k] -= (drp_pk[k] >> 7) + 1;
+        fx_dly_rep[k] = drp_pk[k];
+    }
+    fx_dly_gen = drp_on ? drp_gen : 0u;
+    fx_dly_frac = (uint16_t)(((dl - (drp_left > dl ? dl : drp_left)) * 256u) / dl);
+}
 static inline __attribute__((always_inline)) void fx_run_t(uint32_t n)
 {
     uint32_t i, t0 = MC_TICKS(), d;
@@ -2224,6 +2345,7 @@ static inline __attribute__((always_inline)) void fx_run_t(uint32_t n)
     fx_buses(fxq_c, fxq_d, fxq_r, fx_wet, n);
     if (fx_insane(n))
         fx_bad = 1;                                     /* (mix_block: fx_trip) */
+    fx_dly_train(n);                                    /* (3.0) the echo train, one step a block */
     d = MC_TICKS() - t0;
     mc_fx_tk = d > mc_fx_tk ? mc_fx_tk + ((d - mc_fx_tk) >> 1) : mc_fx_tk - ((mc_fx_tk - d) >> 3);
 }
@@ -2400,6 +2522,24 @@ static __attribute__((noinline)) void mix_block(int32_t *out, uint32_t n)   /* (
         qg_biquad_process(&master_eq, mix_l, mix_r, n);
     }
     lev_block(n);                                       /* (JIANT 0.5) the leveler: the loudness held */
+    {   /* (2.1) HOME's two mono meters: the left and the right peak of the mix the master is about to
+         * take. Measured here, once, because both exits below need it -- the FX layer's path (perf ->
+         * perf_master) returns before the loop at the end of this function, so a meter read there showed
+         * zero whenever the layer was on: the reading was missing, the signal was not. Each channel its
+         * own peak and its own envelope; nothing is copied from one channel onto the other. MASTER is
+         * applied after this, so the meters read the mix, not the volume knob. */
+        int32_t pkl = 0, pkr = 0, a;
+        for (i = 0; i < n; i++) {
+            a = mix_l[i] < 0 ? -mix_l[i] : mix_l[i];
+            if (a > pkl) pkl = a;
+            a = mix_r[i] < 0 ? -mix_r[i] : mix_r[i];
+            if (a > pkr) pkr = a;
+        }
+        fx_vu[6] -= (fx_vu[6] + 31) >> 5;               /* the envelope the tracks' vu uses: immediate */
+        fx_vu[7] -= (fx_vu[7] + 31) >> 5;               /* attack, ~23 ms release at the block rate */
+        if (pkl > fx_vu[6]) fx_vu[6] = pkl;
+        if (pkr > fx_vu[7]) fx_vu[7] = pkr;
+    }
     if (perf) {
         perf_master(out, n);
         return;

@@ -129,11 +129,65 @@ def backups():
     ok(bool(man["errors"]), "partial backup keeps the errors")
 
 
+def stale_answer():
+    """an answer queued before the request must not pass for the answer to it"""
+    dev = FakeFM1(b"")
+    ln = link(dev)
+    b = bytearray(24)
+    b[0], b[1] = 1, 0
+    b[2:5] = (0x856014).to_bytes(3, "big")
+    b[5:9] = (0x100000).to_bytes(4, "little")
+    b[9:11] = (256).to_bytes(2, "little")
+    b[11:13] = (0x1000).to_bytes(2, "little")
+    b[13:17] = (0x10000).to_bytes(4, "little")
+    b[17:21] = (0xDEADBEEF).to_bytes(4, "little")
+    b[21:23] = P.crc16(bytes(b[:21])).to_bytes(2, "little")
+    dev._reply(0x12, bytes(b))                       # a well-formed answer from an earlier exchange
+    ev = P.identify(ln, b"\x01\x02\x03\x04", 0.05)
+    ok(ev["session"] != 0xDEADBEEF,
+       "a 0x12 answer already in the queue is not mistaken for the answer to this request")
+
+    # and for a read: a reply carrying an older session must be refused on the host side too, which
+    # is what catches a device (or a sender) that replays a well-formed answer instead of the new one
+    dev2 = FakeFM1(b"")
+    ln2 = link(dev2)
+    h = bytearray([1, 0])
+    h += (64).to_bytes(2, "little") + (0).to_bytes(4, "little")
+    h += (0xABCD1234).to_bytes(4, "little")          # the old session, status 0, plausible bytes
+    h[12:14] = P.crc16(bytes(h[:12])).to_bytes(2, "little")
+    dev2._reply(0x13, bytes(h) + bytes(64))
+    try:
+        P.read(ln2, 0, 64, 0xABCD1235, 0.05)
+    except P.ProbeError as e:
+        ok(e.code == "stale", "a 0x13 reply carrying an older session is refused as stale")
+    else:
+        ok(False, "a 0x13 reply for another session was accepted as this read")
+
+
+def stock_refusal():
+    """a stock unit answers the vendor handshake but not 0x12: the backup tool must say why"""
+    import argparse
+    dev = FakeFM1(b"", query_fault="silent")
+    a = argparse.Namespace(out=tempfile.mkdtemp(prefix="qg1-stock-"), port=None,
+                           chunk=P.CHUNK, max_errors=8, yes=True)
+    try:
+        B.run(a, backend=dev)
+    except B.BackupError as e:
+        ok(e.code == "no-query" and "external SPI reader" in str(e),
+           "a stock unit (vendor handshake, no 0x12) is refused as no-query, not a cable fault")
+    else:
+        ok(False, "a stock unit was read: 0x12 cannot come from stock firmware")
+    ok(dev.nor and dev.queries >= 1 and dev.upgrades == 0,
+       "the refusal sent 0x12 only: no UPGRADE, nothing written")
+
+
 def main():
     ident()
     rejections()
     reads()
     backups()
+    stale_answer()
+    stock_refusal()
     print("chip / backup test %s (%d failed)" % ("passed" if not failed else "FAILED", failed))
     return 1 if failed else 0
 

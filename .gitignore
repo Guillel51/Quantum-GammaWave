@@ -2,4 +2,21 @@ build/
 .DS_Store
 __pycache__/
 *.fwsc
+# ... except the package the installer tests read: it is a fixture, committed on purpose, because a
+# test that reads a package must read the same bytes everywhere.
+!release/*.fwsc
 node_modules/
+
+# the pi32v2 toolchain and the AC79 SDK when they are unpacked inside the checkout (tools/get_toolchain.sh,
+# JIELI_TOOLCHAIN / AC79_SDK): inputs to a build, never part of what the commit is
+.tools/
+# renders written by the analysis tools (tools/fw_shots.py, generate_screenshots.py) before they are chosen
+artifacts/tmp/
+
+# a read of a real FM-1 lands here: a 1 MiB image of the unit is the owner's data (presets, objects), not
+# repository content. Keep it out of git; copy it to two places outside the tree (docs/JEDEC_READ.md).
+backup/
+!tests/fixtures/*.fwsc
+
+# local build/test logs (never published)
+.build-logs/

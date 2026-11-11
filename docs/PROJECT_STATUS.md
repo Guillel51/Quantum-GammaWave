@@ -44,7 +44,7 @@
 | **Preset Library (+42 Presets)** | Verified | 8 musical categories across engines, verified in web and firmware |
 | **Transient PRESET Popup (1.5s)** | Verified | Non-blocking timer popup reusing SAVE browser view |
 | **Dynamic ARP Visualization** | Verified | Real-time 16-step trajectory and playhead animation in GR_ARP |
-| **GLO 2 Monitor Screen** | Simulated | Rendered and asserted by `ui_render` (S_MONITOR); the values it reads are host-simulated, **no FM-1 was connected** |
+| **GLO 2 Monitor Screen** | Simulated | Rendered and asserted by `ui_render` (S_MONITOR). Every row is a counter the audio writes (load/peak, core split, polyphony, per-track voices, sequencer step and bar, the three FX returns, late/shed, bus ticks); with no measurement it prints **N/A** instead of a number. The values are host-simulated, **no FM-1 was connected** |
 | **Full-Screen HOME Visualizer** | Simulated | Harmonic scope + Lissajous orbit toggle on HOME -> HOME, rendered by `ui_render` |
 
 ## 1. Executive Summary & Audit Conclusions

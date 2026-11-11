@@ -20,7 +20,7 @@ a refusal costs zero frames. It verifies:
 | the bytes are the manifest's | SHA-256 and `size` over the exact `Uint8Array` | `signature` |
 | the manifest is the release's | Ed25519 over the canonical manifest, `keyid` pinned in `tools/fm1_keys.json`; empty pin set trusts nothing | `signature` |
 | the package is for this model | `manifest.product` (e.g. `FM-1`) against the product's model | `signature` |
-| the package is this identity | `productOf(pkg) === product` (e.g. `FM-1_982`), read from the package itself | `proof` |
+| the package is this identity | `productOf(pkg) === product` (e.g. `FM-1_965`), read from the package itself | `proof` |
 | the version floor is usable | `version` and `min_firmware` parse as dotted numbers; `firmware` (the running version, when known) is not below `min_firmware` | `version` / `signature` |
 | the part may be written | `requireChip(evidence)`: identified, 1 MiB allowlist, not the read-only UCUN | `chip` |
 | it is a package at all | non-empty, longer than the 20-block header, not a string | `image` |
@@ -101,7 +101,7 @@ test process, and drives a simulated FM-1 that counts every frame it receives:
 * **Hardware.** No unit was connected, flashed or restored. Counters and refusals are host/simulator
   evidence; how the real loader behaves on a cable drop is unchanged by this work.
 * **Downgrade when the running version is unknown.** The identity frame carries a build number
-  (`FM-1_982`), not a version, and the loader carries none at all, so `firmware` is `null` on the
+  (`FM-1_965`), not a version, and the loader carries none at all, so `firmware` is `null` on the
   resume path. There the gate relies on the signature, the bytes, the product and the chip; the
   `min_firmware` comparison is active only where the page can read the running version.
 * **Secure boot.** The vendor bootloader still does not verify the application (see

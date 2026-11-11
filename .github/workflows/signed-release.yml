@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Every package in release/ is a release only if it verifies: the hash and size of the bytes, the firmware
+# image hashes it names, and the build record inside it -- and, when the manifest carries one, the Ed25519
+# signature against the pinned public key (v2.7.0 model: SHA-256 + size is the integrity gate, Ed25519 is
+# historical; see docs/SIGNING.md). An unsigned manifest is reported as integrity-only, never as signed.
+#
+# This exists because the site installs whatever is in release/ and the GitHub release publishes those exact
+# bytes. An edit to a package, a manifest signed by another key, a package dropped in without its manifest or a
+# SHA256SUMS that no longer describes the directory used to be caught only after a deploy; here they stop the
+# change. No key is involved and none can be: this job holds only the public pin.
+name: signed release
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["release/**", "tools/fm1_sign.py", "tools/fm1_keys.json", ".github/workflows/signed-release.yml"]
+  pull_request:
+    paths: ["release/**", "tools/fm1_sign.py", "tools/fm1_keys.json", ".github/workflows/signed-release.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install cryptography
+      - name: at least one key is pinned (fail-closed otherwise)
+        run: python3 tools/fm1_sign.py check --require-key
+      - name: every package in release/ verifies against its own manifest (signature when present)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          n=0
+          for man in release/*.fwsc.manifest.json; do
+            pkg="${man%.manifest.json}"
+            [ -f "$pkg" ] || { echo "::error::$man has no package beside it"; exit 1; }
+            python3 tools/fm1_sign.py verify "$pkg" --manifest "$man" --product FM-1
+            n=$((n + 1))
+          done
+          for pkg in release/*.fwsc; do
+            [ -f "$pkg.manifest.json" ] || { echo "::error::$pkg has no signed manifest: release/ holds only signed packages"; exit 1; }
+          done
+          [ "$n" -gt 0 ] || { echo "::error::release/ holds no signed package"; exit 1; }
+          echo "$n signed package(s) verified"
+      - name: release/SHA256SUMS describes exactly this directory
+        run: |
+          python3 - <<'EOF'
+          import hashlib, pathlib, sys
+          rel = pathlib.Path("release")
+          listed = {}
+          for line in (rel / "SHA256SUMS").read_text().splitlines():
+              if line.strip():
+                  h, name = line.split(None, 1)
+                  listed[name.lstrip("* ")] = h
+          actual = {f.name: hashlib.sha256(f.read_bytes()).hexdigest()
+                    for f in sorted(rel.iterdir()) if f.suffix in (".fwsc", ".json")}
+          missing = sorted(set(actual) - set(listed))
+          stale = sorted(k for k in set(actual) & set(listed) if actual[k] != listed[k])
+          extra = sorted(set(listed) - set(actual))
+          for name in missing:
+              print(f"::error::{name} is in release/ and not in SHA256SUMS")
+          for name in stale:
+              print(f"::error::SHA256SUMS has the wrong hash for {name}")
+          for name in extra:
+              print(f"::error::SHA256SUMS lists {name}, which is not in release/")
+          print(", ".join(sorted(actual)))
+          sys.exit(1 if (missing or stale or extra) else 0)
+          EOF
+      - name: the signing path works without the key (request -> external signer -> verify)
+        run: python3 tests/sign_request_test.py
+      - name: the key never lives in the checkout
+        run: python3 tests/key_custody_test.py

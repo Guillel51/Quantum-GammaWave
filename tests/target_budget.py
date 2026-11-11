@@ -116,10 +116,24 @@ def main():
             if len(p) >= 2 and not line.startswith("#"):
                 base[p[0]] = int(p[1])
     if os.environ.get("BUDGET_UPDATE"):
+        # the numbers are regenerated; the hand-written notes on what they mean are kept, so an
+        # update cannot quietly drop the explanation that makes the file readable
+        keep = []
+        if os.path.exists(budget):
+            for l in open(budget):
+                if not l.startswith("#") or l.startswith("# FELUCCA target cost budget") \
+                        or l.startswith("# function in build/felucca.dis,") \
+                        or l.strip() == "# Rewritten by BUDGET_UPDATE=1.":
+                    continue
+                keep.append(l.rstrip("\n"))
         with open(budget, "w") as f:
             f.write("# FELUCCA target cost budget (tests/target_budget.py): instructions in the loops of each\n"
                     f"# function in build/felucca.dis, x{NEST} per nesting level, divides x{1 + DIV_W}. The check allows "
-                    f"+{TOL * 100:.0f} %.\n# Rewritten by BUDGET_UPDATE=1.\n")
+                    f"+{TOL * 100:.0f} %.\n")
+            if not any(l.startswith("# Rewritten by BUDGET_UPDATE=1") for l in keep):
+                f.write("# Rewritten by BUDGET_UPDATE=1.\n")
+            for l in keep:
+                f.write(l + "\n")
             for n, r in res.items():
                 if n not in OPTIONAL:
                     f.write(f"{n} {r['cost']}\n")

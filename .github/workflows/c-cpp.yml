@@ -43,3 +43,7 @@ jobs:
 
       - name: host tests (ASan + UBSan included; package tests skipped)
         run: NO_PACKAGE=1 sh tests/run_tests.sh
+
+      # The external-reader verifier: a simulated chip with a clean pair and every way a dump lies.
+      - name: external SPI dump verifier
+        run: python3 tests/spi_dump_test.py

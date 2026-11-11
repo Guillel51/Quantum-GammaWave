@@ -3,7 +3,8 @@
 /* Host test of the UI (firmware/src/ui*.c with the sound sources of hostsim.c;
  * the display and the HAL are stubs, the buttons and knobs are driven through them):
  *   SOUNDS     a sound load (PRESETS knob / page, TOOLS INIT, user preset) changes the sound only: the
- *              steps, LEN DIV SWING GATE, ARP, SCL, the SLICER and the mix stay the track's. Power-on:
+ *              steps, LEN DIV SWING GATE, ARP, SCL, the SLICER and the sends stay the track's; LEVEL is
+ *              the sound's own, measured (2.1, preset_level.c). Power-on:
  *              every sequencer empty.
  *   PATTERNS   SEQ > PATTERNS: KNOB 1 PAT (factory patterns, then user presets that hold one), OCT+
  *              LOAD; over the user's steps the REPLACE? dialog (OCT- / OCT+); the PRESETS hint.
@@ -126,9 +127,21 @@ static void host_pw_log(uint32_t s)
 }
 static void lcd_power(uint32_t s) { host_pw_log(s); }
 static void lcd_wake_now(void) { host_pw_log(3u); }
-#define SCOPE_N 512u                              /* audio.c: the HOME oscilloscope */
+#define SCOPE_N 256u                              /* audio.c: the HOME oscilloscope */
 static int16_t scope_buf[SCOPE_N];
 static uint32_t scope_w;
+/* audio.c's per-channel peaks: no ISR runs in this harness, so the master's meters read the harness' scope */
+int32_t audio_out_peak(uint32_t ch)
+{
+    uint32_t i; int32_t pk = 0;
+    for (i = 0; i < SCOPE_N; i++) {
+        int32_t v = scope_buf[(scope_w - 1u - i) & (SCOPE_N - 1u)];
+        if (v < 0) v = -v;
+        if (v > pk) pk = v;
+    }
+    (void)ch;                                        /* the harness has one buffer: both read it */
+    return pk;
+}
 static uint32_t host_blit_rows;                    /* rows blitted (what a frame draws) */
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *p)
 {
@@ -195,6 +208,7 @@ static void ui_power_on(void)
     memset(up_bank, 0, sizeof up_bank);
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;
+    voices_boot();                                /* (3.5) the pool's windows, as felucca_init */
     load_depth++;
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
@@ -378,7 +392,7 @@ static int gm_hits_play(track_t *t)
             for (i = 0; i < 2u * CTL; i++)
                 e += (uint64_t)(o[i] < 0 ? -o[i] : o[i]);
             for (i = 0; i < NVOICE; i++)
-                lane |= t->v[i].active && t->v[i].note == N[k] && (uint32_t)t->v[i].s[0] == L[k];
+                lane |= V(t, i).active && V(t, i).note == N[k] && (uint32_t)V(t, i).s[0] == L[k];
         }
         trk_note_off(t, N[k]);
         ok &= ENGINES[t->engine] == &ENG_DRUM && drum_lane(N[k]) == L[k] && lane && e > 0;
@@ -413,8 +427,9 @@ static int test_sound_loads(void)
     turn(EN_PRESET, 1);                           /* HOME: the next preset */
     bad += check("PRESETS on HOME loads the sound: steps, LEN, DIV untouched", t->preset == (uint8_t)((before.preset + 1u) % ENGINES[0]->npresets) &&
                  !memcmp(t->step, before.step, sizeof t->step) && t->p[P_SLEN] == 32 && t->p[P_SDIV] == 1);
-    bad += check("..ARP, SCL, the SLICER and the mix stay the track's", t->p[P_AMODE] == 2 && t->p[P_AOCT] == 3 && t->p[P_SCALE] == 2 &&
-                 t->p[P_TRANS] == 5 && t->p[P_SLCR] == SL_GATE && t->p[P_SLPAT] == 4 && t->p[P_LEVEL] == 90);
+    bad += check("..ARP, SCL, the SLICER and the sends stay the track's; LEVEL is the sound's own", t->p[P_AMODE] == 2 && t->p[P_AOCT] == 3 && t->p[P_SCALE] == 2 &&
+                 t->p[P_TRANS] == 5 && t->p[P_SLCR] == SL_GATE && t->p[P_SLPAT] == 4 &&
+                 t->p[P_LEVEL] == (int16_t)preset_level_of(t->eng_req % NENGINES, t->preset));
     bad += check("..and no warning about the sequence", !msg_is("T1 SEQ REPLACED"));
     for (i = 0; i < ENGINES[0]->npresets; i++)
         if (str_eq(ENGINES[0]->presets[i].name, "RAVE"))
@@ -583,7 +598,7 @@ static int test_transitions(void)
     for (b = 0; b < 4u; b++) events_block(CTL), mix_block(o, CTL);
     ok = t->xf_on && t->xf_len == 16u;
     for (b = 0; b < 40u; b++) events_block(CTL), mix_block(o, CTL);
-    for (k = 0, held = 0; k < NVOICE; k++) held |= t->v[k].active && t->v[k].gate && t->v[k].note == 60u;
+    for (k = 0, held = 0; k < NVOICE; k++) held |= V(t, k).active && V(t, k).gate && V(t, k).note == 60u;
     ok &= t->engine == 3u && held;
     bad += check("another engine under a held note: faded out over 16 blocks, the note on in the new engine", ok);
     trk_note_off(t, 60);
@@ -600,7 +615,7 @@ static int test_transitions(void)
     trk_note_on(t, 57, 100);
     for (b = 0; b < 60u; b++) mix_block(o, CTL);
     j1 = tr_jump(t, 30u, 7u, 2, 1);
-    for (k = 0, held = 0; k < NVOICE; k++) held |= t->v[k].active && t->v[k].gate && t->v[k].note == 57u;
+    for (k = 0, held = 0; k < NVOICE; k++) held |= V(t, k).active && V(t, k).gate && V(t, k).note == 57u;
     ok = held;
     t->p[P_E0] = 3; for (b = 0; b < 60u; b++) mix_block(o, CTL);
     j0 = tr_jump(t, 30u, 7u, 2, 0);
@@ -1190,7 +1205,7 @@ static int test_rec(void)
 static uint32_t gated_notes(const track_t *t)
 {
     uint32_t i, n = 0;
-    for (i = 0; i < NVOICE; i++) n += t->v[i].gate != 0;
+    for (i = 0; i < NVOICE; i++) n += V(t, i).gate != 0;
     return n;
 }
 
@@ -1254,13 +1269,13 @@ static int test_midi(void)
         for (i = 0; i < MQ; i++) midi_in_event(0x643C9909u);
         midi_in_event(0x003C8908u);                      /* note-off lost to a full ring */
         events_block(CTL);
-        for (i = 0; i < NTRK * NVOICE; i++) held += trk[i / NVOICE].v[i % NVOICE].gate;
+        for (i = 0; i < NTRK * NVOICE; i++) held += V(&trk[i / NVOICE], i % NVOICE).gate;
         bad += check("MIDI overflow releases held notes and latched ARP, keeps transport running",
                      !held && !trk[1].nheld && !trk[1].arp_phys && !mn_get(0, 60) &&
                      !mn_get(1, 64) && !midi_in_overflow && mi_r == mi_w && song.playing);
         midi_in_event(0x643D9009u);
         events_block(CTL);
-        bad += check("MIDI accepts a fresh note after overflow recovery", mn_get(0, 61) == 1u && trk[0].v[0].gate);
+        bad += check("MIDI accepts a fresh note after overflow recovery", mn_get(0, 61) == 1u && V(&trk[0], 0).gate);
     }
     {
         const page_t *pg = &PAGES[page_first(FAM_GLO) + 1u];
@@ -1601,13 +1616,16 @@ static int test_tracks(void)
     open_family(FAM_TRK);
     before = trk[0];
     turn(EN_PRESET, 1);
-    bad += check("#94 MIXER: the PRESETS knob loads the next sound; the steps and the mix stay",
+    bad += check("#94 MIXER: the PRESETS knob loads the next sound; the steps stay, LEVEL is the sound's own",
                  trk[0].preset != before.preset && !memcmp(trk[0].step, before.step, sizeof before.step) &&
-                 trk[0].p[P_LEVEL] == before.p[P_LEVEL] && cur_page()->graph == GR_TRK);
+                 trk[0].p[P_LEVEL] == (int16_t)preset_level_of(trk[0].eng_req % NENGINES, trk[0].preset) &&
+                 cur_page()->graph == GR_TRK);
     turn(EN_K4, 1);
     bad += check("MIXER KNOB 4 right: MUTE ON (the selected track stays)", trk[0].p[P_MUTE] == 1 && song.sel == 0);
-    turn(EN_K1, -3);
-    bad += check("KNOB 1 changes LEVEL only (MUTE stays)", trk[0].p[P_MUTE] == 1 && trk[0].p[P_LEVEL] == before.p[P_LEVEL] - 3);
+    {   const int16_t lvl = trk[0].p[P_LEVEL];     /* the level the sound loaded with */
+        turn(EN_K1, -3);
+        bad += check("KNOB 1 changes LEVEL only (MUTE stays)", trk[0].p[P_MUTE] == 1 && trk[0].p[P_LEVEL] == lvl - 3);
+    }
     turn(EN_K2, 2);
     bad += check("KNOB 2 changes PAN", trk[0].p[P_PAN] == before.p[P_PAN] + 2);
     turn(EN_K4, -1);
@@ -1619,12 +1637,23 @@ static int test_tracks(void)
         trks_put(0);
         for (k = 0; k < 8u; k++) turn(EN_ALGO, 1);
         bad += check("TRACKS 4: ALGORITHM stops at T4", song.sel == 3);
-        trks_put(1);
+        trks_put(2);                                   /* (3.4) 2 is six tracks now: 1 is five */
         for (k = 0; k < 8u; k++) turn(EN_ALGO, 1);
         bad += check("TRACKS 6: ALGORITHM reaches T6", song.sel == 5);
+        trks_put(1);                                   /* (3.4) 5 TRACKS: T6 asleep, T5 the last offered */
+        for (k = 0; k < 8u; k++) turn(EN_ALGO, 1);
+        bad += check("TRACKS 5: ALGORITHM stops at T5", song.sel == 4);
+        bad += check("TRACKS 5: trk_live is 5", trk_live == 5u);
         trks_put(0);
         ui_input();
         bad += check("TRACKS 6 -> 4 on T6: T4 selected", song.sel == 3);
+        bad += check("TRACKS 4: trk_live is 4", trk_live == 4u);
+        trks_put(1);
+        bad += check("TRACKS 5: the older six-track bit stays clear", (ui_rec_prefs & (PREF_SIX >> 8)) == 0);
+        trks_put(2);
+        bad += check("TRACKS 6: the older six-track bit is set", (ui_rec_prefs & (PREF_SIX >> 8)) != 0);
+        bad += check("TRACKS 6: trk_live is 6", trk_live == 6u);
+        trks_put(0);
         for (k = 0; k < 8u; k++) turn(EN_ALGO, -1);
         bad += check("ALGORITHM back down to T1", song.sel == 0);
         turn(EN_ALGO, 1);
@@ -2367,7 +2396,11 @@ static int test_mono_screens(void)
     for (e = 0; e < NPALETTES; e++) {               /* the other palettes are not gray: the check sees colour */
         ui_power_on(); palette_set(e); ui.force = 1; ui_draw();
         ok = screen_gray();
-        if (e == UI_GREY_INDEX ? !ok : ok) bad += check("palette colour shows on HOME", 0);
+        if (e == UI_GREY_INDEX ? !ok : ok) {
+            char msg[64];
+            snprintf(msg, sizeof msg, "palette colour shows on HOME: %s (%u)", UI_PALETTES[e].name, e);
+            bad += check(msg, 0);
+        }
     }
     palette_set(UI_GREY_INDEX);
     return bad;
@@ -3095,7 +3128,7 @@ static uint32_t gates(void)                        /* voices of every track with
     uint32_t p, i, n = 0;
     for (p = 0; p < NTRK; p++)
         for (i = 0; i < NVOICE; i++)
-            n += trk[p].v[i].gate != 0;
+            n += V(&trk[p], i).gate != 0;
     return n;
 }
 static uint32_t white(uint32_t w) { return key_at(0, w); }
@@ -3128,15 +3161,12 @@ static int test_layer(void)
     for (flash = 0, i = 0; i < 22u; i++) { frame(); flash |= ui.layer; }      /* 0.35 s */
     btn_up(B_FX); frame();
     bad += check("  held 0.35 s (HOLD 0.4): still a tap, the map never shown", !flash && !ui.home);
-    /* peek: past HOLD alone, the map; letting go does nothing */
+    /* peek: past HOLD alone, the map; letting go closes it (2.0: the screen pins on four seconds, not on HOLD) */
     ui_power_on();
     btn_down(B_FX); frames(368);
     ok = !ui.layer;
     frames(64);
     ok &= ui.layer == LAYER_FX;
-    btn_up(B_FX); frame();
-    frame();                                           /* (the keys follow the lock from the next frame) */
-    ok &= ui.home && ui.layer == LAYER_FX && fx_lock;   /* (0.6.64) let go unused: locked open, FX LATCH OFF too */
     {   /* the effects momentary (FX LATCH OFF, the default): a key held plays it, let go stops it */
         uint32_t k = white(3);                         /* (the LPF key) */
         key_down(k); frame();
@@ -3144,10 +3174,125 @@ static int test_layer(void)
         key_up(k); frame();
         ok &= !(perf_held & PF_BIT(PF_LPF)) && !perf_latched;
     }
+    btn_up(B_FX); frame(); frame();
+    ok &= ui.home && !ui.layer && !fx_lock;             /* a peek: no pin, no page */
+    bad += check("FX held past HOLD: the map (not before), the effects momentary; let go: no page and no pin (four "
+                 "seconds are what pin it)", ok && ui.home);
+    /* (2.0) the Punch-in map on a real press: a short hold only peeks (it closes when the
+     * button is let go), four seconds pin it; KNOB 1 turns LATCH on and off (the setting and
+     * the engine's bit together), a key keeps its own effect after it is let go, KNOB 2 is
+     * DEPTH, and FX again closes the pinned screen. */
+    ui_power_on();
+    btn_down(B_FX); frames(1000); frame();
+    ok = ui.layer == LAYER_FX && !fx_lock;
+    btn_up(B_FX); frames(64);
+    ok &= !fx_lock && !ui.layer;                       /* a one-second hold: a peek, not a pin */
+    bad += check("Punch-in: a short hold shows the map and does not pin it", ok);
+    btn_down(B_FX); frames(4200); frame();
+    ok = ui.layer == LAYER_FX && !fx_lock;             /* still held: shown, not pinned yet */
+    btn_up(B_FX); frames(64);
+    ok &= fx_lock && ui.layer == LAYER_FX;             /* four seconds: pinned */
+    bad += check("Punch-in: held past four seconds, the map pins on release", ok);
+    ok = !perf_latch_on && !(ui_prefs & PREF_LATCH);
+    fx_latch = PREF_LATCH | PREF_ACCEL_OFF;            /* MENU > FX LATCH ON, the setting it writes */
+    frame();
+    ok &= perf_latch_on && (ui_prefs & PREF_LATCH);
+    {
+        uint32_t lp = white(3), hp = white(4);         /* the LPF and HPF keys */
+        key_down(lp); frame(); key_up(lp); frame();
+        ok &= (perf_latched & PF_BIT(PF_LPF)) != 0u && !(perf_held & PF_BIT(PF_LPF));
+        key_down(lp); frame(); key_up(lp); frame();
+        ok &= !(perf_latched & PF_BIT(PF_LPF));         /* the second press lets it go */
+        key_down(lp); frame(); key_up(lp); frame();
+        ok &= (perf_latched & PF_BIT(PF_LPF)) != 0u;    /* a third: latched again */
+        key_down(hp); frame(); key_up(hp); frame();     /* HPF: its own bit */
+        ok &= (perf_latched & PF_BIT(PF_HPF)) != 0u && (perf_latched & PF_BIT(PF_LPF)) != 0u;
+        key_down(lp); frame(); key_up(lp); frame();     /* LPF let go, HPF stays */
+        ok &= !(perf_latched & PF_BIT(PF_LPF)) && (perf_latched & PF_BIT(PF_HPF)) != 0u;
+        ok &= (perf_held & (PF_BIT(PF_LPF) | PF_BIT(PF_HPF))) == 0u;   /* nothing held: the latches alone */
+    }
+    {
+        perf_k[3] = 50;                                 /* KNOB 2: DEPTH, the buffer effects' level */
+        turn(EN_K2, 1);
+        ok &= perf_k[3] == 49;                          /* DEPTH rises to the right (100 - perf_k[3]) */
+        turn(EN_K2, -1);
+        ok &= perf_k[3] == 50;
+        perf_k[3] = 0;
+    }
+    fx_latch = PREF_ACCEL_OFF;                          /* MENU > FX LATCH OFF */
+    frame();
+    ok &= !perf_latch_on && !(ui_prefs & PREF_LATCH) && !perf_latched;   /* OFF: nothing stays latched */
+    ok &= fx_lock;                                                         /* the pinned map is still there */
     press(B_FX); frames(64);
-    ok &= !fx_lock && !ui.layer;
-    bad += check("FX held past 0.4 s: the map (not before); let go: no page, the map locked open (0.6.64), the effects "
-                 "momentary; FX again: closed", ok && ui.home);
+    ok &= !fx_lock && !ui.layer;                                           /* FX again: closed */
+    bad += check("Latch: the FX LATCH setting on and off (nothing left latched, the map stays pinned), each key "
+                 "keeps its own effect, DEPTH on KNOB 2, FX closes the pinned map", ok);
+    {   /* (3.1) FX + OCT+ is the LATCH switch the map's card has always advertised. Before this path
+         * existed the card could only be read, never changed from the map: the setting stayed OFF. */
+        uint32_t oct0;
+        ui_power_on();
+        btn_down(B_FX); frames(100); frame();
+        oct0 = song.octave;
+        btn_down(B_OCTUP); frame();
+        btn_up(B_OCTUP); frame();
+        ok = perf_latch_on && (ui_prefs & PREF_LATCH) != 0u && song.octave == oct0;
+        key_down(white(3)); frame(); key_up(white(3)); frame();      /* F3 = LPF, latched */
+        ok &= (perf_latched & PF_BIT(PF_LPF)) != 0u;
+        btn_down(B_OCTUP); frame(); btn_up(B_OCTUP); frame();
+        ok &= !perf_latch_on && !(ui_prefs & PREF_LATCH) && !perf_latched;
+        btn_up(B_FX); frame();
+        bad += check("FX + OCT+ toggles LATCH from the map (the setting and the engine's bit), OCT+ is not an "
+                     "octave, a second press clears the latches", ok);
+    }
+    /* (2.1) A NEW PRESET STARTS CLEAN: the latched punch-in effects, the four macros and the buffer heads
+     * are state, not settings. Loading another sound clears them (perform.c perf_reset, fx.c
+     * fx_preset_flush), together with the buses' short lines; a track's mute is the player's and stays. */
+    {
+        uint32_t lp = white(3), mute0;
+        fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
+        frame();
+        btn_down(B_FX); frames(4200); frame();
+        key_down(lp); frame(); key_up(lp); frame();
+        ok = (perf_latched & PF_BIT(PF_LPF)) != 0u;    /* a latched effect to lose */
+        perf_k[0] = 30; perf_k[1] = 20; perf_k[2] = 10; perf_k[3] = 40;
+        pb[0].mode = BM_LOOP; pb[0].on = 1; pb[0].len = 1000u;     /* a recorded buffer, from the old sound */
+        mute0 = (uint32_t)(trk[1].p[P_MUTE] != 0);
+        trk[1].p[P_MUTE] = 1;                           /* the player muted T2: that stays */
+        apply_preset_to(trk, 1);                        /* another factory sound, as PRESETS loads it */
+        ok &= !perf_latched && !perf_k[0] && !perf_k[1] && !perf_k[2] && !perf_k[3];
+        ok &= pb[0].mode == BM_NONE && !pb[0].on && !pb[0].len;
+        ok &= trk[1].p[P_MUTE] == 1;                    /* the mute is the player's, not the preset's */
+        ok &= fx_vu[0] == 0 && fx_vu[4] == 0;           /* the buses' meters start from silence again */
+        trk[1].p[P_MUTE] = (int16_t)mute0;
+        bad += check("a preset change clears the latched punch-in map, the macros and the buffer heads; the "
+                     "player's mutes stay", ok);
+    /* (2.1) GLO > MONITOR: every row it prints comes from a writer, and the page repaints when those
+     * numbers move. The complaint was that only POLYPHONY seemed to work; the figures below are the
+     * ones the audio ISR and the buses publish (song.cpu_q8, load_diag, mc_fx_tk), so if the page did
+     * not redraw the pixels would not change. Nothing here is a constant. */
+    {
+        static uint16_t snap[240 * 240];
+        uint32_t i, diff = 0, cx0 = song.cpu_q8, pk0 = (uint32_t)load_diag.peak, tk0 = mc_fx_tk;
+        go_title("MONITOR");
+        song.cpu_q8 = 40u; load_diag.peak = 40u; mc_fx_tk = 100u; fm1_ms += 120u;
+        frame(); frame();
+        memcpy(snap, host_screen, sizeof snap);
+        song.cpu_q8 = 90u; load_diag.peak = 90u; mc_fx_tk = 400u; fm1_ms += 120u;
+        frame(); frame();
+        for (i = 0; i < 240u * 240u; i++)
+            diff += snap[i] != host_screen[i];
+        ok = diff > 3;                                  /* the CPU, PEAK and BUS TICKS rows changed: a
+                                                         * 2-digit figure differs in its digits, and the
+                                                         * band's hash tests above prove the mapping */
+        song.cpu_q8 = cx0; load_diag.peak = (int16_t)pk0; mc_fx_tk = tk0;
+        frame();
+        bad += check("GLO > MONITOR: the page repaints when CPU / PEAK / BUS TICKS move (the rows are not "
+                     "frozen figures)", ok);
+    }
+        fx_latch = PREF_ACCEL_OFF;
+        press(B_FX); frames(64);
+        ui_power_on();
+    }
     /* the HOLD setting: 0.6 s */
     ui_power_on();
     hold(B_HOME); ui.menu_sel = MI_HOLD; turn(EN_K1, 1); turn(EN_K1, 1); ok = settings_hold == 3u; hold(B_HOME);
@@ -3245,10 +3390,10 @@ static int test_layer(void)
     usb.config = 1; mo = mo_w;
     btn_down(B_FX); key_down(white(15)); frame();
     ok = ui.layer == LAYER_FX && !gates() && mo_w == mo && !perf_held && (kb_layer >> white(15)) & 1u;
-    turn(EN_K4, -40);
+    turn(EN_K2, -40);                                  /* (3.2) KNOB 2: DEPTH */
     ok &= perf_k[3] == 40;
     key_up(white(15)); btn_up(B_FX); frame();
-    bad += check("FX + G5: nothing held, silent, no MIDI; KNOB 4 turns; FX let go: K4 back to 0",
+    bad += check("FX + G5: nothing held, silent, no MIDI; KNOB 2 turns; FX let go: K2 back to 0",
                  ok && !perf_held && !ui.layer && !perf_k[3] && mo_w == mo);
     /* REVERB > TYPE (FX family, global): ROOM / SPRING on KNOB 1, kept by a project */
     ui_power_on();
@@ -3266,6 +3411,29 @@ static int test_layer(void)
     project_load(2);
     bad += check("REVERB page: TYPE ROOM -> SPRING .. CLOUD on KNOB 1 (SIZE, DAMP beside it); a project keeps CLOUD",
                  ok && song.g[G_RTYPE] == 4);
+    {   /* (3.1) the reverb graph answers the notes: rev_tick reads the bus's real return (fx_vu[5], the
+         * reverb return meter), not a clock; its rings move while it sounds and settle when the tail does */
+        int32_t hi, ph0;
+        ui_power_on();
+        song.g[G_RTYPE] = 0;                           /* ROOM: the impulse response graph */
+        go_title("REVERB");
+        fx_vu[5] = 0;
+        frame();
+        ok = rev_act == 0 && rev_ph == 0;              /* silence: still */
+        fx_vu[5] = 30000;
+        frame();
+        hi = rev_act;
+        ok &= hi > 180 && rev_ph != 0;                 /* the note: lit and moving */
+        ph0 = rev_ph;
+        frames(32);                                    /* (the page is redrawn every other frame) */
+        ok &= rev_act == hi && rev_ph == ((ph0 + 4) & 255);   /* it holds while the return does */
+        fx_vu[5] = 0;
+        frames(200);
+        ok &= rev_act < hi / 2 && rev_act > 0;         /* the tail falls, frame by frame */
+        frames(1200);
+        ok &= rev_act == 0 && rev_ph == 0;             /* and settles: no cost when there is no tail */
+        bad += check("REVERB graph: the rings follow the bus's return and fall with the tail (host)", ok);
+    }
     {   /* (0.5.1) the DRUM-X kit's X-MOD kept by a project (the kit's reserved bytes) */
         static const uint8_t XM[4] = {6, 90, 4, 70};
         memcpy(dx_mot, XM, 4);
@@ -3309,12 +3477,12 @@ static int test_layer(void)
         int16_t atk = TSEL->p[P_ATK];
         uint32_t ev = motion.count;
         btn_down(B_FX); frame();
-        turn(EN_K1, -12); turn(EN_K2, 30);
+        turn(EN_K1, -12); turn(EN_K4, 30);              /* (3.2) CRUSH is KNOB 4 */
         ok = perf_k[0] == -12 && perf_k[1] == 30 && TSEL->p[P_ATK] == atk && motion.count == ev && ui.layer == LAYER_FX;
         turn(EN_PRESET, 3);
         ok &= user_of(TSEL) == UP_SLOTS && TSEL->preset == trk[0].preset;
         btn_up(B_FX); frame();
-        bad += check("FX + KNOB 1 / 2: the macros, not ATK, not recorded; FX let go: back to 0, no tap",
+        bad += check("FX + KNOB 1 / 4: the macros, not ATK, not recorded; FX let go: back to 0, no tap",
                      ok && !perf_k[0] && !perf_k[1] && str_eq(cur_page()->title, "ENV"));
     }
     song.rec = 0; song.playing = 0;
@@ -3667,12 +3835,12 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 }
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "MORPH", "FILTER", "VOICE", "EDIT 1"};   /* (JIANT 0.5: ANALOG's
-                                                         * FILTER; 0.6.45: MORPH) */
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "MORPH", "FILTER", "VOICE", "VOICE 2", "EDIT 1"};   /* (JIANT 0.5:
+                                                         * ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2) */
     static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "FILTER", "VOICE",
-                                        "EDIT 1"};   /* (the part's FILTER; 0.6.10: FM6's operator pages) */
+                                        "VOICE 2", "EDIT 1"};   /* (the part's FILTER; 0.6.10: FM6's operator pages) */
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "FILTER", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
-                                        "OP LEVEL", "VOICE", "EDIT 1"};
+                                        "OP LEVEL", "VOICE", "VOICE 2", "EDIT 1"};
     int bad = 0, ok;
     uint32_t i;
     ui_power_on();
@@ -3684,22 +3852,22 @@ static int test_edit_cycle(void)
         ok &= !str_eq(PAGES[i].title, "ENGINE");
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
-    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 MORPH FILTER VOICE EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
+    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 MORPH FILTER VOICE VOICE 2 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
 #if FELUCCA_FM4
     set_engine_of(TSEL, 1);
-    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 FILTER OP1..OP4 ENV OP LEVEL VOICE EDIT 1",
+    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 FILTER OP1..OP4 ENV OP LEVEL VOICE VOICE 2 EDIT 1",
                  engine_cycle(CYC_D, NELEM(CYC_D)));
 #else
     set_engine_of(TSEL, ENGI_DIGITAL);
-    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 FILTER VOICE EDIT 1",
+    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 FILTER VOICE VOICE 2 EDIT 1",
                  TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     (void)CYC_D;
 #endif
     {   /* #97: a DRUM track's lane levels on EDIT > LANES (KICK SNARE CLAP HATCL) and LANES 2 (HATOP TOM RIM BELL) */
         static const char *const CYC_K[] = {"EDIT 1", "EDIT 2", "KIT 3", "X-MOD", "FILTER", "SOUND", "SOUND 2", "SOUND 3",
-                                            "SOUND 4", "LEVELS", "LEVELS 2", "STEREO", "VOICE", "EDIT 1"};
+                                            "SOUND 4", "LEVELS", "LEVELS 2", "STEREO", "VOICE", "VOICE 2", "EDIT 1"};
         set_engine_of(TSEL, ENGI_DRUM);
-        bad += check("EDIT cycle (DRUM, 0.6.58): the kit's (KIT KIT 2 KIT 3 X-MOD FILTER), a sound's (SOUND 1..4), then the volumes and the stereo (LEVELS LEVELS 2 STEREO), VOICE",
+        bad += check("EDIT cycle (DRUM, 0.6.58): the kit's (KIT KIT 2 KIT 3 X-MOD FILTER), a sound's (SOUND 1..4), then the volumes and the stereo (LEVELS LEVELS 2 STEREO), VOICE, VOICE 2",
                      engine_cycle(CYC_K, NELEM(CYC_K)));
         {   /* (0.6.58) KIT 3 turns BP and FEEDBK only; STEREO's KNOB 1 is IMAGE */
             uint8_t t0 = dx_tone;
@@ -4612,9 +4780,9 @@ static int test_step_rec(void)
         while (t->seq_idx == 0u) events_block(CTL);
         for (i = 0; i < NSTEP && !t->step[i].n; i++) ;
         while (t->seq_idx != i) events_block(CTL);
-        for (b2 = 0; b2 < NVOICE; b2++) first += t->v[b2].active && t->v[b2].gate;
+        for (b2 = 0; b2 < NVOICE; b2++) first += V(t, b2).active && V(t, b2).gate;
         for (b2 = 0; b2 < 200u; b2++) events_block(CTL);
-        for (b2 = 0; b2 < NVOICE; b2++) later += t->v[b2].active && t->v[b2].gate;
+        for (b2 = 0; b2 < NVOICE; b2++) later += V(t, b2).active && V(t, b2).gate;
         ok = first == 1u && later == 3u;
         bad += check("STRUM, playing back: the step's chord comes in one note after another (1, then all 3)", ok);
         t->p[P_CSTR] = 0;
@@ -6146,7 +6314,7 @@ static void rc_enc(uint32_t role, int32_t s, int late)
  * the detents come after the reads. a: the state with the layer open, b: after it closed */
 static void rc_run(uint32_t lb, uint32_t mode, uint32_t k, uint32_t pg, int late, rc_state_t *a, rc_state_t *b)
 {
-    int32_t d = (lb == B_GLO || (lb == B_FX && k == 3u)) ? -1 : 1;   /* (GLO LEVEL, FX DEPTH: room to move) */
+    int32_t d = (lb == B_GLO || (lb == B_FX && k == 1u)) ? -1 : 1;   /* (GLO LEVEL, FX DEPTH (3.2: KNOB 2): room to move) */
     uint32_t i;
     ui_power_on();
     if (pg < NPAGES) { ui.home = 0; ui.page = (uint8_t)pg; page_entered(); }
@@ -6206,8 +6374,11 @@ static int test_layer_knob_race(void)
                     ok = !memcmp(&a0, &a1, sizeof a0) && !memcmp(&b0, &b1, sizeof b0) &&
                          lk_same(LL[l]) && song.sel == 0u &&
                          !perf_k[0] && !perf_k[1] && !perf_k[2] && !perf_k[3];
-                    if (LL[l] == LAYER_FX)                  /* the layer's own control moved */
-                        ok &= a1.k[k] == 3;
+                    if (LL[l] == LAYER_FX) {                /* the layer's own control moved: (3.2) DEPTH is
+                                                             * KNOB 2 and CRUSH KNOB 4, the engine's slots unchanged */
+                        uint32_t mi = k == 1u ? 3u : k == 3u ? 1u : k;
+                        ok &= a1.k[mi] == 3;
+                    }
                     else if (LL[l] == LAYER_GLO)
                         ok &= a1.p[k][P_LEVEL] == lk_p[k][P_LEVEL] - 3;
                     else if (LL[l] == LAYER_SCL)
@@ -6877,7 +7048,8 @@ static int test_song_layer(void)
     return bad;
 }
 
-/* (0.6.12) LOFI BYTE / FLOAT's RTRG: a note on a sounding voice restarts the formula's time (off: it runs on) */
+/* (2.1) LOFI BYTE / FLOAT's T.CLK: NOTE leaves the formula running on a retriggered voice, FREE takes its time
+ * from the track clock, so the note joins the formula where it is instead of starting it again */
 static int test_lofi_rtrg(void)
 {
     int bad = 0;
@@ -6889,17 +7061,19 @@ static int test_lofi_rtrg(void)
     set_engine_of(t, e); t->engine = t->eng_req;
     t->p[P_E1] = RW_FLOAT; t->p[P_VOICE] = V_MONO; t->p[P_SUS] = 127;   /* (held: the voice sounding) */
     trk_note_on(t, 60, 100);
-    v = &t->v[0];
+    v = &V(t, 0);
     v->ph[0] = v->ph[1] = 12345u;                       /* (the formula running: sounding, its time on) */
     trk_note_on(t, 64, 100);
     bad += check("RETRIG: OFF, a note again: FLOAT's time runs on", v->ph[0] == 12345u && v->ph[1] == 12345u);
     t->p[P_LRTRG] = 1;
     v->ph[0] = v->ph[1] = 12345u;
+    fm1_ms = 3000u;                                     /* (the track clock: 8 steps a millisecond) */
     trk_note_on(t, 62, 100);                            /* (MONO: another key retriggers; the same one held does not) */
-    bad += check("  ON: the formula from its start", v->ph[0] == 0u && v->ph[1] == 0u);
+    bad += check("  FREE: the formula's time comes from the track clock", v->ph[0] == 0u &&
+                 v->s[2] == 24000 && v->ph[1] == (24000u << 8));
     go_title("RETRIG");
-    bad += check("  the RETRIG page: LOFI FLOAT's, RTRG on KNOB 1", str_eq(cur_page()->title, "RETRIG") &&
-                 str_eq(track_desc(t, P_LRTRG)->label, "RTRG"));
+    bad += check("  the RETRIG page: LOFI FLOAT's, T.CLK on KNOB 1", str_eq(cur_page()->title, "RETRIG") &&
+                 str_eq(track_desc(t, P_LRTRG)->label, "T.CLK"));
     t->p[P_E1] = 0;
     bad += check("  not on LOFI's other waves", !page_visible(ui.page));
     return bad;
@@ -6909,7 +7083,7 @@ static int test_lofi_rtrg(void)
 static int gate_on(const track_t *t, uint32_t note)
 {
     uint32_t i;
-    for (i = 0; i < NVOICE; i++) if (t->v[i].active && t->v[i].gate && t->v[i].note == note) return 1;
+    for (i = 0; i < NVOICE; i++) if (V(t, i).active && V(t, i).gate && V(t, i).note == note) return 1;
     return 0;
 }
 static int test_key_latch(void)
@@ -6972,14 +7146,14 @@ static int test_clear_ghosts(void)
     for (k = 0; k < NTRK; k++) {
         uint32_t v;
         on[k] = 0;
-        for (v = 0; v < NVOICE; v++) trk[k].v[v].active = 0;
+        for (v = 0; v < NVOICE; v++) V(&trk[k], v).active = 0;
     }
     for (i = 0; i < 6000u; i++) {                       /* (4 bars and more: the lane plays on) */
         int32_t o[2 * CTL];
         mix_block(o, CTL);
         for (k = 0; k < NTRK; k++) {
             uint32_t v;
-            for (v = 0; v < NVOICE; v++) on[k] += trk[k].v[v].gate;
+            for (v = 0; v < NVOICE; v++) on[k] += V(&trk[k], v).gate;
         }
     }
     for (k = 0, i = 0; k < NTRK; k++) i += on[k];
@@ -8084,20 +8258,20 @@ static int test_load_budget(void)
     trk_note_on(t, 71, 100);
     bad += check("LOAD BUDGET (0.6.18): tight, held notes and no dying tail: a new note still adds a voice",
                  voices_busy() == n0 + 1u && n0 == 3u);
-    t->v[0].gate = 0; t->v[0].stage = 3; t->v[0].env_out = 20000;   /* a loud release tail */
+    V(t, 0).gate = 0; V(t, 0).stage = 3; V(t, 0).env_out = 20000;   /* a loud release tail */
     trk_note_on(t, 74, 100);
     bad += check("  tight: a loud release tail rings out (not taken; with a sequence they all were)",
-                 voices_busy() == n0 + 2u && t->v[0].stage == 3u);
-    t->v[0].env_out = 50;                               /* the same tail nearly gone (under -50 dB) */
+                 voices_busy() == n0 + 2u && V(t, 0).stage == 3u);
+    V(t, 0).env_out = 50;                               /* the same tail nearly gone (under -50 dB) */
     trk_note_on(t, 76, 100);
     bad += check("  tight: a dying tail makes the room (the count stays)", voices_busy() == n0 + 2u);
     load_tight = 0;
-    { uint32_t i; for (i = 0; i < NVOICE; i++) if (t->v[i].note == 76) t->v[i].gate = 0, t->v[i].active = 0; }
+    { uint32_t i; for (i = 0; i < NVOICE; i++) if (V(t, i).note == 76) V(t, i).gate = 0, V(t, i).active = 0; }
     n0 = voices_busy();
     trk_note_on(t, 77, 100);
     bad += check("  calm: a new note adds a voice", voices_busy() == n0 + 1u);
     load_tight = 1;
-    trk_all_off(t); { uint32_t i; for (i = 0; i < NVOICE; i++) t->v[i].active = 0; }
+    trk_all_off(t); { uint32_t i; for (i = 0; i < NVOICE; i++) V(t, i).active = 0; }
     trk_note_on(t, 60, 100);
     bad += check("  tight with nothing sounding: the first note still plays", voices_busy() == 1u);
     load_tight = 0;
@@ -8341,6 +8515,101 @@ static int test_rec_layer(void)
     return bad;
 }
 
+
+/* (3.2) THE PUNCH-IN LATCH, the whole matrix, as a player works it: the map's LATCH on, then each of
+ * the fifteen bank-1 keys and the five of bank 2 latches its own effect and keeps it after the key AND
+ * FX are let go; a second press lets it go; the six mutes latch on their own; three effects at once and
+ * the fourth refused; a latched effect survives a note on the closed map, a bank change and repeated
+ * toggles; nothing is left stuck. The flags alone were tested before (#40, 2.0); this is the sequence
+ * the four reports were about. */
+static int test_punch_latch_matrix(void)
+{
+    int bad = 0, ok = 1, okm = 1, okx = 1, okn = 1, okb = 1, okz = 1;
+    uint32_t i, m0[NTRK], k;
+    ui_power_on();
+    fx_latch = PREF_LATCH | PREF_ACCEL_OFF;             /* the map's LATCH, on: what the card says */
+    frame();
+    ok = perf_latch_on && !perf_latched;
+    btn_down(B_FX); frames(100);
+    /* bank 1: F3 .. D#4 is PF bit 0 .. 14 (R8 R16 R32 LPF HPF OCT- OCT+ HALF DEC- DEC+ S8 S16 ATK+ ARP RND) */
+    for (i = 0; i < 15u; i++) {
+        key_down(white(i)); frame(); key_up(white(i)); frame();
+        ok &= (perf_latched & (1u << i)) != 0u && !(perf_held & (1u << i));
+        key_down(white(i)); frame(); key_up(white(i)); frame();
+        ok &= !(perf_latched & (1u << i));             /* the second press lets it go */
+    }
+    /* three at once, the fourth refused (the mutes are not effects: no cap on them) */
+    for (i = 3; i < 6u; i++) { key_down(white(i)); frame(); key_up(white(i)); frame(); }
+    key_down(white(6)); frame(); key_up(white(6)); frame();
+    okx = perf_count(perf_latched) == 3u && !(perf_latched & (1u << 6));
+    /* FX let go with the map closed: the three stay, and a key is a note again (no effect of its own) */
+    btn_up(B_FX); frames(64);
+    okn = !ui.layer && perf_count(perf_latched) == 3u;
+    key_down(white(0)); frame();
+    okn &= gates() > 0 && perf_count(perf_latched) == 3u;
+    key_up(white(0)); frame();
+    okn &= gates() == 0 && perf_count(perf_latched) == 3u;
+    /* back in the map, each one lets go; nothing survives */
+    btn_down(B_FX); frames(100);
+    for (i = 3; i < 6u; i++) { key_down(white(i)); frame(); key_up(white(i)); frame(); }
+    okn &= !perf_latched && !perf_held;
+    /* the six mutes: one each, independent, kept when FX is let go (a latch by design, not FX LATCH) */
+    for (i = 0; i < NTRK; i++)
+        m0[i] = (uint32_t)trk[i].p[P_MUTE];
+    for (i = 0; i < NTRK; i++) {
+        uint32_t b = key_at(1, i);
+        key_down(b); frame(); key_up(b); frame();
+        okm &= (trk[i].p[P_MUTE] != 0) != (m0[i] != 0);
+    }
+    for (i = 0; i < NTRK; i++)
+        if (i != 2u)
+            okm &= (trk[i].p[P_MUTE] != 0) != (m0[i] != 0) && (i == 2u || trk[i].p[P_MUTE] == trk[i].p[P_MUTE]);
+    btn_up(B_FX); frames(64);
+    okm &= trk[0].p[P_MUTE] != 0 && trk[1].p[P_MUTE] != 0 && trk[2].p[P_MUTE] != 0;
+    /* a latched effect and the mutes together: an effect does not eat a mute and a mute not the effect */
+    btn_down(B_FX); frames(100);
+    key_down(white(3)); frame(); key_up(white(3)); frame();       /* LPF latched */
+    okm &= (perf_latched & PF_BIT(PF_LPF)) != 0u;
+    for (i = 0; i < NTRK; i++) {                                 /* the mutes back off */
+        uint32_t b = key_at(1, i);
+        key_down(b); frame(); key_up(b); frame();
+        okm &= trk[i].p[P_MUTE] == m0[i];
+    }
+    okm &= (perf_latched & PF_BIT(PF_LPF)) != 0u;
+    key_down(white(3)); frame(); key_up(white(3)); frame();       /* LPF let go: the map clean */
+    okm &= !perf_latched;
+    /* the bank: A#4 held 0.7 s switches it, a key latches the bank-2 effect, the same again and back */
+    k = key_at(1, 7);
+    key_down(k); frames(720); key_up(k); frame(); frames(64);
+    okb = pfx_bank == 1 && !perf_latched;                        /* the bank switch, the latch as it was */
+    key_down(white(0)); frame(); key_up(white(0)); frame();      /* REV */
+    okb &= (perf_latched & PF_BIT(PF_REV)) != 0u;
+    key_down(k); frames(720); key_up(k); frame(); frames(64);
+    okb &= pfx_bank == 0 && (perf_latched & PF_BIT(PF_REV)) != 0u;   /* its bit is its own, bank or not */
+    key_down(white(0)); frame(); key_up(white(0)); frame();      /* (bank 1 F3: R8, not REV) */
+    okb &= (perf_latched & PF_BIT(PF_R8)) != 0u && (perf_latched & PF_BIT(PF_REV)) != 0u;
+    btn_up(B_FX); frames(64);
+    /* OFF: a key is momentary again and nothing stays; no note is left sounding */
+    btn_down(B_FX); frames(100);
+    fx_latch = PREF_ACCEL_OFF;
+    frame();
+    okz = !perf_latch_on && !perf_latched;
+    key_down(white(4)); frame();
+    okz &= (perf_held & PF_BIT(PF_HPF)) != 0u;
+    okz &= (perf_latched & PF_BIT(PF_HPF)) == 0u;
+    key_up(white(4)); frame();
+    okz &= !perf_held && !perf_latched;
+    btn_up(B_FX); frames(64);
+    okz &= gates() == 0 && !ui.layer;
+    bad += check("PUNCH-IN LATCH: all fifteen bank-1 keys latch their own effect and let it go again, FX up", ok);
+    bad += check("  three effects at once, the fourth refused", okx);
+    bad += check("  FX let go: the latched effects stay, a key is a note again, nothing stuck", okn);
+    bad += check("  the six mutes latch one each, stay independent, and live beside a latched effect", okm);
+    bad += check("  bank 2: A#4 switches it, its effects latch on their own bit, back to bank 1", okb);
+    bad += check("  LATCH OFF: momentary again, nothing left latched, no note stuck", okz);
+    return bad;
+}
+
 /* #40: KNOB 4's DEPTH rises to the right (it fell); MENU > FX LATCH ON: a key with FX turns its effect on, again off,
  * nothing held needed; the macros stay after FX; FX + OCT- all off; the menu turns them off; FX's LED shows them;
  * OFF (the default, and every older setting): as before */
@@ -8350,23 +8619,39 @@ static int test_fx_latch(void)
     uint32_t lpf = white(3), m1 = black(0);
     ui_power_on();
     btn_down(B_FX); frame();
-    turn(EN_K4, 5);  ok = perf_k[3] == 0;                         /* DEPTH 100 %: right stays at 100 */
-    turn(EN_K4, -30); ok &= perf_k[3] == 30;                      /* left: 70 % */
-    turn(EN_K4, 10); ok &= perf_k[3] == 20;                       /* right: 80 % */
+    turn(EN_K2, 5);  ok = perf_k[3] == 0;                         /* (3.2) KNOB 2: DEPTH 100 %: right stays at 100 */
+    turn(EN_K2, -30); ok &= perf_k[3] == 30;                       /* left: 70 % */
+    turn(EN_K2, 10); ok &= perf_k[3] == 20;                        /* right: 80 % */
     btn_up(B_FX); frame();
-    bad += check("#40 FX + KNOB 4: DEPTH rises to the right, falls to the left", ok && !perf_k[3]);
-    /* OFF (the default; a byte older settings leave 0) */
+    bad += check("#40 FX + KNOB 2: DEPTH rises to the right, falls to the left", ok && !perf_k[3]);
+    /* (3.2) the settings' revision brings LATCH ON once (prefs_update); after that the player's
+     * choice sticks, including OFF. Same record, both directions. */
     ui_power_on();
-    ok = !(fx_latch & 1u);
+    fx_latch = PREF_ACCEL_OFF;
+    prefs_rev = 2u;
+    prefs_update();
+    ok = (fx_latch & 1u) && prefs_rev == 3u;
+    prefs_update();
+    ok &= (fx_latch & 1u) != 0u;
+    fx_latch = PREF_ACCEL_OFF;                                /* turned OFF: the next boots keep it */
+    prefs_update();
+    ok &= !(fx_latch & 1u);
+    fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
+    frame();
+    btn_down(B_FX); key_down(lpf); frame(); key_up(lpf); frame(); btn_up(B_FX); frame();
+    ok &= perf_latched == PF_BIT(PF_LPF);
+    perf_latched = 0;
+    fx_latch = PREF_ACCEL_OFF;
+    frame();
     btn_down(B_FX); key_down(lpf); frame(); key_up(lpf); frame(); btn_up(B_FX); frame();
     ok &= !perf_latched && !perf_held;
-    bad += check("  FX LATCH OFF by default: a key's effect ends when it is let go", ok);
+    bad += check("  FX LATCH ON at power-on (3.2): a key's effect stays; turned OFF: it ends with the key", ok);
     /* ON */
     ui_power_on();
     fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
     frame();                                                      /* (ui_input hands the setting to the ISR) */
     btn_down(B_FX); key_down(lpf); frame(); key_up(lpf); frame();
-    turn(EN_K2, 30);
+    turn(EN_K4, 30);                                              /* (3.2) CRUSH, KNOB 4 */
     ok = perf_latched == PF_BIT(PF_LPF) && !perf_held && ui.layer == LAYER_FX && str_eq(layer_head(), "[FX] LATCH:YES") &&
          (layer_leds(0) >> lpf) & 1u;
     btn_up(B_FX); frame();
@@ -8393,7 +8678,7 @@ static int test_fx_latch(void)
     btn_up(B_FX); frame();
     bad += check("  FX + OCT-: every latched effect and macro off (no octave)", ok);
     /* the quick combo: FX down and OCT- before HOLD, nothing else touched (it was nobody's: no ALL OFF, no octave) */
-    btn_down(B_FX); key_down(lpf); frame(); key_up(lpf); frame(); turn(EN_K2, 20); btn_up(B_FX); frame();
+    btn_down(B_FX); key_down(lpf); frame(); key_up(lpf); frame(); turn(EN_K4, 20); btn_up(B_FX); frame();
     frames(400);
     ok = perf_latched == PF_BIT(PF_LPF) && perf_k[1] == 20 && !ui.layer;
     btn_down(B_FX); frame(); btn_down(B_OCTDN); frame();
@@ -8428,7 +8713,12 @@ static int test_fx_latch(void)
         btn_up(B_FX); frame();
         ok &= !ui.layer && ui.home == h && ui.page == pg;
     }
-    btn_down(B_FX); frame(); frames(800); press(B_OCTUP); btn_up(B_FX); frame();
+    btn_down(B_FX); frame(); frames(800); press(B_OCTUP);
+    ok &= song.octave == -1 && perf_latch_on && (ui_prefs & PREF_LATCH);   /* (3.1) the map's OCT+: LATCH */
+    press(B_OCTUP);                                               /* again: off, and still no octave */
+    ok &= song.octave == -1 && !perf_latch_on && !(ui_prefs & PREF_LATCH);
+    btn_up(B_FX); frame();
+    press(B_OCTUP);                                               /* no FX: the octave, as always */
     ok &= song.octave == 0;
     btn_down(B_FX); frame(); btn_up(B_FX); frame();               /* FX tap: its page still */
     ok &= !ui.home && cur_page()->fam == FAM_FX;
@@ -8460,10 +8750,10 @@ static int test_fx_latch(void)
          * effects and the knobs are FX's without FX held; OCT- all off; FX again: unlocked, the effects stay */
         fx_latch = PREF_LATCH | PREF_ACCEL_OFF;
         go_home(); frames(400);
-        btn_down(B_FX); frames(800); btn_up(B_FX); frames(64);
+        btn_down(B_FX); frames(4300); btn_up(B_FX); frames(64);   /* (2.0) the map pins on four seconds */
         ok = fx_lock && ui.layer == LAYER_FX;
         key_down(lpf); frame(); key_up(lpf); frame();
-        turn(EN_K2, 10);
+        turn(EN_K4, 10);                                          /* (3.2) CRUSH, KNOB 4 */
         ok &= perf_latched == PF_BIT(PF_LPF) && perf_k[1] == 10 && ui.layer == LAYER_FX;
         press(B_OCTDN);
         ok &= !perf_latched && !perf_k[1] && song.octave == 0;
@@ -8815,9 +9105,9 @@ static uint32_t chord_sounding(const track_t *t, uint8_t *nn)
 {
     uint32_t i, n = 0, j;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate) {
-            for (j = 0; j < n && nn[j] != t->v[i].note; j++) {}
-            if (j == n && n < 8u) nn[n++] = t->v[i].note;
+        if (V(t, i).active && V(t, i).gate) {
+            for (j = 0; j < n && nn[j] != V(t, i).note; j++) {}
+            if (j == n && n < 8u) nn[n++] = V(t, i).note;
         }
     for (i = 1; i < n; i++)
         for (j = i; j > 0 && nn[j] < nn[j - 1]; j--) { uint8_t x = nn[j]; nn[j] = nn[j - 1]; nn[j - 1] = x; }
@@ -8898,7 +9188,7 @@ static int test_trans_seq(void)
     transport_req = 1; ui_input();
     for (i = 0; i < 8u; i++) events_block(CTL);
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].gate && t->v[i].note == 60u) f = (uint32_t)t->v[i].pitch16;
+        if (V(t, i).active && V(t, i).gate && V(t, i).note == 60u) f = (uint32_t)V(t, i).pitch16;
     ok = f == 62u * 16u;
     transport_req = 2; ui_input();
     bad += check("SCL TRANS +2: the sequence's C4 sounds D4 (as a key's would)", ok);
@@ -8965,15 +9255,15 @@ static int test_chord_glide(void)
     t->step[1].note[3] = 72; t->step[1].vel = 100; t->step[1].flags = SF_SLIDE;
     t->step[2].time = ST_NOTE; t->step[2].n = 3; t->step[2].note[0] = 60; t->step[2].note[1] = 64; t->step[2].note[2] = 67;
     t->step[2].vel = 100;
-    for (k = 0; k < NVOICE; k++) t->v[k].active = 0;    /* (0.6.87: no tail of an earlier test's notes still releasing, */
+    for (k = 0; k < NVOICE; k++) V(t, k).active = 0;    /* (0.6.87: no tail of an earlier test's notes still releasing, */
     memset(fg_set, 0, sizeof fg_set);                   /* nor the PLAYHEADS an earlier one left on: undo keeps them) */
     transport_req = 1; ui_input();
     for (i = 0; i < 8u; i++) events_block(CTL);
-    for (k = 0; k < NVOICE; k++) ages[k] = t->v[k].active ? t->v[k].age : 0u;
+    for (k = 0; k < NVOICE; k++) ages[k] = V(t, k).active ? V(t, k).age : 0u;
     while (t->seq_idx == 0u) events_block(CTL);         /* into step 2 */
     for (i = 0; i < 2u; i++) events_block(CTL);
     for (k = 0; k < NVOICE; k++) {
-        voice_t *v = &t->v[k];
+        voice_t *v = &V(t, k);
         if (!v->active || !v->gate) continue;
         nact++;
         if (ages[k] && v->age != ages[k]) continue;
@@ -8983,15 +9273,15 @@ static int test_chord_glide(void)
     {   /* the old voices: same ages, gliding toward D F A (pitch_cur between) */
         uint32_t kept = 0;
         for (k = 0; k < NVOICE; k++)
-            if (ages[k] && t->v[k].active && t->v[k].age == ages[k] && t->v[k].pitch16 != t->v[k].pitch_cur) kept++;
+            if (ages[k] && V(t, k).active && V(t, k).age == ages[k] && V(t, k).pitch16 != V(t, k).pitch_cur) kept++;
         ok &= kept == 3u;
     }
     bad += check("chord glide (SLD, POLY): 3 -> 4 notes, three voices glide on unstruck, the fourth starts and fades in", ok);
     while (t->seq_idx == 1u) events_block(CTL);         /* into step 3: four -> three */
     for (i = 0; i < 2u; i++) events_block(CTL);
     for (k = 0, nact = 0; k < NVOICE; k++) {
-        if (t->v[k].active && t->v[k].gate) nact++;
-        else if (t->v[k].active && t->v[k].stage == 3u) rel++;   /* (C5 left: the nearest new note is C5 itself) */
+        if (V(t, k).active && V(t, k).gate) nact++;
+        else if (V(t, k).active && V(t, k).stage == 3u) rel++;   /* (C5 left: the nearest new note is C5 itself) */
     }
     ok = nact == 3u && rel == 1u;
     bad += check("chord glide: 4 -> 3 notes, the one left goes to its nearest new note as it is released", ok);
@@ -9001,13 +9291,13 @@ static int test_chord_glide(void)
     t->p[P_GLIDE] = 64; t->p[P_SGATE] = 60;            /* (a short GATE: held to the next chord all the same) */
     transport_req = 1; ui_input();
     for (i = 0; i < 8u; i++) events_block(CTL);
-    for (k = 0; k < NVOICE; k++) ages[k] = t->v[k].active && t->v[k].gate ? t->v[k].age : 0u;
+    for (k = 0; k < NVOICE; k++) ages[k] = V(t, k).active && V(t, k).gate ? V(t, k).age : 0u;
     while (t->seq_idx == 0u) events_block(CTL);
     for (i = 0; i < 2u; i++) events_block(CTL);
     {
         uint32_t kept = 0;
         for (k = 0; k < NVOICE; k++)
-            if (ages[k] && t->v[k].active && t->v[k].gate && t->v[k].age == ages[k]) kept++;
+            if (ages[k] && V(t, k).active && V(t, k).gate && V(t, k).age == ages[k]) kept++;
         ok = kept == 3u;
     }
     bad += check("chord glide by itself: GLIDE on a POLY track, no SLD, a short GATE: the chord's voices go on into the next", ok);
@@ -9025,12 +9315,12 @@ static int test_chord_glide(void)
         while (t->seq_idx == 0u) mix_block(gl_o, CTL);
         mix_block(gl_o, CTL);
         for (k = 0; k < NVOICE; k++)
-            if (t->v[k].active && t->v[k].gate && t->v[k].pitch16 != t->v[k].pitch_cur) { p0 = t->v[k].pitch_cur; tgt = t->v[k].pitch16; break; }
+            if (V(t, k).active && V(t, k).gate && V(t, k).pitch16 != V(t, k).pitch_cur) { p0 = V(t, k).pitch_cur; tgt = V(t, k).pitch16; break; }
         while (t->seq_idx < 8u) mix_block(gl_o, CTL);
-        if (k < NVOICE) mid = t->v[k].pitch_cur;
+        if (k < NVOICE) mid = V(t, k).pitch_cur;
         while (t->seq_idx < 15u) mix_block(gl_o, CTL);
         for (i = 0; i < 400u && t->seq_idx == 15u; i++) mix_block(gl_o, CTL);
-        if (k < NVOICE) end = t->v[k].pitch_cur;
+        if (k < NVOICE) end = V(t, k).pitch_cur;
         ok = k < NVOICE && mid != tgt && (mid - p0) * (tgt - mid) > 0 && end == tgt;
         bad += check("chord glide over the chord's TIEs (GLIDE 127): halfway at the 8th step, there by the last", ok);
         transport_req = 2; ui_input();
@@ -9095,46 +9385,50 @@ static int test_click_menu(void)
     turn(EN_K4, 1); ok &= cin_bars == 1u;
     turn(EN_K4, 1); ok &= cin_bars == 2u;
     turn(EN_PRESET, 1); ok &= ui.menu_sel == MI_TRACKS;
-    turn(EN_K1, -1); frame(); ok &= trk_live == 4u && !(ui_rec_prefs & 0x80u);   /* (0.6.18) TRACKS 4 */
-    turn(EN_K1, 1); frame(); ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u);   /* 6 */
+    trks_put(0); frame(); ok &= trk_live == 4u && !(ui_rec_prefs & 0x80u) && menu_get(MI_TRACKS) == 0u;
+    turn(EN_K1, 1); frame(); ok &= trk_live == 5u && !(ui_rec_prefs & 0x80u) && menu_get(MI_TRACKS) == 1u;   /* (3.4) 5 */
+    turn(EN_K1, 1); frame(); ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u) && menu_get(MI_TRACKS) == 2u;   /* 6 */
+    turn(EN_K1, 1); frame(); ok &= trk_live == NTRK;                                  /* stops at six */
     turn(EN_PRESET, 1); ok &= ui.menu_sel == MI_LOWCUT;   /* (wraps within AUDIO) */
     press(B_HOME);
     ok &= !ui.menu;
     bad += check("MENU > AUDIO: PRESETS to CLICK, CLICK LEVEL, COUNT-IN, TRACKS; knobs / OCT step them, applied at once", ok);
     {   /* (0.6.18) TRACKS 4 LOW: T5 takes no note and sounds nothing (its voices off); TRACKS 6: it plays again */
         uint32_t k, on = 0, sel = song.sel;
-        ui_rec_prefs &= (uint8_t)~0x80u; frame();
+        trks_put(0); frame();
         trk_note_on(&trk[4], 60, 100);
         events_block(CTL);
-        for (k = 0; k < NVOICE; k++) on |= trk[4].v[k].active | trk[4].v[k].gate;
+        for (k = 0; k < NVOICE; k++) on |= V(&trk[4], k).active | V(&trk[4], k).gate;
         ok = trk_live == 4u && !on;
         trk_all_off(&trk[4]);
-        ui_rec_prefs |= 0x80u; frame();
+        trks_put(2); frame();
         trk_note_on(&trk[4], 60, 100);
         events_block(CTL);
-        for (k = 0; k < NVOICE; k++) on |= trk[4].v[k].gate;
+        for (k = 0; k < NVOICE; k++) on |= V(&trk[4], k).gate;
         ok &= trk_live == NTRK && on;
         trk_all_off(&trk[4]);
         events_block(CTL);
         song.sel = (uint8_t)sel; ui.msg_t = 0; ui.msg[0] = ui.msg2[0] = 0; frame();
         bad += check("TRACKS 4 FULL: T5 asleep (no note, no voice); 6 wakes it", ok);
-        ui_rec_prefs &= (uint8_t)~0x80u; frame();       /* (0.6.28) a note sent to it: the screen says why it is silent */
+        trks_put(0); frame();                           /* (0.6.28) a note sent to it: the screen says why it is silent */
         ui.msg_t = 0; ui.msg[0] = 0; fm1_ms += 5000u;
         trk_note_on(&trk[4], 60, 100); frame();
-        ok = msg_is("T5-T6 ASLEEP: ") && str_eq(ui.msg2, "GLO>SYSTEM>TRACKS 6");
+        ok = msg_is("T5-T6 ASLEEP: ") && str_eq(ui.msg2, "GLO>SYSTEM>TRACKS");
         ui.msg_t = 0; ui.msg[0] = ui.msg2[0] = 0;
-        ui_rec_prefs |= 0x80u; frame();
-        bad += check("TRACKS 4: a note for T5 says T5-T6 ASLEEP, GLO>SYSTEM>TRACKS 6", ok);
+        trks_put(2); frame();
+        bad += check("TRACKS 4: a note for T5 says T5-T6 ASLEEP, GLO>SYSTEM>TRACKS", ok);
     }
     {   /* (0.6.19) GLO > SYSTEM's TRKS (KNOB 2): the same setting, both ways */
         go_title("SYSTEM");
-        turn(EN_K1, -1); frame();
+        trks_put(0); frame();
         ok = trk_live == 4u && !(ui_rec_prefs & 0x80u) && trks_ui == 0;
+        turn(EN_K1, 1); frame();                        /* (3.4) 4 -> 5 -> 6 */
+        ok &= trk_live == 5u && !(ui_rec_prefs & 0x80u) && trks_ui == 1 && msg_is("5 TRACKS: T6 ASLEEP");
         turn(EN_K1, 1); frame();
-        ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u) && trks_ui == 1 && msg_is("6 TRACKS: MORE CPU");
-        ui_rec_prefs &= (uint8_t)~0x80u; frame();
+        ok &= trk_live == NTRK && (ui_rec_prefs & 0x80u) && trks_ui == 2 && msg_is("6 TRACKS: FULL");
+        trks_put(0); frame();
         ok &= trks_ui == 0;                             /* (MENU's change shown there) */
-        ui_rec_prefs |= 0x80u; frame();
+        trks_put(2); frame();
         ok &= load_ui == 2 && sys_load == LOAD_FULL;    /* (0.6.30) KNOB 2 LOAD: FULL, the default */
         turn(EN_K2, -1); frame();
         ok &= load_ui == 1 && sys_load == LOAD_LITE && ui_load == 1u && msg_is("LOAD LITE: LIGHTER FX");
@@ -9143,7 +9437,7 @@ static int test_click_menu(void)
         load_put(2u); frame();
         ok &= load_ui == 2 && sys_load == LOAD_FULL && !ui_load;
         ui.msg_t = 0; ui.msg[0] = 0; press(B_HOME); frame();
-        bad += check("GLO > SYSTEM: KNOB 1 TRACKS 4 / 6, KNOB 2 LOAD ECO / LITE / FULL, the MENU's settings both ways", ok);
+        bad += check("GLO > SYSTEM: KNOB 1 TRACKS 4 / 5 / 6, KNOB 2 LOAD ECO / LITE / FULL, the MENU's settings both ways", ok);
     }
     {   /* (0.6.57) LOAD LITE / ECO: the panel's animation at most every 50 / 70 ms; FULL as it changes; a new page
          * at once; the values snap (no rolling digits) */
@@ -9180,11 +9474,11 @@ static int test_click_menu(void)
         song.g[G_RTYPE] = 4; mix_block(o, CTL); mix_block(o, CTL);
         ok &= fx.rtype == 0u;                           /* CLOUD as ROOM */
         ft.engine = ENGI_FM6;
-        ok &= trk_nvoice(&ft) == LITE_FM6_POLY;         /* FM6: two voices */
+        ok &= trk_vcap(&ft) == LITE_FM6_POLY;         /* FM6: two voices */
         song.g[G_RTYPE] = 2; go_title("REVERB"); frame();
         ok &= strstr(ui.col[0], "|SHIMR|LITE") != 0;   /* the card says it is swapped */
         load_put(2u);
-        ok &= !sys_load && trk_nvoice(&ft) == FM6_POLY;
+        ok &= !sys_load && trk_vcap(&ft) == FM6_POLY;
         song.g[G_RTYPE] = 2; mix_block(o, CTL); mix_block(o, CTL);
         ok &= fx.rtype == 2u;                           /* FULL: SHIMMER again */
         press(B_HOME); frame();
@@ -9199,11 +9493,11 @@ static int test_click_menu(void)
             load_put(0u);
             song.g[G_RTYPE] = 0; mix_block(o, CTL); mix_block(o, CTL);
             ok &= sys_load == LOAD_ECO && fx.rtype == 1u && !slicer_on() && song.g[G_SLMODE] == 1;
-            ok &= trk_nvoice(&ft) == ECO_POLY;
+            ok &= trk_vcap(&ft) == ECO_POLY;
             ft.engine = ENGI_FM6;
-            ok &= trk_nvoice(&ft) == LITE_FM6_POLY;
+            ok &= trk_vcap(&ft) == LITE_FM6_POLY;
             ft.engine = ENGI_DRUM;
-            ok &= trk_nvoice(&ft) == (ENGINES[ENGI_DRUM]->poly ? ENGINES[ENGI_DRUM]->poly : NVOICE);
+            ok &= trk_vcap(&ft) == (ENGINES[ENGI_DRUM]->poly ? ENGINES[ENGI_DRUM]->poly : NVOICE);
             for (i = 0; i < NPAGES; i++) {
                 int sl = PAGES[i].graph == GR_SLCR || PAGES[i].graph == GR_SLPIT || str_eq(PAGES[i].title, "CHORUS");
                 if (sl) hidden &= !page_visible(i);
@@ -10233,14 +10527,20 @@ static int qg_monitor_follows(void)
     uint32_t a, b, c, l0, l1;
     ui_power_on();
     go_title("MONITOR"); frame(); frame();
+    bad += check("GLO > MONITOR: with no block ever timed, CPU LOAD says N/A, not 0 %", !load_diag.valid);
     song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
     a = qg_band(8, 232, 108, 122);                      /* row 2: Y_GRAPH 76 + GOY 11 + 22 */
-    song.cpu_q8 = 200u; fm1_ms += 120u; frame(); frame();
-    b = qg_band(8, 232, 108, 122);
-    song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
-    c = qg_band(8, 232, 108, 122);
-    bad += check("GLO > MONITOR: the CPU LOAD row is drawn from song.cpu_q8 (same value, same pixels)",
-                 a != b && a == c);
+    load_diag.valid = 1u;                               /* (3.0) an ISR has measured a block now */
+    fm1_ms += 120u; frame(); frame();
+    {   /* .. and from then on the row is a function of that measurement and of nothing else */
+        uint32_t z = qg_band(8, 232, 108, 122);
+        song.cpu_q8 = 200u; fm1_ms += 120u; frame(); frame();
+        b = qg_band(8, 232, 108, 122);
+        song.cpu_q8 = 40u; fm1_ms += 120u; frame(); frame();
+        c = qg_band(8, 232, 108, 122);
+        bad += check("GLO > MONITOR: once measured, the CPU LOAD row shows song.cpu_q8 (same value, same pixels)",
+                     a != z && z != b && z == c);
+    }
     l0 = qg_band(8, 232, 176, 192);                    /* row 7: 76 + 11 + 92 */
     load_diag.late = 5; load_diag.shed = 2; fm1_ms += 120u; frame(); frame();
     l1 = qg_band(8, 232, 176, 192);
@@ -10410,6 +10710,7 @@ int main(void)
     bad += test_layer_knob_leak();
     bad += test_layer_knob_race();
     bad += test_fx_latch();
+    bad += test_punch_latch_matrix();
     bad += test_rec_layer();
     bad += test_song_layer();
     bad += test_project_page();

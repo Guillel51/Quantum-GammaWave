@@ -1,370 +1,227 @@
-<p align="center">
-  <img src="assets/branding/quantum_banner.png" alt="Quantum GammaWave (QG-1) Banner" width="100%">
-</p>
+<div align="center">
 
-# QUANTUM GAMMAWAVE (QG-1) — M-VAVE FM-1 Synthesizer & Groovebox Firmware
+![Quantum GammaWave banner](assets/branding/quantum_banner.png)
 
-<p align="center">
-  <strong>Advanced Open-Source Firmware & Web Studio for the M-VAVE FM-1 Groovebox (Dual-Core JieLi AC791N SoC)</strong><br>
-  <em>10-Voice Psychoacoustic Polyphony · Direct Form II Parametric Master EQ · 4 Harmonic Saturations · 17 Curated Themes</em>
-</p>
+# QUANTUM GAMMAWAVE
 
-<p align="center">
-  <img src="assets/screenshots/quantum_01_home.png" alt="Quantum GammaWave HOME Screen" width="46%">
-  &nbsp;&nbsp;
-  <img src="assets/screenshots/quantum_18_fullscreen_visualizer.png" alt="Quantum GammaWave Full-Screen Visualizer" width="46%">
-</p>
-<p align="center">
-  <em>Pantallas reales de Quantum GammaWave en resolución nativa 240×240: a la izquierda, la pantalla principal HOME con analizador de espectro de 28 barras, sol Hearth y curva de filtro en tiempo real en la paleta insignia QUANTUM; a la derecha, el visualizador de pantalla completa (<code>HOME → HOME</code>) con el tema sonando: osciloscopio de fósforo doble, traza orbital de fase, las 16 barras de espectro con sus picos, los medidores de las seis pistas y las motas cuánticas en sus órbitas.</em>
-</p>
+**Twelve voices. Six tracks. Eight synthesis engines. One M-VAVE FM-1.**
 
-**Quantum GammaWave (QG-1)** is an independent, advanced open-source custom firmware and Web Studio workstation engineered specifically for the **M-VAVE FM-1 multitrack FM synthesizer and groovebox** (powered by the dual-core JieLi AC791N SoC). It delivers expanded 10-voice polyphony with psychoacoustic voice stealing, an expanded warm harmonic distortion suite, full-screen audio visualization, fixed-point parametric master EQ, real-time diagnostic telemetry, 17 curated visual themes, and an extensive preset sound library.
-
-<table align="center">
+<table>
   <tr>
-    <td colspan="2" align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/"><img alt="WEB SITE" src="https://img.shields.io/badge/WEB%20SITE-QUANTUM%20GAMMAWAVE-3effff?style=for-the-badge&labelColor=000410" height="58"></a></td>
-    <td align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/emulator/"><img alt="WEB EMULATOR" src="https://img.shields.io/badge/WEB%20EMULATOR-EMULADOR-00e5a3?style=for-the-badge&labelColor=000410" height="38"></a></td>
-    <td align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-1f6feb?style=for-the-badge&labelColor=000410" height="30"></a></td>
-    <td align="center"><a href="web/EDITOR_PROTOCOL.md"><img alt="WEBAPP / EDITOR" src="https://img.shields.io/badge/WEBAPP%20%2F%20EDITOR-24395e?style=for-the-badge&labelColor=000410" height="30"></a></td>
-    <td align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="30"></a></td>
+    <td colspan="4" align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/"><img alt="WEB SITE" src="https://img.shields.io/badge/WEB%20SITE-QUANTUM%20GAMMAWAVE-3effff?style=for-the-badge&labelColor=000410" height="56"></a></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><a href="https://github.com/Guillel51/Quantum-GammaWave/releases"><img alt="FLASH FM-1" src="https://img.shields.io/badge/FLASH%20FM--1-ff5500?style=for-the-badge&labelColor=000410" height="30"></a></td>
-    <td colspan="2" align="center"><a href="LICENSE"><img alt="LICENSE" src="https://img.shields.io/badge/LICENSE-repository-24395e?style=for-the-badge&labelColor=000410" height="26"></a></td>
-    <td colspan="2" align="center"><a href="https://www.gnu.org/licenses/gpl-3.0-standalone.html"><img alt="GPL-3.0-ONLY" src="https://img.shields.io/badge/GPL--3.0--ONLY-copyleft-24395e?style=for-the-badge&labelColor=000410" height="26"></a></td>
+    <td colspan="1" align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/emulator/"><img alt="WEB EMULATOR" src="https://img.shields.io/badge/EMULATOR-BROWSER-00e5a3?style=for-the-badge&labelColor=000410" height="40"></a></td>
+    <td colspan="2" align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO + WEBAPP / EDITOR" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a></td>
+    <td colspan="1" align="center"><a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a></td>
+  </tr>
+  <tr>
+    <td colspan="1" align="center"><a href="LICENSE"><img alt="LICENSE" src="https://img.shields.io/badge/LICENSE-GPL--3.0-3effff?style=for-the-badge&labelColor=000410" height="20"></a></td>
+    <td colspan="2" align="center"><a href="https://www.gnu.org/licenses/gpl-3.0-standalone.html"><img alt="GPL 3.0" src="https://img.shields.io/badge/GPL-3.0-00e5a3?style=for-the-badge&labelColor=000410" height="20"></a></td>
+    <td colspan="1" align="center"><a href="https://github.com/Guillel51/Quantum-GammaWave"><img alt="REPOSITORY" src="https://img.shields.io/badge/REPOSITORY-GITHUB-1f6feb?style=for-the-badge&labelColor=000410" height="20"></a></td>
   </tr>
 </table>
 
-**<big>Web Site</big> | <big>[guillel51.github.io/Quantum-GammaWave](https://guillel51.github.io/Quantum-GammaWave/)</big>**
-Firmware, screenshots, compatibility and every entry point below, in one page.
 
-**Web Emulator** | [guillel51.github.io/Quantum-GammaWave/emulator/](https://guillel51.github.io/Quantum-GammaWave/emulator/)
-Runs the firmware as WebAssembly, no install and no hardware.
+<a href="https://guillel51.github.io/Quantum-GammaWave/emulator/"><img alt="EMULATOR" src="https://img.shields.io/badge/EMULATOR-BROWSER-00e5a3?style=for-the-badge&labelColor=000410" height="40"></a>
+<a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
+<a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-**Web Studio** | [guillel51.github.io/Quantum-GammaWave/webapp/editor/](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)
-Editor, sequencer and telemetry over Web MIDI, or in mock mode without an FM-1.
+`v2.7.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
-**USB Installer** | [guillel51.github.io/Quantum-GammaWave/webapp/installer/](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)
-Checks the package and the device identity before it writes anything.
-
-> **Quantum GammaWave (QG-1)** is dedicated firmware and workstation software engineered specifically for the M-VAVE FM-1 groovebox hardware.
-> - **GitHub Repository:** <https://github.com/Guillel51/Quantum-GammaWave>
-> - **Official Documentation:** [English Manual (`docs/MANUAL.md`)](docs/MANUAL.md) · [Manual en Español (`docs/MANUAL.es.md`)](docs/MANUAL.es.md)
+</div>
 
 ---
 
-## Portal and interface, current build
+## What it is
 
-| Public portal (`/`) | Public Web Studio (`/webapp/editor/`) |
+Quantum GammaWave replaces the stock firmware of the **M-VAVE FM-1** with an instrument: six tracks, twelve
+voices and eight synthesis engines, sequenced and played entirely on the unit, with a real DSP path — no
+samples, no streaming, no host in the loop.
+
+It is a whole ecosystem built around one firmware:
+
+| | |
 |---|---|
-| ![Quantum GammaWave portal](artifacts/public-site-1440.png) | ![Web Studio 2.0](artifacts/public-webstudio-1440.png) |
+| **Firmware** | what the FM-1 runs: engines, sequencer, effects, UI, MIDI |
+| **[Web emulator](https://guillel51.github.io/Quantum-GammaWave/emulator/)** | the same sources compiled to WebAssembly: the panel, playable in a browser |
+| **[Web Studio](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)** | edits the real sound over Web MIDI / SysEx, with a live hardware view |
+| **[USB installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** | checks SHA-256, the Ed25519 signature and the flash chip before it enables INSTALL |
+| **[Site](https://guillel51.github.io/Quantum-GammaWave/)** | the portal: current screens, download, documentation, preview channel |
 
-The portal is the official entry point and links the real WASM emulator, the USB installer and the Web Studio.
-The screenshots above were captured in Chromium from the **published build `0f52f48`**, not from localhost.
+![HOME](web/site/assets/fw-home.png)
 
----
+## Gallery
 
-## About Quantum GammaWave (QG-1)
+Quantum GammaWave screenshot gallery. All images rendered from the firmware at 240×240 (×3 scale for GitHub).
 
-**Quantum GammaWave (QG-1)** is an independent, self-contained open-source firmware and Web Studio workstation for the **M-VAVE FM-1** multitrack groovebox. It is developed and maintained in this repository by its own contributors and released under [GPL-3.0-only](LICENSE): a project in its own right, not a distribution, re-skin or mirror of anything else.
+| | **HOME** | **EDIT: ANALOG** | **FM6** |
+|---|---|---|---|
+| **Row 1** | `![](assets/screenshots/quantum_01_home.png)` | `![](assets/screenshots/quantum_02_edit_analog.png)` | `![](assets/screenshots/quantum_03_fm6_algorithm.png)` |
+| **Row 2** | `![](assets/screenshots/quantum_04_track_map.png)` | `![](assets/screenshots/quantum_05_sequencer.png)` | `![](assets/screenshots/quantum_06_seq_roll.png)` |
+| **Row 3** | `![](assets/screenshots/quantum_07_drum_x.png)` | `![](assets/screenshots/quantum_08_drum_morph.png)` | `![](assets/screenshots/quantum_09_macro_layer.png)` |
+| **Row 4** | `![](assets/screenshots/quantum_10_motion_seq.png)` | `![](assets/screenshots/quantum_11_punch_in_fx.png)` | `![](assets/screenshots/quantum_12_fx_rack.png)` |
+| **Row 5** | `![](assets/screenshots/quantum_13_mixer.png)` | `![](assets/screenshots/quantum_14_song_chains.png)` | `![](assets/screenshots/quantum_15_scales_chords.png)` |
+| **Row 6** | `![](assets/screenshots/quantum_16_modern_arp.png)` | `![](assets/screenshots/quantum_17_motion_locks.png)` | `![](assets/screenshots/quantum_18_fullscreen_visualizer.png)` |
+| **Row 7** | `![](assets/screenshots/quantum_19_project_slots.png)` | `![](assets/screenshots/quantum_20_harmonic_performance.png)` | `![](assets/screenshots/quantum_21_master_eq.png)` |
+| **Row 8** | `![](assets/screenshots/quantum_22_transient_presets.png)` | `![](assets/screenshots/quantum_23_glo2_telemetry.png)` | `![](assets/screenshots/quantum_24_about_credits.png)` |
+| **Row 9** | `![](assets/screenshots/quantum_25_master_bus.png)` | `![](assets/screenshots/quantum_26_boot_splash.png)` | `![](assets/screenshots/quantum_27_delay_bars.png)` |
+| **Row 10** | `![](assets/screenshots/quantum_28_reverb_reso.png)` | `![](assets/screenshots/quantum_29_reverb_cloud.png)` | `![](assets/screenshots/quantum_30_punch_in_latch.png)` |
 
-It targets the hardware's dual-core JieLi AC791N directly — an embedded DSP engine with 10-voice psychoacoustic polyphony, eight sample-free synthesis engines, punch-in FX and a fixed-point parametric master EQ, paired with a browser Web Studio for real-time sound design, pattern sequencing, diagnostics and USB flashing. The whole interface is drawn procedurally on the 240×240 display, with no bitmap assets in flash.
-
-Independence does not erase where it comes from. Quantum GammaWave descends from and builds on [Felucca](https://github.com/hugelton/Felucca), [JIANT FM](https://github.com/juanjiant-bit/JIANT) and [Pocket GammaWave](https://github.com/fvalente/GammaWave-FM1). Their authorship, licences and credits are preserved untouched in [`LICENSES/`](LICENSES) and listed under [Credits & license](#credits--license); those works remain theirs.
-
----
-
-## Web portal and Web Studio 2.0 (2026-11-04)
-
-The project now has one official entry point: the **Solar Heat / Quantum** portal at
-<https://guillel51.github.io/Quantum-GammaWave/>. It presents the firmware, real screenshots, compatibility,
-installation warnings, version metadata and direct access to the emulator (`/emulator/`), the USB installer
-(`/webapp/installer/`) and the Web Studio (`/webapp/editor/`). Existing installer and editor URLs are kept;
-the emulator now lives at `/emulator/`, and `/?emu=1` / `/#emu` redirect there for old links.
-
-The Web Studio has a new presentation layer (deep charcoal, solar amber, cyan data accents, clearer
-hierarchy and a hardware-style brand bar) without changing any control id, SysEx frame, tab or protocol
-handler. It was checked in Chromium at 1440 px and 390 px: seven tabs, no horizontal overflow and no console
-or request errors. The emulator remains the same real WASM firmware; the portal only links to it.
-
-**v1.8.9** is the current build: the master EQ rounds its loop to the nearest value instead of down, so its DC gain is the coefficient's (+0.23 dB instead of -1.46 dB) and a -24 dB cut at 20 Hz reaches -24.14 dB instead of -17.61 dB; the four setters share one commit path and the RAM code budget gained 28 B. `fm1_restore.py` can write a verified backup back through an external SPI programmer. All of it is measured on the host and in the emulator: no unit, no physical restore, no production signing key. See [`docs/V1.8.9_STATUS.md`](docs/V1.8.9_STATUS.md).
-
-## What's in Quantum GammaWave (`v1.8.9`)
-
-- **Consonant random intervals (JIANT V10.38, adapted):** GEN and the sound dice keep `INT` on unison, fourth, fifth, octave or octave-and-fifth, within the parameter range; random macros never target an interval. Host test: `tests/semi_test.c`.
-- **10-Voice Polyphony with Psychoacoustic Smart Stealing:** Expanded real-time polyphonic capacity from 8 to 10 voices across tracks. Utilizes psychoacoustic weighted-energy voice allocation to prioritize quiet release tails ($<-40\text{ dB}$) during voice stealing, preventing audible clicks while maintaining real-time DSP stability via dynamic load throttling.
-- **Harmonic Distortion & Saturation Suite:** 4 musical, warm saturation topologies with dedicated algorithms:
-  - **`SOFT` (Musical Soft Warmth):** Biased tanh soft-clipping with rich 2nd harmonic saturation.
-  - **`TAPE` (Tape Warmth):** Smooth cubic polynomial saturation with subtle tape saturation and head warmth.
-  - **`HEARTH` (Tube Heat):** Asymmetric tube bias curve with rich sub-bass reinforcement and smooth compression.
-  - **`FLUX` (Analog Drift):** Thermal tape flux saturation with subtle bias drift and tape head roll-off.
-- **Three Completely New Visual Themes with Exclusive Identities:**
-  - **`SOLARIS`:** Radiant solar gold, stellar corona amber, and forge embers on deep charcoal.
-  - **`CYBERPUNK`:** High-contrast synthwave neon grid with electric cyan and laser magenta highlights.
-  - **`NORDIC`:** Arctic obsidian black with emerald aurora borealis gradients and warm beacon accents.
-- **Expanded Sound Library (+42 Original Presets):**
-  - Meticulously designed across all synthesis engines into 8 organized musical categories:
-    - *Ambient:* Borealis Pad, Cosmic Winds, Polar Aurora, Space Lullaby.
-    - *Drones:* Nebula Drone, Abyss Drone, Cyber Drone, Vox Drone, Wraith Drone.
-    - *Bells:* Crypt Bell, Temple Bell, Tibet Bowl, Shrine Bell, Chime Tree.
-    - *Hurdy Gurdy:* Hurdy Gurdy, Gurdy Drone, Medieval Viel, Gurdy Wheel.
-    - *Acoustic & Traditional:* Nordic Organ, Bamboo Flute, Folk Drone, Gothic Shrine.
-    - *Ethnic & Experimental:* Sitar Reson, Koto Harp, Gamelan Met, Shaman Chant, Tibetan Vox, Balafon, Ethnic Call.
-    - *Evolving Pads:* Wraith Pad, Solaris Glow, Aura Strings, Mystic Choir, Solar Hymn.
-    - *Organic Plucks:* Wood Pluck, Harp Pluck, Folk Pluck, Ethnic Pluck.
-- **Transient Preset Selection Overlay (PRESET Knob):**
-  - Turning the PRESET encoder instantly shows the full 7-row categorized library overlay for 1.5 seconds without interrupting real-time audio playback.
-- **Dynamic Modern ARP Visualization:**
-  - Real-time 16-step rhythmic pattern trajectory, direction mode visualization (UP, DN, UPDN, CONV, DIVG, CHORD, etc.), octave arcs, swing offsets, and tempo-synced live playhead.
-- **GLO 2 System Monitor (Diagnostics & Live Telemetry):**
-  - Real-time hardware telemetry: active voice count, track-by-track polyphony distribution (T1–T6), dual-core CPU load and execution ticks (`mc_fx_tk`), DSP buffer integrity, and master bus status.
-- **Full-Screen Integrated Visualizer (`HOME -> HOME`):**
-  - Tapping HOME while already on the HOME screen opens an immersive, hardware-native audio visualizer featuring harmonic oscilloscope traces, dynamic Lissajous phase orbits, and real-time audio telemetry, returning cleanly with a single press.
-- **Direct Form II Transposed Biquad Filter Engine (Peak/Bell & Notch):** Fixed-point Q15 parametric EQ filters for precise surgical tone sculpting and master channel resonance cleanup.
-- **Visual Diagnostics & Virtual Device Simulator:**
-  - Fallback virtual device simulator for Web Studio and WebAssembly emulator when physical hardware is disconnected or WebMIDI permissions are missing.
-  - Diagnostics modal providing instant connection troubleshooting, SysEx logging, and MIDI port state inspection.
-- **Quantum GammaWave HUD** on the FM-1's 240×240 screen, in the GAMMA palette (default), plus THERMAL and WRAITH palettes:
-  - **HOME**: the selected track's filter response curve drawn over a 28-bar audio-reactive spectrum display, the Hearth sun with an orbiting moon, and the T1–T6 track strip.
-  - **EDIT pages**: two live scope traces above the **Wraith ribbon** — six zones (`FLU` · `WHI` · `VOX` · `CHR` · `BEL` · `SCR`) whose needle follows the filter cutoff (and the filter LFO). With the VOWEL or SCREAM filter, or the VOICE engine, the ribbon shows the vowels `OO` · `OH` · `AH` · `EH` · `EE` instead.
-  - Boot splash and updated ABOUT page with system metrics and credit lineage.
-- **49-genre song generator (GEN)** — open it with **`[OCT−] + [PLAY]`**, or turn **SELECT** on HOME. Page 1: **KNOB 1** genre, **KNOB 2** seed, **KNOB 3** energy, **KNOB 4** form (LOOP / PARTS / SONG); **SELECT** turns the five pages (drums, bass, chords, arp; lead, complexity, swing, humanize; SONG: tempo, key, scale, length; FEEL: space, fills, wet, grit); **ALGORITHM** gives the piece new instruments (the notes kept); **OCT+** makes the piece, **PLAY** auditions it, **HOME** closes. The piece playing is **NOW**: every change shapes NOW (on the next bar while playing) and **SAVE keeps it as a take** — the **TAKES** reel (**PRESETS**) holds only the takes you saved (32, kept over power-off): scroll it (round) and the take under the cursor plays on the next bar (OCT+ or PLAY when stopped); there **KNOB 1–3** are the tempo, key and energy, **KNOB 4** picks a section, **EDIT** deletes, **OCT−** goes back. **GLO + G4 / A4** step NOW back and forward. Hold **OCT+** and the whole screen maps the keys: remake one part, one sound, one section, the harmony, the mix, **drop a part while held**, **C#5** back to the original take, **D#5** **JAM** (NOW changed by itself every few bars), **F#5** the **share code** (**OCT+ + SAVE** types one in). Hold **OCT−** and the white keys **play takes 1–16** on the next bar; **REC** records them as a **SET**. What a control did shows in a band at the foot of the screen. Genres include:
-  - **`TRAP ATL`** (136–150 BPM, half-time bounce, 808 sub, hi-hat rolls and triplets, bell / flute / key melodies)
-  - **`UK DRILL`** (140–145 BPM, 3-3-2 hi-hat gallop, late snare, sliding 808, dark strings and choirs)
-  - **`DARK TRAP`** (130–148 BPM, Memphis-style cowbell, clipped 808, phrygian bells)
-  - **`RAGE TRAP`** (140–160 BPM, Whole Lotta Red or MUSIC flavour: square video-game leads or wobbling stabs, a crushed 808)
-  - plus `GAMMAWAVE`, `WRAITHWAVE`, house, techno, trance, electro, EBM, synth pop, darkwave, post punk, motorik, funk, disco, boom bap, UK garage, dubstep, breaks, drum & bass, dub, jazz, bossa, afrobeat, ambient, neo-classical, soundtrack, IDM and more.
-  - Pieces are 32 or 64 steps (2 or 4 bars per section) depending on the genre's chord rhythm.
-- **One-press MUTATE** — **`[OCT−] + [ENV]`** jumps to **SEQ > MUTATE**. If MUTATE was off on the track it switches it on with SOUND every 2 bars, PATTERN every 4 bars and AMOUNT ≈ 50 %:
-  - **`ORBIT`** (the default) mutates notes and timbre while pulling back toward the original pattern; **`DRIFT`** keeps wandering. Intervals: 1, 2, 4, 8, 16 or 32 bars.
-  - On the MUTATE page **OCT−** freezes the current mutation and **OCT+** keeps it as the new pattern.
-- **Hearth macros** — **`[OCT−] + [ARP]`** steps through six drive/filter macros (`1/6 HEARTH GRAVITY` … `6/6 SOLAR ECLIPSE!`); macros 4–6 switch the filter to SCREAM or VOWEL, and 6 also raises the master DUCK and PUNCH. `[OCT−] + [GLO]` takes a macro back.
-- **Hidden visualizer** — **`[OCT−] + [HOME]`** (or MENU > ABOUT, then OCT+): four animated scenes, `1/4 SUPERNOVA`, `2/4 WRAITH 3D`, `3/4 WARP TUNNEL`, `4/4 MATRIX FFT`, which pulse while the sequencer plays. **OCT+** (or PRESETS / ALGORITHM) changes scene, **OCT−** leaves.
-- **Web Studio** (browser, [webapp/editor](https://guillel51.github.io/Quantum-GammaWave/webapp/editor/)) — edits the FM-1 live over Web MIDI, or runs on its own in simulator mode:
-  - four instant demo songs and its own 49-genre generator (the same genre list; its patterns are generated in the browser and won't match the device's for the same seed);
-  - **4 tape lanes (T1–T4)**: DUMP a track's pattern into a lane, layer and bounce lanes, mute and clear them — they hold note patterns, not recorded audio;
-  - **EXPORT .WAV**: renders the current song and the tape lanes to a 16-bit **44.1 kHz** stereo WAV for your DAW;
-  - the Wraith bar (six zone buttons, a 0–127 slider, or drag on the LCD) and SEQ MUTATE (MUTATE NOW, ORBIT, DRIFT, AMOUNT, FREEZE, KEEP ANCHOR).
+*All 30 screenshots rendered from the firmware at 240×240, scaled ×3 for GitHub display. Original PNGs reside in `assets/screenshots/`.*
 
 ---
 
-## The `[OCT−]` shift deck
+## Highlights of `v2.3.0`
 
-Hold **`[OCT−]` on its own first**, then press the second button. (A plain OCT− tap still lowers the octave; the octave is put back when a shortcut fires.) The deck works from HOME and the parameter pages — not inside menus or dialogs, and not on pages where OCT− has its own job (on MUTATE it is FREEZE).
+- **Twelve voices.** The voice storage is a single pool that every part draws a window from, so six parts no
+  longer reserve six times the polyphony they can use: 12 voices now occupy **87 584 B** of `.data + .bss`
+  with **10 720 B free**, where the previous 10-voice build used 94 924 B with 3 380 B free.
+- **A clear voice start.** A note that begins on a silent voice starts from silence: it never inherits the
+  oscillators or the filter state of whatever note used that slot before.
+- **ECO / BAL / FULL** — the same firmware at four, five or six tracks, with the CPU and the voice budget
+  following the setting.
+- **The rest of the instrument is unchanged**: eight engines, the 200-sound library, the sequencer, the
+  effects, MIDI and SysEx, projects and presets from earlier versions.
 
-| Shortcut | Action |
-| :--- | :--- |
-| **`[OCT−] + [ARP]`** | Next of the 6 Hearth macros (drive type and amount, cutoff, resonance, filter type) on the selected track |
-| **`[OCT−] + [PLAY]`** *(or `[REC]`)* | Open the 49-genre generator (GEN) |
-| **`[OCT−] + [ENV]`** *(or `[SCL]`)* | Jump to SEQ > MUTATE (switches MUTATE on if it was off) |
-| **`[OCT−] + [HOME]`** *(or `[SAVE]`)* | Open the visualizer |
-| **`[OCT−] + [SEQ]`** | Dice the selected track's sequence |
-| **`[OCT−] + [EDIT]`** | Dice the selected track's sound |
-| **`[OCT−] + [FX]`** / **`[OCT−] + [LFO]`** | Dice the track's FX / LFO |
-| **`[OCT−] + [GLO]`** *(or `GLO + G4`)* | Undo; again: redo |
+## Synthesis engines
 
-The editing actions ask you to stop the song chain first (`STOP TO EDIT`), as their GLO-layer versions do.
+Eight engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and from the Web Studio:
 
-**Selecting tracks:** turn **ALGORITHM** to select T1–T6 from any page. Tap **EDIT** repeatedly to step through the engine's pages: EDIT 1 → EDIT 2 → (MORPH, RETRIG or the FM6 operator pages, depending on the engine) → FILTER → VOICE.
+| Engine | What it is | Edit |
+|---|---|---|
+| **ANALOG** | virtual-analog: two oscillators, sub, noise, ring, filter, drift | waveform, shape, detune, filter, envelope |
+| **FM6** | six-operator FM, eight algorithms, feedback | algorithm, ratios, levels, envelopes, feedback |
+| **PHASE** | phase-distortion / CZ-style, two lines | waveform, harmonics, distortion, envelope |
+| **WHEEL** | tonewheel organ: nine drawbars, percussion, click, drive, rotary | registration, bars, percussion, drive, rotor |
+| **VOICE** | formant / vowel synthesis | vowel, formant shift, breath, envelope |
+| **LOFI** | reduced-rate and reduced-depth digital, retrigger and clock | rate, depth, clock, retrigger, envelope |
+| **DRUM-X** | drum synthesis: twelve kit lanes, per-hit tune and decay | kit, tune, decay, snap, mute groups |
+| **NOISE** | noise-based percussion and textures | colour, band, decay, tone |
 
----
+200 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
+versions keep loading.
 
-Full user manual: **[English (`docs/MANUAL.md`)](docs/MANUAL.md)** · **[Español (`docs/MANUAL.es.md`)](docs/MANUAL.es.md)**. Chapter 17 of the manual gathers the QG-1 additions (the shift deck, the Hearth macros, GEN, the new filter and drive types, the screens and the visualizer).
+## Tracks, voices and CPU
 
----
+| Setting | Tracks | Notes |
+|---|---|---|
+| **ECO** | 4 | the lightest: fewer parts, no chorus, the slicer off, every reverb a spring |
+| **BAL** | 5 | the middle setting |
+| **FULL** | 6 | all six parts, the full effects chain |
 
-## Firmware Renderer Gallery
+Twelve voices are shared by the parts, with psychoacoustic stealing: a released tail about to die goes
+first, then the quietest note, and the lowest held note of a POLY part is protected. Core 0 renders the
+master buses, the UI and tracks 1–3; core 1 renders tracks 4–6.
 
-All screenshots below are native 240×240 renders produced directly by the Quantum GammaWave (QG-1) firmware drawing code. They are **renderer output, not photographs of a physical FM-1**; the current branch regenerated the full gallery with `tools/generate_screenshots.py`.
+## Sequencing and performance
 
-### 1. Quantum Signature Suite & Core Views
+- **64 steps a track**, six tracks, with per-step velocity, gate, timing, ratchet, conditions and
+  parameter locks (automation events or one-shot locks).
+- **Patterns** per engine with `PATTERNS`, and **MUTATE** to vary what is already playing.
+- **ARP** with modes, octaves, walk and chord memory; **SCALES / CHORDS**; **STRUM**; **ROLL**.
+- **Songs**: sixteen chain rows of sections with their bar counts.
+- **Punch-in FX** on the fly: stutter, arp repeat, half tempo, octave, random, decay and more.
+- **Live recording**, per-track mute and solo, and a **GLO** layer that recalls a whole performance state.
 
-| HOME Screen (Spectrum & Hearth Sun) | EDIT 1 (Wraith Cutoff Ribbon) | FM6 Operator Algorithms | Master Mixer (6 Tracks) |
-| :---: | :---: | :---: | :---: |
-| ![HOME](assets/screenshots/quantum_01_home.png) | ![EDIT ANALOG](assets/screenshots/quantum_02_edit_analog.png) | ![FM6](assets/screenshots/quantum_03_fm6_algorithm.png) | ![MIXER](assets/screenshots/quantum_13_mixer.png) |
-| *Real-time 28-bar spectrum & filter curve* | *Dual VA oscillators & spectral ribbon* | *32 DX7-style FM operator networks* | *Levels, pan, peak meters & sends* |
+## Effects
 
-| Full-Screen Audio Visualizer (`HOME -> HOME`) | FX Send Rack with Peak Meters | MASTER Bus: Clip, Punch, Duck, VU | Transient Preset Browser (1.5s) |
-| :---: | :---: | :---: | :---: |
-| ![VISUALIZER](assets/screenshots/quantum_18_fullscreen_visualizer.png) | ![FX RACK](assets/screenshots/quantum_12_fx_rack.png) | ![MASTER BUS](assets/screenshots/quantum_25_master_bus.png) | ![PRESET OVERLAY](assets/screenshots/quantum_22_transient_presets.png) |
-| *Zero-crossing scope & Lissajous orbits* | *Real post-FX peak beside each send* | *Live clip curve, punch, duck gain & output VU* | *Fast 7-row categorized library overlay* |
+- **Five reverbs**: ROOM, SPRING, SHIMMER, RESO and CLOUD, each with its own decay and mix.
+- **Delay** with its own bars, **chorus**, and a **slicer** that plays recorded material back in time.
+- **Parametric master EQ** with a graphic display, a **limiter**, and **duck** / **punch** on the master bus.
+- Per-track sends, an FX rack per track, and a mixer with six channels.
 
-| Parametric Master Biquad EQ | GLO 2 System Telemetry |
-| :---: | :---: |
-| ![MASTER EQ](assets/screenshots/quantum_21_master_eq.png) | ![GLO 2](assets/screenshots/quantum_23_glo2_telemetry.png) |
-| *Direct Form II Transposed Peak/Notch EQ* | *Active polyphony & dual-core CPU ticks* |
+## Interface
 
-### 2. Performance, Sequencing & Drum Synthesis
+- **HOME**: the track, its four parameters, the spectrum with the live filter curve, and the orbital system —
+  a star, three orbits and three planets, each answering a pair of tracks.
+- **Full-screen visualizer** (HOME twice): phosphor oscilloscope, phase trace, spectrum bars with peaks, the
+  six track meters and the quantum motes.
+- **Pages** for each engine, the FX rack, the mixer, the sequencer, the presets, the master bus, MIDI, the
+  console and the preferences, on a 240 × 240 panel with fourteen buttons and seven encoders.
+- The whole UI is rendered by the firmware sources and checked by the render sweep and its alignment lint.
 
-| Dynamic Modern Arpeggiator | DRUM-X Synthesized Pads | Playable Punch-In FX Grid | Motion Sequencer (MSEQ) |
-| :---: | :---: | :---: | :---: |
-| ![ARP](assets/screenshots/quantum_16_modern_arp.png) | ![DRUM-X](assets/screenshots/quantum_07_drum_x.png) | ![PUNCH-IN](assets/screenshots/quantum_11_punch_in_fx.png) | ![MSEQ](assets/screenshots/quantum_10_motion_seq.png) |
-| *16-step trajectory, direction & swing* | *8-pad synthesized percussion with morph* | *Quantized live performance repeats* | *Continuous parameter lane automation* |
+## MIDI, projects and tools
 
-| Step Sequencer | Piano Roll Playhead | Hearth Macros Layer | Harmonic Performance Mode |
-| :---: | :---: | :---: | :---: |
-| ![STEP](assets/screenshots/quantum_05_sequencer.png) | ![ROLL](assets/screenshots/quantum_06_seq_roll.png) | ![MACRO](assets/screenshots/quantum_09_macro_layer.png) | ![PERF HARM](assets/screenshots/quantum_20_harmonic_performance.png) |
-| *Velocity, microtiming & parameter locks* | *Active note trajectories & ties* | *Expressive drive & filter macro shifts* | *Live scales, chords and filter curves* |
+- **USB-MIDI** in and out, with channel routing, a selectable track, and **SysEx** for the Web Studio and for
+  backup / restore.
+- **Projects**: song slots, patterns, automation, mixer and sound, saved and loaded on the unit.
+- **Web Studio** edits the real sound over Web MIDI, and its hardware view shows the panel live.
+- **Backup and restore** read the unit's flash through the loader.
 
-### 3. Curated Visual Themes
+## Hardware
 
-| QUANTUM (Signature) | SOLARIS (Solar Gold) | CYBERPUNK (Neon Grid) | NORDIC (Obsidian Aurora) |
-| :---: | :---: | :---: | :---: |
-| ![QUANTUM](assets/screenshots/quantum_01_home.png) | ![SOLARIS](assets/screenshots/solaris_theme_solaris_home.png) | ![CYBERPUNK](assets/screenshots/cyberpunk_theme_cyberpunk_home.png) | ![NORDIC](assets/screenshots/nordic_theme_nordic_home.png) |
-| *Deep quantum indigo & Cherenkov cyan* | *Radiant gold, ember & corona amber* | *High-contrast synthwave magenta/cyan* | *Arctic emerald gradients on obsidian* |
+| | |
+|---|---|
+| Device | M-VAVE FM-1 (desktop groovebox / synthesizer) |
+| SoC | JieLi AC791N / WL82, dual-core `pi32v2`, single-precision FPU |
+| Memory | 578 KB SRAM reported by the SDK; the firmware keeps `.data + .bss` inside 96 KiB |
+| Flash | 1 MiB SPI NOR, XIP at `0x02000000` |
+| Panel | 240 × 240 ST7789-class RGB565 |
+| Controls | 14 buttons, 7 rotary encoders, the MASTER pot and 27 micro-switch keys |
 
----
+Only two flash parts are accepted by the loader — P25Q80H (`0x856014`) and UCUN UC25HQ80 (`0xB36014`) — and
+an unknown part is refused before anything is erased.
 
-## Synthesis engines & sound architecture
+## Installing
 
-### 1. Eight synthesis engines (no samples)
-- **`ANALOG`**: dual virtual-analog oscillators (`SAW`, `SQR`, `TRI`, `SIN`, `PWM`, `SYNC`, `RING`, `SAW3`, and the dirty sines `TUBE` — GammaWave's Hearth tube curve — and `FOLD` — WRAITH's Blast wavefolder — whose amount is MORPH plus ENV/LFO → SHAPE) with interval (`INT ±24 st`), detune, oscillator mix and noise, through the track filter (`CUT`, `RES`, `DRIVE`).
-- **`FM6`**: 6-operator DX7-style FM (DX7 `.syx` voices load through the Web Studio), the 32 algorithms drawn on screen, per-operator editing on the device (`OPERATOR`, `OP ENV`, `OPERATOR 2`) and a 32-voice user bank (`B1–B32`; until you send one, `B1–B11` hold built-in default keys: electric pianos, bells, mallets, pads).
-- **`PHASE`**: CZ-style phase distortion with feedback (`FB`), from warm brass to digital growl.
-- **`LOFI`**: 1-bit, 4-bit and 8-bit chip voices plus 32-formula **Bytebeat (`BYTE`)** and **Floatbeat (`FLOAT`)** engines tuned to the keyboard scale.
-- **`VOICE`**: formant voice (`VOWEL`, `VOWEL2`, `TALK`, `SHIFT`, `BUZZ`, `BREATH`) — its EDIT page shows the vowel ribbon.
-- **`WHEEL`**: tonewheel drawbar organ with rotary speaker, key click and harmonic percussion.
-- **`NOISE`**: tuned and free-running resonant / metallic noise for risers, snares and industrial textures.
-- **`DRUM`** (the DRUM-X kits): 8 synthesized pads (`BD`, `SD`, `CP`, `CH`, `OH`, `TM`, `RS`, `CB`) with A/B kit morphing (`MORPH`), wavefolder (`FOLD`), `FM ENV`, an 808 long pitch-drop mode (`PMOD LONG`) and tempo-synced `X-MOD`.
+The installer is a web page that talks to the unit over USB-MIDI, and it is the only write path:
 
-### 2. Filters and the Wraith ribbon (`EDIT > FILTER`)
-Every track's filter offers `LP`, `HP`, `BP`, `COMB`, `VOWEL` (a state-variable filter blending low-pass, band-pass and a saturated notch for a vocal colour) and `SCREAM` (a state-variable filter with a saturated integrator, for screaming resonance). The **Wraith ribbon** labels the cutoff range with six zones (**`FLU` · `WHI` · `VOX` · `CHR` · `BEL` · `SCR`**); turning CUT sweeps the needle across it.
+1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
+   Edge, with a data cable (not a charge-only one).
+2. It checks the package's **SHA-256**, its **Ed25519 signature** against the pinned `qg1-release-1` key and
+   the firmware hashes inside that signature. If anything fails, INSTALL stays disabled and the page says why.
+3. The loader reads the **real flash chip** on the unit and refuses anything but the two parts above.
+4. The write covers `0x04000–0x92FFF`; factory data is preserved, and the loader is the recovery path.
 
-### 3. Punch-in FX, slicer, 5 reverbs & master bus
-- **Playable punch-in FX (`FX` held + keys)**: quantized performance effects (`REPEAT 1/8 · 1/16 · 1/32`, `LPF`, `HPF`, `OCT-/+`, `1/2 TEMPO`, `DEC-/+`, `STUTTER 1/8 · 1/16`, `ATK+`, `ARP`, `RANDOM`), recordable into a 4-bar automation lane per section.
-- **5 reverb models**: `ROOM`, `SPRING`, `SHIMR` (octave-up shimmer), `RESO` (4 scale-tuned sympathetic strings) and `CLOUD` (pitch-granulated freeze wash).
-- **Master bus (`FX > MASTER`)**: `CLIP` (level-compensated soft clipper), `PUNCH` (drum transient saturator), `DUCK` (kick-triggered sidechain pump) and an always-on 2:1 auto-leveler.
-
-### 4. Dual-core audio engine (JieLi AC791N)
-Some synth tracks run on the FM-1's second core, with per-block checksums and a watchdog. If the second core ever faults, the firmware shows a notice and stays on one core until power-off. Hold **`REC`** at power-on to force single-core mode.
-
----
-
-## Installing on M-VAVE FM-1 hardware
-
-> **(QG-1)** Web installer with SHA-256 check, pre-flight checklist, *verify only* and an automatic backup over
-> GammaWave/JIANT; one-click launchers in `tools/install/` (`install-fm1.sh`, `.command`, `.bat`); CLI `tools/fm1_install.py
-> --verify-only / --sha256`. Recovery guide (es): [docs/INSTALL.es.md](docs/INSTALL.es.md). Emulator while coding:
-> `python3 tools/emu_dev.py` (rebuilds on every change and reloads the page).
-
-1. **Open the USB web installer** in Chrome, Edge or Opera (it needs Web MIDI):
-   **<https://guillel51.github.io/Quantum-GammaWave/webapp/installer/>**
-2. Connect the **M-VAVE FM-1** with a USB data cable and switch it on.
-3. **Coming from another custom firmware (Felucca, baudgirl, etc.)?** Click **Return to official V15 first** (which also backs up your flash), then click **Install**.
-4. **Coming from official V15, JIANT, or earlier firmware?** Click **Install** directly. Don't unplug the cable until flashing completes.
-
-*Quantum GammaWave uses the FM-1's user sample flash (`USR1–3`) to store 8 multi-section songs and the 32-voice FM6 user bank. Back up any custom WAV samples from stock firmware before flashing.*
-
-> **Read [`docs/SECURITY.md`](docs/SECURITY.md) before flashing anything.** It documents what the update protocol actually verifies (CRC, no signature), why an interrupted write cannot roll back on this single-bank layout, the community recovery ladder, and an honest audit of this repository's own installer — including what has *not* been tested on hardware. No install is declared safe without an independently demonstrated recovery path.
-
-You can also download the package from the **[Releases page](https://github.com/Guillel51/Quantum-GammaWave/releases)** (named `felucca-<version>.fwsc`, e.g. `felucca-v1.5-QG.fwsc` — the build tooling keeps Felucca's file name).
-
----
+**Before you write:** keep a backup of your unit, and read
+[`FM1_INSTALLATION_SAFETY_AUDIT.md`](FM1_INSTALLATION_SAFETY_AUDIT.md). The installer never writes without
+your confirmation, and there is no secure boot on this hardware — a verified package is not a guarantee about
+a particular unit.
 
 ## Building from source
 
-See **[BUILDING.md](BUILDING.md)** for the toolchain (JieLi clang, the AC79 SDK files) and the options:
+```sh
+# target firmware (JieLi pi32v2 clang + the AC79 SDK)
+JIELI_TOOLCHAIN=/path/to/toolchain AC79_SDK=/path/to/AC79_SDK python3 tools/build.py
 
-```bash
-./build.sh                                                       # build/felucca.fwsc (needs JIELI_TOOLCHAIN and AC79_SDK)
-sh web/emu/build.sh                                              # the WebAssembly emulator in build/emu (needs emcc)
-python3 web/make_site.py build/felucca.fwsc v1.8.9 build/site   # the Web Studio + USB installer
+# the 10-voice profile, and a pool size other than the default
+FELUCCA_VOICES=10 python3 tools/build.py
+FELUCCA_VPOOL=18 python3 tools/build.py
+
+# the host tests: golden renders, voice / routing checks, UI, CPU budget
+NO_PACKAGE=1 sh tests/run_tests.sh
+
+# the browser emulator (needs emcc)
+sh web/emu/build.sh
 ```
 
-On Windows, `tools/build_windows.py` drives the same build inside WSL2 Ubuntu (edit its toolchain paths first).
+`build.sh` produces the `.fwsc` package. See [`BUILDING.md`](BUILDING.md) for the full setup and
+[`docs/`](docs/) for the audits, the validation matrix and the memory baseline.
 
----
+## Documentation
 
-## Changelog
+| | |
+|---|---|
+| [`docs/MANUAL.md`](docs/MANUAL.md) | the instrument, page by page |
+| [`docs/VOICE_POOL.md`](docs/VOICE_POOL.md) | how the 12-voice pool works and what it measured |
+| [`docs/OPTIMIZATION_BASELINE.md`](docs/OPTIMIZATION_BASELINE.md) | the memory regions and their floors |
+| [`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md) | what is proven, by which test, on what |
+| [`docs/HARDWARE_SPECS_FM1.md`](docs/HARDWARE_SPECS_FM1.md) | the unit as the code sees it |
+| [`docs/EMULATOR_FIDELITY.md`](docs/EMULATOR_FIDELITY.md) | what the emulator does and does not reproduce |
 
-### `v1.7-QG` — UI Evolution & Hardware Validation
+## What this project does not claim
 
-- **UI pass without regressions:** the 171-screen lint and alignment sweep stays at 0 findings and 0 off-by-one
-  measurements in all 17 palettes. HOME/EDIT's knobs are the round design from 1.6, and the splash and full-screen scope share HOME's
-  instrument language, and the preset browser, matrix and visualisers were audited for overlaps and cut text.
-- **Budget analyzer:** `tools/budget_report.py` measures static RAM per voice count (8/10/12), the library's
-  composition and the host CPU baselines, and states plainly what is host-measured and what needs a board.
-- **Hardware simulation, documented:** `docs/HARDWARE_SIMULATION.md` separates emulation (the same C in wasm),
-  host simulation (peripheral stubs, NOR, DMA, LCD, MIDI/USB) and physical measurement, and lists what the
-  model does **not** cover: ISR timing, DMA bandwidth, flash erase time and dual-core contention.
-- **Feature audit:** macros, morphing, motion/automation, chord memory, the arpeggiator, the randomizer and
-  LFO phase/retrigger already exist; features that would need new persistent parameters (MIDI Learn, a global
-  LFO-retrigger switch, Preset Compare state) are documented as deferred in `docs/FEATURES_1.7.md` rather
-  than shipped against the frozen project format.
-- **No new persistent parameters.** `P_COUNT`, project sizes and SysEx layouts are unchanged; 200 sounds and
-  the legacy DRUM indices stay exactly as verified for 1.6.
+- No measurement on a physical FM-1 is part of this repository. The firmware is built with the AC791N
+  toolchain and its behaviour is checked on the host and in the emulator; stack depth, interrupt timing and
+  audio headroom **on the unit** are not measured here.
+- Twelve voices are validated by the host suite and the static CPU budget, not by listening on hardware.
+- Both flash parts are allowed by the code, not measured on hardware.
+- No secure boot, no DRM, no vendor material in the packages.
 
-### `v1.6-QG` — EVOLVE / MOTION, Touch & 200 Sounds
+## Credits and licence
 
-- **A 200-sound factory library.** The last two redundant DRUM kits (HEARTH KIT, CYBER DRUM) are retired
-  from browsing but kept as legacy entries at their old indices 10 and 11, so projects, favorites and user
-  presets load the exact sound they saved; the ten browsable kits keep indices 0..9. Sixteen new
-  sounds (pads, drones, textures, expressive keys, bells, plucks, leads, organs) were added across ANALOG,
-  PHASE, LOFI, WHEEL, FORMANT, NOISE and FM6. `tests/preset_library_test.py` checks the 200, each engine's
-  share, DRUM's first ten indices and the names.
-- **EVO, a new LFO wave.** A smooth random walk (one new point per cycle, eased with a smoothstep), at a free
-  rate or a musical division on the transport's grid. `P_LWAVE = 6`; the graph, the matrix, FADE and the LFO
-  destinations all work with it. Demo sounds: QUANTUM BLOOM, ABYSSAL DRONE, OCEANIC PAD, EVOLVING GLASS,
-  TAPE DRONE, SOLAR WIND, CATHEDRAL REED, TIDAL ORGAN, EVOLVE BELL, AURORA FM.
-- **Touch.** Channel aftertouch (MIDI `0xD0`) reaches the matrix's `AT` source as before; polyphonic
-  aftertouch (MIDI `0xA0`) is now a per-voice source, `PAT`, for external controllers. The FM-1's own keys
-  have no pressure sensor, so nothing pretends they do. Sensitivity is the matrix's AMT per destination
-  (CUT, SHP, AMP, PITCH, VIB, E1..E8, FX sends), demonstrated by PRISM KEYS, GLASS BELL, AURORA PLUCK,
-  BREATH CHOIR, VELVET EP and EMBER LEAD.
-- **UI.** HOME and EDIT's rotary knobs are real round knobs (filled body, 270-degree ring, value arc,
-  needle, centre dot, no offset orbit ring), and the boot splash is one SURF card in the UI's own language:
-  the seven-letter QUANTUM wordmark, a solar core with its corona and orbits, three waves writing across
-  the frame and the 16-segment spectral horizon, instead of the old octagonal frame whose bands read as
-  black lines.
-- **Verification.** Host tests, sanitizers, UI lint/PNG renders and the 200-sound test pass; the emulator
-  rebuild is marked NO VERIFICADO when `emcc` is unavailable, and the 12-voice experiment stays off
-  (`docs/POLYPHONY_1.6.md`). No bootloader or flash-critical change was made.
-
-### `v1.5-QG` — Startup, Preferences & Telemetry Release
-- **Startup without the four black lines:** the ST7789 GDRAM is 240×320 while the blit clamps to 240×240, so 80 rows were never written; `lcd_gdram_clear()` now writes all 76 800 pixels before the display is turned on (commit #37 only touched the backlight). Proven by `tests/lcd_st7789_test.c`, which models the controller's own command stream and reproduces the old windowed path first.
-- **A new power-on screen:** redesigned from scratch — chamfered octagonal frame, the seven letters of QUANTUM lighting one by one, a fixed spectrum rail with a playhead, then `v1.5-QG` and `QUANTUM GAMMAWAVE // QG-1`. `lcd_init(bg)` now paints the whole 240×320 in the theme's background first, so no residue of the previous frame survives. `MENU > STARTUP SPLASH` still chooses FULL / SHORT / OFF.
-- **The splash costs less to draw:** `splash_sig()` compares the artwork it is about to paint with the one already on screen and returns when they match. Measured on the framebuffer over the real boot timeline: at v1.5, 425 steps of 4 ms, 160 changing and **265 identical rewrites skipped**; after the v1.7 visual pass, 198 change and **227 are skipped (53 %, ~6.8 M pixels)**, with the final frame still asserted byte-for-byte equal to a whole draw.
-- **GLO / CPU LOAD is live again:** opening GLO left the UI rendering only the HOME visualizer's band, so `graph_diag()` never ran, MONITOR's CPU LOAD froze on its first value and the section buttons did nothing. `open_global()` now clears that state and `ui_draw()` guards it — GLO, FX, EDIT, SCL, LFO, ENV and SAVE switch section straight from the visualizer, without HOME, shortcuts and combinations untouched.
-- **`MENU > EXTRA` reachable from the editor:** `ED_MENU[]` ended at index 21, so `MENU_DESC` reported "no item" for 22..24 and `MENU_SET` answered "unknown id" while `INFO` advertised 25 settings with 22 real. CPU MODE, VIS QUALITY and SPLASH are appended as ids 22 / 23 / 24, matching `web/EDITOR_PROTOCOL.md`.
-- **`MENU > EXTRA`: three preferences, firmware and Web Studio together** — `CPU MODE` (AUTO / DUAL CORE / SAFE SINGLE, AUTO by default, never forcing a core that failed), `VISUALIZER QUALITY` (HIGH / BALANCED / LOW: draw resolution, particles and refresh rate only, never the audio) and `STARTUP SPLASH` (FULL / SHORT / OFF, hardware still initialised either way). Stored in the free bytes of the factory favourites record, so old records read as the defaults and need no migration.
-- **GLO monitor from the real state:** per-core split with each core's own time, CPU load, active voices, peaks, ticks, late blocks and fallback, redrawing on the data that actually changed.
-- **Six-track worst-case bench** (`cpu/mix/6parts_full` in `tests/regress.c`): the six parts at once, a different engine each, 8 notes held plus the drums and every send at 96.
-- **Polyphony measured, not assumed:** the 10- vs 12-voice experiment is built and run (§ of `docs/SECURITY.md` aside, numbers in the PR). 12 voices passes every health and voice check but changes two golden renders, costs +1008 B of SRAM and +11.6 % CPU on that bench, so **10 stays**.
-- **`steal_test` fixed:** it filled the shared budget with 7+1 notes, which was the whole budget when it was written; with 10 voices only three of its five scheduled notes stole one and the test failed its own "at least 4" on main.
-- **`docs/SECURITY.md`:** AC791N/WL82 flash map, boot chain, what the update protocol really verifies, the single-bank power-loss window, the recovery ladder, and an honest audit of our own installer.
-
-### `v1.4-QG` — Quantum GammaWave Major Release
-- **10-Voice Psychoacoustic Polyphony:** Expanded real-time capacity from 8 to 10 voices across tracks with weighted-energy quiet-tail stealing ($<-40\text{ dB}$) and dynamic load throttling.
-- **Harmonic Distortion Suite:** 4 distinct saturation topologies (`SOFT`, `TAPE`, `HEARTH`, `FLUX`) with dedicated DSP curves in `firmware/src/fx.c`.
-- **Parametric Master EQ Engine:** Fixed-point Q14/Q15 biquad Direct Form II Transposed filters providing surgical Peak/Bell boost and Notch cleanup.
-- **Visual Themes Suite:** 17 themes including exclusive additions `SOLARIS`, `CYBERPUNK`, `NORDIC`, and `QUANTUM`, fully synchronized across firmware and Web Studio.
-- **Expanded Sound Library:** +42 original presets structured across 8 musical categories (Ambient, Drones, Bells, Hurdy Gurdy, Acoustic & Traditional, Ethnic & Experimental, Evolving Pads, Organic Plucks).
-- **Original Drum-X Kits:** Added `QUANTUM BEAT`, `HEARTH KIT`, and `CYBER DRUM` kits to the DRUM synthesis engine.
-- **Full-Screen Audio Visualizer (`HOME -> HOME`):** Integrated real-time hardware oscilloscope, phase orbits, and audio telemetry accessible directly by tapping HOME.
-- **Transient Preset Browser:** 1.5-second non-blocking 7-row categorized library overlay activated by turning the PRESET encoder.
-- **GLO 2 System Telemetry:** Live monitoring for active voice count, per-track polyphony distribution (T1–T6), dual-core execution load (`mc_fx_tk`), and master bus integrity.
-- **Dynamic Modern ARP Visualizer:** Real-time 16-step rhythmic trajectory, direction visualization, swing offsets, and tempo-synced playhead.
-- **Web Studio & Emulator Upgrades:** Seamless offline simulator fallback, enhanced connection diagnostics, SysEx logging, and responsive audio telemetry.
-
-### `v1.3-QG` — Audio Engine & Telemetry Enhancements
-- **CHORUS > TYPE PHASER:** Four swept all-passes on chorus bus with persistent project state storage.
-- **Stabilized DRUM Render Output:** Modularized `drum_out` and `drum_add` stages reducing cycle overhead while preserving bit-identical audio output.
-- **QUANTUM Visual Palette:** Added deep quantum indigo and Cherenkov cyan visual palette.
-- **Deterministic Randomization Checks:** Enhanced DICE ALL engine verification ensuring balanced timbre evolution across multi-track throws.
-- **Platform Hardening:** Added offline WebAssembly emulator fallback for non-Chromium and WebMIDI-restricted environments.
-
----
-
-## Credits & license
-
-**Quantum GammaWave (`QG-1`)** is free and open-source software released under **[GPL-3.0-only](LICENSE)**.
-
-Built upon the work of:
-- **Pocket GammaWave (GW-1)** by Leo Kuroshita / Hügelton Instruments & ShadowTune.
-- **[Felucca](https://github.com/hugelton/Felucca)** by [Hügelton Instruments](https://hugelton.com) (Leo Kuroshita, [@kurogedelic](https://github.com/kurogedelic)) — core FM-1 hardware abstraction, bootloader, engines, and the [Fukiai](https://github.com/hugelton/Fukiai) icon font ([MIT](LICENSES/MIT-Fukiai.txt)).
-- **[JIANT FM](https://github.com/juanjiant-bit/JIANT)** — DRUM-X synthesis engine, dual-core audio scheduler, procedural generator foundation, and thermal font pipeline.
-- **[SLOOP](https://github.com/isod89/sloop-fm1)** by isod89 — multi-section song arranger and live `SONG REC` architecture.
-- **[Melodee](https://github.com/keremimo/melodee)** (keremimo) & **[fm1-x0x](https://github.com/charlesvestal/fm1-x0x)** (Charles Vestal) — AC791N second-core startup, memory-read guard, and WebAssembly browser emulator architecture.
-- **DSP & fonts**: `msfa` 6-op FM from [Dexed](https://github.com/asb2m10/dexed) ([Apache-2.0](LICENSES/Apache-2.0-msfa.txt)); formant synthesis after [klattsch](https://github.com/tgies/klattsch) (MIT); [Chakra Petch](LICENSES/OFL-ChakraPetch.txt), [IBM Plex Mono](LICENSES/OFL-IBMPlexMono.txt), [Michroma](LICENSES/OFL-Michroma.txt), and [DotGothic16](LICENSES/OFL-DotGothic16.txt) (SIL OFL 1.1).
-
-*M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is an independent open-source project and is not affiliated with or endorsed by M-VAVE or Hügelton Instruments.*
+GPL-3.0-only. Quantum GammaWave is an evolution of **Pocket GammaWave (GW-1)** by Leo Kuroshita
+(@kurogedelic) / Hügelton Instruments, built on **JIANT FM** and **Felucca**. The original copyright notices,
+the credits and the texts in [`LICENSES/`](LICENSES/) are kept; the JieLi SDK files that a package carries are
+Apache-2.0, and [`LICENSING.md`](LICENSING.md) says which is which.

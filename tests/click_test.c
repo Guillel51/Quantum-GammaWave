@@ -350,7 +350,7 @@ static uint32_t key_of(uint32_t note)                  /* the key that plays `no
 static int voice_on(uint32_t note)
 {
     uint32_t i;
-    for (i = 0; i < NVOICE; i++) if (trk[0].v[i].active && trk[0].v[i].gate && trk[0].v[i].note == note) return 1;
+    for (i = 0; i < NVOICE; i++) if (V(&trk[0], i).active && V(&trk[0], i).gate && V(&trk[0], i).note == note) return 1;
     return 0;
 }
 static void count_in_notes(void)

@@ -74,14 +74,17 @@ int main(int argc, char **argv)
         uint16_t *tok = &ux.bg;
         palette_set(p);
         if (p == UI_GREY_INDEX)
-            for (unsigned i = 0; i < 14; i++) assert(gray(tok[i]));      /* every token, derived ones too (RAISE, KEY the last) */
+            for (unsigned i = 0; i < 18; i++) assert(gray(tok[i]));      /* every token, derived ones too (RAISE, KEY, the keyboard's two greys) */
         /* text and the things read on the screen; the generator checks the same (tools/gen_ui_palettes.py) */
         struct { uint16_t fg, bg; double min; } c[] = {
             {T_TEXT, T_BG, 12.0}, {T_TEXT, T_SURF, 9.0}, {T_MID, T_BG, 5.0}, {T_MID, T_SURF, 4.0},
             {T_THEME, T_BG, 4.5}, {T_THEME, T_SURF, 4.5}, {T_ACCENT, T_BG, 4.5}, {T_ACCENT, T_SURF, 4.5},
             {T_INK, T_SEL, 4.5}, {T_INK, T_THEME, 4.5}, {T_DIM, T_BG, 2.2}, {T_LINE, T_BG, 1.25}, {T_REC, T_BG, 3.0},
             {T_INK, T_KEY, 4.5}, {T_KEY, T_BG, 3.0}, {T_KEY, T_SURF, 2.5}, {T_INK, T_DIM, 1.8}, {T_INK, T_ACCENT, 4.5},
-            {T_TEXT, T_RAISE, 7.0}};
+            {T_TEXT, T_RAISE, 7.0},
+            /* (3.0) the Punch-in FX keyboard: a label on the light key, one on the dark key, and the two
+             * greys themselves far enough apart to read as different keys on every theme */
+            {T_INK, T_KEYW, 4.5}, {T_TEXT, T_KEYB, 4.5}, {T_KEYW, T_KEYB, 1.6}};
         double min = 100;
         for (unsigned i = 0; i < sizeof c / sizeof c[0]; i++) {
             double r = contrast(c[i].fg, c[i].bg);

@@ -57,7 +57,7 @@ static voice_t *held(track_t *t, uint32_t note)
 {
     uint32_t i;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].active && t->v[i].note == note) return &t->v[i];
+        if (V(t, i).active && V(t, i).note == note) return &V(t, i);
     return 0;
 }
 static void overload(void)
@@ -94,7 +94,7 @@ static void overload(void)
     trk[0].p[P_VOICE] = V_UNISON;
     trk_note_on(&trk[0], 55, 100);
     shed_voice(); mix_block(out, CTL);
-    check("UNISON loses an extra voice and retains its lead", trk[0].v[0].active && trk[0].v[0].gate && voices_busy() == NVOICE - 1u);
+    check("UNISON loses an extra voice and retains its lead", V(&trk[0], 0).active && V(&trk[0], 0).gate && voices_busy() == NVOICE - 1u);
 
     for (mode = V_MONO; mode <= V_LEGATO; mode++) {
         fresh(); trk[0].p[P_VOICE] = V_POLY;
@@ -102,7 +102,7 @@ static void overload(void)
         trk[0].p[P_VOICE] = (int16_t)mode;
         shed_voice(); mix_block(out, CTL);
         check("overload can reclaim stale POLY voices after a MONO / LEGATO change",
-              shed_count == 1u && trk[0].v[0].gate && voices_busy() == NVOICE - 1u);
+              shed_count == 1u && V(&trk[0], 0).gate && voices_busy() == NVOICE - 1u);
     }
 
     fresh();
@@ -185,7 +185,10 @@ static double usb_run(uint32_t fixed, uint32_t master, int dac_is_tap_scaled_ok[
     for (b = 0; b < 400u; b++) {                       /* ~0.3 s */
         audio_block(out, 32);
         for (i = 0; i < 64u; i++) {
-            int32_t want = fixed ? ((host_tap[i] * (int32_t)master) >> 12) << OUT_SHIFT : host_tap[i] << OUT_SHIFT;
+            /* the firmware multiplies by 1 << OUT_SHIFT (audio_block); a left shift of a negative sample would
+             * be undefined, so the test says what the firmware does */
+            int32_t want = fixed ? ((host_tap[i] * (int32_t)master) >> 12) * (1 << OUT_SHIFT)
+                                 : host_tap[i] * (1 << OUT_SHIFT);
             if (out[i] != want) dac_is_tap_scaled_ok[0] = 0;
         }
         if (b >= 100u) { usb += block_rms(host_tap, 32); dac += block_rms(out, 32) / (1 << OUT_SHIFT); }
@@ -325,11 +328,86 @@ static void meter_envelope(void)
         mix_block(out, CTL);
     check("(v1.9) after the release the envelope falls to silence, so no bar stays lit", trk[0].vu == 0);
 }
+/* (1.9) the master's meters are two, one per DAC channel. audio.c used to keep out[2i], the left channel,
+ * in the only buffer the UI could read, so the right meter had nothing of its own: a part panned right moved
+ * nothing and both sides showed one value. dac_scope now stores both channels and audio_out_peak reads them
+ * from the main loop, so the ISR pays one store per frame and no comparison (tests/target_budget.py). */
+static void clear_scope(void)
+{
+    memset(scope_buf, 0, sizeof scope_buf);
+    memset(scope_r, 0, sizeof scope_r);
+    scope_w = 0;
+}
+static void feed(int32_t l, int32_t r)
+{
+    int32_t out[2 * CTL];
+    uint32_t i;
+    for (i = 0; i < CTL; i++) {
+        out[2u * i] = (i & 1u) ? -l : l;
+        out[2u * i + 1u] = (i & 1u) ? -r : r;
+    }
+    dac_scope(out, CTL);
+}
+static void stereo_meters(void)
+{
+    clear_scope();
+    check("(1.9) no signal: both channel meters read silence", audio_out_peak(0) == 0 && audio_out_peak(1) == 0);
+    clear_scope(); feed(8000, 8000);
+    check("(1.9) mono: the two meters read the same level", audio_out_peak(0) == 8000 && audio_out_peak(1) == 8000);
+    clear_scope(); feed(12000, 0);
+    check("(1.9) hard left: the right meter stays dark instead of copying the left",
+          audio_out_peak(0) == 12000 && audio_out_peak(1) == 0);
+    clear_scope(); feed(0, 9000);
+    check("(1.9) hard right: the right meter moves (it used to stay dark)",
+          audio_out_peak(0) == 0 && audio_out_peak(1) == 9000);
+    clear_scope(); feed(3000, 9000);
+    check("(1.9) an unbalanced mix reads two different values, not one twice",
+          audio_out_peak(0) == 3000 && audio_out_peak(1) == 9000);
+    clear_scope(); feed(6000, 6000);
+    {
+        int32_t a0 = audio_out_peak(0), a1 = audio_out_peak(1);
+        clear_scope(); feed(3000, 3000);
+        check("(1.9) a level change moves both meters and leaves no stale peak",
+              a0 == 6000 && a1 == 6000 && audio_out_peak(0) == 3000 && audio_out_peak(1) == 3000);
+    }
+    clear_scope(); feed(12000, 12000);               /* PAN hard left .. hard right in two frames */
+    {
+        int32_t l0 = audio_out_peak(0), r0 = audio_out_peak(1);
+        clear_scope(); feed(0, 12000);
+        check("(1.9) a pan to the right takes the left meter down and the right one up",
+              l0 == 12000 && r0 == 12000 && audio_out_peak(0) == 0 && audio_out_peak(1) == 12000);
+    }
+    clear_scope();
+}
+/* (1.9) the ring wraps and the window is the newest 256 frames. A loud passage that has scrolled out of it must
+ * not still own the meter, and a block written after it must: this is the index arithmetic the ISR and the screen
+ * share, tested where it can be seen rather than only in the field. */
+static void scope_window(void)
+{
+    int32_t out[2 * CTL];
+    uint32_t blk, i;
+    clear_scope();
+    for (blk = 0; blk < 40u; blk++) {                 /* 40 blocks x 16 frames = 640: the 256-frame ring wraps */
+        int32_t l = blk < 20u ? 20000 : 1000;         /* the loud part is 320 frames back: out of the window */
+        int32_t r = blk < 20u ? 1000 : 20000;
+        for (i = 0; i < CTL; i++) { out[2u * i] = l; out[2u * i + 1u] = r; }
+        dac_scope(out, CTL);
+    }
+    check("(1.9) the scope's window is the newest frames: a passage that scrolled out owns neither meter",
+          audio_out_peak(0) == 1000 && audio_out_peak(1) == 20000);
+    clear_scope();
+    feed(1, 1);                                        /* one block only: the window is mostly the cleared ring */
+    check("(1.9) after a wrap and a clear the meters start from the new block, not from the old one",
+          audio_out_peak(0) == 1 && audio_out_peak(1) == 1);
+    clear_scope();
+}
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     delay_edge();
     meter_envelope();
+    stereo_meters();
+    scope_window();
     usb_level();
     boot_keys();
     overload(); dma();

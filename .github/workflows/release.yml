@@ -1,0 +1,20 @@
+# Quantum GammaWave — official Firmware Hub release.
+# Builds, signs and attests the .fwsc on every version tag, using the shared
+# zvenson/fm1-build workflow so the Hub grants "Built from source on GitHub".
+name: release
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  build:
+    uses: zvenson/fm1-build/.github/workflows/build.yml@v1
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    with:
+      build: pip install --quiet Pillow fonttools numpy && ./build.sh --release "${GITHUB_REF_NAME#v}"
+      packages: build/*.fwsc
+      test: sh tests/run_tests.sh
+      tests-block: true
+      sdk: true

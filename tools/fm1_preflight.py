@@ -24,10 +24,13 @@ What it cannot establish, and therefore refuses to authorise:
     flash read in the protocol. Without that, a write cannot be proven safe for
     the chip in front of it. See docs/FM1_INSTALL_SAFETY.md, alternatives A-D.
 
-Exit codes: 0 preflight passed (only with --allow-unidentified-chip, which is a
-deliberate override for a lab unit), 2 bad package, 3 device not found,
-6 wrong model, 7 the physical flash chip is unknown (the default NO-GO),
-8 the device identity is inconsistent.
+The chip is read the same way the installer reads it: 0x12 on the running app,
+twice, in this session. A unit that does not answer it (any stock V15) or a part
+outside the write allowlist is a NO-GO, and there is no flag that changes that.
+
+Exit codes: 0 the gate would allow this install (nothing was written), 2 bad
+package, 3 device not found, 6 wrong model, 7 the physical flash chip is not
+identified or may not be written, 8 the device identity is inconsistent.
 
   fm1_preflight.py PACKAGE.fwsc [--sha256 HEX] [--port NAME] [--json FILE]
   fm1_preflight.py --info
@@ -39,6 +42,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import fm1_gate as GATE      # the same decision the installers ask before a write
 import fm1_install as I      # the wire format, the ports and the package rules live there
 
 EXIT = {"badpkg": 2, "notfound": 3, "model": 6, "chip": 7, "identity": 8}
@@ -89,16 +93,15 @@ def package_report(path, sha=None):
     }
 
 
-def chip_report(jedec):
-    """The physical NOR as this tool can see it: never, today."""
+def chip_report(jedec, why=None):
+    """The physical NOR as 0x12 answered it, or why it did not."""
     if jedec is None:
         return {
             "jedec": None,
             "part": None,
             "identified": False,
             "known": False,
-            "why": "the identity packet (0x11) carries the model string only: the protocol has no "
-                   "host-initiated flash read and the loader identifies by chip key, not JEDEC",
+            "why": why or "0x12 did not answer: this unit's firmware cannot identify its NOR",
         }
     known = jedec in KNOWN_JEDEC
     return {
@@ -110,7 +113,7 @@ def chip_report(jedec):
     }
 
 
-def preflight(package, sha=None, backend=None, port=None, jedec=None):
+def preflight(package, sha=None, backend=None, port=None):
     """-> the report dict; raises Refused when the policy says no."""
     report = {"tool": "fm1_preflight", "version": 1, "writes": False}
     report["package"] = package_report(package, sha)
@@ -120,6 +123,7 @@ def preflight(package, sha=None, backend=None, port=None, jedec=None):
     dev = up.find()
     if not dev:
         raise Refused("notfound", "device_not_found", "no FM-1 port answered the handshake")
+    jedec, why = None, None
     try:
         ident = dev.id
         report["device"] = {
@@ -128,6 +132,13 @@ def preflight(package, sha=None, backend=None, port=None, jedec=None):
             "mode": "loader" if ident.loader else "running",
             "port": dev.name,
         }
+        if not ident.loader:                 # the loader cannot identify its NOR; the app can
+            try:
+                jedec = I.PROBE.probe(dev.link)["jedec"]
+            except I.PROBE.ProbeError as e:
+                why = f"0x12 did not identify the NOR ({e.code}): {e}"
+        else:
+            why = "the unit is in update mode: the loader cannot identify its NOR"
     finally:
         dev.link.close()
 
@@ -137,9 +148,15 @@ def preflight(package, sha=None, backend=None, port=None, jedec=None):
     if not report["device"]["identity"] or report["device"]["identity"].count("_") != 1:
         raise Refused("identity", "inconsistent_identity", report["device"]["identity"])
 
-    report["chip"] = chip_report(jedec)
-    report["verdict"] = "no-go"
-    report["reasons"] = ["the physical flash chip (JEDEC) is not identified before writing"]
+    report["chip"] = chip_report(jedec, why)
+    gate = GATE.authorise(report["package"]["product"], report["device"]["identity"], jedec)
+    report["gate"] = gate
+    if gate["allowed"]:
+        report["verdict"] = "ready"
+        report["reasons"] = []
+    else:
+        report["verdict"] = "no-go"
+        report["reasons"] = [f"{gate['reason']}: {gate['detail']}" if gate["detail"] else gate["reason"]]
     return report
 
 
@@ -150,8 +167,6 @@ def main(argv=None, backend=None, out=sys.stdout):
     ap.add_argument("--port", metavar="NAME", help="MIDI port to use (part of its name)")
     ap.add_argument("--json", metavar="FILE", help="write the report here (a record of what was checked)")
     ap.add_argument("--info", action="store_true", help="print the identity of the connected FM-1 and exit")
-    ap.add_argument("--allow-unidentified-chip", action="store_true",
-                    help="lab override: pass the preflight without a JEDEC (still writes nothing)")
     a = ap.parse_args(argv)
     if bool(a.info) == bool(a.package):
         ap.error("give a PACKAGE.fwsc or --info")
@@ -171,9 +186,6 @@ def main(argv=None, backend=None, out=sys.stdout):
             print("chip: unknown (the identity packet does not carry the JEDEC)", file=out)
             return 0
         rep = preflight(a.package, a.sha256, backend, a.port)
-        if a.allow_unidentified_chip:
-            rep["verdict"] = "lab-override"
-            rep["reasons"] = ["--allow-unidentified-chip: the chip was not identified"]
     except Refused as e:
         print(f"refused: {e.reason}: {e.detail}", file=sys.stderr)
         return EXIT.get(e.code, 1)

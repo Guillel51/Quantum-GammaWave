@@ -39,7 +39,7 @@ def main(path):
     assert all((q + 64) * 21846 >> 22 == (q + 64) // 192 for q in range(2048))
     L += arr("PITCH_OCT", "uint32_t", oct_, 8)
     L += ["/* phase increment of pitch p in 1/16 semitone, 0..2047 (MIDI 0..127): 440 Hz * 2^((p / 16 - 69) / 12) */",
-          "static inline uint32_t pitch_inc(uint32_t p)",
+          "static inline __attribute__((always_inline)) uint32_t pitch_inc(uint32_t p)",
           "{",
           "    uint32_t i = p + 64u, o = (i * 21846u) >> 22;     /* i / 192: the octave above PITCH_OCT's - 10 */",
           "    return PITCH_OCT[i - o * 192u] >> (10u - o);",

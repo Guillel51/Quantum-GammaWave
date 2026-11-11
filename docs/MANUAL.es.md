@@ -245,7 +245,7 @@ a la derecha); apretá OCT+ para ejecutarla.
 | --- | --- | --- | --- | --- | --- |
 | EDIT 1 | E1 | E2 | E3 | E4 | todos los motores (ver [4](#4-motores)) |
 | EDIT 2 | E5 | E6 | E7 | E8 | todos los motores |
-| RETRIG | RTRG | — | — | — | LOFI con WAVE en BYTE o FLOAT |
+| RETRIG | T.CLK | — | — | — | LOFI con WAVE en BYTE o FLOAT |
 | MORPH | MORPH | — | — | — | ANALOG (SAW..SIN), PHASE, LOFI (hasta WRAM) |
 | OPERATOR | OP | RATIO / FIXED | FINE | LEVEL | FM6 |
 | OP ENV | OP | STAGE | RATE | LEVEL | FM6 |
@@ -424,7 +424,11 @@ click; las notas siguen.
   - **FLOAT** (floatbeat): CHIP pasa a ser la resolución (4BIT, 4B/2, FULL, 1BIT), KNOB 3 **ALGO** (32 fórmulas
     hechas de senos), KNOB 4 **VAR**; EDIT 2: **MOTION, FEEDBK, BEND, LOOP**. Mantené una tecla: la fórmula suena en
     esa tonalidad.
-  - Página **RETRIG** (BYTE / FLOAT): **RTRG ON** reinicia la fórmula desde el principio en cada nota.
+  - Página **RETRIG** (BYTE / FLOAT): **T.CLK** es el reloj de la fórmula. `NOTE` (por defecto) arranca cada nota
+    desde el principio de la fórmula, así una nota suena siempre igual. `FREE` deja la fórmula corriendo sobre el
+    reloj de la pista: la nota se suma donde está, así dos notas seguidas son dos lecturas distintas de la misma
+    fórmula en marcha (como se escucha el bytebeat cuando queda sonando). El control cambia las muestras, no el
+    dibujo: en una pista POLY el viejo interruptor `RTRG` era inaudible porque una voz nueva ya arrancaba en cero.
 - **MORPH** (EDIT > MORPH, en ANALOG, PHASE y LOFI): la onda se desliza de forma continua hacia las siguientes (en
   ANALOG SAW > SQR > TRI > SIN, en PHASE hacia su forma siguiente, en LOFI hacia la onda siguiente hasta WRAM). 0 = la
   onda tal como la elegiste. En ANALOG y LOFI la modulación **SHAPE** también mueve el morph, así un LFO o una
@@ -1117,6 +1121,10 @@ disponible mientras suena un tema (**STOP TO EDIT**). Guarda un solo paso, en RA
   hacia arriba un corte de graves que barre de ~70 Hz a ~3 kHz, los dos con un pico en el corte: las repeticiones se
   oscurecen o afinan y se angostan a una banda en cada pasada (estilo dub), y en los extremos con FEEDBK alto el lazo
   autooscila en esa banda.
+- La página **DLY** dibuja la **cadena de repeticiones** del último golpe: seis ranuras, una por eco, cada una a un
+  **TIME** de la anterior, con la altura medida por lo que la línea devuelve de verdad en esa ventana (no es un
+  medidor de volumen: sin ecos no hay barras, y dos repeticiones de igual fuerza se dibujan iguales sea cual sea el
+  MIX). La repetición que suena en este momento va marcada, y la caída de las barras es la de **FEEDBK**.
 - **DLY 2**: **WIDE** (el eco derecho más tarde), y el delay **GRAIN**: **PITCH** (±12 semitonos por repetición) y
   **SPRAY**. Con LOAD LITE o ECO el delay GRAIN suena como un delay común (la tarjeta dice LITE / ECO). **MOD**
   (0.6.86): la deriva de la cinta, WOW lento y FLUTTER rápido sobre las repeticiones (0, por defecto: nada, copias

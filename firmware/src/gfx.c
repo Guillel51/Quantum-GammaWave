@@ -68,7 +68,12 @@ typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
 #define AL_N(n) ((uint32_t)(n) << 8)
 
 #define CV_MAX (240u * 124u)      /* the graph strip is 240 x 124 */
-static uint16_t cv_px[CV_MAX] __attribute__((section(".pool")));
+/* (ISO C11 6.5.2.3) Union type-punning provides well-defined 32-bit word access without strict-aliasing UB */
+static union {
+    uint16_t px[CV_MAX];
+    uint32_t w32[CV_MAX / 2u];
+} cv_buf __attribute__((section(".pool"), aligned(4)));
+#define cv_px (cv_buf.px)
 static uint32_t cv_w, cv_h;
 static uint16_t cv_bg;           /* what cv_begin cleared the canvas to */
 static uint8_t cv_scroll;        /* 1: drawing a scrolled view (its text may run past the canvas) */
@@ -83,7 +88,11 @@ static uint8_t cv_flip;          /* cv_alpha_hc: the cell mirrored left <-> righ
 static struct {
     uint16_t bg, surf, text, theme, accent;
     uint16_t mid, dim, line, sel, tint, ink, rec, raise, key, lane, grid;
+    uint16_t key_w, key_b;       /* (3.0) the keyboard's two greys: a light key and a dark one, both
+                                  * derived from this palette so every theme keeps its own warmth */
     uint8_t light, mono;
+    uint8_t bw;                  /* (3.0) MONO is the palette being DRAWN (for the graphics that must keep to black,
+                                  * white and its one grey, which used to test settings.palette instead) */
     uint8_t chamfer;             /* (JIANT 0.5) the JIANT palette: corners cut on the diagonal (cv_rrect), not rounded */
     uint8_t style;               /* MENU > STYLE (ui.c style_apply): ST_FLAT, ST_LINE */
     uint32_t gen;                /* bumped by palette_set (the text ramps follow) */
@@ -108,6 +117,8 @@ static struct {
 #define T_REC ux.rec             /* REC: fixed red (GREY, MONO: the accent) */
 #define T_RAISE ux.raise         /* a raised area on a surface: stubs, guides, slots, chips, button wells */
 #define T_KEY ux.key             /* a keycap's fill (its label: T_INK; unavailable: a T_DIM fill) */
+#define T_KEYW ux.key_w          /* (3.0) a keyboard's white key: the light grey of every palette */
+#define T_KEYB ux.key_b          /* .. and its black key: the darker grey, one clear step under it */
 #define T_LANE ux.lane           /* the piano roll: an in-scale row (SURF -> THEME 10 %) */
 #define T_GRID ux.grid           /* the piano roll: a step line (SURF -> TEXT 6 %; beats and C rows: RAISE) */
 #define NPALETTES UI_NPALETTES
@@ -118,13 +129,19 @@ static uint16_t ux_mix(uint16_t a, uint16_t b, int32_t pct)
 {
     static const uint8_t SH[3] = {11, 5, 0}, MK[3] = {31, 63, 31};
     uint32_t out = 0, k;
+    /* pct may overshoot 100 % on purpose (a spark, a rim that pops): every channel saturates at its
+     * own width here, because an unclamped 5-bit result shifts its bits into the next channel and a
+     * GREY or MONO screen ends up with a coloured pixel (648 of them in tests/ui_render.c). */
     if (ux.mono) {
-        int32_t x = a >> 11, d = ((b >> 11) - x) * pct;
-        return ux_gray((uint32_t)(x + (d + (d >= 0 ? 50 : -50)) / 100));
+        int32_t x = a >> 11, d = ((b >> 11) - x) * pct, v = x + (d + (d >= 0 ? 50 : -50)) / 100;
+        return ux_gray((uint32_t)(v < 0 ? 0 : v > 31 ? 31 : v));
     }
     for (k = 0; k < 3u; k++) {
         int32_t x = (a >> SH[k]) & MK[k], d = (((b >> SH[k]) & MK[k]) - x) * pct;
-        out |= (uint32_t)(x + (d + (d >= 0 ? 50 : -50)) / 100) << SH[k];
+        int32_t v = x + (d + (d >= 0 ? 50 : -50)) / 100;
+        if (v < 0) v = 0;
+        if ((uint32_t)v > MK[k]) v = MK[k];
+        out |= (uint32_t)v << SH[k];
     }
     return (uint16_t)out;
 }
@@ -138,6 +155,7 @@ static void palette_set(uint32_t i)
     const ui_pal_t *p = &UI_PALETTES[i % NPALETTES];
     i %= NPALETTES;
     ux.mono = i == UI_GREY_INDEX;
+    ux.bw = i == UI_BW_INDEX;
     ux.chamfer = i == UI_JIANT_INDEX || i == UI_GAMMA_INDEX || i == UI_WRAITH_INDEX || i == UI_QUANTUM_INDEX ||
                  i == UI_SOLARIS_INDEX || i == UI_CYBER_INDEX || i == UI_NORDIC_INDEX;
     ux.bg = p->bg; ux.surf = ux.style ? p->bg : p->surf; ux.text = p->text; ux.theme = p->theme; ux.accent = p->accent;
@@ -149,13 +167,18 @@ static void palette_set(uint32_t i)
     ux.ink = p->bg;
     ux.raise = ux_mix(p->surf, p->text, UI_RAISE_PCT);
     ux.key = ux_mix(p->bg, p->text, UI_KEY_PCT);
+    /* (3.0) the Punch-in FX keyboard: a light grey and a darker one, two clear steps apart on every
+     * palette (66 % and 26 % from the background to the text), never the background itself, so the
+     * accidentals read as keys and not as holes */
+    ux.key_w = ux_mix(p->bg, p->text, 66);
+    ux.key_b = ux_mix(p->bg, p->text, 26);
     ux.lane = ux_mix(ux.surf, p->theme, 10);
     ux.grid = ux_mix(ux.surf, p->text, 6);
     ux.light = ux_luma(p->bg) > 128u;
     ux.rec = ux.mono ? p->accent : ux.light ? UI_REC_LIGHT : UI_REC_DARK;
     if (i == UI_BW_INDEX) {                      /* MONO: black and white, set, not blended (tools/gen_ui_palettes.py) */
-        ux.mid = ux.sel = ux.key = ux.rec = p->text;   /* a selection, a keycap, REC: white, its INK black */
-        ux.dim = ux.line = ux.raise = ux.lane = UI_BW_GREY;   /* the one grey: inactive, tracks, wells */
+        ux.mid = ux.sel = ux.key = ux.key_w = ux.rec = p->text;   /* a selection, a keycap, REC: white, its INK black */
+        ux.dim = ux.line = ux.raise = ux.lane = ux.key_b = UI_BW_GREY;   /* the one grey: inactive, tracks, wells */
         ux.tint = ux.grid = p->bg;
     }
     ux.gen++;                                    /* the text ramps change with the coverage curve */
@@ -187,8 +210,15 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
     cv_cy1 = (int16_t)h;
     cv_bg = bg;
     n = w * h;
-    for (i = 0; i < n; i++)
-        cv_px[i] = s;
+    {   /* (32-bit word fill via union) 2 pixels per 32-bit word store: faster than row copy,
+         * identical bytes, zero strict aliasing UB, and eliminates 480 B of .bss row buffer */
+        uint32_t s32 = ((uint32_t)s << 16) | s;
+        uint32_t words = n >> 1;
+        for (i = 0; i < words; i++)
+            cv_buf.w32[i] = s32;
+        if (n & 1u)
+            cv_buf.px[n - 1u] = s;
+    }
 }
 
 /* (GEN fix) screen rows the canvases leave alone (cv_hole0 .. cv_hole1 - 1; cv_hole1 0: none): the GEN screen's
@@ -435,6 +465,50 @@ static const uint16_t *ramp(uint16_t fg, uint16_t bg)
 }
 
 /* w x h nibbles, rows back to back, at canvas (x, y) */
+/* (QG-1 1.7) 16-BIT CHROME ---------------------------------------------------------------
+ * The plates, keys and meters are built the way the 16-bit consoles built theirs: a flat
+ * face, one lighter edge, one darker edge, and a two-colour ordered dither where a smooth
+ * gradient would have gone. All three are plain fills on the canvas the page already owns:
+ * no state, no allocation, and no colour of their own -- the caller passes the palette's
+ * tokens, so GREY / MONO / FLAT / LINE keep working unchanged. */
+static void gw_bevel(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, uint16_t hi, uint16_t lo)
+{
+    cv_rect(x, y, w, h, face);
+    cv_rect(x, y, w, 1, hi);
+    cv_rect(x, y, 1, h, hi);
+    cv_rect(x, y + h - 1, w, 1, lo);
+    cv_rect(x + w - 1, y, 1, h, lo);
+}
+/* a 4 x 4 ordered dither: `pct` of the pixels take `b`, the rest `a`. Its levels are the
+ * fixed steps a 16-bit palette had for a gradient, and the pattern never moves, so a static
+ * frame stays static (the splash's hold rewrites nothing). */
+static void gw_dither(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t a, uint16_t b, int32_t pct)
+{
+    static const uint8_t BAY[16] = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
+    int32_t i, j;
+    if (pct <= 0 || w <= 0 || h <= 0)
+        return;
+    if (pct >= 100) {
+        cv_rect(x, y, w, h, b);
+        return;
+    }
+    for (j = 0; j < h; j++)
+        for (i = 0; i < w; i++)
+            cv_rect(x + i, y + j, 1, 1, (int32_t)BAY[(j & 3) * 4 + (i & 3)] * 100 / 16 < pct ? b : a);
+}
+/* a segmented meter, bottom up: `seg` px blocks with a 1 px gap, the ones under the level
+ * lit. The empty blocks are drawn too -- a 16-bit meter always shows its scale. */
+static void gw_seg_v(int32_t x, int32_t y, int32_t w, int32_t h, int32_t lvl, int32_t seg,
+                     uint16_t on, uint16_t off)
+{
+    int32_t b;
+    for (b = 0; b * (seg + 1) < h; b++) {
+        int32_t by = y + h - (b + 1) * seg - b;
+        if (by < y)
+            break;
+        cv_rect(x, by, w, seg, b * (seg + 1) < lvl ? on : off);
+    }
+}
 static void cv_alpha(int32_t x, int32_t y, uint32_t w, uint32_t h, const uint8_t *d, const uint16_t *rv)
 {
     uint32_t k = 0, gx, gy;

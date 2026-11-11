@@ -67,8 +67,8 @@ static void graph_adsr(const track_t *t, uint16_t c)
         const voice_t *bv = 0;                          /* level as a dot on the curve, a line down to the axis */
         int32_t lvl, x;
         for (i = 0; i < NVOICE; i++)
-            if (t->v[i].stage && t->v[i].stage < 4u && (!bv || t->v[i].env > bv->env))
-                bv = &t->v[i];
+            if (V(t, i).stage && V(t, i).stage < 4u && (!bv || V(t, i).env > bv->env))
+                bv = &V(t, i);
         if (bv) {
             lvl = (int32_t)(((int64_t)bv->env * 1000) >> 24);
             if (bv->stage == 1u)
@@ -385,6 +385,13 @@ static void graph_morph(const track_t *t)
     str_cpy(b, n0, sizeof b);
     if (f && a1 != a0) { str_cpy(b + str_len(b), " > ", 4); str_cpy(b + str_len(b), n1, 8); }
     cv_text(PANEL_X0 + 2, 90, &AF_S, b, T_MID);
+    /* (3.4) WHERE the morph is, not only what it sounds like: the bottom of the panel is the travel from A to
+     * B and the marker is the position the knob is on, so the panel answers the question the page is about --
+     * how far between the two waves this sound sits -- without another number to read. */
+    cv_rect(PANEL_X0 + 1, 82, PANEL_W - 2, 5, T_RAISE);
+    if (f)
+        cv_rect(PANEL_X0 + 1, 82, (PANEL_W - 2) * f / 255, 5, ux_mix(T_RAISE, T_ACCENT, 120));
+    cv_rect(PANEL_X0 + (PANEL_W - 3) * f / 255, 79, 2, 11, T_ACCENT);
 }
 
 /* STEP page (a melodic track): a piano roll of the cursor's 16-step page. PR_ROWS semitone rows of PR_RH px,
@@ -642,87 +649,160 @@ static void graph_grid(const track_t *t, uint16_t c)
     if (song.playing && seq_src(t, t->seq_idx) < len && seq_src(t, t->seq_idx) / 16u == ui.bank)
         cv_rect(40 + (int32_t)(seq_src(t, t->seq_idx) % 16u) * 12, y0 - 1, 10, 3, T_TEXT);
 }
-/* (QG-1) Modern SCL (Scale & Quantum Harmonics) Dashboard:
- * Visualizes a complete chromatic octave with physical white and black piano keys,
- * active scale degree markers, root key highlight, note names, and scale metadata. */
+/* (QG-1 1.7) SCL: the scale on a real keyboard, in the 16-bit chrome HOME already speaks.
+ * Every key is a bevel -- a flat face, one lighter edge, one darker edge -- where the page
+ * used to paint flat rectangles, and the card uses its whole height: the footer line carries
+ * the two values this page owns (TRANS, CHORD), which is what used to leave the lower half of
+ * the card empty (measured: 60 px of nothing under the keys).
+ *   - seven white keys, 30 px wide and 1 px apart, from x 12 to 228, y 26 to 100;
+ *   - five black keys 18 px wide and 46 tall, centred on the seam after their white key, so
+ *     every accidental sits where a piano puts it;
+ *   - in the scale the face is the track's colour and the root the accent; out of the scale the
+ *     key stays recessed in the card. (3.2) the naturals name their note and nothing else: the
+ *     degree digit that sat beside it read as a key number, not as a scale degree;
+ *   - the title (ROOT + SCALE, QUANTIZED) sits above the keys, never on one.
+ * Every figure read here is the parameter the engine plays. */
+/* (3.1) a piano key: rounded, 1 px contour, drawn from rows and corner pixels. It is deliberately not
+ * a cv_rrect: the keys overlap (the accidentals sit over the naturals) and a registered cell would be
+ * reported as spilled by the very text the key owns. Same ink, no lint hook, identical on the panel. */
+static void scl_key(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t face, uint16_t brd, uint16_t under)
+{
+    /* (3.3) a corner, not a pill: 3 px (6 in 3.2 read as a lozenge on a 29 px key), a corner
+     * pixel blended into the card instead of a hard stair, a 1 px contour and one lit row on top.
+     * Still rows and single pixels only: nine rects and four corner loops, as before. */
+    int32_t i, j;
+    cv_rect(x + r, y, w - 2 * r, h, face);
+    cv_rect(x, y + r, r, h - 2 * r, face);
+    cv_rect(x + w - r, y + r, r, h - 2 * r, face);
+    for (j = 0; j < r; j++)
+        for (i = 0; i < r; i++) {
+            int32_t d2 = (r - i) * (r - i) + (r - j) * (r - j), rr = r * r;
+            uint16_t cc = d2 > rr + r ? under : d2 > rr - r ? ux_mix(brd, under, 50) : brd;
+            if (i + j + 1 < r)
+                continue;
+            cv_pset(x + r - i, y + r - j, cc);
+            cv_pset(x + w - 1 - (r - i), y + r - j, cc);
+            cv_pset(x + r - i, y + h - 1 - (r - j), cc);
+            cv_pset(x + w - 1 - (r - i), y + h - 1 - (r - j), cc);
+        }
+    cv_rect(x + r, y, w - 2 * r, 1, ux_mix(brd, face, 55));       /* the lit top: a bevel, not a frame */
+    cv_rect(x + r, y + h - 1, w - 2 * r, 1, brd);
+    cv_rect(x, y + r, 1, h - 2 * r, brd);
+    cv_rect(x + w - 1, y + r, 1, h - 2 * r, brd);
+}
+
 static void graph_scale(const track_t *t, uint16_t c)
 {
-    static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
-    static const uint8_t W_INDEX[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
-    static const uint8_t B_OFFSET[12] = {0, 18, 0, 48, 0, 0, 108, 0, 138, 0, 168, 0};
-    uint32_t i, mask = scale_mask(t);
-    int32_t y0 = 6;
-    int32_t x_base = 22;
+    static const uint8_t BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};   /* C C# D D# E F F# G G# A A# B */
+    static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};    /* the white key it belongs to */
+    static const uint8_t W_NOTE[7] = {0, 2, 4, 5, 7, 9, 11};                   /* C D E F G A B */
+    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u, live = 0;
+    /* (3.1) the piano, measured: 7 white keys 29 px wide with a 2 px gap (12..228), 60 px tall,
+     * five black keys 18 x 38 centred on their seam. Both are rounded bevels with a 1 px contour,
+     * a light grey face for the naturals and a darker one for the accidentals, so the layout reads
+     * as a keyboard on every theme instead of a wall of one colour. The scale is shown by a 2 px
+     * top strip (ROOT: accent, other degrees: theme), not by filling whole keys orange and cyan:
+     * that combination was the one the owner called unattractive, and it fought every palette. */
+    const int32_t x0 = 12, kw = 29, kg = 2, y0 = 25, kh = 60, bw = 18, bh = 38;
+    char sb[24];
 
-    /* Enclosure panel */
-    if (ux.chamfer && !ux.style) {
-        gw_oct_panel(8, 2, 224, 92, 5, T_BG, T_LINE, 1, c);
-    } else {
-        cv_rrect(8, 2, 224, 92, 4, T_SURF, T_BG);
+    for (i = 0; i < NVOICE; i++) {                   /* the notes the selected track is sounding now */
+        const voice_t *v = &V(t, i);
+        if (v->active && v->gate && v->note < 128u)
+            live |= 1u << (v->note % 12u);
     }
 
-    /* 1. Draw 7 White Piano Keys. A plain rect, not a cv_rrect: a rounded cell here would be as tall as the
-     * whole key, so it would still run under the black keys, and the accidental's name (drawn on the black
-     * key) would touch a cell it is not inside. The fill is identical; only the cell hook is gone. */
+    if (ux.chamfer && !ux.style)
+        gw_oct_panel(8, 2, 224, 118, 5, T_BG, T_LINE, 1, c);
+    else
+        cv_rrect(8, 2, 224, 118, 4, T_SURF, T_BG);
+
+    /* the title line, above the keys */
+    str_cpy(sb, N_NOTE[root], sizeof sb);
+    str_cpy(sb + str_len(sb), " ", 2);
+    str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
+    cv_text_on(12, 7, &AF_S, sb, T_THEME, T_SURF);
+    if (t->p[P_QUANT])
+        cv_text_r(228, 7, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
+
+    /* the seven naturals */
     for (i = 0; i < 7u; i++) {
-        int32_t kx = x_base + (int32_t)i * 28;
-        cv_rect(kx, y0 + 10, 26, 68, T_RAISE);
+        uint32_t note = W_NOTE[i], deg = (note + 12u - root) % 12u;
+        int32_t kx = x0 + (int32_t)i * (kw + kg);
+        int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
+        int sound = (live >> note) & 1u;
+        uint16_t face = in ? T_KEYW : ux_mix(T_KEYW, T_BG, 24);
+        uint16_t brd = ux_mix(face, T_BG, 58);
+        uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        if (sound)
+            face = ux_mix(face, T_THEME, 34);
+        scl_key(kx, y0, kw, kh, 3, face, brd, T_SURF);
+        if (strip)
+            cv_rect(kx + 2, y0 + 1, kw - 4, 2, strip);
+        cv_rect(kx + kw - 1, y0 + 3, 1, kh - 6, ux_mix(face, T_BG, 32));
+        /* (3.2) the naturals carry their NOTE NAME only: the degree digit ("1 C", "3 D") sat
+         * beside it and read as a key number the player could press. The scale is already
+         * said twice -- the strip on top and the face -- and the accidentals never had it. */
+        cv_text_r(kx + kw - 4, y0 + kh - 15, &AF_S, N_NOTE[note], in ? T_INK : T_DIM, face);
+        if (sound)                                    /* the note is sounding: one clear bar */
+            cv_rect(kx + 2, y0 + kh - 4, kw - 4, 2, T_ACCENT);
     }
-
-    /* 2. Highlight In-Scale Natural Notes on White Keys */
+    /* the five accidentals, over the seam they belong to */
     for (i = 0; i < 12u; i++) {
-        if (!BLACK[i]) {
-            uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
-            int in = (mask >> deg) & 1u;
-            int is_root = (deg == 0u);
-            int32_t kx = x_base + (int32_t)W_INDEX[i] * 28;
-            if (in) {
-                uint16_t col = is_root ? T_ACCENT : c;
-                cv_rrect(kx + 2, y0 + 52, 22, 24, 2, col, T_RAISE);
-                cv_text_in(kx + 2, y0 + 56, 22, &AF_S, N_NOTE[i], T_INK, col);
-            } else {
-                cv_text_in(kx + 2, y0 + 56, 22, &AF_S, N_NOTE[i], T_DIM, T_RAISE);
-            }
-        }
+        uint32_t deg = (i + 12u - root) % 12u;
+        int32_t kx;
+        int in, is_root, sound;
+        uint16_t face, ink, strip;
+        if (!BLACK[i])
+            continue;
+        kx = x0 + (int32_t)W_KEY[i] * (kw + kg) + kw + kg / 2 - bw / 2;
+        in = (mask >> deg) & 1u;
+        is_root = in && deg == 0u;
+        sound = (live >> i) & 1u;
+        face = sound ? ux_mix(T_KEYB, T_THEME, 46) : T_KEYB;
+        ink = in ? T_TEXT : T_MID;
+        strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        scl_key(kx, y0, bw, bh, 3, face, ux_mix(T_KEYB, T_TEXT, 24), T_BG);
+        if (strip)
+            cv_rect(kx + 2, y0 + bh - 3, bw - 4, 2, strip);
+        cv_rect(kx, y0 + bh, bw, 2, T_BG);            /* its shadow on the naturals */
+        GFX_HOOK_ALIGN(kx, y0, kx + bw, y0 + bh, AL_HV, "SCL accidental name in its key");
+        cv_text_in(kx, y0 + CAP_IN(S, bh), bw, &AF_S, N_NOTE[i], ink, face);
+        if (sound)
+            cv_rect(kx + 2, y0 + bh - 3, bw - 4, 2, T_TEXT);
     }
 
-    /* 3. Draw 5 Black Piano Keys (Accidentals) Over White Keys */
-    for (i = 0; i < 12u; i++) {
-        if (BLACK[i]) {
-            uint32_t deg = (i + 12u - (uint32_t)t->p[P_ROOT]) % 12u;
-            int in = (mask >> deg) & 1u;
-            int is_root = (deg == 0u);
-            int32_t kx = x_base + (int32_t)B_OFFSET[i];
-            uint16_t fill = in ? (is_root ? T_ACCENT : (ux.chamfer ? heat_col(180) : c)) : T_BG;
-            uint16_t txt = in ? T_INK : T_DIM;
-
-            cv_rrect(kx, y0 + 10, 18, 40, 2, fill, T_SURF);
-            cv_frame(kx, y0 + 10, 18, 40, T_LINE);
-            cv_text_in(kx, y0 + 20, 18, &AF_S, N_NOTE[i], txt, fill);
-        }
-    }
-
-    /* Top scale title banner */
+    /* the footer: what this page's two other values are */
+    cv_rect(12, 89, 216, 1, T_LINE);
     {
-        char sb[24];
-        str_cpy(sb, N_NOTE[(uint32_t)t->p[P_ROOT] % 12u], sizeof sb);
-        str_cpy(sb + str_len(sb), " ", 2);
-        str_cpy(sb + str_len(sb), N_SCALE[clamp(t->p[P_SCALE], 0, 16)], sizeof sb - str_len(sb));
-        cv_text(16, y0 - 4, &AF_S, sb, T_THEME);          /* (3 px clear of the keys at y0 + 10) */
-        if (t->p[P_QUANT]) {
-            cv_text_r(224, y0 - 4, &AF_S, "QUANTIZED", T_ACCENT, T_SURF);
-        }
+        char fb[24], tb[8];
+        fmt_int(tb, t->p[P_TRANS]);
+        str_cpy(fb, "TRANS ", sizeof fb);
+        str_cpy(fb + str_len(fb), t->p[P_TRANS] > 0 ? "+" : "", 2);
+        str_cpy(fb + str_len(fb), tb, sizeof fb - str_len(fb));
+        cv_text_on(12, 91, &AF_S, fb, T_MID, T_SURF);
+        cv_text_r(228, 91, &AF_S, t->p[P_CHRD] ? "CHORD ON" : "CHORD OFF",
+                  t->p[P_CHRD] ? T_ACCENT : T_DIM, T_SURF);
     }
 }
 static void panel_note(const char *a, const char *b, const char *c);
 static void panel_alert(uint32_t id, const char *a);
-/* (QG-1) FX: a compact modular 4-channel rack. One sub-panel per send, each with the effect's own
- * icon and name along the top, a scaled micro-fader down its right-hand side and the send's value or
- * distortion topology tag (SOFT/TAPE/HRTH/FLUX) under the name. Under them the global bus telemetry
- * (EQ, Slicer, M/S Width), measured field by field so nothing clips, overlaps or leaves its cell. */
+/* (QG-1) FX: four send channels and the three master modules that act on them, each in its own box.
+ * (2.1) What changed and why:
+ *   - the channel names are whole ("CHORUS", "DELAY", "REVERB", not the CHOR/REV the 53 px card could
+ *     not hold next to a 12 px icon): the name is its own line now, the icon sits over the value, and
+ *     the slim meter keeps the right-hand column, so nothing is abbreviated and nothing is clipped;
+ *   - the value is AF_S, one size down from the AF_M it was: four 2-digit numbers plus their meters fit
+ *     without touching the card's edge on any palette or style;
+ *   - the single "MASTER: EQ:BYP SLICER:OFF WIDTH:100%" ribbon at the bottom is gone. It packed three
+ *     unrelated readouts into one 16 px strip (the "empty square" under the meters) and WIDTH is the
+ *     STEREO M/S page's own control. In its place, three independent modules, each with its box, its
+ *     icon and its real value: EQ (song.g[G_EQMODE], G_EQGAIN), DEPTH (song.g[G_SLDEP], the slicer's
+ *     gate) and SLICER (song.g[G_SLMODE], lit while sl.idx is running). No animation, no invented
+ *     number: every figure is read from the same global the DSP reads. */
 static void graph_fx(const track_t *t, uint16_t c)
 {
-    static const char *const FX_LABELS[4] = {"DIST", "CHOR", "DLY", "REV"};
+    static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
     static uint8_t vu[4], hold[4];
@@ -737,42 +817,61 @@ static void graph_fx(const track_t *t, uint16_t c)
         vu_trk = (int32_t)(t - trk);
     }
 
-    /* One quiet rack: four equal channels, a clean level meter, the send's value and its parameter bar.
-     * No fader substitute: DIST is the track's post-FX peak, CHOR/DLY/REV are their real
-     * wet-return peaks; the thin tick marks each bus's actual input. */
-    cv_rrect(4, 2, 232, 72, 4, T_SURF, T_BG);
+    cv_rrect(4, 2, 232, 66, 4, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
-        int32_t mx = cx + 41, my = 24, mh = 33;
+        int32_t mx = cx + 43, my = 18, mh = 42;
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
         int32_t hpx = lvl * mh / 7000;
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         int32_t seg;
         char num[8];
 
-        cv_rrect(cx, 4, 53, 68, 3, T_SURF, T_BG);
-        cv_icon_on(cx + 4, 6, 12, FX_ICON[i], T_MID, T_SURF);
-        cv_text_on(cx + 19, 4, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);
-        if (pk > 64)
-            cv_rect(cx + 46, 7, 3, 3, T_ACCENT);
-        else
-            cv_rect(cx + 46, 7, 3, 3, T_LINE);
-
-        fmt_int(num, val);
-        cv_text_on(cx + 5, 20, &AF_M, num, val ? T_TEXT : T_DIM, T_SURF);
-        cv_text_on(cx + 5, 38, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
+        cv_rrect(cx, 4, 53, 62, 3, T_SURF, T_BG);
+        cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);   /* the whole name, on its own line */
+        cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, T_SURF);
+        /* (3.1) the four sends are MIDI 0..127 inside (presets, automation, the DSP's own maths keep
+         * that range) and 0..100 % on screen: the conversion happens here, once, for the label. */
+        fmt_int(num, (val * 100 + 63) / 127);
+        str_cpy(num + str_len(num), "%", sizeof num - str_len(num));
+        /* (3.2) right-aligned to the meter's left edge, not drawn from a fixed x: "100 %" is one
+         * glyph wider than "99 %" and the old fixed x put its % over the meter's column (the
+         * owner's overflow). 2 px of air, whatever the value, on every palette and style. */
+        cv_text_r(mx - 2, 18, &AF_S, num, val ? T_TEXT : T_DIM, T_SURF);
+        cv_text_on(cx + 3, 40, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, T_SURF);
+        if (pk > 64)                                  /* the track is producing sound now */
+            cv_rect(cx + 47, 6, 3, 3, T_ACCENT);
+        else
+            cv_rect(cx + 47, 6, 3, 3, T_LINE);
 
-        /* One slim 7 px meter, a real level and its peak cap; the send's number is already above it, so the
-         * duplicate 34 px bar is gone. A 1 px tick shows what the bus actually receives. */
-        cv_rect(mx, my, 7, mh, T_BG);
-        for (seg = 0; seg < mh; seg += 5)
-            cv_rect(mx, my + mh - 1 - seg, 7, 1, T_RAISE);
-        if (hpx > vu[i]) vu[i] = (uint8_t)hpx;
-        else if (vu[i] > 0u) vu[i]--;
-        if (hpx > hold[i]) hold[i] = (uint8_t)hpx;
-        else if (hold[i] > 0u) hold[i]--;
+        /* Thicker FX meter with vibrant colors and smooth bounce */
+        cv_rect(mx, my, 12, mh, T_BG);
+        /* Controlled bounce - peak falls smoothly */
+        int32_t bounce_px = (hpx * 7 + mh * 3) / 10;
+        if (bounce_px > mh) bounce_px = mh;
+        if (bounce_px < 0) bounce_px = 0;
+        /* Per-module vibrant colors: delay gets cyan theme, others use theme */
+        if (i == 2) { /* DELAY: vibrant cyan */
+            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, T_THEME);
+        } else {
+            cv_rect(mx + 1, my + mh - bounce_px, 10, bounce_px, i == 0 ? c : T_THEME);
+        }
+        /* Subtle peak cap */
+        int32_t peak_px = (hpx * 2 + mh * 3) / 5;
+        if (peak_px > mh) peak_px = mh;
+        if (peak_px > bounce_px) peak_px = bounce_px;
+        if (peak_px > 0u)
+            cv_rect(mx + 2, my + mh - peak_px, 8, 1, T_ACCENT);
+        /* Fade trail for controlled dissipation */
+        if (vu[i] > 0u && vu[i] < (uint8_t)mh) {
+            cv_rect(mx + 1, my + mh - vu[i], 10, vu[i], i == 2 ? T_THEME : (i == 0 ? c : T_THEME));
+        }
+        /* Input level tick */
+        if (i && inpx > 0) {
+            cv_rect(mx + 6, my + mh - inpx, 6, 1, T_MID);
+        }
         if (vu[i] > 0u)
             cv_rect(mx + 1, my + mh - vu[i], 5, vu[i], i == 0 ? c : T_THEME);
         if (hold[i] > 0u)
@@ -781,23 +880,55 @@ static void graph_fx(const track_t *t, uint16_t c)
             cv_rect(mx + 6, my + mh - inpx, 1, 1, T_MID);
     }
 
-    /* Bottom Global Master FX Telemetry Ribbon. Laid out right to left, each field measured against
-     * the one after it, so the four can never collide whatever their values are: SLICER:ON/OFF used to
-     * overlap WIDTH:100% by 5 px at the right-hand end. */
+    /* the three master modules, 72 px wide and 28 tall (70 .. 98). The icon and the module's name sit on
+     * the first line, its value at the left of the second and the bar at the right of it: label and value
+     * on the same line did not fit (the lint measured EQ 23..37 against BYPASS 31..71), and AF_S is the
+     * smallest ink the panel has. Every figure is the global the DSP reads. */
     {
-        static const char *const EQ_N[2] = {"EQ:BYP", "EQ:ON"};
-        char sl[12], wb[16];
-        uint16_t eq_c = song.g[G_EQMODE] ? T_THEME : T_MID, sl_c = song.g[G_SLMODE] ? T_ACCENT : T_MID;
-        int32_t x;
-        str_cpy(sl, song.g[G_SLMODE] ? "SLICER:ON" : "SLICER:OFF", sizeof sl);
-        str_cpy(wb, "WIDTH:", sizeof wb);
-        fmt_int(wb + 6, (int32_t)song.g[G_MWIDTH] * 100 / 64);
-        str_cpy(wb + str_len(wb), "%", 2);
-        cv_rrect(6, 76, 228, 16, 3, T_SURF, T_BG);
-        x = cv_text_r(230, 78, &AF_S, wb, T_TEXT, T_SURF);
-        x = cv_text_r(x - 6, 78, &AF_S, sl, sl_c, T_SURF);
-        x = cv_text_r(x - 6, 78, &AF_S, EQ_N[song.g[G_EQMODE] != 0], eq_c, T_SURF);
-        cv_text_r(x - 6, 78, &AF_S, "MASTER:", T_DIM, T_SURF);
+        static const int32_t MX3[3] = {4, 82, 160};
+        static const uint16_t IC[3] = {ICON_TONE, ICON_LEVEL, ICON_STEPS};
+        static const char *const NM[3] = {"EQ", "DEPTH", "SLICER"};
+        uint32_t m;
+        char vb[12];
+        for (m = 0; m < 3u; m++) {
+            cv_rrect(MX3[m], 70, 72, 28, 3, T_SURF, T_BG);
+            cv_icon_on(MX3[m] + 4, 72, 12, IC[m], T_MID, T_SURF);
+            cv_text_on(MX3[m] + 19, 72, &AF_S, NM[m], T_DIM, T_SURF);
+            cv_rect(MX3[m] + 42, 90, 26, 3, T_BG);        /* the bar's track, right of the value */
+        }
+        /* EQ: its mode (N_EQMODE) and the gain it applies; BYP when off, so the box never reads as on */
+        {
+            uint32_t em = (uint32_t)clamp(song.g[G_EQMODE], 0, 4);
+            int32_t gdb = (int32_t)clamp(song.g[G_EQGAIN], -24, 24);
+            int32_t px = (gdb + 24) * 26 / 48;            /* -24 .. +24 dB across the 26 px bar */
+            if (em) {
+                str_cpy(vb, N_EQMODE[em], sizeof vb);
+                cv_text_on(MX3[0] + 4, 85, &AF_S, vb, T_THEME, T_SURF);
+                cv_rect(MX3[0] + 42 + px, 90, 2, 3, T_ACCENT);   /* where the gain sits, off centre = not flat */
+            } else {
+                cv_text_on(MX3[0] + 4, 85, &AF_S, "BYP", T_DIM, T_SURF);
+                cv_rect(MX3[0] + 54, 90, 2, 3, T_DIM);    /* flat, 0 dB: the centre of the bar */
+            }
+        }
+        /* DEPTH: the slicer's gate (song.g[G_SLDEP], 0..127) and the bar for its travel */
+        {
+            int32_t d = clamp(song.g[G_SLDEP], 0, 127), seg;
+            fmt_int(vb, d * 100 / 127);
+            str_cpy(vb + str_len(vb), "%", 2);
+            cv_text_r(MX3[1] + 40, 85, &AF_S, vb, d ? T_TEXT : T_DIM, T_SURF);   /* (3.2) clear of its bar */
+            for (seg = 0; seg < 13; seg++)
+                if (seg * 10 < d * 26 / 127 * 10 / 5)
+                    cv_rect(MX3[1] + 42 + seg * 2, 90, 2, 3, song.g[G_SLMODE] ? T_THEME : T_DIM);
+        }
+        /* SLICER: OFF / GATE / STUT, and its 16 steps lit at the one running (slicer.c sl.idx) */
+        {
+            uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k;
+            str_cpy(vb, N_SLCR[sm], sizeof vb);
+            cv_text_on(MX3[2] + 4, 85, &AF_S, vb, sm ? T_THEME : T_DIM, T_SURF);
+            if (sm)
+                for (k = 0; k < 16u; k++)                 /* 16 steps in 26 px: a 1 px step, 1 px apart */
+                    cv_rect(MX3[2] + 42 + (int32_t)k * 2, 90, 1, 3, k == (sl.idx & 15u) ? T_ACCENT : T_RAISE);
+        }
     }
 }
 /* SLICER and SL BUS pages (JIANT 0.6.3: one, on a bus): the pattern's 16 steps, a 'x' step a full bar; a '.' step: GATE
@@ -985,12 +1116,12 @@ static void graph_slpitch(uint16_t c)
  * a writer; none is a constant. */
 static void graph_diag(uint16_t c)
 {
-    uint32_t i, active_voices = 0, n1 = 0, n0;
+    uint32_t i, active_voices = 0, n1 = 0, n0, step = 0, slen = 1;
     char b[48];
     for (i = 0; i < trk_live; i++) {
         uint32_t v;
         for (v = 0; v < NVOICE; v++)
-            if (trk[i].v[v].active) active_voices++;
+            if (V(&trk[i], v).active) active_voices++;
     }
     for (i = 0; i < NPART; i++)                     /* the parts core 1 took in the last block */
         n1 += (mc_mask_last >> i) & 1u;
@@ -1006,16 +1137,29 @@ static void graph_diag(uint16_t c)
     /* Row 1: MULTICORE STATUS. mc_status() already spells the whole state ("CORES 2", "CORES 1 (FAULT)"), the
      * fallback and the fault included, so the caption must not repeat it */
     cv_text(16, 8, &AF_S, "MULTICORE", T_MID);
-    cv_text_r(224, 8, &AF_S, mc_status(), T_THEME, T_SURF);
+    if (fx_trips) {                                 /* the buses reset out of range (fx.c fx_trip): a fault */
+        b[0] = 0;
+        str_cpy(b, mc_status(), sizeof b);
+        str_cpy(b + str_len(b), " TRIP ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)fx_trips);
+        cv_text_r(224, 8, &AF_S, b, T_ACCENT, T_SURF);
+    } else
+        cv_text_r(224, 8, &AF_S, mc_status(), T_THEME, T_SURF);
 
-    /* Row 2: REAL CPU LOAD & PEAK (audio.c song.cpu_q8, load_diag.peak) */
+    /* Row 2: the audio's own load (audio.c song.cpu_q8, averaged) and the worst block since power-on.
+     * (3.0) With nothing measured -- the host and the browser emulator do not advance the tick inside the
+     * render -- it says N/A: a 0 % there was a measurement that never happened. */
     cv_text(16, 22, &AF_S, "CPU LOAD", T_MID);
-    b[0] = 0;
-    fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
-    str_cpy(b + str_len(b), "% (PK ", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), (int32_t)load_diag.peak);
-    str_cpy(b + str_len(b), "%)", sizeof b - str_len(b));
-    cv_text_r(224, 22, &AF_S, b, song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
+    if (load_diag.valid) {
+        b[0] = 0;
+        fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
+        str_cpy(b + str_len(b), "% (PK ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)load_diag.peak);
+        str_cpy(b + str_len(b), "%)", sizeof b - str_len(b));
+    } else {
+        str_cpy(b, "N/A", sizeof b);
+    }
+    cv_text_r(224, 22, &AF_S, b, !load_diag.valid ? T_MID : song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
 
     /* Row 3: HOW THE PARTS SPLIT, and how long core 1's last job took (its own stamp on the shared TIMER4) */
     cv_text(16, 36, &AF_S, "CORE SPLIT", T_MID);
@@ -1031,6 +1175,12 @@ static void graph_diag(uint16_t c)
         str_cpy(b + str_len(b), "us", sizeof b - str_len(b));
     }
 #endif
+    if (mc_fx_tk) {                                 /* the buses' own block ticks (fx.c fx_run) */
+        str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)mc_fx_tk);
+        str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
+    } else
+        str_cpy(b + str_len(b), " N/A TK", sizeof b - str_len(b));
     cv_text_r(224, 36, &AF_S, b, n1 ? T_THEME : T_TEXT, T_SURF);
 
     /* Row 4: POLYPHONY (active voices across all live tracks) */
@@ -1042,39 +1192,50 @@ static void graph_diag(uint16_t c)
     str_cpy(b + str_len(b), " VOICES", sizeof b - str_len(b));
     cv_text_r(224, 50, &AF_S, b, active_voices + 1u >= NVOICE ? T_ACCENT : T_TEXT, T_SURF);
 
-    /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS */
+    /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS (a muted track reads dim, a sounding one accent) */
     for (i = 0; i < 6u; i++) {
         int32_t tx = 16 + (int32_t)i * 35;
         uint32_t v, tv = 0;
         char tb[4] = {'T', (char)('1' + i), 0, 0};
-        if (i < trk_live) {
-            for (v = 0; v < NVOICE; v++) if (trk[i].v[v].active) tv++;
+        int32_t live = i < trk_live;
+        if (live) {
+            for (v = 0; v < NVOICE; v++) if (V(&trk[i], v).active) tv++;
         }
-        cv_text(tx, 64, &AF_S, tb, i < trk_live ? T_DIM : T_LINE);
-        cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : T_RAISE, T_SURF);
+        cv_text(tx, 64, &AF_S, tb, live ? T_DIM : T_LINE);
+        cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : live && !trk[i].p[P_MUTE] ? T_RAISE : T_LINE, T_SURF);
     }
 
-    /* Row 6: BUS TICKS & HARDWARE SANITY (no fabricated constants) */
-    cv_text(16, 78, &AF_S, "BUS TICKS", T_MID);
-    if (mc_fx_tk) {
-        b[0] = 0;
-        fmt_int(b, (int32_t)mc_fx_tk);
-        str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
-    } else {
-        str_cpy(b, "N/A", sizeof b);
-    }
-    if (fx_trips) {
-        str_cpy(b + str_len(b), " [TRIP]", sizeof b - str_len(b));
-    }
-    cv_text_r(224, 78, &AF_S, b, fx_trips ? T_ACCENT : T_TEXT, T_SURF);
-
-    /* Row 7: BLOCKS THAT MISSED THEIR DEADLINE, and the voices shed for it (the overload fallback) */
-    cv_text(16, 92, &AF_S, "LATE/SHED", T_MID);
+    /* Row 6: the sequencer's real position (seq.c seq_src: the step the selected part plays now) */
+    cv_text(16, 78, &AF_S, "SEQ", T_MID);
+    slen = (uint32_t)clamp(TSEL->p[P_SLEN], 1, NSTEP);
+    step = seq_src(TSEL, TSEL->seq_idx);
     b[0] = 0;
-    fmt_int(b, (int32_t)load_diag.late);
-    str_cpy(b + str_len(b), " / ", sizeof b - str_len(b));
+    str_cpy(b, song.playing ? "PLAY " : "STOP ", sizeof b);
+    fmt_int(b + str_len(b), (int32_t)(step < slen ? step + 1u : 0u));
+    str_cpy(b + str_len(b), "/", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)slen);
+    str_cpy(b + str_len(b), "  ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), bar_n + (song.playing ? 1u : 0u));   /* (the bar it is on now) */
+    str_cpy(b + str_len(b), " BAR", sizeof b - str_len(b));
+    cv_text_r(224, 78, &AF_S, b, song.playing ? T_ACCENT : T_TEXT, T_SURF);
+
+    /* Row 7: the three FX returns (fx.c fx_vu[3..5], the buses' measured peaks) and the blocks that missed
+     * their deadline with the voices shed for them. A bus that has never returned anything is a dash, not a 0. */
+    cv_text(16, 92, &AF_S, "FX RET", T_MID);
+    b[0] = 0;
+    for (i = 0; i < 3u; i++) {                      /* chorus, delay, reverb: what each bus returns */
+        int32_t v = clamp((int32_t)fx_vu[3 + i], 0, 32767);
+        str_cpy(b + str_len(b), i ? " " : "", sizeof b - str_len(b));
+        if (!v)
+            str_cpy(b + str_len(b), "-", sizeof b - str_len(b));
+        else
+            fmt_int(b + str_len(b), v * 99 / 32767);   /* 0..99: the return's own peak */
+    }
+    str_cpy(b + str_len(b), "  LATE ", sizeof b - str_len(b));
+    fmt_int(b + str_len(b), (int32_t)load_diag.late);
+    str_cpy(b + str_len(b), "/", sizeof b - str_len(b));
     fmt_int(b + str_len(b), (int32_t)load_diag.shed);
-    cv_text_r(224, 92, &AF_S, b, (load_diag.late || load_diag.shed) ? T_ACCENT : T_TEXT, T_SURF);
+    cv_text_r(224, 92, &AF_S, b, load_diag.late || load_diag.shed ? T_ACCENT : T_TEXT, T_SURF);
 }
 
 /* MOD page: the four slots as rows "1 LFO > CUT +50%", the one KNOB 2..4 edit selected, slots that do
@@ -1125,6 +1286,57 @@ static uint32_t str_hash(uint32_t h, const char *s)
 }
 
 
+
+/* (3.4) LOFI's EDIT pages: the chip's own panel. The two pages used to fall back to the generic being (WAVE 1 /
+ * WAVE 2 / MIXER), which says nothing about this engine. What is drawn here is its identity, from the
+ * parameters the DSP reads and from nothing else: the trace the track is producing, the converter and the
+ * waveform it is set to (their names come from the engine's own EDIT descriptors, so a new waveform needs no
+ * change here), the pulse width on its period, the crusher's staircase, and a T.CLK timeline that shows what
+ * NOTE and FREE do -- a note restarts the formula, or the formula keeps running and the note joins it where it
+ * is (eng_lofi.c lofi_note_on, voice.c's retrigger). */
+static void graph_lofi(const track_t *t, uint16_t c)
+{
+    const engine_t *e = ENGINES[t->eng_req % NENGINES];
+    int32_t chip = clamp(t->p[P_E0], 0, 4), wv = clamp(t->p[P_E1], 0, 6);
+    int32_t duty = clamp(t->p[P_E2], 0, 127), crush = clamp(t->p[P_E3], 0, 127);
+    int32_t fr = clamp(t->p[P_LRTRG], 0, 1), i, x, px = 18, py = 102;
+
+    gw_oct_panel(8, 2, 224, 68, 4, T_BG, T_LINE, 1, c);
+    cv_text_on(14, 4, &AF_S, "LOFI CHIP", T_THEME, T_BG);
+    if (e->edit[0].names && e->edit[0].names[chip])
+        cv_text_r(170, 4, &AF_S, e->edit[0].names[chip], T_ACCENT, T_BG);
+    if (e->edit[1].names && e->edit[1].names[wv])
+        cv_text_r(228, 4, &AF_S, e->edit[1].names[wv], T_MID, T_BG);
+    cv_rect(12, 20, 216, 1, T_LINE);
+    cv_rect(12, 33, 216, 1, T_GRID);
+    gw_live_trace(14, 212, 33, 12, 148);             /* the master trace: the sound this track is making */
+    cv_rect(12, 49, 216, 1, T_LINE);
+
+    /* the pulse width, on its own period */
+    cv_rect(14, 53, 96, 7, T_RAISE);
+    if (duty)
+        cv_rect(14, 53, duty * 96 / 127, 7, c);
+    /* the converter's staircase: five steps, lit as far as CRUSH keeps them */
+    for (i = 0; i < 5; i++) {
+        int32_t bh = 2 + i * 2;
+        cv_rect(150 + i * 9, 60 - bh, 7, bh, crush * 5 / 128 > i ? c : T_RAISE);
+    }
+
+    gw_oct_panel(8, 74, 224, 44, 4, T_BG, T_LINE, fr, T_ACCENT);
+    cv_text_on(14, 76, &AF_S, "T.CLK", T_THEME, T_BG);
+    cv_text_r(226, 76, &AF_S, fr ? "FREE" : "NOTE", fr ? T_ACCENT : T_MID, T_BG);
+    /* five notes across the timeline, at the spacing the formula's period has */
+    for (i = 0; i < 5; i++)
+        cv_rect(18 + (int32_t)i * 43, 91, 1, 11, T_LINE);
+    for (x = 18; x <= 230; x++) {                     /* NOTE: the phase restarts at each note; FREE: runs on */
+        int32_t y = fr ? 102 - (x - 18) * 11 / 212 : 102 - ((x - 18) % 43) * 11 / 43;
+        if (x > 18)
+            cv_line(px, py, x, y, fr ? T_ACCENT : c);
+        px = x;
+        py = y;
+    }
+    cv_text_on(14, 103, &AF_S, fr ? "runs on, note joins" : "each note restarts", T_DIM, T_BG);
+}
 
 /* WHEEL: the nine drawbars as rounded bars over RAISE slots (the bars of the knob just turned: the accent),
  * their footages under them */
@@ -1260,6 +1472,10 @@ static void graph_fm6(const track_t *t, uint16_t c, uint32_t sel)   /* sel < 6: 
         y[k] = bus - 6 - FM_BH - 23 * (int32_t)(FM6_CELL[alg][k] >> 4);
         if (car >> k & 1u) { cl = x[k] < cl ? x[k] : cl; cr = x[k] > cr ? x[k] : cr; }
     }
+    for (k = 0; k < 9u; k++)                          /* (1.7) the chart's reticle: a 16-bit grid, 24 px steps */
+        cv_rect(24 + (int32_t)k * 23, 20, 1, 82, T_GRID);
+    cv_rect(PANEL_X0, 20, PANEL_W, 1, T_LINE);
+
     for (k = 0; k < 6u; k++) {                       /* into k: its sources down to its jog row, across, down */
         for (j = 0; j < 6u; j++)
             if (m[k] >> j & 1u) {
@@ -1283,7 +1499,7 @@ static void graph_fm6(const track_t *t, uint16_t c, uint32_t sel)   /* sel < 6: 
         uint16_t f = hotset >> k & 1u ? T_ACCENT : c, fill = k == sel ? T_ACCENT : fill_c ? f : T_RAISE;
         char n[2] = {(char)('1' + k), 0};
         FM6_CHART_HOOK(FMH_BOX, k, 0);
-        cv_rrect(x[k] - 10, y[k], 21, FM_BH, 3, fill, T_SURF);
+        gw_bevel(x[k] - 10, y[k], 21, FM_BH, fill, ux_mix(fill, T_TEXT, 40), ux_mix(fill, T_BG, 42));
         GFX_HOOK_ALIGN(x[k] - 10, y[k], x[k] + 11, y[k] + FM_BH, AL_HV, "FM6 operator number in its box");
         cv_text_in(x[k] - 10, y[k] + CAP_IN(S, FM_BH), 21, &AF_S, n, fill_c || k == sel ? T_INK : on ? f : T_DIM, fill);
     }
@@ -1327,6 +1543,8 @@ static void graph_fm6env(const track_t *t, uint16_t c)
     x[4] = x[5] - FEGW(op[FP_R1 + 3]);
     y[4] = y[3];
     y[5] = y[0];
+    for (k = 1; k < 4; k++)                          /* (1.7) the level guides, a quarter of the scale each */
+        cv_rect(PANEL_X0, top + k * (bot - top) / 4, PANEL_W, 1, T_GRID);
     cv_rect(PANEL_X0, bot + 2, PANEL_W, 1, T_RAISE);
     cv_rect(x[4], top, 1, bot - top + 1, T_RAISE);   /* the key let go */
     for (k = 0; k < 5; k++)                          /* (3: the hold, no stage of its own) */
@@ -1648,7 +1866,7 @@ static uint32_t graph_signature(void)
     const track_t *t = TSEL;
     uint32_t h = 2166136261u, i;
     if (ui.home)
-        return h ^ (ui.frame / 2u);                  /* scope: redraw every other frame */
+        return h ^ (ui.frame / 2u) ^ gw_planet_sig();   /* (3.5) and every frame a body answers a touch */
     h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u;
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
@@ -1664,7 +1882,7 @@ static uint32_t graph_signature(void)
         h ^= (t->lfo_ph >> 23) * 2654435761u ^ (uint32_t)(t->lfo_val * t->lfo_fade >> 22);
     if (pg->graph == GR_ADSR)                        /* the envelope's dot: every voice's stage and level */
         for (i = 0; i < NVOICE; i++)
-            h = (h ^ ((uint32_t)t->v[i].stage << 24 | (uint32_t)t->v[i].env >> 16)) * 16777619u;
+            h = (h ^ ((uint32_t)V(t, i).stage << 24 | (uint32_t)V(t, i).env >> 16)) * 16777619u;
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u + ui.uslot * 104729u +
@@ -1772,10 +1990,10 @@ static uint32_t graph_signature(void)
         for (k = 0; k < trk_live; k++) {
             uint32_t v;
             for (v = 0; v < NVOICE; v++)
-                av = av + (trk[k].v[v].active != 0);
+                av = av + (V(&trk[k], v).active != 0);
         }
         h = (h ^ song.cpu_q8 * 3329u ^ load_diag.peak * 1931u ^ load_diag.late * 2671u ^
-             load_diag.shed * 6151u) * 16777619u;
+             load_diag.shed * 6151u ^ (load_diag.valid ? 1u : 0u) * 7919u) * 16777619u;   /* (3.0) N/A -> % */
         h = (h ^ mc_fx_tk * 40503u ^ fx_trips * 7919u ^ trk_live * 104729u ^ av * 131u) * 16777619u;
         /* (QG-1 v1.5) the rows added on top of those: the part split, core 1's job and the multicore state.
          * Without these the page kept the figure it first drew: mc_status() and CORE SPLIT never moved, because
@@ -1812,8 +2030,14 @@ static const char *eng_abbr(const char *name)
 static void list_row(int32_t y, int sel, const char *tag, uint16_t tc, const char *name, uint16_t nc, int32_t x1)
 {
     uint16_t bg = sel ? T_THEME : T_SURF;
-    if (sel)
+    /* (1.7) PRESETS and PROJECT are painted by this one row, so their chrome lands here once: the
+     * picked row is a bevel like MENU's -- a light edge on top, a shadow under it -- and the rows
+     * below it keep the page's own rule (nothing else about the row changed: same text, same ink). */
+    if (sel) {
         cv_rrect(6, y, 228, 16, 4, T_THEME, T_SURF);
+        cv_rect(12, y, 216, 1, ux_mix(T_THEME, T_TEXT, 34));
+        cv_rect(12, y + 15, 216, 1, ux_mix(T_THEME, T_BG, 34));
+    }
     GFX_HOOK_ALIGN(0, y, 0, y + 16, AL_V, "list row text centred up/down");
     cv_text_on(14, y + CAP_IN(S, 16), &AF_S, tag, sel ? T_INK : tc, bg);
     if (name[0])
@@ -1926,10 +2150,9 @@ static void graph_preset_pop(void)
     for (r = -2; r <= 2; r++) {
         int32_t ry = y0 + 4 + (r + 2) * 15;
         int32_t x1 = x0 + w - 16;
-        char tag[6], nm[16], pt[4], pn[13];
+        char tag[6], nm[16];
         uint32_t index = preset_visible(cur, total, (uint32_t)(r + 3));
         int sel = (index == cur);
-        int32_t hint = sel ? preset_pat_hint() : -1;
         uint16_t row_bg;
 
         if (index >= total) continue;
@@ -1944,10 +2167,10 @@ static void graph_preset_pop(void)
 
         row_bg = sel ? T_THEME : T_SURF;
         if (favorite_has(e, k)) x1 -= 14;
-        if (hint >= 0) {
-            pat_label((uint32_t)hint, pt, pn);
-            x1 -= (text_w(&AF_S, pt) + 6);
-        }
+        /* (2.1) no pattern number here. `preset_pat_hint` was drawn as four bare characters at the right
+         * of the name, and on a popup that is up for 1.5 s they read as a random number stuck to the
+         * preset. The hint belongs to the pattern list, where the row is labelled and the number means
+         * something; the popup keeps the name and the favourite's star. */
 
         if (sel) {
             cv_rrect(x0 + 4, ry, w - 8, 14, 3, T_THEME, T_SURF);
@@ -1959,9 +2182,6 @@ static void graph_preset_pop(void)
             cv_free_text(x0 + 46, ry + 1, &AF_S, nm, T_TEXT, T_SURF, x1 - (x0 + 46));
         }
 
-        if (hint >= 0) {
-            cv_text_r(favorite_has(e, k) ? x0 + w - 20 : x0 + w - 8, ry + 1, &AF_S, pt, sel ? T_INK : T_ACCENT, row_bg);
-        }
         if (favorite_has(e, k)) {
             cv_icon_in(x0 + w - 16, ry, 0, 14, 10, ICON_X_STAR, sel ? T_INK : T_ACCENT, row_bg);
         }
@@ -2383,9 +2603,12 @@ static void draw_tracks(void)
             }
             GFX_HOOK_ALIGN(KB_X, KB_Y, KB_X + 2 * KNOB_BIG_R, KB_Y + 2 * KNOB_BIG_R, AL_HV, "mixer level value in its knob");
             cv_text_in(KB_X, KB_Y + CAP_IN(S, 2 * KNOB_BIG_R), 2 * KNOB_BIG_R, &AF_S, v, hot == 1u ? T_ACCENT : lvl ? vc : T_DIM, T_SURF);
+            /* (2.2) THE SAME INSTRUMENT AS HOME. This meter drew a solid 4 px bar while HOME drew eight
+             * lit segments on the heat ramp, so the two meters of one device read as two instruments --
+             * that is the audit's finding, and the reason this is one call now: gw_plasma_bar is the bar
+             * HOME draws, at the same 0..256 scale and on the same heat walk. */
             cv_rrect(45, TS_MY, 4, TS_MH, 2, T_RAISE, T_SURF);
-            if (ts.meter[c])
-                cv_rrect(45, TS_MY + TS_MH - 1 - ts.meter[c], 4, ts.meter[c] + 1, ts.meter[c] >= 4 ? 2 : 0, T_MID, T_RAISE);
+            gw_plasma_bar(45, TS_MY, 4, TS_MH, 8, (int32_t)ts.meter[c] * 256 / (TS_MH - 2), 60);
         }
         {   /* PAN (from the centre) and the REV send: captions, knobs, values */
             char v[8];
@@ -2415,27 +2638,32 @@ static void draw_tracks(void)
  * - 6-track mini VU activity meter across top reticle.
  * - Orbital phase space trajectory x(t) vs x(t - tau).
  * - High-contrast, crystal-clear bottom telemetry & exit hint [HOME] EXIT. */
+static int16_t scope_snap[SCOPE_N];
+
 static void graph_home_viz(uint16_t c)
 {
-    static int16_t snap[SCOPE_N];
     static uint8_t peak_decay[16];
     uint32_t w = scope_w, i, trig = 0, pass;
     int32_t peak = 1000, bars[16];
+    /* (3.5) a slightly deeper page: the panel and the space around it sit one step under the palette's own
+     * tones, so the data (the only bright thing here) leads and the field behind it recedes. bg_darken()
+     * can only move a tone down, so MONO stays black and PAPER stays legible. */
+    uint16_t vbg = bg_darken(T_BG, 14), vsf = bg_darken(T_SURF, 10);
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
-        snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
-        if (snap[i] > peak) peak = snap[i];
-        else if (-snap[i] > peak) peak = -snap[i];
+        scope_snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
+        if (scope_snap[i] > peak) peak = scope_snap[i];
+        else if (-scope_snap[i] > peak) peak = -scope_snap[i];
     }
     for (i = 1; i < SCOPE_N - 240u; i++)
-        if (snap[i - 1] < 0 && snap[i] >= 0) { trig = i; break; }
+        if (scope_snap[i - 1] < 0 && scope_snap[i] >= 0) { trig = i; break; }
 
     /* One measurement per frame: the two band passes draw the same bars and peak caps. */
     for (i = 0; i < 16u; i++) {
         int32_t bsum = 0, j;
         for (j = 0; j < 8; j++) {
-            int32_t val = snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
+            int32_t val = scope_snap[(trig + i * 8u + (uint32_t)j) & (SCOPE_N - 1u)];
             if (val < 0) val = -val;
             bsum += val;
         }
@@ -2448,29 +2676,36 @@ static void graph_home_viz(uint16_t c)
 
     for (pass = 0; pass < 2u; pass++) {
         int32_t top_y = pass ? 114 : 26, cy = 100, amp = 34;
-        cv_begin(240, 88, T_BG);
+        cv_begin(240, 88, vbg);
         cv_oy = -top_y;
-        cv_bg = T_SURF;
+        cv_bg = vsf;
 
         if (ux.chamfer && !ux.style)
-            gw_oct_panel(4, 26, 232, 176, 6, T_SURF, T_LINE, 1, c);
+            gw_oct_panel(4, 26, 232, 176, 6, vsf, T_LINE, 1, c);
         else
-            cv_rrect(4, 26, 232, 176, 6, T_SURF, T_BG);
+            cv_rrect(4, 26, 232, 176, 6, vsf, vbg);
+
+        /* (3.5) the deep field, before anything is measured: the bodies the scope sits in front of */
+        gw_viz_deep(ui_viz_q);
 
         /* A single quiet frame: header, a scope field, then the spectrum floor. */
         if (!pass) {
             cv_text(14, 30, &AF_S, "QG-1 QUANTUM SCOPE", T_THEME);
             cv_text_r(226, 30, &AF_S, ENGINES[TSEL->eng_req % NENGINES]->name, T_TEXT, T_SURF);
             cv_rect(14, 43, 212, 1, T_LINE);
-            for (i = 0; i < trk_live && i < 6u; i++) {
-                int32_t vx = 16 + (int32_t)i * 35;
-                int32_t vpk = trk[i].peak > 0 ? trk[i].peak * 18 / 32767 : 0;
-                vpk = clamp(vpk, 0, 18);
-                cv_rect(vx, 49, 22, 3, T_RAISE);
-                if (vpk > 0)
-                    cv_rect(vx, 49, vpk, 3, i == song.sel ? T_ACCENT : T_THEME);
+            for (i = 0; i < trk_live && i < 6u; i++) {   /* (1.7) seven blocks a track, the 16-bit meter */
+                int32_t vx = 16 + (int32_t)i * 35, k;
+                int32_t nb = trk[i].peak > 0 ? clamp(trk[i].peak * 7 / 32767, 0, 7) : 0;
+                for (k = 0; k < 7; k++)
+                    cv_rect(vx + k * 3, 49, 2, 3, k < nb ? (i == song.sel ? T_ACCENT : T_THEME) : T_RAISE);
             }
         }
+
+        /* The bay's dust, before anything is measured on it: the ember field is behind the trace, the
+         * phase plot, the spectrum bars and every label (2.0: it used to be painted after the bars, so it
+         * sat in front of the data). gw_embers() is ui_being.c's one implementation, shared with HOME's
+         * own bay; 18 embers at HIGH, 12 at BALANCED, 6 at LOW, deterministic and allocation-free. */
+        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 14u : 22u, 0u, 80, vsf);
 
         /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
         cv_rect(12, cy, 144, 1, T_LINE);
@@ -2478,30 +2713,38 @@ static void graph_home_viz(uint16_t c)
             cv_rect(12 + (int32_t)i * 48, 64, 1, 66, T_GRID);
         cv_rect(12, 64, 144, 1, T_GRID);
         cv_rect(12, 130, 144, 1, T_GRID);
+        for (i = 0; i < 18u; i++)                        /* (1.7) the field's scale, every 8 px */
+            cv_rect(12 + (int32_t)i * 8, 126, 1, 4, T_GRID);
         {
             int32_t py = cy, x;
             for (x = 0; x <= 144; x += 2) {
-                int32_t sv = snap[(trig + (uint32_t)x) & (SCOPE_N - 1u)];
+                int32_t sv = scope_snap[(trig + (uint32_t)x) & (SCOPE_N - 1u)];
                 int32_t y = cy - (sv * amp) / peak;
                 y = clamp(y, cy - amp, cy + amp);
-                if (x) {
-                    uint16_t glow = mono ? T_DIM : ux_mix(T_SURF, heat_col(54 + (y > cy ? y - cy : cy - y) * 190 / amp), 38);
+                if (x) {                                 /* (1.7) one 2 px pass. The 3 px glow under it was a second
+                                                          * line per segment and a ux_mix per pixel of reach: measured
+                                                          * at 144 line calls a frame for a blur the panel cannot hold */
                     uint16_t core = mono ? T_TEXT : heat_col(76 + (y > cy ? y - cy : cy - y) * 178 / amp);
-                    cv_line_t(12 + x - 2, py, 12 + x, y, glow, 3);
-                    cv_line_t(12 + x - 2, py, 12 + x, y, core, 1);
+                    cv_line_t(12 + x - 2, py, 12 + x, y, core, 2);
                 }
                 py = y;
             }
         }
+        /* (2.2) Note-reactive sparks, inside the scope field only. The pool has an owner now: the bay
+         * this screen hands in is the only place its sparks are drawn, so they never reach the header
+         * band, the spectrum floor or another page. Two canvas passes a frame draw, the pool advances once. */
+        vz_np_layer(VZ_OWN_VIZ);
+        gw_note_particles(12, 64, 144, 67);
+
         /* Phase plot: x(t) against x(t - tau), inside its own quiet reticle. */
-        cv_rrect(164, 64, 64, 67, 3, T_SURF, T_GRID);
+        cv_rrect(164, 64, 64, 67, 3, vsf, T_GRID);
         cv_rect(196, 72, 1, 51, T_GRID);
         cv_rect(172, 97, 48, 1, T_LINE);
         if (peak > 1400) {
             int32_t px = 196, py = 98;
-            for (i = 0; i <= 64u; i += 2) {
-                int32_t ox = 196 + (snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
-                int32_t oy = 98 + (snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
+            for (i = 0; i <= 64u; i += 3) {             /* (1.7) every third sample: the orbit keeps its shape */
+                int32_t ox = 196 + (scope_snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
+                int32_t oy = 98 + (scope_snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
                 ox = clamp(ox, 168, 224);
                 oy = clamp(oy, 72, 123);
                 if (i) cv_line(px, py, ox, oy, mono ? T_TEXT : T_ACCENT);
@@ -2512,35 +2755,24 @@ static void graph_home_viz(uint16_t c)
         /* Spectrum floor: 16 slim bars, with peak marks, below the trace. */
         cv_rect(12, 180, 216, 1, T_LINE);
         for (i = 0; i < 16u; i++) {
-            int32_t bx = 14 + (int32_t)i * 13, bh = bars[i] * 26 / 34;
-            if (bh > 0) {
-                uint16_t bcol = mono ? T_TEXT : heat_col(38 + (int32_t)i * 13);
-                cv_rect(bx, 179 - bh, 9, bh, bcol);
-            }
+            int32_t bx = 14 + (int32_t)i * 13, bh = bars[i] * 26 / 34, ph = (int32_t)peak_decay[i] * 26 / 34;
+            /* (1.7) the floor is a 16-bit meter: 2 px blocks with the scale always drawn, and the
+             * peak a 1 px cap over it. A solid bar hid how loud the band was, not just that it was. */
+            gw_seg_v(bx, 153, 9, 26, bh, 2, mono ? T_TEXT : heat_col(38 + (int32_t)i * 13), T_RAISE);
             if (peak_decay[i] > 1)
-                cv_rect(bx, 179 - (int32_t)peak_decay[i] * 26 / 34 - 1, 9, 1, mono ? T_TEXT : T_ACCENT);
+                /* (3.1) the cap is a coordinate of THIS meter, not of the page: it used to be
+                 * drawn at 152 - ph, up to 27 px above the 153..178 field, so the peak marks
+                 * floated over the scope. The field's top row is 153, its bottom 178. */
+                cv_rect(bx, clamp(178 - ph, 153, 178), 9, 1, mono ? T_TEXT : T_ACCENT);
             /* an ambient scan tick: a UI marker, never presented as measured level */
             if (!song.playing && (uint32_t)((ui.frame / 6u + i) % 16u) == 0u)
                 cv_rect(bx + 4, 181, 1, 2, T_DIM);
         }
 
-        /* A field of drifting embers, deterministic and cheap: no allocation, one sine per particle per frame.
-         * The vertical speed was ~21-45 units/frame, which read as frozen on the panel; 55-109 keeps the same
-         * 18 particles and the same three primitives, so the draw cost does not grow with the motion. */
-        for (i = 0; i < 18u; i++) {
-            int32_t px = 24 + (int32_t)((i * 11u + (i % 5u) * 7u) % 198u);
-            int32_t py = 88 + (int32_t)((bg_sin(ui.frame * (55u + (i % 7u) * 9u) + i * 4096u) * (14 + (i % 6u) * 3)) >> 15);
-            int32_t lvl = (bg_sin(ui.frame * (39u + (i % 5u) * 8u) + i * 3072u) + 32768) >> 9;
-            if (py >= top_y && py < top_y + 88 && px >= 12 && px < 228) {
-                uint16_t pc = mono ? (lvl > 90 ? T_TEXT : T_DIM) : ux_mix(T_SURF, heat_col(80 + i * 8), 18 + lvl / 9);
-                cv_rect(px, py, i % 5u == 0u ? 2 : 1, 1, pc);
-            }
-        }
-
         if (pass) {
-            cv_rrect(12, 184, 72, 15, 3, T_THEME, T_SURF);
+            cv_rrect(12, 184, 72, 15, 3, T_THEME, vsf);
             cv_text_on(16, 183, &AF_S, "[HOME] EXIT", T_INK, T_THEME);
-            cv_text_r(228, 183, &AF_S, "SPECTRUM / WAVEFORM", T_TEXT, T_SURF);
+            cv_text_r(228, 183, &AF_S, "SPECTRUM / WAVEFORM", T_TEXT, vsf);
         }
 
         cv_oy = 0;
@@ -2552,24 +2784,23 @@ static void graph_home_viz(uint16_t c)
  * a flat line on it; MENU > SCREEN OFF keeps it from staying on the panel for hours) */
 static void graph_scope(uint16_t c)
 {
-    static int16_t snap[SCOPE_N];
     uint32_t w = scope_w, i, trig = 0;
     int32_t cy = (int32_t)cv_h / 2, py = cy, x, peak = 1500, a = cv_h == H_GRAPH ? 46 : cy - 6;   /* (LARGE: the strip) */
     for (i = 0; i < SCOPE_N; i++) {
-        snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
-        if (snap[i] > peak)
-            peak = snap[i];
-        else if (-snap[i] > peak)
-            peak = -snap[i];
+        scope_snap[i] = scope_buf[(w + i) & (SCOPE_N - 1u)];
+        if (scope_snap[i] > peak)
+            peak = scope_snap[i];
+        else if (-scope_snap[i] > peak)
+            peak = -scope_snap[i];
     }
     for (i = 1; i < SCOPE_N - 240u; i++)
-        if (snap[i - 1] < 0 && snap[i] >= 0) {
+        if (scope_snap[i - 1] < 0 && scope_snap[i] >= 0) {
             trig = i;
             break;
         }
     cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
     for (x = 0; x < PANEL_W; x++) {
-        int32_t y = cy - snap[trig + (uint32_t)x] * a / peak;    /* auto-scaled */
+        int32_t y = cy - scope_snap[trig + (uint32_t)x] * a / peak;    /* auto-scaled */
         if (x)                                                   /* GAMMA / WRAITH / JIANT: each stroke as hot as it is loud */
             cv_line_t(PANEL_X0 - 1 + x, py, PANEL_X0 + x, y, ux.chamfer ?
                       heat_col(40 + (y > cy ? y - cy : cy - y) * 216 / a) : c, 2);
@@ -2706,6 +2937,15 @@ static void graph_song(void)
 /* (1.7) MASTER's page: four faders from the live G_* values, a scale and fixed dust, in the cards' language */
 static void graph_master(void)
 {
+    /* (3.1) the master VU's geometry. The four LVL / LIM / CPU / PK boxes that used to fill y 80..98
+     * are gone (the owner asked for them out of MASTER), so the meters take that band: y 80 and 87, with
+     * their caption on the graphs' caption line at y 66. The meter is 46 px below PUNCH's state word, so
+     * the old collision with the "OFF" above it cannot happen; every value it draws is still
+     * audio_out_peak(), the same ring the DAC writes. */
+#define VU_X0 108
+#define VU_W 108
+#define VU_Y0 80
+#define VU_H 6
     cv_oy = 0;                                       /* this panel is laid out on its own 0..100 scale */
     if (str_eq(cur_page()->title, "STEREO M/S")) {     /* M/S width: the two sides separate with M-WIDE */
         int32_t wd = clamp(song.g[G_MWIDTH], 0, 127), off = 8 + wd * 52 / 127, i;
@@ -2765,15 +3005,47 @@ static void graph_master(void)
     cv_text_on(180, 57, &AF_S, duck ? "ON" : "OFF", duck ? T_ACCENT : T_DIM, T_SURF);
     cv_rrect(198, 16, 10, 38, 2, T_BG, T_RAISE);
     cv_rrect(199, 16, 8, clamp(drel, 0, 127) * 38 / 127, 2, T_THEME, T_BG);
-    /* OUT: the real master level (bg_energy on the DAC scope), segmented like a hardware VU. */
-    cv_rrect(216, 16, 8, 38, 2, T_BG, T_RAISE);
-    for (i = 1; i < 38; i += 4)
-        cv_rect(217, 16 + i, 6, 1, T_RAISE);
-    if (en > 1) {
-        int32_t oh = en * 36 / 256;
-        cv_rrect(217, 53 - oh, 6, oh, 1, heat_col(80 + en * 160 / 256), T_BG);
+    /* OUT: the master's stereo VU. (2.2) It was two 7 x 38 px slivers at the far right -- the smallest
+     * meter on the panel, and the one figure the page could not read at a glance. The band under the three
+     * graphs was empty, so the meter lives there now: one long row per DAC channel (108 px of travel, the
+     * scale's quarters marked), a peak cap that holds and falls, and the page's own OUT caption, which reads
+     * CLIP while the lamp is latched. Every value is audio_out_peak(): the peak of the very ring the DAC
+     * just wrote (audio.c), so a part panned right moves its own row and nothing here is derived from the
+     * left channel, from a fader or from a shape drawn for the screen. */
+    {
+        static uint8_t vpx[2], vhold[2];             /* lit px and the held peak, per channel */
+        static uint8_t clip_hold;                    /* frames the CLIP lamp has left */
+        int32_t ch, k, live = 0;
+        for (ch = 0; ch < 2; ch++) {
+            int32_t pk = audio_out_peak((uint32_t)ch);
+            int32_t px = meter_px(pk) * VU_W / (TS_MH - 2);
+            int32_t y = VU_Y0 + ch * (VU_H + 1);
+            cv_rect(VU_X0, y, VU_W, VU_H, T_BG);
+            if (px > (int32_t)vpx[ch]) vpx[ch] = (uint8_t)px;       /* instant rise */
+            else if (vpx[ch] > 0u) vpx[ch]--;                       /* a px a frame back down */
+            if (px > (int32_t)vhold[ch]) vhold[ch] = (uint8_t)px;   /* the cap rises with the bar, */
+            else if (vhold[ch] > 2u) vhold[ch]--;                   /* then holds and falls a px a frame */
+            if (pk >= 32700) clip_hold = 90;                        /* full scale: the caption latches */
+            if (vpx[ch]) {
+                cv_rect(VU_X0, y, vpx[ch], VU_H, heat_col(70 + (int32_t)vpx[ch] * 150 / VU_W));
+                live = 1;
+            }
+            for (k = 3; k > 0; k--)                                 /* the scale's quarters, over the bar */
+                cv_rect(VU_X0 + k * VU_W / 4, y, 1, VU_H, T_BG);
+            if (vhold[ch] > 2)
+                cv_rect(VU_X0 + vhold[ch] - 2, y, 2, VU_H, T_TEXT);  /* the held peak */
+        }
+        if (clip_hold)
+            clip_hold--;
+        /* (3.1) one caption, not two LIVEs: CLIP's own state already reads LIVE at the left.
+         * The meter says OUT, and lights while it moves. */
+        cv_text_on(VU_X0, 66, &AF_S, clip_hold ? "CLIP" : "OUT",
+                   clip_hold || live ? T_ACCENT : T_DIM, T_SURF);
     }
-    cv_text_on(214, 57, &AF_S, en > 2 ? "LIVE" : "OUT", en > 2 ? T_ACCENT : T_DIM, T_SURF);
+
+    /* (3.1) The LVL / LIM / CPU / PK band is gone by request: MASTER shows what it controls (CLIP,
+     * PUNCH, DUCK, REL) and the output meters, not the CPU or the limiter's internal envelope. The
+     * space it held is the VU's now, so the page has no empty hole and nothing moved off the panel. */
 }
 
 static void draw_graph(void)
@@ -2800,6 +3072,13 @@ static void draw_graph(void)
         gr_ms = fm1_ms;
     }
     ui.graph_sig = sig;
+    if (ui.home_viz) {                               /* (1.7) the visualizer owns the whole body: its two bands
+                                                      * cover rows 26..201, so the page's panel under them (234 wide,
+                                                      * graph_h tall) was painted and then covered whole -- a third
+                                                      * of the frame paid for nothing. It starts on its own canvas */
+        graph_home_viz(ACC);
+        return;
+    }
     cv_begin(240, graph_h(), T_BG);
     cv_rrect(3, 0, 234, graph_h(), 5, T_SURF, T_BG);   /* the panel (MENU > LARGE: the strip) */
     cv_bg = T_SURF;                                  /* (text drawn with cv_text lands on it) */
@@ -2929,6 +3208,7 @@ static void draw_graph(void)
                 break;
             }
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
+            else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_LOFI) { cv_oy = 0; graph_lofi(t, c); }
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {
                 cv_oy = 0;

@@ -10,6 +10,18 @@
 <meta name="theme-color" content="#000410">
 <meta name="description" content="Quantum GammaWave (QG-1): firmware open source, emulador, Web Studio e instalador para la groovebox M-VAVE FM-1.">
 <title>QUANTUM GAMMAWAVE — Firmware, emulador y Web Studio para FM-1</title>
+<link rel="canonical" href="https://guillel51.github.io/Quantum-GammaWave/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Quantum GammaWave">
+<meta property="og:url" content="https://guillel51.github.io/Quantum-GammaWave/">
+<meta property="og:title" content="QUANTUM GAMMAWAVE — firmware for the M-VAVE FM-1">
+<meta property="og:description" content="v2.7.0: twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a USB installer that verifies SHA-256 and size before it enables INSTALL.">
+<meta property="og:image" content="https://guillel51.github.io/Quantum-GammaWave/assets/fw-home.png">
+<meta property="og:image:alt" content="The firmware's HOME screen at 240 x 240: the orbital system, the spectrum with the filter curve and the six-track strip.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="QUANTUM GAMMAWAVE — firmware for the M-VAVE FM-1">
+<meta name="twitter:description" content="v2.7.0: twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a USB installer that verifies SHA-256 and size before it enables INSTALL.">
+<meta name="twitter:image" content="https://guillel51.github.io/Quantum-GammaWave/assets/fw-home.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23080503%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229%22 fill=%22%23ff8a1e%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23fff4d6%22/%3E%3C/svg%3E">
 <style>
   :root {
@@ -45,12 +57,15 @@
       linear-gradient(rgba(58, 223, 255, .025) 1px, transparent 1px),
       linear-gradient(90deg, rgba(58, 223, 255, .025) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 64px 64px, 64px 64px;
-    background-attachment: fixed;
+    /* (2.0) no background-attachment: fixed: a fixed, four-layer background repaints the whole viewport on
+     * every scroll frame, which is the first thing a phone gives up on. The gradients scroll with the page
+     * now -- the look is the same at rest, and the scroll is the browser's own. */
   }
   body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: .22;
-    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.16) 3px 4px);
-    mix-blend-mode: multiply;
+    /* (2.0) the scanlines are gone from the viewport: a fixed overlay composited with mix-blend-mode: multiply
+     * forces the compositor to re-blend the whole screen every frame. The page keeps its panels, grids and
+     * hairlines; the full-screen CRT texture is what went, and it was the only thing blending. */
+    content: none;
   }
   ::selection { background: var(--heat); color: #04101e; }
   a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
@@ -74,7 +89,10 @@
   .top {
     position: sticky; top: 0; z-index: 30;
     border-bottom: 1px solid rgba(58, 223, 255, .18);
-    background: rgba(0, 4, 16, .86); backdrop-filter: blur(14px) saturate(130%);
+    /* (2.0) no backdrop-filter: a 14 px blur behind a sticky bar is recomputed on every scroll frame.
+     * Opaque, not 94 %: the headings under it are white, and 6 % of a white headline is visible through the
+     * bar as ghost text once the page scrolls. The colour is --bg, so the bar and the page agree. */
+    background: var(--bg);
   }
   .top .wrap { min-height: 70px; display: flex; align-items: center; gap: 22px; }
   .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
@@ -143,9 +161,10 @@
   .card p { margin: 0; color: var(--muted); font-size: 14px; max-width: 38ch; }
   .card .tag { display: inline-block; margin-top: 16px; padding: 3px 8px; border: 1px solid var(--line2); border-radius: 99px; color: var(--gold); font: 700 9px/1.4 var(--mono); letter-spacing: .08em; }
   .card .glyph { position: absolute; right: 18px; top: 18px; width: 38px; height: 38px; color: var(--heat); opacity: .8; }
-  .showcase { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+  .showcase { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; align-items: start; }
   .shot { grid-column: span 4; margin: 0; padding: 9px; border: 1px solid var(--line); border-radius: 14px; background: #0d0805; }
   .shot.big { grid-column: span 8; }
+  .shot.wide { grid-column: span 6; }
   .shot img { border: 1px solid #142040; border-radius: 8px; width: 100%; }
   .shot figcaption { display: flex; justify-content: space-between; gap: 10px; padding: 10px 4px 2px; color: var(--muted); font: 600 10px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
   .shot figcaption b { color: var(--gold); }
@@ -188,10 +207,16 @@
   .resource b { display: block; margin: 14px 0 4px; font-size: 14px; }
   .resource span { color: var(--muted); font-size: 12px; }
   .resource .no { color: var(--heat); font: 700 10px/1 var(--mono); }
-  /* The four ecosystem accesses: Web Site first and clearly the largest. */
-  .access { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .access-card { display: grid; gap: 7px; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  /* (2.0) three ecosystem accesses, not four: the portal is the page you are on, so it no longer links to
+   * itself. The emulator is the entry point and takes the left half; the studio and the installer stack. */
+  .access { display: grid; grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; align-items: stretch; }
+  .access-card.primary { grid-column: 1; grid-row: 1 / span 2; align-content: space-between; }
+  .access-card.wide { grid-column: 2; grid-row: 2; }
+  .access-card.primary b { font-size: clamp(26px, 3.4vw, 38px); }
+  .access-card.primary p { font-size: 15px; }
+  .access-card { display: grid; gap: 7px; min-height: 100%; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
   .access-card:hover { border-color: var(--heat); transform: translateY(-2px); color: var(--ink); }
+  .access-card:focus-visible { outline: 2px solid var(--heat); outline-offset: 3px; border-color: var(--heat); }
   .access-card .no { color: var(--faint); font: 700 10px/1 var(--mono); letter-spacing: .12em; }
   .access-card b { font: 800 clamp(20px, 2.4vw, 26px)/1.05 var(--display); letter-spacing: -.02em; text-transform: uppercase; }
   .access-card .url { color: var(--cyan); font: 700 10px/1.4 var(--mono); overflow-wrap: anywhere; }
@@ -202,8 +227,20 @@
   .access-card.primary b { font-size: clamp(32px, 5.4vw, 58px); }
   .access-card.primary .url { font-size: 12px; }
   .access-card.primary p { font-size: 15px; max-width: 62ch; }
-  @media (max-width: 900px) { .access { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) { .access { grid-template-columns: 1fr; }
+    .access-card.primary, .access-card.wide { grid-column: auto; grid-row: auto; } }
   @media (max-width: 640px) { .access-card.primary { padding: 22px; } }
+  /* (7.x) the support box: small, quiet, and out of the way of the instrument */
+  .support { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 20px 22px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: rgba(3, 9, 20, .55); }
+  .support .eyebrow { color: var(--faint); }
+  .support p { margin: 6px 0 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
+  .support p.support-note { color: var(--faint); font-size: 12px; }
+  .support-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border: 1px solid rgba(58, 223, 255, .45); border-radius: 999px; color: var(--ink); text-decoration: none;
+    font: 800 11px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
+  .support-btn:hover { border-color: var(--heat); color: var(--ink); }
+  @media (max-width: 640px) { .support { flex-direction: column; align-items: flex-start; } }
   footer { border-top: 1px solid var(--line); padding: 32px 0 44px; color: var(--faint); font-size: 12px; }
   .foot-grid { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 30px; }
   footer b { color: var(--muted); }
@@ -218,7 +255,7 @@
     .hero-grid, .studio-band, .install-grid { grid-template-columns: 1fr; }
     .float-tag { right: 10px; }
     .card, .card.wide, .card.half { grid-column: span 6; }
-    .shot.big, .shot { grid-column: span 6; }
+    .shot.big, .shot, .shot.wide { grid-column: span 6; }
     .resources { grid-template-columns: repeat(2, 1fr); }
     .section-head { grid-template-columns: 1fr; gap: 12px; }
     .nav a:not(.top-cta) { display: none; }
@@ -234,7 +271,7 @@
     .feature-grid { display: grid; grid-template-columns: 1fr; }
     .card, .card.wide, .card.half { grid-column: auto; min-height: 0; }
     .showcase { grid-template-columns: 1fr; }
-    .shot, .shot.big { grid-column: auto; }
+    .shot, .shot.big, .shot.wide { grid-column: auto; }
     .studio-band { padding: 22px; }
     .float-tag { display: none; }
     .resources, .foot-grid { grid-template-columns: 1fr; }
@@ -269,8 +306,8 @@
       <div class="hero-grid">
         <div>
           <div class="eyebrow">Firmware abierto · M-VAVE FM-1 · AC791N</div>
-          <h1 id="hero-title" style="margin-top:18px">Quantum <em>GammaWave.</em><span>Seis pistas. Diez voces.</span></h1>
-          <p class="hero-copy">Quantum GammaWave convierte la FM-1 en un instrumento completo: seis pistas, diez voces, ocho motores de síntesis, secuenciador y un Web Studio que edita el sonido real por Web MIDI.</p>
+          <h1 id="hero-title" style="margin-top:18px">Quantum <em>GammaWave.</em><span>Seis pistas. Doce voces. v2.7.0</span></h1>
+          <p class="hero-copy">Quantum GammaWave v2.7.0 convierte la FM-1 en un instrumento completo: seis pistas, doce voces, ocho motores de síntesis, secuenciador y un Web Studio que edita el sonido real por Web MIDI. v2.7.0 publica un solo paquete verificable por SHA-256 y tamaño, y el emulador, el instalador y este portal sirven los mismos bytes.</p></p>
           <div class="hero-actions">
             <a class="btn primary" href="emulator/">Abrir el Web Emulator <span class="arrow">→</span></a>
             <a class="btn ghost" href="webapp/editor/">Abrir Web Studio</a>
@@ -280,14 +317,14 @@
         </div>
         <div class="instrument">
           <div class="instrument-top"><span>QG-1 // <b>HOME / FORGE</b></span><span>240 × 240</span></div>
-          <img src="assets/emulator-home.png" width="1040" height="760" alt="Pantalla HOME real de Quantum GammaWave: sol Hearth, espectro de 28 barras y franja de seis pistas." loading="eager">
-          <div class="instrument-foot"><span>CAPTURA DEL WEB EMULATOR</span><span id="hero-build">QG-1</span></div>
-          <div class="float-tag"><b>10 VOICES</b>PSYCHOACOUSTIC<br>VOICE STEALING</div>
+          <img src="assets/fw-home.png" width="1040" height="760" alt="La pantalla HOME del firmware, 240 x 240 en la paleta QUANTUM: sistema orbital, espectro con la curva del filtro y franja de seis pistas." loading="eager">
+          <div class="instrument-foot"><span>RENDER DEL FIRMWARE · 240 × 240</span><span id="hero-build">QG-1 // {{VERSION}}</span></div>
+          <div class="float-tag"><b>12 VOICES</b>PSYCHOACOUSTIC<br>VOICE STEALING</div>
         </div>
       </div>
       <div class="spec-strip" aria-label="Especificaciones principales">
-        <div class="spec"><b>6</b><span>pistas · 4 partes + 2 aux</span></div>
-        <div class="spec"><b>10</b><span>voces con robo psicoacústico</span></div>
+        <div class="spec"><b>6</b><span>pistas · ECO / BAL / FULL</span></div>
+        <div class="spec"><b>12</b><span>voces con robo psicoacústico</span></div>
         <div class="spec"><b>8</b><span>motores de síntesis</span></div>
         <div class="spec"><b>200</b><span>sonidos factory navegables</span></div>
       </div>
@@ -298,35 +335,43 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Accesos</div><h2 style="margin-top:14px">Todo el ecosistema,<br>en un clic.</h2></div>
-        <p>Cuatro entradas al mismo proyecto. El Web Site es la principal y desde ahí se llega al resto; ninguna ruta depende de una redirección.</p>
+        <p>El mismo proyecto desde un solo portal: emulador, estudio, instalador, plan previo y el canal Preview. El instalador USB es la única vía de escritura y ninguna ruta depende de una redirección.</p>
       </div>
       <div class="access">
-        <a class="access-card primary" href="./" aria-label="Web Site, portal principal de Quantum GammaWave">
-          <span class="no">01 / WEB SITE</span>
-          <span class="access-title"><b>Web Site</b><span class="url">https://guillel51.github.io/Quantum-GammaWave/</span></span>
-          <p>El portal principal: firmware, capturas reales del build publicado, instalación verificada y versiones.</p>
-          <span class="go">Entrar al sitio <span class="arrow">→</span></span>
-        </a>
-        <a class="access-card" href="emulator/">
-          <span class="no">02 / WEB EMULATOR</span>
+        <a class="access-card primary" href="emulator/">
+          <span class="no">01 / WEB EMULATOR</span>
           <b>Web Emulator</b>
           <span class="url">/emulator/</span>
-          <p>El mismo firmware compilado a WebAssembly, con el mapa Punch-in FX, LATCH y el commit del build publicado.</p>
-          <span class="go">Abrir el emulador <span class="arrow">↗</span></span>
+          <p>El mismo firmware compilado a WebAssembly (v2.7.0), con el mapa Punch-in FX, LATCH y el commit del build publicado. WASM compilado a partir de las fuentes de release v2.7.0 con identificación de build.</p></p>
+          <span class="go">Abrir Web Emulator <span class="arrow">↗</span></span>
         </a>
         <a class="access-card" href="webapp/editor/">
-          <span class="no">03 / WEB STUDIO</span>
-          <b>Web Studio</b>
+          <span class="no">02 / WEB STUDIO · WEBAPP / EDITOR</span>
+          <b>Web Studio · Webapp / Editor</b>
           <span class="url">/webapp/editor/</span>
-          <p>Editor del sonido real por Web MIDI, secuenciador de 16 pasos, mixer de seis pistas y proyectos.</p>
+          <p>Editor del sonido real por Web MIDI, secuenciador de 64 pasos, mixer de seis pistas y proyectos.</p>
           <span class="go">Entrar al estudio <span class="arrow">↗</span></span>
         </a>
-        <a class="access-card" href="webapp/installer/">
-          <span class="no">04 / INSTALADOR</span>
-          <b>Instalador USB</b>
+        <a class="access-card primary" href="webapp/installer/">
+          <span class="no">03 / USB INSTALLER · ESTABLE</span>
+          <b>USB Installer</b>
           <span class="url">/webapp/installer/</span>
-          <p>Identidad FM-1, tamaño del paquete y SHA-256 comprobados antes de escribir un solo byte.</p>
+          <p>Comprueba el SHA-256 del paquete y los hashes del firmware antes de habilitar INSTALL, y la firma Ed25519 de la clave qg1-release-1 cuando el manifiesto la incluye. Después el loader lee el chip real de la unidad y rechaza cualquier otro antes de borrar nada.</p></p>
           <span class="go">Abrir instalador <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card" href="plan/">
+          <span class="no">04 / PLAN PREVIO</span>
+          <b>Plan de instalación</b>
+          <span class="url">/plan/</span>
+          <p>Los sectores que se borran y se escriben, el rango 0x04000–0x92FFF y los datos de fábrica que se conservan. Corre sobre el paquete las mismas comprobaciones del instalador, sin conectar la unidad.</p>
+          <span class="go">Ver el plan <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card wide" href="preview/">
+          <span class="no">05 / PREVIEW · MAIN</span>
+          <b>Preview</b>
+          <span class="url">/preview/</span>
+          <p>El build actual de main con su propio emulador y su commit. No es instalable: el paquete todavía no está firmado y el instalador de ese canal lo explica en lugar de habilitar INSTALL. Sirve para escuchar lo que viene.</p>
+          <span class="go">Abrir Preview <span class="arrow">↗</span></span>
         </a>
       </div>
     </div>
@@ -343,13 +388,13 @@
           <svg class="glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 5v30M5 20h30M9 9l22 22M31 9 9 31" stroke="currentColor" stroke-width="1.4"/><circle cx="20" cy="20" r="7" fill="none" stroke="currentColor"/></svg>
           <span class="num">01 / SÍNTESIS</span>
           <h3>Ocho motores, una arquitectura</h3>
-          <p>ANALOG, FM6, PHASE, LOFI, FORMANT, WHEEL, DRUM y NOISE. Waves morphing, filtros LP/HP/BP/COMB/VOWEL/SCREAM y matriz de modulación.</p>
+          <p>ANALOG, FM6, PHASE, LOFI, VOICE, WHEEL, DRUM y NOISE. Waves morphing, filtros LP/HP/BP/COMB/VOWEL/SCREAM y matriz de modulación.</p>
           <span class="tag">200 PRESETS · 17 PALETAS</span>
         </article>
         <article class="card">
           <svg class="glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 28h32M8 28V13M16 28V8M24 28V17M32 28V11" stroke="currentColor" stroke-width="2"/></svg>
           <span class="num">02 / SECUENCIADOR</span>
-          <h3>PATTERNS, MUTATE y GEN</h3>
+          <h3>PATTERNS y MUTATE</h3>
           <p>Cuatro compases, hasta 16 pasos por página, probabilidad, ratchets, swing y mutación. Los patrones se escriben y se mutan en el instrumento, no son un demo de audio.</p>
           <span class="tag">A-A-A-A' · EUCLID · FEEL</span>
         </article>
@@ -363,8 +408,8 @@
         <article class="card wide">
           <span class="num">04 / EN VIVO</span>
           <h3>La HOME no es un fondo</h3>
-          <p>Espectro reactivo al audio real, sol Hearth con corona y partículas, luna orbitando, franja de seis pistas y visualizador a pantalla completa. Todo dibujado por el firmware en 240 × 240, sin bitmaps en flash.</p>
-          <span class="tag">PARTÍCULAS CON LÍMITES · CALIDAD AJUSTABLE</span>
+          <p>Un sistema con tres órbitas y tres planetas, nebulosa y estrellas fijas sobre la gráfica reactiva, y partículas detrás del visualizador a pantalla completa (HOME dos veces). Todo dibujado por el firmware en 240 × 240, sin bitmaps en flash.</p>
+          <span class="tag">RESPUESTA AL GESTO · CALIDAD AJUSTABLE</span>
         </article>
         <article class="card">
           <span class="num">05 / CONECTIVIDAD</span>
@@ -375,8 +420,8 @@
         <article class="card">
           <span class="num">06 / SEGURIDAD</span>
           <h3>Instalador con verificación</h3>
-          <p>Identidad FM-1, tamaño, estructura del paquete y SHA-256 obligatorio antes de escribir. Reanudación del loader si se corta el USB.</p>
-          <span class="tag">INTEGRIDAD ≠ FIRMA · LEER LÍMITES</span>
+          <p>SHA-256 y los hashes del firmware antes de habilitar INSTALL, y la firma Ed25519 contra la clave fijada en la página cuando el manifiesto la trae. El loader además identifica el chip en la unidad y rechaza uno desconocido sin borrar nada.</p>
+          <span class="tag">FIRMA MÁS INTEGRIDAD MÁS CHIP REAL</span>
         </article>
       </div>
     </div>
@@ -386,14 +431,14 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Capturas actuales</div><h2 style="margin-top:14px">La interfaz,<br>sin renders.</h2></div>
-        <p>Pantallas capturadas del emulador y del sitio publicados. La identidad Quantum recorre firmware, Web Emulator, Web Studio e instalador.</p>
+        <p>Pantallas del firmware, renderizadas por su propio código a 240 × 240 y ampliadas sin interpolar. Sin marcos de emulador, sin controles y sin teclado físico: lo que ves es lo que muestra el instrumento.</p>
       </div>
       <div class="showcase">
-        <figure class="shot big"><img src="assets/emulator-visualizer.png" alt="Visualizador de Quantum GammaWave con osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
-        <figure class="shot"><img src="assets/emulator-mixer.png" alt="Página MIXER de la FM-1: seis pistas con nivel, paneo, envío y mute."><figcaption><b>MIXER</b><span>SEIS PISTAS</span></figcaption></figure>
-        <figure class="shot"><img src="assets/emulator-fx.png" alt="Página FX de la FM-1: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
-        <figure class="shot"><img src="assets/webstudio.png" alt="Web Studio de Quantum GammaWave con el HUD de hardware, telemetría y biblioteca de sonidos."><figcaption><b>WEB STUDIO</b><span>ESCRITORIO</span></figcaption></figure>
-        <figure class="shot"><img src="assets/installer.png" alt="Instalador USB de Quantum GammaWave con verificación de paquete y advertencias."><figcaption><b>INSTALADOR</b><span>USB-MIDI</span></figcaption></figure>
+        <figure class="shot big"><img loading="lazy" decoding="async" src="assets/fw-visualizer.png" alt="El visualizador del firmware, 240 x 240: osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
+        <figure class="shot"><img loading="lazy" decoding="async" src="assets/fw-mixer.png" alt="La página MIXER del firmware: seis pistas con nivel, paneo, envío y mute."><figcaption><b>MIXER</b><span>SEIS PISTAS</span></figcaption></figure>
+        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/fw-fx.png" alt="La página FX del firmware: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
+        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/fw-master.png" alt="La página MASTER del firmware: clip, punch, duck y el VU de salida."><figcaption><b>MASTER</b><span>CLIP · PUNCH · DUCK</span></figcaption></figure>
+        <figure class="shot"><img loading="lazy" decoding="async" src="assets/fw-presets.png" alt="La biblioteca de presets del firmware, siete filas por categoría."><figcaption><b>PRESETS</b><span>200 SONIDOS</span></figcaption></figure>
       </div>
     </div>
   </section>
@@ -407,13 +452,13 @@
           <p>Diseñá el sonido, escribí pasos, mezclá seis pistas y mirá la pantalla de la FM-1 en vivo. Si no hay hardware, el simulador integrado mantiene todo el flujo de trabajo.</p>
           <ul class="checklist">
             <li>Editor de sonido, FM6 y biblioteca con búsqueda y A/B</li>
-            <li>Secuenciador de 16 pasos, automatización y mixer</li>
+            <li>Secuenciador de 64 pasos, automatización y mixer</li>
             <li>HUD 240 × 240 y telemetría en vivo</li>
             <li>Backup, proyectos y exportación de audio</li>
           </ul>
           <a class="btn primary" href="webapp/editor/">Entrar al Web Studio <span class="arrow">→</span></a>
         </div>
-        <div class="studio-shot"><img src="assets/webstudio.png" alt="Interfaz del Web Studio: panel de hardware a la izquierda, telemetría y controles a la derecha."></div>
+        <div class="studio-shot"><img loading="lazy" decoding="async" src="assets/fw-home.png" alt="El panel del firmware a 240 x 240, tal como lo muestra el Web Studio en su vista de hardware."><figcaption class="mono muted" style="margin-top:10px;font-size:11px">Panel real del firmware, 240 × 240. El estudio lo muestra en vivo en /emulator/.</figcaption></div>
       </div>
     </div>
   </section>
@@ -422,18 +467,18 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Instalación</div><h2 style="margin-top:14px">Cuatro pasos,<br>con los ojos abiertos.</h2></div>
-        <p>El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto.</p>
+        <p>El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada instala el release firmado más reciente (la versión exacta está en el panel de arriba); el build que sigue a main vive en la página Preview.</p>
       </div>
       <div class="install-grid">
         <ol class="steps">
-          <li><div><b>Verificá el modelo</b><span>La FM-1 debe responder como <code>FM-1_9xx</code>. El instalador se niega a escribir en otro modelo o en un paquete de otra identidad.</span></div></li>
-          <li><div><b>Comprobá el SHA-256</b><span>El hash del paquete se compara antes de enviar un solo byte. Si falta o no coincide, no se escribe nada.</span></div></li>
+          <li><div><b>Mirá la firma</b><span>El instalador muestra el SHA-256 del paquete y la clave que lo firmó, qg1-release-1. Si la firma no verifica, INSTALL queda deshabilitado y la página dice por qué.</span></div></li>
+          <li><div><b>Verificá el modelo y el chip</b><span>La FM-1 debe responder como FM-1_9xx, y el loader lee el chip de flash en la unidad: sólo 0x856014 y 0xB36014. Cualquier otro se rechaza antes del primer borrado, sin dump ni herramienta aparte.</span></div></li>
           <li><div><b>Conectá y respirá</b><span>Usá un cable USB de datos, cerrá otras aplicaciones MIDI y no desconectes durante la escritura. El loader puede reanudarse si el puerto se cae.</span></div></li>
           <li><div><b>Reiniciá y verificá</b><span>La FM-1 vuelve sola y reporta la identidad instalada. Si no vuelve, desconectá y volvé a conectar; no inicies otro flasheo a ciegas.</span></div></li>
         </ol>
         <aside class="warning">
           <h3>Límites reales, no letra chica</h3>
-          <p>La instalación verifica <b>integridad</b> (los bytes son los publicados), no <b>autenticidad criptográfica</b>: todavía no hay firma Ed25519 ni secure boot.</p>
+          <p>La instalación verifica la integridad (SHA-256 y los hashes del firmware) y, si el manifiesto trae firma, la autenticidad (Ed25519 contra la clave fijada); el loader comprueba el chip y la geometría del flash antes de borrar nada. v2.7.0 se publica sin firma. No hay secure boot.</p>
           <ul>
             <li>No hay actualización A/B ni rollback autónomo del bootloader.</li>
             <li>Un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.</li>
@@ -450,7 +495,7 @@
           <tr><td>M-VAVE FM-1 / JieLi AC791N</td><td><span class="pill ok">SÍ</span></td><td>Toolchain y mapa del SDK; build target reproducible.</td></tr>
           <tr><td>Web Emulator</td><td><span class="pill ok">SÍ</span></td><td>Compila el mismo firmware y compara el DSP nativo bit a bit.</td></tr>
           <tr><td>Web Studio por Web MIDI</td><td><span class="pill ok">SÍ</span></td><td>Protocolo y dispositivo simulado en la suite web.</td></tr>
-          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Integridad y límites probados en host; sin firma ni prueba física.</td></tr>
+          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Firma, integridad, plan y loader probados en host, sin unidad física: los dos chips están permitidos por el código, no medidos en hardware.</td></tr>
           <tr><td>Recuperación tras brick</td><td><span class="pill no">NO VERIFICADA</span></td><td>Requiere bootloader/partition support que este proyecto no modifica.</td></tr>
         </tbody>
       </table>
@@ -461,11 +506,11 @@
     <div class="wrap">
       <div class="section-head">
         <div><div class="rule"></div><div class="eyebrow">Versiones y artefactos</div><h2 style="margin-top:14px">El build<br>que estás viendo.</h2></div>
-        <p>Estos datos se leen del <code>firmware/versions.json</code> del despliegue. Si el archivo no está disponible, la página lo dice en vez de inventar un hash.</p>
+        <p>Estos datos se leen del <code>firmware/versions.json</code> del despliegue. Si el archivo no está disponible, la página lo dice en vez de inventar un hash. <strong>Versión actual: v2.7.0</strong> — build ID y SHA-256 del WASM verificables; la firma Ed25519 solo si el manifiesto la incluye.</p></p>
       </div>
       <div class="install-grid">
         <div class="version-card">
-          <div class="version-head"><div><span>ÚLTIMA VERSIÓN PUBLICADA</span><strong id="ver-name">v1.8.9</strong></div><span class="pill ok" id="ver-state">LEÍDA DEL SITIO</span></div>
+          <div class="version-head"><div><span>ÚLTIMA VERSIÓN PUBLICADA</span><strong id="ver-name">v2.7.0</strong></div><span class="pill ok" id="ver-state">LEÍDA DEL SITIO</span></div>
           <dl class="kv">
             <dt>Paquete</dt><dd id="ver-file">—</dd>
             <dt>Tamaño</dt><dd id="ver-size">—</dd>
@@ -473,13 +518,14 @@
             <dt>Identidad</dt><dd id="ver-product">FM-1_9xx</dd>
             <dt>Fuente</dt><dd>firmware/versions.json</dd>
           </dl>
-          <p class="mono muted" id="ver-note" style="margin:16px 0 0;font-size:10px;line-height:1.6">Integridad verificable. La autenticidad del editor no está firmada.</p>
+          <p class="mono muted" id="ver-note" style="margin:16px 0 0;font-size:10px;line-height:1.6">Integridad del paquete instalable: su SHA-256 publicado.</p>
         </div>
         <div>
           <div class="warning" style="border-left-color:var(--cyan)">
-            <h3 style="color:var(--cyan)">Qué cambia en v1.8.9</h3>
-            <p>El EQ maestro deja de divergir en 20 Hz: sus estados llevan 10 bits fraccionarios más, así que el polo deja de integrarse (entrada DC 1000 daba 1 971 664; ahora da 13 492). La base mantiene <b>10 voces</b>, el EQ maestro endurecido, el teclado Punch-in FX rediseñado y la biblioteca de 200 sonidos. En v1.8.9 los cuatro estados de retardo del EQ usan la misma escala: el canal derecho ya no pierde su EQ bloque tras bloque. El sitio y el Web Studio 2.0 son parte de esta entrega; la firma de paquetes y el arranque seguro quedan fuera hasta tener soporte real de bootloader.</p>
+            <h3 style="color:var(--cyan)">El canal estable y el Preview</h3>
+            <p>Esta portada es el canal estable: instala el paquete firmado de release y su emulador se compiló desde el mismo commit que produjo esos bytes, con la versión, el commit y el SHA-256 del wasm en el pie de la página. En 2.0 el release ya no necesita ningún paso manual con M-Flasher, la firma viaja con el build que firma y el instalador la exige antes de habilitar INSTALL. Lo que sigue en main se ve en el canal Preview, marcado como no instalable hasta que se firme.</p>
             <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Leer changelog completo ↗</a>
+            <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/releases" target="_blank" rel="noopener">Releases en GitHub ↗</a>
           </div>
         </div>
       </div>
@@ -496,7 +542,20 @@
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener"><span class="no">01 / GIT</span><b>Repositorio GitHub ↗</b><span>Firmware, herramientas, pruebas y releases.</span></a>
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.md" target="_blank" rel="noopener"><span class="no">02 / DOC</span><b>Manual en inglés ↗</b><span>Operación, páginas, atajos y MIDI.</span></a>
         <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.es.md" target="_blank" rel="noopener"><span class="no">03 / DOC</span><b>Manual en español ↗</b><span>La misma referencia, en castellano.</span></a>
-        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/V1.8.9_STATUS.md" target="_blank" rel="noopener"><span class="no">04 / ESTADO</span><b>Estado y límites ↗</b><span>Matriz de integración, pruebas y pendientes.</span></a>
+        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/VALIDATION_MATRIX.md" target="_blank" rel="noopener"><span class="no">04 / ESTADO</span><b>Estado y límites ↗</b><span>Matriz de integración, pruebas y pendientes.</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="apoyo" class="reveal">
+    <div class="wrap">
+      <div class="support">
+        <div>
+          <div class="eyebrow">Support Quantum GammaWave</div>
+          <p>Your voluntary contribution helps support development, maintenance, testing and future improvements.</p>
+          <p class="support-note">Free software, GPL-3.0-only: donating changes nothing about what you can use, and is never required.</p>
+        </div>
+        <a class="support-btn" href="https://link.mercadopago.com.uy/quantumgammawave" target="_blank" rel="noopener noreferrer">DONATE <span class="arrow">↗</span></a>
       </div>
     </div>
   </section>
@@ -509,7 +568,7 @@
       <div><b>Herramientas</b><br><a href="./">Web Site</a> · <a href="emulator/">Web Emulator</a><br><a href="webapp/editor/">Web Studio</a> · <a href="webapp/installer/">Instalador USB</a><br><a href="firmware/versions.json">Versiones</a></div>
       <div><b>Linaje</b><br>Felucca · JIANT FM · Pocket GammaWave.<br><a href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/LICENSES">Licencias y créditos ↗</a></div>
     </div>
-    <div class="foot-line"><span>© <span id="year">2026</span> Quantum GammaWave contributors</span><span id="foot-build">QG-1 // BUILD VERIFICADO POR HASH</span></div>
+    <div class="foot-line"><span>© <span id="year">2026</span> Quantum GammaWave contributors</span><span id="foot-build">QG-1 // v2.7.0 // BUILD VERIFICADO POR HASH</span></div>
   </div>
 </footer>
 
@@ -518,7 +577,8 @@
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var LANG_KEY = "qg-portal-lang";
+  // Keyed per portal revision: a language stored by an older portal must not decide this one.
+  var LANG_KEY = "qg-portal-lang-2";
   var LANGS = ["en", "es", "zh"];
   var lang = (function () {
     try { var v = localStorage.getItem(LANG_KEY); return LANGS.indexOf(v) >= 0 ? v : "en"; } catch (_) { return "en"; }
@@ -557,7 +617,7 @@
     text("hero-build", v.version || "QG-1");
     text("foot-build", (v.version || "QG-1") + " // " + String(v.sha256 || "").slice(0, 12) + "…");
     text("ver-state", t("HASH DEL SITIO"));
-    text("ver-note", t("El instalador exige este SHA-256 antes de escribir. Integridad verificada; autenticidad criptográfica pendiente."));
+    text("ver-note", t("El instalador exige este SHA-256 antes de habilitar INSTALL y verifica la firma Ed25519 solo cuando el manifiesto la trae: v2.7.0 se publica sin firma, asi que hay integridad, no autenticidad."));
   }
   fetch("firmware/versions.json", { cache: "no-cache" })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })

@@ -33,6 +33,10 @@
 #                   one-step undo of both (SAVE held), REC on TRACKS / SEQ / ARP, STEP and ARP while recording,
 #                   MIDI IN ROUT, saves refused while playing and the OVERWRITE? dialog, MUTE on TRACKS KNOB 1,
 #                   the DRUM grid (keys, knobs, LEDs, pages, live recording into it, BEAT from PATTERNS).
+# DSP: the polyBLEP residual's one-compare fast path (tests/blep_test.c) against the reference formulation
+#                   bit for bit: both window edges, the sub-1 Hz incs whose d is 0, the increments past Nyquist
+#                   (where the windows overlap) and 10 000 000 random pairs, so an "almost the same" residual
+#                   cannot reach the oscillators unseen.
 # Audio / persistence / editor: the real C paths against simulated DMA and NOR flash: bounded overload
 #                   fades, shared-voice limits, deferred settings and retries, failed-save rollback, the autosave
 #                   (1.2: when it writes, the power-on restore, damaged copies, a write cut short, wear over a session),
@@ -46,6 +50,10 @@
 #                   slots (at most +5 %), demos in build/mod_demo/.
 # PERFORM (tests/perform_test.c): the FX hold layer (src/perform.c): 1/16 starts, stereo buffer effects, the
 #                   too-long REPEAT, the SLICER interplay, silent layer keys, idle bit-identical, cost; build/perform_demo/;
+# DELAY (tests/dly_echo_test.c): the echo train the FX > DLY page draws (src/fx.c fx_dly_rep): silence shows
+#                   nothing, a hit lights repeat 1 one TIME later, FEEDBK 0 leaves one pass, FEEDBK 60 falls by
+#                   about FEEDBK, MIX 0 nothing, the bars follow the peaks linearly (not a level), PING-PONG too,
+#                   and the train ends (no bar left lit after it has died).
 # REVERB (tests/reverb_test.c): REVERB TYPE (src/fx.c): ROOM bit for bit as before, SPRING's decay against SIZE,
 #                   its chirp (group delay rising with frequency), stability at the corners, level, a model change
 #                   without a click, its cost against ROOM (+30 % at most); demos in build/fx_demo/.
@@ -108,6 +116,14 @@ cd "$(dirname "$0")/.."
 OUT=build/host
 mkdir -p "$OUT"
 CC="${CC:-cc} -O1 -Wall -Wno-unused-function"
+# POLY=10 builds every host test with NVOICE=10 (firmware/src/core.h): the 10-voice profile, which is still
+# built and measured. The shipped value is 12. Anything else is refused, so a typo cannot quietly produce a
+# build whose voice count nobody wrote down.
+case "${POLY:-12}" in
+    12) ;;
+    10) CC="$CC -DNVOICE=10"; echo "poly: 10 voices (NVOICE=10; the shipped build is 12)" ;;
+    *)  echo "poly: POLY=${POLY:?} (the measured profiles are 10 and 12)" >&2; exit 2 ;;
+esac
 fail=0
 run() { echo "== $1"; shift; "$@" || fail=1; }
 
@@ -149,15 +165,16 @@ done
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip the package / loader tests (NO_PACKAGE=1: no ./build.sh package)"
 else
-    [ -f build/felucca.fwsc ] || { echo "run ./build.sh first (or NO_PACKAGE=1 for the host-only run)"; exit 1; }
+    PKG="$(ls build/felucca*.fwsc 2>/dev/null | head -1)"    # a release build names it felucca-X.Y.fwsc
+    [ -n "$PKG" ] && [ -f "$PKG" ] || { echo "run ./build.sh first (or NO_PACKAGE=1 for the host-only run)"; exit 1; }
 
     $CC -DOWN_PKG=1 -o "$OUT/ota_test" tests/ota_test.c
-    run "M-UPGRADE entry (own loader)" "$OUT/ota_test" build/felucca.fwsc
+    run "M-UPGRADE entry (own loader)" "$OUT/ota_test" "$PKG"
 
     head -c 200000 build/felucca.bin > "$OUT/old_app.bin"
     python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
     $CC -o "$OUT/ldr_test" tests/ldr_test.c
-    run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+    run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" "$PKG"
 fi
 
 if [ -f build/gen/felucca_tables.h ]; then
@@ -173,6 +190,15 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "project formats (FUN1..FUN5 -> FUN6, the grid and song chain; DIGITAL tracks -> FM6, SAMPLE PERC -> DRUM)" "$OUT/project_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/motion_test" tests/motion_test.c -lm
     run "motion, whole-step chance, FUN7 migration, song restore, ARP repeat and the 1.2 ARP modes" "$OUT/motion_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_audible_test" tests/morph_audible_test.c -lm
+    run "MORPH moves the samples: every engine with a morph path renders a different waveform when P_MORPH moves under a held note (and without a click)" "$OUT/morph_audible_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/microstart_test" tests/microstart_test.c -lm
+    run "M.STRT: a note waits a random 0..20 ms and no two notes wait the same (audio), the wait is silence and does not click, the level holds; N.RATE: the random wander holds 46 ms or a tempo division, down to 1/16" "$OUT/microstart_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/lofi_tclk_test" tests/lofi_tclk_test.c -lm
+    run "LOFI T.CLK: NOTE restarts the formula every note, FREE joins it where the track clock is (audio, not a screen), keeps the level, survives a sound change and does not click" "$OUT/lofi_tclk_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm
+    run "MORPH under load: six parts, the FX buses, MIDI notes and a preset load -- every transition measured (latency, slew to 90%, click) with the two renders bit-identical before the turn" "$OUT/morph_six_test"
+    run "the particle pool bays: EDIT ribbon draws none, HOME and the visualizer keep theirs inside their own rect, no allocation" python3 tests/particle_bounds_test.py
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/ratchet_test" tests/ratchet_test.c -lm
     run "RATCH: x1..x4 in a step (notes, chords, drum hits), gates, chance, swing, projects, user presets, CHANCE page" "$OUT/ratchet_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/midi_control_test" tests/midi_control_test.c -lm
@@ -215,8 +241,12 @@ if [ -f build/gen/felucca_tables.h ]; then
         "$OUT/ui_render_fm4" build/ui_fm4 build/ui_fm4_slot
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/audio_test" tests/audio_test.c -lm
     run "audio: overload protection, bounded fades and DMA diagnostics" "$OUT/audio_test"
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/master_test" tests/master_test.c -lm
+    run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Ifirmware/hal -o "$OUT/clamp_sym_test" tests/clamp_sym_test.c -lm
     run "DSP: the SVF's one-compare clamp is exactly clamp(v, -150000, 150000) over all of int32" "$OUT/clamp_sym_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/blep_test" tests/blep_test.c -lm
+    run "DSP: the polyBLEP fast path is the reference, bit for bit (both window edges, the increments past Nyquist, 10 M pairs)" "$OUT/blep_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/click_test" tests/click_test.c -lm
     run "metronome and count-in: beats sample for sample (internal and external clock), accent, level, MASTER, not in USB, count-in timing, notes onto step 1" "$OUT/click_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/persistence_test" tests/persistence_test.c -lm
@@ -247,6 +277,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "FX layer effects: on the 1/16, stereo, too-long REPEAT, SLICER, silent keys, idle bit-identical, clicks, cost, demos" "$OUT/perform_test" build/perform_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/reverb_test" tests/reverb_test.c -lm
     run "REVERB TYPE: ROOM bit-identical, SPRING decay / chirp / stability / level, model change, cost, demos" "$OUT/reverb_test" build/fx_demo
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/dly_echo_test" tests/dly_echo_test.c -lm
+    run "DELAY echo train: the repeats FX > DLY draws, one TIME apart, falling by FEEDBK, none without echoes" "$OUT/dly_echo_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_probe" tests/fx_probe.c -lm
+    run "FX measured: the phaser's comb depth, M-WIDE mono/normal/wide, the master EQ's shelves and peak" "$OUT/fx_probe"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
@@ -280,14 +314,24 @@ done
 run "transport gate: the image bytes leave only from #serve, behind requireProof(), install/write/resume" \
     python3 tests/transport_gate_test.py
 run "chip identification: 0x12/0x13 gates, no write frame without a verified part" python3 tests/chip_test.py
+run "flash evidence: a read bundle verifies only against its own bytes and its read-only frame log" \
+    python3 tests/flash_evidence_test.py
+run "external read: the first backup of a stock unit, two reads, and the restore hand-off" \
+    python3 tests/flash_read_test.py
+run "flash image: boot/app tables, CRC16s and the identity decoded from the stock layout" \
+    python3 tests/mflasher_test.py
 run "raw restore: geometry, identifiers, sector alignment, readback, refusal before any erase" \
     python3 tests/restore_test.py
-run "signed packages: manifest, hash, product / version / min_firmware, WebCrypto parity" \
-    python3 tests/sign_test.py
+# (PR #73) the gate's refusal matrix and the backup audit: both import tools/fm1_gate.py and
+# tools/fm1_image.py and assert on the real refusal codes, so a regression in either fails here.
+run "install gate: read-only chips, unknown JEDEC, model and identity refusals before any write" \
+    python3 tests/negative_write_test.py
+run "backup audit: region bounds, bootloader never written, dump and restore evidence agree" \
+    python3 tests/backup_audit_test.py
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip installer preflight (NO_PACKAGE=1: needs build/felucca.fwsc)"
 else
-    run "installer preflight: read-only, refuses before the first write frame" python3 tests/preflight_test.py
+    run "installer preflight: read-only, refuses before the first write frame" python3 tests/preflight_test.py "$PKG"
 fi
 
 # ASan + UBSan: the stored-data and protocol paths, and short fuzz runs (fixed seeds: the same inputs every run)
@@ -310,9 +354,9 @@ else
     export ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}"
     if [ "${NO_PACKAGE:-0}" != 1 ]; then
         $SCC -o "$A/ldr_test" tests/ldr_test.c
-        run "ASan/UBSan: update loader (other app -> this build)" "$A/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+        run "ASan/UBSan: update loader (other app -> this build)" "$A/ldr_test" "$OUT/old.fwsc" "$PKG"
         $SCC -DOWN_PKG=1 -o "$A/ota_test" tests/ota_test.c
-        run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" build/felucca.fwsc
+        run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" "$PKG"
     fi
     for t in editor_test project_test backup_test robust_test fm6bank_test; do
         $SCC -o "$A/$t" tests/$t.c -lm
@@ -340,8 +384,6 @@ else
 fi
 
 run "preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
-run "signing chain: Ed25519 manifests and every refusal" python3 tests/sign_test.py
-run "key custody: keygen off-repo, pin --replace, check, rotation, revocation" python3 tests/key_custody_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 run "backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore" \
     python3 tests/backup_tool_test.py
@@ -350,12 +392,31 @@ run "README navigation contract (WEB SITE first and double width, names, links, 
 
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
-    # (v1.9.0) the installer's build provenance: no write without a verified record, and the site
-    # builder refuses a package that contradicts its own manifest
-    run "web installer: build provenance, zero writes when it fails" node web/test_provenance.mjs
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
-    PKG=""
-    if [ -f build/felucca.fwsc ]; then PKG=build/felucca.fwsc; fi
+    # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
+    # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
+    run "web verify-only: identity reads only, zero write frames" node web/test_verify_only.mjs
+    # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
+    # its dump hashed in the page, and the donor install path that accepts them -- with the wire
+    # assertions that nothing is sent without them.
+    # (first install) a unit sitting in its update mode answers the handshake and not 0x12, so the
+    # chip gate on the loader link comes from the same attempt or from the record -- and a unit's own
+    # update mode is never fed a Felucca image.
+    run "web update mode: loader links, foreign loaders, and the resume path" node web/test_update_mode.mjs
+    # (state machine) the seventeen named states: each one tied to an observation this page can make,
+    # or declared unreachable with its reason -- WebMIDI cannot see the ROM mode, and the loader has no
+    # separate erase or verify phase.
+    run "web state: the named states, the four blind spots, and who may unplug" node web/test_state.mjs
+    # authenticity: the Ed25519 manifest the page checks before it enables INSTALL, against the key
+    # pinned in tools/fm1_keys.json -- and every way a tampered one must be refused
+    run "web signing: Ed25519 against the pinned key, and what it refuses" node web/test_sign.mjs
+    # what M-Flasher itself will check before its first erase, on the package this repository releases
+    if [ -f release/felucca-2.0.0.fwsc ]; then run "web acceptance: M-Flasher's own checks and the sector plan" node web/test_accept.mjs; fi
+    # (PR #73) the production pipeline against the real release package the build record names:
+    # requireChip, requireProof and Updater.install refuse every partial authorisation, on the wire.
+    run "web installer pipeline: the real package, and a refusal for every partial authorisation" \
+        node tests/installer_pipeline_production_test.mjs
+    [ -n "${PKG:-}" ] || PKG="$(ls build/felucca*.fwsc 2>/dev/null | head -1)"
     run "web package parser: malformed .fwsc refused, never loops, the built one parses" \
         node web/test_pkg_bounds.mjs $PKG
 else
@@ -381,12 +442,6 @@ if [ "${NO_PACKAGE:-0}" = 1 ]; then
 else
     run "build manifest: artefacts, version, commit, config and the emulator agree (and a wrong one fails)" \
         python3 tests/manifest_test.py
-    # the real package, its real record and a signed release manifest through the transport gate: this
-    # is the only test that refuses to invent its artefacts, so it needs the build above
-    if command -v node >/dev/null 2>&1; then
-        run "release e2e: the built package, its record and a signed manifest agree end to end" \
-            node web/test_release_e2e.mjs
-    fi
 fi
 
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }

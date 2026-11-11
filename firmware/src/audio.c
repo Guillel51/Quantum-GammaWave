@@ -25,9 +25,53 @@ static volatile uint32_t t5_nested_ticks;              /* TIMER4 ticks TIMER5 sp
 static uint32_t audio_cpu_rem;                         /* keep the fractional IIR step: no low-load bias */
 static uint32_t audio_last_half = 2u, audio_lost;     /* (1.2.1-GW, JIANT 0.8.9) halves never rendered: a render past
                                                          * two halves (console) */
-#define SCOPE_N 512u
-static int16_t scope_buf[SCOPE_N];
+#define SCOPE_N 256u
+static int16_t scope_buf[SCOPE_N];                     /* the left channel: the scope draws it */
+static int16_t scope_r[SCOPE_N];                       /* (1.9) the right one: its meter had nothing to read */
 static uint32_t scope_w;
+
+/* The ring's contract, because two contexts touch it. dac_scope is the only writer and it runs in the
+ * audio ISR; audio_out_peak, ui_being.c and ui_graph.c only read. Every access is a naturally aligned
+ * 16-bit sample or the 32-bit position, which pi32v2 stores and loads whole, and the writer only ever
+ * advances the position, so a reader can at worst catch a frame that is one store newer than the frame
+ * beside it -- a level a hair off for one screen, which is what a meter is allowed to be. No lock, no
+ * seqlock and no atomic costs the ISR anything; the alternative (a copy under a lock) would either block
+ * the ISR or double the buffer. tests/audio_test.c feeds the ring by hand and checks both channels and
+ * both edges; tests/six_track_live_test.c runs the real render while the meters are read.
+ *
+ * The index arithmetic relies on SCOPE_N being a power of two (the mask) and on the ring holding whole
+ * blocks, so a reader never sees a window that is mostly the block being written. */
+_Static_assert((SCOPE_N & (SCOPE_N - 1u)) == 0u, "the scope ring masks with SCOPE_N - 1: it must be a power of two");
+_Static_assert(SCOPE_N >= 8u * CTL, "the scope ring must hold eight blocks: a reader needs room behind the writer");
+_Static_assert(SCOPE_N <= 4096u, "the scope ring is walked per screen: keep it small");
+
+/* (1.9) the peak |sample| each DAC channel reached across the scope's history, 0..32768. The main loop calls
+ * this, never the ISR: the audio path pays one store more per frame and no comparison at all, which is what
+ * keeps fm1_alnk0_irq inside the static cost budget (tests/target_budget.py). 256 frames of every other
+ * sample: ~11.6 ms of the master, the window a meter wants. */
+int32_t audio_out_peak(uint32_t ch)
+{
+    const int16_t *b = ch ? scope_r : scope_buf;
+    uint32_t i, w = scope_w;
+    int32_t pk = 0;
+    for (i = 0; i < SCOPE_N; i++) {
+        int32_t v = b[(w - 1u - i) & (SCOPE_N - 1u)];
+        if (v < 0) v = -v;
+        if (v > pk) pk = v;
+    }
+    return pk;
+}
+
+/* one block of the master output into the scope's history: both channels, one store each, nothing else */
+static void dac_scope(const int32_t *out, uint32_t n)
+{
+    uint32_t i;
+    for (i = 1; i < n; i += 2u) {                       /* the music, before the click */
+        uint32_t w = scope_w++ & (SCOPE_N - 1u);
+        scope_buf[w] = (int16_t)out[2u * i];      /* master_out holds |out| <= 32767 (fx.c), so the cast is exact */
+        scope_r[w] = (int16_t)out[2u * i + 1u];
+    }
+}
 
 static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 -> 24 bit */
 {
@@ -38,8 +82,7 @@ static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 
 #endif
     if (fx_usb_fixed)                                   /* USB LEVEL FIXED: USB took the full level, the DAC */
         usb_fixed_dac(out, n);                          /* (speaker, headphones) gets MASTER's (fx.c) */
-    for (i = 1; i < n; i += 2u)                         /* the HOME scope: the music, before the click */
-        scope_buf[scope_w++ & (SCOPE_N - 1u)] = (int16_t)out[2u * i];
+    dac_scope(out, n);                                  /* the HOME scope: both channels of the music */
     click_render(out, n);                               /* the metronome (click.c): the DAC only, not USB */
     for (i = 0; i < n; i++) {
         out[2u * i] *= 1 << OUT_SHIFT;
@@ -86,7 +129,7 @@ static void shed_voice(void)
     voice_t *best = 0;
     for (p = 0; p < NPART; p++)
         for (i = 0; i < NVOICE; i++) {
-            voice_t *v = &trk[p].v[i];
+            voice_t *v = &V(&trk[p], i);
             if (v->active && !v->gate && v->stage != 4u && (!best || v->env < best->env))
                 best = v;
         }
@@ -99,7 +142,7 @@ static void shed_voice(void)
         const track_t *t = &trk[p];
         uint32_t mode = trk_vmode(t), low = mode == V_POLY ? lowest_held(t) : 0u;
         for (i = 0; i < NVOICE; i++) {
-            voice_t *v = &trk[p].v[i];
+            voice_t *v = &V(&trk[p], i);
             if (v->active && v->gate && v->stage != 4u &&
                 ((mode == V_POLY && i != low) || (mode != V_POLY && i > 0u))) {
                 if (!best || v->age < best->age)
@@ -157,6 +200,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
         {   /* (0.6.17) MENU > ABOUT's numbers (voice.c load_diag) */
             uint32_t pc = us * 100u / (HALF_FRAMES * 1000000u / FS);
             if (pc > load_diag.peak) load_diag.peak = pc;
+            if (us) load_diag.valid = 1u;                /* (3.0) there is a measurement to show */
             load_diag.late = felucca_dbg.late;
             load_diag.shed = shed_count;
         }

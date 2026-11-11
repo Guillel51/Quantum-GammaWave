@@ -54,7 +54,7 @@ typedef struct {
 } layer_t;
 static const layer_t LAYERS[LAYER_N] = {
     {0, 0, 0, "", {{0, 0}, {0, 0}, {0, 0}}},
-    {B_FX, LK_HOLD, FAM_HOME, "[FX] HOLD", {{KC_KEYS, "EFFECTS"}, {KC_K14, "MACROS"}, {0, 0}}},   /* (LET GO: the header's HOLD) */
+    {B_FX, LK_HOLD, FAM_HOME, "[FX] HOLD", {{KC_KEYS, "FX"}, {KC_K14, "MACRO"}, {KC_OCTUP, "LATCH"}}},   /* (LET GO: the header's HOLD) */
     {B_GLO, LK_SET, FAM_HOME, "[GLO] SET", {{KC_PLAY, "RESTART"}, {KC_GLO, "DONE"}, {0, 0}}},
     {B_SCL, LK_SET, FAM_SCL, "[SCL] SET", {{KC_KEYS, "ROOT"}, {KC_SCL, "DONE"}, {0, 0}}},
     {B_EDIT, LK_SET, FAM_EDIT, "[EDIT] SET", {{KC_KEYS, "INIT / RECALL"}, {KC_EDIT, "DONE"}, {0, 0}}},
@@ -75,7 +75,7 @@ static const page_t *ly_page(uint32_t l) { return l == LAYER_SCL ? &LY_SCL : l =
 #define LY_DEAD 8u                     /* .. pressed where there is no layer: does nothing */
 enum { LY_INIT, LY_RECALL };          /* EDIT: the white keys F3 G3 */
 #define layer_seen (favorites.factory[15][31])   /* bit l: layer l opened once (a byte no engine uses) */
-static const khint_t FX_LATCH_FOOT[3] = {{KC_KEYS, "YES / NO"}, {KC_K14, "MACROS"}, {KC_OCTDN, "ALL OFF"}};
+static const khint_t FX_LATCH_FOOT[3] = {{KC_KEYS, "FX"}, {KC_OCTUP, "LATCH"}, {KC_OCTDN, "ALL OFF"}};
 static const khint_t MAC_LATCH_FOOT[3] = {{KC_K14, "M1-M4"}, {KC_SELECT, "DICE"}, {KC_LFO, "DONE"}};   /* (MACRO latched) */
 
 static struct {
@@ -90,8 +90,10 @@ static struct {
     uint8_t quiet;                     /* #39: a layer closed after it opened: KNOB 1..4 do nothing until quiet_t + */
     uint32_t quiet_t;                  /* LY_QUIET_MS (fm1_ms) */
     uint8_t used;                      /* (0.6.44) a key, a knob or OCT used in the layer since it was armed */
+    uint8_t pin;                       /* (2.0) FX held past FX_PIN_MS: this press pins the screen on let go */
 } lys;
 #define LY_QUIET_MS 250u
+#define FX_PIN_MS 4000u                    /* (2.0) a Punch-in screen pins on a four-second hold, not a tap */
 
 /* (0.6.44) FX LATCH: FX held open and let go locks its layer open, as the macros latch: its keys, knobs and map stay
  * until FX is pressed again (or another layer is held over it, for as long as it is) */
@@ -179,6 +181,7 @@ static void layer_arm(uint32_t pressed, uint32_t now)
     for (l = LAYER_FX; l < LAYER_N; l++)
         if ((pressed & ly_bit(l)) && ly_avail(l)) {
             lys.used = 0;
+            lys.pin = 0;
             ui.ly = (uint8_t)l;
             ui.ly_t0 = (now & ~15u) | 1u | (layer_allowed() ? 0u : LY_DEAD);
             return;
@@ -198,8 +201,9 @@ static void layer_let_go(uint32_t quiet)
     if (ui.ly == LAYER_FX && !perf_latch_on)
         perf_k[0] = perf_k[1] = perf_k[2] = perf_k[3] = 0;
     if (ui.ly == LAYER_FX && (ui.ly_t0 & LY_OPEN) && !(ui.ly_t0 & (LY_DEAD | LY_COMBO)) &&
-        !lys.used && !kb_layer && layer_allowed()) {
-        fx_lock = 1;                                    /* (0.6.44) held open, nothing used, let go: locked open;
+        !lys.used && lys.pin && !kb_layer && layer_allowed()) {
+        fx_lock = 1;                                    /* (2.0) held FOUR SECONDS, nothing used, let go: the map
+                                                         * stays (a short hold only peeks: it closes on release);
                                                          * (0.6.64) whatever FX LATCH (the effects' own: momentary by
                                                          * default) */
         ui_message("FX LOCKED: [FX] TO UNLOCK");
@@ -250,6 +254,9 @@ static uint32_t layer_gesture(uint32_t now, uint32_t combo)
             *t0 |= LY_OPEN | (combo ? LY_COMBO : 0u);
             layer_opened(l);
         }
+        if (l == LAYER_FX && !(*t0 & (LY_DEAD | LY_COMBO)) &&
+            now - (*t0 & ~15u) >= (uint32_t)FX_PIN_MS * 1000u * FM1_TICKS_PER_US)
+            lys.pin = 1;                                /* (2.0) four seconds: this press pins the map */
         return 0;
     }
     l = *t0 & (LY_OPEN | LY_DEAD) || combo ? 0u : l;   /* (a knob turned as it was let go: a combo, no tap) */
@@ -453,7 +460,7 @@ static int track_sounding(const track_t *t)
     if (t->p[P_MUTE])
         return 0;
     for (i = 0; i < NVOICE; i++)
-        if (t->v[i].stage && t->v[i].stage < 4u)
+        if (V(t, i).stage && V(t, i).stage < 4u)
             return 1;
     if (song.playing)
         for (i = 0; i < len && i < NSTEP; i++)
@@ -608,9 +615,14 @@ static void layer_knob(uint32_t k, int32_t s)
     uint32_t l = layer_open();
     lys.used = 1;
     if (l == LAYER_FX) {                                /* perform.c perf_k, not recorded */
-        if (k == 3u)
+        /* (3.2) DEPTH lives on KNOB 2, under its own card in the map's left/right pair, and CRUSH
+         * moves to KNOB 4: the owner reached for the second knob for the effect's level every time.
+         * The engine keeps its slots (perf_k[1] CRUSH, perf_k[3] DEPTH); only the knob that writes
+         * them changed, so the DSP, the saved presets and the metering are untouched. */
+        uint32_t m = k == 1u ? 3u : k == 3u ? 1u : k;
+        if (m == 3u)
             s = -s;                                     /* DEPTH (100 - perf_k[3]) rises to the right (#40: it fell) */
-        perf_k[k] = (int8_t)clamp(perf_k[k] + accel(EN_K1 + k, s, k ? 100 : 200), k ? 0 : -100, 100);   /* (#126) */
+        perf_k[m] = (int8_t)clamp(perf_k[m] + accel(EN_K1 + k, s, m ? 100 : 200), m ? 0 : -100, 100);   /* (#126) */
     } else if (l == LAYER_GLO) {                        /* T1..T4 LEVEL (T5, T6 selected: T3..T6), recorded as on MIXER */
         track_t *t = &trk[k + trk_base4()];
         int16_t *vp = &t->p[P_LEVEL];
@@ -666,16 +678,30 @@ static void layer_oct_open(uint32_t pressed)
 /* OCT- / OCT+ in a SET layer: no octave (TONIC: no put back; FX LATCH: OCT- all off). Returns the taps left */
 static uint32_t layer_oct(uint32_t pressed, uint32_t oct)
 {
-    uint32_t dn = panel.btn[B_OCTDN], up = panel.btn[B_OCTUP], mine;
-    if (layer_set_open())
+    uint32_t dn = panel.btn[B_OCTDN], up = panel.btn[B_OCTUP], mine, set = (uint32_t)layer_set_open();
+    if (set || ui.ly == LAYER_FX)                       /* FX: OCT- all off, OCT+ LATCH (3.1) */
         lys.oct |= (uint8_t)(((pressed >> dn) & 1u) | ((pressed >> up) & 1u) << 1);
     if (ui.ly && (pressed & (1u << dn | 1u << up)))
         lys.used = 1;                                   /* (0.6.44: an OCT with it: no FX lock) */
     mine = oct & lys.oct;
-    if ((mine & 1u) && lys.l == LAYER_FX) {             /* OCT- (FX LATCH): every effect and macro off */
+    if (!set && (ui.ly == LAYER_FX || lys.oct))
+        mine &= 2u;                                     /* LATCH off: only OCT+ is the map's; OCT- is the octave
+                                                         * (lys.oct: the press began on the open map) */
+    if ((mine & 1u) && set && lys.l == LAYER_FX) {      /* OCT- (FX LATCH): every effect and macro off */
         perf_latched = 0;
         perf_k[0] = perf_k[1] = perf_k[2] = perf_k[3] = 0;
         ui_message("FX ALL OFF");
+    }
+    if ((mine & 2u) && lys.l == LAYER_FX) {             /* (3.1) OCT+: FX LATCH on / off, saved. This is the
+                                                         * path the map's card has always advertised and the one
+                                                         * that was missing: without it the setting could only be
+                                                         * changed in MENU > CONTROL, so the card stayed OFF. */
+        ui_prefs ^= PREF_LATCH;
+        perf_latched = 0;                               /* no effect survives the change of mode */
+        perf_latch_on = (uint8_t)((ui_prefs & PREF_LATCH) != 0u);
+        settings_save();
+        ui.force = 1;
+        ui_message(perf_latch_on ? "FX LATCH ON" : "FX LATCH OFF");
     }
     if (lys.l == LAYER_SAVE && (mine & 2u)) {           /* SAVE + OCT+: STORE the music into the section playing */
         if (live.cur < 0)
@@ -920,7 +946,8 @@ static void bnote(char *n, uint32_t t) { n[0] = B_NOTE[t]; n[1] = '#'; n[2] = 0;
  *
  * (1.8.1) The old top row of FILTER / CRUSH / THROW / DEPTH cards is gone. The
  * three hidden macros still work on KNOB 1..3; the fourth, DEPTH, is shown in
- * the map's header (it is the one the buffer effects need while playing). The
+ * the map's header. (2.0) Two cards, DEPTH and LATCH: BANK, TARGET and TRACK
+ * were readouts the map already shows, and OCT+ now flips LATCH from here. The
  * map itself now starts where the cards were: the keyboard is 170 px high,
  * not 122, and the white keys are 118 px tall below the cards' band. */
 static const char *const FX_BANK2[5] = {"REV", "FRZ", "TAPE", "GLCH", "RTRG"};
@@ -932,7 +959,8 @@ static const char *const FX_BLACK[5] = {"VIB", "TGT", "GATE", "RTRG", "DIVE"};
 #define FX_KEY_X0 9                              /* 16 x 12 px keys, 2 px apart: 222 px, x 9..230 */
 #define FX_WHITE_W 12
 #define FX_WHITE_GAP 2
-#define FX_BLACK_W 8
+#define FX_BLACK_W 10                              /* (3.1) 10, not 8: the M of M1..M6 is 9 px wide in AF_S;
+                                                    * the pitch is unchanged (14 px a white key) */
 #define FX_BLACK_H 58
 #define FX_WHITE_LABEL_Y (FX_KEY_Y + FX_BLACK_H + 3)   /* below the black keys: no overlap */
 #define FX_WHITE_LABEL_H (FX_KEY_H - FX_BLACK_H - 3)
@@ -967,49 +995,40 @@ static void layer_fx(uint32_t band)
      * put three black keys in a row (places 3/4/5) and left a gap where A#4 belongs. */
     static const uint8_t BKPOS[11] = {0, 1, 2, 4, 5, 7, 8, 9, 11, 12, 14};
     uint32_t held = perf_kill ? 0u : perf_held | perf_latched, ok = perf_avail();
-    uint32_t i, p, b, k, f, on, can, mutes = 0, heads = perf_buf_heads(), playing = perf_buf_playing();
-    char st[8], tgt[4], sel[3], dep[4];
+    uint32_t i, p, b, k, f, on, can, mutes = 0;
+    char dep[4];
     for (i = 0; i < NTRK; i++)
         mutes |= (uint32_t)(trk[i].p[P_MUTE] != 0) << i;
-    if (pb_recording) {
-        str_cpy(st, "CAP ", sizeof st);
-        fmt_int(st + 4, (int32_t)(pb_wr * 100u / PB_CAP));
-        str_cpy(st + str_len(st), "%", sizeof st - str_len(st));
-    } else if (heads) {
-        fmt_int(st, (int32_t)playing);
-        str_cpy(st + str_len(st), "/", sizeof st - str_len(st));
-        fmt_int(st + str_len(st), (int32_t)heads);
-    } else {
-        str_cpy(st, "LIVE", sizeof st);
-    }
-    tgt[0] = pfx_tgt == 0u ? 'A' : pfx_tgt == 1u ? 'S' : 'D';
-    tgt[1] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'Y' : 'R';
-    tgt[2] = pfx_tgt == 0u ? 'L' : pfx_tgt == 1u ? 'N' : 'M';
-    tgt[3] = 0;
-    sel[0] = 'T'; sel[1] = (char)('1' + song.sel % NTRK); sel[2] = 0;
     fmt_int(dep, 100 - perf_k[3]);
-    /* five compact cards, 44 x 40: the real effects' state, not extra controls. 40, not 36: the
-     * third line's ink reaches row 12 of its line (AF_S_CAP_Y 3 + the round letters' faint row),
-     * and in a 36 px card it fell 1 px past the card's edge (the UI audit's "spills out of its cell"). */
+    /* (1.9) Two cards, 110 x 40, for the two things this map really is: LATCH's state and
+     * DEPTH's value. The five 44 px cards that were here named settings the map cannot change
+     * (BANK, TARGET, TRACK, and the buffer state), and the last of them, DEPTH at x 192 + 44,
+     * ended on x 236, four pixels past the panel. Two cards, 6..116 and 124..234, stay inside
+     * the 232 px the panel gives, and each one shows only what it owns. 40 px tall, not 36: the
+     * third line's ink reaches row 12 of its line (AF_S_CAP_Y 3 + the round letters' faint row). */
     if (!band) {
-        static const int32_t CX[5] = {4, 51, 98, 145, 192};
-        for (i = 0; i < 5u; i++)
-            cv_rrect(CX[i], 3, 44, FX_CARD_H, 3, T_RAISE, T_SURF);
-        cv_text_on(CX[0] + 3, 6, &AF_S, "BANK", T_MID, T_RAISE);
-        cv_text_on(CX[0] + 3, 17, &AF_S, pfx_bank ? "B2" : "B1", pfx_bank ? T_ACCENT : T_TEXT, T_RAISE);
-        cv_text_on(CX[0] + 3, 28, &AF_S, st, heads || pb_recording ? T_THEME : T_DIM, T_RAISE);
-        cv_text_on(CX[1] + 3, 6, &AF_S, "LATCH", T_MID, T_RAISE);
-        cv_text_on(CX[1] + 3, 17, &AF_S, perf_latch_on ? "ON" : "OFF", perf_latch_on ? T_ACCENT : T_DIM, T_RAISE);
-        cv_text_on(CX[1] + 3, 28, &AF_S, "FX", T_DIM, T_RAISE);
-        cv_text_on(CX[2] + 3, 6, &AF_S, "TARGET", T_MID, T_RAISE);
-        cv_text_on(CX[2] + 3, 17, &AF_S, tgt, T_TEXT, T_RAISE);
-        cv_text_on(CX[2] + 3, 28, &AF_S, "A#4", T_DIM, T_RAISE);
-        cv_text_on(CX[3] + 3, 6, &AF_S, "TRACK", T_MID, T_RAISE);
-        cv_text_on(CX[3] + 3, 17, &AF_S, sel, T_TEXT, T_RAISE);
-        cv_text_on(CX[3] + 3, 28, &AF_S, "SEL", T_DIM, T_RAISE);
-        cv_text_on(CX[4] + 3, 6, &AF_S, "DEPTH", T_MID, T_RAISE);
-        cv_text_on(CX[4] + 3, 17, &AF_S, dep, T_THEME, T_RAISE);
-        cv_text_on(CX[4] + 3, 28, &AF_S, "K4", T_DIM, T_RAISE);
+        static const int32_t CX2[2] = {8, 122};
+        int32_t lat = perf_latch_on != 0, dp = clamp(100 - perf_k[3], 0, 100), seg;
+        for (i = 0; i < 2u; i++)
+            cv_rrect(CX2[i], 5, 108, FX_CARD_H, 3, T_RAISE, T_SURF);   /* clear of the panel's 5 px corner */
+        /* LATCH: the engine's real flag (perform.c perf_latch_on), and nothing else: the card
+         * used to print "TOGGLE / HOLD" and "ENABLE: MENU 40", two instructions for a control it
+         * does not own (KNOB 1..4 are the macros here). A centred state is what it says now. */
+        GFX_HOOK_ALIGN(CX2[0], 5, CX2[0] + 108, 5 + FX_CARD_H, AL_HV, "FX LATCH state centred");
+        cv_text_in(CX2[0], 5 + CAP_IN(S, FX_CARD_H), 108, &AF_S, lat ? "Latch: On" : "Latch: Off",
+                   lat ? T_ACCENT : T_MID, T_RAISE);
+        /* (3.2) the card says how to change it. The only in-map path is OCT+, and the footer that
+         * names it only appeared once LATCH was already on: the state the owner could not leave. */
+        cv_text_on(CX2[0] + 6, 26, &AF_S, "OCT+ TO SWITCH", T_DIM, T_RAISE);
+        /* DEPTH: the value K4 writes (perform.c perf_k[3], shown as 100 - it: right is deeper),
+         * and the same value as a bar, so the knob's travel is readable at a glance */
+        cv_text_on(CX2[1] + 4, 8, &AF_S, "DEPTH", T_MID, T_RAISE);
+        cv_text_on(CX2[1] + 4, 19, &AF_S, dep, T_THEME, T_RAISE);
+        cv_text_r(CX2[1] + 104, 19, &AF_S, "K2", T_DIM, T_RAISE);     /* (3.2) DEPTH is KNOB 2 */
+        cv_rect(CX2[1] + 4, 32, 100, 4, T_SURF);
+        for (seg = 0; seg < 20; seg++)
+            if (seg * 5 < dp)
+                cv_rect(CX2[1] + 4 + seg * 5, 32, 3, 4, seg < 13 ? T_THEME : T_ACCENT);
     }
     /* the sixteen white keys: 12 px each, a 2 px gap and a 1 px edge. White is
      * T_TEXT and black T_KEY: the old T_RAISE on both sides was why they merged. */
@@ -1022,36 +1041,59 @@ static void layer_fx(uint32_t band)
         can = k < 27u && PF_IS(f) && ((ok >> f) & 1u);
         on = can && ((held >> f) & 1u);
         {
-            uint16_t fill = on ? T_ACCENT : can ? T_TEXT : T_RAISE;
-            uint16_t ink = on ? T_INK : can ? T_INK : T_DIM;
+            /* (3.0) the white keys are the palette's LIGHT grey (T_KEYW), not the white keycap fill:
+             * on the panel the old T_KEY read as paper white and the map looked printed, not played.
+             * Held: the accent fills the key and its label goes to the ink; an unavailable key keeps
+             * the same body with a muted label, so the keyboard stays one instrument on every theme. */
+            /* (3.0) MONO and GREY have no accent that separates from a white key (the accent is the
+             * text), so a held key there goes to the dark grey with a light label instead: still one
+             * rule -- a held key is the one that does not look like an idle key -- on every palette */
+            uint16_t hf = (ux.mono || ux.bw) ? T_KEYB : T_ACCENT;
+            uint16_t fill = on ? hf : T_KEYW;
+            uint16_t ink = on ? ((ux.mono || ux.bw) ? T_TEXT : T_INK) : can ? T_INK : ux_mix(T_INK, T_KEYW, 45);
             cv_rect(x, FX_KEY_Y, FX_WHITE_W, FX_KEY_H, fill);
-            cv_rect(x, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
-            cv_rect(x + FX_WHITE_W - 1, FX_KEY_Y, 1, FX_KEY_H, T_LINE);
+            cv_rect(x, FX_KEY_Y, 1, FX_KEY_H, ux_mix(T_KEYW, T_TEXT, 30));      /* a lit left edge */
+            cv_rect(x + FX_WHITE_W - 1, FX_KEY_Y, 1, FX_KEY_H, T_KEYB);         /* the gap to its neighbour */
+            cv_rect(x, FX_KEY_Y + FX_KEY_H - 1, FX_WHITE_W, 1, on ? T_INK : T_KEYB);
             fx_vtext(x, FX_WHITE_W, FX_WHITE_LABEL_Y, FX_WHITE_LABEL_H, fx_white_name(p), ink, fill);
         }
     }
     /* the eleven black keys: 8 px wide, 58 px high and 6 px apart even where two
-     * sit side by side (BKPOS 0/1, 3/4/5, 7/8, 10/11). T_KEY makes the separation
-     * visible against the white keys; the 1 px edge keeps the rounded shape. */
+     * sit side by side (BKPOS 0/1, 3/4/5, 7/8, 10/11). T_KEY was the panel's own fill
+     * (QUANTUM 0x10a5 against a 0x10a5 panel), so the black keys vanished and the map
+     * read as a wall of white keys: T_BG (the darkest surface) is what makes them black
+     * again, and the 1 px T_LINE edge keeps the rounded shape. */
     for (b = 0; b < 11u; b++) {
         int32_t x = FX_KEY_X0 + (FX_WHITE_W + FX_WHITE_GAP) * (int32_t)(BKPOS[b] + 1u) - FX_BLACK_W / 2;
         for (k = 0; k < 27u; k++)
             if (key_black(k) && key_place(k) == b)
                 break;
         if (b < NTRK) {
-            uint16_t fill = (mutes >> b) & 1u ? T_ACCENT : T_KEY;
-            char n[3] = {'T', (char)('1' + b), 0};
-            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
-            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, T_TEXT, fill);
+            /* (2.1) T1..T6: the six latched track mutes. Black when open, the accent when the mute is
+             * on (the real seq.c bit, not a copy), so the map shows which tracks are muted now. */
+            int32_t latched = (mutes >> b) & 1u;
+            uint16_t fill = latched ? T_ACCENT : T_KEYB;                   /* (3.0) the accidentals' grey */
+            /* (3.1) M1..M6: these six keys are the track MUTES, and the owner asked for the map to say so.
+             * The key each one is bound to did not move (BKPOS and key_place are untouched). */
+            char n[3] = {'M', (char)('1' + b), 0};
+            cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, ux_mix(T_KEYB, T_TEXT, 22));
+            fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, n, latched ? T_INK : T_TEXT, fill);
+            if (latched)                             /* a lit cap: the mute reads at a glance, as a held key */
+                cv_rect(x + 1, FX_KEY_Y + 1, FX_BLACK_W - 2, 1, T_INK);
         } else {
             f = k < 27u ? perf_key(k) : PF_N;
             can = f == PF_TGT || (PF_IS(f) && ((ok >> f) & 1u));
             on = can && ((held >> f) & 1u);
             {
-                uint16_t fill = on ? T_ACCENT : can ? T_KEY : T_DIM;
-                uint16_t ink = on ? T_INK : can ? T_TEXT : T_BG;
-                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, T_LINE);
+                /* (3.0) The accidentals are the palette's DARK grey (T_KEYB), not the background: on the
+                 * panel the old T_BG holes made them read as gaps between the white keys. Two greys, one
+                 * clear step apart, on every theme; a held effect takes the accent and the ink. */
+                uint16_t fill = on ? T_ACCENT : T_KEYB;
+                uint16_t ink = on ? T_INK : can ? T_TEXT : ux_mix(T_TEXT, T_KEYB, 55);
+                cv_rrect(x, FX_KEY_Y, FX_BLACK_W, FX_BLACK_H, 2, fill, ux_mix(T_KEYB, T_TEXT, 22));
                 fx_vtext(x, FX_BLACK_W, FX_BLACK_LABEL_Y, FX_BLACK_LABEL_H, FX_BLACK[b - NTRK], ink, fill);
+                if (on)                                                        /* held: a lit cap */
+                    cv_rect(x + 2, FX_KEY_Y + 1, FX_BLACK_W - 4, 1, T_INK);
             }
         }
     }

@@ -197,6 +197,24 @@ export class Package {
     this.dec = dec;
   }
 
+  /* every file the app area declares with attr 0x82 (app.bin, cfg_tool.bin, ...), with its CRC16
+   * checked against the bytes the chip key decrypts: formats.rs app_files_status does the same walk,
+   * and that is the check M-Flasher makes before it writes (ops.rs plan_firmware). */
+  appFiles() {
+    const out = [], b = this.appBase, dec = this.dec, end = Math.min(dec.length, b + this.head.size);
+    for (let off = b + 32; off + 32 <= end; off += 32) {
+      let e;
+      try { e = new Entry(dec, off); } catch (_) { break; }
+      if (e.flags === 0x82) {
+        const a = b + e.offset;
+        const ok = a + e.size <= dec.length && crc16(dec.subarray(a, a + e.size)) === e.dcrc;
+        out.push({ name: e.name, size: e.size, crc: e.dcrc, ok });
+      }
+      if (e.index) break;
+    }
+    return out;
+  }
+
   // the new app, padded to the stock size (Felucca never changes the layout)
   setApp(app) {
     if (app.length > this.app.size) throw new Error(`app is ${app.length} B, the slot is ${this.app.size} B`);

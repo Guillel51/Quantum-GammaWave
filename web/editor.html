@@ -3,7 +3,7 @@
      Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments -->
 <!-- Felucca web editor. One file, no libraries. Protocol: EDITOR_PROTOCOL.md.
      Add ?mock=1 to the URL to use a built-in simulated device. -->
-<html lang="ja">
+<html lang="ja" data-version="{{VERSION}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -342,11 +342,23 @@
   .gw-macros {
     background: var(--gw-c11); border: 1px solid var(--line); padding: 7px 10px;
   }
+  /* (3.2) a closed block is one line: title left, live status right, triangle pinned to the edge. Neither span
+   * wraps (they ellipsize instead), so a long T1..T4 dump cannot push the marker onto its own line. */
+  details.gw-macros > summary {
+    cursor: pointer; list-style: none; position: relative; padding-right: 15px;
+    display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 8px; }
+  details.gw-macros > summary::-webkit-details-marker { display: none; }
+  details.gw-macros > summary::after { content: "\25BE"; position: absolute; right: 0; color: var(--theme); }
+  details.gw-macros[open] > summary::after { content: "\25B4"; }
+  details.gw-macros > summary > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  details.gw-macros > summary > span:first-child { flex: 1 1 auto; }   /* the name of the block wins the room */
+  details.gw-macros > summary > span:last-child {
+    flex: 0 1 auto; max-width: 45%; text-align: right; font-size: 10px; letter-spacing: 0.04em; }
   .gw-macros-title { font-size: 10px; font-weight: 800; letter-spacing: 0.09em; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
   [hidden] { display: none !important; }
 
   /* ============================================================================
-     QUANTUM GAMMAWAVE // WEB STUDIO 2.0 — Quantum surface
+     QUANTUM GAMMAWAVE // WEB STUDIO — Quantum surface
      A presentation layer only: every id, control and protocol frame is the
      same. The LCD, telemetry and the six-track console keep their real data.
      ============================================================================ */
@@ -510,7 +522,7 @@
   <div class="gw-brandbar">
     <a class="gw-brand" href="../../" aria-label="Volver al portal de Quantum GammaWave">
       <span class="orb" aria-hidden="true"></span>
-      <span><b>QUANTUM<br>GAMMAWAVE</b><small>WEB STUDIO 2.0 // QG-1</small></span>
+      <span><b>QUANTUM<br>GAMMAWAVE</b><small>WEB STUDIO // QG-1</small></span>
     </a>
     <nav class="gw-brandnav" aria-label="Recursos">
       <a href="../../">Portal</a>
@@ -521,13 +533,13 @@
     <button class="lang" id="lang"></button>
   </div>
   <h1>Quantum GammaWave — FM-1 Web Studio Workstation</h1>
-  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>10-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
+  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>12-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
   <header class="top">
     <div class="bar">
       <button id="connect" data-t="connect" data-ic="port_usb_c"></button>
       <button type="button" class="gw-btn-sec" id="gw-sim-btn" title="Run built-in FM-1 hardware simulator in browser (No hardware required)">⚡ SIMULATE QG-1</button>
-      <button type="button" class="gw-btn-sec" id="gw-pal-btn" title="Switch Workstation & LCD Theme (GAMMA / WRAITH)">🎨 PALETTE: GAMMA</button>
+      <button type="button" class="gw-btn-sec" id="gw-pal-btn" title="Workstation surface theme (GAMMA / WRAITH). It changes this page only: the device palette is set on FM-1 (17 themes).">🎨 STUDIO THEME: GAMMA</button>
       <span id="version" class="dim"></span>
       <span id="live" class="dim"></span>
       <span id="mock" class="dim" hidden data-t="mock"></span>
@@ -550,17 +562,23 @@
     <div class="gw-bezel">
       <div class="gw-bezel-top"><span>QUANTUM GAMMAWAVE // QG-1</span><span class="led" id="gw-lcd-mode-lbl">● HOME // FORGE</span></div>
       <canvas id="gw-lcd" width="240" height="240" title="Click to cycle Hardware 240×240 LCD Screen (HOME / WAVES / SEQ / TAPE / FX RACK / PUNCH-IN FX / SPLASH / SECRET VIZ)"></canvas>
-      <div class="bar" style="margin:2px 0 0;gap:3px;justify-content:center">
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="auto">AUTO</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="home">HOME</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="core">WAVES</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="seq">SEQ</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="tape">TAPE</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px;border-color:var(--theme);color:var(--theme)" id="gw-lcd-gen-btn" title="Open GW-1 GEN 3-Page Screen on 240×240 LCD (click again to cycle Page 1/3 → 2/3 → 3/3)">🧬 GEN 1/3</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px" data-lcd-view="fx">FX</button>
-        <button type="button" class="gw-btn-sec" style="padding:2px 5px;font-size:9px;border-color:var(--theme);color:var(--theme)" data-lcd-view="punch" title="Punch-in FX: 10 keys, full F3–G5 keyboard and the six track mutes">PUNCH</button>
-        <button type="button" id="gw-secret-viz-btn" style="padding:2px 6px;font-size:9px;background:linear-gradient(180deg,#8b5cff,#6b21a8);color:#fff" title="Hidden Menu Easter Egg ([HOME HELD] → ABOUT → [OCT+]): Cycle 4 Crazy Hyperspace Visualizers!">🌀 SECRET VIZ</button>
-        <button type="button" class="gw-btn-sec" id="gw-fullscreen-viz-btn" style="padding:2px 5px;font-size:9px" title="Expand 240×240 LCD into Fullscreen Cinema Visualizer">⛶</button>
+      <div class="bar" style="margin:2px 0 0;gap:5px;justify-content:center;align-items:center">
+        <label class="dim" style="font-size:9px;display:flex;gap:4px;align-items:center">LCD
+          <select id="gw-lcd-view" title="What the 240×240 LCD shows. The canvas click cycles it too; GEN and VIZ cycle their pages when chosen again."
+                  style="font-size:9px;padding:1px 4px;max-width:190px">
+            <option value="auto">AUTO — follows the tab</option>
+            <option value="home">HOME</option>
+            <option value="core">WAVES</option>
+            <option value="seq">SEQ</option>
+            <option value="tape">TAPE</option>
+            <option value="fx">FX</option>
+            <option value="punch">PUNCH-IN FX</option>
+            <option value="gen">GEN — 4 pages</option>
+            <option value="splash">BOOT SPLASH</option>
+            <option value="viz">SECRET VIZ — 4</option>
+          </select>
+        </label>
+        <button type="button" class="gw-btn-sec" id="gw-fullscreen-viz-btn" style="padding:2px 7px;font-size:10px" title="Expand the 240×240 LCD into the full-screen visualizer">⛶ FULLSCREEN</button>
       </div>
     </div>
     <div class="gw-console">
@@ -574,7 +592,8 @@
         </div>
       </div>
       <div class="gw-macros">
-        <div class="gw-macros-title"><span>1️⃣ STEP 1 — INSTANT 4-BAR DEMO SONGS &amp; QUICK EXPORT</span><span id="gw-demo-status" style="color:var(--theme)">64 STEPS // 4 BARS READY</span></div>
+        <div class="gw-macros-title"><span>1 · DEMO SONGS &amp; EXPORT</span><span id="gw-demo-status" style="color:var(--theme)">4 BARS READY</span></div>
+        <div class="dim" style="font-size:9px;margin:-3px 0 5px">A full 4-bar piece, immediately: pick one and play it, then export .WAV or keep the project (.GW1).</div>
         <div class="bar" style="margin:0;gap:5px">
           <button type="button" class="gw-demo-btn" data-demo="0">☀️ 1. SOLAR SINGULARITY</button>
           <button type="button" class="gw-demo-btn" data-demo="1">👻 2. WRAITH CHOIR</button>
@@ -587,11 +606,12 @@
         </div>
       </div>
       <!-- STEP 2: CONFIGURABLE SONG & TRACK GENERATOR -->
-      <div class="gw-macros" style="border-color:#8b5cff;background:rgba(168,85,247,.06)">
-        <div class="gw-macros-title">
-          <span style="color:#d8b4fe">2️⃣ STEP 2 — SONG GENERATOR (HW: [HOME]+[SELECT] or [OCT-]+[PLAY], then [OCT+])</span>
+      <details class="gw-macros" style="border-color:#8b5cff;background:rgba(168,85,247,.06)">
+        <summary class="gw-macros-title">
+          <span style="color:#d8b4fe">2 · GENERATOR</span>
           <span id="gw-gen-last" style="color:var(--theme);font-weight:700">LAST: GAMMAWAVE 0421</span>
-        </div>
+        </summary>
+        <div class="dim" style="font-size:9px;margin:0 0 5px">HW: [HOME]+[SELECT] or [OCT-]+[PLAY] to open GEN, then [OCT+] to generate.</div>
         <!-- ROW 1: GENRE, SEED, ENERGY, FORM -->
         <div class="bar" style="margin:0 0 5px;gap:6px;font-size:11px">
           <span class="dim" style="font-weight:700;color:#d8b4fe">STYLE:</span>
@@ -712,9 +732,10 @@
           </label>
           <button type="button" id="gw-gen-make" style="background:linear-gradient(180deg,#7fe9ff,#1b8fb0);color:#050608;margin-left:auto;font-weight:800" title="Hardware: Press [OCT+] on GEN screen to generate piece">⚡ GENERATE PIECE [OCT+]</button>
         </div>
-      </div>
-      <div class="gw-macros" style="border-color:var(--accent)">
-        <div class="gw-macros-title"><span>3️⃣ STEP 3 — 4-TRACK PARALLEL TAPE (OVERDUB T1..T4 &amp; BOUNCE 4→1)</span><span id="gw-tape-status" style="color:var(--accent)">T1..T4 PARALLEL PLAYBACK</span></div>
+      </details>
+      <details class="gw-macros" style="border-color:var(--accent)">
+        <summary class="gw-macros-title"><span>3 · 4-TRACK TAPE</span><span id="gw-tape-status" style="color:var(--accent)">T1..T4 PARALLEL</span></summary>
+        <div class="dim" style="font-size:9px;margin:0 0 5px">Overdub T1..T4 in parallel, then bounce 4→1 to free three tracks for more.</div>
         <div class="bar" style="margin:0 0 5px;gap:5px">
           <select id="gw-dice-role" title="Choose a Signature GammaWave / Wraith Preset to generate & dump onto Tape T1..T4" style="font-weight:700;color:var(--accent);border-color:var(--accent)">
             <optgroup label="🌌 AMBIENT &amp; ATMOSPHERES">
@@ -804,9 +825,10 @@
           <button type="button" class="gw-btn-sec" id="gw-tape-clear" style="padding:3px 8px;color:#ff3864;border-color:#ff3864">🗑️ CLEAR TAPE</button>
           <button type="button" id="gw-wav-export" style="background:linear-gradient(180deg,#8fd8ff,#0284c7);color:#040608;margin-left:auto">💾 EXPORT TAPE (.WAV)</button>
         </div>
-      </div>
-      <div class="gw-macros">
-        <div class="gw-macros-title"><span>4️⃣ STEP 4 — WRAITH VOICE MODES, SOLAR MACROS (HW: [OCT-]+[ARP]) &amp; MUTATE (HW: [OCT-]+[ENV])</span><span id="gw-wraith-lbl" style="color:var(--accent)">WRAITH: CHR (54%) • MUTATE: ORBIT</span></div>
+      </details>
+      <details class="gw-macros">
+        <summary class="gw-macros-title"><span>4 · WRAITH &amp; SOLAR MACROS</span><span id="gw-wraith-lbl" style="color:var(--accent)">WRAITH: CHR • MUTATE: ORBIT</span></summary>
+        <div class="dim" style="font-size:9px;margin:0 0 5px">HW: [OCT-]+[ARP] for the solar macros, [OCT-]+[ENV] to mutate.</div>
         <div class="bar" style="margin:0 0 6px;gap:6px">
           <button type="button" class="gw-macro-btn" data-macro="hearth">☀️ HEARTH GRAVITY</button>
           <button type="button" class="gw-macro-btn" data-macro="blast">🕳️ SINGULARITY</button>
@@ -842,7 +864,7 @@
           <button type="button" class="gw-btn-sec" id="gw-mutate-freeze" style="padding:3px 8px" title="Freeze/Unfreeze automatic bar mutation (HW: [OCT-] on MUTATE page)">❄️ FREEZE: OFF</button>
           <button type="button" class="gw-btn-sec" id="gw-mutate-keep" style="padding:3px 8px;margin-left:auto" title="Anchor current mutated pattern as the new base loop (HW: [OCT+] on MUTATE page)">⚓ KEEP ANCHOR</button>
         </div>
-      </div>
+      </details>
       <div class="dim" style="font-size:11px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
         <span>🎹 <b>Hardware FM-1 Shortcuts:</b> <b>[OCT-]+[PLAY]</b>=Song Gen • <b>[OCT-]+[ARP]</b>=Solar Eclipse Macro • <b>[OCT-]+[ENV]</b>=Mutate Page • <b>[OCT-]+[HOME]</b>=Secret Viz • <b>[OCT-]+[SEQ/EDIT/FX]</b>=Dice Track • <b>[OCT-]+[GLO]</b>=Undo</span>
         <span id="gw-fps-lbl" style="color:var(--accent)">GW-1 // 4 PARALLEL TAPE TRACKS ACTIVE</span>
@@ -1013,7 +1035,7 @@
   <div style="margin-top:24px;border:1px solid var(--accent);border-left:4px solid var(--theme);background:rgba(96,228,255,0.05);padding:10px 14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px">
     <div>
       <strong style="color:var(--accent);letter-spacing:0.06em">☀️ QUANTUM GAMMAWAVE (QG-1) HARDWARE WORKSTATION</strong><br>
-      <span class="dim" style="font-size:12px">10-Voice Polyphony • Peak/Notch Biquad Master EQ • 4 Warm Tape Shapes • Dual-Core AC791N DSP</span>
+      <span class="dim" style="font-size:12px">12-Voice Polyphony • Peak/Notch BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:6px 14px;border-radius:3px;text-decoration:none;font-size:12px;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a>
@@ -1027,7 +1049,17 @@
 </main>
 <script>
 "use strict";
+
 /*PROTO-BEGIN*/
+/* (3.2) the build this page is: web/make_site.py fills <html data-version> from the release the site serves, and an
+ * unserved page says "dev". The mock device reports it, so no capture can claim a version the page is not. */
+const QG_VERSION = (() => {
+  const raw = (typeof document !== "undefined" && document.documentElement &&
+               document.documentElement.dataset && document.documentElement.dataset.version) || "";
+  if (!raw || raw.indexOf("{{") === 0) return "dev";
+  return raw[0] === "v" || raw[0] === "V" ? raw : "v" + raw;
+})();
+
 /* ---------------------------------------------------------------- protocol --- */
 const HDR = [0x7D, 0x46, 0x4C];
 const CMD = { INFO: 1, GET: 2, SET: 3, DUMP: 4, DESC: 5, STEP_GET: 6, STEP_SET: 7, PRESET: 8, PROJECT: 9, NAMES: 10,
@@ -2517,7 +2549,8 @@ function makeMockDevice(opt = {}) {
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
     D("CUT", F.CUTOFF, 0, 127, 127), D("RES", F.PCT, 0, 127, 0));                       /* 113, 114: the other engines' */
-  const P_COUNT = 123, G_COUNT = 75, NSTEP = 64, P_E0 = 115, G_ENGSEL = 20, P_SLCR = 45;
+  TP.push(D("M.STRT", F.PCT, 0, 127, 0), E("N.RATE", ["1/1", "1/2", "1/4", "1/8", "1/16", "46ms"], 5));   /* 115, 116: params.c P_MSTART, P_NRATE */
+  const P_COUNT = 125, G_COUNT = 75, NSTEP = 64, P_E0 = 117, G_ENGSEL = 20, P_SLCR = 45;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const enumOrig = (d, v) => d.fmt === F.ENUM && d.names ? aliasOf(d.names, v - d.min) + d.min : v;   /* params.c enum_orig */
   /* tracks (firmware v3): four synth parts (1.0), six (JIANT 0.6); engine / preset / p / step below are the selected track's */
@@ -2785,7 +2818,7 @@ function makeMockDevice(opt = {}) {
         break;
       }
       case CMD.INFO:
-        s(opt.legacy ? "FELUCCA 0.4 BETA (MOCK)" : "FELUCCA v1.0 (MOCK)"); b(ENG.length); b(P_COUNT); b(G_COUNT); b(NSTEP); b(P_E0);
+        s(opt.legacy ? "FELUCCA 0.4 BETA (MOCK)" : `FELUCCA ${QG_VERSION} (MOCK)`); b(ENG.length); b(P_COUNT); b(G_COUNT); b(NSTEP); b(P_E0);
         ENG.forEach((e) => s(e.name));
         if (!opt.legacy) b(NTRK);
         if (!opt.legacy && !opt.v3 && !opt.v5) {
@@ -5909,7 +5942,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       const prefRows = [
         [ ["PALETTE", "QUANTUM"], ["ANIMATIONS", "SMOOTH (ON)"], ["KNOB ACCEL", "EXPONENTIAL"], ["LED BRIGHT", "HIGH"] ],
         [ ["HOME SELECT", "BPM / TEMPO"], ["FX LATCH", "AUTO HOLD"], ["OCTAVE RANGE", "-2 .. +2"], ["SCALE LOCK", "ENABLED"] ],
-        [ ["POLYPHONY", "10 VOICES"], ["LOAD PROFILE", "BALANCED FULL"], ["MASTER WIDTH", "STEREO EXP"], ["EQ BIQUAD", "WARM PEAK"] ],
+        [ ["POLYPHONY", "12 VOICES"], ["LOAD PROFILE", "BALANCED FULL"], ["MASTER WIDTH", "STEREO EXP"], ["EQ BIQUAD", "WARM PEAK"] ],
         /* (QG-1 v1.5) the device's MENU > EXTRA rows as the firmware reports them (MENU_DESC ids 22, 23, 24). The
          * preview shows their defaults; the device is the source of truth (EDITOR_PROTOCOL.md "MENU settings"). */
         [ ["CPU MODE", "AUTO"], ["VIS QUALITY", "HIGH"], ["STARTUP SPLASH", "FULL"], ["TRACKS", "6 VOICES"] ]
@@ -6069,7 +6102,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("v1.9.0", 120, 194);
+      ctx.fillText("{{VERSION}}", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";
@@ -6449,15 +6482,18 @@ if (MOCK_QS) { setMock(true); connect(); }
     }
     const order = ["auto", "home", "core", "seq", "tape", "fx", "punch", "splash", "viz"];
     lcdMode = order[(order.indexOf(lcdMode) + 1) % order.length];
+    lcdSync();
   });
-  document.querySelectorAll("[data-lcd-view]").forEach((b) => {
-    b.addEventListener("click", () => { lcdMode = b.dataset.lcdView; });
-  });
-  if ($("gw-secret-viz-btn")) {
-    $("gw-secret-viz-btn").addEventListener("click", () => {
-      if (lcdMode === "viz") secretVizMode = (secretVizMode + 1) % 4;
-      else lcdMode = "viz";
-      $("gw-secret-viz-btn").textContent = `🌀 VIZ: ${SECRET_VIZ_LABELS[secretVizMode].split(" ")[1]}`;
+  /* (3.2) one control for the LCD instead of ten buttons: the select carries every view the row had, GEN and
+   * VIZ still cycle their pages when chosen again, and the canvas click keeps working. */
+  const lcdSel = $("gw-lcd-view");
+  function lcdSync() { if (lcdSel && lcdSel.value !== lcdMode) lcdSel.value = lcdMode; }
+  if (lcdSel) {
+    lcdSel.addEventListener("change", () => {
+      const v = lcdSel.value;
+      if (v === "gen") { if (lcdMode === "gen") genLcdPage = (genLcdPage + 1) % 4; else genLcdPage = 0; lcdMode = "gen"; }
+      else if (v === "viz") { if (lcdMode === "viz") secretVizMode = (secretVizMode + 1) % 4; lcdMode = "viz"; }
+      else lcdMode = v;
     });
   }
   if ($("gw-fullscreen-viz-btn")) {
@@ -6469,7 +6505,7 @@ if (MOCK_QS) { setMock(true); connect(); }
   $("gw-pal-btn").addEventListener("click", () => {
     gwPal = gwPal === "gamma" ? "wraith" : "gamma";
     document.documentElement.dataset.theme = gwPal === "wraith" ? "wraith" : "";
-    $("gw-pal-btn").textContent = `🎨 PALETTE: ${gwPal.toUpperCase()}`;
+    $("gw-pal-btn").textContent = `🎨 STUDIO THEME: ${gwPal.toUpperCase()}`;
   });
   $("gw-sim-btn").addEventListener("click", async () => {
     if (MOCK && dev) return;                      /* already simulating: keep the live session */
@@ -7360,13 +7396,6 @@ if (MOCK_QS) { setMock(true); connect(); }
   }
 
   /* Wire JIANT GEN UI Controls & 240x240 LCD Screen */
-  if ($("gw-lcd-gen-btn")) {
-    $("gw-lcd-gen-btn").addEventListener("click", () => {
-      if (lcdMode === "gen") genLcdPage = (genLcdPage + 1) % 4;
-      else { lcdMode = "gen"; genLcdPage = 0; }
-      $("gw-lcd-gen-btn").textContent = `🧬 SET ${genLcdPage + 1}/4`;
-    });
-  }
   if ($("gw-gen-make")) {
     $("gw-gen-make").addEventListener("click", () => {
       lcdMode = "gen";
@@ -7398,7 +7427,6 @@ if (MOCK_QS) { setMock(true); connect(); }
       genLcdPage = pg;
       genHotRow = row;
       lcdMode = "gen";
-      if ($("gw-lcd-gen-btn")) $("gw-lcd-gen-btn").textContent = `🧬 SET ${genLcdPage + 1}/4`;
       runJiantGen(false);
     });
   });

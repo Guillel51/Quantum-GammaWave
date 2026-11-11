@@ -15,7 +15,7 @@ mecanismo de arranque.
 
 | Comando | Dirección | Qué hace |
 |---|---|---|
-| `0x11` | dispositivo → host | identidad: 34 bytes, texto del modelo en `d[6:33]` (`FM-1_982`, o `ota-FM-1_982` en el loader) |
+| `0x11` | dispositivo → host | identidad: 34 bytes, texto del modelo en `d[6:33]` (`FM-1_965`, o `ota-FM-1_965` en el loader) |
 | `0x30` | dispositivo → host | el dispositivo pide un rango del **paquete**; el host responde con esos bytes |
 | `0xF0000000` / `0xE0000000` | dispositivo → host | confirmación final de escritura / de chequeo |
 
@@ -51,12 +51,13 @@ antes de enviar `UPGRADE`**, no al abrir la aplicación:
   solo frame. `resume` no tiene camino alternativo: comparte `write`.
 - Web: `install()`, `write()` y `resume()` llaman a `requireChip(evidence)` antes de tocar WebMIDI.
   Ningún parámetro de URL puede aportar la evidencia.
-- Evidencia aceptada: `--jedec 856014` / `{jedec: 0x856014}`, es decir el ID leído **en esa unidad** con
-  un lector externo (alternativa D), y sólo si está en la allowlist documentada. `0xFFFFFF`, `0`,
-  `0xFFFFFFFF` y cualquier valor fuera de la lista se rechazan.
-- Override de laboratorio: exige `--allow-unidentified-chip` **y** `FM1_LAB=1` en el entorno; sin la
-  variable es un error de uso (exit 2) y no se envía nada. No existe en la ruta web ni en el sitio
-  publicado.
+- Evidencia aceptada: sólo el `0x12` leído por el instalador **en esa unidad**, dos veces, en la misma
+  sesión, y sólo si el ID está en la allowlist de escritura (`0x856014` y `0xB36014`; la evidencia de
+  ambos está en [JEDEC_COMPATIBILITY.md](JEDEC_COMPATIBILITY.md)). `0xFFFFFF`, `0`, `0xFFFFFFFF` y
+  cualquier valor fuera de la lista se rechazan con `chip_unknown`.
+- **No hay override.** `--jedec`, `--allow-unidentified-chip` y `FM1_LAB` se retiraron de `fm1_install.py`,
+  `fm1_preflight.py` y `fm1_gate.py`: un ID escrito a mano no es evidencia y ninguna variable de entorno
+  cambia la política. La ruta web nunca los tuvo.
 
 Pruebas que lo demuestran, contando los frames del dispositivo simulado (`upgrades`/`served`):
 `tests/preflight_test.py` (instalador sin evidencia, JEDEC desconocido, override sin variable,
@@ -71,11 +72,12 @@ Pruebas que lo demuestran, contando los frames del dispositivo simulado (`upgrad
 - paquete ilegible, demasiado grande, identidad inválida o sin loader ⇒ rechazo (exit 2);
 - dispositivo ausente ⇒ rechazo (exit 3);
 - modelo distinto ⇒ rechazo (exit 6);
-- **chip no identificado ⇒ NO-GO (exit 7)**, que es el caso normal hoy;
-- `--allow-unidentified-chip` existe sólo para un banco de laboratorio y **no escribe nada**.
+- **chip no identificado ⇒ NO-GO (exit 7)**, que es el caso normal en una unidad stock;
+- no hay bandera ni variable que lo convierta en GO: `--allow-unidentified-chip` se retiró junto con
+  `--jedec` y `FM1_LAB`, y el preflight usa exactamente la misma lectura y la misma decisión.
 
-El override se llama por su nombre para que quede en el registro; no hay un camino silencioso que
-convierta “no sé qué chip es” en “adelante”.
+El preflight no es un segundo criterio: llama a `GATE.authorise`, igual que el instalador, así que no
+puede decir “adelante” donde el instalador diría que no, ni al revés.
 
 El diseño concreto de los comandos que lo desbloquean (formato, validación, compatibilidad y
 transición) está en `docs/JEDEC_BACKUP_SIGNING_PROPOSAL.md`. CI ejecuta las pruebas de la puerta en las
@@ -163,7 +165,7 @@ No se recomienda ningún procedimiento de recuperación que no esté en los nive
 | NOR distinta de las documentadas | Media | Alto (brick) | Ninguna antes de escribir: el instalador no lee el JEDEC | Este documento §2 |
 | Corte de energía durante la escritura de la aplicación | Baja-media | Alto | Registro + reanudación + verificación por sector | `ldr_test` (host) |
 | Sin firma: el SHA-256 no prueba autoría | Media | Alto | Hash obligatorio; firma sólo propuesta en `docs/PHASE0_SECURITY.md` | `install_test.py` |
-| Sin anti-rollback en el arranque | Media | Medio | El instalador no ofrece versiones antiguas; `--force` lo salta | `PHASE0_SECURITY.md` |
+| Sin anti-rollback en el arranque | Media | Medio | El instalador no ofrece versiones antiguas y ya no existe `--force`; el arranque sigue sin contador monótono | `PHASE0_SECURITY.md` |
 | Sin backup completo posible | Alta | Alto | — | §3 |
 | Timing real en AC791N sin medir | Alta | Medio | Presupuestos estáticos y build target | `docs/PERF_SIX_TRACK_FM1.md` |
 
@@ -194,10 +196,29 @@ Estado: **IMPLEMENTED, HOST TESTED, TARGET COMPILED.** Nada de esto se probó en
 Reglas nuevas, sin excepciones en la ruta de producción:
 
 1. Escribir exige `0x12` de **esta** unidad, leído por el instalador, dos veces, coincidente.
-2. Un JEDEC escrito a mano (`--jedec`) y `--allow-unidentified-chip` son de laboratorio y exigen `FM1_LAB=1`.
+2. Un JEDEC escrito a mano no es evidencia: `--jedec` y `--allow-unidentified-chip` ya no existen, y
+   `FM1_LAB` no cambia nada. El preflight usa la misma lectura y la misma decisión (`GATE.authorise`).
 3. Escribir exige un manifiesto firmado que verifique contra las claves públicas fijadas; sin clave fijada,
-   todo se rechaza.
-4. Un FM-1 en modo update (instalación cortada) **no puede identificarse**: se rechaza con exit 7. Terminar una
-   instalación cortada requiere el override de laboratorio. Es una limitación declarada, no un fallo silencioso.
+   todo se rechaza, y no hay variable que lo salte.
+4. Un FM-1 en modo update (instalación cortada) **no puede identificarse**: se rechaza con exit 7. Se sale de
+   ahí restaurando el backup con M-Flasher (docs/M-FLASHER.md), que escribe la parte entera que acaba de leer, y
+   volviendo a instalar desde una unidad arrancada.
 5. El loader no cambia: `FELUCCA_LOADER=1` excluye el código de consulta, y el CRC/tamaño del loader siguen
    siendo los mismos.
+
+## Verify Only: dos etapas, y ninguna sustituye a la otra
+
+"Verify Only: 101 comprobaciones, cero escrituras" acredita **sólo** la etapa previa. Son dos:
+
+1. **Pre-install Verify Only** (implementada; `web/test_verify_only.mjs`, 101 checks, cero frames de
+   escritura): identidad del modelo, `0x12` con JEDEC y geometría, evidencia de backup, firma del
+   paquete, compatibilidad del paquete con la unidad y presupuesto de tamaño. Todo lectura; el
+   resultado es "listo" o el motivo exacto del NO-GO, nunca una autorización por sí mismo.
+2. **Post-install Verify** (definida, **no validada físicamente**): versión e identidad instaladas,
+   integridad del firmware, integridad de los objetos persistentes, reinicio completo, guardado y
+   recuperación de un proyecto, ajustes persistentes tras ciclo de alimentación, audio, MIDI, seis
+   pistas y FX, y comprobación de que no se modificó nada fuera de los rangos autorizados. Esta etapa
+   no puede marcarse GO hasta que exista una instalación real y sus resultados.
+
+La revalidación posterior está por tanto **GO CONDITIONAL**: el procedimiento y sus comprobaciones
+existen y se ejecutan contra el emulador y los simuladores, pero la evidencia física es la que falta.

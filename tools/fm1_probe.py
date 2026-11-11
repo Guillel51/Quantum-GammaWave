@@ -130,9 +130,15 @@ def _transact(link, cmd, body, reply, timeout):
 
 
 def identify(link, nonce, timeout=1.0):
-    """one 0x12 exchange -> dict; raises ProbeError with the device's status"""
+    """one 0x12 exchange -> dict; raises ProbeError with the device's status
+
+    Anything already queued is dropped first, so no answer that arrived before this request can be
+    mistaken for its answer. The nonce is not echoed by the device, so freshness rests on the session
+    token; draining removes the stale-queue half of that problem on the host side.
+    """
     if not isinstance(nonce, (bytes, bytearray)):
         nonce = int(nonce).to_bytes(4, "little")
+    link.drain()
     body = bytes([PROTO]) + bytes(nonce[:4])
     body += struct.pack("<H", crc16(body))
     r = _transact(link, CMD_IDENT, body, CMD_IDENT, timeout)

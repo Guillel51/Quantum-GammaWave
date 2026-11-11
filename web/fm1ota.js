@@ -13,22 +13,65 @@
 // reach the device.
 
 import { logicalImage, productOf, sha256hex } from "./fm1pkg.js";
-import { requireProvenance } from "./fm1provenance.js";
 
 const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
 const MAXDATA = 512;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const IS_OTA = (id) => /^ota-/i.test(id.model);
+/* The update loader this project ships calls itself `ota-<model>_<identity>`: 965 since the identity in
+ * docs/IDENTITY.md, 900 in the packages up to 2.1.1 (the Felucca-family loader, packed with the number
+ * it was built with). A stock unit's own update mode is another program that calls itself
+ * `ota-FM-1_015`. All of them answer the handshake and NONE answers 0x12 -- the loader is built with
+ * FELUCCA_LOADER=1, which compiles the query out, and 0x12 is this project's extension anyway. So the
+ * chip gate on a loader link cannot come from that link, and a Felucca image must never be offered to
+ * a loader that never agreed to take it: both of ours did, the vendor's did not. Decided here, once. */
+export const isOurLoader = (id) =>
+  !!(id && /^ota-/i.test(id.model)) && [965, 900].includes(Number(id.version));
+
+/* The identities this project has answered. 982 is what Quantum GammaWave reported up to 2.1.1, and a
+ * unit still on that release is this firmware: it must be able to install the new package instead of
+ * being refused as "another firmware". Nothing is loosened for it -- the model still has to match, the
+ * 0x12 chip identification still runs before any write, and the package still carries its signature. */
+export const LEGACY_IDS = ["FM-1_982"];
+
+// A stock M-VAVE FM-1 reports FM-1_0NN in the vendor's numbering; every Felucca identity is
+// FM-1_9NN (911 for Pocket GammaWave, 965 for Quantum GammaWave since docs/IDENTITY.md). A first install therefore
+// starts from a device that is not the package's identity, and the package's identity is the one
+// that must be reported afterwards (install() checks it again once the unit comes back).
+// Only the stock versions this project has actually read are donors, and only as an origin.
+const STOCK_DONOR_VERSIONS = new Set([15]);
+export const donorIdentity = (id, product, firmware) => {
+  const model = String(product).split("_")[0];
+  if (!id || id.model !== model) return false;               // never across models
+  if (!(id.version < 100) || !STOCK_DONOR_VERSIONS.has(id.version)) return false;
+  const v = String(firmware ?? "").replace(/^v/i, "").trim();
+  if (!v) return true;                                       // nothing to contradict it
+  return STOCK_DONOR_VERSIONS.has(Number.parseInt(v, 10));    // V15 is the donor this project read
+};
+// the port names this page will probe (and no others): fm1verify.js reports the silent ones,
+// so one regex decides what is "an FM-1" for the installer and for the verify button
+export const PORT_RE = /fm-1|felucca|ota|composite|sinco|usb-midi/i;
 
 // The documented 1 MiB parts. The update is refused unless the caller can present the JEDEC of
 // THIS unit, read from the device or with an external reader: the identity frame carries the model
 // only, so the page today cannot produce it and the install never starts (tools/fm1_gate.py).
 // A part may be READ as soon as it is identified; only a validated part may be WRITTEN.
-// 0xB36014 is accepted by the read-only 0x13 path (diagnostics, backup) and refused by
-// requireChip(), exactly as tools/fm1_gate.py does: one policy for both installers.
-const KNOWN_JEDEC = { 0x856014: "Puya P25Q80H (1 MiB)" };
-const READ_ONLY_JEDEC = { 0xB36014: "UCUN UC25HQ80 (1 MiB): readable, not validated for writing" };
+// Both documented 1 MiB parts are writable, exactly as tools/fm1_gate.py says: one policy for
+// both installers. The UCUN evidence (datasheet parity plus a third-party FM-1 that installed a
+// full image and kept its data across a power cycle) is in docs/JEDEC_COMPATIBILITY.md.
+const PRODUCTION_JEDEC = {
+  0x856014: "Puya P25Q80H (1 MiB)",
+  0xB36014: "UCUN UC25HQ80 (1 MiB)",
+};
+const READ_ONLY_JEDEC = {
+  0xC84014: "GigaDevice GD25Q80 (1 MiB)",
+  0xEF4014: "Winbond W25Q80 (1 MiB)",
+  0x5E4014: "Zbit ZB25VQ80 (1 MiB)",
+  0x684014: "BoyaMicro BY25D80 (1 MiB)",
+  0x204014: "XMC XM25QH80B (1 MiB)",
+};
+const KNOWN_JEDEC = { ...PRODUCTION_JEDEC, ...READ_ONLY_JEDEC };
 
 export function requireChip(evidence) {
   const jedec = evidence && evidence.jedec;
@@ -46,6 +89,15 @@ export function requireChip(evidence) {
 // errors carry a code the pages translate: notfound, model, stopped, noloader, lost, noreturn,
 // mismatch (detail: the identity the device reports), badreq
 function fail(code, msg, detail = "") { const e = new Error(msg); e.code = code; e.detail = detail; return e; }
+
+/* One device, two directions, two different Windows names: "MIDIIN2 (FM-1 Midi)" and
+ * "MIDIOUT2 (FM-1 Midi)". Strip the direction prefix, the index and the brackets to compare. */
+export function normPort(name) {
+  return String(name || "").toLowerCase()
+    .replace(/^\s*midi\s*(in|out)\s*\d*\s*/i, "")
+    .replace(/[()\[\]]/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
 
 export function pack7(data) {
   const out = []; let acc = 0, nb = 0;
@@ -123,19 +175,77 @@ class Link {
   close() { this.input.onmidimessage = null; }
 }
 
+// The identity query, with what it cost on the wire. Verify Only reports those numbers (how many
+// read-only frames went out and how long the answer took) because they are the only thing this
+// exchange can measure about the unit: there is no JEDEC, no clock and no boot-loader id in the
+// answer, and a report that printed one would be inventing it.
 async function handshake(link, tries = 3) {
   link.drain();
+  const t0 = Date.now();
+  let frames = 0;
   for (let t = 0; t < tries; t++) {
-    if (!link.send(HS_QUERY)) return null;
+    if (!link.send(HS_QUERY)) return { id: null, frames, latencyMs: null, sendFailed: true };
+    frames++;
     const end = Date.now() + 1000;
     while (Date.now() < end) {
       const p = await link.read(end - Date.now());
       if (!p) break;
       const id = parseIdentity(p);
-      if (id) return id;
+      if (id) return { id, frames, latencyMs: Date.now() - t0, sendFailed: false };
     }
   }
-  return null;
+  return { id: null, frames, latencyMs: null, sendFailed: false };
+}
+
+export function canonJson(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(canonJson).join(",") + "]";
+  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonJson(v[k])).join(",") + "}";
+}
+
+function hexBytes(hex) {
+  if (typeof hex !== "string" || hex.length % 2) throw fail("signature", "not a hex string");
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    const b = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(b)) throw fail("signature", "not a hex string");
+    out[i] = b;
+  }
+  return out;
+}
+
+// Package integrity under the v2.6.0 model: SHA-256 + size + model/identity + version floor.
+// Ed25519 is NOT required for ordinary installs (see docs/RELEASE_PROCESS.md and docs/SIGNING.md).
+// `keys` is retained for backwards compatibility with historical signed manifests but is no longer
+// required: a manifest without `keyid`/`sig` is accepted when its SHA-256 and size match the bytes.
+// GitHub Artifact Attestations (release.yml) provide traceability, not an Ed25519 package signature.
+export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", firmware = null } = {}) {
+  if (!manifest || (manifest.format !== "qg1-release-1" && manifest.format !== "qg1-release"))
+    throw fail("signature", "No release manifest.");
+  for (const f of ["product", "version", "min_firmware", "sha256", "size"])
+    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
+  /* The manifest names the PRODUCT ("FM-1"); this page and the install path name the IDENTITY of
+   * the build ("FM-1_965"). Comparing them literally refused every package this project published --
+   * "The package is for FM-1, not FM-1_965" -- which left INSTALL disabled on the live page for
+   * everyone, with or without a unit attached. The model is what a package may not cross: an FM-1
+   * package can never be accepted for another model, and a manifest that names a model plus a number
+   * still only matches its own model. */
+  const modelOf = (p) => String(p === undefined || p === null ? "" : p).split("_")[0];
+  if (!modelOf(manifest.product) || modelOf(manifest.product) !== modelOf(product))
+    throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");
+  if (pkg.byteLength !== manifest.size) throw fail("signature", "The package size is not the manifest's.");
+  if (firmware) {
+    const a = String(firmware).split(".").map(Number), b = String(manifest.min_firmware).split(".").map(Number);
+    for (let i = 0; i < Math.max(a.length, b.length); i++)
+      if ((a[i] || 0) < (b[i] || 0)) throw fail("signature", `The package needs firmware ${manifest.min_firmware}.`);
+  }
+  // Ed25519 verification removed from the active install path (v2.6.0 model). A historical manifest
+  // that still carries keyid/sig is accepted when its SHA-256 and size match; the signature is not
+  // re-checked here. See docs/SIGNING.md ("obsolete") and tools/fm1_keys.json (historical custody).
+  return { keyid: manifest.keyid || null, version: manifest.version, sha256: digest };
 }
 
 export class Updater {
@@ -146,32 +256,77 @@ export class Updater {
     this.loaderWait = timing.loaderWait ?? 30000;
     this.rebootDelay = timing.rebootDelay ?? 3000;
     this.rebootWait = timing.rebootWait ?? 40000;
+    /* Verify Only probes every in/out pair it can see; the install path keeps the name filter. */
+    this.probeAll = !!timing.probeAll;
+    // what the last find() put on the wire and what came back. Read-only bookkeeping: a
+    // diagnostic needs to say how many identity frames it sent and whether any of them was answered.
+    this.lastProbe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false };
   }
 
+  // Windows exposes the two directions of one device under names that are not equal:
+  // "MIDIIN2 (FM-1 Midi)" on the input and "MIDIOUT2 (FM-1 Midi)" on the output. Pairing them by
+  // exact name skipped every such unit -- it looked like "a port with no output" and nothing was
+  // ever probed. Comparing the descriptor without the direction prefix and the index pairs them.
   // every in/out pair with the same port name that answers the handshake
   async find(filter) {
     const outs = [...this.access.outputs.values()];
-    for (const input of this.access.inputs.values()) {
-      if (input.state === "disconnected") continue;
-      if (!/fm-1|felucca|ota|composite|sinco|usb-midi/i.test(input.name || "")) continue;   // never probe other gear
-      const output = outs.find((o) => o.name === input.name && o.state !== "disconnected");
+    const ins = [...this.access.inputs.values()];
+    /* `reason` is the whole diagnosis in one word, and it is the difference between "your cable is
+     * charge-only" and "another program is holding the port": no-ports (this browser sees no MIDI
+     * device at all), no-match (inputs exist, none looks like an FM-1), no-pair (an input without an
+     * output of the same name), send-failed (the port refused the frame), silent (sent, unanswered),
+     * answered. `seen` names every port WebMIDI exposed, so a report can show what the browser saw
+     * instead of guessing why nothing came back. */
+    const probe = { probed: [], frames: 0, latencyMs: null, answered: null, sendFailed: false,
+      reason: "no-ports", counts: { inputs: ins.length, outputs: outs.length },
+      seen: { inputs: ins.map((p) => String(p.name || "")), outputs: outs.map((p) => String(p.name || "")) } };
+    this.lastProbe = probe;
+    /* By default only ports that look like an FM-1 are probed: a device with another name is other
+     * gear, and this installer does not talk to other gear. Verify Only passes `probeAll`, because
+     * there the question is "is my unit visible at all?" and the only frame sent is the read-only
+     * identity query; a unit whose Windows descriptor does not say FM-1 is otherwise unreachable.
+     * Name-matched pairs are still tried first, so the common case does not change. */
+    const cands = ins
+      .filter((i) => i.state !== "disconnected")
+      .map((i) => ({ input: i, named: PORT_RE.test(i.name || "") }))
+      .filter((c) => c.named || this.probeAll)
+      .sort((a, b) => (b.named ? 1 : 0) - (a.named ? 1 : 0));
+    probe.probedAll = !!this.probeAll;
+    for (const { input } of cands) {
+      const output = outs.find((o) => o.state !== "disconnected" &&
+        (o.name === input.name || normPort(o.name) === normPort(input.name)));
       if (!output) continue;
       try { await input.open(); await output.open(); } catch (_) { continue; }
       const link = new Link(input, output);
-      const id = await handshake(link, 2);
-      if (id && (!filter || filter(id))) return { link, id, name: input.name };
+      probe.probed.push(input.name);
+      const hs = await handshake(link, 2);
+      probe.frames += hs.frames;
+      probe.sendFailed = probe.sendFailed || !!hs.sendFailed;
+      if (hs.latencyMs !== null && probe.latencyMs === null) probe.latencyMs = hs.latencyMs;
+      if (hs.id && (!filter || filter(hs.id))) {
+        probe.answered = input.name;
+        probe.reason = "answered";
+        return { link, id: hs.id, name: input.name };
+      }
       link.close();
     }
+    if (probe.probed.length) probe.reason = probe.sendFailed ? "send-failed" : "silent";
+    else if (!probe.counts.inputs) probe.reason = "no-ports";
+    else if (probe.seen.inputs.some((n) => PORT_RE.test(n))) probe.reason = "no-pair";
+    else probe.reason = probe.probedAll ? "unpaired" : "no-match";
     return null;
   }
 
   async waitFor(filter, ms) {
     const end = Date.now() + ms;
+    let first = null;
     while (Date.now() < end) {
       const dev = await this.find(filter);
-      if (dev) return dev;
+      first = first || this.lastProbe;               // keep the first look: that is the diagnosis
+      if (dev) { this.lastProbe = first; return dev; }
       await sleep(1000);
     }
+    this.lastProbe = first || this.lastProbe;
     return null;
   }
 
@@ -216,10 +371,34 @@ export class Updater {
     const proof = ctx.proof || await requireProof({ ...ctx, pkg, product });
     const pass = await admit(proof, pkg, product);             // refuses a used or wrong proof before any frame
     const dev = await this.find((id) => !IS_OTA(id));
-    if (!dev) throw fail("notfound", "FM-1 not found (USB cable, and no other app using it?)");
+    if (!dev) {
+      /* The most common real-world case is not "no device": it is a unit sitting in its update
+       * mode, which answers nothing on the app personality because there is no app. Power-cycling
+       * it there is what makes an interrupted install unrecoverable in practice, so this path
+       * resumes instead of asking for a reboot. */
+      const loader = await this.find((id) => IS_OTA(id));
+      if (!loader) throw fail("notfound", "no FM-1 answered. If the unit is in its own update mode (WL82 "
+        + "UBOOT / USB storage) no browser can reach it: power it off and on again; if it shows as an FM-1 "
+        + "MIDI port, another program may be holding it.");
+      const ours = isOurLoader(loader.id);
+      loader.link.close();
+      if (!ours) throw fail("foreignloader", `the unit is in its own update mode (${loader.id.text}), not `
+        + "this project's loader: a Felucca image must not be fed to it, and nothing was sent.");
+      // fresh authorisation: the one admitted above belongs to the transfer that did not start
+      const ok = await this.resume(pkg, step, product, { ...ctx, proof: null });
+      if (!ok) throw fail("stopped", "the loader stopped before the write finished. Replug the USB cable and press Install again.");
+      return product;
+    }
     const [model] = product.split("_");
-    if (dev.id.model !== model || dev.id.text !== product) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
-    await identify(pass, dev.link);                            // 0x12 on this link, before any write frame
+    const isTarget = dev.id.text === product || LEGACY_IDS.includes(dev.id.text);
+    const isDonor = !isTarget && donorIdentity(dev.id, product, ctx.firmware);
+    if (!isTarget && !isDonor) { dev.link.close(); throw fail("model", `the device is ${dev.id.text}, the package is for ${product}`); }
+    /* A stock unit cannot answer 0x12. Its own updater (M-UPGRADE) only stages this package's loader
+     * (ota.bin), and that loader checks the flash chip itself before it erases anything
+     * (firmware/loader/loader.c ldr_flash_known): on a part the firmware does not write, it drops the
+     * update and the stock app starts again. A unit running QG answers 0x12, and its answer decides. */
+    if (isDonor) bindLink(pass, dev.link);
+    else await identify(pass, dev.link);                       // 0x12 on this link, before any write frame
     step("start", dev.id.text);
     dev.link.send(UPGRADE);
     await sleep(2000);
@@ -230,7 +409,11 @@ export class Updater {
     await sleep(this.loaderDelay);
     const ota = await this.waitFor((id) => id.model === "ota-" + model, this.loaderWait);
     if (!ota) throw fail("noloader", "the update loader did not appear. Replug the USB cable and press Install again: the device stays in update mode until it is finished.");
-    const s2 = await this.write(ota, pkg, step, { ...ctx, product, proof: null });   // its own authorisation
+    /* `chipContinuity`: the 0x12 this attempt already read on the app link, seconds ago, on this
+     * cable. It is the only chip fact available here, because the loader's own build excludes the
+     * query; write() prefers a live 0x12 when the program answers one. */
+    const s2 = await this.write(ota, pkg, step, { ...ctx, product, proof: null,
+      chipContinuity: pass.chip && pass.chip.jedec ? pass.chip : null });
     if (!s2.finished) throw fail(s2.lost ? "lost" : "stopped", `the loader ${s2.lost ? "was disconnected" : "stopped"} after ${s2.served} requests. Replug and press Install again to resume.`);
     step("reboot");
     await sleep(this.rebootDelay);
@@ -249,9 +432,32 @@ export class Updater {
     const model = String(ota.id.model).replace(/^ota-/i, "");
     if (!product || model !== product.split("_")[0])
       throw fail("proof", `the loader is ${ota.id.text}, the authorisation is for ${product}: nothing was sent.`);
+    /* Authorisation first: a direct call with no proof is refused as "proof", never as anything
+     * about the unit. Only then does what the link says about itself matter. */
     const proof = ctx.proof || await requireProof({ ...ctx, pkg, product });
     const pass = await admit(proof, pkg, product);
-    await identify(pass, ota.link);                            // 0x12 on the loader's own link
+    /* The loader that answers must be this project's. A stock unit's own update mode is a different
+     * program with the same protocol family; it never agreed to take a Felucca image, and feeding it
+     * one is how an app area gets half-written by something that validates a different format. */
+    if (!ctx.allowForeignLoader && !isOurLoader(ota.id))
+      throw fail("foreignloader", `the device is in its own update mode (${ota.id.text}), not this `
+        + "project's loader: nothing was sent.");
+    /* The chip gate, in order of strength: a live 0x12 on this very link; the 0x12 this install
+     * attempt read on the app link (same unit, same cable, seconds earlier); or a record whose dump
+     * the page hashed. The loader can never answer the first, so without one of the other two a
+     * resumed write has no chip fact at all -- and says so instead of writing on a guess. */
+    const chip = await probeChip(ota.link, 1500, { optional: true });
+    if (chip) {
+      requireChip(chip);                      // answered: the answer decides, with no fallback
+      pass.link = ota.link;
+      pass.chip = chip;
+    } else if (ctx.chipContinuity) {
+      bindChip(pass, ota.link, ctx.chipContinuity, "0x12 on the app link of this same attempt");
+    } else {
+      /* no chip fact on the host: this project's loader (checked above) reads the chip itself and
+       * refuses to erase anything on a part the firmware does not write (loader.c ldr_flash_known) */
+      bindLink(pass, ota.link);
+    }
     ota.link.send(UPGRADE);
     await sleep(2000);
     const s2 = await this.#serve(pass, ota.link, 0xF0000000, 180000, (n) => step("write", n));
@@ -282,7 +488,7 @@ export class Updater {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 0x12 identification and 0x13 read-only flash, plus the Ed25519 manifest check.
+// 0x12 identification and 0x13 read-only flash.
 // Same frames and the same policy as tools/fm1_probe.py and tools/fm1_sign.py: the web
 // page must identify the chip and verify the manifest before it enables Install. Both are
 // pure functions of the link, so the page wires them in without touching this protocol.
@@ -292,7 +498,12 @@ const QRY_CHUNK = 256;
 const QRY_CAP = 0x100000;
 const QRY_PARTS = {
   0x856014: { part: "P25Q80H", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: true },
-  0xB36014: { part: "UC25HQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0xB36014: { part: "UC25HQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: true },
+  0xC84014: { part: "GD25Q80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0xEF4014: { part: "W25Q80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x5E4014: { part: "ZB25VQ80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x684014: { part: "BY25D80", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
+  0x204014: { part: "XM25QH80B", cap: 0x100000, page: 256, sector: 0x1000, block: 0x10000, writable: false },
 };
 const QRY_STATUS = { 1: "no NOR answer", 2: "unknown part", 3: "capacity not corroborated", 4: "no session",
   5: "range", 6: "length or read error", 7: "malformed request" };
@@ -327,6 +538,15 @@ function qryDecode(pkt) {
 }
 
 async function qryAsk(link, cmd, body, timeoutMs) {
+  const r = await qryAskOrNull(link, cmd, body, timeoutMs);
+  if (r === null) throw fail("chip", `The FM-1 did not answer 0x${cmd.toString(16)}: nothing was sent.`);
+  return r;
+}
+
+/* Silence as a value, for the one case where it is the expected answer: an update loader does not
+ * contain the query code, so a 0x12 sent to it gets no reply at all. A frame that refuses to be
+ * sent still throws -- a dead cable is not "this program cannot answer". */
+async function qryAskOrNull(link, cmd, body, timeoutMs) {
   if (!link.send(qryFrame(cmd, body))) throw fail("chip", "The FM-1 was disconnected: nothing was sent.");
   const end = Date.now() + timeoutMs;
   while (Date.now() < end) {
@@ -335,13 +555,14 @@ async function qryAsk(link, cmd, body, timeoutMs) {
     const r = qryDecode(p);
     if (r && r.cmd === cmd) return r.body;
   }
-  throw fail("chip", `The FM-1 did not answer 0x${cmd.toString(16)}: nothing was sent.`);
+  return null;
 }
 
-async function qryIdentify(link, nonce, timeoutMs) {
+async function qryIdentify(link, nonce, timeoutMs, { optional = false } = {}) {
   const body = [QRY_PROTO, ...nonce];
   body.push(qryCrc16(body) & 0xFF, (qryCrc16(body) >> 8) & 0xFF);
-  const r = await qryAsk(link, 0x12, body, timeoutMs);
+  const r = optional ? await qryAskOrNull(link, 0x12, body, timeoutMs) : await qryAsk(link, 0x12, body, timeoutMs);
+  if (r === null) return null;                       // silence: the caller decides what it means
   if (r.length !== 24) throw fail("chip", "Truncated identification reply: nothing was sent.");
   if (qryCrc16(r.slice(0, 21)) !== (r[21] | (r[22] << 8)))
     throw fail("chip", "The identification reply's CRC is wrong: nothing was sent.");
@@ -359,14 +580,38 @@ async function qryIdentify(link, nonce, timeoutMs) {
 }
 
 // two identifications of the same unit: same part, a fresh token each time
-export async function probeChip(link, timeoutMs = 1000) {
+/* `optional` turns silence into `null` (a loader link, where no answer is the expected answer) and
+ * leaves every other failure a throw: a refusal, a bad CRC or one answer followed by silence are
+ * refusals, never "not identified". */
+export async function probeChip(link, timeoutMs = 1000, { optional = false } = {}) {
   const nonce = Array.from(crypto.getRandomValues(new Uint8Array(4)));
-  const a = await qryIdentify(link, nonce, timeoutMs);
-  const b = await qryIdentify(link, nonce, timeoutMs);
+  const a = await qryIdentify(link, nonce, timeoutMs, { optional });
+  if (a === null) return null;
+  const b = await qryIdentify(link, nonce, timeoutMs, { optional });
+  if (b === null) throw fail("chip", "The FM-1 answered one identification and not the second: nothing was sent.");
   for (const k of ["jedec", "cap", "page", "sector", "block"])
     if (a[k] !== b[k]) throw fail("chip", `Two identifications disagree on ${k}: nothing was sent.`);
   if (a.session === b.session) throw fail("chip", "The device reused a session token: the reply may be old.");
   return { ...b, writable: !!(QRY_PARTS[b.jedec] && QRY_PARTS[b.jedec].writable), readings: 2, source: "device-0x12" };
+}
+
+/* The chip gate, read only: two 0x12 identifications on the link the unit is already answering on --
+ * no UPGRADE, no 0x30, no write frame of any kind. It exists because "cannot be established without a
+ * write session" was the wrong answer for a query that is itself read-only: on a unit running QG this
+ * returns the real JEDEC and geometry, and on a stock V15 it returns the refusal, which is also a fact
+ * about that unit and is better than a gate that says nothing. */
+export async function chipCheck(midi, { log = () => {}, timeoutMs = 1500 } = {}) {
+  const up = new Updater(midi, log);                   // name filter only: never probes foreign gear
+  let dev = null;
+  try { dev = await up.find(); } catch (_) { dev = null; }
+  if (!dev) return { ok: false, code: "notfound", why: "no FM-1 port answered the identity query" };
+  try {
+    const chip = await probeChip(dev.link, timeoutMs);
+    return { ok: true, jedec: chip.jedec, part: chip.part, cap: chip.cap, page: chip.page,
+      sector: chip.sector, block: chip.block, writable: chip.writable, readings: chip.readings };
+  } catch (e) {
+    return { ok: false, code: (e && e.code) || "chip", why: String((e && e.message) || e) };
+  } finally { try { dev.link.close(); } catch (_) {} }
 }
 
 // one 0x13 read (<= 256 bytes), fully validated; read-only
@@ -387,66 +632,20 @@ export async function readFlash(link, addr, len, session, timeoutMs = 1000) {
   return r.slice(14);
 }
 
-function canonJson(v) {
-  if (v === null || typeof v !== "object") return JSON.stringify(v);
-  if (Array.isArray(v)) return "[" + v.map(canonJson).join(",") + "]";
-  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonJson(v[k])).join(",") + "}";
-}
-
-function hexBytes(hex) {
-  if (typeof hex !== "string" || hex.length % 2) throw fail("signature", "not a hex string");
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) {
-    const b = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-    if (Number.isNaN(b)) throw fail("signature", "not a hex string");
-    out[i] = b;
-  }
-  return out;
-}
-
-// The Ed25519 manifest of tools/fm1_sign.py, verified with WebCrypto. `keys` maps key id -> public
-// key (hex). An empty map trusts nothing, so every package is refused: that is the released state.
-export async function verifyManifest(pkg, manifest, keys, { product = "FM-1", firmware = null } = {}) {
-  if (!manifest || manifest.format !== "qg1-release-1") throw fail("signature", "No signed manifest.");
-  for (const f of ["product", "version", "min_firmware", "sha256", "size", "keyid", "sig"])
-    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}.`);
-  const pub = keys && keys[manifest.keyid];
-  if (!pub) throw fail("signature", `Key ${manifest.keyid} is not pinned: nothing is trusted.`);
-  if (manifest.product !== product) throw fail("signature", `The package is for ${manifest.product}, not ${product}.`);
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", pkg)))
-    .map((b) => b.toString(16).padStart(2, "0")).join("");
-  if (digest !== manifest.sha256) throw fail("signature", "The package's SHA-256 is not the manifest's.");
-  if (pkg.byteLength !== manifest.size) throw fail("signature", "The package size is not the manifest's.");
-  if (firmware) {
-    const a = String(firmware).split(".").map(Number), b = String(manifest.min_firmware).split(".").map(Number);
-    for (let i = 0; i < Math.max(a.length, b.length); i++)
-      if ((a[i] || 0) < (b[i] || 0)) throw fail("signature", `The package needs firmware ${manifest.min_firmware}.`);
-  }
-  const unsigned = Object.fromEntries(Object.entries(manifest).filter(([k]) => k !== "sig"));
-  let ok = false;
-  try {
-    const key = await crypto.subtle.importKey("raw", hexBytes(pub), { name: "Ed25519" }, false, ["verify"]);
-    ok = await crypto.subtle.verify({ name: "Ed25519" }, key, hexBytes(manifest.sig),
-                                     new TextEncoder().encode(canonJson(unsigned)));
-  } catch (e) {
-    throw fail("signature", `WebCrypto cannot check Ed25519 here: ${e.message}`);
-  }
-  if (!ok) throw fail("signature", `The manifest is not signed by ${manifest.keyid}.`);
-  return { keyid: manifest.keyid, version: manifest.version, sha256: digest };
-}
-
 // ---------------------------------------------------------------------------------------------
-// The transport gate. A package is verified once, into an opaque authorisation that binds the
-// exact bytes, the manifest, the product and the chip. install(), write() and resume() each
-// consume an authorisation (one package, one transfer) and serve the private copy it holds, so
-// the bytes that were verified are the bytes that leave the host, whatever the caller still has.
+// The transport gate. A package is checked once, into an opaque authorisation that binds the exact
+// bytes and the product. install(), write() and resume() each consume an authorisation (one package,
+// one transfer) and serve the private copy it holds, so the bytes that were checked are the bytes that
+// leave the host, whatever the caller still has.
 //
-// Codes: signature (manifest, signature, product, version), image (not bytes, empty, changed after
-// it was verified), chip (no, unknown or read-only JEDEC, or a different one now), proof (no,
-// wrong or already used authorisation), model (a different unit answered).
+// Codes: image (not bytes, empty, another hash, changed after it was checked), chip (unknown or
+// read-only JEDEC, or a different one now), proof (no, wrong or already used authorisation), model
+// (a different unit answered).
 
-const RELEASE_FIELDS = ["format", "product", "version", "min_firmware", "sha256", "size", "keyid", "sig"];
 const PROOFS = new WeakMap();
+// how long an authorisation stays usable: two minutes is far more than a 611 KB package needs on a
+// cable that is already enumerating, and far less than a browser tab left open on a desk
+const PROOF_TTL_MS = 120000;
 
 function toBytes(x) {
   if (x instanceof Uint8Array) return x.slice();
@@ -455,61 +654,45 @@ function toBytes(x) {
   throw fail("image", "the package is not a byte array: nothing was sent.");
 }
 
-function versionString(v, what) {
-  const s = String(v === undefined || v === null ? "" : v);
-  if (!/^\d+(\.\d+)*$/.test(s))
-    throw fail("version", `the manifest's ${what} ${JSON.stringify(s)} is not a version: nothing was sent.`);
-  return s;
-}
-
-// Verify a .fwsc and everything that authorises writing it. Every refusal happens before the
-// first frame, so a caller that ignores the result has still caused nothing to be sent.
-export async function requireProof({ pkg, manifest, keys = {}, product = null, firmware = null, provenance = null } = {}) {
+// Check a .fwsc before any frame: its identity is the product, it holds an image and, when the site
+// published one (versions.json), its SHA-256 is that hash. A caller that ignores the result has still
+// caused nothing to be sent.
+export async function requireProof({ pkg, product = null, sha256 = null, proofTtlMs = PROOF_TTL_MS,
+  provenance = undefined, manifest = undefined } = {}) {
+  // (v2.4.0) the build provenance is checked before anything else: a package without a verified
+  // build record (or one whose record does not match the signed release) is refused as "provenance",
+  // so a caller that skips the page (console, stale resume) still writes nothing.
+  let verifiedCommit = null;
+  if (provenance !== undefined) {
+    const prov = provenance;
+    verifiedCommit = prov && prov.commit ? String(prov.commit) : null;
+    if (!prov || typeof prov !== "object" || prov.schema !== "qg1-provenance-1" || prov.identity !== product)
+      throw fail("provenance", "This package has no verified build provenance: nothing was sent.");
+    const m = manifest && typeof manifest === "object" ? manifest : null;
+    // vendor packages (official V15) carry no build record: their provenance is the pinned digest
+    if (prov.recordSha256) {
+      const expected = m ? (m.build_sha256 || (m.build && m.build.recordSha256) || null) : null;
+      if (!expected || expected !== prov.recordSha256)
+        throw fail("provenance", "The build record does not match the signed release: nothing was sent.");
+    }
+  }
   if (!product || typeof product !== "string" || !product.includes("_"))
     throw fail("proof", "no product was named for this transfer: nothing was sent.");
-  // The installed version is not optional: without it a downgrade cannot be ruled out, and neither
-  // the loader nor the handshake exposes it. Unknown version means refused, not "assume current".
-  if (firmware === null || firmware === undefined || firmware === "" || typeof firmware === "object")
-    throw fail("version", "the installed firmware version is unknown: a downgrade cannot be ruled out, so nothing was sent.");
-  if (!manifest || typeof manifest !== "object")
-    throw fail("signature", "No signed manifest: nothing was sent.");
-  for (const f of RELEASE_FIELDS)
-    if (manifest[f] === undefined) throw fail("signature", `The manifest has no ${f}: nothing was sent.`);
-  versionString(manifest.version, "version");
-  versionString(manifest.min_firmware, "min_firmware");
-  if (!Number.isInteger(manifest.size) || manifest.size <= 0)
-    throw fail("signature", "The manifest's size is not a byte count: nothing was sent.");
   const bytes = toBytes(pkg);
   if (bytes.length <= 960) throw fail("image", "the package is too short to hold an image: nothing was sent.");
-  const model = product.split("_")[0];
-  const checked = await verifyManifest(bytes, manifest, keys, { product: model, firmware });
-  if (productOf(bytes) !== product)                             // the package's own identity, once it is authenticated
+  if (productOf(bytes) !== product)
     throw fail("proof", `the package identifies as ${productOf(bytes)}, not ${product}: nothing was sent.`);
-  if (manifest.sha256 !== checked.sha256 || manifest.size !== bytes.length)
-    throw fail("signature", "The manifest does not describe this package: nothing was sent.");
+  const digest = await sha256hex(bytes);
+  if (sha256 && digest !== String(sha256).toLowerCase())
+    throw fail("image", "the package's SHA-256 is not the published one: nothing was sent.");
   const image = logicalImage(bytes);
   if (!image.length) throw fail("image", "the package holds no image: nothing was sent.");
-  // Provenance is not optional: the bytes must be the artefact a clean build of a named commit
-  // produced (or the pinned vendor file), the record must name this same package, and the image it
-  // is bound to must be the one derived from these bytes. A missing, dirty or foreign record is
-  // refused exactly like a bad signature, before any frame.
-  const prov = await requireProvenance(provenance, product, image);
-  if (prov.sha256 !== checked.sha256)
-    throw fail("provenance", "the build record names another package than the signed manifest: nothing was sent.");
-  // The signature must cover the record, not just the bytes: without this, anyone who can swap the
-  // package can swap the record too, and the record would still look clean. A release manifest with
-  // no build_sha256, or one naming another record, is refused exactly like a bad signature.
-  if (prov.kind === "build") {
-    if (!/^[0-9a-f]{64}$/.test(String(manifest.build_sha256 || "")))
-      throw fail("provenance", "the signed manifest does not name the build record: nothing was sent.");
-    if (manifest.build_sha256 !== prov.recordSha256)
-      throw fail("provenance", "the signed manifest names another build record: nothing was sent.");
-  }
-  // No chip field here: the chip is identified by admit() on the live link, never by the caller.
-  const proof = Object.freeze({ product, model, version: checked.version, keyid: checked.keyid,
-    sha256: checked.sha256, size: bytes.length, imageSize: image.length,
-    build: prov.kind === "build" ? prov.commit : null });
-  PROOFS.set(proof, { image, used: false });
+  // (v2.6.0) when a verified build record authorised this transfer, the authorisation names the
+  // commit it was verified against, so a caller can bind the write to that exact tree.
+  const proof = Object.freeze({ product, model: product.split("_")[0], sha256: digest, size: bytes.length,
+    imageSize: image.length, build: verifiedCommit });
+  const ttl = Math.max(0, Number(proofTtlMs) || 0);
+  PROOFS.set(proof, { image, used: false, at: Date.now(), expires: Date.now() + ttl });
   return proof;
 }
 
@@ -520,6 +703,8 @@ async function admit(proof, pkg, product) {
   const rec = proof && PROOFS.get(proof);
   if (!rec) throw fail("proof", "this transfer has no verified package: nothing was sent.");
   if (rec.used) throw fail("proof", "this authorisation was already used for another transfer: nothing was sent.");
+  if (!(rec.expires > Date.now()))
+    throw fail("proof", `this authorisation expired ${Math.max(0, Math.round((Date.now() - rec.expires) / 1000))} s ago: nothing was sent.`);
   if (product !== proof.product)
     throw fail("proof", `the authorisation is for ${proof.product}, not ${product}: nothing was sent.`);
   const bytes = toBytes(pkg);                                 // whatever the caller passed this time
@@ -540,5 +725,30 @@ async function identify(pass, link) {
   requireChip(chip);
   pass.link = link;
   pass.chip = chip;
+  return pass;
+}
+
+/* Bind the link with no chip fact on the host: only for this project's loader, which checks the chip
+ * itself before any erase (firmware/loader/loader.c ldr_flash_known). */
+function bindLink(pass, link) {
+  if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
+  if (!link || typeof link.send !== "function") throw fail("chip", "this transfer has no open link: nothing was sent.");
+  pass.link = link;
+  pass.chip = { jedec: null, part: "checked by the update loader", readings: 0, source: "loader" };
+  return pass;
+}
+
+/* Bind a chip fact that was NOT read on this link. It exists for exactly one program: the update
+ * loader, which cannot answer 0x12 because its build excludes the query. The fact has to be about
+ * this unit's part -- the 0x12 of the app link in the same attempt (seconds earlier, same cable,
+ * after which the unit only rebooted into the loader this project just staged). It cannot be
+ * supplied by a caller as a bare JEDEC: it goes through requireChip, the same allowlist as a link
+ * identification. */
+function bindChip(pass, link, chip, source) {
+  if (!pass || !(pass.link === null)) throw fail("proof", "this transfer is already bound to a link: nothing was sent.");
+  if (!link || typeof link.send !== "function") throw fail("chip", "this transfer has no open link: nothing was sent.");
+  requireChip(chip);
+  pass.link = link;
+  pass.chip = { ...chip, source };
   return pass;
 }

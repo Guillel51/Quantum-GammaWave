@@ -433,7 +433,12 @@ typedef struct {
 
 static const ota_part_t OTA_PARTS[] = {
     {0x856014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* Puya P25Q80H */
-    {0xB36014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* the newer variant */
+    {0xB36014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* UCUN UC25HQ80 */
+    {0xC84014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* GigaDevice GD25Q80 */
+    {0xEF4014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* Winbond W25Q80 */
+    {0x5E4014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* Zbit ZB25VQ80 */
+    {0x684014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* BoyaMicro BY25D80 */
+    {0x204014u, OTA_CAP_1M, 256u, 0x1000u, OTA_BLK_64K},   /* XMC XM25QH80B */
 };
 #define OTA_NPARTS (sizeof OTA_PARTS / sizeof OTA_PARTS[0])
 

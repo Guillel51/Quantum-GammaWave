@@ -47,7 +47,7 @@ On Linux x86-64 the toolchain runs natively and Docker is not needed.
 `JIELI_TOOLCHAIN` and `AC79_SDK` override the default locations
 (`~/.jieli/toolchain`, `~/fw-AC79_AIoT_SDK`).
 
-`./build.sh --release 1.0` makes a release build: the package identity stays `FM-1_982` (Quantum GammaWave's own; Pocket GammaWave is FM-1_981,
+`./build.sh --release 1.0` makes a release build: the package identity stays `FM-1_965` (Quantum GammaWave's own; Pocket GammaWave is FM-1_981,
 the one The Firmware Hub knows; Felucca's per-release `FM-1_9XY` gave 1.1 `FM-1_911`, Felucca 1.1's),
 and the version string `v1.0`; the package is `build/felucca-1.0.fwsc`, and
 `build/release-1.0/` holds what a release ships: the package, the app
@@ -153,35 +153,14 @@ python3 tools/fm1_install.py --info          # identity of the connected FM-1
 Or, to install your own build from the web installer, make a local copy of the site and open it from `localhost`
 (Web MIDI needs a secure context):
 
-The page carries the build record (`build/manifest.json`) compiled into it and refuses to install
-if the package it is given disagrees with that record in commit, version, product identity, size or
-sha256 — and an unrecorded package is refused too. `make_site.py` enforces the same thing on the
-machine that builds the site, so a mismatched site cannot be published in the first place. The check
-runs before the first MIDI frame, so a package that fails it is never written to the device:
+The page checks the package against the SHA-256 and size `make_site.py` published with it before the
+first MIDI frame, so a cut or altered download is never written to the device:
 
 ```
-python3 tools/build_manifest.py --verify --require-clean
 python3 web/make_site.py build/felucca.fwsc dev /tmp/felucca-site
 cd /tmp/felucca-site && python3 -m http.server 8000
 # open http://localhost:8000/webapp/installer/
 ```
-
-That record proves **integrity and provenance** — these bytes are the ones this commit produced —
-not **authenticity**: without a signing key the page cannot tell a genuine Felucca build from one
-rebuilt by someone else at the same commit, and it does not pretend to. The official FM-1 V15 file
-is admitted only through its digest pinned in the source, and releases recorded before v1.9.0 have
-no record, so they are no longer installable from the page.
-
-When there is a key to sign with, `--build-manifest` puts the record's canonical SHA-256 inside the
-Ed25519 signature (`build_sha256`), so authenticity and provenance are checked together: the
-transport refuses a signed release that names no record, or another one.
-
-```
-python3 tools/fm1_sign.py sign build/felucca.fwsc --key /secure/qg1-release.pem --version 1.9.0 \
-    --min 1.8.0 --keyid qg1-release-1 --build-manifest build/manifest.json
-```
-
-With `tools/fm1_keys.json` empty every package is refused (see `docs/SIGNING_CUSTODY.md`).
 
 Installing firmware is at your own risk. If an install fails and the FM-1 no longer
 starts, recovery needs [FM-1-transporter](https://github.com/kurogedelic/FM-1-transporter).

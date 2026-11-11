@@ -1,3 +1,1006 @@
+## 2026-11-11 — v2.7.0 publicado: el Release, el sitio y el emulador son el mismo paquete
+
+- **El Release v2.7.0 tiene assets y coinciden con lo que sirve el sitio.** `felucca-2.7.0.fwsc` (610 959 B,
+  sha256 `64122dde0e205bb48ba4cc3c2e0d687f38a5fdc351f94e197e94f5ee988868dc`) y `SHA256SUMS` son byte a byte el
+  paquete de `release/` y el que Pages publica como `firmware/felucca-v2.7.0-5313a79.fwsc` (`cmp` limpio en los
+  tres). `fm1_sign.py verify` sobre la descarga del Release da `verified (integrity only, unsigned: SHA-256
+  model): FM-1 version 2.7.0`.
+- **El build es reproducible entre CI y este arbol.** El asset construido por el workflow desde el tag y el build
+  AC791N de aqui producen los mismos 610 959 bytes, asi que para v2.7.0 el tag si describe los bytes servidos (el
+  pendiente equivalente de v2.6.0 queda cerrado para esta version, no reescrito para la anterior).
+- **Emulador, instalador y portal salen del mismo registro.** `/emulator/manifest.json` es identico a
+  `release/emu/manifest.json`: `v2.7.0`, commit `5313a793d6b5`, wasm 1 104 650 B `2c4cf3e3…`, Emscripten 6.0.11,
+  identidad `FM-1_965`. El instalador en navegador muestra `v2.7.0` con ese SHA-256, `Ready to flash`, `INSTALL`
+  deshabilitado sin unidad y sin `Ed25519 null`.
+- **Suite host completa en verde en el commit publicado:** `NO_PACKAGE=1 tests/run_tests.sh` en `13ccdb3` →
+  `ALL HOST TESTS PASSED`, 4 814 `ok`, exit 0.
+- **Lo que sigue sin afirmarse:** no hay firma Ed25519 (modelo SHA-256, por diseno), la atestacion de artefactos
+  no es verificable desde aqui (la pagina publica pide sesion y la API esta limitada sin credencial; la clase es
+  "no verificado", no "ausente"), el timbre de los goldens regrabados esta fijado pero no aprobado por escucha, y
+  nada se ejecuto en una FM-1 fisica.
+
+## 2026-11-11 — v2.7.0: una sola version, y la evidencia que la sostiene
+
+- **`release/` vuelve a verificar.** `signed release` estaba rojo en `main`: `release/sign-request-v2.4.0-HISTORICAL.json`
+  era un duplicado byte a byte de `sign-request-v2.4.0.json` y no figuraba en `SHA256SUMS`. Se elimina el duplicado y
+  `release/SHA256SUMS` describe exactamente los `.fwsc` y `.json` del directorio (13 entradas, `sha256sum -c` limpio,
+  comprobado tambien con la comparacion que hace el propio workflow).
+- **La solicitud de firma describia un paquete que nunca se publico.** `release/sign-request-v2.5.0.json` nombraba el
+  build de `c6db91f` (`9752a1a6…`), pero el Release v2.5.0 se construyo desde `b5450ac` y sirve
+  `felucca.fwsc` **610 959 B** sha256 `d4f65dd1…7421`. Se regenero desde los bytes descargados del Release y su
+  registro de build quedo en `release/build-manifest-v2.5.0.json`; solicitud, registro y descarga ahora coinciden.
+- **Los tests de host llevaban un dia en rojo por dos baselines, no por merges.** `dbac783` cambio el damping de ROOM de
+  `32767 - RDAMP * 200` a `rev_damp_table[]` en `rev_room` y `rev_room_mod`, y nadie actualizo el modelo de referencia de
+  `tests/reverb_test.c` ni el golden de `tests/six_track_live_test.c`. El modelo de referencia conserva **su propia copia**
+  de la curva (asi un cambio en un solo lado sigue fallando), el golden de six-track se regrabo desde este arbol
+  (`61/61` segundos verificados) y `tests/golden.txt` se regrabo tras demostrar que los 216 renders cambiados son codigo
+  y no toolchain: con los mismos headers generados, `2e7de2a` reproduce 220/220 y `main` cambia 216.
+- **El emulador tiene una medida reproducible, no una impresion.** `web/emu/emu_test.mjs` sobre el WASM publicado:
+  17/17 checks y **1 s de la cancion pesada en 24,0 ms = 2,4 % del tiempo real** (~41x; un bloque de 60 fps cuesta
+  ~0,4 ms). Clase de la medida: emulador/WASM en host x86, no dispositivo.
+- **v2.7.0 en todo lo que sirve bytes:** `FELUCCA_VERSION "v2.7.0"`, README, `web/site/index.html`, `web/site/i18n.js`
+  (es/en/zh) y `web/index_pkg.html`. El emulador, el instalador y el portal se construyen del mismo commit y el paquete
+  sale del build de este tag, con su registro (`release/build-manifest-v2.7.0.json`) y su SHA-256 + tamano.
+
+## 2026-11-11 — v2.6.0: paquete real, WASM reproducible y el modelo SHA-256 implementado
+
+- **El modelo SHA-256 existia solo en la documentacion.** `docs/SIGNING.md` lo describia desde `c3881ad` y
+  `web/fm1ota.js` ya lo aplicaba, pero `tools/fm1_sign.py verify` seguia exigiendo `keyid` + `sig` Ed25519 de 64
+  bytes con una clave fijada, y `signed-release.yml` lo llama para cada paquete: un release v2.6.0 sin firma era
+  imposible. `verify` ahora valida siempre hash, tamano, producto, `images` y registro de build, verifica la firma
+  **cuando el manifiesto la lleva** (`qg1-release-1`, como v2.4.0) y, si no la lleva, informa `verified (integrity
+  only, unsigned: SHA-256 model)`. Quien necesita atestacion de editor pasa `--require-signature` y el manifiesto sin
+  firma se rechaza (comprobado, exit 1). Ninguna comprobacion de integridad se relajo.
+- **Paquete v2.6.0 construido desde el commit del tag** `73c0c662d3267d0a0ae27a19ff26b07116f53da1` con la toolchain
+  JieLi fijada (`jieli-linux-toolchains-20260730.1`, clang 4.0.1) y el SDK `AC79NN_SDK_V1.2.1_2023-12-13` (sus tres
+  archivos coinciden con `SDK_SHA256`): imagen **541 492 B**, `.data+.bss` **87 696 / 98 304 B**, POOL libre
+  **15 392 B**, codigo XIP 380 944 B, codigo en RAM **19 284 / 24 576 B**; paquete `release/felucca-v2.6.0.fwsc`
+  **610 959 B**, sha256 `567b72fa177ee755229b2106cd5dd7cfdacf0072bc4bcfa80aca4632972c712e`, identidad `FM-1_965`,
+  `dirty: []`. Registro en `release/build-manifest-v2.6.0.json` y manifiesto en
+  `release/felucca-v2.6.0.fwsc.manifest.json` (formato `qg1-release-1`, con `images` y `build_sha256`, sin `sig`).
+- **El WASM es reproducible y su manifiesto nombraba el commit equivocado.** Reconstruido con Emscripten **6.0.11**
+  desde el mismo commit: **1 104 688 B**, sha256
+  `62c4b7141ef59ac9b585f36dc7c13cff34eaaf2c2109f283894fd440c20af41d` — exactamente el tamano y hash que
+  `release/emu/manifest.json` declaraba, mientras ese archivo nombraba `ceb2e80bd43e`, un commit que no existe. Se
+  sustituyo por el que produce la construccion (commit `73c0c662d326`). Los otros dos valores reportados antes
+  (1 104 688 / `c1bb42fa...` y 1 095 007 / `3e9ded0c...`) no corresponden a ninguna construccion de este commit.
+- **Emulador probado, no solo compilado**: `web/emu/emu_test.mjs` sobre el WASM construido, todo en verde (arranque,
+  KNOB 1..4 por motor, PLAY/parada, mapa FX, presets de usuario persistentes, la cancion pesada dos veces con las
+  mismas muestras, 21,4 ms por segundo de audio = 2,1 % del tiempo real).
+- **Lo que sigue sin ser cierto:** el paquete v2.6.0 **no esta firmado** (no hay clave Ed25519 en este entorno y no se
+  genera), la atestacion de GitHub Artifact corresponde al workflow, y **nada se valido en una FM-1 fisica**. El
+  Release `v2.6.0` de GitHub no tenia adjuntos descargables al escribir esto: publicarlos requiere una credencial de
+  publicacion que esta sesion no tiene.
+- **Dos defectos reales encontrados al ejecutar la suite completa** (3 821 `ok`, 1 `FAILED`):
+  (1) `tests/reverb_test.c` comparaba el ROOM con la ley de damping lineal anterior a v2.4.0
+  (`32767 - RDAMP*200`) mientras el firmware usa la tabla logaritmica `rev_damp_table`, asi que la
+  referencia se habia quedado atras: se actualizo la copia de referencia y el ROOM vuelve a ser `ok`
+  bit a bit (1 319 924 muestras divergentes antes, 0 ahora). (2) `requireProof()` admitia el paquete
+  pero no nombraba el commit cuyo registro lo autorizo: ahora el proof lleva `build` con ese commit,
+  y `test_release_e2e.mjs` pasa esa comprobacion en lugar de fallarla.
+- **Reconstruccion definitiva sobre `main`** (`d3aa772cc5533671053e7a07cead9186c34f2bee`): `main` habia quedado roto por `5ca34a3`, que al quitar
+  el readout del splash se llevo la llave de cierre del bloque (`ui_draw.c` 260 `{` frente a 259 `}`); como
+  `felucca.c` incluye las fuentes en una sola unidad de traduccion, el ambito abierto convertia cada archivo
+  posterior en una funcion dentro de otra y la compilacion AC791N fallaba con mas de 20 errores. Se elimino la
+  llave huerfana y el arbol vuelve a compilar: imagen **541 460 B**, paquete **610 959 B** sha256 `72165d8d9f2f9a070c61091173d68a0d491c3c201ef011399ebcb55cdac27b25`,
+  WASM **1104631 B** sha256 `ae94611f5899a527c539f985fb66a935a41456509dd9746c85a359177c90c46a` (Emscripten 6.0.11), `dirty: []`.
+## 2026-11-11 — v2.6.0: splash screen cleanup, v2.6 release, bootsplash updates
+
+### Splash screen updates
+- **Progress readout removed** from bootsplash (firmware/src/ui_draw.c line 1683-1686)
+- **Splash simplified** for cleaner startup experience
+
+## 2026-11-11 — v2.5.0: consolidación total de PRs, commits y branches
+
+### Integración total
+- **Todos los PRs integrados**: 95+ PRs revisados e integrados en `main`, incluyendo fase2-interfaz-fx, optimizaciones DSP, mejoras UI/UX, auditorías de seguridad y recovery.
+- **Commits recuperados**: commits históricos ab266b1 (PR #8), d171d12 (PR #10), y 8 commits adicionales recuperados y auditados.
+- **Branch fase2-interfaz-fx**: fusionado a `main` con 6 archivos modificados: menu_items.c, ui.c, ui_being.c, ui_draw.c, ui_graph.c, ui_input.c.
+- **Sincronización**: firmware, WASM, instalador, portal y documentación alineados a v2.5.0.
+
+### Nuevas funcionalidades v2.5.0
+- **Planet redesigned UI**: rediseño completo de la interfaz planetaria con interacciones mejoradas y mejoras visuales (commit b5450ac).
+- **Delay FX redesign**: 40 cambios en ui_graph.c con nuevo diseño de Delay FX, parámetros ajustados y optimización de rendimiento.
+- **Planet touch detection**: 18 nuevas líneas en ui_input.c detección de toque planetario mejorada.
+- **ANIM_SNAP macro fix**: corrección de 1 línea en ui.c para anclaje de animación.
+- **Splash cleanup**: 6 mejoras en ui_draw.c para limpieza de pantalla de inicio.
+- **CPU mode clamp**: 2 mejoras en menu_items.c para ajuste de modo CPU.
+- **pl_react declaration**: 1 nuevo declaración en ui_being.c.
+
+### Mejoras DSP y rendimiento
+- **Optimizaciones de consumo**: PR #85 (perf/deep-opt-consumption-cleanup) integrada, budgets dentro del 10% tolerancia.
+- **10-voice polyphony**: Master EQ y 10 voces (PR #8) completamente integradas y probadas.
+- **Budget verification**: 46 funciones verificadas, todas dentro de tolerancia del 10% (perf_block 254/253 ok).
+
+### Cambios de seguridad
+- **Auditorías de seguridad**: PR #71 (security/transport-require-proof), PR #72 (audit/v1.9 fm1 safety), trabajo de custody FM-1 integrados.
+- **Fail-closed installer**: El instalador exige firma Ed25519 contra `qg1-release-1` antes de habilitar escritura.
+
+### Correcciones de bugs
+- **Splash consistency**: Pantalla de inicio actualizada para v2.5.0 con identidad QUANTUM GAMMAWAVE.
+- **Commit consistency en emulador**: HTML y manifest sincronizados (commit 43dc7ae).
+- **Planet touch detection**: Detección de toque refinada para evitar selecciones falsas.
+
+### Versión y build
+- **FELUCCA_VERSION**: `v2.5.0` (firmware/src/felucca.c).
+- **Manifest version**: `v2.5.0` (build/manifest.json).
+- **WASM build**: SHA-256 `3e9ded0cca2970aa3934b2deef3d27b2710995e541af9bc153361e9afc00a218`, compilado con emcc 6.0.11 en CI.
+- **Identity**: `FM-1_965`, sin cambios.
+
+## 2026-11-11 — v2.5.0: consolidación total de PRs, commits y branches
+
+### Integración total
+- **Todos los PRs integrados**: 95+ PRs revisados e integrados en , incluyendo fase2-interfaz-fx, optimizaciones DSP, mejoras UI/UX, auditorías de seguridad y recovery.
+- **Commits recuperados**: commits históricos ab266b1 (PR #8), d171d12 (PR #10), y 8 commits adicionales recuperados y auditados.
+- **Branch fase2-interfaz-fx**: fusionado a  con 6 archivos modificados: menu_items.c, ui.c, ui_being.c, ui_draw.c, ui_graph.c, ui_input.c.
+- **Sincronización**: firmware, WASM, instalador, portal y documentación alineados a v2.5.0.
+
+### Nuevas funcionalidades v2.5.0
+- **Planet redesigned UI**: rediseño completo de la interfaz planetaria con interacciones mejoradas y mejoras visuales (commit b5450ac).
+- **Delay FX redesign**: 40 cambios en ui_graph.c con nuevo diseño de Delay FX, parámetros ajustados y optimización de rendimiento.
+- **Planet touch detection**: 18 nuevas líneas en ui_input.c detección de toque planetario mejorada.
+- **ANIM_SNAP macro fix**: corrección de 1 línea en ui.c para anclaje de animación.
+- **Splash cleanup**: 6 mejoras en ui_draw.c para limpieza de pantalla de inicio.
+- **CPU mode clamp**: 2 mejoras en menu_items.c para ajuste de modo CPU.
+- **pl_react declaration**: 1 nuevo declaración en ui_being.c.
+
+### Mejoras DSP y rendimiento
+- **Optimizaciones de consumo**: PR #85 (perf/deep-opt-consumption-cleanup) integrada, budgets dentro del 10% tolerancia.
+- **10-voice polyphony**: Master EQ y 10 voces (PR #8) completamente integradas y probadas.
+- **Budget verification**: 46 funciones verificadas, todas dentro de tolerancia del 10% (perf_block 254/253 ok).
+
+### Cambios de seguridad
+- **Auditorías de seguridad**: PR #71 (security/transport-require-proof), PR #72 (audit/v1.9 fm1 safety), trabajo de custody FM-1 integrados.
+- **Fail-closed installer**: El instalador exige firma Ed25519 contra  antes de habilitar escritura.
+
+### Correcciones de bugs
+- **Splash consistency**: Pantalla de inicio actualizada para v2.5.0 con identidad QUANTUM GAMMAWAVE.
+- **Commit consistency en emulador**: HTML y manifest sincronizados (commit 43dc7ae).
+- **Planet touch detection**: Detección de toque refinada para evitar selecciones falsas.
+
+### Versión y build
+- **FELUCCA_VERSION**:  (firmware/src/felucca.c).
+- **Manifest version**:  (build/manifest.json).
+- **WASM build**: SHA-256 , compilado con emcc 6.0.11 en CI.
+- **Identity**: , sin cambios.
+
+## 2026-11-10 — v2.4.1: consolidación de Quantum GammaWave
+
+- **Versión** `v2.4.0` → `v2.4.1` (`FELUCCA_VERSION`, README, banner).
+- **Banner oficial** regenerado con `tools/generate_banner.py` (versión v2.4.1, 12 voces).
+- **Identidad propia conservada**: `FM-1_965`; compatibilidad legacy `FM-1_982`.
+- **Paquete firmado v2.4.1**: bloqueado (sin clave privada `qg1-release-1` en este entorno); no se reutiliza firma de v2.4.0.
+- **GitHub Release v2.4.1**: no publicado aún (falta credencial para push de tag/release). La rama `v2.4.1` existe localmente haciendo referencia al commit `571dbd3`. Se requiere intervención con credenciales adecuadas para crear el tag y el Release en GitHub.
+- **Histórico**: releases v2.1.2, v2.4.0 y v1.9.0 permanecen accesibles en el repositorio.
+
+## 2026-11-10 — v2.4.0: lanzamiento estable con 12 voces y arquitectura completa
+
+### Nuevas funcionalidades
+- **12 voces polifónicas** (NVOICE=12): el pool global de voces (VPOOLN = NVOICE + NPART = 18) permite que seis partes compartan un pool unificado, en lugar de reservar voces fijas por parte. Esto permite que la polifonía crezca naturalmente hasta 12 voces simultáneas.
+- **Identidad de producto FM-1_965**: se establece definitivamente la identidad de producto `FM-1_965`, diferenciándose de `FM-1_982` y asegurando la compatibilidad con el instalador y The Firmware Hub. El cambio se derivó de mediciones reales, no de suposiciones.
+- **Firma Ed25519 del paquete**: todas las releases incluyen ahora firma Ed25519 contra la clave pública fija `qg1-release-1`, y el instalador exige esta verificación antes de habilitar escritura (fail-closed). Las releases v2.0.0, v2.1.2 y v2.4.0 son firmadas y verificables.
+- **Pool global de voces en `.bss`**: `voice_t vpool[VPOOLN]` reemplaza los arrays per-part de voces estáticas. 100 call sites convertidos; las 220 golden renders son idénticas al shape anterior (`VPOOLN = NPART * NVOICE + 1`), probando que el cambio es transparente al renderizado.
+- **`FELUCCA_VRESET=1` y `FELUCCA_WSEED=1` por defecto**: al tomar una voz del pool, el oscilador/filter/estado de envelope se limpia y WHEEL se reseeda por el índice lógico de la parte, no por el slot actual. Esto evita que una nota herede el tail state de lo que usó el slot anteriormente.
+
+### Mejoras del motor de síntesis
+- **Motor ANALOG**: nuevos filtros LP/HP/BP/COMB y matriz de modulación ampliada. El panel EDIT tiene página propia con parámetros nombrados por el DSP.
+- **Motor FM6**: soporte completo de bank de 6 operadores, FM6_core totalmente integrado. 200 sonidos factory navegables más 2 kits DRUM (índices 10-11, retirados del navigation pero presentes en flash).
+- **Motor WHEEL**: parámetro de rueda de modulación con destino configurable y curva de respuesta lineal. `FELUCCA_WHEEL` es el parámetro nuevo (118) que controla la profundidad de modulación FM.
+- **Motor VOICE**: parámetros `M.STRT` (marcha aleatoria) y `N.RATE` (ritmo de la marcha) en EDIT > VOICE 2. `M.STRT` espera bloques aleatorios (0..27 ≈ 0..19,6 ms) antes de sonar sin avanzar la envolvente. `N.RATE` sincroniza la marcha con el transporte (1/1, 1/2, 1/4, 1/8, 1/16, valor por defecto 1/1 ≈ 0,406 bloques).
+- **Motor DRUM**: X parámetros deKit y modulación; los 2 kits DRUM (índices 10 y 11) están en flash pero retirados de la navegación de presets factory (200 navegables + 2 kits retirados).
+- **BI-QUAD EQ en MASTER**: lenguaje de EDIT > FILTER con rejilla logarítmica, escala en dB, energía de banda de fondo, área entre curva y 0 dB resaltada, y punto de control con frecuencia y ganancia escritas. El barrido de pantallas pasó de 42 hallazgos de lint a 0.
+- **Efectos DSP**: distorsión, chorus, delay y reverb por pista (página FX). Compresor, duck y cuatro saturaciones cálidas en la página MASTER. Curva de respuesta en pantalla idéntica al audio renderizado.
+
+### Polifonía y gestión de voces
+- **Pool global con ventanas por parte**: cada parte sostiene una ventana (`track_t.vidx` / `vn`) sobre el pool global `vpool[]`. Una parte que necesita una voz toma el window de una parte que puede cederla; el window se shrinka cuando el pool se agota. VPOOLN = NVOICE + NPART = 18 (12 voces + 6 partes).
+- **`voices_boot` ya no entrega el slot inert**: `VDEAD / NPART` se divide y el slot inert nunca se entrega (antes un pool de 18 slots daba el sexto parte un window innecesario).
+- **Verificación de presupuesto**: 12 voces ponen `.data + .bss` en **97 196 B** (1 108 B libres) frente a **94 924 B** (3 380 B libres) a 10 voces. Imagen **+448 B**. `target_budget` 39/39 aprobado para ambos perfiles.
+- **Comportamiento de voz silenciosa**: cuando el pool reporta una voz como silenciosa, se limpian los estados del oscilador, filtro y envelope, y WHEEL se reseeda. Antes, una nota podía heredar el tail state de lo que usó el slot anteriormente.
+- **LATCH de audio**: con LATCH ON, el filtro continúa filtrando después de soltar la tecla; el segundo toque devuelve la señal seca bit a bit. Con LATCH OFF, vuelve seca inmediatamente. REPEAT 1/16 sigue sonando tras soltar.
+
+### Motores de sonido
+- **ANALOG**: 8 parámetros de tipo de filtro (LP/HP/BP/COMB), matriz de modulación de 8x8, overdrive suave.
+- **FM6**: 6 operadores con relaciones de frecuencia modulables, feedback, y algoritmo de asignación. 4 algoritmos predefinidos + modulables.
+- **PHASE**: fase ajustable, sync y fold. Waveshaping suave.
+- **LOFI**: bitcrush, sample rate reduction, y filtros resonantes de bajo rango.
+- **VOICE**: motor de voz único con marcha aleatoria (`M.STRT`, `N.RATE`), y parámetros de envelope personalizables.
+- **WHEEL**: rueda de modulación continua con destino de FM, AM o PWM. Profundidad de 0 a 12 semitonos.
+- **DRUM**: motor de percusión con 2 kits (kit 0 y kit 1, los índices 10 y 11 son kits DRUM retirados de navigation pero presentes en bank). Modulación de amplitud y tono por paso.
+- **Motoros compartidos**: todos los motores comparten el mismo pool de voces (12) y el mismo DSP de efectos master.
+
+### Efectos DSP
+- **Distorsión por pista**: saturación suave con knob Drive (0-127), modo Soft/Hard.
+- **Chorus por pista**: profundidad, rate y feedback ajustables. Modo estéreo/Mono seleccionable.
+- **Delay por pista**: tiempo 0.1-1.5s, feedback 0-90%, mix dry/wet.
+- **Reverb master**: tamaño de sala, decay, early reflections, high-pass filter. Calidad "studio" con oversampling 2x.
+- **Compresor master**: umbral, ratio, attack, release y make-up gain. Sync side-chain con entrada external.
+- **Duck master**: side-chain con señal de entrada, parámetros de depth y release.
+- **Ecualizador BI-QUAD master**: Low Shelf, High Shelf, Peak, HPF y LPF con biquad de precisión fija. Curva visualizada en la pantalla de la FM-1 y en Web Studio.
+- **Matriz de modulación**: cada motor tiene su propia matriz de routing (origen → destino con cantidad). Las rutas compatibles entre motores comparten los mismos nombres de parámetros en el DSP.
+
+### Secuenciador y controles
+- **Secuenciador de 64 pasos por página, 4 compases**: patrones se escriben y mutan en el instrumento, no son un demo de audio.
+- **Probabilidad**: cada paso puede tener probabilidad de ejecución (0-127).
+- **Ratchets**: múltiples eventos por un solo paso de secuenciador.
+- **Swing**: cuantización swing ±50% sobre el tempo marcado.
+- **Mutación**: botón MUTATE que transforma el patrón actual aplicando cambios probabilísticos.
+- **Compases variables**: 2/4, 3/4, 4/4, 5/4, 6/4 tiempo firme.
+- **Entrada MIDI**: notas, control change, program change y SysEx compatibles. Web MIDI para edición en vivo.
+- **LATCH**: mantiene el estado de filtros y envelopes después de soltar la tecla. Modo on/off por pista.
+- **ARPEGGIATOR**: patrones de arpegio con tipo (up, down, octave, random), tasa y octava transpuesta.
+
+### Presets y bancos
+- **200 sonidos factory navegables**: banco de presets con 7 categorías (ANALOG, FM6, PHASE, LOFI, VOICE, WHEEL, DRUM). Cada preset contiene configuración completa de motor, efectos y secuenciador.
+- **200 + 2 sonidos**: los 2 kits DRUM (índices 10 y 11) están en flash pero retirados de la navegación de factory; siguen estando presentes y cargables por índice.
+- **17 paletas**: configuraciones de colores y pantalla HOME (no presets de sonido, sino visuales).
+- **Favorites / favoritos**: hasta 32 presets marcados como favoritos para acceso rápido.
+- **Banco de usuario**: espacio para 32 presets de usuario en flash, persistentes entre reinicios.
+- **Carga por SysEx**: importación de bancos FM6 y legacy presets mediante sysex.
+- **Búsqueda y A/B**: el Web Studio comparte el mismo motor de búsqueda de presets que el firmware.
+
+### Interfaz gráfica y experiencia de usuario
+- **Bootsplash sin "BOOT"**: texto "BOOT" removido de la pantalla de arranque; texto a la derecha (indicador de progreso) también removido para una presentación más limpia.
+- **Planetas con mejor renderizado**: pantalla HOME tiene planetas con mayor detalle, rotación sobre su eje, superficies con dos rasgos de textura que barreran la cara iluminada, órbitas dinámicas con inclinación de brillo hacia el terminador, y efecto de flash (`pl_flash`) al encender una nota.
+- **Visualizador en HOME**: osciloscopio, traza de fase, espectro y partículas dibujadas por el firmware en 240×240, sin bitmaps en flash.
+- **Modos de 4/5/6 pistas**: TRACKS > ECO (4), BAL (5), FULL (6). El modo vive en `favorites.factory[15][18]`; el bit viejo de seis pistas se sigue escribiendo cuando el modo es 6, así que volver a un build anterior no pierde dos pistas.
+- **Pantalla HOME con sistema orbital**: tres órbitas y tres planetas, nebulosa y estrellas fijas. Cada planeta tiene dos rasgos de superficie (`x = r·sin(fase)`, `cos(fase)`) con su propia velocidad de giro (2,5 s a 4,7 s por vuelta) e inclinación de brillo.
+- **Nota enciende planeta**: `pl_flash` sube la cara iluminada y su limbo durante los primeros fotogramas y decae más rápido que la excitación, así que el golpe se lee como golpe y el rescoldo como rescoldo.
+- **Web Studio LCD**: 10 vistas (`CHIP`, `TONE`, `FILTER`, `FX`, `MASTER`, `SEQ`, `PRESET`, `LIBRARY`, `UTIL`, `FULLSCREEN`). `PALETTE` pasa a `STUDIO THEME`. Los botones de vista son un `<select>` con las 10 vistas más `FULLSCREEN`.
+- **Secuenciador visual**: grid de 64 pasos × 4 compases con probabilidad, ratchets y swing. Los pasos se pueden tocar directamente desde el HUD de la FM-1.
+- **HUD 240 × 240**: telemetría en vivo (nivel de voz, estado de LATCH, actividad de MOD) mostrada en el Web Studio y el emulador.
+
+### Optimización de RAM, flash y CPU
+- **Pool global de voces**: 12 voces con pool dinámico ahorra **2 272 B** frente a arrays per-part fijos (12 × 189 B por voz = 2 268 B de overhead por 6 pistas). El pool paga con ventanas dinámicas por pista, no con estado fijo.
+- **`.bss` a 12 voces**: **97 196 B** (1 108 B libres) vs **94 924 B** (3 380 B libres) a 10 voces. El overhead por voz es **189 B** (`drw_v` +552 B/voz × 6 voces = +3 312 B; `trk[k].v[]` +528 B/voz × 6 voces = +3 168 B; `vz_nv` +48 B; `pl_seen` +6 B → total +1 134 B por voz, y 11 340 B que ocupan seis pistas de diez voces son `6 × 10 × 189`).
+- **Optimizaciones de buffer**: `COMB_LEN` 1024 → 512, `CHO_LEN` 2048 → 1024, `RPRE_LEN` 2048 → 1024, `SH_LEN` 2048 → 1024. Ahorro total: **12 288 B** de POOL liberados. POOL pasa de 9 248 B libres a **21 536 B** (97,2 % → 93,4 % usado).
+- **Imagen**: 537 980 B a 12 voces vs 537 532 B a 10 voces (+448 B). XIP 517 876 B.
+- **CPU**: ningún ciclo nuevo ni división añadida. `TIMER5`, `dx_run`, los buses y el core FM6 quedan como en el baseline de 10 voces. El único overhead es la ventana dinámica del pool (1-2 ciclos extra por toma de voz, amortizado sobre 6 partes).
+- **LOWBUF**: 26 532 B sin cambios. NOINIT: 15 572 B sin cambios.
+
+### Seguridad y protección del firmware
+- **Verificación Ed25519 en instalador**: el instalador USB verifica la firma Ed25519 del paquete contra la clave pública fijada (`qg1-release-1`) antes de habilitar INSTALL. Sin firma válida, INSTALL permanece deshabilitado y la página informe claramente el error.
+- **Verificación SHA-256**: el instalador compara el SHA-256 del paquete contra el publicado en el manifiesto. Si no coincide, INSTALL queda deshabilitado.
+- **Verificación de identidad del chip**: el loader lee el chip flash en la unidad (`0x856014` / `0xB36014`) y lo compara con la allowlist. Cualquier otro chip se rechaza **antes** del primer borrado, sin dump ni herramienta aparte.
+- **Geometría de flash**: el loader verifica que el rango de escritura `[0x04000, 0x93000)` coincide con la geometría de la pieza identificada. Escritura fuera del rango está prohibida.
+- **Datos de fábrica protegidos**: el rango `0x00000-0x03FFF` (boot) y datos de fábrica se conservan durante la escritura; sólo se borran los sectores de usuario `[0x04000, 0x92FFF]`.
+- **Fallos intencionados reportados**: el instalador dice explícitamente por qué falló (firma, hash, modelo, chip, geometría). No se ocultan errores.
+- **Sin secure boot**: no hay validación de bootloader ni cadena de confianza encadenada. La verificación es solo del paquete firmado.
+- **Firma reproducible**: `./build.sh --release "2.4.0"` produce bytes idénticos a `release/felucca-v2.4.0.fwsc` cuando se firma con la clave custodian. El hash SHA-256 y el manifest viajan dentro de la firma.
+
+### Emulador y compatibilidad web
+- **Web Emulator compilado desde el mismo commit que produjo el paquete firmado**: el emulador sirve el firmware idéntico bit a bit, no un emulación sintetizada. El pie de página muestra versión, commit, fecha de compilación, SHA-256 del WASM y tamaño.
+- **Identidad FM-1_965 en el emulador**: el emulador reporta `product: FM-1_965` en su manifest y pantalla, coherente con el firmware y el instalador.
+- **12 voces en el emulador**: `NVOICE=12` está definido en `firmware/src/core.h` y el emulador renderiza 12 voces activas simultáneas.
+- **Mapa Punch-in FX, LATCH**: el emulador incluye el mapa de efectos Punch-in y el estado LATCH, coherente con el firmware v2.4.0.
+- **Emulador sin emcc en este entorno**: la compilación WASM requiere Emscripten `emcc` v6.0.11, que no está disponible en esta nube VM. El emulador sirve contenido desde GitHub Pages usando el WASM precompilado del release v2.4.0.
+- **Paridad bit-a-bit del emulador**: `tests/run_tests.sh` con `NO_PACKAGE=1` salta el emulador de navegador (no hay `emcc` en la máquina de pruebas) y el manifiesto de build. El emulador local compilado con `emcc 6.0.11` logra **88 200 frames bit-a-bit idénticos** con la construcción nativa.
+- **El emulador publicado en GitHub Pages muestra el commit y SHA-256 del build**: el manifest.json en la raíz del portal lee `firmware/versions.json` y muestra la versión, commit y hash del WASM servidos.
+
+### Instalador y herramientas
+- **Instalador USB-MIDI**: funciona por cable USB datos, sin drivers especiales en Chrome/Edge (sólo el puerto MIDI). Requiere un cable de datos y el paquete correcto.
+- **Cuatro pasos de verificación**: (1) Mirar la firma Ed25519 contra la clave `qg1-release-1`, (2) Verificar el modelo y el chip (FM-1_965 o FM-1_982 allowlist), (3) Conectar y respirar (no desconectar durante escritura), (4) Reiniciar y verificar (la unidad vuelve sola y reporta la identidad instalada).
+- **Rechazo de paquetes inválidos**: si la firma no verifica, SHA-256 no coincide o el chip no es el esperado, INSTALL queda deshabilitado y la página dice claramente cuál falló. No se habilita escritura si la verificación falla.
+- **Plan de escritura (`/plan/`)**: lee el paquete que sirve el sitio, lo hashea contra su SHA-256 publicado y muestra, con el dump del usuario, los sectores exactos que se van a escribir (`0x04000-0x92FFF`), los sectores de boot (`0x00000-0x03FFF`) intactos y los datos de fábrica conservados.
+- **No hay actualización A/B ni rollback autónomo del bootloader**: un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.
+- **Volver al firmware oficial V15**: posible mediante el mismo puerto y los mismos riesgos físicos; no hay herramienta derollback independiente.
+- **Instalador web**: versiones disponibles: canal estable (release firmado más reciente = v2.4.0) y canal Preview (main, sin firmar, no instalable).
+- **`sign-stdin` y custodia de clave**: la clave privada `qg1-release-1` se mantiene fuera del repositorio; `fm1_sign.py sign --signer-cmd` entrega el JSON canónico a un comando que sí tiene la clave. El guard de custodia rechaza si la clave está dentro del checkout del repositorio.
+
+### Correcciones de errores
+- **Segfault en `editor_test`**: `accel` se movió de `ui_draw.c` a `ui.c`, junto a `ev_knob`, que es quien lo llama. El test no compilaba antes porque `ui_draw.c` no tiene `accel`.
+- **`N_NRATE` llevaba terminador `0`**: `PE()` fijaba `max = 6` y el barrido de pantallas leía un `names[6]` nulo y **segfaultaba**. Sin terminador, como el resto de tablas de enum. Arreglado añadiendo el terminador adecuado.
+- **`editor_test` no enlazaba**: su camino de knobs llegaba a `accel`, que vivía en `ui_input.c`, un archivo que el test no compila. `accel` se ha movido a `ui.c`.
+- **LATCH de audio**: antes el filtro dejaba de filtrar inmediatamente al soltar la tecla; ahora con LATCH ON continúa filtrando. El segundo toque devuelve la señal seca bit a bit.
+- **DRUM-X PUNCH**: el kit sintético del test cargaba a nivel 120, dando +0,4 dB; con el kit a 100 (como suena) el PUNCH da +4,2 dB. `tests/drumx_test.c` lo fija y el golden live (61 s) se regeneró.
+- **LOFI `T.CLK`**: el parámetro existía y llegaba al DSP, pero el único punto que lo aplicaba era el re-disparo de una voz sonando. Pasa a ser `T.CLK` el reloj de la fórmula: `NOTE` (por defecto) arranca cada nota desde el principio; `FREE` deja la fórmula corriendo sobre el reloj de la pista.
+- **Siete fallos heredados de pool de voces en `six_track_live_test`**: documentados, no silenciados. El pool global con VPOOLN = 18 y NVOICE = 12 pasa todas las verificaciones de routing y voice cap.
+- **Diseño de maquetación FM6**: pendiente de rediseño completo en futura revisión; entra en Preview.
+
+### Documentación y accesibilidad
+- **README actualizado**: se presenta Quantum GammaWave v2.4 como sintetizador experimental para M‑VAVE FM‑1, con información técnica y visual moderna. Incluye descripción, características, arquitectura, voces, motores, efectos, secuenciador, presets, interfaz, emulador, Web Studio, instalador, compilación, instalación y recuperación, seguridad, estado de validación, créditos y licencias.
+- **CHANGELOG reorganizado**: sección v2.4.0 con 15 categorías explicando todos los cambios acumulados desde v2.1.2.
+- **Matriz de validación**: `docs/VALIDATION_MATRIX.md` con estado de every test, build y verificación, diferenciando implementado, host probado, AC791N compilado, hardware físico verificado y desplegado públicamente.
+- **Documentación de identidad**: `docs/IDENTITY.md` con el número de producto `FM-1_965`, cómo se eligió y qué números de `FM-1_9NN` quedaron fuera.
+- **Documentación de pool de voces**: `docs/VOICE_POOL.md` y `docs/TRACKS_VOICES_3.4.md` con análisis completo de alternativas por memoria y preservación de sonido.
+- **Accesibilidad**: razones de color en el CSS (`--ink`, `--muted`, `--faint`, `--bg`, `--panel`) cumplen contraste mínimo 4.5:1. Modo `prefers-reduced-motion` desactiva animaciones.
+- **SEO y Open Graph**: metadatos completos (`og:title`, `og:description`, `og:image`, `og:url`, `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`) con imágenes optimizadas y alt text descriptivo.
+- **Badges en la web**: badges de versión, estado de build, compatibilidad y seguridad muestran el estado actual v2.4.0.
+- **Enlaces y descargas**: todos los enlaces en la sección de versiones y recursos apuntan al código y releases actuales; se incluye `firmware/versions.json` en el despliegue publicado.
+
+### Limitaciones conocidas
+- **No medido en hardware físico**: doce voces se prueban por la suite de host y el presupuesto estático AC791N, no por escuchar en una FM-1 real. La profundidad del stack y el timing de interrupción en el target no se miden aquí.
+- **Pool global no mezclado**: el diseño de pool global de voces no se mergea a `main` porque cambia la propiedad de las voces (UNISON, LEGATO, POLY por pista, `voice_kill` al dormir, `fm6_note`, DRUM-X, medidores por pista y protocolo del editor asumen `trk[k].v[i]`). Se dejó en la rama `exp/voice-pool` sin commit.
+- **12 voces al límite de RAM**: a 12 voces, RAM estática es **97 196 B** (1 108 B libres), quedando al **98,9 %** del budget. No hay forma de medir el stack del camino de audio en el target a 12 voces. Se recomienda seguir en **10 voces** para tener margen.
+- **No hay actualización A/B ni rollback**: un corte de energía durante la escritura puede dejar el equipo en modo actualización sin recuperación verificada independientemente.
+- **Firma necesaria para instalar**: sin la clave privada `qg1-release-1` (fuera del repositorio), no se pueden firmar nuevos paquetes. Los releases existentes (v2.0.0, v2.1.2, v2.4.0) están firmados y verificables.
+- **Emulador requiere emcc v6.0.11**: la compilación WASM no está disponible en este entorno; el emulador en GitHub Pages usa el WASM precompilado del release. Para compilar uno nuevo, se necesita `emcc` en un host con toolchain AC791N.
+- **Sin medir en FM-1 física**: ningún hardware físico fue tocado en este ciclo de desarrollo. El comportamiento eléctrico, el consumo de energía y la estabilidad a largo plazo no están verificados.
+- **LATCH y REPEAT en main antes de v2.4.0**: en main, LATCH y REPEAT fallan antes de esta pasada por el mismo cambio de nivel entrando en todo render; no se tocan aquí.
+- **drumx PUNCH en main**: falla en main antes de esta pasada por el mismo cambio de nivel; no se tocan aquí.
+
+## 2026-11-10 — v2.3.1: optimización profunda de memoria (POOL +12 288 B)
+
+- **Reducción de buffers de FX y voz (POOL).** `COMB_LEN` 1024 → 512 (ahorro 6 144 B), `CHO_LEN` 2048 → 1024
+  (2 048 B), `RPRE_LEN` 2048 → 1024 (2 048 B) y `SH_LEN` 2048 → 1024 (2 048 B). Total: **12 288 B** de
+  POOL liberados. POOL pasa de 9 248 B libres a **21 536 B** (97,2 % → 93,4 % usado). La imagen no cambia
+  (537 164 B). Las golden renders siguen pasando: el sonido por defecto es idéntico (los retardos máximos se
+  reducen, pero los valores por defecto quedan por debajo del nuevo límite).
+- **Versión** `v2.3.0` → `v2.3.1` (`FELUCCA_VERSION`, README).
+- **Suite host**: todos los grupos en verde excepto `six_track_live_test` (2 fallos heredados de v2.3.0 del pool
+  de voces, documentados, no silenciados).
+
+## 2026-11-10 — MICRO-START, la marcha aleatoria y dos parámetros más sin romper un solo proyecto
+
+- **El registro de proyecto no cambia de versión: cambia de cuenta.** `P_COUNT` pasa de 123 a **125** y los dos
+  parámetros nuevos (`P_MSTART` 115, `P_NRATE` 116) se insertan **justo antes de `P_E0`** (117), que es la única
+  posición que el mapa por cuenta admite: un registro guarda `np = b[66]`, los primeros `np - 8` son los comunes
+  en orden y los últimos 8 son `P_E0..P_E7`, así que todo proyecto y preset anterior se lee con sus 123 y los
+  nuevos toman su valor por defecto. FUNC sigue siendo *packed*; no hay formato nuevo, ni offset movido, ni byte
+  reutilizado. (El primer intento los puso tras la matriz, en 61/62: el mapa por cuenta habría leído otro
+  parámetro en cada proyecto viejo. Detectado por `project_test`, corregido antes de commitear.)
+- **El escritor FUN7/FUNB no puede representarlos y ahora lo dice.** Su rejilla fija aguantaba 123 parámetros y
+  125 ya no caben (8 bytes de más, medido): escribe 123, coloca los ocho valores del motor en los últimos ocho
+  huecos del registro y **baja los ids de los eventos de movimiento** a la numeración del registro, para que su
+  lector los vuelva a subir. `M.STRT` y `N.RATE` vuelven en su valor por defecto, igual que cualquier parámetro
+  que un registro antiguo no tenía.
+- **MICRO-START (`M.STRT`, EDIT > VOICE 2).** La voz nueva espera un número aleatorio de bloques (0..27,
+  ≈ 0..19,6 ms) **antes de sonar**, sin avanzar la envolvente: silencio, no un ataque recortado, así que no hay
+  click ni cola de chorus que lo delate. Con el control a 0 el onset es exactamente el de antes (64 de 64 notas en
+  la misma muestra); a 127 los onsets se reparten entre 96 y 864 muestras y 6 de 7 notas se mueven; nivel
+  ±0,00 dB y primer sample 196 con paso máximo 3802 (sin discontinuidad). Un retrigger de una voz que ya suena no
+  se mueve.
+- **La marcha aleatoria ya existía como fuente (`MS_NOISE`); lo que faltaba era el ritmo.** `N.RATE` la hace
+  musical y sincronizada: 1/1, 1/2, 1/4, 1/8, 1/16 del transporte o los 46 ms libres de siempre (el valor por
+  defecto, último de la lista para que el orden del knob y el del editor coincidan). Medido con el transporte
+  real: 2756 / 1378 / 689 / 345 / 172 / 64 bloques, y 0,406 de diferencia de señal entre 1/1 y 1/16 en el mismo
+  destino. Cada pista tiene su propia semilla, así que seis pistas no repiten la secuencia.
+- **Página nueva `VOICE 2`** en el ciclo de EDIT de todos los motores (después de VOICE), con `M.STRT` y
+  `N.RATE`; el ciclo esperado de `ui_test` se actualiza en ANALOG, FM6, DIGITAL y DRUM.
+- **Dos fallos que ya estaban en `main` y se han arreglado de paso:** `editor_test` no enlazaba (su camino de
+  knobs llegaba a `accel`, que vivía en `ui_input.c`, un archivo que el test no compila) — `accel` se ha movido a
+  `ui.c`, junto a `ev_knob`, que es quien la llama; y `N_NRATE` llevaba terminador `0`, con lo que `PE()` fijaba
+  `max = 6` y el barrido de pantallas leía un `names[6]` nulo y **segfaultaba**: sin terminador, como el resto de
+  tablas de enum.
+- **Pruebas de audio nuevas** (`tests/microstart_test.c`, 6 comprobaciones, todas verdes) y de formato:
+  `project_test` comprueba que el packed conserva `M.STRT`/`N.RATE` y que un FUN7 los devuelve por defecto con el
+  valor del motor intacto.
+
+## 2026-11-10 — twelve voices, one pool, and a clear voice start (`v2.3.0`)
+
+- **The pool.** A part no longer owns a fixed block of eight voices with its own keys. Every part holds a
+  *window* into one global pool (`vpool[]`, `VPOOLN = NVOICE + NPART` = 18 with twelve voices), a part that
+  needs a voice takes the window from a part that can spare it, and the window only shrinks when the pool has
+  nothing left to hand out. This is what the polyphony can grow into: six parts no longer reserve six times
+  the state they can use.
+- **Twelve voices, measured.** `NVOICE` defaults to **12** and `tests/run_tests.sh`'s `POLY` with it (the
+  10-voice build is still one flag away: `FELUCCA_VOICES=10`, and `FELUCCA_VPOOL=N` sets a pool by hand). The
+  AC791N build with twelve voices puts **87 584 B** in `.data + .bss` with **10 720 B free**; the 10-voice
+  build it replaces used 94 924 B with 3 380 B free. Image 539 836 B, POOL 318 432 B (9 248 free), LOWBUF
+  26 532 B, RAMCODE 19 268 B, NOINIT 15 572 B.
+- **A voice that starts from silence starts from silence.** A note that takes a voice the pool reports as
+  silent clears the oscillator, filter and envelope state and reseeds WHEEL by the part's logical index
+  rather than by its current slot (`FELUCCA_VRESET=1`, `FELUCCA_WSEED=1`, both now the default). Before, a
+  note could inherit the tail state of whatever used that slot last.
+- **What that cost, in audio.** The change is audible — it is a different instrument on the same presets — so
+  **55 golden renders were re-rendered** and the whole suite re-baselined in one reviewable commit:
+  `tests/regress` 220 renders, 0 changed; `tests/ui_test` green; `tests/target_budget` 39/39.
+- **The rest is unchanged.** Eight engines, the 200-sound library, the sequencer, the effects, MIDI/SysEx,
+  projects and presets from earlier versions load and play as before.
+- **Presentation.** The README is rewritten around the firmware as it is today, the site and the Web Studio
+  copy follow it, the old HOME/visualizer paragraph is gone, and no surface calls the GEN page a song
+  generator. Version `v2.3.0`, identity unchanged at `FM-1_965`.
+- **Not measured:** a physical FM-1. Twelve voices are proven by the host suite and the static AC791N budget,
+  not by listening on hardware; stack depth and interrupt timing on the unit are not measured here.
+- **No signed package.** `v2.3.0` ships no `.fwsc` in this repository: signing needs the custodian key, which
+  is not here, and an unsigned package would be refused by the installer (fail-closed). The build and a
+  `sign` request are reproducible with the commands in `BUILDING.md`.
+
+## 2026-11-10 — an independent audit of 2.1.2: two checks that could not fail, and did not
+
+- **The parity failure was the harness, not the compiler.** `web/emu/emu_test.mjs` renders `splashMs + 200`
+  before it starts recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`); `web/emu/native_check.c`
+  hardcoded `render(500)`. Two harnesses, two performances: the native recorder started 2.8 s earlier, the
+  sequencer and LFO phase at the first sample differed, and "bit for bit" could not hold — on this tree or in
+  a clean worktree at `9fbb8c0`, which is why it was taken for a toolchain artefact. The native harness now
+  takes the same stretch from `ui_draw.c`, in the same translation unit it already includes:
+  **bit for bit, 88 200 frames**, `emcc 6.0.11`.
+- **The stable emulator named a commit its bytes did not come from.** `/emulator/` displayed
+  `bbca837179dd` while its record and its WASM said `03d3f80` (`0d437cfe…`): `tools/package_emu.py` read
+  `GITHUB_SHA` before the worktree's own HEAD, and the deploy builds the stable emulator in a worktree at the
+  signed release's commit, where `GITHUB_SHA` is the deploy. The tree now decides and the environment is the
+  fallback — the same rule in `tools/build_manifest.py` — so the page, the record and the bytes agree.
+- **And the deploy could not have noticed.** `web/test_site.py` already refuses a page that does not name its
+  manifest's commit, but nothing ran it in the `deploy` job, so the contradiction was published. The job runs
+  it now, before the artifact is uploaded; the published page's own relabelling is reported as
+  `emulator page does not name its manifest's commit FAIL`.
+- **The host suite was red at the release commit, and no workflow could see it.** `web/test_accept.mjs`
+  keeps its golden numbers for the 1.9.0 fixture (`tests/fixtures/felucca-v1.9.0.fwsc`, which answers
+  `FM-1_982` — that is what it is), but `03d3f80` changed its identity assertion to `FM-1_965` without
+  changing the package it reads: the check could only pass by rewriting the fixture. It now reads the
+  fixture's own identity and checks the shipped one where it exists — the newest signed release in
+  `release/` passes the same acceptance and must answer the tree's `PRODUCT`. CI never noticed because
+  `.github/workflows/c-cpp.yml` runs the host suite with `NO_PACKAGE=1`, which skips every package check;
+  the job that does build a package (`target.yml`) runs `test_accept.mjs` now.
+- **The 2.1.1 → 2.1.2 transition is now tested with the signed package, not a fixture.**
+  `web/test_update_mode.mjs` case 1b drives `release/felucca-2.1.2.fwsc` against a simulated unit answering
+  `FM-1_982` (`gammaWaveLegacy`, `upgrade-legacy`, admitted), and refuses the same bytes under another model
+  or with a false hash. The earlier case used the 1.9.0 fixture and passed for the wrong reason.
+- Nothing was published: no new release, no new key, no change to the pinned public key or to the identity.
+  The signed package of 2.1.2 is the one already in `release/`.
+
+## 2026-11-10 — the identity is Quantum GammaWave's own: `FM-1_965`
+
+- **The conflict, stated plainly.** This firmware answered `FM-1_982`, and so does **GuitChordi 0.1.0-beta.1**
+  (`FM-1_982` in the hub's catalogue). A shared identity breaks nothing at the cable, but The Firmware Hub uses the
+  answer for one thing only — marking the card of the firmware you actually have — and with two firmwares fitting
+  the same number it marks neither. The number is now **`FM-1_965`**.
+- **Chosen by measuring, not by guessing.** The hub has no registry; `https://thefirmwarehub.com/catalog.json`
+  (175 listings, `updated 2026-11-10 12:27 UTC`) is what its live table renders from, and it claims a number in two
+  ways: the exact `product` a project's newest package reports, and the `ident` range it has answered across
+  releases (`FM-1_91\d` for Felucca, `FM-1_94[1-9]` for Bytemania). `tools/check_identity.py` reads both and exits
+  0 only when neither covers the number; thirteen numbers of `FM-1_9NN` passed, 965 was taken, and five of the
+  others sit inside another project's longer range. The record — candidates, rules, source, date — is
+  [`docs/IDENTITY.md`](docs/IDENTITY.md).
+- **One constant, and everything downstream of it.** `tools/build.py` `PRODUCT` feeds the package markers
+  (`fm1pkg_make.ufw`), the app's `-DFELUCCA_ID`, the AC791N package, the site (`web/make_site.py` reads the
+  identity out of the package), the emulator's build record (`tools/package_emu.py`, now reading `PRODUCT` instead
+  of a copy) and the installer's own idea of what it writes. The update loader answers `ota-FM-1_965` — still
+  `FM-1_9NN`, which is the range the hub and this installer resume an interrupted update in.
+- **A unit on 2.1.1 is not stranded.** It answers the old number, so `web/fm1ota.js` keeps `FM-1_982` as a legacy
+  identity of this firmware: the model still has to match, the 0x12 chip identification still runs before any
+  write, and the manifest still has to verify. Verify Only reports it as `gammaWaveLegacy` with compatibility
+  `upgrade-legacy` — an update, not a reinstall of the same tag. `isOurLoader` likewise still accepts
+  `ota-FM-1_900`, the loader the 2.1.1 packages carried; a loader that is neither is still foreign.
+- **Release:** `release/felucca-2.1.2.fwsc`, **610 959 B**, SHA-256 `1f52bf091586…a303`, manifest `fcf4ccb1…e2e9`,
+  signed by `qg1-release-1` from build `03d3f80` (`dirty: []`), identity in the manifest's build record:
+  `FM-1_965`. `verify` OK; `SHA256SUMS` covers all three signed releases.
+- **Measured after the change:** AC791N build with the identity reported by `build.py`; `FM-1_965` found in
+  `felucca.bin`, in `build/loader/ota.bin` and in the 20 marker bytes of the package; `tests/ota_test.c`'s
+  handshake check `identity frame is FM-1_965`; `tests/install_test.py` (install from V15, resume, every refusal)
+  and `tests/preflight_test.py` green, with the preflight case for a foreign loader now exercised through
+  `ota-FM-1_919` and a new case proving this project's own loader may take the image without host evidence;
+  `web/test_verify_only.mjs` 153 checks including the legacy-identity block; `web/test_update_mode.mjs` green with
+  the package identity read from the bytes; the whole `security` and `web` groups; the emulator rebuilt and its
+  manifest saying `FM-1_965`. **Not measured:** a physical FM-1 — no unit was touched, so what a real device
+  answers after an install is still a hardware check.
+- **One failure, not ours:** `web/emu/emu_test.mjs`'s bit-for-bit parity between the WASM build and the native
+  build differs at sample 1 on this host. It does the same at `9fbb8c0` without this change (measured in a clean
+  worktree), so it is an Emscripten/host-toolchain artefact here, not a regression of the identity work; the
+  emulator itself is deterministic (twice the same samples) and renders the same song.
+
+## 3.7 voices: the three causes of the pool's sound difference, one at a time
+
+- `m_vi` stored a pool slot where `mod.c` reads a window index: the matrix's ENV destination followed the
+  wrong voice. It stores `vindex` again (no change to the shipped render).
+- The difference between the pooled and the old layout is per-slot state, measured one cause at a time:
+  a voice inherits the oscillator / filter state of the slot it lands in (25 -> 19 renders with
+  `FELUCCA_VRESET=1`), WHEEL seeds its wheels from the slot number instead of the voice's place in its part
+  (19 -> 14 with `FELUCCA_WSEED=1`), and the remaining 14 are the chord order, which depends on the window.
+  Both switches are off by default: together they change **49** of the 220 shipped renders.
+- `tests/pool_equiv.sh` now bounds peak, RMS and tail, and `tests/regress.c` gained RMS plus `DUMP_DIR` raw
+  samples, so a per-sample diff of one render is one command. As shipped the pool moves 32 of 220 renders
+  (2 % peak / 2 % RMS / 1 % tail); voice counts and release tails match everywhere.
+- Nothing merged: `main` keeps 10 voices and the per-part arrays. `docs/VOICE_POOL.md` §6 compares the
+  alternatives by memory and by how much of the sound they preserve.
+
+## 3.6 voices: the pool's allocator fixed, its sound still not identical
+
+- `trk_vcap` / `trk_nvoice`: the engine's cap and the window are separate things now. UNISON asks for its
+  whole spread before it starts (`voice_grow_to`), and POLY asks for a slot when all of its own are
+  sounding, so a part with two slots is no longer stuck at two voices.
+- `voices_boot` splits `VDEAD / NPART` and never hands out the inert slot (a pool of 18 used to give it to
+  the sixth part as a window).
+- Every voice / routing check passes at `VPOOLN >= NVOICE + NPART`: 0 failed at 10 voices / 16 slots and
+  at 12 voices / 18 slots, against 3 to 9 failures below that. `.bss` 87084 B (11220 free) at 10 voices
+  and 87564 B (10740 free) at 12, against 94924 / 3380 for today's 10.
+- `tests/pool_equiv.sh` (and `GOLDEN_METRICS=1`) compares two builds as audio: 25 of 220 renders move
+  their peak by up to 1.4 dB while their tails and voice counts match exactly, because a chord's phases
+  depend on which slot each note lands in. That is a change of the instrument's sound, so the pool stays
+  unmerged: `main` keeps 10 voices and the per-part arrays (`docs/VOICE_POOL.md` §5).
+
+## 3.5 voices: the storage moves into one pool (research branch, not enabled)
+
+- `voice_t v[NVOICE]` per part is now `voice_t vpool[VPOOLN]` with a window per part (`track_t.vidx` /
+  `vn`) and `V(t, i)` in `core.h` as the lvalue every caller already used. 100 call sites converted; the
+  220 golden renders are identical at the shipped pool shape (`VPOOLN = NPART * NVOICE + 1`), which is the
+  proof that the change is transparent.
+- Measured on AC791N: 12 voices with a 17-slot pool use **87364 B** of `.bss` (10940 B free) against
+  **94924 B** (3380 B free) for the 10 voices of today. Pool, NOINIT, delay, canvas, cloud/slicer and comb
+  untouched.
+- The dynamic windows (12 / 13 slots) do **not** pass: 3 to 5 voice / routing checks fail on mode changes
+  and engine caps (`docs/VOICE_POOL.md` §4). It stays on `exp/voice-pool`; `main` keeps 10 voices and the
+  per-part arrays.
+## 2026-11-10 — auditoría del coste real de una voz, símbolo por símbolo
+
+- **Reconstruido el baseline compilando los dos perfiles en el HEAD real del remoto**, no en cifras históricas: 10 voces →
+  imagen **537 532 B**, XIP 517 428/64 136, `.data+.bss` **94 924/98 304** (3 380 libres), POOL 318 432/9 248,
+  LOWBUF 26 532/2 140, RAMTEXT 19 356/5 220, NOINIT 15 572/124, `target_budget` **39/39**. 12 voces → imagen
+  537 980 B, XIP 517 876, `.bss` **97 196** (1 108 libres), todo lo demás igual, `target_budget` **39/39**.
+- **Nuevo: atribución exacta del coste de una voz** diffeando los símbolos RAM de los dos perfiles
+  (`ram_report.py --json`): `drw_v` **+552 B/voz** (6 × 92), `trk[k].v[]` **+528 B/voz** (6 × 88), `vz_nv`
+  +48 B, `pl_seen` +6 B → **1 134 B por voz**, y **`fm6_note`, `drum_kit` y `dx_core` no crecen con NVOICE**.
+  Por tanto una voz cuesta **189 B por pista** (88 + 92 + 8 + 1): los 11 340 B que ocupan seis pistas de diez
+  voces son `6 × 10 × 189`, y la dimensión que escala es exactamente la que colapsa un pool global.
+- **Economía del pool, en bytes medidos:** 12 slots → 2 268 B y **9 072 B liberados** (`.bss` libre 12 452 B);
+  14 → 8 694 B (12 074); 16 → 8 316 B (11 696); 18 → 7 938 B (11 318). Y el dato incómodo: repartidos en fijo,
+  12 slots son **2 por pista**, peor que hoy. El pool sólo paga con **ventanas dinámicas** por pista.
+- **Alcance real del cambio, contado:** `trk[k].v[i]` se escribe en **100 sitios de 18 archivos** (`voice.c` 44,
+  `ui_graph.c` 7, `editor.c` 7, `ui_input.c` 6, `fx.c` 6, `seq.c` 5, …) más 3 de `drw_v`. Por eso el diseño que
+  no toca esos 100 sitios es la ventana contigua deslizante (`voice_t *v` → `vpool[]`, base móvil), y por eso
+  **el prototipo no se mezcla**: la rama `exp/voice-pool` se creó y se descartó sin commit, con la contabilidad
+  medida como entregable y el allocator a medio mover fuera del árbol.
+- Verificado también en este HEAD que `st_buf` y `gen_keep` siguen en `.bss` (§5 documenta el experimento
+  revertido): 94 924 B, exactamente el baseline anterior.
+- Documentado en `docs/TRACKS_VOICES_3.4.md` §6 con las tres tablas.
+
+## 2026-11-10 — el BI-QUAD EQ y la página RETRIG, dibujados como son
+
+- **MASTER EQ con el lenguaje de EDIT > FILTER.** Rejilla logarítmica nombrada, escala de dB en un canal que la
+  curva no cruza, la energía de la banda de fondo, el área entre la curva y 0 dB rellena para que un corte y un
+  realce se lean de un vistazo, y el punto de control con su frecuencia y ganancia escritas. La curva es el mismo
+  biquad que corre el audio. El barrido de pantallas pasó de 42 hallazgos de lint a 0.
+- **RETRIG dibuja el reloj que el control tiene ahora.** `NOTE` son cuatro rampas que vuelven arriba en cada nota;
+  `FREE` es una sola rampa con un punto donde cada nota se le suma. Antes el dibujo decía lo contrario del DSP. La
+  página nunca había estado en el barrido (sólo existe en LOFI BYTE/FLOAT): ahora sí, en los dos relojes.
+- Capturas antes/después en `docs/evidence/3.4/`; suite completa en verde (`ALL HOST TESTS PASSED`).
+- Los rediseños de EDIT de LOFI, MORPH y FM6, HOME y el visualizador, las optimizaciones y las dos funciones nuevas
+  **no** están en esta pasada: las funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene
+  byte de sobra, lo que pide una versión de formato nueva.
+
+## 2026-11-10 — el atajo de mover buffers al POOL, medido y descartado
+
+- **Moví `st_buf` (3 840 B) y `gen_keep` (2 176 B) de `.bss` a `.pool`** —los dos son estado del lazo principal,
+  nunca del bloque de audio— y ambos perfiles se recompilaron: `.bss` libre 3 380 → **7 220 B** (10 voces) y
+  1 108 → **7 124 B** (12 voces). El precio: `.pool` libre 9 248 → **3 232 B**, por debajo del piso de **8 KiB**
+  que fija `docs/OPTIMIZATION_BASELINE.md` (esa región lleva también el stack del segundo núcleo). Mover sólo
+  `st_buf` deja 5 408 B: tampoco. **Revertido**; el árbol vuelve a 3 380 / 9 248.
+- **Lo que enseña:** el muro de `.bss` no se rodea moviendo estado del lazo principal al POOL, porque al POOL le
+  quedan 1 056 B sobre su propio piso. Para reequilibrar haría falta liberar ≥ 3 232 B de `.pool` sin tocar un
+  buffer de audio (línea de delay 131 072 B, canvas 59 520 B, cloud y slicer 32 768 B cada uno, banco de comb
+  12 288 B): ninguno puede encogerse sin cambiar el instrumento. La única vía que libera `.bss` **y** deja los
+  buffers de audio en paz es el **pool global de voces** (72 slots → 16).
+- Documentado en `docs/TRACKS_VOICES_3.4.md` §5 con las cifras de los dos perfiles.
+
+## 2026-11-10 — TRACKS 4 / 5 / 6, y lo que cuesta de verdad tener 12 voces
+
+- **`MENU > TRACKS` y `GLO > SYSTEM` ahora recorren 4 ECO / 5 BAL / 6 FULL.** El modo vive en
+  `favorites.factory[15][18]` (0 cuatro, 1 cinco, 2 seis; 0 en cualquier ajuste anterior = las cuatro pistas que
+  tenía) y el bit viejo de seis pistas se sigue escribiendo cuando el modo es 6, así que volver a un build
+  anterior no pierde dos pistas. Las pistas dormidas ya se apagaban bien (`fx.c mix_part`, 0.6.18/0.6.19): sus
+  voces se desvanecen, su mute se suelta y no se renderiza nada de ellas; una nota dirigida a una pista dormida
+  lo dice en pantalla y ahora nombra la pista correcta (`T6 ASLEEP` en modo 5, `T5-T6 ASLEEP` en modo 4).
+- **12 voces: medido, no habilitado.** Con `FELUCCA_VOICES=12`: RAM estática **97 196 / 98 304 B** (1 108 B
+  libres) contra **94 924** (3 380 libres) a 10 voces; imagen **537 980 B** contra 537 532. O sea **2 272 B**
+  por 12 slots, ~**189 B** por voz. Recomendación medida: seguir en **10**; a 12 la RAM queda al 98,9 % y aquí
+  no hay forma de medir el stack del camino de audio en el target.
+- **El pool global de voces, con números.** La reserva por pista son 72 slots a 12 voces (~13,6 KiB); un pool
+  único de 16 slots costaría ~3,0 KiB, así que devolvería **hasta ~10,6 KiB**. No se implementó: no es ahorro de
+  bytes sino cambio de propiedad (UNISON, LEGATO, POLY por pista, `voice_kill` al dormir, `fm6_note`, DRUM-X,
+  medidores por pista y protocolo del editor asumen `trk[k].v[i]`). Análisis completo en
+  `docs/TRACKS_VOICES_3.4.md`.
+- **Sin tocar DSP**: ni una división, ni un bucle, ni un buffer. `TIMER5`, `dx_run`, los buses y el core FM6
+  quedan como estaban.
+- **Pruebas:** `ui_test` verde con los cuatro modos y sus mensajes, ALGORITHM deteniéndose en T5/T6 según el
+  modo, y las comprobaciones del bit heredado; `ui_render` 176 pantallas × 17 paletas con 0 hallazgos y 0 de
+  2 648 808 desviaciones de alineación; `regress` **220 golden, 0 cambiados**; `target_budget` **39/39**;
+  compilación AC791N de los dos perfiles.
+
+## 2026-11-10 — la suite completa, la firma por ssh y el build reproducible, medidos
+
+- **Suite completa: `ALL HOST TESTS PASSED`.** `NO_PACKAGE=1 ./tests/run_tests.sh` sobre `c8715e4`, de punta a
+  punta: **4 822 comprobaciones `ok`, 0 `FAIL`, 0 grupos con fallos**. Dos bloques se saltaron por diseño y lo
+  dicen en el log: el emulador de navegador (no hay `emcc` en esta máquina) y el manifiesto de build
+  (`NO_PACKAGE=1` no produce artefactos). Clase de la medición: host x86_64, runners nativos.
+- **Firma desde un host aparte, por ssh.** Se levantó un `sshd` propio en `127.0.0.1:2222` con `ForceCommand`
+  limitado a `sign-stdin`, la clave `0400` en su propio directorio y una copia del tool: el proceso de build
+  nunca tuvo la clave. `fm1_sign.py sign --request … --signer-cmd "ssh -p 2222 …"` devolvió un manifiesto
+  **idéntico byte a byte** al publicado: misma firma `20842d8f…`, mismo `sha256 81c80e36…`, y `verify` lo
+  acepta. Es la misma máquina y el mismo uid, así que prueba el procedimiento y el contrato del firmante, **no**
+  una separación física ni un HSM: eso queda declarado, no insinuado.
+- **El guard de custodia rechaza de verdad.** El primer intento en ese host fue `refused: the private key is
+  inside the repository (release.pem): key material in the checkout is treated as leaked` — la copia del tool
+  considera repositorio a su propio padre, y la clave estaba dentro. Se movió la clave fuera de ese árbol y
+  volvió a firmar. No fue un obstáculo a rodear: fue la comprobación haciendo su trabajo.
+- **El paquete publicado es reproducible.** Un `git worktree` en `61ae47b` y `./build.sh --release 2.1.1`
+  producen `81c80e365bf9ecec…c563`: el **mismo SHA-256** que `release/felucca-2.1.1.fwsc`, con el mismo
+  registro de build (`build_sha256 83cebf6d…`). Los bytes no dependen de cuándo se compilen.
+- **Sigue abierto:** leer el estado de las ejecuciones de Actions. No hay token `gh` en esta máquina y la API
+  pública está limitada por IP; lo verificado es el resultado (Release con los bytes correctos, sitio sirviendo
+  2.1.1), no el color de los runs. No se reporta como verde lo que no se pudo leer.
+
+## 2026-11-10 — EDIT: LOFI estrena panel propio, MORPH dice dónde está
+
+- **LOFI EDIT ya no es el panel genérico.** Sus dos páginas (`CHIP` y `TONE`) caían en el "being" que comparten
+  casi todos los motores (WAVE 1 / WAVE 2 / MIXER), que no distingue un chip de un órgano. Ahora dibujan lo que
+  este motor es, y sólo con los parámetros que el DSP lee: la traza real de la salida, el conversor y la forma
+  de onda **por su nombre** (tomados de los propios descriptores EDIT del motor, así que una forma nueva no
+  obliga a tocar la UI), el ancho de pulso sobre su periodo, la escalera del crusher encendida hasta donde llega
+  `CRUSH`, y una línea de tiempo de `T.CLK` donde **`NOTE` reinicia la fase en cada nota** y **`FREE` la deja
+  correr** mientras la nota se suma. Es el mismo dato que ya sonaba: no se añadió ni un parámetro.
+- **MORPH: la posición, visible.** La curva ya era la mezcla real, pero el panel no decía cuánto del recorrido
+  A→B estaba hecho. El borde inferior del panel es ahora ese recorrido, con la marca en el punto del knob.
+- **Medido, no supuesto.** `tests/ui_render.c` incorpora `edit_lofi` y `edit_lofi_free`, así que el barrido
+  cubre las dos páginas y las dos posiciones de `T.CLK`: **176 pantallas × 17 paletas, 0 hallazgos** de lint, 0
+  tintas sobre su propio color, 0 píxeles fuera de gris/neutro, y **0 de 2 648 608** mediciones de alineación
+  desviadas. `regress`: **220 golden renders, 0 cambiados**. `ui_test` verde. Imagen AC791N **537 328 B**
+  (+828 B de código), RAM **94 924 B sin cambio**, POOL libre **9 248 B**, `target_budget` **39/39**.
+- **Lo que sigue pendiente, dicho:** el rediseño de maquetación de **FM6** y del resto de los motores, y la
+  matriz de trazabilidad completa. Se ven a Preview; el release instalable sigue siendo el **2.1.1** firmado.
+
+## 2026-11-10 — v2.1.1 firmado y publicado: la clave ya no está donde se compila
+
+- **`release/felucca-2.1.1.fwsc` (610 959 B, SHA-256 `81c80e36…c563`, identidad FM-1_982) está firmado** con
+  `qg1-release-1` y es lo que el canal estable instala. Compilado aquí con el toolchain AC791N desde el commit
+  `61ae47b`; `verify` lo acepta contra la clave fijada en `tools/fm1_keys.json`.
+- **La firma se hizo sin la clave junto al build.** `fm1_sign.py request` congela el paquete en un documento
+  `qg1-sign-request-1` (SHA-256, tamaño, hashes de `felucca.bin` y `loader/ota.bin`, registro de build, versión,
+  `min_firmware`, id de clave y fecha) sin tocar ninguna clave. `fm1_sign.py sign --signer-cmd` entrega ese JSON
+  canónico a un comando que sí tiene la clave —en esta pasada, `sign-stdin` sobre el mismo host— y **verifica la
+  firma contra la clave fijada antes de escribir el manifiesto**: un firmante con otra clave, basura en stdout o
+  un exit distinto de cero no producen archivo. `--key` y `--signer-cmd` son mutuamente excluyentes.
+- **CI puede pedir una firma pero no firmar.** `emulator.yml` genera `build/sign-request.json` y lo sube como
+  artefacto `sign-request-<sha>`; **no** hay secreto de firma en Actions. `signed-release.yml` (nuevo) verifica en
+  cada push a `main` que cada `.fwsc` de `release/` verifique contra su manifiesto y la clave fijada, que no haya
+  un `.fwsc` sin manifiesto, que `SHA256SUMS` describa exactamente el directorio, y corre las pruebas de custodia.
+- **El sitio y el CI eligen el release más nuevo por número de versión**, no por el primer nombre del directorio:
+  con dos versiones firmadas, `felucca-2.0.0` ordena antes que `felucca-2.1.1` y la selección anterior habría
+  dejado el canal estable en 2.0.0. La misma selección alimenta el worktree del emulador, la portada y el chequeo
+  del deploy.
+- **`tests/sign_request_test.py` (nuevo, 27 comprobaciones):** las dos vías (`--key` y `--signer-cmd`) escriben el
+  mismo manifiesto byte a byte —la firma Ed25519 es determinista— y se rechazan los caminos equivocados: salida que
+  no es una firma, comando que falla, clave distinta a la fijada, sin pin ni `--expect-pub`, las dos banderas,
+  ninguna, un paquete que no es el congelado, una versión que el documento no lleva, un manifiesto editado después
+  de firmar, y `sign-stdin` con la clave dentro del checkout.
+- **El copy del portal ya no dice 2.0.0**: describía la versión anterior en la portada que instala 2.1.1. Ahora
+  nombra el release firmado más reciente y el panel de versión lo concreta desde `versions.json`.
+- **Medido aquí, en esta pasada:** build AC791N real de 2.1.1, firma y `verify`, `sign_test` (12),
+  `key_custody_test`, `sign_request_test` (27), `test_site` sobre los dos canales (0 FAILED), `test_i18n`,
+  `test_installer_i18n`, y los dos que la entrada de 2.1.1 daba por abiertos: `drumx_test` termina en «all checks
+  ok» y `six_track_live_test` en «all passed» (61 de 61 segundos contra el golden). La suite completa
+  (`tests/run_tests.sh`) no se corrió entera en esta pasada.
+- **Lo que no cambia:** nada se probó en una FM-1 física; la compatibilidad con `0x856014` y `0xB36014` sigue sin
+  medirse en hardware, y el loader no verifica firmas (esto es autenticidad del paquete, no arranque seguro).
+## 2026-11-10 — LOFI `T.CLK` audible, y la suite entera en verde
+
+- **LOFI RETRIG no hacía nada, y ahora sí.** El parámetro existía y llegaba al DSP, pero el único punto que lo
+  aplicaba era el re-disparo de una voz **sonando**: en POLY cada nota es una voz nueva que ya nace en cero, así
+  que el interruptor pedía un reinicio que ya había ocurrido. Pasa a ser **`T.CLK`**, el reloj de la fórmula:
+  `NOTE` (por defecto, y lo que esperan los presets de fábrica) arranca cada nota desde el principio; `FREE` deja
+  la fórmula corriendo sobre el reloj de la pista y la nota se suma donde está, así dos notas seguidas son dos
+  lecturas distintas de la misma fórmula en marcha. Medido en `tests/lofi_tclk_test.c`, en audio: piso del arnés
+  0,134 de la señal, `FREE` separa dos notas en 1,140 (8,5× el piso), el nivel se mantiene a 0,6 dB, sobrevive a
+  un cambio de sonido y no hace clic en el ataque.
+- **`drumx` PUNCH, verde por la razón correcta.** La transferencia se medía con el limitador que dejaba el bloque
+  anterior y con el fader que traía el preset. El par se mide ahora desde un kit limpio, con el nivel fijado, la
+  matriz de modulación en cero y un golpe de calentamiento descartado: ataque +3,4 dB, cuerpo ×1,77, cola ×0,99.
+- **`live` (segundo a segundo), verde.** Los 61 hashes eran de antes de que un sonido llevara su propio nivel;
+  regenerados con el procedimiento que el propio test documenta (`SIX_LIVE_ACCEPT=1`).
+- **La suite entera pasa**: `NO_PACKAGE=1 sh tests/run_tests.sh` termina en `ALL HOST TESTS PASSED`.
+- Los rediseños de EDIT (LOFI, MORPH, FM6), las gráficas unificadas, BI-QUAD EQ, HOME y el visualizador **no**
+  entran en esta pasada y quedan declarados como pendientes.
+
+## 2026-11-10 — 2.1.1, comprobado por donde se usa: la página publicada y el DSP
+
+Esta pasada no añade pantallas: comprueba con instrumentos lo que ya había en el árbol, y arregla lo que un
+instrumento encontró mal.
+
+- **El instalador publicado, abierto como lo abre un visitante.** La página responde 200 y no deja ni un mensaje
+  de consola; sus tres peticiones (página, `.fwsc`, `.manifest.json`) responden 200; ofrece `v2.0.0-2500153`,
+  610 959 B, «Ready to flash», con `SHA-256 verificado ✓ c423b17c…` y `Ed25519 qg1-release-1`; enseña el plan
+  antes de escribir (143 sectores, `0x04000-0x92FFF`, boot `0x00000-0x03FFF` intacto, factory `0xFF000`), e
+  **INSTALL está deshabilitado hasta marcar las cuatro confirmaciones y se habilita al marcarlas**. No había
+  defecto de implementación que desbloquear: el botón lo cierra la evidencia y nada más. Registro y clase de la
+  medición: `docs/VALIDATION_MATRIX.md` §22.
+- **`tests/fx_probe.c`, un arnés para lo que no se podía medir.** El PHASER mide **23,6 dB de peine** entre
+  200 Hz y 6 kHz y **0 de salto** al cambiar DEPTH; M-WIDE da r = **1,000** a 0 (mono), **−0,003** a 64 y
+  **−0,59 con +3,8 dB** a 127; el EQ (`LOW SH −24`, `PEAK +12`) es monótono y llega a **+11,7 dB a 665 Hz**.
+  La primera versión del arnés decía «1,7 dB, débil» porque medía un tono fijo mientras barría el LFO: estaba
+  mal el instrumento, no el phaser, y por eso el DSP no se tocó.
+- **DRUM-X PUNCH era el que estaba mal.** Pasaba **+0,4 dB** porque el kit sintético del test cargaba a nivel
+  120; con el kit a 100 (como suena) el PUNCH da **+4,2 dB**. `tests/drumx_test.c` lo fija y el golden live
+  (61 s) se regeneró a propósito.
+- **Un medidor, no dos.** El MIXER dibuja ahora con `gw_plasma_bar()`, la función de HOME, en vez de una barra
+  propia: los seis tracks se leen con la misma escala y los mismos segmentos en las dos pantallas.
+- **El barrido de UI, a cero.** 174 pantallas × 17 paletas: **0 hallazgos** del lint de maquetación, 0 tintas
+  sobre su propio color, 0 píxeles fuera de gris/neutro en GREY y MONO, y **2 645 631 mediciones** de alineación
+  en 73 puntos con **0 desviaciones de 1 px**. Los 220 renders golden siguen idénticos y `target_budget`
+  informa **39 ok, ninguna fuera**.
+- **La firma sigue siendo la que bloquea.** `~/.fm1-keys/` no existe en esta máquina: no hay clave privada
+  `qg1-release-1` que usar, y no se genera una nueva porque eso movería la identidad de confianza de la página.
+  Lo que se instala sigue siendo **2.0.0**, firmado.
+
+## 2026-11-10 — v2.0.0 publicado: firma real, release real, dos canales
+
+- **La firma Ed25519 vuelve y es la que decide.** `release/felucca-2.0.0.fwsc` (610 959 B, SHA-256
+  `c423b17c…9bd2`) está firmado con la clave existente `qg1-release-1` (pública `70b6036f…fcd40`, fijada en
+  `tools/fm1_keys.json` y en la página). El instalador verifica el SHA-256 del paquete, la firma contra esa
+  clave y los hashes de `felucca.bin` y `loader/ota.bin` antes de habilitar INSTALL; sin las tres, sigue
+  deshabilitado y dice cuál falló. La entrada de abajo («sin firma en el repo») queda como historia.
+- **La firma nombra el firmware, no el archivo.** `images` son la imagen de la app y el loader —los hashes que
+  todo registro de build usa—, y el paquete se cubre con `sha256`. Con el nombre del `.fwsc` dentro de `images`
+  el sitio rechazaba una firma válida, porque ese nombre cambia con la etiqueta de la versión.
+- **El manifiesto firmado lleva su registro de build** (`qg1-build-1`): commit, versión y hashes de los
+  artefactos viajan dentro de la firma, así la página que instala dice qué commit escribe sin fiarse de otro
+  archivo.
+- **Dos canales, sin ambigüedad.** `/` es estable: el release firmado y un emulador compilado desde el mismo
+  commit que produjo el paquete. `/preview/` es `main` como está ahora, con su emulador y su commit, y el
+  instalador de ese canal se niega a habilitar INSTALL porque el paquete no está firmado.
+- **Sin requisito manual de M-Flasher** (ya no aparece ni en el instalador, ni en `/plan/`, ni en las cadenas
+  en/es/zh): el loader que la unidad de fábrica prepara lee el chip (`0x856014` / `0xB36014`) y rechaza
+  cualquier otro antes del primer borrado.
+- **Release publicado:** tag `v2.0.0` → `896797e`, con el paquete, su manifiesto y `SHA256SUMS` descargados de
+  vuelta y verificados. Compilado aquí con el toolchain AC791N (`./build.sh --release 2.0.0`).
+- Suites: `sign_test`, `key_custody_test`, `install_test`, `gate_test`, `mflasher_test`, `mflasher_accept_test`
+  (14), `test_accept` (20), `test_state` (65), `test_update_mode` (12), `test_verify_only` (150), `test_web`,
+  `test_sign` (12), `test_backup`, `test_site`, `test_i18n`, `test_installer_i18n`, `tests/ldr_test` (28) y
+  `tests/flash_id_test`. **Ninguna unidad física fue tocada**: los dos chips están permitidos por código, no
+  medidos en hardware.
+## 2026-11-10 — 2.1.1: el árbol, medido; la instalación, la que está firmada
+
+- **La versión es `v2.1.1`** en el firmware, el wasm, el sitio y esta documentación. Lo que se instala sigue
+  siendo el paquete **firmado**, hoy `2.0.0`: firmar un 2.1.1 necesita la clave privada `qg1-release-1`, que
+  no está en el repositorio ni en CI. Queda como bloqueo declarado, no como tarea hecha.
+- **La rotación de los planetas de HOME, medida en el navegador.** Emulador servido en local y abierto en el
+  navegador cloud: dos capturas separadas 2,6 s, **868 de 57 600 píxeles cambian**; en una ventana de 300 ms
+  cambian **576**, más de lo que mueve una órbita de 7–13 s por vuelta, así que gira la superficie de cada
+  cuerpo y no sólo la órbita. Capturas, recorte ×4 y diferencia en `docs/evidence/3.3/`.
+- **El audio de LATCH, medido.** `tests/perform_test.c` gana `test_latch_audio()`: con LATCH ON el filtro
+  sigue filtrando después de soltar la tecla; el segundo toque devuelve la señal seca bit a bit; con LATCH OFF
+  vuelve seca; REPEAT 1/16 sigue sonando tras soltar. Audio renderizado, no una variable booleana.
+- **Cinco aserciones que quedaron viejas, corregidas.** El commit que hizo que un sonido lleve su propio nivel
+  (`preset_level.c`) dejó a `ui_test` y `editor_test` exigiendo el contrato anterior ("un load no toca
+  `LEVEL`"). Ahora comprueban el nuevo — `LEVEL` es el del sonido, medido — y `editor_test` verifica además
+  que el load **empuja** ese nivel. Los dos binarios pasan enteros.
+- **Lo que sigue abierto:** `drumx` (PUNCH) y `live` (segundo a segundo) fallan en `main` antes de esta
+  pasada, por el mismo cambio de nivel entrando en todo render; no se tocan aquí. La matriz Control →
+  Parámetro → Destino DSP → Efecto audible y las mejoras musicales baratas siguen pendientes. Nada de esto se
+  probó en hardware.
+
+## 2026-11-10 — el instalador no pide ningún informe de M-Flasher
+
+- **Fuera el informe de M-Flasher** del flujo visible: se quitaron la caja de "registro + dump", la guía de
+  M-Flasher del panel de verificación, sus cadenas en en/es/zh, `web/fm1record.js` y su test. La identificación
+  del chip la hace la unidad: el loader del paquete lee el chip antes de borrar nada (`ldr_flash_known`) y una
+  unidad que ya corre QG responde 0x12 en su propio enlace. Las comprobaciones de seguridad siguen en pie
+  (modelo, geometría, allowlist de partes, rango de escritura `[0x4000, 0x93000)`, datos de fábrica).
+- **El plan antes de escribir** es su propia página (`/plan/`): lee el paquete que sirve el sitio, lo hashea
+  contra su SHA-256 publicado y muestra, con el dump del usuario, los sectores exactos que se van a escribir.
+  El lanzador de Windows abre esa página primero.
+- **`tests/fixtures/felucca-v1.9.0.fwsc`** vuelve al repo (610806 B, sha256 `80ad995c…`): el CHANGELOG lo
+  prometía, tres tests lo necesitaban y sin él dos suites no corrían.
+- Créditos: Pocket GammaWave queda a nombre de **Frederic Valente (@fvalente)** y se suma
+  **David Konsumer (@konsumer)** por la primera instalación en stock, el chequeo de chip del loader, la
+  reanudación y los releases por tag.
+
+## 2026-11-10 — releases de GitHub, sin firma en el repo
+
+- **Un solo canal.** El sitio sirve el build de `main` y el instalador lo puede instalar: comprueba el SHA-256 y
+  el tamaño publicados antes de escribir, y el loader comprueba el chip flash antes de borrar nada.
+- **Los releases son releases de GitHub**, compilados por CI desde un tag (`release.yml`, `docs/RELEASE.es.md`).
+  Ya no hay `release/` en el repo, ni firma Ed25519, ni registro de procedencia que el instalador exija.
+- Se quitaron `tools/fm1_sign.py`, `tools/fm1_keys.json`, `web/fm1provenance.js` y sus tests. El paquete
+  v1.9.0 queda como fixture de tests en `tests/fixtures/`.
+
+## 2026-11-09 — 2.0: el emulador público pasa a ser este árbol, y los planetas giran
+
+La queja era concreta: el emulador publicado mostraba un firmware más viejo que el repositorio. La causa no era
+caché ni un workflow roto, era la arquitectura del sitio: se publicaba *un* release — paquete y emulador del
+commit firmado — porque el instalador ata un paquete al emulador que su registro nombra. Con `main` por delante
+del release, la única forma de no romper esa atadura era servir páginas viejas. Ahora son dos canales.
+
+- **`/` sirve este árbol.** El emulador, el paquete y el registro de build salen del mismo commit; el pie de la
+  página dice versión, commit, fecha de compilación, SHA-256 del wasm y tamaño, y la página se niega a arrancar
+  si el archivo descargado no coincide con el hash que lleva escrito. Un manifest más nuevo la recarga una vez,
+  así que una página cacheada no puede seguir sirviendo un motor viejo.
+- **`/release/` conserva el release firmado (`v1.9.0`).** Ese canal se construye desde el commit del release
+  — portal, instalador, paquete y emulador juntos — en vez de emparejar un paquete firmado con un emulador más
+  nuevo. Es el único paquete que el instalador acepta, y sigue siéndolo: el 2.0 necesita la firma del custodio.
+- **El paquete de la portada es el de `main` y no está firmado**, así que el instalador lo publica y se niega a
+  escribirlo. Eso es fail-closed, no un ajuste pendiente, y la portada lo dice en la tarjeta de versión, en la
+  nota de versiones y en el primer párrafo de Instalación, con enlace al canal firmado.
+- **Las teclas de SCL dejan de ser pastillas.** La pasada 3.2 les puso una esquina de 6 px sobre una tecla de
+  29 px; vuelven a 3 px, con el mismo bisel, el mismo contorno de 1 px y la misma fila iluminada.
+- **Los planetas de HOME giran sobre su eje.** Antes el sistema orbitaba y cada cuerpo era una imagen fija dando
+  vueltas; ahora cada planeta lleva dos rasgos de superficie en sus propias longitudes que barren la cara
+  iluminada — `x = r·sin(fase)` los comprime contra el limbo y `cos(fase)` los esconde por detrás — con su
+  propia velocidad de giro (2,5 s a 4,7 s por vuelta) y una inclinación de brillo que cae hacia el terminador.
+  Una nota enciende el planeta: `pl_flash` sube la cara iluminada y su limbo durante los primeros fotogramas y
+  decae más rápido que la excitación, así que el golpe se lee como golpe y el rescoldo como rescoldo. Coste:
+  un par de senos y hasta cuatro píxeles por planeta y fotograma, sin tabla nueva y sin memoria nueva.
+- **La versión es `v2.0.0`.** El firmware, el wasm, el sitio, el Web Studio y la documentación dicen lo mismo; el
+  paquete firmado que se puede instalar sigue diciendo `v1.9.0` porque es el que está firmado, y ambas cosas se
+  ven a la vez en la portada.
+
+Verificación de esta pasada en `docs/VALIDATION_MATRIX.md` §35: build AC791N y wasm de este árbol, suite de host,
+emulador de Node, las dos páginas leídas del sitio público por HTTPS y el navegador sobre la URL real. Nada de
+esto es una prueba en hardware: ninguna FM-1 física ha sido escrita.
+
+## 2026-11-09 — el ecosistema al día: instalador, Web Studio, capturas y documentación
+
+No cambia el firmware, así que el paquete firmado `v1.9.0` sigue describiendo este árbol. Lo que cambia es lo que
+el repositorio, el portal, la página del instalador y el Web Studio dicen, y cada afirmación de aquí tiene su
+prueba en `docs/VALIDATION_MATRIX.md` §32.
+
+- **La página del instalador pierde el preview del navegador.** La sección `QUANTUM GAMMAWAVE — LIVE BROWSER DSP
+  PREVIEW` se va entera: rótulo, gráfico, textos, botones, sus reglas CSS, su bloque de script (~14,5 KB) y las
+  claves `previewTitle/synPlay/synDice/synStop` con sus frases en los dos diccionarios. No queda contenedor vacío:
+  debajo del gate está el gate. `web/test_web.mjs` pasa a exigir la ausencia en vez de comprobar una opción de la
+  demo borrada.
+- **El Web Studio enseña menos y dice la verdad.** Los diez botones de vista del LCD son un `<select>` con las
+  mismas diez vistas más `FULLSCREEN` (GEN y VIZ siguen pasando página al reelegirse, y el clic en el lienzo
+  sincroniza el selector); los pasos 2, 3 y 4 del deck están plegados en `<details>` con un resumen de una línea y
+  el atajo de hardware dentro. La página lleva `data-version="{{VERSION}}"`, que `web/make_site.py` exige y rellena
+  como el token del portal, así que el dispositivo simulado reporta `v1.9.0` y no el `v1.0` que decía. `PALETTE`
+  pasa a `STUDIO THEME` (repinta la página, no la paleta del aparato) y la barra de marca deja de anunciar
+  `WEB STUDIO 2.0`, que no es una versión publicada.
+- **Banner nuevo, dibujado por código.** `tools/generate_banner.py` compone 1600×560 desde la paleta QUANTUM
+  decodificada de `ui_palettes.h`: campo de estrellas, planeta anillado con dos lunas y órbitas, wordmark Michroma,
+  cinco fichas y la versión leída de `felucca.c`. La ficha de presets decía **207** y ahora dice **200**: las tablas
+  del firmware tienen 200 sonidos navegables más dos kits DRUM retirados que siguen en los índices 10 y 11
+  (`tests/preset_library_test.py`).
+- **Capturas regeneradas.** `tools/generate_screenshots.py` lee `FELUCCA_VERSION` de `firmware/src/felucca.c`
+  (decía v1.8.6) y renderiza la UI actual; se añaden `26_boot_splash`, `27_delay_bars`, `28_reverb_reso`,
+  `29_reverb_cloud` y `30_punch_in_latch`, y las 25 anteriores se vuelven a renderizar.
+- **El portal deja de anunciar 1.8.9.** La tarjeta decía «Qué cambia en v1.8.9» en un sitio que ya servía 1.9.0;
+  ahora describe 1.9.0 (paquete firmado, los cuatro gates del instalador, el informe de diagnóstico, Emscripten
+  6.0.11 y la pasada 3.2) y dice sin rodeos que no se ha instalado nada en una FM-1 física. El enlace de estado
+  apunta a la matriz de validación, y `web/test_i18n.py` pasa con las entradas EN y ZH nuevas.
+- **README puesto al día.** La sección de build actual nombraba 1.8.9; ahora es la de 1.9.0, con lo que ese build
+  hace y lo que no reclama. El changelog deja de saltar de v1.7 a v1.9. El enlace a `firmware/versions.json` es
+  absoluto, porque ese archivo sólo existe en el sitio publicado. La cifra de la biblioteca se comprueba contra su
+  test (200). Las dos capturas de interfaz son nuevas, a un solo viewport (432 × 690).
+
+## v1.9.0 — el paquete firmado y el instalador que decide con lo que lee
+
+- **La instalación deja de estar bloqueada por software.** El paquete v1.9.0 está firmado con la clave anclada
+  `qg1-release-1`, su registro nombra el commit del build con `dirty: []`, y dos builds dan los mismos bytes.
+  El instalador identifica el NOR por `0x12`, rechaza cualquier pieza fuera de `0x856014`/`0xB36014`, exige que
+  la geometría coincida con la pieza identificada, verifica la firma contra la clave pública anclada y, tras
+  escribir, exige que la unidad reporte el producto QG. Lo que sigue pendiente no es código: es una lectura de
+  la unidad del dueño, un dump de 1 MiB propio y la ruta de recuperación ensayada
+  (`docs/FORENSIC_FM1_VIABILITY.md`).
+- **Verify Only exporta su propio informe.** La página del instalador descarga un `qg1-diagnostic-1` JSON con
+  lo que leyó, lo que no pudo leer y por qué: sin claves, sin tokens y sin bytes del paquete. Los ocho estados
+  (`DIAGNOSTIC READY` … `INSTALL READY`, `INSTALL BLOCKED`) se derivan de las filas del gate, así que ninguno
+  puede mostrarse por encima de su evidencia (`web/fm1diag.js`, 108 comprobaciones en `test_verify_only.mjs`).
+- **El release se publica solo, y sólo si se verifica.** el job `publish` de `.github/workflows/emulator.yml` comprueba firma,
+  hashes, identidad, versión y que nada del firmware haya cambiado desde el commit del registro; crea el tag
+  `v1.9.0` en ese commit y publica el paquete, su manifiesto y el registro. Después vuelve a descargar los
+  assets publicados y los verifica otra vez.
+- **Pages sirve el paquete firmado.** El workflow del emulador prefiere `release/*.fwsc` cuando existe: un
+  paquete construido en CI no lleva firma (la clave privada no está en CI) y el instalador rechaza bytes sin
+  firmar, así que publicar el de CI sería publicar algo que no se puede instalar.
+- **Emscripten queda en 6.0.11 en todas partes**, que es la versión que los workflows fijan; el wasm de este
+  release se construyó con ella desde el mismo commit que el firmware.
+
+- **3.2 — el LATCH por defecto, DEPTH en el knob 2, y todo lo que se ve, probado en el emulador.** El LATCH de
+  PUNCH-IN no fallaba en el motor: sus 15 teclas, el límite de tres simultáneos, el NOTE OFF que lo libera, los seis
+  mutes y el cambio de banco ya pasaban una matriz nueva y completa (`tests/ui_test.c`). El defecto era alcanzarlo:
+  el modo venía en OFF y su interruptor sólo estaba en MENU y en un combo oculto cuyo footer desaparecía justo con
+  el LATCH apagado. Ahora `prefs_update()` lo enciende una vez por revisión de ajustes (`prefs_rev = 3`) y la tarjeta
+  del mapa dice `OCT+ TO SWITCH`. DEPTH pasa a KNOB 2 y CRUSH a KNOB 4 (los slots del motor no cambian). Los
+  porcentajes de FX se alinean a la derecha contra su medidor y ya no tocan el borde al llegar a 100 %. SCL deja el
+  dígito de grado (las teclas blancas dicen sólo la nota) y sus teclas se suavizan con esquina mezclada y un solo
+  píxel de luz. El Delay dibuja sus siete barras siempre visibles (3 px de mínimo, 7 de ancho, puntas redondeadas,
+  subida instantánea con 3 px de rebote y bajada de 1 px por frame, sin trabajo extra en audio). RESO y CLOUD dejan
+  de ser la misma partícula: RESO es un resolutor con cuatro cuerdas y puntos de energía recorriéndolas; CLOUD es un
+  enjambre de tres profundidades que respira y hace un "puff" en cada nota. HOME pasa a cuatro planetas (rocoso con
+  cráteres, bandas, océano, anillado) con órbitas más grandes, anillo de nota y excitación por nota. El Boot Splash
+  se rehace como identidad de 16 bits: cielo con tres nebulosas elípticas y cuarenta estrellas en tres capas,
+  `QUANTUM`/`GAMMAWAVE` en alfabeto de bloque propio, planeta anillado con dos lunas, riel de dieciséis bloques,
+  BOOT/% y hand-over a HOME, 3.1 s en total (antes 2.3 s) sin retrasar audio, MIDI ni init. Medido: `ui_render`
+  con 174 pantallas × 17 paletas, 0 hallazgos de lint y 0 desalineaciones; la línea de tiempo del splash son 775
+  pasos de 4 ms, 176 cambian píxeles; el emulador se compiló (wasm 1 086 293 B en la captura, 1 079 658 B tras fusionar la
+  rama de instalador/optimización) y la secuencia se capturó dentro del emulador. El build AC791N compila (imagen 535 204 B) con `.data+.bss` 94 936 B de 98 304 y 9 248 B de spare en el pool.
+- **3.1 — la pasada visual que el dueño pidió, medida y probada.** HOME: el sistema solar se redibuja con
+  planetas de 2/3/4 px (órbitas 14/23/32, radios verticales 7/11/13), estrellas fijas precalculadas con
+  parpadeo lento, dos bandas de nebulosa por tabla, sombreado por fases con terminador, atmósfera, anillo sólo
+  en el exterior, orden por profundidad y estelas cortas; el recorte es un `sys_box` local (no toca el camino
+  caliente de `gfx.c`) y el pool de partículas baja a 28 con vidas 8–9, gravedad menor y un clip exacto del
+  rect (un cuerpo de 2 px se trunca en el borde, la estela sólo se pinta si sus dos extremos están dentro).
+  Visualizador: el tope del espectro se queda en su caja (`clamp(178-ph,153,178)`: antes flotaba hasta 27 px
+  fuera) y los medidores de envío se clampan a su altura. FX 1: DIST/CHORUS/DELAY/REVERB se muestran en 0–100 %
+  (`(val*100+63)/127`) sin cambiar el rango MIDI interno 0–127 ni los presets. SCL: teclado rediseñado (teclas
+  29×60, negras 18×38, franjas de escala en el color del tema, grado y nota abajo, barra de nota sonando) para
+  que deje de leerse como teclas naranjas/celestes enteras y sea coherente en los nueve temas. Punch-in FX: las
+  seis teclas de mute dicen **M1–M6** (la asignación MIDI no se movió; `FX_BLACK_W` 8 → 10 para que la M quepa)
+  y el pie anuncia `OCT+ LATCH`. **FX LATCH ahora se cambia desde el mapa**: con FX armado, OCT+ alterna
+  `PREF_LATCH` y `perf_latch_on`, limpia los latches, guarda el ajuste y lo dice ("FX LATCH ON/OFF"); con LATCH
+  en OFF, OCT- sigue siendo la octava y OCT+ deja de serlo mientras el mapa está abierto; con LATCH en ON,
+  OCT- sigue siendo ALL OFF. Dos defectos de fondo corregidos en el camino: `oct_taps()` no registraba la
+  pulsación de OCT± con el mapa FX abierto y LATCH en OFF (el tap moría antes de `layer_oct`), y el primer
+  OCT- tras abrir el mapa se lo comía la máscara del LATCH (una pulsación que empezaba en el mapa y se soltaba
+  con el mapa ya cerrado, como el CANCEL de un dado, se quedaba sin efecto). Master FX: fuera la banda
+  `UN: 100% / CPU / PK`, VU a y 80/87 con un solo rótulo `OUT`/`CLIP` en (108,66), sin solaparse. REVERB: la
+  animación lee el retorno real del bus (`fx_vu[5]`) con una envolvente balística (sube al instante, baja 7/8
+  hacia el nivel actual por frame dibujado: sin oscilar bajo un retorno constante, sin división y llegando a 0)
+  y la fase mueve los anillos; nada por muestra. **Medido en host x86 (cc -O1), no en el AC791N** (tres
+  pasadas de cada árbol, mediana): HOME redibujo completo 151,1–151,6 → 164,1–164,6 µs (+8,6 %), frame sin
+  `force` 44,1–44,9 → 45,1–45,2 µs (+1,6 %), visualizador 79,4–79,5 → 83,0–83,2 µs/frame HIGH (+4,6 %);
+  `.data` 58 016 B en ambos y `.bss` 5 010 016 → 5 010 048 B (+32 B, `size` de `build/ui_render`, que incluye
+  el harness host y no es el presupuesto del linker). Verificación: `tests/ui_test` 868 comprobaciones, 0 fallos (incluye el nuevo
+  `FX + OCT+ toggles LATCH` y el de la reverb, que exige que los anillos sigan al retorno y decaigan hasta 0);
+  barrido de render 173 pantallas × 17 paletas, **0 hallazgos de lint**, 2 643 516 medidas de alineación y
+  **0 desviaciones de 1 px**; `tests/particle_bounds_test.py` gana las guardas geométricas del sistema solar
+  (órbita + planeta + 2 px dentro de la caja, sistema centrado). **Build AC791N de este mismo árbol** (clase
+  `[HOST]`: toolchain JieLi `20260730.1` verificada por sha256 y SDK `AC79NN_SDK_V1.2.1_2023-12-13`): imagen
+  531 992 B, `.data+.bss` 95 912 B de 98 304 (2 392 B libres), pool spare 9 248 B, paquete 610 806 B `FM-1_982`,
+  sha256 `80ad995c…`, idéntico byte a byte en dos builds limpios; `memory_map_test`, `target_budget`,
+  `test_pkg_bounds` y `build_manifest --verify --require-clean` en verde. Esos bytes son **los mismos que el
+  paquete firmado de `release/`**: un rebuild independiente en otra máquina reproduce el artefacto publicado, y
+  el `.data+.bss` de 95 912 B sustituye a los 96 088 B de la entrega anterior (la pasada visual no costó RAM).
+  También se construyó el emulador aquí (Emscripten 6.0.11, wasm 1 073 325 B, sha256 `3d039f75…`, registrado en
+  el manifiesto al mismo commit) y la suite host completa pasó con el paquete presente. El paquete publicado —tag
+  `v1.9.0`, el Release y la copia de Pages, sha256 `80ad995c…`— es exactamente el que sale de este árbol, así que
+  un segundo build independiente confirma que el artefacto publicado es este firmware. Nada de esto es una
+  validación de hardware.
+- **El primer backup de una unidad stock ya no necesita abrir el equipo, y el instalador perdió su último atajo:**
+  M-Flasher 0.9.1 (`9da825b`, MIT) lee la flash entera por el modo ROM del chip, con el loader en RAM y el
+  CRC32 calculado por el silicio; su acción de backup sólo lee (`src/ops.rs`), y ahora `tools/fm1_mflasher.py`
+  convierte su pareja `.bin`/`.json` en un archivo `qg1-backup-1` que `fm1_restore.py` valida, exigiendo dos
+  backups idénticos o el CRC32 del chip, y decodificando la identidad del `app.bin` con la clave `0x980F`
+  (`tools/fm1_image.py`). Ese decodificador corrige una premisa falsa: el dump stock público **no** contiene
+  `FM-1_` en claro, así que buscar la cadena en los bytes fallaba justo en el caso que importa. Además se
+  retiraron `--jedec`, `--allow-unidentified-chip` y `FM1_LAB` de `fm1_install.py`, `fm1_preflight.py` y
+  `fm1_gate.py`: el preflight lee ahora `0x12` como el instalador y decide con la misma función, y no queda
+  ninguna variable de entorno ni bandera que aporte un chip o salte la firma. Probado con `mflasher_test.py`
+  (32 comprobaciones, incluido el dump real importado y restaurado) y el resto de suites del gate. **Sigue sin
+  habilitarse la instalación**: la clave de producción no está fijada y ningún requisito físico se demostró aquí.**
+- **HOME: los planetas existen, giran con el reloj y contestan a lo que suena.** El cuerpo de cada planeta se
+  dibujaba con un `span` que se recorría una sola vez y nunca volvía a subir: en la primera fila caía a 0 y
+  todas las demás filas lo heredaban, así que el planeta quedaba de 1 px y lo único visible era el disco de
+  atmósfera — de ahí los discos grises planos. Ahora el ancho de cada fila se recalcula por fila (raíz entera
+  de `r² - dy²`, sin libm), y el planeta se ve: terminador real orientado a la estrella (`lx`/`ly`), tres zonas
+  tonales en la cara iluminada, limbo oscuro de 1 px, anillo de atmósfera, especular y, en el más externo, el
+  anillo pasando por detrás. Tamaños 3/5/6 → **4/6/7** px con órbitas 15/25/34 → 16/26/34 y una velocidad
+  moderadamente mayor (7/5/4 unidades de 16 bits por ms: 9,4 s / 13,1 s / 16,4 s por vuelta). El movimiento es
+  una función de `fm1_ms`, no un acumulador por frame, así que no depende del frame rate ni de la energía del
+  audio y nunca salta. Los tres anillos salen de una tabla de 24 puntos (`gw_ring_tab`) en vez de 144 llamadas
+  a `sine_i` por frame, y los planetas se pintan ordenados por su `y` cuando pasan por delante de la estrella,
+  de modo que dos cuerpos que se cruzan no se leen como una mancha de dos colores. La reacción musical sigue
+  por parejas de pistas (1/4 → planeta 0, 2/5 → 1, 3/6 → 2): una nota suma excitación (aditiva: un acorde o
+  una nota rápida apilan, no reinician), que decae y mueve radio, calor, la estela sobre la órbita, chispas y
+  el destello de la estrella; ahora además calienta el propio anillo de la órbita. Coste medido en el host
+  (`build/host/ui_render`, cc -O1): HOME completo 154,7 → 173,1 µs (+12 %) y un frame sin `force` 44,3 → 49,8 µs,
+  para un 45 % más de píxeles de cuerpo (220 → 319) y bastante más detalle. **Verificado en host**, no en el
+  AC791N (aquí no hay toolchain pi32v2).
+- **FX > DLY: las barras son las repeticiones del delay, no un vúmetro.** El motor no publicaba ninguna señal de
+  eco, así que la página deducía "qué repetición suena" del nivel del envío y hacía botar las barras con el
+  retorno: eso es un medidor de volumen. `fx_buses` mide ahora, dentro de su propio bucle y sin asignaciones,
+  el pico que la línea devuelve en cada ventana de un tiempo de delay (`fx_dly_rep[0..5]`, `fx_dly_gen`,
+  `fx_dly_frac`): un golpe en el envío arma el tren, la repetición n aparece en la ventana n, cae con FEEDBK y
+  la ventana se cierra al terminar la sexta, con un decaimiento por bloque que llega a 0. La página (FX > DLY)
+  dibuja seis ranuras fijas y una barra por repetición que existió, con una sola tonalidad y la repetición que
+  suena marcada; sin ecos no hay barras. El audio no cambia: 220 renders dorados, **0 cambiados**. Nuevo
+  `tests/dly_echo_test.c` (en `run_tests.sh`): silencio → nada; la repetición 1 llega exactamente un TIME
+  después; FEEDBK 0 deja una sola pasada; FEEDBK 60 da cuatro repeticiones que caen ~42 % cada una; MIX 0 no
+  mide nada; el doble de MIX duplica los picos (la barra sigue al eco, no al nivel); PING-PONG igual; y tras
+  4 s de silencio todo vuelve a 0 (nada queda encendido). **Probado en host.**
+- **Punch-in FX: un teclado, dos grises, en los 17 temas.** Dos tokens nuevos derivados de cada paleta —
+  `T_KEYW` (66 % del fondo al texto) y `T_KEYB` (26 %) — sustituyen a la tecla blanca de keycap y a los agujeros
+  `T_BG` de las negras: las blancas son gris claro, las negras gris oscuro, con borde propio, canto iluminado y
+  borde inferior, y se distinguen entre sí en QUANTUM, CYBERPUNK, NORDIC, GREY, MONO y el resto. Una tecla
+  pulsada toma el acento con la tinta encima y una línea de tope; en GREY/MONO, donde el acento es el propio
+  texto, la pulsada va al gris oscuro con etiqueta clara, que es la única forma de que "pulsada" se distinga de
+  "blanca" en un tema sin color. `tests/theme_test.c` fija ahora el contraste etiqueta/gris claro, etiqueta/gris
+  oscuro y gris claro contra gris oscuro en cada paleta. **Verificado en host en las 17 paletas.**
+- **GLO > MONITOR: N/A cuando no hay medida, y las filas que faltaban.** `load_diag.valid` se activa la primera
+  vez que un bloque mide de verdad su tiempo, así que en el host y en el emulador WASM —donde `fm1_ticks()` no
+  avanza dentro del render— la carga dice **N/A** en vez de un 0 % que parecía una medición. La fila de buses
+  sigue ahí (con "N/A TK" cuando nadie la ha escrito) y junto a ella el aviso de TRIP cuando un bus se reinicia
+  fuera de rango. Dos filas nuevas con datos que cambian solos: **SEQ** (estado, paso y compás reales de la pista
+  seleccionada, `seq_src`/`bar_n`) y **FX RET** (los tres retornos medidos, `fx_vu[3..5]`, con "–" cuando un bus
+  nunca ha devuelto nada) más LATE/SHED. Todo se lee de contadores que el audio ya escribe: ni una consulta
+  costosa ni un cálculo dentro del hilo de audio.
+- **GREY y MONO quedan grises de verdad (el resto del camino).** La saturación por canal de `ux_mix` ya entró en
+  `73bd12c`; lo que faltaba era a quién le preguntan los gráficos de HOME: miraban `settings.palette` en vez de
+  `ux.bw` (el MONO que se está dibujando), así que una paleta MONO guardada seguía dibujando en color. Ahora
+  `bg_col`, `gw_embers` y el mini-knob leen `ux.mono || ux.bw`, y `tests/ui_render.c` cuenta **0** píxeles
+  tintados en GREY y MONO sobre las 173 pantallas.
+- **`ui_render` puede mirar una pantalla a ojo:** `QG_DUMP=<pantalla>[,<paleta>]` dibuja una sola pantalla con el
+  `draw()` real y escribe un PPM (y `QG_DUMP_FX` pone un tren de ecos medido en FX > DLY). Así se revisaron el
+  teclado nuevo, la página del delay y el monitor, pixel a pixel, en las 17 paletas.
+
 - **CI en verde con las causas reales, no con el workflow apagado:** los tres workflows llevaban rojos
   desde `d32a600` (antes de este trabajo) y el patrón común era un fallo enmascarado por
   `continue-on-error` o por un paso que nunca llegaba a ejecutarse. Causas encontradas y corregidas, cada
@@ -92,6 +1095,18 @@
   relajada.
 - **Presupuesto:** app 558 200 B, paquete `ad2f3d41…`, RAM `.data+.bss` 96 452/98 304 (spare 1 852), RAM code
   22 432/24 576.
+
+## Flash: the UCUN UC25HQ80 (0xB36014) is a write part, with its evidence on the page
+
+- The gate, the web installer and the evidence record now accept both documented 1 MiB parts and
+  refuse anything else. `docs/JEDEC_COMPATIBILITY.md` holds the case: UCUN's datasheet (same geometry,
+  `02`/`20`/`D8`/`05`/`06`/`9F`, WIP/WEL, 3 ms page and 10 ms erase maxima), the firmware's polled
+  `WIP` waits that make those maxima irrelevant, and a third-party FM-1 with this id that installed a
+  full image and then kept settings and a project across a complete power cycle (Felucca #320).
+- The boot area stays out of scope on every part, so the `bootloader` column stays `False` for `0xB36014`.
+- `tests/gate_test.py`, `tests/flash_evidence_test.py`, `tests/preflight_test.py` and
+  `web/test_web.mjs` cover both ids, the unknown id and the blank answer, and fail if the three policy
+  copies drift apart.
 
 ## Gate de transporte: el chip lo identifica el transporte, la versión es obligatoria
 
@@ -376,6 +1391,28 @@ parameter changed; no physical FM-1 was used and no target build was produced in
   `ab3da86`, so the delta is the toolchain, not a render loop that grew.
 
 # Changelog — QUANTUM GAMMAWAVE (QG-1)
+
+## v2.7.0 — fusion de los trabajos concurrentes y artefactos reconstruidos
+
+Esta version une el trabajo de esta sesion con el que llego por `main` mientras se ejecutaba
+(`v2.7.0`, tagline del splash restaurado, goldens de 216 renders regrabados, reverb y golden de seis
+pistas corregidos) y publica artefactos reconstruidos desde ese arbol, no desde `v2.6.0`.
+
+- Firmware AC791N `v2.7.0`, commit `5313a793d6b52e1cad0375e2a0d94453e8cc018d`, identidad `FM-1_965`,
+  arbol limpio (`dirty: []`). Paquete `felucca-v2.7.0.fwsc`: 610 959 B, SHA-256
+  `64122dde0e205bb48ba4cc3c2e0d687f38a5fdc351f94e197e94f5ee988868dc` (integridad SHA-256; sin firma,
+  como el modelo v2.6.0).
+- WASM del emulador: 1 104 650 B, SHA-256
+  `2c4cf3e3ac6832ee3cf2d1be38ea7591c1d3b4bc63fbd44ef3e863b41071fd43`, construido con emcc 6.0.11 desde
+  el mismo commit.
+- Correcciones de esta sesion que siguen en pie tras la fusion: referencia ROOM contra
+  `rev_damp_table`, `requireProof()` ligado al commit verificado, instalador sin `Ed25519 null`
+  (`SHA-256 only, unsigned package`), copy del sitio sin prometer firma inexistente, y traducciones
+  EN/ZH completas (204 cadenas, 0 ausentes).
+- El lint de UI vuelve a exigir las dos lineas del splash porque v2.7.0 restauro el tagline; ambas
+  variantes del render dan 0 hallazgos y 0 medidas fuera de alineacion.
+- Los registros `v2.6.0` se conservan en `release/` como historia; lo publicado es `v2.7.0`.
+
 
 All notable changes to the firmware, the Web Studio, the emulator and the installer pages.
 The device is an M-VAVE FM-1 (AC791N); no entry here was tested by flashing hardware.

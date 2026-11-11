@@ -31,6 +31,7 @@
 #undef memcmp
 static struct { volatile uint32_t notes, buttons; } fm1_in;
 #include "../firmware/src/core.h"
+#include "../firmware/src/preset_level.c"      /* (2.1) the level each factory preset loads with */
 #include "../firmware/src/engines.c"
 #include "../firmware/src/params.c"
 #include "../firmware/src/mod.c"
@@ -84,6 +85,7 @@ static uint64_t now_ns(void)
 static void host_tracks_init(void)                /* as felucca_init: defaults, empty patterns */
 {
     uint32_t i, k;
+    voices_boot();                            /* (3.5) the pool's windows, as felucca_init */
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;
     for (k = 0; k < NTRK; k++) {
@@ -127,6 +129,7 @@ static void host_preset_values(track_t *t, uint32_t e, uint32_t pi, const preset
             t->p[p->x[i].id - 1u] = (int16_t)clamp(p->x[i].v, TP[p->x[i].id - 1u].min, TP[p->x[i].id - 1u].max);
     if (!fm6_bank_read)                           /* (1.2-GW) no store here: FM6's built-in bank, GW-1 KEYS (fm6_vbank.c) */
         host_rom_bank();
+    t->p[P_LEVEL] = (int16_t)preset_level_of(e, pi);   /* (2.1) the sound's own level (ui.c) */
     fm6_track_loaded(t);                          /* FM6: the preset's patch (ui.c apply_preset_to) */
 }
 static void host_preset_req(track_t *t, uint32_t e, uint32_t pi)
@@ -190,7 +193,7 @@ static uint32_t busy_now(void)                   /* sounding voices of the parts
     uint32_t p, i, n = 0;
     for (p = 0; p < NPART; p++)
         for (i = 0; i < NVOICE; i++)
-            n += trk[p].v[i].active && trk[p].v[i].stage != 4u;
+            n += V(&trk[p], i).active && V(&trk[p], i).stage != 4u;
     return n;
 }
 
@@ -211,7 +214,7 @@ static uint32_t started_since(const track_t *t, uint32_t a0)
 {
     uint32_t i, n = 0;
     for (i = 0; i < NVOICE; i++)
-        n += t->v[i].active && t->v[i].age > a0;
+        n += V(t, i).active && V(t, i).age > a0;
     return n;
 }
 
@@ -542,7 +545,7 @@ static int steal6_test(const char *dir)
         }
         mix_block(o, CTL);
         if (fired < NPART) {                        /* its note landed: this part has a voice sounding */
-            for (i = 0; i < NVOICE && !trk[fired].v[i].active; i++)
+            for (i = 0; i < NVOICE && !V(&trk[fired], i).active; i++)
                 ;
             if (i < NVOICE)
                 landed[fired] = 1;
@@ -656,7 +659,7 @@ static int xfade_test(const char *dir)
         if (f == sw[3] + FS / 50u / CTL * CTL) {
             uint32_t v;
             for (v = 0; v < NVOICE; v++)
-                late_ok |= t->v[v].active && t->v[v].note == 60u && t->v[v].gate;
+                late_ok |= V(t, v).active && V(t, v).note == 60u && V(t, v).gate;
             late_ok = late_ok && t->engine == to[3];
             trk_note_off(t, 60);
         }
@@ -803,7 +806,7 @@ static int trs_held(const track_t *t, uint32_t note)
 {
     uint32_t v;
     for (v = 0; v < NVOICE; v++)
-        if (t->v[v].active && t->v[v].gate && t->v[v].note == note)
+        if (V(t, v).active && V(t, v).gate && V(t, v).note == note)
             return 1;
     return 0;
 }
@@ -1090,7 +1093,7 @@ int main(int argc, char **argv)
             static uint32_t vmax, hi;
             uint32_t k, a = 0;
             for (k = 0; k < NVOICE; k++)
-                if (inst.v[k].active) {
+                if (V(&inst, k).active) {
                     a++;
                     hi |= 1u << k;
                 }

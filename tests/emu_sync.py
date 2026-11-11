@@ -42,7 +42,12 @@ def main():
     head = expected_commit()
     if head:
         assert sha == head, f"manifest commit {sha} is not this checkout's HEAD {head}"
-    assert manifest == {"version": version, "commit": sha, "wasm_sha256": digest, "wasm_bytes": len(blob)}, manifest
+    # tools/package_emu.py also records provenance (schema, identity, config, the compiler that
+    # ran and any files it had to dirty): require the four values that identify the bytes, and
+    # leave the rest free, instead of demanding an exact dict the packager is allowed to extend.
+    for key, want in (("version", version), ("commit", sha), ("wasm_sha256", digest),
+                      ("wasm_bytes", len(blob))):
+        assert manifest.get(key) == want, f"manifest {key} is {manifest.get(key)!r}, not {want!r}"
     html = (BUILD / "index.html").read_text()
     for key in ("@VERSION@", "@COMMIT@", "@WASM_SHA@", "@WASM_SIZE@"):
         assert key not in html, f"unsubstituted placeholder {key}"

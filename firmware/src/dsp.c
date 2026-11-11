@@ -7,7 +7,7 @@
 
 static inline int32_t mulq15(int32_t a, int32_t b) { return (a * b) >> 15; }
 /* a * k / 65536 without 64-bit: a up to 2^31, k Q16 */
-static inline int32_t mulq16(int32_t a, uint32_t k)
+static inline __attribute__((always_inline)) int32_t mulq16(int32_t a, uint32_t k)
 {
     return (int32_t)(((a >> 16) * (int32_t)k) + (int32_t)(((uint32_t)(a & 0xFFFF) * k) >> 16));
 }
@@ -21,7 +21,7 @@ static inline int32_t clamp_sym(int32_t v, int32_t k)
 }
 
 /* sine, linearly interpolated between the 1024 table points (plain lookup: THD -55 dB) */
-static inline int32_t sine_i(uint32_t ph)
+static inline __attribute__((always_inline)) int32_t sine_i(uint32_t ph)
 {
     uint32_t i = ph >> 22;
     int32_t a = SINE[i], b = SINE[(i + 1u) & 1023u];
@@ -32,19 +32,19 @@ static inline int32_t osc_sine(uint32_t ph) { return sine_i(ph); }
 /* polyBLEP residual (Q15) around a wrap of a phase accumulator */
 static inline int32_t blep(uint32_t ph, uint32_t inc)
 {
+    if (ph >= inc && ph <= ~inc)
+        return 0;
     uint32_t d = inc >> 15;
-    int32_t x;
     if (!d)
         return 0;
     if (ph < inc) {
-        x = (int32_t)(ph / d);                       /* 0..32767 */
+        int32_t x = (int32_t)(ph / d);                       /* 0..32767 */
         return x + x - ((x * x) >> 15) - 32768;
     }
-    if (ph > 0xFFFFFFFFu - inc) {
-        x = -(int32_t)((0xFFFFFFFFu - ph) / d);       /* -32767..0 */
+    {
+        int32_t x = -(int32_t)((0xFFFFFFFFu - ph) / d);       /* -32767..0 */
         return ((x * x) >> 15) + x + x + 32768;
     }
-    return 0;
 }
 
 static inline int32_t osc_saw(uint32_t ph, uint32_t inc)
@@ -65,7 +65,7 @@ static inline int32_t osc_tri(uint32_t ph)
 
 /* tanh(x / 32768) * 32767, linearly interpolated (a plain lookup gives
  * 256-unit steps, audible on quiet signals) */
-static inline int32_t softclip(int32_t x)
+static inline __attribute__((always_inline)) int32_t softclip(int32_t x)
 {
     int32_t a = x < 0 ? -x : x, i = a >> 8, y;
     if (i >= 256)
@@ -76,7 +76,7 @@ static inline int32_t softclip(int32_t x)
 }
 
 /* xorshift32 */
-static inline uint32_t noise32(int32_t *st)
+static inline __attribute__((always_inline)) uint32_t noise32(int32_t *st)
 {
     uint32_t s = (uint32_t)*st;
     s ^= s << 13;
@@ -89,7 +89,7 @@ static inline uint32_t noise32(int32_t *st)
 /* Trapezoidal SVF (A. Simper), unconditionally stable. Coefficients per
  * block in Q13; signals stay within +-150000 so products fit in 32 bits. */
 typedef struct { int32_t a1, a2, a3; } tsvf_t;
-static inline void tsvf_coef_k(tsvf_t *c, int32_t cut, int32_t k)   /* cut: 0..127 << 8, k: damping Q12 */
+static inline __attribute__((always_inline)) void tsvf_coef_k(tsvf_t *c, int32_t cut, int32_t k)   /* cut: 0..127 << 8, k: damping Q12 */
 {
     int32_t i, g, den;
     cut = clamp(cut, 0, 127 << 8);

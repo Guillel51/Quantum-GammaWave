@@ -5,7 +5,9 @@
 cannot drift quietly, and every state in which the chain must refuse.
 
 The key here is ephemeral and lives in a temporary directory: this test proves the procedure, it
-does not create a release key. `tools/fm1_keys.json` must still pin nothing when it ends.
+does not create a release key. `tools/fm1_keys.json` ships pinning exactly the release key, and this
+test never adds to it: the pin exercises below run on a copy whose `keys` object starts empty, and the
+repository section checks that the shipped pin trusts that one key and refuses another under its id.
 
   python3 tests/key_custody_test.py
 """
@@ -76,7 +78,10 @@ def main():
 
     # -- pin: three encodings of one key, every malformed encoding refused ----------------------
     keys = TMP / "keys.json"
-    keys.write_text((ROOT / "tools" / "fm1_keys.json").read_text())      # the real file: empty + comment
+    # the real file's comment, with its keys object emptied: the key it ships is what the repository
+    # section checks, and pinning it again here would prove idempotence and nothing else
+    real_keys = json.loads((ROOT / "tools" / "fm1_keys.json").read_text())
+    keys.write_text(json.dumps({"comment": real_keys.get("comment", ""), "keys": {}}))
     ok(S.pin(bin_pub, "qg1-release-1", keys) == pub1, "pin: 32 raw bytes")
     ok(S.pin(pem_pub, "qg1-release-1", keys) == pub1, "pin: the same key as PEM is idempotent")
     ok(S.pin(hex_pub, "qg1-release-1", keys) == pub1, "pin: the same key as hex is idempotent")
@@ -125,15 +130,22 @@ def main():
     refuses("keys", lambda: S.pinned(bad_entry), "pinned(): an entry that is not a key refuses everything")
     ok(sorted(S.check(keys)) == ["qg1-release-1"], "check: the pinned key is listed")
 
-    # -- the repository's own pin set: empty, and it refuses a real signature -------------------
+    # -- the repository's own pin set: the release key, and it refuses another key under that id --
     repo_pins = ROOT / "tools" / "fm1_keys.json"
-    ok(S.pinned(repo_pins) == {}, "the repository pins no key: fail-closed, as released")
+    ok(sorted(S.pinned(repo_pins)) == ["qg1-release-1"],
+       "the repository pins the release key and nothing else")
+    ok(len(S.pinned(repo_pins)["qg1-release-1"]) == 32,
+       "the pinned release key is a 32-byte Ed25519 public key")
     pkg = TMP / "felucca.fwsc"
     pkg.write_bytes(bytes(range(256)) * 40)
     raw = pkg.read_bytes()
     man = S.sign_manifest(S.manifest_for(raw, "1.9.0", "1.8.0", "FM-1", "qg1-release-1"), priv.read_bytes())
-    refuses("key", lambda: S.verify(raw, man, S.pinned(repo_pins)),
-            "the repository's pin set refuses a valid signature")
+    refuses("signature", lambda: S.verify(raw, man, S.pinned(repo_pins)),
+            "the repository's pin set refuses another key under the release id")
+    stranger = S.sign_manifest(S.manifest_for(raw, "1.9.0", "1.8.0", "FM-1", "qg1-not-pinned"),
+                               priv.read_bytes())
+    refuses("key", lambda: S.verify(raw, stranger, S.pinned(repo_pins)),
+            "the repository's pin set refuses a key id it does not pin")
     ok(S.verify(raw, man, S.pinned(keys))["keyid"] == "qg1-release-1",
        "the same package verifies once the key is pinned")
 
@@ -164,11 +176,11 @@ def main():
     # the build record the release must name, and the sign/verify pair that carries it
     record = signed / "manifest.json"
     record.write_text(json.dumps({"schema": "qg1-build-1", "version": "1.9.0", "commit": "0" * 40,
-                                  "dirty": [], "identity": "FM-1_982",
+                                  "dirty": [], "identity": "FM-1_965",
                                   "artifacts": {"felucca.fwsc": {"sha256": S.__dict__["hashlib"].sha256(raw).hexdigest(),
                                                                  "bytes": len(raw)}}}))
     ok(S.main(["sign", str(p), "--key", str(priv), "--version", "1.9.0", "--min", "1.8.0",
-               "--keyid", "qg1-release-1", "--build-manifest", str(record)]) == 0,
+               "--keyid", "qg1-release-1", "--keys", str(keys), "--build-manifest", str(record)]) == 0,
        "CLI sign: the pinned key and its build record -> 0")
     ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json", "--keys", str(keys),
                "--build-manifest", str(record)]) == 0,
@@ -181,7 +193,7 @@ def main():
     ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json", "--keys", str(keys)]) == 0,
        "CLI verify: the record it names is enough (no record given) -> 0")
     ok(S.main(["verify", str(p), "--manifest", str(p) + ".manifest.json"]) == 1,
-       "CLI verify: against the repository's empty pins -> 1")
+       "CLI verify: against the repository's pins, which hold another key -> 1")
     ok(S.main(["check", "--keys", str(empty)]) == 0, "CLI check: empty pin set -> 0")
     ok(S.main(["check", "--keys", str(empty), "--require-key"]) == 1, "CLI check --require-key -> 1")
     ok(S.main(["check", "--keys", str(keys)]) == 0, "CLI check: one pinned key -> 0")
@@ -192,7 +204,8 @@ def main():
     ok(S.main(["pin", str(hex2), "--keyid", "qg1-release-1", "--keys", str(keys), "--replace"]) == 0,
        "CLI pin --replace -> 0")
 
-    ok(S.pinned(repo_pins) == {}, "the repository still pins no key after the test")
+    ok(sorted(S.pinned(repo_pins)) == ["qg1-release-1"],
+       "the repository still pins only the release key after the test")
     print("key custody test %s (%d failed)" % ("passed" if not failed else "FAILED", failed))
     return 1 if failed else 0
 

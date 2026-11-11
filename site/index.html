@@ -1,0 +1,645 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     Quantum GammaWave official portal. The version, size and SHA-256 below are filled from the
+     deployment's real firmware/versions.json; nothing here is a mock of a device function. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000410">
+<meta name="description" content="Quantum GammaWave (QG-1): firmware open source, emulador, Web Studio e instalador para la groovebox M-VAVE FM-1.">
+<title>QUANTUM GAMMAWAVE — Firmware, emulador y Web Studio para FM-1</title>
+<link rel="canonical" href="https://guillel51.github.io/Quantum-GammaWave/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Quantum GammaWave">
+<meta property="og:url" content="https://guillel51.github.io/Quantum-GammaWave/">
+<meta property="og:title" content="QUANTUM GAMMAWAVE — firmware for the M-VAVE FM-1">
+<meta property="og:description" content="v2.7.0: twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a USB installer that verifies SHA-256 and size before it enables INSTALL.">
+<meta property="og:image" content="https://guillel51.github.io/Quantum-GammaWave/assets/fw-home.png">
+<meta property="og:image:alt" content="The firmware's HOME screen at 240 x 240: the orbital system, the spectrum with the filter curve and the six-track strip.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="QUANTUM GAMMAWAVE — firmware for the M-VAVE FM-1">
+<meta name="twitter:description" content="v2.7.0: twelve voices, six tracks, eight synthesis engines. Open firmware for the M-VAVE FM-1, with a browser emulator, a Web Studio editor and a USB installer that verifies SHA-256 and size before it enables INSTALL.">
+<meta name="twitter:image" content="https://guillel51.github.io/Quantum-GammaWave/assets/fw-home.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23080503%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229%22 fill=%22%23ff8a1e%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%224%22 fill=%22%23fff4d6%22/%3E%3C/svg%3E">
+<style>
+  :root {
+    --ink: #eef4ff;
+    --muted: #9aabcc;
+    --faint: #62739a;
+    --bg: #000410;
+    --bg2: #050a18;
+    --panel: #080e1d;
+    --panel2: #0b1426;
+    --line: #16233d;
+    --line2: #24395e;
+    --heat: #3adfff;
+    --ember: #8b5cff;
+    --gold: #ffaa21;
+    --cyan: #8fd8ff;
+    --green: #4ef0b0;
+    --radius: 18px;
+    --max: 1240px;
+    --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    --sans: "Avenir Next", "Segoe UI", Inter, system-ui, sans-serif;
+    --display: "Arial Black", "Helvetica Neue", Impact, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; transition: none !important; } }
+  body {
+    margin: 0; color: var(--ink); background: var(--bg);
+    font: 16px/1.65 var(--sans);
+    background-image:
+      radial-gradient(900px 520px at 12% -8%, rgba(139, 92, 255, .22), transparent 65%),
+      radial-gradient(700px 480px at 92% 2%, rgba(143, 216, 255, .10), transparent 65%),
+      linear-gradient(rgba(58, 223, 255, .025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58, 223, 255, .025) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 64px 64px, 64px 64px;
+    /* (2.0) no background-attachment: fixed: a fixed, four-layer background repaints the whole viewport on
+     * every scroll frame, which is the first thing a phone gives up on. The gradients scroll with the page
+     * now -- the look is the same at rest, and the scroll is the browser's own. */
+  }
+  body::before {
+    /* (2.0) the scanlines are gone from the viewport: a fixed overlay composited with mix-blend-mode: multiply
+     * forces the compositor to re-blend the whole screen every frame. The page keeps its panels, grids and
+     * hairlines; the full-screen CRT texture is what went, and it was the only thing blending. */
+    content: none;
+  }
+  ::selection { background: var(--heat); color: #04101e; }
+  a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: #d6f6ff; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+  img { max-width: 100%; height: auto; display: block; }
+  h1, h2, h3 { margin: 0; line-height: 1.02; }
+  h1 { font: 900 clamp(38px, 5.6vw, 82px)/.92 var(--display); letter-spacing: -.03em; text-transform: uppercase; overflow-wrap: anywhere; }
+  h2 { font: 800 clamp(30px, 4.4vw, 56px)/.98 var(--display); letter-spacing: -.035em; text-transform: uppercase; }
+  h3 { font-size: 18px; line-height: 1.25; letter-spacing: -.01em; }
+  p { margin: 0 0 1em; }
+  .skip { position: absolute; left: -9999px; top: 10px; z-index: 100; background: var(--gold); color: #04101e; padding: 10px 16px; }
+  .skip:focus { left: 10px; }
+  .wrap { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
+  .mono { font-family: var(--mono); font-size: 11px; letter-spacing: .10em; text-transform: uppercase; }
+  .eyebrow { color: var(--heat); font: 700 11px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 9px; }
+  .eyebrow::before { content: ""; width: 28px; height: 1px; background: currentColor; }
+  .muted { color: var(--muted); }
+  .gold { color: var(--gold); }
+  .cyan { color: var(--cyan); }
+  .top {
+    position: sticky; top: 0; z-index: 30;
+    border-bottom: 1px solid rgba(58, 223, 255, .18);
+    /* (2.0) no backdrop-filter: a 14 px blur behind a sticky bar is recomputed on every scroll frame.
+     * Opaque, not 94 %: the headings under it are white, and 6 % of a white headline is visible through the
+     * bar as ghost text once the page scrolls. The colour is --bg, so the bar and the page agree. */
+    background: var(--bg);
+  }
+  .top .wrap { min-height: 70px; display: flex; align-items: center; gap: 22px; }
+  .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; flex: 0 0 auto; }
+  .brand:hover { color: var(--ink); }
+  .sun { width: 34px; height: 34px; flex: 0 0 auto; filter: drop-shadow(0 0 12px rgba(58, 223, 255, .45)); }
+  .brand b { display: block; font: 800 13px/1.05 var(--display); letter-spacing: .10em; }
+  .brand small { display: block; color: var(--heat); font: 700 9px/1.4 var(--mono); letter-spacing: .15em; }
+  .nav { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+  .nav a {
+    color: var(--muted); text-decoration: none; font: 700 11px/1 var(--mono); letter-spacing: .10em;
+    padding: 11px 9px; border-bottom: 1px solid transparent;
+  }
+  .nav a:hover, .nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--heat); }
+  .top-cta { margin-left: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    min-height: 46px; padding: 12px 20px; border: 1px solid var(--line2); border-radius: 8px;
+    background: var(--panel2); color: var(--ink); text-decoration: none;
+    font: 800 11px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase;
+    transition: transform .15s, background .15s, border-color .15s, box-shadow .15s;
+  }
+  .btn:hover { transform: translateY(-2px); border-color: var(--heat); color: var(--ink); }
+  .btn.primary {
+    color: #040b18; border-color: #7fe9ff;
+    background: linear-gradient(135deg, #ffaa21, var(--heat) 52%, var(--ember));
+    box-shadow: 0 10px 34px rgba(139, 92, 255, .24), inset 0 1px 0 rgba(255,255,255,.4);
+  }
+  .btn.primary:hover { box-shadow: 0 14px 44px rgba(139, 92, 255, .36), inset 0 1px 0 rgba(255,255,255,.5); }
+  .btn.ghost { background: rgba(255,255,255,.02); }
+  .btn.small { min-height: 38px; padding: 9px 13px; font-size: 10px; }
+  #lang { min-width: 44px; padding: 9px 10px; margin-left: 4px; }
+  .arrow { font-size: 15px; line-height: 1; }
+  .hero { position: relative; padding: clamp(48px, 8vw, 92px) 0 clamp(36px, 5vw, 64px); overflow: clip; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(360px, .94fr); gap: clamp(30px, 5vw, 72px); align-items: center; }
+  .hero h1 span { display: block; color: transparent; -webkit-text-stroke: 1px rgba(255, 170, 33, .45); }
+  .hero h1 em { display: block; font-style: normal; color: transparent; background: linear-gradient(100deg, var(--gold), var(--heat) 45%, var(--ember)); -webkit-background-clip: text; background-clip: text; }
+  .hero-copy { margin-top: 24px; max-width: 55ch; color: #c4d3ec; font-size: clamp(16px, 1.5vw, 19px); }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 28px 0 18px; }
+  .hero-note { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 600 11px/1.4 var(--mono); }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); flex: 0 0 auto; }
+  .spec-strip { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 42px; }
+  .spec { padding: 18px 14px 16px; border-right: 1px solid var(--line); }
+  .spec:last-child { border-right: 0; }
+  .spec b { display: block; font: 800 clamp(24px, 3.3vw, 38px)/1 var(--display); color: var(--gold); letter-spacing: -.03em; }
+  .spec span { display: block; margin-top: 7px; color: var(--muted); font: 600 10px/1.4 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
+  .instrument { position: relative; padding: 14px; border-radius: 26px; border: 1px solid var(--line2); background: linear-gradient(155deg, #0a1930, #020611 58%); box-shadow: 0 35px 90px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08); }
+  .instrument::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(255, 170, 33, .12); border-radius: 21px; pointer-events: none; }
+  .instrument-top { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px 12px; color: var(--muted); font: 700 9px/1 var(--mono); letter-spacing: .15em; }
+  .instrument-top b { color: var(--heat); }
+  .instrument img { border-radius: 12px; border: 1px solid #1a2a48; }
+  .instrument-foot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 6px 2px; color: var(--faint); font: 600 9px/1.4 var(--mono); letter-spacing: .08em; }
+  .float-tag { position: absolute; right: -16px; top: 17%; background: #081020; border: 1px solid var(--line2); border-left: 3px solid var(--cyan); border-radius: 7px; padding: 8px 12px; font: 700 9px/1.45 var(--mono); letter-spacing: .08em; box-shadow: 0 14px 30px rgba(0,0,0,.45); }
+  .float-tag b { display: block; color: var(--cyan); }
+  section { padding: clamp(46px, 7vw, 86px) 0; }
+  .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .55fr); gap: 30px; align-items: end; margin-bottom: 32px; }
+  .section-head p { color: var(--muted); margin: 0; max-width: 48ch; }
+  .rule { height: 1px; background: linear-gradient(90deg, var(--heat), var(--line) 34%, transparent); margin-bottom: 18px; }
+  .feature-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+  .card { grid-column: span 4; position: relative; overflow: hidden; min-height: 205px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .92), rgba(2, 6, 15, .94)); }
+  .card::after { content: ""; position: absolute; right: -50px; bottom: -65px; width: 160px; height: 160px; border: 1px solid rgba(58, 223, 255, .15); border-radius: 50%; box-shadow: 0 0 0 22px rgba(58, 223, 255, .035), 0 0 0 44px rgba(58, 223, 255, .025); }
+  .card.wide { grid-column: span 6; }
+  .card.half { grid-column: span 3; }
+  .card.hot { border-color: rgba(58, 223, 255, .45); background: linear-gradient(145deg, #0a1730, #03060f 72%); }
+  .card .num { color: var(--faint); font: 700 10px/1 var(--mono); letter-spacing: .12em; }
+  .card h3 { margin: 24px 0 8px; color: var(--ink); }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; max-width: 38ch; }
+  .card .tag { display: inline-block; margin-top: 16px; padding: 3px 8px; border: 1px solid var(--line2); border-radius: 99px; color: var(--gold); font: 700 9px/1.4 var(--mono); letter-spacing: .08em; }
+  .card .glyph { position: absolute; right: 18px; top: 18px; width: 38px; height: 38px; color: var(--heat); opacity: .8; }
+  .showcase { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; align-items: start; }
+  .shot { grid-column: span 4; margin: 0; padding: 9px; border: 1px solid var(--line); border-radius: 14px; background: #0d0805; }
+  .shot.big { grid-column: span 8; }
+  .shot.wide { grid-column: span 6; }
+  .shot img { border: 1px solid #142040; border-radius: 8px; width: 100%; }
+  .shot figcaption { display: flex; justify-content: space-between; gap: 10px; padding: 10px 4px 2px; color: var(--muted); font: 600 10px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .shot figcaption b { color: var(--gold); }
+  .studio-band { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px; align-items: center; padding: clamp(26px, 4vw, 48px); border: 1px solid var(--line2); border-radius: 24px; background: linear-gradient(135deg, #071028, #0d0805 65%); }
+  .studio-band h2 { font-size: clamp(30px, 4.2vw, 52px); }
+  .studio-band p { color: var(--muted); }
+  .checklist { list-style: none; padding: 0; margin: 20px 0; display: grid; gap: 8px; }
+  .checklist li { display: flex; gap: 9px; color: #c4d3ec; font-size: 14px; }
+  .checklist li::before { content: "+"; color: var(--heat); font: 800 15px/1.4 var(--mono); }
+  .studio-shot { border: 1px solid var(--line); border-radius: 14px; padding: 7px; background: #02050f; box-shadow: 0 26px 60px rgba(0,0,0,.5); }
+  .install-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 24px; align-items: start; }
+  .steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+  .steps li { counter-increment: step; display: grid; grid-template-columns: 38px 1fr; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .steps li::before { content: "0" counter(step); color: var(--heat); font: 800 14px/1.5 var(--mono); }
+  .steps b { display: block; margin-bottom: 4px; color: var(--ink); }
+  .steps span { color: var(--muted); font-size: 14px; }
+  .warning { padding: 20px; border: 1px solid #24406e; border-left: 4px solid var(--heat); border-radius: 10px; background: rgba(58, 223, 255, .055); }
+  .warning h3 { color: var(--gold); margin-bottom: 8px; }
+  .warning p, .warning li { color: #aebeda; font-size: 13.5px; }
+  .warning ul { margin: 8px 0 0; padding-left: 18px; }
+  .compat { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+  .compat th, .compat td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .compat th { color: var(--faint); font: 700 9px/1.4 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
+  .compat td:first-child { color: var(--ink); font-weight: 650; }
+  .compat td { color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 7px; border-radius: 99px; font: 700 9px/1.5 var(--mono); letter-spacing: .05em; white-space: nowrap; }
+  .pill.ok { color: #072013; background: var(--green); }
+  .pill.part { color: #241304; background: var(--gold); }
+  .pill.no { color: #ffd9c8; background: #64250e; }
+  .version-card { border: 1px solid var(--line2); border-radius: 20px; background: linear-gradient(150deg, #070f22, #02050c); padding: 24px; }
+  .version-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 16px; }
+  .version-head strong { display: block; color: var(--gold); font: 800 34px/.95 var(--display); letter-spacing: -.03em; }
+  .version-head span { color: var(--muted); font: 600 9px/1.4 var(--mono); letter-spacing: .10em; }
+  .kv { display: grid; grid-template-columns: 82px 1fr; gap: 9px 12px; font-size: 12px; }
+  .kv dt { color: var(--faint); font: 700 9px/1.6 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+  .kv dd { margin: 0; color: var(--muted); font-family: var(--mono); overflow-wrap: anywhere; }
+  .resources { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .resource { display: block; min-height: 126px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: rgba(8, 14, 29, .72); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .resource:hover { border-color: var(--heat); transform: translateY(-2px); color: var(--ink); }
+  .resource b { display: block; margin: 14px 0 4px; font-size: 14px; }
+  .resource span { color: var(--muted); font-size: 12px; }
+  .resource .no { color: var(--heat); font: 700 10px/1 var(--mono); }
+  /* (2.0) three ecosystem accesses, not four: the portal is the page you are on, so it no longer links to
+   * itself. The emulator is the entry point and takes the left half; the studio and the installer stack. */
+  .access { display: grid; grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; align-items: stretch; }
+  .access-card.primary { grid-column: 1; grid-row: 1 / span 2; align-content: space-between; }
+  .access-card.wide { grid-column: 2; grid-row: 2; }
+  .access-card.primary b { font-size: clamp(26px, 3.4vw, 38px); }
+  .access-card.primary p { font-size: 15px; }
+  .access-card { display: grid; gap: 7px; min-height: 100%; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(8, 19, 40, .9), rgba(2, 6, 15, .94)); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+  .access-card:hover { border-color: var(--heat); transform: translateY(-2px); color: var(--ink); }
+  .access-card:focus-visible { outline: 2px solid var(--heat); outline-offset: 3px; border-color: var(--heat); }
+  .access-card .no { color: var(--faint); font: 700 10px/1 var(--mono); letter-spacing: .12em; }
+  .access-card b { font: 800 clamp(20px, 2.4vw, 26px)/1.05 var(--display); letter-spacing: -.02em; text-transform: uppercase; }
+  .access-card .url { color: var(--cyan); font: 700 10px/1.4 var(--mono); overflow-wrap: anywhere; }
+  .access-card p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .access-card .go { margin-top: 2px; color: var(--gold); font: 800 10px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
+  .access-card.primary { grid-column: 1 / -1; border-color: rgba(58, 223, 255, .55); border-left: 4px solid var(--heat); background: linear-gradient(135deg, #071229, #02060f 70%); box-shadow: 0 24px 60px rgba(139, 92, 255, .18); padding: 30px 32px; }
+  .access-title { display: flex; align-items: baseline; gap: 8px 18px; flex-wrap: wrap; }
+  .access-card.primary b { font-size: clamp(32px, 5.4vw, 58px); }
+  .access-card.primary .url { font-size: 12px; }
+  .access-card.primary p { font-size: 15px; max-width: 62ch; }
+  @media (max-width: 900px) { .access { grid-template-columns: 1fr; }
+    .access-card.primary, .access-card.wide { grid-column: auto; grid-row: auto; } }
+  @media (max-width: 640px) { .access-card.primary { padding: 22px; } }
+  /* (7.x) the support box: small, quiet, and out of the way of the instrument */
+  .support { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 20px 22px;
+    border: 1px solid var(--line); border-radius: var(--radius); background: rgba(3, 9, 20, .55); }
+  .support .eyebrow { color: var(--faint); }
+  .support p { margin: 6px 0 0; color: var(--muted); font-size: 13px; max-width: 68ch; }
+  .support p.support-note { color: var(--faint); font-size: 12px; }
+  .support-btn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px;
+    border: 1px solid rgba(58, 223, 255, .45); border-radius: 999px; color: var(--ink); text-decoration: none;
+    font: 800 11px/1 var(--mono); letter-spacing: .10em; text-transform: uppercase; }
+  .support-btn:hover { border-color: var(--heat); color: var(--ink); }
+  @media (max-width: 640px) { .support { flex-direction: column; align-items: flex-start; } }
+  footer { border-top: 1px solid var(--line); padding: 32px 0 44px; color: var(--faint); font-size: 12px; }
+  .foot-grid { display: grid; grid-template-columns: 1.2fr .8fr .8fr; gap: 30px; }
+  footer b { color: var(--muted); }
+  footer a { color: var(--muted); }
+  .foot-line { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 10px; }
+  /* Visible by default: the observer only adds an entrance animation. A full-page
+     capture, a reader without JS or a failed observer must never hide the copy. */
+  .reveal.in { animation: reveal-up .55s ease both; }
+  @keyframes reveal-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .reveal.in { animation: none; } }
+  @media (max-width: 1000px) {
+    .hero-grid, .studio-band, .install-grid { grid-template-columns: 1fr; }
+    .float-tag { right: 10px; }
+    .card, .card.wide, .card.half { grid-column: span 6; }
+    .shot.big, .shot, .shot.wide { grid-column: span 6; }
+    .resources { grid-template-columns: repeat(2, 1fr); }
+    .section-head { grid-template-columns: 1fr; gap: 12px; }
+    .nav a:not(.top-cta) { display: none; }
+  }
+  @media (max-width: 640px) {
+    .wrap { width: min(var(--max), calc(100% - 28px)); }
+    .top .wrap { min-height: 62px; gap: 10px; }
+    .spec-strip { grid-template-columns: repeat(2, 1fr); }
+    .spec:nth-child(2) { border-right: 0; }
+    .spec:nth-child(3), .spec:nth-child(4) { border-top: 1px solid var(--line); }
+    .hero { padding-top: 36px; }
+    .hero-actions .btn { width: 100%; }
+    .feature-grid { display: grid; grid-template-columns: 1fr; }
+    .card, .card.wide, .card.half { grid-column: auto; min-height: 0; }
+    .showcase { grid-template-columns: 1fr; }
+    .shot, .shot.big, .shot.wide { grid-column: auto; }
+    .studio-band { padding: 22px; }
+    .float-tag { display: none; }
+    .resources, .foot-grid { grid-template-columns: 1fr; }
+    .version-head strong { font-size: 28px; }
+    .instrument { padding: 10px; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Saltar al contenido</a>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="Quantum GammaWave, inicio">
+      <svg class="sun" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="9" fill="#3adfff"/><circle cx="20" cy="20" r="4" fill="#eaf9ff"/><g stroke="#ffaa21" stroke-width="1.6" stroke-linecap="round"><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M32 8l-3.5 3.5M11.5 28.5L8 32"/></g><circle cx="20" cy="20" r="15" fill="none" stroke="#8b5cff" stroke-opacity=".35"/></svg>
+      <span><b>QUANTUM<br>GAMMAWAVE</b><small>QG-1 // FM-1</small></span>
+    </a>
+    <nav class="nav" aria-label="Principal">
+      <a href="#accesos">Accesos</a>
+      <a href="#sistema">Sistema</a>
+      <a href="#capturas">Capturas</a>
+      <a href="#instalacion">Instalación</a>
+      <a href="#versiones">Versiones</a>
+      <a class="btn primary small top-cta" href="emulator/">Web Emulator <span class="arrow">↗</span></a>
+      <button class="btn ghost small" id="lang" type="button" aria-label="Language / Idioma / 语言" title="Language / Idioma / 语言">EN</button>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">Firmware abierto · M-VAVE FM-1 · AC791N</div>
+          <h1 id="hero-title" style="margin-top:18px">Quantum <em>GammaWave.</em><span>Seis pistas. Doce voces. v2.7.0</span></h1>
+          <p class="hero-copy">Quantum GammaWave v2.7.0 convierte la FM-1 en un instrumento completo: seis pistas, doce voces, ocho motores de síntesis, secuenciador y un Web Studio que edita el sonido real por Web MIDI. v2.7.0 publica un solo paquete verificable por SHA-256 y tamaño, y el emulador, el instalador y este portal sirven los mismos bytes.</p></p>
+          <div class="hero-actions">
+            <a class="btn primary" href="emulator/">Abrir el Web Emulator <span class="arrow">→</span></a>
+            <a class="btn ghost" href="webapp/editor/">Abrir Web Studio</a>
+            <a class="btn ghost" href="webapp/installer/">Instalar en FM-1</a>
+          </div>
+          <p class="hero-note"><span class="live-dot"></span> Web Emulator y Web Studio disponibles sin instalar nada.</p>
+        </div>
+        <div class="instrument">
+          <div class="instrument-top"><span>QG-1 // <b>HOME / FORGE</b></span><span>240 × 240</span></div>
+          <img src="assets/fw-home.png" width="1040" height="760" alt="La pantalla HOME del firmware, 240 x 240 en la paleta QUANTUM: sistema orbital, espectro con la curva del filtro y franja de seis pistas." loading="eager">
+          <div class="instrument-foot"><span>RENDER DEL FIRMWARE · 240 × 240</span><span id="hero-build">QG-1 // v2.7.0-5313a79</span></div>
+          <div class="float-tag"><b>12 VOICES</b>PSYCHOACOUSTIC<br>VOICE STEALING</div>
+        </div>
+      </div>
+      <div class="spec-strip" aria-label="Especificaciones principales">
+        <div class="spec"><b>6</b><span>pistas · ECO / BAL / FULL</span></div>
+        <div class="spec"><b>12</b><span>voces con robo psicoacústico</span></div>
+        <div class="spec"><b>8</b><span>motores de síntesis</span></div>
+        <div class="spec"><b>200</b><span>sonidos factory navegables</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="accesos" class="reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="rule"></div><div class="eyebrow">Accesos</div><h2 style="margin-top:14px">Todo el ecosistema,<br>en un clic.</h2></div>
+        <p>El mismo proyecto desde un solo portal: emulador, estudio, instalador, plan previo y el canal Preview. El instalador USB es la única vía de escritura y ninguna ruta depende de una redirección.</p>
+      </div>
+      <div class="access">
+        <a class="access-card primary" href="emulator/">
+          <span class="no">01 / WEB EMULATOR</span>
+          <b>Web Emulator</b>
+          <span class="url">/emulator/</span>
+          <p>El mismo firmware compilado a WebAssembly (v2.7.0), con el mapa Punch-in FX, LATCH y el commit del build publicado. WASM compilado a partir de las fuentes de release v2.7.0 con identificación de build.</p></p>
+          <span class="go">Abrir Web Emulator <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card" href="webapp/editor/">
+          <span class="no">02 / WEB STUDIO · WEBAPP / EDITOR</span>
+          <b>Web Studio · Webapp / Editor</b>
+          <span class="url">/webapp/editor/</span>
+          <p>Editor del sonido real por Web MIDI, secuenciador de 64 pasos, mixer de seis pistas y proyectos.</p>
+          <span class="go">Entrar al estudio <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card primary" href="webapp/installer/">
+          <span class="no">03 / USB INSTALLER · ESTABLE</span>
+          <b>USB Installer</b>
+          <span class="url">/webapp/installer/</span>
+          <p>Comprueba el SHA-256 del paquete y los hashes del firmware antes de habilitar INSTALL, y la firma Ed25519 de la clave qg1-release-1 cuando el manifiesto la incluye. Después el loader lee el chip real de la unidad y rechaza cualquier otro antes de borrar nada.</p></p>
+          <span class="go">Abrir instalador <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card" href="plan/">
+          <span class="no">04 / PLAN PREVIO</span>
+          <b>Plan de instalación</b>
+          <span class="url">/plan/</span>
+          <p>Los sectores que se borran y se escriben, el rango 0x04000–0x92FFF y los datos de fábrica que se conservan. Corre sobre el paquete las mismas comprobaciones del instalador, sin conectar la unidad.</p>
+          <span class="go">Ver el plan <span class="arrow">↗</span></span>
+        </a>
+        <a class="access-card wide" href="../">
+          <span class="no">05 / PREVIEW · MAIN</span>
+          <b>Preview</b>
+          <span class="url">/preview/</span>
+          <p>El build actual de main con su propio emulador y su commit. No es instalable: el paquete todavía no está firmado y el instalador de ese canal lo explica en lugar de habilitar INSTALL. Sirve para escuchar lo que viene.</p>
+          <span class="go">Abrir Preview <span class="arrow">↗</span></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="sistema" class="reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="rule"></div><div class="eyebrow">El instrumento</div><h2 style="margin-top:14px">Todo suena.<br>Nada es una maqueta.</h2></div>
+        <p>El DSP de la FM-1 y el Web Studio comparten el mismo protocolo y los mismos parámetros. Lo que ves es lo que el firmware ejecuta, no una capa visual desconectada.</p>
+      </div>
+      <div class="feature-grid">
+        <article class="card hot">
+          <svg class="glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 5v30M5 20h30M9 9l22 22M31 9 9 31" stroke="currentColor" stroke-width="1.4"/><circle cx="20" cy="20" r="7" fill="none" stroke="currentColor"/></svg>
+          <span class="num">01 / SÍNTESIS</span>
+          <h3>Ocho motores, una arquitectura</h3>
+          <p>ANALOG, FM6, PHASE, LOFI, VOICE, WHEEL, DRUM y NOISE. Waves morphing, filtros LP/HP/BP/COMB/VOWEL/SCREAM y matriz de modulación.</p>
+          <span class="tag">200 PRESETS · 17 PALETAS</span>
+        </article>
+        <article class="card">
+          <svg class="glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 28h32M8 28V13M16 28V8M24 28V17M32 28V11" stroke="currentColor" stroke-width="2"/></svg>
+          <span class="num">02 / SECUENCIADOR</span>
+          <h3>PATTERNS y MUTATE</h3>
+          <p>Cuatro compases, hasta 16 pasos por página, probabilidad, ratchets, swing y mutación. Los patrones se escriben y se mutan en el instrumento, no son un demo de audio.</p>
+          <span class="tag">A-A-A-A' · EUCLID · FEEL</span>
+        </article>
+        <article class="card">
+          <svg class="glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M5 20c4-16 8 16 12 0s8 16 12 0 6 0 6 0" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 31h30" stroke="currentColor" opacity=".4"/></svg>
+          <span class="num">03 / MASTER</span>
+          <h3>EQ paramétrico y dinámica</h3>
+          <p>Low Shelf, High Shelf, Peak, HPF y LPF con biquad de precisión fija. Punch-in FX, compresor, duck y cuatro saturaciones cálidas.</p>
+          <span class="tag">CURVA EN PANTALLA + WEB STUDIO</span>
+        </article>
+        <article class="card wide">
+          <span class="num">04 / EN VIVO</span>
+          <h3>La HOME no es un fondo</h3>
+          <p>Un sistema con tres órbitas y tres planetas, nebulosa y estrellas fijas sobre la gráfica reactiva, y partículas detrás del visualizador a pantalla completa (HOME dos veces). Todo dibujado por el firmware en 240 × 240, sin bitmaps en flash.</p>
+          <span class="tag">RESPUESTA AL GESTO · CALIDAD AJUSTABLE</span>
+        </article>
+        <article class="card">
+          <span class="num">05 / CONECTIVIDAD</span>
+          <h3>USB-MIDI y SysEx</h3>
+          <p>Edición en vivo, backup de proyectos, biblioteca de sonidos, importación FM6 y actualización por USB desde el navegador.</p>
+          <span class="tag">WEB MIDI · SYSEX</span>
+        </article>
+        <article class="card">
+          <span class="num">06 / SEGURIDAD</span>
+          <h3>Instalador con verificación</h3>
+          <p>SHA-256 y los hashes del firmware antes de habilitar INSTALL, y la firma Ed25519 contra la clave fijada en la página cuando el manifiesto la trae. El loader además identifica el chip en la unidad y rechaza uno desconocido sin borrar nada.</p>
+          <span class="tag">FIRMA MÁS INTEGRIDAD MÁS CHIP REAL</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="capturas" class="reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="rule"></div><div class="eyebrow">Capturas actuales</div><h2 style="margin-top:14px">La interfaz,<br>sin renders.</h2></div>
+        <p>Pantallas del firmware, renderizadas por su propio código a 240 × 240 y ampliadas sin interpolar. Sin marcos de emulador, sin controles y sin teclado físico: lo que ves es lo que muestra el instrumento.</p>
+      </div>
+      <div class="showcase">
+        <figure class="shot big"><img loading="lazy" decoding="async" src="assets/fw-visualizer.png" alt="El visualizador del firmware, 240 x 240: osciloscopio, traza de fase, espectro y partículas."><figcaption><b>HOME → HOME</b><span>VISUALIZADOR</span></figcaption></figure>
+        <figure class="shot"><img loading="lazy" decoding="async" src="assets/fw-mixer.png" alt="La página MIXER del firmware: seis pistas con nivel, paneo, envío y mute."><figcaption><b>MIXER</b><span>SEIS PISTAS</span></figcaption></figure>
+        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/fw-fx.png" alt="La página FX del firmware: distorsión, chorus, delay y reverb por pista."><figcaption><b>FX</b><span>POR PISTA</span></figcaption></figure>
+        <figure class="shot wide"><img loading="lazy" decoding="async" src="assets/fw-master.png" alt="La página MASTER del firmware: clip, punch, duck y el VU de salida."><figcaption><b>MASTER</b><span>CLIP · PUNCH · DUCK</span></figcaption></figure>
+        <figure class="shot"><img loading="lazy" decoding="async" src="assets/fw-presets.png" alt="La biblioteca de presets del firmware, siete filas por categoría."><figcaption><b>PRESETS</b><span>200 SONIDOS</span></figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <div class="wrap">
+      <div class="studio-band">
+        <div>
+          <div class="eyebrow">Web Studio 2.0</div>
+          <h2 style="margin:14px 0 16px">El estudio<br>en el navegador.</h2>
+          <p>Diseñá el sonido, escribí pasos, mezclá seis pistas y mirá la pantalla de la FM-1 en vivo. Si no hay hardware, el simulador integrado mantiene todo el flujo de trabajo.</p>
+          <ul class="checklist">
+            <li>Editor de sonido, FM6 y biblioteca con búsqueda y A/B</li>
+            <li>Secuenciador de 64 pasos, automatización y mixer</li>
+            <li>HUD 240 × 240 y telemetría en vivo</li>
+            <li>Backup, proyectos y exportación de audio</li>
+          </ul>
+          <a class="btn primary" href="webapp/editor/">Entrar al Web Studio <span class="arrow">→</span></a>
+        </div>
+        <div class="studio-shot"><img loading="lazy" decoding="async" src="assets/fw-home.png" alt="El panel del firmware a 240 x 240, tal como lo muestra el Web Studio en su vista de hardware."><figcaption class="mono muted" style="margin-top:10px;font-size:11px">Panel real del firmware, 240 × 240. El estudio lo muestra en vivo en /emulator/.</figcaption></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="instalacion" class="reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="rule"></div><div class="eyebrow">Instalación</div><h2 style="margin-top:14px">Cuatro pasos,<br>con los ojos abiertos.</h2></div>
+        <p>El instalador web funciona por USB-MIDI. No requiere drivers especiales en Chrome o Edge, pero sí un cable de datos y el paquete correcto. Esta portada instala el release firmado más reciente (la versión exacta está en el panel de arriba); el build que sigue a main vive en la página Preview.</p>
+      </div>
+      <div class="install-grid">
+        <ol class="steps">
+          <li><div><b>Mirá la firma</b><span>El instalador muestra el SHA-256 del paquete y la clave que lo firmó, qg1-release-1. Si la firma no verifica, INSTALL queda deshabilitado y la página dice por qué.</span></div></li>
+          <li><div><b>Verificá el modelo y el chip</b><span>La FM-1 debe responder como FM-1_9xx, y el loader lee el chip de flash en la unidad: sólo 0x856014 y 0xB36014. Cualquier otro se rechaza antes del primer borrado, sin dump ni herramienta aparte.</span></div></li>
+          <li><div><b>Conectá y respirá</b><span>Usá un cable USB de datos, cerrá otras aplicaciones MIDI y no desconectes durante la escritura. El loader puede reanudarse si el puerto se cae.</span></div></li>
+          <li><div><b>Reiniciá y verificá</b><span>La FM-1 vuelve sola y reporta la identidad instalada. Si no vuelve, desconectá y volvé a conectar; no inicies otro flasheo a ciegas.</span></div></li>
+        </ol>
+        <aside class="warning">
+          <h3>Límites reales, no letra chica</h3>
+          <p>La instalación verifica la integridad (SHA-256 y los hashes del firmware) y, si el manifiesto trae firma, la autenticidad (Ed25519 contra la clave fijada); el loader comprueba el chip y la geometría del flash antes de borrar nada. v2.7.0 se publica sin firma. No hay secure boot.</p>
+          <ul>
+            <li>No hay actualización A/B ni rollback autónomo del bootloader.</li>
+            <li>Un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.</li>
+            <li>Volver al firmware oficial V15 es posible, pero también pasa por el mismo puerto y el mismo riesgo físico.</li>
+            <li>No se validó en hardware físico en este entorno. El emulador no prueba el comportamiento eléctrico del FM-1.</li>
+          </ul>
+          <a class="btn ghost small" style="margin-top:16px" href="webapp/installer/">Abrir instalador verificado</a>
+        </aside>
+      </div>
+      <table class="compat">
+        <caption class="mono muted" style="text-align:left;padding:18px 0 8px">Compatibilidad declarada</caption>
+        <thead><tr><th>Elemento</th><th>Estado</th><th>Verificación</th></tr></thead>
+        <tbody>
+          <tr><td>M-VAVE FM-1 / JieLi AC791N</td><td><span class="pill ok">SÍ</span></td><td>Toolchain y mapa del SDK; build target reproducible.</td></tr>
+          <tr><td>Web Emulator</td><td><span class="pill ok">SÍ</span></td><td>Compila el mismo firmware y compara el DSP nativo bit a bit.</td></tr>
+          <tr><td>Web Studio por Web MIDI</td><td><span class="pill ok">SÍ</span></td><td>Protocolo y dispositivo simulado en la suite web.</td></tr>
+          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Firma, integridad, plan y loader probados en host, sin unidad física: los dos chips están permitidos por el código, no medidos en hardware.</td></tr>
+          <tr><td>Recuperación tras brick</td><td><span class="pill no">NO VERIFICADA</span></td><td>Requiere bootloader/partition support que este proyecto no modifica.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="versiones" class="reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="rule"></div><div class="eyebrow">Versiones y artefactos</div><h2 style="margin-top:14px">El build<br>que estás viendo.</h2></div>
+        <p>Estos datos se leen del <code>firmware/versions.json</code> del despliegue. Si el archivo no está disponible, la página lo dice en vez de inventar un hash. <strong>Versión actual: v2.7.0</strong> — build ID y SHA-256 del WASM verificables; la firma Ed25519 solo si el manifiesto la incluye.</p></p>
+      </div>
+      <div class="install-grid">
+        <div class="version-card">
+          <div class="version-head"><div><span>ÚLTIMA VERSIÓN PUBLICADA</span><strong id="ver-name">v2.7.0</strong></div><span class="pill ok" id="ver-state">LEÍDA DEL SITIO</span></div>
+          <dl class="kv">
+            <dt>Paquete</dt><dd id="ver-file">—</dd>
+            <dt>Tamaño</dt><dd id="ver-size">—</dd>
+            <dt>SHA-256</dt><dd id="ver-sha">consultando…</dd>
+            <dt>Identidad</dt><dd id="ver-product">FM-1_9xx</dd>
+            <dt>Fuente</dt><dd>firmware/versions.json</dd>
+          </dl>
+          <p class="mono muted" id="ver-note" style="margin:16px 0 0;font-size:10px;line-height:1.6">Integridad del paquete instalable: su SHA-256 publicado.</p>
+        </div>
+        <div>
+          <div class="warning" style="border-left-color:var(--cyan)">
+            <h3 style="color:var(--cyan)">El canal estable y el Preview</h3>
+            <p>Esta portada es el canal estable: instala el paquete firmado de release y su emulador se compiló desde el mismo commit que produjo esos bytes, con la versión, el commit y el SHA-256 del wasm en el pie de la página. En 2.0 el release ya no necesita ningún paso manual con M-Flasher, la firma viaja con el build que firma y el instalador la exige antes de habilitar INSTALL. Lo que sigue en main se ve en el canal Preview, marcado como no instalable hasta que se firme.</p>
+            <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Leer changelog completo ↗</a>
+            <a class="btn ghost small" href="https://github.com/Guillel51/Quantum-GammaWave/releases" target="_blank" rel="noopener">Releases en GitHub ↗</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="rule"></div><div class="eyebrow">Recursos</div><h2 style="margin-top:14px">Documentación<br>y código.</h2></div>
+        <p>El repositorio conserva el historial, las licencias y las fuentes de cada artefacto. La web es la entrada; el código es la verdad.</p>
+      </div>
+      <div class="resources">
+        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener"><span class="no">01 / GIT</span><b>Repositorio GitHub ↗</b><span>Firmware, herramientas, pruebas y releases.</span></a>
+        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.md" target="_blank" rel="noopener"><span class="no">02 / DOC</span><b>Manual en inglés ↗</b><span>Operación, páginas, atajos y MIDI.</span></a>
+        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/MANUAL.es.md" target="_blank" rel="noopener"><span class="no">03 / DOC</span><b>Manual en español ↗</b><span>La misma referencia, en castellano.</span></a>
+        <a class="resource" href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/docs/VALIDATION_MATRIX.md" target="_blank" rel="noopener"><span class="no">04 / ESTADO</span><b>Estado y límites ↗</b><span>Matriz de integración, pruebas y pendientes.</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="apoyo" class="reveal">
+    <div class="wrap">
+      <div class="support">
+        <div>
+          <div class="eyebrow">Support Quantum GammaWave</div>
+          <p>Your voluntary contribution helps support development, maintenance, testing and future improvements.</p>
+          <p class="support-note">Free software, GPL-3.0-only: donating changes nothing about what you can use, and is never required.</p>
+        </div>
+        <a class="support-btn" href="https://link.mercadopago.com.uy/quantumgammawave" target="_blank" rel="noopener noreferrer">DONATE <span class="arrow">↗</span></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div><b>QUANTUM GAMMAWAVE (QG-1)</b><br>Firmware y Web Studio open source para M-VAVE FM-1. GPL-3.0-only.<br><span style="color:var(--faint)">M-VAVE y FM-1 son marcas de sus respectivos dueños.</span></div>
+      <div><b>Herramientas</b><br><a href="./">Web Site</a> · <a href="emulator/">Web Emulator</a><br><a href="webapp/editor/">Web Studio</a> · <a href="webapp/installer/">Instalador USB</a><br><a href="firmware/versions.json">Versiones</a></div>
+      <div><b>Linaje</b><br>Felucca · JIANT FM · Pocket GammaWave.<br><a href="https://github.com/Guillel51/Quantum-GammaWave/blob/main/LICENSES">Licencias y créditos ↗</a></div>
+    </div>
+    <div class="foot-line"><span>© <span id="year">2026</span> Quantum GammaWave contributors</span><span id="foot-build">QG-1 // v2.7.0 // BUILD VERIFICADO POR HASH</span></div>
+  </div>
+</footer>
+
+<script src="i18n.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  // Keyed per portal revision: a language stored by an older portal must not decide this one.
+  var LANG_KEY = "qg-portal-lang-2";
+  var LANGS = ["en", "es", "zh"];
+  var lang = (function () {
+    try { var v = localStorage.getItem(LANG_KEY); return LANGS.indexOf(v) >= 0 ? v : "en"; } catch (_) { return "en"; }
+  })();
+  var lastVersion = null;
+  function applyLanguage(next) {
+    lang = LANGS.indexOf(next) >= 0 ? next : "en";
+    if (window.QG_I18N) window.QG_I18N.apply(lang);
+    var label = lang === "en" ? "EN" : lang === "es" ? "ES" : "中文";
+    $("lang").textContent = label;
+    $("lang").setAttribute("aria-label", lang === "en" ? "Language: English. Click for Español" : lang === "es" ? "Idioma: español. Clic para 中文" : "语言：中文。点击切换 English");
+    try { localStorage.setItem(LANG_KEY, lang); } catch (_) {}
+    if (lastVersion) renderVersion(lastVersion);
+  }
+  var t = function (s) { return window.QG_I18N ? window.QG_I18N.tr(s) : s; };
+  $("lang").addEventListener("click", function () { applyLanguage(LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]); });
+  applyLanguage(lang);
+  // Only the explicit ?emu=1 shortcut opens the Web Emulator. A bare #emu hash used to
+  // replace the portal: a stale or shared link must never take the site's place.
+  if (location.search.indexOf("emu=1") >= 0) {
+    location.replace("emulator/");
+    return;
+  }
+  $("year").textContent = String(new Date().getFullYear());
+  function human(n) {
+    if (!Number.isFinite(n)) return "—";
+    var loc = lang === "zh" ? "zh-CN" : lang === "en" ? "en-US" : "es";
+    return n.toLocaleString(loc) + " B";
+  }
+  function text(id, value) { var el = $(id); if (el) el.textContent = value; }
+  function renderVersion(v) {
+    text("ver-name", v.version || "—");
+    text("ver-file", v.file || "—");
+    text("ver-size", human(Number(v.size)));
+    text("ver-sha", v.sha256 || "—");
+    text("hero-build", v.version || "QG-1");
+    text("foot-build", (v.version || "QG-1") + " // " + String(v.sha256 || "").slice(0, 12) + "…");
+    text("ver-state", t("HASH DEL SITIO"));
+    text("ver-note", t("El instalador exige este SHA-256 antes de habilitar INSTALL y verifica la firma Ed25519 solo cuando el manifiesto la trae: v2.7.0 se publica sin firma, asi que hay integridad, no autenticidad."));
+  }
+  fetch("firmware/versions.json", { cache: "no-cache" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (list) {
+      if (!Array.isArray(list) || !list.length) throw new Error("empty list");
+      lastVersion = list[0];
+      renderVersion(lastVersion);
+    })
+    .catch(function () {
+      text("ver-sha", t("no disponible en este servidor"));
+      text("ver-state", t("SIN DATOS DEL BUILD"));
+      text("ver-note", t("versions.json no se pudo leer. Los enlaces siguen siendo válidos; no se muestra un hash inventado."));
+    });
+  if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: 0.08 });
+    document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
+  } else {
+    document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
+  }
+})();
+</script>
+</body>
+</html>

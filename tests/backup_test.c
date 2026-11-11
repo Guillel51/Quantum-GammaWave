@@ -309,8 +309,9 @@ int main(void)
         memcpy(v8, st.raw, 68);
         v8[66] = 91;
         for (k = 0; k < PROJ_LT; k++) {
-            for (j = 0; j < 91u; j++) v8[pos++] = st.raw[pos9 + (j < 83u ? j : P_E0 + j - 83u)];
-            pos9 += P_COUNT;
+            for (j = 0; j < 91u; j++)   /* (the fixture is a FUN7 record: PROJ_NP_VB slots, its engines last) */
+                v8[pos++] = st.raw[pos9 + (j < 83u ? j : (PROJ_NP_VB - 8u) + j - 83u)];
+            pos9 += PROJ_NP_VB;
             memcpy(v8 + pos, st.raw + pos9, 2u + NSTEP * 9u);
             pos += 2u + NSTEP * 9u; pos9 += 2u + NSTEP * 9u;
         }

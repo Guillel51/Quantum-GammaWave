@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The `emulator` workflow's logs, out of the runner and into a branch.
+#
+# Why this exists: the publish job can only be debugged from its own log, and a log is behind the Actions
+# API, which needs a credential. The runner has one. This job reads the finished run with it, keeps the
+# parts that matter (the `publish` job, the failed steps, the tail of everything else), and pushes them to
+# `ci/log/<run>-<conclusion>` so that anyone with read access — including a checkout with no token — can
+# see exactly why a job stopped. It runs on every `emulator` run, success or failure, and touches nothing
+# but its own `ci/log/*` branch.
+name: ci-diag
+on:
+  workflow_run:
+    workflows: ["emulator"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "emulator run id to dump (empty: the last one)"
+        required: false
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: ci-diag
+  cancel-in-progress: false
+jobs:
+  logs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: the run's log, trimmed, in a branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN: ${{ github.event.workflow_run.id || inputs.run_id }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion || 'manual' }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -u
+          if [ -z "${RUN}" ]; then
+            RUN=$(gh run list --workflow=emulator.yml --limit 1 --json databaseId -q '.[0].databaseId')
+          fi
+          echo "run $RUN"
+          # Every line is "job<TAB>step<TAB>timestamp content". The whole log of a target build is tens
+          # of megabytes; what answers "why did publication stop" is the publish job and the failures.
+          gh run view "$RUN" --log > /tmp/run.log 2>/tmp/run.err || true
+          gh run view "$RUN" --json jobs > /tmp/jobs.json 2>>/tmp/run.err || true
+          mkdir -p ci
+          {
+            echo "# emulator run $RUN ($CONCLUSION) at $RUN_SHA"
+            echo
+            echo "## jobs"
+            python3 - <<'PY' || true
+          import json
+          try:
+              d = json.load(open("/tmp/jobs.json"))
+          except Exception as e:
+              print("(jobs.json unreadable:", e, ")")
+              raise SystemExit(0)
+          for j in d.get("jobs", []):
+              print(f"- {j.get('name')}: {j.get('status')} / {j.get('conclusion')}")
+              for s in j.get("steps", []):
+                  if s.get("conclusion") not in (None, "success", "skipped"):
+                      print(f"    step FAILED: {s.get('number')} {s.get('name')} -> {s.get('conclusion')}")
+          PY
+            echo
+            echo "## publish job"
+            awk -F'\t' '$1 ~ /^publish/ {print}' /tmp/run.log | cut -c1-2000 | tail -400
+            echo
+            echo "## failed steps, any job"
+            awk -F'\t' '$1 !~ /^publish/ && ($2 ~ /Set up job|Checkout|the emulator|target|deploy|Pages|site/ || 1) {print}' /tmp/run.log \
+              | grep -iE "::error|error:|Error: |fatal|Traceback|FAILED|denied|403|404|422" | cut -c1-2000 | tail -300
+            echo
+            echo "## tail"
+            tail -400 /tmp/run.log | cut -c1-2000
+            echo
+            [ -s /tmp/run.err ] && { echo "## gh stderr"; tail -40 /tmp/run.err; }
+          } > "ci/last-run.log"
+          wc -c "ci/last-run.log"
+          git config user.name "ci-diag"
+          git config user.email "ci-diag@users.noreply.github.com"
+          git checkout -B "ci/log/${RUN}-${CONCLUSION}"
+          git add ci/last-run.log
+          git commit -q -m "ci: the emulator run ${RUN} (${CONCLUSION}) log, for a checkout without a token"
+          git push origin "HEAD:refs/heads/ci/log/${RUN}-${CONCLUSION}"

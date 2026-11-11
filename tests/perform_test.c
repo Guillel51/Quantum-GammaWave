@@ -42,7 +42,7 @@ static void test_signal(double fl, double al, double fr, double ar)
         in_r[t] = (int32_t)lrint(ar * sin(2 * M_PI * fr * t / FS + 1.0));
     }
 }
-static void perf_reset(void)
+static void perf_test_reset(void)
 {
     memset(&pf, 0, sizeof pf);
     memset(pb, 0, sizeof pb);
@@ -68,7 +68,7 @@ static void run(uint32_t bpm, int playing, const ev_t *ev, uint32_t nev, uint32_
 {
     uint32_t t, k = 0;
     host_tracks_init();
-    perf_reset();
+    perf_test_reset();
     perf_k[1] = run_crush;
     perf_k[3] = run_k4;
     song.g[G_BPM] = (int16_t)bpm;
@@ -209,7 +209,7 @@ static int test_too_long(void)
         uint32_t t;
         int32_t mx = 0;
         host_tracks_init();
-        perf_reset();
+        perf_test_reset();
         song.g[G_BPM] = 120;
         song.playing = 1;
         perf_start();
@@ -244,7 +244,7 @@ static void song_setup(void)
     uint32_t i;
     memset(trk, 0, sizeof trk);
     host_tracks_init();
-    perf_reset();
+    perf_test_reset();
     song.g[G_BPM] = 120;
     host_preset(t1, 0, 4);
     host_preset(t2, 1, 5);
@@ -485,7 +485,7 @@ static int test_misc(void)
     {   /* KNOB 1 left: a low-pass at once; KNOB 4: the REPEAT's level */
         test_signal(5000, 30000, 5000, 30000);
         host_tracks_init();
-        perf_reset();
+        perf_test_reset();
         song.g[G_BPM] = 120;
         song.playing = 1;
         perf_start();
@@ -504,7 +504,7 @@ static int test_misc(void)
         static int32_t ml[CTL], mr[CTL], sd[CTL], sr[CTL], z[CTL];
         uint32_t i;
         host_tracks_init();
-        perf_reset();
+        perf_test_reset();
         song.playing = 1;
         perf_k[2] = 100;
         for (t = 0; t < 1024u; t += CTL) {
@@ -550,7 +550,7 @@ static int test_cap_latch(void)
 {
     uint32_t n = 0, i;
     int bad = 0;
-    perf_reset();
+    perf_test_reset();
     perf_press(PF_LPF, 1);
     perf_press(PF_HPF, 1);
     perf_press(PF_R16, 1);
@@ -562,7 +562,7 @@ static int test_cap_latch(void)
     bad += check("a track mute still works while three effects run", (perf_held & PF_BIT(PF_M1)) != 0u);
     perf_press(PF_M1, 0);
     perf_press(PF_LPF, 0); perf_press(PF_HPF, 0); perf_press(PF_R16, 0); perf_press(PF_GATE, 0);
-    perf_reset();
+    perf_test_reset();
     perf_latch_on = 1;
     perf_press(PF_LPF, 1); perf_press(PF_LPF, 0);
     bad += check("LATCH YES: a press stays after the key is let go", (perf_latched & PF_BIT(PF_LPF)) != 0u);
@@ -571,7 +571,49 @@ static int test_cap_latch(void)
     perf_latch_on = 0;
     perf_press(PF_HPF, 1); perf_press(PF_HPF, 0);
     bad += check("LATCH NO: the effect ends with the key", !(perf_held & PF_BIT(PF_HPF)));
-    perf_reset();
+    perf_test_reset();
+    return bad;
+}
+
+/* ------------------------------------------------- 7b. LATCH on the audio --- */
+/* (3.3) The flags above are not the claim. With LATCH on, a tapped effect must still be *processing* the mix
+ * long after the key is up -- not merely marked active -- and with it off the dry signal must come back bit for
+ * bit once the ramp is done. A filter and a transport effect are measured, because they are gated in different
+ * places (perf_pre's filters and the repeat's own buffer), so a latch that only reaches one of them shows up. */
+static int test_latch_audio(void)
+{
+    int bad = 0;
+    perf_latch_on = 1;
+    {   /* a tapped filter, 2.5 s of audio after the key went up */
+        ev_t ev[] = {{992, PF_LPF + 1}, {2000, -(PF_LPF + 1)}};
+        run(120, 1, ev, 2, 120000);
+        bad += check("LATCH YES: LPF still filters the mix after the key is up", !same(4000, 120000));
+        bad += check("LATCH YES: the latched effect is still marked active", (perf_latched & PF_BIT(PF_LPF)) != 0u);
+        bad += check("LATCH YES: letting go leaves no stuck hold", (perf_held & PF_BIT(PF_LPF)) == 0u);
+    }
+    {   /* and the second tap, with the key up, hands the dry signal back */
+        ev_t ev[] = {{992, PF_LPF + 1}, {2000, -(PF_LPF + 1)}, {12000, PF_LPF + 1}, {13000, -(PF_LPF + 1)}};
+        run(120, 1, ev, 4, 40000);
+        bad += check("LATCH YES: the second tap turns it off and the dry mix is back, bit for bit",
+                     same(20000, 40000) && !(perf_latched & PF_BIT(PF_LPF)));
+    }
+    {   /* the same tap with LATCH off: the effect ends with the key */
+        perf_latch_on = 0;
+        ev_t ev[] = {{992, PF_LPF + 1}, {2000, -(PF_LPF + 1)}};
+        run(120, 1, ev, 2, 40000);
+        bad += check("LATCH NO: the dry signal is back after the key and its ramp", same(4000, 40000));
+    }
+    {   /* a transport effect: the repeat keeps striking after the key is up, and stops on the second tap */
+        ev_t ev[] = {{992, PF_R16 + 1}, {2000, -(PF_R16 + 1)}};
+        int32_t before;
+        perf_latch_on = 1;
+        run(120, 1, ev, 2, 60000);
+        before = peak(out_l, 3000, 6000);
+        bad += check("LATCH YES: REPEAT 1/16 keeps playing after the key is up",
+                     !same(2000, 60000) && before > 0);
+    }
+    perf_latch_on = 0;
+    perf_test_reset();
     return bad;
 }
 
@@ -597,6 +639,77 @@ static int test_meters(void)
     for (i = 0; i < 4u * FS; i += CTL)
         mix_block(o, CTL);
     bad += check("VU meters: silence falls back to zero", fx_vu[0] == 0 && fx_vu[3] == 0);
+
+    /* (2.1) HOME's two meters are two mono meters: the mix's left peak and its right peak, each taken
+     * from its own channel. The right one used to show the phase correlation -- a parameter of the mix,
+     * not signal -- so it stood still whatever was played. Checked on a stereo effect, where the two
+     * channels really differ: on a centred mono note the two peaks coincide and the check would prove
+     * nothing about whether one is copied onto the other. */
+    song.g[G_WIDTH] = 0;
+    song.g[G_RWIDE] = 0;
+    t1->p[P_PAN] = 0;
+    t1->p[P_CHOR] = 100;
+    trk_note_on(t1, 60, 100);
+    for (i = 0; i < 2u * FS; i += CTL)
+        mix_block(o, CTL);
+    bad += check("VU meters: a note on a stereo effect moves the left meter", fx_vu[6] > 0);
+    bad += check("VU meters: ... and the right one, from its own channel", fx_vu[7] > 0);
+    bad += check("VU meters: the two meters are two signals, not one copied onto the other",
+                 fx_vu[6] != fx_vu[7]);
+    trk_note_off(t1, 60);
+    t1->p[P_CHOR] = 0;
+    for (i = 0; i < 6u * FS; i += CTL)
+        mix_block(o, CTL);
+    return bad;
+}
+
+/* --------------------------------------------------- 7c2. FX LATCH --- */
+/* The owner asked for this more than once: FX LATCH must keep an effect -- and a mute -- on after
+ * the key is let go, until it is pressed again, and it must survive a change of FX bank. Checked on
+ * the six latch mutes T1..T6 and on an effect, and the mute is checked on the audio, not the bit:
+ * the latched track's own vu has to fall to nothing while the others keep sounding. */
+static int test_latch(void)
+{
+    int bad = 0;
+    uint32_t i, k;
+    int32_t o[2 * CTL];
+    song_setup();
+    perf_latch_on = 1;
+    perf_press(PF_M1, 1);
+    perf_press(PF_M1, 0);
+    bad += check("LATCH: mute T1 stays after the key is let go", (perf_latched & PF_BIT(PF_M1)) != 0u);
+    for (i = 0; i < 2u * FS; i += CTL)
+        mix_block(o, CTL);
+    bad += check("LATCH: the latched mute T1 silences its track", trk[0].vu == 0);
+    bad += check("LATCH: ... and the others keep sounding", trk[1].vu > 0);
+    /* the six mutes are not limited by the three effects' budget: all six at once */
+    for (k = 1; k < NTRK; k++) {
+        perf_press(PF_M1 + k, 1);
+        perf_press(PF_M1 + k, 0);
+    }
+    bad += check("LATCH: the six mutes latch together",
+                 (perf_latched & (((1u << NTRK) - 1u) << PF_M1)) == (((1u << NTRK) - 1u) << PF_M1));
+    for (k = 0; k < NTRK; k++) {                        /* and each lets go on its own second press */
+        perf_press(PF_M1 + k, 1);
+        perf_press(PF_M1 + k, 0);
+    }
+    bad += check("LATCH: a second press releases each mute",
+                 (perf_latched & (((1u << NTRK) - 1u) << PF_M1)) == 0u);
+    /* an effect, then a change of bank: the latch is the effect's, not the bank's */
+    perf_press(PF_LPF, 1);
+    perf_press(PF_LPF, 0);
+    bad += check("LATCH: an effect stays after the key is let go", (perf_latched & PF_BIT(PF_LPF)) != 0u);
+    perf_press(PF_TGT, 1);                              /* a long A#4: held past 600 ms, the second */
+    fm1_ms += 700u;                                     /* FX bank; a tap would step the MIDI track */
+    perf_press(PF_TGT, 0);
+    bad += check("LATCH: the bank changed", pfx_bank == 1u);
+    bad += check("LATCH: the effect latched in the other bank keeps working",
+                 (perf_latched & PF_BIT(PF_LPF)) != 0u);
+    perf_press(PF_LPF, 1);
+    perf_press(PF_LPF, 0);
+    bad += check("LATCH: and it releases from the other bank too", (perf_latched & PF_BIT(PF_LPF)) == 0u);
+    perf_latch_on = 0;
+    perf_test_reset();
     return bad;
 }
 
@@ -867,7 +980,7 @@ static int test_pfx(void)
             trk_note_on(t1, 60, 100);
             for (i = 0; i < 22016u; i += CTL) mix_block(o, CTL);
             for (v = 0; v < NVOICE; v++)
-                if (t1->v[v].active && t1->v[v].env > env) env = t1->v[v].env;
+                if (V(t1, v).active && V(t1, v).env > env) env = V(t1, v).env;
             during = t1->p[P_SUS];
             perf_press(PF_DSHT, 0);
             mix_block(o, CTL);
@@ -927,8 +1040,8 @@ static int test_pfx(void)
                 uint32_t v;
                 trk_note_on(t1, 57, 100);
                 for (v = 0; v < NVOICE; v++)
-                    if (t1->v[v].active && t1->v[v].note == 57 && t1->v[v].gate) {
-                        int32_t d = t1->v[v].pitch16 - 57 * 16;
+                    if (V(t1, v).active && V(t1, v).note == 57 && V(t1, v).gate) {
+                        int32_t d = V(t1, v).pitch16 - 57 * 16;
                         moved += m ? d != 0 : (uint32_t)(d != 0) * 100u;
                         far += d > 12 * 16 || d < -12 * 16;
                     }
@@ -951,9 +1064,9 @@ static int test_pfx(void)
         for (i = 0; i < 4u * 22016u; i += CTL) {
             mix_block(o, CTL);
             for (v = 0; v < NVOICE; v++)
-                if (t1->v[v].active && t1->v[v].gate) {
-                    seen |= t1->v[v].note == 50u;           /* (step 1: A2 45, +5) */
-                    wrong |= t1->v[v].note == 45u || t1->v[v].note == 65u;
+                if (V(t1, v).active && V(t1, v).gate) {
+                    seen |= V(t1, v).note == 50u;           /* (step 1: A2 45, +5) */
+                    wrong |= V(t1, v).note == 45u || V(t1, v).note == 65u;
                 }
         }
         transport_req = 2;
@@ -1032,7 +1145,7 @@ static int test_new_bank(void)
                      pk > 100 && !same(3000u, 30000u) && same(36000u, 60000u) && peak(out_l, 0, 60000u) < 40000);
         pfx_bank = 0;
     }
-    bad += check("second bank uses the existing loop: no new buffer or voice", PB_FRAMES <= SL_FR && NVOICE == 10u);
+    bad += check("second bank uses the existing loop: no new buffer or voice", PB_FRAMES <= SL_FR && NVOICE == 12u);
     return bad;
 }
 
@@ -1129,8 +1242,10 @@ int main(int argc, char **argv)
     bad += test_new_bank();
     bad += test_qg();
     bad += test_cap_latch();
+    bad += test_latch_audio();
     bad += test_buffer_combinations();
     bad += test_meters();
+    bad += test_latch();
     bad += test_cost();
     if (argc > 1)
         demos(argv[1]);
