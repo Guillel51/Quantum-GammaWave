@@ -1,0 +1,71 @@
+{
+  "artifacts": {
+    "felucca.bin": {
+      "bytes": 541492,
+      "sha256": "3cc922a6c7fcdb174d31dcdcf4a3f2f150b00de7385cc2bef8ed9498e8010bb4"
+    },
+    "felucca.fwsc": {
+      "bytes": 610959,
+      "sha256": "9752a1a6498aa4f090a234fc8a6d38a5c5b6926539301c8f9036e02808f07942"
+    },
+    "loader/ota.bin": {
+      "bytes": 7803,
+      "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+    }
+  },
+  "checks": {
+    "checks": "ok",
+    "identity": "FM-1_965",
+    "notes": [
+      ".ram_text: 1193 insns, no calls",
+      "image 541492 B; RAM .data+.bss 87696 B of 98304; pool 305096 B, spare 15392 B",
+      "XIP code 380944 B, constants 140516 B",
+      "RAM code 19284 B of 24576; calls reach 79568 B past the code's end",
+      "register access: hal/ only (src/, loader/ clean)"
+    ]
+  },
+  "commit": "c6db91f01e69aa2292d15e70c5d23f27e9e39ebf",
+  "config": {
+    "FELUCCA_CDC": "default",
+    "FELUCCA_CDC_DEFAULT": "default",
+    "FELUCCA_FLASH": "default",
+    "FELUCCA_FM4": "default",
+    "FELUCCA_HOTRAM": "default",
+    "FELUCCA_ICONS": "default",
+    "FELUCCA_OTA": "default",
+    "FELUCCA_OTA_DRYRUN": "default",
+    "FELUCCA_OTA_RAMONLY": "default",
+    "FELUCCA_SIZE": "default",
+    "FELUCCA_SLICE": "default",
+    "FELUCCA_UAC": "default",
+    "FELUCCA_UAC_48K": "default",
+    "FELUCCA_UAC_TONE": "default",
+    "FELUCCA_UART": "default",
+    "FELUCCA_USB_LAYOUT": "default"
+  },
+  "dirty": [],
+  "emulator": {
+    "commit": "c6db91f01e69",
+    "version": "v2.5.0",
+    "wasm_bytes": 1104688,
+    "wasm_sha256": "c1bb42fa1bff1b2d08053e713b90b60cf1f15a18c010a6346479c783460b54da"
+  },
+  "identity": "FM-1_965",
+  "schema": "qg1-build-1",
+  "sdk": {
+    "commit": "d179b4484759423312073f5fbb232501aa491047",
+    "files": {
+      "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
+      "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
+      "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
+    },
+    "path": "/home/runner/work/Quantum-GammaWave/Quantum-GammaWave/../AC79_SDK"
+  },
+  "toolchain": {
+    "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
+    "name": "jieli-linux-toolchains-20260730.1",
+    "path": "/home/runner/work/Quantum-GammaWave/Quantum-GammaWave/../jieli/toolchain",
+    "version": "clang version 4.0.1 () ()"
+  },
+  "version": "v2.5.0"
+}
