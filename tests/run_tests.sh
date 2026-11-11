@@ -165,15 +165,16 @@ done
 if [ "${NO_PACKAGE:-0}" = 1 ]; then
     echo "== skip the package / loader tests (NO_PACKAGE=1: no ./build.sh package)"
 else
-    [ -f build/felucca.fwsc ] || { echo "run ./build.sh first (or NO_PACKAGE=1 for the host-only run)"; exit 1; }
+    PKG="$(ls build/felucca*.fwsc 2>/dev/null | head -1)"
+    [ -n "$PKG" ] && [ -f "$PKG" ] || { echo "run ./build.sh first (or NO_PACKAGE=1 for the host-only run)"; exit 1; }
 
     $CC -DOWN_PKG=1 -o "$OUT/ota_test" tests/ota_test.c
-    run "M-UPGRADE entry (own loader)" "$OUT/ota_test" build/felucca.fwsc
+    run "M-UPGRADE entry (own loader)" "$OUT/ota_test" "$PKG"
 
     head -c 200000 build/felucca.bin > "$OUT/old_app.bin"
     python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
     $CC -o "$OUT/ldr_test" tests/ldr_test.c
-    run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+    run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" "$PKG"
 fi
 
 if [ -f build/gen/felucca_tables.h ]; then

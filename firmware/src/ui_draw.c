@@ -1668,11 +1668,6 @@ static void splash_sig(uint32_t prog, uint32_t ms)
      * clear of the art (the two lines under the band carry the version and the project). */
     // splash readout removed;
     {
-        char pb[8];
-        fmt_int(pb, prog * 100 / 256);
-        str_cpy(pb + str_len(pb), "%", 2);
-        // splash right readout removed; cv_text_r removed;
-    }
     /* 9. THE RAIL: sixteen beveled blocks along the bottom, each filled as far as the boot has written,
      * and the playhead on its leading edge. It is the one thing that says how far the start has got. */
     cv_rect(12, 112, 216, 1, ux_mix(card, T_LINE, 90));
