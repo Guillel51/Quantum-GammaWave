@@ -1,3 +1,9 @@
+## 2026-11-12 — v2.7.4.6: Reverb model-specific animations and sync
+
+- **Reverb models**: ROOM now shows breathing comb teeth, SPRING a travelling chirp marker, SHIMMER keeps its octave sparks, RESO/CLOUD keep their distinct animations.
+- **Emulator/site/readmes**: synchronized with the rebuilt firmware and WASM.
+- **Release**: v2.7.4.6 firmware + SHA256.
+
 ## 2026-11-12 — v2.7.4.5: FX VU meter routing fix and sync
 
 - **FX meters**: the Reverb meter now reflects only the reverb bus's own return; Chorus or Delay activity no longer moves it.

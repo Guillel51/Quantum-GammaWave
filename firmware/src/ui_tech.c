@@ -374,6 +374,20 @@ static void tech_rev(void)
                 cv_rect(x0 + 6 + gap + i, sy, 2, 2, heat_col(clamp(heat + 40 + air * 3, 0, 250)));
         }
     }
+    if (ty == 0) {                                     /* ROOM: four comb teeth, breathing with the return */
+        int32_t k;
+        for (k = 1; k <= 4; k++) {
+            int32_t cx = x0 + 6 + gap + k * len / 5;
+            int32_t ch = 4 + k * 3 + (int32_t)rev_act / 24;
+            if (cx > x0 + w - 2) break;
+            cv_rect(cx, base - ch, 1, ch, ux_mix(T_BG, bg_col(120 + k * 20), 35 + (int32_t)rev_act / 5));
+        }
+    }
+    if (ty == 1 && rev_act > 4) {                      /* SPRING: a chirp marker travelling along the tail */
+        int32_t cp = x0 + 6 + gap + ((int32_t)rev_ph * len / 256) % (len > 1 ? len : 1);
+        if (cp > x0 + 5 && cp < x0 + w - 2)
+            cv_rrect(cp - 2, base - 8, 5, 8, 2, ux_mix(T_BG, bg_col(210), 60 + (int32_t)rev_act / 4), T_SURF);
+    }
 }
 
 /* REVERB 2: the tail left (up) and right (down) */
