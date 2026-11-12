@@ -45,7 +45,7 @@ verificación y `tools/coherence_check.py` **no podía** validar nada. Se regene
 `=======` el nombre parseado era `""`, el camino apuntaba al directorio `release/` y el proceso moría con
 `IsADirectoryError`: el gate diseñado para detectar exactamente este defecto era el que se callaba. Ahora valida
 la forma (`64 hex + dos espacios + nombre`) y reporta **línea y contenido**; una entrada dañada es un mensaje, no
-un traceback. Verificado: con el árbol actual `coherence: ok` (923 archivos, 0 marcadores), y el crash reproducido
+un traceback. Verificado: con el árbol actual `coherence: ok` (923 archivos hasta este informe, 0 marcadores), y el crash reproducido
 antes del arreglo.
 
 ### C-3 (bloqueante de release, resuelto) — v2.7.5 no tenía paquete
@@ -179,7 +179,7 @@ demuestra geometría ni comportamiento de escritura equivalente. Eso sigue en `[
 | `install_test.py` | `[HOST]` | pasa, incluida la comparación de imagen lógica contra `fm1pkg.js` |
 | `web/test_pkg_faults.mjs` (paquete real) | `[HOST]` | pasa: bytes críticos, truncado, payload corrupto |
 | `web/test_accept.mjs` / `test_state` / `test_update_mode` / `test_verify_only` / `test_donor` / `test_sign` / `test_provenance` | `[HOST]` | 23 / 65 / 16 / 153 / 10 / 6 checks, 0 FAILED |
-| `coherence_check.py` | `[HOST]` | **ok** (923 archivos, sin marcadores, hashes y sitio concordantes) |
+| `coherence_check.py` | `[HOST]` | **ok** (sin marcadores, hashes y sitio concordantes) |
 | `site_check.py`, `web/test_site.py` | `[HOST]` | ok; 19 ids, 7 imágenes, 31 enlaces, 0 FAILED |
 | `key_custody_test.py` | `[HOST]` | pasado |
 | Loader con cortes de alimentación derivados y reanudación | `[SIM]` | verde (5 cortes) |
