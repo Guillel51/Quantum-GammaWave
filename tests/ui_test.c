@@ -5298,10 +5298,16 @@ static int test_home_views(void)
     press(B_HOME);
     ok &= ui.home && ui.home_view == HV_MIX && !ui.home_viz;       /* (3.1) the desk */
     press(B_HOME);
+    ok &= ui.home && ui.home_view == HV_PERF && !ui.home_viz;      /* (3.2) the live settings */
+    press(B_HOME);
+    ok &= ui.home && ui.home_view == HV_ENG && !ui.home_viz;       /* .. the engine's eight */
+    press(B_HOME);
+    ok &= ui.home && ui.home_view == HV_MOD && !ui.home_viz;       /* .. the matrix */
+    press(B_HOME);
     ok &= ui.home && ui.home_view == HV_SYSTEM && !ui.home_viz;
     press(B_HOME);
     ok &= ui.home && ui.home_view == HV_HOME;                      /* the tap past the last returns to the first */
-    bad += check("HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, SYSTEM, HOME), never two", ok);
+    bad += check("HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, HOME)", ok);
     ok = ui.home_view == HV_HOME && !ui.menu;
     hold(B_HOME);                                                  /* 0.8 s: the menu, not a screen */
     ok &= ui.menu && ui.home_view == HV_HOME;
@@ -5319,10 +5325,16 @@ static int test_home_views(void)
         ok &= ui.home_view == HV_OVERVIEW && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
         press(B_HOME);                                             /* MIX */
         ok &= ui.home_view == HV_MIX && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
+        press(B_HOME);                                             /* PERF */
+        ok &= ui.home_view == HV_PERF && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
+        press(B_HOME);                                             /* ENG */
+        ok &= ui.home_view == HV_ENG && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
+        press(B_HOME);                                             /* MOD */
+        ok &= ui.home_view == HV_MOD && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
         press(B_HOME);                                             /* SYSTEM */
         ok &= ui.home_view == HV_SYSTEM && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
     }
-    bad += check("OVERVIEW, MIX and SYSTEM: read-only, and they leave the page and the sound untouched", ok);
+    bad += check("OVERVIEW, MIX, PERF, ENG, MOD and SYSTEM: read-only, page and sound untouched", ok);
     /* and leaving HOME puts the screen away (no screen under the section's page) */
     press(B_HOME);                                                 /* HOME */
     press(B_HOME);                                                 /* SCOPE */

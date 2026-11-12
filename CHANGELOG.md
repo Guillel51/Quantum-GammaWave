@@ -1,3 +1,11 @@
+## 2026-11-12 — v2.8.3: HOME is a full set of screens
+
+- **MIXER, redrawn**: each track now reads as the instrument draws everything else — its number and the engine it is running, a nine-cell level meter with the peak held beside it, the pan as a two-pixel tick on a ruled centre line (it used to hide under the ruler's own line), a MUTE pill, and its fader position in cells. Below, the mix's own L and R peaks with a scale, plus the master level. Still nothing stored: `trk[].vu` and `trk[].peak` are what `fx.c` already writes.
+- **PERFORMANCE**: octave, transpose, root, scale, tempo, swing, and the selected track's arpeggiator (mode, rate, octave, gate, swing) with the four knobs HOME turns and their values. Every row is a live parameter the DSP reads.
+- **SOUND ENGINE**: the engine's own eight parameters with the labels and enum names from its descriptors, the preset it is playing and its number, voices in use against the cap, morph, cutoff and resonance.
+- **MODULATION**: the four matrix slots (source → destination, depth as a bar, off rows drawn off) and the LFO's four destinations (`P_LD_*`) with their depths.
+- **Tests**: 191 screens (from 188) in 17 palettes, 0 lint findings, 0 of 2 779 972 alignment measurements off; the two overlaps and one out-of-cell spill the sweep found in the first draft of these screens were fixed, and the HOME cycle test now walks all eight screens and asserts each of the four new ones leaves the page, the track and the sound untouched.
+
 ## 2026-11-12 — v2.8.2: HOME gets a desk
 
 - **HOME > MIXER**: the fourth HOME screen (after VISUALIZER, OVERVIEW and SYSTEM), reached by the same tap that walks the list. Six rows, one per track: the level the block actually reached (the peaked envelope `fx.c` writes, not a sample), the pan as a tick on a centred ruler (`P_PAN` is −64..63, so 0 lands in the middle), MUTE or the voices the track holds now, and the mix's own two peaks at the bottom. Everything on it is a number the firmware already keeps; nothing new is stored, so a project saved before this screen loads and sounds exactly as it did.
