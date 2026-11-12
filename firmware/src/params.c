@@ -17,6 +17,13 @@ static const char *const N_DTIME[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T",
 static const uint16_t DTIME_MS[48] = {5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 17, 19, 21, 24, 27, 31, 35, 39, 44, 50, 56, 64, 72, 81, 91, 103, 116, 131, 148, 167, 189, 213, 241, 272, 307, 346, 391, 441, 498, 562, 634, 716, 808, 912, 1029, 1162, 1311, 1480};
 static const char *const N_SCALE[] = {"CHR", "MAJ", "MIN", "DOR", "MIX", "PEN", "MPEN", "HARM",
                                     "PHRY", "LYD", "LOC", "MEL", "BLUES", "WHOLE", "DIMHW", "DIMWH"};
+/* (2.8) SCL > SCALE names the scale in full and its family, which is what the explorer is for: CHR is no key
+ * at all, the rest are major, minor, modal, pentatonic (blues too) or symmetric (whole tone, diminished) */
+static const char *const N_SCALELONG[] = {"CHROMATIC", "MAJOR", "NAT MINOR", "DORIAN", "MIXOLYDIAN", "MAJ PENTA",
+                                          "MIN PENTA", "HARM MINOR", "PHRYGIAN", "LYDIAN", "LOCRIAN", "MEL MINOR",
+                                          "BLUES", "WHOLE TONE", "DIM H/W", "DIM W/H"};
+static const char *const N_SCLFAM[] = {"ATONAL", "MAJOR", "MINOR", "MODAL", "MODAL", "PENTA", "PENTA", "MINOR",
+                                       "MODAL", "MODAL", "MODAL", "MINOR", "BLUES", "SYMM", "SYMM", "SYMM"};
 static const char *const N_ONOFF[] = {"OFF", "ON"};
 static const char *const N_NRATE[] = {"1/1", "1/2", "1/4", "1/8", "1/16", "46ms"};   /* (3.5) mod.c MS_NOISE's hold:
                                      * the tempo's grid, then the free 46 ms it always was (the default, last so the
@@ -506,13 +513,21 @@ enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK };   /* SC_TRK: the TRACK
 enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_BROWSE, GR_SLOTS, GR_USER, GR_TRK,
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
-       GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG };   /* (JIANT 0.6.39) SEQ > COMP: the step components (ui_input.c comp_*, ui_graph.c graph_comp) */   /* (JIANT 0.6.10, from Felucca 1.5: FM6's operator pages, ui_fm6op.c) */
+       GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_VOICE, GR_SCL_INT, GR_SCL_PROG, GR_SCL_NOTE};   /* (2.8) SCL's tools: the
+                                     * scale's notes and intervals, the chords the key has, their voicings, the
+                                     * intervals from the root, the degrees' progressions and the keys (ui_graph.c) */
 
 typedef struct {
     const char *title;
     uint8_t fam, scope, graph;
     uint8_t id[4];               /* param ids; 0xFF = empty slot */
 } page_t;
+/* (2.8) SCL > PROG: the progressions it lists, by name (ui_graph.c has the degrees). Shown, not played, so it
+ * is the page's own setting and not a song parameter (it rides with page_desc as MENU > TRACKS does) */
+static const char *const N_PROGN[] = {"POP", "50S", "JAZZ", "ROCK", "CANON", "ANDALUS", "BLUES", "TURN"};
+static int16_t scl_prog;
+static const param_desc_t PROG_DESC = PE("PROG", N_PROGN, 0);
 
 /* (0.6.18) GLO > SYSTEM's TRKS: how many tracks play, the setting of MENU > AUDIO > TRACKS (ui.c ui_rec_prefs bit 7,
  * kept with the settings, not in the song). An id past the globals (no song.g of its own): trks_ui mirrors the setting
@@ -554,8 +569,15 @@ static const page_t PAGES[] = {
     {"MASTER EQ", FAM_FX, SC_GLOBAL, GR_NONE, {G_EQMODE, G_EQFREQ, G_EQGAIN, G_EQQ}},   /* QG-1 v1.4: Peak/Notch/Shelf Parametric EQ */
     {"STEREO M/S", FAM_FX, SC_GLOBAL, GR_NONE, {G_MWIDTH, 0xFF, 0xFF, 0xFF}},            /* QG-1 v1.4: Dedicated Master Stereo Width */
     {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (JIANT: ROOT, SCALE every melodic track's) */
+    {"SCALE", FAM_SCL, SC_TRACK, GR_SCL_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (2.8) what the scale holds */
+    {"CHORD", FAM_SCL, SC_TRACK, GR_SCL_CHORD, {P_CHRD, P_CVOI, P_CSTR, P_ROOT}},   /* (0.6.81) a key plays a chord */
+    {"VOICING", FAM_SCL, SC_TRACK, GR_SCL_VOICE, {P_CHRD, P_CVOI, P_CSTR, P_ROOT}},   /* (2.8) .. and how it lies */
+    {"INTERVAL", FAM_SCL, SC_TRACK, GR_SCL_INT, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (2.8) up and down */
+    {"PROG", FAM_SCL, SC_TRACK, GR_SCL_PROG, {P_SCALE, P_ROOT, P_SCALE, P_CHRD}},   /* (2.8) KNOB 1 the progression
+                                     * (page_desc), 3 the same SCALE as KNOB 1's real one */
+    {"KEYS", FAM_SCL, SC_TRACK, GR_SCL_NOTE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (2.8) the keys themselves
+                                     * (NOTE is SEQ's: two pages of a title break go_title) */
     {"SCL 2", FAM_SCL, SC_GLOBAL, GR_NONE, {G_STRN, 0xFF, 0xFF, 0xFF}},   /* (JIANT 0.4) every sequence up / down the scale */
-    {"CHORD", FAM_SCL, SC_TRACK, GR_NONE, {P_CHRD, P_CVOI, P_CSTR, 0xFF}},   /* (0.6.81) a key plays a chord (seq.c) */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
     {"RETRIG", FAM_EDIT, SC_TRACK, GR_NONE, {P_LRTRG, 0xFF, 0xFF, 0xFF}},
@@ -633,6 +655,10 @@ static uint8_t sl_ui_step;       /* (JIANT 0.6.3) the SL PITCH page: the step KN
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
+    if (pg->graph == GR_SCL_PROG && slot == 0u) {      /* SCL > PROG's KNOB 1: the progression, not the scale */
+        *valp = &scl_prog;
+        return &PROG_DESC;
+    }
     if (id == 0xFFu) {
         *valp = 0;
         return 0;

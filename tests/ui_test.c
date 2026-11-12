@@ -166,6 +166,8 @@ static struct { uint32_t stage; } felucca_dbg;
 #include "../firmware/src/ui.c"
 #include "../firmware/src/menu_items.c"
 #include "../firmware/src/icons.c"
+#include "../firmware/src/ui_scl.c"
+#include "../firmware/src/ui_homeviews.c"
 #include "../firmware/src/ui_graph.c"
 #include "../firmware/src/ui_draw.c"
 #include "../firmware/src/ui_menu.c"
@@ -259,6 +261,9 @@ static void ui_power_on(void)
 }
 /* card slot drawn with MOTION's mark (ui_draw.c card_mot: its icon, or a long label in the theme colour) */
 static int card_motion(uint32_t slot) { return (card_mot >> slot) & 1u; }
+/* (3.0) HOME's first screen, its cards up, whatever screen a previous HOME left it on. HOME now walks a list of
+ * screens (ui.c go_home), so reaching the cards by counting taps would be a test of the counter, not of the cards. */
+static void home_first(void) { ui.home = 1; ui.home_viz = 0; ui.home_view = HV_HOME; ui.force = 1; }
 
 /* one UI frame (input, then the drawing on the stub display) */
 static void frame(void)
@@ -3026,17 +3031,17 @@ static int test_product_ux(void)
     bad += check("#93 the events used up: AUTOMATION FULL", msg_is("AUTOMATION FULL") && !motion_full);
     {   /* #63: a card shows MOTION's icon while the track's motion changes its parameter */
         uint32_t id = ENGINES[TSEL->eng_req]->knob[0];
-        ui_power_on(); go_home(); frame();
+        ui_power_on(); home_first(); frame();
         ok = !card_motion(0) && !card_motion(1);
-        song.rec = 1; seq_start(); go_home(); turn(EN_K1, 1); frame();
+        song.rec = 1; seq_start(); home_first(); turn(EN_K1, 1); frame();
         ok &= card_motion(0) && !card_motion(1) && !card_motion(2) && !card_motion(3);
         bad += check("MOTION: a recorded knob marks its HOME card (and no other)", ok && motion_count(TSEL) == 1);
         song.rec = 0; press(B_PLAY); events_block(32); frame();
         ok = card_motion(0);
-        go_page(GR_MOTION); turn(EN_K1, -1); go_home(); frame();
+        go_page(GR_MOTION); turn(EN_K1, -1); home_first(); frame();
         ok &= !card_motion(0) && motion_count(TSEL) == 1;
         bad += check("MOTION: PLAY OFF takes the icon off the card, the events stay", ok);
-        go_page(GR_MOTION); turn(EN_K1, 1); go_home(); frame();
+        go_page(GR_MOTION); turn(EN_K1, 1); home_first(); frame();
         ok = card_motion(0);
         track_select(1); frame();
         ok &= !card_motion(0);                           /* (another track: its own motion, none) */
@@ -5274,6 +5279,58 @@ static int test_fm4_retired(void)
 #endif
 
 /* #38: the keys of the notes the selected track's sequencer and ARP sound light while it plays */
+/* (3.0) HOME's screens: from a section the first tap only comes home; each tap after that walks one screen of the
+ * list and the one past the last returns to the first; a hold is the menu and never counts as a tap, and letting that
+ * hold go is not a tap either, so no screen is skipped or taken twice */
+static int test_home_views(void)
+{
+    int bad = 0, ok;
+    ui_power_on();
+    open_family(FAM_EDIT);
+    frame();
+    press(B_HOME);
+    ok = ui.home && ui.home_view == HV_HOME && !ui.home_viz;
+    bad += check("HOME from a section: lands on the ecosystem, not the visualizer", ok);
+    press(B_HOME);
+    ok = ui.home && ui.home_view == HV_VIZ && ui.home_viz;
+    press(B_HOME);
+    ok &= ui.home && ui.home_view == HV_OVERVIEW && !ui.home_viz;   /* the visualizer's flag goes off again */
+    press(B_HOME);
+    ok &= ui.home && ui.home_view == HV_SYSTEM && !ui.home_viz;
+    press(B_HOME);
+    ok &= ui.home && ui.home_view == HV_HOME;                      /* the tap past the last returns to the first */
+    bad += check("HOME on HOME: one screen per tap (SCOPE, OVERVIEW, SYSTEM, HOME), never two", ok);
+    ok = ui.home_view == HV_HOME && !ui.menu;
+    hold(B_HOME);                                                  /* 0.8 s: the menu, not a screen */
+    ok &= ui.menu && ui.home_view == HV_HOME;
+    press(B_HOME);                                                 /* closes the menu: still not a screen change */
+    ok &= !ui.menu && ui.home_view == HV_HOME && ui.home;
+    bad += check("HOME held: the menu, and neither the hold nor its release walks a screen", ok);
+    /* the two screens are read-only: no card of theirs sets a parameter, and the track, the page and the sound
+     * are what they were before */
+    ok = ui.home_view == HV_HOME;
+    {   int16_t e0 = TSEL->p[P_E0];
+        uint8_t pg = ui.page;
+        press(B_HOME);                                             /* SCOPE */
+        ok &= ui.home_view == HV_VIZ && ui.menu == 0;
+        press(B_HOME);                                             /* OVERVIEW */
+        ok &= ui.home_view == HV_OVERVIEW && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
+        press(B_HOME);                                             /* SYSTEM */
+        ok &= ui.home_view == HV_SYSTEM && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
+    }
+    bad += check("OVERVIEW and SYSTEM: read-only, and they leave the page and the sound untouched", ok);
+    /* and leaving HOME puts the screen away (no screen under the section's page) */
+    press(B_HOME);                                                 /* HOME */
+    press(B_HOME);                                                 /* SCOPE */
+    press(B_HOME);                                                 /* OVERVIEW */
+    ok = ui.home_view == HV_OVERVIEW;
+    open_family(FAM_EDIT);
+    frame();
+    ok &= !ui.home && !ui.home_viz && ui.home_view == HV_HOME;
+    bad += check("a section entered from HOME's screens: nothing of HOME stays on the page", ok);
+    return bad;
+}
+
 static int test_play_leds(void)
 {
     int bad = 0, ok;
@@ -10796,6 +10853,7 @@ int main(void)
     bad += test_bughunt_ui();
     bad += test_bughunt_ui2();
     bad += test_piano_roll();
+    bad += test_home_views();
     bad += test_play_leds();
     bad += test_cursor_step_leds();
     bad += test_midi_leds();

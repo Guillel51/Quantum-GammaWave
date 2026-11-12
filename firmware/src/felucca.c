@@ -97,6 +97,8 @@
 #include "ui.c"
 #include "menu_items.c"          /* MENU's rows and settings (ui_menu.c, editor_menu.c) */
 #include "icons.c"               /* parameter icons (FELUCCA_ICONS), used by ui_draw.c */
+#include "ui_scl.c"            /* (2.8) SCL's tools: SCALE, CHORD, VOICING, INTERVAL, PROG, NOTE (ui_graph.c calls them) */
+#include "ui_homeviews.c"      /* (3.0) HOME's OVERVIEW and SYSTEM (ui_draw.c and ui_graph.c call them) */
 #include "ui_graph.c"
 #include "ui_draw.c"
 #include "ui_menu.c"

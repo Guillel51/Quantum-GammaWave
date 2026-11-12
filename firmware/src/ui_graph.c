@@ -744,6 +744,17 @@ static void graph_scale(const track_t *t, uint16_t c)
          * beside it and read as a key number the player could press. The scale is already
          * said twice -- the strip on top and the face -- and the accidentals never had it. */
         cv_text_r(kx + kw - 4, y0 + kh - 15, &AF_S, N_NOTE[note], in ? T_INK : T_DIM, face);
+        if (in) {                                    /* (2.8) the degree, at the top of the key: beside the
+                                                      * name it read as a key number, stacked it does not */
+            uint32_t rk = 0, kk;
+            char db[4];
+            for (kk = 0; kk < deg; kk++)
+                rk += (mask >> kk) & 1u;
+            fmt_int(db, (int32_t)rk + 1);
+            /* centred in the key's exposed middle: an accidental overhangs 8 px of it on either side,
+             * so the free band is the 12 px in the middle -- which is where a two-digit degree fits */
+            cv_text_in(kx, y0 + 6, kw, &AF_S, db, is_root ? T_ACCENT : T_MID, face);
+        }
         if (sound)                                    /* the note is sounding: one clear bar */
             cv_rect(kx + 2, y0 + kh - 4, kw - 4, 2, T_ACCENT);
     }
@@ -3152,7 +3163,10 @@ static void draw_graph(void)
         graph_ht = 100;
     } else if (ui.home) {
         cv_oy = 0;
-        graph_ecosys();                              /* (JIANT 0.5: the system's beings, was the scope) */
+        if (ui.home_view >= HV_OVERVIEW)             /* (3.0) HOME's other screens: OVERVIEW, SYSTEM */
+            graph_home_view(c);
+        else
+            graph_ecosys();                          /* (JIANT 0.5: the system's beings, was the scope) */
     } else {
         switch (pg->graph) {
         case GR_ADSR:
@@ -3194,6 +3208,30 @@ static void draw_graph(void)
             break;
         case GR_SCALE:
             graph_scale(t, c);
+            break;
+        case GR_SCL_SCALE:                           /* (2.8) SCL's tools (ui_scl.c) */
+            cv_oy = 0;
+            graph_scl_scale(t, c);
+            break;
+        case GR_SCL_CHORD:
+            cv_oy = 0;
+            graph_scl_chord(t, c);
+            break;
+        case GR_SCL_VOICE:
+            cv_oy = 0;
+            graph_scl_voice(t, c);
+            break;
+        case GR_SCL_INT:
+            cv_oy = 0;
+            graph_scl_int(t, c);
+            break;
+        case GR_SCL_PROG:
+            cv_oy = 0;
+            graph_scl_prog(t, c);
+            break;
+        case GR_SCL_NOTE:
+            cv_oy = 0;
+            graph_scl_note(t, c);
             break;
         case GR_FX:
             cv_oy = 0;

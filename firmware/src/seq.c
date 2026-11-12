@@ -227,21 +227,57 @@ static uint16_t kb_sdue[27];                    /* (0.6.81) samples to the strum
 enum { CD_OFF, CD_TRI, CD_SEV, CD_ADD9, CD_SUS2, CD_SUS4, CD_MAJ, CD_MIN, CD_DOM7, CD_MAJ7, CD_MIN7, CD_POW };
 enum { CV_CLOSE, CV_LEAD, CV_OPEN, CV_BASS };
 static uint8_t chord_last[NTRK][KB_CH], chord_nlast[NTRK];   /* the last chord each track played (LEAD) */
-static uint32_t chord_build(const track_t *t, uint32_t root, uint8_t *out)
+/* (JIANT 0.8.3, QG 2025-11) the first interval of p the scale has above rel (semitones from ROOT), or -1: the
+ * tone a chord asks for where the scale has it, else the nearest one it offers. Before this, a diatonic chord
+ * walked "every other note of the scale", which is a triad only in a seven-note one: in Cm pentatonic TRIAD
+ * on C gave C F Bb (a fourth and a seventh). The seven-note scales never reach the fallback (every third and
+ * fifth is there) and keep their walk bit for bit; the pentatonic, blues and diminished scales are what this
+ * is for. */
+static int32_t chord_pick(uint32_t mask, int32_t rel, const int8_t *p, uint32_t n)
+{
+    uint32_t i;
+    for (i = 0; i < n; i++)
+        if ((mask >> (uint32_t)((rel + p[i] + 120) % 12)) & 1u)
+            return p[i];
+    return -1;
+}
+/* the semitones above ROOT the track's scale has, ascending (CHR: the twelve: that is the scale the player
+ * picked, not the major one CHORD's diatonic shapes borrow). Returns how many; off needs 12 */
+static uint32_t scale_offsets(const track_t *t, uint8_t *off)
+{
+    uint32_t mask = scale_mask(t), i, n = 0;
+    for (i = 0; i < 12u; i++)
+        if ((mask >> i) & 1u)
+            off[n++] = (uint8_t)i;
+    return n;
+}
+/* the degree (0-based) of a note in that scale, or -1 (the note is not in it) */
+static int32_t scale_degree_of(const track_t *t, int32_t note)
+{
+    uint8_t off[12];
+    uint32_t i, n = scale_offsets(t, off);
+    int32_t pc = ((note - t->p[P_ROOT]) % 12 + 12) % 12;
+    for (i = 0; i < n; i++)
+        if (off[i] == (uint32_t)pc)
+            return (int32_t)i;
+    return -1;
+}
+/* the chord's tones before any voicing: the root, then the third (the sus the mode asks for where the scale
+ * has it), the fifth and the seventh or ninth. mode is CD_TRI..CD_ADD9 for the diatonic ones and CD_MAJ.. for
+ * the shapes, which ignore the key. nt needs KB_CH + 1 */
+static uint32_t chord_tones(const track_t *t, uint32_t root, uint32_t mode, int32_t *nt)
 {
     static const int8_t DIA[5][4] = {{0, 2, 4, -1}, {0, 2, 4, 6}, {0, 2, 4, 8}, {0, 1, 4, -1}, {0, 3, 4, -1}};
     static const int8_t SHP[6][4] = {{0, 4, 7, -1}, {0, 3, 7, -1}, {0, 4, 7, 10}, {0, 4, 7, 11}, {0, 3, 7, 10},
                                      {0, 7, 12, -1}};
-    const engine_t *e = ENGINES[eng_idx(t->eng_req)];
-    uint32_t mode = (uint32_t)t->p[P_CHRD], vc = (uint32_t)t->p[P_CVOI], n = 0, i, j, ti = trk_index(t) % NTRK;
-    int32_t nt[KB_CH + 1], r = (int32_t)root;
-    if (!mode || mode > CD_POW || e->oneshot || (e->keys && e->keys(t, 0) >= 0) || t->p[P_VOICE] != V_POLY) {
-        out[0] = (uint8_t)root;
-        return 1;
-    }
+    static const int8_t T3[] = {4, 3, 5, 2}, F5[] = {7, 8, 6}, F5M[] = {7, 6, 8}, SEV[] = {10, 11, 9};
+    static const int8_t NIN[] = {14, 15}, S2[] = {2, 1}, S4[] = {5, 6}, S7D[] = {9, 10};
+    uint32_t n = 0, i;
+    int32_t r = (int32_t)root;
     if (mode >= CD_MAJ) {
         for (i = 0; i < 4u && SHP[mode - CD_MAJ][i] >= 0; i++)
             nt[n++] = r + SHP[mode - CD_MAJ][i];
+        return n;
     } else {                                    /* every other note of the scale from the key's */
         uint32_t mask = scale_mask(t), deg[12], c = 0, at = 0, guard = 12;
         int32_t rt = t->p[P_ROOT];
@@ -254,17 +290,48 @@ static uint32_t chord_build(const track_t *t, uint32_t root, uint8_t *out)
                 if (i == (uint32_t)((r - rt + 120) % 12)) at = c;
                 deg[c++] = i;
             }
+        if (c != 7u) {                          /* 5, 6 or 8 notes: no "every other degree" triad, so the
+                                                 * intervals are taken from the scale itself */
+            int32_t rel = (r - rt + 120) % 12, th, fi, x;
+            n = 1;
+            nt[0] = r;
+            th = mode == CD_SUS2 ? chord_pick(mask, rel, S2, 2) : mode == CD_SUS4 ? chord_pick(mask, rel, S4, 2) : -1;
+            if (th < 0)
+                th = chord_pick(mask, rel, T3, 4);
+            if (th >= 0)
+                nt[n++] = r + th;
+            fi = chord_pick(mask, rel, th == 3 ? F5M : F5, 3);
+            if (fi >= 0)
+                nt[n++] = r + fi;
+            if (mode == CD_SEV && (x = chord_pick(mask, rel, th == 3 && fi == 6 ? S7D : SEV, 2)) >= 0)
+                nt[n++] = r + x;
+            if (mode == CD_ADD9 && (x = chord_pick(mask, rel, NIN, 2)) >= 0)
+                nt[n++] = r + x;
+            return n;
+        }
         for (i = 0; i < 4u && DIA[mode - CD_TRI][i] >= 0; i++) {
             uint32_t k = at + (uint32_t)DIA[mode - CD_TRI][i];
             nt[n++] = r + (int32_t)deg[k % c] + 12 * (int32_t)(k / c) - (int32_t)deg[at];
         }
+        return n;
     }
+}
+/* the chord's notes for one voicing, and how many, without recording anything: the explorers read chords
+ * they do not play. lead is the chord the track played last, for LEAD; NULL: no leading */
+static uint32_t chord_from(const track_t *t, uint32_t root, uint32_t mode, uint32_t vc, uint8_t *out,
+                           const uint8_t *lead, uint32_t nlead)
+{
+    int32_t nt[KB_CH + 1];
+    if (mode < CD_TRI || mode > CD_POW)
+        mode = CD_TRI;                          /* (CD_OFF has no chord: a caller asks for one, it gets a triad) */
+    uint32_t n = chord_tones(t, root, mode, nt), i, j;
+    int32_t r = (int32_t)root;
     if (vc == CV_OPEN && n > 2u)
         nt[1] += 12;
-    if (vc == CV_LEAD && chord_nlast[ti]) {     /* each tone the octave nearest the last chord's middle */
+    if (vc == CV_LEAD && nlead) {               /* each tone the octave nearest the last chord's middle */
         int32_t mid = 0;
-        for (i = 0; i < chord_nlast[ti]; i++) mid += chord_last[ti][i];
-        mid /= (int32_t)chord_nlast[ti];
+        for (i = 0; i < nlead; i++) mid += lead[i];
+        mid /= (int32_t)nlead;
         for (i = 0; i < n; i++) {
             while (nt[i] - mid > 6 && nt[i] - 12 >= 24) nt[i] -= 12;
             while (mid - nt[i] > 6 && nt[i] + 12 <= 108) nt[i] += 12;
@@ -281,9 +348,24 @@ static uint32_t chord_build(const track_t *t, uint32_t root, uint8_t *out)
     for (i = 0, j = 0; i < n && j < KB_CH; i++)
         if (nt[i] >= 0 && nt[i] <= 127) out[j++] = (uint8_t)nt[i];
     if (!j) out[j++] = (uint8_t)root;
-    for (i = 0; i < j; i++) chord_last[ti][i] = out[i];
-    chord_nlast[ti] = (uint8_t)j;
     return j;
+}
+/* the chord a key plays on this track (SCL > CHORD): chord_from with what the page sets, and the record the
+ * LEAD voicing reads the next time. The early return is the one note a kit, MONO / LEGATO / UNISON and CHRD
+ * OFF play: it is not a chord, so it is not remembered */
+static uint32_t chord_build(const track_t *t, uint32_t root, uint8_t *out)
+{
+    const engine_t *e = ENGINES[eng_idx(t->eng_req)];
+    uint32_t mode = (uint32_t)t->p[P_CHRD], vc = (uint32_t)t->p[P_CVOI], n, i, ti = trk_index(t) % NTRK;
+    if (!mode || mode > CD_POW || e->oneshot || (e->keys && e->keys(t, 0) >= 0) || t->p[P_VOICE] != V_POLY) {
+        out[0] = (uint8_t)root;
+        return 1;
+    }
+    n = chord_from(t, root, mode, vc, out, chord_last[ti], chord_nlast[ti]);
+    for (i = 0; i < n; i++)
+        chord_last[ti][i] = out[i];
+    chord_nlast[ti] = (uint8_t)n;
+    return n;
 }
 static uint32_t chord_gap(const track_t *t) { return (uint32_t)clamp(t->p[P_CSTR], 0, 127) * (FS / 2000u); }   /* (~0.5 ms a step) */
 

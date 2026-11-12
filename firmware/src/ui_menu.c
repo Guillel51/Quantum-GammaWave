@@ -557,7 +557,18 @@ static void menu_close(void)
     ui.foot_sig = 0;
     ui.graph_sig = 0;
     ui.col[0][0] = ui.col[1][0] = ui.col[2][0] = ui.col[3][0] = 0;
-    go_home();
+    /* (3.0) HOME's first screen, and no screen walked: closing the menu is not a tap on HOME. go_home() here used to
+     * toggle the visualizer on (it set home and home_viz and then toggled), and now that HOME walks a list it would
+     * step one screen; the menu closes where HOME's own tap from a section lands, the ecosystem, pulsing. */
+    ui.home = 1;
+    ui.home_view = HV_HOME;
+    ui.home_viz = 0;
+    ui.home_pulse = ui.frame;
+    ui.plk_src = 0;
+    ui.entry_open = 0;
+    ui.hot_t = 0;
+    song.seq_mode = 0;
+    ui.force = 1;
 }
 
 /* menu: ALGORITHM steps between the tabs, PRESETS between the rows of one (both wrap; a tab comes back at the row

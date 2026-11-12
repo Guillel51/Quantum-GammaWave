@@ -654,8 +654,9 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_ROLL_LOCKS, S_ROLL_LOCK_HELD, S_DRUM_LOCKS, S_DRUM_LOCK_HELD, S_MOTION_LOCKS, S_AUTO_LIST, S_AUTO_LIST_ADD, S_AUTO_LIST_DRUM, S_REC_LAYER, S_REC_LAYER_SET, S_REC_LAYER_SONG, S_MACRO_LAYER, S_MSEQ, S_DIST_PAGE, S_DLY2, S_REVERB2, S_CHORUS, S_MASTER, S_MASTER_EQ, S_RETRIG, S_RETRIG_FREE, S_LFO_DEST,
        S_COUNTIN, S_COUNTIN2, S_MENU_AUDIO, S_HEAD_PLAY_REC, S_HEAD_REC_OTHER, S_HEAD_BPM_TURN, S_HEAD_BPM_LOCK,
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
-       S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
-       S_MOCK_MENU, S_HOME_VIZ, S_COUNT };
+       S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
+       S_SCL_SCALE, S_SCL_CHORD, S_SCL_VOICE, S_SCL_INT, S_SCL_PROG, S_SCL_NOTE, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
+       S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_SYSTEM, S_COUNT };
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
     "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "scl", "shift", "arp",
@@ -673,7 +674,8 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "roll_locks", "roll_lock_held", "drum_locks", "drum_lock_held", "motion_locks", "auto_list", "auto_list_add", "auto_list_drum", "layer_rec", "layer_rec_set", "layer_rec_song", "layer_macro", "mseq", "dist", "dly2", "reverb2", "chorus", "master", "master_eq", "retrig_note", "retrig_free", "lfo_dest",
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
-    "mixer_tracks4", "home_tracks4", "menu_extra", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz"};
+    "mixer_tracks4", "home_tracks4", "menu_extra",
+    "scl_scale", "scl_chord", "scl_voicing", "scl_interval", "scl_prog", "scl_note", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_system"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -728,6 +730,15 @@ static void mock_state(int s)
     case S_MOCK_DIALOG: ui.confirm = CF_OVR_PROJ; ui.confirm_trk = 0; go_page(GR_PATS); break;
     case S_MOCK_MENU: ui.menu = 1; ui.menu_sel = 0; break;
     case S_HOME_VIZ: ui.home = 1; ui.home_viz = 1; ui.force = 1; break;
+    case S_HOME_OVERVIEW:                           /* (3.0) HOME's second screen, from the mock's own state */
+        mock_state(S_MOCK_HOME);
+        ui.home = 1; ui.home_viz = 0; ui.home_view = HV_OVERVIEW; ui.force = 1;
+        break;
+    case S_HOME_SYSTEM:                             /* (3.0) .. and its third: a measured load and a full battery */
+        mock_state(S_MOCK_HOME);
+        ui.home = 1; ui.home_viz = 0; ui.home_view = HV_SYSTEM; ui.force = 1;
+        song.cpu_q8 = 45u * 256u / 100u;
+        break;
     default: break;
     }
 }
@@ -980,6 +991,20 @@ static void setup(int s)
     }
     case S_DLY: go_title("DLY"); break;
     case S_SCL: TSEL->p[P_SCALE] = 2; go_title("SCL"); break;
+    case S_SCL_SCALE:                        /* (2.8) the SCL tools: a pentatonic (the D1 case), the chords of
+                                              * a major key, its voicings, dorian's intervals, a progression and
+                                              * the twelve keys of CHR (the widest grid) */
+        TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 6; go_title("SCALE"); break;
+    case S_SCL_CHORD:
+        TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 1; TSEL->p[P_CHRD] = 1; go_title("CHORD"); break;
+    case S_SCL_VOICE:
+        TSEL->p[P_ROOT] = 7; TSEL->p[P_SCALE] = 2; TSEL->p[P_CHRD] = 2; TSEL->p[P_CVOI] = 2; go_title("VOICING"); break;
+    case S_SCL_INT:
+        TSEL->p[P_ROOT] = 2; TSEL->p[P_SCALE] = 3; go_title("INTERVAL"); break;
+    case S_SCL_PROG:
+        TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 2; scl_prog = 0; go_title("PROG"); break;
+    case S_SCL_NOTE:
+        TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 0; go_title("KEYS"); break;
     case S_SHIFT: TSEL->p[P_SOFS] = -3; TSEL->p[P_POFS] = 7; go_title("SHIFT"); break;
     case S_ARP: go_title("ARP"); break;
     case S_VOICE: go_title("VOICE"); break;

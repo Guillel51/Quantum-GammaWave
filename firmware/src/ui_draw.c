@@ -388,11 +388,12 @@ static void draw_frame(void)
     for (i = 0; i < 4u; i++)                            /* right of each card */
         lcd_fill((uint32_t)(CARD_X(i) + CARD_W), Y_LABEL, i < 3u ? (uint32_t)(CARD_X(i + 1u) - CARD_X(i) - CARD_W) :
                  240u - (uint32_t)(CARD_X(i) + CARD_W), ch, T_BG);
-    if (ux.style && !ui.home_viz)                       /* LINE: the dividers in the gaps. None while the
-                                                         * full-screen visualizer is up: the card row it would
-                                                         * cut is not drawn there, so the rule would stand
-                                                         * alone across the graph (and, in LARGE, past the two
-                                                         * bands the visualizer blits, so nothing covers it). */
+    if (ux.style && !ui.home_viz && !(ui.home && ui.home_view >= HV_OVERVIEW))   /* LINE: the dividers in the
+                                                         * gaps. None while the full-screen visualizer is up, nor on
+                                                         * HOME's OVERVIEW and SYSTEM (3.0): the card row a rule
+                                                         * would cut is not drawn there, so it would stand alone
+                                                         * across the graph -- and, in LARGE, it runs past the two
+                                                         * bands those screens blit, so nothing would cover it. */
         draw_rules(Y_LABEL, ch);
 }
 
@@ -1930,8 +1931,10 @@ static void ui_draw(void)
      * dropped the rules, and ui_draw_page skipped draw_columns() / draw_graph() altogether, so the section did
      * not change and nothing on it (the CPU LOAD row of GLO > MONITOR included) could ever update. Fixed at
      * open_global(); this makes the state unreachable for any other setter, before anything reads it. */
-    if (ui.home_viz && !ui.home)
+    if ((ui.home_viz || ui.home_view) && !ui.home) {   /* (3.0) home_view too: leaving HOME puts its screens away */
         ui.home_viz = 0;
+        ui.home_view = HV_HOME;
+    }
     ui.frame++;
     if (counting != (uint8_t)seq_counting()) {          /* a count-in began or ended: the page drawn again after it */
         counting = (uint8_t)seq_counting();
@@ -2016,6 +2019,11 @@ static void ui_draw_page(uint32_t counting)
         /* Full screen visualizer replaces cards and standard graph */
         cv_oy = 0;
         graph_home_viz(ACC);
+    } else if (ui.home && ui.home_view >= HV_OVERVIEW) {
+        /* (3.0) OVERVIEW / SYSTEM: the same whole body, its own panel, no cards (they set a parameter, and
+         * neither screen has one) */
+        cv_oy = 0;
+        graph_home_view(ACC);
     } else {
         draw_columns();
         felucca_dbg.stage = 5;

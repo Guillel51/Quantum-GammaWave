@@ -151,6 +151,8 @@ static void lcd_init(uint16_t bg) { (void)bg; }   /* (QG-1 v1.5) main.c passes t
 #include "../../firmware/src/ui.c"
 #include "../../firmware/src/menu_items.c"
 #include "../../firmware/src/icons.c"
+#include "../../firmware/src/ui_scl.c"          /* (2.8) SCL's tools: ui_graph.c calls them */
+#include "../../firmware/src/ui_homeviews.c"    /* (3.0) HOME's OVERVIEW and SYSTEM */
 #include "../../firmware/src/ui_graph.c"
 #include "../../firmware/src/ui_draw.c"
 #include "../../firmware/src/ui_menu.c"
