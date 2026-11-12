@@ -220,6 +220,8 @@ sh web/emu/build.sh
 | [`docs/VALIDATION_MATRIX.md`](docs/VALIDATION_MATRIX.md) | what is proven, by which test, on what |
 | [`docs/HARDWARE_SPECS_FM1.md`](docs/HARDWARE_SPECS_FM1.md) | the unit as the code sees it |
 | [`docs/EMULATOR_FIDELITY.md`](docs/EMULATOR_FIDELITY.md) | what the emulator does and does not reproduce |
+| [`docs/FM1_HUB_READINESS.md`](docs/FM1_HUB_READINESS.md) | what The Firmware Hub asks for, what is done, and what still needs a real unit |
+| [`docs/FM1_HUB_AUDIO_PROVENANCE.md`](docs/FM1_HUB_AUDIO_PROVENANCE.md) | every distributed audio and binary asset, its author and its licence |
 
 ## What this project does not claim
 

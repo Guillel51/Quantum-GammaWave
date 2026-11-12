@@ -1,3 +1,33 @@
+## 2026-11-12 — FASE 5/5: preparación para The Firmware Hub
+
+- **La tarjeta del Hub, verificable**. `fmhub.json` en la raíz con un `what` de **274 caracteres** que
+  describe lo que el firmware **hace** (nueve motores, secuenciador de 64 pasos con probabilidad y
+  ratchets, song mode, escalas y acordes, matriz de mod y tres buses de FX, emulador y editor) en lugar del
+  texto anterior que prometía «a sampler with mic input»: SAMPLE, GRAIN y SLICE están **retirados**
+  (`ENG_GONE`) y no hay entrada de micrófono. Color **`#35CFFF`** —único entre los 52 listados con color del
+  catálogo— con **11,5:1** sobre negro y tinta oscura `#101014` a **10,4:1**; imagen 240 × 240 PNG de
+  14 630 B. `tools/check_fmhub.py` valida el archivo contra las reglas publicadas (campos aceptados,
+  longitudes, HTML, kinds, enlaces por HTTP, cabecera y tamaño de la imagen, contraste) y ahora corre en CI.
+- **La identidad, leída del paquete publicado**. `tools/check_package_identity.py` saca `FM-1_965` de los
+  bytes del asset de `v2.8.4` (610 959 B, sha256 `37f7276e…`), encuentra el loader `ota-FM-1_965` y
+  **rechaza `FM-1_015`**; `FM-1_965` sigue **libre** en el catálogo del Hub (198 listados, 2026-11-12).
+- **Atestación verificada, no supuesta**. `.github/workflows/release.yml` gana un job `verify` que, en cada
+  tag `v*`, descarga el asset del release y corre `gh attestation verify` contra el workflow compartido
+  antes de dar el tag por bueno; nunca reconstruye ni reemplaza un paquete ya atestado. El pin se documentó:
+  `@85a003ab…` **es** el tag `v1` revisado (`git ls-remote`, 2026-11-12). El job no pudo ejecutarse acá
+  (§ limitaciones de `docs/FM1_HUB_READINESS.md`).
+- **Procedencia completa, con una prueba de reproducibilidad**: `web/banks/gw1-keys.syx` (4 104 B, 32 voces
+  con las 11 claves FM6 propias) **se regenera byte por byte** con `tools/gen_fm6_patches.py --syx`
+  (`7c39bf4b…`), y ahora CI lo comprueba con `cmp`. No hay ningún `.wav`, `.mp3`, `.ogg` ni `.flac`
+  distribuido: todo el sonido es síntesis en tiempo de ejecución. `docs/FM1_HUB_AUDIO_PROVENANCE.md` lista
+  cada binario publicado con autor, licencia y uso.
+- **Lo que queda pendiente, dicho como pendiente**: las cinco pruebas que exigen una unidad física
+  (instalación desde V15, desde otro firmware, salida hacia otro, identidad USB e interrupción/reanudación)
+  **no se hicieron** —el FM-1 del dueño no se escribe— y `gh attestation verify` no pudo correr en este
+  entorno. `docs/FM1_HUB_READINESS.md` da el estado de cada requisito con su clase de evidencia y el mensaje
+  en inglés para Sven, incluida la aclaración de que *Pocket GammaWave* (`FM-1_981`, otro autor) es el
+  proyecto upstream y no éste.
+
 ## 2026-11-12 — FASE 4/5: FX, ruteo, secuenciador y herramientas musicales
 
 - **FLANGER, el tercer `CHORUS > TYPE`**. Usa la línea del chorus con un retardo corto barrido (48..302

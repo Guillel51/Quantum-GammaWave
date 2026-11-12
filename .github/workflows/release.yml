@@ -1,6 +1,14 @@
 # Quantum GammaWave — official Firmware Hub release.
 # Builds, signs and attests the .fwsc on every version tag, using the shared
 # zvenson/fm1-build workflow so the Hub grants "Built from source on GitHub".
+#
+# The pin below IS the hub's reviewed tag `v1`: `git ls-remote` on 2026-11-12 read
+#   refs/tags/v1    5ba8c359b1744cc53c4530b15eff52d0d5c1255b   (annotated tag object)
+#   refs/tags/v1^{} 85a003ab455b1c074b0bd6d7c282c096a464b973   (the commit it points at)
+# and the job names that commit, not the tag: a tag is a mutable ref in someone else's repository
+# and this job hands it contents:write, id-token:write and the release itself. Bump the sha
+# deliberately, after reading the diff, never by moving a tag. The hub's badge names the commit,
+# so publishing from this sha is publishing from v1 as reviewed.
 name: release
 on:
   push:
@@ -9,9 +17,6 @@ on:
   workflow_dispatch:
 jobs:
   build:
-    # pinned to the commit v1 pointed at on 2026-10-18 (85a003ab): a tag is a mutable ref in someone else's
-    # repository, and this job hands it contents:write, id-token:write and the release itself. Bump the sha
-    # deliberately, after reading the diff, never by moving a tag.
     uses: zvenson/fm1-build/.github/workflows/build.yml@85a003ab455b1c074b0bd6d7c282c096a464b973
     permissions:
       contents: write
@@ -20,6 +25,46 @@ jobs:
     with:
       build: V="$(sed -n 's/^#define FELUCCA_VERSION "v\?\([0-9][^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)"; pip install --quiet Pillow fonttools numpy && ./build.sh --release "$V"
       packages: build/*.fwsc
-      test: sh tests/run_tests.sh
+      # blocking: the host suite, then the installer, the package bounds and the provenance gate. A
+      # package is never attested from a tree that failed any of these (tests-block fails the job).
+      test: NO_PACKAGE=1 sh tests/run_tests.sh && python3 tests/install_test.py && node web/test_web.mjs && node web/test_backup.mjs && node web/test_pkg_bounds.mjs && node web/test_provenance.mjs
       tests-block: true
       sdk: true
+
+  # 7. The package is checked the way a player's browser checks it: the exact bytes the build job
+  # attested are downloaded again from the release and verified against the workflow that signed
+  # them. Nothing is rebuilt, replaced or uploaded here; a mismatch fails the run.
+  verify:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      attestations: read
+    steps:
+      - name: Download the release's package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          mkdir -p dist
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern '*.fwsc' --dir dist
+          ls -l dist
+          sha256sum dist/*.fwsc
+      - name: Verify the attestation of those bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          for f in dist/*.fwsc; do
+            echo "== $f"
+            gh attestation verify "$f" \
+              --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow zvenson/fm1-build/.github/workflows/build.yml
+          done
+      - name: The identity inside the bytes is this firmware's own
+        run: |
+          set -eu
+          gh attestation verify dist/*.fwsc --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow zvenson/fm1-build/.github/workflows/build.yml --format json > attestation.json
+          python3 tools/check_package_identity.py dist/*.fwsc

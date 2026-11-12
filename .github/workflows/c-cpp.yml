@@ -47,3 +47,16 @@ jobs:
       # The external-reader verifier: a simulated chip with a clean pair and every way a dump lies.
       - name: external SPI dump verifier
         run: python3 tests/spi_dump_test.py
+
+      # (phase 5/5) The Firmware Hub reads fmhub.json from main and ignores the WHOLE file if one
+      # field is unknown or out of bounds, so a typo costs the card its text silently. Offline here:
+      # the links and the picture are checked against the repository, not against the hub's server.
+      - name: Hub card (fmhub.json) against the hub's published rules
+        run: python3 tools/check_fmhub.py --offline
+
+      # The distributed .syx must be the one this tree generates: a hand-edited bank would be an
+      # asset nobody can rebuild.
+      - name: the distributed FM6 bank regenerates byte for byte
+        run: |
+          python3 tools/gen_fm6_patches.py --syx /tmp/gw1-keys.syx
+          cmp /tmp/gw1-keys.syx web/banks/gw1-keys.syx
