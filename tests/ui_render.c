@@ -656,7 +656,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
        S_SCL_SCALE, S_SCL_CHORD, S_SCL_VOICE, S_SCL_INT, S_SCL_PROG, S_SCL_NOTE, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
-       S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_SYSTEM, S_COUNT };
+       S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_MIX, S_HOME_SYSTEM, S_COUNT };
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
     "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "scl", "shift", "arp",
@@ -675,7 +675,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_voicing", "scl_interval", "scl_prog", "scl_note", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_system"};
+    "scl_scale", "scl_chord", "scl_voicing", "scl_interval", "scl_prog", "scl_note", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_system"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -734,7 +734,11 @@ static void mock_state(int s)
         mock_state(S_MOCK_HOME);
         ui.home = 1; ui.home_viz = 0; ui.home_view = HV_OVERVIEW; ui.force = 1;
         break;
-    case S_HOME_SYSTEM:                             /* (3.0) .. and its third: a measured load and a full battery */
+    case S_HOME_MIX:                                /* (3.1) HOME's third: the desk, six rows of real meters */
+        mock_state(S_MOCK_HOME);
+        ui.home = 1; ui.home_viz = 0; ui.home_view = HV_MIX; ui.force = 1;
+        break;
+    case S_HOME_SYSTEM:                             /* (3.0) .. and its fourth: a measured load and a full battery */
         mock_state(S_MOCK_HOME);
         ui.home = 1; ui.home_viz = 0; ui.home_view = HV_SYSTEM; ui.force = 1;
         song.cpu_q8 = 45u * 256u / 100u;

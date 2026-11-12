@@ -7,6 +7,7 @@
  *
  *   OVERVIEW  what is loaded and what it is doing: the track's engine and sound, the tempo, the transport, and the
  *             six tracks' patterns as 64 cells each, so a project's shape is read at a glance.
+ *   MIXER     the six tracks' levels, pan, mute and voices at once, so a desk's last look is the same on HOME.
  *   SYSTEM    how the instrument itself is: the version, the audio ISR's measured load, the voices in use, the
  *             battery's step, the clock source and the uptime -- every row a number the firmware already keeps,
  *             none of them invented.
@@ -215,7 +216,50 @@ static void hv_system(uint16_t c)
     }
 }
 
-/* the screen HOME is showing (HV_OVERVIEW, HV_SYSTEM): one 240 x 176 body in two 88-row passes */
+/* MIXER (3.1): the six tracks side by side as a desk would show them. Each row is what a mixer needs and the
+ * firmware already knows: the level the block actually reached (fx.c writes vu as a peaked envelope, not the
+ * instantaneous sample), where the pan sits, whether the track is muted, and how many voices it is holding.
+ * Nothing new is stored, so a project saved before this screen sounds the same; the row is a bar and three
+ * words, in the same two passes and the same 240 x 88 budget as the other views. */
+static void hv_mix(const track_t *t, uint16_t c)
+{
+    char b[28];
+    uint32_t k;
+    (void)t;
+    cv_text(14, 30, &AF_S, "MIXER", T_THEME);
+    cv_text_r(226, 30, &AF_S, "6 TRK", T_MID, T_SURF);
+    for (k = 0; k < NTRK; k++) {
+        const track_t *q = &trk[k];
+        int32_t y = 48 + (int32_t)k * 18;
+        int32_t pan = q->p[P_PAN];
+        uint16_t lc = k == song.sel ? c : T_THEME;
+        str_cpy(b, "T", sizeof b);
+        fmt_int(b + 1, (int32_t)k + 1);
+        cv_text(16, y, &AF_S, b, lc);
+        /* the level: the block's peaked envelope (fx.c) against full scale */
+        hv_bar(34, y + 1, 92, 5, q->vu > 0 ? (int32_t)((uint32_t)q->vu * 92u / 32767u) : 0, 92, lc, T_RAISE);
+        /* the pan: a tick inside a 20 px ruler, C in the middle */
+        cv_rect(140, y + 4, 20, 1, T_RAISE);
+        cv_rect(150 + pan * 9 / 64, y + 2, 1, 5, lc);          /* P_PAN is -64..63: 0 lands on the ruler's middle */
+        if (q->p[P_MUTE])
+            cv_text(168, y, &AF_S, "MUTE", T_RAISE);
+        else {
+            fmt_int(b, (int32_t)hv_voices(q));
+            str_cpy(b + str_len(b), " V", 4);
+            cv_text(168, y, &AF_S, b, T_MID);
+        }
+    }
+    /* the mix itself, its own two peaks (core.h keeps them at 6 and 7): the desk's last look */
+    cv_text(16, 154, &AF_S, "MASTER", T_THEME);
+    for (k = 0; k < 2u; k++) {
+        int32_t y = 154 + (int32_t)k * 20;
+        cv_text(74, y, &AF_S, k ? "R" : "L", T_MID);
+        hv_bar(84, y + 1, 132, 5,
+               fx_vu[6u + k] > 0 ? (int32_t)((uint32_t)fx_vu[6u + k] * 132u / 32767u) : 0, 132, c, T_RAISE);
+    }
+}
+
+/* the screen HOME is showing (HV_OVERVIEW, HV_MIX, HV_SYSTEM): one 240 x 176 body in two 88-row passes */
 static void graph_home_view(uint16_t c)
 {
     uint32_t pass;
@@ -227,6 +271,8 @@ static void graph_home_view(uint16_t c)
         cv_rrect(4, 26, 232, 176, 6, T_SURF, T_BG);
         if (ui.home_view == HV_OVERVIEW)
             hv_overview(TSEL, c);
+        else if (ui.home_view == HV_MIX)
+            hv_mix(TSEL, c);
         else
             hv_system(c);
         cv_blit(0, (uint32_t)top_y);

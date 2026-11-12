@@ -1,3 +1,8 @@
+## 2026-11-12 — v2.8.2: HOME gets a desk
+
+- **HOME > MIXER**: the fourth HOME screen (after VISUALIZER, OVERVIEW and SYSTEM), reached by the same tap that walks the list. Six rows, one per track: the level the block actually reached (the peaked envelope `fx.c` writes, not a sample), the pan as a tick on a centred ruler (`P_PAN` is −64..63, so 0 lands in the middle), MUTE or the voices the track holds now, and the mix's own two peaks at the bottom. Everything on it is a number the firmware already keeps; nothing new is stored, so a project saved before this screen loads and sounds exactly as it did.
+- **Tests**: the render sweep goes from 187 to 188 screens — `home_mix` runs in all 17 palettes with 0 lint findings and 0 of 2 778 340 alignment measurements off. `docs/QG_V2.8_FINAL_AUDIT.md` moves HOME's views from PARCIAL: PERFORMANCE, SOUND ENGINE and MODULATION still do not exist, and this release does not pretend otherwise.
+
 ## 2026-11-12 — v2.8.1: the boot is 0.8 s shorter
 
 - **Boot**: the splash's hold drops from 3.6 s to 2.8 s (total 5.3 s instead of 6.1 s). The 2.5 s signature write is untouched, so only the wait after it shrinks — the animation is the same, the instrument answers sooner. `MENU > STARTUP SPLASH` SHORT/OFF work as before.
