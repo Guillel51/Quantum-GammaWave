@@ -1,3 +1,8 @@
+## 2026-11-12 — v2.7.4.8: Reverb visuals and sync pass
+
+- **FX / Reverb**: ROOM, SPRING, SHIMMER and RESO now have distinct geometries and livelier animation driven by the reverb bus return; ROOM adds ghost teeth and an air ring, SPRING a wobbling coil and a second chirp, SHIMMER denser animated sparks, RESO a second travelling pulse and a resonance flash.
+- **Tests**: `ui_render` and host tests pass after the change.
+
 ## 2026-11-12 — v2.7.4.7: PHASE screen header and sync pass
 
 - **PHASE**: the dedicated `graph_phase` header now reports DCW alongside WAVE, W2, MIX/RING and DT, so the bent-phase screen exposes the parameter that moves its knee.
