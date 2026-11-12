@@ -989,7 +989,7 @@ static int chk_kill_bass(char *msg, uint32_t n)
 
 static int chk_steal_fade(char *msg, uint32_t n)
 {
-    static const uint8_t N1[9] = {48, 52, 55, 59, 62, 65, 69, 71, 72};
+    static const uint8_t N1[11] = {48, 52, 55, 59, 62, 65, 69, 71, 72, 74, 76};   /* (6.0) NVOICE - 1 = eleven */
     const uint32_t frames = 4u * FS;
     int32_t *L = calloc(frames + CTL, sizeof *L);
     uint32_t f, i, p, k, ev[8], nev = 0, bad = 0;
@@ -1350,12 +1350,17 @@ static void slug(char *d, const char *s, size_t n)
 }
 
 /* ------------------------------------------------------------- main --- */
-#define MAXJ 512
+#define MAXJ 1024
 static job_t J[MAXJ];
 static uint32_t nj;
 static job_t *add(uint32_t kind, const char *name)
 {
-    job_t *j = &J[nj++];
+    job_t *j;
+    if (nj >= MAXJ) {                                  /* (6.0) the list outgrew its slots once: say so, never write past */
+        fprintf(stderr, "regress: more than %u jobs: %s does not fit\n", (unsigned)MAXJ, name);
+        exit(2);
+    }
+    j = &J[nj++];
     memset(j, 0, sizeof *j);
     j->kind = (uint8_t)kind;
     snprintf(j->name, sizeof j->name, "%s", name);

@@ -552,12 +552,16 @@ static int keys_test(void)
             }
         }
     }
-    /* 118, not 94: the 1.2 / QG-1 additions and the later preset work grew the table and nobody moved this
+    /* 169, not 118: the 6.0 remaster appended 51 sounds past the generator's pool (55 in all, 4 of them inside
+     * engines the generated pool already covered). It is still a guard, not a spec: the per-preset checks
+     * above (extra values, the FM6 voice, peak in range) cover every one of them, and this only catches one
+     * sound arriving or leaving without anyone looking. The old comment, kept as it was written:
+     * 118, not 94: the 1.2 / QG-1 additions and the later preset work grew the table and nobody moved this
      * guard with them. It is a guard, not a spec -- an accidental extra (or missing) preset still fails here,
      * and the per-preset checks above (extra values, the FM6 voice, peak in range) cover every one of them.
      * No name repeats among the 118. */
-    if (n12 != 118u) printf("  %u presets past the generator's\n", n12);
-    bad += check("the 1.2 and QG-1 presets (118, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 118u);
+    if (n12 != 169u) printf("  %u presets past the generator's\n", n12);
+    bad += check("the 1.2, QG-1 and 6.0 presets (169, past the generator's): their extra values, FM6 ones their voice, each sounds", ok && n12 == 169u);
     return bad;
 }
 

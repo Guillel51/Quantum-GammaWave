@@ -251,14 +251,22 @@ int main(void)
     snprintf(d, sizeof d, "onsets %u..%u samples (0..%u), %u of 7 notes moved", lo, hi, 27u * CTL, spread);
     check("M.STRT 127: the note waits, and the wait is not the same twice", lo > 0 && hi <= 27u * CTL && spread >= 4u, d);
 
-    /* 3. the wait is silence, not a fade: nothing sounds before it and the first sample is small (no click) */
+    /* 3. the wait is silence, not a fade: nothing sounds before it and the onset is a ramp, not a step.
+     * (6.0) the bound is relative to the note's own peak, not an absolute sample count: SAW LEAD's attack now
+     * opens its filter with velocity (the remaster), so the same sound legitimately starts brighter and an
+     * absolute threshold would measure the timbre instead of the click it is here to catch. */
     run_note(buf_a, 127, 0);
     o0 = onset(buf_a, n);
     {
         int32_t first = buf_a[o0] < 0 ? -buf_a[o0] : buf_a[o0];
         int32_t step = seg_step(buf_a, o0, o0 + 64u);
-        snprintf(d, sizeof d, "onset %u, first sample %d, largest step %d", o0, first, step);
-        check("M.STRT: the wait is silence and the attack does not click", o0 > 0 && first < 2000 && step < 4000, d);
+        int32_t peak = 0;
+        for (i = n / 2u; i < n; i++) {
+            int32_t v = buf_a[i] < 0 ? -buf_a[i] : buf_a[i];
+            if (v > peak) peak = v;
+        }
+        snprintf(d, sizeof d, "onset %u, first sample %d, largest step %d, note peak %d", o0, first, step, peak);
+        check("M.STRT: the wait is silence and the attack does not click", o0 > 0 && peak > 0 && first <= peak && step <= peak, d);
     }
 
     /* 4. the note is the same note, only later: its level over the held part is unchanged */

@@ -573,43 +573,76 @@ static void lofi_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
 static const preset_t LOFI_PRESETS[] = {
     /* name, {CHIP, WAVE, DUTY, CRSH, CUT, VIB, BEND, MASK} (JIANT 0.4: BYTE first; CUT BEND MASK were SWP ARP TONE) */
     /* BYTE: 8 bits, ALGO B02 (DUTY 4 / 4 = 1); B17 (64 / 4 = 16) with VAR 40 (a = 6); B05 folded (BEND), resonant */
-    {"BYTEBEAT", {2, 5, 4, 0, 64, 0, 0, 0}, {0, 80, 110, 40}, 0, 1, FX(0, 0, 25, 20), PAT(4)},
-    {"BYTE VAR", {2, 5, 64, 40, 64, 0, 0, 0}, {0, 80, 110, 50}, 0, 1, FX(0, 20, 30, 25), PAT(3)},
-    {"BYTE BENT", {2, 5, 16, 0, 64, 24, 70, 0}, {0, 80, 110, 45}, 0, 1, FX(10, 10, 30, 25), PAT(4)},   /* (0.5.4: GRIT 24) */
-    {"PULSE LD", {0, 0, 32, 0, 127, 20, 0, 0}, {0, 60, 90, 30}, 0, 1, FX(0, 0, 40, 20), PAT(4)},
-    {"WAVE BASS", {1, 1, 0, 0, 90, 0, 0, 0}, {0, 50, 70, 20}, 0, 1, FX(0, 0, 10, 0), PAT(2)},
-    {"8BIT KEYS", {2, 0, 96, 0, 110, 0, 30, 0}, {0, 60, 80, 40}, 0, 0, FX(0, 0, 30, 20), PAT(13)},
+    {"BYTEBEAT", {2, 5, 4, 0, 64, 0, 0, 0}, {0, 80, 110, 40}, 0, 1, FX(0, 0, 26, 18), PAT(4),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+    {"BYTE VAR", {2, 5, 64, 40, 64, 0, 0, 0}, {0, 80, 110, 50}, 0, 1, FX(0, 22, 32, 24), PAT(3),
+     {XP(P_LRATE, 40), XP(P_LWAVE, 4), XP(P_LD_FLT, 14), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
+    {"BYTE BENT", {2, 5, 16, 0, 64, 24, 70, 0}, {0, 80, 110, 45}, 0, 1, FX(14, 12, 30, 22), PAT(4),
+     {XP(P_LRATE, 46), XP(P_LWAVE, 4), XP(P_LD_PIT, 6), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},   /* (0.5.4: GRIT 24) */
+    {"PULSE LD", {0, 0, 32, 0, 127, 20, 0, 0}, {0, 60, 90, 30}, 0, 1, FX(4, 0, 42, 18), PAT(4),
+     {XP(P_LRATE, 38), XP(P_LWAVE, 3), XP(P_LD_FLT, 12), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},
+    {"WAVE BASS", {1, 1, 0, 0, 90, 0, 0, 0}, {0, 50, 70, 20}, 0, 1, FX(20, 0, 8, 0), PAT(2),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
+    {"8BIT KEYS", {2, 0, 96, 0, 110, 0, 30, 0}, {0, 60, 80, 40}, 0, 0, FX(0, 0, 32, 20), PAT(13),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
     /* wave RAM VOXA (DUTY 92 / 8 = 11), a little vibrato */
-    {"WAVE LEAD", {0, 4, 92, 0, 110, 18, 0, 0}, {0, 70, 90, 30}, 0, 1, FX(0, 0, 40, 25), PAT(3)},
+    {"WAVE LEAD", {0, 4, 92, 0, 110, 18, 0, 0}, {0, 70, 90, 30}, 0, 1, FX(8, 0, 42, 24), PAT(3),
+     {XP(P_LRATE, 40), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 8)}},
     /* STEP: 25 % pulse, DCY 34 = D7 (a 15-step decay over 0.5 s), REL ~54 ms of staircase after note-off */
-    {"STEP LEAD", {4, 0, 40, 34, 127, 16, 0, 0}, {0, 64, 127, 55}, 0, 1, FX(0, 0, 40, 20), PAT(4)},
+    {"STEP LEAD", {4, 0, 40, 34, 127, 16, 0, 0}, {0, 64, 127, 55}, 0, 1, FX(6, 0, 40, 18), PAT(4),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     /* (JIANT 0.5, appended: the stored numbers stay) BYTE B11 looped (LOOP 80: a short cycle, a tone at the note), resonant */
-    {"BYTE TONE", {2, 5, 40, 0, 64, 0, 0, 80}, {0, 70, 100, 40}, 0, 1, FX(0, 0, 30, 20), PAT(4)},
+    {"BYTE TONE", {2, 5, 40, 0, 64, 0, 0, 80}, {0, 70, 100, 40}, 0, 1, FX(0, 0, 30, 18), PAT(4),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
     /* (JIANT 0.5.1, appended; 0.5.6 floatbeat) FLOAT: F02 FM whose index walks; F03 a nibble-table melody;
      * F29 FM breathing at 1 Hz, slow */
-    {"FLOAT FM", {2, 6, 4, 0, 64, 0, 0, 0}, {0, 60, 90, 40}, 0, 1, FX(0, 15, 25, 25), PAT(4)},
-    {"FLOAT ARP", {2, 6, 8, 0, 64, 0, 0, 0}, {0, 50, 80, 50}, 0, 1, FX(0, 25, 30, 30), PAT(3)},
-    {"FLOAT PAD", {2, 6, 112, 0, 40, 0, 0, 0}, {60, 90, 110, 90}, 0, 1, FX(30, 10, 50, 40), PAT(3)},
+    {"FLOAT FM", {2, 6, 4, 0, 64, 0, 0, 0}, {0, 60, 90, 40}, 0, 1, FX(0, 18, 26, 24), PAT(4),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+    {"FLOAT ARP", {2, 6, 8, 0, 64, 0, 0, 0}, {0, 50, 80, 50}, 0, 1, FX(0, 26, 32, 28), PAT(3),
+     {XP(P_LRATE, 44), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+    {"FLOAT PAD", {2, 6, 112, 0, 40, 0, 0, 0}, {60, 90, 110, 90}, 0, 1, FX(28, 12, 52, 42), PAT(3),
+     {XP(P_LRATE, 18), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},
     /* (GAMMAWAVE / WRAITH) glitch & radioactive byte/float patches */
-    {"DATAMOSH", {2, 6, 68, 48, 84, 32, 45, 0}, {0, 75, 100, 45}, 0, 1, FX(25, 15, 35, 25), PAT(4)},
-    {"GEIGER BIT", {3, 5, 96, 80, 72, 48, 85, 40}, {0, 65, 90, 35}, 0, 1, FX(35, 0, 30, 20), PAT(2)},
+    {"DATAMOSH", {2, 6, 68, 48, 84, 32, 45, 0}, {0, 75, 100, 45}, 0, 1, FX(26, 16, 36, 24), PAT(4),
+     {XP(P_LRATE, 52), XP(P_LWAVE, 4), XP(P_LD_FLT, 18), XP(P_LD_SHP, 8)}},
+    {"GEIGER BIT", {3, 5, 96, 80, 72, 48, 85, 40}, {0, 65, 90, 35}, 0, 1, FX(38, 0, 30, 18), PAT(2),
+     {XP(P_LRATE, 56), XP(P_LWAVE, 4), XP(P_LD_SHP, 16), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
     /* (QUANTUM // QG-1, appended: the stored numbers stay) a chip arp, crushed keys, a vibrato pulse, a staircase pad */
-    {"CHIP ARP", {0, 0, 32, 0, 127, 0, 0, 0}, {0, 55, 60, 30}, 0, 0, FX(0, 0, 35, 20), PAT(13)},
-    {"CRUSH KEYS", {2, 0, 96, 60, 90, 10, 20, 0}, {0, 60, 80, 40}, 0, 0, FX(10, 10, 30, 30), PAT(6)},
-    {"VIB PULSE", {0, 0, 64, 0, 120, 40, 0, 0}, {0, 60, 90, 40}, 0, 1, FX(0, 0, 40, 25), PAT(4)},
-    {"STEP PAD", {4, 0, 64, 20, 100, 10, 0, 0}, {40, 90, 110, 80}, 0, 0, FX(0, 40, 40, 60), PAT(5)},
+    {"CHIP ARP", {0, 0, 32, 0, 127, 0, 0, 0}, {0, 55, 60, 30}, 0, 0, FX(0, 0, 36, 18), PAT(13),
+     {XP(P_LRATE, 60), XP(P_LWAVE, 3), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
+    {"CRUSH KEYS", {2, 0, 96, 60, 90, 10, 20, 0}, {0, 60, 80, 40}, 0, 0, FX(12, 10, 32, 28), PAT(6),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_LRATE, 40), XP(P_LWAVE, 4), XP(P_LD_FLT, 8)}},
+    {"VIB PULSE", {0, 0, 64, 0, 120, 40, 0, 0}, {0, 60, 90, 40}, 0, 1, FX(0, 0, 42, 24), PAT(4),
+     {XP(P_LRATE, 46), XP(P_LWAVE, 0), XP(P_LD_PIT, 8), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},
+    {"STEP PAD", {4, 0, 64, 20, 100, 10, 0, 0}, {40, 90, 110, 80}, 0, 0, FX(0, 42, 42, 58), PAT(5),
+     {XP(P_LRATE, 24), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
     /* (QG-1 EXPANSION: Ethnic, Experimental & Drones) */
-    {"SHAMAN CHANT", {2, 5, 24, 16, 75, 12, 45, 20}, {25, 75, 100, 60}, 0, 1, FX(15, 20, 35, 40), PAT(3)},
-    {"COSMIC BYTE", {2, 6, 20, 0, 80, 0, 30, 0}, {15, 70, 95, 60}, 0, 1, FX(0, 30, 40, 50), PAT(4)},
-    {"ANCIENT FLT", {2, 6, 88, 24, 60, 20, 0, 0}, {20, 80, 110, 70}, 0, 1, FX(10, 25, 30, 65), PAT(6)},
-    {"CYBER DRONE", {2, 5, 12, 0, 55, 0, 0, 95}, {80, 90, 120, 100}, 0, 0, FX(20, 35, 25, 90), PAT(5)},
-    {"SPACE LULLABY", {0, 4, 60, 0, 95, 12, 0, 0}, {50, 90, 115, 85}, 0, 0, FX(0, 50, 35, 75), PAT(5)},
-    {"RITUAL PULSE", {4, 0, 50, 45, 115, 20, 0, 0}, {0, 65, 80, 45}, 0, 1, FX(15, 0, 35, 30), PAT(4)},
+    {"SHAMAN CHANT", {2, 5, 24, 16, 75, 12, 45, 20}, {25, 75, 100, 60}, 0, 1, FX(16, 22, 36, 38), PAT(3),
+     {XP(P_LRATE, 28), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+    {"COSMIC BYTE", {2, 6, 20, 0, 80, 0, 30, 0}, {15, 70, 95, 60}, 0, 1, FX(0, 32, 42, 48), PAT(4),
+     {XP(P_LRATE, 22), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},
+    {"ANCIENT FLT", {2, 6, 88, 24, 60, 20, 0, 0}, {20, 80, 110, 70}, 0, 1, FX(10, 26, 32, 64), PAT(6),
+     {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+    {"CYBER DRONE", {2, 5, 12, 0, 55, 0, 0, 95}, {80, 90, 120, 100}, 0, 0, FX(18, 34, 24, 90), PAT(5),
+     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 20), XP(P_LD_AMP, 8)}},
+    {"SPACE LULLABY", {0, 4, 60, 0, 95, 12, 0, 0}, {50, 90, 115, 85}, 0, 0, FX(0, 52, 36, 74), PAT(5),
+     {XP(P_LRATE, 16), XP(P_LWAVE, 0), XP(P_LD_AMP, 8), XP(P_LD_FLT, 8)}},
+    {"RITUAL PULSE", {4, 0, 50, 45, 115, 20, 0, 0}, {0, 65, 80, 45}, 0, 1, FX(16, 0, 36, 28), PAT(4),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_LRATE, 36), XP(P_LWAVE, 4), XP(P_LD_FLT, 10)}},
 
     /* (QG-1 1.6) EVOLVE: tape that keeps drifting, no two bars the same */
     {"TAPE DRONE", {2, 6, 20, 0, 52, 18, 40, 0}, {100, 92, 122, 110}, 0, 0, FX(20, 25, 40, 70), PAT(5),
      {XP(P_LRATE, 4), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_LD_SHP, 20)}},
 
+    /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
+    {"POCKET CONSOLE", {0, 0, 40, 0, 118, 24, 0, 0}, {0, 70, 60, 30}, 20, 1, FX(0, 0, 44, 18), PAT(4),
+     {XP(P_LRATE, 48), XP(P_LWAVE, 3), XP(P_LD_FLT, 8), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},  /* A: chip lead */
+    {"CASIO DREAM", {2, 1, 64, 0, 104, 0, 0, 0}, {4, 84, 40, 60}, 8, 0, FX(0, 26, 34, 46), PAT(6),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* C: chip keys */
+    {"BRASS BUG", {1, 2, 20, 0, 84, 0, 0, 0}, {0, 60, 74, 20}, 26, 1, FX(18, 0, 0, 6), PAT(2),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* E: chip bass */
+    {"CIUDAD DE PLAYA", {4, 0, 48, 20, 112, 18, 0, 30}, {0, 72, 24, 52}, 22, 0, FX(0, 20, 54, 34), PAT(8),
+     {XP(P_LRATE, 56), XP(P_LWAVE, 3), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* G: arp */
 };
 
 static const engine_t ENG_LOFI = {

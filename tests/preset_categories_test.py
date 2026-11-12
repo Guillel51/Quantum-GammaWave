@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""The 200 factory sounds: every one has one primary category, no extras, no duplicates."""
+"""The factory library: every sound the browser lists has one primary category, no extras, no duplicates."""
 import json
 import os
 import sys
@@ -12,8 +12,8 @@ ALLOWED = {"BASS", "LEADS", "PADS", "PLUCKS", "KEYS", "BELLS", "ORGANS", "BRASS"
            "DRUMS", "TEXTURES", "FX"}
 rows = g.table()
 fails = []
-if len(rows) != 200:
-    fails.append("expected 200 presets, got %d" % len(rows))
+if len(rows) != 251:
+    fails.append("expected 251 presets, got %d" % len(rows))
 seen = set()
 for eng, i, n, c in rows:
     if (eng, n) in seen:
@@ -29,4 +29,4 @@ if fails:
     for f in fails[:20]:
         print("  " + f)
     sys.exit(1)
-print("preset categories: 200/200, one primary category each")
+print("preset categories: %d/%d, one primary category each" % (len(rows), len(rows)))

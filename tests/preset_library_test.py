@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
-"""The factory library, checked as data (QG-1 1.6: 200 sounds, plus two legacy kits).
+"""The factory library, checked as data (QG-1 6.0: 251 browsable sounds, plus two legacy kits).
 
 The firmware's tables are the only source: every engine's PRESETS[] is parsed from firmware/src/eng_*.c.
-Checks: 200 browsable sounds and each engine's share; DRUM's ten indices unchanged and its two pre-1.6
+Checks: 251 browsable sounds and each engine's share; DRUM's ten indices unchanged and its two pre-1.6
 kits still present as legacy entries at indices 10/11 (so an old project loads the exact sound it saved);
 no two sounds of an engine share a name; every entry's E count, envelope and sends in range. Duplicate
 parameter signatures are reported (not failed): the older library is allowed to be close.
@@ -14,18 +14,19 @@ import sys
 
 ROOT = "firmware/src/"
 ENGINES = [
-    ("ANALOG", "eng_analog.c", "ANALOG_PRESETS", 56),
-    ("PHASE", "eng_phase.c", "PHASE_PRESETS", 25),
-    ("LOFI", "eng_lofi.c", "LOFI_PRESETS", 25),
-    ("FORMANT", "eng_formant.c", "FORMANT_PRESETS", 20),
-    ("WHEEL", "eng_wheel.c", "WHEEL_PRESETS", 18),
-    ("DRUM", "eng_drum.c", "DRUM_PRESETS", 10),
-    ("NOISE", "eng_noise.c", "NOISE_PRESETS", 17),
-    ("FM6", "eng_fm6.c", "FM6_PRESETS", 29),
+    ("ANALOG", "eng_analog.c", "ANALOG_PRESETS", 68),
+    ("PHASE", "eng_phase.c", "PHASE_PRESETS", 32),
+    ("LOFI", "eng_lofi.c", "LOFI_PRESETS", 29),
+    ("FORMANT", "eng_formant.c", "FORMANT_PRESETS", 25),
+    ("WHEEL", "eng_wheel.c", "WHEEL_PRESETS", 22),
+    ("DRUM", "eng_drum.c", "DRUM_PRESETS", 16),
+    ("NOISE", "eng_noise.c", "NOISE_PRESETS", 22),
+    ("FM6", "eng_fm6.c", "FM6_PRESETS", 37),
 ]
-TOTAL = 200
+TOTAL = 251
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "TRAP 808",
-             "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT"]
+             "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT",
+             "CONCRETE KICK", "GLASS SNARE", "TIN HAT", "TOMS OF MUD", "RITUAL PERC", "NEON CLAP"]
 LEGACY = ["HEARTH KIT", "CYBER DRUM"]
 NEW = {"QUANTUM BLOOM", "ABYSSAL DRONE", "PRISM KEYS", "GLASS BELL", "AURORA PLUCK",
        "EVOLVING GLASS", "TAPE DRONE", "SOLAR WIND", "BREATH CHOIR", "EVOLVE BELL",

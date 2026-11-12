@@ -204,38 +204,65 @@ static void formant_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, con
 
 static const preset_t FORMANT_PRESETS[] = {
     /* VOWEL VOWL2 TALK SHIFT | BUZZ BREATH Q RAND */
-    {"CHOIR AAH", {0, 0, 0, 0, 40, 22, 60, 0}, {85, 90, 115, 95}, 0, 0, FX(0, 70, 15, 90), PAT(5)},
-    {"VOX LEAD", {32, 0, 0, 2, 90, 8, 72, 0}, {6, 70, 105, 55}, 0, 1, FX(0, 20, 45, 40), PAT(4)},
-    {"WOW BASS", {95, 0, 68, 0, 100, 0, 80, 0}, {0, 70, 70, 30}, 0, 1, FX(10, 0, 10, 10), PAT(8)},
-    {"WHISPER", {0, 95, 88, 3, 50, 120, 50, 0}, {50, 90, 110, 90}, 0, 0, FX(0, 40, 30, 70), PAT(5)},
+    {"CHOIR AAH", {0, 0, 0, 0, 40, 22, 60, 0}, {85, 90, 115, 95}, 0, 0, FX(0, 66, 18, 88), PAT(5),
+     {XP(P_LRATE, 14), XP(P_LWAVE, 0), XP(P_LD_AMP, 8), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
+    {"VOX LEAD", {32, 0, 0, 2, 90, 8, 72, 0}, {6, 70, 105, 55}, 0, 1, FX(6, 22, 48, 38), PAT(4),
+     {XP(P_LRATE, 22), XP(P_LWAVE, 1), XP(P_LD_PIT, 6), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 12)}},
+    {"WOW BASS", {95, 0, 68, 0, 100, 0, 80, 0}, {0, 70, 70, 30}, 0, 1, FX(24, 0, 8, 6), PAT(8),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+    {"WHISPER", {0, 95, 88, 3, 50, 120, 50, 0}, {50, 90, 110, 90}, 0, 0, FX(0, 42, 32, 68), PAT(5),
+     {XP(P_LRATE, 26), XP(P_LWAVE, 4), XP(P_LD_FLT, 12), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},
     /* (GAMMAWAVE / WRAITH) occult choir & vocal growl patches */
-    {"BLACK CHOIR", {18, 78, 42, -5, 76, 35, 74, 24}, {70, 95, 118, 100}, 0, 0, FX(15, 65, 30, 92), PAT(5)},
-    {"FERAL VOW", {110, 12, 82, -7, 118, 14, 92, 18}, {0, 65, 75, 32}, 25, 1, FX(45, 10, 20, 20), PAT(2)},
-    {"GHOUL RIOT", {64, 120, 96, -4, 112, 40, 88, 55}, {4, 72, 90, 44}, 18, 1, FX(52, 25, 35, 35), PAT(4)},
-    {"SAINT GLOW", {12, 48, 28, 3, 45, 50, 62, 12}, {82, 92, 115, 98}, 0, 0, FX(0, 75, 40, 95), PAT(5)},
+    {"BLACK CHOIR", {18, 78, 42, -5, 76, 35, 74, 24}, {70, 95, 118, 100}, 0, 0, FX(14, 62, 30, 90), PAT(5),
+     {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},
+    {"FERAL VOW", {110, 12, 82, -7, 118, 14, 92, 18}, {0, 65, 75, 32}, 25, 1, FX(46, 8, 22, 18), PAT(2),
+     {XP(P_LRATE, 32), XP(P_LWAVE, 4), XP(P_LD_SHP, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
+    {"GHOUL RIOT", {64, 120, 96, -4, 112, 40, 88, 55}, {4, 72, 90, 44}, 18, 1, FX(52, 24, 34, 32), PAT(4),
+     {XP(P_LRATE, 38), XP(P_LWAVE, 4), XP(P_LD_FLT, 16), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+    {"SAINT GLOW", {12, 48, 28, 3, 45, 50, 62, 12}, {82, 92, 115, 98}, 0, 0, FX(0, 72, 40, 92), PAT(5),
+     {XP(P_LRATE, 16), XP(P_LWAVE, 6), XP(P_LD_AMP, 8), XP(P_LD_FLT, 10)}},
     /* (1.2-GW, issue #17: ambient and expressive) a soft choir (an 'oo' that opens a little), breath in the air */
     {"SOFT CHOIR", {10, 40, 0, 0, 30, 40, 50, 20}, {90, 90, 120, 100}, 0, 0, FX(0, 80, 25, 95), PAT(5),
      {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_SHP, 10)}},
     {"ANGEL AIR", {60, 90, 20, 12, 20, 80, 60, 30}, {95, 90, 120, 105}, 0, 0, FX(0, 85, 35, 100), PAT(5),
      {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_SHP, 14)}},
     /* (QUANTUM // QG-1) a talking lead, a low drone, a vocoder-like pad */
-    {"ROBO TALK", {40, 100, 90, 0, 110, 10, 80, 0}, {0, 70, 100, 35}, 0, 1, FX(15, 0, 35, 25), PAT(4)},
-    {"MONK DRONE", {5, 10, 10, -5, 60, 20, 70, 10}, {90, 90, 125, 110}, 0, 0, FX(0, 60, 20, 95), PAT(5)},
+    {"ROBO TALK", {40, 100, 90, 0, 110, 10, 80, 0}, {0, 70, 100, 35}, 0, 1, FX(20, 0, 38, 22), PAT(4),
+     {XP(P_LRATE, 44), XP(P_LWAVE, 4), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
+    {"MONK DRONE", {5, 10, 10, -5, 60, 20, 70, 10}, {90, 90, 125, 110}, 0, 0, FX(0, 58, 20, 92), PAT(5),
+     {XP(P_LRATE, 12), XP(P_LWAVE, 0), XP(P_LD_AMP, 6), XP(P_LD_FLT, 8)}},
     {"VOCODE PAD", {30, 70, 40, 0, 70, 30, 65, 20}, {70, 90, 115, 95}, 0, 0, FX(0, 75, 30, 90), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 1), XP(P_LD_SHP, 12)}},
     /* (QG-1 EXPANSION: Hurdy Gurdy Resonance & Ethnic Vocal Textures) */
-    {"GURDY WHEEL", {15, 45, 30, -2, 85, 30, 75, 10}, {10, 70, 120, 50}, 0, 1, FX(18, 15, 20, 35), PAT(4)},
-    {"TIBETAN VOX", {5, 25, 15, -6, 75, 15, 80, 20}, {95, 90, 125, 110}, 0, 0, FX(0, 50, 30, 95), PAT(5)},
-    {"ETHNIC CALL", {45, 85, 60, 4, 90, 25, 70, 15}, {20, 75, 105, 60}, 0, 1, FX(0, 35, 35, 70), PAT(3)},
-    {"MYSTIC CHOIR", {20, 60, 35, 0, 55, 40, 65, 15}, {85, 90, 118, 100}, 0, 0, FX(0, 70, 35, 95), PAT(5)},
-    {"VOX DRONE", {10, 30, 0, -4, 65, 15, 75, 25}, {100, 92, 127, 110}, 0, 0, FX(10, 40, 25, 95), PAT(5)},
-    {"SOLAR HYMN", {25, 75, 50, 2, 80, 20, 68, 10}, {60, 90, 115, 95}, 0, 0, FX(0, 80, 40, 90), PAT(5)},
+    {"GURDY WHEEL", {15, 45, 30, -2, 85, 30, 75, 10}, {10, 70, 120, 50}, 0, 1, FX(18, 14, 22, 32), PAT(4),
+     {XP(P_LRATE, 30), XP(P_LWAVE, 1), XP(P_LD_PIT, 6), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+    {"TIBETAN VOX", {5, 25, 15, -6, 75, 15, 80, 20}, {95, 90, 125, 110}, 0, 0, FX(0, 48, 30, 92), PAT(5),
+     {XP(P_LRATE, 10), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_LD_AMP, 6)}},
+    {"ETHNIC CALL", {45, 85, 60, 4, 90, 25, 70, 15}, {20, 75, 105, 60}, 0, 1, FX(0, 34, 36, 66), PAT(3),
+     {XP(P_LRATE, 24), XP(P_LWAVE, 1), XP(P_LD_PIT, 6), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},
+    {"MYSTIC CHOIR", {20, 60, 35, 0, 55, 40, 65, 15}, {85, 90, 118, 100}, 0, 0, FX(0, 66, 36, 92), PAT(5),
+     {XP(P_LRATE, 13), XP(P_LWAVE, 0), XP(P_LD_AMP, 8), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
+    {"VOX DRONE", {10, 30, 0, -4, 65, 15, 75, 25}, {100, 92, 127, 110}, 0, 0, FX(10, 38, 26, 92), PAT(5),
+     {XP(P_LRATE, 11), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 8)}},
+    {"SOLAR HYMN", {25, 75, 50, 2, 80, 20, 68, 10}, {60, 90, 115, 95}, 0, 0, FX(0, 76, 42, 88), PAT(5),
+     {XP(P_LRATE, 15), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
 
     /* (QG-1 1.6) TOUCH: the vowel opens with velocity and with the player's pressure */
     {"BREATH CHOIR", {12, 58, 22, 3, 40, 70, 66, 18}, {96, 90, 122, 104}, 0, 0, FX(0, 70, 28, 92), PAT(5),
      {XP(P_LRATE, -2), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_M1SRC, QG_SRC_AT), XP(P_M1DST, QG_DST_E1),
       XP(P_M1AMT, 22)}},
 
+    /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
+    {"HALO CHORUS", {8, 32, 0, 0, 50, 34, 70, 10}, {56, 90, 104, 92}, 8, 0, FX(0, 64, 28, 84), PAT(5),
+     {XP(P_LRATE, 13), XP(P_LWAVE, 0), XP(P_LD_AMP, 8), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},  /* B: choir */
+    {"ASHRAM", {16, 44, 6, -3, 62, 28, 76, 12}, {90, 92, 116, 100}, 4, 0, FX(0, 56, 24, 90), PAT(5),
+     {XP(P_LRATE, 10), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},  /* B: drone */
+    {"TALK BOX WIRE", {40, 96, 72, 4, 96, 8, 80, 20}, {0, 78, 54, 40}, 24, 1, FX(22, 0, 36, 22), PAT(1),
+     {XP(P_LRATE, 40), XP(P_LWAVE, 4), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* D: robotic */
+    {"BROKEN HYMN", {24, 60, 18, 2, 52, 44, 64, 26}, {48, 88, 96, 84}, 12, 0, FX(10, 46, 34, 78), PAT(5),
+     {XP(P_LRATE, 17), XP(P_LWAVE, 1), XP(P_LD_FLT, 12)}},  /* D: broken choir */
+    {"LUZ DE TUNEL", {52, 88, 10, 5, 66, 20, 72, 8}, {64, 90, 110, 96}, 6, 0, FX(0, 58, 32, 86), PAT(5),
+     {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: voice pad */
 };
 
 static const engine_t ENG_FORMANT = {

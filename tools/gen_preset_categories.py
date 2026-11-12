@@ -84,7 +84,9 @@ def table():
     for eng, f, arr, default in ENGINES:
         ns = names(os.path.join(ROOT, "firmware/src", f), arr)
         if eng == "DRUM":
-            ns = ns[:10]                               # legacy kits 10/11 stay browsable in the firmware, not in the 200
+            # (6.0) the two legacy kits are at fixed ids 10 and 11, inside the table: filter them by id, not by
+            # position, or the kits added after them would vanish from the library the browser shows
+            ns = [n for k, n in enumerate(ns) if k not in (10, 11)]
         for i, n in enumerate(ns):
             rows.append((eng, i, n, classify(eng, n, default)))
     return rows

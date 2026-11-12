@@ -517,21 +517,44 @@ static int32_t drum_keys(const track_t *t, uint32_t k)
 
 /* {MRPH, TUNE, TONE, DECY, NOIS, FM, FOLD, DRV}; the kit suggests the BEAT pattern (GM notes) */
 static const preset_t DRUM_PRESETS[] = {
-    {"DRUM-X", DRUM_KIT_E, {0, 100, 127, 100}, 0, 0, FX(0, 0, 0, 20), PAT(12)},   /* (core.h: SAMPLE PERC's too) */
-    {"909 PUNCH", {30, 64, 90, 75, 45, 10, 20, 35}, {0, 100, 127, 100}, 0, 0, FX(5, 0, 10, 25), PAT(12)},
-    {"808 SUB", {10, 40, 50, 110, 20, 5, 0, 15}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 5, 20), PAT(12)},
-    {"LINNDRUM", {50, 72, 85, 65, 60, 15, 10, 20}, {0, 100, 127, 100}, 0, 0, FX(10, 5, 15, 22), PAT(12)},
-    {"ACOUSTIC", {20, 58, 60, 80, 35, 0, 0, 10}, {0, 100, 127, 100}, 0, 0, FX(20, 15, 25, 18), PAT(12)},
-    {"TRAP 808", {15, 36, 65, 120, 40, 25, 15, 40}, {0, 100, 127, 100}, 0, 0, FX(5, 0, 10, 28), PAT(12)},
-    {"LOFI VINYL", {75, 48, 45, 55, 80, 10, 30, 25}, {0, 100, 127, 100}, 0, 0, FX(25, 20, 30, 20), PAT(12)},
-    {"INDUSTRIAL", {90, 82, 105, 70, 75, 50, 60, 50}, {0, 100, 127, 100}, 0, 0, FX(30, 10, 35, 32), PAT(12)},
-    {"ELECTRO", {40, 76, 95, 60, 65, 35, 25, 30}, {0, 100, 127, 100}, 0, 0, FX(15, 5, 20, 26), PAT(12)},
-    {"QUANTUM BEAT", {64, 70, 75, 60, 50, 20, 15, 10}, {0, 100, 127, 100}, 0, 0, FX(10, 0, 15, 25), PAT(12)},
+    {"DRUM-X", DRUM_KIT_E, {0, 100, 127, 100}, 0, 0, FX(4, 0, 0, 18), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},   /* (core.h: SAMPLE PERC's too) */
+    {"909 PUNCH", {30, 64, 90, 75, 45, 10, 20, 35}, {0, 100, 127, 100}, 0, 0, FX(6, 0, 10, 22), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+    {"808 SUB", {10, 40, 50, 110, 20, 5, 0, 15}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 4, 18), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+    {"LINNDRUM", {50, 72, 85, 65, 60, 15, 10, 20}, {0, 100, 127, 100}, 0, 0, FX(12, 4, 14, 20), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+    {"ACOUSTIC", {20, 58, 60, 80, 35, 0, 0, 10}, {0, 100, 127, 100}, 0, 0, FX(20, 14, 24, 16), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
+    {"TRAP 808", {15, 36, 65, 120, 40, 25, 15, 40}, {0, 100, 127, 100}, 0, 0, FX(5, 0, 8, 24), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
+    {"LOFI VINYL", {75, 48, 45, 55, 80, 10, 30, 25}, {0, 100, 127, 100}, 0, 0, FX(26, 18, 30, 18), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
+    {"INDUSTRIAL", {90, 82, 105, 70, 75, 50, 60, 50}, {0, 100, 127, 100}, 0, 0, FX(32, 10, 34, 30), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+    {"ELECTRO", {40, 76, 95, 60, 65, 35, 25, 30}, {0, 100, 127, 100}, 0, 0, FX(16, 4, 20, 24), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+    {"QUANTUM BEAT", {64, 70, 75, 60, 50, 20, 15, 10}, {0, 100, 127, 100}, 0, 0, FX(10, 0, 14, 22), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
 
     /* (QG-1 1.6 audit) retired from browsing, kept at indices 10 and 11 so a project, a favorite or a user preset
      * made before 1.6 loads the exact kit it saved. Not in the 200-sound library (core.h engine_library). */
     {"HEARTH KIT", {80, 55, 80, 70, 40, 30, 25, 20}, {0, 100, 127, 100}, 0, 0, FX(15, 10, 20, 30), PAT(12), .legacy = 1},
     {"CYBER DRUM", {45, 80, 65, 50, 70, 10, 35, 15}, {0, 100, 127, 100}, 0, 0, FX(20, 0, 25, 35), PAT(12), .legacy = 1},
+    /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
+    {"CONCRETE KICK", {18, 52, 58, 104, 22, 6, 0, 26}, {0, 72, 60, 30}, 0, 1, FX(16, 0, 0, 10), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* F: kick */
+    {"GLASS SNARE", {78, 66, 70, 58, 86, 18, 22, 20}, {0, 70, 0, 40}, 0, 1, FX(20, 20, 22, 34), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},  /* F: snare */
+    {"TIN HAT", {92, 72, 58, 40, 92, 10, 14, 18}, {0, 48, 0, 22}, 0, 1, FX(12, 0, 14, 12), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* F: hat */
+    {"TOMS OF MUD", {44, 48, 52, 74, 48, 14, 8, 16}, {0, 68, 40, 36}, 0, 1, FX(14, 6, 16, 22), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* F: toms */
+    {"RITUAL PERC", {64, 58, 74, 66, 64, 32, 38, 30}, {0, 74, 20, 44}, 0, 1, FX(22, 10, 28, 38), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* F: perc */
+    {"NEON CLAP", {86, 64, 62, 46, 90, 24, 18, 24}, {0, 60, 0, 34}, 0, 1, FX(18, 14, 26, 30), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* F: clap */
 };
 
 static const engine_t ENG_DRUM = {

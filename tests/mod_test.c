@@ -108,6 +108,16 @@ static void fresh(uint32_t e, uint32_t pi)        /* the boot state (no FX tails
     host_tracks_init();
     for (k = 0; k < NPART; k++)
         host_preset(&trk[k], k ? 0u : e, k ? 0u : pi);
+    /* (6.0) every factory sound carries motion now, and the tests below measure one modulation at a time: the
+     * loaded preset's LFO, matrix and filter destinations are cleared here so what they set is all that moves.
+     * The matrix tests set their own slots after this, and the LFO tests their own rate, so nothing is lost. */
+    for (k = 0; k < NPART; k++) {
+        uint32_t j;
+        trk[k].p[P_LRATE] = 0;
+        trk[k].p[P_LD_PIT] = trk[k].p[P_LD_FLT] = trk[k].p[P_LD_SHP] = trk[k].p[P_LD_AMP] = 0;
+        for (j = 0; j < 12u; j++)
+            trk[k].p[P_M1SRC + j] = 0;
+    }
     song.sel = 0;
     hash = 0xCBF29CE484222325ull;
 }

@@ -306,7 +306,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_bench" tests/fx_bench.c -lm      # (7.0) built, not run: it measures
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/isr_bench" tests/isr_bench.c          # (FASE 1) the TIMER5 tick: built, not run
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/preset_audit_test" tests/preset_audit_test.c -lm
-    run "PRESETS: all 202 of them loaded and rendered (structure, silence, level, duplicates)" "$OUT/preset_audit_test"
+    run "PRESETS: all 267 of them loaded and rendered (structure, silence, level, duplicates)" "$OUT/preset_audit_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
@@ -411,7 +411,7 @@ else
     echo "== skip CPU under valgrind (no valgrind, or not Linux x86-64)"
 fi
 
-run "preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
+run "preset library: 251 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 run "backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore" \
     python3 tests/backup_tool_test.py

@@ -1910,16 +1910,51 @@ static void gen_press(void)
     gen_take_ms = 0;
 }
 /* (the old name: tests, the films, the renders) a new throw: any genre, a new seed (the screen's settings otherwise) */
+/* (6.0) a throw changes at least two parts' engines. The recipes' weights can land the same engine on most
+ * tracks, and a piece where five of six parts keep their sound is not much of a throw. This was always luck of
+ * the seed -- the 6.0 library moved the random stream and exposed it, and the pre-6.0 tree fails the same test
+ * on other seeds -- so the generator now delivers it here instead of leaving it to chance. */
+static void dice_engines_move(const uint8_t *prev)
+{
+    uint32_t k, moved = 0, fm = 0;
+    for (k = 0; k < NTRK; k++) {
+        moved += trk[k].eng_req != prev[k];
+        fm += trk[k].eng_req == ENGI_FM6;
+    }
+    for (k = 0; k < NTRK && moved < 2u; k++) {
+        uint32_t t, e = trk[k].eng_req, n;
+        if (trk[k].eng_req != prev[k] || drum_track(&trk[k]))     /* the kit is the throw's, not a second engine */
+            continue;
+        for (t = 1; t <= NENGINES; t++) {                        /* the live engines, from the next one round */
+            uint32_t c = (trk[k].eng_req + t) % NENGINES;
+            if (c == e || !ENGINES[c]->npresets || eng_gone(c) || (c == ENGI_FM6 && fm >= 2u))
+                continue;                                        /* (some engines are retired: they have no sound) */
+            e = c;
+            break;
+        }
+        if (e == trk[k].eng_req)
+            continue;
+        fm += e == ENGI_FM6;
+        set_engine_of(&trk[k], e);
+        n = gen_npresets(trk[k].eng_req);
+        if (n)
+            apply_preset_to(&trk[k], gr() % n);
+        moved++;
+    }
+}
 static void dice_all(void)
 {
-    uint8_t g = gp.genre;
+    uint8_t g = gp.genre, prev[NTRK];
     int16_t b0 = song.g[G_BPM];
+    uint32_t k;
     gp.genre = 0;
     gen_new_seed();
     gen_fresh_recipe();
     gen_how = GH_NEW;
     now_from = 0;
+    for (k = 0; k < NTRK; k++) prev[k] = trk[k].eng_req;
     gen_go();
+    dice_engines_move(prev);
     if (song.g[G_BPM] == b0 && !gp.tempo && !(ui_prefs & PREF_BPM_LOCK))   /* (1.0-GW) a throw always moves the tempo: landed on the
                                                          * last one (two genres' ranges meet), one BPM off it */
         song.g[G_BPM] = (int16_t)(b0 + (b0 < (int16_t)gs.g->bpm_hi ? 1 : -1));

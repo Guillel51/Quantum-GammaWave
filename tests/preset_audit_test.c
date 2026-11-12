@@ -163,9 +163,57 @@ static int same_as(const preset_t *a, const preset_t *b)
 static int fails;
 static void fail(const char *fmt, ...) { (void)fmt; fails++; }
 
-int main(void)
+/* (6.0) `--dump`: the same tables this test measures, printed as data for tools/preset_audit.py. Reading
+ * them out of the C source with a regex would be a guess (AW_SAW3, QG_SRC_VEL); this is the firmware's
+ * own array. One JSON object per line, nothing else on stdout, so the output can be piped. */
+static void jstr(const char *s)
+{
+    putchar('"');
+    for (; *s; s++) {
+        unsigned char c = (unsigned char)*s;
+        if (c == '"' || c == '\\') printf("\\%c", c);
+        else if (c < 0x20) printf("\\u%04x", c);
+        else putchar(c);
+    }
+    putchar('"');
+}
+
+static void dump(void)
 {
     uint32_t e, i, k;
+    for (e = 0; e < NENGINES; e++) {
+        const engine_t *en = ENGINES[e];
+        for (i = 0; i < en->npresets; i++) {
+            const preset_t *p = &en->presets[i];
+            printf("{\"engine\":");
+            jstr(en->name);
+            printf(",\"index\":%u,\"name\":", (unsigned)i);
+            jstr(p->name);
+            printf(",\"e\":[");
+            for (k = 0; k < 8u; k++) printf("%s%d", k ? "," : "", p->e[k]);
+            printf("],\"env\":[%u,%u,%u,%u]", p->env[0], p->env[1], p->env[2], p->env[3]);
+            printf(",\"fenv\":%d,\"mono\":%u,\"fx\":[%u,%u,%u,%u]", p->fenv, p->mono,
+                   p->fx[0], p->fx[1], p->fx[2], p->fx[3]);
+            printf(",\"pat\":%u,\"x\":[", p->pat);
+            {
+                uint32_t n = 0;
+                for (k = 0; k < NELEM(p->x); k++) {
+                    if (!p->x[k].id) continue;
+                    printf("%s[%u,%d]", n++ ? "," : "", (unsigned)p->x[k].id - 1u, p->x[k].v);
+                }
+            }
+            printf("],\"legacy\":%u}\n", p->legacy);
+        }
+    }
+}
+
+int main(int argc, char **argv)
+{
+    uint32_t e, i, k;
+    if (argc > 1 && !strcmp(argv[1], "--dump")) {
+        dump();
+        return 0;
+    }
     uint32_t total = 0, silent = 0, hot_presets = 0, dup_names = 0, dup_params = 0, out_of_range = 0;
     printf("preset audit: every factory preset through the real load and render (host x86, %u Hz)\n", (unsigned)FS);
     printf("%-8s %6s %7s %6s %8s %8s %6s\n", "engine", "presets", "silent", "hot", "dupn", "dupp", "range");

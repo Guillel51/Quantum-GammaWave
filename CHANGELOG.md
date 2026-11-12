@@ -1,3 +1,29 @@
+## 2026-11-12 — Remasterización de la biblioteca: 212 → 267 presets
+
+Los sonidos de fábrica, rehechos uno a uno para que usen lo que el firmware ya tiene. El detalle medido
+está en `docs/QG_PRESET_REMASTER.md`; aquí, lo que cambia al tocar el FM-1.
+
+- **Movimiento en 210 de los 212 sonidos existentes** (antes, 40): LFO y matriz de modulación al filtro,
+  a la amplitud, al tono y al envío de reverb, con `VEL → CUT` o `AT → VIB` según la familia. Los dos kits
+  `legacy` de DRUM (ids 10/11) siguen byte a byte, para que un proyecto viejo cargue el mismo sonido.
+- **Los envíos dejan de ser un wash común**: la reverb baja en bajos, percusión y leads y sube en pads,
+  coros y campanas; el chorus se queda donde el sonido lo pide, el delay donde hay ataque que repetir y la
+  saturación donde el motor tiene drive (`SOFT`, `TAPE`, `HEARTH`, `FLUX`). Nueve sonidos van sin envíos.
+- **55 sonidos nuevos**, originales y repartidos por familia (leads, pads y drones, campanas y teclas,
+  experimentales, bajos, percusión y una familia de rock electrónico / electrónica atmosférica de nombres
+  propios, sin copiar presets ni muestras). Todos los motores reciben: ANALOG 56→68, FM6 29→37, PHASE
+  25→32, LOFI 25→29, VOICE 20→25, WHEEL 18→22, NOISE 17→22, DRUM 12→18, WTABLE 10→14.
+- **Niveles recalculados**: la dispersión de RMS entre presets pasa de 31,5 dB a 11,7 dB con el pico más
+  alto en −2,8 dBFS (ningún preset recorta). 26 sonidos siguen por debajo de lo que el fader alcanza y se
+  listan como pendiente.
+- **Herramientas**: `tools/preset_audit.py` audita la biblioteca como datos (movimiento, envíos,
+  categorías, parecidos) y `tests/preset_audit_test --dump` publica las tablas del firmware en JSON, así
+  que la auditoría no puede desviarse del código. El navegador de presets gana el orden de LOFI para los
+  cuatro sonidos nuevos y el generador de categorías filtra los kits `legacy` por id, no por posición.
+- **Verificación**: host x86 con el motor real — 267 presets, 0 silenciosos, 0 duplicados, 0 fuera de
+  rango; `preset_library_test` y `preset_categories_test` en verde con los conteos nuevos. Nadie ha
+  escuchado estos sonidos y no hubo ninguna prueba en la unidad física.
+
 ## 2026-11-12 — v2.9.0: las cinco fases, en un solo paquete
 
 La versión que este repositorio, su web, su emulador, su instalador y su release sirven ahora. Reagrupa

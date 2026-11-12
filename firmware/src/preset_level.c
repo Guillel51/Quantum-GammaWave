@@ -7,59 +7,67 @@
  * track had, so changing preset jumped by up to 27.6 dB -- the spread the measurement found.
  * The values are LEVEL_Q12 indices (0..127), the same table the mixer multiplies by. */
 
-static const uint8_t LV_ANALOG[56] = {
-     88,  95,  97,  96, 108, 112,  87,  95, 127,  99,  97,  92,  88, 127, 106,  85,
-     81,  80,  78,  87,  96,  82,  88, 107,  84,  94,  95, 102,  84, 127,  85,  83,
-     80, 105,  83,  90, 127, 107,  85,  98, 127,  97,  98, 127,  85,  91, 127, 107,
-    125, 111, 127, 107, 127, 127, 127,  92,
+static const uint8_t LV_ANALOG[68] = {
+     87, 102,  92,  96, 106, 113,  86,  87, 127, 100,  90,  94,  90, 127, 103,  85,
+     81,  80,  78,  90,  99,  82,  90, 106,  83,  94,  95, 102,  83, 127,  85,  82,
+     80, 104,  83,  89, 127, 107,  85,  98, 127,  97,  98, 127,  82,  89, 127, 107,
+    125, 111, 127, 107, 127, 127, 127,  92,  88,  87,  89,  90,  80,  98,  97, 109,
+    127, 125,  92,  98,
 };
 
-static const uint8_t LV_PHASE[25] = {
-     87,  75,  83, 117, 125,  99,  89,  87,  89,  81, 127,  91,  86,  85, 109, 109,
-     92,  93, 110, 127, 127, 127, 127,  92,  88,
+static const uint8_t LV_PHASE[32] = {
+     88,  75,  82, 116, 125,  99,  88,  85,  88,  81, 127,  90,  84,  85, 107, 109,
+     92,  93, 109, 127, 127, 127, 127,  93,  87,  87, 115, 123,  98,  99,  87, 119,
 };
 
-static const uint8_t LV_LOFI[25] = {
-     94,  93, 101,  90,  98,  89, 102, 111,  93,  91, 102,  87, 114, 109, 100,  94,
-     88, 100,  97, 103,  92,  84,  90, 105, 108,
+static const uint8_t LV_LOFI[29] = {
+     93,  91, 101,  91,  98,  89, 103, 112,  92,  90, 102,  87, 103, 110, 100,  94,
+     83, 100,  96, 102,  92,  84,  90, 105, 107,  99, 118, 101, 116,
 };
 
-static const uint8_t LV_VOICE[20] = {
-     81,  91,  84,  98,  99,  97,  89,  87,  95, 101,  86,  80, 100,  99,  99,  81,
-    101,  89,  96,  97,
+static const uint8_t LV_VOICE[25] = {
+     81,  89,  91, 103,  92,  87,  88,  95,  95, 100,  85,  81,  99,  91,  81,  76,
+    101,  86, 100,  95,  93,  95,  89, 101,  84,
 };
 
-static const uint8_t LV_WHEEL[18] = {
-     97,  97,  94, 104,  86,  89,  91,  98,  96,  90,  95,  89,  95,  99,  98,  90,
-    100,  97,
+static const uint8_t LV_WHEEL[22] = {
+     94,  96,  97,  94,  85,  90,  90,  97,  96,  90,  91,  89,  95,  99,  98,  90,
+    100,  95, 100, 101, 102,  94,
 };
 
-static const uint8_t LV_DRUM[12] = {
-    120, 100,  89, 108, 107,  82, 114,  96, 112, 108, 100, 120,
+static const uint8_t LV_DRUM[18] = {
+    122, 100,  88, 108, 107,  82, 114,  96, 114, 108, 100, 122,  97, 112, 127, 104,
+    103, 125,
 };
 
-static const uint8_t LV_NOISE[17] = {
-    106, 119, 127, 127, 127, 104, 114, 111, 127, 124, 127, 127, 109, 127, 127, 109,
-    127,
+static const uint8_t LV_NOISE[22] = {
+    102, 119, 127, 127, 127, 102, 110, 110, 127, 124, 127, 127, 109, 127, 127, 106,
+    127, 123, 106, 115, 127, 111,
 };
 
-static const uint8_t LV_FM6[29] = {
-    105, 120, 113, 113, 112, 127, 105, 127, 102, 102, 121, 116, 113, 125, 100, 126,
-     96, 116, 127, 124, 114, 121, 127, 127, 100, 127, 125,  97, 127,
+static const uint8_t LV_FM6[37] = {
+    107, 121, 116, 114, 113, 127, 106, 127, 102, 101, 120, 116, 111, 125, 100, 127,
+     96, 116, 127, 121, 115, 121, 127, 127, 100, 127, 125,  98, 127, 107, 115, 126,
+     90, 104, 107, 104, 112,
+};
+
+static const uint8_t LV_WTABLE[14] = {
+     93,  83,  86,  88,  97, 113,  89,  85,  95,  89,  89,  91, 117,  95,
 };
 
 /* the level preset `pi` of engine `e` loads with (100: the fader's own, untouched) */
 uint8_t preset_level_of(uint32_t e, uint32_t pi)
 {
     switch (e) {
-    case 0: return pi < 56u ? LV_ANALOG[pi] : 100u;   /* ANALOG */
-    case 2: return pi < 25u ? LV_PHASE[pi] : 100u;   /* PHASE */
-    case 3: return pi < 25u ? LV_LOFI[pi] : 100u;   /* LOFI */
-    case 5: return pi < 20u ? LV_VOICE[pi] : 100u;   /* VOICE */
-    case 7: return pi < 18u ? LV_WHEEL[pi] : 100u;   /* WHEEL */
-    case 10: return pi < 12u ? LV_DRUM[pi] : 100u;   /* DRUM */
-    case 11: return pi < 17u ? LV_NOISE[pi] : 100u;   /* NOISE */
-    case 12: return pi < 29u ? LV_FM6[pi] : 100u;   /* FM6 */
+    case 0: return pi < 68u ? LV_ANALOG[pi] : 100u;   /* ANALOG */
+    case 2: return pi < 32u ? LV_PHASE[pi] : 100u;   /* PHASE */
+    case 3: return pi < 29u ? LV_LOFI[pi] : 100u;   /* LOFI */
+    case 5: return pi < 25u ? LV_VOICE[pi] : 100u;   /* VOICE */
+    case 7: return pi < 22u ? LV_WHEEL[pi] : 100u;   /* WHEEL */
+    case 10: return pi < 18u ? LV_DRUM[pi] : 100u;   /* DRUM */
+    case 11: return pi < 22u ? LV_NOISE[pi] : 100u;   /* NOISE */
+    case 12: return pi < 37u ? LV_FM6[pi] : 100u;   /* FM6 */
+    case 14: return pi < 14u ? LV_WTABLE[pi] : 100u;   /* WTABLE */
     default: return 100u;
     }
 }

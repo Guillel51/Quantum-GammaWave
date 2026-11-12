@@ -67,6 +67,12 @@ static void setup(const int16_t *e)
     trk[0].p[P_ED_FLT] = 0;
     trk[0].p[P_VOICE] = V_POLY;
     trk[0].p[P_CHOR] = trk[0].p[P_DLY] = trk[0].p[P_REV] = 0;
+    /* (6.0) the factory sounds all carry motion now (an LFO to the filter, VEL -> CUT): this test sets every
+     * engine value itself and measures where they sit, so the modulation goes off before it starts */
+    trk[0].p[P_LRATE] = 0;
+    trk[0].p[P_LD_PIT] = trk[0].p[P_LD_FLT] = trk[0].p[P_LD_SHP] = trk[0].p[P_LD_AMP] = 0;
+    for (i = 0; i < 12u; i++)
+        trk[0].p[P_M1SRC + i] = 0;
 }
 
 /* the voices' sum (track_render, before the mix) of note for n samples, after 0.1 s */
