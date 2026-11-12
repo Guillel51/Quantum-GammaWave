@@ -1371,7 +1371,7 @@ static void draw_columns(void)
  * SHORT draws it whole and holds it SPL_SHORT; OFF has no splash at all (main.c skips this entirely). */
 #define SPL_WRITE 2500u                             /* (3.2) ms: the screen written (1100 -> 1500: the new sky needs
                                                      * a moment more, and the owner asked for about a second) */
-#define SPL_HOLD 2600u                              /* (3.2) .. then shown whole (1200 -> 1600): 3.1 s from the
+#define SPL_HOLD 3600u                              /* (3.2) .. then shown whole (1200 -> 1600): 3.1 s from the
                                                      * switch to HOME, against 2.3 s. AUDIO, MIDI and the keys are
                                                      * already up before the first pixel: this is presentation only,
                                                      * SPL_FADE of the hold is the hand-over. */
