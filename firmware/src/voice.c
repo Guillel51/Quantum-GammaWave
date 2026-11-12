@@ -65,9 +65,10 @@ static int voice_window_grow(track_t *t)
     uint32_t p = (uint32_t)(t - trk), s, q, i, best_q = NPART, best_i = 0, best_vn = 0;
     if (t->vn >= NVOICE)
         return 0;
-    for (s = 0; s < VDEAD; s++)
+    for (s = 0; s < VDEAD; s++) {
         if (!vown[s])
             goto claim;
+    }
     for (q = 0; q < NPART; q++) {                    /* lend: a part with room to spare, its highest idle slot */
         track_t *o = &trk[q];
         if (o == t || o->vn <= 1u || o->vn <= best_vn)
@@ -92,6 +93,7 @@ static int voice_window_grow(track_t *t)
 claim:
     t->vidx[t->vn] = (uint8_t)s;
     vown[s] = (uint8_t)(p + 1u);
+    /* memset is required to zero the voice state before it is used */
     memset(&vpool[s], 0, sizeof(voice_t));
     t->vn++;
     return 1;

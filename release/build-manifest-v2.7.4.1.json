@@ -13,7 +13,21 @@
       "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
     }
   },
+<<<<<<< HEAD
+  "checks": {
+    "checks": "ok",
+    "identity": "FM-1_965",
+    "notes": [
+      ".ram_text: 1193 insns, no calls",
+      "image 542468 B; RAM .data+.bss 87696 B of 98304; pool 305096 B, spare 15392 B",
+      "XIP code 381616 B, constants 140820 B",
+      "RAM code 19284 B of 24576; calls reach 78896 B past the code's end",
+      "register access: hal/ only (src/, loader/ clean)"
+    ]
+  },
+=======
   "checks": {},
+>>>>>>> 3376c4c0fada38873912c5e115bb43751b6fef62
   "commit": "98b5cf7aec703599d38a9d9d80df9d5c7dc567a8",
   "config": {
     "FELUCCA_CDC": "default",
@@ -33,12 +47,27 @@
     "FELUCCA_UART": "default",
     "FELUCCA_USB_LAYOUT": "default"
   },
+<<<<<<< HEAD
+  "dirty": [
+    "firmware/src/felucca.c",
+    "firmware/src/ui_being.c",
+    "firmware/src/ui_draw.c",
+    "firmware/src/ui_graph.c",
+    "toolchain.tar.xz"
+  ],
+  "emulator": {
+    "commit": "98b5cf7aec703",
+    "version": "v2.7.4.1",
+    "wasm_bytes": 1104265,
+    "wasm_sha256": "e6337df23c177028335eb94d9573255b2e39f1476084bdff9a91d6d9ba55f337"
+=======
   "dirty": [],
   "emulator": {
     "commit": "98b5cf7aec70",
     "version": "v2.7.4.1",
     "wasm_bytes": 1135369,
     "wasm_sha256": "97940c797999855dee7bbb5e766cd9b74e7e6e08dafdef2591c04443b0c48714"
+>>>>>>> 3376c4c0fada38873912c5e115bb43751b6fef62
   },
   "identity": "FM-1_965",
   "schema": "qg1-build-1",
@@ -54,7 +83,11 @@
   "toolchain": {
     "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
     "name": "jieli-linux-toolchains-20260730.1",
+<<<<<<< HEAD
+    "path": "/workspace/homes/65193d6c51ed332faa765de6/.jieli/jieli-linux-toolchains-20260730.1",
+=======
     "path": "/workspace/homes/65193d6c51ed332faa765de6/.jieli/toolchain",
+>>>>>>> 3376c4c0fada38873912c5e115bb43751b6fef62
     "version": "clang version 4.0.1 () ()"
   },
   "version": "v2.7.4.1"
