@@ -1691,21 +1691,25 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
     uint32_t i, dl = delay_samples();
     int32_t dcd, dcw, ddm;
     int32_t vin0 = 0, vin1 = 0, vin2 = 0;
-    for (i = 0; i < n; i++) {
-        int32_t a = cho_in[i] < 0 ? -cho_in[i] : cho_in[i];
-        int32_t b = dly_in[i] < 0 ? -dly_in[i] : dly_in[i];
-        int32_t c = rev_in[i] < 0 ? -rev_in[i] : rev_in[i];
-        if (a > vin0) vin0 = a;
-        if (b > vin1) vin1 = b;
-        if (c > vin2) vin2 = c;
-    }
-    fx_vu[0] = vin0;
-    fx_vu[1] = vin1;
-    fx_vu[2] = vin2;
-    {   /* (0.6.14) anything sent to the buses this block: their gate open (fx_gate) */
-        int32_t any = 0;
-        for (i = 0; i < n; i++)
-            any |= cho_in[i] | dly_in[i] | rev_in[i];
+    {   /* (7.0) one pass over the three buses where 0.6.14 walked them twice: the peaks, and from them the
+         * "anything sent?" the gate needs. Same numbers by construction, a third fewer reads on the busiest
+         * function of the audio path (host profile: 45 % of the block). */
+        int32_t any;
+        for (i = 0; i < n; i++) {
+            int32_t a = cho_in[i] < 0 ? -cho_in[i] : cho_in[i];
+            int32_t b = dly_in[i] < 0 ? -dly_in[i] : dly_in[i];
+            int32_t c = rev_in[i] < 0 ? -rev_in[i] : rev_in[i];
+            if (a > vin0) vin0 = a;
+            if (b > vin1) vin1 = b;
+            if (c > vin2) vin2 = c;
+        }
+        /* the three absolute peaks ARE the question: |x| > 0 exactly when x is not zero, so reading the arrays a
+         * second time to OR their samples (what 0.6.14 did) told nothing the peaks had not already said */
+        any = vin0 | vin1 | vin2;
+        fx_vu[0] = vin0;
+        fx_vu[1] = vin1;
+        fx_vu[2] = vin2;
+        /* (0.6.14) anything sent to the buses this block: their gate open (fx_gate) */
         fxg_quiet = any ? 0u : fxg_quiet < 0xFFFFFFu ? fxg_quiet + 1u : fxg_quiet;
     }                                                   /* (0.6.19: it opens over ~6 ms, fx_gate: at once, the
                                                          * residue in the lines stepped in: a tick on the next note) */
