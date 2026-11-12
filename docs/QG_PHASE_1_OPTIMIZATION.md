@@ -130,7 +130,10 @@ unidad ni toolchain para medirla.
 
 ### 4.4 Coste
 
-- **Flash:** no crece (se quitan operaciones; el binario del banco mide lo mismo dentro de 16 B).
+- **Flash `[TARGET]`: no medido.** No hay tablas ni datos nuevos (en el anfitrión, `.data` y `.bss` del banco
+  son idénticos byte a byte); el `.text` del banco crece **16 B** por la variable de índice y la rama añadidas
+  (233 427 → 233 443 B), y la rama del envío desaparece a cambio. El tamaño en el chip **no se afirma**
+  porque no hay build de target en esta sesión.
 - **RAM / SRAM / pila:** **0 B**. No hay buffers nuevos, ni tablas nuevas, ni estado nuevo.
 - **Dorados:** los 220 renders siguen bit a bit idénticos (§7); la suite completa pasa.
 
