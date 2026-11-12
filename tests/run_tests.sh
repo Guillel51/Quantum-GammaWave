@@ -301,6 +301,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_probe" tests/fx_probe.c -lm
     run "FX measured: the phaser's comb depth, M-WIDE mono/wide/level, the low cut, the master EQ's shelves and peak" "$OUT/fx_probe"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_bench" tests/fx_bench.c -lm      # (7.0) built, not run: it measures
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/isr_bench" tests/isr_bench.c          # (FASE 1) the TIMER5 tick: built, not run
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/preset_audit_test" tests/preset_audit_test.c -lm
     run "PRESETS: all 202 of them loaded and rendered (structure, silence, level, duplicates)" "$OUT/preset_audit_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm

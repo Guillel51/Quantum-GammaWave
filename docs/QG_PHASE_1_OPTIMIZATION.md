@@ -263,6 +263,76 @@ las fases siguientes no tengan que reabrir la arquitectura. **Coste de esta fase
 
 ---
 
+## 9-bis. El tick de TIMER5 (10 kHz), medido y reducido
+
+El tick es el mayor consumidor **estático** del núcleo 0 en el modelo de `target_budget.py` (1 564
+instrucciones, ~15,6 M/s). Para tocarlo hacía falta un instrumento que aquí no existía: `tests/isr_bench`
+(nuevo, construido por la suite, no ejecutado por ella) cuenta ticks reales con el GPIO modelado y sin
+tiempo de bus simulado, y da ns de CPU por tick en tres escenas, el coste de cada pieza por separado y el
+número de **accesos a registros de GPIO por tick** — la métrica que no depende de la frecuencia del núcleo.
+
+### Qué se midió
+
+| medida | valor `[HOST]` |
+|---|---|
+| accesos a registros GPIO por tick | **60** (64 cuando hay pulso de glow/breath), de los cuales **48 son el shift de 16 bits** del 595 (3 read-modify-write por bit) |
+| ancho real del shift en la placa | ~3,1 µs (el propio header lo mide: `dim_pulse_ns 3125`), es decir el pulso del tick lo pone el protocolo del 595, no el C |
+| `fm1__sr_bits` (16 bits) | ~38–45 ns de CPU host |
+| `fm1__keys` (una columna) | ~12,6 ns de CPU host, **por tick** |
+| `fm1__frame` / `fm1__breath_frame` | 18,6 / 8,7 ns por frame (1 de cada 11 ticks) |
+| diagnóstico `fm1_in_stat` (bin de gaps + contadores) | **25–35 % del C del tick** (medido compilando el tick sin él: 42–52 → 32 ns) |
+
+Conclusión de la atribución: el tiempo del tick en el chip lo domina el **shift del 595**, cuyo ritmo es
+deliberado (el header documenta que los flancos write-only glitcheaban la columna vecina en la placa); el C
+que se puede tocar es el debounce y el diagnóstico. El diagnóstico se mantiene entero: es la función que lee
+el comando de consola `inp`.
+
+### Lo integrado
+
+**Una columna sin cambios no recorre el debounce.** `fm1__keys(p)` llamaba a `fm1__key` cuatro veces por
+tick; en el caso normal cada llamada encontraba `closed == estado` y escribía un 0 sobre el 0 que ya tenía.
+Ahora `fm1_in.raw_prev[p]` guarda el byte crudo de la última vez y `fm1_in.pend[p]` marca las filas con un
+debounce en vuelo (`cnt != 0`); si el byte no cambió y no hay nada en vuelo, la columna no tiene nada que
+decidir y la función vuelve. **No se salta ningún caso con estado pendiente**: en cuanto una tecla empieza
+a contar (`cnt != 0`) o el byte crudo cambia, corre el camino completo de siempre.
+
+| escena | antes | después | delta |
+|---|---:|---:|---:|
+| idle (nada encendido, nada pulsado) | 35,4–36,2 ns/tick | **26,6–28,5 ns/tick** | **−22 %** |
+| 16 LEDs encendidos + una columna respirando | 33,2–34,0 ns/tick | **28,2–29,3 ns/tick** | **−14 %** |
+| lo mismo con una columna de teclas pulsada | 33,7–34,0 ns/tick | **28,2–29,0 ns/tick** | **−15 %** |
+
+`[HOST]`, `taskset` a un núcleo, 300 000 ticks por corrida, cuatro corridas alternadas antes/después.
+
+También se integra en `main.c` el `sub % 5u` del tick de TIMER5 calculado **una vez** en lugar de dos (el
+mismo valor, para `usb_due` y para el turno de UART).
+
+### Lo que se probó y no se quedó
+
+- **Tabla de umbrales del histograma de gaps**: la búsqueda del bin calculaba `150us << b` en cada
+  iteración; con una tabla de 7 constantes el tick no mejora de forma medible (el bucle sale en la primera
+  comparación con un gap normal), así que se descartó en vez de añadir una tabla.
+- **Quitar el diagnóstico del tick**: ahorraría el 25–35 % del C del tick medido en host, pero elimina el
+  comando de consola `inp` y sus contadores (latencia de pulsación, gaps, coste, pulsos de glow). No se
+  quitó: no es una optimización, es borrar una función.
+- **Cambiar el bit-bang del 595** (unir los flancos, o pasar a SPI hardware): el ritmo actual está puesto
+  para el 595 real y no hay unidad para validar el cambio. **No se toca.**
+
+### Verificación
+
+`tests/input_test.c` —el modelo exhaustivo del debounce: 2 000 pulsaciones con rebote de cada tecla y
+botón, latencia de pulsación, ninguna nota colgada, codificadores, traza de LEDs del tick, breath y barrido
+de encendido— pasa sin cambios. La suite completa (119 secciones) pasa, con los 220 dorados intactos.
+
+### Coste
+
+- **RAM:** **+24 B** de `.bss` — medido, no estimado: `sizeof(fm1_in)` pasa de **280 a 304 B** (los dos
+  `uint8_t[11]` nuevos y el relleno de alineación; el struct es todo campos de 8/32 bits, así que el layout
+  es el mismo en el target). Sobre un margen de `.bss` de 10 608 B.
+- **GPIO:** los mismos 60 accesos por tick; el protocolo del 595 no cambia.
+- **Flash `[TARGET]`:** no medido; en el anfitrión el camino rápido sustituye cuatro llamadas por dos
+  cargas y una comparación.
+
 ## 10. Riesgos residuales de esta fase
 
 | riesgo | severidad | estado |
