@@ -1,0 +1,79 @@
+{
+  "build": {
+    "artifacts": {
+      "felucca.bin": {
+        "bytes": 542752,
+        "sha256": "b6453f6078599f9fbf2b2ace3eec813d04e93c542f8212c8ebee21463b787e89"
+      },
+      "felucca.fwsc": {
+        "bytes": 610959,
+        "sha256": "99d2f5e781b556802e0221594c39f9dfdb6dc36a43f7fbe221b92cfdd541e5fb"
+      },
+      "loader/ota.bin": {
+        "bytes": 7803,
+        "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+      }
+    },
+    "checks": {},
+    "commit": "ef3e6698652ab11cb3f14bab21153ed0bbf08d10",
+    "config": {
+      "FELUCCA_CDC": "default",
+      "FELUCCA_CDC_DEFAULT": "default",
+      "FELUCCA_FLASH": "default",
+      "FELUCCA_FM4": "default",
+      "FELUCCA_HOTRAM": "default",
+      "FELUCCA_ICONS": "default",
+      "FELUCCA_OTA": "default",
+      "FELUCCA_OTA_DRYRUN": "default",
+      "FELUCCA_OTA_RAMONLY": "default",
+      "FELUCCA_SIZE": "default",
+      "FELUCCA_SLICE": "default",
+      "FELUCCA_UAC": "default",
+      "FELUCCA_UAC_48K": "default",
+      "FELUCCA_UAC_TONE": "default",
+      "FELUCCA_UART": "default",
+      "FELUCCA_USB_LAYOUT": "default"
+    },
+    "dirty": [
+      "firmware/src/felucca.c",
+      "firmware/src/ui_tech.c"
+    ],
+    "emulator": {
+      "commit": "ef3e6698652a",
+      "version": "v2.7.4.6",
+      "wasm_bytes": 1135618,
+      "wasm_sha256": "a7105ec74425c774156373113395205ee1833473ac3b06f0273e777ea88451bf"
+    },
+    "identity": "FM-1_965",
+    "schema": "qg1-build-1",
+    "sdk": {
+      "commit": "0617f4cc09685332aaf1104893718291c54ee5bb",
+      "files": {
+        "cfg/eq_cfg_hw.bin": "179ac9f4501d2cf8c3bdbc06fcda1e46228b7ace7e339342c767bb6568de57d8",
+        "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
+        "uboot.boot": "64ccc63e4df3238046fadb200f1b134311d8fe6ec6e3ccb8c8b81379231b867e"
+      },
+      "path": "/workspace/homes/65193d6c51ed332faa765de6/fw-AC79_AIoT_SDK"
+    },
+    "toolchain": {
+      "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
+      "name": "jieli-linux-toolchains-20260730.1",
+      "path": "/workspace/homes/65193d6c51ed332faa765de6/.jieli/jieli-linux-toolchains-20260730.1",
+      "version": "clang version 4.0.1 () ()"
+    },
+    "version": "v2.7.4.6"
+  },
+  "build_sha256": "7ecc26ec74d2fa028206eb5b31d88a39e682257cfb95cba1634af7d381151359",
+  "created": "2026-11-12T02:00:00Z",
+  "format": "qg1-release-1",
+  "images": {
+    "felucca.bin": "b6453f6078599f9fbf2b2ace3eec813d04e93c542f8212c8ebee21463b787e89",
+    "loader/ota.bin": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+  },
+  "keyid": "",
+  "min_firmware": "1.0.0",
+  "product": "FM-1",
+  "sha256": "99d2f5e781b556802e0221594c39f9dfdb6dc36a43f7fbe221b92cfdd541e5fb",
+  "size": 610959,
+  "version": "2.7.4.6"
+}

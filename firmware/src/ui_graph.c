@@ -805,31 +805,32 @@ static void graph_fx(const track_t *t, uint16_t c)
     static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
     static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
-    static uint8_t vu[4], hold[4];                /* (3.6) the meter's envelope and its peak hold */
-    static uint8_t hold_t[4];                     /* .. frames the hold has been standing still */
-    static int32_t vu_trk = -1;
+    static uint8_t meter[4];                      /* (3.7) HOME-style plasma meter, one per FX bus */
+    static int32_t meter_trk = -1;
     int32_t pk = t->vu < 0 ? -t->vu : t->vu;   /* the track's post-FX envelope (fx.c mix_part) */
+    /* DIST is an insert on the selected track: when it is off (P_DIST == 0) track_dist() leaves the
+     * signal untouched and its meter must stay dark, instead of following the dry track the way it
+     * used to. The other three buses already read fx.c's real measured peaks, which fall to zero
+     * when their send (or their mix) is zero. */
+    if (t->p[P_DIST] == 0) pk = 0;
     int32_t bus[4] = {pk, fx_vu[3], fx_vu[4], fx_vu[5]};   /* DIST, chorus, delay, reverb returns */
     int32_t send[4] = {pk, fx_vu[0], fx_vu[1], fx_vu[2]};  /* what each bus actually receives */
     uint32_t i;
-    if (vu_trk != (int32_t)(t - trk)) {              /* the meters belong to one track */
-        memset(vu, 0, sizeof vu);
-        memset(hold, 0, sizeof hold);
-        memset(hold_t, 0, sizeof hold_t);
-        vu_trk = (int32_t)(t - trk);
+    if (meter_trk != (int32_t)(t - trk)) {           /* the meters belong to one track */
+        memset(meter, 0, sizeof meter);
+        meter_trk = (int32_t)(t - trk);
     }
 
-    cv_rrect(4, 2, 232, 66, 4, T_SURF, T_BG);
+    cv_rrect(4, 2, 232, 66, 6, T_SURF, T_BG);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
         int32_t mx = cx + 43, my = 18, mh = 42;
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
-        int32_t hpx = lvl * mh / 7000;
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         char num[8];
 
-        cv_rrect(cx, 4, 53, 62, 3, T_SURF, T_BG);
+        cv_rrect(cx, 4, 53, 62, 5, T_SURF, T_BG);
         cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);   /* the whole name, on its own line */
         cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, T_SURF);
         /* (3.1) the four sends are MIDI 0..127 inside (presets, automation, the DSP's own maths keep
@@ -860,18 +861,13 @@ static void graph_fx(const track_t *t, uint16_t c)
          * highest point for 30 frames and then falls a pixel a frame, and one thin tick marks what the
          * bus actually receives. Every figure is the DSP's own. */
         cv_rect(mx, my, 12, mh, T_BG);                /* the track */
-        fx_meter_step(&vu[i], &hold[i], &hold_t[i], hpx, mh);   /* core.h: attack, release, peak hold */
-        {
-            int32_t seg, v = (int32_t)vu[i];
-            uint16_t bar = i == 0 ? c : T_THEME;      /* the DIST insert keeps the track's own colour */
-            if (v > 0) {
-                cv_rect(mx + 1, my + mh - v, 10, v, bar);
-                for (seg = mh - 7; seg > mh - v; seg -= 7)   /* a 1 px gap every 7 px: a scale */
-                    cv_rect(mx + 1, my + seg, 10, 1, T_BG);
-            }
+        {   /* (3.7) HOME's own meter: the segmented plasma bar, with the same attack/decay ballistics */
+            int32_t target = clamp(lvl * 255 / 7000, 0, 255);
+            uint16_t heat0 = i == 0 ? 60u : (uint16_t)(96u + (uint32_t)i * 24u);
+            if (target > (int32_t)meter[i]) meter[i] = (uint8_t)target;
+            else if (meter[i]) meter[i]--;
+            gw_plasma_bar(mx + 1, my, 10, mh, 8, meter[i], heat0);
         }
-        if (hold[i] > 0u)                             /* the peak hold: one pixel over the bar */
-            cv_rect(mx + 1, my + mh - (int32_t)hold[i], 10, 1, T_ACCENT);
         if (i && inpx > 0)                            /* what the bus receives, over the return */
             cv_rect(mx + 4, my + mh - inpx, 4, 1, T_MID);
         if (lvl >= 6800)                              /* full scale: the head of the meter clips */
@@ -1364,6 +1360,9 @@ static void graph_phase(const track_t *t, uint16_t c)
     fmt_int(b, dtn);
     str_cpy(h + str_len(h), "  DT ", sizeof h - str_len(h));
     str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    fmt_int(b, dcw);
+    str_cpy(h + str_len(h), "  DCW ", sizeof h - str_len(h));
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
     cv_text_r(228, 3, &AF_S, h, T_MID, T_SURF);
 
     cv_rect(x0, y1, x1 - x0, 1, T_RAISE);                /* the axes */
@@ -1372,11 +1371,11 @@ static void graph_phase(const track_t *t, uint16_t c)
     cv_line_t(knee, y0, x1, y1, ux_mix(c, T_MID, 80), 2);
     cv_rect(knee - 1, y0 - 4, 3, 3, T_ACCENT);           /* DCW's knee */
 
-    {   /* the three figures the page has no column for */
-        static const char *const NM[3] = {"ENV", "SUB", "FB"};
-        int32_t v[3], k;
-        v[0] = env; v[1] = sub; v[2] = fb;
-        for (k = 0; k < 3; k++) {
+    {   /* the figures the page has no column for: ENV, DT, SUB, FB (EDIT 1 and EDIT 2 together) */
+        static const char *const NM[4] = {"ENV", "DT ", "SUB", "FB "};
+        int32_t v[4], k;
+        v[0] = env; v[1] = dtn; v[2] = sub; v[3] = fb;
+        for (k = 0; k < 4; k++) {
             int32_t yy = 68 + k * 10;
             cv_text(PANEL_X0 + 2, yy, &AF_S, NM[k], T_DIM);
             cv_rect(PANEL_X0 + 40, yy + 3, 110, 3, T_RAISE);
@@ -1385,6 +1384,14 @@ static void graph_phase(const track_t *t, uint16_t c)
             fmt_int(b, v[k] * 100 / 127);                /* percent, as the page's columns read */
             cv_text_r(228, yy, &AF_S, b, v[k] ? T_TEXT : T_DIM, T_SURF);
         }
+    }
+    if (w2 > 0) {                                       /* W2 alternates with WAVE: mark it on the ramp */
+        int32_t x = x0 + (x1 - x0) * w2 / 9;
+        cv_rect(x - 1, y0 - 2, 3, 3, ux_mix(c, T_ACCENT, 120));
+        cv_text(PANEL_X0 + 2, 112, &AF_S, "W2", T_DIM);
+        fmt_int(b, w2);
+        cv_text(PANEL_X0 + 24, 112, &AF_S, b, T_TEXT);
+        cv_text(PANEL_X0 + 40, 112, &AF_S, line ? "RING" : "MIX", T_DIM);
     }
 }
 
@@ -2753,7 +2760,7 @@ static void graph_home_viz(uint16_t c)
          * phase plot, the spectrum bars and every label (2.0: it used to be painted after the bars, so it
          * sat in front of the data). gw_embers() is ui_being.c's one implementation, shared with HOME's
          * own bay; 18 embers at HIGH, 12 at BALANCED, 6 at LOW, deterministic and allocation-free. */
-        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 8u : ui_viz_q == 1u ? 14u : 22u, 0u, 80, vsf);
+        gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 10u : ui_viz_q == 1u ? 18u : 28u, 0u, 80, vsf);
 
         /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
         cv_rect(12, cy, 144, 1, T_LINE);

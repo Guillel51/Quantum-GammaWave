@@ -261,7 +261,7 @@ static void tech_rev(void)
          * SIZE rises, and DOTS RUNNING ALONG each string (the resolution's energy), brighter with what the
          * bus returns. CLOUD below is a swarm that breathes and puffs. Different geometry, different motion,
          * both from tables and ui.frame: no per-pixel trigonometry, no allocation. */
-        int32_t nd = 3 + song.g[G_RRATE] / 32, fr = (int32_t)(ui.frame & 63u);
+        int32_t nd = 3 + song.g[G_RRATE] / 32, fr = (int32_t)((ui.frame * (1u + (uint32_t)rev_act / 32u)) & 63u);
         for (i = 0; i < 4; i++) {
             int32_t x = x0 + 30 + i * 44 + (mod > 64 && i >= 2 ? 10 : 0), k, hh = 30 + size * 55 / 127;
             int32_t len = clamp(hh * 3 / 2, 20, w - (x - x0) - 8);
@@ -285,10 +285,30 @@ static void tech_rev(void)
                     cv_pset(x - 2 + ph - 1, y, ux_mix(T_BG, dc, 45));      /* a soft head on every other one */
             }
         }
-        if (rev_act > 10) {                             /* a note: the four strings answer together, one ring */
-            int32_t rr = 6 + (rev_ph & 31);
-            gw_orbit_ring(x0 + w / 2, base - 34, rr + 22, (rr + 22) / 2,
-                          ux_mix(T_BG, bg_col(160 + (int32_t)rev_act / 3), 40 + (int32_t)rev_act / 6), 1);
+        if (rev_act > 10) {                             /* a note: each string answers with a travelling pulse;
+                                                         * the old orbit ring wrapped outside the panel and read as a glitch */
+            int32_t i2, pass;
+            for (pass = 0; pass < 2; pass++)
+            for (i2 = 0; i2 < 4; i2++) {
+                int32_t xx = x0 + 30 + i2 * 44 + (mod > 64 && i2 >= 2 ? 10 : 0);
+                int32_t hh2 = 30 + size * 55 / 127;
+                int32_t len2 = clamp(hh2 * 3 / 2, 20, w - (xx - x0) - 8);
+                int32_t pulse = ((rev_ph + pass * 80) * (3 + i2 + pass)) % (len2 > 0 ? len2 : 1);
+                int32_t yy = base - hh2 - 6 + pulse * (hh2 + 6) / (len2 > 0 ? len2 : 1);
+                if (yy > TK_Y0 && yy < base - 2 && xx - 2 + pulse > x0 && xx - 2 + pulse < x0 + w)
+                    cv_rrect(xx - 3 + pulse, yy - 2, pass == 0 ? 5 : 3, pass == 0 ? 4 : 3, 2,
+                             ux_mix(T_BG, bg_col(220 + (int32_t)rev_act / 6 + pass * 15),
+                                    (pass == 0 ? 70 : 45) + (int32_t)rev_act / 4), T_SURF);
+            }
+        }
+        if (rev_act > 24) {                             /* a strong note: a bright resonance flash on each string */
+            int32_t i3;
+            for (i3 = 0; i3 < 4; i3++) {
+                int32_t xx = x0 + 30 + i3 * 44 + (mod > 64 && i3 >= 2 ? 10 : 0);
+                int32_t hh2 = 30 + size * 55 / 127;
+                if (xx > x0 && xx < x0 + w)
+                    cv_rect(xx - 1, base - hh2 - 8, 3, 2, ux_mix(T_BG, bg_col(245), 60 + (int32_t)rev_act / 5));
+            }
         }
         return;
     }
@@ -358,11 +378,59 @@ static void tech_rev(void)
             bh = bh * (600 + (bg_sin((uint32_t)(i * i * 9)) >> 6) * 400 / 512) / 1000;
         if (bh > 0)
             cv_rect(x0 + 6 + gap + i, base - bh, 1, bh, heat_col(heat));
-        if (ty == 2 && mod && i % 6 == 0 && bh > 4) {   /* SHIMMER: sparks an octave (+ AIR) over the tail, as many as MOD;
-                                                         * AIR down: they sink and cool */
-            int32_t air = clamp(pre, -24, 24), sy = base - bh - 6 - (i * 7 % 23) * mod / 127 - air * 18 / 24;
-            if (sy > TK_Y0 && sy < base - 2)
+        if (ty == 2 && mod && i % 4 == 0 && bh > 4) {   /* SHIMMER: sparks an octave (+ AIR) over the tail, denser
+                                                         * and animated; a second layer lifts them further on a note */
+
+            int32_t air = clamp(pre, -24, 24), sy = base - bh - 6 - (i * 7 % 23) * mod / 127 - air * 18 / 24
+                       + (int32_t)((bg_sin((uint32_t)(ui.frame * 1200u + i * 31u)) >> 12) * (2 + (int32_t)rev_act / 50));
+            if (sy > TK_Y0 && sy < base - 2) {
                 cv_rect(x0 + 6 + gap + i, sy, 2, 2, heat_col(clamp(heat + 40 + air * 3, 0, 250)));
+                if (rev_act > 10)
+                    cv_rect(x0 + 6 + gap + i + 1, sy - 3 - (int32_t)rev_act / 40, 1, 1,
+                            heat_col(clamp(heat + 70 + air * 3, 0, 250)));
+            }
+        }
+    }
+    if (ty == 0) {                                     /* ROOM: a small hall's comb teeth, breathing with the
+                                                         * return: the front four, their ghosts behind, and a second
+                                                         * row that wobbles as the tail does -- a room, not a string */
+        int32_t k;
+        for (k = 1; k <= 4; k++) {
+            int32_t cx = x0 + 6 + gap + k * len / 5;
+            int32_t wob = (int32_t)((bg_sin((uint32_t)(ui.frame * 150u + k * 90u)) >> 11) * (2 + (int32_t)rev_act / 40));
+            int32_t ch = 4 + k * 3 + (int32_t)rev_act / 24 + wob;
+            if (cx > x0 + w - 2) break;
+            cv_rect(cx - 1, base - ch / 2, 3, ch / 2, ux_mix(T_BG, bg_col(95 + k * 14), 14 + (int32_t)rev_act / 8));   /* ghost */
+            cv_rect(cx, base - ch, 1, ch, ux_mix(T_BG, bg_col(120 + k * 20), 35 + (int32_t)rev_act / 5));
+            cv_rect(cx + 2, base - (2 + k) - wob / 2, 1, 2 + k, ux_mix(T_BG, bg_col(150 + k * 12), 28 + (int32_t)rev_act / 6));
+        }
+        if (rev_act > 12) {                             /* a note: the room's air rings once, low and slow */
+            int32_t rad = 6 + (rev_ph & 31);
+            gw_orbit_ring(x0 + 6 + gap + len / 2, base - 26, rad, rad * 3 / 4,
+                          ux_mix(T_BG, bg_col(130 + rev_act / 4), 30 + (int32_t)rev_act / 6), 1);
+        }
+    }
+    if (ty == 1) {                                               /* SPRING: a coil that wobbles while it sounds, and a
+                                                         * chirp that travels the tail -- distinct from ROOM's teeth */
+        int32_t i;
+        int32_t amp = 2 + song.g[G_RMOD] / 40 + (int32_t)rev_act / 45;
+        for (i = 0; i + 5 < len; i += 6) {
+            int32_t xx = x0 + 6 + gap + i;
+            int32_t yy = base - 3 + (((i / 6) & 1) ? -amp : amp)
+                       + (int32_t)((bg_sin((uint32_t)(ui.frame * 900u + i * 17u)) >> 13) * amp / 4);
+            if (xx > x0 + w - 3) break;
+            cv_rect(xx, yy, 2, 2, ux_mix(T_BG, bg_col(150 + i * 2), 30 + (int32_t)rev_act / 6));
+            cv_rect(xx + 2, yy - (((i / 6) & 1) ? 2 : -2), 2, 2, ux_mix(T_BG, bg_col(175 + i * 2), 22 + (int32_t)rev_act / 8));
+        }
+    }
+    if (ty == 1 && rev_act > 3) {                      /* SPRING: one or two chirp markers travelling the tail */
+        int32_t cp = x0 + 6 + gap + ((int32_t)rev_ph * len / 256) % (len > 1 ? len : 1);
+        if (cp > x0 + 5 && cp < x0 + w - 2)
+            cv_rrect(cp - 2, base - 9, 5, 9, 2, ux_mix(T_BG, bg_col(210), 60 + (int32_t)rev_act / 4), T_SURF);
+        if (rev_act > 18) {
+            int32_t cp2 = x0 + 6 + gap + (((int32_t)rev_ph * 3 / 2) * len / 256) % (len > 1 ? len : 1);
+            if (cp2 > x0 + 5 && cp2 < x0 + w - 2)
+                cv_rrect(cp2 - 1, base - 5, 3, 5, 1, ux_mix(T_BG, bg_col(235), 45 + (int32_t)rev_act / 5), T_SURF);
         }
     }
 }

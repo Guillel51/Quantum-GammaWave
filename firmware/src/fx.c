@@ -1860,8 +1860,8 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         fx_gate(wet, n);
         {
             int32_t pk = 0;
-            for (i = 0; i < n; i++) {
-                int32_t a = wet[i] < 0 ? -wet[i] : wet[i];
+            for (i = 0; i < n; i++) {   /* the reverb's own contribution: the faded old model, not chorus/delay */
+                int32_t a = t[i] < 0 ? -t[i] : t[i];
                 if (a > pk) pk = a;
             }
             fx_vu[3] = chpk;
@@ -1870,17 +1870,23 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         }
         return;
     }
-    rev_run(rt, rev_in, wet, n);
-    fx_gate(wet, n);
     {
-        int32_t pk = 0;
-        for (i = 0; i < n; i++) {
-            int32_t a = wet[i] < 0 ? -wet[i] : wet[i];
-            if (a > pk) pk = a;
+        int32_t rev_before[32];
+        for (i = 0; i < n; i++)
+            rev_before[i] = wet[i];
+        rev_run(rt, rev_in, wet, n);
+        fx_gate(wet, n);
+        {
+            int32_t pk = 0;
+            for (i = 0; i < n; i++) {   /* reverb alone: the wet delta, not chorus/delay */
+                int32_t d = wet[i] - rev_before[i];
+                int32_t a = d < 0 ? -d : d;
+                if (a > pk) pk = a;
+            }
+            fx_vu[3] = chpk;
+            fx_vu[4] = dlpk;
+            fx_vu[5] = pk;
         }
-        fx_vu[3] = chpk;
-        fx_vu[4] = dlpk;
-        fx_vu[5] = pk;
     }
 }
 

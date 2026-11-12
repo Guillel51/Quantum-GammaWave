@@ -876,11 +876,13 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     static const uint8_t ORYS[5] = {70, 60, 52, 44, 36};       /* tilt: ry = 8 / 11 / 14 / 15 / 13 px */
     static const uint8_t ORK[5] = {0, 1, 2, 3, 4};             /* rocky, banded, ocean, ringed, frozen */
     /* fixed stars: x, y in the bay, size (1..3), luminance, twinkle phase */
-    static const uint8_t ST[14][5] = {
+    static const uint8_t ST[20][5] = {
         {4, 4, 2, 150, 11}, {13, 2, 1, 110, 47}, {31, 5, 1, 90, 83}, {46, 2, 2, 170, 29},
         {66, 6, 1, 120, 61}, {79, 13, 2, 190, 7}, {7, 19, 1, 80, 97}, {21, 15, 1, 140, 53},
         {38, 10, 1, 100, 23}, {57, 19, 2, 160, 71}, {82, 34, 1, 95, 37}, {5, 37, 1, 115, 89},
-        {27, 43, 2, 175, 19}, {69, 41, 1, 105, 67}
+        {27, 43, 2, 175, 19}, {69, 41, 1, 105, 67},
+        {12, 33, 1, 130, 41}, {44, 27, 2, 180, 59}, {71, 24, 1, 95, 73}, {84, 39, 2, 160, 29},
+        {3, 46, 1, 115, 87}, {52, 44, 1, 140, 13}
     };
     /* the nebula: two dithered bands, positions from a table (the old per-pixel sine cost 44 lookups a frame) */
     static const uint8_t NEB[2][12] = {
@@ -939,7 +941,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         for (j = 0; j < 12; j += 2)
             sys_pset(sys_x0 + NEB[i][j], sys_y0 + NEB[i][j + 1], nc);
     }
-    for (i = 0; i < 14; i++) {                         /* a slow twinkle, one sine a star, a quarter rate */
+    for (i = 0; i < 20; i++) {                         /* a slow twinkle, one sine a star, a quarter rate */
         int32_t tw = (int32_t)((bg_sin((twf * (2u + (uint32_t)(i & 3u)) + ST[i][4]) << 8) + 32768) >> 11);
         int32_t x = sys_x0 + 1 + ST[i][0], y = sys_y0 + 2 + ST[i][1];
         uint16_t core = ux_mix(T_BG, bg_col(150 + ST[i][3] / 3 + tw), 46 + tw);
@@ -1376,7 +1378,7 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
     /* 0. The bay's dust, first: behind the grid, the bars, both curves and the trace. It is the same
      *    gw_embers() HOME's system sits in, thinned by VISUALIZER QUALITY, and it never moves with the
      *    audio -- it is the room the graph is drawn in, not a measurement. */
-    gw_embers(x0 + 2, y0 + 2, w - 4, h - 4, ui_viz_q >= 2u ? 5u : ui_viz_q == 1u ? 7u : 11u, 0x2B00u, 70, T_BG);
+    gw_embers(x0 + 2, y0 + 2, w - 4, h - 4, ui_viz_q >= 2u ? 7u : ui_viz_q == 1u ? 10u : 16u, 0x2B00u, 70, T_BG);
 
     /* 1. Logarithmic Frequency Grid Lines (100Hz, 1kHz, 10kHz) & 0dB Horizon */
     for (i = 1; i <= 3; i++)
@@ -1561,7 +1563,7 @@ static void graph_ecosys(void)
      *    the mini-knobs of the right bay: those are controls, and the effects belong to this picture. */
     gw_oct_panel(8, 66, 88, 52, 4, T_BG, T_LINE, 1, T_THEME);
     sys_box(8, 66, 88, 52);                                 /* (3.1) the bay is the clip */
-    gw_embers(10, 67, 84, 50, ui_viz_q >= 2u ? 5u : ui_viz_q == 1u ? 8u : 13u, 0x1300u, 96, T_BG);
+    gw_embers(10, 67, 84, 50, ui_viz_q >= 2u ? 7u : ui_viz_q == 1u ? 11u : 18u, 0x1300u, 96, T_BG);
     gw_draw_system(52, 92, 4 + (tot_en >> 8), tot_en, 210);
     if (ui.home_pulse) {                                    /* a HOME tap or a knob turned on HOME */
         uint32_t age = ui.frame - ui.home_pulse;

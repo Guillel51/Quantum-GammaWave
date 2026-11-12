@@ -1,3 +1,57 @@
+## 2026-11-12 — v2.7.4.8: Reverb visuals and sync pass
+
+- **FX / Reverb**: ROOM, SPRING, SHIMMER and RESO now have distinct geometries and livelier animation driven by the reverb bus return; ROOM adds ghost teeth and an air ring, SPRING a wobbling coil and a second chirp, SHIMMER denser animated sparks, RESO a second travelling pulse and a resonance flash.
+- **Tests**: `ui_render` and host tests pass after the change.
+
+## 2026-11-12 — v2.7.4.7: PHASE screen header and sync pass
+
+- **PHASE**: the dedicated `graph_phase` header now reports DCW alongside WAVE, W2, MIX/RING and DT, so the bent-phase screen exposes the parameter that moves its knee.
+- **Tests**: `ui_render` (0 lint findings, 0 alignment errors) and `ui_test` pass after the change.
+
+## 2026-11-12 — v2.7.4.6: Reverb model-specific animations and sync
+
+- **Reverb models**: ROOM now shows breathing comb teeth, SPRING a travelling chirp marker, SHIMMER keeps its octave sparks, RESO/CLOUD keep their distinct animations.
+- **Emulator/site/readmes**: synchronized with the rebuilt firmware and WASM.
+- **Release**: v2.7.4.6 firmware + SHA256.
+
+## 2026-11-12 — v2.7.4.5: FX VU meter routing fix and sync
+
+- **FX meters**: the Reverb meter now reflects only the reverb bus's own return; Chorus or Delay activity no longer moves it.
+- **Emulator/site/readmes**: synchronized with the rebuilt firmware and WASM.
+- **Release**: v2.7.4.5 firmware + SHA256.
+
+## 2026-11-12 — v2.7.4.4: Reverb RESO animation fix and release sync
+
+- **Reverb RESO**: removed the out-of-panel glitching orbit ring and added a travelling pulse along each resonant string, with frame-rate scaling tied to the reverb return.
+- **Emulator/site/readmes**: synchronized with the rebuilt firmware and WASM.
+- **Release**: v2.7.4.4 firmware + SHA256.
+
+## 2026-11-11 — v2.7.4.3: FX VU meters rebuilt on HOME's plasma meter
+
+- **FX meters**: replaced the old FX-section VU meters with HOME's segmented plasma meter component, reusing its design, animation and decay ballistics.
+- **DSP**: verified send / wet-return / tail paths remain independent and settle to zero when effects are off.
+- **Build**: firmware and WASM emulator rebuilt for AC791N, manifests and hashes synchronized.
+- **Release**: v2.7.4.3 firmware + SHA256.
+
+## 2026-11-11 — v2.7.4.2: FX visual polish, WASM rebuild and release sync
+
+- **FX**: rounded panels and improved visual consistency.
+- **Build**: firmware and WASM emulator rebuilt and manifests synchronized.
+- **Release**: v2.7.4.2 firmware + SHA256.
+
+## 2026-11-11 — v2.7.4.1: UI redesign pass, planets, visualizer, FX and splash
+
+- **HOME / solar system**: deeper star field, more dust, nebula and reactive planets (spin, swell, ripple, sling, frost), all five answer taps.
+- **Visualizer**: denser reactive particles and orbital elements, improved depth and transitions.
+- **FX**: meters track real per-bus peaks; DIST meter idles when drive is off; splash timing extended ~1 s.
+- **Splash**: longer writing animation (SPL_WRITE 2500 ms) with hand-over preserved.
+- **Release**: firmware v2.7.4.1, package, manifests and hashes.
+
+## 2026-11-11 — v2.7.4: FX meter fix and release
+
+- **FX meter (DIST)**: the DIST bar in the FX screen now stays dark when drive is off (`P_DIST == 0`), instead of following the dry track signal. The other three buses already read `fx.c`'s real measured peaks.
+- **Release**: firmware v2.7.4, package `release/felucca-v2.7.4.fwsc`, emulator (WASM) and manifests, same commit.
+
 ## 2026-11-11 — créditos con nombre y apellido
 
 - **Créditos del linaje corregidos.** `README.md` y `MENU > ABOUT > CREDITS` atribuían Pocket GammaWave (GW-1) a
