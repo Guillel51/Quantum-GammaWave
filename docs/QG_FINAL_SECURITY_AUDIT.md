@@ -27,13 +27,17 @@ El manifiesto de integridad que viaja con cada release —y contra el que el ins
 contenía, desde el merge de v2.7.5 (`91df789`), un conflicto sin resolver:
 
 ```
-<<<<<<< HEAD
-d52a799d…  release/felucca-2.7.3.fwsc        ← un nombre que no existe en release/
-ca721635…  build/emu/felucca.wasm            ← un archivo que no está en release/
-=======
-… 13 entradas de v2.7.4 …
->>>>>>> 3376c4c0fada38873912c5e115bb43751b6fef62
+ <<<<<<< HEAD
+ d52a799d…  release/felucca-2.7.3.fwsc       ← un nombre que no existe en release/
+ ca721635…  build/emu/felucca.wasm           ← un archivo que no está en release/
+ =======
+ … 13 entradas de v2.7.4 …
+ >>>>>>> 3376c4c0fada38873912c5e115bb43751b6fef62
 ```
+
+(las tres líneas van sangradas aquí a propósito: escritas al principio de línea, el propio
+`coherence_check.py` las lee como un conflicto real — lo hizo con la primera versión de este informe, que es
+justamente la prueba de que el guardián funciona).
 
 Consecuencias reales: `sha256sum -c` fallaba en dos entradas, un nombre de archivo inexistente rompía la
 verificación y `tools/coherence_check.py` **no podía** validar nada. Se regeneró desde los bytes que hay en
@@ -236,7 +240,10 @@ Lo que **falta** y por qué bloquea la recomendación:
 3. **Recuperación demostrada en esa unidad** — el camino de retorno está simulado, no ejecutado.
 4. **Una escritura real de ida y vuelta** con lectura de verificación posterior.
 5. **Estabilidad y latencia en silicio** (CPU real, jitter, audio sin pops): todo lo medido es `[HOST]`/`[TARGET]`.
-6. **Attestation del release publicado**: el workflow la crea, pero su corrida no es visible desde aquí.
+6. ~~**Attestation del release publicado**~~ → **resuelto después de escribir lo anterior**: el release `v2.7.5`
+   se publicó (tag `v2.7.5`, activos `felucca-v2.7.5.fwsc` y `SHA256SUMS`) y
+   `GET /attestations/sha256:772f0dae…` devuelve **una** attestation de procedencia para ese digest, así que el
+   artefacto publicado es trazable a la ejecución que lo construyó.
 
 Mientras falte cualquiera de los puntos 1–4, la recomendación es: **verificar sí, instalar no**. Las fases
 anteriores prepararon el terreno; esta fase no puede convertir una simulación en una unidad.
@@ -261,7 +268,7 @@ anteriores prepararon el terreno; esta fase no puede convertir una simulación e
   compatibilidad física en ningún punto.
 - Las cifras de CPU son del `.dis` con el modelo de coste de `tests/target_budget.py`, no mediciones de tiempo en
   silicio; las de host (`ns/muestra`) son de esta máquina x86 y sólo sirven para comparar versiones entre sí.
-- La attestation del release no se pudo verificar por API desde aquí: se afirma que el workflow la produce, no que
-  su corrida esté verde.
+- La attestation del release **sí** se verificó por API para el digest del paquete publicado; lo que no se
+  verificó es el estado verde de cada job del workflow, sólo la existencia y la firma de la attestation.
 - El toolchain se verificó contra el sha256 fijado en el repositorio; eso prueba que es el archivo revisado, no que
   JieLi no haya publicado algo defectuoso.

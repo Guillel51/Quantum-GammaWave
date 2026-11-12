@@ -1700,7 +1700,7 @@ Detalle completo, hallazgos y riesgos en [`docs/QG_FINAL_SECURITY_AUDIT.md`](QG_
 | Build AC791N reproducible | **GO** | `build.sh --release 2.7.5` dos veces, commits distintos, bytes idénticos (`felucca.bin` `6c3a77e6…`, `.fwsc` `772f0dae…`); toolchain contra el sha256 fijado | `[TARGET]` | el compilador es de un tercero (JieLi) |
 | Paquete QG completo | **GO** | `felucca-2.7.5.fwsc` 610 959 B, identidad `FM-1_965`, `test_pkg_bounds`, `test_pkg_faults`, `install_test` (imagen lógica == `fm1pkg.js`) | `[HOST]` | — |
 | Integridad SHA-256 + tamaño | **GO** | `release/SHA256SUMS` regenerado (58 entradas, `sha256sum -c` limpio), manifiesto `qg1-release-1` con `sha256`/`size`/`version`, `fm1_sign.py verify` | `[HOST]` | sin autenticidad (Ed25519 histórico) |
-| Trazabilidad (attestation) | **PENDIENTE** | el workflow la produce (`attest-build-provenance@v2`); su corrida no es legible desde aquí | — | no verificada |
+| Trazabilidad (attestation) | **GO** | release `v2.7.5` publicado (activos `felucca-v2.7.5.fwsc` + `SHA256SUMS`); `GET /attestations/sha256:772f0dae…` devuelve la attestation de procedencia del digest | `[PUBLIC]` | el bundle no se verificó contra Rekor a mano, sólo su existencia y firma |
 | Identidad de la unidad | **NO-GO** | no hay unidad | — | falta lectura real |
 | JEDEC y geometría reales | **NO-GO** | allowlist `0x856014` / `0xB36014`, unknowns rechazados, todo simulado | `[JEDEC]`/`[SIM]` | falta lectura por unidad |
 | Compatibilidad de escritura | **NO-GO** | loader con `_Static_assert` de ventana, `ldr_test` con cortes de alimentación y reanudación | `[SIM]` | falta escritura real |
