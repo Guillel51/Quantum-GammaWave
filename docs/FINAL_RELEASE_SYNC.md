@@ -128,6 +128,12 @@ Con este commit, la raíz pasa a servir `v2.9.0` desde `0f40f7c`.
 * **Verificado en el origen publicado**: `https://guillel51.github.io/Quantum-GammaWave/emulator/manifest.json`
   dice `v2.9.0`, commit `0f40f7cccafa`, wasm **1 196 427 B** sha256 **`8565c2ec…`** — los mismos bytes
   que el build local de este informe.
+* **Verificado en un navegador real** (2026-11-12 20:16 UTC): la página carga sin errores de consola,
+  pide `felucca.wasm?v=8565c2ec…` y `manifest.json?v=0f40f7cccafa` (ambos 200 — sin caché vieja), el
+  botón de encendido arranca el firmware y el **splash dice `v2.9.0`**; el pie de la página muestra
+  versión, commit, fecha de build y el SHA-256 del motor.
+
+![El emulador publicado arrancando v2.9.0](../artifacts/emulator-live-v290-home.png)
 
 ## 8. Estado de la release
 
@@ -158,16 +164,17 @@ Con este commit, la raíz pasa a servir `v2.9.0` desde `0f40f7c`.
 | `node web/test_backup.mjs` | host | pasa |
 | `node web/test_pkg_bounds.mjs` | host | pasa |
 | `node web/test_provenance.mjs` | host | pasa |
+| `NO_PACKAGE=1 ./tests/run_tests.sh` (suite completa) | host x86 | **`ALL HOST TESTS PASSED`** — 192 pantallas × 22 paletas con 0 hallazgos de lint, 3 164 009 medidas de alineación con 0 desvíos, los goldens, los 230 renders, EQ, chip/backup, restore y los tests web |
+| emulador publicado en un navegador real | navegador | carga sin errores de consola; pide `felucca.wasm?v=8565c2ec…` y `manifest.json?v=0f40f7cccafa` (200), arranca y su splash dice **v2.9.0** |
 | `web/make_site.py` sobre el paquete de release | generación del sitio | portal + instalador (247 176 B) + editor + `firmware/felucca-2.9.0.fwsc` con su registro |
 | `tools/fm1_sign.py verify` del paquete contra su manifiesto | artefacto | `verified (integrity only, unsigned: SHA-256 model)`, rc=0 |
 | descarga del asset público del release `v2.9.0` | red | 610 959 B, sha256 `edd2a23f…` — idéntico al build local |
 | `firmware/versions.json` del sitio publicado | red | `v2.9.0-0f40f7c`, sha256 `edd2a23f…`, 610 959 B |
 | `emulator/manifest.json` del sitio publicado | red | `v2.9.0`, commit `0f40f7c`, wasm `8565c2ec…`, 1 196 427 B |
 
-**No ejecutado acá**: la suite completa `NO_PACKAGE=1 ./tests/run_tests.sh` (13–15 min, no cabe en el
-límite de 5 minutos por comando; corrió entera en la fase 4 sobre el código base y este cambio no toca
-DSP ni UI), `gh attestation verify` (el `gh` de este entorno no tiene el subcomando y no hay sesión) y
-cualquier prueba sobre hardware.
+**No ejecutado acá**: `gh attestation verify` (el `gh` de este entorno no tiene el subcomando y no hay
+sesión) y cualquier prueba sobre hardware. La suite completa sí corrió, en segundo plano, sobre este
+árbol, y terminó en `ALL HOST TESTS PASSED`.
 
 ## 10. Problemas pendientes y por qué
 
