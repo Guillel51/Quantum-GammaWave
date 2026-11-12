@@ -1,3 +1,8 @@
+## 2026-11-12 — v2.7.4.7: PHASE screen header and sync pass
+
+- **PHASE**: the dedicated `graph_phase` header now reports DCW alongside WAVE, W2, MIX/RING and DT, so the bent-phase screen exposes the parameter that moves its knee.
+- **Tests**: `ui_render` (0 lint findings, 0 alignment errors) and `ui_test` pass after the change.
+
 ## 2026-11-12 — v2.7.4.6: Reverb model-specific animations and sync
 
 - **Reverb models**: ROOM now shows breathing comb teeth, SPRING a travelling chirp marker, SHIMMER keeps its octave sparks, RESO/CLOUD keep their distinct animations.

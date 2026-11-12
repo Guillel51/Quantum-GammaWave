@@ -1360,6 +1360,9 @@ static void graph_phase(const track_t *t, uint16_t c)
     fmt_int(b, dtn);
     str_cpy(h + str_len(h), "  DT ", sizeof h - str_len(h));
     str_cpy(h + str_len(h), b, sizeof h - str_len(h));
+    fmt_int(b, dcw);
+    str_cpy(h + str_len(h), "  DCW ", sizeof h - str_len(h));
+    str_cpy(h + str_len(h), b, sizeof h - str_len(h));
     cv_text_r(228, 3, &AF_S, h, T_MID, T_SURF);
 
     cv_rect(x0, y1, x1 - x0, 1, T_RAISE);                /* the axes */
