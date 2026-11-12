@@ -216,6 +216,28 @@ static void hv_system(uint16_t c)
     }
 }
 
+/* (3.3) the air behind HOME's screens: slow embers that drift upward and a floor of bars fed by each track's own
+ * level. Everything is 1 px rects in the panel's own steps (SURF/RAISE/LINE), drawn first so the text sits on top,
+ * so no palette can make it unreadable and it costs nothing but rects -- no allocation, no per-pixel path. */
+static uint32_t hv_fr;
+static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed)
+{
+    uint32_t i;
+    hv_fr++;
+    for (i = 0; i < 16u; i++) {                        /* the embers: hashed, one to three px a frame */
+        uint32_t s = 0x9E3779B9u * (i + seed * 7u + 1u);
+        int32_t x = 8 + (int32_t)((s >> 8) % 224u);
+        int32_t y = y0 + (int32_t)((uint32_t)(h - 2) - (((s >> 3) & 63u) + hv_fr * (1u + (i % 3u))) % (uint32_t)(h - 2));
+        cv_rect(x, y, (i & 7u) == 0 ? 2 : 1, 1, (i & 3u) == 0 ? T_LINE : T_RAISE);
+    }
+    for (i = 0; i < NTRK; i++) {                       /* the floor: six bars, each the level it makes now */
+        const track_t *q = &trk[i];
+        int32_t v = q->vu > 0 ? (int32_t)((uint32_t)q->vu * 18u / 32767u) : 0;
+        if (v > 0)
+            cv_rect(20 + (int32_t)i * 34, y0 + h - v, 26, v, i == song.sel ? c : T_RAISE);
+    }
+}
+
 /* MIXER (3.2): the desk, drawn like the rest of the instrument -- a frame per track, the engine it is running, a
  * segmented meter with a peak cap, the pan on a centred scale, and a MUTE pill instead of a word. Every value is one
  * the firmware already keeps (fx.c writes vu; trk[].peak is the block's peak): the screen stores nothing. */
@@ -235,6 +257,7 @@ static void hv_mix(const track_t *t, uint16_t c)
     char b[28], q[16];
     uint32_t k;
     (void)t;
+    hv_air(26, 176, c, 1u);
     cv_text(14, 30, &AF_S, "MIXER", T_THEME);
     fmt_int(q, (int32_t)song.sel + 1);
     {   char s2[16];
@@ -256,8 +279,8 @@ static void hv_mix(const track_t *t, uint16_t c)
         /* the engine it is running: three letters of its own name */
         str_cpy(b, e->name, 4);
         cv_text(34, y, &AF_S, b, T_DIM);
-        /* the level: nine cells, the peak held beside them */
-        hv_seg(62, y + 1, 62, 6, lvl, 100, 9, lc, T_RAISE);
+        /* the level: nine cells, hot ones lit in the accent, the peak held beside them */
+        hv_seg(62, y + 1, 62, 6, lvl, 100, 9, lvl > 84 ? T_ACCENT : lc, T_RAISE);
         cv_rect(127, y + 2, 2, 4, pk >= 97 ? T_ACCENT : pk > 0 ? T_MID : T_RAISE);
         /* the pan: a ruler, C in the middle, the tick on it (P_PAN is -64..63) */
         cv_rect(134, y + 4, 18, 1, T_RAISE);
@@ -311,7 +334,6 @@ static const char *p_short(uint32_t id, char *b)
     case P_MORPH: str_cpy(b, "MORPH", 10); break;
     default: str_cpy(b, "PARAM", 10);
     }
-    fmt_int(b + str_len(b), (int32_t)(id + 1));       /* never two different ids look alike */
     return b;
 }
 
@@ -322,6 +344,7 @@ static void hv_perf(const track_t *t, uint16_t c)
 {
     char b[28], q[20];
     uint32_t i;
+    hv_air(26, 176, c, 2u);
     cv_text(14, 30, &AF_S, "PERFORMANCE", T_THEME);
     cv_text_r(226, 30, &AF_S, "LIVE", c, T_SURF);
     cv_text(14, 48, &AF_S, "OCTAVE", T_DIM);
@@ -394,6 +417,7 @@ static void hv_engine(const track_t *t, uint16_t c)
     uint32_t i;
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     hv_sound_name(t, pn);
+    hv_air(26, 176, c, 3u);
     cv_text(14, 30, &AF_S, e->name, T_THEME);
     fmt_int(b, (int32_t)(t->preset % (e->npresets ? e->npresets : 1u)) + 1);
     hv_cat(b, "/", sizeof b);
@@ -449,6 +473,7 @@ static void hv_mod(const track_t *t, uint16_t c)
     static const uint32_t SRC[4] = {P_M1SRC, P_M2SRC, P_M3SRC, P_M4SRC};
     static const uint32_t DST[4] = {P_M1DST, P_M2DST, P_M3DST, P_M4DST};
     static const uint32_t AMT[4] = {P_M1AMT, P_M2AMT, P_M3AMT, P_M4AMT};
+    hv_air(26, 176, c, 4u);
     cv_text(14, 30, &AF_S, "MODULATION", T_THEME);
     cv_text_r(226, 30, &AF_S, "MATRIX", T_MID, T_SURF);
     cv_text(14, 44, &AF_S, "LFO", T_THEME);
@@ -474,7 +499,7 @@ static void hv_mod(const track_t *t, uint16_t c)
         cv_text(52, y, &AF_S, ">", T_DIM);
         fmt_int(b, dst);
         cv_text(64, y, &AF_S, b, on ? T_TEXT : T_DIM);
-        hv_seg(88, y + 1, 96, 6, amt < 0 ? -amt : amt, 127, 12, on ? c : T_RAISE, T_RAISE);
+        hv_seg(88, y + 1, 96, 6, amt < 0 ? -amt : amt, 127, 12, on ? (amt > 96 ? T_ACCENT : c) : T_RAISE, T_RAISE);
         fmt_int(b, amt);
         cv_text_r(226, y, &AF_S, b, on ? T_MID : T_DIM, T_SURF);
     }

@@ -1,3 +1,9 @@
+## 2026-11-12 — v2.8.4: the HOME screens breathe
+
+- **Atmosphere**: the four new HOME screens share a background layer drawn before their text — sixteen embers that drift upward a pixel or three a frame (hashed positions, so they never clump) and a floor of six bars, each the level its track is making now. All of it is 1 px rects in the panel's own steps (`T_RAISE`/`T_LINE`), so no palette can make it unreadable and it costs no allocation and no per-pixel path.
+- **Hot meters**: MIXER's level cells turn to the accent above 84 %, and MODULATION's depth bars above 96 %, so a track that is pushing reads at a glance.
+- **Knob labels** on PERFORMANCE no longer carry a numeric suffix.
+
 ## 2026-11-12 — v2.8.3: HOME is a full set of screens
 
 - **MIXER, redrawn**: each track now reads as the instrument draws everything else — its number and the engine it is running, a nine-cell level meter with the peak held beside it, the pan as a two-pixel tick on a ruled centre line (it used to hide under the ruler's own line), a MUTE pill, and its fader position in cells. Below, the mix's own L and R peaks with a scale, plus the master level. Still nothing stored: `trk[].vu` and `trk[].peak` are what `fx.c` already writes.
