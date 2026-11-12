@@ -9,7 +9,9 @@
  * What this instrument found on the build it was written for:
  *   - the phaser is not weak: freezing the sweep and sweeping the tone shows a 23.6 dB comb inside
  *     200 Hz..6 kHz, and no step at all when DEPTH jumps (the mix ramps per sample);
- *   - M-WIDE 0 is exactly mono, 64 is untouched, 127 reaches correlation -0.59 with +3.8 dB;
+ *   - M-WIDE 0 is exactly mono, 64 is untouched, 127 reaches correlation -0.59 at the level of 64
+ *     (it used to arrive with +3.8 dB, which pushed the master's limiter: 5.0 compensates the
+ *     widened pair's power, and a mono source stays mono);
  *   - the low shelf is monotone, reaches its -24 dB at the bottom and does not overshoot 0 above
  *     its corner, which is what "aggressive" would have looked like.
  * The first version of this file measured a single tone across the sweep, and that version said
@@ -126,7 +128,7 @@ static void probe_phaser(void)
  * Two decorrelated sources, one hard left and one hard right, through master_out. At 64 the
  * width is bypassed; at 0 the sides are gone (mono); at 127 they are nearly doubled. The
  * correlation of the output says which of those actually happens. */
-static double probe_width(int mwidth, double *lvl)
+static double probe_width(int mwidth, double *lvl, int mono)
 {
     double sl = 0, sr = 0, slr = 0;
     int i;
@@ -142,7 +144,7 @@ static double probe_width(int mwidth, double *lvl)
         s1 = s1 * 1103515245u + 12345u;
         s2 = s2 * 1103515245u + 12345u;
         l = (int32_t)((s1 >> 17) & 0x3fff) - 8192;
-        r = (int32_t)((s2 >> 17) & 0x3fff) - 8192;
+        r = mono ? l : (int32_t)((s2 >> 17) & 0x3fff) - 8192;   /* (5.0) a mono source: S is 0 */
         master_out(&l, &r);
         sl += (double)l * l;
         sr += (double)r * r;
@@ -154,17 +156,74 @@ static double probe_width(int mwidth, double *lvl)
 
 static void probe_mwidth(void)
 {
-    double c0, c64, c127, l0, l64, l127;
-    c0 = probe_width(0, &l0);
-    c64 = probe_width(64, &l64);
-    c127 = probe_width(127, &l127);
+    double c0, c64, c127, l0, l64, l127, lm64, lm127, cm64, cm127;
+    c0 = probe_width(0, &l0, 0);
+    c64 = probe_width(64, &l64, 0);
+    c127 = probe_width(127, &l127, 0);
+    cm64 = probe_width(64, &lm64, 1);                 /* (5.0) and the same knob on a mono source */
+    cm127 = probe_width(127, &lm127, 1);
     printf("       correlation: width 0 %.3f, 64 %.3f, 127 %.3f (level %.0f / %.0f / %.0f)\n",
            c0, c64, c127, l0, l64, l127);
     check("M-WIDE 0 is mono (L and R identical)", c0 > 0.999, " r=%.4f", c0, 0);
     check("M-WIDE 64 is the untouched pair", c64 < 0.1, " r=%.4f", c64, 0);
     check("M-WIDE 127 is wider than 64", c127 < c64 - 0.05, " r=%.4f", c127, 0);
-    check("M-WIDE keeps the level sane (127 within +-6 dB of 64)", fabs(20.0 * log10(l127 / l64)) < 6.0,
+    /* (5.0) wider is not louder: the pair keeps its power, so a turn of the knob cannot push the master's
+     * limiter and pump the mix. Was +3.8 dB at 127 before the compensation. */
+    check("M-WIDE 127 keeps the level of 64 (within 1 dB)", fabs(20.0 * log10(l127 / l64)) < 1.0,
           " %.1f dB", 20.0 * log10(l127 / l64), 0);
+    check("M-WIDE on a mono source: it stays mono, and to within 4 dB of its level", cm127 > 0.999 &&
+          fabs(20.0 * log10(lm127 / lm64)) < 4.0, " r=%.4f %.1f dB", cm127, 20.0 * log10(lm127 / lm64));
+}
+
+/* ------------------------------------------------------------------- LOWCUT ---
+ * (5.0) The master's low cut, as a tone at two frequencies through master_out: 1 kHz must come out at the
+ * level it went in (within 2 dB) in every profile, and 60 Hz must be the one that goes away -- a high-pass
+ * that silenced the midrange would look exactly like a broken cut. This is the "HPF silences the audio"
+ * complaint measured instead of argued. */
+static double probe_lowcut(int profile, double hz, double *out_peak)
+{
+    uint32_t i;
+    double acc = 0, phase = 0, inc = 2.0 * 3.14159265358979 * hz / 44100.0, pk = 0;
+    fx_lowcut = (uint8_t)profile;
+    dce_l = dce_r = 0;
+    lim_env = 0;
+    lev_cur = 32768;
+    lev_dg = 0;
+    for (i = 0; i < 40000; i++) {
+        int32_t l = (int32_t)(6000.0 * sin(phase)), r = l;
+        phase += inc;
+        if (phase > 6.28318530717958) phase -= 6.28318530717958;
+        if (i < 20000) continue;                        /* the filter's own settling, not measured */
+        master_out(&l, &r);
+        acc += (double)l * l;
+        if (labs((long)l) > pk) pk = (double)labs((long)l);
+    }
+    fx_lowcut = 0;
+    *out_peak = pk;
+    return sqrt(acc / 20000.0);
+}
+
+static void probe_lowcut_all(void)
+{
+    double tone0, tone1, tone2, low0, low1, low2, pk;
+    tone0 = probe_lowcut(0, 1000.0, &pk);
+    tone1 = probe_lowcut(1, 1000.0, &pk);
+    tone2 = probe_lowcut(2, 1000.0, &pk);
+    low0 = probe_lowcut(0, 60.0, &pk);
+    low1 = probe_lowcut(1, 60.0, &pk);
+    low2 = probe_lowcut(2, 60.0, &pk);
+    printf("       1 kHz: off %.0f, LOWCUT %.0f, BASS+ %.0f (rms)\n", tone0, tone1, tone2);
+    printf("       60 Hz: off %.0f, LOWCUT %.0f, BASS+ %.0f (rms)\n", low0, low1, low2);
+    check("LOWCUT and BASS+ leave 1 kHz where it was (within 2 dB)",
+          fabs(20.0 * log10(tone1 / tone0)) < 2.0 && fabs(20.0 * log10(tone2 / tone0)) < 2.0,
+          " %.1f / %.1f dB", 20.0 * log10(tone1 / tone0), 20.0 * log10(tone2 / tone0));
+    /* both are high-passes -- BASS+ (a small speaker) uses the wider step, sh 5 against 6, so its corner is
+     * the higher one and its own bass shelf puts some of the 60 Hz back: what must hold is that the cut is
+     * there, that LOWCUT is the deeper of the two, and that neither comes near silencing anything */
+    check("both take the 60 Hz tone down, LOWCUT the deeper one, neither near silence",
+          20.0 * log10(low1 / low0) < -6.0 && 20.0 * log10(low2 / low0) < -2.0 &&
+          low1 < low2 && 20.0 * log10(low1 / low0) > -20.0,
+          " %.1f / %.1f dB", 20.0 * log10(low1 / low0), 20.0 * log10(low2 / low0));
 }
 
 /* ------------------------------------------------------------------ EQ ---
@@ -232,6 +291,7 @@ int main(void)
     printf("fx_probe: host x86, %.0f Hz\n\n", (double)FS);
     probe_phaser();
     probe_mwidth();
+    probe_lowcut_all();
     probe_eq();
     printf("\n%s\n", bad ? "FX PROBE FAILED" : "fx probe passed");
     return bad ? 1 : 0;

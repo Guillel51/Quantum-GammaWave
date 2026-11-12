@@ -898,15 +898,35 @@ static inline void master_out(int32_t *l, int32_t *r)
         *r = lowcut1(*r, &lc_r1, &lce[2], sh);
         *r = lowcut1(*r, &lc_r2, &lce[3], sh) + b;
     }
+
+/* (5.0) M-WIDE's power compensation, width 64..127: 32768*sqrt(2/(1+g^2)) in Q15 with g = w/64
+ * (unity at 64 and below, 0.637 at 127: the widened pair keeps the power of the un-widened one).
+ * A table because the square root has no place in the sample path -- it is read once a block. */
+static const uint16_t MW_COMP[64] = {
+    32767, 32513, 32260, 32009, 31760, 31514, 31269, 31027,
+    30787, 30550, 30314, 30081, 29850, 29621, 29395, 29171,
+    28949, 28729, 28512, 28297, 28085, 27874, 27666, 27460,
+    27256, 27055, 26856, 26659, 26464, 26271, 26080, 25892,
+    25705, 25521, 25339, 25158, 24980, 24804, 24630, 24458,
+    24287, 24119, 23952, 23788, 23625, 23464, 23305, 23147,
+    22992, 22838, 22686, 22535, 22386, 22239, 22094, 21950,
+    21808, 21667, 21528, 21390, 21254, 21119, 20986, 20855,
+};
+
     /* (QG-1 v1.4) Master Mid/Side stereo width balance (G_MWIDTH: 0..127, def 64 = 100% bypass).
      * 64 is strictly neutral with zero CPU overhead. 0 = pure mono sum (M, M). 127 = wide stereo.
      * Retains G_WIDTH intact for Delay and Chorus buses. */
     int16_t mwidth = song.g[G_MWIDTH];
     if (mwidth != 64) {
+        uint32_t wi = (uint32_t)clamp(mwidth, 0, 127);
         int32_t mid = (*l + *r) >> 1;
         int32_t side = (*l - *r) >> 1;
-        int32_t w = (int32_t)clamp(mwidth, 0, 127) * 512;   /* 0..65024, Q15: 32768 at 64 */
+        int32_t w = (int32_t)wi * 512;                      /* 0..65024, Q15: 32768 at 64 */
+        int32_t k = wi > 64u ? MW_COMP[wi - 64u] : 32768;   /* (5.0) wider, same power: no +3.8 dB into
+                                                             * the limiter when the knob is turned up */
+        mid = (mid * k) >> 15;
         side = (side * w) >> 15;
+        side = (side * k) >> 15;
         *l = mid + side;
         *r = mid - side;
     }
