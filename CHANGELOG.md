@@ -1,3 +1,27 @@
+## 2026-11-12 — v2.9.0: las cinco fases, en un solo paquete
+
+La versión que este repositorio, su web, su emulador, su instalador y su release sirven ahora. Reagrupa
+el trabajo de las cinco fases; cada una tiene su informe con la clase de cada medición.
+
+- **Fase 1 — optimización medida** (`docs/QG_PHASE_1_OPTIMIZATION.md`): memoria, `.ram_text` y el coste
+  de los caminos calientes, con las cifras de host y las que quedan fuera de alcance.
+- **Fase 2 — la interfaz** (`docs/QG_PHASE_2_UI.md`): el rediseño de HOME y sus vistas, medido en el
+  render de host y en el emulador compilado desde este árbol.
+- **Fase 3 — motores** (`docs/QG_PHASE_3_ENGINES.md`): WAVETABLE entra como motor propio y la auditoría
+  de presets deja los nueve vivos.
+- **Fase 4 — herramientas musicales** (`docs/QG_PHASE_4_MUSICAL_TOOLS.md`): FLANGER como tercer
+  `CHORUS > TYPE`, **HOME 9/9** con la pantalla ROUTING y una sola balística de medidores.
+- **Fase 5 — The Firmware Hub** (`docs/FM1_HUB_READINESS.md`): la tarjeta `fmhub.json` validada por
+  `tools/check_fmhub.py`, la identidad leída del paquete publicado con
+  `tools/check_package_identity.py`, el job `verify` de atestación en cada tag y la procedencia de cada
+  audio y binario en `docs/FM1_HUB_AUDIO_PROVENANCE.md`.
+- **La sincronización de esta entrega**: el portal deja de nombrar v2.7.2 y toma la versión del
+  despliegue (v2.9.0), dice **nueve** motores con WAVETABLE en la lista, **22** paletas y ya no
+  promete un conteo de presets que no puede verificar; la advertencia de instalación explica que los
+  manifiestos van sin firma Ed25519 desde 2.8.0 (integridad y trazabilidad, no autenticidad); y las
+  capturas —incluidas ROUTING, la matriz de modulación y el navegador de presets— se regeneraron desde
+  el código de esta versión con `tools/generate_screenshots.py` y `tools/fw_shots.py`.
+
 ## 2026-11-12 — FASE 5/5: preparación para The Firmware Hub
 
 - **La tarjeta del Hub, verificable**. `fmhub.json` en la raíz con un `what` de **274 caracteres** que

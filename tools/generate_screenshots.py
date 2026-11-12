@@ -260,6 +260,27 @@ int main(int argc, char **argv) {
     setup(S_FX_HELD); pal(UI_QUANTUM_INDEX); draw(S_FX_HELD);
     write_ppm("assets/screenshots", "quantum", "30_punch_in_latch");
 
+    /* (release sync) The screens the site talks about and never showed: the preset browser, and the
+     * HOME views added since 3.0 -- the engine, the matrix, the desk, the live settings and the path.
+     * Each one is drawn by the firmware's own code, like every picture above it. */
+    setup(S_PRESETS); pal(UI_QUANTUM_INDEX); draw(S_PRESETS);
+    write_ppm("assets/screenshots", "quantum", "31_presets_browser");
+
+    setup(S_HOME_ENG); pal(UI_QUANTUM_INDEX); draw(S_HOME_ENG);
+    write_ppm("assets/screenshots", "quantum", "32_home_engine");
+
+    setup(S_HOME_MOD); pal(UI_QUANTUM_INDEX); draw(S_HOME_MOD);
+    write_ppm("assets/screenshots", "quantum", "33_home_mod_matrix");
+
+    setup(S_HOME_PERF); pal(UI_QUANTUM_INDEX); draw(S_HOME_PERF);
+    write_ppm("assets/screenshots", "quantum", "34_home_performance");
+
+    setup(S_HOME_MIX); pal(UI_QUANTUM_INDEX); draw(S_HOME_MIX);
+    write_ppm("assets/screenshots", "quantum", "35_home_mixer");
+
+    setup(S_HOME_ROUT); pal(UI_QUANTUM_INDEX); draw(S_HOME_ROUT);
+    write_ppm("assets/screenshots", "quantum", "36_home_routing");
+
     return 0;
 }
 """
