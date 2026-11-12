@@ -377,7 +377,7 @@ keep controlling the macros on every page) until you press LFO again. F3 rolls n
 
 ## 4. Engines
 
-Eight engines, all synthesis, no samples. Any engine can go on any track. Pick them with **PRESETS** (one list over
+Nine engines, all synthesis, no samples. Any engine can go on any track. Pick them with **PRESETS** (one list over
 every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME knobs are listed too.
 
 **Smooth changes**: switching a track to another engine fades the old one out (about 12 ms) and what you are holding
@@ -393,6 +393,7 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
 | **VOICE** | VOWEL, VOWEL2, TALK, SHIFT | BUZZ, BREATH, Q, RAND | VOWEL, BUZZ, BREATH, TALK |
 | **WHEEL** | REG, SUB, BODY, TOP | PERC, CLICK, DRIVE, ROTOR | REG, PERC, DRIVE, ROTOR |
 | **NOISE** | MODE, COLOR, FREQ, PEAK | TRK, DENSE, DRIFT, CRUSH | FREQ, PEAK, COLOR, REL |
+| **WTABLE** | MORPH, DETUNE, UNI, SUB | CUT, RES, DRIVE, HARM | MORPH, HARM, CUT, UNI |
 | **DRUM** (DRUM-X) | MORPH, TUNE, TONE, DECAY | NOISE, FM ENV, FOLD, DRIVE | MORPH, TUNE, TONE, DECAY |
 
 - **ANALOG**: two oscillators. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD. **INT** sets oscillator
@@ -428,6 +429,10 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
 - **WHEEL**: a drawbar organ: registrations (REG), percussion (PERC: OFF, 2ND, 3RD, 2SOFT, 3SOFT, 2SLOW, 3SLOW),
   key click, drive, ROTOR (OFF, SLOW, FAST).
 - **NOISE**: coloured and metallic noise. MODE: ANLG, DUST, LFSR, META (DUST is only the crackle: at DENS 0 it still crackles softly). PEAK is its own resonance.
+- **WTABLE**: a single-cycle wavetable. **MORPH** walks eight frames (SINE, TRIANGLE, SAW, SQUARE, PULSE 25 %, HOLLOW, METAL, VOCAL);
+  it is the engine's first EDIT parameter, so the modulation matrix can move it (`E1`) with an LFO or an envelope.
+  **HARM** tilts the spectrum (0 soft, 64 as the frame is, 127 bright). **UNI** adds a second, detuned copy (**DETUNE**);
+  **SUB** an octave below. **CUT / RES** are its own filter, key-tracked, and **DRIVE** saturates before it.
 - **DRUM**: DRUM-X, see [5](#5-drum-x).
 
 ### Ambient & Keys presets (1.2-GW)

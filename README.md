@@ -4,7 +4,7 @@
 
 # QUANTUM GAMMAWAVE
 
-**Twelve voices. Six tracks. Eight synthesis engines. One M-VAVE FM-1.**
+**Twelve voices. Six tracks. Nine synthesis engines. One M-VAVE FM-1.**
 
 <table>
   <tr>
@@ -36,7 +36,7 @@
 ## What it is
 
 Quantum GammaWave replaces the stock firmware of the **M-VAVE FM-1** with an instrument: six tracks, twelve
-voices and eight synthesis engines, sequenced and played entirely on the unit, with a real DSP path — no
+voices and nine synthesis engines, sequenced and played entirely on the unit, with a real DSP path — no
 samples, no streaming, no host in the loop.
 
 It is a whole ecosystem built around one firmware:
@@ -94,7 +94,7 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 ## Synthesis engines
 
-Eight engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and from the Web Studio:
+Nine engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and from the Web Studio:
 
 | Engine | What it is | Edit |
 |---|---|---|
@@ -106,8 +106,9 @@ Eight engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and 
 | **LOFI** | reduced-rate and reduced-depth digital, retrigger and clock | rate, depth, clock, retrigger, envelope |
 | **DRUM-X** | drum synthesis: twelve kit lanes, per-hit tune and decay | kit, tune, decay, snap, mute groups |
 | **NOISE** | noise-based percussion and textures | colour, band, decay, tone |
+| **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 
-200 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
+212 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU

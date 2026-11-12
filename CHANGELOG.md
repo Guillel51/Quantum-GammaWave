@@ -1,3 +1,35 @@
+## 2026-11-12 — FASE 3/5: motores, auditoría y un motor nuevo (WTABLE)
+
+- **WTABLE, el motor 14**: un oscilador de tabla de una sola ciclo con morphing. Ocho fotogramas (SINE,
+  TRIANGLE, SAW, SQUARE, PULSE 25 %, HOLLOW, METAL, VOCAL) de 256 puntos, normalizados al mismo pico y con
+  fase 0 para que el morph no salte ni meta continua, guardados en tres límites de banda (64 / 16 / 5
+  armónicos) que el motor elige por la nota: nunca lee por encima de ~11 kHz, así que el teclado entero queda
+  sin alias. **MORPH** es el primer destino de motor de la matriz (`MD_E1`), **HARM** inclina el espectro de
+  forma continua (un polo a ~1 kHz, ±0,75), y hay **SUB** (octava abajo), **UNI 2 VOICES** con **DETUNE**,
+  filtro SVF de 2 polos con seguimiento de tecla y **DRIVE**.
+- **Un defecto corregido antes de adoptarlo**: el saturador con SUB dejaba hasta **41,5 % de la escala de una
+  voz en continua** (10 voces sumaban). Ahora la voz termina en un bloqueador de continua a ~5 Hz con el
+  producto redondeado (con el truncado el bucle se sesgaba ±1 LSB acumulado): **0,00 %** en los diez presets.
+- **Presupuesto**: tabla de **12 288 B de flash** `const` (XIP) y **0 B de RAM nueva** — el estado de cada voz
+  cabe en `voice_t` (`ph[0..2]`, `s[0..4]`, `keep = 0x1f`). Polifonía `NVOICE` (12), dos lecturas por muestra
+  con UNI. En host: **11–12 ns** por muestra y voz aislado, **62,7–116,6 ns** con la ruta de voz completa, y
+  un peor caso de nivel de **1,94 × `VOICE_FS`** por voz (ANALOG mide 2,07, PHASE 1,47 en la misma prueba).
+- **10 presets**: GLASS PAD, MORPH LEAD, SINE KEY, VOCAL AAH, METAL BELL, HOLLOW WOOD, BRASS SWELL, SUB BASS,
+  PULSE ORGAN, QUANTUM MASS. Los knobs de HOME del motor son MORPH, HARM, CUT y UNI.
+- **Auditoría de los motores que ya estaban** (`docs/QG_PHASE_3_ENGINES.md` §1): los 8 vivos con sus
+  parámetros reales, su polifonía y sus límites. **No se cambió ninguno**: tocar sus parámetros cambia el
+  sonido de 200 presets y sus renders dorados, y eso necesita su propia pasada medida. STRING, ADD y MATH
+  **no existen** en el árbol (lo aditivo es WHEEL, lo vocal/cuerda es VOICE, lo «math» es FM6); el pedido
+  pedía además exactamente un motor nuevo, y ése es WTABLE.
+- **Pruebas**: `tests/wavetable_test.c` (fotogramas y morph medidos por espectro, HARM, SUB, UNI batido,
+  aliasing en cada octava de C1 a C8, continua, clipping, release, determinismo, coste) y **230 renders
+  dorados: 0 cambiados y 10 nuevos**, o sea que ningún sonido anterior se movió. Auditoría de presets: 212,
+  0 silenciosos, 0 duplicados. El motor se llamó `WAVETABLE` hasta que el lint de maquetación demostró que el
+  campo lo cortaba: es **`WTABLE`**, seis caracteres, y el barrido vuelve a 0 hallazgos.
+- **Sin medida de placa**: no hay toolchain AC791N en este entorno (sin `.bss` enlazado, sin flash real, sin
+  desensamblado del bucle) ni unidad física (sin escucha). Lo que hay es host x86 y está dicho así en el
+  documento de la fase.
+
 ## 2026-11-12 — FASE 2/5: la interfaz, viva (medida)
 
 - **Arranque**: el splash no era lento, estaba congelado. Su reloj era `fm1_ms`, que sólo empieza con TIMER5, así que toda la inicialización (panel, motores, audio, USB, LEDs, segundo núcleo, autosave, reel) corría con el contador en 0 y el splash se quedaba en su primer fotograma: de ahí el segundo o dos de pantalla quieta antes de la animación. Ahora se temporiza con TIMER4 desde el primer píxel y repinta al terminar cada etapa (`splash_step`), y lo que la inicialización gasta ya no se vuelve a pagar en el bucle. Además `SPL_HOLD` 2800 → 2000: otro 0,8 s menos, con la firma y el fundido final intactos (4,5 s desde la primera luz).
