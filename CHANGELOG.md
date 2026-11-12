@@ -1,3 +1,10 @@
+## 2026-11-12 — v2.7.6: the EXTRA tab answers, and the delay shows its train
+
+- **MENU > EXTRA**: under its rows it now says which cores are running (`CORES 1` / `CORES 2`, from fx.c `mc_status()`, the same line ABOUT shows), the audio ISR's own load (`CPU n%`) and, in the corner, when CPU MODE applies (`NEXT POWER-ON`). It did work — main.c reads it before core 1 starts — but a setting that changes nothing until the next power-on reads as a dead row, which is exactly what it looked like.
+- **FX > DLY**: the panel above the six repeat slots was empty; it now draws the train's envelope from the peaks the effect actually returns (`fx_dly_rep`), joined and filled to the axis, with a dot on each repeat. Same data the bars had, in the shape of a decay.
+- **Tests**: `ui_render` reports 187 screens x 17 palettes, 0 lint findings and 0 of 2 777 796 alignment measurements off by a pixel; 220 golden renders unchanged; `ALL HOST TESTS PASSED`.
+- **Tooling**: `QG_DUMP_NAME=<screen>` renders one screen by name (`tests/ui_render.c`), so a visual review names the screen instead of counting an enum.
+
 ## 2026-11-12 — v2.7.5: SCL, HOME views, M-WIDE and the security pass
 
 - **SCL**: `chord_build` handles 5, 6 and 8-note scales (ported from JIANT 0.8.3) and six SCL screens show them; `tests/chord_scale_test.c` checks 8 448/8 448 invariants and 360 chords identical to the old traversal.

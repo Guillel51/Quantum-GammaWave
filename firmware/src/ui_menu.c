@@ -447,6 +447,24 @@ static uint32_t menu_split(uint32_t n)
         s = mr_y(--k) - 1;
     return (uint32_t)(s < 240 - 124 ? 240 - 124 : s);
 }
+/* (8.0) EXTRA answers the question its own CPU MODE row raises. The row picks what main.c asks for BEFORE core 1
+ * starts, so a change can only apply at the next power-on -- which the row never said, and which looks exactly like
+ * "it does nothing" when you flip it and the instrument keeps sounding the same. Under the rows: which cores are
+ * running now (fx.c mc_status(), the same line ABOUT shows) and the audio ISR's own load (song.cpu_q8). Both are
+ * measured by the firmware; nothing here is an estimate. */
+static void menu_extra_status(int32_t y)
+{
+    char b[40], n[12];
+    cv_text(14, y, &AF_S, "RUNNING", T_THEME);   /* (the value already starts with CORES) */
+    cv_text_r(226, y, &AF_S, mc_status(), T_TEXT, T_BG);
+    y += 13;
+    str_cpy(b, "CPU ", sizeof b);
+    fmt_int(n, (int32_t)((song.cpu_q8 * 100u) >> 8));
+    str_cpy(b + str_len(b), n, 10);
+    str_cpy(b + str_len(b), "%", 2);
+    cv_text(14, y, &AF_S, b, T_TEXT);
+    cv_text_r(226, y, &AF_S, "CPU MODE: NEXT POWER-ON", T_MID, T_BG);
+}
 static void confirm_open(uint32_t kind, uint32_t trk);   /* (0.6.58) INIT SYSTEM: ui_input.c */
 static void draw_menu(void)
 {
@@ -461,6 +479,7 @@ static void draw_menu(void)
           ui_rec_prefs * 92821u + ui_scr * 131071u +          /* (#157: SCREEN OFF's value redraws its row) */
           midi_out_mode * 524287u + ui_load * 8191u + ui_sel_home * 127u +   /* (1.1.1-GW: MIDI OUT, LOAD, SELECT ON HOME
                                                                 * redraw their rows too: they did not) */
+          (ui.menu == 1 && MI_TAB[ui.menu_sel] == 4u ? (song.cpu_q8 >> 6) * 8191u + mc_live() * 127u : 0u) +
           (ui.menu == 2 ? ui.menu_scroll * 48611u : 0u) +
           (ui.menu == 2 ? (song.cpu_q8 >> 3) * 7741u + load_diag.peak * 3329u + load_diag.late * 1931u +
                           load_diag.shed * 2671u : 0u) +
@@ -533,8 +552,11 @@ static void draw_menu(void)
         for (k = 0; k < n; k++)
             if (mr_y(k) + mr_h() > top_y && mr_y(k) - 1 < top_y + (int32_t)cv_h)
                 menu_row(k, first + k);
-        if (pass)
+        if (pass) {
+            if (menu_tab() == 4u && mr_y(n) + 20 < MK_Y - 4)     /* EXTRA: the two cores, under its rows */
+                menu_extra_status(mr_y(n) + 10);
             cv_key_row(8, 232, MK_Y, KEYS[ui.menu_sel >= MI_VALUES], 3, 7u, T_BG);
+        }
         cv_oy = 0;
         cv_blit(0, (uint32_t)top_y);
     }

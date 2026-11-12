@@ -177,6 +177,7 @@ static void tech_dly(void)
     dly_tick(h);
     cv_rect(x0, base - h, 1, h, T_RAISE);         /* the hit the train starts from */
     cv_rect(x0 - 1, base - h, 3, 1, T_MID);
+    int32_t ys[6];
     for (n = 0; n < 6; n++) {
         int32_t pk = clamp((int32_t)fx_dly_rep[n], 0, 32767);
         int32_t x = x0 + (n + 1) * w / 7, lit = on && gen == n + 1;
@@ -185,6 +186,7 @@ static void tech_dly(void)
         cv_rect(x - 3, base - 1, 7, 1, T_RAISE);                     /* the seat: six slots, always */
         if (bh > h)
             bh = h;
+        ys[n] = base - bh;
         bc = !on ? ux_mix(T_BG, T_LINE, 80)
                   : lit ? T_TEXT
                         : ux_mix(T_BG, T_ACCENT, 70 + pk * 100 / 32767);
@@ -197,6 +199,25 @@ static void tech_dly(void)
     }
     if (!on)
         return;
+    {   /* (8.0) THE TRAIN'S ENVELOPE. The six bars said where each repeat stands; the panel still read as an empty
+         * frame above them. These are the same peaks (fx_dly_rep, published by fx.c) joined at their tops and
+         * filled to the axis, so the decay has a shape instead of six columns. One line segment and one column per
+         * pixel: no per-sample work, and it is the effect's own measured level, not a curve drawn from FDBK. */
+        int32_t j;
+        for (n = 1; n < 6; n++) {
+            int32_t xa = x0 + n * w / 7, xb = x0 + (n + 1) * w / 7;
+            cv_line_t(xa, ys[n - 1], xb, ys[n], T_ACCENT, 1);
+        }
+        for (j = 0; j < w; j++) {
+            int32_t seg = j * 7 / w, k2 = seg + 1 > 5 ? 5 : seg + 1, fr = seg < 5 ? (j * 7 % w) * 256 / w : 0;
+            int32_t ya = seg > 5 ? ys[5] : ys[seg], yb = ys[k2];
+            int32_t yv = seg > 5 ? ya : ya + (yb - ya) * fr / 256;
+            if (yv < base - 1)
+                cv_rect(x0 + j, yv, 1, base - yv, ux_mix(T_BG, T_ACCENT, 26));
+        }
+        for (n = 0; n < 6; n++)
+            cv_rect(x0 + (n + 1) * w / 7 - 1, ys[n] - 1, 3, 3, T_TEXT);
+    }
     {   /* the beat of the train: a tick on the axis where the line is now, nothing taller */
         int32_t sx = x0 + (int32_t)((int64_t)(gen * 256 + frac) * w / (7 * 256));
         cv_rect(sx, base - 4, 1, 4, T_TEXT);

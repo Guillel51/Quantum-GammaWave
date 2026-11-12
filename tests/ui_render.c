@@ -1731,6 +1731,12 @@ int main(int argc, char **argv)
     if (getenv("QG_DUMP")) {
         unsigned scr = 0u, pal_i = UI_QUANTUM_INDEX, yy, xx;
         sscanf(getenv("QG_DUMP"), "%u,%u", &scr, &pal_i);
+        if (getenv("QG_DUMP_NAME")) {            /* by name: the index of S_NAME's entry, so a review can say the
+                                                  * screen it means instead of counting an enum */
+            uint32_t k;
+            for (k = 0; k < S_COUNT; k++)
+                if (!strcmp(S_NAME[k], getenv("QG_DUMP_NAME"))) { scr = k; break; }
+        }
         state();
         setup(scr >= S_COUNT ? S_HOME : scr);
         pal(pal_i);
