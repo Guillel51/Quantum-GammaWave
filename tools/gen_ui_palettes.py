@@ -66,6 +66,20 @@ PALETTES = [
     ("CYBERPUNK", (8, 6, 16),   (24, 16, 40),    (245, 240, 255), (0, 240, 255),   (255, 40, 130)),
     # NORDIC: Polar obsidian black with emerald aurora borealis and warm arctic beacon accent
     ("NORDIC",  (6, 12, 14),    (16, 28, 32),    (230, 248, 246), (64, 224, 160),  (255, 180, 80)),
+    # (FASE 2/5) THE SIX SKINS. A skin is a whole look, not a tint: these five (with THERMAL above, the sixth)
+    # are appended, never inserted, because a saved settings record names a palette by its index. Each one
+    # carries its own heat ramp in ui_graph.c heat_col, so the curves, the meters, HOME's star and its
+    # planets all take the skin's colours and not only the chrome's.
+    # NEBULA: deep space indigo, violet nebulae, Cherenkov cyan for the one active thing
+    ("NEBULA",  (4, 4, 14),     (18, 14, 38),    (238, 236, 255), (190, 170, 255), (90, 230, 255)),
+    # PLASMA: near-black, hot magenta arc, gold for what is sounding
+    ("PLASMA",  (10, 2, 10),    (32, 8, 26),     (255, 238, 246), (255, 140, 214), (255, 206, 84)),
+    # ORGANIC: moss and living green on dark earth, honey for the active control
+    ("ORGANIC", (8, 14, 8),     (22, 34, 18),    (238, 246, 226), (150, 214, 96),  (255, 186, 92)),
+    # MINIMAL: graphite and paper-white, one warm accent and nothing else
+    ("MINIMAL", (10, 10, 11),   (24, 24, 26),    (232, 232, 234), (255, 255, 255), (214, 168, 96)),
+    # RETRO: amber phosphor on warm brown, a green cursor
+    ("RETRO",   (12, 10, 6),    (32, 26, 14),    (255, 242, 206), (255, 160, 40),  (140, 255, 120)),
 ]
 BW = "MONO"
 BW_GREY = (82, 82, 82)             # MONO's one mid grey (RGB565 10/20/10): DIM LINE RAISE LANE
@@ -210,6 +224,11 @@ def main():
                 f"#define UI_SOLARIS_INDEX {names.index('SOLARIS')}u        /* SOLARIS: Solar gold & amber */",
                 f"#define UI_CYBER_INDEX {names.index('CYBERPUNK')}u        /* CYBERPUNK: Neon cyan & magenta */",
                 f"#define UI_NORDIC_INDEX {names.index('NORDIC')}u         /* NORDIC: Emerald aurora on obsidian */",
+                f"#define UI_NEBULA_INDEX {names.index('NEBULA')}u         /* (FASE 2/5) skin: NEBULA */",
+                f"#define UI_PLASMA_INDEX {names.index('PLASMA')}u         /* skin: PLASMA */",
+                f"#define UI_ORGANIC_INDEX {names.index('ORGANIC')}u        /* skin: ORGANIC */",
+                f"#define UI_MINIMAL_INDEX {names.index('MINIMAL')}u        /* skin: MINIMAL */",
+                f"#define UI_RETRO_INDEX {names.index('RETRO')}u          /* skin: RETRO */",
                 f"#define UI_BW_GREY 0x{to565(BW_GREY):04x}u          /* MONO's one grey: DIM LINE RAISE LANE */",
                 f"#define UI_PAL_TAG {PAL_TAG}u          /* stored id = UI_PAL_TAG + index; below 20: an old id */"]
         out += [f"#define UI_{k}_PCT {v}" for k, v in PCT.items()] + [f"#define UI_RAISE_PCT {RAISE_PCT}   /* SURF -> TEXT */"]

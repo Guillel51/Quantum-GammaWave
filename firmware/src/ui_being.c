@@ -459,6 +459,9 @@ static void gw_ring_clip(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_
 static void sys_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c);   /* the bay's clip (below) */
 static void sys_pset(int32_t x, int32_t y, uint16_t c);
 static void sys_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c);
+/* (4.0) where the star was drawn and how big it was: the hit test's, and 0 until the bay has drawn one */
+static int16_t sys_star_x = 52, sys_star_y = 92;
+static uint8_t sys_star_r = 4;
 /* (3.5) the ringed giant's own plane, opened by its touch (PK_SLING): 0 at rest, up to 2 px while pushed */
 static int32_t sys_ring_lift;
 /* (3.5) ONE REACTION PER WORLD. The five gestures are different mechanisms, not one animation in five colours:
@@ -521,6 +524,29 @@ static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx,
     atm2 = ux_mix(T_BG, bg_col(heat + 46), 22);
     if (r < 2) r = 2;
     if (r > 9) r = 9;                                           /* a touch can swell a body two pixels */
+    /* (4.0) ONE PIXEL OF SPACE. Two paths cross, and two bodies that touch merged into a single
+     * silhouette until the eye could not tell a small world in front from a large one behind. A ring of
+     * the page's own background is laid at r + 2 before the body: the world in front keeps an edge, the
+     * one behind loses the overlap, and nothing else changes. It is one pixel a row, and it follows the
+     * body when a note or a touch swells it. */
+    {
+        int32_t d2;
+        for (d2 = -(r + 2); d2 <= r + 2; d2++) {
+            int32_t s2 = gw_span(r + 1, d2);
+            if (s2) {
+                sys_pset(x - s2 - 1, y + d2, T_BG);
+                sys_pset(x + s2 + 1, y + d2, T_BG);
+            }
+        }
+        for (d2 = -r - 2; d2 <= -r - 1; d2++) {
+            int32_t s2 = gw_span(r, d2);
+            sys_rect(x - s2, y + d2, 2 * s2 + 1, 1, T_BG);
+        }
+        for (d2 = r + 1; d2 <= r + 2; d2++) {
+            int32_t s2 = gw_span(r, d2);
+            sys_rect(x - s2, y + d2, 2 * s2 + 1, 1, T_BG);
+        }
+    }
     if (kind == 3) {                                               /* the ring first: the body hides its middle, so it
                                                                    * reads as one ring passing behind the planet. (3.5) it is
                                                                    * two ringlets at different radii, and the touch opens the
@@ -792,6 +818,14 @@ static int32_t gw_planet_at(int32_t x, int32_t y)
     int32_t k;
     /* the panel is drawn on its own strip and blitted at graph_y(): a tap arrives in screen rows */
     y -= (int32_t)graph_y();
+    /* (4.0) THE STAR FIRST. A body crossing the centre used to take the tap that landed on the star, and the
+     * gesture that should reach the whole system hit one world instead. The star is the bay's centre and its
+     * largest target, so it is answered before the bodies: its disc and one pixel of corona, NPL its index. */
+    {
+        int32_t dx = x - sys_star_x, dy = y - sys_star_y, r = (int32_t)sys_star_r + 2;
+        if (dx * dx + dy * dy <= r * r)
+            return (int32_t)NPL;
+    }
     for (k = (int32_t)NPL - 1; k >= 0; k--) {
         int32_t i = pl_order[k];
         int32_t dx = x - pl_sx[i], dy = y - pl_sy[i], r = (int32_t)pl_sr[i] + 3;
@@ -803,6 +837,21 @@ static int32_t gw_planet_at(int32_t x, int32_t y)
 
 static void gw_planet_poke(int32_t i)
 {
+    if (i == (int32_t)NPL) {                        /* (4.0) THE STAR: an expansion that reaches the bodies.
+                                                     * Its rings are HOME's own pulse (graph_ecosys), and every
+                                                     * world inside them takes the light: each body's flash is
+                                                     * set and its excitation lifted, so the near ones swell by a
+                                                     * pixel and brighten as the wave passes them. No new state:
+                                                     * the two fields a note already uses. */
+        uint32_t k;
+        for (k = 0; k < NPL; k++) {
+            pl_flash[k] = 256;
+            pl_ex[k] = (int16_t)clamp((int32_t)pl_ex[k] + 120, 0, 256);
+        }
+        ui.home_pulse = ui.frame | 1u;              /* 0 means "no pulse": never store one */
+        ui.force = 1;
+        return;
+    }
     if (i < 0 || i >= (int32_t)NPL)
         return;
     pl_poke_t[i] = ui.frame;
@@ -824,15 +873,21 @@ static void gw_planet_poke(int32_t i)
 static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
 {
     uint32_t pa = pl_age(pi, POKE_L[pi]);
+    /* (FASE 2/5) the wave leaves the LIMB, not a 3 px circle inside the body. Every body now lays a pixel of
+     * the page's background at r + 2 (gw_sphere) so two overlapping worlds still read as two, and a ring that
+     * began under the surface was wiped by it: the ocean's touch measured 5 pixels of change instead of a
+     * hundred. br is the radius the body was drawn with last frame (pl_sr, one frame of lag, invisible at
+     * 60 fps) and the reactions start outside it. */
+    int32_t br = pl_sr[pi] ? (int32_t)pl_sr[pi] : 4;
     if (pa >= 64u)
         return;
     if (PL_POKE[pi] == PK_RIPPLE) {                 /* OCEAN: a wave leaves the surface -- one unbroken front
                                                      * and a broken echo behind it -- with a crest running
                                                      * out along it, so a touch reads as water, not as a pulse */
-        int32_t r1 = 3 + (int32_t)pa / 2;
+        int32_t r1 = br + 2 + (int32_t)pa / 2;
         gw_ring_clip(bx, by, r1, r1 * 2 / 3, ux_mix(T_BG, bg_col(heat + 70), 200 - (int32_t)pa * 4), 0);
         if (pa > 9u) {
-            int32_t r2 = 3 + (int32_t)(pa - 9u) / 2;
+            int32_t r2 = br + 2 + (int32_t)(pa - 9u) / 2;
             gw_ring_clip(bx, by, r2, r2 * 2 / 3, ux_mix(T_BG, bg_col(heat + 30), 150 - (int32_t)pa * 3), 1);
         }
         sys_pset(bx + (int32_t)pa / 2, by - (int32_t)pa / 3,
@@ -840,16 +895,150 @@ static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
         if (pa < 12u && !(pa & 1u))
             vz_np_add(bx, by, (pa & 2u) ? 1 : -1, -1, bg_col(heat + 100), 7, 1);
     } else if (PL_POKE[pi] == PK_FROST) {           /* FROZEN: a ring of frost, and a fan of flakes */
-        int32_t r1 = 4 + (int32_t)pa / 3;
+        int32_t r1 = br + 3 + (int32_t)pa / 3;
         gw_ring_clip(bx, by, r1, r1 * 2 / 3, ux_mix(T_BG, bg_col(heat + 90), 170 - (int32_t)pa * 4), 1);
         if (pa < 14u && !(pa & 1u))                 /* two flakes a frame, from the bay's own pool */
             vz_np_add(bx + (int32_t)(pa & 3u) - 2, by - 1,
                       (int32_t)(pa & 3u) - 2, -2, bg_col(heat + 90), 8, 1);
     } else if (PL_POKE[pi] == PK_SLING) {           /* RINGED: the wake of its push, a short arc */
-        sys_line(bx - 2, by + 3, bx + 2, by + 3, ux_mix(T_BG, bg_col(heat + 50), 150 - (int32_t)pa * 4));
+        sys_line(bx - 2, by + br + 2, bx + 2, by + br + 2, ux_mix(T_BG, bg_col(heat + 50), 150 - (int32_t)pa * 4));
     }
 }
 
+
+/* (4.0) HOME'S STAR: a core with depth, a corona that turns, and flares of its own.
+ * Until 3.5 the star was five concentric discs and a sparkle: a bright circle, not the centre of a
+ * system. It has an outer breath now (a fourth, wider disc), a cross of eight rays that turns slowly
+ * and whose length follows the patch's energy, and a flare every ~7 s that throws five embers off its
+ * rim through the pool the bay already owns. The rays are points on a circle of radius r + k, so a
+ * corona costs 8 sines and at most 8 x 6 pixels -- no per-pixel trigonometry anywhere. */
+static void gw_star(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat, int32_t big, uint32_t tm)
+{
+    int32_t i, k;
+    uint16_t glow = ux_mix(T_BG, bg_col(70 + heat / 3), 30 + big / 14);
+    uint16_t corona = ux_mix(T_BG, bg_col(110 + heat / 4), 46 + en / 12);
+    gw_disc(cx, cy, r + 3, ux_mix(T_BG, glow, 46));    /* the outer breath: the star lights its own gap */
+    gw_disc(cx, cy, r + 2, glow);
+    gw_disc(cx, cy, r + 1, ux_mix(T_BG, bg_col(70 + heat / 3), 54 + big / 11));
+    /* the turning cross: eight rays, each its own length, one sine pair for all of them */
+    for (i = 0; i < 8; i++) {
+        uint32_t a = tm * 5u + (uint32_t)i * 8192u;                 /* ~13 s a turn */
+        int32_t dx = bg_sin(a + 0x4000u) >> 15, dy = bg_sin(a) >> 15;
+        int32_t len = 1 + (int32_t)((bg_sin(a * 3u + 1000u) + 32768) >> 15) + en / 90;
+        for (k = 1; k <= len; k++)
+            sys_pset(cx + dx * (r + k), cy + dy * (r + k), ux_mix(T_BG, corona, 150 - k * 34));
+    }
+    gw_disc(cx, cy, r, bg_col(170 + en / 5));
+    gw_disc(cx, cy, r * 62 / 100, bg_col(228 + en / 9));
+    gw_disc(cx, cy, r * 30 / 100, bg_col(252));
+    if (en > 40 || big > 48) {                          /* a four-point sparkle while it sounds */
+        int32_t sp = 2 + en / 70 + big / 110, s;
+        for (s = 1; s <= sp; s++) {
+            uint16_t sc = ux_mix(T_BG, bg_col(246), 170 - s * 24);
+            sys_pset(cx + r + 1 + s, cy, sc);
+            sys_pset(cx - r - 1 - s, cy, sc);
+            sys_pset(cx, cy + r + 1 + s, sc);
+            sys_pset(cx, cy - r - 1 - s, sc);
+        }
+    }
+    if (!UI_NO_DRIFT && !(ui_prefs & PREF_ANIM_OFF)) {  /* its flares: a burst, then quiet for seconds */
+        uint32_t ph = (tm + 1200u) % 7300u;
+        if (ph < 16u) {
+            int32_t k2 = (int32_t)(ph >> 2);
+            vz_np_layer(VZ_OWN_HOME);
+            vz_np_add(cx + k2 - 1, cy - r - 1, k2 - 1, -2, bg_col(200 + k2 * 16), 7, 1);
+        }
+    }
+    sys_star_x = (int16_t)cx;
+    sys_star_y = (int16_t)cy;
+    sys_star_r = (uint8_t)r;
+}
+
+/* (4.0) THE WORLD THAT DOES NOT ORBIT. Two bodies stay in the bay's own depth: they turn on their own
+ * axis at their own rates, they never leave their place, and they are mixed far out of the page's
+ * background so they read behind the system rather than in it. Their terminator is their own phase,
+ * not the star's -- a distant world is lit by a sun that is not on this screen. Called before the
+ * orbits, so a path passes in front of them and the bay gains a front and a back. */
+static void gw_far_world(int32_t cx, int32_t cy, int32_t r, uint32_t tm, int32_t rate, int32_t heat, int ring)
+{
+    int32_t dy, span = 0;
+    int32_t ph = (int32_t)((tm * (uint32_t)rate) & 0x7FFFu);
+    uint16_t lit = ux_mix(T_BG, bg_col(heat), 32), shade = ux_mix(T_BG, bg_col(heat - 26), 40);
+    if (ring)
+        gw_ring_clip(cx, cy, r + 2, (r + 2) / 3, ux_mix(T_BG, bg_col(heat + 20), 60), 0);
+    for (dy = -r; dy <= r; dy++) {
+        int32_t q;
+        while (span > 0 && span * span + dy * dy > r * r)
+            span--;
+        while (span < r && (span + 1) * (span + 1) + dy * dy <= r * r)
+            span++;
+        q = -span + (2 * span * ph) / 32768;               /* its own terminator */
+        if (r <= 2) {                                  /* too small to carry a phase: a mote, one tone */
+            sys_rect(cx - span, cy + dy, 2 * span + 1, 1, lit);
+        } else {
+            if (q > -span)
+                sys_rect(cx - span, cy + dy, q + span, 1, shade);
+            sys_rect(cx + q, cy + dy, span - q + 1, 1, lit);
+        }
+        if (span)
+            sys_pset(cx + span, cy + dy, ux_mix(T_BG, bg_col(heat + 10), 34));
+    }
+}
+
+/* (4.0) EACH WORLD'S OWN WEATHER. A body's surface turns already; what it lacked was an event of its
+ * own, so five bodies on five paths still looked like five still pictures when no note was playing.
+ * Each kind has a period of its own (5.4 s .. 10.6 s, offset by its index) and a different event:
+ * the rocky one blows dust off its limb, the gas giant's storm eye surfaces, the ocean world glints,
+ * the ringed giant's ring shimmers, the frozen one throws frost off its pole. One compare when an
+ * event is not due, a handful of pixels when it is. */
+static void gw_body_life(int32_t kind, int32_t bx, int32_t by, int32_t r, int32_t heat, uint32_t tm)
+{
+    uint32_t per = 5400u + (uint32_t)kind * 1300u;
+    uint32_t ph = (tm + (uint32_t)kind * 2100u) % per;
+    if (UI_NO_DRIFT || (ui_prefs & PREF_ANIM_OFF) || r < 3)
+        return;
+    switch (kind) {
+    case 0:                                             /* ROCKY: a puff off the limb, drifting up */
+        if (ph < 26u) {
+            int32_t k = (int32_t)ph / 6;
+            sys_pset(bx - r - 1 - k, by + 1 - k, ux_mix(T_BG, bg_col(heat + 60), 150 - k * 40));
+            sys_pset(bx - r - 1 - k, by + 2 - k, ux_mix(T_BG, bg_col(heat + 20), 90 - k * 20));
+        }
+        break;
+    case 1:                                             /* GAS: the storm eye surfaces and sinks */
+        if (ph < 130u) {
+            int32_t w = (int32_t)(ph < 65u ? ph : 130u - ph);
+            int32_t ey = by - 1 + (int32_t)(ph & 1u);
+            sys_pset(bx + r / 3, ey, ux_mix(bg_col(heat + 100), T_TEXT, 40 + w));
+            sys_pset(bx + r / 3 + 1, ey, ux_mix(bg_col(heat + 60), T_TEXT, 20 + w / 2));
+        }
+        break;
+    case 2:                                             /* OCEAN: a glint, three pixels, and gone */
+        if (ph < 10u) {
+            int32_t gx = bx - r / 2, gy = by + r / 3;
+            sys_pset(gx, gy, ux_mix(T_TEXT, bg_col(230), 60 - (int32_t)ph * 5));
+            sys_pset(gx - 1, gy, ux_mix(bg_col(heat + 40), T_TEXT, 70));
+            sys_pset(gx + 1, gy, ux_mix(bg_col(heat + 40), T_TEXT, 70));
+        }
+        break;
+    case 3:                                             /* RINGED: the ring shimmers where it turns */
+        if (ph < 40u) {
+            int32_t a = (int32_t)((tm * 3u + ph * 800u) & 0xFFFF);
+            int32_t rx = (r + 4) * (bg_sin((uint32_t)a + 0x4000u) >> 15);
+            int32_t ry = 3 * (bg_sin((uint32_t)a) >> 15);
+            sys_pset(bx + rx, by + ry, ux_mix(T_BG, bg_col(heat + 140), 120 + (int32_t)ph * 3));
+        }
+        break;
+    default:                                            /* FROZEN: frost off the pole */
+        if (ph < 14u) {
+            int32_t k = (int32_t)ph / 4;
+            sys_pset(bx, by - r - 1 - k, ux_mix(T_BG, bg_col(heat + 70), 170 - k * 40));
+            sys_pset(bx - 1 - k, by - r, ux_mix(T_BG, bg_col(heat + 30), 110 - k * 25));
+            sys_pset(bx + 1 + k, by - r, ux_mix(T_BG, bg_col(heat + 30), 110 - k * 25));
+        }
+        break;
+    }
+}
 static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat)
 {
     /* three orbits: radius, tilt, rate (16-bit units a millisecond) and planet size. (3.1) SIZES are derived
@@ -875,6 +1064,14 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                                                                 * small cold moon. 38 + 4 + 2 = 44 of the bay's 44 */
     static const uint8_t ORYS[5] = {70, 60, 52, 44, 36};       /* tilt: ry = 8 / 11 / 14 / 15 / 13 px */
     static const uint8_t ORK[5] = {0, 1, 2, 3, 4};             /* rocky, banded, ocean, ringed, frozen */
+    /* (4.0) FIVE TONES, NOT FIVE SHADES OF AMBER. Every body took its colour from the same point of the
+     * thermal ramp (heat + index * 18), so at 240 x 240 they read as five warm discs told apart only by
+     * size. Each now sits on its own part of the ramp -- the rocky and the gas worlds warm, the ringed
+     * giant rose, the ocean world violet and the frozen one ice blue -- and the note still pushes a body
+     * up the same ramp from there, so the music's light keeps working and the identities stop relying on
+     * shape alone. */
+    static const int16_t ORK_HUE[5] = {0, 12, -58, -22, -80};
+    int32_t kheat[NPL];
     /* fixed stars: x, y in the bay, size (1..3), luminance, twinkle phase */
     static const uint8_t ST[20][5] = {
         {4, 4, 2, 150, 11}, {13, 2, 1, 110, 47}, {31, 5, 1, 90, 83}, {46, 2, 2, 170, 29},
@@ -901,6 +1098,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     int32_t tilt_wob = bg_sin(tm * 3u + 0x2000u) >> 12;   /* +-8: the tilt must stay a few pixels */
     int32_t orb_ry[NPL];
     for (i = 0; i < NPL; i++) {                        /* the tilt the path and its planet both use */
+        kheat[i] = heat + ORK_HUE[i];                  /* (4.0) this body's own tone on the ramp */
         orb_ry[i] = ORX[i] * ORYS[i] / 100 + tilt_wob * (i + 1) / 24;
         if (orb_ry[i] < ORX[i] * 30 / 100)
             orb_ry[i] = ORX[i] * 30 / 100;             /* the ellipse never closes up into a line */
@@ -970,9 +1168,14 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
             break;
         }
     }
+    /* (4.0) TWO WORLDS THAT STAY. The bay's depth was dust and paths; these turn where they are, on their
+     * own rates, mixed far out of the background. The outer path crosses in front of one of them, so the
+     * square has a back and a front. Regulars: their place never changes, only their face. */
+    gw_far_world(sys_x0 + 11, sys_y0 + 7, 2, tm, 9, 150, 0);
+    gw_far_world(sys_x0 + 78, sys_y0 + 44, 2, tm, 13, 120, 0);
     /* the far half of each path first: it passes behind the star and behind the front planets */
     for (i = 0; i < NPL; i++) {
-        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(heat + i * 18), 34 + pl_ex[i] / 5)
+        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(kheat[i]), 34 + pl_ex[i] / 5)
                                     : ux_mix(T_BG, T_LINE, 26 + i * 10);   /* (2.2) fainter at rest: five
                                                                           * ellipses in one 88 px bay were
                                                                           * reading as a wire frame */
@@ -1008,7 +1211,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         if (orb_y[pi] >= cy)
             continue;
         if (!UI_NO_DRIFT && pl_ex[pi] > 32) {          /* a short afterglow arc under the body, not a second orbit */
-            uint16_t gc = ux_mix(T_BG, bg_col(heat + pi * 18 + pl_ex[pi] / 3), 60);
+            uint16_t gc = ux_mix(T_BG, bg_col(kheat[pi] + pl_ex[pi] / 3), 60);
             sys_line(orb_x[pi] - 2, orb_y[pi] + 2, orb_x[pi] + 2, orb_y[pi] + 2, gc);
         }
         if (pk_ang[pi]) {                              /* (3.5) the surge leaves a comet trail on its own path */
@@ -1018,41 +1221,28 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                 int32_t ta = aa - k * 1100;
                 sys_pset(cx + (ORX[pi] * bg_sin((uint32_t)ta + 0x4000u) >> 15),
                          cy + (orb_ry[pi] * bg_sin((uint32_t)ta) >> 15),
-                         ux_mix(T_BG, bg_col(heat + pi * 18 + 70), 120 - k * 30));
+                         ux_mix(T_BG, bg_col(kheat[pi] + 70), 120 - k * 30));
             }
         }
-        gw_body_react(pi, orb_x[pi], orb_y[pi], heat + pi * 18);
+        gw_body_react(pi, orb_x[pi], orb_y[pi], kheat[pi]);
         sys_ring_lift = ORK[pi] == 3 ? pk_push[pi] : 0; /* (3.5) the giant's plane follows its push */
         gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi],
-                  heat + pi * 18 + pl_ex[pi] / 2 + pk_rad[pi] * 14,
+                  kheat[pi] + pl_ex[pi] / 2 + pk_rad[pi] * 14,
                   orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi],
                   (uint32_t)orb_rot[pi], pl_flash[pi] + pk_rad[pi] * 80);
         sys_ring_lift = 0;
+        gw_body_life(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi], kheat[pi], tm);
         pl_sx[pi] = (int16_t)orb_x[pi];                /* (3.5) where it was drawn: what a tap is measured against */
         pl_sy[pi] = (int16_t)orb_y[pi];
         pl_sr[pi] = (uint8_t)(ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi]);
         if (pl_ex[pi] > big) big = pl_ex[pi];
     }
-    /* the star: two corona rings, three discs of its own and a sparkle while the patch sounds; the biggest
-     * planet's note lifts it a pixel, so the system answers as a whole */
-    gw_disc(cx, cy, r + 2, ux_mix(T_BG, bg_col(70 + heat / 3), 30 + big / 14));
-    gw_disc(cx, cy, r + 1, ux_mix(T_BG, bg_col(70 + heat / 3), 54 + big / 11));
-    gw_disc(cx, cy, r, bg_col(170 + en / 5));
-    gw_disc(cx, cy, r * 62 / 100, bg_col(228 + en / 9));
-    gw_disc(cx, cy, r * 30 / 100, bg_col(252));
-    if (en > 40 || big > 48) {                          /* a four-point sparkle while it sounds */
-        int32_t sp = 2 + en / 70 + big / 110, s;
-        for (s = 1; s <= sp; s++) {
-            uint16_t sc = ux_mix(T_BG, bg_col(246), 170 - s * 24);
-            sys_pset(cx + r + 1 + s, cy, sc);
-            sys_pset(cx - r - 1 - s, cy, sc);
-            sys_pset(cx, cy + r + 1 + s, sc);
-            sys_pset(cx, cy - r - 1 - s, sc);
-        }
-    }
+    /* (4.0) the star: its core, its turning corona and its own flares (gw_star). The biggest planet's
+     * note still lifts it a pixel, so the system answers as a whole. */
+    gw_star(cx, cy, r, en, heat, big, tm);
     /* the near half of each path, over the star, then the planets in front from the top down */
     for (i = 0; i < NPL; i++) {
-        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(heat + i * 18 + pl_ex[i] / 3), 46 + pl_ex[i] / 4)
+        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(kheat[i] + pl_ex[i] / 3), 46 + pl_ex[i] / 4)
                                     : ux_mix(T_BG, T_LINE, 52 + i * 14);
         gw_ring_semi(cx, cy, ORX[i], orb_ry[i], oc, 0);
         if (!UI_NO_DRIFT && pl_ex[i] > 16) {           /* the note's trail on its own orbit, 3 px, short */
@@ -1062,7 +1252,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                 int32_t aa = aa0 - k * (400 + pl_ex[i] * 2);
                 int32_t nx = cx + (ORX[i] * bg_sin((uint32_t)aa + 0x4000u) >> 15);
                 int32_t ny = cy + (orb_ry[i] * bg_sin((uint32_t)aa) >> 15);
-                sys_pset(nx, ny, ux_mix(T_BG, bg_col(heat + i * 18 + pl_ex[i] / 2), pl_ex[i] * (4 - k) / 14));
+                sys_pset(nx, ny, ux_mix(T_BG, bg_col(kheat[i] + pl_ex[i] / 2), pl_ex[i] * (4 - k) / 14));
             }
         }
     }
@@ -1073,10 +1263,11 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         gw_body_react(pi, orb_x[pi], orb_y[pi], heat + pi * 18);
         sys_ring_lift = ORK[pi] == 3 ? pk_push[pi] : 0;
         gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi],
-                  heat + pi * 18 + ex / 2 + pk_rad[pi] * 14,
+                  kheat[pi] + ex / 2 + pk_rad[pi] * 14,
                   orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi],
                   (uint32_t)orb_rot[pi], pl_flash[pi] + pk_rad[pi] * 80);
         sys_ring_lift = 0;
+        gw_body_life(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi], kheat[pi], tm);
         pl_sx[pi] = (int16_t)orb_x[pi];
         pl_sy[pi] = (int16_t)orb_y[pi];
         pl_sr[pi] = (uint8_t)(ORR[pi] + ex / 96 + pk_rad[pi]);
@@ -1084,12 +1275,12 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                                                         * two pixels out, and fades with its own excitation */
             int32_t rr = ORR[pi] + 2 + ex / 80;
             gw_ring_clip(orb_x[pi], orb_y[pi], rr, rr * 2 / 3,
-                         ux_mix(T_BG, bg_col(heat + pi * 18 + ex / 2), clamp(ex, 30, 200)), 1);
+                         ux_mix(T_BG, bg_col(kheat[pi] + ex / 2), clamp(ex, 30, 200)), 1);
         }
         if (UI_NO_DRIFT || ex <= 40)
             continue;
         {   /* the note's sparks: the same bounded pool the other visualizers draw */
-            uint16_t pc = bg_col(heat + pi * 18 + ex / 3);
+            uint16_t pc = bg_col(kheat[pi] + ex / 3);
             vz_np_add(orb_x[pi], orb_y[pi], (orb_x[pi] < cx ? -2 : 2), -2, pc, 9, 1);
         }
     }

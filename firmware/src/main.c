@@ -160,6 +160,21 @@ static void boot_leds(void)
         fm1_led_anim_start(settings_leds == LEDS_DIM || settings_leds == LEDS_DIM_LO);
 }
 
+/* (FASE 2/5) THE SPLASH'S OWN CLOCK, from TIMER4 and from the frame's first pixel.
+ * It was the millisecond counter, and that one only starts with TIMER5 (timer5_start, half way down
+ * this function). So everything between draw_splash() and timer5_start -- the input and ADC setup, the
+ * panel, the engines' boot, AUDIO, USB, the LED sweep, the guard, the second core -- ran while the
+ * counter stood at 0: the picture was already on screen, and it sat on its first frame for all of it.
+ * That dead second or two before the animation moved is what the report was about; the timer itself was
+ * never the problem. The stages below now paint the splash as they finish, and the deadline is measured
+ * from the first pixel, so the same seconds are not then spent again in the timed loop. */
+static uint32_t spl_t0_us;
+static void splash_step(void)
+{
+    if (ui_splash != 2u)
+        splash_write((fm1_micros() - spl_t0_us) / 1000u);
+}
+
 static void fm1_main(void)
 {
     uint32_t ms;
@@ -174,10 +189,12 @@ static void fm1_main(void)
     lcd_init(T_BG);                                /* (QG-1 v1.5) the whole 240x320 in the theme's background */
     spl_anim = ui_splash == 0u;                        /* (JIANT 0.5) the signature written: splash_write. (v1.5)
                                                         * FULL writes it on; SHORT and OFF have it whole */
-    if (ui_splash != 2u)                              /* (v1.5) STARTUP SPLASH OFF: no splash at all -- lcd_init has
+    if (ui_splash != 2u) {                            /* (v1.5) STARTUP SPLASH OFF: no splash at all -- lcd_init has
                                                         * already brought the panel up, so the hardware init is the
                                                         * same in all three; the UI below redraws from a clean frame */
         draw_splash();                                /* ui_draw.c (1.1.5) */
+        spl_t0_us = fm1_micros();                     /* (FASE 2/5) the clock starts at this pixel */
+    }
     if (felucca_dbg.magic != DBG_MAGIC) {
         memset(&felucca_dbg, 0, sizeof felucca_dbg);
         felucca_dbg.magic = DBG_MAGIC;
@@ -194,11 +211,14 @@ static void fm1_main(void)
     fm1_input_init();
     fm1_adc_init();
     panel_init();
+    splash_step();
     felucca_init();
     master_boot();
     kb_boot_hold = 1;                         /* #137: no notes from the keys before the UI (seq.c keyboard_block) */
     audio_init();
+    splash_step();
     usb_start();
+    splash_step();
 #if FELUCCA_UART
     uart_midi_init();
 #endif
@@ -230,8 +250,10 @@ static void fm1_main(void)
     }
 #endif
     autosave_boot(boot_clean);                /* (1.2) the last session's music, under the splash */
+    splash_step();                            /* (FASE 2/5) the flash read is over: the picture moves on */
 #if FELUCCA_FLASH
     reel_boot();                              /* (1.0-GW TAKES v2) the TAKES reel and its SET */
+    splash_step();
 #endif
     session_dice(fm1_ticks() ^ (uint32_t)fm1_adc_read(FM1_ADC_BATT) << 16);   /* (JIANT 0.4) this session's macros */    {                                         /* the splash, its signature written (JIANT 0.5: was 400 ms); the pot
                                                * followed (MIDI IN plays under it). (0.5.2) On the clock: drawing the
@@ -239,10 +261,16 @@ static void fm1_main(void)
                                                * before (SPL_WRITE + SPL_HOLD); SHORT the drawing without the hold;
                                                * OFF nothing at all -- the loop simply does not run, and nothing it
                                                * did is lost (master_poll runs every main-loop pass below) */
-        uint32_t t0 = fm1_ms, n;
+        uint32_t n;
         uint32_t span = ui_splash == 2u ? 0u : ui_splash == 1u ? SPL_SHORT : SPL_WRITE + SPL_HOLD;
-        for (n = 0; n < 600u && (ms = fm1_ms - t0) < span; n++) {   /* (600: a stalled clock still
-                                                                                       * ends it, in ~2.4 s) */
+        /* (FASE 2/5) the same clock as the stages above: what init already spent counts, so the splash
+         * is `span` ms from its first pixel and not from the end of the boot. If init ate the whole
+         * write, the hand-over still gets its frames instead of being skipped. */
+        uint32_t el = (fm1_micros() - spl_t0_us) / 1000u;
+        if (ui_splash == 0u && el + SPL_FADE > span)
+            span = el + SPL_FADE;
+        for (n = 0; n < 600u && (ms = (fm1_micros() - spl_t0_us) / 1000u) < span; n++) {   /* (600: a stalled
+                                                                                       * clock still ends it) */
             splash_write(ms);
             fm1_delay_ms(4);
             master_poll();

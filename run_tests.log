@@ -228,7 +228,7 @@ power-on sweep OFF: 640 frames (704 ms) and its end, then fm1_led_anim_on() 0 ok
   then the tick as before: 33 ticks, the same line writes, no extra one  ok
 power-on sweep: a key down at frame 200: done the next frame, the glow left ok
 LEDs: refresh 909 Hz lit, 909 Hz dim
-LEDs: host 37.0 ns per tick without dim LEDs, 54.7 ns with, 79.2 ns with a breath too
+LEDs: host 37.1 ns per tick without dim LEDs, 54.8 ns with, 78.6 ns with a breath too
 input debounce: all ok
 == TRS MIDI parser
 uart: running status, realtime, SysEx, system common ok
@@ -312,7 +312,7 @@ FIR table = sinc x Kaiser (24 x 160 taps, beta 9, 22 kHz); phases sum to 1.0 ok
   18000 Hz -1 dBFS: gain -0.059 dB, SNR 94.6 dB in band, 45.3 full (exact taps 94.3) ok
   20000 Hz -1 dBFS: gain -1.173 dB, SNR 93.0 dB in band, 17.7 full (exact taps 93.0) ok
   flat 20 Hz .. 18 kHz within -0.059 .. +0.000 dB; SNR 100 Hz .. 15 kHz >= 93.0 dB ok
-  cost (host): 42.4 ns / 44.1 kHz frame (no instruction counter)
+  cost (host): 42.5 ns / 44.1 kHz frame (no instruction counter)
 48 kHz, 10 s, random render times: sizes 47..49 (48:9134 49:530 47:336), mean 48.0194 ok
   every frame = the resampled render, in order (0 off); no underrun / overrun ok
   fill at render start 73..157 (band 87..139), adj up 648 down 395 (I2S 44117.6 Hz: fast) ok
@@ -367,7 +367,7 @@ FIR table = sinc x Kaiser (24 x 160 taps, beta 9, 22 kHz); phases sum to 1.0 ok
   18000 Hz -1 dBFS: gain -0.059 dB, SNR 94.6 dB in band, 45.3 full (exact taps 94.3) ok
   20000 Hz -1 dBFS: gain -1.173 dB, SNR 93.0 dB in band, 17.7 full (exact taps 93.0) ok
   flat 20 Hz .. 18 kHz within -0.059 .. +0.000 dB; SNR 100 Hz .. 15 kHz >= 93.0 dB ok
-  cost (host): 45.6 ns / 44.1 kHz frame (no instruction counter)
+  cost (host): 43.2 ns / 44.1 kHz frame (no instruction counter)
 48 kHz, 10 s, random render times: sizes 47..49 (48:9134 49:530 47:336), mean 48.0194 ok
   every frame = the resampled render, in order (0 off); no underrun / overrun ok
   fill at render start 73..157 (band 87..139), adj up 648 down 395 (I2S 44117.6 Hz: fast) ok
@@ -765,10 +765,10 @@ tracks: engine switch ANALOG -> LOFI (chord held): largest sample step 346 in th
 tracks: engine switch: at most 0.55 x the step before (a hard cut: several x) ok
 tracks: a note during the switch sounds on the new engine (-) ok
 tracks: WAVs in build/tracks_demo: tracks_demo.wav (mix), t1_bass.wav, t2_pad.wav, t3_lead.wav, t4_drums.wav, steal.wav, steal6.wav, engine_switch.wav
-tracks: one part, 8 notes held (host -O2, ns per sample, heaviest preset per engine): ANALOG ABYSSAL DRONE 292.0, PHASE CRYPT BELL 215.6, LOFI FLOAT PAD 238.6, VOICE BLACK CHOIR 183.0, WHEEL TIDAL ORGAN 247.5, DRUM TRAP 808 100.4, NOISE REACTOR 236.2, FM6 AURORA FM 171.5,tracks: worst single part: ANALOG ABYSSAL DRONE 292.0 ns
-tracks: FM6 + PHASE + VOICE + drums, 3 + 3 + 2 notes: 296.2 ns (1.01 x the worst single part), 10 voices
-tracks: the same, 8 + 8 + 4 notes asked for (budget keeps 12): 321.3 ns (1.10 x)
-tracks: two VOICE parts, 4 + 4 voices (the heaviest 8 the budget allows): 283.9 ns (0.97 x); no notes but the drums (buses, 3 idle parts): 98.7 ns
+tracks: one part, 8 notes held (host -O2, ns per sample, heaviest preset per engine): ANALOG ABYSSAL DRONE 289.8, PHASE WITCHFIRE 242.8, LOFI FLOAT PAD 237.8, VOICE BLACK CHOIR 183.6, WHEEL TIDAL ORGAN 246.5, DRUM TRAP 808 100.5, NOISE REACTOR 235.4, FM6 AURORA FM 171.0,tracks: worst single part: ANALOG ABYSSAL DRONE 289.8 ns
+tracks: FM6 + PHASE + VOICE + drums, 3 + 3 + 2 notes: 292.8 ns (1.01 x the worst single part), 10 voices
+tracks: the same, 8 + 8 + 4 notes asked for (budget keeps 12): 316.0 ns (1.09 x)
+tracks: two VOICE parts, 4 + 4 voices (the heaviest 8 the budget allows): 282.8 ns (0.98 x); no notes but the drums (buses, 3 idle parts): 99.4 ns
 tracks: all checks ok
 == project formats (FUN1..FUN5 -> FUN6, the grid and song chain; DIGITAL tracks -> FM6, SAMPLE PERC -> DRUM)
 layout: SLICER after DETUNE, then the matrix just before P_E0 ok
@@ -1354,9 +1354,14 @@ QUANTUM text 18.4:1, labels 8.8:1, values 12.8:1, selection 8.2:1
 SOLARIS text 18.5:1, labels 9.0:1, values 12.0:1, selection 7.8:1
 CYBERPUNK text 18.5:1, labels 8.9:1, values 14.7:1, selection 9.3:1
 NORDIC  text 18.5:1, labels 9.1:1, values 12.0:1, selection 7.7:1
+NEBULA  text 18.0:1, labels 8.8:1, values 10.1:1, selection 6.6:1
+PLASMA  text 18.7:1, labels 8.9:1, values 9.9:1, selection 6.5:1
+ORGANIC text 17.9:1, labels 9.1:1, values 11.3:1, selection 7.5:1
+MINIMAL text 16.9:1, labels 8.4:1, values 19.5:1, selection 12.4:1
+RETRO   text 18.1:1, labels 9.0:1, values 10.0:1, selection 6.5:1
 Palettes: GREY gray, MONO black and white, contrast (worst margin x1.02), blending, ramp cache, font metrics and ellipsis passed.
 == text: pens, kerning and pixels equal the reference renderer
-text: 5202 strings x fonts x palettes against the mock renderer: 0 end pens and 0 pixels differ ok
+text: 6732 strings x fonts x palettes against the mock renderer: 0 end pens and 0 pixels differ ok
 == text spacing: glyph gaps against the font's own (16x supersampled), S M <= 0.25 px, L <= 0.5 px
   S 12px x4 phases: 216 pairs, gap error max 0.196 px, rms 0.087 px, 0 over 0.25 px ok
     worst: 'im' +0.20, 'ck' +0.18, 'ta' +0.18, 'ay' +0.18, 'tr' +0.18, 'se' +0.17, 'nt' -0.17, 'id' -0.16, 'ca' +0.16, 'tt' -0.16
@@ -1622,7 +1627,7 @@ ui: overwriting or renaming a user slot retains its star                       o
 ui: successful erasure removes the user slot star and source label             ok
 ui: reusing the erased slot does not restore its old star                      ok
 ui: COLOR OCT+ previews the next palette (PAPER, light) without closing the menu ok
-ui: COLOR KNOB 1 steps on to HI-CON, NIGHT, MONO, THERMAL, GAMMA, WRAITH, QUANTUM, then wraps to GREY ok
+ui: COLOR KNOB 1 steps on to HI-CON, NIGHT, MONO, THERMAL, GAMMA, WRAITH, QUANTUM, the six skins, then wraps to GREY ok
 ui: the expanded menu retains all three SPEAKER modes (OCT+ / OCT- step them, stopping at the ends) ok
 ui: #42 SPEAKER EQ: FLAT (old OFF) / LOWCUT / BASS+ on KNOB 1, fx_lowcut follows ok
 ui: HOME leaves display preferences without changing musical state (OCT- no longer closes) ok
@@ -2760,9 +2765,9 @@ ui: DICE ALL: a TEMPO set on GEN is kept (AUTO still moves it)                 o
 ui: dice_all x50: all passed
 == UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost
 ui_render: the splash shows the version v2.8.4 (FELUCCA_VERSION) and its lines
-ui_render: splash timeline: 1325 steps of 4 ms, 176 of them change the screen, 1149 identical rewrites skipped
-ui_render: 191 screens x 17 palettes + the page/value sweep; 0 lint findings, 396 ellipsised free texts (13 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_new/report.txt
-ui_render: alignment: 2779972 measurements of 73 places, 0 off by 1 px or more
+ui_render: splash timeline: 1125 steps of 4 ms, 176 of them change the screen, 949 identical rewrites skipped
+ui_render: 191 screens x 22 palettes + the page/value sweep; 0 lint findings, 496 ellipsised free texts (13 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_new/report.txt
+ui_render: alignment: 2863797 measurements of 73 places, 0 off by 1 px or more
 ui_render: PNGs in build/ui_new/<palette>/ and build/ui_new/sheet_<palette>.png
 ui_render: rolling-digit filmstrips in build/ui_slot/*.png
 == UI built with FELUCCA_FM4=1 (DIGITAL, kept in the tree): its OP pages, EDIT cycle, algorithm charts
@@ -3020,7 +3025,7 @@ ui: overwriting or renaming a user slot retains its star                       o
 ui: successful erasure removes the user slot star and source label             ok
 ui: reusing the erased slot does not restore its old star                      ok
 ui: COLOR OCT+ previews the next palette (PAPER, light) without closing the menu ok
-ui: COLOR KNOB 1 steps on to HI-CON, NIGHT, MONO, THERMAL, GAMMA, WRAITH, QUANTUM, then wraps to GREY ok
+ui: COLOR KNOB 1 steps on to HI-CON, NIGHT, MONO, THERMAL, GAMMA, WRAITH, QUANTUM, the six skins, then wraps to GREY ok
 ui: the expanded menu retains all three SPEAKER modes (OCT+ / OCT- step them, stopping at the ends) ok
 ui: #42 SPEAKER EQ: FLAT (old OFF) / LOWCUT / BASS+ on KNOB 1, fx_lowcut follows ok
 ui: HOME leaves display preferences without changing musical state (OCT- no longer closes) ok
@@ -3779,9 +3784,9 @@ ui: DIGITAL charts: carriers on the bottom row, modulators a row up, one per cel
 ui: all passed
 == UI renders with FELUCCA_FM4=1: DIGITAL's screens (EDIT, OP ENV, the 8 algorithm charts), lint, GREY gray, MONO neutral
 ui_render: the splash shows the version v2.8.4 (FELUCCA_VERSION) and its lines
-ui_render: splash timeline: 1325 steps of 4 ms, 176 of them change the screen, 1149 identical rewrites skipped
-ui_render: 201 screens x 17 palettes + the page/value sweep; 0 lint findings, 401 ellipsised free texts (14 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_fm4/report.txt
-ui_render: alignment: 3196227 measurements of 74 places, 0 off by 1 px or more
+ui_render: splash timeline: 1125 steps of 4 ms, 176 of them change the screen, 949 identical rewrites skipped
+ui_render: 201 screens x 22 palettes + the page/value sweep; 0 lint findings, 501 ellipsised free texts (14 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_fm4/report.txt
+ui_render: alignment: 3284692 measurements of 74 places, 0 off by 1 px or more
 == audio: overload protection, bounded fades and DMA diagnostics
 audio: (1.2.1-GW) the delay's farthest read (longest TIME, MOD 127's drift, two older taps) inside its line ok
 audio: (v1.9) a held note keeps the meter envelope up on every block              ok
@@ -4649,15 +4654,13 @@ regress: voices: LEGATO keeps its note: LEGATO part held its note through 864 vo
 regress: voices: UNISON keeps its note: UNISON part held its note through 875 voices taken from the others: lost in 0 blocks ok
 regress: voices: VOICE engine cap: VOICE engine, 8 keys: at most 4 voices in POLY, 4 in UNISON (cap 4); freed after release ok
 regress: routing: no hanging notes: 14129 random MIDI / key events on ch 1-4, 5, 10, 16 and the keys, track selection changing, 3 rounds (ROUT CH1-4, SEL, switching): no gate left on, every voice free ok
-regress: CPU ns note  cpu/ANALOG/06_RAVE: 382.1 ns / sample = 1.79 x its baseline against a host median of 1.02 (+76 %): confirm before calling it a regression
-regress: CPU ns note  cpu/ANALOG/16_WORM_REESE: 359.4 ns / sample = 1.67 x its baseline against a host median of 1.02 (+65 %): confirm before calling it a regression
-regress: CPU ns note  cpu/PHASE/15_PD_EPIANO: 264.0 ns / sample = 1.45 x its baseline against a host median of 1.02 (+43 %): confirm before calling it a regression
-regress: CPU ns note  cpu/PHASE/17_ION_SWEEP: 303.2 ns / sample = 1.48 x its baseline against a host median of 1.02 (+46 %): confirm before calling it a regression
-regress: CPU ns note  cpu/NOISE/10_GEIGER_CNT: 292.3 ns / sample = 1.54 x its baseline against a host median of 1.02 (+51 %): confirm before calling it a regression
-regress: CPU ns note  cpu/NOISE/12_COSMIC_WINDS: 300.0 ns / sample = 1.51 x its baseline against a host median of 1.02 (+49 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/22_KOTO_HARP: 180.3 ns / sample = 1.64 x its baseline against a host median of 1.02 (+62 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/24_GAMELAN_MET: 182.4 ns / sample = 1.58 x its baseline against a host median of 1.02 (+55 %): confirm before calling it a regression
-regress: CPU ns: PASS (207 rows against host 'Linux x86_64|19/01 |13.3.0', host median 1.02, aggregate limit +20 %, 8 row(s) over +40 % noted)
+regress: CPU ns note  cpu/ANALOG/23_BITSINE_ARP: 351.8 ns / sample = 1.56 x its baseline against a host median of 1.02 (+53 %): confirm before calling it a regression
+regress: CPU ns note  cpu/LOFI/15_CRUSH_KEYS: 257.6 ns / sample = 1.61 x its baseline against a host median of 1.02 (+57 %): confirm before calling it a regression
+regress: CPU ns note  cpu/LOFI/16_VIB_PULSE: 258.0 ns / sample = 1.55 x its baseline against a host median of 1.02 (+52 %): confirm before calling it a regression
+regress: CPU ns note  cpu/LOFI/23_RITUAL_PULSE: 123.3 ns / sample = 1.61 x its baseline against a host median of 1.02 (+58 %): confirm before calling it a regression
+regress: CPU ns note  cpu/VOICE/00_CHOIR_AAH: 251.7 ns / sample = 1.46 x its baseline against a host median of 1.02 (+43 %): confirm before calling it a regression
+regress: CPU ns note  cpu/mix/idle_drums: 139.1 ns / sample = 1.46 x its baseline against a host median of 1.02 (+43 %): confirm before calling it a regression
+regress: CPU ns: PASS (207 rows against host 'Linux x86_64|19/01 |13.3.0', host median 1.02, aggregate limit +20 %, 6 row(s) over +40 % noted)
 regress: CPU, one part with 8 notes held (VOICE 4), heaviest preset per engine (instructions / CPU ns per sample):
 regress:   ANALOG   SAW LEAD            0 instr     0.0 ns
 regress:   PHASE    BRASS               0 instr     0.0 ns
@@ -4667,11 +4670,11 @@ regress:   WHEEL    FULL ORGAN          0 instr     0.0 ns
 regress:   DRUM     DRUM-X              0 instr     0.0 ns
 regress:   NOISE    WIND                0 instr     0.0 ns
 regress:   FM6      TINE EP             0 instr     0.0 ns
-regress:   idle_drums                   0 instr    97.9 ns
-regress:   3parts_full_drums            0 instr   266.8 ns
-regress:   6parts_full                  0 instr   325.9 ns
-regress:   idle_click                   0 instr    77.0 ns
-regress: 220 golden renders (0 changed, 0 gone), 0 health failures, 0 voice / routing checks failed, 0 CPU entries over budget (8 notes), 0 crashes; 10.9 s
+regress:   idle_drums                   0 instr   139.1 ns
+regress:   3parts_full_drums            0 instr   318.3 ns
+regress:   6parts_full                  0 instr   322.5 ns
+regress:   idle_click                   0 instr    96.5 ns
+regress: 220 golden renders (0 changed, 0 gone), 0 health failures, 0 voice / routing checks failed, 0 CPU entries over budget (6 notes), 0 crashes; 10.9 s
 == parameter and engine tables as JSON (for the editor mock test)
 == DRUM-X: every lane sounds and ends, MORPH, PITCH, NOIS, hat choke, group mutes, demos
 drumx: kick: sounds, under full scale, no DC, ends                        ok  (peak 13178, DC 0)
@@ -4872,7 +4875,7 @@ eq sweep passed
 six: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
 six: all ten voices are sounding before the first block               ok
 six: 6 tracks, 10 notes, 10 voices, 82687 blocks of 32 frames (60 s)
-six: p50 8.8 us, p99 16.3 us, p99.9 25.7 us, worst 93.3 us, mean 9.2 us, deadline 725.0 us
+six: p50 8.8 us, p99 16.5 us, p99.9 27.2 us, worst 68.5 us, mean 9.3 us, deadline 725.0 us
 six: blocks over the deadline 0 of 82687 (0.000 %), peak 19922, rail 0, zeros 3895 (0.074 %)
 six: silent blocks 0 of 82687, fewest non-zero samples in a block 60 of 64
 six: ten voices stay sounding in every one of the blocks              ok
@@ -4887,17 +4890,17 @@ live: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
 live: all ten voices are sounding before the first block                 ok
 live: 6 tracks, 10 voices, 82687 blocks of 32 frames (60 s): 62247 parameter moves, 5168 MIDI notes,
 live:   60 preset switches, 16507 blocks with a punch-in effect held
-live: mean 10.7 us, p50 10.3 us, p95 13.0 us, p99 18.3 us, p99.9 30.8 us, worst 103.3 us, deadline 725.0 us
+live: mean 10.8 us, p50 10.3 us, p95 11.4 us, p99 23.3 us, p99.9 35.3 us, worst 90.2 us, deadline 725.0 us
 live: blocks over the deadline 0 of 82687 (0.000 %), peak 20226, rail 0, beyond 16-bit 0, silence 0.071 %
 live: the 8 slowest blocks (wall | CPU not measured | before it | block | s):
-live:      103.3 us |      0.0 us |      0.4 us | block     7045 | 5.112 s
-live:       99.6 us |      0.0 us |      0.4 us | block     8046 | 5.838 s
-live:       88.3 us |      0.0 us |      0.0 us | block        0 | 0.000 s (the first)
-live:       88.0 us |      0.0 us |      0.7 us | block     1238 | 0.898 s
-live:       77.3 us |      0.0 us |      0.4 us | block    15993 | 11.605 s
-live:       68.9 us |      0.0 us |      0.4 us | block    70181 | 50.925 s
-live:       66.7 us |      0.0 us |      0.4 us | block     6248 | 4.534 s
-live:       65.9 us |      0.0 us |      0.4 us | block     5187 | 3.764 s
+live:       90.2 us |      0.0 us |      0.0 us | block        0 | 0.000 s (the first)
+live:       83.3 us |      0.0 us |      1.4 us | block      822 | 0.596 s
+live:       75.6 us |      0.0 us |      0.4 us | block    23639 | 17.153 s
+live:       71.8 us |      0.0 us |      1.3 us | block      681 | 0.494 s
+live:       71.1 us |      0.0 us |      1.0 us | block      126 | 0.091 s
+live:       70.0 us |      0.0 us |      1.4 us | block      540 | 0.392 s
+live:       68.5 us |      0.0 us |      0.4 us | block    34287 | 24.879 s
+live:       66.6 us |      0.0 us |      0.5 us | block    13168 | 9.555 s
 live: silent blocks 0, fewest non-zero samples in a block 60 of 64, largest one-sample step 14669, steps over 24000 outside punch-in 0
 live: heap: nothing allocated by the render path (the firmware links no allocator); the largest buffer here is the 256-byte block
 live: ten voices stay sounding in every one of the blocks                ok
@@ -5088,7 +5091,7 @@ write: the flashrom backend writes, reads the part back and compares it (exit 0)
 write: the stand-in part holds the image after the flashrom run              ok
 write: a readback that differs exits 8 even when flashrom claimed success    ok
 write: a programmer that fails exits 2 instead of reporting a restore        ok
-backup:  /tmp/tmpelpuv6z_/FM-1_015.bin
+backup:  /tmp/tmppchnfmei/FM-1_015.bin
 device:  FM-1_015  0x856014 P25Q80H  1024 KiB
 sha256:  27d98a1e89064ffd7214426e02c5d32781cfd7e1ea90e8f93f2d06ddd698d18b
 passes:  2, identical, status complete
@@ -6121,9 +6124,9 @@ flash: an app entry list cut before its end is refused             ok
 flash: an app.bin outside the image is refused                     ok
 flash: an app area written with another chip key is refused        ok
 flash: no cfg block still parses (cfgLen 0)                        ok
-progress: a 512 KB package parses in 13.2 ms (< 500)               ok
-progress: 512 KB with no entry-list end refused in 22.1 ms (flash entry list has no end) ok
-progress: 512 KB with no app-list end refused in 20.8 ms (app entry list has no end) ok
+progress: a 512 KB package parses in 13.9 ms (< 500)               ok
+progress: 512 KB with no entry-list end refused in 21.6 ms (flash entry list has no end) ok
+progress: 512 KB with no app-list end refused in 20.9 ms (app entry list has no end) ok
 package bounds: all checks passed
 == skip the browser emulator (no emcc: Emscripten builds web/emu)
 == skip the build manifest (NO_PACKAGE=1: no artefacts)

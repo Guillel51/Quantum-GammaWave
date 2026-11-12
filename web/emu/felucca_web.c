@@ -41,6 +41,9 @@ static uint8_t nor[0x100000];            /* the SPI NOR (erased: 0xFF) */
 #define FM1_TICKS_PER_US 24u             /* TIMER4: 24 MHz */
 static uint32_t web_ticks;
 static uint32_t fm1_ticks(void) { return web_ticks; }
+/* (FASE 2/5) the boot splash times itself from TIMER4 (main.c splash_step), so the shim needs the same
+ * microsecond view the real header gives (hal/fm1_time.h): the tick divided by the 24 MHz rate. */
+static uint32_t fm1_micros(void) { return web_ticks / FM1_TICKS_PER_US; }
 
 /* ------------------------------------------------------ audio (ALNK0) --- */
 static uint32_t web_half;                /* the half the next render fills */

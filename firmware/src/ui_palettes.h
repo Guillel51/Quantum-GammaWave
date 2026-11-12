@@ -21,8 +21,13 @@ static const ui_pal_t UI_PALETTES[] = {
     {"SOLARIS", 0x1040, 0x20c1, 0xffbb, 0xfde5, 0xfac2},
     {"CYBERPUNK", 0x0822, 0x1885, 0xf79f, 0x079f, 0xf950},
     {"NORDIC", 0x0061, 0x10e4, 0xe7de, 0x4714, 0xfdaa},
+    {"NEBULA", 0x0021, 0x1064, 0xef7f, 0xbd5f, 0x5f3f},
+    {"PLASMA", 0x0801, 0x2043, 0xff7e, 0xfc7a, 0xfe6a},
+    {"ORGANIC", 0x0861, 0x1102, 0xefbc, 0x96ac, 0xfdcb},
+    {"MINIMAL", 0x0841, 0x18c3, 0xef5d, 0xffdf, 0xd54c},
+    {"RETRO", 0x0840, 0x20c1, 0xff99, 0xfd05, 0x8fef},
 };
-#define UI_NPALETTES 17u
+#define UI_NPALETTES 22u
 #define UI_GREY_INDEX 0u
 #define UI_BW_INDEX 9u          /* MONO: black and white (src/gfx.c palette_set) */
 #define UI_JIANT_INDEX 10u          /* THERMAL: thermal camera */
@@ -32,6 +37,11 @@ static const ui_pal_t UI_PALETTES[] = {
 #define UI_SOLARIS_INDEX 14u        /* SOLARIS: Solar gold & amber */
 #define UI_CYBER_INDEX 15u        /* CYBERPUNK: Neon cyan & magenta */
 #define UI_NORDIC_INDEX 16u         /* NORDIC: Emerald aurora on obsidian */
+#define UI_NEBULA_INDEX 17u         /* (FASE 2/5) skin: NEBULA */
+#define UI_PLASMA_INDEX 18u         /* skin: PLASMA */
+#define UI_ORGANIC_INDEX 19u        /* skin: ORGANIC */
+#define UI_MINIMAL_INDEX 20u        /* skin: MINIMAL */
+#define UI_RETRO_INDEX 21u          /* skin: RETRO */
 #define UI_BW_GREY 0x528au          /* MONO's one grey: DIM LINE RAISE LANE */
 #define UI_PAL_TAG 64u          /* stored id = UI_PAL_TAG + index; below 20: an old id */
 #define UI_MID_PCT 70

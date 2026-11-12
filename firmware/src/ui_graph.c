@@ -1774,12 +1774,27 @@ static uint16_t heat_col(int32_t v)
     static const uint16_t HS[7] = {0x2082u, 0x7940u, 0xC260u, 0xE980u, 0xFD60u, 0xFFE0u, 0xFFFFu};   /* SOLARIS: deep forge ember, warm copper, flame orange, sun gold, white */
     static const uint16_t HC[7] = {0x1848u, 0x03FFu, 0x067Fu, 0xB8BFu, 0xF972u, 0xFF7Du, 0xFFFFu};   /* CYBERPUNK: neon dark blue, electric cyan, laser blue, violet, neon pink, white */
     static const uint16_t HN[7] = {0x08A6u, 0x0BF3u, 0x1E59u, 0x47B0u, 0x8772u, 0xFEEAu, 0xFFFFu};   /* NORDIC: polar deep teal, arctic ice, aurora green, mint, pale gold, white */
+    /* (FASE 2/5) THE SKINS' RAMPS. A skin that only recoloured the chrome left every curve, meter and planet
+     * on the previous palette's ramp (they all fell through to H, the thermal one), so NEBULA read as
+     * quantum-with-a-violet-border and MINIMAL still had orange physics. Each skin carries its own ramp now:
+     * cold at 0, white at 256, the same seven points the other palettes use, so nothing that reads heat had
+     * to change. */
+    static const uint16_t HNB[7] = {0x0845u, 0x294Fu, 0x5299u, 0x8B3Eu, 0xCBDCu, 0xFD5Bu, 0xFFFFu};  /* NEBULA: deep indigo, blue, violet, orchid, lilac, white */
+    static const uint16_t HPP[7] = {0x1802u, 0x5806u, 0xA84Au, 0xE14Fu, 0xFB67u, 0xFDEBu, 0xFFFDu};  /* PLASMA: black cherry, wine, magenta, hot pink, coral, cream */
+    static const uint16_t HOG[7] = {0x00A1u, 0x11E3u, 0x2B66u, 0x5D48u, 0xAE8Au, 0xF72Fu, 0xFFFEu};  /* ORGANIC: moss, fern, leaf, lime, honey, white */
+    static const uint16_t HMN[7] = {0x10A2u, 0x39E7u, 0x6B6Eu, 0xA514u, 0xCE7Au, 0xEF7Eu, 0xFFFFu};  /* MINIMAL: graphite to paper */
+    static const uint16_t HRT[7] = {0x1060u, 0x4121u, 0x8A21u, 0xD3C2u, 0xFDA6u, 0xFF12u, 0xFFFEu};  /* RETRO: ember, amber, phosphor gold */
     const uint16_t *R = settings.palette == UI_GAMMA_INDEX ? HG :
                         settings.palette == UI_WRAITH_INDEX ? HW :
                         settings.palette == UI_QUANTUM_INDEX ? HQ :
                         settings.palette == UI_SOLARIS_INDEX ? HS :
                         settings.palette == UI_CYBER_INDEX ? HC :
-                        settings.palette == UI_NORDIC_INDEX ? HN : H;
+                        settings.palette == UI_NORDIC_INDEX ? HN :
+                        settings.palette == UI_NEBULA_INDEX ? HNB :
+                        settings.palette == UI_PLASMA_INDEX ? HPP :
+                        settings.palette == UI_ORGANIC_INDEX ? HOG :
+                        settings.palette == UI_MINIMAL_INDEX ? HMN :
+                        settings.palette == UI_RETRO_INDEX ? HRT : H;
     int32_t k;
     v = clamp(v, 0, 256);
     if (!ux.chamfer)

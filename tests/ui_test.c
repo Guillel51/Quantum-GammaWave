@@ -1972,7 +1972,8 @@ static int test_display_preferences(void)
                  settings.palette == 6 && T_BG == UI_PALETTES[6].bg && ux.light && ui.menu == 1 && !song.octave &&
                  memcmp(before, host_screen, sizeof before) && !memcmp(sounds, trk, sizeof sounds));
     turn(EN_K1, 1);
-    bad += check("COLOR KNOB 1 steps on to HI-CON, NIGHT, MONO, THERMAL, GAMMA, WRAITH, QUANTUM, then wraps to GREY",
+    bad += check("COLOR KNOB 1 steps on to HI-CON, NIGHT, MONO, THERMAL, GAMMA, WRAITH, QUANTUM, the six "
+                 "skins, then wraps to GREY",
                  settings.palette == 7 && (turn(EN_K1, 1), settings.palette == 8u) && T_BG == 0u &&
                  str_eq(UI_PALETTES[8].name, "NIGHT") && (turn(EN_K1, 1), settings.palette == UI_BW_INDEX) &&
                  str_eq(UI_PALETTES[UI_BW_INDEX].name, "MONO") && T_BG == 0u && T_TEXT == 0xFFFFu &&
@@ -1983,6 +1984,12 @@ static int test_display_preferences(void)
                  (turn(EN_K1, 1), settings.palette == UI_SOLARIS_INDEX) && str_eq(UI_PALETTES[UI_SOLARIS_INDEX].name, "SOLARIS") &&
                  (turn(EN_K1, 1), settings.palette == UI_CYBER_INDEX) && str_eq(UI_PALETTES[UI_CYBER_INDEX].name, "CYBERPUNK") &&
                  (turn(EN_K1, 1), settings.palette == UI_NORDIC_INDEX) && str_eq(UI_PALETTES[UI_NORDIC_INDEX].name, "NORDIC") &&
+                 /* (FASE 2/5) the six skins, appended after NORDIC: a skin is a palette with its own ramp */
+                 (turn(EN_K1, 1), settings.palette == UI_NEBULA_INDEX) && str_eq(UI_PALETTES[UI_NEBULA_INDEX].name, "NEBULA") &&
+                 (turn(EN_K1, 1), settings.palette == UI_PLASMA_INDEX) && str_eq(UI_PALETTES[UI_PLASMA_INDEX].name, "PLASMA") &&
+                 (turn(EN_K1, 1), settings.palette == UI_ORGANIC_INDEX) && str_eq(UI_PALETTES[UI_ORGANIC_INDEX].name, "ORGANIC") &&
+                 (turn(EN_K1, 1), settings.palette == UI_MINIMAL_INDEX) && str_eq(UI_PALETTES[UI_MINIMAL_INDEX].name, "MINIMAL") &&
+                 (turn(EN_K1, 1), settings.palette == UI_RETRO_INDEX) && str_eq(UI_PALETTES[UI_RETRO_INDEX].name, "RETRO") &&
                  (turn(EN_K1, 1), settings.palette == UI_GREY_INDEX) && str_eq(UI_PALETTES[UI_GREY_INDEX].name, "GREY"));
     settings.lowcut = 2;
     ui.menu_sel = MI_LOWCUT;

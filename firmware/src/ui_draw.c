@@ -775,8 +775,15 @@ static void draw_foot(void)
         project_cur_name(pn);
         if (!pn[0]) str_cpy(pn, "NO NAME", 16);
     }
-    if (ui.home)
-        str_cpy(ti, "HOME", sizeof ti);
+    if (ui.home) {                                     /* (FASE 2/5) HOME is EIGHT pages, walked by each tap on
+                                                        * HOME, and the footer called all of them "HOME": the one
+                                                        * place in the instrument with no page indicator at all. It
+                                                        * counts them like every other family ("DLY 2/2"), so where a
+                                                        * tap will land is always visible. */
+        str_cpy(ti, "HOME ", sizeof ti);
+        fmt_int(ti + 5, (int32_t)ui.home_view + 1);
+        str_cpy(ti + str_len(ti), "/8", sizeof ti - str_len(ti));
+    }
     else                                               /* page title + number in its family: "ENV DEST 2/2" */
         page_title(ti);
     str_cpy(s, ename, sizeof s);
@@ -1372,9 +1379,12 @@ static void draw_columns(void)
  * SHORT draws it whole and holds it SPL_SHORT; OFF has no splash at all (main.c skips this entirely). */
 #define SPL_WRITE 2500u                             /* (3.2) ms: the screen written (1100 -> 1500: the new sky needs
                                                      * a moment more, and the owner asked for about a second) */
-#define SPL_HOLD 2800u                             /* (8.1) 3600 -> 2800: the boot 0.8 s shorter, asked for;
-                                                    * the write itself (SPL_WRITE) is untouched, so the signature is
-                                                    * still drawn over the same 2.5 s and only the wait shrinks */                              /* (3.2) .. then shown whole (1200 -> 1600): 3.1 s from the
+#define SPL_HOLD 2000u                             /* (FASE 2/5) 2800 -> 2000: another 0.8 s off the boot, asked
+                                                    * for again, and the write itself (SPL_WRITE) is untouched: the
+                                                    * signature is still drawn over the same 2.5 s, the hold after it
+                                                    * is what shrinks, and the hand-over (SPL_FADE) is unchanged. The
+                                                    * clock now starts at the first pixel (main.c splash_step), so this
+                                                    * 4.5 s is the whole splash and not the tail of init + 5.3 s. */                              /* (3.2) .. then shown whole (1200 -> 1600): 3.1 s from the
                                                      * switch to HOME, against 2.3 s. AUDIO, MIDI and the keys are
                                                      * already up before the first pixel: this is presentation only,
                                                      * SPL_FADE of the hold is the hand-over. */

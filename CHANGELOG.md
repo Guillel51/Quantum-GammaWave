@@ -1,3 +1,16 @@
+## 2026-11-12 — FASE 2/5: la interfaz, viva (medida)
+
+- **Arranque**: el splash no era lento, estaba congelado. Su reloj era `fm1_ms`, que sólo empieza con TIMER5, así que toda la inicialización (panel, motores, audio, USB, LEDs, segundo núcleo, autosave, reel) corría con el contador en 0 y el splash se quedaba en su primer fotograma: de ahí el segundo o dos de pantalla quieta antes de la animación. Ahora se temporiza con TIMER4 desde el primer píxel y repinta al terminar cada etapa (`splash_step`), y lo que la inicialización gasta ya no se vuelve a pagar en el bucle. Además `SPL_HOLD` 2800 → 2000: otro 0,8 s menos, con la firma y el fundido final intactos (4,5 s desde la primera luz).
+- **HOME, la estrella**: cuarto disco de aliento, corona de ocho rayos que gira y cambia de longitud con la energía, llamaradas cada ~7 s, y la estrella como blanco: al tocarla, un pulso expansivo enciende y agranda los cinco mundos.
+- **HOME, los mundos**: cinco tonos distintos en vez de cinco ámbar (rocoso cálido, gaseoso dorado, anillado rosa, oceánico violeta, congelado azul hielo), un clima propio por cuerpo (polvo, ojo de tormenta, destello, brillo del anillo, escarcha) a su propio período, y una hairline del fondo en `r + 2` para que dos órbitas que se cruzan no fundan dos cuerpos en una silueta.
+- **HOME, profundidad**: dos mundos que no orbitan — giran donde están, con terminador propio y mezclados lejos del fondo — y las órbitas pasan por delante de uno.
+- **Coste**: HOME 180,0 → 174,9 µs por fotograma en `ui_render` (host) y su visualizador 99,7 → 93,5 µs, con más dibujo que antes.
+- **Pieles**: NEBULA, PLASMA, ORGANIC, MINIMAL y RETRO se suman a THERMAL, cada una con su propia rampa térmica además de la paleta (curvas, medidores, estrella y planetas incluidos), elegibles en MENU > COLOR y guardadas como el resto. Las seis pasan los controles de contraste del generador; ninguna toca el audio.
+- **Pie de página**: HOME tiene ocho páginas y el pie las llamaba todas «HOME»; ahora dice «HOME 3/8», como el resto de las familias.
+- **Dos defectos corregidos de paso**: `firmware/src/ui_palettes.h` (versionado) tapaba a la cabecera generada, así que una paleta nueva no llegaba al build; y la reacción del cuerpo oceánico nacía dentro del cuerpo, donde la nueva hairline la borraba (5 px de respuesta medidos → 62 px).
+- **Verificación**: 191 pantallas × 22 paletas en el barrido de render, 0 hallazgos de lint, 0 desalineaciones en 2 863 797 medidas; las cinco reacciones al toque siguen siendo cinco y reiniciables; emulador web compilado desde el árbol (build `fb4e0f867ba6`) con arranque, splash, toque en la estrella y «HOME 2/8» comprobados a mano. Nada de esto es una medida de placa: sin toolchain AC791N ni unidad no hay `[TARGET]`.
+- **Pendiente declarado** (`docs/QG_PHASE_2_UI.md` §7): FX ROUTING y SEQUENCER TOOLS no se implementaron; MOD MATRIX, PERFORMANCE y PRESET BROWSER ya existían y se documentan en su sitio.
+
 ## 2026-11-12 — FASE 1/5: optimización total (medida)
 
 - **Mixer**: a part with no sends (CHOR / DLY / REV at 0) no longer clamps its signal for the buses nor divides for the send ceiling — the clamp and the division only happen when there is something to send. Bit for bit the same sound; 0.4 % cheaper per audio block on a dry six-part scene in the host bench, and neutral with every bus fed.
