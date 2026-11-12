@@ -1371,11 +1371,11 @@ static void graph_phase(const track_t *t, uint16_t c)
     cv_line_t(knee, y0, x1, y1, ux_mix(c, T_MID, 80), 2);
     cv_rect(knee - 1, y0 - 4, 3, 3, T_ACCENT);           /* DCW's knee */
 
-    {   /* the three figures the page has no column for */
-        static const char *const NM[3] = {"ENV", "SUB", "FB"};
-        int32_t v[3], k;
-        v[0] = env; v[1] = sub; v[2] = fb;
-        for (k = 0; k < 3; k++) {
+    {   /* the figures the page has no column for: ENV, DT, SUB, FB (EDIT 1 and EDIT 2 together) */
+        static const char *const NM[4] = {"ENV", "DT ", "SUB", "FB "};
+        int32_t v[4], k;
+        v[0] = env; v[1] = dtn; v[2] = sub; v[3] = fb;
+        for (k = 0; k < 4; k++) {
             int32_t yy = 68 + k * 10;
             cv_text(PANEL_X0 + 2, yy, &AF_S, NM[k], T_DIM);
             cv_rect(PANEL_X0 + 40, yy + 3, 110, 3, T_RAISE);
@@ -1384,6 +1384,14 @@ static void graph_phase(const track_t *t, uint16_t c)
             fmt_int(b, v[k] * 100 / 127);                /* percent, as the page's columns read */
             cv_text_r(228, yy, &AF_S, b, v[k] ? T_TEXT : T_DIM, T_SURF);
         }
+    }
+    if (w2 > 0) {                                       /* W2 alternates with WAVE: mark it on the ramp */
+        int32_t x = x0 + (x1 - x0) * w2 / 9;
+        cv_rect(x - 1, y0 - 2, 3, 3, ux_mix(c, T_ACCENT, 120));
+        cv_text(PANEL_X0 + 2, 112, &AF_S, "W2", T_DIM);
+        fmt_int(b, w2);
+        cv_text(PANEL_X0 + 24, 112, &AF_S, b, T_TEXT);
+        cv_text(PANEL_X0 + 40, 112, &AF_S, line ? "RING" : "MIX", T_DIM);
     }
 }
 
