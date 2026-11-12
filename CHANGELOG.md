@@ -1,3 +1,14 @@
+## 2026-11-12 — v2.7.5: SCL, HOME views, M-WIDE and the security pass
+
+- **SCL**: `chord_build` handles 5, 6 and 8-note scales (ported from JIANT 0.8.3) and six SCL screens show them; `tests/chord_scale_test.c` checks 8 448/8 448 invariants and 360 chords identical to the old traversal.
+- **HOME**: a second screen suite (HOME -> VISUALIZER -> OVERVIEW -> SYSTEM) with the engine/time/system summary; `test_home_views` and the 187-screen render sweep stay green.
+- **FX**: M-WIDE compensates its own power (a +3.8 dB jump at 127 is now -0.0 dB, correlation still -0.594, mono still mono at -3.9 dB); `tests/fx_probe.c` measures phaser, M-WIDE, LOWCUT and EQ levels.
+- **Presets**: `tests/preset_audit_test.c` audits all 202 factory presets (0 silent, 0 out of range, 0 repeated names, 0 duplicates).
+- **Audio path**: `fx_buses` walks the chorus, delay and reverb buses once instead of twice (the peaks also answer "anything sent?"), measured with the new `tests/fx_bench`: median 127.2 -> 126.0 ns per sample on host x86, 220 golden renders bit-identical.
+- **Security**: `release/SHA256SUMS` had committed merge markers and `coherence_check.py` crashed on them instead of reporting; both fixed, the manifest regenerated from the bytes on disk. `release.yml` pins the third-party build workflow to a commit instead of a mutable tag.
+- **Release**: first v2.7.5 package built from this tree with the JieLi toolchain and the AC79 SDK (610 959 B, identity FM-1_965) and an emulator rebuilt with emcc 6.0.11; `coherence_check.py` reports ok.
+- **Tests**: `ALL HOST TESTS PASSED`, ASan/UBSan and both fuzzers included; `tests/target_budget.py` reports 39 cost entries, all within budget.
+
 ## 2026-11-12 — v2.7.4.8: Reverb visuals and sync pass
 
 - **FX / Reverb**: ROOM, SPRING, SHIMMER and RESO now have distinct geometries and livelier animation driven by the reverb bus return; ROOM adds ghost teeth and an air ring, SPRING a wobbling coil and a second chirp, SHIMMER denser animated sparks, RESO a second travelling pulse and a resonance flash.
