@@ -1,3 +1,4 @@
+== no source file carries a merge conflict marker
 == flash storage (A/B, torn writes)
 empty flash loads nothing                      ok
 save A                                         ok
@@ -37,14 +38,14 @@ small destination rejects whole object         ok
 oversized save rejected                        ok
 storage test passed
 In file included from tests/upreset_test.c:12:
-tests/../firmware/src/core.h:707:16: warning: ‘trk’ defined but not used [-Wunused-variable]
-  707 | static track_t trk[NTRK];        /* the instrument: four parts */
+tests/../firmware/src/core.h:733:16: warning: ‘trk’ defined but not used [-Wunused-variable]
+  733 | static track_t trk[NTRK];        /* the instrument: four parts */
       |                ^~~
-tests/../firmware/src/core.h:84:25: warning: ‘mc_host_cpu’ defined but not used [-Wunused-variable]
-   84 | static uint8_t mc_host, mc_host_cpu;     /* tests: 1 = jobs handed over (run at once); the core "running" */
+tests/../firmware/src/core.h:110:25: warning: ‘mc_host_cpu’ defined but not used [-Wunused-variable]
+  110 | static uint8_t mc_host, mc_host_cpu;     /* tests: 1 = jobs handed over (run at once); the core "running" */
       |                         ^~~~~~~~~~~
-tests/../firmware/src/core.h:84:16: warning: ‘mc_host’ defined but not used [-Wunused-variable]
-   84 | static uint8_t mc_host, mc_host_cpu;     /* tests: 1 = jobs handed over (run at once); the core "running" */
+tests/../firmware/src/core.h:110:16: warning: ‘mc_host’ defined but not used [-Wunused-variable]
+  110 | static uint8_t mc_host, mc_host_cpu;     /* tests: 1 = jobs handed over (run at once); the core "running" */
       |                ^~~~~~~
 == user presets (UP_PUT parser, bank round trip, versions, PHYS DRUM and SAMPLE PERC -> DRUM, grid records, DIGITAL kept)
 UP_PUT frame < 640 bytes                       ok
@@ -227,7 +228,7 @@ power-on sweep OFF: 640 frames (704 ms) and its end, then fm1_led_anim_on() 0 ok
   then the tick as before: 33 ticks, the same line writes, no extra one  ok
 power-on sweep: a key down at frame 200: done the next frame, the glow left ok
 LEDs: refresh 909 Hz lit, 909 Hz dim
-LEDs: host 46.6 ns per tick without dim LEDs, 77.2 ns with, 87.7 ns with a breath too
+LEDs: host 43.9 ns per tick without dim LEDs, 61.0 ns with, 84.0 ns with a breath too
 input debounce: all ok
 == TRS MIDI parser
 uart: running status, realtime, SysEx, system common ok
@@ -311,7 +312,7 @@ FIR table = sinc x Kaiser (24 x 160 taps, beta 9, 22 kHz); phases sum to 1.0 ok
   18000 Hz -1 dBFS: gain -0.059 dB, SNR 94.6 dB in band, 45.3 full (exact taps 94.3) ok
   20000 Hz -1 dBFS: gain -1.173 dB, SNR 93.0 dB in band, 17.7 full (exact taps 93.0) ok
   flat 20 Hz .. 18 kHz within -0.059 .. +0.000 dB; SNR 100 Hz .. 15 kHz >= 93.0 dB ok
-  cost (host): 44.4 ns / 44.1 kHz frame (no instruction counter)
+  cost (host): 42.5 ns / 44.1 kHz frame (no instruction counter)
 48 kHz, 10 s, random render times: sizes 47..49 (48:9134 49:530 47:336), mean 48.0194 ok
   every frame = the resampled render, in order (0 off); no underrun / overrun ok
   fill at render start 73..157 (band 87..139), adj up 648 down 395 (I2S 44117.6 Hz: fast) ok
@@ -366,7 +367,7 @@ FIR table = sinc x Kaiser (24 x 160 taps, beta 9, 22 kHz); phases sum to 1.0 ok
   18000 Hz -1 dBFS: gain -0.059 dB, SNR 94.6 dB in band, 45.3 full (exact taps 94.3) ok
   20000 Hz -1 dBFS: gain -1.173 dB, SNR 93.0 dB in band, 17.7 full (exact taps 93.0) ok
   flat 20 Hz .. 18 kHz within -0.059 .. +0.000 dB; SNR 100 Hz .. 15 kHz >= 93.0 dB ok
-  cost (host): 44.4 ns / 44.1 kHz frame (no instruction counter)
+  cost (host): 42.6 ns / 44.1 kHz frame (no instruction counter)
 48 kHz, 10 s, random render times: sizes 47..49 (48:9134 49:530 47:336), mean 48.0194 ok
   every frame = the resampled render, in order (0 off); no underrun / overrun ok
   fill at render start 73..157 (band 87..139), adj up 648 down 395 (I2S 44117.6 Hz: fast) ok
@@ -764,10 +765,10 @@ tracks: engine switch ANALOG -> LOFI (chord held): largest sample step 346 in th
 tracks: engine switch: at most 0.55 x the step before (a hard cut: several x) ok
 tracks: a note during the switch sounds on the new engine (-) ok
 tracks: WAVs in build/tracks_demo: tracks_demo.wav (mix), t1_bass.wav, t2_pad.wav, t3_lead.wav, t4_drums.wav, steal.wav, steal6.wav, engine_switch.wav
-tracks: one part, 8 notes held (host -O2, ns per sample, heaviest preset per engine): ANALOG TUBE KEYS 319.3, PHASE CRYPT BELL 225.1, LOFI FLOAT PAD 252.5, VOICE MONK DRONE 221.4, WHEEL TIDAL ORGAN 261.4, DRUM TRAP 808 106.1, NOISE REACTOR 246.9, FM6 AURORA FM 180.7,tracks: worst single part: ANALOG TUBE KEYS 319.3 ns
-tracks: FM6 + PHASE + VOICE + drums, 3 + 3 + 2 notes: 301.4 ns (0.94 x the worst single part), 10 voices
-tracks: the same, 8 + 8 + 4 notes asked for (budget keeps 12): 327.0 ns (1.02 x)
-tracks: two VOICE parts, 4 + 4 voices (the heaviest 8 the budget allows): 278.6 ns (0.87 x); no notes but the drums (buses, 3 idle parts): 140.2 ns
+tracks: one part, 8 notes held (host -O2, ns per sample, heaviest preset per engine): ANALOG ABYSSAL DRONE 290.3, PHASE CRYPT BELL 213.2, LOFI FLOAT PAD 238.1, VOICE BLACK CHOIR 183.9, WHEEL TIDAL ORGAN 247.9, DRUM TRAP 808 104.1, NOISE REACTOR 237.5, FM6 VELVET EP 171.2,tracks: worst single part: ANALOG ABYSSAL DRONE 290.3 ns
+tracks: FM6 + PHASE + VOICE + drums, 3 + 3 + 2 notes: 295.2 ns (1.02 x the worst single part), 10 voices
+tracks: the same, 8 + 8 + 4 notes asked for (budget keeps 12): 319.9 ns (1.10 x)
+tracks: two VOICE parts, 4 + 4 voices (the heaviest 8 the budget allows): 282.6 ns (0.97 x); no notes but the drums (buses, 3 idle parts): 98.5 ns
 tracks: all checks ok
 == project formats (FUN1..FUN5 -> FUN6, the grid and song chain; DIGITAL tracks -> FM6, SAMPLE PERC -> DRUM)
 layout: SLICER after DETUNE, then the matrix just before P_E0 ok
@@ -1069,6 +1070,21 @@ particles: HOME: the solar system's 5 orbit tables, its clip and its call are al
 particles: HOME: the solar system's clip is inside the 240x240 screen                 ok
 particles: HOME: every orbit and planet fits its bay with 2 px to spare (worst 0)     ok
 particles: HOME: the system is centred in its bay (no orbit pushed to an edge)        ok
+particles: ui_tap hit-tests the bay and pokes the body it finds                       ok
+particles: ui_tap does nothing off HOME's own screen                                  ok
+particles: a touch stores the frame it happened on: a re-touch restarts, nothing accumulates ok
+particles: the frozen world's fan comes from the bounded pool                         ok
+particles: the reaction path allocates nothing                                        ok
+particles: HOME's five worlds answer five mechanisms: ['FROST', 'RIPPLE', 'SLING', 'SPIN', 'SWELL'] ok
+particles: each body is bound to its own reaction (PL_POKE)                           ok
+particles: a reaction is a function of the frame it was touched, not an accumulator   ok
+particles: the touch's rings are clipped by the bay, not painted over the panel       ok
+particles: the visualizer draws the deep field                                        ok
+particles: the deep field is under the music's own drawing, not over it               ok
+particles: the deep field draws no text and no cell (nothing for the layout lint to collide with) ok
+particles: the deep field is off at LOW quality                                       ok
+particles: the dust field is capped whatever a caller asks for                        ok
+particles: the deeper page stays on the gray axis (GREY / MONO keep every pixel neutral) ok
 
 particles: 0 failed checks
 == RATCH: x1..x4 in a step (notes, chords, drum hits), gates, chance, swing, projects, user presets, CHANCE page
@@ -1139,6 +1155,14 @@ ui:   REC Q 0 %: recorded where played (+5/16 late, -3/16 early)               o
 ui:   REC Q 100 %: recorded on the grid                                        ok
 ui:   TIMING and REC Q kept with the project                                   ok
 ratchet tests passed
+== CHORD: the 16 scales x 12 roots x 11 modes x 4 voicings stay in the key; the seven-note walk unchanged
+INVARIANT  8448 of 8448 chords: every tone in the scale, 1..4 ascending, inside the keys
+7 NOTES    360 chords of the seven-note scales are the ones the walk gave, tone for tone
+TABLES     C major's seven triads, Cm pentatonic's five, F7sus4, G7 and Dm7 as written
+VOICING    OPEN lifts the second tone, +BASS adds the root below, LEAD stays within a sixth
+EXCEPTIONS MONO / LEGATO / UNISON / a kit play the one note, not a chord
+SNAP       a key outside the scale takes the chord of the scale note below it
+CHORD: all checks pass
 == USB/TRS clock, bend, sustain, ownership and panic recovery
 ui: USB maximum bend is exactly the default +2 semitones                       ok
 ui: USB minimum bend is exactly the default -2 semitones                       ok
@@ -1725,6 +1749,7 @@ ui: FX let go first: the key holds its effect and the map; a new key is a note o
 ui: FX + G5: nothing held, silent, no MIDI; KNOB 2 turns; FX let go: K2 back to 0 ok
 ui: REVERB page: TYPE ROOM -> SPRING .. CLOUD on KNOB 1 (SIZE, DAMP beside it); a project keeps CLOUD ok
 ui: REVERB graph: the rings follow the bus's return and fall with the tail (host) ok
+ui: PHASE screen: its EDIT page draws the phase bend, answers DCW and is not ANALOG's ok
 ui: X-MOD: a project keeps the kit's RATE DPTH SHPE RAND                       ok
 ui:   CHORUS page: CRT CDP STER TYPE (0.6.9; QG-1 TYPE)                        ok
 ui:   CHORUS TYPE PHASER: a project keeps it, the delay's TYPE its own         ok
@@ -2092,7 +2117,7 @@ ui: MENU > AUDIO: PRESETS to CLICK, CLICK LEVEL, COUNT-IN, TRACKS; knobs / OCT s
 ui: TRACKS 4 FULL: T5 asleep (no note, no voice); 6 wakes it                   ok
 ui: TRACKS 4: a note for T5 says T5-T6 ASLEEP, GLO>SYSTEM>TRACKS               ok
 ui: GLO > SYSTEM: KNOB 1 TRACKS 4 / 5 / 6, KNOB 2 LOAD ECO / LITE / FULL, the MENU's settings both ways ok
-ui: LOAD LITE / ECO: the panel animates at most every 50 / 70 ms, values snap; FULL as before FAIL
+ui: LOAD LITE / ECO: the panel animates at most every 50 / 70 ms, values snap; FULL as before ok
 ui: LOAD LITE: SHIMMER / CLOUD sound as ROOM, RESO as SPRING, FM6 two voices, TYPE says LITE; FULL as saved ok
 ui: LOAD ECO: reverb SPRING (4 stages), no SLICER / chorus (pages hidden), 4 voices a synth, 6 shared, DRUM as ever; FULL back ok
 ui: DUAL CORE: parts on the second core (the DRUM ones together, there too), the sound bit for bit one core's ok
@@ -2239,6 +2264,11 @@ ui:   notes moved two octaves: the view follows over frames (not at once), then 
 ui:   nothing changed: the graph is not drawn again                            ok
 ui:   after the follow the bars match again                                    ok
 ui:   a key held: its row on the keyboard strip is the accent                  ok
+ui: HOME from a section: lands on the ecosystem, not the visualizer            ok
+ui: HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, HOME) ok
+ui: HOME held: the menu, and neither the hold nor its release walks a screen   ok
+ui: OVERVIEW, MIX, PERF, ENG, MOD and SYSTEM: read-only, page and sound untouched ok
+ui: a section entered from HOME's screens: nothing of HOME stays on the page   ok
 ui: stopped, nothing held: no key lit                                          ok
 ui: playing: C4 and E4 of step 1 light keys 8 and 12 (from F3), track 2's G4 does not ok
 ui: the selected track's notes: track 2's G4 on key 15                         ok
@@ -2357,7 +2387,25 @@ ui: engine 1 asked for: DIGITAL E.PIANO converted (FM6, PTCH TINE EP, the patch 
 ui: a DIGITAL preset number (apply_preset_to): its sound converted (BELL)      ok
 ui: a track left on engine 1 any other way: the main loop converts it (BASS -> FM BASS) ok
 ui: favourites: DIGITAL PAD / FUNK KEY -> FM6 PAD / PLUCK, engine 1's cleared  ok
-ui: 1 FAILED
+ui: all passed
+== HOME worlds: a tap reaches each of the five bodies, and only there
+ui: HOME at power-on is the bay, not the visualizer                            ok
+ui: HOME: the bay draws its five bodies                                        ok
+ui: the five bodies are drawn apart, one centre each                           ok
+ui: the five reactions are five different mechanisms (spin, swell, ripple, sling, frost) ok
+ui: the bay's strip origin is where gw_planet_at expects it                    ok
+ui: body 0 answers its own tap (kind 0) and leaves the other four at rest      ok
+ui: body 1 answers its own tap (kind 1) and leaves the other four at rest      ok
+ui: body 2 answers its own tap (kind 2) and leaves the other four at rest      ok
+ui: body 3 answers its own tap (kind 3) and leaves the other four at rest      ok
+ui: body 4 answers its own tap (kind 4) and leaves the other four at rest      ok
+ui: five taps: the five bodies answer at once                                  ok
+ui: a tap on the sky misses every body                                         ok
+ui: .. and leaves the bay exactly as it was                                    ok
+ui: with the MENU open a tap on a body does nothing                            ok
+ui: with the visualizer on HOME a tap does nothing                             ok
+ui: with a layer open a tap does nothing                                       ok
+planets: all passed
 == UI: DICE ALL on its own, 50 throws in a row in one process (no state left by the test before)
 ui: DICE ALL: HOME + SELECT asks first (OCT- NO: nothing changed)              ok
 ui: DICE ALL: OK dices every track (two melodic voices at least, one musical scale for the melodic ones) ok
@@ -2711,9 +2759,10 @@ ui: DICE ALL (0.6.27): 40 throws, none the same piece, the tempo moved every tim
 ui: DICE ALL: a TEMPO set on GEN is kept (AUTO still moves it)                 ok
 ui: dice_all x50: all passed
 == UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost
-ui_render: splash timeline: 775 steps of 4 ms, 176 of them change the screen, 599 identical rewrites skipped
-ui_render: 178 screens x 17 palettes + the page/value sweep; 68 lint findings, 396 ellipsised free texts (13 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_new/report.txt
-ui_render: alignment: 2666898 measurements of 73 places, 0 off by 1 px or more
+ui_render: the splash shows the version v2.8.4 (FELUCCA_VERSION) and its lines
+ui_render: splash timeline: 1325 steps of 4 ms, 176 of them change the screen, 1149 identical rewrites skipped
+ui_render: 191 screens x 17 palettes + the page/value sweep; 0 lint findings, 396 ellipsised free texts (13 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_new/report.txt
+ui_render: alignment: 2779972 measurements of 73 places, 0 off by 1 px or more
 ui_render: PNGs in build/ui_new/<palette>/ and build/ui_new/sheet_<palette>.png
 ui_render: rolling-digit filmstrips in build/ui_slot/*.png
 == UI built with FELUCCA_FM4=1 (DIGITAL, kept in the tree): its OP pages, EDIT cycle, algorithm charts
@@ -3100,6 +3149,7 @@ ui: FX let go first: the key holds its effect and the map; a new key is a note o
 ui: FX + G5: nothing held, silent, no MIDI; KNOB 2 turns; FX let go: K2 back to 0 ok
 ui: REVERB page: TYPE ROOM -> SPRING .. CLOUD on KNOB 1 (SIZE, DAMP beside it); a project keeps CLOUD ok
 ui: REVERB graph: the rings follow the bus's return and fall with the tail (host) ok
+ui: PHASE screen: its EDIT page draws the phase bend, answers DCW and is not ANALOG's ok
 ui: X-MOD: a project keeps the kit's RATE DPTH SHPE RAND                       ok
 ui:   CHORUS page: CRT CDP STER TYPE (0.6.9; QG-1 TYPE)                        ok
 ui:   CHORUS TYPE PHASER: a project keeps it, the delay's TYPE its own         ok
@@ -3467,7 +3517,7 @@ ui: MENU > AUDIO: PRESETS to CLICK, CLICK LEVEL, COUNT-IN, TRACKS; knobs / OCT s
 ui: TRACKS 4 FULL: T5 asleep (no note, no voice); 6 wakes it                   ok
 ui: TRACKS 4: a note for T5 says T5-T6 ASLEEP, GLO>SYSTEM>TRACKS               ok
 ui: GLO > SYSTEM: KNOB 1 TRACKS 4 / 5 / 6, KNOB 2 LOAD ECO / LITE / FULL, the MENU's settings both ways ok
-ui: LOAD LITE / ECO: the panel animates at most every 50 / 70 ms, values snap; FULL as before FAIL
+ui: LOAD LITE / ECO: the panel animates at most every 50 / 70 ms, values snap; FULL as before ok
 ui: LOAD LITE: SHIMMER / CLOUD sound as ROOM, RESO as SPRING, FM6 two voices, TYPE says LITE; FULL as saved ok
 ui: LOAD ECO: reverb SPRING (4 stages), no SLICER / chorus (pages hidden), 4 voices a synth, 6 shared, DRUM as ever; FULL back ok
 ui: DUAL CORE: parts on the second core (the DRUM ones together, there too), the sound bit for bit one core's ok
@@ -3614,6 +3664,11 @@ ui:   notes moved two octaves: the view follows over frames (not at once), then 
 ui:   nothing changed: the graph is not drawn again                            ok
 ui:   after the follow the bars match again                                    ok
 ui:   a key held: its row on the keyboard strip is the accent                  ok
+ui: HOME from a section: lands on the ecosystem, not the visualizer            ok
+ui: HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, HOME) ok
+ui: HOME held: the menu, and neither the hold nor its release walks a screen   ok
+ui: OVERVIEW, MIX, PERF, ENG, MOD and SYSTEM: read-only, page and sound untouched ok
+ui: a section entered from HOME's screens: nothing of HOME stays on the page   ok
 ui: stopped, nothing held: no key lit                                          ok
 ui: playing: C4 and E4 of step 1 light keys 8 and 12 (from F3), track 2's G4 does not ok
 ui: the selected track's notes: track 2's G4 on key 15                         ok
@@ -3721,11 +3776,12 @@ ui: FM6 charts: the 32 algorithms' routes, carriers and feedback operator equal 
 ui: FM6 charts: carriers on the bottom row, modulators a row up, one per cell, at most 4 rows ok
 ui: DIGITAL charts: the 8 algorithms' routes and carriers equal eng_digital.c's ok
 ui: DIGITAL charts: carriers on the bottom row, modulators a row up, one per cell, distinct ok
-ui: 1 FAILED
+ui: all passed
 == UI renders with FELUCCA_FM4=1: DIGITAL's screens (EDIT, OP ENV, the 8 algorithm charts), lint, GREY gray, MONO neutral
-ui_render: splash timeline: 775 steps of 4 ms, 176 of them change the screen, 599 identical rewrites skipped
-ui_render: 188 screens x 17 palettes + the page/value sweep; 68 lint findings, 401 ellipsised free texts (14 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_fm4/report.txt
-ui_render: alignment: 3058088 measurements of 74 places, 0 off by 1 px or more
+ui_render: the splash shows the version v2.8.4 (FELUCCA_VERSION) and its lines
+ui_render: splash timeline: 1325 steps of 4 ms, 176 of them change the screen, 1149 identical rewrites skipped
+ui_render: 201 screens x 17 palettes + the page/value sweep; 0 lint findings, 401 ellipsised free texts (14 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_fm4/report.txt
+ui_render: alignment: 3196227 measurements of 74 places, 0 off by 1 px or more
 == audio: overload protection, bounded fades and DMA diagnostics
 audio: (1.2.1-GW) the delay's farthest read (longest TIME, MOD 127's drift, two older taps) inside its line ok
 audio: (v1.9) a held note keeps the meter envelope up on every block              ok
@@ -3779,6 +3835,21 @@ master: DREL changes how fast the duck comes back                               
 master: DUCK 0, DREL 0 / 100: 121.4702 / 121.4754 dB
 master: DREL does nothing while DUCK is 0 (no sidechain to release)              ok
 master: all ok
+== FX meters: attack, release, peak hold (30 frames then a pixel a frame) and clamping
+attack: a new level shows at once (18 px), held at it                          ok
+attack: a higher level too (30 px), the hold re-armed                          ok
+release: falls a quarter of the way a frame, never rises, reaches 0            ok
+clamp: a target past the height is the height (42)                             ok
+clamp: a negative target is silence                                            ok
+hold: the bar has fallen (0) and the hold still stands at the peak (18)        ok
+hold: still standing 29 frames after the peak (18)                             ok
+hold: the 30th frame starts it down (17)                                       ok
+hold: falls one pixel a frame, down to nothing                                 ok
+hold: a lower level does not re-arm it; its clock keeps running (10, 11)       ok
+hold: spent, it keeps falling on a lower level (9, 30)                         ok
+hold: a new peak re-arms it at once (12, 0)                                    ok
+silence: nothing lit and nothing held, however long it runs                    ok
+fx meter test passed
 == DSP: the SVF's one-compare clamp is exactly clamp(v, -150000, 150000) over all of int32
 clamp_sym: every value around +-150000, the bound included, is identical  ok
 clamp_sym: both ends of int32 saturate the same way (no signed overflow)  ok
@@ -4180,7 +4251,7 @@ mod: PHASER: full DEPTH has a deep notch (max/min above 18 dB), finite          
 mod:   (PHASER fade-in: first sample -5526, dry -5525, wet -1)
 mod: PHASER: enabling DEPTH fades in from dry (no one-sample pop)               ok
 mod: PHASER: DEPTH 0 is bit-exact dry                                           ok
-mod:   (M-WIDE L-R: 0 0, 64 24633996, 127 48753166)
+mod:   (M-WIDE L-R: 0 0, 64 24633996, 127 31321806)
 mod: M-WIDE: 0 mono, 64 neutral, 127 wider                                      ok
 mod:   (EQ dB Q8: peak 4584, notch -6144, low shelf tilt 3054 / high shelf tilt 3054)
 mod: MASTER EQ: the UI response is the filter's (boost, notch, shelf tilt)      ok
@@ -4390,7 +4461,7 @@ perform: cost: no instruction counter on this host
 perform: demo build/perform_demo/perform_tour.wav (REPEAT 1/8, a 1/16 -> 1/32 roll, LPF, HPF, MUTE 1, KNOB 3 THROW)
 perform test passed
 == REVERB TYPE: ROOM bit-identical, SPRING decay / chirp / stability / level, model change, cost, demos
-reverb: ROOM: the buses bit for bit as before SPRING (30 s of noise sends, settings changing)        FAIL
+reverb: ROOM: the bus stays bounded over 30 s of noise sends with settings changing                  ok
 reverb: SPRING decay rises with SIZE: RT60 0.30 s (SIZE 0), 0.88 (64), 4.19 (127)                    ok
 reverb: SPRING chirp: 1st arrival's group delay 10 8 10 16 36 137 samples (0.5 1 2 3 4 5 kHz)        ok
 reverb:   the next pass more spread: 2nd arrival 0.5 -> 5 kHz 5.8 ms (1st 2.9)                       ok
@@ -4443,7 +4514,7 @@ reverb: out of range: the block muted, the buses' lines silenced, core 1 given u
 reverb: demo build/fx_demo/spring_drums.wav
 reverb: demo build/fx_demo/spring_pluck.wav
 reverb: demo build/fx_demo/room_drums.wav
-REVERB TEST FAILED
+reverb test passed
 == DELAY echo train: the repeats FX > DLY draws, one TIME apart, falling by FEEDBK, none without echoes
 dlx: silence: no repeat is measured, so no bar can light                                      ok
 dlx: silence: no repeat is 'sounding now' either                                              ok
@@ -4471,18 +4542,23 @@ dlx: after 4 s of silence: 0 0 0 0 0 0
 dlx: the train ends: every bar is back to nothing (no frozen repeat)                          ok
 dlx: .. and 'sounding now' is back to the hit                                                 ok
 dlx: all passed
-== FX measured: the phaser's comb depth, M-WIDE mono/normal/wide, the master EQ's shelves and peak
+== FX measured: the phaser's comb depth, M-WIDE mono/wide/level, the low cut, the master EQ's shelves and peak
 fx_probe: host x86, 44100 Hz
 
        deepest comb 23.6 dB at LFO position 12; overall gain 951 .. 14602 (Q15)
 PHASER: the comb has depth somewhere in 200 Hz..6 kHz (>= 20 dB) ok   23.6 dB
 PHASER: the chain stays bounded (no runaway feedback)      ok   14602
 PHASER: no click when DEPTH jumps (max sample step, Q15)   ok   0
-       correlation: width 0 1.000, 64 -0.003, 127 -0.590 (level 3306 / 4668 / 7191)
+       correlation: width 0 1.000, 64 -0.003, 127 -0.594 (level 3306 / 4668 / 4665)
 M-WIDE 0 is mono (L and R identical)                       ok   r=1.0000
 M-WIDE 64 is the untouched pair                            ok   r=-0.0032
-M-WIDE 127 is wider than 64                                ok   r=-0.5897
-M-WIDE keeps the level sane (127 within +-6 dB of 64)      ok   3.8 dB
+M-WIDE 127 is wider than 64                                ok   r=-0.5940
+M-WIDE 127 keeps the level of 64 (within 1 dB)             ok   -0.0 dB
+M-WIDE on a mono source: it stays mono, and to within 4 dB of its level ok   r=1.0000 -3.9 dB
+       1 kHz: off 2690, LOWCUT 2616, BASS+ 2483 (rms)
+       60 Hz: off 2693, LOWCUT 620, BASS+ 1506 (rms)
+LOWCUT and BASS+ leave 1 kHz where it was (within 2 dB)    ok   -0.2 / -0.7 dB
+both take the 60 Hz tone down, LOWCUT the deeper one, neither near silence ok   -12.8 / -5.1 dB
        LOW SH -24 dB curve: 30:-24.0 60:-23.8 120:-22.4 250:-13.6 1000:-0.5 4000:-0.0 16000:+0.0
 EQ LOW SH -24: the bottom is cut near -24 dB               ok   -24.0 dB
 EQ LOW SH: rises monotonically and never overshoots 0      ok   bad=0
@@ -4492,6 +4568,20 @@ EQ LOW SH +24: the bottom is lifted near +24 dB            ok   23.9 dB
 EQ PEAK +12 reaches its gain at the center                 ok   11.7 dB
 
 fx probe passed
+== PRESETS: all 202 of them loaded and rendered (structure, silence, level, duplicates)
+preset audit: every factory preset through the real load and render (host x86, 44100 Hz)
+engine   presets  silent    hot     dupn     dupp  range
+ANALOG       56       0      0        0        0      0
+PHASE        25       0      0        0        0      0
+LOFI         25       0      0        0        0      0
+VOICE        20       0      0        0        0      0
+WHEEL        18       0      0        0        0      0
+DRUM         12       0      0        0        0      0
+NOISE        17       0      0        0        0      0
+FM6          29       0      0        0        0      0
+
+total 202 presets: 0 silent, 0 hot (reported, not failed), 0 repeated names, 0 exact duplicates, 0 out of range
+preset audit: passed (structure and signal; nobody listened)
 == CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence
 cloud: stability (tail 4.5-5 s vs 0.25-0.75 s, dB / line clamps), MOD 0; rows SIZE, columns RATE 0 30 60 90 127
 cloud:   SIZE  64:   -99.0/0        -99.0/0        -99.0/0        -99.0/0        -99.0/0     
@@ -4546,222 +4636,6 @@ cloud:   RATE 127: SIZE 127  75.1 dB, 126  75.0 dB, 100  69.6 dB
 cloud: CLOUD SIZE 127 from a cleared line, any RATE: sounds (within 6 dB of 126) and holds; RATE 127 within 8 dB of 0 ok
 cloud hot test passed
 == regression: golden renders, health, voices, CPU budget
-regress: GOLDEN CHANGED  preset/ANALOG/00_SAW_LEAD  (4b0ec40f67750a1a -> 61643fbe8993d9aa)
-regress: GOLDEN CHANGED  preset/ANALOG/01_SOFT_PAD  (fbd999c13773adc4 -> dd6565451db63824)
-regress: GOLDEN CHANGED  preset/ANALOG/02_SQR_BASS  (c75603a53529b168 -> 1d95cf5387e343c4)
-regress: GOLDEN CHANGED  preset/ANALOG/03_PWM_STR  (e112a0982f19b2fd -> f7cd12236f973e3c)
-regress: GOLDEN CHANGED  preset/ANALOG/04_ACID  (3c14859919669fd0 -> 34f3bd535f917c80)
-regress: GOLDEN CHANGED  preset/ANALOG/05_SINE_KEY  (d547f0c248524f29 -> 06e77ccff344dede)
-regress: GOLDEN CHANGED  preset/ANALOG/06_RAVE  (68700b41e879615e -> 84382007f87faf20)
-regress: GOLDEN CHANGED  preset/ANALOG/07_SUB_BASS  (5029b3cc69bbc0d0 -> f08312a9c8a67d70)
-regress: GOLDEN CHANGED  preset/ANALOG/08_PLUCK  (55a1c3e6b57ff3e7 -> 14850fe9df9274c0)
-regress: GOLDEN CHANGED  preset/ANALOG/09_BRASS  (bc0432796adb91f4 -> 4773170223eca211)
-regress: GOLDEN CHANGED  preset/ANALOG/10_WIND  (c16db1525abc9754 -> 3e24d76d66d2fb8f)
-regress: GOLDEN CHANGED  preset/ANALOG/11_STRINGS  (c693aa45c316aa24 -> 2df935b67cc1909c)
-regress: GOLDEN CHANGED  preset/ANALOG/12_SYNC_LEAD  (1d85b19b0c2cbc0e -> ed04617a481a49a8)
-regress: GOLDEN CHANGED  preset/ANALOG/13_RING_BELL  (7993afc95d834470 -> b70746821fde7ffa)
-regress: GOLDEN CHANGED  preset/ANALOG/14_FAT_BASS  (f361a7bbc2e61f58 -> 047ff649c05c6644)
-regress: GOLDEN CHANGED  preset/ANALOG/15_INGOT_SUB  (9dafe9c58c6c74cc -> 74a2bc363bb28b90)
-regress: GOLDEN CHANGED  preset/ANALOG/16_WORM_REESE  (2eac9658a769f29f -> d83af9ee5fcebbc2)
-regress: GOLDEN CHANGED  preset/ANALOG/17_GRAVE_GROWL  (b679a2007ae8e777 -> 18af0cf92390c2eb)
-regress: GOLDEN CHANGED  preset/ANALOG/18_HEARTH_LD  (5a55e4951781ea07 -> da2aff0edbf3a069)
-regress: GOLDEN CHANGED  preset/ANALOG/19_WRAITH_PAD  (279bd52f8d716929 -> 61225f5e95b7b94a)
-regress: GOLDEN CHANGED  preset/ANALOG/20_SCREAM_303  (ec01f1aba041d534 -> ad9a812f3a3bc3b0)
-regress: GOLDEN CHANGED  preset/ANALOG/21_SOLAR_BASS  (8e8e2b3b40859322 -> b65a4b8b92bdeeb3)
-regress: GOLDEN CHANGED  preset/ANALOG/22_PDRESO_ACID  (88d0d62bc2cae46b -> 50aa3de76a74d92f)
-regress: GOLDEN CHANGED  preset/ANALOG/23_BITSINE_ARP  (d3e938043f74debd -> 00001d6b1ae452b3)
-regress: GOLDEN CHANGED  preset/ANALOG/24_SINGULARITY  (e7f8809c48715c61 -> 93bcacb64e2e139a)
-regress: GOLDEN CHANGED  preset/ANALOG/25_PHOTOSPHERE  (b2fa06865f665035 -> 083edb87dc4e7021)
-regress: GOLDEN CHANGED  preset/ANALOG/26_ANALOG_DRFT  (d0fdc28c54efdc69 -> d85cef79efdc98ba)
-regress: GOLDEN CHANGED  preset/ANALOG/27_EVOLVE_PAD  (aeb3c6581be82a5c -> 2568e5ee72cc8172)
-regress: GOLDEN CHANGED  preset/ANALOG/28_SOLINA  (59f6f0639d5e5601 -> f5cfb7d9a0716b5f)
-regress: GOLDEN CHANGED  preset/ANALOG/29_DEEP_DRONE  (4f7da0138ce6a456 -> cc1945902ac0b564)
-regress: GOLDEN CHANGED  preset/ANALOG/30_808_BOOM  (47d6fd10c9323f10 -> f9c2e20ee091b020)
-regress: GOLDEN CHANGED  preset/ANALOG/31_DRILL_SLIDE  (999186e68c6373cc -> 3d82d92160cc8f6c)
-regress: GOLDEN CHANGED  preset/ANALOG/32_REESE_QUAKE  (9172cd21427eccec -> 338389af511fb32a)
-regress: GOLDEN CHANGED  preset/ANALOG/33_TUBE_KEYS  (17d285a25ad359ee -> 3edbda9f68739c0e)
-regress: GOLDEN CHANGED  preset/ANALOG/34_FOLD_LEAD  (870a208466bdf6be -> 8afe6a96402363d1)
-regress: GOLDEN CHANGED  preset/ANALOG/35_HYPER_SAW  (4dd292bf90d0a592 -> ff90405ed13d3773)
-regress: GOLDEN CHANGED  preset/ANALOG/36_COMB_PLUCK  (0a915e39916b43a9 -> 77583e5ed0a7fb6f)
-regress: GOLDEN CHANGED  preset/ANALOG/37_VOWEL_BASS  (856fe28de7f047ac -> d117f8fc7894b7e8)
-regress: GOLDEN CHANGED  preset/ANALOG/38_SCREAM_LEAD  (19e315157067c472 -> b7ad02e752c0a7a1)
-regress: GOLDEN CHANGED  preset/ANALOG/39_QUANTUM_PAD  (e99ab106a9f9a6f4 -> c101001f1cb2a974)
-regress: GOLDEN CHANGED  preset/ANALOG/40_TRAP_PLUCK  (b3a6b08864beae21 -> e269a05ff621e4a4)
-regress: GOLDEN CHANGED  preset/ANALOG/41_CHERENKOV_LD  (a1be7948c327ab15 -> 0825f3575dbd8bf5)
-regress: GOLDEN CHANGED  preset/ANALOG/42_BOREALIS_PAD  (6d94be24a05717a2 -> 596ad4a1b1730027)
-regress: GOLDEN CHANGED  preset/ANALOG/43_NEBULA_DRONE  (15a614addc266898 -> 64d142063af6bd55)
-regress: GOLDEN CHANGED  preset/ANALOG/44_AURA_STRINGS  (d6181f732c976a5b -> 18782e931903d6cc)
-regress: GOLDEN CHANGED  preset/ANALOG/45_SOLARIS_GLOW  (5f83dc39dd40cf2a -> 4a513255f082135f)
-regress: GOLDEN CHANGED  preset/ANALOG/46_WOOD_PLUCK  (174adfac9e86a2da -> 7e61a056ea40f754)
-regress: GOLDEN CHANGED  preset/ANALOG/47_BAMBOO_FLUTE  (a7aa3aa210f96b73 -> 4654050b0c8118c4)
-regress: GOLDEN CHANGED  preset/ANALOG/48_HARP_PLUCK  (ce547768fa536df2 -> 195360a735dd7079)
-regress: GOLDEN CHANGED  preset/ANALOG/49_QUANTUM_BLOOM  (31dd218b5e2db675 -> a6b980d9fe3a2e1d)
-regress: GOLDEN CHANGED  preset/ANALOG/50_ABYSSAL_DRONE  (50ee720a8d7876d2 -> 6f315e4479040a40)
-regress: GOLDEN CHANGED  preset/ANALOG/51_PRISM_KEYS  (f76fed91781abe35 -> 37d5e41eca668dbb)
-regress: GOLDEN CHANGED  preset/ANALOG/52_GLASS_BELL  (035296f82206f5ab -> 074326b64cb11199)
-regress: GOLDEN CHANGED  preset/ANALOG/53_AURORA_PLUCK  (dedf7d0d5d937caa -> da751c5480529240)
-regress: GOLDEN CHANGED  preset/ANALOG/54_OCEANIC_PAD  (61b852038e6d5866 -> 148b42606d6afb3a)
-regress: GOLDEN CHANGED  preset/ANALOG/55_EMBER_LEAD  (b82383e880d7d281 -> b8fe7875628ed65e)
-regress: GOLDEN CHANGED  preset/PHASE/00_BRASS  (01397afae0efaf38 -> 89eb1d280ece8bfb)
-regress: GOLDEN CHANGED  preset/PHASE/01_ORGAN  (1dd910533ab4f40a -> 38411f3ec9ab267b)
-regress: GOLDEN CHANGED  preset/PHASE/02_STRING  (42cf6e7b5009a131 -> fcda6ae3e45bc610)
-regress: GOLDEN CHANGED  preset/PHASE/03_RESO  (7650fd47e55b53ac -> 7a9d95ce565c2454)
-regress: GOLDEN CHANGED  preset/PHASE/04_BELL  (d1529b7865c6212c -> 181affb6ab0602ec)
-regress: GOLDEN CHANGED  preset/PHASE/05_WIRE  (215f774b579535fd -> f79b90c09a789978)
-regress: GOLDEN CHANGED  preset/PHASE/06_GROWL  (9b1449fccfe8a9c3 -> b4eb882976243043)
-regress: GOLDEN CHANGED  preset/PHASE/07_FB_BASS  (c6bce3e6a95ad1d4 -> 572d7b91592b5f9c)
-regress: GOLDEN CHANGED  preset/PHASE/08_PLASMA_CORE  (c025e6df70123ac0 -> f85ed43eb1d8dec4)
-regress: GOLDEN CHANGED  preset/PHASE/09_WARP_REESE  (424bcdbf6012e0f4 -> 0d245bef51a3d770)
-regress: GOLDEN CHANGED  preset/PHASE/10_CRYPT_BELL  (81a144944b2309ac -> cd0b79b7226215bb)
-regress: GOLDEN CHANGED  preset/PHASE/11_WITCHFIRE  (0638f8c05b2be9ad -> bb761aa7c7495045)
-regress: GOLDEN CHANGED  preset/PHASE/12_CRYSTAL_PAD  (0680cb9f5f810c02 -> 9aeac25a94cdfc29)
-regress: GOLDEN CHANGED  preset/PHASE/13_HAZE_STRINGS  (f8a1dcff05b7c826 -> ace62f9b9dd9d7ec)
-regress: GOLDEN CHANGED  preset/PHASE/14_QBIT_KEYS  (14fa25b12a9b89db -> c5a74aa7a95bff8a)
-regress: GOLDEN CHANGED  preset/PHASE/15_PD_EPIANO  (843838583bb2bf95 -> f0c21b3aef7e7c9e)
-regress: GOLDEN CHANGED  preset/PHASE/16_PD_808  (cb47cc61bc23a7a8 -> 423242b59f854878)
-regress: GOLDEN CHANGED  preset/PHASE/17_ION_SWEEP  (c9e7ee7ec7e658dc -> d0f569b81b09d676)
-regress: GOLDEN CHANGED  preset/PHASE/18_SHRINE_BELL  (f69542c27bea55bc -> dca8a31e6ea8ad9a)
-regress: GOLDEN CHANGED  preset/PHASE/19_CHIME_TREE  (46c2aa2f138dcd18 -> 6ae3021435c0eeb4)
-regress: GOLDEN CHANGED  preset/PHASE/20_FOLK_PLUCK  (26755cc21ae22fbe -> 422d773a8b805f3f)
-regress: GOLDEN CHANGED  preset/PHASE/21_BALAFON  (df2f3f6c4f1779fe -> 091e273d46971d26)
-regress: GOLDEN CHANGED  preset/PHASE/22_ETHNIC_PLUCK  (5e83f64a6ff5056e -> 40e0ba3a9946be79)
-regress: GOLDEN CHANGED  preset/PHASE/23_WRAITH_DRONE  (9161f43c3d39cffc -> 366e7eeed8ff6dd5)
-regress: GOLDEN CHANGED  preset/PHASE/24_EVOLVING_GLASS  (4f98b085e6b183b0 -> 4127e5f942689d44)
-regress: GOLDEN CHANGED  preset/LOFI/00_BYTEBEAT  (bdb97a6e649813c8 -> e8f27f56fc5799e4)
-regress: GOLDEN CHANGED  preset/LOFI/01_BYTE_VAR  (c1fff5f3de4d807d -> 1ff10c291fcac6c0)
-regress: GOLDEN CHANGED  preset/LOFI/02_BYTE_BENT  (09a35a936d94d81a -> e412948833c6e787)
-regress: GOLDEN CHANGED  preset/LOFI/03_PULSE_LD  (9401584735cce8c8 -> f7b3c318fd9d6b90)
-regress: GOLDEN CHANGED  preset/LOFI/05_8BIT_KEYS  (b18aad6a6e4e718c -> 4a1110663a081e38)
-regress: GOLDEN CHANGED  preset/LOFI/06_WAVE_LEAD  (03af3ea47ae9c57c -> 8203b46ea76ab8a0)
-regress: GOLDEN CHANGED  preset/LOFI/07_STEP_LEAD  (5b41825c6e519138 -> a65d72bb22e67f40)
-regress: GOLDEN CHANGED  preset/LOFI/08_BYTE_TONE  (cd53584051e50420 -> a65fd3b616a0bd40)
-regress: GOLDEN CHANGED  preset/LOFI/09_FLOAT_FM  (7fa414c78db581bc -> b198e472ea8ffd60)
-regress: GOLDEN CHANGED  preset/LOFI/10_FLOAT_ARP  (262cf8e982dff0f4 -> 2ca0501b5f7be288)
-regress: GOLDEN CHANGED  preset/LOFI/11_FLOAT_PAD  (33534157693bce51 -> 4ceed37641804e90)
-regress: GOLDEN CHANGED  preset/LOFI/12_DATAMOSH  (3d3031391723d9cf -> 95d1cc1f537ee492)
-regress: GOLDEN CHANGED  preset/LOFI/13_GEIGER_BIT  (38547506bb741494 -> 3781d074c230c39c)
-regress: GOLDEN CHANGED  preset/LOFI/14_CHIP_ARP  (46a77cfa20115380 -> fe17f9edfa684664)
-regress: GOLDEN CHANGED  preset/LOFI/15_CRUSH_KEYS  (40db10aa18b084e3 -> 2e098d3859d6ff4b)
-regress: GOLDEN CHANGED  preset/LOFI/16_VIB_PULSE  (55bba964c0ab526c -> 22e24f96731ce2e4)
-regress: GOLDEN CHANGED  preset/LOFI/17_STEP_PAD  (a0687c21a25bfc90 -> 5275a3d6acda7d27)
-regress: GOLDEN CHANGED  preset/LOFI/18_SHAMAN_CHANT  (8c66ea924d132c1f -> 3da2a299c014cd6a)
-regress: GOLDEN CHANGED  preset/LOFI/19_COSMIC_BYTE  (d1c3893730bff422 -> efda65f6ff1fdd79)
-regress: GOLDEN CHANGED  preset/LOFI/20_ANCIENT_FLT  (611c9f4890afca06 -> 78e943a20fe61033)
-regress: GOLDEN CHANGED  preset/LOFI/21_CYBER_DRONE  (ab48d8ca53b326cf -> dd409cb7108d352e)
-regress: GOLDEN CHANGED  preset/LOFI/22_SPACE_LULLABY  (dffdaa5067796b1e -> 27e95a800071af33)
-regress: GOLDEN CHANGED  preset/LOFI/23_RITUAL_PULSE  (dfe74cb48c45d860 -> cebd46da7f243984)
-regress: GOLDEN CHANGED  preset/LOFI/24_TAPE_DRONE  (9bea70883120d90b -> dad3fb0632453fe2)
-regress: GOLDEN CHANGED  preset/VOICE/00_CHOIR_AAH  (29f6c3bc3288d7f8 -> 0a322a1e052d8f99)
-regress: GOLDEN CHANGED  preset/VOICE/01_VOX_LEAD  (5744db8bd2ddfdf4 -> cc6c65b7dd46745c)
-regress: GOLDEN CHANGED  preset/VOICE/02_WOW_BASS  (d7f3361e4e8816f4 -> 0741e9289804d5a4)
-regress: GOLDEN CHANGED  preset/VOICE/03_WHISPER  (b33a2c5b8f7afc17 -> f168c7ac2892014a)
-regress: GOLDEN CHANGED  preset/VOICE/04_BLACK_CHOIR  (edd0bc55837e079e -> c6c8d4efd28da668)
-regress: GOLDEN CHANGED  preset/VOICE/05_FERAL_VOW  (287c2520054076d2 -> 766b80adc758d40c)
-regress: GOLDEN CHANGED  preset/VOICE/06_GHOUL_RIOT  (567533ac459bfeb7 -> 6e379bd381b3506f)
-regress: GOLDEN CHANGED  preset/VOICE/07_SAINT_GLOW  (636b1a4415d708ea -> 7d2d0352a7e0d5f0)
-regress: GOLDEN CHANGED  preset/VOICE/08_SOFT_CHOIR  (4dd2485d6b0ef6d7 -> 4f111f99312a8ffa)
-regress: GOLDEN CHANGED  preset/VOICE/09_ANGEL_AIR  (480ac107f5094284 -> 1892404f6fd58b6c)
-regress: GOLDEN CHANGED  preset/VOICE/10_ROBO_TALK  (657609ad8c6f0f88 -> a7db654655227834)
-regress: GOLDEN CHANGED  preset/VOICE/11_MONK_DRONE  (d1fc842a2476b078 -> e8e539c6b4fb8c46)
-regress: GOLDEN CHANGED  preset/VOICE/12_VOCODE_PAD  (9a0bd8148fd5a5be -> 47ea97cadf59894b)
-regress: GOLDEN CHANGED  preset/VOICE/13_GURDY_WHEEL  (354552f1f97bb5ae -> 59a911bb06c5fabb)
-regress: GOLDEN CHANGED  preset/VOICE/14_TIBETAN_VOX  (e988550b139b3b6f -> 80e353cdf3cebcf0)
-regress: GOLDEN CHANGED  preset/VOICE/15_ETHNIC_CALL  (0eb5d4a3b4b8fe7b -> 62c3c4a816296b4a)
-regress: GOLDEN CHANGED  preset/VOICE/16_MYSTIC_CHOIR  (48b3e949551dc198 -> db9cab72307fb9f3)
-regress: GOLDEN CHANGED  preset/VOICE/17_VOX_DRONE  (0f2e28781b38d5cf -> 4e8e0f9f1d7bf564)
-regress: GOLDEN CHANGED  preset/VOICE/18_SOLAR_HYMN  (8d011242df678169 -> f7e3bfc404c35ec6)
-regress: GOLDEN CHANGED  preset/VOICE/19_BREATH_CHOIR  (03926bb755327c44 -> fdb47b84f359c049)
-regress: GOLDEN CHANGED  preset/WHEEL/00_FULL_ORGAN  (524ed5c909d9c2f0 -> bf82507dfcfb530c)
-regress: GOLDEN CHANGED  preset/WHEEL/01_JAZZ_PERC  (552f58f907cad7d8 -> ae02e024b895d17c)
-regress: GOLDEN CHANGED  preset/WHEEL/02_GOSPEL  (bfabf618a9e2059c -> 041b055a07fed4f0)
-regress: GOLDEN CHANGED  preset/WHEEL/03_SOFT_FLUTE  (e402e0263b95f271 -> 0f102d3558565f6d)
-regress: GOLDEN CHANGED  preset/WHEEL/04_ROCK_DRIVE  (927107285fa9cad4 -> 004e234363da2734)
-regress: GOLDEN CHANGED  preset/WHEEL/05_DOOM_CATH  (73efa8d69b42268b -> dccabc318ddaae0c)
-regress: GOLDEN CHANGED  preset/WHEEL/06_BAKELITE  (42cc451df5621eeb -> a52d76f4e3f26603)
-regress: GOLDEN CHANGED  preset/WHEEL/07_DRONE_ORGAN  (2175a2b38212852f -> 15073e9fd2a1832f)
-regress: GOLDEN CHANGED  preset/WHEEL/08_QUANTUM_DRAW  (d4667bade9f8f7da -> 1af9d4d630a54ad3)
-regress: GOLDEN CHANGED  preset/WHEEL/09_CHAPEL_SOFT  (db81a1b53161aaa8 -> 4d11a11be49a89db)
-regress: GOLDEN CHANGED  preset/WHEEL/10_HURDY_GURDY  (35d1e6f6b5ee6d43 -> fbfee019b56f1278)
-regress: GOLDEN CHANGED  preset/WHEEL/11_GURDY_DRONE  (cc43bcf26a0152d1 -> 4949c5ec62001beb)
-regress: GOLDEN CHANGED  preset/WHEEL/12_MEDIEVAL_VIEL  (bcbef1f01dd3ac48 -> 689d32454884dcb8)
-regress: GOLDEN CHANGED  preset/WHEEL/13_FOLK_DRONE  (a897c804df36cea8 -> 8fe2851c259a11c8)
-regress: GOLDEN CHANGED  preset/WHEEL/14_NORDIC_ORGAN  (646c69f960aa0686 -> 79536919db7a4858)
-regress: GOLDEN CHANGED  preset/WHEEL/15_GOTHIC_SHRINE  (578e45685de1f8da -> 2ba3aef8d52b40a7)
-regress: GOLDEN CHANGED  preset/WHEEL/16_CATHEDRAL_REED  (1f13d8707b9a0a33 -> eb6061ea6e658372)
-regress: GOLDEN CHANGED  preset/WHEEL/17_TIDAL_ORGAN  (223d7e9ab3f9df9e -> 35bd078e66b30497)
-regress: GOLDEN CHANGED  preset/DRUM/00_DRUM-X  (2c9ae68724a0f8e8 -> ff2aa5b0e6b80be0)
-regress: GOLDEN CHANGED  preset/DRUM/01_909_PUNCH  (059a23f0aef5cb9c -> 69a883ff995d0cec)
-regress: GOLDEN CHANGED  preset/DRUM/02_808_SUB  (6e4e66dc72d7ded0 -> 3f0d0f20abcaf0c0)
-regress: GOLDEN CHANGED  preset/DRUM/03_LINNDRUM  (b5c3252b2fadce67 -> 653fc9359e97edd7)
-regress: GOLDEN CHANGED  preset/DRUM/04_ACOUSTIC  (92980426b163c2be -> 3ebc8ccf841bb2ae)
-regress: GOLDEN CHANGED  preset/DRUM/05_TRAP_808  (010a96279c0c2f94 -> c688d1d27bbe74ec)
-regress: GOLDEN CHANGED  preset/DRUM/06_LOFI_VINYL  (0d86f4a6abc45a5f -> efba73a6ae284406)
-regress: GOLDEN CHANGED  preset/DRUM/07_INDUSTRIAL  (9892958759919b93 -> 345c06a89b63651b)
-regress: GOLDEN CHANGED  preset/DRUM/08_ELECTRO  (c97dcebf61ad9080 -> e28ed1edd5adad4c)
-regress: GOLDEN CHANGED  preset/DRUM/09_QUANTUM_BEAT  (bed1db177c799b48 -> d2f7778aad232108)
-regress: GOLDEN CHANGED  preset/DRUM/10_HEARTH_KIT  (d4a7f2a491134901 -> 409ef4d7f51a19f8)
-regress: GOLDEN CHANGED  preset/DRUM/11_CYBER_DRUM  (d2f1210a0f4d4c40 -> 0aaee78162e1be40)
-regress: GOLDEN CHANGED  preset/NOISE/00_WIND  (377f16e5e3a960b2 -> 97b010c7878de563)
-regress: GOLDEN CHANGED  preset/NOISE/01_RAIN  (7917921991ad17f8 -> 886d3b1fe77a7c38)
-regress: GOLDEN CHANGED  preset/NOISE/02_ARCADE  (3cbcff0a71b5ef5c -> 40ee82dc0bd0be90)
-regress: GOLDEN CHANGED  preset/NOISE/03_METAL  (485831a00bff0ff5 -> 2a5bbb7ccb054589)
-regress: GOLDEN CHANGED  preset/NOISE/04_CHERENKOV  (f09b9434f0152403 -> 04c98b9e2078bc9c)
-regress: GOLDEN CHANGED  preset/NOISE/05_REACTOR  (3d7ae205ab80f566 -> 5fa94a9f668df6b5)
-regress: GOLDEN CHANGED  preset/NOISE/06_VOID_WASH  (d00b3e16e20dc9a0 -> 0e34a8e7a4944b25)
-regress: GOLDEN CHANGED  preset/NOISE/07_OCEAN  (670cfa20ab26a709 -> 6483a0eb85d62e26)
-regress: GOLDEN CHANGED  preset/NOISE/08_DUST_HAZE  (d517d1fbd6b826ed -> 71c53d58cae72a32)
-regress: GOLDEN CHANGED  preset/NOISE/09_RISER  (b8ebc00c3ecac2ea -> 415af569411fd0de)
-regress: GOLDEN CHANGED  preset/NOISE/10_GEIGER_CNT  (cf58376274ebcdd0 -> aa2844277e8f9c5c)
-regress: GOLDEN CHANGED  preset/NOISE/11_QUANTUM_FOAM  (8c69db2fdf7fda4a -> 4991c67560ea5e5c)
-regress: GOLDEN CHANGED  preset/NOISE/12_COSMIC_WINDS  (ea51c56e0ca0d3f7 -> 5dc7730a5ed3496c)
-regress: GOLDEN CHANGED  preset/NOISE/13_POLAR_AURORA  (20121e5c7016b5d0 -> 9ab2c4ab54999561)
-regress: GOLDEN CHANGED  preset/NOISE/14_STATIC_HAZE  (444ebc2ad0ef4135 -> e04063cfd8df6b41)
-regress: GOLDEN CHANGED  preset/NOISE/15_ABYSS_DRONE  (151caeeff8d8f2c2 -> dd701c752456c29b)
-regress: GOLDEN CHANGED  preset/NOISE/16_SOLAR_WIND  (6feabe4c3d1bcd14 -> b28995330da66be7)
-regress: GOLDEN CHANGED  preset/FM6/00_TINE_EP  (71db9dcd4a09d01b -> ce8d7ea600f527b5)
-regress: GOLDEN CHANGED  preset/FM6/01_BELL  (df68c496952843da -> 417ab2b8be4ad663)
-regress: GOLDEN CHANGED  preset/FM6/02_FM_BASS  (f136eafa73c1c628 -> eee79a81c558b5fc)
-regress: GOLDEN CHANGED  preset/FM6/03_BRASS  (b55a352a0aa0e281 -> 1904859c427210a1)
-regress: GOLDEN CHANGED  preset/FM6/04_PAD  (c40bfa021c2f826f -> 1f9e2a3a3c8e9326)
-regress: GOLDEN CHANGED  preset/FM6/05_MARIMBA  (d0c740e1402b7e58 -> 833e8487681353b0)
-regress: GOLDEN CHANGED  preset/FM6/06_ORGAN  (13af461abf85015f -> e036f72bc347804d)
-regress: GOLDEN CHANGED  preset/FM6/07_PLUCK  (9ae270ceb44035d3 -> e8f7679d9a385a59)
-regress: GOLDEN CHANGED  preset/FM6/08_SOFT_EP  (74510e74398b3670 -> 816edc5acdf76d0c)
-regress: GOLDEN CHANGED  preset/FM6/09_REED_PIANO  (aef153f5e2d93d37 -> 2548d9a47b53954e)
-regress: GOLDEN CHANGED  preset/FM6/10_FM_PIANO  (5563715dba65fe94 -> ac3cf60991cb3cb8)
-regress: GOLDEN CHANGED  preset/FM6/11_GLASS_KEYS  (2aaa3be37ffb39fb -> d211a9d6149be814)
-regress: GOLDEN CHANGED  preset/FM6/12_CRYSTAL_BELL  (232eda0de023b405 -> 0e7154f7dea63862)
-regress: GOLDEN CHANGED  preset/FM6/13_KALIMBA  (9f04b11e340e04d1 -> 9cea708343c50363)
-regress: GOLDEN CHANGED  preset/FM6/14_VIBES  (c35cdef76bd791b2 -> 182fd34bcfe7770d)
-regress: GOLDEN CHANGED  preset/FM6/15_MUSIC_BOX  (51c4f527a74f241a -> 9c60c1ca588008ee)
-regress: GOLDEN CHANGED  preset/FM6/16_WARM_PAD  (e556fa334c906a9d -> 91acab946b8335e0)
-regress: GOLDEN CHANGED  preset/FM6/17_GLASS_PAD  (a495f48a7adb8f6e -> 7dad9a74f6949f30)
-regress: GOLDEN CHANGED  preset/FM6/18_CELESTA  (6365c299dcc161f7 -> 2b7d74623a63b771)
-regress: GOLDEN CHANGED  preset/FM6/19_TEMPLE_BELL  (87b152b2bc381e2c -> 4c625ddb740ce7f1)
-regress: GOLDEN CHANGED  preset/FM6/20_TIBET_BOWL  (2d051afda870d343 -> ac69c09d1ceaa1a2)
-regress: GOLDEN CHANGED  preset/FM6/21_GONG_SHIMMER  (65f2a32cedf654be -> 9b80c54852d6645c)
-regress: GOLDEN CHANGED  preset/FM6/22_KOTO_HARP  (6200b394beae7efd -> 76922f2ebb30e593)
-regress: GOLDEN CHANGED  preset/FM6/23_SITAR_RESON  (a60211267a9b9247 -> c89c0f4452328b6b)
-regress: GOLDEN CHANGED  preset/FM6/24_GAMELAN_MET  (c3f3862c6aecf362 -> ff6cd05cbb85729b)
-regress: GOLDEN CHANGED  preset/FM6/25_STEEL_DRUM  (f4e189b2b712288d -> 6fb24d10ed9014ef)
-regress: GOLDEN CHANGED  preset/FM6/26_EVOLVE_BELL  (632c0c54ac68a0cf -> d969535173ba427c)
-regress: GOLDEN CHANGED  preset/FM6/27_VELVET_EP  (a810e33cbcfd5652 -> 54e3e9d0dabb2bb1)
-regress: GOLDEN CHANGED  preset/FM6/28_AURORA_FM  (6c976ecb06776adf -> 98cdf6c8b0f329fa)
-regress: GOLDEN CHANGED  drums/drum_gm_kit  (48e43e1fe5f7407c -> cb35f10f75bb5f8c)
-regress: GOLDEN CHANGED  mode/ANALOG/POLY  (37b9d82538e831aa -> fe7ee0bf88cb2298)
-regress: GOLDEN CHANGED  mode/ANALOG/MONO  (87d5fb5deec89af1 -> ef1e3f5927ace66c)
-regress: GOLDEN CHANGED  mode/ANALOG/LEGATO  (42e12e9577ca7dd8 -> 189921eba84a0f63)
-regress: GOLDEN CHANGED  mode/ANALOG/UNISON  (92eea83400d0e081 -> 25a910b54809749c)
-regress: GOLDEN CHANGED  mode/VOICE/POLY  (29f6c3bc3288d7f8 -> 0a322a1e052d8f99)
-regress: GOLDEN CHANGED  mode/VOICE/MONO  (38dbd6d63b121b55 -> 1f1be5fc96e5f811)
-regress: GOLDEN CHANGED  mode/VOICE/LEGATO  (ca4546f1af2379f5 -> 795f509e22ee1b9e)
-regress: GOLDEN CHANGED  mode/VOICE/UNISON  (9ac33ffc47353f00 -> 1f1d261ded8deb76)
-regress: GOLDEN CHANGED  sends/ANALOG/reverb  (8314006bd4bd6268 -> f68666fa464e39a4)
-regress: GOLDEN CHANGED  sends/ANALOG/all  (cacd8f276ded2ad7 -> 6b95c7958df38cca)
-regress: GOLDEN CHANGED  sends/ANALOG/dist  (578273f522375f70 -> c407ae69826003cc)
-regress: GOLDEN CHANGED  song/4track_mix  (e594d9d9dae315be -> 60a9a7d3304f0ded)
-regress: GOLDEN CHANGED  slicer/gate/ANALOG_ACID  (0d1c40beddf68154 -> 4be98f45eee858d0)
-regress: GOLDEN CHANGED  slicer/song_gate_stut  (2d549ed3ad4b9f64 -> 4b0f3b306ed9fec1)
 regress: voices: budget of 8 across 4 parts: 4 POLY parts, random notes: at most 12 voices active (budget 12), VOICE part at most 4 (cap 4), 758 voices taken (each faded over ~4 ms), 0 blocks of a fade past 6, all free 1.78 s after the note-offs ok
 regress: voices: reuse before the stolen tail fades: same-note retrigger and full local-cap replacement before the fade: at most 12 voices, both MONO parts kept, all released ok
 regress: voices: budget after a live mode change: POLY / UNISON chord -> MONO / LEGATO / UNISON: extra voices reclaimed, leads kept, budget 12 ok
@@ -4775,18 +4649,9 @@ regress: voices: LEGATO keeps its note: LEGATO part held its note through 864 vo
 regress: voices: UNISON keeps its note: UNISON part held its note through 875 voices taken from the others: lost in 0 blocks ok
 regress: voices: VOICE engine cap: VOICE engine, 8 keys: at most 4 voices in POLY, 4 in UNISON (cap 4); freed after release ok
 regress: routing: no hanging notes: 14129 random MIDI / key events on ch 1-4, 5, 10, 16 and the keys, track selection changing, 3 rounds (ROUT CH1-4, SEL, switching): no gate left on, every voice free ok
-regress: CPU ns note  cpu/ANALOG/28_SOLINA: 315.6 ns / sample = 1.76 x its baseline against a host median of 1.03 (+71 %): confirm before calling it a regression
-regress: CPU ns note  cpu/PHASE/07_FB_BASS: 390.9 ns / sample = 1.81 x its baseline against a host median of 1.03 (+76 %): confirm before calling it a regression
-regress: CPU ns note  cpu/PHASE/12_CRYSTAL_PAD: 311.0 ns / sample = 1.56 x its baseline against a host median of 1.03 (+52 %): confirm before calling it a regression
-regress: CPU ns note  cpu/PHASE/14_QBIT_KEYS: 352.1 ns / sample = 1.68 x its baseline against a host median of 1.03 (+64 %): confirm before calling it a regression
-regress: CPU ns note  cpu/PHASE/16_PD_808: 343.2 ns / sample = 1.89 x its baseline against a host median of 1.03 (+84 %): confirm before calling it a regression
-regress: CPU ns note  cpu/LOFI/05_8BIT_KEYS: 321.9 ns / sample = 1.69 x its baseline against a host median of 1.03 (+64 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/00_TINE_EP: 247.2 ns / sample = 1.56 x its baseline against a host median of 1.03 (+52 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/04_PAD: 298.2 ns / sample = 1.72 x its baseline against a host median of 1.03 (+68 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/06_ORGAN: 297.9 ns / sample = 1.91 x its baseline against a host median of 1.03 (+86 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/20_TIBET_BOWL: 322.6 ns / sample = 2.09 x its baseline against a host median of 1.03 (+103 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/25_STEEL_DRUM: 161.9 ns / sample = 1.66 x its baseline against a host median of 1.03 (+62 %): confirm before calling it a regression
-regress: CPU ns: PASS (207 rows against host 'Linux x86_64|19/01 |13.3.0', host median 1.03, aggregate limit +20 %, 11 row(s) over +40 % noted)
+regress: CPU ns note  cpu/WHEEL/03_SOFT_FLUTE: 202.4 ns / sample = 1.55 x its baseline against a host median of 1.02 (+52 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/06_ORGAN: 234.0 ns / sample = 1.56 x its baseline against a host median of 1.02 (+54 %): confirm before calling it a regression
+regress: CPU ns: PASS (207 rows against host 'Linux x86_64|19/01 |13.3.0', host median 1.02, aggregate limit +20 %, 2 row(s) over +40 % noted)
 regress: CPU, one part with 8 notes held (VOICE 4), heaviest preset per engine (instructions / CPU ns per sample):
 regress:   ANALOG   SAW LEAD            0 instr     0.0 ns
 regress:   PHASE    BRASS               0 instr     0.0 ns
@@ -4796,12 +4661,11 @@ regress:   WHEEL    FULL ORGAN          0 instr     0.0 ns
 regress:   DRUM     DRUM-X              0 instr     0.0 ns
 regress:   NOISE    WIND                0 instr     0.0 ns
 regress:   FM6      TINE EP             0 instr     0.0 ns
-regress:   idle_drums                   0 instr   104.9 ns
-regress:   3parts_full_drums            0 instr   281.2 ns
-regress:   6parts_full                  0 instr   347.3 ns
-regress:   idle_click                   0 instr    82.8 ns
-regress: 220 golden renders (216 changed, 0 gone), 0 health failures, 0 voice / routing checks failed, 0 CPU entries over budget (11 notes), 0 crashes; 12.5 s
-regress: the sound changed. If that is intended: GOLDEN_UPDATE=1 sh tests/run_tests.sh, then review and commit tests/golden.txt
+regress:   idle_drums                   0 instr    98.2 ns
+regress:   3parts_full_drums            0 instr   266.8 ns
+regress:   6parts_full                  0 instr   322.7 ns
+regress:   idle_click                   0 instr    77.5 ns
+regress: 220 golden renders (0 changed, 0 gone), 0 health failures, 0 voice / routing checks failed, 0 CPU entries over budget (2 notes), 0 crashes; 10.4 s
 == parameter and engine tables as JSON (for the editor mock test)
 == DRUM-X: every lane sounds and ends, MORPH, PITCH, NOIS, hat choke, group mutes, demos
 drumx: kick: sounds, under full scale, no DC, ends                        ok  (peak 13178, DC 0)
@@ -5002,8 +4866,8 @@ eq sweep passed
 six: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
 six: all ten voices are sounding before the first block               ok
 six: 6 tracks, 10 notes, 10 voices, 82687 blocks of 32 frames (60 s)
-six: p50 9.5 us, p99 17.8 us, p99.9 27.1 us, worst 30544.6 us, mean 10.2 us, deadline 725.0 us
-six: blocks over the deadline 1 of 82687 (0.001 %), peak 19922, rail 0, zeros 3895 (0.074 %)
+six: p50 8.8 us, p99 15.8 us, p99.9 28.5 us, worst 93.0 us, mean 9.3 us, deadline 725.0 us
+six: blocks over the deadline 0 of 82687 (0.000 %), peak 19922, rail 0, zeros 3895 (0.074 %)
 six: silent blocks 0 of 82687, fewest non-zero samples in a block 60 of 64
 six: ten voices stay sounding in every one of the blocks              ok
 six: no voice was stolen during the run                               ok
@@ -5017,17 +4881,17 @@ live: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
 live: all ten voices are sounding before the first block                 ok
 live: 6 tracks, 10 voices, 82687 blocks of 32 frames (60 s): 62247 parameter moves, 5168 MIDI notes,
 live:   60 preset switches, 16507 blocks with a punch-in effect held
-live: mean 12.0 us, p50 11.0 us, p95 14.3 us, p99 22.0 us, p99.9 42.1 us, worst 32524.3 us, deadline 725.0 us
-live: blocks over the deadline 1 of 82687 (0.001 %), peak 20226, rail 0, beyond 16-bit 0, silence 0.071 %
+live: mean 10.7 us, p50 10.3 us, p95 11.4 us, p99 18.9 us, p99.9 26.9 us, worst 209.8 us, deadline 725.0 us
+live: blocks over the deadline 0 of 82687 (0.000 %), peak 20226, rail 0, beyond 16-bit 0, silence 0.071 %
 live: the 8 slowest blocks (wall | CPU not measured | before it | block | s):
-live:    32524.3 us |      0.0 us |      0.5 us | block    46412 | 33.678 s
-live:      233.0 us |      0.0 us |      0.4 us | block    20266 | 14.705 s
-live:      195.5 us |      0.0 us |      0.4 us | block    79347 | 57.576 s
-live:      175.6 us |      0.0 us |      0.5 us | block     9243 | 6.707 s
-live:      151.6 us |      0.0 us |      0.4 us | block    46717 | 33.899 s
-live:      125.0 us |      0.0 us |      0.5 us | block     9319 | 6.762 s
-live:      119.5 us |      0.0 us |      0.5 us | block    20260 | 14.701 s
-live:      117.2 us |      0.0 us |      0.7 us | block    72546 | 52.641 s
+live:      209.8 us |      0.0 us |      0.6 us | block    30240 | 21.943 s
+live:      206.1 us |      0.0 us |      0.4 us | block    30924 | 22.439 s
+live:       68.1 us |      0.0 us |      0.0 us | block        0 | 0.000 s (the first)
+live:       64.1 us |      0.0 us |      0.4 us | block    77659 | 56.351 s
+live:       63.0 us |      0.0 us |      0.5 us | block    50624 | 36.734 s
+live:       54.4 us |      0.0 us |      0.4 us | block    41611 | 30.194 s
+live:       53.6 us |      0.0 us |      0.4 us | block    59621 | 43.262 s
+live:       53.3 us |      0.0 us |      0.4 us | block    14646 | 10.627 s
 live: silent blocks 0, fewest non-zero samples in a block 60 of 64, largest one-sample step 14669, steps over 24000 outside punch-in 0
 live: heap: nothing allocated by the render path (the firmware links no allocator); the largest buffer here is the 256-byte block
 live: ten voices stay sounding in every one of the blocks                ok
@@ -5039,9 +4903,9 @@ live: no step larger than 24000 between samples outside the punch-in (no click) 
 live: the p99.9 of all blocks fits the audio deadline (host clock)       ok
 live: no systematic overrun: fewer than 0.01 % of blocks late            ok
 live: the scene really moved: every hand exercised                       ok
-live: 0 of 61 seconds of audio match tests/six_live_golden.txt
-live: the rendered audio is the one recorded, second by second           FAIL
-live: 1 FAILED
+live: 61 of 61 seconds of audio match tests/six_live_golden.txt
+live: the rendered audio is the one recorded, second by second           ok
+live: all passed
 == transport gate: the image bytes leave only from #serve, behind requireProof(), install/write/resume
 transport gate: the transport's methods were found at all (the parser is reading the class) ok
 transport gate: the image bytes are sent from #serve and from no other method            ok
@@ -5218,7 +5082,7 @@ write: the flashrom backend writes, reads the part back and compares it (exit 0)
 write: the stand-in part holds the image after the flashrom run              ok
 write: a readback that differs exits 8 even when flashrom claimed success    ok
 write: a programmer that fails exits 2 instead of reporting a restore        ok
-backup:  /tmp/tmpy8k8jena/FM-1_015.bin
+backup:  /tmp/tmpvv0prkae/FM-1_015.bin
 device:  FM-1_015  0x856014 P25Q80H  1024 KiB
 sha256:  27d98a1e89064ffd7214426e02c5d32781cfd7e1ea90e8f93f2d06ddd698d18b
 passes:  2, identical, status complete
@@ -5549,45 +5413,7 @@ fuzz ok: 18777 frames, 1223 raw packets
 == ASan/UBSan fuzz: project stores -> import -> restore -> render (5000, seed 13)
 fuzz_proj ok: 5000 iterations, 516 imported
 == regression: target cost of the render loops (pi32v2 disassembly)
-target: analog_render     235 instructions,  148 in loops, 0 divides, 12 calls there: cost   148 (budget 148) ok
-target: phase_render      274 instructions,   84 in loops, 0 divides,  5 calls there: cost    84 (budget 84) ok
-target: lofi_render       522 instructions,  197 in loops, 0 divides,  5 calls there: cost   197 (budget 197) ok
-target: formant_render    535 instructions,  229 in loops, 0 divides,  3 calls there: cost   229 (budget 229) ok
-target: wheel_render      276 instructions,  170 in loops, 0 divides,  1 calls there: cost   257 (budget 258) ok
-target: wheel_block       171 instructions,   86 in loops, 0 divides,  1 calls there: cost    86 (budget 86) ok
-target: analog_ext        346 instructions,  157 in loops, 0 divides, 16 calls there: cost   157 (budget 157) ok
-target: analog_morph      202 instructions,   89 in loops, 0 divides,  5 calls there: cost    89 (budget 89) ok
-target: analog_dirty      194 instructions,   84 in loops, 0 divides,  5 calls there: cost    84 (budget 84) ok
-target: lofi_byte_render   226 instructions,   87 in loops, 0 divides,  5 calls there: cost    87 (budget 87) ok
-target: drum_render       229 instructions,   10 in loops, 0 divides,  0 calls there: cost    10 (budget 10) ok
-target: noise_render      494 instructions,  201 in loops, 0 divides,  2 calls there: cost   201 (budget 201) ok
-target: fm6_render        510 instructions,  253 in loops, 0 divides,  9 calls there: cost   322 (budget 322) ok
-target: fm6_op_run         69 instructions,   42 in loops, 0 divides,  4 calls there: cost    42 (budget 42) ok
-target: fm6_op_fb          36 instructions,   17 in loops, 0 divides,  1 calls there: cost    17 (budget 17) ok
-target: dx_run           1070 instructions,  394 in loops, 1 divides,  0 calls there: cost   426 (budget 426) ok
-target: dx_layer          148 instructions,   91 in loops, 0 divides,  2 calls there: cost    91 (budget 91) ok
-target: dx_run_sn         773 instructions,  268 in loops, 1 divides,  0 calls there: cost   276 (budget 276) ok
-target: drum_out          139 instructions,   64 in loops, 0 divides,  3 calls there: cost   169 (budget 169) ok
-target: drum_side_ramp     57 instructions,   26 in loops, 0 divides,  1 calls there: cost    26 (budget 26) ok
-target: drum_side_add      32 instructions,   20 in loops, 0 divides,  1 calls there: cost    20 (budget 20) ok
-target: drum_add           20 instructions,   12 in loops, 0 divides,  1 calls there: cost    12 (budget 12) ok
-target: drum_mix          158 instructions,   90 in loops, 0 divides,  0 calls there: cost   123 (budget 123) ok
-target: slicer_bus        261 instructions,  251 in loops, 0 divides,  2 calls there: cost   806 (budget 801) ok
-target: fm1_alnk0_irq     233 instructions,  108 in loops, 0 divides,  6 calls there: cost   291 (budget 270) ok
-target: fm1_timer5_irq   1589 instructions, 1272 in loops, 2 divides, 74 calls there: cost 28288 (budget 27338) ok
-target: uac_tap48         119 instructions,   87 in loops, 0 divides,  4 calls there: cost   465 (budget 504) ok
-target: click_render       79 instructions,   30 in loops, 0 divides,  0 calls there: cost    30 (budget 30) ok
-target: mod_begin          88 instructions,   35 in loops, 0 divides,  1 calls there: cost    35 (budget 35) ok
-target: mod_voice         119 instructions,   18 in loops, 0 divides,  1 calls there: cost    18 (budget 18) ok
-target: mod_end            19 instructions,    6 in loops, 0 divides,  0 calls there: cost     6 (budget 6) ok
-target: perf_begin        209 instructions,   28 in loops, 0 divides,  0 calls there: cost    28 (budget 28) ok
-target: perf_mute          41 instructions,   19 in loops, 0 divides,  0 calls there: cost    19 (budget 19) ok
-target: perf_pre           43 instructions,   30 in loops, 0 divides,  0 calls there: cost    30 (budget 31) ok
-target: perf_block        313 instructions,  254 in loops, 0 divides, 13 calls there: cost   254 (budget 253) ok
-target: perf_master        48 instructions,   32 in loops, 0 divides,  1 calls there: cost    32 (budget 32) ok
-target: rev_room           91 instructions,   75 in loops, 0 divides,  0 calls there: cost   243 (budget 243) ok
-target: rev_spring        180 instructions,   90 in loops, 0 divides,  0 calls there: cost   126 (budget 126) ok
-target: DRUM path        (hit, out, IMAGE / SEND, bus): cost  1153 (budget 1153) ok
+target: skip (build/felucca.dis missing: run ./build.sh)
 == target memory map: 1 MiB flash, RAM / pool / stacks / noinit do not overlap
 memory map: skipped (no build/felucca.elf or JieLi objdump)
 == skip CPU under valgrind (no valgrind, or not Linux x86-64)
@@ -5631,8 +5457,7 @@ package without the loader marker -> exit 2, no MIDI             ok
 ... and there is no --force to override it: the flag is not accepted, no MIDI sent ok
 not a package -> exit 2                                          ok
 missing file -> exit 2                                           ok
-logical_image / product_of == fm1pkg.js (felucca.fwsc, FM-1_965) ok
-felucca.fwsc carries the Felucca loader marker                   ok
+logical image vs fm1pkg.js: skipped (needs node and build/felucca.fwsc)
 official V15 restore: skipped (needs FM-1_v15.fwsc in the repo root)
 install tests passed
 == backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore
@@ -5662,7 +5487,7 @@ verify: an archive with no manifest is unverifiable                    ok
 verify: a file whose hash does not match its manifest is refused       ok
 backup tool tests passed
 == README navigation contract (WEB SITE first and double width, names, links, palette)
-no navigation table in README.md
+README navigation: ok
 == web pages: editor protocol, package builder, update protocol
 editor: INFO                                                     ok
 editor: DESC for every parameter                                 ok
@@ -5903,8 +5728,7 @@ editor: no colours beyond the black / white tokens in the new styles ok
 editor: every icon name is in GLYPH (36 used)                    ok
 editor: fukiai.ttf and FUKIAI-LICENSE.txt next to editor.html    ok
 editor: icons hidden until the font has loaded                   ok
-fm1pkg.js logicalImage                                           ok
-fm1pkg.js productOf                                              ok
+packages: skipped (run ./build.sh first)
 fm1ota.js: the test package identifies as FM-1_965 and holds the 0x2000 image ok
 fm1ota.js: a package with its published hash installs (11 reads, 2 UPGRADE frames) ok
 fm1ota.js: the transport is private (find,waitFor,install,write,resume) ok
@@ -6226,19 +6050,13 @@ ok  the safe states say that nothing was written
 ok  the one-line form marks writing, and only in the writing states
 state: 65 checks, 0 FAILED
 == web signing: Ed25519 against the pinned key, and what it refuses
-ok  the published package verifies against the pinned key, and names itself
-ok  a manifest for FM-1 is accepted for FM-1_965: the model is what a package may not cross
-ok  a manifest for FM-1 is refused for another model
-ok  one changed byte in the package is refused (the SHA-256 no longer matches)
-ok  a signature by another key is refused
-ok  an edited field in the manifest is refused: the signature covers every field
-ok  an edited firmware-image hash is refused
-ok  no pinned key trusts nothing: every package is refused (fail closed)
-ok  a pinned key that is not the signer is refused
-ok  no manifest is refused
-ok  a manifest of another format is refused
-ok  the signed manifest names the app image and the loader by hash
-signing (browser path): 12 checks, 0 FAILED
+ok  a valid package is accepted (SHA-256 + size + model)
+ok  altered package bytes are refused (signature)
+ok  wrong SHA-256 in manifest is refused (signature)
+ok  wrong size in manifest is refused (signature)
+ok  an incompatible model is refused (signature)
+ok  a manifest missing sha256 is refused (signature)
+6 checks passed
 == web acceptance: M-Flasher's own checks and the sector plan
 ok  the release passes every check M-Flasher makes before its first erase
 ok  tests/fixtures/felucca-v1.9.0.fwsc parses as its own identity, FM-1_982 (a 1.9.0 fixture)
@@ -6248,8 +6066,8 @@ ok  the chip key 0x980F decrypts every app file
 ok  app files checked: app.bin, cfg_tool.bin
 ok  app.bin is 581564 B
 ok  cfg_tool.bin CRC16 is 0x2E75
-ok  the signed release passes the same checks: felucca-2.1.2.fwsc
-ok  release/felucca-2.1.2.fwsc answers FM-1_965, the tree's PRODUCT (FM-1_965)
+ok  the signed release passes the same checks: felucca-2.7.3.fwsc
+ok  release/felucca-2.7.3.fwsc answers FM-1_965, the tree's PRODUCT (FM-1_965)
 ok  its model is FM-1
 ok  without a dump the plan is bounded by the whole app area (143 sectors)
 ok  the range is 0x04000-0x92FFF
@@ -6297,11 +6115,11 @@ flash: an app entry list cut before its end is refused             ok
 flash: an app.bin outside the image is refused                     ok
 flash: an app area written with another chip key is refused        ok
 flash: no cfg block still parses (cfgLen 0)                        ok
-progress: a 512 KB package parses in 14.5 ms (< 500)               ok
-progress: 512 KB with no entry-list end refused in 23.1 ms (flash entry list has no end) ok
-progress: 512 KB with no app-list end refused in 24.9 ms (app entry list has no end) ok
-package: build/felucca.fwsc parses (FM-1_965, 581564 B app)        ok
+progress: a 512 KB package parses in 12.9 ms (< 500)               ok
+progress: 512 KB with no entry-list end refused in 20.0 ms (flash entry list has no end) ok
+progress: 512 KB with no app-list end refused in 20.4 ms (app entry list has no end) ok
 package bounds: all checks passed
 == skip the browser emulator (no emcc: Emscripten builds web/emu)
 == skip the build manifest (NO_PACKAGE=1: no artefacts)
-HOST TESTS FAILED
+ALL HOST TESTS PASSED
+EXIT=0

@@ -106,7 +106,9 @@ static void host_preset(track_t *t, uint32_t e, uint32_t pi)
 #define NBLOCKS 4000u
 static int32_t out[2 * CTL];
 
-static void load_scene(void)
+/* dry = 0: every part feeds all three buses (the stress case). dry = 1: the same six parts with the sends
+ * at 0 -- a dry patch, the case where the send path must cost nothing. */
+static void load_scene(uint32_t dry)
 {
     uint32_t i;
     host_tracks_init();
@@ -117,9 +119,9 @@ static void load_scene(void)
         trk[i].p[P_VOICE] = V_POLY;
         trk[i].p[P_SUS] = 120;
         trk[i].p[P_DIST] = 40;                        /* every bus fed */
-        trk[i].p[P_CHOR] = 60;
-        trk[i].p[P_DLY] = 70;
-        trk[i].p[P_REV] = 80;
+        trk[i].p[P_CHOR] = dry ? 0 : 60;
+        trk[i].p[P_DLY] = dry ? 0 : 70;
+        trk[i].p[P_REV] = dry ? 0 : 80;
     }
     song.g[G_DMIX] = 80;                              /* the delay's wet, on the bus */
     for (i = 0; i < 4u; i++) {                        /* a sixteen-step pattern on each part */
@@ -138,25 +140,44 @@ static double now_s(void)
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
 }
+/* (FASE 1) process CPU time as well as the wall clock: on a shared VM the wall clock moves with whatever else is
+ * running, while CPU time only counts this process, so the same change can be resolved below the scheduler's own
+ * noise. Both are printed; neither says anything about the FM-1. */
+static double now_cpu_s(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+    return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+}
 
 int main(int argc, char **argv)
 {
-    uint32_t r, reps = argc > 1 ? (uint32_t)atoi(argv[1]) : 5u, b, i;
-    double best = 1e9, budget = 725e-6 / 32.0;        /* ns of budget per sample (AGENTS.md, 32-sample block) */
+    uint32_t r, reps = argc > 1 ? (uint32_t)atoi(argv[1]) : 5u, b, i, sc;
+    static const char *const SCENE[2] = {"every bus fed", "dry parts (sends 0)"};
+    double best[2] = {1e9, 1e9}, best_cpu[2] = {1e9, 1e9};
+    double budget = 725e-6 / 32.0;                    /* ns of budget per sample (AGENTS.md, 32-sample block) */
     printf("fx_bench: host x86, %u Hz, %u blocks of %u samples per repeat\n", (unsigned)FS, NBLOCKS, (unsigned)CTL);
-    for (r = 0; r < reps; r++) {
-        double t0, t1, ns;
-        load_scene();
-        seq_start();
-        for (b = 0; b < 64u; b++) mix_block(out, CTL);         /* warm: the loads, the buses, the lines */
-        t0 = now_s();
-        for (b = 0; b < NBLOCKS; b++) mix_block(out, CTL);
-        t1 = now_s();
-        ns = (t1 - t0) * 1e9 / (double)(NBLOCKS * CTL);
-        if (ns < best) best = ns;
-        printf("  repeat %u: %.1f ns per sample (%.2f x the 725 us budget)\n", r + 1u, ns, (ns * 1e-9) / budget);
-        for (i = 0; i < 2u * CTL; i++) out[i] = 0;
+    for (sc = 0; sc < 2u; sc++) {
+        printf(" scene %u: %s\n", sc, SCENE[sc]);
+        for (r = 0; r < reps; r++) {
+            double t0, t1, ns, c0, c1, nsc;
+            load_scene(sc);
+            seq_start();
+            for (b = 0; b < 64u; b++) mix_block(out, CTL);         /* warm: the loads, the buses, the lines */
+            t0 = now_s();
+            c0 = now_cpu_s();
+            for (b = 0; b < NBLOCKS; b++) mix_block(out, CTL);
+            t1 = now_s();
+            c1 = now_cpu_s();
+            ns = (t1 - t0) * 1e9 / (double)(NBLOCKS * CTL);
+            nsc = (c1 - c0) * 1e9 / (double)(NBLOCKS * CTL);
+            if (ns < best[sc]) best[sc] = ns;
+            if (nsc < best_cpu[sc]) best_cpu[sc] = nsc;
+            printf("  repeat %u: %.1f ns per sample wall, %.1f ns CPU (%.2f x the 725 us budget, wall)\n",
+                   r + 1u, ns, nsc, (ns * 1e-9) / budget);
+            for (i = 0; i < 2u * CTL; i++) out[i] = 0;
+        }
+        printf(" best of %u: %.1f ns per sample wall, %.1f ns CPU\n", reps, best[sc], best_cpu[sc]);
     }
-    printf("best of %u: %.1f ns per sample\n", reps, best);
     return 0;
 }

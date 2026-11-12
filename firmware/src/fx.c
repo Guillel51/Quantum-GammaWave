@@ -1788,7 +1788,8 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         int32_t y = 0, x, side = 0, xr = 0, wr = 0, ch = 0, dlout = 0;
         /* chorus (0.5.1: an ensemble): three taps of the line, ~7, 9.5 and 12 ms, each swept by the LFO a third of a
          * turn apart; the first left, the second right, the third in the middle: always stereo (WIDTH wider) */
-        cho_buf[fx.cho_w & (CHO_LEN - 1u)] = (int16_t)clamp(cho_in[i] >> 1, -32768, 32767);
+        uint32_t ci = fx.cho_w & (CHO_LEN - 1u);    /* (FASE 1) masked once: the write and the tap */
+        cho_buf[ci] = (int16_t)clamp(cho_in[i] >> 1, -32768, 32767);
         fx.cho_ph += cinc;
         fx.cd_cur += dcd; fx.cw_cur += dcw; fx.dm_cur += ddm;
         if (!cho && (fx_ph_g || fx_ph_d)) {           /* leaving the phaser: fade in from dry next time */
@@ -1798,7 +1799,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         }
         if (cho) {
             int32_t sd;
-            ch = phz ? cho_phaser(cho_buf[fx.cho_w & (CHO_LEN - 1u)], fx.cho_ph, pdep, &sd)
+            ch = phz ? cho_phaser(cho_buf[ci], fx.cho_ph, pdep, &sd)
                      : cho_ens(cho_buf, fx.cho_w, fx.cho_ph, fx.cd_cur, &sd);
             if (!phz) { fx_ph_g = fx_ph_d = 0; memset(fx.ph_s, 0, sizeof fx.ph_s); fx.ph_y = 0; }
             y += ch;
@@ -2073,7 +2074,8 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
             ol = c1 ? c1_mix.sl : sl_l;
             or_ = c1 ? c1_mix.sr : sl_r;
         }
-        xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);   /* sends: loud chords at a high LEVEL */
+        if (c | d | r)                                  /* (FASE 1) a dry part: no divide, no clamp */
+            xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);   /* sends: loud chords at a high LEVEL */
         if ((duck_g0 < 32767 || duck_g1 < 32767) && ENGINES[t->engine] != &ENG_DRUM)   /* DUCK: the kick's */
             lq = duck_ramp(l0 >> 8, mp_lvl[ti] >> 8, &dl);
         track_dist(t, b, n);
@@ -2090,15 +2092,17 @@ static inline __attribute__((always_inline)) void mix_part(track_t *t, uint32_t 
         }
         for (i = 0; i < n; i++, lq += dl, gl += dgl, gr += dgr) {
             int32_t x = ((b[i] >> 2) * (lq >> 8)) >> 10, a = x < 0 ? -x : x;   /* pre-shift: 8 loud voices */
-            int32_t xs = clamp(x, -xmax, xmax);         /* sends: mulq15 would overflow */
             if (a > pk)
                 pk = a;
-            if (c)
-                sc[i] += mulq15(xs, c);
-            if (d)
-                sd[i] += mulq15(xs, d);
-            if (r)
-                sr[i] += mulq15(xs, r);
+            if (c | d | r) {                            /* (FASE 1) a dry part pays nothing for the sends */
+                int32_t xs = clamp(x, -xmax, xmax);     /* sends: mulq15 would overflow */
+                if (c)
+                    sc[i] += mulq15(xs, c);
+                if (d)
+                    sd[i] += mulq15(xs, d);
+                if (r)
+                    sr[i] += mulq15(xs, r);
+            }
             ol[i] += (x * gl) >> 12;
             or_[i] += (x * gr) >> 12;
         }

@@ -1,3 +1,11 @@
+## 2026-11-12 — FASE 1/5: optimización total (medida)
+
+- **Mixer**: a part with no sends (CHOR / DLY / REV at 0) no longer clamps its signal for the buses nor divides for the send ceiling — the clamp and the division only happen when there is something to send. Bit for bit the same sound; 0.4 % cheaper per audio block on a dry six-part scene in the host bench, and neutral with every bus fed.
+- **FX buses**: the chorus line's index is masked once per sample instead of twice (the write and the phaser tap).
+- **Instrument**: `tests/fx_bench` now prints process CPU time next to the wall clock and measures two scenes (every bus fed / dry parts). That is what made a 1 % difference readable on a shared VM — and what got a candidate rejected instead of merged: hoisting the master's per-block settings cost 1.4 % more CPU and was reverted (measured, not assumed).
+- **Record**: `docs/QG_PHASE_1_OPTIMIZATION.md` has the recovered state (rebased onto v2.8.4), the host profile, the measurements, what was refused and why, the blocked target/WASM/hardware checks, and the extension points for phases 2–5. `run_tests.log` is a real run again: the tracked one was a stale, failing log from a tree that no longer exists.
+- **Tests**: `ALL HOST TESTS PASSED` (119 sections), 220 golden renders unchanged, 0 lint findings over 191 screens × 17 palettes, ASan/UBSan and both fuzzers clean. No target build, no WASM, no unit: nothing here is a hardware measurement.
+
 ## 2026-11-12 — v2.8.4: the HOME screens breathe
 
 - **Atmosphere**: the four new HOME screens share a background layer drawn before their text — sixteen embers that drift upward a pixel or three a frame (hashed positions, so they never clump) and a floor of six bars, each the level its track is making now. All of it is 1 px rects in the panel's own steps (`T_RAISE`/`T_LINE`), so no palette can make it unreadable and it costs no allocation and no per-pixel path.
