@@ -5313,8 +5313,10 @@ static int test_home_views(void)
     press(B_HOME);
     ok &= ui.home && ui.home_view == HV_SYSTEM && !ui.home_viz;
     press(B_HOME);
+    ok &= ui.home && ui.home_view == HV_ROUT && !ui.home_viz;      /* (4.0) the signal path */
+    press(B_HOME);
     ok &= ui.home && ui.home_view == HV_HOME;                      /* the tap past the last returns to the first */
-    bad += check("HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, HOME)", ok);
+    bad += check("HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, ROUT, HOME)", ok);
     ok = ui.home_view == HV_HOME && !ui.menu;
     hold(B_HOME);                                                  /* 0.8 s: the menu, not a screen */
     ok &= ui.menu && ui.home_view == HV_HOME;
@@ -5340,8 +5342,10 @@ static int test_home_views(void)
         ok &= ui.home_view == HV_MOD && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
         press(B_HOME);                                             /* SYSTEM */
         ok &= ui.home_view == HV_SYSTEM && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
+        press(B_HOME);                                             /* (4.0) ROUT */
+        ok &= ui.home_view == HV_ROUT && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
     }
-    bad += check("OVERVIEW, MIX, PERF, ENG, MOD and SYSTEM: read-only, page and sound untouched", ok);
+    bad += check("OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM and ROUT: read-only, page and sound untouched", ok);
     /* and leaving HOME puts the screen away (no screen under the section's page) */
     press(B_HOME);                                                 /* HOME */
     press(B_HOME);                                                 /* SCOPE */

@@ -63,6 +63,8 @@ static struct {
     int32_t dt1, dt2, rt1, rt2;          /* .. (0.6.86) the resonant TONE (delay loop) and FILT (reverb input) filters */
     int32_t cd_cur, cw_cur, dm_cur;      /* .. the chorus's DEPTH, its side's width, the delay's MIX as they are (glide) */
     int32_t ph_s[6], ph_y;               /* .. (QG-1) the PHASER's six all-pass states and its feedback */
+    int32_t flg_fb;                      /* (4.0) the FLANGER's feedback sample (its line's write) */
+    uint8_t flg_on;                      /* .. set while it runs, so coming back starts clean */
     int32_t rpre_s;                      /* .. the even sample, averaged with the odd one into the line */
     uint16_t comb_i[4], ap_i[2];
     int32_t comb_lp[4];
@@ -1585,6 +1587,16 @@ static inline int32_t cho_ens(const int16_t *buf, uint32_t w, uint32_t ph, int32
     *sd = a - b;
     return ((a + b + c) * 21845) >> 15;                 /* (x2 / 3 each: the sum at x2, as the one tap was) */
 }
+/* (4.0) CHORUS > TYPE FLANGER: the same line, a short delay swept by the chorus's LFO (48 .. 302 samples,
+ * 1.1 .. 6.8 ms at DEPTH 127) and the output written back into the line (0.6), the moving comb that makes the
+ * jet: the notches sit an odd multiple of 1 / (2 d) apart and travel with the sweep. *fb hands the sample the
+ * caller writes back, so the whole loop is one multiply and the delay line already there. */
+static inline int32_t cho_flanger(const int16_t *buf, uint32_t w, uint32_t ph, int32_t amt, int32_t *fb)
+{
+    int32_t y = cho_tap(buf, w, (48 << 8) + (((osc_sine(ph) + 32768) * amt) >> 16));
+    *fb = y;
+    return y;
+}
 /* (QG-1) CHORUS > TYPE PHASER: four first-order all-passes (H = (a + z^-1) / (1 + a z^-1)) swept together by the chorus's
  * LFO, their notches ~200 Hz .. ~3 kHz at DEPTH 100 %, a little feedback; out x + the chain (the notches inside the bus,
  * the same x2 as the ensemble), *sd stage 2 - stage 4 (the sides moving apart). No line, no taps: lighter than it */
@@ -1734,6 +1746,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
     if (png && dl > (DLY_LEN - DLY_EDGE) / 2u) dl = (DLY_LEN - DLY_EDGE) / 2u;   /* (1.2.1-GW: DLY_EDGE, was 4) */
     int32_t cho = sys_load != LOAD_ECO;                /* (0.6.30) LOAD ECO: no chorus */
     int32_t phz = song.g[G_CTYPE] == 1, pdep = song.g[G_CDEPTH] * 96;   /* (QG-1) the PHASER, its sweep */
+    int32_t flg = song.g[G_CTYPE] == 2, famt = song.g[G_CDEPTH] * 512;   /* (4.0) the FLANGER: 0 .. 254 samples of sweep (Q8) */
     int32_t cs = song.g[G_CSTER], cw = 80 + wd / 2;    /* (0.6.9) the chorus's side: 0 as before, - to mono, + ~2x */
     cw = cs >= 0 ? cw + cs * 2 : (cw * (64 + cs)) >> 6;
     uint32_t dr = dl + (wd && !png ? div_samples(3) * (uint32_t)wd / 127u : 0u);   /* the right echo: up to 1/32 later */
@@ -1789,7 +1802,8 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
         /* chorus (0.5.1: an ensemble): three taps of the line, ~7, 9.5 and 12 ms, each swept by the LFO a third of a
          * turn apart; the first left, the second right, the third in the middle: always stereo (WIDTH wider) */
         uint32_t ci = fx.cho_w & (CHO_LEN - 1u);    /* (FASE 1) masked once: the write and the tap */
-        cho_buf[ci] = (int16_t)clamp(cho_in[i] >> 1, -32768, 32767);
+        /* (4.0) in FLANGER the line carries the send plus the last output (0.6), the feedback of the comb */
+        cho_buf[ci] = (int16_t)clamp((cho_in[i] >> 1) + (flg ? mulq15(fx.flg_fb, 19661) : 0), -32768, 32767);
         fx.cho_ph += cinc;
         fx.cd_cur += dcd; fx.cw_cur += dcw; fx.dm_cur += ddm;
         if (!cho && (fx_ph_g || fx_ph_d)) {           /* leaving the phaser: fade in from dry next time */
@@ -1797,11 +1811,18 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             memset(fx.ph_s, 0, sizeof fx.ph_s);
             fx.ph_y = 0;
         }
+        if (flg != (int32_t)fx.flg_on) {               /* the mode changed: the comb starts from silence */
+            fx.flg_fb = 0;
+            fx.flg_on = (uint8_t)flg;
+        }
         if (cho) {
-            int32_t sd;
+            int32_t sd = 0;
             ch = phz ? cho_phaser(cho_buf[ci], fx.cho_ph, pdep, &sd)
-                     : cho_ens(cho_buf, fx.cho_w, fx.cho_ph, fx.cd_cur, &sd);
+                 : flg ? cho_flanger(cho_buf, fx.cho_w, fx.cho_ph, famt, &fx.flg_fb)
+                 : cho_ens(cho_buf, fx.cho_w, fx.cho_ph, fx.cd_cur, &sd);
             if (!phz) { fx_ph_g = fx_ph_d = 0; memset(fx.ph_s, 0, sizeof fx.ph_s); fx.ph_y = 0; }
+            if (!flg)
+                fx.flg_fb = 0;
             y += ch;
             { int32_t a = ch < 0 ? -ch : ch; if (a > chpk) chpk = a; }
             sd = (sd * fx.cw_cur) >> 7;

@@ -30,7 +30,7 @@ static const char *const N_NRATE[] = {"1/1", "1/2", "1/4", "1/8", "1/16", "46ms"
                                      * editor's list order is the knob's) */
 static const char *const N_DLYTYPE[] = {"ANALOG", "DIGITAL", 0};   /* (0.6.90) DLY 3 > TYPE */
 static const char *const N_EQMODE[] = {"OFF", "PEAK", "NOTCH", "LOWSH", "HIGHSH", 0};
-static const char *const N_CHOTYPE[] = {"CHORUS", "PHASER", 0};   /* (QG-1) CHORUS > TYPE */
+static const char *const N_CHOTYPE[] = {"CHORUS", "PHASER", "FLANGER", 0};   /* (QG-1) CHORUS > TYPE; (4.0) the flanger */
 /* seq.c kb_map; 1 = SNAP (stored projects: the former ON); 3 = SEQ: SNAP, and the sequencer's notes snap too as
  * they play (seq.c seq_step; the steps keep what was written). Append-only: older projects hold 0..2 */
 static const char *const N_QUANT[] = {"OFF", "SNAP", "WHITE", "SEQ"};
@@ -190,7 +190,8 @@ static const param_desc_t GP[G_COUNT] = {
     [G_CSTER] = PD("STEREO", F_BIPCT, -64, 63, 0), /* (0.6.9) the CHORUS's stereo: 0 as before, -64 mono, 63 ~2x (was G_DHPF) */
     [G_WIDTH] = PD("WIDE", F_PCT, 0, 127, 0),    /* the delay's right echo up to 1/32 later, the chorus's taps apart */
     [G_DTYPE] = {"TYPE", F_ENUM, 0, 1, 0, N_DLYTYPE, 0},   /* (0.6.90) ANALOG (saturating, resonant, past 100 % grows) / DIGITAL */
-    [G_CTYPE] = {"TYPE", F_ENUM, 0, 1, 0, N_CHOTYPE, 0},   /* (QG-1) the chorus bus: the ensemble / a four-stage PHASER */
+    [G_CTYPE] = {"TYPE", F_ENUM, 0, 2, 0, N_CHOTYPE, 0},   /* (QG-1) the chorus bus: the ensemble / a PHASER; (4.0)
+                                                          * the FLANGER (two bits in a project's DT block) */
     [G_DPING] = {"PING", F_ENUM, 0, 1, 0, N_ONOFF, 0},   /* (0.6.90) PING-PONG: the repeats left, right, left .. */
     [G_DMOD] = PD("MOD", F_PCT, 0, 127, 0),      /* (0.6.89: 0, the repeats exact copies, by default) */     /* (0.6.86) the delay's drift: WOW + FLUTTER (fx.c dly_wow_adv) */
     [G_RMOD] = PD("MOD", F_PCT, 0, 127, 0),      /* the reverb's modulation depth (ROOM: the combs, SPRING: its wobble) */

@@ -775,14 +775,15 @@ static void draw_foot(void)
         project_cur_name(pn);
         if (!pn[0]) str_cpy(pn, "NO NAME", 16);
     }
-    if (ui.home) {                                     /* (FASE 2/5) HOME is EIGHT pages, walked by each tap on
+    if (ui.home) {                                     /* (FASE 2/5) HOME is a list of pages, walked by each tap on
                                                         * HOME, and the footer called all of them "HOME": the one
                                                         * place in the instrument with no page indicator at all. It
                                                         * counts them like every other family ("DLY 2/2"), so where a
                                                         * tap will land is always visible. */
         str_cpy(ti, "HOME ", sizeof ti);
         fmt_int(ti + 5, (int32_t)ui.home_view + 1);
-        str_cpy(ti + str_len(ti), "/8", sizeof ti - str_len(ti));
+        str_cpy(ti + str_len(ti), "/", sizeof ti - str_len(ti));
+        fmt_int(ti + str_len(ti), (int32_t)HV_COUNT);    /* (4.0) counted, not written: 8 became 9 with ROUTING */
     }
     else                                               /* page title + number in its family: "ENV DEST 2/2" */
         page_title(ti);

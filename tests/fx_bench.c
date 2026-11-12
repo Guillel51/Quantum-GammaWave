@@ -106,9 +106,10 @@ static void host_preset(track_t *t, uint32_t e, uint32_t pi)
 #define NBLOCKS 4000u
 static int32_t out[2 * CTL];
 
-/* dry = 0: every part feeds all three buses (the stress case). dry = 1: the same six parts with the sends
- * at 0 -- a dry patch, the case where the send path must cost nothing. */
-static void load_scene(uint32_t dry)
+/* sc = 0: every part feeds all three buses (the stress case). sc = 1: the same six parts with the sends
+ * at 0 -- a dry patch, the case where the send path must cost nothing. sc = 2: (4.0) the same stress case
+ * with the chorus bus in FLANGER, so the new mode's cost is measured against the ensemble's on the same run. */
+static void load_scene(uint32_t sc)
 {
     uint32_t i;
     host_tracks_init();
@@ -119,11 +120,13 @@ static void load_scene(uint32_t dry)
         trk[i].p[P_VOICE] = V_POLY;
         trk[i].p[P_SUS] = 120;
         trk[i].p[P_DIST] = 40;                        /* every bus fed */
-        trk[i].p[P_CHOR] = dry ? 0 : 60;
-        trk[i].p[P_DLY] = dry ? 0 : 70;
-        trk[i].p[P_REV] = dry ? 0 : 80;
+        trk[i].p[P_CHOR] = sc == 1u ? 0 : 60;
+        trk[i].p[P_DLY] = sc == 1u ? 0 : 70;
+        trk[i].p[P_REV] = sc == 1u ? 0 : 80;
     }
     song.g[G_DMIX] = 80;                              /* the delay's wet, on the bus */
+    song.g[G_CTYPE] = sc == 2u ? 2 : 0;               /* (4.0) 0 the ensemble, 2 the FLANGER */
+    song.g[G_CDEPTH] = 100;
     for (i = 0; i < 4u; i++) {                        /* a sixteen-step pattern on each part */
         trk[i].step[i * 2u].time = ST_NOTE;
         trk[i].step[i * 2u].n = i < 2u ? 3u : 1u;
@@ -153,11 +156,11 @@ static double now_cpu_s(void)
 int main(int argc, char **argv)
 {
     uint32_t r, reps = argc > 1 ? (uint32_t)atoi(argv[1]) : 5u, b, i, sc;
-    static const char *const SCENE[2] = {"every bus fed", "dry parts (sends 0)"};
-    double best[2] = {1e9, 1e9}, best_cpu[2] = {1e9, 1e9};
+    static const char *const SCENE[3] = {"every bus fed", "dry parts (sends 0)", "every bus fed, CHORUS in FLANGER"};
+    double best[3] = {1e9, 1e9, 1e9}, best_cpu[3] = {1e9, 1e9, 1e9};
     double budget = 725e-6 / 32.0;                    /* ns of budget per sample (AGENTS.md, 32-sample block) */
     printf("fx_bench: host x86, %u Hz, %u blocks of %u samples per repeat\n", (unsigned)FS, NBLOCKS, (unsigned)CTL);
-    for (sc = 0; sc < 2u; sc++) {
+    for (sc = 0; sc < 3u; sc++) {
         printf(" scene %u: %s\n", sc, SCENE[sc]);
         for (r = 0; r < reps; r++) {
             double t0, t1, ns, c0, c1, nsc;

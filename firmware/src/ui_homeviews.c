@@ -518,6 +518,122 @@ static void hv_mod(const track_t *t, uint16_t c)
     }
 }
 
+/* the third column of a bus row: which model or time that bus is set to, from the parameter's own names */
+static const char *hv_route_name(uint32_t i)
+{
+    if (i == 0)
+        return GP[G_CTYPE].names[clamp(song.g[G_CTYPE], 0, 2)];
+    if (i == 1)
+        return GP[G_DTIME].names[clamp(song.g[G_DTIME], 0, GP[G_DTIME].max)];
+    return GP[G_RTYPE].names[clamp(song.g[G_RTYPE], 0, 4)];
+}
+
+/* ROUTING (4.0): the path the audio of the selected part really takes, drawn from the numbers the DSP reads.
+ *
+ *   PART (the engine's voices) -> DIST (the insert, track_dist) -> the three sends (P_CHOR, P_DLY, P_REV)
+ *        -> CHORUS / DELAY / REVERB buses (fx_buses) -> MASTER (EQ, WIDTH, clip, limiter) -> L / R
+ *
+ * Every figure on it is a live one, not a diagram's decoration: the insert and the sends are the part's own
+ * parameters, and each bus row carries two bars -- what the bus received this block (fx_vu[0..2], the peaks
+ * fx_buses measures from the sends) and what it returned (fx_vu[3..5]) -- so a send turned down shows its
+ * input collapsing and a bus that is not in the path reads zero because no audio reached it. The two bars at
+ * the foot are the same master peaks the MIXER and the WAVES page draw (fx_vu[6..7]).
+ *
+ * The rail on the left is the flow: one stage a row, the chain read top to bottom across both passes. */
+static void hv_route(const track_t *t, uint16_t c)
+{
+    static const char *const SL[3] = {"CHORUS", "DELAY", "REVERB"};
+    char b[24];
+    const engine_t *e = ENGINES[t->eng_req % NENGINES];
+    uint32_t i;
+
+    /* ---- pass 0: the part, its insert, its three sends ---- */
+    cv_text(14, 30, &AF_S, "ROUTING", T_THEME);
+    b[0] = 'T';
+    fmt_int(b + 1, (int32_t)song.sel + 1);
+    hv_cat(b, " ", sizeof b);
+    hv_sound_name(t, b + str_len(b));
+    cv_text_r(226, 30, &AF_S, b, c, T_SURF);
+    cv_rect(14, 41, 212, 1, T_LINE);
+    cv_rect(10, 44, 1, 68, T_LINE);                    /* the rail: one stage a row, read downwards */
+
+    cv_text(14, 46, &AF_S, "PART", T_DIM);
+    cv_rect(10, 48, 5, 1, c);
+    cv_text(72, 46, &AF_S, e->name, T_TEXT);
+    {   char q[12];
+        fmt_int(q, (int32_t)hv_voices(t));
+        hv_cat(q, " VOICES", sizeof q);
+        cv_text_r(226, 46, &AF_S, q, T_MID, T_SURF);
+    }
+
+    cv_text(14, 56, &AF_S, "INSERT", T_DIM);
+    cv_rect(10, 58, 5, 1, t->p[P_DIST] ? c : T_RAISE);
+    {   char q[24];
+        int32_t d = clamp(t->p[P_DIST], 0, 127);
+        if (d) {                                       /* DIST is an insert: 0 is a bypass, not a quiet drive */
+            str_cpy(q, "DIST ", sizeof q);
+            fmt_int(q + 5, d * 100 / 127);
+            hv_cat(q, "% ", sizeof q);
+            hv_cat(q, TP[P_DTYPE].names[clamp(t->p[P_DTYPE], 0, 3)], sizeof q);
+            cv_text(72, 56, &AF_S, q, T_TEXT);
+        } else
+            cv_text(72, 56, &AF_S, "BYPASS", T_MID);
+    }
+
+    cv_rect(14, 66, 212, 1, T_LINE);
+    cv_text(14, 70, &AF_S, "SENDS", T_THEME);
+    cv_text_r(226, 70, &AF_S, "0..127", T_DIM, T_SURF);
+    for (i = 0; i < 3u; i++) {                         /* the three sends, as the DSP reads them */
+        int32_t y = 80 + (int32_t)i * 11, v = clamp(t->p[P_CHOR + (int32_t)i], 0, 127);
+        cv_text(16, y, &AF_S, SL[i], T_DIM);
+        cv_rect(10, y + 2, 5, 1, v ? c : T_RAISE);
+        hv_seg(72, y + 1, 108, 6, v, 127, 12, v ? c : T_RAISE, T_RAISE);
+        fmt_int(b, v * 100 / 127);
+        hv_cat(b, "%", sizeof b);
+        cv_text_r(226, y, &AF_S, b, v ? T_TEXT : T_DIM, T_SURF);
+    }
+
+    /* ---- pass 1: the buses and what each of them returns, then the master and the out ---- */
+    cv_rect(10, 26, 1, 70, T_LINE);                    /* the rail, continued */
+    cv_text(14, 118, &AF_S, "BUSES", T_THEME);
+    cv_text_r(226, 118, &AF_S, "IN > OUT", T_DIM, T_SURF);
+    cv_rect(14, 131, 212, 1, T_LINE);
+    for (i = 0; i < 3u; i++) {
+        int32_t y = 136 + (int32_t)i * 14;
+        int32_t in = (int32_t)((uint32_t)fx_vu[i] * 100u / 32767u);
+        int32_t out = (int32_t)((uint32_t)fx_vu[3u + i] * 100u / 32767u);
+        cv_text(16, y, &AF_S, SL[i], T_DIM);
+        cv_rect(10, y + 2, 5, 1, out ? c : T_RAISE);
+        hv_seg(60, y + 1, 44, 6, in, 100, 8, T_MID, T_RAISE);      /* what the bus was sent */
+        cv_text(108, y, &AF_S, ">", T_DIM);
+        hv_seg(118, y + 1, 44, 6, out, 100, 8, c, T_RAISE);        /* what it gave back */
+        cv_text_r(226, y, &AF_S, hv_route_name(i), T_MID, T_SURF);
+    }
+
+    cv_text(14, 176, &AF_S, "MASTER", T_DIM);
+    {   char q[24];
+        int32_t g = clamp(song.g[G_EQGAIN], -24, 24);
+        str_cpy(q, "EQ ", sizeof q);
+        hv_cat(q, GP[G_EQMODE].names[clamp(song.g[G_EQMODE], 0, 4)], sizeof q);
+        if (song.g[G_EQMODE]) {
+            hv_cat(q, g < 0 ? "-" : "+", sizeof q);
+            fmt_int(q + str_len(q), g < 0 ? -g : g);
+        }
+        hv_cat(q, "   W", sizeof q);
+        fmt_int(q + str_len(q), clamp(song.g[G_MWIDTH], 0, 127));
+        hv_cat(q, "   LIM", sizeof q);
+        cv_text(72, 176, &AF_S, q, T_TEXT);
+    }
+    cv_text(14, 188, &AF_S, "OUT", T_DIM);
+    {   int32_t l = (int32_t)((uint32_t)fx_vu[6] * 100u / 32767u);
+        int32_t r = (int32_t)((uint32_t)fx_vu[7] * 100u / 32767u);
+        cv_text(40, 188, &AF_S, "L", T_DIM);
+        hv_seg(50, 189, 72, 6, l, 100, 12, c, T_RAISE);
+        cv_text(132, 188, &AF_S, "R", T_DIM);
+        hv_seg(142, 189, 72, 6, r, 100, 12, T_THEME, T_RAISE);
+    }
+}
+
 /* the screen HOME is showing (HV_OVERVIEW, HV_MIX, HV_SYSTEM): one 240 x 176 body in two 88-row passes */
 static void graph_home_view(uint16_t c)
 {
@@ -538,6 +654,8 @@ static void graph_home_view(uint16_t c)
             hv_engine(TSEL, c);
         else if (ui.home_view == HV_MOD)
             hv_mod(TSEL, c);
+        else if (ui.home_view == HV_ROUT)
+            hv_route(TSEL, c);
         else
             hv_system(c);
         cv_blit(0, (uint32_t)top_y);

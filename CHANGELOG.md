@@ -1,3 +1,40 @@
+## 2026-11-12 — FASE 4/5: FX, ruteo, secuenciador y herramientas musicales
+
+- **FLANGER, el tercer `CHORUS > TYPE`**. Usa la línea del chorus con un retardo corto barrido (48..302
+  muestras, 1,1..6,8 ms según DEPTH) y **realimentación 0,6 dentro de la línea**: los notches del peine en
+  múltiplos impares de `1/(2d)` son el «jet». **0 B de RAM nueva** y **0 B de flash**: el tap y el LFO ya
+  estaban, y cuesta **dos productos por muestra**, menos que los tres taps del ensemble. Medido en host x86:
+  peine de **12,0 dB**, pico **7 033** (Q15) —estable—, los notches se mueven con el barrido. En el proyecto
+  el `TYPE` pasa a **dos bits** (bits 1..2 del bloque `DT`): un proyecto viejo se lee igual y un firmware
+  anterior lee `FLANGER` como `PHASER`, nunca como silencio.
+- **Una sola balística de medidores**. La página FX traía su propia caída (1 px por frame) mientras
+  `fx_meter_step()` —ataque inmediato, un cuarto por frame, 30 frames de retención— sólo existía para su
+  prueba. Ahora la usa también la página FX: **una** ley para todas las barras y **un** origen por medidor
+  (`fx_vu[0..5]` para los buses, `fx_vu[6..7]` y `trk[].peak` como en HOME). No quedó medidor duplicado.
+- **ROUTING, la novena pantalla de HOME** (`HV_ROUT`, el pie cuenta `/9` en vez de llevar `/8` escrito a mano).
+  Dibuja el recorrido real —PARTE → INSERT (`DIST`) → los tres envíos → CHORUS / DELAY / REVERB → MASTER (EQ,
+  W, LIM) → OUT— con las cifras que el DSP lee: cada bus muestra **lo que se le envió** (`fx_vu[0..2]`) y **lo
+  que devolvió** (`fx_vu[3..5]`), y el pie, los dos picos del master. Una barra oscura es que no pasó audio.
+- **El ruteo, medido**: `tests/fx_probe.c` alimenta sólo el bus de chorus y llama a `fx_buses()` 40 bloques:
+  `in 11999 / 0 / 0 → out 9060 / 0 / 0`. El envío alimentado levanta su medidor y ningún otro, su bus devuelve
+  audio, y un bus sin envíos no devuelve nada.
+- **Evaluación de los otros quince efectos** (`docs/QG_PHASE_4_MUSICAL_TOOLS.md` §2.3): once ya existían con
+  otro nombre (tremolo y vibrato son destinos del LFO; compresor y limitador, el master; shimmer, `G_RTYPE`;
+  tape y overdrive, `DIST > TYPE`), uno se agregó, y los que piden memoria que acá no se puede medir
+  (frequency shifter, reverse delay) quedaron **descartados con su razón**, no a medias.
+- **Auditoría del secuenciador** (§4): probabilidad, condiciones `WHEN A/B`, ratchets, `MUTATE`, automatización
+  y `AUTO LIST`, escenas por fila de canción, macros y punch-in ya están, cada uno con la prueba que lo cubre.
+  Las tres carencias reales —fills a demanda, recall de escena desde SEQ, punch-in a mano desde las teclas
+  negras— quedan planteadas con su costo: las tres cambian el mapeo de teclas o el formato del proyecto.
+- **Herramientas musicales** (§5): escalas, `CHORD`, `VOICING`, `INTERVAL`, `PROG` y `KEYS` ya cubren lo que
+  el pedido enumera; la encuesta de JIANT, X0X, Optimist, Melodee y Jangada (todas GPL-3.0) deja dicho qué se
+  tomó, qué ya estaba y qué se descartó (los 70 scales, el círculo de quintas, el sampler).
+- **Pruebas**: `tests/fx_probe.c` suma el peine del flanger y el ruteo; `tests/fx_bench.c` suma una tercera
+  escena con el chorus en FLANGER para medirlo contra el ensemble en la misma corrida; `tests/ui_render.c`
+  renderiza la pantalla nueva (**192 pantallas × 22 paletas, 0 hallazgos de lint, 0 desviaciones en 3 164 009
+  medidas de alineación**); `tests/ui_test.c` recorre las nueve pantallas de HOME y comprueba que ROUTING no
+  toca página, parámetro ni sonido. Sin placa ni toolchain AC791N: nada de esto es `[TARGET]`.
+
 ## 2026-11-12 — FASE 3/5: motores, auditoría y un motor nuevo (WTABLE)
 
 - **WTABLE, el motor 14**: un oscilador de tabla de una sola ciclo con morphing. Ocho fotogramas (SINE,

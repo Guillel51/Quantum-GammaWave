@@ -875,7 +875,9 @@ static int proj_pack(project_store_t *out, const project_t *q)
     if (q->g[G_DTYPE] || q->g[G_DPING] || q->g[G_CTYPE]) {   /* (0.6.90) the delay's TYPE, PING-PONG; (QG-1) the chorus's
                                                          * TYPE in bit 1 (a firmware before it reads bit 0 only) */
         b[pos++] = 'D'; b[pos++] = 'T';
-        b[pos++] = (uint8_t)(clamp(q->g[G_DTYPE], 0, 1) | clamp(q->g[G_CTYPE], 0, 1) << 1);
+        b[pos++] = (uint8_t)(clamp(q->g[G_DTYPE], 0, 1) | clamp(q->g[G_CTYPE], 0, 3) << 1);   /* (4.0) TYPE in bits 1..2:
+                                     * 0 ensemble, 1 phaser, 2 flanger; bit 1 alone still reads as the old
+                                     * two values, so a project from before 4.0 loads as it did */
         b[pos++] = (uint8_t)clamp(q->g[G_DPING], 0, 1);
     }
     for (i = 0; i < sizeof q->dx_mdl && !q->dx_mdl[i]; i++)
@@ -1113,7 +1115,8 @@ static int proj_unpack_c(project_t *q, const uint8_t *b)
     }
     if (pos + 4u <= room && b[pos] == 'D' && b[pos + 1u] == 'T') {   /* (0.6.90) its TYPE, PING-PONG (else ANALOG, OFF) */
         q->g[G_DTYPE] = (int16_t)(b[pos + 2u] & 1u);
-        q->g[G_CTYPE] = (int16_t)(b[pos + 2u] >> 1 & 1u);
+        q->g[G_CTYPE] = (int16_t)(b[pos + 2u] >> 1 & 3u);   /* (4.0) FLANGER is 2; an older firmware reads that
+                                                            * byte as PHASER (bit 1), not as silence */
         q->g[G_DPING] = (int16_t)(b[pos + 3u] & 1u);
         pos += 4u;
     }

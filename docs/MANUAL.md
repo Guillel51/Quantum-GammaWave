@@ -229,7 +229,7 @@ repeat sounding right now is marked, and the fall of the bars is FEEDBK's own.
 | DLY 3 | TYPE (ANALOG / DIGITAL) | PING (OFF / ON) | — | — |
 | REVERB | TYPE | SIZE | DAMP (RESO: FOLLOW) | PRE (SHIMMER/CLOUD: AIR; RESO: PITCH) |
 | REVERB 2 | MOD | RATE | FILT | WIDE |
-| CHORUS | RATE | DEPTH | STEREO | — |
+| CHORUS | RATE | DEPTH | STEREO | TYPE (CHORUS / PHASER / FLANGER) |
 | MASTER | CLIP | PUNCH | DUCK | REL |
 
 **SCL**
@@ -1093,7 +1093,10 @@ The settings stay; the TYPE card shows LITE or ECO under its value.
 
 ### Chorus
 
-**CHORUS**: RATE, DEPTH, **STEREO** (0 as always, down to mono, up to about twice as wide). Hidden with LOAD ECO
+**CHORUS**: RATE, DEPTH, **STEREO** (0 as always, down to mono, up to about twice as wide) and **TYPE**: `CHORUS`
+(the three-tap ensemble), `PHASER` (six swept all-passes, the notches inside the bus) or `FLANGER` (since phase 4/5:
+the same line read at a short 1.1..6.8 ms delay, swept, with feedback — the travelling comb, lighter than the
+ensemble). Hidden with LOAD ECO
 (a track's chorus send card then says ECO).
 
 ### MASTER

@@ -167,6 +167,12 @@ número de cada pista con una barra de nivel; la seleccionada se resalta, una mu
 
 Los **diálogos** preguntan antes de cualquier cosa destructiva: **OCT− NO**, **OCT+ YES**.
 
+Cada toque en **HOME** recorre sus nueve pantallas (el pie las cuenta: `HOME 3/9`): el ecosistema, el visualizador,
+**OVERVIEW**, **MIXER**, **PERFORMANCE**, **ENGINE**, **MOD**, **SYSTEM** y, desde la fase 4/5, **ROUTING**: el
+recorrido de la señal de la pista seleccionada —PARTE → INSERT (`DIST`) → los tres envíos → los buses CHORUS, DELAY
+y REVERB con lo que entró y lo que volvió → MASTER (EQ, ancho, limitador) → OUT—, todo con las cifras que el audio
+está produciendo en ese momento.
+
 ---
 
 ## 3. Páginas y capas
@@ -229,7 +235,7 @@ a la derecha); apretá OCT+ para ejecutarla.
 | DLY 3 | TYPE (ANALOG / DIGITAL) | PING (OFF / ON) | — | — |
 | REVERB | TYPE | SIZE | DAMP (RESO: FOLLOW) | PRE (SHIMMER/CLOUD: AIR; RESO: PITCH) |
 | REVERB 2 | MOD | RATE | FILT | WIDE |
-| CHORUS | RATE | DEPTH | STEREO | — |
+| CHORUS | RATE | DEPTH | STEREO | TYPE (CHORUS / PHASER / FLANGER) |
 | MASTER | CLIP | PUNCH | DUCK | REL |
 
 **SCL**
@@ -1158,7 +1164,10 @@ SPRING. La configuración se conserva; la tarjeta TYPE muestra LITE o ECO debajo
 ### Chorus
 
 **CHORUS**: RATE, DEPTH, **STEREO** (0 como siempre, hacia abajo hasta mono, hacia arriba hasta casi el doble de
-ancho). Se oculta con LOAD ECO (la tarjeta de envío de chorus de una pista dice entonces ECO).
+ancho) y **TYPE**: `CHORUS` (el ensemble de tres taps), `PHASER` (seis all-pass barridos, los notches dentro del
+bus) o `FLANGER` (desde la fase 4/5: la misma línea con un retardo corto de 1,1 a 6,8 ms barrido y realimentación,
+el peine que viaja, más liviano que el ensemble). Se oculta con LOAD ECO (la tarjeta de envío de chorus de una pista
+dice entonces ECO).
 
 ### MASTER
 

@@ -124,6 +124,90 @@ static void probe_phaser(void)
           " %d", (double)peak_delta, 0);
 }
 
+/* -------------------------------------------------------------- FLANGER ---
+ * (4.0) CHORUS > TYPE FLANGER: the same line read at 48 .. 302 samples, the output written back at 0.6.
+ * The probe drives the line exactly as the block does (cho_buf's write, cho_flanger's tap) and freezes the
+ * LFO; the gain across a log frequency sweep at each of eight positions is the comb the ear hears. Two
+ * things have to be true for it to be a flanger and not a louder chorus: the comb must have depth, and
+ * the notches must MOVE with the sweep. */
+static double flanger_gain_at(double hz, uint32_t p)
+{
+    int i;
+    double acc = 0;
+    memset(&fx, 0, sizeof fx);
+    memset(cho_buf, 0, sizeof cho_buf);
+    for (i = 0; i < 8192; i++) {                   /* 4096 to settle, 4096 measured */
+        int32_t x = (int32_t)(sin(PI2 * hz * i / FS) * 8000.0);
+        uint32_t ci = fx.cho_w & (CHO_LEN - 1u);
+        int32_t y;
+        cho_buf[ci] = (int16_t)clamp((x >> 1) + mulq15(fx.flg_fb, 19661), -32768, 32767);
+        y = cho_flanger(cho_buf, fx.cho_w, p, 127 * 512, &fx.flg_fb);
+        fx.cho_w++;
+        if (i >= 4096) acc += (double)y * y;
+    }
+    return sqrt(acc / 4096.0);
+}
+
+static void probe_flanger(void)
+{
+    double deepest = 0, hi_all = 0, first_notch = 0, last_notch = 0;
+    int p, f;
+    for (p = 0; p < 8; p++) {
+        uint32_t ph = (uint32_t)((uint64_t)p << 29);   /* a turn is 2^32: 8 positions */
+        double lo = 1e9, hi = 0, lo_hz = 0;
+        for (f = 0; f < 48; f++) {
+            double hz = 150.0 * pow(40.0, f / 47.0);   /* 150 Hz .. 6 kHz, log spaced */
+            double g = flanger_gain_at(hz, ph);
+            if (g < lo) { lo = g; lo_hz = hz; }
+            if (g > hi) hi = g;
+        }
+        if (20.0 * log10(hi / (lo + 1e-9)) > deepest) deepest = 20.0 * log10(hi / (lo + 1e-9));
+        if (hi > hi_all) hi_all = hi;
+        if (p == 0) first_notch = lo_hz;
+        if (p == 7) {
+            last_notch = lo_hz;
+            printf("       comb null at LFO 0: %.0f Hz; at LFO 7: %.0f Hz\n", first_notch, last_notch);
+        }
+    }
+    printf("       deepest comb %.1f dB; peak gain %.0f (Q15)\n", deepest, hi_all);
+    check("FLANGER: the comb has depth (>= 10 dB)", deepest >= 10.0, " %.1f dB", deepest, 0);
+    check("FLANGER: the comb stays bounded (0.6 feedback, no runaway)", hi_all < 40000, " %.0f", hi_all, 0);
+    /* the notches travel: a comb frozen in place is a static colour, not a flanger */
+    check("FLANGER: the null moves with the sweep (>= 20 % between LFO 0 and LFO 7)",
+          first_notch > 0 && (last_notch > first_notch ? last_notch / first_notch : first_notch / last_notch) >= 1.2,
+          " %.0f Hz", first_notch, last_notch);
+}
+
+/* ---------------------------------------------------------------- ROUTE ---
+ * (4.0) The ROUTING screen draws one path: a part's insert, its three sends, the three buses and the master.
+ * This probe walks the buses themselves (fx_buses, the function the audio ISR calls) to pin the two facts the
+ * screen claims: a send with audio in it raises that bus's own input meter and comes back out of it, and a bus
+ * nothing was sent to returns nothing -- so a dark bar means no audio crossed it, not that the display hid it. */
+static void probe_route(void)
+{
+    static int32_t ci[CTL], di[CTL], ri[CTL], wet[2 * CTL];
+    int b, i;
+    memset(&fx, 0, sizeof fx);
+    memset(trk, 0, sizeof trk);
+    song.g[G_CDEPTH] = 100;
+    song.g[G_CTYPE] = 0;
+    song.g[G_DMIX] = 64;
+    song.g[G_RSIZE] = 64;
+    song.g[G_RTYPE] = 0;
+    for (b = 0; b < 40; b++) {                      /* ~40 blocks: the chorus line fills, the meters settle */
+        for (i = 0; i < (int)CTL; i++) {
+            double t = ((double)b * CTL + (double)i) / FS;
+            ci[i] = (int32_t)(sin(PI2 * 440.0 * t) * 12000.0);   /* only the chorus bus is fed */
+            di[i] = ri[i] = 0;
+        }
+        fx_buses(ci, di, ri, wet, CTL);
+    }
+    printf("       in %d / %d / %d; out %d / %d / %d\n", fx_vu[0], fx_vu[1], fx_vu[2], fx_vu[3], fx_vu[4], fx_vu[5]);
+    check("ROUTE: a fed send raises its own input meter only", fx_vu[0] > 0 && !fx_vu[1] && !fx_vu[2], NULL, 0, 0);
+    check("ROUTE: the bus it feeds returns audio", fx_vu[3] > 0, " %d", (double)fx_vu[3], 0);
+    check("ROUTE: a bus nobody feeds returns nothing", !fx_vu[4] && !fx_vu[5], NULL, 0, 0);
+}
+
 /* ----------------------------------------------------------- M/S WIDTH ---
  * Two decorrelated sources, one hard left and one hard right, through master_out. At 64 the
  * width is bypassed; at 0 the sides are gone (mono); at 127 they are nearly doubled. The
@@ -290,6 +374,8 @@ int main(void)
     song.g[G_MWIDTH] = 64;
     printf("fx_probe: host x86, %.0f Hz\n\n", (double)FS);
     probe_phaser();
+    probe_flanger();
+    probe_route();
     probe_mwidth();
     probe_lowcut_all();
     probe_eq();
