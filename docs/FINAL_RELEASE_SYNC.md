@@ -16,7 +16,7 @@ instalador → release**, con la clase de cada comprobación y lo que queda pend
 |---|---|
 | Versión | **v2.9.0** (`FELUCCA_VERSION` en `firmware/src/felucca.c`) |
 | Commit del código | **`0f40f7cccafad6037e27165b3de6b9b5c0ffa55a`** (`0f40f7c`) |
-| Commit de la entrega | el que añade los artefactos de `release/` y este informe (su hash está en `git log`) |
+| Commit de la entrega | **`be3d2f7c04dd50a51e6a3771400bed1ebc56e6ad`** (`be3d2f7`) — es el que etiqueta CI como `v2.9.0` |
 | Identidad | **`FM-1_965`**; loader `ota-FM-1_965` |
 | Paquete | `release/felucca-v2.9.0.fwsc`, **610 959 B**, sha256 **`edd2a23f59d513c20c286f11b0f55d0b75519fe7a24afe63bba1dd7334b4ac1b`** |
 | Imagen de la app | `felucca.bin`, 574 984 B, sha256 `f2cfa6637e50a86589dfbe5e845590b76945db06170eb67639cb1e1f7eece582` |
@@ -99,8 +99,11 @@ Con este commit, la raíz pasa a servir `v2.9.0` desde `0f40f7c`.
 
 * Verificado acá: el espejo `site/` que genera `web/make_site.py` declara `"version": "2.9.0"` en el
   portal, en el instalador y en el editor, y `firmware/versions.json` encabeza 2.9.0 con su SHA-256.
-* **Pendiente de confirmar**: que `https://guillel51.github.io/Quantum-GammaWave/` sirva esa versión,
-  lo que sólo se puede leer después de que corra el workflow de Pages para este commit.
+* **Verificado en el origen publicado** (2026-11-12 20:07 UTC, leyendo la URL real):
+  `firmware/versions.json` de `https://guillel51.github.io/Quantum-GammaWave/` encabeza
+  **`v2.9.0-0f40f7c`** con sha256 `edd2a23f…` y 610 959 B, y el portal sirve las nueve imágenes nuevas
+  (`fw-home`, `fw-routing`, `fw-matrix`, `fw-browser`, `fw-fx`, `fw-master`, `fw-mixer`, `fw-presets`,
+  `fw-visualizer`). El portal y el instalador publicados muestran `2.9.0`.
 
 ## 6. Estado del instalador
 
@@ -122,6 +125,9 @@ Con este commit, la raíz pasa a servir `v2.9.0` desde `0f40f7c`.
   la canción pesada dos veces con las mismas muestras y mide **2,6 % de tiempo real**.
 * Sin caché que pueda mentir: el sitio publica el wasm con el nombre del build y su `manifest.json`, y
   `tools/site_check.py` (en CI) compara commit del manifiesto y bytes contra el origen publicado.
+* **Verificado en el origen publicado**: `https://guillel51.github.io/Quantum-GammaWave/emulator/manifest.json`
+  dice `v2.9.0`, commit `0f40f7cccafa`, wasm **1 196 427 B** sha256 **`8565c2ec…`** — los mismos bytes
+  que el build local de este informe.
 
 ## 8. Estado de la release
 
@@ -130,9 +136,15 @@ Con este commit, la raíz pasa a servir `v2.9.0` desde `0f40f7c`.
 * La release de GitHub la crea el workflow compartido `zvenson/fm1-build/.github/workflows/build.yml`
   (pineado al commit del tag `v1`), que compila, firma la atestación y sube el `.fwsc`; el job `verify`
   del mismo workflow descarga esos bytes y corre `gh attestation verify` contra el workflow firmante.
-* **Pendiente de confirmar**: que el asset publicado tenga el mismo SHA-256 que el paquete construido acá
-  (`edd2a23f…`). Las entradas son las mismas (toolchain, SDK, emcc y árbol limpio), así que la
-  reproducibilidad es esperable, pero **no se declara verificada hasta leer el asset**.
+* **Publicado y verificado** (2026-11-12 20:08 UTC): el release `v2.9.0` existe
+  (<https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v2.9.0>), su tag apunta a `be3d2f7` —el
+  commit que lleva el paquete— y el asset descargado de la URL pública tiene
+  **sha256 `edd2a23f59d513c20c286f11b0f55d0b75519fe7a24afe63bba1dd7334b4ac1b`, 610 959 B**, exactamente
+  los bytes construidos en este árbol: el mismo código y las mismas entradas dieron el mismo paquete en
+  dos entornos distintos.
+* **Pendiente**: leer el resultado de la atestación desde aquí (`gh` sin subcomando `attestation` y sin
+  sesión). El asset se publicó con `actions/attest-build-provenance@v2`, y el job `verify` del workflow
+  de release comprueba esa atestación en el tag.
 
 ## 9. Verificaciones ejecutadas (2026-11-12, en este entorno)
 
@@ -147,6 +159,10 @@ Con este commit, la raíz pasa a servir `v2.9.0` desde `0f40f7c`.
 | `node web/test_pkg_bounds.mjs` | host | pasa |
 | `node web/test_provenance.mjs` | host | pasa |
 | `web/make_site.py` sobre el paquete de release | generación del sitio | portal + instalador (247 176 B) + editor + `firmware/felucca-2.9.0.fwsc` con su registro |
+| `tools/fm1_sign.py verify` del paquete contra su manifiesto | artefacto | `verified (integrity only, unsigned: SHA-256 model)`, rc=0 |
+| descarga del asset público del release `v2.9.0` | red | 610 959 B, sha256 `edd2a23f…` — idéntico al build local |
+| `firmware/versions.json` del sitio publicado | red | `v2.9.0-0f40f7c`, sha256 `edd2a23f…`, 610 959 B |
+| `emulator/manifest.json` del sitio publicado | red | `v2.9.0`, commit `0f40f7c`, wasm `8565c2ec…`, 1 196 427 B |
 
 **No ejecutado acá**: la suite completa `NO_PACKAGE=1 ./tests/run_tests.sh` (13–15 min, no cabe en el
 límite de 5 minutos por comando; corrió entera en la fase 4 sobre el código base y este cambio no toca
@@ -157,8 +173,8 @@ cualquier prueba sobre hardware.
 
 | Pendiente | Motivo | Qué lo cierra |
 |---|---|---|
-| Confirmar el asset de la release y su atestación | se publica en CI al empujar el tag; la atestación no se puede verificar acá | el job `verify` en el tag `v2.9.0`, o `gh attestation verify` desde una máquina con `gh` y token |
-| Que Pages sirva v2.9.0 en la raíz | depende del workflow de Pages para este commit | el chequeo de `tools/site_check.py` que corre al final del deploy |
+| Leer la atestación del asset publicado | el `gh` de este entorno no tiene el subcomando `attestation` y no hay sesión; no se escribe ningún token | el job `verify` en el tag `v2.9.0`, o `gh attestation verify` desde una máquina con `gh` y token |
+| Rama remota `v2.9.0` sobrante | el push autenticado del entorno publica ramas, no tags: la primera tentativa creó una rama con el nombre del tag antes de que CI creara el tag real | borrarla con `git push origin --delete v2.9.0` (no hay credencial de borrado en este entorno; la rama no afecta ni al tag ni al release) |
 | Instalación desde V15, desde otro firmware, salida hacia otro, identidad USB, interrupción/reanudación | exigen una unidad física y el FM-1 del dueño no se escribe | las cinco pruebas de `docs/FM1_HUB_READINESS.md` §7 |
 | JEDEC real de la unidad | no hay lectura de hardware | `docs/FLASH_READER.md` sobre una unidad |
 | Listado en The Firmware Hub | el Hub decide; no hay confirmación oficial | respuesta de Sven |
