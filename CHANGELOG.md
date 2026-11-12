@@ -1,3 +1,8 @@
+## 2026-11-12 — v2.8.1: the boot is 0.8 s shorter
+
+- **Boot**: the splash's hold drops from 3.6 s to 2.8 s (total 5.3 s instead of 6.1 s). The 2.5 s signature write is untouched, so only the wait after it shrinks — the animation is the same, the instrument answers sooner. `MENU > STARTUP SPLASH` SHORT/OFF work as before.
+- **Tests**: `ui_render` splash timeline re-measured; host suite unchanged.
+
 ## 2026-11-12 — v2.7.6: the EXTRA tab answers, and the delay shows its train
 
 - **MENU > EXTRA**: under its rows it now says which cores are running (`CORES 1` / `CORES 2`, from fx.c `mc_status()`, the same line ABOUT shows), the audio ISR's own load (`CPU n%`) and, in the corner, when CPU MODE applies (`NEXT POWER-ON`). It did work — main.c reads it before core 1 starts — but a setting that changes nothing until the next power-on reads as a dead row, which is exactly what it looked like.
