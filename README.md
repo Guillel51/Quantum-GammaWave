@@ -57,16 +57,16 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 | | **HOME** | **EDIT: ANALOG** | **FM6** |
 |---|---|---|---|
-| **Row 1** | `![](assets/screenshots/quantum_01_home.png)` | `![](assets/screenshots/quantum_02_edit_analog.png)` | `![](assets/screenshots/quantum_03_fm6_algorithm.png)` |
-| **Row 2** | `![](assets/screenshots/quantum_04_track_map.png)` | `![](assets/screenshots/quantum_05_sequencer.png)` | `![](assets/screenshots/quantum_06_seq_roll.png)` |
-| **Row 3** | `![](assets/screenshots/quantum_07_drum_x.png)` | `![](assets/screenshots/quantum_08_drum_morph.png)` | `![](assets/screenshots/quantum_09_macro_layer.png)` |
-| **Row 4** | `![](assets/screenshots/quantum_10_motion_seq.png)` | `![](assets/screenshots/quantum_11_punch_in_fx.png)` | `![](assets/screenshots/quantum_12_fx_rack.png)` |
-| **Row 5** | `![](assets/screenshots/quantum_13_mixer.png)` | `![](assets/screenshots/quantum_14_song_chains.png)` | `![](assets/screenshots/quantum_15_scales_chords.png)` |
-| **Row 6** | `![](assets/screenshots/quantum_16_modern_arp.png)` | `![](assets/screenshots/quantum_17_motion_locks.png)` | `![](assets/screenshots/quantum_18_fullscreen_visualizer.png)` |
-| **Row 7** | `![](assets/screenshots/quantum_19_project_slots.png)` | `![](assets/screenshots/quantum_20_harmonic_performance.png)` | `![](assets/screenshots/quantum_21_master_eq.png)` |
-| **Row 8** | `![](assets/screenshots/quantum_22_transient_presets.png)` | `![](assets/screenshots/quantum_23_glo2_telemetry.png)` | `![](assets/screenshots/quantum_24_about_credits.png)` |
-| **Row 9** | `![](assets/screenshots/quantum_25_master_bus.png)` | `![](assets/screenshots/quantum_26_boot_splash.png)` | `![](assets/screenshots/quantum_27_delay_bars.png)` |
-| **Row 10** | `![](assets/screenshots/quantum_28_reverb_reso.png)` | `![](assets/screenshots/quantum_29_reverb_cloud.png)` | `![](assets/screenshots/quantum_30_punch_in_latch.png)` |
+| **Row 1** | ![](assets/screenshots/quantum_01_home.png) | ![](assets/screenshots/quantum_02_edit_analog.png) | ![](assets/screenshots/quantum_03_fm6_algorithm.png) |
+| **Row 2** | ![](assets/screenshots/quantum_04_track_map.png) | ![](assets/screenshots/quantum_05_sequencer.png) | ![](assets/screenshots/quantum_06_seq_roll.png) |
+| **Row 3** | ![](assets/screenshots/quantum_07_drum_x.png) | ![](assets/screenshots/quantum_08_drum_morph.png) | ![](assets/screenshots/quantum_09_macro_layer.png) |
+| **Row 4** | ![](assets/screenshots/quantum_10_motion_seq.png) | ![](assets/screenshots/quantum_11_punch_in_fx.png) | ![](assets/screenshots/quantum_12_fx_rack.png) |
+| **Row 5** | ![](assets/screenshots/quantum_13_mixer.png) | ![](assets/screenshots/quantum_14_song_chains.png) | ![](assets/screenshots/quantum_15_scales_chords.png) |
+| **Row 6** | ![](assets/screenshots/quantum_16_modern_arp.png) | ![](assets/screenshots/quantum_17_motion_locks.png) | ![](assets/screenshots/quantum_18_fullscreen_visualizer.png) |
+| **Row 7** | ![](assets/screenshots/quantum_19_project_slots.png) | ![](assets/screenshots/quantum_20_harmonic_performance.png) | ![](assets/screenshots/quantum_21_master_eq.png) |
+| **Row 8** | ![](assets/screenshots/quantum_22_transient_presets.png) | ![](assets/screenshots/quantum_23_glo2_telemetry.png) | ![](assets/screenshots/quantum_24_about_credits.png) |
+| **Row 9** | ![](assets/screenshots/quantum_25_master_bus.png) | ![](assets/screenshots/quantum_26_boot_splash.png) | ![](assets/screenshots/quantum_27_delay_bars.png) |
+| **Row 10** | ![](assets/screenshots/quantum_28_reverb_reso.png) | ![](assets/screenshots/quantum_29_reverb_cloud.png) | ![](assets/screenshots/quantum_30_punch_in_latch.png) |
 
 *All 30 screenshots rendered from the firmware at 240×240, scaled ×3 for GitHub display. Original PNGs reside in `assets/screenshots/`.*
 
