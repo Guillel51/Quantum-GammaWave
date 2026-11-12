@@ -1688,3 +1688,31 @@ describes the directory. Verified locally both ways: on this tree it reports
 `<<<<<<< HEAD` and one appended byte to the package it reports the marker at the right line, the hash and size
 mismatch and the site hash mismatch, exit 1. The workflow's own run log is not readable from here (no Actions
 API credential), so the job's status is **not** claimed — the script it runs is what was verified.
+
+---
+
+## Fase 6 — auditoría final de seguridad (2026-11-12, HEAD `00f3772`)
+
+Detalle completo, hallazgos y riesgos en [`docs/QG_FINAL_SECURITY_AUDIT.md`](QG_FINAL_SECURITY_AUDIT.md).
+
+| Requisito de la matriz | Estado | Evidencia | Clase | Riesgo residual |
+|---|---|---|---|---|
+| Build AC791N reproducible | **GO** | `build.sh --release 2.7.5` dos veces, commits distintos, bytes idénticos (`felucca.bin` `6c3a77e6…`, `.fwsc` `772f0dae…`); toolchain contra el sha256 fijado | `[TARGET]` | el compilador es de un tercero (JieLi) |
+| Paquete QG completo | **GO** | `felucca-2.7.5.fwsc` 610 959 B, identidad `FM-1_965`, `test_pkg_bounds`, `test_pkg_faults`, `install_test` (imagen lógica == `fm1pkg.js`) | `[HOST]` | — |
+| Integridad SHA-256 + tamaño | **GO** | `release/SHA256SUMS` regenerado (58 entradas, `sha256sum -c` limpio), manifiesto `qg1-release-1` con `sha256`/`size`/`version`, `fm1_sign.py verify` | `[HOST]` | sin autenticidad (Ed25519 histórico) |
+| Trazabilidad (attestation) | **PENDIENTE** | el workflow la produce (`attest-build-provenance@v2`); su corrida no es legible desde aquí | — | no verificada |
+| Identidad de la unidad | **NO-GO** | no hay unidad | — | falta lectura real |
+| JEDEC y geometría reales | **NO-GO** | allowlist `0x856014` / `0xB36014`, unknowns rechazados, todo simulado | `[JEDEC]`/`[SIM]` | falta lectura por unidad |
+| Compatibilidad de escritura | **NO-GO** | loader con `_Static_assert` de ventana, `ldr_test` con cortes de alimentación y reanudación | `[SIM]` | falta escritura real |
+| Mapa de memoria aplicable | **GO** | `.data+.bss` 87 696/98 304, pool spare 15 392, RAM code 19 304/24 576 | `[TARGET]` | `memory_map_test` se saltea sin `.elf` |
+| Backup verificado | **NO-GO** | `tests/backup_test.py`, `web/test_backup.mjs` verdes; ninguna copia de una unidad | `[HOST]`/`[SIM]` | falta unidad |
+| Recuperación demostrada | **NO-GO** | camino de retorno probado en simulación; nunca ejecutado en silicio | `[SIM]` | falta unidad |
+| Rutas de escritura protegidas | **GO** | `FL_RANGE_OK` + 5 `_Static_assert` que rompen el build; `test_verify_only` (153 checks, cero frames de escritura) | `[HOST]`/`[SIM]` | — |
+| Estabilidad y stress | **PARCIAL** | ASan/UBSan, dos fuzzers, 220 dorados, reanudación tras 5 cortes | `[HOST]`/`[SIM]` | nada en silicio |
+| RAM/CPU con margen | **GO** | 39 entradas de `target_budget.py` en presupuesto | `[TARGET]` | coste modelado, no medido en tiempo |
+| Sincronía instalador/emulador/sitio | **GO** | `coherence_check.py` ok (923 archivos), `site_check.py`, `test_site.py` (0 FAILED) | `[HOST]` | — |
+| Revalidación post-instalación | **NO-GO** | no hay instalación | — | falta unidad |
+| **Gate del instalador** | **NO-GO** | todo lo anterior: la página sigue en Verify Only, `install.auth = none` | — | **no instalar** |
+
+Nota de método: un requisito con evidencia `[SIM]` o `[JEDEC]` **no** se marca GO aunque su código esté completo;
+esa fue la regla de esta fase y es la razón por la que el veredicto no es "listo".
