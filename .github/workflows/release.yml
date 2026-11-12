@@ -9,7 +9,10 @@ on:
   workflow_dispatch:
 jobs:
   build:
-    uses: zvenson/fm1-build/.github/workflows/build.yml@v1
+    # pinned to the commit v1 pointed at on 2026-10-18 (85a003ab): a tag is a mutable ref in someone else's
+    # repository, and this job hands it contents:write, id-token:write and the release itself. Bump the sha
+    # deliberately, after reading the diff, never by moving a tag.
+    uses: zvenson/fm1-build/.github/workflows/build.yml@85a003ab455b1c074b0bd6d7c282c096a464b973
     permissions:
       contents: write
       id-token: write

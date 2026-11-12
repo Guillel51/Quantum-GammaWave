@@ -156,14 +156,20 @@ def check_sums(root, problems):
         problems.append("release/SHA256SUMS is missing")
         return
     with open(path, encoding="utf-8") as f:
-        for line in f:
+        for no, line in enumerate(f, 1):
             line = line.strip()
             if not line:
                 continue
-            digest, _, name = line.partition("  ")
+            digest, sep, name = line.partition("  ")
+            # a line that is not `<64 hex>  <name>` is not an entry: it is damage, and naming it as such is the
+            # whole point. This used to fall through to sha256(), which raised IsADirectoryError on the bare
+            # "=======" of a committed merge marker instead of saying what was wrong.
+            if not sep or not re.fullmatch(r"[0-9a-f]{64}", digest) or not name or "/" in name or name.startswith("."):
+                problems.append(f"SHA256SUMS:{no}: not a `sha256sum` line: {line[:40]}")
+                continue
             target = os.path.join(root, "release", name)
-            if not os.path.exists(target):
-                problems.append(f"SHA256SUMS names {name}, which is not in release/")
+            if not os.path.isfile(target):
+                problems.append(f"SHA256SUMS names {name}, which is not a file in release/")
             elif sha256(target) != digest:
                 problems.append(f"SHA256SUMS says {digest[:16]}… for {name}, the file hashes differently")
 
