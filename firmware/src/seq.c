@@ -475,13 +475,13 @@ static void arp_off(track_t *t)                  /* the sounding arp note(s) end
 }
 
 /* the place in the note list (len notes) the step arp_idx plays (not inlined, as arp_chord); UP+8 adds its note */
-static __attribute__((noinline)) uint32_t arp_pick(track_t *t, uint32_t *list, uint32_t len)
+/* the index in the note list a step i takes, for every mode that can be known before it plays. arp_pick
+ * and the ARP screen (ui_graph.c graph_arp) both call this, so the route the screen marks is the one the
+ * sequencer took: one formula, not two copies that can drift. RND and WALK stay in arp_pick (they need the
+ * generator and the walk's state), and CHORD plays the list together. */
+static uint32_t arp_step_index(uint32_t m, uint32_t i, uint32_t len)
 {
-    uint32_t i = t->arp_idx, m = (uint32_t)t->p[P_AMODE], cyc, k, w;
-    if (m == AM_UP8 && len < 64u)                   /* UP+8: the first note again over the top */
-        list[len++] = (uint32_t)clamp((int32_t)list[0] + 12 * t->p[P_AOCT], 0, 127);
-    cyc = len > 1u ? 2u * len - 2u : 1u;
-    k = i % cyc;
+    uint32_t cyc = len > 1u ? 2u * len - 2u : 1u, k = i % cyc;
     switch (m) {
     case AM_DN:
         return len - 1u - i % len;
@@ -489,8 +489,6 @@ static __attribute__((noinline)) uint32_t arp_pick(track_t *t, uint32_t *list, u
         return k < len ? k : cyc - k;
     case AM_DNUP:
         return k < len ? len - 1u - k : k - (len - 1u);
-    case AM_RND:
-        return rng() % len;
     case AM_CONV:
     case AM_DIVG:
         k = i % len;
@@ -501,7 +499,18 @@ static __attribute__((noinline)) uint32_t arp_pick(track_t *t, uint32_t *list, u
         return len < 2u ? 0u : (k & 1u) ? len - 1u : k / 2u;
     case AM_THUMB:
         return len < 2u ? 0u : (k & 1u) ? 1u + k / 2u : 0u;
-    case AM_WALK:
+    default:
+        return i % len;
+    }
+}
+static __attribute__((noinline)) uint32_t arp_pick(track_t *t, uint32_t *list, uint32_t len)
+{
+    uint32_t i = t->arp_idx, m = (uint32_t)t->p[P_AMODE], w;
+    if (m == AM_UP8 && len < 64u)                   /* UP+8: the first note again over the top */
+        list[len++] = (uint32_t)clamp((int32_t)list[0] + 12 * t->p[P_AOCT], 0, 127);
+    if (m == AM_RND)
+        return rng() % len;
+    if (m == AM_WALK) {
         w = t->arp_walk;
         if (!i)
             w = 0;                                  /* (from the bottom) */
@@ -511,9 +520,8 @@ static __attribute__((noinline)) uint32_t arp_pick(track_t *t, uint32_t *list, u
             w = !w ? 1u : w == len - 1u ? w - 1u : (rng() >> 7) & 1u ? w + 1u : w - 1u;
         t->arp_walk = (uint8_t)w;
         return w;
-    default:
-        return i % len;
     }
+    return arp_step_index(m, i, len);
 }
 
 /* n: samples the arp advances by (the external clock's while it runs, 0 stopped); gate_n: samples its
