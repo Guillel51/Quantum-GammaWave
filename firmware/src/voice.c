@@ -334,8 +334,9 @@ static __attribute__((noinline)) void track_filter(track_t *t, int32_t *out, uin
     if (n > CTL)
         n = CTL;
     fo = tf_fo[ti];
-    w0 = (int32_t)(((TF_XB - tf_xb[ti]) << 12) / TF_XB);
-    dw = (4096 / (int32_t)TF_XB) >> CTL_LOG2;
+    /* FASE 1: TF_XB is 8, so (x<<12)/8 is x<<9 exact and dw is const 16. */
+    w0 = (int32_t)(TF_XB - tf_xb[ti]) << 9;
+    dw = 16;
     if (fo != TF_DRY && fo != FT_COMB && ft != FT_COMB && !own) {
         tf_run(t, out, n, ft, fo, w0, dw, own, ccut, cres);   /* (one SVF, two of its outputs) */
     } else {
@@ -1115,6 +1116,12 @@ static int32_t env_tick(track_t *t, voice_t *v)
 /* render one block of a part into out (cleared here); returns the voices rendered */
 /* Channel bend is live performance state, outside projects/presets. Q8 semitones. */
 static int32_t midi_bend_q8[NTRK], midi_bend_target[NTRK];
+/* (FASE 1) per-part tune cache: G_TUNE changes rarely, its two divides are
+ * done once per change instead of once per part per block (pi32v2: libgcc). */
+static int32_t tune_cache_g = 0x7FFF, tune_cache_tune = 0, tune_cache_fine = 0;
+/* (FASE 1) per-part bend cache: steady (no bend) blocks reuse bend16/fine. */
+static int32_t bend_cache_q8[NTRK], bend_cache_16[NTRK], bend_cache_fine[NTRK];
+static uint8_t bend_cache_valid[NTRK];
 static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
 {
     const engine_t *e = ENGINES[t->engine];
@@ -1122,8 +1129,17 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
     uint32_t i;
     int32_t lfo = mulq15(t->lfo_val, t->lfo_fade);
     /* TUNE in cents: whole 1/16 semitones in the pitch, the rest as a fine factor (no dead zone) */
-    int32_t tune = song.g[G_TUNE] >= 0 ? song.g[G_TUNE] * 16 / 100 : -((-song.g[G_TUNE] * 16 + 99) / 100);
-    int32_t tune_fine = (song.g[G_TUNE] * 16 - tune * 100) * 2367 / 16000;   /* rest, in 1/4096 (1 ct = 2.367) */
+    int32_t tune, tune_fine;
+    if (song.g[G_TUNE] == tune_cache_g) {
+        tune = tune_cache_tune;
+        tune_fine = tune_cache_fine;
+    } else {
+        tune = song.g[G_TUNE] >= 0 ? song.g[G_TUNE] * 16 / 100 : -((-song.g[G_TUNE] * 16 + 99) / 100);
+        tune_fine = (song.g[G_TUNE] * 16 - tune * 100) * 2367 / 16000;   /* rest, in 1/4096 (1 ct = 2.367) */
+        tune_cache_g = song.g[G_TUNE];
+        tune_cache_tune = tune;
+        tune_cache_fine = tune_fine;
+    }
     int32_t bend, bend16, bend_fine;
     uint32_t ti = (uint32_t)(t - trk);
     if (ENGINES[eng_idx(t->eng_req)] == &ENG_DRUM) {
@@ -1134,8 +1150,17 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         midi_bend_q8[ti] += d > 0 ? (d < 4 ? d : (d + 3) / 4) : (d > -4 ? d : (d - 3) / 4);
     }
     bend = midi_bend_q8[ti];
-    bend16 = bend >= 0 ? bend / 16 : -((-bend + 15) / 16);
-    bend_fine = (bend - bend16 * 16) * 2367 / 2560;
+    if (bend_cache_valid[ti % NTRK] && bend == bend_cache_q8[ti % NTRK]) {
+        bend16 = bend_cache_16[ti % NTRK];
+        bend_fine = bend_cache_fine[ti % NTRK];
+    } else {
+        bend16 = bend >= 0 ? bend / 16 : -((-bend + 15) / 16);
+        bend_fine = (bend - bend16 * 16) * 2367 / 2560;
+        bend_cache_q8[ti % NTRK] = bend;
+        bend_cache_16[ti % NTRK] = bend16;
+        bend_cache_fine[ti % NTRK] = bend_fine;
+        bend_cache_valid[ti % NTRK] = 1;
+    }
     uint32_t nr = 0, fade = t->xf_on && t->xf, snap = fade && xf_snap_t == ti;
     int16_t pe_new[8], p_new[P_COUNT];
     for (i = 0; i < n; i++)
@@ -1159,6 +1184,17 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         drum_side_begin(t, n);
     if (e->block)                                       /* the engine's per-part work (WHEEL: bars, rotor) */
         e->block(t);
+    /* (FASE 1) per-part terms hoisted out of the per-voice loop: lfo, tune,
+     * bend and pfx_pit are the same for every voice of this part this block,
+     * so their sums/products are done once. Integer sums only: bit-identical. */
+    int32_t lfo_pit = ((lfo * t->p[P_LD_PIT] * 3) >> 15);
+    int32_t lfo_flt = ((lfo * t->p[P_LD_FLT]) >> 7);
+    int32_t lfo_shp = ((lfo * t->p[P_LD_SHP]) >> 7);
+    int32_t lfo_amp_gain = 0;
+    if (t->p[P_LD_AMP])
+        lfo_amp_gain = 32767 - mulq15((lfo + 32768) >> 1, t->p[P_LD_AMP] * 258);
+    int32_t base_pit = t->pfx_pit + tune + bend16 + lfo_pit;
+    int32_t base_fine = tune_fine + bend_fine;
     for (i = 0; i < NVOICE; i++) {
         voice_t *v = &V(t, i);
         vmod_t m;
@@ -1188,7 +1224,7 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
             m.envq15 = e->ownenv ? 0 : env;
             m.amp1 = e->ownenv ? env : mulq15(env, v->vel * 258);
             if (p[P_LD_AMP])
-                m.amp1 = mulq15(m.amp1, 32767 - mulq15((lfo + 32768) >> 1, p[P_LD_AMP] * 258));
+                m.amp1 = mulq15(m.amp1, lfo_amp_gain);
             if (fade)                                   /* linear to 0 over the fade */
                 m.amp1 = m.amp1 * (int32_t)(t->xf - 1u) / (int32_t)(t->xf_len ? t->xf_len : XF_BLOCKS);
             else if (t->xin)                            /* (0.6.41) in, linear, after a switch or a dip */
@@ -1219,18 +1255,18 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
         }
         if (!env && !m.amp0 && v->stage == 2 && !e->sampled)
             continue;                                   /* held at a silent sustain (SUS 0): nothing to render */
-        pitch = v->pitch_cur + t->pfx_pit + tune + bend16 + ((lfo * p[P_LD_PIT] * 3) >> 15) + ((m.envq15 * p[P_ED_PIT] * 3) >> 15);
+        pitch = v->pitch_cur + base_pit + ((m.envq15 * p[P_ED_PIT] * 3) >> 15);
         m.pitch16 = clamp(pitch, 0, 2047);
         m.inc = pitch_inc(m.pitch16);
-        m.fine = v->fine + tune_fine + bend_fine;
-        if (v->fine + tune_fine + bend_fine)             /* residual below 1/16 semitone */
-            m.inc += (uint32_t)((int32_t)(m.inc >> 12) * (v->fine + tune_fine + bend_fine));
-        m.cutoff = ((lfo * p[P_LD_FLT]) >> 7) + ((m.envq15 * p[P_ED_FLT]) >> 7);
+        m.fine = v->fine + base_fine;
+        if (v->fine + base_fine)             /* residual below 1/16 semitone */
+            m.inc += (uint32_t)((int32_t)(m.inc >> 12) * (v->fine + base_fine));
+        m.cutoff = lfo_flt + ((m.envq15 * p[P_ED_FLT]) >> 7);
         if (v->vel > 110)                               /* accent opens the filter with the env */
             m.cutoff += (m.envq15 * 24) >> 7;
-        m.shape = (64 << 8) + ((lfo * p[P_LD_SHP]) >> 7) + ((m.envq15 * p[P_ED_SHP]) >> 7);
+        m.shape = (64 << 8) + lfo_shp + ((m.envq15 * p[P_ED_SHP]) >> 7);
         if (MOD.on)                                     /* the modulation matrix (mod.c) */
-            mod_voice(t, v, &m, v->fine + tune_fine + bend_fine);
+            mod_voice(t, v, &m, v->fine + base_fine);
         e->render(t, v, out, n, &m);
         nr++;
     }
