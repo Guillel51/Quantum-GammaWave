@@ -1081,10 +1081,27 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         {12, 33, 1, 130, 41}, {44, 27, 2, 180, 59}, {71, 24, 1, 95, 73}, {84, 39, 2, 160, 29},
         {3, 46, 1, 115, 87}, {52, 44, 1, 140, 13}
     };
-    /* the nebula: two dithered bands, positions from a table (the old per-pixel sine cost 44 lookups a frame) */
-    static const uint8_t NEB[2][12] = {
-        {6, 22, 13, 21, 21, 22, 29, 21, 38, 22, 47, 21},
-        {30, 30, 40, 29, 49, 30, 58, 29, 67, 30, 76, 29}
+    /* (6.3) THE MILKY WAY. The bay's sky carried two dotted nebula bands of twelve pixels each, which at
+     * 240 x 240 read as a handful of specks rather than as a galaxy, so the background never had the depth the
+     * planets were tuned against. A galactic band crosses the bay now: a luminous core line that thickens into
+     * a bulge where the arms turn, a halo two pixels either side, dust lanes that bite into it, and one slow
+     * sine for its shimmer -- so the whole sky breathes together instead of twinkling per pixel. Positions come
+     * from three tables (x, y and thickness), which is what keeps the cost at one pset per entry: no per-pixel
+     * trigonometry, and the band cannot flicker because its shape never depends on the clock. */
+    static const uint8_t MW_X[36] = {
+        1, 3, 5, 8, 10, 13, 15, 18, 20, 23, 25, 27,
+        30, 32, 35, 37, 40, 42, 45, 47, 50, 52, 54, 57,
+        59, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86
+    };
+    static const uint8_t MW_Y[36] = {                       /* the band's centre line, rising to the right */
+        49, 48, 47, 46, 45, 43, 41, 39, 36, 34, 32, 30,
+        29, 28, 28, 28, 28, 28, 27, 26, 25, 23, 21, 19,
+        17, 16, 14, 13, 12, 11, 11, 10, 9, 8, 7, 6
+    };
+    static const uint8_t MW_T[36] = {                       /* 3 = the bulge, 2 = the arm, 1 = its taper */
+        2, 2, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3,
+        3, 3, 3, 3, 3, 3, 2, 2, 1, 2, 2, 1,
+        2, 2, 1, 2, 2, 1, 2, 2, 1, 2, 2, 1
     };
     int32_t i, j, orb_x[NPL], orb_y[NPL], orb_rot[NPL], order[NPL], a, big = 0;
     int32_t pk_ang[NPL] = {0}, pk_rad[NPL] = {0}, pk_push[NPL] = {0}, pk_ry[NPL];
@@ -1131,17 +1148,41 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         }
         pk_ry[i] = orb_ry[i];
     }
-    uint16_t star_ink = ux_mix(T_BG, T_THEME, 26), star_dim = ux_mix(T_BG, T_ACCENT, 18);
     if (r < 4) r = 4;
     if (r > 6) r = 6;                                 /* a star, not a sun: the planets carry the bay */
-    for (i = 0; i < 2; i++) {
-        uint16_t nc = i ? star_dim : star_ink;
-        for (j = 0; j < 12; j += 2)
-            sys_pset(sys_x0 + NEB[i][j], sys_y0 + NEB[i][j + 1], nc);
+    {   /* the band, under everything: core, halo and dust, with one shimmer for the whole sky */
+        int32_t sh = (int32_t)((bg_sin(twf * 2u + 0x2A00u) + 32768) >> 11);   /* 0..32, a slow breath */
+        uint16_t mcore = ux_mix(T_BG, T_TEXT, 16 + sh / 3);
+        uint16_t mhalo = ux_mix(T_BG, T_THEME, 9 + sh / 5);
+        uint16_t mdust = ux_mix(T_BG, T_LINE, 7);
+        for (j = 0; j < 36; j++) {
+            int32_t mx = sys_x0 + MW_X[j], my = sys_y0 + MW_Y[j];
+            if (MW_T[j] == 3) {                      /* the bulge: a wider, warmer core with its lanes */
+                sys_pset(mx, my - 1, mhalo);
+                sys_pset(mx, my + 1, ux_mix(mhalo, mcore, 60));
+                sys_pset(mx, my - 2, mdust);
+                sys_pset(mx, my + 2, mhalo);
+                sys_pset(mx, my + 3, mdust);
+            } else if (MW_T[j] == 2) {               /* the arms: a core with a halo either side */
+                sys_pset(mx, my - 1, mhalo);
+                sys_pset(mx, my + 1, mhalo);
+                sys_pset(mx, my + 2, mdust);
+            } else {
+                sys_pset(mx, my + 1, mdust);
+            }
+            sys_pset(mx, my, mcore);
+            if ((j & 3) == 1 && j > 4 && j < 32)     /* the dust lanes that cross the band */
+                sys_pset(mx, my - 1, mdust);
+        }
     }
     for (i = 0; i < 20; i++) {                         /* a slow twinkle, one sine a star, a quarter rate */
         int32_t tw = (int32_t)((bg_sin((twf * (2u + (uint32_t)(i & 3u)) + ST[i][4]) << 8) + 32768) >> 11);
         int32_t x = sys_x0 + 1 + ST[i][0], y = sys_y0 + 2 + ST[i][1];
+        {   /* a star inside the band is the band's light: it keeps its place, it does not double up */
+            int32_t bi = clamp((x - sys_x0) * 35 / 88, 0, 35);
+            if (y - sys_y0 > (int32_t)MW_Y[bi] - 3 && y - sys_y0 < (int32_t)MW_Y[bi] + 4)
+                continue;
+        }
         uint16_t core = ux_mix(T_BG, bg_col(150 + ST[i][3] / 3 + tw), 46 + tw);
         uint16_t halo = ux_mix(T_BG, core, 55);
         switch (ST[i][2]) {
