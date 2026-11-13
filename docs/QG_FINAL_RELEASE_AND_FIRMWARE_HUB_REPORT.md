@@ -142,6 +142,7 @@ result, and anything at all on an FM-1.
 | Sound provenance | **IMPLEMENTADO** — none: no audio file ships |
 | Flash compatibility evidence for `0xB36014` | **IMPLEMENTADO** in code and tools; **PENDIENTE FÍSICAMENTE** |
 | Real install on an FM-1 and leaving it again | **PENDIENTE** — `docs/FM1_PHYSICAL_VALIDATION_GUIDE.md` |
+| Site, emulator, installer and Web Studio online | **VERIFICADO ONLINE** (HTTP + manifests + `site_check`); the emulator's audio and controls are **PENDIENTE** |
 | Submission to the Hub | **PENDIENTE** — needs the owner's authorisation and the physical test |
 
 The project is prepared. It is **not** accepted, listed or approved by The Firmware Hub, and this
@@ -158,7 +159,30 @@ so the deployment GitHub Pages kept serving was the last artifact of a workflow 
 `/emulator/`, installer at `/webapp/installer/`, Web Studio at `/webapp/editor/`), after checking
 `tools/site_check.py` and that the package the portal serves is the one the release carries.
 
-**State:** the workflow is `IMPLEMENTADO`; whether Pages is configured to deploy from GitHub Actions is a
-repository setting this workspace cannot read, so the online result is `PENDIENTE` until the run finishes.
-If Pages is still set to "Deploy from a branch", the job fails at `deploy-pages` and the setting must be
-switched to **GitHub Actions** once, by the owner — no code can do that.
+The first run also failed at `site_check`, because that tool compares a **URL** with the files: run before
+the deployment it was validating yesterday's site. It now runs *after* deploying, and the pre-deploy step
+checks the tree instead (the version the portal offers).
+
+Two more things the deployment exposed, both fixed:
+
+* `site/firmware/*.fwsc` was **git-ignored** (`.gitignore` allows `release/*.fwsc` only), so the package the
+  installer downloads was a 404 on every published version until now. `!site/firmware/*.fwsc` and the
+  v2.9.4 package are committed.
+* `site/emulator/` still held the **v2.9.1** WASM. It is updated, and the workflow copies `release/emu/`
+  over it and asserts version and `wasm_sha256` before uploading, so it cannot drift again.
+
+**State: `PUBLICADO` and `VERIFICADO ONLINE`.** Read back from the live site:
+
+| Address | Answer |
+| --- | --- |
+| `https://guillel51.github.io/Quantum-GammaWave/` | 200, prints **v2.9.4** |
+| `/firmware/felucca-2.9.4.fwsc` | 200, sha256 `c800055f1e35b436…` — the release's bytes |
+| `/firmware/versions.json` | 200, offers 2.9.4 |
+| `/emulator/manifest.json` | **v2.9.4**, commit `9df4067`, `wasm_sha256 067f9a07…` |
+| `/emulator/`, `/webapp/installer/`, `/webapp/editor/` | 200 |
+
+`python3 tools/site_check.py --url https://guillel51.github.io/Quantum-GammaWave` → **all checks passed**
+(the portal's version, the emulator link, the installer's published version and its Verify-Only checklist).
+
+What is **not** verified: the emulator was never opened in a browser here, so audio, the controls and the
+canvas are `PENDIENTE`; the pages were read over HTTPS, not looked at.
