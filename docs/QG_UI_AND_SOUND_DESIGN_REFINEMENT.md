@@ -179,3 +179,9 @@ pixel, 0 GREY/MONO pixels off neutral**; the image went from 568 488 B to **568 
 
 `docs/card.png`, the screenshots and the site were regenerated from this build.
 
+
+## 10. Browser check
+
+The emulator published for v2.9.5 was opened in Chromium: it boots, draws HOME 1/5 at 240 × 240, walks the
+five screens with the HOME button, shows the new ground on OVERVIEW, and logs no console errors. Audio was
+not heard and MIDI was not exercised.

@@ -186,3 +186,23 @@ Two more things the deployment exposed, both fixed:
 
 What is **not** verified: the emulator was never opened in a browser here, so audio, the controls and the
 canvas are `PENDIENTE`; the pages were read over HTTPS, not looked at.
+
+## 10. Verified in a browser (2026-11-13, this pass)
+
+The published emulator was opened in a real Chromium session, not inferred from HTTP codes:
+
+* `https://guillel51.github.io/Quantum-GammaWave/emulator/` → the panel appears with **build e980365686c6**,
+  `manifest.json` says **v2.9.5**, the WASM is fetched as `felucca.wasm?v=1a9d766e…` (this build's hash), and
+  the **console is empty** — no errors, no failed requests beyond the intentional 200s.
+* Pressing **Switch on** started the firmware: the 240 × 240 canvas draws (57 600 of 57 600 pixels
+  non-black), the header shows **BPM 120** and the battery, and the footer reads **HOME 1/5**.
+* The **HOME** button walked the five screens in the browser (2/5 VISUALIZER, 3/5 OVERVIEW, …), and on
+  OVERVIEW the **Solar Heat ground** from `graph_heat()` is visible behind the panel, with the header
+  intact — the same frame the host sweep renders.
+* Screenshots: `artifacts/tmp/emu-home.png`, `artifacts/tmp/emu-main.png`.
+
+What this does **not** prove: audio output (no speakers in the session), MIDI, and the physical panel.
+The emulator's sound path was not exercised by ear.
+
+The README banner was redrawn from four real v2.9.5 renders on the Solar Heat gradient
+(`assets/branding/quantum_banner.png`, 1600 × 560, 79 KB): no mockup, no invented control.
