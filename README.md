@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.9.4` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.9.5` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -72,7 +72,7 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 ---
 
-## Highlights of `v2.9.4`
+## Highlights of `v2.9.5`
 
 - **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal
   serves and `firmware/versions.json` name the same build: the portal shows the version and the commit
@@ -87,7 +87,7 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
   linked AC791N ELF: **41 947 B** in total (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 ·
   shapes 158 · palettes 352), after the M face went to two horizontal phases (gap error **0.044 px**,
   `text_spacing_test`) and eleven icon cells no screen could reach were removed. HOME's five retired views
-  took another **5 176 B** with them, so the image is **568 488 B** of a 583 612 B slot — **15 124 B** of
+  took another **5 176 B** with them, so the image is **568 616 B** of a 583 612 B slot — **14 996 B** of
   room — and the package 610 959 B.
 - **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine
   engines, 267 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing
@@ -98,8 +98,8 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
   no clipping, every family within 0.5 dB of it).
 - **The goldens are measured, not assumed.** 285 renders across every engine, preset, voice mode and FX send
   hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
-- **The emulator is the same release.** WASM **1 191 701 B**, sha256 `067f9a07…`, built with Emscripten
-  6.0.11 from `8fe5dee`, and its manifest is the one the site serves.
+- **The emulator is the same release.** WASM **1 192 326 B**, sha256 `1a9d766e…`, built with Emscripten
+  6.0.11 from `e980365`, and its manifest is the one the site serves.
 
 ## Synthesis engines
 
@@ -190,7 +190,7 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
    Edge, with a data cable (not a charge-only one).
 2. It re-hashes the package (**SHA-256** + size), holds it to the published record and the version floor, and
-   verifies the firmware hashes inside it. `v2.9.4` is the package this tree builds; `v2.9.3`
+   verifies the firmware hashes inside it. `v2.9.5` is the package this tree builds; `v2.9.4`
    was published by the tag workflow on 2026-11-13. Both ship **unsigned by design**: that is integrity, not
    authenticity, and the page says so instead of implying a signature. If anything fails, INSTALL stays
    disabled and the page says why.

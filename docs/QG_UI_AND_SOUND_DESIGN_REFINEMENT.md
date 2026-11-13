@@ -161,3 +161,21 @@ tools/generate_screenshots.py three captions removed
    `ui_render` scenes so the sweep covers them.
 4. Solar Heat sweep over the remaining screens (section 9) at 1–2 particles per screen, measured against
    the 3 152 530-measurement alignment budget.
+
+---
+
+## 9. Solar Heat on every section page — **done [?]**
+
+`graph_heat()` in `firmware/src/ui_graph.c` draws HOME's ground inside the rounded panel that every
+section page paints (EDIT, ENV, LFO, MOD, SCL, CHORD, FX, FX-BUS, SEQUENCER, PRESETS, SAVE > USER,
+PROJECT, ABOUT, MIDI, the mixer strips): twelve dithered bands, a shade darker at the top and warmed
+towards the bottom, inset 7 px and 2 px so no band can cut across a corner radius. It is a function of the
+theme and the panel height only — twelve dithered rects on a full redraw, nothing on a cached frame, no
+animation clock, no particles — and it stays flat on MONO and the BW palette, where a dither is noise.
+
+Measured: **186 screens × 22 palettes, 0 lint findings, 3 152 530 alignment measurements, 0 off by one
+pixel, 0 GREY/MONO pixels off neutral**; the image went from 568 488 B to **568 616 B** (+128 B) with
+**14 996 B** free. The 285 audio goldens are unaffected (they hash samples, not pixels).
+
+`docs/card.png`, the screenshots and the site were regenerated from this build.
+
