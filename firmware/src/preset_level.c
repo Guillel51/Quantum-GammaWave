@@ -51,8 +51,9 @@ static const uint8_t LV_FM6[37] = {
      90, 104, 107, 104, 112,
 };
 
-static const uint8_t LV_WTABLE[14] = {
-     93,  83,  86,  88,  97, 113,  89,  85,  95,  89,  89,  91, 117,  95,
+static const uint8_t LV_WTABLE[20] = {
+     93,  83,  86,  88,  97, 113,  89,  85,  95,  89,  89,  91, 117,  95,  93,  93,
+     96,  94,  94,  93,
 };
 
 /* the level preset `pi` of engine `e` loads with (100: the fader's own, untouched) */
@@ -67,7 +68,7 @@ uint8_t preset_level_of(uint32_t e, uint32_t pi)
     case 10: return pi < 18u ? LV_DRUM[pi] : 100u;   /* DRUM */
     case 11: return pi < 22u ? LV_NOISE[pi] : 100u;   /* NOISE */
     case 12: return pi < 37u ? LV_FM6[pi] : 100u;   /* FM6 */
-    case 14: return pi < 14u ? LV_WTABLE[pi] : 100u;   /* WTABLE */
+    case 14: return pi < 20u ? LV_WTABLE[pi] : 100u;   /* WTABLE */
     default: return 100u;
     }
 }

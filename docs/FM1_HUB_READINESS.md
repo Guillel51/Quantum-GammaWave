@@ -145,7 +145,7 @@ The package was downloaded from
 
 > **Schema note (2026-11-13):** the Hub accepts `what`, `author`, `kinds`, `play`, `editor`, `cheat`,
 > `image` and `color`; it ignores the **whole file** if one field is unknown. `sounds` is **not** a
-> field. The sound count belongs inside `what`, which now says “nine engines and 267 sounds”. The
+> field. The sound count belongs inside `what`, which now says “nine engines and 273 sounds”. The
 > card is checked by `python3 tools/check_fmhub.py`.
 
 The Hub reads it from the default branch, every three hours, and **ignores the whole file** when one

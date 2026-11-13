@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.9.7` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v3.0.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -72,8 +72,11 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 ---
 
-## Highlights of `v2.9.7`
+## Highlights of `v3.0.0`
 
+- **The target render loops fit their budgets.** `phase_render` 84/84, `wheel_block` 32/86,
+  `noise_render` 219/201 and `fm6_render` 292/322 in the pi32v2 disassembly, with the historical
+  budgets untouched and all 291 golden renders unchanged.
 - **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal
   serves and `firmware/versions.json` name the same build: the portal shows the version and the commit
   the release manifest carries, and the installer checks the package's SHA-256 and size before it writes.
@@ -90,7 +93,7 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
   took another **5 176 B** with them, so the image is **569 048 B** of a 583 612 B slot — **14 564 B** of
   room — and the package 610 959 B.
 - **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine
-  engines, 267 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing
+  engines, 273 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing
   ones were the same controls their own sections already have (EDIT, MOD, EDIT > ENV, SYSTEM, FX > BUSES),
   so they moved out instead of being drawn twice, and the walk is now five taps end to end. The bank is
   audited as data
@@ -117,7 +120,7 @@ Nine engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and f
 | **NOISE** | noise-based percussion and textures | colour, band, decay, tone |
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 
-267 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
+273 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU
@@ -190,7 +193,7 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
    Edge, with a data cable (not a charge-only one).
 2. It re-hashes the package (**SHA-256** + size), holds it to the published record and the version floor, and
-   verifies the firmware hashes inside it. `v2.9.7` is the package this tree builds; `v2.9.6`
+   verifies the firmware hashes inside it. `v3.0.0` is the package this tree builds; `v2.9.7`
    was published by the tag workflow on 2026-11-13. Both ship **unsigned by design**: that is integrity, not
    authenticity, and the page says so instead of implying a signature. If anything fails, INSTALL stays
    disabled and the page says why.

@@ -12,6 +12,10 @@
 # 409 -> 426: its calls became inlined code); every other audio line here went down.
 analog_render 148
 phase_render 84
+# (FASE 2) the NOISE and HARM passes split from phase_render so its normal path keeps its old loop;
+# both are measured, not baseline updates, and a NOISE+HARM preset costs 126 against the old 145.
+phase_render_noise 103
+phase_harm 23
 lofi_render 197
 formant_render 229
 wheel_render 258

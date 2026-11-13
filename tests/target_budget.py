@@ -20,7 +20,7 @@ import os
 import re
 import sys
 
-FUNCS = ["analog_render", "digital_render", "digital_render_legacy", "digital_render_custom", "phase_render", "lofi_render", "formant_render",
+FUNCS = ["analog_render", "digital_render", "digital_render_legacy", "digital_render_custom", "phase_render", "phase_render_noise", "phase_harm", "lofi_render", "formant_render",
          "wheel_render", "wheel_block", "analog_ext", "analog_morph", "analog_dirty", "lofi_byte_render",   # (JIANT 0.4: SYNC RING SAW3,
          # BYTE; 1.0-GW: TUBE FOLD)
          "drum_render", "noise_render", "fm6_render", "fm6_op_run", "fm6_op_fb",

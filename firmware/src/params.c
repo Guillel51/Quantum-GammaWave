@@ -742,9 +742,11 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         }
     }
     if (pg->id[0] == P_X2) {                           /* (FASE 2) LFO SHAPE: SLEW, INVERT */
-        static const param_desc_t D[2] = {SLEW_DESC, INVERT_DESC};
+        /* pointers, not copies: the target's clang 4.0.1 does not fold a const struct with
+         * pointer members into another static initializer (a copy is not a C constant expression) */
+        static const param_desc_t *const D[2] = {&SLEW_DESC, &INVERT_DESC};
         *valp = &TSEL->p[slot ? P_X3 : P_X2];
-        return &D[slot & 1u];
+        return D[slot & 1u];
     }
     if (id == P_DXIMG && !FELUCCA_FM4 && TSEL->eng_req % NENGINES != ENGI_DRUM) {
         *valp = &TSEL->p[P_DXIMG];                     /* (FASE 2) ENV VEL: how much velocity scales the amp */

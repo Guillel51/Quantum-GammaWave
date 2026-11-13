@@ -248,7 +248,7 @@ def main():
     tracked(d, (x0, 316 + ts1 + 12), t2, font("ChakraPetch-Medium.ttf", ts2), mix(ink, cyan, 0.25), spacing=0)
 
     # the chips: every number here is in the tree (voice budget, preset tables, FX slots, latch matrix, palettes)
-    chips = [("12 VOICES", "quietest stolen first"), ("9 ENGINES", "267 factory presets"),
+    chips = [("12 VOICES", "quietest stolen first"), ("9 ENGINES", "273 factory presets"),
              ("4-SLOT FX", "CRUSH DELAY REVERB CHORUS"), ("PUNCH-IN", "15 keys · 6 mutes · latch"),
              ("17 THEMES", "QUANTUM + NORDIC")]
     cx0, cy0, row_h = x0, 316 + ts1 + 12 + ts2 + 22, 50

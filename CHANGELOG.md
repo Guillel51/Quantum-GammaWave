@@ -1,4 +1,4 @@
-## Sin versión asignada — 2026-11-13 — compuerta de release 3.x
+## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
 ### Added
 - **Ninguna versión 3.0 se crea, etiqueta ni publica sin aprobación.** `tools/release_gate.py`
@@ -6,17 +6,36 @@
   `true` (también `1` o `yes`). `tests/release_gate_test.py` cubre 2.x, 3.0, rc, versiones
   malformadas y la aprobación por variable. `tag-and-publish.yml` y `release.yml` llaman la misma
   compuerta; `release.yml` deja de correr en `main` y sólo acepta tags `v*`.
-- **La tarjeta del Hub dice el conteo real.** `fmhub.json` pasa a “nine engines and 267 sounds”.
+- **La tarjeta del Hub dice el conteo real.** `fmhub.json` pasa a “nine engines and 273 sounds”.
   No se agrega `sounds`: el esquema del Hub descarta el archivo entero ante un campo desconocido.
+- **Familia WTABLE de morphing.** MAREJADA, PRISMA, CORAL GLASS, VOCAL TIDE, ARCO SOLAR y MORPH SUB
+  mueven MORPH con el LFO o con POSMOD en lugar de dejar la tabla fija. La biblioteca pasa a 273
+  presets; la auditoría da 0 silencios, 0 duplicados y 0 fuera de rango, y los 285 goldens previos
+  no cambian (sólo se añaden las seis líneas nuevas).
+
+### Fixed
+- **El build AC791N vuelve a compilar.** `params.c` copiaba dos `param_desc_t` en un inicializador
+  estático; el clang 4.0.1 del target lo rechaza. Ahora usa punteros a los descriptores, sin cambiar
+  valores ni comportamiento. El paquete resultante mide 610 959 B; RAM, pool y `.ram_text` entran en
+  presupuesto.
+- **Los cuatro overruns de CPU estática quedan cerrados sin tocar el baseline.** `phase_render` vuelve
+  a 84/84 al separar NOISE (`phase_render_noise`, 103/103) y HARM (`phase_harm`, 23/23) del camino
+  normal; `wheel_block` baja a 32/86 desenrollando sus dos rotores y unificando la fuga con un
+  recíproco exacto de 1270; `noise_render` baja a 219/201 al cambiar `isqrt32` por una tabla exacta de
+  128 entradas; `fm6_render` baja a 292/322 al simplificar la condición de etapa de la envolvente.
+  `regress` sigue en 291 renders, 0 cambiados y 0 over budget.
 
 ### Changed
 - `docs/QG_3.0_PLAN_AUDIT_2026-11-13.md` registra el estado de las doce fases, lo que ya existía y
   lo que sigue bloqueado por target, WASM, navegador o hardware. `docs/QG_RELEASE_BLOCKERS.md`
   documenta la compuerta.
 
-### Not done
-- **No se asigna la versión 3.0, no se crea tag, no se publica release y no se cambia el paquete de
-  `release/`.** Sin target AC791N, WASM, navegador ni pruebas físicas, la 3.0 no está validada.
+### Release
+- **Publicación condicionada a la evidencia.** `v3.0.0` se etiqueta y publica desde el paquete y el
+  registro de build de `release/`, después de la suite host, el build AC791N, la compuerta de CPU,
+  `memory_map_test` y el registro del WASM. La matriz física sigue separada: no hay FM-1 en esta
+  sesión, así que la release declara validación software/target/WASM, nunca una prueba de hardware.
+  El detalle por clase está en `docs/QG_3.0_RELEASE_REPORT_2026-11-13.md`.
 
 ## v2.9.7 — 2026-11-13 — El arranque corre bajo el splash, una etapa por cuadro
 

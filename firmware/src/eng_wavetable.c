@@ -153,6 +153,20 @@ static const preset_t WT_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 125)}},  /* PLUCK */
     {"BARRO Y LUZ", {28, 32, 1, 12, 74, 18, 6, 54}, {70, 92, 112, 98}, 6, 0, FX(0, 62, 34, 84), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: pad */
+    /* (3.0) the morph family: each one moves MORPH itself (the matrix's E1) or lets POSMOD walk it, so the
+     * table is heard as a road and not as fourteen still frames; the LFO stays on the filter where noted */
+    {"MAREJADA", {64, 18, 1, 6, 88, 20, 0, 68}, {32, 82, 112, 86}, 0, 0, FX(0, 50, 40, 82), PAT(5),
+     {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 38), XP(P_LD_FLT, 20)}},
+    {"PRISMA", {74, 8, 0, 0, 104, 18, 8, 88}, {4, 70, 96, 42}, 12, 1, FX(16, 28, 34, 44), PAT(4),
+     {XP(P_LRATE, 52), XP(P_LWAVE, 1), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 46), XP(P_LD_FLT, 10)}},
+    {"CORAL GLASS", {22, 20, 1, 4, 90, 14, 0, 72}, {30, 78, 112, 84}, 0, 0, FX(0, 60, 38, 80), PAT(5),
+     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_X1, 26), XP(P_LD_FLT, 14), XP(P_LD_AMP, 8), XP(P_LEVEL, 108)}},
+    {"VOCAL TIDE", {112, 10, 1, 2, 86, 26, 4, 60}, {42, 84, 120, 80}, 0, 0, FX(0, 46, 36, 76), PAT(5),
+     {XP(P_LRATE, 10), XP(P_LWAVE, 0), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 14), XP(P_X1, 34)}},
+    {"ARCO SOLAR", {48, 6, 0, 0, 108, 22, 16, 90}, {8, 66, 100, 48}, 16, 1, FX(22, 30, 30, 40), PAT(4),
+     {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 42), XP(P_X0, 26)}},
+    {"MORPH SUB", {12, 0, 0, 84, 56, 24, 8, 16}, {0, 52, 120, 30}, 0, 1, FX(8, 0, 0, 12), PAT(2),
+     {XP(P_LRATE, 8), XP(P_LWAVE, 0), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 10), XP(P_X1, 8)}},
 };
 
 static const param_desc_t WT_CH[3] = {

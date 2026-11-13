@@ -528,10 +528,14 @@ static int keys_test(void)
             t->engine = t->eng_req;                       /* (the audio side's switch, at once: hostsim.c host_preset) */
             fm6_poll();
             for (x = 0; x < NELEM(pr->x); x++)
-                if (pr->x[x].id && t->p[pr->x[x].id - 1u] != pr->x[x].v) {
+                if (pr->x[x].id && pr->x[x].id - 1u != P_LEVEL &&
+                    t->p[pr->x[x].id - 1u] != pr->x[x].v) {
                     printf("  %s: value %u is %d, not %d\n", pr->name, pr->x[x].id - 1u, t->p[pr->x[x].id - 1u], pr->x[x].v);
                     ok = 0;
                 }
+            /* P_LEVEL is the sound's own measured level (preset_level_of), not the preset's stale extra value */
+            if (t->p[P_LEVEL] != (int16_t)preset_level_of(eng, t->preset))
+                ok = 0;
             if (eng == ENGI_FM6 && pr->e[7] > (int8_t)FM6_OWN &&
                 (fm6_slot[0] != (uint8_t)pr->e[7] || !patch_is(0, FM6_ROMBANK[pr->e[7] - FM6_OWN - 1]))) {
                 printf("  %s: not its GW-1 KEYS voice (slot %u)\n", pr->name, fm6_slot[0]);

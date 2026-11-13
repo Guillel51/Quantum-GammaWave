@@ -127,7 +127,19 @@ static void phase_note_on(track_t *t, voice_t *v)
     v->s[2] = v->s[3] = 0;       /* (FB) line 1's last two samples */
 }
 
-static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
+/* (FASE 2) HARM: a symmetric fold, so odd harmonics only. Its own function: the normal phase path
+ * must not carry the loop (it is a whole-block pass after the render, not per-sample work). */
+static __attribute__((noinline)) void phase_harm(int32_t *out, uint32_t n, int32_t hara)
+{
+    uint32_t i;
+    for (i = 0; i < n; i++)
+        out[i] = softclip((out[i] * (4096 + hara * 24)) >> 12);
+}
+
+/* nza is constant at each call site (0 on the normal path, xamt on the NOISE one), so the compiler
+ * removes the NOISE branch and its per-sample state from the normal loop. */
+static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t *v, int32_t *out, uint32_t n,
+                                                            const vmod_t *m, int32_t nza)
 {
     const int16_t *p = t->p;
     uint32_t w1 = (uint32_t)p[P_E0] & 7u, w2 = (uint32_t)p[P_E1], i;
@@ -142,7 +154,6 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
                                                               * ramped across the block to the knob's (Q8: a step of the
                                                               * knob jumped the phase: a click, louder the higher it was) */
     int32_t dfb = ((p[P_E7] << 8) - fb) / (int32_t)(n ? n : 1u);
-    int32_t nza = xamt(p, 1), hara = xamt(p, 0);   /* (FASE 2) CHARACTER: NOISE, HARM (a wavefolder) */
     uint32_t nst = (uint32_t)v->s[5];
     pd_t b1, b2, bm;
     int32_t mf = 0, dmf = 0;                                 /* (0.6.45) MORPH: line 1 towards the next WAVEs; (0.6.50)
@@ -205,9 +216,28 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     v->s[3] = f2;
     v->s[4] = p[P_E7] << 8;
     v->s[5] = (int32_t)nst;
-    if (hara)                                         /* (FASE 2) HARM: a symmetric fold, so odd harmonics only */
-        for (i = 0; i < n; i++)
-            out[i] = softclip((out[i] * (4096 + hara * 24)) >> 12);
+}
+
+/* (FASE 2) CHARACTER NOISE has its own path: the normal phase loop then has no branch, no noise
+ * state and no clamp per sample (the old cost), while this path keeps the same work it had. */
+static __attribute__((noinline)) void phase_render_noise(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
+{
+    int32_t hara = xamt(t->p, 0);
+    phase_render_impl(t, v, out, n, m, xamt(t->p, 1));
+    if (hara)
+        phase_harm(out, n, hara);
+}
+
+static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
+{
+    int32_t hara = xamt(t->p, 0);
+    if (xamt(t->p, 1)) {
+        phase_render_noise(t, v, out, n, m);
+        return;
+    }
+    phase_render_impl(t, v, out, n, m, 0);
+    if (hara)
+        phase_harm(out, n, hara);
 }
 
 static const preset_t PHASE_PRESETS[] = {

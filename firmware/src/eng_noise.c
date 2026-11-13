@@ -28,6 +28,19 @@ static const param_desc_t NOISE_CLK = {"CLOCK", F_INT, 0, 127, 0, 0, "st"};     
 /* Galois taps of the long registers (maximal length: 2^n - 1 clocks) */
 static const uint32_t NOISE_TAPS[8] = {0x420000u, 0x90000u, 1u << 16 | 1u << 13, 0x6000u, 0x100Du, 0x500u, 0x110u, 0x60u};
 
+/* sqrt((8192 - res * 7800 / 127) << 12), res 0..127: the band-pass gain. RES has 128 values, so the
+ * per-block square root is a table lookup (its two loops were most of noise_render's inner cost). */
+static const uint16_t NOISE_BPG[128] = {
+    5792, 5771, 5749, 5727, 5705, 5683, 5661, 5638, 5616, 5594, 5571, 5548, 5525, 5503, 5480, 5457,
+    5434, 5410, 5387, 5364, 5340, 5317, 5293, 5269, 5245, 5221, 5197, 5173, 5149, 5124, 5099, 5075,
+    5050, 5025, 5000, 4975, 4949, 4924, 4898, 4872, 4847, 4820, 4794, 4768, 4742, 4715, 4688, 4661,
+    4634, 4607, 4580, 4552, 4525, 4496, 4469, 4440, 4412, 4383, 4354, 4326, 4296, 4267, 4238, 4207,
+    4178, 4147, 4117, 4086, 4055, 4024, 3993, 3961, 3929, 3897, 3865, 3832, 3799, 3766, 3732, 3699,
+    3664, 3630, 3595, 3560, 3524, 3489, 3453, 3416, 3379, 3341, 3303, 3265, 3226, 3187, 3147, 3107,
+    3066, 3025, 2984, 2941, 2898, 2854, 2810, 2765, 2719, 2672, 2624, 2576, 2526, 2477, 2426, 2373,
+    2319, 2264, 2208, 2151, 2091, 2030, 1967, 1902, 1834, 1765, 1693, 1616, 1537, 1452, 1363, 1267,
+};
+
 /* META: one period of a register's output bit (bit i of the words, from the state 1), its length,
  * and the levels of a 1 and a 0 (no DC, the larger at 16384). 7-bit taps 0x60 and 0x78, the 15-bit
  * register with its feedback from bits 0 and 6 (period 93), 6-bit 0x30 and 0x2D, 5-bit, 4-bit, 3-bit */
@@ -62,23 +75,6 @@ static uint32_t noise_inc(int32_t p)
     }
     inc = pitch_inc((uint32_t)clamp(p, 0, 2047));
     return sh && inc >= 0x80000000u >> (sh - 1u) ? 0xFFFFFFFFu : inc << sh;
-}
-
-static uint32_t isqrt32(uint32_t x)
-{
-    uint32_t r = 0, b = 1u << 30;
-    while (b > x)
-        b >>= 2;
-    while (b) {
-        if (x >= r + b) {
-            x -= r + b;
-            r = (r >> 1) + b;
-        } else {
-            r >>= 1;
-        }
-        b >>= 2;
-    }
-    return r;
 }
 
 static void noise_note_on(track_t *t, voice_t *v)
@@ -137,7 +133,9 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     a1 = (int32_t)((4096u << 13) / (uint32_t)(4096 + ((g * (g + k)) >> 12)));
     a2 = (a1 * g) >> 12;
     a3 = (a2 * g) >> 12;
-    bpg = (int32_t)isqrt32((uint32_t)k << 12);        /* band-pass x 1.5 sqrt(damping): its level holds with the Q */
+    /* RES is 0..127; the guard only keeps a damaged project from indexing past the table (it
+     * changes no valid value). */
+    bpg = NOISE_BPG[res < 0 ? 0 : res > 127 ? 127 : res];   /* band-pass x 1.5 sqrt(damping) */
     mix = res * 258;                                  /* low-pass -> band-pass, Q15 */
     {   /* level: make up most of what the filter takes from white noise (less for pink and brown), +12 dB for
          * the sparse DUST, the drift's level; Q12, mk in 1/256 octave: 2^(mk / 256), at most x 16 */

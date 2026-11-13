@@ -121,6 +121,7 @@ static void reset_instrument(void)
 {
     uint32_t i, k;
     memset((void *)trk, 0, sizeof trk);
+    voices_boot();                  /* (3.5) the pool's windows: a part's voices are not all slot 0 */
     memset((void *)&song, 0, sizeof song);
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;

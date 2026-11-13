@@ -136,10 +136,10 @@ static int32_t fm6_env_get(fm6_env_t *e, const uint8_t *op)
             fm6_env_advance(e, op, e->ix + 1u);
         }
     }
-    if (e->ix < 3u || (e->ix < 4u && !e->down)) {
-        if (e->statc) {
-            ;
-        } else if (e->rising) {
+    /* ix 0..2 always moves; ix 3 moves only while held (!down); 4 is done. Written as one sum:
+     * the compiler's two-range test left a backward branch that the target costs as a loop. */
+    if (!e->statc && e->ix + e->down < 4u) {
+        if (e->rising) {
             if (e->level < (1716 << 16))
                 e->level = 1716 << 16;
             e->level += (((17 << 24) - e->level) >> 24) * e->inc;

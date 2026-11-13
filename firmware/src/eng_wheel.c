@@ -118,6 +118,29 @@ static drw_vc_t drw_v[VPOOLN];   /* (3.5) one entry per pool slot, not per part:
 
 static uint32_t drw_part(const track_t *t) { return (uint32_t)(t - trk) % NPART; }
 
+/* (3.0) x / 1270, exact for the leak's range (x <= 65534 * 127): the target's divide is one of the
+ * slowest instructions in a loop, and a multiply-high has the same result here. */
+static inline int32_t drw_div1270(uint32_t x)
+{
+    return (int32_t)(((uint64_t)x * 13527457u) >> 34);
+}
+
+/* one rotor, once per block: called twice with k a constant, so the k branches fold away */
+static inline void drw_rotor(drw_trk_t *T, uint32_t k, uint32_t rot, int32_t ra)
+{
+    int32_t sp, c, sn, dep, tgt = DRW_ROT_SPD[k][rot];
+    if (rot && ra)                                  /* (FASE 2) ROTOR+: up to 4x the speed, neutral at 127 */
+        tgt += (int32_t)(((int64_t)tgt * ra * 3) / 127);
+    T->rsp[k] += (tgt - T->rsp[k]) >> (k ? 11 : 9);
+    sp = T->rsp[k];
+    T->rph[k] += (uint32_t)sp;
+    sn = sine_i(T->rph[k]);
+    c = sine_i(T->rph[k] + 0x40000000u);
+    dep = k ? 7000 : 13000;                         /* AM depth: low rotor 21 %, high 40 % */
+    T->am[k] = 32767 - mulq15(dep, (32767 - c) >> 1);
+    T->fm[k] = (sn * (sp >> (k ? 17 : 16))) >> 15;  /* Doppler: +-0.5 % fast (high), +-0.2 % (low) */
+}
+
 /* the bar level 0..8 of partial k: the registration plus SUB / BODY / TOP */
 static int32_t drw_level(const int16_t *p, uint32_t k)
 {
@@ -149,11 +172,15 @@ static void wheel_block(track_t *t)
          * from the gains just made; up to ~10 % at full. Neutral at 127. */
         int32_t leak = xamt(p, 0);
         if (leak) {
-            int32_t g0[DRW_NP];
-            for (k = 0; k < DRW_NP; k++)
-                g0[k] = T->g[k];
-            for (k = 0; k < DRW_NP; k++)
-                T->g[k] += ((g0[(k + DRW_NP - 1u) % DRW_NP] + g0[(k + 1u) % DRW_NP]) * leak) / 1270;
+            /* one pass: prev is the unmodified g[k-1], next is g[k+1] (not touched yet) and g0 is
+             * the first bar, which k = 8 needs before this pass changed it */
+            int32_t prev = T->g[DRW_NP - 1u], next0 = T->g[0];
+            for (k = 0; k < DRW_NP; k++) {
+                int32_t cur = T->g[k];
+                int32_t next = k + 1u < DRW_NP ? T->g[k + 1u] : next0;
+                T->g[k] = cur + drw_div1270((uint32_t)(prev + next) * (uint32_t)leak);
+                prev = cur;
+            }
         }
     }
     T->pk = perc ? (int32_t)(3u + ((perc - 1u) & 1u)) : DRW_NP;   /* 2ND: 4', 3RD: 2 2/3' */
@@ -168,28 +195,18 @@ static void wheel_block(track_t *t)
     } else {
         T->dg = 0;
     }
-    /* rotors: each speed eases to its target (high rotor tau ~0.37 s, low ~1.5 s) */
-    for (k = 0; k < 2u; k++) {
-        int32_t sp, c, sn, dep, tgt = DRW_ROT_SPD[k][rot];
-        if (rot && xamt(p, 1)) {                        /* (FASE 2) ROTOR+: up to 4x the speed, neutral at 127
-                                                         * (the multiply needs 64 bits: q16 speeds are large) */
-            int32_t ra = xamt(p, 1);
-            tgt += (int32_t)(((int64_t)tgt * ra * 3) / 127);
-        }
-        T->rsp[k] += (tgt - T->rsp[k]) >> (k ? 11 : 9);
-        sp = T->rsp[k];
-        T->rph[k] += (uint32_t)sp;
-        sn = sine_i(T->rph[k]);
-        c = sine_i(T->rph[k] + 0x40000000u);
-        dep = k ? 7000 : 13000;                         /* AM depth: low rotor 21 %, high 40 % */
-        T->am[k] = 32767 - mulq15(dep, (32767 - c) >> 1);
-        T->fm[k] = (sn * (sp >> (k ? 17 : 16))) >> 15;  /* Doppler: +-0.5 % fast (high), +-0.2 % (low) */
+    /* rotors: each speed eases to its target (high rotor tau ~0.37 s, low ~1.5 s). Two of them,
+     * unrolled: no loop, no k test per block, and one xamt() for both. */
+    {
+        int32_t ra = rot ? xamt(p, 1) : 0;
+        drw_rotor(T, 0, rot, ra);
+        drw_rotor(T, 1, rot, ra);
     }
     T->rwet += ((rot ? 32767 : 0) - T->rwet) >> 5;      /* ~25 ms in or out */
-    for (k = 0; k < 2u; k++) {
-        T->am[k] = 32767 - mulq15(T->rwet, 32767 - T->am[k]);
-        T->fm[k] = mulq15(T->fm[k], T->rwet);
-    }
+    T->am[0] = 32767 - mulq15(T->rwet, 32767 - T->am[0]);
+    T->am[1] = 32767 - mulq15(T->rwet, 32767 - T->am[1]);
+    T->fm[0] = mulq15(T->fm[0], T->rwet);
+    T->fm[1] = mulq15(T->fm[1], T->rwet);
 }
 
 static void wheel_note_on(track_t *t, voice_t *v)
