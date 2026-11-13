@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.7.4.7` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.9.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -108,7 +108,7 @@ Nine engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and f
 | **NOISE** | noise-based percussion and textures | colour, band, decay, tone |
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 
-212 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
+267 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU
