@@ -143,6 +143,14 @@ with. What was missing is what the brief asks for first: **the relationships**, 
 Still open in SCL: comparing two scales side by side, and a wider keyboard than the 12-cell strip (that
 needs the panel's card row, which SCL uses for its four controls).
 
+The three pages, as the firmware draws them (`tools/generate_screenshots.py` renders them from the same
+`S_NAME` list the host sweep walks, so a capture cannot outlive its page):
+
+| SCALE | CHORD | PROG |
+|---|---|---|
+| ![SCL > SCALE](../assets/screenshots/quantum_15a_scl_scale.png) | ![SCL > CHORD](../assets/screenshots/quantum_15b_scl_chord.png) | ![SCL > PROG](../assets/screenshots/quantum_15c_scl_prog.png) |
+| C minor pentatonic: `P1 m3 P4 P5 m7`, the twelve notes on the circle with the five degrees lit, and the keyboard with its `C4`. | `P1 C  M3 E  P5 G` under the degree the chord stands on, then the four voices as lanes over the chord's compass. | I V VI IV in C minor with each step's numeral, chord, notes and quality. |
+
 ## 7–9. EDIT and LFO per engine
 
 **Not implemented.** Each of these is a design-and-DSP task on its own:
