@@ -129,3 +129,37 @@ v2.9.3, untagged and unpublished. The v2.9.2 package that `release/` carried bef
 there (`felucca-v2.9.2.fwsc`, sha `42213889…`): it is a **pre-bump candidate built at `dcdb09f`, not the
 released bytes**, which are `e7727491…` in the tag. Both are kept on purpose; neither is the release of
 record.
+
+---
+
+## B6 — publishing is automatic on `main`, and that is how v2.9.1, v2.9.2 and v2.9.3 got out
+
+`.github/workflows/tag-and-publish.yml` runs on **every push to `main`**. It reads `FELUCCA_VERSION`, verifies
+`release/felucca-<version>.fwsc` against its manifest, creates the annotated tag if it is missing and runs
+`gh release create --verify-tag` with the package and `SHA256SUMS`. It is idempotent (an existing tag or
+release is left alone) but it does not ask anybody.
+
+Read from the GitHub API on 2026-11-13 (`/repos/Guillel51/Quantum-GammaWave/releases`):
+
+| Release | Published | Assets |
+|---|---|---|
+| `v2.9.3` | 2026-11-13T12:15:08Z | `felucca-v2.9.3.fwsc`, `SHA256SUMS` |
+| `v2.9.2` | 2026-11-13T10:06:20Z | `felucca-v2.9.2.fwsc`, `SHA256SUMS` |
+| `v2.9.1` | 2026-11-13T07:52:47Z | `felucca-v2.9.1.fwsc`, `SHA256SUMS` |
+| `v2.9.0` | 2026-11-12T20:04:40Z | `felucca-v2.9.0.fwsc`, `SHA256SUMS` |
+
+Two consequences, stated plainly:
+
+1. **The "candidate stays local until the owner says so" rule cannot be kept by a version bump.** Every push
+   of `main` whose `FELUCCA_VERSION` names a version without a tag becomes a tagged, published release a few
+   minutes later. v2.9.1 and v2.9.2 were published that way earlier today, and so was **v2.9.3**, by the
+   `github-actions[bot]` tag `8aedd8a1…` at commit `68f2f23`, from the package this pass built
+   (`felucca-v2.9.3.fwsc`, sha `5fb621e1…`, 610 959 B).
+2. **Undoing a publication is a repository operation, not a code change.** If v2.9.3 must not be public, the
+   owner deletes the GitHub Release `v2.9.3` (Releases → the release → Delete) and the tag
+   (`git push --delete origin v2.9.3`, or Tags → delete in the web UI). This environment has no `gh` token, so
+   it cannot do it, and it did not try to force anything.
+
+If the intent is "a version bump must never publish", the workflow needs one of these before the next bump:
+`on: workflow_dispatch` only (publish by hand), or a `PENDING_RELEASE`/draft flag the job honours. That is a
+policy change for the owner to make; nothing was changed here.

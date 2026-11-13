@@ -11,7 +11,7 @@ class: **source**, **AC791N build**, **host x86**, **emulator (WASM)**, **browse
 | Branch | `freebuff/5b290d6da44f6281decb5d8d` (working branch, never pushed by this pass) |
 | HEAD at the start | `dcdb09f` — *Repackage v2.9.2 with HOME > DYNAMICS* |
 | `origin/main` (fetched, `git rev-parse FETCH_HEAD`) | **`bdc1a0d`** — *Package v2.9.2 with the drawn icons* |
-| Public tag `v2.9.2` | `refs/tags/v2.9.2` → `bdc1a0d`, package sha `e7727491…`, **the release is already public** |
+| Public tag `v2.9.2` | `refs/tags/v2.9.2` → `bdc1a0d`, package sha `e7727491…`, **the release is already public** — and it was made public by the runner, not by a person: see `docs/QG_RELEASE_BLOCKERS.md` §B6 |
 | Local annotated tag `v2.9.2` | moved to `dcdb09f` (the newer tree); **not pushed** |
 | Commits ahead of `origin/main` | 5 |
 | Untracked | `release/emu/fonts/` (the emulator's own webfont, copied by the packaging step) |
