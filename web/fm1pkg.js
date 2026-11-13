@@ -6,7 +6,7 @@
 
 const BLOCKS = 20, BLK = 0x30, KEEP = 0x2F;
 export const STOCK_V15_SHA256 = "db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a";
-export const STOCK_APP_SIZE = 0x8DFBC;
+export const STOCK_APP_SIZE = 0x8E7BC;
 export const STOCK_V15_SIZE = 699956;
 
 const T = new Uint16Array(256);

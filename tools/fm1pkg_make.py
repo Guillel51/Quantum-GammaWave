@@ -27,7 +27,9 @@ import os
 import struct
 from pathlib import Path
 
-APP_SLOT = 0x8DFBC       # declared maximum app.bin; not the size of the current build
+APP_SLOT = 0x8E7BC       # declared maximum app.bin (0x8DFBC + 2048, the free space inside the image);
+#                          not the size of the current build. The image (FLASH_SIZE) and every partition
+#                          after the app area stay where they were: the region still ends at 0x8ED2B < 0x8F000.
 FLASH_SIZE = 0x93000     # flash.bin image size; the physical part is 1 MiB (0x100000)
 KEY = 0x980F
 # flash header: JieLi SDK defaults (burner_size 544, VID "0.01", flash_size 0xFF000,

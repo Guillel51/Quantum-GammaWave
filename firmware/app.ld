@@ -14,7 +14,7 @@
  * 0x01C7FD50.. is reserved: boot_info, boot-state mailbox, vector table. */
 MEMORY
 {
-    XIP    (rx)  : ORIGIN = 0x02000120, LENGTH = 0x8DFBC
+    XIP    (rx)  : ORIGIN = 0x02000120, LENGTH = 0x8E7BC
     LOWBUF (rw)  : ORIGIN = 0x01C00000, LENGTH = 0x7000
     RAM    (rwx) : ORIGIN = 0x01C08000, LENGTH = 96K
     POOL   (rw)  : ORIGIN = 0x01C20000, LENGTH = 0x50000
