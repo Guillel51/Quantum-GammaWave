@@ -137,9 +137,9 @@ int main(int argc, char **argv) {
     write_ppm("assets/screenshots", "quantum", "14_song_chains");
 
     /* 15. Scale and Chord Harmonic Selector */
-    setup(S_SCL);
+    setup(S_SCL_ACTIVE);
     pal(UI_QUANTUM_INDEX);
-    draw(S_SCL);
+    draw(S_SCL_ACTIVE);
     write_ppm("assets/screenshots", "quantum", "15_scales_chords");
 
     /* 16. Dynamic Modern ARP Visualization */

@@ -25,7 +25,7 @@ on our side:
 | Live catalogue | 198 listings, `updated 2026-11-13 07:05 UTC` | `tools/check_identity.py` fetched it |
 | `FM-1_965` | **FREE** — no listing's product or answered range covers it | same tool, on the live catalogue |
 | `fmhub.json` | **GO** — every published rule holds | `python3 tools/check_fmhub.py` (all `ok`) |
-| Package | `build/felucca.fwsc`, **610 959 B**, sha256 `3db871e1…`, identity `FM-1_965` | rebuilt today after the F-1 fix; `tools/check_package_identity.py` reads the bytes: `ok`, loader `ota-FM-1_965` |
+| Package | `release/felucca-v2.9.1.fwsc`, **610 959 B**, sha256 `75e742fd…`, identity `FM-1_965` — **built, not published** (see `docs/QG_EVOLUTION_FINAL_REPORT.md` §8) | rebuilt after the F-1 fix; `tools/check_package_identity.py` reads the bytes: `ok`, loader `ota-FM-1_965` |
 | Application image | **581 360 B**, 204 B spare (was 581 344 / 220 B before the fix) | AC791N link |
 | Release workflow | pinned to `v1`'s commit `85a003a…`, `tests-block: true`, separate `verify` job | read from `.github/workflows/release.yml` |
 | Three installs on a real FM-1 | **PENDING** | no lab hardware; the owner's unit is not written (§7) |

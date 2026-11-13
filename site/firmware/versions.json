@@ -1,194 +1,94 @@
 [
  {
-  "version": "2.9.0",
-  "file": "felucca-2.9.0.fwsc",
+  "version": "2.9.1",
+  "file": "felucca-2.9.1.fwsc",
+  "sha256": "75e742fd1fc3437386daad62682d36270fc9e4589f3b8e455db52c8ed2a46686",
+  "size": 610959,
+  "build": {
+   "artifacts": {
+    "felucca.bin": {
+     "bytes": 581360,
+     "sha256": "2db521049dcc6e116ae88b91057646684d4d66da420c512f9b3c060d73c4bbb6"
+    },
+    "felucca.fwsc": {
+     "bytes": 610959,
+     "sha256": "3db871e1132943f37a681893280621b92e0821b344628a72192fe61ce706d2ca"
+    },
+    "loader/ota.bin": {
+     "bytes": 7803,
+     "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+    }
+   },
+   "checks": {},
+   "commit": "1e4c31af2e62f207cd6a1fcf178f01c4da65a975",
+   "config": {
+    "FELUCCA_CDC": "default",
+    "FELUCCA_CDC_DEFAULT": "default",
+    "FELUCCA_FLASH": "default",
+    "FELUCCA_FM4": "default",
+    "FELUCCA_HOTRAM": "default",
+    "FELUCCA_ICONS": "default",
+    "FELUCCA_OTA": "default",
+    "FELUCCA_OTA_DRYRUN": "default",
+    "FELUCCA_OTA_RAMONLY": "default",
+    "FELUCCA_SIZE": "default",
+    "FELUCCA_SLICE": "default",
+    "FELUCCA_UAC": "default",
+    "FELUCCA_UAC_48K": "default",
+    "FELUCCA_UAC_TONE": "default",
+    "FELUCCA_UART": "default",
+    "FELUCCA_USB_LAYOUT": "default"
+   },
+   "dirty": [],
+   "emulator": {
+    "commit": "1e4c31af2e62",
+    "version": "v2.9.1",
+    "wasm_bytes": 1223264,
+    "wasm_sha256": "d608efe66b0f4b1c7bd61f9a2e5d20289c44844d6175a4547482dbf10ec63930"
+   },
+   "identity": "FM-1_965",
+   "schema": "qg1-build-1",
+   "sdk": {
+    "commit": "unknown",
+    "files": {
+     "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
+     "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
+     "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
+    },
+    "path": "/workspace/homes/5b290d6da44f6281decb5d8d/fw-AC79_AIoT_SDK"
+   },
+   "toolchain": {
+    "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
+    "name": "jieli-linux-toolchains-20260730.1",
+    "path": "/workspace/homes/5b290d6da44f6281decb5d8d/.jieli/toolchain",
+    "version": "clang version 4.0.1 () ()"
+   },
+   "version": "v2.9.1"
+  },
+  "emulator": {
+   "built": "2026-11-13T07:32:15Z",
+   "commit": "1e4c31af2e62",
+   "config": {
+    "EMU_CFLAGS": "",
+    "EMU_OPT": "-O2",
+    "EMU_PREVIEW": "0"
+   },
+   "dirty": [],
+   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
+   "identity": "FM-1_965",
+   "schema": "qg1-emu-1",
+   "version": "v2.9.1",
+   "wasm_bytes": 1223264,
+   "wasm_sha256": "d608efe66b0f4b1c7bd61f9a2e5d20289c44844d6175a4547482dbf10ec63930"
+  },
+  "manifest": "felucca-2.9.1.fwsc.manifest.json"
+ },
+ {
+  "version": "v2.9.0-0f40f7c",
+  "file": "felucca-v2.9.0-0f40f7c.fwsc",
   "sha256": "edd2a23f59d513c20c286f11b0f55d0b75519fe7a24afe63bba1dd7334b4ac1b",
   "size": 610959,
-  "build": {
-   "artifacts": {
-    "felucca.bin": {
-     "bytes": 574984,
-     "sha256": "f2cfa6637e50a86589dfbe5e845590b76945db06170eb67639cb1e1f7eece582"
-    },
-    "felucca.fwsc": {
-     "bytes": 610959,
-     "sha256": "edd2a23f59d513c20c286f11b0f55d0b75519fe7a24afe63bba1dd7334b4ac1b"
-    },
-    "loader/ota.bin": {
-     "bytes": 7803,
-     "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
-    }
-   },
-   "checks": {},
-   "commit": "0f40f7cccafad6037e27165b3de6b9b5c0ffa55a",
-   "config": {
-    "FELUCCA_CDC": "default",
-    "FELUCCA_CDC_DEFAULT": "default",
-    "FELUCCA_FLASH": "default",
-    "FELUCCA_FM4": "default",
-    "FELUCCA_HOTRAM": "default",
-    "FELUCCA_ICONS": "default",
-    "FELUCCA_OTA": "default",
-    "FELUCCA_OTA_DRYRUN": "default",
-    "FELUCCA_OTA_RAMONLY": "default",
-    "FELUCCA_SIZE": "default",
-    "FELUCCA_SLICE": "default",
-    "FELUCCA_UAC": "default",
-    "FELUCCA_UAC_48K": "default",
-    "FELUCCA_UAC_TONE": "default",
-    "FELUCCA_UART": "default",
-    "FELUCCA_USB_LAYOUT": "default"
-   },
-   "dirty": [],
-   "emulator": {
-    "commit": "0f40f7cccafa",
-    "version": "v2.9.0",
-    "wasm_bytes": 1196427,
-    "wasm_sha256": "8565c2ec0516cc406a6f1ceeddeaef50b02fda5949ee4e3660d02ed5da80cc37"
-   },
-   "identity": "FM-1_965",
-   "schema": "qg1-build-1",
-   "sdk": {
-    "commit": "0617f4cc09685332aaf1104893718291c54ee5bb",
-    "files": {
-     "cfg/eq_cfg_hw.bin": "179ac9f4501d2cf8c3bdbc06fcda1e46228b7ace7e339342c767bb6568de57d8",
-     "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
-     "uboot.boot": "64ccc63e4df3238046fadb200f1b134311d8fe6ec6e3ccb8c8b81379231b867e"
-    },
-    "path": "/workspace/homes/c75bd64530cbd3759842f2a2/fw-AC79_AIoT_SDK"
-   },
-   "toolchain": {
-    "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
-    "name": "jieli-linux-toolchains-20260730.1",
-    "path": "/workspace/homes/c75bd64530cbd3759842f2a2/.jieli/toolchain",
-    "version": "clang version 4.0.1 () ()"
-   },
-   "version": "v2.9.0"
-  },
-  "emulator": {
-   "built": "2026-11-12T19:48:28Z",
-   "commit": "0f40f7cccafa",
-   "config": {
-    "EMU_CFLAGS": "",
-    "EMU_OPT": "-O2",
-    "EMU_PREVIEW": "0"
-   },
-   "dirty": [],
-   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
-   "identity": "FM-1_965",
-   "schema": "qg1-emu-1",
-   "version": "v2.9.0",
-   "wasm_bytes": 1196427,
-   "wasm_sha256": "8565c2ec0516cc406a6f1ceeddeaef50b02fda5949ee4e3660d02ed5da80cc37"
-  },
-  "manifest": "felucca-2.9.0.fwsc.manifest.json"
- },
- {
-  "version": "2.8.4",
-  "file": "felucca-2.8.4.fwsc",
-  "sha256": "37f7276e27f06545e6c2508c2fbf43d6efbd8483694e9a41bebbc42ea7b9e111",
-  "size": 610959,
-  "build": {
-   "artifacts": {
-    "felucca.bin": {
-     "bytes": 556660,
-     "sha256": "68175bd57c9ccead8c3dbd2723fab1b844a6118eff9270f1b372b9604dff7396"
-    },
-    "felucca.fwsc": {
-     "bytes": 610959,
-     "sha256": "37f7276e27f06545e6c2508c2fbf43d6efbd8483694e9a41bebbc42ea7b9e111"
-    },
-    "loader/ota.bin": {
-     "bytes": 7803,
-     "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
-    }
-   },
-   "checks": {},
-   "commit": "fdf64d6b44c9c10d40068d2e46b36bea81702bdc",
-   "config": {
-    "FELUCCA_CDC": "default",
-    "FELUCCA_CDC_DEFAULT": "default",
-    "FELUCCA_FLASH": "default",
-    "FELUCCA_FM4": "default",
-    "FELUCCA_HOTRAM": "default",
-    "FELUCCA_ICONS": "default",
-    "FELUCCA_OTA": "default",
-    "FELUCCA_OTA_DRYRUN": "default",
-    "FELUCCA_OTA_RAMONLY": "default",
-    "FELUCCA_SIZE": "default",
-    "FELUCCA_SLICE": "default",
-    "FELUCCA_UAC": "default",
-    "FELUCCA_UAC_48K": "default",
-    "FELUCCA_UAC_TONE": "default",
-    "FELUCCA_UART": "default",
-    "FELUCCA_USB_LAYOUT": "default"
-   },
-   "dirty": [],
-   "emulator": {
-    "commit": "fdf64d6b44c9",
-    "version": "v2.8.4",
-    "wasm_bytes": 1165083,
-    "wasm_sha256": "d24422555cf7b75d65ea14dfc31b58c298fc1893e596392485aeacad0e0ab793"
-   },
-   "identity": "FM-1_965",
-   "schema": "qg1-build-1",
-   "sdk": {
-    "commit": "0617f4cc09685332aaf1104893718291c54ee5bb",
-    "files": {
-     "cfg/eq_cfg_hw.bin": "179ac9f4501d2cf8c3bdbc06fcda1e46228b7ace7e339342c767bb6568de57d8",
-     "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
-     "uboot.boot": "64ccc63e4df3238046fadb200f1b134311d8fe6ec6e3ccb8c8b81379231b867e"
-    },
-    "path": "/workspace/homes/3e34a44e6db0c991d4cf96f7/fw-AC79_AIoT_SDK"
-   },
-   "toolchain": {
-    "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
-    "name": "jieli-linux-toolchains-20260730.1",
-    "path": "/workspace/homes/3e34a44e6db0c991d4cf96f7/.jieli/toolchain",
-    "version": "clang version 4.0.1 () ()"
-   },
-   "version": "v2.8.4"
-  },
-  "emulator": {
-   "built": "2026-11-12T14:33:47Z",
-   "commit": "fdf64d6b44c9",
-   "config": {
-    "EMU_CFLAGS": "",
-    "EMU_OPT": "-O2",
-    "EMU_PREVIEW": "0"
-   },
-   "dirty": [],
-   "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
-   "identity": "FM-1_965",
-   "schema": "qg1-emu-1",
-   "version": "v2.8.4",
-   "wasm_bytes": 1165083,
-   "wasm_sha256": "d24422555cf7b75d65ea14dfc31b58c298fc1893e596392485aeacad0e0ab793"
-  },
-  "manifest": "felucca-2.8.4.fwsc.manifest.json"
- },
- {
-  "version": "2.8.3",
-  "file": "felucca-2.8.3.fwsc",
-  "sha256": "df0ceef0c0dbe9da3228630c700487876248fd3bd7684b7b73e252cae2e3a77f",
-  "size": 610959,
   "build": null,
-  "manifest": "felucca-2.8.3.fwsc.manifest.json"
- },
- {
-  "version": "2.8.2",
-  "file": "felucca-2.8.2.fwsc",
-  "sha256": "9a3ac55df4e0ab1f04b16cc37398785404e799f2a2257e93b4c9a69a6e762cc9",
-  "size": 610959,
-  "build": null,
-  "manifest": "felucca-2.8.2.fwsc.manifest.json"
- },
- {
-  "version": "2.8.1",
-  "file": "felucca-2.8.1.fwsc",
-  "sha256": "7a4e98fd959e32f6d02e54db0e5d0ceb4198cdec21f5ba182a9bc7e3e281ecca",
-  "size": 610959,
-  "build": null,
-  "manifest": "felucca-2.8.1.fwsc.manifest.json"
+  "manifest": "felucca-v2.9.0-0f40f7c.fwsc.manifest.json"
  }
 ]
