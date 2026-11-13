@@ -3248,6 +3248,14 @@ static void draw_graph(void)
             cv_oy = 0;
             graph_scl_prog(t, c);
             break;
+        case GR_ENGINE:                              /* (6.2) EDIT 1: the engine's own picture (ui_enginegraph.c) */
+            cv_oy = 0;
+            graph_engine(t, c);
+            break;
+        case GR_SEQTOOLS:                            /* (6.2) SEQ > TOOLS: the edits and their undo (ui_seqtools.c) */
+            cv_oy = 0;
+            graph_seq_tools(t, c);
+            break;
         case GR_FX_BUSES:                            /* (6.1) FX > BUSES: the routing console (ui_fxb.c) */
             cv_oy = 0;
             graph_fx_buses(t);

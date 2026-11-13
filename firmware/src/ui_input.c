@@ -1073,6 +1073,25 @@ static void edit_param(uint32_t slot, int32_t steps)
         fop_knob(slot, steps);
         return;
     }
+    if (pg->graph == GR_SEQTOOLS) {                      /* (6.2) SEQ > TOOLS: OP, TIMES, and the two actions */
+        if (slot == 0u)
+            sq_op = (int16_t)clamp((int32_t)sq_op + (steps > 0 ? 1 : -1), 0, SQOP_COUNT - 1);
+        else if (slot == 1u)
+            sq_amt = (int16_t)clamp((int32_t)sq_amt + (steps > 0 ? 1 : -1), 1, 8);
+        else if (slot == 2u) {
+            if (steps) {
+                undo_mark();
+                sq_do((uint32_t)sq_op, (uint32_t)sq_amt);
+                ui_message(chain_busy() ? "EDITED WHILE PLAYING" : "PATTERN EDITED");
+            }
+        } else if (steps) {
+            if (undo_do())
+                ui_message("UNDONE");
+            else
+                ui_message("NOTHING TO UNDO");
+        }
+        return;
+    }
     if (pg->graph == GR_FX_BUSES && slot == 0u) {        /* (6.1) BUSES: KNOB 1 the link, 2..4 its parameters */
         fxb_step(steps > 0 ? 1 : -1);
         return;

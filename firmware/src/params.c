@@ -516,7 +516,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES};   /* (6.1) SCL's three pages and FX>
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_ENGINE};   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
                                      * scale's notes and intervals, the chords the key has, their voicings, the
                                      * intervals from the root, the degrees' progressions and the keys (ui_graph.c) */
@@ -589,7 +589,7 @@ static const page_t PAGES[] = {
                                      * (6.1) its voices and its strum on one page */
     {"PROG", FAM_SCL, SC_TRACK, GR_SCL_PROG, {P_SCALE, P_ROOT, P_SCALE, P_CHRD}},   /* (2.8) KNOB 1 the progression
                                      * (page_desc), 3 the same SCALE as KNOB 1's real one */
-    {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
+    {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_ENGINE, {P_E0, P_E1, P_E2, P_E3}},   /* (6.2) a graph per engine (ui_enginegraph.c) */
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
     {"RETRIG", FAM_EDIT, SC_TRACK, GR_NONE, {P_LRTRG, 0xFF, 0xFF, 0xFF}},
     {"MORPH", FAM_EDIT, SC_TRACK, GR_MORPH, {P_MORPH, 0xFF, 0xFF, 0xFF}},   /* (0.6.45) ANALOG PHASE LOFI: the wave morphs */   /* (0.6.12) LOFI BYTE / FLOAT: RTRG */
@@ -652,6 +652,8 @@ static const page_t PAGES[] = {
     {"AUTOMATION", FAM_SEQ, SC_TRACK, GR_MOTION, {0xFF, 0xFF, 0xFF, 0xFF}},
     {"AUTO LIST", FAM_SEQ, SC_TRACK, GR_EVENTS, {0xFF, 0xFF, 0xFF, 0xFF}},   /* 1.1.5: the locks and events, edited */
     {"MUTATE", FAM_SEQ, SC_TRACK, GR_MUTATE, {P_MSND, P_MPAT, P_MAMT, P_MMODE}},   /* (0.6.43) project.c mutate_poll */
+    {"TOOLS", FAM_SEQ, SC_TRACK, GR_SEQTOOLS, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (6.2) SEQUENCER TOOLS: DUP HALF ROT
+                                     * REV CLEAR on the pattern, with undo (ui_seqtools.c) */
 };
 #define NPAGES (sizeof(PAGES) / sizeof(PAGES[0]))
 static uint8_t mod_ui_slot;      /* the MOD page: the matrix slot (0..3) KNOB 2..4 edit */
@@ -665,9 +667,25 @@ static const param_desc_t REV_AIR = PD("AIR", F_SEMI, -24, 24, 0);    /* (0.6.12
 static const param_desc_t AP_BEAT = PE("RATE", N_APDIV, 2);          /* (0.6.9) AUTO PAN's RATE on the tempo (SYNC BEAT) */
 static uint8_t sl_ui_step;       /* (JIANT 0.6.3) the SL PITCH page: the step KNOB 2 edits */
 
+/* (6.2) SEQ > TOOLS: the operation, its TIMES and the two actions the page's knobs turn (ui_seqtools.c). */
+enum { SQOP_DUP, SQOP_HALF, SQOP_ROTL, SQOP_ROTR, SQOP_REV, SQOP_CLR, SQOP_COUNT };
+static const char *const N_SQOP[] = {"DUP", "HALF", "ROT <", "ROT >", "REV", "CLEAR"};
+static int16_t sq_op, sq_amt = 1;
+static const param_desc_t SQOP_DESC = PE("OP", N_SQOP, 0);
+static const param_desc_t SQAMT_DESC = PD("TIMES", F_INT, 1, 8, 0);
+static const char *const N_SQGO[] = {"--", "TURN: GO"};
+static const param_desc_t SQGO_DESC = PE("APPLY", N_SQGO, 0);
+static const char *const N_SQUNDO[] = {"--", "TURN: UNDO"};
+static const param_desc_t SQUNDO_DESC = PE("UNDO", N_SQUNDO, 0);
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
+    if (pg->graph == GR_SEQTOOLS) {                    /* (6.2) SEQ > TOOLS: OP, TIMES, APPLY, UNDO */
+        static const param_desc_t *const D[4] = {&SQOP_DESC, &SQAMT_DESC, &SQGO_DESC, &SQUNDO_DESC};
+        static int16_t GO, UNDO;
+        *valp = slot == 0u ? &sq_op : slot == 1u ? &sq_amt : slot == 2u ? &GO : &UNDO;
+        return D[slot & 3u];
+    }
     if (pg->graph == GR_FX_BUSES) {                    /* (6.1) the console: KNOB 1 the link, 2..4 its parameters */
         static const uint8_t FXB_ID[8][3] = {
             {P_DLY, P_REV, P_CHOR},                    /* TRACK: the selected track's three sends */

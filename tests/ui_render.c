@@ -655,7 +655,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_COUNTIN, S_COUNTIN2, S_MENU_AUDIO, S_HEAD_PLAY_REC, S_HEAD_REC_OTHER, S_HEAD_BPM_TURN, S_HEAD_BPM_LOCK,
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
-       S_SCL_SCALE, S_SCL_CHORD, S_SCL_PROG, S_FX_BUSES, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
+       S_SCL_SCALE, S_SCL_CHORD, S_SCL_PROG, S_FX_BUSES, S_SEQ_TOOLS_EDITS, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
        S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_MIX, S_HOME_PERF, S_HOME_ENG, S_HOME_MOD, S_HOME_SYSTEM, S_HOME_ROUT, S_COUNT };
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
@@ -675,7 +675,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "home_eng", "home_mod", "home_system", "home_rout"};
+    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "seq_tools_edits", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "home_eng", "home_mod", "home_system", "home_rout"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -1021,6 +1021,8 @@ static void setup(int s)
         TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 6; go_title("SCALE"); break;
     case S_SCL_CHORD:
         TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 1; TSEL->p[P_CHRD] = 1; go_title("CHORD"); break;
+    case S_SEQ_TOOLS_EDITS:
+        sq_op = 2; sq_amt = 3; go_title("TOOLS"); break;
     case S_FX_BUSES:                          /* (6.1) the routing console: the delay link, its three params */
         song.g[G_DMIX] = 71; song.g[G_RSIZE] = 71; song.g[G_CDEPTH] = 47; song.g[G_DTIME] = 40;
         song.g[G_DFDBK] = 60; song.g[G_SLMODE] = 1; song.g[G_SLPAT] = 0x5A; song.g[G_SLDEP] = 100;

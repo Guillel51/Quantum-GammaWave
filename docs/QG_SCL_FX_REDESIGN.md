@@ -107,3 +107,22 @@ Filled by the run recorded in `CHANGELOG.md` (6.1):
 | FX > BUSES | KNOB 1 | the link the console edits |
 | FX > BUSES | KNOB 2..4 | that link's three parameters |
 | FX > BUSES | FX button | next page of the family (DIST after BUSES); two quick taps, the next section |
+
+## 8. Los dos pendientes que quedaban (6.2)
+
+**SEQUENCER TOOLS** existe ya como página real de SEQ (`TOOLS`, después de MUTATE): KNOB 1 elige la operación
+(DUP, HALF, ROT <, ROT >, REV, CLEAR), KNOB 2 cuántas veces (1..8), KNOB 3 aplica y KNOB 4 deshace. Antes de cada
+edición se marca el punto de `undo_mark()`, el mismo que usan GEN y NOW, así que un giro equivocado se revierte con
+un giro; la página dibuja el patrón de 16 pasos que va a cambiar (acentos, acordes y el cursor) para que nada se
+edite a ciegas. Sólo se tocan las notas: el tiempo, la compuerta y la probabilidad de cada paso quedan donde estaban.
+
+**Un gráfico por motor** está en EDIT 1, que hasta ahora no tenía gráfico (`GRAPH_ENGINE`): cada motor dibuja lo que
+suena con sus propios parámetros —ANALOG sus dos osciladores y el corte del filtro, DIGITAL/TRIO los cuatro
+operadores, DRUM los ocho niveles de las pistas, GRAIN la densidad de granos, SLICE sus ocho cortes, SAMPLE la onda
+comprimida por el rango, WAVETABLE el morph entre dos formas, PHYS los dos modos de la cuerda y LOFI los escalones que
+realmente cuantiza—. No es el mismo trazado recoloreado: cada rama usa los ids que ese motor edita de verdad.
+
+**FX ROUTING** ya no está pendiente de nada: HOME tiene su vista ROUTING (HOME 9/9) desde la fase 3, que dibuja el
+recorrido parte → insert → envíos → bus → master leyendo `mix_part` y los envíos, y FX > BUSES (§3) es la consola
+que además lo edita. Lo que queda de la lista de deuda es sólo lo que necesita hardware o campos nuevos de
+persistencia: la medición en placa y las pieles más allá de paleta + rampa.

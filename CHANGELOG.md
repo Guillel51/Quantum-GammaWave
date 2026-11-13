@@ -1,3 +1,11 @@
+## 2026-11-13 — SEQ > TOOLS y un gráfico por motor
+
+- **SEQ > TOOLS** (nueva página de SEQ, tras MUTATE): DUP, HALF, ROT <, ROT >, REV y CLEAR sobre el patrón de la
+  pista elegida, con TIMES 1..8, punto de UNDO antes de cada edición y el patrón dibujado en la propia página.
+  Sólo se reescriben las notas: tiempo, compuerta y probabilidad de cada paso se conservan.
+- **EDIT 1** tiene ya gráfico: uno por motor, con los parámetros de ese motor (osciladores y filtro, operadores,
+  pistas de batería, granos, cortes, onda del sample, morph de la tabla, modos de la cuerda y escalones de LOFI).
+
 ## 2026-11-12 — SCL en tres páginas y FX > BUSES
 
 SCL se rehace como herramienta de tres páginas y FX gana la consola de ruteo. El detalle medido está en
