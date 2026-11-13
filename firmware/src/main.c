@@ -249,32 +249,53 @@ static void fm1_main(void)
         fm1_irq_on();
     }
 #endif
-    autosave_boot(boot_clean);                /* (1.2) the last session's music, under the splash */
-    splash_step();                            /* (FASE 2/5) the flash read is over: the picture moves on */
-#if FELUCCA_FLASH
-    reel_boot();                              /* (1.0-GW TAKES v2) the TAKES reel and its SET */
-    splash_step();
-#endif
-    session_dice(fm1_ticks() ^ (uint32_t)fm1_adc_read(FM1_ADC_BATT) << 16);   /* (JIANT 0.4) this session's macros */    {                                         /* the splash, its signature written (JIANT 0.5: was 400 ms); the pot
-                                               * followed (MIDI IN plays under it). (0.5.2) On the clock: drawing the
-                                               * beings does not make it longer. (v1.5) STARTUP SPLASH: FULL as
-                                               * before (SPL_WRITE + SPL_HOLD); SHORT the drawing without the hold;
-                                               * OFF nothing at all -- the loop simply does not run, and nothing it
-                                               * did is lost (master_poll runs every main-loop pass below) */
-        uint32_t n;
+    /* (v2.9.7) THE BOOT RUNS UNDER THE PICTURE, one stage a frame. The splash already painted itself as
+     * the earlier stages finished, but the three that reach the flash -- the autosave's read, the TAKES
+     * reel and the session's dice -- all ran before the animation took a single step, so the picture sat
+     * on its first frame for the whole SPI read. They are now the loop's own work: a frame is written,
+     * then one stage runs, then the next frame. The order of the stages is untouched (autosave, reel,
+     * dice: the dice still mixes the ticks of a boot that has read the session), and the clock is still
+     * the one that starts at the first pixel, so nothing is added to the boot's length -- the work moves
+     * into the frames that were already being waited for. A stalled clock still runs every stage once,
+     * after the loop: no path leaves the music unread. */
+    {
+        uint32_t n, stage = 0u, now;
         uint32_t span = ui_splash == 2u ? 0u : ui_splash == 1u ? SPL_SHORT : SPL_WRITE + SPL_HOLD;
-        /* (FASE 2/5) the same clock as the stages above: what init already spent counts, so the splash
-         * is `span` ms from its first pixel and not from the end of the boot. If init ate the whole
-         * write, the hand-over still gets its frames instead of being skipped. */
         uint32_t el = (fm1_micros() - spl_t0_us) / 1000u;
         if (ui_splash == 0u && el + SPL_FADE > span)
             span = el + SPL_FADE;
-        for (n = 0; n < 600u && (ms = (fm1_micros() - spl_t0_us) / 1000u) < span; n++) {   /* (600: a stalled
-                                                                                       * clock still ends it) */
-            splash_write(ms);
+        for (n = 0; n < 600u; n++) {
+            if (stage == 0u) {
+                autosave_boot(boot_clean);              /* (1.2) the last session's music */
+                stage = 1u;
+            } else if (stage == 1u) {
+#if FELUCCA_FLASH
+                reel_boot();                            /* (1.0-GW TAKES v2) the TAKES reel and its SET */
+#endif
+                stage = 2u;
+            } else if (stage == 2u) {
+                session_dice(fm1_ticks() ^ (uint32_t)fm1_adc_read(FM1_ADC_BATT) << 16);  /* (JIANT 0.4) */
+                stage = 3u;
+            }
+            now = (fm1_micros() - spl_t0_us) / 1000u;
+            splash_write(now);
+            if (stage >= 3u && now >= span)
+                break;
             fm1_delay_ms(4);
-            master_poll();
+            master_poll();                              /* (MIDI IN plays under it) */
         }
+        if (stage < 1u) {                               /* a stalled clock: the frames are over, the boot is not */
+            autosave_boot(boot_clean);
+            stage = 1u;
+        }
+        if (stage < 2u) {
+#if FELUCCA_FLASH
+            reel_boot();
+#endif
+            stage = 2u;
+        }
+        if (stage < 3u)
+            session_dice(fm1_ticks() ^ (uint32_t)fm1_adc_read(FM1_ADC_BATT) << 16);
     }
     kb_boot_hold = 0;
     lcd_fill(0, 0, 240, 240, T_BG);

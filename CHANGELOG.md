@@ -1,3 +1,21 @@
+## v2.9.7 — 2026-11-13 — El arranque corre bajo el splash, una etapa por cuadro
+
+### Fixed
+- **El cuadro congelado del arranque.** `main.c` ya pintaba el splash a medida que terminaban las
+  etapas de inicialización, pero las tres que tocan flash —la lectura del autosave, el reel de TAKES y
+  los dados de la sesión— se ejecutaban **antes** de que la animación diera su primer paso: la imagen se
+  quedaba en su primer cuadro durante toda la lectura SPI y luego corría el resto de golpe.
+- Ahora son el trabajo del propio bucle del splash: se escribe un cuadro, corre **una** etapa, y sigue el
+  siguiente. El orden de las etapas no cambia (autosave, reel, dados), el reloj sigue siendo el que
+  arranca con el primer píxel y el splash conserva su duración: el trabajo se mete en los cuadros que ya
+  se estaban esperando, no se añade tiempo.
+- Un reloj atascado no deja la música sin leer: al salir del bucle, toda etapa que no haya corrido corre
+  una vez. `STARTUP SPLASH OFF` sigue sin splash y sin bucle, y las tres etapas se ejecutan igual.
+
+### Changed
+- Nada del audio, del secuenciador ni del mapa de flash: sólo el orden en que el arranque cede el turno
+  al cuadro. Sin RAM nueva.
+
 ## v2.9.6 — 2026-11-13 — SCL dice las relaciones, no sólo las notas
 
 ### Added
