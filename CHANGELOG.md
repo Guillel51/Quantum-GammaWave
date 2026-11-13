@@ -22,7 +22,12 @@
 - **La release no se toca**: `refs/tags/v2.9.2` público apunta a `bdc1a0d` y su paquete (`e7727491…`) lleva
   el SPL fijado; el tag local (movido a este árbol) **no se empuja**. Este árbol es candidato a v2.9.3.
 
-## 2026-11-13 — v2.9.2: iconos propios, FX BUS, HOME y DYNAMICS
+## 2026-11-13 — v2.9.3 (candidato local, sin tag): iconos propios, FX BUS, HOME y DYNAMICS
+
+Este árbol es **v2.9.3**: la v2.9.2 se publicó desde `bdc1a0d` sin DYNAMICS ni la poda de tablas, así que
+describir este contenido como "v2.9.2" habría dejado a `release/` sirviendo un paquete con el nombre de otra
+cosa. Paquete candidato `felucca-v2.9.3.fwsc`, 610 959 B, sha `5fb621e1…`, build `df8210e`; sin tag y sin
+release, por lo que dice `docs/QG_RELEASE_BLOCKERS.md`.
 
 - **HOME > DYNAMICS** (décima pantalla de HOME, entre MOD y SYSTEM): la envolvente de la pista seleccionada
   dibujada de sus cuatro tiempos reales (ATK, DEC, SUS, REL) — ataque, caída, meseta y liberación con sus tres

@@ -1736,7 +1736,7 @@ not touched.**
 | Preset library as data | `preset_audit_test --dump` + `tools/preset_audit.py` | `[HOST]` | **pass**: 267 presets, 9 engines, 0 problems, 265/267 with motion |
 | Preset loudness | `build/preset_levels --csv` (267 rows) | `[HOST]` | bank median **−18.5 dBFS**, NOISE −18.9 vs ANALOG −18.5, range −29.2…−17.5, **0 clipping** |
 | Text spacing | `python3 tests/text_spacing_test.py` | `[HOST]` | **pass** (L face 18 px: worst gap error 0.425 px, 0 pairs over 0.5 px) |
-| Package ↔ manifest ↔ mirror | `python3 tools/coherence_check.py` | `[HOST]` | **ok**, 898 files: package 610 959 B sha `42213889…`, the site serves it, the emulator record matches the build |
+| Package ↔ manifest ↔ mirror | `python3 tools/coherence_check.py` | `[HOST]` | **ok**, 898 files: package 610 959 B sha `5fb621e1…` (v2.9.3), the site serves it, the emulator record matches the build |
 | Portal / installer page | `python3 tools/site_check.py` | `[HOST]` | **all checks passed** |
 | Installer model | `python3 tests/install_test.py` | `[HOST]` | **passed** (V15 restore skipped by name: the official file is not in the repository) |
 | Web suites | `node web/test_web.mjs`, `test_backup.mjs`, `test_pkg_bounds.mjs` | `[HOST]` | **all pass** |

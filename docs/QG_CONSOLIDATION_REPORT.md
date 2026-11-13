@@ -59,7 +59,7 @@ HEAD — `git log --oneline -1` was run on each.
 | Image | **573 664 B** of a 583 612 B slot (`APP_SLOT 0x8E7BC`) → **9 948 B free** | AC791N build |
 | RAM `.data+.bss` | 87 748 B / 98 304; pool spare 15 392 B | AC791N build |
 | Constant tables | **41 947 B** (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 · shapes 158 · palettes 352) | AC791N ELF, `tools/table_sizes.py` |
-| Package | 610 959 B, sha `42213889…` | AC791N build |
+| Package | 610 959 B, sha `5fb621e1…` (v2.9.3, `df8210e`) | AC791N build |
 | WASM | 1 223 359 B, sha `5bc3387e…`, emcc 6.0.11, commit `9866c31` | emulator build |
 | UI sweep | 191 screens × 22 palettes, **0 lint findings, 0 alignment errors, 0 GREY/MONO off**, 3 156 050 measurements | host x86 |
 | Golden renders | **285 renders, 0 changed**, 0 health, 0 voice/routing, 0 CPU over budget | host x86 |
@@ -90,7 +90,7 @@ HEAD — `git log --oneline -1` was run on each.
 | A browser session over the emulator page | Not run in this pass; the WASM is verified against its manifest, the page is not exercised. **PENDING** |
 | SCALE / CHORD / MOD MATRIX / LFO feature work of §6 of the brief | Each needs a UI + engine design pass and its own measurements; nothing was started. The margin (9 948 B) exists but a design does not |
 | New presets (SID/ACID/POLY as sounds) | No preset was added; flash existed, but adding sounds without an audible check would be guessing |
-| Moving `FELUCCA_VERSION` | v2.9.2 is already published at `bdc1a0d`; the newer tree is a **v2.9.3** candidate and renaming it now would contradict `release/` |
+| Publishing, tagging or force-moving `v2.9.2` | The name is taken upstream (`bdc1a0d`, package `e7727491…`). This tree is now **v2.9.3** (package `5fb621e1…`, `df8210e`), untagged and unpublished: the version was bumped precisely because `release/` would otherwise have carried a "v2.9.2" that was not the released bytes |
 
 ## 7. Files and commits of this pass
 

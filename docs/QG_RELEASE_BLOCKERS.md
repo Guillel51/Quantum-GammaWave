@@ -121,6 +121,11 @@ only place it can be checked. **PENDING**.
 | local `v2.9.2` (annotated) | `dcdb09f` | `42213889…`, the 2.9.2 with the smaller tables and DYNAMICS |
 
 The local annotated tag was moved during this work to describe the newer tree. It **must not be pushed**:
-the name is taken upstream and moving it would need a force-push of a published tag. The tree it points at
-is the candidate for **v2.9.3**, which is also where `FELUCCA_VERSION` should go next time something is
-released. Nothing was pushed by this audit.
+the name is taken upstream and moving it would need a force-push of a published tag.
+
+Because of that, `main` now says **v2.9.3**: `FELUCCA_VERSION`, `release/felucca-v2.9.3.fwsc` (610 959 B,
+sha `5fb621e1…`, build `df8210e`), its build record and manifest, the emulator and the site mirror all name
+v2.9.3, untagged and unpublished. The v2.9.2 package that `release/` carried before the bump is still
+there (`felucca-v2.9.2.fwsc`, sha `42213889…`): it is a **pre-bump candidate built at `dcdb09f`, not the
+released bytes**, which are `e7727491…` in the tag. Both are kept on purpose; neither is the release of
+record.
