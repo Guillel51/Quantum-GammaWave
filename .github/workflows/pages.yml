@@ -39,7 +39,19 @@ jobs:
           P="release/felucca-${V}.fwsc"
           test -s "$P"
           test -s "site/firmware/felucca-${V#v}.fwsc" || test -s "site/firmware/felucca-${V}.fwsc"
-          python3 tools/site_check.py
+          # the tree's own consistency, before it is published: site_check compares a URL with the files, so
+          # it runs after the deployment below, not before it (before, it validated yesterday's site).
+          python3 - "$V" <<'PY'
+          import json, sys
+          v = sys.argv[1]
+          top = json.load(open("site/firmware/versions.json"))
+          if isinstance(top, dict):
+              top = top.get("versions", [top])
+          names = [str(e.get("version")) for e in top if isinstance(e, dict)]
+          names = ["v" + n if not n.startswith("v") else n for n in names]
+          assert v in names, (v, names[:4])
+          print("the portal offers", v)
+          PY
 
       - name: the emulator served is the one the build record names
         run: |
@@ -59,3 +71,6 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: the deployment answers with this tree
+        run: python3 tools/site_check.py --url "${{ steps.deployment.outputs.page_url }}"
