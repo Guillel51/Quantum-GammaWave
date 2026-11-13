@@ -17,8 +17,8 @@ qué queda pendiente y por qué. Escrito el 2026-11-13.
 | Commit de código | **`1e4c31af2e62`** (subida de versión sobre `bb2ee21`, que trae el arreglo de seguridad) |
 | Commit de entrega | **el que contiene este documento** (el árbol quedó limpio al escribirlo) |
 | Identidad | **`FM-1_965`** en la app; `ota-FM-1_965` en el loader |
-| Paquete | `release/felucca-v2.9.1.fwsc`, **610 959 B**, sha256 **`75e742fd1fc3437386daad62682d36270fc9e4589f3b8e455db52c8ed2a46686`** |
-| Imagen de la app | `felucca.bin`, **581 360 B** (204 B de margen), sha256 `2db52104…` |
+| Paquete | `release/felucca-v2.9.1.fwsc`, **610 959 B**, sha256 **`86848d834356ed14…`** |
+| Imagen de la app | `felucca.bin`, **580 404 B** (**1 160 B** de margen), sha256 `86848d83…` |
 | Loader | `ota.bin`, 7 803 B, sha256 `3ca785b9…` (idéntico al de 2.9.0) |
 | Emulador | `felucca.wasm`, **1 223 264 B**, sha256 `d608efe6…`, build **`1e4c31af2e62`** |
 | Registro de build | `release/build-manifest-v2.9.1.json` (`qg1-build-1`, árbol limpio) |
@@ -134,7 +134,7 @@ eso resuelto, tag y CI construye, atesta y publica.
 
 | Prueba | Resultado | Clase |
 |---|---|---|
-| `./build.sh --release 2.9.1` | imagen 581 360 B (204 B libres), RAM 87 764/98 304, pool spare 15 392 B | build AC791N |
+| `./build.sh --release 2.9.1` | imagen **580 404 B (1 160 B libres)**, RAM 87 748/98 304, pool spare 15 392 B | build AC791N |
 | `sh web/emu/build.sh` | WASM 1 223 264 B, v2.9.1, `1e4c31af2e62` | emulador |
 | `tools/coherence_check.py` | ok | host |
 | `tools/site_check.py` | all checks passed | host |

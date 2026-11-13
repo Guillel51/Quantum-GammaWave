@@ -3,16 +3,20 @@
 - **Corregido**: un proyecto que se importa con la ventana de voces de una pista a 0 hacía `% 0` en
   `voice_alloc` (y devolvía un puntero que el llamador desreferenciaba). Lo encontró `tests/fuzz_proj.c`
   bajo ASan/UBSan, con el seed 7; esa semilla queda en la suite como regresión. Cuesta 16 B de flash:
-  imagen 581 360 B, 204 B de margen.
+  imagen 580 404 B, 1 160 B de margen.
 - **Añadido**: `tests/engine_param_test.c` — 216 mandos EDIT barridos de mínimo a máximo en tres presets
   por motor, comparados muestra a muestra: ninguno sin efecto. Su modo `--levels` mide el RMS de los 267
   presets; la familia NOISE queda 12 dB por debajo de ANALOG y ese es el desequilibrio que hay que arreglar.
 - **Documentación**: fases 5 y 6 (`docs/QG_EVOLUTION_PHASE_5_ENGINES.md`, `docs/QG_PRESET_REMASTER.md`,
   `docs/QG_EVOLUTION_PHASE_6_SECURITY.md`), re-verificación del Hub y este cierre final.
-- **Sin motores nuevos**: con 204 B de flash, GRANULAR (buffer de 22 051 B frente a 15 392 libres), SAMPLE
+- **Sin motores nuevos**: con el margen que hay (1 160 B tras recuperar 956 del código de pantallas), GRANULAR (buffer de 22 051 B frente a 15 392 libres), SAMPLE
   y VOCODER no caben. SID, ACID y POLY se resuelven con presets sobre ANALOG/PHASE/WTABLE.
 - **README**: decía `v2.7.4.7` y 212 sonidos de fábrica; ahora dice `v2.9.1` y los 267 que cuenta la
   auditoría.
+- **Margen de XIP**: `tools/size_fns.py` pide ahora `noinline` además de `minsize` a las funciones del
+  bucle principal, que hasta aquí se copiaban dentro de un único despachador (`draw_graph` medía 39 812 B).
+  Imagen 581 360 → **580 404 B**: quedan **1 160 B** en vez de 204. El audio no cambia —la pasada excluye
+  las 141 funciones que alcanza una interrupción— y `target_budget` da los mismos costes.
 
 ## 2026-11-13 — Banda galáctica en el visualizador
 
