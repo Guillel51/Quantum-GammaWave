@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Quantum GammaWave — the public site, deployed from the tree.
+#
+# There was no Pages workflow in this repository, so the deployment GitHub Pages was serving had frozen at
+# an old build (the root still answered with a v1.4-QG preview page that no file here produces). This job
+# publishes the `site/` directory exactly as committed: the portal, the installer, the Web Studio and the
+# emulator, with the package and manifest that `web/make_site.py` wrote into it. Nothing is generated here,
+# so what is deployed is what the repository holds and what `tools/coherence_check.py` verified.
+name: pages
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["site/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: the package the portal serves is the one the release carries
+        run: |
+          set -euo pipefail
+          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
+          P="release/felucca-${V}.fwsc"
+          test -s "$P"
+          test -s "site/firmware/felucca-${V#v}.fwsc" || test -s "site/firmware/felucca-${V}.fwsc"
+          python3 tools/site_check.py
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

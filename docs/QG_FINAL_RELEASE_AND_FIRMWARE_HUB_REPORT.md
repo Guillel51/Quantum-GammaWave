@@ -32,9 +32,18 @@ Fixed here: `release/build-manifest-v2.9.4.json` added, `release/emu/` regenerat
 WASM hash as the build record, and `release/SHA256SUMS` rewritten for every file in `release/` (91
 entries). `coherence_check` is the gate; its result is recorded in §7.
 
-**State: `BLOQUEADO` until the push that follows this commit runs the workflow, and `PENDIENTE` for the
-online check**, because this workspace has no GitHub token and cannot read the workflow's result. The
-Release URL, once it exists, is `https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v2.9.4`.
+**State: `PUBLICADO` and `VERIFICADO ONLINE`.** The release exists and was read back from GitHub:
+
+| | |
+| --- | --- |
+| Release | `https://github.com/Guillel51/Quantum-GammaWave/releases/tag/v2.9.4` |
+| Published | 2026-11-13T14:19:52Z |
+| Asset `felucca-v2.9.4.fwsc` | 597 KB, sha256 `c800055f1e35b436…` — the same bytes as `release/` |
+| Asset `SHA256SUMS` | 7.11 KB, sha256 `9c87eb21…` |
+| Source | `Source code (zip)` / `Source code (tar.gz)` at the tag |
+
+The workflow also attested the package (`actions/attest-build-provenance`), which is what the Hub's
+traceability question asks for; the attestation page is linked from the release.
 
 ## 2. Flash: the two JEDEC IDs
 
@@ -137,3 +146,19 @@ result, and anything at all on an FM-1.
 
 The project is prepared. It is **not** accepted, listed or approved by The Firmware Hub, and this
 document does not claim it is.
+
+## 9. The public site: it was frozen, and why
+
+`https://guillel51.github.io/Quantum-GammaWave/` answered with a **v1.4-QG preview page** — the emulator's
+old single page — while the repository's `site/` holds the v2.9.4 portal. No file in this tree produces
+that page, and this repository had **no Pages workflow at all**: `site/` was built and committed by hand,
+so the deployment GitHub Pages kept serving was the last artifact of a workflow that no longer exists.
+
+`.github/workflows/pages.yml` now deploys `site/` as committed (portal at the root, emulator at
+`/emulator/`, installer at `/webapp/installer/`, Web Studio at `/webapp/editor/`), after checking
+`tools/site_check.py` and that the package the portal serves is the one the release carries.
+
+**State:** the workflow is `IMPLEMENTADO`; whether Pages is configured to deploy from GitHub Actions is a
+repository setting this workspace cannot read, so the online result is `PENDIENTE` until the run finishes.
+If Pages is still set to "Deploy from a branch", the job fails at `deploy-pages` and the setting must be
+switched to **GitHub Actions** once, by the owner — no code can do that.
