@@ -6247,7 +6247,9 @@ if (MOCK_QS) { setMock(true); connect(); }
       for (let i = 0; i < 26; i++) {
         const bx = 12 + i * 7.5;
         const d = Math.abs(bx - cutX);
-        const bh = Math.max(4, Math.min(50, (42 - d * 0.22) + Math.sin(frame * 0.12 + i * 0.7) * 9));
+        /* Horizontal shift controlled by knob 1 (parameter 9): -50..+50 pixels */
+    const knob1Shift = (st.p[9] - 64) / 64 * 50;
+    const bh = Math.max(4, Math.min(50, (42 - d * 0.22) + 9 + knob1Shift));
         const ty = 140 - bh;
         ctx.fillStyle = "#581c87"; ctx.fillRect(bx, ty + bh * 0.6, 5, bh * 0.4);
         ctx.fillStyle = pal.theme; ctx.fillRect(bx, ty + bh * 0.25, 5, bh * 0.35);

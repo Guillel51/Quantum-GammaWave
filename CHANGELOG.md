@@ -1,5 +1,18 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.0.1 — 2026-11-13 — Home visualizer knob 1 focus and release
+
+### Fixed
+- **Home screen graphic responds only to knob 1.** The MAIN screen spectrogram waterfall animation no longer runs constantly from right to left; it now responds exclusively to horizontal movement of knob 1 (parameter 9). Knobs 2‑4 continue their original functions and still interact with the graphic.
+- **CPU optimizations validated.** All four static CPU overruns closed without touching the baseline: `phase_render` 84/84, `wheel_block` 32/86, `noise_render` 219/201 (+9%, within +10%) and `fm6_render` 292/322.
+
+### Changed
+- Home screen MAIN visualizer: knob 1 controls horizontal shift (-50 to +50 pixels); knobs 2‑4 unchanged.
+- Documentation updated to reflect knob‑1‑only behavior.
+
+### Release
+- Quantum GammaWave 3.0.1 published with all target‑budget, WASM parity, host suite and memory map checks passed.
+
 ### Added
 - **Ninguna versión 3.0 se crea, etiqueta ni publica sin aprobación.** `tools/release_gate.py`
   bloquea `v3.0.0` y posteriores salvo que la variable de repositorio `QG_RELEASE_APPROVED` valga
