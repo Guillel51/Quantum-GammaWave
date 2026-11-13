@@ -397,7 +397,7 @@ static void finding(const char *what, const rbox_t *b, const rbox_t *o)
     char key[64];
     uint32_t i;
     nfind++;
-    snprintf(key, sizeof key, "%.20s|%.14s|%.24s", cur_name, what, b->s);
+    snprintf(key, sizeof key, "%.20s|%.14s|%.24s", cur_name, what, b->s ? b->s : "(unlabelled)");
     for (i = 0; i < nseen && strcmp(seen[i], key); i++) ;
     if (i < nseen) return;                       /* each finding once per screen */
     if (nseen < 600u) strcpy(seen[nseen++], key);
@@ -463,7 +463,7 @@ static void contain(int32_t x, int32_t y)
             if (r[3] - b->y1 < g) g = r[3] - b->y1;
             gap = g;
         }
-        if (gap < 2 && aud) {
+        if (gap < 2 && aud && b->s) {   /* (an icon's ink has no label: the tight-cell audit names texts only) */
             ntight++;
             if (strlen(tight) + strlen(b->s) + 8u < sizeof tight)
                 snprintf(tight + strlen(tight), sizeof tight - strlen(tight), "%s'%s' %dpx", tight[0] ? ", " : "", b->s, (int)gap);

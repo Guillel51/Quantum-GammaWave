@@ -92,6 +92,12 @@ EXTRA = {
     "x_nofile": "symbol_document_disabled",
     # the MENU's tabs (ui_menu.c, 1.0.5): DISPLAY (CONTROL x_knob, AUDIO x_speaker, SYSTEM x_cog)
     "x_eye": "symbol_eye",
+    # the icons we drew ourselves (assets/icons-svg, tools/gen_icon_font.py -> web/fukiai_qg.ttf): FX > BUSES
+    # (the chain, the bus, the drum bus's punch, the master fader) and HOME's own screens (overview, performance,
+    # modulation matrix, system gauge). STROKE icons: a 2 px line, so they read at 12 px where a detail glyph
+    # turns to mush.
+    "x_chain": "qg_chain", "x_bus": "qg_bus", "x_punch": "qg_punch", "x_master": "qg_master",
+    "x_hgrid": "qg_hgrid", "x_perf": "qg_perf", "x_matrix": "qg_matrix", "x_gauge": "qg_gauge",
 }
 
 # a glyph given as a tuple: the first one the font has (a glyph still to be drawn falls back to a stand-in;
@@ -107,7 +113,10 @@ FIT_TO = {"system_battery_0": "system_battery_4"}
 # new icons that are also needed at 12 px (list rows, menu values)
 SMALL_EXTRA = ["x_star", "x_lock", "x_cog", "x_usb", "x_warn", "x_folder", "x_left", "x_right",
                "x_mixer", "x_pattern", "x_song", "x_motion", "x_motion_rec", "x_motion_del",
-               "x_hpf", "x_repeat", "x_reverse", "x_tstop", "x_freeze"]
+               "x_hpf", "x_repeat", "x_reverse", "x_tstop", "x_freeze",
+               # (4.1) the eight drawn ones: FX BUS draws them at 12 px in the chain row and the block headers, and
+               # HOME's strip is 12 px, so that is the only size they need (a 16 px cell would be 128 B each)
+               "x_chain", "x_bus", "x_punch", "x_master", "x_hgrid", "x_perf", "x_matrix", "x_gauge"]
 # legacy names no screen draws (1.1): kept in the enum (assets/icons.json's order), not rasterised (no cell)
 NOT_DRAWN = ["tape"]
 
@@ -215,7 +224,8 @@ def ink_box(b, s):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("out", nargs="?")
-    ap.add_argument("--font", default=str(ROOT / "web" / "fukiai.ttf"))
+    ap.add_argument("--font", default=str(ROOT / "web" / "fukiai_qg.ttf"),
+                    help="Fukiai plus our own glyphs (tools/gen_icon_font.py)")
     ap.add_argument("--json", default=str(ROOT / "assets" / "icons.json"), help="legacy icon names (order = enum)")
     ap.add_argument("--sizes", default="12,16,24")
     ap.add_argument("--big", default=",".join(BIG_DEFAULT))

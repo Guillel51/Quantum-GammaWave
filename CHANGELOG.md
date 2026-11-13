@@ -1,3 +1,21 @@
+## 2026-11-13 — v2.9.2: iconos propios, FX BUS y HOME
+
+- **Iconografía propia**: ocho glifos dibujados como SVG (`assets/icons-svg/`, rejilla de 24, sólo trazo) y
+  convertidos a contornos de fuente por `tools/gen_icon_font.py`, que los cuelga de `web/fukiai_qg.ttf` en
+  U+E000..E007 junto a la Fukiai original (que no se toca). La tabla de iconos pasa de 8 177 a **8 608 B**
+  (+431) y la imagen de 580 404 a **581 448 B** (+1 044, código de UI incluido).
+- **FX > BUSES**: la cadena usa el icono de cadena y el de bus (antes MIX/MOD, prestados), y los bloques PUNCH
+  y MASTER sus propios glifos en vez de ACCENT/LEVEL; el suelo de cada bloque es un degradado de cuatro bandas,
+  una columna de luz lo cruza mientras ese bus lleva señal, la fila de la cadena tiene su propio degradado y el
+  punto que la recorre deja estela.
+- **HOME**: una tira de siete iconos en la esquina del título dice en qué pantalla estás (el chip encendido
+  respira con `ui.frame`), y las siete vistas se apoyan en un degradado de doce bandas tramadas. Los rótulos de
+  esquina que sólo repetían lo mismo con palabras (LIVE, MATRIX, IN > OUT) se fueron; lo que decía algo (la
+  pista, el contador de presets, la versión) sigue ahí, una fila más abajo.
+- **Pruebas**: `ui_render` completo — 190 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones,
+  0 píxeles GREY/MONO fuera de su gama** en 3 155 338 medidas. El volcado de una pantalla descubrió dos
+  desreferencias nulas en el propio informe del arnés (una caja sin rótulo), corregidas ahí.
+
 ## 2026-11-13 — v2.9.1: auditoría de motores, seguridad y cierre
 
 - **Corregido**: un proyecto que se importa con la ventana de voces de una pista a 0 hacía `% 0` en

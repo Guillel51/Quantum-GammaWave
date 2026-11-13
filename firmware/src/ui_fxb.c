@@ -34,7 +34,9 @@ enum { FXB_DLY, FXB_REV, FXB_CHO, FXB_SLI, FXB_PCH, FXB_MST, FXB_NB };
 static const char *const FXB_BLOCKN[FXB_NB] = {"DELAY", "REVERB", "CHORUS", "SLICER", "PUNCH", "MASTER"};
 /* (FASE 4) the icon of each block, and of each link of the chain: the effect's own glyph, the same the pages of
  * that effect put beside its title (icons.c) */
-static const uint8_t FXB_BLOCKI[FXB_NB] = {ICON_DELAY, ICON_REVERB, ICON_CHORUS, ICON_SLICE, ICON_ACCENT, ICON_LEVEL};
+static const uint8_t FXB_BLOCKI[FXB_NB] = {ICON_DELAY, ICON_REVERB, ICON_CHORUS, ICON_SLICE, ICON_X_PUNCH,
+                                            ICON_X_MASTER};   /* (4.1) the two drawn glyphs: the drum bus's
+                                                                * transient and the master's fader */
 /* the block's own header: its icon, its title, and the lamp that lights with the bus */
 static void fxb_head(int32_t x, int32_t y, int32_t w, uint32_t ic, const char *name, uint16_t ink, int32_t lvl)
 {
@@ -56,11 +58,27 @@ static int32_t fxb_px(int32_t v) { return clamp(v, 0, 7000) * 56 / 7000; }
  * draws a still frame. */
 static void fxb_grad(int32_t x, int32_t y, int32_t w, int32_t h)
 {
-    int32_t bh = h / 2;
-    if (bh <= 0)
+    int32_t k, band = h / 4;
+    if (band <= 0)
         return;
-    gw_dither(x, y, w, bh, ux_mix(T_BG, T_SURF, 42), ux_mix(T_BG, T_ACCENT, 8), 50);
-    gw_dither(x, y + bh, w, h - bh, ux_mix(T_BG, T_SURF, 62), ux_mix(T_BG, T_ACCENT, 20), 50);
+    for (k = 0; k < 4; k++)          /* (4.1) four steps, accent rising towards the floor: a gradient, dithered */
+        gw_dither(x, y + band * k, w, k == 3 ? h - band * 3 : band,
+                  ux_mix(T_BG, T_SURF, 30 + k * 10), ux_mix(T_BG, T_ACCENT, 5 + k * 7), 50);
+}
+/* (4.1) the sheen: one narrow column of light crossing a block's drawing while its bus carries signal, so a busy
+ * block reads busy before a meter is read. ui.frame, not a timer: a silent page draws a still frame. */
+static void fxb_sheen(int32_t x, int32_t y, int32_t w, int32_t h, int32_t live)
+{
+    int32_t p, k;
+    if (!live || w < 24)
+        return;
+    p = (int32_t)((ui.frame / 3u) % (uint32_t)(w + 28)) - 14;
+    for (k = -6; k <= 6; k++) {
+        int32_t xx = p + k, xx2 = xx < 0 ? -xx : xx, a = (7 - xx2) * 9;
+        if (xx < 0 || xx >= w || a <= 0)
+            continue;
+        cv_rect(x + xx, y, 1, h, ux_mix(T_SURF, T_TEXT, a));
+    }
 }
 /* (FASE 4) the bus's two levels as a pair of meters at the block's right edge: what goes in (SEND) above the
  * line, what comes back (RET) below it. Both are fx_vu's peaks, so a bus with nothing sent draws two dark wells
@@ -86,11 +104,12 @@ static void graph_fx_buses(const track_t *t)
     int32_t snd[FXB_NB], wet[FXB_NB], live;
     /* the chain, one row: eight cells, the selected link lit, KNOB 1 walking them, and the signal's own dot
      * running the row while anything is moving through it */
+    gw_dither(2, 1, 240 - 4, 14, ux_mix(T_BG, T_SURF, 30), ux_mix(T_BG, T_ACCENT, 12), 50);   /* (4.1) the road */
     for (i = 0; i < FXB_N; i++) {
         int32_t x = 2 + (int32_t)i * 29, on = (int32_t)i == sel;
         uint16_t bg = on ? T_ACCENT : T_SURF, ink = on ? T_INK : (i < 2 ? T_MID : T_DIM);
         cv_rrect(x, 1, 27, 14, 3, bg, T_SURF);
-        cv_icon_on(x + 7, 2, 12, i < 2 ? (i ? ICON_MOD : ICON_MIX) : FXB_BLOCKI[i - 2u], ink, bg);   /* (the blocks' own) */
+        cv_icon_on(x + 7, 2, 12, i < 2 ? (i ? ICON_X_BUS : ICON_X_CHAIN) : FXB_BLOCKI[i - 2u], ink, bg);   /* (the blocks' own) */
         if (i)
             cv_rect(x - 2, 7, 1, 3, T_LINE);          /* the link between two cells of the chain */
     }
@@ -122,6 +141,7 @@ static void graph_fx_buses(const track_t *t)
             fxb_head(x, y, BW, FXB_BLOCKI[i], FXB_BLOCKN[i], head, on ? wet[i] : 0);
             fxb_meters(dx + dw + 2, dy, dh, on ? snd[i] : 0, on ? wet[i] : 0);
             fxb_grad(dx, dy, dw, dh);                                 /* (Solar Heat) its floor warms up */
+            fxb_sheen(dx, dy, dw, dh, on ? snd[i] + wet[i] : 0);      /* (4.1) and shows its signal moving */
             switch (i) {
             case FXB_DLY: {                           /* the repeats, TIME apart, each FEEDBK softer */
                 int32_t fb = clamp(song.g[G_DFDBK], 0, 127), k;
@@ -216,8 +236,10 @@ static void graph_fx_buses(const track_t *t)
         /* (FASE 4) the signal's own dot running the chain: it is the only thing here that says the audio is
          * moving, and it only exists while one of the eight buses carries a peak */
         if (live > 64) {
-            int32_t k = (int32_t)((fm1_ms / 24u) % (uint32_t)FXB_N);
+            int32_t k = (int32_t)((fm1_ms / 24u) % (uint32_t)FXB_N), j;
             int32_t x = 2 + k * 29 + (int32_t)((fm1_ms / 6u) % 24u) % 25;
+            for (j = 3; j > 0; j--)                   /* (4.1) the trail: where the signal just was */
+                cv_rect(x - j * 2, 15, 2, 1, ux_mix(T_ACCENT, T_BG, 20 + j * 25));
             cv_rect(x, 15, 3, 2, ux_mix(T_ACCENT, T_TEXT, 60));
         }
     }

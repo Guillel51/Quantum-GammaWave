@@ -38,6 +38,42 @@ static void hv_bar(int32_t x, int32_t y, int32_t w, int32_t h, int32_t v, int32_
 /* (FASE 2) the ambience (defined below, after the views that now start with it) */
 static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed);
 
+/* (4.1) the ground every HOME screen sits on: four bands dithered from the panel's ceiling down to its foot, the
+ * accent rising as the rows come down (gw_dither is what a 16-bit panel has instead of a blend). Drawn first, under
+ * the embers and the text, and built only from palette tokens mixed by ux_mix, so GREY / MONO / FLAT still work. */
+static void hv_grad(void)
+{
+    int32_t k, top = -cv_oy, bot = top + cv_h;      /* (the body is drawn in two passes: only this pass's rows) */
+    for (k = 0; k < 12; k++) {                       /* 12 steps of 14 px: shallow enough that the seams read as a blend */
+        int32_t y = 26 + k * 14, hh = k == 11 ? 200 - 26 - 11 * 14 : 14;
+        int32_t y0 = y < top ? top : y, y1 = y + hh > bot ? bot : y + hh;
+        if (y1 <= y0)
+            continue;
+        gw_dither(6, y0, 228, y1 - y0, ux_mix(T_BG, T_SURF, 22 + k * 3), ux_mix(T_BG, T_ACCENT, 2 + k * 2), 50);
+    }
+}
+
+/* (4.1) which of HOME's screens is on, as icons: seven cells in the title's right corner -- where a caption used to
+ * say the same thing in words -- the one on screen lit in the accent with a bar under it that breathes, the others
+ * dim. The order is the order a tap walks them (HV_OVERVIEW .. HV_ROUT), so the strip is the walk itself. */
+static void hv_strip(int32_t y, uint16_t c)
+{
+    static const uint8_t IC[7] = {ICON_X_HGRID, ICON_X_MIXER, ICON_X_PERF, ICON_X_KNOB, ICON_X_MATRIX,
+                                  ICON_X_GAUGE, ICON_X_BUS};
+    int32_t i, x0 = 137, on = (int32_t)ui.home_view - HV_OVERVIEW;
+    gw_dither(x0, y + 12, 7 * 13 - 1, 2, T_SURF, ux_mix(T_SURF, T_ACCENT, 34), 50);   /* its own track */
+    for (i = 0; i < 7; i++) {
+        int32_t x = x0 + i * 13;
+        if (i == on) {
+            int32_t ph = (int32_t)((ui.frame / 8u) % 12u), pulse = ph < 6 ? ph : 12 - ph;
+            cv_rrect(x - 1, y - 1, 13, 13, 2, c, ux_mix(c, T_TEXT, 35 + pulse * 8));   /* a 12 px icon needs a 13 px cell */
+            cv_icon_on(x, y, 12, IC[i], ux_mix(c, T_BG, 88), c);                       /* dark on the accent: it reads */
+            cv_rect(x + 1, y + 12, 9, 1, ux_mix(c, T_BG, 100 - pulse * 14));
+        } else
+            cv_icon_on(x, y, 12, IC[i], T_MID, T_SURF);
+    }
+}
+
 /* the sound's name on a track: a user preset's or the engine's (ui_draw.c sound_name does the same for the footer;
  * ui_draw.c is included after this file, so it is written again here, four lines) */
 static void hv_sound_name(const track_t *t, char *b)
@@ -72,17 +108,16 @@ static void hv_overview(const track_t *t, uint16_t c)
     char b[28], pn[20];
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     hv_sound_name(t, pn);
+    hv_grad();                                         /* (4.1) the ground */
     hv_air(26, 176, c, 6u);                            /* (FASE 2) OVERVIEW had no ambience at all */
 
     /* pass 0: what is loaded and what it is doing */
+    hv_strip(29, c);                                   /* (4.1) which screen this is, as an icon */
     cv_text(14, 30, &AF_S, "OVERVIEW", T_THEME);
-    fmt_int(b, (int32_t)song.sel + 1);
-    {   char s[20];
-        str_cpy(s, "TRACK ", sizeof s);
-        hv_cat(s, b, sizeof s);
-        hv_cat(s, " / 6", sizeof s);
-        cv_text_r(226, 30, &AF_S, s, c, T_SURF);
-    }
+    b[0] = 'T';                                        /* the track, in the title: the strip took that corner */
+    fmt_int(b + 1, (int32_t)song.sel + 1);
+    hv_cat(b, "/6", sizeof b);
+    cv_text(96, 30, &AF_S, b, c);
     cv_rect(14, 43, 212, 1, T_LINE);
 
     cv_text(14, 50, &AF_S, "ENGINE", T_DIM);
@@ -158,13 +193,15 @@ static void hv_system(uint16_t c)
 {
     char b[28];
     uint32_t v = 0, k;
+    hv_grad();
     hv_air(26, 176, c, 5u);                            /* (FASE 2) the same embers and floor the other HOME views
                                                         * carry: SYSTEM was the one that sat on a flat background */
     for (k = 0; k < NTRK; k++)
         v += hv_voices(&trk[k]);
 
+    hv_strip(29, c);
     cv_text(14, 30, &AF_S, "SYSTEM", T_THEME);
-    cv_text_r(226, 30, &AF_S, FELUCCA_VERSION, T_MID, T_SURF);
+    cv_text(96, 30, &AF_S, FELUCCA_VERSION, T_MID);    /* (4.1) the version, beside the title */
     cv_rect(14, 43, 212, 1, T_LINE);
 
     /* the audio ISR's load: audio.c song.cpu_q8, averaged over CPU_AVG blocks, as the graphs' five-segment bar
@@ -281,13 +318,15 @@ static void hv_mix(const track_t *t, uint16_t c)
     char b[28], q[16];
     uint32_t k;
     (void)t;
+    hv_grad();
     hv_air(26, 176, c, 1u);
+    hv_strip(29, c);
     cv_text(14, 30, &AF_S, "MIXER", T_THEME);
     fmt_int(q, (int32_t)song.sel + 1);
     {   char s2[16];
-        str_cpy(s2, "SEL T", sizeof s2);
+        str_cpy(s2, "T", sizeof s2);
         hv_cat(s2, q, sizeof s2);
-        cv_text_r(226, 30, &AF_S, s2, c, T_SURF);
+        cv_text(96, 30, &AF_S, s2, c);                 /* (4.1) the track, the strip took the corner */
     }
     for (k = 0; k < NTRK; k++) {
         const track_t *q2 = &trk[k];
@@ -368,9 +407,10 @@ static void hv_perf(const track_t *t, uint16_t c)
 {
     char b[28], q[20];
     uint32_t i;
+    hv_grad();
     hv_air(26, 176, c, 2u);
+    hv_strip(29, c);
     cv_text(14, 30, &AF_S, "PERFORMANCE", T_THEME);
-    cv_text_r(226, 30, &AF_S, "LIVE", c, T_SURF);
     cv_text(14, 48, &AF_S, "OCTAVE", T_DIM);
     fmt_int(b, (int32_t)song.octave);
     cv_text(96, 48, &AF_S, b, T_TEXT);
@@ -441,7 +481,9 @@ static void hv_engine(const track_t *t, uint16_t c)
     uint32_t i;
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     hv_sound_name(t, pn);
+    hv_grad();
     hv_air(26, 176, c, 3u);
+    hv_strip(29, c);
     cv_text(14, 30, &AF_S, e->name, T_THEME);
     fmt_int(b, (int32_t)(t->preset % (e->npresets ? e->npresets : 1u)) + 1);
     hv_cat(b, "/", sizeof b);
@@ -449,8 +491,8 @@ static void hv_engine(const track_t *t, uint16_t c)
         fmt_int(n, (int32_t)e->npresets);
         hv_cat(b, n, sizeof b);
     }
-    cv_text_r(226, 30, &AF_S, b, T_MID, T_SURF);
     cv_text(14, 44, &AF_S, pn[0] ? pn : "NO NAME", c);
+    cv_text_r(226, 44, &AF_S, b, T_MID, T_SURF);       /* (4.1) the count, one row down */
     cv_rect(14, 58, 212, 1, T_LINE);
     for (i = 0; i < 8u; i++) {
         int32_t col = (int32_t)(i & 1u), row = (int32_t)(i >> 1);
@@ -497,9 +539,10 @@ static void hv_mod(const track_t *t, uint16_t c)
     static const uint32_t SRC[4] = {P_M1SRC, P_M2SRC, P_M3SRC, P_M4SRC};
     static const uint32_t DST[4] = {P_M1DST, P_M2DST, P_M3DST, P_M4DST};
     static const uint32_t AMT[4] = {P_M1AMT, P_M2AMT, P_M3AMT, P_M4AMT};
+    hv_grad();
     hv_air(26, 176, c, 4u);
+    hv_strip(29, c);
     cv_text(14, 30, &AF_S, "MODULATION", T_THEME);
-    cv_text_r(226, 30, &AF_S, "MATRIX", T_MID, T_SURF);
     cv_text(14, 44, &AF_S, "LFO", T_THEME);
     fmt_int(b, (int32_t)t->p[P_LRATE]);
     cv_text(52, 44, &AF_S, b, T_TEXT);
@@ -570,17 +613,14 @@ static void hv_route(const track_t *t, uint16_t c)
     char b[24];
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     uint32_t i;
+    hv_grad();
     hv_air(26, 176, c, 7u);                            /* (FASE 2/3) ROUTING was the last HOME view still on a
                                                         * flat background: the same embers and floor the other
                                                         * six carry, so no page of HOME reads as a prototype */
 
     /* ---- pass 0: the part, its insert, its three sends ---- */
+    hv_strip(29, c);
     cv_text(14, 30, &AF_S, "ROUTING", T_THEME);
-    b[0] = 'T';
-    fmt_int(b + 1, (int32_t)song.sel + 1);
-    hv_cat(b, " ", sizeof b);
-    hv_sound_name(t, b + str_len(b));
-    cv_text_r(226, 30, &AF_S, b, c, T_SURF);
     cv_rect(14, 41, 212, 1, T_LINE);
     cv_rect(10, 44, 1, 68, T_LINE);                    /* the rail: one stage a row, read downwards */
 
@@ -623,7 +663,11 @@ static void hv_route(const track_t *t, uint16_t c)
     /* ---- pass 1: the buses and what each of them returns, then the master and the out ---- */
     cv_rect(10, 26, 1, 70, T_LINE);                    /* the rail, continued */
     cv_text(14, 118, &AF_S, "BUSES", T_THEME);
-    cv_text_r(226, 118, &AF_S, "IN > OUT", T_DIM, T_SURF);
+    b[0] = 'T';                                        /* (4.1) the part, where IN > OUT used to be */
+    fmt_int(b + 1, (int32_t)song.sel + 1);
+    hv_cat(b, " ", sizeof b);
+    hv_sound_name(t, b + str_len(b));
+    cv_text_r(226, 118, &AF_S, b, T_DIM, T_SURF);
     cv_rect(14, 131, 212, 1, T_LINE);
     for (i = 0; i < 3u; i++) {
         int32_t y = 136 + (int32_t)i * 14;
