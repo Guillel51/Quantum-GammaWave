@@ -1424,6 +1424,37 @@ static void gw_viz_deep(uint32_t q)
     uint16_t ed = bg_tone_mix(page, bg_col(200), 52);
     if (q >= 2u)
         return;                                    /* LOW: the page keeps its deeper tone and nothing else */
+    /* (6.5) THE SAME SKY AS HOME, AT THE SCOPE'S SCALE. The visualizer's field was two worlds and a limb on a
+     * flat tone, so the scope sat in front of emptiness. A galactic band crosses the panel now, drawn from a
+     * table (x, y, thickness) before the bodies so they sit inside it: a core line that swells into a bulge,
+     * a halo, and dust biting into both, all in the page's own tone so the measured data still leads. Twenty-
+     * four columns, one pset each: no trigonometry and no allocation. */
+    {
+        static const uint8_t MWX[24] = {6, 16, 26, 36, 46, 56, 66, 76, 86, 96, 106, 116,
+                                        126, 136, 146, 156, 166, 176, 186, 196, 206, 216, 226, 234};
+        static const uint8_t MWY[24] = {150, 144, 139, 133, 128, 122, 117, 111, 106, 100, 95, 89,
+                                        83, 78, 74, 70, 67, 63, 60, 57, 54, 52, 50, 48};
+        static const uint8_t MWT[24] = {1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2,
+                                        2, 2, 1, 2, 2, 1, 2, 2, 1, 2, 1, 1};
+        uint16_t band = bg_tone_mix(page, bg_col(70 + g * 3), 20 + g / 3);
+        uint16_t bhalo = bg_tone_mix(page, bg_col(40 + g * 2), 26);
+        uint16_t bdust = bg_tone_mix(page, bg_col(24), 30);
+        int32_t k;
+        for (k = 0; k < 24; k++) {
+            int32_t bx = MWX[k], by = MWY[k] + sway;
+            if (MWT[k] == 3) {
+                cv_pset(bx, by - 1, bhalo);
+                cv_pset(bx, by + 1, bhalo);
+                cv_pset(bx, by + 2, bdust);
+            } else if (MWT[k] == 2) {
+                cv_pset(bx, by - 1, bhalo);
+                cv_pset(bx, by + 1, bdust);
+            }
+            cv_pset(bx, by, band);
+            if ((k & 3) == 2)
+                cv_pset(bx, by - 1, bdust);
+        }
+    }
     /* the giant's limb in the page's top-left corner: most of it outside the screen, its ring crossing the part
      * we do see, so the frame reads as a window onto something larger than it is */
     gw_deep_body(-16 + sway / 2, 2, 30, 26000, lit, sh, ed, 0);

@@ -1,3 +1,9 @@
+## 2026-11-13 — Banda galáctica en el visualizador
+
+- `gw_viz_deep()` dibuja una banda galáctica de 24 columnas antes de los cuerpos: núcleo con bulbo, halo y polvo,
+  en el tono de la página para que los datos medidos sigan liderando. Sin trigonometría por píxel, sin memoria.
+  No se dibuja en calidad LOW.
+
 ## 2026-11-13 — FX > BUSES: distribución rehecha
 
 - La pantalla tenía 318 hallazgos de lint por textos fuera de su celda: los títulos de los seis bloques se

@@ -35,6 +35,32 @@ esta pantalla).
 El cielo del *bay* tenía dos «nebulosas» de doce píxeles; ahora lo cruza una banda galáctica con núcleo, bulbo, halo,
 polvo y un único seno lento para el brillo. Detalle en `docs/QG_UI_VISUAL_REDESIGN.md` §1.
 
+## 2 bis. Visualizador: la misma banda, a su escala (6.5)
+
+El campo del visualizador eran dos cuerpos y un limbo sobre un tono plano: el osciloscopio flotaba en el vacío. Ahora
+`gw_viz_deep()` dibuja una banda galáctica antes de los cuerpos, con 24 columnas de tabla (x, y, grosor) y el mismo
+vocabulario que HOME —núcleo que se engrosa en bulbo, halo y polvo que la corta— pero en el tono de la propia página
+(`bg_tone_mix`), para que los datos medidos sigan siendo lo más brillante. Comparte el vaivén lento (`sway`) del
+campo, no se dibuja en calidad LOW y su coste es un píxel por columna, sin trigonometría ni asignaciones.
+
+![Visualizador](.shots/viz_after.png)
+
+## 2 ter. Lo que ya estaba, y por qué no lo dupliqué
+
+- **MIXER (HOME 5/9)**: cada pista trae nivel segmentado, pico retenido, regla de pan con su muesca, estado MUTE en
+  pastilla, voces sonando, fader y un máster con sus dos picos. No estaba vacío en el código; lo que no tiene todavía
+  es la capa de degradados y partículas de la identidad Solar Heat.
+- **Planetas**: cada cuerpo tiene ya superficie propia — cráteres el rocoso, bandas el gigante, especular y atmósfera
+  gruesa el oceánico, anillos dobles el anillado, escarcha el helado—, sombreado en rejilla 3×2, terminador, limbo y
+  anillo de atmósfera. Añadir «cráteres» otra vez sería dibujar lo que ya está.
+
+## 2 quater. Arranque
+
+No se midió ni se cambió. El arranque tiene una fase de firma (`SPL_WRITE`) y una espera (`SPL_HOLD`) en `main.c`, y
+la pausa que ves antes de la animación final es candidata a ser una de las dos, pero reducirlas sin medir en la unidad
+sería optimizar a ciegas: en host no hay panel ni flash que cronometrar, así que la medición tiene que salir de un
+FM-1 y no de aquí.
+
 ## 3. Corrección de una regresión introducida por mí
 
 El commit `19b5414` puso un gráfico por motor en EDIT 1. El barrido de la UI lo rechazó: la comprobación que exige
@@ -53,7 +79,7 @@ No se tocó en esta pasada, y conviene decirlo antes de que lo busques:
   pantallas.
 - **Planetas**: siguen siendo cinco cuerpos con cinco reacciones distintas al tacto más la estrella; no se añadieron
   superficies nuevas (cráteres, relieves).
-- **Visualizador**: no recibió la banda galáctica ni cambios de partículas.
+- **Visualizador**: la banda galáctica ya está (ver §2 bis); partículas nuevas, no.
 - **MIXER, PERFORMANCE, MOD MATRIX, PRESET BROWSER, motores**: sin cambios visuales en esta pasada.
 - **Arranque**: no se investigó la pausa previa a la animación final.
 
