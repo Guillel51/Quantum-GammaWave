@@ -1,3 +1,23 @@
+## v2.9.6 — 2026-11-13 — SCL dice las relaciones, no sólo las notas
+
+### Added
+- **SCL > SCALE: los grados por intervalo.** Bajo la columna de la derecha, la escala se escribe como lo que
+  es sobre la tónica —`P1 m3 P4 P5 m7` en una pentatónica menor, `P1 M2 M3 P4 P5 M6 M7` en una mayor—, leído
+  de `scale_offsets`, los mismos semitonos que el motor cuantiza. Una escala cromática no se enumera (doce
+  nombres en 124 px se elidían): dice **ALL 12 NOTES**.
+- **SCL > CHORD: el acorde deletreado.** La línea de notas pasa de `C E G` a `P1 C  M3 E  P5 G`, con el
+  intervalo de cada voz sobre la fundamental, calculado del mismo `chord_from` que toca la tecla: la tercera
+  es una tercera y no una letra suelta.
+- **El teclado dice su octava.** La celda de C del teclado lleva **C4** (la tira está afinada en esa octava),
+  así que las doce celdas dejan de ser pitch classes anónimas.
+
+### Changed
+- Nada del sonido: las tres páginas siguen leyendo la máscara de escala y `chord_from` del secuenciador.
+
+### Performance
+- La imagen pasa de 568 616 B a **569 144 B** (+528 B): las tres cadenas de intervalo, el caso cromático y
+  la octava del teclado. Quedan **14 468 B** libres. Sin RAM nueva (87 748 B de 98 304, pool spare 15 392).
+
 ## v2.9.5 — 2026-11-13 — El suelo Solar Heat en todas las pantallas
 
 ### Added

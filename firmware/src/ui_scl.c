@@ -119,6 +119,27 @@ static void scl_notes_oct(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
         str_cpy(b + str_len(b), o, sz - str_len(b));
     }
 }
+/* (6.2) the chord spelled as what its tones are: "P1 C  M3 E  P5 G  m7 Bb" -- each tone with the interval
+ * it makes over the chord's root, read from N_ITVN and from the notes chord_from returned, so the page says
+ * the third is a third and not only a letter. It is the same note array the key plays: nothing here is
+ * recomputed from the shape. */
+static void scl_spell(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
+{
+    uint32_t i;
+    b[0] = 0;
+    for (i = 0; i < n; i++) {
+        int32_t iv = ((int32_t)nt[i] - (int32_t)nt[0]) % 12;
+        if (iv < 0)
+            iv += 12;
+        if (i && str_len(b) + 8u < sz)
+            str_cpy(b + str_len(b), "  ", 2);
+        if (str_len(b) + 10u > sz)
+            break;
+        str_cpy(b + str_len(b), N_ITVN[iv], sz - str_len(b));
+        str_cpy(b + str_len(b), " ", 2);
+        str_cpy(b + str_len(b), N_NOTE[nt[i] % 12u], sz - str_len(b));
+    }
+}
 /* the tones of a chord as text: "C E G" */
 static void scl_notes(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
 {
@@ -157,7 +178,12 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         scl_pkey(kx, ky, kw, kh, face, ux_mix(face, T_BG, 55));
         if (black)
             cv_rect(kx + 1, y0 + 1, kw - 2, h / 3 - 1, T_BG);
-        if (!small)
+        if (!small && i == 0 && kw >= 15) {          /* (6.2) C4: the strip's own octave, on its C */
+            char cb[4];
+            str_cpy(cb, N_NOTE[i], sizeof cb);
+            fmt_int(cb + 1, 4);
+            cv_text_in(kx, ky + (kh - 9) / 2, kw, &AF_S, cb, ink, face);
+        } else if (!small)
             cv_text_in(kx, ky + (kh - 9) / 2, kw, &AF_S, N_NOTE[i], ink, face);
         if (sound)
             cv_rect(kx + 2, ky + kh - 3, kw - 4, 2, is_root || in ? T_TEXT : T_ACCENT);
@@ -226,6 +252,29 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
         scl_field(104, 42, nb, T_DIM, T_SURF);
     }
     scl_field(104, 54, t->p[P_QUANT] ? "SNAPS TO KEY" : "AS PLAYED", t->p[P_QUANT] ? T_THEME : T_DIM, T_SURF);
+    /* (6.2) the degrees of the key by interval: what each step of the scale is over the tonic (P1 M2 m3 P4
+     * P5 M6 M7 for the minor, P1 M2 M3 P4 P5 M6 M7 for the major). One line, ten characters at a time: the
+     * page already says the note names, this says how they relate. */
+    {
+        uint8_t off[12];
+        uint32_t k, sn = scale_offsets(t, off);
+        char ib[32];
+        ib[0] = 0;
+        if (sn > 7u) {                               /* (6.2) the chromatic scale has no interval to single
+                                                      * out: twelve names in a 124 px line were ellipsised, so
+                                                      * that case says what the scale is instead of listing it */
+            str_cpy(ib, "ALL 12 NOTES", sizeof ib);
+            sn = 0;
+        }
+        for (k = 0; k < sn; k++) {
+            if (k && str_len(ib) + 5u < sizeof ib)
+                str_cpy(ib + str_len(ib), " ", 2);
+            if (str_len(ib) + 4u >= sizeof ib)
+                break;
+            str_cpy(ib + str_len(ib), N_ITVN[off[k] % 12u], sizeof ib - str_len(ib));
+        }
+        cv_text_fit(104, 78, &AF_S, ib, T_MID, T_SURF, 124);
+    }
     if (t->p[P_CHRD]) {
         uint8_t out[KB_CH];
         uint32_t tn = chord_build(t, 60u, out);
@@ -264,8 +313,8 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
         int32_t w = text_w(&AF_L, N_NOTE[root]);
         cv_text_on(12, 14, &AF_L, N_NOTE[root], mode ? T_ACCENT : T_DIM, T_SURF);
         scl_field(12 + w + 3, 22, q, mode ? T_TEXT : T_DIM, T_SURF);
-        scl_notes(out, tn, nts, sizeof nts);
-        cv_text_fit(12, 40, &AF_S, nts, mode ? T_TEXT : T_DIM, T_SURF, 120);
+        scl_spell(out, tn, nts, sizeof nts);
+        cv_text_fit(12, 40, &AF_S, nts, mode ? T_TEXT : T_DIM, T_SURF, 216);
         str_cpy(vo, "VOICE ", sizeof vo);
         str_cpy(vo + 6, vc == 0 ? "CLOSE" : vc == 1 ? "LEAD" : vc == 2 ? "OPEN" : "BASS", sizeof vo - 6);
         scl_field(12, 53, vo, T_MID, T_SURF);

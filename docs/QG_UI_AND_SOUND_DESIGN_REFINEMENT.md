@@ -123,12 +123,30 @@ punch, master) but are not enlarged in this pass.
 
 ---
 
-## 6–9. SCL, EDIT, LFO, Solar Heat everywhere
+## 6. SCL — **partly done**
 
-**Not implemented in this pass.** Each of these is a design-and-DSP task on its own:
+The three pages already existed (`firmware/src/ui_scl.c`: `graph_scl_scale`, `graph_scl_chord`,
+`graph_scl_prog`, reached by SCL's three cards) and they already read the same `scale_mask`,
+`scale_offsets` and `chord_from` the sequencer plays, so no page can keep a number the sound disagrees
+with. What was missing is what the brief asks for first: **the relationships**, not the letters.
 
-* SCL's three pages (scale degrees and out-of-scale notes, chord tones and inversions, a usable keyboard
-  with octave labels and MIDI feedback).
+* **SCALE** now prints the degrees by interval under the right column — `P1 m3 P4 P5 m7` for C minor
+  pentatonic, `P1 M2 M3 P4 P5 M6 M7` for a major — straight from `scale_offsets`. A chromatic scale has no
+  interval to single out and says **ALL 12 NOTES** instead of an ellipsised list.
+* **CHORD** spells the chord: the notes line went from `C E G` to `P1 C  M3 E  P5 G`, each tone with the
+  interval it makes over the root, read from the same `chord_from` array the key plays.
+* **The keyboard strip names its octave**: the C cell reads **C4**, so the twelve cells are no longer
+  anonymous pitch classes. Active voices already lit their cell; that is the MIDI feedback in the brief.
+* Inversions and voicings were already drawn (the four lanes under the keyboard show the voicing's spread
+  and the strum); the chord page's cards (CHORD / VOICING / STRUM / ROOT) set them for real.
+
+Still open in SCL: comparing two scales side by side, and a wider keyboard than the 12-cell strip (that
+needs the panel's card row, which SCL uses for its four controls).
+
+## 7–9. EDIT and LFO per engine
+
+**Not implemented.** Each of these is a design-and-DSP task on its own:
+
 * EDIT per engine: which of shape/morph, unison, sub, sync, FM ratio, feedback, drive, phase modulation,
   noise colour actually exists in each of the nine engines (`eng_*.c`), and a page per engine.
 * LFO: waveforms, rate, tempo sync, divisions, phase, retrigger, fade, delay, slew, polarity, depth,
