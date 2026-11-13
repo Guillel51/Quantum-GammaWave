@@ -46,9 +46,13 @@ qué queda pendiente y por qué. Escrito el 2026-11-13.
    (`tools/gen_icon_font.py` -> `web/fukiai_qg.ttf`, U+E000..E007), que FX > BUSES y las pantallas de HOME usan
    ahora; FX BUS estrena degradado de cuatro bandas, brillo en movimiento y estela del punto de señal, y HOME una
    tira de siete iconos con la pantalla encendida y un suelo de doce bandas. Coste: tabla de iconos **+431 B**
-   (8 177 -> 8 608) e imagen **+1 044 B** (580 404 -> 581 448). `ui_render`: 190 pantallas x 22 paletas, 0
-   hallazgos, 0 desalineaciones, 0 píxeles fuera de gama en 3 155 338 medidas. Todo en host x86: sin unidad
-   física, nadie lo ha mirado en el panel.
+   (8 177 -> 8 608) e imagen **+1 044 B** (580 404 -> 581 448), que la fase siguiente devolvió con creces.
+   `ui_render`: 190 pantallas x 22 paletas, 0 hallazgos, 0 desalineaciones, 0 píxeles fuera de gama. Todo en
+   host x86: sin unidad física, nadie lo ha mirado en el panel.
+6. **Fase 7 — tablas de constantes**: medidas en el ELF (`tools/table_sizes.py`), la cara M bajó de cuatro a
+   dos fases horizontales (error de hueco 0,044 px, medido) y se retiraron once celdas de icono que nombraban
+   funciones ya eliminadas. Tablas **50 718 -> 41 910 B** e imagen **581 448 -> 572 664 B**; el `.fwsc` no
+   cambia de tamaño (610 959 B: relleno y loader fijos).
 6. **Fase 7 — niveles**: 52 presets con su `P_LEVEL` propio en el `x[]` ya existente (**0 B** de flash).
    La familia NOISE sube de −29,7 a **−21,8 dBFS** de mediana; los 30 presets que estaban a 6 dB o más de
    su motor vuelven a su familia. Ninguno clipa (`hot = 0` en los 267) y los 12 que necesitaban un hueco en

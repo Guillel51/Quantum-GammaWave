@@ -12,6 +12,15 @@
   respira con `ui.frame`), y las siete vistas se apoyan en un degradado de doce bandas tramadas. Los rótulos de
   esquina que sólo repetían lo mismo con palabras (LIVE, MATRIX, IN > OUT) se fueron; lo que decía algo (la
   pista, el contador de presets, la versión) sigue ahí, una fila más abajo.
+- **Tablas de constantes**: medidas por símbolo en el ELF enlazado (`tools/table_sizes.py`), no estimadas
+  por el tamaño del header. La cara M (monoespaciada de 15 px, avance fijo de 9 px) llevaba **cuatro fases
+  horizontales**: 1 680 B de tabla y 6 380 B de datos para colocar sus glifos dentro de un cuarto de píxel. A
+  dos fases su error de hueco medido es **0,044 px** (`text_spacing_test`), menos de lo que la cara S ya
+  toleraba con cuatro. Y once celdas de icono nombraban cosas que la capa PERFORM se llevó por delante
+  (`x_usb`, `x_hpf`, `x_tstop`, `x_freeze`): **760 B** que ninguna pantalla podía alcanzar.
+  `font S 14 669 · font M 8 420 (antes 16 480) · font L 5 049 · icons 7 848 (antes 8 608) · keycaps 5 414 ·
+  shapes 158 · palettes 352` — **41 910 B** de tablas en total, e imagen **572 664 B** (antes 581 448,
+  **−8 784 B**). El `.fwsc` sigue en 610 959 B: el resto es relleno y loader de tamaño fijo.
 - **Pruebas**: `ui_render` completo — 190 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones,
   0 píxeles GREY/MONO fuera de su gama** en 3 155 338 medidas. El volcado de una pantalla descubrió dos
   desreferencias nulas en el propio informe del arnés (una caja sin rótulo), corregidas ahí.
