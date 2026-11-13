@@ -8,13 +8,13 @@ component and how it was checked. Nothing here is marked verified that was not v
 | | |
 | --- | --- |
 | Version | **v2.9.4** (`firmware/src/felucca.c`, `FELUCCA_VERSION`) |
-| Source commit built | `b6a2ea7` (HOME five screens) + this commit |
+| Source commit built | `8fe5dee`, the sync commit itself (clean tree) |
 | AC791N build | `./build.sh`, identity **FM-1_965** |
-| Package | `release/felucca-v2.9.4.fwsc`, **610 959 B** |
+| Package | `release/felucca-v2.9.4.fwsc`, **610 959 B**, sha256 `c800055f…` |
 | Image | **568 488 B** of the 583 612 B slot — **15 124 B** free |
 | Tables | **41 947 B** (`tools/table_sizes.py`, out of the ELF) |
 | RAM | `.data+.bss` **87 748 B** of 98 304; pool spare **15 392 B** |
-| WASM | **1 191 701 B**, sha256 `687ccd3b…` |
+| WASM | **1 191 701 B**, sha256 `067f9a07…` |
 | Emulator manifest | `build/emu/manifest.json`, emulator record inside the site's firmware manifest |
 
 The version moved to **v2.9.4** because the bytes changed: v2.9.3 is already published and its package
@@ -38,11 +38,11 @@ flash instead of taking it.
 
 | Component | Version shown | Origin | Artefact | State |
 | --- | --- | --- | --- | --- |
-| Firmware source | v2.9.4 | `b6a2ea7` + this commit | `firmware/src/` | **SINCRONIZADO** |
+| Firmware source | v2.9.4 | `8fe5dee` | `firmware/src/` | **SINCRONIZADO** |
 | AC791N build | v2.9.4 | this workspace | `build/felucca.bin` 568 488 B | **IMPLEMENTADO LOCALMENTE** (compiled, not run on a unit) |
 | Package `.fwsc` | v2.9.4 | this workspace | `release/felucca-v2.9.4.fwsc` 610 959 B | **IMPLEMENTADO LOCALMENTE** |
 | Package manifest | v2.9.4 | `tools/fm1_sign.py request` | `release/felucca-v2.9.4.fwsc.manifest.json` | **SINCRONIZADO** (unsigned by design, `keyid ""`) |
-| WASM / emulator | v2.9.4 | `web/emu/build.sh` | 1 191 701 B, sha256 `687ccd3b…` | **IMPLEMENTADO LOCALMENTE**, **no** opened in a browser here |
+| WASM / emulator | v2.9.4 | `web/emu/build.sh` | 1 191 701 B, sha256 `067f9a07…` | **IMPLEMENTADO LOCALMENTE**, **no** opened in a browser here |
 | Site (`site/`) | v2.9.4 | `web/make_site.py` | portal + installer + editor + `firmware/felucca-2.9.4.fwsc` | **IMPLEMENTADO LOCALMENTE**, not served |
 | Installer | v2.9.4 | `web/site/installer` via make_site | 250 647 B self-contained page | **IMPLEMENTADO LOCALMENTE**; gates unchanged, see below |
 | Web Studio | v2.9.4 | `web/site/editor` | editor page | **SINCRONIZADO** (it reads the firmware's SysEx ids; no new ids in this build) |

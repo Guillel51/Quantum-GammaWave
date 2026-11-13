@@ -13,7 +13,7 @@
   RUTEO» es ahora la página real **FX > BUSES**, y la matriz del portal es la sección **MOD**. Se
   eliminaron `quantum_32_home_engine.png`, `quantum_33_home_mod_matrix.png` y
   `quantum_36_home_routing.png`: mostraban pantallas que ya no existen.
-- **Emulador y paquete reconstruidos** desde este árbol: WASM **1 191 701 B** (sha256 `687ccd3b…`),
+- **Emulador y paquete reconstruidos** desde este árbol: WASM **1 191 701 B** (sha256 `067f9a07…`),
   paquete `release/felucca-v2.9.4.fwsc` **610 959 B** con su manifiesto, y el sitio regenerado con ese
   paquete y su registro de emulador.
 

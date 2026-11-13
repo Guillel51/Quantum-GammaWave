@@ -98,8 +98,8 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
   no clipping, every family within 0.5 dB of it).
 - **The goldens are measured, not assumed.** 285 renders across every engine, preset, voice mode and FX send
   hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
-- **The emulator is the same release.** WASM **1 191 701 B**, sha256 `687ccd3b…`, built with Emscripten
-  6.0.11 from `b6a2ea7`, and its manifest is the one the site serves.
+- **The emulator is the same release.** WASM **1 191 701 B**, sha256 `067f9a07…`, built with Emscripten
+  6.0.11 from `8fe5dee`, and its manifest is the one the site serves.
 
 ## Synthesis engines
 
