@@ -196,6 +196,21 @@ def main():
     code, text = run("import", "--bin", str(b1), "--second", str(b3), "--out", str(tmp / "diff-out"))
     ok(code == 1 and "differ" in text, "two backups that differ are refused")
 
+    # 5b. the record names the tool it read, and does not stamp a newer tool with 0.9.1's commit
+    b11, j11 = pair(tmp, "newtool", img, tool="m-flasher 0.11.0")
+    code, text = run("import", "--bin", str(b11), "--crc32", good, "--out", str(tmp / "newtool-out"))
+    man = json.loads(next((tmp / "newtool-out").glob("*.manifest.json")).read_text())
+    ok(code == 0 and man["programmer"]["declared_by"] == "m-flasher 0.11.0"
+       and man["programmer"]["declared_commit"] is None,
+       "a 0.11.0 backup records 0.11.0 and does not claim the 0.9.1 commit")
+
+    # 5c. an archive is evidence: a second import never replaces it
+    before = next((tmp / "crc-out").glob("*.bin"))
+    digest = hashlib.sha256(before.read_bytes()).hexdigest()
+    code, text = run("import", "--bin", str(b1), "--crc32", good, "--out", str(tmp / "crc-out"))
+    ok(code == 1 and "already exists" in text and hashlib.sha256(before.read_bytes()).hexdigest() == digest,
+       "an existing backup is refused, not overwritten")
+
     # 6. the .json is checked against the bytes, never believed
     b4, j4 = pair(tmp, "swapped", img)
     bogus = json.loads(j4.read_text())

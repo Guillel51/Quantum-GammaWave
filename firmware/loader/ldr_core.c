@@ -163,11 +163,11 @@ static int ldr_session(void)
     if (ota_crc16(sec + 2, 30, 0) != ota_rd16(sec))
         return -6;                                       /* package for another chip key */
     /* 2a. the flash chip: the host does not know it (a stock unit cannot say), so the loader checks it.
-     * On a part the firmware does not write, nothing is erased: the records go and the old app starts. */
-    if (!ldr_flash_known()) {
-        ldr_records_drop();
+     * On a part the firmware does not write, nothing is written at all: no erase, no program and no
+     * record change. The unit is left exactly as it was found; recovering it is a restore with
+     * M-Flasher, not a write to a part whose geometry and write behaviour are unknown. */
+    if (!ldr_flash_known())
         return -15;
-    }
     /* 2b. the whole package first: nothing is erased for a damaged one */
     if ((rc = ldr_check(fl_off, fl_size, want, sc, sec)) != 0)
         return rc;

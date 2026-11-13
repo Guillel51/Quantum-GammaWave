@@ -215,16 +215,16 @@ int main(int argc, char **argv)
         logical[at] ^= 0x01;
         requests = 0;
     }
-    /* an unknown flash chip: the app area is not touched, the records go so the old app starts again */
+    /* an unknown flash chip: nothing is written, not even the update records */
     {
         flash_unknown = 1;
+        erases = 0;
+        record_cleared = 0;
         rc = ldr_session();
-        bad += check("unknown flash chip refused, app area kept, records dropped", rc == -15 &&
-                     !memcmp(nor + 0x4000, old + ofo + 0x4000, 0x93000 - 0x4000) && record_cleared &&
-                     nor[0xE4F06] == 0xFF && nor[0xE8F06] == 0x00);
+        bad += check("unknown flash chip refused, no erase, no program, records untouched", rc == -15 &&
+                     !memcmp(nor + 0x4000, old + ofo + 0x4000, 0x93000 - 0x4000) && !record_cleared &&
+                     erases == 0 && nor[0xE4F06] == 0x41 && nor[0xE8F06] == 0x41);
         flash_unknown = 0;
-        put_record(0xE4F00);
-        put_record(0xE8F00);
         record_cleared = 0;
         requests = 0;
     }
