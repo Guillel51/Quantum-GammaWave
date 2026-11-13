@@ -266,17 +266,14 @@ int main(int argc, char **argv) {
     setup(S_PRESETS); pal(UI_QUANTUM_INDEX); draw(S_PRESETS);
     write_ppm("assets/screenshots", "quantum", "31_presets_browser");
 
-    write_ppm("assets/screenshots", "quantum", "32_home_engine");
-
-    write_ppm("assets/screenshots", "quantum", "33_home_mod_matrix");
-
+    /* (5.0) HOME is five screens: the engine, matrix, envelope, system and routing pages it used to
+     * show here no longer exist as HOME views, so their pictures are gone with them -- the controls
+     * are EDIT's pages, MOD, ENV, SYSTEM and FX > BUSES, which are captured above. */
     setup(S_HOME_PERF); pal(UI_QUANTUM_INDEX); draw(S_HOME_PERF);
     write_ppm("assets/screenshots", "quantum", "34_home_performance");
 
     setup(S_HOME_MIX); pal(UI_QUANTUM_INDEX); draw(S_HOME_MIX);
     write_ppm("assets/screenshots", "quantum", "35_home_mixer");
-
-    write_ppm("assets/screenshots", "quantum", "36_home_routing");
 
     return 0;
 }

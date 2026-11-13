@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v2.9.3` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v2.9.4` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 </div>
 
@@ -68,11 +68,11 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 | **Row 9** | ![](assets/screenshots/quantum_25_master_bus.png) | ![](assets/screenshots/quantum_26_boot_splash.png) | ![](assets/screenshots/quantum_27_delay_bars.png) |
 | **Row 10** | ![](assets/screenshots/quantum_28_reverb_reso.png) | ![](assets/screenshots/quantum_29_reverb_cloud.png) | ![](assets/screenshots/quantum_30_punch_in_latch.png) |
 
-*All 30 screenshots rendered from the firmware at 240×240, scaled ×3 for GitHub display. Original PNGs reside in `assets/screenshots/`.*
+*All 37 screenshots rendered from the firmware at 240×240, scaled ×3 for GitHub display. Original PNGs reside in `assets/screenshots/`.*
 
 ---
 
-## Highlights of `v2.9.3`
+## Highlights of `v2.9.4`
 
 - **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal
   serves and `firmware/versions.json` name the same build: the portal shows the version and the commit
@@ -86,15 +86,20 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 - **The constant tables are measured, not estimated.** `tools/table_sizes.py` reads each table out of the
   linked AC791N ELF: **41 947 B** in total (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 ·
   shapes 158 · palettes 352), after the M face went to two horizontal phases (gap error **0.044 px**,
-  `text_spacing_test`) and eleven icon cells no screen could reach were removed. The image is **573 664 B**
-  of a 583 612 B slot — **9 948 B** of room — and the package 610 959 B.
-- **Ten HOME screens, twelve voices, six tracks, nine engines, 267 sounds.** The bank is audited as data
+  `text_spacing_test`) and eleven icon cells no screen could reach were removed. HOME's five retired views
+  took another **5 176 B** with them, so the image is **568 488 B** of a 583 612 B slot — **15 124 B** of
+  room — and the package 610 959 B.
+- **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine
+  engines, 267 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing
+  ones were the same controls their own sections already have (EDIT, MOD, EDIT > ENV, SYSTEM, FX > BUSES),
+  so they moved out instead of being drawn twice, and the walk is now five taps end to end. The bank is
+  audited as data
   (`tools/preset_audit.py`: 0 problems) and measured as sound (`preset_levels`: bank median **−18.5 dBFS**,
   no clipping, every family within 0.5 dB of it).
 - **The goldens are measured, not assumed.** 285 renders across every engine, preset, voice mode and FX send
   hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
-- **The emulator is the same release.** WASM **1 223 359 B**, sha256 `5bc3387e…cfa85`, built with Emscripten
-  6.0.11 from `9866c31`, and its manifest is the one the site serves.
+- **The emulator is the same release.** WASM **1 191 701 B**, sha256 `687ccd3b…`, built with Emscripten
+  6.0.11 from `b6a2ea7`, and its manifest is the one the site serves.
 
 ## Synthesis engines
 
@@ -146,8 +151,10 @@ master buses, the UI and tracks 1–3; core 1 renders tracks 4–6.
 
 ## Interface
 
-- **HOME**: the track, its four parameters, the spectrum with the live filter curve, and the orbital system —
-  a star, three orbits and three planets, each answering a pair of tracks.
+- **HOME**: five screens. **MAIN** is the system — a star, three orbits and five planets, each answering
+  its tracks and its own touch, under the galaxy band; **VISUALIZER** is the full-screen scope; **OVERVIEW**
+  the part at a glance; **MIX** the six channels; **PERFORM** the live settings. The footer counts them
+  (`HOME n/5`).
 - **Full-screen visualizer** (HOME twice): phosphor oscilloscope, phase trace, spectrum bars with peaks, the
   six track meters and the quantum motes.
 - **Pages** for each engine, the FX rack, the mixer, the sequencer, the presets, the master bus, MIDI, the
@@ -183,8 +190,8 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
    Edge, with a data cable (not a charge-only one).
 2. It re-hashes the package (**SHA-256** + size), holds it to the published record and the version floor, and
-   verifies the firmware hashes inside it. `v2.9.3` is a candidate; the last published package is `v2.9.2`,
-   and both ship **unsigned by design**: that is integrity, not
+   verifies the firmware hashes inside it. `v2.9.4` is the package this tree builds; `v2.9.3`
+   was published by the tag workflow on 2026-11-13. Both ship **unsigned by design**: that is integrity, not
    authenticity, and the page says so instead of implying a signature. If anything fails, INSTALL stays
    disabled and the page says why.
 3. The loader reads the **real flash chip** on the unit and refuses anything but the two parts above.

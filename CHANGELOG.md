@@ -1,3 +1,48 @@
+## v2.9.4 — 2026-11-13 — Sincronización total del ecosistema
+
+### Changed
+- **HOME tiene cinco pantallas**: MAIN, VISUALIZER, OVERVIEW, MIX y PERFORM. `HV_COUNT` es 5 y con él
+  desaparecen `HV_ENG`, `HV_MOD`, `HV_DYN`, `HV_SYSTEM` y `HV_ROUT`: no queda índice viejo que caminar,
+  dibujar ni guardar. La tira del título son tres celdas — las tres páginas que la dibujan — y el pie
+  escribe `HOME n/HV_COUNT`, que se lee `/5`. Ninguna función se pierde: esos controles son las páginas
+  de EDIT, MOD, EDIT > ENV, SYSTEM y FX > BUSES.
+- **README reescrito** en lo que respecta a HOME, a las cifras del build y al estado de publicación; el
+  README decía «diez pantallas de HOME» y daba `v2.9.3` por candidato cuando ya estaba publicada.
+- **Sitio y capturas regenerados**: `tools/generate_screenshots.py` vuelve a dibujar las 186 pantallas y
+  `tools/fw_shots.py` recompone las imágenes del portal. La figura que el sitio titulaba «HOME 9/9 —
+  RUTEO» es ahora la página real **FX > BUSES**, y la matriz del portal es la sección **MOD**. Se
+  eliminaron `quantum_32_home_engine.png`, `quantum_33_home_mod_matrix.png` y
+  `quantum_36_home_routing.png`: mostraban pantallas que ya no existen.
+- **Emulador y paquete reconstruidos** desde este árbol: WASM **1 191 701 B** (sha256 `687ccd3b…`),
+  paquete `release/felucca-v2.9.4.fwsc` **610 959 B** con su manifiesto, y el sitio regenerado con ese
+  paquete y su registro de emulador.
+
+### Fixed
+- `tools/fw_shots.py` apuntaba a las capturas de las vistas retiradas de HOME; ahora renderiza
+  `fx_buses` y `lfo_dest`, que son las páginas que tienen esos controles.
+- `firmware/src/felucca.c.bak`, una copia muerta del fuente versionada por accidente, eliminado.
+
+### Performance
+- La imagen baja de 573 664 B a **568 488 B** (−5 176 B) porque el dibujo de las cinco vistas retiradas
+  queda inalcanzable y `--gc-sections` no lo mete: el espacio libre del slot pasa de 9 948 B a
+  **15 124 B**. RAM sin cambios: 87 748 B de 98 304, pool spare 15 392 B.
+
+### Compatibility
+- Sin cambios de protocolo: el Web Studio y el instalador siguen hablando los mismos ids SysEx; la
+  versión sube a `v2.9.4` porque los bytes cambian y `v2.9.3` ya está publicada con su hash.
+
+### Known limitations
+- El instalador sigue **cerrado**: la reproducibilidad del `uboot.boot` no está demostrada (dos
+  compilaciones distintas, 14 444 B y 14 536 B) y faltan lectura real de JEDEC, backup físico y
+  recuperación demostrada.
+- El congelamiento del bootsplash está diagnosticado y **no** corregido: el reloj es correcto (TIMER4
+  desde el primer píxel, 176 de 1125 pasos de 4 ms cambian la pantalla) y lo que falla es la cadencia de
+  repintado, atada a los límites de las etapas de inicialización.
+- SCL, EDIT/LFO por motor y el barrido Solar Heat de las pantallas que no son HOME **no** están
+  implementados; están documentados con su alcance en `docs/QG_UI_AND_SOUND_DESIGN_REFINEMENT.md`.
+- Nada de este build se ha ejecutado en un FM-1 ni en un navegador: ver
+  `docs/QG_ECOSYSTEM_FULL_SYNC_REPORT.md` para la tabla de estados por componente.
+
 ## 2026-11-13 — HOME, cinco pantallas
 
 - **HOME queda en cinco pantallas**: MAIN, VISUALIZER, OVERVIEW, MIX y PERFORM. `HV_COUNT` es 5 en

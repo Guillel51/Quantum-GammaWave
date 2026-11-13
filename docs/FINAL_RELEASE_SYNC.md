@@ -45,7 +45,7 @@ Las cinco fases, agrupadas como las agrupa el `CHANGELOG.md` de esta versión:
 1. **Optimización medida** — memoria, `.ram_text`, caminos calientes (`docs/QG_PHASE_1_OPTIMIZATION.md`).
 2. **Interfaz** — HOME y sus vistas, medidas en el render de host y en el emulador (`docs/QG_PHASE_2_UI.md`).
 3. **Motores** — WAVETABLE como motor propio; nueve vivos (`docs/QG_PHASE_3_ENGINES.md`).
-4. **Herramientas musicales** — FLANGER, HOME **9/9** con ROUTING, una balística de medidores
+4. **Herramientas musicales** — FLANGER, HOME en **cinco** pantallas, con el ruteo en **FX > BUSES**, una balística de medidores
    (`docs/QG_PHASE_4_MUSICAL_TOOLS.md`).
 5. **The Firmware Hub** — tarjeta validada, identidad leída de los bytes, job de atestación
    (`docs/FM1_HUB_READINESS.md`, `docs/FM1_HUB_AUDIO_PROVENANCE.md`).
