@@ -570,6 +570,9 @@ static void hv_route(const track_t *t, uint16_t c)
     char b[24];
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     uint32_t i;
+    hv_air(26, 176, c, 7u);                            /* (FASE 2/3) ROUTING was the last HOME view still on a
+                                                        * flat background: the same embers and floor the other
+                                                        * six carry, so no page of HOME reads as a prototype */
 
     /* ---- pass 0: the part, its insert, its three sends ---- */
     cv_text(14, 30, &AF_S, "ROUTING", T_THEME);

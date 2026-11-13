@@ -2207,6 +2207,21 @@ static void graph_browse(void)
             pat_label((uint32_t)hint, pt, pn);
             x1 = 206 - text_w(&AF_S, pt) - 6;
         }
+        /* (FASE 3) the preset's own level, measured from a render of it (preset_level.c, the same number
+         * loading the preset writes into P_LEVEL): a bar, so the browser says how loud a sound is before
+         * it is loaded instead of being a list of names. User slots have no measurement: they keep the
+         * full width for the name. */
+        if (e != NENGINES) {
+            int32_t lv = (int32_t)preset_level_of(e, k);
+            int32_t bw = 16;
+            GFX_HOOK_ALIGN(0, y, 0, y + 16, AL_V, "list row level bar centred up/down");
+            cv_rect(170, y + 6, bw, 3, sel ? T_INK : T_RAISE);
+            if (lv > 0)
+                cv_rect(170, y + 6, bw * (lv > 127 ? 127 : lv) / 127, 3, sel ? T_INK : T_ACCENT);
+            if (x1 > 164)
+                x1 = 164;                       /* (the bar's own column: the selected row keeps its pattern
+                                                     * number at 186 and the star at 214 clear of it) */
+        }
         list_row(y, sel, tag, T_DIM, nm, T_TEXT, x1);
         if (hint >= 0) {
             GFX_HOOK_ALIGN(0, y, 0, y + 16, AL_V, "list row text centred up/down");

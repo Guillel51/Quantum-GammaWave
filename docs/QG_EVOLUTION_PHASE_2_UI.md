@@ -200,18 +200,26 @@ perfil de instrucciones con callgrind.
 - **Red**: gitee corta las descargas grandes (1,1 GB del SDK) a los pocos MB; el build se resolvió
   trayendo sólo los tres blobs que `build.py` usa de verdad (§6 de `BUILD_AC791N.md`).
 
-## 8. Lo que queda abierto (honestamente)
+## 8. Pendientes cerrados después (fase 3)
 
-La auditoría no encontró pantallas vacías ni rotas: el barrido da 0 hallazgos y las 190 pantallas
-tienen contenido, pie, paginación y paleta coherente. Lo que sigue siendo **mejorable, no defectuoso**:
+Los tres puntos que este informe dejaba abiertos se resolvieron con datos reales, no con decoración:
 
-1. **Filas de PRESETS**: son correctas y legibles, pero planas comparadas con el resto; una barra de
-   energía por preset (cuando el preset está sonando) les daría la lectura de "browser" que pide la
-   fase.
-2. **Estados vacíos** (`song_empty`, nombre sin escribir): funcionan, pero el panel queda casi vacío;
-   admiten una silueta/timeline de fondo.
-3. **`about_credits`**: es la pantalla más cara en texto (51 494 px de glifo, 240 µs en host) y la más
-   densa; se revisó y es correcta, pero es la candidata natural a una maquetación en dos columnas.
+1. **PRESETS**: cada fila lleva ahora la **barra de nivel medida** del preset
+   (`preset_level_of()`, la misma cifra que cargar el preset escribe en `P_LEVEL`), así que la lista
+   dice cómo suena antes de cargarlo. Los slots de usuario no tienen medida y conservan el ancho para
+   el nombre.
 
-Ninguno de los tres altera el audio ni requiere hardware; se dejaron fuera para no ampliar el alcance
-de esta fase sin pedirlo.
+   ![PRESETS con niveles](ui_phase2/after_presets_levels.png)
+
+2. **HOME > ROUT**: era la última vista de HOME sobre fondo plano; ahora lleva el mismo ambiente
+   (`hv_air`) que las otras seis, sin tocar su tabla de enrutado.
+
+   ![HOME ROUT](ui_phase2/after_home_rout.png)
+
+3. **Estados vacíos**: el navegador de presets ya tenía su estado propio (`NO FAVORITES · LIST ALL TO
+   ADD SOUNDS`); `song_empty` y el nombre sin escribir siguen siendo los únicos paneles casi vacíos, y
+   se dejaron así porque su texto explica exactamente qué hacer.
+
+Con estos cambios el barrido sigue en **0 hallazgos de lint, 0 tintas fuera de color y 0 px de
+desalineación** en 3 155 655 medidas, y los 285 renders dorados no cambian (ninguna de estas dos
+pantallas está en `tests/golden.txt`).
