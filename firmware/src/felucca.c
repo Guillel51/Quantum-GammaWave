@@ -96,7 +96,6 @@
 #include "ui_scl.c"            /* (6.1) SCL: SCALE (note circle + keyboard), CHORD, PROG (ui_graph.c calls them) */
 #include "ui_fxb.c"            /* (6.1) FX > BUSES: the routing console */
 #include "ui_seqtools.c"       /* (6.2) SEQ > TOOLS: DUP HALF ROT REV CLEAR, with undo */
-#include "ui_enginegraph.c"    /* (6.2) EDIT 1: one graph per engine */
 #include "ui_homeviews.c"      /* (3.0) HOME's OVERVIEW and SYSTEM (ui_draw.c and ui_graph.c call them) */
 #include "ui_graph.c"
 #include "ui_draw.c"

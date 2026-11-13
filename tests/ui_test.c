@@ -169,7 +169,6 @@ static struct { uint32_t stage; } felucca_dbg;
 #include "../firmware/src/ui_scl.c"
 #include "../firmware/src/ui_fxb.c"
 #include "../firmware/src/ui_seqtools.c"
-#include "../firmware/src/ui_enginegraph.c"
 #include "../firmware/src/ui_homeviews.c"
 #include "../firmware/src/ui_graph.c"
 #include "../firmware/src/ui_draw.c"

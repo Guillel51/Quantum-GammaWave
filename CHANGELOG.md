@@ -1,3 +1,13 @@
+## 2026-11-13 — FX > BUSES: distribución rehecha
+
+- La pantalla tenía 318 hallazgos de lint por textos fuera de su celda: los títulos de los seis bloques se
+  dibujaban por encima de su rectángulo interior y los nombres completos de la cadena se pisaban en ocho celdas
+  de 28 px. Ahora la cadena es una fila de tres letras, cada bloque es un panel con título y dibujo dentro de su
+  propio suelo, y el master queda siempre enmarcado como salida común. Cada efecto conserva su dibujo propio,
+  animado sólo con señal real (`fx_vu`).
+- Se revirtió el gráfico por motor de EDIT 1 (`19b5414`): el barrido exige 32 gráficos FM6 y esa página dejó de
+  dibujarlos, así que la comprobación bajó a 0. `SEQ > TOOLS` de ese commit se conserva.
+
 ## 2026-11-13 — SEQ > TOOLS y un gráfico por motor
 
 - **SEQ > TOOLS** (nueva página de SEQ, tras MUTATE): DUP, HALF, ROT <, ROT >, REV y CLEAR sobre el patrón de la
