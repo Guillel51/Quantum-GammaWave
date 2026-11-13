@@ -241,6 +241,29 @@ repository or the chat. **State: PENDING, with the mechanism in place.**
 
 ---
 
+## 5b. The v2.9.2 tag, prepared and not pushed (2026-11-13)
+
+`v2.9.2` exists as an **annotated tag in this working tree only** (`git tag -a`, object pointing at
+`bdc1a0d` on `main`). Pushing it is the whole act of publishing: it is what runs `release.yml`, which
+builds, attests and uploads through the Hub's reviewed shared workflow. Nothing was pushed and no release
+was created; the tag waits for the owner's word.
+
+What was checked locally, before any push, on the bytes that tag would ship:
+
+| Check | Result | Class |
+|---|---|---|
+| `python3 tools/check_identity.py` | `FM-1_965` **FREE**: catalogue fetched now (`updated 2026-11-13 09:55 UTC`, 198 listings), no listing's product or answered range covers it | live HTTP + the Hub's own JSON |
+| `python3 tools/check_fmhub.py` | every published rule holds; `play` / `editor` / `cheat` answer 200; image 240x240 PNG, 15 407 B; `#35CFFF` 11.5:1 on a dark card | live HTTP |
+| `python3 tools/check_package_identity.py release/felucca-v2.9.2.fwsc` | `FM-1_965`, loader `ota-FM-1_965`, 610 959 B, sha256 `e772749131a88c0f…` | read from the package's bytes |
+| `python3 tools/coherence_check.py` | package, release manifest, site and emulator record agree | host |
+| `gh attestation verify` on those bytes | **not run and not runnable here**: no tag pushed (nothing is attested yet), and this `gh` has neither the `attestation` subcommand nor a token | PENDING |
+
+The attestation is not something this machine can produce *or* read: it is created by the tag's workflow
+and verified by the `verify` job on that same tag. So "the attested package checked against the Hub
+catalogue" splits in two, and only the first half is done: the **candidate** is verified against the
+catalogue now, and the **attested bytes** can only be checked after the tag is pushed -- the `verify` job
+downloads the release asset and runs `gh attestation verify` against the reviewed workflow sha.
+
 ## 6. What was run, on 2026-11-12, on this tree
 
 | Command | Result |
