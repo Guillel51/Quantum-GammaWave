@@ -38,7 +38,7 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v2.9.2" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. v2.9.2: our own icon glyphs (FX BUS, HOME), the page strip, the gradients. */
+#define FELUCCA_VERSION "v2.9.3" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. v2.9.2: our own icon glyphs (FX BUS, HOME), the page strip, the gradients. */
 
 /* (v1.9.0: the integrated tree. v1.8.8 was the AC791N-build line, v1.8.9 the EQ/restore line; this
  * tree contains both, so it is neither -- the number states which code it is, and
