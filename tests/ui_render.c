@@ -1020,7 +1020,14 @@ static void setup(int s)
     case S_SCL_PROG:
         TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 2; scl_prog = 0; go_title("PROG"); break;
     case S_SHIFT: TSEL->p[P_SOFS] = -3; TSEL->p[P_POFS] = 7; go_title("SHIFT"); break;
-    case S_ARP: go_title("ARP"); break;
+    case S_ARP:                              /* (FASE 3) an arp that is really running: three keys held, UPDN over two
+                                              * octaves, the route's fifth step sounding (64), so the screen draws
+                                              * its keyboard, route and meters from state, not from a pattern */
+        TSEL->p[P_AMODE] = AM_UPDN; TSEL->p[P_ARATE] = 2; TSEL->p[P_AOCT] = 2; TSEL->p[P_AGATE] = 80;
+        TSEL->p[P_ASWING] = 25; TSEL->p[P_APROB] = 100; TSEL->p[P_AHOLD] = 0; TSEL->p[P_AORDER] = 0;
+        TSEL->nheld = 3; TSEL->held[0] = 48; TSEL->held[1] = 52; TSEL->held[2] = 55;
+        TSEL->arp_idx = 5; TSEL->arp_note = 64; TSEL->arp_ch[0] = TSEL->arp_ch[1] = TSEL->arp_ch[2] = 0;
+        go_title("ARP"); break;
     case S_VOICE: go_title("VOICE"); break;
     case S_GLOBAL: go_title("GLOBAL"); break;
     case S_SYSTEM: go_title("SYSTEM"); break;

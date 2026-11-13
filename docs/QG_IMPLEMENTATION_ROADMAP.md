@@ -350,6 +350,7 @@ abajo son estimaciones para decidir si vale la pena medirlas, no compromisos.
 | 2 | **D2** SCL como herramienta: SCALE, CHORD, VOICING, INTERVAL, PROG, KEYS | **cerrada** | `firmware/src/ui_scl.c`; `ui_render` 0 lint / 0 alineación; `ui_test` verde |
 | 3 | Auditoría de los 8 motores y diseño sonoro | **cerrada (estudio)** | `docs/QG_ENGINE_AUDIT.md`: parámetros leídos del código, huecos reales, A1 (KTR en ANALOG) elegida y especificada |
 | 2 | Fase 2: banco CHARACTER por motor, LFO SHAPE, ENV VEL, destinos X1..X4 | **cerrada (host)** | `docs/QG_PHASE2.md`; `tests/phase2_test.c` verde; 285 goldens sin cambio; `ui_render` 189 pantallas, 0 lint |
+| 3 | Fase 3: pantalla ARP con teclado, notas activas y recorrido reales; deuda de pruebas de Fase 2 | **parcial (host)** | `docs/QG_PHASE3.md`; `ui_test` all passed; `ui_render` 189 pantallas, 0 lint; 285 goldens sin cambio |
 | 3 | **A1** KTR como parámetro real de ANALOG | **cerrada (host)** | Fase 2, CHARACTER `KTR+`; `phase2_test` verde; la medida de CPU/audio del target sigue pendiente |
 | 4 | HOME multipantalla: ciclo + OVERVIEW + SYSTEM | **cerrada** | `docs/QG_HOME_VIEWS.md`; `test_home_views` verde; `ui_render` 187 pantallas, 0 lint, 0 alineación |
 | 4 | PERFORMANCE, MIXER, MODULATION, SOUND ENGINE | pendiente | especificadas en `QG_HOME_VIEWS.md` §5 |

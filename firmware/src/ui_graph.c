@@ -1006,94 +1006,163 @@ static void graph_slicer(uint16_t c)
         cv_text_in(x, 74 + CAP_IN(S, 16), 26, &AF_S, b, ink, fill);
     }
 }
-/* (QG-1) Modern ARP & ARP 2 Dynamic Visualization:
- * Displays active pattern trajectory, 16 rhythmic steps with live playback tracker,
- * octave range arcs, swing timing offsets and probability indicators. */
+/* (FASE 3) ARP: the keys the player is holding, the note the arpeggiator is sounding and the route it
+ * walks, read from the sequencer's own state (track_t's held/arp_note/arp_ch/arp_idx/arp_walk) and the
+ * parameters the engine plays. Nothing here is a decorative pattern: the keyboard lights the keys that
+ * are down, the route strip lists the notes the arp built (sorted or as played, over OCT octaves) and
+ * marks the place arp_pick took this step, and the three meters are GATE, SWING and PROB as stored.
+ * A page with the arp off says so and draws no route. */
+static void arp_key(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, uint16_t brd)
+{
+    cv_rect(x, y, w, h, face);
+    cv_rect(x, y + h - 1, w, 1, brd);
+    cv_rect(x + w - 1, y, 1, h, brd);
+}
+static void arp_meter(int32_t x, int32_t y, const char *lab, int32_t v, int32_t max, uint16_t c)
+{
+    char b[8];
+    int32_t pct = (v * 100 + max / 2) / max, w = v * 50 / max;
+    cv_text(x, y, &AF_S, lab, T_DIM);
+    fmt_int(b, pct);
+    str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
+    cv_text_r(x + 62, y, &AF_S, b, T_MID, T_SURF);
+    cv_rect(x, y + 10, 50, 5, T_RAISE);
+    if (w > 0)
+        cv_rect(x, y + 10, w < 2 ? 2 : w, 5, c);
+}
+/* the place in the route this step took: the same formulas arp_pick uses, with arp_idx having already
+ * advanced one past the pick. RND cannot be known before it is drawn (a sentinel), CHORD takes all. */
+static uint32_t arp_route_now(const track_t *t, uint32_t len)
+{
+    uint32_t m = (uint32_t)clamp(t->p[P_AMODE], 0, 15), i = t->arp_idx ? t->arp_idx - 1u : 0u;
+    if (!m || !len)
+        return 0xFFFFFFFFu;
+    if (m == AM_RND)
+        return 0xFFFFFFFEu;                       /* the next pick is not knowable: no place is marked */
+    if (m == AM_WALK)
+        return (uint32_t)t->arp_walk < len ? t->arp_walk : len - 1u;
+    if (m == AM_CHORD)
+        return 0u;
+    return arp_step_index(m, i, len);
+}
 static void graph_arp(const track_t *t, uint16_t c)
 {
-    uint32_t m = (uint32_t)clamp(t->p[P_AMODE], 0, 15);
-    uint32_t oct = (uint32_t)clamp(t->p[P_AOCT], 1, 4);
-    uint32_t gate = (uint32_t)clamp(t->p[P_AGATE], 1, 127);
-    int32_t swing = clamp(t->p[P_ASWING], 0, 100);
-    int32_t prob = clamp(t->p[P_APROB], 0, 127);
-    uint32_t i, now_step = 0xFFFFFFFFu;
-    int32_t y_mid = 48, hmax = 34;
+    static const uint8_t WN[7] = {0, 2, 4, 5, 7, 9, 11};          /* C D E F G A B */
+    static const uint8_t BK[5] = {1, 3, 6, 8, 10};                  /* the five accidentals */
+    static const uint8_t BW[5] = {0, 1, 3, 4, 5};                   /* the white key before each */
+    uint32_t i, j, o, m = (uint32_t)clamp(t->p[P_AMODE], 0, 15), oct = (uint32_t)clamp(t->p[P_AOCT], 1, 4);
+    uint32_t len = 0, list[64], cnt, cur, start = 0, nh = t->nheld;
+    int32_t gate = clamp(t->p[P_AGATE], 1, 127), swing = clamp(t->p[P_ASWING], 0, 100);
+    int32_t prob = clamp(t->p[P_APROB], 0, 127), base, lo = 128, hi = -1;
+    char b[24], q[10];
 
-    if (t->p[P_AMODE] && t->nheld) {
-        now_step = (t->arp_idx) % 16u;
-    } else if (song.playing) {
-        now_step = (ui.frame / 6u) % 16u;
+    for (i = 0; i < nh; i++) {
+        list[len++] = t->held[i];
+        if (t->held[i] < lo) lo = t->held[i];
+        if ((int32_t)t->held[i] > hi) hi = t->held[i];
     }
-
-    /* Pattern info header & status */
-    cv_rect(10, y_mid, 220, 1, T_LINE);
-    if (ux.chamfer && !ux.style) {
-        gw_oct_panel(8, 6, 224, 88, 4, T_BG, T_LINE, 1, c);
-    }
-
-    /* Draw 16 rhythm/pattern step columns */
-    for (i = 0; i < 16u; i++) {
-        int32_t sw_of = (i & 1u) ? (swing * 4 / 100) : 0;
-        int32_t x = bar_x(i) + sw_of;
-        int32_t h = 8;
-        int is_now = (i == now_step);
-
-        /* Step height according to arpeggio direction mode */
-        switch (m) {
-        case 1: /* UP */
-            h = 8 + (int32_t)((i % (oct * 4u)) * hmax / (oct * 4u > 1u ? oct * 4u - 1u : 1u));
-            break;
-        case 2: /* DN */
-            h = 8 + (int32_t)(((oct * 4u - 1u) - (i % (oct * 4u))) * hmax / (oct * 4u > 1u ? oct * 4u - 1u : 1u));
-            break;
-        case 3: { /* UPDN */
-            uint32_t p = i % (oct * 6u);
-            uint32_t half = oct * 3u;
-            h = 8 + (int32_t)((p < half ? p : (2u * half - p)) * hmax / (half ? half : 1u));
-            break;
-        }
-        case 7: /* DNUP */
-            h = 8 + (int32_t)((i % 4u == 0u ? 28 : i % 4u == 1u ? 18 : i % 4u == 2u ? 8 : 18));
-            break;
-        case 9: /* CONV */
-            h = 8 + (int32_t)((i % 4u == 0u ? 30 : i % 4u == 1u ? 8 : i % 4u == 2u ? 22 : 14));
-            break;
-        case 10: /* DIVG */
-            h = 8 + (int32_t)((i % 4u == 0u ? 14 : i % 4u == 1u ? 22 : i % 4u == 2u ? 8 : 30));
-            break;
-        case 14: /* CHORD */
-            h = hmax;
-            break;
-        default: /* Random / Walk / Repeat / Off */
-            h = 10 + (int32_t)(((i * 37u + 11u) % (uint32_t)hmax));
-            break;
-        }
-
-        /* Gate scaling */
-        h = clamp(h * (int32_t)gate / 64, 4, hmax);
-
-        /* Probability dimming */
-        {
-            uint16_t col;
-            if (is_now) {
-                col = T_ACCENT;
-            } else if (!t->p[P_AMODE]) {
-                col = T_DIM;
-            } else if (ux.chamfer) {
-                col = heat_col(40 + (h * 200 / hmax) * prob / 127);
-            } else {
-                col = c;
+    cnt = len;
+    len = 0;                                    /* the list is rebuilt from its held notes, as arp_step does */
+    if (!t->p[P_AORDER])
+        for (i = 1; i < cnt; i++)
+            for (j = i; j > 0 && list[j - 1] > list[j]; j--) {
+                uint32_t x = list[j]; list[j] = list[j - 1]; list[j - 1] = x;
             }
+    for (o = 0; o < oct; o++)
+        for (i = 0; i < cnt && len < 64u; i++)
+            list[len++] = (uint32_t)clamp((int32_t)list[i] + 12 * (int32_t)o, 0, 127);
+    if (m == AM_REPEAT) { list[0] = nh ? t->held[nh - 1u] : 0u; len = 1; }
+    if (m == AM_UP8 && len && len < 64u)
+        list[len++] = (uint32_t)clamp((int32_t)list[0] + 12 * (int32_t)oct, 0, 127);
+    if (m == AM_TRNS || !m) len = 0;
+    cur = arp_route_now(t, len);
 
-            cv_rrect(x, y_mid - h / 2, 9, h, 2, col, T_SURF);
+    /* header: the mode and whether the keys are being held or latched */
+    str_cpy(b, "ARP  ", sizeof b);
+    str_cpy(b + str_len(b), N_AMODE[m], sizeof b - str_len(b));
+    if (t->p[P_AHOLD])
+        str_cpy(q, "LATCH", sizeof q);
+    else {
+        fmt_int(q, (int32_t)nh);
+        str_cpy(q + str_len(q), nh == 1u ? " KEY" : " KEYS", sizeof q - str_len(q));
+    }
+    scl_head(b, q, t->p[P_AHOLD] ? T_ACCENT : nh ? T_MID : T_DIM);
+    cv_rect(12, 17, 216, 1, T_LINE);
 
-            /* Octave indicators */
-            if (oct > 1u) {
-                uint32_t oct_lvl = (i / 4u) % oct;
-                cv_rect(x + 2, y_mid + hmax / 2 + 5, 5, 2, oct_lvl ? T_THEME : T_LINE);
-            }
+    /* the keyboard: two octaves around the keys held, so what is down is always on it */
+    base = lo < 128u ? (int32_t)(lo / 12u) * 12 : 48;
+    if (hi >= 0 && hi > base + 23)
+        base = (int32_t)(hi / 12u) * 12 - 12;
+    base = clamp(base, 0, 104);
+    for (o = 0; o < 2u; o++)
+        for (i = 0; i < 7u; i++) {
+            int32_t note = base + (int32_t)(12u * o) + WN[i], x = 14 + (int32_t)(7u * o + i) * 15;
+            uint32_t k;
+            int down = 0, snd = note == (int32_t)t->arp_note;
+            for (k = 0; k < nh; k++)
+                if (t->held[k] == note) down = 1;
+            for (k = 0; k < 3u; k++)
+                if (t->arp_ch[k] && t->arp_ch[k] == note) snd = 1;
+            arp_key(x, 20, 14, 40, snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20),
+                    snd ? T_TEXT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 58));
+            cv_text_in(x, 48, 14, &AF_S, N_NOTE[(uint32_t)note % 12u],
+                       snd || down ? T_INK : T_DIM, snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20));
+        }
+    for (o = 0; o < 2u; o++)
+        for (i = 0; i < 5u; i++) {
+            int32_t note = base + (int32_t)(12u * o) + BK[i];
+            int32_t x = 14 + (int32_t)(7u * o + BW[i] + 1u) * 15 - 4;
+            uint32_t k;
+            int down = 0, snd = note == (int32_t)t->arp_note;
+            for (k = 0; k < nh; k++)
+                if (t->held[k] == note) down = 1;
+            for (k = 0; k < 3u; k++)
+                if (t->arp_ch[k] && t->arp_ch[k] == note) snd = 1;
+            arp_key(x, 20, 9, 25, snd ? T_ACCENT : down ? T_THEME : T_KEYB,
+                    snd ? T_TEXT : down ? T_THEME : ux_mix(T_KEYB, T_TEXT, 26));
+        }
+
+    /* the route: the notes the arp built, in the order the list holds them, and the one playing now */
+    cv_text(14, 59, &AF_S, "ROUTE", T_DIM);
+    if (len && m == AM_CHORD)
+        cv_text_r(226, 59, &AF_S, "ALL", T_MID, T_SURF);
+    else if (len && m == AM_RND)
+        cv_text_r(226, 59, &AF_S, "RND", T_MID, T_SURF);
+    else if (len) {
+        fmt_int(q, (int32_t)(cur < len ? cur + 1u : 0u));
+        str_cpy(q + str_len(q), "/", sizeof q - str_len(q));
+        fmt_int(q + str_len(q), (int32_t)len);
+        cv_text_r(226, 59, &AF_S, q, T_MID, T_SURF);
+    } else
+        cv_text_r(226, 59, &AF_S, m == AM_TRNS ? "TRNS" : m ? "NO KEYS" : "OFF", T_DIM, T_SURF);
+    if (len) {
+        if (cur < len && cur >= 8u)
+            start = cur - 7u;
+        for (i = 0; i < 8u && start + i < len; i++) {
+            uint32_t idx = start + i, note = list[idx];
+            int on = m == AM_CHORD || idx == cur;
+            int32_t x = 10 + (int32_t)i * 25;
+            char n[6];
+            str_cpy(n, N_NOTE[note % 12u], sizeof n);
+            fmt_int(n + str_len(n), (int32_t)note / 12 - 1);
+            cv_rrect(x, 74, 24, 13, 2, on ? T_ACCENT : T_RAISE, T_SURF);
+            cv_text_in(x, 74 + CAP_IN(S, 13), 24, &AF_S, n, on ? T_INK : T_MID, on ? T_ACCENT : T_RAISE);
         }
     }
+    arp_meter(14, 91, "GATE", gate, 127, c);
+    arp_meter(88, 91, "SWING", swing, 100, c);
+    arp_meter(162, 91, "PROB", prob, 127, c);
+
+    /* footer: the values the two ARP pages own, in the words the descriptors use */
+    str_cpy(b, "RATE ", sizeof b);
+    str_cpy(b + str_len(b), N_DIV[(uint32_t)clamp(t->p[P_ARATE], 0, 9)], sizeof b - str_len(b));
+    cv_text(14, 110, &AF_S, b, T_MID);
+    str_cpy(b, "OCT x", sizeof b);
+    fmt_int(b + str_len(b), (int32_t)oct);
+    cv_text(96, 110, &AF_S, b, T_MID);
+    str_cpy(b, "ORDER ", sizeof b);
+    str_cpy(b + str_len(b), N_ORDER[t->p[P_AORDER] ? 1 : 0], sizeof b - str_len(b));
+    cv_text_r(226, 110, &AF_S, b, T_MID, T_SURF);
 }
 
 /* SL PITCH (JIANT 0.6.3): the repeats' 16 pitch steps as bars from the middle (+-24 semitones), past LEN dim, the one
@@ -3303,6 +3372,7 @@ static void draw_graph(void)
             graph_slicer(c);
             break;
         case GR_ARP:
+            cv_oy = 0;                               /* the arp page is laid out on the whole 122 px panel */
             graph_arp(t, c);
             break;
         case GR_SLPIT:

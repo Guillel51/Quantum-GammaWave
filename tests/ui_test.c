@@ -2999,9 +2999,10 @@ static int test_product_ux(void)
     go_page(GR_SONG);
     song.rec = 1; chain.armed = 1; press(B_REC);
     bad += check("REC cannot write borrowed patterns while SONG is armed", song.rec == 1 && msg_is("STOP TO RECORD"));
-    ui_power_on(); open_family(FAM_EDIT);
+    ui_power_on(); set_engine_of(TSEL, 0); open_family(FAM_EDIT);   /* ANALOG: it has a CHARACTER page */
     ok = 1;
     for (i = 0; i < 8u; i++) { open_family(FAM_EDIT); ok &= page_visible(ui.page) && (cur_page()->graph == GR_MORPH ||
+                                                         cur_page()->id[0] == P_X0 ||
                                                          !(cur_page()->id[0] >= P_FM1_ATK && cur_page()->id[0] <= P_FM4_LEVEL)); }
     bad += check("operator envelope pages are hidden on non-DIGITAL instruments", ok);
 #if FELUCCA_FM4
@@ -3014,9 +3015,11 @@ static int test_product_ux(void)
     bad += check("changing to a non-FM track leaves the stale operator page", page_visible(ui.page) && cur_page()->id[0] == P_E0);
 #else
     set_engine_of(TSEL, ENGI_DIGITAL); open_family(FAM_EDIT); ok = TSEL->eng_req == ENGI_FM6;
-    for (i = 0; i < 12u; i++) { ok &= !(cur_page()->id[0] >= P_FM1_ATK && cur_page()->id[0] <= P_FM4_LEVEL); open_family(FAM_EDIT); }
+    for (i = 0; i < 12u; i++) { ok &= cur_page()->id[0] == P_X0 ||
+                                       !(cur_page()->id[0] >= P_FM1_ATK && cur_page()->id[0] <= P_FM4_LEVEL); open_family(FAM_EDIT); }
     for (i = 0; i < NPAGES; i++)
-        if (PAGES[i].fam == FAM_EDIT && PAGES[i].id[0] >= P_FM1_ATK && PAGES[i].id[0] <= P_FM4_LEVEL)
+        if (PAGES[i].fam == FAM_EDIT && PAGES[i].id[0] >= P_FM1_ATK && PAGES[i].id[0] <= P_FM4_LEVEL &&
+            PAGES[i].id[0] != P_X0)                 /* CHARACTER reuses the retired DIGITAL ids: not an OP page */
             ok &= !page_visible(i);
     bad += check("DIGITAL retired: engine 1 asked for loads FM6; the OP ENV / OP LEVEL pages never show", ok);
 #endif
@@ -3889,10 +3892,12 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 }
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "MORPH", "FILTER", "VOICE", "VOICE 2", "EDIT 1"};   /* (JIANT 0.5:
-                                                         * ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2) */
-    static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "FILTER", "VOICE",
-                                        "VOICE 2", "EDIT 1"};   /* (the part's FILTER; 0.6.10: FM6's operator pages) */
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "CHARACTER", "MORPH", "FILTER", "VOICE", "VOICE 2",
+                                        "EDIT 1"};   /* (JIANT 0.5: ANALOG's FILTER; 0.6.45: MORPH; 3.5: VOICE 2;
+                                                      * FASE 2: CHARACTER) */
+    static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "CHARACTER", "OPERATOR", "OP ENV", "OPERATOR 2", "FILTER",
+                                        "VOICE", "VOICE 2", "EDIT 1"};   /* (the part's FILTER; 0.6.10: FM6's operator
+                                                                          * pages; FASE 2: CHARACTER) */
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "FILTER", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
                                         "OP LEVEL", "VOICE", "VOICE 2", "EDIT 1"};
     int bad = 0, ok;
@@ -3906,14 +3911,15 @@ static int test_edit_cycle(void)
         ok &= !str_eq(PAGES[i].title, "ENGINE");
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
-    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 MORPH FILTER VOICE VOICE 2 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
+    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 CHARACTER MORPH FILTER VOICE VOICE 2 EDIT 1",
+                 engine_cycle(CYC_A, NELEM(CYC_A)));
 #if FELUCCA_FM4
     set_engine_of(TSEL, 1);
     bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 FILTER OP1..OP4 ENV OP LEVEL VOICE VOICE 2 EDIT 1",
                  engine_cycle(CYC_D, NELEM(CYC_D)));
 #else
     set_engine_of(TSEL, ENGI_DIGITAL);
-    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 FILTER VOICE VOICE 2 EDIT 1",
+    bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 CHARACTER OPERATOR OP ENV OPERATOR 2 FILTER VOICE VOICE 2 EDIT 1",
                  TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     (void)CYC_D;
 #endif
