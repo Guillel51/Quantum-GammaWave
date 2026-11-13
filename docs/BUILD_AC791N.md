@@ -159,6 +159,7 @@ este árbol porque el `app.ld` ya hace `KEEP` de todo lo que se referencia desde
 falta una vez recortado el kerning.
 
 Queda **1 048 B de deuda pagada y 288 B de margen**: el mapa de flash no se ha tocado (sigue
-`APP_SLOT 0x8DFBC`, los 3 493 B libres antes de la partición siguiente intactos) y ninguna partición
-se ha movido.
+`APP_SLOT 0x8DFBC`). El hueco libre real antes de la partición siguiente no era 3 493 B sino **2 774 B**
+(la región empaquetada terminaba en `0x8E52A` de `0x8F000`); en la fase 7 el slot creció **2 048 B** hasta
+`0x8E7BC`, la región acaba en `0x8ED2B` con 725 B de holgura y `FLASH_SIZE` no se movió.
 

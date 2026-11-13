@@ -17,8 +17,8 @@ qué queda pendiente y por qué. Escrito el 2026-11-13.
 | Commit de código | **`1e4c31af2e62`** (subida de versión sobre `bb2ee21`, que trae el arreglo de seguridad) |
 | Commit de entrega | **el que contiene este documento** (el árbol quedó limpio al escribirlo) |
 | Identidad | **`FM-1_965`** en la app; `ota-FM-1_965` en el loader |
-| Paquete | `release/felucca-v2.9.1.fwsc`, **610 959 B**, sha256 **`86848d834356ed14…`** |
-| Imagen de la app | `felucca.bin`, **580 404 B** (**1 160 B** de margen), sha256 `86848d83…` |
+| Paquete | `release/felucca-v2.9.1.fwsc`, **610 959 B**, sha256 **`c4d45ab6d372d0be…`** |
+| Imagen de la app | `felucca.bin`, **580 404 B** en un slot de **583 612 B** (**3 208 B** de margen), sha256 `c4d45ab6…` |
 | Loader | `ota.bin`, 7 803 B, sha256 `3ca785b9…` (idéntico al de 2.9.0) |
 | Emulador | `felucca.wasm`, **1 223 264 B**, sha256 `d608efe6…`, build **`1e4c31af2e62`** |
 | Registro de build | `release/build-manifest-v2.9.1.json` (`qg1-build-1`, árbol limpio) |
@@ -37,7 +37,12 @@ qué queda pendiente y por qué. Escrito el 2026-11-13.
    `voice_alloc` y devolvía un puntero nulo que el llamador desreferenciaba. Lo encontró `fuzz_proj` bajo
    ASan/UBSan (seed 7); corregido, +16 B de flash, y esa semilla quedó en la suite. El informe dice
    también lo que **no** existe: sin firma de paquete, sin anti-rollback, sin arranque seguro.
-4. **Fase 7 — sincronización**: README (decía `v2.7.4.7` y 212 sonidos; ahora `v2.9.1` y 267), CHANGELOG,
+4. **Fase 7 — espacio**: el slot declaraba `0x8DFBC` por herencia del paquete de fábrica, no porque la
+   imagen acabara ahí: la región empaquetada terminaba en `0x8E52A` de `0x8F000`, con **2 774 B que
+   nadie direccionaba** (los 3 493 B que circulaban eran una cifra vieja). El slot crece **2 048 B**
+   hasta `0x8E7BC`; `FLASH_SIZE`, BTIF y USR no se mueven y la región acaba en `0x8ED2B` con 725 B de
+   holgura. Margen de código: **204 B → 3 208 B**.
+5. **Fase 7 — sincronización**: README (decía `v2.7.4.7` y 212 sonidos; ahora `v2.9.1` y 267), CHANGELOG,
    capturas regeneradas del render real, `SHA256SUMS` reescrito (tenía una entrada de 2.7.3 y un hash de
    `build/emu`, que no se publica), `tools/generate_screenshots.py` arreglado (usaba un `S_SCL` que ya no
    existe en la UI: la captura de SC/SCALE/CHORD llevaba sin poder generarse desde el renombrado), sitio y

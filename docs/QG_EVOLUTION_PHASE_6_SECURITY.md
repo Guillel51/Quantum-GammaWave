@@ -104,8 +104,10 @@ firmware/loader` devuelve 24 líneas y **todas son comentarios**; ninguna llamad
 
 ## 5. Fronteras de flash y actualización
 
-- **Mapa de particiones** (leído del enlace): aplicación 581 360 B de 581 564 → **204 B libres**;
-  siguiente partición libre con 3 493 B. El loader vive aparte (imagen 9 236 B) y no se toca.
+- **Mapa de particiones** (leído del enlace, cifras de esta fase): la aplicación medía 581 360 B con
+  204 B de margen. El hueco libre en la imagen antes de la partición siguiente era de **2 774 B** (no
+  3 493: esa cifra era vieja) y en la fase 7 el slot creció 2 048 B para usarlo. El loader vive aparte
+  (imagen 9 236 B) y no se toca.
 - **Identidad**: `FM-1_965` en la aplicación y `ota-FM-1_965` en el loader, comprobado sobre los bytes
   del paquete (`tools/check_package_identity.py`), no sobre el código fuente.
 - **Ambas flash**: `0x856014` (Puya) y `0xB36014` (UC25HQ80) en la misma lista blanca, aplicación y

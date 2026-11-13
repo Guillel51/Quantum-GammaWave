@@ -13,6 +13,9 @@
   y VOCODER no caben. SID, ACID y POLY se resuelven con presets sobre ANALOG/PHASE/WTABLE.
 - **README**: decía `v2.7.4.7` y 212 sonidos de fábrica; ahora dice `v2.9.1` y los 267 que cuenta la
   auditoría.
+- **Slot de la aplicación**: `APP_SLOT` pasa de `0x8DFBC` a `0x8E7BC` (+2 048 B) usando el hueco que la
+  imagen ya tenía y nadie direccionaba (2 774 B reales, no los 3 493 que decía la documentación). La
+  imagen de flash y las particiones BTIF/USR no cambian. Margen de código: **3 208 B**.
 - **Margen de XIP**: `tools/size_fns.py` pide ahora `noinline` además de `minsize` a las funciones del
   bucle principal, que hasta aquí se copiaban dentro de un único despachador (`draw_graph` medía 39 812 B).
   Imagen 581 360 → **580 404 B**: quedan **1 160 B** en vez de 204. El audio no cambia —la pasada excluye

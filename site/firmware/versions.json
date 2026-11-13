@@ -2,25 +2,35 @@
  {
   "version": "2.9.1",
   "file": "felucca-2.9.1.fwsc",
-  "sha256": "86848d834356ed1460490722c809cd4ed24b682ced940c22e6d1fe8a989a0370",
+  "sha256": "c4d45ab6d372d0be641c257e231833fca02f04128d57df17bd5b5855b82dded0",
   "size": 610959,
   "build": {
    "artifacts": {
+    "felucca-2.9.1.fwsc": {
+     "bytes": 610959,
+     "sha256": "c4d45ab6d372d0be641c257e231833fca02f04128d57df17bd5b5855b82dded0"
+    },
     "felucca.bin": {
      "bytes": 580404,
      "sha256": "6e793502a7f054d9dea4bfbac7c7f15554c801f24c8f0a3ce58b21902183441b"
-    },
-    "felucca.fwsc": {
-     "bytes": 610959,
-     "sha256": "86848d834356ed1460490722c809cd4ed24b682ced940c22e6d1fe8a989a0370"
     },
     "loader/ota.bin": {
      "bytes": 7803,
      "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
     }
    },
-   "checks": {},
-   "commit": "1cdde31d0d99b3eb134cc6bcde8bf8ab4889112c",
+   "checks": {
+    "checks": "ok",
+    "identity": "FM-1_965",
+    "notes": [
+     ".ram_text: 1193 insns, no calls",
+     "image 580404 B; RAM .data+.bss 87748 B of 98304; pool 305096 B, spare 15392 B",
+     "XIP code 403056 B, constants 157048 B",
+     "RAM code 19536 B of 24576; calls reach 57456 B past the code's end",
+     "register access: hal/ only (src/, loader/ clean)"
+    ]
+   },
+   "commit": "86ad5b0b887c7e8decc9b33f8b7e57eae22934c8",
    "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
