@@ -80,7 +80,13 @@ def main(src, dst):
         if m.group(2) not in names:
             return m.group(0)
         hit.add(m.group(2))
-        return m.group(1) + " minsize" + m.group(3)
+        # (FASE 7) noinline as well as minsize: the screens' bodies are inlined into one giant dispatch
+        # (draw_graph alone was 39 812 B) and the copies cost more than the calls do. Measured on the
+        # AC791N link: minsize alone 581 360 B, minsize + noinline 580 404 B, and the audio path is
+        # untouched because everything an interrupt reaches is excluded above (141 functions).
+        # The knob is per-function on purpose: taken globally (-inline-threshold) it also strips the
+        # inlining the DSP depends on, and the loader stops fitting.
+        return m.group(1) + " minsize noinline" + m.group(3)
     Path(dst).write_text(IR_DEF.sub(mark, ir))
     print(f"size: {len(hit)} main-loop functions built for size ({len(names) - len(hit)} not in this build; "
           f"{len(size_names() & isr)} reached from an interrupt kept -Os)")
