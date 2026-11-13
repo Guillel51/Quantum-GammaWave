@@ -116,6 +116,8 @@ static void prefs_update(void)
 #define ui_splash (favorites.factory[15][19])       /* 0 FULL (default), 1 SHORT, 2 OFF (main.c boot) */
 #define midi_out_mode (favorites.factory[15][24])   /* (JIANT 0.6.72) MENU > MIDI OUT (seq.c MO_*): 0 KEYS (older settings,
                                                 * as ever), 1 CLOCK, 2 ALL, 3 OFF; a byte no engine uses */
+#define ui_voices (favorites.factory[15][17])  /* (FASE 3) MENU > AUDIO > VOICES (voice.c voice_ucap): 0 twelve
+                                                * (default, what every older record holds), 1 ten, 2 eight */
 #define ui_trks (favorites.factory[15][18])    /* (3.4) MENU > TRACKS: 0 four (ECO), 1 five (BALANCED), 2 six (FULL);
                                                 * a byte of engine 15's block (a bitmap of favourites for an engine that
                                                 * does not exist), 0 in every older setting = the four tracks it had */
@@ -138,8 +140,14 @@ static void rp_apply(void)                             /* the settings into clic
         ui_trks = 2u;
     trk_live = 4u + (ui_trks < 3u ? ui_trks : 0u);
     sys_load = (uint8_t)(ui_load <= LOAD_ECO ? ui_load : LOAD_FULL);   /* (0.6.30) LOAD (voice.c) */
+    voice_ucap = ui_voices < VOICE_UCAP_N ? (uint8_t)ui_voices : 0u;    /* (FASE 3) MENU > VOICES (voice.c) */
     trks_ui = (int16_t)(trk_live - 4u);                 /* (GLO > SYSTEM's TRACKS and LOAD show them) */
     load_ui = (int16_t)(LOAD_ECO - sys_load);
+}
+static void voices_put(uint32_t v)                     /* (FASE 3) VOICES: 0 eight, 1 ten, 2 twelve */
+{
+    ui_voices = (uint8_t)(2u - (v < VOICE_UCAP_N ? v : 2u));
+    rp_apply();
 }
 static void trks_put(uint32_t v)                       /* TRACKS: 0 four, 1 five, 2 six */
 {

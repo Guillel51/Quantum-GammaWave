@@ -2099,11 +2099,12 @@ static int test_menu_tabs(void)
             }
     }
     ui_prefs = 0;
-    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 4 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
+    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 5 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
                  ok && MTAB_COUNT == 5u && str_eq(MTAB_NAME[0], "DISPLAY") && mtab_rows(MTAB_DISPLAY) == 6u &&
                  mtab_rows(MTAB_CONTROL) == 6u && mtab_rows(MTAB_AUDIO) == 6u && mtab_rows(MTAB_SYSTEM) == 6u &&
-                 mtab_rows(MTAB_GEN) == 4u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN;
-                                                    * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH join it) */
+                 mtab_rows(MTAB_GEN) == 5u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN;
+                                                    * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH join it; FASE 3:
+                                                    * VOICES does too) */
 
     ui_power_on();
     hold(B_HOME);

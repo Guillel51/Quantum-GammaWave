@@ -2245,6 +2245,52 @@ static int mc_wait(void) { return 0; }
 #define mc_live() (mc_host != 0)
 #endif
 static volatile uint8_t mc_off;                          /* REC held at power-on: one core this session (main.c) */
+/* (FASE 3) MENU > CPU MODE while it runs. To one core the switch is immediate and cannot glitch: the next block
+ * reads mc_off and renders every part here (mix_block below), and the second core is then stopped from the main
+ * loop (cpu_mode_step), once it is between jobs. To two cores the start is asked for here and performed in the
+ * main loop too, never in the ISR, and only when nothing has barred the core: one that failed, or was given up
+ * after a crash since power-on, stays down whatever the setting says (fm1_mc_barred). AUTO keeps the power-on
+ * key as the session's opt-out, so it changes nothing while the unit is running. */
+#define MC_WANT_STOP 2u
+static uint8_t mc_want;                                  /* 0 none, 1 start it, MC_WANT_STOP stop it */
+static void cpu_mode_apply(uint32_t mode)
+{
+#if FELUCCA_DUAL_CORE
+    if (mode == 2u) {                                    /* SAFE SINGLE */
+        mc_want = MC_WANT_STOP;
+        mc_off = 1;                                      /* (the next block is already one core) */
+        return;
+    }
+    if (mode == 1u && mc_off && !fm1_mc_barred()) {
+        mc_want = 1;                                     /* DUAL CORE */
+        return;
+    }
+    mc_want = 0;
+#else
+    (void)mode;
+#endif
+}
+static void cpu_mode_step(void)                          /* once a frame, from main's loop */
+{
+#if FELUCCA_DUAL_CORE
+    uint8_t w = mc_want;
+    if (!w)
+        return;
+    mc_want = 0;
+    if (w == MC_WANT_STOP) {
+        fm1_core1_stop();
+        return;
+    }
+    if (!mc_off || fm1_mc_barred())
+        return;
+    fm1_irq_off();
+    fm1_guard_unlock_top();
+    if (fm1_mc_start())
+        mc_off = 0;                                      /* (its parts and the buses from the next block) */
+    fm1_guard_lock_top();
+    fm1_irq_on();
+#endif
+}
 static volatile int8_t mc_cur = -1;                      /* the part core 1 is in (a job given up: its matrix put back) */
 static uint8_t mc_mask_last;                             /* the parts core 1 had the last block (MENU > ABOUT, tests) */
 static uint32_t mc_jobs;                                 /* (0.6.72) blocks core 1 rendered parts in (console status) */

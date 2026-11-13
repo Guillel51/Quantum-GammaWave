@@ -134,9 +134,10 @@ static void scl_notes(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
 }
 /* the keyboard strip: twelve keys from x0 to x1, in the scale coloured (the tonic in the accent), and the
  * notes a voice is sounding lit. It reads the same mask as the circle above it, so the two cannot disagree. */
-static void scl_keyboard(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int small)
+static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, uint32_t mask,
+                     uint32_t root, int small)
 {
-    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u, live = 0;
+    uint32_t i, live = 0;
     int32_t gap = 2, kw = (w - 11 * gap) / 12;
     for (i = 0; i < NVOICE; i++) {
         const voice_t *v = &V(t, i);
@@ -161,6 +162,11 @@ static void scl_keyboard(const track_t *t, int32_t x0, int32_t y0, int32_t w, in
         if (sound)
             cv_rect(kx + 2, ky + kh - 3, kw - 4, 2, is_root || in ? T_TEXT : T_ACCENT);
     }
+}
+/* the scale's own strip: the same keys, masked by the track's scale */
+static void scl_keyboard(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int small)
+{
+    scl_keys(t, x0, y0, w, h, scale_mask(t), (uint32_t)t->p[P_ROOT] % 12u, small);
 }
 /* SCL > SCALE: the twelve notes on a circle -- the tonic at the top, the scale's degrees joined by the ring in
  * the theme's colour, the notes outside it on a dim stub -- and the keyboard under it with the same notes lit.
@@ -287,24 +293,32 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
         if (last)
             cv_rect(x, y + 16, cw - 6, 2, T_TEXT);
     }
-    /* the voices: four lanes over the chord's own compass, a dot each note, the lanes stepping right by the strum
-     * so the delay the engine applies between them is visible. The lanes share a pitch axis, so CLOSE reads tight
-     * and OPEN wide; the line under each lane is the span the chord covers. */
-    if (mode) {
-        int32_t x0 = 16, x1 = 222, lo = 127, hi = 0, k;
-        int32_t strum = (int32_t)t->p[P_CSTR] * 18 / 127;
-        for (i = 0; i < tn; i++) {
-            if ((int32_t)out[i] < lo) lo = out[i];
-            if ((int32_t)out[i] > hi) hi = out[i];
-        }
-        hi = hi - lo < 7 ? lo + 7 : hi;
-        for (k = 0; k < (int32_t)tn && k < 4; k++) {
-            int32_t y = 86 + k * 7;
-            int32_t p = x0 + ((int32_t)out[k] - lo) * (x1 - x0) / (hi - lo);
-            p += k * strum;
-            p = p < x0 ? x0 : p > x1 ? x1 : p;
-            cv_rect(x0 + k * strum, y + 5, x1 - x0 - 3 * strum, 1, ux_mix(T_THEME, T_SURF, 24));
-            cv_rect(p - 1, y, 3, 4, T_ACCENT);
+    /* (FASE 3) the chord on the keys, then the voices over it. The strip is the one SCALE draws, masked with the
+     * chord's own tones instead of the scale's: the chord's root in the accent, the other tones in the theme, the
+     * rest of the key's scale lit low and everything else dark, so a chord is read as notes on an instrument and
+     * not as a list of names. Under it the four lanes keep what the keys cannot say: the voicing's spread (one
+     * pitch axis, so CLOSE reads tight and OPEN wide) and the strum the engine applies between the voices. */
+    {
+        uint32_t cmask = 0;
+        for (i = 0; i < tn; i++)
+            cmask |= 1u << (((out[i] % 12u) + 12u - (uint32_t)root) % 12u);
+        scl_keys(t, 12, 86, 216, 16, mode ? cmask : 0u, (uint32_t)root, 1);
+        if (mode && tn) {
+            int32_t x0 = 16, x1 = 222, lo = 127, hi = 0, k;
+            int32_t strum = (int32_t)t->p[P_CSTR] * 18 / 127;
+            for (i = 0; i < tn; i++) {
+                if ((int32_t)out[i] < lo) lo = out[i];
+                if ((int32_t)out[i] > hi) hi = out[i];
+            }
+            hi = hi - lo < 7 ? lo + 7 : hi;
+            for (k = 0; k < (int32_t)tn && k < 4; k++) {
+                int32_t y = 104 + k * 4;
+                int32_t px = x0 + ((int32_t)out[k] - lo) * (x1 - x0) / (hi - lo);
+                px += k * strum;
+                px = px < x0 ? x0 : px > x1 ? x1 : px;
+                cv_rect(x0 + k * strum, y + 2, x1 - x0 - 3 * strum, 1, ux_mix(T_THEME, T_SURF, 24));
+                cv_rect(px - 1, y, 3, 3, T_ACCENT);
+            }
         }
     }
 }

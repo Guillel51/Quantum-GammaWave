@@ -453,17 +453,18 @@ static uint32_t menu_split(uint32_t n)
  * running now (fx.c mc_status(), the same line ABOUT shows) and the audio ISR's own load (song.cpu_q8). Both are
  * measured by the firmware; nothing here is an estimate. */
 static void menu_extra_status(int32_t y)
-{
+{   /* (FASE 3) one line, not two: EXTRA now carries five rows (VOICES joined it) and the second line fell into the
+     * footer's own row, where the lint caught it overlapping ALGO and PRESETS. CPU MODE no longer waits for the next
+     * power-on either -- fx.c cpu_mode_apply switches to one core at once and starts the second from the main loop --
+     * so the line that said so is gone with the space it took. Both numbers are the firmware's: the cores it is
+     * running (fx.c mc_status) and the audio ISR's load (song.cpu_q8). */
     char b[40], n[12];
     cv_text(14, y, &AF_S, "RUNNING", T_THEME);   /* (the value already starts with CORES) */
     cv_text_r(226, y, &AF_S, mc_status(), T_TEXT, T_BG);
-    y += 13;
-    str_cpy(b, "CPU ", sizeof b);
     fmt_int(n, (int32_t)((song.cpu_q8 * 100u) >> 8));
-    str_cpy(b + str_len(b), n, 10);
-    str_cpy(b + str_len(b), "%", 2);
-    cv_text(14, y, &AF_S, b, T_TEXT);
-    cv_text_r(226, y, &AF_S, "CPU MODE: NEXT POWER-ON", T_MID, T_BG);
+    str_cpy(b, n, sizeof b);
+    str_cpy(b + str_len(b), "% CPU", sizeof b - str_len(b));
+    cv_text(130, y, &AF_S, b, T_MID);
 }
 static void confirm_open(uint32_t kind, uint32_t trk);   /* (0.6.58) INIT SYSTEM: ui_input.c */
 static void draw_menu(void)

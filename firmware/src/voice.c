@@ -419,7 +419,10 @@ static uint32_t trk_vcap(const track_t *t)
         c = LITE_FM6_POLY;
     if (sys_load == LOAD_ECO && !ENGINES[t->engine]->oneshot && (!c || c > ECO_POLY))
         c = ECO_POLY;
-    return c && c < NVOICE ? c : NVOICE;
+    {
+        uint32_t u = voice_user_budget();
+        return c && c < u ? c : u;
+    }
 }
 /* (3.5) the voices it can use right now: its cap, and never more than the slots its window holds */
 static uint32_t trk_nvoice(const track_t *t)
@@ -446,9 +449,16 @@ static volatile uint8_t load_tight;
  * emulator fm1_ticks() does not advance inside the render, so the load reads 0; the monitor used to print
  * that 0 % as if it were a measurement. A counter nothing wrote is N/A, never a number. */
 static struct { volatile uint32_t peak, late, shed, valid; } load_diag;
-/* (JIANT 0.6.70) the budget shared by all parts: NVOICE, LOAD ECO ECO_VOICES (4 parts with reverb and delay still
- * crackled on ECO: the peaks are the voices, a tail ringing on each part as the next hits come) */
-static uint32_t voice_cap(void) { return sys_load == LOAD_ECO ? ECO_VOICES : NVOICE; }
+/* (FASE 3) MENU > AUDIO > VOICES: the cap the user picked (8 / 10 / 12, 12 when the setting is absent).
+ * It caps the shared budget and each part alike, so 10 voices means ten in total, not ten per part. */
+volatile uint8_t voice_ucap;
+/* (JIANT 0.6.70) the budget shared by all parts: the user's cap, LOAD ECO ECO_VOICES (4 parts with reverb and delay
+ * still crackled on ECO: the peaks are the voices, a tail ringing on each part as the next hits come) */
+static uint32_t voice_cap(void)
+{
+    uint32_t u = voice_user_budget();
+    return sys_load == LOAD_ECO && ECO_VOICES < u ? ECO_VOICES : u;
+}
 static uint32_t voices_busy(void)                       /* sounding voices of all parts (not the fading ones) */
 {
     uint32_t p, i, n = 0;
