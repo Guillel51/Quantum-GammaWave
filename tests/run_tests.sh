@@ -309,6 +309,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "tempo: the cached beat, div_samples and div_by_n equal the divisions they replaced" "$OUT/tempo_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/preset_audit_test" tests/preset_audit_test.c -lm
     run "PRESETS: all 267 of them loaded and rendered (structure, silence, level, duplicates)" "$OUT/preset_audit_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_param_test" tests/engine_param_test.c -lm
+    run "ENGINES: every EDIT knob at both ends of its range moves the rendered note (216 knobs)" "$OUT/engine_param_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
