@@ -402,8 +402,11 @@ static void finding(const char *what, const rbox_t *b, const rbox_t *o)
     if (i < nseen) return;                       /* each finding once per screen */
     if (nseen < 600u) strcpy(seen[nseen++], key);
     else return;
-    fprintf(rep, "LINT %-22s %-32s '%s' (%d,%d)-(%d,%d)", cur_name, what, b->s, b->x0, b->y0, b->x1, b->y1);
-    if (o) fprintf(rep, " / '%s' (%d,%d)-(%d,%d)", o->s, o->x0, o->y0, o->x1, o->y1);
+    /* (FASE 4) a box can carry no label (an icon's ink, a drawing's own frame): say so instead of dereferencing it --
+     * a NULL here segfaulted the dump instead of reporting the finding */
+    fprintf(rep, "LINT %-22s %-32s '%s' (%d,%d)-(%d,%d)", cur_name, what, b->s ? b->s : "(unlabelled)",
+            b->x0, b->y0, b->x1, b->y1);
+    if (o) fprintf(rep, " / '%s' (%d,%d)-(%d,%d)", o->s ? o->s : "(unlabelled)", o->x0, o->y0, o->x1, o->y1);
     fputc('\n', rep);
 }
 /* a rectangle of the screen is drawn again: boxes inside it are gone, boxes it covers in part are hidden */
