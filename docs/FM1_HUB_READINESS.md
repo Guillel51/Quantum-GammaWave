@@ -35,6 +35,17 @@ The F-1 fix (a divide by zero in `voice_alloc`, see `docs/QG_EVOLUTION_PHASE_6_S
 package's sha256 differs from the v2.9.0 one named above: **the published release was not rewritten**. A
 new package only reaches the Hub from a new tag, which is the owner's call.
 
+### Re-checked on 2026-11-13 (phase 4)
+
+The card had regressed after the phase-6 check: `9df4067` added `"sounds": "none"`, which the Hub does not
+accept, and **one unknown field discards the whole file** (KB read again on 2026-11-13). The field was
+removed. `python3 tools/check_fmhub.py` now passes every rule, live links included (200). The live catalogue
+says **202 listings**, updated 2026-11-13 18:01 UTC, and `FM-1_965` is still **free**. The current package is
+`release/felucca-v2.9.7.fwsc` (610 959 B, sha256 `8af698bf…a5d0`), identity `FM-1_965`, loader
+`ota-FM-1_965`. `SHA256SUMS` was stale at v2.9.1 and now names the v2.9.7 artifacts. This is still **not** a
+Hub listing or an acceptance, and no physical install was performed. The full audit is in
+`docs/QG_PHASE4.md`.
+
 Attestation is still not security: the badge says GitHub built the file from that commit. It says nothing
 about whether the firmware is safe, and this document does not claim otherwise.
 
@@ -146,7 +157,7 @@ ok    kinds: ['groove']
 ok    play: https://guillel51.github.io/Quantum-GammaWave/emulator/ answers 200
 ok    editor: https://guillel51.github.io/Quantum-GammaWave/webapp/editor/ answers 200
 ok    cheat: https://github.com/Guillel51/Quantum-GammaWave#readme answers 200
-ok    image: assets/screenshots/quantum_01_home.png 240x240 PNG, 14630 B
+ok    image: docs/card.png 512x512 PNG, 20860 B
       #35CFFF: luminance 0.526; contrast on black 11.52:1, on white 1.82:1; dark ink #101014 on it 10.41:1
 ok    color: #35CFFF, bright, 11.5:1 on a dark card, readable ink #101014 (10.4:1)
 ```
@@ -163,9 +174,8 @@ Notes:
   catalogue; the two nearest are `#2BA6E8` (Tuna) and `#3FA2E6` (Flyfish). Luminance 0.526 makes it a
   bright accent, not a panel: 11.5:1 on a dark card. Any text drawn **on** the colour must be dark
   (`#101014`, 10.4:1) — white on it is 1.8:1 and would fail.
-* **Image:** `assets/screenshots/quantum_01_home.png`, 240 × 240, PNG, 14 630 B — square, in range, well
-  under 300 KB. It is a real 240 × 240 render of the firmware's own screen by
-  `tools/generate_screenshots.py`, not a photograph. See `docs/FM1_HUB_AUDIO_PROVENANCE.md`.
+* **Image:** `docs/card.png`, 512 × 512, PNG, 20 860 B — square, in range, well under 300 KB. It is a
+  generated card from the repository, not a photograph. See `docs/FM1_HUB_AUDIO_PROVENANCE.md`.
 * The Hub takes the name, author, picture and version from the repository and the releases; only the text,
   kind, links, picture *path* and colour come from this file.
 
