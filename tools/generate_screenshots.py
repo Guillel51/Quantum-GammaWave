@@ -266,10 +266,8 @@ int main(int argc, char **argv) {
     setup(S_PRESETS); pal(UI_QUANTUM_INDEX); draw(S_PRESETS);
     write_ppm("assets/screenshots", "quantum", "31_presets_browser");
 
-    setup(S_HOME_ENG); pal(UI_QUANTUM_INDEX); draw(S_HOME_ENG);
     write_ppm("assets/screenshots", "quantum", "32_home_engine");
 
-    setup(S_HOME_MOD); pal(UI_QUANTUM_INDEX); draw(S_HOME_MOD);
     write_ppm("assets/screenshots", "quantum", "33_home_mod_matrix");
 
     setup(S_HOME_PERF); pal(UI_QUANTUM_INDEX); draw(S_HOME_PERF);
@@ -278,7 +276,6 @@ int main(int argc, char **argv) {
     setup(S_HOME_MIX); pal(UI_QUANTUM_INDEX); draw(S_HOME_MIX);
     write_ppm("assets/screenshots", "quantum", "35_home_mixer");
 
-    setup(S_HOME_ROUT); pal(UI_QUANTUM_INDEX); draw(S_HOME_ROUT);
     write_ppm("assets/screenshots", "quantum", "36_home_routing");
 
     return 0;

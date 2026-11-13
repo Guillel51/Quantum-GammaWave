@@ -1,3 +1,26 @@
+## 2026-11-13 — HOME, cinco pantallas
+
+- **HOME queda en cinco pantallas**: MAIN, VISUALIZER, OVERVIEW, MIX y PERFORM. `HV_COUNT` es 5 en
+  `firmware/src/ui.c`, así que `HV_ENG`, `HV_MOD`, `HV_DYN`, `HV_SYSTEM` y `HV_ROUT` dejan de existir: no
+  hay índice viejo que caminar, dibujar ni guardar. La tira de la esquina del título pasa de ocho celdas
+  (124..227) a **tres** (190..227), las tres páginas que la dibujan, y el pie sigue escribiendo
+  `HOME n/HV_COUNT`, que ahora se lee `/5`. **Ninguna función se pierde**: los ocho parámetros del motor
+  son la primera página de EDIT, la matriz es MOD, la envolvente es la página ENV de EDIT, el recorrido de
+  la señal es FX > BUSES y el sistema es la sección SYSTEM. El dibujo de esas páginas sigue en
+  `ui_homeviews.c`, ya inalcanzable, y `--gc-sections` no lo mete en la imagen.
+- **Medido [HOST]**: barrido de **186 pantallas × 22 paletas** (191 − 5), 0 hallazgos, 3 152 530 medidas
+  de alineación con **0 desalineaciones**, 0 tintas sobre su propio color; **285 dorados, 0 cambiados**;
+  `ui_test` completo en verde, con el recorrido MAIN → VISUALIZER → OVERVIEW → MIX → PERFORM → MAIN en
+  ambos sentidos y la comprobación de que ninguna de las tres páginas dibujadas toca un parámetro.
+- **Investigado y no cambiado, con la causa escrita** en `docs/QG_UI_AND_SOUND_DESIGN_REFINEMENT.md`: el
+  bootsplash no está congelado por el reloj (TIMER4 corre desde el primer píxel y el arte avanza: 176 de
+  1125 pasos de 4 ms cambian la pantalla), sino porque sólo se repinta en los límites de las etapas de
+  inicialización; intercalarlas exige reordenar el arranque y validarlo en el FM-1 **[HW]**. Reverb de
+  FX-BUS, la mini pantalla de SAVE-PRESETS, las tres páginas de SCL, EDIT/LFO por motor y el barrido Solar
+  Heat quedan **sin implementar** en esta pasada, también documentados: el espacio de flash es de 9 948 B,
+  suficiente para la UI de SCL y la página de LFO, no para un juego nuevo de parámetros DSP en nueve
+  motores sin podar en otro sitio.
+
 ## 2026-11-13 — Consolidación: el bloqueo del SPL, medido; el árbol, puesto en su sitio
 
 - **El bloqueo del SDK, resuelto hasta donde se puede desde aquí.** `tools/spl_diff.py` lee el `uboot.boot`

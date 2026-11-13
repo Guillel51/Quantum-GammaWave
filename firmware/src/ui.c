@@ -5,10 +5,11 @@
  * named by their numbers 1..4 on a cushion (icons.c trk_icon). Four columns <-> KNOB 1..4. Rendering is lazy:
  * every element remembers what it last drew and is redrawn only on change. */
 /* (3.0) HOME's screens, walked by each tap on HOME (go_home): the ecosystem first, the visualizer second, then the
- * ui_homeviews.c draws, and the tap after the last comes back to the first. (4.0) ROUTING is the ninth: the
- * path a part's audio takes, stage by stage, with the buses' own measured peaks on it. (4.3) DYNAMICS is the
- * tenth: the part's envelope drawn from its four times, with the playhead on it, and every part's peak under it. */
-enum { HV_HOME, HV_VIZ, HV_OVERVIEW, HV_MIX, HV_PERF, HV_ENG, HV_MOD, HV_DYN, HV_SYSTEM, HV_ROUT, HV_COUNT };
+ * three ui_homeviews.c draws, and the tap after the last comes back to the first. (5.0) HOME is five screens:
+ * MAIN, VISUALS, OVERVIEW, MIX and PERFORM. The engine, the matrix, the envelope, the system and the routing
+ * pages that used to live here are where their controls are -- EDIT, MOD, SYSTEM and FX > BUSES -- so nothing
+ * a player could do is gone, and the walk is short enough to reach any of the five in two taps. */
+enum { HV_HOME, HV_VIZ, HV_OVERVIEW, HV_MIX, HV_PERF, HV_COUNT };   /* (5.0) five: MAIN, VISUALS, OVERVIEW, MIX, PERFORM */
 static int project_save(uint32_t slot);
 static void panel_setup(void);
 static void project_load(uint32_t slot);
@@ -244,8 +245,7 @@ static struct {
     uint8_t uboot;               /* main.c: seconds left before UPDATE MODE (OCT- + OCT+ held), 0 = none */
     uint32_t preset_pop_ms;      /* non-blocking 1.5s popup timer for PRESET knob browser */
     uint8_t home_viz;            /* 1 = full-screen integrated music visualizer on HOME -> HOME */
-    uint8_t home_view;           /* (3.0) which of HOME's screens: HV_HOME, HV_VIZ, HV_OVERVIEW, HV_MIX, HV_PERF, HV_ENG, HV_MOD, HV_SYSTEM,
-                                  * (4.0) HV_ROUT. The
+    uint8_t home_view;           /* (5.0) which of HOME's five screens: HV_HOME, HV_VIZ, HV_OVERVIEW, HV_MIX, HV_PERF. The
                                   * visualizer keeps home_viz, so everything that asks "is the visualizer up?"
                                   * still reads one flag; the two screens added in 3.0 are read by ui_draw.c and
                                   * ui_graph.c from this one */

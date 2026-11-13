@@ -783,7 +783,7 @@ static void draw_foot(void)
         str_cpy(ti, "HOME ", sizeof ti);
         fmt_int(ti + 5, (int32_t)ui.home_view + 1);
         str_cpy(ti + str_len(ti), "/", sizeof ti - str_len(ti));
-        fmt_int(ti + str_len(ti), (int32_t)HV_COUNT);    /* (4.0) counted, not written: 8 became 9 with ROUTING */
+        fmt_int(ti + str_len(ti), (int32_t)HV_COUNT);    /* (5.0) counted, not written: five screens */
     }
     else                                               /* page title + number in its family: "ENV DEST 2/2" */
         page_title(ti);

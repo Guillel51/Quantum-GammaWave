@@ -53,16 +53,15 @@ static void hv_grad(void)
     }
 }
 
-/* (4.1) which of HOME's screens is on, as icons: eight cells in the title's right corner -- where a caption used to
+/* (4.1) which of HOME's screens is on, as icons: three cells in the title's right corner (the three pages drawn here) -- where a caption used to
  * say the same thing in words -- the one on screen lit in the accent with a bar under it that breathes, the others
  * dim. The order is the order a tap walks them (HV_OVERVIEW .. HV_ROUT), so the strip is the walk itself. */
 static void hv_strip(int32_t y, uint16_t c)
 {
-    static const uint8_t IC[8] = {ICON_X_HGRID, ICON_X_MIXER, ICON_X_PERF, ICON_X_KNOB, ICON_X_MATRIX,
-                                  ICON_X_DYN, ICON_X_GAUGE, ICON_X_BUS};
-    int32_t i, x0 = 124, on = (int32_t)ui.home_view - HV_OVERVIEW;   /* (4.3) eight cells: 124..227 */
-    gw_dither(x0, y + 12, 8 * 13 - 1, 2, T_SURF, ux_mix(T_SURF, T_ACCENT, 34), 50);   /* its own track */
-    for (i = 0; i < 8; i++) {
+    static const uint8_t IC[3] = {ICON_X_HGRID, ICON_X_MIXER, ICON_X_PERF};
+    int32_t i, x0 = 190, on = (int32_t)ui.home_view - HV_OVERVIEW;   /* (5.0) the three pages that draw it: 190..227 */
+    gw_dither(x0, y + 12, 3 * 13 - 1, 2, T_SURF, ux_mix(T_SURF, T_ACCENT, 34), 50);   /* its own track */
+    for (i = 0; i < 3; i++) {
         int32_t x = x0 + i * 13;
         if (i == on) {
             int32_t ph = (int32_t)((ui.frame / 8u) % 12u), pulse = ph < 6 ? ph : 12 - ph;
@@ -801,16 +800,8 @@ static void graph_home_view(uint16_t c)
             hv_mix(TSEL, c);
         else if (ui.home_view == HV_PERF)
             hv_perf(TSEL, c);
-        else if (ui.home_view == HV_ENG)
-            hv_engine(TSEL, c);
-        else if (ui.home_view == HV_MOD)
-            hv_mod(TSEL, c);
-        else if (ui.home_view == HV_DYN)
-            hv_dyn(TSEL, c);
-        else if (ui.home_view == HV_ROUT)
-            hv_route(TSEL, c);
         else
-            hv_system(c);
+            hv_perf(TSEL, c);                        /* (5.0) the walk's last screen: PERFORM */
         cv_blit(0, (uint32_t)top_y);
     }
 }
