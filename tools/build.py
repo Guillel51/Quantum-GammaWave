@@ -107,7 +107,12 @@ def generate():
     for old in ("felucca_font.h", "felucca_icons.h"):     # headers of the bitmap font and icon atlas
         (GEN / old).unlink(missing_ok=True)
     tools = SRC / "tools"
-    cmds = [[tools / "gen_aa_font.py", GEN / "ui_fonts.h", "--preset", "jiant-lab"],   # (gen_aa_font.UI_PRESET),
+    # (2026-11-13) --kern-min 4: the S face's kerning costs 3 B a pair (key + its 1/16 px delta) and 1122 pairs
+    # were 3 366 B of it for corrections the 12 px grid rarely shows. Keeping the pairs that move a glyph by a
+    # quarter pixel or more leaves 592 of them and pays for the AC791N image's last kilobyte: the glyph bitmaps
+    # are untouched (only the two tables and the face's pair count change) and tests/text_spacing_test.py stays
+    # inside its 0.25 px rule at 0.239 px worst (--kern-min 5 fails it at 'xe' +0.38 px).
+    cmds = [[tools / "gen_aa_font.py", GEN / "ui_fonts.h", "--preset", "jiant-lab", "--kern-min", "4"],   # (gen_aa_font.UI_PRESET),
             [tools / "gen_aa_icons.py", GEN / "ui_icons.h"],
             [tools / "gen_aa_keycaps.py", GEN / "ui_keycaps.h"],
             [tools / "gen_ui_palettes.py", GEN / "ui_palettes.h"],
@@ -260,7 +265,7 @@ def build_app():
         else:
             tc("cc", *cf, "-c", OUT / "felucca_size.ll", "-o", OUT / "felucca.o")
     elf = OUT / "felucca.elf"
-    tc("pi32v2/bin/ld", "-T", FW / "app.ld", OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o",
+    tc("pi32v2/bin/ld", "-T", FW / "app.ld", "--gc-sections", OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o",
        OUT / "felucca.o", "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin", "c1text.bin", "hottext.bin"):
         (OUT / sect).unlink(missing_ok=True)

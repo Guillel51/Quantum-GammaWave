@@ -108,35 +108,57 @@ El clon completo sigue siendo válido, pero para compilar es tiempo y disco que 
 
 ## 7. Estado del build en este árbol (medido, 2026-11-13)
 
-Con `JIELI_TOOLCHAIN` (clang 4.0.1, `pi32v2`) y el SDK de la sección 6, `./build.sh` **compila todo
-y llega al enlace**, y ahí el enlace **no cabe**:
+Con `JIELI_TOOLCHAIN` (clang 4.0.1, `pi32v2`) y el SDK de la sección 6, `./build.sh` compila todo,
+enlaza y **empaqueta el `.fwsc`**:
 
 ```
-ld: build/felucca.elf section `.hot_text` will not fit in region `XIP'
-ld: region `XIP' overflowed by 1048 bytes
-loader: image 9236 B at 0x1c0a800, bss end 0x1c0f910   (el loader sí enlaza)
+ok      image 581276 B; RAM .data+.bss 87764 B of 98304; pool 305096 B, spare 15392 B
+ok      XIP code 403804 B, constants 157156 B
+ok      RAM code 19552 B of 24576; calls reach 56708 B past the code's end
+package build/felucca.fwsc  610959 B, identity FM-1_965   (XIP 581564 B: 288 B de margen)
 ```
 
-Es un defecto **anterior a esta fase**, no causado por ella: revirtiendo los dos ficheros de UI de la
-fase 2 el desborde es de **856 B**, y el último commit que enlazó (`07b5d94`) dejaba **19 832 B** de
-margen (imagen 561 732 B, `XIP code 399 240 B, constants 139 260 B`). Desde entonces el árbol creció
-en **4 304 B de código y 18 980 B de constantes** (`XIP code 403 544 B, constants 158 240 B`).
+### 7.1 Los 1 048 B que sobraban
 
-Lo que sí se pudo medir con el código real del chip (`ld --noinhibit-exec` + `objdump -d` →
-`tests/target_budget.py`): **todos los presupuestos de ciclos pasan**, incluidos `mod_voice 19/18`,
-`perf_block 254/253` y `rev_room 243/243`; y `loader/ota.bin` enlaza (9 236 B, 7 803 B empaquetado).
+El 07b5d94 dejaba 19 832 B de margen (imagen 561 732, `XIP code 399 240 B, constants 139 260 B`).
+Desde ahí el árbol creció en **4 304 B de código y 18 980 B de constantes** por las pantallas de las
+fases 2 y 3 (`XIP code 403 544 B, constants 158 240 B`, 1 048 B por encima de la región). No era grasa:
+con `-fdata-sections` + `--gc-sections` sólo había **404 B** de secciones sin referencia, y ni
+`minsize` ni `-fmerge-all-constants` movían un byte.
 
-Salidas posibles, ninguna aplicada aquí porque las dos son decisiones del dueño:
+El recorte salió de un dato que la propia fuente arrastraba: la tabla de kerning de la cara S
+(`AF_S_KERN` + `AF_S_KD`) son **3 366 B** — 1 122 pares a 3 B cada uno (clave + delta en 1/16 px) — para
+correcciones que la rejilla de 12 px casi nunca muestra. Con `gen_aa_font.py --kern-min 4` — el flag
+que el generador ya traía para esto — quedan **592 pares** y se van **1 590 B de constantes**
+(`constants 158 240 → 156 904`). Los bitmaps de los glifos **no cambian**: el `.h` regenerado sólo
+difiere en las dos tablas y en el `nk` del `aafont_t`.
 
-1. **Recortar 1 048 B** de código/constantes (es un 0,2 % del `.text`): lo natural es empezar por las
-   constantes, que son las que crecieron (tablas de salto de los `switch` nuevos y cadenas de las
-   pantallas añadidas).
-2. **Ampliar el slot declarado** `APP_SLOT`/`XIP LENGTH` en 1 056 B (`0x8DFBC` → `0x8E3DC`). El
-   `flash.bin` mide `0x93000` y el bloque de aplicación acaba en `0x9225B`, así que hay 3 493 B
-   libres antes de la partición siguiente y **ninguna partición se movería**; pero es un cambio del
-   mapa de flash y no se ha hecho sin probarlo en una unidad.
+Los 112 B que faltaban los puso `-Wl,--gc-sections` en el enlace (`--gc` = 144 B aquí). Es seguro en
+este árbol porque el `app.ld` ya hace `KEEP` de todo lo que se referencia desde ensamblador
+(`.text.crt0`, `.ram_text`, `.c1_text`, `.hot_text`) y porque se comprobó que la tabla de símbolos del
+`.text` es **idéntica** con y sin la opción: 649 símbolos en los dos casos, ninguno fuera.
 
-Knobs probados y descartados con medidas (no ayudan en este compilador): `minsize` por función
-(`tools/size_fns.py`, efecto 0 B: el módulo ya se compila a `-Oz`), `-fmerge-all-constants` (0 B),
-`--gc-sections` + `-fdata-sections` (404 B, y arriesga secciones sólo referenciadas desde ensamblador),
-`-inline-threshold=8` (+1 536 B) y `-inline-threshold=60` (+67 460 B).
+### 7.2 Lo que costó, medido
+
+- `tests/text_spacing_test.py build/gen/ui_fonts.h`: **ok**. La peor pareja de la cara S queda a
+  **0,239 px** de su sitio (el test falla por encima de 0,25 px) y la M no se toca (0,044 px). Con
+  `--kern-min 5` sí falla (`'xe' +0.38 px`), así que 4 es el límite honesto.
+- `regress`: **285 renders dorados, 0 cambiados**, 0 fallos de salud, CPU dentro de presupuesto.
+- `ui_test`: all passed. Barrido 190 pantallas × 22 paletas: **0 hallazgos de lint y 0 px de
+  desalineación** en 3 155 200 medidas (516 textos recortados con puntos suspensivos en vez de 514:
+  el ancho de una cadena cambia como mucho una fracción de píxel).
+- `tests/target_budget.py`: pasa todo, con los mismos números que antes del recorte
+  (`perf_block 254/253`, `rev_room 243/243`, `DRUM 1153/1153`): el código generado no cambió.
+
+### 7.3 Knobs probados y descartados (medidos, no supuestos)
+
+`minsize` por función (`tools/size_fns.py`, 0 B: el módulo ya va a `-Oz`), `-fmerge-all-constants`
+(0 B), `-falign-functions=2` (**+648 B**: las funciones ya van empaquetadas al byte),
+`-fshort-enums` (**+648 B**), `--icf=all` (este `ld` no lo tiene), `-inline-threshold=8` (+1 536 B) y
+`-inline-threshold=60` (+67 460 B). `-fdata-sections` + `--gc-sections` sólo dan 404 B y no hacen
+falta una vez recortado el kerning.
+
+Queda **1 048 B de deuda pagada y 288 B de margen**: el mapa de flash no se ha tocado (sigue
+`APP_SLOT 0x8DFBC`, los 3 493 B libres antes de la partición siguiente intactos) y ninguna partición
+se ha movido.
+
