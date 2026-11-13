@@ -560,6 +560,15 @@ static int32_t mix_l[CTL], mix_r[CTL], wet[CTL];
  * apart until the next block's mix takes it: their sides (the chorus's, the delay's, the reverbs' WIDE: left and right
  * as they were added to mix_l / mix_r), their return; the sends they work on (the block before's); their scratch */
 static int32_t fx_sl[CTL], fx_sr[CTL], fx_wet[CTL], fxq_c[CTL], fxq_d[CTL], fxq_r[CTL], fx_tmp[CTL];
+/* (FASE 1) x / n, exactly (truncation toward zero, as C's /), without a divide when n is the block length: every
+ * audio path runs CTL-sample blocks and CTL is a power of two, so the division is a shift plus the truncation the
+ * sign needs (the same shape as amp_at, dsp.c). The target has no hardware divide. */
+static inline int32_t div_by_n(int32_t x, uint32_t n)
+{
+    if (n == CTL)
+        return (x + ((x >> 31) & (CTL - 1))) >> CTL_LOG2;
+    return x / (int32_t)n;
+}
 static __attribute__((noinline)) void clip_block(uint32_t n)
 {
     uint32_t i;
@@ -770,7 +779,7 @@ static __attribute__((noinline)) void lev_block(uint32_t n)
     g1 = lev_g + ((g1 - lev_g) >> (lev_env > LEV_GATE && pk > LEV_GATE ? 8 : 5));   /* (smoothed: ~190 ms; gated, under -38 dB: ~25 ms
                                                          * back to unity, no gain left on a tail's offset) */
     lev_cur = lev_g;                                    /* (master_out ramps it across the block, after the DC block) */
-    lev_dg = (g1 - lev_g) / (int32_t)n;
+    lev_dg = div_by_n(g1 - lev_g, n);                   /* (FASE 1) a shift at the block length, not a divide */
     lev_g = g1;
 }
 /* DUCK (G_DUCK 0..100, G_DREL its release 40 .. 600 ms): a kick (eng_drum.c duck_hit) takes the parts that are not
@@ -954,15 +963,33 @@ static const uint16_t MW_COMP[64] = {
 /* length of one division (N_DIV order) in samples at the song tempo */
 static const uint8_t DIV_DEN[6] = {1, 2, 4, 8, 3, 6};    /* original IDs stay fixed; slow rates append */
 static uint32_t midi_beat_samples;                    /* zero until an external clock has a measured tempo */
+/* (FASE 1) beat_samples is a pure function of three words, and a block asks for it up to eight times (the
+ * transport's grid, each part's AUTO PAN, DRUM-X's X-MOD, the buses' WIDE echo). It divided the sample rate by the
+ * tempo on every call, and pi32v2 has no hardware divide: each one was a libgcc routine. The result is kept with
+ * the three inputs it came from -- the same value, one compare on a hit, the divide only when the tempo, the
+ * clock or the measured MIDI tempo actually changed. */
+static uint32_t beat_cv, beat_cm;
+static int16_t beat_cb;
+static uint8_t beat_cc;
 static uint32_t beat_samples(void)
 {
     uint32_t bpm = song.g[G_BPM] >= 40 ? (uint32_t)song.g[G_BPM] : 120u;   /* (1.2.1-GW, Felucca #282: a BPM 0 for a
                                                          * moment never divides) */
-    return song.g[G_CLOCK] && midi_beat_samples ? midi_beat_samples : (uint32_t)FS * 60u / bpm;
+    uint32_t mb = midi_beat_samples;
+    uint8_t clk = song.g[G_CLOCK] != 0;
+    if (bpm == (uint32_t)beat_cb && mb == beat_cm && clk == beat_cc)
+        return beat_cv;
+    beat_cb = (int16_t)bpm;
+    beat_cm = mb;
+    beat_cc = clk;
+    beat_cv = clk && mb ? mb : (uint32_t)FS * 60u / bpm;
+    return beat_cv;
 }
 static uint32_t div_samples(uint32_t div)
 {
     uint32_t quarter = beat_samples();
+    if (div < 4u)                                       /* (FASE 1) DIV_DEN 1, 2, 4, 8: a shift, not a divide */
+        return quarter >> div;
     return div < 6u ? quarter / DIV_DEN[div] : div < 10u ? quarter << (div - 5u) : quarter / DIV_DEN[div % 6u];
 }
 
@@ -1690,11 +1717,11 @@ static void fx_gate(int32_t *wet, uint32_t n)
 /* (0.6.81) a value's step a sample from cur toward to: a quarter of the way over the block, one at least (never past) */
 static int32_t fx_glide(int32_t cur, int32_t to, uint32_t n)
 {
-    int32_t d = to - cur, s = (d >> 2) / (int32_t)n;
+    int32_t d = to - cur, s = div_by_n(d >> 2, n);        /* (FASE 1) shifts at the block length */
     if (!s && d)
         s = d > 0 ? 1 : -1;
-    if (s * (int32_t)n > d && d > 0) s = d / (int32_t)n;
-    if (s * (int32_t)n < d && d < 0) s = d / (int32_t)n;
+    if (s * (int32_t)n > d && d > 0) s = div_by_n(d, n);
+    if (s * (int32_t)n < d && d < 0) s = div_by_n(d, n);
     return s;
 }
 static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t *rev_in, int32_t *wet,
@@ -2003,7 +2030,7 @@ static __attribute__((noinline)) void drum_mix(int32_t *ol, int32_t *or_, uint32
 {
     uint32_t i, b, on = dx_xon;
     int32_t *sl = dx_sl, *sr = dx_sr, (*sb)[CTL] = dx_sb;   /* (1.2.1-GW, JIANT 0.7.8: this core's) */
-    int32_t dpm = (pm1 - pm0) / (int32_t)(n ? n : 1u), mute = pm0 != 32768 || pm1 != 32768;
+    int32_t dpm = n ? div_by_n(pm1 - pm0, n) : 0, mute = pm0 != 32768 || pm1 != 32768;
     if (n > CTL)
         n = CTL;
     if (mute)                                           /* (the FX layer's mute: on what is taken and sent too) */

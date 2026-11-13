@@ -38,8 +38,8 @@ small destination rejects whole object         ok
 oversized save rejected                        ok
 storage test passed
 In file included from tests/upreset_test.c:12:
-tests/../firmware/src/core.h:734:16: warning: ‘trk’ defined but not used [-Wunused-variable]
-  734 | static track_t trk[NTRK];        /* the instrument: four parts */
+tests/../firmware/src/core.h:736:16: warning: ‘trk’ defined but not used [-Wunused-variable]
+  736 | static track_t trk[NTRK];        /* the instrument: four parts */
       |                ^~~
 tests/../firmware/src/core.h:110:25: warning: ‘mc_host_cpu’ defined but not used [-Wunused-variable]
   110 | static uint8_t mc_host, mc_host_cpu;     /* tests: 1 = jobs handed over (run at once); the core "running" */
@@ -228,7 +228,7 @@ power-on sweep OFF: 640 frames (704 ms) and its end, then fm1_led_anim_on() 0 ok
   then the tick as before: 33 ticks, the same line writes, no extra one  ok
 power-on sweep: a key down at frame 200: done the next frame, the glow left ok
 LEDs: refresh 909 Hz lit, 909 Hz dim
-LEDs: host 36.7 ns per tick without dim LEDs, 55.3 ns with, 79.1 ns with a breath too
+LEDs: host 38.0 ns per tick without dim LEDs, 67.7 ns with, 84.5 ns with a breath too
 input debounce: all ok
 == TRS MIDI parser
 uart: running status, realtime, SysEx, system common ok
@@ -312,7 +312,7 @@ FIR table = sinc x Kaiser (24 x 160 taps, beta 9, 22 kHz); phases sum to 1.0 ok
   18000 Hz -1 dBFS: gain -0.059 dB, SNR 94.6 dB in band, 45.3 full (exact taps 94.3) ok
   20000 Hz -1 dBFS: gain -1.173 dB, SNR 93.0 dB in band, 17.7 full (exact taps 93.0) ok
   flat 20 Hz .. 18 kHz within -0.059 .. +0.000 dB; SNR 100 Hz .. 15 kHz >= 93.0 dB ok
-  cost (host): 42.4 ns / 44.1 kHz frame (no instruction counter)
+  cost (host): 45.7 ns / 44.1 kHz frame (no instruction counter)
 48 kHz, 10 s, random render times: sizes 47..49 (48:9134 49:530 47:336), mean 48.0194 ok
   every frame = the resampled render, in order (0 off); no underrun / overrun ok
   fill at render start 73..157 (band 87..139), adj up 648 down 395 (I2S 44117.6 Hz: fast) ok
@@ -367,7 +367,7 @@ FIR table = sinc x Kaiser (24 x 160 taps, beta 9, 22 kHz); phases sum to 1.0 ok
   18000 Hz -1 dBFS: gain -0.059 dB, SNR 94.6 dB in band, 45.3 full (exact taps 94.3) ok
   20000 Hz -1 dBFS: gain -1.173 dB, SNR 93.0 dB in band, 17.7 full (exact taps 93.0) ok
   flat 20 Hz .. 18 kHz within -0.059 .. +0.000 dB; SNR 100 Hz .. 15 kHz >= 93.0 dB ok
-  cost (host): 42.6 ns / 44.1 kHz frame (no instruction counter)
+  cost (host): 41.3 ns / 44.1 kHz frame (no instruction counter)
 48 kHz, 10 s, random render times: sizes 47..49 (48:9134 49:530 47:336), mean 48.0194 ok
   every frame = the resampled render, in order (0 off); no underrun / overrun ok
   fill at render start 73..157 (band 87..139), adj up 648 down 395 (I2S 44117.6 Hz: fast) ok
@@ -752,24 +752,24 @@ speaker: BASS+ ok
 tracks: recording: drums step 4 = 3 notes (kick snare hat) + clap 39: yes, hits when step 4 played right after: 3 (want 3: the clap is not triggered twice) ok
 tracks: recording: MIDI ch 3 -> lead step 1 = 84 (want 84) ok; keys -> pad step 14 = 2 notes 60 64 ok
 tracks: voices sounding at most 10 (budget 12) ok; given up to another part 0; 0 samples near full scale
-tracks: stealing across parts: 5 voices taken; largest sample step at a take / before it: at most 0.70 x (a hard cut: several x) ok
-tracks: 6-part stress: 8 cross-part takes, per part T1=0 T2=1 T3=1 T4=2 T5=2 T6=2, 6/6 parts sounding, busy 12/12; largest sample step at a take / before it: at most 0.77 x (a hard cut: several x) ok
+tracks: stealing across parts: 5 voices taken; largest sample step at a take / before it: at most 0.69 x (a hard cut: several x) ok
+tracks: 6-part stress: 10 cross-part takes, per part T1=1 T2=2 T3=1 T4=2 T5=2 T6=2, 6/6 parts sounding, busy 12/12; largest sample step at a take / before it: at most 0.83 x (a hard cut: several x) ok
 tracks: TRS MIDI IN: ch 1..4 -> parts ok, ch 10 and ch 5 ignored on CH1-4, the selected track on SEL ok ok; note-offs (running status, vel 0) ok
 tracks: TRS MIDI IN: note-off after another track was selected reaches the note's track ok; ch 3 records into armed track 3 ok
 tracks: recording lengths: held 3.3 steps -> NOTE TIE TIE (the 4th step put back) ok; 0.3 step -> one step ok; past the middle of the next -> NOTE TIE ok
 tracks: recording lengths: a chord ties until its last key ok; capped at LEN 4 ok; MONO legato A..B -> A TIE B TIE ok
 tracks: recording with SWING 50 %: nearest swung step (0.55 into a long step stays, 0.42 into a short one moves on) ok
-tracks: engine switch ANALOG -> - (release tail): largest sample step 237 in the 10 ms after, 683 in the 0.1 s before (0.35 x)
-tracks: engine switch ANALOG -> PHASE (chord held): largest sample step 395 in the 10 ms after, 723 in the 0.1 s before (0.55 x)
-tracks: engine switch ANALOG -> LOFI (chord held): largest sample step 346 in the 10 ms after, 726 in the 0.1 s before (0.48 x)
-tracks: engine switch: at most 0.55 x the step before (a hard cut: several x) ok
+tracks: engine switch ANALOG -> - (release tail): largest sample step 234 in the 10 ms after, 690 in the 0.1 s before (0.34 x)
+tracks: engine switch ANALOG -> PHASE (chord held): largest sample step 387 in the 10 ms after, 731 in the 0.1 s before (0.53 x)
+tracks: engine switch ANALOG -> LOFI (chord held): largest sample step 348 in the 10 ms after, 727 in the 0.1 s before (0.48 x)
+tracks: engine switch: at most 0.53 x the step before (a hard cut: several x) ok
 tracks: a note during the switch sounds on the new engine (-) ok
 tracks: WAVs in build/tracks_demo: tracks_demo.wav (mix), t1_bass.wav, t2_pad.wav, t3_lead.wav, t4_drums.wav, steal.wav, steal6.wav, engine_switch.wav
-tracks: one part, 8 notes held (host -O2, ns per sample, heaviest preset per engine): ANALOG SCREAM LEAD 297.5, PHASE CRYPT BELL 214.0, LOFI DATAMOSH 242.6, VOICE BLACK CHOIR 182.4, WHEEL TIDAL ORGAN 248.3, DRUM TRAP 808 101.4, NOISE REACTOR 237.8, FM6 AURORA FM 172.1, WTABLE QUANTUM MASS 249.7
-tracks: worst single part: ANALOG SCREAM LEAD 297.5 ns
-tracks: FM6 + PHASE + VOICE + drums, 3 + 3 + 2 notes: 293.8 ns (0.99 x the worst single part), 10 voices
-tracks: the same, 8 + 8 + 4 notes asked for (budget keeps 12): 319.6 ns (1.07 x)
-tracks: two VOICE parts, 4 + 4 voices (the heaviest 8 the budget allows): 281.9 ns (0.95 x); no notes but the drums (buses, 3 idle parts): 98.1 ns
+tracks: one part, 8 notes held (host -O2, ns per sample, heaviest preset per engine): ANALOG GLASS BLADE 314.6, PHASE IRON FILAMENT 224.5, LOFI FLOAT PAD 238.4, VOICE GURDY WHEEL 180.0, WHEEL GOTHIC SHRINE 245.5, DRUM TRAP 808 102.5, NOISE REACTOR 231.9, FM6 BRASS 173.4, WTABLE VELVET MORPH 259.1
+tracks: worst single part: ANALOG GLASS BLADE 314.6 ns
+tracks: FM6 + PHASE + VOICE + drums, 3 + 3 + 2 notes: 303.1 ns (0.96 x the worst single part), 10 voices
+tracks: the same, 8 + 8 + 4 notes asked for (budget keeps 12): 328.2 ns (1.04 x)
+tracks: two VOICE parts, 4 + 4 voices (the heaviest 8 the budget allows): 276.3 ns (0.88 x); no notes but the drums (buses, 3 idle parts): 105.1 ns
 tracks: all checks ok
 == project formats (FUN1..FUN5 -> FUN6, the grid and song chain; DIGITAL tracks -> FM6, SAMPLE PERC -> DRUM)
 layout: SLICER after DETUNE, then the matrix just before P_E0 ok
@@ -984,71 +984,71 @@ ui:   MENU > LARGE: the list layout with labels in M (as the other lists)      o
 motion/chance/compact storage tests passed
 == MORPH moves the samples: every engine with a morph path renders a different waveform when P_MORPH moves under a held note (and without a click)
 morph: P_MORPH through the real render path (voice.c track_render -> the engines)
-morph: ANALOG SAW..       wave  0: audible (difference 2.04 of the signal), step at the turn 2832 vs 3293 before ok
-morph: ANALOG SAW..       wave  1: audible (difference 0.86 of the signal), step at the turn 1635 vs 1965 before ok
-morph: ANALOG SAW..       wave  2: audible (difference 1.45 of the signal), step at the turn 483 vs 972 before ok
-morph: ANALOG SAW..       wave  3: audible (difference 1.49 of the signal), step at the turn 672 vs 918 before ok
-morph: ANALOG PWM         wave  4: audible (difference 1.16 of the signal), step at the turn 1203 vs 970 before ok
-morph: ANALOG SYNC        wave  5: audible (difference 1.22 of the signal), step at the turn 3146 vs 2929 before ok
-morph: ANALOG RING        wave  6: audible (difference 1.10 of the signal), step at the turn 4239 vs 2478 before ok
-morph: ANALOG SAW3        wave  7: audible (difference 0.91 of the signal), step at the turn 1295 vs 1989 before ok
-morph: LOFI               wave  0: audible (difference 1.62 of the signal), step at the turn 6566 vs 6404 before ok
-morph: LOFI               wave  1: audible (difference 1.98 of the signal), step at the turn 1813 vs 1084 before ok
-morph: LOFI               wave  2: audible (difference 2.32 of the signal), step at the turn 5944 vs 7119 before ok
-morph: LOFI               wave  3: audible (difference 1.22 of the signal), step at the turn 638 vs 7881 before ok
-morph: LOFI               wave  4: audible (difference 0.17 of the signal), step at the turn 2899 vs 2458 before ok
-morph: PHASE              wave  0: audible (difference 1.46 of the signal), step at the turn 861 vs 1148 before ok
-morph: PHASE              wave  1: audible (difference 0.91 of the signal), step at the turn 781 vs 975 before ok
-morph: PHASE              wave  2: audible (difference 1.43 of the signal), step at the turn 734 vs 847 before ok
-morph: PHASE              wave  3: audible (difference 1.08 of the signal), step at the turn 521 vs 451 before ok
-morph: PHASE              wave  4: audible (difference 1.54 of the signal), step at the turn 1619 vs 875 before ok
-morph: PHASE              wave  5: audible (difference 2.47 of the signal), step at the turn 4767 vs 4525 before ok
-morph: PHASE              wave  6: audible (difference 2.64 of the signal), step at the turn 881 vs 978 before ok
-morph: PHASE              wave  7: audible (difference 1.72 of the signal), step at the turn 1840 vs 1112 before ok
+morph: ANALOG SAW..       wave  0: audible (difference 2.02 of the signal), step at the turn 3967 vs 4488 before ok
+morph: ANALOG SAW..       wave  1: audible (difference 0.86 of the signal), step at the turn 2181 vs 2477 before ok
+morph: ANALOG SAW..       wave  2: audible (difference 1.45 of the signal), step at the turn 500 vs 1437 before ok
+morph: ANALOG SAW..       wave  3: audible (difference 1.49 of the signal), step at the turn 796 vs 1109 before ok
+morph: ANALOG PWM         wave  4: audible (difference 1.17 of the signal), step at the turn 1219 vs 960 before ok
+morph: ANALOG SYNC        wave  5: audible (difference 1.24 of the signal), step at the turn 1956 vs 1617 before ok
+morph: ANALOG RING        wave  6: audible (difference 1.10 of the signal), step at the turn 6793 vs 4608 before ok
+morph: ANALOG SAW3        wave  7: audible (difference 0.91 of the signal), step at the turn 1309 vs 2070 before ok
+morph: LOFI               wave  0: audible (difference 1.62 of the signal), step at the turn 6832 vs 6691 before ok
+morph: LOFI               wave  1: audible (difference 1.99 of the signal), step at the turn 1906 vs 1167 before ok
+morph: LOFI               wave  2: audible (difference 2.31 of the signal), step at the turn 6224 vs 7485 before ok
+morph: LOFI               wave  3: audible (difference 1.21 of the signal), step at the turn 674 vs 8305 before ok
+morph: LOFI               wave  4: audible (difference 0.19 of the signal), step at the turn 3041 vs 2564 before ok
+morph: PHASE              wave  0: audible (difference 1.49 of the signal), step at the turn 915 vs 1116 before ok
+morph: PHASE              wave  1: audible (difference 0.88 of the signal), step at the turn 848 vs 978 before ok
+morph: PHASE              wave  2: audible (difference 1.42 of the signal), step at the turn 622 vs 719 before ok
+morph: PHASE              wave  3: audible (difference 1.06 of the signal), step at the turn 661 vs 613 before ok
+morph: PHASE              wave  4: audible (difference 1.50 of the signal), step at the turn 1466 vs 1145 before ok
+morph: PHASE              wave  5: audible (difference 2.23 of the signal), step at the turn 4658 vs 4545 before ok
+morph: PHASE              wave  6: audible (difference 2.33 of the signal), step at the turn 926 vs 1109 before ok
+morph: PHASE              wave  7: audible (difference 1.46 of the signal), step at the turn 1796 vs 1098 before ok
 
 morph: 21 cases, 0 failed
 == M.STRT: a note waits a random 0..20 ms and no two notes wait the same (audio), the wait is silence and does not click, the level holds; N.RATE: the random wander holds 46 ms or a tempo division, down to 1/16
 mstart: M.STRT and N.RATE through the real render path (voice.c, mod.c)
-mstart: M.STRT 0: the note starts at once, as before                     ok  onset 64 and 64, 10200 of 10240 samples differ
+mstart: M.STRT 0: the note starts at once, as before                     ok  onset 64 and 64, 10210 of 10240 samples differ
 mstart: M.STRT 127: the note waits, and the wait is not the same twice   ok  onsets 96..864 samples (0..864), 6 of 7 notes moved
-mstart: M.STRT: the wait is silence and the attack does not click        ok  onset 448, first sample 196, largest step 3802
+mstart: M.STRT: the wait is silence and the attack does not click        ok  onset 448, first sample 6316, largest step 943, note peak 10093
 mstart: M.STRT: the held part keeps its level                            ok  0.00 dB between M.STRT 0 and 127
 mstart: N.RATE: the tempo's grid, then 46 ms as it was                   ok  1/1 2756, 1/2 1378, 1/4 689, 1/8 345, 1/16 172, 46ms 64 blocks
-mstart: N.RATE: the random source moves the sound at the rate it says    ok  0.405 of the signal between 1/1 and 1/16
+mstart: N.RATE: the random source moves the sound at the rate it says    ok  0.504 of the signal between 1/1 and 1/16
 mstart: all passed
 == LOFI T.CLK: NOTE restarts the formula every note, FREE joins it where the track clock is (audio, not a screen), keeps the level, survives a sound change and does not click
 lofi: T.CLK through the real render path (voice.c -> eng_lofi.c), BYTE formula 4
-lofi: the floor of the harness itself (NOTE twice): 0.1344 of the signal
-lofi: T.CLK NOTE: two notes start from the same place                    ok  0.1344 vs the 0.1344 floor
-lofi: T.CLK FREE: two notes 3 s apart render different audio             ok  1.140 of the signal, 8.5x the floor
-lofi: T.CLK FREE: the same instant twice is the same audio               ok  0.1397 vs the 0.1344 floor
+lofi: the floor of the harness itself (NOTE twice): 0.1293 of the signal
+lofi: T.CLK NOTE: two notes start from the same place                    ok  0.1293 vs the 0.1293 floor
+lofi: T.CLK FREE: two notes 3 s apart render different audio             ok  1.148 of the signal, 8.9x the floor
+lofi: T.CLK FREE: the same instant twice is the same audio               ok  0.1402 vs the 0.1293 floor
 lofi: T.CLK FREE keeps the sound's level (not a second sound)            ok  0.6 dB between the two clocks
 lofi: T.CLK FREE survives a preset load                                  ok  1.371 of the signal after loading another sound
-lofi: T.CLK FREE: no click where the note joins the formula              ok  largest step at the attack 3235 vs 3098 (NOTE)
+lofi: T.CLK FREE: no click where the note joins the formula              ok  largest step at the attack 3253 vs 3113 (NOTE)
 lofi T.CLK: all passed
 == MORPH under load: six parts, the FX buses, MIDI notes and a preset load -- every transition measured (latency, slew to 90%, click) with the two renders bit-identical before the turn
 morph: the transition under load, on the real render path (six parts, FX, MIDI, presets)
 morph: 6 parts, the keys
-       rms per block  ctrl/move: 8:4479/4479 96:2731/2731 191:10085/10085 192:11440/11322 200:6387/7101 767:3517/2960
+       rms per block  ctrl/move: 8:5091/5091 96:2885/2885 191:8103/8103 192:11542/11395 200:7996/8451 767:3680/4411
        before-the-turn diff 0 (identical)
-       difference 0.64 x  latency  0.27 ms (12 samples)  slew to 90%   5.51 ms  step  3960 vs  5065 before ok
+       difference 0.66 x  latency  0.27 ms (12 samples)  slew to 90%   5.51 ms  step  4135 vs  5315 before ok
 morph: 6 parts + FX buses + clipper
-       rms per block  ctrl/move: 8:3560/3560 96:1576/1576 191:9217/9217 192:12076/12033 200:10459/11487 767:3783/4282
+       rms per block  ctrl/move: 8:4504/4504 96:1647/1647 191:7185/7185 192:11932/11873 200:13342/13938 767:3886/5184
        before-the-turn diff 0 (identical)
-       difference 0.49 x  latency  0.27 ms (12 samples)  slew to 90%   5.56 ms  step  3363 vs  3859 before ok
+       difference 0.49 x  latency  0.27 ms (12 samples)  slew to 90%   5.83 ms  step  3698 vs  4159 before ok
 morph: 6 parts + FX, notes over MIDI
-       rms per block  ctrl/move: 8:4018/4018 96:713/713 191:4585/4585 192:9381/9311 200:5103/6408 767:3472/2892
+       rms per block  ctrl/move: 8:4423/4423 96:1002/1002 191:1549/1549 192:9197/9114 200:8655/9852 767:3316/3669
        before-the-turn diff 0 (identical)
-       difference 0.49 x  latency  0.27 ms (12 samples)  slew to 90%   5.40 ms  step  3548 vs  4263 before ok
+       difference 0.49 x  latency  0.27 ms (12 samples)  slew to 90%   5.44 ms  step  3559 vs  5029 before ok
 morph: 6 parts + FX, MIDI lands as it turns
-       rms per block  ctrl/move: 8:4018/4018 96:713/713 191:4585/4585 192:9325/9253 200:2913/3840 767:2048/3483
+       rms per block  ctrl/move: 8:4423/4423 96:1002/1002 191:1549/1549 192:9138/9058 200:6230/7255 767:2864/5000
        before-the-turn diff 0 (identical)
-       difference 0.50 x  latency  0.27 ms (12 samples)  slew to 90%   5.40 ms  step  3527 vs  4263 before ok
+       difference 0.49 x  latency  0.27 ms (12 samples)  slew to 90%   5.44 ms  step  3563 vs  5029 before ok
 morph: 6 parts + FX, after a preset load
-       rms per block  ctrl/move: 8:3560/3560 116:5077/5077 231:14920/14920 232:13000/12975 240:2456/2977 767:3783/5793
+       rms per block  ctrl/move: 8:4504/4504 116:4328/4328 231:13857/13857 232:12365/12334 240:1960/2437 767:3886/6848
        before-the-turn diff 0 (identical)
-       difference 0.48 x  latency  0.09 ms (4 samples)  slew to 90%   7.10 ms  step  1635 vs  4383 before ok
-morph: preset load under six parts + FX     level 5684 -> 6709  step  4383 vs  3733 before -> ok (no click)
+       difference 0.48 x  latency  0.11 ms (5 samples)  slew to 90%   7.03 ms  step  2420 vs  4063 before ok
+morph: preset load under six parts + FX     level 4416 -> 6740  step  4063 vs  3644 before -> ok (no click)
 
 morph: 6 transitions, 0 failed
 == the particle pool bays: EDIT ribbon draws none, HOME and the visualizer keep theirs inside their own rect, no allocation
@@ -1692,7 +1692,7 @@ ui: REC in the MENU does nothing (the menu stays, no arm, no transport start)  o
 ui: REC in ABOUT does nothing (the document and its scroll stay)               ok
 ui: GLO directly opens the four-channel MIXER                                  ok
 ui: MIXER K3 edits reverb, never sequence length                               ok
-ui: GLO cycles MIXER > GLOBAL > SYSTEM > MONITOR > MIXER                       ok
+ui: GLO cycles MIXER > GLOBAL > SYSTEM > MONITOR > SCL 2 > MIXER               ok
 ui: long SEQ off the SEQ pages is a tap (no SONG: SAVE held, G5)               ok
 ui: REC cannot write borrowed patterns while SONG is armed                     ok
 ui: operator envelope pages are hidden on non-DIGITAL instruments              ok
@@ -1735,7 +1735,8 @@ ui: duplicate knob mappings recover to the default panel                       o
 ui: out-of-range panel data recovers without an invalid shift                  ok
 ui: a valid reversed knob mapping is retained                                  ok
 ui: FX tap: nothing on press, the FX page when let go                          ok
-ui:   a second tap: the next page of the family (DIST)                         ok
+ui:   a second tap: the next page of the family (BUSES, 6.1)                   ok
+ui:   a third tap: the page after it (DIST)                                    ok
 ui:   held 0.35 s (HOLD 0.4): still a tap, the map never shown                 ok
 ui: FX held past HOLD: the map (not before), the effects momentary; let go: no page and no pin (four seconds are what pin it) ok
 ui: Punch-in: a short hold shows the map and does not pin it                   ok
@@ -2271,9 +2272,9 @@ ui:   nothing changed: the graph is not drawn again                            o
 ui:   after the follow the bars match again                                    ok
 ui:   a key held: its row on the keyboard strip is the accent                  ok
 ui: HOME from a section: lands on the ecosystem, not the visualizer            ok
-ui: HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, HOME) ok
+ui: HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, ROUT, HOME) ok
 ui: HOME held: the menu, and neither the hold nor its release walks a screen   ok
-ui: OVERVIEW, MIX, PERF, ENG, MOD and SYSTEM: read-only, page and sound untouched ok
+ui: OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM and ROUT: read-only, page and sound untouched ok
 ui: a section entered from HOME's screens: nothing of HOME stays on the page   ok
 ui: stopped, nothing held: no key lit                                          ok
 ui: playing: C4 and E4 of step 1 light keys 8 and 12 (from F3), track 2's G4 does not ok
@@ -2765,10 +2766,10 @@ ui: DICE ALL (0.6.27): 40 throws, none the same piece, the tempo moved every tim
 ui: DICE ALL: a TEMPO set on GEN is kept (AUTO still moves it)                 ok
 ui: dice_all x50: all passed
 == UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost
-ui_render: the splash shows the version v2.8.4 (FELUCCA_VERSION) and its lines
+ui_render: the splash shows the version v2.9.0 (FELUCCA_VERSION) and its lines
 ui_render: splash timeline: 1125 steps of 4 ms, 176 of them change the screen, 949 identical rewrites skipped
-ui_render: 191 screens x 22 palettes + the page/value sweep; 0 lint findings, 514 ellipsised free texts (16 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_new/report.txt
-ui_render: alignment: 3163051 measurements of 73 places, 0 off by 1 px or more
+ui_render: 190 screens x 22 palettes + the page/value sweep; 0 lint findings, 514 ellipsised free texts (16 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_new/report.txt
+ui_render: alignment: 3151187 measurements of 72 places, 0 off by 1 px or more
 ui_render: PNGs in build/ui_new/<palette>/ and build/ui_new/sheet_<palette>.png
 ui_render: rolling-digit filmstrips in build/ui_slot/*.png
 == UI built with FELUCCA_FM4=1 (DIGITAL, kept in the tree): its OP pages, EDIT cycle, algorithm charts
@@ -3090,7 +3091,7 @@ ui: REC in the MENU does nothing (the menu stays, no arm, no transport start)  o
 ui: REC in ABOUT does nothing (the document and its scroll stay)               ok
 ui: GLO directly opens the four-channel MIXER                                  ok
 ui: MIXER K3 edits reverb, never sequence length                               ok
-ui: GLO cycles MIXER > GLOBAL > SYSTEM > MONITOR > MIXER                       ok
+ui: GLO cycles MIXER > GLOBAL > SYSTEM > MONITOR > SCL 2 > MIXER               ok
 ui: long SEQ off the SEQ pages is a tap (no SONG: SAVE held, G5)               ok
 ui: REC cannot write borrowed patterns while SONG is armed                     ok
 ui: operator envelope pages are hidden on non-DIGITAL instruments              ok
@@ -3135,7 +3136,8 @@ ui: duplicate knob mappings recover to the default panel                       o
 ui: out-of-range panel data recovers without an invalid shift                  ok
 ui: a valid reversed knob mapping is retained                                  ok
 ui: FX tap: nothing on press, the FX page when let go                          ok
-ui:   a second tap: the next page of the family (DIST)                         ok
+ui:   a second tap: the next page of the family (BUSES, 6.1)                   ok
+ui:   a third tap: the page after it (DIST)                                    ok
 ui:   held 0.35 s (HOLD 0.4): still a tap, the map never shown                 ok
 ui: FX held past HOLD: the map (not before), the effects momentary; let go: no page and no pin (four seconds are what pin it) ok
 ui: Punch-in: a short hold shows the map and does not pin it                   ok
@@ -3671,9 +3673,9 @@ ui:   nothing changed: the graph is not drawn again                            o
 ui:   after the follow the bars match again                                    ok
 ui:   a key held: its row on the keyboard strip is the accent                  ok
 ui: HOME from a section: lands on the ecosystem, not the visualizer            ok
-ui: HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, HOME) ok
+ui: HOME on HOME: one screen per tap (SCOPE, OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM, ROUT, HOME) ok
 ui: HOME held: the menu, and neither the hold nor its release walks a screen   ok
-ui: OVERVIEW, MIX, PERF, ENG, MOD and SYSTEM: read-only, page and sound untouched ok
+ui: OVERVIEW, MIX, PERF, ENG, MOD, SYSTEM and ROUT: read-only, page and sound untouched ok
 ui: a section entered from HOME's screens: nothing of HOME stays on the page   ok
 ui: stopped, nothing held: no key lit                                          ok
 ui: playing: C4 and E4 of step 1 light keys 8 and 12 (from F3), track 2's G4 does not ok
@@ -3784,10 +3786,10 @@ ui: DIGITAL charts: the 8 algorithms' routes and carriers equal eng_digital.c's 
 ui: DIGITAL charts: carriers on the bottom row, modulators a row up, one per cell, distinct ok
 ui: all passed
 == UI renders with FELUCCA_FM4=1: DIGITAL's screens (EDIT, OP ENV, the 8 algorithm charts), lint, GREY gray, MONO neutral
-ui_render: the splash shows the version v2.8.4 (FELUCCA_VERSION) and its lines
+ui_render: the splash shows the version v2.9.0 (FELUCCA_VERSION) and its lines
 ui_render: splash timeline: 1125 steps of 4 ms, 176 of them change the screen, 949 identical rewrites skipped
-ui_render: 201 screens x 22 palettes + the page/value sweep; 0 lint findings, 519 ellipsised free texts (17 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_fm4/report.txt
-ui_render: alignment: 3583944 measurements of 74 places, 0 off by 1 px or more
+ui_render: 200 screens x 22 palettes + the page/value sweep; 0 lint findings, 519 ellipsised free texts (17 distinct), 0 inks on their own colour, 0 GREY / MONO pixels off gray / neutral; report build/ui_fm4/report.txt
+ui_render: alignment: 3562712 measurements of 73 places, 0 off by 1 px or more
 == audio: overload protection, bounded fades and DMA diagnostics
 audio: (1.2.1-GW) the delay's farthest read (longest TIME, MOD 127's drift, two older taps) inside its line ok
 audio: (v1.9) a held note keeps the meter envelope up on every block              ok
@@ -3801,11 +3803,11 @@ audio: (1.9) a level change moves both meters and leaves no stale peak          
 audio: (1.9) a pan to the right takes the left meter down and the right one up    ok
 audio: (1.9) the scope's window is the newest frames: a passage that scrolled out owns neither meter ok
 audio: (1.9) after a wrap and a clear the meters start from the new block, not from the old one ok
-audio: USB / DAC rms: MASTER full 5725 / 5725, 1/4 1468 / 1468, 0 0 / 0; FIXED 1/4 5725 / 1431, 0 5725 / 0
+audio: USB / DAC rms: MASTER full 5545 / 5545, 1/4 1419 / 1419, 0 0 / 0; FIXED 1/4 5545 / 1386, 0 5545 / 0
 audio: USB LEVEL MASTER (default): USB is the DAC's signal and follows the knob (0: silent) ok
 audio: USB LEVEL FIXED: USB at the full level whatever MASTER is (within 0.1 dB), MASTER 0 too ok
 audio: USB LEVEL FIXED: the DAC gets exactly USB scaled by MASTER (MASTER 0: silent, 1/4: -12 dB) ok
-audio: boot, pot 300 (MASTER 351): splash peak 0, then rms 60281 (by hand 60281); before the fix: MASTER 2048, splash peak 1492224, then rms 342973
+audio: boot, pot 300 (MASTER 351): splash peak 0, then rms 57901 (by hand 57901); before the fix: MASTER 2048, splash peak 1446400, then rms 333672
 audio: #137 boot: MASTER is the pot's level before the first block (pot 300, pot 0) ok
 audio: #137 boot: keys hammered under the splash sound nothing (before the fix: they did) ok
 audio: #137 boot: a key held across the splash's end stays silent until pressed again ok
@@ -3830,15 +3832,15 @@ audio: a lone slow half between fast ones does not shed (0.6.19: a spike is not 
 audio: steady CPU load converges without integer smoothing bias                   ok
 audio: all passed
 == FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix
-master: CLIP   0: peak 2496128, 121.47 dB | 100: peak 2421632, 123.13 dB
+master: CLIP   0: peak 2512000, 121.50 dB | 100: peak 2441600, 123.38 dB
 master: CLIP changes the master's sound (its drive into the soft clip, not just the drawing) ok
-master: PUNCH  0: peak 2496512, 121.47 dB | 100: peak 2638336, 122.19 dB
+master: PUNCH  0: peak 2536320, 121.49 dB | 100: peak 2674432, 122.23 dB
 master: PUNCH changes the drum bus (a kick: four milliseconds, then the body)    ok
-master: DUCK   0: peak 2495616, 121.47 dB | 100: peak 2492160, 123.57 dB
+master: DUCK   0: peak 2535296, 121.49 dB | 100: peak 2531200, 123.69 dB
 master: DUCK lowers the parts the kick is not (the sidechain reaches the mix)    ok
-master: DREL   0: late 118.61 dB | 100: late 113.30 dB
+master: DREL   0: late 118.97 dB | 100: late 113.90 dB
 master: DREL changes how fast the duck comes back                                ok
-master: DUCK 0, DREL 0 / 100: 121.4702 / 121.4754 dB
+master: DUCK 0, DREL 0 / 100: 121.4936 / 121.4984 dB
 master: DREL does nothing while DUCK is 0 (no sidechain to release)              ok
 master: all ok
 == FX meters: attack, release, peak hold (30 frames then a pixel a frame) and clamping
@@ -4250,23 +4252,23 @@ mod: DIST TONE darker: another sound                                            
 mod: MSEQ: STEP reads the level of the step now (LEN wraps), SLEW glides to it  ok
 mod: WIDTH 0: the delay mono (left = right, to a rounding); 127: left and right apart ok
 mod: CHORUS: a stereo ensemble at WIDTH 0, wider at 127                         ok
-mod:   (PHASER hash 702891d2c4e097fc, chorus hash b4f3355758626cbc, L-R 2377554)
+mod:   (PHASER hash 79b2e70e08561f74, chorus hash 13c0d587a4920f2, L-R 2274050)
 mod: PHASER: TYPE 1 changes the chorus signal, finite and stereo                ok
 mod:   (PHASER full DEPTH notch: min 85, max 84330)
 mod: PHASER: full DEPTH has a deep notch (max/min above 18 dB), finite          ok
 mod:   (PHASER fade-in: first sample -5526, dry -5525, wet -1)
 mod: PHASER: enabling DEPTH fades in from dry (no one-sample pop)               ok
 mod: PHASER: DEPTH 0 is bit-exact dry                                           ok
-mod:   (M-WIDE L-R: 0 0, 64 24633996, 127 31321806)
+mod:   (M-WIDE L-R: 0 0, 64 23601043, 127 29990874)
 mod: M-WIDE: 0 mono, 64 neutral, 127 wider                                      ok
 mod:   (EQ dB Q8: peak 4584, notch -6144, low shelf tilt 3054 / high shelf tilt 3054)
 mod: MASTER EQ: the UI response is the filter's (boost, notch, shelf tilt)      ok
 mod:   (LOW SHELF coeff b0 33655589 b1 -67040588 b2 33386084 a1 -67041097 a2 33486733 active 1)
 mod:   (LOW SHELF +24 dB / 125 Hz, square then 4096 zeros: tail peak 0)
 mod: MASTER EQ: LOW SHELF +24 dB does not ring after a loud input (64-bit products, bounded states) ok
-mod:   (CHORUS STEREO L-R: -64 0, 0 24633996, 63 59872416)
+mod:   (CHORUS STEREO L-R: -64 0, 0 23601043, 63 57373946)
 mod: CHORUS STEREO: -64 the chorus mono (L - R under 1/1000 of 0's), 0 stereo as before, 63 wider ok
-mod:   (AUTO PAN centre crossings / swing: DPTH 0 0 0.00, 1/4 7 1.34, 1BAR 1 1.99, FREE 70 7 1.46, SQR 7 2.00; largest step SIN 5167 SQR 5167)
+mod:   (AUTO PAN centre crossings / swing: DPTH 0 0 0.00, 1/4 7 1.34, 1BAR 1 1.99, FREE 70 7 1.46, SQR 7 2.00; largest step SIN 5008 SQR 5008)
 mod: AUTO PAN: DPTH 0 still; BEAT 1/4 swings L-R each beat (7..8 crossings in 4 beats), 1BAR 1..2, FREE moves too ok
 mod: AUTO PAN: SQR jumps side to side without a click (its largest sample step as SIN's, the glide) ok
 mod: ROOM: MOD (its combs drift) and PRE each change the tail                   ok
@@ -4282,11 +4284,11 @@ mod:   (FLOAT: 32 of 32 sound, 32 differ from the one before, 0 clip, 27 move th
 mod: LOFI FLOAT: 32 floatbeat formulas sound, each its own, none clips, they move (24+ through 3+ timbres); VAR mutates most (26+); MOTN moves most (24+); in tune with the note ok
 mod:   (FLOAT FBK 127: 32 of 32 sound, 0 clip; FBK 40 changes 32, 127 more on 31)
 mod: LOFI FLOAT FBK (was DRV, which silenced it): every formula sounds at 127, none clips, it deforms them (40: 24+, 127 more: 24+) ok
-mod:   (ANALOG RMS: SAW 4896, SYNC 5248, RING 4386, SAW3 4979)
+mod:   (ANALOG RMS: SAW 4681, SYNC 5024, RING 4186, SAW3 4767)
 mod: ANALOG SYNC RING SAW3: each sounds, each its own, none clips; SYNC's DTN moves it ok
-mod:   (PHASE FB: difference from FB 0: 30 1.3e+07, 127 5.95e+07)
+mod:   (PHASE FB: difference from FB 0: 30 8.03e+06, 127 4.01e+07)
 mod: PHASE FB: more feedback, further from the plain wave; under full scale     ok
-mod:   (LOFI slope open 3.41e+06, CUT 40 9.22e+05; BEND on PLS 2.45e+07, on BYTE 3.5e+07; MASK on BYTE 3.41e+07)
+mod:   (LOFI slope open 3.21e+06, CUT 40 8.66e+05; BEND on PLS 2.34e+07, on BYTE 3.33e+07; MASK on BYTE 3.25e+07)
 mod: LOFI CUT darkens (less slope); BEND changes a pulse and BYTE; MASK changes BYTE ok
 mod:   (ANALOG osc 2 alone, crossings: INT 0 33, INT 12 65)
 mod: ANALOG INT: osc 2 an octave up at INT 12 (its crossings x2)                ok
@@ -4314,8 +4316,8 @@ slicer: sync: 131 BPM, swing 15 %: every track's sequencer step at 16538 blocks 
 slicer: sync: RATE 1/8T -> 1/16 and 97 -> 113 BPM while playing: on the sequencer's step (4823 of 4823) ok
 slicer: OFF: the signal is not touched                                             ok
 slicer: STUT: the repeat steps play the live step (24 of 24 checked)               ok
-slicer: bus: T1 out: its closed steps sound (898114), T1 in: silent (11425)        ok
-slicer: bus: FX OFF the reverb rings in the closed steps (2038231), FX ON cut too (8759) ok
+slicer: bus: T1 out: its closed steps sound (972806), T1 in: silent (11801)        ok
+slicer: bus: FX OFF the reverb rings in the closed steps (2067184), FX ON cut too (5581) ok
 slicer: pitch: the repeats at 0 / +12: 105 / 209 crossings (live 105): an octave up ok
 slicer:   QNT SCL: +1 snaps to the scale (105 crossings, +1 would be 111)          ok
 slicer: cost: no instruction counter on this host
@@ -4372,7 +4374,7 @@ perform: HPF keeps 1 kHz audible at its end (peak 12500 of 12000)               
 perform: 4x full scale through LPF + HPF + KNOB 2 CRUSH + REPEAT: peak 148480 (no wrap) ok
 perform: KNOB 1 FILTER all the way left: a 5 kHz sine down to 408                  ok
 perform: KNOB 3 THROW at 100: the dry mix into both sends, full, the dry mix untouched ok
-perform: black key 1: track 1 muted while held (peak 17839 -> 144), P_MUTE untouched ok
+perform: black key 1: track 1 muted while held (peak 17045 -> 146), P_MUTE untouched ok
 perform: OCT+: a held note an octave up while held, back after                     ok
 perform:   A#4 DRM: OCT+ leaves the synth alone                                    ok
 perform: DEC-: a kick's tail shorter; DECY as stored outside the ISR               ok
@@ -4555,6 +4557,15 @@ fx_probe: host x86, 44100 Hz
 PHASER: the comb has depth somewhere in 200 Hz..6 kHz (>= 20 dB) ok   23.6 dB
 PHASER: the chain stays bounded (no runaway feedback)      ok   14602
 PHASER: no click when DEPTH jumps (max sample step, Q15)   ok   0
+       comb null at LFO 0: 4383 Hz; at LFO 7: 240 Hz
+       deepest comb 12.0 dB; peak gain 7033 (Q15)
+FLANGER: the comb has depth (>= 10 dB)                     ok   12.0 dB
+FLANGER: the comb stays bounded (0.6 feedback, no runaway) ok   7033
+FLANGER: the null moves with the sweep (>= 20 % between LFO 0 and LFO 7) ok   4383 Hz
+       in 11999 / 0 / 0; out 9060 / 0 / 0
+ROUTE: a fed send raises its own input meter only          ok  
+ROUTE: the bus it feeds returns audio                      ok   0
+ROUTE: a bus nobody feeds returns nothing                  ok  
        correlation: width 0 1.000, 64 -0.003, 127 -0.594 (level 3306 / 4668 / 4665)
 M-WIDE 0 is mono (L and R identical)                       ok   r=1.0000
 M-WIDE 64 is the untouched pair                            ok   r=-0.0032
@@ -4574,20 +4585,25 @@ EQ LOW SH +24: the bottom is lifted near +24 dB            ok   23.9 dB
 EQ PEAK +12 reaches its gain at the center                 ok   11.7 dB
 
 fx probe passed
-== PRESETS: all 202 of them loaded and rendered (structure, silence, level, duplicates)
+== tempo: the cached beat, div_samples and div_by_n equal the divisions they replaced
+tempo: beat_samples: the cache returns the division, at every tempo and clock ok
+tempo: div_samples: 0..15 equal the DIV_DEN divisions at every tempo          ok
+tempo: div_by_n: truncation toward zero, block length and others              ok
+tempo test passed
+== PRESETS: all 267 of them loaded and rendered (structure, silence, level, duplicates)
 preset audit: every factory preset through the real load and render (host x86, 44100 Hz)
 engine   presets  silent    hot     dupn     dupp  range
-ANALOG       56       0      0        0        0      0
-PHASE        25       0      0        0        0      0
-LOFI         25       0      0        0        0      0
-VOICE        20       0      0        0        0      0
-WHEEL        18       0      0        0        0      0
-DRUM         12       0      0        0        0      0
-NOISE        17       0      0        0        0      0
-FM6          29       0      0        0        0      0
-WTABLE       10       0      0        0        0      0
+ANALOG       68       0      0        0        0      0
+PHASE        32       0      0        0        0      0
+LOFI         29       0      0        0        0      0
+VOICE        25       0      0        0        0      0
+WHEEL        22       0      0        0        0      0
+DRUM         18       0      0        0        0      0
+NOISE        22       0      0        0        0      0
+FM6          37       0      0        0        0      0
+WTABLE       14       0      0        0        0      0
 
-total 212 presets: 0 silent, 0 hot (reported, not failed), 0 repeated names, 0 exact duplicates, 0 out of range
+total 267 presets: 0 silent, 0 hot (reported, not failed), 0 repeated names, 0 exact duplicates, 0 out of range
 preset audit: passed (structure and signal; nobody listened)
 == CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence
 cloud: stability (tail 4.5-5 s vs 0.25-0.75 s, dB / line clamps), MOD 0; rows SIZE, columns RATE 0 30 60 90 127
@@ -4643,40 +4659,116 @@ cloud:   RATE 127: SIZE 127  75.1 dB, 126  75.0 dB, 100  69.6 dB
 cloud: CLOUD SIZE 127 from a cleared line, any RATE: sounds (within 6 dB of 126) and holds; RATE 127 within 8 dB of 0 ok
 cloud hot test passed
 == regression: golden renders, health, voices, CPU budget
-regress: voices: budget of 8 across 4 parts: 4 POLY parts, random notes: at most 12 voices active (budget 12), VOICE part at most 4 (cap 4), 758 voices taken (each faded over ~4 ms), 0 blocks of a fade past 6, all free 1.78 s after the note-offs ok
+regress: voices: budget of 8 across 4 parts: 4 POLY parts, random notes: at most 12 voices active (budget 12), VOICE part at most 4 (cap 4), 762 voices taken (each faded over ~4 ms), 0 blocks of a fade past 6, all free 1.78 s after the note-offs ok
 regress: voices: reuse before the stolen tail fades: same-note retrigger and full local-cap replacement before the fade: at most 12 voices, both MONO parts kept, all released ok
 regress: voices: budget after a live mode change: POLY / UNISON chord -> MONO / LEGATO / UNISON: extra voices reclaimed, leads kept, budget 12 ok
 regress: voices: budget after voice mode changes: POLY -> MONO / LEGATO and lower UNISON cap: at most 12 voices, all four leads kept, all released ok
 regress: voices: note-offs after live voice mode changes: 76 cases: all 16 VCE pairs, both key-up orders and caps 8 / 4; no stale fallback, MONO / LEGATO / UNISON priority leads and fallback preserved ok
-regress: voices: a stolen voice fades: 4 takes; largest sample step at a take 1748 vs 2056 before it (0.85 x, limit 1.50 x) ok
-regress: voices: a bass note given up does not click (0.6.74): 55 Hz sine given up: largest bend 42 after vs 12 before (3.5 x, limit 5 x; a 0.7 ms cut: 24 x) ok
+regress: voices: a stolen voice fades: 5 takes; largest sample step at a take 1148 vs 2212 before it (0.52 x, limit 1.50 x) ok
+regress: voices: a bass note given up does not click (0.6.74): 55 Hz sine given up: largest bend 43 after vs 13 before (3.3 x, limit 5 x; a 0.7 ms cut: 24 x) ok
 regress: voices: stealing takes a quiet voice, not a loud one: 10 held (5 loud at v120, 5 soft at v24), 4 more notes: 2 taken (kills 0), mean envelope 6143, worst 6143, 0 of them audible (>= 8000); parts:notes  1:n50 env6143 2:n53 env6143 ok
 regress: voices: MONO keeps its note: MONO part held its note through 864 voices taken from the others: lost in 0 blocks ok
 regress: voices: LEGATO keeps its note: LEGATO part held its note through 864 voices taken from the others: lost in 0 blocks ok
 regress: voices: UNISON keeps its note: UNISON part held its note through 875 voices taken from the others: lost in 0 blocks ok
 regress: voices: VOICE engine cap: VOICE engine, 8 keys: at most 4 voices in POLY, 4 in UNISON (cap 4); freed after release ok
 regress: routing: no hanging notes: 14129 random MIDI / key events on ch 1-4, 5, 10, 16 and the keys, track selection changing, 3 rounds (ROUT CH1-4, SEL, switching): no gate left on, every voice free ok
-regress: CPU ns cpu/WTABLE/00_GLASS_PAD: 66.39 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/01_MORPH_LEAD: 84.47 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/02_SINE_KEY: 61.77 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/03_VOCAL_AAH: 85.46 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/04_METAL_BELL: 65.41 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/05_HOLLOW_WOOD: 77.48 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/06_BRASS_SWELL: 85.83 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/07_SUB_BASS: 82.30 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/08_PULSE_ORGAN: 70.57 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns cpu/WTABLE/09_QUANTUM_MASS: 134.45 (index), no baseline here (BUDGET_UPDATE=1 adds it)
-regress: CPU ns note  cpu/ANALOG/02_SQR_BASS: 300.6 ns / sample = 1.60 x its baseline against a host median of 1.01 (+58 %): confirm before calling it a regression
-regress: CPU ns note  cpu/ANALOG/07_SUB_BASS: 282.2 ns / sample = 1.53 x its baseline against a host median of 1.01 (+52 %): confirm before calling it a regression
-regress: CPU ns note  cpu/ANALOG/39_QUANTUM_PAD: 419.3 ns / sample = 1.78 x its baseline against a host median of 1.01 (+77 %): confirm before calling it a regression
-regress: CPU ns note  cpu/ANALOG/43_NEBULA_DRONE: 444.3 ns / sample = 1.51 x its baseline against a host median of 1.01 (+50 %): confirm before calling it a regression
-regress: CPU ns note  cpu/ANALOG/52_GLASS_BELL: 366.9 ns / sample = 2.10 x its baseline against a host median of 1.01 (+108 %): confirm before calling it a regression
-regress: CPU ns note  cpu/VOICE/01_VOX_LEAD: 381.1 ns / sample = 2.24 x its baseline against a host median of 1.01 (+123 %): confirm before calling it a regression
-regress: CPU ns note  cpu/VOICE/03_WHISPER: 272.7 ns / sample = 1.65 x its baseline against a host median of 1.01 (+64 %): confirm before calling it a regression
-regress: CPU ns note  cpu/VOICE/10_ROBO_TALK: 258.2 ns / sample = 1.51 x its baseline against a host median of 1.01 (+50 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/13_KALIMBA: 131.4 ns / sample = 1.64 x its baseline against a host median of 1.01 (+62 %): confirm before calling it a regression
-regress: CPU ns note  cpu/FM6/16_WARM_PAD: 242.9 ns / sample = 1.58 x its baseline against a host median of 1.01 (+56 %): confirm before calling it a regression
-regress: CPU ns: PASS (207 rows against host 'Linux x86_64|19/01 |13.3.0', host median 1.01, aggregate limit +20 %, 10 row(s) over +40 % noted)
+regress: CPU ns cpu/ANALOG/56_NEON_RIDER: 87.74 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/57_VELVET_SCREAM: 156.52 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/58_GLASS_BLADE: 71.07 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/59_NIGHT_SHIFT: 71.89 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/60_MOLTEN_CORE: 142.48 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/61_PAPER_LANTERN: 90.26 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/62_SLOW_TIDE: 78.50 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/63_AMBER_GLASS: 85.48 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/64_TIN_ROOF: 68.08 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/65_CLOCKWORK: 116.91 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/66_PUENTE_DE_LUZ: 70.15 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/ANALOG/67_SIESTA_DORADA: 86.47 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/PHASE/25_MERCURY_BLOOM: 69.39 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/PHASE/26_IRON_FILAMENT: 78.34 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/PHASE/27_BELL_FOUNDRY: 76.18 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/PHASE/28_NULL_POINT: 72.49 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/PHASE/29_CHORAL_GLASS: 74.05 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/PHASE/30_PIEDRA_Y_VIENTO: 71.84 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/PHASE/31_STRAY_SIGNAL: 79.49 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/LOFI/25_POCKET_CONSOLE: 62.86 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/LOFI/26_CASIO_DREAM: 57.54 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/LOFI/27_BRASS_BUG: 59.47 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/LOFI/28_CIUDAD_DE_PLAYA: 28.60 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/VOICE/20_HALO_CHORUS: 94.11 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/VOICE/21_ASHRAM: 61.27 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/VOICE/22_TALK_BOX_WIRE: 65.93 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/VOICE/23_BROKEN_HYMN: 69.35 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/VOICE/24_LUZ_DE_TUNEL: 61.86 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WHEEL/18_TONE_CABINET: 80.62 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WHEEL/19_SALT_REED: 101.21 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WHEEL/20_BARKING_PIPE: 75.03 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WHEEL/21_CORAL_ORGAN: 85.02 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/DRUM/12_CONCRETE_KICK: 97.62 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/DRUM/13_GLASS_SNARE: 69.91 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/DRUM/14_TIN_HAT: 101.81 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/DRUM/15_TOMS_OF_MUD: 91.86 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/DRUM/16_RITUAL_PERC: 114.88 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/DRUM/17_NEON_CLAP: 67.08 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/NOISE/17_SANDSTORM: 76.19 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/NOISE/18_COLD_FUSION: 79.26 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/NOISE/19_BIT_SWARM: 74.95 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/NOISE/20_META_DUST: 81.21 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/NOISE/21_LLUVIA_DE_CENIZA: 71.53 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/29_EMBER_TINES: 73.83 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/30_FROST_MUSIC: 60.73 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/31_DEEP_MARIMBA: 44.41 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/32_ALLOY_BASS: 64.65 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/33_SUBMARINE_BELL: 87.78 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/34_PAPER_ORGAN: 62.87 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/35_CINTA_MAGNETICA: 81.30 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/FM6/36_TEMPLE_CIRCUIT: 69.27 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/00_GLASS_PAD: 88.41 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/01_MORPH_LEAD: 104.51 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/02_SINE_KEY: 64.60 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/03_VOCAL_AAH: 88.45 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/04_METAL_BELL: 80.43 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/05_HOLLOW_WOOD: 122.72 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/06_BRASS_SWELL: 102.24 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/07_SUB_BASS: 123.68 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/08_PULSE_ORGAN: 114.51 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/09_QUANTUM_MASS: 91.19 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/10_VELVET_MORPH: 88.47 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/11_SPECTRAL_REED: 94.13 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/12_CHROME_PLUCK: 85.64 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns cpu/WTABLE/13_BARRO_Y_LUZ: 90.47 (index), no baseline here (BUDGET_UPDATE=1 adds it)
+regress: CPU ns note  cpu/ANALOG/08_PLUCK: 241.1 ns / sample = 1.65 x its baseline against a host median of 1.08 (+52 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/15_INGOT_SUB: 330.6 ns / sample = 1.55 x its baseline against a host median of 1.08 (+43 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/17_GRAVE_GROWL: 333.8 ns / sample = 1.54 x its baseline against a host median of 1.08 (+42 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/19_WRAITH_PAD: 351.6 ns / sample = 1.63 x its baseline against a host median of 1.08 (+50 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/27_EVOLVE_PAD: 306.6 ns / sample = 1.74 x its baseline against a host median of 1.08 (+60 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/28_SOLINA: 278.0 ns / sample = 1.61 x its baseline against a host median of 1.08 (+48 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/33_TUBE_KEYS: 450.1 ns / sample = 1.58 x its baseline against a host median of 1.08 (+46 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/34_FOLD_LEAD: 419.9 ns / sample = 1.56 x its baseline against a host median of 1.08 (+44 %): confirm before calling it a regression
+regress: CPU ns note  cpu/ANALOG/44_AURA_STRINGS: 258.8 ns / sample = 1.70 x its baseline against a host median of 1.08 (+57 %): confirm before calling it a regression
+regress: CPU ns note  cpu/PHASE/11_WITCHFIRE: 310.3 ns / sample = 1.52 x its baseline against a host median of 1.08 (+40 %): confirm before calling it a regression
+regress: CPU ns note  cpu/PHASE/24_EVOLVING_GLASS: 337.5 ns / sample = 1.57 x its baseline against a host median of 1.08 (+45 %): confirm before calling it a regression
+regress: CPU ns note  cpu/LOFI/05_8BIT_KEYS: 304.0 ns / sample = 1.67 x its baseline against a host median of 1.08 (+54 %): confirm before calling it a regression
+regress: CPU ns note  cpu/LOFI/07_STEP_LEAD: 137.0 ns / sample = 1.79 x its baseline against a host median of 1.08 (+65 %): confirm before calling it a regression
+regress: CPU ns note  cpu/LOFI/14_CHIP_ARP: 267.1 ns / sample = 1.65 x its baseline against a host median of 1.08 (+52 %): confirm before calling it a regression
+regress: CPU ns note  cpu/WHEEL/10_HURDY_GURDY: 333.6 ns / sample = 1.69 x its baseline against a host median of 1.08 (+56 %): confirm before calling it a regression
+regress: CPU ns note  cpu/WHEEL/12_MEDIEVAL_VIEL: 298.4 ns / sample = 1.66 x its baseline against a host median of 1.08 (+53 %): confirm before calling it a regression
+regress: CPU ns note  cpu/WHEEL/13_FOLK_DRONE: 340.2 ns / sample = 1.68 x its baseline against a host median of 1.08 (+56 %): confirm before calling it a regression
+regress: CPU ns note  cpu/WHEEL/14_NORDIC_ORGAN: 313.8 ns / sample = 1.60 x its baseline against a host median of 1.08 (+48 %): confirm before calling it a regression
+regress: CPU ns note  cpu/WHEEL/15_GOTHIC_SHRINE: 366.6 ns / sample = 1.58 x its baseline against a host median of 1.08 (+46 %): confirm before calling it a regression
+regress: CPU ns note  cpu/DRUM/09_QUANTUM_BEAT: 317.0 ns / sample = 1.62 x its baseline against a host median of 1.08 (+50 %): confirm before calling it a regression
+regress: CPU ns note  cpu/NOISE/03_METAL: 276.2 ns / sample = 1.63 x its baseline against a host median of 1.08 (+50 %): confirm before calling it a regression
+regress: CPU ns note  cpu/NOISE/05_REACTOR: 353.3 ns / sample = 1.53 x its baseline against a host median of 1.08 (+41 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/06_ORGAN: 262.7 ns / sample = 1.77 x its baseline against a host median of 1.08 (+64 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/08_SOFT_EP: 252.6 ns / sample = 1.75 x its baseline against a host median of 1.08 (+61 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/11_GLASS_KEYS: 239.1 ns / sample = 1.83 x its baseline against a host median of 1.08 (+69 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/13_KALIMBA: 138.1 ns / sample = 1.72 x its baseline against a host median of 1.08 (+59 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/14_VIBES: 246.8 ns / sample = 2.26 x its baseline against a host median of 1.08 (+109 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/18_CELESTA: 179.7 ns / sample = 1.67 x its baseline against a host median of 1.08 (+54 %): confirm before calling it a regression
+regress: CPU ns note  cpu/FM6/25_STEEL_DRUM: 120.7 ns / sample = 1.65 x its baseline against a host median of 1.08 (+52 %): confirm before calling it a regression
+regress: CPU ns note  cpu/mix/idle_drums: 171.2 ns / sample = 1.76 x its baseline against a host median of 1.08 (+63 %): confirm before calling it a regression
+regress: CPU ns note  cpu/mix/idle_click: 127.0 ns / sample = 1.67 x its baseline against a host median of 1.08 (+55 %): confirm before calling it a regression
+regress: CPU ns: PASS (207 rows against host 'Linux x86_64|19/01 |13.3.0', host median 1.08, aggregate limit +20 %, 31 row(s) over +40 % noted)
 regress: CPU, one part with 8 notes held (VOICE 4), heaviest preset per engine (instructions / CPU ns per sample):
 regress:   ANALOG   SAW LEAD            0 instr     0.0 ns
 regress:   PHASE    BRASS               0 instr     0.0 ns
@@ -4687,11 +4779,11 @@ regress:   DRUM     DRUM-X              0 instr     0.0 ns
 regress:   NOISE    WIND                0 instr     0.0 ns
 regress:   FM6      TINE EP             0 instr     0.0 ns
 regress:   WTABLE   GLASS PAD           0 instr     0.0 ns
-regress:   idle_drums                   0 instr    97.7 ns
-regress:   3parts_full_drums            0 instr   266.4 ns
-regress:   6parts_full                  0 instr   325.5 ns
-regress:   idle_click                   0 instr    77.5 ns
-regress: 230 golden renders (0 changed, 0 gone), 0 health failures, 0 voice / routing checks failed, 0 CPU entries over budget (10 notes), 0 crashes; 11.7 s
+regress:   idle_drums                   0 instr   171.2 ns
+regress:   3parts_full_drums            0 instr   406.4 ns
+regress:   6parts_full                  0 instr   413.3 ns
+regress:   idle_click                   0 instr   127.0 ns
+regress: 285 golden renders (0 changed, 0 gone), 0 health failures, 0 voice / routing checks failed, 0 CPU entries over budget (31 notes), 0 crashes; 18.1 s
 == parameter and engine tables as JSON (for the editor mock test)
 == DRUM-X: every lane sounds and ends, MORPH, PITCH, NOIS, hat choke, group mutes, demos
 drumx: kick: sounds, under full scale, no DC, ends                        ok  (peak 13178, DC 0)
@@ -4719,7 +4811,7 @@ drumx: group mutes (X): SNARE muted, silent; KICK sounds                  ok  (s
 drumx: group mutes (X): a ringing kick muted: ends, no click              ok  (RMS 397 (unmuted 10118), step 393 (own 1217))
 drumx: group mutes (X): unmuted, the kick sounds again                    ok
 drumx: PNCH 100: the kick's first 8 ms louder, its body (20..67 ms) fuller, its tail whole ok  (attack RMS 1071 -> 1591, body 918 -> 1628, tail 552 -> 881)
-drumx: DUCK 100: the kick ducks the synth 10 dB or more, back after the release (vs DUCK 0) ok  (4717 -> 126, after 3669 / 3820)
+drumx: DUCK 100: the kick ducks the synth 10 dB or more, back after the release (vs DUCK 0) ok  (4571 -> 120, after 3571 / 3711)
 drumx: CLIP 100: the loud mix saturates (crest factor down), never past full scale ok  (crest 3.32 -> 2.62, peak 19665)
 drumx: demos in build/drumx_demo
 drumx: all checks ok
@@ -4733,14 +4825,14 @@ noise: LFSR COLR 127 (brown): -5.88 dB/oct (want -6 +-1.5)                      
 noise: filter tracks the key: peaks 345 / 705 / 1416 Hz at C3 C4 C5 (FREQ 710 Hz at C4)       ok
 noise: LFSR clock follows the key: 264 transitions at C3, 531 at C4 (x2.01, want 2)           ok
 noise: META (93) periodic at the key: r = 0.973 at 9 periods of C4; LFSR L23 r = 0.068        ok
-noise: no DC: worst |mean| 0.85 % of a voice's full scale (SOLAR WIND)                        ok
+noise: no DC: worst |mean| 0.92 % of a voice's full scale (LLUVIA DE CENIZA)                  ok
 noise: no clipping at the corners: voice sum peak 329504 (8 voices, limit 384000), mix peak 31090 ok
 noise: a note from silence renders the same samples again (every preset)                      ok
 noise: cost: no instruction counter on this host (proc_pid_rusage); not measured
-noise: demos in build/noise_demo: the 17 presets, each playing its suggested pattern
+noise: demos in build/noise_demo: the 22 presets, each playing its suggested pattern
 noise_test: all checks ok
 == WTABLE: the frames and the morph, HARM, SUB, UNI, aliasing at every octave, health, cost
-== WTABLE (engine 14, 10 presets)
+== WTABLE (engine 14, 14 presets)
 wavetable: listed (eng_ok) and reachable with the PRESETS knob                                ok
 wavetable: EDIT 1 is MORPH first (MD_E1: the matrix can move the table position)              ok
 wavetable: the table is 8 frames of 256 points in 3 band limits                               ok
@@ -4759,7 +4851,7 @@ wavetable: and at every octave from C1 to C8 (all harmonics)                    
 wavetable: all 10 presets, 10 notes at velocity 127: 0 clipping, 0 with DC, 0 not silent after the release ok
 wavetable: every EDIT parameter at its maximum: 2.2 x VOICE_FS a voice at most (no clipping)  ok
 wavetable: a note from silence renders the same samples again                                 ok
-wavetable: 11 ns per sample and voice on this host
+wavetable: 12 ns per sample and voice on this host
 wavetable: cost within the host budget (printed above)                                        ok
 WTABLE: all checks passed
 == FM6: algorithms, envelopes, retrigger, DC, clipping, macros, patch formats, voices, cost, demos
@@ -4840,7 +4932,7 @@ fm6bank: motion holding SLOT 9..40: plays OWN, the patch kept; a record made on 
 fm6bank: no bank sent: B1..B11 are GW-1 KEYS, each its ROM record; the knob stops at B11, B12 refused     ok
 fm6bank:   .. no flash: GW-1 KEYS too; LIST: bank 0, named GW-1 KEYS, its 11 voices                       ok
 fm6bank:   .. a bank sent replaces it, at every power-on after; an empty one too (no voice, not GW-1 KEYS) ok
-fm6bank: the 1.2 and QG-1 presets (118, past the generator's): their extra values, FM6 ones their voice, each sounds ok
+fm6bank: the 1.2, QG-1 and 6.0 presets (169, past the generator's): their extra values, FM6 ones their voice, each sounds ok
 fm6bank: all ok
 == EQ / load (eq_dc_test): DC gain against the coefficients, 11-bit state, stability, response, six tracks, and the six-track live scene
 eq-dc: coefficients Q25: b0 33655589 b1 -67040588 b2 33386084 a1 -67041097 a2 33486733
@@ -4915,9 +5007,9 @@ eq sweep passed
 six: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
 six: all ten voices are sounding before the first block               ok
 six: 6 tracks, 10 notes, 10 voices, 82687 blocks of 32 frames (60 s)
-six: p50 9.0 us, p99 16.5 us, p99.9 25.5 us, worst 77.0 us, mean 9.3 us, deadline 725.0 us
-six: blocks over the deadline 0 of 82687 (0.000 %), peak 19922, rail 0, zeros 3895 (0.074 %)
-six: silent blocks 0 of 82687, fewest non-zero samples in a block 60 of 64
+six: p50 9.0 us, p99 16.5 us, p99.9 31.2 us, worst 198.2 us, mean 9.5 us, deadline 725.0 us
+six: blocks over the deadline 0 of 82687 (0.000 %), peak 20294, rail 0, zeros 3987 (0.075 %)
+six: silent blocks 0 of 82687, fewest non-zero samples in a block 61 of 64
 six: ten voices stay sounding in every one of the blocks              ok
 six: no voice was stolen during the run                               ok
 six: audio is present and never hits the rail                         ok
@@ -4930,18 +5022,18 @@ live: the scene asks for exactly ten notes over six tracks (3+2+2+1+1+1) ok
 live: all ten voices are sounding before the first block                 ok
 live: 6 tracks, 10 voices, 82687 blocks of 32 frames (60 s): 62247 parameter moves, 5168 MIDI notes,
 live:   60 preset switches, 16507 blocks with a punch-in effect held
-live: mean 10.8 us, p50 10.4 us, p95 11.4 us, p99 19.0 us, p99.9 27.5 us, worst 77.1 us, deadline 725.0 us
-live: blocks over the deadline 0 of 82687 (0.000 %), peak 20226, rail 0, beyond 16-bit 0, silence 0.071 %
+live: mean 12.1 us, p50 10.5 us, p95 16.7 us, p99 20.8 us, p99.9 49.0 us, worst 125.9 us, deadline 725.0 us
+live: blocks over the deadline 0 of 82687 (0.000 %), peak 20183, rail 0, beyond 16-bit 0, silence 0.073 %
 live: the 8 slowest blocks (wall | CPU not measured | before it | block | s):
-live:       77.1 us |      0.0 us |      0.5 us | block    63380 | 45.990 s
-live:       76.1 us |      0.0 us |      0.0 us | block        0 | 0.000 s (the first)
-live:       69.4 us |      0.0 us |      0.7 us | block      873 | 0.633 s
-live:       69.4 us |      0.0 us |      0.4 us | block    81258 | 58.963 s
-live:       63.3 us |      0.0 us |      0.4 us | block    72307 | 52.468 s
-live:       58.6 us |      0.0 us |      0.7 us | block    45502 | 33.017 s
-live:       55.3 us |      0.0 us |      0.4 us | block    81338 | 59.021 s
-live:       53.8 us |      0.0 us |      0.4 us | block    54423 | 39.491 s
-live: silent blocks 0, fewest non-zero samples in a block 60 of 64, largest one-sample step 14669, steps over 24000 outside punch-in 0
+live:      125.9 us |      0.0 us |      0.8 us | block    61868 | 44.893 s
+live:      108.4 us |      0.0 us |      0.4 us | block    49599 | 35.990 s
+live:       74.2 us |      0.0 us |      0.7 us | block    22161 | 16.081 s
+live:       72.7 us |      0.0 us |      0.7 us | block    67697 | 49.123 s
+live:       72.2 us |      0.0 us |      0.9 us | block    46580 | 33.800 s
+live:       70.7 us |      0.0 us |      0.9 us | block    37868 | 27.478 s
+live:       70.4 us |      0.0 us |      0.8 us | block    61950 | 44.952 s
+live:       70.2 us |      0.0 us |      0.7 us | block    69451 | 50.395 s
+live: silent blocks 0, fewest non-zero samples in a block 60 of 64, largest one-sample step 14566, steps over 24000 outside punch-in 0
 live: heap: nothing allocated by the render path (the firmware links no allocator); the largest buffer here is the 256-byte block
 live: ten voices stay sounding in every one of the blocks                ok
 live: no voice was stolen during the run                                 ok
@@ -5131,7 +5223,7 @@ write: the flashrom backend writes, reads the part back and compares it (exit 0)
 write: the stand-in part holds the image after the flashrom run              ok
 write: a readback that differs exits 8 even when flashrom claimed success    ok
 write: a programmer that fails exits 2 instead of reporting a restore        ok
-backup:  /tmp/tmp6zb6k84y/FM-1_015.bin
+backup:  /tmp/tmpyc19w__i/FM-1_015.bin
 device:  FM-1_015  0x856014 P25Q80H  1024 KiB
 sha256:  27d98a1e89064ffd7214426e02c5d32781cfd7e1ea90e8f93f2d06ddd698d18b
 passes:  2, identical, status complete
@@ -5149,7 +5241,7 @@ OK
 == backup audit: region bounds, bootloader never written, dump and restore evidence agree
 ...
 ----------------------------------------------------------------------
-Ran 3 tests in 0.000s
+Ran 3 tests in 0.001s
 
 OK
 == skip installer preflight (NO_PACKAGE=1: needs build/felucca.fwsc)
@@ -5455,19 +5547,19 @@ fm6bank: motion holding SLOT 9..40: plays OWN, the patch kept; a record made on 
 fm6bank: no bank sent: B1..B11 are GW-1 KEYS, each its ROM record; the knob stops at B11, B12 refused     ok
 fm6bank:   .. no flash: GW-1 KEYS too; LIST: bank 0, named GW-1 KEYS, its 11 voices                       ok
 fm6bank:   .. a bank sent replaces it, at every power-on after; an empty one too (no voice, not GW-1 KEYS) ok
-fm6bank: the 1.2 and QG-1 presets (118, past the generator's): their extra values, FM6 ones their voice, each sounds ok
+fm6bank: the 1.2, QG-1 and 6.0 presets (169, past the generator's): their extra values, FM6 ones their voice, each sounds ok
 fm6bank: all ok
 == ASan/UBSan fuzz: editor SysEx and raw USB-MIDI packets (20000, seed 7)
 fuzz ok: 18777 frames, 1223 raw packets
 == ASan/UBSan fuzz: project stores -> import -> restore -> render (5000, seed 13)
-fuzz_proj ok: 5000 iterations, 516 imported
+fuzz_proj ok: 5000 iterations, 484 imported
 == regression: target cost of the render loops (pi32v2 disassembly)
 target: skip (build/felucca.dis missing: run ./build.sh)
 == target memory map: 1 MiB flash, RAM / pool / stacks / noinit do not overlap
 memory map: skipped (no build/felucca.elf or JieLi objdump)
 == skip CPU under valgrind (no valgrind, or not Linux x86-64)
-== preset library: 200 factory sounds, per-engine counts, DRUM's ten indices, names
-preset library: 200 factory sounds (ANALOG 56, PHASE 25, LOFI 25, FORMANT 20, WHEEL 18, DRUM 10, NOISE 17, FM6 29); DRUM 10 indices + legacy 10/11 kept, 194 unique names, 16 new
+== preset library: 251 factory sounds, per-engine counts, DRUM's ten indices, names
+preset library: 251 factory sounds (ANALOG 68, PHASE 32, LOFI 29, FORMANT 25, WHEEL 22, DRUM 16, NOISE 22, FM6 37); DRUM 10 indices + legacy 10/11 kept, 245 unique names, 16 new
 == installer CLI (fm1_install.py) against a simulated FM-1
 pairing: the exact name wins                                     ok
 pairing: Windows' numbered port matches its base                 ok
@@ -6164,10 +6256,11 @@ flash: an app entry list cut before its end is refused             ok
 flash: an app.bin outside the image is refused                     ok
 flash: an app area written with another chip key is refused        ok
 flash: no cfg block still parses (cfgLen 0)                        ok
-progress: a 512 KB package parses in 14.2 ms (< 500)               ok
-progress: 512 KB with no entry-list end refused in 21.2 ms (flash entry list has no end) ok
-progress: 512 KB with no app-list end refused in 20.4 ms (app entry list has no end) ok
+progress: a 512 KB package parses in 14.7 ms (< 500)               ok
+progress: 512 KB with no entry-list end refused in 23.4 ms (flash entry list has no end) ok
+progress: 512 KB with no app-list end refused in 23.1 ms (app entry list has no end) ok
 package bounds: all checks passed
 == skip the browser emulator (no emcc: Emscripten builds web/emu)
 == skip the build manifest (NO_PACKAGE=1: no artefacts)
 ALL HOST TESTS PASSED
+EXIT=0
