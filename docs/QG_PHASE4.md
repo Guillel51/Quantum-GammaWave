@@ -193,6 +193,8 @@ y seguridad verificados en hardware.
 | `docs/QG_PHASE4_PRESET_INVENTORY.json` | inventario por motor, categorías, RMS/pico, movimiento y pares cercanos |
 | `docs/QG_PHASE4.md` | este informe |
 | `docs/FM1_HUB_READINESS.md` | re-chequeo de Fase 4 y ruta de imagen actual |
+| `firmware/src/ui_graph.c` | medidores del ARP separados de su etiqueta (barra en `y + 14`) |
+| `docs/captures/fase4/` | capturas ARP QUANTUM/GREY y comparación antes/después |
 
 No se tocaron `firmware/`, `web/`, `site/`, ningún preset, ningún tag, ningún release ni ningún workflow.
 
@@ -209,3 +211,43 @@ No se tocaron `firmware/`, `web/`, `site/`, ningún preset, ningún tag, ningún
 6. **Hub**: la ficha es válida y la identidad está libre, pero no hay listing, aceptación ni revisión del Hub.
 7. **Suite completa**: se ejecutaron las pruebas citadas; no se completó `NO_PACKAGE=1 tests/run_tests.sh` entero
    dentro del límite de 5 minutos de este entorno.
+
+---
+
+## 9. Corrección de UI: los medidores del ARP (seguimiento)
+
+**Clase:** IMPLEMENTADO · HOST TESTED. No es target, WASM, navegador ni hardware.
+
+La etiqueta `GATE`, `SWING` o `PROB` se dibuja con `AF_S`, cuya tinta llega hasta `y + 11` (la línea mide 12 px y
+las mayúsculas ocupan las filas 3..11). La barra empezaba en `y + 10`: **dos píxeles de la parte inferior de las
+letras quedaban tapados por el medidor**. No era un problema de anchura ni de la caja de texto, así que el lint
+—que compara cajas de texto entre sí, celdas y divisores— no podía verlo.
+
+La barra pasa a `y + 14`: quedan **dos filas libres** bajo la tinta y el pie de página sigue a cuatro píxeles.
+También se corrigió el mismo desfase en el relleno de progreso, que usaba la misma coordenada.
+
+![Antes y después del medidor del ARP](captures/fase4/arp_before_after.png)
+
+![Pantalla ARP corregida, QUANTUM](captures/fase4/arp_quantum.png)
+
+### Barrido del resto de la UI
+
+| Comprobación | Clase | Resultado |
+|---|---|---|
+| `ui_render`: 189 pantallas × 22 paletas, lint de cajas | host x86 | **0 hallazgos**; 0 tintas sobre su propio color; 0 píxeles GREY/MONO fuera de gris/neutro |
+| Alineación por tinta | host x86 | **3 390 046** medidas, **0** desviadas ≥1 px |
+| Barrido de barras bajo texto (`cv_rect` con desplazamiento +8…+12) | host, código | el único caso era `arp_meter`; corregido. No hay otro medidor dibujado dentro de la tinta de su etiqueta |
+| `ui_test` | host x86 | **all passed** (incluye ARP, grabación, undo, GREY/MONO) |
+
+**Lo que el lint no cubre y no se afirma:** no modela cualquier relleno arbitrario como posible tapado de texto.
+Un probe que marcaba todo relleno posterior sobre una caja de texto dio 595 avisos, casi todos tarjetas, píldoras
+de selección y el relleno de la batería: solapamientos intencionados. Se descartó para no convertir el lint en
+ruido. Tampoco se revisaron las 189 pantallas una a una a ojo; el barrido es automático más la inspección de la
+pantalla corregida. No hay verificación en navegador ni en unidad.
+
+### Pendientes de fases anteriores
+
+La deuda de código conocida de la Fase 3 que quedaba era este solapamiento del ARP; queda corregido y probado en host.
+Siguen **pendientes de aprobación** la Fase 3 (parcial) y la Fase 2 (sin fusionar), y siguen **NOT VERIFIED** el
+target AC791N, el WASM y el hardware. No se inicia la expansión de las secciones 1–11 del brief nuevo porque su
+propia regla prohíbe empezar una fase sin aprobar la anterior.
