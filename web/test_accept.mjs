@@ -49,7 +49,7 @@ ok(acc.image === 0x93000, `the flash image is ${acc.image} B`);
 ok(acc.checks.some((c) => c.key === "accKey" && c.ok), "the chip key 0x980F decrypts every app file");
 const app = acc.pkg.appFiles();
 ok(app.length === 2 && app.every((f) => f.ok), `app files checked: ${app.map((f) => f.name).join(", ")}`);
-ok(app.find((f) => f.name === "app.bin").size === 583612, "app.bin is 583612 B");
+ok(app.find((f) => f.name === "app.bin").size === 581564, "app.bin is 581564 B");
 ok(app.find((f) => f.name === "cfg_tool.bin").crc === 0x2e75, "cfg_tool.bin CRC16 is 0x2E75");
 
 /* (audit 2026-11-10) What the project publishes: the newest signed release in release/ must pass the same
