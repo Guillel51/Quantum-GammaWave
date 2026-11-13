@@ -134,6 +134,12 @@ record.
 
 ## B6 — publishing is automatic on `main`, and that is how v2.9.1, v2.9.2 and v2.9.3 got out
 
+> **Update 2026-11-13:** a 3.x gate now exists, and `release.yml` only runs on a `v*` tag. The
+> auto-publish path for 2.x is unchanged; a 3.0 tag or a version bump on `main` is refused until
+> the repository variable `QG_RELEASE_APPROVED=true`. The gate is `tools/release_gate.py`, tested by
+> `tests/release_gate_test.py`, and called by both workflows. This does not make a 3.0 release
+> validated; it only prevents an accidental one.
+
 `.github/workflows/tag-and-publish.yml` runs on **every push to `main`**. It reads `FELUCCA_VERSION`, verifies
 `release/felucca-<version>.fwsc` against its manifest, creates the annotated tag if it is missing and runs
 `gh release create --verify-tag` with the package and `SHA256SUMS`. It is idempotent (an existing tag or
@@ -161,5 +167,6 @@ Two consequences, stated plainly:
    it cannot do it, and it did not try to force anything.
 
 If the intent is "a version bump must never publish", the workflow needs one of these before the next bump:
-`on: workflow_dispatch` only (publish by hand), or a `PENDING_RELEASE`/draft flag the job honours. That is a
-policy change for the owner to make; nothing was changed here.
+`on: workflow_dispatch` only (publish by hand), or a `PENDING_RELEASE`/draft flag the job honours. For 3.x
+that is now implemented: `QG_RELEASE_APPROVED` is the flag, and both publish paths refuse a 3.x version
+without it. For 2.x the old automatic path is deliberately untouched.

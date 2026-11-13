@@ -144,6 +144,8 @@ else
     run "no source file carries a merge conflict marker" true
 fi
 
+run "release gate: a 3.x tag needs an explicit repository approval" python3 tests/release_gate_test.py
+
 $CC -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"
 
