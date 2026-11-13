@@ -42,6 +42,7 @@ except ImportError:                # imported from the repository root, where to
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import fm1_image as IMG
     import fm1_probe as P
+import fm1_safewrite as SW
 
 TOOL = "fm1_flash_read 1.0"
 FORMAT = "qg1-backup-1"
@@ -224,13 +225,22 @@ def run(a):
         out = Path(a.out)
         out.mkdir(parents=True, exist_ok=True)
         binp = out / man["files"]["pass_a"]
-        binp.write_bytes(first)
-        if man["files"]["pass_b"]:
-            (out / man["files"]["pass_b"]).write_bytes(second)
         man_path = out / (stem + ".manifest.json")
-        man_path.write_text(json.dumps(man, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        if man["status"] == "complete":
-            (out / (stem + ".sha256")).write_text("%s  %s\n" % (man["sha256"], binp.name))
+        sha_path = out / (stem + ".sha256")
+        # Evidence is never replaced, and a reported file is fsynced (M-Flasher 0.11.0's rule).
+        for p in (binp, man_path, sha_path):
+            if p.exists():
+                raise ReadError("exists", "%s already exists: refusing to replace a backup" % p)
+        try:
+            SW.write_new(binp, first)
+            if man["files"]["pass_b"]:
+                SW.write_new(out / man["files"]["pass_b"], second)
+            SW.write_new(man_path, (json.dumps(man, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+            if man["status"] == "complete":
+                SW.write_new(sha_path, ("%s  %s\n" % (man["sha256"], binp.name)).encode("utf-8"))
+            SW.sync_dir(out)
+        except FileExistsError as e:
+            raise ReadError("exists", "%s already exists: refusing to replace a backup" % e.filename)
         print("\n%s: %s" % (man["status"], man_path))
         if man["status"] == "complete":
             print("  %s  %s" % (man["sha256"], binp))

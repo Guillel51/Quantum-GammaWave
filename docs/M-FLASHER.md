@@ -15,8 +15,18 @@ and proves, from their bytes, what they are.
   tag comparison lists 27 commits and 35 files between them, none of them `ops.rs`), so the record format,
   the digest, the read checks and the install/restore plans are the same code. What changed in 0.9.4 is the
   bundled m-bootloader (2.1 -> 2.3) and a web build, neither of which touches this page.
-- The `0.9.x` line is accepted by `tools/fm1_mflasher.py` through
-  `TOOL_RE = re.compile(r"^m-flasher (\d+)\.(\d+)\.(\d+)$")` with version >= 0.9.0.
+- **0.11.0 re-checked on 2026-11-13**: tag `v0.11.0`, release merge `a3a4788`, code commit `50eb931`,
+  publicado el 2026-11-10 (commit `50eb931`, 23:14 UTC; el tag es del 11-11 en +0200). `Session::save_backup` now takes the name with `create_new`, writes both files with
+  `write_synced` and fsyncs the directory; `check_backup_file` refuses a restore whose file no longer
+  matches the `.json` SHA-256; an install no longer erases settings and writes only what the package
+  carries; and a package's boot area is written only when its checksum, configuration and chip key can
+  start the unit. The `.json` fields are the same ones this importer reads. What 0.11.0 does **not** add
+  is a second read or a stored chip CRC32: the `.json` still has no CRC32, so this project's rule (second
+  read or `--crc32`) remains necessary. See `docs/QG_MFLASHER_AUDIT_2026-11-13.md`.
+- The `0.9.0` to `0.11.x` line is accepted by `tools/fm1_mflasher.py` through
+  `TOOL_RE = re.compile(r"^m-flasher (\d+)\.(\d+)\.(\d+)$")` with version >= 0.9.0. `declared_commit` is
+  only stamped with the 0.9.1 commit when the record says 0.9.1; for 0.11.0 it is `null`, so a newer tool
+  is not mislabelled.
 - Source read: `src/jl.rs` (ROM protocol and loader), `src/ops.rs` (backup, restore, install plans),
   `src/formats.rs` (boot and app tables, CRCs, ENC), `src/boards.rs` (model evidence, flash ids),
   `src/midi.rs` (soft key), `src/scsi.rs` (transport), `docs/safety.md`.
@@ -87,7 +97,7 @@ that matter for this project's gate:
 `tools/fm1_mflasher.py` never runs M-Flasher. It reads the pair (image + `.json`) and refuses anything
 that does not prove itself:
 
-- the `.json` was written by `m-flasher 0.9.x` and names the expected fields;
+- the `.json` was written by `m-flasher 0.9.0`–`0.11.x` and names the expected fields;
 - the image is exactly `0x100000` bytes and its SHA-256 is the `.json`'s;
 - the flash id is a documented 1 MiB part; the chip key is `0x980F` (otherwise this project cannot
   decode the unit's app area, and says so instead of guessing);

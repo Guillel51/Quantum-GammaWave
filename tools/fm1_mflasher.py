@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
-"""Turn an M-Flasher 0.9.x backup into the archive tools/fm1_restore.py validates.
+"""Turn an M-Flasher 0.9.0-0.11.x backup into the archive tools/fm1_restore.py validates.
 
 M-Flasher (MIT, (c) jvitkauskas) is the first backup path that needs neither an opened unit nor an
 external programmer: it puts the stock firmware in the chip's USB download mode, runs a flash loader
@@ -40,6 +40,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fm1_image as IMG  # noqa: E402
 import fm1_probe as P  # noqa: E402
+import fm1_safewrite as SW  # noqa: E402
 
 TOOL = "fm1_mflasher 1.0"
 FORMAT = "qg1-backup-1"
@@ -163,7 +164,10 @@ def build(first, first_man, second=None, second_man=None, chip_crc32=None, out=N
                              % chip_crc32) if chip_crc32 is not None else
                             "computed here over the image; no chip CRC32 was supplied",
             "declared_by": first_man["tool"],
-            "declared_commit": "9da825b2000143d89e8ca7ac016f35abe304158c (v0.9.1)",
+            # Only the 0.9.1 source was read line by line for this record; 0.9.4 and 0.11.0 were
+            # audited separately (docs/M-FLASHER.md), so do not stamp their files with 0.9.1's commit.
+            "declared_commit": ("9da825b2000143d89e8ca7ac016f35abe304158c (v0.9.1)"
+                                if str(first_man["tool"]).strip() == "m-flasher 0.9.1" else None),
         },
         "device": {
             "identity": info["identity"],
@@ -226,13 +230,23 @@ def build(first, first_man, second=None, second_man=None, chip_crc32=None, out=N
 def write_archive(man, raw, out):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
+    stem = Path(man["files"]["pass_a"]).stem
     binp = out / man["files"]["pass_a"]
-    binp.write_bytes(raw)
-    man_path = out / (Path(man["files"]["pass_a"]).stem + ".manifest.json")
-    man_path.write_text(json.dumps(man, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    if man["status"] == "complete":
-        (out / (Path(man["files"]["pass_a"]).stem + ".sha256")).write_text(
-            "%s  %s\n" % (man["sha256"], binp.name))
+    man_path = out / (stem + ".manifest.json")
+    sha_path = out / (stem + ".sha256")
+    # A backup is never replaced: O_EXCL, and every file is fsynced before it is reported. M-Flasher
+    # 0.11.0 does the same for its two files; an existing archive is the owner's evidence.
+    for p in (binp, man_path, sha_path):
+        if p.exists():
+            raise ImportError_("exists", "%s already exists: refusing to replace a backup" % p)
+    try:
+        SW.write_new(binp, raw)
+        SW.write_new(man_path, (json.dumps(man, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+        if man["status"] == "complete":
+            SW.write_new(sha_path, ("%s  %s\n" % (man["sha256"], binp.name)).encode("utf-8"))
+        SW.sync_dir(out)
+    except FileExistsError as e:
+        raise ImportError_("exists", "%s already exists: refusing to replace a backup" % e.filename)
     return man_path, binp
 
 
@@ -255,7 +269,7 @@ def check(man_path):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="import an M-Flasher 0.9.x backup as a QG-1 archive")
+    ap = argparse.ArgumentParser(description="import an M-Flasher 0.9.0-0.11.x backup as a QG-1 archive")
     sub = ap.add_subparsers(dest="cmd", required=True)
     imp = sub.add_parser("import", help="validate M-Flasher's pair and write a qg1-backup-1 manifest")
     imp.add_argument("--bin", required=True, help="the image M-Flasher saved")
