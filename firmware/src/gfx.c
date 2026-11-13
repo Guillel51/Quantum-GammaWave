@@ -389,6 +389,12 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
         if (mod_box) {
             int32_t blen = w > 100 ? 14 : 9;
             cv_rect(x + r, y, w - 2 * r, 1, T_LINE);
+            /* (FASE 2) the panel has a lit edge and a shaded one: a 1 px highlight inside the top border and a
+             * 1 px shade inside the bottom, mixed from the panel's own colour, so the module reads as a raised
+             * surface in every palette instead of a flat rectangle. Large panels only (mod_box), and no text
+             * sits on either line. */
+            cv_rect(x + r, y + 1, w - 2 * r, 1, ux_mix(c, T_TEXT, 13));
+            cv_rect(x + r, y + h - 2, w - 2 * r, 1, ux_mix(c, T_BG, 52));
             cv_rect(x + r, y + h - 1, w - 2 * r, 1, T_LINE);
             cv_rect(x, y + r, 1, h - 2 * r, T_LINE);
             cv_rect(x + w - 1, y + r, 1, h - 2 * r, T_LINE);

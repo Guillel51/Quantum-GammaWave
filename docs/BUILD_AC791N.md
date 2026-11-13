@@ -77,3 +77,66 @@ python3 tests/manifest_test.py       # the manifest names this commit and its pa
 
 `check_build_env.py` never fails a host that lacks the tools: it reports and points at the step above,
 so CI on a machine without the SDK stays honest instead of red.
+
+## 6. El SDK sin descargar 1,1 GB: sólo hacen falta tres ficheros
+
+`tools/build.py` no compila ni enlaza contra el SDK. Del SDK sólo usa **tres blobs** del SPL, y los
+fija por SHA-256 (`SDK_SHA256`, versión probada `AC79NN_SDK_V1.2.1_2023-12-13`):
+
+| ruta en el SDK | sha256 (fijado en `build.py`) | tamaño |
+|---|---|---:|
+| `cpu/wl82/tools/uboot.boot` | `4e3b4c22…76ded4` | 14 536 B |
+| `cpu/wl82/tools/cfg_tool.bin` | `27657995…010d1b` | 383 B |
+| `cpu/wl82/tools/cfg/eq_cfg_hw.bin` | `41167491…80ea7d` | 655 B |
+
+Basta con crearse ese árbol mínimo (`~15 KiB` en vez de 1,1 GB) trayendo los tres ficheros del tag
+correcto de gitee y comprobando el hash antes de usarlos:
+
+```sh
+REF=AC79NN_SDK_V1.2.1_2023-12-13
+T="$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools"; mkdir -p "$T/cfg"
+curl -fL -o "$T/uboot.boot"        "https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK/raw/$REF/cpu/wl82/tools/uboot.boot"
+curl -fL -o "$T/cfg_tool.bin"      "https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK/raw/$REF/cpu/wl82/tools/cfg_tool.bin"
+curl -fL -o "$T/cfg/eq_cfg_hw.bin" "https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK/raw/$REF/cpu/wl82/tools/cfg/eq_cfg_hw.bin"
+sha256sum "$T/uboot.boot" "$T/cfg_tool.bin" "$T/cfg/eq_cfg_hw.bin"
+export AC79_SDK="$HOME/fw-AC79_AIoT_SDK"
+```
+
+`./build.sh` sólo comprueba `$AC79_SDK/cpu/wl82/tools/uboot.boot`, y `build.py` verifica los tres
+hashes al empaquetar: si el tag sirve otros bytes, el build se detiene antes de escribir el `.fwsc`.
+El clon completo sigue siendo válido, pero para compilar es tiempo y disco que no se usan.
+
+## 7. Estado del build en este árbol (medido, 2026-11-13)
+
+Con `JIELI_TOOLCHAIN` (clang 4.0.1, `pi32v2`) y el SDK de la sección 6, `./build.sh` **compila todo
+y llega al enlace**, y ahí el enlace **no cabe**:
+
+```
+ld: build/felucca.elf section `.hot_text` will not fit in region `XIP'
+ld: region `XIP' overflowed by 1048 bytes
+loader: image 9236 B at 0x1c0a800, bss end 0x1c0f910   (el loader sí enlaza)
+```
+
+Es un defecto **anterior a esta fase**, no causado por ella: revirtiendo los dos ficheros de UI de la
+fase 2 el desborde es de **856 B**, y el último commit que enlazó (`07b5d94`) dejaba **19 832 B** de
+margen (imagen 561 732 B, `XIP code 399 240 B, constants 139 260 B`). Desde entonces el árbol creció
+en **4 304 B de código y 18 980 B de constantes** (`XIP code 403 544 B, constants 158 240 B`).
+
+Lo que sí se pudo medir con el código real del chip (`ld --noinhibit-exec` + `objdump -d` →
+`tests/target_budget.py`): **todos los presupuestos de ciclos pasan**, incluidos `mod_voice 19/18`,
+`perf_block 254/253` y `rev_room 243/243`; y `loader/ota.bin` enlaza (9 236 B, 7 803 B empaquetado).
+
+Salidas posibles, ninguna aplicada aquí porque las dos son decisiones del dueño:
+
+1. **Recortar 1 048 B** de código/constantes (es un 0,2 % del `.text`): lo natural es empezar por las
+   constantes, que son las que crecieron (tablas de salto de los `switch` nuevos y cadenas de las
+   pantallas añadidas).
+2. **Ampliar el slot declarado** `APP_SLOT`/`XIP LENGTH` en 1 056 B (`0x8DFBC` → `0x8E3DC`). El
+   `flash.bin` mide `0x93000` y el bloque de aplicación acaba en `0x9225B`, así que hay 3 493 B
+   libres antes de la partición siguiente y **ninguna partición se movería**; pero es un cambio del
+   mapa de flash y no se ha hecho sin probarlo en una unidad.
+
+Knobs probados y descartados con medidas (no ayudan en este compilador): `minsize` por función
+(`tools/size_fns.py`, efecto 0 B: el módulo ya se compila a `-Oz`), `-fmerge-all-constants` (0 B),
+`--gc-sections` + `-fdata-sections` (404 B, y arriesga secciones sólo referenciadas desde ensamblador),
+`-inline-threshold=8` (+1 536 B) y `-inline-threshold=60` (+67 460 B).

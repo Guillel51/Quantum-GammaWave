@@ -35,6 +35,9 @@ static void hv_bar(int32_t x, int32_t y, int32_t w, int32_t h, int32_t v, int32_
     cv_rect(x, y, f > w ? w : f, h, fg);
 }
 
+/* (FASE 2) the ambience (defined below, after the views that now start with it) */
+static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed);
+
 /* the sound's name on a track: a user preset's or the engine's (ui_draw.c sound_name does the same for the footer;
  * ui_draw.c is included after this file, so it is written again here, four lines) */
 static void hv_sound_name(const track_t *t, char *b)
@@ -69,6 +72,7 @@ static void hv_overview(const track_t *t, uint16_t c)
     char b[28], pn[20];
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     hv_sound_name(t, pn);
+    hv_air(26, 176, c, 6u);                            /* (FASE 2) OVERVIEW had no ambience at all */
 
     /* pass 0: what is loaded and what it is doing */
     cv_text(14, 30, &AF_S, "OVERVIEW", T_THEME);
@@ -154,6 +158,8 @@ static void hv_system(uint16_t c)
 {
     char b[28];
     uint32_t v = 0, k;
+    hv_air(26, 176, c, 5u);                            /* (FASE 2) the same embers and floor the other HOME views
+                                                        * carry: SYSTEM was the one that sat on a flat background */
     for (k = 0; k < NTRK; k++)
         v += hv_voices(&trk[k]);
 
@@ -202,15 +208,33 @@ static void hv_system(uint16_t c)
     cv_text(14, 118, &AF_S, "PARTS", T_THEME);
     cv_text_r(226, 118, &AF_S, "[HOME] NEXT", T_DIM, T_SURF);
     cv_rect(14, 131, 212, 1, T_LINE);
-    for (k = 0; k < NTRK; k++) {
+    for (k = 0; k < NTRK; k++) {                       /* (FASE 2) THE VOICE POOL, drawn as it is: one cell a voice,
+                                                        * lit while that voice sounds. The row used to carry a bar
+                                                        * whose fill said "how many", which at rest is an empty
+                                                        * trough: the matrix says which ones, and the count stays. */
         const track_t *q = &trk[k];
-        int32_t y = 136 + (int32_t)k * 10, n = (int32_t)hv_voices(q);
+        int32_t y = 136 + (int32_t)k * 10, n = (int32_t)hv_voices(q), i;
         const engine_t *e = ENGINES[q->eng_req % NENGINES];
         str_cpy(b, "T", sizeof b);
         fmt_int(b + 1, (int32_t)k + 1);
         cv_text(14, y, &AF_S, b, k == song.sel ? c : T_MID);
         cv_text(32, y, &AF_S, e->name, k == song.sel ? T_TEXT : T_MID);
-        hv_bar(120, y + 1, 60, 4, n, NVOICE, k == song.sel ? c : T_THEME, T_RAISE);
+        for (i = 0; i < NVOICE; i++) {                 /* a cell a voice: 4 px, 2 px apart, 120 .. 178. An empty
+                                                        * cell is drawn as a slot (a frame and a dark fill), so the
+                                                        * pool reads as ten places even with nothing sounding; a
+                                                        * voice in its release is dimmer than a gated one */
+            int32_t on = V(q, i).active ? 1 : 0;
+            int32_t cx0 = 120 + i * 6;
+            if (!on) {
+                cv_rect(cx0, y + 1, 4, 6, T_RAISE);
+                cv_frame(cx0, y + 1, 4, 6, T_LINE);
+            } else {
+                uint16_t fg = V(q, i).gate ? (k == song.sel ? c : T_THEME) : T_MID;
+                cv_rect(cx0, y + 1, 4, 6, fg);
+                cv_rect(cx0, y + 1, 4, 1, ux_mix(fg, T_TEXT, 45));
+                cv_rect(cx0, y + 6, 4, 1, ux_mix(fg, T_BG, 45));
+            }
+        }
         fmt_int(b, n);
         cv_text_r(226, y, &AF_S, b, n ? T_TEXT : T_DIM, T_SURF);
     }
