@@ -602,6 +602,11 @@ static voice_t *voice_alloc(track_t *t, uint32_t note)
      * engine could take one more, ask the pool for a slot before stealing one of its own. A slot that is not
      * sounding changes hands, so nothing moves and nothing clicks; in the shipped pool nothing is left to ask */
     np = trk_nvoice(t);
+    /* (FASE 6) a part whose window or cap is 0 has no voice to give: a project imported with vn = 0 used to
+     * divide by zero here (the round-robin update) and hand back a pointer the caller wrote through. ASan
+     * found it in tests/fuzz_proj.c. Dropping the note is what a part with no voices should do. */
+    if (!np)
+        return 0;
     if (np == t->vn && np < NVOICE) {
         uint32_t busy = 0;
         for (i = 0; i < np; i++)
@@ -870,6 +875,8 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
     }
     if (mode == V_POLY) {
         voice_t *v = voice_alloc(t, note);
+        if (!v)
+            return;
         t->nmono = 0;                                   /* no stale mono stack after a mode change */
         t->mono_note = 0;
         v->fine = 0;

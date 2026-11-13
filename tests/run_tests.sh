@@ -398,6 +398,8 @@ else
     run "ASan/UBSan fuzz: editor SysEx and raw USB-MIDI packets (20000, seed 7)" "$A/fuzz_ed" 20000 7
     $SCC -o "$A/fuzz_proj" tests/fuzz_proj.c -lm
     run "ASan/UBSan fuzz: project stores -> import -> restore -> render (5000, seed 13)" "$A/fuzz_proj" 5000 13
+    # (FASE 6) the seed that found it: a project whose track window is 0 reached a % 0 in voice_alloc.
+    run "ASan/UBSan fuzz: projects, the seed that found the vn=0 divide (20000, seed 7)" "$A/fuzz_proj" 20000 7
 fi
 
 run "regression: target cost of the render loops (pi32v2 disassembly)" python3 tests/target_budget.py \
