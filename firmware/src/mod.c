@@ -47,7 +47,9 @@ static uint32_t clk_n;                          /* (JIANT) .. the 1/16 steps sin
 static uint32_t ms_clock;        /* (JIANT) samples since PLAY on the transport's grid (fx.c mix_block; seq.c seq_start:
                                   * 0): MS_STEP's place */
 enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY, MD_REV, MD_RATE, MD_VIB, MD_E1,
-       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_N };
+       MD_CLIP = MD_E1 + 8, MD_PNCH, MD_X1, MD_X2, MD_X3, MD_X4, MD_N };   /* (FASE 2) X1..X4: the engine CHARACTER
+                                                          * bank, appended after the master so every stored
+                                                          * destination number keeps its meaning */
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
 _Static_assert(NELEM(N_MSRC) == MS_N && NELEM(N_MDST) == MD_N, "N_MSRC / N_MDST == MS_* / MD_*");
 _Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11, "matrix slots: 3 ids each");
@@ -64,6 +66,8 @@ static uint32_t mod_param(uint32_t d)
 {
     static const uint8_t ID[MD_E1] = {[MD_PAN] = P_PAN, [MD_DIST] = P_DIST, [MD_CHO] = P_CHOR, [MD_DLY] = P_DLY,
                                       [MD_REV] = P_REV, [MD_RATE] = P_LRATE, [MD_VIB] = P_LD_PIT};
+    if (d >= MD_X1)
+        return P_XID[d - MD_X1];                    /* (FASE 2) CHARACTER 1..4 */
     return d >= MD_E1 ? P_E0 + d - MD_E1 : ID[d];
 }
 
@@ -208,7 +212,7 @@ static __attribute__((noinline)) void mod_block_slot(track_t *t, uint32_t k, con
 {
     uint32_t s = (uint32_t)p[P_M1SRC + 3u * k], d = (uint32_t)p[P_M1DST + 3u * k], j;
     int32_t a = p[P_M1AMT + 3u * k], x;
-    if (!s || !d || !a || s >= MS_N || d >= MD_CLIP)   /* (the master's: macro_master) */
+    if (!s || !d || !a || s >= MS_N || (d >= MD_CLIP && d < MD_N))   /* (the master's: macro_master; X1..X4 are ours) */
         return;
     if (d <= MD_AMP) {                                 /* per voice */
         mp->amp |= d == MD_AMP;
@@ -223,7 +227,7 @@ static __attribute__((noinline)) void mod_block_slot(track_t *t, uint32_t k, con
     }
     {                                                   /* per block: AMT 64 = the whole range */
         uint32_t id = mod_param(d);
-        const param_desc_t *pd = id >= P_E0 ? &ENGINES[t->engine]->edit[id - P_E0] : &TP[id];
+        const param_desc_t *pd = track_desc(t, id);   /* (FASE 2) the engine's labels for its CHARACTER bank */
         x = mod_tsrc(t, s, lfo);
         for (j = 0; j < mp->nk && mp->kid[j] != id; j++)
             ;
@@ -263,7 +267,7 @@ static __attribute__((noinline)) int mod_begin(track_t *t)
         mod_block_slot(t, k, p, lfo, off, mp);
     for (j = 0; j < mp->nk; j++) {
         uint32_t id = mp->kid[j];
-        const param_desc_t *pd = id >= P_E0 ? &ENGINES[t->engine]->edit[id - P_E0] : &TP[id];
+        const param_desc_t *pd = track_desc(t, id);
         int32_t lo = pd->min, hi = pd->max;
         if (id == P_LRATE)                              /* (0.6.51) the LFO's RATE moved within its kind: free / in time */
             lo = mp->keep[j] < 0 ? lo : 0, hi = mp->keep[j] < 0 ? -1 : hi;
@@ -379,6 +383,12 @@ static const char *mod_dst_name(const track_t *t, int32_t v)
     v = clamp(v, 0, MD_N - 1);
     if (v >= MD_E1 && v < MD_CLIP) {
         const char *l = track_desc(t, P_E0 + (uint32_t)(v - MD_E1))->label;
+        if (l && l[0] && l[0] != '-')
+            return l;
+    }
+    if (v >= MD_X1 && v < MD_N) {                     /* (FASE 2) the CHARACTER bank's own labels */
+        const char *l = v == MD_X3 ? SLEW_DESC.label : v == MD_X4 ? INVERT_DESC.label :
+                        track_desc(t, P_XID[v - MD_X1])->label;
         if (l && l[0] && l[0] != '-')
             return l;
     }

@@ -104,6 +104,7 @@ static void formant_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, con
     uint32_t ph = v->ph[0];
     int32_t y1 = v->s[0], y2 = v->s[1], y3 = v->s[2], y4 = v->s[3], y5 = v->s[4], y6 = v->s[5];
     int32_t y7 = (int32_t)v->ph[1], y8 = (int32_t)v->ph[2], lp = v->s[6], nst = formant_nz;
+    int32_t f3a = xamt(p, 0), art = xamt(p, 1), nas = p[P_MORPH];   /* (FASE 2) CHARACTER: F3+, ARTIC, NASAL */
 
     /* vowel: VOWEL -> VOWL2 over TALK after note-on; ENV / LFO -> FLT move both */
     k = 0;
@@ -128,6 +129,10 @@ static void formant_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, con
     for (j = 0; j < 3; j++) {
         int32_t f = fa[j] + (((fb[j] - fa[j]) * k) >> 15), b = ba[j] + (((bb[j] - ba[j]) * k) >> 15);
         f = (int32_t)(((int64_t)f * ratio) >> 16);
+        if (j == 2 && f3a)                           /* (FASE 2) F3+ raises the singer's formant, up to 2x */
+            f = f * (256 + f3a * 256 / 127) >> 8;
+        if (j == 1 && nas)                           /* (FASE 2) NASAL: F2 up (a smaller oral cavity), up to +50 % */
+            f = f * (256 + nas * 128 / 127) >> 8;
         b = (int32_t)(((((int64_t)b * ratio) >> 16) * bws) >> 16);
         if (j == 0 && (uint32_t)f < f0 + (f0 >> 4) && f > 0) {   /* sung high: F1 follows F0 (sopranos do), */
             b = (int32_t)(((int64_t)b * (int32_t)(f0 + (f0 >> 4))) / f);   /* same Q: no boom on the fundamental */
@@ -152,6 +157,9 @@ static void formant_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, con
     rn = (1u << 30) / (((te - tp) >> 16) | 1u);
     gv = 32767 - p[P_E5] * p[P_E5] * 2;                 /* BREATH: voicing fades at the top */
     gn = p[P_E5] * 258;                                 /* noise: Q15, up to 1.0 */
+    if (art)                                            /* (FASE 2) ARTIC: a consonant's breath on the attack, then
+                                                         * a trace of it while the note is held */
+        gn = clamp(gn + art * (v->stage == 1 ? 300 : 40), 0, 32767);
     og = 13000 - ((p[P_E6] - 64) * 50);                 /* output: narrower bands ring louder */
     og = (int32_t)(((int64_t)og * fmt_ratio((60 * 16 - v->pitch_cur) / 4)) >> 16);   /* 1.5 dB / oct: low notes are sparse pulses */
     ogk = (og >> 2) * (4 + (buzz >> 10));               /* presence k = 1 .. 4.9 */
@@ -265,9 +273,14 @@ static const preset_t FORMANT_PRESETS[] = {
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: voice pad */
 };
 
+static const param_desc_t FORMANT_CH[3] = {
+    {"F3+", F_PCTINV, 0, 127, 127, 0, 0}, {"ARTIC", F_PCTINV, 0, 127, 127, 0, 0},
+    {"NASAL", F_PCT, 0, 127, 0, 0, 0},
+};
+
 static const engine_t ENG_FORMANT = {
     .name = "VOICE",
-    .page_title = {"VOWL", "TONE"},
+    .page_title = {"VOWL", "TONE", "CHAR"},
     .edit = {
         {"VOWEL", F_INT, 0, 127, 0, 0, 0},
         {"VOWEL2", F_INT, 0, 127, 64, 0, 0},
@@ -280,6 +293,8 @@ static const engine_t ENG_FORMANT = {
     },
     .presets = FORMANT_PRESETS,
     .npresets = NELEM(FORMANT_PRESETS),
+    .ch = FORMANT_CH,
+    .ch_n = 3,
     .note_on = formant_note_on,
     .render = formant_render,
     .knob = {P_E0, P_E4, P_E5, P_E2},

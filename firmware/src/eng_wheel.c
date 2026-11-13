@@ -145,9 +145,22 @@ static void wheel_block(track_t *t)
         norm = (norm * 23170u) >> 15;                   /* normal percussion: the bars -3 dB */
     for (k = 0; k < DRW_NP; k++)
         T->g[k] = (int32_t)(((uint32_t)lv[k] * norm) >> 15);
+    {   /* (FASE 2) CHARACTER: LEAK, the neighbouring tonewheels bleeding into each bar (the wiring's crosstalk),
+         * from the gains just made; up to ~10 % at full. Neutral at 127. */
+        int32_t leak = xamt(p, 0);
+        if (leak) {
+            int32_t g0[DRW_NP];
+            for (k = 0; k < DRW_NP; k++)
+                g0[k] = T->g[k];
+            for (k = 0; k < DRW_NP; k++)
+                T->g[k] += ((g0[(k + DRW_NP - 1u) % DRW_NP] + g0[(k + 1u) % DRW_NP]) * leak) / 1270;
+        }
+    }
     T->pk = perc ? (int32_t)(3u + ((perc - 1u) & 1u)) : DRW_NP;   /* 2ND: 4', 3RD: 2 2/3' */
     T->plev = perc == 3u || perc == 4u ? 12000 : 24000;
     T->pdec = perc >= 5u ? 65457u : 65219u;             /* tau 0.6 s / 0.15 s */
+    if (p[P_MORPH])                                     /* (FASE 2) CHARACTER 3: PERC DCY, a longer percussion */
+        T->pdec = 65536u - (uint32_t)(((uint64_t)(65536u - T->pdec) * (uint32_t)(127 - p[P_MORPH])) / 127u);
     T->clk = p[P_E5] * 180;
     if (p[P_E6]) {                                      /* y = 6 / (2 + g) tanh(g x / 2) */
         T->dg = 256 + p[P_E6] * 6;                      /* 1 .. 4 */
@@ -157,8 +170,13 @@ static void wheel_block(track_t *t)
     }
     /* rotors: each speed eases to its target (high rotor tau ~0.37 s, low ~1.5 s) */
     for (k = 0; k < 2u; k++) {
-        int32_t sp, c, sn, dep;
-        T->rsp[k] += (DRW_ROT_SPD[k][rot] - T->rsp[k]) >> (k ? 11 : 9);
+        int32_t sp, c, sn, dep, tgt = DRW_ROT_SPD[k][rot];
+        if (rot && xamt(p, 1)) {                        /* (FASE 2) ROTOR+: up to 4x the speed, neutral at 127
+                                                         * (the multiply needs 64 bits: q16 speeds are large) */
+            int32_t ra = xamt(p, 1);
+            tgt += (int32_t)(((int64_t)tgt * ra * 3) / 127);
+        }
+        T->rsp[k] += (tgt - T->rsp[k]) >> (k ? 11 : 9);
         sp = T->rsp[k];
         T->rph[k] += (uint32_t)sp;
         sn = sine_i(T->rph[k]);
@@ -334,9 +352,14 @@ static const preset_t WHEEL_PRESETS[] = {
      {XP(P_LRATE, 14), XP(P_LWAVE, 1), XP(P_LD_FLT, 10)}},  /* B: organ pad */
 };
 
+static const param_desc_t WHEEL_CH[3] = {
+    {"LEAK", F_PCTINV, 0, 127, 127, 0, 0}, {"ROTOR+", F_PCTINV, 0, 127, 127, 0, 0},
+    {"P.DCY", F_PCT, 0, 127, 0, 0, 0},
+};
+
 static const engine_t ENG_WHEEL = {
     .name = "WHEEL",
-    .page_title = {"BARS", "TONE"},
+    .page_title = {"BARS", "TONE", "CHAR"},
     .edit = {
         {"REG", F_ENUM, 0, 15, 4, N_DRW_REG, 0},
         {"SUB", F_INT, -8, 8, 0, 0, 0},
@@ -349,6 +372,8 @@ static const engine_t ENG_WHEEL = {
     },
     .presets = WHEEL_PRESETS,
     .npresets = NELEM(WHEEL_PRESETS),
+    .ch = WHEEL_CH,
+    .ch_n = 3,
     .note_on = wheel_note_on,
     .render = wheel_render,
     .knob = {P_E0, P_E4, P_E6, P_E7},
