@@ -5,6 +5,9 @@ __pycache__/
 # ... except the package the installer tests read: it is a fixture, committed on purpose, because a
 # test that reads a package must read the same bytes everywhere.
 !release/*.fwsc
+# the same package where the portal serves it: Pages deploys the committed `site/`, so a package that
+# was not tracked here was a 404 on the live installer download (it was, for every version until 2.9.4).
+!site/firmware/*.fwsc
 node_modules/
 
 # the pi32v2 toolchain and the AC79 SDK when they are unpacked inside the checkout (tools/get_toolchain.sh,
