@@ -1026,9 +1026,10 @@ static void arp_meter(int32_t x, int32_t y, const char *lab, int32_t v, int32_t 
     fmt_int(b, pct);
     str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
     cv_text_r(x + 62, y, &AF_S, b, T_MID, T_SURF);
-    cv_rect(x, y + 10, 50, 5, T_RAISE);
+    /* AF_S ink reaches y + 11: the bar starts two rows below it, clear of the descenders */
+    cv_rect(x, y + 14, 50, 5, T_RAISE);
     if (w > 0)
-        cv_rect(x, y + 10, w < 2 ? 2 : w, 5, c);
+        cv_rect(x, y + 14, w < 2 ? 2 : w, 5, c);
 }
 /* the place in the route this step took: the same formulas arp_pick uses, with arp_idx having already
  * advanced one past the pick. RND cannot be known before it is drawn (a sentinel), CHORD takes all. */
