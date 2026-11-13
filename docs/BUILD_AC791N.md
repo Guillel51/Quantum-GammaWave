@@ -144,7 +144,7 @@ este árbol porque el `app.ld` ya hace `KEEP` de todo lo que se referencia desde
   **0,239 px** de su sitio (el test falla por encima de 0,25 px) y la M no se toca (0,044 px). Con
   `--kern-min 5` sí falla (`'xe' +0.38 px`), así que 4 es el límite honesto.
 - `regress`: **285 renders dorados, 0 cambiados**, 0 fallos de salud, CPU dentro de presupuesto.
-- `ui_test`: all passed. Barrido 190 pantallas × 22 paletas: **0 hallazgos de lint y 0 px de
+- `ui_test`: all passed. Barrido 191 pantallas × 22 paletas: **0 hallazgos de lint y 0 px de
   desalineación** en 3 155 200 medidas (516 textos recortados con puntos suspensivos en vez de 514:
   el ancho de una cadena cambia como mucho una fracción de píxel).
 - `tests/target_budget.py`: pasa todo, con los mismos números que antes del recorte

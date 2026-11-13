@@ -1,3 +1,27 @@
+## 2026-11-13 — Consolidación: el bloqueo del SPL, medido; el árbol, puesto en su sitio
+
+- **El bloqueo del SDK, resuelto hasta donde se puede desde aquí.** `tools/spl_diff.py` lee el `uboot.boot`
+  de los paquetes y lo compara: el de v2.9.0 son **14 444 B** (`64ccc63e…`) y el de v2.9.2 **14 536 B**
+  (`4e3b4c22…`), con payloads de 14 428 y 14 520 B. No es el mismo blob en otro contenedor: es **otra
+  compilación del SPL**, 92 B más grande. Lo que falta para cerrarlo —una copia verificable del SDK
+  `0617f4cc…`, o un archivo del SDK fijado por SHA-256 como ya se hace con el compilador— está escrito en
+  `docs/QG_RELEASE_BLOCKERS.md`. Los pines de `tools/build.py` se quedan como están: son la medida.
+- **`tests/test_polyphony.c` eliminado**: era una copia muerta del asignador de voces con su propio
+  `track_t` falso y ni siquiera compilaba (`lvalue required as unary '&' operand`); no enlazaba el firmware,
+  así que no podía fallar cuando el asignador real se rompía. La cobertura existe en `tests/regress.c`
+  contra el motor real (presupuesto compartido, robo con fundido, MONO/LEGATO/UNISON, tope de VOICE).
+- **README**: los destacados seguían siendo de `v2.7.4.7` (imagen 541 484 B, WASM 1 104 650 B) mientras la
+  cabecera decía v2.9.2; ahora salen de este build (imagen 573 664 B con **9 948 B** libres, tablas
+  41 947 B, WASM 1 223 359 B, 285 dorados, 267 sonidos con mediana de banco −18,5 dBFS).
+- **Capturas regeneradas** (`tools/generate_screenshots.py`): 9 de las 40 cambiaron porque la tira de HOME
+  tiene ocho celdas y HOME > ROUTING se movió con ella; ninguna es de una versión anterior.
+- **Medido, no copiado**: 267 presets en 9 motores con 0 problemas (`preset_audit`), mediana de banco
+  −18,5 dBFS y **NOISE −18,9 contra ANALOG −18,5** (la brecha de 12 dB que describía el informe anterior ya
+  no existe: los niveles se aplican al cargar), 191 pantallas × 22 paletas sin un hallazgo, y los 285
+  dorados sin cambios. Todo en `docs/QG_CONSOLIDATION_REPORT.md`.
+- **La release no se toca**: `refs/tags/v2.9.2` público apunta a `bdc1a0d` y su paquete (`e7727491…`) lleva
+  el SPL fijado; el tag local (movido a este árbol) **no se empuja**. Este árbol es candidato a v2.9.3.
+
 ## 2026-11-13 — v2.9.2: iconos propios, FX BUS, HOME y DYNAMICS
 
 - **HOME > DYNAMICS** (décima pantalla de HOME, entre MOD y SYSTEM): la envolvente de la pista seleccionada

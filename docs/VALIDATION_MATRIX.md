@@ -1716,3 +1716,36 @@ Detalle completo, hallazgos y riesgos en [`docs/QG_FINAL_SECURITY_AUDIT.md`](QG_
 
 Nota de método: un requisito con evidencia `[SIM]` o `[JEDEC]` **no** se marca GO aunque su código esté completo;
 esa fue la regla de esta fase y es la razón por la que el veredicto no es "listo".
+
+---
+
+## v2.9.2 consolidation (2026-11-13)
+
+Everything above this line describes the v1.9.0 tree it was written against and stays as that record. This
+section is the state of the tree at `dcdb09f` + the consolidation commit. Labels: `[TARGET]` AC791N build,
+`[HOST]` host x86, `[WASM]` Emscripten build, `[STATIC]` read without execution, `[NET]` fetched from the
+network, `[BROWSER]` a real browser session, `[HW]` a physical FM-1. **No `[HW]` row is green: the unit was
+not touched.**
+
+| Check | Command | Label | Result |
+|---|---|---|---|
+| Target build | `./build.sh --release 2.9.2` | `[TARGET]` | **pass**: image **573 664 B** (slot 583 612 → **9 948 B** free), `.data+.bss` 87 748/98 304, pool spare 15 392, `.ram_text` 1 193 insns, package 610 959 B |
+| Constant tables, per symbol | `python3 tools/table_sizes.py` | `[TARGET]` | **41 947 B** (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 · shapes 158 · palettes 352) |
+| UI sweep, every screen and palette | `build/host/ui_render build/ui_new build/ui_slot` | `[HOST]` | **pass**: 191 screens × 22 palettes, **0 lint findings, 0 alignment errors, 0 GREY/MONO off**, 3 156 050 measurements |
+| Golden renders | `build/host/regress tests/golden.txt tests/cpu_baseline.txt` | `[HOST]` | **pass**: 285 renders, **0 changed**, 0 health, 0 voice/routing, 0 CPU entries over budget |
+| Preset library as data | `preset_audit_test --dump` + `tools/preset_audit.py` | `[HOST]` | **pass**: 267 presets, 9 engines, 0 problems, 265/267 with motion |
+| Preset loudness | `build/preset_levels --csv` (267 rows) | `[HOST]` | bank median **−18.5 dBFS**, NOISE −18.9 vs ANALOG −18.5, range −29.2…−17.5, **0 clipping** |
+| Text spacing | `python3 tests/text_spacing_test.py` | `[HOST]` | **pass** (L face 18 px: worst gap error 0.425 px, 0 pairs over 0.5 px) |
+| Package ↔ manifest ↔ mirror | `python3 tools/coherence_check.py` | `[HOST]` | **ok**, 898 files: package 610 959 B sha `42213889…`, the site serves it, the emulator record matches the build |
+| Portal / installer page | `python3 tools/site_check.py` | `[HOST]` | **all checks passed** |
+| Installer model | `python3 tests/install_test.py` | `[HOST]` | **passed** (V15 restore skipped by name: the official file is not in the repository) |
+| Web suites | `node web/test_web.mjs`, `test_backup.mjs`, `test_pkg_bounds.mjs` | `[HOST]` | **all pass** |
+| WASM | `sh web/emu/build.sh` + `tools/package_emu.py` | `[WASM]` | **built**: 1 223 359 B, sha `5bc3387e…`, emcc 6.0.11, commit `9866c31`; the page was **not** driven in a browser — `[BROWSER]` **PENDING** |
+| Boot payload of the published packages | `python3 tools/spl_diff.py release/felucca-v2.9.0.fwsc release/felucca-v2.9.2.fwsc` | `[STATIC]`/`[HOST]` | v2.9.0 SPL 14 444 B `64ccc63e…`, v2.9.2 14 536 B `4e3b4c22…`: **different builds**, not a re-container (payloads 14 428 vs 14 520 B). See `docs/QG_RELEASE_BLOCKERS.md` §B1 |
+| Public release state | `git ls-remote --tags origin` | `[NET]` | `refs/tags/v2.9.2` → `bdc1a0d`; the release is public. The local annotated tag points at `dcdb09f` and was **not** pushed |
+| CI attestation | `gh attestation verify` | — | **not run**: no `gh` subcommand and no token here. PENDING |
+| Any behaviour on an FM-1 | — | `[HW]` | **PENDING**: install, rescue, JEDEC, flash timing, audio out, stress |
+
+Gate: **NO-GO for public installation**, unchanged, for the reasons in `docs/QG_RELEASE_BLOCKERS.md`
+(no hardware evidence at all, no signature, and a vendor boot payload whose two builds cannot be shown
+equivalent from here).

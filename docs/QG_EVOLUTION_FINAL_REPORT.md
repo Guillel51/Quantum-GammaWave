@@ -1,5 +1,12 @@
 # Informe final — Quantum GammaWave v2.9.1
 
+> **Estado posterior (2026-11-13).** Este informe describe la pasada que lo escribió y conserva sus
+> cifras como registro. El margen de flash que aquí es de 204 B se recuperó después (tablas 41 947 B,
+> imagen 573 664 B, 9 948 B libres), la familia NOISE se midió en −18,9 dBFS contra −18,5 de ANALOG, y
+> el bloqueo de publicación está ahora argumentado en `docs/QG_RELEASE_BLOCKERS.md`, con la comparación
+> byte a byte de los dos SPL. El estado actual está en `docs/QG_CONSOLIDATION_REPORT.md`.
+
+
 Cierre de las siete fases: qué está integrado, qué se comprobó y de qué clase es cada comprobación, y
 qué queda pendiente y por qué. Escrito el 2026-11-13.
 
