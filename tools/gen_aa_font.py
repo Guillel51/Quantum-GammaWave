@@ -39,7 +39,9 @@ FONTS = Path(__file__).resolve().parents[1] / "fonts"
 LOCAL_INTER = os.path.expanduser("~/Library/Fonts/Inter.ttc")   # 4.001: 0 Regular, 10 Medium, 12 SemiBold
 EXTRAS = [0xA9, 0xB0, 0xB7, 0xC4, 0xD6, 0xDC, 0xE4, 0xF6, 0xFC, 0x2026]  # (c) deg . A: O: U: a: o: u: (Latin-1), ...
 CODE = {0x2026: 0x85}                  # characters outside Latin-1 -> their one-byte code in the firmware
-PHASES, PHASES_L = 4, 2                # horizontal phases per glyph (aa_raster.raster_font): S M, L
+PHASES, PHASES_M, PHASES_L = 4, 2, 2  # horizontal phases per glyph (aa_raster.raster_font): S, M, L. (4.2) M went to
+                                       # 2: it is the monospace face, every advance is 9 px, and its fourth-phase cells
+                                       # were 8 KB of flash for a quarter of a pixel.
 # faces stored Huffman-coded (--huff): M and L. S, the most drawn and the least compressible (-15 %), stays
 # 2 px per byte, so the labels draw at full speed
 HUFF = [("M", "L")]
@@ -64,7 +66,7 @@ def preset(name):
     if name == "jiant-lab":                    # JIANT 0.6.56: the landing's faces (SIL OFL 1.1, Google Fonts): IBM Plex
         f = FONTS.parent / "assets" / "fonts"  # Mono for labels and values (its digits on the grid Chakra Petch had: 7 / 9
         return [("S", str(f / "ChakraPetch-Medium.ttf"), 12, (32, 126), EXTRAS, -0.055, PHASES),     # px), Michroma for the
-                ("M", str(f / "IBMPlexMono-SemiBold.ttf"), 15, (32, 126), EXTRAS, 0.0, PHASES),   # big titles
+                ("M", str(f / "IBMPlexMono-SemiBold.ttf"), 15, (32, 126), EXTRAS, 0.0, PHASES_M), # big titles
                 ("L", str(f / "Michroma-Regular.ttf"), 18, (32, 32), [ord(c) for c in L_CHARS[1:]], 0.0, PHASES_L)]
     if name == "inter-tight":
         v = str(FONTS.parent / "assets" / "fonts" / "InterTight[wght].ttf")   # SIL OFL 1.1, Google Fonts

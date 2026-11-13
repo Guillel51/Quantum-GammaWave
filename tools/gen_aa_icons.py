@@ -110,10 +110,14 @@ EXTRA = {
 # with the box of a counter but the outside's winding) and the rest fitted into the outline box of a sibling.
 FIT_TO = {"system_battery_0": "system_battery_4"}
 
-# new icons that are also needed at 12 px (list rows, menu values)
-SMALL_EXTRA = ["x_star", "x_lock", "x_cog", "x_usb", "x_warn", "x_folder", "x_left", "x_right",
+# new icons that are also needed at 12 px (list rows, menu values).
+# (4.2) x_usb, x_hpf, x_tstop and x_freeze are gone from every size: the features they named were removed with
+# the PERFORM layer (perform.c: REVERSE, TAPE STOP, FREEZE and OCT UP/DN "were" removed) and no screen names them
+# any more, so their cells were four sizes of dead flash. The names stay in the enum (the mapping is assets/
+# icons.json's order plus EXTRA) and re-adding one with its first use is one word in a list.
+SMALL_EXTRA = ["x_star", "x_lock", "x_cog", "x_warn", "x_folder", "x_left", "x_right",
                "x_mixer", "x_pattern", "x_song", "x_motion", "x_motion_rec", "x_motion_del",
-               "x_hpf", "x_repeat", "x_reverse", "x_tstop", "x_freeze",
+               "x_repeat", "x_reverse",
                # (4.1) the eight drawn ones: FX BUS draws them at 12 px in the chain row and the block headers, and
                # HOME's strip is 12 px, so that is the only size they need (a 16 px cell would be 128 B each)
                "x_chain", "x_bus", "x_punch", "x_master", "x_hgrid", "x_perf", "x_matrix", "x_gauge"]
@@ -122,12 +126,12 @@ NOT_DRAWN = ["tape"]
 
 # the 24 px set: the header battery (Fukiai's battery is a wide, short glyph: at 16 px its body was 12 x 6)
 # and the FX map's effect cells (ui_layer.c layer_fx: the icon alone, no name)
-HUGE_DEFAULT = ["x_bat0", "x_bat1", "x_bat3", "x_bat4", "x_bat_chg", "x_usb",   # (+ the USB-C plug: as flat)
-                "x_repeat", "x_reverse", "cutoff", "x_hpf", "x_tstop", "x_freeze", "x_oct_up", "x_oct_dn"]
+HUGE_DEFAULT = ["x_bat0", "x_bat1", "x_bat3", "x_bat4", "x_bat_chg",   # (4.2) no x_usb / x_hpf / x_tstop / x_freeze
+                "x_repeat", "x_reverse", "cutoff"]                  #  and no x_oct_up / x_oct_dn: nobody draws them
 
 # the 16 px set: header, footer, dialogs and menu rows (everything else only exists at 12 px)
 # (1.0.5: the MENU rows lost their icons, the tabs carry them)
-BIG_DEFAULT = ["x_play", "x_stop", "x_rec", "x_rec_o", "x_usb", "x_star",
+BIG_DEFAULT = ["x_play", "x_stop", "x_rec", "x_rec_o", "x_star",
                "x_cog", "x_warn", "x_speaker", "x_info", "x_eye",
                "wave", "algorithm", "phase", "bits", "sample", "mouth", "trio", "drawbar", "slice", "grain",
                "phys", "drum", "noise", "mod", "tempo",
