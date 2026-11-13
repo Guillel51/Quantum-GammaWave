@@ -41,6 +41,18 @@ jobs:
           test -s "site/firmware/felucca-${V#v}.fwsc" || test -s "site/firmware/felucca-${V}.fwsc"
           python3 tools/site_check.py
 
+      - name: the emulator served is the one the build record names
+        run: |
+          set -euo pipefail
+          cp -r release/emu/. site/emulator/
+          python3 - <<'PY'
+          import json
+          e = json.load(open("site/emulator/manifest.json"))
+          b = json.load(open("release/emu/manifest.json"))
+          assert e["version"] == b["version"] and e["wasm_sha256"] == b["wasm_sha256"], (e, b)
+          print("emulator", e["version"], e["commit"], e["wasm_sha256"][:12])
+          PY
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
