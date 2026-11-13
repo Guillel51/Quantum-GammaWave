@@ -176,7 +176,7 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
     uint32_t i, mask = scale_mask(t), n = 0, root = (uint32_t)t->p[P_ROOT] % 12u;
     uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 15);
     int32_t cx = 54, cy = 60, r = 22;
-    char l[24], b[8];
+    char l[24];
     (void)c;
     for (i = 0; i < 12u; i++)
         n += (mask >> i) & 1u;
@@ -246,8 +246,6 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
  * itself, nothing here is added. */
 static void graph_scl_chord(const track_t *t, uint16_t c)
 {
-    static const int8_t FN[12] = {0, -1, 1, 0, 0, 1, -1, 2, 1, 0, 2, 2};
-    static const char *const FN_N[] = {"T", "S", "D", "-"};
     uint8_t off[12], out[KB_CH];
     uint32_t n = scl_chord_offsets(t, off), i, tn, ti = trk_index(t) % NTRK;
     uint32_t mode = (uint32_t)clamp(t->p[P_CHRD], 0, CD_POW), vc = (uint32_t)clamp(t->p[P_CVOI], 0, 3);

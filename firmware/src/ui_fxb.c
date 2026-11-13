@@ -24,7 +24,6 @@
 #define FXB_N 8u
 /* (6.4) three letters a cell: eight full names in one row of 28 px cells ran into each other */
 static const char *const FXB_TABN[FXB_N] = {"TRK", "BUS", "DLY", "REV", "CHO", "SLI", "PCH", "MST"};
-static const char *const FXB_TABSEL[FXB_N] = {"TRACK", "BUSES", "DELAY", "REVERB", "CHORUS", "SLICER", "PUNCH", "MASTER"};
 /* the six blocks, left to right and top to bottom: which bus each reads */
 enum { FXB_DLY, FXB_REV, FXB_CHO, FXB_SLI, FXB_PCH, FXB_MST, FXB_NB };
 static const char *const FXB_BLOCKN[FXB_NB] = {"DELAY", "REVERB", "CHORUS", "SLICER", "PUNCH", "MASTER"};
@@ -32,14 +31,49 @@ static const char *const FXB_BLOCKN[FXB_NB] = {"DELAY", "REVERB", "CHORUS", "SLI
 /* (6.4) the header is a strip with the title and the lamp and nothing else: the number that used to sit at its
  * right edge ("DELAY 192", "MASTER 100") collided with the title in every block narrower than 90 px, and the four
  * cards above already read out the values of the link KNOB 1 has selected. */
-static void fxb_head(int32_t x, int32_t y, int32_t w, const char *name, uint16_t ink, uint16_t bg)
+static void fxb_head(int32_t x, int32_t y, int32_t w, const char *name, uint16_t ink, uint16_t bg, int32_t lvl)
 {
     (void)bg;
     cv_text_on(x + 4, y + 2, &AF_S, name, ink, T_BG);   /* (6.4) inside the block's own ground, never above it */
-    cv_rect(x + w - 7, y + 3, 3, 3, ink);           /* the activity lamp */
+    /* (Solar Heat) the activity lamp: 3 px at rest, 4 px with the bus carrying signal, and the colour walks
+     * from the block's own ink to the palette's heat as the level climbs -- the page's only motion a silent
+     * engine cannot produce. */
+    if (lvl > 0)
+        cv_rect(x + w - 8, y + 2, 4, 4, ux_mix(ink, T_ACCENT, clamp(lvl * 100 / 4000, 0, 100)));
+    else
+        cv_rect(x + w - 7, y + 3, 3, 3, ink);       /* the activity lamp */
 }
 /* a level 0..7000 (fx_vu's scale) as a 0..56 px bar height */
 static int32_t fxb_px(int32_t v) { return clamp(v, 0, 7000) * 56 / 7000; }
+
+/* (Solar Heat) The drawing area of a block as a dithered ramp, cold overhead and warm at the floor: three
+ * bands of gw_dither's 4 x 4 pattern, which is what a 16-bit panel had instead of a gradient. The pattern
+ * never moves and the colours are the palette's own tokens mixed by ux_mix, so GREY / MONO / FLAT keep
+ * working and a still page draws a still frame. */
+static void fxb_grad(int32_t x, int32_t y, int32_t w, int32_t h)
+{
+    int32_t bh = h / 2;
+    if (bh <= 0)
+        return;
+    gw_dither(x, y, w, bh, ux_mix(T_BG, T_SURF, 42), ux_mix(T_BG, T_ACCENT, 8), 50);
+    gw_dither(x, y + bh, w, h - bh, ux_mix(T_BG, T_SURF, 62), ux_mix(T_BG, T_ACCENT, 20), 50);
+}
+/* (Solar Heat) the peak-hold marker: it jumps to a new peak and falls back at 24 px a second, so a hit
+ * leaves a trail the way a VU's hold needle does. It is read in pixels of a 56 px scale. */
+static int32_t fxb_hold(int32_t pk56)
+{
+    static int32_t held, ms;
+    uint32_t e = fm1_ms - ms;
+    ms = fm1_ms;
+    if (e > 400u)
+        e = 400u;                                /* (the page can skip frames: never fall further than it climbed) */
+    held -= (int32_t)e * 24 / 1000;
+    if (held < 0)
+        held = 0;
+    if (pk56 > held)
+        held = pk56;
+    return held;
+}
 
 static void graph_fx_buses(const track_t *t)
 {
@@ -57,13 +91,13 @@ static void graph_fx_buses(const track_t *t)
     /* the six blocks, each a panel with its header and its own drawing of what it does */
     {
         int32_t send_dly = fx_vu[1], wet_dly = fx_vu[4], send_rev = fx_vu[2], wet_rev = fx_vu[5];
-        int32_t wet_cho = fx_vu[3], send_cho = fx_vu[0];
-        static const int32_t TAB2BLK[FXB_N] = {-1, -1, FXB_DLY, FXB_REV, FXB_CHO, FXB_SLI, FXB_PCH, FXB_MST};
+        int32_t wet_cho = fx_vu[3];
         for (i = 0; i < 6u; i++) {
             int32_t x = BX[i % 3u], y = BY[i / 3u], on, dx = x + 4, dy = y + IN, dw = BW - 8, dh = BH - IN - 4;
             uint16_t head;
             cv_rrect(x, y, BW, BH, 3, T_SURF, T_BG);
             cv_rrect(x + 2, y + 2, BW - 4, BH - 4, 2, T_BG, T_SURF);   /* the block's ground: title and drawing */
+            fxb_grad(dx, dy, dw, dh);                                 /* (Solar Heat) its floor warms up */
             switch (i) {
             case FXB_DLY: on = (t->p[P_DLY] != 0 || wet_dly > 64) && sys_load != LOAD_ECO; break;
             case FXB_REV: on = t->p[P_REV] != 0 || wet_rev > 64; break;
@@ -73,7 +107,11 @@ static void graph_fx_buses(const track_t *t)
             default: on = 1; break;
             }
             head = on ? T_THEME : T_DIM;
-            fxb_head(x, y, BW, FXB_BLOCKN[i], head, T_BG);
+            {
+                static const uint8_t VUB[6] = {4, 5, 3, 0, 6, 7};   /* (the wet returns of DLY / REV / CHO, the slicer's none, the punch's and the master's peaks) */
+                int32_t lv = VUB[i] ? fx_vu[VUB[i]] : 0;
+                fxb_head(x, y, BW, FXB_BLOCKN[i], head, T_BG, on ? lv : 0);
+            }
             switch (i) {
             case FXB_DLY: {                           /* the repeats, TIME apart, each FEEDBK softer */
                 int32_t fb = clamp(song.g[G_DFDBK], 0, 127), k;
@@ -127,6 +165,8 @@ static void graph_fx_buses(const track_t *t)
                     uint16_t col = !on ? T_RAISE : gate ? (k == step ? T_ACCENT : T_THEME) : T_LINE;
                     cv_rect(dx + 2 + k * 8, dy + dh - h, 6, h, col);
                 }
+                if (step >= 0 && on)                 /* (Solar Heat) the sequencer's line under the gates */
+                    cv_rect(dx + 2, dy + dh + 1, 2 + step * 8, 1, ux_mix(T_ACCENT, T_BG, 40));
                 break;
             }
             case FXB_PCH: {                           /* the drum bus's transient, and the dip it ducks */
@@ -149,9 +189,13 @@ static void graph_fx_buses(const track_t *t)
             default: {                                /* the master: the gain stage, the output peak, the clip lamp */
                 int32_t g = clamp(fx_master_g(), 0, 32767) * (dw - 2) / 32767, k;
                 int32_t pk = audio_out_peak(0) > audio_out_peak(1) ? audio_out_peak(0) : audio_out_peak(1);
-                cv_rect(dx + 1, dy + 1, dw - 2, dh - 1, T_BG);
-                cv_rect(dx + 1, dy + dh - 2 - g, g, 2, ux_mix(T_THEME, T_SURF, 40));
-                cv_rect(dx + 1, dy + dh - 2 - fxb_px(pk) * (dh - 2) / 56, dw - 2, 1, T_TEXT);
+                cv_rect(dx + 1, dy + dh - 2 - g, g, 2, ux_mix(T_THEME, T_SURF, 40));   /* (on the gradient) */
+                {   /* (Solar Heat) the output peak with the hold marker's ember trail under it */
+                    int32_t p = fxb_px(pk) * (dh - 2) / 56, hh = fxb_hold(p) * (dh - 2) / 56;
+                    cv_rect(dx + 1, dy + dh - 2 - p, dw - 2, 1, T_TEXT);
+                    if (hh > p)
+                        cv_rect(dx + 1, dy + dh - 2 - hh, dw - 2, 1, ux_mix(T_ACCENT, T_BG, 55));
+                }
                 for (k = 1; k < 4; k++)
                     cv_rect(dx + 1 + k * (dw - 2) / 4, dy + 1, 1, dh - 2, T_RAISE);
                 if (pk >= 32700)
@@ -161,12 +205,13 @@ static void graph_fx_buses(const track_t *t)
                 break;
             }
             }
-            if (TAB2BLK[sel & 7u] == (int32_t)i)
+            if (sel >= 2 && sel - 2 == (int32_t)i)   /* (the links after TRACK and BUSES are the six blocks) */
                 cv_frame(x, y, BW, BH, T_ACCENT);     /* the block these knobs belong to */
             else if (i == FXB_MST && sel >= 1 && sel <= 7)
                 cv_frame(x, y, BW, BH, T_LINE);       /* the master is every bus's way out: always in the chain */
         }
     }
     cv_text_on(6, 104, &AF_S, "1 CHAIN  2-4 PARAMS", T_DIM, T_SURF);
-    cv_text_r(232, 104, &AF_S, FXB_TABSEL[sel & 7u], T_THEME, T_SURF);
+    /* (Solar Heat) the six links after TRACK and BUSES are the blocks below, in the same order: one table */
+    cv_text_r(232, 104, &AF_S, sel < 2 ? (sel ? "BUSES" : "TRACK") : FXB_BLOCKN[(sel & 7) - 2], T_THEME, T_SURF);
 }

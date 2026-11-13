@@ -2500,7 +2500,7 @@ static int32_t meter_px(int32_t a)                   /* |sample| (Q15) -> px: 60
 static void knob_arc(int32_t x, int32_t y, int32_t r, const uint8_t *cov, const uint8_t *ang, int32_t lo, int32_t hi,
                      uint16_t tr, uint16_t vc, uint16_t bg)
 {
-    const uint16_t *rt = ramp(tr, bg), *rv = ramp(vc, bg);
+    const uint16_t *rt = ramp(tr, bg, 0), *rv = ramp(vc, bg, 0);
     int32_t i, j, m;
     for (j = 0; j < r; j++)
         for (i = 0; i < r; i++) {

@@ -425,12 +425,16 @@ static const uint8_t CURVE_DARK[16] = {0, 24, 43, 62, 80, 97, 114, 130, 147, 163
 static const uint8_t CURVE_LIGHT[16] = {0, 12, 27, 42, 58, 75, 91, 109, 126, 144, 162, 180, 199, 217, 236, 255};
 #define NRAMP 6u
 static struct {
-    uint16_t fg[NRAMP], bg[NRAMP], v[NRAMP][16];   /* v: byte-swapped panel values */
+    uint16_t fg[NRAMP], bg[NRAMP], hot[NRAMP], v[NRAMP][16];   /* v: byte-swapped panel values */
     uint32_t gen;
     uint8_t next, n;
 } rc;
 
-static const uint16_t *ramp(uint16_t fg, uint16_t bg)
+/* (Solar Heat) ramp(fg, bg, 0) is the plain ink ramp text and graphs use. ramp(fg, bg, hot) is the icons':
+ * the levels that are nearly transparent carry an ink pulled towards `hot` -- the palette's heat -- and the
+ * solid ones the ink itself, so the fringe of every glyph glows warm like a print that sat in the sun.
+ * It is the same one code path and the same cache, so an extra colour costs no extra state. */
+static const uint16_t *ramp(uint16_t fg, uint16_t bg, uint16_t hot)
 {
     static const uint8_t SH[3] = {11, 5, 0}, MK[3] = {31, 63, 31};
     const uint8_t *cv = ux.light ? CURVE_LIGHT : CURVE_DARK;
@@ -444,7 +448,7 @@ static const uint16_t *ramp(uint16_t fg, uint16_t bg)
         rc.n = rc.next = 0;
     }
     for (i = 0; i < rc.n; i++)
-        if (rc.fg[i] == fg && rc.bg[i] == bg)
+        if (rc.fg[i] == fg && rc.bg[i] == bg && rc.hot[i] == hot)
             return rc.v[i];
     i = rc.next;
     rc.next = (uint8_t)((i + 1u) % NRAMP);
@@ -452,16 +456,18 @@ static const uint16_t *ramp(uint16_t fg, uint16_t bg)
         rc.n++;
     rc.fg[i] = fg;
     rc.bg[i] = bg;
+    rc.hot[i] = hot;
     v = rc.v[i];
     for (a = 0; a < 16u; a++) {
         uint32_t out = 0;
         int32_t w = cv[a];
+        uint16_t ink = hot && a < 6u ? ux_mix(fg, hot, (6 - (int32_t)a) * 17) : fg;
         if (ux.mono) {
             int32_t x = bg >> 11;
-            out = ux_gray((uint32_t)(x + ((((fg >> 11) - x) * w + 128) >> 8)));
+            out = ux_gray((uint32_t)(x + ((((ink >> 11) - x) * w + 128) >> 8)));
         } else {
             for (k = 0; k < 3u; k++) {
-                int32_t x = (bg >> SH[k]) & MK[k], y = (fg >> SH[k]) & MK[k];
+                int32_t x = (bg >> SH[k]) & MK[k], y = (ink >> SH[k]) & MK[k];
                 out |= (uint32_t)(x + (((y - x) * w + 128) >> 8)) << SH[k];
             }
         }
@@ -730,7 +736,7 @@ static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, 
 static int32_t cv_text_flags(int32_t x, int32_t y, const aafont_t *f, const char *s, uint16_t fg, uint16_t bg,
                              uint32_t flags)
 {
-    int32_t b[4], pen = text_run(x, y, f, s, ramp(fg, bg), b);
+    int32_t b[4], pen = text_run(x, y, f, s, ramp(fg, bg, 0), b);
     if (GFX_HOOKS && b[2] > b[0]) {
         int32_t y0 = b[1], y1 = b[3];
         if (b[0] < 0 || b[2] > (int32_t)cv_w || y0 + cv_oy < cv_cy0 || y1 + cv_oy > cv_cy1)

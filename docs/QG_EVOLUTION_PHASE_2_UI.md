@@ -223,3 +223,76 @@ Los tres puntos que este informe dejaba abiertos se resolvieron con datos reales
 Con estos cambios el barrido sigue en **0 hallazgos de lint, 0 tintas fuera de color y 0 px de
 desalineación** en 3 155 655 medidas, y los 285 renders dorados no cambian (ninguna de estas dos
 pantallas está en `tests/golden.txt`).
+
+## 9. Iconografía con calor y FX-BUS con degradado (fase 4)
+
+### 9.1 La tinta de los iconos
+
+Los iconos no son dibujo propio: el atlas sale de la fuente de iconos **Fukiai** (`web/fukiai.ttf`,
+MIT, Hügelton Instruments) rasterizada por `tools/gen_aa_icons.py` a celdas de 4 bits de alfa en 12,
+16 y 24 px. Redibujar 170 glifos habría sido inventar formas nuevas sin poder verlas en la pantalla
+real, así que lo que se rediseñó es **cómo se pintan**:
+
+`gfx.c` tenía una sola rampa de tinta (fondo → tinta, con la curva gamma y su caché). Ahora toma un
+tercer color, `ramp(fg, bg, hot)`: los niveles casi transparentes —el borde de cada glifo— llevan una
+tinta tirada hacia el calor de la paleta (`ux_mix(T_ACCENT, T_THEME, 45)`) y los sólidos la tinta
+misma. El resultado es un icono con **orla de sol**: el contorno se enciende en ámbar y el cuerpo
+mantiene su color, a los tres tamaños y en las 22 paletas. El texto y los gráficos siguen usando
+`ramp(fg, bg, 0)`, la de siempre: no cambia ni una letra.
+
+![Iconos con orla de calor](ui_phase2/after_icons_heat.png)
+
+Es la misma ruta de código y la misma caché (una clave más), así que no hay estado nuevo ni una
+llamada más por icono.
+
+### 9.2 FX-BUS: el suelo caliente y el movimiento
+
+La pantalla de enrutado tenía un fondo plano por bloque. Ahora:
+
+- **Degradado**: el área de dibujo de cada bloque se pinta con `gw_dither`, el tramado ordenado 4 × 4
+  que el proyecto ya usa como sustituto del degradado en la estética de 16 bits. Dos bandas, fría
+  arriba y cálida al suelo (`ux_mix(T_BG, T_SURF, …)` contra `ux_mix(T_BG, T_ACCENT, …)`), mezcladas
+  de los tokens de la paleta: funciona en GREY / MONO / FLAT y el patrón no se mueve, así que una
+  página en silencio dibuja un cuadro idéntico.
+- **Lámparas de actividad**: el cuadrado de 3 px del encabezado crece a 4 px y camina de la tinta del
+  bloque al calor de la paleta según el pico real de ese bus (`fx_vu`: los retornos húmedos de DLY /
+  REV / CHO, el bus de bombo y el maestro). Sin señal, la lámpara vuelve a su sitio y a su color.
+- **Marcador de pico con estela**: el bloque MASTER dibuja el pico de salida y, debajo, un marcador
+  retenido que cae a 24 px/s y deja una estela ámbar: el comportamiento de un VU con hold, no una
+  animación decorativa.
+- **La línea del secuenciador** bajo las ocho compuertas del SLICER, que avanza con el paso real.
+
+![FX-BUS con degradado](ui_phase2/after_fx_buses_heat.png)
+
+Nada de esto toca el audio: todas las cifras son las que `fx.c` ya publicaba en `fx_vu`, y la página
+sigue redibujándose al ritmo que ya tenía (50 ms, 70 en ECO).
+
+### 9.3 Los bytes, otra vez
+
+El cambio costó **328 B de código** y devolvió **56 B de constantes**; para que entrara se quitó lo
+que sobraba en la propia pantalla y en `ui_scl.c`:
+
+- `FXB_TABSEL` repetía los seis nombres de `FXB_BLOCKN`: el pie ahora lee la tabla de los bloques
+  (`sel < 2` son TRACK / BUSES, el resto `sel - 2`), y `TAB2BLK` (ocho enteros que decían `sel - 2`)
+  desapareció con su condición.
+- Dos tablas muertas en `scale` / `chord` (`FN`, `FN_N`) y dos variables que el compilador avisaba
+  como no usadas (`b`, `send_cho`). Los avisos de `-Wunused-variable` del árbol quedaron a cero.
+
+El enlace queda en **581 548 B de 581 564**: **16 B de margen**. El `.fwsc` se empaqueta, pero el
+próximo cambio de UI tendrá que pagar sus propios bytes.
+
+### 9.4 Lo que se midió y lo que no
+
+- Barrido completo 190 pantallas × 22 paletas: **0 hallazgos de lint, 0 tintas sobre su propio color,
+  0 px de desalineación, 0 píxeles GREY / MONO fuera de gris** en 3 155 200 medidas.
+- `regress`: **285 renders dorados, 0 cambiados** (ninguno de estos dos cambios entra en el juego
+  dorado, que es de DSP), 0 fallos de salud, CPU en presupuesto.
+- `ui_test`: all passed. `tests/target_budget.py`: sin cambios en ningún presupuesto de ciclos.
+- **No verificado**: el *movimiento* en sí. El banco de render dibuja un cuadro fijo con los picos ya
+  puestos, así que el degradado y las lámparas se ven en las capturas, pero la caída del marcador y
+  la línea del secuenciador avanzando no se han visto en movimiento, y nada de esto se ha probado en
+  una unidad física: no hay ninguna aquí.
+- **No hecho**: formas nuevas de icono. La fuente es un TTF compilado y el repositorio no trae sus
+  contornos, así que los glifos siguen siendo los de Fukiai; el rediseño es de tinta, tamaño y
+  comportamiento, no de dibujo.
+
