@@ -50,6 +50,14 @@ jobs:
           echo "package=release/felucca-${V}.fwsc" >> "$GITHUB_OUTPUT"
           echo "version the tree carries: $V"
 
+      # The 3.0 plan forbids assigning, tagging or publishing it until every phase, the target
+      # build and the physical checks are done. This is the one gate both publish paths call;
+      # the approval is a repository variable, never a value in the tree.
+      - name: a 3.x release needs an explicit approval
+        env:
+          QG_RELEASE_APPROVED: ${{ vars.QG_RELEASE_APPROVED }}
+        run: python3 tools/release_gate.py "${{ steps.ver.outputs.version }}" "${QG_RELEASE_APPROVED:-false}"
+
       - name: the package for that version is here and verifies
         run: |
           set -euo pipefail

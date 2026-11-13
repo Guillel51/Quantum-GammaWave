@@ -143,6 +143,11 @@ The package was downloaded from
 
 ## 3. The card file: `fmhub.json`
 
+> **Schema note (2026-11-13):** the Hub accepts `what`, `author`, `kinds`, `play`, `editor`, `cheat`,
+> `image` and `color`; it ignores the **whole file** if one field is unknown. `sounds` is **not** a
+> field. The sound count belongs inside `what`, which now says “nine engines and 267 sounds”. The
+> card is checked by `python3 tools/check_fmhub.py`.
+
 The Hub reads it from the default branch, every three hours, and **ignores the whole file** when one
 field is unknown or out of bounds. `tools/check_fmhub.py` (new) checks it against the published rules
 and the live examples of other firmwares' files:

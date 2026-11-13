@@ -11,12 +11,27 @@
 # so publishing from this sha is publishing from v1 as reviewed.
 name: release
 on:
+  # Only a version tag builds and attests a release. A push to main is covered by target.yml;
+  # building from a branch here made GITHUB_REF_NAME=main the "version" the package was cut
+  # with, and the shared workflow's release path is tag-only by design.
   push:
-    branches: ["main"]
     tags: ["v*"]
-  workflow_dispatch:
 jobs:
+  # The 3.0 plan forbids assigning, tagging or publishing it before the phases and the physical
+  # checks are complete. A manually pushed 3.x tag must not reach the shared build either.
+  gate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: a 3.x release needs an explicit approval
+        env:
+          QG_RELEASE_APPROVED: ${{ vars.QG_RELEASE_APPROVED }}
+        run: |
+          set -euo pipefail
+          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
+          python3 tools/release_gate.py "$V" "${QG_RELEASE_APPROVED:-false}"
   build:
+    needs: gate
     uses: zvenson/fm1-build/.github/workflows/build.yml@85a003ab455b1c074b0bd6d7c282c096a464b973
     permissions:
       contents: write

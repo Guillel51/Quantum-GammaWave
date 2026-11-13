@@ -1,3 +1,23 @@
+## Sin versión asignada — 2026-11-13 — compuerta de release 3.x
+
+### Added
+- **Ninguna versión 3.0 se crea, etiqueta ni publica sin aprobación.** `tools/release_gate.py`
+  bloquea `v3.0.0` y posteriores salvo que la variable de repositorio `QG_RELEASE_APPROVED` valga
+  `true` (también `1` o `yes`). `tests/release_gate_test.py` cubre 2.x, 3.0, rc, versiones
+  malformadas y la aprobación por variable. `tag-and-publish.yml` y `release.yml` llaman la misma
+  compuerta; `release.yml` deja de correr en `main` y sólo acepta tags `v*`.
+- **La tarjeta del Hub dice el conteo real.** `fmhub.json` pasa a “nine engines and 267 sounds”.
+  No se agrega `sounds`: el esquema del Hub descarta el archivo entero ante un campo desconocido.
+
+### Changed
+- `docs/QG_3.0_PLAN_AUDIT_2026-11-13.md` registra el estado de las doce fases, lo que ya existía y
+  lo que sigue bloqueado por target, WASM, navegador o hardware. `docs/QG_RELEASE_BLOCKERS.md`
+  documenta la compuerta.
+
+### Not done
+- **No se asigna la versión 3.0, no se crea tag, no se publica release y no se cambia el paquete de
+  `release/`.** Sin target AC791N, WASM, navegador ni pruebas físicas, la 3.0 no está validada.
+
 ## v2.9.7 — 2026-11-13 — El arranque corre bajo el splash, una etapa por cuadro
 
 ### Fixed
