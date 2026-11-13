@@ -460,6 +460,17 @@ static void lofi_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const 
     int32_t crush = stepc ? 0 : p[P_E3];                /* STEP: CRSH is the envelope */
     int32_t bits = chip == CHIP_8BIT ? 8 : chip == CHIP_1BIT ? 1 : 4;
     int32_t hold = 1 + crush / 8 + (chip == 1u ? 1 : 0);
+    {   /* (FASE 2) CHARACTER: BITS+ takes the word down (8 -> 1), RATE+ the sample rate (further down). Neutral
+         * at 127. BYTE / FLOAT keep their own resolution and time: their state is not a pair of holds. */
+        int32_t ba = xamt(p, 0), ra = xamt(p, 1);
+        if (ba) {
+            bits -= ba * 12 / 127;
+            if (bits < 1)
+                bits = 1;
+        }
+        if (ra)
+            hold += ra * 8 / 127;
+    }
     int32_t held = v->s[0], cnt = v->s[1], ic1 = v->s[4], ic2 = v->s[5], msk = p[P_E7] >> 1;   /* (locals: out[] may
                                                          * alias v->s[]) */
     tsvf_t flt;
@@ -645,9 +656,13 @@ static const preset_t LOFI_PRESETS[] = {
      {XP(P_LRATE, 56), XP(P_LWAVE, 3), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* G: arp */
 };
 
+static const param_desc_t LOFI_CH[2] = {
+    {"BITS+", F_PCTINV, 0, 127, 127, 0, 0}, {"RATE+", F_PCTINV, 0, 127, 127, 0, 0},
+};
+
 static const engine_t ENG_LOFI = {
     .name = "LOFI",
-    .page_title = {"CHIP", "TONE"},
+    .page_title = {"CHIP", "TONE", "CHAR"},
     .edit = {
         {"CHIP", F_ENUM, 0, 4, 0, N_CHIP, 0},
         {"WAVE", F_ENUM, 0, 6, 0, N_RWAVE, 0},
@@ -660,6 +675,8 @@ static const engine_t ENG_LOFI = {
     },
     .presets = LOFI_PRESETS,
     .npresets = NELEM(LOFI_PRESETS),
+    .ch = LOFI_CH,
+    .ch_n = 2,
     .note_on = lofi_note_on,
     .render = lofi_render,
     .knob = {P_E1, P_E2, P_E3, P_REL},

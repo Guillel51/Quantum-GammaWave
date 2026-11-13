@@ -142,6 +142,8 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
                                                               * ramped across the block to the knob's (Q8: a step of the
                                                               * knob jumped the phase: a click, louder the higher it was) */
     int32_t dfb = ((p[P_E7] << 8) - fb) / (int32_t)(n ? n : 1u);
+    int32_t nza = xamt(p, 1), hara = xamt(p, 0);   /* (FASE 2) CHARACTER: NOISE, HARM (a wavefolder) */
+    uint32_t nst = (uint32_t)v->s[5];
     pd_t b1, b2, bm;
     int32_t mf = 0, dmf = 0;                                 /* (0.6.45) MORPH: line 1 towards the next WAVEs; (0.6.50)
                                                               * its blend ramped across the block, Q8 */
@@ -188,6 +190,10 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
             ph2 += inc >> 1;
             s += mulq15(osc_sine(ph2), sub);
         }
+        if (nza) {                                    /* (FASE 2) a breath of noise through the phase shaper */
+            int32_t z = (int32_t)(noise32(&nst) >> 17) - 16384;
+            s = clamp(s + mulq15(z, nza * 192), -32767, 32767);
+        }
         out[i] += voice_amp(s, m, i) * 2;
     }
     v->ph[0] = ph0;
@@ -198,6 +204,10 @@ static void phase_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     v->s[2] = f1;
     v->s[3] = f2;
     v->s[4] = p[P_E7] << 8;
+    v->s[5] = (int32_t)nst;
+    if (hara)                                         /* (FASE 2) HARM: a symmetric fold, so odd harmonics only */
+        for (i = 0; i < n; i++)
+            out[i] = softclip((out[i] * (4096 + hara * 24)) >> 12);
 }
 
 static const preset_t PHASE_PRESETS[] = {
@@ -277,9 +287,13 @@ static const preset_t PHASE_PRESETS[] = {
      {XP(P_LRATE, 62), XP(P_LWAVE, 4), XP(P_LD_FLT, 24)}},  /* D: glitch */
 };
 
+static const param_desc_t PHASE_CH[2] = {
+    {"HARM", F_PCTINV, 0, 127, 127, 0, 0}, {"NOISE", F_PCTINV, 0, 127, 127, 0, 0},
+};
+
 static const engine_t ENG_PHASE = {
     .name = "PHASE",
-    .page_title = {"PHS", "LINE"},
+    .page_title = {"PHS", "LINE", "CHAR"},
     .edit = {
         {"WAVE", F_ENUM, 0, 7, 0, N_PD_WAVE, 0},
         {"WAVE2", F_ENUM, 0, 8, 0, N_PD_WAVE2, 0},
@@ -292,6 +306,8 @@ static const engine_t ENG_PHASE = {
     },
     .presets = PHASE_PRESETS,
     .npresets = NELEM(PHASE_PRESETS),
+    .ch = PHASE_CH,
+    .ch_n = 2,
     .note_on = phase_note_on,
     .render = phase_render,
     .knob = {P_E2, P_E3, P_E4, P_REL},

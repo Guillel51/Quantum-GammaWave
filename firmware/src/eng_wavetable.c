@@ -62,15 +62,24 @@ static __attribute__((noinline)) void wt_render(track_t *t, voice_t *v, int32_t 
     int32_t cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) * 4);
     int32_t drv = p[P_E6], drive = 32768 + drv * 512, ic1 = v->s[0], ic2 = v->s[1], lp = v->s[2];
     int32_t dcx = v->s[3], dcy = v->s[4];
+    int32_t wpa = xamt(p, 0), posa = xamt(p, 1), folda = p[P_MORPH];   /* (FASE 2) CHARACTER */
+    int32_t pph = v->s[5], psm = v->s[6], morph = p[P_E0];
     tsvf_t flt;
     if (n > CTL)
         n = CTL;
-    wt_pos(p[P_E0], &f0, &f1, &fx);
+    if (posa) {                                       /* (FASE 2) POSMOD: MORPH itself, walked by a slow sine */
+        pph += 0x00400000;
+        psm += (((sine_i((uint32_t)pph) * posa) >> 10) - psm) >> 3;
+        morph = clamp(morph + (psm >> 8), 0, 127);
+    }
+    wt_pos(morph, &f0, &f1, &fx);
     tsvf_coef(&flt, cut, p[P_E5]);
     inc = m->inc;
     inc2 = uni && p[P_E1] ? cents_inc(m->pitch16, p[P_E1], 0) : inc;
     for (i = 0; i < n; i++) {
-        int32_t a = wt_pt(lvl, f0, ph0), b = wt_pt(lvl, f1, ph0), s;
+        uint32_t wph = wpa ? ph0 + (uint32_t)(sine_i(ph0) * (wpa * 258)) : ph0;   /* (FASE 2) WARP: the read
+                                                          * point bends, at most a quarter of a cycle */
+        int32_t a = wt_pt(lvl, f0, wph), b = wt_pt(lvl, f1, wph), s;
         s = a + (((b - a) * fx) >> 8);
         if (uni) {
             int32_t c = wt_pt(lvl, f0, ph1), d = wt_pt(lvl, f1, ph1);
@@ -106,6 +115,11 @@ static __attribute__((noinline)) void wt_render(track_t *t, voice_t *v, int32_t 
     v->s[2] = lp;
     v->s[3] = dcx;
     v->s[4] = dcy;
+    v->s[5] = pph;
+    v->s[6] = psm;
+    if (folda)                                        /* (FASE 2) FOLD: a symmetric fold after the filter */
+        for (i = 0; i < n; i++)
+            out[i] = softclip((out[i] * (4096 + folda * 24)) >> 12);
 }
 
 static const preset_t WT_PRESETS[] = {
@@ -141,9 +155,14 @@ static const preset_t WT_PRESETS[] = {
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: pad */
 };
 
+static const param_desc_t WT_CH[3] = {
+    {"WARP", F_PCTINV, 0, 127, 127, 0, 0}, {"POSMOD", F_PCTINV, 0, 127, 127, 0, 0},
+    {"FOLD", F_PCT, 0, 127, 0, 0, 0},
+};
+
 static const engine_t ENG_WAVETABLE = {
     .name = "WTABLE",                                      /* six characters: the engine field fits six */
-    .page_title = {"TABLE", "TONE"},
+    .page_title = {"TABLE", "TONE", "CHAR"},
     .edit = {
         {"MORPH", F_PCT, 0, 127, 0, 0, 0},               /* MD_E1: the matrix's first engine destination */
         {"DETUNE", F_PCT, 0, 127, 20, 0, 0},
@@ -156,6 +175,8 @@ static const engine_t ENG_WAVETABLE = {
     },
     .presets = WT_PRESETS,
     .npresets = NELEM(WT_PRESETS),
+    .ch = WT_CH,
+    .ch_n = 3,
     .note_on = wt_note_on,
     .render = wt_render,
     .knob = {P_E0, P_E7, P_E4, P_E2},

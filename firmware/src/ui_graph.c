@@ -1730,7 +1730,7 @@ static void page_title(char *ti)
     const track_t *t = TSEL;
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     uint32_t i, n = 0, k = 0;
-    const char *pt = pg->scope == SC_ENGINE ? e->page_title[pg->id[0] != P_E0] : 0;   /* EDIT: the engine's */
+    const char *pt = pg->scope == SC_ENGINE ? e->page_title[pg->id[0] == P_E0 ? 0u : pg->id[0] == P_X0 ? 2u : 1u] : 0;   /* EDIT: the engine's */
     if (pg->fam == FAM_FX && !page_over) {              /* (0.6.24) FX: the page within its section */
         uint32_t h = ui.page;
         while (h > 0u && !fx_head(h))
@@ -1892,7 +1892,7 @@ static void page_flash_draw(void)
     uint32_t e = fm1_ms - pf_ms, ph, dim;
     char nm[20], sub[20] = {'T', 0, 0};
     const page_t *pg = cur_page();
-    const char *pt = pg->scope == SC_ENGINE ? ENGINES[TSEL->eng_req % NENGINES]->page_title[pg->id[0] != P_E0] : 0;
+    const char *pt = pg->scope == SC_ENGINE ? ENGINES[TSEL->eng_req % NENGINES]->page_title[pg->id[0] == P_E0 ? 0u : pg->id[0] == P_X0 ? 2u : 1u] : 0;
     const char *en = ENGINES[TSEL->eng_req % NENGINES]->name;
     if (e >= PF_MS) {
         pf_on = 0;

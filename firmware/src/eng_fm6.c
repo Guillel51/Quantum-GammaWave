@@ -456,6 +456,22 @@ static void fm6_render(track_t *t, voice_t *v, int32_t *out, uint32_t len, const
         a += da;
         out[i] += (int32_t)(((int64_t)x * a) >> 26);
     }
+    {   /* (FASE 2) CHARACTER: TONE (a one-pole high shelf), FOLD (a symmetric wavefolder: odd harmonics). They run
+         * after the voice's amplitude, so the envelope is untouched and a zero block stays silent. s[0] is free in
+         * FM6 (its state is fm6_note), both neutral at 127. */
+        int32_t ta = xamt(t->p, 0), fa = xamt(t->p, 1), lp = v->s[0];
+        if (ta) {
+            for (i = 0; i < FM6_N; i++) {
+                int32_t y = out[i];
+                lp += (y - lp) >> 6;
+                out[i] = soft_knee(y + (((y - lp) * ta) >> 8), 30000);
+            }
+            v->s[0] = lp;
+        }
+        if (fa)
+            for (i = 0; i < FM6_N; i++)
+                out[i] = softclip((out[i] * (4096 + fa * 24)) >> 12);
+    }
 }
 
 /* --------------------------------------------------------- the engine --- */
@@ -556,9 +572,13 @@ static const preset_t FM6_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* C: temple bell */
 };
 
+static const param_desc_t FM6_CH[2] = {
+    {"TONE", F_PCTINV, 0, 127, 127, 0, 0}, {"FOLD", F_PCTINV, 0, 127, 127, 0, 0},
+};
+
 static const engine_t ENG_FM6 = {
     .name = "FM6",
-    .page_title = {"OPS", "PATCH"},
+    .page_title = {"OPS", "PATCH", "CHAR"},
     .edit = {
         {"ALG", F_INT, 0, 32, 0, N_FM6_ALG, 0},
         {"FB", F_INT, -7, 7, 0, 0, 0},
@@ -571,6 +591,8 @@ static const engine_t ENG_FM6 = {
     },
     .presets = FM6_PRESETS,
     .npresets = NELEM(FM6_PRESETS),
+    .ch = FM6_CH,
+    .ch_n = 2,
     .note_on = fm6_note_on,
     .render = fm6_render,
     .knob = {P_E2, P_E3, P_E4, P_E7},

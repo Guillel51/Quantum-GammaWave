@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Parameter descriptors, formatting and the page table. */
-static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO"};   /* (QG-1 1.6) EVO: appended */
+static const char *const N_LWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO", "HSIN", "PULSE"};   /* (QG-1 1.6) EVO: appended; (FASE 2) HSIN, PULSE */
 /* (QG-1 1.6) TOUCH > VEL CURVE: how a key's / MIDI note's velocity reaches the engines (voice.c vel_curve) */
 /* (JIANT 0.6.51) the LFO's RATE below 0: in time with the tempo, -1 the slowest (next to the slowest free rate) */
 static const char *const N_LSYNC[12] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8D", "1/4T", "1/8", "1/8T", "1/16",
@@ -51,6 +51,8 @@ static const char *const N_GO[] = {"--", "GO"};
 static const char *const N_SLCR[] = {"OFF", "GATE", "STUT"};             /* SL_OFF .. SL_STUT (slicer.c) */
 static const char *const N_SLDIV[] = {"1/8", "1/16", "1/32", "8T", "16T", "32T"};   /* SL_DEN */
 static const char *const N_SLPQ[] = {"CHR", "SCL"};                      /* (JIANT 0.6.3) the SLICER's pitch steps */
+static const char *const N_APWAVE[] = {"SIN", "TRI", "SAW", "SQR", "S&H", "RAMP", "EVO"};   /* AUTO PAN has its own
+                                     * shapes (fx.c: 0..4): (FASE 2) HSIN / PULSE are the track LFO's, not its */
 static const char *const N_APSYNC[] = {"FREE", "BEAT"};                  /* (JIANT 0.6.9) AUTO PAN's RATE: Hz / the tempo */
 static const char *const N_APDIV[] = {"4BAR", "2BAR", "1BAR", "1/2", "1/4", "1/8", "1/16", "1/32"};   /* .. BEAT (fx.c AP_SIXT) */
 /* modulation matrix (mod.c): sources, destinations (E1..E8 = P_E0..P_E7: shown with the engine's labels) */
@@ -59,7 +61,9 @@ static const char *const N_MSRC[] = {"OFF", "LFO", "ENV", "VEL", "KEY", "RAND", 
                                                          * sequence; 1.2.1-GW, JIANT 0.7.8: a smooth random wander) */
 static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN", "DIST", "CHO", "DLY", "REV", "RATE",
                                      "VIB", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
-                                     "CLIP", "PNCH"};   /* (JIANT: the master, FX > MASTER) */
+                                     "CLIP", "PNCH", "X1", "X2", "X3", "X4"};   /* (JIANT: the master, FX > MASTER);
+                                     * (FASE 2) X1..X4: the engine CHARACTER bank, appended so every stored
+                                     * destination number keeps its meaning */
 static const char *const N_ENGNAME[] = {"ANALOG", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", "-", "VOICE", "-", "WHEEL", "-", "-",
                                              "DRUM", "NOISE", "FM6", "-", "WTABLE"};   /* (JIANT: SAMPLE 4, GRAIN 8, SLICE 13 retired;
                                                                                        * QG-1 3.0: 14 WAVETABLE) */
@@ -117,7 +121,7 @@ static const param_desc_t TP[P_COUNT] = {
     [P_MUTE] = PE("MUTE", N_ONOFF, 0),
     [P_APDEP] = PD("DEPTH", F_PCT, 0, 127, 0),       /* (JIANT 0.6.9) AUTO PAN (core.h: the old SLICER's slots) */
     [P_APRATE] = PD("RATE", F_LFOHZ, 0, 127, 2),    /* (BEAT: 0..7, page_desc AP_BEAT) */
-    [P_APWAVE] = PE("WAVE", N_LWAVE, 1),
+    [P_APWAVE] = PE("WAVE", N_APWAVE, 1),
     [P_APSYNC] = PE("SYNC", N_APSYNC, 1),
 #define MSLOT(k) [P_M##k##SRC] = PE("SRC" #k, N_MSRC, 0), [P_M##k##DST] = PE("DEST" #k, N_MDST, 0), \
                  [P_M##k##AMT] = PD("AMT" #k, F_BIPCT, -64, 63, 0)
@@ -256,12 +260,29 @@ static const param_desc_t CHORD_DESC[3] = {              /* (0.6.81) SCL > CHORD
 static const param_desc_t HUM_DESC[3] = {                /* (0.6.87) SEQ > HUMAN: P_HVEL P_HTIM P_HGAT (127 = 0 %) */
     {"VEL", F_PCTINV, 0, 127, 127, 0, 0}, {"TIME", F_PCTINV, 0, 127, 127, 0, 0}, {"GATE", F_PCTINV, 0, 127, 127, 0, 0}};
 static const param_desc_t RECQ_DESC = {"REC Q", F_PCT, 0, 127, 127, 0, 0};   /* (0.6.88) P_HRQ: 100 % on the grid */
+/* (FASE 2) a CHARACTER slot's descriptor for an engine (0: the engine does not have that slot) */
+static const param_desc_t *ch_desc(const engine_t *e, uint32_t k)
+{
+    return e->ch && k < e->ch_n ? &e->ch[k] : 0;
+}
 static const param_desc_t *track_desc(const track_t *t, uint32_t id)
 {
     if (id >= P_E0 && id <= P_E7) {                   /* the engine asked for (t->engine follows after a fade) */
         const engine_t *e = ENGINES[eng_idx(t->eng_req)];
         const param_desc_t *d = e->desc ? e->desc(t, id - P_E0) : 0;   /* a mode-dependent label / names */
         return d ? d : &e->edit[id - P_E0];
+    }
+    if (id == P_X0 || id == P_X1) {                   /* (FASE 2) CHARACTER 1 / 2 */
+        const param_desc_t *d = ch_desc(ENGINES[eng_idx(t->eng_req)], id == P_X0 ? 0u : 1u);
+        if (d)
+            return d;
+    }
+    if (id == P_MORPH && !(ENGINES[eng_idx(t->eng_req)] == &ENG_ANALOG ||
+                            ENGINES[eng_idx(t->eng_req)] == &ENG_PHASE ||
+                            ENGINES[eng_idx(t->eng_req)] == &ENG_LOFI)) {
+        const param_desc_t *d = ch_desc(ENGINES[eng_idx(t->eng_req)], 2u);   /* CHARACTER 3 */
+        if (d)
+            return d;
     }
     if (id == P_LRTRG && ENGINES[eng_idx(t->eng_req)] == &ENG_LOFI)   /* (0.6.12) LOFI's RTRG in DIGITAL's slot */
         return &LOFI_RTRG;
@@ -292,7 +313,18 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
  * only; range and default are the same): what the editor protocol, user presets and projects use */
 static const param_desc_t *param_desc_of(uint32_t e, uint32_t id)
 {
-    return id >= P_E0 ? &ENGINES[e]->edit[id - P_E0] : &TP[id];
+    const engine_t *en = ENGINES[e < NENGINES ? e : 0u];
+    if (id == P_X0 || id == P_X1) {
+        const param_desc_t *d = ch_desc(en, id == P_X0 ? 0u : 1u);
+        if (d)
+            return d;
+    }
+    if (id == P_MORPH && !(en == &ENG_ANALOG || en == &ENG_PHASE || en == &ENG_LOFI)) {
+        const param_desc_t *d = ch_desc(en, 2u);
+        if (d)
+            return d;
+    }
+    return id >= P_E0 ? &en->edit[id - P_E0] : &TP[id];
 }
 
 /* a retired F_ENUM value kept as an alias (the sample engines' SET / SRC aliases left with them in JIANT): none now.
@@ -560,6 +592,8 @@ static const page_t PAGES[] = {
     {"ENV DEST", FAM_ENV, SC_TRACK, GR_NONE, {P_ED_FLT, P_ED_PIT, P_ED_SHP, P_ELOOP}},   /* JIANT 0.4: LOOP */
     {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LRATE, P_LWAVE, P_LPHASE, P_LFADE}},
     {"LFO DEST", FAM_LFO, SC_TRACK, GR_NONE, {P_LD_PIT, P_LD_FLT, P_LD_SHP, P_LD_AMP}},
+    {"LFO SHAPE", FAM_LFO, SC_TRACK, GR_NONE, {P_X2, P_X3, 0xFF, 0xFF}},   /* (FASE 2) SLEW, INVERT (the CHARACTER
+                                     * bank's two remaining slots: a track's LFO, not an engine's) */
     {"MOD", FAM_LFO, SC_TRACK, GR_MOD, {0xFF, P_M1SRC, P_M1DST, P_M1AMT}},   /* KNOB 1: the slot (mod_ui_slot) */
     {"MSEQ", FAM_LFO, SC_TRACK, GR_MSEQ, {0xFF, P_MS0, P_MSLEN, P_MSSLW}},   /* JIANT: KNOB 1 the step (ms_ui_step) */
     {"MSEQ 2", FAM_LFO, SC_TRACK, GR_NONE, {P_MSDIV, 0xFF, 0xFF, 0xFF}},
@@ -591,6 +625,8 @@ static const page_t PAGES[] = {
                                      * (page_desc), 3 the same SCALE as KNOB 1's real one */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
+    {"CHARACTER", FAM_EDIT, SC_ENGINE, GR_NONE, {P_X0, P_X1, P_XCH, 0xFF}},   /* (FASE 2) the engine's own, two or
+                                     * three slots; the third only on the engines without a native MORPH */
     {"RETRIG", FAM_EDIT, SC_TRACK, GR_NONE, {P_LRTRG, 0xFF, 0xFF, 0xFF}},
     {"MORPH", FAM_EDIT, SC_TRACK, GR_MORPH, {P_MORPH, 0xFF, 0xFF, 0xFF}},   /* (0.6.45) ANALOG PHASE LOFI: the wave morphs */   /* (0.6.12) LOFI BYTE / FLOAT: RTRG */
     /* (JIANT 0.6.54) DRUM: the whole kit first (KIT = EDIT 1, KIT 2 = EDIT 2, KIT 3, X-MOD, FILTER), then a sound
@@ -616,7 +652,7 @@ static const page_t PAGES[] = {
     {"OP4 ENV", FAM_EDIT, SC_TRACK, GR_ADSR, {P_FM4_ATK, P_FM4_DEC, P_FM4_SUS, P_FM4_REL}},
     {"OP LEVEL", FAM_EDIT, SC_TRACK, GR_NONE, {P_FM1_LEVEL, P_FM2_LEVEL, P_FM3_LEVEL, P_FM4_LEVEL}},
     {"VOICE", FAM_EDIT, SC_TRACK, GR_NONE, {P_VOICE, P_GLIDE, P_GLMODE, P_PRIO}},
-    {"VOICE 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_MSTART, P_NRATE, 0xFF, 0xFF}},   /* (3.5) the note's start scatter and
+    {"VOICE 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_MSTART, P_NRATE, P_DXIMG, 0xFF}},   /* (3.5) the note's start scatter and
                                                  * the random source's rate: how a part varies from note to note */
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, G_TUNE}},
     {"SYSTEM", FAM_GLO, SC_GLOBAL, GR_NONE, {G_TRKS, G_LOADP, G_ROUTE, G_INFO}},   /* (0.6.18) TRACKS 4 / 6; (0.6.30)
@@ -677,9 +713,43 @@ static const char *const N_SQGO[] = {"--", "TURN: GO"};
 static const param_desc_t SQGO_DESC = PE("APPLY", N_SQGO, 0);
 static const char *const N_SQUNDO[] = {"--", "TURN: UNDO"};
 static const param_desc_t SQUNDO_DESC = PE("UNDO", N_SQUNDO, 0);
+/* (FASE 2) LFO SHAPE's two, and VOICE 2's VEL (an amount: stored 0 = 100 % velocity, 127 = none) */
+static const param_desc_t SLEW_DESC = {"SLEW", F_PCTINV, 0, 127, 127, 0, 0};
+static const param_desc_t INVERT_DESC = {"INVERT", F_PCTINV, 0, 127, 127, 0, 0};
+static const param_desc_t VEL_DESC = {"VEL", F_PCTINV, 0, 127, 0, 0, 0};
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
+    if (pg->id[0] == P_X0) {                           /* (FASE 2) CHARACTER: the engine's slots */
+        const engine_t *e = ENGINES[eng_idx(TSEL->eng_req)];
+        if (slot == 2u) {
+            const param_desc_t *d = ch_desc(e, 2u);
+            if (!d) {
+                *valp = 0;
+                return 0;
+            }
+            *valp = &TSEL->p[P_XCH];
+            return d;
+        }
+        {
+            const param_desc_t *d = slot < 2u ? ch_desc(e, slot) : 0;
+            if (!d) {
+                *valp = 0;
+                return 0;
+            }
+            *valp = &TSEL->p[P_XID[slot]];
+            return d;
+        }
+    }
+    if (pg->id[0] == P_X2) {                           /* (FASE 2) LFO SHAPE: SLEW, INVERT */
+        static const param_desc_t D[2] = {SLEW_DESC, INVERT_DESC};
+        *valp = &TSEL->p[slot ? P_X3 : P_X2];
+        return &D[slot & 1u];
+    }
+    if (id == P_DXIMG && !FELUCCA_FM4 && TSEL->eng_req % NENGINES != ENGI_DRUM) {
+        *valp = &TSEL->p[P_DXIMG];                     /* (FASE 2) ENV VEL: how much velocity scales the amp */
+        return &VEL_DESC;
+    }
     if (pg->graph == GR_SEQTOOLS) {                    /* (6.2) SEQ > TOOLS: OP, TIMES, APPLY, UNDO */
         static const param_desc_t *const D[4] = {&SQOP_DESC, &SQAMT_DESC, &SQGO_DESC, &SQUNDO_DESC};
         static int16_t GO, UNDO;

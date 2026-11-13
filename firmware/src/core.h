@@ -212,6 +212,22 @@ enum {                          /* per-track parameters */
 #define P_HRQ P_FM2_LEVEL              /* (0.6.88) SEQ > TIMING's REC Q: how much live recording snaps to the grid, 127 (every
                                          * project before it) 100 %: on it; less: the notes keep that much of where they were */
 #define P_ELOOP P_ED_FX                /* (JIANT 0.4) ENV LOOP: OFF / ON (voice.c env_tick) */
+/* (FASE 2) The engine CHARACTER bank. P_COUNT is at 125 of the 127 ids the motion records (7 bits) and the
+ * stores can name, so the bank does not add parameters: it reuses the four values of the retired DIGITAL engine's
+ * third and fourth operator envelopes (P_FM3_SUS / P_FM3_LEVEL / P_FM4_SUS / P_FM4_LEVEL), which every firmware
+ * since JIANT stores and no page of a default build can reach. Their stored default is 127, so an old preset or
+ * project reads as "0 %": the bank's amounts are neutral at 127 and full at 0 (F_PCTINV), and every engine's
+ * DSP leaves the sound exactly as it was at 0. P_XCH (the track's MORPH value) is the third slot for the engines
+ * that do not use MORPH themselves; it is neutral at 0. This keeps P_COUNT, every project format and every user
+ * preset byte-compatible. */
+#define P_X0 P_FM3_SUS
+#define P_X1 P_FM3_LEVEL
+#define P_X2 P_FM4_SUS                 /* LFO SLEW (voice.c track_lfo_tick) */
+#define P_X3 P_FM4_LEVEL               /* LFO INVERT (..) */
+#define P_XCH P_MORPH                  /* the third CHARACTER slot, on engines without a native MORPH */
+static const uint8_t P_XID[4] = {P_X0, P_X1, P_X2, P_X3};
+/* the amount of CHARACTER slot k, 0..127: 0 at the stored neutral 127 (P_X0..P_X3) */
+static inline int32_t xamt(const int16_t *p, uint32_t k) { return 127 - p[P_XID[k & 3u]]; }
 /* (JIANT 0.6.9) AUTO PAN (fx.c mix_part), in the slots of the old per-track SLICER (one on a bus since 0.6.3, its
  * slots stored, never read but by proj_sl_migrate). Laid so what old stores hold means OFF: DPTH where SLCR was (0, or
  * 1..2 from a project of before 0.6.3: inaudible), RATE where PAT was (1..16: slow), WAVE where RATE was (1: TRI), SYNC
@@ -438,7 +454,7 @@ typedef struct {
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */
     const char *name;            /* "ANALOG" (PRESETS, the editor) */
-    const char *page_title[2];   /* EDIT 1 and EDIT 2 */
+    const char *page_title[3];   /* EDIT 1, EDIT 2 and CHARACTER (FASE 2) */
     param_desc_t edit[8];        /* P_E0..P_E7 */
     const preset_t *presets;
     uint8_t npresets;
@@ -448,6 +464,11 @@ typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c 
                                   * no phases over a retrigger, spreads none for UNISON, renders at SUS 0 */
     uint8_t keep;                /* bit k: s[k] is kept when a sounding voice is retriggered (filters) */
     uint8_t oneshot;             /* 1 = hits (DRUM): always POLY, no glide; amp ends its voices (eng_drum.c) */
+    /* (FASE 2) the CHARACTER page's slots: ch[0] and ch[1] are P_X0 / P_X1 (amounts, 0 at 127), ch[2] is P_XCH
+     * (an amount, 0 at 0) and only used by the engines without a native MORPH. ch_n = 0: no CHARACTER page for
+     * this engine (DRUM-X already edits lanes, transient, pitch envelope, tune, decay and kits on its own pages). */
+    const param_desc_t *ch;
+    uint8_t ch_n;
     void (*note_on)(struct track *t, voice_t *v);
     void (*render)(struct track *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m);
     /* optional (0 = none): the voice amplitude instead of the ADSR curve, once per control tick;

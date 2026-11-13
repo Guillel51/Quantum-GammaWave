@@ -94,11 +94,19 @@ static void noise_note_on(track_t *t, voice_t *v)
     v->ph[2] = 0;
 }
 
+/* (FASE 2) CHARACTER's two extra filters, keyed by the pool slot: NOISE already keeps every s[] and ph[] entry */
+static int32_t nz_bp1[VPOOLN], nz_bp2[VPOOLN], nz_hp[VPOOLN];
+
 static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     const int16_t *p = t->p;
+    uint32_t vi = VSLOT(v);
+    int32_t banda = xamt(p, 0), evola = xamt(p, 1), hpa = p[P_MORPH];
+    int32_t bp1 = nz_bp1[vi], bp2 = nz_bp2[vi], hslp = nz_hp[vi];
     uint32_t mode = (uint32_t)p[P_E0] & 3u, sel = ((uint32_t)p[P_E5] >> 4) & 7u, i;
     int32_t res = p[P_E3], drft = p[P_E6], crsh = mode < NZ_LFSR ? p[P_E7] : 0;
+    if (evola)                                        /* (FASE 2) EVOL: the drift deeper, so the colour wanders */
+        drft = clamp(drft + evola * 96, 0, 127);
     int32_t ic1 = v->s[0], ic2 = v->s[1], rng = v->s[2], b0 = v->s[4], b1 = v->s[5], b2 = v->s[6], br = v->s[7];
     uint32_t ph = v->ph[0], reg = v->ph[1];         /* state in locals: out[] may alias v->s[] */
     int32_t drift = (int32_t)v->ph[2], d16 = 0, gain = 32767, gq, colr, cut, k, a1, a2, a3, g, bpg, mix, cf, thr = 0;
@@ -205,6 +213,15 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
                 x = pk + mulq15(br - pk, cf);
             }
         }
+        if (banda) {                                  /* (FASE 2) BAND: a second, narrower band inside the source */
+            int32_t co = g, co2 = clamp(g - banda * 20, 256, 4096);
+            bp1 += ((x - bp1) * co) >> 12;
+            {
+                int32_t hpv = x - bp1;
+                bp2 += ((hpv - bp2) * co2) >> 12;
+            }
+            x += mulq15(bp2 * 2 - x, banda * 258);
+        }
         /* the SVF (dsp.c tsvf_lp, with the band-pass), rounded: at low cutoffs the floor of the shifts
          * walked the integrators off zero (DC) */
         v3 = x - ic2;
@@ -226,6 +243,10 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
             }
             y = (int32_t)reg;
         }
+        if (hpa) {                                    /* (FASE 2) HPF: the SVF's low end taken back out */
+            hslp += (y - hslp) >> 4;
+            y -= mulq15(hslp, hpa * 258);
+        }
         out[i] += voice_amp(y, m, i);
     }
     v->s[0] = ic1;
@@ -238,6 +259,9 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     v->ph[0] = ph;
     v->ph[1] = reg;
     v->ph[2] = (uint32_t)drift;
+    nz_bp1[vi] = bp1;
+    nz_bp2[vi] = bp2;
+    nz_hp[vi] = hslp;
 }
 
 /* {MODE, COLR, FREQ, RES, TRK, DENS, DRFT, CRSH / CLK} */
@@ -298,9 +322,14 @@ static const preset_t NOISE_PRESETS[] = {
      {XP(P_LRATE, 9), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 6), XP(P_LEVEL, 109)}},  /* G: ash rain */
 };
 
+static const param_desc_t NOISE_CH[3] = {
+    {"BAND", F_PCTINV, 0, 127, 127, 0, 0}, {"EVOL", F_PCTINV, 0, 127, 127, 0, 0},
+    {"HPF", F_PCT, 0, 127, 0, 0, 0},
+};
+
 static const engine_t ENG_NOISE = {
     .name = "NOISE",
-    .page_title = {"SRC", "MOVE"},
+    .page_title = {"SRC", "MOVE", "CHAR"},
     .edit = {
         {"MODE", F_ENUM, 0, 3, 0, N_NOISE_MODE, 0},
         {"COLOR", F_PCT, 0, 127, 64, 0, 0},
@@ -313,6 +342,8 @@ static const engine_t ENG_NOISE = {
     },
     .presets = NOISE_PRESETS,
     .npresets = NELEM(NOISE_PRESETS),
+    .ch = NOISE_CH,
+    .ch_n = 3,
     .note_on = noise_note_on,
     .render = noise_render,
     .knob = {P_E2, P_E3, P_E1, P_REL},

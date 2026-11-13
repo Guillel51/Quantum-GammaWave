@@ -121,6 +121,10 @@ static int32_t lfo_wave(track_t *t, uint32_t ph)
         return (int32_t)(t->lfo_rnd >> 16) - 32768;
     case 5:
         return 32767 - (int32_t)(ph >> 16);
+    case 7:                                         /* (FASE 2) HSIN: a half-rectified sine, 0 .. 1 */
+        return (osc_sine(ph) + 32767) >> 1;
+    case 8:                                         /* (FASE 2) PULSE: 25 % duty */
+        return ph < 0x40000000u ? 32767 : -32767;
     case 6: {                                       /* (QG-1 1.6) EVO: a smooth random walk, one new point a cycle:
                                                      * it eases from this cycle's value to the next (smoothstep), so
                                                      * the wander has no steps and costs a few multiplies */
@@ -382,7 +386,18 @@ static void track_lfo_tick(track_t *t)
         t->lfo_ph += LFO_INC[r & 127];
     if (t->lfo_ph < old)
         t->lfo_rnd = lfo_rand(t);
-    t->lfo_val = lfo_wave(t, t->lfo_ph);
+    {   /* (FASE 2) LFO SHAPE: SLEW eases every step (S&H, EVO), INVERT flips the polarity. Both neutral at their
+         * stored 127 (0 %) and applied after the wave, so every old sound is bit-identical. */
+        int32_t raw = lfo_wave(t, t->lfo_ph), sl = xamt(t->p, 2);
+        if (sl)
+            t->lfo_val += ((raw - t->lfo_val) * (32767 / (1 + sl * sl / 8))) >> 15;
+        else
+            t->lfo_val = raw;
+        if (t->p[P_X3] != 127) {
+            int32_t a = 127 - t->p[P_X3];
+            t->lfo_val -= (t->lfo_val * 2 * a) / 127;
+        }
+    }
     if (t->lfo_fade < 32767) {
         int32_t step = (int32_t)(ENV_LIN[t->p[P_LFADE] & 127] >> 9);
         t->lfo_fade = t->p[P_LFADE] ? clamp(t->lfo_fade + (step ? step : 1), 0, 32767) : 32767;
@@ -1186,7 +1201,12 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
             if (e->amp)                                 /* the engine's own amplitude curve */
                 env = e->amp(t, v, env);
             m.envq15 = e->ownenv ? 0 : env;
-            m.amp1 = e->ownenv ? env : mulq15(env, v->vel * 258);
+            {   /* (FASE 2) ENV VEL (non-DRUM): 127 = no velocity, 0 = the full curve it always had */
+                int32_t velq = v->vel * 258;
+                if (!e->ownenv && e != &ENG_DRUM && t->p[P_DXIMG])
+                    velq = 32767 - (((32767 - velq) * (127 - t->p[P_DXIMG])) / 127);
+                m.amp1 = e->ownenv ? env : mulq15(env, velq);
+            }
             if (p[P_LD_AMP])
                 m.amp1 = mulq15(m.amp1, 32767 - mulq15((lfo + 32768) >> 1, p[P_LD_AMP] * 258));
             if (fade)                                   /* linear to 0 over the fade */

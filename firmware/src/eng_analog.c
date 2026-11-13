@@ -288,21 +288,47 @@ static __attribute__((noinline)) void analog_dirty(track_t *t, voice_t *v, int32
     v->s[2] = nst;
 }
 
+/* (FASE 2) CHARACTER: KTR+ opens the filter a little more up the keyboard (the fixed tracking it always had stays),
+ * TONE is a one-pole high shelf: a little more (or less) edge on every oscillator, after the filter, so it does not
+ * fight RES. Both are neutral at their stored 127; s[3] / s[4] are free in ANALOG. */
+static void analog_character(track_t *t, voice_t *v, int32_t *out, uint32_t n)
+{
+    int32_t a = xamt(t->p, 1), lp = v->s[4];
+    uint32_t i;
+    if (!a)
+        return;
+    for (i = 0; i < n; i++) {
+        int32_t s = out[i];
+        lp += (s - lp) >> 6;
+        out[i] = soft_knee(s + (((s - lp) * a) >> 8), 30000);
+    }
+    v->s[4] = lp;
+}
+
 /* the engine's render: SYNC RING SAW3 (0.4) and the FILTER TYPEs HP BP COMB (0.5) in analog_ext, (1.0-GW) TUBE FOLD in
  * analog_dirty, the rest (LP) here (a dispatch of its own: analog_render's loop as before) */
 static void analog_dispatch(track_t *t, voice_t *v, int32_t *out, uint32_t n, const vmod_t *m)
 {
     int32_t m1 = an_mpos(t->p, t->mo_cur, m), m0 = an_mpos(t->p, t->mo_prev, m);
+    vmod_t mm;
+    int32_t ktr = xamt(t->p, 0);
+    const vmod_t *pm = m;
+    if (ktr) {                                        /* (FASE 2) KTR+: the fixed key tracking was a constant since 1.0 */
+        mm = *m;
+        mm.cutoff = clamp(m->cutoff + (((v->pitch16 - 60 * 16) * ktr * 151) >> 12), -150 * 256, 190 * 256);
+        pm = &mm;
+    }
     if (m1 >= 0 || m0 >= 0) {                         /* (0.6.45) MORPH; (0.6.50) ramped from the last block's */
         int32_t base = (int32_t)t->p[P_E0] * 256;      /* (as it leaves or comes: the plain WAVE) */
-        analog_morph(t, v, out, n, m, m0 < 0 ? base : m0, m1 < 0 ? base : m1);
+        analog_morph(t, v, out, n, pm, m0 < 0 ? base : m0, m1 < 0 ? base : m1);
     }
     else if ((uint32_t)t->p[P_E0] >= AW_TUBE)
-        analog_dirty(t, v, out, n, m);
+        analog_dirty(t, v, out, n, pm);
     else if ((uint32_t)t->p[P_E0] >= AW_SYNC || t->p[P_FTYPE])
-        analog_ext(t, v, out, n, m);
+        analog_ext(t, v, out, n, pm);
     else
-        analog_render(t, v, out, n, m);
+        analog_render(t, v, out, n, pm);
+    analog_character(t, v, out, n);
 }
 
 static const preset_t ANALOG_PRESETS[] = {
@@ -461,9 +487,13 @@ static const preset_t ANALOG_PRESETS[] = {
      {XP(P_LRATE, 17), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},  /* G: warm pad */
 };
 
+static const param_desc_t ANALOG_CH[2] = {
+    {"KTR+", F_PCTINV, 0, 127, 127, 0, 0}, {"TONE", F_PCTINV, 0, 127, 127, 0, 0},
+};
+
 static const engine_t ENG_ANALOG = {
     .name = "ANALOG",
-    .page_title = {"OSC", "FLT"},
+    .page_title = {"OSC", "FLT", "CHAR"},
     .edit = {
         {"WAVE", F_ENUM, 0, 9, 0, N_ANALOG_WAVE, 0},  /* (1.0-GW: TUBE FOLD appended) */
         {"DETUNE", F_INT, 0, 127, 10, 0, "ct"},
@@ -477,6 +507,8 @@ static const engine_t ENG_ANALOG = {
     },
     .presets = ANALOG_PRESETS,
     .npresets = NELEM(ANALOG_PRESETS),
+    .ch = ANALOG_CH,
+    .ch_n = 2,
     .note_on = analog_note_on,
     .render = analog_dispatch,
     .knob = {P_E4, P_E5, P_ATK, P_REL},

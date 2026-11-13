@@ -349,7 +349,8 @@ abajo son estimaciones para decidir si vale la pena medirlas, no compromisos.
 | 2 | **D1** `chord_build` en escalas de 5/6/8 notas | **cerrada** | `tests/chord_scale_test.c`: INVARIANT 8 448/8 448, 360 acordes de 7 notas idénticos al recorrido viejo |
 | 2 | **D2** SCL como herramienta: SCALE, CHORD, VOICING, INTERVAL, PROG, KEYS | **cerrada** | `firmware/src/ui_scl.c`; `ui_render` 0 lint / 0 alineación; `ui_test` verde |
 | 3 | Auditoría de los 8 motores y diseño sonoro | **cerrada (estudio)** | `docs/QG_ENGINE_AUDIT.md`: parámetros leídos del código, huecos reales, A1 (KTR en ANALOG) elegida y especificada |
-| 3 | **A1** KTR como parámetro real de ANALOG | **pendiente** | especificada en `QG_ENGINE_AUDIT.md` §9; necesita build de target para la medida de audio |
+| 2 | Fase 2: banco CHARACTER por motor, LFO SHAPE, ENV VEL, destinos X1..X4 | **cerrada (host)** | `docs/QG_PHASE2.md`; `tests/phase2_test.c` verde; 285 goldens sin cambio; `ui_render` 189 pantallas, 0 lint |
+| 3 | **A1** KTR como parámetro real de ANALOG | **cerrada (host)** | Fase 2, CHARACTER `KTR+`; `phase2_test` verde; la medida de CPU/audio del target sigue pendiente |
 | 4 | HOME multipantalla: ciclo + OVERVIEW + SYSTEM | **cerrada** | `docs/QG_HOME_VIEWS.md`; `test_home_views` verde; `ui_render` 187 pantallas, 0 lint, 0 alineación |
 | 4 | PERFORMANCE, MIXER, MODULATION, SOUND ENGINE | pendiente | especificadas en `QG_HOME_VIEWS.md` §5 |
 | 4 | STRING, ADD, MATH | **estudio cerrado; ninguno implementado** | `docs/QG_NEW_ENGINES.md`: RAM medida, CPU estimada, decisión de memoria pendiente |
