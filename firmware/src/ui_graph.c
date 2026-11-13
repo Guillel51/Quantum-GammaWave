@@ -2321,6 +2321,26 @@ static void engine_sound_row(int32_t y)
     (void)total;
 }
 /* user preset slots around the selected one: "U07  NAME" / EMPTY */
+/* (5.1) SOLAR HEAT ON EVERY SECTION PAGE. HOME's screens open on a warm, dithered ground and the rest of
+ * the firmware opened on a flat T_SURF card, which is the inconsistency the brief names: this is that ground,
+ * adapted to a page that has to stay readable. Twelve bands over the panel, darkened a shade at the top and
+ * warmed towards the bottom, all inside the rounded corners (7 px in, 2 px down) so no band can paint a
+ * straight edge over the radius. A function of the theme and the panel's height only, so it costs twelve
+ * dithered rects on a full redraw and nothing on a cached frame, uses no animation clock, and leaves MONO
+ * and the BW palette flat: a dither there is only noise. */
+static void graph_heat(void)
+{
+    int32_t k, h = graph_h(), y0 = 2, y1 = h - 2;
+    if (!ux.style || ux.mono || y1 - y0 < 12)
+        return;
+    for (k = 0; k < 12; k++) {
+        int32_t a = y0 + k * (y1 - y0) / 12, b = y0 + (k + 1) * (y1 - y0) / 12;
+        if (b <= a)
+            continue;
+        gw_dither(7, a, 226, b - a, ux_mix(T_SURF, T_BG, 8 + k), ux_mix(T_SURF, T_ACCENT, 4 + k * 2), 50);
+    }
+}
+
 static void graph_user(void)
 {
     int32_t row, first = clamp((int32_t)ui.uslot - 3, 0, UP_SLOTS - 7);
@@ -3189,6 +3209,7 @@ static void draw_graph(void)
     }
     cv_begin(240, graph_h(), T_BG);
     cv_rrect(3, 0, 234, graph_h(), 5, T_SURF, T_BG);   /* the panel (MENU > LARGE: the strip) */
+    graph_heat();                                    /* (5.1) the Solar Heat ground, as HOME draws it */
     cv_bg = T_SURF;                                  /* (text drawn with cv_text lands on it) */
     if (drift_on())
         graph_drift();

@@ -1,3 +1,23 @@
+## v2.9.5 — 2026-11-13 — El suelo Solar Heat en todas las pantallas
+
+### Added
+- **El degradado de HOME, en las páginas de sección.** `graph_heat()` (`ui_graph.c`) pinta doce bandas
+  tramadas dentro del panel redondeado de cada página — EDIT, ENV, LFO, MOD, SCL, CHORD, FX, FX-BUS,
+  SEQUENCER, PRESETS, SAVE > USER, PROJECT, ABOUT, MIDI — oscurecido arriba y cálido hacia abajo, con el
+  mismo lenguaje que las cinco pantallas de HOME. Va dentro de los radios (7 px a los lados, 2 arriba y
+  abajo), así que ninguna banda dibuja un borde recto sobre la esquina.
+- **Coste medido**: doce rectángulos tramados en un redibujado completo y **cero** en un cuadro cacheado;
+  no usa reloj de animación, no añade partículas y deja planas las pantallas MONO y la paleta BW (un
+  tramado ahí es sólo ruido). La imagen pasa de 568 488 B a **568 616 B** (+128 B); quedan **14 996 B**
+  libres en el slot.
+
+### Changed
+- Las capturas se regeneraron: el suelo cambia el fondo de casi todas las páginas de sección.
+
+### Compatibility
+- Sin cambios de protocolo ni de parámetros: es dibujo, no DSP. Los 285 dorados de audio siguen en 0
+  cambiados porque no tocan píxeles.
+
 ## v2.9.4 — 2026-11-13 — Sincronización total del ecosistema
 
 ### Changed

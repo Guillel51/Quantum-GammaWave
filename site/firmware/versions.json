@@ -2,17 +2,17 @@
  {
   "version": "2.9.4",
   "file": "felucca-2.9.4.fwsc",
-  "sha256": "c800055f1e35b4362821a1fdcb3cc00638c49d4d1acd0b952c39c2e6984b9931",
+  "sha256": "26c3d02fc8cebf4956cd1a7e0f28b7218a0dd3e4f6926cdc16eba42ec1e0a39e",
   "size": 610959,
   "build": {
    "artifacts": {
     "felucca.bin": {
-     "bytes": 568488,
-     "sha256": "3ee4f460be54638d1abe26f3137dc55a9c8d66e9aa0c11444b4bfbf87a9615c4"
+     "bytes": 568616,
+     "sha256": "de80d69dc006c48def6382f79dc690fd42beb774308b1d12a9bd55eeb8c71b06"
     },
     "felucca.fwsc": {
      "bytes": 610959,
-     "sha256": "c800055f1e35b4362821a1fdcb3cc00638c49d4d1acd0b952c39c2e6984b9931"
+     "sha256": "26c3d02fc8cebf4956cd1a7e0f28b7218a0dd3e4f6926cdc16eba42ec1e0a39e"
     },
     "loader/ota.bin": {
      "bytes": 7803,
@@ -20,7 +20,7 @@
     }
    },
    "checks": {},
-   "commit": "9df40679517b0445e797bd9d5dd68fccbc266c2f",
+   "commit": "1500889a55ee60f13b010b00a752b2067170f5e0",
    "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -39,12 +39,14 @@
     "FELUCCA_UART": "default",
     "FELUCCA_USB_LAYOUT": "default"
    },
-   "dirty": [],
+   "dirty": [
+    "firmware/src/ui_graph.c"
+   ],
    "emulator": {
-    "commit": "9df40679517b",
+    "commit": "1500889a55ee",
     "version": "v2.9.4",
-    "wasm_bytes": 1191701,
-    "wasm_sha256": "067f9a07c10dbf2e1d52d4d61ae349b188912165ba671266a086a0e9cbc8ecb1"
+    "wasm_bytes": 1192326,
+    "wasm_sha256": "d16a86254dfee43a9440d3e0af5156385b27064ce83bfa84cb45e3c9d3fc7c63"
    },
    "identity": "FM-1_965",
    "schema": "qg1-build-1",
@@ -66,20 +68,22 @@
    "version": "v2.9.4"
   },
   "emulator": {
-   "built": "2026-11-13T14:34:01Z",
-   "commit": "9df40679517b",
+   "built": "2026-11-13T15:00:21Z",
+   "commit": "1500889a55ee",
    "config": {
     "EMU_CFLAGS": "",
     "EMU_OPT": "-O2",
     "EMU_PREVIEW": "0"
    },
-   "dirty": [],
+   "dirty": [
+    "firmware/src/ui_graph.c"
+   ],
    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
    "identity": "FM-1_965",
    "schema": "qg1-emu-1",
    "version": "v2.9.4",
-   "wasm_bytes": 1191701,
-   "wasm_sha256": "067f9a07c10dbf2e1d52d4d61ae349b188912165ba671266a086a0e9cbc8ecb1"
+   "wasm_bytes": 1192326,
+   "wasm_sha256": "d16a86254dfee43a9440d3e0af5156385b27064ce83bfa84cb45e3c9d3fc7c63"
   },
   "manifest": "felucca-2.9.4.fwsc.manifest.json"
  }
