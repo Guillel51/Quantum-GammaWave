@@ -548,7 +548,7 @@ static const preset_t DRUM_PRESETS[] = {
     {"GLASS SNARE", {78, 66, 70, 58, 86, 18, 22, 20}, {0, 70, 0, 40}, 0, 1, FX(20, 20, 22, 34), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},  /* F: snare */
     {"TIN HAT", {92, 72, 58, 40, 92, 10, 14, 18}, {0, 48, 0, 22}, 0, 1, FX(12, 0, 14, 12), PAT(12),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* F: hat */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 124)}},  /* F: hat */
     {"TOMS OF MUD", {44, 48, 52, 74, 48, 14, 8, 16}, {0, 68, 40, 36}, 0, 1, FX(14, 6, 16, 22), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* F: toms */
     {"RITUAL PERC", {64, 58, 74, 66, 64, 32, 38, 30}, {0, 74, 20, 44}, 0, 1, FX(22, 10, 28, 38), PAT(12),

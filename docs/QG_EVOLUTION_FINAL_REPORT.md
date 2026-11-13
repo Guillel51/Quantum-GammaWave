@@ -42,7 +42,11 @@ qué queda pendiente y por qué. Escrito el 2026-11-13.
    nadie direccionaba** (los 3 493 B que circulaban eran una cifra vieja). El slot crece **2 048 B**
    hasta `0x8E7BC`; `FLASH_SIZE`, BTIF y USR no se mueven y la región acaba en `0x8ED2B` con 725 B de
    holgura. Margen de código: **204 B → 3 208 B**.
-5. **Fase 7 — sincronización**: README (decía `v2.7.4.7` y 212 sonidos; ahora `v2.9.1` y 267), CHANGELOG,
+5. **Fase 7 — niveles**: 52 presets con su `P_LEVEL` propio en el `x[]` ya existente (**0 B** de flash).
+   La familia NOISE sube de −29,7 a **−21,8 dBFS** de mediana; los 30 presets que estaban a 6 dB o más de
+   su motor vuelven a su familia. Ninguno clipa (`hot = 0` en los 267) y los 12 que necesitaban un hueco en
+   un `x[]` ya lleno se quedaron como estaban en vez de perder un parámetro.
+6. **Fase 7 — sincronización**: README (decía `v2.7.4.7` y 212 sonidos; ahora `v2.9.1` y 267), CHANGELOG,
    capturas regeneradas del render real, `SHA256SUMS` reescrito (tenía una entrada de 2.7.3 y un hash de
    `build/emu`, que no se publica), `tools/generate_screenshots.py` arreglado (usaba un `S_SCL` que ya no
    existe en la UI: la captura de SC/SCALE/CHORD llevaba sin poder generarse desde el renombrado), sitio y

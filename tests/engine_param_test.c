@@ -138,13 +138,28 @@ static void host_preset(track_t *t, uint32_t e, uint32_t pi)
 static int32_t buf[NBLK * CTL];
 
 /* one preset, one held note; returns 0 and fills peak/rms/hot */
+static int force_level = 1;
+static int cal_level = -1;   /* --levels and --table compare presets at one level; --table-own measures the
+                               * level each preset actually loads with (its x[] P_LEVEL, else the default) */
 static void render_preset(uint32_t e, uint32_t pi, int32_t *peak, double *rms, double *hot)
 {
     uint32_t b, i, n = 0, hot_n = 0;
     double acc = 0;
     host_tracks_init();
     host_preset(&trk[0], e, pi);
-    trk[0].p[P_LEVEL] = 100;
+    {   /* (FASE 7) the preset's x[] as ui.c applies it on load (ids below P_E0), so a LEVEL set there is
+         * measured; the knob audit then overrides LEVEL to compare every preset at one level */
+        const preset_t *pr = ENGINES[e]->presets + pi;
+        uint32_t k;
+        for (k = 0; k < 6u; k++)
+            if (pr->x[k].id && pr->x[k].id - 1u < P_E0)
+                trk[0].p[pr->x[k].id - 1u] = (int16_t)clamp(pr->x[k].v, TP[pr->x[k].id - 1u].min,
+                                                            TP[pr->x[k].id - 1u].max);
+    }
+    if (force_level)
+        trk[0].p[P_LEVEL] = 100;
+    else if (cal_level >= 0)
+        trk[0].p[P_LEVEL] = (int16_t)cal_level;   /* --cal: the level under test */
     trk[0].mo_cur = trk[0].mo_prev = 0;
     trk_note_on(&trk[0], e == ENGI_DRUM ? 36u : 60u, 100);
     for (b = 0; b < NBLK; b++) {
@@ -239,6 +254,44 @@ int main(int argc, char **argv)
     int32_t noeffect = 0, checked = 0;
     if (argc > 1 && !strcmp(argv[1], "--levels")) {
         levels();
+        return 0;
+    }
+    if (argc > 1 && !strcmp(argv[1], "--cal")) {   /* what LEVEL does to the output, measured */
+        int32_t lv;
+        force_level = 0;
+        printf("level rms_db peak_db\n");
+        for (lv = 40; lv <= 127; lv += 5) {
+            int32_t pk; double rms2, hot2;
+            cal_level = (int)lv;
+            render_preset(0, 0, &pk, &rms2, &hot2);
+            printf("%3d %7.2f %7.2f\n", (int)lv,
+                   rms2 > 0 ? 20.0 * log10(rms2 / 32768.0) : -120.0,
+                   pk > 0 ? 20.0 * log10((double)pk / 32768.0) : -120.0);
+        }
+        return 0;
+    }
+    if (argc > 1 && !strcmp(argv[1], "--table-own")) {
+        force_level = 0;
+        argc = 2;                      /* fall through to --table with the preset's own level */
+        argv[1] = "--table";
+    }
+    if (argc > 1 && !strcmp(argv[1], "--table")) {   /* (FASE 7) one line a preset, for the remaster: the
+                                                      * level it needs is a number the tools can compute */
+        uint32_t e2, i2;
+        printf("engine idx name rms_db peak_db hot_share level\n");
+        for (e2 = 0; e2 < NENG_SHOWN; e2++) {
+            uint32_t en2 = ENGINE_ORDER[e2];
+            const engine_t *g = ENGINES[en2];
+            if (!g->npresets || g == &ENG_GONE)
+                continue;
+            for (i2 = 0; i2 < g->npresets; i2++) {
+                int32_t pk; double rms2, hot2;
+                render_preset(en2, i2, &pk, &rms2, &hot2);
+                printf("%s %u %s %.2f %.2f %.4f %d\n", g->name, (unsigned)i2, g->presets[i2].name,
+                       rms2 > 0 ? 20.0 * log10(rms2 / 32768.0) : -120.0,
+                       pk > 0 ? 20.0 * log10((double)pk / 32768.0) : -120.0, hot2, (int)trk[0].p[P_LEVEL]);
+            }
+        }
         return 0;
     }
     printf("engine param audit: every EDIT knob at both ends of its range, through the real render (host x86)\n");

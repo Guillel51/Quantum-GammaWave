@@ -121,7 +121,7 @@ static const preset_t WT_PRESETS[] = {
     {"METAL BELL", {98, 0, 0, 0, 116, 12, 0, 92}, {0, 50, 40, 55}, 0, 0, FX(0, 24, 22, 40), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"HOLLOW WOOD", {72, 6, 0, 0, 96, 44, 10, 30}, {0, 60, 70, 45}, 0, 0, FX(10, 14, 16, 28), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119)}},
     {"BRASS SWELL", {36, 18, 1, 0, 78, 20, 30, 88}, {45, 75, 127, 60}, 0, 0, FX(26, 32, 22, 48), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
     {"SUB BASS", {10, 0, 0, 90, 60, 26, 8, 20}, {0, 55, 120, 35}, 0, 1, FX(20, 0, 0, 10), PAT(2),
@@ -136,7 +136,7 @@ static const preset_t WT_PRESETS[] = {
     {"SPECTRAL REED", {58, 14, 1, 0, 100, 26, 16, 62}, {6, 80, 84, 56}, 20, 1, FX(14, 24, 36, 40), PAT(4),
      {XP(P_LRATE, 36), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 8)}},  /* A: reed lead */
     {"CHROME PLUCK", {84, 10, 0, 0, 110, 30, 20, 88}, {0, 78, 0, 52}, 26, 0, FX(10, 18, 48, 32), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},  /* PLUCK */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 125)}},  /* PLUCK */
     {"BARRO Y LUZ", {28, 32, 1, 12, 74, 18, 6, 54}, {70, 92, 112, 98}, 6, 0, FX(0, 62, 34, 84), PAT(5),
      {XP(P_LRATE, 12), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 8)}},  /* G: pad */
 };

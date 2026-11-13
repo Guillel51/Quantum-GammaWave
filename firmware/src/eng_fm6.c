@@ -475,13 +475,13 @@ static const preset_t FM6_PRESETS[] = {
     {"BELL", {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 30, 72), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
     {"FM BASS", {0, 0, 0, 0, 0, 0, 0, 2}, {0, 0, 127, 0}, 0, 1, FX(16, 0, 8, 8), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 115)}},
     {"BRASS", {0, 0, 0, 0, 0, 0, 0, 3}, {0, 0, 127, 0}, 0, 0, FX(8, 26, 22, 38), PAT(4),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"PAD", {0, 0, 0, 0, 0, 0, 30, 4}, {0, 0, 127, 0}, 0, 0, FX(0, 62, 32, 72), PAT(5),
-     {XP(P_LRATE, 16), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
+     {XP(P_LRATE, 16), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LEVEL, 122)}},
     {"MARIMBA", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 0, 26, 38), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_LEVEL, 127)}},
     {"ORGAN", {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 127, 0}, 0, 0, FX(10, 42, 4, 28), PAT(6),
      {XP(P_LRATE, 19), XP(P_LWAVE, 0), XP(P_LD_AMP, 6)}},
     {"PLUCK", {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 20, 36, 28), PAT(13),
@@ -524,7 +524,7 @@ static const preset_t FM6_PRESETS[] = {
     {"GAMELAN MET", {0, 0, 0, 0, 0, 0, 0, 15}, {0, 0, 127, 0}, 0, 0, FX(0, 14, 32, 68), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"STEEL DRUM", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 26, 48), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119)}},
 
     /* (QG-1 1.6) EVOLVE: the bell's tail keeps moving while it rings */
     {"EVOLVE BELL", {0, 0, 0, 0, 0, 0, 0, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 25, 30, 74), PAT(7),
@@ -543,7 +543,7 @@ static const preset_t FM6_PRESETS[] = {
     {"FROST MUSIC", {0, -3, 0, 0, 0, 0, 0, 16}, {0, 0, 127, 0}, 10, 0, FX(0, 24, 44, 72), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* C: music box */
     {"DEEP MARIMBA", {0, 1, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 22, 0, FX(0, 12, 28, 34), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},  /* C: mallet */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_LEVEL, 113)}},  /* C: mallet */
     {"ALLOY BASS", {0, 6, 0, 0, 0, 0, 0, 2}, {0, 62, 72, 22}, 30, 1, FX(22, 0, 6, 6), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* E: FM bass */
     {"SUBMARINE BELL", {0, 0, 0, 0, 0, 0, 14, 13}, {0, 0, 127, 0}, 8, 0, FX(0, 28, 48, 88), PAT(6),

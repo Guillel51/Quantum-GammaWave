@@ -582,7 +582,7 @@ static const preset_t LOFI_PRESETS[] = {
     {"PULSE LD", {0, 0, 32, 0, 127, 20, 0, 0}, {0, 60, 90, 30}, 0, 1, FX(4, 0, 42, 18), PAT(4),
      {XP(P_LRATE, 38), XP(P_LWAVE, 3), XP(P_LD_FLT, 12), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},
     {"WAVE BASS", {1, 1, 0, 0, 90, 0, 0, 0}, {0, 50, 70, 20}, 0, 1, FX(20, 0, 8, 0), PAT(2),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_LEVEL, 114)}},
     {"8BIT KEYS", {2, 0, 96, 0, 110, 0, 30, 0}, {0, 60, 80, 40}, 0, 0, FX(0, 0, 32, 20), PAT(13),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
     /* wave RAM VOXA (DUTY 92 / 8 = 11), a little vibrato */
@@ -620,13 +620,13 @@ static const preset_t LOFI_PRESETS[] = {
     {"SHAMAN CHANT", {2, 5, 24, 16, 75, 12, 45, 20}, {25, 75, 100, 60}, 0, 1, FX(16, 22, 36, 38), PAT(3),
      {XP(P_LRATE, 28), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
     {"COSMIC BYTE", {2, 6, 20, 0, 80, 0, 30, 0}, {15, 70, 95, 60}, 0, 1, FX(0, 32, 42, 48), PAT(4),
-     {XP(P_LRATE, 22), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},
+     {XP(P_LRATE, 22), XP(P_LWAVE, 6), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LEVEL, 116)}},
     {"ANCIENT FLT", {2, 6, 88, 24, 60, 20, 0, 0}, {20, 80, 110, 70}, 0, 1, FX(10, 26, 32, 64), PAT(6),
      {XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
     {"CYBER DRONE", {2, 5, 12, 0, 55, 0, 0, 95}, {80, 90, 120, 100}, 0, 0, FX(18, 34, 24, 90), PAT(5),
      {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 20), XP(P_LD_AMP, 8)}},
     {"SPACE LULLABY", {0, 4, 60, 0, 95, 12, 0, 0}, {50, 90, 115, 85}, 0, 0, FX(0, 52, 36, 74), PAT(5),
-     {XP(P_LRATE, 16), XP(P_LWAVE, 0), XP(P_LD_AMP, 8), XP(P_LD_FLT, 8)}},
+     {XP(P_LRATE, 16), XP(P_LWAVE, 0), XP(P_LD_AMP, 8), XP(P_LD_FLT, 8), XP(P_LEVEL, 86)}},
     {"RITUAL PULSE", {4, 0, 50, 45, 115, 20, 0, 0}, {0, 65, 80, 45}, 0, 1, FX(16, 0, 36, 28), PAT(4),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22), XP(P_LRATE, 36), XP(P_LWAVE, 4), XP(P_LD_FLT, 10)}},
 
@@ -638,7 +638,7 @@ static const preset_t LOFI_PRESETS[] = {
     {"POCKET CONSOLE", {0, 0, 40, 0, 118, 24, 0, 0}, {0, 70, 60, 30}, 20, 1, FX(0, 0, 44, 18), PAT(4),
      {XP(P_LRATE, 48), XP(P_LWAVE, 3), XP(P_LD_FLT, 8), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},  /* A: chip lead */
     {"CASIO DREAM", {2, 1, 64, 0, 104, 0, 0, 0}, {4, 84, 40, 60}, 8, 0, FX(0, 26, 34, 46), PAT(6),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* C: chip keys */
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_LEVEL, 113)}},  /* C: chip keys */
     {"BRASS BUG", {1, 2, 20, 0, 84, 0, 0, 0}, {0, 60, 74, 20}, 26, 1, FX(18, 0, 0, 6), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* E: chip bass */
     {"CIUDAD DE PLAYA", {4, 0, 48, 20, 112, 18, 0, 30}, {0, 72, 24, 52}, 22, 0, FX(0, 20, 54, 34), PAT(8),

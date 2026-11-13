@@ -327,9 +327,9 @@ static const preset_t ANALOG_PRESETS[] = {
     {"BRASS", {0, 10, 64, 0, 45, 20, 10, 0}, {35, 70, 90, 45}, 40, 0, FX(10, 24, 18, 36), PAT(6),
      {XP(P_LRATE, 24), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
     {"WIND", {0, 0, 0, 90, 30, 90, 0, 0}, {60, 90, 60, 80}, 50, 0, FX(0, 36, 42, 72), PAT(5),
-     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 24), XP(P_LD_AMP, 8)}},
+     {XP(P_LRATE, 14), XP(P_LWAVE, 6), XP(P_LD_FLT, 24), XP(P_LD_AMP, 8), XP(P_LEVEL, 85)}},
     {"STRINGS", {0, 25, 64, 0, 70, 10, 0, 0}, {70, 90, 115, 90}, 5, 0, FX(0, 66, 24, 74), PAT(5),
-     {XP(P_LRATE, 16), XP(P_LWAVE, 1), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6)}},
+     {XP(P_LRATE, 16), XP(P_LWAVE, 1), XP(P_LD_FLT, 14), XP(P_LD_AMP, 6), XP(P_LEVEL, 86)}},
     /* (JIANT 0.4: TRIO's, folded in) SYNC (ratio 1 + 11/16), RING (1 + 18/16), SAW3 (9 ct a side) */
     {"SYNC LEAD", {5, 11, 90, 0, 82, 30, 10, 0}, {2, 70, 100, 40}, 18, 1, FX(14, 12, 44, 28), PAT(4),
      {XP(P_LRATE, 38), XP(P_LWAVE, 2), XP(P_LD_FLT, 10), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 14)}},
@@ -368,9 +368,9 @@ static const preset_t ANALOG_PRESETS[] = {
     {"EVOLVE PAD", {AW_SAW3, 46, 64, 4, 58, 22, 0, 0}, {92, 90, 112, 100}, 8, 0, FX(0, 64, 22, 82), PAT(5),
      {XP(P_LRATE, 14), XP(P_LWAVE, 1), XP(P_LFADE, 70), XP(P_LD_FLT, 16), XP(P_M1SRC, 5), XP(P_M1DST, 14)}},
     {"SOLINA", {AW_SAW3, 30, 70, 0, 88, 8, 0, 0}, {50, 90, 118, 82}, 0, 0, FX(0, 115, 10, 70), PAT(5),
-     {XP(P_LRATE, 52), XP(P_LD_PIT, 2)}},
+     {XP(P_LRATE, 52), XP(P_LD_PIT, 2), XP(P_LEVEL, 88)}},
     {"DEEP DRONE", {0, 20, 50, 10, 42, 70, 20, 7}, {100, 90, 127, 110}, 0, 0, FX(10, 40, 30, 95), PAT(5),
-     {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_FLT, 20), XP(P_LD_AMP, 18)}},
+     {XP(P_LRATE, 8), XP(P_LWAVE, 1), XP(P_LD_FLT, 20), XP(P_LD_AMP, 18), XP(P_LEVEL, 114)}},
     /* (QUANTUM // QG-1) 808 and drill slides (LEGATO glide), reese, the dirty waves, the filter types as sounds of their own, and
      * pads that move by themselves (the NOISE wander on the cutoff) */
     {"808 BOOM", {3, 0, 0, 0, 60, 0, 40, 0}, {0, 80, 60, 40}, 0, 1, FX(25, 0, 0, 5), PAT(2),
@@ -399,9 +399,9 @@ static const preset_t ANALOG_PRESETS[] = {
      {XP(P_LRATE, 58), XP(P_LFADE, 60), XP(P_LD_PIT, 2)}},
     /* (QG-1 EXPANSION: Ambient, Drones, Evolving Pads, Organic Plucks) */
     {"BOREALIS PAD", {AW_SAW3, 32, 64, 8, 68, 24, 0, 12}, {90, 92, 118, 105}, 10, 0, FX(0, 85, 30, 92), PAT(5),
-     {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_FLT, 22)}},
+     {XP(P_LRATE, 10), XP(P_LWAVE, 1), XP(P_LD_FLT, 22), XP(P_LEVEL, 119)}},
     {"NEBULA DRONE", {AW_TUBE, 18, 55, 6, 48, 62, 18, 7}, {110, 90, 125, 115}, 0, 0, FX(12, 45, 35, 95), PAT(5),
-     {XP(P_LRATE, 6), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_LD_AMP, 14)}},
+     {XP(P_LRATE, 6), XP(P_LWAVE, 1), XP(P_LD_FLT, 16), XP(P_LD_AMP, 14), XP(P_LEVEL, 124)}},
     {"AURA STRINGS", {4, 26, 70, 0, 78, 16, 0, 7}, {65, 88, 112, 90}, 5, 0, FX(0, 68, 28, 72), PAT(5),
      {XP(P_LRATE, 15), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_LD_AMP, 8)}},
     {"SOLARIS GLOW", {AW_FOLD, 14, 60, 4, 72, 35, 30, 0}, {80, 90, 115, 95}, 14, 0, FX(6, 72, 42, 86), PAT(5),
@@ -415,9 +415,9 @@ static const preset_t ANALOG_PRESETS[] = {
 
     /* (QG-1 1.6) EVOLVE / MOTION: the EVO wave (a smooth random walk) at a musical division, the matrix on top */
     {"QUANTUM BLOOM", {AW_SAW3, 40, 66, 4, 58, 26, 6, 7}, {96, 94, 120, 108}, 10, 0, FX(0, 72, 28, 88), PAT(5),
-     {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LFADE, 90), XP(P_LD_FLT, 24), XP(P_LD_AMP, 14)}},
+     {XP(P_LRATE, -1), XP(P_LWAVE, 6), XP(P_LFADE, 90), XP(P_LD_FLT, 24), XP(P_LD_AMP, 14), XP(P_LEVEL, 114)}},
     {"ABYSSAL DRONE", {AW_TUBE, 20, 58, 10, 44, 58, 14, -12}, {112, 90, 126, 118}, 0, 0, FX(10, 50, 32, 96), PAT(5),
-     {XP(P_LRATE, 5), XP(P_LWAVE, 6), XP(P_LD_FLT, 30), XP(P_LD_SHP, 18), XP(P_LD_AMP, 8)}},
+     {XP(P_LRATE, 5), XP(P_LWAVE, 6), XP(P_LD_FLT, 30), XP(P_LD_SHP, 18), XP(P_LD_AMP, 8), XP(P_LEVEL, 125)}},
     {"PRISM KEYS", {4, 12, 70, 0, 66, 18, 0, 12}, {0, 84, 40, 60}, 30, 0, FX(0, 40, 35, 55), PAT(6),
      {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 46),
       XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_CUT), XP(P_M2AMT, 30)}},
@@ -430,7 +430,7 @@ static const preset_t ANALOG_PRESETS[] = {
 
 
     {"OCEANIC PAD", {AW_SAW3, 34, 68, 12, 54, 32, 0, 7}, {104, 94, 122, 112}, 6, 0, FX(0, 78, 34, 90), PAT(5),
-     {XP(P_LRATE, 7), XP(P_LWAVE, 6), XP(P_LD_FLT, 26), XP(P_LD_AMP, 10)}},
+     {XP(P_LRATE, 7), XP(P_LWAVE, 6), XP(P_LD_FLT, 26), XP(P_LD_AMP, 10), XP(P_LEVEL, 119)}},
     {"EMBER LEAD", {AW_TUBE, 16, 74, 0, 70, 40, 34, 12}, {4, 72, 92, 48}, 24, 1, FX(28, 20, 42, 30), PAT(4),
      {XP(P_M1SRC, QG_SRC_VEL), XP(P_M1DST, QG_DST_CUT), XP(P_M1AMT, 34),
       XP(P_M2SRC, QG_SRC_AT), XP(P_M2DST, QG_DST_VIB), XP(P_M2AMT, 18)}},

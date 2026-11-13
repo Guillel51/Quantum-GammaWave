@@ -205,7 +205,7 @@ static const preset_t PHASE_PRESETS[] = {
     {"BRASS", {0, 0, 30, 90, 0, 0, 0, 0}, {8, 70, 90, 40}, 0, 0, FX(10, 24, 22, 36), PAT(6),
      {XP(P_LRATE, 26), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"ORGAN", {3, 0, 40, 0, 0, 0, 0, 0}, {0, 127, 127, 30}, 0, 0, FX(0, 46, 8, 28), PAT(6),
-     {XP(P_LRATE, 20), XP(P_LWAVE, 0), XP(P_LD_AMP, 8)}},
+     {XP(P_LRATE, 20), XP(P_LWAVE, 0), XP(P_LD_AMP, 8), XP(P_LEVEL, 83)}},
     {"STRING", {0, 4, 50, 40, 12, 0, 0, 0}, {40, 90, 100, 70}, 0, 0, FX(0, 54, 24, 64), PAT(5),
      {XP(P_LRATE, 16), XP(P_LWAVE, 1), XP(P_LD_FLT, 14), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 10)}},
     {"RESO", {5, 0, 60, 60, 0, 0, 0, 0}, {0, 70, 30, 60}, 0, 0, FX(0, 0, 42, 38), PAT(1),
@@ -250,7 +250,7 @@ static const preset_t PHASE_PRESETS[] = {
     {"FOLK PLUCK", {4, 0, 50, 40, 0, 0, 20, 15}, {0, 70, 0, 45}, 35, 0, FX(0, 14, 36, 32), PAT(15),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
     {"BALAFON", {5, 0, 65, 55, 0, 0, 10, 25}, {0, 75, 10, 40}, 20, 0, FX(0, 10, 30, 38), PAT(3),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26), XP(P_LEVEL, 117)}},
     {"ETHNIC PLUCK", {4, 3, 58, 48, 8, 0, 25, 35}, {0, 72, 0, 50}, 40, 0, FX(0, 18, 42, 44), PAT(15),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LRATE, 20), XP(P_LWAVE, 1), XP(P_LD_FLT, 8)}},
     {"WRAITH DRONE", {0, 5, 68, 50, 25, 0, 60, 80}, {90, 90, 120, 105}, 15, 0, FX(16, 38, 28, 90), PAT(5),
@@ -262,7 +262,7 @@ static const preset_t PHASE_PRESETS[] = {
 
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
     {"MERCURY BLOOM", {2, 4, 58, 72, 10, 0, 18, 0}, {66, 90, 108, 94}, 20, 0, FX(0, 56, 26, 72), PAT(5),
-     {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},  /* B: pad */
+     {XP(P_LRATE, 18), XP(P_LWAVE, 1), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6), XP(P_LEVEL, 86)}},  /* B: pad */
     {"IRON FILAMENT", {5, 7, 74, 86, 24, 1, 30, 50}, {40, 88, 96, 70}, 36, 0, FX(20, 40, 34, 58), PAT(5),
      {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_LD_FLT, 20), XP(P_LD_SHP, 10)}},  /* D: texture */
     {"BELL FOUNDRY", {6, 1, 66, 58, 8, 0, 10, 16}, {0, 90, 0, 82}, 14, 0, FX(0, 26, 40, 62), PAT(6),

@@ -68,7 +68,33 @@ Un `MARIMBA` 13,5 dB por debajo de sus vecinos de FM6 es un preset que se pierde
 espaciados o barridos que empiezan callados. El RMS de una ventana los hunde sin que estén mal, y
 subirlos les quitaría el carácter. Igual `SOLAR WIND`/`DUST HAZE`, que son texturas de fondo a propósito.
 
-## 4. Por qué no he cambiado nada todavía
+## 4. Lo aplicado (revisión posterior)
+
+La medición se convirtió en cambios cuando hubo flash y una prueba que midiera el nivel de cada preset tal
+como carga. **52 presets llevan ahora su propio `P_LEVEL`**, en el `x[]` que ya existía: el array mide lo
+mismo con tres entradas que con cuatro, así que el cambio cuesta **0 B de flash** (imagen 580 404 B antes y
+después).
+
+| | antes | después |
+|---|---|---|
+| Mediana de la familia NOISE (a nivel propio) | −29,7 dBFS | **−21,8 dBFS** |
+| Rango NOISE | −52,0 … −15,2 | **−40,8 … −17,4** |
+| Desviados ≥6 dB de su motor, fuera de NOISE | 30 | 0 (nivelados a su familia) |
+| Presets al rojo tras el cambio | 0 | **0** |
+
+Método: `engine_param_test --table` mide cada preset a un nivel fijo de 100 y `--table-own` al nivel que
+carga de verdad; `--cal` mide qué hace el nivel (sube ~0,6 dB por unidad hasta 105 y se aplana por encima,
+por el recortador suave del master: de 110 a 127 apenas hay 0,4 dB). Con esa curva se invirtió el objetivo
+(−18 dBFS para NOISE, la mediana de su motor para los desviados), con dos topes: pico ≤ −2 dBFS y nivel
+≤ 127. Los 12 presets que necesitaban sitio y ya usaban las seis entradas de `x[]` **se han dejado como
+estaban**: quitarles un parámetro para poner el nivel habría empeorado el sonido.
+
+**El techo es real.** `RISER` (−31,3), `GEIGER CNT` (−40,8), `SOLAR WIND` (−32,8), `STATIC HAZE` (−31,4) y
+`DUST HAZE` (−27,5) siguen lejos: están ya a nivel 127 y son sonidos de eventos espaciados, cuyo RMS no
+sube aunque suba el nivel. Sacarlos de ahí exige cambiar el diseño del sonido (densidad, banda, decay), no
+su volumen, y eso no se ha hecho: cambiaría el carácter.
+
+## 5. Por qué no se tocó más
 
 1. **Un preset es un sonido que el dueño ya conoce.** «Evita cambios cosméticos» es explícito, y subir
    el nivel de un preset no es cosmético: cambia cómo suena en una canción ya hecha.

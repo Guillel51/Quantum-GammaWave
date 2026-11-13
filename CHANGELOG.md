@@ -13,6 +13,11 @@
   y VOCODER no caben. SID, ACID y POLY se resuelven con presets sobre ANALOG/PHASE/WTABLE.
 - **README**: decía `v2.7.4.7` y 212 sonidos de fábrica; ahora dice `v2.9.1` y los 267 que cuenta la
   auditoría.
+- **Niveles de la biblioteca**: 52 presets llevan ahora su `P_LEVEL` en el `x[]` que ya tenían (0 B de
+  flash). La familia NOISE pasa de **−29,7 a −21,8 dBFS** de mediana y sus 22 presets dejan de caer 12 dB
+  por debajo del resto; los 30 que estaban a ≥6 dB de su propio motor quedan en su familia. Techo: pico
+  ≤ −2 dBFS y nivel ≤ 127, así que los sonidos de eventos espaciados (GEIGER CNT, RISER, SOLAR WIND) siguen
+  bajos por diseño, no por nivel.
 - **Slot de la aplicación**: `APP_SLOT` pasa de `0x8DFBC` a `0x8E7BC` (+2 048 B) usando el hueco que la
   imagen ya tenía y nadie direccionaba (2 774 B reales, no los 3 493 que decía la documentación). La
   imagen de flash y las particiones BTIF/USR no cambian. Margen de código: **3 208 B**.
