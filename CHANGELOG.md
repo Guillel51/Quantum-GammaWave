@@ -1,5 +1,11 @@
-## 2026-11-13 — v2.9.2: iconos propios, FX BUS y HOME
+## 2026-11-13 — v2.9.2: iconos propios, FX BUS, HOME y DYNAMICS
 
+- **HOME > DYNAMICS** (décima pantalla de HOME, entre MOD y SYSTEM): la envolvente de la pista seleccionada
+  dibujada de sus cuatro tiempos reales (ATK, DEC, SUS, REL) — ataque, caída, meseta y liberación con sus tres
+  articulaciones marcadas —, con una cabeza lectora que la recorre mientras `hv_voices()` dice que la pista
+  suena, y debajo una columna por pista con el pico que acaba de alcanzar (`trk[].peak`, el mismo número que
+  dibujan MIXER y OVERVIEW) y una línea en el nivel al que está puesta. Su glifo propio (`qg_dyn`, U+E002, orden alfabético en la fuente) la
+  añade a la iconografía y la tira de HOME pasa a **ocho celdas** (x0 137 → 124, paso 13).
 - **Iconografía propia**: ocho glifos dibujados como SVG (`assets/icons-svg/`, rejilla de 24, sólo trazo) y
   convertidos a contornos de fuente por `tools/gen_icon_font.py`, que los cuelga de `web/fukiai_qg.ttf` en
   U+E000..E007 junto a la Fukiai original (que no se toca). La tabla de iconos pasa de 8 177 a **8 608 B**
@@ -18,12 +24,15 @@
   dos fases su error de hueco medido es **0,044 px** (`text_spacing_test`), menos de lo que la cara S ya
   toleraba con cuatro. Y once celdas de icono nombraban cosas que la capa PERFORM se llevó por delante
   (`x_usb`, `x_hpf`, `x_tstop`, `x_freeze`): **760 B** que ninguna pantalla podía alcanzar.
-  `font S 14 669 · font M 8 420 (antes 16 480) · font L 5 049 · icons 7 848 (antes 8 608) · keycaps 5 414 ·
-  shapes 158 · palettes 352` — **41 910 B** de tablas en total, e imagen **572 664 B** (antes 581 448,
-  **−8 784 B**). El `.fwsc` sigue en 610 959 B: el resto es relleno y loader de tamaño fijo.
-- **Pruebas**: `ui_render` completo — 190 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones,
-  0 píxeles GREY/MONO fuera de su gama** en 3 155 338 medidas. El volcado de una pantalla descubrió dos
-  desreferencias nulas en el propio informe del arnés (una caja sin rótulo), corregidas ahí.
+  `font S 14 669 · font M 8 420 (antes 16 480) · font L 5 049 · icons 7 885 (antes 8 608) · keycaps 5 414 ·
+  shapes 158 · palettes 352` — **41 947 B** de tablas en total (8 771 B menos que en v2.9.1), e imagen
+  **573 664 B** (antes 581 448, **−7 784 B**), DYNAMICS incluida. El `.fwsc` sigue en 610 959 B: el resto es
+  relleno y loader de tamaño fijo.
+- **Pruebas**: `ui_render` completo — 191 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones,
+  0 píxeles GREY/MONO fuera de su gama** en 3 156 050 medidas, y los **285 renderizados dorados** de
+  `regress` sin un solo cambio (0 sanidad, 0 voces/enrutado, 0 CPU fuera de presupuesto). El volcado de una
+  pantalla descubrió tres desreferencias nulas en el propio informe del arnés (una caja sin rótulo dos veces
+  y el `FILE*` del informe, que en el volcado de una sola pantalla aún no está abierto), corregidas ahí.
 
 ## 2026-11-13 — v2.9.1: auditoría de motores, seguridad y cierre
 

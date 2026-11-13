@@ -53,16 +53,16 @@ static void hv_grad(void)
     }
 }
 
-/* (4.1) which of HOME's screens is on, as icons: seven cells in the title's right corner -- where a caption used to
+/* (4.1) which of HOME's screens is on, as icons: eight cells in the title's right corner -- where a caption used to
  * say the same thing in words -- the one on screen lit in the accent with a bar under it that breathes, the others
  * dim. The order is the order a tap walks them (HV_OVERVIEW .. HV_ROUT), so the strip is the walk itself. */
 static void hv_strip(int32_t y, uint16_t c)
 {
-    static const uint8_t IC[7] = {ICON_X_HGRID, ICON_X_MIXER, ICON_X_PERF, ICON_X_KNOB, ICON_X_MATRIX,
-                                  ICON_X_GAUGE, ICON_X_BUS};
-    int32_t i, x0 = 137, on = (int32_t)ui.home_view - HV_OVERVIEW;
-    gw_dither(x0, y + 12, 7 * 13 - 1, 2, T_SURF, ux_mix(T_SURF, T_ACCENT, 34), 50);   /* its own track */
-    for (i = 0; i < 7; i++) {
+    static const uint8_t IC[8] = {ICON_X_HGRID, ICON_X_MIXER, ICON_X_PERF, ICON_X_KNOB, ICON_X_MATRIX,
+                                  ICON_X_DYN, ICON_X_GAUGE, ICON_X_BUS};
+    int32_t i, x0 = 124, on = (int32_t)ui.home_view - HV_OVERVIEW;   /* (4.3) eight cells: 124..227 */
+    gw_dither(x0, y + 12, 8 * 13 - 1, 2, T_SURF, ux_mix(T_SURF, T_ACCENT, 34), 50);   /* its own track */
+    for (i = 0; i < 8; i++) {
         int32_t x = x0 + i * 13;
         if (i == on) {
             int32_t ph = (int32_t)((ui.frame / 8u) % 12u), pulse = ph < 6 ? ph : 12 - ph;
@@ -585,6 +585,86 @@ static void hv_mod(const track_t *t, uint16_t c)
     }
 }
 
+/* DYNAMICS (4.3): the part's amplitude envelope, drawn from the four times the engine actually plays (P_ATK,
+ * P_DEC, P_SUS, P_REL), with a playhead walking it while the part holds a voice, and under it every part's peak as
+ * a ladder. Nothing here is invented: the shape is the sum of those four parameters, the playhead only exists while
+ * hv_voices() says the part is sounding, and the ladders are trk[].peak, the same number MIXER and OVERVIEW draw. */
+static void hv_dyn(const track_t *t, uint16_t c)
+{
+    char b[24];
+    int32_t a = clamp(t->p[P_ATK], 0, 127), d = clamp(t->p[P_DEC], 0, 127);
+    int32_t s = clamp(t->p[P_SUS], 0, 127), r = clamp(t->p[P_REL], 0, 127);
+    int32_t x0 = 16, y0 = 48, w = 208, h = 45, i, tot, wa, wd, ws, wr, sv, px;
+    uint32_t k;
+    hv_grad();
+    hv_air(26, 176, c, 8u);
+    hv_strip(29, c);
+    cv_text(14, 30, &AF_S, "DYNAMICS", T_THEME);
+    b[0] = 'T';                                        /* (4.1) the part, in the title: the strip took the corner */
+    fmt_int(b + 1, (int32_t)song.sel + 1);
+    cv_text(96, 30, &AF_S, b, c);
+
+    /* ---- pass 0: the shape of one note ---- */
+    cv_rrect(12, 44, 216, 53, 4, T_SURF, T_BG);        /* the panel the curve is drawn in (clear of the title) */
+    wa = 6 + a * 34 / 127;                             /* attack: as long as ATK says */
+    wd = 6 + d * 30 / 127;
+    ws = 34;                                           /* the hold: a fixed slice, so the shape stays readable */
+    wr = 6 + r * 34 / 127;
+    tot = wa + wd + ws + wr;
+    sv = s * (h - 8) / 127;
+    px = (int32_t)((ui.frame / 2u) % (uint32_t)tot);    /* the playhead's place on the shape */
+    for (i = 0; i < w; i++) {
+        int32_t p = i * tot / w, lv;
+        if (p < wa)
+            lv = p * (h - 8) / (wa ? wa : 1);
+        else if (p < wa + wd)
+            lv = (h - 8) - ((h - 8) - sv) * (p - wa) / (wd ? wd : 1);
+        else if (p < wa + wd + ws)
+            lv = sv;
+        else
+            lv = sv - sv * (p - wa - wd - ws) / (wr ? wr : 1);
+        if (lv < 1)
+            lv = 1;
+        cv_rect(x0 + i, y0 + h - lv, 1, lv, ux_mix(T_BG, c, 30 + lv * 160 / (h ? h : 1)));
+    }
+    cv_rect(x0, y0 + h, w, 1, T_LINE);                 /* the floor of the shape */
+    for (i = 1; i < 4; i++) {                          /* the three joints between the four stages */
+        int32_t jx = x0 + (i == 1 ? wa : i == 2 ? wa + wd : wa + wd + ws) * w / tot;
+        cv_rect(jx, y0, 1, h, T_RAISE);
+    }
+    if (hv_voices(t))                                  /* the playhead exists only while something sounds */
+        cv_rect(x0 + px * w / tot, y0 + h - 3, 3, 5, ux_mix(c, T_TEXT, 70));
+    /* the four times, as they are set: ATK DEC SUS REL, a label and its number */
+    {
+        static const char *const L[4] = {"ATK", "DEC", "SUS", "REL"};
+        int32_t v[4];
+        v[0] = a; v[1] = d; v[2] = s; v[3] = r;
+        for (i = 0; i < 4; i++) {
+            int32_t x = 16 + i * 54;
+            cv_text(x, 101, &AF_S, L[i], T_DIM);
+            fmt_int(b, v[i]);
+            cv_text(x + 26, 101, &AF_S, b, c);
+        }
+    }
+
+    /* ---- pass 1: every part's peak, as a column of the same number MIXER and OVERVIEW draw ---- */
+    cv_text(14, 118, &AF_S, "PEAKS", T_THEME);
+    cv_text_r(226, 118, &AF_S, "[HOME] NEXT", T_DIM, T_SURF);
+    cv_rect(14, 131, 212, 1, T_LINE);
+    for (k = 0; k < NTRK; k++) {
+        const track_t *q = &trk[k];
+        int32_t x = 16 + (int32_t)k * 35, pk = q->peak > 0 ? (int32_t)((uint32_t)q->peak * 46u / 32767u) : 0;
+        int32_t lv = q->p[P_LEVEL] * 46 / 127;
+        cv_rect(x, 136, 28, 46, T_RAISE);              /* the well the bar sits in */
+        if (pk > 0)
+            cv_rect(x + 1, 182 - pk, 26, pk, ux_mix(T_THEME, c, pk > 40 ? 60 : 20));   /* the peak it has just hit */
+        cv_rect(x, 136 + 46 - lv, 28, 1, k == song.sel ? ux_mix(c, T_TEXT, 60) : T_MID);   /* where its level sits */
+        str_cpy(b, "T", sizeof b);
+        fmt_int(b + 1, (int32_t)k + 1);
+        cv_text(x + 8, 186, &AF_S, b, k == song.sel ? c : T_MID);
+    }
+}
+
 /* the third column of a bus row: which model or time that bus is set to, from the parameter's own names */
 static const char *hv_route_name(uint32_t i)
 {
@@ -725,6 +805,8 @@ static void graph_home_view(uint16_t c)
             hv_engine(TSEL, c);
         else if (ui.home_view == HV_MOD)
             hv_mod(TSEL, c);
+        else if (ui.home_view == HV_DYN)
+            hv_dyn(TSEL, c);
         else if (ui.home_view == HV_ROUT)
             hv_route(TSEL, c);
         else

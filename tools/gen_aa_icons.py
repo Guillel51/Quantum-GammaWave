@@ -98,6 +98,7 @@ EXTRA = {
     # turns to mush.
     "x_chain": "qg_chain", "x_bus": "qg_bus", "x_punch": "qg_punch", "x_master": "qg_master",
     "x_hgrid": "qg_hgrid", "x_perf": "qg_perf", "x_matrix": "qg_matrix", "x_gauge": "qg_gauge",
+    "x_dyn": "qg_dyn",                  # (4.3) HOME > DYNAMICS: an envelope under its peak line
 }
 
 # a glyph given as a tuple: the first one the font has (a glyph still to be drawn falls back to a stand-in;
@@ -120,7 +121,7 @@ SMALL_EXTRA = ["x_star", "x_lock", "x_cog", "x_warn", "x_folder", "x_left", "x_r
                "x_repeat", "x_reverse",
                # (4.1) the eight drawn ones: FX BUS draws them at 12 px in the chain row and the block headers, and
                # HOME's strip is 12 px, so that is the only size they need (a 16 px cell would be 128 B each)
-               "x_chain", "x_bus", "x_punch", "x_master", "x_hgrid", "x_perf", "x_matrix", "x_gauge"]
+               "x_chain", "x_bus", "x_punch", "x_master", "x_hgrid", "x_perf", "x_matrix", "x_gauge", "x_dyn"]
 # legacy names no screen draws (1.1): kept in the enum (assets/icons.json's order), not rasterised (no cell)
 NOT_DRAWN = ["tape"]
 

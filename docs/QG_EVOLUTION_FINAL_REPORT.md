@@ -42,10 +42,11 @@ qué queda pendiente y por qué. Escrito el 2026-11-13.
    nadie direccionaba** (los 3 493 B que circulaban eran una cifra vieja). El slot crece **2 048 B**
    hasta `0x8E7BC`; `FLASH_SIZE`, BTIF y USR no se mueven y la región acaba en `0x8ED2B` con 725 B de
    holgura. Margen de código: **204 B → 3 208 B**.
-5. **Fase 7 — iconografía y las dos secciones**: ocho glifos propios dibujados en SVG y convertidos a fuente
-   (`tools/gen_icon_font.py` -> `web/fukiai_qg.ttf`, U+E000..E007), que FX > BUSES y las pantallas de HOME usan
+5. **Fase 7 — iconografía y las dos secciones**: nueve glifos propios dibujados en SVG y convertidos a fuente
+   (`tools/gen_icon_font.py` -> `web/fukiai_qg.ttf`, U+E000..U+E008), que FX > BUSES y las pantallas de HOME usan
    ahora; FX BUS estrena degradado de cuatro bandas, brillo en movimiento y estela del punto de señal, y HOME una
-   tira de siete iconos con la pantalla encendida y un suelo de doce bandas. Coste: tabla de iconos **+431 B**
+   tira de ocho iconos con la pantalla encendida y un suelo de doce bandas. La décima pantalla de HOME, DYNAMICS,
+   dibuja la envolvente de la pista con su cabeza lectora y las seis columnas de pico. Coste: tabla de iconos **+468 B**
    (8 177 -> 8 608) e imagen **+1 044 B** (580 404 -> 581 448), que la fase siguiente devolvió con creces.
    `ui_render`: 190 pantallas x 22 paletas, 0 hallazgos, 0 desalineaciones, 0 píxeles fuera de gama. Todo en
    host x86: sin unidad física, nadie lo ha mirado en el panel.

@@ -5,9 +5,10 @@
  * named by their numbers 1..4 on a cushion (icons.c trk_icon). Four columns <-> KNOB 1..4. Rendering is lazy:
  * every element remembers what it last drew and is redrawn only on change. */
 /* (3.0) HOME's screens, walked by each tap on HOME (go_home): the ecosystem first, the visualizer second, then the
- * six ui_homeviews.c draws, and the tap after the last comes back to the first. (4.0) ROUTING is the ninth: the
- * path a part's audio takes, stage by stage, with the buses' own measured peaks on it. */
-enum { HV_HOME, HV_VIZ, HV_OVERVIEW, HV_MIX, HV_PERF, HV_ENG, HV_MOD, HV_SYSTEM, HV_ROUT, HV_COUNT };
+ * ui_homeviews.c draws, and the tap after the last comes back to the first. (4.0) ROUTING is the ninth: the
+ * path a part's audio takes, stage by stage, with the buses' own measured peaks on it. (4.3) DYNAMICS is the
+ * tenth: the part's envelope drawn from its four times, with the playhead on it, and every part's peak under it. */
+enum { HV_HOME, HV_VIZ, HV_OVERVIEW, HV_MIX, HV_PERF, HV_ENG, HV_MOD, HV_DYN, HV_SYSTEM, HV_ROUT, HV_COUNT };
 static int project_save(uint32_t slot);
 static void panel_setup(void);
 static void project_load(uint32_t slot);
