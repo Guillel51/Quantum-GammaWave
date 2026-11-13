@@ -1073,6 +1073,10 @@ static void edit_param(uint32_t slot, int32_t steps)
         fop_knob(slot, steps);
         return;
     }
+    if (pg->graph == GR_FX_BUSES && slot == 0u) {        /* (6.1) BUSES: KNOB 1 the link, 2..4 its parameters */
+        fxb_step(steps > 0 ? 1 : -1);
+        return;
+    }
     if (pg->graph == GR_MOD && slot == 0u) {             /* MOD: KNOB 1 the slot, 2..4 its SRC DST AMT */
         mod_ui_slot = (uint8_t)clamp((int32_t)mod_ui_slot + (steps > 0 ? 1 : -1), 0, 3);
         return;

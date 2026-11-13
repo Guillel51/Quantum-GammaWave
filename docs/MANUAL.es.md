@@ -697,11 +697,33 @@ tienen. Cada pista conserva su propio TRANS.
 - SCALE: CHR, MAJ, MIN, DOR, MIX, PEN, MPEN, HARM, PHRY, LYD, LOC, MEL, BLUES, WHOLE, DIMHW, DIMWH.
 - QUANT: OFF; SNAP (las teclas se ajustan a la escala); WHITE (las teclas blancas recorren la escala, las negras no
   suenan); SEQ (como SNAP, y además las notas del secuenciador se ajustan mientras suenan).
-- **SCL 2 > ALL TR** (antes se llamaba STRN) mueve todas las secuencias hacia arriba o hacia abajo por la escala (±14
+- **GLO > SCL 2 > ALL TR** (antes se llamaba STRN; desde 6.1 vive con las páginas globales) mueve todas las secuencias hacia arriba o hacia abajo por la escala (±14
   grados), en todas las pistas a la vez. Es global y se guarda con el proyecto: si tus notas suenan más graves o más
   agudas de lo que muestra el piano roll, fijate acá. Cuando no está en 0 el piano roll muestra **ALL TR** y su valor, y
   al dar PLAY también lo avisa. 0 = apagado.
 - La reverb RESO y los pasos de afinación del SLICER también siguen la escala.
+
+### SCL: tres páginas (6.1)
+
+SCL son tres páginas, en este orden, y el pie las cuenta: **SCALE 1/3**, **CHORD 2/3**, **PROG 3/3**.
+
+- **SCALE**: las doce notas en un círculo, la tónica arriba, los grados de la escala unidos en el color de la pista y
+  las notas de afuera como marcas tenues; cada grado tiene un radio desde el centro, así los intervalos se leen de un
+  vistazo. Debajo, el teclado: las teclas de la escala encendidas (la tónica en el acento, las demás en el tema, las
+  negras en su propia celda) y una marca en cada nota que está sonando. La columna derecha dice la tonalidad (ROOT),
+  la escala y su familia, si QUANT está activo y qué acorde tocaría la página CHORD. Tarjetas: ROOT, SCALE, QUANT,
+  TRANS.
+- **CHORD**: el acorde que toca una tecla (la forma de CHORD sobre ROOT, repartida por VOICING y rasgueada por STRUM):
+  su símbolo, sus notas, el nombre del voicing y el strum en ms, los grados de la tonalidad como pastillas (el que
+  pisa el acorde en el acento, el último que tocó la pista marcado) y las voces en cuatro carriles sobre la extensión
+  del acorde – más juntos los puntos, más cerrado el voicing, y los carriles se corren con STRUM para que se vea el
+  retardo entre ellos. Con CHORD en OFF la página lo dice y los carriles quedan vacíos: la tecla toca sola.
+- **PROG**: las ocho progresiones, los pasos como pastillas y el acorde de cada uno en esta tonalidad (grado,
+  fundamental, notas, nombre).
+
+Las viejas páginas SCL, VOICING, INTERVAL y KEYS ya no están: el teclado que dibujaban es el que va bajo el círculo,
+los voicings están en la página CHORD y las doce teclas con sus grados son el círculo. No se perdió nada de lo que
+*ajustaban*: las cuatro tarjetas de SCALE y CHORD son los mismos parámetros de siempre.
 
 ### CHORD (0.6.81)
 
@@ -1106,6 +1128,24 @@ disponible mientras suena un tema (**STOP TO EDIT**). Guarda un solo paso, en RA
   **RATE**, **SYNC** (BEAT: RATE en divisiones 4BAR … 1/32, sincronizado al compás; FREE: RATE en Hz), **WAVE** (SIN,
   TRI, SAW, SQR, S&H).
 - **FILTER**: ver [4](#4-motores).
+
+### BUSES (6.1)
+
+**FX > BUSES** es la consola de ruteo: una página que muestra la cadena que recorre el audio y la edita en el lugar.
+
+- **KNOB 1** elige el eslabón: **TRACK**, **BUSES**, **DLY**, **REV**, **CHO**, **SLI**, **PUNCH**, **MASTER**; las
+  cuatro tarjetas de arriba pasan a ser los parámetros de ese eslabón (TRACK: los envíos DLY/REV/CHORUS de la pista
+  elegida; BUSES: mezcla, tamaño y profundidad de los tres buses; el resto: los tres de esa página). Acá no hay una
+  etapa de DSP nueva: cada tarjeta es el mismo id que editan las otras páginas de FX, así que girar mueve lo que el
+  motor lee.
+- Seis bloques con un dibujo propio, hecho con datos reales: **DELAY** las repeticiones separadas por TIME, cada una
+  más suave por FEEDBK; **REVERB** el largo de la cola según SIZE y su altura según el pico wet; **CHORUS** tres ondas
+  cuya fase corre con el sonido y cuyo barrido es DEPTH; **SLICER** las ocho compuertas de PAT con la del paso
+  encendida; **PUNCH** el transiente del bus de batería y la caída que produce; **MASTER** la etapa de ganancia, el
+  pico de salida y la lámpara de clip. Un bloque apagado (o un bus sin señal) no dibuja nada, y la animación corre
+  solo con picos reales (`fx_vu`): con el instrumento en silencio la página queda quieta.
+- La página es su propia sección dentro de FX: el pie dice **BUSES 1/1** y, con la consola encendida, el bloque al que
+  pertenecen las perillas queda enmarcado.
 
 ### SLICER (uno solo, en un bus)
 

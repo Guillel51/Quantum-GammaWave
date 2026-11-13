@@ -1,27 +1,32 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* (2.8) SCL as a player's tool: the notes of the scale and their intervals (SCALE), the chords the key has
- * (CHORD), how each of them lies on the keyboard (VOICING), the intervals up and down from the root
- * (INTERVAL), the progressions the degrees make (PROG) and the keys themselves (NOTE).
+/* (6.1) SCL as a player's tool, in three pages: SCALE (the circle of the twelve notes and the keyboard under it),
+ * CHORD (the chord a key plays, how its voices lie and how far they strum, over the degrees of the key) and PROG
+ * (the progressions those degrees make).
  *
  * Everything on them is computed from the same scale mask, chord_tones and chord_from the sequencer plays
  * (seq.c), so no page can keep a number the sound disagrees with -- a chord the page prints is the chord a
- * key plays, and the README's "no decorative screens" is the rule here. They are read-only: the four cards
- * above each of them are the only thing they set, and none of them adds a parameter, so a project saved
- * before them loads and sounds as it did.
+ * key plays, and the README's "no decorative screens" is the rule here. The cards above each page are what
+ * they set: ROOT SCALE QUANT on the first, CHORD VOICING STRUM on the second (and KNOB 1 of PROG, which is
+ * the progression), so a project saved before them loads and sounds as it did.
  *
- * Geometry: the panel is 240 x 122 (ui.c H_GRAPH) and every screen is drawn inside it with cv_oy = 0. The
- * twelve-note pages use a grid of two columns of six cells (a chromatic has twelve notes, DIMHW and DIMWH
- * eight); the chord pages use eight rows of 12 px and a legend line under them. */
+ * Geometry: the panel is 240 x 122 (ui.c H_GRAPH) and every page is drawn inside it with cv_oy = 0. The circle
+ * is centred at (52, 63) with its twelve labels on a ring of 47 px: the twelve note names never collide with
+ * the ring, and the right column keeps 130 px for the key, its scale and the degrees. */
+
 static const char *const N_ITVN[] = {"P1", "m2", "M2", "m3", "M3", "P4", "TT", "P5", "m6", "M6", "m7", "M7"};
 static const char *const N_ROMAN[] = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII"};
 static const char *const N_ROMANM[] = {"i", "ii", "iii", "iv", "v", "vi", "vii", "viii"};
 static const char *const N_CHRDN[] = {"OFF", "TRIAD", "7TH", "ADD9", "SUS2", "SUS4", "MAJ", "MIN", "7", "MAJ7",
                                       "MIN7", "POWER"};
-/* the grid the twelve-note pages use: two columns of six cells, 17 px apart */
-#define SCL_GY(k) (18 + 17 * (int32_t)(k))
-/* the list the chord pages use: eight rows of 12 px, then a line under them */
-#define SCL_LY(k) (14 + 12 * (int32_t)(k))
+/* the twelve positions of the circle, 30 degrees apart from the tonic at the top (Q8: 256 = 1) */
+static const int16_t SCL_COS[12] = {0, 128, 222, 256, 222, 128, 0, -128, -222, -256, -222, -128};
+static const int16_t SCL_SIN[12] = {-256, -222, -128, 0, 128, 222, 256, 222, 128, 0, -128, -222};
+/* the keyboard the pages draw: C C# D D# E F F# G G# A A# B */
+static const uint8_t SCL_BLACK[12] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+static const uint8_t SCL_WKEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
+static const uint8_t SCL_WNOTE[7] = {0, 2, 4, 5, 7, 9, 11};
+
 static void scl_head(const char *l, const char *r, uint16_t rc)
 {
     cv_text_on(12, 3 + CAP_IN(S, 16), &AF_S, l, T_THEME, T_SURF);
@@ -30,6 +35,22 @@ static void scl_head(const char *l, const char *r, uint16_t rc)
 static void scl_field(int32_t x, int32_t y, const char *s, uint16_t fg, uint16_t bg)
 {
     cv_text_on(x, y + CAP_IN(S, 16), &AF_S, s, fg, bg);
+}
+/* a key of the keyboard strip: rounded, a lit top and a contour, drawn from rows (no registered cell: the
+ * accidentals sit over the naturals) */
+static void scl_pkey(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, uint16_t brd)
+{
+    cv_rect(x + 2, y, w - 4, h, face);
+    cv_rect(x, y + 2, 2, h - 4, face);
+    cv_rect(x + w - 2, y + 2, 2, h - 4, face);
+    cv_pset(x + 1, y + 1, brd);
+    cv_pset(x + w - 2, y + 1, brd);
+    cv_pset(x + 1, y + h - 2, brd);
+    cv_pset(x + w - 2, y + h - 2, brd);
+    cv_rect(x + 2, y, w - 4, 1, ux_mix(brd, face, 60));
+    cv_rect(x + 1, y + h - 1, w - 2, 1, brd);
+    cv_rect(x, y + 2, 1, h - 4, brd);
+    cv_rect(x + w - 1, y + 2, 1, h - 4, brd);
 }
 /* the chord's short name from its close-position tones, and whether its numeral is lower case (minor, dim) */
 static const char *scl_quality(const uint8_t *nt, uint32_t n, int *lower)
@@ -82,7 +103,7 @@ static uint32_t scl_chord_offsets(const track_t *t, uint8_t *off)
         off[i] = MAJ[i];
     return 7u;
 }
-/* the tones of a chord with their octave, for the voicing page: "G3 A#3 D4 F4" (C4 = 60) */
+/* the tones of a chord with their octave, for the chord page: "G3 A#3 D4 F4" (C4 = 60) */
 static void scl_notes_oct(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
 {
     uint32_t i;
@@ -111,137 +132,180 @@ static void scl_notes(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
         str_cpy(b + str_len(b), N_NOTE[nt[i] % 12u], sz - str_len(b));
     }
 }
-/* SCL > SCALE: the scale in full -- its family, its notes, the interval each is above the root and the triad
- * that stands on it -- in a grid of two columns of six (a chromatic, or one of the eight-note diminished
- * scales, needs them all). The row of the tonic is in the accent. */
+/* the keyboard strip: twelve keys from x0 to x1, in the scale coloured (the tonic in the accent), and the
+ * notes a voice is sounding lit. It reads the same mask as the circle above it, so the two cannot disagree. */
+static void scl_keyboard(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int small)
+{
+    uint32_t i, mask = scale_mask(t), root = (uint32_t)t->p[P_ROOT] % 12u, live = 0;
+    int32_t gap = 2, kw = (w - 11 * gap) / 12;
+    for (i = 0; i < NVOICE; i++) {
+        const voice_t *v = &V(t, i);
+        if (v->active && v->gate && v->note < 128u)
+            live |= 1u << (v->note % 12u);
+    }
+    /* twelve cells, one a key: the cell sits high on a white key and low on a black one, as the keys do, and the
+     * ones in the scale are filled with the theme (the tonic with the accent). A voice sounding marks its cell. */
+    for (i = 0; i < 12u; i++) {
+        uint32_t deg = (i + 12u - root) % 12u;
+        int32_t kx = x0 + (int32_t)i * (kw + gap);
+        int in = (mask >> deg) & 1u, is_root = in && deg == 0u, black = SCL_BLACK[i];
+        int sound = (live >> i) & 1u;
+        int32_t ky = y0 + (black ? h / 3 : 0), kh = h - (black ? h / 3 : 0);
+        uint16_t face = is_root ? T_ACCENT : in ? T_THEME : black ? T_RAISE : T_SURF;
+        uint16_t ink = is_root ? T_INK : in ? T_INK : black ? T_DIM : T_MID;
+        scl_pkey(kx, ky, kw, kh, face, ux_mix(face, T_BG, 55));
+        if (black)
+            cv_rect(kx + 1, y0 + 1, kw - 2, h / 3 - 1, T_BG);
+        if (!small)
+            cv_text_in(kx, ky + (kh - 9) / 2, kw, &AF_S, N_NOTE[i], ink, face);
+        if (sound)
+            cv_rect(kx + 2, ky + kh - 3, kw - 4, 2, is_root || in ? T_TEXT : T_ACCENT);
+    }
+}
+/* SCL > SCALE: the twelve notes on a circle -- the tonic at the top, the scale's degrees joined by the ring in
+ * the theme's colour, the notes outside it on a dim stub -- and the keyboard under it with the same notes lit.
+ * The right column says the key, its family, whether it quantizes and how many notes the scale has. */
 static void graph_scl_scale(const track_t *t, uint16_t c)
 {
-    uint8_t off[12], tri[KB_CH];
-    uint32_t n = scale_offsets(t, off), i, rows = (n + 1u) / 2u, tn;
+    uint32_t i, mask = scale_mask(t), n = 0, root = (uint32_t)t->p[P_ROOT] % 12u;
     uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 15);
-    int32_t root = ((t->p[P_ROOT] % 12) + 12) % 12;
-    char l[28], b[8];
+    int32_t cx = 54, cy = 60, r = 22;
+    char l[24], b[8];
     (void)c;
+    for (i = 0; i < 12u; i++)
+        n += (mask >> i) & 1u;
     str_cpy(l, N_NOTE[root], sizeof l);
     str_cpy(l + str_len(l), " ", 2);
     str_cpy(l + str_len(l), N_SCALELONG[sc], sizeof l - str_len(l));
-    scl_head(l, N_SCLFAM[sc], T_DIM);
-    for (i = 0; i < n; i++) {
-        uint32_t col = i / rows, row = i % rows, pc = ((uint32_t)root + off[i]) % 12u;
-        int32_t x = 12 + (int32_t)col * 112, y = SCL_GY((int32_t)row);
-        fmt_int(b, (int32_t)i + 1);
-        scl_field(x, y, b, i ? T_MID : T_ACCENT, T_SURF);
-        scl_field(x + 20, y, N_NOTE[pc], i ? T_TEXT : T_ACCENT, T_SURF);
-        scl_field(x + 44, y, N_ITVN[off[i]], T_MID, T_SURF);
-        if (sc != 0u) {                                  /* (CHR: its chords are the major scale's, so none) */
-            tn = chord_from(t, 60u + pc, CD_TRI, CV_CLOSE, tri, 0, 0);
-            scl_field(x + 68, y, scl_quality(tri, tn, 0), T_DIM, T_SURF);
-        }
+    scl_head(l, t->p[P_QUANT] ? "QUANT" : "FREE", t->p[P_QUANT] ? T_ACCENT : T_DIM);
+
+    /* the ring: the twelve neighbours joined, the degrees of the scale brighter than the rest */
+    for (i = 0; i < 12u; i++) {
+        uint32_t j = (i + 1u) % 12u;
+        uint32_t deg = (i + 12u - root) % 12u, deg2 = (j + 12u - root) % 12u;
+        int both = ((mask >> deg) & 1u) && ((mask >> deg2) & 1u);
+        int32_t x0 = cx + SCL_COS[i] * r / 256, y0 = cy + SCL_SIN[i] * r / 256;
+        int32_t x1 = cx + SCL_COS[j] * r / 256, y1 = cy + SCL_SIN[j] * r / 256;
+        cv_line_t(x0, y0, x1, y1, both ? T_THEME : T_LINE, both ? 2 : 1);
     }
+    for (i = 0; i < 12u; i++) {
+        uint32_t deg = (i + 12u - root) % 12u;
+        int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
+        int32_t nx = cx + SCL_COS[i] * r / 256, ny = cy + SCL_SIN[i] * r / 256;
+        int32_t lx = cx + SCL_COS[i] * 34 / 256, ly = cy + SCL_SIN[i] * 34 / 256;
+        if (in) {                                        /* a spoke from the centre: the tonic to each degree */
+            if (!is_root)
+                cv_line(cx, cy, nx, ny, ux_mix(T_THEME, T_SURF, 26));
+            cv_rect(nx - 2, ny - 2, 5, 5, is_root ? T_ACCENT : T_THEME);
+            if (is_root)
+                cv_rect(nx - 3, ny - 3, 7, 7, T_ACCENT);
+        } else
+            cv_pset(nx, ny, T_RAISE);
+        cv_text_in(lx - 8, ly - 6, 16, &AF_S, N_NOTE[(i + root) % 12u],
+                   is_root ? T_ACCENT : in ? T_TEXT : T_DIM, T_SURF);
+    }
+    cv_text_in(cx - 4, cy - 6, 9, &AF_S, N_NOTE[root], T_ACCENT, T_SURF);
+
+    /* the right column: the key, its family and what the page's three cards set */
+    {
+        int32_t x = 104;
+        cv_text_on(x, 8, &AF_L, N_NOTE[root], T_ACCENT, T_SURF);
+        cv_text_on(x + text_w(&AF_L, N_NOTE[root]) + 4, 14, &AF_S, N_SCALE[sc], T_TEXT, T_SURF);
+    }
+    scl_field(104, 30, N_SCLFAM[sc], T_MID, T_SURF);
+    {
+        char nb[16];
+        fmt_int(nb, (int32_t)n);
+        str_cpy(nb + str_len(nb), " NOTES", sizeof nb - str_len(nb));
+        scl_field(104, 42, nb, T_DIM, T_SURF);
+    }
+    scl_field(104, 54, t->p[P_QUANT] ? "SNAPS TO KEY" : "AS PLAYED", t->p[P_QUANT] ? T_THEME : T_DIM, T_SURF);
+    if (t->p[P_CHRD]) {
+        uint8_t out[KB_CH];
+        uint32_t tn = chord_build(t, 60u, out);
+        char q[20];
+        str_cpy(q, N_CHRDN[(uint32_t)clamp(t->p[P_CHRD], 0, CD_POW)], sizeof q);
+        str_cpy(q + str_len(q), " ", 2);
+        str_cpy(q + str_len(q), scl_quality(out, tn, 0), sizeof q - str_len(q));
+        scl_field(104, 66, "CHRD ON", T_ACCENT, T_SURF);
+        cv_text_fit(152, 66, &AF_S, q, T_TEXT, T_SURF, 78);
+    } else
+        scl_field(104, 66, "CHRD OFF", T_DIM, T_SURF);
+    scl_keyboard(t, 8, 98, 224, 20, 0);
 }
-/* SCL > CHORD: every degree's own chord -- its numeral, the note it stands on, the notes it is made of, its
- * name and its harmonic function (T tonic, S subdominant, D dominant) -- with the row the track played last
- * marked by an accent bar (chord_build remembers it, seq.c). The chords are close-position triads: what a key
- * plays is CHRD's shape, which VOICING shows. */
+/* SCL > CHORD: the chord a key plays on this track (CHRD's shape on ROOT, laid out by VOICING and strummed by
+ * STRUM), the degrees of the key with the one the chord stands on lit, and the voices themselves as four lanes
+ * over the chord's own compass -- the closer the dots, the tighter the voicing; the stagger between the lanes
+ * is the strum the engine applies. When CHRD is OFF the page says so and keeps the lanes empty: a key plays
+ * itself, nothing here is added. */
 static void graph_scl_chord(const track_t *t, uint16_t c)
 {
-    /* T / S / D of a degree, by the semitones of its root above the key's: I iii vi tonic, ii IV bVI
-     * subdominant, V bVII vii dominant (the triads of a major key and of a minor one both read so) */
     static const int8_t FN[12] = {0, -1, 1, 0, 0, 1, -1, 2, 1, 0, 2, 2};
     static const char *const FN_N[] = {"T", "S", "D", "-"};
     uint8_t off[12], out[KB_CH];
     uint32_t n = scl_chord_offsets(t, off), i, tn, ti = trk_index(t) % NTRK;
-    int32_t root = ((t->p[P_ROOT] % 12) + 12) % 12;
-    char l[20], b[8], nts[24];
-    (void)c;
-    str_cpy(l, N_NOTE[root], sizeof l);
-    str_cpy(l + str_len(l), " ", 2);
-    str_cpy(l + str_len(l), N_SCALE[(uint32_t)clamp(t->p[P_SCALE], 0, 15)], sizeof l - str_len(l));
-    scl_head(l, "CHORDS IN KEY", T_DIM);
-    for (i = 0; i < n; i++) {
-        int32_t y = SCL_LY((int32_t)i), pc = ((int32_t)root + off[i]) % 12, lower;
-        int sel = chord_nlast[ti] && (int32_t)(chord_last[ti][0] % 12u) == pc;
-        const char *qn;
-        tn = chord_from(t, (uint32_t)(60 + pc), CD_TRI, CV_CLOSE, out, 0, 0);
-        qn = scl_quality(out, tn, &lower);
-        scl_notes(out, tn, nts, sizeof nts);
-        if (sel)
-            cv_rect(8, y - 3, 2, 13, T_ACCENT);           /* (12 px rows: a bar, not a pill) */
-        scl_field(14, y, scl_degname(i, n, lower, b), sel ? T_ACCENT : T_MID, T_SURF);
-        scl_field(40, y, N_NOTE[pc], T_TEXT, T_SURF);
-        scl_field(64, y, nts, T_TEXT, T_SURF);
-        scl_field(132, y, qn, T_DIM, T_SURF);
-        scl_field(182, y, FN_N[FN[off[i]] < 0 ? 3 : FN[off[i]]], T_MID, T_SURF);
-    }
-    scl_field(14, 110, "T TONIC  S SUBDOM  D DOM", T_DIM, T_SURF);
-}
-/* SCL > VOICING: the chord the page sets (CHRD) on the root, in its four dispositions -- close, voice led,
- * open, and with the bass an octave down -- each with a bar along the keyboard's compass: a dot a note, so
- * CLOSE reads tight, OPEN wide and +BASS under the root, which is what the four knob settings do. */
-static void graph_scl_voice(const track_t *t, uint16_t c)
-{
-    static const char *const VN[] = {"CLOSE", "LEAD", "OPEN", "+BASS"};
-    uint8_t close[KB_CH], out[KB_CH];
     uint32_t mode = (uint32_t)clamp(t->p[P_CHRD], 0, CD_POW), vc = (uint32_t)clamp(t->p[P_CVOI], 0, 3);
     int32_t root = ((t->p[P_ROOT] % 12) + 12) % 12;
-    uint32_t nc, k, i;
-    char l[24], nts[24];
+    char l[24], b[8], nts[24], vo[16];
     (void)c;
-    if (!mode)
-        mode = CD_TRI;                                   /* OFF: the page still says what a triad would be */
-    nc = chord_from(t, (uint32_t)(60 + root), CD_TRI, CV_CLOSE, close, 0, 0);
     str_cpy(l, N_NOTE[root], sizeof l);
     str_cpy(l + str_len(l), " ", 2);
     str_cpy(l + str_len(l), N_CHRDN[mode], sizeof l - str_len(l));
-    scl_head(l, "VOICINGS", T_DIM);
-    for (k = 0; k < 4u; k++) {
-        uint32_t n = chord_from(t, (uint32_t)(60 + root), mode, k, out, close, nc);
-        int32_t y = 20 + 21 * (int32_t)k, x0 = 150, x1 = 226, lo = 24, hi = 108;
-        int sel = k == vc;
-        uint16_t bg = sel ? T_THEME : T_SURF;
-        int32_t a = 0, bb = 0;
-        if (sel) {
-            cv_rrect(6, y - 4, 228, 19, 4, T_THEME, T_SURF);
-            cv_rect(12, y - 4, 216, 1, ux_mix(T_THEME, T_TEXT, 34));
-            cv_rect(12, y + 14, 216, 1, ux_mix(T_THEME, T_BG, 34));
-        }
-        scl_notes_oct(out, n, nts, sizeof nts);
-        scl_field(12, y, VN[k], sel ? T_INK : T_MID, bg);
-        scl_field(66, y, nts, sel ? T_INK : T_TEXT, bg);
-        for (i = 0; i < n; i++) {                        /* the compass of the chord: one dot a note */
-            int32_t p = x0 + ((int32_t)out[i] - lo) * (x1 - x0) / (hi - lo);
-            p = p < x0 ? x0 : p > x1 ? x1 : p;
-            if (!i || p < a) a = p;
-            if (!i || p > bb) bb = p;
-            cv_rect(p - 1, y + 7, 3, 3, sel ? T_INK : T_ACCENT);
-        }
-        cv_rect(a, y + 8, bb - a > 0 ? bb - a : 1, 1, sel ? ux_mix(T_INK, T_THEME, 40) : ux_mix(T_THEME, T_SURF, 30));
+    scl_head(l, mode ? "CHORD" : "OFF", mode ? T_THEME : T_DIM);
+
+    /* the chord its shape makes on the tonic: name, notes, and the degree it stands on */
+    tn = chord_from(t, (uint32_t)(60 + root), mode ? mode : CD_TRI, mode ? vc : CV_CLOSE, out, 0, 0);
+    {
+        const char *q = scl_quality(out, tn, 0);
+        int32_t w = text_w(&AF_L, N_NOTE[root]);
+        cv_text_on(12, 14, &AF_L, N_NOTE[root], mode ? T_ACCENT : T_DIM, T_SURF);
+        scl_field(12 + w + 3, 22, q, mode ? T_TEXT : T_DIM, T_SURF);
+        scl_notes(out, tn, nts, sizeof nts);
+        cv_text_fit(12, 40, &AF_S, nts, mode ? T_TEXT : T_DIM, T_SURF, 120);
+        str_cpy(vo, "VOICE ", sizeof vo);
+        str_cpy(vo + 6, vc == 0 ? "CLOSE" : vc == 1 ? "LEAD" : vc == 2 ? "OPEN" : "BASS", sizeof vo - 6);
+        scl_field(12, 53, vo, T_MID, T_SURF);
     }
-    scl_field(12, 106, "KNOB 1 CHORD  KNOB 2 VOICING", T_DIM, T_SURF);
-}
-/* SCL > INTERVAL: the twelve intervals from the root, up (the note above it) and down (the note below), with
- * their semitones; the ones the scale has are in the accent. That is what makes a mode legible: DOR has a
- * major sixth, LOC a flat fifth, MPEN no second. */
-static void graph_scl_int(const track_t *t, uint16_t c)
-{
-    uint32_t mask = scale_mask(t), i;
-    int32_t root = ((t->p[P_ROOT] % 12) + 12) % 12;
-    char l[20], b[8];
-    (void)c;
-    str_cpy(l, "FROM ", sizeof l);
-    str_cpy(l + 5, N_NOTE[root], sizeof l - 5);
-    scl_head(l, "UP / DOWN", T_DIM);
-    for (i = 0; i < 12u; i++) {
-        uint32_t col = i / 6u, row = i % 6u;
-        int32_t x = 12 + (int32_t)col * 112, y = SCL_GY((int32_t)row);
-        int32_t dn = ((root - (int32_t)i) % 12 + 12) % 12;
-        int in = (mask >> i) & 1u;
-        scl_field(x, y, N_ITVN[i], in ? T_ACCENT : T_MID, T_SURF);
-        b[0] = i ? '+' : ' ';
-        fmt_int(b + 1, (int32_t)i);
-        scl_field(x + 28, y, b, in ? T_TEXT : T_DIM, T_SURF);
-        scl_field(x + 56, y, N_NOTE[((uint32_t)root + i) % 12u], in ? T_TEXT : T_DIM, T_SURF);
-        scl_field(x + 88, y, N_NOTE[dn], T_DIM, T_SURF);
+    {   /* the strum: how far the voices are apart, in ms (chord_gap: 127 x 0.5 ms) */
+        char sb[20];
+        int32_t ms = t->p[P_CSTR] * 1000 / 2000;
+        fmt_int(sb, ms);
+        str_cpy(sb + str_len(sb), " ms", sizeof sb - str_len(sb));
+        scl_field(120, 53, t->p[P_CSTR] ? sb : "STRUM OFF", t->p[P_CSTR] ? T_THEME : T_DIM, T_SURF);
+    }
+    /* the degrees of the key: a pill each, the one the chord stands on filled with the accent (and the one the
+     * track played last marked with a bar under it, as the sequencer remembers it) */
+    for (i = 0; i < n; i++) {
+        int32_t cw = 210 / (int32_t)(n ? n : 1u), x = 12 + (int32_t)i * cw, y = 68;
+        int32_t pc = ((int32_t)root + off[i]) % 12, lower;
+        int sel = mode && pc == root, last = chord_nlast[ti] && (int32_t)(chord_last[ti][0] % 12u) == pc;
+        uint32_t dtn = chord_from(t, (uint32_t)(60 + pc), CD_TRI, CV_CLOSE, out, 0, 0);
+        uint16_t bg = sel ? T_ACCENT : T_RAISE;
+        scl_quality(out, dtn, &lower);
+        cv_rrect(x, y, cw - 3, 15, 3, bg, T_SURF);
+        cv_text_in(x, y + 3, cw - 3, &AF_S, scl_degname(i, n, lower, b), sel ? T_INK : T_TEXT, bg);
+        if (last)
+            cv_rect(x, y + 16, cw - 6, 2, T_TEXT);
+    }
+    /* the voices: four lanes over the chord's own compass, a dot each note, the lanes stepping right by the strum
+     * so the delay the engine applies between them is visible. The lanes share a pitch axis, so CLOSE reads tight
+     * and OPEN wide; the line under each lane is the span the chord covers. */
+    if (mode) {
+        int32_t x0 = 16, x1 = 222, lo = 127, hi = 0, k;
+        int32_t strum = (int32_t)t->p[P_CSTR] * 18 / 127;
+        for (i = 0; i < tn; i++) {
+            if ((int32_t)out[i] < lo) lo = out[i];
+            if ((int32_t)out[i] > hi) hi = out[i];
+        }
+        hi = hi - lo < 7 ? lo + 7 : hi;
+        for (k = 0; k < (int32_t)tn && k < 4; k++) {
+            int32_t y = 86 + k * 7;
+            int32_t p = x0 + ((int32_t)out[k] - lo) * (x1 - x0) / (hi - lo);
+            p += k * strum;
+            p = p < x0 ? x0 : p > x1 ? x1 : p;
+            cv_rect(x0 + k * strum, y + 5, x1 - x0 - 3 * strum, 1, ux_mix(T_THEME, T_SURF, 24));
+            cv_rect(p - 1, y, 3, 4, T_ACCENT);
+        }
     }
 }
 /* SCL > PROG: the progressions the degrees make and what each step becomes in this key -- the step, its
@@ -266,61 +330,32 @@ static void graph_scl_prog(const track_t *t, uint16_t c)
     (void)c;
     cnt = PROG_SEQ[pi][8];
     str_cpy(l, N_PROGN[pi], sizeof l);
-    str_cpy(l + str_len(l), ": ", 4);
-    for (k = 0; k < cnt; k++) {                          /* the degrees as the progression is written, I V VI IV
-                                                          * (the rows below give each chord's own case) */
-        uint32_t o = PROG_SEQ[pi][k] % n;
-        if (str_len(l) > 18u)
-            break;
-        str_cpy(l + str_len(l), " ", 2);
-        str_cpy(l + str_len(l), scl_degname(o, n, 0, b), sizeof l - str_len(l));
+    scl_head(l, "", T_DIM);
+    /* the progression as pills, left to right: the steps in the order they are played */
+    for (k = 0; k < cnt; k++) {
+        uint32_t o = PROG_SEQ[pi][k] % n, pc = ((uint32_t)root + off[o]) % 12u;
+        int32_t w = 214 / (int32_t)cnt, x = 12 + (int32_t)k * w;
+        int32_t y = 18;
+        cv_rrect(x, y, w - 4, 14, 3, T_RAISE, T_SURF);
+        scl_field(x + 4, y + 1, scl_degname(o, n, 0, b), T_ACCENT, T_RAISE);
+        scl_field(x + 4 + 12, y + 1, N_NOTE[pc], T_TEXT, T_RAISE);
+        cv_rect(x + 2, y + 13, w - 8, 2, T_THEME);
     }
-    fmt_int(pg, (int32_t)pi + 1);
-    str_cpy(pg + str_len(pg), "/8", 4);
-    scl_head(l, pg, T_DIM);
     for (k = 0; k < cnt; k++) {
         uint32_t d = PROG_SEQ[pi][k], o = d % n;
-        int32_t y = SCL_LY((int32_t)k), pc = ((int32_t)root + off[o]) % 12;
+        int32_t y = 36 + 12 * (int32_t)k, pc = ((int32_t)root + off[o]) % 12;
         uint32_t tn = chord_from(t, (uint32_t)(60 + pc), CD_TRI, CV_CLOSE, out, 0, 0);
         int wrap = d >= n, lower;                         /* (a degree this scale does not have) */
         scl_quality(out, tn, &lower);
         scl_notes(out, tn, nts, sizeof nts);
         fmt_int(b, (int32_t)k + 1);
-        scl_field(14, y, b, T_MID, T_SURF);
-        scl_field(36, y, scl_degname(o, n, lower, b), wrap ? T_DIM : T_ACCENT, T_SURF);
-        scl_field(66, y, N_NOTE[pc], T_TEXT, T_SURF);
-        scl_field(90, y, nts, T_TEXT, T_SURF);
-        scl_field(182, y, scl_quality(out, tn, 0), wrap ? T_DIM : T_MID, T_SURF);
+        scl_field(14, y, b, T_DIM, T_SURF);
+        scl_field(30, y, scl_degname(o, n, lower, b), wrap ? T_DIM : T_ACCENT, T_SURF);
+        scl_field(58, y, N_NOTE[pc], T_TEXT, T_SURF);
+        scl_field(80, y, nts, wrap ? T_DIM : T_TEXT, T_SURF);
+        scl_field(170, y, scl_quality(out, tn, 0), wrap ? T_DIM : T_MID, T_SURF);
     }
-    scl_field(14, 110, cnt < 8u ? "KNOB 1 NEXT PROGRESSION" : "8 STEPS", T_DIM, T_SURF);
-}
-/* SCL > NOTE: the twelve keys -- their name, the degree they are in the scale (or none), their MIDI number at
- * C4 = 60 and the other name of the same key (Db for C#) -- so a note can be found instead of guessed */
-static void graph_scl_note(const track_t *t, uint16_t c)
-{
-    static const char *const N_ENH[] = {"", "Db", "", "Eb", "", "", "Gb", "", "Ab", "", "Bb", ""};
-    uint32_t mask = scale_mask(t), i;
-    int32_t root = ((t->p[P_ROOT] % 12) + 12) % 12;
-    char l[24], b[8];
-    (void)c;
-    str_cpy(l, "KEYS OF ", sizeof l);
-    str_cpy(l + 8, N_NOTE[root], sizeof l - 8);
-    str_cpy(l + str_len(l), " ", 2);
-    str_cpy(l + str_len(l), N_SCALE[(uint32_t)clamp(t->p[P_SCALE], 0, 15)], sizeof l - str_len(l));
-    scl_head(l, "MIDI 60 = C4", T_DIM);
-    for (i = 0; i < 12u; i++) {
-        uint32_t col = i / 6u, row = i % 6u;
-        int32_t x = 12 + (int32_t)col * 112, y = SCL_GY((int32_t)row), d = scale_degree_of(t, 60 + (int32_t)i);
-        int in = (mask >> ((i + 12u - (uint32_t)root) % 12u)) & 1u;
-        scl_field(x, y, N_NOTE[i], in ? T_TEXT : T_MID, T_SURF);
-        if (d < 0)
-            str_cpy(b, "-", 4);
-        else
-            fmt_int(b, d + 1);
-        scl_field(x + 26, y, b, in ? T_ACCENT : T_DIM, T_SURF);
-        fmt_int(b, 60 + (int32_t)i);
-        scl_field(x + 48, y, b, in ? T_TEXT : T_DIM, T_SURF);
-        if (N_ENH[i][0])
-            scl_field(x + 82, y, N_ENH[i], T_DIM, T_SURF);
-    }
+    fmt_int(pg, (int32_t)pi + 1);
+    str_cpy(pg + str_len(pg), "/8", 4);
+    cv_text_r(228, 3 + CAP_IN(S, 16), &AF_S, pg, T_MID, T_SURF);
 }

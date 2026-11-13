@@ -666,10 +666,31 @@ MIDI, a project load), every melodic track follows it at once; drum tracks have 
 - SCALE: CHR, MAJ, MIN, DOR, MIX, PEN, MPEN, HARM, PHRY, LYD, LOC, MEL, BLUES, WHOLE, DIMHW, DIMWH.
 - QUANT: OFF; SNAP (keys snap to the scale); WHITE (the white keys walk the scale, black keys are silent); SEQ (as SNAP,
   and the sequencer's notes snap too as they play).
-- **SCL 2 > ALL TR** (it was called STRN) moves every sequence up or down the scale (±14 degrees), on every track at
+- **GLO > SCL 2 > ALL TR** (it was called STRN; it lives with the global pages since 6.1) moves every sequence up or down the scale (±14 degrees), on every track at
   once. It is global and saved with the project: if your notes sound lower or higher than the piano roll shows, look
   here. When it is not 0 the piano roll says **ALL TR** and its value, and PLAY says it too. 0 = off.
 - The RESO reverb and the SLICER's pitch steps follow the scale too.
+
+### SCL: three pages (6.1)
+
+SCL is three pages, in this order, and the footer counts them: **SCALE 1/3**, **CHORD 2/3**, **PROG 3/3**.
+
+- **SCALE**: the twelve notes on a circle, the tonic at the top, the scale's degrees joined in the track's colour and
+  the notes outside it as dim stubs; every degree has a spoke from the centre so the intervals can be read at a
+  glance. Under it, the keyboard: the keys in the scale lit (the tonic in the accent, the others in the theme, the
+  accidentals as their own darker cells) and every note a voice is sounding marked. The right column says the key
+  (ROOT), the scale and its family, whether QUANT is on and which chord the CHORD page would play. Cards: ROOT,
+  SCALE, QUANT, TRANS.
+- **CHORD**: the chord a key plays (CHORD's shape on ROOT, laid out by VOICING and strummed by STRUM): its symbol,
+  its notes, its voicing's name and the strum in ms, the degrees of the key as pills (the one the chord stands on in
+  the accent, the one the track played last marked), and the voices as four lanes over the chord's own compass – the
+  closer the dots, the tighter the voicing, and the lanes step right with STRUM so the delay between them is visible.
+  With CHORD OFF the page says so and the lanes stay empty: a key plays itself.
+- **PROG**: the eight progressions, the steps as pills and each one's chord in this key (degree, root, notes, name).
+
+The old SCL, VOICING, INTERVAL and KEYS pages are gone: the keyboard they drew is the one under the circle, the
+voicings are on CHORD's page and the twelve keys with their degrees are the circle itself. Nothing they *set* was
+lost – the four cards above SCALE and CHORD are the same parameters they always were.
 
 ### CHORD (0.6.81)
 
@@ -1045,6 +1066,23 @@ sounds picked with PRESETS, SEQ TOOLS actions, or ordinary knob turns. It is not
 - **AUTO PAN**: the track's pan swung left and right around its PAN. **DEPTH** (0 = off), **RATE**, **SYNC** (BEAT:
   RATE in divisions 4BAR … 1/32, locked to the bar; FREE: RATE in Hz), **WAVE** (SIN, TRI, SAW, SQR, S&H).
 - **FILTER**: see [4](#4-engines).
+
+### BUSES (6.1)
+
+**FX > BUSES** is the routing console: one page that shows the chain the audio takes and edits it in place.
+
+- **KNOB 1** selects the link: **TRACK**, **BUSES**, **DLY**, **REV**, **CHO**, **SLI**, **PUNCH**, **MASTER**; the
+  four cards above become that link's parameters (TRACK: the selected track's DLY/REV/CHORUS sends; BUSES: the three
+  buses' mix, size and depth; the rest: that page's own three). Nothing here is a new DSP stage – every card is the
+  same id the other FX pages edit, so a turn moves what the engine reads.
+- Six blocks carry a drawing of their own kind, from real data: **DELAY** the repeats TIME apart, each FEEDBK softer,
+  **REVERB** the tail's length from SIZE and its height from the wet peak, **CHORUS** three waves whose phase runs
+  with the sound and whose sweep is DEPTH, **SLICER** the eight gates of PAT with the step's own lit,
+  **PUNCH** the drum bus's transient and the dip it ducks, **MASTER** the gain stage, the output peak and the clip
+  lamp. A block that is off (or a bus with no signal) draws nothing; the animation only runs on real peaks
+  (`fx_vu`), so a silent instrument leaves the page still.
+- The page is its own section in FX: its footer says **BUSES 1/1** and, with the console lit, the block the knobs
+  belong to is framed.
 
 ### SLICER (one, on a bus)
 

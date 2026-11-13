@@ -254,6 +254,8 @@ void perf_reset(void);   /* (2.1) a new preset: the punch-in latches, the macros
 int32_t fx_master_g(void);
 int32_t fx_lim_env(void);
 void fx_preset_flush(void);   /* (2.1) a new preset: the buses' short state and their small lines */
+int fxb_sel(void);            /* (6.1) FX > BUSES: the link the console's knobs edit */
+void fxb_step(int32_t d);     /* .. walked by KNOB 1 */
 
 #define G_SYNC G_DREL                   /* (the old names, for the formats' importers and their tests) */
 #define G_ENGGO G_CLIP

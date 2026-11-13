@@ -167,6 +167,7 @@ static struct { uint32_t stage; } felucca_dbg;
 #include "../firmware/src/menu_items.c"
 #include "../firmware/src/icons.c"
 #include "../firmware/src/ui_scl.c"
+#include "../firmware/src/ui_fxb.c"
 #include "../firmware/src/ui_homeviews.c"
 #include "../firmware/src/ui_graph.c"
 #include "../firmware/src/ui_draw.c"
@@ -1283,9 +1284,14 @@ static int test_midi(void)
         bad += check("MIDI accepts a fresh note after overflow recovery", mn_get(0, 61) == 1u && V(&trk[0], 0).gate);
     }
     {
-        const page_t *pg = &PAGES[page_first(FAM_GLO) + 1u];
+        uint32_t gi;
+        const page_t *pg = 0;
         int16_t *vp;
-        const param_desc_t *d = page_desc(pg, 2, &vp);
+        const param_desc_t *d;
+        for (gi = 0; gi < NPAGES; gi++)              /* (6.1) found by name: the GLO family grew */
+            if (PAGES[gi].fam == FAM_GLO && str_eq(PAGES[gi].title, "SYSTEM"))
+                pg = &PAGES[gi];
+        d = page_desc(pg, 2, &vp);
         char v[8];
         const char *u;
         param_format(d, 1, v, &u);
@@ -2983,8 +2989,9 @@ static int test_product_ux(void)
     press(B_GLO); frames(320); ok = cur_page()->fam == FAM_GLO && str_eq(cur_page()->title, "GLOBAL");
     press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SYSTEM");
     press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "MONITOR") && cur_page()->graph == GR_DIAG;
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SCL 2");   /* (6.1) the global scale transpose */
     press(B_GLO); ok &= cur_page()->graph == GR_TRK;
-    bad += check("GLO cycles MIXER > GLOBAL > SYSTEM > MONITOR > MIXER", ok);
+    bad += check("GLO cycles MIXER > GLOBAL > SYSTEM > MONITOR > SCL 2 > MIXER", ok);
     go_home(); hold(B_SEQ);
     bad += check("long SEQ off the SEQ pages is a tap (no SONG: SAVE held, G5)", cur_page()->graph != GR_SONG);
     go_page(GR_SONG);
@@ -3167,7 +3174,10 @@ static int test_layer(void)
     bad += check("FX tap: nothing on press, the FX page when let go", ok && !ui.home && cur_page()->fam == FAM_FX);
     frames(320);                                       /* (not a double tap: #83) */
     press(B_FX);
-    bad += check("  a second tap: the next page of the family (DIST)", str_eq(cur_page()->title, "DIST"));
+    bad += check("  a second tap: the next page of the family (BUSES, 6.1)", str_eq(cur_page()->title, "BUSES"));
+    frames(400);                                       /* (not a double tap: the next page, not the next section) */
+    press(B_FX);
+    bad += check("  a third tap: the page after it (DIST)", str_eq(cur_page()->title, "DIST"));
     ui_power_on();
     btn_down(B_FX);
     for (flash = 0, i = 0; i < 22u; i++) { frame(); flash |= ui.layer; }      /* 0.35 s */
@@ -4023,13 +4033,13 @@ static int test_quick_layers(void)
         t1 = cur_page()->title;
         turn(EN_PRESET, 2); frame();                    /* two on */
         t3 = cur_page()->title;
-        ok = !ui.home && str_eq(t1, "FX") && str_eq(t3, "AUTO PAN") && msg_is("AUTO PAN");   /* (0.6.9: after DIST) */
+        ok = !ui.home && str_eq(t1, "FX") && str_eq(t3, "DIST") && msg_is("DIST");   /* (6.1: after BUSES) */
         frames(600);                                    /* (held past HOLD: still no map) */
         ok &= !ui.layer;
         btn_up(B_FX); frames(4);
-        ok &= str_eq(cur_page()->title, "AUTO PAN") && !ui.layer;   /* (no tap: no next page) */
+        ok &= str_eq(cur_page()->title, "DIST") && !ui.layer;      /* (no tap: no next page) */
         btn_down(B_FX); frame(); turn(EN_PRESET, -1); frame(); btn_up(B_FX); frames(4);
-        ok &= str_eq(cur_page()->title, "DIST");
+        ok &= str_eq(cur_page()->title, "BUSES");
         btn_down(B_FX); frame(); turn(EN_PRESET, -9); frame(); btn_up(B_FX); frames(4);
         ok &= str_eq(cur_page()->title, "FX");          /* (no wrap: it stops at the first) */
         btn_down(B_ENV); frame(); turn(EN_PRESET, 1); frame(); turn(EN_PRESET, 1); frame(); btn_up(B_ENV); frames(4);
@@ -7286,8 +7296,10 @@ static int test_fx_sections(void)
     ui_power_on();
     go_title("FX"); frame();
     press(B_FX); frames(600);
-    ok = str_eq(cur_page()->title, "DIST");
-    press(B_FX); press(B_FX); frames(600);             /* two quick taps from DIST: DLY (0.6.81: the SLICER after CHORUS) */
+    ok = str_eq(cur_page()->title, "BUSES");            /* (6.1) the routing console sits right after the track's FX */
+    press(B_FX); frames(600);
+    ok &= str_eq(cur_page()->title, "DIST");
+    press(B_FX); press(B_FX); frames(600);             /* two quick taps from DIST: DLY, the next section's head */
     ok &= str_eq(cur_page()->title, "DLY");
     press(B_FX); frames(600);
     page_title(ti);

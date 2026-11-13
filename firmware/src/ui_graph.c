@@ -1963,6 +1963,14 @@ static uint32_t graph_signature(void)
         for (i = 0; i < 6u; i++)
             h = (h ^ (uint32_t)fx_vu[i]) * 16777619u;
     }
+    if (pg->graph == GR_FX_BUSES) {                  /* (6.1) the console: the buses' real peaks, moving while
+                                                      * there is signal and still when there is none */
+        for (i = 0; i < 8u; i++)
+            h = (h ^ (uint32_t)fx_vu[i]) * 16777619u;
+        if (fx_vu[0] | fx_vu[1] | fx_vu[2] | fx_vu[3] | fx_vu[4] | fx_vu[5] | fx_vu[6] | fx_vu[7])
+            h ^= ui.frame * 1299709u;
+        h ^= (uint32_t)(fxb_sel() + 1) * 40503u;
+    }
     if (pg->graph == GR_LFO)                         /* (JIANT 0.5) the LFO runs: its phase, its level */
         h ^= (t->lfo_ph >> 23) * 2654435761u ^ (uint32_t)(t->lfo_val * t->lfo_fade >> 22);
     if (pg->graph == GR_ADSR)                        /* the envelope's dot: every voice's stage and level */
@@ -3225,7 +3233,7 @@ static void draw_graph(void)
             else
                 graph_roll(t, c);
             break;
-        case GR_SCALE:
+        case GR_SCALE:                               /* (6.1) the SCL layer's keyboard (ui_layer.c LY_SCL) */
             graph_scale(t, c);
             break;
         case GR_SCL_SCALE:                           /* (2.8) SCL's tools (ui_scl.c) */
@@ -3236,21 +3244,13 @@ static void draw_graph(void)
             cv_oy = 0;
             graph_scl_chord(t, c);
             break;
-        case GR_SCL_VOICE:
-            cv_oy = 0;
-            graph_scl_voice(t, c);
-            break;
-        case GR_SCL_INT:
-            cv_oy = 0;
-            graph_scl_int(t, c);
-            break;
         case GR_SCL_PROG:
             cv_oy = 0;
             graph_scl_prog(t, c);
             break;
-        case GR_SCL_NOTE:
+        case GR_FX_BUSES:                            /* (6.1) FX > BUSES: the routing console (ui_fxb.c) */
             cv_oy = 0;
-            graph_scl_note(t, c);
+            graph_fx_buses(t);
             break;
         case GR_FX:
             cv_oy = 0;

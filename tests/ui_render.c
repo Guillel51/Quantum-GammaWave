@@ -638,7 +638,7 @@ static void eng(uint32_t e) { set_engine_of(TSEL, e); }
 
 enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESETS, S_PRESETS_NOFAV, S_USER, S_PHRASES, S_PROJECT, S_TOOLS,
        S_SONG_EMPTY, S_SONG, S_STEP, S_PATTERN, S_CHANCE, S_COMP, S_COMP_TRIG, S_COMP_ECHO, S_MUTATE, S_MORPH, S_DXIMG, S_DXSEND, S_PFLASH, S_PFLASH_HOME, S_FUGUE, S_MOTION, S_DRUM, S_DRUM_HAND, S_DRUM_CYM, S_MIXER, S_MIXER_PAN,
-       S_ENV, S_ENVDEST, S_LFO, S_MOD, S_FX, S_SLICER, S_SLBUS, S_SLPITCH, S_DLY, S_SCL, S_SHIFT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM, S_MONITOR,
+       S_ENV, S_ENVDEST, S_LFO, S_MOD, S_FX, S_SLICER, S_SLBUS, S_SLPITCH, S_DLY, S_SHIFT, S_ARP, S_VOICE, S_GLOBAL, S_SYSTEM, S_MONITOR,
        S_EDIT_ANALOG, S_EDIT_DIGITAL, S_OP_ENV, S_EDIT_WHEEL, S_EDIT_SAMPLE, S_EDIT_GRAIN, S_EDIT_LOFI, S_EDIT_LOFI_FREE, S_EDIT_PHASE,
        S_ALG1, S_ALG2, S_ALG3, S_ALG4, S_ALG5, S_ALG6, S_ALG7, S_ALG8, S_OP_LEVEL,
        S_FM6_ALG1, S_FM6_ALG5, S_FM6_ALG22, S_FM6_ALG32, S_DRUMX, S_DRUMX_HIT, S_DX_SOUND, S_DX_SOUND2,
@@ -655,11 +655,11 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_COUNTIN, S_COUNTIN2, S_MENU_AUDIO, S_HEAD_PLAY_REC, S_HEAD_REC_OTHER, S_HEAD_BPM_TURN, S_HEAD_BPM_LOCK,
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
-       S_SCL_SCALE, S_SCL_CHORD, S_SCL_VOICE, S_SCL_INT, S_SCL_PROG, S_SCL_NOTE, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
+       S_SCL_SCALE, S_SCL_CHORD, S_SCL_PROG, S_FX_BUSES, S_MOCK_HOME, S_MOCK_PRESETS, S_MOCK_SEQ, S_MOCK_DRUM, S_MOCK_MIXER, S_MOCK_DIALOG,
        S_MOCK_MENU, S_HOME_VIZ, S_HOME_OVERVIEW, S_HOME_MIX, S_HOME_PERF, S_HOME_ENG, S_HOME_MOD, S_HOME_SYSTEM, S_HOME_ROUT, S_COUNT };
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "pattern", "chance", "comp", "comp_trig", "comp_echo", "mutate", "morph", "dx_image", "dx_send", "page_flash", "page_flash_home", "fugue", "motion", "drum",
-    "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "scl", "shift", "arp",
+    "drum_hand", "drum_cym", "mixer", "mixer_pan", "env", "env_dest", "lfo", "mod", "fx", "slicer", "slbus", "slpitch", "dly", "shift", "arp",
     "voice", "global", "system", "monitor", "edit_analog", FELUCCA_FM4 ? "edit_digital" : "edit_fm6", "op_env", "edit_wheel", "edit_voice",
     "edit_noise", "edit_lofi", "edit_lofi_free", "edit_phase", "alg_1", "alg_2", "alg_3", "alg_4", "alg_5", "alg_6", "alg_7", "alg_8", "op_level", "fm6_alg_01", "fm6_alg_05", "fm6_alg_22", "fm6_alg_32", "drumx", "drumx_hit", "dx_sound", "dx_sound2", "confirm_seq", "confirm_project", "confirm_user", "confirm_pattern",
     "confirm_motion", "confirm_erase", "menu", "menu_speaker", "about", "about_rec", "about_credits", "about_end", "uboot", "calibration", "splash",
@@ -675,7 +675,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
-    "scl_scale", "scl_chord", "scl_voicing", "scl_interval", "scl_prog", "scl_note", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "home_eng", "home_mod", "home_system", "home_rout"};
+    "scl_scale", "scl_chord", "scl_prog", "fx_buses", "mock_home", "mock_presets", "mock_seq", "mock_drum", "mock_mixer", "mock_dialog", "mock_menu", "home_viz", "home_overview", "home_mix", "home_perf", "home_eng", "home_mod", "home_system", "home_rout"};
 
 /* the scenes of the UI design screens: the state the UI-redesign
  * prototype drew them from (its setup(): two pattern tracks, the drum pattern on track 4, a synthetic scope),
@@ -1015,21 +1015,24 @@ static void setup(int s)
         break;
     }
     case S_DLY: go_title("DLY"); break;
-    case S_SCL: TSEL->p[P_SCALE] = 2; go_title("SCL"); break;
     case S_SCL_SCALE:                        /* (2.8) the SCL tools: a pentatonic (the D1 case), the chords of
                                               * a major key, its voicings, dorian's intervals, a progression and
                                               * the twelve keys of CHR (the widest grid) */
         TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 6; go_title("SCALE"); break;
     case S_SCL_CHORD:
         TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 1; TSEL->p[P_CHRD] = 1; go_title("CHORD"); break;
-    case S_SCL_VOICE:
-        TSEL->p[P_ROOT] = 7; TSEL->p[P_SCALE] = 2; TSEL->p[P_CHRD] = 2; TSEL->p[P_CVOI] = 2; go_title("VOICING"); break;
-    case S_SCL_INT:
-        TSEL->p[P_ROOT] = 2; TSEL->p[P_SCALE] = 3; go_title("INTERVAL"); break;
+    case S_FX_BUSES:                          /* (6.1) the routing console: the delay link, its three params */
+        song.g[G_DMIX] = 71; song.g[G_RSIZE] = 71; song.g[G_CDEPTH] = 47; song.g[G_DTIME] = 40;
+        song.g[G_DFDBK] = 60; song.g[G_SLMODE] = 1; song.g[G_SLPAT] = 0x5A; song.g[G_SLDEP] = 100;
+        song.g[G_PUNCH] = 80; song.g[G_DUCK] = 60;
+        {   /* the page draws the buses' peaks: give it a mix to draw, as the engine would while it sounds */
+            static const int32_t VU[8] = {3200, 4400, 3600, 2600, 5200, 4600, 5400, 4200};
+            uint32_t k;
+            for (k = 0; k < 8u; k++) fx_vu[k] = VU[k];
+        }
+        fxb_tab = 2; go_title("BUSES"); break;
     case S_SCL_PROG:
         TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 2; scl_prog = 0; go_title("PROG"); break;
-    case S_SCL_NOTE:
-        TSEL->p[P_ROOT] = 0; TSEL->p[P_SCALE] = 0; go_title("KEYS"); break;
     case S_SHIFT: TSEL->p[P_SOFS] = -3; TSEL->p[P_POFS] = 7; go_title("SHIFT"); break;
     case S_ARP: go_title("ARP"); break;
     case S_VOICE: go_title("VOICE"); break;

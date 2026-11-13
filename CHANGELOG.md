@@ -1,3 +1,25 @@
+## 2026-11-12 — SCL en tres páginas y FX > BUSES
+
+SCL se rehace como herramienta de tres páginas y FX gana la consola de ruteo. El detalle medido está en
+`docs/QG_SCL_FX_REDESIGN.md`.
+
+- **SCL 1/3 SCALE**: las doce notas en un círculo (tónica arriba, grados de la escala unidos en el color de la
+  pista, notas de afuera tenues, un radio por grado) y debajo el teclado con la escala encendida y cada nota que
+  suena marcada. Columna derecha: tonalidad, familia, cuántas notas, QUANT y el acorde que tocaría CHORD.
+- **SCL 2/3 CHORD**: el acorde de la tecla con su símbolo, sus notas, el voicing y el strum en ms, los grados como
+  pastillas (el que pisa el acorde en el acento) y las voces en cuatro carriles sobre la extensión del acorde, que
+  se corren con STRUM. Con CHORD en OFF lo dice y no dibuja voces.
+- **SCL 3/3 PROG**: las ocho progresiones como pastillas y el acorde de cada paso en esta tonalidad. Las viejas
+  páginas SCL, VOICING, INTERVAL y KEYS desaparecen porque su contenido es ahora el círculo, el teclado y la página
+  CHORD; no se perdió ningún parámetro. `SCL 2` (transposición global de las secuencias) pasa a GLO.
+- **FX > BUSES**: consola de ruteo con KNOB 1 seleccionando TRACK/BUSES/DLY/REV/CHO/SLI/PUNCH/MASTER y KNOB 2..4
+  editando los parámetros reales de ese eslabón (los mismos ids de las otras páginas). Seis bloques con dibujo
+  propio y datos reales: repeticiones del delay, cola de la reverb, ondas del chorus, compuertas del slicer,
+  transiente y duck del punch, ganancia/pico/clip del master. Sin DSP nuevo: son los tres buses globales, el
+  slicer y el master que ya corren.
+- **Pruebas**: `ui_render` 189 pantallas × 22 paletas con **0 hallazgos de lint** y 0 de alineación; `ui_test`
+  verde con la navegación nueva; capturas actualizadas en `.shots/{scl,chord,prog,buses}.png`.
+
 ## 2026-11-12 — Remasterización de la biblioteca: 212 → 267 presets
 
 Los sonidos de fábrica, rehechos uno a uno para que usen lo que el firmware ya tiene. El detalle medido

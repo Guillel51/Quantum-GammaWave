@@ -516,7 +516,8 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_VOICE, GR_SCL_INT, GR_SCL_PROG, GR_SCL_NOTE};   /* (2.8) SCL's tools: the
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES};   /* (6.1) SCL's three pages and FX>
+                                     * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
                                      * scale's notes and intervals, the chords the key has, their voicings, the
                                      * intervals from the root, the degrees' progressions and the keys (ui_graph.c) */
 
@@ -530,6 +531,16 @@ typedef struct {
 static const char *const N_PROGN[] = {"POP", "50S", "JAZZ", "ROCK", "CANON", "ANDALUS", "BLUES", "TURN"};
 static int16_t scl_prog;
 static const param_desc_t PROG_DESC = PE("PROG", N_PROGN, 0);
+/* (6.1) FX > BUSES: the link KNOB 1 selects, and the ids KNOB 2..4 edit for it (page_desc). Its rows are the
+ * parameters the other FX pages already own, so the console sets exactly what the engine reads. */
+static const char *const N_FXBT[] = {"TRACK", "BUSES", "DLY", "REV", "CHO", "SLI", "PUNCH", "MASTER"};
+static const param_desc_t FXBT_DESC = PE("VIEW", N_FXBT, 0);
+static int16_t fxb_tab;
+int fxb_sel(void) { return fxb_tab; }
+void fxb_step(int32_t d)
+{
+    fxb_tab = (int16_t)clamp((int32_t)fxb_tab + d, 0, (int32_t)(sizeof N_FXBT / sizeof N_FXBT[0]) - 1);
+}
 
 /* (0.6.18) GLO > SYSTEM's TRKS: how many tracks play, the setting of MENU > AUDIO > TRACKS (ui.c ui_rec_prefs bit 7,
  * kept with the settings, not in the song). An id past the globals (no song.g of its own): trks_ui mirrors the setting
@@ -553,6 +564,8 @@ static const page_t PAGES[] = {
     {"MSEQ", FAM_LFO, SC_TRACK, GR_MSEQ, {0xFF, P_MS0, P_MSLEN, P_MSSLW}},   /* JIANT: KNOB 1 the step (ms_ui_step) */
     {"MSEQ 2", FAM_LFO, SC_TRACK, GR_NONE, {P_MSDIV, 0xFF, 0xFF, 0xFF}},
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
+    {"BUSES", FAM_FX, SC_GLOBAL, GR_FX_BUSES, {0xFF, G_DMIX, G_RSIZE, G_CDEPTH}},   /* (6.1) the routing console:
+                                     * KNOB 1 the link, 2..4 its parameters (page_desc) */
     {"DIST", FAM_FX, SC_TRACK, GR_NONE, {P_DIST, P_DTYPE, P_DTONE, 0xFF}},   /* JIANT: the drive's type and tone */
     {"AUTO PAN", FAM_FX, SC_TRACK, GR_NONE, {P_APDEP, P_APRATE, P_APSYNC, P_APWAVE}},   /* (JIANT 0.6.9) the track's pan swung */
     {"DLY", FAM_FX, SC_GLOBAL, GR_NONE, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},
@@ -570,16 +583,12 @@ static const page_t PAGES[] = {
     {"MASTER", FAM_FX, SC_GLOBAL, GR_NONE, {G_CLIP, G_PUNCH, G_DUCK, G_DREL}},   /* JIANT: clipper, drum bus, ducking */
     {"MASTER EQ", FAM_FX, SC_GLOBAL, GR_NONE, {G_EQMODE, G_EQFREQ, G_EQGAIN, G_EQQ}},   /* QG-1 v1.4: Peak/Notch/Shelf Parametric EQ */
     {"STEREO M/S", FAM_FX, SC_GLOBAL, GR_NONE, {G_MWIDTH, 0xFF, 0xFF, 0xFF}},            /* QG-1 v1.4: Dedicated Master Stereo Width */
-    {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (JIANT: ROOT, SCALE every melodic track's) */
-    {"SCALE", FAM_SCL, SC_TRACK, GR_SCL_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (2.8) what the scale holds */
-    {"CHORD", FAM_SCL, SC_TRACK, GR_SCL_CHORD, {P_CHRD, P_CVOI, P_CSTR, P_ROOT}},   /* (0.6.81) a key plays a chord */
-    {"VOICING", FAM_SCL, SC_TRACK, GR_SCL_VOICE, {P_CHRD, P_CVOI, P_CSTR, P_ROOT}},   /* (2.8) .. and how it lies */
-    {"INTERVAL", FAM_SCL, SC_TRACK, GR_SCL_INT, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (2.8) up and down */
+    {"SCALE", FAM_SCL, SC_TRACK, GR_SCL_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (6.1) the note circle and
+                                     * the keyboard: the key, its family and what snaps to it */
+    {"CHORD", FAM_SCL, SC_TRACK, GR_SCL_CHORD, {P_CHRD, P_CVOI, P_CSTR, P_ROOT}},   /* (0.6.81) a key plays a chord;
+                                     * (6.1) its voices and its strum on one page */
     {"PROG", FAM_SCL, SC_TRACK, GR_SCL_PROG, {P_SCALE, P_ROOT, P_SCALE, P_CHRD}},   /* (2.8) KNOB 1 the progression
                                      * (page_desc), 3 the same SCALE as KNOB 1's real one */
-    {"KEYS", FAM_SCL, SC_TRACK, GR_SCL_NOTE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},   /* (2.8) the keys themselves
-                                     * (NOTE is SEQ's: two pages of a title break go_title) */
-    {"SCL 2", FAM_SCL, SC_GLOBAL, GR_NONE, {G_STRN, 0xFF, 0xFF, 0xFF}},   /* (JIANT 0.4) every sequence up / down the scale */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
     {"RETRIG", FAM_EDIT, SC_TRACK, GR_NONE, {P_LRTRG, 0xFF, 0xFF, 0xFF}},
@@ -613,6 +622,8 @@ static const page_t PAGES[] = {
     {"SYSTEM", FAM_GLO, SC_GLOBAL, GR_NONE, {G_TRKS, G_LOADP, G_ROUTE, G_INFO}},   /* (0.6.18) TRACKS 4 / 6; (0.6.30)
                                                          * LOAD ECO / LITE / FULL (the USB card: the header's icon) */
     {"MONITOR", FAM_GLO, SC_GLOBAL, GR_DIAG, {0xFF, 0xFF, 0xFF, 0xFF}},            /* (QG-1) Diagnostics, voices & DSP */
+    {"SCL 2", FAM_GLO, SC_GLOBAL, GR_NONE, {G_STRN, 0xFF, 0xFF, 0xFF}},   /* (JIANT 0.4) every sequence up / down the
+                                     * scale (6.1: it is a global, and SCL is three pages now) */
     {"PRESETS", FAM_SAVE, SC_GLOBAL, GR_BROWSE, {0xFF, 0xFF, 0xFF, 0xFF}},   /* browser: PRESETS knob / KNOB 1 */
     {"USER", FAM_SAVE, SC_GLOBAL, GR_USER, {0xFF, 0xFF, 0xFF, 0xFF}},       /* user presets: SLOT LOAD ERASE SAVE */
     {"PROJECT", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {0xFF, G_SLOT, G_LOAD, G_SAVE}},   /* (0.6.12) PROJECT 1-8, SECT A-D */
@@ -657,6 +668,27 @@ static uint8_t sl_ui_step;       /* (JIANT 0.6.3) the SL PITCH page: the step KN
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
+    if (pg->graph == GR_FX_BUSES) {                    /* (6.1) the console: KNOB 1 the link, 2..4 its parameters */
+        static const uint8_t FXB_ID[8][3] = {
+            {P_DLY, P_REV, P_CHOR},                    /* TRACK: the selected track's three sends */
+            {G_DMIX, G_RSIZE, G_CDEPTH},               /* BUSES: the three buses' mix, size and depth */
+            {G_DTIME, G_DFDBK, G_DMIX},                /* DLY */
+            {G_RSIZE, G_RDAMP, G_RPRE},                /* REV */
+            {G_CRATE, G_CDEPTH, G_CSTER},              /* CHO */
+            {G_SLMODE, G_SLPAT, G_SLDEP},              /* SLI */
+            {G_PUNCH, G_DUCK, G_DREL},                 /* PUNCH */
+            {G_CLIP, G_MWIDTH, G_EQGAIN},              /* MASTER */
+        };
+        if (slot == 0u) {
+            *valp = &fxb_tab;
+            return &FXBT_DESC;
+        }
+        id = FXB_ID[fxb_tab & 7u][slot - 1u];
+        if (fxb_tab == 0) {
+            *valp = &TSEL->p[id];
+            return track_desc(TSEL, id);
+        }
+    }
     if (pg->graph == GR_SCL_PROG && slot == 0u) {      /* SCL > PROG's KNOB 1: the progression, not the scale */
         *valp = &scl_prog;
         return &PROG_DESC;
