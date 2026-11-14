@@ -1,5 +1,32 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.1 — 2026-11-14 — validación, sincronización y release
+
+### Changed
+- `FELUCCA_VERSION` -> **v3.1**. El firmware es el auditado en las fases 3–5: 275 presets
+  (0 silenciosos, 0 calientes, 0 nombres repetidos), 574 988 B de 583 612 B, RAM code 19 584 B.
+- **Emulador recompilado** con Emscripten **6.0.11** (la versión fijada por `web/emu/build.sh`):
+  WASM de 1 207 502 B, SHA-256 `ff4f0ce1…`, build `487735744fb5`. Antes el sitio sólo podía servir
+  un emulador de un commit anterior.
+- **Artefactos de release**: `release/felucca-v3.1.fwsc` (610 959 B, SHA-256 `b6b0088a…`),
+  su manifiesto (integridad SHA-256 + tamaño + registro de build, sin firma: `keyid` vacío),
+  `release/build-manifest-v3.1.json`, `release/emu/` y `release/SHA256SUMS` (103 entradas).
+- **Portal reconstruido desde esos bytes**: `versions.json` 3.1, registro del emulador con su WASM
+  y su commit, instalador y editor regenerados.
+
+### Verified
+- Suite host completa (`NO_PACKAGE=1 ./tests/run_tests.sh`), golden sin tocar, ASan/UBSan y fuzzing
+  con semillas fijas, `target_budget.py` exit 0, `install_test`, `test_web`, `test_backup`,
+  `test_pkg_bounds`, `emu_test`, `coherence_check` (ok), `site_check --url` (todo ok), `test_site`.
+- Navegador real: `/` en 3.1 con el hash del paquete; `/emulator/` carga el WASM de 1 207 502 B y
+  dibuja el canvas de 240 × 240.
+- El paquete y el WASM son idénticos byte a byte entre el build sucio y el build desde el commit.
+- `docs/QG_3.1_RELEASE_2026-11-14.md`.
+
+### NOT verified
+- Nada se flasheó ni se leyó de una FM-1 física: **hardware no verificado**.
+- No se escuchó audio del emulador ni se ejercitó un dispositivo MIDI real.
+
 ## v3.0.5 — 2026-11-14 — FASE 6: nuevo banner, portal reescrito, capturas reales
 
 ### Changed
