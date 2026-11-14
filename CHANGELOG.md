@@ -9,6 +9,18 @@
   39 + 4 de cuerpo + 1 de atmósfera = 44, la mitad exacta del recorte, así que roza el borde en su punto más
   ancho y nunca lo cruza.
 
+### Added
+- **Una sola primitiva de degradado.** `hv_grad()` (HOME, 12 bandas) y `fxb_grad()` (FX > BUSES, 4 bandas)
+  repetían el mismo bucle; ahora las dos llaman a `gfx.c:ux_ground_bands()`, que recorta por pasada y deja
+  que la última banda tome el resto. Prueba de que no cambia un píxel: `ui_render` antes/después **3 024
+  frames, 0 distintos**, lint 0, alineación 0 en 3 390 046 medidas, `regress` 293 goldens sin cambios.
+- **El portal recupera sus traducciones.** Faltaban 35 cadenas en EN y 35 en ZH (más una clave sin
+  indentar que el test no podía ver): `web/test_i18n.py` pasa de 1 a **0**, con 315 claves EN y 317 ZH para
+  227 cadenas de origen.
+- `docs/QG_VISUAL_AUDIT_2026-11-14.md`: matriz de pendientes de las siete fases con estado, evidencia y
+  prioridad, y el estado de verificación por clase (implemented / host tested / AC791N / WASM / browser /
+  hardware).
+
 ### Verified (host)
 - `capture_pokes` (UI_NO_DRIFT=0): cada cuerpo conserva **97 / 77 / 53 / 54 / 93 %** de su propio disco
   dibujado (antes, con 88 × 52: 97 / 77 / 53 / 53 / 93), las cinco respuestas siguen distintas y

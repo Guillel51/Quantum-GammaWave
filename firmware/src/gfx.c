@@ -536,6 +536,29 @@ static void gw_dither(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t a, ui
         for (i = 0; i < w; i++)
             cv_rect(x + i, y + j, 1, 1, (int32_t)BAY[(j & 3) * 4 + (i & 3)] * 100 / 16 < pct ? b : a);
 }
+/* (3.6) THE GROUND, ONCE. A screen that sits on a dithered ramp -- HOME's views (hv_grad), FX > BUSES'
+ * blocks (fxb_grad) -- was building its own band loop, so the same picture had two implementations and a
+ * change to the ramp had to be made twice. This is the one primitive: `n` bands from y to y + h, each
+ * dithered between two colours that walk along two ramps (`a` from the panel, `b` from the accent), and
+ * only the rows inside [clip_y0, clip_y1) painted, because HOME draws its body in two passes. The last
+ * band takes the remainder, so a height that is not a multiple of `n` loses no row. */
+static void ux_ground_bands(int32_t x, int32_t y, int32_t w, int32_t h, int32_t n,
+                            int32_t a0, int32_t da, int32_t b0, int32_t db,
+                            int32_t clip_y0, int32_t clip_y1)
+{
+    int32_t k, band = h / n;
+    if (band <= 0 || n <= 0)
+        return;
+    for (k = 0; k < n; k++) {
+        int32_t yy = y + band * k;
+        int32_t hh = k == n - 1 ? h - band * (n - 1) : band;
+        int32_t y0 = yy < clip_y0 ? clip_y0 : yy;
+        int32_t y1 = yy + hh > clip_y1 ? clip_y1 : yy + hh;
+        if (y1 <= y0)
+            continue;
+        gw_dither(x, y0, w, y1 - y0, ux_mix(T_BG, T_SURF, a0 + da * k), ux_mix(T_BG, T_ACCENT, b0 + db * k), 50);
+    }
+}
 /* a segmented meter, bottom up: `seg` px blocks with a 1 px gap, the ones under the level
  * lit. The empty blocks are drawn too -- a 16-bit meter always shows its scale. */
 static void gw_seg_v(int32_t x, int32_t y, int32_t w, int32_t h, int32_t lvl, int32_t seg,

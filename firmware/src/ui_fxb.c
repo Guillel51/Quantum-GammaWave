@@ -58,12 +58,9 @@ static int32_t fxb_px(int32_t v) { return clamp(v, 0, 7000) * 56 / 7000; }
  * draws a still frame. */
 static void fxb_grad(int32_t x, int32_t y, int32_t w, int32_t h)
 {
-    int32_t k, band = h / 4;
-    if (band <= 0)
-        return;
-    for (k = 0; k < 4; k++)          /* (4.1) four steps, accent rising towards the floor: a gradient, dithered */
-        gw_dither(x, y + band * k, w, k == 3 ? h - band * 3 : band,
-                  ux_mix(T_BG, T_SURF, 30 + k * 10), ux_mix(T_BG, T_ACCENT, 5 + k * 7), 50);
+    /* (4.1) four steps, accent rising towards the floor: a gradient, dithered. (3.6) the loop is gfx.c's
+     * ux_ground_bands, the same primitive HOME's views use, so the ramp has one implementation. */
+    ux_ground_bands(x, y, w, h, 4, 30, 10, 5, 7, y, y + h);
 }
 /* (4.1) the sheen: one narrow column of light crossing a block's drawing while its bus carries signal, so a busy
  * block reads busy before a meter is read. ui.frame, not a timer: a silent page draws a still frame. */
