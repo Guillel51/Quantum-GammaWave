@@ -138,6 +138,41 @@ int main(int argc, char **argv)
                     if (d < 8) { fprintf(stderr, "poke: bodies %d and %d answer alike (%d px)\n", a, b, d); bad++; }
                 }
     }
+    /* (3.1.2) TO EACH ITS OWN DISC. The five bodies overlap in a 44 px bay, so a body can be drawn and still
+     * answer nothing: this walks each body's own drawn disc in the panel's coordinates (pl_sy is the bay's,
+     * gw_planet_at takes screen rows) and counts the pixels a tap there gives back to it. Anything under
+     * half its area means the neighbour in front is eating the target. */
+    {
+        int32_t i2, own[NPL] = {0}, all2[NPL] = {0};
+        int32_t lo_x = 239, lo_y = 239, hi_x = 0, hi_y = 0, px, py, gy = (int32_t)graph_y();
+        for (i2 = 0; i2 < NPL; i2++) {
+            int32_t r = (int32_t)pl_sr[i2] + 3;
+            if (pl_sx[i2] - r < lo_x) lo_x = pl_sx[i2] - r;
+            if (pl_sy[i2] - r < lo_y) lo_y = pl_sy[i2] - r;
+            if (pl_sx[i2] + r > hi_x) hi_x = pl_sx[i2] + r;
+            if (pl_sy[i2] + r > hi_y) hi_y = pl_sy[i2] + r;
+        }
+        for (py = lo_y; py <= hi_y; py++)
+            for (px = lo_x; px <= hi_x; px++) {
+                int32_t k2, a = gw_planet_at(px, py + gy);
+                for (k2 = 0; k2 < NPL; k2++) {
+                    int32_t ex = px - pl_sx[k2], ey = py - pl_sy[k2];
+                    if (pl_sr[k2] && ex * ex + ey * ey <= (int32_t)pl_sr[k2] * pl_sr[k2]) {
+                        all2[k2]++;
+                        if (a == k2) own[k2]++;
+                    }
+                }
+            }
+        for (i2 = 0; i2 < NPL; i2++) {
+            int32_t pct = all2[i2] ? own[i2] * 100 / all2[i2] : 0;
+            fprintf(stderr, "poke: body %d draws %d px and answers %d of them (%d%%)\n", (int)i2,
+                    (int)all2[i2], (int)own[i2], (int)pct);
+            if (all2[i2] > 0 && pct < 50) {
+                fprintf(stderr, "poke: body %d loses its own disc to a neighbour\n", (int)i2);
+                bad++;
+            }
+        }
+    }
     fprintf(stderr, "poke: %s (%d %d %d %d %d px)\n", bad ? "FAILED" : "ok: five distinct, restartable answers",
             nd[0], nd[1], nd[2], nd[3], nd[4]);
     return bad ? 1 : 0;

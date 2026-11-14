@@ -1,5 +1,25 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.1.3 — 2026-11-14 — cada planeta responde por el suyo
+
+### Fixed
+- **`gw_planet_at()` devolvía el cuerpo más adelantado, no el más cercano.** Los cinco cuerpos viven en una
+  bahía de 44 px con discos de 8–12 px de radio de toque, así que se solapan: con el criterio anterior
+  cada píxel compartido era de quien se dibujaba último y los mundos de atrás sólo respondían donde
+  asomaban. Ahora el toque va al centro más próximo, que parte cada solape por la mitad; en empate se
+  queda el de delante, para que no parpadee entre dos candidatos. Ningún píxel dibujado cambia.
+
+### Verified (host)
+- `capture_pokes` mide ahora, cuerpo por cuerpo, qué parte de su propio disco dibujado le responde:
+  **49/48 px (97 %), 81/63 (77 %), 113/61 (53 %), 113/60 (53 %), 49/46 (93 %)**, y falla por debajo del
+  50 %. Las cinco respuestas siguen distintas y reiniciables (78/142/62/85/36 px).
+- `ui_render`: 0 hallazgos de lint, 0 desalineaciones en 3 390 046 mediciones. `regress`: **293 goldens,
+  0 cambiados** — el cambio es de a quién va el toque, no de lo que se ve.
+
+### Pending
+- La bahía sigue midiendo 44 px: separar los discos por completo, sin solape, exige agrandar la bahía y
+  mover la gráfica en la maqueta de HOME.
+
 ## v3.1.2 — 2026-11-14 — HOME estable entre entradas y vuelta al mismo dibujo
 
 ### Fixed
@@ -18,11 +38,6 @@
   distintas y reiniciables (78/142/62/85/36 px).
 - `ui_render`: 189 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones** en 3 390 046
   mediciones. `regress`: **293 goldens, 0 cambiados**.
-
-### Pending
-- La bahía orbital de HOME mide 44 px: con cinco cuerpos de radio 4–7 px los discos de impacto se solapan
-  casi por completo, así que tocar "un planeta" acierta casi siempre al que está delante. Separarlos exige
-  un rediseño de la maqueta de HOME, y no se hace aquí.
 
 ## v3.1.1 — 2026-11-14 — instalado en las dos memorias flash (informado por el dueño)
 

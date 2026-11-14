@@ -825,13 +825,24 @@ static int32_t gw_planet_at(int32_t x, int32_t y)
         if (dx * dx + dy * dy <= r * r)
             return (int32_t)NPL;
     }
-    for (k = (int32_t)NPL - 1; k >= 0; k--) {
-        int32_t i = pl_order[k];
-        int32_t dx = x - pl_sx[i], dy = y - pl_sy[i], r = (int32_t)pl_sr[i] + 3;
-        if (pl_sr[i] && dx * dx + dy * dy <= r * r)
-            return i;
+    /* (3.1.2) THE NEAREST BODY, NOT THE FRONT ONE. Five bodies share a 44 px bay, so the discs a tap can
+     * claim overlap: taking the front-most of them gave every shared pixel to whichever was drawn last, and
+     * the worlds behind it answered only where they poked out. The tap now goes to the body whose centre is
+     * closest, which splits each overlap down the middle and leaves every body a target of its own size.
+     * On an even distance the front one keeps it, so nothing flickers between two candidates. */
+    {
+        int32_t best = -1, bestd = 0x7FFFFFFF;
+        for (k = (int32_t)NPL - 1; k >= 0; k--) {
+            int32_t i = pl_order[k];
+            int32_t dx = x - pl_sx[i], dy = y - pl_sy[i], r = (int32_t)pl_sr[i] + 3;
+            int32_t d;
+            if (!pl_sr[i] || dx * dx + dy * dy > r * r)
+                continue;
+            d = dx * dx + dy * dy;
+            if (d < bestd) { bestd = d; best = i; }
+        }
+        return best;
     }
-    return -1;
 }
 
 static void gw_planet_poke(int32_t i)
