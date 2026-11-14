@@ -1,5 +1,29 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.0.5 — 2026-11-14 — FASE 6: nuevo banner, portal reescrito, capturas reales
+
+### Changed
+- **Banner nuevo desde cero** (`tools/gen_banner.py`, regenerable): campo índigo con un sol
+  térmico cuantizado por matriz de Bayer, anillos de la rampa de calor del firmware, el hexágono
+  del tema QUANTUM y un espectro de 72 barras; el nombre en Michroma a 96 px con relleno
+  degradado. **Sin número de versión** y sin tipografía por debajo de 24 px.
+- **Portal**: la introducción responde qué es, para qué dispositivo y qué se puede tocar antes de
+  cualquier cifra; sección "Qué es" nueva con tres tarjetas (tocar, programar, sonar); cifras
+  reales (275 sonidos, 22 paletas); el banner es la `og:image`.
+- **Capturas del firmware regeneradas** con `tools/fw_shots.py --render` desde `tests/ui_render.c`
+  (el código auditado en las fases 3–5), no desde mockups.
+
+### Verified
+- `web/make_site.py` construye el portal completo desde esas fuentes (instalador 247 399 B,
+  paquete `felucca-3.0.0.fwsc` 610 959 B, FM-1_965); servido en local: `/` 200, banner 200, título
+  y textos nuevos presentes. Vista previa abierta para el dueño.
+- `docs/QG_FASE6_PRESENTATION_2026-11-14.md`.
+
+### Blocked (declared, not worked around)
+- Publicar 3.0.0 exige recompilar el emulador WASM (`web/emu/build.sh`) y **aquí no hay `emcc`**,
+  así que `site/` no se sobrescribió: sigue siendo el despliegue 2.9.7 coherente y
+  `tools/site_check.py` no tendría nada que reconciliar. `release/` también sigue en 2.9.7.
+
 ## v3.0.4 — 2026-11-14 — FASE 5: 20 presets reachable again, two sounds added, the bank counted
 
 ### Fixed
