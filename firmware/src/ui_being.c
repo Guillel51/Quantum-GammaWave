@@ -908,22 +908,41 @@ static void gw_body_sel(int32_t bx, int32_t by, int32_t r, int32_t heat)
     }
 }
 
+/* (FASE 4) ONE ANSWER FOR EVERY WORLD. Each body already had its own reaction, but they were not the same
+ * weight: the ocean pushed a wide unbroken front and the ringed one drew five pixels of wake, so the panel read
+ * as if only one world answered a touch. The ring and the three sparks below are drawn for all five, and the
+ * per-kind block that follows adds the signature on top (the echo, the flakes, the turning arcs, the halo, the
+ * wake). Same gesture, five accents. */
 static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
 {
     uint32_t pa = pl_age(pi, POKE_L[pi]);
+    int32_t common_br = pl_sr[pi] ? (int32_t)pl_sr[pi] : 4;
     /* (FASE 2/5) the wave leaves the LIMB, not a 3 px circle inside the body. Every body now lays a pixel of
      * the page's background at r + 2 (gw_sphere) so two overlapping worlds still read as two, and a ring that
      * began under the surface was wiped by it: the ocean's touch measured 5 pixels of change instead of a
      * hundred. br is the radius the body was drawn with last frame (pl_sr, one frame of lag, invisible at
      * 60 fps) and the reactions start outside it. */
-    int32_t br = pl_sr[pi] ? (int32_t)pl_sr[pi] : 4;
+    int32_t br = common_br;
     if (pa >= 64u)
         return;
+    {   /* the shared answer: a front leaving the limb, and three sparks thrown off it */
+        int32_t r0 = br + 2 + (int32_t)pa / 2;
+        gw_ring_clip(bx, by, r0, r0 * 2 / 3, ux_mix(T_BG, bg_col(heat + 90), clamp(220 - (int32_t)pa * 5, 0, 220)), 0);
+        if (pa < 30u && !(pa & 2u)) {
+            int32_t k, a0 = heat * 91 + (int32_t)pa * 700;
+            for (k = 0; k < 3; k++) {
+                uint32_t a = (uint32_t)(a0 + k * 21845) & 0xFFFF;
+                int32_t sx = bg_sin(a + 0x4000u) * (br + 1) >> 15;
+                int32_t sy = (bg_sin(a) * (br + 1) >> 15) * 2 / 3;
+                int32_t sp = 1 + (int32_t)pa / 6;
+                sys_pset(bx + sx + (sx >= 0 ? sp : -sp), by + sy + (sy >= 0 ? sp : -sp),
+                         ux_mix(T_BG, bg_col(heat + 120), clamp(190 - (int32_t)pa * 7, 0, 190)));
+            }
+        }
+    }
     if (PL_POKE[pi] == PK_RIPPLE) {                 /* OCEAN: a wave leaves the surface -- one unbroken front
                                                      * and a broken echo behind it -- with a crest running
                                                      * out along it, so a touch reads as water, not as a pulse */
-        int32_t r1 = br + 2 + (int32_t)pa / 2;
-        gw_ring_clip(bx, by, r1, r1 * 2 / 3, ux_mix(T_BG, bg_col(heat + 70), 200 - (int32_t)pa * 4), 0);
         if (pa > 9u) {
             int32_t r2 = br + 2 + (int32_t)(pa - 9u) / 2;
             gw_ring_clip(bx, by, r2, r2 * 2 / 3, ux_mix(T_BG, bg_col(heat + 30), 150 - (int32_t)pa * 3), 1);
@@ -964,7 +983,7 @@ static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
         /* (3.1.5) A HALO THAT BREATHES IN TWO SHELLS. One thin ring of 249 px read as a flicker next to the
          * frozen world; the giant now pushes a bright shell and a wider, dimmer one behind it, which is what
          * an inhale looks like from outside. */
-        int32_t r1 = br + 2 + (int32_t)pa / 3;
+        int32_t r1 = br + 4 + (int32_t)pa / 3;
         gw_ring_clip(bx, by, r1, r1 * 2 / 3, ux_mix(T_BG, bg_col(heat + 40), clamp(96 - (int32_t)pa * 2, 0, 96)), 1);
         gw_ring_clip(bx, by, r1 + 2, (r1 + 2) * 2 / 3, ux_mix(T_BG, bg_col(heat + 80), clamp(72 - (int32_t)pa * 2, 0, 72)), 0);
         if (pa < 20u && !(pa & 1u)) {
@@ -1123,7 +1142,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
      * the outer body is 4 px + 1 px atmosphere + a 3 px ring = 8 px, against 10 px of room, so it keeps a
      * 2 px margin at its widest point on every side. The old 4 / 6 / 7 px bodies (with a 4 px ring on the
      * last) needed 11 px and crossed the edge. */
-    static const int8_t ORX[5] = {11, 18, 26, 33, 39};         /* (3.2) a fourth orbit, 11 px inside the first:
+    static const int8_t ORX[5] = {11, 18, 26, 33, 38};         /* (3.2) a fourth orbit, 11 px inside the first:
                                                                 * a moon, so the system is not three rings and a sun;
                                                                 * (2.1) a fifth outside it. (3.6) the bay is 91 x 55
                                                                 * and the clip 9..97 from cx 53, so 39 + 4 px body +
@@ -1138,7 +1157,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
      * near-misses: four of them began within a third of a turn, so the bodies bunched into one blob beside
      * the star for most of the first second. They still drift apart on their own rates. */
     static const uint16_t ORPHS[5] = {0x0000, 0x1999, 0x3333, 0x4CCC, 0x6666};
-    static const uint8_t ORR[5] = {4, 5, 6, 6, 4};             /* (3.5) each body's own size: the banded giant and
+    static const uint8_t ORR[5] = {5, 5, 6, 6, 5};             /* (3.5) each body's own size: the banded giant and
                                                                 * the ocean world are the largest, the frozen one a
                                                                 * small cold moon. 38 + 4 + 2 = 44 of the bay's 44 */
     static const uint8_t ORYS[5] = {70, 60, 52, 44, 36};       /* tilt: ry = 8 / 11 / 14 / 15 / 13 px */
@@ -1259,6 +1278,20 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         uint16_t mdust = ux_mix(T_BG, T_LINE, 7);
         uint16_t mmid = ux_mix(mhalo, mcore, 60);    /* (PHASE 1) the bulge's inner lane, mixed once a frame:
                                                       * it was mixed again for each of the three bulge columns */
+        /* (FASE 4) THE BULGE HAS LIGHT, NOT ONLY LINES. Eleven rows of a soft ellipse behind the core: the
+         * band was five 1 px lanes and a glow would have been one more, so the light is a gradient the band is
+         * then drawn on top of. Rows, not a disc: 22 spans, no trigonometry, and it never touches the clock. */
+        {
+            int32_t gy, gx;
+            int32_t gcx = sys_x0 + MW_X[18], gcy = sys_y0 + MW_Y[18];
+            for (gy = -6; gy <= 6; gy++) {
+                int32_t ay = gy < 0 ? -gy : gy;
+                int32_t half = 13 - ay * 2;
+                uint16_t gc = ux_mix(T_BG, bg_col(130), 6 + (6 - ay) * 3);
+                for (gx = -half; gx <= half; gx++)
+                    sys_pset(gcx + gx, gcy + gy, gc);
+            }
+        }
         for (j = 0; j < 36; j++) {
             int32_t mx = sys_x0 + MW_X[j], my = sys_y0 + MW_Y[j];
             if (MW_T[j] == 3) {                      /* the bulge: a wider, warmer core with its lanes */
@@ -1306,6 +1339,26 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
             }
             if ((j & 3) == 1 && j > 4 && j < 32)     /* the dust lanes that cross the band */
                 sys_pset(mx, my - 1, mdust);
+        }
+    }
+    {   /* (FASE 4) DUST IN THE AIR, NOT A LINE ACROSS THE SKY. The band was lanes and knots, all of them
+         * tied to a column: nothing moved along it and nothing sat off it, so the "galaxy" read as a rule with
+         * a glow. Eighteen motes sit above and below the core and drift along it at three speeds; their place
+         * is a pure function of the clock (no pool, no state), each one is a pixel or two, and they wrap at the
+         * band's own ends, so the bay breathes without a single extra byte. */
+        int32_t k;
+        for (k = 0; k < 18; k++) {
+            uint32_t h = (uint32_t)k * 2654435761u + 0x9E3779B9u;
+            int32_t span = 84;
+            int32_t bx = (int32_t)(h % (uint32_t)span);
+            int32_t sp = 1 + (int32_t)((h >> 9) % 3u);
+            int32_t dy = (int32_t)((h >> 13) % 7u) - 3;
+            int32_t px = 6 + (bx + (int32_t)(twf * (uint32_t)sp / 30u)) % span;
+            int32_t bi = clamp(px * 35 / span, 0, 35);
+            int32_t to = 22 + (int32_t)((h >> 17) % 36u);
+            sys_pset(sys_x0 + px, sys_y0 + (int32_t)MW_Y[bi] + dy, ux_mix(T_BG, T_LINE, to));
+            if (k & 1)
+                sys_pset(sys_x0 + px, sys_y0 + (int32_t)MW_Y[bi] + dy + 1, ux_mix(T_BG, T_THEME, to / 2));
         }
     }
     for (i = 0; i < 20; i++) {                         /* a slow twinkle, one sine a star, a quarter rate */
@@ -1581,6 +1634,15 @@ static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway, int32_t wave_x,
     static const uint8_t FY[18] = {163, 172, 155, 168, 147, 140, 133, 126, 118, 112, 104, 97, 88, 80, 72, 64, 56, 47};
     uint16_t dust = bg_tone_mix(page, bg_col(4), 58);
     int32_t x, j;
+    {   /* (FASE 4) the bulge, lit: the same gradient HOME's bay wears, wider here because the page is */
+        int32_t gy, gx, w, gcy = 160 - (112 * 118) / 236 + sway;
+        for (gy = -8; gy <= 8; gy++) {
+            int32_t ay = gy < 0 ? -gy : gy;
+            int32_t half = 26 - ay * 3;
+            for (gx = -half; gx <= half; gx++)
+                cv_pset(112 + gx, gcy + gy, bg_tone_mix(page, bg_col(110), 5 + (8 - ay) * 2));
+        }
+    }
     for (x = 2; x < 236; x += 2) {                    /* the band: two px wide, thicker at the bulge */
         int32_t y = 160 - (x * 118) / 236 + sway;
         int32_t d = x > 112 ? x - 112 : 112 - x;
@@ -1623,6 +1685,24 @@ static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway, int32_t wave_x,
         }
         if ((x % 14) == 6)                            /* the dust lane: what bites into the lit side */
             cv_pset(x, y + 1, dust), cv_pset(x + 1, y + 2, dust);
+    }
+    {   /* (FASE 4) DUST, MOVING. Twenty-two motes off the core line, each drifting along the band at its own
+         * rate and fading with the band's own taper: the sky has something in it besides the band and the
+         * stars, and it is a pure function of the millisecond clock, so two paints of one frame agree. */
+        int32_t k;
+        for (k = 0; k < 22; k++) {
+            uint32_t h = (uint32_t)k * 2654435761u + 0x7F4A7C15u;
+            int32_t bx = 2 + (int32_t)(h % 232u);
+            int32_t sp = 1 + (int32_t)((h >> 9) % 3u);
+            int32_t dy = (int32_t)((h >> 13) % 9u) - 4;
+            int32_t px = 2 + (bx + (int32_t)((fm1_ms / 16u) * (uint32_t)sp / 30u)) % 232;
+            int32_t py = 160 - (px * 118) / 236 + sway + dy;
+            int32_t d = px > 112 ? px - 112 : 112 - px;
+            int32_t to = 20 + (int32_t)((h >> 19) % 30u) + (d < 90 ? (90 - d) / 6 : 0);
+            cv_pset(px, py, bg_tone_mix(page, bg_col(120 + (int32_t)((h >> 7) % 60u)), to));
+            if (k & 3)
+                cv_pset(px, py + 1, bg_tone_mix(page, bg_col(90), to / 2));
+        }
     }
     for (j = 0; j < 18; j++) {                        /* (FASE 2) the far ring: dim, small, its own slow twinkle */
         int32_t tw = (int32_t)((bg_sin(fm1_ms + (uint32_t)j * 2311u + 9000u) + 32768) >> 15);   /* 0..1 */
@@ -1988,19 +2068,32 @@ static int32_t gw_filter_resp_y(int32_t ftype, int32_t x, int32_t w, int32_t cut
 
 static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val256, uint16_t arc_col)
 {
-    uint32_t th = (uint32_t)((-384 + clamp(val256, 0, 256) * 768 / 256) * 64);
-    int32_t px1 = cx + ((r - 2) * bg_sin(th) >> 15), py1 = cy - ((r - 2) * bg_sin(th + 0x4000u) >> 15);
+    /* (FASE 4) A DIAL, NOT A STEPPED POLYGON. The old one stacked four rings built from chords and added a
+     * 24-chord orbit: at r = 7 the outline came out as a rounded square, which is exactly what the panel
+     * showed once the Hearth knobs went from 8 px to 7. It is four concentric discs (outline, bezel, body,
+     * recessed face) from gfx.c's midpoint disc -- a true circle at every radius -- plus the value as a 270
+     * degree arc ON the bezel and a needle from the face, so the value still reads without a squint. */
+    int32_t v = clamp(val256, 0, 256);
+    uint32_t th = (uint32_t)((-384 + v * 768 / 256) * 64);
     uint16_t bake = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, bg_col(128), 42);
-    uint16_t rim = ux.mono ? T_DIM : ux_mix(T_BG, arc_col, 38);
-    /* A true radial control: a clean outer rim, a recessed body and a 270-degree needle. The old
-     * two discs plus the dotted orbit read as a gear; every layer here is concentric and the
-     * indicator is drawn from the body's edge, so the value stays legible at a glance. */
-    gw_disc(cx, cy, r + 3, T_LINE);
-    gw_disc(cx, cy, r + 2, rim);
-    gw_disc(cx, cy, r, bake);
-    gw_disc(cx, cy, r - 2, ux.mono ? bake : ux_mix(bake, T_BG, 48));
-    gw_orbit_ring(cx, cy, r + 3, r + 3, arc_col, 0);
-    cv_line_t(cx, cy, px1, py1, T_TEXT, 1);
+    uint16_t rim = ux.mono ? T_DIM : ux_mix(T_BG, arc_col, 64);
+    uint16_t face = ux.mono ? bake : ux_mix(bake, T_BG, 46);
+    int32_t nr = r > 3 ? r - 2 : 1;
+    int32_t px1 = cx + (nr * bg_sin(th) >> 15), py1 = cy - (nr * bg_sin(th + 0x4000u) >> 15);
+    int32_t k, steps = r * 5;
+    cv_disc(cx, cy, r + 1, ux.mono ? T_BG : ux_mix(T_BG, T_LINE, 60));  /* the gap that separates it */
+    cv_disc(cx, cy, r, rim);
+    cv_disc(cx, cy, r - 1, bake);
+    cv_disc(cx, cy, r - 2, face);
+    for (k = 0; k <= steps; k++) {                 /* the value, 270 degrees from the bottom left */
+        int32_t a256 = -384 + 768 * k / steps;
+        uint32_t a;
+        if (a256 > -384 + v)
+            break;
+        a = (uint32_t)(a256 * 64);
+        cv_pset(cx + (r * bg_sin(a) >> 15), cy - (r * bg_sin(a + 0x4000u) >> 15), arc_col);
+    }
+    cv_line(cx, cy, px1, py1, T_TEXT);
     cv_pset(cx, cy, ux.mono ? T_TEXT : T_ACCENT);
 }
 
