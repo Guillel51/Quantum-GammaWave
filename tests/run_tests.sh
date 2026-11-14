@@ -263,6 +263,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w -DUI_NO_DRIFT=0 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/capture_pokes" tests/capture_home_pokes.c -lm
     run "HOME's five touch reactions as drawn (UI_NO_DRIFT=0): each body's answer, five distinct ones, a tap off the bay is nothing, a second touch restarts" \
         "$OUT/capture_pokes" build/capture
+    $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/home_roundtrip" tests/home_roundtrip_test.c -lm
+    run "HOME round trip (UI_NO_DRIFT=1, fixed clock): 50 entries into and out of each of the five views, twice, entry by entry -- a page that does not come back the same fails" \
+        "$OUT/home_roundtrip"
     $CC -w -DFELUCCA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_fm4" tests/ui_test.c -lm
     run "UI built with FELUCCA_FM4=1 (DIGITAL, kept in the tree): its OP pages, EDIT cycle, algorithm charts" "$OUT/ui_test_fm4"
     $CC -O1 -w -DFELUCCA_FM4=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render_fm4" tests/ui_render.c -lm
