@@ -47,8 +47,16 @@ static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
 void ui_tap(int32_t x, int32_t y)
 {
     int32_t p;
-    if (!ui.home || ui.menu || ui.confirm || ui.layer || name_on())
-        return;
+    if (ui.menu || ui.confirm || ui.layer || name_on())
+        return;                                        /* a dialog or a layer owns the panel */
+    if (!ui.home) {                                    /* (FASE 3) a page's own panel: SCL's keys, its circle and
+                                                        * PROG's steps. The panel is drawn on its own strip and
+                                                        * blitted at graph_y(), so a screen row becomes a panel row
+                                                        * here, as the beings already do. */
+        if (scl_tap((int32_t)cur_page()->graph, x, y - (int32_t)graph_y()))
+            return;
+        return;                                        /* no other page takes a tap today */
+    }
     if (ui.home_viz) {                                  /* (FASE 2) the deep field answers too */
         p = gw_viz_hit(x, y);
         if (p >= 0)

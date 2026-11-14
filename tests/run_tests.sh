@@ -266,6 +266,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/home_roundtrip" tests/home_roundtrip_test.c -lm
     run "HOME round trip (UI_NO_DRIFT=1, fixed clock): 50 entries into and out of each of the five views, twice, entry by entry -- a page that does not come back the same fails" \
         "$OUT/home_roundtrip"
+    $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/scl_test" tests/scl_test.c -lm
+    run "SCL as a player's tool (FASE 3): every chord shape recognised, the inversions named from the bass, ambiguity marked, the keybed's picture and its hit test agree, a tapped chord reaches the panel" \
+        "$OUT/scl_test"
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_nav" tests/ui_nav_test.c -lm
     run "Navigation across HOME, VISUALIZER and the sections (UI_NO_DRIFT=1): 14 states walked twice, each compared with a full repaint of the same state -- a cached header, card or strip left stale fails" \
         "$OUT/ui_nav"
