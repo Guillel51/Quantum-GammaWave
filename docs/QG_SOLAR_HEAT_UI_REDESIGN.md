@@ -43,7 +43,7 @@ vocabulario que HOME —núcleo que se engrosa en bulbo, halo y polvo que la cor
 (`bg_tone_mix`), para que los datos medidos sigan siendo lo más brillante. Comparte el vaivén lento (`sway`) del
 campo, no se dibuja en calidad LOW y su coste es un píxel por columna, sin trigonometría ni asignaciones.
 
-![Visualizador](.shots/viz_after.png)
+![Visualizador](captures/ui/viz_after.png)
 
 ## 2 ter. Lo que ya estaba, y por qué no lo dupliqué
 

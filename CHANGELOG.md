@@ -79,7 +79,36 @@
   La alternativa sería cambiar la topología —menos trayectorias con varios cuerpos en cada una—, que es un
   rediseño, no un agrandamiento.
 
-## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
+## v3.1.6 — 2026-11-14 — FASE 1: el DSP medido contra el compilador objetivo, y el árbol limpio
+
+### Changed
+- **La Vía Láctea no repinta trabajo muerto.** El nudo de cada sexta columna volvía a escribir `(mx, my)` con
+  `mcore`, el mismo píxel y el mismo color que la línea del núcleo acababa de dejar: seis `sys_pset` por frame
+  que no cambiaban nada. Se fue también el `ux_mix(mhalo, mcore, 60)` que se recalculaba para cada una de las
+  tres columnas del bulbo; ahora se mezcla una vez por frame. `ui_render`: el visualizador de HOME pasa de
+  **80,8 a 79,7 µs** por frame HIGH y el suelo de las dos bandas queda en 34,3 µs (`[RENDER]`, host): dentro
+  del ruido de la tanda, pero el trabajo muerto ya no está.
+- **El árbol de la raíz quedó limpio.** Los siete `RECOVERY_*.md`, `V2.4.1_COMMIT_PROPOSAL.md` y
+  `FM1_INSTALLATION_SAFETY_AUDIT.md` viven en `docs/history/` con sus referencias actualizadas (README y tres
+  documentos); `.shots/` y `artifacts/` (capturas de trabajo sueltas) salieron del repositorio y quedaron en
+  `.gitignore`; las capturas de release se mudaron a `docs/captures/home/` y `docs/captures/ui/`; se borraron
+  el log `run_tests.log` (525 KB de una corrida vieja) y un fichero vacío llamado `true` que nadie referenciaba.
+
+### Measured, not changed
+- **`noise_render`: 219 instrucciones en el bucle contra un presupuesto de 201 (+9 %, en el techo del +10 %).**
+  Re-medido con el build AC791N (`-Oz`, pi32v2, `build/felucca.dis`) tras tres intentos reales —hoisting de
+  `banda`, de `bpg*3`, `mix>>3`, `hpa*258` y de los dos cocientes del bit crusher— y **el conteo no se movió**:
+  este clang ya los saca del bucle. Partir el bucle por MODE para quitar el `switch` **empeora** la métrica
+  (219 → 382), porque la herramienta suma los bucles y el cuerpo queda duplicado. 201 exigiría quitar una
+  etapa del motor o duplicar el cuerpo en 16 versiones: ninguna de las dos es una optimización, y no se hizo.
+- **Memoria: no se movió ni un byte.** `.data + .bss` 88 116 B de 98 304 B, POOL 305 096 B con 15 392 B de
+  margen, XIP 554 948 B de 581 052 B, RAM code 19 584 B de 24 576 B. No hay símbolo grande sin referencia
+  (`--gc-sections` está activo) y NOINIT sigue con su margen más fino, reportado como riesgo.
+
+### Verified
+- `regress`: **293 goldens, 0 cambiados**, 0 fallos de salud, CPU en presupuesto. `home_roundtrip`: cinco
+  vistas idénticas en dos pasadas. `noise_test`: todas las comprobaciones ok. `ui_render`: **0 hallazgos de
+  lint**, 0 desalineaciones en 3 390 046 mediciones, 0 píxeles GREY/MONO fuera de eje. `readme_nav_test`: ok.
 
 ## v3.1.5 — 2026-11-14 — los cinco planetas contestan, y la Vía Láctea también
 

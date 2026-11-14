@@ -208,7 +208,7 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 4. The write covers `0x04000–0x92FFF`; factory data is preserved, and the loader is the recovery path.
 
 **Before you write:** keep a backup of your unit, and read
-[`FM1_INSTALLATION_SAFETY_AUDIT.md`](FM1_INSTALLATION_SAFETY_AUDIT.md). The installer never writes without
+[`FM1_INSTALLATION_SAFETY_AUDIT.md`](docs/history/FM1_INSTALLATION_SAFETY_AUDIT.md). The installer never writes without
 your confirmation, and there is no secure boot on this hardware — a verified package is not a guarantee about
 a particular unit.
 

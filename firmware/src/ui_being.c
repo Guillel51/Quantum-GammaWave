@@ -1231,11 +1231,13 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         uint16_t mcore = ux_mix(T_BG, T_TEXT, 16 + sh / 3);
         uint16_t mhalo = ux_mix(T_BG, T_THEME, 9 + sh / 5);
         uint16_t mdust = ux_mix(T_BG, T_LINE, 7);
+        uint16_t mmid = ux_mix(mhalo, mcore, 60);    /* (PHASE 1) the bulge's inner lane, mixed once a frame:
+                                                      * it was mixed again for each of the three bulge columns */
         for (j = 0; j < 36; j++) {
             int32_t mx = sys_x0 + MW_X[j], my = sys_y0 + MW_Y[j];
             if (MW_T[j] == 3) {                      /* the bulge: a wider, warmer core with its lanes */
                 sys_pset(mx, my - 1, mhalo);
-                sys_pset(mx, my + 1, ux_mix(mhalo, mcore, 60));
+                sys_pset(mx, my + 1, mmid);
                 sys_pset(mx, my - 2, mdust);
                 sys_pset(mx, my + 2, mhalo);
                 sys_pset(mx, my + 3, mdust);
@@ -1252,10 +1254,11 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                 if (dj < 0)
                     dj = -dj;
                 sys_pset(mx, my, mcore);
-                if ((j % 6) == 3 && MW_T[j] >= 2) {  /* the knots: brighter, two pixels deep */
-                    sys_pset(mx, my, mcore);            /* a knot: the band's own brightest tone */
+                if ((j % 6) == 3 && MW_T[j] >= 2)   /* the knots: one pixel deeper than the core line, which is
+                                                     * already at mcore above. The old code set that same pixel
+                                                     * to that same colour a second time -- six psets a frame of
+                                                     * dead work (PHASE 1). */
                     sys_pset(mx, my + 1, mhalo);
-                }
                 sys_pset(mx, my + 4, mdust);      /* the second lane, under the band */
                 if (gw2 >= 0) {
                     int32_t reach = gw2 * 3 - dj * 2;                /* the front, running outward */

@@ -4,7 +4,7 @@ The one thing this repository cannot prove from software: that the package boots
 again on a real unit. Everything below is for the owner to run; nothing here has been executed in this
 workspace, and no step writes to a device by itself.
 
-Read `FM1_INSTALLATION_SAFETY_AUDIT.md` and `docs/QG_RELEASE_BLOCKERS.md` first.
+Read `docs/history/FM1_INSTALLATION_SAFETY_AUDIT.md` and `docs/QG_RELEASE_BLOCKERS.md` first.
 
 ## 0. Before touching anything
 

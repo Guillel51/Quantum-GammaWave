@@ -70,4 +70,4 @@ store their own data there.
 
 These are not cosmetic unknowns: the installation verdict remains **NO VERIFICADO EN HARDWARE — NO
 APTO PARA INSTALACIÓN REAL** until the identity, backup and recovery checks in
-`FM1_INSTALLATION_SAFETY_AUDIT.md` are performed on hardware.
+`docs/history/FM1_INSTALLATION_SAFETY_AUDIT.md` are performed on hardware.

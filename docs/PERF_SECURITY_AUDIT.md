@@ -320,4 +320,4 @@ No DSP, bootloader, flash layout, loader or audio budget was changed.
 - **Not measured.** No AC791N cycle counter, stack high-water, ISR latency, DMA arbitration, panel
   timing, encoder bounce or audio measurement was available. No CPU saving is claimed for the visual
   change. The installation verdict is **NO VERIFICADO EN HARDWARE — NO APTO PARA INSTALACIÓN REAL**;
-  see `FM1_INSTALLATION_SAFETY_AUDIT.md`.
+  see `docs/history/FM1_INSTALLATION_SAFETY_AUDIT.md`.
