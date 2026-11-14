@@ -163,6 +163,14 @@ def main():
                 fail += 1
             elif b and r["cost"] < b * (1 - TOL):
                 state = f"note: {(r['cost'] / b - 1) * 100:.0f} % (BUDGET_UPDATE=1 to keep it)"
+            elif b:
+                # (QA) a line that reads "cost 238 (budget 229) ok" is a misreading waiting to happen: the
+                # number printed is the baseline, and the check allows TOL on top of it. Say both, and say
+                # when the margin is thin, so nobody has to open this file to know why it passed.
+                d = (r["cost"] / b - 1) * 100
+                left = (b * (1 + TOL) - r["cost"]) / (b * (1 + TOL)) * 100
+                state = f"ok ({d:+.0f} % of the baseline, limit +{TOL * 100:.0f} %"
+                state += ", AT THE CEILING)" if left < 2 else ")"
         print(f"target: {n:15s} {r['insns']:5d} instructions, {r['loop']:4d} in loops, {r['div']} divides, "
               f"{r['call']:2d} calls there: cost {r['cost']:5d} (budget {b if b is not None else '-'}) {state}")
     path = [n for n in DRUM_PATH if n in res]
@@ -183,6 +191,11 @@ def main():
                 fail += 1
             elif b and total < b * (1 - TOL):
                 state = f"note: {(total / b - 1) * 100:.0f} % (BUDGET_UPDATE=1 to keep it)"
+            elif b:
+                d = (total / b - 1) * 100
+                left = (b * (1 + TOL) - total) / (b * (1 + TOL)) * 100
+                state = f"ok ({d:+.0f} % of the baseline, limit +{TOL * 100:.0f} %"
+                state += ", AT THE CEILING)" if left < 2 else ")"
         print(f"target: DRUM path        (hit, out, IMAGE / SEND, bus): cost {total:5d} "
               f"(budget {b if b is not None else '-'}) {state}")
     return 1 if fail else 0
