@@ -1,6 +1,15 @@
 ## Unreleased — 2026-11-14 — la bahía orbital de HOME pasa a 91 × 55 px
 
 ### Changed
+- **El teclado de SCL vuelve a ser un teclado.** `scl_keys()` (ui_scl.c) dibujaba doce celdas iguales con el
+  nombre de la nota dentro, la de un accidental un tercio más baja: a 20 px se leía como una fila de botones,
+  no como un instrumento. Ahora es un teclado real, el mismo que la página SCALE ya dibuja a 60 px: siete
+  naturales de 30 px con 2 px de hueco y cinco accidentales de 18 × 12 sobre su costura, todos con el bisel de
+  `scl_pkey` y contorno de 1 px. La escala va en la tecla (franja de 2 px en el borde superior de la natural,
+  tónica en acento y demás grados en tema, más cara más cálida) y una voz sonando marca el pie de la suya; los
+  nombres sólo se escriben cuando la tecla tiene sitio (la tira de 16 px de CHORD queda sin nombres). La máscara
+  es la del círculo, así que anillo y teclado no pueden discrepar. Medido: `ui_render` **0 lint, 0 alineación**
+  en 3 390 417 medidas (una más: el nombre de la natural), `ui_test` ok, `regress` 293 goldens sin cambios.
 - **La bahía de HOME crece 3 px por lado.** `graph_ecosys()` (ui_being.c) dibuja el panel en **(8, 65) 91 × 55**
   en vez de (8, 66) 88 × 52: es el sitio que la maqueta tenía libre —la bahía del espectro acaba en la fila 63,
   la del hogar empieza en la columna 100 y el lienzo de la gráfica tiene 122 filas—, o sea 1 px arriba, 1 px a
