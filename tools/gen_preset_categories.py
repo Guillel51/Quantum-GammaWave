@@ -21,6 +21,8 @@ ENGINES = [
     ("DRUM", "eng_drum.c", "DRUM_PRESETS", "DRUMS"),
     ("NOISE", "eng_noise.c", "NOISE_PRESETS", "TEXTURES"),
     ("FM6", "eng_fm6.c", "FM6_PRESETS", "KEYS"),
+    ("WTABLE", "eng_wavetable.c", "WT_PRESETS", "KEYS"),   # (FASE 5) was missing: 20 factory sounds
+                                                           # shipped and the browser never listed them
 ]
 RULES = [
     ("DRUMS", ("DRUM", "KIT", "909", "808", "LINN", "TRAP", "BEAT", "PERC")),

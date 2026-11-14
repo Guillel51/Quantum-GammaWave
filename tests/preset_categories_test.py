@@ -12,8 +12,8 @@ ALLOWED = {"BASS", "LEADS", "PADS", "PLUCKS", "KEYS", "BELLS", "ORGANS", "BRASS"
            "DRUMS", "TEXTURES", "FX"}
 rows = g.table()
 fails = []
-if len(rows) != 251:
-    fails.append("expected 251 presets, got %d" % len(rows))
+if len(rows) != 273:
+    fails.append("expected 273 presets, got %d" % len(rows))
 seen = set()
 for eng, i, n, c in rows:
     if (eng, n) in seen:

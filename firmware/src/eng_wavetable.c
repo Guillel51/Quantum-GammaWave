@@ -167,6 +167,14 @@ static const preset_t WT_PRESETS[] = {
      {XP(P_LRATE, 30), XP(P_LWAVE, 4), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 42), XP(P_X0, 26)}},
     {"MORPH SUB", {12, 0, 0, 84, 56, 24, 8, 16}, {0, 52, 120, 30}, 0, 1, FX(8, 0, 0, 12), PAT(2),
      {XP(P_LRATE, 8), XP(P_LWAVE, 0), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 10), XP(P_X1, 8)}},
+    /* (FASE 5) Two families the bank was missing, both built from what the engine already does: a tine
+     * electric piano (the frame near HOLLOW, the filter env a fast attack then a body, no sub) and a
+     * crystal bell (the METAL frame, a short filter env and a long tail, sent to the reverb). Neither
+     * adds DSP: MORPH picks the frame, HARM the tilt, CUT/RES the body. */
+    {"ELECTRIC TINE", {34, 6, 0, 0, 96, 8, 4, 72}, {0, 62, 44, 40}, 22, 0, FX(0, 18, 20, 30), PAT(3),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 112)}},
+    {"GLASS CHIME", {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 18, 62}, 10, 0, FX(0, 24, 26, 52), PAT(3),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 116)}},
 };
 
 static const param_desc_t WT_CH[3] = {

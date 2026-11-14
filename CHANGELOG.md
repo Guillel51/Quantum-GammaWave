@@ -1,5 +1,26 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.0.4 — 2026-11-14 — FASE 5: 20 presets reachable again, two sounds added, the bank counted
+
+### Fixed
+- **WTABLE's 20 factory sounds were invisible.** `tools/gen_preset_categories.py` never listed the
+  engine, so no browser page, filter or category showed them, and `tests/preset_categories_test.py`
+  asserted a fixed 251 and stayed green. The engine is listed now (20 + the 2 new sounds) and the
+  test asserts the measured count: **273/273 presets with one category each**.
+
+### Added
+- `ELECTRIC TINE` (KEYS, electric piano) and `GLASS CHIME` (BELLS) in WTABLE: two families the bank
+  lacked by name, built from the engine's existing MORPH/HARM/CUT/RES and filter envelope — no new
+  DSP. Both renamed off `TINE EP` / `CRYSTAL BELL`, which FM6 already uses.
+
+### Audited (host x86, this build)
+- Inventory counted from the tables: 275 presets in the firmware, 251 in the browser before this
+  change (WTABLE absent, DRUM's 2 legacy kits filtered by id on purpose).
+- `tests/preset_audit_test.c`: 275 presets, 0 silent, 0 hot, 0 duplicates, 0 out of range.
+- Levels: median -18.5 dBFS, no preset above -0.5 dBFS peak; 27 presets remain out of the fader's
+  reach (listed in the doc), NOISE sits 7 dB under the bank — reported, not flattened.
+- Goldens: 293 renders, 0 changed, 2 added. `docs/QG_FASE5_PRESET_BANK_2026-11-14.md`.
+
 ## v3.0.3 — 2026-11-14 — FASE 4: editing audit, and the LARGE footer stops eating names
 
 ### Fixed
