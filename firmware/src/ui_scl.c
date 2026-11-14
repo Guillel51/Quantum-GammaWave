@@ -153,40 +153,72 @@ static void scl_notes(const uint8_t *nt, uint32_t n, char *b, uint32_t sz)
         str_cpy(b + str_len(b), N_NOTE[nt[i] % 12u], sz - str_len(b));
     }
 }
-/* the keyboard strip: twelve keys from x0 to x1, in the scale coloured (the tonic in the accent), and the
- * notes a voice is sounding lit. It reads the same mask as the circle above it, so the two cannot disagree. */
+/* (3.6) THE KEYBOARD IS A KEYBOARD. It was twelve square cells with a note name in each, one cell drawn
+ * high on an accidental and low on a natural: at 20 px it read as a row of buttons, not as an instrument.
+ * It is a real keybed now, the same one SCL's SCALE page draws at 60 px: seven naturals 30 px wide with a
+ * 2 px gap, five accidentals 18 px wide and 12 px tall sitting on their seam, both bevelled with scl_pkey
+ * and a 1 px contour. The scale is on the key: a 2 px strip along its top edge (the tonic in the accent,
+ * the other degrees in the theme) and a warmer face; a voice sounding marks the foot of its key. The mask
+ * is the circle's own, so the ring above and the keys cannot disagree. Names are drawn only when the key
+ * has the room for them (the chord page's 16 px strip keeps its keys unlabelled). */
 static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, uint32_t mask,
                      uint32_t root, int small)
 {
+    static const uint8_t W_NOTE[7] = {0, 2, 4, 5, 7, 9, 11};    /* C D E F G A B */
+    static const uint8_t W_KEY[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
     uint32_t i, live = 0;
-    int32_t gap = 2, kw = (w - 11 * gap) / 12;
+    int32_t gap = 2, kw = (w - 6 * gap) / 7, bw = kw * 11 / 18, bh = h * 3 / 5;
+    int names = !small && h >= 18 && kw >= 24;                 /* the key's foot holds a 9 px name */
+    if (kw < 8)
+        return;
+    if (bw < 9)
+        bw = 9;
+    if (bh < 7)
+        bh = 7;
     for (i = 0; i < NVOICE; i++) {
         const voice_t *v = &V(t, i);
         if (v->active && v->gate && v->note < 128u)
             live |= 1u << (v->note % 12u);
     }
-    /* twelve cells, one a key: the cell sits high on a white key and low on a black one, as the keys do, and the
-     * ones in the scale are filled with the theme (the tonic with the accent). A voice sounding marks its cell. */
+    /* the seven naturals */
+    for (i = 0; i < 7u; i++) {
+        uint32_t note = W_NOTE[i], deg = (note + 12u - root) % 12u;
+        int32_t kx = x0 + (int32_t)i * (kw + gap);
+        int in = (mask >> deg) & 1u, is_root = in && deg == 0u;
+        int sound = (live >> note) & 1u;
+        uint16_t face = in ? T_KEYW : ux_mix(T_KEYW, T_BG, 26);
+        uint16_t strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        scl_pkey(kx, y0, kw, h, face, ux_mix(face, T_BG, 58));
+        if (strip)                                          /* the scale, on the key's top edge */
+            cv_rect(kx + 3, y0 + 1, kw - 6, 2, strip);
+        cv_rect(kx + kw - 1, y0 + 3, 1, h - 6, ux_mix(face, T_BG, 34));   /* the seam's shade */
+        if (names) {
+            GFX_HOOK_ALIGN(kx, y0 + h - 11, kx + kw, y0 + h - 1, AL_H, "SCL natural name in its key");
+            cv_text_in(kx, y0 + h - 11, kw, &AF_S, N_NOTE[note], in ? T_INK : T_DIM, face);
+        }
+        if (sound)                                          /* the note is sounding: a bar at its foot */
+            cv_rect(kx + 3, y0 + h - 3, kw - 6, 2, T_ACCENT);
+    }
+    /* the five accidentals, over the seam they belong to */
     for (i = 0; i < 12u; i++) {
         uint32_t deg = (i + 12u - root) % 12u;
-        int32_t kx = x0 + (int32_t)i * (kw + gap);
-        int in = (mask >> deg) & 1u, is_root = in && deg == 0u, black = SCL_BLACK[i];
-        int sound = (live >> i) & 1u;
-        int32_t ky = y0 + (black ? h / 3 : 0), kh = h - (black ? h / 3 : 0);
-        uint16_t face = is_root ? T_ACCENT : in ? T_THEME : black ? T_RAISE : T_SURF;
-        uint16_t ink = is_root ? T_INK : in ? T_INK : black ? T_DIM : T_MID;
-        scl_pkey(kx, ky, kw, kh, face, ux_mix(face, T_BG, 55));
-        if (black)
-            cv_rect(kx + 1, y0 + 1, kw - 2, h / 3 - 1, T_BG);
-        if (!small && i == 0 && kw >= 15) {          /* (6.2) C4: the strip's own octave, on its C */
-            char cb[4];
-            str_cpy(cb, N_NOTE[i], sizeof cb);
-            fmt_int(cb + 1, 4);
-            cv_text_in(kx, ky + (kh - 9) / 2, kw, &AF_S, cb, ink, face);
-        } else if (!small)
-            cv_text_in(kx, ky + (kh - 9) / 2, kw, &AF_S, N_NOTE[i], ink, face);
+        int32_t kx;
+        int in, is_root, sound;
+        uint16_t face, strip;
+        if (!SCL_BLACK[i])
+            continue;
+        kx = x0 + (int32_t)W_KEY[i] * (kw + gap) + kw + gap / 2 - bw / 2;
+        in = (mask >> deg) & 1u;
+        is_root = in && deg == 0u;
+        sound = (live >> i) & 1u;
+        face = sound ? ux_mix(T_KEYB, T_THEME, 46) : T_KEYB;
+        strip = is_root ? T_ACCENT : in ? T_THEME : 0;
+        scl_pkey(kx, y0, bw, bh, face, ux_mix(T_KEYB, T_TEXT, 24));
+        if (strip)                                          /* the scale, at the accidental's foot */
+            cv_rect(kx + 3, y0 + bh - 3, bw - 6, 2, strip);
+        cv_rect(kx, y0 + bh, bw, 2, T_BG);                  /* its shadow on the naturals */
         if (sound)
-            cv_rect(kx + 2, ky + kh - 3, kw - 4, 2, is_root || in ? T_TEXT : T_ACCENT);
+            cv_rect(kx + 3, y0 + bh - 4, bw - 6, 1, T_TEXT);
     }
 }
 /* the scale's own strip: the same keys, masked by the track's scale */
