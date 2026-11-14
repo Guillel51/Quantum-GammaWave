@@ -1,0 +1,478 @@
+# emulator run 43612630918 (success) at 02081b728a83e89b25292001ba57498ef24b04d8
+
+## jobs
+- build: completed / success
+- deploy: completed / success
+
+## publish job
+
+## failed steps, any job
+build	Set up job	2026-11-14T15:53:58.8264548Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261111.370/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-14T15:53:59.5726463Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-14T15:54:03.4824307Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.4847403Z  * [new branch]      ci/log/42578600477-cancelled -> origin/ci/log/42578600477-cancelled
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5012696Z  * [new branch]      ci/log/42914036626-failure -> origin/ci/log/42914036626-failure
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5024176Z  * [new branch]      ci/log/42934304046-failure -> origin/ci/log/42934304046-failure
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5097134Z  * [new branch]      ci/log/42960254048-success -> origin/ci/log/42960254048-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5114879Z  * [new branch]      ci/log/42964034323-cancelled -> origin/ci/log/42964034323-cancelled
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5220337Z  * [new branch]      ci/log/43052403602-cancelled -> origin/ci/log/43052403602-cancelled
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5237504Z  * [new branch]      ci/log/43055422733-success -> origin/ci/log/43055422733-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5304042Z  * [new branch]      ci/log/43276513161-success -> origin/ci/log/43276513161-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5325422Z  * [new branch]      ci/log/43361425253-failure -> origin/ci/log/43361425253-failure
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5350822Z  * [new branch]      ci/log/43422452557-success -> origin/ci/log/43422452557-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5359444Z  * [new branch]      ci/log/43448840392-success -> origin/ci/log/43448840392-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5369624Z  * [new branch]      ci/log/43474037096-failure -> origin/ci/log/43474037096-failure
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5393990Z  * [new branch]      ci/log/43600042299-success -> origin/ci/log/43600042299-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5404040Z  * [new branch]      ci/log/43605981974-success -> origin/ci/log/43605981974-success
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5422718Z  * [new branch]      exp/voice-pool          -> origin/exp/voice-pool
+build	Run actions/checkout@v4	2026-11-14T15:54:03.5454116Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run actions/setup-python@v5	2026-11-14T15:54:03.7740499Z   allow-prereleases: false
+build	Run mymindstorm/setup-emsdk@v14	2026-11-14T15:54:12.4036503Z [command]/home/runner/work/_temp/89acceb6-80c9-401d-a1c0-d7fedf80bf93/emsdk-main/emsdk update
+build	Run mymindstorm/setup-emsdk@v14	2026-11-14T15:54:15.3164794Z Downloading: /home/runner/work/_temp/89acceb6-80c9-401d-a1c0-d7fedf80bf93/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/f6264d4a4dd9ba24a9f0a5702835a44d1463de13/wasm-binaries.tar.xz, 304047688 Bytes
+build	Run actions/setup-node@v4	2026-11-14T15:55:10.8124225Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/465b0d2c-edc2-457d-8895-b87143472099 -f /home/runner/work/_temp/cb0b2d16-5c8d-4bcd-a183-47ebb3f8b9ae
+build	the emulator as an artifact (every branch, every PR)	﻿2026-11-14T15:55:15.1216422Z ##[group]Run actions/upload-artifact@v4
+build	the package, the installer and the editor	2026-11-14T15:55:16.8340371Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	the signing request as an artifact	2026-11-14T15:55:34.5922422Z Artifact sign-request-02081b728a83e89b25292001ba57498ef24b04d8.zip successfully finalized. Artifact ID 14120866669
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:55:34.9194048Z ^[[36;1mpython3 tests/mflasher_test.py^[[0m
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:55:38.6734035Z FM6 bank: LIST of an empty device: no bank                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:29.6255403Z ok   JIANT (FM-1_909): the firmware is reported as another build, with its own version
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:29.6360403Z ok   the panel renders the checklist and the verdict, not only the field list
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:31.6483403Z ok   write() called directly, with no proof, is refused and sends nothing
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:38.0239558Z verify only: 153 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:39.1246080Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1308263Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1324226Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1325005Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1336479Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1340464Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1342234Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1343058Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:40.1349221Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:44.2354040Z probe: fresh session                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:44.2383686Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:50.1319928Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-14T15:56:50.3374650Z flash read: 16 checks, 0 FAILED
+build	the newest signed release (package, version, commit)	2026-11-14T15:56:50.5735404Z newest signed release: 3.1.5 (release/felucca-v3.1.5.fwsc)
+build	the emulator of the signed release's commit	2026-11-14T15:56:50.5789036Z ^[[36;1m  test -s ../release-tree/build/emu/felucca.wasm || { echo "::error::the release emulator did not build"; exit 1; }^[[0m
+build	the site (root = the signed release, /preview = this build)	2026-11-14T15:57:15.5731422Z ^[[36;1m  echo "::warning::no signed release in this tree: the root serves this run's unsigned build"^[[0m
+build	the site (root = the signed release, /preview = this build)	2026-11-14T15:57:15.5736634Z ^[[36;1m  test -s "$PKG" || { echo "::error::no target package in this run and none committed in firmware/packages"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	﻿2026-11-14T15:57:15.7593615Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-14T15:57:15.7594499Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-14T15:57:15.7595196Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-14T15:57:15.7710859Z ^[[36;1mtest -s build/site/index.html || { echo "::error::build/site/index.html is missing, nothing to publish"; exit 1; }^[[0m
+build	the site exists (the deploy would otherwise upload nothing)	2026-11-14T15:57:15.7805422Z drwxr-xr-x  4 runner runner     4096 Nov 14 15:55 emu
+build	the site is the one its records name	2026-11-14T15:57:15.7864228Z   EMSDK: /home/runner/work/_temp/89acceb6-80c9-401d-a1c0-d7fedf80bf93/emsdk-main
+build	the site is the one its records name	2026-11-14T15:57:15.8567605Z site: 20 ids, 10 images, 31 links, 0 FAILED
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.8940301Z ./preview/preview/
+deploy	Set up job	2026-11-14T15:57:22.1959121Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261111.370/images/ubuntu/Ubuntu2404-Readme.md
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0601877Z ^[[36;1m  echo "::error::GitHub Pages is not enabled for Guillel51/Quantum-GammaWave: deploy-pages would fail with HTTP 404. Enable it once, Settings > Pages > Build and deployment > Source: GitHub Actions (no workflow change is needed)."^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.4656488Z Pages: {"url":"https://api.github.com/repos/Guillel51/Quantum-GammaWave/pages","status":null,"cname":null,"custom_404":false,"html_url":"https://guillel51.github.io/Quantum-GammaWave/","build_type":"workflow","source":{"branch":"main","path":"/"},"public":true,"protected_domain_state":null,"pending_domain_unverified_at":null,"https_enforced":true}
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6814046Z   allow-unsafe-pr-checkout: false
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8324220Z ^[[36;1mREL=$(python3 - <<'EOF'^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8328601Z ^[[36;1m[ -n "$REL" ] || { echo "::error::no signed release manifest in the tree: the root would serve an unsigned build"; exit 1; }^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8331547Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3509580Z ^[[36;1mecho "::error::/preview/ still does not serve $WANT"^[[0m
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5540351Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+
+## tail
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9014886Z ./plan/
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9015247Z ./plan/index.html
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9015913Z ##[endgroup]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9026831Z ##[end-action id=__actions_upload-pages-artifact.__run;outcome=success;conclusion=success;duration_ms=23]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9029834Z ##[start-action display=Archive artifact;id=__actions_upload-pages-artifact.__run_2]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9035100Z ##[end-action id=__actions_upload-pages-artifact.__run_2;outcome=skipped;conclusion=skipped;duration_ms=0]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9037607Z ##[start-action display=Archive artifact;id=__actions_upload-pages-artifact.__run_3]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9041208Z ##[end-action id=__actions_upload-pages-artifact.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9043209Z ##[start-action display=Upload artifact;id=__actions_upload-pages-artifact.upload-artifact]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9091562Z ##[group]Run actions/upload-artifact@v4
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9091866Z with:
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9092071Z   name: github-pages
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9092343Z   path: /home/runner/work/_temp/artifact.tar
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9092644Z   retention-days: 1
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9092884Z   if-no-files-found: error
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9093142Z   compression-level: 6
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9093375Z   overwrite: false
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9093609Z   include-hidden-files: false
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9093865Z env:
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9094133Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9094570Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9095009Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9095407Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9095807Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9096203Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9098282Z   PATH: /home/runner/work/_temp/89acceb6-80c9-401d-a1c0-d7fedf80bf93/emsdk-main:/home/runner/work/_temp/89acceb6-80c9-401d-a1c0-d7fedf80bf93/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9100268Z   EMSDK: /home/runner/work/_temp/89acceb6-80c9-401d-a1c0-d7fedf80bf93/emsdk-main
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9101060Z   EMSDK_NODE: /home/runner/work/_temp/89acceb6-80c9-401d-a1c0-d7fedf80bf93/emsdk-main/node/24.19.0_64bit/bin/node
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9101623Z   REL: 7367312130c8b6f5aafa3ed7e2394f1c28fd935a
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9102096Z   REL_EMU: /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/../release-tree/build/emu
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:15.9102542Z ##[endgroup]
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.0877086Z (node:2841) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.0878975Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.0942982Z With the provided path, there will be 1 file uploaded
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.0949835Z Artifact name is valid!
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.0950671Z Root directory input is valid!
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.3078991Z Beginning upload of artifact content to blob storage
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.5787794Z (node:2841) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.7513323Z Uploaded bytes 5237209
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.7663224Z Finished uploading artifact content to blob storage!
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.7664412Z SHA256 digest of uploaded artifact zip is 7dc44af0b36444e453a04be00579e898e3d9d11a04cecde967d64860d8d239af
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:16.7666450Z Finalizing artifact upload
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:17.0550759Z Artifact github-pages.zip successfully finalized. Artifact ID 14121260740
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:17.0553035Z Artifact github-pages has been successfully uploaded! Final size is 5237209 bytes. Artifact ID is 14121260740
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:17.0560555Z Artifact download URL: https://github.com/Guillel51/Quantum-GammaWave/actions/runs/43612630918/artifacts/14121260740
+build	Run actions/upload-pages-artifact@v3	2026-11-14T15:57:17.0696984Z ##[end-action id=__actions_upload-pages-artifact.upload-artifact;outcome=success;conclusion=success;duration_ms=1165]
+build	Post JieLi toolchain and SDK files (cached)	﻿2026-11-14T15:57:17.0791995Z Post job cleanup.
+build	Post JieLi toolchain and SDK files (cached)	2026-11-14T15:57:17.1945315Z Cache hit occurred on the primary key jieli-ac79-v1, not saving cache.
+build	Post JieLi toolchain and SDK files (cached)	2026-11-14T15:57:17.1947047Z (node:2853) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Post JieLi toolchain and SDK files (cached)	2026-11-14T15:57:17.1948485Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Post Run actions/setup-node@v4	﻿2026-11-14T15:57:17.2065025Z Post job cleanup.
+build	Post Run actions/setup-node@v4	2026-11-14T15:57:17.3382331Z (node:2861) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Post Run actions/setup-node@v4	2026-11-14T15:57:17.3383865Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Post Run actions/setup-python@v5	﻿2026-11-14T15:57:17.3517650Z Post job cleanup.
+build	Post Run actions/setup-python@v5	2026-11-14T15:57:17.4824716Z (node:2869) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+build	Post Run actions/setup-python@v5	2026-11-14T15:57:17.4826560Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Post Run actions/checkout@v4	﻿2026-11-14T15:57:17.5078423Z Post job cleanup.
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6098878Z [command]/usr/bin/git version
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6150302Z git version 2.56.1
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6199045Z Temporarily overriding HOME='/home/runner/work/_temp/ee0bd1d2-ca24-4c31-84c6-1408380b659a' before making global git config changes
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6201167Z Adding repository directory to the temporary git global config as a safe directory
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6208394Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6257605Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6301869Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6587620Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6629151Z http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6637848Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6685558Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.6979566Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	Post Run actions/checkout@v4	2026-11-14T15:57:17.7031772Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	Complete job	﻿2026-11-14T15:57:17.7446561Z Cleaning up orphan processes
+build	Complete job	2026-11-14T15:57:17.7782029Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/setup-node@v4, actions/setup-python@v5, actions/upload-artifact@v4, mymindstorm/setup-emsdk@v14. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+deploy	Set up job	﻿2026-11-14T15:57:22.1912850Z Current runner version: '2.338.2'
+deploy	Set up job	2026-11-14T15:57:22.1942955Z ##[group]Runner Image Provisioner
+deploy	Set up job	2026-11-14T15:57:22.1944004Z Hosted Compute Agent
+deploy	Set up job	2026-11-14T15:57:22.1944814Z Version: 20261103.629
+deploy	Set up job	2026-11-14T15:57:22.1945926Z Commit: 15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc
+deploy	Set up job	2026-11-14T15:57:22.1946894Z Build Date: 2026-11-03T17:26:59Z
+deploy	Set up job	2026-11-14T15:57:22.1947796Z Worker ID: {d2a3a7dd-1186-47ec-b9de-72131ac104b9}
+deploy	Set up job	2026-11-14T15:57:22.1948841Z Region: eastus2
+deploy	Set up job	2026-11-14T15:57:22.1949594Z Cloud: Azure
+deploy	Set up job	2026-11-14T15:57:22.1950246Z ##[endgroup]
+deploy	Set up job	2026-11-14T15:57:22.1952113Z ##[group]Operating System
+deploy	Set up job	2026-11-14T15:57:22.1952915Z Ubuntu
+deploy	Set up job	2026-11-14T15:57:22.1953650Z 24.04.5
+deploy	Set up job	2026-11-14T15:57:22.1954394Z LTS
+deploy	Set up job	2026-11-14T15:57:22.1955226Z ##[endgroup]
+deploy	Set up job	2026-11-14T15:57:22.1956113Z ##[group]Runner Image
+deploy	Set up job	2026-11-14T15:57:22.1956870Z Image: ubuntu-24.04
+deploy	Set up job	2026-11-14T15:57:22.1957643Z Version: 20261111.370.1
+deploy	Set up job	2026-11-14T15:57:22.1959121Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261111.370/images/ubuntu/Ubuntu2404-Readme.md
+deploy	Set up job	2026-11-14T15:57:22.1961583Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261111.370
+deploy	Set up job	2026-11-14T15:57:22.1962932Z ##[endgroup]
+deploy	Set up job	2026-11-14T15:57:22.1964573Z ##[group]GITHUB_TOKEN Permissions
+deploy	Set up job	2026-11-14T15:57:22.1967158Z Contents: read
+deploy	Set up job	2026-11-14T15:57:22.1967999Z Metadata: read
+deploy	Set up job	2026-11-14T15:57:22.1968754Z Pages: write
+deploy	Set up job	2026-11-14T15:57:22.1969446Z ##[endgroup]
+deploy	Set up job	2026-11-14T15:57:22.1972059Z Secret source: Actions
+deploy	Set up job	2026-11-14T15:57:22.1973263Z Cache mode: write
+deploy	Set up job	2026-11-14T15:57:22.1974603Z Prepare workflow directory
+deploy	Set up job	2026-11-14T15:57:22.2352529Z Prepare all required actions
+deploy	Set up job	2026-11-14T15:57:22.2407775Z Getting action download info
+deploy	Set up job	2026-11-14T15:57:22.4263601Z Download action repository 'actions/deploy-pages@v4' (SHA:d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e)
+deploy	Set up job	2026-11-14T15:57:22.8055624Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+deploy	Set up job	2026-11-14T15:57:22.9939649Z Complete job name: deploy
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	﻿2026-11-14T15:57:23.0599178Z ##[group]Run if ! gh api "repos/Guillel51/Quantum-GammaWave/pages" > /tmp/pages.json 2>/dev/null; then
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0600308Z ^[[36;1mif ! gh api "repos/Guillel51/Quantum-GammaWave/pages" > /tmp/pages.json 2>/dev/null; then^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0601877Z ^[[36;1m  echo "::error::GitHub Pages is not enabled for Guillel51/Quantum-GammaWave: deploy-pages would fail with HTTP 404. Enable it once, Settings > Pages > Build and deployment > Source: GitHub Actions (no workflow change is needed)."^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0603163Z ^[[36;1m  exit 1^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0603540Z ^[[36;1mfi^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0604020Z ^[[36;1mecho "Pages: $(tr -d '\n' < /tmp/pages.json)"^[[0m
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0624271Z shell: /usr/bin/bash -e {0}
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0624891Z env:
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0628063Z   GH_TOKEN: ***
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.0628449Z ##[endgroup]
+deploy	Pages is enabled (Settings > Pages > Build and deployment > Source: GitHub Actions)	2026-11-14T15:57:23.4656488Z Pages: {"url":"https://api.github.com/repos/Guillel51/Quantum-GammaWave/pages","status":null,"cname":null,"custom_404":false,"html_url":"https://guillel51.github.io/Quantum-GammaWave/","build_type":"workflow","source":{"branch":"main","path":"/"},"public":true,"protected_domain_state":null,"pending_domain_unverified_at":null,"https_enforced":true}
+deploy	Run actions/deploy-pages@v4	﻿2026-11-14T15:57:23.4792603Z ##[group]Run actions/deploy-pages@v4
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4793149Z with:
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4796312Z   token: ***
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4796692Z   timeout: 600000
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4797066Z   error_count: 10
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4797501Z   reporting_interval: 5000
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4797929Z   artifact_name: github-pages
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4798355Z   preview: false
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.4798728Z ##[endgroup]
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.7823722Z (node:1991) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.7826576Z (Use `node --trace-deprecation ...` to show where the warning was created)
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:23.8869269Z Fetching artifact metadata for "github-pages" in this workflow run
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.0123734Z Found 3 artifact(s)
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.0173516Z Creating Pages deployment with payload:
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.0174755Z {
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.0175855Z 	"artifact_id": 14121260740,
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.0177158Z 	"pages_build_version": "02081b728a83e89b25292001ba57498ef24b04d8",
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.0290039Z 	"oidc_token": "***"
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.0291134Z }
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:24.5325976Z Created deployment for 02081b728a83e89b25292001ba57498ef24b04d8, ID: 02081b728a83e89b25292001ba57498ef24b04d8
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:29.5345617Z Getting Pages deployment status...
+deploy	Run actions/deploy-pages@v4	2026-11-14T15:57:29.6431072Z Reported success!
+deploy	Run actions/checkout@v4	﻿2026-11-14T15:57:29.6748382Z ##[group]Run actions/checkout@v4
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6748828Z with:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6749241Z   sparse-checkout: tools/site_check.py
+deploy	Run actions/checkout@v4	release
+deploy	Run actions/checkout@v4	
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6749734Z   sparse-checkout-cone-mode: false
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6750142Z   repository: Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6752401Z   token: ***
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6752746Z   ssh-strict: true
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6753071Z   ssh-user: git
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6811819Z   persist-credentials: true
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6812191Z   clean: true
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6812455Z   fetch-depth: 1
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6812696Z   fetch-tags: false
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6812941Z   show-progress: true
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6813198Z   lfs: false
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6813452Z   submodules: false
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6813730Z   set-safe-directory: true
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6814046Z   allow-unsafe-pr-checkout: false
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.6814354Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7646941Z Syncing repository: Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7648827Z ##[group]Getting Git version info
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7649513Z Working directory is '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7650195Z [command]/usr/bin/git version
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7777632Z git version 2.56.1
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7803517Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7809659Z Temporarily overriding HOME='/home/runner/work/_temp/f9823867-36e8-4555-8d7a-8744d25d5ab2' before making global git config changes
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7810760Z Adding repository directory to the temporary git global config as a safe directory
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7814439Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7866788Z Deleting the contents of '/home/runner/work/Quantum-GammaWave/Quantum-GammaWave'
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7871025Z ##[group]Initializing the repository
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7874951Z [command]/usr/bin/git init /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7965156Z hint: Using 'master' as the name for the initial branch. This default branch name
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7966707Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7967431Z hint: to use in all of your new repositories, which will suppress this warning,
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7968239Z hint: call:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7968531Z hint:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7968931Z hint: 	git config --global init.defaultBranch <name>
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7969362Z hint:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7969775Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7970445Z hint: 'development'. The just-created branch can be renamed via this command:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7970818Z hint:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7971057Z hint: 	git branch -m <name>
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7971311Z hint:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7971646Z hint: Disable this message with "git config set advice.defaultBranchName false"
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7974462Z Initialized empty Git repository in /home/runner/work/Quantum-GammaWave/Quantum-GammaWave/.git/
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.7985360Z [command]/usr/bin/git remote add origin https://github.com/Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8032176Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8032809Z ##[group]Disabling automatic garbage collection
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8036085Z [command]/usr/bin/git config --local gc.auto 0
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8073182Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8074469Z ##[group]Setting up auth
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8082141Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8125434Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8541957Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8580851Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8800386Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.8838052Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.9071497Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.9118886Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.9119686Z ##[group]Fetching the repository
+deploy	Run actions/checkout@v4	2026-11-14T15:57:29.9128359Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin +02081b728a83e89b25292001ba57498ef24b04d8:refs/remotes/origin/main
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3108526Z From https://github.com/Guillel51/Quantum-GammaWave
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3109063Z  * [new ref]         02081b728a83e89b25292001ba57498ef24b04d8 -> origin/main
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3111838Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3112239Z ##[group]Determining the checkout info
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3113703Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3114018Z ##[group]Setting up sparse checkout
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3119596Z [command]/usr/bin/git config core.sparseCheckout true
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3543108Z [command]/usr/bin/git rev-parse --git-path info/sparse-checkout
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3575700Z .git/info/sparse-checkout
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3584914Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3585542Z ##[group]Checking out the ref
+deploy	Run actions/checkout@v4	2026-11-14T15:57:30.3594175Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7373017Z Updating files:   0% (1/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7373867Z Updating files:   1% (2/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7374334Z Updating files:   2% (3/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7374744Z Updating files:   3% (4/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7375259Z Updating files:   4% (5/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7375548Z Updating files:   5% (7/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7375930Z Updating files:   6% (8/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7376240Z Updating files:   7% (9/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7376548Z Updating files:   8% (10/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7376841Z Updating files:   9% (12/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7377152Z Updating files:  10% (13/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7377432Z Updating files:  11% (14/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7384364Z Updating files:  12% (15/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7384870Z Updating files:  13% (17/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7385485Z Updating files:  14% (18/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7385820Z Updating files:  15% (19/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7386124Z Updating files:  16% (20/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7386419Z Updating files:  17% (22/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7386726Z Updating files:  18% (23/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7387018Z Updating files:  19% (24/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7387311Z Updating files:  20% (25/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7387602Z Updating files:  21% (27/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7387901Z Updating files:  22% (28/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7388229Z Updating files:  23% (29/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7396249Z Updating files:  24% (30/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7396671Z Updating files:  25% (31/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7397068Z Updating files:  26% (33/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7397458Z Updating files:  27% (34/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7397786Z Updating files:  28% (35/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7453850Z Updating files:  29% (36/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7466195Z Updating files:  30% (38/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7466538Z Updating files:  31% (39/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7466841Z Updating files:  32% (40/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7487711Z Updating files:  33% (41/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7490624Z Updating files:  34% (43/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7491008Z Updating files:  35% (44/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7506853Z Updating files:  36% (45/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7521824Z Updating files:  37% (46/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7522148Z Updating files:  38% (48/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7538729Z Updating files:  39% (49/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7539038Z Updating files:  40% (50/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7555532Z Updating files:  41% (51/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7582557Z Updating files:  42% (53/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7582953Z Updating files:  43% (54/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7586452Z Updating files:  44% (55/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7590030Z Updating files:  45% (56/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7590597Z Updating files:  46% (58/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7593683Z Updating files:  47% (59/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7594281Z Updating files:  48% (60/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7609137Z Updating files:  49% (61/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7628768Z Updating files:  50% (62/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7629104Z Updating files:  51% (64/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7631985Z Updating files:  52% (65/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7632290Z Updating files:  53% (66/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7671508Z Updating files:  54% (67/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7683190Z Updating files:  55% (69/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7683495Z Updating files:  56% (70/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7694907Z Updating files:  57% (71/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7698373Z Updating files:  58% (72/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7698670Z Updating files:  59% (74/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7701856Z Updating files:  60% (75/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7702428Z Updating files:  61% (76/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7718709Z Updating files:  62% (77/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7734503Z Updating files:  63% (79/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7735120Z Updating files:  64% (80/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7762210Z Updating files:  65% (81/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7765774Z Updating files:  66% (82/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7766375Z Updating files:  67% (84/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7781304Z Updating files:  68% (85/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7781700Z Updating files:  69% (86/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7796786Z Updating files:  70% (87/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7812229Z Updating files:  71% (89/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7812634Z Updating files:  72% (90/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7828266Z Updating files:  73% (91/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7828660Z Updating files:  74% (92/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7845742Z Updating files:  75% (93/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7860827Z Updating files:  76% (95/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7861172Z Updating files:  77% (96/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7878965Z Updating files:  78% (97/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7882208Z Updating files:  79% (98/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7882551Z Updating files:  80% (100/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7910483Z Updating files:  81% (101/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7910937Z Updating files:  82% (102/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7914380Z Updating files:  83% (103/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7917391Z Updating files:  84% (105/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7917992Z Updating files:  85% (106/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7932008Z Updating files:  86% (107/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7957638Z Updating files:  87% (108/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7958041Z Updating files:  88% (110/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7968636Z Updating files:  89% (111/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7969001Z Updating files:  90% (112/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7972337Z Updating files:  91% (113/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7983022Z Updating files:  92% (115/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7984481Z Updating files:  93% (116/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.7998939Z Updating files:  94% (117/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8001802Z Updating files:  95% (118/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8002438Z Updating files:  96% (120/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8002899Z Updating files:  97% (121/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8003319Z Updating files:  98% (122/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8005195Z Updating files:  99% (123/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8005532Z Updating files: 100% (124/124)
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8005840Z Updating files: 100% (124/124), done.
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8094517Z Switched to a new branch 'main'
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8099877Z branch 'main' set up to track 'origin/main'.
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8113799Z ##[endgroup]
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8162649Z [command]/usr/bin/git log -1 --format=%H
+deploy	Run actions/checkout@v4	2026-11-14T15:57:31.8191521Z 02081b728a83e89b25292001ba57498ef24b04d8
+deploy	the published site serves the signed release (root) and this build (/preview)	﻿2026-11-14T15:57:31.8322912Z ##[group]Run # the root installs the signed release, so what it must serve is that release's commit, not this
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8323514Z ^[[36;1m# the root installs the signed release, so what it must serve is that release's commit, not this^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8323948Z ^[[36;1m# run's: main moves, the signature does not.^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8324220Z ^[[36;1mREL=$(python3 - <<'EOF'^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8324442Z ^[[36;1mimport glob, json^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8324644Z ^[[36;1mdef key(v):^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8324943Z ^[[36;1m    try: return tuple(int(x) for x in str(v).strip().lstrip("v").split("."))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8325543Z ^[[36;1m    except (TypeError, ValueError): return (0,)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8325808Z ^[[36;1mbest = None^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8326036Z ^[[36;1mfor m in glob.glob("release/*.manifest.json"):^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8326301Z ^[[36;1m    try: d = json.load(open(m))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8326549Z ^[[36;1m    except (OSError, ValueError): continue^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8326845Z ^[[36;1m    k = key(d.get("version"))^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8327099Z ^[[36;1m    if best is None or k > best[0]: best = (k, d)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8327426Z ^[[36;1mprint(((best[1].get("build") or {}).get("commit", "")) if best else "")^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8327717Z ^[[36;1mEOF^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8327890Z ^[[36;1m)^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8328120Z ^[[36;1mecho "the signed release was built from '${REL:-nothing}'"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8328601Z ^[[36;1m[ -n "$REL" ] || { echo "::error::no signed release manifest in the tree: the root would serve an unsigned build"; exit 1; }^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8329140Z ^[[36;1msleep 20                                   # Pages switches after the deploy reports, not during it^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8329476Z ^[[36;1mfor i in $(seq 1 20); do^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8329839Z ^[[36;1m  if python3 tools/site_check.py --expect-emu-commit "$REL" --expect-commit "$REL"; then^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8330185Z ^[[36;1m    exit 0^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8330366Z ^[[36;1m  fi^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8330687Z ^[[36;1m  echo "::notice::the site is not serving the expected artefacts yet (attempt $i/20); waiting 15 s"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8331043Z ^[[36;1m  sleep 15^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8331226Z ^[[36;1mdone^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8331547Z ^[[36;1mecho "::error::the deployed site still does not serve the expected artefacts after 5 minutes"^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8331907Z ^[[36;1mexit 1^[[0m
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8350176Z shell: /usr/bin/bash -e {0}
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8350423Z ##[endgroup]
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:31.8592849Z the signed release was built from '7367312130c8b6f5aafa3ed7e2394f1c28fd935a'
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3386747Z site: versions.json names a version and a full commit                    ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3387384Z site: the published package is the commit asked for                      ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3387899Z site: the package's size is versions.json's                              ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3388388Z site: the package's SHA-256 is versions.json's                           ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3388905Z site: the emulator is the build this run copied up                       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3389396Z site: the emulator names the same version                                ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3389868Z site: versions.json's emulator record is the emulator's wasm             ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3390350Z site: the wasm's size is the manifest's                                  ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3390760Z site: the wasm's SHA-256 is the manifest's                               ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3391564Z site: the portal prints the published version                            ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3391922Z site: the portal offers the emulator                                     ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3392284Z site: the installer offers the published version                         ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3392684Z site: the installer page is the one with the Verify Only checklist       ok
+deploy	the published site serves the signed release (root) and this build (/preview)	2026-11-14T15:57:52.3392998Z site: all checks passed
+deploy	the preview channel serves this run (main's emulator at /preview/)	﻿2026-11-14T15:57:52.3505548Z ##[group]Run BASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3506088Z ^[[36;1mBASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3506440Z ^[[36;1mWANT="${GITHUB_SHA:0:12}"^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3506667Z ^[[36;1mfor i in $(seq 1 20); do^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3506971Z ^[[36;1m  C=$(curl -fsS "$BASE/preview/emulator/manifest.json" 2>/dev/null \^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3507446Z ^[[36;1m      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit",""))' 2>/dev/null) || C=""^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3507834Z ^[[36;1m  if [ "$C" = "$WANT" ]; then^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3508086Z ^[[36;1m    echo "preview: /preview/ serves $C"^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3508335Z ^[[36;1m    exit 0^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3508513Z ^[[36;1m  fi^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3508805Z ^[[36;1m  echo "::notice::/preview/ is not serving $WANT yet ($C, attempt $i/20); waiting 15 s"^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3509140Z ^[[36;1m  sleep 15^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3509358Z ^[[36;1mdone^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3509580Z ^[[36;1mecho "::error::/preview/ still does not serve $WANT"^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3509837Z ^[[36;1mexit 1^[[0m
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3528017Z shell: /usr/bin/bash -e {0}
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.3528239Z ##[endgroup]
+deploy	the preview channel serves this run (main's emulator at /preview/)	2026-11-14T15:57:52.4128912Z preview: /preview/ serves 02081b728a83
+deploy	Post Run actions/checkout@v4	﻿2026-11-14T15:57:52.4266504Z Post job cleanup.
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5025973Z [command]/usr/bin/git version
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5060294Z git version 2.56.1
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5090225Z Temporarily overriding HOME='/home/runner/work/_temp/b58b94cc-b55f-41fd-ade1-be18845f0ff3' before making global git config changes
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5091234Z Adding repository directory to the temporary git global config as a safe directory
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5095476Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5130647Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5161795Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5460242Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5468619Z http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5480710Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5540351Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5849071Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+deploy	Post Run actions/checkout@v4	2026-11-14T15:57:52.5891659Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+deploy	Complete job	﻿2026-11-14T15:57:52.6292189Z Cleaning up orphan processes
+deploy	Complete job	2026-11-14T15:57:52.6618611Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/deploy-pages@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
