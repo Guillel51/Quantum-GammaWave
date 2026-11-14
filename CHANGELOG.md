@@ -1,5 +1,26 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.1.4 — 2026-11-14 — cinco asientos en la bahía: cada planeta tiene su disco
+
+### Changed
+- **La bahía de HOME pasó de cinco órbitas concéntricas a cinco asientos.** Con radios de 11 a 38 px en una
+  bahía de 88 x 52, dos cuerpos vecinos quedaban a 7 px siempre que sus ángulos coincidían, y ningún desfase
+  de fase lo evita: el ángulo relativo de dos vecinos recorre todos los valores en pocos segundos. Ahora
+  cada cuerpo tiene un asiento fijo (el par más cercano está a 26 px, contra 19 px necesarios para dos
+  cuerpos de 6 px con su halo de toque de 3 px) y deriva ±2 px dentro de su asiento con su propia fase: la
+  bahía sigue respirando y los discos no se tocan nunca. Se conserva una única elipse tenue como
+  profundidad, en lugar de cinco que se leían como alambre. Las posiciones siguen siendo función pura del
+  reloj: nada que reiniciar.
+- La reacción de giro (SPIN) deja su estela de cometa sobre el asiento y ensancha su pequeña órbita, para
+  que siga siendo una respuesta visible sin volver a mover al cuerpo por la bahía.
+
+### Verified (host)
+- `capture_pokes`: **cada cuerpo responde el 100 % de su propio disco dibujado** (49/49, 81/81, 113/113,
+  113/113, 49/49 px), las cinco respuestas siguen distintas (71/174/80/132/39 px) y la segunda toca
+  reinicia.
+- `ui_render`: 189 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones** en 3 390 046
+  mediciones. `regress`: **293 goldens, 0 cambiados**.
+
 ## v3.1.3 — 2026-11-14 — cada planeta responde por el suyo
 
 ### Fixed

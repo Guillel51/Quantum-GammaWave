@@ -1099,6 +1099,12 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                                                                 * the ocean world are the largest, the frozen one a
                                                                 * small cold moon. 38 + 4 + 2 = 44 of the bay's 44 */
     static const uint8_t ORYS[5] = {70, 60, 52, 44, 36};       /* tilt: ry = 8 / 11 / 14 / 15 / 13 px */
+    /* (3.1.4) WHERE EACH BODY LIVES, relative to the bay's centre. Two rings around it, three inside: the
+     * closest pair of centres is 26 px, against 19 px needed for two 6 px bodies with their 3 px tap halo, so
+     * no two targets can touch however the clock runs. SEAT_R is the drift: 2 px keeps 22 px of clearance. */
+    static const int8_t SEAT_X[5] = {0, 34, 21, -20, -34};
+    static const int8_t SEAT_Y[5] = {-19, -6, 17, 17, -6};
+    static const int8_t SEAT_R = 2;
     static const uint8_t ORK[5] = {0, 1, 2, 3, 4};             /* rocky, banded, ocean, ringed, frozen */
     /* (4.0) FIVE TONES, NOT FIVE SHADES OF AMBER. Every body took its colour from the same point of the
      * thermal ramp (heat + index * 18), so at 240 x 240 they read as five warm discs told apart only by
@@ -1250,22 +1256,32 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
      * square has a back and a front. Regulars: their place never changes, only their face. */
     gw_far_world(sys_x0 + 11, sys_y0 + 7, 2, tm, 9, 150, 0);
     gw_far_world(sys_x0 + 78, sys_y0 + 44, 2, tm, 13, 120, 0);
-    /* the far half of each path first: it passes behind the star and behind the front planets */
+    /* (3.1.4) ONE PATH, NOT FIVE. Five concentric ellipses of 11..38 px put two bodies 7 px apart whenever
+     * their angles lined up, and no phase offset can prevent it: with orbits this close the relative angle
+     * of two neighbours sweeps every value in a few seconds. The bodies now hold five seats (below) and the
+     * bay keeps a single faint path as its depth, wide enough to read as space and not as a wire frame. */
+    gw_ring_semi(cx, cy, 36, 20, ux_mix(T_BG, T_LINE, 32), 1);
+    /* (3.1.4) FIVE SEATS, AND EACH BODY OWNS ITS TARGET. A body rode its own ellipse, so where it sat was
+     * the clock's business: two of them could be 7 px apart and the tap that landed between went to whichever
+     * was drawn last. The seats are fixed in the bay and far enough apart that the discs never meet (the
+     * closest pair is 26 px, and the tap reaches 3 px past each body), and each body drifts +-2 px inside its
+     * own seat, on its own rate, so the bay still breathes without ever trading targets.
+     * Positions stay a pure function of the clock: no frame rate, no audio level, and nothing to reset. */
     for (i = 0; i < NPL; i++) {
-        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(kheat[i]), 34 + pl_ex[i] / 5)
-                                    : ux_mix(T_BG, T_LINE, 26 + i * 10);   /* (2.2) fainter at rest: five
-                                                                          * ellipses in one 88 px bay were
-                                                                          * reading as a wire frame */
-        gw_ring_semi(cx, cy, ORX[i], orb_ry[i], oc, 1);
-    }
-    /* each planet's place on its own ellipse: a pure function of the clock, so no frame rate and no audio
-     * level can bend it; the excitation only lifts its radius and its glow */
-    for (i = 0; i < NPL; i++) {
-        a = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i] + (uint32_t)(wob >> 6) * (uint32_t)(i + 1)));
-        a += pk_ang[i];                                 /* (3.5) the surge rides on its own angle, not the clock */
-        orb_x[i] = cx + (ORX[i] * bg_sin((uint32_t)a + 0x4000u) >> 15);
-        orb_y[i] = cy + (orb_ry[i] * bg_sin((uint32_t)a) >> 15);
-        if (pk_push[i]) {                               /* (3.5) the slingshot: out along the radius, back */
+        uint32_t ph = (uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i] + (uint32_t)pk_ang[i]);
+        int32_t srad = SEAT_R + (pk_ang[i] ? 1 : 0);   /* (3.5) the surge widens its own little orbit */
+        orb_x[i] = cx + SEAT_X[i] + (bg_sin(ph + 0x4000u) * srad >> 15);
+        orb_y[i] = cy + SEAT_Y[i] + (bg_sin(ph) * srad >> 15);
+        if (pk_ang[i]) {                               /* and leaves a comet trail behind it, on its seat */
+            int32_t k;
+            for (k = 1; k <= 3; k++) {
+                uint32_t ta = (uint16_t)(ph - (uint32_t)(k * 3000));
+                sys_pset(cx + SEAT_X[i] + (bg_sin(ta + 0x4000u) * srad >> 15),
+                         cy + SEAT_Y[i] + (bg_sin(ta) * srad >> 15),
+                         ux_mix(T_BG, bg_col(kheat[i] + 70), 120 - k * 30));
+            }
+        }
+        if (pk_push[i]) {                               /* (3.5) the slingshot: out from the star, back */
             orb_x[i] += orb_x[i] >= cx ? pk_push[i] : -pk_push[i];
             orb_y[i] += orb_y[i] >= cy ? pk_push[i] : -pk_push[i];
         }
@@ -1317,22 +1333,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     /* (4.0) the star: its core, its turning corona and its own flares (gw_star). The biggest planet's
      * note still lifts it a pixel, so the system answers as a whole. */
     gw_star(cx, cy, r, en, heat, big, tm);
-    /* the near half of each path, over the star, then the planets in front from the top down */
-    for (i = 0; i < NPL; i++) {
-        uint16_t oc = pl_ex[i] > 24 ? ux_mix(T_BG, bg_col(kheat[i] + pl_ex[i] / 3), 46 + pl_ex[i] / 4)
-                                    : ux_mix(T_BG, T_LINE, 52 + i * 14);
-        gw_ring_semi(cx, cy, ORX[i], orb_ry[i], oc, 0);
-        if (!UI_NO_DRIFT && pl_ex[i] > 16) {           /* the note's trail on its own orbit, 3 px, short */
-            int32_t k, aa0 = (int32_t)((uint16_t)(tm * (uint32_t)ORMS[i] + ORPHS[i] +
-                                                   (uint32_t)(wob >> 6) * (uint32_t)(i + 1)));
-            for (k = 1; k <= 3; k++) {
-                int32_t aa = aa0 - k * (400 + pl_ex[i] * 2);
-                int32_t nx = cx + (ORX[i] * bg_sin((uint32_t)aa + 0x4000u) >> 15);
-                int32_t ny = cy + (orb_ry[i] * bg_sin((uint32_t)aa) >> 15);
-                sys_pset(nx, ny, ux_mix(T_BG, bg_col(kheat[i] + pl_ex[i] / 2), pl_ex[i] * (4 - k) / 14));
-            }
-        }
-    }
+    /* the near half of the one path, over the star */
+    gw_ring_semi(cx, cy, 36, 20, ux_mix(T_BG, T_LINE, 52), 0);
     for (i = 0; i < NPL; i++) {
         int32_t pi = order[i], ex = pl_ex[pi];
         if (orb_y[pi] < cy)
