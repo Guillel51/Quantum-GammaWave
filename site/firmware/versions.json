@@ -1,26 +1,26 @@
 [
  {
-  "version": "2.9.7",
-  "file": "felucca-2.9.7.fwsc",
-  "sha256": "8af698bf349031d181a1b2ba91b79d3ed9ee6e43b7fbd4147a32ec197d04a5d0",
+  "version": "3.1",
+  "file": "felucca-3.1.fwsc",
+  "sha256": "b6b0088a7d225c9e06d674f2328195c37b09368f8aa46bd6808236f9b86fb850",
   "size": 610959,
   "build": {
    "artifacts": {
     "felucca.bin": {
-     "bytes": 569048,
-     "sha256": "3d873842729b945c3dd9f008f5760f6920edb2325c8e4d21d65e2d05815a001c"
+     "bytes": 574988,
+     "sha256": "a0995cca02c72706a90bccfbf982adc11be2ec371ff3170155c3eeb273b63071"
     },
     "felucca.fwsc": {
      "bytes": 610959,
-     "sha256": "8af698bf349031d181a1b2ba91b79d3ed9ee6e43b7fbd4147a32ec197d04a5d0"
+     "sha256": "b6b0088a7d225c9e06d674f2328195c37b09368f8aa46bd6808236f9b86fb850"
     },
     "loader/ota.bin": {
      "bytes": 7803,
-     "sha256": "3ca785b93edaabe9fe383c777a0a9507b0d32e10977574731af65982639c33e1"
+     "sha256": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"
     }
    },
    "checks": {},
-   "commit": "e643b3c69277498ad7b08cbc014cb0c0f42e2048",
+   "commit": "dcde08c64ae4d7eeb3c347868bbbdee6f825f02f",
    "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -39,12 +39,14 @@
     "FELUCCA_UART": "default",
     "FELUCCA_USB_LAYOUT": "default"
    },
-   "dirty": [],
+   "dirty": [
+    "firmware/src/felucca.c"
+   ],
    "emulator": {
-    "commit": "e643b3c69277",
-    "version": "v2.9.7",
-    "wasm_bytes": 1193096,
-    "wasm_sha256": "ce09f79dcc896a1d3f17997622ac84a9e117f1b85ad3459b0750117e59cc6587"
+    "commit": "dcde08c64ae4",
+    "version": "v3.1",
+    "wasm_bytes": 1207502,
+    "wasm_sha256": "ff4f0ce1713fcd4e59f4fbf91e230c46b58058794e4238dda693d8f73b7876f9"
    },
    "identity": "FM-1_965",
    "schema": "qg1-build-1",
@@ -55,32 +57,34 @@
      "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
      "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
     },
-    "path": "/workspace/homes/5b290d6da44f6281decb5d8d/fw-AC79_AIoT_SDK"
+    "path": "/workspace/homes/175b9279ea697cf08b8dec0c/fw-AC79_AIoT_SDK"
    },
    "toolchain": {
     "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
     "name": "jieli-linux-toolchains-20260730.1",
-    "path": "/workspace/homes/5b290d6da44f6281decb5d8d/.jieli/toolchain",
+    "path": "/workspace/homes/175b9279ea697cf08b8dec0c/.jieli/toolchain",
     "version": "clang version 4.0.1 () ()"
    },
-   "version": "v2.9.7"
+   "version": "v3.1"
   },
   "emulator": {
-   "built": "2026-11-13T15:49:23Z",
-   "commit": "e643b3c69277",
+   "built": "2026-11-14T08:12:20Z",
+   "commit": "dcde08c64ae4",
    "config": {
     "EMU_CFLAGS": "",
     "EMU_OPT": "-O2",
     "EMU_PREVIEW": "0"
    },
-   "dirty": [],
+   "dirty": [
+    "firmware/src/felucca.c"
+   ],
    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
    "identity": "FM-1_965",
    "schema": "qg1-emu-1",
-   "version": "v2.9.7",
-   "wasm_bytes": 1193096,
-   "wasm_sha256": "ce09f79dcc896a1d3f17997622ac84a9e117f1b85ad3459b0750117e59cc6587"
+   "version": "v3.1",
+   "wasm_bytes": 1207502,
+   "wasm_sha256": "ff4f0ce1713fcd4e59f4fbf91e230c46b58058794e4238dda693d8f73b7876f9"
   },
-  "manifest": "felucca-2.9.7.fwsc.manifest.json"
+  "manifest": "felucca-3.1.fwsc.manifest.json"
  }
 ]
