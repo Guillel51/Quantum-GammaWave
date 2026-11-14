@@ -1,5 +1,30 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.0.2 — 2026-11-14 — FASE 3: panel depth and the Solar Heat ground
+
+### Changed
+- **A panel is a surface, not a flat plate.** `cv_rrect` already beveled large plates in the LINE
+  style — frame, lit top edge, shaded foot, the theme's corner mark — while the rounded style that
+  almost every screen uses filled them with one flat colour, which is why only FX > BUSES looked
+  deep. The same treatment now comes from the primitive, so all 189 screens gain it at once: a 1 px
+  frame, a lit edge under the top, five rows of falloff on a card and nine on a panel, and the
+  palette's accent as the short mark on the top border. Keycaps, chips and meter bars are untouched.
+- **The Solar Heat ground runs on every style.** `graph_heat` used to be LINE-only, inset from the
+  top, and dithered every pixel of the canvas. It is now three bands of shade under the bezel and
+  six of glow along the foot, with the middle of the panel left exactly as the screen drew it, in
+  every style: violet shadow above, solar gold below. MONO keeps its neutral page; on a light
+  palette the glow is halved and taken from the ink, where an accent is darker than the paper.
+- Cards keep the frame and the top fade but no foot glow: their value strip is repainted while a
+  number rolls, and a ground under those rows flickered back on the next full redraw.
+- `docs/QG_FASE3_PANEL_DEPTH_2026-11-14.md`: the measurements, the three attempts that were
+  rejected and why, and what is still open.
+
+### Verified (host)
+- `build/ui_render`: 189 screens x 22 palettes, 0 lint findings, 0 inks on their own colour,
+  0 GREY / MONO pixels off neutral, 3 390 046 alignment measurements, 0 off by 1 px.
+- `build/ui_test`: 888 ok, all passed. `./build.sh`: ok, image +384 B, package 610 959 B.
+  `tests/target_budget.py`: exit 0.
+
 ## v3.0.1 — 2026-11-13 — Home visualizer knob 1 focus and release
 
 ### Fixed

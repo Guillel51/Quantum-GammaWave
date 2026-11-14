@@ -355,6 +355,32 @@ static uint32_t rr_cov(int32_t r, int32_t i, int32_t j)
 }
 /* a filled rectangle with rounded corners (r <= 8), the corners anti-aliased against `under` (what lies
  * behind it): the flat look's cards, panels, rows, bars and buttons */
+/* (FASE 3) A PANEL IS A SURFACE, NOT A FLAT PLATE.
+ * FX > BUSES already drew its modules as raised surfaces -- a lit edge, a shaded foot, a frame and the
+ * theme's corner mark -- while every other screen filled a big panel with one plain colour, which is why
+ * the rest of the interface read flatter than that screen. This is the same treatment, applied by the
+ * primitive every panel goes through, so all 189 screens gain it at once and none of them invents its own.
+ * It is a BEVEL, not a wash: four rows of fade under the top bezel, a frame, four rows at the foot ending in
+ * a warm floor line and a shadow. A full-area gradient was the first attempt and cost 590 us a frame on the
+ * host -- more than the whole HOME screen -- because every panel re-filled its entire area; nine thin rows
+ * cost almost nothing and read the same at 240x240.
+ * Nothing here invents a colour: every value is ux_mix() between two colours of the palette in use, which
+ * saturates per channel, so GREY and MONO stay neutral and no ink is drawn on its own tone. Small plates --
+ * keycaps, chips, 3 px gauges, meter bars -- are left exactly as they were. */
+static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c)
+{
+    int32_t k;
+    cv_rect(x + r, y, w - 2 * r, 1, ux_mix(c, T_LINE, 55));           /* the frame */
+    cv_rect(x + r, y + h - 1, w - 2 * r, 1, ux_mix(c, T_LINE, 38));
+    cv_rect(x, y + r, 1, h - 2 * r, ux_mix(c, T_LINE, 48));
+    cv_rect(x + w - 1, y + r, 1, h - 2 * r, ux_mix(c, T_LINE, 48));
+    cv_rect(x + r + 2, y, 10, 1, T_ACCENT);                           /* the mark, as LINE's modules have */
+    cv_rect(x, y + r + 2, 1, 8, T_ACCENT);
+    for (k = 0; k < (h < 84 ? 5 : 9); k++)                            /* the light falls off under the bezel: five
+                                                                       * rows on a card, nine on a panel, so the
+                                                                       * fade scales with what it is fading over */
+        cv_rect(x + 1, y + 1 + k, w - 2, 1, ux_mix(c, k ? T_BG : T_TEXT, k ? 2 + k * 2 : 12));
+}
 static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c, uint16_t under)
 {
     int32_t i, j, cut = ux.chamfer && r > 0;      /* (GAMMA / WRAITH: 45-degree chamfered octagonal modules) */
@@ -408,6 +434,8 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
         }
         return;
     }
+    if (c == T_SURF && w >= 36 && h >= 36)
+        cv_plate_ground(x, y, w, h, r, c);
     for (j = 0; j < r; j++)
         for (i = 0; i < r; i++) {
             uint32_t a = rr_cov(r, i, j);

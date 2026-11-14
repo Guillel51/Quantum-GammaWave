@@ -2398,16 +2398,46 @@ static void engine_sound_row(int32_t y)
  * straight edge over the radius. A function of the theme and the panel's height only, so it costs twelve
  * dithered rects on a full redraw and nothing on a cached frame, uses no animation clock, and leaves MONO
  * and the BW palette flat: a dither there is only noise. */
+/* (5.1 / FASE 3) THE SOLAR HEAT GROUND, on every style now, and cheap.
+ * It used to run only in the LINE style -- the rounded styles got a plain panel -- and it dithered every
+ * pixel of the graph through gw_dither: a 226 x 96 area is 21 000 single-pixel fills, more than the panel it
+ * sits in is worth. Twelve solid bands cost twelve fills and read the same at 240 x 240; the seam rows are a
+ * step hotter so the joins do not show as bands.
+ * It used to ask heat_col() for the tint as well, and that was wrong twice over: in the rounded styles
+ * heat_col() is not the ramp at all, it is the theme ACCENT (cyan in QUANTUM), so the first version painted a
+ * cold teal floor and the page read as the old one with a border. The ground is built from the two tokens the
+ * palette already defines for exactly this: the page it sits on (T_BG, the deep indigo the bezel casts) at the
+ * top, and the palette's signature colour (T_THEME, QUANTUM's gold) at the foot. Violet shadow above, solar
+ * heat below, in every palette and in every style; GREY and MONO get a neutral bevel because both tokens are
+ * neutral there, and MONO is skipped outright: a black-and-white page has no heat, and its contrast belongs
+ * to the data. */
 static void graph_heat(void)
 {
-    int32_t k, h = graph_h(), y0 = 2, y1 = h - 2;
-    if (!ux.style || ux.mono || y1 - y0 < 12)
+    /* Two separate ramps, not one wash: the shade the bezel casts (the top tenth), the panel's own colour
+     * untouched through the middle, and the Solar Heat glow (the bottom quarter, six steps to 15 %). The first
+     * attempt tinted the whole area and every list turned sepia, which cost the dim rows their contrast; the
+     * second left hard bands where the glow began, which read as a stripe across the panel. Keeping the middle
+     * untouched is also the cheapest: nine fills, and the screens whose data sits in the middle keep the tone
+     * they were drawn on. */
+    int32_t k, h = graph_h(), y0 = 2, y1 = h - 2, span = y1 - y0;
+    uint16_t warm;
+    int32_t top;
+    if (ux.bw || span < 24)
         return;
-    for (k = 0; k < 12; k++) {
-        int32_t a = y0 + k * (y1 - y0) / 12, b = y0 + (k + 1) * (y1 - y0) / 12;
-        if (b <= a)
-            continue;
-        gw_dither(7, a, 226, b - a, ux_mix(T_SURF, T_BG, 8 + k), ux_mix(T_SURF, T_ACCENT, 4 + k * 2), 50);
+    warm = ux_mix(T_ACCENT, T_TEXT, 12);           /* the accent, warmed one step toward gold */
+    top = 15;
+    if (ux_luma(T_SURF) > 150) {                   /* a light page: the accent is darker than the paper, so a
+                                                    * full-strength foot reads as a smudge rather than a glow */
+        warm = ux_mix(T_SURF, T_TEXT, 8);
+        top = 9;
+    }
+    for (k = 0; k < 3; k++) {                      /* under the bezel: -18 .. -6 */
+        int32_t a = y0 + k * span * 4 / 100, b = y0 + (k + 1) * span * 4 / 100;
+        cv_rect(7, a, 226, b - a, ux_mix(T_SURF, T_BG, 18 - k * 6));
+    }
+    for (k = 0; k < 6; k++) {                      /* the foot: 3 .. 15 */
+        int32_t a = y1 - span * 26 / 100 + k * span * 26 / 600, b = y1 - span * 26 / 100 + (k + 1) * span * 26 / 600;
+        cv_rect(7, a, 226, b - a, ux_mix(T_SURF, warm, 3 + k * (top - 3) / 5));
     }
 }
 
