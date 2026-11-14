@@ -1,5 +1,30 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.1.5 — 2026-11-14 — los cinco planetas contestan, y la Vía Láctea también
+
+### Fixed
+- **`gw_planet_at()` podía contestar por el cuerpo equivocado y las reacciones no se veían todas.** Medido con
+  el arnés (`capture_pokes` + una sonda que compara cada reacción contra su control frame a frame): las cinco
+  duraban 33 frames, pero el mundo rocoso ocupaba **115 px** y el helado **655**: estaban las cinco, y se leía
+  una. El giro pasó a dos arcos con retardo entre ellos y el cuerpo se inclina 3 px en el pico; el gigante
+  gaseoso respira en dos cáscaras. Ahora miden **177 / 389 / 472 / 622 / 655 px** de pico, cinco respuestas
+  distintas y reiniciables.
+- **La Vía Láctea tiene detalle y contesta.** La banda sumó un nudo cada seis columnas, un segundo carril de
+  polvo y, al tocar la estrella, una onda que sale del centro a lo largo de la banda (911 px de pico frente a
+  los 240 de antes, 33 frames).
+- **El encabezado podía quedar en blanco al cambiar de página.** El BPM, la batería y el brazo de grabación se
+  pintan desde una caché de firma; si la página anterior había limpiado esas filas, no volvían hasta que un
+  valor cambiara. `ui_draw_page()` invalida encabezado, tarjetas y pie cuando cambia la página.
+- **La captura del sitio fotografiaba ese frame incompleto**: `tests/capture_home_pokes.c` escribe ahora
+  `QUANTUM_rest.ppm` (la bahía en reposo, con encabezado y tarjetas) y `docs/fw-home.png` se compone de ese
+  frame.
+
+### Verified (host)
+- `capture_pokes`: 100 % de cada disco responde a su cuerpo (49/81/113/113/49 px), cinco respuestas
+  distintas (152/224/80/132/39 px). `home_roundtrip`: cinco vistas idénticas en dos pasadas.
+- `ui_render`: 189 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones** en 3 390 046 mediciones,
+  **0 píxeles GREY/MONO fuera de eje**. `regress`: **293 goldens, 0 cambiados**.
+
 ## v3.1.4 — 2026-11-14 — cinco asientos en la bahía: cada planeta tiene su disco
 
 ### Changed
