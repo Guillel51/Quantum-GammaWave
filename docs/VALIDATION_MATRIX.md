@@ -1749,3 +1749,26 @@ not touched.**
 Gate: **NO-GO for public installation**, unchanged, for the reasons in `docs/QG_RELEASE_BLOCKERS.md`
 (no hardware evidence at all, no signature, and a vendor boot payload whose two builds cannot be shown
 equivalent from here).
+
+## 11. Update — 2026-11-14, v3.1.1 installed on both flash parts (owner-reported)
+
+The repository owner reports that the v3.1.1 package was **installed on two FM-1 units, one with the
+Puya P25Q80H (`0x856014`) and one with the UCUN UC25HQ80 (`0xB36014`)**. This is the first evidence of
+any class for the second part, and it is recorded here with its limits stated plainly:
+
+| What this supports | What it does not |
+|---|---|
+| the package parses, installs and runs on a unit with each of the two JEDEC IDs this firmware allows | the JEDEC **value** read on either unit: no `0x12` reply and no geometry is in this repository |
+| the two-part allowlist is not theoretical: both parts took the same bytes | a 1 MiB dump of either unit, its verification, or a rehearsed recovery |
+| the installer and the loader completed a real write on hardware | the identity answered after reboot, read on the host from a real unit |
+| | installing **from** V15 and **from** another firmware, and leaving again |
+
+Class: **owner-reported hardware evidence**. The agent that wrote this section did not perform, watch or
+re-run the install, did not read the units and holds no dump; nothing here was measured in this
+environment. Matrix rows 4–6 move from `NO-GO` to **`GO CONDITIONAL` with owner-reported hardware
+evidence** for the two parts, and stay `GO CONDITIONAL` for geometry, backup and recovery, which need
+their own readings. Rows 8–11 (backup, recovery, protected write paths, stress) are unchanged.
+
+The Firmware Hub asks a submitter to state that the release was installed on a real FM-1 and that
+leaving it works. The first half is now the owner's to state; the second half (leaving again) is a
+separate claim and is **not** covered by this note.

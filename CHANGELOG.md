@@ -1,5 +1,14 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.1.1 — 2026-11-14 — instalado en las dos memorias flash (informado por el dueño)
+
+- El dueño informa que el paquete v3.1.1 se instaló en **dos FM-1, una con Puya P25Q80H (`0x856014`) y
+  otra con UCUN UC25HQ80 (`0xB36014`)**. Se registra en `docs/VALIDATION_MATRIX.md` §11 como evidencia
+  **informada por el dueño**: no la ejecutó ni la observó este entorno, no hay lectura de JEDEC, ni
+  geometría, ni dump, ni recuperación ensayada, ni prueba de salir a otro firmware.
+- `release.yml` vuelve al pin por SHA de `fm1-build`: ese SHA **es** el tag revisado `v1` y la
+  attestation nombra el commit, así que fijar un tag mutable era la opción débil.
+
 ## v3.1.1 — 2026-11-14 — Hub, attestation y versión publicable
 
 ### Changed
