@@ -1461,6 +1461,80 @@ static void gw_deep_body(int32_t cx, int32_t cy, int32_t r, int32_t ph, uint16_t
     }
 }
 
+/* (6.6) THE TWO DEEP WORLDS, AND WHAT THE TRACKS DO TO THEM. They were the same two-tone discs as HOME's bay
+ * at 11 and 8 px: a terminator, one belt each, and nothing that moved unless a finger found them. Each now
+ * carries its own surface and its own half of the tracks -- the giant reads tracks 1-3, the rocky world 4-6 --
+ * so both answer the music whichever track is selected. A loud half lifts the lit face (the tone moves up),
+ * widens the atmosphere and brings the giant's storm eye to the surface, or the rock's glint on its limb; a
+ * tap does the same for twenty frames. The halo is two psets a row and one more on the lit side, the marks are
+ * a few per row, and nothing here allocates, divides by anything but a constant, or reads a global it does not
+ * need. */
+static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32_t ph, int32_t kind,
+                         int32_t heat, int32_t en, uint32_t pulse)
+{
+    int32_t dy, span = 0;
+    int32_t lift = en / 4 + (pulse && pulse < 20u ? (int32_t)(20u - pulse) : 0);
+    uint16_t lit = bg_tone_mix(page, bg_col(heat + lift), 26 + en / 8);
+    uint16_t shade = bg_tone_mix(page, bg_col(heat - 40 + lift / 2), 40 + en / 10);
+    uint16_t edge = bg_tone_mix(page, bg_col(200 + lift), 50 + en / 12);
+    uint16_t halo = bg_tone_mix(page, bg_col(heat + 30), 18 + en / 10);
+    uint16_t halolit = bg_tone_mix(page, bg_col(heat + 90), 26 + en / 8);
+    uint16_t cap = bg_tone_mix(page, bg_col(heat + 120), 30 + en / 12);
+    int32_t loud = en > 14 || (pulse && pulse < 20u);
+    if (kind == 1)                                    /* the giant's ring, before the body hides it */
+        gw_ring_tab(cx, cy, r + 3, (r + 3) / 3, edge, 0);
+    for (dy = -r; dy <= r; dy++) {
+        int32_t q;
+        while (span > 0 && span * span + dy * dy > r * r)
+            span--;
+        while (span < r && (span + 1) * (span + 1) + dy * dy <= r * r)
+            span++;
+        if (!span)
+            continue;
+        q = -span + (2 * span * (ph & 0x7FFF)) / 32768;
+        /* the atmosphere, one px off the limb and two more on the lit side */
+        if (cy + dy > 27 && cy + dy < 201) {
+            cv_pset(cx - span - 1, cy + dy, halo);
+            cv_pset(cx + span + 1, cy + dy, halo);
+            if (q >= 0) {
+                cv_pset(cx + span + 2, cy + dy, halolit);
+                if (q > span / 2)
+                    cv_pset(cx + span + 3, cy + dy, halolit);
+            }
+        }
+        gw_deep_row(cx, cy + dy, span, ph, lit, shade, edge);
+        if (span < 3)
+            continue;
+        if (kind == 1) {                              /* five belts, a lit crest on each */
+            int32_t ad = dy < 0 ? -dy : dy;
+            if (ad == r / 2 || ad == r / 4 || dy == r / 3 || dy == 2 * r / 3) {
+                cv_rect(cx - span + 1, cy + dy, 2 * span - 1, 1, shade);
+                cv_pset(cx + span - 2, cy + dy, lit);
+            }
+        } else if (dy == -r + 1 || dy == -r + 2) {    /* the polar cap */
+            cv_rect(cx - span + 2, cy + dy, 2 * span - 3, 1, cap);
+        } else if (dy == r / 4) {                     /* a crater: its shadow, its lit rim */
+            cv_rect(cx - span / 3, cy + dy, 2, 1, shade);
+            cv_pset(cx - span / 3 + 2, cy + dy, lit);
+        } else if (dy == -r / 4) {
+            cv_rect(cx + span / 4, cy + dy, 2, 1, shade);
+            cv_pset(cx + span / 4 + 2, cy + dy, lit);
+        }
+    }
+    if (kind == 1 && loud) {                          /* the storm eye, while that half plays */
+        int32_t ex = cx + r / 3, ey = cy + r / 4;
+        cv_rect(ex - 2, ey, 5, 1, shade);
+        cv_rect(ex - 1, ey + 1, 3, 1, shade);
+        cv_pset(ex, ey, edge);
+        cv_pset(ex + 1, ey + 1, edge);
+    } else if (kind == 0 && loud) {                   /* the glint on the rock's lit limb */
+        int32_t gx = cx + r - 3, gy = cy - r / 3;
+        cv_pset(gx, gy, bg_tone_mix(page, bg_col(240), 88));
+        cv_pset(gx - 1, gy, bg_tone_mix(page, bg_col(220), 56));
+        cv_pset(gx, gy + 1, bg_tone_mix(page, bg_col(220), 56));
+    }
+}
+
 /* THE TWO DEEP WORLDS ANSWER THE HAND. They were two 7 px and 5 px discs with no surface and no gesture, so
  * the field behind the scope was wallpaper. They keep HOME's own bodies (a banded giant and a rocky world,
  * shaded by the same terminator law) at a larger size and mixed darker, and each remembers the frame it was
@@ -1538,19 +1612,28 @@ static void gw_viz_deep(uint32_t q)
      * darker so they read behind the data. Their faces turn with the clock (a pure function of fm1_ms, never
      * an accumulator) and each answers a tap in its own degree. */
     {
-        uint16_t lit2 = bg_tone_mix(page, bg_col(144 + g), 24 + g / 3);
-        uint16_t sh2 = bg_tone_mix(page, bg_col(52 + g), 38 + g / 3);
-        int32_t ax = 30 + sway, ay = 141 - sway / 2, bx = 218 - sway, by = 142 + sway / 3;
-        gw_deep_body(ax, ay, 11, (int32_t)((fm1_ms * 7u) & 0x7FFFu), lit2, sh2, ed, 1, 1);
+        /* each world reads its own half of the tracks: 1-3 play the giant, 4-6 the rock */
+        int32_t ax = 34 + sway, ay = 143 - sway / 2, bx = 214 - sway, by = 141 + sway / 3;
+        int32_t en_lo = 0, en_hi = 0, k;
+        for (k = 0; k < NTRK && k < (int32_t)trk_live; k++) {
+            int32_t e = trk[k].peak > 0 ? clamp(trk[k].peak >> 8, 0, 127) : 0;
+            if (k < NTRK / 2) {
+                if (e > en_lo)
+                    en_lo = e;
+            } else if (e > en_hi)
+                en_hi = e;
+        }
+        gw_viz_world(page, ax, ay, 15, (int32_t)((fm1_ms * 7u) & 0x7FFFu), 1, 150, en_lo,
+                     vzb_t[0] && ui.frame - vzb_t[0] < 26u ? ui.frame - vzb_t[0] : 0u);
         vzb_x[0] = (int16_t)ax;
         vzb_y[0] = (int16_t)ay;
-        vzb_r[0] = 11;
+        vzb_r[0] = 15;
         if (q == 0u) {
-            gw_deep_body(bx, by, 8, (int32_t)((fm1_ms * 5u + 16000u) & 0x7FFFu), sh2,
-                         bg_tone_mix(page, bg_col(18), 58), ed, 0, 0);
+            gw_viz_world(page, bx, by, 10, (int32_t)((fm1_ms * 5u + 16000u) & 0x7FFFu), 0, 62, en_hi,
+                         vzb_t[1] && ui.frame - vzb_t[1] < 26u ? ui.frame - vzb_t[1] : 0u);
             vzb_x[1] = (int16_t)bx;
             vzb_y[1] = (int16_t)by;
-            vzb_r[1] = 8;
+            vzb_r[1] = 10;
         } else {
             vzb_r[1] = 0;
         }

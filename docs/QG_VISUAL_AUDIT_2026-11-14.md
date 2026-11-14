@@ -22,7 +22,7 @@ BLOCKED. La columna *evidencia* dice la clase: host test, render host, lectura d
 | 3 | Entrar/salir repetido de HOME, cuadros superiores corruptos | NOT REPRODUCED (host) | `home_roundtrip` 50 entradas × 5 vistas × 2 pasadas sin diferencias y con tinta en 0..34; `page_entered()` fuerza `ui.force = 1` en toda transición y las vistas de HOME hacen `cv_blit` a partir de la fila 26 (nunca tocan 0..23). Ninguna ruta de código borra la banda del header; el defecto no se reproduce en host: hipótesis abierta, escritura parcial del panel en hardware | alta |
 | 4 | Toque individual de los cinco mundos | PARTIALLY IMPLEMENTED | `gw_planet_at()` va al centro más próximo (3.1.3); `capture_pokes` 97/77/53/54/93 % de disco propio. El solape de discos sigue existiendo (ver §3) | media |
 | 5 | Bahía orbital de HOME 88×52 → 91×55 | IMPLEMENTED | `ui_being.c` `(8,65) 91×55`, clip `9..97 × 66..118`, `ORX[4]=39`; `capture_pokes`, lint, goldens (host) | — |
-| 6 | Segundo visualizador: dos planetas de fondo con más detalle y respuesta | NOT IMPLEMENTED | `ui_graph.c` `graph_home_viz` sigue con `gw_far_world`/`gw_embers` de 4.0 | alta |
+| 6 | Segundo visualizador: dos planetas de fondo con más detalle y respuesta | IMPLEMENTED | `ui_being.c` `gw_viz_world()` a r 15/10, halo, cinturones, anillo, casquete, cráteres, tormenta y destello; el gigante lee `trk[0..2].peak` y la roca `trk[3..5].peak`. `viz_worlds_test`: 806/0 y 353/0 px, `ui_render` 0 lint / 0 alineación (host) | — |
 | 7 | Degradados/paneles compartidos entre FX-BUS y HOME | IMPLEMENTED (primitiva) | `gfx.c` `ux_ground_bands`; `hv_grad` y `fxb_grad` son ya dos llamadas. 3 024 frames idénticos byte a byte antes/después (host) | — |
 | 8 | Extender ese ground al resto de pantallas (EDIT, SEQ, ARP, SCL, FX, MASTER, PRESETS, DRUM, GLO, SYSTEM, ABOUT) | NOT IMPLEMENTED | hoy sólo HOME (7 vistas) y FX > BUSES lo pintan; el resto dibuja `T_BG` plano | alta |
 | 9 | Gráficas (espectro 28 bandas, ADSR, filtros, EQ, FM6, WTABLE, medidores) con la misma calidad | PARTIALLY IMPLEMENTED | espectro y medidores ya usan rampas y `fx_vu`/`trk[].vu` reales; EQ y curvas siguen planas | media |
@@ -87,7 +87,7 @@ requiere el barrido completo en cada una.
 
 - **IMPLEMENTED**: teclado real en SCL, primitiva compartida, i18n del portal, textos y capturas de presentación, bahía 91×55,
   README/CHANGELOG al día.
-- **HOST TESTED**: `web/test_i18n.py` (0), `ui_render` (0 lint, 0 alineación, 3 024 frames), `regress` (293
+- **HOST TESTED**: `viz_worlds` (mundos por mitades), `web/test_i18n.py` (0), `ui_render` (0 lint, 0 alineación, 3 024 frames), `regress` (293
   goldens sin cambios), `capture_pokes` (97/77/53/54/93 %), `particle_bounds_test` (0), `readme_nav_test` (ok),
   suite host completa (128 grupos, 4 879 comprobaciones) en el commit anterior a este documento.
 - **AC791N TARGET COMPILED**: no en este árbol (sin toolchain).

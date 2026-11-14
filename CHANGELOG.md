@@ -1,6 +1,16 @@
 ## Unreleased — 2026-11-14 — la bahía orbital de HOME pasa a 91 × 55 px
 
 ### Changed
+- **Los dos mundos del visualizador responden a las pistas.** `gw_viz_deep()` los dibujaba con el mismo
+  `gw_deep_body()` de HOME, a 11 y 8 px: dos discos de dos tonos, un cinturón cada uno, y nada que se moviese
+  salvo con el dedo. Ahora `gw_viz_world()` los pinta a **15 y 10 px** con atmósfera (1 px fuera del limbo y
+  dos más del lado iluminado), cinturones con cresta, anillo en el gigante, casquete polar y dos cráteres en
+  la roca, y un remate propio: el ojo de tormenta del gigante y el destello del limbo de la roca. La respuesta
+  es a datos reales: el gigante lee las pistas 1-3 y la roca las 4-6 (`trk[k].peak`), así que la mitad que
+  suena sube el tono de la cara iluminada, ensancha el halo y saca su remate; el toque hace lo mismo veinte
+  cuadros. Medido: `tests/viz_worlds_test.c` mueve **806 px** del gigante con las pistas 1-3 y **0** de la roca,
+  **353 px** de la roca con las 4-6 y **0** del gigante; `ui_render` 0 lint, 0 alineación; `home_roundtrip`,
+  `ui_test` y `regress` (293 goldens) sin cambios. Captura `quantum_18_fullscreen_visualizer.png` regenerada.
 - **El teclado de SCL vuelve a ser un teclado.** `scl_keys()` (ui_scl.c) dibujaba doce celdas iguales con el
   nombre de la nota dentro, la de un accidental un tercio más baja: a 20 px se leía como una fila de botones,
   no como un instrumento. Ahora es un teclado real, el mismo que la página SCALE ya dibuja a 60 px: siete
