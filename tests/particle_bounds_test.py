@@ -149,7 +149,13 @@ inp = read("ui_input.c")
 tap = body(inp, "ui_tap")
 check(bool(tap) and "gw_planet_at" in tap and "gw_planet_poke" in tap,
       "ui_tap hit-tests the bay and pokes the body it finds")
-check("!ui.home || ui.home_viz" in tap, "ui_tap does nothing off HOME's own screen")
+# (FASE 2) the guard moved: HOME's bay and its deep field are two worlds, and a menu, a
+# confirmation, a layer or a name entry owns the screen outright. Assert the shape, not the
+# exact text of an expression that legitimately grew.
+check(re.search(r"if\s*\(\s*!ui\.home", tap) is not None,
+      "ui_tap does nothing off HOME's own screen (it returns unless HOME is up)")
+check("gw_viz_hit" in tap and "gw_viz_poke" in tap,
+      "ui_tap: the deep field has its own hit test and its own poke")
 poke = body(being, "gw_planet_poke")
 check("pl_poke_t[i] = ui.frame" in poke and "pl_poke_on[i] = 1u" in poke,
       "a touch stores the frame it happened on: a re-touch restarts, nothing accumulates")

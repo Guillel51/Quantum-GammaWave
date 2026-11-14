@@ -21,6 +21,11 @@
 - Navegador real: `/` en 3.1 con el hash del paquete; `/emulator/` carga el WASM de 1 207 502 B y
   dibuja el canvas de 240 × 240.
 - El paquete y el WASM son idénticos byte a byte entre el build sucio y el build desde el commit.
+- **Dos rojos heredados de la Fase 5, corregidos**: los goldens WTABLE (10 hashes cambiados y 2
+  nombres desaparecidos por la normalización de niveles y los renombrados de la Fase 5) se
+  re-registran y vuelven a dar 293 renders, 0 cambiados, 0 ausentes; y `particle_bounds_test`
+  comprobaba el texto literal de un guard que la Fase 2 hizo crecer — ahora comprueba su forma y el
+  hit test del campo profundo, más estricto que antes.
 - `docs/QG_3.1_RELEASE_2026-11-14.md`.
 
 ### NOT verified

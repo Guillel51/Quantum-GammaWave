@@ -2594,7 +2594,10 @@ function makeMockDevice(opt = {}) {
         P("CORAL GLASS", [22,  20,  1,  4,  90,  14,  0,  72], [30,  78,  112,  84], 0, 5),
         P("VOCAL TIDE", [112,  10,  1,  2,  86,  26,  4,  60], [42,  84,  120,  80], 0, 5),
         P("ARCO SOLAR", [48,  6,  0,  0,  108,  22,  16,  90], [8,  66,  100,  48], 1, 4),
-        P("MORPH SUB", [12,  0,  0,  84,  56,  24,  8,  16], [0,  52,  120,  30], 1, 2)] },
+        P("MORPH SUB", [12,  0,  0,  84,  56,  24,  8,  16], [0,  52,  120,  30], 1, 2),
+        /* (3.1) the two sounds phase 5 added to src/eng_wavetable.c: the editor table is the device's */
+        P("ELECTRIC TINE", [34,  6,  0,   0,  96,   8,  4,  72], [0,  62,  44,  40], 0, 3),
+        P("GLASS CHIME", [104,  0,  0,   0, 112,  20,  0, 100], [0,  70,  18,  62], 0, 3)] },
   ];
   const FM6_E = ENG.findIndex((e) => e.name === "FM6"), FM6_OWN = FM6.FACTORY_PK.length, DRUM_E = ENG.findIndex((e) => e.name === "DRUM");
   /* factory PATTERNS[] (engines.c; the device loads them from SEQ > PATTERNS, presets only suggest one): absolute

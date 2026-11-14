@@ -117,15 +117,31 @@ jobs:
           set -euo pipefail
           V="${{ steps.ver.outputs.version }}"
           P="${{ steps.ver.outputs.package }}"
+          # (3.1) every asset the release must carry: the package, the manifest that names it, the
+          # build record it was made from and the sums. A release created without them -- v3.0.1 was
+          # cut by hand -- is repaired here instead of being left empty, and an asset that is already
+          # there is never replaced: gh refuses the upload and that is the wanted outcome.
+          ASSETS="$P $P.manifest.json release/build-manifest-$V.json release/SHA256SUMS"
+          for a in $ASSETS; do
+            test -s "$a" || { echo "::error::$a is missing: the release would be incomplete"; exit 1; }
+          done
           if gh release view "$V" >/dev/null 2>&1; then
-            echo "::notice::release $V already exists; refreshing its notes, leaving its assets alone"
+            echo "::notice::release $V already exists; refreshing its notes and adding any missing asset"
             gh release edit "$V" --notes-file build/release-notes.md
+            have="$(gh release view "$V" --json assets --jq '.assets[].name' || true)"
+            for a in $ASSETS; do
+              name="$(basename "$a")"
+              case " $have " in
+                *" $name "*) echo "asset $name is already attached, left as it is" ;;
+                *) gh release upload "$V" "$a" ;;
+              esac
+            done
+            gh release view "$V" --json tagName,isDraft,isPrerelease,assets
             exit 0
           fi
           gh release create "$V" \
             --verify-tag \
             --title "Quantum GammaWave $V" \
             --notes-file build/release-notes.md \
-            "$P" \
-            release/SHA256SUMS
+            $ASSETS
           gh release view "$V" --json tagName,isDraft,isPrerelease,assets

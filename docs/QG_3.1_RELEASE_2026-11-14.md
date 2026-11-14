@@ -50,6 +50,23 @@ identity `FM-1_965`, build commit `487735744fb5`, emulator WASM `ff4f0ce1…` (1
   `/emulator/` loads a 1 207 502 B WASM, canvas 240 × 240, page prints `build 487735744fb5`.
   The audio output was not heard (no audio device in the VM).
 
+## Two red checks inherited from phase 5, fixed here
+
+The host suite had been failing since the phase-5 commit, on two checks that were never re-run together:
+
+1. **Golden regression.** Phase 5 changed `preset_level.c` for WTABLE (four lines of level
+   normalisation) and renamed `TINE EP` → `ELECTRIC TINE` and `CRYSTAL BELL` → `GLASS CHIME`, but
+   `tests/golden.txt` was never re-recorded: `regress` reported **10 changed** WTABLE renders and
+   **2 gone** (the two old names). The recordings are now updated with `GOLDEN_UPDATE=1` and re-checked:
+   **293 golden renders, 0 changed, 0 gone, 0 health failures, 0 crashes**, with the diff limited to
+   the twelve WTABLE lines the phase-5 change explains. No preset is silent (`preset_audit`: 275
+   presets, 0 silent, 0 hot) and nothing else in the bank moved.
+2. **`particle_bounds_test.py`** asserted the literal text `!ui.home || ui.home_viz` inside `ui_tap`.
+   Phase 2 legitimately grew that guard to `if (!ui.home || ui.menu || ui.confirm || ui.layer ||
+   name_on())` and gave the deep field its own branch, so a *source-text* assertion failed while the
+   behaviour was correct. The check now asserts the guard's shape (the function returns unless HOME
+   is up) plus the deep field's own hit test and poke, which is stricter than before, not looser.
+
 ## Reproducibility
 
 The package was built twice: once from a tree with `firmware/src/felucca.c` modified (record says
