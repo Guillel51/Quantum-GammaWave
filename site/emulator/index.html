@@ -78,7 +78,7 @@ footer small { font-size: 11px; opacity: .8; }
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <strong style="color:#3adfff;letter-spacing:.08em;font-size:14px">☀️ QUANTUM GAMMAWAVE (QG-1)</strong>
     <span style="font-size:12px;color:#aaa">Web Emulator · M-VAVE FM-1 Synthesizer &amp; Groovebox (12 Voices • Q24 Master EQ • 273 Factory Presets • Stereo M/S)</span>
-    <span style="font-size:11px;color:#8a8a8e;font-family:ui-monospace,Menlo,monospace">build <code id="build-commit-header">5ed51e2770bc</code></span>
+    <span style="font-size:11px;color:#8a8a8e;font-family:ui-monospace,Menlo,monospace">build <code id="build-commit-header">5e100c504bb3</code></span>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
     <a href="../webapp/editor/" style="padding:6px 14px;background:rgba(58,223,255,.10);color:#8fd8ff;border:1px solid #24395e;border-radius:999px;text-decoration:none;font-weight:700">🎛️ Open Web Studio (Tape &amp; HUD)</a>
@@ -103,7 +103,7 @@ footer small { font-size: 11px; opacity: .8; }
 </p>
 
 <footer>
-  <small class="version">v3.1.1 · build <code id="build-commit">5ed51e2770bc</code> · built <code id="build-date">2026-11-14T12:14:50Z</code> · engine <code id="wasm-hash">e005b6c0bf33eb76b8e2d32609532cf68a395bdd5546897daa180083ef87961b</code> · 1207504 B</small><br>
+  <small class="version">v3.1.1 · build <code id="build-commit">5e100c504bb3</code> · built <code id="build-date">2026-11-14T12:17:01Z</code> · engine <code id="wasm-hash">e005b6c0bf33eb76b8e2d32609532cf68a395bdd5546897daa180083ef87961b</code> · 1207504 B</small><br>
   <strong>QUANTUM GAMMAWAVE (QG-1)</strong> · <a href="https://github.com/Guillel51/Quantum-GammaWave">Official Repository</a> · Lineage: Pocket GammaWave, <a href="https://github.com/juanjiant-bit/JIANT">JIANT FM</a> &amp; <a href="https://github.com/hugelton/Felucca">Felucca</a> by Leo Kuroshita, Hügelton Instruments · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · browser build after charlesvestal's <a href="https://github.com/charlesvestal/fm1-x0x">X0X</a> · DotGothic16 font, <a href="fonts/OFL.txt">SIL OFL 1.1</a><br>
   <nav><a href="https://github.com/Guillel51/Quantum-GammaWave">GitHub Source</a> · <a href="../webapp/editor/">Web Studio</a> · <a href="../webapp/installer/">USB Web Installer</a></nav>
   <small>M-VAVE and FM-1 are trademarks of their respective owners. Quantum GammaWave is not affiliated with or endorsed by them, nor with Hügelton Instruments.</small>
@@ -486,8 +486,8 @@ const status = document.getElementById("status");
 const say = (t) => { status.textContent = t; status.hidden = !t; };
 const EXPECTED_WASM_SHA = "e005b6c0bf33eb76b8e2d32609532cf68a395bdd5546897daa180083ef87961b";
 const EXPECTED_VERSION = "v3.1.1";
-const BUILD_COMMIT = "5ed51e2770bc";
-const BUILD_DATE = "2026-11-14T12:14:50Z";
+const BUILD_COMMIT = "5e100c504bb3";
+const BUILD_DATE = "2026-11-14T12:17:01Z";
 // GitHub Pages caches the HTML for a few minutes. The page may be old even when the new
 // manifest is already live; ask for the manifest without a cache and reload once with
 // the manifest's commit as a query. The WASM already has its own ?v=<sha>.
