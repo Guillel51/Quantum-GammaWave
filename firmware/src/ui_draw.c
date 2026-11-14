@@ -1525,6 +1525,8 @@ static void spl_cloud(uint32_t prog, int32_t cx, int32_t cy, int32_t rx, int32_t
         }
     }
 }
+static uint32_t spl_ms = SPL_WRITE;                  /* (FASE 5) the last ms the art was written at, so a whole
+                                                     * draw (draw_splash) and the boot's own frame agree */
 static void splash_sig(uint32_t prog, uint32_t ms)
 {
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
@@ -1533,6 +1535,13 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     /* the hand-over: its own step count once the boot reaches SPL_WRITE + SPL_HOLD - SPL_FADE, else 0 */
     uint32_t hand = SPL_WRITE + SPL_HOLD - SPL_FADE;
     uint32_t sig, tail = ms > hand ? ms - hand : 0u;
+    /* (FASE 5) THE SKY KEEPS MOVING AFTER IT IS WRITTEN. prog is the boot's progress and it reaches 256 at
+     * SPL_WRITE, so from there to the hand-over -- SPL_HOLD - SPL_FADE, 1.6 s -- the signature never moved
+     * and the screen held the identical frame: the seconds the splash stood still. drv keeps counting once
+     * the write is done, and it is what the stars, the ring, the moons, the rail and the dust read. */
+    uint32_t live = ms > SPL_WRITE ? ms - SPL_WRITE : 0u;
+    uint32_t drv = prog >= 256u ? 256u + live / 10u : prog;
+    spl_ms = ms;
     /* (3.2) THE SPLASH IS HOME'S UNIVERSE, OPENING. The old frame was a plate with a wordmark, a core
      * and three waves -- a screen about a program. This one is the instrument's own sky: a deep field
      * that fades up, nebulae, forty stars in three depths, the name set in the QG block letters (both
@@ -1542,6 +1551,8 @@ static void splash_sig(uint32_t prog, uint32_t ms)
      * allocation, no per-pixel trigonometry, and nothing in it is drawn twice while it holds.
      * sig: prog while the screen writes itself; the hand-over's own step while it hands over. */
     sig = 0x51470100u | (mono ? 1u : 0u) | (tail ? 0x80000000u | (tail & 0x1FFu) << 16 : prog << 8);
+    if (!tail && live)                              /* (FASE 5) the hold is animated: 24 ms a step */
+        sig ^= 0x8000u | ((live / 24u) & 0x7FFFu) << 16;
     if (sig == spl_shown)
         return;
     spl_shown = sig;
@@ -1563,10 +1574,11 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     for (i = 0; i < 40; i++) {
         uint32_t h = spl_hash((uint32_t)i * 7u + 3u);
         int32_t depth = 1 + (int32_t)(h >> 29);
-        int32_t sx = 6 + (int32_t)(((h >> 8) % 228u + (uint32_t)(prog * (uint32_t)depth / 7u)) % 228u);
-        int32_t sy = 6 + (int32_t)(((h >> 16) % 112u + (uint32_t)(prog * (uint32_t)(depth + 1) / 40u)) % 112u);
+        int32_t sx = 6 + (int32_t)(((h >> 8) % 228u + (uint32_t)(drv * (uint32_t)depth / 7u)) % 228u);
+        int32_t sy = 6 + (int32_t)(((h >> 16) % 112u + (uint32_t)(drv * (uint32_t)(depth + 1) / 40u)) % 112u);
+        int32_t tw = (int32_t)((bg_sin(drv * 2600u + h * 700u) + 32768) >> 14);   /* 0..4, its own phase */
         uint16_t sc = mono ? (depth > 4 ? T_TEXT : T_DIM)
-                           : ux_mix(T_BG, heat_col(70 + depth * 26 + (int32_t)((h >> 4) & 23)), 40 + depth * 6);
+                           : ux_mix(T_BG, heat_col(70 + depth * 26 + (int32_t)((h >> 4) & 23) + tw), 40 + depth * 6);
         int32_t sz = depth >= 7 ? 2 : 1;
         cv_pset(sx, sy, sc);
         if (sz > 1)
@@ -1576,6 +1588,29 @@ static void splash_sig(uint32_t prog, uint32_t ms)
             cv_pset(sx + 1, sy, ux_mix(T_BG, sc, 60));
             cv_pset(sx, sy - 1, ux_mix(T_BG, sc, 60));
             cv_pset(sx, sy + 1, ux_mix(T_BG, sc, 60));
+        }
+    }
+    /* (FASE 5) THE ART'S DUST: twelve motes drifting across the field at three speeds, so the sky has
+     * something between the stars that the eye can follow. A pure function of drv: no pool, no state. */
+    for (i = 0; i < 12; i++) {
+        uint32_t h = spl_hash((uint32_t)i * 131u + 11u);
+        int32_t span = 228;
+        int32_t dx = 6 + (int32_t)(((h % (uint32_t)span) + drv * (1u + (h >> 9) % 3u) / 9u) % (uint32_t)span);
+        int32_t dy = 8 + (int32_t)((h >> 14) % 100u);
+        cv_pset(dx, dy, ux_mix(T_BG, mono ? T_DIM : bg_col(90 + (int32_t)((h >> 20) & 60)),
+                               40 + (int32_t)((h >> 26) & 30)));
+        if (h & 1u)
+            cv_pset(dx, dy + 1, ux_mix(T_BG, mono ? T_DIM : bg_col(70), 28));
+    }
+    {   /* (FASE 5) AND A SHOOTING STAR: one every 1900 ms of the art's clock, 700 ms of flight, its head
+         * brighter than its tail. It is the one mark on the screen that reads as time passing. */
+        uint32_t cc = live % 1900u;
+        if (prog >= 200u && cc < 700u) {
+            int32_t t = (int32_t)cc, k;
+            int32_t hx = 30 + t * 186 / 700, hy = 14 + t * 42 / 700;
+            for (k = 0; k < 10; k++)
+                cv_pset(hx - k * 2, hy - k / 2,
+                        ux_mix(T_BG, mono ? T_TEXT : bg_col(235), 210 - k * 21));
         }
     }
     /* 4. THE NAME, in the QG block letters: QUANTUM large, GAMMAWAVE under it a size down, both rising
@@ -1620,12 +1655,12 @@ static void splash_sig(uint32_t prog, uint32_t ms)
      * and its ring turns. Behind it, the light of the star it will be. */
 {
     int32_t pr = 3 + (int32_t)(prog * 15u / 256u), px = 120, py = 84;
-    int32_t an = (int32_t)(prog * 6u) & 0xFFFF, k, j;
+    int32_t an = (int32_t)(drv * 6u) & 0xFFFF, k, j;
     // Enhanced: multiple rings for depth - inner, main, outer
     if (!mono) {
         // Outer diffuse glow ring
         for (j = 0; j < 8; j++) {
-            int32_t outer_a = (int32_t)(prog * 17u + j * 30000) & 0xFFFF;
+            int32_t outer_a = (int32_t)(drv * 17u + j * 30000) & 0xFFFF;
             int32_t orx2 = pr + 20 + j * 4, ory2 = (pr + 20 + j * 4) * 35 / 100;
             int32_t ox = px + (orx2 * bg_sin((uint32_t)outer_a + 0x2000u) >> 15);
             int32_t oy = py + (ory2 * bg_sin((uint32_t)outer_a) >> 15);
@@ -1655,8 +1690,8 @@ static void splash_sig(uint32_t prog, uint32_t ms)
         cv_rect(px - pr / 2, py + pr / 3, pr, 1, bg_col(90));
         // Subtle surface details - small pits/craters
         for (k = 0; k < 6; k++) {
-            int32_t cx = px + (pr / 4 * bg_sin((uint32_t)(k * 10000 + prog * 37) & 0xFFFF) >> 15);
-            int32_t cy = py + (pr / 4 * bg_sin((uint32_t)(k * 13000 + prog * 23) & 0xFFFF) >> 15);
+            int32_t cx = px + (pr / 4 * bg_sin((uint32_t)(k * 10000 + drv * 37) & 0xFFFF) >> 15);
+            int32_t cy = py + (pr / 4 * bg_sin((uint32_t)(k * 13000 + drv * 23) & 0xFFFF) >> 15);
             cv_pset(cx - 1, cy, bg_col(80));
             cv_pset(cx, cy, bg_col(90));
             cv_pset(cx + 1, cy, bg_col(80));
@@ -1673,7 +1708,7 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     }
     // Two moons with independent orbits and enhanced paths
     for (k = 0; k < 2; k++) {
-        int32_t a2 = (int32_t)(prog * (uint32_t)(15 + k * 8) + k * 30000) & 0xFFFF;
+        int32_t a2 = (int32_t)(drv * (uint32_t)(15 + k * 8) + k * 30000) & 0xFFFF;
         int32_t km = pr + 25 + k * 10;
         int32_t mx = px + (km * bg_sin((uint32_t)a2 + 0x4000u) >> 15);
         int32_t my = py + (km * 40 / 100 * bg_sin((uint32_t)a2) >> 15);
@@ -1716,6 +1751,14 @@ static void splash_sig(uint32_t prog, uint32_t ms)
     }
     if (prog < 256u)
         gw_disc(13 + (int32_t)(prog * 196u / 256u), 116, 2, mono ? T_TEXT : T_ACCENT);
+    else {   /* (FASE 5) the rail's light keeps running once the panel has finished writing */
+        int32_t rp = (int32_t)(live % 780u);
+        if (rp < 320) {
+            int32_t rx = 60 + rp * 120 / 320;
+            for (i = 0; i < 6; i++)
+                cv_rect(rx - i * 2, 56, 1, 1, ux_mix(card, mono ? T_TEXT : bg_col(230), 200 - i * 30));
+        }
+    }
     cv_blit(0, SPL_SY);
 }
 static void draw_splash(void)
@@ -1729,7 +1772,7 @@ static void draw_splash(void)
         cv_text_in(0, (int32_t)k * 16, 240, &AF_S, SPLASH_LINES[k], k ? T_DIM : T_MID, T_BG);
     cv_blit(0, SPL_TY);
     spl_shown = 0;                                  /* the frame was just cleared under it: write the art again */
-    splash_sig(spl_anim && !(ui_prefs & PREF_ANIM_OFF) ? 0u : 256u, SPL_WRITE);
+    splash_sig(spl_anim && !(ui_prefs & PREF_ANIM_OFF) ? 0u : 256u, spl_ms);
     lcd_sync();
 }
 /* main.c's splash loop: the screen as written ms after the start */

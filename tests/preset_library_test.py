@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
-"""The factory library, checked as data (QG-1 6.0: 251 browsable sounds, plus two legacy kits).
+"""The factory library, checked as data (QG-1 6.0: 273 browsable sounds, plus two legacy kits).
 
 The firmware's tables are the only source: every engine's PRESETS[] is parsed from firmware/src/eng_*.c.
-Checks: 251 browsable sounds and each engine's share; DRUM's ten indices unchanged and its two pre-1.6
+Checks: 273 browsable sounds and each engine's share; DRUM's ten indices unchanged and its two pre-1.6
 kits still present as legacy entries at indices 10/11 (so an old project loads the exact sound it saved);
 no two sounds of an engine share a name; every entry's E count, envelope and sends in range. Duplicate
 parameter signatures are reported (not failed): the older library is allowed to be close.
@@ -22,8 +22,12 @@ ENGINES = [
     ("DRUM", "eng_drum.c", "DRUM_PRESETS", 16),
     ("NOISE", "eng_noise.c", "NOISE_PRESETS", 22),
     ("FM6", "eng_fm6.c", "FM6_PRESETS", 37),
+    # (FASE 5) WTABLE was missing here: 22 factory sounds (PRISM KEYS, ELECTRIC TINE, GLASS CHIME, MORPH SUB,
+    # ARCO SOLAR ...) were outside this audit while the preset audit (preset_audit_test.c, reading the real
+    # engine_t) counted them. The total is the firmware's own: 273 browsable + 2 legacy kits = 275.
+    ("WTABLE", "eng_wavetable.c", "WT_PRESETS", 22),
 ]
-TOTAL = 251
+TOTAL = 273
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "TRAP 808",
              "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT",
              "CONCRETE KICK", "GLASS SNARE", "TIN HAT", "TOMS OF MUD", "RITUAL PERC", "NEON CLAP"]

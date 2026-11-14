@@ -1307,7 +1307,7 @@ static void draw(int s)
              * only when its signature moves, so this counts the identical rewrites the hold used to pay for,
              * on the pixels themselves rather than by arithmetic. */
             const uint32_t np = (uint32_t)(sizeof host_screen / sizeof host_screen[0]);
-            uint32_t ms, steps = 0, changed = 0, prev = 0, i;
+            uint32_t ms, steps = 0, changed = 0, prev = 0, i, run = 0, maxrun = 0;
             uint8_t anim0 = spl_anim;
             uint32_t prefs0 = ui_prefs;
             static uint8_t saidcost;
@@ -1318,7 +1318,8 @@ static void draw(int s)
                 splash_write(ms);
                 for (i = 0; i < np; i++) { h ^= (uint32_t)host_screen[i]; h *= 16777619u; }
                 if (!steps) prev = h;
-                else if (h != prev) { changed++; prev = h; }
+                else if (h != prev) { changed++; prev = h; run = 0; }
+                else if (++run > maxrun) maxrun = run;      /* (FASE 5) the longest stretch that stands still */
                 steps++;
             }
             spl_anim = anim0;
@@ -1354,13 +1355,19 @@ static void draw(int s)
                     nfind++;
                 }
             }
-            if (steps != (SPL_WRITE + SPL_HOLD) / 4u || changed < 150u || changed > 300u) {   /* the timeline, or the art, moved */
-                if (rep) fprintf(rep, "FIND %-26s the splash timeline: %u steps of 4 ms, %u change the screen\n",
-                                 cur_name, steps, changed);
+            /* (FASE 5) THE SPLASH MAY NOT STAND STILL. Until 5.0 the test bounded the number of frames that
+             * change (150..300 of 1125) because the hold was meant to rewrite nothing: that is exactly the
+             * 1.6 s of frozen picture the phase removed, so the bound would now fail the fix. What is asserted
+             * instead is the property that was wanted -- the art keeps moving for the whole timeline and no
+             * stretch of it is still for longer than 120 ms -- plus the same step count as main.c's loop. A
+             * still run longer than that is the freeze coming back, whatever the frame count says. */
+            if (steps != (SPL_WRITE + SPL_HOLD) / 4u || changed < 200u || maxrun * 4u > 120u) {
+                if (rep) fprintf(rep, "FIND %-26s the splash timeline: %u steps of 4 ms, %u change the screen, "
+                                 "longest still run %u steps (%u ms)\n", cur_name, steps, changed, maxrun, maxrun * 4u);
                 nfind++;
             } else if (!saidcost++) {
                 printf("ui_render: splash timeline: %u steps of 4 ms, %u of them change the screen, "
-                       "%u identical rewrites skipped\n", steps, changed, steps - changed);
+                       "longest still run %u ms\n", steps, changed, maxrun * 4u);
             }
         }
         return;

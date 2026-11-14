@@ -210,6 +210,7 @@ static void dump(void)
 int main(int argc, char **argv)
 {
     uint32_t e, i, k;
+    int levels = argc > 1 && !strcmp(argv[1], "--levels");   /* (FASE 5) every preset's measured level */
     if (argc > 1 && !strcmp(argv[1], "--dump")) {
         dump();
         return 0;
@@ -250,6 +251,9 @@ int main(int argc, char **argv)
                 e_silent++;
                 printf("  silent: %-8s %-16s rms %.1f, peak %d\n", en->name, p->name, rms, (int)peak);
             }
+            if (levels)   /* (FASE 5) the number the remaster decides on: what each sound actually puts out */
+                printf("%-8s %3u %-18s rms %6.1f peak %5d clip %5.2f%%\n",
+                       en->name, (unsigned)i, p->name, rms, (int)peak, hot * 100.0);
             if (hot > 0.02) {
                 e_hot++;
                 printf("  hot:    %-8s %-16s %.0f%% of the note in the clipper's last stretch (peak %d)\n",
