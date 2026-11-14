@@ -3,15 +3,33 @@
 ## v3.0.1 — 2026-11-13 — Home visualizer knob 1 focus and release
 
 ### Fixed
-- **Home screen graphic responds only to knob 1.** The MAIN screen spectrogram waterfall animation no longer runs constantly from right to left; it now responds exclusively to horizontal movement of knob 1 (parameter 9). Knobs 2‑4 continue their original functions and still interact with the graphic.
+- **HOME's spectrogram no longer scrolls on its own.** Each of the 28 bands now measures its OWN slice of
+  the newest window (a peak over four samples) where it used to read one sample each at a fixed lag from the
+  newest one — so a waveform travelled across the bars from right to left for as long as the music played.
+  KNOB 1 is the only thing that moves the picture sideways: the bands read `i + (KNOB 1 − centre) × 14 / 128`,
+  a pure function of the control, so the same value always draws the same place, turning back restores the
+  picture exactly, and nothing moves when the hand is still. KNOB 2‑4 keep their parameters, their readouts
+  and their effect on the bay, and never take the pan.
+- **Every world of HOME answers a touch.** Only the ocean's touch drew anything: the rocky, banded and ringed
+  worlds registered the gesture and answered with a 4 px line or nothing at all. Each now has its own answer
+  (a turning arc with a grain thrown off the terminator, a breathing halo with glints along the belts, a wake
+  widened by the slingshot with embers off the ring's edge), and HOME's own button tap pulses the whole system
+  instead of writing a reaction type into `pl_react[]`, an array no screen ever read.
 - **CPU optimizations validated.** All four static CPU overruns closed without touching the baseline: `phase_render` 84/84, `wheel_block` 32/86, `noise_render` 219/201 (+9%, within +10%) and `fm6_render` 292/322.
 
 ### Changed
-- Home screen MAIN visualizer: knob 1 controls horizontal shift (-50 to +50 pixels); knobs 2‑4 unchanged.
-- Documentation updated to reflect knob‑1‑only behavior.
+- HOME's upper bay: five thermal stops per band (violet, red, orange, gold, solar yellow), a 1 px ember either
+  side of the loud bands, a dotted logarithmic grid, a brighter crest, and a drawn cutoff that follows a turn a
+  third of the way a frame and lands exactly on the parameter.
+- The full-screen visualizer's two background worlds are HOME's own bodies, larger (11 and 8 px) and mixed
+  darker, with belts, craters and a rim; each answers a tap with a ring and a mote.
+- `docs/QG_FASE2_HOME_VISUALIZER_2026-11-14.md`: the measurements, the tests and what is still open.
 
 ### Release
-- Quantum GammaWave 3.0.1 published with all target‑budget, WASM parity, host suite and memory map checks passed.
+- **Not published.** The tree builds a v3.0.0 package (`build/felucca.fwsc`, 610 959 B) but
+  `release/felucca-v3.0.0.fwsc` and its manifest are not in the repository and the browser emulator still
+  reports v2.9.7: publishing needs a version decision, `./build.sh --release`, a WASM rebuild (`emcc`) and a
+  `site/` sync, none of which this change does. `tools/coherence_check.py` lists the three problems.
 
 ### Added
 - **Ninguna versión 3.0 se crea, etiqueta ni publica sin aprobación.** `tools/release_gate.py`

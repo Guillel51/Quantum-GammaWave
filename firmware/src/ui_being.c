@@ -398,7 +398,6 @@ static int16_t pl_ex[NPL];                /* each planet's excitation, 0..256: a
 static int16_t pl_flash[NPL];             /* (3.3) the note's own light, 0..256: set by a note-on, decays
                                            * faster than the excitation, so the strike reads as a strike and
                                            * the afterglow as an afterglow */
-static uint8_t pl_react[NPL];           /* (3.4) planet reaction type per planet: 0=grow, 1=shrink, 2=orbital pulse, 3=particles, 4=pulse */
 #if !UI_NO_DRIFT
 static uint8_t pl_seen[NTRK][NVOICE];     /* the note each voice held on the last scan (+1; 0: nothing) */
 #endif
@@ -900,8 +899,34 @@ static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
         if (pa < 14u && !(pa & 1u))                 /* two flakes a frame, from the bay's own pool */
             vz_np_add(bx + (int32_t)(pa & 3u) - 2, by - 1,
                       (int32_t)(pa & 3u) - 2, -2, bg_col(heat + 90), 8, 1);
-    } else if (PL_POKE[pi] == PK_SLING) {           /* RINGED: the wake of its push, a short arc */
-        sys_line(bx - 2, by + br + 2, bx + 2, by + br + 2, ux_mix(T_BG, bg_col(heat + 50), 150 - (int32_t)pa * 4));
+    } else if (PL_POKE[pi] == PK_SPIN) {            /* ROCKY: it turns. An arc runs round the limb, bright at
+                                                     * its head and fading behind, and a grain or two is thrown
+                                                     * off the terminator, so the touch reads as rotation */
+        int32_t k, r = br + 2 + (int32_t)pa / 3, a0 = (int32_t)pa * 11 + heat;
+        for (k = 0; k < 9; k++) {
+            int32_t a = (a0 + k * 1600) & 0xFFFF, sx = bg_sin(a), sy = bg_sin(a + 16384);
+            if (!(k & 1))
+                sys_pset(bx + (sx * r >> 15), by + ((sy * r >> 15) * 2 / 3),
+                         ux_mix(T_BG, bg_col(heat + 40), 190 - k * 14 - (int32_t)pa * 2));
+        }
+        if (pa < 16u && !(pa & 3u))
+            vz_np_add(bx + br - 1, by - 1, 1, -2, bg_col(heat + 80), 6, 1);
+    } else if (PL_POKE[pi] == PK_SWELL) {          /* BANDED GIANT: it breathes -- a halo that widens and
+                                                     * thins, and two glints sliding along its belts */
+        int32_t r1 = br + 2 + (int32_t)pa / 3;
+        gw_ring_clip(bx, by, r1, r1 * 2 / 3, ux_mix(T_BG, bg_col(heat + 40), 130 - (int32_t)pa * 2), 1);
+        if (pa < 20u && !(pa & 1u)) {
+            sys_pset(bx - (int32_t)pa / 2, by - 1, ux_mix(T_BG, bg_col(heat + 90), 150 - (int32_t)pa * 6));
+            sys_pset(bx + (int32_t)pa / 2, by + 2, ux_mix(T_BG, bg_col(heat + 70), 120 - (int32_t)pa * 5));
+        }
+    } else if (PL_POKE[pi] == PK_SLING) {          /* RINGED: the wake of its push -- the arc widens as the
+                                                     * body is drawn back, and embers leave the ring's edge */
+        int32_t w = 2 + (int32_t)pa / 8;
+        sys_line(bx - w, by + br + 2, bx + w, by + br + 2, ux_mix(T_BG, bg_col(heat + 50), 150 - (int32_t)pa * 2));
+        if (pa < 24u && !(pa & 2u)) {
+            sys_pset(bx + br + (int32_t)pa / 4, by + 1, ux_mix(T_BG, bg_col(heat + 60), 140 - (int32_t)pa * 5));
+            sys_pset(bx - br - (int32_t)pa / 4, by + 1, ux_mix(T_BG, bg_col(heat + 60), 140 - (int32_t)pa * 5));
+        }
     }
 }
 
@@ -1394,24 +1419,60 @@ static void gw_deep_row(int32_t cx, int32_t y, int32_t span, int32_t ph, uint16_
     cv_pset(cx + span, y, edge);
 }
 
+/* A body of the visualizer's deep field. Same shading law as HOME's worlds -- a terminator, a lit face and
+ * a rim -- but mixed far out of the page's own tone, so it sits behind the data, and with its own surface
+ * marks so an enlarged disc reads as a world instead of as a bigger circle. */
 static void gw_deep_body(int32_t cx, int32_t cy, int32_t r, int32_t ph, uint16_t lit, uint16_t shade,
-                         uint16_t edge, int32_t ring)
+                         uint16_t edge, int32_t ring, int32_t kind)
 {
     int32_t dy, span = 0;
     if (ring)                                          /* its ring first, so the body hides its middle */
         gw_ring_tab(cx, cy, r + 3, (r + 3) / 3, edge, 0);
-    /* the half width grows to the equator and shrinks back: one walk of the circle, O(r) and not O(r * r), so a
-     * 36 px limb costs what a 6 px one costs plus its rows */
     for (dy = -r; dy <= 0; dy++) {
         while (span < r && (span + 1) * (span + 1) + dy * dy <= r * r)
             span++;
         gw_deep_row(cx, cy + dy, span, ph, lit, shade, edge);
+        if (span > 2 && kind == 1 && (dy == -(r / 3) || dy == r / 3))     /* a gas giant's belts */
+            cv_rect(cx - span + 1, cy + dy, 2 * span - 1, 1, shade);
+        if (span > 3 && kind == 0 && (dy == 0 || dy == r / 2))            /* a rocky world's craters */
+            cv_pset(cx + span / 3, cy + dy, shade);
     }
     for (dy = 1; dy <= r; dy++) {
         while (span > 0 && span * span + dy * dy > r * r)
             span--;
         gw_deep_row(cx, cy + dy, span, ph, lit, shade, edge);
+        if (span > 2 && kind == 1 && (dy == -(r / 3) || dy == r / 3))
+            cv_rect(cx - span + 1, cy + dy, 2 * span - 1, 1, shade);
+        if (span > 3 && kind == 0 && (dy == 0 || dy == r / 2))
+            cv_pset(cx + span / 3, cy + dy, shade);
     }
+}
+
+/* THE TWO DEEP WORLDS ANSWER THE HAND. They were two 7 px and 5 px discs with no surface and no gesture, so
+ * the field behind the scope was wallpaper. They keep HOME's own bodies (a banded giant and a rocky world,
+ * shaded by the same terminator law) at a larger size and mixed darker, and each remembers the frame it was
+ * touched in: a ring leaves its limb and a couple of motes drift off it, then it is still again. The state is
+ * the frame of the touch, like HOME's, so a second tap interrupts the first and nothing accumulates. */
+static int16_t vzb_x[2], vzb_y[2], vzb_r[2];
+static uint32_t vzb_t[2];
+
+static void gw_viz_poke(int32_t i)
+{
+    if (i < 0 || i > 1 || !vzb_r[i])
+        return;
+    vzb_t[i] = ui.frame | 1u;
+    ui.force = 1;
+}
+
+static int32_t gw_viz_hit(int32_t x, int32_t y)
+{
+    int32_t i;
+    for (i = 1; i >= 0; i--) {
+        int32_t dx = x - vzb_x[i], dy = y - vzb_y[i], r = (int32_t)vzb_r[i] + 4;
+        if (vzb_r[i] && dx * dx + dy * dy <= r * r)
+            return i;
+    }
+    return -1;
 }
 
 static void gw_viz_deep(uint32_t q)
@@ -1422,8 +1483,10 @@ static void gw_viz_deep(uint32_t q)
     uint16_t lit = bg_tone_mix(page, bg_col(150 + g), 28 + g / 2);
     uint16_t sh = bg_tone_mix(page, bg_col(58 + g), 42 + g / 2);
     uint16_t ed = bg_tone_mix(page, bg_col(200), 52);
-    if (q >= 2u)
-        return;                                    /* LOW: the page keeps its deeper tone and nothing else */
+    if (q >= 2u) {
+        vzb_r[0] = vzb_r[1] = 0;                       /* LOW: nothing to hit, nothing to draw */
+        return;
+    }
     /* (6.5) THE SAME SKY AS HOME, AT THE SCOPE'S SCALE. The visualizer's field was two worlds and a limb on a
      * flat tone, so the scope sat in front of emptiness. A galactic band crosses the panel now, drawn from a
      * table (x, y, thickness) before the bodies so they sit inside it: a core line that swells into a bulge,
@@ -1457,13 +1520,47 @@ static void gw_viz_deep(uint32_t q)
     }
     /* the giant's limb in the page's top-left corner: most of it outside the screen, its ring crossing the part
      * we do see, so the frame reads as a window onto something larger than it is */
-    gw_deep_body(-16 + sway / 2, 2, 30, 26000, lit, sh, ed, 0);
-    /* two small worlds in the quiet band between the scope and the spectrum floor */
-    gw_deep_body(28 + sway, 143 - sway / 2, 7, 9000, lit, sh, ed, 1);
-    if (q == 0u) {
-        gw_deep_body(218 - sway, 142 + sway / 3, 5, 40000, sh, bg_tone_mix(page, bg_col(18), 58), ed, 0);
+    gw_deep_body(-16 + sway / 2, 2, 34, 26000, lit, sh, ed, 0, 2);
+    /* THE TWO WORLDS. A banded giant with a ring and a rocky moon: HOME's own bodies, larger and mixed
+     * darker so they read behind the data. Their faces turn with the clock (a pure function of fm1_ms, never
+     * an accumulator) and each answers a tap in its own degree. */
+    {
+        uint16_t lit2 = bg_tone_mix(page, bg_col(144 + g), 24 + g / 3);
+        uint16_t sh2 = bg_tone_mix(page, bg_col(52 + g), 38 + g / 3);
+        int32_t ax = 30 + sway, ay = 141 - sway / 2, bx = 218 - sway, by = 142 + sway / 3;
+        gw_deep_body(ax, ay, 11, (int32_t)((fm1_ms * 7u) & 0x7FFFu), lit2, sh2, ed, 1, 1);
+        vzb_x[0] = (int16_t)ax;
+        vzb_y[0] = (int16_t)ay;
+        vzb_r[0] = 11;
+        if (q == 0u) {
+            gw_deep_body(bx, by, 8, (int32_t)((fm1_ms * 5u + 16000u) & 0x7FFFu), sh2,
+                         bg_tone_mix(page, bg_col(18), 58), ed, 0, 0);
+            vzb_x[1] = (int16_t)bx;
+            vzb_y[1] = (int16_t)by;
+            vzb_r[1] = 8;
+        } else {
+            vzb_r[1] = 0;
+        }
         /* and a low arc in the strip under the panel: the field does not end at its border */
-        gw_deep_body(200, 238, 18, 8000, bg_tone_mix(page, bg_col(120), 22), bg_tone_mix(page, bg_col(40), 34), ed, 0);
+        gw_deep_body(200, 238, 18, 8000, bg_tone_mix(page, bg_col(120), 22), bg_tone_mix(page, bg_col(40), 34), ed, 0, 2);
+    }
+    {   /* the touch's answer, gentler than HOME's: one ring out of the limb and a mote or two */
+        uint32_t i, age;
+        int32_t rr;
+        for (i = 0; i < 2u; i++) {
+            if (!vzb_r[i] || !vzb_t[i])
+                continue;
+            age = ui.frame - vzb_t[i];
+            if (age >= 26u)
+                continue;
+            rr = (int32_t)vzb_r[i] + 2 + (int32_t)age / 2;
+            gw_ring_tab(vzb_x[i], vzb_y[i], rr, rr / 3,
+                        bg_tone_mix(page, bg_col(196), 104 - (int32_t)age * 3), 1);
+            if ((age & 3u) == 0u)
+                cv_pset(vzb_x[i] + (int32_t)(age & 7u) - 3,
+                        vzb_y[i] - (int32_t)vzb_r[i] - 2 - (int32_t)(age >> 2),
+                        bg_tone_mix(page, bg_col(214), 126 - (int32_t)age * 4));
+        }
     }
 }
 
@@ -1626,6 +1723,80 @@ static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val
     cv_pset(cx, cy, ux.mono ? T_TEXT : T_ACCENT);
 }
 
+#define WF_BANDS 28                                  /* the bay's bands (the count the manual names) */
+#define WF_SLICE 4                                   /* samples a band measures: a peak, not one sample */
+
+/* THE SPECTROGRAM'S HORIZONTAL POSITION IS KNOB 1 AND NOTHING ELSE.
+ * It used to come from the audio window itself: every band read ONE sample at a fixed lag from the newest
+ * one, so a waveform travelled across the bars from right to left for as long as the music played -- the
+ * autonomous scroll, with no hand on the panel. A band now measures its own slice (a peak over WF_SLICE
+ * samples), which has no travelling shape, and the only thing that moves the picture sideways is this
+ * offset: KNOB 1's real value, read from home_param() through bg_knob(), so it is 0 at the knob's centre,
+ * grows one way, shrinks the other, and stops dead when the hand does. Same value, same place: no clock, no
+ * ui.frame, no accumulator. */
+static int32_t wf_shift(void)
+{
+    int32_t k = bg_knob(0, 0);                       /* 0..256: HOME's KNOB 1 as the control really is */
+    if (k < 0)
+        k = 128;                                     /* a knob with no value (a '-') sits in the middle */
+    return (clamp(k, 0, 256) - 128) * (WF_BANDS / 2) / 128;   /* +-14 bands of travel */
+}
+
+/* The bands' envelopes: a fast attack and a slow release, so a peak reads as a peak instead of one frame's
+ * noise. Advanced once a frame (vz_qframe qualifies the resolution too), so drawing the same frame twice --
+ * the render sweep, a forced redraw -- gives the same picture. */
+static uint8_t wf_lvl[WF_BANDS];
+static void wf_advance(void)
+{
+    static uint32_t f0 = 0xFFFFFFFFu;
+    uint32_t fr = vz_qframe();
+    int32_t i, sh = wf_shift();
+    if (fr == f0)
+        return;
+    f0 = fr;
+    for (i = 0; i < WF_BANDS; i++) {
+        int32_t band = i + sh, j, s = 0, t, l;
+        uint32_t idx;
+        band %= WF_BANDS;
+        if (band < 0)
+            band += WF_BANDS;
+        idx = (scope_w - 128u + (uint32_t)band * WF_SLICE) & (SCOPE_N - 1u);
+        for (j = 0; j < WF_SLICE; j++) {
+            int32_t v = scope_buf[(idx + (uint32_t)j) & (SCOPE_N - 1u)];
+            if (v < 0)
+                v = -v;
+            if (v > s)
+                s = v;
+        }
+        t = clamp(s * 255 / 9000, 0, 255);           /* the meters' own scale (255: a uint8_t keeps it) */
+        l = wf_lvl[i];
+        /* the release lands ON the target: a quarter of the way each frame, and the last few levels at
+         * once. Stopping at a quarter left a band up to three levels above its own signal, so the same
+         * audio drew a bar a pixel or two taller after the knob had moved the bands around. */
+        wf_lvl[i] = (uint8_t)(t >= l ? t : (l - t > 4 ? l - ((l - t + 3) >> 2) : t));
+    }
+}
+
+/* The curve follows the knob instead of jumping with it: the drawn cutoff moves a third of the way to the
+ * parameter's each frame, so a fast turn reads as a sweep. Frame-gated like the envelopes, and seeded with
+ * the target, so the first draw is exactly where the parameter is. */
+static int32_t wf_cut_disp(int32_t target)
+{
+    static int32_t d = -1;
+    static uint32_t f0 = 0xFFFFFFFFu;
+    uint32_t fr = vz_qframe();
+    if (d < 0)
+        d = target;
+    if (fr != f0) {
+        f0 = fr;
+        if (d < target - 2 || d > target + 2)        /* a third of the way, and then exactly there */
+            d += (target - d) / 3;
+        else
+            d = target;                              /* at rest the curve sits on the parameter, not near it */
+    }
+    return d;
+}
+
 static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t en)
 {
     int32_t gx0 = x0 + 4, gy0 = y0 + 4, gw = w - 28, gh = h - 8;
@@ -1634,7 +1805,7 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
     int32_t lfo_mod = (t->p[P_LD_FLT] * mulq15(t->lfo_val, t->lfo_fade)) >> 14;
     int32_t cut_x = 10 + clamp(cut + lfo_mod, 0, 127) * (gw - 20) / 127;
     int32_t mod_span = (t->p[P_LD_FLT] < 0 ? -t->p[P_LD_FLT] : t->p[P_LD_FLT]) * (gw - 20) / 256;
-    int32_t i, x, py = y_zero, mpy = y_zero;
+    int32_t i, x, py = y_zero, mpy = y_zero, gy;
 
     gw_oct_panel(x0, y0, w, h, 4, T_BG, T_LINE, 1, T_THEME);
 
@@ -1643,33 +1814,47 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
      *    audio -- it is the room the graph is drawn in, not a measurement. */
     gw_embers(x0 + 2, y0 + 2, w - 4, h - 4, ui_viz_q >= 2u ? 7u : ui_viz_q == 1u ? 10u : 16u, 0x2B00u, 70, T_BG);
 
-    /* 1. Logarithmic Frequency Grid Lines (100Hz, 1kHz, 10kHz) & 0dB Horizon */
-    for (i = 1; i <= 3; i++)
-        cv_rect(gx0 + i * gw / 4, gy0, 1, gh, T_GRID);
-    cv_rect(gx0, y_zero, gw, 1, T_GRID);
-    cv_rect(gx0, gy0 + gh * 3 / 4, gw, 1, T_GRID);
+    cut_x = wf_cut_disp(cut_x);                      /* (FASE 2) a parameter change sweeps, it does not jump */
 
-    /* 2. 28-Band Yellow -> Orange -> Purple FFT Spectrogram Waterfall (matching latest GammaWave Filter bay) */
-    for (i = 0; i < 28; i++) {
-        int32_t bx = gx0 + 2 + i * (gw - 4) / 28, bw = (gw - 4) / 28 - 1;
-        uint32_t idx = (scope_w - 128u + (uint32_t)i * 4u) & (SCOPE_N - 1u);
-        int32_t s = scope_buf[idx] - scope_buf[(idx + 2u) & (SCOPE_N - 1u)];
-        if (s < 0) s = -s;
-        int32_t env_y = gw_filter_resp_y(ftype, i * gw / 28, gw, cut_x, res, y_zero, gh);
-        int32_t max_h = clamp(gy0 + gh - env_y, 3, gh - 3);
-        int32_t bh = clamp((s * max_h / 8500) + (en * max_h / 290), 3, max_h);
-        int32_t top_y = gy0 + gh - bh;
-        int32_t h_top = bh / 3 + 1, h_mid = bh / 3 + 1, h_bot = bh - h_top - h_mid;
-        if (bw < 1) bw = 1;
-        /* Base: Deep Purple-Crimson thermal band */
-        if (h_bot > 0)
-            cv_rect(bx, top_y + h_top + h_mid, bw, h_bot, ux_mix(T_BG, bg_col(68), 65));
-        /* Mid: Vibrant #f27121 GammaWave Orange */
-        if (h_mid > 0)
-            cv_rect(bx, top_y + h_top, bw, h_mid, ux_mix(T_BG, bg_col(156), 80));
-        /* Crest: Blazing Yellow-White Waterfall Peak */
-        cv_rect(bx, top_y, bw, h_top, bg_col(232));
-        cv_rect(bx, top_y, bw, 1, bg_col(252));
+    /* 1. The scale: three logarithmic divisions and the horizon, dotted every third row so they read as a
+     *    grid and never compete with the data. A third of the pixels of a solid line. */
+    for (i = 1; i <= 3; i++)
+        for (gy = gy0; gy < gy0 + gh; gy += 3)
+            cv_rect(gx0 + i * gw / 4, gy, 1, 1, ux_mix(T_SURF, T_GRID, 62));
+    cv_rect(gx0, y_zero, gw, 1, ux_mix(T_SURF, T_LINE, 72));
+    cv_rect(gx0, gy0 + gh * 3 / 4, gw, 1, ux_mix(T_SURF, T_GRID, 58));
+
+    /* 2. THE SPECTROGRAM (28 bands). Fixed geometry, a peak measured inside each band's own slice, and a
+     *    five-stop thermal body -- deep violet at the foot, red, orange, gold, solar yellow at the crest --
+     *    so a bar carries volume instead of three flat thirds. The loud bands keep a 1 px ember either side. */
+    wf_advance();
+    {
+        static const int16_t ST5[5] = {64, 124, 172, 214, 244};    /* violet, red, orange, gold, solar */
+        static const uint8_t MIX5[5] = {70, 76, 82, 88, 92};
+        int32_t step = (gw - 4) / WF_BANDS;
+        for (i = 0; i < WF_BANDS; i++) {
+            int32_t bx = gx0 + 2 + i * (gw - 4) / WF_BANDS, bw = step - 1;
+            int32_t env_y = gw_filter_resp_y(ftype, i * gw / WF_BANDS, gw, cut_x, res, y_zero, gh);
+            int32_t max_h = clamp(gy0 + gh - env_y, 3, gh - 3);
+            int32_t bh = clamp(3 + wf_lvl[i] * (max_h - 3) / 255, 3, max_h);
+            int32_t top_y = gy0 + gh - bh, hh[5], k, yy = gy0 + gh;
+            if (bw < 1)
+                bw = 1;
+            for (k = 0; k < 5; k++)
+                hh[k] = bh / 5;
+            hh[4] += bh - 5 * (bh / 5);
+            for (k = 0; k < 5; k++) {
+                yy -= hh[k];
+                if (hh[k] > 0)
+                    cv_rect(bx, yy, bw, hh[k], ux_mix(T_BG, bg_col(ST5[k]), MIX5[k]));
+            }
+            cv_rect(bx, top_y, bw, 1, bg_col(252));               /* the crest: the band's peak, defined */
+            if (wf_lvl[i] > 168) {                                /* a loud band keeps an ember either side */
+                uint16_t ec = ux_mix(T_BG, bg_col(238), 42);
+                cv_rect(bx - 1, top_y + 1, 1, bh / 3, ec);
+                cv_rect(bx + bw, top_y + 1, 1, bh / 3, ec);
+            }
+        }
     }
 
     /* 3. Cyan Modulation Envelope Curve (drawFilterCurve pre-FX/mod overlay) */

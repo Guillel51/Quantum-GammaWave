@@ -10768,6 +10768,367 @@ static int test_home_knobs(void)
     return bad;
 }
 
+/* (FASE 2) HOME's visualizer: the four knobs and the bodies behind the data.
+ *   THE BANDS  each of the 28 bands measures ITS OWN slice of the newest window (a peak over WF_SLICE
+ *              samples), where it used to read one sample each at a fixed lag from the newest one -- so a
+ *              waveform travelled across the bars from right to left for as long as the music played: the
+ *              autonomous scroll the panel showed. The check is exact and needs no palette: the scope is
+ *              filled with a period-8 waveform whose high half is exactly WF_SLICE samples long, so every
+ *              band's slice is identical and all 28 levels must be EQUAL, at any position of the audio's
+ *              window; under the old lag chain they alternated, and the pattern moved as the window did.
+ *   THE KNOBS  the horizontal offset is KNOB 1's real value and nothing else: it follows the knob, not the
+ *              clock, KNOB 2..4 never move it (and still change their own parameter and the bay), and the
+ *              picture holds still -- bit for bit -- for 1.6 s with the music frozen and no hand on the knob.
+ *   THE BODIES every world of HOME answers a touch with its own reaction (a turning arc, a breath, a wave, a
+ *              push, frost), the panel's HOME tap pulses the whole system, and the visualizer's two deep
+ *              worlds are drawn larger, hit where they are drawn, and answer a touch too.
+ * Not "it compiles": the checks are on drawn pixels and on the state the draw reads. */
+static uint16_t frame_ref[240 * 240];
+static void frame_keep(void) { memcpy(frame_ref, host_screen, sizeof frame_ref); }
+static uint32_t frame_hash(void)
+{
+    uint32_t r, c, h = 2166136261u;
+    for (r = 78u; r < 139u; r++)                      /* the bay HOME's graph is drawn in (the cards above it
+                                                       * have their own rolling digits and are not the graph) */
+        for (c = 6u; c < 234u; c++)
+            h = (h ^ host_screen[r * 240u + c]) * 16777619u;
+    return h;
+}
+static void draw_at(uint32_t ms, uint32_t fr)      /* one whole redraw at a given clock: so two pictures can be
+                                                    * compared with time out of the difference */
+{
+    fm1_ms = ms;
+    host_ticks = ms * 1000u;
+    ui.frame = fr;
+    ui.graph_sig = 0;
+    ui.force = 1;
+    ui_draw();
+}
+static void probe_draw(void)                       /* one frame of the bands on the probe's signal: a single
+                                                    * spike in silence, placed relative to the audio's window
+                                                    * (bands read the past, so it sits before scope_w) */
+{
+    int32_t k;
+    for (k = 0; k < SCOPE_N; k++)
+        scope_buf[k] = 0;
+    scope_buf[(scope_w - 60u) & (SCOPE_N - 1u)] = 9000;
+    ui.frame += 4;                                 /* a frame the bands have not seen */
+    ui.graph_sig = 0;
+    ui.force = 1;
+    ui_draw();
+}
+static void draw_glide(uint32_t ms, uint32_t fr)   /* twelve draws, a frame apart: the drawn cutoff's glide
+                                                    * has arrived, and two pictures compared this way end on
+                                                    * the same frame whatever state they started from */
+{
+    int32_t k;
+    for (k = 0; k < 12; k++)
+        draw_at(ms, fr + (uint32_t)k);
+}
+static uint32_t card_hash(void)                   /* the four mini-knobs' readouts: what a knob shows */
+{
+    uint32_t r, c, h = 2166136261u;
+    for (r = 30u; r < 78u; r++)
+        for (c = 4u; c < 236u; c++)
+            h = (h ^ host_screen[r * 240u + c]) * 16777619u;
+    return h;
+}
+static uint32_t frame_diff(int32_t x0, int32_t y0, int32_t w, int32_t h)
+{
+    uint32_t r, c, n = 0;
+    for (r = (uint32_t)y0; r < (uint32_t)(y0 + h) && r < 240u; r++)
+        for (c = (uint32_t)x0; c < (uint32_t)(x0 + w) && c < 240u; c++)
+            n += host_screen[r * 240u + c] != frame_ref[r * 240u + c];
+    return n;
+}
+static int lit_bands(void)                        /* how many bands the scope's signal lights */
+{
+    int32_t i, n = 0;
+    for (i = 0; i < WF_BANDS; i++)
+        n += wf_lvl[i] > 40;
+    return n;
+}
+static int test_home_viz(void)
+{
+    int bad = 0, i;
+    const param_desc_t *d;
+    int16_t *vp;
+    int32_t shift0;
+    uint32_t h0, h1;
+    stop_transport();                                /* no audio of its own: the probe's scope is the signal */
+    ui_viz_q = 0;                                    /* HIGH: a band's envelope advances every frame */
+    ui_power_on();
+    go_home();
+    home_first();
+    frames(4);
+    ui_prefs |= PREF_ANIM_OFF;                       /* the system's own motion stops: the bay holds still */
+    frames(2);
+    /* THE PROBE: one spike in an otherwise silent scope. Every band measures a slice of WF_SLICE samples, so
+     * exactly ONE band is lit -- the one that owns the spike -- wherever the audio's window sits. The lag
+     * chain this replaced read one sample per band as `sample - sample two samples later`, so a spike lit two
+     * bands and the pair crossed the bars as the window moved. */
+    frames(8);
+    /* --- 1. every band measures its own slice: no lag chain, so nothing can travel across the bars --- */
+    for (i = 0; i < 6; i++) {
+        int32_t k;
+        for (k = 0; k < 10; k++)                          /* the envelopes at their targets */
+            probe_draw();
+        if (lit_bands() != 1) {
+            printf("ui:   HOME bay: %d bands lit by one spike: a band is not measuring its own slice\n",
+                   lit_bands());
+            bad++;
+            break;
+        }
+        scope_w = (uint16_t)(scope_w + 401u);             /* the audio's window moves on: probe_draw follows */
+    }
+    /* --- 2. nothing creeps: 1.6 s of frames with the music frozen and no hand on a knob. The picture IS the
+     *        bars' heights and the mapping that places them, and the spike's band, so all three must hold. --- */
+    {
+        int16_t l0[WF_BANDS];
+        int32_t s00, b00, k;
+        for (k = 0; k < 40; k++)                      /* settle: the touch's wave, the envelopes */
+            probe_draw();
+        for (i = 0; i < WF_BANDS; i++)
+            l0[i] = (int16_t)wf_lvl[i];
+        s00 = wf_shift();
+        b00 = lit_bands();
+        for (k = 0; k < 200; k++)                     /* the same music, eight hundred frames of it */
+            probe_draw();
+        for (i = 0; i < WF_BANDS; i++)
+            if (wf_lvl[i] != (uint8_t)l0[i] || wf_shift() != s00 || lit_bands() != b00) {
+                printf("ui:   HOME bay: the bars moved with no hand on KNOB 1: band %d %d->%d, %d lit "
+                       "vs %d, shift %d vs %d\n", (int)i, (int)l0[i], (int)wf_lvl[i], lit_bands(), (int)b00,
+                       (int)wf_shift(), (int)s00);
+                bad++;
+                break;
+            }
+    }
+    /* --- 3. the offset is KNOB 1's value, not the clock: same value, same offset, whatever the clock says --- */
+    d = home_param(0, &vp);
+    *vp = (int16_t)((d->min + d->max) / 2);
+    frames(80);
+    draw_glide(fm1_ms, ui.frame);                     /* the drawn cutoff glides to the new value */
+    shift0 = wf_shift();
+    {
+        uint32_t t0 = fm1_ms, f0 = ui.frame, w0 = scope_w;
+        fm1_ms += 9000u;
+        ui.frame += 900u;
+        scope_w = (uint16_t)(scope_w + 1500u);
+        if (wf_shift() != shift0) {
+            printf("ui:   HOME bay: the offset follows the clock, not KNOB 1\n");
+            bad++;
+        }
+        fm1_ms = t0;
+        ui.frame = f0;
+        scope_w = (uint16_t)w0;
+    }
+    /* --- 4. KNOB 1 moves it one way and back, and coming back is the same picture (no history) --- */
+    {
+        uint32_t ms0 = fm1_ms, fr0 = ui.frame;
+        draw_glide(ms0, fr0);                         /* the reference: the knob at its value, one clock */
+        frame_keep();
+        h0 = frame_hash();
+
+        turn(EN_K1, 6);
+        frames(80);                                   /* the knob's own wave across the bay dies (64 frames) */
+        draw_glide(ms0, fr0);
+        h1 = frame_hash();
+        if (h0 == h1 || wf_shift() == shift0) {
+            printf("ui:   HOME bay: KNOB 1 did not move the spectrum\n");
+            bad++;
+        }
+        turn(EN_K1, -6);
+        frames(80);
+        draw_glide(ms0, fr0);
+        if (frame_hash() != h0 || wf_shift() != shift0) {
+            int32_t dx0 = 999, dy0 = 999, dx1 = -1, dy1 = -1, n = 0, xx, yy;
+            for (yy = 60; yy < 150; yy++)
+                for (xx = 6; xx < 234; xx++)
+                    if (host_screen[yy * 240 + xx] != frame_ref[yy * 240 + xx]) {
+                        n++;
+                        if (xx < dx0) dx0 = xx;
+                        if (yy < dy0) dy0 = yy;
+                        if (xx > dx1) dx1 = xx;
+                        if (yy > dy1) dy1 = yy;
+                    }            printf("ui:   HOME bay: KNOB 1 back at its value is not the same picture (the pan has a history): "
+                   "%d px in %d..%d x %d..%d, shift %d vs %d\n", (int)n, (int)dx0, (int)dx1, (int)dy0, (int)dy1,
+                   (int)wf_shift(), (int)shift0);
+            bad++;
+        }
+        frames(40);
+    }
+    /* --- 5. KNOB 2..4 keep their own work and never take the pan --- */
+    for (i = 1; i < 4; i++) {
+        int32_t s0 = wf_shift();
+        int16_t v0;
+        d = home_param((uint32_t)i, &vp);
+        v0 = *vp;
+        uint32_t ms0 = fm1_ms, fr0 = ui.frame;
+        draw_glide(ms0, fr0);
+        h0 = card_hash();
+        turn(EN_K1 + i, 5);
+        frames(80);
+        draw_glide(ms0, fr0);
+        if (wf_shift() != s0) {
+            printf("ui:   HOME bay: KNOB %d moved the spectrum sideways\n", i + 1);
+            bad++;
+        }
+        if (*vp == v0 || card_hash() == h0) {
+            printf("ui:   HOME bay: KNOB %d (%s) no longer changes its parameter and its readout\n", i + 1,
+                   d->label && d->label[0] ? d->label : "?");
+            bad++;
+        }
+        turn(EN_K1 + i, -5);
+        frames(80);
+    }
+    /* --- 6. every world of HOME answers a touch, each in its own way --- */
+    ui_prefs &= ~PREF_ANIM_OFF;
+    home_first();
+    frames(3);
+    {
+        uint32_t cnt[NPL], distinct = 0;
+        int32_t px[NPL], py[NPL], hit[NPL];
+        for (i = 0; i < NPL; i++) {
+            px[i] = pl_sx[i];
+            py[i] = pl_sy[i] + (int32_t)graph_y();   /* gw_planet_at measures bays in screen rows */
+        }
+        for (i = 0; i < NPL; i++) {
+            int32_t k;
+            for (k = 0; k < NPL; k++)
+                pl_poke_on[k] = 0;
+            ui.graph_sig = 0;
+            ui_draw();                               /* the same frame, no reaction */
+            frame_keep();
+            pl_poke_t[i] = ui.frame;
+            pl_poke_on[i] = 1u;                      /* the touch, at age 0 */
+            pl_flash[i] = 256;
+            ui.graph_sig = 0;
+            ui_draw();
+            cnt[i] = frame_diff(px[i] - 24, py[i] - 24, 48, 48);
+            /* UI_NO_DRIFT is this suite's own switch (the deterministic pixel builds freeze the gesture):
+             * the pixels of the five answers are captured and asserted by tests/capture_home_pokes.c, built
+             * with UI_NO_DRIFT=0, which is where they are read. Here: the touch is registered. */
+#if !UI_NO_DRIFT
+            if (cnt[i] < 7u) {
+                printf("ui:   HOME: body %d answers a touch with %u px\n", i, cnt[i]);
+                bad++;
+            }
+#else
+            if (!pl_poke_on[i]) {
+                printf("ui:   HOME: body %d did not register its touch\n", i);
+                bad++;
+            }
+#endif
+            hit[i] = gw_planet_at(px[i], py[i]);     /* the star answers first, by design; a body is next */
+            if (hit[i] < 0) {
+                printf("ui:   HOME: body %d is not where it was drawn (%d)\n", i, (int)hit[i]);
+                bad++;
+            }
+            for (k = 0; k < i; k++)
+                if (cnt[k] != cnt[i])
+                    distinct = 1u;
+        }
+#if !UI_NO_DRIFT
+        if (!distinct) {                              /* the five answers' pixels differ, and are measured by
+                                                       * tests/capture_home_pokes.c in the unfrozen build */
+            printf("ui:   HOME: the five touches draw the same reaction\n");
+            bad++;
+        }
+#else
+        (void)distinct;
+#endif
+        {   /* a body the star is not covering this second (the star answers first, by design) */
+            int32_t pick = -1;
+            for (i = 0; i < NPL; i++)
+                if (gw_planet_at(pl_sx[i], pl_sy[i] + (int32_t)graph_y()) == i)
+                    pick = i;
+            for (i = 0; i < NPL; i++)
+                pl_poke_on[i] = 0;
+            if (pick >= 0)
+                ui_tap(pl_sx[pick], pl_sy[pick] + (int32_t)graph_y());
+            if (pick < 0 || !pl_poke_on[pick] || !ui.force) {
+                printf("ui:   HOME: a tap on a body poked nothing\n");
+                bad++;
+            }
+        }
+        /* the panel has no pointer: HOME's own tap answers the whole system */
+        for (i = 0; i < NPL; i++)
+            pl_poke_on[i] = 0;
+        ui.home_pulse = 0;
+        press(B_HOME);
+        if (!ui.home_pulse) {
+            printf("ui:   HOME: its button's tap did not pulse the system\n");
+            bad++;
+        }
+    }
+    /* --- 7. the visualizer's two deep worlds: drawn, hit, and they answer --- */
+    ui.home_view = HV_VIZ;
+    ui.home_viz = 1;
+    ui.force = 1;
+    frames(3);
+    if (!vzb_r[0] || !vzb_r[1]) {
+        printf("ui:   HOME VISUALS: the deep field drew %d worlds\n", (int)(vzb_r[0] != 0) + (int)(vzb_r[1] != 0));
+        bad++;
+    }
+    if (gw_viz_hit(vzb_x[0], vzb_y[0]) != 0 || gw_viz_hit(vzb_x[1], vzb_y[1]) != 1) {
+        printf("ui:   HOME VISUALS: a world cannot be touched where it is drawn\n");
+        bad++;
+    }
+    {
+        uint32_t cnt[2];
+        int32_t j;
+        for (j = 0; j < 2; j++) {
+            vzb_t[0] = vzb_t[1] = 0;
+            ui.graph_sig = 0;
+            ui_draw();
+            frame_keep();
+            vzb_t[j] = ui.frame | 1u;
+            ui.graph_sig = 0;
+            ui_draw();
+            cnt[j] = frame_diff(vzb_x[j] - 24, vzb_y[j] - 24, 48, 48);
+            if (cnt[j] < 7u) {
+                printf("ui:   HOME VISUALS: world %d answers a touch with %u px\n", j, cnt[j]);
+                bad++;
+            }
+        }
+        vzb_t[0] = vzb_t[1] = 0;
+        ui_tap(vzb_x[1], vzb_y[1]);
+        if (!vzb_t[1]) {
+            printf("ui:   HOME VISUALS: a tap did not reach the near world\n");
+            bad++;
+        }
+        vzb_t[0] = vzb_t[1] = 0;
+        ui_tap(120, 96);                             /* empty sky, between the scope and the worlds */
+        if (vzb_t[0] || vzb_t[1]) {
+            printf("ui:   HOME VISUALS: a tap on empty sky poked a world\n");
+            bad++;
+        }
+    }
+    /* --- 8. and back on HOME the bay is where it was: no state leaks between screens --- */
+    ui_prefs |= PREF_ANIM_OFF;
+    ui.home_view = HV_HOME;
+    ui.home_viz = 0;
+    ui.force = 1;
+    frames(10);
+    h0 = frame_hash();
+    ui.home_view = HV_VIZ;
+    ui.home_viz = 1;
+    ui.force = 1;
+    frames(4);
+    ui.home_view = HV_HOME;
+    ui.home_viz = 0;
+    ui.force = 1;
+    frames(10);
+    if (frame_hash() != h0) {
+        printf("ui:   HOME bay: the trip to VISUALS and back moved it\n");
+        bad++;
+    }
+    ui_prefs &= ~PREF_ANIM_OFF;
+    check("HOME visualizer: the bands measure their own slices, still without KNOB 1, KNOB 2..4 keep their "
+          "own work, all five bodies and the two deep worlds answer a touch", bad == 0);
+    return bad;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -10780,6 +11141,12 @@ int main(void)
     {
         const char *only = getenv("UI_ONLY");
         const char *rep = getenv("UI_REPEAT_DICE");
+        if (only && !strcmp(only, "home_viz")) {     /* the FASE 2 visualizer test on its own */
+            bad += test_home_viz();
+            if (bad) printf("ui: home_viz: %d FAILED\n", bad);
+            else printf("ui: home_viz: all passed\n");
+            return bad ? 1 : 0;
+        }
         if (only && !strcmp(only, "dice_all")) {
             int n = rep ? atoi(rep) : 1, i;
             if (n < 1) n = 1;
@@ -10791,6 +11158,7 @@ int main(void)
     }
     bad += test_qg15();
     bad += test_home_knobs();
+    bad += test_home_viz();
     bad += test_large_face();
     bad += test_sound_loads();
     bad += test_patterns();

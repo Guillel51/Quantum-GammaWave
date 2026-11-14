@@ -141,13 +141,17 @@ static int test_planets(void)
                 break;
             if (gate == 0)
                 ui.menu = 1;                              /* the MENU over HOME */
-            else if (gate == 1)
-                ui.home_viz = 1;                          /* the visualizer on HOME */
+            else if (gate == 1) {
+                ui.home_view = HV_VIZ;                    /* the visualizer on HOME: its own deep worlds
+                                                           * answer a tap (ui_test test_home_viz), HOME's
+                                                           * bay is not there to poke */ 
+                ui.home_viz = 1;
+            }
             else
                 ui.layer = 1;                             /* a quick layer */
             tap_screen(pl_sx[0], (int32_t)pl_sy[0] + off);
             planets_bad += check(gate == 0 ? "with the MENU open a tap on a body does nothing"
-                                   : gate == 1 ? "with the visualizer on HOME a tap does nothing"
+                                   : gate == 1 ? "with the visualizer up, HOME's bay is not there to poke"
                                                : "with a layer open a tap does nothing",
                                  !pl_poke_on[0] && !pl_poke_on[1] && !pl_poke_on[2] && !pl_poke_on[3] &&
                                      !pl_poke_on[4]);

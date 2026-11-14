@@ -258,6 +258,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost" \
         "$OUT/ui_render" build/ui_new build/ui_slot
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
+    sed 's/^int main(/int ui_render_main(/' tests/ui_render.c > build/capture/ui_render_nomain.c
+    mkdir -p build/capture/ppm
+    $CC -O1 -w -DUI_NO_DRIFT=0 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/capture_pokes" tests/capture_home_pokes.c -lm
+    run "HOME's five touch reactions as drawn (UI_NO_DRIFT=0): each body's answer, five distinct ones, a tap off the bay is nothing, a second touch restarts" \
+        "$OUT/capture_pokes" build/capture
     $CC -w -DFELUCCA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_fm4" tests/ui_test.c -lm
     run "UI built with FELUCCA_FM4=1 (DIGITAL, kept in the tree): its OP pages, EDIT cycle, algorithm charts" "$OUT/ui_test_fm4"
     $CC -O1 -w -DFELUCCA_FM4=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render_fm4" tests/ui_render.c -lm

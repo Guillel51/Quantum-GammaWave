@@ -47,8 +47,14 @@ static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
 void ui_tap(int32_t x, int32_t y)
 {
     int32_t p;
-    if (!ui.home || ui.home_viz || ui.menu || ui.confirm || ui.layer || name_on())
+    if (!ui.home || ui.menu || ui.confirm || ui.layer || name_on())
         return;
+    if (ui.home_viz) {                                  /* (FASE 2) the deep field answers too */
+        p = gw_viz_hit(x, y);
+        if (p >= 0)
+            gw_viz_poke(p);
+        return;
+    }
     p = gw_planet_at(x, y);
     if (p < 0)
         return;
@@ -2010,23 +2016,14 @@ static void ui_input_frame(void)
         }
     }
     home = btn_hold(&ui.home_t0, B_HOME, now, 1);
-    /* (3.4) planet interaction on HOME tap */
-    if (home == BT_TAP && !ui.menu && !ui.confirm && !ui.layer) {
-        uint32_t k, closest = 0;
-        int32_t min_dist = 10000;
-        for (k = 0; k < NPL; k++) {
-            int32_t dx = (int32_t)(fm1_ms * 71u + k * 73u) % 128 - 64;
-            int32_t dy = (int32_t)(fm1_ms * 131u + k * 97u) % 128 - 64;
-            int32_t dist = dx * dx + dy * dy;
-            if (dist < min_dist) {
-                min_dist = dist;
-                closest = k;
-            }
-        }
-        if (min_dist < 4096) {
-            pl_react[closest] = (pl_react[closest] + 1) % 5;
-            ui.force = 1;
-        }
+    /* (FASE 2) A TAP ON HOME ANSWERS THE SYSTEM. This block used to invent planet positions out of the
+     * clock (`fm1_ms * 71 % 128`), pick the nearest to an imaginary centre and store a reaction type in
+     * pl_react[] that no screen ever read -- so on the panel, which has no pointer, HOME's tap changed
+     * nothing at all. It now fires the star's own gesture: the whole system pulses and every body takes the
+     * light. A single body can still be poked on its own wherever there is a pointer (ui_tap, the LCD). */
+    if (home == BT_TAP && !ui.menu && !ui.confirm && !ui.layer && ui.home && !ui.home_viz) {
+        gw_planet_poke((int32_t)NPL);
+        ui.force = 1;
     }
     rec = btn_hold(&ui.rec_t0, B_REC, now, 0);          /* (a tap; held, the REC layer: ui_layer.c) */
     seq = btn_hold(&ui.seq_t0, B_SEQ, now, !ui.menu && !ui.confirm);
