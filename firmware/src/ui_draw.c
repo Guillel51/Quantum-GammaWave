@@ -873,6 +873,28 @@ static void draw_foot(void)
             str_cpy(ti + 4, ti + 10, sizeof ti - 4);    /* #93: "AUTOMATION 6/6" -> "AUTO 6/6" where the sound's name */
             tx = r - text_w(&AF_S, ti) - (pi != ICON_NONE ? 16 : 0);   /* would be cut (MENU > LARGE) */
         }
+        /* (FASE 4) The sound's name had a few glyphs left on MENU > LARGE: SEQ's tools (PLAYHEADS,
+         * PHRASES, STRETCH, MIXER, AUTO LIST, CHANCE) truncate "SAW LEAD" to "SAW..." and a project
+         * called "NO NAME" to "NO NA...", because the page's title and its "n/m" index take the line.
+         * The title gives up the INDEX first: "PLAYHEADS" still says where you are, the position is in
+         * the keys and the strip, and the name the player came to read stays whole. The test is the name's
+         * own width, not a fixed margin: where the name fits with the index in place, the index stays -- it
+         * is how the page was counted in the first place. */
+        {
+            int32_t nx = 8 + (FELUCCA_ICONS && ei != ICON_NONE ? 17 : 0) + (ew < 80 ? ew : 80) + 10;
+            if (tx - 12 - nx < need + 2 && str_len(ti) > 3) {
+                int32_t q = (int32_t)str_len(ti) - 1, d;
+                while (q > 0 && ti[q] != ' ')
+                    q--;
+                d = q + 1;
+                while (ti[d] >= '0' && ti[d] <= '9')
+                    d++;
+                if (q > 0 && d > q + 1 && ti[d] == '/') {
+                    ti[q] = 0;
+                    tx = r - text_w(&AF_S, ti) - (pi != ICON_NONE ? 16 : 0);
+                }
+            }
+        }
         x = 8;
         if (FELUCCA_ICONS) {
             if (ei != ICON_NONE)

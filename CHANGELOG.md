@@ -1,5 +1,24 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.0.3 — 2026-11-14 — FASE 4: editing audit, and the LARGE footer stops eating names
+
+### Fixed
+- **MENU > LARGE cut the sound's name down to three glyphs.** SEQ's tools read `SAW…`, `FUL…`,
+  `NO NA…` because the page's title and its `n/m` index took the footer line. The title now gives up
+  the index first, and only when the name would really be truncated (the test is the name's own
+  width), so a page whose name fits keeps its counter. Render sweep: 516 ellipsised free texts
+  (17 distinct) down to 278 (7 distinct), 0 lint, 0 alignment deviations.
+
+### Audited (host x86, this build)
+- Every EDIT knob of every engine, at both ends of its range through the real render:
+  **216 knobs x 3 presets, 0 with no effect, 0 faint** (`tests/engine_param_test.c`).
+- Modulation (`tests/mod_test.c` 71 checks), ratchet (63), swing (11), scale/chord — all ok.
+- FX: phaser, M-WIDTH, EQ shelves (`tests/fx_probe.c`), delay train (18), reverb (32), cloud (6),
+  EQ sweep (9) — all ok. No effect was added: nothing measured justified one.
+- `docs/QG_FASE4_EDIT_AUDIT_2026-11-14.md`: the numbers and the open backlog. **The phase stays
+  open** — musical ranges, MIXER's LARGE footer, SEQ parameter locks and a systematic
+  parameter-step pop instrument are not done.
+
 ## v3.0.2 — 2026-11-14 — FASE 3: panel depth and the Solar Heat ground
 
 ### Changed
