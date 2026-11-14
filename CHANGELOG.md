@@ -1,3 +1,20 @@
+## v3.2.1 — 2026-11-14 — el teclado de SCL, legible de un vistazo
+
+### Fixed
+- **Los nombres de las notas, dentro de su tecla y en las doce.** Las siete naturales se dibujaban con la pluma en
+  `b.h - 11`, que con una tecla de 22 px dejaba la última fila del glifo sobre el borde: se leían como una leyenda
+  *debajo* del teclado y se pisaban entre sí. Ahora la pluma sale de `CAP_IN(S, b.h)`, que centra la banda de
+  mayúsculas de `AF_S` en la tecla a cualquier altura.
+- **Las cinco negras tienen nombre.** Antes solo llevaban una franja; una escala con F# o Bb no se podía leer del
+  teclado. El nombre entra en la cara de la tecla (12 px en 18 × 15) y la franja de la escala baja al pie, donde
+  además marca el final de la tecla.
+- **El círculo cromático ya no se apoya en el teclado.** Su anillo de etiquetas llegaba a y 100 y el teclado empezaba
+  en 94: las notas de abajo se dibujaban encima de las teclas. El anillo se dimensionó para que la etiqueta de arriba
+  libre la cabecera (y 18) y la de abajo las teclas (y 90).
+- **SCL > CHORD: la línea `KEY <forma>` se superponía a las voces.** Ocupaba una celda de 15 filas en y 58 y las
+  cuatro líneas de voces arrancan en y 68. Ahora va al hueco libre: el renglón de ayuda cuando no hay nada elegido y
+  el extremo derecho de la fila de la tonalidad cuando sí.
+
 ## v3.2.0 — 2026-11-14 — Solar Heat en todas las pantallas, knobs redondos, cielo con polvo y splash vivo
 
 ### Added

@@ -27,13 +27,13 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v3.2.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v3.2.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 - **What it is, first.** A free firmware for the **M-VAVE FM-1**: six tracks, twelve voices, nine synthesis
   engines and **273 factory sounds** (275 entries: two legacy DRUM kits stay for old projects), a 64-step sequencer with an arpeggiator and song chains, per-track and
   per-bus effects, and an interface of 22 palettes on a 240 × 240 panel. It plays from the keys, edits from the
   encoders, and the browser emulator and Web Studio need no install.
-- **One version everywhere.** `FELUCCA_VERSION` (`v3.2.0`), the package, the emulator the portal serves and
+- **One version everywhere.** `FELUCCA_VERSION` (`v3.2.1`), the package, the emulator the portal serves and
   `firmware/versions.json` name the same build; the installer checks its SHA-256 and its size before it writes.
 - **Solar Heat on every screen.** A single call in the shared chrome gives all 189 screens the panel's
   gradient (`graph_ground_ramp` → `ux_ground_ramp`): 8 bands from the panel colour toward the warm accent, 20 %

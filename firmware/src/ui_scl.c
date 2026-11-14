@@ -413,9 +413,12 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
         if (strip)                                          /* the scale, on the key's top edge */
             cv_rect(kx + 3, b.y0 + 1, b.kw - 6, 2, strip);
         cv_rect(kx + b.kw - 1, b.y0 + 3, 1, b.h - 6, ux_mix(face, T_BG, 34));   /* the seam's shade */
-        if (names) {
-            GFX_HOOK_ALIGN(kx, b.y0 + b.h - 11, kx + b.kw, b.y0 + b.h - 1, AL_H, "SCL natural name in its key");
-            cv_text_in(kx, b.y0 + b.h - 11, b.kw, &AF_S, N_NOTE[note], T_INK, face);
+        if (names) {   /* (FASE 7) the name sat at b.h - 11 with a 22 px key, so its last row landed on the
+                        * key's own edge and read as a label under the keyboard; centred in the key it reads as
+                        * part of it, equally airy above and below at every key height */
+            int32_t ny = b.y0 + CAP_IN(S, b.h);   /* a pen is a line top: CAP_IN centres AF_S's caps band */
+            GFX_HOOK_ALIGN(kx, ny, kx + b.kw, ny + 12, AL_H, "SCL natural name in its key");
+            cv_text_in(kx, ny, b.kw, &AF_S, N_NOTE[note], T_INK, face);
         }
         if (sound)                                          /* the note is sounding: a bar at its foot */
             cv_rect(kx + 3, b.y0 + b.h - 3, b.kw - 6, 2, picked ? T_INK : T_TEXT);
@@ -439,11 +442,21 @@ static void scl_keys(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_
             face = ux_mix(T_KEYB, T_ACCENT, hot ? 78 : 60);
         strip = is_root ? T_ACCENT : in ? T_THEME : 0;
         scl_pkey(kx, b.y0, b.bw, b.bh, face, picked ? T_ACCENT : ux_mix(T_KEYB, T_TEXT, 24));
+        /* (FASE 7) THE ACCIDENTALS ARE NAMED TOO. The five black keys carried a strip and no name, so a scale
+         * with F# or Bb in it could not be read off the keyboard at all. The 12 px face fits an 18 x 15 key:
+         * the name takes the top of it and the scale's strip moves to the foot, where it also marks the key's
+         * end, so nothing is drawn outside the key's own face. */
+        if (names) {   /* the ink follows the face it sits on: dark on a lit key (a picked one, or a palette
+                        * whose black keys are mid grey), light on a dark one -- read off the face itself, so no
+                        * palette can make a name disappear */
+            uint16_t fg = ux_luma(face) > 110u ? T_INK : picked ? T_KEYW : in ? T_TEXT : T_DIM;
+            cv_text_in(kx, b.y0 + CAP_IN(S, b.bh - 3), b.bw, &AF_S, N_NOTE[i], fg, face);
+        }
         if (strip)                                          /* the scale, at the accidental's foot */
-            cv_rect(kx + 3, b.y0 + b.bh - 3, b.bw - 6, 2, strip);
+            cv_rect(kx + 3, b.y0 + b.bh - 2, b.bw - 6, 2, strip);
         cv_rect(kx, b.y0 + b.bh, b.bw, 2, T_BG);            /* its shadow on the naturals */
         if (sound)
-            cv_rect(kx + 3, b.y0 + b.bh - 4, b.bw - 6, 1, T_TEXT);
+            cv_rect(kx + 1, b.y0 + b.bh - 1, b.bw - 2, 1, T_TEXT);
     }
 }
 /* (FASE 3) PICKING A NOTE. The keyboard the pages draw is one octave (C4..B4), so "the lowest note" a chord's
@@ -561,7 +574,10 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
     uint32_t sc = (uint32_t)clamp(t->p[P_SCALE], 0, 15), ti = trk_index(t) % NTRK;
     uint32_t sel = scl_selm[ti], live = scl_live_mask(t), sn, tn, nm_n = 0;
     uint8_t off[12], nt[12];
-    int32_t cx = 50, cy = 58, rn = 24, rl = 36;
+    int32_t cx = 50, cy = 54, rn = 20, rl = 30;         /* (FASE 7) the labels' ring stopped at y 100 and the
+                                                        * keyboard began at 94: the bottom of the circle sat on
+                                                        * the keys. The ring is sized so the top label clears
+                                                        * the header (y 18) and the bottom one the keys (y 90). */
     int32_t bass = scl_selb[ti] == 0xFFu ? -1 : (int32_t)scl_selb[ti];
     scl_rec_t rec;
     char l[28], nm[16], b[20];
@@ -677,7 +693,7 @@ static void graph_scl_scale(const track_t *t, uint16_t c)
             str_cpy(ib, rec.n == 1u ? "ONE NOTE" : rec.n ? "NO NAME" : "-", sizeof ib);
         scl_field(98, 74, ib, rec.kind == SC_NONE && rec.n > 1u ? T_MID : T_DIM, T_SURF);
     }
-    scl_keyboard(t, 8, 94, 224, 22, 0);
+    scl_keyboard(t, 8, 92, 224, 26, 0);
 }
 
 /* SCL > CHORD: the chord a key plays on this track (CHRD's shape on ROOT, laid out by VOICING and strummed by
@@ -717,7 +733,7 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
         str_cpy(b, "-", sizeof b);
     cv_text_on(12, 10, &AF_L, b, tn ? T_ACCENT : T_DIM, T_SURF);
     {
-        int32_t x = 12 + text_w(&AF_L, b) + 5;
+        int32_t x = 12 + text_w(&AF_L, b) + 9;
         char tag[12];
         if (rec.amb > 1u)
             str_cpy(tag, "AMBIG", sizeof tag);
@@ -734,7 +750,10 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
     /* the tones spelled with the interval each makes over the chord's root -- the interval is what the ear
      * hears, the letter is what the key is called, and the line prints both */
     scl_spell(nt, tn, sp, sizeof sp);
-    cv_text_fit(12, 34, &AF_S, tn ? sp : "TAP THE KEYS BELOW OR A PROG STEP", tn ? T_TEXT : T_DIM, T_SURF, 216);
+    if (tn)                                             /* the hand's set: its tones and intervals */
+        cv_text_fit(12, 34, &AF_S, sp, T_TEXT, T_SURF, 216);
+    else if (!mode)                                     /* nothing picked and no shape: the hint owns the row */
+        cv_text_fit(12, 34, &AF_S, "TAP THE KEYS BELOW OR A PROG STEP", T_DIM, T_SURF, 216);
     /* the set against the key: how many of its notes the scale has, and the function of its degree (tonic,
      * subdominant or dominant -- the three jobs a chord has in a key) */
     for (i = 0; i < tn; i++)
@@ -766,9 +785,9 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
         str_cpy(qb + str_len(qb), N_CHRDN[mode], sizeof qb - str_len(qb));
         str_cpy(qb + str_len(qb), " ", 2);
         str_cpy(qb + str_len(qb), scl_quality(kc, kn, 0), sizeof qb - str_len(qb));
-        scl_field(12, 58, qb, T_DIM, T_SURF);
-    } else
-        scl_field(12, 58, "KEY PLAYS ITS NOTE", T_DIM, T_SURF);
+        scl_field(tn ? 150 : 12, tn ? 46 : 34, qb, T_DIM, T_SURF);
+    } else if (tn)                                     /* no shape and nothing picked: the hint already said it */
+        scl_field(150, 46, "NOTE ONLY", T_DIM, T_SURF);
     /* the voices as lanes: one pitch axis over the set's own compass, the bass marked, the nodes in the accent,
      * so an inversion is visible as the lowest dot moving to another lane */
     {
@@ -799,7 +818,7 @@ static void graph_scl_chord(const track_t *t, uint16_t c)
     /* the strip keeps BOTH readings: the key's scale as the context (so an out-of-key note is still marked as
      * one) and the picked set as the accent. Handing the selection over as the scale -- which this page did
      * first -- dimmed every note of the key that the chord does not use, and the page lost the key it is in. */
-    scl_keys(t, 12, 92, 216, 24, scale_mask(t), (uint32_t)root, sel, 0);
+    scl_keys(t, 12, 90, 216, 26, scale_mask(t), (uint32_t)root, sel, 0);
 }
 
 /* SCL > PROG: the progressions the degrees make and what each step becomes in this key -- the step, its
