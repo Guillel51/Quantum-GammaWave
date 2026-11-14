@@ -29,11 +29,11 @@
 
 `v3.0.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
-- **The target render loops fit their budgets.** `phase_render` 84/84, `wheel_block` 32/86, `noise_render` 219/201 and `fm6_render` 292/322 in the pi32v2 disassembly, with the historical budgets untouched and all 291 golden renders unchanged.
+- **The target render loops fit their budgets.** `phase_render` 84/84, `wheel_block` 32/86, `noise_render` 218/201 and `fm6_render` 292/322 in the pi32v2 disassembly, with the historical budgets untouched and all 291 golden renders unchanged.
 - **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal serves and `firmware/versions.json` name the same build: the portal shows the version and the commit the release manifest carries, and the installer checks the package's SHA-256 and size before it writes.
 - **The package is integrity-checked, not signed.** Since v2.6.0 the model is SHA-256 + size + build record; Ed25519 (`qg1-release-1`) stays historical. The installer and the site say "integrity, not authenticity" instead of implying a signature that does not exist.
 - **ROOM is damped by the table the firmware uses.** `rev_room` and `rev_room_mod` read `rev_damp_table[]`, and the host reference model now carries its own copy of that curve, so a change on one side still fails the test (it used to compare against the pre-2.4.0 linear law).
-- **The constant tables are measured, not estimated.** `tools/table_sizes.py` reads each table out of the linked AC791N ELF: **41 947 B** in total (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 · shapes 158 · palettes 352), after the M face went to two horizontal phases (gap error **0.044 px**, `text_spacing_test`) and eleven icon cells no screen could reach were removed. HOME's five retired views took another **5 176 B** with them, so the image is **569 048 B** of a 583 612 B slot — **14 564 B** of room — and the package 610 959 B.
+- **The constant tables are measured, not estimated.** `tools/table_sizes.py` reads each table out of the linked AC791N ELF: **41 947 B** in total (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 · shapes 158 · palettes 352), after the M face went to two horizontal phases (gap error **0.044 px**, `text_spacing_test`) and eleven icon cells no screen could reach were removed. HOME's five retired views took another **5 176 B** with them, so the image is **574 572 B** of a 583 612 B slot — **9 040 B** of room — and the package 610 959 B.
 - **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine engines, 273 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing ones were the same controls their own sections already have (EDIT, MOD, EDIT > ENV, SYSTEM, FX > BUSES), so they moved out instead of being drawn twice, and the walk is now five taps end to end. The bank is audited as data (`tools/preset_audit.py`: 0 problems) and measured as sound (`preset_levels`: bank median **−18.5 dBFS**, and the new knob-1-driven HOME visualizer responds only to knob 1, not constant animation).
 - **Graphic fix:** Home screen spectrogram waterfall now responds only to knob 1 horizontal movement; knobs 2‑4 keep their original functions and still interact with the graphic.
 - **Release:** Quantum GammaWave 3.0.1 published with all validations passed.
@@ -84,7 +84,7 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 ## Highlights of `v3.0.1`
 
 - **The target render loops fit their budgets.** `phase_render` 84/84, `wheel_block` 32/86,
-  `noise_render` 219/201 and `fm6_render` 292/322 in the pi32v2 disassembly, with the historical
+  `noise_render` 218/201 and `fm6_render` 292/322 in the pi32v2 disassembly, with the historical
   budgets untouched and all 291 golden renders unchanged.
 - **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal
   serves and `firmware/versions.json` name the same build: the portal shows the version and the commit
@@ -99,7 +99,7 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
   linked AC791N ELF: **41 947 B** in total (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 ·
   shapes 158 · palettes 352), after the M face went to two horizontal phases (gap error **0.044 px**,
   `text_spacing_test`) and eleven icon cells no screen could reach were removed. HOME's five retired views
-  took another **5 176 B** with them, so the image is **569 048 B** of a 583 612 B slot — **14 564 B** of
+  took another **5 176 B** with them, so the image is **574 572 B** of a 583 612 B slot — **9 040 B** of
   room — and the package 610 959 B.
 - **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine
   engines, 273 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing

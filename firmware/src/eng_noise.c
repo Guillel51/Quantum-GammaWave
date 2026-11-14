@@ -107,6 +107,10 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
     uint32_t ph = v->ph[0], reg = v->ph[1];         /* state in locals: out[] may alias v->s[] */
     int32_t drift = (int32_t)v->ph[2], d16 = 0, gain = 32767, gq, colr, cut, k, a1, a2, a3, g, bpg, mix, cf, thr = 0;
     uint32_t inc = 0, taps = NOISE_TAPS[sel];
+    const uint32_t *seqw = NOISE_SEQ[sel].w;            /* META's period, its length and its two levels: the same
+                                                         * table read every sample, hoisted out of the loop */
+    uint32_t seqlen = NOISE_SEQ[sel].len;
+    int32_t seqhi = NOISE_SEQ[sel].hi, seqlo = NOISE_SEQ[sel].lo;
     /* drift: a new random target every 0.7..3 s, followed with a 0.7 s lag */
     if (drft) {
         int32_t tg = v->s[3] >> 16, cnt = v->s[3] & 0xFFFF;
@@ -183,17 +187,17 @@ static void noise_render(track_t *t, voice_t *v, int32_t *out, uint32_t n, const
             break;
         }
         case NZ_LFSR: {
-            uint32_t o = ph;
             ph += inc;
-            if (ph < o)
+            if (ph < inc)                             /* the same overflow test as `ph < ph_before`, without
+                                                         * keeping the old phase: unsigned wrap is exact */
                 reg = (reg >> 1) ^ (-(reg & 1u) & taps);
             w = (reg & 1u) ? 12000 : -12000;
             break;
         }
         default: {
-            uint32_t j = ((ph >> 16) * NOISE_SEQ[sel].len) >> 16;
+            uint32_t j = ((ph >> 16) * seqlen) >> 16;
             ph += inc;
-            w = (NOISE_SEQ[sel].w[j >> 5] >> (j & 31u)) & 1u ? NOISE_SEQ[sel].hi : NOISE_SEQ[sel].lo;
+            w = (seqw[j >> 5] >> (j & 31u)) & 1u ? seqhi : seqlo;
             break;
         }
         }
