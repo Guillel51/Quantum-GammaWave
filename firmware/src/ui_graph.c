@@ -2442,17 +2442,22 @@ static void graph_heat(void)
 }
 
 /* (3.7) THE SEQUENCER'S GROUND. graph_heat() already gives every page the bezel's shade at the top and the
- * Solar Heat glow at its foot; what SEQ's pages lacked was the ramp between the two, the one HOME's views
+ * Solar Heat glow at its foot; what the panels lacked was the ramp between the two, the one HOME's views
  * (hv_grad) and FX > BUSES' blocks (fxb_grad) are drawn on. It is the shared primitive -- ux_ground_bands,
  * ten bands of the same law, solid rather than dithered -- clipped to the rows between the bezel and the
  * glow so neither is painted over. Solid is the point: the checker the other two screens use, drawn under
  * the sequencer's grid, read as dirt on the panel. Ten bands of two units each is a blend with no seam and
  * no texture, and the accent stays at 0..18 % so a row of steps keeps its contrast in every palette,
  * GREY and MONO included. */
-static void graph_ground_seq(void)
+static void graph_ground_ramp(void)
 {
     int32_t span = graph_h() - 4;
-    ux_ground_bands(7, 2, 226, span, 10, 24, 2, 0, 2, 2 + span * 12 / 100, 2 + span * 74 / 100, 100);
+    int32_t y0 = 2 + span * 12 / 100, y1 = 2 + span * 74 / 100;   /* between graph_heat's two ends */
+    uint16_t warm = ux_mix(T_ACCENT, T_TEXT, 12);
+    int32_t top = ux_luma(T_SURF) > 150 ? 8 : 20;                /* a light page takes a lighter hand */
+    if (y1 - y0 < 12)
+        return;
+    ux_ground_ramp(7, y0, 226, y1 - y0, 8, T_SURF, ux_mix(T_SURF, warm, top), 100);
 }
 
 static void graph_user(void)
@@ -3324,8 +3329,12 @@ static void draw_graph(void)
     cv_begin(240, graph_h(), T_BG);
     cv_rrect(3, 0, 234, graph_h(), 5, T_SURF, T_BG);   /* the panel (MENU > LARGE: the strip) */
     graph_heat();                                    /* (5.1) the Solar Heat ground, as HOME draws it */
-    if (!ui.home && pg->fam == FAM_SEQ)              /* (3.7) SEQ on the shared ramp, not on a flat panel */
-        graph_ground_seq();
+    /* (FASE 6) THE RAMP, ON EVERY PAGE. graph_heat() gave each panel the bezel's shade at the top and the
+     * Solar Heat glow at its foot and left the middle untouched, so only HOME's views and (3.7) the
+     * sequencer had a gradient running the whole height: the rest read as a flat plate with two edges lit.
+     * The same primitive now paints that middle for every page at once -- one call in the shared chrome
+     * instead of a copy per screen -- and SEQ keeps it through the same path rather than its own. */
+    graph_ground_ramp();
     cv_bg = T_SURF;                                  /* (text drawn with cv_text lands on it) */
     if (drift_on())
         graph_drift();

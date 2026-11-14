@@ -27,16 +27,33 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v3.1.3` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v3.2.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
-- **One version everywhere.** `FELUCCA_VERSION` (`v3.1.3`), the package in `release/` (610 959 B, SHA-256 `51ecce7b…`), the emulator the portal serves (WASM 1 207 637 B, `09663972…`, Emscripten 6.0.11, built from `fb1c8a0`) and `firmware/versions.json` name the same build; the installer checks that SHA-256 and size before it writes.
-- **The package is integrity-checked, not signed.** Since v2.6.0 the model is SHA-256 + size + build record; Ed25519 (`qg1-release-1`) stays historical. The installer and the site say "integrity, not authenticity" instead of implying a signature that does not exist.
-- **HOME's five worlds answer one at a time.** 3.1.3 made a tap go to the nearest centre, so each body answers its own drawn disc; this tree gives the bay **91 × 55 px** instead of 88 × 52 — the room the mock-up has (1 px above, 1 px to the right, 2 px below) — and the outer path moved out to 39 px with it. Measured on host (`capture_pokes`): **97 / 77 / 53 / 54 / 93 %** of each body's own disc answered, five distinct and restartable reactions. The discs still share pixels during part of every cycle: separating them completely needs ≈52 px of orbit span, and a 91 px bay leaves 44.
-- **The constant tables are measured, not estimated.** `tools/table_sizes.py` reads each table out of the linked AC791N ELF: **41 947 B**, and the last AC791N build is **574 988 B** of a 583 612 B slot — **8 624 B** of room — with a 610 959 B package. Those are the v3.1.3 figures, not a re-measurement of this tree.
-- **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine engines, 275 sounds.** The bank is audited as data (`tools/preset_audit.py`: 0 problems) and measured as sound (`preset_levels`: bank median **−18.5 dBFS**).
-- **The goldens are measured, not assumed.** 293 renders across every engine, preset, voice mode and FX send hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
-- **Release:** Quantum GammaWave **3.1.3** is the published release; the bay change in this tree is not packaged yet (see `CHANGELOG.md`, Unreleased).
-
+- **What it is, first.** A free firmware for the **M-VAVE FM-1**: six tracks, twelve voices, nine synthesis
+  engines and **275 factory sounds**, a 64-step sequencer with an arpeggiator and song chains, per-track and
+  per-bus effects, and an interface of 22 palettes on a 240 × 240 panel. It plays from the keys, edits from the
+  encoders, and the browser emulator and Web Studio need no install.
+- **One version everywhere.** `FELUCCA_VERSION` (`v3.2.0`), the package, the emulator the portal serves and
+  `firmware/versions.json` name the same build; the installer checks its SHA-256 and its size before it writes.
+- **Solar Heat on every screen.** A single call in the shared chrome gives all 189 screens the panel's
+  gradient (`graph_ground_ramp` → `ux_ground_ramp`): 8 bands from the panel colour toward the warm accent, 20 %
+  dark palettes, 8 % light ones. HOME and the sequencer keep the ramp they already had.
+- **The splash never stands still.** It used to freeze for 1.6 s once the picture finished writing; it now runs
+  on its own clock (drifting stars, the ring and the moons, dust, a shooting star, the rail's light). Measured
+  step by step on the framebuffer: **244 frames differ, the longest still stretch 20 ms**.
+- **Round knobs, bigger worlds, a sky with dust.** `cv_circle`/`cv_disc` replace the chord-built outlines (the
+  7 px dials read as squares), the five bodies of HOME's bay answer every touch with the same front and
+  sparks, the two small ones grew from 4 to 5 px, and the Milky Way carries a lit bulge and drifting dust in
+  both HOME and the visualizer.
+- **The bank is audited, not counted from a document.** `preset_audit_test` loads and renders every preset:
+  **275 total** (ANALOG 68, FM6 37, PHASE 32, LOFI 29, FORMANT 25, WHEEL/NOISE/WTABLE 22 each, DRUM 18 with its
+  two legacy kits), **0 silent, 0 exact duplicates, 0 out of range, 0 clipping**. `--levels` prints RMS, peak
+  and clip time for each, which is what a remaster has to be decided on.
+- **The goldens are measured, not assumed.** 293 renders across every engine, preset, voice mode and FX send
+  hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
+- **Integrity, not authenticity.** Since v2.6.0 the model is SHA-256 + size + build record; Ed25519
+  (`qg1-release-1`) stays historical. The site, the installer and this file say that, instead of implying a
+  signature that does not exist.
 </div>
 
 ---

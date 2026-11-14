@@ -46,6 +46,12 @@ SHOTS = [
      "MOD: the LFO and its destinations"),
     ("fw-browser.png", "assets/screenshots/quantum_31_presets_browser.png",
      "the preset browser: category, favourites and the factory list"),
+    # (FASE 6) the layer that reads the keyboard: the scale, its chromatic circle and the chord the held
+    # notes make. Real frames of the 3.2.0 build, from the same render the host test verifies.
+    ("fw-scl-scale.png", "GAMMA_scl_scale.ppm",
+     "SCL: the keyboard, the chromatic circle and the notes of the scale"),
+    ("fw-scl-chord.png", "GAMMA_scl_chord.ppm",
+     "SCL > CHORD: the name of the chord, its intervals and its voices"),
 ]
 LIGHT = (12, 22, 40)
 

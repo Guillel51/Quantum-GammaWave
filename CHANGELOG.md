@@ -1,3 +1,35 @@
+## v3.2.0 — 2026-11-14 — Solar Heat en todas las pantallas, knobs redondos, cielo con polvo y splash vivo
+
+### Added
+- **`ux_ground_ramp()`: el degradado del panel, en todas las pantallas.** Hasta 3.1.6 cada página tenía el
+  bisel oscuro arriba y el brillo cálido al pie, pero **el medio quedaba liso**: solo HOME y el secuenciador
+  tenían la rampa continua. Un único llamado en el chrome compartido (`graph_ground_ramp`, 8 bandas de
+  `T_SURF` hacia el cálido, 20 % en las paletas oscuras y 8 % en las claras) le da a las 189 pantallas el
+  mismo degradado, sin una copia por pantalla.
+- **La Vía Láctea, con materia.** HOME y el visualizador ganan un núcleo con gradiente y polvo en movimiento
+  (18 y 22 motas que derivan a tres velocidades, función pura del reloj). En HOME, además, el bulbo tiene luz
+  propia detrás de la banda.
+- **Una estrella fugaz y polvo en el splash**, con su propio reloj: la escena ya no se detiene.
+
+### Changed
+- **Los knobs mínimos, redondos otra vez.** `gw_mini_bakelite_knob()` construía el contorno con cuerdas de 24
+  segmentos y cuatro anillos; a 7 px se leía como un cuadrado de esquinas redondeadas. `gfx.c` gana
+  `cv_circle` y `cv_disc` (punto medio, spans, sin trigonometría) y el dial pasa a cuatro discos concéntricos
+  con el valor como arco de 270° sobre el bisel.
+- **Los cinco mundos de HOME responden igual al toque**: un frente que sale del limbo y tres chispas para
+  todos, y encima la firma de cada uno (eco, copos, arcos, halo, estela). Los dos cuerpos de 4 px suben a 5 y
+  la órbita exterior entra un píxel para no tocar el clip.
+- **El splash ya no se queda quieto.** `prog` llega a 256 al terminar de escribirse y la firma no se movía:
+  1,6 s de imagen congelada. Ahora el arte tiene su reloj (estrellas, anillo, lunas, polvo, fugaz y la luz del
+  riel), con el traspaso intacto. El test que exigía que el hold no redibujara pasa a exigir lo contrario:
+  ningún tramo inmóvil de más de 120 ms (medido: 244 cuadros distintos, 20 ms el más largo).
+
+### Fixed
+- **`preset_library_test.py` no veía WTABLE**: 22 sonidos quedaban fuera de esa auditoría y el total decía 251
+  cuando el firmware tiene **273 + 2 kits legacy (275)**. Corregido; ahora coincide con la auditoría de presets.
+- **`preset_audit_test --levels`**: rms, pico y tiempo en el clipper de cada uno de los 275 presets, para que
+  cualquier remasterización se mida en vez de opinarse.
+
 ## v3.1.6 — 2026-11-14 — teclado real en SCL, el ground de SEQ, la Vía Láctea y la FASE 1
 
 ### Changed

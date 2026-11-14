@@ -614,6 +614,21 @@ static void ux_ground_bands(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
         gw_dither(x, y0, w, y1 - y0, ux_mix(T_BG, T_SURF, a0 + da * k), ux_mix(T_BG, T_ACCENT, b0 + db * k), pct);
     }
 }
+/* (FASE 6) A RAMP BETWEEN TWO COLOURS, in `n` solid bands. ux_ground_bands walks two of the palette's own
+ * ramps (T_BG -> T_SURF, T_BG -> T_ACCENT) because HOME and FX > BUSES start from the page behind the panel;
+ * a page's own panel starts ON T_SURF, so interpolating from T_BG there painted a dark block in the middle of
+ * the plate instead of a gradient. This is the general form: from -> to, nothing else assumed. */
+static void ux_ground_ramp(int32_t x, int32_t y, int32_t w, int32_t h, int32_t n, uint16_t from, uint16_t to, int32_t pct)
+{
+    int32_t k, band = h / n;
+    if (band <= 0 || n <= 0)
+        return;
+    for (k = 0; k < n; k++) {
+        int32_t yy = y + band * k, hh = k == n - 1 ? h - band * (n - 1) : band;
+        gw_dither(x, yy, w, hh, from, ux_mix(from, to, (k + 1) * 100 / n), pct);
+    }
+}
+
 /* a segmented meter, bottom up: `seg` px blocks with a 1 px gap, the ones under the level
  * lit. The empty blocks are drawn too -- a 16-bit meter always shows its scale. */
 static void gw_seg_v(int32_t x, int32_t y, int32_t w, int32_t h, int32_t lvl, int32_t seg,
