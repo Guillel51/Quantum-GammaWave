@@ -63,6 +63,7 @@ static void poke_reset(void)                        /* nothing of the gesture or
     memset(vz_np, 0, sizeof vz_np);
     vz_np_next = 0;
     for (i = 0; i < 5; i++) { pl_poke_on[i] = 0; pl_poke_t[i] = 0; pl_flash[i] = 0; }
+    pl_sel_i = 0xFFu; pl_sel_t = 0;
 }
 
 static void poke_frames(uint32_t t0, uint32_t h0, uint32_t f0, int n)

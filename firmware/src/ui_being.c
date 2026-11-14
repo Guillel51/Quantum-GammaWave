@@ -846,6 +846,8 @@ static int32_t gw_planet_at(int32_t x, int32_t y)
     }
 }
 
+/* (FASE 2) which body answered last, and when: the selection ring reads it (gw_body_sel, below) */
+static uint32_t pl_sel_i = 0xFFu, pl_sel_t;
 static void gw_planet_poke(int32_t i)
 {
     if (i == (int32_t)NPL) {
@@ -860,6 +862,7 @@ static void gw_planet_poke(int32_t i)
             pl_flash[k] = 256;
             pl_ex[k] = (int16_t)clamp((int32_t)pl_ex[k] + 120, 0, 256);
         }
+        pl_sel_i = 0xFFu;                           /* the star answers for the system: no single body lit */
         ui.home_pulse = ui.frame | 1u;              /* 0 means "no pulse": never store one */
         ui.force = 1;
         return;
@@ -868,6 +871,8 @@ static void gw_planet_poke(int32_t i)
         return;
     pl_poke_t[i] = ui.frame;
     pl_poke_on[i] = 1u;
+    pl_sel_i = (uint32_t)i;                         /* (FASE 2) and the ring says which one heard it */
+    pl_sel_t = ui.frame;
     pl_flash[i] = 256;                              /* the strike itself, as a note's is */
     if (PL_POKE[i] == PK_FROST) {                   /* the frozen world's fan starts with the touch */
         int32_t k;
@@ -882,6 +887,27 @@ static void gw_planet_poke(int32_t i)
 /* (3.5) the touch's own answer, drawn under the body it belongs to: a different mechanism for each world, and
  * only while that body is inside its own reaction. Called for the bodies behind the star as well as for those in
  * front of it, so a touch answers wherever the body happens to be on its path. */
+/* (FASE 2) SELECTION. The body that answered last keeps a thin ring, drawn in its own tone and fading over the
+ * reaction: at 240 x 240 the five are a few pixels apart and a touch had no lasting trace, so there was no way
+ * to see which one heard you. One arc pass, no state beyond the frame the poke happened. */
+static void gw_body_sel(int32_t bx, int32_t by, int32_t r, int32_t heat)
+{
+    uint32_t age;
+    int32_t a;
+    if (pl_sel_i == 0xFFu || !pl_sel_t)
+        return;
+    age = ui.frame - pl_sel_t;
+    if (age >= 40u) {
+        pl_sel_i = 0xFFu;
+        return;
+    }
+    for (a = 0; a < 65536; a += 2048) {                 /* every 11 degrees: a ring, not a disc */
+        int32_t rx = (r + 3) * (bg_sin((uint32_t)a + 0x4000u) >> 15);
+        int32_t ry = (r + 3) * (bg_sin((uint32_t)a) >> 15) * 2 / 3;
+        sys_pset(bx + rx, by + ry, ux_mix(T_BG, bg_col(heat + 90), 190 - (int32_t)age * 4));
+    }
+}
+
 static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
 {
     uint32_t pa = pl_age(pi, POKE_L[pi]);
@@ -1266,6 +1292,18 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                         sys_pset(mx, my - 1, mhalo);                /* the front, in the band's own halo tone */
                 }
             }
+            /* (FASE 2) NEBULAE: three patches of dithered light on the band's own shoulder, so the sky has
+             * clouds and not only a line. Seven psets each, in the palette's tokens, and their shape comes from
+             * the same j as the band: no clock, nothing to flicker. */
+            if (j == 7 || j == 19 || j == 29) {
+                int32_t nx = mx, ny = my + ((j == 19) ? -4 : 3), r;
+                for (r = 0; r < 3; r++) {
+                    sys_pset(nx - 2 + r, ny, ux_mix(T_BG, T_THEME, 42 + r * 10));
+                    sys_pset(nx - 1 + r, ny - 1, ux_mix(T_BG, T_LINE, 30 + r * 7));
+                    sys_pset(nx - 1 + r, ny + 1, ux_mix(T_BG, T_THEME, 26 + r * 6));
+                }
+                sys_pset(nx, ny - 2, ux_mix(T_BG, T_TEXT, 44));
+            }
             if ((j & 3) == 1 && j > 4 && j < 32)     /* the dust lanes that cross the band */
                 sys_pset(mx, my - 1, mdust);
         }
@@ -1370,6 +1408,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                          ux_mix(T_BG, bg_col(kheat[pi] + 70), 120 - k * 30));
             }
         }
+        if (pl_sel_i == (uint32_t)pi)                /* (FASE 2) the selection ring, under the body */
+            gw_body_sel(orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi], kheat[pi]);
         gw_body_react(pi, orb_x[pi], orb_y[pi], kheat[pi]);
         sys_ring_lift = ORK[pi] == 3 ? pk_push[pi] : 0; /* (3.5) the giant's plane follows its push */
         gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi],
@@ -1392,6 +1432,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         int32_t pi = order[i], ex = pl_ex[pi];
         if (orb_y[pi] < cy)
             continue;
+        if (pl_sel_i == (uint32_t)pi)
+            gw_body_sel(orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi], kheat[pi]);
         gw_body_react(pi, orb_x[pi], orb_y[pi], heat + pi * 18);
         sys_ring_lift = ORK[pi] == 3 ? pk_push[pi] : 0;
         gw_sphere(orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi],
@@ -1528,19 +1570,38 @@ static void gw_deep_body(int32_t cx, int32_t cy, int32_t r, int32_t ph, uint16_t
  * lane biting into the lit side, and twelve stars with their own twinkle. All from tables -- no trigonometry,
  * no allocation, one pset per element -- and every tone is mixed out of the page's own background, so the
  * measured data still leads. It sits before the bodies and the trace, so the scope is in front of it. */
-static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway)
+static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway, int32_t wave_x, int32_t wave_age)
 {
     static const uint8_t SX[12] = {22, 47, 63, 79, 96, 108, 121, 139, 154, 171, 188, 206};
     static const uint8_t SY[12] = {149, 138, 130, 121, 110, 103, 96, 87, 78, 70, 63, 54};
+    /* (FASE 2) A SECOND RING OF STARS, smaller and dimmer, behind the first: the sky had twelve dots at one
+     * depth and read as a printed backdrop. These eighteen turn slower and never grow past one pixel, so the
+     * band has stars in front of it and stars behind it instead of a single sheet. */
+    static const uint8_t FX[18] = {9, 18, 31, 40, 55, 70, 87, 101, 116, 128, 145, 160, 176, 192, 203, 214, 224, 231};
+    static const uint8_t FY[18] = {163, 172, 155, 168, 147, 140, 133, 126, 118, 112, 104, 97, 88, 80, 72, 64, 56, 47};
     uint16_t dust = bg_tone_mix(page, bg_col(4), 58);
     int32_t x, j;
     for (x = 2; x < 236; x += 2) {                    /* the band: two px wide, thicker at the bulge */
         int32_t y = 160 - (x * 118) / 236 + sway;
         int32_t d = x > 112 ? x - 112 : 112 - x;
-        int32_t t = 2 + (d < 104 ? 4 * (104 - d) / 104 : 0);   /* 2 at the ends, 6 across the core */
+        int32_t t = 2 + (d < 104 ? 4 * (104 - d) / 104 : 0);
+        /* (FASE 2) THE LOCALISED WAVE. Touching one of the two foreground worlds sends a front along the band
+         * from that x: the core and the halo lift for a few pixels as it passes and nothing else on the sky
+         * changes, so the answer is where the hand is and not a global flash. wave_age is the age of the
+         * newest touch (0 = none), a pure function of the frame, so two paints of one frame agree. */
+        int32_t wv = 0;
+        if (wave_age > 0 && wave_age < 26) {
+            int32_t wd = (x - wave_x) < 0 ? wave_x - x : x - wave_x;
+            int32_t front = wave_age * 5;
+            int32_t dd = wd - front;
+            if (dd < 0)
+                dd = -dd;
+            if (dd < 7)
+                wv = (7 - dd) * (26 - wave_age) / 4;
+        }   /* 2 at the ends, 6 across the core */
         int32_t near = d < 104 ? 104 - d : 0;                  /* the band fades out at both ends */
-        uint16_t core = bg_tone_mix(page, bg_col(170 + g * 3), 30 + near * 20 / 104 + g / 3);
-        uint16_t halo = bg_tone_mix(page, bg_col(110 + g * 2), 22 + near * 14 / 104 + g / 4);
+        uint16_t core = bg_tone_mix(page, bg_col(170 + g * 3 + wv * 2), 30 + near * 20 / 104 + g / 3 + wv);
+        uint16_t halo = bg_tone_mix(page, bg_col(110 + g * 2 + wv), 22 + near * 14 / 104 + g / 4 + wv / 2);
         uint16_t outer = bg_tone_mix(page, bg_col(60 + g), 16 + near * 10 / 104);
         cv_pset(x, y, core);
         cv_pset(x + 1, y, core);
@@ -1556,8 +1617,27 @@ static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway)
             cv_pset(x, y + 3, outer);
             cv_pset(x, y - 3, outer);
         }
+        if (wv > 3) {                                 /* the front, one px above and below the band */
+            cv_pset(x, y - 4, outer);
+            cv_pset(x + 1, y + 4, outer);
+        }
         if ((x % 14) == 6)                            /* the dust lane: what bites into the lit side */
             cv_pset(x, y + 1, dust), cv_pset(x + 1, y + 2, dust);
+    }
+    for (j = 0; j < 18; j++) {                        /* (FASE 2) the far ring: dim, small, its own slow twinkle */
+        int32_t tw = (int32_t)((bg_sin(fm1_ms + (uint32_t)j * 2311u + 9000u) + 32768) >> 15);   /* 0..1 */
+        cv_pset(FX[j], FY[j] + sway / 2, bg_tone_mix(page, bg_col(150 + tw * 70), 34 + tw * 14));
+    }
+    /* (FASE 2) THREE NEBULAE in the band's own shoulder: dithered light, no clock, so the sky has clouds as
+     * well as a line. Nine psets each, on the band's own y at that x. */
+    for (j = 0; j < 3; j++) {
+        static const uint8_t NX[3] = {58, 118, 186};
+        int32_t nx = NX[j], ny = 160 - (nx * 118) / 236 + sway + (j == 1 ? -4 : 3), k;
+        for (k = 0; k < 3; k++) {
+            cv_pset(nx - 2 + k, ny, bg_tone_mix(page, bg_col(170), 30 + k * 8));
+            cv_pset(nx - 1 + k, ny - 1, bg_tone_mix(page, bg_col(120), 22 + k * 6));
+            cv_pset(nx - 1 + k, ny + 1, bg_tone_mix(page, bg_col(120), 18 + k * 6));
+        }
     }
     for (j = 0; j < 12; j++) {                        /* twelve stars, each with its own twinkle */
         int32_t tw = (int32_t)((bg_sin(fm1_ms * 2u + (uint32_t)j * 4369u) + 32768) >> 14);   /* 0..4 */
@@ -1570,7 +1650,7 @@ static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway)
 static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32_t ph, int32_t kind,
                          int32_t heat, int32_t en, uint32_t pulse)
 {
-    int32_t dy, span = 0;
+    int32_t dy, span = 0, span_any = 0;
     int32_t lift = en / 4 + (pulse && pulse < 20u ? (int32_t)(20u - pulse) : 0);
     uint16_t lit = bg_tone_mix(page, bg_col(heat + lift), 26 + en / 8);
     uint16_t shade = bg_tone_mix(page, bg_col(heat - 40 + lift / 2), 40 + en / 10);
@@ -1589,6 +1669,7 @@ static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32
             span++;
         if (!span)
             continue;
+        span_any = 1;
         q = -span + (2 * span * (ph & 0x7FFF)) / 32768;
         /* the atmosphere, one px off the limb and two more on the lit side */
         if (cy + dy > 27 && cy + dy < 201) {
@@ -1603,8 +1684,24 @@ static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32
         gw_deep_row(cx, cy + dy, span, ph, lit, shade, edge);
         if (dy > r / 2)                                    /* limb darkening: the underside turns away */
             cv_pset(cx + span, cy + dy, shade);
+        /* (FASE 2) THE OUTER GLOW: a second, dimmer ring two px off the lit limb, so the body sits in its own
+         * light instead of being cut out of the sky with a single halo line. */
+        if (cy + dy > 27 && cy + dy < 201 && q >= 0 && span > 2) {
+            cv_pset(cx + span + 4, cy + dy, bg_tone_mix(page, bg_col(heat + 40), 10 + en / 12));
+            if (q > span / 2)
+                cv_pset(cx + span + 5, cy + dy, bg_tone_mix(page, bg_col(heat + 60), 7 + en / 14));
+        }
         if (span < 3)
             continue;
+        /* (FASE 2) ITS OWN MOON'S SHADOW crossing the face: an ellipse that walks with the spin, so the surface
+         * turns under something instead of only shading from the limb. Rocky worlds get a second crater. */
+        if (kind == 1 && q > -span && q < span) {
+            int32_t sx2 = q - span / 2, sy2 = dy + r / 3;
+            if (sx2 * sx2 / 4 + sy2 * sy2 / 2 <= r * r / 9) {
+                cv_pset(cx + sx2, cy + dy, bg_tone_mix(page, bg_col(heat - 60), 46));
+                cv_pset(cx + sx2 + 1, cy + dy, bg_tone_mix(page, bg_col(heat - 40), 40));
+            }
+        }
         if (kind == 1) {                              /* five belts, a lit crest on each */
             int32_t ad = dy < 0 ? -dy : dy;
             if (ad == r / 2 || ad == r / 4 || dy == r / 3 || dy == 2 * r / 3) {
@@ -1620,6 +1717,11 @@ static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32
             cv_rect(cx + span / 4, cy + dy, 2, 1, shade);
             cv_pset(cx + span / 4 + 2, cy + dy, lit);
         }
+    }
+    if (kind == 0 && span_any) {                      /* the rock's specular, and its second crater */
+        int32_t sx = cx + r / 2, sy = cy - r / 3;
+        cv_pset(sx, sy, bg_tone_mix(page, bg_col(240), 62 + en / 5));
+        cv_pset(sx - 1, sy + 1, bg_tone_mix(page, bg_col(210), 40 + en / 6));
     }
     if (kind == 1) {                                  /* the specular on its lit shoulder: volume */
         int32_t sx = cx + r / 2, sy = cy - r / 2;
@@ -1680,7 +1782,14 @@ static void gw_viz_deep(uint32_t q)
         vzb_r[0] = vzb_r[1] = 0;                       /* LOW: nothing to hit, nothing to draw */
         return;
     }
-    gw_viz_milky(page, g, sway);
+    {
+        int32_t wx = 0, wa = 0;
+        uint32_t a0 = vzb_t[0] && ui.frame - vzb_t[0] < 26u ? ui.frame - vzb_t[0] : 0u,
+                 a1 = vzb_t[1] && ui.frame - vzb_t[1] < 26u ? ui.frame - vzb_t[1] : 0u;
+        if (vzb_t[0] && a0 && (!a1 || a0 <= a1)) { wx = vzb_x[0]; wa = (int32_t)a0; }
+        else if (vzb_t[1] && a1) { wx = vzb_x[1]; wa = (int32_t)a1; }
+        gw_viz_milky(page, g, sway, wx, wa);
+    }
     /* the giant's limb in the page's top-left corner: most of it outside the screen, its ring crossing the part
      * we do see, so the frame reads as a window onto something larger than it is */
     gw_deep_body(-16 + sway / 2, 2, 34, 26000, lit, sh, ed, 0, 2);
@@ -2021,6 +2130,11 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
                     cv_rect(bx, yy, bw, hh[k], ux_mix(T_BG, bg_col(ST5[k]), MIX5[k]));
             }
             cv_rect(bx, top_y, bw, 1, bg_col(252));               /* the crest: the band's peak, defined */
+            /* (FASE 2) THE TIP: a second row above the crest, half its weight, so a quiet band still shows a
+             * defined top instead of a single floating pixel -- and, unlike a held peak, it is a function of
+             * this frame's level alone: KNOB 1 back at its value is the same picture, which ui_test checks. */
+            if (top_y - 1 > gy0 + 1)
+                cv_rect(bx, top_y - 1, bw, 1, ux_mix(T_BG, bg_col(220), 86));
             if (wf_lvl[i] > 168) {                                /* a loud band keeps an ember either side */
                 uint16_t ec = ux_mix(T_BG, bg_col(238), 42);
                 cv_rect(bx - 1, top_y + 1, 1, bh / 3, ec);

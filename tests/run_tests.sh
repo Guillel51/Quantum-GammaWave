@@ -266,6 +266,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/home_roundtrip" tests/home_roundtrip_test.c -lm
     run "HOME round trip (UI_NO_DRIFT=1, fixed clock): 50 entries into and out of each of the five views, twice, entry by entry -- a page that does not come back the same fails" \
         "$OUT/home_roundtrip"
+    $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_nav" tests/ui_nav_test.c -lm
+    run "Navigation across HOME, VISUALIZER and the sections (UI_NO_DRIFT=1): 14 states walked twice, each compared with a full repaint of the same state -- a cached header, card or strip left stale fails" \
+        "$OUT/ui_nav"
     $CC -O1 -w -DUI_NO_DRIFT=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/viz_worlds" tests/viz_worlds_test.c -lm
     run "VISUALIZER's two deep worlds: the giant reads tracks 1-3 and the rock 4-6 -- a loud half moves its own world only, and both carry a surface" \
         "$OUT/viz_worlds"

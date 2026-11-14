@@ -204,6 +204,13 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
         h = CV_MAX / w;
     lcd_sync();                     /* the last blit may still read cv_px */
     GFX_HOOK_BEGIN();
+    /* (FASE 2) A NEW CANVAS STARTS UNSHIFTED. cv_oy is the graph's vertical offset; the full-body screens
+     * (HOME's visualizer and its views) set it to -26 / -114 for their passes and never put it back, and the
+     * next frame's header and cards inherited it: their content landed above their own canvas and what was
+     * blitted was the empty background, so the BPM, the battery, the arm and the first card vanished for as
+     * long as their signatures matched -- exactly the strips that went missing after walking HOME's views.
+     * Every drawer that wants the offset sets it after this call; none has to remember to clear it. */
+    cv_oy = 0;
     cv_w = w;
     cv_h = h;
     cv_cy0 = 0;
