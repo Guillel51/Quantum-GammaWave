@@ -1,4 +1,4 @@
-## Unreleased — 2026-11-14 — teclado real en SCL, el ground de SEQ y la Vía Láctea del visualizador
+## v3.1.6 — 2026-11-14 — teclado real en SCL, el ground de SEQ, la Vía Láctea y la FASE 1
 
 ### Changed
 - **Los cuatro knobs de la bahía de HOME, un píxel más pequeños.** `gw_mini_bakelite_knob()` los dibujaba a
@@ -79,7 +79,7 @@
   La alternativa sería cambiar la topología —menos trayectorias con varios cuerpos en cada una—, que es un
   rediseño, no un agrandamiento.
 
-## v3.1.6 — 2026-11-14 — FASE 1: el DSP medido contra el compilador objetivo, y el árbol limpio
+### FASE 1: el DSP medido contra el compilador objetivo, y el árbol limpio
 
 ### Changed
 - **La Vía Láctea no repinta trabajo muerto.** El nudo de cada sexta columna volvía a escribir `(mx, my)` con
