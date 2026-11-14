@@ -1,5 +1,29 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.1.2 — 2026-11-14 — HOME estable entre entradas y vuelta al mismo dibujo
+
+### Fixed
+- **`hv_air()` movía su campo de brasas con un contador privado (`hv_fr++`), no con el frame.** Eso ataba la
+  animación al número de repintados: el mismo frame dibujado dos veces salía distinto, una página que se
+  pinta en dos pasadas corría al doble, y al volver a HOME (OVERVIEW, MIX, PERFORM) el fondo aparecía
+  desplazado y los cuadros superiores no coincidían con la primera entrada. Ahora la fase es `ui.frame`,
+  como el resto de la UI, y dibujar un frame dos veces es idempotente.
+- Nueva prueba `tests/home_roundtrip_test.c`: entra y sale 50 veces de cada una de las cinco vistas y
+  compara el hash de cada entrada contra la misma entrada de una segunda pasada completa, con reloj fijo
+  y build determinista. Antes del arreglo OVERVIEW, MIX y PERFORM diferían en las 50 entradas; ahora las
+  cinco vistas coinciden en las 49 comparables.
+
+### Verified (host)
+- `home_roundtrip`: cinco vistas idénticas en dos pasadas. `capture_pokes`: las cinco respuestas siguen
+  distintas y reiniciables (78/142/62/85/36 px).
+- `ui_render`: 189 pantallas x 22 paletas, **0 hallazgos de lint, 0 desalineaciones** en 3 390 046
+  mediciones. `regress`: **293 goldens, 0 cambiados**.
+
+### Pending
+- La bahía orbital de HOME mide 44 px: con cinco cuerpos de radio 4–7 px los discos de impacto se solapan
+  casi por completo, así que tocar "un planeta" acierta casi siempre al que está delante. Separarlos exige
+  un rediseño de la maqueta de HOME, y no se hace aquí.
+
 ## v3.1.1 — 2026-11-14 — instalado en las dos memorias flash (informado por el dueño)
 
 - El dueño informa que el paquete v3.1.1 se instaló en **dos FM-1, una con Puya P25Q80H (`0x856014`) y

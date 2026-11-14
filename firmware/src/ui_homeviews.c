@@ -283,7 +283,11 @@ static uint32_t hv_fr;
 static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed)
 {
     uint32_t i;
-    hv_fr++;
+    /* (3.1.2) THE PHASE IS THE FRAME, NOT A PRIVATE COUNTER. This used to be hv_fr++, so the embers stepped
+     * once per call: a redraw of the same frame moved the whole field, a page drawn in two passes ran at
+     * double speed, and the same state never came back to the same pixels. Drawn from ui.frame the field
+     * advances with time like every other animation in the UI, and drawing a frame twice is idempotent. */
+    hv_fr = ui.frame;
     for (i = 0; i < 16u; i++) {                        /* the embers: hashed, one to three px a frame */
         uint32_t s = 0x9E3779B9u * (i + seed * 7u + 1u);
         int32_t x = 8 + (int32_t)((s >> 8) % 224u);
