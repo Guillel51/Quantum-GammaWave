@@ -1,6 +1,18 @@
 ## Unreleased — 2026-11-14 — la bahía orbital de HOME pasa a 91 × 55 px
 
 ### Changed
+- **Los cuatro knobs de la bahía de HOME, un píxel más pequeños.** `gw_mini_bakelite_knob()` los dibujaba a
+  8 px igual que los de los módulos de arriba, así que los controles del Hearth competían con la fila
+  principal; bajan a **7 px** con el mismo paso de 31 px, y el arco, el valor y la etiqueta quedan donde
+  estaban. El resto de los knobs de la pantalla no cambia.
+- **El planeta amarillo del visualizador, más chico y con volumen.** Pasa de **15 a 13 px**, gana un
+  **especular** en su hombro iluminado y un **oscurecimiento de limbo** en la mitad inferior: la esfera deja de
+  ser un disco de bandas planas. El halo y el ojo de tormenta siguen respondiendo a las pistas 1-3.
+- **La Vía Láctea del visualizador, dibujada como galaxia.** La banda eran 24 columnas de un píxel — una línea
+  de puntos. Ahora es una banda de dos píxeles de ancho con núcleo, halo de dos filas, **bulbo** que engorda en
+  el centro (2 px en los extremos, 6 en el núcleo), **carril de polvo** que muerde el lado iluminado y **doce
+  estrellas** con titileo propio; se apaga en los dos extremos y se dibuja antes del trazo, así que los datos
+  siguen delante. Todo con tablas y aritmética entera: sin trigonometría por píxel ni asignaciones.
 - **SEQ se dibuja sobre el ground compartido, en bandas sólidas.** Las páginas de la familia SEQ (25
   pantallas: STEP/ROLL, PATTERN, COMP, CHANCE, DRUM-X, MUTATE, AUTO LIST, PHRASES, SHIFT, MOTION, FUGUE) tenían
   el bisel y el brillo al pie de `graph_heat()` pero ningún ground entre los dos. Ahora `graph_ground_seq()`

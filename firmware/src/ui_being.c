@@ -1469,6 +1469,51 @@ static void gw_deep_body(int32_t cx, int32_t cy, int32_t r, int32_t ph, uint16_t
  * tap does the same for twenty frames. The halo is two psets a row and one more on the lit side, the marks are
  * a few per row, and nothing here allocates, divides by anything but a constant, or reads a global it does not
  * need. */
+/* (6.6) THE MILKY WAY, BEHIND THE SCOPE. 6.5 put a band in the panel: twenty-four columns, one pixel each,
+ * which at 240 px read as a dotted line rather than as a galaxy. This draws the same sky at the scale the page
+ * can carry: a core line that swells into a bulge near the middle, a halo two rows either side of it, a dust
+ * lane biting into the lit side, and twelve stars with their own twinkle. All from tables -- no trigonometry,
+ * no allocation, one pset per element -- and every tone is mixed out of the page's own background, so the
+ * measured data still leads. It sits before the bodies and the trace, so the scope is in front of it. */
+static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway)
+{
+    static const uint8_t SX[12] = {22, 47, 63, 79, 96, 108, 121, 139, 154, 171, 188, 206};
+    static const uint8_t SY[12] = {149, 138, 130, 121, 110, 103, 96, 87, 78, 70, 63, 54};
+    uint16_t dust = bg_tone_mix(page, bg_col(4), 58);
+    int32_t x, j;
+    for (x = 2; x < 236; x += 2) {                    /* the band: two px wide, thicker at the bulge */
+        int32_t y = 160 - (x * 118) / 236 + sway;
+        int32_t d = x > 112 ? x - 112 : 112 - x;
+        int32_t t = 2 + (d < 104 ? 4 * (104 - d) / 104 : 0);   /* 2 at the ends, 6 across the core */
+        int32_t near = d < 104 ? 104 - d : 0;                  /* the band fades out at both ends */
+        uint16_t core = bg_tone_mix(page, bg_col(170 + g * 3), 30 + near * 20 / 104 + g / 3);
+        uint16_t halo = bg_tone_mix(page, bg_col(110 + g * 2), 22 + near * 14 / 104 + g / 4);
+        uint16_t outer = bg_tone_mix(page, bg_col(60 + g), 16 + near * 10 / 104);
+        cv_pset(x, y, core);
+        cv_pset(x + 1, y, core);
+        cv_pset(x, y + 1, halo);
+        cv_pset(x + 1, y + 1, halo);
+        cv_pset(x, y - 1, halo);
+        if (t >= 4) {
+            cv_pset(x, y + 2, outer);
+            cv_pset(x + 1, y + 2, outer);
+            cv_pset(x, y - 2, outer);
+        }
+        if (t >= 6) {
+            cv_pset(x, y + 3, outer);
+            cv_pset(x, y - 3, outer);
+        }
+        if ((x % 14) == 6)                            /* the dust lane: what bites into the lit side */
+            cv_pset(x, y + 1, dust), cv_pset(x + 1, y + 2, dust);
+    }
+    for (j = 0; j < 12; j++) {                        /* twelve stars, each with its own twinkle */
+        int32_t tw = (int32_t)((bg_sin(fm1_ms * 2u + (uint32_t)j * 4369u) + 32768) >> 14);   /* 0..4 */
+        cv_pset(SX[j], SY[j] + sway, bg_tone_mix(page, bg_col(190 + tw * 16), 44 + tw * 6));
+        if (tw >= 3)
+            cv_pset(SX[j] + 1, SY[j] + sway, bg_tone_mix(page, bg_col(150), 30));
+    }
+}
+
 static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32_t ph, int32_t kind,
                          int32_t heat, int32_t en, uint32_t pulse)
 {
@@ -1503,6 +1548,8 @@ static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32
             }
         }
         gw_deep_row(cx, cy + dy, span, ph, lit, shade, edge);
+        if (dy > r / 2)                                    /* limb darkening: the underside turns away */
+            cv_pset(cx + span, cy + dy, shade);
         if (span < 3)
             continue;
         if (kind == 1) {                              /* five belts, a lit crest on each */
@@ -1520,6 +1567,12 @@ static void gw_viz_world(uint16_t page, int32_t cx, int32_t cy, int32_t r, int32
             cv_rect(cx + span / 4, cy + dy, 2, 1, shade);
             cv_pset(cx + span / 4 + 2, cy + dy, lit);
         }
+    }
+    if (kind == 1) {                                  /* the specular on its lit shoulder: volume */
+        int32_t sx = cx + r / 2, sy = cy - r / 2;
+        cv_pset(sx, sy, bg_tone_mix(page, bg_col(240), 54 + en / 5));
+        cv_pset(sx - 1, sy, bg_tone_mix(page, bg_col(216), 38 + en / 6));
+        cv_pset(sx, sy - 1, bg_tone_mix(page, bg_col(216), 38 + en / 6));
     }
     if (kind == 1 && loud) {                          /* the storm eye, while that half plays */
         int32_t ex = cx + r / 3, ey = cy + r / 4;
@@ -1574,37 +1627,7 @@ static void gw_viz_deep(uint32_t q)
         vzb_r[0] = vzb_r[1] = 0;                       /* LOW: nothing to hit, nothing to draw */
         return;
     }
-    /* (6.5) THE SAME SKY AS HOME, AT THE SCOPE'S SCALE. The visualizer's field was two worlds and a limb on a
-     * flat tone, so the scope sat in front of emptiness. A galactic band crosses the panel now, drawn from a
-     * table (x, y, thickness) before the bodies so they sit inside it: a core line that swells into a bulge,
-     * a halo, and dust biting into both, all in the page's own tone so the measured data still leads. Twenty-
-     * four columns, one pset each: no trigonometry and no allocation. */
-    {
-        static const uint8_t MWX[24] = {6, 16, 26, 36, 46, 56, 66, 76, 86, 96, 106, 116,
-                                        126, 136, 146, 156, 166, 176, 186, 196, 206, 216, 226, 234};
-        static const uint8_t MWY[24] = {150, 144, 139, 133, 128, 122, 117, 111, 106, 100, 95, 89,
-                                        83, 78, 74, 70, 67, 63, 60, 57, 54, 52, 50, 48};
-        static const uint8_t MWT[24] = {1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 2, 2,
-                                        2, 2, 1, 2, 2, 1, 2, 2, 1, 2, 1, 1};
-        uint16_t band = bg_tone_mix(page, bg_col(70 + g * 3), 20 + g / 3);
-        uint16_t bhalo = bg_tone_mix(page, bg_col(40 + g * 2), 26);
-        uint16_t bdust = bg_tone_mix(page, bg_col(24), 30);
-        int32_t k;
-        for (k = 0; k < 24; k++) {
-            int32_t bx = MWX[k], by = MWY[k] + sway;
-            if (MWT[k] == 3) {
-                cv_pset(bx, by - 1, bhalo);
-                cv_pset(bx, by + 1, bhalo);
-                cv_pset(bx, by + 2, bdust);
-            } else if (MWT[k] == 2) {
-                cv_pset(bx, by - 1, bhalo);
-                cv_pset(bx, by + 1, bdust);
-            }
-            cv_pset(bx, by, band);
-            if ((k & 3) == 2)
-                cv_pset(bx, by - 1, bdust);
-        }
-    }
+    gw_viz_milky(page, g, sway);
     /* the giant's limb in the page's top-left corner: most of it outside the screen, its ring crossing the part
      * we do see, so the frame reads as a window onto something larger than it is */
     gw_deep_body(-16 + sway / 2, 2, 34, 26000, lit, sh, ed, 0, 2);
@@ -1623,11 +1646,11 @@ static void gw_viz_deep(uint32_t q)
             } else if (e > en_hi)
                 en_hi = e;
         }
-        gw_viz_world(page, ax, ay, 15, (int32_t)((fm1_ms * 7u) & 0x7FFFu), 1, 150, en_lo,
+        gw_viz_world(page, ax, ay, 13, (int32_t)((fm1_ms * 7u) & 0x7FFFu), 1, 150, en_lo,
                      vzb_t[0] && ui.frame - vzb_t[0] < 26u ? ui.frame - vzb_t[0] : 0u);
         vzb_x[0] = (int16_t)ax;
         vzb_y[0] = (int16_t)ay;
-        vzb_r[0] = 15;
+        vzb_r[0] = 13;
         if (q == 0u) {
             gw_viz_world(page, bx, by, 10, (int32_t)((fm1_ms * 5u + 16000u) & 0x7FFFu), 0, 62, en_hi,
                          vzb_t[1] && ui.frame - vzb_t[1] < 26u ? ui.frame - vzb_t[1] : 0u);
@@ -2154,7 +2177,10 @@ static void graph_ecosys(void)
                                                             * losing the value arc or the 31 px pitch */
         int32_t kv = bg_knob(c, 0);
         int32_t kx = 118 + (int32_t)c * 31;
-        gw_mini_bakelite_knob(kx, 78, 8, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
+        /* (3.8) 7 px, not 8: the bay's four knobs sat as large as the modules' on top, which flattened the
+         * hierarchy (the Hearth controls read as the headline row). One pixel down and the same 31 px pitch
+         * keeps the arc, the value and the label untouched. */
+        gw_mini_bakelite_knob(kx, 78, 7, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
     }
     cv_rect(104, 92, 124, 1, T_LINE);
 

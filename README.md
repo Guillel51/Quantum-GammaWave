@@ -80,26 +80,36 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 ---
 
-## Highlights of `v3.1.3`
+## Introduction
 
-- **Each world answers its own touch.** `gw_planet_at()` used to return the body drawn last, so the worlds in
-  front swallowed the taps of the ones behind in the bay's overlaps; since 3.1.3 the tap goes to the nearest
-  centre, and `capture_pokes` measures, body by body, how much of each drawn disc answers to itself.
-- **HOME comes back to the same picture.** `hv_air()` advanced its ember field with a private counter instead
-  of the frame, so a page drawn in two passes ran at double speed and re-entering HOME showed a shifted
-  background; the phase is `ui.frame` now and `home_roundtrip` compares fifty entries into and out of each of
-  the five views.
-- **One version everywhere.** `release.yml` returns to the reviewed `fm1-build` commit, the release gate
-  (`tools/release_gate.py`) stays the only door to a 3.x tag, and the Hub card is regenerated from the real
-  HOME render.
-- **275 sounds, measured.** `preset_audit` reports 0 problems and `preset_levels` puts the bank's median at
-  **−18.5 dBFS** with no clipping; 293 golden renders hash identically.
-- **This tree (unreleased):** HOME's bay grows to **91 × 55 px** and the fifth path to 39 px, with the
-  host-measured own-disc answer 97 / 77 / 53 / 54 / 93 %. The five discs still overlap for part of every
-  cycle — see the note in `CHANGELOG.md`.
-- **Hardware:** nothing here was flashed or read from a unit; the two-flash install of 3.1.1 is
-  **owner-reported**, recorded as such in `docs/VALIDATION_MATRIX.md`. No anti-brick or recovery guarantee is
-  claimed.
+Quantum GammaWave is a complete instrument built into an **M-VAVE FM-1**: a six-track FM and physical-modelling
+groovebox that is sequenced, played and mixed entirely on the unit. Twelve voices across nine engines, a
+six-track sequencer with p-locks and probability, a chord and scale engine, three send effects plus a master
+bus, a drum machine, a performance layer — all of it running on the FM-1's own processor, with no computer in
+the loop, no samples and no streaming.
+
+What you hold is one instrument in four pieces:
+
+- **A firmware** that boots the FM-1 into Quantum instead of its stock shell, drawn on the unit's 240 × 240
+  panel and played with its fourteen buttons and seven encoders.
+- **A web emulator** built from the same sources: the panel, playable in a browser tab.
+- **A Web Studio** that edits the real instrument over Web MIDI, with a live view of what it is playing.
+- **An installer** that verifies the package's SHA-256, size and the flash chip before it offers to write.
+
+| | |
+|---|---|
+| **Voices / tracks / engines** | 12 · 6 · 9 (ANALOG, ACID, FM4, FM6, WAVE, DRUM, PHYSICAL, DIGITAL, NOISE) |
+| **Sound bank** | 275 presets, audited as data and measured as sound (bank median −18.5 dBFS) |
+| **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
+| **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
+| **Screen** | 240 × 240 RGB565, fourteen colours per theme, nine palettes including GREY and MONO |
+| **Package** | 610 959 B, checked by SHA-256 and size (integrity, not a signature — see `docs/SIGNING.md`) |
+| **Verification** | 293 golden renders, a full host suite, an AC791N build budget, an emulator and a portal |
+
+It is a personal instrument that grew into a small ecosystem: the firmware is what the FM-1 runs, and the
+emulator, the studio, the installer and this documentation are built from the same tree, released together and
+versioned together. Nothing on this page is a mock-up: every screenshot is rendered from the firmware in
+`assets/screenshots/`, and every figure quoted here comes from a test or a build that can be re-run.
 
 ## Synthesis engines
 
