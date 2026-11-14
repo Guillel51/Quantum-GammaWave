@@ -1983,6 +1983,21 @@ static void ui_draw(void)
 static void ui_draw_page(uint32_t counting)
 {
     static uint8_t menu_was;                           /* (closing the menu: the page under it was not drawn) */
+    /* (3.1.5) A PAGE CHANGE REPAINTS THE BANDS. The header, the cards and the footer are caches: they draw only
+     * when their signature changes, and when another page had cleared those rows -- or when a pop-up consumed
+     * ui.force before them -- the strip stayed blank until the BPM, the battery or a knob happened to move.
+     * The page the panel is showing is part of that state now, so arriving anywhere (HOME included) redraws
+     * the three bands. */
+    {
+        static uint32_t page_was = 0xFFFFFFFFu;
+        uint32_t page_now = (uint32_t)ui.page * 64u + (uint32_t)ui.home * 32u + (uint32_t)ui.home_view * 8u +
+                            (uint32_t)(ui.home_viz ? 4u : 0u) + (uint32_t)(ui.menu ? 2u : 0u) + (uint32_t)ui.layer;
+        if (page_now != page_was) {
+            page_was = page_now;
+            ui.force = 1;
+            ui.head_sig = ui.foot_sig = ui.graph_sig = ~0u;
+        }
+    }
     if (menu_was && !ui.menu)
         ui.force = 1;
     menu_was = (uint8_t)ui.menu;

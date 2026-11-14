@@ -97,6 +97,9 @@ int main(int argc, char **argv)
         if (poke_find(p, &hx, &hy) < 0) { fprintf(stderr, "poke: body %d is not on screen\n", (int)p); return 1; }
         poke_frames(t0, h0, f0, 6);                  /* control: the same frames, no touch */
         memcpy(ctl[p], host_screen, sizeof ctl[p]);
+        if (p == 0)                                  /* (3.1.5) the bay at rest: the frame docs/fw-home.png
+                                                      * is composed from, with its header and its cards */
+            write_ppm(dir, "QUANTUM", "rest");
         poke_reset(); setup(S_HOME); pal(UI_QUANTUM_INDEX);
         fm1_ms = t0; host_ticks = h0; ui.frame = f0; draw(S_HOME);
         ui_tap(hx, hy);

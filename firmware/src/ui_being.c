@@ -476,7 +476,8 @@ enum { PK_SPIN, PK_SWELL, PK_RIPPLE, PK_SLING, PK_FROST };
 static const uint8_t PL_POKE[NPL] = {PK_SPIN, PK_SWELL, PK_RIPPLE, PK_SLING, PK_FROST};
 static const uint8_t POKE_L[NPL] = {34, 30, 34, 30, 34};     /* ~0.5 s at the panel's frame rate */
 static uint32_t pl_poke_t[NPL];                              /* ui.frame of the last touch */
-static uint8_t pl_poke_on[NPL], pl_sr[NPL], pl_order[NPL];   /* touched? the radius drawn, the depth order */
+static uint8_t pl_poke_on[NPL], pl_sr[NPL], pl_order[NPL];
+static uint32_t gal_t;                                       /* (3.1.5) the frame the band was touched */   /* touched? the radius drawn, the depth order */
 static int16_t pl_sx[NPL], pl_sy[NPL];                       /* where each body was drawn: the hit test's */
 static int32_t gw_span(int32_t r, int32_t dy)                /* the row's half width, no sqrt, no libm */
 {
@@ -847,7 +848,8 @@ static int32_t gw_planet_at(int32_t x, int32_t y)
 
 static void gw_planet_poke(int32_t i)
 {
-    if (i == (int32_t)NPL) {                        /* (4.0) THE STAR: an expansion that reaches the bodies.
+    if (i == (int32_t)NPL) {
+        gal_t = ui.frame;                                   /* (3.1.5) and the band lights from its centre */                        /* (4.0) THE STAR: an expansion that reaches the bodies.
                                                      * Its rings are HOME's own pulse (graph_ecosys), and every
                                                      * world inside them takes the light: each body's flash is
                                                      * set and its excitation lifted, so the near ones swell by a
@@ -913,19 +915,32 @@ static void gw_body_react(int32_t pi, int32_t bx, int32_t by, int32_t heat)
     } else if (PL_POKE[pi] == PK_SPIN) {            /* ROCKY: it turns. An arc runs round the limb, bright at
                                                      * its head and fading behind, and a grain or two is thrown
                                                      * off the terminator, so the touch reads as rotation */
-        int32_t k, r = br + 2 + (int32_t)pa / 3, a0 = (int32_t)pa * 11 + heat;
+        int32_t k, r = br + 4 + (int32_t)pa / 2, a0 = (int32_t)pa * 11 + heat;
+        /* (3.1.5) TWO ARCS, NOT ONE. The turn was drawn as five pixels on a single radius and measured 115 px
+         * of ink against the frozen world's 526: it was there, and it did not read. The limb now carries the
+         * bright arc and, just outside it, a dimmer one turning a step behind -- the lag is what an eye reads
+         * as rotation rather than a blinking dot. */
         for (k = 0; k < 9; k++) {
             int32_t a = (a0 + k * 1600) & 0xFFFF, sx = bg_sin(a), sy = bg_sin(a + 16384);
-            if (!(k & 1))
-                sys_pset(bx + (sx * r >> 15), by + ((sy * r >> 15) * 2 / 3),
-                         ux_mix(T_BG, bg_col(heat + 40), 190 - k * 14 - (int32_t)pa * 2));
+            int32_t px = sx * r >> 15, py = (sy * r >> 15) * 2 / 3;
+            sys_pset(bx + px, by + py, ux_mix(T_BG, bg_col(heat + 40), clamp(96 - k * 10 - (int32_t)pa * 2, 0, 96)));
+            if (k < 7) {
+                sys_pset(bx + px * (r + 2) / r, by + py * (r + 2) / r,
+                         ux_mix(T_BG, bg_col(heat + 90), clamp(92 - k * 10 - (int32_t)pa, 0, 92)));
+                sys_pset(bx + px * (r + 3) / r, by + py * (r + 3) / r,
+                         ux_mix(T_BG, bg_col(heat + 140), clamp(72 - k * 6 - (int32_t)pa, 0, 72)));
+            }
         }
         if (pa < 16u && !(pa & 3u))
             vz_np_add(bx + br - 1, by - 1, 1, -2, bg_col(heat + 80), 6, 1);
     } else if (PL_POKE[pi] == PK_SWELL) {          /* BANDED GIANT: it breathes -- a halo that widens and
                                                      * thins, and two glints sliding along its belts */
+        /* (3.1.5) A HALO THAT BREATHES IN TWO SHELLS. One thin ring of 249 px read as a flicker next to the
+         * frozen world; the giant now pushes a bright shell and a wider, dimmer one behind it, which is what
+         * an inhale looks like from outside. */
         int32_t r1 = br + 2 + (int32_t)pa / 3;
-        gw_ring_clip(bx, by, r1, r1 * 2 / 3, ux_mix(T_BG, bg_col(heat + 40), 130 - (int32_t)pa * 2), 1);
+        gw_ring_clip(bx, by, r1, r1 * 2 / 3, ux_mix(T_BG, bg_col(heat + 40), clamp(96 - (int32_t)pa * 2, 0, 96)), 1);
+        gw_ring_clip(bx, by, r1 + 2, (r1 + 2) * 2 / 3, ux_mix(T_BG, bg_col(heat + 80), clamp(72 - (int32_t)pa * 2, 0, 72)), 0);
         if (pa < 20u && !(pa & 1u)) {
             sys_pset(bx - (int32_t)pa / 2, by - 1, ux_mix(T_BG, bg_col(heat + 90), 150 - (int32_t)pa * 6));
             sys_pset(bx + (int32_t)pa / 2, by + 2, ux_mix(T_BG, bg_col(heat + 70), 120 - (int32_t)pa * 5));
@@ -1176,6 +1191,11 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                                                      * and ends on the path's own place, so nothing jumps */
             pk_ang[i] = (int32_t)(pa * ((uint32_t)POKE_L[i] - pa)) * 12000 /
                         ((int32_t)POKE_L[i] * (int32_t)POKE_L[i]);
+            /* (3.1.5) and the body itself leans into the turn: 3 px out at the height of the surge and back,
+             * which is what makes the rocky world's touch read at arm's length. The arcs alone measured 124 px
+             * of ink; the body moving carries the rest. */
+            pk_rad[i] = pa < 10u ? (int32_t)pa * 3 / 10
+                                 : (int32_t)((uint32_t)POKE_L[i] - pa) * 3 / (int32_t)(POKE_L[i] - 10u);
             break;
         case PK_SWELL:                              /* the body inhales two pixels and lets them go */
             pk_rad[i] = pa < 8u ? (int32_t)pa * 2 / 8 : (int32_t)((uint32_t)POKE_L[i] - pa) * 2 /
@@ -1196,6 +1216,18 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
     if (r > 6) r = 6;                                 /* a star, not a sun: the planets carry the bay */
     {   /* the band, under everything: core, halo and dust, with one shimmer for the whole sky */
         int32_t sh = (int32_t)((bg_sin(twf * 2u + 0x2A00u) + 32768) >> 11);   /* 0..32, a slow breath */
+        /* (3.1.5) AND IT ANSWERS WHEN IT IS TOUCHED. The star's tap used to reach the bodies only; the band it
+         * sits in stayed the same picture. A wave now runs out from the centre along the band, column by
+         * column, brightening the core as it passes and leaving a dimmer lane behind it, so the tap reads as
+         * light crossing the galaxy. One age, no state beyond the frame it was touched. */
+        int32_t gw2 = -1;
+        if (gal_t) {
+            uint32_t ga = ui.frame - gal_t;
+            if (ga < 44u)
+                gw2 = (int32_t)ga;
+            else
+                gal_t = 0;
+        }
         uint16_t mcore = ux_mix(T_BG, T_TEXT, 16 + sh / 3);
         uint16_t mhalo = ux_mix(T_BG, T_THEME, 9 + sh / 5);
         uint16_t mdust = ux_mix(T_BG, T_LINE, 7);
@@ -1214,7 +1246,23 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
             } else {
                 sys_pset(mx, my + 1, mdust);
             }
-            sys_pset(mx, my, mcore);
+            {   /* (3.1.5) the band's own detail: a knot every sixth column, a second lane under it, and the
+                 * wave a touch sends out from the centre. All of it is one colour mixed once per column. */
+                int32_t dj = j - 18;
+                if (dj < 0)
+                    dj = -dj;
+                sys_pset(mx, my, mcore);
+                if ((j % 6) == 3 && MW_T[j] >= 2) {  /* the knots: brighter, two pixels deep */
+                    sys_pset(mx, my, mcore);            /* a knot: the band's own brightest tone */
+                    sys_pset(mx, my + 1, mhalo);
+                }
+                sys_pset(mx, my + 4, mdust);      /* the second lane, under the band */
+                if (gw2 >= 0) {
+                    int32_t reach = gw2 * 3 - dj * 2;                /* the front, running outward */
+                    if (reach >= 0 && reach < 20)     /* weight under 100: ux_mix past it bleeds a channel */
+                        sys_pset(mx, my - 1, mhalo);                /* the front, in the band's own halo tone */
+                }
+            }
             if ((j & 3) == 1 && j > 4 && j < 32)     /* the dust lanes that cross the band */
                 sys_pset(mx, my - 1, mdust);
         }
