@@ -145,7 +145,7 @@ The package was downloaded from
 
 > **Schema note (2026-11-13):** the Hub accepts `what`, `author`, `kinds`, `play`, `editor`, `cheat`,
 > `image` and `color`; it ignores the **whole file** if one field is unknown. `sounds` is **not** a
-> field. The sound count belongs inside `what`, which now says “nine engines and 273 sounds”. The
+> field. The sound count belongs inside `what`, which now says “nine engines and 275 sounds”. The
 > card is checked by `python3 tools/check_fmhub.py`.
 
 The Hub reads it from the default branch, every three hours, and **ignores the whole file** when one
@@ -162,7 +162,7 @@ ok    kinds: ['groove']
 ok    play: https://guillel51.github.io/Quantum-GammaWave/emulator/ answers 200
 ok    editor: https://guillel51.github.io/Quantum-GammaWave/webapp/editor/ answers 200
 ok    cheat: https://github.com/Guillel51/Quantum-GammaWave#readme answers 200
-ok    image: docs/card.png 512x512 PNG, 20860 B
+ok    image: docs/card.png 480x480 PNG, the Solar Heat palette, under 300 KB
       #35CFFF: luminance 0.526; contrast on black 11.52:1, on white 1.82:1; dark ink #101014 on it 10.41:1
 ok    color: #35CFFF, bright, 11.5:1 on a dark card, readable ink #101014 (10.4:1)
 ```

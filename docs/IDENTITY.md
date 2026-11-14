@@ -113,7 +113,7 @@ bytes and the releases that carried it. What changed is what *this* build report
 
 | Check | Result |
 |---|---|
-| AC791N build (`./build.sh`) | app 536 500 B, package 610 959 B, `identity FM-1_965` |
+| AC791N build (`./build.sh`, v3.1.1) | app 574 992 B of a 583 612 B slot, package 610 959 B, `identity FM-1_965` |
 | the bytes themselves | `FM-1_965` in the app, in `build/loader/ota.bin`, and in the 20 marker bytes of the `.fwsc` |
 | SysEx 0x11 (`tests/ota_test.c`) | `identity frame is FM-1_965` |
 | installer (`tests/install_test.py`) | install from V15, resume, refusals: passed with the new identity |

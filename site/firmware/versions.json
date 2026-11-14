@@ -1,18 +1,18 @@
 [
  {
-  "version": "3.1",
-  "file": "felucca-3.1.fwsc",
-  "sha256": "b6b0088a7d225c9e06d674f2328195c37b09368f8aa46bd6808236f9b86fb850",
+  "version": "3.1.1",
+  "file": "felucca-3.1.1.fwsc",
+  "sha256": "03a6cd251aeeca78d50a5e21ad139faf07976c6ece6bc2a2188d3185bbe25d68",
   "size": 610959,
   "build": {
    "artifacts": {
     "felucca.bin": {
-     "bytes": 574988,
-     "sha256": "a0995cca02c72706a90bccfbf982adc11be2ec371ff3170155c3eeb273b63071"
+     "bytes": 574992,
+     "sha256": "f99f450b5c701c7201971959c9f7c3082fb1d7412b593c7d1cc40ad2318c1614"
     },
     "felucca.fwsc": {
      "bytes": 610959,
-     "sha256": "b6b0088a7d225c9e06d674f2328195c37b09368f8aa46bd6808236f9b86fb850"
+     "sha256": "03a6cd251aeeca78d50a5e21ad139faf07976c6ece6bc2a2188d3185bbe25d68"
     },
     "loader/ota.bin": {
      "bytes": 7803,
@@ -20,7 +20,7 @@
     }
    },
    "checks": {},
-   "commit": "487735744fb5ed1e25125f48a9e900b2afedcd4e",
+   "commit": "5ed51e2770bc308b316c88489a9b3f514452cde0",
    "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -39,12 +39,19 @@
     "FELUCCA_UART": "default",
     "FELUCCA_USB_LAYOUT": "default"
    },
-   "dirty": [],
+   "dirty": [
+    ".github/workflows/release.yml",
+    "docs/FM1_HUB_READINESS.md",
+    "docs/IDENTITY.md",
+    "docs/card.png",
+    "firmware/src/felucca.c",
+    "fmhub.json"
+   ],
    "emulator": {
-    "commit": "487735744fb5",
-    "version": "v3.1",
-    "wasm_bytes": 1207502,
-    "wasm_sha256": "ff4f0ce1713fcd4e59f4fbf91e230c46b58058794e4238dda693d8f73b7876f9"
+    "commit": "5ed51e2770bc",
+    "version": "v3.1.1",
+    "wasm_bytes": 1207504,
+    "wasm_sha256": "e005b6c0bf33eb76b8e2d32609532cf68a395bdd5546897daa180083ef87961b"
    },
    "identity": "FM-1_965",
    "schema": "qg1-build-1",
@@ -63,24 +70,31 @@
     "path": "/workspace/homes/175b9279ea697cf08b8dec0c/.jieli/toolchain",
     "version": "clang version 4.0.1 () ()"
    },
-   "version": "v3.1"
+   "version": "v3.1.1"
   },
   "emulator": {
-   "built": "2026-11-14T08:19:56Z",
-   "commit": "487735744fb5",
+   "built": "2026-11-14T12:14:50Z",
+   "commit": "5ed51e2770bc",
    "config": {
     "EMU_CFLAGS": "",
     "EMU_OPT": "-O2",
     "EMU_PREVIEW": "0"
    },
-   "dirty": [],
+   "dirty": [
+    ".github/workflows/release.yml",
+    "docs/FM1_HUB_READINESS.md",
+    "docs/IDENTITY.md",
+    "docs/card.png",
+    "firmware/src/felucca.c",
+    "fmhub.json"
+   ],
    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)",
    "identity": "FM-1_965",
    "schema": "qg1-emu-1",
-   "version": "v3.1",
-   "wasm_bytes": 1207502,
-   "wasm_sha256": "ff4f0ce1713fcd4e59f4fbf91e230c46b58058794e4238dda693d8f73b7876f9"
+   "version": "v3.1.1",
+   "wasm_bytes": 1207504,
+   "wasm_sha256": "e005b6c0bf33eb76b8e2d32609532cf68a395bdd5546897daa180083ef87961b"
   },
-  "manifest": "felucca-3.1.fwsc.manifest.json"
+  "manifest": "felucca-3.1.1.fwsc.manifest.json"
  }
 ]

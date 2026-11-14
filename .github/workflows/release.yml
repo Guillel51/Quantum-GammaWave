@@ -32,7 +32,7 @@ jobs:
           python3 tools/release_gate.py "$V" "${QG_RELEASE_APPROVED:-false}"
   build:
     needs: gate
-    uses: zvenson/fm1-build/.github/workflows/build.yml@85a003ab455b1c074b0bd6d7c282c096a464b973
+    uses: zvenson/fm1-build/.github/workflows/build.yml@v1
     permissions:
       contents: write
       id-token: write

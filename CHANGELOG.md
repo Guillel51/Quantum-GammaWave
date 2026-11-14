@@ -1,5 +1,25 @@
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
+## v3.1.1 — 2026-11-14 — Hub, attestation y versión publicable
+
+### Changed
+- `FELUCCA_VERSION` -> **v3.1.1**. v3.1 no podía publicarse: `tools/release_gate.py` exige `vX.Y.Z`
+  y rechazaba la forma de dos componentes, así que el tag y la release nunca se crearon.
+- **`release.yml` usa `zvenson/fm1-build/.github/workflows/build.yml@v1`**, el tag revisado que el
+  Hub reconoce, en lugar del commit fijado: con el SHA el paquete podía attestarse pero la tarjeta
+  no habría obtenido «Built from source on GitHub».
+- **`fmhub.json`**: 275 sonidos (no 273) y color `#FF9424`, el acento Quantum; `check_fmhub.py`
+  valida campos, longitud, enlaces y contraste (9.5:1 sobre negro).
+- **`docs/card.png`** regenerado desde el render real de HOME en la paleta Solar Heat, 480 × 480,
+  16 336 B.
+- `docs/IDENTITY.md` y `docs/FM1_HUB_READINESS.md` con las cifras de este build (574 992 B de
+  583 612 B) y la biblioteca de 275 sonidos.
+
+### Pending
+- La release la crea el workflow **sólo** con `QG_RELEASE_APPROVED=true` en las variables del
+  repositorio; esa autorización no se toca desde aquí.
+- El Hub exige una instalación real desde V15 y desde otro firmware: **PENDING HARDWARE**.
+
 ## v3.1 — 2026-11-14 — validación, sincronización y release
 
 ### Changed

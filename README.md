@@ -202,7 +202,7 @@ The installer is a web page that talks to the unit over USB-MIDI, and it is the 
 1. Open the **[installer](https://guillel51.github.io/Quantum-GammaWave/webapp/installer/)** in Chrome or
    Edge, with a data cable (not a charge-only one).
 2. It re-hashes the package (**SHA-256** + size), holds it to the published record and the version floor, and
-   verifies the firmware hashes inside it. `v3.1` is the package this tree builds; `v2.9.7`
+   verifies the firmware hashes inside it. `v3.1.1` is the package this tree builds; `v2.9.7`
    was published by the tag workflow on 2026-11-13. Both ship **unsigned by design**: that is integrity, not
    authenticity, and the page says so instead of implying a signature. If anything fails, INSTALL stays
    disabled and the page says why.
