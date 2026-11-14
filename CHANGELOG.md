@@ -1,4 +1,4 @@
-## Unreleased — 2026-11-14 — la bahía orbital de HOME pasa a 91 × 55 px
+## Unreleased — 2026-11-14 — teclado real en SCL, el ground de SEQ y la Vía Láctea del visualizador
 
 ### Changed
 - **Los cuatro knobs de la bahía de HOME, un píxel más pequeños.** `gw_mini_bakelite_knob()` los dibujaba a
