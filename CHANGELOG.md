@@ -1,6 +1,19 @@
 ## Unreleased — 2026-11-14 — la bahía orbital de HOME pasa a 91 × 55 px
 
 ### Changed
+- **SEQ se dibuja sobre el ground compartido, en bandas sólidas.** Las páginas de la familia SEQ (25
+  pantallas: STEP/ROLL, PATTERN, COMP, CHANCE, DRUM-X, MUTATE, AUTO LIST, PHRASES, SHIFT, MOTION, FUGUE) tenían
+  el bisel y el brillo al pie de `graph_heat()` pero ningún ground entre los dos. Ahora `graph_ground_seq()`
+  llama a `ux_ground_bands()` — la misma primitiva de HOME y FX > BUSES — con diez bandas de 2 unidades
+  recortadas entre el bisel y el brillo. `ux_ground_bands()` acepta el tramado como parámetro: 50 es el
+  damero de 4 × 4 que HOME y FX conservan **byte a byte**, y 100 es banda sólida. Sólido no es un capricho:
+  el damero debajo de la rejilla del secuenciador se leía como suciedad sobre el panel (capturas antes/después
+  en la sesión), y en bandas sólidas la misma rampa se lee como profundidad. Medido: `ui_render` **0 lint, 0
+  alineación** en 3 390 417 medidas, **175 de 945** pantallas cambian (las 25 de SEQ × 7 paletas) y ninguna
+  fuera de la familia (HOME, VISUALIZER, FX, FX-BUSES, EDIT, MASTER, ABOUT idénticas byte a byte); `ui_test`,
+  `home_roundtrip`, `viz_worlds` y `regress` (293 goldens) sin cambios. Capturas regeneradas:
+  `quantum_04_track_map`, `quantum_05_sequencer`, `quantum_06_seq_roll`, `quantum_07_drum_x`,
+  `quantum_17_motion_locks` y sus copias en `assets/ui-art/art/`.
 - **Los dos mundos del visualizador responden a las pistas.** `gw_viz_deep()` los dibujaba con el mismo
   `gw_deep_body()` de HOME, a 11 y 8 px: dos discos de dos tonos, un cinturón cada uno, y nada que se moviese
   salvo con el dedo. Ahora `gw_viz_world()` los pinta a **15 y 10 px** con atmósfera (1 px fuera del limbo y

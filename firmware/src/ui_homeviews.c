@@ -46,7 +46,7 @@ static void hv_grad(void)
     int32_t top = -cv_oy, bot = top + cv_h;         /* (the body is drawn in two passes: only this pass's rows) */
     /* 12 steps of 14 px: shallow enough that the seams read as a blend. (3.6) the same primitive FX > BUSES
      * blocks use (gfx.c ux_ground_bands), so HOME's ground and the console's have one implementation. */
-    ux_ground_bands(6, 26, 228, 200 - 26, 12, 22, 3, 2, 2, top, bot);
+    ux_ground_bands(6, 26, 228, 200 - 26, 12, 22, 3, 2, 2, top, bot, 50);
 }
 
 /* (4.1) which of HOME's screens is on, as icons: three cells in the title's right corner (the three pages drawn here) -- where a caption used to

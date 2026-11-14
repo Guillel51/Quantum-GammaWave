@@ -60,7 +60,7 @@ static void fxb_grad(int32_t x, int32_t y, int32_t w, int32_t h)
 {
     /* (4.1) four steps, accent rising towards the floor: a gradient, dithered. (3.6) the loop is gfx.c's
      * ux_ground_bands, the same primitive HOME's views use, so the ramp has one implementation. */
-    ux_ground_bands(x, y, w, h, 4, 30, 10, 5, 7, y, y + h);
+    ux_ground_bands(x, y, w, h, 4, 30, 10, 5, 7, y, y + h, 50);
 }
 /* (4.1) the sheen: one narrow column of light crossing a block's drawing while its bus carries signal, so a busy
  * block reads busy before a meter is read. ui.frame, not a timer: a silent page draws a still frame. */
