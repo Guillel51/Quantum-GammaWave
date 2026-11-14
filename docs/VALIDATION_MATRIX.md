@@ -1604,15 +1604,15 @@ v2.6.0 — for v2.7.0, not retroactively.
 
 1. **No Ed25519 signature.** v2.7.0 is integrity-only (SHA-256 + size + record) by design; no private key exists
    here and none was requested. The installer and the site say so instead of implying a signature.
-2. **Artifact attestation: measured, and it exists only up to v2.7.5.** With a credential the REST API now
-   answers, so this is no longer "unverified": `GET /repos/Guillel51/Quantum-GammaWave/attestations/sha256:<digest>`
-   returns **2 in-toto bundles** for the v2.7.5 package (`772f0dae5390db1b221ee492c36f7591523837d85512f85797dd5cdce90476f2`),
-   and **404 for the v3.1.1 package** (`03a6cd251aeeca78d50a5e21ad139faf07976c6ece6bc2a2188d3185bbe25d68`).
-   The reason is the gate, not the attestation step: `release.yml` stops in `gate` because
-   `vars.QG_RELEASE_APPROVED` is empty, and the variable cannot be written with the token available here
-   (`POST /actions/variables` answers `403 Resource not accessible by personal access token`). Every tag
-   from v3.1.0 on was therefore published by hand from this session's verified build, without CI
-   attestation. Class: **v2.7.5 attested, v3.1.x not attested, blocked on one repository variable.**
+2. **Artifact attestation: v3.1.4 sí, v3.1.0–v3.1.3 no.** Medido con la API de attestations:
+   `GET /repos/Guillel51/Quantum-GammaWave/attestations/sha256:<digest>` devuelve **1 bundle in-toto** para el
+   paquete de v3.1.4 (`3b63c4543ee2dae4ec41b828fb72bc3ae2d0a9c6626bd7d9fb4fc2ebdcf8cced`), **2 bundles** para
+   v2.7.5 (`772f0dae…`), y **404** para v3.1.1 (`03a6cd25…`) y v3.1.2/v3.1.3, que se publicaron a mano desde
+   esta sesión mientras el token no podía crear la variable del gate. El tag y la release de v3.1.4 no los
+   creó `release.yml` —cuyo `gate` sigue pidiendo `vars.QG_RELEASE_APPROVED`— sino `tag-and-publish.yml`, que
+   se dispara con el push a `main`, verifica el paquete de `release/` contra su manifiesto, crea el tag
+   anotado, atesta y publica. La existencia del bundle está verificada; la firma contra el workflow no, porque
+   `gh` aquí no tiene el subcomando `attestation`. Clase: **existencia medida, firma no verificada.**
 3. **The release body is the workflow's own.** Editing release notes needs a credential this session lacks.
 4. **Timbre of the re-recorded goldens** is fixed and reproducible, not approved by ear.
 5. **Nothing ran on an FM-1.** No write, erase, recovery or bootloader command was sent to any unit, and identity
