@@ -1,3 +1,15 @@
+## v3.2.2 — 2026-11-14 — HOME: el gráfico sigue al knob 1, y los knobs no se van al recorrer las pantallas
+
+### Fixed
+- **El bay de HOME se repinta con el knob.** Su firma (`graph_signature`) no incluía los cuatro knobs, así que
+  el panel esperaba a que cambiara otra cosa para volver a dibujarse: girar CUT actualizaba la tarjeta y dejaba
+  el dibujo quieto. Los cuatro valores entran en la firma y el corte que dibuja el bay es el mismo parámetro
+  que la tarjeta lee (`home_param`), así que la tarjeta y la curva no pueden contradecirse.
+- **Las pantallas de HOME (2/5 a 5/5) muestran los cuatro knobs.** Reemplazaban la fila del título con
+  contenido propio y las tarjetas no se dibujan ahí, así que al recorrerlas el primer knob parecía desaparecer.
+  Ahora la fila del título de OVERVIEW, MIX y PERFORM es `K1 .. K4` con su valor, leída con `home_param` y
+  `param_format` — los mismos números que las tarjetas de MAIN, sin duplicar geometría ni estado.
+
 ## v3.2.1 — 2026-11-14 — el teclado de SCL, legible de un vistazo
 
 ### Fixed

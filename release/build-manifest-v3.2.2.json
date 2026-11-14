@@ -1,12 +1,12 @@
 {
   "artifacts": {
     "felucca.bin": {
-      "bytes": 582148,
-      "sha256": "4b80ea2f049cdd41ed9ba2e5bfea5b9e871233d2bfd0e20e13b1bacd40903d3e"
+      "bytes": 582164,
+      "sha256": "d16d9e99e11249b822f14fa7ebcf5362650e65700cc6ddcdee3cb4a1d67bc131"
     },
     "felucca.fwsc": {
       "bytes": 610959,
-      "sha256": "c8a18aac4bb203971f58cacf509e13ffcc02b59b4c5a6c42daefd754e8a3421e"
+      "sha256": "0dc6ad4e4f963d6ca922fed4fa248b6721a8c73c9742f45132bfa48443a643f5"
     },
     "loader/ota.bin": {
       "bytes": 7803,
@@ -14,7 +14,7 @@
     }
   },
   "checks": {},
-  "commit": "dbf8b7ddd0cd312804827c0362f065dd452bf15b",
+  "commit": "366e8d79227df77de239498a54c6ebd989bd4832",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -33,12 +33,24 @@
     "FELUCCA_UART": "default",
     "FELUCCA_USB_LAYOUT": "default"
   },
-  "dirty": [],
+  "dirty": [
+    "CHANGELOG.md",
+    "README.md",
+    "firmware/src/felucca.c",
+    "firmware/src/ui_graph.c",
+    "firmware/src/ui_homeviews.c",
+    "release/SHA256SUMS",
+    "release/build-manifest-v3.2.0.json",
+    "release/felucca-v3.2.0.fwsc",
+    "release/felucca-v3.2.1.fwsc",
+    "release/felucca-v3.2.2.fwsc",
+    "release/felucca-v3.2.2.fwsc.manifest.json"
+  ],
   "emulator": {
-    "commit": "dbf8b7ddd0cd",
-    "version": "v3.2.0",
-    "wasm_bytes": 1237191,
-    "wasm_sha256": "4cf9d35b43af792ac2a67ea20ddf20903f9bc366382b33b0fcaab7d2e437aa8f"
+    "commit": "366e8d79227d",
+    "version": "v3.2.2",
+    "wasm_bytes": 1237262,
+    "wasm_sha256": "b2493371f1634e86186ad0ef0c2fad23a447b2ac62a839dc1723eab3c5ba4afc"
   },
   "identity": "FM-1_965",
   "schema": "qg1-build-1",
@@ -57,5 +69,5 @@
     "path": "/workspace/homes/175b9279ea697cf08b8dec0c/.jieli/toolchain",
     "version": "clang version 4.0.1 () ()"
   },
-  "version": "v3.2.0"
+  "version": "v3.2.2"
 }

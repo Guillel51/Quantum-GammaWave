@@ -2020,8 +2020,19 @@ static uint32_t graph_signature(void)
     const page_t *pg = cur_page();
     const track_t *t = TSEL;
     uint32_t h = 2166136261u, i;
-    if (ui.home)
-        return h ^ (ui.frame / 2u) ^ gw_planet_sig();   /* (3.5) and every frame a body answers a touch */
+    if (ui.home) {
+        /* (3.5) every frame a body answers a touch -- and (7.0) the four knobs' values are part of the
+         * signature, so turning KNOB 1 on HOME repaints the bay on the very next frame instead of waiting for
+         * something else to change. The bay's cutoff is the card's own parameter (home_param), so the picture
+         * and the card can never disagree. */
+        uint32_t knobs = 0;
+        for (i = 0; i < 4u; i++) {
+            int16_t *vp;
+            home_param(i, &vp);
+            knobs = knobs * 31u + (uint32_t)(uint16_t)*vp;
+        }
+        return h ^ (ui.frame / 2u) ^ gw_planet_sig() ^ knobs * 2654435761u;
+    }
     h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u;
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
