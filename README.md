@@ -27,16 +27,15 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v3.0.1` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v3.1.3` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
-- **The target render loops fit their budgets.** `phase_render` 84/84, `wheel_block` 32/86, `noise_render` 218/201 and `fm6_render` 292/322 in the pi32v2 disassembly, with the historical budgets untouched and all 291 golden renders unchanged.
-- **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal serves and `firmware/versions.json` name the same build: the portal shows the version and the commit the release manifest carries, and the installer checks the package's SHA-256 and size before it writes.
+- **One version everywhere.** `FELUCCA_VERSION` (`v3.1.3`), the package in `release/` (610 959 B, SHA-256 `51ecce7b…`), the emulator the portal serves (WASM 1 207 637 B, `09663972…`, Emscripten 6.0.11, built from `fb1c8a0`) and `firmware/versions.json` name the same build; the installer checks that SHA-256 and size before it writes.
 - **The package is integrity-checked, not signed.** Since v2.6.0 the model is SHA-256 + size + build record; Ed25519 (`qg1-release-1`) stays historical. The installer and the site say "integrity, not authenticity" instead of implying a signature that does not exist.
-- **ROOM is damped by the table the firmware uses.** `rev_room` and `rev_room_mod` read `rev_damp_table[]`, and the host reference model now carries its own copy of that curve, so a change on one side still fails the test (it used to compare against the pre-2.4.0 linear law).
-- **The constant tables are measured, not estimated.** `tools/table_sizes.py` reads each table out of the linked AC791N ELF: **41 947 B** in total (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 · shapes 158 · palettes 352), after the M face went to two horizontal phases (gap error **0.044 px**, `text_spacing_test`) and eleven icon cells no screen could reach were removed. HOME's five retired views took another **5 176 B** with them, so the image is **574 988 B** of a 583 612 B slot — **8 624 B** of room — and the package 610 959 B.
-- **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine engines, 273 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing ones were the same controls their own sections already have (EDIT, MOD, EDIT > ENV, SYSTEM, FX > BUSES), so they moved out instead of being drawn twice, and the walk is now five taps end to end. The bank is audited as data (`tools/preset_audit.py`: 0 problems) and measured as sound (`preset_levels`: bank median **−18.5 dBFS**, and the new knob-1-driven HOME visualizer responds only to knob 1, not constant animation).
-- **Graphic fix:** Home screen spectrogram waterfall now responds only to knob 1 horizontal movement; knobs 2‑4 keep their original functions and still interact with the graphic.
-- **Release:** Quantum GammaWave 3.0.1 published with all validations passed.
+- **HOME's five worlds answer one at a time.** 3.1.3 made a tap go to the nearest centre, so each body answers its own drawn disc; this tree gives the bay **91 × 55 px** instead of 88 × 52 — the room the mock-up has (1 px above, 1 px to the right, 2 px below) — and the outer path moved out to 39 px with it. Measured on host (`capture_pokes`): **97 / 77 / 53 / 54 / 93 %** of each body's own disc answered, five distinct and restartable reactions. The discs still share pixels during part of every cycle: separating them completely needs ≈52 px of orbit span, and a 91 px bay leaves 44.
+- **The constant tables are measured, not estimated.** `tools/table_sizes.py` reads each table out of the linked AC791N ELF: **41 947 B**, and the last AC791N build is **574 988 B** of a 583 612 B slot — **8 624 B** of room — with a 610 959 B package. Those are the v3.1.3 figures, not a re-measurement of this tree.
+- **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine engines, 275 sounds.** The bank is audited as data (`tools/preset_audit.py`: 0 problems) and measured as sound (`preset_levels`: bank median **−18.5 dBFS**).
+- **The goldens are measured, not assumed.** 293 renders across every engine, preset, voice mode and FX send hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
+- **Release:** Quantum GammaWave **3.1.3** is the published release; the bay change in this tree is not packaged yet (see `CHANGELOG.md`, Unreleased).
 
 </div>
 
@@ -81,37 +80,26 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 
 ---
 
-## Highlights of `v3.0.1`
+## Highlights of `v3.1.3`
 
-- **The target render loops fit their budgets.** `phase_render` 84/84, `wheel_block` 32/86,
-  `noise_render` 218/201 and `fm6_render` 292/322 in the pi32v2 disassembly, with the historical
-  budgets untouched and all 291 golden renders unchanged.
-- **One version everywhere.** `FELUCCA_VERSION`, the package in `release/`, the emulator the portal
-  serves and `firmware/versions.json` name the same build: the portal shows the version and the commit
-  the release manifest carries, and the installer checks the package's SHA-256 and size before it writes.
-- **The package is integrity-checked, not signed.** Since v2.6.0 the model is SHA-256 + size + build record;
-  Ed25519 (`qg1-release-1`) stays historical. The installer and the site say "integrity, not authenticity"
-  instead of implying a signature that does not exist.
-- **ROOM is damped by the table the firmware uses.** `rev_room` and `rev_room_mod` read `rev_damp_table[]`,
-  and the host reference model now carries its own copy of that curve, so a change on one side still fails
-  the test (it used to compare against the pre-2.4.0 linear law).
-- **The constant tables are measured, not estimated.** `tools/table_sizes.py` reads each table out of the
-  linked AC791N ELF: **41 947 B** in total (S 14 669 · M 8 420 · L 5 049 · icons 7 885 · keycaps 5 414 ·
-  shapes 158 · palettes 352), after the M face went to two horizontal phases (gap error **0.044 px**,
-  `text_spacing_test`) and eleven icon cells no screen could reach were removed. HOME's five retired views
-  took another **5 176 B** with them, so the image is **574 992 B** of a 583 612 B slot — **9 040 B** of
-  room — and the package 610 959 B.
-- **Five HOME screens** — MAIN, VISUALIZER, OVERVIEW, MIX, PERFORM — **twelve voices, six tracks, nine
-  engines, 273 sounds.** HOME used to carry ten pages; the engine, matrix, envelope, system and routing
-  ones were the same controls their own sections already have (EDIT, MOD, EDIT > ENV, SYSTEM, FX > BUSES),
-  so they moved out instead of being drawn twice, and the walk is now five taps end to end. The bank is
-  audited as data
-  (`tools/preset_audit.py`: 0 problems) and measured as sound (`preset_levels`: bank median **−18.5 dBFS**,
-  no clipping, every family within 0.5 dB of it).
-- **The goldens are measured, not assumed.** 285 renders across every engine, preset, voice mode and FX send
-  hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
-- **The emulator is the same release.** WASM **1 193 096 B**  sha256 `ce09f79d…`  built with Emscripten
-  6.0.11 from `6c25f7f`, and its manifest is the one the site serves.
+- **Each world answers its own touch.** `gw_planet_at()` used to return the body drawn last, so the worlds in
+  front swallowed the taps of the ones behind in the bay's overlaps; since 3.1.3 the tap goes to the nearest
+  centre, and `capture_pokes` measures, body by body, how much of each drawn disc answers to itself.
+- **HOME comes back to the same picture.** `hv_air()` advanced its ember field with a private counter instead
+  of the frame, so a page drawn in two passes ran at double speed and re-entering HOME showed a shifted
+  background; the phase is `ui.frame` now and `home_roundtrip` compares fifty entries into and out of each of
+  the five views.
+- **One version everywhere.** `release.yml` returns to the reviewed `fm1-build` commit, the release gate
+  (`tools/release_gate.py`) stays the only door to a 3.x tag, and the Hub card is regenerated from the real
+  HOME render.
+- **275 sounds, measured.** `preset_audit` reports 0 problems and `preset_levels` puts the bank's median at
+  **−18.5 dBFS** with no clipping; 293 golden renders hash identically.
+- **This tree (unreleased):** HOME's bay grows to **91 × 55 px** and the fifth path to 39 px, with the
+  host-measured own-disc answer 97 / 77 / 53 / 54 / 93 %. The five discs still overlap for part of every
+  cycle — see the note in `CHANGELOG.md`.
+- **Hardware:** nothing here was flashed or read from a unit; the two-flash install of 3.1.1 is
+  **owner-reported**, recorded as such in `docs/VALIDATION_MATRIX.md`. No anti-brick or recovery guarantee is
+  claimed.
 
 ## Synthesis engines
 
@@ -129,7 +117,7 @@ Nine engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and f
 | **NOISE** | noise-based percussion and textures | colour, band, decay, tone |
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 
-273 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
+275 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU
@@ -163,7 +151,7 @@ master buses, the UI and tracks 1–3; core 1 renders tracks 4–6.
 
 ## Interface
 
-- **HOME**: five screens. **MAIN** is the system — a star, three orbits and five planets, each answering
+- **HOME**: five screens. **MAIN** is the system — a star, five orbits and five worlds in a 91 × 55 px bay, each answering
   its tracks and its own touch, under the galaxy band; **VISUALIZER** is the full-screen scope; **OVERVIEW**
   the part at a glance; **MIX** the six channels; **PERFORM** the live settings. The footer counts them
   (`HOME n/5`).

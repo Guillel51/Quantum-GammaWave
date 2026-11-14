@@ -135,6 +135,20 @@ def main():
     d.ellipse([cx - 19, cy - 19, cx + 19, cy + 19], fill=AMBER + (255,))
     d.ellipse([cx - 7, cy - 7, cx + 7, cy + 7], fill=CREAM + (255,))
 
+    # 4b. the system: three orbits round the emblem and the five worlds on them, the same picture HOME
+    # draws in its 91 x 55 px bay -- five paths, five bodies, each on its own tone of the thermal ramp.
+    # Kept out of the name's column (x < 820) and above the spectrum band (y < 420).
+    for (ox, oy, tone) in ((206, 74, 0.34), (256, 92, 0.24), (306, 110, 0.16)):
+        d.ellipse([cx - ox, cy - oy, cx + ox, cy + oy], outline=thermal(tone) + (110,), width=2)
+    worlds = ((0.20, 0.62, 8, 0.86), (1.35, -0.40, 7, 0.62), (2.62, 0.24, 9, 0.93),
+              (3.95, -0.70, 6, 0.55), (5.10, 0.48, 10, 0.78))
+    for (ang, orb, rad, tone) in worlds:
+        ox, oy = (206, 74) if rad < 7 else (256, 92) if rad < 9 else (306, 110)
+        wx, wy = cx + ox * math.cos(ang), cy + oy * math.sin(ang)
+        d.ellipse([wx - rad - 5, wy - rad - 5, wx + rad + 5, wy + rad + 5], fill=thermal(tone) + (40,))
+        d.ellipse([wx - rad, wy - rad, wx + rad, wy + rad], fill=thermal(tone) + (232,))
+        d.ellipse([wx - rad // 3, wy - rad // 3, wx + rad // 5, wy + rad // 5], fill=CREAM + (150,))
+
     # 5. the name: Michroma, measured to fit the block, filled with a gold-to-ember gradient
     tx, ty = 96, 62
     title_f = font("Michroma-Regular.ttf", 96)

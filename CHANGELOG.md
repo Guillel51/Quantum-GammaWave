@@ -1,3 +1,28 @@
+## Unreleased — 2026-11-14 — la bahía orbital de HOME pasa a 91 × 55 px
+
+### Changed
+- **La bahía de HOME crece 3 px por lado.** `graph_ecosys()` (ui_being.c) dibuja el panel en **(8, 65) 91 × 55**
+  en vez de (8, 66) 88 × 52: es el sitio que la maqueta tenía libre —la bahía del espectro acaba en la fila 63,
+  la del hogar empieza en la columna 100 y el lienzo de la gráfica tiene 122 filas—, o sea 1 px arriba, 1 px a
+  la derecha y 2 px abajo. La estrella pasa de x 52 a **53** (el centro de la bahía nueva), el recorte a
+  9..97 × 66..118, y las brasas y el campo de partículas la siguen. La quinta órbita pasa de 38 a **39 px**:
+  39 + 4 de cuerpo + 1 de atmósfera = 44, la mitad exacta del recorte, así que roza el borde en su punto más
+  ancho y nunca lo cruza.
+
+### Verified (host)
+- `capture_pokes` (UI_NO_DRIFT=0): cada cuerpo conserva **97 / 77 / 53 / 54 / 93 %** de su propio disco
+  dibujado (antes, con 88 × 52: 97 / 77 / 53 / 53 / 93), las cinco respuestas siguen distintas y
+  reiniciables, y un toque fuera de la bahía no cambia un píxel. La bahía medida desde los cuerpos:
+  16..54 × 66..102.
+
+### Pending
+- **Los cinco discos siguen solapándose parte de cada ciclo.** No miden lo mismo y las cinco trayectorias
+  están a 5–8 px mientras los cuerpos miden 8–12 px: para que no se toquen hacen falta las cuatro
+  separaciones (9 + 11 + 12 + 10 = 42 px) más 5 px del radio exterior y 5 px de holgura con la estrella, es
+  decir ≈52 px de radio de sistema frente a los 44 que da una bahía de 91 px (haría falta ~120 px de ancho).
+  La alternativa sería cambiar la topología —menos trayectorias con varios cuerpos en cada una—, que es un
+  rediseño, no un agrandamiento.
+
 ## v3.0.0 — 2026-11-13 — CPU target dentro de presupuesto y biblioteca de 273 sonidos
 
 ## v3.1.3 — 2026-11-14 — cada planeta responde por el suyo

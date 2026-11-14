@@ -372,7 +372,7 @@ static uint32_t vz_qframe(void) { uint32_t s = vz_step(); return ui.frame / s * 
  *      (a drop in frames, a LOAD LITE skip, a chord: a visible jump). The angle is now a function
  *      of the millisecond clock (fm1_ms * the orbit's own rate), so it is the same curve at any
  *      frame rate, never restarts, and never jumps; the music no longer bends time.
- *    - SIZE. Planets were 2 / 3 / 4 px discs in an 88 x 52 px bay, with the star at most 6 px.
+ *    - SIZE. Planets were 2 / 3 / 4 px discs in an 88 x 52 px bay (91 x 55 since 3.6), with the star at most 6 px.
  *      They are 3 / 4 / 5 px spheres now (2.25x the area of the old ones), the star 5..7 px, on
  *      orbits of 15 / 25 / 34 px instead of 11 / 20 / 29, which still fit the bay with 2 px of
  *      margin at the widest point.
@@ -434,7 +434,7 @@ static void gw_ring_tab(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t
 
 static void sys_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c);   /* the bay's clip (below) */
 /* the same ring, clipped by HOME's bay: the note's answer and the touch's rings are drawn with it, so an echo
- * that leaves the 88 x 52 px square is dropped rather than painted over the panel's border */
+ * that leaves the 91 x 55 px square is dropped rather than painted over the panel's border */
 static void gw_ring_clip(int32_t cx, int32_t cy, int32_t rx, int32_t ry, uint16_t col, int dotted)
 {
     uint32_t k;
@@ -459,7 +459,7 @@ static void sys_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c);   
 static void sys_pset(int32_t x, int32_t y, uint16_t c);
 static void sys_line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c);
 /* (4.0) where the star was drawn and how big it was: the hit test's, and 0 until the bay has drawn one */
-static int16_t sys_star_x = 52, sys_star_y = 92;
+static int16_t sys_star_x = 53, sys_star_y = 92;
 static uint8_t sys_star_r = 4;
 /* (3.5) the ringed giant's own plane, opened by its touch (PK_SLING): 0 at rest, up to 2 px while pushed */
 static int32_t sys_ring_lift;
@@ -724,9 +724,9 @@ static void gw_planet_excite(int on)
 
 /* (3.1) HOME's bay is a real clip, not a suggestion. Every primitive the system draws goes through these
  * row/pixel helpers, so a body, a ring, a corona, a trail or a gesture spark can never paint outside the
- * 88 x 52 px square the panel gives it. The check is four compares per call -- no clip stack, no state to
+ * 91 x 55 px square the panel gives it. The check is four compares per call -- no clip stack, no state to
  * save and restore in gfx.c's hot path. */
-static int16_t sys_x0 = 9, sys_y0 = 67, sys_x1 = 94, sys_y1 = 116;
+static int16_t sys_x0 = 9, sys_y0 = 66, sys_x1 = 97, sys_y1 = 118;
 static void sys_box(int32_t x0, int32_t y0, int32_t w, int32_t h)
 {
     sys_x0 = (int16_t)(x0 + 1);
@@ -1082,10 +1082,12 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
      * the outer body is 4 px + 1 px atmosphere + a 3 px ring = 8 px, against 10 px of room, so it keeps a
      * 2 px margin at its widest point on every side. The old 4 / 6 / 7 px bodies (with a 4 px ring on the
      * last) needed 11 px and crossed the edge. */
-    static const int8_t ORX[5] = {11, 18, 26, 33, 38};         /* (3.2) a fourth orbit, 11 px inside the first:
+    static const int8_t ORX[5] = {11, 18, 26, 33, 39};         /* (3.2) a fourth orbit, 11 px inside the first:
                                                                 * a moon, so the system is not three rings and a sun;
-                                                                * (2.1) a fifth outside it, 38 + 3 + 1 = 42 of the
-                                                                * bay's 44, so it keeps its margin */
+                                                                * (2.1) a fifth outside it. (3.6) the bay is 91 x 55
+                                                                * and the clip 9..97 from cx 53, so 39 + 4 px body +
+                                                                * 1 px atmosphere = 44 is the clip's own half width:
+                                                                * it touches the edge at its widest and never crosses */
     static const uint8_t ORMS[5] = {9, 7, 6, 5, 4};            /* 7.3 s .. 16.4 s a turn (was 9-16 s) */
     /* (3.3) the body's own spin, 16-bit turn units a millisecond: 3.1 s, 4.7 s, 3.9 s and 2.5 s a turn. Faster
      * than the orbit on purpose -- a moon that spins in step with its orbit reads as a cut-out -- and each one
@@ -2016,14 +2018,16 @@ static void graph_ecosys(void)
     /* 1. Upper Bay (y = 2..63): FILTER + Yellow-Orange-Purple Spectrogram Waterfall + Cyan Mod Curve */
     gw_draw_forge_bay(TSEL, 8, 2, 224, 61, tot_en);
 
-    /* 2. Lower-Left Bay (x = 8..96, y = 66..118): HOME'S SYSTEM -- dust, three orbits, four planets.
+    /* 2. Lower-Left Bay (x = 8..98, y = 65..119): HOME'S SYSTEM -- dust, five orbits, five worlds.
      *    The dust goes first (it is the bay's depth, never in front of a planet or a value), then the
      *    system, then -- if the last ~0.7 s had a gesture -- the pulse. Nothing here is drawn under
      *    the mini-knobs of the right bay: those are controls, and the effects belong to this picture. */
-    gw_oct_panel(8, 66, 88, 52, 4, T_BG, T_LINE, 1, T_THEME);
-    sys_box(8, 66, 88, 52);                                 /* (3.1) the bay is the clip */
-    gw_embers(10, 67, 84, 50, ui_viz_q >= 2u ? 7u : ui_viz_q == 1u ? 11u : 18u, 0x1300u, 96, T_BG);
-    gw_draw_system(52, 92, 4 + (tot_en >> 8), tot_en, 210);
+    gw_oct_panel(8, 65, 91, 55, 4, T_BG, T_LINE, 1, T_THEME);   /* (3.6) 91 x 55, not 88 x 52: the room the
+                                                             * mock-up had left -- 1 px above, 1 to the right
+                                                             * (the hearth bay starts at 100), 2 below */
+    sys_box(8, 65, 91, 55);                                 /* (3.1) the bay is the clip */
+    gw_embers(10, 66, 87, 52, ui_viz_q >= 2u ? 7u : ui_viz_q == 1u ? 11u : 18u, 0x1300u, 96, T_BG);
+    gw_draw_system(53, 92, 4 + (tot_en >> 8), tot_en, 210);
     if (ui.home_pulse) {                                    /* a HOME tap or a knob turned on HOME */
         uint32_t age = ui.frame - ui.home_pulse;
         if (age >= 64u) {
@@ -2034,16 +2038,16 @@ static void graph_ecosys(void)
             int32_t ring = 4 + (int32_t)age;
             int32_t i, ang;
             if (ring < 36)
-                gw_orbit_ring(52, 92, ring, ring * 2 / 3, ux_mix(T_BG, T_THEME, 170 - (int32_t)age * 3), 1);
+                gw_orbit_ring(53, 92, ring, ring * 2 / 3, ux_mix(T_BG, T_THEME, 170 - (int32_t)age * 3), 1);
             if (age > 14u && ring < 34)                    /* the echo: narrower, greener, a little later */
-                gw_orbit_ring(52, 92, (ring - 14) * 3 / 4 + 2, ((ring - 14) * 3 / 4 + 2) * 2 / 3,
+                gw_orbit_ring(53, 92, (ring - 14) * 3 / 4 + 2, ((ring - 14) * 3 / 4 + 2) * 2 / 3,
                               ux_mix(T_BG, bg_col(120), 120 - (int32_t)age), 1);
             for (i = 0; i < 2; i++) {                      /* two sparks a frame, spiralling out of the orbits */
                 if ((age & 3u) == (uint32_t)i) {
                     uint32_t k = (age / 4u) & 3u;
                     int32_t sr = ring > 30 ? 30 : ring;
                     ang = (int32_t)k * 16384 + (int32_t)age * 620 + i * 2400;
-                    vz_np_add(52 + (bg_sin((uint32_t)ang + 0x4000u) * sr >> 15),
+                    vz_np_add(53 + (bg_sin((uint32_t)ang + 0x4000u) * sr >> 15),
                               92 + (bg_sin((uint32_t)ang) * sr * 2 / 3 >> 15),
                               (bg_sin((uint32_t)ang + 0x4000u) * 3 >> 15), -(1 + (int32_t)(k & 1)),
                               bg_col(150 + (int32_t)k * 30 + i * 40), 8, k == 0 ? 1 : 1);
@@ -2052,14 +2056,14 @@ static void graph_ecosys(void)
             /* the star itself brightens for the first half of the pulse: the system answers, it does not
              * just gain a ring. One extra disc, so the cost does not grow with the gesture */
             if (age < 24u)
-                gw_disc(52, 92, 4 + (tot_en >> 8) + (int32_t)((24u - age) / 10u), bg_col(255));
+                gw_disc(53, 92, 4 + (tot_en >> 8) + (int32_t)((24u - age) / 10u), bg_col(255));
         }
     }
 
     /* (2.2) HOME's gesture sparks, inside the bay that owns them and nowhere else. They were emitted here
      * since 2.0 but the only screen that drew the pool was EDIT, so they were painted on its ribbon. */
     vz_np_layer(VZ_OWN_HOME);
-    gw_note_particles(9, 67, 86, 50);
+    gw_note_particles(9, 66, 88, 52);
 
     /* 3. Lower-Right Bay (x = 100..232, y = 66..118): HEARTH Physics Knobs (Heat/Sparks/Weight/Force) + 6 Track Pads */
     gw_oct_panel(100, 66, 132, 52, 4, T_BG, T_LINE, 1, T_ACCENT);

@@ -88,7 +88,7 @@ check(body(being, "graph_being") and not calls_in(body(being, "graph_being")),
 
 # ---- where the sparks DO belong, each inside its own screen's free area ----
 home = calls_in(body(being, "graph_ecosys"))
-check(home == [(9, 67, 86, 50)], "HOME draws the pool inside its bay (9,67,86,50): %s" % (home,))
+check(home == [(9, 66, 88, 52)], "HOME draws the pool inside its bay (9,66,88,52): %s" % (home,))
 viz = calls_in(body(graph, "graph_home_viz"))
 check(viz == [(12, 64, 144, 67)], "the visualizer draws it in its scope field (12,64,144,67): %s" % (viz,))
 
