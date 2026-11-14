@@ -30,7 +30,7 @@
 `v3.2.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 - **What it is, first.** A free firmware for the **M-VAVE FM-1**: six tracks, twelve voices, nine synthesis
-  engines and **275 factory sounds**, a 64-step sequencer with an arpeggiator and song chains, per-track and
+  engines and **273 factory sounds** (275 entries: two legacy DRUM kits stay for old projects), a 64-step sequencer with an arpeggiator and song chains, per-track and
   per-bus effects, and an interface of 22 palettes on a 240 × 240 panel. It plays from the keys, edits from the
   encoders, and the browser emulator and Web Studio need no install.
 - **One version everywhere.** `FELUCCA_VERSION` (`v3.2.0`), the package, the emulator the portal serves and
@@ -46,7 +46,7 @@
   sparks, the two small ones grew from 4 to 5 px, and the Milky Way carries a lit bulge and drifting dust in
   both HOME and the visualizer.
 - **The bank is audited, not counted from a document.** `preset_audit_test` loads and renders every preset:
-  **275 total** (ANALOG 68, FM6 37, PHASE 32, LOFI 29, FORMANT 25, WHEEL/NOISE/WTABLE 22 each, DRUM 18 with its
+  **275 entries / 273 browsable** (ANALOG 68, FM6 37, PHASE 32, LOFI 29, FORMANT 25, WHEEL/NOISE/WTABLE 22 each, DRUM 18 with its
   two legacy kits), **0 silent, 0 exact duplicates, 0 out of range, 0 clipping**. `--levels` prints RMS, peak
   and clip time for each, which is what a remaster has to be decided on.
 - **The goldens are measured, not assumed.** 293 renders across every engine, preset, voice mode and FX send
@@ -116,7 +116,7 @@ What you hold is one instrument in four pieces:
 | | |
 |---|---|
 | **Voices / tracks / engines** | 12 · 6 · 9 (ANALOG, ACID, FM4, FM6, WAVE, DRUM, PHYSICAL, DIGITAL, NOISE) |
-| **Sound bank** | 275 presets, audited as data and measured as sound (bank median −18.5 dBFS) |
+| **Sound bank** | 273 presets (275 entries), audited as data and measured as sound (bank median −18.5 dBFS) |
 | **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
 | **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
 | **Screen** | 240 × 240 RGB565, fourteen colours per theme, nine palettes including GREY and MONO |
@@ -144,7 +144,7 @@ Nine engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and f
 | **NOISE** | noise-based percussion and textures | colour, band, decay, tone |
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 
-275 factory sounds are spread across them, plus user preset slots. Presets and projects from earlier
+273 factory sounds are spread across them (two legacy kits aside), plus user preset slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU
