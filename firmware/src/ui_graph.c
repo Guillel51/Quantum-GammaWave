@@ -329,7 +329,7 @@ static void graph_morph(const track_t *t)
     char b[24];
     pd_t pa, pb;
     an_dirt_t dt = {0, 0, 0, 0, 0};
-    int dirt = 0;
+    int dirt = 0, pmw = 0;
     if (ENGINES[e] == &ENG_PHASE) {
         uint32_t dcw = (uint32_t)(p[P_E2] << 8) * 65535u / (127u << 8);
         pos = (int32_t)(p[P_E0] & 7) * 256 + p[P_MORPH] * 768 / 127;
@@ -341,6 +341,10 @@ static void graph_morph(const track_t *t)
         pos = clamp(p[P_E1] * 256 + p[P_MORPH] * 768 / 127, 0, RW_WRAM * 256);
         a0 = (uint32_t)pos >> 8; a1 = a0 + 1u < RW_BYTE ? a0 + 1u : a0;
         n0 = N_RWAVE[a0]; n1 = N_RWAVE[a1];
+    } else if (p[P_E0] == AW_PM) {                    /* (FASE 2) PM: a sine whose phase osc 2 bends, MORPH the index */
+        pmw = 1;
+        pos = 0;
+        n0 = n1 = N_ANALOG_WAVE[AW_PM];
     } else if (p[P_E0] >= AW_TUBE) {                  /* (1.0-GW) TUBE FOLD: the sine as MORPH makes it dirty */
         an_dirt_set(&dt, p[P_MORPH] << 8);
         dirt = 1;
@@ -374,6 +378,9 @@ static void graph_morph(const track_t *t)
         } else if (ENGINES[e] == &ENG_LOFI) {
             s = lofi_mto(a0, ph, 0x80000000u, WRAM[((uint32_t)p[P_E2] >> 3) & 15u], 0, 1u);
             if (f) s += ((lofi_mto(a1, ph, 0x80000000u, WRAM[((uint32_t)p[P_E2] >> 3) & 15u], 0, 1u) - s) * f) >> 8;
+        } else if (pmw) {
+            int32_t mo = osc_saw(ph * 2u, inc);       /* osc 2, twice osc 1: a harmonically rich modulator */
+            s = osc_sine(ph + (uint32_t)mo * (uint32_t)(16384u + (uint32_t)p[P_MORPH] * 128u));
         } else if (dirt)
             s = an_dirt((uint32_t)p[P_E0], ph, &dt);
         else
@@ -1476,7 +1483,7 @@ static void graph_phase(const track_t *t, uint16_t c)
         cv_text(PANEL_X0 + 2, 112, &AF_S, "W2", T_DIM);
         fmt_int(b, w2);
         cv_text(PANEL_X0 + 24, 112, &AF_S, b, T_TEXT);
-        cv_text(PANEL_X0 + 40, 112, &AF_S, line ? "RING" : "MIX", T_DIM);
+        cv_text(PANEL_X0 + 40, 112, &AF_S, line == 1 ? "RING" : line == 2 ? "PM" : "MIX", T_DIM);
     }
 }
 

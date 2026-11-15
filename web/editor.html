@@ -2268,7 +2268,7 @@ function makeMockDevice(opt = {}) {
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
   const P = (name, e, env = [10, 70, 90, 60], mono = 0, pat = 0) => ({ name, e, env, mono, pat });
   const ENG = [
-    { name: "ANALOG", titles: ["OSC", "FLT"], edit: [E("WAVE", ["SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD"], 0), D("DETUNE", F.INT, 0, 127, 10, null, "ct"), D("MIX", F.PCT, 0, 127, 64),
+    { name: "ANALOG", titles: ["OSC", "FLT"], edit: [E("WAVE", ["SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD", "PM"], 0), D("DETUNE", F.INT, 0, 127, 10, null, "ct"), D("MIX", F.PCT, 0, 127, 64),
         D("NOISE", F.PCT, 0, 127, 0), D("CUT", F.CUTOFF, 0, 127, 90), D("RES", F.PCT, 0, 127, 30), D("DRIVE", F.PCT, 0, 127, 0), D("INT", F.SEMI, -24, 24, 0)],   /* (JIANT 0.4: INT, osc 2's interval, was KTR) */
       presets: [
         P("SAW LEAD", [0,  12,  64,  0,  90,  30,  10,  12], [4,  70,  100,  50], 1, 4),
@@ -2345,7 +2345,7 @@ function makeMockDevice(opt = {}) {
       presets: [] },
     { name: "PHASE", titles: ["PHS", "LINE"], edit: [E("WAVE", ["SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"], 0),
         E("WAVE2", ["-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"], 0), D("DCW", F.PCT, 0, 127, 60), D("ENV", F.PCT, 0, 127, 64),
-        D("DETUNE", F.INT, 0, 127, 0, null, "ct"), E("LINE", ["MIX", "RING"], 0), D("SUB", F.PCT, 0, 127, 0), D("FB", F.PCT, 0, 127, 0)],
+        D("DETUNE", F.INT, 0, 127, 0, null, "ct"), E("LINE", ["MIX", "RING", "PM"], 0), D("SUB", F.PCT, 0, 127, 0), D("FB", F.PCT, 0, 127, 0)],
       presets: [
         P("BRASS", [0,  0,  30,  90,  0,  0,  0,  0], [8,  70,  90,  40], 0, 6),
         P("ORGAN", [3,  0,  40,  0,  0,  0,  0,  0], [0,  127,  127,  30], 0, 6),

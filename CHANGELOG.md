@@ -1,3 +1,44 @@
+## Sin publicar — 2026-11-15 — modulación de fase en dos motores, sin parámetros nuevos
+
+Dos motores estrenan una interacción nueva entre sus fuentes sin añadir un control que no suene y sin tocar el
+formato guardado: los valores nuevos van al final de cada enum, así que un sonido viejo carga igual.
+
+### Síntesis
+
+- **ANALOG: WAVE = PM** (onda 11, `eng_analog.c`). El oscilador 2 (una sierra) pliega la fase del 1 antes de la
+  mezcla: FM con los dos osciladores que el motor ya tiene. El índice es **MORPH** más ENV / LFO → **SHAPE**
+  (0,78 rad con MORPH en 0 hasta ~4 rad) y la relación entre ambos, **INT** / **DTUNE**, como SYNC y RING (mismo
+  despacho, `analog_ext`). Sin parámetro nuevo: lo que en SYNC es el reinicio y en RING el producto, en PM es la
+  fase.
+- **PHASE: LINE = PM** (modo 3 de LINE, `eng_phase.c`). La línea 2 pliega la fase de la 1 antes de la forma de
+  onda; el índice sigue a **DCW**, así que el knob y ENV → DCW lo abren hasta ~1,5 rad. La línea 2 se calcula
+  ahora antes que la 1: MIX y RING dan los mismos samples que antes.
+- **La pantalla no miente**: la vista previa de MORPH dibuja la fase plegada y la marca del modo W2 lee `PM`.
+
+### Pruebas (clase: host x86; no es una medición del AC791N ni del FM-1)
+
+- **`tests/pm_test.c`** (nuevo, en la suite): sobre el DSP real, 8 comprobaciones. ANALOG PM difiere de sí mismo
+  con MORPH 0 y 127 en **1,53× la señal** y su brillo (RMS de la diferencia primera sobre RMS de la señal) sube
+  de **0,048 a 0,345**; PHASE PM difiere de MIX en **1,31×** con brillo **0,144 → 0,799** al mismo DCW; ninguno
+  coincide con SIN, MIX ni RING; picos **13 946** y **11 764**, muy por debajo del bus (2^26).
+- **`tests/six_live_golden.txt` regrabado** (61 hashes, `SIX_LIVE_ACCEPT=1`), y el motivo es uno solo: la
+  escena barre `trk[0].p[P_E0]` de 0 a 127 y el motor lleva al máximo del enum todo lo que lo pasa; ese máximo
+  es ahora PM y antes era FOLD. Dos corridas seguidas dan 61/61. El render de imágenes no se movió.
+- `web/editor.html`: las tablas del editor llevan `PM` en WAVE y en LINE (la suite las compara con el
+  firmware y fallaba con 2 diferencias hasta corregirlas).
+- `engine_param_test`: 216 knobs × 3 presets, 0 inertes. `morph_audible_test`: 21 casos, 0 fallos.
+  `phase2_test`: PASS.
+- `tests/regress.c`: **293 renders golden, 0 cambiados** (ninguna página ni preset de fábrica usa PM todavía),
+  0 fallos de salud, 0 de voces/routing, 0 cuelgues; CPU **PASS** (mediana del host 1,06, límite agregado
+  +20 %, 0 filas fuera de presupuesto).
+
+### Pendiente y límites
+
+- La imagen del target **no se midió**: `JIELI_TOOLCHAIN` y `AC79_SDK` no están en este entorno, así que el
+  `.fwsc` y su tamaño quedan sin comprobar. El margen documentado tras la entrega del WAVETABLE es de 5 852 B.
+- Ningún preset de fábrica usa PM todavía: la onda existe y se elige en EDIT > WAVE, pero agregar un sonido de
+  la casa sin poder escucharlo sería declarar un timbre que nadie oyó.
+
 ## Sin publicar — 2026-11-15 — el flash que faltaba: la tabla del WAVETABLE se genera en el arranque
 
 La región XIP estaba en 583 600 de 583 612 B: doce bytes. La vía de comprimir assets se midió y estaba

@@ -408,8 +408,9 @@ click; las notas siguen.
 | **WTABLE** | MORPH, DETUNE, UNI, SUB | CUT, RES, DRIVE, HARM | MORPH, HARM, CUT, UNI |
 | **DRUM** (DRUM-X) | MORPH, TUNE, TONE, DECAY | NOISE, FM ENV, FOLD, DRIVE | MORPH, TUNE, TONE, DECAY |
 
-- **ANALOG**: dos osciladores. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD. **INT** fija el
-  intervalo del oscilador 2 (±24 semitonos). Su filtro es por voz. **TUBE** y **FOLD** son senos ensuciados dentro del
+- **ANALOG**: dos osciladores. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD, PM. **PM** es modulación de fase: el oscilador 2
+  pliega la fase del 1, el índice es **MORPH** (con ENV / LFO → **SHAPE**) y la relación, **INT** / **DTUNE**.
+  **INT** fija el intervalo del oscilador 2 (±24 semitonos). Su filtro es por voz. **TUBE** y **FOLD** son senos ensuciados dentro del
   oscilador, antes del filtro, así que la fundamental se queda (un 808 distorsionado conserva su sub): TUBE pasa por la
   curva de válvula Hearth de GammaWave (cálido, armónicos pares), FOLD por el plegador Blast de WRAITH (un gruñido,
   metal). Cuánto ensucian: **MORPH** más ENV / LFO → **SHAPE**; con ENV → SHAPE arriba, la nota está más sucia en el
@@ -421,7 +422,7 @@ click; las notas siguen.
   **OPERATOR / OP ENV / OPERATOR 2** editan cada uno de los seis operadores en el equipo (KNOB 1 elige el operador);
   editar convierte el patch en propio de la pista (SLOT OWN), y se guarda con el proyecto. Una voz del banco que
   elegís se copia a la pista, así que los proyectos la conservan aunque después mandes otro banco.
-- **PHASE**: distorsión de fase. WAVE / WAVE2: SAW, SQR, PLS, DSIN, SPLS, RSAW, RTRI, RTRP. LINE: MIX o RING.
+- **PHASE**: distorsión de fase. WAVE / WAVE2: SAW, SQR, PLS, DSIN, SPLS, RSAW, RTRI, RTRP. LINE: MIX, RING o PM (la línea 2 pliega la fase de la 1; el índice, **DCW** con ENV → DCW).
   **FB** realimenta la salida hacia la fase.
 - **LOFI**: sonidos de chip. CHIP: 4BIT, 4B/2, 8BIT, 1BIT, STEP. WAVE: PLS, TRI, SAW, NOIS, WRAM, **BYTE**, **FLOAT**.
   - **BYTE** (bytebeat): KNOB 3 pasa a ser **ALGO** (32 fórmulas), KNOB 4 **VAR** (muta la fórmula); EDIT 2 pasa a

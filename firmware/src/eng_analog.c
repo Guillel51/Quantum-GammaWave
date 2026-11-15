@@ -5,9 +5,11 @@
  * WAVEs in a loop of their own (analog_ext): SYNC (osc 2's saw restarted by osc 1, DTN its ratio 1 .. 8.9: the sync
  * lead's sweep), RING (osc 1's saw times osc 2's sine at that ratio: bells, metal), SAW3 (three saws, osc 2 DTN cents up,
  * osc 3 down: TRIO's fat stack). MIX: osc 1 against the other(s) as before. INT (0.4, once KTR): osc 2 INT semitones
- * from osc 1, as a classic two-oscillator synth (fifths, octaves; SAW3: its osc 2). */
-static const char *const N_ANALOG_WAVE[] = {"SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD"};
-enum { AW_SYNC = 5, AW_RING, AW_SAW3, AW_TUBE, AW_FOLD };
+ * from osc 1, as a classic two-oscillator synth (fifths, octaves; SAW3: its osc 2). (FASE 2) PM: osc 2 (a saw) bends
+ * osc 1's phase before the mix -- FM's cousin with the two oscillators this engine already has; the index is MORPH
+ * plus SHAPE (0.78 .. ~4 rad) and the ratio INT / DTUNE, as SYNC and RING's. Appended: the stores' 0..9 stay. */
+static const char *const N_ANALOG_WAVE[] = {"SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD", "PM"};
+enum { AW_SYNC = 5, AW_RING, AW_SAW3, AW_TUBE, AW_FOLD, AW_PM };   /* (FASE 2: PM appended, the stores' values stay) */
 /* (JIANT 0.5) FILTER TYPE (P_FTYPE): LP as before (analog_render's loop); HP BP from the same state-variable filter
  * (analog_ext's loop, every WAVE); COMB the filter open, the part's sum through a feedback comb tuned to the newest
  * note and CUT (+-32 semitones about it), RES its feedback (voice.c track_comb) */
@@ -138,6 +140,9 @@ static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t
     uint32_t wave = (uint32_t)p[P_E0], i, inc1 = m->inc, ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2], r, inc2, inc3;
     uint32_t ft = (uint32_t)p[P_FTYPE] % 6u, pw = an_pw(t, m);
     int32_t mx = wave >= AW_SYNC ? an_mext(t->mo_cur, m) : 0;   /* (0.6.81) MORPH, SHAPE on SYNC RING SAW3 */
+    /* (FASE 2) PM's index, Q0 phase units per sample of osc 2: 0.78 rad with MORPH at 0 up to ~4 rad, the MORPH
+     * knob and SHAPE together (an_mext). The oscillator ratio is SYNC / RING's r, so INT and DTUNE retune it */
+    uint32_t pmk = wave == AW_PM ? (uint32_t)mx * 5u / 2u + 16384u : 0u;
     int32_t det = p[P_E1] + (wave == AW_SAW3 ? mx * 40 / (127 << 8) : 0), m2 = p[P_E2] * 258, m1 = 32767 - m2, nz = p[P_E3] * 200, drv = p[P_E6], kd = 8192 - p[P_E5] * 7600 / 127;
     int32_t drive = 32768 + drv * 512, cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) * 4);
     int32_t ic1 = v->s[0], ic2 = v->s[1], nst = v->s[2];
@@ -169,6 +174,10 @@ static __attribute__((noinline)) void analog_ext(track_t *t, voice_t *v, int32_t
             ph2 += inc3;
         } else if (wave == AW_SYNC) {
             b = osc_saw(ph1, inc2);
+        } else if (wave == AW_PM) {
+            b = osc_saw(ph1, inc2);                       /* osc 2, the modulator */
+            a = osc_sine(ph0 + (uint32_t)b * pmk);         /* PM: it bends osc 1's phase (a signed product, wrapped
+                                                            * as the phase wraps: unsigned, no UB) */
         } else {
             b = ((a >> 1) * (osc_sine(ph1) >> 1)) >> 13;   /* RING (32 bits) */
         }
@@ -322,8 +331,8 @@ static void analog_dispatch(track_t *t, voice_t *v, int32_t *out, uint32_t n, co
         int32_t base = (int32_t)t->p[P_E0] * 256;      /* (as it leaves or comes: the plain WAVE) */
         analog_morph(t, v, out, n, pm, m0 < 0 ? base : m0, m1 < 0 ? base : m1);
     }
-    else if ((uint32_t)t->p[P_E0] >= AW_TUBE)
-        analog_dirty(t, v, out, n, pm);
+    else if ((uint32_t)t->p[P_E0] >= AW_TUBE && (uint32_t)t->p[P_E0] != AW_PM)
+        analog_dirty(t, v, out, n, pm);              /* (PM is not a dirty sine: it goes through analog_ext) */
     else if ((uint32_t)t->p[P_E0] >= AW_SYNC || t->p[P_FTYPE])
         analog_ext(t, v, out, n, pm);
     else
@@ -495,7 +504,7 @@ static const engine_t ENG_ANALOG = {
     .name = "ANALOG",
     .page_title = {"OSC", "FLT", "CHAR"},
     .edit = {
-        {"WAVE", F_ENUM, 0, 9, 0, N_ANALOG_WAVE, 0},  /* (1.0-GW: TUBE FOLD appended) */
+        {"WAVE", F_ENUM, 0, 10, 0, N_ANALOG_WAVE, 0},  /* (1.0-GW: TUBE FOLD appended; FASE 2: PM) */
         {"DETUNE", F_INT, 0, 127, 10, 0, "ct"},
         {"MIX", F_PCT, 0, 127, 64, 0, 0},
         {"NOISE", F_PCT, 0, 127, 0, 0, 0},

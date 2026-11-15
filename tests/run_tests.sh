@@ -217,6 +217,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "M.STRT: a note waits a random 0..20 ms and no two notes wait the same (audio), the wait is silence and does not click, the level holds; N.RATE: the random wander holds 46 ms or a tempo division, down to 1/16" "$OUT/microstart_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/lofi_tclk_test" tests/lofi_tclk_test.c -lm
     run "LOFI T.CLK: NOTE restarts the formula every note, FREE joins it where the track clock is (audio, not a screen), keeps the level, survives a sound change and does not click" "$OUT/lofi_tclk_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/pm_test" tests/pm_test.c -lm
+    run "(FASE 2) PM: ANALOG's WAVE = PM and PHASE's LINE = PM bend the phase, move with MORPH / DCW, brighten and are not SIN / MIX / RING" "$OUT/pm_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/phase2_test" tests/phase2_test.c -lm
     run "FASE 2: every engine's CHARACTER bank moves the sound, LFO SLEW / INVERT, ENV VEL, the pages and a project round trip" "$OUT/phase2_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm

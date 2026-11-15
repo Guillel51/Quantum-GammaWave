@@ -396,7 +396,9 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
 | **WTABLE** | MORPH, DETUNE, UNI, SUB | CUT, RES, DRIVE, HARM | MORPH, HARM, CUT, UNI |
 | **DRUM** (DRUM-X) | MORPH, TUNE, TONE, DECAY | NOISE, FM ENV, FOLD, DRIVE | MORPH, TUNE, TONE, DECAY |
 
-- **ANALOG**: two oscillators. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD. **INT** sets oscillator
+- **ANALOG**: two oscillators. WAVE: SAW, SQR, TRI, SIN, PWM, SYNC, RING, SAW3, TUBE, FOLD, PM. **PM** is phase modulation: oscillator 2
+  bends oscillator 1's phase, the index is **MORPH** (with ENV / LFO → **SHAPE**) and the ratio, **INT** / **DTUNE**.
+  **INT** sets oscillator
   2's interval (±24 semitones). Its filter is per voice. **TUBE** and **FOLD** are sines made dirty inside the
   oscillator, before the filter, so the fundamental stays (a distorted 808 keeps its sub): TUBE through GammaWave's
   Hearth tube curve (warm, even harmonics), FOLD through WRAITH's Blast wavefolder (a growl, metal). How dirty is
@@ -408,7 +410,7 @@ every engine) or with KNOB 2 (ENG) on SAVE > PRESETS. Each track's four HOME kno
   of the six operators on the device (KNOB 1 picks the operator); editing makes the patch the track's own (SLOT OWN),
   saved with the project. A bank voice you pick is copied into the track, so projects keep it even if you send
   another bank later.
-- **PHASE**: phase distortion. WAVE / WAVE2: SAW, SQR, PLS, DSIN, SPLS, RSAW, RTRI, RTRP. LINE: MIX or RING.
+- **PHASE**: phase distortion. WAVE / WAVE2: SAW, SQR, PLS, DSIN, SPLS, RSAW, RTRI, RTRP. LINE: MIX, RING or PM (line 2 bends line 1's phase; the index, **DCW** with ENV → DCW).
   **FB** feeds the output back into the phase.
 - **LOFI**: chip sounds. CHIP: 4BIT, 4B/2, 8BIT, 1BIT, STEP. WAVE: PLS, TRI, SAW, NOIS, WRAM, **BYTE**, **FLOAT**.
   - **BYTE** (bytebeat): KNOB 3 becomes **ALGO** (32 formulas), KNOB 4 **VAR** (mutates the formula); EDIT 2 becomes

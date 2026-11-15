@@ -4,14 +4,15 @@
  * CrispyZebra (Leo Kuroshita, GPL-3.0, github.com/hugelton/CrispyZebra), the
  * author's own phase-distortion core: a -cos table read through a bent phase whose
  * bend is DCW. WAVE2 alternates with WAVE every other cycle. A second
- * line (DTN) can be mixed or ring-modulated; SUB adds a sine an octave down.
+ * line (DTN) can be mixed or ring-modulated -- or, since FASE 2, phase-modulate line 1 with its own index (DCW);
+ * SUB adds a sine an octave down.
  * Envelopes are Felucca's own (ADSR, ENV -> DCW).
  * (JIANT 0.4) FB: phase feedback, line 1's output (the mean of its last two samples, as a DX operator's) bends its
  * own phase further, up to a quarter cycle: from a harder edge through growl to noise; the ENV / LFO / matrix move it
  * as E8. */
 static const char *const N_PD_WAVE[] = {"SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
 static const char *const N_PD_WAVE2[] = {"-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"};
-static const char *const N_PD_LINE[] = {"MIX", "RING"};
+static const char *const N_PD_LINE[] = {"MIX", "RING", "PM"};   /* (FASE 2: PM appended, the stores' 0 / 1 stay) */
 
 static inline int32_t pd_cos(uint32_t ph16)             /* -cos, Q15, from the 16-bit PD phase */
 {
@@ -145,7 +146,7 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
     uint32_t w1 = (uint32_t)p[P_E0] & 7u, w2 = (uint32_t)p[P_E1], i;
     int32_t depth = (p[P_E2] << 8) + m->cutoff + mulq15(m->envq15, p[P_E3] * 256);
     uint32_t dcw, inc = m->inc, inc2;
-    int32_t det = p[P_E4], line2 = det != 0 || p[P_E5], ring = p[P_E5], sub = p[P_E6] * 200;
+    int32_t det = p[P_E4], line = p[P_E5], line2 = det != 0 || line, ring = line == 1, sub = p[P_E6] * 200;
     int32_t d16 = det * 16 / 100, rem = det * 16 - d16 * 100;   /* (cents_inc(), written out: the host
                                                                  * compiler makes the loop slower with it) */
     uint32_t ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2];
@@ -161,6 +162,9 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
     depth = clamp(depth + (m->shape - (64 << 8)), 0, 127 << 8);
     dcw = (uint32_t)depth * 65535u / (127u << 8);
     dcw = (dcw * 56000u) >> 16;                              /* the classic range of the bend */
+    /* (FASE 2) LINE = PM: line 2 bends line 1's phase, the index 0 .. ~1.5 rad following DCW, so the DCW knob and
+     * ENV -> DCW set it (no parameter of its own; the ratio is DTUNE's, as W2 already is) */
+    uint32_t pmk = line == 2 ? (uint32_t)depth * 31200u / (127u << 8) : 0u;
     inc2 = pitch_inc(clamp(m->pitch16 + d16, 0, 2047));
     inc2 += (uint32_t)((int32_t)(inc2 >> 12) * (rem * 2367 / 16000));
     if (t->mo_cur || t->mo_prev) {
@@ -175,9 +179,18 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
     pd_setup(&b2, w2 ? w2 - 1u : w1, dcw);                   /* WAVE2 (every other cycle) */
     for (i = 0; i < n; i++) {
         uint32_t old = ph0;
-        int32_t s;
+        int32_t s, s2 = 0;
+        if (line2) {                                  /* (FASE 2) line 2 before line 1: PM needs it as a modulator */
+            uint32_t old2 = ph1;
+            s2 = pd_wave(tg1 ? &b2 : &b1, ph1 >> 16);
+            ph1 += inc2;
+            if (ph1 < old2)
+                tg1 ^= 1;
+        }
         {
             uint32_t pp = ((ph0 >> 16) + (uint32_t)((((f1 + f2) >> 1) * (fb >> 8)) >> 8)) & 0xFFFFu;
+            if (line == 2)
+                pp = (pp + (uint32_t)s2 * pmk) & 0xFFFFu;   /* PM: wrapped as the phase wraps (unsigned, no UB) */
             fb += dfb;
             s = pd_wave(tg0 ? &b2 : &b1, pp);
             if (mf && !tg0)
@@ -189,14 +202,8 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
         ph0 += inc;
         if (ph0 < old)
             tg0 ^= 1;
-        if (line2) {
-            uint32_t old2 = ph1;
-            int32_t s2 = pd_wave(tg1 ? &b2 : &b1, ph1 >> 16);
-            ph1 += inc2;
-            if (ph1 < old2)
-                tg1 ^= 1;
+        if (line2 && line != 2)                       /* (PM already bent line 1's phase: nothing to mix in) */
             s = ring ? mulq15(s, s2) : (s + s2) >> 1;     /* both within +-32767 */
-        }
         if (sub) {
             ph2 += inc >> 1;
             s += mulq15(osc_sine(ph2), sub);
@@ -330,7 +337,7 @@ static const engine_t ENG_PHASE = {
         {"DCW", F_PCT, 0, 127, 60, 0, 0},
         {"ENV", F_PCT, 0, 127, 64, 0, 0},
         {"DETUNE", F_INT, 0, 127, 0, 0, "ct"},
-        {"LINE", F_ENUM, 0, 1, 0, N_PD_LINE, 0},
+        {"LINE", F_ENUM, 0, 2, 0, N_PD_LINE, 0},
         {"SUB", F_PCT, 0, 127, 0, 0, 0},
         {"FB", F_PCT, 0, 127, 0, 0, 0},
     },
