@@ -469,16 +469,18 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
     cv_begin(COL_W, LG_CARD_H, T_BG);
     cv_rrect(0, 0, COL_W, LG_CARD_H, 4, T_SURF, T_BG);
     card_edge(COL_W, LG_CARD_H);
+    if (!label[0] && !val[0]) {                         /* a knob that does nothing on this page: the empty
+                                                         * card, and no "K1" pill either -- a label for a
+                                                         * control that is not there (FASE 4, §13) */
+        cv_blit((uint32_t)CARD_X(c), Y_LABEL);
+        return;
+    }
     {   /* the knob: "K1" .. "K4" on a pill */
-        uint16_t fill = hot ? T_ACCENT : label[0] || val[0] ? T_KEY : T_DIM;
+        uint16_t fill = hot ? T_ACCENT : T_KEY;      /* an empty card has already returned above */
         mw = ink_w(&AF_M, k) + 10;
         cv_rrect(5, LG_MY, mw, LG_MH, 5, fill, T_SURF);
         GFX_HOOK_ALIGN(5, LG_MY, 5 + mw, LG_MY + LG_MH, AL_HV, "large card knob pill");
         cv_text_in(5, LG_MY + CAP_IN(M, LG_MH), mw, &AF_M, k, T_INK, fill);
-    }
-    if (!label[0] && !val[0]) {                         /* a knob that does nothing on this page */
-        cv_blit((uint32_t)CARD_X(c), Y_LABEL);
-        return;
     }
     if (FELUCCA_ICONS && ic != ICON_NONE && label[0] && (ic - ICON_TRK < NTRK || icon_cell(&isz, ic) >= 0)) {
         GFX_HOOK_ALIGN(0, LG_MY, 0, LG_MY + LG_MH, AL_V, "large card icon on its pill's line");
