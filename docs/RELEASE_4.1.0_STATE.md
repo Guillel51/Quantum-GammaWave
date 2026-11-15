@@ -22,7 +22,9 @@ lleva otro binario, lleva el mismo.
 
 * **Attestation:** verificarla pide `gh attestation verify` con credenciales; en este entorno no hay ninguna
   (`gh auth status` → *not logged in*). El badge de procedencia del Hub queda sin comprobar desde acá.
-* **`SHA256SUMS` de la release:** es el archivo acumulado histórico (lista v2.5.0 … v2.7.4) y **no incluye
-  la 4.1.0**. El instalador valida contra el manifiesto del paquete, no contra ese archivo, así que la
-  instalación no depende de él, pero el archivo quedó desactualizado.
+* **`release/SHA256SUMS`:** estaba desactualizado (llegaba hasta v4.0.0). Se agregaron las tres entradas de
+  v4.1.0 (paquete, manifest del registro y `build-manifest-v4.1.0.json`), con los hashes calculados sobre los
+  archivos locales. Verificado: `sha256sum -c release/SHA256SUMS` sin fallos y `tools/coherence_check.py` → ok.
+  El instalador valida contra el manifiesto del paquete, no contra este archivo; la instalación no depende de él.
+  Los hashes locales coinciden con el asset publicado, según la comprobación de arriba.
 * **Unidad física:** nada de esto se probó en una FM-1.
