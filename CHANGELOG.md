@@ -1,3 +1,20 @@
+## Sin publicar — 2026-11-15 — FASE 7: el degradado de las placas deja de costar frame
+
+### Rendimiento (host, `ui_render` a `-O1`, mínimo de cuatro corridas)
+
+- La campaña visual costaba **+4,9 %** en la suma del redibujado de las 17 pantallas medidas (`edit_analog`
+  +24 %, `env` +26 %, `pattern` +20 %). Con esta campaña queda en **+1,5 %**, y `edit_analog`, `env` y
+  `pattern` vuelven a +1,5 %, +0,2 % y +0,5 %.
+- **La rampa se cachea por `(filas, hi, lo)`**: una pantalla dibuja 4–8 placas iguales y cada una recalculaba
+  sus 21 `ux_mix`. Igual para la rampa del panel (`ramp_cache`). Coste en `.bss`: **~276 B**, declarado.
+- **Las placas bajas (filas de lista, 16–18 px) van en cuatro bandas** en vez de ocho rellenos: MENU era la
+  pantalla más castigada (+10,6 %), ahora el sobrecoste es 13 µs de host por frame y es tinta real.
+- Dos pantallas **mejoran** porque dejaron el tramado al 50 % por bandas sólidas: `roll_chords` −2,4 % y
+  `about_credits` −2,9 %.
+- Sin `malloc`/`calloc`/`realloc` en el firmware: no hay fragmentación que medir.
+- Detalle y método en `docs/PERFORMANCE_FASE7.md`. Lo que no se pudo medir (`.bss` del AC791N, ISR, WASM)
+  está listado ahí como no medido, no como aprobado.
+
 ## Sin publicar — 2026-11-15 — FASE 6 (visual): los mini knobs de HOME son un dial, no un polígono de puntos
 
 ### Interfaz

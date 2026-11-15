@@ -440,6 +440,29 @@ static uint32_t rr_cov(int32_t r, int32_t i, int32_t j)
  * saturates per channel, so GREY and MONO stay neutral and no ink is drawn on its own tone. Small plates --
  * keycaps, chips, 3 px gauges, meter bars -- are left exactly as they were. */
 static uint8_t cv_plate_flat;                 /* (FASE 3) the next plate is filled flat: see cv_rrect */
+/* (FASE 7) THE RAMP IS THE SAME FOR EVERY CARD OF A FRAME. A screen draws four to eight plates with one height
+ * and one pair of colours, and each was mixing its own ramp again -- 21 ux_mix() calls per card, three
+ * saturating channels each, for a list of colours that never changed inside the frame. The list is cached on
+ * (rows, hi, lo) and rebuilt only when one of them moves, so a screen pays for it once. */
+#define PLATE_CACHE 64          /* (128 B of .bss: a card needs 21, a panel 50, the graph falls back) */
+static struct {
+    int32_t n;
+    uint16_t hi, lo;
+    uint16_t g[PLATE_CACHE];
+} plate_cache;
+static uint16_t plate_ramp_at(int32_t k, int32_t n, uint16_t hi, uint16_t lo)
+{
+    if (n > 0 && n <= PLATE_CACHE) {
+        if (plate_cache.n != n || plate_cache.hi != hi || plate_cache.lo != lo) {
+            int32_t i;
+            for (i = 0; i < n; i++)
+                plate_cache.g[i] = ux_mix(hi, lo, (i + 1) * 100 / n);
+            plate_cache.n = n, plate_cache.hi = hi, plate_cache.lo = lo;
+        }
+        return plate_cache.g[k];
+    }
+    return ux_mix(hi, lo, (k + 1) * 100 / n);
+}
 static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c)
 {
     int32_t k, n;
@@ -454,24 +477,26 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
      * under the bezel -- five rows, which at 240x240 is what looked pixelated. One cv_rect a row: a card of
      * 104 px is 104 fills, a row of a list is 16, and nothing is drawn per pixel, so a screen costs a few
      * hundred fills in total and the whole sweep stays the same order as before (measured below). */
-    n = h > 3 ? (h - 2 + 1) / 2 : 1;          /* 2 px steps: over a card the palette has about ten values, so a
-                                                * finer step repeats a colour and only costs fills */
+    /* (FASE 7) A SHORT PLATE TAKES FEWER RUNS. A list row is 16..18 px tall: at one run per 2 rows that is
+     * eight fills where the flat row was one, and MENU draws seven of them -- the page measured 10 % slower
+     * for a gradient nobody can resolve at that height. Four bands on a row, the same 2 px law on a card. */
+    n = h >= 24 ? (h - 2 + 1) / 2 : (h > 6 ? 4 : 1);
     {
         /* Only the rows whose quantised colour CHANGES are filled: on a 16-bit palette a ramp this long has
 
          * about ten values, so a run of one fill covers several rows and the picture is the same one. */
 
-        uint16_t hi = ux_mix(c, T_TEXT, 7), lo = ux_mix(c, T_BG, 58), g = ux_mix(hi, lo, 100 / n);
-        int32_t r0 = 0;
+        uint16_t hi = ux_mix(c, T_TEXT, 7), lo = ux_mix(c, T_BG, 58), g = plate_ramp_at(0, n, hi, lo);
+        int32_t r0 = 0, bh = (h - 2) / n;
         for (k = 1; k < n; k++) {
-            uint16_t gn = ux_mix(hi, lo, (k + 1) * 100 / n);
+            uint16_t gn = plate_ramp_at(k, n, hi, lo);
             if (gn != g) {
-                cv_rect(x + 1, y + 1 + r0 * 2, w - 2, (k - r0) * 2, g);
+                cv_rect(x + 1, y + 1 + r0 * bh, w - 2, (k - r0) * bh, g);
                 g = gn;
                 r0 = k;
             }
         }
-        cv_rect(x + 1, y + 1 + r0 * 2, w - 2, h - 2 - r0 * 2, g);
+        cv_rect(x + 1, y + 1 + r0 * bh, w - 2, h - 2 - r0 * bh, g);
     }
 }
 /* (FASE 3) the same ramp on a chamfered plate: every row, from the top of the body to its foot, inset by the
@@ -485,7 +510,7 @@ static void cv_plate_cut_ground(int32_t x, int32_t y, int32_t w, int32_t h, int3
         int32_t dy = j + 2, db = h - 3 - j;                  /* rows to the plate's top and to its foot */
         int32_t d = dy < db ? dy : db, in = d < r ? r - d : 0;
         int32_t bw = w - 2 * in;
-        uint16_t gn = ux_mix(hi, lo, (j / 2 + 1) * 100 / n);
+        uint16_t gn = plate_ramp_at(j / 2, n, hi, lo);
         if (w0 < 0) {
             g = gn, w0 = bw, y0 = j;
         } else if (gn != g || bw != w0) {
@@ -724,16 +749,36 @@ static void ux_ground_rows(int32_t x, int32_t y, int32_t w, int32_t h,
  * ramps (T_BG -> T_SURF, T_BG -> T_ACCENT) because HOME and FX > BUSES start from the page behind the panel;
  * a page's own panel starts ON T_SURF, so interpolating from T_BG there painted a dark block in the middle of
  * the plate instead of a gradient. This is the general form: from -> to, nothing else assumed. */
+/* (FASE 7) the same cache for the panel's ramp: one graph page mixes the whole height once a frame, and the
+ * rows were mixing it again every time (`ux_mix` is three saturating channels). Keyed on (rows, from, to). */
+static struct {
+    int32_t h;
+    uint16_t from, to;
+    uint16_t g[PLATE_CACHE];
+} ramp_cache;
+static uint16_t ramp_at(int32_t k, int32_t h, uint16_t from, uint16_t to)
+{
+    if (h > 1 && h <= PLATE_CACHE) {
+        if (ramp_cache.h != h || ramp_cache.from != from || ramp_cache.to != to) {
+            int32_t i;
+            for (i = 0; i < h; i++)
+                ramp_cache.g[i] = ux_mix(from, to, (i + 1) * 100 / (h - 1));
+            ramp_cache.h = h, ramp_cache.from = from, ramp_cache.to = to;
+        }
+        return ramp_cache.g[k];
+    }
+    return ux_mix(from, to, (k + 1) * 100 / (h > 1 ? h - 1 : 1));
+}
 static void ux_ground_ramp(int32_t x, int32_t y, int32_t w, int32_t h, int32_t n, uint16_t from, uint16_t to, int32_t pct)
 {
     int32_t k, y0 = 0;
-    uint16_t g = 0, gn;
+    uint16_t g, gn;
     (void)n;                                        /* (FASE 3) per row, not per band: `n` is now only a hint */
     if (h < 2)
         return;
-    g = ux_mix(from, to, 100 / (h - 1));
+    g = ramp_at(0, h, from, to);
     for (k = 1; k < h; k++) {
-        gn = ux_mix(from, to, (k + 1) * 100 / (h > 1 ? h - 1 : 1));
+        gn = ramp_at(k, h, from, to);
         if (gn != g) {
             gw_dither(x, y + y0, w, k - y0, from, g, pct);
             g = gn, y0 = k;
