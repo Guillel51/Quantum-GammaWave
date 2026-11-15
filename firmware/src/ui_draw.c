@@ -7,17 +7,10 @@
  * M (15 px) values and the header, L (28 px) big numerals. (JIANT 0.6.56: S Chakra Petch, M IBM Plex Mono, L Michroma 18 px;
  * the JIANT palette's boxes square with HUD corners, gfx.c cv_rrect). A card value too wide for M is set in S;
  * free text (names, messages) is ellipsised at its size. */
-/* (FASE 4) THE CARD'S OWN RAMP. The four cards were one flat T_SURF plate under a page whose panel is a
- * gradient: on GLOBAL -- the page with nothing else in the body to compare against -- they read as four
- * blocks cut out of the background. Three bands inside the rounded body, from the surface at the top edge
- * to the floor's shade, painted after the plate and before any text, so they never touch a value. */
-static void fxb_card_ramp(int32_t w, int32_t h)
-{
-    int32_t p, y0 = 3, hh = h - 6, bh = hh / 3;
-    for (p = 0; p < 3; p++)
-        cv_rect(3, y0 + p * bh, w - 6, p == 2 ? hh - bh * 2 : bh, ux_mix(T_SURF, T_BG, 4 + p * 7));
-}
-
+/* (FASE 3) The card's ramp is not drawn here any more: cv_rrect paints it on every T_SURF plate (gfx.c
+ * cv_plate_ground / cv_plate_cut_ground), row by row and inside the plate's own corner, so a card, a module and
+ * a list row share one ramp instead of three. The three broad bands that used to live here would now sit on top
+ * of it and put back the steps this replaced. */
 static void draw_menu(void);
 static int name_on(void);                              /* NAME (ui_name.c) */
 static uint64_t lock_held(void);                       /* parameter locks: the steps held on STEP (ui_input.c) */
@@ -481,7 +474,6 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
     uint32_t ic = mot ? ICON_X_MOTION : icon, isz = 16u;
     cv_begin(COL_W, LG_CARD_H, T_BG);
     cv_rrect(0, 0, COL_W, LG_CARD_H, 4, T_SURF, T_BG);
-    fxb_card_ramp(COL_W, LG_CARD_H);
     card_edge(COL_W, LG_CARD_H);
     if (!label[0] && !val[0]) {                         /* a knob that does nothing on this page: the empty
                                                          * card, and no "K1" pill either -- a label for a
@@ -645,7 +637,6 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         }
         cv_begin(COL_W, COL_H, T_BG);
         cv_rrect(0, 0, COL_W, COL_H, 4, T_SURF, T_BG);
-    fxb_card_ramp(COL_W, COL_H);
         card_edge(COL_W, COL_H);
         if (ux.chamfer && !ux.style && hot) {
             cv_rect(4, 0, COL_W - 8, 1, T_ACCENT);
