@@ -29,6 +29,39 @@
 
 static const char *const N_WT_UNI[] = {"1 VOICE", "2 VOICES"};
 
+/* (FASE 1) the two top band limits are rebuilt here instead of carried as flash: the frames' harmonic
+ * amplitudes (WT_COEF, 2 048 B) and 8 192 B of .bss stand in for 8 192 B of stored wave. Once, before the
+ * first note renders -- never inside a block, so a level change costs nothing at all at run time. */
+static uint8_t wt_ready;
+static int32_t wt_buf[WT_POINTS];
+
+static void wt_gen_init(void)
+{
+    uint32_t l, f, i, k;
+    if (wt_ready)
+        return;
+    for (l = 0; l < 2u; l++) {
+        uint32_t lim = l == 0u ? 64u : 16u;
+        for (f = 0; f < WT_FRAMES; f++) {
+            int32_t pk = 0;
+            int16_t *dst = WT_GEN + (l * WT_FRAMES + f) * WT_POINTS;
+            for (i = 0; i < WT_POINTS; i++) {
+                int64_t x = 0;
+                for (k = 1; k <= lim; k++)                 /* the frame's own sum of sines (tools/gen_tables.py) */
+                    x += (int64_t)WT_COEF[(k - 1u) * WT_FRAMES + f] * SINE[((k * i) & (WT_POINTS - 1u)) * 4u];
+                wt_buf[i] = (int32_t)(x >> 30);            /* Q15, before the frame's peak */
+                if (wt_buf[i] > pk) pk = wt_buf[i];
+                else if (-wt_buf[i] > pk) pk = -wt_buf[i];
+            }
+            if (!pk) pk = 1;
+            for (i = 0; i < WT_POINTS; i++)                /* every frame normalised to the same peak: a morph
+                                                            * keeps its level, as the stored ones did */
+                dst[i] = (int16_t)(((int64_t)wt_buf[i] * 32000 + pk / 2) / pk);
+        }
+    }
+    wt_ready = 1;
+}
+
 /* a frame's point: linear interpolation between two of its 256 values */
 static inline int32_t wt_pt(uint32_t l, uint32_t f, uint32_t ph)
 {
@@ -49,6 +82,8 @@ static void wt_pos(int32_t morph, uint32_t *f0, uint32_t *f1, int32_t *fx)
 static void wt_note_on(track_t *t, voice_t *v)
 {
     (void)t;
+    wt_gen_init();                                 /* (FASE 1) once, on the first note: 8 192 B of .bss
+                                                    * instead of 8 192 B of flash */
     v->ph[0] = v->ph[1] = v->ph[2] = 0;
     /* (the filter and the tilt keep: engine_t.keep) */
 }

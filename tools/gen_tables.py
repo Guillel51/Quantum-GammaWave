@@ -53,21 +53,33 @@ def wt_frame(f, k):
 
 
 def wt_tables():
-    L = ["/* 8 frames x 256 points x 3 band limits (WT_LIMIT), int16 Q15: a frame, then the next",
-         " * (eng_wavetable.c: WT_GET(level, frame, point)) */"]
+    L = ["/* (FASE 1) the two top band limits are rebuilt at boot (eng_wavetable.c, wt_gen_init) from WT_COEF,\n"
+         " * the frames' harmonic amplitudes in Q30: 2 048 B of flash and 8 192 B of .bss instead of 8 192 B of\n"
+         " * flash. Level 2 (LIMIT 5, every note above ~1.4 kHz) stays stored flat: it is the one a low note never\n"
+         " * reads, so the generator never has to run twice. */"]
+    # the stored level: LIMIT 5
     data = []
-    for lim in WT_LIMIT:
-        for f in range(8):
-            v = []
-            for i in range(WT_POINTS):
-                x = sum(wt_frame(f, k) * math.sin(2 * math.pi * k * i / WT_POINTS)
-                        for k in range(1, lim + 1))
-                v.append(x)
-            pk = max(abs(x) for x in v) or 1.0
-            data += [int(round(32000 * x / pk)) for x in v]
-    L += arr("WT_DATA", "int16_t", data, 16)
+    lim = WT_LIMIT[2]
+    for f in range(8):
+        v = []
+        for i in range(WT_POINTS):
+            x = sum(wt_frame(f, k) * math.sin(2 * math.pi * k * i / WT_POINTS)
+                    for k in range(1, lim + 1))
+            v.append(x)
+        pk = max(abs(x) for x in v) or 1.0
+        data += [int(round(32000 * x / pk)) for x in v]
+    L += arr("WT_L5", "int16_t", data, 16)
+    # the amplitudes: WT_COEF[(k - 1) * WT_FRAMES + frame], Q30; the boot synthesis sums k = 1..limit
+    coef = []
+    for k in range(1, WT_LIMIT[0] + 1):
+        coef += [int(round(wt_frame(f, k) * (1 << 30))) for f in range(8)]
+    L += arr("WT_COEF", "int32_t", coef, 8)
     L += ["#define WT_FRAMES 8", "#define WT_POINTS 256", "#define WT_LEVELS 3",
-          "#define WT_GET(l, f, i) (WT_DATA[(((l) * WT_FRAMES + (f)) * WT_POINTS) + (i)])", ""]
+          "#define WT_COEF_H 64",
+          "static int16_t WT_GEN[2 * WT_FRAMES * WT_POINTS];   /* .bss: levels 0 and 1, filled by wt_gen_init */",
+          "/* level 0: 64 harmonics, level 1: 16 (generated); level 2: 5 (stored) */",
+          "#define WT_GET(l, f, i) ((l) == 2u ? WT_L5[(f) * WT_POINTS + (i)] \\",
+          "                         : WT_GEN[(l) * WT_FRAMES * WT_POINTS + (f) * WT_POINTS + (i)])", ""]
     return L
 
 
