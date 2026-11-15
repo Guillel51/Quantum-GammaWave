@@ -82,15 +82,28 @@ static void fxb_sheen(int32_t x, int32_t y, int32_t w, int32_t h, int32_t live)
 /* (FASE 4) the bus's two levels as a pair of meters at the block's right edge: what goes in (SEND) above the
  * line, what comes back (RET) below it. Both are fx_vu's peaks, so a bus with nothing sent draws two dark wells
  * and the page says exactly which side of the effect the signal is on. */
+/* one 3 px column of cells, bottom up: the cells under the level take the ramp (cold at the foot, the accent at
+ * the top of the level) and the ones over it stay wells, so a meter says how much of the bus is used and in which
+ * direction without a second reading. A solid fill was one grey block: the four cards read as flat next to a page
+ * that is a gradient. */
+static void fxb_col(int32_t x, int32_t y, int32_t h, int32_t lvl, int32_t lo, int32_t hi)
+{
+    int32_t seg = 3, q = h / (seg + 1), k, n;
+    if (q <= 0)
+        return;
+    n = fxb_px(lvl) * q / 56;
+    for (k = 0; k < q; k++) {
+        int32_t cy = y + h - (k + 1) * seg - k;      /* k = 0 is the foot */
+        uint16_t c = k < n ? ux_mix(T_THEME, T_ACCENT, lo + (hi - lo) * k / (q > 1 ? q - 1 : 1)) : T_RAISE;
+        cv_rect(x, cy, 3, seg, c);
+    }
+}
+
 static void fxb_meters(int32_t x, int32_t y, int32_t h, int32_t snd, int32_t wet)
 {
-    int32_t hh = (h - 1) / 2, n;
-    cv_rect(x, y, 3, hh, T_RAISE);
-    cv_rect(x, y + hh + 1, 3, hh, T_RAISE);
-    if ((n = fxb_px(snd) * hh / 56) > 0)
-        cv_rect(x, y + hh - n, 3, n, ux_mix(T_THEME, T_ACCENT, 45));
-    if ((n = fxb_px(wet) * hh / 56) > 0)
-        cv_rect(x, y + hh + 1 + hh - n, 3, n, T_ACCENT);
+    int32_t hh = (h - 1) / 2;
+    fxb_col(x, y, hh, snd, 24, 70);                  /* SEND: what goes in, cooler */
+    fxb_col(x, y + hh + 1, hh, wet, 45, 100);        /* RET: what comes back, at the accent */
     cv_rect(x, y + hh, 3, 1, T_LINE);               /* (a tick between the two, so they never read as one bar) */
 }
 
