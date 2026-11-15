@@ -397,6 +397,23 @@ int main(void)
         up_pat_from(&r, st);
         bad += check("empty sequencer -> empty pattern", up_pat_empty(&r));
     }
+    {   /* (FASE 8) the matrix's slots 5..8 ride in a record's spare bytes (none of them a parameter), marked */
+        up_rec_t r;
+        int16_t mx[4][3], back[4][3];
+        int good;
+        memset(&r, 0, sizeof r);
+        r.used = UP_USED; r.ver = UP_VER; r.np = P_COUNT; r.name[0] = 'X';
+        memset(mx, 0, sizeof mx);
+        mx[3][0] = 1; mx[3][1] = 2; mx[3][2] = -40;      /* (mod.c: MS_LFO, MD_CUT) */
+        up_mx_put(&r, (const int16_t (*)[3])mx);
+        good = up_valid(&r);                             /* past np: nothing a store reads */
+        up_mx_get(&r, back);
+        good = good && back[3][0] == 1 && back[3][1] == 2 && back[3][2] == -40 && !back[0][0];
+        r.packed[UP_MX_MARK] = 0;                        /* a record of firmware before this one: none */
+        up_mx_get(&r, back);
+        good = good && !back[3][0] && !back[3][1] && !back[3][2];
+        bad += check("FASE 8: a user preset carries the matrix's slots 5..8 (marked spare bytes)", good);
+    }
     printf("%s\n", bad ? "USER PRESET TEST FAILED" : "user preset test passed");
     return bad != 0;
 }

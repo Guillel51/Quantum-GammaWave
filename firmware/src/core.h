@@ -450,6 +450,8 @@ typedef struct {
 #define QG_DST_REV 9             /* MD_REV */
 #define QG_DST_VIB 11            /* MD_VIB */
 #define QG_DST_E1 12             /* MD_E1: the engine's first EDIT parameter (a formant's vowel, FM6's algorithm) */
+#define QG_SRC_N 16              /* MS_N: the matrix's sources (mod.c checks the count) */
+#define QG_DST_N 26              /* MD_N: its destinations */
 
 struct track;
 typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c files) */
@@ -622,6 +624,10 @@ typedef struct {
 
 typedef struct track {
     int16_t p[P_COUNT];
+    int16_t mx[4][3];            /* (FASE 8) the matrix's slots 5..8 (mod.c): SRC, DST, AMT each. Not p[] ids: the
+                                  * 7-bit ids the motion records and the stores carry are full (P_COUNT 125 of 127).
+                                  * They travel with the project (project.c 'M' 'X' block) and with a user preset
+                                  * (upreset.c's spare bytes), and they are not automatable. */
     uint8_t engine, preset;      /* engine: what the audio ISR renders */
     uint8_t eng_req;             /* engine the UI asked for (the ISR switches at a block start) */
     uint8_t user;                /* user preset slot + 1 the sound came from (UI), 0 = none */

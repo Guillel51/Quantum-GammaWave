@@ -1276,7 +1276,7 @@ static void draw_columns(void)
         uint32_t id = P_M1SRC + 3u * mod_ui_slot;
         int32_t s = t->p[id], d = t->p[id + 1u], a = t->p[id + 2u];
         fmt_int(val, (int32_t)mod_ui_slot + 1);
-        draw_column(0, "SLOT", val, "/4", VAL(0u), (int32_t)mod_ui_slot * 1000 / 3, mod_src_icon(MS_OFF));   /* (the mod icon) */
+        draw_column(0, "SLOT", val, "/8", VAL(0u), (int32_t)mod_ui_slot * 1000 / (NMSLOT - 1), mod_src_icon(MS_OFF));   /* (the mod icon) */
         draw_column(1, "SRC", N_MSRC[clamp(s, 0, MS_N - 1)], "", s ? VAL(1u) : T_DIM, -1, mod_src_icon(s));
         draw_column(2, "DEST", mod_dst_name(t, d), "", d ? VAL(2u) : T_DIM, -1, mod_dst_icon(t, d));
         param_format(&TP[id + 2u], a, val, &unit);

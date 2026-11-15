@@ -66,6 +66,38 @@ static up_bank_t up_bank[UP_SLOTS / UP_PER_BANK];
 
 static up_rec_t *up_rec(uint32_t k) { return &up_bank[k / UP_PER_BANK].r[k % UP_PER_BANK]; }
 
+/* (FASE 8) the matrix's slots 5..8 (core.h track_t.mx). They have no parameter ids, so they ride in the record's
+ * bytes past np, where no parameter lives: packed[130..141], marked at packed[142] ('M'). A record without the mark
+ * has none, and a firmware before this one never reads past np = 125 -- no version bump, as with UP_FM_AT. */
+#define UP_MX_AT 130u
+#define UP_MX_MARK 142u
+#define UP_MX_M 0x4Du
+static void up_mx_put(up_rec_t *r, const int16_t (*mx)[3])
+{
+    uint32_t i;
+    for (i = 0; i < 4u; i++) {
+        int32_t s = mx[i][0], d = mx[i][1], a = mx[i][2];   /* (in range; no clamp(): this file builds alone) */
+        r->packed[UP_MX_AT + 3u * i] = (uint8_t)(s < 0 ? 0 : s > QG_SRC_N - 1 ? QG_SRC_N - 1 : s);
+        r->packed[UP_MX_AT + 3u * i + 1u] = (uint8_t)(d < 0 ? 0 : d > QG_DST_N - 1 ? QG_DST_N - 1 : d);
+        r->packed[UP_MX_AT + 3u * i + 2u] = (uint8_t)((a < -64 ? -64 : a > 63 ? 63 : a) + 64);
+    }
+    r->packed[UP_MX_MARK] = UP_MX_M;
+}
+static void up_mx_get(const up_rec_t *r, int16_t (*mx)[3])
+{
+    uint32_t i;
+    for (i = 0; i < 4u; i++) {
+        mx[i][0] = mx[i][1] = mx[i][2] = 0;
+        if (r->packed[UP_MX_MARK] != UP_MX_M) continue;  /* (a record of firmware before this one: none) */
+        {
+            uint32_t s = r->packed[UP_MX_AT + 3u * i], d = r->packed[UP_MX_AT + 3u * i + 1u];
+            mx[i][0] = (int16_t)(s < QG_SRC_N ? s : 0u);
+            mx[i][1] = (int16_t)(d < QG_DST_N ? d : 0u);
+            mx[i][2] = (int16_t)((int32_t)r->packed[UP_MX_AT + 3u * i + 2u] - 64);   /* (stored biased) */
+        }
+    }
+}
+
 static int up_valid(const up_rec_t *r)
 {
     if (!(r->used == UP_USED && r->ver >= 1u && r->ver <= UP_VER_GRID && r->engine < NENGINES &&
@@ -378,6 +410,7 @@ static int up_store(uint32_t k, const char *name)
     for (i = 0; i < P_COUNT; i++)
         up_set_value(&r, i, motion_base_value(TSEL, i));
     up_pat_from(&r, TSEL->step);
+    up_mx_put(&r, (const int16_t (*)[3])TSEL->mx);
     if (drum_track(TSEL)) {                             /* a DRUM track that strikes a lane: its grid */
         uint32_t any = 0;
         for (i = 0; i < 16u; i++)
@@ -444,6 +477,7 @@ static int up_load(uint32_t k)
                 t->p[i] = v[i];
         t->preset = 0;
         fm1_irq_on();
+        up_mx_get(r, t->mx);                            /* (FASE 8) its matrix slots 5..8 */
         upf_track_load(t, k);                           /* FM6: the preset's own patch (up_fm6.c) */
         if (eng_gone(r->engine))                        /* a retired engine (core.h): ANALOG's first preset */
             set_engine_of(t, ENGI_PHYS_TO);

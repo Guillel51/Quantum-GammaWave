@@ -1324,31 +1324,46 @@ static void graph_diag(uint16_t c)
     cv_text_r(224, 92, &AF_S, b, load_diag.late || load_diag.shed ? T_ACCENT : T_TEXT, T_SURF);
 }
 
-/* MOD page: the four slots as rows "1 LFO > CUT +50%", the one KNOB 2..4 edit selected, slots that do
- * nothing (SRC, DST or AMT at 0) dim */
+/* (FASE 8) MOD page: the matrix's eight slots as rows "1 LFO > CUT +50" and, on the right, the value the slot's
+ * source has now -- a bar from the middle for a bipolar source (LFO, KEY, RAND, NOISE: its side is the polarity of
+ * the moment) and from the left for the others. The amount's own sign (param_format, F_BIPCT) is the assignment's
+ * polarity, always shown. The slot KNOB 2..4 edit is selected; a slot that does nothing (SRC, DST or AMT at 0) is
+ * dim and has no bar. */
 static void graph_mod(const track_t *t, uint16_t c)
 {
     uint32_t k;
     for (k = 0; k < NMSLOT; k++) {
-        const int16_t *p = &t->p[P_M1SRC + 3u * k];
-        int32_t y = 14 + (int32_t)k * 24, on = p[0] && p[1] && p[2], sel = k == mod_ui_slot;
+        int32_t s = mslot(t, k, 0), d = mslot(t, k, 1), a = mslot(t, k, 2);
+        int32_t y = 2 + (int32_t)k * 15, on = s && d && a, sel = k == mod_ui_slot;
         uint16_t bg = sel ? T_THEME : T_SURF, col = sel ? T_INK : on ? c : T_DIM;
-        char b[8];
+        char b[10];
         const char *unit;
         if (sel)
-            cv_rrect(6, y, 228, 17, 4, T_THEME, T_SURF);
+            cv_rrect(4, y, 232, 13, 3, T_THEME, T_SURF);
         b[0] = (char)('1' + k);
         b[1] = 0;
-        GFX_HOOK_ALIGN(0, y, 0, y + 17, AL_V, "mod row text centred up/down");
-        cv_text_on(14, y + 1, &AF_S, b, sel ? T_INK : T_MID, bg);
-        GFX_HOOK_ALIGN(0, y, 0, y + 17, AL_V, "mod row text centred up/down");
-        cv_text_on(34, y + 1, &AF_S, N_MSRC[clamp(p[0], 0, MS_N - 1)], col, bg);
-        cv_line(78, y + 8, 92, y + 8, col);              /* an arrow */
-        cv_line(88, y + 4, 92, y + 8, col);
-        cv_line(88, y + 12, 92, y + 8, col);
-        cv_text_on(102, y + 1, &AF_S, mod_dst_name(t, p[1]), col, bg);
-        param_format(&TP[P_M1AMT], p[2], b, &unit);
-        cv_text_on(cv_text_on(170, y + 1, &AF_S, b, col, bg) + 2, y + 1, &AF_S, unit, sel ? T_INK : T_DIM, bg);
+        GFX_HOOK_ALIGN(0, y, 0, y + 13, AL_V, "mod row text centred up/down");
+        cv_text_on(10, y - 1, &AF_S, b, sel ? T_INK : T_MID, bg);
+        GFX_HOOK_ALIGN(0, y, 0, y + 13, AL_V, "mod row text centred up/down");
+        cv_text_on(22, y - 1, &AF_S, N_MSRC[clamp(s, 0, MS_N - 1)], col, bg);
+        cv_line(58, y + 6, 66, y + 6, col);              /* an arrow */
+        cv_line(63, y + 3, 66, y + 6, col);
+        cv_line(63, y + 9, 66, y + 6, col);
+        cv_text_on(70, y - 1, &AF_S, mod_dst_name(t, d), col, bg);
+        param_format(&TP[P_M1AMT], a, b, &unit);         /* F_BIPCT: "+50" / "-50", the polarity */
+        cv_text_r(152, y - 1, &AF_S, b, col, bg);
+        if (on) {                                        /* the source's live value */
+            int32_t v = clamp(mod_src_live(t, k), -32767, 32767), x0 = 160, x1 = 230;
+            cv_rect(x0, y + 6, x1 - x0, 1, sel ? T_INK : T_GRID);
+            if (MS_BIPOLAR((uint32_t)s)) {
+                int32_t xm = (x0 + x1) / 2, px = xm + v * (xm - x0) / 32767;
+                cv_rect(v < 0 ? px : xm, y + 5, (v < 0 ? xm - px : px - xm) + 1, 3, sel ? T_INK : T_ACCENT);
+            } else {
+                int32_t px = x0 + clamp(v, 0, 32767) * (x1 - x0) / 32767;
+                cv_rect(x0, y + 5, px - x0 + 1, 3, sel ? T_INK : T_ACCENT);
+            }
+        }
+        (void)unit;
     }
 }
 

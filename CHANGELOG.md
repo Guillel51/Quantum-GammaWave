@@ -1,3 +1,33 @@
+## Sin publicar — 2026-11-15 — FASE 8: la matriz de modulación, ocho slots por pista
+
+### Interfaz
+
+- **Ocho slots por pista** (antes cuatro). KNOB 1 recorre `1..8` (`SLOT n/8`); KNOB 2..4 editan SRC, DST y AMT
+  del elegido, con las mismas tarjetas grandes que los cuatro primeros.
+- La **página MOD** los dibuja de una vez, con la **polaridad** de cada asignación siempre visible (AMT es
+  bipolar: `+50`, `-50`, `0`) y el **valor vivo** de su fuente en una barra a la derecha: del centro hacia un
+  lado para las fuentes bipolares (LFO, KEY, RAND, NOISE) y desde la izquierda para el resto. Un slot sin SRC,
+  DST o AMT se ve apagado y sin barra.
+- Los slots 5..8 **no son parámetros**: los ids son de 7 bits y `P_COUNT` está en 125 de 127, así que viven en
+  `track_t.mx`. Consecuencia dicha en `docs/MOD_MATRIX_SLOTS.md`: no son automatizables y el editor de
+  escritorio no los transporta (los deja a cero al guardar un preset).
+
+### Compatibilidad
+
+- **Proyecto**: bloque nuevo `'M' 'X'` al final, solo si algún slot 5..8 está puesto; un firmware anterior lo
+  ignora y carga el resto del proyecto igual.
+- **Preset de usuario**: los slots 5..8 van en los bytes del registro más allá de `np` (130..141, marca en 142),
+  donde no vive ningún parámetro: **sin cambio de versión** y un registro antiguo se lee como ninguno.
+
+### Verificación (host)
+
+- `mod_test`: un slot de 5..8 modula **exactamente igual** que el mismo routing en el slot 1, los slots 1..4 y
+  5..8 suman, llega al audio, y `mod_src_live` da el valor de la fuente (y 0 en un slot vacío).
+- `project_test` y `upreset_test`: los slots 5..8 van y vuelven en ambos formatos.
+- `ui_render`: 189 pantallas × 22 paletas, **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles
+  GREY/MONO fuera de gris, 3 401 666 mediciones de alineación con 0 desalineaciones. `theme_test`: peor margen
+  4,08:1. `install_test.py` y `web/test_web.mjs` pasan.
+
 ## Sin publicar — 2026-11-15 — FASE 8 (rendimiento): cada placa se pinta una vez
 
 ### Rendimiento (host, `ui_render` a `-O1`; detalle en `docs/PERFORMANCE_FASE8.md`)

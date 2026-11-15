@@ -1337,6 +1337,56 @@ static void test_noise_src(void)
           maxstep < 65536 / 16 && lo < -16384 && hi > 16384 && crossed && other_same);
 }
 
+/* (FASE 8) the matrix has eight slots a track: 1..4 are the stored parameters, 5..8 track_t.mx. A slot of the
+ * second half must do exactly what the same routing does in the first, and the live value the MOD page shows must
+ * be the source's. */
+static int32_t pan_delta(void)          /* what one block's matrix writes into PAN (mod_begin .. mod_end) */
+{
+    int32_t before = trk[0].p[P_PAN], after;
+    mod_begin(&trk[0]);
+    after = trk[0].p[P_PAN];
+    mod_end(&trk[0]);
+    return after - before;
+}
+
+static void test_eight_slots(void)
+{
+    uint64_t off, h5;
+    int32_t d1, d5, d8, d15;
+    fresh(eng_by_name("ANALOG"), 0);
+    macro_v[0] = 64;
+    slot(&trk[0], 0, MS_M1, MD_PAN, 40);
+    d1 = pan_delta();
+    fresh(eng_by_name("ANALOG"), 0);
+    macro_v[0] = 64;
+    trk[0].mx[0][0] = MS_M1; trk[0].mx[0][1] = MD_PAN; trk[0].mx[0][2] = 40;
+    d5 = pan_delta();
+    fresh(eng_by_name("ANALOG"), 0);
+    macro_v[0] = 64;
+    trk[0].mx[3][0] = MS_M1; trk[0].mx[3][1] = MD_PAN; trk[0].mx[3][2] = 11;
+    d8 = pan_delta();
+    fresh(eng_by_name("ANALOG"), 0);
+    macro_v[0] = 64;
+    slot(&trk[0], 0, MS_M1, MD_PAN, 40);
+    trk[0].mx[3][0] = MS_M1; trk[0].mx[3][1] = MD_PAN; trk[0].mx[3][2] = 11;
+    d15 = pan_delta();
+    check("FASE 8: a slot of 5..8 modulates (M1 > PAN)", d5 != 0 && d8 != 0);
+    check("FASE 8: slot 5 does what slot 1 does (the same routing, the same offset)", d5 == d1);
+    check("FASE 8: slots 1..4 and 5..8 add up (both offsets)", d15 == d1 + d8 && d8 != d1);
+    fresh(eng_by_name("ANALOG"), 0);
+    off = phrase();
+    fresh(eng_by_name("ANALOG"), 0);
+    trk[0].mx[0][0] = MS_LFO; trk[0].mx[0][1] = MD_CUT; trk[0].mx[0][2] = 40;
+    trk[0].p[P_LRATE] = 30;
+    h5 = phrase();
+    check("FASE 8: a slot of 5..8 reaches the audio (LFO > CUT)", h5 != off);
+    trk[0].mx[1][0] = MS_M1; trk[0].mx[1][1] = MD_PAN; trk[0].mx[1][2] = 20;
+    macro_v[0] = 64;
+    check("FASE 8: the MOD page's live value is the slot's source now", mod_src_live(&trk[0], 5) == 64 * 258);
+    check("FASE 8: an empty slot reads 0", mod_src_live(&trk[0], 6) == 0);
+    macro_v[0] = 0;
+}
+
 int main(int argc, char **argv)
 {
     test_off();
@@ -1351,6 +1401,7 @@ int main(int argc, char **argv)
     test_phase_fb();
     test_lofi_tone();
     test_noise_src();
+    test_eight_slots();
     if (argc > 1)
         check("demos written", demos(argv[1]));
     printf("%s\n", bad ? "MOD MATRIX TEST FAILED" : "mod matrix test passed");

@@ -699,7 +699,7 @@ static const page_t PAGES[] = {
                                      * REV CLEAR on the pattern, with undo (ui_seqtools.c) */
 };
 #define NPAGES (sizeof(PAGES) / sizeof(PAGES[0]))
-static uint8_t mod_ui_slot;      /* the MOD page: the matrix slot (0..3) KNOB 2..4 edit */
+static uint8_t mod_ui_slot;      /* the MOD page: the matrix slot (0..7) KNOB 2..4 edit */
 static uint8_t ms_ui_step;       /* (JIANT) the MSEQ page: the step (0..15) KNOB 2 edits */
 static const char *const N_RFOLW[] = {"OFF", "T1", "T2", "T3", "T4", "T5", "T6"};
 static const param_desc_t RESO_PITCH = PD("PITCH", F_INT, 0, 14, 0);   /* (0.6.5) RESO: the chord's steps up the scale (G_RPRE) */
@@ -816,8 +816,16 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
             return song.g[G_RTYPE] == 2 || song.g[G_RTYPE] == 4 ? &REV_AIR : &REV_PRE;
         return &GP[id];
     }
-    if (pg->graph == GR_MOD)                          /* SRC DST AMT of the slot shown */
+    if (pg->graph == GR_MOD) {                        /* SRC DST AMT of the slot shown */
+        if (mod_ui_slot >= 4u) {                      /* (FASE 8) slots 5..8: t->mx, with no parameter id of their own */
+            static const param_desc_t MSRC_D = PE("SRC", N_MSRC, 0);
+            static const param_desc_t MDST_D = PE("DST", N_MDST, 0);
+            static const param_desc_t MAMT_D = PD("AMT", F_BIPCT, -64, 63, 0);
+            *valp = &TSEL->mx[mod_ui_slot - 4u][slot - 1u];
+            return slot == 1u ? &MSRC_D : slot == 2u ? &MDST_D : &MAMT_D;
+        }
         id += 3u * mod_ui_slot;
+    }
     if (pg->graph == GR_MSEQ && id == P_MS0)          /* the level of the step shown */
         id += ms_ui_step & 15u;
     *valp = &TSEL->p[id];

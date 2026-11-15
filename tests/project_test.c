@@ -982,6 +982,24 @@ int main(void)
         ok &= !proj_pack(&fs, &f) && !proj_full;
         bad += check("FUNC: six full tracks do not fit: not packed, proj_full (SECTION FULL); a bad value: not proj_full", ok && n);
     }
+    {   /* (FASE 8) the matrix's slots 5..8 travel in the project, in its own 'M' 'X' block (none before) */
+        project_t f8;
+        project_store_t fs8;
+        uint32_t k8, i8;
+        int ok8;
+        memset(&f8, 0, sizeof f8);
+        f8.magic = PROJ_MAGIC; f8.size = sizeof f8; f8.parts = NPART;
+        for (k8 = 0; k8 < NTRK; k8++) {
+            f8.t[k8].engine = 0; f8.t[k8].preset = PROJ_DEF_SOUND;
+            for (i8 = 0; i8 < NSTEP; i8++) f8.t[k8].step[i8].time = ST_REST;
+        }
+        f8.t[1].mx[2][0] = 1; f8.t[1].mx[2][1] = 2; f8.t[1].mx[2][2] = -40;   /* (mod.c: MS_LFO, MD_CUT) */
+        memset(&fs8, 0, sizeof fs8);
+        ok8 = proj_pack(&fs8, &f8) && proj_import(&f8, &fs8, sizeof fs8);
+        ok8 = ok8 && f8.t[1].mx[2][0] == 1 && f8.t[1].mx[2][1] == 2 && f8.t[1].mx[2][2] == -40;
+        ok8 = ok8 && !f8.t[0].mx[0][0] && !f8.t[2].mx[3][2] && !f8.t[1].mx[0][2];
+        bad += check("FASE 8: the matrix's slots 5..8 go in a project and come back ('M' 'X')", ok8);
+    }
     printf("%s\n", bad ? "PROJECT FORMAT TEST FAILED" : "project format test passed");
     return bad != 0;
 }

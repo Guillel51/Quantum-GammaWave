@@ -108,6 +108,7 @@ typedef struct {                               /* one track */
     int16_t p[P_COUNT];
     uint8_t engine, preset;
     step_t step[NSTEP];
+    int16_t mx[4][3];                          /* (FASE 8) the matrix's slots 5..8 (core.h track_t.mx): the 'M' 'X' block */
 } proj_trk_t;
 typedef struct {
     uint32_t magic, size;
@@ -300,6 +301,7 @@ static void proj_new_tracks(project_t *q, uint32_t from)
             q->t[i].p[k] = param_desc_of(trk_def_engine(i), k)->def;
         q->t[i].engine = (uint8_t)trk_def_engine(i);
         q->t[i].preset = PROJ_DEF_SOUND;
+        memset(q->t[i].mx, 0, sizeof q->t[i].mx);
         for (k = 0; k < NSTEP; k++) {
             memset(&q->t[i].step[k], 0, sizeof q->t[i].step[k]);
             q->t[i].step[k].time = ST_REST;
@@ -778,6 +780,9 @@ static uint32_t proj_packed_size(const project_t *q)
         if (q->dx_mdl[i]) { n += 2u + sizeof q->dx_mdl; break; }
     if (proj_fg_used(q))                                /* (0.6.52) FUGUE's */
         n += 2u + sizeof q->fugue;
+    for (t = 0; t < NTRK; t++)                          /* (FASE 8) the matrix's slots 5..8, when one is set */
+        for (i = 0; i < 4u; i++)
+            if (q->t[t].mx[i][0] || q->t[t].mx[i][1] || q->t[t].mx[i][2]) { n += 2u + 12u * NTRK; t = NTRK; break; }
     for (t = 0; t < NTRK; t++) {
         uint32_t e = q->t[t].engine < NENGINES ? q->t[t].engine : 0u;
         n += 3u + PROJC_PMAP + 8u + (proj_fm_kept(q, t) ? FM6_PACKED : 0u);
@@ -887,6 +892,21 @@ static int proj_pack(project_store_t *out, const project_t *q)
         b[pos++] = 'D'; b[pos++] = 'X';
         memcpy(b + pos, q->dx_mdl, sizeof q->dx_mdl);
         pos += sizeof q->dx_mdl;
+    }
+    {
+        uint32_t any = 0;                               /* (FASE 8) the matrix's slots 5..8, when one is set */
+        for (t = 0; t < NTRK; t++)
+            for (i = 0; i < 4u; i++)
+                any |= (uint32_t)(q->t[t].mx[i][0] || q->t[t].mx[i][1] || q->t[t].mx[i][2]);
+        if (any) {
+            b[pos++] = 'M'; b[pos++] = 'X';
+            for (t = 0; t < NTRK; t++)
+                for (i = 0; i < 4u; i++) {
+                    b[pos++] = (uint8_t)clamp(q->t[t].mx[i][0], 0, MS_N - 1);
+                    b[pos++] = (uint8_t)clamp(q->t[t].mx[i][1], 0, MD_N - 1);
+                    b[pos++] = (uint8_t)(clamp(q->t[t].mx[i][2], -64, 63) + 64);
+                }
+        }
     }
     memcpy(b + PROJC_PFX_OFF, q->pfx_lane, sizeof q->pfx_lane);
     b[PROJC_PFX_OFF + sizeof q->pfx_lane] = q->pfx_ltgt > 2u ? 0u : q->pfx_ltgt;
@@ -1128,6 +1148,19 @@ static int proj_unpack_c(project_t *q, const uint8_t *b)
             if (DXX_MODEL(q->dx_mdl[k]) > DXX_CLAP || q->dx_mdl[k] >> 6) q->dx_mdl[k] = 0;
         pos += 2u + sizeof q->dx_mdl;
     }
+    for (t = 0; t < NTRK; t++)                          /* (FASE 8) the matrix's slots 5..8 (none before) */
+        memset(q->t[t].mx, 0, sizeof q->t[t].mx);
+    if (pos + 2u + 12u * NTRK <= room && b[pos] == 'M' && b[pos + 1u] == 'X') {
+        pos += 2u;
+        for (t = 0; t < NTRK; t++)
+            for (i = 0; i < 4u; i++) {
+                uint32_t s = b[pos], d = b[pos + 1u], a = b[pos + 2u];
+                q->t[t].mx[i][0] = (int16_t)(s < MS_N ? s : 0u);
+                q->t[t].mx[i][1] = (int16_t)(d < MD_N ? d : 0u);
+                q->t[t].mx[i][2] = (int16_t)clamp((int32_t)a - 64, -64, 63);
+                pos += 3u;
+            }
+    }
     proj_new_tracks(q, nt);                             /* (a FUNC of fewer tracks: the rest at power-on) */
     for (t = nt; t < NTRK; t++)
         memcpy(q->fm6[t], FM6_INIT, FM6_PACKED);
@@ -1352,6 +1385,11 @@ static void proj_bound(project_t *q)
             const param_desc_t *d = param_desc_of(q->t[t].engine % NENGINES, i);
             q->t[t].p[i] = (int16_t)param_fit(d, q->t[t].p[i]);   /* (a retired KIT: the kit it plays) */
         }
+        for (i = 0; i < 4u; i++) {                      /* (FASE 8) the matrix's slots 5..8 */
+            q->t[t].mx[i][0] = (int16_t)clamp(q->t[t].mx[i][0], 0, MS_N - 1);
+            q->t[t].mx[i][1] = (int16_t)clamp(q->t[t].mx[i][1], 0, MD_N - 1);
+            q->t[t].mx[i][2] = (int16_t)clamp(q->t[t].mx[i][2], -64, 63);
+        }
     }
     q->sum = proj_sum(q);
 }
@@ -1392,6 +1430,7 @@ static void project_capture(project_t *p)
         p->t[i].engine = trk[i].eng_req;
         p->t[i].preset = trk[i].preset;
         memcpy(p->t[i].step, trk[i].step, sizeof trk[i].step);
+        memcpy(p->t[i].mx, trk[i].mx, sizeof trk[i].mx);
         fm6_pack(fm6_patch[i], p->fm6[i]);
     }
     p->motion = motion;
@@ -1630,6 +1669,11 @@ static int project_restore_runtime(const project_t *input)
         t->preset = (uint8_t)(ENGINES[e]->npresets ? (s->preset >= PROJ_DEF_KEEP ? 0u : s->preset) % ENGINES[e]->npresets : 0u);
         memcpy(t->step, s->step, sizeof t->step);
         proj_steps(t->step);
+        for (i = 0; i < 4u; i++) {                      /* (FASE 8) the matrix's slots 5..8, back inside their ranges */
+            t->mx[i][0] = (int16_t)clamp(s->mx[i][0], 0, MS_N - 1);
+            t->mx[i][1] = (int16_t)clamp(s->mx[i][1], 0, MD_N - 1);
+            t->mx[i][2] = (int16_t)clamp(s->mx[i][2], -64, 63);
+        }
         {   /* the project's own FM6 patch, never reloaded from SLOT: F n if it is that factory patch, else OWN */
             uint8_t v[FP_SIZE + 1u];
             fm6_unpack(p->fm6[k], v);

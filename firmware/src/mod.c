@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* Modulation matrix: per track four slots, each SRC -> DST by AMT (-64..63), added to the fixed
- * routings (ENV DEST, LFO DEST). Runs in the audio ISR (fx.c mix_part, voice.c track_render).
+/* Modulation matrix: per track EIGHT slots, each SRC -> DST by AMT (-64..63), added to the fixed routings
+ * (ENV DEST, LFO DEST). Runs in the audio ISR (fx.c mix_part, voice.c track_render). Slots 1..4 are the stored
+ * parameters P_M1SRC..; 5..8 are track_t.mx (core.h, docs/MOD_MATRIX_SLOTS.md): the parameter ids are 7 bits and
+ * the table is full at 125 of 127, so they have none and are not automatable. mslot() reads either.
  *
  * Sources, Q15:
  *   LFO   the track LFO with its FADE (as LFO DEST), bipolar
@@ -53,9 +55,17 @@ enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
 _Static_assert(NELEM(N_MSRC) == MS_N && NELEM(N_MDST) == MD_N, "N_MSRC / N_MDST == MS_* / MD_*");
 _Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11, "matrix slots: 3 ids each");
-#define NMSLOT 4u
+/* (FASE 8) EIGHT SLOTS A TRACK. 1..4 are still the stored parameters P_M1SRC.. (automatable, in every store as
+ * before); 5..8 live in t->mx (core.h), because the parameter ids are 7 bits (the motion records) and the table is
+ * full at 125 of 127: a slot needs three ids and there are two. f: 0 SRC, 1 DST, 2 AMT */
+#define NMSLOT 8u
+static int32_t mslot(const track_t *t, uint32_t k, uint32_t f)
+{
+    return k < 4u ? (int32_t)t->p[P_M1SRC + 3u * k + f] : (int32_t)t->mx[k - 4u][f];
+}
 /* (QG-1 1.6) the numbers core.h hands a preset's x[] (QG_SRC_* / QG_DST_*): keep both lists in step */
 _Static_assert(QG_SRC_VEL == MS_VEL && QG_SRC_AT == MS_AT && QG_SRC_PAT == MS_PAT, "QG_SRC_* == MS_*");
+_Static_assert(QG_SRC_N == MS_N && QG_DST_N == MD_N, "QG_SRC_N / QG_DST_N == MS_N / MD_N");
 _Static_assert(QG_DST_CUT == MD_CUT && QG_DST_SHP == MD_SHP && QG_DST_REV == MD_REV && QG_DST_VIB == MD_VIB &&
                QG_DST_E1 == MD_E1, "QG_DST_* == MD_*");
 #define MS_VOICE(s) (((s) >= MS_ENV && (s) <= MS_RAND) || (s) == MS_PAT)   /* a value per voice */
@@ -152,6 +162,15 @@ static __attribute__((noinline)) int32_t mod_tsrc(const track_t *t, uint32_t s, 
     }
 }
 
+/* (FASE 8) the live value of a slot's source, Q15, for the MOD page: the LFO as the block sees it, the per-voice
+ * ones of the latest note-on, the macros, the modulation sequence where it is. Read from the main loop, never
+ * from the ISR: it shows one block late and touches nothing. */
+static int32_t mod_src_live(const track_t *t, uint32_t k)
+{
+    uint32_t s = (uint32_t)mslot(t, k, 0);
+    return s < MS_N ? mod_tsrc(t, s, mulq15(t->lfo_val, t->lfo_fade)) : 0;
+}
+
 /* AMP: the gain (Q15, 0..32767) of source x (bipolar: as 0..1) at amount a */
 static int32_t mod_gain(uint32_t s, int32_t x, int32_t a)
 {
@@ -191,13 +210,13 @@ static __attribute__((noinline)) void ms_tick(track_t *t)
 /* (1.7) one slot's work, out of mod_begin's loop: the body was most of the loop's target cost. The
  * slots are four; the call is cheaper than inlining the per-block branch, the descriptor lookup and
  * the hold/search into the loop four times, and the behaviour is the same. */
-static __attribute__((noinline)) uint32_t mod_scan(const int16_t *p, int *step)
+static __attribute__((noinline)) uint32_t mod_scan(const track_t *t, int *step)
 {
     uint32_t k, first = NMSLOT;
     *step = 0;
     for (k = 0; k < NMSLOT; k++) {
-        uint32_t s = (uint32_t)p[P_M1SRC + 3u * k];
-        if (s && p[P_M1DST + 3u * k] && p[P_M1AMT + 3u * k]) {
+        uint32_t s = (uint32_t)mslot(t, k, 0);
+        if (s && mslot(t, k, 1) && mslot(t, k, 2)) {
             if (first == NMSLOT)
                 first = k;
             if (s == MS_STEP)
@@ -210,8 +229,8 @@ static __attribute__((noinline)) uint32_t mod_scan(const int16_t *p, int *step)
 static __attribute__((noinline)) void mod_block_slot(track_t *t, uint32_t k, const int16_t *p, int32_t lfo,
                                                      int32_t *off, mod_t *mp)
 {
-    uint32_t s = (uint32_t)p[P_M1SRC + 3u * k], d = (uint32_t)p[P_M1DST + 3u * k], j;
-    int32_t a = p[P_M1AMT + 3u * k], x;
+    uint32_t s = (uint32_t)mslot(t, k, 0), d = (uint32_t)mslot(t, k, 1), j;
+    int32_t a = mslot(t, k, 2), x;
     if (!s || !d || !a || s >= MS_N || (d >= MD_CLIP && d < MD_N))   /* (the master's: macro_master; X1..X4 are ours) */
         return;
     if (d <= MD_AMP) {                                 /* per voice */
@@ -251,7 +270,7 @@ static __attribute__((noinline)) int mod_begin(track_t *t)
     mp->on = 0;
     {
         int step;
-        k = mod_scan(p, &step);
+        k = mod_scan(t, &step);
         if (k == NMSLOT)
             return 0;
         lfo = mulq15(t->lfo_val, t->lfo_fade);          /* (the LFO of the block before: track_render ticks it) */
@@ -286,8 +305,8 @@ static __attribute__((noinline)) void macro_master(void)
     for (i = 0; i < NTRK; i++) {
         const track_t *t = &trk[i];
         for (k = 0; k < NMSLOT; k++) {
-            uint32_t s = (uint32_t)t->p[P_M1SRC + 3u * k], d = (uint32_t)t->p[P_M1DST + 3u * k];
-            int32_t a = t->p[P_M1AMT + 3u * k];
+            uint32_t s = (uint32_t)mslot(t, k, 0), d = (uint32_t)mslot(t, k, 1);
+            int32_t a = mslot(t, k, 2);
             if (s && a && s < MS_N && (d == MD_CLIP || d == MD_PNCH))
                 off[d - MD_CLIP] += (((mod_tsrc(t, s, mulq15(t->lfo_val, t->lfo_fade)) * a) >> 6) * 100) >> 15;
         }
