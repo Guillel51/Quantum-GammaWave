@@ -441,17 +441,36 @@ static uint32_t rr_cov(int32_t r, int32_t i, int32_t j)
  * keycaps, chips, 3 px gauges, meter bars -- are left exactly as they were. */
 static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c)
 {
-    int32_t k;
+    int32_t k, n;
     cv_rect(x + r, y, w - 2 * r, 1, ux_mix(c, T_LINE, 55));           /* the frame */
     cv_rect(x + r, y + h - 1, w - 2 * r, 1, ux_mix(c, T_LINE, 38));
     cv_rect(x, y + r, 1, h - 2 * r, ux_mix(c, T_LINE, 48));
     cv_rect(x + w - 1, y + r, 1, h - 2 * r, ux_mix(c, T_LINE, 48));
     cv_rect(x + r + 2, y, 10, 1, T_ACCENT);                           /* the mark, as LINE's modules have */
     cv_rect(x, y + r + 2, 1, 8, T_ACCENT);
-    for (k = 0; k < (h < 84 ? 5 : 9); k++)                            /* the light falls off under the bezel: five
-                                                                       * rows on a card, nine on a panel, so the
-                                                                       * fade scales with what it is fading over */
-        cv_rect(x + 1, y + 1 + k, w - 2, 1, ux_mix(c, k ? T_BG : T_TEXT, k ? 2 + k * 2 : 12));
+    /* (FASE 3) THE PLATE IS A GRADIENT, one row per pixel: a lit top (a little of T_TEXT mixed in) down to a
+     * shaded foot (T_BG), so the surface reads as a lit panel instead of a flat rectangle with a hard band
+     * under the bezel -- five rows, which at 240x240 is what looked pixelated. One cv_rect a row: a card of
+     * 104 px is 104 fills, a row of a list is 16, and nothing is drawn per pixel, so a screen costs a few
+     * hundred fills in total and the whole sweep stays the same order as before (measured below). */
+    n = h - 2 > 0 ? (h - 2 + 2) / 3 : 1;      /* bands of ~3 px: the same ramp, a third of the fills */
+    {
+        /* Only the rows whose quantised colour CHANGES are filled: on a 16-bit palette a ramp this long has
+
+         * about ten values, so a run of one fill covers several rows and the picture is the same one. */
+
+        uint16_t hi = ux_mix(c, T_TEXT, 7), lo = ux_mix(c, T_BG, 58), g = ux_mix(hi, lo, 100 / n);
+        int32_t r0 = 0;
+        for (k = 1; k < n; k++) {
+            uint16_t gn = ux_mix(hi, lo, (k + 1) * 100 / n);
+            if (gn != g) {
+                cv_rect(x + 1, y + 1 + r0 * 3, w - 2, (k - r0) * 3, g);
+                g = gn;
+                r0 = k;
+            }
+        }
+        cv_rect(x + 1, y + 1 + r0 * 3, w - 2, h - 2 - r0 * 3, g);
+    }
 }
 static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c, uint16_t under)
 {
@@ -496,6 +515,21 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
             cv_rect(x + r, y + h - 1, w - 2 * r, 1, T_LINE);
             cv_rect(x, y + r, 1, h - 2 * r, T_LINE);
             cv_rect(x + w - 1, y + r, 1, h - 2 * r, T_LINE);
+            {   /* (FASE 3) A CHAMFERED MODULE IS A GRADIENT TOO. This style drew its plate flat between two 1 px
+                 * lines, which is why the cards read as cut-outs next to the rest of the page. One row per pixel
+                 * from the lit top to the shaded foot, inside the frame and under no text. */
+                int32_t kk, nn = h - 4 > 0 ? (h - 4 + 2) / 3 : 1, r0 = 0;
+                uint16_t hi = ux_mix(c, T_TEXT, 14), lo = ux_mix(c, T_BG, 58), g = ux_mix(hi, lo, 100 / nn);
+                for (kk = 1; kk < nn; kk++) {                    /* (one fill a run of equal colour, as above) */
+                    uint16_t gn = ux_mix(hi, lo, (kk + 1) * 100 / nn);
+                    if (gn != g) {
+                        cv_rect(x + r + 1, y + 2 + r0 * 3, w - 2 * (r + 1), (kk - r0) * 3, g);
+                        g = gn;
+                        r0 = kk;
+                    }
+                }
+                cv_rect(x + r + 1, y + 2 + r0 * 3, w - 2 * (r + 1), h - 4 - r0 * 3, g);
+            }
             /* Signature GammaWave Top-Left angled corner bracket (GroupedComponent::paint) */
             cv_rect(x + r, y, blen, 1, T_THEME);
             cv_rect(x, y + r, 1, blen - 2, T_THEME);
@@ -506,7 +540,7 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
         }
         return;
     }
-    if (c == T_SURF && w >= 36 && h >= 36)
+    if (c == T_SURF && w >= 40 && h >= 16)     /* (a row of the list is a surface too: 4 rows of fade, not a flat bar) */
         cv_plate_ground(x, y, w, h, r, c);
     for (j = 0; j < r; j++)
         for (i = 0; i < r; i++) {

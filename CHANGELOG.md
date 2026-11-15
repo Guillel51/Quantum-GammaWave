@@ -1,3 +1,44 @@
+## Sin publicar — 2026-11-15 — FASE 3: las placas son degradados, y los suelos dejan de verse tramados
+
+Los cuadros de la interfaz estaban pintados como una placa plana con una banda dura bajo el bisel, y los dos
+suelos que sí tenían degradado lo tenían en 6 y 12 bandas anchas, mezcladas al 50 %: a 240×240 eso se lee como
+un damero de píxeles, no como una luz que cae.
+
+### Interfaz
+
+- **Toda placa es un degradado** (`gfx.c`, `cv_plate_ground` y la rama *chamfer*): de una cresta apenas iluminada
+  (7–14 % de `T_TEXT` mezclado) a un pie en sombra (58 % de `T_BG`), en bandas de 3 px. Llega a las 189
+  pantallas por la primitiva que ya usaban todas: las tarjetas de knob, los módulos de FX > BUSES, los paneles y
+  las filas de lista. **Las filas de lista (desde 16 px de alto) reciben ahora el mismo tratamiento**; antes solo
+  lo tenían las cajas de 36 px o más, y por eso las filas se veían como barras muertas.
+- **El degradado de la rama *chamfer*** (GAMMA / WRAITH / JIANT / QUANTUM): esa rama dibujaba la placa lisa entre
+  dos líneas de 1 px, y es la que usan las tarjetas de knob del tema por omisión. Ahora también tiene su rampa.
+- **HOME y FX > BUSES sin damero**: sus suelos pasan de 12 y 6 bandas al 50 % a **40 y 24 bandas sólidas**, así
+  que la luz cae en pasos de 1–4 px sin el patrón de píxeles que se veía sucio.
+- Nada nuevo en colores: todo sigue saliendo de `ux_mix()` sobre los tokens de la paleta, así que GREY y MONO
+  siguen neutros (0 píxeles fuera de gris en el barrido) y el contraste no cambia.
+
+### Coste (medido)
+
+- El barrido completo `ui_render` (189 pantallas × 22 paletas) tarda **32,9 s antes y 32,8 s después**: la rampa
+  nueva usa un relleno por banda de 3 px y solo repinta cuando el color cuantizado cambia, mientras que los dos
+  suelos abandonan el tramado pixel a pixel. Se compensa; no hay regresión medible.
+
+### Verificación
+
+- `ui_render`: 189 pantallas × 22 paletas, **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles
+  GREY / MONO fuera de gris, y **3 400 410 mediciones de alineación con 0 desalineaciones**.
+- `theme_test`: todas las paletas pasan; el peor margen de contraste es **4,08:1** contra el mínimo de 4,00.
+- Los goldens de audio (`tests/golden.txt`) no se tocan: son de sonido, no de pantalla, y siguen 293/0.
+
+### Pendiente
+
+- **Subir la versión y publicar no se hizo**: `FELUCCA_VERSION` sigue en `v4.1.0` a propósito. El paquete
+  `.fwsc`, su manifiesto y `release/SHA256SUMS` solo se generan con el build del AC791N, y este entorno no tiene
+  `JIELI_TOOLCHAIN` ni `AC79_SDK`; el emulador necesita `emcc`, que tampoco está. Subir la versión sin esos
+  artefactos dejaría el árbol y el paquete publicados en desacuerdo, que es justo lo que `coherence_check.py`
+  prohíbe.
+
 ## Sin publicar — 2026-11-15 — FASE 1: 1 KB de RAM de vuelta, con las tablas idénticas
 
 La campaña de optimización de esta fase empieza por el margen que estaba más apretado. En la entrega anterior

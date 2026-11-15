@@ -44,9 +44,10 @@ static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed);
 static void hv_grad(void)
 {
     int32_t top = -cv_oy, bot = top + cv_h;         /* (the body is drawn in two passes: only this pass's rows) */
-    /* 12 steps of 14 px: shallow enough that the seams read as a blend. (3.6) the same primitive FX > BUSES
-     * blocks use (gfx.c ux_ground_bands), so HOME's ground and the console's have one implementation. */
-    ux_ground_bands(6, 26, 228, 200 - 26, 12, 22, 3, 2, 2, top, bot, 50);
+    /* (FASE 3) 40 solid steps instead of 12 dithered ones: a 14 px band of two colours mixed at 50 % was the
+     * checker that read as pixels at 240x240, and a solid band of 4 px with 40 levels reads as a blend. The
+     * primitive is the same one FX > BUSES' blocks use (gfx.c ux_ground_bands). */
+    ux_ground_bands(6, 26, 228, 200 - 26, 40, 22, 1, 2, 1, top, bot, 100);
 }
 
 /* (4.1) which of HOME's screens is on, as icons: three cells in the title's right corner (the three pages drawn here) -- where a caption used to
