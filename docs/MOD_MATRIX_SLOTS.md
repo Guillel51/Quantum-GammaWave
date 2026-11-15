@@ -73,11 +73,34 @@ Ocho filas de 15 px (`1` .. `8`), cada una `n SRC > DST AMT` y, a la derecha, el
 El render de la página MOD se revisó a ojo sobre `GAMMA_mod.ppm` (ocho filas, `2/8`, `+62` / `-100` y la barra
 viva en las filas activas).
 
+
+## Página MACROS
+
+La matriz ya tenía a M1..M4 como fuentes, pero solo se tocaban con la capa MACRO (LFO mantenido) y no había
+página que los enseñara. Ahora sí: **LFO > MACROS**, una página **global** (los macros son del proyecto, no de
+la pista) con KNOB 1..4 sobre M1..M4.
+
+- **Valor**: 0..127, el mismo `macro_v[4]` que lee la matriz y que guarda `project_capture`. La página no tiene
+  copia propia: `page_desc` copia el valor del proyecto en el espejo de la tarjeta y el giro llama a
+  `macro_set`, así que el número del macro, la capa MACRO (LFO mantenido) y la fuente M1..M4 de la matriz son
+  siempre el mismo.
+- **Gráfica**: cuatro filas con la barra del valor y, a la derecha, **los destinos que la pista seleccionada
+  mueve con ese macro** (hasta dos, luego `+n`), recorriendo sus ocho slots: es la conexión con la matriz
+  puesta donde se edita el macro. Un macro que ningún slot de esa pista lee dice `NO ROUTES` y se dibuja
+  apagado, pero su barra sigue mostrando el valor (un macro puede estar preparado antes de asignarlo).
+- **Guardado**: nada nuevo. `project_capture` ya hacía `memcpy(p->macro, macro_v, 4)`, así que lo que se toca
+  en la página va al proyecto como lo que se tocaba con la capa MACRO.
+
+La página entró en el barrido de `ui_render` como pantalla propia (`macros`), y eso pagó solo: en la primera
+versión el nombre `M4` y el valor `120` se solapaban 1 px, cosa que el barrido anterior no veía porque la
+página no estaba en su lista. Ahora son 190 pantallas y 0 hallazgos.
+
 ## Lo que no se hizo y por qué
 
 - **No hay ids nuevos**: habría exigido pasar los eventos de `motion` a ids de 8 bits y migrar todos los
   proyectos y presets. Los slots 5..8 no son automatizables, y eso está dicho arriba.
-- **No se tocó `hv_mod`** (HOME) ni el protocolo del editor.
+- **No se tocó `hv_mod`** (HOME): sigue resumiendo los cuatro primeros slots, y su fila de macros no está.
+- **El protocolo del editor** no transporta los slots 5..8 (ni los macros: ya viajaban en el proyecto).
 - **No hay medición de coste en el AC791N**: `mod_scan` recorre ahora ocho slots en vez de cuatro (cuatro
   lecturas más por pista y bloque, con la matriz apagada incluidas); el bloque de audio son ~725 µs y esto es
   una fracción que no se puede afirmar sin el build de destino, que aquí no existe (falta `JIELI_TOOLCHAIN`).

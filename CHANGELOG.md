@@ -1,3 +1,24 @@
+## Sin publicar — 2026-11-15 — FASE 8: página MACROS
+
+### Interfaz
+
+- **LFO > MACROS**: una página global con M1..M4 del proyecto en KNOB 1..4. Son las fuentes M1..M4 de la
+  matriz, así que el número que se gira es el que la matriz lee: no hay copia ni doble escritura
+  (`macro_get`/`macro_set` en `mod.c`, `params.c` la pinta, `ui_input.c` la escribe).
+- La gráfica enseña cada macro como **barra de valor** y, a la derecha, **los destinos que la pista
+  seleccionada mueve con él** (hasta dos, luego `+n`) recorriendo sus ocho slots. Un macro sin rutas dice
+  `NO ROUTES`, apagado, y conserva su barra.
+- Guardado sin cambios: `project_capture` ya copiaba `macro_v` al proyecto, y la capa MACRO (LFO mantenido)
+  usa el mismo `macro_set`.
+
+### Verificación (host)
+
+- `ui_render`: la página entra como pantalla propia (190 pantallas × 22 paletas), **0 hallazgos de lint** —en
+  la primera versión el nombre `M4` y el valor `120` se solapaban 1 px y el barrido lo cazó al incluirla—,
+  3 551 691 mediciones de alineación con 0 desalineaciones.
+- `mod_test`: la escritura de la página (`macro_set`) recorta a 0..127 y la matriz lee el valor nuevo como
+  fuente M1; `theme_test` con peor margen 4,08:1; `install_test.py` y `web/test_web.mjs` pasan.
+
 ## Sin publicar — 2026-11-15 — FASE 8: la matriz de modulación, ocho slots por pista
 
 ### Interfaz

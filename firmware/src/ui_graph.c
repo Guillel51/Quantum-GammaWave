@@ -1324,6 +1324,47 @@ static void graph_diag(uint16_t c)
     cv_text_r(224, 92, &AF_S, b, load_diag.late || load_diag.shed ? T_ACCENT : T_TEXT, T_SURF);
 }
 
+/* (FASE 8) MACROS page: the project's four macros (mod.c macro_v) -- the matrix's sources M1..M4 -- as a value
+ * bar each, with the destinations the SELECTED track's slots drive with them: the matrix connection, shown where
+ * the macro is edited. KNOB 1..4 set M1..M4 (params.c G_MAC1.., ui_input.c). A macro no slot reads says so. */
+static void graph_macros(uint16_t c)
+{
+    uint32_t i, k, tr = (uint32_t)song.sel;
+    for (i = 0; i < 4u; i++) {
+        int32_t y = 2 + (int32_t)i * 29, v = (int32_t)macro_get(i), used = 0;
+        char nb[24], vb[8], b[40];
+        const char *L[4] = {"M1", "M2", "M3", "M4"};
+        b[0] = 0;
+        for (k = 0; k < NMSLOT; k++) {                  /* what this track drives with the macro */
+            if ((uint32_t)mslot(&trk[tr], k, 0) != MS_M1 + i || !mslot(&trk[tr], k, 1))
+                continue;
+            if (used == 2) {                            /* (the rest, counted) */
+                nb[0] = '+';
+                fmt_int(nb + 1, (int32_t)used);
+                str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
+                str_cpy(b + str_len(b), nb, sizeof b - str_len(b));
+                used++;
+                break;
+            }
+            if (used++)
+                str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
+            str_cpy(b + str_len(b), mod_dst_name(&trk[tr], mslot(&trk[tr], k, 1)), 8);
+        }
+        if (!b[0])
+            str_cpy(b, "NO ROUTES", sizeof b);
+        cv_text_on(10, y + 5, &AF_S, L[i], used ? T_THEME : T_DIM, T_SURF);
+        fmt_int(vb, v);
+        cv_text_r(52, y + 5, &AF_S, vb, used ? c : T_DIM, T_SURF);
+        cv_rect(58, y + 10, 92, 8, T_GRID);             /* the value */
+        if (v)
+            cv_rect(58, y + 10, v * 92 / 127, 8, used ? T_THEME : T_MID);   /* (a macro no slot reads still shows its value) */
+        cv_rect(58, y + 13, 92, 1, T_SURF);             /* (a line through it, so a short bar still reads) */
+        cv_text_on(158, y + 5, &AF_S, b, used ? T_TEXT : T_DIM, T_SURF);
+        if (i < 3u)
+            cv_rect(12, y + 27, 216, 1, T_GRID);
+    }
+}
+
 /* (FASE 8) MOD page: the matrix's eight slots as rows "1 LFO > CUT +50" and, on the right, the value the slot's
  * source has now -- a bar from the middle for a bipolar source (LFO, KEY, RAND, NOISE: its side is the polarity of
  * the moment) and from the left for the others. The amount's own sign (param_format, F_BIPCT) is the assignment's
@@ -3504,6 +3545,10 @@ static void draw_graph(void)
         case GR_MOD:
             cv_oy = 0;
             graph_mod(t, c);
+            break;
+        case GR_MACROS:
+            cv_oy = 0;
+            graph_macros(c);
             break;
         case GR_BROWSE:
             cv_oy = 0;

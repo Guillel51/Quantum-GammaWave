@@ -1119,6 +1119,11 @@ static void edit_param(uint32_t slot, int32_t steps)
         return;
     v = param_turn(d, *vp, accel(EN_K1 + slot, steps, d->fmt == F_ENUM ? 0 : d->max - d->min));
     *vp = (int16_t)v;
+    if (pg->graph == GR_MACROS && vp >= &macro_ui[0] && vp <= &macro_ui[3]) {   /* (FASE 8) MACROS: the matrix's
+                                                 * M1..M4 (the same values its sources read) */
+        macro_set((uint32_t)(vp - macro_ui), v);
+        return;
+    }
     if (vp == &trks_ui) {                               /* (0.6.18) GLO > SYSTEM's TRKS: the MENU's setting, saved */
         trks_put(v);
         ui_message(v == 2 ? "6 TRACKS: FULL" : v == 1 ? "5 TRACKS: T6 ASLEEP" : "4 TRACKS: T5-T6 ASLEEP");
@@ -2545,7 +2550,7 @@ static void ui_input_frame(void)
         if ((s = panel_enc(EN_K1 + k)) == 0)
             continue;
         if (mac_latch && !ui.menu && !ui.confirm) {     /* (JIANT 0.4) the MACRO layer latched: M1..M4 */
-            macro_v[k] = (uint8_t)clamp(macro_v[k] + accel(EN_K1 + k, s, 127), 0, 127);
+            macro_set(k, (int32_t)macro_v[k] + accel(EN_K1 + k, s, 127));
             continue;
         }
         if (ui.entry_open && !ui.home && cur_page()->graph == GR_ROLL && !grid_on() && lock_held() &&

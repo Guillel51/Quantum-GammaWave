@@ -1384,6 +1384,10 @@ static void test_eight_slots(void)
     macro_v[0] = 64;
     check("FASE 8: the MOD page's live value is the slot's source now", mod_src_live(&trk[0], 5) == 64 * 258);
     check("FASE 8: an empty slot reads 0", mod_src_live(&trk[0], 6) == 0);
+    macro_set(0, 200);                                /* (the MACROS page's write: clamped to 0..127) */
+    macro_set(1, -5);
+    check("FASE 8: the MACROS page writes the matrix's M1..M4 (clamped 0..127)",
+          macro_get(0) == 127 && macro_get(1) == 0 && mod_src_live(&trk[0], 5) == 127 * 258);
     macro_v[0] = 0;
 }
 

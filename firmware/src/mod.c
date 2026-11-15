@@ -53,6 +53,10 @@ enum { MD_OFF, MD_PITCH, MD_CUT, MD_SHP, MD_AMP, MD_PAN, MD_DIST, MD_CHO, MD_DLY
                                                           * bank, appended after the master so every stored
                                                           * destination number keeps its meaning */
 static uint8_t macro_v[4];       /* (JIANT) the macros M1..M4, 0..127: the project's (project.c), LFO held turns them */
+/* (FASE 8) the MACROS page reads and writes them through these: the same values the matrix's sources M1..M4 read,
+ * and the ones project_capture saves. */
+static uint32_t macro_get(uint32_t i) { return macro_v[i & 3u]; }
+static void macro_set(uint32_t i, int32_t v) { macro_v[i & 3u] = (uint8_t)clamp(v, 0, 127); }
 _Static_assert(NELEM(N_MSRC) == MS_N && NELEM(N_MDST) == MD_N, "N_MSRC / N_MDST == MS_* / MD_*");
 _Static_assert(P_M2SRC == P_M1SRC + 3 && P_M4AMT == P_M1SRC + 11, "matrix slots: 3 ids each");
 /* (FASE 8) EIGHT SLOTS A TRACK. 1..4 are still the stored parameters P_M1SRC.. (automatable, in every store as

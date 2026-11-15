@@ -548,7 +548,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS};   /* (6.1) SCL's three pages and FX>
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS};   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
                                      * scale's notes and intervals, the chords the key has, their voicings, the
                                      * intervals from the root, the degrees' progressions and the keys (ui_graph.c) */
@@ -584,6 +584,22 @@ static int16_t trks_ui;
 /* (0.6.30) .. and LOAD, next to it (ui.c ui_load, voice.c sys_load): the heavy parts lightened or gone while they
  * sound, ECO the lightest. load_ui mirrors it as trks_ui does */
 #define G_LOADP 0xFDu
+/* (FASE 8) MACROS: the project's M1..M4 (mod.c macro_v), the matrix's sources M1..M4. They are not song.g: the
+ * page reads them from the matrix and writes them back (ui_input.c), so the knob, the LFO-held layer and the
+ * matrix always show the same number. */
+#define G_MAC1 0xF9u
+#define G_MAC2 0xFAu
+#define G_MAC3 0xFBu
+#define G_MAC4 0xFCu
+static uint32_t macro_get(uint32_t i);            /* (mod.c, included after this file) */
+static void macro_set(uint32_t i, int32_t v);
+static int16_t macro_ui[4];
+static const param_desc_t MAC1_DESC = PD("M1", F_PCT, 0, 127, 0);
+static const param_desc_t MAC2_DESC = PD("M2", F_PCT, 0, 127, 0);
+static const param_desc_t MAC3_DESC = PD("M3", F_PCT, 0, 127, 0);
+static const param_desc_t MAC4_DESC = PD("M4", F_PCT, 0, 127, 0);
+static const param_desc_t *const MAC_DESC[4] = {&MAC1_DESC, &MAC2_DESC, &MAC3_DESC, &MAC4_DESC};
+#define IS_MAC_ID(id) ((id) >= G_MAC1 && (id) <= G_MAC4)
 static const char *const N_LOAD[] = {"ECO", "LITE", "FULL"};
 static const param_desc_t LOAD_DESC = PE("LOAD", N_LOAD, 2);
 static int16_t load_ui;
@@ -597,6 +613,8 @@ static const page_t PAGES[] = {
     {"MOD", FAM_LFO, SC_TRACK, GR_MOD, {0xFF, P_M1SRC, P_M1DST, P_M1AMT}},   /* KNOB 1: the slot (mod_ui_slot) */
     {"MSEQ", FAM_LFO, SC_TRACK, GR_MSEQ, {0xFF, P_MS0, P_MSLEN, P_MSSLW}},   /* JIANT: KNOB 1 the step (ms_ui_step) */
     {"MSEQ 2", FAM_LFO, SC_TRACK, GR_NONE, {P_MSDIV, 0xFF, 0xFF, 0xFF}},
+    {"MACROS", FAM_LFO, SC_GLOBAL, GR_MACROS, {G_MAC1, G_MAC2, G_MAC3, G_MAC4}},   /* (FASE 8) M1..M4: what the
+                                     * matrix's sources of the same name read, KNOB 1..4 */
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
     {"BUSES", FAM_FX, SC_GLOBAL, GR_FX_BUSES, {0xFF, G_DMIX, G_RSIZE, G_CDEPTH}},   /* (6.1) the routing console:
                                      * KNOB 1 the link, 2..4 its parameters (page_desc) */
@@ -727,6 +745,12 @@ static const param_desc_t VEL_DESC = {"VEL", F_PCTINV, 0, 127, 0, 0, 0};
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
+    if (IS_MAC_ID(id)) {                              /* (FASE 8) MACROS: the project's M1..M4, the matrix's sources */
+        uint32_t m = id - G_MAC1;
+        macro_ui[m] = (int16_t)macro_get(m);
+        *valp = &macro_ui[m];
+        return MAC_DESC[m];
+    }
     if (pg->id[0] == P_X0) {                           /* (FASE 2) CHARACTER: the engine's slots */
         const engine_t *e = ENGINES[eng_idx(TSEL->eng_req)];
         if (slot == 2u) {

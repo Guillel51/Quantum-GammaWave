@@ -660,7 +660,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_NAME_USER, S_NAME_TYPING, S_NAME_123, S_NAME_EMPTY, S_NAME_FULL, S_NAME_PLAYING, S_PROJECT_NAMED, S_SONG_NAMED,
        S_USER_FOOT,
        S_ROLL_EMPTY, S_ROLL_ACID, S_ROLL_CHORDS, S_ROLL_TIES, S_ROLL_LEN32, S_ROLL_HIGH, S_ROLL_LOW, S_ROLL_WIDE, S_ROLL_PLAYING,
-       S_ROLL_LOCKS, S_ROLL_LOCK_HELD, S_DRUM_LOCKS, S_DRUM_LOCK_HELD, S_MOTION_LOCKS, S_AUTO_LIST, S_AUTO_LIST_ADD, S_AUTO_LIST_DRUM, S_REC_LAYER, S_REC_LAYER_SET, S_REC_LAYER_SONG, S_MACRO_LAYER, S_MSEQ, S_DIST_PAGE, S_DLY2, S_REVERB2, S_CHORUS, S_MASTER, S_MASTER_EQ, S_RETRIG, S_RETRIG_FREE, S_LFO_DEST,
+       S_ROLL_LOCKS, S_ROLL_LOCK_HELD, S_DRUM_LOCKS, S_DRUM_LOCK_HELD, S_MOTION_LOCKS, S_AUTO_LIST, S_AUTO_LIST_ADD, S_AUTO_LIST_DRUM, S_REC_LAYER, S_REC_LAYER_SET, S_REC_LAYER_SONG, S_MACRO_LAYER, S_MACROS, S_MSEQ, S_DIST_PAGE, S_DLY2, S_REVERB2, S_CHORUS, S_MASTER, S_MASTER_EQ, S_RETRIG, S_RETRIG_FREE, S_LFO_DEST,
        S_COUNTIN, S_COUNTIN2, S_MENU_AUDIO, S_HEAD_PLAY_REC, S_HEAD_REC_OTHER, S_HEAD_BPM_TURN, S_HEAD_BPM_LOCK,
        S_HEAD_BPM_LOCKED, S_HEAD_GLO_TURN, S_HEAD_DOWNBEAT, S_HEAD_BEAT_2,
        S_MIXER_T4, S_HOME_T4, S_MENU_EXTRA,
@@ -680,7 +680,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "name_user", "name_typing", "name_123", "name_empty", "name_full", "name_playing", "project_named", "song_named",
     "user_foot",
     "roll_empty", "roll_acid", "roll_chords", "roll_ties", "roll_len32_p2", "roll_high", "roll_low", "roll_wide", "roll_playing",
-    "roll_locks", "roll_lock_held", "drum_locks", "drum_lock_held", "motion_locks", "auto_list", "auto_list_add", "auto_list_drum", "layer_rec", "layer_rec_set", "layer_rec_song", "layer_macro", "mseq", "dist", "dly2", "reverb2", "chorus", "master", "master_eq", "retrig_note", "retrig_free", "lfo_dest",
+    "roll_locks", "roll_lock_held", "drum_locks", "drum_lock_held", "motion_locks", "auto_list", "auto_list_add", "auto_list_drum", "layer_rec", "layer_rec_set", "layer_rec_song", "layer_macro", "macros", "mseq", "dist", "dly2", "reverb2", "chorus", "master", "master_eq", "retrig_note", "retrig_free", "lfo_dest",
     "countin", "countin_2bars", "menu_audio", "head_play_rec", "head_rec_other", "head_bpm_turn", "head_bpm_lock",
     "head_bpm_locked", "head_glo_turn", "head_downbeat", "head_beat_2",
     "mixer_tracks4", "home_tracks4", "menu_extra",
@@ -990,6 +990,14 @@ static void setup(int s)
     case S_ENV: go_title("ENV"); ui.hot_col = 2; ui.hot_t = 30; break;
     case S_ENVDEST: go_title("ENV DEST"); break;
     case S_LFO: go_title("LFO"); break;
+    case S_MACROS:                                  /* (FASE 8) the MACROS page: four values, two of them driving
+                                                     * the matrix from the slots of this track */
+        macro_set(0, 90); macro_set(1, 32); macro_set(2, 0); macro_set(3, 120);
+        TSEL->p[P_M1SRC] = MS_M1; TSEL->p[P_M1DST] = MD_CUT; TSEL->p[P_M1AMT] = 40;
+        TSEL->mx[0][0] = MS_M1 + 1; TSEL->mx[0][1] = MD_PAN; TSEL->mx[0][2] = -20;
+        TSEL->mx[1][0] = MS_M1; TSEL->mx[1][1] = MD_REV; TSEL->mx[1][2] = 25;
+        go_page(GR_MACROS);
+        break;
     case S_MOD: TSEL->p[P_M1SRC] = 1; TSEL->p[P_M1DST] = 2; TSEL->p[P_M1AMT] = 40; TSEL->p[P_M2SRC] = 6;
         TSEL->p[P_M2DST] = 14; TSEL->p[P_M2AMT] = -64; mod_ui_slot = 1; go_title("MOD"); break;
     case S_FX: go_title("FX"); break;
