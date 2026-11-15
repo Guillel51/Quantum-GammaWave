@@ -1,3 +1,28 @@
+## Sin publicar — 2026-11-15 — FASE 8 (visual): el mini knob es un dial redondo con aro iluminado
+
+### Interfaz
+
+- **Tercera y última pasada a `gw_mini_bakelite_knob`**, esta vez midiendo el píxel. Lo que quedaba mal:
+  la fila central del círculo es un píxel más ancha que la de al lado, y eso se veía como una **protuberancia
+  a las 3 y a las 9**; el aro no tenía gradiente; y el arco del valor, dibujado a radio `r-1`/`r-2` sin
+  comprobar el círculo, **colgaba fuera del contorno** por la izquierda.
+- Ahora cada fila calcula su **semicuerda exacta** (`gw_isqrt`) y el píxel exterior se mezcla con el fondo por
+  la fracción del círculo que realmente lo cubre: silueta redonda, sin púas ni escalones. El **aro lleva rampa
+  vertical** (claro arriba, oscuro al pie) sobre un contorno oscuro de 1 px, la **cara** es una segunda rampa
+  más oscura que el aro, y el **arco del valor va dentro del aro**, con el punto descartado si el redondeo lo
+  saca de la banda. La aguja termina en el borde de la cara, con la punta en el acento.
+- **Son un poco más grandes**: r 9 → 11 en HOME. Comprobado que no chocan: la fila mide 132 px de ancho en
+  pasos de 31, así que el primer aro ocupa 107–129 (el cuadro empieza en 100), el cuarto 200–222 (termina en
+  232), y en vertical 68–90 con la regla de cabecera en 66 y el divisor en 92.
+
+### Verificación (host)
+
+- `ui_render` 189 pantallas × 22 paletas: **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles
+  GREY / MONO fuera de gris, 3 400 410 mediciones de alineación con 0 desalineaciones.
+- `theme_test`: todas las paletas pasan, peor margen **4,08:1**.
+- Banco de presets auditado (`tools/preset_audit.py` sobre el volcado de `preset_audit_test`): **275 presets en
+  9 motores, 0 problemas**, todos con envío a algún bus, 273 con movimiento.
+
 ## Sin publicar — 2026-11-15 — FASE 7: el degradado de las placas deja de costar frame
 
 ### Rendimiento (host, `ui_render` a `-O1`, mínimo de cuatro corridas)

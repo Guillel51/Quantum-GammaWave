@@ -2174,81 +2174,93 @@ static int32_t gw_filter_resp_y(int32_t ftype, int32_t x, int32_t w, int32_t cut
     return clamp(y_zero - res_pk + att, y_zero - h_max / 2, y_zero + h_max / 2);
 }
 
-/* (FASE 6) THE MINI KNOB, DRAWN AS A DIAL. The version this replaces stacked four `cv_disc` rings and painted
- * the value as single pixels every 1/(5r) of a turn: at r = 9 the arc came out as a handful of scattered dots
- * (cyan specks at 12, 3, 6 and 9 o'clock) and the needle, drawn to r - 2 through the bezel, left a white spike
- * on the rim. This is scanline work instead: the rim and the bezel are filled row by row between two circles,
- * so the outline is a circle at every radius and not a polygon; the body is a vertical ramp (lit at the top,
- * shaded at the foot) so the knob has depth on a 16-bit panel; the value is a CONTINUOUS arc, one sample per
- * degree and two pixels thick, so it reads as a stroke; the needle ends inside the face and the centre keeps
- * its accent dot. Everything is palette tokens through ux_mix, so GREY / MONO stay neutral. */
+/* (FASE 8) THE MINI KNOB: A ROUND DIAL WITH A LIT RIM. Three attempts stacked rings and painted the value
+ * as single pixels; at r = 9 that left stair steps, a lone pixel sticking out at 3 and 9 o'clock (the row at
+ * dy = 0 is one wider than the row above it, which reads as a spike) and an arc that bulged outside the
+ * bezel. This one keeps the scanline fill -- one `cv_rect` a row, so a dial is 23 fills -- but computes each
+ * row's edge with the exact half-chord and blends the LAST pixel of the row toward the ground by the fraction
+ * of it the circle actually covers: the silhouette has no spike and no step. The rim is a vertical ramp (lit
+ * at the top, shaded at the foot), the face is a second ramp inside it, the value runs as a continuous arc
+ * INSIDE the rim so it never leaves the outline, and the needle stops at the face's edge. Every colour comes
+ * from ux_mix() on palette tokens, so GREY and MONO stay neutral. */
+static int32_t gw_isqrt(int32_t v)
+{
+    int32_t t = 0;
+    if (v <= 0)
+        return 0;
+    while ((t + 1) * (t + 1) <= v)
+        t++;
+    return t;
+}
 static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val256, uint16_t arc_col)
 {
-    int32_t v = clamp(val256, 0, 256), dy, k, steps;
-    int32_t r_in = r > 2 ? r - 2 : 1;              /* the face, inside the bezel */
-    uint16_t rim = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, arc_col, 46);
-    uint16_t bez = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, bg_col(128), 38);
-    uint16_t face_hi = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, bg_col(96), 30);
-    uint16_t face_lo = (ux.mono || ux.bw) ? T_BG : ux_mix(T_BG, T_LINE, 40);
-    /* 1. the rim and the bezel, one scanline each: between the outer circle and the face, and the face itself
-     *    as a vertical ramp. One fill per row, so a 19 px knob is 19 fills and not 300 pixels. */
+    int32_t v = clamp(val256, 0, 256), dy, k;
+    int32_t ri = r > 5 ? r - 3 : (r > 2 ? r - 2 : 1);      /* the face, inside the rim band */
+    int mono = ux.mono || ux.bw;
+    uint16_t out = mono ? T_BG : ux_mix(T_BG, T_TEXT, 14);              /* the outline: separates it from the bay */
+    uint16_t rim_hi = mono ? T_DIM : ux_mix(ux_mix(T_BG, bg_col(128), 55), arc_col, 30);
+    uint16_t rim_lo = mono ? T_BG : ux_mix(T_BG, rim_hi, 62);
+    uint16_t face_hi = mono ? T_TEXT : ux_mix(T_BG, bg_col(88), 26);
+    uint16_t face_lo = mono ? T_DIM : ux_mix(T_BG, T_LINE, 22);
     for (dy = -r; dy <= r; dy++) {
-        int32_t yout = 0, yin = 0, t;
-        for (t = r; t >= 0; t--)
-            if (t * t + dy * dy <= r * r) {
-                yout = t;
-                break;
-            }
-        for (t = r_in; t >= 0; t--)
-            if (t * t + dy * dy <= r_in * r_in) {
-                yin = t;
-                break;
-            }
-        if (yout <= 0)
-            continue;                       /* a row outside the circle draws nothing, not a lone pixel */
-        /* the face: the ramp from the lit top to the shaded foot of the bezel's inside */
-        if (dy <= -r_in || dy >= r_in) {
-            uint16_t edge = ux_mix(rim, T_BG, 45);
-            cv_rect(cx - yout, cy + dy, 2 * yout + 1, 1, rim);
-            cv_pset(cx - yout, cy + dy, edge);
-            cv_pset(cx + yout, cy + dy, edge);
+        int32_t yy = cy + dy, chord = r * r - dy * dy, xo, xi = -1, t2, frac;
+        uint16_t rimc, facec, e;
+        if (chord <= 0)
+            continue;
+        xo = gw_isqrt(chord);                             /* the exact half-chord of this row */
+        if (xo <= 0)
+            continue;
+        t2 = (dy + r) * 100 / (2 * r);
+        rimc = ux_mix(rim_hi, rim_lo, t2);
+        facec = ux_mix(face_hi, face_lo, t2);
+        if (ri * ri > dy * dy)
+            xi = gw_isqrt(ri * ri - dy * dy);
+        if (xi > 0)
+            cv_rect(cx - xi, yy, 2 * xi + 1, 1, facec);
+        if (xi >= 0) {                                    /* the rim band, both sides */
+            cv_rect(cx - xo, yy, xo - xi, 1, rimc);
+            cv_rect(cx + xi + 1, yy, xo - xi, 1, rimc);
+        } else {
+            cv_rect(cx - xo, yy, 2 * xo + 1, 1, rimc);
         }
-        else {
-            uint16_t fc = ux_mix(face_hi, face_lo, (dy + r_in) * 100 / (2 * r_in));
-            cv_rect(cx - yout, cy + dy, yout - yin, 1, bez);
-            cv_rect(cx - yin, cy + dy, 2 * yin + 1, 1, fc);
-            cv_rect(cx + yin + 1, cy + dy, yout - yin, 1, bez);
+        /* the row's two outer pixels carry the part of the circle that actually lands on them */
+        frac = (chord - xo * xo) * 100 / (2 * xo + 1);
+        e = frac < 100 ? ux_mix(T_BG, out, frac < 12 ? 12 : frac) : out;
+        cv_pset(cx - xo, yy, e);
+        cv_pset(cx + xo, yy, e);
+        /* the rim's lit side: the upper third, a shade above its own row, so the dial has depth */
+        if (dy <= -r / 3 && xi >= 0) {
+            cv_rect(cx - xo + 1, yy, xo - xi - 1, 1, ux_mix(rimc, T_TEXT, 18));
+            cv_rect(cx + xi + 1, yy, xo - xi - 1, 1, ux_mix(rimc, T_TEXT, 18));
         }
     }
-    /* 2. the bezel's lit edge: the top-left two thirds of the ring, one shade lighter, so the knob catches the
-     *    light from the same corner as every plate in the interface */
-    for (k = 0; k <= 40; k++) {
-        uint32_t a = (uint32_t)(-160 + k * 6) * 64u;   /* 11 o'clock .. 3 o'clock */
-        int32_t px = cx + (r * bg_sin(a) >> 15), py = cy - (r * bg_sin(a + 0x4000u) >> 15);
-        cv_pset(px, py, ux_mix(rim, T_TEXT, 45));
-    }
-    /* 3. the value: a continuous arc on the bezel, 270 degrees from the bottom left, two pixels thick, drawn
-     *    only up to the value -- the dial's own reading, no numbers on a 19 px control */
-    steps = 192;
-    for (k = 0; k <= steps; k++) {
-        int32_t a256 = -384 + 768 * k / steps;
+    /* the value: a continuous arc on the rim, from the bottom left, 270 degrees, drawn only up to the value.
+     * Two passes -- the rim's inner row and one outside it -- so it reads as a stroke and not as dots. */
+    for (k = 0; k <= 256; k++) {
+        int32_t a256 = -384 + 768 * k / 256;
         uint32_t a;
+        int32_t rr;
         if (a256 > -384 + v)
             break;
         a = (uint32_t)(a256 * 64);
-        cv_pset(cx + ((r * (int32_t)bg_sin(a)) >> 15),
-                cy - ((r * (int32_t)bg_sin(a + 0x4000u)) >> 15), arc_col);   /* (the product first: a unit
-                                                                             * sine shifted down is only -1/0/1) */
+        for (rr = r - 1; rr >= r - 2 && rr > 0; rr--) {
+            /* inside the rim band, never outside the outline: a point the circle rounds out of it is dropped,
+             * which is what kept the arc hanging off the left side of the dial */
+            int32_t ax = (rr * (int32_t)bg_sin(a)) >> 15, ay = -((rr * (int32_t)bg_sin(a + 0x4000u)) >> 15);
+            int32_t d2 = ax * ax + ay * ay;
+            if (d2 <= r * r && d2 > ri * ri)
+                cv_pset(cx + ax, cy + ay, arc_col);
+        }
     }
-    /* 4. the needle, from the centre to just inside the face's rim, and the centre's accent dot */
+    /* the needle, from the centre to the face's edge, and the centre's dot */
     {
-        int32_t nr = r_in > 2 ? r_in - 1 : 1;
+        int32_t nr = ri > 2 ? ri - 1 : 1;
         uint32_t th = (uint32_t)((-384 + v * 768 / 256) * 64);
-        int32_t nx = cx + (nr * bg_sin(th) >> 15), ny = cy - (nr * bg_sin(th + 0x4000u) >> 15);
+        int32_t nx = cx + ((nr * (int32_t)bg_sin(th)) >> 15), ny = cy - ((nr * (int32_t)bg_sin(th + 0x4000u)) >> 15);
         cv_line(cx, cy, nx, ny, T_TEXT);
-        cv_pset(nx, ny, ux_mix(T_TEXT, arc_col, 40));   /* its head, a shade of the accent */
+        cv_pset(nx, ny, mono ? T_TEXT : arc_col);
     }
-    cv_pset(cx, cy, ux.mono ? T_TEXT : T_ACCENT);
+    cv_pset(cx, cy, mono ? T_TEXT : T_ACCENT);
 }
 
 #define WF_BANDS 28                                  /* the bay's bands (the count the manual names) */
@@ -2599,7 +2611,7 @@ static void graph_ecosys(void)
          * keeps the arc, the value and the label untouched. */
         /* (3.9) 9 px, not 8, and not one pixel more: at r 9 the gap ring still lands on 108..128 / 201..221,
          * clear of the bay's left rim (100), its right (231), the header rule (66) and the divider (92) */
-        gw_mini_bakelite_knob(kx, 79, 9, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
+        gw_mini_bakelite_knob(kx, 79, 11, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
     }
     cv_rect(104, 92, 124, 1, T_LINE);
 
