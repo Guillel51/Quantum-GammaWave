@@ -3040,9 +3040,6 @@ static void graph_home_viz(uint16_t c)
             } else {
                 cv_rect(195, 97, 3, 3, mono ? T_TEXT : T_ACCENT);
             }
-            cv_rect(196, 66, 1, 62, ux_mix(T_GRID, T_LINE, 55));   /* (3.5) the reticle's cross, drawn last so
-                                                                    * it is a reference and not a line the trace
-                                                                    * has to cross twice */
         }
 
         /* Spectrum floor: 16 slim bars, with peak marks, below the trace. */
