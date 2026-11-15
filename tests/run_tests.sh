@@ -260,6 +260,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost" \
         "$OUT/ui_render" build/ui_new build/ui_slot
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
+    mkdir -p build/capture            # (a clean build/ has no capture dir: the sed below used to fail first)
     sed 's/^int main(/int ui_render_main(/' tests/ui_render.c > build/capture/ui_render_nomain.c
     mkdir -p build/capture/ppm
     $CC -O1 -w -DUI_NO_DRIFT=0 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/capture_pokes" tests/capture_home_pokes.c -lm

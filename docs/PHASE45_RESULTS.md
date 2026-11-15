@@ -37,19 +37,26 @@ el actual. `tests/settings_test` pasa.
 `draw_column_tall`): la tarjeta vacía retorna antes de la píldora. Esos −16 B de la tabla de arriba son
 suyos.
 
-## 3. Lo que quedó en rojo (reportado, no escondido)
+## 3. Lo que estaba en rojo, y cómo se cerró
 
-La suite `NO_PACKAGE=1 tests/run_tests.sh` **todavía no termina en verde**. Además de lo arreglado quedan:
+La suite `NO_PACKAGE=1 tests/run_tests.sh` estaba roja desde la 3.5.0. Causa única, en tres capas: la
+retirada de AMBER, ICE y VIOLET dejó **dos espacios de paleta** conviviendo.
 
-| Test | Fallo | Diagnóstico |
-|---|---|---|
-| `tests/persistence_test.c` | `persist: repeating an unchanged editor preference succeeds without erasing` | `editor_preferences.c:53` compara `palette_from_stored(persist_saved.palette) != settings.palette`; con un id jubilado en el registro guardado la comparación no coincide y la preferencia se reescribe. Hipótesis a confirmar, no verificada. |
-| `tests/editor_test.c` | `MENU_DESC` (ids 0..19), `MENU_DESC (1.0.5)`, `MENU_SET`, `MENU_SET` clamp | `editor_menu.c` describe la lista de MENU al editor; la retirada de tres paletas cambió lo que MENU ofrece y el descriptor no la siguió. |
+* `menu_items.c` ofrece y aplica **ranuras de la lista viva** (`UI_PAL_LIVE`), y `editor_preferences.c`
+  asignaba `settings.palette = a[1]` como **índice crudo**. Con eso, `UI_SET` podía dejar el instrumento en
+  un tema jubilado y la comparación de "preferencia sin cambios" (`palette_from_stored(saved) !=
+  settings.palette`) no coincidía nunca: el editor reescribía la flash en cada pasada.
+* Arreglado en el firmware: `UI_SET` toma la ranura y guarda el índice de la tabla; `UI_STATE` devuelve la
+  ranura (nunca un id jubilado). Coste: +16 B de XIP, que entraban en los 28 libres.
+* `tests/persistence_test`, `tests/editor_test`, `tests/settings_test` y `tests/theme_test` pasan a la
+  especificación de hoy (ranura ≠ índice, 19 paletas vivas, PAPER con su contraste).
+* Web Studio: su lista de paletas de respaldo tenía 17 nombres viejos y su estado inicial daba por hecho que
+  `13` era QUANTUM. Ahora son las 19 vivas y el valor por defecto es la ranura de QUANTUM (10).
+  `web/EDITOR_PROTOCOL.md` lo dice explícitamente para UI_SET y UI_STATE.
+* `tests/run_tests.sh` no creaba `build/capture` antes de escribir allí: en un `build/` limpio el primer
+  fallo era un `sed` sin directorio. Ahora lo crea.
 
-Estos dos no son consecuencia de esta fase: el árbol ya estaba en rojo en `1852126` por la retirada de
-paletas de 3.5.0. No los toqué porque el arreglo correcto es cambiar el protocolo del editor con su
-documentación (`docs/EDITOR_PROTOCOL.md`) y su gemelo en `web/`, y eso merece su propia verificación
-contra el editor real, no un parche al final de una ronda de optimización.
+Resultado: **`ALL HOST TESTS PASSED`** y `web tests passed`.
 
 ## 4. Pruebas ejecutadas en esta ronda
 
