@@ -57,13 +57,17 @@ static void draw_load(int32_t x)
     uint32_t k, n = head_load();
     for (k = 0; k < 5u; k++) {
         uint16_t c = k < n ? (ux.chamfer ? heat_col(30 + (int32_t)k * 50) : T_MID) : T_RAISE;
-        cv_rect(x, 18 - (int32_t)k * 3, 3, 2, c);
+        cv_rect(x, H_HEAD - 6 - (int32_t)k * 3, 3, 2, c);   /* (3.9) hung off the bar's height, not a row */
     }
 }
 static void draw_battery(int32_t bx)
 {
     int32_t lvl = batt_shown();
-    cv_icon_mid(bx, H_HEAD / 2, 24, batt_icon(lvl), lvl == 1 ? T_ACCENT : lvl == 0 ? T_MID : T_THEME, T_BG);   /* 24 px: the glyph is wide and short */
+    /* (3.9) 16 px, the header's own cell: at 24 a cell in a 22 px bar painted a row above the screen and a row
+     * under the bar (ui_render's lint: off the screen, cut by its canvas), and the 24 px glyph has no cell at
+     * any other size (the alignment audit declared it and found nothing drawn). The glyph is wide and short, so
+     * it still reads at 16, on the bar's own middle. */
+    cv_icon_mid(bx, H_HEAD / 2, 16, batt_icon(lvl), lvl == 1 ? T_ACCENT : lvl == 0 ? T_MID : T_THEME, T_BG);
 }
 
 /* ---------------------------------------------------- rolling digits --- */
@@ -168,9 +172,10 @@ static int32_t roll_text(uint32_t k, int32_t x, int32_t y, const char *s, uint16
  *           on the bar's 2nd and 4th, the accent's on its 1st; stopped, still and MID
  *   right   the octave, or the song row while a song plays (ending at 208), and the battery (ink 216..236; its bolt
  *           says USB power: no separate USB icon)
- * A message or a layer's label replaces the centre and the octave, centred on x 120, up to
- * 158 px; while the BPM is being changed (a SELECT turn: bpm_t) or in the GLO layer the centre stays and the message
- * goes right of the BPM (over the right slot). Every element's ink centred on row 12 (H_HEAD / 2; ui_test.c
+ * (3.9) A MESSAGE NO LONGER MOVES THE BAR. It used to replace the centre (play state, metronome, BPM) and the
+ * octave, so every preset load -- and any note that raised a hint -- shifted the whole top row for a second or
+ * two while the player watched it: the header is a fixed instrument panel now. The centre is always drawn where
+ * it is, and a message or a layer's label goes to its right, over the right slot (up to 236), ellipsised. Every element's ink centred on row 12 (H_HEAD / 2; ui_test.c
  * test_head_centres): icons by cv_icon_mid, text by its capitals' band (CAP_IN; the odd row left over above it, as
  * everywhere): M (BPM, the song row, the octave: capitals rows 6..16) from y 2, S (a message, OCT: rows 7..15) from y 4 */
 #define HEAD_SY CAP_IN(S, H_HEAD)
@@ -178,6 +183,10 @@ static int32_t roll_text(uint32_t k, int32_t x, int32_t y, const char *s, uint16
 #define HEAD_TRK_X 4                                   /* the track cushion's cell */
 #define HEAD_REC_X 20                                  /* the REC mark's cell (ink 23..33) */
 #define HEAD_BAT_X 214                                 /* the battery's cell */
+/* (3.9) the audio's load, five 3 x 2 blocks: it used to sit between the octave and the battery, in the one strip
+ * a message now needs, so the two could not both be drawn. It lives with the REC mark in the left slot instead,
+ * where it is a status ornament like it, and the right slot is the message's or the octave's. */
+#define HEAD_LOAD_X 37
 #define HEAD_GRP_R 208                                 /* the octave / song row ends here */
 #define HEAD_MSG_W 158                                 /* a message centred on x 120: 41..199 */
 #define HEAD_GAP 4                                     /* ink to ink: the metronome -> the BPM -> the lock */
@@ -246,7 +255,7 @@ static int32_t head_hint_w(const char *s, int32_t maxw)
 }
 /* a message / a layer's label at x, or centred on x 120 (x < 0), at most maxw px with its
  * icon (ui.c MSG_NOFILE: the accent's) */
-static void head_msg(int32_t x, int32_t maxw)
+static int32_t head_msg(int32_t x, int32_t maxw)     /* (3.9) the right end of its ink */
 {
     const char *m = ui.msg_t ? ui.msg : layer_head();
     int icon = m[0] == MSG_NOFILE[0];
@@ -255,7 +264,7 @@ static void head_msg(int32_t x, int32_t maxw)
         x = 120 - HALF_UP(iw + head_hint_w(m + icon, maxw - lw - iw) + lw);
     if (icon)
         x += cv_icon_mid(x, H_HEAD / 2, 16, ICON_X_NOFILE, T_ACCENT, T_BG) + KH_GAP;
-    (void)cv_free_hint(x, HEAD_SY, m + icon, T_TEXT, T_BG, maxw - lw - iw);   /* (may start with a keycap) */
+    return cv_free_hint(x, HEAD_SY, m + icon, T_TEXT, T_BG, maxw - lw - iw);   /* (may start with a keycap) */
 }
 /* the octave, or the song row while a song plays, its right end at HEAD_GRP_R */
 static void head_group(void)
@@ -290,7 +299,8 @@ static void draw_head(void)
                    (uint32_t)batt_shown() * 7777u + (chain.running ? (chain.row + 1u) * 104729u : 0u) +
                    head_load() * 0x9E3779B1u;
     int msg = ui.msg_t || ui.layer;
-    int centre = !msg || ui.bpm_t || ui.layer == LAYER_GLO;   /* the BPM being changed: it stays, the message right */
+    int32_t mend = 0;          /* (3.9) where a message's ink ends: the battery keeps its cell while it fits */
+    int centre = 1;             /* (3.9) always: nothing a preset load does may move the header's elements */
     if (song.g[G_BPM] != ui.roll_bpm) {
         char a[8];
         fmt_int(a, ui.roll_bpm);
@@ -342,19 +352,22 @@ static void draw_head(void)
             cv_icon_mid(lx + HEAD_GAP - ib[0], H_HEAD / 2, 16, ICON_X_LOCK, T_MID, T_BG);
             lx += HEAD_GAP + ib[2] - ib[0];
         }
-        if (msg) {                                     /* right of the BPM, over the right slot */
+        if (msg) {                                     /* (3.9) right of the BPM: the centre -- play state,
+                                                        * metronome, BPM and lock -- stays exactly where it is, and
+                                                        * the message takes the right slot it used to take (the
+                                                        * battery and the load meter step aside for it, as before) */
             int32_t x = lx + 9 > 142 ? lx + 9 : 142;
-            head_msg(x, 236 - x);
+            mend = head_msg(x, 236 - x);
         }
     } else {
-        head_msg(-1, HEAD_MSG_W);
+        (void)head_msg(-1, HEAD_MSG_W);
     }
     if (!msg && (chain.running || song.octave))
         head_group();
-    if (!(msg && centre)) {
+    draw_load(HEAD_LOAD_X);                            /* (3.9) its own cell, out of the message's way */
+    if (!msg || mend < HEAD_BAT_X - 8)                 /* a message owns the right slot as far as its ink reaches;
+                                                        * the centre -- play state, metronome, BPM -- never moves */
         draw_battery(HEAD_BAT_X);
-        draw_load(HEAD_BAT_X - 5);
-    }
     cv_blit(0, Y_HEAD);
 }
 /* LINE: 1 px dividers in the BG gaps between the strips, not around them: under the header, above and

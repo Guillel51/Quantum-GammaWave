@@ -150,6 +150,21 @@ static uint32_t ux_luma(uint16_t c)        /* 0..255 */
     return ((c >> 11) * 255u / 31u * 54u + ((c >> 5) & 63u) * 255u / 63u * 183u + (c & 31u) * 255u / 31u * 19u) >> 8;
 }
 
+/* (3.9) DEEPER, NOT DIMMER. The screen asked for more depth without touching the panel's backlight, which means
+ * the tones, not the pixels: a surface is the palette's own surf shaded down `pct` per cent (a shade keeps the
+ * hue, where a mix towards the background would have flattened it), so a card or a bay sits *under* the ink and
+ * above the page instead of beside it, and the separation between the three reads at a glance. MONO keeps its
+ * one grey (the block below overrides every derived tone) and PAPER is shaded as anything else: it loses 10 % of
+ * its surface, not its legibility. */
+static uint16_t ux_shade(uint16_t c, int32_t pct)
+{
+    int32_t r = (c >> 11) & 31, g = (c >> 5) & 63, b = c & 31, k = 100 - pct;
+    int32_t nr = (r * k + 50) / 100, nb = (b * k + 50) / 100, ng = (g * k + 50) / 100;
+    if (r == b && g == r * 2)                 /* a grey stays on the grey line (R = B, G = 2 R), exactly: GREY's
+                                              * whole screen is checked for it (tests/ui_test.c screen_gray) */
+        nb = nr, ng = nr * 2;
+    return (uint16_t)((nr << 11) | (ng << 5) | nb);
+}
 static void palette_set(uint32_t i)
 {
     const ui_pal_t *p = &UI_PALETTES[i % NPALETTES];
@@ -158,7 +173,8 @@ static void palette_set(uint32_t i)
     ux.bw = i == UI_BW_INDEX;
     ux.chamfer = i == UI_JIANT_INDEX || i == UI_GAMMA_INDEX || i == UI_WRAITH_INDEX || i == UI_QUANTUM_INDEX ||
                  i == UI_SOLARIS_INDEX || i == UI_CYBER_INDEX || i == UI_NORDIC_INDEX;
-    ux.bg = p->bg; ux.surf = ux.style ? p->bg : p->surf; ux.text = p->text; ux.theme = p->theme; ux.accent = p->accent;
+    ux.bg = p->bg; ux.surf = ux.style ? p->bg : ux_shade(p->surf, 10); ux.text = p->text;
+    ux.theme = p->theme; ux.accent = p->accent;
     ux.mid = ux_mix(p->bg, p->text, UI_MID_PCT);
     ux.dim = ux_mix(p->bg, p->text, UI_DIM_PCT);
     ux.line = ux_mix(p->bg, p->text, UI_LINE_PCT);

@@ -2991,11 +2991,11 @@ static void graph_home_viz(uint16_t c)
                 py = y;
             }
         }
-        /* (2.2) Note-reactive sparks, inside the scope field only. The pool has an owner now: the bay
-         * this screen hands in is the only place its sparks are drawn, so they never reach the header
-         * band, the spectrum floor or another page. Two canvas passes a frame draw, the pool advances once. */
-        vz_np_layer(VZ_OWN_VIZ);
-        gw_note_particles(12, 64, 144, 67);
+        /* (3.9) NO NOTE SPARKS HERE. They were born in the middle of the screen -- the scope field's floor, which
+         * is where the notes' height put them -- and the pool's gravity took them down over the spectrum floor, so
+         * the page rained particles from its centre. That emitter is off: the field's own embers, the milky way,
+         * the stars, the two worlds and every other animation stay exactly as they were. HOME's bay keeps its
+         * sparks: they belong to the gesture, not to this screen. */
 
         /* Phase plot: x(t) against x(t - tau), inside its own quiet reticle. */
         cv_rrect(164, 64, 64, 67, 3, vsf, T_GRID);

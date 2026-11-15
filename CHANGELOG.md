@@ -1,3 +1,42 @@
+## v3.3.0 — 2026-11-15 — voces justas, acordes en varias pistas, una barra que no se mueve
+
+### Fixed
+- **La cabecera ya no se mueve al cargar un preset.** Un mensaje sustituía el centro (play, metrónomo, BPM y su
+  candado) y el octava, así que cada carga -- con notas sonando o no -- cambiaba de sitio toda la fila de arriba
+  durante un segundo. Ahora el centro se dibuja siempre donde está y el mensaje ocupa la ranura derecha, con el
+  mismo ancho que tenía (sin recortes: el recuento de textos elididos del render no cambia). El medidor de carga
+  se fue a la ranura izquierda, junto a la marca de REC, que era el único elemento que se pisaba con él.
+- **FX > BUSES: el degradado está dentro de los cuadros.** El panel era un T_SURF plano con una rampa pequeña en
+  el área de dibujo, y por eso seguía leyéndose gris al lado de una página que sí es un degradado. Cada bloque
+  lleva ahora su bisel templado por el tema, un filo superior que recoge la luz y la rampa de seis bandas por
+  todo el cuerpo, de debajo del encabezado al borde inferior.
+- **El visualizador ya no llueve partículas desde el centro.** El emisor eran las chispas de nota del campo del
+  osciloscopio: nacían en la mitad de la pantalla y la gravedad del pool las tiraba hacia abajo, sobre el suelo
+  de espectro. Ese emisor está apagado; las brasas del campo, la Vía Láctea, las estrellas, los dos mundos y las
+  chispas del bay de HOME siguen exactamente como estaban.
+
+### Added
+- **Share justo del pool de voces.** `voice_victim` cuenta una vez las voces que suenan por parte y, dentro de
+  la misma clase y antes del volumen, prefiere la que dejaría a su parte por encima de su parte proporcional
+  (el presupuesto repartido entre las seis). Nada se reserva: una parte sola sigue teniendo todas las voces que
+  su motor permita; el share sólo decide quién cede una cuando dos pueden. Eso es lo que impide que una pista
+  monopolice el pool y que un acorde en otra pista pague por ello.
+- **Un teclado recién pulsado es lo último que se roba.** Una voz con `gate` y menos de cuatro bloques de edad
+  pasa al final de la lista de candidatas: es la nota que el intérprete está oyendo empezar. Sólo se toma cuando
+  no queda nada más que ceder.
+- **Knobs del bay de HOME, un punto más grandes** (r 9, centro en y 79): siguen sin tocar el bisel (108..128 y
+  201..221 dentro de 100..231), el filete superior (66) ni el divisor (92).
+- **Cuadros superiores más altos y barra más baja**: la cabecera pasa de 24 a 22 px y las cuatro tarjetas de 44
+  a 46, sobre la misma retícula de 240 x 240 (panel y pie no se mueven). El medidor de carga y el reloj de BPM
+  cuelgan ahora de la altura de la barra, no de una fila fija.
+
+### Changed
+- **Contraste más profundo, sin tocar el brillo físico.** Las superficies (tarjetas, paneles, bays) son el SURF
+  de la paleta sombreado un 10 % -- una sombra conserva el tono, donde una mezcla hacia el fondo lo aplana --, y
+  los tonos derivados bajan un paso (DIM 42->38, LINE 18->16, RAISE 12->10). El texto, el tema y el acento no
+  cambian: la pantalla se lee más oscura y más separada por planos, no más apagada. GREY y MONO conservan su
+  línea exacta de grises (el sombreado respeta R = B, G = 2 R).
+
 ## v3.2.7 — 2026-11-15 — un solo degradado por pantalla, knobs más grandes y mundos con clima
 
 ### Fixed

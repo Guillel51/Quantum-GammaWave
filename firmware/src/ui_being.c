@@ -2537,7 +2537,9 @@ static void graph_ecosys(void)
         /* (3.8) 7 px, not 8: the bay's four knobs sat as large as the modules' on top, which flattened the
          * hierarchy (the Hearth controls read as the headline row). One pixel down and the same 31 px pitch
          * keeps the arc, the value and the label untouched. */
-        gw_mini_bakelite_knob(kx, 79, 8, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
+        /* (3.9) 9 px, not 8, and not one pixel more: at r 9 the gap ring still lands on 108..128 / 201..221,
+         * clear of the bay's left rim (100), its right (231), the header rule (66) and the divider (92) */
+        gw_mini_bakelite_knob(kx, 79, 9, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
     }
     cv_rect(104, 92, 124, 1, T_LINE);
 

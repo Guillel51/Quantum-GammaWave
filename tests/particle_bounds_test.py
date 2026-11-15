@@ -90,9 +90,12 @@ check(body(being, "graph_being") and not calls_in(body(being, "graph_being")),
 home = calls_in(body(being, "graph_ecosys"))
 check(home == [(9, 66, 88, 52)], "HOME draws the pool inside its bay (9,66,88,52): %s" % (home,))
 viz = calls_in(body(graph, "graph_home_viz"))
-check(viz == [(12, 64, 144, 67)], "the visualizer draws it in its scope field (12,64,144,67): %s" % (viz,))
+# (3.9) THE VISUALIZER EMITS NOTHING. Its note sparks were born at the scope field's floor -- the middle of
+# the screen -- and the pool's gravity dropped them over the spectrum floor: the page rained particles from
+# its centre. The emitter is gone; HOME's bay keeps its own (the check above), the deep field keeps its dust.
+check(viz == [], "the visualizer emits no note sparks any more (they rained from the screen's middle): %s" % (viz,))
 
-for scr, bay in (("HOME", home[0] if home else None), ("VISUALIZER", viz[0] if viz else None)):
+for scr, bay in (("HOME", home[0] if home else None),):
     if not bay:
         continue
     x, y, w, h = bay
@@ -103,8 +106,8 @@ for scr, bay in (("HOME", home[0] if home else None), ("VISUALIZER", viz[0] if v
 check(home and home[0][0] + home[0][2] <= 100, "HOME: its bay stays left of the mini-knobs (x < 100)")
 # VISUALIZER: the header band ends at y 57, the phase plot starts at x 164, the spectrum floor at
 # y 180. The scope field is between them.
-check(viz and viz[0][1] >= 64 and viz[0][0] + viz[0][2] <= 164 and viz[0][1] + viz[0][3] <= 180,
-      "VISUALIZER: its bay is the scope field, clear of header, phase plot and spectrum")
+check("gw_note_particles" not in body(graph, "graph_home_viz") and "vz_np_layer" not in body(graph, "graph_home_viz"),
+      "VISUALIZER: the pool is neither advanced nor drawn there (the emitter and its bay check went together)")
 
 # ---- the HOME solar system: every orbit and planet inside its bay ----------
 # The bay is the clip (sys_box); the geometry must not lean on the clip for its size, or a
@@ -173,8 +176,8 @@ check("gw_ring_clip" in being and "sys_line" in body(being, "gw_ring_clip"),
 deep = body(being, "gw_viz_deep")
 vizbody = body(graph, "graph_home_viz")
 check("gw_viz_deep(ui_viz_q)" in vizbody, "the visualizer draws the deep field")
-check(vizbody.find("gw_viz_deep") < vizbody.find("gw_note_particles"),
-      "the deep field is under the music's own drawing, not over it")
+check("gw_viz_deep" in vizbody and "gw_note_particles" not in vizbody,
+      "the deep field is the visualizer's own drawing, with no spark pool over it")
 check("cv_text" not in deep and "cv_rrect" not in deep,
       "the deep field draws no text and no cell (nothing for the layout lint to collide with)")
 check("if (q >= 2u)" in deep and "return" in deep.split("if (q >= 2u)")[1][:80],

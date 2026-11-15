@@ -58,9 +58,11 @@ static int32_t fxb_px(int32_t v) { return clamp(v, 0, 7000) * 56 / 7000; }
  * draws a still frame. */
 static void fxb_grad(int32_t x, int32_t y, int32_t w, int32_t h)
 {
-    /* (4.1) four steps, accent rising towards the floor: a gradient, dithered. (3.6) the loop is gfx.c's
-     * ux_ground_bands, the same primitive HOME's views use, so the ramp has one implementation. */
-    ux_ground_bands(x, y, w, h, 4, 30, 10, 5, 7, y, y + h, 50);
+    /* (4.1) the box's own floor, accent rising towards the bottom. (3.9) SIX steps over the whole body, from
+     * under the header to the bottom rim, not four steps inside the drawing area: the boxes wore a flat T_SURF
+     * panel around a small ramp, which is why they still read as grey next to a page that is a gradient. The
+     * loop is gfx.c's ux_ground_bands, the same primitive HOME's views use. */
+    ux_ground_bands(x, y, w, h, 6, 22, 8, 10, 7, y, y + h, 50);
 }
 /* (4.1) the sheen: one narrow column of light crossing a block's drawing while its bus carries signal, so a busy
  * block reads busy before a meter is read. ui.frame, not a timer: a silent page draws a still frame. */
@@ -124,8 +126,14 @@ static void graph_fx_buses(const track_t *t)
         for (i = 0; i < 6u; i++) {
             int32_t x = BX[i & 1u], y = BY[i / 2u], on, dx = x + 3, dy = y + IN, dw = BW - 12, dh = BH - IN - 3;
             uint16_t head;
-            cv_rrect(x, y, BW, BH, 3, T_SURF, T_BG);
-            cv_rrect(x + 2, y + 2, BW - 4, BH - 4, 2, T_BG, T_SURF);   /* the block's ground: title and drawing */
+            /* (3.9) the block is part of the page now: a bezel warmed by the theme, a top edge that catches the
+             * light, the header band flat so the title keeps its own ground, and the ramp running from under it
+             * to the bottom rim -- the box's own gradient, not the page's seen through a window. */
+            cv_rrect(x, y, BW, BH, 3, ux_mix(T_SURF, T_THEME, 22), T_BG);
+            cv_rect(x + 3, y, BW - 6, 1, ux_mix(T_SURF, T_TEXT, 26));
+            cv_rect(x + 2, y + 2, BW - 4, IN - 2, T_BG);
+            fxb_grad(x + 2, y + IN, BW - 4, BH - IN - 2);
+            cv_rect(x + 2, y + IN - 1, BW - 4, 1, ux_mix(T_BG, T_ACCENT, 26));
             switch (i) {
             case FXB_DLY: on = (t->p[P_DLY] != 0 || wet[FXB_DLY] > 64) && sys_load != LOAD_ECO; break;
             case FXB_REV: on = t->p[P_REV] != 0 || wet[FXB_REV] > 64; break;
@@ -137,7 +145,6 @@ static void graph_fx_buses(const track_t *t)
             head = on ? T_THEME : T_DIM;
             fxb_head(x, y, BW, FXB_BLOCKI[i], FXB_BLOCKN[i], head, on ? wet[i] : 0);
             fxb_meters(dx + dw + 2, dy, dh, on ? snd[i] : 0, on ? wet[i] : 0);
-            fxb_grad(dx, dy, dw, dh);                                 /* (Solar Heat) its floor warms up */
             fxb_sheen(dx, dy, dw, dh, on ? snd[i] + wet[i] : 0);      /* (4.1) and shows its signal moving */
             switch (i) {
             case FXB_DLY: {                           /* the repeats, TIME apart, each FEEDBK softer */

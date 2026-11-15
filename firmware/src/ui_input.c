@@ -2590,10 +2590,13 @@ static void setup_title(void)
         int32_t x = (240 - (16 + 6 + text_w(&AF_M, t))) / 2;
         cv_begin(240, 24, T_BG);
         GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H | AL_N(2), "calibration title centred");
-        GFX_HOOK_ALIGN(0, HEAD_MY + AF_M_CAP_Y, 0, HEAD_MY + AF_M_CAP_Y + AF_M_CAP_H, AL_V | AL_PASS,
+        /* (3.9) the title's line is the canvas' own middle (24 rows blitted at y 5), not the bar's: the bar lost
+         * two rows and this screen kept its layout, so both the icon and the capitals hang off 24 */
+        int32_t my = CAP_IN(M, 24);
+        GFX_HOOK_ALIGN(0, my + AF_M_CAP_Y, 0, my + AF_M_CAP_Y + AF_M_CAP_H, AL_V | AL_PASS,
                        "header icon on its title's line");
         cv_icon_mid(x, 12, 16, ICON_X_DOCTOR, T_THEME, T_BG);
-        cv_text(x + 22, HEAD_MY, &AF_M, t, T_TEXT);
+        cv_text(x + 22, my, &AF_M, t, T_TEXT);
         cv_blit(0, 5);
     }
     draw_text_box(0, 32, 240, &AF_S, "TEACH EACH BUTTON AND KNOB", T_MID, 1);

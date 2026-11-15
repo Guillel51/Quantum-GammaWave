@@ -31,6 +31,10 @@ static void draw_about_qr(int32_t x, int32_t y)
  * characters; the same layout computes the scroll limit and draws clipped bands.
  * Mixed case here (long text); S throughout, the title in L. */
 #define MENU_DOC_H 196                                /* the document: screen rows 24..220 */
+/* (3.9) THE DOCUMENT KEEPS ITS BAND. It is blitted from DOC_Y, not from H_HEAD: the bar lost two rows and the
+ * two info pages (ABOUT and the secret visualizer) do not move with it -- their 196 rows are laid out for
+ * 24..220, the QR's plate included. A header that is 22 px tall leaves two rows of page above the band. */
+#define DOC_Y 24
 enum { MC_TEXT, MC_TITLE, MC_URL };
 typedef struct { const char *text; uint8_t kind; } menu_credit_t;
 static const menu_credit_t MENU_CREDITS[] = {
@@ -505,12 +509,12 @@ static void draw_menu(void)
             draw_secret_viz();
             cv_scroll = 0;
             cv_oy = 0;
-            cv_blit(0, H_HEAD + pass * 124u);
+            cv_blit(0, DOC_Y + pass * 124u);
         }
-        cv_begin(240, 240 - (H_HEAD + MENU_DOC_H), T_BG);
+        cv_begin(240, 240 - (DOC_Y + MENU_DOC_H), T_BG);
         cv_key_hint(8, 4, KC_OCTUP, "MODE", 1, T_BG);
         cv_text_r(232, 3, &AF_S, SECRET_VIZ_NAMES[secret_viz_mode & 3u], T_THEME, T_BG);
-        cv_blit(0, H_HEAD + MENU_DOC_H);
+        cv_blit(0, DOC_Y + MENU_DOC_H);
         return;
     }
     if (ui.menu >= 2) {
@@ -526,11 +530,11 @@ static void draw_menu(void)
             cv_rrect(235, 2, 3, MENU_DOC_H - 4, 1, T_LINE, T_BG);           /* the scroll bar */
             cv_rrect(235, 2 + (max ? scroll * (MENU_DOC_H - 4 - thumb) / max : 0), 3, thumb, 1, T_MID, T_LINE);
             cv_oy = 0;
-            cv_blit(0, H_HEAD + pass * 124u);
+            cv_blit(0, DOC_Y + pass * 124u);
         }
-        cv_begin(240, 240 - (H_HEAD + MENU_DOC_H), T_BG);
+        cv_begin(240, 240 - (DOC_Y + MENU_DOC_H), T_BG);
         cv_key_hint(8, 4, KC_PRESETS, "SCROLL", 1, T_BG);
-        cv_blit(0, H_HEAD + MENU_DOC_H);
+        cv_blit(0, DOC_Y + MENU_DOC_H);
         return;
     }
     first = mtab_first(menu_tab());

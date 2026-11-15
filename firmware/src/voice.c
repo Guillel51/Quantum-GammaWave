@@ -503,9 +503,25 @@ static uint32_t v_energy(const track_t *t, const voice_t *v)
 {
     return (uint32_t)v->env_out * (uint32_t)(t->p[P_LEVEL] + 1);
 }
+/* (3.9) FAIR SHARE. The pool is shared, so the first part to play a chord could hold most of it and every later
+ * note -- another track's chord, the same player's new key -- paid for it. A part's sounding voices are counted
+ * once here and a candidate that would leave its part above its fair share (the budget split evenly between the
+ * parts) goes after one that does not, within the same class and before the loudness test. Nothing is reserved:
+ * a part alone still gets every voice it can, the share only decides who gives one up when two can. */
+static uint32_t vshare(void)
+{
+    uint32_t s = (voice_cap() + NPART - 1u) / NPART;
+    return s ? s : 1u;
+}
 static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
 {
-    uint32_t p, i, best = NVOICE, cat = 4, best_e = 0xFFFFFFFFu;
+    uint32_t p, i, best = NVOICE, cat = 4, best_e = 0xFFFFFFFFu, best_over = 2, best_fresh = 2;
+    uint32_t cnt[NPART], share = vshare();
+    for (p = 0; p < NPART; p++) {
+        cnt[p] = 0;
+        for (i = 0; i < NVOICE; i++)
+            cnt[p] += V(&trk[p], i).active && V(&trk[p], i).stage != 4u;
+    }
     for (p = 0; p < NPART; p++) {
         track_t *t = &trk[p];
         uint32_t mode = trk_vmode(t);
@@ -526,15 +542,24 @@ static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
             else
                 continue;
             e = v_energy(t, v);
-            /* (2026-11-08) within a class the quietest goes first, the oldest on a tie: a release tail about to die
-             * is the cheapest thing to lose, and so is the soft note of a chord beside the loud one. Until now the
-             * oldest won, so a note held since the start of the phrase was cut while a fresh quiet note kept its
-             * voice; the in-place path made that worse, restarting the loud voice with no fade at all. */
-            if (c < cat || (c == cat && (e < best_e || (e == best_e && best < NVOICE && v->age < V(*pp, best).age)))) {
-                cat = c;
-                best = i;
-                best_e = e;
-                *pp = t;
+            {   /* (2026-11-08) within a class the quietest goes first, the oldest on a tie: a release tail about to
+                 * die is the cheapest thing to lose, and so is the soft note of a chord beside the loud one. (3.9)
+                 * Before both, the note a key pressed a couple of blocks ago -- the player is listening to it
+                 * start -- and, between two parts that can both give, the one holding more than its fair share. */
+                uint32_t fresh = v->gate && vage - v->age < 4u;
+                uint32_t over = cnt[p] > share ? 0u : 1u;
+                if (c < cat || (c == cat && (fresh < best_fresh || (fresh == best_fresh &&
+                        (over < best_over || (over == best_over && (e < best_e ||
+                         (e == best_e && best < NVOICE && v->age < V(*pp, best).age))))))))
+                {
+                    cat = c;
+                    best = i;
+                    best_e = e;
+                    best_over = over;
+                    best_fresh = fresh;
+                    *pp = t;
+                }
+                continue;
             }
         }
     }

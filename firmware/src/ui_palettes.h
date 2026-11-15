@@ -45,12 +45,12 @@ static const ui_pal_t UI_PALETTES[] = {
 #define UI_BW_GREY 0x528au          /* MONO's one grey: DIM LINE RAISE LANE */
 #define UI_PAL_TAG 64u          /* stored id = UI_PAL_TAG + index; below 20: an old id */
 #define UI_MID_PCT 70
-#define UI_DIM_PCT 42
-#define UI_LINE_PCT 18
+#define UI_DIM_PCT 38    /* (3.9) 42: a dimmed label now sits a step deeper, clear of the surface it lies on */
+#define UI_LINE_PCT 16   /* (3.9) 18: rules and grids recede one more step (they are structure, not content) */
 #define UI_SEL_PCT 80
 #define UI_TINT_PCT 12
 #define UI_KEY_PCT 78
-#define UI_RAISE_PCT 12   /* SURF -> TEXT */
+#define UI_RAISE_PCT 10   /* SURF -> TEXT (3.9: 12. The lift off the surface is smaller, so the surfaces read dark) */
 #define UI_REC_DARK 0xfa49u
 #define UI_REC_LIGHT 0xb8c5u
 #define UI_QR_LIGHT 0xffdfu

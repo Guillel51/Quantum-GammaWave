@@ -10252,7 +10252,7 @@ static int test_menu_prefs(void)
 static int test_style(void)
 {
     int bad = 0, ok;
-    const uint32_t rule = 26u * 240u + 120u;           /* (the rule under the header: ui_draw.c draw_rules) */
+    const uint32_t rule = ((H_HEAD + Y_LABEL) / 2) * 240u + 120u;   /* (the rule under the header: ui_draw.c draw_rules) */
     ui_power_on();
     frame();
     ok = ui_style == ST_FLAT && ux.style == ST_FLAT && ux.surf != ux.bg;
@@ -10408,8 +10408,8 @@ static int test_head_centres(void)
                 ui.force = 1; draw_head(); ui.force = 0;
                 ok &= head_centres(HS_NAME[s], pr);
                 okp = nhel > 0 && hel[0][0] == 4;      /* the track cushion first, its ink from x 4 */
-                if (s != HS_GLO_TURN) {                /* the battery last, in its cell; between 208 and it only the
-                                                        * load meter (JIANT 0.5: 3 px at 209) */
+                if (s != HS_GLO_TURN && !msg) {        /* the battery last, in its cell; nothing between 208 and
+                                                        * it (3.9: the load meter moved to the left slot, 37) */
                     okp &= head_span2(HEAD_BAT_X, 239, &a, &b) && a >= 214 && b <= 236;
                     okp &= !head_span2(HEAD_GRP_R, HEAD_BAT_X - 6, &a, &b) && !head_span2(HEAD_BAT_X - 2, HEAD_BAT_X - 1, &a, &b);
                 } else {                               /* GLO, the tempo turned: the BPM, its lock, the label after */
@@ -10422,9 +10422,15 @@ static int test_head_centres(void)
                     head_geo(&g, s == HS_BPM90 ? "90" : "124");
                     c2 = head_span2(g.mx1, g.bx + g.b[2] + HEAD_GAP - 1, &a, &b);
                     okp &= c2 >= 236 && c2 <= 244;
-                } else {                               /* the message centred on x 120 */
-                    c2 = head_span2(40, 205, &a, &b);
-                    okp &= c2 >= 234 && c2 <= 246 && a >= 40 && b <= 205;
+                } else {                               /* (3.9) the message goes right of the BPM: the centre -- play
+                                                        * state, metronome, BPM -- does not move for it any more, so
+                                                        * what is checked is that it did not move and the message
+                                                        * lands over the right slot */
+                    head_geo_t g;
+                    head_geo(&g, s == HS_BPM90 ? "90" : "124");
+                    c2 = head_span2(g.mx1, g.bx + g.b[2] + HEAD_GAP - 1, &a, &b);
+                    okp &= c2 >= 236 && c2 <= 244;
+                    okp &= head_span2(142, 239, &a, &b) != 0;
                 }
                 if (pr && !okp) printf("    head %s: misplaced\n", HS_NAME[s]);
                 place &= okp;
