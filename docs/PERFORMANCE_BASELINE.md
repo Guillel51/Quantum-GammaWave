@@ -1,4 +1,5 @@
 # Performance baseline — v4.0.0 (2026-11-15)
+> **Nota (15-11-2026):** esta página es la línea base de v4.0.0. La referencia vigente para v4.1.0, con sus clases de medición y las cifras que sí se re-midieron en host, es `docs/PERFORMANCE_STATUS_v4.1.0.md`.
 
 Every number here says which class of measurement produced it. Nothing on this page was measured on a
 physical FM-1.
