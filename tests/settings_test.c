@@ -51,7 +51,15 @@ int main(void)
         persist_t q = original;
         for (uint32_t i = 0; i < 20u; i++) assert(palette_from_stored(i) < NPALETTES);
         assert(palette_from_stored(13) == 6u && palette_from_stored(11) == 7u && palette_from_stored(19) == 7u);
-        for (uint32_t i = 0; i < NPALETTES; i++) assert(palette_from_stored(palette_to_stored(i)) == i);
+        /* (3.5) a retired palette (AMBER, ICE, VIOLET: not in UI_PAL_LIVE) is not a round trip any more,
+         * it is a migration: the id is stored as the live palette it became, so the next read is stable */
+        for (uint32_t k = 0; k < UI_NPAL_LIVE; k++) {
+            uint32_t i = UI_PAL_LIVE[k];
+            assert(palette_from_stored(palette_to_stored(i)) == i);
+        }
+        /* an old id (< 20) is migrated to the live palette it became, and stored that way from then on */
+        for (uint32_t i = 0; i < 20u; i++)
+            assert(palette_from_stored(palette_to_stored(i)) == UI_PAL_LIVE[UI_PAL_SLOT[i]]);
         assert(palette_from_stored(40) == UI_GREY_INDEX && !palette_stored_ok(40) && palette_stored_ok(3));
         /* 1.0.2: the old MONO keeps its id as GREY (a saved MONO looks the same); the new black and white MONO is
          * appended, a new id */
