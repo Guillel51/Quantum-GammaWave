@@ -2139,8 +2139,13 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
     int32_t gx0 = x0 + 4, gy0 = y0 + 4, gw = w - 28, gh = h - 8;
     int32_t y_zero = gy0 + gh * 2 / 5, cut = gw_trk_cut(t), res = gw_trk_res(t);
     int32_t ftype = clamp(t->p[P_FTYPE], 0, 5);
-    int32_t lfo_mod = (t->p[P_LD_FLT] * mulq15(t->lfo_val, t->lfo_fade)) >> 14;
-    int32_t cut_x = 10 + clamp(cut + lfo_mod, 0, 127) * (gw - 20) / 127;
+    /* (7.2) THE CURVE IS THE KNOB'S, NOT THE LFO'S. This drew `cut + P_LD_FLT * lfo * lfo_fade`, and the track's
+     * LFO ticks in the audio callback whether or not a note sounds, so the whole picture (curve, node, cyan
+     * envelope) swept left and right for ever with no hand on a knob -- at the factory depth of 10, a fifth of
+     * the bay's width. That is the movement the player reported. The cutoff drawn is the parameter KNOB 1 (and
+     * the FILTER page's CUT) sets; the modulation is still shown, as the cyan envelope's static span (mod_span,
+     * below), which is where a depth belongs: a range, not a playhead. */
+    int32_t cut_x = 10 + clamp(cut, 0, 127) * (gw - 20) / 127;
     int32_t mod_span = (t->p[P_LD_FLT] < 0 ? -t->p[P_LD_FLT] : t->p[P_LD_FLT]) * (gw - 20) / 256;
     int32_t i, x, py = y_zero, mpy = y_zero, gy;
 

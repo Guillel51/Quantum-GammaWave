@@ -1428,10 +1428,19 @@ static uint32_t preset_visible(uint32_t cur, uint32_t total, uint32_t row)
 /* (JIANT 0.4) the MACRO layer latched: LFO held opens it, let go it stays (M1..M4 on KNOB 1..4, SELECT the dice, its
  * cards drawn by ui_draw over any page, no layer open: the keys stay notes) until LFO is pressed again (ui_layer.c) */
 static uint8_t mac_latch;
-/* HOME: what KNOB k edits: the engine's four main parameters */
+/* HOME: what KNOB k edits: the engine's four main parameters -- except KNOB 1, which is the track's filter
+ * CUTOFF. (7.2) HOME's bay is that filter's response, and it was drawn from a cutoff no knob of HOME could
+ * reach (the engine's first parameter is WAVE, CHIP, ALG...), so the curve was moved only by the track's
+ * free-running LFO. KNOB 1 is the cutoff now: the card, the curve, the node and the cyan depth span are one
+ * parameter, and nothing else moves them. The engine's own first parameter keeps its EDIT page. */
 static const param_desc_t *home_param(uint32_t k, int16_t **vp)
 {
-    uint32_t id = ENGINES[TSEL->eng_req % NENGINES]->knob[k & 3u];
+    uint32_t id;
+    if (!k) {
+        id = (TSEL->eng_req % NENGINES) == ENGI_ANALOG ? P_E4 : P_FCUT;
+    } else {
+        id = ENGINES[TSEL->eng_req % NENGINES]->knob[k & 3u];
+    }
     *vp = &TSEL->p[id];
     return track_desc(TSEL, id);
 }

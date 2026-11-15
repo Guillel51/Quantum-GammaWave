@@ -10854,7 +10854,6 @@ static int test_home_viz(void)
     int bad = 0, i;
     const param_desc_t *d;
     int16_t *vp;
-    int32_t shift0;
     uint32_t h0, h1;
     stop_transport();                                /* no audio of its own: the probe's scope is the signal */
     ui_viz_q = 0;                                    /* HIGH: a band's envelope advances every frame */
@@ -10891,15 +10890,13 @@ static int test_home_viz(void)
             probe_draw();
         for (i = 0; i < WF_BANDS; i++)
             l0[i] = (int16_t)wf_lvl[i];
-        s00 = wf_shift();
         b00 = lit_bands();
         for (k = 0; k < 200; k++)                     /* the same music, eight hundred frames of it */
             probe_draw();
         for (i = 0; i < WF_BANDS; i++)
-            if (wf_lvl[i] != (uint8_t)l0[i] || wf_shift() != s00 || lit_bands() != b00) {
+            if (wf_lvl[i] != (uint8_t)l0[i] || lit_bands() != b00) {
                 printf("ui:   HOME bay: the bars moved with no hand on KNOB 1: band %d %d->%d, %d lit "
-                       "vs %d, shift %d vs %d\n", (int)i, (int)l0[i], (int)wf_lvl[i], lit_bands(), (int)b00,
-                       (int)wf_shift(), (int)s00);
+                       "vs %d\n", (int)i, (int)l0[i], (int)wf_lvl[i], lit_bands(), (int)b00);
                 bad++;
                 break;
             }
@@ -10909,20 +10906,11 @@ static int test_home_viz(void)
     *vp = (int16_t)((d->min + d->max) / 2);
     frames(80);
     draw_glide(fm1_ms, ui.frame);                     /* the drawn cutoff glides to the new value */
-    shift0 = wf_shift();
-    {
-        uint32_t t0 = fm1_ms, f0 = ui.frame, w0 = scope_w;
-        fm1_ms += 9000u;
-        ui.frame += 900u;
-        scope_w = (uint16_t)(scope_w + 1500u);
-        if (wf_shift() != shift0) {
-            printf("ui:   HOME bay: the offset follows the clock, not KNOB 1\n");
-            bad++;
-        }
-        fm1_ms = t0;
-        ui.frame = f0;
-        scope_w = (uint16_t)w0;
-    }
+    /* (7.2) THE TRACK'S LFO IS NOT A HAND: the bay's curve is drawn at KNOB 1's cutoff, never at the
+     * modulated one (the track's LFO free-runs in the audio callback, so the old `cut + depth * lfo` swept
+     * the picture by itself). The pixels of that are not compared here -- a redraw carries the frame's own
+     * state (the pool's sparks, a body's flash) -- they are measured on HOME's graph box by the probe in the
+     * release notes: ~2 000 px a frame moving, the LFO at its factory depth, down to the worlds' ~25. */
     /* --- 4. KNOB 1 moves it one way and back, and coming back is the same picture (no history) --- */
     {
         uint32_t ms0 = fm1_ms, fr0 = ui.frame;
@@ -10934,14 +10922,14 @@ static int test_home_viz(void)
         frames(80);                                   /* the knob's own wave across the bay dies (64 frames) */
         draw_glide(ms0, fr0);
         h1 = frame_hash();
-        if (h0 == h1 || wf_shift() == shift0) {
+        if (h0 == h1) {
             printf("ui:   HOME bay: KNOB 1 did not move the spectrum\n");
             bad++;
         }
         turn(EN_K1, -6);
         frames(80);
         draw_glide(ms0, fr0);
-        if (frame_hash() != h0 || wf_shift() != shift0) {
+        if (frame_hash() != h0) {
             int32_t dx0 = 999, dy0 = 999, dx1 = -1, dy1 = -1, n = 0, xx, yy;
             for (yy = 60; yy < 150; yy++)
                 for (xx = 6; xx < 234; xx++)
@@ -10951,16 +10939,14 @@ static int test_home_viz(void)
                         if (yy < dy0) dy0 = yy;
                         if (xx > dx1) dx1 = xx;
                         if (yy > dy1) dy1 = yy;
-                    }            printf("ui:   HOME bay: KNOB 1 back at its value is not the same picture (the pan has a history): "
-                   "%d px in %d..%d x %d..%d, shift %d vs %d\n", (int)n, (int)dx0, (int)dx1, (int)dy0, (int)dy1,
-                   (int)wf_shift(), (int)shift0);
+                    }            printf("ui:   HOME bay: KNOB 1 back at its value is not the same picture (the graph has a history): "
+                   "%d px in %d..%d x %d..%d\n", (int)n, (int)dx0, (int)dx1, (int)dy0, (int)dy1);
             bad++;
         }
         frames(40);
     }
     /* --- 5. KNOB 2..4 keep their own work and never take the pan --- */
     for (i = 1; i < 4; i++) {
-        int32_t s0 = wf_shift();
         int16_t v0;
         d = home_param((uint32_t)i, &vp);
         v0 = *vp;
@@ -10970,10 +10956,6 @@ static int test_home_viz(void)
         turn(EN_K1 + i, 5);
         frames(80);
         draw_glide(ms0, fr0);
-        if (wf_shift() != s0) {
-            printf("ui:   HOME bay: KNOB %d moved the spectrum sideways\n", i + 1);
-            bad++;
-        }
         if (*vp == v0 || card_hash() == h0) {
             printf("ui:   HOME bay: KNOB %d (%s) no longer changes its parameter and its readout\n", i + 1,
                    d->label && d->label[0] ? d->label : "?");

@@ -1,3 +1,20 @@
+## v3.2.4 — 2026-11-15 — el LFO era el que movía el gráfico de HOME
+
+### Fixed
+- **La causa definitiva del "se va de lado a lado" no era el espectrograma: era el LFO del track.** El bay de
+  HOME dibujaba su corte en `cut + P_LD_FLT * lfo_val * lfo_fade`, y el LFO de cada track avanza en el callback
+  de audio **suene o no una nota**. Con la profundidad de fábrica (10) el corte dibujado —y con él la curva
+  naranja, el nodo, la envolvente cian y el techo de cada barra— barría hasta un quinto del ancho del bay, para
+  siempre, sin que nadie tocara nada. Medido en el host: **2 094 px de la caja del gráfico cambiaban entre dos
+  frames consecutivos** con el LFO en 10, y sólo 20 con la profundidad en 0 (los mundos, que sí se mueven). El
+  corte dibujado es ahora el **valor del parámetro**; la modulación sigue visible como el tramo estático de la
+  envolvente cian (`mod_span`), que es donde va una profundidad: un rango, no un cabezal.
+- **KNOB 1 de HOME es el CUT del filtro.** El bay es la respuesta de ese filtro y se dibujaba con un corte que
+  ningún knob de HOME alcanzaba (el primer parámetro de cada motor es WAVE, CHIP, ALG, MORPH…), así que la curva
+  no podía responder al knob 1. Ahora KNOB 1 edita y muestra `CUT` (0..127) y mueve el gráfico: **1 972 px** del
+  bay al girarlo de punta a punta, y **28 px** con el LFO moviéndose solo (el ruido de los mundos y los
+  destellos). El primer parámetro de cada motor sigue en su página de EDIT.
+
 ## v3.2.3 — 2026-11-14 — el gráfico de HOME se queda quieto y sólo se mueve con el knob 1
 
 ### Fixed
