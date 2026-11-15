@@ -763,14 +763,17 @@ advertises 9 (palette and favorites).
 
 | cmd | Request args | Reply args |
 | --- | --- | --- |
-| 34 UI_STATE | none | caps, palette, font, monitor, filter, favoriteSig u28, bankSig u28 |
+| 34 UI_STATE | none | caps, palette (**the slot of UI_PALETTES**, the same space UI_SET takes), font, monitor,
+filter, favoriteSig u28, bankSig u28 |
 | 35 UI_SET | id, value | rc, id, value, UI_STATE payload |
 | 36 UI_PALETTES | none | count, count × name string |
 | 37 FAV_GET | engine, start v14, count 1..32 | rc; on success: engine, start v14, count, count × on/off |
 | 38 FAV_SET | engine, preset v14, on/off | rc; when applied: engine, preset v14, on/off |
 
-UI_SET ids: 0 palette (0..count-1, the order of UI_PALETTES: GREY GREEN AMBER ICE VIOLET ROSE PAPER
-HI-CON NIGHT MONO; 1.0.2: GREY is the MONO of 1.0.1, MONO a new black and white palette), 1 font (retired: rc 2), 2 reserved, 3 preset filter (0 all, 1 favorites). Unsupported state
+UI_SET ids: 0 palette (**a slot of the list UI_PALETTES answers**, 0..count-1; since 3.5 that list is the
+live one, `UI_PAL_LIVE`: GREY GREEN ROSE PAPER HI-CON NIGHT MONO THERMAL GAMMA WRAITH QUANTUM SOLARIS
+CYBERPUNK NORDIC NEBULA PLASMA ORGANIC MINIMAL RETRO — AMBER, ICE and VIOLET are retired and not offered;
+the firmware stores the palette's own table index, so a client must not assume the two are the same number), 1 font (retired: rc 2), 2 reserved, 3 preset filter (0 all, 1 favorites). Unsupported state
 fields are 127.
 Both u28 signatures are four least-significant-first 7-bit bytes; compare them
 to refresh changed favorites and user slots. Factory references use stable

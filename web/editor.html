@@ -2646,10 +2646,14 @@ function makeMockDevice(opt = {}) {
     slots: [null, null, null, null], songRows: [], chainPlaying: false, chainRow: 0, chainRemaining: 0,
     bank: new Array(opt.slots || 32).fill(null),     /* user presets: {engine, name, p, pattern, grid, fm6 (FM6: its patch)} */
     uiCaps: opt.legacy || opt.v3 || opt.v5 ? 0 : opt.uiCaps ?? 9,
-    palette: 13, font: 0, monitor: 0, filter: 0, bankSig: 0,   /* QUANTUM, the firmware's default (UI_QUANTUM_INDEX) */
+    palette: 10, font: 0, monitor: 0, filter: 0, bankSig: 0,   /* QUANTUM, the firmware's default: its slot in the
+                                                                * live list (index 13 in UI_PALETTES, 3.5 retired
+                                                                * three before it) */
     vbank: { valid: false, name: "", voices: new Array(32).fill(null) }, vtx: null,   /* (0.6.11) FM6's voice bank */
     /* firmware/src/ui_palettes.h order: GREY .. MONO 0..9, THERMAL 10, GAMMA 11, WRAITH 12, QUANTUM 13, SOLARIS 14, CYBERPUNK 15, NORDIC 16 */
-    palettes: ["GREY", "GREEN", "AMBER", "ICE", "VIOLET", "ROSE", "PAPER", "HI-CON", "NIGHT", "MONO", "THERMAL", "GAMMA", "WRAITH", "QUANTUM", "SOLARIS", "CYBERPUNK", "NORDIC"],
+    /* (3.5) the live list, UI_PAL_LIVE's order: AMBER, ICE and VIOLET are not offered; the device replaces
+     * this whole array with its own UI_PALETTES reply as soon as it answers */
+    palettes: ["GREY", "GREEN", "ROSE", "PAPER", "HI-CON", "NIGHT", "MONO", "THERMAL", "GAMMA", "WRAITH", "QUANTUM", "SOLARIS", "CYBERPUNK", "NORDIC", "NEBULA", "PLASMA", "ORGANIC", "MINIMAL", "RETRO"],
     favorites: Array.from({ length: ENG.length + 1 }, () => []),
     watch: false, v4: false, lastReq: 0,
   };

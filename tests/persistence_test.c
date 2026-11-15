@@ -566,11 +566,11 @@ int main(void)
         const uint8_t amber[] = {0, 2};
         song.playing = 1;
         bad += check("editor display change while playing is applied and reports deferred saving",
-                      ed_ui_set(amber, sizeof amber) == 4 && settings.palette == 2u && persist_pending == 1 && !erases);
+                      ed_ui_set(amber, sizeof amber) == 4 && settings.palette == UI_PAL_LIVE[2] && persist_pending == 1 && !erases);
         song.playing = 0;
         settings_poll();
         bad += check("STOP commits the deferred palette setting",
-                      !persist_pending && erases == 1 && persist_saved.palette == palette_to_stored(2));
+                      !persist_pending && erases == 1 && persist_saved.palette == palette_to_stored(UI_PAL_LIVE[2]));
         before = erases;
         bad += check("repeating an unchanged editor preference succeeds without erasing",
                       ed_ui_set(amber, sizeof amber) == 0 && erases == before);
@@ -578,7 +578,7 @@ int main(void)
         const uint8_t mono[] = {0, 0};
         bad += check("editor reports failed saving while preserving the previous flash setting",
                       ed_ui_set(mono, sizeof mono) == 3 && settings.palette == 0u && persist_pending == 2 &&
-                      persist_saved.palette == palette_to_stored(2));
+                      persist_saved.palette == palette_to_stored(UI_PAL_LIVE[2]));
         erase_error = 0;
         fm1_ms += 1000;
         settings_poll();

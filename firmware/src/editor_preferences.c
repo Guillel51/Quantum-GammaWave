@@ -22,7 +22,7 @@ static void ed_ui_state(void)
 {
     uint32_t sig = 0;
     ed_b(ed_ui_caps());
-    ed_b(settings.palette);
+    ed_b(UI_PAL_SLOT[settings.palette < NPALETTES ? settings.palette : UI_GREY_INDEX]);   /* (3.5) a live slot */
     ed_b(127);                                         /* font: not supported */
 #ifdef FELUCCA_MONITOR
     ed_b(settings.monitor);
@@ -68,8 +68,13 @@ static uint32_t ed_ui_set(const uint8_t *a, uint32_t n)
     if (!(ed_ui_caps() & (1u << a[0]))) return 2;
     if (a[1] >= (a[0] == 0 ? UI_NPAL_LIVE : a[0] == 2 ? 3u : 2u)) return 1;
     switch (a[0]) {
-    case 0:
-        settings.palette = a[1]; palette_set(a[1]); break;
+    case 0:                                        /* (3.5) the value is a slot of the palette list the
+                                                 * editor is shown (ED_UI_PALETTES: UI_PAL_LIVE), which is
+                                                 * the same space MENU's COLOR speaks: it becomes the
+                                                 * palette's own index, which is what settings keeps */
+        settings.palette = UI_PAL_LIVE[a[1]];          /* a[1] < UI_NPAL_LIVE: checked above */
+        palette_set(settings.palette);
+        break;
 #ifdef FELUCCA_MONITOR
     case 2:
         fm1_irq_off();

@@ -165,9 +165,9 @@ static int preferences(void)
         host_wire[n - 4] == 0x4A && host_wire[n - 3] == 1 && host_wire[n - 2] == 1);   /* (0.6.62) JIANT: the installer */
     request(ED_UI_SET, a, 2);
     bad += check("UI_SET updates the actual palette and reports RAM-only saving",
-        host_wire[5] == 3 && settings.palette == 7 && T_BG == UI_PALETTES[7].bg);
+        host_wire[5] == 3 && settings.palette == UI_PAL_LIVE[7] && T_BG == UI_PALETTES[UI_PAL_LIVE[7]].bg);   /* (3.5) the value is a slot of the live list */
     a[1] = NPALETTES; request(ED_UI_SET, a, 2);
-    bad += check("out-of-range palette leaves the display unchanged", host_wire[5] == 1 && settings.palette == 7);
+    bad += check("out-of-range palette leaves the display unchanged", host_wire[5] == 1 && settings.palette == UI_PAL_LIVE[7]);
     a[0] = 1; a[1] = 1; request(ED_UI_SET, a, 2);
     bad += check("the retired font weight is not supported (rc 2), UI_STATE says 127",
         host_wire[5] == 2 && host_wire[8] == 9 && host_wire[10] == 127);
