@@ -2446,9 +2446,11 @@ static void graph_heat(void)
         int32_t a = y0 + k * span * 4 / 100, b = y0 + (k + 1) * span * 4 / 100;
         cv_rect(7, a, 226, b - a, ux_mix(T_SURF, T_BG, 18 - k * 6));
     }
-    for (k = 0; k < 6; k++) {                      /* the foot: 3 .. 15 */
-        int32_t a = y1 - span * 26 / 100 + k * span * 26 / 600, b = y1 - span * 26 / 100 + (k + 1) * span * 26 / 600;
-        cv_rect(7, a, 226, b - a, ux_mix(T_SURF, warm, 3 + k * (top - 3) / 5));
+    {   /* (7.3) THE FOOT IS THE CONSOLE'S RAMP. Six solid bands gave each page a warm edge; the reference --
+         * FX > BUSES' blocks -- is four dithered bands, and this draws exactly that, from the panel's own plate to
+         * the accent at the page's floor, so every screen and the routing console speak with one voice. */
+        int32_t fy = y1 - span * 30 / 100;
+        ux_floor_gradient(7, fy, 226, y1 - fy, T_SURF, ux_mix(T_SURF, warm, top + (top >> 1)));
     }
 }
 

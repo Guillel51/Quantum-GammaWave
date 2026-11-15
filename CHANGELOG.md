@@ -1,3 +1,34 @@
+## v3.2.5 — 2026-11-15 — un solo lenguaje de degradados, las gráficas con cuerpo y los mundos con luna
+
+### Added
+- **El degradado de FX-BUSES, en todo el firmware.** `fxb_grad` (cuatro bandas, dither 4 x 4 al 50 %, el acento
+  subiendo hacia el suelo) es ahora una primitiva — `ux_floor_gradient` (gfx.c) — y la usan: el pie de **cada**
+  pantalla (`graph_heat`, el mismo camino que todas las páginas comparten), el pie de las vistas de HOME
+  (`hv_grad`) y **la banda del footer**, la única franja que tienen todas las pantallas. Un cambio de pantalla
+  invalida la franja y la repinta; una pantalla quieta deja un frame quieto, porque nada de esto lee el reloj.
+- **HOME: cuerpo bajo la curva.** El área entre la respuesta del filtro y el suelo del bay se rellena con la
+  misma rampa, en seis pasos escalonados un píxel en columnas alternas (el dither de un panel de 16 bits):
+  profundidad sin tapar ni una barra, porque va antes que las barras y las dos curvas.
+- **MASTER BIQUAD EQ: cuerpo bajo la curva.** La misma rampa bajo la respuesta, dibujada antes de las barras de
+  energía y de la curva: un boost tiene volumen y un corte se lee como profundidad, y el punto de control, las
+  frecuencias y el valor siguen por encima.
+- **Dos lunas.** El gigante de gas y el mundo helado llevan una luna propia: un píxel iluminado en la cara que
+  mira a la estrella y otro en sombra, sobre una elipse fuera del limbo del cuerpo, con el ángulo como función
+  pura del reloj (dos `pset` por luna y frame, estados cero, sin asignaciones).
+- **Dos brazos espirales en la Vía Láctea de HOME.** Las bandas se alejan del bulbo y vuelven, con el desfase
+  creciendo con la distancia al centro: una espiral leída sin una sola llamada trigonométrica por píxel y sin
+  depender del reloj, así que los brazos son la forma de la banda y no una segunda cosa que parpadea.
+
+### Measured (host x86, `tests/ui_render.c`)
+- 189 pantallas x 22 paletas: **0 hallazgos de lint, 0 desalineaciones** (3 390 851 medidas de 73 sitios),
+  0 píxeles GREY / MONO fuera de gris / neutro.
+- Coste de repintado completo de HOME: **246 µs** en el host antes y después (la rampa no se mide aparte de la
+  pantalla). El dither de la rampa se pinta una vez por repintado, no por frame.
+- HOME quieto: **20-28 px** cambian entre frames (los mundos y sus destellos). KNOB 1 de punta a punta:
+  **2 681 px**. El LFO del track moviéndose solo no toca la posición de la curva (v3.2.4).
+- `rt`: las cinco vistas de HOME, 50 entradas y salidas dos veces, 0 diferencias. `nav`: 14 estados, 0
+  diferencias contra un repintado completo.
+
 ## v3.2.4 — 2026-11-15 — el LFO era el que movía el gráfico de HOME
 
 ### Fixed

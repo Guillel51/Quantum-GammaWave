@@ -489,6 +489,20 @@ static int32_t gw_span(int32_t r, int32_t dy)                /* the row's half w
 /* kind: 0 rocky (craters), 1 banded (a gas giant), 2 ocean (a bright specular and a thick
  * atmosphere), 3 ringed (the giant with its ring). (3.2) they were three identical discs with
  * different radii; each now has its own surface, and a note makes it grow up to two pixels. */
+/* (7.3) A MOON. The gas giant and the frozen world were the only two bodies with nothing else of their own on the
+ * path; each now carries a companion: one pixel lit on the half facing the star, one in shadow on the other, on an
+ * ellipse just outside its own limb, its angle a pure function of the clock (no state, no allocation). Two psets a
+ * moon a frame, and the pair turn at different rates, so the bay keeps moving where it already did. */
+static void gw_moon(int32_t px, int32_t py, int32_t pr, uint32_t tm, uint32_t seed, int32_t heat)
+{
+    uint32_t ph = tm * (4u + (seed & 3u)) + seed * 7919u;
+    int32_t rx = pr + 4, ry = pr + 2;
+    int32_t mx = px + (bg_sin(ph + 0x4000u) * rx >> 15);
+    int32_t my = py + (bg_sin(ph) * ry >> 15);
+    int32_t sp = bg_sin(ph + 0x4000u) >> 15;
+    sys_pset(mx, my, ux_mix(T_BG, bg_col(heat + 50), 150));      /* its lit face */
+    sys_pset(mx + (sp > 0 ? 1 : -1), my, ux_mix(T_BG, bg_col(heat), 70));   /* and the one turning away */
+}
 static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, int32_t ly, int kind,
                       uint32_t rot, int32_t flash)
 {
@@ -1319,6 +1333,17 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                                                      * dead work (PHASE 1). */
                     sys_pset(mx, my + 1, mhalo);
                 sys_pset(mx, my + 4, mdust);      /* the second lane, under the band */
+                /* (7.3) TWO SPIRAL ARMS. The band was a straight rule with a halo, so the sky read as a stripe.
+                 * Two lanes now leave it and come back, their offset growing with the distance from the bulge --
+                 * a spiral read without one trigonometry call per pixel and without depending on the clock, so the
+                 * arms are the band's shape and never a second thing to flicker. */
+                if (MW_T[j] >= 2) {
+                    int32_t dj2 = j > 18 ? j - 18 : 18 - j;
+                    int32_t sp3 = 2 + dj2 / 4, sgn = (j & 8) ? 1 : -1;
+                    sys_pset(mx, my + sgn * sp3, ux_mix(T_BG, T_THEME, 44));
+                    if (sp3 < 8)
+                        sys_pset(mx, my + sgn * (sp3 + 1), ux_mix(T_BG, T_LINE, 26));
+                }
                 if (gw2 >= 0) {
                     int32_t reach = gw2 * 3 - dj * 2;                /* the front, running outward */
                     if (reach >= 0 && reach < 20)     /* weight under 100: ux_mix past it bleeds a channel */
@@ -1471,6 +1496,9 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                   (uint32_t)orb_rot[pi], pl_flash[pi] + pk_rad[pi] * 80);
         sys_ring_lift = 0;
         gw_body_life(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi], kheat[pi], tm);
+        if (ORK[pi] == 1 || ORK[pi] == 4)              /* (7.3) its own moon, at its own rate */
+            gw_moon(orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi], tm,
+                    (uint32_t)pi * 37u + 11u, kheat[pi]);
         pl_sx[pi] = (int16_t)orb_x[pi];                /* (3.5) where it was drawn: what a tap is measured against */
         pl_sy[pi] = (int16_t)orb_y[pi];
         pl_sr[pi] = (uint8_t)(ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi]);
@@ -1495,6 +1523,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                   (uint32_t)orb_rot[pi], pl_flash[pi] + pk_rad[pi] * 80);
         sys_ring_lift = 0;
         gw_body_life(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi], kheat[pi], tm);
+        if (ORK[pi] == 1 || ORK[pi] == 4)
+            gw_moon(orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi], tm, (uint32_t)pi * 37u + 11u, kheat[pi]);
         pl_sx[pi] = (int16_t)orb_x[pi];
         pl_sy[pi] = (int16_t)orb_y[pi];
         pl_sr[pi] = (uint8_t)(ORR[pi] + ex / 96 + pk_rad[pi]);
@@ -2166,6 +2196,28 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
             cv_rect(gx0 + i * gw / 4, gy, 1, 1, ux_mix(T_SURF, T_GRID, 62));
     cv_rect(gx0, y_zero, gw, 1, ux_mix(T_SURF, T_LINE, 72));
     cv_rect(gx0, gy0 + gh * 3 / 4, gw, 1, ux_mix(T_SURF, T_GRID, 58));
+
+    /* (7.3) THE FLOOR UNDER THE CURVE. The bay is where the player reads the filter, and the response was a line
+     * on a grid: the area between it and the bay's floor is filled with the console's own ramp -- four bands, the
+     * accent rising downwards, from the theme's gold to its accent -- so the curve has a body and the picture has
+     * depth without one extra state. It goes before the bars and both curves, so nothing it covers is data; the
+     * columns follow vz_step(), and every tone is mixed once per column rather than once per pixel. */
+    {
+        int32_t st = (int32_t)vz_step(), xf;
+        uint16_t f0 = ux_mix(T_BG, T_THEME, 16), f1 = ux_mix(T_BG, T_ACCENT, 30);
+        for (xf = 0; xf < gw; xf += st) {
+            int32_t cy2 = clamp(gw_filter_resp_y(ftype, xf, gw, cut_x, res, y_zero, gh), gy0 + 2, gy0 + gh - 2);
+            int32_t bot = gy0 + gh - 1, hgt = bot - cy2, k2;
+            /* six steps, and every other column starts one pixel lower: the seams then land on different rows
+             * from one column to the next, which is the dither a 16-bit panel had -- a blend, not three blocks. */
+            for (k2 = 0; k2 < 6 && hgt > 3; k2++) {
+                int32_t ya = cy2 + hgt * k2 / 6 + (k2 ? (xf & 1) : 0), yb = cy2 + hgt * (k2 + 1) / 6;
+                if (yb <= ya)
+                    continue;
+                cv_rect(gx0 + xf, ya, st, yb - ya, ux_mix(f0, f1, 10 + k2 * 17));
+            }
+        }
+    }
 
     /* 2. THE SPECTROGRAM (28 bands). Fixed geometry, a peak measured inside each band's own slice, and a
      *    five-stop thermal body -- deep violet at the foot, red, orange, gold, solar yellow at the crest --

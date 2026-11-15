@@ -808,6 +808,11 @@ static void draw_foot(void)
     if (!ui.force && sig == ui.foot_sig)
         return;
     ui.foot_sig = sig;
+    /* (7.3) THE FOOT OF EVERY SCREEN. The footer is the one band all of them have, so the console's four-band ramp
+     * goes here: under the text (which is drawn transparent onto it), from the page's ground to the accent, so
+     * arriving anywhere the instrument reads as the same machine. It is inside the cached strip: a still footer
+     * draws a still frame, and a screen change (which invalidates the strip) repaints it. */
+    ux_floor_gradient(0, 0, 240, 240 - Y_FOOT, T_BG, ux_mix(T_BG, ux_mix(T_ACCENT, T_TEXT, 12), 34));
     cv_begin(240, H_FOOT, T_BG);
     if (act_cols()) {                                 /* row 1: the OCT+ / OCT- hint in place of the steps */
         char ha[16], hb[16];

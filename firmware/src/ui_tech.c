@@ -599,6 +599,22 @@ static void tech_master_eq(void)
         cv_text_on(10, mid_y - 30, &AF_S, "+12", T_DIM, T_BG);
         cv_text_on(14, mid_y - 6, &AF_S, "0", T_DIM, T_BG);
         cv_text_on(8, mid_y + 18, &AF_S, "-12", T_DIM, T_BG);
+        /* (7.3) THE FLOOR UNDER THE CURVE: the console's four-band ramp (ui_fxb.c fxb_grad) between the response and
+         * the plot's floor, so a boost has a body and a cut reads as a depth. Drawn before the energy bars and the
+         * curve, so both keep their contrast; two columns a step, mixed once per band. */
+        for (i = 0; i <= gw; i += 2) {
+            int32_t db2 = fx_master_eq_hz_db(eq_hz_at(i * 212 / gw));
+            int32_t y2 = clamp(mid_y - db2 * 44 / (24 * 256), gtop, gbot), k2;
+            for (k2 = 0; k2 < 6 && y2 + 1 < gbot; k2++) {      /* six steps, staggered a pixel on alternate
+                                                               * columns: a dithered blend, not three slabs */
+                int32_t ya = y2 + 1 + (gbot - y2) * k2 / 6 + (k2 ? ((i >> 1) & 1) : 0);
+                int32_t yb = y2 + 1 + (gbot - y2) * (k2 + 1) / 6;
+                if (yb <= ya)
+                    continue;
+                cv_rect(gx0 + i, ya, 2, yb - ya,
+                        ux_mix(ux_mix(T_BG, T_THEME, 10), ux_mix(T_BG, T_ACCENT, 24), 12 + k2 * 16));
+            }
+        }
         /* the band's energy, under everything: what the EQ is shaping, not a measurement of the EQ */
         for (i = 0; i < 28; i++) {
             int32_t bx = gx0 + 2 + i * (gw - 4) / 28, bw = (gw - 4) / 28 - 1;
