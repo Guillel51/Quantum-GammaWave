@@ -199,7 +199,9 @@ def with_csp(html):
         raise SystemExit(f"index_pkg.html: duplicate top-level declaration(s) {dup} -- the inlined modules "
                          "share one scope and the page would not load")
     h = base64.b64encode(hashlib.sha256(m.group(1).encode("utf-8")).digest()).decode()
-    csp = (f"default-src 'none'; script-src 'sha256-{h}'; style-src 'unsafe-inline'; img-src 'self' data: blob:; "
+    # 'wasm-unsafe-eval': the page boots the emulator's own felucca.wasm for its boot sequence (4.0), and a strict
+    # script-src without it stops WebAssembly.instantiate in Chromium -- the card would silently stay hidden.
+    csp = (f"default-src 'none'; script-src 'sha256-{h}' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; "
            "connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; "
            "form-action 'none'")
     meta = f'<meta http-equiv="Content-Security-Policy" content="{csp}">\n<meta name="referrer" content="no-referrer">\n'

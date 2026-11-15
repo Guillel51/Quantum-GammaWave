@@ -27,13 +27,13 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v3.5.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v4.0.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 - **What it is, first.** A free firmware for the **M-VAVE FM-1**: six tracks, twelve voices, nine synthesis
   engines and **273 factory sounds** (275 entries: two legacy DRUM kits stay for old projects), a 64-step sequencer with an arpeggiator and song chains, per-track and
   per-bus effects, and an interface of 19 selectable palettes on a 240 × 240 panel. It plays from the keys, edits from the
   encoders, and the browser emulator and Web Studio need no install.
-- **One version everywhere.** `FELUCCA_VERSION` (`v3.5.0`), the package, the emulator the portal serves and
+- **One version everywhere.** `FELUCCA_VERSION` (`v4.0.0`), the package, the emulator the portal serves and
   `firmware/versions.json` name the same build; the installer checks its SHA-256 and its size before it writes.
 - **The page gives its rows to the instrument.** The status bar is 20 px, the four knob cards are four rows
   taller with their gauge at the card's foot, and the layout change reaches every page: the cards' values, the
@@ -46,6 +46,15 @@
 - **The right scope of the visualizer is always drawn.** It was gated behind a peak threshold, so a quiet
   passage left the reticle empty; it scales to its own signal now and shows a still point in silence. HOME's
   background trace is drawn under the data at two pixels and in the theme's ramp instead of over it at one.
+- **The colour of a point costs a load, not a mix.** `heat_col` is asked for a colour per point — curves,
+  gradients, meters, the splash's clouds — and it used to end in one palette mix, or seven plus two divisions for
+  a derived ramp. It is a 257-entry table rebuilt only when the palette changes now: the render sweep went from
+  79.4 s to 25.7 s for the same 189 screens × 22 palettes (home 4.4×, mixer 4.8× faster per screen) with every
+  frame byte-identical.
+- **The installer boots the device instead of showing it.** The page loads the same `felucca.wasm` the
+  emulator runs, powers it on and draws the panel at the device's own clock: the splash, the sweep, the screen it
+  lands on, with a replay control. It stops after the boot, and never runs while it is off screen or the tab is
+  hidden.
 - **Tested on three FM-1 units, one with the newer flash part.** The firmware has run on three physical
   M-VAVE FM-1, the newer one carrying the second of the two SPI NOR parts the loader accepts (P25Q80H
   `0x856014` and UCUN UC25HQ80 `0xB36014`). That is a compatibility statement about those units, not a

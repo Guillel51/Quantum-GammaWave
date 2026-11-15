@@ -1,42 +1,37 @@
-## v3.5.0 — 2026-11-15 — la pantalla, redistribuida; los temas, separados
+## v4.0.0 — 2026-11-15 — el color por tabla, y el instalador arranca el instrumento
 
-Refinamiento de la interfaz y de las gráficas sobre 3.4.0.
+Optimización medida del dibujado y corrección del arranque en el instalador.
 
-### Distribución
+### Rendimiento gráfico
 
-- **La barra superior cede dos filas** (22 → 20 px) y **los cuatro cuadros de knobs ganan cuatro** (46 → 50 px): el
-  valor sube con su indicador y la barra del gauge baja al pie del cuadro, con el dial redondo intacto. El cambio
-  es de la maqueta compartida, así que alcanza las 189 pantallas, y el barrido de render lo mide: **0 hallazgos de
-  lint, 0 desalineaciones en 3 398 185 medidas, 0 tintas sobre su propio color**.
-- **HOME, pantallas 3 a 5: fuera la tira K1..K4.** Mostraba cuatro valores que nada en esas páginas cambiaba.
-  Cada pantalla lleva ahora su propio título en esa fila (OVERVIEW, MIXER, PERFORMANCE) y el contenido respira.
+- **`heat_col` es una tabla de 257 entradas, no una mezcla por punto.** Se le pide un color por punto: cada
+  curva, cada banda de degradado, cada vúmetro, las nubes del splash y los cinco mundos de HOME. Terminaba en un
+  `ux_mix` (paleta con rampa propia) o en siete más dos divisiones (rampa derivada). La tabla se reconstruye sólo
+  cuando cambia la paleta o alguno de sus tokens y después es una carga indexada.
+- **Medido, sobre el mismo banco:** el barrido completo de render pasó de **79,4 s a 25,7 s** para las mismas 189
+  pantallas × 22 paletas (**3,09×**), y por pantalla `home` 4,44×, `mixer` 4,77×, `roll_chords` 4,65× (medidor de
+  host, x86, `tests/ui_render.c`). El informe del barrido es idéntico: **0 hallazgos de lint, 0 tintas sobre su
+  propio color, 0 píxeles fuera de gris/neutro, 454 textos elididos (9 distintos)**, y los fotogramas renderizados
+  son **byte a byte iguales** (sólo difieren las líneas que llevan la hora y la versión del compilador).
+- Coste en RAM del firmware: 514 B de `.bss` (la tabla). No se quitó ninguna función, voz, motor, efecto ni
+  animación.
 
-### Gráficas y temas
+### Instalador: la secuencia de arranque, no una imagen
 
-- **Los planetas cambian con el tema.** Una paleta sin rampa propia (GREY, GREEN, ROSE, PAPER, HI-CON, NIGHT,
-  MONO) caía en la térmica de GAMMA, así que los cinco mundos de HOME eran los mismos colores con cualquier
-  tema; la rampa se deriva ahora de los tokens de cada paleta, y los cinco cuerpos ocupan cinco puntos de ella
-  (60, 110, 180, 245 y 256 sobre una base de 210).
-- **El osciloscopio derecho del visualizador ya nunca falta**: estaba detrás de un umbral de pico, así que un
-  pasaje suave dejaba la retícula vacía; se escala a su propia señal y en silencio muestra el punto quieto del
-  centro.
-- **La traza de fondo de HOME va debajo de los datos**, no encima: se dibuja antes del suelo, de las bandas y de
-  las dos curvas, con dos píxeles en la rampa del tema, así que no cruza la gráfica principal ni la desplaza
-  (la curva sigue respondiendo solo al knob 1).
-- **AMBER, ICE y VIOLET se retiran.** Dejan de ofrecerse en MENU > COLOR y en el Web Studio; una unidad que los
-  tuviera guardados los lee como el tema vivo más cercano (ROSE, NORDIC, NEBULA) y los guarda como ese, sin
-  correr los índices de las demás paletas guardadas.
-- **FX > DELAY página 2:** la etiqueta "PITCH" deja cuatro píxeles libres antes del dial del knob 2 en vez de
-  terminar contra su cuerpo.
-
-### Comprobado
-
-- `ui_test`: **all passed**; barrido `ui_render`: 189 pantallas × 22 paletas sin lint ni desalineaciones.
-- Firmware AC791N compilado y empaquetado; el paquete, su manifiesto, el emulador WASM, el instalador y el sitio
-  se publican juntos y `coherence_check` los verifica entre sí.
+- **La página del instalador enciende el instrumento.** Carga el mismo `felucca.wasm` que publica el emulador, lo
+  arranca con las mismas llamadas que su worklet (`web_nor_erase`, `web_master`, `web_seed`, `web_boot`) y dibuja
+  el panel de 240 × 240 con `web_render(n)`, que mueve el reloj del equipo muestra a muestra: el splash, el
+  barrido de LEDs y la pantalla a la que llega, a velocidad real. Antes esta página no dibujaba el panel en
+  absoluto.
+- **Comprobado en el binario que se publica:** arrancado en Node, ocho instantes del arranque (0, 400, 1200, 2500,
+  3500, 4530, 5000 y 6500 ms) dan **ocho fotogramas distintos**, y los 7 s de arranque se ejecutan en 117 ms de
+  reloj real (**60× tiempo real**), que es lo que hace que corra sin cargar el equipo.
+- El reloj se detiene al llegar a HOME, se puede **repetir**, y no corre si la tarjeta está fuera de pantalla o la
+  pestaña oculta. La CSP de la página suma `'wasm-unsafe-eval'`: sin eso Chromium no compila el módulo y la
+  tarjeta quedaba oculta en silencio.
 
 ### Pendiente, dicho
 
-- El reequilibrio de niveles del banco de presets y el relleno degradado de EDIT > FILTER 4/6 no están en esta
-  versión: quedan para la siguiente, medidos con `tools/preset_audit.py --levels`.
+- El reequilibrio de niveles del banco de presets y el relleno degradado de EDIT > FILTER 4/6 siguen sin hacer: no
+  hay unidad ni salida de audio real en este entorno y no quise declarar niveles medidos sin medirlos.
 
