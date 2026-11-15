@@ -439,6 +439,7 @@ static uint32_t rr_cov(int32_t r, int32_t i, int32_t j)
  * Nothing here invents a colour: every value is ux_mix() between two colours of the palette in use, which
  * saturates per channel, so GREY and MONO stay neutral and no ink is drawn on its own tone. Small plates --
  * keycaps, chips, 3 px gauges, meter bars -- are left exactly as they were. */
+static uint8_t cv_plate_flat;                 /* (FASE 3) the next plate is filled flat: see cv_rrect */
 static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c)
 {
     int32_t k, n;
@@ -515,7 +516,7 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
             cv_rect(x + r, y + h - 1, w - 2 * r, 1, T_LINE);
             cv_rect(x, y + r, 1, h - 2 * r, T_LINE);
             cv_rect(x + w - 1, y + r, 1, h - 2 * r, T_LINE);
-            {   /* (FASE 3) A CHAMFERED MODULE IS A GRADIENT TOO. This style drew its plate flat between two 1 px
+            if (!cv_plate_flat) {   /* (FASE 3, see cv_rrect's tail) A CHAMFERED MODULE IS A GRADIENT TOO. This style drew its plate flat between two 1 px
                  * lines, which is why the cards read as cut-outs next to the rest of the page. One row per pixel
                  * from the lit top to the shaded foot, inside the frame and under no text. */
                 int32_t kk, nn = h - 4 > 0 ? (h - 4 + 2) / 3 : 1, r0 = 0;
@@ -540,7 +541,10 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
         }
         return;
     }
-    if (c == T_SURF && w >= 40 && h >= 16)     /* (a row of the list is a surface too: 4 rows of fade, not a flat bar) */
+    /* (FASE 3) cv_plate_flat: a panel that paints its own ground (the graph bay, which creams its own ramp and
+     * bezel right after) keeps a flat plate. Its ramp would otherwise show in the rows the bay leaves unpainted
+     * -- the strip under its bezel -- and the oscilloscope would sit on a lit band instead of on shadow. */
+    if (c == T_SURF && w >= 40 && h >= 16 && !cv_plate_flat)
         cv_plate_ground(x, y, w, h, r, c);
     for (j = 0; j < r; j++)
         for (i = 0; i < r; i++) {

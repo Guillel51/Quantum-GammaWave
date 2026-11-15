@@ -18,6 +18,14 @@ un damero de píxeles, no como una luz que cae.
 - Nada nuevo en colores: todo sigue saliendo de `ux_mix()` sobre los tokens de la paleta, así que GREY y MONO
   siguen neutros (0 píxeles fuera de gris en el barrido) y el contraste no cambia.
 
+### Corregido en la misma tanda
+
+- **El degradado no entra en el panel de la gráfica.** Ese panel (HOME y las páginas de EDIT) pinta su propio
+  suelo y su propio bisel justo después, así que la rampa de placa solo asomaba por los pocos px que el suelo
+  del panel no repinta: la franja bajo el bisel y los 3 px de cada costado, justo donde el osciloscopio apoya
+  la traza. El panel se declara **plano** (`cv_plate_flat`, `gfx.c`) y se queda como estaba: el área de la
+  gráfica de HOME vuelve a ser **píxel a píxel idéntica** a la de antes de este cambio, en las 22 paletas.
+
 ### Coste (medido)
 
 - El barrido completo `ui_render` (189 pantallas × 22 paletas) tarda **32,9 s antes y 32,8 s después**: la rampa

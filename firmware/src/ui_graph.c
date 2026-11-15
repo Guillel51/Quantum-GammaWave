@@ -3377,7 +3377,9 @@ static void draw_graph(void)
         return;
     }
     cv_begin(240, graph_h(), T_BG);
+    cv_plate_flat = 1;                               /* (FASE 3) flat: this panel paints its own ground below */
     cv_rrect(3, 0, 234, graph_h(), 5, T_SURF, T_BG);   /* the panel (MENU > LARGE: the strip) */
+    cv_plate_flat = 0;
     graph_heat();                                    /* (5.1) the Solar Heat ground, as HOME draws it */
     /* (FASE 6) THE RAMP, ON EVERY PAGE. graph_heat() gave each panel the bezel's shade at the top and the
      * Solar Heat glow at its foot and left the middle untouched, so only HOME's views and (3.7) the
