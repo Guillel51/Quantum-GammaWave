@@ -145,6 +145,8 @@ else
 fi
 
 run "release gate: a 3.x tag needs an explicit repository approval" python3 tests/release_gate_test.py
+# (4.0.0) the hub card: every published rule, and the sounds line that keeps the listing from stopping
+run "the Firmware Hub card: every published rule holds, sounds declared, dropping it fails" python3 tests/fmhub_card_test.py
 
 $CC -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"

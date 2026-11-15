@@ -9,7 +9,7 @@ Rules, from https://thefirmwarehub.com/kb/ (read 2026-11-12) and the live exampl
 firmwares' files (RemoteFM1, zp12):
 
   * every field is optional, and only these are accepted:
-        what, author, kinds, play, editor, cheat, image, color
+        what, author, kinds, play, editor, cheat, image, color, sounds, smk37
   * what     plain text, 20..300 characters, no HTML, no links
   * author   2..60 characters
   * kinds    exactly one of synth, groove, drums, chords, tracker, other
@@ -17,6 +17,11 @@ firmwares' files (RemoteFM1, zp12):
   * image    a path in THIS repository: square PNG/WebP/JPEG, 240..1024 px a side, at most 300 KB
   * color    #RRGGBB; the card's accent. Checked for contrast: a bright accent needs a high ratio
              against black and enough luminance to read as a colour rather than a dark panel.
+  * sounds   where the sounds come from, one of "none", "own: ...", "CC0: ...", "public domain: ...",
+             "licensed: ..., licence"; plain text up to 300 characters, no links. The hub asks for it
+             as soon as the repository or the package carries a sample, a sample bank or a sound bank
+             (13.11.2026), so this tool also scans the tree: an audio asset without a sounds line is
+             a failure here rather than a red card later.
 
 Exit status: 0 every rule holds, 1 a rule is broken, 2 the file or the image cannot be read.
 
@@ -26,6 +31,7 @@ Exit status: 0 every rule holds, 1 a rule is broken, 2 the file or the image can
 
 import argparse
 import json
+import os
 import re
 import struct
 import sys
@@ -33,8 +39,20 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-FIELDS = {"what", "author", "kinds", "play", "editor", "cheat", "image", "color"}
+FIELDS = {"what", "author", "kinds", "play", "editor", "cheat", "image", "color", "sounds", "smk37"}
 KINDS = {"synth", "groove", "drums", "chords", "tracker", "other"}
+# (the hub's own validator, thefirmwarehub.com/kb read 2026-11-15: plain text, no links or code)
+NOT_TEXT = re.compile(r"[<>{}`]|https?://|\bwww\.|\b[\w-]+\.(com|net|org|io|de|app|dev|shop|store|xyz|ly|gg|me)\b"
+                      r"|javascript:|=>|\(\)\s*;|\[[^\]]*\]\(", re.I)
+SOUNDS_RULES = (
+    re.compile(r"^none(\s*[–-].*)?$", re.I),
+    re.compile(r"^own(:.*)?$", re.I),
+    re.compile(r"^(cc0|public domain):\s*\S.{2,}$", re.I),
+    re.compile(r"^licen[cs]ed:\s*\S.{4,}$", re.I),
+)
+SOUNDS_RULE_TEXT = 'none"; "own: <what>"; "CC0: <source>"; "public domain: <source>"; "licensed: <source>, <licence>'
+# what the hub counts as a distributed sound: audio files and the bank formats, never generated code
+AUDIO_EXT = (".wav", ".aif", ".aiff", ".flac", ".mp3", ".ogg", ".syx", ".sf2", ".sf3", ".dls", ".sfz")
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 HTML = re.compile(r"<[a-zA-Z/][^>]*>")
 URL = re.compile(r"https?://|www\.", re.I)
@@ -201,6 +219,34 @@ def main():
                     good(f"image: {img} {w}x{h} {fmt.upper()}, {size} B")
         except OSError as e:
             fail(f"image {img}: {e}")
+
+    snd = card.get("sounds")
+    if snd is not None:
+        if not isinstance(snd, str):
+            fail("sounds must be a string")
+        else:
+            text = " ".join(snd.split())
+            low = text.lower()
+            if len(text) > 300:
+                fail(f"sounds is {len(text)} characters (the hub allows 300)")
+            elif NOT_TEXT.search(text):
+                fail("sounds carries a link or code (name the source in words instead)")
+            elif not any(r.match(low) for r in SOUNDS_RULES):
+                fail(f"sounds must be one of: {SOUNDS_RULE_TEXT}")
+            else:
+                good(f"sounds: {text[:60]}{'...' if len(text) > 60 else ''} ({len(text)} characters)")
+
+    # the tree's audio, which is what made the hub ask: a sample or a bank it distributes and nobody declared
+    assets = []
+    for base, dirs, files in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if d not in {".git", "build", "node_modules", "__pycache__", "site"}]
+        for f in files:
+            if f.lower().endswith(AUDIO_EXT):
+                assets.append(os.path.relpath(os.path.join(base, f), ROOT))
+    if assets and snd is None:
+        fail(f"{len(assets)} audio asset(s) in the tree and no sounds line: {', '.join(sorted(assets)[:4])}")
+    elif assets:
+        good(f"sounds declared for the tree's {len(assets)} audio asset(s): {', '.join(sorted(assets)[:4])}")
 
     col = card.get("color")
     if col is not None:

@@ -24,7 +24,7 @@ on our side:
 |---|---|---|
 | Live catalogue | 198 listings, `updated 2026-11-13 07:05 UTC` | `tools/check_identity.py` fetched it |
 | `FM-1_965` | **FREE** — no listing's product or answered range covers it | same tool, on the live catalogue |
-| `fmhub.json` | **GO** — every published rule holds | `python3 tools/check_fmhub.py` (all `ok`) |
+| `fmhub.json` | **GO** — every published rule holds, `sounds` included | `python3 tools/check_fmhub.py` (all `ok`), `tests/fmhub_card_test.py` (14 held) |
 | Package | `release/felucca-v2.9.1.fwsc`, **610 959 B**, sha256 `75e742fd…`, identity `FM-1_965` — **built, not published** (see `docs/QG_EVOLUTION_FINAL_REPORT.md` §8) | rebuilt after the F-1 fix; `tools/check_package_identity.py` reads the bytes: `ok`, loader `ota-FM-1_965` |
 | Application image | **580 404 B** in a **583 612 B** slot, **3 208 B spare** (1 160 before the slot grew 2 KiB) | AC791N link |
 | Release workflow | pinned to `v1`'s commit `85a003a…`, `tests-block: true`, separate `verify` job | read from `.github/workflows/release.yml` |
@@ -143,10 +143,13 @@ The package was downloaded from
 
 ## 3. The card file: `fmhub.json`
 
-> **Schema note (2026-11-13):** the Hub accepts `what`, `author`, `kinds`, `play`, `editor`, `cheat`,
-> `image` and `color`; it ignores the **whole file** if one field is unknown. `sounds` is **not** a
-> field. The sound count belongs inside `what`, which now says “nine engines and 275 sounds”. The
-> card is checked by `python3 tools/check_fmhub.py`.
+> **Schema note (2026-11-15):** the Hub accepts `what`, `author`, `kinds`, `play`, `editor`, `cheat`,
+> `image`, `color`, `sounds` and `smk37`; it ignores the **whole file** if one field is unknown. `sounds`
+> **is** a field as of 13.11.2026 — required as soon as the repository or the package carries a sample,
+> a sample bank or a sound bank — and its value must be one of `none`, `own: …`, `CC0: …`,
+> `public domain: …` or `licensed: …, licence`. The 2026-11-13 note above said the opposite and is
+> superseded. The card is checked by `python3 tools/check_fmhub.py`, and `tests/fmhub_card_test.py`
+> fails if the `sounds` line disappears while `web/banks/gw1-keys.syx` is still in the tree.
 
 The Hub reads it from the default branch, every three hours, and **ignores the whole file** when one
 field is unknown or out of bounds. `tools/check_fmhub.py` (new) checks it against the published rules
@@ -155,16 +158,18 @@ and the live examples of other firmwares' files:
 ```
 $ python3 tools/check_fmhub.py
 ok    fmhub.json is valid JSON
-ok    only accepted fields (author, cheat, color, editor, image, kinds, play, what)
-ok    what: 274 characters, plain text, no links
+ok    only accepted fields (author, cheat, color, editor, image, kinds, play, sounds, what)
+ok    what: 253 characters, plain text, no links
 ok    author: Guille Lauría
 ok    kinds: ['groove']
 ok    play: https://guillel51.github.io/Quantum-GammaWave/emulator/ answers 200
 ok    editor: https://guillel51.github.io/Quantum-GammaWave/webapp/editor/ answers 200
 ok    cheat: https://github.com/Guillel51/Quantum-GammaWave#readme answers 200
-ok    image: docs/card.png 480x480 PNG, the Solar Heat palette, under 300 KB
-      #35CFFF: luminance 0.526; contrast on black 11.52:1, on white 1.82:1; dark ink #101014 on it 10.41:1
-ok    color: #35CFFF, bright, 11.5:1 on a dark card, readable ink #101014 (10.4:1)
+ok    image: docs/card.png 480x480 PNG, 21033 B
+ok    sounds: own: every voice is synthesised by the firmware. The one ban... (198 characters)
+ok    sounds declared for the tree's 1 audio asset(s): web/banks/gw1-keys.syx
+      #FF9424: luminance 0.426; contrast on black 9.51:1, on white 2.21:1; dark ink #101014 on it 8.60:1
+ok    color: #FF9424, bright, 9.5:1 on a dark card, readable ink #101014 (8.6:1)
 ```
 
 Notes:
@@ -175,12 +180,18 @@ Notes:
   has: nine engines (analog, six-operator FM, wavetable, digital drums…), a 64-step sequencer with
   probability and ratchets, song mode, scales and chords, a mod matrix and three FX buses, plus the
   browser emulator and the web editor.
-* **`color` is `#35CFFF`** (the brief's colour). It is unique among the 52 coloured listings in the live
-  catalogue; the two nearest are `#2BA6E8` (Tuna) and `#3FA2E6` (Flyfish). Luminance 0.526 makes it a
-  bright accent, not a panel: 11.5:1 on a dark card. Any text drawn **on** the colour must be dark
-  (`#101014`, 10.4:1) — white on it is 1.8:1 and would fail.
-* **Image:** `docs/card.png`, 512 × 512, PNG, 20 860 B — square, in range, well under 300 KB. It is a
-  generated card from the repository, not a photograph. See `docs/FM1_HUB_AUDIO_PROVENANCE.md`.
+* **`sounds` is `own`** and says what it means: every voice is synthesised by the firmware, and the one
+  bank it distributes (`web/banks/gw1-keys.syx`) is *generated* from the firmware's own six-operator FM
+  presets by `tools/gen_fm6_patches.py --syx`, which still reproduces the committed file byte for byte
+  (`7c39bf4b…`). No third-party sample, loop, ROM bank or recording is in the tree or in the package —
+  the full survey is `docs/FM1_HUB_AUDIO_PROVENANCE.md` §1–§2.
+* **`color` is `#FF9424`**, the Quantum amber. It is not used by any of the 71 coloured listings in the
+  live catalogue, its luminance 0.426 makes it a bright accent rather than a panel (9.5:1 on a dark
+  card), and dark ink on it reads at 8.6:1 — white on it would be 2.2:1 and would fail.
+* **Image:** `docs/card.png`, 480 × 480, PNG, 21 033 B — square, in range, well under 300 KB. It is the
+  firmware's **own** HOME frame (GAMMA palette, the palette the card's colour comes from) rendered by
+  `tests/ui_render.c` with `QG_DUMP_NAME=home QG_DUMP=0,11`, scaled ×2 with nearest neighbour: a real
+  240 × 240 capture of the published build, not a photograph or a mockup.
 * The Hub takes the name, author, picture and version from the repository and the releases; only the text,
   kind, links, picture *path* and colour come from this file.
 

@@ -42,7 +42,13 @@ flash.
 Consequence for the Hub: a package carries no third-party recordings, loops, kits or ROM samples, and
 there is no sample licence to review.
 
-## 2. The one distributed patch asset: `web/banks/gw1-keys.syx`
+## 2. The one distributed patch asset: `web/banks/gw1-keys.syx`  
+
+> **Declared on the card (2026-11-15):** `fmhub.json` carries
+> `"sounds": "own: every voice is synthesised by the firmware. The one bank it distributes, gw1-keys.syx,
+> is generated from its own six-operator FM presets: no third-party samples, loops, ROM banks or
+> recordings."` — the `own: …` form the Hub accepts. `tests/fmhub_card_test.py` fails if that line goes
+> away while this file is still in the tree.
 
 | | |
 |---|---|
