@@ -1868,8 +1868,27 @@ static uint16_t heat_col(int32_t v)
                         settings.palette == UI_PLASMA_INDEX ? HPP :
                         settings.palette == UI_ORGANIC_INDEX ? HOG :
                         settings.palette == UI_MINIMAL_INDEX ? HMN :
-                        settings.palette == UI_RETRO_INDEX ? HRT : H;
+                        settings.palette == UI_RETRO_INDEX ? HRT :
+                        settings.palette == UI_JIANT_INDEX ? H : 0;   /* (3.5) THERMAL keeps the camera's own ramp:
+                                                                       * a thermal page whose physics came from its
+                                                                       * five chrome tokens read as black on black */
+    /* (3.5) EVERY THEME HAS ITS OWN RAMP. A palette with no hand-tuned table above (GREY, GREEN, ROSE, PAPER,
+     * HI-CON, NIGHT, MONO, THERMAL) fell through to H, the thermal one: its curves, meters and planets were the
+     * same colours as GAMMA's, which is what made HOME's five worlds look alike whichever theme was chosen. The
+     * ramp is now derived from the palette's own tokens -- cold at 0, the theme and the accent in the middle,
+     * the text at 256 -- so a theme that only names five colours still gets a full ramp of its own. */
+    uint16_t own[7];
     int32_t k;
+    if (!R) {
+        own[0] = ux_mix(T_BG, T_SURF, 60);
+        own[1] = ux_mix(T_BG, T_THEME, 70);
+        own[2] = ux_mix(T_THEME, T_ACCENT, 45);
+        own[3] = ux_mix(T_THEME, T_ACCENT, 85);
+        own[4] = ux_mix(T_ACCENT, T_TEXT, 35);
+        own[5] = ux_mix(T_ACCENT, T_TEXT, 72);
+        own[6] = T_TEXT;
+        R = own;
+    }
     v = clamp(v, 0, 256);
     if (!ux.chamfer)
         return v < 128 ? ux_mix(T_SURF, T_ACCENT, v * 100 / 128) : ux_mix(T_ACCENT, T_TEXT, (v - 128) * 100 / 128);
@@ -3001,16 +3020,29 @@ static void graph_home_viz(uint16_t c)
         cv_rrect(164, 64, 64, 67, 3, vsf, T_GRID);
         cv_rect(196, 72, 1, 51, T_GRID);
         cv_rect(172, 97, 48, 1, T_LINE);
-        if (peak > 1400) {
+        /* (3.5) THE RIGHT SCOPE IS ALWAYS THERE, AND ALWAYS ITS OWN. It was drawn only when the snapshot's
+         * peak passed 1400, so anything played quietly left the reticle empty -- the "it does not appear"
+         * report -- and just above the threshold the few samples it had were clamped against the frame, which
+         * read as a stuck, broken plot. It is scaled to its own peak now (the whole snapshot's, the same one
+         * the trace uses), a quiet signal still draws inside the reticle instead of collapsing onto an edge,
+         * and silence is the still point at the centre: a scope at rest, never a missing one. */
+        {
             int32_t px = 196, py = 98;
-            for (i = 0; i <= 64u; i += 3) {             /* (1.7) every third sample: the orbit keeps its shape */
-                int32_t ox = 196 + (scope_snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
-                int32_t oy = 98 + (scope_snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
-                ox = clamp(ox, 168, 224);
-                oy = clamp(oy, 72, 123);
-                if (i) cv_line(px, py, ox, oy, mono ? T_TEXT : T_ACCENT);
-                px = ox; py = oy;
+            if (peak > 260) {
+                for (i = 0; i <= 64u; i += 3) {         /* (1.7) every third sample: the orbit keeps its shape */
+                    int32_t ox = 196 + (scope_snap[(trig + i) & (SCOPE_N - 1u)] * 27) / peak;
+                    int32_t oy = 98 + (scope_snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
+                    ox = clamp(ox, 169, 223);
+                    oy = clamp(oy, 73, 122);
+                    if (i) cv_line(px, py, ox, oy, mono ? T_TEXT : T_ACCENT);
+                    px = ox; py = oy;
+                }
+            } else {
+                cv_rect(195, 97, 3, 3, mono ? T_TEXT : T_ACCENT);
             }
+            cv_rect(196, 66, 1, 62, ux_mix(T_GRID, T_LINE, 55));   /* (3.5) the reticle's cross, drawn last so
+                                                                    * it is a reference and not a line the trace
+                                                                    * has to cross twice */
         }
 
         /* Spectrum floor: 16 slim bars, with peak marks, below the trace. */

@@ -10103,7 +10103,10 @@ static int test_large(void)
     ui.home_viz = 0;                                   /* (the full-screen visualizer hides the cards) */
     ui.force = 1; frame();
     ok = ui.home && large_kind() == LK_TALL && card_h() == LG_CARD_H && graph_y() == LG_Y_GRAPH && strip_kind() == SK_SCOPE;
-    ok &= lg_px(30, Y_SEP_END + 1) == T_SURF && off[(Y_SEP_END + 1) * 240 + 30] == swap16(T_BG);     /* a card where the gap was */
+    /* (3.5) the sample is the card's own left margin, not x 30: with the cards four rows taller the value's
+     * band reaches row 75, so x 30 lands on a glyph there and the check read a rendering as a layout. */
+    ok &= lg_px(CARD_X(0) + 2, Y_SEP_END + 1) == T_SURF &&
+          off[(Y_SEP_END + 1) * 240 + CARD_X(0) + 2] == swap16(T_BG);     /* a card where the gap was */
     ok &= lg_px(30, LG_Y_GRAPH - 2) == T_BG && off[(LG_Y_GRAPH - 2) * 240 + 30] != swap16(T_BG);     /* a gap in the panel */
     ok &= lg_px(30, LG_Y_GRAPH + 1) != T_BG;         /* (FASE 3) the panel starts here; its first row is the
                                                       * lit edge of the bezel, not the flat surface */

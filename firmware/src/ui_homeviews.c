@@ -27,33 +27,6 @@ static void hv_cat(char *b, const char *s, uint32_t sz)
     if (n < sz)
         str_cpy(b + n, s, sz - n);
 }
-/* (7.0) THE KNOBS STAY IN VIEW. The four cards are not drawn on these full-body screens (they set a
- * parameter and the walk from MAIN would have to re-teach them), so the values that shape the picture sit on
- * the title line instead: the same parameters the cards read (home_param), formatted by the same code
- * (param_format), so a knob reads the same on HOME's third screen as on its first. */
-static void hv_knobrow(int32_t y, uint16_t c)
-{
-    static const int16_t XS[4] = {14, 57, 100, 143};   /* 43 px each: the strip's icon owns x 190..227 */
-    uint32_t i;
-    for (i = 0; i < 4u; i++) {
-        int16_t *vp;
-        const param_desc_t *d = home_param(i, &vp);
-        const char *unit;
-        char v[12], b[24];
-        param_format(d, *vp, v, &unit);                /* the unit is the card's (a % , ms, Hz); here the
-                                                        * number alone, so four knobs fit one line */
-        str_cpy(b, "K", sizeof b);                    /* the card's name is on MAIN; here the knob and its
-                                                        * number, four of them on the title line */
-        {   char k[4];
-            fmt_int(k, (int32_t)i + 1);
-            hv_cat(b, k, sizeof b);
-        }
-        hv_cat(b, " ", sizeof b);
-        hv_cat(b, v, sizeof b);
-        (void)unit;
-        cv_text_fit(XS[i], y, &AF_S, b, i == 0u ? c : T_MID, T_SURF, 41);
-    }
-}
 /* a bar: w px wide, filled by v/max (a meter, a level, the load) */
 static void hv_bar(int32_t x, int32_t y, int32_t w, int32_t h, int32_t v, int32_t max, uint16_t fg, uint16_t bg)
 {
@@ -135,8 +108,10 @@ static void hv_overview(const track_t *t, uint16_t c)
 
     /* pass 0: what is loaded and what it is doing */
     hv_strip(29, c);                                   /* (4.1) which screen this is, as an icon */
-    hv_knobrow(30, c);                                 /* (7.0) the four knobs, in the title's place */
-    cv_rect(14, 43, 212, 1, T_LINE);
+    cv_text(14, 30, &AF_S, "OVERVIEW", T_THEME);      /* (3.5) the screen's own name, in the row the knob
+                                                        * strip used to take (K1..K4 showed values nothing
+                                                        * acted on: they are gone, not moved) */
+    cv_rect(14, 41, 212, 1, T_LINE);
 
     cv_text(14, 50, &AF_S, "ENGINE", T_DIM);
     cv_text(86, 47, &AF_M, e->name, T_TEXT);
@@ -343,7 +318,8 @@ static void hv_mix(const track_t *t, uint16_t c)
     hv_grad();
     hv_air(26, 176, c, 1u);
     hv_strip(29, c);
-    hv_knobrow(30, c);                                 /* (7.0) the four knobs, in the title's place */
+    cv_text(14, 30, &AF_S, "MIXER", T_THEME);         /* (3.5) its own title, where the knob strip was */
+    cv_rect(14, 41, 212, 1, T_LINE);
     (void)q;
     for (k = 0; k < NTRK; k++) {
         const track_t *q2 = &trk[k];
@@ -427,7 +403,8 @@ static void hv_perf(const track_t *t, uint16_t c)
     hv_grad();
     hv_air(26, 176, c, 2u);
     hv_strip(29, c);
-    hv_knobrow(30, c);                                 /* (7.0) the four knobs, in the title's place */
+    cv_text(14, 30, &AF_S, "PERFORMANCE", T_THEME);   /* (3.5) its own title, where the knob strip was */
+    cv_rect(14, 41, 212, 1, T_LINE);
     cv_text(14, 48, &AF_S, "OCTAVE", T_DIM);
     fmt_int(b, (int32_t)song.octave);
     cv_text(96, 48, &AF_S, b, T_TEXT);

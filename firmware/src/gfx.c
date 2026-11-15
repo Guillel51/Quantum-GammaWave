@@ -203,8 +203,12 @@ static void palette_set(uint32_t i)
 /* settings store a tagged id; ids below 20 are the palettes of earlier firmware */
 static uint32_t palette_from_stored(uint32_t v)
 {
-    if (v >= UI_PAL_TAG && v - UI_PAL_TAG < NPALETTES) return v - UI_PAL_TAG;
-    return v < 20u ? UI_PALETTE_MIGRATE[v] : UI_GREY_INDEX;
+    uint32_t i;
+    if (v >= UI_PAL_TAG && v - UI_PAL_TAG < NPALETTES) i = v - UI_PAL_TAG;
+    else if (v < 20u) i = UI_PALETTE_MIGRATE[v];
+    else return UI_GREY_INDEX;
+    return UI_PAL_LIVE[UI_PAL_SLOT[i]];                  /* (3.5) a retired palette reads as the live one it was
+                                                         * retired into, and is stored as that */
 }
 static uint32_t palette_to_stored(uint32_t i) { return UI_PAL_TAG + i % NPALETTES; }
 static int palette_stored_ok(uint32_t v) { return v < 20u || (v >= UI_PAL_TAG && v - UI_PAL_TAG < NPALETTES); }

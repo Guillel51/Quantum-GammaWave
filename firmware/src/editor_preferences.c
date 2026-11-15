@@ -66,7 +66,7 @@ static uint32_t ed_ui_set(const uint8_t *a, uint32_t n)
 {
     if (n != 2u || a[0] > 3u) return 1;
     if (!(ed_ui_caps() & (1u << a[0]))) return 2;
-    if (a[1] >= (a[0] == 0 ? NPALETTES : a[0] == 2 ? 3u : 2u)) return 1;
+    if (a[1] >= (a[0] == 0 ? UI_NPAL_LIVE : a[0] == 2 ? 3u : 2u)) return 1;
     switch (a[0]) {
     case 0:
         settings.palette = a[1]; palette_set(a[1]); break;
@@ -95,8 +95,8 @@ static int ed_ui_handle(uint32_t cmd, const uint8_t *a, uint32_t n)
         ed_b(n ? a[0] : 127u); ed_b(n > 1u ? a[1] : 127u);
         ed_ui_state(); return 1;
     case ED_UI_PALETTES:
-        ed_b(NPALETTES);
-        for (uint32_t i = 0; i < NPALETTES; i++) ed_str(UI_PALETTES[i].name, 12);
+        ed_b(UI_NPAL_LIVE);                        /* (3.5) the selectable palettes, not the table */
+        for (uint32_t i = 0; i < UI_NPAL_LIVE; i++) ed_str(UI_PALETTES[UI_PAL_LIVE[i]].name, 12);
         return 1;
     case ED_FAV_GET:
 #ifdef FELUCCA_FAVORITES

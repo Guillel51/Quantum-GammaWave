@@ -84,8 +84,8 @@ static void draw_battery(int32_t bx)
 #define ROLL_FRAMES 9u
 #define ROLL_SNAP 3u                                    /* frames (~45 ms) */
 #define ROLL_BPM 4u                                     /* ui.roll[]: the four cards, then the header BPM */
-#define ROLL_Y 18                                       /* a card's value strip: rows 18..34, its figures (21..31) in the middle, */
-#define ROLL_H 17                                       /* the label (MONO's chip: to row 17) above it, the gauge (38) below */
+#define ROLL_Y 20                                       /* a card's value strip: rows 20..36, its figures (23..33) in the middle, */
+#define ROLL_H 17                                       /* the label (MONO's chip: to row 17) above it, the gauge (42) below */
 #define UNIT_GAP 2                                      /* (QG-1 stage 3) the value and its unit in a card: 2 px between them
                                                          * (3 made "111" + "/133" one pixel too wide for the 57 px card, and the
                                                          * value was ellipsised: a lint finding, not a layout) */
@@ -636,8 +636,13 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         }
     }
     if (label[0] || val[0]) {
+        /* (3.5) FOUR PIXELS CLEAR OF THE DIAL. The row reserved for the round knob was COL_W - 22, which is
+         * exactly the dial's left edge: a label whose advance just fitted there (FX > DELAY page 2's "PITCH")
+         * set its last glyph against the knob's body and read as a collision. The room the label has is now the
+         * knob's cell minus a 4 px channel, and the fit test and the fit itself use the same number. */
+        int32_t kn_max = COL_W - 2 * KNOB_SMALL_R - 4;
         int gw_rotary = (ux.chamfer && !ux.style && kind == LK_OFF && ratio >= 0 && !strip &&
-                         5 + text_w(&AF_S, label) <= COL_W - 22);
+                         5 + text_w(&AF_S, label) <= kn_max);
         if (gw_rotary) {
             /* (QG-1 1.6) a real round knob: a filled body, a 270-degree ring, the value arc and a needle, in the
              * cards' own SURF / LINE / THEME language. The old bakelite disc, its orbit ring one pixel inside the
@@ -659,7 +664,7 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
             /* MENU > LARGE on a list / graph page or a layer (LK_LABEL): the label in M where it fits the card (its
              * capitals rows 5..15, the icon on them when it fits too), else in S as without LARGE */
             const aafont_t *lf = kind == LK_LABEL && 5 + text_w(&AF_M, label) <= COL_W - 2 ? &AF_M : &AF_S;
-            int32_t max_lx = gw_rotary ? (COL_W - 22) : (COL_W - 2);
+            int32_t max_lx = gw_rotary ? kn_max : (COL_W - 2);
             int32_t lw = text_w(lf, label), ix = 5, ly = lf == &AF_M ? 1 : 3;
             int32_t cy = ly + (lf == &AF_M ? AF_M_CAP_Y : AF_S_CAP_Y), chh = lf == &AF_M ? AF_M_CAP_H : AF_S_CAP_H;
             uint32_t ic = mot ? ICON_X_MOTION : icon;
@@ -697,26 +702,26 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
             }
         }
         if (kid >= 0)                                   /* "[OCT+]": the keycap (accent: it would act; DIM: it would not) */
-            x = cv_keycap(5, 20, (uint32_t)kid, vc == T_ACCENT || vc == T_DIM ? vc : T_KEY, T_INK, T_SURF);
+            x = cv_keycap(5, 22, (uint32_t)kid, vc == T_ACCENT || vc == T_DIM ? vc : T_KEY, T_INK, T_SURF);
         else if (vf == &AF_M) {
             if (!ui.roll[c].from[0] && val[0])
                 GFX_HOOK_ALIGN(0, ROLL_Y, COL_W, ROLL_Y + ROLL_H, AL_V, "card value in its roll window");
-            x = roll_text(c, 5, 17, val, vc);
+            x = roll_text(c, 5, 19, val, vc);
         } else
-            x = cv_text_fit(5, 20, vf, val, vc, T_SURF, room - uw);
+            x = cv_text_fit(5, 22, vf, val, vc, T_SURF, room - uw);
         if (unit[0]) {
-            GFX_HOOK_ALIGN(0, 0, 0, vf == &AF_M ? 17 + AF_M.asc : 20 + AF_S.asc, AL_B, "card unit on its value's baseline");
-            cv_text_on(x + UNIT_GAP, 20, &AF_S, unit, T_MID, T_SURF);     /* on the value's baseline (S) */
+            GFX_HOOK_ALIGN(0, 0, 0, vf == &AF_M ? 19 + AF_M.asc : 22 + AF_S.asc, AL_B, "card unit on its value's baseline");
+            cv_text_on(x + UNIT_GAP, 22, &AF_S, unit, T_MID, T_SURF);     /* on the value's baseline (S) */
         }
         if (!strip && ratio >= 0) {
             int32_t gw = COL_W - 10, fx = ratio * gw / 1000, fillw = fx < 3 ? 3 : fx;
-            cv_rrect(5, 38, gw, 3, 1, ux.style ? T_LINE : T_BG, T_SURF);   /* (LINE: no card to cut it from) */
-            cv_rrect(5, 38, fillw, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), T_BG);
+            cv_rrect(5, 42, gw, 3, 1, ux.style ? T_LINE : T_BG, T_SURF);   /* (LINE: no card to cut it from) */
+            cv_rrect(5, 42, fillw, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), T_BG);
             if (ux.chamfer && !ux.style) {
                 int32_t s;
                 for (s = 6; s < gw; s += 6)
-                    cv_rect(5 + s, 38, 1, 3, T_SURF);
-                cv_rect(5 + fillw - 2, 37, 2, 4, hot ? T_TEXT : T_ACCENT);
+                    cv_rect(5 + s, 42, 1, 3, T_SURF);
+                cv_rect(5 + fillw - 2, 41, 2, 4, hot ? T_TEXT : T_ACCENT);
             }
         }
     }

@@ -342,8 +342,9 @@ static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_
         int32_t y = cy - s * amp / pk;
         int32_t dy = y > cy ? y - cy : cy - y;
         y = clamp(y, cy - amp, cy + amp);
-        if (x)
-            cv_line(x0 + x - 1, py, x0 + x, y, bg_col(heat_base + dy * 140 / (amp ? amp : 1)));
+        if (x)                                          /* (3.5) two pixels: a background trace thinner than the
+                                                         * curve reads as a rendering seam, not as a layer */
+            cv_line_t(x0 + x - 1, py, x0 + x, y, bg_col(heat_base + dy * 140 / (amp ? amp : 1)), 2);
         py = y;
     }
 }
@@ -1259,7 +1260,9 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
      * giant rose, the ocean world violet and the frozen one ice blue -- and the note still pushes a body
      * up the same ramp from there, so the music's light keeps working and the identities stop relying on
      * shape alone. */
-    static const int16_t ORK_HUE[5] = {0, 12, -58, -22, -80};
+    static const int16_t ORK_HUE[5] = {-150, -100, -30, 35, 85};   /* (3.5) spread over the ramp: 60, 110, 180,
+                                                                    * 245 and 256 from a 210 base, so the five bodies
+                                                                    * are five colours of the theme, not five ambers */
     int32_t kheat[NPL];
     /* fixed stars: x, y in the bay, size (1..3), luminance, twinkle phase */
     static const uint8_t ST[20][5] = {
@@ -2272,6 +2275,14 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
     cv_rect(gx0, y_zero, gw, 1, ux_mix(T_SURF, T_LINE, 72));
     cv_rect(gx0, gy0 + gh * 3 / 4, gw, 1, ux_mix(T_SURF, T_GRID, 58));
 
+    /* 1b. (3.5) THE BACKGROUND TRACE, UNDER THE DATA. It used to be drawn after the spectrogram, so its line
+     *     and its two pixels of glow crossed the bands and the filter curve and read as a rendering fault: a
+     *     flat line over the graph in silence, a hair of the wrong colour where the two met. It is the bay's
+     *     back layer now -- drawn before the floor, the bands and both curves, so it can only be behind them --
+     *     two pixels thick along the theme's own ramp, and it never moves the picture it sits in. */
+    gw_live_trace(gx0 + 2, gw - 4, gy0 + gh / 2, gh / 3, 64);
+
+
     /* (7.3) THE FLOOR UNDER THE CURVE. The bay is where the player reads the filter, and the response was a line
      * on a grid: the area between it and the bay's floor is filled with the console's own ramp -- four bands, the
      * accent rising downwards, from the theme's gold to its accent -- so the curve has a body and the picture has
@@ -2341,9 +2352,6 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
             cv_line(gx0 + x - (int32_t)vz_step(), mpy, gx0 + x, my, T_ACCENT);
         mpy = my;
     }
-
-    /* 4. Live Triggered Pre-FX Waveform Trace */
-    gw_live_trace(gx0 + 2, gw - 4, gy0 + gh / 2, gh / 3, 64);
 
     /* 5. Glowing #f27121 Orange Filter Frequency Response Curve (2px thick) */
     {   /* (v1.5) sampled every vz_step() column instead of every one: the segment runs from the previous sample to

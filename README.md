@@ -27,14 +27,25 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v3.4.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v3.5.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 - **What it is, first.** A free firmware for the **M-VAVE FM-1**: six tracks, twelve voices, nine synthesis
   engines and **273 factory sounds** (275 entries: two legacy DRUM kits stay for old projects), a 64-step sequencer with an arpeggiator and song chains, per-track and
-  per-bus effects, and an interface of 22 palettes on a 240 × 240 panel. It plays from the keys, edits from the
+  per-bus effects, and an interface of 19 selectable palettes on a 240 × 240 panel. It plays from the keys, edits from the
   encoders, and the browser emulator and Web Studio need no install.
-- **One version everywhere.** `FELUCCA_VERSION` (`v3.4.0`), the package, the emulator the portal serves and
+- **One version everywhere.** `FELUCCA_VERSION` (`v3.5.0`), the package, the emulator the portal serves and
   `firmware/versions.json` name the same build; the installer checks its SHA-256 and its size before it writes.
+- **The page gives its rows to the instrument.** The status bar is 20 px, the four knob cards are four rows
+  taller with their gauge at the card's foot, and the layout change reaches every page: the cards' values, the
+  labels, the round dials and the step markers all moved with it, checked by the render sweep.
+- **HOME's later screens are titled, not ticker-taped.** Screens 3 to 5 carried a K1..K4 strip of values that
+  nothing on those pages acted on; it is gone, and each screen names itself in that row.
+- **Every palette has its own sky.** A theme without a hand-tuned ramp (GREY, GREEN, ROSE, PAPER, HI-CON,
+  NIGHT, MONO) fell through to the thermal one, so its curves, meters and HOME's five worlds were GAMMA's
+  colours; the ramp is derived from the palette's own tokens now, and the five bodies sit at five points of it.
+- **The right scope of the visualizer is always drawn.** It was gated behind a peak threshold, so a quiet
+  passage left the reticle empty; it scales to its own signal now and shows a still point in silence. HOME's
+  background trace is drawn under the data at two pixels and in the theme's ramp instead of over it at one.
 - **Tested on three FM-1 units, one with the newer flash part.** The firmware has run on three physical
   M-VAVE FM-1, the newer one carrying the second of the two SPI NOR parts the loader accepts (P25Q80H
   `0x856014` and UCUN UC25HQ80 `0xB36014`). That is a compatibility statement about those units, not a

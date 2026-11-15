@@ -183,17 +183,18 @@ static uint8_t sync_reload;                  /* engine / preset / project / user
 #define ACC T_THEME                /* values, curves */
 #define VAL(c) ((c) == ui.hot_col && ui.hot_t ? T_ACCENT : T_THEME)   /* the knob just turned: accent */
 #define RATIO(d, v) ((d)->max > (d)->min ? ((int32_t)(v) - (d)->min) * 1000 / ((d)->max - (d)->min) : -1)
-/* layout: header 0..22, four cards 26..72 (57 px at x 3 + 59 c),
+/* layout: header 0..20, four cards 24..74 (57 px at x 3 + 59 c),
  * the panel 76..198 (a SURF area; the graphs live in it), footer 202..240; BG between them */
 #define Y_HEAD 0
-#define H_HEAD 22                     /* (3.9) two rows shorter: the bar gives them to the cards */
-#define Y_LABEL 26                    /* the cards */
-#define Y_SEP_END 72
+#define H_HEAD 20                     /* (3.5) the top bar is a status strip, not a page: two rows more to the cards */
+#define Y_LABEL 24                    /* the cards */
+#define Y_SEP_END 74
 #define CARD_W 57
-#define CARD_H 46                     /* (3.9) two rows taller: the values get the air back */
+#define CARD_H 50                     /* (3.5) four rows taller: the cards are the instrument's main surface */
 #define CARD_X(c) (3 + 59 * (int32_t)(c))
 #define Y_GRAPH 76                    /* the panel */
-#define H_GRAPH 122
+#define H_GRAPH 122                    /* (3.5) the panel keeps its height: the graph code's own rows are
+                                        * measured against it, and growing it moved the piano roll's labels */
 #define Y_FOOT 202
 #define H_FOOT 38
 /* MENU > LARGE (large_kind below): on the value pages the cards are tall (28..132) and the panel a strip

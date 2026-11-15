@@ -231,6 +231,20 @@ def main():
                 f"#define UI_RETRO_INDEX {names.index('RETRO')}u          /* skin: RETRO */",
                 f"#define UI_BW_GREY 0x{to565(BW_GREY):04x}u          /* MONO's one grey: DIM LINE RAISE LANE */",
                 f"#define UI_PAL_TAG {PAL_TAG}u          /* stored id = UI_PAL_TAG + index; below 20: an old id */"]
+        # (3.5) AMBER, ICE and VIOLET ARE GONE. They are retired in place rather than deleted from the table:
+        # a saved settings record names a palette by its tagged index, so removing three rows would silently
+        # turn every later theme into its neighbour (PAPER for a player who had VIOLET). The rows stay, they are
+        # no longer selectable, and the menu walks UI_PAL_LIVE; a record saved as a retired one is read as the
+        # live palette nearest to it in spirit and stored as that.
+        RETIRED = {"AMBER": "ROSE", "ICE": "NORDIC", "VIOLET": "NEBULA"}
+        live = [i for i, p in enumerate(PALETTES) if p[0] not in RETIRED]
+        slot = []
+        for i, p in enumerate(PALETTES):
+            j = names.index(RETIRED[p[0]]) if p[0] in RETIRED else i
+            slot.append(live.index(j))
+        out += [f"#define UI_NPAL_LIVE {len(live)}u   /* (3.5) the palettes the menu offers: AMBER, ICE and VIOLET retired */",
+                "static const uint8_t UI_PAL_LIVE[UI_NPAL_LIVE] = {" + ", ".join(map(str, live)) + "};",
+                "static const uint8_t UI_PAL_SLOT[UI_NPALETTES] = {" + ", ".join(map(str, slot)) + "};   /* index -> live position */"]
         out += [f"#define UI_{k}_PCT {v}" for k, v in PCT.items()] + [f"#define UI_RAISE_PCT {RAISE_PCT}   /* SURF -> TEXT */"]
         out += [f"#define UI_REC_DARK 0x{to565(REC_DARK):04x}u", f"#define UI_REC_LIGHT 0x{to565(REC_LIGHT):04x}u",
                 f"#define UI_QR_LIGHT 0x{to565(QR_LIGHT):04x}u", f"#define UI_QR_DARK 0x{to565(QR_DARK):04x}u",

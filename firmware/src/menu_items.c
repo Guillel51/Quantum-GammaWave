@@ -135,7 +135,7 @@ static const menu_flag_t *menu_flag(uint32_t row)
 /* a row's value as 0..menu_n(row) - 1 in the order the menu steps it (LEDS: OFF DIM LO DIM HI INV, LEDS_MENU) */
 static uint32_t menu_n(uint32_t row)
 {
-    return row == MI_COLOR ? NPALETTES : row == MI_LOWCUT || (row >= MI_CLICK && row <= MI_COUNTIN) || row == MI_LOAD ||
+    return row == MI_COLOR ? UI_NPAL_LIVE : row == MI_LOWCUT || (row >= MI_CLICK && row <= MI_COUNTIN) || row == MI_LOAD ||
            row == MI_CPU || row == MI_VIZQ || row == MI_SPLASH || row == MI_TRACKS || row == MI_VOICES ? 3u :
            row == MI_HOLD || row == MI_MIDIOUT ? 4u : row == MI_SELHOME ? 5u : row == MI_LEDS ? LEDS_COUNT : row == MI_SCROFF ? NELEM(SCROFF_N) : 2u;
 }
@@ -146,7 +146,7 @@ static uint32_t menu_get(uint32_t row)
     if (f)
         return ((ui_prefs | (uint32_t)ui_rec_prefs << 8) & f->bit) != 0;
     switch (row) {
-    case MI_COLOR: return settings.palette % NPALETTES;
+    case MI_COLOR: return UI_PAL_SLOT[settings.palette % NPALETTES];   /* (3.5) the selectable list */
     case MI_STYLE: return ui_style == ST_LINE;
     case MI_LOWCUT: return settings.lowcut % 3u;
     case MI_HOLD: return settings_hold % 4u;
@@ -173,7 +173,7 @@ static const char *menu_vname(uint32_t row, uint32_t v)
     if (f)
         return f->name[v & 1u];
     switch (row) {
-    case MI_COLOR: return UI_PALETTES[v % NPALETTES].name;
+    case MI_COLOR: return UI_PALETTES[UI_PAL_LIVE[v % UI_NPAL_LIVE]].name;
     case MI_STYLE: return STYLE_N[v & 1u];
     case MI_LOWCUT: return SPK_EQ[v % 3u];
     case MI_HOLD: return HOLD_N[v & 3u];
@@ -208,11 +208,14 @@ static void menu_put(uint32_t row, uint32_t v)
         return;
     }
     switch (row) {
-    case MI_COLOR:
-        settings.palette = v;
-        palette_set(v);                                /* (the menu signature redraws) */
+    case MI_COLOR: {                               /* (3.5) the menu steps the live list; the setting keeps the
+                                                    * palette's own index, so a stored id never moves */
+        uint32_t pi = UI_PAL_LIVE[v % UI_NPAL_LIVE];
+        settings.palette = pi;
+        palette_set(pi);                               /* (the menu signature redraws) */
         ui.force = 1;
         break;
+    }
     case MI_STYLE: ui_style = (uint8_t)(v ? ST_LINE : ST_FLAT); break;   /* (drawn so from the next frame) */
     case MI_LOWCUT: settings.lowcut = v; fx_lowcut = (uint8_t)v; qg_fx_update_eq(fx_lowcut); break;
     case MI_HOLD: settings_hold = (uint8_t)v; break;
