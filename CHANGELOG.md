@@ -28,10 +28,12 @@ dibujado queda medido, y se explica por qué no entra todavía.
   barrido completo de render baja de **79,4 s a 26,5 s** (26,5 s y 26,7 s en dos pasadas) para las mismas 189
   pantallas × 22 paletas, y `home` pasa de 584,7 µs a 131,8 µs (4,4×) con el informe del barrido idéntico (0
   lint, 0 tintas sobre su propio color, 0 píxeles fuera de gris/neutro) y sin cambiar un píxel.
-- **No está en esta versión.** La imagen de la AC791N tiene el XIP lleno: con ese cambio el linker pide 4 bytes
-  más, con una tabla de color de 257 entradas pide 244, y el firmware no compila. No se recortó ninguna función
-  para hacerlo entrar. Queda medido y listo para la próxima fase, que necesita liberar unos cientos de bytes de
-  XIP (el candidato es generar en tiempo de arranque alguna de las tablas que hoy viajan en la imagen).
+- **No está en esta versión, y con razón: la medición era del banco, no del chip.** El pi32v2 **sí tiene
+  división por hardware** (`r0 = r0 / r10 (u)` en `build/felucca.dis`), así que en el firmware el compilador
+  nunca llamaba a un ayudante de división: los 3× venían de que el banco de render se compila con `-O1`, donde
+  la división sí es una llamada. Sobre el objetivo el cambio **cuesta 16 B de XIP** (con 12 B libres, el link
+  pasa a 4 B de más) y no quita ni una instrucción. La tabla de 257 entradas pide 244 B. Ninguna de las dos
+  entra, y ninguna de las dos era la mejora que parecía: ver `docs/PERFORMANCE_BASELINE.md` §3.
 
 ### Pendiente, dicho
 
