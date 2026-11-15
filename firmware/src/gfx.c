@@ -628,19 +628,6 @@ static void ux_ground_ramp(int32_t x, int32_t y, int32_t w, int32_t h, int32_t n
         gw_dither(x, yy, w, hh, from, ux_mix(from, to, (k + 1) * 100 / n), pct);
     }
 }
-/* (7.3) THE FLOOR, IN THE CONSOLE'S LANGUAGE. FX > BUSES' six blocks warm towards their foot -- four bands, a
- * 4 x 4 dither at 50 %, the accent stronger as the rows come down (ui_fxb.c fxb_grad) -- and that ramp is the
- * instrument's signature. This is it as one primitive, from any plate colour to any ink, so the footer, the band
- * under the panel and every screen's own foot wear the same four bands instead of a copy each: a screen cannot
- * drift from the console's language. Nothing here reads the clock, and GREY / MONO / FLAT keep working because
- * the caller passes the palette's own tokens. */
-static void ux_floor_gradient(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t from, uint16_t to)
-{
-    if (w < 4 || h < 4)
-        return;
-    ux_ground_ramp(x, y, w, h, 4, from, to, 50);
-}
-
 /* a segmented meter, bottom up: `seg` px blocks with a 1 px gap, the ones under the level
  * lit. The empty blocks are drawn too -- a 16-bit meter always shows its scale. */
 static void gw_seg_v(int32_t x, int32_t y, int32_t w, int32_t h, int32_t lvl, int32_t seg,

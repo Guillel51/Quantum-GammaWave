@@ -1,3 +1,23 @@
+## v3.2.7 — 2026-11-15 — un solo degradado por pantalla, knobs más grandes y mundos con clima
+
+### Fixed
+- **El degradado ya no se repite.** Había dos rampas apiladas: el pie del panel (dentro de `graph_heat`) y otra
+  franja en el footer, cada una empezando y terminando por su cuenta — lo que se veía como dos degradados
+  seguidos en la parte baja de cada pantalla. Ahora hay **una**: `graph_ground_ramp` corre desde debajo del bisel
+  hasta el suelo del panel en diez bandas, y el footer va plano. `ux_floor_gradient` desaparece con el segundo.
+
+### Added
+- **Knobs del bay de HOME, más grandes.** Los cuatro mini-dials del hearth pasan de 7 a 8 px de radio y bajan un
+  píxel (centro en y 79): 2 px de aire arriba y 4 al separador, sin tocar los bordes del cuadro ni el pitch de
+  31 px.
+- **La estrella, con vida propia.** Un píxel más de radio (4..7), la chispa de cuatro puntas más larga, la
+  partícula de la fulguración sale **2 px por encima** del disco (antes nacía pegado a él y se leía desalineada
+  del rayo) y suelta el **anillo del toque** —el mismo de `gw_body_sel`— cada ~1,6 s.
+- **Clima en cada planeta, dos efectos distintos por cuerpo.** Roca: una pluma de polvo que sale del limbo
+  iluminado y un brillo que lo recorre. Gigante de gas: relámpagos entre los cinturones. Océano: una cresta que
+  sube y un destello que la sigue. Anillado: un brillo que cabalga el anillo con su sombra. Helado: una aurora
+  sobre el polo y un mota de escarcha. Todo por fase del reloj: 3-4 psets por cuerpo y frame, sin estado.
+
 ## v3.2.6 — 2026-11-15 — el relleno se queda en HOME
 
 ### Fixed

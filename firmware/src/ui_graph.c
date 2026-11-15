@@ -2446,12 +2446,11 @@ static void graph_heat(void)
         int32_t a = y0 + k * span * 4 / 100, b = y0 + (k + 1) * span * 4 / 100;
         cv_rect(7, a, 226, b - a, ux_mix(T_SURF, T_BG, 18 - k * 6));
     }
-    {   /* (7.3) THE FOOT IS THE CONSOLE'S RAMP. Six solid bands gave each page a warm edge; the reference --
-         * FX > BUSES' blocks -- is four dithered bands, and this draws exactly that, from the panel's own plate to
-         * the accent at the page's floor, so every screen and the routing console speak with one voice. */
-        int32_t fy = y1 - span * 30 / 100;
-        ux_floor_gradient(7, fy, 226, y1 - fy, T_SURF, ux_mix(T_SURF, warm, top + (top >> 1)));
-    }
+    /* (7.4) ONE RAMP, NOT TWO. The foot glow that used to end here is gone: graph_ground_ramp() runs from under the
+     * bezel to the panel's own floor, so each page carries a single gradient -- the console's -- instead of a ramp
+     * that stopped short of another one below it. `warm` and `top` are the ramp's, which the caller now uses. */
+    (void)warm;
+    (void)top;
 }
 
 /* (3.7) THE SEQUENCER'S GROUND. graph_heat() already gives every page the bezel's shade at the top and the
@@ -2465,12 +2464,14 @@ static void graph_heat(void)
 static void graph_ground_ramp(void)
 {
     int32_t span = graph_h() - 4;
-    int32_t y0 = 2 + span * 12 / 100, y1 = 2 + span * 74 / 100;   /* between graph_heat's two ends */
+    /* (7.4) from under the bezel's shade to the panel's own floor: one ramp a page, ten bands, and the accent
+     * arrives at the bottom edge instead of stopping a quarter of the panel short and starting again below. */
+    int32_t y0 = 2 + span * 10 / 100, y1 = 2 + span * 97 / 100;
     uint16_t warm = ux_mix(T_ACCENT, T_TEXT, 12);
-    int32_t top = ux_luma(T_SURF) > 150 ? 8 : 20;                /* a light page takes a lighter hand */
+    int32_t top = ux_luma(T_SURF) > 150 ? 8 : 22;                /* a light page takes a lighter hand */
     if (y1 - y0 < 12)
         return;
-    ux_ground_ramp(7, y0, 226, y1 - y0, 8, T_SURF, ux_mix(T_SURF, warm, top), 100);
+    ux_ground_ramp(7, y0, 226, y1 - y0, 10, T_SURF, ux_mix(T_SURF, warm, top), 100);
 }
 
 static void graph_user(void)

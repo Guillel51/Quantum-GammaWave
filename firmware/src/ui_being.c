@@ -503,6 +503,65 @@ static void gw_moon(int32_t px, int32_t py, int32_t pr, uint32_t tm, uint32_t se
     sys_pset(mx, my, ux_mix(T_BG, bg_col(heat + 50), 150));      /* its lit face */
     sys_pset(mx + (sp > 0 ? 1 : -1), my, ux_mix(T_BG, bg_col(heat), 70));   /* and the one turning away */
 }
+/* (7.4) EACH WORLD ITS OWN WEATHER. The bodies had a surface and a rotation; what they lacked was something that
+ * happens ON them. Two effects a body now, each as far from the next world's as its surface is: the rocky one
+ * throws a dust plume off its lit limb and walks a glint along it, the gas giant flickers lightning between its
+ * belts, the ocean world rolls a crest and flashes its glint, the ringed giant runs a sparkle round its ring, and
+ * the frozen one wears an aurora over its pole and a drifting frost mote. Every phase is a function of the clock,
+ * so nothing accumulates: three or four psets a body a frame, and none of it is a table or an allocation. */
+static void gw_body_fx(int kind, int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, uint32_t tm)
+{
+    uint32_t ph = tm * 7u + (uint32_t)kind * 2600u;
+    uint16_t hi = ux_mix(T_BG, bg_col(heat + 90), 62);
+    uint16_t lo = ux_mix(T_BG, bg_col(heat + 30), 44);
+    if (r < 3)
+        return;
+    switch (kind) {
+    case 0: {                                       /* ROCKY: a plume off the limb, and a glint that walks it */
+        uint32_t a = ph % 1500u;
+        int32_t s = (int32_t)(a / 18u);
+        if (a < 90u) {
+            sys_pset(x + lx * (r - 1) - s, y - r + s, ux_mix(T_BG, bg_col(heat + 60), (90 - s * 14) / 2));
+            sys_pset(x + lx * (r - 1) - s - 1, y - r + s + 1, ux_mix(T_BG, bg_col(heat + 20), (60 - s * 8) / 2));
+        }
+        break;
+    }
+    case 1: {                                       /* GAS: lightning between the belts */
+        uint32_t a = ph % 900u;
+        if (a < 30u) {
+            int32_t sx = x - r + 1 + (int32_t)((ph / 900u) % (uint32_t)(2 * r - 1));
+            sys_pset(sx, y - 1, ux_mix(T_BG, T_TEXT, 140));
+            sys_pset(sx + lx, y, ux_mix(T_BG, T_TEXT, 90));
+        }
+        break;
+    }
+    case 2: {                                       /* OCEAN: a crest rolling up, a glint flashing after it */
+        uint32_t a = ph % 1200u;
+        if (a < 200u)
+            sys_pset(x - lx * (r - 2), y + r / 2 - (int32_t)(a / 90u), lo);
+        if (a > 820u)
+            sys_pset(x + lx * (r - 2), y + r / 3, hi);
+        break;
+    }
+    case 3: {                                       /* RINGED: a sparkle riding the ring, its shadow under it */
+        int32_t a = (int32_t)(ph % 32768u), rr = r + 3;
+        int32_t sx = x + (bg_sin((uint32_t)a + 0x4000u) * rr >> 15);
+        int32_t sy = y + (bg_sin((uint32_t)a) * (rr * 2 / 3) >> 15);
+        sys_pset(sx, sy, hi);
+        sys_pset(sx - lx, sy + 1, lo);
+        break;
+    }
+    default: {                                      /* FROZEN: an aurora over the pole, a frost mote below it */
+        uint32_t a = (uint32_t)((bg_sin(ph * 2u) + 32768) >> 13);
+        int32_t k;
+        for (k = -1; k <= 1; k++)
+            sys_pset(x + k * 2, y - r - 1 - (k == 0), ux_mix(T_BG, bg_col(heat + 120), 30 + (int32_t)a / 6 - (k ? 9 : 0)));
+        if ((ph % 1100u) < 300u)
+            sys_pset(x - lx * r, y - 1, ux_mix(T_BG, T_TEXT, 110));
+        break;
+    }
+    }
+}
 static void gw_sphere(int32_t x, int32_t y, int32_t r, int32_t heat, int32_t lx, int32_t ly, int kind,
                       uint32_t rot, int32_t flash)
 {
@@ -1041,8 +1100,8 @@ static void gw_star(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat,
     gw_disc(cx, cy, r, bg_col(170 + en / 5));
     gw_disc(cx, cy, r * 62 / 100, bg_col(228 + en / 9));
     gw_disc(cx, cy, r * 30 / 100, bg_col(252));
-    if (en > 40 || big > 48) {                          /* a four-point sparkle while it sounds */
-        int32_t sp = 2 + en / 70 + big / 110, s;
+    if (en > 40 || big > 48) {                          /* (7.4) a four-point sparkle while it sounds */
+        int32_t sp = 3 + en / 60 + big / 100, s;
         for (s = 1; s <= sp; s++) {
             uint16_t sc = ux_mix(T_BG, bg_col(246), 170 - s * 24);
             sys_pset(cx + r + 1 + s, cy, sc);
@@ -1051,12 +1110,24 @@ static void gw_star(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_t heat,
             sys_pset(cx, cy - r - 1 - s, sc);
         }
     }
+    /* (7.4) THE STAR ANSWERS THE WAY A WORLD DOES. The touch's ring -- gw_body_sel's expanding ellipse -- leaves the
+     * star every ~1.6 s, so the system's centre has a life of its own and not only a flare: one ring, two psets a
+     * row, no state beyond the clock. */
+    if (!UI_NO_DRIFT && !(ui_prefs & PREF_ANIM_OFF)) {
+        uint32_t hp = (tm * 3u) % 1600u;
+        if (hp < 900u) {
+            int32_t rr = r + 2 + (int32_t)(hp / 55u);
+            gw_ring_clip(cx, cy, rr, rr * 2 / 3,
+                         ux_mix(T_BG, bg_col(120 + heat / 2), 130 - (int32_t)(hp / 8u)), 1);
+        }
+    }
     if (!UI_NO_DRIFT && !(ui_prefs & PREF_ANIM_OFF)) {  /* its flares: a burst, then quiet for seconds */
         uint32_t ph = (tm + 1200u) % 7300u;
         if (ph < 16u) {
             int32_t k2 = (int32_t)(ph >> 2);
             vz_np_layer(VZ_OWN_HOME);
-            vz_np_add(cx + k2 - 1, cy - r - 1, k2 - 1, -2, bg_col(200 + k2 * 16), 7, 1);
+            vz_np_add(cx + k2 - 1, cy - r - 2, k2 - 1, -2, bg_col(200 + k2 * 16), 7, 1);   /* (7.4) it leaves from
+                                                                                            * the sparkle, not the disc */
         }
     }
     sys_star_x = (int16_t)cx;
@@ -1272,7 +1343,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         pk_ry[i] = orb_ry[i];
     }
     if (r < 4) r = 4;
-    if (r > 6) r = 6;                                 /* a star, not a sun: the planets carry the bay */
+    if (r > 7) r = 7;                                 /* (7.4) one pixel more: a star, not a sun */
     {   /* the band, under everything: core, halo and dust, with one shimmer for the whole sky */
         int32_t sh = (int32_t)((bg_sin(twf * 2u + 0x2A00u) + 32768) >> 11);   /* 0..32, a slow breath */
         /* (3.1.5) AND IT ANSWERS WHEN IT IS TOUCHED. The star's tap used to reach the bodies only; the band it
@@ -1495,6 +1566,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                   orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi],
                   (uint32_t)orb_rot[pi], pl_flash[pi] + pk_rad[pi] * 80);
         sys_ring_lift = 0;
+        gw_body_fx(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi], kheat[pi],
+                   orb_x[pi] < cx ? 1 : -1, tm);
         gw_body_life(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi], kheat[pi], tm);
         if (ORK[pi] == 1 || ORK[pi] == 4)              /* (7.3) its own moon, at its own rate */
             gw_moon(orb_x[pi], orb_y[pi], ORR[pi] + pl_ex[pi] / 96 + pk_rad[pi], tm,
@@ -1522,6 +1595,8 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
                   orb_x[pi] < cx ? 1 : -1, orb_y[pi] < cy ? -1 : 1, ORK[pi],
                   (uint32_t)orb_rot[pi], pl_flash[pi] + pk_rad[pi] * 80);
         sys_ring_lift = 0;
+        gw_body_fx(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi], kheat[pi],
+                   orb_x[pi] < cx ? 1 : -1, tm);
         gw_body_life(ORK[pi], orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi], kheat[pi], tm);
         if (ORK[pi] == 1 || ORK[pi] == 4)
             gw_moon(orb_x[pi], orb_y[pi], ORR[pi] + ex / 96 + pk_rad[pi], tm, (uint32_t)pi * 37u + 11u, kheat[pi]);
@@ -2462,7 +2537,7 @@ static void graph_ecosys(void)
         /* (3.8) 7 px, not 8: the bay's four knobs sat as large as the modules' on top, which flattened the
          * hierarchy (the Hearth controls read as the headline row). One pixel down and the same 31 px pitch
          * keeps the arc, the value and the label untouched. */
-        gw_mini_bakelite_knob(kx, 78, 7, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
+        gw_mini_bakelite_knob(kx, 79, 8, kv < 0 ? (110 + (int32_t)c * 28) : kv, (c & 1u) ? T_ACCENT : T_THEME);
     }
     cv_rect(104, 92, 124, 1, T_LINE);
 
