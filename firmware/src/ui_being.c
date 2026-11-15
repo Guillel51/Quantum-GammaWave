@@ -2294,17 +2294,18 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
     if (ui.home) {   /* (7.3) HOME only: EDIT > FILTER draws this same bay and a filter's graph keeps its own
                       * representation -- a washed floor there would sit under the shape the page is read for. */
         int32_t st = (int32_t)vz_step(), xf;
-        uint16_t f0 = ux_mix(T_BG, T_THEME, 16), f1 = ux_mix(T_BG, T_ACCENT, 30);
+        uint16_t f0 = ux_mix(T_BG, T_THEME, 8), f1 = ux_mix(T_BG, T_ACCENT, 15);   /* (FASE 4) half the ink: the
+                                           * floor keeps its depth and stops reading as a band at rest */
         for (xf = 0; xf < gw; xf += st) {
             int32_t cy2 = clamp(gw_filter_resp_y(ftype, xf, gw, cut_x, res, y_zero, gh), gy0 + 2, gy0 + gh - 2);
             int32_t bot = gy0 + gh - 1, hgt = bot - cy2, k2;
             /* six steps, and every other column starts one pixel lower: the seams then land on different rows
              * from one column to the next, which is the dither a 16-bit panel had -- a blend, not three blocks. */
-            for (k2 = 0; k2 < 6 && hgt > 3; k2++) {
-                int32_t ya = cy2 + hgt * k2 / 6 + (k2 ? (xf & 1) : 0), yb = cy2 + hgt * (k2 + 1) / 6;
+            for (k2 = 0; k2 < 3 && hgt > 3; k2++) {
+                int32_t ya = cy2 + hgt * k2 / 3 + (k2 ? (xf & 1) : 0), yb = cy2 + hgt * (k2 + 1) / 3;
                 if (yb <= ya)
                     continue;
-                cv_rect(gx0 + xf, ya, st, yb - ya, ux_mix(f0, f1, 10 + k2 * 17));
+                cv_rect(gx0 + xf, ya, st, yb - ya, ux_mix(f0, f1, 8 + k2 * 30));
             }
         }
     }
