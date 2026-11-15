@@ -44,10 +44,11 @@ static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed);
 static void hv_grad(void)
 {
     int32_t top = -cv_oy, bot = top + cv_h;         /* (the body is drawn in two passes: only this pass's rows) */
-    /* (FASE 3) 40 solid steps instead of 12 dithered ones: a 14 px band of two colours mixed at 50 % was the
-     * checker that read as pixels at 240x240, and a solid band of 4 px with 40 levels reads as a blend. The
-     * primitive is the same one FX > BUSES' blocks use (gfx.c ux_ground_bands). */
-    ux_ground_bands(6, 26, 228, 200 - 26, 40, 22, 1, 2, 1, top, bot, 100);
+    /* (FASE 3) row by row, solid: the twelve dithered bands were 14 px of checker (the "pixels"), and 40 solid
+     * bands were 4 px stripes. ux_ground_rows walks the same two ramps one row at a time and fills one run per
+     * colour the palette has, so the steps are 1-4 px and there is no pattern. Same endpoints: 22..55 % of the
+     * panel ramp, 2..24 % of the accent. */
+    ux_ground_rows(6, 26, 228, 200 - 26, 22, 55, 2, 24, top, bot, 100);
 }
 
 /* (4.1) which of HOME's screens is on, as icons: three cells in the title's right corner (the three pages drawn here) -- where a caption used to

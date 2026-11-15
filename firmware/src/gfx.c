@@ -454,7 +454,8 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
      * under the bezel -- five rows, which at 240x240 is what looked pixelated. One cv_rect a row: a card of
      * 104 px is 104 fills, a row of a list is 16, and nothing is drawn per pixel, so a screen costs a few
      * hundred fills in total and the whole sweep stays the same order as before (measured below). */
-    n = h - 2 > 0 ? (h - 2 + 2) / 3 : 1;      /* bands of ~3 px: the same ramp, a third of the fills */
+    n = h > 3 ? (h - 2 + 1) / 2 : 1;          /* 2 px steps: over a card the palette has about ten values, so a
+                                                * finer step repeats a colour and only costs fills */
     {
         /* Only the rows whose quantised colour CHANGES are filled: on a 16-bit palette a ramp this long has
 
@@ -465,13 +466,35 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
         for (k = 1; k < n; k++) {
             uint16_t gn = ux_mix(hi, lo, (k + 1) * 100 / n);
             if (gn != g) {
-                cv_rect(x + 1, y + 1 + r0 * 3, w - 2, (k - r0) * 3, g);
+                cv_rect(x + 1, y + 1 + r0 * 2, w - 2, (k - r0) * 2, g);
                 g = gn;
                 r0 = k;
             }
         }
-        cv_rect(x + 1, y + 1 + r0 * 3, w - 2, h - 2 - r0 * 3, g);
+        cv_rect(x + 1, y + 1 + r0 * 2, w - 2, h - 2 - r0 * 2, g);
     }
+}
+/* (FASE 3) the same ramp on a chamfered plate: every row, from the top of the body to its foot, inset by the
+ * corner's cut and stopped short of the frame's two lines. One fill a run of rows with the same colour and the
+ * same width, so the two columns the three-rect fill left flat cost no more than the corners do. */
+static void cv_plate_cut_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c)
+{
+    int32_t j, n = h > 7 ? (h - 4 + 1) / 2 : 1, y0 = 0, w0 = -1;
+    uint16_t hi = ux_mix(c, T_TEXT, 14), lo = ux_mix(c, T_BG, 58), g = 0;
+    for (j = 0; j <= h - 4; j++) {
+        int32_t dy = j + 2, db = h - 3 - j;                  /* rows to the plate's top and to its foot */
+        int32_t d = dy < db ? dy : db, in = d < r ? r - d : 0;
+        int32_t bw = w - 2 * in;
+        uint16_t gn = ux_mix(hi, lo, (j / 2 + 1) * 100 / n);
+        if (w0 < 0) {
+            g = gn, w0 = bw, y0 = j;
+        } else if (gn != g || bw != w0) {
+            cv_rect(x + (w - w0) / 2, y + 2 + y0, w0, j - y0, g);
+            g = gn, w0 = bw, y0 = j;
+        }
+    }
+    if (w0 > 0)
+        cv_rect(x + (w - w0) / 2, y + 2 + y0, w0, h - 4 - y0, g);
 }
 static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint16_t c, uint16_t under)
 {
@@ -492,6 +515,12 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
     cv_rect(x + r, y, w - 2 * r, h, c);
     cv_rect(x, y + r, r, h - 2 * r, c);
     cv_rect(x + w - r, y + r, r, h - 2 * r, c);
+    /* (FASE 3) A CHAMFERED MODULE IS A GRADIENT TOO, and the gradient has to reach its sides. This style fills
+     * its plate as three rects (body, left band, right band); painting the ramp on the body only left a flat r-px
+     * column down each side of every knob card, which read as two panels glued together. The ramp is per row now,
+     * inset by the corner's cut, so it covers the whole surface and stops exactly where the chamfer begins. */
+    if (cut && c == T_SURF && w >= 36 && h >= 36 && !cv_plate_flat)
+        cv_plate_cut_ground(x, y, w, h, r, c);
     if (cut) {
         int mod_box = (c == T_SURF && w >= 36 && h >= 36);
         uint16_t brd = mod_box ? T_RAISE : c;
@@ -516,21 +545,6 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
             cv_rect(x + r, y + h - 1, w - 2 * r, 1, T_LINE);
             cv_rect(x, y + r, 1, h - 2 * r, T_LINE);
             cv_rect(x + w - 1, y + r, 1, h - 2 * r, T_LINE);
-            if (!cv_plate_flat) {   /* (FASE 3, see cv_rrect's tail) A CHAMFERED MODULE IS A GRADIENT TOO. This style drew its plate flat between two 1 px
-                 * lines, which is why the cards read as cut-outs next to the rest of the page. One row per pixel
-                 * from the lit top to the shaded foot, inside the frame and under no text. */
-                int32_t kk, nn = h - 4 > 0 ? (h - 4 + 2) / 3 : 1, r0 = 0;
-                uint16_t hi = ux_mix(c, T_TEXT, 14), lo = ux_mix(c, T_BG, 58), g = ux_mix(hi, lo, 100 / nn);
-                for (kk = 1; kk < nn; kk++) {                    /* (one fill a run of equal colour, as above) */
-                    uint16_t gn = ux_mix(hi, lo, (kk + 1) * 100 / nn);
-                    if (gn != g) {
-                        cv_rect(x + r + 1, y + 2 + r0 * 3, w - 2 * (r + 1), (kk - r0) * 3, g);
-                        g = gn;
-                        r0 = kk;
-                    }
-                }
-                cv_rect(x + r + 1, y + 2 + r0 * 3, w - 2 * (r + 1), h - 4 - r0 * 3, g);
-            }
             /* Signature GammaWave Top-Left angled corner bracket (GroupedComponent::paint) */
             cv_rect(x + r, y, blen, 1, T_THEME);
             cv_rect(x, y + r, 1, blen - 2, T_THEME);
@@ -672,19 +686,60 @@ static void ux_ground_bands(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
         gw_dither(x, y0, w, y1 - y0, ux_mix(T_BG, T_SURF, a0 + da * k), ux_mix(T_BG, T_ACCENT, b0 + db * k), pct);
     }
 }
+/* (FASE 3) THE GROUND, ROW BY ROW. ux_ground_bands walks a colour per BAND, so the ramp jumps once every h/n
+ * rows: on HOME's 174 px body twelve bands are 14 px of one colour each, and a 4 x 4 checker on top of that is
+ * what read as pixels. This walks the ramp by ROW and fills one run per colour the palette actually has, so the
+ * steps are as fine as 16-bit allows (1-4 px) and the cost is a handful of fills, not one per pixel. `a` and `b`
+ * are the two ramps (panel, accent) as percentages, and only the rows inside [clip_y0, clip_y1) are painted
+ * because HOME draws its body in two passes. */
+static void ux_ground_rows(int32_t x, int32_t y, int32_t w, int32_t h,
+                           int32_t a0, int32_t a1, int32_t b0, int32_t b1,
+                           int32_t clip_y0, int32_t clip_y1, int32_t pct)
+{
+    int32_t j, y0 = 0, have = 0;
+    uint16_t ca = 0, cb = 0;
+    if (h <= 0)
+        return;
+    for (j = 0; j <= h; j++) {
+        uint16_t na = 0, nb = 0;
+        if (j < h) {
+            int32_t k = h > 1 ? j * 100 / (h - 1) : 0;
+            na = ux_mix(T_BG, T_SURF, a0 + (a1 - a0) * k / 100);
+            nb = ux_mix(T_BG, T_ACCENT, b0 + (b1 - b0) * k / 100);
+        }
+        if (!have) {
+            ca = na, cb = nb, y0 = j, have = 1;
+        } else if (j == h || na != ca || nb != cb) {
+            int32_t ya = y + y0, yb = y + j;
+            if (ya < clip_y0) ya = clip_y0;
+            if (yb > clip_y1) yb = clip_y1;
+            if (yb > ya)
+                gw_dither(x, ya, w, yb - ya, ca, cb, pct);
+            if (j < h)
+                ca = na, cb = nb, y0 = j;
+        }
+    }
+}
 /* (FASE 6) A RAMP BETWEEN TWO COLOURS, in `n` solid bands. ux_ground_bands walks two of the palette's own
  * ramps (T_BG -> T_SURF, T_BG -> T_ACCENT) because HOME and FX > BUSES start from the page behind the panel;
  * a page's own panel starts ON T_SURF, so interpolating from T_BG there painted a dark block in the middle of
  * the plate instead of a gradient. This is the general form: from -> to, nothing else assumed. */
 static void ux_ground_ramp(int32_t x, int32_t y, int32_t w, int32_t h, int32_t n, uint16_t from, uint16_t to, int32_t pct)
 {
-    int32_t k, band = h / n;
-    if (band <= 0 || n <= 0)
+    int32_t k, y0 = 0;
+    uint16_t g = 0, gn;
+    (void)n;                                        /* (FASE 3) per row, not per band: `n` is now only a hint */
+    if (h < 2)
         return;
-    for (k = 0; k < n; k++) {
-        int32_t yy = y + band * k, hh = k == n - 1 ? h - band * (n - 1) : band;
-        gw_dither(x, yy, w, hh, from, ux_mix(from, to, (k + 1) * 100 / n), pct);
+    g = ux_mix(from, to, 100 / (h - 1));
+    for (k = 1; k < h; k++) {
+        gn = ux_mix(from, to, (k + 1) * 100 / (h > 1 ? h - 1 : 1));
+        if (gn != g) {
+            gw_dither(x, y + y0, w, k - y0, from, g, pct);
+            g = gn, y0 = k;
+        }
     }
+    gw_dither(x, y + y0, w, h - y0, from, g, pct);
 }
 /* a segmented meter, bottom up: `seg` px blocks with a 1 px gap, the ones under the level
  * lit. The empty blocks are drawn too -- a 16-bit meter always shows its scale. */

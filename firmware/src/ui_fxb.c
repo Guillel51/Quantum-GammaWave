@@ -62,7 +62,7 @@ static void fxb_grad(int32_t x, int32_t y, int32_t w, int32_t h)
      * under the header to the bottom rim, not four steps inside the drawing area: the boxes wore a flat T_SURF
      * panel around a small ramp, which is why they still read as grey next to a page that is a gradient. The
      * loop is gfx.c's ux_ground_bands, the same primitive HOME's views use. */
-    ux_ground_bands(x, y, w, h, 24, 22, 2, 10, 1, y, y + h, 100);   /* (FASE 3) 24 solid steps, not 6 dithered */
+    ux_ground_rows(x, y, w, h, 22, 62, 10, 45, y, y + h, 100);   /* (FASE 3) row by row, solid, no checker */
 }
 /* (4.1) the sheen: one narrow column of light crossing a block's drawing while its bus carries signal, so a busy
  * block reads busy before a meter is read. ui.frame, not a timer: a silent page draws a still frame. */

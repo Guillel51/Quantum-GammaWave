@@ -1,3 +1,30 @@
+## Sin publicar — 2026-11-15 — FASE 3 (diseño): los degradados llegan a los costados y dejan de verse en bandas
+
+### Interfaz
+
+- **La rampa de placa llega a los costados.** En el estilo *chamfer* (QUANTUM / GAMMA / WRAITH / JIANT) la placa se
+  rellenaba como tres rectángulos (cuerpo y dos bandas laterales) y la rampa solo pintaba el cuerpo: quedaban dos
+  columnas lisas de `r` px a cada lado de **cada tarjeta de knob**, que se leían como dos paneles pegados. Ahora la
+  rampa es por fila, con el recorte de la esquina respetado (`cv_plate_cut_ground`), y cubre toda la superficie.
+- **Pasos de 2 px en vez de 3.** Sobre una tarjeta el panel de 16 bits tiene unas diez entradas: un paso más fino
+  repite color, y uno más grueso ya se ve como banda. Igual en las listas.
+- **HOME y FX > BUSES: suelo por fila, sólido.** Los dos suelos se pintan con `ux_ground_rows`, que recorre la rampa
+  **fila a fila** y rellena un tramo por color real de la paleta (1–4 px), en vez de 12 bandas de 14 px con damero
+  (HOME) o 6 bandas con damero (BUSES). Mismos extremos de color (22–55 % y 2–24 % en HOME; 22–62 % y 10–45 % en
+  BUSES), sin trama y sin escalones anchos.
+- `ux_ground_ramp` (el suelo del panel de la gráfica) pasa también a fila a fila: eran 10 bandas de ~16 px.
+
+### Verificación (host)
+
+- `ui_render`: 189 pantallas × 22 paletas — **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles
+  GREY / MONO fuera de gris, 454 textos libres elididos, **3 400 410 mediciones de alineación con 0
+  desalineaciones**.
+- `theme_test`: todas las paletas pasan, peor margen de contraste **4,08:1** (mínimo 4,00).
+- `mod_test`: la matriz de modulación pasa sus comprobaciones (NOISE mueve el filtro, NOISE vaga suave y bipolar,
+  PAT 15 y NOISE 14 con los números guardados intactos).
+- Coste del barrido completo: **33,93 s antes / 34,06 s después** (189 × 22 pantallas). Diferencia de 0,13 s, dentro
+  del ruido de ±10 % del host; no se declara mejora ni regresión.
+
 ## Sin publicar — 2026-11-15 — FASE 3: las placas son degradados, y los suelos dejan de verse tramados
 
 Los cuadros de la interfaz estaban pintados como una placa plana con una banda dura bajo el bisel, y los dos
