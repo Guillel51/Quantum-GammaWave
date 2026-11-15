@@ -42,9 +42,17 @@ El código ya no tiene grasa medible: 41 funciones instrumentadas, 0 divisiones 
 | `UAC_FIR` (160 fases × 24 taps) | 7 680 B | simetría por fase (line-phase) o generación al arrancar |
 | `KC_DATA` (píldoras de keycaps) | 4 792 B | ya son 28 píldoras: parametrizar ancho/grosor en vez de dibujarlas |
 
-Regla para hacerlo sin romper nada: el barrido de render (`tests/ui_render`, 189 pantallas × 22 paletas) y el
-regresor de audio (`tests/regress`, hashes FNV-1a por motor × preset) tienen que dar **exactamente** lo
-mismo. Si un asset se comprime, esos dos bancos son la prueba, y hoy los dos pasan.
+Regla para hacerlo sin romper nada: el barrido de render y el regresor de audio tienen que dar
+**exactamente** lo mismo. Los dos pasan hoy, y lo comprobé en esta sesión:
+
+* `./build/host/regress tests/golden.txt tests/cpu_baseline.txt` → **293 renders dorados, 0 cambiados,
+  0 caídos, 0 fallos de salud, 0 fallos de voz/ruteo, 0 entradas de CPU sobre presupuesto, 15,4 s** (host x86;
+  los conteos de instrucciones del kernel no existen en Linux, así que esa columna sale 0 y lo que mide es
+  ns/muestra).
+* `tests/ui_render` → **189 pantallas × 22 paletas, 0 hallazgos de lint, 0 desalineaciones, 0 tintas sobre su
+  propio color** (host x86).
+
+Cualquier cambio en los assets se valida contra esos dos bancos antes de tocar el firmware.
 
 ## 4. Qué haría cada motor, en orden de coste
 
@@ -66,6 +74,8 @@ Ninguna de estas líneas se implementó: van con su coste para que la fase se ej
 
 ## 5. Lo que no puedo afirmar
 
-* Ninguna mejora audible fue implementada ni medida en esta fase.
+* Ninguna mejora audible fue implementada ni medida en esta fase: el firmware publicado sigue siendo el
+  4.0.0 con los motores intactos, y eso está comprobado (293 golden renders sin cambios, un binario idéntico
+  salvo el string de versión).
 * No hay medición de audio en hardware: ni clics, ni aliasing, ni polifonía real. Todo esto se verifica con
   el regresor de host (hashes) y la compilación, que es otra clase de prueba.
