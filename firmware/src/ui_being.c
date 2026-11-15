@@ -2202,7 +2202,8 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
      * accent rising downwards, from the theme's gold to its accent -- so the curve has a body and the picture has
      * depth without one extra state. It goes before the bars and both curves, so nothing it covers is data; the
      * columns follow vz_step(), and every tone is mixed once per column rather than once per pixel. */
-    {
+    if (ui.home) {   /* (7.3) HOME only: EDIT > FILTER draws this same bay and a filter's graph keeps its own
+                      * representation -- a washed floor there would sit under the shape the page is read for. */
         int32_t st = (int32_t)vz_step(), xf;
         uint16_t f0 = ux_mix(T_BG, T_THEME, 16), f1 = ux_mix(T_BG, T_ACCENT, 30);
         for (xf = 0; xf < gw; xf += st) {

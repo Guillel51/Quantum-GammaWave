@@ -1,3 +1,11 @@
+## v3.2.6 — 2026-11-15 — el relleno se queda en HOME
+
+### Fixed
+- **EDIT > FILTER conserva su gráfica.** La página del filtro dibuja el mismo bay que HOME
+  (`gw_draw_forge_bay`), así que el relleno degradado bajo la curva se colaba también ahí. El relleno pasa a ser
+  sólo de HOME (`ui.home`): las gráficas de filtro y de LFO mantienen su representación, como se pidió, y el
+  resto de 3.2.5 queda igual.
+
 ## v3.2.5 — 2026-11-15 — un solo lenguaje de degradados, las gráficas con cuerpo y los mundos con luna
 
 ### Added
