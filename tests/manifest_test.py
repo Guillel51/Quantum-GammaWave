@@ -5,9 +5,11 @@
 Two halves:
 
   * live: the manifest of this tree (`build/manifest.json`) must describe the code that is here --
-    same version as `firmware/src/felucca.c`, same commit as `git rev-parse HEAD`, every artefact
-    present with the sha256 it claims, and the emulator built at that commit. Skipped when there is
-    no build, so `NO_PACKAGE=1` still runs;
+    same version as `firmware/src/felucca.c`, a commit whose sources are the ones here (HEAD itself, or
+    a commit HEAD descends from without a source change since: the release flow commits the package at
+    the source commit and then the records -- release/, site/, docs -- on top, and the package must keep
+    naming the code it was built from), every artefact present with the sha256 it claims, and the
+    emulator built at that commit. Skipped when there is no build, so `NO_PACKAGE=1` still runs;
   * the verifier itself: against a throwaway directory, a tampered artefact, a manifest naming
     another commit, a dirty build under `--require-clean`, a wrong schema and a missing file must
     each be refused. A verifier that says `ok` for everything would pass the first half by accident.
@@ -44,7 +46,20 @@ def live():
     for e in errors:
         print(f"    {e}")
     data = json.loads((ROOT / "build" / "manifest.json").read_text())
-    check("live: it names this commit", data.get("commit") == BM.commit())
+    # (3.3.0) THE COMMIT IT NAMES, not necessarily HEAD: the release flow builds and commits the package
+    # at the source commit, then commits the records it generated (release/, site/, docs/) on top. A
+    # manifest names the code, so it has to be a commit HEAD descends from *with no source change since*;
+    # a manifest naming an unrelated commit, a missing one, or one whose firmware/web/tools differ from
+    # the tree is still refused, which is what the check is for.
+    c = data.get("commit")
+    src = ["firmware", "web", "tools", "build.sh"]
+    same = False
+    if c:
+        anc = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", c, "HEAD"],
+                             capture_output=True).returncode == 0
+        same = anc and subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", c, "HEAD", "--"] + src,
+                                      capture_output=True).returncode == 0
+    check("live: it names this commit (or one whose sources are these)", same)
     check("live: it names this version", data.get("version") == BM.version())
     # (v1.9.0) every path called uncommitted must be a path git recognises: the plain porcelain
     # parser trimmed the first character of its first entry ("tools/build.py" -> "ools/build.py")

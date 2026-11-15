@@ -239,6 +239,28 @@ def write(manifest, outdir=BUILD):
     return outdir / "manifest.json"
 
 
+# (3.3.0) WHAT "the code being checked" MEANS IN A TREE THAT HAS A RELEASE ON TOP OF IT. The package is built
+# and committed at the source commit; the records the release generates (release/, site/, docs/) are committed
+# after it, so HEAD is one commit past the code the package was built from -- and that is correct, not stale.
+# A manifest still has to name *this* code: HEAD itself, or a commit HEAD descends from with no change to the
+# sources since (firmware/, web/, tools/, build.sh). An unrelated commit, a missing one or any source change
+# between them is refused, which is what the check is for. The release package verifies the same way, today
+# and after the next records commit.
+_SRC = ("firmware", "web", "tools", "build.sh")
+
+
+def _names_this_code(sha, head):
+    if not sha:
+        return False
+    if sha == head:
+        return True
+    r = subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor", sha, head], capture_output=True)
+    if r.returncode != 0:
+        return False
+    d = subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", sha, head, "--", *_SRC], capture_output=True)
+    return d.returncode == 0
+
+
 def verify(path=None, require_clean=False, want_commit=None):
     """Every claim in the manifest, checked against the tree and the files on disk. -> [errors]"""
     path = Path(path) if path else BUILD / "manifest.json"
@@ -251,9 +273,11 @@ def verify(path=None, require_clean=False, want_commit=None):
     if data.get("version") != here:
         errors.append(f"version {data.get('version')} in the manifest, {here} in the firmware")
     head = commit()
-    want = want_commit or head
-    if data.get("commit") != want:
-        errors.append(f"commit {data.get('commit')} in the manifest, {want} is the code being checked")
+    if want_commit is not None:
+        if data.get("commit") != want_commit:
+            errors.append(f"commit {data.get('commit')} in the manifest, {want_commit} was asked for")
+    elif not _names_this_code(data.get("commit"), head):
+        errors.append(f"commit {data.get('commit')} in the manifest, {head} is the code being checked")
     if require_clean and data.get("dirty"):
         errors.append(f"built from a dirty tree: {len(data['dirty'])} file(s), e.g. {data['dirty'][0]}")
     for name, claim in data.get("artifacts", {}).items():
