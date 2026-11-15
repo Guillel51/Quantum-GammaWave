@@ -1132,6 +1132,20 @@ static void graph_arp(const track_t *t, uint16_t c)
 
     /* the route: the notes the arp built, in the order the list holds them, and the one playing now */
     cv_text(14, 59, &AF_S, "ROUTE", T_DIM);
+    if (t->arp_note) {                                  /* (FASE 8) what it is sounding right now, as note names */
+        char s[24];
+        uint32_t k;
+        s[0] = 0;
+        str_cpy(s, N_NOTE[t->arp_note % 12u], sizeof s);
+        fmt_int(s + str_len(s), (int32_t)t->arp_note / 12 - 1);
+        for (k = 0; k < 3u; k++)
+            if (t->arp_ch[k] && str_len(s) < sizeof s - 4u) {
+                str_cpy(s + str_len(s), " ", sizeof s - str_len(s));
+                str_cpy(s + str_len(s), N_NOTE[t->arp_ch[k] % 12u], sizeof s - str_len(s));
+                fmt_int(s + str_len(s), (int32_t)t->arp_ch[k] / 12 - 1);
+            }
+        cv_text(56, 59, &AF_S, s, T_ACCENT);
+    }
     if (len && m == AM_CHORD)
         cv_text_r(226, 59, &AF_S, "ALL", T_MID, T_SURF);
     else if (len && m == AM_RND)
@@ -1155,6 +1169,30 @@ static void graph_arp(const track_t *t, uint16_t c)
             fmt_int(n + str_len(n), (int32_t)note / 12 - 1);
             cv_rrect(x, 74, 24, 13, 2, on ? T_ACCENT : T_RAISE, T_SURF);
             cv_text_in(x, 74 + CAP_IN(S, 13), 24, &AF_S, n, on ? T_INK : T_MID, on ? T_ACCENT : T_RAISE);
+        }
+        /* (FASE 8) the clock, right above the notes: the slot of the step being played fills as its time runs and the
+         * tick is where GATE closes the note. arp_pos and arp_off are the sequencer's own counters (samples into the
+         * step and to the note-off), so this moves with the clock, swing included, and stops when it stops */
+        {
+            int32_t per = (int32_t)div_samples((uint32_t)clamp(t->p[P_ARATE], 0, 9));
+            int32_t pos, gw, g;
+            if (per < 1)
+                per = 1;
+            pos = t->arp_pos > (uint32_t)per ? per : (int32_t)t->arp_pos;
+            gw = pos * 24 / per;
+            for (i = 0; i < 8u && start + i < len; i++) {
+                int32_t x = 10 + (int32_t)i * 25;
+                cv_rect(x, 71, 24, 2, T_RAISE);
+                if (m == AM_CHORD || start + i == cur) {
+                    if (gw > 0)
+                        cv_rect(x, 71, gw, 2, T_ACCENT);
+                    if (t->arp_off) {
+                        g = (pos + (int32_t)t->arp_off) * 24 / per;
+                        if (g < 24)
+                            cv_rect(x + g, 71, 1, 4, T_TEXT);
+                    }
+                }
+            }
         }
     }
     arp_meter(14, 91, "GATE", gate, 127, c);

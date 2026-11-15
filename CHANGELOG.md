@@ -1,3 +1,20 @@
+## Sin publicar — 2026-11-15 — FASE 8: la página ARP dibuja el reloj
+
+### Interfaz
+
+- La página ARP enseña **el patrón y lo que está sonando, en el tiempo**: junto a `ROUTE`, los nombres de las notas
+  que el arp está tocando ahora (`arp_note` y, en CHORD, `arp_ch`), y encima de cada paso una franja que se llena
+  con el tiempo transcurrido del paso y un tick donde cierra el GATE.
+- Los números son los del motor (`arp_pos`, `arp_off`, `div_samples(P_ARATE)`), así que el swing y el GATE se ven
+  como suenan y la franja se para con el transporte.
+
+### Verificación (host)
+
+- `ui_render`: 190 pantallas × 22 paletas, **0 hallazgos de lint**, 3 551 691 mediciones de alineación con 0
+  desalineaciones; la pantalla `arp` se renderiza ahora con el reloj a un tercio del paso.
+- `midi_control_test` pasa (es el que ya comprueba que el arp avanza con el reloj interno y externo y que el GATE
+  cierra en tiempo real).
+
 ## Sin publicar — 2026-11-15 — FASE 8: página MACROS
 
 ### Interfaz

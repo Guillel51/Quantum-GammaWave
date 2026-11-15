@@ -1038,6 +1038,8 @@ static void setup(int s)
         TSEL->p[P_ASWING] = 25; TSEL->p[P_APROB] = 100; TSEL->p[P_AHOLD] = 0; TSEL->p[P_AORDER] = 0;
         TSEL->nheld = 3; TSEL->held[0] = 48; TSEL->held[1] = 52; TSEL->held[2] = 55;
         TSEL->arp_idx = 5; TSEL->arp_note = 64; TSEL->arp_ch[0] = TSEL->arp_ch[1] = TSEL->arp_ch[2] = 0;
+        TSEL->arp_pos = div_samples(2) / 3;              /* (FASE 8) a third into the step, gate still open */
+        TSEL->arp_off = div_samples(2) * 80 / 128 - TSEL->arp_pos / 2;
         go_title("ARP"); break;
     case S_VOICE: go_title("VOICE"); break;
     case S_GLOBAL: go_title("GLOBAL"); break;
