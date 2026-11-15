@@ -85,3 +85,20 @@ una de estas tres cosas:
 
 Sin una de esas tres, la etapa 1 está terminada en lo que respecta a liberar recursos, y las etapas 2 a 7 no
 tienen dónde meterse.
+
+## 8. Resultado: el modelo cambió, y funcionó
+
+La cesión que se eligió fue la primera: **guardar menos y calcular más**, sin tocar calidad ni RAM crítica.
+`WT_DATA` guardaba 8 formas × 256 puntos × 3 límites de banda (12 288 B). Ahora guarda:
+
+* las amplitudes armónicas de las 8 formas en Q30 (`WT_COEF`, 2 048 B), de donde se sintetizan el nivel de
+  64 y el de 16 armónicos al arrancar (`wt_gen_init`, 8 192 B de `.bss`, 292 B de código);
+* el nivel de 5 armónicos, entero (`WT_L5`, 4 096 B): es el que leen las notas agudas y no debe esperar a
+  ningún cálculo.
+
+Medido: **583 600 → 577 760 B de imagen (5 840 B liberados)**, `.bss` 97 380 de 98 304, y la onda generada
+difiere de la guardada en 3 LSB de 32 000. Los 22 goldens de WAVETABLE se rebasaron; los otros 271 no se
+movieron.
+
+Con esos bytes entró **VOICE 3 (DETUNE)**: 24 B, un control que el DSP aplicaba desde siempre y que la
+v4.1.0 había dejado fuera por falta de espacio. Quedan **5 816 B** libres para la siguiente pieza.

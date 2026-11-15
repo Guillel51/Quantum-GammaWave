@@ -657,6 +657,10 @@ static const page_t PAGES[] = {
                                                  * the fourth knob is ALLOC, the voice allocator (ROT rotates the oldest /
                                                  * REUSE retriggers the same voice), which the DSP has always read
                                                  * (voice.c) and no page offered: it took the slot that was left empty */
+    {"VOICE 3", FAM_EDIT, SC_TRACK, GR_NONE, {P_DETUNE, 0xFF, 0xFF, 0xFF}},   /* (FASE 1) DETUNE: the unison spread
+                                     * voice.c has always applied (fine = k * DETUNE * 56 / 889, up to +-40 cents across the
+                                     * part's voices) and no page offered. With ALLOC on VOICE 2 it closes the pair: how many
+                                     * voices a note takes, and how far apart they sit */
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, G_TUNE}},
     {"SYSTEM", FAM_GLO, SC_GLOBAL, GR_NONE, {G_TRKS, G_LOADP, G_ROUTE, G_INFO}},   /* (0.6.18) TRACKS 4 / 6; (0.6.30)
                                                          * LOAD ECO / LITE / FULL (the USB card: the header's icon) */
