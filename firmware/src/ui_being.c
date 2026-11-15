@@ -2280,8 +2280,11 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
      *     flat line over the graph in silence, a hair of the wrong colour where the two met. It is the bay's
      *     back layer now -- drawn before the floor, the bands and both curves, so it can only be behind them --
      *     two pixels thick along the theme's own ramp, and it never moves the picture it sits in. */
+    /* (FASE 4) THE TRACE IS DRAWN LAST. gw_live_trace ran first and the floor's six bands were painted over
+     * it, so HOME's oscilloscope came out with a dithered band across its middle and the trace visible only
+     * where the curve rose above it. The fill belongs under the signal, which is what its own comment always
+     * said: it now goes before the trace, not after. */
     gw_live_trace(gx0 + 2, gw - 4, gy0 + gh / 2, gh / 3, 64);
-
 
     /* (7.3) THE FLOOR UNDER THE CURVE. The bay is where the player reads the filter, and the response was a line
      * on a grid: the area between it and the bay's floor is filled with the console's own ramp -- four bands, the
@@ -2305,6 +2308,8 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
             }
         }
     }
+
+
 
     /* 2. THE SPECTROGRAM (28 bands). Fixed geometry, a peak measured inside each band's own slice, and a
      *    five-stop thermal body -- deep violet at the foot, red, orange, gold, solar yellow at the crest --
