@@ -782,12 +782,12 @@ static int menu_protocol(void)
         }
         ok &= fits && n > 10u && it.index == i && it.id == i && it.kind == 0 && it.min == 0 &&
               it.max + 1 == (int32_t)it.nnames && !strcmp(it.name, WANT[i][0]) &&
-              (WANT[i][1] ? !strcmp(joined, WANT[i][1]) : it.nnames == NPALETTES) &&
-              it.value == (DEF[i] < 0 ? (int32_t)settings.palette : DEF[i]) &&
+              (WANT[i][1] ? !strcmp(joined, WANT[i][1]) : it.nnames == UI_NPAL_LIVE) &&   /* (3.5) COLOR offers the live palettes */
+              it.value == (DEF[i] < 0 ? (int32_t)UI_PAL_SLOT[settings.palette] : DEF[i]) &&   /* (3.5) COLOR speaks the live list's slots */
               it.tab == TAB[i] && !strcmp(it.tabname, TABN[TAB[i]]) && !it.rest;
-        if (i == 0)
-            for (k = 0; k < NPALETTES; k++) ok &= !strcmp(it.names[k], UI_PALETTES[k].name);
-        if (!ok) { printf("  MENU_DESC %u: %s [%s] value %d max %d tab %u %s\n", i, it.name, joined, it.value, it.max, it.tab, it.tabname); break; }
+        if (i == 0)            /* (3.5) AMBER, ICE and VIOLET are not offered: the live ones, in UI_PAL_LIVE's order */
+            for (k = 0; k < UI_NPAL_LIVE; k++) ok &= !strcmp(it.names[k], UI_PALETTES[UI_PAL_LIVE[k]].name);
+        if (!ok) { printf("  MENU_DESC %u: %s [%s] value %d max %d tab %u %s nnames %u rest %u n %u\n", i, it.name, joined, it.value, it.max, it.tab, it.tabname, it.nnames, it.rest, n); break; }
     }
     if (jf) {                        /* every row of the list, ids 0..24: the file run_tests.sh publishes as
                                       * build/host/menu.json. The Web Studio reads the device live rather than a
@@ -863,8 +863,9 @@ static int menu_protocol(void)
     /* MENU_SET: each setting, applied as the menu applies it; RAM only here (no flash: rc 3) */
     reset();
     ui.force = 0;
-    ok = menu_set(0, 2) == 3 && host_wire[6] == 0 && ed_rv(host_wire + 7) == 2 && settings.palette == 2u &&
-         T_BG == UI_PALETTES[2].bg && ui.force;
+    /* (3.5) COLOR is the live list's slot: slot 2 is ROSE, and the setting keeps the palette's own index */
+    ok = menu_set(0, 2) == 3 && host_wire[6] == 0 && ed_rv(host_wire + 7) == 2 && settings.palette == UI_PAL_LIVE[2] &&
+         T_BG == UI_PALETTES[UI_PAL_LIVE[2]].bg && ui.force;
     ok &= menu_set(1, 1) == 3 && ui_style == ST_LINE;
     ok &= menu_set(2, 1) == 3 && (ui_prefs & PREF_LARGE);
     ok &= menu_set(3, 1) == 3 && (ui_prefs & PREF_ANIM_OFF);
@@ -896,8 +897,8 @@ static int menu_protocol(void)
     bad += check("MENU_SET: a flag back to its default leaves the other flags", ok);
 
     /* clamping: the reply carries the device's value */
-    ok = menu_set(0, 50) == 3 && ed_rv(host_wire + 7) == (int32_t)NPALETTES - 1 && settings.palette == NPALETTES - 1u;
-    ok &= menu_set(0, -5) == 3 && ed_rv(host_wire + 7) == 0 && settings.palette == 0u;
+    ok = menu_set(0, 50) == 3 && ed_rv(host_wire + 7) == (int32_t)UI_NPAL_LIVE - 1 && settings.palette == UI_PAL_LIVE[UI_NPAL_LIVE - 1];
+    ok &= menu_set(0, -5) == 3 && ed_rv(host_wire + 7) == 0 && settings.palette == UI_PAL_LIVE[0];
     ok &= menu_set(4, 99) == 3 && ed_rv(host_wire + 7) == 3 && settings_leds == LEDS_INV;
     ok &= menu_set(5, 8191) == 3 && ed_rv(host_wire + 7) == 3 && settings_hold == 3u;
     ok &= menu_set(2, 7) == 3 && ed_rv(host_wire + 7) == 1 && (ui_prefs & PREF_LARGE);
