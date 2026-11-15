@@ -344,49 +344,44 @@ Hi Sven,
 I would like to have Quantum GammaWave listed on the hub.
 
 Repository: https://github.com/Guillel51/Quantum-GammaWave
-Version:    2.9.0 (release v2.9.0, asset felucca-v2.9.0.fwsc, 610959 bytes,
-            sha256 edd2a23f59d513c20c286f11b0f55d0b75519fe7a24afe63bba1dd7334b4ac1b)
+Version:    4.0.0 (release v4.0.0, asset felucca-v4.0.0.fwsc, 610959 bytes,
+            sha256 768d1ad9b2fe7190e41a4e6704fe42c7d3ea1daee3ee1962d7f859c53158ec5d)
 Identity:   FM-1_965, loader ota-FM-1_965. Checked free against your catalogue today
-            (198 listings); the asset name is inherited from the Felucca tree, the
+            (217 listings); the asset name is inherited from the Felucca tree, the
             identity inside is this firmware's own.
 Licence:    GPL-3.0-only, complete source in the repository. Third-party parts and
             every distributed binary are listed in LICENSING.md and in
             docs/FM1_HUB_AUDIO_PROVENANCE.md: OFL/MIT fonts, JIANT's interface art in
-            GPL-3.0, and no sample or patch data from anywhere else. The one audio
-            asset (web/banks/gw1-keys.syx) is generated from this firmware's own FM6
-            presets and regenerates byte for byte.
-Loader:     Felucca's loader, so an interrupted update resumes (FM-1_9NN).
+            GPL-3.0. Card: "sounds": "own: ..." — every voice is synthesised by the
+            firmware and the one bank it distributes (web/banks/gw1-keys.syx) is
+            generated from its own FM6 presets, byte for byte; no sample, loop, ROM
+            bank or recording from anywhere else.
+Loader:     Felucca's loader, so an interrupted update resumes.
 Flash:      both documented parts are accepted by the app and by the loader:
-            0x856014 (Puya P25Q80H) and 0xB36014 (UCUN UC25HQ80). Both are compiled in
-            and unit-tested; no part has been read from a unit by me.
-Build:      .github/workflows/release.yml, the shared workflow at v1's commit
-            (85a003ab). Tags v2.8.3 and v2.8.4 were published by GitHub Actions from
-            that workflow; whether each package carries a valid attestation is what the
-            workflow's verify job checks now, on every tag.
+            0x856014 (Puya P25Q80H) and 0xB36014 (UCUN UC25HQ80).
 Card:       fmhub.json in the repository root (text, kind groove, play, editor, cheat,
-            240x240 PNG, colour #35CFFF), checked against your rules with
-            tools/check_fmhub.py.
+            docs/card.png, colour #FF9424), and it passes your own validator: fhRead()
+            from your knowledge base, run on it, returns every field.
 One thing to know: this firmware is a derivative of Pocket GammaWave (fvalente /
 ShadowTune, also on your hub as FM-1_981) by way of JIANT FM and Felucca, with a
 different author, repository and identity.
 
-Limitations, stated plainly: no physical unit here has been flashed by me. The four
-device tests your page asks for (install from V15, install from another firmware,
-leaving again, USB identity) and the interrupted-update test are still to be done on a
-unit; everything above them is host-side. I will not ask you to list it before those
-are done, and I will send the results when they are.
-
-Reports: docs/FM1_HUB_READINESS.md (this checklist, with the state of every item),
-docs/FM1_HUB_AUDIO_PROVENANCE.md (every distributed resource, its author and licence),
-docs/IDENTITY.md (the identity and how it was checked against your catalogue),
-docs/VALIDATION_MATRIX.md (per-requirement evidence for the installer).
-
-Thanks,
+Thank you,
 Guille
 ```
 
-Before sending it, two things stay open by design: the physical tests (§7) and the attestation check
-(§5). The Hub's own sentence is the reason: *"Untested firmwares are not listed."*
+Before sending it, what stays open is not in this repository. (1) **The physical tests (§7)**: the unit
+tests the hub asks for are listed there with the exact steps; the owner reports having installed this
+firmware on physical FM-1 units, one of them with the newer flash part, which is an owner statement and is
+not the same evidence class as a recorded run of the hub's checklist. (2) **The attestation (§5)**: the
+workflow is wired to the shared builder, but no run of it has produced the `v4.0.0` package — the tag was
+created by `tag-and-publish.yml` with the workflow's own token, and an event created with `GITHUB_TOKEN`
+does not start another workflow, so the shared build never ran for it. The released bytes are the local
+reproducible build instead, and they are identical to the committed `release/felucca-v4.0.0.fwsc`
+(`768d1ad9…`). A tag pushed with a personal credential, or a re-run of the `release` workflow by hand, is
+what turns the card's "Built from source on GitHub" badge on. (3) **The status page's "Check again"**: it
+lives at `/submit/status/?id=<id>&k=<secret>` and the `k` is in the owner's private link only, so it cannot
+be driven from here.
 
 ---
 
@@ -402,3 +397,20 @@ Before sending it, two things stay open by design: the physical tests (§7) and 
    or JIANT's/Felucca's protocol notes, not by guessing.
 6. **The name collision to watch**: the hub already lists *Pocket GammaWave*; if it ever lists this one,
    its card must read *Quantum GammaWave* so players do not install the wrong derivative.
+
+---
+
+## 10. Estado al 2026-11-15 (integración)
+
+| Pieza | Estado | Cómo se comprobó |
+|---|---|---|
+| `fmhub.json` con `sounds` | hecho | `tools/check_fmhub.py` (todas ok) y **el validador del propio Hub** (`fhRead()` de su base de conocimiento, extraído y ejecutado en Node contra el archivo) devuelve los nueve campos |
+| Procedencia de audio | declarada | `own: …`; el único recurso, `web/banks/gw1-keys.syx`, se regenera byte a byte (`7c39bf4b…`) desde los presets FM6 del propio firmware |
+| Guarda contra la regresión | hecho | `tests/fmhub_card_test.py` (14 comprobaciones; falla si `sounds` desaparece con el banco en el árbol), enganchado en `tests/run_tests.sh` |
+| Imagen de ficha | hecha | `docs/card.png` 480 × 480, 21 033 B: HOME real del build publicado (GAMMA), ×2 vecino más cercano |
+| Release con `.fwsc` | hecha | `v4.0.0`, 610 959 B, `768d1ad9…`; el asset descargado de la release hashea igual que el paquete del repositorio |
+| Identidad y loader | verificados | `check_package_identity.py`: `FM-1_965`, `ota-FM-1_965`; `check_identity.py`: libre en el catálogo (217 fichas) |
+| Código y licencia | públicos | GPL-3.0 con avisos por componente en `LICENSING.md` y `LICENSES/` |
+| Attestation "Built from source" | **no conseguida** | ver §8: el tag lo creó `GITHUB_TOKEN`, que no dispara workflows; el badge del workflow `release` marca *failing* |
+| Pruebas físicas del Hub | **del dueño** | no se ejecutan desde este repositorio (AGENTS.md §3) |
+| "Check again" de la presentación | **del dueño** | la página de estado exige `id` + `k` (enlace privado) |
