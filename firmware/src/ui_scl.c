@@ -215,7 +215,13 @@ static void scl_field(int32_t x, int32_t y, const char *s, uint16_t fg, uint16_t
  * accidentals sit over the naturals) */
 static void scl_pkey(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, uint16_t brd)
 {
-    cv_rect(x + 2, y, w - 4, h, face);
+    {   /* (FASE 4) each key carries its own light: a three-step ramp from the lit top to the body instead of a flat
+         * face, which under the page's gradient read as a hole cut in the panel. Two bands on a short strip. */
+        int32_t b, n = h > 8 ? 3 : 2, bh = h / n;
+        for (b = 0; b < n; b++)
+            cv_rect(x + 2, y + b * bh, w - 4, b == n - 1 ? h - bh * (n - 1) : bh,
+                    ux_mix(face, brd, 26 - b * 13));
+    }
     cv_rect(x, y + 2, 2, h - 4, face);
     cv_rect(x + w - 2, y + 2, 2, h - 4, face);
     cv_pset(x + 1, y + 1, brd);
