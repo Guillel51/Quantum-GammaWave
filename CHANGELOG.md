@@ -1,3 +1,19 @@
+## v3.2.3 — 2026-11-14 — el gráfico de HOME se queda quieto y sólo se mueve con el knob 1
+
+### Fixed
+- **La causa real del "se va de lado a lado": `wf_shift()`.** Las 28 bandas del espectrograma se dibujaban en
+  `i + sh`, con `sh` derivado de `bg_knob(0, 0)`: el panel entero **se desplazaba horizontalmente hasta ±14
+  bandas** con un valor que el jugador no había puesto como posición, y en los bordes las bandas daban la
+  vuelta. La función se elimina: las bandas viven en su columna fija y KNOB 1 actúa donde se espera —corte del
+  filtro y techo de cada barra—, no moviendo el dibujo.
+- **`wf_cut_disp()`: la curva ya no persigue al parámetro con un temporizador.** Movía el corte dibujado un
+  tercio del camino por frame, así que la imagen seguía cambiando durante ~10 frames después de soltar el
+  knob. El corte dibujado es ahora el valor del parámetro en el frame.
+- **Las pantallas de HOME no pierden ni el primer knob ni la barra superior.** OVERVIEW, MIX y PERFORM llevan
+  `K1..K4` con su valor en la fila del título (leídos con `home_param` + `param_format`, los mismos números que
+  las tarjetas), y la firma de repintado de HOME incluye los cuatro knobs, así que girar cualquiera repinta el
+  panel en el frame siguiente.
+
 ## v3.2.2 — 2026-11-14 — HOME: el gráfico sigue al knob 1, y los knobs no se van al recorrer las pantallas
 
 ### Fixed

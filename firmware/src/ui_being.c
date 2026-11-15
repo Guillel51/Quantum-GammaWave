@@ -2100,40 +2100,23 @@ static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val
 #define WF_BANDS 28                                  /* the bay's bands (the count the manual names) */
 #define WF_SLICE 4                                   /* samples a band measures: a peak, not one sample */
 
-/* THE SPECTROGRAM'S HORIZONTAL POSITION IS KNOB 1 AND NOTHING ELSE.
- * It used to come from the audio window itself: every band read ONE sample at a fixed lag from the newest
- * one, so a waveform travelled across the bars from right to left for as long as the music played -- the
- * autonomous scroll, with no hand on the panel. A band now measures its own slice (a peak over WF_SLICE
- * samples), which has no travelling shape, and the only thing that moves the picture sideways is this
- * offset: KNOB 1's real value, read from home_param() through bg_knob(), so it is 0 at the knob's centre,
- * grows one way, shrinks the other, and stops dead when the hand does. Same value, same place: no clock, no
- * ui.frame, no accumulator. */
-static int32_t wf_shift(void)
-{
-    int32_t k = bg_knob(0, 0);                       /* 0..256: HOME's KNOB 1 as the control really is */
-    if (k < 0)
-        k = 128;                                     /* a knob with no value (a '-') sits in the middle */
-    return (clamp(k, 0, 256) - 128) * (WF_BANDS / 2) / 128;   /* +-14 bands of travel */
-}
-
-/* The bands' envelopes: a fast attack and a slow release, so a peak reads as a peak instead of one frame's
- * noise. Advanced once a frame (vz_qframe qualifies the resolution too), so drawing the same frame twice --
- * the render sweep, a forced redraw -- gives the same picture. */
+/* (7.1) THE BANDS DO NOT TRAVEL. `wf_shift()` moved the 28 bands sideways by up to +-14 positions, driven by
+ * `bg_knob(0, 0)` -- the picture drifted across the panel with a value the player did not set as a position,
+ * and at the edges the bands wrapped around. KNOB 1 shapes the graph through the filter's cutoff and the
+ * bars' own ceiling (gw_filter_resp_y), which is where the player expects to see it; nothing here moves the
+ * bands along x. */
 static uint8_t wf_lvl[WF_BANDS];
 static void wf_advance(void)
 {
     static uint32_t f0 = 0xFFFFFFFFu;
     uint32_t fr = vz_qframe();
-    int32_t i, sh = wf_shift();
+    int32_t i;
     if (fr == f0)
         return;
     f0 = fr;
     for (i = 0; i < WF_BANDS; i++) {
-        int32_t band = i + sh, j, s = 0, t, l;
+        int32_t band = i, j, s = 0, t, l;             /* (7.1) band i, never i + a shift */
         uint32_t idx;
-        band %= WF_BANDS;
-        if (band < 0)
-            band += WF_BANDS;
         idx = (scope_w - 128u + (uint32_t)band * WF_SLICE) & (SCOPE_N - 1u);
         for (j = 0; j < WF_SLICE; j++) {
             int32_t v = scope_buf[(idx + (uint32_t)j) & (SCOPE_N - 1u)];
@@ -2149,26 +2132,6 @@ static void wf_advance(void)
          * audio drew a bar a pixel or two taller after the knob had moved the bands around. */
         wf_lvl[i] = (uint8_t)(t >= l ? t : (l - t > 4 ? l - ((l - t + 3) >> 2) : t));
     }
-}
-
-/* The curve follows the knob instead of jumping with it: the drawn cutoff moves a third of the way to the
- * parameter's each frame, so a fast turn reads as a sweep. Frame-gated like the envelopes, and seeded with
- * the target, so the first draw is exactly where the parameter is. */
-static int32_t wf_cut_disp(int32_t target)
-{
-    static int32_t d = -1;
-    static uint32_t f0 = 0xFFFFFFFFu;
-    uint32_t fr = vz_qframe();
-    if (d < 0)
-        d = target;
-    if (fr != f0) {
-        f0 = fr;
-        if (d < target - 2 || d > target + 2)        /* a third of the way, and then exactly there */
-            d += (target - d) / 3;
-        else
-            d = target;                              /* at rest the curve sits on the parameter, not near it */
-    }
-    return d;
 }
 
 static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t w, int32_t h, int32_t en)
@@ -2188,7 +2151,8 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
      *    audio -- it is the room the graph is drawn in, not a measurement. */
     gw_embers(x0 + 2, y0 + 2, w - 4, h - 4, ui_viz_q >= 2u ? 7u : ui_viz_q == 1u ? 10u : 16u, 0x2B00u, 70, T_BG);
 
-    cut_x = wf_cut_disp(cut_x);                      /* (FASE 2) a parameter change sweeps, it does not jump */
+    /* (7.1) the curve sits on the parameter, not a third of the way to it each frame: a timer must never
+     * move the picture on its own, and a step from the knob is what the hand did, not a glitch. */
 
     /* 1. The scale: three logarithmic divisions and the horizon, dotted every third row so they read as a
      *    grid and never compete with the data. A third of the pixels of a solid line. */

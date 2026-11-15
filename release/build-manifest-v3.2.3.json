@@ -1,12 +1,12 @@
 {
   "artifacts": {
     "felucca.bin": {
-      "bytes": 582164,
-      "sha256": "d16d9e99e11249b822f14fa7ebcf5362650e65700cc6ddcdee3cb4a1d67bc131"
+      "bytes": 582068,
+      "sha256": "be7e841b967667e142c77296c17049b1876ce67d4d0f3ee27155d39cea7df820"
     },
     "felucca.fwsc": {
       "bytes": 610959,
-      "sha256": "0dc6ad4e4f963d6ca922fed4fa248b6721a8c73c9742f45132bfa48443a643f5"
+      "sha256": "31af93977f6e93ceb60772a9ef700779616befa2b2c0a49e25018cfdca173122"
     },
     "loader/ota.bin": {
       "bytes": 7803,
@@ -14,7 +14,7 @@
     }
   },
   "checks": {},
-  "commit": "c7dfb1c03a643c6125f637272ed9416317016251",
+  "commit": "35501de7ff0354025e1eb48ebc669795b0804da0",
   "config": {
     "FELUCCA_CDC": "default",
     "FELUCCA_CDC_DEFAULT": "default",
@@ -33,12 +33,18 @@
     "FELUCCA_UART": "default",
     "FELUCCA_USB_LAYOUT": "default"
   },
-  "dirty": [],
+  "dirty": [
+    "CHANGELOG.md",
+    "README.md",
+    "firmware/src/felucca.c",
+    "firmware/src/ui_being.c",
+    "web/site/assets/fw-home.png"
+  ],
   "emulator": {
-    "commit": "c7dfb1c03a64",
-    "version": "v3.2.2",
-    "wasm_bytes": 1237262,
-    "wasm_sha256": "b2493371f1634e86186ad0ef0c2fad23a447b2ac62a839dc1723eab3c5ba4afc"
+    "commit": "35501de7ff03",
+    "version": "v3.2.3",
+    "wasm_bytes": 1237072,
+    "wasm_sha256": "64ded961eb58c30c48d0bea589097234c00a5c514ec004f45e814c6799667e8c"
   },
   "identity": "FM-1_965",
   "schema": "qg1-build-1",
@@ -57,5 +63,5 @@
     "path": "/workspace/homes/175b9279ea697cf08b8dec0c/.jieli/toolchain",
     "version": "clang version 4.0.1 () ()"
   },
-  "version": "v3.2.2"
+  "version": "v3.2.3"
 }
