@@ -29,66 +29,15 @@
 
 `v4.1.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
-- **What it is, first.** A free firmware for the **M-VAVE FM-1**: six tracks, twelve voices, nine synthesis
-  engines and **273 factory sounds** (275 entries: two legacy DRUM kits stay for old projects), a 64-step sequencer with an arpeggiator and song chains, per-track and
-  per-bus effects, and an interface of 19 selectable palettes on a 240 × 240 panel. It plays from the keys, edits from the
-  encoders, and the browser emulator and Web Studio need no install.
-- **One version everywhere.** `FELUCCA_VERSION` (`v4.1.0`), the package, the emulator the portal serves and
-  `firmware/versions.json` name the same build; the installer checks its SHA-256 and its size before it writes.
-- **The page gives its rows to the instrument.** The status bar is 20 px, the four knob cards are four rows
-  taller with their gauge at the card's foot, and the layout change reaches every page: the cards' values, the
-  labels, the round dials and the step markers all moved with it, checked by the render sweep.
-- **HOME's later screens are titled, not ticker-taped.** Screens 3 to 5 carried a K1..K4 strip of values that
-  nothing on those pages acted on; it is gone, and each screen names itself in that row.
-- **Every palette has its own sky.** A theme without a hand-tuned ramp (GREY, GREEN, ROSE, PAPER, HI-CON,
-  NIGHT, MONO) fell through to the thermal one, so its curves, meters and HOME's five worlds were GAMMA's
-  colours; the ramp is derived from the palette's own tokens now, and the five bodies sit at five points of it.
-- **The right scope of the visualizer is always drawn.** It was gated behind a peak threshold, so a quiet
-  passage left the reticle empty; it scales to its own signal now and shows a still point in silence. HOME's
-  background trace is drawn under the data at two pixels and in the theme's ramp instead of over it at one.
-- **The installer boots the device instead of showing it.** The page loads the same `felucca.wasm` the
-  emulator runs, powers it on and draws the panel at the device's own clock: the splash, the sweep, the screen it
-  lands on, with a replay control. It stops after the boot, and never runs while it is off screen or the tab is
-  hidden.
-- **Tested on three FM-1 units, one with the newer flash part.** The firmware has run on three physical
-  M-VAVE FM-1, the newer one carrying the second of the two SPI NOR parts the loader accepts (P25Q80H
-  `0x856014` and UCUN UC25HQ80 `0xB36014`). That is a compatibility statement about those units, not a
-  certificate: what was exercised and what was not is written down in
-  [`docs/HARDWARE_VALIDATION.md`](docs/HARDWARE_VALIDATION.md).
-- **Twelve voices, shared fairly, and chords on several tracks at once.** The pool is one budget for six
-  parts; it used to go to whoever played first, so the next track's chord paid for it. A candidate that would
-  leave its part above its proportional share now goes after one that would not, and a key pressed a couple of
-  blocks ago is the last thing to lose. Voices, envelopes, engines and effects stay per track.
-- **A header that cannot be moved by a preset load.** The top row used to re-lay itself around every message
-  (play state, metronome, BPM and lock replaced by text); it now keeps its places and the message takes the
-  right slot, so loading a sound while playing leaves the instrument's face where it was.
-- **FX > BUSES wears its own light.** Every block of the routing console carries the panel's ramp inside
-  its body, a theme-warmed bezel and a lit top edge, so the boxes read as part of the page instead of grey
-  plates over a gradient.
-- **Deeper contrast, same backlight.** Surfaces are the palette's own SURF shaded down 10 % (a shade keeps
-  the hue where a mix flattens it), with the derived tones a step darker; text, theme and accent untouched.
-  GREY and MONO keep their exact grey line.
-- **The visualizer no longer rains on itself.** The note sparks born in the middle of the scope field and
-  dropped by the pool's gravity are gone; the embers, the Milky Way, the stars and the two worlds stay.
-- **Solar Heat on every screen.** A single call in the shared chrome gives all 189 screens the panel's
-  gradient (`graph_ground_ramp` → `ux_ground_ramp`): 8 bands from the panel colour toward the warm accent, 20 %
-  dark palettes, 8 % light ones. HOME and the sequencer keep the ramp they already had.
-- **The splash never stands still.** It used to freeze for 1.6 s once the picture finished writing; it now runs
-  on its own clock (drifting stars, the ring and the moons, dust, a shooting star, the rail's light). Measured
-  step by step on the framebuffer: **244 frames differ, the longest still stretch 20 ms**.
-- **Round knobs, bigger worlds, a sky with dust.** `cv_circle`/`cv_disc` replace the chord-built outlines (the
-  7 px dials read as squares), the five bodies of HOME's bay answer every touch with the same front and
-  sparks, the two small ones grew from 4 to 5 px, and the Milky Way carries a lit bulge and drifting dust in
-  both HOME and the visualizer.
-- **The bank is audited, not counted from a document.** `preset_audit_test` loads and renders every preset:
-  **275 entries / 273 browsable** (ANALOG 68, FM6 37, PHASE 32, LOFI 29, FORMANT 25, WHEEL/NOISE/WTABLE 22 each, DRUM 18 with its
-  two legacy kits), **0 silent, 0 exact duplicates, 0 out of range, 0 clipping**. `--levels` prints RMS, peak
-  and clip time for each, which is what a remaster has to be decided on.
-- **The goldens are measured, not assumed.** 293 renders across every engine, preset, voice mode and FX send
-  hash identically to `tests/golden.txt`; a sound that moves shows up as a named render, not a diff.
-- **Integrity, not authenticity.** Since v2.6.0 the model is SHA-256 + size + build record; Ed25519
-  (`qg1-release-1`) stays historical. The site, the installer and this file say that, instead of implying a
-  signature that does not exist.
+Quantum GammaWave
+
+Quantum GammaWave is a complete custom firmware for the M-VAVE FM-1, built to turn a compact synthesizer into a far more powerful and expressive instrument.
+
+Designed around 6 independent tracks, 12 shared voices and 9 synthesis engines, it brings together a versatile sound library, deep sound editing, flexible modulation, a 64-step sequencer, arpeggiator, song chains and an extensive effects system. Every part of the instrument is designed to work together, giving you the freedom to shape sounds, build patterns, layer textures and create complex arrangements directly from the FM-1.
+
+Its visual identity is just as important as its sound. The 240 × 240 interface features rich 16-bit graphics, animated visualizations, gradients and 19 selectable color palettes, with a consistent design language throughout the instrument. Physical controls remain immediate and intuitive, while the browser-based emulator and Web Studio make it possible to explore, edit and experience Quantum GammaWave without installing additional software.
+
+This is more than a firmware update: it is an ongoing evolution of the FM-1 platform, combining expanded synthesis capabilities, a redesigned interface and carefully optimized performance while preserving the character and portability of the original hardware.
 </div>
 
 ---
