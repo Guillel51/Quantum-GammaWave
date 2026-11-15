@@ -124,7 +124,7 @@ def one(name, path, man):
     return raw, info, jedec, digest
 
 
-def build(first, first_man, second=None, second_man=None, chip_crc32=None, out=None):
+def build(first, first_man, second=None, second_man=None, chip_crc32=None, out=None, name=None):
     """-> (manifest, image, identity); raises ImportError_ with the first thing that is wrong."""
     raw, info, jedec, digest = one("first", first, first_man)
     second_digest = None
@@ -148,7 +148,10 @@ def build(first, first_man, second=None, second_man=None, chip_crc32=None, out=N
     verified = bool(second) or chip_crc32 is not None
     part, cap, page, sector, block = P.PARTS[jedec]
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    stem = "mflasher-%s-%s" % (info["identity"], stamp)
+    # The archive's name is the identity and a UTC stamp; a caller may pin it (--stem), so two imports of
+    # the same bytes can be made to land on one name and the refusal to replace it can be exercised
+    # without racing the clock (tests/mflasher_test.py, 5c).
+    stem = name or "mflasher-%s-%s" % (info["identity"], stamp)
     man = {
         "format": FORMAT,
         "tool": TOOL,
@@ -278,6 +281,7 @@ def main(argv=None):
     imp.add_argument("--second-json", help="the second backup's .json (default: same name with .json)")
     imp.add_argument("--crc32", help="the CRC32 M-Flasher printed for the whole flash, e.g. 0x60894105")
     imp.add_argument("--out", default="backup", help="where to write the archive")
+    imp.add_argument("--stem", help="the archive's name without extension (default: mflasher-<identity>-<UTC stamp>)")
     chk = sub.add_parser("check", help="re-verify an archive this tool wrote")
     chk.add_argument("manifest")
     a = ap.parse_args(argv)
@@ -292,7 +296,7 @@ def main(argv=None):
         second_man = None
         if a.second:
             second_man = load_json(a.second_json or Path(a.second).with_suffix(".json"))
-        man, raw, identity = build(a.bin, first_man, a.second, second_man, a.crc32, a.out)
+        man, raw, identity = build(a.bin, first_man, a.second, second_man, a.crc32, a.out, a.stem)
         man_path, binp = write_archive(man, raw, a.out)
         print("%s: %s" % (man["status"], man_path))
         print("  %s  %s" % (man["sha256"], binp))

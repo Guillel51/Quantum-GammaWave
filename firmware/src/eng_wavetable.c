@@ -33,11 +33,23 @@ static const char *const N_WT_UNI[] = {"1 VOICE", "2 VOICES"};
  * amplitudes (WT_COEF, 2 048 B) and 8 192 B of .bss stand in for 8 192 B of stored wave. Once, before the
  * first note renders -- never inside a block, so a level change costs nothing at all at run time. */
 static uint8_t wt_ready;
-static int32_t wt_buf[WT_POINTS];
 
+/* a frame's point before its peak: the sum of that frame's sines (tools/gen_tables.py), Q15 */
+static inline int32_t wt_raw(uint32_t f, uint32_t lim, uint32_t i)
+{
+    int64_t x = 0;
+    uint32_t k;
+    for (k = 1; k <= lim; k++)
+        x += (int64_t)WT_COEF[(k - 1u) * WT_FRAMES + f] * SINE[((k * i) & (WT_POINTS - 1u)) * 4u];
+    return (int32_t)(x >> 30);
+}
+
+/* (FASE 1) Two passes over each frame instead of a 1 024-byte scratch array in .bss: the peak first, then the
+ * values normalised. The arithmetic is the same one, so the tables come out identical (measured: same hash);
+ * the cost is paid once at boot, ~+0.17 ms on host, and it gives 1 024 B back to a .bss that had 924 B free */
 static void wt_gen_init(void)
 {
-    uint32_t l, f, i, k;
+    uint32_t l, f, i;
     if (wt_ready)
         return;
     for (l = 0; l < 2u; l++) {
@@ -46,17 +58,14 @@ static void wt_gen_init(void)
             int32_t pk = 0;
             int16_t *dst = WT_GEN + (l * WT_FRAMES + f) * WT_POINTS;
             for (i = 0; i < WT_POINTS; i++) {
-                int64_t x = 0;
-                for (k = 1; k <= lim; k++)                 /* the frame's own sum of sines (tools/gen_tables.py) */
-                    x += (int64_t)WT_COEF[(k - 1u) * WT_FRAMES + f] * SINE[((k * i) & (WT_POINTS - 1u)) * 4u];
-                wt_buf[i] = (int32_t)(x >> 30);            /* Q15, before the frame's peak */
-                if (wt_buf[i] > pk) pk = wt_buf[i];
-                else if (-wt_buf[i] > pk) pk = -wt_buf[i];
+                int32_t v = wt_raw(f, lim, i);
+                if (v > pk) pk = v;
+                else if (-v > pk) pk = -v;
             }
             if (!pk) pk = 1;
             for (i = 0; i < WT_POINTS; i++)                /* every frame normalised to the same peak: a morph
                                                             * keeps its level, as the stored ones did */
-                dst[i] = (int16_t)(((int64_t)wt_buf[i] * 32000 + pk / 2) / pk);
+                dst[i] = (int16_t)(((int64_t)wt_raw(f, lim, i) * 32000 + pk / 2) / pk);
         }
     }
     wt_ready = 1;

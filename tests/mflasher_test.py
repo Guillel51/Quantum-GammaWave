@@ -170,7 +170,8 @@ def main():
 
     # 3. the chip's own CRC32 is the corroboration M-Flasher prints
     good = "0x%08X" % (zlib.crc32(img) & 0xFFFFFFFF)
-    code, text = run("import", "--bin", str(b1), "--crc32", good, "--out", str(tmp / "crc-out"))
+    code, text = run("import", "--bin", str(b1), "--crc32", good, "--out", str(tmp / "crc-out"),
+                    "--stem", "pinned-archive")
     ok(code == 0 and "complete" in text, "the chip's CRC32 over the whole part completes the archive")
     man = json.loads(next((tmp / "crc-out").glob("*.manifest.json")).read_text())
     ok(man["verified_by"].startswith("the chip's own CRC32"), "the record says what verified it")
@@ -207,7 +208,8 @@ def main():
     # 5c. an archive is evidence: a second import never replaces it
     before = next((tmp / "crc-out").glob("*.bin"))
     digest = hashlib.sha256(before.read_bytes()).hexdigest()
-    code, text = run("import", "--bin", str(b1), "--crc32", good, "--out", str(tmp / "crc-out"))
+    code, text = run("import", "--bin", str(b1), "--crc32", good, "--out", str(tmp / "crc-out"),
+                    "--stem", "pinned-archive")
     ok(code == 1 and "already exists" in text and hashlib.sha256(before.read_bytes()).hexdigest() == digest,
        "an existing backup is refused, not overwritten")
 

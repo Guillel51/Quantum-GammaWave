@@ -1,3 +1,47 @@
+## Sin publicar — 2026-11-15 — FASE 1: 1 KB de RAM de vuelta, con las tablas idénticas
+
+La campaña de optimización de esta fase empieza por el margen que estaba más apretado. En la entrega anterior
+el `.bss` quedó en 97 380 de 98 304 B: **924 B libres**. `wt_gen_init` gastaba ahí un array de 1 024 B que solo
+usaba una vez, al arrancar, para normalizar las tablas del WAVETABLE al mismo pico.
+
+### RAM
+
+- **`wt_buf` desaparece** (`eng_wavetable.c`): ahora se recorre cada frame dos veces, la primera para hallar su
+  pico y la segunda para escribir los valores normalizados. El array era `.bss` permanente para un trabajo de
+  arranque; el `.bss` de la unidad de compilación baja **1 024 B** (1 056 B en el binario, con la alineación) y
+  los 924 B libres pasan a unos **1 948 B**.
+- **Las tablas salen idénticas**: es la misma aritmética entera, solo repetida. Medido: el hash FNV de
+  `WT_GEN` + `WT_L5` es `c1b4453e` antes y después, y los **293 renders golden siguen con 0 cambios**, los 22
+  del WAVETABLE incluidos.
+
+### Coste
+
+- `wt_gen_init` en host x86: **172–183 µs → 325–337 µs** por llamada (+~0,15 ms), una sola vez en el arranque y
+  nunca dentro de un bloque de audio. La cifra del AC791N no está medida (falta `JIELI_TOOLCHAIN`); a 320 MHz se
+  espera del orden de 1,5 ms, y eso es una estimación, no una medición.
+
+### Lo que se midió y no se tocó
+
+- El regress da **ns por preset** en host. Las filas más caras son del WAVETABLE (90–118 ns) y superan a ANALOG
+  (50–70 ns) en lo que cuestan sus dos frames por muestra; revisado el bucle, las lecturas ya están hoisteadas
+  y no queda trabajo redundante que quitar sin cambiar el redondeo (y con él el sonido).
+- El ruido del VM compartido es de ±10 % entre corridas: cualquier microoptimización por debajo de ese umbral no
+  es demostrable aquí, así que no se declara.
+- La medición de instrucciones del target (`tests/target_budget.py`) sigue bloqueada: necesita
+  `build/felucca.dis`, y sin `JIELI_TOOLCHAIN` / `AC79_SDK` no hay build del AC791N.
+
+### Estabilidad
+
+- **`mflasher_test.py` dejó de ser intermitente** (fallaba 1 de cada 5 corridas). La causa no era la prueba sino
+  el reloj: el nombre del archivo que escribe el importador lleva la hora UTC con granularidad de segundos, así
+  que dos importaciones seguidas a veces caían en nombres distintos y no había nada que rehusar. El importador
+  acepta ahora `--stem` para fijar ese nombre, y la prueba lo usa en las dos importaciones: sigue exigiendo el
+  rechazo (`code == 1`, "already exists") y el hash intacto, pero ya no depende del segundo en que corra.
+  10 corridas seguidas, 10 en verde.
+
+Pruebas: `NO_PACKAGE=1 tests/run_tests.sh` completo; `wavetable_test` (13 ns por muestra y voz en host, dentro
+de presupuesto); regress 293/0/0.
+
 ## Sin publicar — 2026-11-15 — modulación de fase en dos motores, sin parámetros nuevos
 
 Dos motores estrenan una interacción nueva entre sus fuentes sin añadir un control que no suene y sin tocar el
