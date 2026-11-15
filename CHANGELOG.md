@@ -1,3 +1,23 @@
+## Sin publicar — 2026-11-15 — FASE 8 (rendimiento): cada placa se pinta una vez
+
+### Rendimiento (host, `ui_render` a `-O1`; detalle en `docs/PERFORMANCE_FASE8.md`)
+
+- **Cada placa se pintaba dos veces.** `cv_rrect` rellenaba el cuerpo y las dos bandas laterales, y la rampa
+  del degradado pintaba después esos mismos píxeles otra vez (marco y esquinas incluidos). Medido con un
+  contador **exacto** de píxeles rellenados, nuevo en el arnés (`px filled` en la tabla de coste): un frame de
+  HOME escribía **118 014** píxeles para una pantalla de 57 600. Con la rampa encendida el relleno base ya no
+  se hace: **MENU −42,7 %**, **CONFIRM −45,4 %**, **FX −29,7 %**, HOME −9,4 % de píxeles rellenados.
+- Tiempo del redibujado completo de las 17 pantallas, mínimo de cuatro corridas intercaladas de los dos
+  binarios: **−5,5 %** (MENU −14,8 %, FX −14,3 %, CONFIRM −12,2 %).
+- **La imagen no cambia**: 189 pantallas × 22 paletas comparadas contra el árbol anterior, **0 ficheros
+  distintos**.
+
+### Verificación (host)
+
+- `ui_render` sale con 0: 0 hallazgos de lint, 0 tintas sobre su propio color, 0 píxeles GREY / MONO fuera de
+  gris, 3 400 410 mediciones de alineación con 0 desalineaciones.
+- `theme_test`: todas las paletas pasan, peor margen **4,08:1**.
+
 ## Sin publicar — 2026-11-15 — FASE 8 (visual): el mini knob es un dial redondo con aro iluminado
 
 ### Interfaz

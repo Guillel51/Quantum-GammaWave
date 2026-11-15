@@ -47,6 +47,9 @@ typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
 #ifndef GFX_HOOK_RULE
 #define GFX_HOOK_RULE(x, y, w, h) ((void)0)        /* a divider drawn on the screen (ui_draw.c lcd_rule): no box may touch it */
 #endif
+#ifndef GFX_HOOK_FILL
+#define GFX_HOOK_FILL(w, h) ((void)0)              /* (FASE 8) the pixels a fill paints: counted, never computed, on the device */
+#endif
 /* the alignment check (tests/ui_render.c): GFX_HOOK_ALIGN declares that the next item(s) drawn (a text, an icon, a
  * keycap, a cushion) are meant to sit centred in the box x0..x1, y0..y1 (canvas drawing coordinates, x1 y1 past it)
  * along AL_H and / or AL_V; AL_N(n): the next n items together. A text's ink is measured across (its glyphs' boxes)
@@ -319,6 +322,7 @@ static void cv_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
         x1 = (int32_t)cv_w;
     if (y1 > (int32_t)cv_h)
         y1 = (int32_t)cv_h;
+    GFX_HOOK_FILL((int32_t)(x1 - x), (int32_t)(y1 - y));   /* (FASE 8) what this fill costs, after clipping */
     for (; y < y1; y++)
         for (i = x; i < x1; i++)
             cv_px[(uint32_t)y * cv_w + (uint32_t)i] = sc;
@@ -537,9 +541,16 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
         cv_rect(x, y, w, h, c);
         return;
     }
-    cv_rect(x + r, y, w - 2 * r, h, c);
-    cv_rect(x, y + r, r, h - 2 * r, c);
-    cv_rect(x + w - r, y + r, r, h - 2 * r, c);
+    /* (FASE 8) EACH PLATE WAS PAINTED TWICE. These three rects filled the whole plate and the ramp painted every
+     * one of those pixels again (frame and corners included: cv_plate_ground and cv_plate_cut_ground draw their
+     * own, and the corner loop below the corners). With the ramp on, the base fill is skipped and the plate is
+     * painted once: MENU went from 83 644 to 47 940 filled pixels a frame (docs/PERFORMANCE_FASE8.md), with no
+     * pixel of the picture changed. */
+    if (!(c == T_SURF && !cv_plate_flat && (cut ? (w >= 36 && h >= 36) : (w >= 40 && h >= 16)))) {
+        cv_rect(x + r, y, w - 2 * r, h, c);
+        cv_rect(x, y + r, r, h - 2 * r, c);
+        cv_rect(x + w - r, y + r, r, h - 2 * r, c);
+    }
     /* (FASE 3) A CHAMFERED MODULE IS A GRADIENT TOO, and the gradient has to reach its sides. This style fills
      * its plate as three rects (body, left band, right band); painting the ramp on the body only left a flat r-px
      * column down each side of every knob card, which read as two panels glued together. The ramp is per row now,

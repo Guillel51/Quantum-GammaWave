@@ -218,6 +218,9 @@ static uint32_t nink;                           /* GFX_HOOK_INK: inks drawn on t
 static void hk_ink(uint16_t ink, uint16_t bg);
 #define GFX_HOOK_INK(ink, bg) hk_ink(ink, bg)
 #define GFX_HOOK_PIXELS(n) (px_visited += (n))
+static uint64_t px_fill;                        /* (FASE 8) the pixels every cv_rect paints: exact, not timed */
+#define GFX_HOOK_FILL(w, h) \
+    (px_fill += ((w) > 0 && (h) > 0) ? (uint64_t)(uint32_t)(w) * (uint64_t)(uint32_t)(h) : 0u)
 #define UI_FILL_HOOK(x, y, w, h) hk_fill(x, y, w, h)
 static void fm6_hook(uint32_t kind, uint32_t a, uint32_t b);
 #define FM6_CHART_HOOK(kind, a, b) fm6_hook(kind, a, b)
@@ -1964,18 +1967,20 @@ int main(int argc, char **argv)
         enum { N = 200 };
         uint32_t i, k;
         fprintf(rep, "\ndraw cost on the host (cc -O1; only the ratios mean anything on the device):\n");
-        fprintf(rep, "  screen            full redraw us   texts+icons   glyph px read\n");
+        fprintf(rep, "  screen            full redraw us   texts+icons   glyph px read     px filled\n");
         for (k = 0; k < sizeof COST / sizeof COST[0]; k++) {
             clock_t c0;
             uint64_t px, nt;
             setup(COST[k]); pal(1);
             draw(COST[k]);
             px_visited = n_text = 0;
+            px_fill = 0;
             c0 = clock();
             for (i = 0; i < N; i++) draw(COST[k]);
             px = px_visited / N; nt = n_text / N;
-            fprintf(rep, "  %-16s %15.1f %13llu %15llu\n", S_NAME[COST[k]], (double)(clock() - c0) / CLOCKS_PER_SEC / N * 1e6,
-                    (unsigned long long)nt, (unsigned long long)px);
+            fprintf(rep, "  %-16s %15.1f %13llu %15llu %14llu\n", S_NAME[COST[k]],
+                    (double)(clock() - c0) / CLOCKS_PER_SEC / N * 1e6,
+                    (unsigned long long)nt, (unsigned long long)px, (unsigned long long)(px_fill / N));
         }
         {
             clock_t c0;
