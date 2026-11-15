@@ -46,9 +46,12 @@ jobs:
       tests-block: true
       sdk: true
 
-  # 7. The package is checked the way a player's browser checks it: the exact bytes the build job
-  # attested are downloaded again from the release and verified against the workflow that signed
-  # them. Nothing is rebuilt, replaced or uploaded here; a mismatch fails the run.
+  # 7. The package is checked the way a player's browser checks it, and it is THE SAME FILE the other
+  # path names: `tag-and-publish.yml` attests `release/felucca-<version>.fwsc` from the tree, so this job
+  # verifies exactly that path and then proves the release carries those bytes. It used to verify
+  # "whatever *.fwsc the release had", which is a different subject whenever the built package and the
+  # committed one drift -- and that drift is precisely what these two workflows exist to catch. Nothing is
+  # rebuilt, replaced or uploaded here; a mismatch fails the run.
   verify:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
@@ -57,6 +60,16 @@ jobs:
       contents: read
       attestations: read
     steps:
+      - uses: actions/checkout@v4
+      - name: The package this tree commits for this version
+        id: pkg
+        run: |
+          set -euo pipefail
+          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
+          P="release/felucca-${V}.fwsc"
+          test -s "$P" || { echo "::error::$P is missing: nothing to verify against the attestation"; exit 1; }
+          echo "path=$P" >> "$GITHUB_OUTPUT"
+          echo "verifying $P ($(sha256sum "$P" | cut -d' ' -f1))"
       - name: Download the release's package
         env:
           GH_TOKEN: ${{ github.token }}
@@ -66,20 +79,35 @@ jobs:
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern '*.fwsc' --dir dist
           ls -l dist
           sha256sum dist/*.fwsc
+      - name: The release carries the very bytes this tree commits
+        run: |
+          set -euo pipefail
+          P="${{ steps.pkg.outputs.path }}"
+          n=0
+          for f in dist/*.fwsc; do
+            n=$((n + 1))
+            if cmp -s "$f" "$P"; then
+              echo "ok    $f is byte-identical to $P"
+              continue
+            fi
+            echo "::error::$f is not the committed $P: the release would serve bytes no attestation of this tree covers"
+            sha256sum "$f" "$P"
+            exit 1
+          done
+          test "$n" -gt 0 || { echo "::error::the release carries no .fwsc"; exit 1; }
       - name: Verify the attestation of those bytes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
-          for f in dist/*.fwsc; do
-            echo "== $f"
-            gh attestation verify "$f" \
-              --repo "$GITHUB_REPOSITORY" \
-              --signer-workflow zvenson/fm1-build/.github/workflows/build.yml
-          done
+          gh attestation verify "${{ steps.pkg.outputs.path }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow zvenson/fm1-build/.github/workflows/build.yml
       - name: The identity inside the bytes is this firmware's own
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
-          gh attestation verify dist/*.fwsc --repo "$GITHUB_REPOSITORY" \
+          gh attestation verify "${{ steps.pkg.outputs.path }}" --repo "$GITHUB_REPOSITORY" \
             --signer-workflow zvenson/fm1-build/.github/workflows/build.yml --format json > attestation.json
-          python3 tools/check_package_identity.py dist/*.fwsc
+          python3 tools/check_package_identity.py "${{ steps.pkg.outputs.path }}"
