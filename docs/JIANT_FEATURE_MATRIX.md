@@ -52,7 +52,7 @@ musical por byte; **P2** = deseable; **P3** = más adelante.
 | Páginas EDIT 1 / EDIT 2 por motor | sí | sí | SÍ | A | — |
 | Página FILTER por track (6 tipos en QG, 4 en JIANT) | sí | sí (con VOWEL/SCREAM extra) | SÍ | A | — |
 | Página VOICE (POLY/MONO/LEG/UNI, GLIDE, MODE, PRIO) | sí | sí | SÍ | A | — |
-| Página **VOICE 2** con **ALLOC** y **DETUNE** | sí | **parámetros existen y suenan (`voice.c:622,770`) sin página** | **SIN UI** | A | **P0** |
+| Página **VOICE 2** con **ALLOC** y **DETUNE** | sí | **ALLOC ya tiene knob** (VOICE 2, 4.º, antes vacío: `ROT`/`REUSE`); **DETUNE sigue sin página** (`voice.c`, `eng_*.c` lo leen, los presets lo escriben) | ALLOC **SÍ**, DETUNE NO | A | **P0** — DETUNE necesita una página más y con 12 B de XIP libres el linker no la acepta (medido) |
 | Página VOICE 2 de QG con **M.STRT / N.RATE** | no la tiene (usa el slot para VEL) | sí | SÍ | B | — |
 | Página **FOCUS** (elegir E1..E8 y apuntarle una ranura MOD) | sí (`GR_FOCUS`) | no | NO | A | P1 |
 | Página **STAGE** (envolvente por etapa + LOOP) | sí (`GR_STAGE`) | LOOP está en ENV DEST; sin página de etapa | SÍ (parcial) | B | P2 |

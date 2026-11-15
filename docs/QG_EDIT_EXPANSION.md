@@ -209,3 +209,13 @@ Escala de dificultad: **B** (bajo, ≤1 archivo y <50 líneas) · **M** (medio, 
 | E10 | VOICE con palabras | A | MA | 8–15 KB | 200–600 B | **sí** |
 | E11 | Progresiones | A | A | 2–3 KB | 0–32 B | **sí** |
 | E12 | ALL TR en SCL K4 | C | B | 0 | 0 | no |
+
+## FASE 3 — lo que se expuso
+
+* **VOICE 2 → ALLOC** (4.º knob, antes `0xFF`): el asignador de voces, `ROT` (rota la más vieja) / `REUSE`
+  (retrigger de la misma voz). El DSP lo leía desde siempre (`voice.c`), la página no lo ofrecía y ningún
+  preset del banco lo usaba para otra cosa. Coste: **0 B de flash y 0 B de RAM** — la imagen sigue en
+  583 600 B exactos, comprobado con `./build.sh`.
+* **DETUNE**: no entró. `P_DETUNE` existe, lo leen los motores y lo escriben los presets, pero exponerlo pide
+  una página nueva (`VOICE 3`) y con 12 B de XIP libres el linker la rechaza (medido: `pi32v2/bin/ld failed`).
+  Queda como el primer control a meter cuando la fase de recuperación de flash libere unos cientos de bytes.

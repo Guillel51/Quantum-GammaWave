@@ -652,8 +652,11 @@ static const page_t PAGES[] = {
     {"OP4 ENV", FAM_EDIT, SC_TRACK, GR_ADSR, {P_FM4_ATK, P_FM4_DEC, P_FM4_SUS, P_FM4_REL}},
     {"OP LEVEL", FAM_EDIT, SC_TRACK, GR_NONE, {P_FM1_LEVEL, P_FM2_LEVEL, P_FM3_LEVEL, P_FM4_LEVEL}},
     {"VOICE", FAM_EDIT, SC_TRACK, GR_NONE, {P_VOICE, P_GLIDE, P_GLMODE, P_PRIO}},
-    {"VOICE 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_MSTART, P_NRATE, P_DXIMG, 0xFF}},   /* (3.5) the note's start scatter and
-                                                 * the random source's rate: how a part varies from note to note */
+    {"VOICE 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_MSTART, P_NRATE, P_DXIMG, P_ALLOC}},   /* (3.5) the note's start scatter and
+                                                 * the random source's rate: how a part varies from note to note; (FASE 3)
+                                                 * the fourth knob is ALLOC, the voice allocator (ROT rotates the oldest /
+                                                 * REUSE retriggers the same voice), which the DSP has always read
+                                                 * (voice.c) and no page offered: it took the slot that was left empty */
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, G_TUNE}},
     {"SYSTEM", FAM_GLO, SC_GLOBAL, GR_NONE, {G_TRKS, G_LOADP, G_ROUTE, G_INFO}},   /* (0.6.18) TRACKS 4 / 6; (0.6.30)
                                                          * LOAD ECO / LITE / FULL (the USB card: the header's icon) */
