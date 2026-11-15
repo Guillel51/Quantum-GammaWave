@@ -1,3 +1,24 @@
+## Sin publicar — 2026-11-15 — FASE 6 (visual): los mini knobs de HOME son un dial, no un polígono de puntos
+
+### Interfaz
+
+- **`gw_mini_bakelite_knob` reescrito.** Apilaba cuatro `cv_disc` y pintaba el valor con un píxel cada `1/(5r)` de
+  vuelta: a r = 9 el aro salía poligonal, el arco eran seis motas sueltas (las cian en las 12, 3, 6 y 9) y la aguja,
+  dibujada hasta `r-2` atravesando el bisel, dejaba una púa blanca sobre el aro y un hueco en el medio. Además cada
+  fila sin cuerda escribía un píxel suelto arriba y abajo, que es el "desperfecto" del primer knob.
+- Ahora se dibuja por **líneas de barrido** entre dos círculos: aro, bisel y cara son un círculo real en cualquier
+  radio, la cara lleva **rampa vertical** (claro arriba, sombra al pie) para que el knob tenga volumen en 16 bits, el
+  valor es un **arco continuo** de 1 px sobre el aro, la aguja termina **dentro** de la cara con su cabeza en el
+  acento, y el borde exterior lleva un tono mezclado para que la silueta no tenga púas. Nada de píxeles sueltos.
+- Todo sigue saliendo de `ux_mix` sobre tokens de paleta: en GREY y MONO el knob es gris neutro (0 píxeles fuera de
+  gris en el barrido).
+
+### Verificación (host)
+
+- `ui_render` 189 pantallas × 22 paletas: **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles
+  GREY / MONO fuera de gris, **3 400 410 mediciones de alineación con 0 desalineaciones**.
+- `theme_test`: todas las paletas pasan, peor margen **4,08:1**.
+
 ## Sin publicar — 2026-11-15 — FASE 3 (diseño): los degradados llegan a los costados y dejan de verse en bandas
 
 ### Interfaz

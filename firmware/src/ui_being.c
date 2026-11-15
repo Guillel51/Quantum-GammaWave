@@ -2174,34 +2174,80 @@ static int32_t gw_filter_resp_y(int32_t ftype, int32_t x, int32_t w, int32_t cut
     return clamp(y_zero - res_pk + att, y_zero - h_max / 2, y_zero + h_max / 2);
 }
 
+/* (FASE 6) THE MINI KNOB, DRAWN AS A DIAL. The version this replaces stacked four `cv_disc` rings and painted
+ * the value as single pixels every 1/(5r) of a turn: at r = 9 the arc came out as a handful of scattered dots
+ * (cyan specks at 12, 3, 6 and 9 o'clock) and the needle, drawn to r - 2 through the bezel, left a white spike
+ * on the rim. This is scanline work instead: the rim and the bezel are filled row by row between two circles,
+ * so the outline is a circle at every radius and not a polygon; the body is a vertical ramp (lit at the top,
+ * shaded at the foot) so the knob has depth on a 16-bit panel; the value is a CONTINUOUS arc, one sample per
+ * degree and two pixels thick, so it reads as a stroke; the needle ends inside the face and the centre keeps
+ * its accent dot. Everything is palette tokens through ux_mix, so GREY / MONO stay neutral. */
 static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val256, uint16_t arc_col)
 {
-    /* (FASE 4) A DIAL, NOT A STEPPED POLYGON. The old one stacked four rings built from chords and added a
-     * 24-chord orbit: at r = 7 the outline came out as a rounded square, which is exactly what the panel
-     * showed once the Hearth knobs went from 8 px to 7. It is four concentric discs (outline, bezel, body,
-     * recessed face) from gfx.c's midpoint disc -- a true circle at every radius -- plus the value as a 270
-     * degree arc ON the bezel and a needle from the face, so the value still reads without a squint. */
-    int32_t v = clamp(val256, 0, 256);
-    uint32_t th = (uint32_t)((-384 + v * 768 / 256) * 64);
-    uint16_t bake = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, bg_col(128), 42);
-    uint16_t rim = ux.mono ? T_DIM : ux_mix(T_BG, arc_col, 64);
-    uint16_t face = ux.mono ? bake : ux_mix(bake, T_BG, 46);
-    int32_t nr = r > 3 ? r - 2 : 1;
-    int32_t px1 = cx + (nr * bg_sin(th) >> 15), py1 = cy - (nr * bg_sin(th + 0x4000u) >> 15);
-    int32_t k, steps = r * 5;
-    cv_disc(cx, cy, r + 1, ux.mono ? T_BG : ux_mix(T_BG, T_LINE, 60));  /* the gap that separates it */
-    cv_disc(cx, cy, r, rim);
-    cv_disc(cx, cy, r - 1, bake);
-    cv_disc(cx, cy, r - 2, face);
-    for (k = 0; k <= steps; k++) {                 /* the value, 270 degrees from the bottom left */
+    int32_t v = clamp(val256, 0, 256), dy, k, steps;
+    int32_t r_in = r > 2 ? r - 2 : 1;              /* the face, inside the bezel */
+    uint16_t rim = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, arc_col, 46);
+    uint16_t bez = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, bg_col(128), 38);
+    uint16_t face_hi = (ux.mono || ux.bw) ? T_RAISE : ux_mix(T_BG, bg_col(96), 30);
+    uint16_t face_lo = (ux.mono || ux.bw) ? T_BG : ux_mix(T_BG, T_LINE, 40);
+    /* 1. the rim and the bezel, one scanline each: between the outer circle and the face, and the face itself
+     *    as a vertical ramp. One fill per row, so a 19 px knob is 19 fills and not 300 pixels. */
+    for (dy = -r; dy <= r; dy++) {
+        int32_t yout = 0, yin = 0, t;
+        for (t = r; t >= 0; t--)
+            if (t * t + dy * dy <= r * r) {
+                yout = t;
+                break;
+            }
+        for (t = r_in; t >= 0; t--)
+            if (t * t + dy * dy <= r_in * r_in) {
+                yin = t;
+                break;
+            }
+        if (yout <= 0)
+            continue;                       /* a row outside the circle draws nothing, not a lone pixel */
+        /* the face: the ramp from the lit top to the shaded foot of the bezel's inside */
+        if (dy <= -r_in || dy >= r_in) {
+            uint16_t edge = ux_mix(rim, T_BG, 45);
+            cv_rect(cx - yout, cy + dy, 2 * yout + 1, 1, rim);
+            cv_pset(cx - yout, cy + dy, edge);
+            cv_pset(cx + yout, cy + dy, edge);
+        }
+        else {
+            uint16_t fc = ux_mix(face_hi, face_lo, (dy + r_in) * 100 / (2 * r_in));
+            cv_rect(cx - yout, cy + dy, yout - yin, 1, bez);
+            cv_rect(cx - yin, cy + dy, 2 * yin + 1, 1, fc);
+            cv_rect(cx + yin + 1, cy + dy, yout - yin, 1, bez);
+        }
+    }
+    /* 2. the bezel's lit edge: the top-left two thirds of the ring, one shade lighter, so the knob catches the
+     *    light from the same corner as every plate in the interface */
+    for (k = 0; k <= 40; k++) {
+        uint32_t a = (uint32_t)(-160 + k * 6) * 64u;   /* 11 o'clock .. 3 o'clock */
+        int32_t px = cx + (r * bg_sin(a) >> 15), py = cy - (r * bg_sin(a + 0x4000u) >> 15);
+        cv_pset(px, py, ux_mix(rim, T_TEXT, 45));
+    }
+    /* 3. the value: a continuous arc on the bezel, 270 degrees from the bottom left, two pixels thick, drawn
+     *    only up to the value -- the dial's own reading, no numbers on a 19 px control */
+    steps = 192;
+    for (k = 0; k <= steps; k++) {
         int32_t a256 = -384 + 768 * k / steps;
         uint32_t a;
         if (a256 > -384 + v)
             break;
         a = (uint32_t)(a256 * 64);
-        cv_pset(cx + (r * bg_sin(a) >> 15), cy - (r * bg_sin(a + 0x4000u) >> 15), arc_col);
+        cv_pset(cx + ((r * (int32_t)bg_sin(a)) >> 15),
+                cy - ((r * (int32_t)bg_sin(a + 0x4000u)) >> 15), arc_col);   /* (the product first: a unit
+                                                                             * sine shifted down is only -1/0/1) */
     }
-    cv_line(cx, cy, px1, py1, T_TEXT);
+    /* 4. the needle, from the centre to just inside the face's rim, and the centre's accent dot */
+    {
+        int32_t nr = r_in > 2 ? r_in - 1 : 1;
+        uint32_t th = (uint32_t)((-384 + v * 768 / 256) * 64);
+        int32_t nx = cx + (nr * bg_sin(th) >> 15), ny = cy - (nr * bg_sin(th + 0x4000u) >> 15);
+        cv_line(cx, cy, nx, ny, T_TEXT);
+        cv_pset(nx, ny, ux_mix(T_TEXT, arc_col, 40));   /* its head, a shade of the accent */
+    }
     cv_pset(cx, cy, ux.mono ? T_TEXT : T_ACCENT);
 }
 
