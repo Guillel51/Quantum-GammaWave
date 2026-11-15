@@ -54,3 +54,34 @@ La vía «comprimir los assets» está cerrada por medición: los tres candidato
 * Eso acota el objetivo realista: se puede regenerar una de las tres fuentes (~5-9 KB de RAM) o una parte de
   `WT_DATA`, no todo. Es un trabajo de una sesión por pieza, con los 293 renders y las 189 pantallas × 22
   paletas como prueba de que no cambia un píxel ni una muestra.
+
+## 6. Dos experimentos más, los dos a cero
+
+Buscando bytes sin escribir código nuevo, probé dos cosas más y las dos dieron exactamente cero:
+
+| Prueba | Medición |
+|---|---|
+| `-fmerge-all-constants` añadido a `CFLAGS` (fusionar constantes idénticas) | imagen **583 600 B**, idéntica: el linker ya las fusiona, o los cuerpos no son idénticos porque cada descriptor lleva su nombre |
+| Descriptores de parámetro duplicados a mano en `params.c` | hay **6 repetidos** (`FILTER`, `PITCH`, `SHAPE`, `GATE`, `SWING` y uno más), 192 B si se fusionaran — pero la tabla `PDESC` es un array **de structs**, no de punteros: convertirla a punteros costaría 125 × 4 = 500 B de punteros para ahorrar 192. No sale |
+
+`-fmerge-all-constants` no se quedó en el build: no aporta y es una opción que cambia la identidad de
+direcciones, así que no se adopta sin ganancia medida.
+
+## 7. Lo que esto significa para la etapa de optimización
+
+Con estos cinco resultados (FIR ya espejado, keycaps sin redundancia, fuentes a 4 bpp, `-Os` peor por 33 KB,
+constantes ya fusionadas), la conclusión de la etapa 1 es que **el firmware actual no tiene recursos que
+liberar por compresión ni por flags**. Lo que queda es cambiar el modelo: guardar menos y calcular más.
+
+Y ahí aparece el círculo que hay que resolver primero, porque es el bloqueo real de todo lo demás: cualquier
+generador en el arranque es **código nuevo**, y para que ese código entre hace falta flash libre. Con 12 B
+libres no entra ni el bucle que lo haría. La primera pieza tiene que ser, entonces, una cesión explícita de
+una de estas tres cosas:
+
+1. **RAM por flash**: mover una tabla a `.bss` y regenerarla al arrancar (hay 10 156 B de RAM; `AF_L` son
+   4 270 B), aceptando el coste de arranque.
+2. **Un matiz de calidad**: bajar las fuentes a 3 bpp (~5 KB) y verlo en el antialias del texto.
+3. **Más flash**: cambiar el mapa de memoria o el chip, que es una decisión de hardware y no de firmware.
+
+Sin una de esas tres, la etapa 1 está terminada en lo que respecta a liberar recursos, y las etapas 2 a 7 no
+tienen dónde meterse.
