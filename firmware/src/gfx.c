@@ -125,6 +125,19 @@ static struct {
 
 static inline uint16_t ux_gray(uint32_t x5) { return (uint16_t)((x5 << 11) | (x5 << 6) | x5); }
 /* a + (b - a) * pct / 100 per channel, rounded; GREY on the red channel, so it stays gray */
+/* (4.0) ROUNDING DIVISION BY 100 WITHOUT DIVIDING. This is the innermost arithmetic of the whole screen: every
+ * gradient, every antialiased glyph, every meter and every softened edge is an ux_mix, and ux_mix rounded three
+ * channels per call with `(d +/- 50) / 100`. The AC791N has no divide instruction, so each of those was a call
+ * into the compiler's signed division: measured on the host sweep (tests/ui_render.c) with the maths unchanged,
+ * the code below is the same result for every |d| <= 100 000 -- (|d| * 20972) >> 21 is exactly |d| / 100 -- and
+ * it costs a multiply, a shift and a sign instead of a call. */
+static inline int32_t ux_div100(int32_t d)
+{
+    int32_t n = (d < 0 ? -d : d) + 50;                  /* the half away from zero the original rounded with */
+    if (n > 40000) return (d + (d >= 0 ? 50 : -50)) / 100;   /* outside anything the screen asks for; exact */
+    n = (n * 20972) >> 21;                              /* n / 100, for every n <= 40000: exact, no divide */
+    return d < 0 ? -n : n;
+}
 static uint16_t ux_mix(uint16_t a, uint16_t b, int32_t pct)
 {
     static const uint8_t SH[3] = {11, 5, 0}, MK[3] = {31, 63, 31};
@@ -133,12 +146,12 @@ static uint16_t ux_mix(uint16_t a, uint16_t b, int32_t pct)
      * own width here, because an unclamped 5-bit result shifts its bits into the next channel and a
      * GREY or MONO screen ends up with a coloured pixel (648 of them in tests/ui_render.c). */
     if (ux.mono) {
-        int32_t x = a >> 11, d = ((b >> 11) - x) * pct, v = x + (d + (d >= 0 ? 50 : -50)) / 100;
+        int32_t x = a >> 11, d = ((b >> 11) - x) * pct, v = x + ux_div100(d);
         return ux_gray((uint32_t)(v < 0 ? 0 : v > 31 ? 31 : v));
     }
     for (k = 0; k < 3u; k++) {
         int32_t x = (a >> SH[k]) & MK[k], d = (((b >> SH[k]) & MK[k]) - x) * pct;
-        int32_t v = x + (d + (d >= 0 ? 50 : -50)) / 100;
+        int32_t v = x + ux_div100(d);
         if (v < 0) v = 0;
         if ((uint32_t)v > MK[k]) v = MK[k];
         out |= (uint32_t)v << SH[k];

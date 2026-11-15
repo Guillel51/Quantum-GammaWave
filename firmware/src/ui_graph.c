@@ -1877,21 +1877,6 @@ static uint16_t heat_col(int32_t v)
      * same colours as GAMMA's, which is what made HOME's five worlds look alike whichever theme was chosen. The
      * ramp is now derived from the palette's own tokens -- cold at 0, the theme and the accent in the middle,
      * the text at 256 -- so a theme that only names five colours still gets a full ramp of its own. */
-    /* (4.0) ONE INDEXED LOOKUP INSTEAD OF A MIX. heat_col is asked for a colour per point: a curve, a gradient
-     * band, a meter, the clouds of the splash and HOME's five worlds all walk it hundreds of times a frame, and
-     * every call used to end in one ux_mix (a palette's own ramp) or seven of them plus two divisions (a derived
-     * one). v is clamped to 0..256, so the whole function is a table of 257 entries: it is built when the palette
-     * or any of its tokens changes and it is a single load after that. The colours are identical -- the table is
-     * filled by the same formulas below, which is why the render sweep's report is unchanged. */
-    static uint16_t lut[257];
-    static uint16_t lut_sig;
-    static uint8_t lut_ok;
-    uint16_t sig = (uint16_t)(T_BG ^ (T_SURF << 1) ^ (T_THEME << 2) ^ (T_ACCENT << 3) ^ (T_TEXT << 4) ^
-                              (uint16_t)(settings.palette * 2654435761u) ^ (ux.chamfer ? 0x5A5Au : 0xA5A5u));
-    if (lut_ok && sig == lut_sig) {
-        v = clamp(v, 0, 256);
-        return lut[v];
-    }
     uint16_t own[7];
     int32_t k;
     if (!R) {
@@ -1904,18 +1889,11 @@ static uint16_t heat_col(int32_t v)
         own[6] = T_TEXT;
         R = own;
     }
-    for (k = 0; k <= 256; k++) {
-        if (!ux.chamfer)
-            lut[k] = k < 128 ? ux_mix(T_SURF, T_ACCENT, k * 100 / 128) : ux_mix(T_ACCENT, T_TEXT, (k - 128) * 100 / 128);
-        else {
-            int32_t j = k * 6 / 257;
-            lut[k] = ux_mix(R[j], R[j + 1], (k * 6 - j * 256) * 100 / 256);
-        }
-    }
-    lut_sig = sig;
-    lut_ok = 1;
     v = clamp(v, 0, 256);
-    return lut[v];
+    if (!ux.chamfer)
+        return v < 128 ? ux_mix(T_SURF, T_ACCENT, v * 100 / 128) : ux_mix(T_ACCENT, T_TEXT, (v - 128) * 100 / 128);
+    k = v * 6 / 257;
+    return ux_mix(R[k], R[k + 1], (v * 6 - k * 256) * 100 / 256);
 }
 
 /* DRUM (DRUM-X): the eight sounds as columns, each as high and as hot as its hit now (a muted one crossed); the MORPH
