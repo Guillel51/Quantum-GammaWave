@@ -513,7 +513,7 @@
             <li>No hay actualización A/B ni rollback autónomo del bootloader.</li>
             <li>Un corte de energía durante la escritura puede dejar el equipo en modo actualización; no hay recuperación independiente verificada.</li>
             <li>Volver al firmware oficial V15 es posible, pero también pasa por el mismo puerto y el mismo riesgo físico.</li>
-            <li>No se validó en hardware físico en este entorno. El emulador no prueba el comportamiento eléctrico del FM-1.</li>
+            <li>Probado en <b>tres unidades FM-1</b>, la más nueva con la segunda de las dos piezas de flash admitidas. Es un informe de compatibilidad de esas unidades, no una certificación: lo que se ejercitó y lo que no está en <code>docs/HARDWARE_VALIDATION.md</code> del repositorio. El emulador no prueba el comportamiento eléctrico del FM-1.</li>
           </ul>
           <a class="btn ghost small" style="margin-top:16px" href="webapp/installer/">Abrir instalador verificado</a>
         </aside>
@@ -522,10 +522,10 @@
         <caption class="mono muted" style="text-align:left;padding:18px 0 8px">Compatibilidad declarada</caption>
         <thead><tr><th>Elemento</th><th>Estado</th><th>Verificación</th></tr></thead>
         <tbody>
-          <tr><td>M-VAVE FM-1 / JieLi AC791N</td><td><span class="pill ok">SÍ</span></td><td>Toolchain y mapa del SDK; build target reproducible.</td></tr>
+          <tr><td>M-VAVE FM-1 / JieLi AC791N</td><td><span class="pill ok">SÍ</span></td><td>Toolchain y mapa del SDK; build target reproducible; firmware ejecutado en tres unidades reales.</td></tr>
           <tr><td>Web Emulator</td><td><span class="pill ok">SÍ</span></td><td>Compila el mismo firmware y compara el DSP nativo bit a bit.</td></tr>
           <tr><td>Web Studio por Web MIDI</td><td><span class="pill ok">SÍ</span></td><td>Protocolo y dispositivo simulado en la suite web.</td></tr>
-          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Firma, integridad, plan y loader probados en host, sin unidad física: los dos chips están permitidos por el código, no medidos en hardware.</td></tr>
+          <tr><td>Instalador USB</td><td><span class="pill part">CONDICIONADO</span></td><td>Integridad, plan y loader probados en host; tres FM-1 reales corrieron el firmware, una con la segunda pieza de flash. Sin recuperación autónoma ni campaña de escritura por pieza.</td></tr>
           <tr><td>Recuperación tras brick</td><td><span class="pill no">NO VERIFICADA</span></td><td>Requiere bootloader/partition support que este proyecto no modifica.</td></tr>
         </tbody>
       </table>

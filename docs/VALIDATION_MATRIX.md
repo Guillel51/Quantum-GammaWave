@@ -1777,3 +1777,13 @@ their own readings. Rows 8–11 (backup, recovery, protected write paths, stress
 The Firmware Hub asks a submitter to state that the release was installed on a real FM-1 and that
 leaving it works. The first half is now the owner's to state; the second half (leaving again) is a
 separate claim and is **not** covered by this note.
+
+## An 3.4.0 — hardware validation, as reported
+
+| Check | Label | Result |
+|-------|-------|--------|
+| Three M-VAVE FM-1 units run the firmware, the newer one with `UCUN UC25HQ80` (`0xB36014`); the other two with `P25Q80H` (`0x856014`) | `[HW]` | **reported by the owner**; no captured artefact is stored in this tree — see [`HARDWARE_VALIDATION.md`](HARDWARE_VALIDATION.md) |
+| Everything else in this table | `[HOST]` / `[TARGET]` / `[WASM]` | unchanged: the host suite, the AC791N build and the emulator are what this repository can re-run |
+
+An `[HW]` row is a compatibility report about those units, never a measurement of electrical behaviour, and it
+does not turn a `NO-GO` into a `GO`: the recovery and per-part write-stress rows keep their states.

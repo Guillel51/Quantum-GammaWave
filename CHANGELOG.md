@@ -1,3 +1,31 @@
+## v3.4.0 — 2026-11-15 — validado en tres FM-1 reales; ecosistema completo al día
+
+Esta es la entrega que junta el trabajo de motor e interfaz de 3.3.0 (reparto justo de voces y robo,
+acordes en varias pistas, cabecera que no se mueve al cambiar presets, FX > BUSES con su degradado dentro
+de los cuadros, visualizador sin las chispas que caían del centro, mini knobs y tarjetas remaquetados,
+contraste más profundo) con su comprobación en hardware y la puesta al día de todo el ecosistema.
+
+### Hardware real
+
+- **Tres unidades M-VAVE FM-1 corriendo el firmware**, la más nueva con la segunda de las dos piezas de
+  flash que el loader admite (`P25Q80H 0x856014` y `UCUN UC25HQ80 0xB36014`). La compatibilidad con las dos
+  piezas deja de ser una afirmación del código: las dos se han visto en unidades reales.
+- Lo que se ejercitó y, sobre todo, **lo que no se prueba con esto** — sin volcado, sin traza eléctrica, sin
+  recuperación autónoma y sin certificar todas las combinaciones — está escrito en
+  `docs/HARDWARE_VALIDATION.md`, que es el registro de esa validación y no un folleto.
+
+### Ecosistema
+
+- **Una sola versión en todas partes**: `FELUCCA_VERSION`, el paquete, el manifiesto de release, el emulador
+  WASM, `firmware/versions.json`, el instalador, el Web Studio y las páginas del portal dicen 3.4.0.
+- **README y documentación** al día: qué es el instrumento, qué trae 3.4.0, la sección de hardware con las
+  tres unidades, y la lista de lo que este proyecto no afirma, reescrita para no contradecir la validación.
+- **Capturas nuevas**: HOME, FX > BUSES, visualizador y el resto de la galería se regeneran de los renders
+  del propio firmware (`tools/fw_shots.py`), así que el portal muestra la interfaz de esta versión y no una
+  anterior. Las imágenes retiradas salen del sitio y del repositorio.
+- **Comprobado contra lo publicado**: `coherence_check` (paquete, manifiesto, sitio, emulador y sumas
+  SHA-256 en acuerdo) y `site_check` contra la URL pública, con el commit y el hash del paquete esperados.
+
 ## v3.3.0 — 2026-11-15 — voces justas, acordes en varias pistas, una barra que no se mueve
 
 ### Fixed

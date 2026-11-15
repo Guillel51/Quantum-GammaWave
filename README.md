@@ -27,14 +27,34 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v3.2.3` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v3.4.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 - **What it is, first.** A free firmware for the **M-VAVE FM-1**: six tracks, twelve voices, nine synthesis
   engines and **273 factory sounds** (275 entries: two legacy DRUM kits stay for old projects), a 64-step sequencer with an arpeggiator and song chains, per-track and
   per-bus effects, and an interface of 22 palettes on a 240 × 240 panel. It plays from the keys, edits from the
   encoders, and the browser emulator and Web Studio need no install.
-- **One version everywhere.** `FELUCCA_VERSION` (`v3.2.3`), the package, the emulator the portal serves and
+- **One version everywhere.** `FELUCCA_VERSION` (`v3.4.0`), the package, the emulator the portal serves and
   `firmware/versions.json` name the same build; the installer checks its SHA-256 and its size before it writes.
+- **Tested on three FM-1 units, one with the newer flash part.** The firmware has run on three physical
+  M-VAVE FM-1, the newer one carrying the second of the two SPI NOR parts the loader accepts (P25Q80H
+  `0x856014` and UCUN UC25HQ80 `0xB36014`). That is a compatibility statement about those units, not a
+  certificate: what was exercised and what was not is written down in
+  [`docs/HARDWARE_VALIDATION.md`](docs/HARDWARE_VALIDATION.md).
+- **Twelve voices, shared fairly, and chords on several tracks at once.** The pool is one budget for six
+  parts; it used to go to whoever played first, so the next track's chord paid for it. A candidate that would
+  leave its part above its proportional share now goes after one that would not, and a key pressed a couple of
+  blocks ago is the last thing to lose. Voices, envelopes, engines and effects stay per track.
+- **A header that cannot be moved by a preset load.** The top row used to re-lay itself around every message
+  (play state, metronome, BPM and lock replaced by text); it now keeps its places and the message takes the
+  right slot, so loading a sound while playing leaves the instrument's face where it was.
+- **FX > BUSES wears its own light.** Every block of the routing console carries the panel's ramp inside
+  its body, a theme-warmed bezel and a lit top edge, so the boxes read as part of the page instead of grey
+  plates over a gradient.
+- **Deeper contrast, same backlight.** Surfaces are the palette's own SURF shaded down 10 % (a shade keeps
+  the hue where a mix flattens it), with the derived tones a step darker; text, theme and accent untouched.
+  GREY and MONO keep their exact grey line.
+- **The visualizer no longer rains on itself.** The note sparks born in the middle of the scope field and
+  dropped by the pool's gravity are gone; the embers, the Milky Way, the stars and the two worlds stay.
 - **Solar Heat on every screen.** A single call in the shared chrome gives all 189 screens the panel's
   gradient (`graph_ground_ramp` → `ux_ground_ramp`): 8 bands from the panel colour toward the warm accent, 20 %
   dark palettes, 8 % light ones. HOME and the sequencer keep the ramp they already had.
@@ -264,11 +284,16 @@ sh web/emu/build.sh
 
 ## What this project does not claim
 
-- No measurement on a physical FM-1 is part of this repository. The firmware is built with the AC791N
-  toolchain and its behaviour is checked on the host and in the emulator; stack depth, interrupt timing and
-  audio headroom **on the unit** are not measured here.
-- Twelve voices are validated by the host suite and the static CPU budget, not by listening on hardware.
-- Both flash parts are allowed by the code, not measured on hardware.
+- **What the physical units prove and what they do not.** Three M-VAVE FM-1 units have run this firmware,
+  the newer of the three with the second of the two accepted SPI NOR parts (owner's report, recorded in
+  [`docs/HARDWARE_VALIDATION.md`](docs/HARDWARE_VALIDATION.md)). No captured artefact from those units -- dump,
+  scope trace, recording -- is stored in this repository, so treat it as a compatibility report, not as a
+  measurement you can reproduce from the tree. Stack depth, interrupt timing and audio headroom **on the unit**
+  are still not measured here.
+- Both flash parts are accepted by the code and have been seen in the field on those three units; the write
+  path is the same for both and no per-part stress campaign is claimed.
+- Twelve voices are validated by the host suite and the static CPU budget as well as by playing on those
+  units; no blind listening test of the stealing order is claimed.
 - No secure boot, no DRM, no vendor material in the packages.
 
 ## Credits and licence
