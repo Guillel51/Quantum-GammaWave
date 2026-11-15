@@ -56,7 +56,9 @@ static void draw_load(int32_t x)
 {
     uint32_t k, n = head_load();
     for (k = 0; k < 5u; k++) {
-        uint16_t c = k < n ? (ux.chamfer ? heat_col(30 + (int32_t)k * 50) : T_MID) : T_RAISE;
+        /* (FASE 4) the load's five cells carry Solar Heat as a ramp in every palette, not only in the ones with
+         * the chamfer: a flat T_MID row read as five identical dots and hid how much of the block was used. */
+        uint16_t c = k < n ? heat_col(30 + (int32_t)k * 50) : T_RAISE;
         cv_rect(x, H_HEAD - 6 - (int32_t)k * 3, 3, 2, c);   /* (3.9) hung off the bar's height, not a row */
     }
 }
