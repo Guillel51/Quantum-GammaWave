@@ -46,11 +46,6 @@
 - **The right scope of the visualizer is always drawn.** It was gated behind a peak threshold, so a quiet
   passage left the reticle empty; it scales to its own signal now and shows a still point in silence. HOME's
   background trace is drawn under the data at two pixels and in the theme's ramp instead of over it at one.
-- **The colour of a point costs a load, not a mix.** `heat_col` is asked for a colour per point — curves,
-  gradients, meters, the splash's clouds — and it used to end in one palette mix, or seven plus two divisions for
-  a derived ramp. It is a 257-entry table rebuilt only when the palette changes now: the render sweep went from
-  79.4 s to 25.7 s for the same 189 screens × 22 palettes (home 4.4×, mixer 4.8× faster per screen) with every
-  frame byte-identical.
 - **The installer boots the device instead of showing it.** The page loads the same `felucca.wasm` the
   emulator runs, powers it on and draws the panel at the device's own clock: the splash, the sweep, the screen it
   lands on, with a replay control. It stops after the boot, and never runs while it is off screen or the tab is
