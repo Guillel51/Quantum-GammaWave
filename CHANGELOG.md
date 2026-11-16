@@ -1,3 +1,26 @@
+## v1.3.0 — la página FX con el panel entero
+
+La primera página de FX usaba 98 de las 122 filas del panel: los cuatro cuadros medían 62 px y los tres
+módulos de abajo se apiñaban en una franja de 28, mientras las filas 99..121 quedaban vacías. Ahora el
+panel llega hasta el final y todo lo que hay dentro es más grande.
+
+### Lo que cambió
+- **Los cuatro cuadros de envío: 54 × 75** (eran 53 × 62). El nombre va arriba, el valor debajo, el
+  icono bajo el valor y la etiqueta del tipo al pie, así que el medidor se queda la columna derecha
+  entera en vez de compartirla con el texto.
+- **Los medidores están dentro de su cuadro y son más grandes**: 16 × 49 px de pista con la barra de
+  plasma de 12 px (eran 10 × 42 dentro de una pista de 12). Los cuatro arrancaban en `cx + 43` sobre un
+  cuadro de 53 px, o sea que colgaban 2 px por fuera del borde: eso era lo que se veía "corrido". Ahora
+  `mx = cx + 35` y `35 + 16 + 3 = 54`, el ancho del cuadro, en los cuatro y con el mismo margen.
+- **Los tres módulos de abajo (EQ / DEPTH / SLICER): 76 × 39** (eran 72 × 28) y bajaron a las filas
+  82..120. La barra pasó de 26 × 3 px a la mitad derecha de una línea a **68 × 9 px** bajo el valor, que
+  es lo que hace legible de un vistazo la posición del EQ, el recorrido de DEPTH y los 16 pasos del
+  SLICER. DEPTH se dibuja como un relleno continuo (es una compuerta 0..100 %) y el SLICER conserva sus
+  16 pasos, que ahí sí son el tema.
+- **Verificado en el barrido de renders (host x86)**: 190 pantallas × 22 paletas, **0 hallazgos de
+  lint**, 0 tintas sobre su propio color, 0 píxeles fuera de gris en GREY/MONO, y **0 desalineaciones
+  de 3 894 154 medidas**. Ninguna otra página se movió.
+
 ## v1.2.7 — el paquete, el sitio, el instalador y el emulador al día
 
 Lo que la v1.2.6 dejó como build de trabajo ahora es un release completo: un paquete con su manifiesto,

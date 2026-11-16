@@ -845,25 +845,33 @@ static void graph_fx(const track_t *t, uint16_t c)
         meter_trk = (int32_t)(t - trk);
     }
 
-    cv_rrect(4, 2, 232, 66, 6, T_SURF, T_BG);
+    /* (1.3) THE PANEL USES ITS WHOLE HEIGHT, and every meter sits inside its card. The four cards were 62 px tall
+     * inside a plate that stopped at row 68, and the three modules filled a 28 px strip under them: rows 99..121
+     * were empty while the page's meters were the narrowest on the instrument. The cards are 80 tall now (4..84),
+     * the plate follows them, the modules are 30 tall and live in the rows the page was wasting (88..118), and
+     * mx is cx + 39: the old track started at cx + 43 and was 12 px wide on a 53 px card, so all four bars hung
+     * two pixels past the card's edge -- the "corridos" the owner saw. 39 + 12 + 3 = 54, the card's own width. */
+    cv_rrect(3, 2, 234, 79, 6, T_SURF, T_BG);
     /* (1.2.6) THE PANEL IS THE CONSOLE'S GRADIENT, like FX > BUSES' (fxb_grad): the plate's own ramp is a light
      * bevel, and on this page the owner read it as a flat box next to a screen that is a gradient. ux_ground_rows
      * walks the accent from 10 to 45 % over the panel's height, solid, so the page's light comes from below. */
-    ux_ground_rows(6, 3, 228, 63, 22, 62, 10, 45, 3, 66, 100);
+    ux_ground_rows(5, 3, 230, 77, 22, 62, 10, 45, 3, 81, 100);
     for (i = 0; i < 4u; i++) {
-        int32_t cx = 7 + (int32_t)i * 56;
+        int32_t cx = 6 + (int32_t)i * 57;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
-        int32_t mx = cx + 43, my = 18, mh = 42;
+        int32_t mx = cx + 35, my = 17, mh = 49;
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         char num[8];
 
-        cv_rrect(cx, 4, 53, 62, 5, T_SURF, T_BG);
-        ux_ground_rows(cx + 2, 5, 49, 60, 22, 62, 10, 45, 5, 65, 100);   /* (1.2.6) its own gradient */
+        cv_rrect(cx, 4, 54, 75, 5, T_SURF, T_BG);
+        ux_ground_rows(cx + 2, 5, 50, 73, 22, 62, 10, 45, 5, 78, 100);   /* (1.2.6) its own gradient */
         /* (1.2.6) its texts sit on the gradient now, not on a flat T_SURF: the background they are blended over is
          * the ramp's own colour at that row, or the letters would be drawn on a tone they are not lying on. */
-        cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, ux_ground_at(0, 60, 10, 45));   /* the whole name, on its own line */
-        cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, ux_ground_at(12, 60, 10, 45));
+        cv_text_on(cx + 3, 6, &AF_S, FX_LABELS[i], T_TEXT, ux_ground_at(1, 73, 10, 45));   /* the whole name, on its own line */
+        /* (1.3) the value owns the card's left column and the icon sits under it: with the meter 16 px wide the
+         * value could not stay right-aligned to it without running into the icon (the old pair was 12 px apart). */
+        cv_icon_on(cx + 3, 33, 12, FX_ICON[i], T_MID, ux_ground_at(28, 73, 10, 45));
         /* (3.1) the four sends are MIDI 0..127 inside (presets, automation, the DSP's own maths keep
          * that range) and 0..100 % on screen: the conversion happens here, once, for the label. */
         fmt_int(num, (val * 100 + 63) / 127);
@@ -871,9 +879,11 @@ static void graph_fx(const track_t *t, uint16_t c)
         /* (3.2) right-aligned to the meter's left edge, not drawn from a fixed x: "100 %" is one
          * glyph wider than "99 %" and the old fixed x put its % over the meter's column (the
          * owner's overflow). 2 px of air, whatever the value, on every palette and style. */
-        cv_text_r(mx - 2, 18, &AF_S, num, val ? T_TEXT : T_DIM, ux_ground_at(13, 60, 10, 45));
-        cv_text_on(cx + 3, 40, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
-                   i == 0 ? T_ACCENT : T_DIM, ux_ground_at(35, 60, 10, 45));
+        cv_text_on(cx + 3, 18, &AF_S, num, val ? T_TEXT : T_DIM, ux_ground_at(13, 73, 10, 45));
+        /* (1.3) the type / SEND label moved down with the card: it was at y 40 on a 62 px card and is at 71 on an
+         * 80 px one, so the meter gets the rows between the value and it instead of the label splitting them. */
+        cv_text_on(cx + 3, 66, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
+                   i == 0 ? T_ACCENT : T_DIM, ux_ground_at(61, 73, 10, 45));
         if (lvl >= 6800)                              /* (3.6) this bus is at full scale: it clips now */
             cv_rect(cx + 47, 6, 3, 3, T_ACCENT);
         else if (lvl > 64)                            /* (3.6) this bus is producing sound now: its own
@@ -891,67 +901,70 @@ static void graph_fx(const track_t *t, uint16_t c)
          * follows the real level with an immediate attack and a ~4-frame release, hold[i] keeps its
          * highest point for 30 frames and then falls a pixel a frame, and one thin tick marks what the
          * bus actually receives. Every figure is the DSP's own. */
-        cv_rect(mx, my, 12, mh, T_BG);                /* the track */
+        cv_rect(mx, my, 16, mh, T_BG);                /* the track: 16 of the card's 54 px, 3 px from its edge */
         {   /* (3.7) HOME's own meter: the segmented plasma bar, with the same attack/decay ballistics */
             int32_t target = clamp(lvl * 255 / 7000, 0, 255);
             uint16_t heat0 = i == 0 ? 60u : (uint16_t)(96u + (uint32_t)i * 24u);
-            gw_plasma_bar(mx + 1, my, 10, mh, 8, fx_meter_step(&vu[i], &hold[i], &hold_t[i], target, 255), heat0);
+            gw_plasma_bar(mx + 2, my, 12, mh, 8, fx_meter_step(&vu[i], &hold[i], &hold_t[i], target, 255), heat0);
         }
         if (i && inpx > 0)                            /* what the bus receives, over the return */
-            cv_rect(mx + 4, my + mh - inpx, 4, 1, T_MID);
+            cv_rect(mx + 6, my + mh - inpx, 4, 1, T_MID);
         if (lvl >= 6800)                              /* full scale: the head of the meter clips */
-            cv_rect(mx + 1, my, 10, 2, T_ACCENT);
+            cv_rect(mx + 2, my, 12, 2, T_ACCENT);
     }
 
-    /* the three master modules, 72 px wide and 28 tall (70 .. 98). The icon and the module's name sit on
-     * the first line, its value at the left of the second and the bar at the right of it: label and value
-     * on the same line did not fit (the lint measured EQ 23..37 against BYPASS 31..71), and AF_S is the
-     * smallest ink the panel has. Every figure is the global the DSP reads. */
+    /* (1.3) THE THREE MASTER MODULES ARE 76 x 30 AND SIT IN THE ROWS THE PAGE WAS WASTING (88 .. 118). They were
+     * 72 x 28 at 70 .. 98, with the bar squeezed into the right half of the second line (26 x 3 px). Now the value
+     * has its own line and the bar runs the module's whole width under it (68 x 5), which is what makes EQ's
+     * position, DEPTH's 22 steps and SLICER's 16 steps readable at a glance. The icon and the module's name stay on
+     * the first line: label and value on one line did not fit (the lint measured EQ 23..37 against BYPASS 31..71).
+     * Every figure is the global the DSP reads. */
     {
-        static const int32_t MX3[3] = {4, 82, 160};
+        static const int32_t MX3[3] = {3, 82, 161};
         static const uint16_t IC[3] = {ICON_TONE, ICON_LEVEL, ICON_STEPS};
         static const char *const NM[3] = {"EQ", "DEPTH", "SLICER"};
         uint32_t m;
         char vb[12];
         for (m = 0; m < 3u; m++) {
-            cv_rrect(MX3[m], 70, 72, 28, 3, T_SURF, T_BG);
-            ux_ground_rows(MX3[m] + 2, 71, 68, 26, 22, 62, 10, 45, 71, 97, 100);   /* (1.2.6) the bottom row too */
-            cv_icon_on(MX3[m] + 4, 72, 12, IC[m], T_MID, ux_ground_at(1, 26, 10, 45));
-            cv_text_on(MX3[m] + 19, 72, &AF_S, NM[m], T_DIM, ux_ground_at(1, 26, 10, 45));
-            cv_rect(MX3[m] + 42, 90, 26, 3, T_BG);        /* the bar's track, right of the value */
+            cv_rrect(MX3[m], 82, 76, 39, 3, T_SURF, T_BG);
+            ux_ground_rows(MX3[m] + 2, 83, 72, 37, 22, 62, 10, 45, 83, 119, 100);   /* (1.2.6) the bottom row too */
+            cv_icon_on(MX3[m] + 4, 83, 12, IC[m], T_MID, ux_ground_at(0, 37, 10, 45));
+            cv_text_on(MX3[m] + 19, 83, &AF_S, NM[m], T_DIM, ux_ground_at(0, 37, 10, 45));
+            cv_rect(MX3[m] + 4, 108, 68, 9, T_BG);        /* the bar's track, under the value */
         }
         /* EQ: its mode (N_EQMODE) and the gain it applies; BYP when off, so the box never reads as on */
         {
             uint32_t em = (uint32_t)clamp(song.g[G_EQMODE], 0, 4);
             int32_t gdb = (int32_t)clamp(song.g[G_EQGAIN], -24, 24);
-            int32_t px = (gdb + 24) * 26 / 48;            /* -24 .. +24 dB across the 26 px bar */
+            int32_t px = (gdb + 24) * 62 / 48;            /* -24 .. +24 dB across the 68 px bar, marker 3 wide */
             if (em) {
                 str_cpy(vb, N_EQMODE[em], sizeof vb);
-                cv_text_on(MX3[0] + 4, 85, &AF_S, vb, T_THEME, ux_ground_at(14, 26, 10, 45));
-                cv_rect(MX3[0] + 42 + px, 90, 2, 3, T_ACCENT);   /* where the gain sits, off centre = not flat */
+                cv_text_on(MX3[0] + 4, 95, &AF_S, vb, T_THEME, ux_ground_at(12, 37, 10, 45));
+                cv_rect(MX3[0] + 4 + px, 108, 3, 9, T_ACCENT);   /* where the gain sits, off centre = not flat */
             } else {
-                cv_text_on(MX3[0] + 4, 85, &AF_S, "BYP", T_DIM, ux_ground_at(14, 26, 10, 45));
-                cv_rect(MX3[0] + 54, 90, 2, 3, T_DIM);    /* flat, 0 dB: the centre of the bar */
+                cv_text_on(MX3[0] + 4, 95, &AF_S, "BYP", T_DIM, ux_ground_at(12, 37, 10, 45));
+                cv_rect(MX3[0] + 4 + 31, 108, 3, 9, T_DIM);  /* flat, 0 dB: the centre of the bar */
             }
         }
-        /* DEPTH: the slicer's gate (song.g[G_SLDEP], 0..127) and the bar for its travel */
+        /* DEPTH: the slicer's gate (song.g[G_SLDEP], 0..127), filled across the module's own bar. (1.3) It was 22
+         * hairline segments in 26 px; at 68 px the same travel is one continuous fill, which is what a 0..100 %
+         * gate is -- the segmented read-out belongs to SLICER's 16 steps, where the steps are the subject. */
         {
-            int32_t d = clamp(song.g[G_SLDEP], 0, 127), seg;
+            int32_t d = clamp(song.g[G_SLDEP], 0, 127), w = d * 68 / 127;
             fmt_int(vb, d * 100 / 127);
             str_cpy(vb + str_len(vb), "%", 2);
-            cv_text_r(MX3[1] + 40, 85, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(14, 26, 10, 45));   /* (3.2) clear of its bar */
-            for (seg = 0; seg < 13; seg++)
-                if (seg * 10 < d * 26 / 127 * 10 / 5)
-                    cv_rect(MX3[1] + 42 + seg * 2, 90, 2, 3, song.g[G_SLMODE] ? T_THEME : T_DIM);
+            cv_text_on(MX3[1] + 4, 95, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(12, 37, 10, 45));
+            if (w > 0)
+                cv_rect(MX3[1] + 4, 108, w, 9, song.g[G_SLMODE] ? T_THEME : T_DIM);
         }
         /* SLICER: OFF / GATE / STUT, and its 16 steps lit at the one running (slicer.c sl.idx) */
         {
             uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k;
             str_cpy(vb, N_SLCR[sm], sizeof vb);
-            cv_text_on(MX3[2] + 4, 85, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(14, 26, 10, 45));
+            cv_text_on(MX3[2] + 4, 95, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(12, 37, 10, 45));
             if (sm)
-                for (k = 0; k < 16u; k++)                 /* 16 steps in 26 px: a 1 px step, 1 px apart */
-                    cv_rect(MX3[2] + 42 + (int32_t)k * 2, 90, 1, 3, k == (sl.idx & 15u) ? T_ACCENT : T_RAISE);
+                for (k = 0; k < 16u; k++)                 /* 16 steps in 68 px: a 3 px step, 1 px apart */
+                    cv_rect(MX3[2] + 4 + (int32_t)k * 4, 108, 3, 9, k == (sl.idx & 15u) ? T_ACCENT : T_RAISE);
         }
     }
 }
