@@ -46,6 +46,9 @@
 #                   hits whole, one chance roll, swing, no slide or tie out, STOP), FUN8 round trip and older projects x1,
 #                   user preset patterns, SEQ > CHANCE KNOB 3 and the roll / grid drawing.
 # FASE 2 (tests/phase2_test.c): the engine CHARACTER bank, LFO SHAPE, ENV VEL, their pages and a project round trip.
+# PATTERN LEN (tests/pattern_len_test.c): LEN is per track (src/seq.c P_SLEN): a 4-step and a 6-step pattern wrap
+#                   on their own step 0 in the same 60 steps, a project keeps 5 / 7 / 12 / 64 per track, and a track
+#                   that never set it loads 16.
 # MOD (tests/mod_test.c): the modulation matrix: slots that do nothing are bit-identical, every source on each
 #                   kind of destination, clamping, MIDI CC1 / CC11 / aftertouch routing, the cost of 4 active
 #                   slots (at most +5 %), demos in build/mod_demo/.
@@ -209,6 +212,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "TRACKS: 4-track pattern, live recording (lengths, swing), voice budget, engine switch, cost" env TRACKS=build/tracks_demo "$OUT/hostsim" 0 0 1 "$OUT/tracks.wav"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/project_test" tests/project_test.c -lm
     run "project formats (FUN1..FUN5 -> FUN6, the grid and song chain; DIGITAL tracks -> FM6, SAMPLE PERC -> DRUM)" "$OUT/project_test"
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/pattern_len_test" tests/pattern_len_test.c -lm
+    run "pattern length per track (LEN 4 and 6 wrap on their own step 0; 5 / 7 / 12 / 64 through a project)" "$OUT/pattern_len_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/motion_test" tests/motion_test.c -lm
     run "motion, whole-step chance, FUN7 migration, song restore, ARP repeat and the 1.2 ARP modes" "$OUT/motion_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_audible_test" tests/morph_audible_test.c -lm
@@ -417,7 +422,7 @@ else
         $SCC -DOWN_PKG=1 -o "$A/ota_test" tests/ota_test.c
         run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" "$PKG"
     fi
-    for t in editor_test project_test backup_test robust_test fm6bank_test; do
+    for t in editor_test project_test pattern_len_test backup_test robust_test fm6bank_test; do
         $SCC -o "$A/$t" tests/$t.c -lm
         run "ASan/UBSan: $t" "$A/$t"
     done

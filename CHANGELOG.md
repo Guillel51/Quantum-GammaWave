@@ -1,3 +1,19 @@
+## Sin publicar — 2026-11-15 — Longitud de patrón por pista: verificado y cubierto
+
+### Estado
+
+- **Ya estaba implementado**: `P_SLEN` es un parámetro de cada pista (id 30 de 125, presente desde el primer
+  formato de proyecto) y `seq_tick()` da la vuelta a cada pista con su propio largo. No hay cambio de
+  comportamiento ni de formato en esta entrega, ni hizo falta una migración: un proyecto que no toca LEN lo deja
+  en su default (16) sin escribir nada, y todos los formatos FUN1..FUN6 llevan el parámetro en su sitio.
+
+### Lo que se añade
+
+- **`tests/pattern_len_test.c`**: dos pistas con LEN 4 y 6, 60 pasos de `seq_tick`, cada una da la vuelta en su
+  propio paso 0 (15 y 10 veces); un proyecto FUN6 con LEN 5 / 7 / 12 / 64 vuelve con los cuatro largos por pista;
+  el default es 16 y un proyecto con LEN sin tocar carga 16.
+- Entra en `tests/run_tests.sh` (y en el bucle ASan/UBSan). Documentado en `docs/PATTERN_LENGTH.md`.
+
 ## Sin publicar — 2026-11-15 — PRESETS del Web Studio: categorías, búsqueda y favoritos
 
 ### Revisión y arreglos
