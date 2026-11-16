@@ -183,25 +183,28 @@ static uint8_t sync_reload;                  /* engine / preset / project / user
 #define ACC T_THEME                /* values, curves */
 #define VAL(c) ((c) == ui.hot_col && ui.hot_t ? T_ACCENT : T_THEME)   /* the knob just turned: accent */
 #define RATIO(d, v) ((d)->max > (d)->min ? ((int32_t)(v) - (d)->min) * 1000 / ((d)->max - (d)->min) : -1)
-/* layout: header 0..20, four cards 24..74 (57 px at x 3 + 59 c),
- * the panel 76..198 (a SURF area; the graphs live in it), footer 202..240; BG between them */
+/* layout: header 0..16, four cards 20..76 (57 px wide, 56 tall, at x 3 + 59 c),
+ * the panel 78..200 (a SURF area; the graphs live in it), footer 204..240; BG between them.
+ * (1.0) The two status strips gave four rows back to the cards: the header is a 16 px bar with its 16 px
+ * icons exactly in it, the footer keeps its two lines in 36, and the four cards -- the surface the hand
+ * works on -- grew by six. */
 #define Y_HEAD 0
-#define H_HEAD 20                     /* (3.5) the top bar is a status strip, not a page: two rows more to the cards */
-#define Y_LABEL 24                    /* the cards */
-#define Y_SEP_END 74
+#define H_HEAD 16                     /* (1.0) a status strip, not a page: its glyphs are 16 px */
+#define Y_LABEL 20                    /* the cards */
+#define Y_SEP_END 76
 #define CARD_W 57
-#define CARD_H 50                     /* (3.5) four rows taller: the cards are the instrument's main surface */
+#define CARD_H 56                     /* (1.0) six rows taller: the cards are the instrument's main surface */
 #define CARD_X(c) (3 + 59 * (int32_t)(c))
-#define Y_GRAPH 76                    /* the panel */
+#define Y_GRAPH 78                    /* the panel */
 #define H_GRAPH 122                    /* (3.5) the panel keeps its height: the graph code's own rows are
                                         * measured against it, and growing it moved the piano roll's labels */
-#define Y_FOOT 202
-#define H_FOOT 38
-/* MENU > LARGE (large_kind below): on the value pages the cards are tall (28..132) and the panel a strip
- * (136..198); elsewhere (lists, rolls, layers) the layout above, its card labels in M */
+#define Y_FOOT 204
+#define H_FOOT 36                     /* (1.0) two rows less: its two lines already end at row 30 */
+/* MENU > LARGE (large_kind below): on the value pages the cards are tall (20..124) and the panel a strip
+ * (128..200); elsewhere (lists, rolls, layers) the layout above, its card labels in M */
 #define LG_CARD_H 104
-#define LG_Y_GRAPH 136
-#define LG_H_GRAPH 62
+#define LG_Y_GRAPH 128
+#define LG_H_GRAPH 72
 
 static struct {
     uint8_t home;

@@ -443,6 +443,8 @@ static uint32_t rr_cov(int32_t r, int32_t i, int32_t j)
  * Nothing here invents a colour: every value is ux_mix() between two colours of the palette in use, which
  * saturates per channel, so GREY and MONO stay neutral and no ink is drawn on its own tone. Small plates --
  * keycaps, chips, 3 px gauges, meter bars -- are left exactly as they were. */
+static void gw_dither(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t a, uint16_t b, int32_t pct);   /* (1.0)
+                                  * the short plates' single dithered fill: defined below, after the grounds */
 static uint8_t cv_plate_flat;                 /* (FASE 3) the next plate is filled flat: see cv_rrect */
 /* (FASE 7) THE RAMP IS THE SAME FOR EVERY CARD OF A FRAME. A screen draws four to eight plates with one height
  * and one pair of colours, and each was mixing its own ramp again -- 21 ux_mix() calls per card, three
@@ -483,8 +485,15 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
      * hundred fills in total and the whole sweep stays the same order as before (measured below). */
     /* (FASE 7) A SHORT PLATE TAKES FEWER RUNS. A list row is 16..18 px tall: at one run per 2 rows that is
      * eight fills where the flat row was one, and MENU draws seven of them -- the page measured 10 % slower
-     * for a gradient nobody can resolve at that height. Four bands on a row, the same 2 px law on a card. */
-    n = h >= 24 ? (h - 2 + 1) / 2 : (h > 6 ? 4 : 1);
+     * for a gradient nobody can resolve at that height. (1.0) A row that short takes ONE fill, dithered
+     * between the ends of its own ramp, instead of four bands: the same pass over the same pixels as the flat
+     * row it replaced, and a slightly textured row instead of four visible steps. Cards keep the banded
+     * ramp, which is where the depth reads. */
+    if (h < 24) {
+        gw_dither(x + 1, y + 1, w - 2, h - 2, ux_mix(c, T_TEXT, 7), ux_mix(c, T_BG, 58), 50);
+        return;
+    }
+    n = (h - 2 + 1) / 2;
     {
         /* Only the rows whose quantised colour CHANGES are filled: on a 16-bit palette a ramp this long has
 

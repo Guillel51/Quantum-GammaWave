@@ -24,6 +24,15 @@ abajo, en sus propias entradas).
 - **Fase 8 de rendimiento**: cada placa se pinta una sola vez (MENU −42,7 %, CONFIRM −45,4 %, FX −29,7 % de
   píxeles rellenados, −5,5 % de tiempo), sin cambiar un píxel de 189 pantallas × 22 paletas.
 
+### Interfaz: la pantalla, más instrumento
+
+La cabecera y el pie cedieron cuatro filas cada uno y las cuatro tarjetas de los knobs ganaron seis (20..76),
+con el panel 78..200 y el pie 204..240; MENU > LARGE acompaña (tarjetas 20..124, panel 128..200). La etiqueta de
+una tarjeta se dibuja en la cara de 15 px cuando entra —se leía fina al lado de su propio valor—, el gauge
+cerró el pie de la tarjeta y el medidor de carga y el chip "A" quedaron centrados en la cabecera que ahora
+mide lo que sus iconos. Las filas de lista pintan su rampa con un solo relleno tramado en vez de cuatro bandas.
+Detalle y mediciones en `docs/UI_LAYOUT_1.0.md`.
+
 ### Corrección posterior al paquete 1.0.0
 
 Las siete comprobaciones de `tests/ui_test.c` que esta entrega listaba como abiertas **quedaron arregladas en

@@ -63,7 +63,9 @@ static void draw_load(int32_t x)
         /* (FASE 4) the load's five cells carry Solar Heat as a ramp in every palette, not only in the ones with
          * the chamfer: a flat T_MID row read as five identical dots and hid how much of the block was used. */
         uint16_t c = k < n ? heat_col(30 + (int32_t)k * 50) : T_RAISE;
-        cv_rect(x, H_HEAD - 6 - (int32_t)k * 3, 3, 2, c);   /* (3.9) hung off the bar's height, not a row */
+        /* (1.0) the five cells are 14 rows and sit centred in the bar: hung off its foot they lost their top
+         * cells as soon as the header shrank to 16 (ui_test: every element's ink centred on the bar's middle) */
+        cv_rect(x, (H_HEAD - 14) / 2 + (4 - (int32_t)k) * 3, 3, 2, c);
     }
 }
 static void draw_battery(int32_t bx)
@@ -673,7 +675,10 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         if (!strip && label[0]) {
             /* MENU > LARGE on a list / graph page or a layer (LK_LABEL): the label in M where it fits the card (its
              * capitals rows 5..15, the icon on them when it fits too), else in S as without LARGE */
-            const aafont_t *lf = kind == LK_LABEL && 5 + text_w(&AF_M, label) <= COL_W - 2 ? &AF_M : &AF_S;
+            /* (1.0) THE LABEL IN THE 15 PX FACE, not the 12 px one: at 12 the labels of the four cards read as
+             * thin lines next to their own values, which are M. M where it fits the card (as MENU > LARGE's
+             * labels already did), S only where it does not. */
+            const aafont_t *lf = 5 + text_w(&AF_M, label) <= COL_W - 2 * KNOB_SMALL_R - 4 ? &AF_M : &AF_S;
             int32_t max_lx = gw_rotary ? kn_max : (COL_W - 2);
             int32_t lw = text_w(lf, label), ix = 5, ly = lf == &AF_M ? 1 : 3;
             int32_t cy = ly + (lf == &AF_M ? AF_M_CAP_Y : AF_S_CAP_Y), chh = lf == &AF_M ? AF_M_CAP_H : AF_S_CAP_H;
@@ -706,7 +711,10 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
                 if (ax + aw <= max_lx + 1) {
                     cv_rrect(ax, cy - 2, aw, chh + 4, 2, T_ACCENT, T_SURF);
                     GFX_HOOK_ALIGN(ax, cy - 2, ax + aw, cy + chh + 2, AL_HV, "card AUTOMATION chip");
-                    cv_text_on(ax + (aw - text_w(&AF_S, "A")) / 2, ly, &AF_S, "A", T_INK, T_ACCENT);   /* (QG-1 stage 3)
+                    /* (1.0) centred on its own capitals inside the chip: with the label in M the chip grew and the
+                     * A stayed on the label's row, two rows high in it (ui_render's alignment audit) */
+                    cv_text_on(ax + (aw - text_w(&AF_S, "A")) / 2,
+                               cy + HALF_UP(chh - AF_S_CAP_H) - AF_S_CAP_Y, &AF_S, "A", T_INK, T_ACCENT);   /* (QG-1 stage 3)
                         * centred in its chip: 3 px from the left edge left the letter 1 px right of the chip's middle */
                 }
             }
@@ -725,13 +733,13 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         }
         if (!strip && ratio >= 0) {
             int32_t gw = COL_W - 10, fx = ratio * gw / 1000, fillw = fx < 3 ? 3 : fx;
-            cv_rrect(5, 42, gw, 3, 1, ux.style ? T_LINE : T_BG, T_SURF);   /* (LINE: no card to cut it from) */
-            cv_rrect(5, 42, fillw, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), T_BG);
+            cv_rrect(5, 48, gw, 3, 1, ux.style ? T_LINE : T_BG, T_SURF);   /* (LINE: no card to cut it from) */
+            cv_rrect(5, 48, fillw, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), T_BG);
             if (ux.chamfer && !ux.style) {
                 int32_t s;
                 for (s = 6; s < gw; s += 6)
-                    cv_rect(5 + s, 42, 1, 3, T_SURF);
-                cv_rect(5 + fillw - 2, 41, 2, 4, hot ? T_TEXT : T_ACCENT);
+                    cv_rect(5 + s, 48, 1, 3, T_SURF);
+                cv_rect(5 + fillw - 2, 47, 2, 4, hot ? T_TEXT : T_ACCENT);
             }
         }
     }
