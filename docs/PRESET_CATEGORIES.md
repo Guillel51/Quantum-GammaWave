@@ -280,3 +280,33 @@ order are untouched. Primary category rules: engine default plus the name keywor
 | 273 | WTABLE | GLASS CHIME | BELLS |
 
 Rules: DRUMS=DRUM/KIT/909/808/LINN/TRAP/BEAT/PERC, BELLS=BELL/CHIME/GONG/CELEST/MALLET, BASS=BASS/SUB/REESE/303/GROWL, LEADS=LEAD/SOLO/SAW/SQUELCH/ACID, PADS=PAD/DRONE/CHOIR/STRING/ORCH/ATMOS/CLOUD/AIR, PLUCKS=PLUCK/HARP/KALIMBA/GUITAR/KOTO/SITAR, KEYS=KEY/EP/PIANO/CLAV/RHODE/WURLI, ORGANS=ORGAN/REED/HARMON/ACCORD, BRASS=BRASS/HORN/TRUMP/SAX, FX=FX/NOISE/GLITCH/WIND/METAL/RADIO/TAPE.
+
+## En el Web Studio (PRESETS del dispositivo)
+
+El panel **DEVICE PRESETS** de `web/editor.html` lee `web/preset_categories.json` y ofrece las tres cosas: la
+lista (`All presets` / `Favorites only`, que es el filtro del propio FM-1), la **búsqueda** por nombre y la
+**navegación por categoría**.
+
+- **La categoría va por motor e índice, no por nombre** (`presetCategoryOf`). Ocho nombres de fábrica se
+  repiten entre motores —`SINE KEY`, `SUB BASS`, `PLUCK`, `BRASS`, `WIND`, `ORGAN`, `BELL`, `GLASS PAD`— y un
+  mapa por nombre solo podía guardar una de las dos filas. Hoy las dos copias comparten categoría, así que el
+  fallo no se veía; queda atado a `motor:índice` para que no aparezca al añadir un preset que repita nombre con
+  otra categoría.
+- **Se busca lo que la lista enseña**: un preset de usuario responde a su etiqueta `U07` además de a su nombre.
+  La búsqueda y la categoría se componen entre sí y con el filtro de favoritos (`LEADS` + `saw` → `SAW LEAD`,
+  `HYPER SAW`).
+- **La lista vacía lo dice por lo que está puesto**: «No sounds match the search and category.» cuando hay
+  búsqueda o categoría, y el texto de favoritos solo cuando el filtro es `Favorites only`.
+- **Los textos están traducidos** (`deviceSearch`, `deviceSearchPh`, `deviceCategory`, `deviceCatAll`,
+  `deviceNoMatch`, en japonés y en inglés) y la lista de categorías se reconstruye al cambiar de idioma sin
+  perder la que esté elegida.
+- La **estrella** de cada fila es el favorito del dispositivo (`FAV_SET`), visible en la lista y en el filtro.
+
+Verificado en el navegador (Chromium, simulador QG-1 del propio Web Studio, `http://127.0.0.1:3000/editor.html`
+servido desde `web/`): 279 filas con `All presets`, 12 opciones de categoría (`ALL` + 11), `BASS` 18 filas,
+`BASS` + `sub` 4 filas (incluye las dos `SUB BASS`, ANALOG y WTABLE), `LEADS` + `saw` 2 filas, estrella que pasa
+de `☆` a `★` con `aria-pressed` y el filtro `Favorites only` mostrando esa única fila, mensaje correcto con una
+búsqueda sin resultados. Esto es navegador con el simulador: no es el FM-1 físico.
+
+**En el propio FM-1** no hay búsqueda ni categorías en la página PRESETS: tiene la lista, la estrella en cada
+fila y el filtro `ALL`/`FAV` en KNOB 3. La tabla de categorías es del Web Studio; el firmware no la lleva.

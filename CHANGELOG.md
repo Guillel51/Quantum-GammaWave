@@ -1,3 +1,26 @@
+## Sin publicar — 2026-11-15 — PRESETS del Web Studio: categorías, búsqueda y favoritos
+
+### Revisión y arreglos
+
+- **Categoría por motor e índice**: la tabla `preset_categories.json` se indexaba por nombre, y ocho nombres de
+  fábrica se repiten entre motores (`SUB BASS`, `PLUCK`, `BRASS`...). Hoy las copias comparten categoría, así que
+  no había una fila mal puesta; el índice ahora es `motor:índice` (`presetCategoryOf`) para que un preset nuevo
+  con nombre repetido no herede la categoría del otro.
+- **La búsqueda mira lo que la lista enseña**: un preset de usuario responde también a su etiqueta `U07`.
+- **Lista vacía con el mensaje correcto**: antes decía «No favorites yet» aunque estuvieras filtrando por
+  búsqueda o categoría; ahora distingue los dos casos.
+- **Textos traducidos**: `SEARCH`, `CATEGORY`, la opción `ALL` y el placeholder estaban fijos en inglés; van por
+  `data-t` y la lista de categorías se reconstruye al cambiar de idioma conservando la elegida.
+
+### Verificación
+
+- `node web/test_web.mjs` (con un check nuevo de `presetCategoryOf`: dos presets del mismo nombre en motores
+  distintos, categorías distintas), `web/test_i18n.py`, `web/test_backup.mjs`, `web/test_pkg_bounds.mjs`,
+  `tests/install_test.py`: pasan.
+- Navegador real (Chromium contra `web/` servido en local, simulador QG-1): 279 filas, 12 categorías, `BASS` 18,
+  `BASS` + `sub` 4, `LEADS` + `saw` 2, estrella `☆`→`★` con `aria-pressed` y `Favorites only` con esa fila,
+  mensaje correcto sin coincidencias. Es navegador y simulador, no el FM-1.
+
 ## Sin publicar — 2026-11-15 — FASE 8: la página ARP dibuja el reloj
 
 ### Interfaz

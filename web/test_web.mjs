@@ -48,7 +48,7 @@ const proto = html.slice(html.indexOf("/*PROTO-BEGIN*/"), html.indexOf("/*PROTO-
 const E = vm.runInNewContext(proto + `
 ;({ frame, unframe, parse, req, Link, makeMockDevice, CMD,
    UP, bank, capturePatch, auditionPatch, startWatch, libraryFile, readLibraryFile, paramKeys, legacyKeys, remapParams, patternFromSteps, stepsFromPattern, upName,
-   mixer, parseNotes, parseHits, hitsText, gridFromSteps, LANE_NOTE, LANE_OF, readDevicePreferences, devicePresetRows, engineOrder, ENGINE_ORDER, aliasOf, fmtValue, FM6, enumShown, F,
+   mixer, parseNotes, parseHits, hitsText, gridFromSteps, LANE_NOTE, LANE_OF, readDevicePreferences, devicePresetRows, engineOrder, ENGINE_ORDER, aliasOf, presetCategoryOf, fmtValue, FM6, enumShown, F,
    FM4, fromDigital, fromPerc, DRUM_KIT_E,
    MENU: typeof MENU === "undefined" ? null : MENU, MENU_TABS: typeof MENU_TABS === "undefined" ? null : MENU_TABS,
    readDeviceMenu: typeof readDeviceMenu === "undefined" ? null : readDeviceMenu, fm6Bank, crc32 })`,
@@ -231,6 +231,14 @@ async function editorMock() {
   await rq(E.req.uiSet(3, 1));
   prefs = await E.readDevicePreferences(rq, info, names, prefs);
   ok(E.devicePresetRows(info, names, prefs).length === 1 && prefs.favorites[0][0], "editor: favorites filter follows device state");
+  {   /* (1.7.1) the category table is keyed by engine name and index: eight factory names repeat across engines */
+    const cats = new Map([["ANALOG:7", "BASS"], ["WTABLE:7", "PADS"]]), info2 = { engines: ["ANALOG", "WTABLE"] };
+    ok(E.presetCategoryOf(cats, info2, { engine: 0, preset: 7, user: false }) === "BASS" &&
+       E.presetCategoryOf(cats, info2, { engine: 1, preset: 7, user: false }) === "PADS" &&
+       E.presetCategoryOf(cats, info2, { engine: 0, preset: 8, user: false }) === "" &&
+       E.presetCategoryOf(cats, info2, { engine: 2, preset: 7, name: "PAD", user: true }) === "",
+       "editor: a preset's category is keyed by engine and index, not by its repeated name");
+  }
   m.state.favorites[0][0] = false; m.state.favorites[2][0] = true;
   prefs = await E.readDevicePreferences(rq, info, names, prefs);
   ok(!prefs.favorites[0][0] && prefs.favorites[2][0], "editor: panel-side favorite changes refresh");
