@@ -1,3 +1,14 @@
+## v1.2.5 — paquete de firmware y capturas
+
+- Firmware subido a **v1.2.5** y capturas del proyecto regeneradas desde ese árbol.
+- Paquete AC791N: `release/felucca-v1.2.5.fwsc` — **610 959 B**, SHA-256
+  `166fbc8bbf39bca7162b2fc8d8e3841d601ac8555cd3da389cb61a4a7380b896`, con manifiesto de paquete y de build
+  (commit `571ff4d`, árbol limpio) y sus tres líneas en `SHA256SUMS`. `check_package_identity`: ok.
+- Imagen 580 196 B; XIP 420 432 B de código + 139 288 B de constantes; `.data+.bss` 95 076 B de 98 304;
+  pool spare 9 248 B. Sin cambios de tamaño respecto de v1.2.0: la subida de versión no cuesta imagen.
+- **Sigue bloqueado**: el emulador WebAssembly (no hay `emcc` en este entorno), y con él el registro del
+  emulador, la entrada del sitio y la release publicada: no se publica 1.2.5 con un emulador 1.1.0.
+
 ## v1.2.0 — paquete de firmware
 
 - Firmware subido a **v1.2.0** (`firmware/src/felucca.c`), capturas del proyecto regeneradas desde ese árbol
