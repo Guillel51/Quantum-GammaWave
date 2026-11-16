@@ -3100,6 +3100,12 @@ static void graph_home_viz(uint16_t c)
         gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 10u : ui_viz_q == 1u ? 18u : 28u, 0u, 80, vsf);
 
         /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
+        /* (1.1.1) THE SCOPE'S OWN FLOOR. The deep field -- the milky way's band, its dust and the two worlds --
+         * is drawn on this panel, and it showed THROUGH the trace: the diagonal of stars and that gradient sat
+         * on top of the oscilloscope, which is what made it hard to read. An opaque well of the page's own tone
+         * goes down after the field and the embers and before anything is measured, so the trace and its grid
+         * are the only things on it. */
+        cv_rect(12, 63, 144, 72, vbg);
         cv_rect(12, cy, 144, 1, T_LINE);
         for (i = 0; i < 4u; i++)
             cv_rect(12 + (int32_t)i * 48, 64, 1, 66, T_GRID);
