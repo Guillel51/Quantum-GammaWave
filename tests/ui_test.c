@@ -10542,6 +10542,9 @@ static int test_organic(void)
     turn(EN_K1, 2);
     ok = !mac_latch && TSEL->p[ENGINES[TSEL->eng_req]->knob[0]] != cut;   /* HOME: the sound's four */
     cut = TSEL->p[ENGINES[TSEL->eng_req]->knob[0]];
+    /* (FASE 8) the MACROS page is another page with four knobs, and the sweeps above turn every page's: the macros
+     * start from 0 here, as the test's own M1 does, instead of from whatever a sweep left in them */
+    macro_v[0] = macro_v[1] = macro_v[2] = macro_v[3] = 0;
     btn_down(B_LFO); frames(560); btn_up(B_LFO); frames(64);
     ok &= mac_latch && !ui.layer;                  /* LFO held, let go: latched (its cards drawn, no layer open) */
     macro_v[0] = 0;

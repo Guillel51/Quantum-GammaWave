@@ -1,3 +1,44 @@
+## v1.0.0 — 2026-11-16 — Quantum GammaWave 1.0
+
+La primera versión con un nombre que empieza en uno. **No es un retroceso**: es el mismo árbol que venía
+numerándose en la línea 4.x, publicado una vez como 1.0 para que la numeración pública arranque limpia. Todo lo
+que estaba en `main` está acá, y además lo que se cerró en estas últimas fases (los detalles de cada una siguen
+abajo, en sus propias entradas).
+
+### El instrumento
+
+- **Seis pistas, doce voces, nueve motores** (ANALOG, WHEEL, PHASE, FM6, FORMANT, LOFI, NOISE, WTABLE, DRUM) con
+  sus presets de fábrica, el kit DRUM-X y la voz de usuario.
+- **Matriz de modulación de ocho slots por pista**: los cuatro primeros son parámetros (automatizables, viajan en
+  el proyecto como siempre) y los cuatro nuevos viven en el track, con su página MOD de ocho filas, la barra del
+  valor vivo y la polaridad del AMT.
+- **Página MACROS** (LFO > MACROS): M1..M4 del proyecto en KNOB 1..4, leídos y escritos con las mismas funciones
+  que usan las fuentes M1..M4 de la matriz, con la barra de valor y los destinos que mueve la pista actual.
+- **Página ARP contra su propio reloj**: la ruta, el nombre de lo que está sonando y una franja por paso que se
+  llena con el tiempo transcurrido del paso y marca dónde cierra el GATE, leída de `arp_pos` / `arp_off`.
+- **Longitud de patrón por pista** con evidencia: 4 y 6 pasos girando por separado en el secuenciador real y un
+  proyecto que guarda 5 / 7 / 12 / 64 por pista (tests/pattern_len_test.c, docs/PATTERN_LENGTH.md).
+- **Web Studio**: el navegador de presets del dispositivo con categorías (11 + ALL), búsqueda por lo que la lista
+  enseña y la estrella del favorito en cada fila; los textos siguen al idioma y la lista vacía distingue búsqueda
+  de favoritos.
+- **Fase 8 de rendimiento**: cada placa se pinta una sola vez (MENU −42,7 %, CONFIRM −45,4 %, FX −29,7 % de
+  píxeles rellenados, −5,5 % de tiempo), sin cambiar un píxel de 189 pantallas × 22 paletas.
+
+### Verificación de esta entrega
+
+- **Build AC791N real** (toolchain de JieLi + los tres blobs del SDK fijados por SHA-256), no una simulación: el
+  paquete, su manifiesto, `SHA256SUMS` y el registro del build están en `release/`.
+- **Emulador WASM** compilado con Emscripten 6.0.11 a partir del mismo árbol, con su manifiesto (versión, commit,
+  SHA-256 del wasm).
+- **Host**: la suite de `tests/run_tests.sh` (goldens de audio 293/0 sin cambios, health, voz, CPU, UI, editor,
+  persistencia, formatos de proyecto, matriz, ARP, RATCH, FM6, DRUM-X y el resto).
+- **Lo que NO está verde y no se presenta como verde**: siete comprobaciones de `tests/ui_test.c` fallan y ya
+  fallaban en `main` antes de esta entrega (el roll de las tarjetas que no termina idéntico al render estático, el
+  recuento de tarjetas obsoletas del soak, la tarjeta de CPU de GLO > SYSTEM y la disposición LARGE de HOME y
+  PRESETS). Quedan abiertas y listadas en `docs/RELEASE_1.0.0_STATE.md`; no se relajó ninguna aserción para
+  taparlas.
+- **Nada medido en el FM-1 físico**: no hay unidad conectada y no se escribe en ella.
+
 ## Sin publicar — 2026-11-15 — Longitud de patrón por pista: verificado y cubierto
 
 ### Estado

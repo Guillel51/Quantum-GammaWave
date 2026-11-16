@@ -38,7 +38,12 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v4.1.0" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. v3.1.2: HOME redrawn from the frame instead of a private counter, so a page comes back the same. */
+#define FELUCCA_VERSION "v1.0.0" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
+                                    * editor. 1.0.0 is the clean public numbering of the whole instrument: the six tracks,
+                                    * twelve voices and nine engines, the eight-slot modulation matrix with its MACROS
+                                    * page, the ARP page drawn against its own clock and the Web Studio's preset
+                                    * browser. It is not a downgrade of the internal 4.x line: the same tree, published
+                                    * once under a name that starts from the beginning. */ /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console, editor. v3.1.2: HOME redrawn from the frame instead of a private counter, so a page comes back the same. */
 
 /* (v1.9.0: the integrated tree. v1.8.8 was the AC791N-build line, v1.8.9 the EQ/restore line; this
  * tree contains both, so it is neither -- the number states which code it is, and
