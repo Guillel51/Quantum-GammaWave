@@ -1,31 +1,21 @@
 {
  "build": {
   "artifacts": {
-   "felucca-1.0.0.fwsc": {
-    "bytes": 610959,
-    "sha256": "ce887538dd4e5ebb9f2be512f7e8d9efeb6dc605915062114829d91f3fd45767"
-   },
    "felucca.bin": {
-    "bytes": 583028,
-    "sha256": "36281321fdad794b2e4a54c8d2c34a4bb14ea9e29756c77703fd8e9803177171"
+    "bytes": 583572,
+    "sha256": "99e63c8aa4e3b50bd7f6f8a6a71000f25266b57ea13ce55d71425eed9af93eed"
+   },
+   "felucca.fwsc": {
+    "bytes": 610959,
+    "sha256": "6e942d3dea8d93cb5dd0b7335543dfb663b666b36a8575eb7c830a8cbcef7cff"
    },
    "loader/ota.bin": {
     "bytes": 7803,
     "sha256": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"
    }
   },
-  "checks": {
-   "checks": "ok",
-   "identity": "FM-1_965",
-   "notes": [
-    ".ram_text: 1193 insns, no calls",
-    "image 583028 B; RAM .data+.bss 96836 B of 98304; pool 305096 B, spare 15392 B",
-    "XIP code 418232 B, constants 144316 B",
-    "RAM code 19684 B of 24576; calls reach 42280 B past the code's end",
-    "register access: hal/ only (src/, loader/ clean)"
-   ]
-  },
-  "commit": "22433d3e041e8351bb752c445a96e5219482ad5a",
+  "checks": {},
+  "commit": "f58cb1804457be283665defdfd18fe8bd7469b21",
   "config": {
    "FELUCCA_CDC": "default",
    "FELUCCA_CDC_DEFAULT": "default",
@@ -46,10 +36,10 @@
   },
   "dirty": [],
   "emulator": {
-   "commit": "4fb92f9eeb47",
-   "version": "v1.0.0",
-   "wasm_bytes": 1240833,
-   "wasm_sha256": "610830cedc1562cdef74b04d6eaea47b0f77729e9a6313b7cb5b0257cf7629ee"
+   "commit": "f58cb1804457",
+   "version": "v1.0.1",
+   "wasm_bytes": 1240889,
+   "wasm_sha256": "2b1689f9e6ccb3f60910a688f9282f53bc533b2f3c0f10bb5cbddbff55b4aca2"
   },
   "identity": "FM-1_965",
   "schema": "qg1-build-1",
@@ -68,19 +58,19 @@
    "path": "/workspace/homes/13c224a1d42337bd9118f472/.jieli/toolchain",
    "version": "clang version 4.0.1 () ()"
   },
-  "version": "v1.0.0"
+  "version": "v1.0.1"
  },
- "build_sha256": "613b5f122c2766bb609f1c250b189bcf55b7f9a1b78eb61c57b2eda0f28071e4",
- "created": "2026-11-16T01:01:41Z",
+ "build_sha256": "0da0b16978a708daf54fd40f9de8f247a8a5834a4a5fdf16ad574c8c2e298fd0",
+ "created": "2026-11-16T02:48:38Z",
  "format": "qg1-release-1",
  "images": {
-  "felucca.bin": "36281321fdad794b2e4a54c8d2c34a4bb14ea9e29756c77703fd8e9803177171",
+  "felucca.bin": "99e63c8aa4e3b50bd7f6f8a6a71000f25266b57ea13ce55d71425eed9af93eed",
   "loader/ota.bin": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"
  },
  "keyid": "",
  "min_firmware": "1.0.0",
  "product": "FM-1",
- "sha256": "ce887538dd4e5ebb9f2be512f7e8d9efeb6dc605915062114829d91f3fd45767",
+ "sha256": "bdc1494f96e8dcaa9a11d95b06adc558ff8e413e06602c8d61e7258734b61877",
  "size": 610959,
- "version": "1.0.0"
+ "version": "1.0.1"
 }
