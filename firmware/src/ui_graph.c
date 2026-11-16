@@ -1365,41 +1365,61 @@ static void graph_diag(uint16_t c)
 /* (FASE 8) MACROS page: the project's four macros (mod.c macro_v) -- the matrix's sources M1..M4 -- as a value
  * bar each, with the destinations the SELECTED track's slots drive with them: the matrix connection, shown where
  * the macro is edited. KNOB 1..4 set M1..M4 (params.c G_MAC1.., ui_input.c). A macro no slot reads says so. */
+/* (1.0) MACROS: the page now speaks the cards' language. Every macro is a plate with its own ramp, the M1..M4
+ * in a pill (as a card's K), the value in the 15 px face, the bar a rounded gauge in the palette's heat colour,
+ * the destinations as chips -- and, while its knob is being turned, the row's frame takes the accent and a pip
+ * travels the gauge: the same "this is the one you touched" the cards use, and only while hot (the UI redraws
+ * every frame then, so the animation costs nothing when the page is still). */
 static void graph_macros(uint16_t c)
 {
     uint32_t i, k, tr = (uint32_t)song.sel;
+    static const char *const L[4] = {"M1", "M2", "M3", "M4"};
     for (i = 0; i < 4u; i++) {
         int32_t y = 2 + (int32_t)i * 29, v = (int32_t)macro_get(i), used = 0;
-        char nb[24], vb[8], b[40];
-        const char *L[4] = {"M1", "M2", "M3", "M4"};
-        b[0] = 0;
-        for (k = 0; k < NMSLOT; k++) {                  /* what this track drives with the macro */
+        int32_t hot = ui.hot_t && ui.hot_col == i, gw = 78, gx = 78;   /* (clear of a three-digit value) */
+        const char *r[2] = {0, 0};
+        char vb[8], nb[8];
+        for (k = 0; k < NMSLOT && used < 2; k++) {      /* what this track drives with the macro */
             if ((uint32_t)mslot(&trk[tr], k, 0) != MS_M1 + i || !mslot(&trk[tr], k, 1))
                 continue;
-            if (used == 2) {                            /* (the rest, counted) */
-                nb[0] = '+';
-                fmt_int(nb + 1, (int32_t)used);
-                str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
-                str_cpy(b + str_len(b), nb, sizeof b - str_len(b));
-                used++;
-                break;
-            }
-            if (used++)
-                str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
-            str_cpy(b + str_len(b), mod_dst_name(&trk[tr], mslot(&trk[tr], k, 1)), 8);
+            r[used++] = mod_dst_name(&trk[tr], mslot(&trk[tr], k, 1));
         }
-        if (!b[0])
-            str_cpy(b, "NO ROUTES", sizeof b);
-        cv_text_on(10, y + 5, &AF_S, L[i], used ? T_THEME : T_DIM, T_SURF);
+        cv_rrect(4, y, 232, 27, 3, T_SURF, T_BG);       /* the row's plate (its own ramp) */
+        if (hot) {                                       /* touched: the accent frame, as a card's edge */
+            cv_rect(4 + 4, y, 232 - 8, 1, T_ACCENT);
+            cv_rect(4, y + 4, 1, 27 - 8, T_ACCENT);
+            cv_rect(4 + 231, y + 4, 1, 27 - 8, T_ACCENT);
+        }
+        cv_rrect(10, y + 7, 25, 13, 3, used ? (hot ? T_ACCENT : T_KEY) : T_RAISE, T_SURF);
+        cv_text_in(10, y + 7 + CAP_IN(S, 13), 25, &AF_S, L[i], used ? T_INK : T_MID,
+                   used ? (hot ? T_ACCENT : T_KEY) : T_RAISE);
         fmt_int(vb, v);
-        cv_text_r(52, y + 5, &AF_S, vb, used ? c : T_DIM, T_SURF);
-        cv_rect(58, y + 10, 92, 8, T_GRID);             /* the value */
-        if (v)
-            cv_rect(58, y + 10, v * 92 / 127, 8, used ? T_THEME : T_MID);   /* (a macro no slot reads still shows its value) */
-        cv_rect(58, y + 13, 92, 1, T_SURF);             /* (a line through it, so a short bar still reads) */
-        cv_text_on(158, y + 5, &AF_S, b, used ? T_TEXT : T_DIM, T_SURF);
-        if (i < 3u)
-            cv_rect(12, y + 27, 216, 1, T_GRID);
+        cv_text_on(41, y + 5, &AF_M, vb, used ? c : T_DIM, T_SURF);       /* the value, in the cards' face */
+        cv_rrect(gx, y + 10, gw, 7, 1, T_GRID, T_SURF);                  /* the gauge: a track and a fill */
+        if (v) {
+            int32_t fw = v * gw / 127;
+            cv_rrect(gx, y + 10, fw < 3 ? 3 : fw, 7, 1,
+                     hot ? T_ACCENT : used ? (ux.chamfer ? heat_col(v * 1000 / 127 * 256 / 1000) : T_THEME) : T_MID,
+                     T_SURF);   /* a card's gauge colour: heat on the chamfered palettes, the theme on the others */
+        }
+        if (hot) {                                       /* the pip that travels while you turn it */
+            int32_t px = gx + 2 + (int32_t)((ui.frame * 7u) % (uint32_t)(gw - 4));
+            cv_rect(px, y + 8, 2, 11, T_TEXT);
+        }
+        if (!used)
+            cv_text_on(162, y + 8, &AF_S, "NO ROUTES", T_DIM, T_SURF);
+        for (k = 0; k < (uint32_t)used && k < 2u; k++) {                  /* the destinations, as chips */
+            int32_t w = text_w(&AF_S, r[k]) + 8, cx = 162 + (int32_t)k * 36;
+            if (cx + w > 232)
+                break;
+            cv_rrect(cx, y + 7, w, 13, 3, hot ? T_RAISE : T_KEY, T_SURF);
+            cv_text_on(cx + 4, y + 8, &AF_S, r[k], T_INK, hot ? T_RAISE : T_KEY);
+        }
+        if (used > 2) {                                                   /* (the rest, counted) */
+            nb[0] = '+';
+            fmt_int(nb + 1, (int32_t)used);
+            cv_text_on(162 + 72, y + 8, &AF_S, nb, T_THEME, T_SURF);
+        }
     }
 }
 
@@ -1414,32 +1434,38 @@ static void graph_mod(const track_t *t, uint16_t c)
     for (k = 0; k < NMSLOT; k++) {
         int32_t s = mslot(t, k, 0), d = mslot(t, k, 1), a = mslot(t, k, 2);
         int32_t y = 2 + (int32_t)k * 15, on = s && d && a, sel = k == mod_ui_slot;
+        int32_t hot = sel && ui.hot_t;
         uint16_t bg = sel ? T_THEME : T_SURF, col = sel ? T_INK : on ? c : T_DIM;
-        char b[10];
+        char b[10], nb[3];
         const char *unit;
-        if (sel)
-            cv_rrect(4, y, 232, 13, 3, T_THEME, T_SURF);
-        b[0] = (char)('1' + k);
-        b[1] = 0;
+        cv_rrect(4, y, 232, 13, 3, sel ? T_THEME : T_SURF, T_BG);         /* every slot its own plate */
+        if (!sel)                                                         /* a tab, so a slot reads as one; inside
+                                                                           * the plate's edge, clear of the digit */
+            cv_rect(7, y + 3, 2, 7, on ? T_THEME : T_DIM);
+        nb[0] = (char)('1' + k);
+        nb[1] = 0;
         GFX_HOOK_ALIGN(0, y, 0, y + 13, AL_V, "mod row text centred up/down");
-        cv_text_on(10, y - 1, &AF_S, b, sel ? T_INK : T_MID, bg);
+        cv_text_on(13, y - 1, &AF_S, nb, sel ? T_INK : on ? T_THEME : T_MID, bg);
         GFX_HOOK_ALIGN(0, y, 0, y + 13, AL_V, "mod row text centred up/down");
         cv_text_on(22, y - 1, &AF_S, N_MSRC[clamp(s, 0, MS_N - 1)], col, bg);
-        cv_line(58, y + 6, 66, y + 6, col);              /* an arrow */
-        cv_line(63, y + 3, 66, y + 6, col);
-        cv_line(63, y + 9, 66, y + 6, col);
+        cv_line(58, y + 6, 64, y + 6, col);              /* an arrow */
+        cv_line(61, y + 3, 64, y + 6, col);
+        cv_line(61, y + 9, 64, y + 6, col);
         cv_text_on(70, y - 1, &AF_S, mod_dst_name(t, d), col, bg);
         param_format(&TP[P_M1AMT], a, b, &unit);         /* F_BIPCT: "+50" / "-50", the polarity */
-        cv_text_r(152, y - 1, &AF_S, b, col, bg);
-        if (on) {                                        /* the source's live value */
-            int32_t v = clamp(mod_src_live(t, k), -32767, 32767), x0 = 160, x1 = 230;
-            cv_rect(x0, y + 6, x1 - x0, 1, sel ? T_INK : T_GRID);
+        cv_text_r(152, y - 1, &AF_S, b, on ? (sel ? T_INK : a > 0 ? T_ACCENT : T_MID) : T_DIM, bg);
+        if (on) {                                        /* the source's live value, as a rounded bar */
+            int32_t v = clamp(mod_src_live(t, k), -32767, 32767), x0 = 160, x1 = 230, yc = y + 6;
+            cv_rrect(x0, yc, x1 - x0, 1, 0, sel ? T_INK : T_GRID, bg);
             if (MS_BIPOLAR((uint32_t)s)) {
                 int32_t xm = (x0 + x1) / 2, px = xm + v * (xm - x0) / 32767;
-                cv_rect(v < 0 ? px : xm, y + 5, (v < 0 ? xm - px : px - xm) + 1, 3, sel ? T_INK : T_ACCENT);
+                cv_rrect(px < xm ? px : xm, yc, px > xm ? px - xm : xm - px, 1, 0, sel ? T_INK : T_ACCENT, bg);
+                cv_rect(px, y + 3, 1, 7, hot ? T_TEXT : sel ? T_INK : T_ACCENT);       /* the pip */
             } else {
                 int32_t px = x0 + clamp(v, 0, 32767) * (x1 - x0) / 32767;
-                cv_rect(x0, y + 5, px - x0 + 1, 3, sel ? T_INK : T_ACCENT);
+                cv_rrect(x0, y + 5, px - x0 + 1, 3, 1, sel ? T_INK : T_ACCENT, bg);
+                if (hot && (ui.frame & 8u))                  /* touched: the fill pulses */
+                    cv_rect(x0, y + 4, px - x0 + 1, 5, T_TEXT);
             }
         }
         (void)unit;
