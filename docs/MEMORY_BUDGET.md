@@ -188,3 +188,23 @@ longest name), `PCAT_BASE[NENGINES]` (30 B, `PCAT_GONE` where an engine has no s
 two sounds a byte for the 275 entries of the nine tables). Nothing is duplicated: a sound's name stays in its engine's table, its category is four
 bits. The code is the two order helpers (which now answer in one compare when an engine has no legacy entry)
 and the browser's composed filter, never a table walk per row.
+
+## 8. Measured image — 2026-11-16 (FASE 6: the third wavetable band and the UI blitters)
+
+The same tree after `docs/QG_FASE6_OPTIMIZACION_2026-11-16.md`: the WAVETABLE's last stored band limit (4 096 B
+of flash) is now built at boot like the other two, and the glyph blitters skip what the canvas does not show.
+The binding region was XIP and it is the one that changed.
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 579 148 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **4 464 B** |
+| `.data + .bss` | 94 772 B | 98 304 B | 3 532 B |
+| RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | 19 684 B | 24 576 B | 4 892 B |
+| Pool spare (`POOL_END - pool_top`) | 9 248 B | ≥ 8 192 B | 1 056 B |
+| XIP code / constants | 419 408 B / 139 260 B | — | — |
+
+`WT_GEN` holds the three band limits (12 288 B of `.bss`, +4 096 B) and `WT_L5` is gone from
+`tools/gen_tables.py` (−4 096 B of constants). The generated band differs from the stored one by ±1 on 32 000
+in 972 of its 2 048 points and the 293 golden renders are unchanged (measured). The blitters cost +56 B of XIP
+and their draw cost on the host (`cc -O1`, median of 5 alternating runs) falls 3,2 % across 12 screens,
+16,3 % on the credits. Both are in the FASE 6 page.

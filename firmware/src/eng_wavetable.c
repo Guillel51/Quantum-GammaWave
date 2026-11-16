@@ -31,7 +31,11 @@ static const char *const N_WT_UNI[] = {"1 VOICE", "2 VOICES"};
 
 /* (FASE 1) the two top band limits are rebuilt here instead of carried as flash: the frames' harmonic
  * amplitudes (WT_COEF, 2 048 B) and 8 192 B of .bss stand in for 8 192 B of stored wave. Once, before the
- * first note renders -- never inside a block, so a level change costs nothing at all at run time. */
+ * first note renders -- never inside a block, so a level change costs nothing at all at run time.
+ * (FASE 6) the third limit (5 harmonics, every note above ~1.4 kHz) is built the same way: another
+ * 4 096 B of .bss for the last 4 096 B of stored wave, so the whole wavetable is now 2 048 B of flash.
+ * The stored table it replaces came out bit for bit identical (verified against the old WT_L5 before the
+ * switch), so no render changed. */
 static uint8_t wt_ready;
 
 /* a frame's point before its peak: the sum of that frame's sines (tools/gen_tables.py), Q15 */
@@ -52,8 +56,8 @@ static void wt_gen_init(void)
     uint32_t l, f, i;
     if (wt_ready)
         return;
-    for (l = 0; l < 2u; l++) {
-        uint32_t lim = l == 0u ? 64u : 16u;
+    for (l = 0; l < 3u; l++) {
+        uint32_t lim = l == 0u ? 64u : l == 1u ? 16u : 5u;
         for (f = 0; f < WT_FRAMES; f++) {
             int32_t pk = 0;
             int16_t *dst = WT_GEN + (l * WT_FRAMES + f) * WT_POINTS;
@@ -91,8 +95,8 @@ static void wt_pos(int32_t morph, uint32_t *f0, uint32_t *f1, int32_t *fx)
 static void wt_note_on(track_t *t, voice_t *v)
 {
     (void)t;
-    wt_gen_init();                                 /* (FASE 1) once, on the first note: 8 192 B of .bss
-                                                    * instead of 8 192 B of flash */
+    wt_gen_init();                                 /* (FASE 1, FASE 6) once, on the first note:
+                                                    * 12 288 B of .bss instead of 12 288 B of flash */
     v->ph[0] = v->ph[1] = v->ph[2] = 0;
     /* (the filter and the tilt keep: engine_t.keep) */
 }

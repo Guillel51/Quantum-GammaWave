@@ -121,7 +121,7 @@ static void felucca_init(void)
     voices_boot();                            /* (3.5) the voice pool: every part's window, the inert slot */
     load_depth++;                             /* (the power-on loads: one outer load) */
     fm6_init();                               /* every track's FM6 patch: the init voice */
-    wt_gen_init();                            /* (FASE 1) WAVETABLE's two top band limits: built here, not stored */
+    wt_gen_init();                            /* (FASE 1, FASE 6) WAVETABLE's band limits: built here, not stored */
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
         track_defaults(t);

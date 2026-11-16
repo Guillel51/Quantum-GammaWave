@@ -844,23 +844,34 @@ static void gw_seg_v(int32_t x, int32_t y, int32_t w, int32_t h, int32_t lvl, in
         cv_rect(x, by, w, seg, b * (seg + 1) < lvl ? on : off);
     }
 }
+/* the 4-bit face's cells. The columns that land on the canvas are worked out once per glyph (sx0 .. sx1)
+ * and the rows outside the clip are skipped without reading them, so the inner loop has no bounds test:
+ * a glyph entirely off the canvas (a scrolled page, the credits) costs nothing but the call. */
 static void cv_alpha(int32_t x, int32_t y, uint32_t w, uint32_t h, const uint8_t *d, const uint16_t *rv)
 {
-    uint32_t k = 0, gx, gy;
+    int32_t sx0 = 0, sx1 = (int32_t)w, cw = (int32_t)cv_w;
+    uint32_t gx, gy;
+    if (x < 0)
+        sx0 = -x;
+    if (x + (int32_t)w > cw)
+        sx1 = cw - x;
     y += cv_oy;
+    if (sx0 >= sx1 || y >= cv_cy1 || y + (int32_t)h <= cv_cy0) {
+        GFX_HOOK_PIXELS(w * h);
+        return;
+    }
     for (gy = 0; gy < h; gy++) {
         int32_t py = y + (int32_t)gy;
         uint16_t *row;
-        if (py < cv_cy0 || py >= cv_cy1) {
-            k += w;
+        uint32_t k;
+        if (py < cv_cy0 || py >= cv_cy1)
             continue;
-        }
-        row = cv_px + (uint32_t)py * cv_w;
-        for (gx = 0; gx < w; gx++, k++) {
+        row = cv_px + (uint32_t)py * cv_w + x;
+        k = gy * w + (uint32_t)sx0;
+        for (gx = (uint32_t)sx0; gx < (uint32_t)sx1; gx++, k++) {
             uint32_t v = (d[k >> 1] >> ((k & 1u) ? 0 : 4)) & 15u;
-            int32_t px = x + (int32_t)gx;
-            if (v && (uint32_t)px < cv_w)
-                row[px] = rv[v];
+            if (v)
+                row[gx] = rv[v];
         }
     }
     GFX_HOOK_PIXELS(w * h);
@@ -898,6 +909,13 @@ static void cv_alpha_hc(int32_t x, int32_t y, uint32_t w, uint32_t h, const uint
     const uint16_t *lut = hc_lut(hc);
     uint32_t gy, v = 0, run = 0, acc = 0, nb = 0;
     y += cv_oy;
+    /* (FASE 6) a glyph whose rows and columns all land off the canvas is not decoded at all: the stream is
+     * only walked because the pixels had to be read, and a scrolled page (the credits) spends most of its
+     * time in cells nothing shows */
+    if (y >= cv_cy1 || y + (int32_t)h <= cv_cy0 || x >= (int32_t)cv_w || x + (int32_t)w <= 0) {
+        GFX_HOOK_PIXELS(w * h);
+        return;
+    }
     for (gy = 0; gy < h; gy++) {
         int32_t py = y + (int32_t)gy;
         uint16_t *row = py < cv_cy0 || py >= cv_cy1 ? 0 : cv_px + (uint32_t)py * cv_w;

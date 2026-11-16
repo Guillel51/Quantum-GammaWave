@@ -1,3 +1,24 @@
+## FASE 6 — segunda optimización profunda — 2026-11-16
+
+### El espacio
+- **La última banda del WAVETABLE se arranca, no se guarda**: `WT_L5` (4 096 B de flash) se construye en
+  `wt_gen_init` como las otras dos, con las amplitudes de `WT_COEF` que ya estaban. El sonido no cambia de
+  forma medible: los 2 048 valores generados difieren del guardado en ±1 sobre 32 000 en 972 puntos, y
+  **293 renders golden salen idénticos**. La holgura XIP pasa de **416 B a 4 464 B** y `.data+.bss` de
+  90 676 a 94 772 B (holgura 3 532 B). Ver `docs/QG_FASE6_OPTIMIZACION_2026-11-16.md`.
+
+### La pantalla
+- **Los glifos que no se ven no se decodifican**: `cv_alpha` calcula una vez por glifo las columnas que caen
+  en el lienzo y se salta las filas fuera del recorte (el lazo interior pierde el test de límites por
+  píxel), y `cv_alpha_hc` no recorre el flujo Huffman de una celda que cae entera fuera. Las 190 pantallas ×
+  22 paletas quedan idénticas (0 lint, 0 desalineaciones) y el costo de dibujo medido en host baja 3,2 % de
+  mediana (16,3 % en los créditos). Cuesta +56 B de XIP, pagados por lo anterior.
+
+### Lo que se revisó sin cambiar
+- Detector de código duplicado sobre 53 848 renglones: 2 bloques repetidos de 6 líneas, sin byte que valga
+  el riesgo. Cadenas literales: el compilador ya las fusiona. RAM, POOL, `-Oz` y las 39 líneas de
+  `tests/target_budget.py` (todas a 0 %) quedan como estaban, cada una con su número escrito.
+
 ## v1.1.0 — 2026-11-16
 
 La versión que junta todo lo que se hizo después de la 1.0.0 en un solo binario, un solo paquete, un solo
