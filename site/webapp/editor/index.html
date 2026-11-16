@@ -3,7 +3,7 @@
      Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments -->
 <!-- Felucca web editor. One file, no libraries. Protocol: EDITOR_PROTOCOL.md.
      Add ?mock=1 to the URL to use a built-in simulated device. -->
-<html lang="ja" data-version="4.1.0">
+<html lang="ja" data-version="1.0.0">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -946,8 +946,8 @@
       <h2 data-t="devicePresets"></h2>
       <p class="dim" data-t="deviceFavHelp"></p>
       <label><span data-t="deviceList"></span> <select id="device-filter"></select></label>
-      <label>SEARCH <input type="search" id="device-search" spellcheck="false" placeholder="name"></label>
-      <label>CATEGORY <select id="device-category"><option value="">ALL</option></select></label>
+      <label><span data-t="deviceSearch"></span> <input type="search" id="device-search" spellcheck="false" placeholder="name"></label>
+      <label><span data-t="deviceCategory"></span> <select id="device-category"><option value="">ALL</option></select></label>
       <p class="bar"><button id="device-ab" disabled>COMPARE A/B</button> <span class="dim" id="device-ab-state">A: — / B: —</span></p>
       <div class="list" id="device-preset-list" style="margin-top:8px"></div>
     </div>
@@ -2268,7 +2268,7 @@ function makeMockDevice(opt = {}) {
   const RATIO = [".5", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "14", "16"];
   const P = (name, e, env = [10, 70, 90, 60], mono = 0, pat = 0) => ({ name, e, env, mono, pat });
   const ENG = [
-    { name: "ANALOG", titles: ["OSC", "FLT"], edit: [E("WAVE", ["SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD"], 0), D("DETUNE", F.INT, 0, 127, 10, null, "ct"), D("MIX", F.PCT, 0, 127, 64),
+    { name: "ANALOG", titles: ["OSC", "FLT"], edit: [E("WAVE", ["SAW", "SQR", "TRI", "SIN", "PWM", "SYNC", "RING", "SAW3", "TUBE", "FOLD", "PM"], 0), D("DETUNE", F.INT, 0, 127, 10, null, "ct"), D("MIX", F.PCT, 0, 127, 64),
         D("NOISE", F.PCT, 0, 127, 0), D("CUT", F.CUTOFF, 0, 127, 90), D("RES", F.PCT, 0, 127, 30), D("DRIVE", F.PCT, 0, 127, 0), D("INT", F.SEMI, -24, 24, 0)],   /* (JIANT 0.4: INT, osc 2's interval, was KTR) */
       presets: [
         P("SAW LEAD", [0,  12,  64,  0,  90,  30,  10,  12], [4,  70,  100,  50], 1, 4),
@@ -2345,7 +2345,7 @@ function makeMockDevice(opt = {}) {
       presets: [] },
     { name: "PHASE", titles: ["PHS", "LINE"], edit: [E("WAVE", ["SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"], 0),
         E("WAVE2", ["-", "SAW", "SQR", "PLS", "DSIN", "SPLS", "RSAW", "RTRI", "RTRP"], 0), D("DCW", F.PCT, 0, 127, 60), D("ENV", F.PCT, 0, 127, 64),
-        D("DETUNE", F.INT, 0, 127, 0, null, "ct"), E("LINE", ["MIX", "RING"], 0), D("SUB", F.PCT, 0, 127, 0), D("FB", F.PCT, 0, 127, 0)],
+        D("DETUNE", F.INT, 0, 127, 0, null, "ct"), E("LINE", ["MIX", "RING", "PM"], 0), D("SUB", F.PCT, 0, 127, 0), D("FB", F.PCT, 0, 127, 0)],
       presets: [
         P("BRASS", [0,  0,  30,  90,  0,  0,  0,  0], [8,  70,  90,  40], 0, 6),
         P("ORGAN", [3,  0,  40,  0,  0,  0,  0,  0], [0,  127,  127,  30], 0, 6),
@@ -3224,6 +3224,11 @@ async function readDevicePreferences(rq, info, names, previous = null) {
 /* an enum value or a preset named like another is an alias kept for stored numbers: the device loads the original,
    the lists hide the alias (shown when set). The original: the first entry when it has that name (SAMPLE / GRAIN 1
    and 4, once TRANH and PERC: PIANO 0), else the last with it (EDITOR_PROTOCOL.md). "-" (a reserved engine number: DIGITAL 1, PHYS 9) is no alias. -> the original's index */
+/* (1.7.1) a factory sound's primary category, keyed the way the table is stored (engine name and index). */
+function presetCategoryOf(cats, info, row) {
+  return row && !row.user ? (cats.get((info.engines[row.engine] || "") + ":" + row.preset) || "") : "";
+}
+
 function aliasOf(names, i) {
   if (!names || names[i] == null || names[i] === "-") return i;
   const k = names[0] === names[i] ? 0 : names.lastIndexOf(names[i]);
@@ -3295,12 +3300,20 @@ function showCompare() {
   state.textContent = "A: " + compareLabel(compareA) + " / B: " + compareLabel(compareB);
   button.disabled = !(compareA && compareB);
 }
-if (typeof fetch === "function") fetch("preset_categories.json").then((r) => r.ok ? r.json() : []).then((rows) => {
-  for (const row of rows) PRESET_CATS.set(row.name, row.category);
+let presetCatRows = [];
+/* the category list, in the language on screen and without dropping the one in use (applyLang rebuilds it too) */
+function fillDeviceCategories() {
   const sel = $("device-category");
   if (!sel) return;
-  const cats = [...new Set(rows.map((r) => r.category))].sort();
-  sel.replaceChildren(el("option", { value: "", text: "ALL" }), ...cats.map((c) => el("option", { value: c, text: c })));
+  const keep = sel.value;
+  const cats = [...new Set(presetCatRows.map((r) => r.category))].sort();
+  sel.replaceChildren(el("option", { value: "", text: t("deviceCatAll") }), ...cats.map((c) => el("option", { value: c, text: c })));
+  if (cats.includes(keep)) sel.value = keep;
+}
+if (typeof fetch === "function") fetch("preset_categories.json").then((r) => r.ok ? r.json() : []).then((rows) => {
+  presetCatRows = rows;
+  for (const row of rows) PRESET_CATS.set(row.engine + ":" + row.index, row.category);
+  fillDeviceCategories();
 }).catch(() => {});
 
 /* ---------------------------------------------------------------- icons --- */
@@ -3368,6 +3381,11 @@ const TEXT = {
     devicePresets: "本体のプリセット",
     deviceFavHelp: "お気に入りと表示フィルターは FM-1 と同期します。パソコンのライブラリの音色は、本体のユーザースロットに保存してから登録してください。",
     deviceList: "表示",
+    deviceSearch: "検索",
+    deviceSearchPh: "名前",
+    deviceCategory: "カテゴリー",
+    deviceCatAll: "すべて",
+    deviceNoMatch: "検索とカテゴリーに合う音色がありません。",
     deviceAll: "すべてのプリセット",
     deviceFavorites: "お気に入りのみ",
     deviceEmpty: "お気に入りはまだありません。「すべてのプリセット」から追加してください。",
@@ -3465,6 +3483,11 @@ const TEXT = {
     devicePresets: "Device presets",
     deviceFavHelp: "Stars and the favorites filter sync with the FM-1. Save computer-library sounds to a device user slot before starring them.",
     deviceList: "Show",
+    deviceSearch: "SEARCH",
+    deviceSearchPh: "name",
+    deviceCategory: "CATEGORY",
+    deviceCatAll: "ALL",
+    deviceNoMatch: "No sounds match the search and category.",
     deviceAll: "All presets",
     deviceFavorites: "Favorites only",
     deviceEmpty: "No favorites yet. Choose All presets to add some.",
@@ -3547,6 +3570,8 @@ function applyLang() {
   setLabel($("connect"), t(dev ? "disconnect" : "connect"));
   if (lastKey) $("status").textContent = t(lastKey) + lastArg;
   $("libq").placeholder = t("libSearch");
+  $("device-search").placeholder = t("deviceSearchPh");
+  fillDeviceCategories();
   renderLive();
   renderLib();
   renderBank();
@@ -4824,12 +4849,15 @@ function renderPreferences(force = false) {
   filter.setAttribute("aria-label", t("deviceList"));
   filter.replaceChildren(el("option", { value: 0, text: t("deviceAll") }), el("option", { value: 1, text: t("deviceFavorites") }));
   filter.value = p.state.filter;
-  let rows = devicePresetRows(d.info, d.names, p);
-  {   /* (1.7) search + primary category, from the 200-sound table */
-    const q = ($("device-search") && $("device-search").value || "").toLowerCase();
-    const cat = $("device-category") && $("device-category").value || "";
-    rows = rows.filter((r) => (!q || r.name.toLowerCase().includes(q)) && (!cat || PRESET_CATS.get(r.name) === cat));
-  }
+  /* (1.7) search + primary category, from the 200-sound table. (1.7.1) the row carries the text the list shows, so a
+   * user preset answers to its "U07" label too, and the category is looked up by engine and index: eight factory
+   * names repeat across engines, and keying by name filed both of them under whichever row came last. */
+  let rows = devicePresetRows(d.info, d.names, p)
+    .map((r) => ({ ...r, label: r.user ? slotName(r.preset) + " " + r.name : r.name }));
+  const q = ($("device-search") && $("device-search").value || "").trim().toLowerCase();
+  const cat = $("device-category") && $("device-category").value || "";
+  rows = rows.filter((r) => (!q || r.label.toLowerCase().includes(q)) && (!cat || presetCategoryOf(PRESET_CATS, d.info, r) === cat));
+  const emptyText = q || cat ? t("deviceNoMatch") : t("deviceEmpty");
   const table = el("table");
   table.append(el("colgroup", {}, el("col", { style: "width:40px" }), el("col"), el("col", { style: "width:110px" }), el("col", { style: "width:64px" })));
   const loadRow = (row) => { if (!dev || busy) return; row.user ? bankLoad(row.preset) : choosePreset(row.engine, row.preset); };
@@ -4838,7 +4866,7 @@ function renderPreferences(force = false) {
     compareSide = side; showCompare(); loadRow(row);
   };
   for (const row of rows) {
-    const name = row.user ? slotName(row.preset) + " " + row.name : row.name;
+    const name = row.label;
     const star = el("button", { text: row.favorite ? "\u2605" : "\u2606", "aria-label": t(row.favorite ? "deviceUnstar" : "deviceStar") + ": " + name, "aria-pressed": String(row.favorite) });
     star.addEventListener("click", () => changeFavorite(row));
     const load = el("button", { text: name });
@@ -4851,7 +4879,7 @@ function renderPreferences(force = false) {
     }
     table.append(el("tr", {}, el("td", {}, star), el("td", {}, load), el("td", { text: row.user ? t("bank") : d.info.engines[row.engine] }), ab));
   }
-  $("device-preset-list").replaceChildren(rows.length ? table : el("p", { class: "dim", text: t("deviceEmpty") }));
+  $("device-preset-list").replaceChildren(rows.length ? table : el("p", { class: "dim", text: emptyText }));
 }
 $("device-filter").addEventListener("change", () => changePreference(3, +$("device-filter").value));
 for (const id of ["device-search", "device-category"])
@@ -6187,7 +6215,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("4.1.0", 120, 194);
+      ctx.fillText("1.0.0", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";
