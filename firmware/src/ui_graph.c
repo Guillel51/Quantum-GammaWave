@@ -3070,7 +3070,11 @@ static void graph_home_viz(uint16_t c)
     /* (3.5) a slightly deeper page: the panel and the space around it sit one step under the palette's own
      * tones, so the data (the only bright thing here) leads and the field behind it recedes. bg_darken()
      * can only move a tone down, so MONO stays black and PAPER stays legible. */
-    uint16_t vbg = bg_darken(T_BG, 14), vsf = bg_darken(T_SURF, 10);
+    /* (FASE 5) the two scopes are GLASS over the field, not dark boxes: the well used to be the page's tone
+     * darkened by 14, which read as an opaque plate the starfield could not be seen through. A framebuffer has
+     * no alpha to set, so the well is mixed toward the page's own tone instead: the stars behind it keep
+     * showing through the tint, and the grid and the traces still lead (they are the bright thing here). */
+    uint16_t vbg = ux_mix(bg_darken(T_BG, 14), T_BG, 62), vsf = bg_darken(T_SURF, 10);
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {

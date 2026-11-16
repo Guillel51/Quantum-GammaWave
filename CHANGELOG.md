@@ -1,3 +1,10 @@
+## FASE 5 — visualizador (sin publicar) — 2026-11-16
+
+- **Los dos osciloscopios del visualizador son vidrio, no cajas oscuras.** El pozo era el tono de la página
+  oscurecido en 14: una placa opaca por la que no se veía el campo de estrellas. Un framebuffer RGB565 no tiene
+  alfa que ajustar, así que el pozo se mezcla hacia el tono de la página (62 %): las estrellas siguen viéndose a
+  través del tinte y la grilla y las trazas siguen mandando.
+
 ## FASE 4 — mejoras funcionales — 2026-11-16
 
 - **El progreso de los mini knobs de HOME sigue a la aguja.** Era un arco de dos píxeles en el borde, barrido
