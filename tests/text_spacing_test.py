@@ -44,16 +44,18 @@ def parse(path):
         name, f = m.group(1), [x.strip() for x in m.group(2).split(",")]
         arr = lambda n: [int(v, 0) for v in re.search(r"AF_%s_%s\[\d+\] = \{([^}]*)\}" % (name, n), t)
                          .group(1).replace("\n", " ").split(",") if v.strip()]
+        # (FASE 1, 2026-11-16) aag_t: off, bx, by, bw, bh (the advance is once per glyph, AF_x_ADV)
         g = [tuple(int(v) for v in e.split(",")) for e in
-             re.findall(r"\{(-?\d+, -?\d+, -?\d+, -?\d+, -?\d+, -?\d+)\}",
+             re.findall(r"\{(-?\d+, -?\d+, -?\d+, -?\d+, -?\d+)\}",
                         re.search(r"AF_%s_G\[\d+\] = \{(.*?)\n\};" % name, t, re.S).group(1))]
+        adv = arr("ADV")
         kern = {}
-        if f[8] != "0":
+        if f[9] != "0":
             kern = dict(zip(arr("KERN"), arr("KD")))
         faces[name] = {"h": int(f[0]), "asc": int(f[1]), "first": int(f[2]), "last": int(f[3]), "nex": int(f[4]),
-                       "g": g, "data": bytes(arr("DATA")), "kern": kern, "ex": arr("EX")[:int(f[4])],
-                       "psh": int(f[11]) if len(f) > 11 else 0,
-                       "hc": arr("HC") if len(f) > 12 and f[12] != "0" else None}
+                       "g": g, "adv": adv, "data": bytes(arr("DATA")), "kern": kern, "ex": arr("EX")[:int(f[4])],
+                       "psh": int(f[12]) if len(f) > 12 else 0,
+                       "hc": arr("HC") if len(f) > 13 and f[13] != "0" else None}
     return faces
 
 
@@ -101,14 +103,14 @@ def place(f, s):
             pos = (pen + 8) & ~15
             e = g0
         err = pos - pen
-        out.append((ch, (pos >> 4) + e[2], e))
-        pen += e[1]
+        out.append((ch, (pos >> 4) + e[1], e))
+        pen += f["adv"][gi]
         prev = c
     return out
 
 
 def bitmap(f, e):
-    off, adv, bx, by, bw, bh = e
+    off, bx, by, bw, bh = e
     if f["hc"]:                                      # Huffman-coded (gen_aa_font.py huff_pack)
         return gf.huff_unpack(f["hc"], f["data"][off:], bw * bh)
     v = []
@@ -128,7 +130,7 @@ def measure(f, font_hi, s, trk=0.0):
     placed = place(f, s)
     d = []
     for i, (ch, gx, e) in enumerate(placed):
-        if ch == " " or not e[4]:
+        if ch == " " or not e[3]:
             d.append(None)
             continue
         pen = (font_hi.getlength(s[:i + 1]) - font_hi.getlength(s[i])) / SS + i * trk
@@ -138,8 +140,8 @@ def measure(f, font_hi, s, trk=0.0):
         v = a.tobytes()
         ox = (x0 + pen) * SS                             # drawn at a whole 1/16 px: move the centroid the rest
         ref = centroid([sum(v[x::w]) for x in range(w)]) + (ox - round(ox)) / SS
-        bm, bw = bitmap(f, e), e[4]
-        cols = [sum(bm[y * bw + x] for y in range(e[5])) for x in range(bw)]
+        bm, bw = bitmap(f, e), e[3]
+        cols = [sum(bm[y * bw + x] for y in range(e[4])) for x in range(bw)]
         d.append(x0 + gx + centroid(cols) - ref)
     return [(s[i:i + 2], d[i + 1] - d[i]) for i in range(len(s) - 1) if d[i] is not None and d[i + 1] is not None]
 
@@ -148,17 +150,17 @@ def specimen(f, words, scale=4):
     """the strings drawn by the table rule, gray on black, x scale"""
     lh = f["h"] + 4
     ws = [place(f, s) for s in words]
-    w = max(gx + e[4] for p in ws for _, gx, e in p) + 8
+    w = max(gx + e[3] for p in ws for _, gx, e in p) + 8
     img = Image.new("L", (w, lh * len(words) + 4), 0)
     px = img.load()
     for k, p in enumerate(ws):
         for _, gx, e in p:
             bm = bitmap(f, e)
-            for y in range(e[5]):
-                for x in range(e[4]):
-                    v = bm[y * e[4] + x] * 17
+            for y in range(e[4]):
+                for x in range(e[3]):
+                    v = bm[y * e[3] + x] * 17
                     if v:
-                        X, Y = 4 + gx + x, 2 + k * lh + e[3] + y
+                        X, Y = 4 + gx + x, 2 + k * lh + e[2] + y
                         px[X, Y] = max(px[X, Y], v)
     return img.resize((img.width * scale, img.height * scale), Image.NEAREST)
 

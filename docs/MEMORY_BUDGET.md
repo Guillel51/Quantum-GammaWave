@@ -137,3 +137,25 @@ CPU_NS_BASE=/tmp/other.txt ./build/host/regress tests/golden.txt tests/cpu_basel
 Proof the ns gate bites: with this host's own baseline scaled by 0.5 (a synthetic 100 % regression) the
 run prints `CPU ns: FAIL (every job on this host is 101 % slower than its baseline …)` and exits 1; on the
 unmodified baseline it prints `CPU ns: PASS (207 rows …, host median 1.00 …)` and exits 0.
+
+## 6. Measured image — 2026-11-16 (FASE 1: XIP and RAM)
+
+The tree at `21baf7d` measured with the pinned toolchain and SDK (`docs/QG_FASE1_OPTIMIZACION_2026-11-16.md`
+has the method and the evidence): the XIP slot was the binding limit, **88 B** free.
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 582 388 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **1 224 B** |
+| `.data + .bss` | 90 676 B | 98 304 B | **7 628 B** |
+| RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | 19 684 B | 24 576 B | 4 892 B |
+| Pool spare (`POOL_END - pool_top`) | 9 248 B | ≥ 8 192 B | 1 056 B |
+| XIP code / constants | 418 768 B / 143 140 B | — | — |
+
+What moved: the glyph table stores each glyph's advance once instead of once per phase (`aag_t` 8 → 6 B,
+−840 B of constants), `LFO_HZ_X100` is a `uint16_t` (−256 B), and the user-preset bank mirror (`up_bank`,
+6 160 B, main loop only) moved from `.bss` to `.pool`, which took `.data+.bss` from 1 468 B of headroom to
+7 628 B and left the pool at 9 248 B spare (above the 8 KiB floor). The move is a re-layout inside the same
+SRAM window, not new memory. Code size is +36 B (pool addresses) and the package is unchanged (it is padded
+to the slot). Verified with 293 golden renders (0 changed), the text reference (0 of 6 732 strings, 0 pixels),
+the UI render sweep (0 lint findings, 0 alignment misses), `tests/target_budget.py` 39/39 at 0 % and
+`tests/memory_map_test.py`.

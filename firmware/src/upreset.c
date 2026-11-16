@@ -62,7 +62,12 @@ typedef struct {
 _Static_assert(sizeof(up_rec_t) == 192, "user preset record layout");
 _Static_assert(P_COUNT <= UP_PMAX * 2u && P_COUNT < 128, "user preset record: P_COUNT");
 _Static_assert(P_COUNT <= UP_FM_AT, "user preset record: the FM mark past the parameters");
-static up_bank_t up_bank[UP_SLOTS / UP_PER_BANK];
+/* (FASE 1, 2026-11-16) the RAM mirror of the user bank lives in the pool, as the project wire / mutation anchor /
+ * song-keep scratches already do: it is touched by the main loop only (save, load, browse, the editor's backup),
+ * never by the audio ISR, and the pool is zeroed at boot by main.c like .bss. 6 160 B leave the .data+.bss budget
+ * (the one that binds the next features) for a pool that has 15 392 B of spare above its 8 KiB floor, and the
+ * same bytes stay in the same SRAM window: this is a re-layout within the map, not new memory. */
+static up_bank_t up_bank[UP_SLOTS / UP_PER_BANK] __attribute__((section(".pool")));
 
 static up_rec_t *up_rec(uint32_t k) { return &up_bank[k / UP_PER_BANK].r[k % UP_PER_BANK]; }
 

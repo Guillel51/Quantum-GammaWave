@@ -116,7 +116,9 @@ def main(path):
     L += arr("ENV_EXP", "uint16_t", exp_k)
     # LFO 0.05 .. 40 Hz, phase increment per control tick
     hz = [0.05 * (800 ** (v / 127)) for v in range(128)]
-    L += arr("LFO_HZ_X100", "uint32_t", [int(round(h * 100)) for h in hz], 10)
+    # (FASE 1, 2026-11-16) 5 .. 4000 (0.05 .. 40 Hz x 100): a uint16 holds every entry, 256 B less XIP. The
+    # value read is identical (the callers widen it), so params.c's display and the LFO rate do not change.
+    L += arr("LFO_HZ_X100", "uint16_t", [int(round(h * 100)) for h in hz], 10)
     L += arr("LFO_INC", "uint32_t", [int(h * CTL / FS * 2 ** 32) for h in hz], 8)
     # filter cutoff 30 Hz .. 16 kHz
     fc = [30.0 * ((16000 / 30) ** (v / 127)) for v in range(128)]

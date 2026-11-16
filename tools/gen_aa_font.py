@@ -228,9 +228,16 @@ def emit(face, tracking, gamma, kern_min):
     lines.append(ar.c_array(f"AF_{name}_DATA", "uint8_t", list(data), 24, "0x{:02x}"))
     if hc:
         lines.append(ar.c_array(f"AF_{name}_HC", "uint8_t", hc, 24))
+    # (FASE 1, 2026-11-16) the advance is the same in every phase (checked here, not assumed): 2 B a glyph
+    # instead of 2 B a phase, and aag_t drops to 6 B (gfx.c). 840 B of XIP across the three faces; the glyphs,
+    # their bitmaps and the drawn pixels are untouched.
+    advs = [table[i][1] for i in range(0, len(table), phases)]
+    assert all(len({table[g * phases + p][1] for p in range(phases)}) == 1 for g in range(len(advs))), \
+        f"{name}: a glyph's advance differs between its phases"
+    lines.append(ar.c_array(f"AF_{name}_ADV", "uint16_t", advs, 16))
     lines.append(f"static const aag_t AF_{name}_G[{len(table)}] = {{")
     for off, adv, bx, by, bw, bh in table:
-        lines.append(f"    {{{off}, {adv}, {bx}, {by}, {bw}, {bh}}},")
+        lines.append(f"    {{{off}, {bx}, {by}, {bw}, {bh}}},")
     lines.append("};")
     if keys:
         lines.append(ar.c_array(f"AF_{name}_KERN", "uint16_t", keys, 12))
@@ -238,13 +245,13 @@ def emit(face, tracking, gamma, kern_min):
     ex = ", ".join(str(CODE.get(c, c)) for c in extras) or "0"
     lines.append(f"static const uint8_t AF_{name}_EX[{max(1, len(extras))}] = {{{ex}}};")
     lines.append(f"static const aafont_t AF_{name} = {{{r['h']}, {r['asc']}, {first}, {last}, {len(extras)}, {len(keys)}, "
-                 f"AF_{name}_G, AF_{name}_DATA, {'AF_%s_KERN' % name if keys else '0'}, "
+                 f"AF_{name}_G, AF_{name}_ADV, AF_{name}_DATA, {'AF_%s_KERN' % name if keys else '0'}, "
                  f"{'AF_%s_KD' % name if keys else '0'}, AF_{name}_EX, {psh}, {'AF_%s_HC' % name if hc else '0'}}};")
     if "H" in chars:                                  # the capitals' band (gfx.c CAP_IN: centring text by it)
         cap = table[chars.index("H") * phases]
         lines.append(f"#define AF_{name}_CAP_Y {cap[3]}   /* the ink of H: rows {cap[3]} .. {cap[3] + cap[5] - 1} of the line */")
         lines.append(f"#define AF_{name}_CAP_H {cap[5]}")
-    cost = {"data": len(data) + len(hc), "glyph_table": 8 * len(table), "kern": 3 * len(keys), "extras": len(extras),
+    cost = {"data": len(data) + len(hc), "glyph_table": 6 * len(table) + 2 * len(advs), "kern": 3 * len(keys), "extras": len(extras),
             "glyphs": len(chars), "phases": phases, "pairs": len(keys), "h": r["h"], "asc": r["asc"], "px": px,
             "font": os.path.basename(font.split("#")[0]), "adv_digit": r["glyphs"]["0"][0] / 16}
     cost["total"] = cost["data"] + cost["glyph_table"] + cost["kern"] + cost["extras"]

@@ -43,9 +43,10 @@ static double contrast(uint16_t fg, uint16_t bg)
 
 int main(int argc, char **argv)
 {
-    static const aag_t pg[1] = {{0, 48, 0, 0, 3, 1}};   /* one glyph 'A': 3 px, alpha 0, 8, 15 */
+    static const aag_t pg[1] = {{0, 0, 0, 3, 1}};   /* one glyph 'A': 3 px, alpha 0, 8, 15 (advance below) */
+    static const uint16_t pa[1] = {48};
     static const uint8_t pd[] = {0x08, 0xf0};
-    const aafont_t probe = {1, 1, 'A', 'A', 0, 0, pg, pd, 0, 0, 0};
+    const aafont_t probe = {1, 1, 'A', 'A', 0, 0, pg, pa, pd, 0, 0, 0};
     double worst = 100;
     assert(NPALETTES >= 13u && !strcmp(UI_PALETTES[0].name, "GREY") && !strcmp(UI_PALETTES[7].name, "HI-CON") &&
            !strcmp(UI_PALETTES[8].name, "NIGHT") && !strcmp(UI_PALETTES[9].name, "MONO") && UI_BW_INDEX == 9u &&
