@@ -5315,7 +5315,8 @@ static int test_fm4_retired(void)
                  seen == all && TSEL->eng_req == 0u && eng_step(0, 1) == ENGI_FM6 && eng_step(ENGI_FM6, 1) == 2u &&
                  eng_step(ENGI_FM6, -1) == 0u && eng_step(0, -1) == ENGI_DRUM);
     {   /* the display order (engines.c ENGINE_ORDER): every engine one can pick once; the PRESETS list follows it */
-        static const char *const ORDER[] = {"ANALOG", "FM6", "PHASE", "LOFI", "VOICE", "WHEEL", "NOISE", "WTABLE", "DRUM"};
+        static const char *const ORDER[] = {"ANALOG", "FM6", "PHASE", "LOFI", "VOICE", "WHEEL", "NOISE", "WTABLE", "ADDTV",
+                                            "DRUM"};
         uint32_t last = 0xFFu, r = 0, n = 0;
         ok = NENG_SHOWN == NELEM(ORDER);
         for (i = 0; ok && i < NENG_SHOWN; i++)
@@ -11225,6 +11226,42 @@ static int test_home_viz(void)
     return bad;
 }
 
+/* (1.2.6) SOUND EDITED: the sound against the snapshot the last load / save left. A knob marks it, a save
+ * clears it, and the automation of a playing transport does not (it writes p[] for its step and puts it
+ * back). The watch runs in ui_notices, once a frame. */
+static int test_sound_edited(void)
+{
+    int bad = 0, ok;
+    ui_power_on();
+    snd_first = 1;                                   /* the power-on sound is the reference */
+    frame();
+    ok = !snd_edited(TSEL) && !snd_edited(&trk[(song.sel + 1u) % NTRK]);
+    bad += check("SOUND EDITED: a sound just loaded is not edited", ok);
+    open_family(FAM_EDIT);
+    frame();
+    turn(EN_K1, 3);                                  /* a parameter, as the first EDIT knob turns it */
+    frame();
+    ok = snd_edited(TSEL) && !snd_edited(&trk[(song.sel + 1u) % NTRK]);
+    bad += check("SOUND EDITED: the knob marks this track's sound and only it", ok);
+    snd_clean(TSEL);                                 /* what a save does */
+    bad += check("SOUND EDITED: saving clears the mark", !snd_edited(TSEL));
+    /* the transport: p[] moves for a step and comes back; that is not an edit */
+    {
+        int16_t was = TSEL->p[P_E2];
+        song.playing = 1;
+        TSEL->p[P_E2] = (int16_t)(was + 7);
+        ui_notices();
+        ok = !snd_edited(TSEL);
+        song.playing = 0;
+        TSEL->p[P_E2] = was;
+        ui_notices();
+        bad += check("SOUND EDITED: nothing is marked while the transport runs (an automation is not an edit)",
+                     ok && !snd_edited(TSEL));
+    }
+    snd_clean(TSEL);
+    return bad;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -11360,6 +11397,7 @@ int main(void)
     bad += test_scale_leds();
     bad += test_screen_off();
     bad += test_fm6_charts();
+    bad += test_sound_edited();
 #if FELUCCA_FM4
     bad += test_fm_charts();                        /* (DIGITAL's charts: built with FELUCCA_FM4=1 only) */
 #else

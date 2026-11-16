@@ -435,6 +435,8 @@ static int up_store(uint32_t k, const char *name)
             if (u == 2)
                 rc = 2;
         }
+        if (rc == 0 || rc == 3)
+            snd_clean(TSEL);                            /* (1.2.6) saved: no longer SOUND EDITED */
         return rc;
     }
 }

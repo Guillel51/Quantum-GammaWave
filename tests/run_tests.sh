@@ -88,6 +88,9 @@
 # DRUM-X (tests/drumx_test.c): the DRUM engine (src/drumx_voice.c): every lane sounds, stays under full scale and ends,
 #                   MORPH A <-> B (also while a hit rings), PITCH, the hat choke, MRPH on the knob; demos in build/drumx_demo/.
 # NOISE (tests/noise_test.c): the engine (src/eng_noise.c): COLR's slope (white, pink, brown), the filter and the
+# ADDTV (tests/additive_test.c, 1.2.6): the additive engine (src/eng_additive.c): the eight partials, the
+#                   profiles and the morph between them, TILT, the spectral DECAY, STRETCH, SUB, the band limit,
+#                   health and cost.
 # WTABLE (tests/wavetable_test.c): the wavetable engine (src/eng_wavetable.c): the eight frames' spectra and the morph
 #                   between them (sine, triangle, saw, vocal), HARM's tilt, SUB, UNI's beating, no aliasing at any octave
 #                   from C1 to C8, the presets' DC / clipping / release, determinism, host cost.
@@ -341,7 +344,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/tempo_test" tests/tempo_test.c -lm
     run "tempo: the cached beat, div_samples and div_by_n equal the divisions they replaced" "$OUT/tempo_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/preset_audit_test" tests/preset_audit_test.c -lm
-    run "PRESETS: all 273 of them loaded and rendered (structure, silence, level, duplicates)" "$OUT/preset_audit_test"
+    run "PRESETS: all 283 of them loaded and rendered (structure, silence, level, duplicates)" "$OUT/preset_audit_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/engine_param_test" tests/engine_param_test.c -lm
     run "ENGINES: every EDIT knob at both ends of its range moves the rendered note (216 knobs)" "$OUT/engine_param_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
@@ -359,6 +362,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "NOISE: colour slopes, key-tracked filter and clock, META period, DC, clipping, retrigger, cost, demos" "$OUT/noise_test" build/noise_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/wavetable_test" tests/wavetable_test.c -lm
     run "WTABLE: the frames and the morph, HARM, SUB, UNI, aliasing at every octave, health, cost" "$OUT/wavetable_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/additive_test" tests/additive_test.c -lm
+    run "ADDTV: the profiles and the morph, TILT, spectral DECAY, STRETCH, SUB, band limit, health, cost" "$OUT/additive_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fm6_test" tests/fm6_test.c -lm
     mkdir -p build/fm6_demo
     run "FM6: algorithms, envelopes, retrigger, DC, clipping, macros, patch formats, voices, cost, demos" "$OUT/fm6_test" build/fm6_demo

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
 # Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
-"""The factory library, checked as data (QG-1 6.0: 273 browsable sounds, plus two legacy kits).
+"""The factory library, checked as data (QG-1 6.0: 281 browsable sounds, plus two legacy kits).
 
 The firmware's tables are the only source: every engine's PRESETS[] is parsed from firmware/src/eng_*.c.
-Checks: 273 browsable sounds and each engine's share; DRUM's ten indices unchanged and its two pre-1.6
+Checks: 281 browsable sounds and each engine's share; DRUM's ten indices unchanged and its two pre-1.6
 kits still present as legacy entries at indices 10/11 (so an old project loads the exact sound it saved);
 no two sounds of an engine share a name; every entry's E count, envelope and sends in range. Duplicate
 parameter signatures are reported (not failed): the older library is allowed to be close.
@@ -26,8 +26,12 @@ ENGINES = [
     # ARCO SOLAR ...) were outside this audit while the preset audit (preset_audit_test.c, reading the real
     # engine_t) counted them. The total is the firmware's own: 273 browsable + 2 legacy kits = 275.
     ("WTABLE", "eng_wavetable.c", "WT_PRESETS", 22),
+    # (1.2.6) ADDTV was missing here for the same reason WTABLE was in FASE 5: the eight additive presets
+    # (GLASS BELL, HOLLOW REED, ...) live in eng_additive.c's AD_PRESETS and count in the firmware's total.
+    # 281 browsable + 2 legacy kits = 283.
+    ("ADDTV", "eng_additive.c", "AD_PRESETS", 8),
 ]
-TOTAL = 273
+TOTAL = 281
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "TRAP 808",
              "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT",
              "CONCRETE KICK", "GLASS SNARE", "TIN HAT", "TOMS OF MUD", "RITUAL PERC", "NEON CLAP"]

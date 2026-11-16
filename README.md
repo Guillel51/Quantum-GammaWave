@@ -84,7 +84,7 @@ Quantum GammaWave screenshot gallery. All images rendered from the firmware at 2
 ## Introduction
 
 Quantum GammaWave is a complete instrument built into an **M-VAVE FM-1**: a six-track FM and physical-modelling
-groovebox that is sequenced, played and mixed entirely on the unit. Twelve voices across nine engines, a
+groovebox that is sequenced, played and mixed entirely on the unit. Twelve voices across ten engines, a
 six-track sequencer with p-locks and probability, a chord and scale engine, three send effects plus a master
 bus, a drum machine, a performance layer — all of it running on the FM-1's own processor, with no computer in
 the loop, no samples and no streaming.
@@ -100,7 +100,7 @@ What you hold is one instrument in four pieces:
 | | |
 |---|---|
 | **Voices / tracks / engines** | 12 · 6 · 9 (ANALOG, ACID, FM4, FM6, WAVE, DRUM, PHYSICAL, DIGITAL, NOISE) |
-| **Sound bank** | 273 presets (275 entries), audited as data and measured as sound (bank median −18.5 dBFS) |
+| **Sound bank** | 281 presets (283 entries), audited as data and measured as sound (bank median −18.5 dBFS) |
 | **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
 | **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
 | **Screen** | 240 × 240 RGB565, fourteen colours per theme, nine palettes including GREY and MONO |
@@ -127,8 +127,9 @@ Nine engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and f
 | **DRUM-X** | drum synthesis: twelve kit lanes, per-hit tune and decay | kit, tune, decay, snap, mute groups |
 | **NOISE** | noise-based percussion and textures | colour, band, decay, tone |
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
+| **ADDTV** | additive: eight partials, each with its own phase and decay; SPECTRUM morphs eight profiles, STRETCH makes them inharmonic | spectrum, tilt, spectral decay, stretch |
 
-273 factory sounds are spread across them (two legacy kits aside), plus user preset slots. Presets and projects from earlier
+281 factory sounds are spread across them (two legacy kits aside), plus user preset slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU

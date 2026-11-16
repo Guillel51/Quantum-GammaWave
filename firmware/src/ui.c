@@ -955,10 +955,14 @@ static void load_end(track_t *t)
     if (--load_depth)
         return;
     if (load_mo & 1u) {                           /* a sound load: the motion on the common parameters stays */
+        uint8_t sound = load_mo;
         (void)motion_sound_loaded(t, load_from, t->eng_req);
-        if ((load_mo & 2u) && motion_count(t))
+        if ((sound & 2u) && motion_count(t))
             motion_set_enabled(t, 1);
         load_mo = 0;
+        motion_rebase(t);
+        snd_clean(t);                             /* (1.2.6) a loaded sound is the starting point again */
+        return;
     }
     motion_rebase(t);
 }

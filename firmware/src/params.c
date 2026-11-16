@@ -65,7 +65,7 @@ static const char *const N_MDST[] = {"OFF", "PITCH", "CUT", "SHP", "AMP", "PAN",
                                      * (FASE 2) X1..X4: the engine CHARACTER bank, appended so every stored
                                      * destination number keeps its meaning */
 static const char *const N_ENGNAME[] = {"ANALOG", FELUCCA_FM4 ? "DIGITAL" : "-", "PHASE", "LOFI", "-", "VOICE", "-", "WHEEL", "-", "-",
-                                             "DRUM", "NOISE", "FM6", "-", "WTABLE"};   /* (JIANT: SAMPLE 4, GRAIN 8, SLICE 13 retired;
+                                             "DRUM", "NOISE", "FM6", "-", "WTABLE", "ADDTV"};   /* (JIANT: SAMPLE 4, GRAIN 8, SLICE 13 retired;
                                                                                        * QG-1 3.0: 14 WAVETABLE) */
 
 #define PD(l, f, mn, mx, df) {l, f, mn, mx, df, 0, 0}

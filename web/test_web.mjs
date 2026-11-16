@@ -137,7 +137,7 @@ async function editorMock() {
   inp.onmidimessage = (e) => link.receive(e.data);
   const rq = async (r, o) => link.request(r, o);
   const info = E.parse[E.CMD.INFO](await rq(E.req.info()));
-  ok(info.nengines === 15 && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "-"
+  ok(info.nengines === 16 && info.engines[15] === "ADDTV" && info.engines[1] === "-" && info.engines[12] === "FM6" && info.engines[13] === "-"
  && info.engines[5] === "VOICE" && info.engines[6] === "-" && info.engines[7] === "WHEEL" && info.engines[8] === "-" && info.engines[9] === "-" && info.engines[10] === "DRUM" && info.engines[11] === "NOISE" && info.engines[14] === "WTABLE" && info.pcount === 125 && info.pe0 === 117 && info.engines[4] === "-",
     "editor: INFO");
   let descs = 0;
@@ -254,8 +254,8 @@ async function editorMock() {
   ok(!prefs.favorites[info.nengines][31] && !E.devicePresetRows(info, names, prefs).some((r) => r.user), "editor: erased slot disappears and loses star");
   {   /* the lists in the device's order (engines.c ENGINE_ORDER): FM6 second, DRUM last, "-" never; the numbers stay */
     const shown = E.engineOrder(info.engines).map((i) => info.engines[i]);
-    ok(shown.join() === "ANALOG,FM6,PHASE,LOFI,VOICE,WHEEL,NOISE,WTABLE,DRUM" &&
-       E.engineOrder(info.engines)[1] === 12 && E.engineOrder(info.engines)[7] === 14 && E.engineOrder(info.engines)[8] === 10,
+    ok(shown.join() === "ANALOG,FM6,PHASE,LOFI,VOICE,WHEEL,NOISE,WTABLE,ADDTV,DRUM" &&
+       E.engineOrder(info.engines)[1] === 12 && E.engineOrder(info.engines)[7] === 14 && E.engineOrder(info.engines)[8] === 15 && E.engineOrder(info.engines)[9] === 10,
        "editor: engines listed FM6 second, WTABLE then DRUM last (indices kept)");
     ok(E.engineOrder(["ANALOG", "X", "-", "DRUM", "FM6"]).join() === "0,4,3,1", "editor: an unknown engine follows the known ones");
     m.state.favorites[10][0] = m.state.favorites[12][0] = true;
@@ -714,7 +714,7 @@ async function editorLibrarian() {
   const pts = [cap, { ...bass, engineName: info.engines[bass.engine], tags: ["bass", "device"] }];
   const file = JSON.parse(JSON.stringify(E.libraryFile("library", pts, ctx)));
   ok(file.format === "felucca-library" && file.version === 1 && file.pCount === info.pcount && file.paramLabels.length === info.pcount && file.paramLabels[81] === "OFFSET" && file.paramLabels[82].startsWith("PITCH#") &&
-    file.paramLabels[83] === "KICK" && file.paramLabels[90] === "BELL" && file.engines.length === 15,
+    file.paramLabels[83] === "KICK" && file.paramLabels[90] === "BELL" && file.engines.length === 16,
     "library file: versioned, with P_COUNT, labels and engines");
   const back = E.readLibraryFile(file, ctx);
   ok(back.patches.length === 2 && !back.skipped && eq(back.patches[0].p, cap.p) && eq(back.patches[1].p, bass.p)

@@ -12,6 +12,7 @@
 #include "eng_noise.c"
 #include "eng_fm6.c"            /* FM6: 6-operator FM, msfa ported (fm6_core.c, Apache-2.0) */
 #include "eng_wavetable.c"      /* WAVETABLE: a compact morphing single-cycle table (QG-1 3.0) */
+#include "eng_additive.c"       /* ADDITIVE: eight partials, each with its own decay and stretch (QG-1 1.2.6) */
 #include "fm4_convert.c"        /* DIGITAL's tables, and its sounds -> FM6 */
 #if FELUCCA_FM4
 #include "eng_digital.c"        /* DIGITAL: four-operator FM (retired; FELUCCA_FM4=1 builds it) */
@@ -63,6 +64,7 @@ static const engine_t *const ENGINES[NENGINES] = {
     &ENG_FM6,                    /* 12 (ENGI_FM6) */
     &ENG_GONE,                   /* 13: reserved (SLICE, retired in JIANT) */
     &ENG_WAVETABLE,              /* 14 (QG-1 3.0: the wavetable oscillator) */
+    &ENG_ADDITIVE,               /* 15 (QG-1 1.2.6: the additive engine) */
 };
 
 /* a track's engine number as an index (the audio paths: a compare, cheaper than % NENGINES; a bad number: 0) */
@@ -80,6 +82,7 @@ static const uint8_t ENGINE_ORDER[NENG_SHOWN] = {
     2, 3, 5, 7,                  /* PHASE LOFI VOICE WHEEL */
     11,                          /* NOISE */
     14,                          /* WAVETABLE (QG-1 3.0) */
+    15,                          /* ADDITIVE (QG-1 1.2.6) */
     10,                          /* DRUM */
 };
 

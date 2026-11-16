@@ -1791,6 +1791,19 @@ static int page_tap(uint32_t b)
 static void ui_notices(void)
 {
     static uint32_t midi_t, midi_last;
+    {   /* (1.2.6) SOUND EDITED: each track's sound against the snapshot the last load / save left.
+         * Skipped while the transport runs: an automation or a parameter lock writes p[] for its step
+         * and puts it back, which is not an edit of the sound. */
+        uint32_t k;
+        if (snd_first) {                              /* the power-on sound is the reference */
+            snd_first = 0;
+            snd_dirty = 0;
+            for (k = 0; k < NTRK; k++) snd_ref[k] = snd_hash(&trk[k]);
+        } else if (!song.playing)
+            for (k = 0; k < NTRK; k++)
+                if (!((snd_dirty >> k) & 1u) && snd_hash(&trk[k]) != snd_ref[k])
+                    snd_dirty = (uint8_t)(snd_dirty | (1u << k));
+    }
     if (motion_full) { motion_full = 0; ui_message("AUTOMATION FULL"); }
     if (midi_hint) {                                    /* MIDI notes into a track that is not selected */
         uint32_t h = midi_hint;

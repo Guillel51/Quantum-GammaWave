@@ -808,6 +808,10 @@ static void draw_foot(void)
     int glob = !ui.home && (pg->graph == GR_SLOTS || pg->graph == GR_SONG || pg->graph == GR_TOOLS || pg->fam == FAM_GLO);
     char pj[12];
     sound_name(t, pn);
+    if (pn[0] && snd_edited(t)) {                      /* (1.2.6) SOUND EDITED: a star after the name */
+        uint32_t n = str_len(pn);
+        if (n < 15u) { pn[n] = '*'; pn[n + 1] = 0; }
+    }
     if (glob) {                                        /* (0.6.25) a page of the song / the instrument: the project and
                                                         * its name, not the track's engine and sound */
         str_cpy(pj, "PROJECT ", sizeof pj);

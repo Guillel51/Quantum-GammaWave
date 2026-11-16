@@ -127,6 +127,10 @@ static void hv_overview(const track_t *t, uint16_t c)
 
     cv_text(14, 64, &AF_S, "SOUND", T_DIM);
     cv_text(86, 62, &AF_S, pn[0] ? pn : "--", c);
+    if (pn[0] && snd_edited(t)) {                      /* (1.2.6) SOUND EDITED */
+        int32_t w = text_w(&AF_S, pn);
+        cv_text(86 + w + 4, 62, &AF_S, "*", c);
+    }
 
     cv_text(14, 78, &AF_S, "TEMPO", T_DIM);
     {   char q[24];

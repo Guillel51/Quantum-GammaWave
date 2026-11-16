@@ -34,8 +34,9 @@ ENGINES = [
     ("FM6", "eng_fm6.c", "FM6_PRESETS", "KEYS", 12),
     ("WTABLE", "eng_wavetable.c", "WT_PRESETS", "KEYS", 14),   # (FASE 5) was missing: 20 factory sounds
                                                                 # shipped and the browser never listed them
+    ("ADDTV", "eng_additive.c", "AD_PRESETS", "KEYS", 15),      # (1.2.6) the eighth partial additive engine
 ]
-NENGINES = 15   # core.h: the table's engines 0..14, reserved numbers included (they have no sounds)
+NENGINES = 16   # core.h: the table's engines 0..15, reserved numbers included (they have no sounds)
 RULES = [
     ("DRUMS", ("DRUM", "KIT", "909", "808", "LINN", "TRAP", "BEAT", "PERC")),
     ("BELLS", ("BELL", "CHIME", "GONG", "CELEST", "MALLET")),

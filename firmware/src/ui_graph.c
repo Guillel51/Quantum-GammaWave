@@ -1617,6 +1617,27 @@ static void graph_phase(const track_t *t, uint16_t c)
     }
 }
 
+/* (1.2.6) ADDITIVE's EDIT pages: the eight partials as bars, the spectrum the engine is playing, in the
+ * same language as WHEEL's drawbars. Each bar is one harmonic, its height the gain add_block normalised
+ * (a partial the profile leaves out shows as a stub), and the whole row lights in the accent while the
+ * knob that moves the spectrum is being turned. */
+static void graph_additive(const track_t *t, uint16_t c)
+{
+    const ad_trk_t *T = &ad_t[(t - trk) % NPART];
+    static const char *const names[AD_NP] = {"1", "2", "3", "4", "5", "6", "7", "8"};
+    uint32_t k;
+    int hot = ui.hot_t && (cur_page()->id[0] == P_E0 || cur_page()->id[0] == P_E1);
+    for (k = 0; k < AD_NP; k++) {
+        int32_t x = 10 + (int32_t)k * 28, h = T->g[k] * 64 / 32767;
+        cv_rrect(x + 9, 4, 4, 72, 2, T_RAISE, T_SURF);
+        if (h)
+            cv_rrect(x + 4, 76 - h, 14, h, 3, hot ? T_ACCENT : c, T_SURF);
+        else
+            cv_rrect(x + 4, 74, 14, 2, 1, hot ? T_ACCENT : T_DIM, T_SURF);
+        GFX_HOOK_ALIGN(x + 4, 0, x + 18, 0, AL_H, "additive partial under its bar");
+        cv_text_in(x + 4, 82, 14, &AF_S, names[k], T_MID, T_SURF);
+    }
+}
 static void graph_wheel(const track_t *t, uint16_t c)
 {
     uint32_t k;
@@ -2288,7 +2309,8 @@ static uint32_t graph_signature(void)
         h = (h ^ ((uint32_t)cs->carg2 | (uint32_t)cs->cwhen << 8 | (uint32_t)cs->ctime << 16 | comp_slot() << 24)) *
             16777619u;                                  /* (0.6.82) COMP 2, WHEN */
     }
-    if (pg->scope == SC_ENGINE && (ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL || t->eng_req % NENGINES == ENGI_FM6 ||
+    if (pg->scope == SC_ENGINE && (ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL || ENGINES[t->eng_req % NENGINES] == &ENG_ADDITIVE ||
+                                   t->eng_req % NENGINES == ENGI_FM6 ||
                                    (FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL)))
         h ^= (ui.hot_t ? ui.hot_col + 1u : 0u) * 65537u;
     if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM)
@@ -2465,6 +2487,9 @@ static void graph_browse(void)
                                                      * number at 186 and the star at 214 clear of it) */
         }
         list_row(y, sel, tag, T_DIM, nm, T_TEXT, x1);
+        if (e != NENGINES && snd_edited(TSEL) && e == (uint32_t)(TSEL->eng_req % NENGINES) &&
+            k == (uint32_t)(TSEL->preset % ENGINES[e]->npresets))
+            cv_rect(230, y + 6, 4, 4, sel ? T_INK : T_ACCENT);   /* (1.2.6) this one is SOUND EDITED */
         if (hint >= 0) {
             GFX_HOOK_ALIGN(0, y, 0, y + 16, AL_V, "list row text centred up/down");
             cv_text_r(206, y + CAP_IN(S, 16), &AF_S, pt, T_INK, T_THEME);
@@ -3704,6 +3729,7 @@ static void draw_graph(void)
                 break;
             }
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
+            else if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_ADDITIVE) graph_additive(t, c);
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_LOFI) { cv_oy = 0; graph_lofi(t, c); }
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {

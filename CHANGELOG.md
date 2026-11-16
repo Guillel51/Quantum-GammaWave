@@ -1,3 +1,55 @@
+## v1.2.6 — motor ADDITIVE, SOUND EDITED y segunda vuelta de motores
+
+### El motor ADDITIVE (nuevo, `firmware/src/eng_additive.c`)
+- **Ocho parciales por voz, cada uno con su fase, su amplitud y su decaimiento.** Es la única arquitectura que
+  los nueve motores no cubrían: ANALOG y PHASE filtran una onda, FM6 y WAVETABLE construyen el espectro desde
+  una sola fase, WHEEL es aditivo pero fijo a los nueve footages del órgano. Acá los armónicos son el sonido.
+- **SPECTR** (SPECTRUM; E0, el primer destino de la matriz, `MD_E1`) camina por ocho perfiles armónicos (ORGAN, SAW,
+  SQUARE, BELL, GLASS, REED, HOLLOW, METAL) interpolados por bloque: un LFO o una envolvente barren el timbre,
+  no lo conmutan. **TILT** inclina el espectro, **DECAY** es espectral (el parcial k + 1 cae con DECAY · k y el
+  fundamental se queda), **STRETCH** vuelve inarmónicos los parciales (hasta 3,375 f0 en el tercero), y
+  CUT / RES / DRIVE / SUB son los mismos del resto de los motores, así que un sonido de acá se mezcla igual.
+- **CHARACTER: EVOLVE**, un paseo lento de SPECTRUM por parte, invertido como los dos primeros slots del
+  banco (127 = quieto, y de ahí para abajo camina); `tests/additive_test` lo fija: a 127 el mismo sonido dos
+  veces es idéntico muestra por muestra, y a 0 difiere en 0,30 de escala.
+- **Límite de banda sin aliasing**: entre 4,5 y 6 kHz el parcial se apaga en pendiente y arriba de 6 kHz no se
+  renderiza (no se pliega como en el órgano: plegado, un parcial cae *entre* los armónicos).
+- **Ocho presets nuevos** (`ADDTV ORGAN`, `GLASS BELL`, `CRYSTAL PLUCK`, `SPECTRAL PAD`, `TINE EP`,
+  `GONG DEEP`, `HARMONIC BASS`, `METAL CLUSTER`) y su página EDIT con el espectro dibujado (barras por parcial,
+  en el lenguaje de las barras de WHEEL).
+- **Medido** (`tests/eng_bench`, host x86-64, ocho voces, mejor de tres): ADDTV **3,16 µs/bloque** menos el piso
+  silencioso, la banda de FM6 (3,24) y por debajo de WTABLE (4,52) y WHEEL (4,73) en la misma corrida.
+  `tests/additive_test`: perfiles, crossfade, TILT (10 dB), DECAY (−27,6 dB en el 4.º y −0,1 dB en el 1.º a
+  0,8 s), STRETCH (el 3.º en 3,375 f0), SUB, límite de banda en C7/A7/C8, salud de los ocho presets (0 clipping,
+  0 DC, silencio tras el release), esquina de todos los EDIT (7,25 × VOICE_FS a ocho voces).
+- **Coste en la imagen: no medido** (no hay toolchain AC791N en esta sesión), ver «Bloqueado».
+
+### SOUND EDITED (el indicador de parámetros modificados)
+- **Una estrella junto al nombre del sonido** en el pie de todas las páginas y en HOME > OVERVIEW, y un punto
+  en la fila del sonido cargado del navegador de PRESETS: el sonido cambió desde que se cargó o se guardó.
+- **Se calcula comparando**, no con un hook en cada setter: un hash FNV-1a del sonido (P_COUNT + la matriz +
+  motor y preset) contra la huella que dejó la última carga o el último guardado, así que cubre perillas, la
+  capa rápida, el editor, A/B y el recall de una sección sin que ninguno de ellos lo sepa. Se evalúa una vez
+  por cuadro y **nunca con el transporte andando** (una automatización o un lock escribe p[] para su paso y lo
+  devuelve: no es una edición del sonido). No se guarda: es estado de la interfaz.
+
+### Alrededor del motor
+- **G_ENGSEL** (`firmware/src/params.c`) suma el nombre del motor 15: sin eso el editor podía guardar un sonido
+  ADDTV pero no elegir el motor (el `ENG` del dispositivo terminaba en WTABLE).
+- **Editor y librería web** (`web/editor.html`): la tabla del dispositivo simulado gana el motor 15 con sus
+  ocho EDIT y sus ocho presets, y `ENGINE_ORDER` lo pone antes de DRUM como el firmware. `web/test_web.mjs`
+  compara ahora 16 motores (y sus listas) contra `build/host/desc.json`.
+- **Tres pruebas que enumeran la banca**: `tests/preset_library_test.py` (281 sonidos, ADDTV 8),
+  `tests/ui_test.c` (la lista de motores mostrada) y `tests/additive_test.c` (el motor nuevo).
+- **Etiqueta corta**: el EDIT 1 se llama `SPECTR` y la página `PARTIAL` porque el barrido de `tests/ui_render`
+  (190 pantallas × 22 paletas) marcaba `SPECTRUM` elidido en la tarjeta; quedó en 0 hallazgos de lint y 0
+  desalineaciones de 3 894 154 medidas.
+
+### Bloqueado
+- **El emulador WASM y el paquete**: no hay `emcc` ni toolchain JieLi / SDK en este entorno, así que no hay
+  `.fwsc` de 1.2.6, ni XIP / `.data+.bss` medidos del binario, ni registro del emulador, ni release. Todo lo de
+  arriba está medido en host y compilado desde las fuentes reales; **nada se probó en una unidad FM-1**.
+
 ## v1.2.5 — paquete de firmware y capturas
 
 - Firmware subido a **v1.2.5** y capturas del proyecto regeneradas desde ese árbol.

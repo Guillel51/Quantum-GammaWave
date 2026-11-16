@@ -104,7 +104,7 @@ static inline uint32_t voice_user_budget(void)
 #define FELUCCA_FM4 0            /* the DIGITAL engine (eng_digital.c, four-operator FM): kept in the tree, not built
                                   * by default; replaced by FM6, its sounds convert (fm4_convert.c) */
 #endif
-#define NENGINES 15              /* the stores' engine numbers 0..14 (engines.c ENGINES[], append-only) */
+#define NENGINES 16              /* the stores' engine numbers 0..15 (engines.c ENGINES[], append-only) */
 #define ENGI_DIGITAL 1u          /* reserved without FELUCCA_FM4: never selectable (eng_ok), its sounds load as FM6 */
 #define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - 5)   /* the engines one can pick: PRESETS, the EDIT layer, the editor,
                                                 * in the display order of engines.c ENGINE_ORDER (PHYS 9, and in
@@ -315,6 +315,7 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
 #define ENGI_SAMPLE 4u
 #define ENGI_TRIO 6u             /* (JIANT 0.4) folded into ANALOG (analog_from_trio) */
 #define ENGI_WAVETABLE 14u       /* (QG-1 3.0) WAVETABLE (eng_wavetable.c): the morphing table */
+#define ENGI_ADDITIVE 15u        /* (QG-1 1.2.6) ADDITIVE (eng_additive.c): eight partials, per-partial decay */
 /* (JIANT) the retired engines: PHYS, and the sample engines SAMPLE GRAIN SLICE (their 123 KB of samples and GRAIN's
  * 27 KB of RAM went to DRUM-X and the effects). Their numbers stay reserved (engines.c ENG_GONE), never offered; a sound
  * of theirs that arrives -- a project, a user preset, the editor -- plays as ANALOG's first preset (SAMPLE's old PERC
@@ -799,7 +800,35 @@ typedef struct {
 
 static track_t trk[NTRK];        /* the instrument: four parts */
 static song_t song;
-#define TSEL (&trk[song.sel])    /* the selected track */
+#define TSEL (&trk[song.sel])
+
+/* (1.2.6) SOUND EDITED: a track's sound changed since the last load or save. Sticky until a load or a save
+ * (snd_clean) clears it, and worked out by comparing the sound against the snapshot that load / save left
+ * (snd_watch, ui.c), so every path that writes p[] / mx[] -- a knob, the quick layer, the editor, a project
+ * recall, the A/B swap -- is covered without a hook in each of them. Never stored: it is UI state, and the
+ * sound itself is the truth. */
+static uint8_t snd_dirty;                       /* bit per track */
+static uint8_t snd_first = 1;                   /* the boot sound is the starting point, not an edit */
+static uint32_t snd_ref[NTRK];                  /* the sound as the last load / save left it */
+static inline uint32_t snd_trk(const track_t *t) { return (uint32_t)(t - trk) % NTRK; }
+static uint32_t snd_hash(const track_t *t)
+{
+    const uint8_t *b = (const uint8_t *)t->p;
+    uint32_t h = 2166136261u, i;
+    for (i = 0; i < sizeof t->p; i++)
+        h = (h ^ b[i]) * 16777619u;
+    b = (const uint8_t *)t->mx;
+    for (i = 0; i < sizeof t->mx; i++)
+        h = (h ^ b[i]) * 16777619u;
+    return (h ^ (uint32_t)t->eng_req * 2654435761u ^ (uint32_t)t->preset * 40503u) * 16777619u;
+}
+static void snd_clean(track_t *t)
+{
+    uint32_t k = snd_trk(t);
+    snd_ref[k] = snd_hash(t);
+    snd_dirty &= (uint8_t)~(1u << k);
+}
+static uint32_t snd_edited(const track_t *t) { return (snd_dirty >> snd_trk(t)) & 1u; }    /* the selected track */
 
 /* (V10.38, adapted) an interval chosen by chance (GEN and the sound dice): unison, fourth, fifth,
  * octave or the octave-and-fifth, up or down, within the parameter's range; random macros never aim
