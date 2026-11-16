@@ -2396,8 +2396,13 @@ static void graph_browse(void)
 {
     uint32_t total, cur = preset_pos(&total), e, k;
     int32_t row;
-    if (!total) {
-        panel_note("NO FAVORITES", "LIST ALL TO ADD SOUNDS", 0);
+    if (!total) {                                       /* (FASE 2) which filter emptied the list is said */
+        if (pcat && favorites.filter)
+            panel_note("NO FAVORITES", "IN THIS CATEGORY", 0);
+        else if (pcat)
+            panel_note("NO SOUNDS", "IN THIS CATEGORY", 0);
+        else
+            panel_note("NO FAVORITES", "LIST ALL TO ADD SOUNDS", 0);
         return;
     }
     for (row = -3; row <= 3; row++) {

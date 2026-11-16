@@ -1051,18 +1051,22 @@ static uint32_t preset_orig(const engine_t *e, uint32_t k) { (void)e; return k; 
  * rest; every other engine in its own order. preset_nth: the preset shown n-th */
 static const uint8_t LOFI_ORDER[29] = {0, 1, 2, 8, 9, 10, 11, 12, 13, 28, 3, 4, 27, 5, 26, 6, 25, 7, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};   /* (6.0) the remaster: POCKET CONSOLE, CASIO DREAM, BRASS BUG and CIUDAD DE PLAYA beside their family */
 _Static_assert(sizeof LOFI_ORDER == NELEM(LOFI_PRESETS), "LOFI's browsing order: every preset once");
+/* (FASE 2) the browsing position of table index k: the legacy aliases are not in the list, so they are not
+ * counted before it (DRUM's ids 10/11 sat in the middle and pushed every kit after them one row down) */
 static uint32_t preset_rank(const engine_t *e, uint32_t k)
 {
     uint32_t i;
     if (e == &ENG_LOFI)
         for (i = 0; i < sizeof LOFI_ORDER; i++)
             if (LOFI_ORDER[i] == k)
-                return i;
-    return k;
+                return i;                            /* (LOFI has no legacy entry: its order IS the list) */
+    return eng_preset_rank(e, k);                    /* (and the legacy aliases are not in the list) */
 }
 static uint32_t preset_nth(const engine_t *e, uint32_t n)
 {
-    return e == &ENG_LOFI && n < sizeof LOFI_ORDER ? LOFI_ORDER[n] : n;
+    if (e == &ENG_LOFI && n < sizeof LOFI_ORDER)
+        return LOFI_ORDER[n];
+    return eng_preset_nth(e, n);                      /* (the n-th sound the list shows, in the table's order) */
 }
 #define preset_shown(e) (engine_library(ENGINES[e]))
 
@@ -1280,13 +1284,33 @@ static uint32_t preset_all_at(uint32_t n, uint32_t *k)
     return e;
 }
 
+/* (FASE 2) the browser's category: SELECT on the PRESETS page steps it (0 = ALL, then PCAT_NAME), PRESETS walks
+ * the sounds inside it. Session state, like the favourites filter: it is not saved in a project */
+static uint32_t pcat;
+static void preset_cat_turn(int32_t d)
+{
+    pcat = (uint32_t)(((int32_t)pcat + (d > 0 ? 1 : -1) + (int32_t)PCAT_N) % (int32_t)PCAT_N);
+    ui_say("CATEGORY ", PCAT_NAME[pcat]);
+    ui.force = 1;
+}
+/* the browser's filters, composed: the favourites (KNOB 4) and the category (SELECT). A user preset has no
+ * factory category -- the rules read a factory name -- so it is listed under ALL */
+static int preset_pass(uint32_t e, uint32_t k)
+{
+    if (favorites.filter && !favorite_has(e, k))
+        return 0;
+    if (!pcat)
+        return 1;
+    return e != NENGINES && pcat_of(e, k) == pcat;
+}
+#define PRESET_FILTERED (favorites.filter || pcat)
 static uint32_t preset_pos(uint32_t *total)
 {
     uint32_t all, current = preset_all_pos(&all), n = 0, pos = 0xFFFFFFFFu;
-    if (!favorites.filter) { *total = all; return current; }
+    if (!PRESET_FILTERED) { *total = all; return current; }
     for (uint32_t i = 0; i < all; i++) {
         uint32_t k, e = preset_all_at(i, &k);
-        if (!favorite_has(e, k)) continue;
+        if (!preset_pass(e, k)) continue;
         if (i == current) pos = n;
         n++;
     }
@@ -1296,11 +1320,11 @@ static uint32_t preset_pos(uint32_t *total)
 static uint32_t preset_at(uint32_t n, uint32_t *k)
 {
     uint32_t all;
-    if (!favorites.filter) return preset_all_at(n, k);
+    if (!PRESET_FILTERED) return preset_all_at(n, k);
     preset_all_pos(&all);
     for (uint32_t i = 0; i < all; i++) {
         uint32_t e = preset_all_at(i, k);
-        if (favorite_has(e, *k) && !n--) return e;
+        if (preset_pass(e, *k) && !n--) return e;
     }
     *k = UP_SLOTS;
     return NENGINES;
@@ -1410,7 +1434,7 @@ static uint32_t eng_list_pos(uint32_t *total)
 static void preset_step(int32_t direction)
 {
     uint32_t total, cur = preset_pos(&total);
-    if (!total) { ui_message("NO FAVORITES"); return; }
+    if (!total) { ui_message(pcat && favorites.filter ? "NO FAVORITES HERE" : pcat ? "NO SOUNDS IN IT" : "NO FAVORITES"); return; }
     preset_go(cur >= total ? (direction > 0 ? 0 : total - 1) :
               (cur + (direction > 0 ? 1u : total - 1u)) % total);
 }

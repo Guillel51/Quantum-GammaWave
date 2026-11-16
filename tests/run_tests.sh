@@ -151,22 +151,22 @@ run "release gate: a 3.x tag needs an explicit repository approval" python3 test
 # (4.0.0) the hub card: every published rule, and the sounds line that keeps the listing from stopping
 run "the Firmware Hub card: every published rule holds, sounds declared, dropping it fails" python3 tests/fmhub_card_test.py
 
-$CC -o "$OUT/storage_test" tests/storage_test.c
+$CC -Ibuild/gen -Ifirmware/src -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"
 
-$CC -o "$OUT/upreset_test" tests/upreset_test.c
+$CC -Ibuild/gen -Ifirmware/src -o "$OUT/upreset_test" tests/upreset_test.c
 run "user presets (UP_PUT parser, bank round trip, versions, PHYS DRUM and SAMPLE PERC -> DRUM, grid records, DIGITAL kept)" "$OUT/upreset_test"
 
-$CC -o "$OUT/input_test" tests/input_test.c
+$CC -Ibuild/gen -Ifirmware/src -o "$OUT/input_test" tests/input_test.c
 run "keys and buttons: fast press, long release, bouncy contacts (one note each), glitches, encoders" "$OUT/input_test"
 
-$CC -o "$OUT/midi_uart_test" tests/midi_uart_test.c
+$CC -Ibuild/gen -Ifirmware/src -o "$OUT/midi_uart_test" tests/midi_uart_test.c
 run "TRS MIDI parser" "$OUT/midi_uart_test"
 
-$CC -o "$OUT/flash_id_test" tests/flash_id_test.c
+$CC -Ibuild/gen -Ifirmware/src -o "$OUT/flash_id_test" tests/flash_id_test.c
 run "flash identification: allowlist, two agreeing reads, 1 MiB capacity, protection -> RAM-only" "$OUT/flash_id_test"
 
-$CC -o "$OUT/mc_selftest_test" tests/mc_selftest_test.c
+$CC -Ibuild/gen -Ifirmware/src -o "$OUT/mc_selftest_test" tests/mc_selftest_test.c
 run "second core: the boot self-test refuses a misread shared mailbox" "$OUT/mc_selftest_test"
 
 HALF=$(sed -n 's/^#define HALF_FRAMES \([0-9]*\).*/\1/p' firmware/src/core.h)

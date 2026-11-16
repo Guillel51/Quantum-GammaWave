@@ -281,6 +281,27 @@ order are untouched. Primary category rules: engine default plus the name keywor
 
 Rules: DRUMS=DRUM/KIT/909/808/LINN/TRAP/BEAT/PERC, BELLS=BELL/CHIME/GONG/CELEST/MALLET, BASS=BASS/SUB/REESE/303/GROWL, LEADS=LEAD/SOLO/SAW/SQUELCH/ACID, PADS=PAD/DRONE/CHOIR/STRING/ORCH/ATMOS/CLOUD/AIR, PLUCKS=PLUCK/HARP/KALIMBA/GUITAR/KOTO/SITAR, KEYS=KEY/EP/PIANO/CLAV/RHODE/WURLI, ORGANS=ORGAN/REED/HARMON/ACCORD, BRASS=BRASS/HORN/TRUMP/SAX, FX=FX/NOISE/GLITCH/WIND/METAL/RADIO/TAPE.
 
+## En el FM-1 (SELECT y PRESETS)
+
+La página **SAVE > PRESETS** lleva la misma tabla, comprimida: `build/gen/preset_cats.h` guarda cuatro bits por
+sonido (`PCAT_NIB`, 138 B para los 275 sonidos de las tablas), el primer nibble de cada motor
+(`PCAT_BASE[15]`, `PCAT_GONE` donde no hay sonidos) y los nombres en un array fijo de 7 bytes (`PCAT_NAME[12]`).
+Ningún nombre se repite: la categoría se busca por **motor e índice de tabla** —el índice que guardan los
+proyectos y el editor—, así que los dos kits legacy de DRUM en los ids 10/11 no desplazan a los demás, y cada
+motor entra por su número de `ENGINES[]` (WTABLE es el 14), no por su posición en la lista que se muestra.
+
+- **SELECT** en la página PRESETS recorre las categorías (`ALL`, `BASS`, `BELLS`, … `TEXTURES`) y lo dice en un
+  mensaje; en cualquier otra página SELECT sigue pasando las páginas de la sección.
+- **PRESETS** navega dentro de la categoría elegida y se compone con el filtro de favoritos de KNOB 3
+  (`BASS` + `FAV` = los favoritos de BASS).
+- La tarjeta **LIST** (KNOB 4) dice las dos cosas: la categoría en el valor y `FAV` cuando el filtro de
+  favoritos está puesto. KNOB 4 sigue conmutando ese filtro.
+- Los presets de usuario no tienen categoría (no nacen de una regla sobre su nombre): salen en `ALL`.
+- La categoría es estado de sesión, como el filtro de favoritos: no se guarda en el proyecto.
+- La biblioteca son 273 sonidos: `engine_library()` salta los alias legacy **en cualquier posición** (no solo
+  al final), así que DRUM muestra 16 y no los 18 de su tabla, como el editor y este documento. Los ids no se
+  mueven: un proyecto que guardó `HEARTH KIT` (id 10) sigue cargando ese sonido.
+
 ## En el Web Studio (PRESETS del dispositivo)
 
 El panel **DEVICE PRESETS** de `web/editor.html` lee `web/preset_categories.json` y ofrece las tres cosas: la
@@ -308,5 +329,6 @@ servido desde `web/`): 279 filas con `All presets`, 12 opciones de categoría (`
 de `☆` a `★` con `aria-pressed` y el filtro `Favorites only` mostrando esa única fila, mensaje correcto con una
 búsqueda sin resultados. Esto es navegador con el simulador: no es el FM-1 físico.
 
-**En el propio FM-1** no hay búsqueda ni categorías en la página PRESETS: tiene la lista, la estrella en cada
-fila y el filtro `ALL`/`FAV` en KNOB 3. La tabla de categorías es del Web Studio; el firmware no la lleva.
+**En el propio FM-1** la página PRESETS tiene las mismas categorías (SELECT las recorre; ver arriba), además de
+la lista, la estrella en cada fila y el filtro `ALL`/`FAV` en KNOB 4. Editor y firmware leen la misma tabla, que
+genera `tools/gen_preset_categories.py`.

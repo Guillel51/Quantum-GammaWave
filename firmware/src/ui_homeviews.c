@@ -118,9 +118,10 @@ static void hv_overview(const track_t *t, uint16_t c)
     cv_text(14, 50, &AF_S, "ENGINE", T_DIM);
     cv_text(86, 47, &AF_M, e->name, T_TEXT);
     {   char q[20];
-        fmt_int(q, (int32_t)t->preset + 1);
+        fmt_int(q, (int32_t)preset_rank(e, t->preset) + 1);   /* (FASE 2) the sound's place in the list, as
+                                                              * PRESETS counts it: the legacy aliases do not */
         hv_cat(q, "/", sizeof q);
-        fmt_int(q + str_len(q), (int32_t)e->npresets);
+        fmt_int(q + str_len(q), (int32_t)engine_library(e));
         cv_text_r(226, 50, &AF_S, q, T_MID, T_SURF);
     }
 
@@ -481,10 +482,10 @@ static void hv_engine(const track_t *t, uint16_t c)
     hv_air(26, 176, c, 3u);
     hv_strip(29, c);
     cv_text(14, 30, &AF_S, e->name, T_THEME);
-    fmt_int(b, (int32_t)(t->preset % (e->npresets ? e->npresets : 1u)) + 1);
+    fmt_int(b, (int32_t)preset_rank(e, t->preset % (e->npresets ? e->npresets : 1u)) + 1);
     hv_cat(b, "/", sizeof b);
     {   char n[8];
-        fmt_int(n, (int32_t)e->npresets);
+        fmt_int(n, (int32_t)engine_library(e));
         hv_cat(b, n, sizeof b);
     }
     cv_text(14, 44, &AF_S, pn[0] ? pn : "NO NAME", c);

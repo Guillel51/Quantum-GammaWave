@@ -2495,8 +2495,9 @@ function makeMockDevice(opt = {}) {
         P("INDUSTRIAL", [90,  82,  105,  70,  75,  50,  60,  50], [0,  100,  127,  100], 0, 12),
         P("ELECTRO", [40,  76,  95,  60,  65,  35,  25,  30], [0,  100,  127,  100], 0, 12),
         P("QUANTUM BEAT", [64,  70,  75,  60,  50,  20,  15,  10], [0,  100,  127,  100], 0, 12),
-        P("HEARTH KIT", [80,  55,  80,  70,  40,  30,  25,  20], [0,  100,  127,  100], 0, 12),
-        P("CYBER DRUM", [45,  80,  65,  50,  70,  10,  35,  15], [0,  100,  127,  100], 0, 12),
+        /* (FASE 2) HEARTH KIT and CYBER DRUM are the two pre-1.6 kits the firmware keeps at its ids 10 and 11 so an
+         * old project still loads them, and it never lists them: the device's ED_NAMES sends these 16 and ED_PRESET
+         * maps the list's index to the table's (12..17 here), which is also what preset_categories.json indexes */
         P("CONCRETE KICK", [18,  52,  58,  104,  22,  6,  0,  26], [0,  72,  60,  30], 1, 12),
         P("GLASS SNARE", [78,  66,  70,  58,  86,  18,  22,  20], [0,  70,  0,  40], 1, 12),
         P("TIN HAT", [92,  72,  58,  40,  92,  10,  14,  18], [0,  48,  0,  22], 1, 12),

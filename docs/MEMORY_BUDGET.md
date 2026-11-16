@@ -159,3 +159,32 @@ SRAM window, not new memory. Code size is +36 B (pool addresses) and the package
 to the slot). Verified with 293 golden renders (0 changed), the text reference (0 of 6 732 strings, 0 pixels),
 the UI render sweep (0 lint findings, 0 alignment misses), `tests/target_budget.py` 39/39 at 0 % and
 `tests/memory_map_test.py`.
+
+## 7. Measured image — 2026-11-16 (FASE 2: the categories, and the room they left)
+
+The same tree measured again after the preset categories went into the firmware
+(`docs/QG_FASE2_CATEGORIAS_2026-11-16.md`): the feature costs **808 B of image** in total, because the three
+savings below paid for it, and the XIP margin goes from 1 224 B to **416 B**: the categories are in, and the margin is thin.
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 583 196 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **416 B** |
+| `.data + .bss` | 90 676 B | 98 304 B | **7 628 B** |
+| RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | 19 684 B | 24 576 B | 4 892 B |
+| Pool spare (`POOL_END - pool_top`) | 9 248 B | ≥ 8 192 B | 1 056 B |
+| XIP code / constants | 419 352 B / 143 364 B | — | — |
+
+How it adds up, each step measured on its own:
+
+| Step | Image | XIP code | Constants |
+|------|-------|----------|-----------|
+| FASE 1 (`3f6cb02`) | 582 388 B | 418 768 B | 143 140 B |
+| + categories (table, `PCAT_*`, SELECT/PRESETS, LIST card) | 583 292 B | 419 332 B | 143 480 B |
+| + the legacy aliases counted in `engine_t` (`legacy_n`, one loop less) and three unused 12 px icon cells | 583 164 B | 419 352 B | 143 332 B |
+| (the S face's glyph boxes in four bits a field, 688 B, was tried and reverted: see below) | — | — | — |
+
+The category table itself is 276 B of constants: `PCAT_NAME[12][9]` (108 B, no pointers, sized from the
+longest name), `PCAT_BASE[NENGINES]` (30 B, `PCAT_GONE` where an engine has no sounds) and `PCAT_NIB` (138 B:
+two sounds a byte for the 275 entries of the nine tables). Nothing is duplicated: a sound's name stays in its engine's table, its category is four
+bits. The code is the two order helpers (which now answer in one compare when an engine has no legacy entry)
+and the browser's composed filter, never a table walk per row.

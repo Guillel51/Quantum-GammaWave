@@ -1206,7 +1206,10 @@ static void draw_columns(void)
         draw_column(0, "No.", val, u, VAL(0u), -1, ICON_NONE);
         draw_column(1, "ENG", ENGINES[TSEL->eng_req]->name, "", VAL(1u), -1, engine_icon(ENGINES[TSEL->eng_req]->name));
         draw_column(2, "FAV", preset_favorite() ? "ON" : "OFF", "", VAL(2u), -1, ICON_X_STAR);
-        draw_column(3, "LIST", favorites.filter ? "FAV" : "ALL", "", VAL(3u), -1, ICON_X_FOLDER);
+        /* (FASE 2) LIST says both filters: the category as the value (ALL when there is none) and FAV as the
+         * unit while KNOB 4's favourites filter is on. KNOB 4 keeps toggling it, SELECT walks the categories */
+        draw_column(3, "LIST", PCAT_NAME[pcat < PCAT_N ? pcat : 0u], favorites.filter ? "FAV" : "", VAL(3u), -1,
+                    ICON_X_FOLDER);
         return;
     }
     if (cur_page()->graph == GR_PATS) {                  /* PAT, then LOAD (a GO button) */

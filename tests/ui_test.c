@@ -1962,6 +1962,94 @@ static int test_favorites(void)
     return bad;
 }
 
+
+/* (FASE 2) the browser's categories: the table is the engines' own (engine, table index), SELECT steps the
+ * category on the PRESETS page, PRESETS walks the sounds inside it and KNOB 4's favourites compose with it */
+static int test_browse_categories(void)
+{
+    int bad = 0;
+    uint32_t total, pos, e, k, i, sum = 0, missing = 0, strays = 0, want;
+    track_t before;
+    ui_power_on();
+    my_steps(TSEL);
+    for (e = 0; e < NENGINES; e++) {                    /* the library and every sound's category, as the tables
+                                                         * say it (counted, not written: FELUCCA_FM4 adds DIGITAL) */
+        const engine_t *en = ENGINES[e];
+        if (eng_gone(e) || !en->npresets)
+            continue;
+        sum += engine_library(en);                      /* the list's length, DIGITAL included in a FM4 build */
+        if (e == ENGI_DIGITAL)                          /* .. its sounds keep to ALL: the rules read the shipping
+                                                         * engines (the generator does not classify them) */
+            continue;
+        for (i = 0; i < engine_library(en); i++)
+            if (!pcat_of(e, eng_preset_nth(en, i)))
+                missing++;
+    }
+    go_page(GR_BROWSE);
+    pos = preset_pos(&total);
+    bad += check("PRESETS opens on ALL: the whole library", pcat == 0 && total == sum && pos < total);
+    bad += check("every sound of the shipping library has a category: WTABLE's and DRUM's included", !missing && sum > 200u);
+    bad += check("DRUM lists its 16 kits, the two legacy ids stay out and do not shift the ones after them",
+                 engine_library(&ENG_DRUM) == 16u && eng_preset_nth(&ENG_DRUM, 10) == 12u &&
+                 eng_preset_nth(&ENG_DRUM, 15) == 17u && pcat_of(ENGI_DRUM, 12) == pcat_of(ENGI_DRUM, 0));
+    turn(EN_SELECT, 1);
+    pos = preset_pos(&total);
+    want = 0;
+    for (e = 0; e < NENGINES; e++)
+        for (i = 0; e != ENGI_DIGITAL && i < ENGINES[e]->npresets; i++)
+            if (!ENGINES[e]->presets[i].legacy && pcat_of(e, i) == pcat)
+                want++;
+    bad += check("SELECT on the PRESETS page steps the category and says which",
+                 pcat == 1u && str_eq(ui.msg, "CATEGORY BASS") && want && total == want);
+    for (i = 0; i < total; i++)                        /* the list holds that category's factory sounds */
+        if (preset_at(i, &k) == NENGINES || pcat_of(preset_at(i, &k), k) != pcat)
+            strays++;
+    bad += check("the list holds exactly the category's sounds, no user slot in it", !strays && total == want);
+    before = *TSEL;
+    turn(EN_PRESET, 1);
+    bad += check("PRESETS walks inside the category, loading one of its sounds and keeping the steps",
+                 pcat_of(TSEL->eng_req, TSEL->preset) == pcat && !memcmp(TSEL->step, before.step, sizeof before.step));
+    turn(EN_K3, 1);                                    /* the favourites filter composes: KNOB 3 marks it, */
+    if (!favorites.filter)                             /* KNOB 4 filters, the category still holds */
+        turn(EN_K4, 1);
+    pos = preset_pos(&total);
+    bad += check("the category composes with KNOB 4's favourites filter", favorites.filter && total == 1u && pos == 0u);
+    turn(EN_K4, -1);
+    turn(EN_K3, -1);
+    for (i = 1; i < PCAT_N; i++)                       /* ALL again */
+        turn(EN_SELECT, 1);
+    pos = preset_pos(&total);
+    bad += check("SELECT wraps back to ALL and there the whole library is listed again", pcat == 0 && total == sum);
+    up_store(31, "User bass");
+    up_load(31);
+    preset_pos(&total);
+    bad += check("a user preset has no factory category: it is listed under ALL",
+                 user_of(TSEL) == 31 && total == sum + 1u);
+    for (e = 1; e < PCAT_N; e++) {                      /* .. and none of the categories */
+        uint32_t seen = 0;
+        pcat = e;
+        preset_pos(&total);
+        for (i = 0; i < total; i++)
+            if (preset_at(i, &k) == NENGINES)
+                seen = 1;
+        if (seen)
+            strays++;
+    }
+    pcat = 0;
+    bad += check("no category lists a user preset", !strays);
+    up_put(31, 0);
+    go_page(GR_SLOTS);                                 /* anywhere else SELECT is still the pages' */
+    before = *TSEL;
+    {
+        uint32_t page = ui.page;
+        turn(EN_SELECT, 1);
+        i = ui.page != page;
+        bad += check("on any other page SELECT still steps the section's pages", i &&
+                     !memcmp(TSEL, &before, sizeof before) && pcat == 0);
+    }
+    return bad;
+}
+
 static int test_display_preferences(void)
 {
     int bad = 0, k;
@@ -11190,6 +11278,7 @@ int main(void)
     bad += test_grid();
     bad += test_screen();
     bad += test_favorites();
+    bad += test_browse_categories();
     bad += test_display_preferences();
     bad += test_menu_tabs();
     bad += test_issues_111();

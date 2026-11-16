@@ -86,8 +86,9 @@ int main(void)
         printf("],\"edit\":");
         js_descs(en->edit, 8);
         printf(",\"presets\":[");
-        for (k = 0; k < engine_library(en); k++) {   /* (1.6 audit) the browser's 200, no legacy */
-            const preset_t *p = &en->presets[k];
+        for (k = 0; k < engine_library(en); k++) {   /* (1.6 audit) the browser's 200, no legacy (FASE 2: the
+                                                      * list's index, the table's without the aliases) */
+            const preset_t *p = &en->presets[eng_preset_nth(en, k)];
             printf("%s\n  {\"name\":", k ? "," : "");
             js_str(p->name);
             for (i = 0; i < 8u; i++)

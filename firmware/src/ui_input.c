@@ -1531,7 +1531,7 @@ static void sound_dice_of(track_t *t, int quiet)
         return;
     }
     if (engine_library(ENGINES[e]))
-        apply_preset_to(t, rng() % engine_library(ENGINES[e]));
+        apply_preset_to(t, eng_preset_nth(ENGINES[e], rng() % engine_library(ENGINES[e])));
     for (i = 0; i < 8u; i++) {
         const param_desc_t *d = track_desc(t, P_E0 + i);
         int32_t span = (d->max - d->min) / 4;
@@ -2486,7 +2486,11 @@ static void ui_input_frame(void)
     } else if ((s = panel_enc(EN_SELECT)) != 0 && !lay && !ui.menu) {   /* (0.6.67) SELECT alone: the section's pages;
                                                          * (QG-1) On HOME: configurable KNOB SELECT MODE (0 BPM, 1 TRK VOL, 2 TRK PAN, 3 MASTER VOL, 4 OFF) */
         if (!ui.home) {
-            page_scroll(s);
+            if (cur_page()->graph == GR_BROWSE)      /* (FASE 2) the PRESETS page: SELECT steps the category,
+                                                      * PRESETS walks the sounds inside it */
+                preset_cat_turn(s);
+            else
+                page_scroll(s);
         } else {
             uint32_t mode = ui_sel_home < 5u ? ui_sel_home : 0u;
             char msg_buf[24];

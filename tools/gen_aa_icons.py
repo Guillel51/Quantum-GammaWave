@@ -121,7 +121,10 @@ SMALL_EXTRA = ["x_star", "x_lock", "x_cog", "x_warn", "x_folder", "x_left", "x_r
                "x_repeat", "x_reverse",
                # (4.1) the eight drawn ones: FX BUS draws them at 12 px in the chain row and the block headers, and
                # HOME's strip is 12 px, so that is the only size they need (a 16 px cell would be 128 B each)
-               "x_chain", "x_bus", "x_punch", "x_master", "x_hgrid", "x_perf", "x_matrix", "x_gauge", "x_dyn"]
+               "x_chain", "x_bus", "x_punch", "x_master", "x_hgrid", "x_perf",
+               # (FASE 2) x_matrix, x_gauge and x_dyn were rasterised here for FX BUS and no screen draws them
+               # any more: their cells (3 x ~40 B) went with the feature. The names stay in the enum
+               ]
 # legacy names no screen draws (1.1): kept in the enum (assets/icons.json's order), not rasterised (no cell)
 NOT_DRAWN = ["tape"]
 

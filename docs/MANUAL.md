@@ -89,9 +89,9 @@ The names below are the ones the firmware uses (the HARDWARE CALIBRATION screen 
 
 | Control | What it does |
 | --- | --- |
-| **SELECT** (encoder) | Alone: **scrolls through the pages of the section you are in** (EDIT's pages on an EDIT page, FX's on an FX page …), one a detent, no wrap; on **HOME** it opens the **GENERATOR** (as HOME + SELECT; with MENU > EXTRA > SELECT ON HOME TEMPO it turns the tempo instead). With a button held, that button's **dice**: **HOME** + SELECT the **GENERATOR**, **EDIT** + SELECT the sound, **SEQ** + SELECT the sequence, **LFO** + SELECT the LFO, **FX** + SELECT the effects. **GLO** + SELECT: the tempo. Any other page button + SELECT: its pages. |
+| **SELECT** (encoder) | Alone: **scrolls through the pages of the section you are in** (EDIT's pages on an EDIT page, FX's on an FX page …), one a detent, no wrap; on **SAVE > PRESETS** it steps the **category** the browser filters by (ALL, BASS, BELLS … TEXTURES) and the name shows over the footer; on **HOME** it opens the **GENERATOR** (as HOME + SELECT; with MENU > EXTRA > SELECT ON HOME TEMPO it turns the tempo instead). With a button held, that button's **dice**: **HOME** + SELECT the **GENERATOR**, **EDIT** + SELECT the sound, **SEQ** + SELECT the sequence, **LFO** + SELECT the LFO, **FX** + SELECT the effects. **GLO** + SELECT: the tempo. Any other page button + SELECT: its pages. |
 | **ALGORITHM** (encoder) | Selects the track from any page: T1–T4, or T1–T6 with TRACKS 6. In the MENU: switches tabs. |
-| **PRESETS** (encoder) | On HOME, PRESETS and the sound pages: browses sounds (every engine's factory presets, then your user presets). On step pages (STEP, COMP, PATTERN, AUTOMATION, SHIFT): moves the step cursor. On list pages (USER, PROJECT, ARRANGE, TOOLS, AUTO LIST): moves the selection. **Hold a page button and turn SELECT** (or PRESETS) to jump straight through that button's pages. |
+| **PRESETS** (encoder) | On HOME, PRESETS and the sound pages: browses sounds (every engine's factory presets, then your user presets); on SAVE > PRESETS, inside the category SELECT picked. On step pages (STEP, COMP, PATTERN, AUTOMATION, SHIFT): moves the step cursor. On list pages (USER, PROJECT, ARRANGE, TOOLS, AUTO LIST): moves the selection. **Hold a page button and turn SELECT** (or PRESETS) to jump straight through that button's pages. |
 | **KNOB 1–4** | The four cards (columns) on screen. With a layer held, the layer's own knobs. Turning fast sweeps the whole range, slowly fine-tunes (MENU > KNOB ACCEL turns this off). |
 | **MASTER** | The output volume. |
 
@@ -177,7 +177,10 @@ muted. On the **MIXER**, asleep tracks are greyed and say OFF.
   CHORUS, SLICER (SLICER, SL BUS, SL BUS 2, SL PITCH), MASTER. **Two quick taps** on FX jump to the next section.
 - **Turn SELECT** to scroll through the pages of the section you are in (EDIT's on an EDIT page, FX's on an FX page),
   one a detent, stopping at its first and last; the page's name shows over the footer for a moment. On HOME it opens
-  the GENERATOR.
+  the GENERATOR; on **SAVE > PRESETS** it steps the browser's **category** (ALL, then BASS, BELLS, BRASS, DRUMS, FX,
+  KEYS, LEADS, ORGANS, PADS, PLUCKS, TEXTURES), **PRESETS** then walks the sounds inside that category and KNOB 4's
+  favourites filter composes with it. The category is a property of each factory sound (the same one the Web Studio
+  lists: `docs/PRESET_CATEGORIES.md`); your own presets have none, so they are listed under ALL.
 - **Hold a page button and turn PRESETS** to go through its pages forwards or back (no wrap); let go and you stay
   there. ENV, SCL, ARP and SAVE do the same with SELECT; HOME + SELECT opens the GENERATOR, EDIT, SEQ, LFO and FX +
   SELECT are their dice, GLO + SELECT the tempo.
@@ -274,7 +277,7 @@ repeat sounding right now is marked, and the fall of the bars is FEEDBK's own.
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
-| PRESETS | No. (the sound) | ENG (the engine) | FAV (mark a favourite) | LIST (ALL / FAV) |
+| PRESETS | No. (the sound) | ENG (the engine) | FAV (mark a favourite) | LIST (the category, ALL when none; FAV while KNOB 4's favourites filter is on) |
 | USER | SLOT (U01–U32) | LOAD (action) | ERASE (action) | SAVE (action) |
 | PROJECT | PROJ (1–8) | SECT (A–D) | LOAD (action) | SAVE (action) |
 | ARRANGE | ROW | SECT (on END: STOP / x2–x8 / LOOP) | BARS | SCENE |

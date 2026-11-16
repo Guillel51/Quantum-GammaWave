@@ -573,6 +573,7 @@ static const engine_t ENG_DRUM = {
     },
     .presets = DRUM_PRESETS,
     .npresets = NELEM(DRUM_PRESETS),
+    .legacy_n = 2,               /* (FASE 2) HEARTH KIT and CYBER DRUM, ids 10/11: never in the list */
     .note_on = drum_note_on,
     .render = drum_render,
     .amp = drum_amp,

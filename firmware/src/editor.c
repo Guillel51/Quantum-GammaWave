@@ -486,7 +486,7 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
         {
             if (a[0] != TSEL->eng_req)
                 set_engine(a[0]);
-            apply_preset(a[1]);
+            apply_preset(eng_preset_nth(ENGINES[a[0]], a[1]));   /* (FASE 2) a list index, as ED_NAMES sent */
         }
         ed_load_after(&b);
         ui.force = 1;
@@ -512,8 +512,8 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
             return;
         ed_b(a[0]);
         ed_b(engine_library(ENGINES[a[0]]));
-        for (i = 0; i < engine_library(ENGINES[a[0]]); i++)
-            ed_str(ENGINES[a[0]]->presets[i].name, 12);
+        for (i = 0; i < engine_library(ENGINES[a[0]]); i++)   /* (FASE 2) the list's names: no legacy alias */
+            ed_str(ENGINES[a[0]]->presets[eng_preset_nth(ENGINES[a[0]], i)].name, 12);
         for (i = 0; i < 2u; i++)                           /* then the two edit-page titles */
             ed_str(ENGINES[a[0]]->page_title[i], 8);
         break;

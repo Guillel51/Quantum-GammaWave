@@ -720,16 +720,18 @@ static void dice_sound(track_t *t, uint32_t role, const uint8_t *el)
     dice_fm6 += e == ENGI_FM6;
     set_engine_of(t, e);
     en = ENGINES[t->eng_req % NENGINES];
-    n = engine_library(en);   /* (1.6 audit) never a legacy sound */
+    n = engine_library(en);   /* (1.6 audit) never a legacy sound; (FASE 2) the list's indices are the table's
+                               * without the aliases, wherever they sit (eng_preset_nth) */
     if (!n) return;
-    for (i = 0; i < n; i++) {                           /* the presets whose names fit the role; the not bright ones,
+    for (i = 0; i < n; i++) {
+        const uint32_t ti = eng_preset_nth(en, i);                           /* the presets whose names fit the role; the not bright ones,
                                                          * and never a bass's sound off the bass (0.6.34) */
-        const char *pn = en->presets[i].name;
+        const char *pn = en->presets[ti].name;
         if (dbright(pn) || (role != RL_BASS && (dname_has(pn, "BASS") || dname_has(pn, "GROWL") || dname_has(pn, "ACID"))))
             continue;
-        if (na < sizeof any) any[na++] = (uint8_t)i;
+        if (na < sizeof any) any[na++] = (uint8_t)ti;
         for (k = 0; k < 6u && W[role][k]; k++)
-            if (dname_has(en->presets[i].name, W[role][k]) && nm < sizeof m) { m[nm++] = (uint8_t)i; break; }
+            if (dname_has(pn, W[role][k]) && nm < sizeof m) { m[nm++] = (uint8_t)ti; break; }
     }
     apply_preset_to(t, nm ? m[rng() % nm] : na ? any[rng() % na] : rng() % n);   /* (the role's, always: surprises
                                                          * come from the twist, not from a wrong sound) */

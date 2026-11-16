@@ -109,6 +109,9 @@ static inline uint32_t voice_user_budget(void)
 #define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - 5)   /* the engines one can pick: PRESETS, the EDIT layer, the editor,
                                                 * in the display order of engines.c ENGINE_ORDER (PHYS 9, and in
                                                 * JIANT SAMPLE 4, GRAIN 8, SLICE 13: retired) */
+/* (FASE 2) the factory categories the browser filters by: tools/gen_preset_categories.py, four bits a sound,
+ * indexed by the engine and the sound's index in its table (PCAT_BASE, PCAT_NIB, PCAT_NAME, pcat_of) */
+#include "preset_cats.h"
 /* (JIANT 0.6.71) the second core (hal/fm1_multicore.h; fx.c mix_block hands it some synth tracks). MC_CPU(): the core
  * running this, for the scratch each core has its own of (fx.c part_buf and the mix, mod.c's matrix, fm6_core.c's
  * buses, voice.c's filter flags). The host (tests): no second core; mc_host runs its jobs at once, as core 1 */
@@ -460,6 +463,10 @@ typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c 
     param_desc_t edit[8];        /* P_E0..P_E7 */
     const preset_t *presets;
     uint8_t npresets;
+    uint8_t legacy_n;            /* (FASE 2) how many entries are legacy aliases: engine_library leaves them out of
+                                  * the list, and eng_preset_nth / eng_preset_rank step over them wherever they sit
+                                  * (DRUM keeps its two pre-1.6 kits at ids 10 and 11, inside the table). Their own
+                                  * ids never move: a project that stored one loads it */
     uint8_t knob[4];             /* HOME: the four parameters on KNOB 1..4 */
     uint8_t poly;                /* voice cap for POLY and UNISON, 0 = NVOICE */
     uint8_t sampled;             /* 1 = plays recorded material (a position, not a phase): voice.c keeps
@@ -493,11 +500,30 @@ typedef struct {                 /* an engine (engines.c ENGINES[]; the eng_*.c 
 /* (QG-1 1.6 audit) the sounds browsing offers: the table's, less the legacy ones kept at its end so a project made
  * before they were retired still loads the exact kit it saved. No index moves (npresets stays the table's size, and
  * every stored index is taken modulo it), so DRUM 10 HEARTH KIT and 11 CYBER DRUM still resolve. */
-static inline uint32_t engine_library(const engine_t *e)
+/* (FASE 2) the sounds browsing shows, in their own order. The legacy aliases are skipped ANYWHERE, not only
+ * at the end: DRUM keeps its two pre-1.6 kits at ids 10 and 11, inside the table, so trimming the tail listed
+ * 18 sounds where the editor, the documents and the 273-sound library say 16. Their ids do not move: a project
+ * that stored HEARTH KIT still loads it */
+static inline uint32_t engine_library(const engine_t *e) { return e->npresets - e->legacy_n; }
+/* (FASE 2) the list's n-th sound as its index in the table, and back. The legacy aliases are not in the list and
+ * do not count, wherever they sit; an engine without them is the identity */
+static inline uint32_t eng_preset_nth(const engine_t *e, uint32_t n)
 {
-    uint32_t n = e->npresets;
-    while (n && e->presets[n - 1u].legacy)
-        n--;
+    uint32_t i;
+    if (!e->legacy_n)
+        return n;
+    for (i = 0; i < e->npresets; i++)
+        if (!e->presets[i].legacy && !n--)
+            return i;
+    return 0;
+}
+static inline uint32_t eng_preset_rank(const engine_t *e, uint32_t k)
+{
+    uint32_t i, n = 0;
+    if (!e->legacy_n)
+        return k;
+    for (i = 0; i < k && i < e->npresets; i++)
+        n += !e->presets[i].legacy;
     return n;
 }
 
