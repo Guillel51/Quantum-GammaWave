@@ -1373,23 +1373,19 @@ static void graph_diag(uint16_t c)
 static void graph_macros(uint16_t c)
 {
     uint32_t i, k, tr = (uint32_t)song.sel;
-    static const char *const L[4] = {"M1", "M2", "M3", "M4"};
+    const char *L[4] = {"M1", "M2", "M3", "M4"};
     for (i = 0; i < 4u; i++) {
         int32_t y = 2 + (int32_t)i * 29, v = (int32_t)macro_get(i), used = 0;
         int32_t hot = ui.hot_t && ui.hot_col == i, gw = 78, gx = 78;   /* (clear of a three-digit value) */
         const char *r[2] = {0, 0};
-        char vb[8], nb[8];
+        char vb[8];
         for (k = 0; k < NMSLOT && used < 2; k++) {      /* what this track drives with the macro */
             if ((uint32_t)mslot(&trk[tr], k, 0) != MS_M1 + i || !mslot(&trk[tr], k, 1))
                 continue;
             r[used++] = mod_dst_name(&trk[tr], mslot(&trk[tr], k, 1));
         }
-        cv_rrect(4, y, 232, 27, 3, T_SURF, T_BG);       /* the row's plate (its own ramp) */
-        if (hot) {                                       /* touched: the accent frame, as a card's edge */
-            cv_rect(4 + 4, y, 232 - 8, 1, T_ACCENT);
-            cv_rect(4, y + 4, 1, 27 - 8, T_ACCENT);
-            cv_rect(4 + 231, y + 4, 1, 27 - 8, T_ACCENT);
-        }
+        cv_rrect(4, y, 232, 27, 3, T_SURF, T_BG);       /* the row's plate (its own ramp); touched, its pill and
+                                                          * its gauge take the accent (hot, below) */
         cv_rrect(10, y + 7, 25, 13, 3, used ? (hot ? T_ACCENT : T_KEY) : T_RAISE, T_SURF);
         cv_text_in(10, y + 7 + CAP_IN(S, 13), 25, &AF_S, L[i], used ? T_INK : T_MID,
                    used ? (hot ? T_ACCENT : T_KEY) : T_RAISE);
@@ -1402,10 +1398,6 @@ static void graph_macros(uint16_t c)
                      hot ? T_ACCENT : used ? (ux.chamfer ? heat_col(v * 1000 / 127 * 256 / 1000) : T_THEME) : T_MID,
                      T_SURF);   /* a card's gauge colour: heat on the chamfered palettes, the theme on the others */
         }
-        if (hot) {                                       /* the pip that travels while you turn it */
-            int32_t px = gx + 2 + (int32_t)((ui.frame * 7u) % (uint32_t)(gw - 4));
-            cv_rect(px, y + 8, 2, 11, T_TEXT);
-        }
         if (!used)
             cv_text_on(162, y + 8, &AF_S, "NO ROUTES", T_DIM, T_SURF);
         for (k = 0; k < (uint32_t)used && k < 2u; k++) {                  /* the destinations, as chips */
@@ -1414,11 +1406,6 @@ static void graph_macros(uint16_t c)
                 break;
             cv_rrect(cx, y + 7, w, 13, 3, hot ? T_RAISE : T_KEY, T_SURF);
             cv_text_on(cx + 4, y + 8, &AF_S, r[k], T_INK, hot ? T_RAISE : T_KEY);
-        }
-        if (used > 2) {                                                   /* (the rest, counted) */
-            nb[0] = '+';
-            fmt_int(nb + 1, (int32_t)used);
-            cv_text_on(162 + 72, y + 8, &AF_S, nb, T_THEME, T_SURF);
         }
     }
 }
@@ -1464,8 +1451,6 @@ static void graph_mod(const track_t *t, uint16_t c)
             } else {
                 int32_t px = x0 + clamp(v, 0, 32767) * (x1 - x0) / 32767;
                 cv_rrect(x0, y + 5, px - x0 + 1, 3, 1, sel ? T_INK : T_ACCENT, bg);
-                if (hot && (ui.frame & 8u))                  /* touched: the fill pulses */
-                    cv_rect(x0, y + 4, px - x0 + 1, 5, T_TEXT);
             }
         }
         (void)unit;
