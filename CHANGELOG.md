@@ -1,4 +1,4 @@
-## v1.1 — 2026-11-16
+## v1.1.0 — 2026-11-16
 
 La versión que junta todo lo que se hizo después de la 1.0.0 en un solo binario, un solo paquete, un solo
 manifiesto y un solo sitio. No agrega funciones nuevas a las que ya están: ordena, corrige y publica. Las
