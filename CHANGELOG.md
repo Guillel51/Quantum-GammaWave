@@ -1,3 +1,15 @@
+## FASE 3 — interfaz y visualizaciones — 2026-11-16
+
+- **HOME: el osciloscopio ya no queda debajo del degradado.** El panel dibujaba el trazo antes que el suelo con
+  degradado y las 28 bandas, así que se veía solo donde sobresalía; ahora va último y en la tinta de la paleta
+  cuando su rampa es neutra. Ver `docs/QG_FASE3_INTERFAZ_2026-11-16.md`.
+- **Los dos osciloscopios del visualizador son el mismo instrumento**: mismo pozo oscuro, mismo marco de 1 px,
+  la misma grilla de tres divisiones y la misma escala de pies, y las dos trazas en la rampa de calor a 2 px.
+- **Una sola tipografía en los cuatro cuadros de los knobs**: la etiqueta elegía la cara de 15 px o la de 12
+  según su largo (`DIST` en M y `CHORUS` en S en la misma fila). Todas van en la de 12 px, en la misma línea.
+- **ARP**: nombre en las catorce teclas blancas (y en la tinta que se lee sobre la tecla), letra y sostenido en
+  las cinco negras, marco en los chips cuya nota está sonando, medidores con contraste y sin cruzarse con el pie.
+
 ## FASE 6 — segunda optimización profunda — 2026-11-16
 
 ### El espacio

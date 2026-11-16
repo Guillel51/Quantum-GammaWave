@@ -678,10 +678,15 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
             /* (1.0) THE LABEL IN THE 15 PX FACE, not the 12 px one: at 12 the labels of the four cards read as
              * thin lines next to their own values, which are M. M where it fits the card (as MENU > LARGE's
              * labels already did), S only where it does not. */
-            const aafont_t *lf = 5 + text_w(&AF_M, label) <= COL_W - 2 * KNOB_SMALL_R - 4 ? &AF_M : &AF_S;
+            /* (FASE 3) ONE FACE, EVERY CARD. The label picked M when it fitted and S when it did not, so on the
+             * same row of four boxes "DIST" was 15 px and "CHORUS" 12 px, and the same word changed size from
+             * one page to the next (MODE in M, FEEDBK in S). Every label is in the 12 px face now, on one
+             * baseline, icon or not: the four boxes of a screen, and the same box on every screen, read
+             * alike, and the M value under it keeps the hierarchy. */
+            const aafont_t *lf = &AF_S;
             int32_t max_lx = gw_rotary ? kn_max : (COL_W - 2);
-            int32_t lw = text_w(lf, label), ix = 5, ly = lf == &AF_M ? 1 : 3;
-            int32_t cy = ly + (lf == &AF_M ? AF_M_CAP_Y : AF_S_CAP_Y), chh = lf == &AF_M ? AF_M_CAP_H : AF_S_CAP_H;
+            int32_t lw = text_w(lf, label), ix = 5, ly = 3;
+            int32_t cy = ly + AF_S_CAP_Y, chh = AF_S_CAP_H;
             uint32_t ic = mot ? ICON_X_MOTION : icon;
             if (mot && ix + ICON_CELL + ICON_GAP + lw > max_lx)
                 ix = max_lx - lw - ICON_GAP - ICON_CELL;   /* a long label: MOTION's icon moves left */

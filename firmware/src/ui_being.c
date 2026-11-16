@@ -325,7 +325,7 @@ static int32_t bg_knob(uint32_t c, const char **lab)
 static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_t heat_base)
 {
     uint32_t sw = scope_w, i, trig = 0;
-    int32_t x, py = cy, pk = 2000;
+    int32_t x, py, pk = 2000;
     for (i = 0; i < 256u; i++) {
         int32_t v = scope_buf[(sw - 256u + i) & (SCOPE_N - 1u)];
         if (v < 0) v = -v;
@@ -336,15 +336,21 @@ static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_
         int32_t b = scope_buf[(sw - 256u + i) & (SCOPE_N - 1u)] + scope_buf[(sw - 256u + i + 1u) & (SCOPE_N - 1u)];
         if (a < 0 && b >= 0) { trig = i; break; }
     }
+    /* (FASE 3) one 2 px pass, after the floor and the bands, in the palette's own ink when its ramp is neutral
+     * (GREY, MONO) and on the heat ramp otherwise: the trace is never painted over and never the same grey as
+     * the bars it crosses. */
+    py = cy;
     for (x = 0; x < w; x++) {
         uint32_t idx = (sw - 256u + trig + (uint32_t)x * 128u / (uint32_t)(w ? w : 1)) & (SCOPE_N - 1u);
-        int32_t s = (scope_buf[idx] + 2 * scope_buf[(idx + 1u) & (SCOPE_N - 1u)] + scope_buf[(idx + 2u) & (SCOPE_N - 1u)]) / 4;
+        int32_t s = (scope_buf[idx] + 2 * scope_buf[(idx + 1u) & (SCOPE_N - 1u)] +
+                     scope_buf[(idx + 2u) & (SCOPE_N - 1u)]) / 4;
         int32_t y = cy - s * amp / pk;
         int32_t dy = y > cy ? y - cy : cy - y;
         y = clamp(y, cy - amp, cy + amp);
-        if (x)                                          /* (3.5) two pixels: a background trace thinner than the
-                                                         * curve reads as a rendering seam, not as a layer */
-            cv_line_t(x0 + x - 1, py, x0 + x, y, bg_col(heat_base + dy * 140 / (amp ? amp : 1)), 2);
+        if (x)                                          /* (3.5) two pixels: a trace thinner than the curve reads
+                                                         * as a rendering seam, not as a layer */
+            cv_line_t(x0 + x - 1, py, x0 + x, y,
+                      ux.mono ? T_TEXT : bg_col(heat_base + dy * 140 / (amp ? amp : 1)), 2);
         py = y;
     }
 }
@@ -2338,11 +2344,9 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
      *     flat line over the graph in silence, a hair of the wrong colour where the two met. It is the bay's
      *     back layer now -- drawn before the floor, the bands and both curves, so it can only be behind them --
      *     two pixels thick along the theme's own ramp, and it never moves the picture it sits in. */
-    /* (FASE 4) THE TRACE IS DRAWN LAST. gw_live_trace ran first and the floor's six bands were painted over
-     * it, so HOME's oscilloscope came out with a dithered band across its middle and the trace visible only
-     * where the curve rose above it. The fill belongs under the signal, which is what its own comment always
-     * said: it now goes before the trace, not after. */
-    gw_live_trace(gx0 + 2, gw - 4, gy0 + gh / 2, gh / 3, 64);
+    /* (FASE 3) THE FILL GOES UNDER THE SIGNAL. The floor below and the spectrogram after it are the bay's
+     * ground, so the trace is drawn over both of them (see below, after the bands): HOME's oscilloscope was
+     * being covered by its own gradient. */
 
     /* (7.3) THE FLOOR UNDER THE CURVE. The bay is where the player reads the filter, and the response was a line
      * on a grid: the area between it and the bay's floor is filled with the console's own ramp -- four bands, the
@@ -2407,6 +2411,13 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
             }
         }
     }
+
+    /* 2b. (FASE 3) THE TRACE, ON TOP OF THE GROUND. It is drawn after the floor's gradient and the 28 bands, so
+     * nothing paints over the oscilloscope, and it carries a 3 px dark halo of its own: over the floor's light
+     * end (GREY, PAPER, MONO) a two-pixel trace of a pale palette colour was the same tone as the fill it sat
+     * on. The halo is the bay's own black, so the signal reads as a line in every palette and the fill keeps
+     * its depth. */
+    gw_live_trace(gx0 + 2, gw - 4, gy0 + gh / 2, gh / 3, 64);
 
     /* 3. Cyan Modulation Envelope Curve (drawFilterCurve pre-FX/mod overlay) */
     for (x = 0; x < gw; x += (int32_t)vz_step()) {      /* (v1.5) its sampling step: 1 / 2 / 3 px */

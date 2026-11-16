@@ -1025,18 +1025,21 @@ static void arp_key(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t face, u
     cv_rect(x, y + h - 1, w, 1, brd);
     cv_rect(x + w - 1, y, 1, h, brd);
 }
+/* (FASE 3) the three read-only meters under ARP's route: label and value on one row, a 3 px bar two rows under
+ * them. The label was T_DIM on SURF and the bar 5 px tall starting at y + 14, which put its foot on the footer's
+ * own row: the panel's last line read as text crossed by three bars. The label is T_MID now, the value T_TEXT,
+ * and the bar is 3 px at y + 13, clear of both. */
 static void arp_meter(int32_t x, int32_t y, const char *lab, int32_t v, int32_t max, uint16_t c)
 {
     char b[8];
     int32_t pct = (v * 100 + max / 2) / max, w = v * 50 / max;
-    cv_text(x, y, &AF_S, lab, T_DIM);
+    cv_text(x, y, &AF_S, lab, T_MID);
     fmt_int(b, pct);
     str_cpy(b + str_len(b), "%", sizeof b - str_len(b));
-    cv_text_r(x + 62, y, &AF_S, b, T_MID, T_SURF);
-    /* AF_S ink reaches y + 11: the bar starts two rows below it, clear of the descenders */
-    cv_rect(x, y + 14, 50, 5, T_RAISE);
+    cv_text_r(x + 62, y, &AF_S, b, T_TEXT, T_SURF);
+    cv_rect(x, y + 13, 50, 3, T_RAISE);
     if (w > 0)
-        cv_rect(x, y + 14, w < 2 ? 2 : w, 5, c);
+        cv_rect(x, y + 13, w < 2 ? 2 : w, 3, c);
 }
 /* the place in the route this step took: the same formulas arp_pick uses, with arp_idx having already
  * advanced one past the pick. RND cannot be known before it is drawn (a sentinel), CHORD takes all. */
@@ -1111,10 +1114,13 @@ static void graph_arp(const track_t *t, uint16_t c)
                 if (t->held[k] == note) down = 1;
             for (k = 0; k < 3u; k++)
                 if (t->arp_ch[k] && t->arp_ch[k] == note) snd = 1;
-            arp_key(x, 20, 14, 40, snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20),
+            arp_key(x, 20, 14, 36, snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20),
                     snd ? T_TEXT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 58));
-            cv_text_in(x, 48, 14, &AF_S, N_NOTE[(uint32_t)note % 12u],
-                       snd || down ? T_INK : T_DIM, snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20));
+            /* (FASE 3) the name on the key's foot, in the ink the face takes: T_DIM on a light key left the
+             * letters as grey on grey. Every one of the fourteen white keys is named, held or not. */
+            cv_text_in(x, 42, 14, &AF_S, N_NOTE[(uint32_t)note % 12u],
+                       snd ? T_INK : ux_mix(T_KEYW, T_BG, down ? 96 : 88),
+                       snd ? T_ACCENT : down ? T_THEME : ux_mix(T_KEYW, T_BG, 20));
         }
     for (o = 0; o < 2u; o++)
         for (i = 0; i < 5u; i++) {
@@ -1128,10 +1134,19 @@ static void graph_arp(const track_t *t, uint16_t c)
                 if (t->arp_ch[k] && t->arp_ch[k] == note) snd = 1;
             arp_key(x, 20, 9, 25, snd ? T_ACCENT : down ? T_THEME : T_KEYB,
                     snd ? T_TEXT : down ? T_THEME : ux_mix(T_KEYB, T_TEXT, 26));
+            /* (FASE 3) AND THE FIVE ACCIDENTALS ARE NAMED. A 9 px key has no room for "C#" on one line, so the
+             * letter sits on the key's head and its sharp under it: the two rows of the small face fit the 25 px
+             * key, and both of them are in the ink that reads on the key's own face. */
+            {
+                uint16_t kc = snd ? T_INK : down ? T_THEME : ux_mix(T_KEYB, T_TEXT, 78);
+                char nn[2] = {N_NOTE[(uint32_t)note % 12u][0], 0};
+                cv_text_in(x, 22, 9, &AF_S, nn, kc, snd ? T_ACCENT : down ? T_THEME : T_KEYB);
+                cv_text_in(x, 32, 9, &AF_S, "#", kc, snd ? T_ACCENT : down ? T_THEME : T_KEYB);
+            }
         }
 
     /* the route: the notes the arp built, in the order the list holds them, and the one playing now */
-    cv_text(14, 59, &AF_S, "ROUTE", T_DIM);
+    cv_text(14, 59, &AF_S, "ROUTE", T_MID);
     if (t->arp_note) {                                  /* (FASE 8) what it is sounding right now, as note names */
         char s[24];
         uint32_t k;
@@ -1168,6 +1183,16 @@ static void graph_arp(const track_t *t, uint16_t c)
             str_cpy(n, N_NOTE[note % 12u], sizeof n);
             fmt_int(n + str_len(n), (int32_t)note / 12 - 1);
             cv_rrect(x, 74, 24, 13, 2, on ? T_ACCENT : T_RAISE, T_SURF);
+            /* (FASE 3) what the synth is sounding THIS step, not only the arp's place in the list: the note and
+             * the three voices of a chord are marked on their chips, so the route and the keyboard tell the same
+             * story at the same instant. */
+            if (note == (uint32_t)t->arp_note || note == (uint32_t)t->arp_ch[0] ||
+                note == (uint32_t)t->arp_ch[1] || note == (uint32_t)t->arp_ch[2]) {
+                cv_rect(x, 74, 24, 1, T_TEXT);
+                cv_rect(x, 86, 24, 1, T_TEXT);
+                cv_rect(x, 74, 1, 13, T_TEXT);
+                cv_rect(x + 23, 74, 1, 13, T_TEXT);
+            }
             cv_text_in(x, 74 + CAP_IN(S, 13), 24, &AF_S, n, on ? T_INK : T_MID, on ? T_ACCENT : T_RAISE);
         }
         /* (FASE 8) the clock, right above the notes: the slot of the step being played fills as its time runs and the
@@ -1195,20 +1220,20 @@ static void graph_arp(const track_t *t, uint16_t c)
             }
         }
     }
-    arp_meter(14, 91, "GATE", gate, 127, c);
-    arp_meter(88, 91, "SWING", swing, 100, c);
-    arp_meter(162, 91, "PROB", prob, 127, c);
+    arp_meter(14, 88, "GATE", gate, 127, c);
+    arp_meter(88, 88, "SWING", swing, 100, c);
+    arp_meter(162, 88, "PROB", prob, 127, c);
 
     /* footer: the values the two ARP pages own, in the words the descriptors use */
     str_cpy(b, "RATE ", sizeof b);
     str_cpy(b + str_len(b), N_DIV[(uint32_t)clamp(t->p[P_ARATE], 0, 9)], sizeof b - str_len(b));
-    cv_text(14, 110, &AF_S, b, T_MID);
+    cv_text(14, 106, &AF_S, b, T_MID);
     str_cpy(b, "OCT x", sizeof b);
     fmt_int(b + str_len(b), (int32_t)oct);
-    cv_text(96, 110, &AF_S, b, T_MID);
+    cv_text(96, 106, &AF_S, b, T_MID);
     str_cpy(b, "ORDER ", sizeof b);
     str_cpy(b + str_len(b), N_ORDER[t->p[P_AORDER] ? 1 : 0], sizeof b - str_len(b));
-    cv_text_r(226, 110, &AF_S, b, T_MID, T_SURF);
+    cv_text_r(226, 106, &AF_S, b, T_MID, T_SURF);
 }
 
 /* SL PITCH (JIANT 0.6.3): the repeats' 16 pitch steps as bars from the middle (+-24 semitones), past LEN dim, the one
@@ -3139,10 +3164,26 @@ static void graph_home_viz(uint16_t c)
          * the stars, the two worlds and every other animation stay exactly as they were. HOME's bay keeps its
          * sparks: they belong to the gesture, not to this screen. */
 
-        /* Phase plot: x(t) against x(t - tau), inside its own quiet reticle. */
-        cv_rrect(164, 64, 64, 67, 3, vsf, T_GRID);
-        cv_rect(196, 72, 1, 51, T_GRID);
-        cv_rect(172, 97, 48, 1, T_LINE);
+        /* (FASE 3) THE SECOND SCOPE, THE SAME INSTRUMENT AS THE FIRST. The phase plot had its own recipe: a well
+         * in the panel's SURF tone (lighter than the scope's), a frame mixed out of the grid at one weight, one
+         * vertical line and one horizontal at different tones, and a trace straight in the accent. Side by side
+         * the two read as two screens. Both wells are the page's own dark tone with the same 1 px frame, both
+         * carry the same three-division grid and the same foot ticks, and both traces are on the same heat ramp,
+         * so the pair reads as one instrument with two probes. */
+        cv_rect(164, 64, 64, 67, vbg);
+        {
+            uint16_t fr = ux_mix(T_BG, T_GRID, 62);
+            cv_rect(164, 64, 64, 1, fr);
+            cv_rect(164, 130, 64, 1, fr);
+            cv_rect(164, 64, 1, 67, fr);
+            cv_rect(227, 64, 1, 67, fr);
+            for (i = 1; i < 4u; i++) {                   /* the same three divisions the scope has */
+                cv_rect(164 + (int32_t)i * 16, 65, 1, 65, T_GRID);
+                cv_rect(165, 64 + (int32_t)i * 22, 62, 1, T_GRID);
+            }
+            for (i = 0; i < 5u; i++)                     /* and its foot scale */
+                cv_rect(165 + (int32_t)i * 12, 126, 1, 4, T_GRID);
+        }
         /* (3.5) THE RIGHT SCOPE IS ALWAYS THERE, AND ALWAYS ITS OWN. It was drawn only when the snapshot's
          * peak passed 1400, so anything played quietly left the reticle empty -- the "it does not appear"
          * report -- and just above the threshold the few samples it had were clamped against the frame, which
@@ -3157,11 +3198,12 @@ static void graph_home_viz(uint16_t c)
                     int32_t oy = 98 + (scope_snap[(trig + i + 16u) & (SCOPE_N - 1u)] * 24) / peak;
                     ox = clamp(ox, 169, 223);
                     oy = clamp(oy, 73, 122);
-                    if (i) cv_line(px, py, ox, oy, mono ? T_TEXT : T_ACCENT);
+                    if (i) cv_line_t(px, py, ox, oy, mono ? T_TEXT : heat_col(150), 2);   /* (FASE 3) the same body
+                                                                                           * the trace above has */
                     px = ox; py = oy;
                 }
             } else {
-                cv_rect(195, 97, 3, 3, mono ? T_TEXT : T_ACCENT);
+                cv_rect(195, 97, 3, 3, mono ? T_TEXT : heat_col(150));
             }
         }
 
