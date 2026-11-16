@@ -27,13 +27,13 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v1.1.0` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v1.2.7` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 Quantum GammaWave
 
 Quantum GammaWave is a complete custom firmware for the M-VAVE FM-1, built to turn a compact synthesizer into a far more powerful and expressive instrument.
 
-Designed around 6 independent tracks, 12 shared voices and 9 synthesis engines, it brings together a versatile sound library, deep sound editing, flexible modulation, a 64-step sequencer, arpeggiator, song chains and an extensive effects system. Every part of the instrument is designed to work together, giving you the freedom to shape sounds, build patterns, layer textures and create complex arrangements directly from the FM-1.
+Designed around 6 independent tracks, 12 shared voices and 10 synthesis engines, it brings together a versatile sound library, deep sound editing, flexible modulation, a 64-step sequencer, arpeggiator, song chains and an extensive effects system. Every part of the instrument is designed to work together, giving you the freedom to shape sounds, build patterns, layer textures and create complex arrangements directly from the FM-1.
 
 Its visual identity is just as important as its sound. The 240 × 240 interface features rich 16-bit graphics, animated visualizations, gradients and 19 selectable color palettes, with a consistent design language throughout the instrument. Physical controls remain immediate and intuitive, while the browser-based emulator and Web Studio make it possible to explore, edit and experience Quantum GammaWave without installing additional software.
 
@@ -45,7 +45,7 @@ This is more than a firmware update: it is an ongoing evolution of the FM-1 plat
 ## What it is
 
 Quantum GammaWave replaces the stock firmware of the **M-VAVE FM-1** with an instrument: six tracks, twelve
-voices and nine synthesis engines, sequenced and played entirely on the unit, with a real DSP path — no
+voices and ten synthesis engines, sequenced and played entirely on the unit, with a real DSP path — no
 samples, no streaming, no host in the loop.
 
 It is a whole ecosystem built around one firmware:
@@ -114,7 +114,7 @@ versioned together. Nothing on this page is a mock-up: every screenshot is rende
 
 ## Synthesis engines
 
-Nine engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and from the Web Studio:
+Ten engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and from the Web Studio:
 
 | Engine | What it is | Edit |
 |---|---|---|

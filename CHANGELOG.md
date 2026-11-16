@@ -1,3 +1,38 @@
+## v1.2.7 — el paquete, el sitio, el instalador y el emulador al día
+
+Lo que la v1.2.6 dejó como build de trabajo ahora es un release completo: un paquete con su manifiesto,
+las capturas regeneradas desde ese árbol, el portal, el instalador y el emulador sirviendo la misma
+versión, y `tools/coherence_check.py` en verde.
+
+### El paquete
+- **`release/felucca-v1.2.7.fwsc`**, 610 959 B, con `felucca-v1.2.7.fwsc.manifest.json` y
+  `release/build-manifest-v1.2.7.json` (commit, árbol, hashes de la imagen, del cargador y de los tres
+  ficheros del SDK, toolchain y emulador).
+- **Medido en el build AC791N**: imagen **582 720 B de 583 612** (892 B libres), `.data+.bss`
+  **96 548 B de 98 304** (1 756 B libres), XIP 422 168 B de código + 140 080 B de constantes, RAM code
+  19 676 B de 24 576, *pool* 311 256 B con 9 248 B de sobra, cargador `ota.bin` 7 803 B. Identidad
+  `FM-1_965`.
+
+### Lo que trae el release
+- **El motor ADDITIVE (ADDTV)**, diez motores en total, con sus ocho presets y su página EDIT; medido en
+  la imagen: **1 832 B de XIP y 1 440 B de `.bss`** (`tools/engine_size.py`, `docs/BUILD_AC791N.md` §8).
+- **SOUND EDITED**: la estrella del pie, la de OVERVIEW y el punto del navegador de PRESETS.
+- **Las cuatro tarjetas y las gráficas**: etiquetas en negrita, degradado en todos los cuadros de la
+  primera página de FX y el relleno del biquad EQ con el degradado del gráfico principal.
+- **281 sonidos de fábrica** (ADDTV suma ocho) y **diez motores** en el editor del Studio, en el emulador
+  y en la librería.
+
+### Las otras piezas
+- **Capturas**: `assets/screenshots/` y el arte del portal regenerados desde este árbol con
+  `tools/generate_screenshots.py`, que lee la versión del propio firmware.
+- **Portal**: `site/index.html` anuncia 1.2.7 (diez motores, 281 sonidos) y `site/firmware/versions.json`
+  lleva la entrada 1.2.7 con el hash y el tamaño del paquete; el emulador de la portada es el de este
+  build.
+- **Instalador**: `site/webapp/installer/` ofrece 1.2.7 y verifica el SHA-256 y el tamaño de ese paquete
+  antes de habilitar INSTALL.
+- **Emulador**: `release/emu/` y `site/emulator/` con el WASM compilado desde este árbol, su commit y su
+  SHA-256, y la misma versión que el firmware.
+
 ## v1.2.6 — motor ADDITIVE, SOUND EDITED y segunda vuelta de motores
 
 ### El motor ADDITIVE (nuevo, `firmware/src/eng_additive.c`)
