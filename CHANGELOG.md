@@ -1,3 +1,20 @@
+## v1.2.0 — paquete de firmware
+
+- Firmware subido a **v1.2.0** (`firmware/src/felucca.c`), capturas del proyecto regeneradas desde ese árbol
+  (splash y ABOUT muestran la versión que el binario lleva).
+- Paquete AC791N: `release/felucca-v1.2.0.fwsc` — **610 959 B**, SHA-256
+  `c38bc917cdbcc6b9f8af1af6b5c461707b3dd739178e73210f375aa52da0fbf6`; manifiesto de paquete, manifiesto de
+  build (`release/build-manifest-v1.2.0.json`, commit `060ebd8`, árbol limpio) y las tres líneas en
+  `SHA256SUMS`. `tools/check_package_identity.py` responde "package identity: ok" (ota-FM-1_965).
+- Imagen 580 196 B, XIP 420 432 B de código + 139 288 B de constantes, `.data+.bss` 95 076 B de 98 304,
+  pool spare 9 248 B.
+- Suite de host completa: `ALL HOST TESTS PASSED` (EXIT=0).
+- **Bloqueado**: el emulador WebAssembly no se reconstruye en este entorno (no hay `emcc`), así que
+  `release/emu` sigue siendo v1.1.0 y `coherence_check.py` marca dos problemas, los dos por eso (el registro
+  del emulador y la copia que sirve el sitio). Por la misma razón el sitio y `site/firmware/versions.json`
+  siguen ofreciendo 1.1.0: publicar 1.2.0 allí sin un emulador de 1.2.0 rompería la regla de que todos los
+  componentes sirven la misma release.
+
 ## FASE 5 — visualizador (sin publicar) — 2026-11-16
 
 - **Los dos osciloscopios del visualizador son vidrio, no cajas oscuras.** El pozo era el tono de la página
