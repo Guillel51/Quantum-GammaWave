@@ -46,6 +46,30 @@ El motor más caro por bloque es **FM6 (292)**, con FORMANT y WHEEL cerca. El pr
 32 muestras a 44,1 kHz ≈ 725 µs para *todas* las voces de *todas* las pistas a la vez, y `tests/regress` es el
 chequeo de CPU por bloque de la mezcla completa: hoy sin entradas fuera de presupuesto.
 
+### 2b. Coste por bloque medido: `tests/eng_bench`
+
+`target_budget.py` cuenta instrucciones; esto mide tiempo. `tests/eng_bench` compila el firmware real
+(`web/emu/felucca_web.c`, la misma unidad que corre el emulador), elige cada motor seleccionable en T1 con el
+propio hook del emulador, mantiene ocho teclas para que el motor esté en polifonía, y da el mejor de tres
+recorridos de 2 000 bloques de 32 muestras. **Clase de medición: host x86-64**, no la unidad.
+
+| motor (`ENGINES[e]->name`) | µs/bloque | menos el piso silencioso |
+|---|---:|---:|
+| (piso: todo silencioso) | 5,874 | – |
+| ANALOG | 7,005 | 1,131 |
+| LOFI | 6,506 | 0,633 |
+| DRUM | 7,288 | 1,415 |
+| VOICE (FORMANT) | 9,055 | 3,181 |
+| PHASE | 9,565 | 3,691 |
+| FM6 | 9,598 | 3,724 |
+| NOISE | 10,105 | 4,232 |
+| WAVETABLE | 10,323 | 4,449 |
+| WHEEL | 11,623 | 5,749 |
+
+Lo que ordena el host: **ANALOG y LOFI son los más baratos y WHEEL el más caro**, con FM6, FORMANT, NOISE y
+WAVETABLE en una banda de 3,2–4,4 µs por bloque a ocho voces. Los números del host no predicen la unidad (otra
+CPU, otro reloj), pero dan el orden y la escala que faltaban para decidir.
+
 ## 3. Auditoría de la biblioteca de presets
 
 Mediana 22 presets por motor. **ANALOG tiene 68 (3,1× la mediana)** y FM6 37 (1,7×), mientras NOISE, WHEEL y
@@ -81,14 +105,14 @@ casi idénticos, y descartar sólo los duplicados demostrables.
   pool, más el `engine_t`. Entra, pero deja el pool por debajo del mínimo de 8 KiB que fija `AGENTS.md`.
 - **CPU**: el motor más caro hoy es FM6 con coste estático 292. Un aditivo de 8 parciales hace 8 sumas de seno
   por muestra y por voz: 8 voces × 8 parciales = 64 osciladores por bloque, más que los 4 operadores de FM6 con
-  su polifonía. **No hay hoy ningún instrumento que mida el coste por bloque de un motor aislado**: `regress` mide
-  la mezcla completa y `target_budget` cuenta instrucciones estáticas. Sin ese instrumento, cualquier afirmación
-  de que un aditivo entra en los 725 µs por bloque sería una corazonada — justo lo que esta fase pide no hacer.
+  su polifonía. El instrumento que faltaba **ya existe** (`tests/eng_bench`, arriba). Con él, un aditivo de ocho
+  parciales tendría que entrar en la banda de los motores pesados (4–6 µs por bloque en host a ocho voces, WHEEL
+  5,749): es del mismo orden, así que la CPU no es lo que lo descarta.
 
-**Decisión**: primero **reclamar los ~1,1 KB** de la tabla de arriba y **construir el banco de medida por motor**
-(un runner de host que renderice N bloques de un solo motor a una sola voz y a la polifonía máxima y reporte
-µs/bloque, junto a `regress`). Con esos dos datos, la decisión entre el motor aditivo-espectral y profundizar
-EDIT/LFO deja de ser una opinión.
+**Decisión**: la CPU deja de ser el bloqueo (medida arriba); el bloqueo es **XIP**. Hace falta reclamar el ~1,1 KB
+de la tabla de §3 antes de escribir el motor, para que no entre con 400 B de margen. Con ese recorte, un motor
+aditivo de ocho parciales con envolvente espectral es la decisión correcta: es la única arquitectura que los
+nueve motores no cubren y ya está medido que su coste por bloque cae en la banda de FM6/WAVETABLE.
 
 ## 5. Qué queda pendiente, y por qué
 
