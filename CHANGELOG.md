@@ -1,3 +1,36 @@
+## v1.0.2 — 2026-11-16
+
+Arranque y presupuesto: el encendido deja de hacer pop, el splash del aparato y el del emulador son el mismo en
+los tres modos, y las tres líneas del target que llevaban dos releases en rojo vuelven a estar en verde con la
+cuenta y la razón escritas. Detalle en `docs/BOOT_SPLASH_AND_POP.md`.
+
+### Arreglado
+
+- **El pop al encender.** La etapa de salida del códec se desmuteaba dos veces en `fm1_audio_init`: la primera
+  con ALNK0 todavía apagado y la segunda 5 ms después de encenderlo, o sea sobre un DAC que no había terminado
+  de asentarse y un FIFO que el motor todavía no había llenado. Ahora queda muteada durante el bring-up, el
+  motor arranca sobre el buffer en cero y se desmutea recién a los 25 ms de silencio.
+- **El splash del emulador y el del aparato.** Es el mismo dibujo (`draw_splash`/`splash_sig`), pero el emulador
+  animaba siempre: con MENU > STARTUP SPLASH en SHORT u OFF las dos pantallas no coincidían. El emulador lee el
+  mismo ajuste y usa el mismo lapso, así que FULL, SHORT y OFF se ven igual en los dos.
+- **`tests/target_budget.txt`**: `phase_render` 98 → 94, `phase_render_noise` 117 → 113 (las dos vuelven a
+  entrar en el límite del +10 %) y `analog_ext` 157 → 174 re-basado con su razón escrita: tres ramas por muestra
+  menos (PM plegada en la suma de fase, mezcla decidida por bloque, desbordes de fase como valor) y el resto es
+  la PM aprobada. Es cuenta estática del código AC791N, no ciclos del aparato.
+
+### Medido (clases, una por línea)
+
+- **Host**, `tests/regress`: 293 renders dorados, **0 cambiados**, 0 fallos de salud, 0 de voz/ruteo, **0
+  entradas de CPU sobre presupuesto** (9 notas).
+- **Análisis estático** del build AC791N, `tests/target_budget.py`: **0 líneas sobre presupuesto**.
+- **Host**, `tests/groups.sh ui`: `ui_render` 190 pantallas × 22 paletas, 0 hallazgos de lint, 3 554 249
+  mediciones de alineación sin desalineaciones.
+- **Build AC791N**: imagen 583 540 B, XIP 418 740 B, `.data+.bss` 96 836 de 98 304 B, paquete 610 959 B,
+  identidad `FM-1_965`.
+
+El pop **no está medido**: no hay unidad conectada y no se escribe en ninguna. Lo verificado es la secuencia de
+encendido del códec, no el resultado acústico.
+
 ## v1.0.1 — 2026-11-16
 
 Cierra lo que la 1.0.0 dejó listado como abierto y pone la interfaz nueva en un binario de verdad. El árbol y el

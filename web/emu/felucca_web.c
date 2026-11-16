@@ -263,6 +263,7 @@ static void cdc_task(void) {}
 /* --------------------------------------------------------- the device --- */
 static uint32_t web_booted, web_boot_ms, web_last_frame;
 
+static uint32_t web_boot_span;            /* (1.0.2) main.c's span: SPL_SHORT, SPL_WRITE + SPL_HOLD, or 0 */
 static uint32_t web_seed_v = 1u;          /* (JIANT 0.4) the page's random seed before web_boot (worklet.js), else 1 */
 /* main.c fm1_main's boot, up to the main loop (no USB, no UART, no panel setup) */
 static void web_power_on(void)
@@ -272,8 +273,10 @@ static void web_power_on(void)
     prefs_update();                       /* main.c (JIANT 0.6.44): FX LATCH ON by default (0.6.58: here too) */
     usb_serial_apply();
     lcd_init(0);                 /* (QG-1 1.6) the firmware's lcd_init(bg) since 1.5; this shim ignores the colour */
-    spl_anim = 1;                         /* main.c (JIANT 0.5): the signature written */
-    draw_splash();                        /* main.c: the splash (ui_draw.c) */
+    spl_anim = ui_splash == 0u;           /* (1.0.2) main.c (JIANT 0.5): the same setting the unit reads --
+                                           * FULL writes the signature on, SHORT and OFF have it whole */
+    if (ui_splash != 2u)                  /* main.c: STARTUP SPLASH OFF is no splash at all, here too */
+        draw_splash();                    /* main.c: the splash (ui_draw.c) */
     memset(&felucca_dbg, 0, sizeof felucca_dbg);
     felucca_dbg.magic = DBG_MAGIC;
     fm1_input_init();
@@ -286,7 +289,8 @@ static void web_power_on(void)
     boot_leds();                          /* main.c: the power-on LED sweep, from the scan's start */
     autosave_boot(boot_clean);            /* main.c: the last session's music (1.2, project.c) */
     session_dice(web_seed_v);             /* main.c (JIANT 0.4): this session's macros (the page's seed: web_seed) */
-    web_boot_ms = fm1_ms + 30u + SPL_WRITE + SPL_HOLD;   /* main.c: 30 ms + the splash before the first frame */
+    web_boot_span = ui_splash == 2u ? 0u : ui_splash == 1u ? SPL_SHORT : SPL_WRITE + SPL_HOLD;
+    web_boot_ms = fm1_ms + 30u + web_boot_span;          /* main.c: 30 ms + the splash before the first frame */
     web_booted = 1;
 }
 
@@ -330,7 +334,7 @@ static void web_ms(void)
         web_half ^= 1u;
     }
     if (web_booted && (int32_t)(fm1_ms - web_boot_ms) < 0 && !(fm1_ms % 20u))   /* main.c: the signature written */
-        splash_write(SPL_WRITE + SPL_HOLD - (web_boot_ms - fm1_ms));
+        splash_write(web_boot_span - (web_boot_ms - fm1_ms));
     if (!web_booted || (int32_t)(fm1_ms - web_boot_ms) < 0)
         return;
     if (web_boot_ms) {                                    /* main.c: the splash goes, the loop starts */

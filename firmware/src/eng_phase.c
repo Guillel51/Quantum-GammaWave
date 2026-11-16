@@ -156,6 +156,7 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
                                                               * knob jumped the phase: a click, louder the higher it was) */
     int32_t dfb = ((p[P_E7] << 8) - fb) / (int32_t)(n ? n : 1u);
     uint32_t nst = (uint32_t)v->s[5];
+    int32_t mixk = line2 && line != 2;                       /* (1.0.2) the mix, decided once: no composite test a sample */
     pd_t b1, b2, bm;
     int32_t mf = 0, dmf = 0;                                 /* (0.6.45) MORPH: line 1 towards the next WAVEs; (0.6.50)
                                                               * its blend ramped across the block, Q8 */
@@ -184,13 +185,14 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
             uint32_t old2 = ph1;
             s2 = pd_wave(tg1 ? &b2 : &b1, ph1 >> 16);
             ph1 += inc2;
-            if (ph1 < old2)
-                tg1 ^= 1;
+            tg1 ^= (ph1 < old2);                  /* (1.0.2) the wrap as a value: a branch less a sample */
         }
         {
             uint32_t pp = ((ph0 >> 16) + (uint32_t)((((f1 + f2) >> 1) * (fb >> 8)) >> 8)) & 0xFFFFu;
-            if (line == 2)
-                pp = (pp + (uint32_t)s2 * pmk) & 0xFFFFu;   /* PM: wrapped as the phase wraps (unsigned, no UB) */
+            /* (1.0.2) PM, without a branch: pmk is 0 unless line 2 is the modulator, so the add is the same
+             * phase the branch used to leave alone and the loop no longer tests `line` every sample (wrapped
+             * as the phase wraps: unsigned, no UB) */
+            pp = (pp + (uint32_t)s2 * pmk) & 0xFFFFu;
             fb += dfb;
             s = pd_wave(tg0 ? &b2 : &b1, pp);
             if (mf && !tg0)
@@ -200,9 +202,8 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
         f2 = f1;
         f1 = s;
         ph0 += inc;
-        if (ph0 < old)
-            tg0 ^= 1;
-        if (line2 && line != 2)                       /* (PM already bent line 1's phase: nothing to mix in) */
+        tg0 ^= (ph0 < old);
+        if (mixk)                                     /* (PM already bent line 1's phase: nothing to mix in) */
             s = ring ? mulq15(s, s2) : (s + s2) >> 1;     /* both within +-32767 */
         if (sub) {
             ph2 += inc >> 1;

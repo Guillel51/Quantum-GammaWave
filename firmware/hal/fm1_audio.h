@@ -65,12 +65,15 @@ FM1_INLINE void fm1_audio_init(int32_t *buf, uint32_t half_words, void (*isr)(vo
     FM1_ALNK_CON1 |= 1u << 12;
     FM1_ALNK_CON1 |= 1u << 14;
     FM1_ALNK_ADR3 = (uint32_t)(uintptr_t)buf;
-    fm1__pc_out(6, 1);
+    /* (1.0.2) THE POWER-ON POP: the output stage (pc6) was unmuted RIGHT HERE, with ALNK0 still disabled, and
+     * again 5 ms after it was enabled. So it came up onto a DAC that had not settled and onto a FIFO the
+     * engine had not filled: a step at the speaker, the pop. It stays muted while the codec comes up and
+     * while the engine starts, and unmutes only once the DAC has been running on the zeroed buffer. */
     FM1_ALNK_CON1 &= ~(1u << 15);
     FM1_ALNK_CON2 = 0x0Fu;
     fm1_irq_attach(FM1_IRQ_ALNK0, isr, prio);
     FM1_ALNK_CON0 |= 0x800u;
-    fm1_delay_ms(5);
+    fm1_delay_ms(25);                       /* the DAC's own settle, on silence: the buffers are zeroed */
     fm1__pc_out(6, 1);
 }
 
