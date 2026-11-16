@@ -1,3 +1,41 @@
+## v1.0.1 — 2026-11-16
+
+Cierra lo que la 1.0.0 dejó listado como abierto y pone la interfaz nueva en un binario de verdad. El árbol y el
+paquete vuelven a ser el mismo.
+
+### Arreglado
+
+- **La franja del valor de una tarjeta** repintaba `T_SURF` plano sobre una tarjeta que es un degradado: cada
+  dígito que rodaba dejaba una banda de otro tono. Ahora repinta las filas de la placa con sus mismas bandas y
+  colores (`cv_plate_rows`, gfx.c), y las siete comprobaciones de `ui_test` que llevaban tiempo en rojo pasan —
+  también con `FELUCCA_FM4=1`. Detalle en `docs/CARD_STRIP.md`.
+
+### Interfaz
+
+- **Geometría**: cabecera 0..16, tarjetas 20..76 (56 px), panel 78..200, pie 204..240; MENU > LARGE 20..124 /
+  128..200. La etiqueta de una tarjeta se dibuja en la cara de 15 px cuando entra (a 12 se leía fina al lado de
+  su propio valor), el gauge cierra el pie de la tarjeta y el medidor de carga de la cabecera queda centrado.
+  Ver `docs/UI_LAYOUT_1.0.md`.
+- **Las filas de lista** de MENU pintan su rampa con un solo relleno tramado en vez de cuatro bandas: los mismos
+  píxeles, una llamada en vez de cuatro por fila (no se declara mejora de tiempo: la medición en host está
+  dentro del ruido de la VM).
+- **MACROS y MOD, rehechas** con el lenguaje del resto de la interfaz: cada macro en su placa con la pastilla
+  M1..M4, el valor en la letra de las tarjetas, un gauge redondeado en el color de calor de la paleta y los
+  destinos como chips; cada slot del MOD en su placa, con su pestaña, el número fuera de ella y la barra viva
+  redondeada con su pip. Al tocar el knob, la fila toma el acento.
+
+### Medido (clase: host, binarios nativos de esta VM)
+
+- `tests/ui_test.c`: 0 FAIL, `ui: all passed` (y con `FELUCCA_FM4=1`).
+- `tests/ui_render.c`: 0 hallazgos de lint en 190 pantallas × 22 paletas y 0 desalineaciones en 3 554 249
+  mediciones de 73 sitios.
+- `tests/theme_test.c`: contraste y blending en las 22 paletas, peor margen ×1,02.
+- Build AC791N de release: imagen 583 572 B, XIP 418 772 B de constantes 144 320 B, `.data+.bss` 96 836 de
+  98 304 B, paquete 610 959 B, identidad `FM-1_965`.
+
+Nada medido en el FM-1 físico.
+
+
 ## v1.0.0 — 2026-11-16 — Quantum GammaWave 1.0
 
 La primera versión con un nombre que empieza en uno. **No es un retroceso**: es el mismo árbol que venía
@@ -24,7 +62,6 @@ abajo, en sus propias entradas).
 - **Fase 8 de rendimiento**: cada placa se pinta una sola vez (MENU −42,7 %, CONFIRM −45,4 %, FX −29,7 % de
   píxeles rellenados, −5,5 % de tiempo), sin cambiar un píxel de 189 pantallas × 22 paletas.
 
-### Interfaz: la pantalla, más instrumento
 
 La cabecera y el pie cedieron cuatro filas cada uno y las cuatro tarjetas de los knobs ganaron seis (20..76),
 con el panel 78..200 y el pie 204..240; MENU > LARGE acompaña (tarjetas 20..124, panel 128..200). La etiqueta de
@@ -33,15 +70,10 @@ cerró el pie de la tarjeta y el medidor de carga y el chip "A" quedaron centrad
 mide lo que sus iconos. Las filas de lista pintan su rampa con un solo relleno tramado en vez de cuatro bandas.
 Detalle y mediciones en `docs/UI_LAYOUT_1.0.md`.
 
-### Corrección posterior al paquete 1.0.0
-
-Las siete comprobaciones de `tests/ui_test.c` que esta entrega listaba como abiertas **quedaron arregladas en
-`main` después de empaquetar** (`docs/CARD_STRIP.md`): la franja del valor de una tarjeta repintaba `T_SURF` plano
-sobre una tarjeta que es un degradado, y cada dígito que rodaba dejaba una banda de otro tono. `tests/ui_test.c`
-pasa entero, también con `FELUCCA_FM4=1`. El paquete de esta versión no incluye todavía ese arreglo: hace falta un
-`1.0.1` para que el binario publicado y el árbol vuelvan a ser el mismo.
-
 ### Verificación de esta entrega
+- **Lo que en esta entrega NO estaba verde**: siete comprobaciones de `tests/ui_test.c` fallaban y
+  ya fallaban en `main` antes de ella. El paquete de esta versión no las incluye arregladas: se cerraron en la
+  `1.0.1` (`docs/CARD_STRIP.md`).
 
 - **Build AC791N real** (toolchain de JieLi + los tres blobs del SDK fijados por SHA-256), no una simulación: el
   paquete, su manifiesto, `SHA256SUMS` y el registro del build están en `release/`.
@@ -49,11 +81,6 @@ pasa entero, también con `FELUCCA_FM4=1`. El paquete de esta versión no incluy
   SHA-256 del wasm).
 - **Host**: la suite de `tests/run_tests.sh` (goldens de audio 293/0 sin cambios, health, voz, CPU, UI, editor,
   persistencia, formatos de proyecto, matriz, ARP, RATCH, FM6, DRUM-X y el resto).
-- **Lo que NO está verde y no se presenta como verde**: siete comprobaciones de `tests/ui_test.c` fallan y ya
-  fallaban en `main` antes de esta entrega (el roll de las tarjetas que no termina idéntico al render estático, el
-  recuento de tarjetas obsoletas del soak, la tarjeta de CPU de GLO > SYSTEM y la disposición LARGE de HOME y
-  PRESETS). Quedan abiertas y listadas en `docs/RELEASE_1.0.0_STATE.md`; no se relajó ninguna aserción para
-  taparlas.
 - **Nada medido en el FM-1 físico**: no hay unidad conectada y no se escribe en ella.
 
 ## Sin publicar — 2026-11-15 — Longitud de patrón por pista: verificado y cubierto
