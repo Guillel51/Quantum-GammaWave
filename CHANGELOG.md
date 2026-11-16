@@ -1,3 +1,59 @@
+## v1.1 — 2026-11-16
+
+La versión que junta todo lo que se hizo después de la 1.0.0 en un solo binario, un solo paquete, un solo
+manifiesto y un solo sitio. No agrega funciones nuevas a las que ya están: ordena, corrige y publica. Las
+entradas 1.0.1 y 1.0.2 de abajo son el detalle de cada arreglo; acá está el conjunto.
+
+### La interfaz, como quedó
+
+- **La franja del valor de una tarjeta** repinta las filas de su placa con las mismas bandas del degradado
+  (`cv_plate_rows`), así que el dígito que rueda ya no deja un parche de otro tono. Cierra las siete
+  comprobaciones de `tests/ui_test.c` que llevaban rojo desde antes de la 1.0.0. Ver `docs/CARD_STRIP.md`.
+- **Geometría 1.0**: cabecera 0..16, tarjetas 20..76, panel 78..200, pie 204..240; MENU > LARGE 20..124 /
+  128..200. Etiquetas de tarjeta en la cara de 15 px, gauge al pie de la tarjeta, medidor de carga y chip "A"
+  centrados. Las filas de lista pintan su rampa con un solo relleno tramado. Ver `docs/UI_LAYOUT_1.0.md`.
+- **MACROS y MOD rehechas** con el lenguaje del resto: placas con rampa, pastilla de etiqueta, valor en la letra
+  de las tarjetas, gauge redondeado en el color de calor, chips de destino; cada slot de MOD en su placa con su
+  pestaña, el número fuera y la barra viva redondeada.
+
+### El arranque
+
+- **Se fue el pop del encendido**: la salida del códec se desmuteaba con ALNK0 apagado y otra vez 5 ms después,
+  o sea sobre un DAC sin asentar. Ahora se abre recién con 25 ms de silencio corriendo.
+- **El splash del aparato y el del emulador son el mismo en los tres modos** (FULL / SHORT / OFF): el emulador
+  lee el mismo ajuste y el mismo lapso que `main.c`, en vez de animar siempre. Ver `docs/BOOT_SPLASH_AND_POP.md`.
+
+### El presupuesto
+
+- **Render**: `phase_render` 98 → 94 y `phase_render_noise` 117 → 113 (vuelven al límite del +10 %), y
+  `analog_ext` re-basado a 174 con su razón escrita en `tests/target_budget.txt`: tres ramas por muestra menos y
+  el resto es la PM aprobada. Cuenta estática del build AC791N, no ciclos del aparato.
+- **Host, `tests/regress`**: 293 renders dorados **0 cambiados**, 0 fallos de salud/voz/ruteo, **0 entradas de
+  CPU sobre presupuesto**.
+
+### Medido (clases)
+
+| Qué | Clase | Resultado |
+| --- | --- | --- |
+| Firmware | build AC791N (toolchain JieLi + blobs del SDK por SHA-256) | imagen 583 540 B, XIP 418 740 B, `.data+.bss` 96 836 de 98 304 B |
+| Paquete | build AC791N | `felucca-v1.1.fwsc`, 610 959 B, `FM-1_965` |
+| Sonido | host, `tests/regress` | 293 goldens idénticos, CPU por bloque sin cambios |
+| Interfaz | host, `ui_render` | 190 pantallas × 22 paletas, 0 lint, 3 554 249 mediciones sin desalineaciones |
+| Coherencia | `tools/coherence_check.py` | paquete ↔ manifiesto ↔ registro del build ↔ emulador ↔ sitio, `SHA256SUMS` |
+| Sitio e instalador | `tools/site_check.py` | portal, instalador con la versión publicada, Verify Only, emulador |
+
+**Sin medir**: nada en el FM-1 físico (no hay unidad conectada y no se escribe en ninguna), y el pop es una
+secuencia de encendido verificada, no una escucha.
+
+### Lo que queda pendiente, dicho
+
+- **Categorías de preset en el FM-1**: la clasificación vive en `tools/gen_preset_categories.py` y en el Web
+  Studio; el firmware no tiene tabla ni navegación por categoría. Necesita una tabla generada (~273 B) y código
+  de navegación, y el XIP está a 72 B de su límite: hay que liberar espacio primero.
+- **HOME > SCOPE**: el campo profundo (la banda de la Vía Láctea y su polvo) se ve a través de la traza y compite
+  con ella. La causa está localizada en `graph_home_viz`; el arreglo no se incluyó porque el render de host de esa
+  escena no cambió al parchearlo y no hubo forma de verificarlo en el emulador antes de esta release.
+
 ## v1.0.2 — 2026-11-16
 
 Arranque y presupuesto: el encendido deja de hacer pop, el splash del aparato y el del emulador son el mismo en
