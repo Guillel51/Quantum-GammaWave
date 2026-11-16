@@ -267,8 +267,8 @@ def build_app():
         else:
             tc("cc", *cf, "-c", OUT / "felucca_size.ll", "-o", OUT / "felucca.o")
     elf = OUT / "felucca.elf"
-    tc("pi32v2/bin/ld", "-T", FW / "app.ld", "--gc-sections", OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o",
-       OUT / "felucca.o", "-o", elf)
+    tc("pi32v2/bin/ld", "-T", FW / "app.ld", "--gc-sections", "-Map", OUT / "felucca.map",
+       OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o", OUT / "felucca.o", "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin", "c1text.bin", "hottext.bin"):
         (OUT / sect).unlink(missing_ok=True)
     *_, syms, dis, rt = tc_all(("common/bin/objcopy", "-O", "binary", "-j", ".text", elf, OUT / "text.bin"),
@@ -280,6 +280,7 @@ def build_app():
                                ("common/bin/objdump", "-d", elf),
                                ("common/bin/objdump", "-d", "-j", ".ram_text", elf))
     (OUT / "felucca.dis").write_text(dis)
+    (OUT / "felucca.syms").write_text(syms)          # (1.2.6) for tools/engine_size.py: the sizes, without the toolchain
 
     def symv(name):
         return int(re.search(r"^([0-9a-f]+) .*\s" + name + r"$", syms, re.M).group(1), 16)
@@ -431,6 +432,13 @@ def main():
         print("  FAIL ", e)
     if errors:
         raise SystemExit("build: checks failed")
+    # (1.2.6) what each engine costs in XIP and in .data+.bss, from this build's own symbols: the report is
+    # printed on every build so a budget that stops closing is seen in the build's output, not by hand later
+    r = subprocess.run([sys.executable, str(SRC / "tools" / "engine_size.py"), "--strict"], cwd=SRC,
+                       capture_output=True, text=True)
+    print(r.stdout, end="")
+    if r.returncode:
+        raise SystemExit("build: an engine or the image does not fit the documented budget")
     if a.release and build_manifest.dirty():      # (v1.9.0) a release identifies itself with its commit
         raise SystemExit("build.py: --release from a dirty tree; commit or stash first, the manifest "
                          "could not say which code these bytes are")

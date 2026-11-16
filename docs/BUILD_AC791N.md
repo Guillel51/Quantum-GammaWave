@@ -32,6 +32,14 @@ whose `pi32v2/bin/clang` reports **clang 4.0.1**.
 `no toolchain in …`. Mind the directory level: unpacking the archive one level deeper is the most
 common mistake.
 
+Toolchain **and** the three SDK blobs of §6 in one step, hashes verified and nothing written that does
+not match them:
+
+```sh
+python3 tools/get_ac791n.py            # ~/.jieli/toolchain + ~/fw-AC79_AIoT_SDK, then the two exports
+python3 tools/get_ac791n.py --check    # what is installed, what is missing; writes nothing
+```
+
 ## 2. AC79 SDK
 
 ```sh
@@ -71,6 +79,7 @@ test file changed — that is the reproducibility the emulator check relies on.
 
 ```sh
 python3 tools/check_build_env.py     # what is installed, what is missing, and the versions found
+python3 tools/engine_size.py --map   # XIP and .data+.bss per engine, against the build's own map
 python3 tests/emu_sync.py            # page, manifest and WASM bytes agree (needs a fresh emu build)
 python3 tests/manifest_test.py       # the manifest names this commit and its package
 ```
@@ -105,6 +114,10 @@ export AC79_SDK="$HOME/fw-AC79_AIoT_SDK"
 `./build.sh` sólo comprueba `$AC79_SDK/cpu/wl82/tools/uboot.boot`, y `build.py` verifica los tres
 hashes al empaquetar: si el tag sirve otros bytes, el build se detiene antes de escribir el `.fwsc`.
 El clon completo sigue siendo válido, pero para compilar es tiempo y disco que no se usan.
+
+Todo lo anterior es lo que hace `python3 tools/get_ac791n.py --sdk </ruta>`: trae los tres ficheros del
+tag `AC79NN_SDK_V1.2.1_2023-12-13`, compara el SHA-256 contra el que `tools/build.py` fija en
+`SDK_SHA256` y **no escribe** lo que no coincide (dice el hash que llegó y el que se esperaba).
 
 ## 7. Estado del build en este árbol (medido, 2026-11-13)
 
@@ -163,3 +176,65 @@ Queda **1 048 B de deuda pagada y 288 B de margen**: el mapa de flash no se ha t
 (la región empaquetada terminaba en `0x8E52A` de `0x8F000`); en la fase 7 el slot creció **2 048 B** hasta
 `0x8E7BC`, la región acaba en `0x8ED2B` con 725 B de holgura y `FLASH_SIZE` no se movió.
 
+
+## 8. Cuánto mide cada motor: XIP y `.data+.bss` desde el propio build
+
+`./build.sh` escribe `build/felucca.syms` (la tabla de símbolos del ELF), `build/felucca.map` (el mapa
+del enlazador, `-Map`) y ejecuta al final `tools/engine_size.py --strict`: si un motor o la imagen no
+entran en el presupuesto, el build **falla** en vez de dejar el número para después. Releer la medición
+no pide toolchain ni trabajo manual — basta el árbol ya construido:
+
+```sh
+python3 tools/engine_size.py            # tabla por motor
+python3 tools/engine_size.py --map      # + verificación cruzada contra el mapa del enlazador
+python3 tools/engine_size.py --json     # la misma tabla, para scripts
+```
+
+**Por qué por símbolos y no por el `.map`:** el firmware enlaza como un solo objeto *unity*, así que el
+mapa no dice a qué motor pertenece un `.text.<fn>`. La tabla de símbolos sí, porque cada función tiene su
+propia sección (`-ffunction-sections`) y su tamaño. El mapa se usa para lo que sí puede probar: que la
+misma función mide lo mismo en los dos artefactos (**88 funciones de motor, 0 discrepancias** en el build
+de v1.2.6).
+
+La atribución sale de las fuentes (`firmware/src/eng_*.c`, definiciones a columna 0), no de una lista a
+mano: un nombre que declaren **dos** motores no se atribuye a ninguno y cae en `(rest)`. Cuenta como XIP
+lo que vive en `.text`; lo que el enlazador copia a RAM (`.ram_text`, `.c1_text`, `.hot_text`) se informa
+aparte, en su propia columna, para que no se confunda con flash; `.data` y `.bss` van en las suyas.
+
+### 8.1 El build de v1.2.6 (2026-11-16, medido en AC791N)
+
+Con el toolchain de §1 y los tres blobs de §6, `./build.sh` termina en:
+
+```
+ok      image 582336 B; RAM .data+.bss 96548 B of 98304; pool 311256 B, spare 9248 B
+ok      XIP code 421796 B, constants 140068 B
+ok      RAM code 19676 B of 24576
+package build/felucca.fwsc  610959 B, identity FM-1_965        (1276 B de margen en el slot)
+```
+
+| motor | XIP | `.data` | `.bss` | símbolos | mayor símbolo |
+|---|---:|---:|---:|---:|---|
+| FM6 | 6 856 | 0 | 8 966 | 29 | `fm6_note` 7 104 B |
+| DRUM | 4 282 | 4 | 6 891 | 40 | `drum_kit` 5 376 B |
+| LOFI | 8 934 | 0 | 0 | 35 | `lofi_float` 2 336 B |
+| ANALOG | 6 656 | 0 | 0 | 18 | `ANALOG_PRESETS` 2 448 B |
+| WHEEL | 3 184 | 0 | 2 232 | 18 | `drw_v` 1 656 B |
+| PHASE | 3 926 | 0 | 0 | 13 | `PHASE_PRESETS` 1 152 B |
+| VOICE | 3 509 | 4 | 0 | 12 | `formant_render` 1 730 B |
+| NOISE | 3 332 | 0 | 0 | 15 | `noise_render` 1 596 B |
+| **ADDTV** | **1 832** | **0** | **1 440** | 10 | `ad_v` 1 224 B |
+| WTABLE | 2 310 | 0 | 4 | 10 | `wt_render` 908 B |
+| DIGITAL | 0 | 0 | 0 | 0 | no compilado (`FELUCCA_FM4=0`) |
+| (resto: UI, DSP, secuenciador, tablas) | 489 569 | 753 | 75 920 | 2 830 | — |
+| **total** | **534 390** | **761** | **95 453** | **3 030** | — |
+
+`RAM: .data+.bss 96548 B of 98304 B (1756 B free)` e `image: 582336 B of 583612 B (1276 B free)`.
+
+El motor ADDITIVE entra con **1 832 B de XIP y 1 440 B de `.bss`**: el `.bss` es exactamente el
+`sizeof` de sus estructuras (1 224 B de voces + 216 B de partes) y el XIP queda por debajo de la
+estimación hecha en host (~2,9 KB), que es lo que se esperaba de `-Oz` sobre pi32v2. El `.fwsc` mide
+610 959 B en v1.2.5 y en v1.2.6 porque el contenedor llena un tamaño fijo por slot: la identidad de un
+paquete es su SHA-256 y su `identity`, no su longitud.
+
+`tests/engine_size_test.py` (host, sin toolchain) fija el camino: qué símbolo pertenece a qué motor,
+XIP contra RAM, la verificación con el mapa, el código de salida de `--strict` y la forma del `--json`.

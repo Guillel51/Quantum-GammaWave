@@ -18,12 +18,14 @@ The build makes three files in `build/`:
 - The JieLi Linux toolchain (clang 4.0.1 for pi32v2, from JieLi's package server):
 
   ```
-  tools/get_toolchain.sh            # installs to ~/.jieli/toolchain
+  python3 tools/get_ac791n.py       # toolchain into ~/.jieli + the AC79 SDK files, hashes verified
   ```
 
   The archive is pinned by SHA-256 when `JIELI_TOOLCHAIN_SHA256` is set (`tools/get_toolchain.sh`
   prints the hash it got otherwise, so it can be reviewed and pinned); the SDK's three files are
-  checked against `SDK_SHA256` in `tools/build.py`.
+  checked against `SDK_SHA256` in `tools/build.py`. `tools/get_ac791n.py --check` reports what is
+  installed without writing anything, and `tools/get_toolchain.sh` alone still installs just the
+  toolchain.
 
 - The JieLi AC79 SDK (Apache-2.0). The package uses three of its files
   (`cpu/wl82/tools/uboot.boot`, `cfg_tool.bin`, `cfg/eq_cfg_hw.bin`); they are not part of this tree.

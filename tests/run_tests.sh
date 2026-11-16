@@ -443,6 +443,9 @@ fi
 run "regression: target cost of the render loops (pi32v2 disassembly)" python3 tests/target_budget.py \
     build/felucca.dis tests/target_budget.txt
 run "target memory map: 1 MiB flash, RAM / pool / stacks / noinit do not overlap" python3 tests/memory_map_test.py
+run "engine size: which symbol belongs to which engine, XIP vs RAM, the map cross-check" python3 tests/engine_size_test.py
+run "engine size of this build: XIP and .data+.bss per engine (skips without build/felucca.syms)" \
+    python3 tools/engine_size.py --strict --map --no-image
 
 # (JIANT 0.6.83) the audio path's CPU where proc_pid_rusage is missing (Linux): callgrind's exact counts, section by
 # section (each engine's heaviest preset, every REVERB TYPE, a full mix, the sequencer at its heaviest), against

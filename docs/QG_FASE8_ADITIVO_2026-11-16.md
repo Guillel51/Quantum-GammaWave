@@ -1,9 +1,11 @@
 # FASE 8 — motor ADDITIVE y SOUND EDITED (2026-11-16, v1.2.6)
 
 Parte del árbol publicado en `main` en v1.2.5 (`3e05fdc`). Todo lo que sigue está medido con instrumentos que
-ya están en el repositorio, y cada medición dice de qué clase es. **No hay toolchain AC791N ni `emcc` en este
-entorno**: no hay binario de la unidad, no hay XIP ni `.data+.bss` del ELF, no hay `.fwsc`, no hay emulador
-reconstruido y no hay unidad FM-1. Lo que no se midió se dice como no medido, con la razón.
+ya están en el repositorio, y cada medición dice de qué clase es: **host x86-64**, **build AC791N** (el ELF
+que produce el toolchain de JieLi en esta máquina) o **unidad**. El build AC791N se hizo —el toolchain se
+instala con `tools/get_ac791n.py` y la medición por motor sale de `tools/engine_size.py`—, así que el XIP y
+el `.data+.bss` de esta página ya no son estimaciones. Lo que sigue sin medirse acá: **`emcc`** (no hay
+emulador WASM reconstruido) y la **unidad FM-1** (no hay aparato). Lo que no se midió se dice como no medido, con la razón.
 
 ## 1. La decisión que la fase anterior dejó abierta
 
@@ -36,10 +38,9 @@ con **EVOLVE**. Ver `CHANGELOG.md` (v1.2.6) para el detalle de cada control. Lo 
 | `AD_PROF` (8 perfiles × 8 armónicos) | 64 B | 1 | **64 B flash** |
 | `param_desc_t` × 8 + CHARACTER | — | — | 9 descriptores |
 
-**`.bss` del motor: 1 440 B.** Con la holgura de `.data+.bss` que la Fase 6 dejó (3 532 B de 98 304 B), el
-presupuesto queda en **~2 100 B libres** — por encima del mínimo de 8 KiB de *pool* (que este motor no toca:
-no reserva buffers) pero fino para el presupuesto de 96 KiB. Es el número que hay que vigilar en el próximo
-build AC791N, y el primero que hay que reclamar si una pantalla nueva pide RAM.
+**`.bss` del motor: 1 440 B** en host, y **1 440 B en el build AC791N** (§3.1): son structs, no punteros, así
+que no cambian de tamaño entre compiladores. Lo que sí cambia es el entorno: en el build AC791N `_bss_end`
+deja **1 756 B libres** de los 98 304 B y la imagen, **1 276 B** de 583 612 B.
 
 Código (tamaño de símbolo en el binario **host**, `nm --size-sort` sobre `tests/additive_test`; no es XIP):
 
@@ -51,7 +52,36 @@ Código (tamaño de símbolo en el binario **host**, `nm --size-sort` sobre `tes
 | **total** | **~2,9 KB de código host** |
 
 La Fase 7 estimó 2,6–3,0 KB de XIP para un motor así **más** 792 B de presets; acá los presets son 320 B y el
-perfil es una tabla de 64 B, así que la estimación cae en la banda baja. **No está medido en XIP.**
+perfil es una tabla de 64 B, así que la estimación cae en la banda baja. **Medido en el build AC791N: 1 832 B
+de XIP** (§3.1), por debajo de esa banda.
+
+### 3.1 El motor en la imagen AC791N (medido, clase: build AC791N)
+
+`./build.sh` con el toolchain de `docs/BUILD_AC791N.md` termina sin errores, y `tools/engine_size.py` reparte
+la tabla de símbolos del ELF por motor (XIP = `.text`; lo que el enlazador copia a RAM va aparte):
+
+| motor | XIP | `.data` | `.bss` |
+|---|---:|---:|---:|
+| FM6 | 6 856 | 0 | 8 966 |
+| DRUM | 4 282 | 4 | 6 891 |
+| LOFI | 8 934 | 0 | 0 |
+| ANALOG | 6 656 | 0 | 0 |
+| WHEEL | 3 184 | 0 | 2 232 |
+| PHASE | 3 926 | 0 | 0 |
+| VOICE | 3 509 | 4 | 0 |
+| NOISE | 3 332 | 0 | 0 |
+| **ADDTV** | **1 832** | **0** | **1 440** |
+| WTABLE | 2 310 | 0 | 4 |
+
+Imagen **582 336 B de 583 612 B**, RAM `.data+.bss` **96 548 B de 98 304 B** (1 756 B libres), RAM code
+19 676 B de 24 576, *pool* 311 256 B con 9 248 B de sobra, paquete `build/felucca.fwsc` de 610 959 B con
+identidad `FM-1_965`, manifiesto v1.2.6. Los símbolos del motor: `ad_v` 1 224 B, `add_render` 810 B,
+`add_block` 310 B, `AD_PRESETS` 288 B, `ENG_ADDITIVE` 232 B, `AD_PROF` 64 B, y el resto de los `add_*`
+dentro de esos 1 832 B de XIP.
+
+La verificación cruzada contra el mapa del enlazador (`--map`) da **88 funciones de motor, 0 discrepancias**.
+El mapa no permite la atribución por sí solo porque el firmware enlaza como un objeto *unity*; los símbolos
+sí, porque cada función tiene su sección (`-ffunction-sections`). Ver `docs/BUILD_AC791N.md` §8.
 
 ## 4. CPU (medida, host x86-64)
 
@@ -124,14 +154,16 @@ del sonido cargado en PRESETS. Cero parámetros nuevos, cero bytes en los format
 | `tests/eng_bench` | host | tabla de §4 |
 | `tests/ui_test` | host | todos pasan (la lista de motores mostrados incluye ADDTV) |
 | `tests/ui_render` | host, renderizador real | lint y alineación (ver §7) |
-| `./build.sh` (AC791N) | — | **no ejecutado: no hay toolchain Jeli / SDK** |
-| `.fwsc` / release | — | **no generados** por lo mismo |
+| `./build.sh` (AC791N) | build AC791N, toolchain real | **ejecutado, exit 0**: imagen 582 336 / 583 612 B, `.data+.bss` 96 548 / 98 304 B (§3.1) |
+| `tools/engine_size.py` | build AC791N + host | tabla de §3.1; `--map` 88 funciones, 0 discrepancias; `tests/engine_size_test.py` verde sin toolchain |
+| `.fwsc` / release | build AC791N | `build/felucca.fwsc` 610 959 B, identidad `FM-1_965`, manifiesto v1.2.6 (**no publicado**: es un build de trabajo) |
 | unidad FM-1 | — | **no hay aparato** |
 
 ## 9. Lo que queda pendiente, con nombre y número
 
-1. **Build AC791N y medición de XIP / `.data+.bss` del ELF.** Es el único número que falta para cerrar el
-   presupuesto del motor nuevo; la estimación de código host (~2,9 KB) sugiere que entra, pero **no está medido**.
+1. ~~**Build AC791N y medición de XIP / `.data+.bss` del ELF**~~ — **hecho** (§3.1): el motor entra con
+   1 832 B de XIP y 1 440 B de `.bss`, y el build cierra con 1 756 B de RAM y 1 276 B de imagen libres. Lo
+   que sigue abierto es la **unidad**: estos números son de un build AC791N, no de un aparato.
 2. **Escuchar los ocho presets en la unidad** (balance de niveles frente al resto de la banca): los ocho pasan
    salud en host y la normalización mantiene el nivel entre perfiles (±6 dB del fundamental), pero el juicio
    final es del aparato.

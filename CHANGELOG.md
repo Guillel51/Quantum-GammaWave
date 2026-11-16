@@ -22,7 +22,10 @@
   `tests/additive_test`: perfiles, crossfade, TILT (10 dB), DECAY (−27,6 dB en el 4.º y −0,1 dB en el 1.º a
   0,8 s), STRETCH (el 3.º en 3,375 f0), SUB, límite de banda en C7/A7/C8, salud de los ocho presets (0 clipping,
   0 DC, silencio tras el release), esquina de todos los EDIT (7,25 × VOICE_FS a ocho voces).
-- **Coste en la imagen: no medido** (no hay toolchain AC791N en esta sesión), ver «Bloqueado».
+- **Coste en la imagen, medido en el build AC791N**: **1 832 B de XIP y 1 440 B de `.bss`** (10 símbolos;
+  `ad_v` 1 224 B, `add_render` 810 B, `add_block` 310 B, `AD_PRESETS` 288 B, `ENG_ADDITIVE` 232 B,
+  `AD_PROF` 64 B). El build cierra con la imagen en 582 336 B de 583 612 B y `.data+.bss` en 96 548 B de
+  98 304 B (1 756 B libres). Tabla por motor y método: `docs/BUILD_AC791N.md` §8.
 
 ### SOUND EDITED (el indicador de parámetros modificados)
 - **Una estrella junto al nombre del sonido** en el pie de todas las páginas y en HOME > OVERVIEW, y un punto
@@ -62,10 +65,20 @@
   (190 pantallas × 22 paletas) marcaba `SPECTRUM` elidido en la tarjeta; quedó en 0 hallazgos de lint y 0
   desalineaciones de 3 894 154 medidas.
 
+### Cómo se mide (y cómo se instala el toolchain)
+- **`tools/get_ac791n.py`**: el toolchain pi32v2 de JieLi y los tres blobs del SDK en un solo paso, con los
+  SHA-256 fijados en el repositorio (`tools/toolchain.sha256`, `SDK_SHA256` en `tools/build.py`); no escribe
+  nada que no coincida. `--check` informa sin escribir.
+- **`tools/engine_size.py`**: XIP y `.data+.bss` **por motor**, desde `build/felucca.syms` (la tabla de
+  símbolos) con `--map` como verificación cruzada contra el mapa del enlazador — 88 funciones, 0 discrepancias.
+  `./build.sh` lo ejecuta con `--strict` al final: si un motor o la imagen no entran, el build falla en vez de
+  dejar el número para después. `tests/engine_size_test.py` lo cubre en host, sin toolchain.
+
 ### Bloqueado
-- **El emulador WASM y el paquete**: no hay `emcc` ni toolchain JieLi / SDK en este entorno, así que no hay
-  `.fwsc` de 1.2.6, ni XIP / `.data+.bss` medidos del binario, ni registro del emulador, ni release. Todo lo de
-  arriba está medido en host y compilado desde las fuentes reales; **nada se probó en una unidad FM-1**.
+- **El emulador WASM**: no hay `emcc` en este entorno, así que `release/emu` sigue en 1.1.0 y la release
+  pública sigue parada por la regla de que todos los componentes sirven la misma versión.
+- **La unidad FM-1**: no hay aparato. El build AC791N corre y empaqueta (`build/felucca.fwsc`, identidad
+  `FM-1_965`, manifiesto v1.2.6), y es un build de trabajo: no se publica como release.
 
 ## v1.2.5 — paquete de firmware y capturas
 
