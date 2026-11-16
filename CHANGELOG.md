@@ -1,3 +1,16 @@
+## FASE 4 — mejoras funcionales — 2026-11-16
+
+- **El progreso de los mini knobs de HOME sigue a la aguja.** Era un arco de dos píxeles en el borde, barrido
+  desde abajo a la izquierda: en la parte baja del rango se leía como un manchón en el lado izquierdo del dial y
+  desde la mitad como "la mitad izquierda encendida", con la aguja apuntando a otro sitio. Ahora se rellena toda
+  la banda barrida —cara y borde— así que la parte encendida termina exactamente en la aguja, en las 22 paletas
+  (en las neutras el relleno toma la tinta, que es lo que usa la aguja).
+- **A/B del sonido, permanente.** En HOME, **EDIT mantenido** guarda el sonido de la pista en un lado y **EDIT
+  tocado** intercambia los dos lados, con el mensaje diciendo cuál suena (SOUND A / SOUND B). Viaja el sonido
+  (sus valores y las ranuras de la matriz), nunca los pasos ni la automatización, y el ISR ve un sonido o el otro
+  (motion_guard). Es además la forma no destructiva de audicionar un preset: se guarda el sonido propio, se gira
+  el knob de PRESETS todo lo que haga falta y EDIT lo trae de vuelta. Una ranura: 278 B de `.bss`.
+
 ## FASE 3 — interfaz y visualizaciones — 2026-11-16
 
 - **HOME: el osciloscopio ya no queda debajo del degradado.** El panel dibujaba el trazo antes que el suelo con

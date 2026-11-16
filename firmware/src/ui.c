@@ -909,6 +909,47 @@ static void load_begin(track_t *t, uint32_t what)
     load_motion_hold(t, what);
 }
 
+/* (FASE 4) A/B OF THE SOUND. EDIT on HOME parks the selected track's sound in this slot and, from then on,
+ * puts it back in place of the one the track holds -- and the other way round on the next tap -- so two
+ * versions of a patch can be heard one after the other without losing either. That is also the non-destructive
+ * way to audition a preset: park your sound, turn the PRESETS knob as far as you like, tap EDIT to come back.
+ * Only the sound travels (its values and the matrix slots, not the steps or the motion), and the audio ISR
+ * sees one sound or the other, never half of each (motion_guard). One slot: P_COUNT int16 + the matrix. */
+typedef struct { int16_t p[P_COUNT]; int16_t mx[4][3]; uint8_t engine, preset, used; } ab_snd_t;
+static ab_snd_t ab_snd;
+static uint8_t ab_side;                              /* which side the track is holding: 0 A, 1 B */
+
+static void ab_store(track_t *t)                     /* the sound the next tap comes back to */
+{
+    memcpy(ab_snd.p, t->p, sizeof ab_snd.p);
+    memcpy(ab_snd.mx, t->mx, sizeof ab_snd.mx);
+    ab_snd.engine = t->eng_req;
+    ab_snd.preset = t->preset;
+    ab_snd.used = 1;
+    ab_side = 0;
+}
+
+static void ab_swap(track_t *t)                      /* the two sides change places */
+{
+    ab_snd_t s;
+    uint32_t f = motion_guard();
+    memcpy(s.p, t->p, sizeof s.p);
+    memcpy(s.mx, t->mx, sizeof s.mx);
+    s.engine = t->eng_req;
+    s.preset = t->preset;
+    s.used = 1;
+    memcpy(t->p, ab_snd.p, sizeof t->p);
+    memcpy(t->mx, ab_snd.mx, sizeof t->mx);
+    t->eng_req = ab_snd.engine % NENGINES;
+    t->preset = ab_snd.preset;
+    t->user = 0;                                     /* (the sound is not anyone's slot any more: A/B made it) */
+    ab_snd = s;
+    ab_side ^= 1u;
+    motion_unguard(f);
+    motion_rebase(t);
+    ui.force = 1;
+}
+
 static void load_end(track_t *t)
 {
     if (--load_depth)

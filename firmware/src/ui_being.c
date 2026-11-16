@@ -2242,20 +2242,30 @@ static void gw_mini_bakelite_knob(int32_t cx, int32_t cy, int32_t r, int32_t val
     }
     /* the value: a continuous arc on the rim, from the bottom left, 270 degrees, drawn only up to the value.
      * Two passes -- the rim's inner row and one outside it -- so it reads as a stroke and not as dots. */
+    /* (FASE 4) THE PROGRESS POINTS WHERE THE DIAL POINTS. It was two pixels of arc on the rim, swept from
+     * the bottom left: at the bottom of the range that read as a blob on the left of the dial and from the
+     * middle up as "the left half lit", while the needle pointed somewhere else. Now the whole band from the
+     * sweep's start to the value is filled -- face and rim -- so the lit part of the dial ends exactly at the
+     * needle, and turning the knob one way moves the edge of the fill the same way. The steps are 1/256 of
+     * the sweep, which is finer than a pixel at this radius: no gaps, and no clip stack. */
     for (k = 0; k <= 256; k++) {
         int32_t a256 = -384 + 768 * k / 256;
+        /* (a neutral palette has no accent to spare: the fill takes the ink, which is what the needle uses) */
+        uint16_t rim_fill = mono ? T_TEXT : arc_col;
+        uint16_t face_fill = ux_mix(face_lo, rim_fill, mono ? 45 : 62);
         uint32_t a;
         int32_t rr;
-        if (a256 > -384 + v)
+        if (a256 > -384 + v * 768 / 256)
             break;
         a = (uint32_t)(a256 * 64);
-        for (rr = r - 1; rr >= r - 2 && rr > 0; rr--) {
-            /* inside the rim band, never outside the outline: a point the circle rounds out of it is dropped,
+        for (rr = r; rr > 0; rr--) {
+            /* inside the dial, never outside the outline: a point the circle rounds out of it is dropped,
              * which is what kept the arc hanging off the left side of the dial */
             int32_t ax = (rr * (int32_t)bg_sin(a)) >> 15, ay = -((rr * (int32_t)bg_sin(a + 0x4000u)) >> 15);
             int32_t d2 = ax * ax + ay * ay;
-            if (d2 <= r * r && d2 > ri * ri)
-                cv_pset(cx + ax, cy + ay, arc_col);
+            if (d2 > r * r)
+                continue;
+            cv_pset(cx + ax, cy + ay, d2 > ri * ri ? rim_fill : face_fill);
         }
     }
     /* the needle, from the centre to the face's edge, and the centre's dot */
