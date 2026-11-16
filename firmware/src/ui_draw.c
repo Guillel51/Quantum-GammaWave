@@ -706,9 +706,11 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
                 cv_rrect(lx + b[0] - 2, cy - 3, w, lf == &AF_M ? chh + 5 : 15, 3, T_ACCENT, T_SURF);
                 GFX_HOOK_ALIGN(lx + b[0] - 2, cy - 3, lx + b[0] - 2 + w, lf == &AF_M ? cy + chh + 2 : 18, AL_HV,
                                "card label chip (MONO hot)");
-                cv_text_fit(lx, ly, lf, label, T_INK, T_ACCENT, max_lx - lx);
+                cv_text_fit_bold(lx, ly, lf, label, T_INK, T_ACCENT, max_lx - lx);
             } else
-                cv_text_fit(lx, ly, lf, label, lc, T_SURF, max_lx - lx);
+                /* (1.2.6) the label of every knob card is the BOLD pass of the 12 px face: the owner asked for the
+                 * letters of the four boxes to be heavier, and this is the card every page draws (draw_column). */
+                cv_text_fit_bold(lx, ly, lf, label, lc, T_SURF, max_lx - lx);
             if (mot && !gw_rotary) {                    /* (1.1.1-GW) and an "A" chip after it, in the accent: this
                                                          * value is automated (it moves on its own while it plays;
                                                          * a card with its knob: the "A" in the knob) */

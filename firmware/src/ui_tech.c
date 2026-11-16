@@ -602,17 +602,20 @@ static void tech_master_eq(void)
         /* (7.3) THE FLOOR UNDER THE CURVE: the console's four-band ramp (ui_fxb.c fxb_grad) between the response and
          * the plot's floor, so a boost has a body and a cut reads as a depth. Drawn before the energy bars and the
          * curve, so both keep their contrast; two columns a step, mixed once per band. */
-        for (i = 0; i <= gw; i += 2) {
-            int32_t db2 = fx_master_eq_hz_db(eq_hz_at(i * 212 / gw));
-            int32_t y2 = clamp(mid_y - db2 * 44 / (24 * 256), gtop, gbot), k2;
-            for (k2 = 0; k2 < 6 && y2 + 1 < gbot; k2++) {      /* six steps, staggered a pixel on alternate
-                                                               * columns: a dithered blend, not three slabs */
-                int32_t ya = y2 + 1 + (gbot - y2) * k2 / 6 + (k2 ? ((i >> 1) & 1) : 0);
-                int32_t yb = y2 + 1 + (gbot - y2) * (k2 + 1) / 6;
-                if (yb <= ya)
+        {   /* (1.2.6) THE MAIN SCREEN'S GRADIENT, UNDER THE CURVE. The fill used to be six staggered slabs mixed
+             * from T_BG towards the theme and the accent: a local blend that restarted under every column, so the
+             * body read as texture instead of as light -- the same defect the owner reported on FX's first page.
+             * It is the ground the console's graphs are drawn on now (HOME's views, hv_grad; FX > BUSES' blocks,
+             * fxb_grad: ux_ground_rows, solid, panel 22..62 % and accent 10..45 % from the top of the plot to its
+             * floor), resolved by ABSOLUTE row through the clip, so one height is one colour in every column and
+             * the fill is the page's own gradient showing through. Solid rows: one fill per colour the palette has,
+             * not one per pixel. */
+            for (i = 0; i <= gw; i += 2) {
+                int32_t db2 = fx_master_eq_hz_db(eq_hz_at(i * 212 / gw));
+                int32_t y2 = clamp(mid_y - db2 * 44 / (24 * 256), gtop, gbot);
+                if (y2 + 1 >= gbot)
                     continue;
-                cv_rect(gx0 + i, ya, 2, yb - ya,
-                        ux_mix(ux_mix(T_BG, T_THEME, 10), ux_mix(T_BG, T_ACCENT, 24), 12 + k2 * 16));
+                ux_ground_rows(gx0 + i, gtop, 2, gbot - gtop, 22, 62, 10, 45, y2 + 1, gbot, 100);
             }
         }
         /* the band's energy, under everything: what the EQ is shaping, not a measurement of the EQ */
@@ -632,10 +635,27 @@ static void tech_master_eq(void)
         for (i = 0; i <= gw; i++) {
             int32_t db = fx_master_eq_hz_db(eq_hz_at(i * 212 / gw));
             int32_t y = clamp(mid_y - db * 44 / (24 * 256), gtop, gbot);
-            if (db > 0 && y < mid_y)                         /* (3.2) the fill says lift or cut at a glance */
-                cv_rect(gx0 + i, y, 1, mid_y - y, ux_mix(T_BG, T_THEME, 40));
-            else if (db < 0 && y > mid_y)
-                cv_rect(gx0 + i, mid_y, 1, y - mid_y, ux_mix(T_BG, T_ACCENT, 40));
+            /* (1.2.6) THE LIFT AND THE CUT ARE A GRADIENT, not one flat 40 % slab: each column is filled in three
+             * steps whose strength follows the row's own place in the plot, so the body brightens towards the
+             * 0 dB line the way the console's grounds brighten towards their floor (HOME's views, hv_grad). The
+             * colours stay the ones that say what the shape does -- theme for a lift, accent for a cut. */
+            if (db > 0 && y < mid_y) {
+                int32_t k3, span3 = mid_y - y;
+                for (k3 = 0; k3 < 3; k3++) {
+                    int32_t a3 = y + span3 * k3 / 3, b3 = y + span3 * (k3 + 1) / 3;
+                    int32_t fr = (b3 - gtop) * 100 / (gbot - gtop);
+                    if (b3 > a3)
+                        cv_rect(gx0 + i, a3, 1, b3 - a3, ux_mix(T_BG, T_THEME, 18 + fr * 27 / 100));
+                }
+            } else if (db < 0 && y > mid_y) {
+                int32_t k3, span3 = y - mid_y;
+                for (k3 = 0; k3 < 3; k3++) {
+                    int32_t a3 = mid_y + span3 * k3 / 3, b3 = mid_y + span3 * (k3 + 1) / 3;
+                    int32_t fr = (b3 - gtop) * 100 / (gbot - gtop);
+                    if (b3 > a3)
+                        cv_rect(gx0 + i, a3, 1, b3 - a3, ux_mix(T_BG, T_ACCENT, 18 + fr * 27 / 100));
+                }
+            }
             if (i) {
                 int32_t pct = clamp(45 + (mid_y - y) * 4, 0, 100);
                 cv_line_t(px, py, gx0 + i, y, ux_mix(T_THEME, T_ACCENT, pct), 2);

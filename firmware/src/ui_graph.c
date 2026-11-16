@@ -846,6 +846,10 @@ static void graph_fx(const track_t *t, uint16_t c)
     }
 
     cv_rrect(4, 2, 232, 66, 6, T_SURF, T_BG);
+    /* (1.2.6) THE PANEL IS THE CONSOLE'S GRADIENT, like FX > BUSES' (fxb_grad): the plate's own ramp is a light
+     * bevel, and on this page the owner read it as a flat box next to a screen that is a gradient. ux_ground_rows
+     * walks the accent from 10 to 45 % over the panel's height, solid, so the page's light comes from below. */
+    ux_ground_rows(6, 3, 228, 63, 22, 62, 10, 45, 3, 66, 100);
     for (i = 0; i < 4u; i++) {
         int32_t cx = 7 + (int32_t)i * 56;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
@@ -855,8 +859,11 @@ static void graph_fx(const track_t *t, uint16_t c)
         char num[8];
 
         cv_rrect(cx, 4, 53, 62, 5, T_SURF, T_BG);
-        cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, T_SURF);   /* the whole name, on its own line */
-        cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, T_SURF);
+        ux_ground_rows(cx + 2, 5, 49, 60, 22, 62, 10, 45, 5, 65, 100);   /* (1.2.6) its own gradient */
+        /* (1.2.6) its texts sit on the gradient now, not on a flat T_SURF: the background they are blended over is
+         * the ramp's own colour at that row, or the letters would be drawn on a tone they are not lying on. */
+        cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, ux_ground_at(0, 60, 10, 45));   /* the whole name, on its own line */
+        cv_icon_on(cx + 3, 17, 12, FX_ICON[i], T_MID, ux_ground_at(12, 60, 10, 45));
         /* (3.1) the four sends are MIDI 0..127 inside (presets, automation, the DSP's own maths keep
          * that range) and 0..100 % on screen: the conversion happens here, once, for the label. */
         fmt_int(num, (val * 100 + 63) / 127);
@@ -864,9 +871,9 @@ static void graph_fx(const track_t *t, uint16_t c)
         /* (3.2) right-aligned to the meter's left edge, not drawn from a fixed x: "100 %" is one
          * glyph wider than "99 %" and the old fixed x put its % over the meter's column (the
          * owner's overflow). 2 px of air, whatever the value, on every palette and style. */
-        cv_text_r(mx - 2, 18, &AF_S, num, val ? T_TEXT : T_DIM, T_SURF);
+        cv_text_r(mx - 2, 18, &AF_S, num, val ? T_TEXT : T_DIM, ux_ground_at(13, 60, 10, 45));
         cv_text_on(cx + 3, 40, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
-                   i == 0 ? T_ACCENT : T_DIM, T_SURF);
+                   i == 0 ? T_ACCENT : T_DIM, ux_ground_at(35, 60, 10, 45));
         if (lvl >= 6800)                              /* (3.6) this bus is at full scale: it clips now */
             cv_rect(cx + 47, 6, 3, 3, T_ACCENT);
         else if (lvl > 64)                            /* (3.6) this bus is producing sound now: its own
@@ -908,8 +915,9 @@ static void graph_fx(const track_t *t, uint16_t c)
         char vb[12];
         for (m = 0; m < 3u; m++) {
             cv_rrect(MX3[m], 70, 72, 28, 3, T_SURF, T_BG);
-            cv_icon_on(MX3[m] + 4, 72, 12, IC[m], T_MID, T_SURF);
-            cv_text_on(MX3[m] + 19, 72, &AF_S, NM[m], T_DIM, T_SURF);
+            ux_ground_rows(MX3[m] + 2, 71, 68, 26, 22, 62, 10, 45, 71, 97, 100);   /* (1.2.6) the bottom row too */
+            cv_icon_on(MX3[m] + 4, 72, 12, IC[m], T_MID, ux_ground_at(1, 26, 10, 45));
+            cv_text_on(MX3[m] + 19, 72, &AF_S, NM[m], T_DIM, ux_ground_at(1, 26, 10, 45));
             cv_rect(MX3[m] + 42, 90, 26, 3, T_BG);        /* the bar's track, right of the value */
         }
         /* EQ: its mode (N_EQMODE) and the gain it applies; BYP when off, so the box never reads as on */
@@ -919,10 +927,10 @@ static void graph_fx(const track_t *t, uint16_t c)
             int32_t px = (gdb + 24) * 26 / 48;            /* -24 .. +24 dB across the 26 px bar */
             if (em) {
                 str_cpy(vb, N_EQMODE[em], sizeof vb);
-                cv_text_on(MX3[0] + 4, 85, &AF_S, vb, T_THEME, T_SURF);
+                cv_text_on(MX3[0] + 4, 85, &AF_S, vb, T_THEME, ux_ground_at(14, 26, 10, 45));
                 cv_rect(MX3[0] + 42 + px, 90, 2, 3, T_ACCENT);   /* where the gain sits, off centre = not flat */
             } else {
-                cv_text_on(MX3[0] + 4, 85, &AF_S, "BYP", T_DIM, T_SURF);
+                cv_text_on(MX3[0] + 4, 85, &AF_S, "BYP", T_DIM, ux_ground_at(14, 26, 10, 45));
                 cv_rect(MX3[0] + 54, 90, 2, 3, T_DIM);    /* flat, 0 dB: the centre of the bar */
             }
         }
@@ -931,7 +939,7 @@ static void graph_fx(const track_t *t, uint16_t c)
             int32_t d = clamp(song.g[G_SLDEP], 0, 127), seg;
             fmt_int(vb, d * 100 / 127);
             str_cpy(vb + str_len(vb), "%", 2);
-            cv_text_r(MX3[1] + 40, 85, &AF_S, vb, d ? T_TEXT : T_DIM, T_SURF);   /* (3.2) clear of its bar */
+            cv_text_r(MX3[1] + 40, 85, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(14, 26, 10, 45));   /* (3.2) clear of its bar */
             for (seg = 0; seg < 13; seg++)
                 if (seg * 10 < d * 26 / 127 * 10 / 5)
                     cv_rect(MX3[1] + 42 + seg * 2, 90, 2, 3, song.g[G_SLMODE] ? T_THEME : T_DIM);
@@ -940,7 +948,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         {
             uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k;
             str_cpy(vb, N_SLCR[sm], sizeof vb);
-            cv_text_on(MX3[2] + 4, 85, &AF_S, vb, sm ? T_THEME : T_DIM, T_SURF);
+            cv_text_on(MX3[2] + 4, 85, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(14, 26, 10, 45));
             if (sm)
                 for (k = 0; k < 16u; k++)                 /* 16 steps in 26 px: a 1 px step, 1 px apart */
                     cv_rect(MX3[2] + 42 + (int32_t)k * 2, 90, 1, 3, k == (sl.idx & 15u) ? T_ACCENT : T_RAISE);

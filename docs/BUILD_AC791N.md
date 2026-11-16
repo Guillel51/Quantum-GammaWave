@@ -206,10 +206,10 @@ aparte, en su propia columna, para que no se confunda con flash; `.data` y `.bss
 Con el toolchain de §1 y los tres blobs de §6, `./build.sh` termina en:
 
 ```
-ok      image 582336 B; RAM .data+.bss 96548 B of 98304; pool 311256 B, spare 9248 B
-ok      XIP code 421796 B, constants 140068 B
+ok      image 582720 B; RAM .data+.bss 96548 B of 98304; pool 311256 B, spare 9248 B
+ok      XIP code 422168 B, constants 140080 B
 ok      RAM code 19676 B of 24576
-package build/felucca.fwsc  610959 B, identity FM-1_965        (1276 B de margen en el slot)
+package build/felucca.fwsc  610959 B, identity FM-1_965        (892 B de margen en el slot)
 ```
 
 | motor | XIP | `.data` | `.bss` | símbolos | mayor símbolo |
@@ -225,10 +225,10 @@ package build/felucca.fwsc  610959 B, identity FM-1_965        (1276 B de margen
 | **ADDTV** | **1 832** | **0** | **1 440** | 10 | `ad_v` 1 224 B |
 | WTABLE | 2 310 | 0 | 4 | 10 | `wt_render` 908 B |
 | DIGITAL | 0 | 0 | 0 | 0 | no compilado (`FELUCCA_FM4=0`) |
-| (resto: UI, DSP, secuenciador, tablas) | 489 569 | 753 | 75 920 | 2 830 | — |
-| **total** | **534 390** | **761** | **95 453** | **3 030** | — |
+| (resto: UI, DSP, secuenciador, tablas) | 489 957 | 753 | 75 928 | 2 852 | — |
+| **total** | **534 778** | **761** | **95 461** | **3 052** | — |
 
-`RAM: .data+.bss 96548 B of 98304 B (1756 B free)` e `image: 582336 B of 583612 B (1276 B free)`.
+`RAM: .data+.bss 96548 B of 98304 B (1756 B free)` e `image: 582720 B of 583612 B (892 B free)`.
 
 El motor ADDITIVE entra con **1 832 B de XIP y 1 440 B de `.bss`**: el `.bss` es exactamente el
 `sizeof` de sus estructuras (1 224 B de voces + 216 B de partes) y el XIP queda por debajo de la

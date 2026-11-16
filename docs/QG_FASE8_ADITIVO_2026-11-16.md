@@ -73,7 +73,7 @@ la tabla de símbolos del ELF por motor (XIP = `.text`; lo que el enlazador copi
 | **ADDTV** | **1 832** | **0** | **1 440** |
 | WTABLE | 2 310 | 0 | 4 |
 
-Imagen **582 336 B de 583 612 B**, RAM `.data+.bss` **96 548 B de 98 304 B** (1 756 B libres), RAM code
+Imagen **582 720 B de 583 612 B**, RAM `.data+.bss` **96 548 B de 98 304 B** (1 756 B libres), RAM code
 19 676 B de 24 576, *pool* 311 256 B con 9 248 B de sobra, paquete `build/felucca.fwsc` de 610 959 B con
 identidad `FM-1_965`, manifiesto v1.2.6. Los símbolos del motor: `ad_v` 1 224 B, `add_render` 810 B,
 `add_block` 310 B, `AD_PRESETS` 288 B, `ENG_ADDITIVE` 232 B, `AD_PROF` 64 B, y el resto de los `add_*`
@@ -154,7 +154,7 @@ del sonido cargado en PRESETS. Cero parámetros nuevos, cero bytes en los format
 | `tests/eng_bench` | host | tabla de §4 |
 | `tests/ui_test` | host | todos pasan (la lista de motores mostrados incluye ADDTV) |
 | `tests/ui_render` | host, renderizador real | lint y alineación (ver §7) |
-| `./build.sh` (AC791N) | build AC791N, toolchain real | **ejecutado, exit 0**: imagen 582 336 / 583 612 B, `.data+.bss` 96 548 / 98 304 B (§3.1) |
+| `./build.sh` (AC791N) | build AC791N, toolchain real | **ejecutado, exit 0**: imagen 582 720 / 583 612 B, `.data+.bss` 96 548 / 98 304 B (§3.1) |
 | `tools/engine_size.py` | build AC791N + host | tabla de §3.1; `--map` 88 funciones, 0 discrepancias; `tests/engine_size_test.py` verde sin toolchain |
 | `.fwsc` / release | build AC791N | `build/felucca.fwsc` 610 959 B, identidad `FM-1_965`, manifiesto v1.2.6 (**no publicado**: es un build de trabajo) |
 | unidad FM-1 | — | **no hay aparato** |
@@ -162,7 +162,7 @@ del sonido cargado en PRESETS. Cero parámetros nuevos, cero bytes en los format
 ## 9. Lo que queda pendiente, con nombre y número
 
 1. ~~**Build AC791N y medición de XIP / `.data+.bss` del ELF**~~ — **hecho** (§3.1): el motor entra con
-   1 832 B de XIP y 1 440 B de `.bss`, y el build cierra con 1 756 B de RAM y 1 276 B de imagen libres. Lo
+   1 832 B de XIP y 1 440 B de `.bss`, y el build cierra con 1 756 B de RAM y 892 B de imagen libres. Lo
    que sigue abierto es la **unidad**: estos números son de un build AC791N, no de un aparato.
 2. **Escuchar los ocho presets en la unidad** (balance de niveles frente al resto de la banca): los ocho pasan
    salud en host y la normalización mantiene el nivel entre perfiles (±6 dB del fundamental), pero el juicio

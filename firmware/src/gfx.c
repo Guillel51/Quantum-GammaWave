@@ -449,6 +449,12 @@ static uint32_t rr_cov(int32_t r, int32_t i, int32_t j)
 static void gw_dither(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t a, uint16_t b, int32_t pct);   /* (1.0)
                                   * the short plates' single dithered fill: defined below, after the grounds */
 static uint8_t cv_plate_flat;                 /* (FASE 3) the next plate is filled flat: see cv_rrect */
+/* (1.2.6) EVERY PLATE TALL ENOUGH TO SHOW A RAMP TAKES IT. The chamfered style asked for 36 px of height, so the
+ * 28 px modules of FX > MASTER (EQ / DEPTH / SLICER) and every other short box stayed a flat T_SURF panel beside a
+ * page that is a gradient -- the same defect the owner reported on the first FX page. 24 px is the shortest body
+ * where the ramp still reads as light coming from above (two bands of the cut ground) and where the frame's own
+ * two lines leave it room, so the threshold drops for the chamfered and the rounded styles alike. */
+#define PLATE_MIN_H 24          /* (1.2.6) shortest plate that takes the ramp: FX > MASTER's 28 px modules do */
 /* (FASE 7) THE RAMP IS THE SAME FOR EVERY CARD OF A FRAME. A screen draws four to eight plates with one height
  * and one pair of colours, and each was mixing its own ramp again -- 21 ux_mix() calls per card, three
  * saturating channels each, for a list of colours that never changed inside the frame. The list is cached on
@@ -580,7 +586,7 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
      * own, and the corner loop below the corners). With the ramp on, the base fill is skipped and the plate is
      * painted once: MENU went from 83 644 to 47 940 filled pixels a frame (docs/PERFORMANCE_FASE8.md), with no
      * pixel of the picture changed. */
-    if (!(c == T_SURF && !cv_plate_flat && (cut ? (w >= 36 && h >= 36) : (w >= 40 && h >= 16)))) {
+    if (!(c == T_SURF && !cv_plate_flat && (cut ? (w >= 36 && h >= PLATE_MIN_H) : (w >= 40 && h >= 16)))) {
         cv_rect(x + r, y, w - 2 * r, h, c);
         cv_rect(x, y + r, r, h - 2 * r, c);
         cv_rect(x + w - r, y + r, r, h - 2 * r, c);
@@ -589,10 +595,10 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
      * its plate as three rects (body, left band, right band); painting the ramp on the body only left a flat r-px
      * column down each side of every knob card, which read as two panels glued together. The ramp is per row now,
      * inset by the corner's cut, so it covers the whole surface and stops exactly where the chamfer begins. */
-    if (cut && c == T_SURF && w >= 36 && h >= 36 && !cv_plate_flat)
+    if (cut && c == T_SURF && w >= 36 && h >= PLATE_MIN_H && !cv_plate_flat)
         cv_plate_cut_ground(x, y, w, h, r, c);
     if (cut) {
-        int mod_box = (c == T_SURF && w >= 36 && h >= 36);
+        int mod_box = (c == T_SURF && w >= 36 && h >= PLATE_MIN_H);
         uint16_t brd = mod_box ? T_RAISE : c;
         for (j = 0; j < r; j++)
             for (i = 0; i < r; i++) {
@@ -645,12 +651,18 @@ static void cv_rrect(int32_t x, int32_t y, int32_t w, int32_t h, int32_t r, uint
 /* coverage curves: a little heavier for light ink on dark, lighter for dark ink on light */
 static const uint8_t CURVE_DARK[16] = {0, 24, 43, 62, 80, 97, 114, 130, 147, 163, 178, 194, 210, 225, 240, 255};
 static const uint8_t CURVE_LIGHT[16] = {0, 12, 27, 42, 58, 75, 91, 109, 126, 144, 162, 180, 199, 217, 236, 255};
+/* (1.2.6) the BOLD pass of the same glyphs: the coverage a nibble takes when the text is the four knob cards' label.
+ * The bitmaps, the advance, the baseline and the fit are the face's own -- the ink box is the plain one -- and what
+ * changes is how solid the strokes are: an edge that was a quarter covered is three quarters now, so the stems gain
+ * the column that a second weight in flash would have paid for in XIP. The 15 nibble a stem already is stays 255. */
+static const uint8_t CURVE_BOLD[16] = {0, 62, 96, 126, 152, 175, 195, 212, 227, 240, 250, 255, 255, 255, 255, 255};
 #define NRAMP 6u
 static struct {
     uint16_t fg[NRAMP], bg[NRAMP], hot[NRAMP], v[NRAMP][16];   /* v: byte-swapped panel values */
     uint32_t gen;
-    uint8_t next, n;
+    uint8_t next, n, bold[NRAMP];                 /* (1.2.6) which curve built it: see CURVE_BOLD */
 } rc;
+static uint8_t cv_bold;                          /* (1.2.6) the next text is the bold pass */
 
 /* (Solar Heat) ramp(fg, bg, 0) is the plain ink ramp text and graphs use. ramp(fg, bg, hot) is the icons':
  * the levels that are nearly transparent carry an ink pulled towards `hot` -- the palette's heat -- and the
@@ -659,7 +671,7 @@ static struct {
 static const uint16_t *ramp(uint16_t fg, uint16_t bg, uint16_t hot)
 {
     static const uint8_t SH[3] = {11, 5, 0}, MK[3] = {31, 63, 31};
-    const uint8_t *cv = ux.light ? CURVE_LIGHT : CURVE_DARK;
+    const uint8_t *cv = cv_bold ? CURVE_BOLD : ux.light ? CURVE_LIGHT : CURVE_DARK;
     uint32_t i, a, k;
     uint16_t *v;
     if (fg == bg)                                /* MONO: DIM on a RAISE well (one grey): black, recessed */
@@ -670,7 +682,7 @@ static const uint16_t *ramp(uint16_t fg, uint16_t bg, uint16_t hot)
         rc.n = rc.next = 0;
     }
     for (i = 0; i < rc.n; i++)
-        if (rc.fg[i] == fg && rc.bg[i] == bg && rc.hot[i] == hot)
+        if (rc.fg[i] == fg && rc.bg[i] == bg && rc.hot[i] == hot && rc.bold[i] == cv_bold)
             return rc.v[i];
     i = rc.next;
     rc.next = (uint8_t)((i + 1u) % NRAMP);
@@ -679,6 +691,7 @@ static const uint16_t *ramp(uint16_t fg, uint16_t bg, uint16_t hot)
     rc.fg[i] = fg;
     rc.bg[i] = bg;
     rc.hot[i] = hot;
+    rc.bold[i] = cv_bold;
     v = rc.v[i];
     for (a = 0; a < 16u; a++) {
         uint32_t out = 0;
@@ -789,6 +802,21 @@ static void ux_ground_rows(int32_t x, int32_t y, int32_t w, int32_t h,
                 ca = na, cb = nb, y0 = j;
         }
     }
+}
+/* (1.2.6) THE COLOUR ux_ground_rows PAINTS AT ROW j, when the rows are solid (pct 100): what a text or an icon
+ * sitting on that ground has to be blended over. Passing the plate's T_SURF instead left every glyph with a halo
+ * of a colour that was not under it, which is exactly what the layout lint calls an ink on its own tone. */
+static uint16_t ux_ground_at(int32_t j, int32_t h, int32_t b0, int32_t b1)
+{
+    /* (no clamp() here: this file is included before dsp.c in the target's unity object, and that file has its own
+     * static clamp -- a call from here would be an implicit declaration of it) */
+    int32_t k = 0;
+    if (h > 1) {
+        if (j < 0) j = 0;
+        if (j > h - 1) j = h - 1;
+        k = j * 100 / (h - 1);
+    }
+    return ux_mix(T_BG, T_ACCENT, b0 + (b1 - b0) * k / 100);
 }
 /* (FASE 6) A RAMP BETWEEN TWO COLOURS, in `n` solid bands. ux_ground_bands walks two of the palette's own
  * ramps (T_BG -> T_SURF, T_BG -> T_ACCENT) because HOME and FX > BUSES start from the page behind the panel;
@@ -1163,6 +1191,21 @@ static int32_t cv_text_fit(int32_t x, int32_t y, const aafont_t *f, const char *
     char b[48];
     int cut = text_fit(b, sizeof b, s, f, maxw);
     return cv_text_flags(x, y, f, b, fg, bg, cut ? 1u : 0u);
+}
+/* (1.2.6) THE SAME FACE, BOLDER. The four knob cards' labels were the thinnest ink on their own card -- 12 px of a
+ * light face beside a value in the 15 px one -- and the owner asked for them heavier. A second weight in flash was
+ * not the way: the face's bitmaps are the bulk of the font in XIP and the image was closing with 1 276 B of margin.
+ * The same fit and the same glyphs are drawn, with the coverage CURVE_BOLD gives: the ink box the layout lint reads
+ * is the plain one (same masks, same advance), the letters just read heavier, and nothing about the card moves. */
+static int32_t cv_text_fit_bold(int32_t x, int32_t y, const aafont_t *f, const char *s, uint16_t fg, uint16_t bg,
+                                int32_t maxw)
+{
+    char b[48];
+    int cut = text_fit(b, sizeof b, s, f, maxw), e;
+    cv_bold = 1;
+    e = cv_text_flags(x, y, f, b, fg, bg, cut ? 1u : 0u);
+    cv_bold = 0;
+    return e;
 }
 static int32_t cv_free_text(int32_t x, int32_t y, const aafont_t *f, const char *s, uint16_t fg, uint16_t bg,
                             int32_t maxw)

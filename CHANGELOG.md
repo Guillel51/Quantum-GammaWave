@@ -65,6 +65,26 @@
   (190 pantallas × 22 paletas) marcaba `SPECTRUM` elidido en la tarjeta; quedó en 0 hallazgos de lint y 0
   desalineaciones de 3 894 154 medidas.
 
+### Las cuatro tarjetas y las gráficas (pulido pedido por el dueño)
+- **Las letras de las cuatro tarjetas de knob, en negrita.** La etiqueta de cada tarjeta era la tinta más fina de su
+  propio cuadro: 12 px de una cara ligera al lado de un valor en la de 15 px. Ahora se dibuja con la curva de
+  cobertura `CURVE_BOLD` (`firmware/src/gfx.c`, `cv_text_fit_bold`): los mismos glifos, el mismo ancho, la misma
+  línea de base y el mismo recorte con puntos suspensivos, con los trazos más sólidos. No hay una segunda fuente en
+  flash —la imagen cierra con 1 276 B de margen— y la caja de tinta que mide el lint es la misma, así que el
+  barrido sigue en 0 hallazgos.
+- **Todos los cuadros de la primera página de FX llevan degradado, incluidos los de abajo.** Los cuatro módulos de
+  la fila inferior (EQ / DEPTH / SLICER) y el panel de los cuatro sends eran placas planas porque el estilo
+  achaflanado sólo pintaba su rampa en cajas de 36 px de alto o más (`cv_rrect`, `gfx.c`): el umbral baja a 24 px
+  (`PLATE_MIN_H`), que es lo que mide el módulo típico, y la página pinta además el degradado del panel, de cada
+  send y de cada módulo con `ux_ground_rows` — el mismo que usan las vistas de HOME y FX > BUSES — y dibuja sus
+  textos sobre el color real de su fila (`ux_ground_at`), no sobre un `T_SURF` que no está debajo.
+- **El degradado de la gráfica del biquad EQ es el de la pantalla principal.** El relleno bajo la curva eran seis
+  franjas escalonadas mezcladas desde `T_BG`, reiniciadas bajo cada columna: textura, no luz. Ahora es la ley de
+  `graph_ground_ramp` / `hv_grad` (panel 22..62 %, acento 10..45 %), resuelta por fila absoluta, y el cuerpo del
+  filtro (lift y cut) se rellena en tres pasos que siguen la altura de la fila en vez de un bloque plano al 40 %.
+- Barrido de `tests/ui_render`: **0 hallazgos de lint, 0 desalineaciones de 3 894 154 medidas**, 0 píxeles
+  GREY / MONO fuera de gris o neutro — medido en host, sobre el renderizador real, no en la unidad.
+
 ### Cómo se mide (y cómo se instala el toolchain)
 - **`tools/get_ac791n.py`**: el toolchain pi32v2 de JieLi y los tres blobs del SDK en un solo paso, con los
   SHA-256 fijados en el repositorio (`tools/toolchain.sha256`, `SDK_SHA256` en `tools/build.py`); no escribe
