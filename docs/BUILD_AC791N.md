@@ -194,22 +194,22 @@ python3 tools/engine_size.py --json     # la misma tabla, para scripts
 mapa no dice a qué motor pertenece un `.text.<fn>`. La tabla de símbolos sí, porque cada función tiene su
 propia sección (`-ffunction-sections`) y su tamaño. El mapa se usa para lo que sí puede probar: que la
 misma función mide lo mismo en los dos artefactos (**88 funciones de motor, 0 discrepancias** en el build
-de v1.2.6).
+de v1.2.7).
 
 La atribución sale de las fuentes (`firmware/src/eng_*.c`, definiciones a columna 0), no de una lista a
 mano: un nombre que declaren **dos** motores no se atribuye a ninguno y cae en `(rest)`. Cuenta como XIP
 lo que vive en `.text`; lo que el enlazador copia a RAM (`.ram_text`, `.c1_text`, `.hot_text`) se informa
 aparte, en su propia columna, para que no se confunda con flash; `.data` y `.bss` van en las suyas.
 
-### 8.1 El build de v1.2.6 (2026-11-16, medido en AC791N)
+### 8.1 El build de v1.2.7 (2026-11-16, medido en AC791N)
 
 Con el toolchain de §1 y los tres blobs de §6, `./build.sh` termina en:
 
 ```
-ok      image 582720 B; RAM .data+.bss 96548 B of 98304; pool 311256 B, spare 9248 B
-ok      XIP code 422168 B, constants 140080 B
+ok      image 582716 B; RAM .data+.bss 96548 B of 98304; pool 311256 B, spare 9248 B
+ok      XIP code 422168 B, constants 140076 B
 ok      RAM code 19676 B of 24576
-package build/felucca.fwsc  610959 B, identity FM-1_965        (892 B de margen en el slot)
+package build/felucca-1.2.7.fwsc  610959 B, identity FM-1_965   (896 B de margen en el slot)
 ```
 
 | motor | XIP | `.data` | `.bss` | símbolos | mayor símbolo |
@@ -228,12 +228,12 @@ package build/felucca.fwsc  610959 B, identity FM-1_965        (892 B de margen 
 | (resto: UI, DSP, secuenciador, tablas) | 489 957 | 753 | 75 928 | 2 852 | — |
 | **total** | **534 778** | **761** | **95 461** | **3 052** | — |
 
-`RAM: .data+.bss 96548 B of 98304 B (1756 B free)` e `image: 582720 B of 583612 B (892 B free)`.
+`RAM: .data+.bss 96548 B of 98304 B (1756 B free)` e `image: 582716 B of 583612 B (896 B free)`.
 
 El motor ADDITIVE entra con **1 832 B de XIP y 1 440 B de `.bss`**: el `.bss` es exactamente el
 `sizeof` de sus estructuras (1 224 B de voces + 216 B de partes) y el XIP queda por debajo de la
 estimación hecha en host (~2,9 KB), que es lo que se esperaba de `-Oz` sobre pi32v2. El `.fwsc` mide
-610 959 B en v1.2.5 y en v1.2.6 porque el contenedor llena un tamaño fijo por slot: la identidad de un
+610 959 B en v1.2.5, en v1.2.6 y en v1.2.7 porque el contenedor llena un tamaño fijo por slot: la identidad de un
 paquete es su SHA-256 y su `identity`, no su longitud.
 
 `tests/engine_size_test.py` (host, sin toolchain) fija el camino: qué símbolo pertenece a qué motor,
