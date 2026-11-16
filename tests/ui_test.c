@@ -11258,6 +11258,15 @@ static int test_sound_edited(void)
         bad += check("SOUND EDITED: nothing is marked while the transport runs (an automation is not an edit)",
                      ok && !snd_edited(TSEL));
     }
+    /* a restored project is a reference too: its tracks were not edited just now by anyone */
+    TSEL->p[P_E1] += 5;
+    frame();
+    ok = snd_edited(TSEL);
+    project_capture(&proj_scratch);
+    project_restore_runtime(&proj_scratch);
+    frame();
+    bad += check("SOUND EDITED: a project load is the reference, not a set of edits", ok && !snd_edited(TSEL));
+
     snd_clean(TSEL);
     return bad;
 }

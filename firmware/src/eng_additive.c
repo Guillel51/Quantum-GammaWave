@@ -8,7 +8,7 @@
  * nine tonewheel footages of an organ. This one sums eight sines whose harmonic numbers, amplitudes and
  * decay are the sound:
  *
- *   SPECTRUM (E0)  where the eight amplitudes sit on a road of eight profiles (ORGAN, SAW, SQUARE,
+ *   SPECTR (E0)    SPECTRUM: where the eight amplitudes sit on a road of eight profiles (ORGAN, SAW, SQUARE,
  *                  BELL, GLASS, REED, HOLLOW, METAL), interpolated per block like WAVETABLE's MORPH,
  *                  so the matrix's E1 and an LFO sweep the timbre instead of switching it. The
  *                  profiles themselves are 64 B of flash: eight harmonics, one byte each.
@@ -54,7 +54,6 @@ static const uint8_t AD_PROF[AD_NP][AD_NP] = {
 
 typedef struct {                  /* per part, once per block (add_block) */
     int32_t g[AD_NP];             /* the partial gains, Q15, normalised to 32767 in total */
-    int32_t dk[AD_NP];            /* each partial's decay per block, Q15 of a step (-g * dk >> 15) */
     uint32_t eph;                 /* (CHARACTER) EVOLVE: the slow sine that walks the spectrum */
 } ad_trk_t;
 
@@ -68,28 +67,25 @@ typedef struct {                  /* per voice, keyed by pool slot (as WHEEL's d
 static ad_trk_t ad_t[NPART];
 static ad_vc_t ad_v[VPOOLN];      /* one entry per pool slot: it follows the voice */
 
-static uint32_t ad_part(const track_t *t) { return (uint32_t)(t - trk) % NPART; }
+static uint32_t ad_part(const track_t *t) { return (uint32_t)(t - trk); }   /* NTRK == NPART */
 
-/* once per block and part: the profile the morph falls between, the fraction, the tilt, the normalisation
- * and each partial's decay. Eight partials, so the loops are unrolled by the compiler; nothing here runs
- * per sample. */
+/* once per block and part: where the morph falls between two profiles, the tilt, and the eight gains
+ * normalised to 32767. Nothing here runs per sample. */
 static void add_block(track_t *t)
 {
     ad_trk_t *T = &ad_t[ad_part(t)];
     const int16_t *p = t->p;
     int32_t pr = clamp(p[P_E0], 0, 127) * (AD_NP - 1);   /* 0..889 */
-    uint32_t f0 = (uint32_t)(pr / 127), f1 = f0 + 1u < AD_NP ? f0 + 1u : f0, k;
-    int32_t fx = (pr % 127) * 256 / 127;                   /* Q8 between the two profiles */
-    int32_t tilt = p[P_E1] - 64, dcy = clamp(p[P_E2], 0, 127);
-    int32_t sc[AD_NP], sum = 0, ev = xamt(p, 0);
+    int32_t tilt = p[P_E1] - 64, ev = xamt(p, 0), sc[AD_NP], sum = 0;
+    uint32_t f0, f1, k, scale;
+    int32_t fx;
     if (ev) {                                             /* (CHARACTER) EVOLVE: SPECTRUM drifts, slowly */
         T->eph += 0x00200000u;                            /* ~1.4 s a cycle */
         pr = clamp(pr + ((sine_i(T->eph) * ev) >> 14), 0, 127 * (AD_NP - 1));
-        f0 = (uint32_t)(pr / 127);
-        f1 = f0 + 1u < AD_NP ? f0 + 1u : f0;
-        fx = (pr % 127) * 256 / 127;
     }
-    uint32_t scale;
+    f0 = (uint32_t)(pr / 127);
+    f1 = f0 + 1u < AD_NP ? f0 + 1u : f0;
+    fx = (pr % 127) * 256 / 127;                          /* Q8 between the two profiles */
     for (k = 0; k < AD_NP; k++) {
         int32_t a = AD_PROF[f0][k] * 258, b = AD_PROF[f1][k] * 258;   /* 0..32766, Q15 */
         int32_t v = a + (((b - a) * fx) >> 8);
@@ -103,14 +99,8 @@ static void add_block(track_t *t)
     /* normalised to a total of 32767 (Q15): a spectrum's level does not jump when SPECTRUM moves, and
      * one partial alone is as loud as eight */
     scale = sum > 0 ? (32767u << 8) / (uint32_t)sum : 0u;
-    for (k = 0; k < AD_NP; k++) {
+    for (k = 0; k < AD_NP; k++)
         T->g[k] = (int32_t)(((uint32_t)sc[k] * scale) >> 8);
-        /* the decay: the fundamental (k = 0) never decays, and harmonic k + 1 loses DECAY * k / 4 of
-         * 32768 per block. At DECAY 127 the eighth partial is down ~70 dB in a second while the
-         * fundamental holds; at DECAY 0 nothing decays (an organ holds). Measured in
-         * tests/additive_test: at DECAY 90, harmonic 4 at -27.6 dB and harmonic 1 at -0.1 dB after 0.8 s. */
-        T->dk[k] = (dcy * (int32_t)k) >> 2;
-    }
 }
 
 static void add_note_on(track_t *t, voice_t *v)
@@ -134,7 +124,7 @@ static __attribute__((noinline)) void add_render(track_t *t, voice_t *v, int32_t
     int32_t acc[CTL], ic1 = v->s[0], ic2 = v->s[1], dcx = v->s[2], dcy = v->s[3];
     int32_t cut = (p[P_E4] << 8) + m->cutoff + ((v->pitch16 - 60 * 16) * 4);
     int32_t drv = p[P_E6], drive = 32768 + drv * 512;
-    int32_t sub = p[P_E7] * 258, stretch = clamp(p[P_E3], 0, 127);
+    int32_t sub = p[P_E7] * 258, stretch = clamp(p[P_E3], 0, 127), dec = clamp(p[P_E2], 0, 127);
     uint32_t i, k, sph = V->sub;
     tsvf_t flt;
     if (n > CTL)
@@ -155,9 +145,11 @@ static __attribute__((noinline)) void add_render(track_t *t, voice_t *v, int32_t
                           (uint32_t)(((uint32_t)(k + 1u) * (k + 1u) - 1u) * (uint32_t)stretch * 48u) / 127u;
             inc = (uint32_t)(((uint64_t)inc * rq) >> 10);    /* rq / 1024: 1 .. 8.5 */
         }
-        d -= (d * T->dk[k]) >> 15;
-        if (d < 0)
-            d = 0;
+        /* the decay: the fundamental (k = 0) never decays, and harmonic k + 1 loses DECAY * k / 4 of
+         * 32768 per block, so the upper partials die first while the fundamental holds. At DECAY 127 the
+         * eighth is down ~70 dB in a second; at 0 nothing decays (an organ). Measured in
+         * tests/additive_test: at DECAY 90, harmonic 4 at -27.6 dB and harmonic 1 at -0.1 dB after 0.8 s. */
+        d -= (d * (uint32_t)((dec * (int32_t)k) >> 2)) >> 15;   /* (DECAY * k / 4) / 32768 a block */
         V->dk[k] = (uint16_t)d;
         g1 = mulq15(T->g[k], (int32_t)(d >> 1));       /* Q15: the profile times the decay left */
         /* band limiting: a partial between 4.5 and 6 kHz fades out (the slope, once a block), and one
@@ -234,6 +226,10 @@ static const preset_t AD_PRESETS[] = {
     {"METAL CLUSTER", {127, 96, 64, 74, 114, 40, 30, 0}, {2, 70, 30, 58}, 22, 0, FX(24, 12, 28, 44), PAT(1),
      {XP(P_LRATE, 44), XP(P_LWAVE, 4), XP(P_M1SRC, 7), XP(P_M1DST, 3), XP(P_M1AMT, 10)}},
 };
+
+/* the UI's bars (ui_graph.c graph_additive): the gain each partial has in this part's last block. The
+ * engine owns its state, so the graph asks instead of reaching into ad_t. */
+int32_t ad_partial(const track_t *t, uint32_t k) { return k < AD_NP ? ad_t[ad_part(t)].g[k] : 0; }
 
 static const param_desc_t AD_CH[1] = {
     {"EVOLVE", F_PCT, 0, 127, 127, 0, 0},            /* (CHARACTER) a slow walk of SPECTRUM, inverted as the

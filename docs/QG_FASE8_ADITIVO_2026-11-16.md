@@ -31,13 +31,13 @@ con **EVOLVE**. Ver `CHANGELOG.md` (v1.2.6) para el detalle de cada control. Lo 
 | objeto | tamaño | unidades | total |
 |---|---:|---:|---:|
 | `ad_vc_t` (estado por voz: 8 fases, 8 decaimientos, 8 ganancias de rampa, sub) | 68 B | `VPOOLN` = 18 | **1 224 B `.bss`** |
-| `ad_trk_t` (por parte: ganancias normalizadas, decaimiento por bloque, fase de EVOLVE) | 68 B | `NPART` = 6 | **408 B `.bss`** |
+| `ad_trk_t` (por parte: ganancias normalizadas y la fase de EVOLVE) | 36 B | `NPART` = 6 | **216 B `.bss`** |
 | `preset_t` × presets | 40 B | 8 | **320 B flash** |
 | `AD_PROF` (8 perfiles × 8 armónicos) | 64 B | 1 | **64 B flash** |
 | `param_desc_t` × 8 + CHARACTER | — | — | 9 descriptores |
 
-**`.bss` del motor: 1 632 B.** Con la holgura de `.data+.bss` que la Fase 6 dejó (3 532 B de 98 304 B), el
-presupuesto queda en **~1 900 B libres** — por encima del mínimo de 8 KiB de *pool* (que este motor no toca:
+**`.bss` del motor: 1 440 B.** Con la holgura de `.data+.bss` que la Fase 6 dejó (3 532 B de 98 304 B), el
+presupuesto queda en **~2 100 B libres** — por encima del mínimo de 8 KiB de *pool* (que este motor no toca:
 no reserva buffers) pero fino para el presupuesto de 96 KiB. Es el número que hay que vigilar en el próximo
 build AC791N, y el primero que hay que reclamar si una pantalla nueva pide RAM.
 
@@ -97,8 +97,8 @@ deja en cero —o que el decaimiento ya apagó— no leen la tabla: sólo avanza
 
 Implementado como **comparación de huella**, no como hook: `snd_hash()` (FNV-1a sobre `p[P_COUNT]`, `mx[4][3]`,
 motor y preset) contra `snd_ref[]`, que dejan la última carga (`load_end`), el último guardado (`up_store`) y
-el recall de una sección (`song_stage`). `ui_notices()` lo evalúa una vez por cuadro y **nunca con el
-transporte andando**. Ventaja medible: cubre rutas que ningún setter central conoce (la capa rápida, el editor
+toda restauración de proyecto (`project_restore_runtime`: la carga de un proyecto, el recall de una sección
+de la canción y un UNDO). `ui_notices()` lo evalúa una vez por cuadro y **nunca con el transporte andando**. Ventaja medible: cubre rutas que ningún setter central conoce (la capa rápida, el editor
 SysEx, A/B, el recall, el cambio de motor) sin tocar una línea de ninguna de ellas. Coste: 4 × `NTRK` bytes de
 `.bss` de referencia y ~750 operaciones por cuadro para el hash de la pista seleccionada (despreciable frente a
 los 235 µs de un repintado de HOME en host).

@@ -31,7 +31,24 @@
   motor y preset) contra la huella que dejó la última carga o el último guardado, así que cubre perillas, la
   capa rápida, el editor, A/B y el recall de una sección sin que ninguno de ellos lo sepa. Se evalúa una vez
   por cuadro y **nunca con el transporte andando** (una automatización o un lock escribe p[] para su paso y lo
-  devuelve: no es una edición del sonido). No se guarda: es estado de la interfaz.
+  devuelve: no es una edición del sonido). Un proyecto cargado —y una sección de la canción, y un UNDO, que
+  pasan por el mismo `project_restore_runtime`— también es la referencia: sus pistas no son ediciones de
+  nadie. No se guarda: es estado de la interfaz.
+
+### Limpieza de esta misma entrega
+- **El decaimiento por parcial no ocupa memoria**: es `DECAY · k`, así que se calcula en el lazo del bloque y
+  `ad_trk_t` baja de 68 a 36 B (**−192 B de `.bss`**, todas las pruebas y todos los renders iguales).
+- **El gráfico pide las ganancias** con `ad_partial()` en vez de leer `ad_t` y repetir el índice por parte; el
+  motor sigue siendo el dueño de su estado.
+- **Casos que no podían darse**: `if (d < 0)` sobre un `uint32_t` (el decaimiento nunca puede envolver) y el
+  `% NPART` de un índice que ya está en 0..5 (NTRK == NPART: era una división por seis por bloque).
+- **Una sola forma de escribir la estrella**: OVERVIEW la pega al nombre como el pie, en vez de medir el texto
+  y dibujarla aparte.
+- **La prueba, más corta**: `E_FULL` era idéntico a `E_SAW`, `(void)f` tapaba una constante que nadie usaba y
+  trece pares `voice_render` + `spectrum` son ahora `spec_of()`.
+- **Un arreglo que salió de la revisión**: cargar un proyecto (o recordar una sección, o un UNDO) dejaba las
+  cuatro pistas marcadas como editadas —esas pistas las escribió el firmware, no el usuario—. Ahora
+  `project_restore_runtime` es la referencia, con su caso en `tests/ui_test.c` (que falla si se quita).
 
 ### Alrededor del motor
 - **G_ENGSEL** (`firmware/src/params.c`) suma el nombre del motor 15: sin eso el editor podía guardar un sonido

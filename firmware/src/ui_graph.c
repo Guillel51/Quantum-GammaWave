@@ -1623,12 +1623,11 @@ static void graph_phase(const track_t *t, uint16_t c)
  * knob that moves the spectrum is being turned. */
 static void graph_additive(const track_t *t, uint16_t c)
 {
-    const ad_trk_t *T = &ad_t[(t - trk) % NPART];
-    static const char *const names[AD_NP] = {"1", "2", "3", "4", "5", "6", "7", "8"};
+    static const char *const names[8] = {"1", "2", "3", "4", "5", "6", "7", "8"};
     uint32_t k;
     int hot = ui.hot_t && (cur_page()->id[0] == P_E0 || cur_page()->id[0] == P_E1);
-    for (k = 0; k < AD_NP; k++) {
-        int32_t x = 10 + (int32_t)k * 28, h = T->g[k] * 64 / 32767;
+    for (k = 0; k < 8u; k++) {
+        int32_t x = 10 + (int32_t)k * 28, h = ad_partial(t, k) * 64 / 32767;
         cv_rrect(x + 9, 4, 4, 72, 2, T_RAISE, T_SURF);
         if (h)
             cv_rrect(x + 4, 76 - h, 14, h, 3, hot ? T_ACCENT : c, T_SURF);
@@ -3729,7 +3728,7 @@ static void draw_graph(void)
                 break;
             }
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
-            else if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_ADDITIVE) graph_additive(t, c);
+            else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_ADDITIVE) graph_additive(t, c);
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_LOFI) { cv_oy = 0; graph_lofi(t, c); }
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_DRUM) {

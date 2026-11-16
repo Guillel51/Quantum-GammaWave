@@ -802,11 +802,10 @@ static track_t trk[NTRK];        /* the instrument: four parts */
 static song_t song;
 #define TSEL (&trk[song.sel])
 
-/* (1.2.6) SOUND EDITED: a track's sound changed since the last load or save. Sticky until a load or a save
- * (snd_clean) clears it, and worked out by comparing the sound against the snapshot that load / save left
- * (snd_watch, ui.c), so every path that writes p[] / mx[] -- a knob, the quick layer, the editor, a project
- * recall, the A/B swap -- is covered without a hook in each of them. Never stored: it is UI state, and the
- * sound itself is the truth. */
+/* (1.2.6) SOUND EDITED: a track's sound changed since the last load or save. A load or a save clears it
+ * (snd_clean); it is worked out by comparing the sound against the snapshot they left (ui_notices, ui_input.c),
+ * so every path that writes p[] / mx[] -- a knob, the quick layer, the editor, a project recall, the A/B swap --
+ * is covered without a hook in each of them. Never stored: the sound itself is the truth. */
 static uint8_t snd_dirty;                       /* bit per track */
 static uint8_t snd_first = 1;                   /* the boot sound is the starting point, not an edit */
 static uint32_t snd_ref[NTRK];                  /* the sound as the last load / save left it */

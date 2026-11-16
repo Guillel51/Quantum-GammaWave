@@ -1708,6 +1708,8 @@ static int project_restore_runtime(const project_t *input)
     load_depth--;
     sync_reload = 1;
     ui.force = 1;
+    snd_first = 1;                                  /* (1.2.6) a restored project is the reference: its tracks are
+                                                     * not edits (every restore: a load, a section, an undo) */
     ui_message("LOADED");
     return 0;
 }

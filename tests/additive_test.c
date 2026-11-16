@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* ADDITIVE engine test (src/eng_additive.c) on the Mac, through hostsim.c as regress.c.
+/* ADDITIVE engine test (src/eng_additive.c) on the host, through hostsim.c as regress.c.
  *   build/host/additive_test
  * 1. the profiles: SPECTRUM 0 (ORGAN) has no even harmonics; SPECTRUM 18 (SAW) has its 2nd at half the
  *    1st and its 3rd at a third, and a position between two profiles is a crossfade, not a jump.
@@ -24,6 +24,7 @@
 #define AD_COST_MAX 900.0         /* host ns per sample and voice (well above ANALOG's; printed) */
 
 static int bad;
+static double y[NFFT * 2];        /* the samples of the note being measured (the FFT reads a window of it) */
 static void check(const char *what, int ok)
 {
     printf("additive: %-82s %s\n", what, ok ? "ok" : "FAIL");
@@ -142,20 +143,24 @@ static double band(const double *ps, double f1, double f2)
 /* a spectrum: the profile, at C3 (130.8 Hz), the tilt centred and no decay */
 static const int16_t E_ORGAN[8] = {0, 64, 0, 0, 127, 0, 0, 0};
 static const int16_t E_SAW[8] = {18, 64, 0, 0, 127, 0, 0, 0};
-static const int16_t E_FULL[8] = {18, 64, 0, 0, 127, 0, 0, 0};
 #define F0 130.81
+
+/* one note (48) of these EDIT values, and its spectrum: every check below reads it this way */
+static void spec_of(const int16_t *e, double *ps)
+{
+    voice_render(e, 48, y, NFFT * 2);
+    spectrum(y, 2, ps);
+}
 
 static void profiles(void)
 {
-    static double y[NFFT * 2], ps[NFFT / 2];
+    static double ps[NFFT / 2];
     double h1, h2, h4;
-    voice_render(E_ORGAN, 48, y, NFFT * 2);
-    spectrum(y, 2, ps);
+    spec_of(E_ORGAN, ps);
     h1 = aat(ps, F0); h2 = aat(ps, 2 * F0); h4 = aat(ps, 4 * F0);
     check("SPECTRUM 0 (ORGAN) is odd only: the 2nd and 4th under 4 % of the 1st",
           h1 > 0 && h2 < h1 * 4e-2 && h4 < h1 * 4e-2);
-    voice_render(E_SAW, 48, y, NFFT * 2);
-    spectrum(y, 2, ps);
+    spec_of(E_SAW, ps);
     h1 = aat(ps, F0); h2 = aat(ps, 2 * F0);
     {
         double h3 = aat(ps, 3 * F0), r2 = h2 / h1, r3 = h3 / h1;
@@ -170,16 +175,13 @@ static void profiles(void)
         double rA, rM, rB;
         memcpy(e, E_SAW, sizeof e);
         e[0] = 0;
-        voice_render(e, 48, y, NFFT * 2);
-        spectrum(y, 2, ps);
+        spec_of(e, ps);
         rA = aat(ps, 2 * F0) / aat(ps, F0);
         e[0] = 9;                                /* between ORGAN (0) and SAW (1): pr = 63, half way */
-        voice_render(e, 48, y, NFFT * 2);
-        spectrum(y, 2, ps);
+        spec_of(e, ps);
         rM = aat(ps, 2 * F0) / aat(ps, F0);
         e[0] = 18;
-        voice_render(e, 48, y, NFFT * 2);
-        spectrum(y, 2, ps);
+        spec_of(e, ps);
         rB = aat(ps, 2 * F0) / aat(ps, F0);
         check("a SPECTRUM position between two profiles is a crossfade (the 2nd between theirs)",
               rM > rA * 1.2 && rM < rB * 0.9);
@@ -188,22 +190,19 @@ static void profiles(void)
 
 static void tilt(void)
 {
-    static double y[NFFT * 2], ps[NFFT / 2];
+    static double ps[NFFT / 2];
     int16_t e[8];
     double r0, r64, r127;
     memcpy(e, E_SAW, sizeof e);
     e[2] = 0;
     e[1] = 0;
-    voice_render(e, 48, y, NFFT * 2);
-    spectrum(y, 2, ps);
+    spec_of(e, ps);
     r0 = band(ps, 4 * F0, 9 * F0) / at(ps, F0);           /* harmonics 4..8 over the fundamental */
     e[1] = 64;
-    voice_render(e, 48, y, NFFT * 2);
-    spectrum(y, 2, ps);
+    spec_of(e, ps);
     r64 = band(ps, 4 * F0, 9 * F0) / at(ps, F0);
     e[1] = 127;
-    voice_render(e, 48, y, NFFT * 2);
-    spectrum(y, 2, ps);
+    spec_of(e, ps);
     r127 = band(ps, 4 * F0, 9 * F0) / at(ps, F0);
     {
         char what[176];
@@ -216,14 +215,14 @@ static void tilt(void)
 static void decay(void)
 {
     int16_t e[8];
-    double early4, late4, early1, late1, f = 261.63;   /* C4: the 4th partial at 1046.5 Hz */
-    memcpy(e, E_FULL, sizeof e);
+    const double c4 = 261.63;                          /* C4: the 4th partial at 1046.5 Hz */
+    double early4, late4, early1, late1;
+    memcpy(e, E_SAW, sizeof e);
     e[2] = 90;
-    (void)f;
     setup(e);
     {
         static int32_t b[CTL];
-        static double y[NFFT * 2], ps[NFFT / 2];
+        static double ps[NFFT / 2];
         uint32_t i, j;
         trk_note_on(&trk[0], 60, 100);
         for (i = 0; i < 4u; i++) track_render(&trk[0], b, CTL);
@@ -232,16 +231,16 @@ static void decay(void)
             for (j = 0; j < CTL; j++) y[i * CTL + j] = b[j] / 32768.0;
         }
         spectrum(y, 2, ps);
-        early1 = aat(ps, 261.63);
-        early4 = aat(ps, 4 * 261.63);
+        early1 = aat(ps, c4);
+        early4 = aat(ps, 4 * c4);
         for (i = 0; i < (uint32_t)(0.8 * FS) / CTL; i++) track_render(&trk[0], b, CTL);
         for (i = 0; i < 2u * NFFT / CTL; i++) {
             track_render(&trk[0], b, CTL);
             for (j = 0; j < CTL; j++) y[i * CTL + j] = b[j] / 32768.0;
         }
         spectrum(y, 2, ps);
-        late1 = aat(ps, 261.63);
-        late4 = aat(ps, 4 * 261.63);
+        late1 = aat(ps, c4);
+        late4 = aat(ps, 4 * c4);
     }
     {
         char what[190];
@@ -254,13 +253,12 @@ static void decay(void)
 
 static void stretch(void)
 {
-    static double y[NFFT * 2], ps[NFFT / 2];
+    static double ps[NFFT / 2];
     int16_t e[8];
     double at3, off, f3 = 3 * F0;
     memcpy(e, E_SAW, sizeof e);
     e[3] = 127;
-    voice_render(e, 48, y, NFFT * 2);
-    spectrum(y, 2, ps);
+    spec_of(e, ps);
     at3 = aat(ps, f3);
     off = aat(ps, f3 * 1.125);                     /* where STRETCH 127 puts it: 3.375 f0, not 3 */
     {
@@ -274,12 +272,10 @@ static void stretch(void)
         double a, b2;
         int16_t f[8];
         memcpy(f, E_ORGAN, sizeof f);
-        voice_render(f, 48, y, NFFT * 2);
-        spectrum(y, 2, ps);
+        spec_of(f, ps);
         a = aat(ps, F0);
         memcpy(f, E_SAW, sizeof f);
-        voice_render(f, 48, y, NFFT * 2);
-        spectrum(y, 2, ps);
+        spec_of(f, ps);
         b2 = aat(ps, F0);
         check("the normalisation keeps the level across profiles (the fundamental within 6 dB)",
               a > 0 && b2 > 0 && fabs(20 * log10(b2 / a)) < 6.0);
@@ -288,13 +284,12 @@ static void stretch(void)
 
 static void sub(void)
 {
-    static double y[NFFT * 2], ps[NFFT / 2];
+    static double ps[NFFT / 2];
     int16_t e[8];
     double oct, f0;
     memcpy(e, E_ORGAN, sizeof e);
     e[7] = 90;
-    voice_render(e, 48, y, NFFT * 2);
-    spectrum(y, 2, ps);
+    spec_of(e, ps);
     oct = at(ps, F0 / 2);
     f0 = at(ps, F0);
     check("SUB adds the octave below (it is the strongest partial under the note)", oct > f0 * 0.2);
@@ -361,7 +356,7 @@ static int only_harmonics(const double *ps, double f0)
 
 static void aliasing(void)
 {
-    static double y[NFFT * 2], ps[NFFT / 2];
+    static double ps[NFFT / 2];
     uint32_t n;
     static const uint32_t NOTE[3] = {96, 105, 108};
     static const double FREQ[3] = {2093.0, 3520.0, 4186.01};
@@ -489,14 +484,13 @@ static void cost(void)
 
 int main(void)
 {
-    char what[160];
     uint32_t e = eng_additive();
     printf("== ADDTV (engine %u, %u presets)\n", e, ENGINES[e]->npresets);
     check("listed (eng_ok) and reachable with the PRESETS knob", eng_ok(e) && eng_rank(e) < NENG_SHOWN);
     check("EDIT 1 is SPECTR (SPECTRUM) first (MD_E1: the matrix can move the spectrum)",
           strcmp(ENGINES[e]->edit[0].label, "SPECTR") == 0 && ENGINES[e]->edit[0].max == 127);
-    snprintf(what, sizeof what, "the CHARACTER page has EVOLVE (the slow walk of SPECTRUM) and 8 partials");
-    check(what, ENGINES[e]->ch_n == 1 && ENGINES[e]->ch && strcmp(ENGINES[e]->ch[0].label, "EVOLVE") == 0);
+    check("the CHARACTER page has EVOLVE (the slow walk of SPECTRUM) and 8 partials",
+          ENGINES[e]->ch_n == 1 && ENGINES[e]->ch && strcmp(ENGINES[e]->ch[0].label, "EVOLVE") == 0);
     check("the engine is in the factory library with at least 8 sounds", engine_library(ENGINES[e]) >= 8);
     profiles();
     tilt();

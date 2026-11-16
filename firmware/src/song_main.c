@@ -93,9 +93,6 @@ static int song_stage(uint32_t s, uint32_t row)
     sec_stage.section = (uint8_t)(s & 3u);
     RING_PUBLISH();
     sec_stage.ready = 1;
-    snd_first = 1;                                   /* (1.2.6) a recalled section is the reference: the tracks
-                                                      * it replaces are not edits the user made (the ISR takes
-                                                      * sec_stage within a block, well before the next UI frame) */
     return 0;
 }
 
