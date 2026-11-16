@@ -24,6 +24,14 @@ abajo, en sus propias entradas).
 - **Fase 8 de rendimiento**: cada placa se pinta una sola vez (MENU −42,7 %, CONFIRM −45,4 %, FX −29,7 % de
   píxeles rellenados, −5,5 % de tiempo), sin cambiar un píxel de 189 pantallas × 22 paletas.
 
+### Corrección posterior al paquete 1.0.0
+
+Las siete comprobaciones de `tests/ui_test.c` que esta entrega listaba como abiertas **quedaron arregladas en
+`main` después de empaquetar** (`docs/CARD_STRIP.md`): la franja del valor de una tarjeta repintaba `T_SURF` plano
+sobre una tarjeta que es un degradado, y cada dígito que rodaba dejaba una banda de otro tono. `tests/ui_test.c`
+pasa entero, también con `FELUCCA_FM4=1`. El paquete de esta versión no incluye todavía ese arreglo: hace falta un
+`1.0.1` para que el binario publicado y el árbol vuelvan a ser el mismo.
+
 ### Verificación de esta entrega
 
 - **Build AC791N real** (toolchain de JieLi + los tres blobs del SDK fijados por SHA-256), no una simulación: el

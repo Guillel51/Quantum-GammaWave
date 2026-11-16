@@ -2450,13 +2450,24 @@ static uint32_t roll_diff(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int in
         }
     return n;
 }
-/* the mean row (x16) of the ink (not the card surface) in columns x0..x1-1, rows y0..y1-1 of a screen */
+/* the mean row (x16) of the ink (not the card surface) in columns x0..x1-1, rows y0..y1-1 of a screen.
+ * (1.0) the surface is a ramp one colour per row (gfx.c cv_plate_ground), so the background is the row's own
+ * most common colour and not one T_SURF for the whole strip: a flat assumption left every row's shading
+ * counting as ink and the direction unreadable. */
 static int32_t roll_ink_row(const uint16_t *s, int32_t x0, int32_t x1, int32_t y0, int32_t y1)
 {
-    int32_t x, y, n = 0, sum = 0;
-    for (y = y0; y < y1; y++)
+    int32_t x, y, i, n = 0, sum = 0;
+    for (y = y0; y < y1; y++) {
+        uint16_t bg = s[y * 240 + x0];
+        int32_t best = 0, k;
+        for (x = x0; x < x1; x++) {
+            for (k = 0, i = x0; i < x1; i++)
+                k += s[y * 240 + i] == s[y * 240 + x];
+            if (k > best) best = k, bg = s[y * 240 + x];
+        }
         for (x = x0; x < x1; x++)
-            if (s[y * 240 + x] != swap16(T_SURF)) { n++; sum += y * 16; }
+            if (s[y * 240 + x] != bg) { n++; sum += y * 16; }
+    }
     return n ? sum / n : -1;
 }
 static int roll_static_now(void)                  /* the screen is the static render (a forced redraw changes nothing) */
@@ -10105,7 +10116,9 @@ static int test_large(void)
     ok = ui.home && large_kind() == LK_TALL && card_h() == LG_CARD_H && graph_y() == LG_Y_GRAPH && strip_kind() == SK_SCOPE;
     /* (3.5) the sample is the card's own left margin, not x 30: with the cards four rows taller the value's
      * band reaches row 75, so x 30 lands on a glyph there and the check read a rendering as a layout. */
-    ok &= lg_px(CARD_X(0) + 2, Y_SEP_END + 1) == T_SURF &&
+    /* (1.0) a card's surface is a ramp one colour per row (gfx.c cv_plate_ground), so "a card here" is "not the
+     * gap's background", not one token: the flat T_SURF test read the plate's own shading as a missing card. */
+    ok &= lg_px(CARD_X(0) + 2, Y_SEP_END + 1) != T_BG &&
           off[(Y_SEP_END + 1) * 240 + CARD_X(0) + 2] == swap16(T_BG);     /* a card where the gap was */
     ok &= lg_px(30, LG_Y_GRAPH - 2) == T_BG && off[(LG_Y_GRAPH - 2) * 240 + 30] != swap16(T_BG);     /* a gap in the panel */
     ok &= lg_px(30, LG_Y_GRAPH + 1) != T_BG;         /* (FASE 3) the panel starts here; its first row is the
@@ -10143,7 +10156,7 @@ static int test_large(void)
     go_page(GR_ROLL); frame();
     ok &= large_kind() == LK_LABEL;
     go_page(GR_TRK); frame();
-    ok &= large_kind() == LK_TALL && strip_kind() == SK_TRK && lg_px(CARD_X(0) + 8, LG_Y_GRAPH + 56) == T_SURF;
+    ok &= large_kind() == LK_TALL && strip_kind() == SK_TRK && lg_px(CARD_X(0) + 8, LG_Y_GRAPH + 56) != T_BG;
     go_title("ENV"); frame();
     btn_down(B_GLO); frames(800);
     ok &= ui.layer && large_kind() == LK_LABEL && card_h() == CARD_H;

@@ -503,6 +503,28 @@ static void cv_plate_ground(int32_t x, int32_t y, int32_t w, int32_t h, int32_t 
         cv_rect(x + 1, y + 1 + r0 * bh, w - 2, h - 2 - r0 * bh, g);
     }
 }
+/* (1.0) THE ROWS OF A PLATE, ON THEIR OWN. A card that repaints only its value strip (a digit rolling) has to
+ * leave the surface a full render leaves, and a card's surface is the ramp above, not a flat colour: the strip
+ * cleared to T_SURF and stayed a shade lighter than the rows just above and below it, which the roll test and
+ * the 150 000-frame soak read as a stale card (ui_test). The same bands and the same colours as
+ * cv_plate_ground, of which these are rows y0..y1 of a plate h tall filled with c. */
+static void cv_plate_rows(int32_t x, int32_t y0, int32_t y1, int32_t w, int32_t h, uint16_t c)
+{
+    int32_t n = h >= 24 ? (h - 1) / 2 : (h > 6 ? 4 : 1), bh, k, a, b;
+    uint16_t hi = ux_mix(c, T_TEXT, 7), lo = ux_mix(c, T_BG, 58);
+    if (w < 3 || h < 3 || n < 1)
+        return;
+    bh = (h - 2) / n;
+    if (bh < 1) bh = 1;
+    for (k = 0; k < n; k++) {
+        a = 1 + k * bh;
+        b = k == n - 1 ? h - 2 : 1 + (k + 1) * bh;
+        if (a < y0) a = y0;
+        if (b > y1) b = y1;
+        if (b > a)
+            cv_rect(x + 1, a, w - 2, b - a, plate_ramp_at(k, n, hi, lo));
+    }
+}
 /* (FASE 3) the same ramp on a chamfered plate: every row, from the top of the body to its foot, inset by the
  * corner's cut and stopped short of the frame's two lines. One fill a run of rows with the same colour and the
  * same width, so the two columns the three-rect fill left flat cost no more than the corners do. */

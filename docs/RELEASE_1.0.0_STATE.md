@@ -31,11 +31,15 @@ verifica línea por línea.
 
 Nada acá es una medición sobre el FM-1 físico: no hay unidad conectada y no se escribió en ninguna.
 
-## Abierto: siete comprobaciones de `tests/ui_test.c`
+## Cerrado después del paquete 1.0.0: las siete comprobaciones de `tests/ui_test.c`
 
-Fallan **y ya fallaban en `main` antes de esta entrega** (confirmado en un worktree aparte en `7b25aa2`, sin
-ninguno de los cambios de estas fases). No se relajó ninguna aserción para taparlas; se listan para que no se
-confundan con verde:
+**Ya no fallan.** Las siete estaban en rojo antes de esta entrega y se dejaron documentadas como abiertas; el
+arreglo llegó después del paquete (ver `docs/CARD_STRIP.md`) y `tests/ui_test.c` pasa entero, en el build por
+defecto y con `FELUCCA_FM4=1`.
+
+La causa era una sola: la franja del valor de una tarjeta se limpiaba a `T_SURF` plano mientras la tarjeta se
+pinta con el degradado de `cv_plate_ground`, así que cada dígito que rodaba dejaba una banda de otro tono. Las
+comprobaciones afectadas eran:
 
 1. `GLO > SYSTEM: the CPU card follows song.cpu_q8 (same value, same pixels)`
 2. `roll: the roll's last frame is pixel-identical to the static render`
@@ -45,13 +49,12 @@ confundan con verde:
 6. `#15 LARGE ON: HOME's cards tall (a K1..K4 pill over each column), the scope a strip, the footer kept`
 7. `#15 LARGE: PRESETS and the roll keep the layout (labels in M), the layers too; MIXER tall, its tracks in the strip`
 
-Familia común: píxeles que quedan de un cuadro anterior (tarjetas "obsoletas") y el roll que no termina igual
-al render estático, más la disposición LARGE. Se probó como sospechosa la omisión de relleno que introdujo la
-optimización de Fase 8 en `cv_rrect` (`firmware/src/gfx.c`): **no es la causa** — revertirla en el worktree base
-deja los mismos siete fallos.
+Se descartó con evidencia la sospecha inicial (la omisión de relleno de la Fase 8 en `cv_rrect`): revertirla en un
+worktree aparte deja los mismos fallos. Tres aserciones de las de LARGE y una del test de dirección medían
+"tarjeta/panel" como "este píxel es `T_SURF`", falso desde que la placa es un degradado; ahora miden "no es el
+fondo del hueco" y la tinta contra el color de su propia fila, sin aflojar lo que comprueban.
 
-Pendiente para la próxima: encontrar qué tarjeta no se repinta cuando el roll queda estático y arreglarlo sin
-perder el ahorro de la Fase 8.
+Lo que sigue sin medirse: **nada en el FM-1 físico**.
 
 ## Cerrado en esta entrega
 
