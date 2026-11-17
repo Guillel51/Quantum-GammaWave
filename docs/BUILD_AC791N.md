@@ -346,3 +346,17 @@ RAM code **19 632 B de 24 576**, LOWBUF **26 724 de 28 672** y NOINIT **15 572 d
 Duplicar el Bresenham para no tocar `cv_ink` fue el primer intento y el enlazador lo rechazó: `region XIP overflowed
 by 96 bytes`. Con **64 B** libres, cualquier cosa que sea una fila nueva de página (**92 B** solo en descriptores,
 §8.4) o un parámetro de motor no entra, y por eso esta fase no añade controles: la mejora es de dibujo, no de tabla.
+
+### 8.7 La 1.3.6: los avisos a cero, y el árbol sin gastar un byte
+
+Los seis avisos que el target arrastraba (`ui_seqtools.c` escribiendo pasos por un accesor `const`, `eng_phase.c`
+pasando el estado del ruido como `uint32_t *` a `noise32(int32_t *)`, `nt[12]` sin leer en `ui_scl.c`, dos locales
+muertos en `ui_being.c` y uno en `main.c`) se arreglaron sin cambiar comportamiento: **0 warnings, 0 errors**. La pila
+del manejador de la progresión recupera **12 B** y el resto de los locales no costaba imagen, así que la imagen queda
+igual: **583 548 B de 583 612** (**64 B** de margen), `.data + .bss` **95 124 B de 98 304** (3 180 B libres), pool
+**311 256 B con 9 248 B de sobra**, RAM code **19 632 B de 24 576**, XIP **563 120 B**, LOWBUF **26 724 de 28 672** y
+NOINIT **15 572 de 15 696**. El paquete sigue en **610 959 B**, identidad **FM-1_965**.
+
+Los 303 renders dorados no se movieron y el presupuesto de CPU del regresor quedó en **0 entradas por encima** de 20
+notas medidas: la limpieza es de código, no de sonido. Con 64 B libres, esta fase **no** añade parámetros, FX ni
+presets — y lo dice en lugar de insinuarlo.

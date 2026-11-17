@@ -178,7 +178,6 @@ static void splash_step(void)
 
 static void fm1_main(void)
 {
-    uint32_t ms;
     persist_boot();
 #if FELUCCA_OTA
     if (flash_ok)

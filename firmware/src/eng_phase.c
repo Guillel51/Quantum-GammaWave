@@ -155,7 +155,7 @@ static __attribute__((always_inline)) void phase_render_impl(track_t *t, voice_t
                                                               * ramped across the block to the knob's (Q8: a step of the
                                                               * knob jumped the phase: a click, louder the higher it was) */
     int32_t dfb = ((p[P_E7] << 8) - fb) / (int32_t)(n ? n : 1u);
-    uint32_t nst = (uint32_t)v->s[5];
+    int32_t nst = v->s[5];                               /* noise32() takes a signed state: same bits */
     int32_t mixk = line2 && line != 2;                       /* (1.0.2) the mix, decided once: no composite test a sample */
     pd_t b1, b2, bm;
     int32_t mf = 0, dmf = 0;                                 /* (0.6.45) MORPH: line 1 towards the next WAVEs; (0.6.50)

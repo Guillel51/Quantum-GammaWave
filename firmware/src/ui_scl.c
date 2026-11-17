@@ -530,7 +530,7 @@ int scl_tap(int32_t graph, int32_t x, int32_t y)
         return 1;
     }
     if (graph == GR_SCL_PROG) {                            /* a step of the progression: its chord, picked */
-        uint8_t off[12], nt[12], out[KB_CH];
+        uint8_t off[12], out[KB_CH];                     /* (nt[] was never read: 12 B of stack back) */
         uint32_t cnt, cn, pi = (uint32_t)clamp((int32_t)scl_prog, 0, 7);
         int32_t rootc, w;
         if (y < 18 || y > 33)

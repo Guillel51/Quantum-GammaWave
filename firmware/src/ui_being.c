@@ -1303,7 +1303,7 @@ static void gw_draw_system(int32_t cx, int32_t cy, int32_t r, int32_t en, int32_
         3, 3, 3, 3, 3, 3, 2, 2, 1, 2, 2, 1,
         2, 2, 1, 2, 2, 1, 2, 2, 1, 2, 2, 1
     };
-    int32_t i, j, orb_x[NPL], orb_y[NPL], orb_rot[NPL], order[NPL], a, big = 0;
+    int32_t i, j, orb_x[NPL], orb_y[NPL], orb_rot[NPL], order[NPL], big = 0;
     int32_t pk_ang[NPL] = {0}, pk_rad[NPL] = {0}, pk_push[NPL] = {0}, pk_ry[NPL];
     uint32_t tm = fm1_ms, twf = ui.frame >> 2;
     /* (2.2) THE SYSTEM IS NOT A CLOCKWORK. Every orbit ran at a constant rate for ever, so the bay
@@ -1751,7 +1751,7 @@ static void gw_viz_milky(uint16_t page, int32_t g, int32_t sway, int32_t wave_x,
     uint16_t dust = bg_tone_mix(page, bg_col(4), 58);
     int32_t x, j;
     {   /* (FASE 4) the bulge, lit: the same gradient HOME's bay wears, wider here because the page is */
-        int32_t gy, gx, w, gcy = 160 - (112 * 118) / 236 + sway;
+        int32_t gy, gx, gcy = 160 - (112 * 118) / 236 + sway;
         for (gy = -8; gy <= 8; gy++) {
             int32_t ay = gy < 0 ? -gy : gy;
             int32_t half = 26 - ay * 3;

@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v1.3.2` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v1.3.6` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 Quantum GammaWave
 
@@ -99,13 +99,13 @@ What you hold is one instrument in four pieces:
 
 | | |
 |---|---|
-| **Voices / tracks / engines** | 12 · 6 · 9 (ANALOG, ACID, FM4, FM6, WAVE, DRUM, PHYSICAL, DIGITAL, NOISE) |
-| **Sound bank** | 281 presets (283 entries), audited as data and measured as sound (bank median −18.5 dBFS) |
+| **Voices / tracks / engines** | 12 · 6 · 10 (ANALOG, PHASE, FM6, LOFI, VOICE, WHEEL, NOISE, DRUM, WTABLE, ADDTV) |
+| **Sound bank** | 285 factory presets (283 browsable + 2 legacy kits), audited as data and measured as sound |
 | **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
 | **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
 | **Screen** | 240 × 240 RGB565, fourteen colours per theme, nine palettes including GREY and MONO |
 | **Package** | 610 959 B, checked by SHA-256 and size (integrity, not a signature — see `docs/SIGNING.md`) |
-| **Verification** | 293 golden renders, a full host suite, an AC791N build budget, an emulator and a portal |
+| **Verification** | 303 golden renders, a full host suite, an AC791N build budget, an emulator and a portal |
 
 It is a personal instrument that grew into a small ecosystem: the firmware is what the FM-1 runs, and the
 emulator, the studio, the installer and this documentation are built from the same tree, released together and
@@ -129,7 +129,8 @@ Ten engines, all digital, all edited from the panel (`EDIT` page 1 and 2) and fr
 | **WTABLE** | wavetable: eight frames morphed by hand, LFO or envelope, with a tilt for harmonics | table position, harmonics, unison, filter |
 | **ADDTV** | additive: eight partials, each with its own phase and decay; SPECTRUM morphs eight profiles, STRETCH makes them inharmonic | spectrum, tilt, spectral decay, stretch |
 
-281 factory sounds are spread across them (two legacy kits aside), plus user preset slots. Presets and projects from earlier
+285 factory presets are spread across them (283 browsable, plus two legacy kits kept for the projects that
+still name them), plus user slots. Presets and projects from earlier
 versions keep loading.
 
 ## Tracks, voices and CPU

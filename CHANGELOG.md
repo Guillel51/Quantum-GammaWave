@@ -1,3 +1,36 @@
+## v1.3.6 — fase final: el árbol sin avisos y el ecosistema en una sola versión
+
+### Optimización y limpieza, medidos
+- **Seis avisos del compilador del AC791N a cero, sin tocar una línea de comportamiento.** El build del target los
+  venía arrastrando y cada uno era una costura: `ui_seqtools.c` escribía los pasos del secuenciador a través de un
+  accesor `const` (ahora usa `TSEL->step` directo, que es el dueño de esos bytes); `eng_phase.c` pasaba el estado del
+  ruido como `uint32_t *` a `noise32(int32_t *)` (ahora el estado es `int32_t`, los mismos bits); `ui_scl.c` declaraba
+  `nt[12]` en el manejador de la progresión y nunca lo leía (**12 B de pila de vuelta**); y `ui_being.c` (dos veces) y
+  `main.c` tenían locales muertos. `./build.sh` queda en **0 warnings y 0 errors**.
+- **Presupuesto del target, remedido tras la limpieza y sin regresión**: imagen **583 548 B de 583 612** (64 B libres,
+  los mismos que la 1.3.5), `.data + .bss` **95 124 B de 98 304** (3 180 B libres), pool **311 256 B con 9 248 B de
+  sobra** (el mínimo exigido son 8 KiB), RAM code **19 632 B de 24 576**, XIP 563 120 B. Ningún motor, FX ni preset
+  nuevo costó nada en esta versión: no se añadieron, y los 285 presets siguen entrando en los mismos bytes.
+- **CPU y DSP sin regresión**: los 303 renders dorados quedaron **0 cambiados** y el presupuesto de CPU del regresor
+  en **0 entradas por encima** (20 notas medidas), así que la limpieza no movió el sonido ni el coste por bloque.
+
+### El ecosistema, en la misma versión
+- **Una sola v1.3.6 en todas partes**: `FELUCCA_VERSION`, paquete `.fwsc` y su manifiesto, `build-manifest`, emulador
+  WASM (`site/emulator` y `release/emu`), Web Studio (su `data-version` y la pantalla que dibuja la versión), el
+  instalador USB (su `meta` con el build, el emulador y el paquete), `site/firmware/versions.json`, ambos
+  `SHA256SUMS`, y las capturas y el banner regenerados desde el firmware de esta versión.
+- **El README dejó de mentir sobre sí mismo**: decía `v1.3.2`, «9 motores» (son diez: ANALOG, PHASE, FM6, LOFI, VOICE,
+  WHEEL, NOISE, DRUM, WTABLE, ADDTV), «281 presets» (son 285: 283 navegables más dos kits legacy que los proyectos
+  viejos siguen nombrando) y «293 renders dorados» (son 303). Y `fmhub.json` anuncia ahora esos mismos 285.
+- **El `SHA256SUMS` de la raíz volvió a estar completo**: le faltaba la entrada de la 1.3.5 (se había actualizado el
+  del directorio `release/` y no el de la raíz). Ahora lista 1.3.5 y 1.3.6 con su paquete, su manifiesto y su
+  `build-manifest`.
+
+### Lo que sigue sin poder afirmarse
+- Nada de esto se probó en una unidad física: el FM-1 del dueño no se escribe desde este repositorio. Todo lo de
+  arriba es **build del AC791N**, **host x86** (suite completa) y **emulador WASM**; la clase de cada medición está
+  dicha donde aparece.
+
 ## v1.3.5 — el visualizador deja ver lo que hay detrás: tinta translúcida de verdad
 
 ### Lo que está hecho y medido

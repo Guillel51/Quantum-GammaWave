@@ -49,7 +49,7 @@ static void sq_do(uint32_t op, uint32_t amt)
 {
     track_t *t = TSEL;
     uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP), i, n;
-    step_t *st = seq_steps(t);
+    step_t *st = t->step;                            /* (the editor writes them: TSEL itself, not the const accessor) */
     amt = clamp(amt, 1, 8);
     switch (op) {
     case SQOP_DUP:                                   /* the pattern again, after itself: LEN doubles (up to 32) */
