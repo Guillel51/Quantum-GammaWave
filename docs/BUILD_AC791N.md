@@ -332,3 +332,17 @@ octava seguía resolviendo el botón al soltarlo. La página FX sale ahora antes
 `.data + .bss` en **95 124 B de 98 304**, pool con **9 248 B** de sobra y RAM code en **19 632 B de 24 576**.
 La ranura fantasma `fx_scn_pick`, que nadie escribía ni leía, se fue. Con **260 B** libres el SLICER por paso
 (**496 B** sin su gráfico) sigue sin caber, y por eso su rama queda esperando flash, no RAM.
+
+### 8.6 La 1.3.5: la tinta translúcida del visualizador, 96 B
+
+Los trazados del visualizador se mezclan ahora con lo que ya hay en el framebuffer en vez de taparlo: `cv_ink`
+(porcentaje de tinta, 100 por defecto) lo lee solo `cv_pset`, y `cv_line_a(x0,y0,x1,y1,c,pct,thick)` lo pone, recorre
+con el `cv_line_t` que ya existía y lo devuelve a 100. La escalera es `CV_A_SIGNAL 84`, `CV_A_CURVE 70`, `CV_A_WAVE 74`,
+`CV_A_MOD 56` y se aplica en cuatro puntos de `ui_being.c`. **96 B** de imagen y 0 B de RAM: la imagen queda en
+**583 548 B de 583 612** (**64 B** de margen), `.data + .bss` en **95 124 B de 98 304**, pool con **9 248 B** de sobra,
+RAM code **19 632 B de 24 576**, LOWBUF **26 724 de 28 672** y NOINIT **15 572 de 15 696**; el paquete sigue siendo de
+**610 959 B** con identidad **FM-1_965**, porque el contenedor llena un tamaño fijo por slot.
+
+Duplicar el Bresenham para no tocar `cv_ink` fue el primer intento y el enlazador lo rechazó: `region XIP overflowed
+by 96 bytes`. Con **64 B** libres, cualquier cosa que sea una fila nueva de página (**92 B** solo en descriptores,
+§8.4) o un parámetro de motor no entra, y por eso esta fase no añade controles: la mejora es de dibujo, no de tabla.

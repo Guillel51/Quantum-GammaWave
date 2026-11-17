@@ -305,11 +305,16 @@ static void cv_blit(uint32_t x, uint32_t y)
     cv_blit_rows(x, y, 0u);
 }
 
+static int16_t cv_ink = 100;    /* (1.3.5) how much of a dot's ink it lays down; see cv_line_a */
 static inline void cv_pset(int32_t x, int32_t y, uint16_t c)
 {
+    uint32_t i;
     y += cv_oy;
-    if ((uint32_t)x < cv_w && (uint32_t)y < cv_h)
-        cv_px[(uint32_t)y * cv_w + (uint32_t)x] = swap16(c);
+    if ((uint32_t)x >= cv_w || (uint32_t)y >= cv_h)
+        return;
+    i = (uint32_t)y * cv_w + (uint32_t)x;
+    /* (1.3.5) at 100 % (every caller but a translucent line) this is the store it always was */
+    cv_px[i] = cv_ink >= 100 ? swap16(c) : swap16(ux_mix(swap16(cv_px[i]), c, cv_ink));
 }
 
 static void cv_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
@@ -419,6 +424,27 @@ static void cv_line_t(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c
     int32_t t;
     for (t = 0; t < thick; t++)
         cv_line(x0, y0 + t, x1, y1 + t, c);
+}
+
+/* (1.3.5) SEE-THROUGH INK. The frame buffer is readable, so transparency here is not a guess: a pixel of ink
+ * becomes the colour already in it mixed towards the ink, nothing else. A scope over the spectrogram keeps the
+ * bands under its line, a filter response keeps the grid it crosses, and the layers stay apart because each one
+ * carries its own share -- the signal solid, the curves under it, the modulation lighter still.
+ *
+ * One control rather than a second line routine: cv_ink is the share of ink a single dot lays down, and the walk
+ * that draws a line, a circle or a trace is the one already there. It is read by cv_pset only, so fills (cv_rect,
+ * the bands, the floor) keep painting whole, and every blended call puts it back before it returns. */
+#define CV_A_SIGNAL 84                   /* the oscilloscope: the strongest line on the bay */
+#define CV_A_CURVE  70                   /* a filter response drawn over the data */
+#define CV_A_MOD    56                   /* a modulation range: a hint, not a curve */
+#define CV_A_WAVE   74                   /* a drawn waveform (a kit's lane, a ribbon) */
+static void cv_line_t(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c, int32_t thick);
+/* a line in a share of its ink: what is underneath stays visible through it */
+static void cv_line_a(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t c, int32_t pct, int32_t thick)
+{
+    cv_ink = (int16_t)pct;
+    cv_line_t(x0, y0, x1, y1, c, thick);
+    cv_ink = 100;
 }
 
 /* coverage (0..16) of corner pixel (i, j) of a radius-r corner, (0, 0) the outermost: 4 x 4 samples */

@@ -349,8 +349,10 @@ static void gw_live_trace(int32_t x0, int32_t w, int32_t cy, int32_t amp, int32_
         y = clamp(y, cy - amp, cy + amp);
         if (x)                                          /* (3.5) two pixels: a trace thinner than the curve reads
                                                          * as a rendering seam, not as a layer */
-            cv_line_t(x0 + x - 1, py, x0 + x, y,
-                      ux.mono ? T_TEXT : bg_col(heat_base + dy * 140 / (amp ? amp : 1)), 2);
+            /* (1.3.5) the oscilloscope is now a see-through line: 84 % of its own ink over what it crosses, so
+             * the bands behind it keep their shape under the trace and the signal still reads as the top layer */
+            cv_line_a(x0 + x - 1, py, x0 + x, y,
+                      ux.mono ? T_TEXT : bg_col(heat_base + dy * 140 / (amp ? amp : 1)), CV_A_SIGNAL, 2);
         py = y;
     }
 }
@@ -2434,7 +2436,7 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
         int32_t mod_cut = clamp(cut_x + (mod_span > 4 ? mod_span : 14), 8, gw - 8);
         int32_t my = clamp(gw_filter_resp_y(ftype, x, gw, mod_cut, res / 2, y_zero + 3, gh), gy0 + 2, gy0 + gh - 2);
         if (x)
-            cv_line(gx0 + x - (int32_t)vz_step(), mpy, gx0 + x, my, T_ACCENT);
+            cv_line_a(gx0 + x - (int32_t)vz_step(), mpy, gx0 + x, my, T_ACCENT, CV_A_MOD, 1);   /* (1.3.5) lightest */
         mpy = my;
     }
 
@@ -2448,8 +2450,8 @@ static void gw_draw_forge_bay(const track_t *t, int32_t x0, int32_t y0, int32_t 
         for (x = (int32_t)st; ; x += (int32_t)st) {
             uint32_t xe = (uint32_t)x < (uint32_t)gw ? (uint32_t)x : (uint32_t)gw - 1u;
             int32_t y = clamp(gw_filter_resp_y(ftype, (int32_t)xe, gw, cut_x, res, y_zero, gh), gy0 + 2, gy0 + gh - 2);
-            cv_line_t(gx0 + (int32_t)xp, yp, gx0 + (int32_t)xe, y,
-                      bg_col(176 + (gy0 + gh - y) * 76 / (gh ? gh : 1)), 2);
+            cv_line_a(gx0 + (int32_t)xp, yp, gx0 + (int32_t)xe, y,
+                      bg_col(176 + (gy0 + gh - y) * 76 / (gh ? gh : 1)), CV_A_CURVE, 2);   /* (1.3.5) under the trace */
             yp = y;
             py = y;
             xp = xe;
@@ -2687,7 +2689,7 @@ static void gw_drum_wave(uint32_t lane, int32_t x0, int32_t cy, int32_t w, uint1
             y = cy - (((i % 5 < 2) ? 1 : -1) * env * 2 / 3);
             break;
         }
-        if (i) cv_line(x0 + i - 1, py, x0 + i, y, col);
+        if (i) cv_line_a(x0 + i - 1, py, x0 + i, y, col, CV_A_WAVE, 1);   /* (1.3.5) a drawn wave, not a frame */
         py = y;
     }
 }

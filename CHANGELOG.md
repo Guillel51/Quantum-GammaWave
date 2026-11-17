@@ -1,3 +1,44 @@
+## v1.3.5 — el visualizador deja ver lo que hay detrás: tinta translúcida de verdad
+
+### Lo que está hecho y medido
+- **Las ondas del visualizador son translúcidas de verdad, no de color parecido.** El framebuffer se puede leer, así
+  que cada punto de un trazado ahora es **el color que ya había allí mezclado hacia la tinta** (`gfx.c`: `cv_ink`
+  global leído por `cv_pset`, y `cv_line_a(x0,y0,x1,y1,c,pct,thick)` que pone la tinta, recorre con el Bresenham de
+  siempre y la devuelve a 100). Antes el trazo tapaba la banda de espectro, la rejilla y el campo de estrellas que
+  cruza; ahora los atraviesa: se ven las dos capas a la vez.
+- **Cuatro trazados, tres niveles, ningún control nuevo.** El reparto está en la escalera `CV_A_SIGNAL 84`,
+  `CV_A_CURVE 70`, `CV_A_WAVE 74`, `CV_A_MOD 56` (`gfx.c`): el osciloscopio de la bahía de HOME y su página WAVES
+  (**84 %**, lo más sólido porque es el dato que se lee), la respuesta del filtro (**70 %**), la onda del kit de DRUM
+  (**74 %**) y la envolvente de modulación (**56 %**, lo más tenue porque es la referencia de fondo). Todos son puntos
+  ya existentes de `ui_being.c` (`gw_live_trace`, la curva del bay, `gw_drum_wave`, la envolvente): la opacidad va
+  atada al papel de cada trazo en vez de a un ajuste que haya que tocar.
+- **Comprobado con una prueba que falla si se ignora la mezcla.** `tests/ui_test.c` suma «VISUALIZER: the scopes and
+  waves are see-through ink over what they cross, in three ordered shares»: sobre un lienzo conocido pinta una banda,
+  dibuja la misma tinta encima a los tres repartos y exige que el píxel sea **exactamente** `ux_mix(fondo, tinta,
+  pct)` (o sea, que el fondo esté dentro del resultado), que la misma tinta sobre dos fondos distintos dé dos colores
+  distintos, que `cv_line_t` a 100 % siga siendo opaco, y que la escalera esté ordenada con la más tenue conservando al
+  menos la mitad de su tinta. La distancia se mide canal a canal y no por luminancia: dos colores de la paleta pueden
+  diferir en tono sin que uno sea más brillante, y el trazo tiene que caer entre ellos igual.
+- **Costo: 96 B de imagen y 0 B de RAM.** La imagen del AC791N queda en **583 548 B de 583 612** (**64 B** libres),
+  `.data + .bss` en **95 124 B de 98 304**, pool con **9 248 B** de sobra y RAM code en **19 632 B de 24 576**. La
+  primera versión duplicaba el Bresenham y el enlazador la rechazó (`region XIP overflowed by 96 bytes`): la que
+  queda reutiliza `cv_line_t` y no añade ni un bucle.
+- **Capturas regeneradas porque el dibujo cambió de verdad** (`tools/fw_shots.py --render`, y las nuevas copias en
+  `site/assets`): `fw-home.png` y `fw-presets.png`. Los renders dorados de audio siguen en **303, 0 cambiados**,
+  porque la tinta es de la interfaz y no toca la voz.
+
+### Lo que NO entra, y por qué (medido, no estimado)
+- **No hay parámetros de motor nuevos, ni filas nuevas en EDIT/LFO/ARP/SEQ/SCL, ni buses de FX nuevos.** El visualizador
+  tenía **160 B** libres al empezar la fase y esta mejora se queda con **64 B**: en la 1.3.2 una sola página nueva
+  costaba **92 B** de descriptores (`page_desc +92`, ver `docs/BUILD_AC791N.md` §8.4) y un parámetro de motor es más
+  caro todavía (entrada en la tabla, nombre, rango y su caso en el dibujo). Con 64 B no hay forma honesta de meterlo:
+  queda documentado como lo que es, un pendiente que necesita flash, no un cambio que se pueda simular.
+- **El repaso de las trece pantallas no encontró huecos de transparencia que arreglar**: el visualizador a pantalla
+  completa ya tenía sus dos pozos de cristal (`graph_home_viz`, mezcla `ux_mix(bg_darken(T_BG, 14), T_BG, 62)`) y sus
+  medidores de 16 bits, y MIXER, OVERVIEW, PERFORMANCE, PRESETS, GLO, SCL, ARP, SEQ, FX y MENU ya usan las mismas
+  piezas compartidas (`gw_seg_v`, `ux_mix`, `heat_col`). Lo que faltaba era justamente la bahía de HOME, que es lo que
+  esta versión arregla.
+
 ## v1.3.4 — fase 3: el banco medido por cómo suena, y los cuatro knobs contestan en HOME
 
 ### Lo que está arreglado y medido

@@ -5510,6 +5510,62 @@ static int test_home_knob_pulse(void)
     return bad;
 }
 
+/* (1.3.5) THE INK IS SEE-THROUGH WHERE IT SHOULD BE. The visualizer's oscilloscope, its filter response and its
+ * modulation range are drawn over the spectrogram, and this frame buffer can be read: each pixel of those lines is
+ * the colour already there mixed towards the ink (gfx.c cv_line_a / cv_ink). The check is arithmetic on a known
+ * canvas -- the same dot over two different backgrounds comes out as two different colours, each exactly the mix --
+ * plus the ordering of the three shares (the signal solidest, the response under it, the modulation lightest),
+ * which is what keeps the layers apart without a control for each one. */
+/* |r| + |g| + |b| between two RGB565 colours */
+static int32_t ink_dist(uint16_t a, uint16_t b)
+{
+    return abs((int32_t)((a >> 11) & 31u) - (int32_t)((b >> 11) & 31u)) +
+           abs((int32_t)((a >> 5) & 63u) - (int32_t)((b >> 5) & 63u)) +
+           abs((int32_t)(a & 31u) - (int32_t)(b & 31u));
+}
+
+static int test_see_through_ink(void)
+{
+    int bad = 0, ok = 1;
+    const uint16_t A = T_BG;                            /* the page under the picture */
+    const uint16_t B = ux_mix(T_BG, T_ACCENT, 72);      /* a band drawn under the line */
+    const uint16_t C = ux.mono ? T_TEXT : bg_col(224);  /* the trace's own ink */
+    uint16_t over_band, over_page, curve, mod, solid;
+    int32_t d_sig, d_cur, d_mod, d_ink, sgn;
+    uint32_t keep = palette_from_stored(settings.palette);
+    palette_set(UI_QUANTUM_INDEX);                      /* a colour palette: MONO has one grey by design */
+    cv_begin(120, 60, A);
+    cv_rect(0, 20, 120, 20, B);                         /* a band, and the three shares drawn inside it */
+    cv_line_a(0, 22, 119, 22, C, CV_A_SIGNAL, 1);
+    cv_line_a(0, 30, 119, 30, C, CV_A_CURVE, 1);
+    cv_line_a(0, 38, 119, 38, C, CV_A_MOD, 1);
+    cv_line_a(0, 48, 119, 48, C, CV_A_SIGNAL, 1);       /* the same ink over the page */
+    cv_line_t(0, 56, 119, 56, C, 1);                    /* the opaque walk is the store it always was */
+    over_band = swap16(cv_px[22u * 120u + 60u]);
+    over_page = swap16(cv_px[48u * 120u + 60u]);
+    curve = swap16(cv_px[30u * 120u + 60u]);
+    mod = swap16(cv_px[38u * 120u + 60u]);
+    solid = swap16(cv_px[56u * 120u + 60u]);
+    ok &= over_band == ux_mix(B, C, CV_A_SIGNAL);       /* the band under it is in the result */
+    ok &= over_page == ux_mix(A, C, CV_A_SIGNAL);       /* and the page, and they differ */
+    ok &= over_band != over_page && over_band != C && over_band != B;
+    ok &= solid == C;                                    /* 100 % is untouched */
+    /* and the ladder: which share is closer to the ink. Distance is channel by channel, not luma: two palette
+     * colours can differ in hue without one being brighter, and the trace must land between them either way. */
+    d_ink = ink_dist(B, C);
+    d_sig = ink_dist(over_band, C);
+    d_cur = ink_dist(curve, C);
+    d_mod = ink_dist(mod, C);
+    ok &= d_sig > 0 && d_sig < d_ink;                    /* the band shows through, the ink is there */
+    ok &= d_mod > d_cur && d_cur > d_sig;                /* signal solidest, response, then modulation */
+    ok &= d_mod * 2 <= d_ink + 1;                        /* even the lightest keeps half its ink: legible */
+    (void)sgn;
+    bad += check("VISUALIZER: the scopes and waves are see-through ink over what they cross, in three ordered shares",
+                 ok);
+    palette_set(keep);
+    return bad;
+}
+
 /* #38: the keys of the notes the selected track's sequencer and ARP sound light while it plays */
 /* (3.0) HOME's screens: from a section the first tap only comes home; each tap after that walks one screen of the
  * list and the one past the last returns to the first; a hold is the menu and never counts as a tap, and letting that
@@ -11528,6 +11584,7 @@ int main(void)
     bad += test_step_leds();
     bad += test_fx_scenes();
     bad += test_home_knob_pulse();
+    bad += test_see_through_ink();
     bad += test_scale_leds();
     bad += test_screen_off();
     bad += test_fm6_charts();
