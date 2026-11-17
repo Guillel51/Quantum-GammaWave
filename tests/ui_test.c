@@ -4164,11 +4164,12 @@ static int test_quick_layers(void)
             uint32_t j, sig, okk;
             int16_t bpm, lf[8], rs, rv;
             go_home(); frames(8);
-            btn_down(B_ENV); frame(); turn(EN_SELECT, 1); frame();
+            btn_down(B_ENV); frame(); turn(EN_PRESET, 1); frame();   /* (1.3.2: the pages from HOME are PRESETS' -- SELECT
+                                                                     * on HOME turns the HOME knob and takes no page) */
             ok = str_eq(cur_page()->title, "ENV") && !ui.confirm;
-            turn(EN_SELECT, 1); frame();
+            turn(EN_PRESET, 1); frame();
             ok &= str_eq(cur_page()->title, "ENV DEST");
-            btn_up(B_ENV); frame(); turn(EN_SELECT, 1); frame();   /* (the same turn, the button let go first) */
+            btn_up(B_ENV); frame(); turn(EN_PRESET, 1); frame();   /* (the same turn, the button let go first) */
             ok &= str_eq(cur_page()->title, "ENV DEST") && !ui.layer;
             frames(30);
             sig = steps_sig(TSEL);
@@ -4195,7 +4196,7 @@ static int test_quick_layers(void)
             btn_down(B_GLO); frame(); turn(EN_SELECT, 3); frame(); btn_up(B_GLO); frames(4);
             ok &= song.g[G_BPM] != bpm;
             song.g[G_BPM] = bpm;
-            bad += check("0.6.67: ENV + SELECT its pages; SEQ / LFO / FX + SELECT their dice (CANCEL back, OK kept); GLO + SELECT the tempo", ok);
+            bad += check("0.6.67: ENV + PRESETS its pages from HOME (1.3.2); SEQ / LFO / FX + SELECT their dice (CANCEL back, OK kept); GLO + SELECT the tempo", ok);
             fm1_ms += 1200u;
         }
         {   /* (0.6.7) turned in the press's own frame, or before HOLD: the map never comes while it is held; held again
@@ -5453,6 +5454,22 @@ static int test_home_views(void)
         ok &= ui.home_view == HV_PERF && ui.page == pg && TSEL->p[P_E0] == e0 && !ui.home_viz;
     }
     bad += check("OVERVIEW, MIX and PERF: read-only, page and sound untouched", ok);
+    /* (1.3.2) SELECT ON HOME IS HOME'S. A turn there is the HOME knob's mode (MENU > SYSTEM > KNOB SELECT: BPM, TRK
+     * VOL, TRK PAN, MASTER, OFF), never a page change -- alone, and not with a section's button down: page_jump() saw
+     * ui.home and took that family's first page, ARP's being ARP, so a turn with the ARP button down sent the screen
+     * to the ARP page, and the press went on to tap it when let go. Paging into a section from HOME is the same button
+     * with PRESETS, which the pages' own test walks */
+    {   uint8_t pg = ui.page;
+        turn(EN_SELECT, 1);
+        ok = ui.home && ui.page == pg;
+        turn(EN_SELECT, -3);
+        ok &= ui.home && ui.page == pg;
+        btn_down(B_ARP); frame(); turn(EN_SELECT, 1); frame();
+        ok &= ui.home && ui.page == pg;                /* (still HOME with the ARP button down) */
+        btn_up(B_ARP); frame();
+        ok &= ui.home && ui.page == pg;                /* (and letting it go opens nothing) */
+        bad += check("SELECT on HOME turns its knob: no page, and ARP's button under it takes none", ok);
+    }
     /* and leaving HOME puts the screen away (no screen under the section's page) */
     press(B_HOME);                                                 /* HOME */
     press(B_HOME);                                                 /* SCOPE */

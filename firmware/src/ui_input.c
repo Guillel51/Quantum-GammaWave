@@ -75,6 +75,7 @@ void ui_tap(int32_t x, int32_t y)
 static uint8_t ly_used;                                  /* the held layer's knobs or keys used: PRESETS stays its */
 static int song_open(uint32_t n);                         /* (song_main.c: SAVE > PROJECT's KNOB 1) */
 static uint8_t pj_btn = 0xFFu;                           /* the button a page jump was made with: no layer while held */
+static uint16_t btn_prev;                                /* (1.3.2) the buttons of the pass before */
 static uint32_t held_family(void)
 {
     uint32_t f;
@@ -2100,6 +2101,13 @@ static void ui_input_frame(void)
             } else if (k) {
                 part_dice(k);
                 btn_used(FAM_BTN[f]);
+            } else if (ui.home) {
+                /* (1.3.2) ON HOME THE SELECT KNOB IS HOME'S. page_jump() with ui.home set reads as "from elsewhere" and
+                 * takes the family's first page -- ARP's first page is ARP -- so a turn of SELECT with the ARP button
+                 * down left the screen on the ARP page. Paging into a section from HOME stays the same held button with
+                 * PRESETS; what is left here keeps its own: the dice of EDIT, SEQ, LFO and FX, and DICE ALL with HOME
+                 * held. The turn spends the button too (btn_used): that press taps nothing when it is let go. */
+                btn_used(FAM_BTN[f]);
             } else {
                 page_jump(f, ps);
             }
@@ -2468,7 +2476,13 @@ static void ui_input_frame(void)
             break;
         }
     }
-    b = ui.pg_down & ~fm1_in.buttons;
+    /* (1.3.2) A TAP IS A RELEASE: THE BUTTON WAS DOWN IN THE PASS BEFORE AND IS UP NOW. Armed bit alone was enough, so
+     * an edge that repeated for a press a knob had already spent (btn_used, above) -- the scan reporting the press again,
+     * a contact that bounces -- left the bit armed with the button up, and this loop opened the section nobody tapped:
+     * the ARP page a turn of SELECT on HOME ended on. The bit was armed by the earlier pass in which the button was
+     * really down, and that pass is what btn_prev still says, so a press spent this way has no release to give. */
+    b = ui.pg_down & btn_prev & (uint16_t)~fm1_in.buttons;
+    btn_prev = (uint16_t)fm1_in.buttons;
     ui.pg_down &= (uint16_t)~b;
     for (id = 0; b; id++, b >>= 1)
         if (b & 1u)
