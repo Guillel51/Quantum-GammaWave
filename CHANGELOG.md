@@ -52,6 +52,13 @@
 - Niveles por motor (RMS mediano, una nota sostenida por preset): ANALOG -17.9 dB, FM6 -19.9, ADDTV -17.3, WTABLE -16.5, DRUM -14.4,
   NOISE -29.0 (con GEIGER CNT, que es un sonido disperso a propósito). Ningún preset silenciado, ninguno por encima del clipper: 0,00 % en los 285.
 
+### Los renders dorados que cambian, y por qué
+- **12 de los 301 renders dorados cambian y se regeneran a propósito** (`GOLDEN_UPDATE=1`), porque son exactamente
+  los presets retocados: ANALOG HARP PLUCK y SIESTA DORADA; LOFI STEP LEAD, CHIP ARP, POCKET CONSOLE y CIUDAD DE
+  PLAYA; DRUM LINNDRUM, ELECTRO y QUANTUM BEAT; FM6 GONG SHIMMER, GAMELAN MET y TEMPLE CIRCUIT. Los otros 289 quedan
+  **idénticos** y los dos presets nuevos de ADDTV entran como renders nuevos: **303 en total, 0 cambiados, 0
+  perdidos** en la pasada de verificación. Ningún cambio de UI: el barrido de pantallas y su lint salen igual.
+
 ### Memoria y mediciones (build AC791N de este árbol)
 - Imagen 583 352 → **583 452 B** de 583 612 (**160 B** de margen: los dos presets nuevos y los retoques cuestan
   **100 B**). `.data + .bss` **95 124 B** de 98 304 (3 180 B libres), pool **311 256 B con 9 248 B de sobra**, RAM
