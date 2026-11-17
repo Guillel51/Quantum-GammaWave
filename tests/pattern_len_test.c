@@ -34,7 +34,7 @@ int main(void)
         t->nheld = 0;
         t->seq_idx = (uint16_t)(t->p[P_SLEN] - 1);
         t->seq_pos = 0x7FFFFFFF;
-        t->step[0] = (step_t){{60, 0, 0, 0}, 1, ST_NOTE, 0, 100, 0, 0};
+        t->step[0] = (step_t){ .note = {60, 0, 0, 0}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 0, .acc = 0 };
     }
     for (i = 0; i < 60u; i++) {
         uint32_t pa = a->seq_idx, pb = b->seq_idx;

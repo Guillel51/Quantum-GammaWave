@@ -28,7 +28,7 @@ static track_t *one_step(uint32_t hits, uint32_t flags)
     t->p[P_SGATE] = 64;
     t->p[P_SSWING] = 0;
     song.g[G_SWING] = 0;
-    t->step[0] = (step_t){{60}, 1, ST_NOTE, (uint8_t)flags, 100};
+    t->step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = (uint8_t)flags, .vel = 100 };
     step_set_ratchet(&t->step[0], hits);
     seq_start();
     return t;
@@ -87,7 +87,7 @@ static int play(void)
     bad += check("  x1 slides out as before; x2 never (its last part ends at its gate)", ok && !t->seq_hold && !t->seq_n);
     t = one_step(4, 0);
     t->p[P_SLEN] = 2;
-    t->step[1] = (step_t){{0}, 0, ST_TIE};
+    t->step[1] = (step_t){ .note = {0}, .n = 0, .time = ST_TIE };
     seq_start();
     run(t, step_len(t, 0) / CTL + step_len(t, 1) / CTL - 1u, 0, 0, 0);
     bad += check("  nor ties out: a TIE after a ratcheted step holds nothing", !t->seq_n);
@@ -95,7 +95,7 @@ static int play(void)
     t = one_step(4, 0);                               /* the DRUM grid: hits of BD (accented) and CH */
     set_engine_of(t, ENGI_DRUM);
     t->engine = t->eng_req;
-    t->step[0] = (step_t){{0}, 0, ST_NOTE, 0, 100, 1u << DV_KICK | 1u << DV_HATC, 1u << DV_KICK};
+    t->step[0] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 1u << DV_KICK | 1u << DV_HATC, .acc = 1u << DV_KICK };
     step_set_ratchet(&t->step[0], 3);
     seq_start();
     n = run(t, passes(t, 1), 0, 0, 0);
@@ -160,7 +160,7 @@ static int projects(void)
     ui_power_on();
     t = &trk[0];
     for (i = 0; i < 8u; i++) {
-        t->step[i] = (step_t){{(uint8_t)(60 + i)}, 1, ST_NOTE, i & 1u ? SF_ACCENT : 0u, i & 2u ? 127u : 90u};
+        t->step[i] = (step_t){ .note = {(uint8_t)(60 + i)}, .n = 1, .time = ST_NOTE, .flags = i & 1u ? SF_ACCENT : 0u, .vel = i & 2u ? 127u : 90u };
         step_set_ratchet(&t->step[i], 1u + i % 4u);
         step_set_chance(&t->step[i], i < 4u ? 100u : i == 4u ? 0u : 30u);
     }
@@ -237,7 +237,7 @@ static int presets(void)
     t = &trk[0];
     track_defaults_steps(t);
     for (i = 0; i < 16u; i++)
-        t->step[i] = (step_t){{(uint8_t)(48 + i)}, 1, ST_NOTE, 0, 100};
+        t->step[i] = (step_t){ .note = {(uint8_t)(48 + i)}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     step_set_ratchet(&t->step[2], 3);
     t->step[5].flags = SF_ACCENT;
     step_set_ratchet(&t->step[5], 4);
@@ -260,7 +260,7 @@ static int presets(void)
     set_engine_of(t, ENGI_DRUM);                     /* a drum grid record: no room, x1 */
     t->engine = t->eng_req;
     track_defaults_steps(t);
-    t->step[0] = (step_t){{0}, 0, ST_NOTE, 0, 100, 1u << DV_KICK};
+    t->step[0] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 1u << DV_KICK };
     step_set_ratchet(&t->step[0], 2);
     up_store(4, "GRID");
     up_pat_load(t, 4);
@@ -309,7 +309,10 @@ static int screens(void)
     {                                                /* RATCH dimmed where it does nothing: REST, TIE, empty */
         uint32_t dim[4], thm[4], k;
         static const step_t kind[4] = {
-            {{60}, 1, ST_NOTE, 0, 100}, {{0}, 0, ST_REST, 0, 0}, {{0}, 0, ST_TIE, 0, 0}, {{0}, 0, ST_NOTE, 0, 0}};
+            {.note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100},
+            {.note = {0}, .n = 0, .time = ST_REST, .flags = 0, .vel = 0},
+            {.note = {0}, .n = 0, .time = ST_TIE, .flags = 0, .vel = 0},
+            {.note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 0}};
         for (k = 0; k < 4u; k++) {
             t->step[0] = kind[k];
             step_set_ratchet(&t->step[0], 2);
@@ -323,13 +326,13 @@ static int screens(void)
         for (k = 1; k < 4u; k++)
             ok &= dim[k] > dim[0] && thm[k] < thm[0];
         bad += check("  RATCH shows dimmed on a REST, a TIE or an empty step (a note or a hit: not)", ok);
-        t->step[0] = (step_t){{0}, 0, ST_REST, 0, 0};
+        t->step[0] = (step_t){ .note = {0}, .n = 0, .time = ST_REST, .flags = 0, .vel = 0 };
     }
     ui_power_on();                                   /* the piano roll: x2 in two bars, the middle column empty */
     t = TSEL;
     track_defaults_steps(t);
     t->p[P_SLEN] = 16;
-    t->step[1] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+    t->step[1] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->step[3] = t->step[1];
     step_set_ratchet(&t->step[1], 2);
     go_page(GR_ROLL); ui.cursor = 8; ui.bank = 0;
@@ -339,7 +342,7 @@ static int screens(void)
     ok = pr_is_bar(x + 3u, y) && pr_is_bar(x + 9u, y) && !pr_is_bar(x + 6u, y);
     x = PR_X0 + 3u * PR_CW;
     bad += check("  the piano roll draws an x2 step in two parts (x1 whole)", ok && pr_is_bar(x + 6u, y));
-    t->step[4] = (step_t){{64}, 1, ST_NOTE, 0, 100};   /* SLIDE into a note: the line, but not from x2 */
+    t->step[4] = (step_t){ .note = {64}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };   /* SLIDE into a note: the line, but not from x2 */
     t->step[3].flags = SF_SLIDE;
     t->step[1].flags |= SF_SLIDE;                     /* (x2 kept) */
     t->step[2] = t->step[4];
@@ -347,10 +350,10 @@ static int screens(void)
     bad += check("  a slide line from an x1 SLIDE step, none from an x2 one", pr_slide_px(3, 60, 64) > 0u &&
                  pr_slide_px(1, 60, 64) == 0u);
     t->step[1].flags &= (uint8_t)~SF_SLIDE; t->step[3].flags = 0;
-    t->step[2] = t->step[4] = (step_t){{0}, 0, ST_REST, 0, 0};
+    t->step[2] = t->step[4] = (step_t){ .note = {0}, .n = 0, .time = ST_REST, .flags = 0, .vel = 0 };
     set_engine_of(t, ENGI_DRUM);                     /* the grid: x3 in three bars */
     t->engine = t->eng_req;
-    t->step[1] = (step_t){{0}, 0, ST_NOTE, 0, 100, 1u};
+    t->step[1] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 1u };
     step_set_ratchet(&t->step[1], 3);
     ui.lane = 1;
     memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
@@ -384,37 +387,37 @@ static int components(void)
     project_store_t st;
     /* ARP NOTES: x4 UP over a chord, one octave: the chord's notes in turn, again from the bottom */
     t = one_step(1, 0);
-    t->step[0] = (step_t){{60, 64, 67}, 3, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60, 64, 67}, .n = 3, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->step[0].comp = CP_ARPN; t->step[0].carg = CP_ARG(0u, 2u, 0u);
     n = run_notes(t, passes(t, 1), nt, sizeof nt);
     bad += check("ARP NOTES x4 UP: 60 64 67 60 in one step", n == 4u && nt[0] == 60u && nt[1] == 64u && nt[2] == 67u &&
                  nt[3] == 60u);
     t = one_step(1, 0);
-    t->step[0] = (step_t){{60, 64, 67}, 3, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60, 64, 67}, .n = 3, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->step[0].comp = CP_ARPN; t->step[0].carg = CP_ARG(1u, 1u, 1u);   /* DOWN x3, two octaves */
     n = run_notes(t, passes(t, 1), nt, sizeof nt);
     bad += check("ARP NOTES x3 DOWN over two octaves: 79 76 72", n == 3u && nt[0] == 79u && nt[1] == 76u && nt[2] == 72u);
     t = one_step(1, 0);                                   /* over the TIE after it: the arpeggio goes on */
     t->p[P_SLEN] = 2;
-    t->step[0] = (step_t){{60, 64, 67}, 3, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60, 64, 67}, .n = 3, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->step[0].comp = CP_ARPN; t->step[0].carg = CP_ARG(0u, 0u, 0u);   /* x2 */
-    t->step[1] = (step_t){{0}, 0, ST_TIE, 0, 0};
+    t->step[1] = (step_t){ .note = {0}, .n = 0, .time = ST_TIE, .flags = 0, .vel = 0 };
     seq_start();
     n = run_notes(t, 2u * step_len(t, 0) / CTL - 1u, nt, sizeof nt);
     bad += check("ARP x2 over a TIE: 60 64 | 67 60 (the TIE goes on with it)", n == 4u && nt[0] == 60u && nt[1] == 64u &&
                  nt[2] == 67u && nt[3] == 60u);
     t = one_step(1, 0);                                   /* SCALE: C major up from the step's note, 3 degrees */
     t->p[P_ROOT] = 0; t->p[P_SCALE] = 1;
-    t->step[0] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->step[0].comp = CP_ARPS; t->step[0].carg = CP_ARG(0u, 2u, 0u);
     n = run_notes(t, passes(t, 1), nt, sizeof nt);
     bad += check("ARP SCALE x4 UP, 3 degrees of C major: 60 62 64 60", n == 4u && nt[0] == 60u && nt[1] == 62u &&
                  nt[2] == 64u && nt[3] == 60u);
     t = one_step(1, 0);                                   /* SEQ: every note of the pattern */
     t->p[P_SLEN] = 2;
-    t->step[0] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->step[0].comp = CP_ARPQ; t->step[0].carg = CP_ARG(0u, 0u, 0u);
-    t->step[1] = (step_t){{67}, 1, ST_NOTE, 0, 100};
+    t->step[1] = (step_t){ .note = {67}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     seq_start();
     n = run_notes(t, 2u * step_len(t, 0) / CTL - 1u, nt, sizeof nt);
     bad += check("ARP SEQ x2: the pattern's notes (60 67), then the next step's own 67", n == 3u && nt[0] == 60u &&
@@ -422,10 +425,10 @@ static int components(void)
     /* (0.6.82) SEQ: the pattern's melody in its order (67 60 64), NOTES would sort it */
     t = one_step(1, 0);
     t->p[P_SLEN] = 3;
-    t->step[0] = (step_t){{67}, 1, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {67}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->step[0].comp = CP_ARPQ; t->step[0].carg = CP_ARG(0u, 2u, 0u);
-    t->step[1] = (step_t){{60}, 1, ST_NOTE, 0, 100};
-    t->step[2] = (step_t){{64}, 1, ST_NOTE, 0, 100};
+    t->step[1] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
+    t->step[2] = (step_t){ .note = {64}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     seq_start();
     n = run_notes(t, step_len(t, 0) / CTL - 1u, nt, sizeof nt);
     bad += check("ARP SEQ x4: the pattern's melody as it plays: 67 60 64 67", n == 4u && nt[0] == 67u && nt[1] == 60u &&
@@ -445,9 +448,9 @@ static int components(void)
     }
     /* a project keeps them (FUNC: x bit 16, two bytes), an old step none */
     ui_power_on();
-    trk[0].step[3] = (step_t){{60, 64}, 2, ST_NOTE, 0, 100};
+    trk[0].step[3] = (step_t){ .note = {60, 64}, .n = 2, .time = ST_NOTE, .flags = 0, .vel = 100 };
     trk[0].step[3].comp = CP_ARPS; trk[0].step[3].carg = CP_ARG(2u, 3u, 2u);
-    trk[1].step[0] = (step_t){{50}, 1, ST_NOTE, 0, 100};
+    trk[1].step[0] = (step_t){ .note = {50}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     trk[1].step[0].comp = CP_TRIG; trk[1].step[0].carg = 7;
     project_capture(&proj_scratch);
     ok = proj_pack(&st, &proj_scratch);
@@ -459,7 +462,7 @@ static int components(void)
     /* SEQ > COMP: K2 the TYPE, K3 / K4 its values; OFF / CHANCE / RATCH take a component away */
     ui_power_on();
     t = TSEL;
-    t->step[0] = (step_t){{60, 64, 67}, 3, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60, 64, 67}, .n = 3, .time = ST_NOTE, .flags = 0, .vel = 100 };
     go_page(GR_COMP); frame();
     ok = str_eq(cur_page()->title, "COMP") && comp_view() == COMP_OFF;
     turn(EN_K2, 3);                                       /* OFF CHANCE RATCH NOTES */
@@ -486,7 +489,7 @@ static track_t *pat(uint32_t len, const uint8_t *nts)
     t->p[P_SLEN] = (int16_t)len;
     t->p[P_ROOT] = 0; t->p[P_SCALE] = 1;                  /* C major */
     for (i = 0; i < len; i++) {
-        t->step[i] = nts[i] ? (step_t){{nts[i]}, 1, ST_NOTE, 0, 100} : (step_t){{0}, 0, ST_REST, 0, 0};
+        t->step[i] = nts[i] ? (step_t){ .note = {nts[i]}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 } : (step_t){ .note = {0}, .n = 0, .time = ST_REST, .flags = 0, .vel = 0 };
     }
     seq_start();
     return t;
@@ -658,7 +661,7 @@ static int components2(void)
     {   /* SEQ > COMP: KNOB 2 to the new TYPES, KNOB 3 their value (JUMP: any step) */
         ui_power_on();
         t = TSEL;
-        t->step[0] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+        t->step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
         go_page(GR_COMP); frame();
         turn(EN_K2, 4); turn(EN_K2, 3);                   /* .. RAND */
         ok = t->step[0].comp == CP_RAND && t->step[0].carg == 2u;
@@ -764,7 +767,7 @@ static int components3(void)
         t = one_step(1, 0);
         set_engine_of(t, ENGI_DRUM);
         t->engine = t->eng_req;
-        t->step[0] = (step_t){{0}, 0, ST_NOTE, 0, 100, 1u << DV_KICK, 0};
+        t->step[0] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 1u << DV_KICK, .acc = 0 };
         t->step[0].comp = CP_OCT; t->step[0].carg = 0;
         seq_start();
         run_notes(t, 2, nt, sizeof nt);
@@ -773,7 +776,7 @@ static int components3(void)
         seq_start();
         run_notes(t, 2, nt, sizeof nt);
         ok &= drum_kit[0][DV_KICK].st == base && drum_kit[0][DV_KICK].bd == -12 * 16 && drum_kit[0][DV_KICK].bs > 0;
-        t->step[0] = (step_t){{0}, 0, ST_NOTE, 0, 100, 1u << DV_KICK | 1u << DV_SNARE, 0};
+        t->step[0] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 1u << DV_KICK | 1u << DV_SNARE, .acc = 0 };
         t->step[0].comp = CP_ARPN; t->step[0].carg = CP_ARG(0u, 2u, 0u);
         seq_start();
         n = run_notes(t, step_len(t, 0) / CTL - 1u, nt, sizeof nt);
@@ -783,7 +786,7 @@ static int components3(void)
     /* SEQ > COMP 2 and WHEN: their knobs */
     ui_power_on();
     t = TSEL;
-    t->step[0] = (step_t){{60, 64, 67}, 3, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60, 64, 67}, .n = 3, .time = ST_NOTE, .flags = 0, .vel = 100 };
     go_page(GR_COMP); frame();
     ui.page++; page_entered(); frame();
     ok = str_eq(cur_page()->title, "COMP 2") && comp_slot() == 1u && comp_view() == COMP_OFF;
@@ -864,7 +867,7 @@ static int timing(void)
         t = &trk[0];
         track_defaults_steps(t);
         t->p[P_SLEN] = 4; t->p[P_SGATE] = 32; t->p[P_SSWING] = 0; song.g[G_SWING] = 0;
-        for (b = 0; b < 4u; b++) t->step[b] = (step_t){{(uint8_t)(60 + b)}, 1, ST_NOTE, 0, 100};
+        for (b = 0; b < 4u; b++) t->step[b] = (step_t){ .note = {(uint8_t)(60 + b)}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
         if (!k) { ST_MICRO_SET(&t->step[1], 4); ST_MICRO_SET(&t->step[3], -4); }
         seq_start();
         len = step_len(t, 0);
@@ -924,7 +927,7 @@ static int timing(void)
         project_t a, c;
         project_store_t p;
         ui_power_on();
-        trk[0].step[2] = (step_t){{62}, 1, ST_NOTE, 0, 100};
+        trk[0].step[2] = (step_t){ .note = {62}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
         ST_MICRO_SET(&trk[0].step[2], -7);
         trk[0].p[P_HRQ] = 40;
         project_capture(&a);

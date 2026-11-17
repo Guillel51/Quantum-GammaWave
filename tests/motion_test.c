@@ -58,7 +58,7 @@ static int motion_capacity(void)
 static int probability_playback(void)
 {
     int bad = 0; ui_power_on(); track_t *t = &trk[0];
-    step_t s = {{60, 64, 0, 0}, 2, ST_NOTE, 0, 90, 1u << DV_KICK, 0, 0};
+    step_t s = {.note = {60, 64, 0, 0}, .n = 2, .time = ST_NOTE, .flags = 0, .vel = 90, .hit = 1u << DV_KICK, .acc = 0};
     bad += check("zero-initialized probability remains legacy 100 percent", step_chance(&s) == 100u);
     step_set_chance(&s, 0); seq_step(t, &s, div_samples(2), 0);
     bad += check("zero percent suppresses the whole chord and drum hits", step_chance(&s) == 0u && !t->seq_n);
@@ -72,7 +72,7 @@ static int probability_playback(void)
 static int compact_project(void)
 {
     int bad = 0; ui_power_on(); track_t *t = &trk[0];
-    t->step[3] = (step_t){{60, 67}, 2, ST_NOTE, SF_ACCENT, 110, 0x81, 0x80, 0};
+    t->step[3] = (step_t){ .note = {60, 67}, .n = 2, .time = ST_NOTE, .flags = SF_ACCENT, .vel = 110, .hit = 0x81, .acc = 0x80, .probability = 0 };
     step_set_chance(&t->step[3], 25); t->p[P_FM1_LEVEL] = 80; t->p[P_ED_FLT] = -50;
     motion_set_event(t, 3, P_REV, 110);
     project_t before, after; project_store_t packed, corrupt;
@@ -97,7 +97,13 @@ static int compact_project(void)
         for (uint32_t j = 0; j < 61u; j++) old.t[k].p[j] = before.t[k].p[j];
         for (uint32_t j = 0; j < 8u; j++) old.t[k].p[61u + j] = before.t[k].p[P_E0 + j];
         old.t[k].engine = before.t[k].engine; old.t[k].preset = before.t[k].preset;
-        for (uint32_t j = 0; j < NSTEP; j++) memcpy(&old.t[k].step[j], &before.t[k].step[j], sizeof(step10_t));
+        for (uint32_t j = 0; j < NSTEP; j++) {   /* (1.3.1.1) the disk step by field: step_t is packed now, so its
+                                                  * first bytes are no longer step10_t's */
+            step10_t *d = &old.t[k].step[j]; const step_t *q = &before.t[k].step[j];
+            memcpy(d->note, q->note, 4);
+            d->n = (uint8_t)q->n; d->time = (uint8_t)q->time; d->flags = (uint8_t)(q->flags & 3u);
+            d->vel = (uint8_t)q->vel; d->hit = q->hit; d->acc = q->acc;
+        }
     }
     old.chain = before.chain; old.sum = proj_hash(&old, sizeof old - 4u);
     bad += check("real FUN6 disk image migrates with FM defaults/100% chance/no motion", proj_import(&after, &old, sizeof old) &&
@@ -140,7 +146,7 @@ static int fun7_89(void)
         for (i = 0; i < 8u; i++) trk[k].p[P_E0 + i] = (int16_t)(ENGINES[trk[k].eng_req]->edit[i].min + (int16_t)(k + i) %
             (ENGINES[trk[k].eng_req]->edit[i].max - ENGINES[trk[k].eng_req]->edit[i].min + 1));
     t->p[P_FM1_ATK] = 33; t->p[P_REV] = 20;
-    t->step[2] = (step_t){{60, 64, 67}, 3, ST_NOTE, 0, 100};
+    t->step[2] = (step_t){ .note = {60, 64, 67}, .n = 3, .time = ST_NOTE, .flags = 0, .vel = 100 };
     project_capture(&before);
     memset(&m, 0, sizeof m);                                       /* as the 89-parameter firmware numbered them */
     m.count = 3; m.on = 1;
@@ -185,7 +191,7 @@ static int loads_and_song(void)
     int bad = 0; ui_power_on(); track_t *t = &trk[0];
     int16_t v;
     uint32_t e0 = t->eng_req, e1 = e0 == ENGI_DRUM ? ENGI_FM6 : ENGI_DRUM;
-    t->p[P_REV] = 21; motion_set_event(t, 0, P_REV, 100); t->step[0] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+    t->p[P_REV] = 21; motion_set_event(t, 0, P_REV, 100); t->step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     motion_set_lock(t, 1, P_E0, motion_base_value(t, P_E0));
     apply_preset_to(t, 1);
     bad += check("1.1.5: a sound load of the same engine keeps the motion (both kinds, the engine's own E1 too), the pattern",
@@ -211,7 +217,7 @@ static int song_scenes(void)
 {
     int bad = 0, ok; ui_power_on(); track_t *t = &trk[0];
     scene_t *sc = &song_idx.scene[song_cur][0];
-    t->step[0] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     project_save(0);
     chain_config.count = 1; chain_config.row[0] = (chain_row_t){0, 1};
     memset(sc, 0, sizeof *sc);
@@ -450,7 +456,7 @@ static track_t *lock_track(int32_t sw)
     song.g[G_SWING] = 0;
     t->p[P_REV] = 20;
     for (i = 0; i < 8u; i++)
-        t->step[i] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+        t->step[i] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     return t;
 }
 /* two passes from step 0: REV at each step's start as want[]; 1 = all as wanted */
@@ -847,7 +853,7 @@ static int seq_shift(void)
     uint32_t period = div_samples(2), i, at = 99;
     memset(t->step, 0, sizeof t->step);
     t->p[P_SLEN] = 16; t->p[P_SDIV] = 2; t->p[P_SSWING] = 0; song.g[G_SWING] = 0;
-    t->step[0] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+    t->step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
     t->p[P_SOFS] = 2; t->p[P_POFS] = 5;
     song.playing = 1; t->seq_idx = 15; t->seq_pos = 0;
     for (i = 0; i < 16u; i++) {

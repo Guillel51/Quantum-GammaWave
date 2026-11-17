@@ -904,7 +904,7 @@ static void setup(int s)
     case S_COMP:                                        /* (0.6.39) an ARP NOTES step: UP-DN x6 over two octaves */
     case S_COMP_TRIG:                                   /* .. a TRIG 3:4 */
     case S_COMP_ECHO:                                   /* (0.6.42) .. an ECHO x4, a JUMP, a PULSE */
-        TSEL->step[0] = (step_t){{60, 63, 67}, 3, ST_NOTE, 0, 100};
+        TSEL->step[0] = (step_t){ .note = {60, 63, 67}, .n = 3, .time = ST_NOTE, .flags = 0, .vel = 100 };
         TSEL->step[0].comp = s == S_COMP ? CP_ARPN : s == S_COMP_ECHO ? CP_ECHO : CP_TRIG;
         TSEL->step[0].carg = s == S_COMP ? CP_ARG(2u, 3u, 1u) : s == S_COMP_ECHO ? 2u : 7u;
         if (s == S_COMP_ECHO) { TSEL->step[10].comp = CP_JUMP; TSEL->step[10].carg = 2; TSEL->step[12].comp = CP_PULSE; }

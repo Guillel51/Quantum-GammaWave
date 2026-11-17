@@ -632,7 +632,7 @@ int main(int argc, char **argv)
         uint32_t bar = 4u * 60u * FS / 120u, n = 4u * bar, s;
         static int32_t big[4 * 4 * 60 * FS / 120];
         for (s = 0; s < 16u; s++) {
-            step_t st = {{0, 0, 0, 0}, 0, ST_NOTE, 0, 100, 0, 0};
+            step_t st = {.note = {0, 0, 0, 0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 0, .acc = 0};
             st.hit = BEAT[s];
             t->step[s] = st;
         }

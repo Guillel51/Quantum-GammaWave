@@ -258,7 +258,7 @@ static void usb_clean(void)
         fresh();
         trk[0].p[P_SLEN] = 16; trk[0].p[P_SDIV] = 2;
         for (i = 0; i < 16u; i++)
-            trk[0].step[i] = (step_t){{(uint8_t)(48 + (i * 7u) % 12u)}, 1, i % 3u ? ST_NOTE : ST_REST, 0, 100};
+            trk[0].step[i] = (step_t){ .note = {(uint8_t)(48 + (i * 7u) % 12u)}, .n = 1, .time = i % 3u ? ST_NOTE : ST_REST, .flags = 0, .vel = 100 };
         song.g[G_BPM] = 120;
         click_mode = pass ? CLICK_ON : CLICK_OFF;
         transport_req = 1;

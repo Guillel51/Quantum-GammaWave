@@ -177,7 +177,7 @@ int main(void)
     persist_t ps;
 
     reset();
-    trk[0].step[0] = (step_t){{60}, 1, ST_NOTE, 0, 96, 0, 0};
+    trk[0].step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 0, .acc = 0 };
     bad += check("LIST captures the runtime: 13 objects (id 8 empty, id 9 the FM6 patches), runtime 3840 B (FUNB)",
                  list(0, &len, &crc) == 0 && rep[2] == 43u && len == sizeof(project_store_t) && len == 3840u &&
                  crc == st_crc32(ED_BK_RAW, len));
@@ -274,7 +274,7 @@ int main(void)
 
     /* projects */
     reset();
-    trk[1].step[3] = (step_t){{64}, 1, ST_NOTE, 0, 96, 0, 0};
+    trk[1].step[3] = (step_t){ .note = {64}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 0, .acc = 0 };
     project_capture(&proj_scratch);
     proj_pack(&st, &proj_scratch);
     bad += check("a FUN9 project restores into slot 3 (flash and RAM)",
@@ -412,7 +412,7 @@ int main(void)
 
     /* the runtime */
     reset();
-    trk[2].step[5] = (step_t){{67}, 1, ST_NOTE, 0, 96, 0, 0};
+    trk[2].step[5] = (step_t){ .note = {67}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 0, .acc = 0 };
     trk[2].p[P_LEVEL] = 77;
     project_capture(&proj_scratch);
     proj_pack(&st, &proj_scratch);

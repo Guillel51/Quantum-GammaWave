@@ -209,18 +209,34 @@ pool (9 248 B). Los símbolos más grandes, medidos con `nm` sobre el build AC79
 | símbolo | bytes | qué es | ¿se puede recuperar? |
 |---|---:|---|---|
 | `WT_GEN` | 12 288 | banco de wavetables: 3 niveles de banda × 8 frames × 256 puntos × `int16` | sí, pero cambia el timbre (menos puntos o menos niveles). Necesita A/B de escucha |
-| `trk` | 10 560 | las seis pistas (6 × 1 760) | sí: empaquetar velocity/largo/chance/ratchet (~1,5 KB) tras auditar rangos |
+| `trk` | 9 792 | las seis pistas (6 × 1 632: 64 pasos de 15 B + 672 de lo demás) | hecho en 1.3.2 (`step_t` de 17 → 15 B, −768 B); más sólo cambiando el formato de flash |
 | `fm6_note` | 7 104 | 6 pistas × voces FM6 | auditar la estructura; mover constantes a XIP |
 | `drum_kit` | 5 376 | estado vivo de las 8 líneas por pista | no: es estado de voz |
 | `st_buf` | 3 840 | payload de un sector de flash (4 KiB − 256 de cabecera) | no sin cambiar el layout de flash |
 | `upf` | 3 728 | índice del banco de FM6, persistente | no: se guarda en flash |
-| `gen_keep` | 2 176 | UNDO de GEN, sobrevive entre frames | no: es estado |
-| `ua_ring` | 2 048 | anillo de audio USB (512 frames, 10,7 ms) | sí, a costa de latencia/underrun: probar en unidad |
+| `gen_keep` | 1 920 | UNDO de GEN (2 × 64 pasos), sobrevive entre frames | no: es estado; bajó 256 B con el paso de 15 B |
+| `ua_ring` | 2 048 | anillo de audio USB (512 frames, 10,7 ms) | **no**: 512 es el mínimo. `usb.c` lo exige con `_Static_assert(UA_HI + HALF_FRAMES + UA_MAXF < UA_N)` = 128 + 128 + 46 = 302 marcos, y el índice va con máscara, así que tiene que ser potencia de dos: 256 no cumple |
 | `hc_tab` | 1 548 | 3 LUT de Huffman (una por fuente) | no se comparten: cada fuente tiene su código |
 
 **La unión de búferes que se propuso en la revisión no es válida**: `gen_keep`, `upf` y `st_buf` tienen vidas
 que se solapan (UNDO de GEN, índice en flash y cuerpo de objeto devuelto por `editor_backup`). Lo que sí es
 seguro y está hecho es dimensionar los anillos por lo que de verdad transportan.
+
+**Los dos anillos de 2 048 B que quedan no se pueden tocar sin cambiar comportamiento** (1.3.2):
+
+- `ua_ring` es el anillo del audio USB: 512 frames es el mínimo que deja el invariante del propio `usb.c`
+  (banda 80..128 + un render de 128 + un paquete de 46 = 302 marcos, y el anillo tiene que ser potencia de
+  dos porque se indexa con máscara). La banda no es una estimación: está medida en unidad con carga del
+  65 % de CPU (ver el comentario de `UA_LO`/`UA_HI`).
+- `abuf` es el doble búfer del DMA de audio (2 × `HALF_FRAMES` × `int32`). La mitad es el bloque que el
+  codec consume entre interrupciones, y de `HALF_FRAMES` cuelgan `CPU_AVG`, `SHED_TICKS` y los umbrales de
+  LOAD (65 % / 60 %, ECO 50 % / 45 %): reducirlo duplica la tasa de interrupción y recalibra el medidor de
+  carga. Es un cambio de temporización que se prueba en la FM-1, no en el host.
+- **Compartir un anillo entre CDC y UAC es incorrecto**: son dos endpoints del mismo dispositivo compuesto
+  y coexisten (la consola abierta mientras suena el audio). `ep3tx` (EP3) sale de `cdc_out` y `ua_ring`
+  alimenta EP4; los dos se atienden en el mismo camino de interrupción USB, y un solo anillo mezclaría
+  texto con muestras. `cdc_out` sí bajó de 2 048 a 512 B en 1.3.1 porque su cola es una línea de
+  diagnóstico.
 
 ### 8.1 El build de v1.3.1 (2026-11-16, medido en AC791N)
 

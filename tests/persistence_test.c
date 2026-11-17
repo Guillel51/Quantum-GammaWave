@@ -673,7 +673,7 @@ int main(void)
                   st_load(OBJ_SETTINGS, &p, sizeof p) == (int)sizeof p && p.palette == palette_to_stored(1));
 
     reset();
-    trk[0].step[0] = (step_t){{60}, 1, ST_NOTE, 0, 96, 0, 0};
+    trk[0].step[0] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 0, .acc = 0 };
     project_save(0);
     old = proj_slot[0];
     trk[0].step[0].note[0] = 72;

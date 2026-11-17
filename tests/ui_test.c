@@ -546,7 +546,12 @@ static int test_sound_loads(void)
         memcpy(legacy.t[ti].p, decoded.t[ti].p, 61u * sizeof(int16_t));
         memcpy(legacy.t[ti].p + 61, decoded.t[ti].p + P_E0, 8u * sizeof(int16_t));
         legacy.t[ti].engine = decoded.t[ti].engine; legacy.t[ti].preset = decoded.t[ti].preset;
-        for (uint32_t st = 0; st < NSTEP; st++) memcpy(&legacy.t[ti].step[st], &decoded.t[ti].step[st], sizeof(step10_t));
+        for (uint32_t st = 0; st < NSTEP; st++) {   /* (1.3.1.1) by field: step_t is packed */
+            step10_t *d = &legacy.t[ti].step[st]; const step_t *s = &decoded.t[ti].step[st];
+            memcpy(d->note, s->note, 4);
+            d->n = (uint8_t)s->n; d->time = (uint8_t)s->time; d->flags = (uint8_t)s->flags;
+            d->vel = (uint8_t)s->vel; d->hit = s->hit; d->acc = s->acc;
+        }
     }
     legacy.t[3].engine = 0;
     legacy.g[G_DRLVL] = 71; legacy.g[G_DRREV] = 43;
@@ -670,7 +675,7 @@ static int test_mutate(void)
     }
     bad += check("MUTATE ORBIT: after 7 bars every value within AMOUNT of the anchor", ok);
     /* PATTERN on the DRUM track: hits change, the kick lane never */
-    for (i = 0; i < 16u; i++) { d->step[i] = (step_t){{0}, 0, ST_NOTE, 0, 100}; d->step[i].hit = i % 4u ? 0x08u : 0x09u; }
+    for (i = 0; i < 16u; i++) { d->step[i] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100 }; d->step[i].hit = i % 4u ? 0x08u : 0x09u; }
     for (i = 0; i < 16u; i++) kick0 |= (uint32_t)(d->step[i].hit & 1u) << i;
     d->p[P_MPAT] = 1; d->p[P_MAMT] = 127;
     mutate_poll();
@@ -686,7 +691,7 @@ static int test_mutate(void)
     bad += check("MUTATE FREEZE: no change while frozen", k == 0u);
     /* (0.6.68) a sequence cleared while it mutates never comes back from the anchor; an empty kit stays empty */
     d->p[P_MPAT] = 0;
-    for (i = 0; i < 16u; i++) { t->step[i] = (step_t){{0}, 0, ST_REST, 0, 0}; if (!(i & 1u)) { t->step[i].n = 1; t->step[i].note[0] = (uint8_t)(60 + i); t->step[i].time = ST_NOTE; t->step[i].vel = 100; } }
+    for (i = 0; i < 16u; i++) { t->step[i] = (step_t){ .note = {0}, .n = 0, .time = ST_REST, .flags = 0, .vel = 0 }; if (!(i & 1u)) { t->step[i].n = 1; t->step[i].note[0] = (uint8_t)(60 + i); t->step[i].time = ST_NOTE; t->step[i].vel = 100; } }
     t->p[P_MSND] = 0; t->p[P_MPAT] = 1; t->p[P_MAMT] = 60;
     mutate_poll(); mut_bars(2);
     for (i = 0; i < NSTEP; i++) step_clear(&t->step[i]);
@@ -1437,7 +1442,7 @@ static int test_init_system(void)
     {   /* (0.6.40) TOOLS 5 INIT SYSTEM: its dialog; everything as at power-on (sounds, steps, automation, mix, effects,
          * song, macros, the kit), the setup kept; UNDO brings the music back */
         uint32_t k, sig0, ok2;
-        trk[0].step[2] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+        trk[0].step[2] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
         trk[2].p[P_LEVEL] = 30; trk[2].p[P_REV] = 90;
         song.g[G_BPM] = 97; song.g[G_RTYPE] = 3; song.g[G_TUNE] = 5; song.g[G_CLOCK] = 1;
         macro_v[1] = 77; dx_tone = 0x35u; dx_mot[XM_DPTH] = 50; pfx_lane[3] = 9;
@@ -1461,7 +1466,7 @@ static int test_init_system(void)
     }
     {   /* (0.6.83) TOOLS 6 CPU TEST: the heaviest song on every live track (the last one the kit), UNDO: back */
         uint32_t k, sig0, ok2, kit = 0, comps = 1;
-        trk[0].step[2] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+        trk[0].step[2] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
         song.g[G_BPM] = 97;
         sig0 = steps_sig(&trk[0]);
         go_title("TOOLS"); tools_pick(6); press(B_OCTUP);
@@ -1487,7 +1492,7 @@ static int test_init_system(void)
         chain_defaults(&chain_config);
         go_title("TOOLS"); tools_pick(7); press(B_OCTUP);
         ok2 = !ui.confirm && msg_is("NOTHING TO CLEAR");
-        trk[0].step[2] = (step_t){{60}, 1, ST_NOTE, 0, 100};
+        trk[0].step[2] = (step_t){ .note = {60}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 100 };
         sig0 = steps_sig(&trk[0]);
         section_store(0);
         section_store(2);
@@ -1781,7 +1786,7 @@ static int test_grid(void)
     bad += check("pages: black keys 11 / 10 up / down (the cursor along); past LEN a key does nothing", ok);
     t->p[P_SLEN] = 16;
     /* a step's GM notes on their lanes */
-    t->step[8] = (step_t){{41, 49, 36, 0}, 3, ST_NOTE, SF_ACCENT, 96, 0, 0};
+    t->step[8] = (step_t){ .note = {41, 49, 36, 0}, .n = 3, .time = ST_NOTE, .flags = SF_ACCENT, .vel = 96, .hit = 0, .acc = 0 };
     ok = step_lanes(&t->step[8]) == ((1u << DV_TOM) | (1u << DV_BELL) | (1u << DV_KICK)) &&
          step_accents(&t->step[8]) == step_lanes(&t->step[8]);
     grid_hit(t, 8, DV_TOM, 0);
@@ -2840,7 +2845,7 @@ static int test_chain(void)
         for (i = 0; i < NTRK; i++) {
             track_defaults_steps(&trk[i]);
             trk[i].p[P_SLEN] = (int16_t)(2u + k);
-            trk[i].step[0] = (step_t){{(uint8_t)(60u + 5u * k), 0, 0, 0}, 1, ST_NOTE, 0, 96, 0, 0};
+            trk[i].step[0] = (step_t){ .note = {(uint8_t)(60u + 5u * k), 0, 0, 0}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 0, .acc = 0 };
         }
         project_save(k);
     }
@@ -7063,7 +7068,7 @@ static void sl_steps(uint32_t base)                 /* every track: step 1 holds
     for (i = 0; i < NTRK; i++) {
         track_defaults_steps(&trk[i]);
         trk[i].p[P_SLEN] = 16;
-        trk[i].step[0] = (step_t){{(uint8_t)(base + i), 0, 0, 0}, 1, ST_NOTE, 0, 96, 0, 0};
+        trk[i].step[0] = (step_t){ .note = {(uint8_t)(base + i), 0, 0, 0}, .n = 1, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 0, .acc = 0 };
     }
 }
 static void sl_key(uint32_t w)                      /* SAVE held, a white key tapped, SAVE let go */
