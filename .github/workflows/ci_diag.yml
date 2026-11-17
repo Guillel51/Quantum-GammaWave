@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# The `emulator` workflow's logs, out of the runner and into a branch.
+# A workflow's logs, out of the runner and into a branch.
 #
 # Why this exists: the publish job can only be debugged from its own log, and a log is behind the Actions
 # API, which needs a credential. The runner has one. This job reads the finished run with it, keeps the
@@ -10,7 +10,10 @@
 name: ci-diag
 on:
   workflow_run:
-    workflows: ["emulator"]
+    # `tag and publish` is here because it is the one job whose silence is expensive: on 2026-11-17 it
+    # reported SUCCESS for v1.3.9.1 and created neither the tag nor the release, and there was no way to see
+    # why -- the log needs a credential. It now leaves its log in `ci/log/<run>-<conclusion>` as well.
+    workflows: ["emulator", "tag and publish"]
     types: [completed]
   workflow_dispatch:
     inputs:

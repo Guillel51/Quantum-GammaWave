@@ -74,6 +74,13 @@ On that push:
 were already published and are still likely to be linked. Older packages stay on their release pages; there
 is no reason for the repository to carry five 600 KB copies of the same firmware forever.
 
+## 4.1 When the publisher goes quiet
+
+`tag-and-publish` reports SUCCESS and still creates nothing. Its log lives behind a credential, so
+`ci-diag` reads the finished run with the runner's own token and pushes the trimmed log to
+`ci/log/<run>-<conclusion>`; the branch is public to anyone who can read the repository, no token needed.
+That is where to look before retrying anything.
+
 ## 5. What a release does not prove
 
 Nothing in this pipeline reads or writes a physical FM-1. A green release means the tree is consistent,
