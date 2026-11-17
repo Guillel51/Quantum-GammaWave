@@ -1809,3 +1809,17 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | KEYTRK as a first-class parameter | `[STATIC]` | **BLOCKED — needs a format decision.** The DSP has key tracking: `eng_analog.c:327` scales cutoff by `v->pitch16` with `ktr`, and five other sites hardcode `(pitch16 - 60*16) * 4`. Nothing can set it: the project's parameter ids are full (`P_COUNT 125` of the 127 seven-bit ids), so a per-track parameter has no slot in `proj_trk_t`, and a preset/project written without it would lose the value. `track_t` does have one padding byte, which fixes the RAM side and not the persistence |
 | The 1.3.9.1 package | `[TARGET]` | AC791N build at `00b4acc`, `dirty: []` in both manifests: `.data+.bss` 95 124 B of 98 304, image 582 776 B of 583 612, package 610 959 B sha256 `c36bbee5…`, identity `FM-1_965`, emulator wasm 1 240 530 B |
 | Run on a physical FM-1 | — | **NOT MEASURED**: no unit was touched in this session. Everything above is host, CI, live HTTP or an AC791N build |
+
+---
+
+## 2026-11-17 (2) — v1.4.0: splash, HOME, pozos, contraste
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| STARTUP SPLASH FULL es animado | `[HOST]` | `tests/ui_render.c` escribe la línea de tiempo del boot como la corre `main.c`: 1125 pasos de 4 ms, **244 cambian la pantalla**, la racha quieta más larga 20 ms. Con `MENU > ANIM OFF` —el ajuste de la unidad del dueño— la misma línea de tiempo escribe **127 fotogramas distintos**: antes de 1.4 ese bit congelaba el arte y FULL se veía igual que SHORT |
+| El bucle del boot dura lo que el splash | `[STATIC]` | `main.c` limitaba el bucle a 600 pasos de 4 ms (2,4 s) con `SPL_WRITE + SPL_HOLD` = 4,5 s: el tope ahora sigue al span (`span / 4 + 400`) |
+| HOME 2–5 no repinta de más | `[HOST]` | `graph_home_view` dibuja su cuerpo (3 canvas, 3 blits) sólo si cambia la firma de lo que muestra; las brasas avanzan a 1/8 de fotograma. Medido por el arnés de render (190 pantallas × 22 paletas, 0 hallazgos) y en el coste de dibujo que reporta |
+| Los pozos de los osciloscopios no son cajas negras | `[HOST]` | `ui_graph.c` usaba `bg_darken(T_BG, 26)` desde 1.3.9; ahora el pozo es `T_SURF`, el tono de la placa donde vive. Visto en `build/ui_new/*/home_viz.png` |
+| Contraste de temas | `[HOST]` + **sin medir en la unidad** | `tools/gen_ui_palettes.py` guarda el suelo de cada tema oscuro al 72 % de cada canal; la tabla de contrastes del generador pasa sin un solo FAIL. En el panel, `lcd.c` escribe por primera vez la gamma 2.2 (0xE0/0xE1) y el brillo 200/255 (0x53/0x51) en vez de dejarlos de fábrica: es un cambio de valores por defecto y **no está medido en una unidad** |
+| El paquete de 1.4.0 | `[TARGET]` | build AC791N en `d1f2f88`, manifiestos sin cambios sucios: `.data+.bss` 95 140 B de 98 304, imagen 583 080 B de 583 612, paquete 610 959 B sha256 `4c987875…`, identidad `FM-1_965` |
+| En una FM-1 física | — | **NOT MEASURED**: nada de lo anterior se probó en la unidad del dueño (splash, parpadeo, contraste, pozos) |
