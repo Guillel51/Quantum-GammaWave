@@ -792,6 +792,10 @@ typedef struct {
     uint8_t rec;                 /* live recording armed: bit per track */
     uint8_t sel;                 /* selected track 0..NTRK-1: keys, pages, editor */
     int8_t octave;
+    /* (1.3.3) THE SLICER'S STEPS: a step that carries its own MODE (SL_GATE / SL_STUT) and DEPTH, instead of the
+     * song's G_SLMODE and G_SLDEP; 0 is "the song's", which is what every firmware before it played and what an old
+     * project loads as (project.c: the 'S' 'P' block, absent before). The pattern's 'x' / '.' stays the pattern's */
+    int16_t sl_mode[NSTEP], sl_dep[NSTEP];
     uint32_t tick;               /* sub-blocks since play */
     uint32_t cpu_q8;             /* audio ISR load, 1/256 */
     uint32_t master_q12;

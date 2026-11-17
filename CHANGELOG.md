@@ -1,3 +1,31 @@
+## v1.3.4 (sin publicar) — el SLICER, paso por paso
+
+### Lo que se agregó
+- **DEPTH y MODE, paso por paso, en el SLICER.** Hasta ahora los dos eran de la canción entera. Ahora **FX > SL STEP** es una
+  página: **KNOB 1** recorre los 16 pasos del patrón, **KNOB 2** le da a ese paso su **MODE** (SONG / GATE / STUT) y
+  **KNOB 3** su **DEPTH**. Un paso que se queda en SONG usa el MODE y el DEPTH de la canción —que es lo que todos los
+  proyectos de antes tocaban—, y un paso que toma un MODE se lleva su DEPTH: por eso un DEPTH 0 es un paso realmente
+  cerrado del todo y no un hueco de la tabla. El bus corre con el modo de un solo paso aunque el MODE de la canción esté en
+  OFF, y el gráfico de la página dibuja los 16 pasos con su profundidad (los que siguen la canción en gris, STUT rayado,
+  el paso que elegís subrayado y el que suena encendido).
+- **Entrada en el proyecto, compatible hacia atrás.** Los pasos viajan en un bloque propio, `'S'` `'P'` (2 bytes de
+  marca + 16 de MODE + 16 de DEPTH), que **sólo se escribe cuando algún paso lleva MODE**: un proyecto de antes no lo
+  tiene y se lee con los 16 pasos siguiendo la canción, exactamente lo que tocaba. El bloque entra en
+  `proj_packed_size()`, así que una sección demasiado llena sigue diciendo `SECTION FULL` en vez de desbordar; los MODE y
+  DEPTH fuera de rango en un registro dañado devuelven ese paso a la canción y el resto carga igual.
+
+### Lo que se midió (host, x86)
+- `tests/project_test.c`: el viaje de ida y vuelta de un paso con MODE y DEPTH propios (con DEPTH 0), un FUNB (escritor
+  viejo, que no conoce el bloque) que carga con los 16 pasos en SONG, y los bytes fuera de rango saneados: los tres **ok**,
+  suite **`project format test passed`**.
+- `tests/ui_test.c`: `test_sl_step` — la página, KNOB 1 eligiendo el paso 5, KNOB 2 y KNOB 3 escribiendo en ese paso y sólo
+  en ése, la vuelta a SONG, el DEPTH 0, y `slicer_on()` corriendo por el modo de un paso con la canción en OFF: **ok**,
+  **`ui: all passed`**. (De paso, el arnés de los tests ahora limpia `pcat` en `ui_power_on()`: la categoría del navegador
+  es estado de sesión y quedaba de un test al siguiente.)
+- Barrido del render con la página nueva: **0 hallazgos de lint**, **0 desalineaciones en 3 923 924 medidas** (antes
+  3 894 154: las columnas de la página nueva se miden también).
+- Enlace AC791N: ver el commit, abajo.
+
 ## v1.3.3 (sin publicar) — la escena de FX de cada pista
 
 ### Lo que se agregó

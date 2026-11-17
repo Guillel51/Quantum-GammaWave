@@ -951,6 +951,51 @@ int main(void)
                       s2.t[k].p[P_APWAVE] == TP[P_APWAVE].def && s2.t[k].p[P_APSYNC] == TP[P_APSYNC].def;
             bad += check("  .. and AUTO PAN, in the old SLICER's slots, off on every track (its defaults)", ok);
         }
+        {   /* (1.3.3) the SLICER's steps: a step with a MODE of its own carries its DEPTH ('S' 'P'); a project written
+             * before it (FUNB, which knows nothing of the block) loads with every step following the song, which is
+             * what it played */
+            static project_t p1, p2;
+            static project_store_t pst;
+            uint32_t k, sz;
+            p1 = f;
+            sz = proj_packed_size(&p1);
+            p1.sl_mode[3] = SL_GATE; p1.sl_dep[3] = 0;      /* (depth 0: the gate shut all the way, kept as it is) */
+            p1.sl_mode[7] = SL_STUT; p1.sl_dep[7] = 96;
+            p1.sum = proj_sum(&p1);
+            ok = proj_packed_size(&p1) == sz + 2u + 2u * NSTEP;
+            ok = ok && proj_pack(&pst, &p1) && proj_import(&p2, &pst, sizeof pst);
+            ok = ok && p2.sl_mode[3] == SL_GATE && p2.sl_dep[3] == 0 &&
+                 p2.sl_mode[7] == SL_STUT && p2.sl_dep[7] == 96;
+            for (k = 0; k < NSTEP; k++)
+                if (k != 3u && k != 7u)
+                    ok = ok && !p2.sl_mode[k];              /* (the rest: the song's) */
+            bad += check("FUNC: the SLICER's steps: a step's own MODE and DEPTH round trip in 'S' 'P'", ok);
+            /* a record of before the block: every step follows the song */
+            p1 = f;
+            p1.sl_mode[2] = SL_GATE; p1.sl_dep[2] = 12;     /* (what the old writer cannot hold) */
+            p1.sum = proj_sum(&p1);
+            ok = proj_pack_vb(&pst, &p1) && proj_import(&p2, &pst, sizeof pst);
+            for (k = 0; ok && k < NSTEP; k++)
+                ok = !p2.sl_mode[k] && !p2.sl_dep[k];
+            bad += check("  a FUNB (before the block): every step follows the song, nothing invented", ok);
+            /* the block's bytes out of range: the step goes back to the song's, the rest loads */
+            p1 = f;
+            p1.sl_mode[5] = SL_STUT; p1.sl_dep[5] = 70;
+            p1.sum = proj_sum(&p1);
+            ok = proj_pack(&pst, &p1);
+            for (k = 68u; k + 2u + 2u * NSTEP <= PROJC_PFX_OFF; k++)
+                if (pst.raw[k] == 'S' && pst.raw[k + 1u] == 'P') {
+                    uint32_t hz;
+                    pst.raw[k + 2u + 5u] = 3u;              /* (no such MODE: SL_OFF .. SL_STUT is 0..2) */
+                    pst.raw[k + 2u + NSTEP + 5u] = 200u;    /* (a DEPTH past 127) */
+                    hz = proj_hash(pst.raw, PROJ_STORE_SIZE - 4u);
+                    memcpy(pst.raw + PROJ_STORE_SIZE - 4u, &hz, 4);
+                    break;
+                }
+            ok = ok && k + 2u + 2u * NSTEP <= PROJC_PFX_OFF;
+            ok = ok && proj_import(&p2, &pst, sizeof pst) && !p2.sl_mode[5] && !p2.sl_dep[5];
+            bad += check("  'S' 'P' with a MODE or a DEPTH out of range: that step follows the song, it loads", ok);
+        }
         {   /* damaged on purpose with the hash made right: refused or loaded, never read past the room (ASan) */
             static project_store_t z;
             uint32_t r = 12345u, it, okz = 1, loaded = 0;

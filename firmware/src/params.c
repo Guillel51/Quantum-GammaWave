@@ -548,7 +548,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS};   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_SLSTEP};   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
                                      * scale's notes and intervals, the chords the key has, their voicings, the
                                      * intervals from the root, the degrees' progressions and the keys (ui_graph.c) */
@@ -632,6 +632,8 @@ static const page_t PAGES[] = {
     {"SL BUS", FAM_FX, SC_GLOBAL, GR_SLCR, {G_SLT1, G_SLT1 + 1, G_SLT1 + 2, G_SLT1 + 3}},   /* what goes in */
     {"SL BUS 2", FAM_FX, SC_GLOBAL, GR_SLCR, {G_SLT1 + 4, G_SLT6, G_SLFX, 0xFF}},
     {"SL PITCH", FAM_FX, SC_GLOBAL, GR_SLPIT, {0xFF, G_SLP0, G_SLPLEN, G_SLPQ}},   /* KNOB 1 the step (sl_ui_step) */
+    {"SL STEP", FAM_FX, SC_GLOBAL, GR_SLSTEP, {0xFF, 0xFF, 0xFF, 0xFF}},   /* (1.3.3) KNOB 1 the step, 2 its MODE,
+                                     * 3 its DEPTH: a step's own instead of the song's */
     {"MASTER", FAM_FX, SC_GLOBAL, GR_NONE, {G_CLIP, G_PUNCH, G_DUCK, G_DREL}},   /* JIANT: clipper, drum bus, ducking */
     {"MASTER EQ", FAM_FX, SC_GLOBAL, GR_NONE, {G_EQMODE, G_EQFREQ, G_EQGAIN, G_EQQ}},   /* QG-1 v1.4: Peak/Notch/Shelf Parametric EQ */
     {"STEREO M/S", FAM_FX, SC_GLOBAL, GR_NONE, {G_MWIDTH, 0xFF, 0xFF, 0xFF}},            /* QG-1 v1.4: Dedicated Master Stereo Width */
@@ -727,6 +729,13 @@ static const param_desc_t REV_AIR = PD("AIR", F_SEMI, -24, 24, 0);    /* (0.6.12
                                                                        * up airy (G_RPRE; fx.c rev_air) */
 static const param_desc_t AP_BEAT = PE("RATE", N_APDIV, 2);          /* (0.6.9) AUTO PAN's RATE on the tempo (SYNC BEAT) */
 static uint8_t sl_ui_step;       /* (JIANT 0.6.3) the SL PITCH page: the step KNOB 2 edits */
+/* (1.3.3) FX > SL STEP: the SLICER's step KNOB 2 and 3 edit. A step that carries a MODE (GATE / STUT) carries its own
+ * DEPTH with it; SONG is the song's MODE and DEPTH for that step, which is what every project of before had */
+static int16_t sl_step_pick = 1;
+static const char *const N_SLSTEP[] = {"SONG", "GATE", "STUT"};
+static const param_desc_t SLSTEP_DESC = PD("STEP", F_INT, 1, 16, 1);
+static const param_desc_t SLMODE_DESC = PE("MODE", N_SLSTEP, 0);
+static const param_desc_t SLDEP_DESC = PD("DEPTH", F_PCT, 0, 127, 127);
 
 /* (6.2) SEQ > TOOLS: the operation, its TIMES and the two actions the page's knobs turn (ui_seqtools.c). */
 enum { SQOP_DUP, SQOP_HALF, SQOP_ROTL, SQOP_ROTR, SQOP_REV, SQOP_CLR, SQOP_COUNT };
@@ -782,6 +791,23 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
     if (id == P_DXIMG && !FELUCCA_FM4 && TSEL->eng_req % NENGINES != ENGI_DRUM) {
         *valp = &TSEL->p[P_DXIMG];                     /* (FASE 2) ENV VEL: how much velocity scales the amp */
         return &VEL_DESC;
+    }
+    if (pg->graph == GR_SLSTEP) {                      /* (1.3.3) SL STEP: the step, then its MODE and DEPTH */
+        uint32_t k = (uint32_t)clamp(sl_step_pick - 1, 0, 15);
+        if (slot == 0u) {
+            *valp = &sl_step_pick;
+            return &SLSTEP_DESC;
+        }
+        if (slot > 2u) {
+            *valp = 0;
+            return 0;
+        }
+        if (slot == 1u) {
+            *valp = &song.sl_mode[k];
+            return &SLMODE_DESC;
+        }
+        *valp = &song.sl_dep[k];
+        return &SLDEP_DESC;
     }
     if (pg->graph == GR_SEQTOOLS) {                    /* (6.2) SEQ > TOOLS: OP, TIMES, APPLY, UNDO */
         static const param_desc_t *const D[4] = {&SQOP_DESC, &SQAMT_DESC, &SQGO_DESC, &SQUNDO_DESC};

@@ -465,7 +465,8 @@ static int page_visible(uint32_t i)
     if (PAGES[i].graph == GR_SONG && PAGES[i].fam == FAM_SEQ)
         return 0;                                       /* (0.6.24) the song in one place: SAVE > ARRANGE (SEQ > SONG
                                                          * was the same page twice; kept in the table: its index) */
-    if (sys_load == LOAD_ECO && ((PAGES[i].graph == GR_SLCR || PAGES[i].graph == GR_SLPIT) ||
+    if (sys_load == LOAD_ECO && ((PAGES[i].graph == GR_SLCR || PAGES[i].graph == GR_SLPIT ||
+                                  PAGES[i].graph == GR_SLSTEP) ||
                                  (PAGES[i].fam == FAM_FX && PAGES[i].id[0] == G_CRATE)))
         return 0;                                       /* (0.6.30) LOAD ECO: no SLICER, no chorus: their pages gone */
     if (PAGES[i].fam == FAM_EDIT && PAGES[i].id[0] == P_X0)   /* (FASE 2) CHARACTER: the engines with slots */

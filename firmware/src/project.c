@@ -133,6 +133,8 @@ typedef struct {
     uint8_t fugue[NTRK][3][2];                 /* (0.6.52) SEQ > FUGUE's heads (fugue.c): RATE | DIR << 4, INTERVAL (int8);
                                                 * FUNC's 'F' 'G' block, none before */
     uint8_t pfx_lane[32], pfx_ltgt;            /* the punch-in lane (pfx.c), in FUN9's spare bytes (PROJ_PFX_OFF) */
+    uint8_t sl_mode[NSTEP], sl_dep[NSTEP];     /* (1.3.3) the SLICER's steps: each one's own MODE (0 = the song's) and
+                                                * DEPTH; the 'S' 'P' block, none before it */
     uint8_t macro[4];                          /* the macros M1..M4 (mod.c macro_v), 0..127: after the lane's tracks */
     char name[PROJ_NAME_LEN];                  /* the project's name: upper-case ASCII 32..126, 0-padded; "" = none */
     uint32_t sum;
@@ -765,6 +767,15 @@ static int proj_fg_used(const project_t *q)            /* (0.6.52) a FUGUE head 
                 return 1;
     return 0;
 }
+/* (1.3.3) does any step of the SLICER carry a MODE of its own? (the block is written only then) */
+static int proj_sl_steps_used(const project_t *q)
+{
+    uint32_t i;
+    for (i = 0; i < NSTEP; i++)
+        if (q->sl_mode[i] >= SL_GATE && q->sl_mode[i] <= SL_STUT)
+            return 1;
+    return 0;
+}
 static uint32_t proj_packed_size(const project_t *q)
 {
     uint32_t n = 68u + sizeof q->chain + 4u + q->motion.count * sizeof q->motion.event[0] + 2u + G_SL_N, t, i;
@@ -780,6 +791,8 @@ static uint32_t proj_packed_size(const project_t *q)
         if (q->dx_mdl[i]) { n += 2u + sizeof q->dx_mdl; break; }
     if (proj_fg_used(q))                                /* (0.6.52) FUGUE's */
         n += 2u + sizeof q->fugue;
+    if (proj_sl_steps_used(q))                          /* (1.3.3) the SLICER's steps, when one carries its own */
+        n += 2u + sizeof q->sl_mode + sizeof q->sl_dep;
     for (t = 0; t < NTRK; t++)                          /* (FASE 8) the matrix's slots 5..8, when one is set */
         for (i = 0; i < 4u; i++)
             if (q->t[t].mx[i][0] || q->t[t].mx[i][1] || q->t[t].mx[i][2]) { n += 2u + 12u * NTRK; t = NTRK; break; }
@@ -872,6 +885,14 @@ static int proj_pack(project_store_t *out, const project_t *q)
         b[pos++] = 'F'; b[pos++] = 'G';
         memcpy(b + pos, q->fugue, sizeof q->fugue);
         pos += sizeof q->fugue;
+    }
+    if (proj_sl_steps_used(q)) {                        /* (1.3.3) the SLICER's steps: a step with a MODE of its own,
+                                                         * then its DEPTH (no byte when every step follows the song) */
+        b[pos++] = 'S'; b[pos++] = 'P';
+        for (i = 0; i < NSTEP; i++)
+            b[pos++] = (uint8_t)clamp(q->sl_mode[i], 0, SL_STUT);
+        for (i = 0; i < NSTEP; i++)
+            b[pos++] = (uint8_t)clamp(q->sl_dep[i], 0, 127);
     }
     if (q->g[G_DMOD] != GP[G_DMOD].def) {               /* (0.6.86) the delay's MOD (biased), when not the default */
         b[pos++] = 'D'; b[pos++] = 'M';
@@ -1107,6 +1128,19 @@ static int proj_unpack_c(project_t *q, const uint8_t *b)
             q->g[G_SLMODE + i] = (int16_t)clamp((int32_t)b[pos + 2u + i] - 64, GP[G_SLMODE + i].min, GP[G_SLMODE + i].max);
         proj_sl_found = 1;
         pos += 2u + G_SL_N;
+    }
+    memset(q->sl_mode, 0, sizeof q->sl_mode);           /* (1.3.3) every step the song's, unless the block says */
+    memset(q->sl_dep, 0, sizeof q->sl_dep);
+    if (pos + 2u + sizeof q->sl_mode + sizeof q->sl_dep <= room && b[pos] == 'S' && b[pos + 1u] == 'P') {
+        for (i = 0; i < NSTEP; i++) {
+            uint32_t m = b[pos + 2u + i];
+            q->sl_mode[i] = (uint8_t)(m <= SL_STUT ? m : 0u);   /* (out of range: the song's mode) */
+        }
+        for (i = 0; i < NSTEP; i++) {
+            uint32_t d = b[pos + 2u + NSTEP + i];
+            q->sl_dep[i] = (uint8_t)(d > 127u ? 0u : d);
+        }
+        pos += 2u + sizeof q->sl_mode + sizeof q->sl_dep;
     }
     memset(q->dx_snd, 0, sizeof q->dx_snd);
     memset(q->dx_lay, 0, sizeof q->dx_lay);
@@ -1451,6 +1485,11 @@ static void project_capture(project_t *p)
     }
     memcpy(p->pfx_lane, pfx_lane, sizeof p->pfx_lane);
     p->pfx_ltgt = pfx_ltgt;
+    for (i = 0; i < NSTEP; i++) {                       /* (1.3.3) the SLICER's steps */
+        int32_t m = song.sl_mode[i];
+        p->sl_mode[i] = (uint8_t)(m >= SL_GATE && m <= SL_STUT ? m : 0);
+        p->sl_dep[i] = (uint8_t)clamp(song.sl_dep[i], 0, 127);
+    }
     memcpy(p->macro, macro_v, sizeof p->macro);
     motion_unguard(f);
     memcpy(p->name, proj_name, str_len(proj_name));
@@ -1644,6 +1683,12 @@ static int project_restore_runtime(const project_t *input)
     memcpy(dx_lay, p->dx_lay, sizeof dx_lay);           /* (0.6.49: its LAYERs) */
     memcpy(dx_mdl, p->dx_mdl, sizeof dx_mdl);           /* (1.0-GW: its MODELs) */
     fg_load(p);                                         /* (0.6.52: its FUGUE) */
+    for (i = 0; i < NSTEP; i++) {                       /* (1.3.3) the SLICER's steps: a project of before it has
+                                                         * every step following the song, which is what it played */
+        int32_t m = p->sl_mode[i];
+        song.sl_mode[i] = (int16_t)(m >= SL_GATE && m <= SL_STUT ? m : 0);
+        song.sl_dep[i] = (int16_t)clamp(p->sl_dep[i], 0, 127);
+    }
     memcpy(pfx_lane, p->pfx_lane, sizeof pfx_lane);    /* (the section's punch-in lane) */
     pfx_ltgt = p->pfx_ltgt > 2u ? 0u : p->pfx_ltgt;
     for (i = 0; i < 4u; i++)
@@ -1730,6 +1775,8 @@ static void system_init(void)
     uint32_t i;
     for (i = 0; i < 5u; i++) kept[i] = song.g[KEEP[i]];
     for (i = 0; i < G_COUNT; i++) song.g[i] = GP[i].def;
+    memset(song.sl_mode, 0, sizeof song.sl_mode);       /* (1.3.3) no step of the SLICER with one of its own */
+    memset(song.sl_dep, 0, sizeof song.sl_dep);
     for (i = 0; i < 5u; i++) song.g[KEEP[i]] = kept[i];
     chain_defaults(&chain_config);
     memset(song_idx.scene[song_cur], 0, sizeof song_idx.scene[song_cur]);

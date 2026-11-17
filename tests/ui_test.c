@@ -203,6 +203,7 @@ static void ui_power_on(void)
     proj_name[0] = 0;
     proj_cur = PROJ_NO_SLOT;
     memset(&favorites, 0, sizeof favorites);
+    pcat = 0;                                     /* (the browser's category is session state: a power-on has none) */
     ui_prefs = PREF_ACCEL_OFF;                    /* (the tests turn a detent a frame: one step each; KNOB ACCEL, ON on the
                                                    * device by default, has its own test) */
     mac_latch = 0;
@@ -11349,6 +11350,44 @@ static int test_sound_edited(void)
     return bad;
 }
 
+/* (1.3.3) FX > SL STEP: KNOB 1 picks one of the SLICER's 16 steps, KNOB 2 its MODE and KNOB 3 its DEPTH. A step left on
+ * SONG follows the song's MODE and DEPTH -- which is every project of before and every step never given one -- and a
+ * step that takes a MODE takes its own DEPTH with it (so 0 is a gate shut all the way, not a hole). The audio reads them
+ * through sl_mode_at / sl_dep_at, the two the step clock and the segment latch, and the bus runs on a step's own mode
+ * alone (slicer_on) */
+static int test_sl_step(void)
+{
+    int bad = 0, ok;
+    uint32_t i;
+    ui_power_on();
+    go_page(GR_SLSTEP);
+    frames(4);                                     /* (the detents a test before it left, drawn on the page) */
+    sl_step_pick = 1;                              /* (the page's own step: from the first, as a power-on) */
+    frame();
+    ok = !ui.home && cur_page()->graph == GR_SLSTEP && sl_step_pick == 1 &&
+         song.sl_mode[0] == 0 && song.sl_dep[0] == 0 && !slicer_on();
+    /* KNOB 1 walks the pattern: the step 5, its MODE and DEPTH the song's */
+    turn(EN_K1, 4);
+    ok &= sl_step_pick == 5 && song.sl_mode[4] == 0;
+    ok &= sl_mode_at(4) == (uint32_t)song.g[G_SLMODE] && sl_dep_at(4) == song.g[G_SLDEP];
+    /* KNOB 2 the step's MODE: the bus runs on it alone (the song's is OFF), KNOB 3 its DEPTH */
+    song.g[G_SLMODE] = SL_OFF;
+    turn(EN_K2, 1);
+    turn(EN_K3, 40);
+    ok &= song.sl_mode[4] == SL_GATE && song.sl_dep[4] == 40;
+    ok &= sl_mode_at(4) == SL_GATE && sl_dep_at(4) == 40 && slicer_on();
+    /* the step beside it follows the song still, and the song's own values are untouched */
+    ok &= !song.sl_mode[3] && sl_mode_at(3) == SL_OFF && sl_dep_at(3) == song.g[G_SLDEP];
+    /* back to SONG: the DEPTH it was given stays in the table, the step just reads the song's again */
+    turn(EN_K2, -1);
+    ok &= !song.sl_mode[4] && sl_mode_at(4) == SL_OFF && song.sl_dep[4] == 40;
+    /* a gate shut all the way: its own DEPTH 0 is a value, not "no depth" */
+    for (i = 0; i < 40u; i++) turn(EN_K3, -1);
+    turn(EN_K2, 1);
+    ok &= song.sl_mode[4] == SL_GATE && song.sl_dep[4] == 0 && sl_dep_at(4) == 0;
+    bad += check("SL STEP: KNOB 1 picks a step, 2 its MODE, 3 its DEPTH (0 too); SONG follows the song", ok);
+    return bad;
+}
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -11482,6 +11521,7 @@ int main(void)
     bad += test_breath();
     bad += test_step_leds();
     bad += test_fx_scenes();
+    bad += test_sl_step();
     bad += test_scale_leds();
     bad += test_screen_off();
     bad += test_fm6_charts();

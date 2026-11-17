@@ -63,6 +63,8 @@ typedef struct {
     int32_t hl, hr;              /* recording: the first sample of a pair */
     uint8_t idx;                 /* step 0..15 */
     uint8_t bit;                 /* this step's pattern bit (latched at its start) */
+    uint8_t md;                  /* (1.3.3) this step's MODE (latched: the step's own or the song's) */
+    int32_t dp;                  /* .. its DEPTH, Q15 */
     uint8_t rec_on;              /* recording this step */
 } sl_t;
 static sl_t sl;
@@ -81,8 +83,30 @@ static void slicer_drop(void)    /* the recording dropped (perform.c takes the b
 }
 
 static uint32_t sl_pattern(void) { return SL_PAT[(uint32_t)(song.g[G_SLPAT] - 1) % SL_NPAT]; }
+/* (1.3.3) a step's own MODE and DEPTH when it carries them, the song's otherwise: song.sl_mode / sl_dep hold 0 for a
+ * step that follows the song (every project of before it, and the pattern's own steps until one is given its own) */
+static uint32_t sl_mode_at(uint32_t i)
+{
+    int32_t m = song.sl_mode[i & 15u];
+    return m >= SL_GATE && m <= SL_STUT ? (uint32_t)m : (uint32_t)song.g[G_SLMODE];
+}
+/* (its DEPTH goes with its MODE: a step that carries one carries both, so 0 here is a depth the step really has --
+ * a gate shut all the way -- and not a hole in the table) */
+static int32_t sl_dep_at(uint32_t i)
+{
+    int32_t m = song.sl_mode[i & 15u];
+    return m >= SL_GATE && m <= SL_STUT ? clamp(song.sl_dep[i & 15u], 0, 127) : clamp(song.g[G_SLDEP], 0, 127);
+}
+static int sl_step_set(void)                     /* a step of the pattern carries a mode of its own */
+{
+    uint32_t i;
+    for (i = 0; i < 16u; i++)
+        if (song.sl_mode[i] >= SL_GATE && song.sl_mode[i] <= SL_STUT)
+            return 1;
+    return 0;
+}
 /* running or still fading: the routed tracks go through it */
-static int slicer_on(void) { return sys_load != LOAD_ECO && (song.g[G_SLMODE] != SL_OFF || sl.gc || sl.w); }   /* (0.6.30: LOAD ECO
+static int slicer_on(void) { return sys_load != LOAD_ECO && (song.g[G_SLMODE] != SL_OFF || sl_step_set() || sl.gc || sl.w); }   /* (0.6.30: LOAD ECO
                                                                                                             * none) */
 static int slicer_routes(uint32_t k) { return k < NTRK && song.g[G_SLT1 + k] && slicer_on(); }
 static int slicer_fx(void) { return song.g[G_SLFX] && slicer_on(); }
@@ -113,7 +137,7 @@ static int32_t sl_pitch(uint32_t i)
  * pairs two steps: their pair from the grid, the step in it */
 static __attribute__((noinline)) void sl_enter(sl_t *s, uint32_t at)
 {
-    uint32_t mode = (uint32_t)song.g[G_SLMODE], den = SL_DEN[(uint32_t)song.g[G_SLRATE] % 6u];
+    uint32_t den = SL_DEN[(uint32_t)song.g[G_SLRATE] % 6u];
     int32_t sw;
     s->idx = (uint8_t)((s->idx + 1u) & 15u);
     s->base = (uint32_t)FS * 60u / (uint32_t)song.g[G_BPM] / den;
@@ -143,10 +167,12 @@ static __attribute__((noinline)) void sl_enter(sl_t *s, uint32_t at)
     if (s->pos >= s->len)
         s->pos = s->len - 1u;
     s->bit = (uint8_t)((sl_pattern() >> s->idx) & 1u);
+    s->md = (uint8_t)sl_mode_at(s->idx);              /* (1.3.3) the step's own, or the song's */
+    s->dp = sl_dep_at(s->idx) * 258;
     s->rp = s->rq = 0;
     s->loop = 0;
     s->rec_on = 0;
-    if (mode != SL_STUT || sl_lent) {
+    if (s->md != SL_STUT || sl_lent) {
         s->rec = 0;                                 /* nothing old to repeat when STUT comes on */
     } else if (s->bit) {
         s->rec = 0;                                 /* a live step: record it */
@@ -164,11 +190,11 @@ static __attribute__((noinline)) void sl_enter(sl_t *s, uint32_t at)
 /* m samples of one step (no boundary inside), the bus l / r */
 static void sl_seg(sl_t *s, int32_t *bl, int32_t *br, uint32_t m)
 {
-    uint32_t mode = (uint32_t)song.g[G_SLMODE], j, nbit = (sl_pattern() >> ((s->idx + 1u) & 15u)) & 1u;
-    int32_t depth = song.g[G_SLDEP] * 258;          /* Q15, 0..32766 */
-    int32_t tc = mode == SL_GATE && !s->bit ? depth : 0;           /* gate closure of this step */
-    int32_t tn = mode == SL_GATE && !nbit ? depth : 0;             /* .. of the next one */
-    int32_t tw = mode == SL_STUT && s->loop ? depth : 0;           /* repeat level */
+    uint32_t j, nbit = (sl_pattern() >> ((s->idx + 1u) & 15u)) & 1u, nmd = sl_mode_at(s->idx + 1u);
+    int32_t ndp = sl_dep_at(s->idx + 1u) * 258;     /* Q15, 0..32766 */
+    int32_t tc = s->md == SL_GATE && !s->bit ? s->dp : 0;          /* gate closure of this step */
+    int32_t tn = nmd == SL_GATE && !nbit ? ndp : 0;                /* .. of the next one (its own mode and depth) */
+    int32_t tw = s->md == SL_STUT && s->loop ? s->dp : 0;          /* repeat level */
     for (j = 0; j < m; j++) {
         int32_t xl = bl[j], xr = br[j], yl, yr, tg = tc;
         uint32_t left = s->len - s->pos - j;        /* samples to the step end, >= 1 */

@@ -1318,6 +1318,31 @@ static void graph_slpitch(uint16_t c)
             cv_rect(x, y0 + hmax + 6, 9, 2, T_TEXT);
     }
 }
+/* (1.3.3) SL STEP: the 16 steps as bars as deep as each one's DEPTH (its own when it carries a MODE, the song's DIM
+ * when it follows it), STUT's hatched across (it repeats the last 'x'), the step KNOB 1 picked underlined, the one the
+ * audio is on lit */
+static void graph_slstep(uint16_t c)
+{
+    uint32_t i, cur = sl.idx, pick = (uint32_t)clamp(sl_step_pick - 1, 0, 15);
+    int32_t y0 = 92, hmax = 44;
+    cv_rect(10, y0, 220, 1, T_RAISE);
+    for (i = 0; i < 16u; i++) {
+        int32_t x = bar_x(i), m = clamp(song.sl_mode[i], 0, SL_STUT), d;
+        int32_t own = m >= SL_GATE && m <= SL_STUT;
+        int32_t h;
+        uint16_t col;
+        d = clamp(own ? song.sl_dep[i] : song.g[G_SLDEP], 0, 127);
+        h = 3 + d * hmax / 127;
+        col = own ? (i == cur ? T_ACCENT : c) : T_DIM;
+        cv_rrect(x, y0 - h, 9, h, 2, col, T_SURF);
+        if (m == SL_STUT) {                             /* the repeats: hatched */
+            cv_rect(x + 1, y0 - h / 3, 7, 1, T_BG);
+            cv_rect(x + 1, y0 - 2 * h / 3, 7, 1, T_BG);
+        }
+        if (i == pick)
+            cv_rect(x, y0 + 4, 9, 2, T_TEXT);
+    }
+}
 /* (QG-1) GLO MONITOR: real system diagnostics, core load, active voices, DSP & buses.
  * Only displays authentic measurements; displays "N/A" if counter is zero or uninstrumented.
  * (QG-1 v1.5) seven rows now: how the parts split between the cores (mc_mask_last, from fx.c mc_split) and how long
@@ -2313,13 +2338,20 @@ static uint32_t graph_signature(void)
     }
     if (pg->graph == GR_MOD)
         h ^= (mod_ui_slot + 1u) * 40503u;
-    if ((pg->graph == GR_SLCR || pg->graph == GR_SLPIT) && song.g[G_SLMODE])   /* the SLICER's step playing */
+    if ((pg->graph == GR_SLCR || pg->graph == GR_SLPIT || pg->graph == GR_SLSTEP) && song.g[G_SLMODE])   /* the SLICER's
+                                                                                                        * step playing */
         h ^= (sl.idx + 1u) * 2654435761u;
     if (pg->graph == GR_SLCR || pg->graph == GR_SLPIT)   /* (its globals: the page's knobs and the bus) */
         for (i = 0; i < G_SL_N; i++)
             h = (h ^ (uint32_t)song.g[G_SLMODE + i]) * 16777619u;
     if (pg->graph == GR_SLPIT)
         h ^= (sl_ui_step + 1u) * 40503u;
+    if (pg->graph == GR_SLSTEP) {                    /* (1.3.3) the step picked and the one it edits */
+        uint32_t k = (uint32_t)clamp(sl_step_pick - 1, 0, 15);
+        h ^= (uint32_t)(sl_step_pick + 1) * 40503u;
+        h = (h ^ (uint32_t)song.sl_mode[k]) * 16777619u;
+        h = (h ^ (uint32_t)song.sl_dep[k]) * 16777619u;
+    }
     if (pg->graph == GR_TOOLS)                       /* (0.6.12) the action picked, the song's row */
         h ^= ui.act * 7919u + ui.song_row * 104729u;
     if (pg->graph == GR_SLOTS) {                     /* (a checksum over each slot; the project, the music's section, the song) */
@@ -3732,6 +3764,9 @@ static void draw_graph(void)
             break;
         case GR_SLPIT:
             graph_slpitch(c);
+            break;
+        case GR_SLSTEP:
+            graph_slstep(c);
             break;
         case GR_MOD:
             cv_oy = 0;
