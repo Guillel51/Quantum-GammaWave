@@ -5409,6 +5409,62 @@ static int test_fm4_retired(void)
 }
 #endif
 
+/* (1.3.2) FX SCENES: on the FX page EDIT held stores the track's strip -- the four sends and DIST's type -- in the picked
+ * slot, its tap calls that slot back (UNDO the music before), SAVE held + PRESETS picks the slot, and every track has
+ * its own four. A slot nothing was stored into reads empty and a recall of it writes nothing */
+static int test_fx_scenes(void)
+{
+    int bad = 0, ok;
+    track_t *t1, *t2;
+    ui_power_on();
+    t1 = TSEL;
+    open_family(FAM_FX);
+    frame();
+    ok = !ui.home && cur_page()->graph == GR_FX && !fx_scn_used(0, 0);
+    /* an empty scene says so and calls nothing back */
+    t1->p[P_DIST] = 33;
+    frames(90);
+    press(B_OCTDN);
+    ok &= msg_is("FX SCENE EMPTY") && t1->p[P_DIST] == 33;
+    /* OCT+ stores the strip, OCT- calls it back over whatever is there */
+    t1->p[P_DIST] = 40; t1->p[P_CHOR] = 20; t1->p[P_DLY] = 60; t1->p[P_REV] = 80; t1->p[P_DTYPE] = 2;
+    frames(90);                                                /* (the SOUND EDITED notice out of the way) */
+    press(B_OCTUP);
+    ok &= fx_scn_used(0, 0);
+    t1->p[P_DIST] = 1; t1->p[P_CHOR] = 2; t1->p[P_DLY] = 3; t1->p[P_REV] = 4; t1->p[P_DTYPE] = 5;
+    frames(90);
+    press(B_OCTDN);
+    ok &= t1->p[P_DIST] == 40 && t1->p[P_CHOR] == 20 && t1->p[P_DLY] == 60 &&
+          t1->p[P_REV] == 80 && t1->p[P_DTYPE] == 2;
+    bad += check("FX page: OCT+ stores the track's four sends and DIST's type, OCT- calls them back", ok);
+    /* and again: the same keys write it over the old scene */
+    t1->p[P_DIST] = 11; t1->p[P_CHOR] = 12; t1->p[P_DLY] = 13; t1->p[P_REV] = 14; t1->p[P_DTYPE] = 3;
+    frames(90);                                                /* (the SOUND EDITED notice out of the way) */
+    press(B_OCTUP);
+    ok = 1;
+    t1->p[P_DIST] = 5;
+    frames(90);
+    press(B_OCTDN);
+    ok &= t1->p[P_DIST] == 11 && t1->p[P_CHOR] == 12 && t1->p[P_DTYPE] == 3;
+    bad += check("  a second OCT+ writes it over the old scene", ok);
+    /* every track its own: track 2 starts empty, stores its own and calls it back */
+    track_select(1);
+    frame();
+    t2 = TSEL;
+    ok = t2 != t1 && !fx_scn_used(1, 0) && fx_scn_used(0, 0);
+    t2->p[P_DIST] = 90; t2->p[P_CHOR] = 91; t2->p[P_DLY] = 92; t2->p[P_REV] = 93; t2->p[P_DTYPE] = 1;
+    frames(90);                                                /* (the SOUND EDITED notice out of the way) */
+    press(B_OCTUP);
+    ok &= fx_scn_used(1, 0);
+    t2->p[P_DIST] = 0; t2->p[P_CHOR] = 0; t2->p[P_DLY] = 0; t2->p[P_REV] = 0; t2->p[P_DTYPE] = 0;
+    frames(90);
+    press(B_OCTDN);
+    ok &= t2->p[P_DIST] == 90 && t2->p[P_CHOR] == 91 && t2->p[P_DLY] == 92 && t2->p[P_REV] == 93 &&
+          t2->p[P_DTYPE] == 1 && t1->p[P_DIST] == 11;
+    bad += check("  per track: track 2's scene is its own, track 1's untouched", ok);
+    return bad;
+}
+
 /* #38: the keys of the notes the selected track's sequencer and ARP sound light while it plays */
 /* (3.0) HOME's screens: from a section the first tap only comes home; each tap after that walks one screen of the
  * list and the one past the last returns to the first; a hold is the menu and never counts as a tap, and letting that
@@ -11425,6 +11481,7 @@ int main(void)
     bad += test_idle_glow();
     bad += test_breath();
     bad += test_step_leds();
+    bad += test_fx_scenes();
     bad += test_scale_leds();
     bad += test_screen_off();
     bad += test_fm6_charts();

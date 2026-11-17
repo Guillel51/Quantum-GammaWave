@@ -919,6 +919,40 @@ typedef struct { int16_t p[P_COUNT]; int16_t mx[4][3]; uint8_t engine, preset, u
 static ab_snd_t ab_snd;
 static uint8_t ab_side;                              /* which side the track is holding: 0 A, 1 B */
 
+/* (1.3.2) THE FX SCENE, one per track: the four sends of the FX page and DIST's type, saved and called with that page's
+ * two free keys -- OCT+ stores the strip, OCT- calls it back (ui_input.c: the knobs are the sends, PRESETS the sound,
+ * SELECT the pages, the buttons their sections and layers). Four slots a track are kept; the page uses the first until
+ * there is a picker for the rest. Every value is kept + 1 and a slot's first byte reads 0 until something is stored: the
+ * array starts zeroed, so a call back never writes values it was never given */
+#define FX_SCN_N 4u
+#define FX_SCN_V 5u
+static int8_t fx_scn[NTRK][FX_SCN_N][FX_SCN_V];
+static uint8_t fx_scn_pick;                            /* the slot the FX page is on, 0..FX_SCN_N-1 */
+static int fx_scn_used(uint32_t tr, uint32_t sl)
+{
+    return fx_scn[tr % NTRK][sl % FX_SCN_N][0] > 0;
+}
+static void fx_scn_store(const track_t *t, uint32_t tr, uint32_t sl)
+{
+    int8_t *v = fx_scn[tr % NTRK][sl % FX_SCN_N];
+    v[0] = (int8_t)(clamp(t->p[P_DIST], 0, 127) + 1);      /* (+ 1: 0 is the slot nothing was stored into) */
+    v[1] = (int8_t)clamp(t->p[P_CHOR], 0, 127);
+    v[2] = (int8_t)clamp(t->p[P_DLY], 0, 127);
+    v[3] = (int8_t)clamp(t->p[P_REV], 0, 127);
+    v[4] = (int8_t)clamp(t->p[P_DTYPE], TP[P_DTYPE].min, TP[P_DTYPE].max);   /* (N_DTYPE is the names, not a count) */
+}
+static void fx_scn_recall(track_t *t, uint32_t tr, uint32_t sl)      /* the music before it: undo_mark (the caller) */
+{
+    const int8_t *v = fx_scn[tr % NTRK][sl % FX_SCN_N];
+    if (v[0] <= 0)
+        return;
+    t->p[P_DIST] = (int16_t)(v[0] - 1);
+    t->p[P_CHOR] = v[1];
+    t->p[P_DLY] = v[2];
+    t->p[P_REV] = v[3];
+    t->p[P_DTYPE] = v[4];
+}
+
 static void ab_store(track_t *t)                     /* the sound the next tap comes back to */
 {
     memcpy(ab_snd.p, t->p, sizeof ab_snd.p);

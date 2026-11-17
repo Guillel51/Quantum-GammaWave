@@ -1,3 +1,25 @@
+## v1.3.3 (sin publicar) — la escena de FX de cada pista
+
+### Lo que se agregó
+- **La escena de FX, una por pista: los cuatro envíos de la página FX (DIST, CHOR, DLY, REV) y el tipo de DIST.** En la
+  página FX, **OCT+ guarda** la tira y **OCT- la llama de vuelta** (con UNDO, que devuelve la música de antes); una escena
+  que la pista no guardó dice `FX SCENE EMPTY` y no escribe nada, y OCT+ otra vez la escribe encima. Son las dos teclas
+  que esa página tiene libres: sus perillas son los envíos, PRESETS el sonido, SELECT las páginas, y los botones sus
+  secciones y sus capas. Ocupa 120 B de `.bss` (cuatro ranuras por pista; la página usa la primera).
+- **Un bug viejo que salió en el camino**: `N_DTYPE` es la tabla de nombres, no una cantidad — `N_DTYPE - 1` era
+  aritmética de punteros y guardaba basura en el tipo de DIST. El rango sale ahora de `TP[P_DTYPE]`, como el de cualquier
+  otro parámetro.
+- **Comprobado en host**: `tests/ui_test.c` suma `test_fx_scenes` — guarda, llama, escribe encima, una escena por pista y
+  la llamada vacía que no toca nada — en verde en tres corridas seguidas (`all passed`), con el barrido del render en
+  **0 hallazgos de lint** y **0 desalineaciones en 3 894 154 medidas**.
+
+### Lo que NO está, y por qué
+- **No está guardada en el proyecto.** El payload del proyecto está lleno, medido: las pistas terminan en 2880, la cadena
+  ocupa 36 y el motion 260 (3176) y el bloque del punch-in empieza en `PROJ_PFX_OFF` 3168; después vienen el kit (3216),
+  los FM6 (3312), el nombre (3824) y el hash (3836) en un store de 3840 bytes con el hash pegado al final. No hay un solo
+  byte libre: 120 B por proyecto piden formato nuevo (magia `FUND`, payload más grande, lectura de `FUNC` al lado), y eso
+  es una migración que hay que hacer entera y con su paquete delante, no de paso.
+
 ## v1.3.2 — HOME sin las tarjetas de atrás, y los nombres de pantalla enteros
 
 ### Lo que está arreglado y medido

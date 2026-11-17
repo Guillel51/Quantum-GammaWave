@@ -2067,6 +2067,32 @@ static void ui_input_frame(void)
             ui_message(ab_side ? "SOUND B" : "SOUND A");
         }
     }
+    /* (1.3.2) THE FX PAGE'S SCENE: the track's four sends and DIST's type, on the two keys that page has free -- its knobs
+     * are the sends, PRESETS the sound, SELECT the pages, the buttons their sections and layers. OCT+ stores the strip in
+     * the track's scene, OCT- calls it back (UNDO brings the music before it back). The edge is taken from the buttons
+     * themselves, and the octave's own handling below does not see it: elsewhere nothing changes */
+    {
+        static uint16_t fx_oct_prev;
+        uint16_t fx_now = (uint16_t)fm1_in.buttons, fx_dn = (uint16_t)(fx_now & ~fx_oct_prev);
+        fx_oct_prev = fx_now;
+        if (fx_dn && !ui.home && !ui.menu && !ui.confirm && !ui.layer && !name_on() && cur_page()->graph == GR_FX) {
+            if (fx_dn & (1u << panel.btn[B_OCTUP])) {
+                int had = fx_scn_used(song.sel, 0u);
+                fx_scn_store(TSEL, song.sel, 0u);
+                ui_message(had ? "FX SCENE SAVED" : "FX SCENE STORED");
+            } else if (fx_dn & (1u << panel.btn[B_OCTDN])) {
+                if (!fx_scn_used(song.sel, 0u)) {
+                    ui_message("FX SCENE EMPTY");
+                } else if (chain_busy()) {
+                    ui_message("STOP TO EDIT");
+                } else {
+                    undo_mark();
+                    fx_scn_recall(TSEL, song.sel, 0u);
+                    ui_message("FX SCENE");
+                }
+            }
+        }
+    }
     rec = btn_hold(&ui.rec_t0, B_REC, now, 0);          /* (a tap; held, the REC layer: ui_layer.c) */
     seq = btn_hold(&ui.seq_t0, B_SEQ, now, !ui.menu && !ui.confirm);
     save = btn_hold(&ui.save_t0, B_SAVE, now, 0);       /* (a tap; held, the song layer: ui_layer.c) */
