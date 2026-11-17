@@ -1,37 +1,24 @@
-## v1.3.1.1 — el paso pesa 15 B, no 17: 1 KB de RAM devuelto
+## v1.3.1.1 — el empaquetado de `step_t` no entra: medido y descartado
 
-### Memoria (fase 3)
-- **`step_t` pasa de 17 a 15 B.** Sesenta y cuatro pasos en cada una de las seis pistas eran 1 088 B de
-  `.bss` por pista, y la estructura entera se copia al pool en cada carga de patrón. Ahora comparten byte
-  los campos que caben (`n` 3 bits + `flags` 5; `time` 2 + `comp` 5) y los demás guardan sólo los bits que
-  usan (`vel` 7, `probability` 7, `ctime` 7, `comp2` 5), con `cwhen` entero porque su nibble alto es el
-  micro-timing del paso (`ST_MICRO`). 113 bits son 15 B y no menos; todos los contenedores son de 8 bits
-  para que la alineación a 16 no devuelva la estructura a 16.
-- **`trk` 10 560 → 9 792 B (−768) y `gen_keep` 2 176 → 1 920 B (−256): 1 024 B de `.bss` devueltos.**
-- **El formato de flash no cambia**: `step8_t` / `step10_t` son tipos propios de `project.c` y las
-  conversiones van campo a campo, así que un proyecto guardado por cualquier firmware anterior carga
-  igual. Lo que sí hubo que corregir es la migración de FUN5/FUN6, que copiaba los primeros 10 B de un
-  `step_t` sobre un `step10_t` (funcionaba por casualidad con el layout viejo): ahora va campo a campo.
-- **Consecuencia asumida**: un paso ya no puede contener un valor fuera de rango (n = 9 entra como 1), así
-  que la comprobación de rangos de `proj` sólo ve lo que vuelve de flash; los 20 000 sectores dañados del
-  test siguen siendo rechazados. El test de proyecto lo dice y comprueba el nuevo invariante.
+### Lo que se probó
+- **`step_t` de 17 a 15 B** (n/flags 3+5, time/comp 2+5, vel/probability/ctime 7 bits, `cwhen` entero porque su
+  nibble alto es el micro-timing del paso). La estructura compila, pasa la suite entera de host
+  (`ALL HOST TESTS PASSED`, exit 0) y devuelve **1 024 B de `.bss`** (`trk` 10 560 → 9 792 y `gen_keep`
+  2 176 → 1 920).
+- **Y no entra en la imagen.** El enlace del AC791N lo rechaza:
+  `section .hot_text will not fit in region XIP`, `region XIP overflowed by 3776 bytes`. La misma árbol sin el
+  cambio vuelve a enlazar en su tamaño de siempre (imagen 582 928 B, 684 B libres), así que el empaquetado
+  cuesta ~4,4 KB de código: cada escritura a un bit-field es leer el byte, enmascarar, o, escribir, y hay
+  cientos de sitios de escritura repartidos por `seq.c`, `ui_*.c` y `project.c`.
+- **Cambiar 1 KB de RAM por 4,4 KB de flash en un build con 684 B libres es un mal negocio**, así que el
+  cambio queda revertido y anotado en `docs/BUILD_AC791N.md` §8.2. La RAM no es el recurso escaso: quedan
+  3 292 B de `.bss` y 9 248 B de pool. El recurso escaso es la imagen.
 
-### Fase 4: los anillos de 2 048 B no se tocan, y por qué
-- **`cdc_out` ya se quedó en 512 B en la 1.3.1** (era 2 048).
-- **`ua_ring` (2 048 B) no puede bajar de 512 frames**: el propio fichero lo exige con un `_Static_assert`
-  (`UA_HI + HALF_FRAMES + UA_MAXF < UA_N`, o sea 128 + 128 + 46 = 302 marcos de banda, render y paquete) y
-  además el anillo tiene que ser potencia de dos porque se indexa con máscara. 256 frames no cumplen el
-  invariante; 512 es el mínimo posible. Los números de la banda (UA_LO..UA_HI) salen de medir en unidad
-  con carga del 65 %, no de una estimación.
-- **`abuf` (2 048 B) es el doble búfer del DMA de audio** (2 × 128 frames × `int32`): la mitad es el bloque
-  que el codec consume entre interrupciones (`HALF_FRAMES`, con `CPU_AVG`, `SHED_TICKS` y los umbrales de
-  LOAD colgando de él). Reducirlo duplica la tasa de interrupción y cambia el medidor de carga: es un
-  cambio de temporización que hay que probar en la FM-1, no una optimización de memoria.
-- **Compartir el anillo entre CDC y UAC es incorrecto y no se hizo**: son endpoints distintos del mismo
-  dispositivo compuesto y coexisten (la consola puede estar abierta mientras suena el audio). `ep3tx` y
-  `ua_ring` se atienden en el mismo camino de interrupción USB y un solo anillo para los dos mezclaría
-  texto con muestras.
-
+### Lo que sigue: liberar flash, no RAM
+- `fm6_note` (7 104 B), `hc_tab` (1 548 B) y los índices de 12 bits son RAM, y la RAM tiene margen. Lo que
+  aprieta es el slot: **908 B libres** con la imagen de 1.3.1, y los iconos (7 747 B) y las fuentes
+  (27 216 B) ya viven en XIP como `const`. El siguiente paso rentable es deduplicar iconos repetidos, no
+  mover más estado fuera de `.bss`.
 ## v1.3.1 — la página FX, legible; 1,5 KB de RAM devueltos
 
 ### La página FX

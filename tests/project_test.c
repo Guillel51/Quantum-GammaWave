@@ -311,7 +311,7 @@ int main(void)
     q.t[2].p[P_M2DST] = 11;
     q.t[2].p[P_M2AMT] = -17;
     q.t[0].engine = ENGI_DRUM;
-    q.t[0].step[0] = (step_t){ .note = {36, 42, 0, 0}, .n = 2, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 1u << DV_SNARE, .acc = 1u << DV_SNARE };
+    q.t[0].step[0] = (step_t){{36, 42, 0, 0}, 2, ST_NOTE, 0, 96, 1u << DV_SNARE, 1u << DV_SNARE};
     q.sum = proj_sum(&q);
     memcpy(&buf, &q, sizeof q);
     bad += check("FUN6 -> FUN6: as stored (a matrix slot, engine 7, a DRUM step with notes and hits)",
@@ -329,12 +329,7 @@ int main(void)
             for (uint32_t j = 0; j < 61u; j++) old.t[k].p[j] = q.t[k].p[j];
             for (uint32_t j = 0; j < 8u; j++) old.t[k].p[61u + j] = q.t[k].p[P_E0 + j];
             old.t[k].engine = q.t[k].engine; old.t[k].preset = q.t[k].preset;
-            for (uint32_t j = 0; j < NSTEP; j++) {   /* (1.3.1.1) by field: step_t is packed */
-                step10_t *d = &old.t[k].step[j]; const step_t *s = &q.t[k].step[j];
-                memcpy(d->note, s->note, 4);
-                d->n = (uint8_t)s->n; d->time = (uint8_t)s->time; d->flags = (uint8_t)s->flags;
-                d->vel = (uint8_t)s->vel; d->hit = s->hit; d->acc = s->acc;
-            }
+            for (uint32_t j = 0; j < NSTEP; j++) memcpy(&old.t[k].step[j], &q.t[k].step[j], sizeof(step10_t));
         }
         old.magic = PROJ_MAGIC_V5;
         old.size = sizeof old;
@@ -444,8 +439,8 @@ int main(void)
         }
         q.phys = 1;
         for (i = 1; i < NSTEP; i++)                     /* (the other steps rests) */
-            q.t[0].step[i] = (step_t){ .note = {50, 0, 0, 0}, .n = 1, .time = ST_REST, .flags = 0, .vel = 0, .hit = 0, .acc = 0 };
-        q.t[0].step[0] = (step_t){ .note = {36, 42, 0, 0}, .n = 2, .time = ST_NOTE, .flags = 0, .vel = 96, .hit = 0, .acc = 0 };
+            q.t[0].step[i] = (step_t){{50, 0, 0, 0}, 1, ST_REST, 0, 0, 0, 0};
+        q.t[0].step[0] = (step_t){{36, 42, 0, 0}, 2, ST_NOTE, 0, 96, 0, 0};
         q.sum = proj_sum(&q);
         to_v4(&v4, &q);
         memcpy(&buf, &v4, sizeof v4);
@@ -848,8 +843,8 @@ int main(void)
         a.t[2].p[P_E3] = 0;
         a.t[2].p[P_LEVEL] = 77; a.t[2].p[P_REV] = 41; a.t[2].p[P_PAN] = -9;
         a.t[2].preset = 4;
-        a.t[2].step[0] = (step_t){ .note = {36, 42, 0, 0}, .n = 2, .time = ST_NOTE, .flags = SF_ACCENT, .vel = 100, .hit = 0, .acc = 0 };
-        a.t[2].step[4] = (step_t){ .note = {38, 49, 0, 0}, .n = 2, .time = ST_NOTE, .flags = 0, .vel = 90, .hit = 0, .acc = 0 };
+        a.t[2].step[0] = (step_t){{36, 42, 0, 0}, 2, ST_NOTE, SF_ACCENT, 100, 0, 0};
+        a.t[2].step[4] = (step_t){{38, 49, 0, 0}, 2, ST_NOTE, 0, 90, 0, 0};
         a.t[0].p[P_E0] = 2;                             /* track 1: FLUTE (SAMPLE retired in JIANT: ANALOG) */
         a.motion.count = 3;
         a.motion.event[0] = (motion_event_t){2u << 6 | 3u, P_E4, 20};          /* track 3: CUT: goes */
@@ -983,13 +978,9 @@ int main(void)
             }
         f.sum = proj_sum(&f);
         ok = !proj_pack(&fs, &f) && proj_full;
-        /* (1.3.1.1) THE STEP'S FIELDS ARE BIT-FIELDS: a step can no longer hold a value out of range -- n = 9 lands
-         * as 1 (3 bits) -- so the room is the only reason a RAM pattern is refused, and the range checks in
-         * proj now only see what comes back from flash (the 20000 damaged sections above prove they refuse it).
-         * What the writer must still do is say WHY, and that is proj_full above. */
-        f.t[0].step[0].n = 9;
-        ok &= f.t[0].step[0].n == 1u && !proj_pack(&fs, &f) && proj_full;
-        bad += check("FUNC: six full tracks do not fit: not packed, proj_full (SECTION FULL); n = 9 lands as 1 (packed)", ok && n);
+        f.t[0].step[0].n = 9;                           /* (a value out of range: not for room) */
+        ok &= !proj_pack(&fs, &f) && !proj_full;
+        bad += check("FUNC: six full tracks do not fit: not packed, proj_full (SECTION FULL); a bad value: not proj_full", ok && n);
     }
     {   /* (FASE 8) the matrix's slots 5..8 travel in the project, in its own 'M' 'X' block (none before) */
         project_t f8;

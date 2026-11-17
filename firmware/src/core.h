@@ -535,33 +535,21 @@ enum { ST_NOTE, ST_TIE, ST_REST };
 #define SF_RATCH_SH 3u                   /* RATCH: the hits of a NOTE step - 1 (0..3: x1..x4, seq.c seq_ratchet); */
 #define SF_RATCH (3u << SF_RATCH_SH)     /* bits 3..4, so a user preset's pattern (flag 4 = tie) carries it too */
 #define NLANE 8                  /* drum lanes of a step (the DRUM engine's: eng_drum.c DRUM_LANE_NOTE) */
-/* (1.3.1.1) A STEP IS 15 BYTES, NOT 17. Sixty-four steps on each of six tracks were 1 088 B of .bss per track
- * for fields that never needed a byte each, and the whole structure is copied to the pool on every pattern
- * load: the fields that fit share a byte -- n / flags (3+5) and time / comp (2+5) -- and the rest keep their
- * own with only the bits they use. 113 bits is 15 bytes and no more: cwhen is a whole byte (its high nibble
- * is the step's micro-timing, core.h ST_MICRO) and comp2's 5 bits have nothing to pair with, and every unit
- * is 8 bits wide so that no 16-bit alignment pads the structure back to 16.
- * The flash format is untouched -- project.c's step8_t / step10_t are their own types and every conversion
- * goes field by field -- so a project written by any earlier firmware still loads, and the pattern's bytes
- * on flash do not change: this is RAM only. */
 typedef struct {                 /* acid-style step: up to 4 notes (POLY), time, accent, slide; drum hits */
     uint8_t note[4];
-    uint8_t cwhen;               /* (0.6.82) bits 0-1 comp's WHEN, 2-3 comp2's (CW_*); bits 4-7 its micro-timing */
-    uint8_t n : 3;               /* notes in use, 0 = empty */
-    uint8_t flags : 5;           /* SF_ACCENT | SF_SLIDE | SF_RATCH */
-    uint8_t time : 2;            /* ST_NOTE / ST_TIE / ST_REST */
-    uint8_t comp : 5;            /* (JIANT 0.6.39) CP_*, 0 none */
-    uint8_t comp2 : 5;           /* (0.6.82) CP_*, the second component */
-    uint8_t vel : 7;
-    uint8_t probability : 7;     /* 0 = legacy 100%; 1..100 = percent, 101 = silent */
-    uint8_t ctime : 7;           /* (0.6.82) bits 0-2 DIV: RATCH's and ECHO's parts a step/2 .. /8 apart (0: the step
-                                  * shared out, as before); bits 3-6 LEN: a part's gate n/16 (0: the track's GATE) */
+    uint8_t n;                   /* notes in use, 0 = empty */
+    uint8_t time;                /* ST_NOTE / ST_TIE / ST_REST */
+    uint8_t flags;               /* SF_ACCENT | SF_SLIDE | SF_RATCH */
+    uint8_t vel;
     uint8_t hit;                 /* bit l: lane l hits (its GM note, on any engine): the DRUM grid */
     uint8_t acc;                 /* bit l: that hit is accented (velocity 127) */
-    uint8_t carg;                /* (JIANT 0.6.39) the component's arguments (seq.c; WRATE/WMODE/WRNG need 8 bits) */
-    uint8_t carg2;               /* (0.6.82) the second component's arguments */
+    uint8_t probability;         /* 0 = legacy 100%; 1..100 = percent, 101 = silent */
+    uint8_t comp, carg;          /* (JIANT 0.6.39) the step's component (CP_*, 0 none) and its arguments (seq.c) */
+    uint8_t comp2, carg2;        /* (0.6.82) a second component (SEQ > COMP 2), the same way */
+    uint8_t cwhen;               /* (0.6.82) WHEN each plays: bits 0-1 comp's, 2-3 comp2's (CW_*) */
+    uint8_t ctime;               /* (0.6.82) bits 0-2 DIV: RATCH's and ECHO's parts a step/2 .. /8 apart (0: the step
+                                  * shared out, as before); bits 3-6 LEN: a part's gate n/16 (0: the track's GATE) */
 } step_t;
-_Static_assert(sizeof(step_t) <= 15u, "a step packs into 15 bytes: the pattern is the largest thing in .bss");
 /* (0.6.82) WHEN a component plays: ALWAYS, on odd loops (1:2), on even loops (2:2), SKIP (kept, not played) */
 enum { CW_ALWAYS, CW_ODD, CW_EVEN, CW_SKIP };
 #define CW_OF(s, k) (((uint32_t)(s)->cwhen >> ((k) * 2u)) & 3u)

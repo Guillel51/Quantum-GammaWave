@@ -269,12 +269,10 @@ static void proj_trk_from(proj_trk_t *d, const int16_t *p, uint32_t np, uint8_t 
     for (k = 0; k < NSTEP; k++) {
         step_t *s = &d->step[k];
         memcpy(s->note, step[k].note, 4);
-        /* (1.3.1.1) clamped BEFORE the assignment: n / time are bit-fields now, and a 9 from a damaged record would
-         * land as 1 instead of the 4 the fix-up pass (proj_ok's) means to make of it */
-        s->n = step[k].n > 4u ? 4u : step[k].n;
-        s->time = step[k].time > ST_REST ? (uint8_t)ST_REST : step[k].time;
+        s->n = step[k].n;
+        s->time = step[k].time;
         s->flags = step[k].flags & 3u;          /* accent, slide: x1 (no RATCH then) */
-        s->vel = step[k].vel & 127u;
+        s->vel = step[k].vel;
         s->hit = s->acc = 0;
     }
 }
@@ -682,16 +680,9 @@ static int proj_import_old(project_t *q, const void *b, int n)
                 for (k = 0; k < P_COUNT; k++) def[k] = param_desc_of(v->t[i].engine, k)->def;
                 params_by_count(q->t[i].p, v->t[i].p, 69u, def);
                 q->t[i].engine = v->t[i].engine; q->t[i].preset = v->t[i].preset;
-                for (k = 0; k < NSTEP; k++) {      /* (1.3.1.1) by field: step_t is packed (14 bytes), so the disk
-                                                    * step is no longer its first bytes */
-                    const step10_t *s = &v->t[i].step[k];
-                    step_t *d = &q->t[i].step[k];
-                    memcpy(d->note, s->note, 4);
-                    for (int q = 0; q < 4; q++) d->note[q] &= 127u;
-                    d->n = s->n > 4u ? 4u : s->n;      /* (1.3.1.1) clamped before the 3-bit field, see proj_trk_from */
-                    d->time = s->time > ST_REST ? (uint8_t)ST_REST : s->time;
-                    d->flags = s->flags & 3u;          /* (x1: no RATCH then) */
-                    d->vel = s->vel & 127u; d->hit = s->hit; d->acc = s->acc;
+                for (k = 0; k < NSTEP; k++) {
+                    memcpy(&q->t[i].step[k], &v->t[i].step[k], sizeof(step10_t));
+                    q->t[i].step[k].flags &= 3u;       /* (x1: no RATCH then) */
                 }
             }
             proj_new_tracks(q, PROJ_LT);

@@ -857,26 +857,12 @@ static void step_edit(uint32_t slot, int32_t steps)
  * step's own fields; a component is one at a time: turning to OFF, CHANCE or RATCH takes it away. (0.6.82) COMP 2: the
  * step's second component the same way (no CHANCE or RATCH there); RATCH and ECHO: KNOB 4 their DIV. WHEN: KNOB 2 / 3
  * the loops each component plays on (ALWAYS, 1:2, 2:2, SKIP), KNOB 4 the step's LEN */
-/* (1.3.1.1) the two components' fields, read and written without taking their address: comp / comp2 are 5-bit
- * bit-fields, so the knob keeps them in locals and puts them back once per edit. */
-static void comp_store(step_t *st, uint32_t k, uint32_t c, uint32_t a)
-{
-    if (k == 1u) {
-        st->comp2 = (uint16_t)c;
-        st->carg2 = (uint8_t)a;
-    } else {
-        st->comp = (uint16_t)c;
-        st->carg = (uint8_t)a;
-    }
-}
 static void comp_knob(uint32_t slot, int32_t steps)
 {
     step_t *st = &TSEL->step[ui.cursor];
     uint32_t v = comp_view(), k = comp_slot();
     int32_t d = clamp(steps, -4, 4), e = steps > 0 ? 1 : -1;
-    /* (1.3.1.1) comp / comp2 are bit-fields now (step_t packs into 14 bytes) and a bit-field has no address:
-     * the knob works on two locals and writes them back on every path that changes one. */
-    uint32_t cp = k == 1u ? st->comp2 : st->comp, ap = k == 1u ? st->carg2 : st->carg;
+    uint8_t *cp = k == 1u ? &st->comp2 : &st->comp, *ap = k == 1u ? &st->carg2 : &st->carg;
     if (slot == 0u) { cursor_set(ui.cursor + steps); return; }
     if (chain_busy()) { ui_message("STOP TO EDIT"); return; }
     if (k == 2u) {
@@ -894,14 +880,13 @@ static void comp_knob(uint32_t slot, int32_t steps)
         if (!k) ui.comp_sel = (uint8_t)v;
         if (v >= COMP_ARPN) {
             uint32_t c = CP_ARPN + v - COMP_ARPN;
-            if (cp != c) {
-                int keep = cp_isarp(cp) && cp_isarp(c);   /* (ARP to ARP: ORDER, RATE, RANGE kept) */
-                cp = c;
-                if (!keep) ap = c <= CP_ARPS ? CP_ARG(0u, 2u, 0u) : CP_ADEF[c];   /* (UP x4 1 OCT; the others' own) */
+            if (*cp != c) {
+                int keep = cp_isarp(*cp) && cp_isarp(c);   /* (ARP to ARP: ORDER, RATE, RANGE kept) */
+                *cp = (uint8_t)c;
+                if (!keep) *ap = c <= CP_ARPS ? CP_ARG(0u, 2u, 0u) : CP_ADEF[c];   /* (UP x4 1 OCT; the others' own) */
             }
         } else
-            cp = ap = 0;
-        comp_store(st, k, cp, ap);
+            *cp = *ap = 0;
         return;
     }
     if ((v == COMP_RATCH || v == COMP_ECHO) && slot == 3u)   /* (0.6.82) DIV */
@@ -910,20 +895,19 @@ static void comp_knob(uint32_t slot, int32_t steps)
         step_set_chance(st, (uint32_t)clamp((int32_t)step_chance(st) + steps, 0, 100));
     else if (v == COMP_RATCH && slot == 2u)
         step_set_ratchet(st, (uint32_t)clamp((int32_t)step_ratchet(st) + d, 1, 4));
-    else if (cp == CP_JUMP && slot == 2u)             /* (0.6.62) TO STEP (its TIMES kept) */
-        ap = (ap & 0xC0u) | (uint32_t)clamp((int32_t)CP_JTO(ap) + steps, 0, 63);
-    else if ((cp == CP_JUMP || cp == CP_REV) && slot == 3u) {   /* (0.6.62) TIMES */
-        uint32_t m = (uint32_t)clamp((int32_t)CP_TIMES(cp, ap) + e, 0, 3);
-        ap = cp == CP_JUMP ? (ap & 63u) | m << 6 : m;
-    } else if (v >= COMP_TRIG && slot == 2u && cp > CP_ARPS && CP_AMAX[cp])   /* TRIG .. PULSE: their value */
-        ap = (uint32_t)clamp((int32_t)ap + d, CP_AMIN[cp], CP_AMAX[cp]);
+    else if (*cp == CP_JUMP && slot == 2u)            /* (0.6.62) TO STEP (its TIMES kept) */
+        *ap = (uint8_t)((*ap & 0xC0u) | (uint32_t)clamp((int32_t)CP_JTO(*ap) + steps, 0, 63));
+    else if ((*cp == CP_JUMP || *cp == CP_REV) && slot == 3u) {   /* (0.6.62) TIMES */
+        uint32_t m = (uint32_t)clamp((int32_t)CP_TIMES(*cp, *ap) + e, 0, 3);
+        *ap = (uint8_t)(*cp == CP_JUMP ? (*ap & 63u) | m << 6 : m);
+    } else if (v >= COMP_TRIG && slot == 2u && *cp > CP_ARPS && CP_AMAX[*cp])   /* TRIG .. PULSE: their value */
+        *ap = (uint8_t)clamp((int32_t)*ap + d, CP_AMIN[*cp], CP_AMAX[*cp]);
     else if (v >= COMP_ARPN && v <= COMP_ARPS && slot == 2u)
-        ap = CP_ARG((uint32_t)clamp((int32_t)CP_ORD(ap) + d, 0, 3), CP_RATE(ap), CP_RNG(ap));
+        *ap = CP_ARG((uint32_t)clamp((int32_t)CP_ORD(*ap) + d, 0, 3), CP_RATE(*ap), CP_RNG(*ap));
     else if (v >= COMP_ARPN && v <= COMP_ARPS && slot == 3u) {   /* RATE x RANGE: one list, 1 range after another */
-        int32_t i = clamp((int32_t)(CP_RATE(ap) % CP_NRATE * 4u + CP_RNG(ap)) + d, 0, CP_NRATE * 4 - 1);
-        ap = CP_ARG(CP_ORD(ap), (uint32_t)i / 4u, (uint32_t)i % 4u);
+        int32_t i = clamp((int32_t)(CP_RATE(*ap) % CP_NRATE * 4u + CP_RNG(*ap)) + d, 0, CP_NRATE * 4 - 1);
+        *ap = CP_ARG(CP_ORD(*ap), (uint32_t)i / 4u, (uint32_t)i % 4u);
     }
-    comp_store(st, k, cp, ap);
 }
 /* (0.6.85) SEQ > STRETCH: KNOB 1 STRETCH /8 .. /2, x2 .. x8; KNOB 2 REPEAT x2 .. x8, TO 64 (turning one picks it); OCT+
  * does the picked one to the selected track (UNDO: GLO + G4); KNOB 3 NUDGE: the whole sequence a step left / right now.
