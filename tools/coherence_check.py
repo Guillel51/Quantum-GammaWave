@@ -136,6 +136,26 @@ def check_emulator(root, version, record, problems):
             problems.append(f"emulator {key} {emu.get(key)!r} != the build record's {emu_rec[key]!r}")
 
 
+def check_portal(root, version, problems):
+    """Pages publishes `site/` as committed, so an empty portal is a blank front page that no test read.
+
+    `site/index.html` was committed with 0 bytes in the v1.3.x line: `pages.yml` uploaded it, the emulator and
+    the installer still worked, and nothing failed -- `web/test_site.py` checks `build/site`, the copy the
+    other workflow builds, never the committed one. A portal that is empty or does not name the version the
+    firmware carries is a contradiction like any other, and it is checked here.
+    """
+    path = os.path.join(root, "site", "index.html")
+    try:
+        html = open(path, encoding="utf-8", errors="replace").read()
+    except OSError:
+        problems.append("site/index.html is missing: Pages would publish a site with no front page")
+        return
+    if len(html.strip()) < 1024:
+        problems.append(f"site/index.html is {len(html)} B: the portal is empty, and Pages would serve that")
+    elif version.lstrip("v") not in html:
+        problems.append(f"site/index.html does not name {version}: the portal would label another build")
+
+
 def check_site(root, digest, problems):
     path = os.path.join(root, "site", "firmware", "versions.json")
     if not os.path.exists(path) or digest is None:
@@ -192,6 +212,7 @@ def main():
         record = check_build_record(root, version, problems)
         check_emulator(root, version, record, problems)
         check_site(root, digest, problems)
+        check_portal(root, version, problems)
         check_sums(root, problems)
 
     if problems:

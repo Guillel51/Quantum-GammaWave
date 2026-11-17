@@ -4,7 +4,7 @@
 
 # QUANTUM GAMMAWAVE
 
-**Twelve voices. Six tracks. Nine synthesis engines. One M-VAVE FM-1.**
+**Twelve voices. Six tracks. Ten synthesis engines. One M-VAVE FM-1.**
 
 <table>
   <tr>
@@ -27,7 +27,7 @@
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/editor/"><img alt="WEB STUDIO" src="https://img.shields.io/badge/WEB%20STUDIO-EDITOR-1f6feb?style=for-the-badge&labelColor=000410" height="40"></a>
 <a href="https://guillel51.github.io/Quantum-GammaWave/webapp/installer/"><img alt="USB INSTALLER" src="https://img.shields.io/badge/USB%20INSTALLER-ff9424?style=for-the-badge&labelColor=000410" height="40"></a>
 
-`v1.3.7` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
+`v1.3.8` · identity `FM-1_965` · GPL-3.0-only · AC791N (JieLi WL82) · 240 × 240
 
 Quantum GammaWave
 
@@ -103,7 +103,7 @@ What you hold is one instrument in four pieces:
 | **Sound bank** | 285 factory presets (283 browsable + 2 legacy kits), audited as data and measured as sound |
 | **Sequencing** | six tracks, per-step p-locks, probability and ratchets, arpeggiator, chord and scale tools |
 | **Effects** | CHORUS, DELAY, REVERB sends, EQ / compressor / width on the master bus, punch-in FX |
-| **Screen** | 240 × 240 RGB565, fourteen colours per theme, nine palettes including GREY and MONO |
+| **Screen** | 240 × 240 RGB565, fourteen colours per theme, nineteen palettes (GREY and MONO included) |
 | **Package** | 610 959 B, checked by SHA-256 and size (integrity, not a signature — see `docs/SIGNING.md`) |
 | **Verification** | 303 golden renders, a full host suite, an AC791N build budget, an emulator and a portal |
 
