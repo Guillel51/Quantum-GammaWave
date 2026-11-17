@@ -307,3 +307,23 @@ bytes as 1.3.5 and the deltas against §9 are the ones the 1.3.3/1.3.4/1.3.5 wor
 The package is 610 959 B (identity `FM-1_965`) because the container fills a fixed per-slot size: a smaller
 image does not make a smaller `.fwsc`. The 303 golden renders are unchanged and the CPU check is 0 entries
 over budget, so the final pass is a code cleanup, not a re-tune.
+
+## 11. Measured image — 2026-11-17 (v1.3.7: 904 B back from the keycap atlas)
+
+| region | bytes | budget | headroom |
+|---|---|---|---|
+| App image (`build/felucca.bin`) | **582 644 B** | 583 612 B (`APP_SLOT` 0x8E7BC) | **968 B** |
+| XIP code | 422 928 B | — | — |
+| XIP constants | **139 288 B** | — | — |
+| `.data + .bss` | 95 124 B | 98 304 B | 3 180 B |
+| Pool | 311 256 B | — | 9 248 B (floor 8 KiB) |
+| RAM code | 19 632 B | 24 576 B | 4 944 B |
+| LOWBUF | 26 724 B | 28 672 B | 1 948 B |
+| NOINIT | 15 572 B | 15 696 B | 124 B |
+
+The 904 B came from six keycap pills nothing drew (`KC_ARP`, `KC_K3`, `KC_K4`, `KC_HOLD`, `KC_ON`, `KC_OFF`): all
+of it out of the constants (`KC_DATA` 4 792 → 3 939 B), none of it out of code, and no pixel changed. The organic
+plates blob (`ui_shapes.h`, 10 861 B of points) costs **nothing** in the image: `nm -S build/felucca.elf` has no
+`SH_PLATES_*` symbol at all, the linker never carries it. And a new per-track parameter costs **2 456 B** of
+code, not of data, because growing `track_t.p[]` shifts every field of a 1 760-byte structure; see
+`docs/FLASH_RECLAIM.md` §4-6 for the three builds that measured it.

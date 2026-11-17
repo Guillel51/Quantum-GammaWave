@@ -1,3 +1,47 @@
+## v1.3.7 — 904 B de vuelta de los keycaps que nadie dibuja, y el precio medido del parámetro siguiente
+
+### Lo que se recuperó, medido
+- **Seis píldoras de keycap que ninguna pantalla dibujaba, fuera del generador.** `KC_ARP`, `KC_K3`, `KC_K4`,
+  `KC_HOLD`, `KC_ON` y `KC_OFF` se rasterizaban en `tools/gen_aa_keycaps.py` y ningún `cv_keycap` las nombraba
+  (el audito de las 29 etiquetas contra el código no encontró ni una llamada). Quitarlas deja `KC_DATA` en
+  **3 939 B** (de 4 792) y el bloque de keycaps en **4 699 B** (de 5 564).
+- **La imagen del AC791N bajó lo mismo que el dato: 583 548 → 582 644 B, 968 B libres** (de 64). El XIP de
+  código no se movió (**422 928 B**): los 904 B salieron enteros de las constantes (140 192 → 139 288), que es
+  exactamente lo que se esperaba de un dato que ya no se guarda. `.data + .bss` sigue en **95 124 B de 98 304**,
+  el pool con **9 248 B** de sobra, la RAM code en **19 632 B de 24 576**.
+- **El blob de formas no costaba imagen, y eso quedó medido, no supuesto.** `build/gen/ui_shapes.h` son
+  **10 861 B de puntos**; bajarlo a 9 661 B con knobs de simplificación nuevos (`--eps=0.6 --flat=0.8`) dejó la
+  imagen **idéntica**, porque `nm -S build/felucca.elf` no tiene **ningún** símbolo `SH_PLATES_*` ni `SH_*_PTS`:
+  `ui_organic.c` se incluye desde `ui_graph.c` pero su arte no se referencia, y el enlazador no lo lleva. Esa
+  premisa de partida era falsa para esta configuración y la vía se cerró con la prueba, no con una opinión.
+
+### El parámetro que debía gastar esos bytes: implementado, medido, y no entra
+- **KEYTRK** (profundidad de keytracking del filtro) era el candidato con más diferencia sonora: el seguimiento
+  está escrito a mano como `(pitch16 - 60 * 16) * 4` en seis sitios (`eng_analog.c` ×4, `eng_wavetable.c`,
+  `eng_additive.c`) y ninguna página podía tocarlo. Se implementó entero —enumeración, descriptor `F_PCT`,
+  la fila libre de **VOICE 3**, los seis sitios de motor y default 127 = el 4 de siempre, bit a bit— y se midió
+  **tres veces**:
+  - insertado antes de `P_E0` (donde el mapa por conteo lo exige): **585 100 B**, +2 456;
+  - añadido después de `P_E7`: **585 084 B**, +2 440;
+  - con un segundo parámetro reserva: **585 088 B**, +2 444.
+  El reparto dice por qué: constantes **+36 B**, RAM **+48 B** y **código +2 404 B** repartidos en **147
+  funciones** (`ui_input_frame` 13 842 → 14 444, `draw_graph` +150, `graph_signature` +146, `note_edit` +140…).
+  Ninguna de esas funciones lee el parámetro: crecer `track_t.p[]` 2 B mueve **todos** los campos de una
+  estructura de **1 760 B** y el compilador rehace las codificaciones de acceso en toda la UI. No es un coste del
+  parámetro, es el precio de tocar esa estructura.
+- **Conclusión honesta**: 904 B recuperados, 2 456 B de coste. El parámetro **no entra sin recortar calidad o
+  contenido**, y por eso no se publica a medias: queda documentado con la ruta que sí cabe —
+  `track_t` tiene **un byte de relleno exacto** (offset 327, entre `latched` y `arp_pos`; `sizeof` 1 760,
+  alineación 4), y un control sin id de `p[]` puede exponerse por el mismo embudo que ya usan los slots 5..8 de
+  la matriz y los macros (`params.c page_desc`). Lo que falta decidir es el **guardado**: los ids de 7 bits están
+  en 125 de 127 y los formatos de proyecto y preset no tienen un byte libre por pista, así que un parámetro de
+  primera clase necesita una decisión de formato, no 900 B más de flash.
+
+### Lo que sigue sin poder afirmarse
+- Nada de esto se probó en una unidad física: el FM-1 del dueño no se escribe desde este repositorio. Las
+  mediciones de arriba son **build del AC791N** y **host x86**; la suite completa, los renders dorados y el
+  emulador se corren en esta versión como en todas.
+
 ## v1.3.6 — fase final: el árbol sin avisos y el ecosistema en una sola versión
 
 ### Optimización y limpieza, medidos

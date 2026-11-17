@@ -40,8 +40,11 @@ KC_BASE = 10                     # baseline row: the caps on rows 3 .. 9
 # (C name, label): the controls the hints name (panel.c B_NAME / E_NAME, short), then the state badges
 LABELS = [("PRESETS", "PRESETS"), ("SELECT", "SELECT"), ("ALGO", "ALGO"), ("OCTDN", "OCT-"), ("OCTUP", "OCT+"),
           ("PLAY", "PLAY"), ("REC", "REC"), ("SAVE", "SAVE"), ("EDIT", "EDIT"), ("SEQ", "SEQ"), ("GLO", "GLO"),
-          ("HOME", "HOME"), ("ARP", "ARP"), ("KEYS", "KEYS"), ("K1", "K1"), ("K2", "K2"), ("K3", "K3"), ("K4", "K4"),
-          ("MUTE", "MUTE"), ("ARM", "ARM"), ("HOLD", "HOLD"), ("ON", "ON"), ("OFF", "OFF"),
+          ("HOME", "HOME"), ("KEYS", "KEYS"), ("K1", "K1"), ("K2", "K2"),
+          ("MUTE", "MUTE"), ("ARM", "ARM"),   # (1.3.7) ARP, K3, K4, HOLD, ON and OFF were pre-rendered and no screen
+                                              # ever drew them: 6 pills x 4 pills' worth of bytes back (see the build's
+                                              # report). Their KC_ names went with them; nothing indexed them, every
+                                              # call site names the pill it draws.
           ("FX", "FX"), ("K14", "K1-4"), ("SCL", "SCL"), ("OCTPM", "OCT-/+"), ("LFO", "LFO")]
 
 KNOBS = [("BIG", 17), ("SMALL", 10)]   # outer radius; the ring is 2 px

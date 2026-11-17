@@ -360,3 +360,20 @@ NOINIT **15 572 de 15 696**. El paquete sigue en **610 959 B**, identidad **FM-1
 Los 303 renders dorados no se movieron y el presupuesto de CPU del regresor quedó en **0 entradas por encima** de 20
 notas medidas: la limpieza es de código, no de sonido. Con 64 B libres, esta fase **no** añade parámetros, FX ni
 presets — y lo dice en lugar de insinuarlo.
+
+### 8.8 La 1.3.7: 904 B de vuelta, y el precio real de un parámetro nuevo
+
+La fase 1.3.7 no añade sonido: quita del generador **seis píldoras de keycap que ninguna pantalla dibujaba**
+(`KC_ARP`, `KC_K3`, `KC_K4`, `KC_HOLD`, `KC_ON`, `KC_OFF`) y deja el mapa de teclas en **4 699 B** en vez de 5 564.
+El build del AC791N lo paga con la cuenta exacta:
+
+```
+XIP: code 422928 B + constants 139288 B = 562216 B from 0x2000120
+RAM: .data+.bss 95124 B of 98304 B (3180 B free)
+image: 582644 B of 583612 B (968 B free in the app slot)
+RAM code 19632 B of 24576
+```
+
+**583 548 → 582 644 B**: 904 B, todos de constantes, con el código en el mismo byte. Y el parámetro que esos bytes
+debían pagar (KEYTRK) se midió en **+2 456 B** de código repartidos en 147 funciones, así que no entra: la razón
+completa, con los tres builds de control, está en `docs/FLASH_RECLAIM.md` §6.

@@ -102,3 +102,84 @@ movieron.
 
 Con esos bytes entró **VOICE 3 (DETUNE)**: 24 B, un control que el DSP aplicaba desde siempre y que la
 v4.1.0 había dejado fuera por falta de espacio. Quedan **5 816 B** libres para la siguiente pieza.
+
+---
+
+# Segunda pasada (v1.3.7): lo que sí costaba imagen, medido
+
+Estado de partida: **583 548 B de 583 612 — 64 B libres**. Dos candidatos nuevos, los dos medidos con
+`./build.sh` (build del AC791N) y, cuando hacía falta, con `nm -S build/felucca.elf`.
+
+## 4. El blob de formas no cuesta imagen: 10 861 B que el enlazador no lleva
+
+`build/gen/ui_shapes.h` guarda **10 861 B de puntos** (`SH_PLATES_*`, el arte de las placas orgánicas de
+`ui_organic.c`). Le añadí dos knobs al generador (`--eps=0.6 --flat=0.8`, simplificación de polilínea) y el blob
+bajó a **9 661 B**… y la imagen quedó **idéntica**: **583 548 B antes y después**.
+
+La prueba de por qué: `nm -S build/felucca.elf | grep SH_` no devuelve **ni un solo** `SH_PLATES_*` ni `SH_*_PTS`.
+`ui_organic.c` se incluye desde `ui_graph.c:15`, pero ninguna pantalla referencia su arte de placas, así que el
+enlazador lo descarta (`--gc-sections`) y sus bytes nunca llegaron a la imagen. `tools/table_sizes.py` lo confirma:
+*shapes (154 B)*, que es sólo la tabla de punteros que sí se usa.
+
+**Ahorro real en imagen: 0 B.** La vía se cierra con la evidencia; los knobs del generador se revirtieron para no
+dejar en el árbol una optimización que no paga nada.
+
+## 5. Keycaps que nadie dibuja: 904 B de imagen, medidos
+
+De las 29 etiquetas que rasterizaba `tools/gen_aa_keycaps.py`, **seis no las dibujaba ninguna pantalla**:
+`KC_ARP`, `KC_K3`, `KC_K4`, `KC_HOLD`, `KC_ON`, `KC_OFF` (ni una llamada a `cv_keycap` con esas etiquetas; el
+resto de las 23 sí se usan). Quitarlas del generador:
+
+```
+keycaps: 22 pills, data 3939 B + table 176 B; knob arcs 584 B = 4699 B      (antes: 5 564 B)
+KC_DATA[4792] -> KC_DATA[3939]                                              (-853 B)
+```
+
+y el build del AC791N:
+
+| | v1.3.6 | v1.3.7 | |
+|---|---|---|---|
+| imagen | 583 548 B | **582 644 B** | −904 B |
+| XIP código | 422 928 B | 422 928 B | 0 |
+| XIP constantes | 140 192 B | **139 288 B** | −904 B |
+| `.data + .bss` | 95 124 B | 95 124 B | 0 |
+| RAM code | 19 632 B | 19 632 B | 0 |
+| libre en el slot | 64 B | **968 B** | +904 B |
+
+Los 853 B del dato más 12 B de tabla de offsets y alineación: **904 B**, todos de constantes y ninguno de código,
+que es lo que se espera de un dato que ya no se guarda. Ningún píxel cambia porque esas píldoras no se dibujaban.
+
+## 6. KEYTRK: el parámetro que más aporta, y sus 2 456 B medidos
+
+Con 968 B libres, el candidato con más diferencia sonora era **KEYTRK** (profundidad de keytracking del filtro):
+hoy el seguimiento está escrito a mano como `(v->pitch16 - 60 * 16) * 4` en seis sitios (`eng_analog.c` líneas
+105/147/208/277, `eng_wavetable.c:110`, `eng_additive.c:125`) y ninguna página puede tocarlo. Se implementó
+completo —miembro del enum, descriptor, la fila libre de VOICE 3, los seis motores, default 127 = el 4 de siempre
+bit a bit— y se midió tres veces:
+
+| variante | imagen | coste |
+|---|---|---|
+| insertado antes de `P_E0` (lo que exige el mapa por conteo) | 585 100 B | **+2 456 B** |
+| añadido después de `P_E7` (para descartar el desplazamiento) | 585 084 B | +2 440 B |
+| con un segundo parámetro reserva (para descartar la paridad) | 585 088 B | +2 444 B |
+
+Reparto del primero: constantes **+36 B**, RAM **+48 B** (4 B por pista) y **código +2 404 B**. El `nm -S` de los
+dos ELF dice dónde: **147 símbolos de código crecen**, y ninguno lee el parámetro —
+`ui_input_frame` 13 842 → 14 444 B, `draw_graph` +150, `graph_signature` +146, `note_edit` +140, `part_dice` +112,
+`draw_columns` +66, `edit_param` +68… Todas tocan `track_t`, y crecer `p[]` 2 B mueve **todos** los campos de una
+estructura de **1 760 B** (medido con `offsetof`): el compilador rehace las codificaciones de acceso a lo largo de
+la UI. No es el coste del parámetro, es el precio de tocar la estructura.
+
+**Con 904 B recuperados y 2 456 B de coste, el parámetro no entra.** Las dos piezas que sí caben, para la
+siguiente pasada:
+
+1. **El valor**: `track_t` tiene **exactamente un byte de relleno** en el offset 327 (entre `latched` y
+   `arp_pos`, `sizeof(track_t)` = 1 760 B, alineación 4). Un `uint8_t` ahí **no cambia el tamaño ni un offset**,
+   así que cuesta 0 B de imagen.
+2. **El control**: una página puede ofrecer un valor que no es id de `p[]` por el mismo embudo que ya usan los
+   macros (`params.c` `page_desc`, sombra `int16_t` + escritura en `ui_input.c`) y los slots 5..8 de la matriz
+   (`*valp = &TSEL->mx[...]`).
+
+Lo que falta no es flash, es **formato**: los ids de 7 bits están en **125 de 127** y ni el proyecto (FUNB, sin byte
+libre por pista) ni el preset de usuario (registro de tamaño fijo) tienen un byte por pista para guardarlo. Un
+parámetro de primera clase necesita una decisión de formato (un bloque nuevo, o SUBIR `UP_VER`), no 900 B más.
