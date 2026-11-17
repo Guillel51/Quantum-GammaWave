@@ -249,8 +249,30 @@ def variety(presets, rng):
     return [len({p["e"][i] for p in presets}) for i in range(8)]
 
 
+def gate_sound():
+    """Two presets of one engine that MEASURE alike are a copy, whatever their parameters say. It reads
+    the fingerprints only, so it runs before `load()`: nothing in the suite writes
+    `build/preset_dump.jsonl`, and a gate that needs a leftover file from a manual run does not gate
+    anything -- v1.3.6 and v1.3.7 could not run it on a clean tree (their CI failed here, on the sound
+    gate, not on the bank)."""
+    i = sys.argv.index("--gate-sound")
+    gate = float(sys.argv[i + 1])
+    path = sys.argv[sys.argv.index("--fingerprint") + 1] if "--fingerprint" in sys.argv else None
+    lib = load_sound(path)
+    bad = [(d, eng, a, b) for d, eng, a, b in
+           ((sound_distance(ps[i], ps[j]), eng, ps[i]["name"], ps[j]["name"])
+            for eng, ps in lib.items() for i in range(len(ps)) for j in range(i + 1, len(ps)))
+           if d < gate]
+    print(f"preset similarity: {sum(len(p) * (len(p) - 1) // 2 for p in lib.values())} pairs measured, "
+          f"{len(bad)} closer than {gate:g}")
+    for d, eng, a, b in sorted(bad):
+        print(f"  too alike: {eng:8s} '{a}' / '{b}' measure {d:.3f} apart")
+    sys.exit(1 if bad else 0)
+
+
 def main():
-    lib, order, meta = load(), None, None
+    if "--gate-sound" in sys.argv:
+        gate_sound()                  # it exits: the dump is not its input
     lib, order, meta = load()
     problems, near, pairs = [], [], []
     near_th = DEFAULT_NEAR
@@ -334,22 +356,6 @@ def main():
     if "--inventory" in sys.argv:
         inventory(sys.argv[sys.argv.index("--inventory") + 1])
         sys.exit(0)
-
-    if "--gate-sound" in sys.argv:
-        # the regression: two presets of one engine that MEASURE alike are a copy, whatever their parameters say
-        i = sys.argv.index("--gate-sound")
-        gate = float(sys.argv[i + 1])
-        path = sys.argv[sys.argv.index("--fingerprint") + 1] if "--fingerprint" in sys.argv else None
-        lib = load_sound(path)
-        bad = [(d, eng, a, b) for d, eng, a, b in
-               ((sound_distance(ps[i], ps[j]), eng, ps[i]["name"], ps[j]["name"])
-                for eng, ps in lib.items() for i in range(len(ps)) for j in range(i + 1, len(ps)))
-               if d < gate]
-        print(f"preset similarity: {sum(len(p) * (len(p) - 1) // 2 for p in lib.values())} pairs measured, "
-              f"{len(bad)} closer than {gate:g}")
-        for d, eng, a, b in sorted(bad):
-            print(f"  too alike: {eng:8s} '{a}' / '{b}' measure {d:.3f} apart")
-        sys.exit(1 if bad else 0)
 
     if "--sound" in sys.argv:
         sth = 0.06
