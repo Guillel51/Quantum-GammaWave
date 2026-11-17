@@ -25,16 +25,20 @@ APPROVED = ("true", "1", "yes")
 
 
 def version_parts(version):
-    """(major, minor, patch) de `v3.0.0`, `3.0.0` o `v3.0.0-rc.1`; None si no es una versión."""
-    m = re.match(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$", version or "")
+    """(major, minor, patch[, build]) de `v3.0.0`, `3.0.0`, `v1.3.9.1` o `v3.0.0-rc.1`; None si no lo es.
+
+    El cuarto componente es una versión de corrección (1.3.9.1) y tiene que pasar por aquí: la compuerta
+    aceptaba sólo tres números, así que v1.3.9.1 se leía como "no es una versión" y `tag-and-publish`
+    terminaba antes del tag sin publicar nada (run 44184963995, 2026-11-17)."""
+    m = re.match(r"^v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:[-+].*)?$", version or "")
     if not m:
         return None
-    return tuple(int(x) for x in m.groups())
+    return tuple(int(x) for x in m.groups() if x is not None)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("version", help="la versión que el árbol lleva, p. ej. v3.0.0")
+    ap.add_argument("version", help="la versión que el árbol lleva, p. ej. v3.0.0 o v1.3.9.1")
     ap.add_argument("approved", nargs="?", default=os.environ.get("QG_RELEASE_APPROVED", "false"),
                     help="QG_RELEASE_APPROVED: true/1/yes para autorizar una 3.x")
     a = ap.parse_args()

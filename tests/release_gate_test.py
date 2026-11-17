@@ -45,6 +45,14 @@ rc, out = run("v10.2.0")
 check("v10.2.0 también exige aprobación", rc == 1, out.strip())
 rc, out = run("banana")
 check("una versión malformada no se publica", rc == 1, out.strip())
+# 1.3.9.1: la compuerta leía sólo tres números, y una versión de corrección se tomaba por malformada.
+# `tag-and-publish` terminó antes del tag con SUCCESS aparente (run 44184963995) por esto.
+rc, out = run("v1.3.9.1")
+check("v1.3.9.1 es una versión y no necesita aprobación", rc == 0, out.strip())
+rc, out = run("v3.0.1")
+check("v3.0.1 parchea una 3.x y sigue exigiendo aprobación", rc == 1, out.strip())
+rc, out = run("v1.3.9.1.2")
+check("un quinto componente no es una versión", rc == 1, out.strip())
 
 print()
 if fail:
