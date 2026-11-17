@@ -175,6 +175,7 @@ def check_sums(root, problems):
     if not os.path.exists(path):
         problems.append("release/SHA256SUMS is missing")
         return
+    listed = set()
     with open(path, encoding="utf-8") as f:
         for no, line in enumerate(f, 1):
             line = line.strip()
@@ -192,6 +193,13 @@ def check_sums(root, problems):
                 problems.append(f"SHA256SUMS names {name}, which is not a file in release/")
             elif sha256(target) != digest:
                 problems.append(f"SHA256SUMS says {digest[:16]}… for {name}, the file hashes differently")
+            listed.add(name)
+        # the other direction: a package or a build record the sums do not describe. This is how
+        # release/SHA256SUMS drifted from 1.3.5 to 1.3.8 -- every new build record was written beside
+        # the others and never added -- and `signed-release.yml` failed on it after the release was out.
+        for name in sorted(os.listdir(os.path.join(root, "release"))):
+            if name.endswith((".fwsc", ".json")) and name not in listed:
+                problems.append(f"release/{name} is not listed in release/SHA256SUMS")
 
 
 def main():

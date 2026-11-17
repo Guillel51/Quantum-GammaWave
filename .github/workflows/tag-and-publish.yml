@@ -147,7 +147,28 @@ jobs:
             for a in $ASSETS; do
               name="$(basename "$a")"
               case " $have " in
-                *" $name "*) echo "asset $name is already attached, left as it is" ;;
+                *" $name "*)
+                  # The package and its manifest are immutable once attached: they are the artefact and
+                  # its description, and swapping either would break the attestation. The two DERIVED
+                  # files (the sums and the build record) are descriptions of the tree; when the tree's
+                  # copy no longer matches the attached one, the release would be publishing sums that
+                  # do not describe what it carries (release/SHA256SUMS drifted from 1.3.5 to 1.3.8 and
+                  # `signed-release.yml` failed on it). Replace only those, and only on a digest mismatch.
+                  case "$name" in
+                    SHA256SUMS|build-manifest-*.json)
+                      local_sha="$(sha256sum "$a" | cut -d' ' -f1)"
+                      remote="$(gh release view "$V" --json assets \
+                        --jq ".assets[] | select(.name == \"$name\") | .digest // \"\"" 2>/dev/null || true)"
+                      case "$remote" in
+                        "sha256:$local_sha") echo "asset $name is attached and matches the tree" ;;
+                        sha256:*)
+                          echo "::notice::asset $name on $V does not match the tree: replacing the derived copy"
+                          gh release delete-asset "$V" "$name" --yes
+                          gh release upload "$V" "$a" ;;
+                        *) echo "asset $name is already attached, left as it is (no digest to compare)" ;;
+                      esac ;;
+                    *) echo "asset $name is already attached, left as it is" ;;
+                  esac ;;
                 *) gh release upload "$V" "$a" ;;
               esac
             done
