@@ -135,7 +135,10 @@ case "${POLY:-12}" in
     *)  echo "poly: POLY=${POLY:?} (the measured profiles are 10 and 12)" >&2; exit 2 ;;
 esac
 fail=0
-run() { echo "== $1"; shift; "$@" || fail=1; }
+# (1.3.7) A check that fails says which one, right there: a suite of hundreds of commands whose only trace
+# of a failure is a `fail=1` needs the whole log to find it, and in CI that log needs a credential to read.
+# The line is plain text on purpose (no GitHub syntax in a test script): anyone greps for FAIL.
+run() { n="$1"; echo "== $n"; shift; "$@" || { fail=1; echo "FAIL: $n"; }; }
 
 # A merge that left its markers behind compiles anyway when FELUCCA_VERSION comes in with -D, which is how the
 # host tests build; the AC791N build does not define it, so `firmware/src/felucca.c` with a `<<<<<<< HEAD` inside
