@@ -117,11 +117,11 @@ static void hv_overview(const track_t *t, uint16_t c)
 
     /* pass 0: what is loaded and what it is doing */
     hv_strip(29, c);                                   /* (4.1) which screen this is, as an icon */
-    cv_text(14, 34, &AF_S, "OVERVIEW", T_THEME);       /* (1.3.2) the body opens at 20 now: the name sits on its
+    cv_text(14, 28, &AF_S, "OVERVIEW", T_THEME);       /* (1.3.9) y = 28, not 34: AF_S's capitals are rows 3..11
                                                         * own row, clear of the panel's border and of the rule */      /* (3.5) the screen's own name, in the row the knob
                                                         * strip used to take (K1..K4 showed values nothing
                                                         * acted on: they are gone, not moved) */
-    cv_rect(14, 41, 212, 1, T_LINE);
+    cv_rect(14, 41, 212, 1, T_LINE);                   /* (1.3.9) under the name's ink (31..39), not through it */
 
     cv_text(14, 50, &AF_S, "ENGINE", T_DIM);
     cv_text(86, 47, &AF_M, e->name, T_TEXT);
@@ -333,7 +333,7 @@ static void hv_mix(const track_t *t, uint16_t c)
     hv_grad();
     hv_air(Y_LABEL, 202 - Y_LABEL, c, 1u);
     hv_strip(29, c);
-    cv_text(14, 34, &AF_S, "MIXER", T_THEME);          /* (1.3.2) the body opens at 20 now: the name sits on its
+    cv_text(14, 28, &AF_S, "MIXER", T_THEME);          /* (1.3.9) y = 28, not 34: AF_S's capitals are rows 3..11
                                                         * own row, clear of the panel's border and of the rule */         /* (3.5) its own title, where the knob strip was */
     cv_rect(14, 41, 212, 1, T_LINE);
     (void)q;
@@ -419,7 +419,7 @@ static void hv_perf(const track_t *t, uint16_t c)
     hv_grad();
     hv_air(Y_LABEL, 202 - Y_LABEL, c, 2u);
     hv_strip(29, c);
-    cv_text(14, 34, &AF_S, "PERFORMANCE", T_THEME);    /* (1.3.2) the body opens at 20 now: the name sits on its
+    cv_text(14, 28, &AF_S, "PERFORMANCE", T_THEME);    /* (1.3.9) y = 28, not 34: AF_S's capitals are rows 3..11
                                                         * own row, clear of the panel's border and of the rule */   /* (3.5) its own title, where the knob strip was */
     cv_rect(14, 41, 212, 1, T_LINE);
     cv_text(14, 48, &AF_S, "OCTAVE", T_DIM);
@@ -711,7 +711,7 @@ static void hv_route(const track_t *t, uint16_t c)
 
     /* ---- pass 0: the part, its insert, its three sends ---- */
     hv_strip(29, c);
-    cv_text(14, 30, &AF_S, "ROUTING", T_THEME);
+    cv_text(14, 28, &AF_S, "ROUTING", T_THEME);       /* (1.3.9) ink rows 31..39, the divider at 41 */
     cv_rect(14, 41, 212, 1, T_LINE);
     cv_rect(10, 44, 1, 68, T_LINE);                    /* the rail: one stage a row, read downwards */
 
@@ -816,6 +816,13 @@ static void graph_home_view(uint16_t c)
     cv_oy = -Y_LABEL;
     cv_bg = T_SURF;
     cv_rrect(4, Y_LABEL, 232, 202 - Y_LABEL, 6, T_SURF, T_BG);
+    /* (1.3.9) THE CAP PAINTS THE SAME GROUND AS THE BODY. It used to fill the plate with T_SURF flat while the
+     * 88-row passes painted hv_grad()/hv_air() over the same rows, so the six rows above the first pass read as a
+     * lighter band across the top of the screen -- the "top of HOME showing through" on OVERVIEW, MIXER and
+     * PERFORMANCE. The gradient runs from Y_LABEL on the same ramp, so rows 20..25 continue into row 26. */
+    hv_grad();                                        /* (1.3.9) and no hv_air in the cap: the field's bodies and
+                                                        * dust start at 26 with the first pass, as they always did,
+                                                        * and six rows of separate specks would only show the seam */
     cv_blit(0, Y_LABEL);
     for (pass = 0; pass < 2u; pass++) {
         int32_t top_y = pass ? 114 : 26;

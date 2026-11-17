@@ -950,7 +950,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         char vb[12];
         for (m = 0; m < 3u; m++) {
             cv_rrect(MX3[m], 82, 76, 39, 3, T_SURF, T_BG);
-            ux_ground_rows(MX3[m] + 2, 83, 72, 37, 22, 62, 10, 45, 83, 119, 100);   /* (1.2.6) the bottom row too */
+            ux_ground_rows(MX3[m] + 2, 83, 72, 37, 14, 50, 6, 32, 83, 119, 100);   /* (1.2.6) the bottom row too */
             cv_icon_on(MX3[m] + 4, 83, 12, IC[m], T_MID, ux_ground_at(0, 37, 10, 45));
             cv_text_on(MX3[m] + 19, 83, &AF_S, NM[m], T_DIM, ux_ground_at(0, 37, 10, 45));
             cv_rect(MX3[m] + 4, 108, 68, 9, T_BG);        /* the bar's track, under the value */
@@ -964,14 +964,14 @@ static void graph_fx(const track_t *t, uint16_t c)
             if (em) {
                 int32_t c = 34;                        /* the centre: 0 dB */
                 str_cpy(vb, N_EQMODE[em], sizeof vb);
-                cv_text_on(MX3[0] + 4, 99, &AF_S, vb, T_THEME, ux_ground_at(13, 37, 10, 45));
+                cv_text_on(MX3[0] + 4, 94, &AF_S, vb, T_THEME, ux_ground_at(13, 37, 6, 32));
                 if (bar[0] >= c)
                     cv_rect(MX3[0] + 4 + c, 110, bar[0] - c, 5, T_THEME);   /* boost: centre -> right */
                 else
                     cv_rect(MX3[0] + 4 + bar[0], 110, c - bar[0], 5, T_THEME);   /* cut: left -> centre */
                 cv_rect(MX3[0] + 4 + bar[0], 108, 4, 9, T_ACCENT);   /* where the gain sits */
             } else {
-                cv_text_on(MX3[0] + 4, 99, &AF_S, "BYP", T_DIM, ux_ground_at(13, 37, 10, 45));
+                cv_text_on(MX3[0] + 4, 94, &AF_S, "BYP", T_DIM, ux_ground_at(13, 37, 6, 32));
                 cv_rect(MX3[0] + 4 + 32, 110, 2, 5, T_DIM);  /* flat and bypassed: the centre only */
             }
             cv_rect(MX3[0] + 4 + 34, 108, 1, 9, T_LINE);      /* the 0 dB line, over the fill */
@@ -982,7 +982,7 @@ static void graph_fx(const track_t *t, uint16_t c)
             fx_ease(&bar[1], w);
             fmt_int(vb, d * 100 / 127);
             str_cpy(vb + str_len(vb), "%", 2);
-            cv_text_on(MX3[1] + 4, 99, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(13, 37, 10, 45));
+            cv_text_on(MX3[1] + 4, 94, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(13, 37, 6, 32));
             if (bar[1] > 0)
                 cv_rect(MX3[1] + 4, 110, bar[1], 5, song.g[G_SLMODE] ? T_THEME : T_DIM);
             if (bar[1] > 0)                            /* the head, and where it is going */
@@ -994,7 +994,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         {
             uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k, pat = sl_pattern();
             str_cpy(vb, N_SLCR[sm], sizeof vb);
-            cv_text_on(MX3[2] + 4, 99, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(13, 37, 10, 45));
+            cv_text_on(MX3[2] + 4, 94, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(13, 37, 6, 32));
             for (k = 0; k < 16u; k++) {
                 int32_t sx = MX3[2] + 4 + (int32_t)k * 4;
                 int on = sm && ((pat >> k) & 1u), now = sm && k == (sl.idx & 15u);
@@ -3160,6 +3160,11 @@ static void graph_home_viz(uint16_t c)
      * no alpha to set, so the well is mixed toward the page's own tone instead: the stars behind it keep
      * showing through the tint, and the grid and the traces still lead (they are the bright thing here). */
     uint16_t vbg = ux_mix(bg_darken(T_BG, 14), T_BG, 62), vsf = bg_darken(T_SURF, 10);
+    /* (1.3.9) THE SCOPES' WELLS ARE OPAQUE. vbg is the page's own tone, mixed toward T_BG so the milky way and its
+     * dust read through it; used as the wells' fill it let the field's diagonal and worlds sit under the grid and
+     * the trace. The wells take their own tone now (the page's, darkened further and not mixed back), so the two
+     * scopes are solid and the field stays outside them. */
+    uint16_t vwell = bg_darken(T_BG, 26);
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
@@ -3184,6 +3189,14 @@ static void graph_home_viz(uint16_t c)
         if (bsum > peak_decay[i]) peak_decay[i] = (uint8_t)bsum;
         else if (peak_decay[i]) peak_decay[i]--;
     }
+
+    /* (1.3.9) THE SIX ROWS ABOVE THE PANEL ARE THE VISUALIZER'S TOO. Its two 88-row passes start at 26, and rows
+     * Y_LABEL (20) .. 25 were painted by nobody: draw_frame() only fills the gaps BETWEEN the strips, so the top of
+     * the four knob cards HOME had just drawn stayed on screen -- the squares that showed in the visualizer. A
+     * 26-row cap of the page's own tone, blitted at Y_LABEL, covers them; the passes then draw over 26..202. */
+    cv_oy = 0;
+    cv_begin(240, 26, vbg);
+    cv_blit(0, Y_LABEL);
 
     for (pass = 0; pass < 2u; pass++) {
         int32_t top_y = pass ? 114 : 26, cy = 100, amp = 34;
@@ -3224,7 +3237,7 @@ static void graph_home_viz(uint16_t c)
          * on top of the oscilloscope, which is what made it hard to read. An opaque well of the page's own tone
          * goes down after the field and the embers and before anything is measured, so the trace and its grid
          * are the only things on it. */
-        cv_rect(12, 63, 144, 72, vbg);
+        cv_rect(12, 63, 144, 72, vwell);
         cv_rect(12, cy, 144, 1, T_LINE);
         for (i = 0; i < 4u; i++)
             cv_rect(12 + (int32_t)i * 48, 64, 1, 66, T_GRID);
@@ -3259,7 +3272,7 @@ static void graph_home_viz(uint16_t c)
          * the two read as two screens. Both wells are the page's own dark tone with the same 1 px frame, both
          * carry the same three-division grid and the same foot ticks, and both traces are on the same heat ramp,
          * so the pair reads as one instrument with two probes. */
-        cv_rect(164, 64, 64, 67, vbg);
+        cv_rect(164, 64, 64, 67, vwell);
         {
             uint16_t fr = ux_mix(T_BG, T_GRID, 62);
             cv_rect(164, 64, 64, 1, fr);

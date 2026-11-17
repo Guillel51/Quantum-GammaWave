@@ -1,3 +1,41 @@
+## v1.3.9 — la banda de HOME, el visualizador entero y FX legible
+
+Los seis bugs de UI del reporte, cada uno con su causa. Medido en host x86 (render) y en el enlace del AC791N.
+
+### El visualizador mostraba las tarjetas de HOME
+Sus dos pasadas de 88 filas empiezan en la fila 26 y nadie pintaba `Y_LABEL` (20) .. 25: `draw_frame()` sólo
+rellena los huecos **entre** tiras, así que los bordes de las cuatro tarjetas de knobs que HOME acababa de dibujar
+seguían en pantalla — los "cuadrados" del reporte. Una pasada-cap de 26 filas del tono de la página, bliteada en
+`Y_LABEL`, las cubre; las pasadas dibujan después sobre 26..202.
+
+### La línea atravesaba OVERVIEW, MIX y PERFORMANCE
+Esas tres vistas pintaban las seis filas de arriba con `T_SURF` liso y arrancaban su degradado en 26, o sea una
+franja más clara sobre el fondo, y su nombre iba en `y = 34`, cuyas mayúsculas de `AF_S` ocupan las filas 37..45:
+la raya de separación de `y = 41` lo cortaba por la mitad (en MIX se leía "MIX" y "ER" con una línea en medio).
+El cap pinta ahora `hv_grad()` —la misma rampa de la página— y el nombre va en `y = 28` (tinta 31..39) en las tres
+pantallas y también en ROUTING, con lo que la raya queda limpia bajo el texto.
+
+### Los osciloscopios dejaban ver el campo
+Los dos pozos del visualizador usaban el tono de la página **mezclado hacia `T_BG`**, pensado para que la vía
+láctea se viera a través; con la rejilla y la traza encima, lo que se veía era el campo debajo del instrumento.
+Cada pozo tiene ahora su propio tono opaco (`bg_darken(T_BG, 26)`), y el campo queda fuera de los dos.
+
+### FX: BYP, el porcentaje y el OFF encima de sus barras
+Los tres módulos de la primera sección dibujaban su lectura en `y = 99`, y su barra ocupa 108..116: el texto caía
+sobre el borde de la barra. Van en `y = 94` (tinta 97..105), y la rampa de esos tres módulos baja de 22..62 % /
+10..45 % a **14..50 % / 6..32 %**, con `ux_ground_at(13, 37, 6, 32)` para que el texto siga el mismo degradado:
+los cuadros se leen más oscuros y el texto no compite con el relleno.
+
+### Coste
+**+128 B** de imagen: 582 644 → **582 772 B de 583 612** (840 B libres), `.data + .bss` sigue en **95 124 B de
+98 304** y el paquete en **610 959 B** con identidad **FM-1_965**. Nada se mueve en RAM.
+
+### Cómo se comprobó
+`tests/ui_render`: 190 pantallas × 22 paletas, **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles
+GREY/MONO fuera de gris/neutro, **0 desalineaciones en 3 894 154 medidas**. Los volcados de `home_viz`, `home_mix`,
+`home_perf` y `fx` muestran las filas 20..25 en un solo color y las tres lecturas de FX separadas de sus barras.
+No hay unidad FM-1 en este host: nada de esto es una medición de hardware.
+
 ## v1.3.8 — el banner se vuelve a dibujar desde cero, y el portal deja de estar en blanco
 
 ### El banner es otro, y lo dibuja el repositorio

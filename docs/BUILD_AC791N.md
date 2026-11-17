@@ -377,3 +377,10 @@ RAM code 19632 B of 24576
 **583 548 → 582 644 B**: 904 B, todos de constantes, con el código en el mismo byte. Y el parámetro que esos bytes
 debían pagar (KEYTRK) se midió en **+2 456 B** de código repartidos en 147 funciones, así que no entra: la razón
 completa, con los tres builds de control, está en `docs/FLASH_RECLAIM.md` §6.
+
+### 8.6 La 1.3.9: sólo dibujo, 128 B de imagen
+
+La 1.3.9 no toca el motor ni la RAM: es la pasada de UI del §9.5 de `MEMORY_BUDGET.md`. El enlace da
+**582 772 B de 583 612** (**840 B** de margen), `.data + .bss` en **95 124 B de 98 304**, pool **311 256 B con
+9 248 B de sobra**, y el paquete sigue en **610 959 B** con identidad **FM-1_965**. Son **+128 B** sobre la 1.3.8
+de `d2fe9d2` (582 644 B), o sea 80 B de `.text` y 48 B de constantes.

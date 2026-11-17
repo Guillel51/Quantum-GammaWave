@@ -327,3 +327,20 @@ plates blob (`ui_shapes.h`, 10 861 B of points) costs **nothing** in the image: 
 `SH_PLATES_*` symbol at all, the linker never carries it. And a new per-track parameter costs **2 456 B** of
 code, not of data, because growing `track_t.p[]` shifts every field of a 1 760-byte structure; see
 `docs/FLASH_RECLAIM.md` §4-6 for the three builds that measured it.
+
+### 9.5 The 1.3.9 UI pass costs 128 B of image
+
+The six UI fixes of v1.3.9 are all drawing: the 26-row cap over the visualiser (its passes open at 26 and rows
+20..25 were painted by nobody), the same cap painting `hv_grad()` on OVERVIEW/MIX/PERFORMANCE, their names moved
+from `y = 34` to `y = 28` so the rule at 41 misses them, an opaque well behind each oscilloscope, and the FX module
+readouts moved from `y = 99` to `y = 94` with their ramps darkened. Measured on this tree with the same toolchain
+and SDK:
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 582 772 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **840 B** |
+| `.data + .bss` | 95 124 B | 98 304 B | 3 180 B |
+| Pool spare | 9 248 B (pool 311 256 B used) | >= 8 192 B | 1 056 B |
+
+The pass costs **128 B** (582 644 at `d2fe9d2` -> 582 772 B): +80 B of `.text` for the cap and the moved labels,
++48 B of constants. Nothing moves in RAM, and the package stays at **610 959 B** with identity `FM-1_965`.
