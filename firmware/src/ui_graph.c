@@ -2569,10 +2569,10 @@ static void graph_preset_pop(void)
 
     if (!total) return;
 
-    /* Subtle dither pattern over underlying page for gentle translucency */
-    for (r = y0; r < y0 + h; r += 2) {
-        cv_rect(x0, r, w, 1, T_BG);
-    }
+    /* (1.4.1) THE DITHER IS GONE. It painted every other row of the popup's box in T_BG before the panel was
+     * drawn over it -- work the panel then covered, and at the rounded corners stripes of background sat on the
+     * page. With the panel opaque the HUD reads as a plate over the graph, which is what it is. */
+    (void)r;
 
     /* Centered chamfered HUD enclosure */
     if (ux.chamfer && !ux.style) {

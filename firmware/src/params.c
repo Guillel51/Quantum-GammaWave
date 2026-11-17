@@ -776,8 +776,17 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         /* pointers, not copies: the target's clang 4.0.1 does not fold a const struct with
          * pointer members into another static initializer (a copy is not a C constant expression) */
         static const param_desc_t *const D[2] = {&SLEW_DESC, &INVERT_DESC};
+        /* (1.4.1) KNOBS 3 AND 4 ARE EMPTY, AND SAID SO. This page has two parameters and the table
+         * ({P_X2, P_X3, 0xFF, 0xFF}) names them; the branch returned D[slot & 1] and &p[slot ? P_X3 : P_X2]
+         * for EVERY slot, so knob 2 read INVERT, knob 3 read SLEW and knob 4 read INVERT again, and all
+         * three wrote the same byte (P_X3): turning any of them moved the other two. The owner's report is
+         * exactly that. Slots the table leaves empty answer with nothing, as every other page does. */
+        if (slot >= 2u) {
+            *valp = 0;
+            return 0;
+        }
         *valp = &TSEL->p[slot ? P_X3 : P_X2];
-        return D[slot & 1u];
+        return D[slot];
     }
     if (id == P_DXIMG && !FELUCCA_FM4 && TSEL->eng_req % NENGINES != ENGI_DRUM) {
         *valp = &TSEL->p[P_DXIMG];                     /* (FASE 2) ENV VEL: how much velocity scales the amp */

@@ -1477,7 +1477,11 @@ static void presets_turn(int32_t s)
         ui.home_pulse = ui.frame;                        /* (2.0) a knob turned on HOME: same response */
         preset_step(s);
         ui.preset_pop_ms = fm1_ms ? fm1_ms : 1u;
-        ui.force = 1;
+        /* (1.4.1) THE PRESET KNOB NO LONGER REPAINTS THE WHOLE FRAME. ui.force = 1 redrew the header, the four
+         * cards, the graph and the footer on every step of the knob, and the popup over them: on the panel that
+         * is the flash the owner reports. The sound's name and every parameter live in the graph, and
+         * graph_signature() already carries the preset, so it repaints by itself; the popup is drawn over it. */
+        ui.graph_sig = 0;
     } else if (g == GR_ROLL && (pg->id[0] == 4u || pg->id[0] == 8u)) {   /* (0.6.81) SEQ > NOTE (KNOB 1 FOCUS), TIMING:
                                                          * PRESETS the step */
         cursor_set(ui.cursor + s);
@@ -1494,7 +1498,7 @@ static void presets_turn(int32_t s)
     } else if (g != GR_TOOLS) {
         preset_step(s);
         ui.preset_pop_ms = fm1_ms ? fm1_ms : 1u;
-        ui.force = 1;
+        ui.graph_sig = 0;                              /* (1.4.1) the graph only, not the whole frame */
     }
 }
 

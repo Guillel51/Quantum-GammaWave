@@ -2191,7 +2191,8 @@ static void ui_draw_page(uint32_t counting)
             graph_preset_pop();
         } else if (ui.preset_pop_ms) {
             ui.preset_pop_ms = 0;
-            ui.force = 1;
+            ui.graph_sig = 0;                          /* (1.4.1) the popup's area is the graph: repaint that,
+                                                        * not the whole frame, or the page flashes when it goes */
         }
     }
     if (ui.msg_t && !--ui.msg_t && ui.msg2[0]) {     /* the second message (ui_notices) */

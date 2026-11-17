@@ -1823,3 +1823,15 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | Contraste de temas | `[HOST]` + **sin medir en la unidad** | `tools/gen_ui_palettes.py` guarda el suelo de cada tema oscuro al 72 % de cada canal; la tabla de contrastes del generador pasa sin un solo FAIL. En el panel, `lcd.c` escribe por primera vez la gamma 2.2 (0xE0/0xE1) y el brillo 200/255 (0x53/0x51) en vez de dejarlos de fábrica: es un cambio de valores por defecto y **no está medido en una unidad** |
 | El paquete de 1.4.0 | `[TARGET]` | build AC791N en `d1f2f88`, manifiestos sin cambios sucios: `.data+.bss` 95 140 B de 98 304, imagen 583 080 B de 583 612, paquete 610 959 B sha256 `4c987875…`, identidad `FM-1_965` |
 | En una FM-1 física | — | **NOT MEASURED**: nada de lo anterior se probó en la unidad del dueño (splash, parpadeo, contraste, pozos) |
+
+---
+
+## 2026-11-17 (3) — v1.4.1: la página LFO SHAPE y el knob PRESETS
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| LFO SHAPE tiene dos parámetros, no cuatro | `[HOST]` | `params.c page_desc()` devolvía `D[slot & 1]` y `&p[slot ? P_X3 : P_X2]` para **los cuatro** slots de `{P_X2, P_X3, 0xFF, 0xFF}`: el render daba SLEW / INVERT / SLEW / INVERT y tres knobs escribían el mismo `P_X3`. Ahora los slots en `0xFF` no dan parámetro: `build/ui_new/*/lfo_shape.png` muestra dos tarjetas (SLEW 69 %, INVERT 29 %) y el barrido de alineación baja de 3 897 970 a 3 777 978 medidas (190 pantallas × 22 paletas, 0 hallazgos) |
+| El knob PRESETS no repinta el cuadro entero | `[STATIC]` | `ui_input.c presets_turn()` hacía `ui.force = 1` en cada paso y `ui_draw.c` lo repetía al vencer el popup: dos cuadros completos por paso (cabecera, tarjetas, grafo, pie). Ahora pide el grafo (`ui.graph_sig = 0`), que es donde viven el nombre y los valores; el popup se dibuja encima y a su salida se repinta esa zona. El patrón de líneas en `T_BG` que el popup pintaba antes de su placa se quitó (era trabajo tapado) |
+| POLY con polifonía | **NO REPRODUCIDO** | `trk_note_on()` en POLY asigna una voz por nota; el pool reparte 17 slots entre 6 partes; `trk_vcap()` sólo limita por `ENGINES[..]->poly` (FM6 2, FORMANT 4, resto 12); `tests/audio_test.c` toca acordes de tres notas en POLY y pasa en host. El asignador **no se tocó**: la sospecha es el gobernador de carga (`load_tight` / `LOAD` LITE-ECO, que en host no se mide), y eso se ve en la unidad |
+| El paquete de 1.4.1 | `[TARGET]` | build AC791N con `v1.4.1`: `.data+.bss` 95 140 B de 98 304, imagen 583 064 B de 583 612 (548 B libres), identidad `FM-1_965`; emulador wasm empaquetado desde el mismo árbol |
+| En una FM-1 física | — | **NOT MEASURED**: nada de lo anterior se probó en la unidad del dueño |

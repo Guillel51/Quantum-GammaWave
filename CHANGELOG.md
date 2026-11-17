@@ -1,3 +1,35 @@
+## v1.4.1 — el LFO SHAPE tenía tres knobs para dos valores, y el knob PRESETS repintaba todo
+
+Dos de los cuatro puntos del reporte del dueño. El POLY no se reprodujo: abajo, lo que se miró y lo que falta.
+
+### LFO SHAPE: SLEW, INVERT y otra vez INVERT, y cualquier knob movía los tres
+La página tiene **dos** parámetros y su tabla los nombra así: `{"LFO SHAPE", ..., {P_X2, P_X3, 0xFF, 0xFF}}`, con
+`P_X2` el SLEW y `P_X3` el INVERT. Pero `params.c page_desc()` tiene una rama propia para esa página —porque el
+`SLEW`/`INVERT` no son descriptores de la tabla de parámetros sino dos structs suyos— y esa rama atendía **los
+cuatro slots** igual: devolvía `D[slot & 1]` y `&t->p[slot ? P_X3 : P_X2]`. Con eso el knob 2 leía INVERT, el 3
+volvía a leer SLEW y el 4 leía INVERT otra vez, y los tres escribían **el mismo byte** (`P_X3`): mover cualquiera
+movía los otros dos. Es exactamente lo que reportó el dueño. Ahora los slots que la tabla deja en `0xFF`
+responden sin parámetro, como en toda página vacía: el render de la página muestra **dos** tarjetas, SLEW 69 % e
+INVERT 29 %, y las otras dos quedan libres (`build/ui_new/*/lfo_shape.png`; el barrido de alineación del arnés
+bajó de 3,89 M a 3,78 M medidas porque las dos tarjetas fantasma ya no existen).
+
+### El knob PRESETS hacía parpadear la pantalla
+Cada paso del knob hacía `ui.force = 1`, y eso redibuja **el cuadro entero** —cabecera, las cuatro tarjetas, el
+grafo y el pie— con el popup de presets encima; al vencer el popup, otro cuadro entero para quitarlo. En el panel
+eso es el parpadeo. El nombre del sonido y todos sus valores viven en el grafo, y `graph_signature()` ya lleva el
+preset: ahora el paso del knob pide **sólo el grafo** (`ui.graph_sig = 0`) y, cuando el popup se va, se repinta
+sólo esa zona. Además el popup dejó de pintar su patrón de líneas en `T_BG` antes de dibujar su placa: era
+trabajo tapado por la placa y, en las esquinas redondeadas, rayas de fondo sobre la página.
+
+### POLY: no reproducido en el modelo
+El señor dice que el modo POLY no da polifonía. En código no lo encontré: `trk_note_on()` en POLY toma
+`voice_alloc()` para cada nota (una voz nueva por nota, sin tocar las que suenan), el pool reparte 17 slots entre
+6 partes (2 por parte, hasta `NVOICE` con los libres), `trk_vcap()` sólo limita por `ENGINES[..]->poly` (FM6 2,
+FORMANT 4, el resto 12) y el teclado es por tecla (`kb_note[27]`, un note-on por tecla). `tests/audio_test.c`
+ya toca acordes de tres notas en POLY y pasa. La sospecha que queda es el gobernador de carga: con `LOAD` LITE /
+ECO o con `load_tight` puesto por el render, `voice_room()` deja de crecer y se lleva la voz que suena, y en host
+la carga lee 0 (no se mide). Eso hay que verlo en la unidad, no adivinarlo: **no se tocó el asignador**.
+
 ## v1.4.0 — el splash animado, HOME sin repintarse de más, y los pozos de los osciloscopios
 
 Cuatro cosas del reporte del dueño, cada una con su causa.
