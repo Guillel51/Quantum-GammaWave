@@ -5485,6 +5485,31 @@ static int test_fx_scenes(void)
     return bad;
 }
 
+/* (1.3.4) THE MAIN SCREEN ANSWERS EVERY KNOB. HOME's picture is the selected engine's and it pulses when something
+ * changes (ui_being.c: the ring and the burst). Only PRESETS, a HOME tap and the menu set that pulse, so turning knobs
+ * 2 and 3 on HOME moved a value and nothing else moved with it. Four knobs, four engines (a different being each),
+ * and the pulse has to be there for every one of them */
+static int test_home_knob_pulse(void)
+{
+    static const uint32_t ENGS[] = {0, 2, 5, 9};          /* ANALOG, LOFI, DRUM, ADDTV */
+    int bad = 0, ok = 1;
+    uint32_t e, k;
+    for (e = 0; e < 4u; e++) {
+        ui_power_on();
+        set_engine_of(TSEL, ENGS[e]);
+        go_home();
+        frames(60);
+        for (k = 0; k < 4u; k++) {
+            ui.home_pulse = 0;
+            frame();
+            turn((uint32_t)(EN_K1 + k), 1);
+            ok &= ui.home_pulse != 0u;                    /* the turn pulsed the picture */
+        }
+    }
+    bad += check("HOME: each of the four knobs pulses the picture, in four different engines", ok);
+    return bad;
+}
+
 /* #38: the keys of the notes the selected track's sequencer and ARP sound light while it plays */
 /* (3.0) HOME's screens: from a section the first tap only comes home; each tap after that walks one screen of the
  * list and the one past the last returns to the first; a hold is the menu and never counts as a tap, and letting that
@@ -11502,6 +11527,7 @@ int main(void)
     bad += test_breath();
     bad += test_step_leds();
     bad += test_fx_scenes();
+    bad += test_home_knob_pulse();
     bad += test_scale_leds();
     bad += test_screen_off();
     bad += test_fm6_charts();

@@ -28,10 +28,11 @@ ENGINES = [
     ("WTABLE", "eng_wavetable.c", "WT_PRESETS", 22),
     # (1.2.6) ADDTV was missing here for the same reason WTABLE was in FASE 5: the eight additive presets
     # (GLASS BELL, HOLLOW REED, ...) live in eng_additive.c's AD_PRESETS and count in the firmware's total.
-    # 281 browsable + 2 legacy kits = 283.
-    ("ADDTV", "eng_additive.c", "AD_PRESETS", 8),
+    # (1.3.4) ten: REED HORN and AIR CHOIR joined, the two sounds the engine did not have.
+    # 283 browsable + 2 legacy kits = 285.
+    ("ADDTV", "eng_additive.c", "AD_PRESETS", 10),
 ]
-TOTAL = 281
+TOTAL = 283
 DRUM_KEEP = ["DRUM-X", "909 PUNCH", "808 SUB", "LINNDRUM", "ACOUSTIC", "TRAP 808",
              "LOFI VINYL", "INDUSTRIAL", "ELECTRO", "QUANTUM BEAT",
              "CONCRETE KICK", "GLASS SNARE", "TIN HAT", "TOMS OF MUD", "RITUAL PERC", "NEON CLAP"]

@@ -120,7 +120,7 @@ static void host_preset(track_t *t, uint32_t e, uint32_t pi)
 static int32_t buf[NBLK * CTL];
 
 /* one preset, one held note; returns 0 and fills peak/rms/hot */
-static void render_preset(uint32_t e, uint32_t pi, int32_t *peak, double *rms, double *hot)
+static void render_note(uint32_t e, uint32_t pi, uint32_t note, int32_t *peak, double *rms, double *hot)
 {
     uint32_t b, i, n = 0, hot_n = 0;
     double acc = 0;
@@ -128,7 +128,7 @@ static void render_preset(uint32_t e, uint32_t pi, int32_t *peak, double *rms, d
     host_preset(&trk[0], e, pi);
     trk[0].p[P_LEVEL] = 100;
     trk[0].mo_cur = trk[0].mo_prev = 0;
-    trk_note_on(&trk[0], e == ENGI_DRUM ? 36u : 60u, 100);
+    trk_note_on(&trk[0], note, 100);
     for (b = 0; b < NBLK; b++) {
         int32_t o[2 * CTL];
         mix_block(o, CTL);
@@ -147,6 +147,11 @@ static void render_preset(uint32_t e, uint32_t pi, int32_t *peak, double *rms, d
     *hot = n ? (double)hot_n / (double)n : 0;
 }
 
+static void render_preset(uint32_t e, uint32_t pi, int32_t *peak, double *rms, double *hot)
+{
+    render_note(e, pi, e == ENGI_DRUM ? 36u : 60u, peak, rms, hot);
+}
+
 /* the same parameters twice in one engine: a preset that is a copy of another */
 static int same_as(const preset_t *a, const preset_t *b)
 {
@@ -158,6 +163,94 @@ static int same_as(const preset_t *a, const preset_t *b)
         if (a->x[i].id != b->x[i].id || a->x[i].v != b->x[i].v)
             return 0;
     return 1;
+}
+
+/* (1.3.4) `--fingerprint`: WHAT EACH SOUND IS, not what its numbers are. One held note per preset through the same
+ * render, then ten log-spaced bands (Goertzel) from a 512-sample window in the sounding part and the envelope's
+ * shape -- the block it reaches 90 % of its peak and the block it falls back to 50 %. Two presets whose spectra and
+ * envelopes agree are the same sound to a player however differently their parameters are written, which is the
+ * question a parameter comparison cannot answer (FM6's sounds are all zeros except their patch slot; DRUM's kits
+ * are eight instrument numbers). tools/preset_audit.py --sound sorts by this. */
+#define FP_W 512u
+#define FP_NB 10u
+#define FP_HITS 3u
+static void jstr(const char *s);   /* below, with the dump */
+static void fingerprint(void)
+{
+    static const double F[FP_NB] = {60, 100, 170, 290, 500, 850, 1450, 2500, 4300, 7400};
+    uint32_t e, i, b, k, w0;
+    for (e = 0; e < NENGINES; e++) {
+        const engine_t *en = ENGINES[e];
+        for (i = 0; i < en->npresets; i++) {
+            int32_t peak = 0, lvl[NBLK], peakv = 1;
+            double rms, hot, bands[FP_NB], bh[FP_HITS][FP_NB];
+            uint32_t atk_b = 0, dec_b = NBLK, h;
+            /* a kit is eight lanes: the kick alone says nothing about the snare, so DRUM is measured on three hits */
+            uint32_t note[FP_HITS] = {36u, 38u, 42u};   /* C KICK, D SNARE, F# HAT CL (eng_drum.c's map) */
+            if (e != ENGI_DRUM) { note[0] = 60u; note[1] = note[2] = 0u; }
+            double rms0, hot0;
+            int32_t peak0;
+            render_note(e, i, note[0], &peak0, &rms0, &hot0);
+            peak = peak0, rms = rms0, hot = hot0;   /* the level is the kit's first hit, not the last one measured */
+            for (b = 0; b < NBLK; b++) {
+                int32_t m = 0, j;
+                for (j = 0; j < (int32_t)CTL; j++) {
+                    int32_t a = buf[b * CTL + j];
+                    a = a < 0 ? -a : a;
+                    if (a > m) m = a;
+                }
+                lvl[b] = m;
+                if (m > peakv) peakv = m;
+            }
+            for (b = 0; b < NBLK; b++)
+                if (lvl[b] * 10 >= peakv * 9) { atk_b = b; break; }
+            for (b = atk_b; b < NBLK; b++)
+                if (lvl[b] * 2 < peakv) { dec_b = b; break; }
+            w0 = (NBLK * 2u / 3u) * CTL;
+            for (k = 0; k < FP_NB; k++) {
+                double coeff = 2.0 * cos(2.0 * M_PI * F[k] / (double)FS), s1 = 0, s2 = 0;
+                for (b = 0; b < FP_W; b++) {
+                    double s0 = (double)buf[w0 + b] + coeff * s1 - s2;
+                    s2 = s1;
+                    s1 = s0;
+                }
+                bh[0][k] = sqrt(s1 * s1 + s2 * s2 - coeff * s1 * s2 + 1.0);
+            }
+            for (h = 1; h < FP_HITS; h++) {
+                if (!note[h]) {
+                    for (k = 0; k < FP_NB; k++)
+                        bh[h][k] = bh[0][k];
+                    continue;
+                }
+                int32_t pk1;
+                double rm1, ht1;
+                render_note(e, i, note[h], &pk1, &rm1, &ht1);
+                w0 = (NBLK * 4u / 5u) * CTL;     /* a hit: its whole life is the sound, so a later window */
+                for (k = 0; k < FP_NB; k++) {
+                    double coeff = 2.0 * cos(2.0 * M_PI * F[k] / (double)FS), s1 = 0, s2 = 0;
+                    for (b = 0; b < FP_W; b++) {
+                        double s0 = (double)buf[w0 + b] + coeff * s1 - s2;
+                        s2 = s1;
+                        s1 = s0;
+                    }
+                    bh[h][k] = sqrt(s1 * s1 + s2 * s2 - coeff * s1 * s2 + 1.0);
+                }
+            }
+            for (h = 0; h < FP_HITS; h++)
+                for (k = 0; k < FP_NB; k++)
+                    bands[h * FP_NB + k] = bh[h][k];
+            printf("{\"engine\":");
+            jstr(en->name);
+            printf(",\"index\":%u,\"name\":", (unsigned)i);
+            jstr(en->presets[i].name);
+            printf(",\"rms\":%.1f,\"peak\":%d,\"atk_ms\":%.1f,\"dec_ms\":%.1f,\"bands\":[",
+                   rms, (int)peak, atk_b * (double)CTL * 1000.0 / (double)FS,
+                   dec_b * (double)CTL * 1000.0 / (double)FS);
+            for (k = 0; k < FP_NB * FP_HITS; k++)
+                printf("%s%.1f", k ? "," : "", bands[k]);
+            printf("]}\n");
+        }
+    }
 }
 
 static int fails;
@@ -181,6 +274,32 @@ static void jstr(const char *s)
 static void dump(void)
 {
     uint32_t e, i, k;
+    /* (1.3.4) the header: every engine's order, its table size and the EDIT ranges its descriptors declare, so the
+     * audit reads the bounds from the firmware instead of a hand-kept table in the tool that goes stale when an
+     * engine is added or a range changes (the tool used to carry them and refused to run on ADDTV) */
+    printf("{\"engines\":[");
+    for (e = 0; e < NENGINES; e++) {
+        const engine_t *en = ENGINES[e];
+        printf("%s{\"name\":", e ? "," : "");
+        jstr(en->name);
+        printf(",\"npresets\":%u,\"legacy_n\":%u,\"rng\":[", (unsigned)en->npresets, (unsigned)en->legacy_n);
+        for (k = 0; k < 8u; k++)
+            printf("%s[%d,%d]", k ? "," : "", en->edit[k].min, en->edit[k].max);
+        /* (1.3.4) and the FORMAT of each column: an F_ENUM / F_ONOFF value is a choice, not a number, so two
+         * neighbouring values are two different sounds and the audit must not average them into "close" */
+        printf("],\"typ\":[");
+        for (k = 0; k < 8u; k++)
+            printf("%s%u", k ? "," : "", (unsigned)en->edit[k].fmt);
+        printf("],\"lbl\":[");
+        for (k = 0; k < 8u; k++) {
+            printf("%s\"", k ? "," : "");
+            for (const char *c = en->edit[k].label; *c; c++)
+                printf("%c", *c == '"' ? ' ' : *c);
+            printf("\"");
+        }
+        printf("]}");
+    }
+    printf("]}\n");
     for (e = 0; e < NENGINES; e++) {
         const engine_t *en = ENGINES[e];
         for (i = 0; i < en->npresets; i++) {
@@ -213,6 +332,10 @@ int main(int argc, char **argv)
     int levels = argc > 1 && !strcmp(argv[1], "--levels");   /* (FASE 5) every preset's measured level */
     if (argc > 1 && !strcmp(argv[1], "--dump")) {
         dump();
+        return 0;
+    }
+    if (argc > 1 && !strcmp(argv[1], "--fingerprint")) {
+        fingerprint();
         return 0;
     }
     uint32_t total = 0, silent = 0, hot_presets = 0, dup_names = 0, dup_params = 0, out_of_range = 0;

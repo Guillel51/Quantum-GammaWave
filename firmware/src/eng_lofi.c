@@ -600,7 +600,7 @@ static const preset_t LOFI_PRESETS[] = {
     {"WAVE LEAD", {0, 4, 92, 0, 110, 18, 0, 0}, {0, 70, 90, 30}, 0, 1, FX(8, 0, 42, 24), PAT(3),
      {XP(P_LRATE, 40), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 8)}},
     /* STEP: 25 % pulse, DCY 34 = D7 (a 15-step decay over 0.5 s), REL ~54 ms of staircase after note-off */
-    {"STEP LEAD", {4, 0, 40, 34, 127, 16, 0, 0}, {0, 64, 127, 55}, 0, 1, FX(6, 0, 40, 18), PAT(4),
+    {"STEP LEAD", {4, 3, 96, 34, 88, 40, 20, 0}, {0, 64, 127, 55}, 0, 1, FX(6, 0, 40, 18), PAT(4),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     /* (JIANT 0.5, appended: the stored numbers stay) BYTE B11 looped (LOOP 80: a short cycle, a tone at the note), resonant */
     {"BYTE TONE", {2, 5, 40, 0, 64, 0, 0, 80}, {0, 70, 100, 40}, 0, 1, FX(0, 0, 30, 18), PAT(4),
@@ -619,7 +619,7 @@ static const preset_t LOFI_PRESETS[] = {
     {"GEIGER BIT", {3, 5, 96, 80, 72, 48, 85, 40}, {0, 65, 90, 35}, 0, 1, FX(38, 0, 30, 18), PAT(2),
      {XP(P_LRATE, 56), XP(P_LWAVE, 4), XP(P_LD_SHP, 16), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
     /* (QUANTUM // QG-1, appended: the stored numbers stay) a chip arp, crushed keys, a vibrato pulse, a staircase pad */
-    {"CHIP ARP", {0, 0, 32, 0, 127, 0, 0, 0}, {0, 55, 60, 30}, 0, 0, FX(0, 0, 36, 18), PAT(13),
+    {"CHIP ARP", {1, 0, 8, 0, 100, 0, 30, 0}, {0, 55, 60, 30}, 0, 0, FX(0, 0, 36, 18), PAT(13),
      {XP(P_LRATE, 60), XP(P_LWAVE, 3), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
     {"CRUSH KEYS", {2, 0, 96, 60, 90, 10, 20, 0}, {0, 60, 80, 40}, 0, 0, FX(12, 10, 32, 28), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_LRATE, 40), XP(P_LWAVE, 4), XP(P_LD_FLT, 8)}},
@@ -646,13 +646,13 @@ static const preset_t LOFI_PRESETS[] = {
      {XP(P_LRATE, 4), XP(P_LWAVE, 6), XP(P_LD_FLT, 16), XP(P_LD_SHP, 20)}},
 
     /* (6.0) the remaster's new sounds: one per family, each with its own motion and sends */
-    {"POCKET CONSOLE", {0, 0, 40, 0, 118, 24, 0, 0}, {0, 70, 60, 30}, 20, 1, FX(0, 0, 44, 18), PAT(4),
+    {"POCKET CONSOLE", {0, 2, 24, 34, 104, 0, 0, 0}, {0, 70, 60, 30}, 20, 1, FX(0, 0, 44, 18), PAT(4),
      {XP(P_LRATE, 48), XP(P_LWAVE, 3), XP(P_LD_FLT, 8), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},  /* A: chip lead */
     {"CASIO DREAM", {2, 1, 64, 0, 104, 0, 0, 0}, {4, 84, 40, 60}, 8, 0, FX(0, 26, 34, 46), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20), XP(P_LEVEL, 113)}},  /* C: chip keys */
     {"BRASS BUG", {1, 2, 20, 0, 84, 0, 0, 0}, {0, 60, 74, 20}, 26, 1, FX(18, 0, 0, 6), PAT(2),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* E: chip bass */
-    {"CIUDAD DE PLAYA", {4, 0, 48, 20, 112, 18, 0, 30}, {0, 72, 24, 52}, 22, 0, FX(0, 20, 54, 34), PAT(8),
+    {"CIUDAD DE PLAYA", {2, 0, 20, 60, 70, 30, 10, 45}, {0, 72, 24, 52}, 22, 0, FX(0, 20, 54, 34), PAT(8),
      {XP(P_LRATE, 56), XP(P_LWAVE, 3), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},  /* G: arp */
 };
 

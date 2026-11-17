@@ -2649,6 +2649,11 @@ static void ui_input_frame(void)
         if (ui.home) {
             int16_t *vp;
             const param_desc_t *d = home_param(k, &vp);
+            /* (1.3.4) EVERY KNOB ANSWERS ON THE MAIN SCREEN. HOME's picture is the engine's and it pulses when
+             * something changes, but only PRESETS, a HOME tap and the menu set the pulse: turning EDIT knobs 1 and 4
+             * looked alive (their value rows redraw) while 2 and 3 moved a value nothing else showed. The four set it,
+             * so the being's ring answers whichever column was turned, in every engine (ui_being.c). */
+            ui.home_pulse = ui.frame | 1u;
             *vp = (int16_t)param_turn(d, *vp, accel(EN_K1 + k, s, d->fmt == F_ENUM ? 0 : d->max - d->min));
             motion_capture_ui(TSEL, (uint32_t)(vp - TSEL->p), *vp);
         } else {

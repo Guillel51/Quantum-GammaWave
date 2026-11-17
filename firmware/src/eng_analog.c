@@ -445,7 +445,7 @@ static const preset_t ANALOG_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},
     {"BAMBOO FLUTE", {3, 10, 40, 30, 68, 20, 0, 12}, {18, 75, 40, 55}, 15, 0, FX(0, 38, 34, 66), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14), XP(P_M2SRC, 7), XP(P_M2DST, 11), XP(P_M2AMT, 12)}},
-    {"HARP PLUCK", {3, 8, 60, 0, 55, 30, 0, 12}, {0, 80, 0, 55}, 40, 0, FX(0, 26, 46, 52), PAT(15),
+    {"HARP PLUCK", {3, 8, 60, 0, 74, 58, 0, 12}, {0, 72, 0, 45}, 62, 0, FX(0, 26, 46, 52), PAT(15),
      {XP(P_LRATE, 22), XP(P_LWAVE, 1), XP(P_LD_FLT, 8), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
 
     /* (QG-1 1.6) EVOLVE / MOTION: the EVO wave (a smooth random walk) at a musical division, the matrix on top */
@@ -492,7 +492,7 @@ static const preset_t ANALOG_PRESETS[] = {
      {XP(P_LRATE, 58), XP(P_LWAVE, 3), XP(P_LD_FLT, 12), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* A: arp */
     {"PUENTE DE LUZ", {0, 16, 66, 0, 80, 30, 18, 7}, {10, 76, 94, 58}, 20, 1, FX(12, 30, 48, 36), PAT(4),
      {XP(P_LRATE, 34), XP(P_LWAVE, 1), XP(P_LD_PIT, 5), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},  /* G: lead */
-    {"SIESTA DORADA", {4, 22, 58, 4, 70, 22, 4, 7}, {58, 90, 108, 92}, 12, 0, FX(0, 62, 30, 76), PAT(5),
+    {"SIESTA DORADA", {6, 8, 96, 6, 52, 40, 28, -12}, {58, 90, 108, 92}, 12, 0, FX(0, 62, 30, 76), PAT(5),
      {XP(P_LRATE, 17), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},  /* G: warm pad */
 };
 

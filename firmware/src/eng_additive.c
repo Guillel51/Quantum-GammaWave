@@ -225,6 +225,12 @@ static const preset_t AD_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"METAL CLUSTER", {127, 96, 64, 74, 114, 40, 30, 0}, {2, 70, 30, 58}, 22, 0, FX(24, 12, 28, 44), PAT(1),
      {XP(P_LRATE, 44), XP(P_LWAVE, 4), XP(P_M1SRC, 7), XP(P_M1DST, 3), XP(P_M1AMT, 10)}},
+    /* (1.3.4) the two sounds the bank asked for: odd partials through a soft knee make a reed a reed (SPECTR low,
+     * TILT up), and STRETCH holds a choir's partials apart while the slow LFO opens its filter */
+    {"REED HORN", {8, 92, 20, 30, 76, 44, 18, 20}, {18, 80, 100, 50}, 35, 1, FX(0, 18, 24, 30), PAT(6),
+     {XP(P_LRATE, 26), XP(P_LWAVE, 1), XP(P_LD_FLT, 10), XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},
+    {"AIR CHOIR", {26, 30, 10, 74, 96, 12, 0, 0}, {70, 92, 116, 96}, -20, 0, FX(0, 58, 36, 80), PAT(4),
+     {XP(P_LRATE, 6), XP(P_LWAVE, 6), XP(P_LD_AMP, 8), XP(P_M1SRC, 1), XP(P_M1DST, 12), XP(P_M1AMT, 26)}},
 };
 
 /* the UI's bars (ui_graph.c graph_additive): the gain each partial has in this part's last block. The

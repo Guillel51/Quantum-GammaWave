@@ -1,3 +1,62 @@
+## v1.3.4 — fase 3: el banco medido por cómo suena, y los cuatro knobs contestan en HOME
+
+### Lo que está arreglado y medido
+- **Los knobs 2 y 3 no animaban la gráfica principal.** En HOME el dibujo del motor pulsa cuando algo cambia
+  (`ui.home_pulse`, `ui_being.c`), pero solo lo ponían PRESETS, un toque en HOME y el menú: girar el knob 1 o el 4
+  se veía vivo (sus filas de valor se redibujan) y girar el 2 o el 3 movía un valor que **ninguna otra cosa
+  mostraba**. Ahora lo ponen los cuatro, así que el anillo del ser responde a la columna que se haya girado, en
+  **todos los motores**: ANALOG, FM6, PHASE, LOFI, VOICE, WHEEL, NOISE, DRUM, WTABLE y ADDTV.
+- **Comprobado con la regresión que falla sin el arreglo.** `tests/ui_test.c` suma
+  «HOME: each of the four knobs pulses the picture, in four different engines» (4 knobs × 4 motores): **falla con la
+  línea quitada y pasa con ella**, y `ui_test` entero queda en verde (`all passed`).
+- **La auditoría ahora mide el SONIDO, no solo los parámetros.** `preset_audit_test --fingerprint` pasa cada preset
+  por el camino real de carga y render (una nota sostenida; en DRUM tres golpes, bombo, caja y charles, porque un kit
+  son ocho canales) y saca diez bandas logarítmicas por Goertzel más la forma de la envolvente (bloque al 90 % del
+  pico y bloque de vuelta al 50 %). `tools/preset_audit.py --sound` ordena los pares más cercanos por eso, y
+  `--gate-sound` es la puerta de la suite: **5 037 pares medidos, 0 por debajo de 0,05**.
+- **La distancia por parámetros ya no confunde una elección con un número.** FM6 escribe su sonido en `ALG` y
+  `SLOT` (0 y 14 no son «un poco más brillante»: son otro parche) y el audit los normalizaba como si fueran
+  continuos: por eso marcaba **43 pares casi iguales** que en realidad eran presets distintos. Con `ALG/SLOT/WAVE/
+  WAV#/ALGO/TYPE/KIT/MODE/SCALE/ORDER/DIV/PATCH` contados como elección quedan **2 pares por debajo de 0,035**
+  (MUSIC BOX / FROST MUSIC 0,017 y TINE EP / EMBER TINES 0,025), y los dos se distinguen por FB, envolvente de
+  filtro y envíos: el motor elige el timbre en el parche y lo demás son envíos, que es exactamente lo que el audit
+  de sonido mide aparte (0,148 y 0,108 de distancia real).
+- **Menos presets que se pisaban, con el número antes y después** (distancia de sonido, 0 = el mismo sonido; el peor
+  par por motor, antes → después): LOFI **0,043 → 0,080**, ANALOG **0,059 → 0,071**, DRUM **0,071 → 0,102**, FM6
+  **0,077 → 0,095**, y **cero pares por debajo de 0,06 en todo el banco** (antes había cuatro). Todo con edición de
+  valores in-place: **ningún ID se movió, ningún array se reordenó**.
+- **DRUM: los kits que se parecían ahora son tres kits distintos.** `LINNDRUM` pasa a seco, brillante y corto (TONE
+  104, DECAY 44, DRIVE 14, sin reverb) y recupera los 15 dB que le faltaban al banco (`P_LEVEL` 124, 972 → 2 653 de
+  RMS); `ELECTRO` pasa a profundo, ruidoso y largo (TUNE 60, DECAY 92, NOISE 80, más delay); `QUANTUM BEAT` pasa a
+  oscuro y metálico (MORPH 104, TONE 30, DECAY 100, FM ENV 44, FOLD 48). `DRUM-X` queda como el kit de referencia.
+- **LOFI, ANALOG y FM6: lo mismo, en los pares que quedaban.** `STEP LEAD` (WAVE 3, DUTY 96, VIB 40, BEND 20) y
+  `CIUDAD DE PLAYA` (CHIP 2, CRUSH 60, CUT 70, MASK 45) dejan de parecerse; `CHIP ARP` (CHIP 1, DUTY 8, BEND 30) y
+  `POCKET CONSOLE` (WAVE 2, CRUSH 34, CUT 104) también; `SIESTA DORADA` pasa a caña con intervalo (WAVE 6, MIX 96,
+  RES 40, DRIVE 28, INT −12) y `HARP PLUCK` a cuerda pulsada de verdad (CUT 74, RES 58, fenv 62). **GAMELAN MET
+  tenía el mismo parche que VIBES y solo cambiaban los envíos**: ahora usa el parche de barra percutida (slot 5, el
+  de MARIMBA) con su propio shimmer. Y **las tres campanas del mismo parche** (TEMPLE BELL, GONG SHIMMER y TEMPLE
+  CIRCUIT) dejan de ser tres envíos distintos del mismo sonido: GONG SHIMMER toma FB 4, MOD 16, MEG −10 y DETUNE 26
+  (un gong que ruge en vez de un campanilleo) y TEMPLE CIRCUIT MOD −12, RATIO −5 y MEG 12; **de 0,009–0,022 de
+  distancia pasan a 0,31–0,34**. El par más cercano de FM6 sube de 0,077 a 0,095.
+- **ADDTV, el motor más pobre (8), suma dos sonidos que no tenía**: `REED HORN` (parciales impares y codo suave, mono,
+  como lead de caña) y `AIR CHOIR` (parciales estirados, LFO lento abriendo el filtro). Su par más cercano queda en
+  **0,132**, el más separado de todo el banco.
+
+### Inventario (medido, no copiado de la documentación anterior)
+- **285 presets en 10 motores, 283 visibles y 2 legacy** (HEARTH KIT y CYBER DRUM, ocultos por `legacy` sin romper
+  la carga de proyectos viejos). ANALOG 68, FM6 37, PHASE 32, LOFI 29, VOICE 25, WHEEL 22, NOISE 22, WTABLE 22,
+  DRUM 18, ADDTV 10. Categorías: PADS 65, KEYS 57, TEXTURES 49, DRUMS 24, BELLS 21, BASS 20, ORGANS 18, LEADS 12,
+  PLUCKS 12, ARPS 7. `docs/QG_PHASE4_PRESET_INVENTORY.json` ahora **se genera** con
+  `python3 tools/preset_audit.py --inventory docs/QG_PHASE4_PRESET_INVENTORY.json` desde las tablas del firmware y
+  el render, así que no puede volver a quedar viejo.
+- Niveles por motor (RMS mediano, una nota sostenida por preset): ANALOG -17.9 dB, FM6 -19.9, ADDTV -17.3, WTABLE -16.5, DRUM -14.4,
+  NOISE -29.0 (con GEIGER CNT, que es un sonido disperso a propósito). Ningún preset silenciado, ninguno por encima del clipper: 0,00 % en los 285.
+
+### Memoria y mediciones (build AC791N de este árbol)
+- Imagen 583 352 → **583 452 B** de 583 612 (**160 B** de margen: los dos presets nuevos y los retoques cuestan
+  **100 B**). `.data + .bss` **95 124 B** de 98 304 (3 180 B libres), pool **311 256 B con 9 248 B de sobra**, RAM
+  code **19 632 B de 24 576**. El paquete sigue en 610 959 B con identidad **FM-1_965**.
+
 ## v1.3.3 — la escena de FX ya no transpone
 
 ### Lo que está arreglado y medido

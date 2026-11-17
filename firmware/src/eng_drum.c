@@ -523,8 +523,8 @@ static const preset_t DRUM_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"808 SUB", {10, 40, 50, 110, 20, 5, 0, 15}, {0, 100, 127, 100}, 0, 0, FX(0, 0, 4, 18), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 14)}},
-    {"LINNDRUM", {50, 72, 85, 65, 60, 15, 10, 20}, {0, 100, 127, 100}, 0, 0, FX(12, 4, 14, 20), PAT(12),
-     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
+    {"LINNDRUM", {50, 72, 98, 62, 48, 30, 0, 26}, {0, 100, 127, 100}, 0, 0, FX(10, 2, 8, 12), PAT(12),
+     {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 124)}},   /* the dry kit was 15 dB under the rest */
     {"ACOUSTIC", {20, 58, 60, 80, 35, 0, 0, 10}, {0, 100, 127, 100}, 0, 0, FX(20, 14, 24, 16), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24)}},
     {"TRAP 808", {15, 36, 65, 120, 40, 25, 15, 40}, {0, 100, 127, 100}, 0, 0, FX(5, 0, 8, 24), PAT(12),
@@ -533,9 +533,9 @@ static const preset_t DRUM_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"INDUSTRIAL", {90, 82, 105, 70, 75, 50, 60, 50}, {0, 100, 127, 100}, 0, 0, FX(32, 10, 34, 30), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
-    {"ELECTRO", {40, 76, 95, 60, 65, 35, 25, 30}, {0, 100, 127, 100}, 0, 0, FX(16, 4, 20, 24), PAT(12),
+    {"ELECTRO", {24, 60, 88, 92, 80, 28, 18, 34}, {0, 100, 127, 100}, 0, 0, FX(20, 6, 24, 26), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
-    {"QUANTUM BEAT", {64, 70, 75, 60, 50, 20, 15, 10}, {0, 100, 127, 100}, 0, 0, FX(10, 0, 14, 22), PAT(12),
+    {"QUANTUM BEAT", {104, 56, 30, 100, 72, 44, 48, 40}, {0, 100, 127, 100}, 0, 0, FX(14, 3, 26, 34), PAT(12),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16)}},
 
     /* (QG-1 1.6 audit) retired from browsing, kept at indices 10 and 11 so a project, a favorite or a user preset

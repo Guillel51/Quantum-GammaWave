@@ -1,128 +1,89 @@
-# Remaster de presets — lo que hay, lo que se midió y lo que queda
+# Remaster de presets — fase 3, medido sobre los archivos actuales
 
-**Estado:** auditoría hecha, biblioteca **no modificada**. Este documento dice por qué, con números, y
-deja la lista concreta de lo que sí merece un cambio y lo que no.
+**Estado:** fase 3 cerrada. Este documento ya no es un plan: dice lo que hay, cómo se mide y qué se cambió, con los
+números del inventario que se genera desde el firmware y del render de cada preset.
 
 ---
 
 ## 1. La biblioteca real
 
-**267 presets de fábrica en 9 motores** (`build/host/preset_audit_test --dump` →
-`tools/preset_audit.py`). Reparto por categoría:
+**285 presets de fábrica en 10 motores** (285 visibles y
+2 legacy). El número sale de `ANALOG_PRESETS`, `FM6_PRESETS`, … y de `ENGINES[]`,
+no de una tabla escrita a mano: `python3 tools/preset_audit.py --inventory docs/QG_PHASE4_PRESET_INVENTORY.json`.
 
-| Categoría | n | | Motor | n |
+| Motor | presets | legacy | RMS mediano (dB) | par más cercano por SONIDO | por parámetros |
+|---|---|---|---|---|---|
+| ANALOG | 68 | 0 | -17,9 | 0,071 | 0,082 |
+| FM6 | 37 | 0 | -19,9 | 0,095 | 0,017 |
+| PHASE | 32 | 0 | -18,3 | 0,097 | 0,072 |
+| LOFI | 29 | 0 | -18,1 | 0,080 | 0,068 |
+| VOICE | 25 | 0 | -17,6 | 0,085 | 0,065 |
+| WHEEL | 22 | 0 | -16,0 | 0,083 | 0,122 |
+| NOISE | 22 | 0 | -29,0 | 0,083 | 0,110 |
+| WTABLE | 22 | 0 | -16,5 | 0,088 | 0,102 |
+| DRUM | 18 | 2 | -14,4 | 0,103 | 0,045 |
+| ADDTV | 10 | 0 | -17,3 | 0,132 | 0,126 |
+
+Categorías del editor: KEYS 63, TEXTURES 47, PADS 29, ORGANS 25, DRUMS 22, BASS 19, BELLS 18, PLUCKS 13, LEADS 11, FX 6, BRASS 5.
+
+## 2. Cómo se mide (y por qué la medida anterior engañaba)
+
+- **`preset_audit_test --fingerprint`** carga cada preset por el camino real y renderiza una nota sostenida —en DRUM
+  tres golpes, bombo, caja y charles, porque un kit son ocho canales—, y de ahí saca diez bandas logarítmicas por
+  Goertzel (60 Hz … 7,4 kHz) más la forma de la envolvente: el bloque en que llega al 90 % del pico y el bloque en
+  que cae al 50 %. Todo host x86, 44 100 Hz.
+- **`tools/preset_audit.py --sound`** ordena los pares de cada motor por esa distancia (forma espectral 0,55, nivel
+  0,20, envolvente 0,25). **`--gate-sound 0.05`** es la puerta que corre la suite: hoy son 5 037 pares y **ninguno
+  baja de 0,05**.
+- **La distancia por parámetros** cuenta como *elección* (0 o 1) las columnas que son un selector y no un número
+  —`ALG` y `SLOT` de FM6, `WAVE`, `WAV#`, `ALGO`, `TYPE`, `KIT`, `MODE`, `SCALE`, `ORDER`, `DIV`, `PATCH`—, porque
+  `SLOT 5` y `SLOT 14` no son «un poco más brillantes»: son otro parche. Antes se normalizaban como continuas y el
+  audit marcaba **43 pares casi iguales** que no lo eran; hoy quedan **2** (0,017 y 0,025), y los dos miden 0,148 y
+  0,108 de distancia real.
+
+## 3. Lo que se cambió en esta fase
+
+| Preset | Motor | Antes | Ahora | Distancia del par |
 |---|---|---|---|---|
-| PADS | 57 | | ANALOG | 68 |
-| KEYS | 56 | | FM6 | 37 |
-| TEXTURES | 49 | | PHASE | 32 |
-| DRUMS | 24 | | LOFI | 29 |
-| BASS | 18 | | VOICE | 25 |
-| ORGANS | 18 | | WHEEL | 22 |
-| BELLS | 15 | | NOISE | 22 |
-| LEADS | 12 | | DRUM | 18 |
-| PLUCKS | 11 | | WTABLE | 14 |
-| ARPS | 7 | | | |
+| LINNDRUM | DRUM | seco pero 15 dB bajo | TONE 98, DECAY 62, DRIVE 26, `P_LEVEL` 124 | 972 → 2 653 de RMS |
+| ELECTRO | DRUM | casi igual a LINNDRUM | TUNE 60, DECAY 92, NOISE 80, delay 24 | par DRUM 0,071 → 0,103 |
+| QUANTUM BEAT | DRUM | casi igual a DRUM-X | MORPH 104, TONE 30, DECAY 100, FM 44, FOLD 48 | 0,033 → fuera del umbral |
+| STEP LEAD | LOFI | 0,043 de CIUDAD DE PLAYA | WAVE 3, DUTY 96, VIB 40, BEND 20 | LOFI 0,043 → 0,080 |
+| CIUDAD DE PLAYA | LOFI | pad de cinta genérico | CHIP 2, CRUSH 60, CUT 70, MASK 45 | idem |
+| CHIP ARP / POCKET CONSOLE | LOFI | 0,054 / 0,056 entre ellos | CHIP 1, DUTY 8, BEND 30 / WAVE 2, CRUSH 34, CUT 104 | resuelto |
+| SIESTA DORADA | ANALOG | 0,059 de AURA STRINGS | WAVE 6, MIX 96, RES 40, DRIVE 28, INT −12 | ANALOG 0,059 → 0,071 |
+| HARP PLUCK | ANALOG | 0,062 de TUBE KEYS | CUT 74, RES 58, fenv 62 | resuelto |
+| GAMELAN MET | FM6 | mismo parche que VIBES | slot 5 (barra percutida) y su shimmer | FM6 0,077 → 0,095 |
+| GONG SHIMMER | FM6 | 0,009 de TEMPLE BELL | FB 4, MOD 16, MEG −10, DETUNE 26 | 0,009 → 0,343 |
+| TEMPLE CIRCUIT | FM6 | 0,022 de TEMPLE BELL | MOD −12, RATIO −5, MEG 12 | 0,022 → 0,324 |
+| REED HORN | ADDTV | no existía | parciales impares, codo suave, mono | nuevo, 0,132 del más cercano |
+| AIR CHOIR | ADDTV | no existía | parciales estirados, LFO lento al filtro | nuevo, 0,132 del más cercano |
 
-## 2. Lo que la medida dice que está bien
+**Costo:** 285 presets ocupan **100 B más** de imagen que los 283 de la 1.3.3 (583 452 B de 583 612, 160 B de
+margen). Todo lo demás es edición de valores in-place: **ningún ID se movió, ningún array se reordenó, ningún preset
+se ocultó** — el mecanismo `legacy` sigue disponible y sigue comprobado por la auditoría (`legacy_n` por motor), pero
+en esta fase no hizo falta: los candidatos tenían arreglo sonoro.
 
-Del audit de sonido (`tests/preset_audit_test.c`, 267 presets por el camino real de carga y render):
+## 4. Lo que se revisó y NO se tocó, con el motivo
 
-- **0 silenciados** — ningún preset de fábrica deja el motor mudo.
-- **0 al rojo** — ninguno vive pegado al recortador suave.
-- **0 nombres repetidos**, **0 duplicados exactos** de parámetros, **0 parámetros fuera de rango**.
-- **265 de 267 llevan movimiento** (`x[]`: LFO, matriz, filtro, tipo de distorsión, voz). Los dos que no
-  son `HEARTH KIT` y `CYBER DRUM`, y está bien: son kits de batería, no pads.
-- **Ningún preset se entrega seco**: los 267 llevan al menos un envío. La mediana del envío de reverb es
-  51/127, delay 30, chorus 30, distorsión 11.
+- **MUSIC BOX / FROST MUSIC (0,017) y TINE EP / EMBER TINES (0,025)** son el mismo parche con FB, envolvente de
+  filtro y envíos distintos: miden 0,148 y 0,108 de distancia real, o sea que se distinguen al oído. Cambiarles el
+  parche sería romper dos sonidos buenos para maquillar un número de parámetros.
+- **Los extremos de nivel son carácter, no desbalance**: ABYSSAL DRONE (RMS −31,4 dB), ANGEL AIR (−29,9), BARKING
+  PIPE (−23,7) y GEIGER CNT (−52,0, un contador que dispara de vez en cuando). El RMS mediano por motor queda entre
+  −29,0 y −14,4 dB y ningún preset llega al clipper (0,00 % en los 285).
+- **NOISE es el motor con el RMS mediano más bajo (−29,0 dB)** por sus texturas dispersas; sus vecinos más cercanos
+  están a 0,083, así que no es redundancia, es el carácter del motor.
 
-Es decir: **la biblioteca no está «desactualizada» ni rota**. Inventar variaciones mínimas para inflar el
-número sería exactamente lo que la fase prohíbe.
+## 5. Cómo se reproduce
 
-## 3. Lo que sí está mal: el equilibrio
-
-La tabla completa está en `docs/QG_EVOLUTION_PHASE_5_ENGINES.md` §3. Lo que hay que arreglar, ordenado:
-
-### 3.1 La familia NOISE entera (12 dB baja)
-
-Mediana **−29,7 dBFS** contra −17,9 de ANALOG, −16,0 de WTABLE y −15,2 de DRUM. Cambiar de un pad
-ANALOG a un pad NOISE baja el volumen una barbaridad. No es carácter: es un salto de familia.
-
-### 3.2 Sospechosos por tipo de sonido (mismo rol, nivel muy distinto)
-
-| Preset | Motor | Medido | vs su motor |
-|---|---|---|---|
-| `STEEL DRUM` | FM6 | −29,1 dBFS | −9,5 |
-| `DEEP MARIMBA` | FM6 | −26,2 | −6,6 |
-| `MARIMBA` | FM6 | −33,1 | −13,5 |
-| `CHROME PLUCK` | WTABLE | −27,5 | −11,5 |
-| `ANGEL AIR` | VOICE | −28,5 | −11,5 |
-| `VOX DRONE` | VOICE | −25,6 | −8,7 |
-| `TIN HAT` | DRUM | −27,3 | −12,2 |
-| `NEON CLAP` | DRUM | −21,5 | −6,4 |
-
-Un `MARIMBA` 13,5 dB por debajo de sus vecinos de FM6 es un preset que se pierde en la mezcla.
-
-### 3.3 Los que **no** hay que tocar aunque el número asuste
-
-`GEIGER CNT` (−52,0), `RISER` (−43,3), `SOLAR WIND` (−45,8), `STATIC HAZE` (−42,3): son clics
-espaciados o barridos que empiezan callados. El RMS de una ventana los hunde sin que estén mal, y
-subirlos les quitaría el carácter. Igual `SOLAR WIND`/`DUST HAZE`, que son texturas de fondo a propósito.
-
-## 4. Lo aplicado (revisión posterior)
-
-La medición se convirtió en cambios cuando hubo flash y una prueba que midiera el nivel de cada preset tal
-como carga. **52 presets llevan ahora su propio `P_LEVEL`**, en el `x[]` que ya existía: el array mide lo
-mismo con tres entradas que con cuatro, así que el cambio cuesta **0 B de flash** (imagen 580 404 B antes y
-después).
-
-| | antes | después |
-|---|---|---|
-| Mediana de la familia NOISE (a nivel propio) | −29,7 dBFS | **−21,8 dBFS** |
-| Rango NOISE | −52,0 … −15,2 | **−40,8 … −17,4** |
-| Desviados ≥6 dB de su motor, fuera de NOISE | 30 | 0 (nivelados a su familia) |
-| Presets al rojo tras el cambio | 0 | **0** |
-
-Método: `engine_param_test --table` mide cada preset a un nivel fijo de 100 y `--table-own` al nivel que
-carga de verdad; `--cal` mide qué hace el nivel (sube ~0,6 dB por unidad hasta 105 y se aplana por encima,
-por el recortador suave del master: de 110 a 127 apenas hay 0,4 dB). Con esa curva se invirtió el objetivo
-(−18 dBFS para NOISE, la mediana de su motor para los desviados), con dos topes: pico ≤ −2 dBFS y nivel
-≤ 127. Los 12 presets que necesitaban sitio y ya usaban las seis entradas de `x[]` **se han dejado como
-estaban**: quitarles un parámetro para poner el nivel habría empeorado el sonido.
-
-**El techo es real.** `RISER` (−31,3), `GEIGER CNT` (−40,8), `SOLAR WIND` (−32,8), `STATIC HAZE` (−31,4) y
-`DUST HAZE` (−27,5) siguen lejos: están ya a nivel 127 y son sonidos de eventos espaciados, cuyo RMS no
-sube aunque suba el nivel. Sacarlos de ahí exige cambiar el diseño del sonido (densidad, banda, decay), no
-su volumen, y eso no se ha hecho: cambiaría el carácter.
-
-## 5. Por qué no se tocó más
-
-1. **Un preset es un sonido que el dueño ya conoce.** «Evita cambios cosméticos» es explícito, y subir
-   el nivel de un preset no es cosmético: cambia cómo suena en una canción ya hecha.
-2. **Cuesta flash.** El nivel de un preset se guarda en su `x[]` (una lista de pares id/valor que se
-   aplica al cargar). Añadir una entrada a un preset puede hacer crecer el array del motor: hay **220 B**
-   de margen en la región de la aplicación. Un remaster completo de la biblioteca no cabe sin liberar
-   flash primero.
-3. **No hay oídos aquí.** El nivel se mide; el timbre no. Los ocho sospechosos del §3.2 necesitan
-   escucharse antes de tocarlos.
-
-## 5. Plan concreto (lo que haría, en este orden)
-
-1. **NOISE: subir el nivel de la familia** (una entrada por preset, o el parámetro de nivel del motor si
-   lo tiene) hasta que su mediana quede a ±2 dB de ANALOG. Es el cambio con más efecto por byte.
-2. **Los ocho del §3.2**, uno a uno, escuchados y nivelados contra su familia.
-3. **Nada más.** Ni renombrar, ni recolorear, ni reordenar: la auditoría no ha encontrado ningún defecto
-   estructural que lo justifique.
-
-## 6. Cómo se comprueba hoy
-
-```bash
+```sh
 cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/host/preset_audit_test tests/preset_audit_test.c -lm
-build/host/preset_audit_test                       # estructura, silencio, nivel, duplicados
-cc -O2 -w -Ibuild/gen -Ifirmware/src -o build/host/engine_param_test tests/engine_param_test.c -lm
-build/host/engine_param_test                       # 216 mandos EDIT: ¿mueve el sonido?
-build/host/engine_param_test --levels              # RMS de los 267, por motor
+build/host/preset_audit_test                      # estructura, silencio, nivel, duplicados exactos
+build/host/preset_audit_test --levels             # RMS y pico de cada preset
+build/host/preset_audit_test --dump > build/preset_dump.jsonl
+build/host/preset_audit_test --fingerprint > build/preset_fingerprint.jsonl
+python3 tools/preset_audit.py                     # el banco por parámetros y por sonido
+python3 tools/preset_audit.py --gate-sound 0.05   # la puerta de la suite
+python3 tools/preset_audit.py --inventory docs/QG_PHASE4_PRESET_INVENTORY.json
 ```
-
-Los dos están en `tests/run_tests.sh`. El primero ya estaba; el segundo es nuevo en esta fase.
-
-**No verificado:** el timbre. Ningún preset se ha escuchado en el FM-1.

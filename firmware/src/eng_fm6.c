@@ -531,13 +531,13 @@ static const preset_t FM6_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
     {"TIBET BOWL", {0, 0, 0, 0, 0, 0, 12, 13}, {0, 0, 127, 0}, 0, 0, FX(0, 48, 44, 92), PAT(7),
      {XP(P_LRATE, 10), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},
-    {"GONG SHIMMER", {0, 0, 0, 0, 0, 0, 15, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 38, 48, 86), PAT(7),
+    {"GONG SHIMMER", {0, 4, 16, 0, -10, 2, 26, 1}, {0, 0, 127, 0}, 0, 0, FX(0, 38, 48, 86), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},
     {"KOTO HARP", {0, 0, 0, 0, 0, 0, 0, 7}, {0, 0, 127, 0}, 0, 0, FX(0, 18, 32, 44), PAT(15),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 26)}},
     {"SITAR RESON", {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 127, 0}, 0, 0, FX(16, 28, 36, 58), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 22)}},
-    {"GAMELAN MET", {0, 0, 0, 0, 0, 0, 0, 15}, {0, 0, 127, 0}, 0, 0, FX(0, 14, 32, 68), PAT(7),
+    {"GAMELAN MET", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 22, 38, 76), PAT(7),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},
     {"STEEL DRUM", {0, 0, 0, 0, 0, 0, 0, 5}, {0, 0, 127, 0}, 0, 0, FX(0, 10, 26, 48), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 24), XP(P_LEVEL, 119)}},
@@ -568,7 +568,7 @@ static const preset_t FM6_PRESETS[] = {
      {XP(P_LRATE, 20), XP(P_LWAVE, 0), XP(P_LD_AMP, 6)}},  /* KEYS: organ */
     {"CINTA MAGNETICA", {0, -2, 0, 0, 0, 0, 20, 9}, {20, 0, 127, 40}, 16, 0, FX(8, 52, 30, 64), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 20)}},  /* G: tape keys */
-    {"TEMPLE CIRCUIT", {0, 3, 0, 0, 0, 0, 8, 1}, {0, 0, 127, 0}, 12, 0, FX(0, 32, 46, 90), PAT(6),
+    {"TEMPLE CIRCUIT", {0, 3, -12, -5, 12, 0, 8, 1}, {0, 0, 127, 0}, 12, 0, FX(0, 32, 46, 90), PAT(6),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18)}},  /* C: temple bell */
 };
 
