@@ -1304,7 +1304,7 @@ parámetro lo explica y el arreglo es de motor, no de pantalla.
 | a unit that answers `FM-1_015` is still stock | **VERIFIED** | `web/test_verify_only.mjs`: `FM-1_015` → `stock`, compatibility `replaces-stock`, never `ours`; the legacy rule only ever matches `FM-1_982` | host, simulated devices |
 | emulator and build record | **VERIFIED (identity)** | WASM rebuilt with `emcc 6.0.11`; `build/emu/manifest.json` `"identity": "FM-1_965"`; `package_emu.py` now reads `PRODUCT` from `build.py` | host, emcc |
 | WASM/native bit-for-bit parity | **FIXED — the harness was wrong, not the toolchain** | It differed at sample 1 on this tree and in a clean worktree at `9fbb8c0` for one reason: the two harnesses recorded **different performances**. `emu_test.mjs` renders `splashMs + 200` before recording (`SPL_WRITE 1500 + SPL_HOLD 1600 + 200 = 3 300 ms`), `native_check.c` hardcoded `render(500)`, so the native recorder started 2.8 s earlier and the sequencer/LFO phase at the first sample differed. `native_check.c` now renders `SPL_WRITE + SPL_HOLD + 200` from `ui_draw.c` (same translation unit): **bit for bit, 88 200 frames**, `emcc 6.0.11` on this host. The earlier "artefact of this host's toolchain" reading was wrong and is withdrawn | host, WASM + native |
-| GitHub Pages | **VERIFIED (before the audit's push), re-deploy pending** | The root served `v2.1.2-03d3f80` with package sha256 `1f52bf09…a303` and emulator wasm `0d437cfe…`; `/preview` served `v2.1.2-bbca837`, `manifest: null` (INSTALL refuses it); no service worker anywhere in the site, so no stale copy can outlive a deploy; the HTML is `max-age=600`. After `af2c002` the stable emulator's label must read `03d3f80ed385` — that deploy had not completed when this row was written | live HTTP |
+| GitHub Pages | **VERIFIED — superseded 2026-11-17, see the v1.3.9.1 section** | This row was written while `pages.yml` and `emulator.yml` both published the same Pages site. The reading was true of one deploy and could be false of the next: whichever workflow finished last set the front page. Since 2026-11-17 there is one publisher (`emulator.yml`) and the checks live in `coherence`; the live reading is in the new section | live HTTP |
 | physical FM-1 | **NOT MEASURED** | no unit was touched. What a real device answers after an install, and whether the hub marks the card, are hardware/hub checks that only a unit and the hub can make | — |
 
 ---
@@ -1789,3 +1789,23 @@ separate claim and is **not** covered by this note.
 
 An `[HW]` row is a compatibility report about those units, never a measurement of electrical behaviour, and it
 does not turn a `NO-GO` into a `GO`: the recovery and per-part write-stress rows keep their states.
+
+---
+
+## 2026-11-17 — v1.3.9.1: un publicador, el emulador dentro del release
+
+Publicación y evidencia; **sin cambios de DSP, de UI ni de formato**. El paquete difiere de 1.3.9 sólo en la
+cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 1.3.9.
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| One publisher of Pages | `[LIVE HTTP]` | `pages.yml` uploaded the committed `site/`, `emulator.yml` uploaded `build/site`, in two concurrency groups: measured on the live site, the root named the version two ways (`1.3.8` against `v1.3.8-<sha>`). `pages.yml` is deleted; the root now serves `v1.3.9-33e9b0e` (HTTP 200, 52 149 B) — the label of the built site |
+| The release carries the emulator | `[LIVE HTTP]` | `qg1-emulator-v1.3.8.zip` on the v1.3.8 release: HTTP 200, 501 772 B, sha256 `9bd3773d…` — equal to `release/emu/qg1-emulator-v1.3.8.zip` in the tree. `v1.3.9` carries `qg1-emulator-v1.3.9.zip` (HTTP 200, 501 876 B), attached by the pipeline itself, not repaired by hand |
+| The archive is reproducible | `[HOST]` | `make_release --sync` twice: same sha256. It is built from `site/emulator/` (tracked) and not from `release/emu/` (whose `fonts/` is gitignored): the first attempt built from the ignored copy and the pre-flight failed on the two font files a checkout cannot find |
+| A green run cannot hide a missing asset | `[CI]` | The publish step re-reads the release's assets, writes them to the run summary and fails if one is absent. Measured: run 2a82cfe was green with the archive in the list and absent from the release (a 404 for players); with the check, `f4f53f5` went red on exactly that; `cf2d9e5` is green with the archive attached |
+| The attestation outlives the log | `[CI]` / `[STATIC]` | `release.yml`'s `verify` job writes `attestation/gh-attestation-verify.json` and `package.sha256` and uploads them as `attestation-<version>` (90 days). Implemented and exercised by the 1.3.9 run; the artefact itself was **not** downloaded here — listing artefacts needs a credential this environment does not have |
+| Repository weight | `[STATIC]` | `site/firmware/` keeps the current package and the two before it (1.3.8, 1.3.9, 1.3.9.1); 1.3.6 and 1.3.7 are removed and stay on their release pages. `site/` went from 6.1 MB to 4.3 MB |
+| The evidence index is generated | `[HOST]` | `tools/evidence_index.py` writes `docs/EVIDENCE.md` from this matrix; `--check` is a step of `tests/run_tests.sh`, so a row that returns to PENDING breaks the tree. First run: 526 rows, 28 still asking for evidence, and three PENDING rows that were already measured (LATCH audio in `tests/perform_test.c#test_latch_audio`, the WASM, the attestation) |
+| KEYTRK as a first-class parameter | `[STATIC]` | **BLOCKED — needs a format decision.** The DSP has key tracking: `eng_analog.c:327` scales cutoff by `v->pitch16` with `ktr`, and five other sites hardcode `(pitch16 - 60*16) * 4`. Nothing can set it: the project's parameter ids are full (`P_COUNT 125` of the 127 seven-bit ids), so a per-track parameter has no slot in `proj_trk_t`, and a preset/project written without it would lose the value. `track_t` does have one padding byte, which fixes the RAM side and not the persistence |
+| The 1.3.9.1 package | `[TARGET]` | AC791N build at `00b4acc`, `dirty: []` in both manifests: `.data+.bss` 95 124 B of 98 304, image 582 776 B of 583 612, package 610 959 B sha256 `c36bbee5…`, identity `FM-1_965`, emulator wasm 1 240 530 B |
+| Run on a physical FM-1 | — | **NOT MEASURED**: no unit was touched in this session. Everything above is host, CI, live HTTP or an AC791N build |

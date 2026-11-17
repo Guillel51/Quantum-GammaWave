@@ -11,18 +11,18 @@ cannot stay invisible: the file is regenerated in the same push.
 
 | | |
 |---|---:|
-| rows in the matrix | 526 |
-| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 281 |
-| rows still asking for evidence | 28 |
+| rows in the matrix | 537 |
+| rows whose state is a verdict (GO / NO-GO / PENDING / FAIL) | 282 |
+| rows still asking for evidence | 27 |
 
 Classes of evidence named across the matrix (a row can name more than one):
 
 | class | rows |
 |---|---:|
-| AC791N | 16 |
-| host | 117 |
-| emul | 22 |
-| WASM | 28 |
+| AC791N | 18 |
+| host | 118 |
+| emul | 26 |
+| WASM | 29 |
 | render | 34 |
 | browser | 13 |
 | physical | 3 |
@@ -51,7 +51,6 @@ Classes of evidence named across the matrix (a row can name more than one):
 | [1194](VALIDATION_MATRIX.md#L1194) | `drumx` PUNCH y `live` (segundo a segundo) | **FAIL — not this pass** | Fallan en `main` antes de tocar nada: `firmware/src` aquí difiere de `main` en una línea (la versión). Son consecuencia de que el nivel del sonido entre en todo render. No se tocan aquí. `NO_PACKAGE=1 sh tests/run_tes… |
 | [1240](VALIDATION_MATRIX.md#L1240) | whole suite before publishing | **NOT RUN IN FULL** | `tests/run_tests.sh` was not run end to end in this pass; what ran is listed above and in `CHANGELOG.md` — |
 | [1277](VALIDATION_MATRIX.md#L1277) | Rediseño de EDIT de LOFI / MORPH / FM6, HOME y visualizador, optimizaciones, MICRO-START y modulación aleatoria | **NOT DONE** | Sin cambios en esta pasada. Las dos funciones nuevas necesitan un parámetro libre y el registro de proyecto no tiene byte de sobra (`project.c` §límites: P_COUNT 123, sin hueco); eso exige una versión de formato nueva… |
-| [1307](VALIDATION_MATRIX.md#L1307) | GitHub Pages | **VERIFIED (before the audit's push), re-deploy pending** | The root served `v2.1.2-03d3f80` with package sha256 `1f52bf09…a303` and emulator wasm `0d437cfe…`; `/preview` served `v2.1.2-bbca837`, `manifest: null` (INSTALL refuses it); no service worker anywhere in the site, so… |
 | [1359](VALIDATION_MATRIX.md#L1359) | Release firmado 2.3.0 | **NO PUBLICADO**: la firma exige la clave del custodio, que no está en este árbol; el instalador rechaza un paquete sin firmar (fail-closed). | — |
 | [1711](VALIDATION_MATRIX.md#L1711) | Identidad de la unidad | **NO-GO** | no hay unidad — falta lectura real |
 | [1712](VALIDATION_MATRIX.md#L1712) | JEDEC y geometría reales | **NO-GO** | allowlist `0x856014` / `0xB36014`, unknowns rechazados, todo simulado `[JEDEC]`/`[SIM]` falta lectura por unidad |
