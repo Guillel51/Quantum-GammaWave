@@ -1,0 +1,87 @@
+{
+ "format": "qg1-release-1",
+ "product": "FM-1",
+ "version": "1.3.5",
+ "min_firmware": "1.0.0",
+ "sha256": "0ebdf20d2ad41142cd54e045837698e7e1f3ccbe3cc43e5b00430e55b63bfe33",
+ "size": 610959,
+ "created": "2026-11-17T13:22:00Z",
+ "keyid": "",
+ "build_sha256": "039b47f7a76a61181eeb66f40908f92132fa8b70a6a260c4acabcb05a6f0b7f5",
+ "images": {
+  "felucca.bin": "e71d7549a1714332022f82b7b59b9adaa06e1d8f3bb249b34f52f9a066864197",
+  "felucca.fwsc": "0ebdf20d2ad41142cd54e045837698e7e1f3ccbe3cc43e5b00430e55b63bfe33",
+  "loader/ota.bin": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"
+ },
+ "build": {
+  "artifacts": {
+   "felucca.bin": {
+    "bytes": 583548,
+    "sha256": "e71d7549a1714332022f82b7b59b9adaa06e1d8f3bb249b34f52f9a066864197"
+   },
+   "felucca.fwsc": {
+    "bytes": 610959,
+    "sha256": "0ebdf20d2ad41142cd54e045837698e7e1f3ccbe3cc43e5b00430e55b63bfe33"
+   },
+   "loader/ota.bin": {
+    "bytes": 7803,
+    "sha256": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"
+   }
+  },
+  "checks": {
+   "checks": "ok",
+   "identity": "FM-1_965",
+   "notes": [
+    ".ram_text: 1193 insns, no calls",
+    "image 583548 B; RAM .data+.bss 95124 B of 98304; pool 311256 B, spare 9248 B",
+    "XIP code 422928 B, constants 140192 B",
+    "RAM code 19632 B of 24576; calls reach 37584 B past the code's end",
+    "register access: hal/ only (src/, loader/ clean)"
+   ]
+  },
+  "commit": "ef9f54e3eac85b01efc01b2dc3bea07afd18e9a4",
+  "config": {
+   "FELUCCA_CDC": "default",
+   "FELUCCA_CDC_DEFAULT": "default",
+   "FELUCCA_FLASH": "default",
+   "FELUCCA_FM4": "default",
+   "FELUCCA_HOTRAM": "default",
+   "FELUCCA_ICONS": "default",
+   "FELUCCA_OTA": "default",
+   "FELUCCA_OTA_DRYRUN": "default",
+   "FELUCCA_OTA_RAMONLY": "default",
+   "FELUCCA_SIZE": "default",
+   "FELUCCA_SLICE": "default",
+   "FELUCCA_UAC": "default",
+   "FELUCCA_UAC_48K": "default",
+   "FELUCCA_UAC_TONE": "default",
+   "FELUCCA_UART": "default",
+   "FELUCCA_USB_LAYOUT": "default"
+  },
+  "dirty": [],
+  "emulator": {
+   "commit": "ef9f54e3eac8",
+   "version": "v1.3.5",
+   "wasm_bytes": 1241108,
+   "wasm_sha256": "fe22f0ba620311e55c8a2718b3350dfb38d60674b41c68ca5c8f926d9be0d14b"
+  },
+  "identity": "FM-1_965",
+  "schema": "qg1-build-1",
+  "sdk": {
+   "commit": "unknown",
+   "files": {
+    "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
+    "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b",
+    "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"
+   },
+   "path": "/workspace/homes/1ba571e5d98c6103ac04d25e/fw-AC79_AIoT_SDK"
+  },
+  "toolchain": {
+   "clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f",
+   "name": "jieli-linux-toolchains-20260730.1",
+   "path": "/workspace/homes/1ba571e5d98c6103ac04d25e/.jieli/toolchain",
+   "version": "clang version 4.0.1 () ()"
+  },
+  "version": "v1.3.5"
+ }
+}
