@@ -48,7 +48,7 @@ static void hv_grad(void)
      * bands were 4 px stripes. ux_ground_rows walks the same two ramps one row at a time and fills one run per
      * colour the palette has, so the steps are 1-4 px and there is no pattern. Same endpoints: 22..55 % of the
      * panel ramp, 2..24 % of the accent. */
-    ux_ground_rows(6, 26, 228, 200 - 26, 22, 55, 2, 24, top, bot, 100);
+    ux_ground_rows(6, Y_LABEL, 228, 200 - Y_LABEL, 22, 55, 2, 24, top, bot, 100);
 }
 
 /* (4.1) which of HOME's screens is on, as icons: three cells in the title's right corner (the three pages drawn here) -- where a caption used to
@@ -100,17 +100,25 @@ static uint32_t hv_voices(const track_t *t)
     return n;
 }
 
+/* (1.3.2) THE SCREEN'S NAME, drawn where it fits: the cap pass owns 20..45, so the title is drawn there and not
+ * in the 26..114 pass, whose canvas cut the row the glyphs reach above their baseline (that was the "name cut" on
+ * OVERVIEW, MIXER and PERFORMANCE). */
+static const char *hv_name(void)
+{
+    return ui.home_view == HV_OVERVIEW ? "OVERVIEW" : ui.home_view == HV_MIX ? "MIXER" : "PERFORMANCE";
+}
 static void hv_overview(const track_t *t, uint16_t c)
 {
     char b[28], pn[20];
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     hv_sound_name(t, pn);
     hv_grad();                                         /* (4.1) the ground */
-    hv_air(26, 176, c, 6u);                            /* (FASE 2) OVERVIEW had no ambience at all */
+    hv_air(Y_LABEL, 202 - Y_LABEL, c, 6u);                            /* (FASE 2) OVERVIEW had no ambience at all */
 
     /* pass 0: what is loaded and what it is doing */
     hv_strip(29, c);                                   /* (4.1) which screen this is, as an icon */
-    cv_text(14, 30, &AF_S, "OVERVIEW", T_THEME);      /* (3.5) the screen's own name, in the row the knob
+    cv_text(14, 34, &AF_S, "OVERVIEW", T_THEME);       /* (1.3.2) the body opens at 20 now: the name sits on its
+                                                        * own row, clear of the panel's border and of the rule */      /* (3.5) the screen's own name, in the row the knob
                                                         * strip used to take (K1..K4 showed values nothing
                                                         * acted on: they are gone, not moved) */
     cv_rect(14, 41, 212, 1, T_LINE);
@@ -323,9 +331,10 @@ static void hv_mix(const track_t *t, uint16_t c)
     uint32_t k;
     (void)t;
     hv_grad();
-    hv_air(26, 176, c, 1u);
+    hv_air(Y_LABEL, 202 - Y_LABEL, c, 1u);
     hv_strip(29, c);
-    cv_text(14, 30, &AF_S, "MIXER", T_THEME);         /* (3.5) its own title, where the knob strip was */
+    cv_text(14, 34, &AF_S, "MIXER", T_THEME);          /* (1.3.2) the body opens at 20 now: the name sits on its
+                                                        * own row, clear of the panel's border and of the rule */         /* (3.5) its own title, where the knob strip was */
     cv_rect(14, 41, 212, 1, T_LINE);
     (void)q;
     for (k = 0; k < NTRK; k++) {
@@ -408,9 +417,10 @@ static void hv_perf(const track_t *t, uint16_t c)
     char b[28], q[20];
     uint32_t i;
     hv_grad();
-    hv_air(26, 176, c, 2u);
+    hv_air(Y_LABEL, 202 - Y_LABEL, c, 2u);
     hv_strip(29, c);
-    cv_text(14, 30, &AF_S, "PERFORMANCE", T_THEME);   /* (3.5) its own title, where the knob strip was */
+    cv_text(14, 34, &AF_S, "PERFORMANCE", T_THEME);    /* (1.3.2) the body opens at 20 now: the name sits on its
+                                                        * own row, clear of the panel's border and of the rule */   /* (3.5) its own title, where the knob strip was */
     cv_rect(14, 41, 212, 1, T_LINE);
     cv_text(14, 48, &AF_S, "OCTAVE", T_DIM);
     fmt_int(b, (int32_t)song.octave);
@@ -790,12 +800,29 @@ static void hv_route(const track_t *t, uint16_t c)
 static void graph_home_view(uint16_t c)
 {
     uint32_t pass;
+    /* (1.3.2) THE BODY OPENS AT Y_LABEL (20), where HOME's cards do, not at 26: the six rows the panel left
+     * uncovered showed the top edge of the four cards on every screen but the main one, and the screen's own
+     * name -- drawn on the first row inside the panel -- had its cap row cut by the panel's border. A 26-row cap
+     * paints the panel's rounded top from 20 and the two 88-row passes cover 26..202 as before; each pass draws
+     * the panel with its rounded ends off its own window, so no corner lands in the middle of the body. The cap
+     * stops at 20 and never reaches the header's band (0..16), whose icons the lint watches. */
+    /* (1.3.2) THE PLATE OPENS AT Y_LABEL (20), where HOME's cards do, not at 26: those six rows kept the cards'
+     * upper edge on every screen but the main one. A 26-row cap paints the rounded top from 20 and the two 88-row
+     * passes cover 26..202 as they always did -- the boundaries sit between text rows, which is what the render
+     * lint measures -- and each pass draws the panel with its rounded ends outside its own window, so no corner
+     * lands in the middle of the body. The screens' names moved to y = 34 so their ink (30..39) starts below the
+     * first pass's own top instead of on it. */
+    cv_begin(240, 26, T_BG);
+    cv_oy = -Y_LABEL;
+    cv_bg = T_SURF;
+    cv_rrect(4, Y_LABEL, 232, 202 - Y_LABEL, 6, T_SURF, T_BG);
+    cv_blit(0, Y_LABEL);
     for (pass = 0; pass < 2u; pass++) {
         int32_t top_y = pass ? 114 : 26;
         cv_begin(240, 88, T_BG);
         cv_oy = -top_y;
         cv_bg = T_SURF;
-        cv_rrect(4, 26, 232, 176, 6, T_SURF, T_BG);
+        cv_rrect(4, 6, 232, 196, 6, T_SURF, T_BG);
         if (ui.home_view == HV_OVERVIEW)
             hv_overview(TSEL, c);
         else if (ui.home_view == HV_MIX)

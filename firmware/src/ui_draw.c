@@ -983,6 +983,13 @@ static void draw_columns(void)
     char val[12];
     const char *unit;
     (void)motion_mask(song.sel, card_mot_mask);       /* (PLAY OFF: no scan) */
+    /* (1.3.2) THE SCREENS THAT OWN THE WHOLE BODY DO NOT DRAW THE CARD ROW. OVERVIEW, MIX and PERFORMANCE open
+     * their own panel at Y_LABEL (13, the cards' own top) and paint it to 202; the four cards used to be drawn
+     * under it, so their top band showed above the panel on every one of them and the render lint saw four
+     * icons hidden in part by the panel below. Nothing sets a parameter on those screens (the graph says so
+     * too), so the row is suppressed here, in the one place it is drawn, instead of covered up later. */
+    if (ui.home && ui.home_view >= HV_OVERVIEW)
+        return;
     if (ui.home) {
         for (c = 0; c < 4u; c++) {
             int16_t *vp;

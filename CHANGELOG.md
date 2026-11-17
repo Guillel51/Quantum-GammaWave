@@ -1,3 +1,32 @@
+## v1.3.2 — HOME sin las tarjetas de atrás, y los nombres de pantalla enteros
+
+### Lo que está arreglado y medido
+- **Las cuatro tarjetas de la fila de arriba ya no asoman por ninguna pantalla de HOME menos en HOME misma.**
+  La supresión está donde corresponde, en el flujo compartido de dibujo: `draw_columns()` sale antes de las
+  tarjetas cuando `ui.home && ui.home_view >= HV_OVERVIEW` (fuente única de esa fila), en vez de taparlas con
+  un panel encima. `graph_home_view()` abre ahora en `Y_LABEL`, porque el nombre de la pantalla ocupa la banda
+  16..20 que antes se dibujaba a ciegas.
+- **OVERVIEW, MIXER y PERFORMANCE se leen enteros.** El cuerpo de la vista se dibuja en dos pases de 88
+  filas (26 y 114) sobre un pase-cap de 26 filas a `Y_LABEL`: ningún pase corta una fila de texto, que es la
+  condición que imponía el lint. Los nombres van en `cv_text(14, 34, &AF_S, …)` con la regla en `y = 41`, y el
+  fondo (`hv_grad`, `hv_air`) se recortó al nuevo cuerpo en vez de seguir midiendo desde 0.
+- **Números, no impresiones.** `build/ui_render` sobre 190 pantallas × 22 paletas: **0 hallazgos de lint**
+  (ningún texto tapado, cortado ni fuera de su canvas), **0 desalineaciones en 3 894 154 medidas** de 74
+  posiciones, y `tests/ui_test.c` completo en verde (`all passed`). Los volcados 2× de las tres pantallas
+  están en `build/shots/home_overview.png`, `home_mix.png` y `home_perf.png`.
+
+### Lo que quedó pendiente (sin commitear, sin publicar)
+- **El salto de SELECT a ARP en HOME sigue sin arreglo confirmado.** En el arnés de host el giro de SELECT
+  sin ningún botón apretado no mueve de pantalla (hace el modo de HOME: BPM, TRK VOL, TRK PAN, MASTER, OFF),
+  y el giro con el botón ARP apretado sí termina en la página ARP: es el camino documentado «botón mantenido
+  + SELECT, sus páginas», que los propios tests recorren para ENV, SEQ, LFO y FX. Las dos variantes que probé
+  (cerrar `page_jump()` en HOME, y gastar el tap del botón al girar) no paran el salto y rompen ese recorrido,
+  así que quedaron revertidas: hace falta verlo en la FM-1 para saber si lo dispara un contacto del botón ARP.
+- **FX Scenes por pista, DEPTH/modo por paso en SLICER y A/B de la edición en las páginas de grupos: no
+  empezadas.**
+- **Sin release 1.3.2, sin banner nuevo, sin emulador ni sitio regenerados**: el paquete se arma recién cuando
+  lo de arriba esté en el árbol, no antes.
+
 ## v1.3.1.1 — el empaquetado de `step_t` no entra: medido y descartado
 
 ### Lo que se probó
