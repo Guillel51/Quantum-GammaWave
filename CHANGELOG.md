@@ -37,6 +37,23 @@
   en 125 de 127 y los formatos de proyecto y preset no tienen un byte libre por pista, así que un parámetro de
   primera clase necesita una decisión de formato, no 900 B más de flash.
 
+### La atestación, de vuelta: el tag que crea el runner ahora sí dispara el build atestiguado
+- **El eslabón que faltaba estaba en GitHub, no en el árbol.** `tag-and-publish.yml` crea el tag con
+  `GITHUB_TOKEN`, y GitHub **no arranca workflows** desde un `push` de tags hecho con ese token: `release.yml`
+  —el que compila con `zvenson/fm1-build` y consigue el «Built from source on GitHub»— nunca corrió para los
+  tags que el propio repositorio creaba. Por eso las releases 1.3.x salieron sin atestación aunque el paquete
+  verificado estuviera ahí.
+- **El arreglo**: el job pide `actions: write` y, después de publicar, **dispara `release.yml` por
+  `workflow_dispatch`** nombrando el tag en un input. Va en un input y no en el `ref` del dispatch porque GitHub
+  lee el fichero del workflow **en el ref donde se dispara**: un tag cuyo árbol es anterior al trigger
+  (v1.3.6 y todo lo previo) se rechazaría en su propio tag. Disparado en la rama por defecto, el gate y el
+  verify hacen `checkout` del tag nombrado y el build mueve el árbol al tag antes de compilar, así que se
+  atestigua el árbol del tag, no el de `main`.
+- **Una versión, una run**: `release.yml` estrena `run-name: release <tag>` y `concurrency` por versión, y el
+  disparo consulta las runs existentes: si ya hay una en curso la deja, si ya terminó en verde no la repite.
+  `release/attest-backfill.txt` nombra las versiones ya publicadas sin atestación (hoy `v1.3.6`) para que el
+  siguiente push las repare solo, sin que nadie tenga que acordarse de un comando.
+
 ### Lo que sigue sin poder afirmarse
 - Nada de esto se probó en una unidad física: el FM-1 del dueño no se escribe desde este repositorio. Las
   mediciones de arriba son **build del AC791N** y **host x86**; la suite completa, los renders dorados y el

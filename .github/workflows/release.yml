@@ -16,20 +16,52 @@ on:
   # with, and the shared workflow's release path is tag-only by design.
   push:
     tags: ["v*"]
+  # A tag created by a workflow with `GITHUB_TOKEN` starts no run, so `tag-and-publish.yml` re-creates
+  # that link by dispatching this workflow after it makes the tag. The tag is named in `tag`, never taken
+  # from the ref: the workflow file is read AT THE REF IT IS DISPATCHED AT, so a tag whose tree predates
+  # this trigger (every 1.3.x, whose releases shipped without an attestation) could never be dispatched at
+  # the tag itself. Dispatched on the default branch, every job checks the named tag out.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "the version tag to build and attest (vX.Y.Z; it has to exist already)"
+        required: true
+        type: string
+
+# One run per version: a re-dispatch waits for the one in flight instead of racing it.
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+# The audit trail in the Actions tab names the version, so a dispatch and a tag push look the same there
+# and `tag-and-publish.yml` can tell whether a version was already attested.
+run-name: release ${{ inputs.tag || github.ref_name }}
 jobs:
   # The 3.0 plan forbids assigning, tagging or publishing it before the phases and the physical
   # checks are complete. A manually pushed 3.x tag must not reach the shared build either.
   gate:
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - name: the version this run builds, and the tree agrees with its tag
+        id: ver
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag || github.ref_name }}"
+          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
+          test "$TAG" = "$V" || { echo "::error::the tag is $TAG and this tree's FELUCCA_VERSION is $V: refusing to attest one version under another's name"; exit 1; }
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "building and attesting $V from its tag"
       - name: a 3.x release needs an explicit approval
         env:
           QG_RELEASE_APPROVED: ${{ vars.QG_RELEASE_APPROVED }}
         run: |
           set -euo pipefail
-          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
-          python3 tools/release_gate.py "$V" "${QG_RELEASE_APPROVED:-false}"
+          python3 tools/release_gate.py "${{ steps.ver.outputs.version }}" "${QG_RELEASE_APPROVED:-false}"
   build:
     needs: gate
     uses: zvenson/fm1-build/.github/workflows/build.yml@85a003ab455b1c074b0bd6d7c282c096a464b973
@@ -38,7 +70,19 @@ jobs:
       id-token: write
       attestations: write
     with:
-      build: V="$(sed -n 's/^#define FELUCCA_VERSION "v\?\([0-9][^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)"; pip install --quiet Pillow fonttools numpy && ./build.sh --release "$V"
+      # The calling run is a dispatch on the default branch (or a tag push), so the checkout is that ref: the
+      # first thing the build does is fetch the version's tag and move to it, and from there nothing but the
+      # tag's tree is built. `--depth=1` on the tag keeps the fetch small and still puts the annotated tag's
+      # commit in place. The tag is a name the gate already proved matches the version inside felucca.c.
+      build: |
+        set -euo pipefail
+        V="${{ needs.gate.outputs.version }}"
+        git fetch --no-tags --depth=1 origin "refs/tags/$V:refs/tags/$V"
+        git checkout -q "refs/tags/$V"
+        test "$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)" = "$V"
+        echo "building $(git describe --tags --always) ($(git rev-parse HEAD))"
+        python3 -m pip install --quiet Pillow fonttools numpy
+        ./build.sh --release "${V#v}"
       packages: build/*.fwsc
       # blocking: the host suite, then the installer, the package bounds and the provenance gate. A
       # package is never attested from a tree that failed any of these (tests-block fails the job).
@@ -53,19 +97,22 @@ jobs:
   # committed one drift -- and that drift is precisely what these two workflows exist to catch. Nothing is
   # rebuilt, replaced or uploaded here; a mismatch fails the run.
   verify:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [gate, build]
+    if: ${{ github.ref_type == 'tag' || inputs.tag != '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       attestations: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate.outputs.version }}
       - name: The package this tree commits for this version
         id: pkg
         run: |
           set -euo pipefail
-          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
+          V="${{ needs.gate.outputs.version }}"
+          test "$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)" = "$V"
           P="release/felucca-${V}.fwsc"
           test -s "$P" || { echo "::error::$P is missing: nothing to verify against the attestation"; exit 1; }
           echo "path=$P" >> "$GITHUB_OUTPUT"
@@ -76,7 +123,7 @@ jobs:
         run: |
           set -eu
           mkdir -p dist
-          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern '*.fwsc' --dir dist
+          gh release download "${{ needs.gate.outputs.version }}" --repo "$GITHUB_REPOSITORY" --pattern '*.fwsc' --dir dist
           ls -l dist
           sha256sum dist/*.fwsc
       - name: The release carries the very bytes this tree commits

@@ -12,6 +12,16 @@
 # create a release for a tag that does not exist.
 #
 # It is idempotent: an existing tag or release is reported and left alone, never moved and never overwritten.
+#
+# (1.3.7) It also starts the ATTESTED build. A tag pushed with `GITHUB_TOKEN` starts no workflow -- GitHub
+# suppresses `push: tags` for it -- so `release.yml`, which builds through the shared zvenson/fm1-build
+# workflow and gets "Built from source on GitHub", never ran for a tag this job created: every 1.3.x release
+# went out without an attestation. A dispatch is not suppressed, so this job names the tag in
+# `release.yml`'s `tag` input once the tag exists. It names it in an input instead of dispatching at the tag
+# because a dispatch reads the workflow file AT THE REF IT IS DISPATCHED AT: a tag whose tree predates the
+# trigger (v1.3.6 and everything before) would be refused at its own tag, and one run per version has to be
+# possible for those too. `release/attest-backfill.txt` lists the tags to repair, so the versions already
+# published without an attestation are covered by the next push instead of by hand.
 name: tag and publish
 
 on:
@@ -23,6 +33,7 @@ permissions:
   contents: write
   id-token: write
   attestations: write
+  actions: write        # gh workflow run: the attested build of a tag this job just created
 
 concurrency:
   group: tag-and-publish-${{ github.ref }}
@@ -145,3 +156,39 @@ jobs:
             --notes-file build/release-notes.md \
             $ASSETS
           gh release view "$V" --json tagName,isDraft,isPrerelease,assets
+
+      # The seeded trigger: `push: tags` is suppressed for a tag pushed with GITHUB_TOKEN, a dispatch is
+      # not. Named by version, one run per version (release.yml's `run-name` and `concurrency`), and never
+      # started twice: a version already being attested is left to the run in flight and a version already
+      # attested is reported, so a re-run of this job costs nothing.
+      - name: start the attested build for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERSIONS="${{ steps.ver.outputs.version }}"
+          if [ -s release/attest-backfill.txt ]; then
+            BACKFILL=$(sed -n 's/^ *\(v[0-9][0-9.]*\) *$/\1/p' release/attest-backfill.txt | tr '\n' ' ')
+            echo "backfill list: ${BACKFILL:-none}"
+            VERSIONS="$VERSIONS $BACKFILL"
+          fi
+          for V in $VERSIONS; do
+            if ! git ls-remote --tags origin "refs/tags/$V" | grep -q .; then
+              echo "::warning::$V is not tagged; nothing to attest for it"
+              continue
+            fi
+            runs=$(gh run list --workflow=release.yml --limit 100 --json name,status,conclusion \
+                     --jq "[.[] | select(.name == \"release $V\") | .status + \"/\" + (.conclusion // \"-\")] | join(\" \")" || true)
+            case " $runs " in
+              *"in_progress"*|*"queued"*|*"requested"*|*"waiting"*|*"pending"*)
+                echo "::notice::release.yml is already running for $V ($runs); not starting a second one"
+                continue ;;
+              *"completed/success"*)
+                echo "::notice::release.yml already attested $V ($runs); nothing to do"
+                continue ;;
+            esac
+            echo "starting the attested build of $V (previous runs: ${runs:-none})"
+            gh workflow run release.yml --ref "${{ github.ref_name }}" -f "tag=$V"
+          done
+          sleep 5
+          gh run list --workflow=release.yml --limit 5 --json name,status,conclusion,url --jq '.[] | "\(.name)  \(.status)/\(.conclusion // "-")  \(.url)"'
