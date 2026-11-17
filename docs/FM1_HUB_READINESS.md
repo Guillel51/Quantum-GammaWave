@@ -177,7 +177,8 @@ Notes:
 * **The text was corrected, not just re-coloured.** The previous `what` promised "a sampler with mic
   input": the SAMPLE, GRAIN and SLICE engines are **retired** (`firmware/src/engines.c` marks slots 4, 8
   and 13 reserved) and there is no audio input path. The text now lists what the card's firmware really
-  has: nine engines (analog, six-operator FM, wavetable, digital drums…), a 64-step sequencer with
+  has: ten engines (analog, six-operator FM, wavetable, additive, digital drums…; ADDTV joined in 1.3.4), a
+  64-step sequencer with
   probability and ratchets, song mode, scales and chords, a mod matrix and three FX buses, plus the
   browser emulator and the web editor.
 * **`sounds` is `own`** and says what it means: every voice is synthesised by the firmware, and the one

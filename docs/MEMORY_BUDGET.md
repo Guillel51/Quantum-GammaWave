@@ -287,3 +287,23 @@ toolchain and SDK, read twice (`tools/build.py` and `tools/ram_report.py`):
 
 The guard costs **32 B** of image and nothing else; the dead `fx_scn_pick` byte is gone from `.bss`. The slot is now
 under 300 B, which is why the SLICER's per-step controls (496 B without their graph) stay out of this build.
+
+## 10. Measured image — 2026-11-17 (v1.3.6: the same regions, after the final pass)
+
+Same toolchain and SDK, read from `./build.sh` (the gate) at commit `0fa602b`. Nothing below moved because of
+a feature: the 1.3.6 pass only fixed six compiler warnings and deleted dead locals, so the image is the same
+bytes as 1.3.5 and the deltas against §9 are the ones the 1.3.3/1.3.4/1.3.5 work already paid for.
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 583 548 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **64 B** |
+| `.data + .bss` | 95 124 B | 98 304 B | 3 180 B |
+| RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | 19 632 B | 24 576 B | 4 944 B |
+| Pool spare (`POOL_END - pool_top`) | 9 248 B (pool 311 256 B used) | ≥ 8 192 B | 1 056 B |
+| LOWBUF | 26 724 B | 28 672 B | 1 948 B |
+| NOINIT (`proj_slot[4]` + `felucca_dbg`) | 15 572 B | 15 696 B | 124 B |
+| XIP code / constants | 422 928 B / 140 192 B | inside the image | — |
+
+The package is 610 959 B (identity `FM-1_965`) because the container fills a fixed per-slot size: a smaller
+image does not make a smaller `.fwsc`. The 303 golden renders are unchanged and the CPU check is 0 entries
+over budget, so the final pass is a code cleanup, not a re-tune.
