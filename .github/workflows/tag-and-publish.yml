@@ -161,34 +161,62 @@ jobs:
       # not. Named by version, one run per version (release.yml's `run-name` and `concurrency`), and never
       # started twice: a version already being attested is left to the run in flight and a version already
       # attested is reported, so a re-run of this job costs nothing.
+      #
+      # It talks to the REST API directly instead of `gh workflow run`: the endpoint takes the workflow file
+      # and the ref explicitly, so an error says which of the two was refused, and the push that carries a
+      # new trigger can take a few seconds to register -- hence the retries. Everything the step does goes
+      # to the run's summary as well as the log, because the log of a failed job needs a credential to read
+      # and the summary does not.
       - name: start the attested build for this tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
         run: |
-          set -euo pipefail
-          VERSIONS="${{ steps.ver.outputs.version }}"
+          set -uo pipefail
+          OUT=$(mktemp)
+          say() { echo "$*" | tee -a "$OUT"; }
+          fail=0
+          say "attested build: versions named for this push"
+          VERSIONS="$VERSION"
           if [ -s release/attest-backfill.txt ]; then
             BACKFILL=$(sed -n 's/^ *\(v[0-9][0-9.]*\) *$/\1/p' release/attest-backfill.txt | tr '\n' ' ')
-            echo "backfill list: ${BACKFILL:-none}"
+            say "  backfill list: ${BACKFILL:-none}"
             VERSIONS="$VERSIONS $BACKFILL"
           fi
           for V in $VERSIONS; do
             if ! git ls-remote --tags origin "refs/tags/$V" | grep -q .; then
-              echo "::warning::$V is not tagged; nothing to attest for it"
+              say "  $V: not tagged, nothing to attest"
               continue
             fi
-            runs=$(gh run list --workflow=release.yml --limit 100 --json name,status,conclusion \
-                     --jq "[.[] | select(.name == \"release $V\") | .status + \"/\" + (.conclusion // \"-\")] | join(\" \")" || true)
+            runs=$(gh run list --repo "$REPO" --workflow=release.yml --limit 100 --json name,status,conclusion \
+                     --jq "[.[] | select(.name == \"release $V\") | .status + \"/\" + (.conclusion // \"-\")] | join(\" \")" 2>&1)
             case " $runs " in
               *"in_progress"*|*"queued"*|*"requested"*|*"waiting"*|*"pending"*)
-                echo "::notice::release.yml is already running for $V ($runs); not starting a second one"
-                continue ;;
+                say "  $V: release.yml is already running ($runs), left alone"; continue ;;
               *"completed/success"*)
-                echo "::notice::release.yml already attested $V ($runs); nothing to do"
-                continue ;;
+                say "  $V: release.yml already attested it ($runs), nothing to do"; continue ;;
             esac
-            echo "starting the attested build of $V (previous runs: ${runs:-none})"
-            gh workflow run release.yml --ref "${{ github.ref_name }}" -f "tag=$V"
+            say "  $V: starting release.yml (previous runs: ${runs:-none})"
+            ok=0
+            for attempt in 1 2 3; do
+              err=$(gh api -X POST "repos/$REPO/actions/workflows/release.yml/dispatches" \
+                      -f "ref=$REF" -f "inputs[tag]=$V" 2>&1 >/dev/null)
+              if [ -z "$err" ]; then say "  $V: dispatched (attempt $attempt)"; ok=1; break; fi
+              say "  $V: attempt $attempt refused: $err"
+              sleep 15
+            done
+            [ "$ok" = 1 ] || fail=1
           done
-          sleep 5
-          gh run list --workflow=release.yml --limit 5 --json name,status,conclusion,url --jq '.[] | "\(.name)  \(.status)/\(.conclusion // "-")  \(.url)"'
+          say ""
+          say "release.yml now:"
+          gh run list --repo "$REPO" --workflow=release.yml --limit 5 --json name,status,conclusion,url \
+            --jq '.[] | "  \(.name)  \(.status)/\(.conclusion // "-")  \(.url)"' 2>&1 | tee -a "$OUT"
+          {
+            echo "### the attested build for this push"
+            echo '```'
+            cat "$OUT"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$fail"
