@@ -155,17 +155,47 @@ def main():
     sec = sections(tc)
     syms = symbols(tc)
 
-    # Region totals from the sections, then the free space each region has left.
+    # Bytes that belong to a region's symbols, for the "how much of the region is named" line below.
     per_region = {}
     for s, (size, addr) in sec.items():
         r = SECTION_REGION.get(s)
         if r:
             per_region[r] = per_region.get(r, 0) + size
+
+    # (1.3.2) WHAT EACH REGION HAS LEFT, measured the way the build measures it. Section sizes did not
+    # add up before: the gaps the linker leaves between two sections of the same region (0x01C0831C to
+    # 0x01C08340 in RAM) were lost, and the XIP region is filled by the whole IMAGE -- `.text` plus the
+    # load copies of `.ram_text`, `.c1_text`, `.hot_text` and `.data` (`AT > XIP` in app.ld) -- so this
+    # file used to report 21 252 B free in XIP while the image had 780 B left in the slot. These are the
+    # same landmarks tools/build.py checks, so the two can no longer disagree.
+    nm = subprocess.run([str(tc / "nm"), str(ELF)], capture_output=True, text=True).stdout
+    S = {}
+    for line in nm.splitlines():
+        p = line.split()
+        if len(p) == 3:
+            try:
+                S[p[2]] = int(p[0], 16)
+            except ValueError:
+                pass
+    img = ROOT / "build" / "felucca.bin"
+    used = {}
+    if all(k in S for k in ("_data_start", "_bss_end", "_pool_start", "_pool_end", "_c1_stack_hi",
+                            "_low_start", "_low_end", "_rt_start", "_hot_end", "_etext")):
+        used["RAM"] = S["_bss_end"] - S["_data_start"]                 # build.py: includes the alignment holes
+        used["POOL"] = max(S["_pool_end"], S["_c1_stack_hi"]) - reg["POOL"][0]   # up to the last thing in it
+        used["LOWBUF"] = S["_low_end"] - S["_low_start"]
+        used["RAMCODE"] = S["_hot_end"] - S["_rt_start"]
+        used["NOINIT"] = per_region.get("NOINIT", 0)
+        used["XIP"] = img.stat().st_size if img.exists() else S["_etext"] - reg["XIP"][0]
+    else:
+        used = dict(per_region)
+    if not img.exists() and "XIP" not in used:
+        used["XIP"] = per_region.get("XIP", 0)
     rows = []
-    for r, used in sorted(per_region.items(), key=lambda kv: -kv[1]):
+    for r, u in sorted(used.items(), key=lambda kv: -kv[1]):
         org, ln = reg.get(r, (0, 0))
-        rows.append({"region": r, "origin": org, "size": ln, "used": used, "free": max(0, ln - used),
-                     "pct": round(100.0 * used / ln, 1) if ln else 0.0})
+        rows.append({"region": r, "origin": org, "size": ln, "used": u, "free": max(0, ln - u),
+                     "pct": round(100.0 * u / ln, 1) if ln else 0.0})
 
     print(f"# {ELF.relative_to(ROOT)}: static target build (AC791N), sections from the linker\n")
     print(f"{'region':8s} {'origin':>10s} {'size':>8s} {'used':>8s} {'free':>7s} {'used%':>6s}")

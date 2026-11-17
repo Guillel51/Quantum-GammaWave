@@ -308,6 +308,9 @@ static const uint8_t FM6_ALG[32][6] = {      /* per operator (the sixth first): 
  * isCarrier also counts the modulators that add into bus 1 or 2) */
 static uint32_t fm6_carriers(uint32_t a)
 {
+    /* (1.3.2) Memoising this in RAM was built and measured: +48 B of XIP (the binding region) to save a six-step
+     * walk per note per block, which the pi32v2 budget cannot see. Refused on the same rule as docs/BUILD_AC791N.md
+     * 8.2: no change trades flash for a load nobody can measure. */
     uint32_t k, c = 0;
     for (k = 0; k < 6u; k++)
         c |= ((FM6_ALG[a & 31u][k] & 3u) ? 0u : 1u) << k;

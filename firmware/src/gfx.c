@@ -912,6 +912,9 @@ static void cv_alpha(int32_t x, int32_t y, uint32_t w, uint32_t h, const uint8_t
  * stream is read in order, so rows outside the clip are decoded and dropped; a run spans rows */
 #define HC_FONTS 3                       /* the codes: the faces M and L (gen_aa_font.py HUFF), the icons (AI_HC) */
 static struct { const uint8_t *hc; uint16_t lut[256]; } hc_tab[HC_FONTS];
+/* (1.3.2) A "last slot used" cache in front of this search was built and measured: +16 B of XIP (the binding region)
+ * for one compare instead of up to three. Refused, docs/BUILD_AC791N.md 8.2: the pointer compare is not what a frame
+ * spends. hc_lut keeps the plain search. */
 static const uint16_t *hc_lut(const uint8_t *hc)
 {
     uint32_t k, len, code = 0, sym = 15, i;

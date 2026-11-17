@@ -222,9 +222,29 @@ pool (9 248 B). Los símbolos más grandes, medidos con `nm` sobre el build AC79
 que se solapan (UNDO de GEN, índice en flash y cuerpo de objeto devuelto por `editor_backup`). Lo que sí es
 seguro y está hecho es dimensionar los anillos por lo que de verdad transportan.
 
-**El recurso escaso es la imagen, no la RAM** (1.3.1.1). Con la imagen en 582 928 B quedan **684 B** de XIP
-(908 B contando el slot del manifiesto) y en `.bss` quedan 3 292 B, con 9 248 B de pool: cualquier cambio
-que cambie RAM por código va en la dirección equivocada. Medido: `step_t` de 17 → 15 B (−768 B en `trk`,
+**El recurso escaso es la imagen, no la RAM** (1.3.1.1, y sigue válido en 1.3.2). Con la imagen en 582 928 B
+quedaban **684 B** de XIP; el árbol de la 1.3.2, con el arreglo de HOME, mide **582 832 B y deja 780 B** (ver
+§8.3), con 3 292 B de `.bss` y 9 248 B de pool: cualquier cambio que cambie RAM por código va en la dirección
+equivocada, y cualquiera que gaste imagen tiene que pagarla antes.
+
+### 8.3 La auditoría de la 1.3.2: qué se midió y qué se descartó
+
+Cada candidato se construyó con el toolchain y el SDK fijados y se midió contra el mismo árbol, con la suite
+de host y los 293 renders dorados como condición. Los tres que tocaban código o flags no compran nada en la
+región que aprieta, así que **no quedaron en el árbol** (el código sólo conserva el comentario que lo dice):
+
+| candidato | qué ahorra | qué cuesta | veredicto |
+|---|---|---|---|
+| memorizar la máscara de portadoras de FM6 (`fm6_carriers`) en una palabra | 5 vueltas de 6 pasos por nota y bloque | **+48 B de XIP** | descartado: el presupuesto no ve la vuelta, y la imagen es el recurso |
+| caché de «última fuente» delante de `hc_lut()` | 1–2 comparaciones de puntero por glifo | **+16 B de XIP** | descartado por lo mismo: el texto no gasta un frame en esa búsqueda |
+| `-fdata-sections` (para que `--gc-sections` recoja datos sin referencia) | — | imagen **582 828 B frente a 582 832 B** | descartado: −4 B es relleno de sección, no datos muertos (coincide con la medición de la FASE 1) |
+
+Lo que sí se corrigió es la herramienta que informa: `tools/ram_report.py` decía **21 252 B libres de XIP**
+(sumaba sólo `.text`, sin las copias de carga de la RAM code y `.data`) y **3 328 B libres de RAM** (sin el
+hueco de alineación de 36 B entre `.data` y `.bss`). Ahora las dos filas salen de los mismos símbolos que
+comprueba `tools/build.py` y coinciden al byte: XIP **582 832 / 780**, RAM **95 012 / 3 292**, pool
+**318 432 / 9 248**, LOWBUF **26 724 / 1 948**, RAM code **19 676 / 4 900**, NOINIT **15 572 / 124**.
+Detalle y tabla en `docs/MEMORY_BUDGET.md` §9. Medido: `step_t` de 17 → 15 B (−768 B en `trk`,
 −256 B en `gen_keep`) compila y pasa la suite de host entera, pero el enlace del AC791N lo rechaza
 (`section .hot_text will not fit in region XIP`, `region XIP overflowed by 3776 bytes`); el mismo árbol sin el
 cambio enlaza en 582 928 B como siempre.

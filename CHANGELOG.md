@@ -15,7 +15,26 @@
   posiciones, y `tests/ui_test.c` completo en verde (`all passed`). Los volcados 2× de las tres pantallas
   están en `build/shots/home_overview.png`, `home_mix.png` y `home_perf.png`.
 
-### Lo que quedó pendiente (sin commitear, sin publicar)
+### Memoria y mediciones (build AC791N de este árbol)
+- **La imagen baja 96 B y el margen del slot sube de 684 a 780 B**: el arreglo de HOME (una salida temprana en
+  `draw_columns()` en vez de cuatro tarjetas tapadas, y el nombre de pantalla que abre en `Y_LABEL`) dibuja menos
+  código y deja la imagen en **582 832 B de 583 612**. `.data+.bss` queda en **95 012 B de 98 304 (3 292 B
+  libres)**, pool **311 256 B con 9 248 B de sobra** (el piso de 8 KiB se respeta), RAM code **19 676 B de
+  24 576**, LOWBUF **26 724 de 28 672** y NOINIT **15 572 de 15 696**.
+- **`tools/ram_report.py` medía mal dos regiones y ahora no puede.** El XIP se calculaba sumando sólo `.text`,
+  así que informaba **21 252 B libres** cuando la región la llena la imagen entera (`.text` más las copias de
+  carga de `.ram_text`, `.c1_text`, `.hot_text` y `.data`, `AT > XIP` en `app.ld`): los 780 B reales. La RAM se
+  calculaba sumando `.data` y `.bss` sin el hueco de alineación entre las dos (36 B), o sea 3 328 B libres donde
+  hay 3 292. Las dos filas salen ahora de los mismos mojones que comprueba `tools/build.py` (`_bss_end`,
+  `_pool_end`, `_c1_stack_hi`, `_low_end`, `_hot_end` y el tamaño de `build/felucca.bin`), y coinciden al byte
+  con el build en las seis regiones.
+- **Lo que se midió y se descartó** (detalle en `docs/BUILD_AC791N.md` §8.2): memorizar la máscara de
+  portadoras de FM6 costaba **+48 B de XIP**; una caché de «última fuente» delante de `hc_lut()` costaba **+16 B
+  de XIP** para ahorrar hasta dos comparaciones por glifo; y `-fdata-sections` da **582 828 B frente a 582 832 B**
+  (−4 B, dentro del relleno de sección). Ninguno de los tres compra algo que el presupuesto pueda ver en el
+  recurso que aprieta, que es la imagen, así que no quedaron en el árbol.
+
+### Lo que quedó pendiente (sin commitear)
 - **El salto de SELECT a ARP en HOME sigue sin arreglo confirmado.** En el arnés de host el giro de SELECT
   sin ningún botón apretado no mueve de pantalla (hace el modo de HOME: BPM, TRK VOL, TRK PAN, MASTER, OFF),
   y el giro con el botón ARP apretado sí termina en la página ARP: es el camino documentado «botón mantenido
@@ -24,8 +43,6 @@
   así que quedaron revertidas: hace falta verlo en la FM-1 para saber si lo dispara un contacto del botón ARP.
 - **FX Scenes por pista, DEPTH/modo por paso en SLICER y A/B de la edición en las páginas de grupos: no
   empezadas.**
-- **Sin release 1.3.2, sin banner nuevo, sin emulador ni sitio regenerados**: el paquete se arma recién cuando
-  lo de arriba esté en el árbol, no antes.
 
 ## v1.3.1.1 — el empaquetado de `step_t` no entra: medido y descartado
 
