@@ -1,3 +1,28 @@
+## v1.3.1 — la página FX, legible; 1,5 KB de RAM devueltos
+
+### La página FX
+- **CHORUS y REVERB ya no tocan el medidor.** Son seis glifos de AF_S y su línea llegaba a cx + 39, justo
+  sobre la columna del medidor (cx + 35): la barra cortaba las dos últimas letras. El nombre sube una fila
+  (tinta 8..16) y el medidor abre en la fila 22, con seis filas de aire; sigue siendo de 16 × 43.
+- **Los tres indicadores de abajo se leen en tiempo real.** EQ es bipolar (el centro es 0 dB, el relleno va
+  del centro a la posición de la ganancia y la cabeza marca el punto; BYP se ve plano); DEPTH tiene escala
+  de 25/50/75 % sobre el relleno y una cabeza que marca la compuerta; SLICER enciende los 16 pasos del
+  patrón que va a compuerta (`sl_pattern()`) y el paso que suena se para un píxel más alto, en acento. Las
+  tres barras siguen la ley de los medidores (`fx_ease`: ataque inmediato, un cuarto por frame), así que un
+  encoder girado rápido no rompe el relleno y un valor que se detiene se asienta en dos frames.
+- **Comprobado con el barrido de renders (host x86)**: 190 pantallas × 22 paletas, 0 hallazgos de lint, 0
+  tintas sobre su propio color, 0 píxeles fuera de gris en GREY/MONO, 0 desalineaciones de 3 894 154 medidas.
+
+### Memoria
+- **1 536 B de `.bss` devueltos**: el anillo de salida de la consola USB era de 2 048 B para una cola de
+  texto cuyo estallido es una línea de diagnóstico; 512 B aguantan seis. El anillo de entrada queda en 256,
+  que es lo que el host manda en una ráfaga.
+- **La unión de búferes de trabajo que propuse para esta ronda no es segura y no la hice**: `gen_keep` es el
+  UNDO de GEN y sobrevive entre frames, `upf` es el índice del banco de FM6 que se guarda en flash y
+  `st_buf` se devuelve a quien lo pide (editor_backup) como cuerpo del objeto: sus vidas se solapan. Queda
+  anotado en `docs/BUILD_AC791N.md` §8.2 junto con el plan para `WT_GEN` (12 288 B = 3 niveles × 8 frames ×
+  256 puntos × 2 B), que sí es RAM de verdad pero cambia el timbre y necesita una prueba de escucha.
+
 ## v1.3.0 — la página FX con el panel entero
 
 La primera página de FX usaba 98 de las 122 filas del panel: los cuatro cuadros medían 62 px y los tres

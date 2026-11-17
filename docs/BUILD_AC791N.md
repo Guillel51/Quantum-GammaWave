@@ -201,6 +201,27 @@ mano: un nombre que declaren **dos** motores no se atribuye a ninguno y cae en `
 lo que vive en `.text`; lo que el enlazador copia a RAM (`.ram_text`, `.c1_text`, `.hot_text`) se informa
 aparte, en su propia columna, para que no se confunda con flash; `.data` y `.bss` van en las suyas.
 
+### 8.2 La auditoría de la memoria viva (v1.3.1, medido sobre `build/felucca.syms`)
+
+El `.data+.bss` está en 95 012 B de 98 304 tras devolver 1 536 B en `cdc_out` (1.3.1); el margen real es el
+pool (9 248 B). Los símbolos más grandes, medidos con `nm` sobre el build AC791N:
+
+| símbolo | bytes | qué es | ¿se puede recuperar? |
+|---|---:|---|---|
+| `WT_GEN` | 12 288 | banco de wavetables: 3 niveles de banda × 8 frames × 256 puntos × `int16` | sí, pero cambia el timbre (menos puntos o menos niveles). Necesita A/B de escucha |
+| `trk` | 10 560 | las seis pistas (6 × 1 760) | sí: empaquetar velocity/largo/chance/ratchet (~1,5 KB) tras auditar rangos |
+| `fm6_note` | 7 104 | 6 pistas × voces FM6 | auditar la estructura; mover constantes a XIP |
+| `drum_kit` | 5 376 | estado vivo de las 8 líneas por pista | no: es estado de voz |
+| `st_buf` | 3 840 | payload de un sector de flash (4 KiB − 256 de cabecera) | no sin cambiar el layout de flash |
+| `upf` | 3 728 | índice del banco de FM6, persistente | no: se guarda en flash |
+| `gen_keep` | 2 176 | UNDO de GEN, sobrevive entre frames | no: es estado |
+| `ua_ring` | 2 048 | anillo de audio USB (512 frames, 10,7 ms) | sí, a costa de latencia/underrun: probar en unidad |
+| `hc_tab` | 1 548 | 3 LUT de Huffman (una por fuente) | no se comparten: cada fuente tiene su código |
+
+**La unión de búferes que se propuso en la revisión no es válida**: `gen_keep`, `upf` y `st_buf` tienen vidas
+que se solapan (UNDO de GEN, índice en flash y cuerpo de objeto devuelto por `editor_backup`). Lo que sí es
+seguro y está hecho es dimensionar los anillos por lo que de verdad transportan.
+
 ### 8.1 El build de v1.3.0 (2026-11-16, medido en AC791N)
 
 Con el toolchain de §1 y los tres blobs de §6, `./build.sh` termina en:

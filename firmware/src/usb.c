@@ -51,7 +51,11 @@ static uint8_t ep3tx[64] __attribute__((aligned(4)));
 static uint8_t ep3rx[64 + 4] __attribute__((aligned(4)));
 /* serial rings: in = host -> console (ISR writes), out = console -> host (ISR reads) */
 #define CI_N 256u
-#define CO_N 2048u
+/* (1.3.1) 512, not 2048: the out ring is the console's text queue, and a burst there is one line of
+ * the diagnostics (80 columns, ~3 framing bytes). 512 bytes hold six of them -- the old 2 KiB was a
+ * guess that cost a quarter of the .bss headroom and never filled. The in ring stays 256: it is what a
+ * host can send in one packet burst, and the parser drains it per frame. */
+#define CO_N 512u
 static uint8_t cdc_in[CI_N], cdc_out[CO_N];
 static volatile uint32_t ci_w, ci_r, co_w, co_r;
 static struct {

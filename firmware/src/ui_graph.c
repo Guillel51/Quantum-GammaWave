@@ -818,6 +818,19 @@ static void panel_alert(uint32_t id, const char *a);
  *     icon and its real value: EQ (song.g[G_EQMODE], G_EQGAIN), DEPTH (song.g[G_SLDEP], the slicer's
  *     gate) and SLICER (song.g[G_SLMODE], lit while sl.idx is running). No animation, no invented
  *     number: every figure is read from the same global the DSP reads. */
+/* (1.3.1) THE MODULE BARS' BALLISTICS: the meters' own law (immediate attack, a quarter of the way down per
+ * frame) without the peak hold, which a value does not have. It lives here because these three bars are the
+ * only values in the firmware drawn as a fill that has to follow a knob in real time. */
+static void fx_ease(int32_t *st, int32_t target)
+{
+    if (*st < 0)
+        *st = target;                                  /* first frame after a page change: no sweep in */
+    else if (target >= *st)
+        *st = target;
+    else
+        *st -= (*st - target + 3) >> 2;
+}
+
 static void graph_fx(const track_t *t, uint16_t c)
 {
     static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
@@ -859,7 +872,11 @@ static void graph_fx(const track_t *t, uint16_t c)
     for (i = 0; i < 4u; i++) {
         int32_t cx = 6 + (int32_t)i * 57;
         int32_t val = clamp(t->p[P_DIST + i], 0, 127);
-        int32_t mx = cx + 35, my = 17, mh = 49;
+        /* (1.3.1) THE METER STARTS UNDER THE NAME, with air between them: "CHORUS" and "REVERB" are six
+         * glyphs of AF_S and their line runs to cx + 39, right over the meter's column (cx + 35), so the bar
+         * used to cut through the last two letters. The name is one row higher (ink 8 .. 16, its line ends on
+         * 17) and the meter opens on 22: six rows of air, and the bar is still 16 x 43 (22 .. 64). */
+        int32_t mx = cx + 35, my = 22, mh = 43;
         int32_t lvl = clamp(bus[i], 0, 7000);         /* the return, not the fader */
         int32_t inpx = clamp(send[i], 0, 7000) * mh / 7000;
         char num[8];
@@ -868,7 +885,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         ux_ground_rows(cx + 2, 5, 50, 73, 22, 62, 10, 45, 5, 78, 100);   /* (1.2.6) its own gradient */
         /* (1.2.6) its texts sit on the gradient now, not on a flat T_SURF: the background they are blended over is
          * the ramp's own colour at that row, or the letters would be drawn on a tone they are not lying on. */
-        cv_text_on(cx + 3, 6, &AF_S, FX_LABELS[i], T_TEXT, ux_ground_at(1, 73, 10, 45));   /* the whole name, on its own line */
+        cv_text_on(cx + 3, 5, &AF_S, FX_LABELS[i], T_TEXT, ux_ground_at(0, 73, 10, 45));   /* the whole name, on its own line */
         /* (1.3) the value owns the card's left column and the icon sits under it: with the meter 16 px wide the
          * value could not stay right-aligned to it without running into the icon (the old pair was 12 px apart). */
         cv_icon_on(cx + 3, 33, 12, FX_ICON[i], T_MID, ux_ground_at(28, 73, 10, 45));
@@ -913,16 +930,22 @@ static void graph_fx(const track_t *t, uint16_t c)
             cv_rect(mx + 2, my, 12, 2, T_ACCENT);
     }
 
-    /* (1.3) THE THREE MASTER MODULES ARE 76 x 30 AND SIT IN THE ROWS THE PAGE WAS WASTING (88 .. 118). They were
-     * 72 x 28 at 70 .. 98, with the bar squeezed into the right half of the second line (26 x 3 px). Now the value
-     * has its own line and the bar runs the module's whole width under it (68 x 5), which is what makes EQ's
-     * position, DEPTH's 22 steps and SLICER's 16 steps readable at a glance. The icon and the module's name stay on
-     * the first line: label and value on one line did not fit (the lint measured EQ 23..37 against BYPASS 31..71).
-     * Every figure is the global the DSP reads. */
+    /* (1.3.1) THE THREE MASTER MODULES ARE INSTRUMENTS: each one now shows the thing it measures and moves
+     * with it. They are 76 x 39 at 82 .. 120 (the rows the page used to leave empty), with the value on its
+     * own line and a 68 x 9 bar under it.
+     *   - EQ is bipolar: the bar's centre is 0 dB, the fill runs from the centre to the gain's position and
+     *     the head sits there. Flat and bypassed read at a glance (no fill, head on the centre, DIM).
+     *   - DEPTH keeps a quarter scale over the fill, so 25 / 50 / 75 % are readable, and its head marks the
+     *     exact gate.
+     *   - SLICER lights the 16 steps of the pattern it will actually gate (sl_pattern) and the running one
+     *     stands a pixel taller in the accent colour, so the page and the audio agree frame by frame.
+     * All three ease with the meters' ballistics (fx_ease: immediate attack, a quarter down per frame), so a
+     * knob turned fast does not tear the bar and a value that stops still settles in a couple of frames. */
     {
         static const int32_t MX3[3] = {3, 82, 161};
         static const uint16_t IC[3] = {ICON_TONE, ICON_LEVEL, ICON_STEPS};
         static const char *const NM[3] = {"EQ", "DEPTH", "SLICER"};
+        static int32_t bar[3] = {-1, -1, -1};         /* the three fills, 0..68 px, eased */
         uint32_t m;
         char vb[12];
         for (m = 0; m < 3u; m++) {
@@ -932,39 +955,56 @@ static void graph_fx(const track_t *t, uint16_t c)
             cv_text_on(MX3[m] + 19, 83, &AF_S, NM[m], T_DIM, ux_ground_at(0, 37, 10, 45));
             cv_rect(MX3[m] + 4, 108, 68, 9, T_BG);        /* the bar's track, under the value */
         }
-        /* EQ: its mode (N_EQMODE) and the gain it applies; BYP when off, so the box never reads as on */
+        /* EQ: its mode (N_EQMODE) and where the gain sits, from the centre out */
         {
             uint32_t em = (uint32_t)clamp(song.g[G_EQMODE], 0, 4);
             int32_t gdb = (int32_t)clamp(song.g[G_EQGAIN], -24, 24);
-            int32_t px = (gdb + 24) * 62 / 48;            /* -24 .. +24 dB across the 68 px bar, marker 3 wide */
+            int32_t px = (gdb + 24) * 62 / 48 + (gdb >= 0 ? 3 : 0);   /* -24 .. +24 dB, marker 4 wide */
+            fx_ease(&bar[0], px);
             if (em) {
+                int32_t c = 34;                        /* the centre: 0 dB */
                 str_cpy(vb, N_EQMODE[em], sizeof vb);
-                cv_text_on(MX3[0] + 4, 95, &AF_S, vb, T_THEME, ux_ground_at(12, 37, 10, 45));
-                cv_rect(MX3[0] + 4 + px, 108, 3, 9, T_ACCENT);   /* where the gain sits, off centre = not flat */
+                cv_text_on(MX3[0] + 4, 99, &AF_S, vb, T_THEME, ux_ground_at(13, 37, 10, 45));
+                if (bar[0] >= c)
+                    cv_rect(MX3[0] + 4 + c, 110, bar[0] - c, 5, T_THEME);   /* boost: centre -> right */
+                else
+                    cv_rect(MX3[0] + 4 + bar[0], 110, c - bar[0], 5, T_THEME);   /* cut: left -> centre */
+                cv_rect(MX3[0] + 4 + bar[0], 108, 4, 9, T_ACCENT);   /* where the gain sits */
             } else {
-                cv_text_on(MX3[0] + 4, 95, &AF_S, "BYP", T_DIM, ux_ground_at(12, 37, 10, 45));
-                cv_rect(MX3[0] + 4 + 31, 108, 3, 9, T_DIM);  /* flat, 0 dB: the centre of the bar */
+                cv_text_on(MX3[0] + 4, 99, &AF_S, "BYP", T_DIM, ux_ground_at(13, 37, 10, 45));
+                cv_rect(MX3[0] + 4 + 32, 110, 2, 5, T_DIM);  /* flat and bypassed: the centre only */
             }
+            cv_rect(MX3[0] + 4 + 34, 108, 1, 9, T_LINE);      /* the 0 dB line, over the fill */
         }
-        /* DEPTH: the slicer's gate (song.g[G_SLDEP], 0..127), filled across the module's own bar. (1.3) It was 22
-         * hairline segments in 26 px; at 68 px the same travel is one continuous fill, which is what a 0..100 %
-         * gate is -- the segmented read-out belongs to SLICER's 16 steps, where the steps are the subject. */
+        /* DEPTH: the slicer's gate (song.g[G_SLDEP], 0..127), filled with its quarter scale */
         {
-            int32_t d = clamp(song.g[G_SLDEP], 0, 127), w = d * 68 / 127;
+            int32_t d = clamp(song.g[G_SLDEP], 0, 127), w = d * 68 / 127, q;
+            fx_ease(&bar[1], w);
             fmt_int(vb, d * 100 / 127);
             str_cpy(vb + str_len(vb), "%", 2);
-            cv_text_on(MX3[1] + 4, 95, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(12, 37, 10, 45));
-            if (w > 0)
-                cv_rect(MX3[1] + 4, 108, w, 9, song.g[G_SLMODE] ? T_THEME : T_DIM);
+            cv_text_on(MX3[1] + 4, 99, &AF_S, vb, d ? T_TEXT : T_DIM, ux_ground_at(13, 37, 10, 45));
+            if (bar[1] > 0)
+                cv_rect(MX3[1] + 4, 110, bar[1], 5, song.g[G_SLMODE] ? T_THEME : T_DIM);
+            if (bar[1] > 0)                            /* the head, and where it is going */
+                cv_rect(MX3[1] + 2 + bar[1], 108, 2, 9, d ? T_ACCENT : T_DIM);
+            for (q = 1; q < 4; q++)                    /* 25 / 50 / 75 % over the fill */
+                cv_rect(MX3[1] + 4 + q * 17, 110, 1, 5, T_BG);
         }
-        /* SLICER: OFF / GATE / STUT, and its 16 steps lit at the one running (slicer.c sl.idx) */
+        /* SLICER: OFF / GATE / STUT, the pattern it will gate and the step running now (slicer.c sl.idx) */
         {
-            uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k;
+            uint32_t sm = (uint32_t)clamp(song.g[G_SLMODE], 0, 2), k, pat = sl_pattern();
             str_cpy(vb, N_SLCR[sm], sizeof vb);
-            cv_text_on(MX3[2] + 4, 95, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(12, 37, 10, 45));
-            if (sm)
-                for (k = 0; k < 16u; k++)                 /* 16 steps in 68 px: a 3 px step, 1 px apart */
-                    cv_rect(MX3[2] + 4 + (int32_t)k * 4, 108, 3, 9, k == (sl.idx & 15u) ? T_ACCENT : T_RAISE);
+            cv_text_on(MX3[2] + 4, 99, &AF_S, vb, sm ? T_THEME : T_DIM, ux_ground_at(13, 37, 10, 45));
+            for (k = 0; k < 16u; k++) {
+                int32_t sx = MX3[2] + 4 + (int32_t)k * 4;
+                int on = sm && ((pat >> k) & 1u), now = sm && k == (sl.idx & 15u);
+                if (now)                               /* the step the audio is on: taller, accent */
+                    cv_rect(sx, 107, 3, 10, T_ACCENT);
+                else if (on)
+                    cv_rect(sx, 109, 3, 8, T_THEME);
+                else
+                    cv_rect(sx, 111, 3, 6, T_RAISE);
+            }
         }
     }
 }
