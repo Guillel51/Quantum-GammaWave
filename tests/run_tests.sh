@@ -159,6 +159,9 @@ run "the Firmware Hub card: every published rule holds, sounds declared, droppin
 # The release set is one package described by six files; a release used to be assembled by hand and the sums
 # drifted from 1.3.5 to 1.3.8. This is the same check tag-and-publish runs before it creates a tag.
 run "release set: package, both SHA256SUMS, the site's versions.json and the installer's meta describe one package" python3 tools/make_release.py --check
+# The matrix is the record and the index is generated from it: a row that goes back to PENDING, or a fixed
+# row nobody re-read, fails here instead of being discovered by whoever reads the gate next.
+run "evidence index: docs/EVIDENCE.md is exactly what docs/VALIDATION_MATRIX.md says" python3 tools/evidence_index.py --check
 
 $CC -Ibuild/gen -Ifirmware/src -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"

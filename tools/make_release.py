@@ -34,6 +34,7 @@ import re
 import shutil
 import subprocess
 import sys
+import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -95,6 +96,33 @@ def emu_files(root):
     emu = os.path.join(root, "build", "emu")
     return [n for n in ("felucca.wasm", "index.html", "manifest.json", "worklet.js")
             if os.path.isfile(os.path.join(emu, n))]
+
+
+def emu_zip_name(version):
+    return "qg1-emulator-%s.zip" % version
+
+
+def write_emu_zip(root, version):
+    """`release/emu/qg1-emulator-<v>.zip`: the emulator as a download, not only as a page.
+
+    The release page carried the firmware and nothing to play it with; the emulator was only reachable from
+    the live site. This is the same four files the site serves, plus their fonts, in one archive -- and it is
+    built deterministically (sorted names, a fixed timestamp, fixed permissions) so the same build produces
+    the same bytes, the same rule the package follows.
+    """
+    emu = os.path.join(root, "release", "emu")
+    out = os.path.join(emu, emu_zip_name(version))
+    names = sorted(n for n in os.listdir(emu) if os.path.isfile(os.path.join(emu, n)) and not n.endswith(".zip"))
+    fonts = os.path.join(emu, "fonts")
+    if os.path.isdir(fonts):
+        names += sorted("fonts/" + n for n in os.listdir(fonts) if os.path.isfile(os.path.join(fonts, n)))
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for n in names:
+            info = zipfile.ZipInfo(n, date_time=(1980, 1, 1, 0, 0, 0))
+            info.external_attr = 0o644 << 16
+            info.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(info, open(os.path.join(emu, n), "rb").read())
+    return out
 
 
 def sync(root):
@@ -163,6 +191,10 @@ def sync(root):
     if os.path.isdir(os.path.join(build, "emu", "fonts")):
         shutil.rmtree(os.path.join(emu_out, "fonts"), ignore_errors=True)
         shutil.copytree(os.path.join(build, "emu", "fonts"), os.path.join(emu_out, "fonts"))
+    for old in os.listdir(emu_out):                 # one emulator archive per release, never a pile
+        if old.endswith(".zip") and old != emu_zip_name(v):
+            os.unlink(os.path.join(emu_out, old))
+    write_emu_zip(root, v)
 
     # 2. the site: the documented generator, not a second copy of it. `web/make_site.py` writes the portal,
     # the installer's meta, the editor's label, `firmware/`, and keeps the earlier versions it finds in
@@ -339,6 +371,29 @@ def check(root):
             elif sha256_file(p) != want:
                 problems.append("%s/felucca.wasm is not the WASM the build record names"
                                 % os.path.relpath(where, root))
+    # the downloadable emulator: one archive, and every file in it is the file beside it
+    zip_path = os.path.join(rel, "emu", emu_zip_name(v))
+    if not os.path.isfile(zip_path):
+        problems.append("release/emu/%s is missing: the release carries no emulator to download"
+                        % emu_zip_name(v))
+    else:
+        try:
+            with zipfile.ZipFile(zip_path) as z:
+                bad = z.testzip()
+                if bad:
+                    problems.append("release/emu/%s: %s is corrupt" % (emu_zip_name(v), bad))
+                listed = set(z.namelist())
+                for n in listed:
+                    src = os.path.join(rel, "emu", n)
+                    if not n.endswith("<none>"):
+                        if not os.path.isfile(src):
+                            problems.append("release/emu/%s holds %s, which is not beside it"
+                                            % (emu_zip_name(v), n))
+                        elif z.read(n) != open(src, "rb").read():
+                            problems.append("release/emu/%s holds a different %s" % (emu_zip_name(v), n))
+        except zipfile.BadZipFile:
+            problems.append("release/emu/%s is not a zip" % emu_zip_name(v))
+
     for where in (os.path.join(rel, "emu"), os.path.join(site, "emulator")):
         try:
             rec = load(os.path.join(where, "manifest.json"))

@@ -65,6 +65,12 @@ On that push:
    `release/` and that `release/SHA256SUMS` describes exactly that directory; **`target.yml`** rebuilds
    twice and compares the bytes (reproducibility) and **`coherence.yml`** checks the tree against itself.
 
+### What the site keeps
+
+`site/firmware/` holds the current package and the two before it — the installer's list, plus the URLs that
+were already published and are still likely to be linked. Older packages stay on their release pages; there
+is no reason for the repository to carry five 600 KB copies of the same firmware forever.
+
 ## 5. What a release does not prove
 
 Nothing in this pipeline reads or writes a physical FM-1. A green release means the tree is consistent,

@@ -185,14 +185,29 @@ jobs:
             exit 1
           done
           test "$n" -gt 0 || { echo "::error::the release carries no .fwsc"; exit 1; }
+      # The verification used to exist only in this job's log, which needs a credential to read: the one
+      # claim the Hub cares about ("built from source on GitHub") could not be re-read by anyone without a
+      # token. The output is kept as an artifact beside the run, so the evidence outlives the log.
       - name: Verify the attestation of those bytes
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -eu
+          set -euo pipefail
+          mkdir -p attestation
           gh attestation verify "${{ steps.pkg.outputs.path }}" \
             --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow zvenson/fm1-build/.github/workflows/build.yml
+            --signer-workflow zvenson/fm1-build/.github/workflows/build.yml \
+            --format json | tee attestation/gh-attestation-verify.json
+          sha256sum "${{ steps.pkg.outputs.path }}" | tee attestation/package.sha256
+
+      - name: The attestation record, kept beside the run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: attestation-${{ needs.gate.outputs.version }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: attestation/
       - name: The identity inside the bytes is this firmware's own
         env:
           GH_TOKEN: ${{ github.token }}

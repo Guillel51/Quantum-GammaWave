@@ -1,76 +1,47 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Quantum GammaWave — the public site, deployed from the tree.
+# Quantum GammaWave — the committed site, checked. It is not deployed from here.
 #
-# There was no Pages workflow in this repository, so the deployment GitHub Pages was serving had frozen at
-# an old build (the root still answered with a v1.4-QG preview page that no file here produces). This job
-# publishes the `site/` directory exactly as committed: the portal, the installer, the Web Studio and the
-# emulator, with the package and manifest that `web/make_site.py` wrote into it. Nothing is generated here,
-# so what is deployed is what the repository holds and what `tools/coherence_check.py` verified.
+# There used to be two publishers of GitHub Pages: this workflow uploaded `site/` exactly as committed, and
+# `emulator.yml` uploaded `build/site`, the site it builds from the same tree (with the live `/preview/`
+# channel). Both targeted the same Pages site, in two different concurrency groups, so the last one to finish
+# won: the deployed front page could be the committed copy or the built one, and the two name the version
+# differently (`1.3.8` against `v1.3.8-<sha>`) -- measured on the live site. A deploy is one artefact, so
+# there is now one publisher: `emulator.yml`, which builds it. This job keeps what the second publisher was
+# good at -- refusing a committed `site/` that contradicts the package -- and writes nothing.
 name: pages
 
 on:
   push:
     branches: ["main"]
     paths: ["site/**", ".github/workflows/pages.yml"]
+  pull_request:
+    paths: ["site/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
-  deploy:
+  check:
     runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - name: the package the portal serves is the one the release carries
+      - name: the committed site is the release set's
         run: |
           set -euo pipefail
-          V=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -1)
-          P="release/felucca-${V}.fwsc"
-          test -s "$P"
-          test -s "site/firmware/felucca-${V#v}.fwsc" || test -s "site/firmware/felucca-${V}.fwsc"
-          # the tree's own consistency, before it is published: site_check compares a URL with the files, so
-          # it runs after the deployment below, not before it (before, it validated yesterday's site).
-          python3 - "$V" <<'PY'
-          import json, sys
-          v = sys.argv[1]
-          top = json.load(open("site/firmware/versions.json"))
-          if isinstance(top, dict):
-              top = top.get("versions", [top])
-          names = [str(e.get("version")) for e in top if isinstance(e, dict)]
-          names = ["v" + n if not n.startswith("v") else n for n in names]
-          assert v in names, (v, names[:4])
-          print("the portal offers", v)
-          PY
+          # The same check the host suite and the pre-flight run: package, both sums files, versions.json,
+          # the portal, the installer's meta and the emulator records all describe one package.
+          python3 tools/make_release.py --check
+          python3 tools/coherence_check.py
 
-      - name: the emulator served is the one the build record names
+      - name: the portal, its links and its images
         run: |
           set -euo pipefail
-          cp -r release/emu/. site/emulator/
-          python3 - <<'PY'
-          import json
-          e = json.load(open("site/emulator/manifest.json"))
-          b = json.load(open("release/emu/manifest.json"))
-          assert e["version"] == b["version"] and e["wasm_sha256"] == b["wasm_sha256"], (e, b)
-          print("emulator", e["version"], e["commit"], e["wasm_sha256"][:12])
-          PY
+          test -s site/index.html || { echo "::error::site/index.html is empty: Pages would serve a blank page"; exit 1; }
+          python3 web/test_site.py site
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-      - id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: the deployment answers with this tree
-        run: python3 tools/site_check.py --url "${{ steps.deployment.outputs.page_url }}"
+      # The deployment itself is emulator.yml's: `pages.yml` is a second publisher, and two publishers of one
+      # Pages site are a race, not a backup. If the deployed site has to be checked against the tree, that is
+      # `tools/site_check.py --url`, which the deploy job already runs after its own upload.

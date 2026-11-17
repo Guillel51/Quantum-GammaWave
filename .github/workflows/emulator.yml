@@ -11,11 +11,13 @@ name: emulator
 # main goes up to Pages.
 on:
   push:
-    paths: ["firmware/**", "web/**", "tools/**", "tests/target_budget.txt", "tests/target_budget.py", "build.sh",
-            ".github/workflows/emulator.yml"]
+    # `site/**` is in the list because this is the only publisher of Pages (`pages.yml` now only checks the
+    # committed copy): a change to the served tree has to rebuild and deploy it.
+    paths: ["firmware/**", "web/**", "tools/**", "site/**", "tests/target_budget.txt", "tests/target_budget.py",
+            "build.sh", ".github/workflows/emulator.yml"]
   pull_request:
-    paths: ["firmware/**", "web/**", "tools/**", "tests/target_budget.txt", "tests/target_budget.py", "build.sh",
-            ".github/workflows/emulator.yml"]
+    paths: ["firmware/**", "web/**", "tools/**", "site/**", "tests/target_budget.txt", "tests/target_budget.py",
+            "build.sh", ".github/workflows/emulator.yml"]
   workflow_dispatch:
 permissions:
   contents: read
