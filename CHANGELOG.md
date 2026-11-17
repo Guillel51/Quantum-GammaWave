@@ -14,6 +14,23 @@
   `proj_packed_size()`, así que una sección demasiado llena sigue diciendo `SECTION FULL` en vez de desbordar; los MODE y
   DEPTH fuera de rango en un registro dañado devuelven ese paso a la canción y el resto carga igual.
 
+### Bloqueado: no entra en la flash del AC791N (medido)
+
+El enlace del target **no cierra**: con la página y su gráfico la imagen queda **816 B por encima** del slot
+(`image 584 428 B` contra `APP_SLOT 0x8E7BC` = 583 612 B, que deja 292 B), y sin el gráfico, **496 B**. Medido por símbolos
+(`build/felucca.syms`, mismo build): `graph_slstep` **310 B**, `proj_unpack_c` **+120**, `page_desc` **+92**, `proj_pack`
+**+84**, `graph_signature` **+84**, `project_capture` **+64**, `project_restore_runtime` **+48**, `slicer_on` **+34**,
+`sl_enter` **+32**, `slicer_bus` **+28**, `system_init` **+20**, más ~88 B de cadenas y descriptores.
+
+Detrás del slot no hay un hueco: la región enpaquetada acaba en `0x8ED2B` y la partición siguiente empieza en `0x8F000`
+(**725 B** en total, el último margen del mapa). Las salidas son tres y ninguna es de una línea:
+1. **Comprimir datos** como se hizo con el kerning de la cara S (1 590 B con `--kern-min 4`): el blob de
+   `build/gen/ui_shapes.h` son **10 861 B** de puntos y es el único sitio grande que queda.
+2. **Crecer el slot** comiendo el margen (`APP_SLOT` + los 725 B): cambia el tamaño del bloque `app_area_head` del
+   paquete, así que hay que volver a sincronizar instalador, emulador y sitio (§5), y se queda sin aire para lo próximo.
+3. **Recortar la función**: sin el bloque `'S' 'P'` (sólo sesión, como la escena de FX) son ~400 B menos, y aun así
+   quedan ~300 B de DSP + página contra los 292 libres.
+
 ### Lo que se midió (host, x86)
 - `tests/project_test.c`: el viaje de ida y vuelta de un paso con MODE y DEPTH propios (con DEPTH 0), un FUNB (escritor
   viejo, que no conoce el bloque) que carga con los 16 pasos en SONG, y los bytes fuera de rango saneados: los tres **ok**,
