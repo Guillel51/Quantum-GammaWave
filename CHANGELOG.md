@@ -1,3 +1,52 @@
+## v1.3.8 — el banner se vuelve a dibujar desde cero, y el portal deja de estar en blanco
+
+### El banner es otro, y lo dibuja el repositorio
+- **`tools/gen_banner.py` se reescribió entero.** El motivo ya no es el planeta: es un estado ligado. Un
+  campo de densidad de probabilidad —anillos de fase con caída 1/r, dibujados antes que el texto y a baja
+  opacidad—, un núcleo con tres órbitas elípticas a 60° y un electrón en cada una, una nube de puntos
+  repartida por ángulo áureo y una escalera de niveles `n=1..5` con la flecha de absorción. La rejilla de
+  cruces y los puntos discretos son la pantalla del aparato, no un campo de estrellas: la semilla es fija,
+  así que la imagen se regenera idéntica y se puede revisar en el diff.
+- **Nada del banner es inventado.** Los colores salen de la paleta QUANTUM decodificada de `ui_palettes.h`
+  (`0x0022` fondo, `0x10a5` panel, `0x3eff` acento, `0xfd44` tema), las tipografías son las de
+  `assets/fonts` y las dos imágenes pequeñas son las pantallas reales de 240 × 240 —
+  `quantum_01_home.png` (HOME / ORBITAL) y `quantum_03_fm6_algorithm.png` (FM6 / ALGORITMO) —, enmarcadas
+  como referencia, no como maqueta.
+- **Se mantienen las características y no aparece la versión.** Las píldoras dicen **12 voces, 6 pistas,
+  10 motores, 285 presets, secuenciador de 64 pasos, 4 buses de FX y 19 paletas**, todas ellas cifras que el
+  árbol sostiene (`UI_PAL_NLIVE` = 19, `preset_categories` = 283 + 2 kits, `engines.c` = 10). No hay
+  `v1.3.x`, ni hash, ni build: el banner es el mismo en cada release.
+- **Las cifras anteriores estaban viejas y se corrigieron de paso:** el banner anterior anunciaba **273
+  presets** y **17 temas**; el README decía *nine synthesis engines* y *nine palettes including GREY and
+  MONO*. Ahora dicen 285 y 19 paletas, y diez motores. `tools/generate_banner.py`, un segundo generador que
+  la matriz citaba y que no producía el fichero publicado, se retiró.
+
+### El portal raíz estaba commiteado con cero bytes
+- **`site/index.html` estaba vacío en `main`.** `pages.yml` publica `site/` *tal como está commiteado*, así
+  que el portal servía una página en blanco mientras el emulador, el instalador y los paquetes seguían
+  respondiendo. Nadie lo vio porque `web/test_site.py` valida `build/site` —la copia que construye el
+  workflow del emulador— y la coherencia miraba `versions.json` y el paquete, nunca el HTML del portal.
+- **Arreglado regenerando `site/` con `web/make_site.py`** (portal con `{{VERSION}}` sustituido, `assets/`,
+  `webapp/installer`, `webapp/editor`, `plan/` y `firmware/`), y con una guarda nueva en
+  `tools/coherence_check.py`: `site/index.html` tiene que existir, no estar vacío y nombrar la versión que
+  lleva el firmware. Un portal en blanco vuelve a fallar en CI en vez de publicarse.
+- **Los paquetes ya publicados siguen descargables.** `site/firmware/` conserva 1.3.4 a 1.3.8, y cada
+  `.manifest.json` de la carpeta se comprobó contra los bytes que tiene al lado: cinco de cinco coinciden.
+
+### Lo que se midió en esta versión
+- **Build del AC791N `v1.3.8`** (`d2fe9d2`): imagen **582 644 B de 583 612** (968 B libres), XIP código
+  **422 928 B** + constantes **139 288 B**, `.data+.bss` **95 124 B de 98 304**, pool con **9 248 B** de
+  sobra, RAM code **19 632 B de 24 576**. Paquete **610 959 B**, sha256 `6446de87…`, identidad `FM-1_965`.
+- **El firmware no cambió de comportamiento:** la única diferencia con 1.3.7 es la cadena de versión, y el
+  reparto de memoria es exactamente el mismo (mismos bytes, mismas constantes, mismo código). Esta release
+  es de identidad, portal y documentación; no trae un motor nuevo y no lo finge.
+- **Emulador `v1.3.8`** recompilado con Emscripten 6.0.11: WASM **1 240 205 B**, sha256 `a45e639e…`,
+  etiquetado con el commit del árbol. `site/emulator/` y `release/emu/` son esa compilación.
+
+### Lo que sigue sin poder afirmarse
+- **Nada de esto se probó en una unidad física.** Las mediciones de arriba son **build del AC791N**,
+  **host x86** y **emulador**; el FM-1 del dueño no se escribe desde este repositorio.
+
 ## v1.3.7 — 904 B de vuelta de los keycaps que nadie dibuja, y el precio medido del parámetro siguiente
 
 ### Lo que se recuperó, medido

@@ -363,12 +363,17 @@ def main(pkg, version, out, prev=None, manifest=None, emu_manifest=None, use_rel
         raise SystemExit("web/site/index.html: the portal has no {{VERSION}} token: its static label "
                          "would not name the build this site serves")
     portal = portal.replace("{{VERSION}}", version)
+    # the portal links to `preview/` whether or not this build has one: /preview/ is a second site built
+    # beside the root. The Pages deployment of the committed `site/` copies the portal alone (`pages.yml`
+    # publishes the tree as it is), so without this the root's "preview" card was a 404 on the live site --
+    # `web/test_site.py` said so: "link goes nowhere from index.html: preview/ FAIL". A redirect keeps the
+    # card alive and still lands on the root when there is no preview beside it.
     if not use_release:            # built as /preview/: its own portal links back to the stable root
         portal = portal.replace('href="preview/"', 'href="../"')
-        (out / "preview").mkdir(exist_ok=True)
-        (out / "preview" / "index.html").write_text(   # and a card that points here still lands somewhere
-            '<!doctype html><meta charset="utf-8"><title>Preview</title>'
-            '<meta http-equiv="refresh" content="0; url=../"><a href="../">Preview</a>\n', encoding="utf-8")
+    (out / "preview").mkdir(exist_ok=True)
+    (out / "preview" / "index.html").write_text(   # and a card that points here still lands somewhere
+        '<!doctype html><meta charset="utf-8"><title>Preview</title>'
+        '<meta http-equiv="refresh" content="0; url=../"><a href="../">Preview</a>\n', encoding="utf-8")
     (out / "index.html").write_text(portal, encoding="utf-8")
     shutil.copy(site / "i18n.js", out / "i18n.js")
     assets = out / "assets"
