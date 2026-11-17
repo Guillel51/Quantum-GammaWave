@@ -209,12 +209,12 @@ pool (9 248 B). Los símbolos más grandes, medidos con `nm` sobre el build AC79
 | símbolo | bytes | qué es | ¿se puede recuperar? |
 |---|---:|---|---|
 | `WT_GEN` | 12 288 | banco de wavetables: 3 niveles de banda × 8 frames × 256 puntos × `int16` | sí, pero cambia el timbre (menos puntos o menos niveles). Necesita A/B de escucha |
-| `trk` | 9 792 | las seis pistas (6 × 1 632: 64 pasos de 15 B + 672 de lo demás) | hecho en 1.3.2 (`step_t` de 17 → 15 B, −768 B); más sólo cambiando el formato de flash |
+| `trk` | 10 560 | las seis pistas (6 × 1 760: 64 pasos de 17 B + 672 de lo demás) | **no, medido y descartado (1.3.1.1)**: empaquetar `step_t` a 15 B devuelve 1 024 B de `.bss` pero cuesta ~4,4 KB de XIP (cada escritura a un bit-field es leer, enmascarar, o, escribir) y el enlace revienta `region XIP overflowed by 3776 bytes` |
 | `fm6_note` | 7 104 | 6 pistas × voces FM6 | auditar la estructura; mover constantes a XIP |
 | `drum_kit` | 5 376 | estado vivo de las 8 líneas por pista | no: es estado de voz |
 | `st_buf` | 3 840 | payload de un sector de flash (4 KiB − 256 de cabecera) | no sin cambiar el layout de flash |
 | `upf` | 3 728 | índice del banco de FM6, persistente | no: se guarda en flash |
-| `gen_keep` | 1 920 | UNDO de GEN (2 × 64 pasos), sobrevive entre frames | no: es estado; bajó 256 B con el paso de 15 B |
+| `gen_keep` | 2 176 | UNDO de GEN (2 × 64 pasos), sobrevive entre frames | no: es estado |
 | `ua_ring` | 2 048 | anillo de audio USB (512 frames, 10,7 ms) | **no**: 512 es el mínimo. `usb.c` lo exige con `_Static_assert(UA_HI + HALF_FRAMES + UA_MAXF < UA_N)` = 128 + 128 + 46 = 302 marcos, y el índice va con máscara, así que tiene que ser potencia de dos: 256 no cumple |
 | `hc_tab` | 1 548 | 3 LUT de Huffman (una por fuente) | no se comparten: cada fuente tiene su código |
 
@@ -222,7 +222,14 @@ pool (9 248 B). Los símbolos más grandes, medidos con `nm` sobre el build AC79
 que se solapan (UNDO de GEN, índice en flash y cuerpo de objeto devuelto por `editor_backup`). Lo que sí es
 seguro y está hecho es dimensionar los anillos por lo que de verdad transportan.
 
-**Los dos anillos de 2 048 B que quedan no se pueden tocar sin cambiar comportamiento** (1.3.2):
+**El recurso escaso es la imagen, no la RAM** (1.3.1.1). Con la imagen en 582 928 B quedan **684 B** de XIP
+(908 B contando el slot del manifiesto) y en `.bss` quedan 3 292 B, con 9 248 B de pool: cualquier cambio
+que cambie RAM por código va en la dirección equivocada. Medido: `step_t` de 17 → 15 B (−768 B en `trk`,
+−256 B en `gen_keep`) compila y pasa la suite de host entera, pero el enlace del AC791N lo rechaza
+(`section .hot_text will not fit in region XIP`, `region XIP overflowed by 3776 bytes`); el mismo árbol sin el
+cambio enlaza en 582 928 B como siempre.
+
+**Los dos anillos de 2 048 B que quedan no se pueden tocar sin cambiar comportamiento** (1.3.1.1):
 
 - `ua_ring` es el anillo del audio USB: 512 frames es el mínimo que deja el invariante del propio `usb.c`
   (banda 80..128 + un render de 128 + un paquete de 46 = 302 marcos, y el anillo tiene que ser potencia de
