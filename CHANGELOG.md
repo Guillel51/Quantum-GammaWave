@@ -1,3 +1,41 @@
+## v1.3.9.1 — un publicador de Pages, el emulador en el release y un índice de lo medido
+
+Cambios de publicación y de evidencia: **no toca el DSP, ni la UI, ni el formato de proyecto**. El paquete
+sólo se diferencia de 1.3.9 en la cadena de versión.
+
+### Pages tenía dos publicadores
+`pages.yml` subía `site/` tal como está commiteado y `emulator.yml` subía `build/site`, cada uno en su grupo de
+concurrencia: ganaba el que terminara último y la portada podía ser cualquiera de los dos, nombrando la versión
+de dos maneras (`1.3.8` contra `v1.3.8-<sha>`). Publica sólo el workflow que construye el sitio; las dos
+comprobaciones que `pages.yml` aportaba (`make_release --check` y `test_site`) viven ahora en `coherence`, que
+ya fija Python y hace checkout completo. Medido en el sitio en vivo: la raíz sirve `v1.3.9-33e9b0e`.
+
+### El release no traía con qué escuchar el firmware
+Se adjunta `qg1-emulator-<v>.zip`, armado por `make_release --sync` desde `site/emulator/` (la copia
+versionada, no la generada: `release/emu/fonts/` está en `.gitignore` y un checkout no la tiene) con nombres
+ordenados y fecha fija, así que dos corridas dan el mismo sha256. `--check` verifica que cada miembro del zip
+sea el fichero que está al lado.
+
+### El run decía verde y el asset no existía
+El paso que publica el release daba por bueno cada `gh release upload`: en v1.3.8 el archivo del emulador
+quedó en la lista y no en el release, un 404 para quien lo descarga. Ahora el paso **vuelve a leer los assets**
+al terminar, los publica en el resumen del run y falla si falta alguno.
+
+### La atestación se podía leer sólo con credencial
+`gh attestation verify` corría en el job `verify` y su salida quedaba en el log, que pide token. Ahora se
+guarda como artefacto `attestation-<v>` (JSON + sha256 del paquete, 90 días) al lado del run.
+
+### Peso del repositorio
+`site/firmware/` se queda con el paquete actual y los dos anteriores; los más viejos siguen en su página de
+release. Eran cuatro copias de 600 KB de la misma imagen.
+
+### El índice de la evidencia ya no se escribe a mano
+`docs/EVIDENCE.md` se genera desde `docs/VALIDATION_MATRIX.md` con `tools/evidence_index.py`, y `--check` está
+en la suite del host: una fila que vuelve a PENDING rompe el árbol en vez de esperar a que alguien la lea.
+En la primera corrida aparecieron tres filas PENDING que ya estaban medidas (el audio del LATCH en
+`tests/perform_test.c#test_latch_audio`, el WASM y la atestación) y una cuarta, el mapeo control→DSP, que
+enumeraba como medido lo que no lo estaba.
+
 ## v1.3.9 — la banda de HOME, el visualizador entero y FX legible
 
 Los seis bugs de UI del reporte, cada uno con su causa. Medido en host x86 (render) y en el enlace del AC791N.

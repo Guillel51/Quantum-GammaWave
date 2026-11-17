@@ -33,3 +33,14 @@ jobs:
           python-version: "3.13"
       - name: the tree agrees with itself
         run: python3 tools/coherence_check.py
+      # These two lived in `pages.yml`, which also deployed the committed `site/` -- the second publisher of
+      # Pages, racing `emulator.yml` in its own concurrency group. The deployment is gone (one publisher: the
+      # workflow that builds the site); the checks stay, here, in the job that already pins Python and checks
+      # out the full history. `make_release --check` is the same release-set agreement the pre-flight runs
+      # before a tag exists.
+      - name: the committed site is the release set's
+        run: python3 tools/make_release.py --check
+      - name: the portal, its links and its images
+        run: |
+          test -s site/index.html || { echo "::error::site/index.html is empty: Pages would serve a blank page"; exit 1; }
+          python3 web/test_site.py site
