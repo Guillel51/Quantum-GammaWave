@@ -16,21 +16,21 @@
   están en `build/shots/home_overview.png`, `home_mix.png` y `home_perf.png`.
 
 ### Memoria y mediciones (build AC791N de este árbol)
-- **La imagen baja 96 B y el margen del slot sube de 684 a 780 B**: el arreglo de HOME (una salida temprana en
+- **La imagen baja 96 B y el margen del slot sube de 684 a 748 B**: el arreglo de HOME (una salida temprana en
   `draw_columns()` en vez de cuatro tarjetas tapadas, y el nombre de pantalla que abre en `Y_LABEL`) dibuja menos
-  código y deja la imagen en **582 832 B de 583 612**. `.data+.bss` queda en **95 012 B de 98 304 (3 292 B
+  código y deja la imagen en **582 864 B de 583 612**. `.data+.bss` queda en **95 012 B de 98 304 (3 292 B
   libres)**, pool **311 256 B con 9 248 B de sobra** (el piso de 8 KiB se respeta), RAM code **19 676 B de
   24 576**, LOWBUF **26 724 de 28 672** y NOINIT **15 572 de 15 696**.
 - **`tools/ram_report.py` medía mal dos regiones y ahora no puede.** El XIP se calculaba sumando sólo `.text`,
   así que informaba **21 252 B libres** cuando la región la llena la imagen entera (`.text` más las copias de
-  carga de `.ram_text`, `.c1_text`, `.hot_text` y `.data`, `AT > XIP` en `app.ld`): los 780 B reales. La RAM se
+  carga de `.ram_text`, `.c1_text`, `.hot_text` y `.data`, `AT > XIP` en `app.ld`): los 748 B reales. La RAM se
   calculaba sumando `.data` y `.bss` sin el hueco de alineación entre las dos (36 B), o sea 3 328 B libres donde
   hay 3 292. Las dos filas salen ahora de los mismos mojones que comprueba `tools/build.py` (`_bss_end`,
   `_pool_end`, `_c1_stack_hi`, `_low_end`, `_hot_end` y el tamaño de `build/felucca.bin`), y coinciden al byte
   con el build en las seis regiones.
 - **Lo que se midió y se descartó** (detalle en `docs/BUILD_AC791N.md` §8.2): memorizar la máscara de
   portadoras de FM6 costaba **+48 B de XIP**; una caché de «última fuente» delante de `hc_lut()` costaba **+16 B
-  de XIP** para ahorrar hasta dos comparaciones por glifo; y `-fdata-sections` da **582 828 B frente a 582 832 B**
+  de XIP** para ahorrar hasta dos comparaciones por glifo; y `-fdata-sections` da **582 828 B frente a 582 832 B** (medido sobre el árbol previo al arreglo de SELECT, de 582 832 B)
   (−4 B, dentro del relleno de sección). Ninguno de los tres compra algo que el presupuesto pueda ver en el
   recurso que aprieta, que es la imagen, así que no quedaron en el árbol.
 

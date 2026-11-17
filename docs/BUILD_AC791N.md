@@ -223,7 +223,7 @@ que se solapan (UNDO de GEN, índice en flash y cuerpo de objeto devuelto por `e
 seguro y está hecho es dimensionar los anillos por lo que de verdad transportan.
 
 **El recurso escaso es la imagen, no la RAM** (1.3.1.1, y sigue válido en 1.3.2). Con la imagen en 582 928 B
-quedaban **684 B** de XIP; el árbol de la 1.3.2, con el arreglo de HOME, mide **582 832 B y deja 780 B** (ver
+quedaban **684 B** de XIP; el árbol de la 1.3.2, con el arreglo de HOME, mide **582 864 B y deja 748 B** (ver
 §8.3), con 3 292 B de `.bss` y 9 248 B de pool: cualquier cambio que cambie RAM por código va en la dirección
 equivocada, y cualquiera que gaste imagen tiene que pagarla antes.
 
@@ -242,7 +242,7 @@ región que aprieta, así que **no quedaron en el árbol** (el código sólo con
 Lo que sí se corrigió es la herramienta que informa: `tools/ram_report.py` decía **21 252 B libres de XIP**
 (sumaba sólo `.text`, sin las copias de carga de la RAM code y `.data`) y **3 328 B libres de RAM** (sin el
 hueco de alineación de 36 B entre `.data` y `.bss`). Ahora las dos filas salen de los mismos símbolos que
-comprueba `tools/build.py` y coinciden al byte: XIP **582 832 / 780**, RAM **95 012 / 3 292**, pool
+comprueba `tools/build.py` y coinciden al byte: XIP **582 864 / 748**, RAM **95 012 / 3 292**, pool
 **318 432 / 9 248**, LOWBUF **26 724 / 1 948**, RAM code **19 676 / 4 900**, NOINIT **15 572 / 124**.
 Detalle y tabla en `docs/MEMORY_BUDGET.md` §9. Medido: `step_t` de 17 → 15 B (−768 B en `trk`,
 −256 B en `gen_keep`) compila y pasa la suite de host entera, pero el enlace del AC791N lo rechaza

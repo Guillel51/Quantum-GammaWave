@@ -217,13 +217,13 @@ same linker symbols. They agree to the byte.
 
 | Region | Measured | Budget | Headroom |
 |--------|----------|--------|----------|
-| App image (`build/felucca.bin`) | 582 832 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **780 B** |
+| App image (`build/felucca.bin`) | 582 864 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **748 B** |
 | `.data + .bss` | 95 012 B | 98 304 B | 3 292 B |
 | RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | 19 676 B | 24 576 B | 4 900 B |
 | Pool spare (`POOL_END - pool_top`) | 9 248 B (pool 318 432 B used) | ≥ 8 192 B | 1 056 B |
 | LOWBUF | 26 724 B | 28 672 B | 1 948 B |
 | NOINIT (`proj_slot[4]` + `felucca_dbg`) | 15 572 B | 15 696 B | 124 B |
-| XIP code / constants | 422 280 B / 140 080 B | inside the image | — |
+| XIP code / constants | 422 308 B / 140 084 B | inside the image | — |
 
 ### 9.1 The report disagreed with the build, and why
 
@@ -231,7 +231,7 @@ same linker symbols. They agree to the byte.
 
 * **XIP** listed only `.text` and so reported **21 252 B free**. The XIP region is filled by the whole image:
   `.text` plus the load copies of `.ram_text`, `.c1_text`, `.hot_text` and `.data` (`AT > XIP` in `app.ld`,
-  19 676 + 796 B). The real figure is the one the packer enforces, **780 B**. A report that says a region is
+  19 676 + 796 B). The real figure is the one the packer enforces, **748 B**. A report that says a region is
   97 % empty while any new function fails the link is worse than no report.
 * **RAM** summed `.data` (796 B) and `.bss` (94 180 B) and lost the 36 B the linker leaves between them
   (`.data` ends at `0x01C0831C`, `.bss` starts at `0x01C08340`), i.e. 3 328 B free instead of 3 292.
@@ -244,7 +244,8 @@ bounds, so the two tools can no longer drift apart silently.
 ### 9.2 What this release changed in the image
 
 The HOME fix that 1.3.2 carries (one early return in `draw_columns()` instead of four cards drawn and then
-covered, and `graph_home_view()` opening at `Y_LABEL`) removed **96 B** of code: image 582 928 → **582 832 B**
-and the slot margin 684 → **780 B**. No other firmware byte changed in this release: the three candidates of
-the audit (a memoised FM6 carrier mask, a last-use cache in `hc_lut()`, and `-fdata-sections`) were built,
+covered, and `graph_home_view()` opening at `Y_LABEL`) removed **96 B** of code: image 582 928 → **582 832 B**.
+The other half of the same version — SELECT no longer pages from HOME, and a tap needs a real release — costs
+**32 B**, so the release builds at **582 864 B** with a slot margin of **748 B** (684 → 748 B). Nothing else in
+the firmware changed: the three candidates of the audit (a memoised FM6 carrier mask, a last-use cache in `hc_lut()`, and `-fdata-sections`) were built,
 measured and refused — +48 B, +16 B and −4 B of image respectively, none of them in the region that binds.
