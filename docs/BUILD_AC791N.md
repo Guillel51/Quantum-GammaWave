@@ -194,7 +194,7 @@ python3 tools/engine_size.py --json     # la misma tabla, para scripts
 mapa no dice a qué motor pertenece un `.text.<fn>`. La tabla de símbolos sí, porque cada función tiene su
 propia sección (`-ffunction-sections`) y su tamaño. El mapa se usa para lo que sí puede probar: que la
 misma función mide lo mismo en los dos artefactos (**88 funciones de motor, 0 discrepancias** en el build
-de v1.3.0).
+de v1.3.1).
 
 La atribución sale de las fuentes (`firmware/src/eng_*.c`, definiciones a columna 0), no de una lista a
 mano: un nombre que declaren **dos** motores no se atribuye a ninguno y cae en `(rest)`. Cuenta como XIP
@@ -222,15 +222,15 @@ pool (9 248 B). Los símbolos más grandes, medidos con `nm` sobre el build AC79
 que se solapan (UNDO de GEN, índice en flash y cuerpo de objeto devuelto por `editor_backup`). Lo que sí es
 seguro y está hecho es dimensionar los anillos por lo que de verdad transportan.
 
-### 8.1 El build de v1.3.0 (2026-11-16, medido en AC791N)
+### 8.1 El build de v1.3.1 (2026-11-16, medido en AC791N)
 
 Con el toolchain de §1 y los tres blobs de §6, `./build.sh` termina en:
 
 ```
-ok      image 582704 B; RAM .data+.bss 96548 B of 98304; pool 311256 B, spare 9248 B
-ok      XIP code 422156 B, constants 140076 B
+ok      image 582928 B; RAM .data+.bss 95012 B of 98304; pool 311256 B, spare 9248 B
+ok      XIP code 422372 B, constants 140084 B
 ok      RAM code 19676 B of 24576
-package build/felucca-1.3.0.fwsc  610959 B, identity FM-1_965   (908 B de margen en el slot)
+package build/felucca-1.3.1.fwsc  610959 B, identity FM-1_965   (684 B de margen en el slot)
 ```
 
 | motor | XIP | `.data` | `.bss` | símbolos | mayor símbolo |
@@ -249,7 +249,7 @@ package build/felucca-1.3.0.fwsc  610959 B, identity FM-1_965   (908 B de margen
 | (resto: UI, DSP, secuenciador, tablas) | 489 945 | 753 | 75 928 | 2 852 | — |
 | **total** | **534 766** | **761** | **95 461** | **3 052** | — |
 
-`RAM: .data+.bss 96548 B of 98304 B (1756 B free)` e `image: 582704 B of 583612 B (908 B free)`.
+`RAM: .data+.bss 95012 B of 98304 B (3292 B free)` e `image: 582928 B of 583612 B (684 B free)`.
 
 El motor ADDITIVE entra con **1 832 B de XIP y 1 440 B de `.bss`**: el `.bss` es exactamente el
 `sizeof` de sus estructuras (1 224 B de voces + 216 B de partes) y el XIP queda por debajo de la
