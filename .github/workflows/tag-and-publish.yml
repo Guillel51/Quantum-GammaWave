@@ -139,7 +139,11 @@ jobs:
           if gh release view "$V" >/dev/null 2>&1; then
             echo "::notice::release $V already exists; refreshing its notes and adding any missing asset"
             gh release edit "$V" --notes-file build/release-notes.md
-            have="$(gh release view "$V" --json assets --jq '.assets[].name' || true)"
+            # `gh release view --jq` prints one name per line: join them with spaces before matching, or the
+            # pattern below never matches an asset that is already there and the upload fails the job (which
+            # is what happened to the first two v1.3.7 runs, when the release existed but this step's dedupe
+            # could not see it). Names cannot contain spaces, so the joined list is unambiguous.
+            have="$(gh release view "$V" --json assets --jq '.assets[].name' | tr '\n' ' ' || true)"
             for a in $ASSETS; do
               name="$(basename "$a")"
               case " $have " in
