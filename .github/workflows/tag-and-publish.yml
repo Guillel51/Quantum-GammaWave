@@ -77,6 +77,18 @@ jobs:
           test -s "$P.manifest.json" || { echo "::error::$P.manifest.json is missing"; exit 1; }
           python3 tools/fm1_sign.py verify "$P" --manifest "$P.manifest.json"
 
+      # Everything the release will claim, checked before the tag exists. These ran as separate workflows on
+      # the same push and published nothing until they finished, so a contradiction between the package, the
+      # sums, the site and the installer could reach a player before any of them went red -- 1.3.5 to 1.3.8 all
+      # shipped a `release/SHA256SUMS` that did not describe its own directory, and `signed-release` failed
+      # after the release page was already up. `make_release.py --check` compares every copy of every fact.
+      - name: the release set agrees with itself before anything is tagged
+        run: |
+          set -euo pipefail
+          python3 tools/coherence_check.py
+          python3 tools/make_release.py --check
+          python3 web/test_site.py site
+
       - name: tag the commit, once
         run: |
           set -euo pipefail

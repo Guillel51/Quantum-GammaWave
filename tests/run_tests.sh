@@ -156,6 +156,9 @@ fi
 run "release gate: a 3.x tag needs an explicit repository approval" python3 tests/release_gate_test.py
 # (4.0.0) the hub card: every published rule, and the sounds line that keeps the listing from stopping
 run "the Firmware Hub card: every published rule holds, sounds declared, dropping it fails" python3 tests/fmhub_card_test.py
+# The release set is one package described by six files; a release used to be assembled by hand and the sums
+# drifted from 1.3.5 to 1.3.8. This is the same check tag-and-publish runs before it creates a tag.
+run "release set: package, both SHA256SUMS, the site's versions.json and the installer's meta describe one package" python3 tools/make_release.py --check
 
 $CC -Ibuild/gen -Ifirmware/src -o "$OUT/storage_test" tests/storage_test.c
 run "flash storage (A/B, torn writes)" "$OUT/storage_test"
