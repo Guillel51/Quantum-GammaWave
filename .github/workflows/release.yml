@@ -95,10 +95,14 @@ jobs:
           if "$@" > "$log" 2>&1; then
             echo "ok: $name"
           else
-            echo "FAILED: $name -- last 20 lines"
+            echo "FAILED: $name -- the failing lines, then the last 20"
+            bad=$(grep -nE 'FAIL|MISMATCH|not ok|ERROR|Error:|assert' "$log" | head -10)
+            [ -n "$bad" ] || bad=$(tail -20 "$log")
+            echo "$bad"
             tail -20 "$log"
+            # The annotation carries the failing lines: 900 characters of them, one per line.
             printf '::error title=tests failed: %s::%s\n' "$name" \
-              "$(tail -12 "$log" | sed 's/%/%25/g; s/\r//g' | tr '\n' '|')"
+              "$(printf '%s\n' "$bad" | head -12 | cut -c1-120 | sed 's/%/%25/g; s/\r//g' | tr '\n' '|')"
             exit 1
           fi
         }
