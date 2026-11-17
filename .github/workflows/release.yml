@@ -86,7 +86,28 @@ jobs:
       packages: build/*.fwsc
       # blocking: the host suite, then the installer, the package bounds and the provenance gate. A
       # package is never attested from a tree that failed any of these (tests-block fails the job).
-      test: NO_PACKAGE=1 sh tests/run_tests.sh && python3 tests/install_test.py && node web/test_web.mjs && node web/test_backup.mjs && node web/test_pkg_bounds.mjs && node web/test_provenance.mjs
+      # Each stage is named: the job log needs a credential to read, but an `::error` annotation does not,
+      # so a failure says which of the six it was and carries the tail of that stage in the annotation.
+      test: |
+        stage() {
+          name="$1"; shift
+          log=/tmp/stage.log
+          if "$@" > "$log" 2>&1; then
+            echo "ok: $name"
+          else
+            echo "FAILED: $name -- last 20 lines"
+            tail -20 "$log"
+            printf '::error title=tests failed: %s::%s\n' "$name" \
+              "$(tail -12 "$log" | sed 's/%/%25/g; s/\r//g' | tr '\n' '|')"
+            exit 1
+          fi
+        }
+        stage "host suite" env NO_PACKAGE=1 sh tests/run_tests.sh
+        stage "installer" python3 tests/install_test.py
+        stage "web" node web/test_web.mjs
+        stage "backup" node web/test_backup.mjs
+        stage "package bounds" node web/test_pkg_bounds.mjs
+        stage "provenance" node web/test_provenance.mjs
       tests-block: true
       sdk: true
 
