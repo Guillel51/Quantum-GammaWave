@@ -34,13 +34,23 @@
   (−4 B, dentro del relleno de sección). Ninguno de los tres compra algo que el presupuesto pueda ver en el
   recurso que aprieta, que es la imagen, así que no quedaron en el árbol.
 
-### Lo que quedó pendiente (sin commitear)
-- **El salto de SELECT a ARP en HOME sigue sin arreglo confirmado.** En el arnés de host el giro de SELECT
-  sin ningún botón apretado no mueve de pantalla (hace el modo de HOME: BPM, TRK VOL, TRK PAN, MASTER, OFF),
-  y el giro con el botón ARP apretado sí termina en la página ARP: es el camino documentado «botón mantenido
-  + SELECT, sus páginas», que los propios tests recorren para ENV, SEQ, LFO y FX. Las dos variantes que probé
-  (cerrar `page_jump()` en HOME, y gastar el tap del botón al girar) no paran el salto y rompen ese recorrido,
-  así que quedaron revertidas: hace falta verlo en la FM-1 para saber si lo dispara un contacto del botón ARP.
+### Lo que está arreglado después: el salto de SELECT a ARP en HOME
+
+- **El camino, medido y no supuesto.** Con trazas en `page_jump()`, `page_tap()` y `open_family()`, girar SELECT en
+  HOME con el botón ARP apretado terminaba en `page 65 (ARP)` por dos sitios encadenados: `page_jump(fam=8)` con
+  `ui.home` puesto —que el propio `page_jump()` lee como «desde otro lado» y resuelve a la primera página de la
+  familia, y la primera de ARP es ARP— y después el **tap del botón** al soltarlo, porque el bit armado en el
+  escaneo sobrevivía al giro y el bucle de taps leía «bit armado + botón arriba» como una pulsación completa.
+- **El arreglo, en los dos sitios.** En HOME el giro de SELECT ya no pagina: consume el botón (`btn_used`) y deja la
+  familia a su suerte de siempre —los dados de EDIT, SEQ, LFO y FX, y DICE ALL con HOME apretado—; el paginado desde
+  HOME sigue siendo el mismo botón con PRESETS. Y un tap pasa a exigir un *release* de verdad (el botón estaba abajo
+  en el pasada anterior y ahora está arriba), no un bit armado por una arista repetida del escaneo.
+- **Comprobado.** `tests/ui_test.c` con una regresión nueva —«SELECT on HOME turns its knob: no page, and ARP's button
+  under it takes none»— que **falla sin el cambio y pasa con él**; la suite entera en verde (`all passed`, incluida la
+  de 0.6.67 con el paso de ENV por PRESETS, que es donde viven las páginas desde HOME) y el barrido del render con
+  **0 hallazgos de lint** y **0 desalineaciones en 3 894 154 medidas**.
+
+### Lo que sigue sin hacer
 - **FX Scenes por pista, DEPTH/modo por paso en SLICER y A/B de la edición en las páginas de grupos: no
   empezadas.**
 
