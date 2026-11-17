@@ -1,26 +1,4 @@
-## v1.3.3 (sin publicar) — la escena de FX de cada pista
-
-### Lo que se agregó
-- **La escena de FX, una por pista: los cuatro envíos de la página FX (DIST, CHOR, DLY, REV) y el tipo de DIST.** En la
-  página FX, **OCT+ guarda** la tira y **OCT- la llama de vuelta** (con UNDO, que devuelve la música de antes); una escena
-  que la pista no guardó dice `FX SCENE EMPTY` y no escribe nada, y OCT+ otra vez la escribe encima. Son las dos teclas
-  que esa página tiene libres: sus perillas son los envíos, PRESETS el sonido, SELECT las páginas, y los botones sus
-  secciones y sus capas. Ocupa 120 B de `.bss` (cuatro ranuras por pista; la página usa la primera).
-- **Un bug viejo que salió en el camino**: `N_DTYPE` es la tabla de nombres, no una cantidad — `N_DTYPE - 1` era
-  aritmética de punteros y guardaba basura en el tipo de DIST. El rango sale ahora de `TP[P_DTYPE]`, como el de cualquier
-  otro parámetro.
-- **Comprobado en host**: `tests/ui_test.c` suma `test_fx_scenes` — guarda, llama, escribe encima, una escena por pista y
-  la llamada vacía que no toca nada — en verde en tres corridas seguidas (`all passed`), con el barrido del render en
-  **0 hallazgos de lint** y **0 desalineaciones en 3 894 154 medidas**.
-
-### Lo que NO está, y por qué
-- **No está guardada en el proyecto.** El payload del proyecto está lleno, medido: las pistas terminan en 2880, la cadena
-  ocupa 36 y el motion 260 (3176) y el bloque del punch-in empieza en `PROJ_PFX_OFF` 3168; después vienen el kit (3216),
-  los FM6 (3312), el nombre (3824) y el hash (3836) en un store de 3840 bytes con el hash pegado al final. No hay un solo
-  byte libre: 120 B por proyecto piden formato nuevo (magia `FUND`, payload más grande, lectura de `FUNC` al lado), y eso
-  es una migración que hay que hacer entera y con su paquete delante, no de paso.
-
-## v1.3.2 — HOME sin las tarjetas de atrás, y los nombres de pantalla enteros
+## v1.3.2 — HOME sin las tarjetas de atrás, los nombres enteros y la escena de FX de cada pista
 
 ### Lo que está arreglado y medido
 - **Las cuatro tarjetas de la fila de arriba ya no asoman por ninguna pantalla de HOME menos en HOME misma.**
@@ -38,6 +16,12 @@
   están en `build/shots/home_overview.png`, `home_mix.png` y `home_perf.png`.
 
 ### Memoria y mediciones (build AC791N de este árbol)
+- **La entrega completa mide 583 320 B de 583 612 B: 292 B de margen.** La escena de FX por pista (120 B de
+  `.bss`, cuatro ranuras por pista) cuesta **456 B** de imagen sobre la 1.3.2 anterior: 582 864 → **583 320 B**, y el
+  margen baja de 748 a **292 B**. `.data + .bss` queda en **95 124 B de 98 304 (3 180 B libres)**, pool **311 256 B
+  con 9 248 B de sobra**, RAM code **19 632 B de 24 576**, y el paquete sigue en **610 959 B** con identidad
+  **FM-1_965** (el contenedor llena un tamaño fijo por slot). Con 292 B libres, el siguiente feature de este tamaño ya
+  no entra: por eso el SLICER por paso queda fuera y su coste está medido abajo.
 - **La imagen baja 96 B y el margen del slot sube de 684 a 748 B**: el arreglo de HOME (una salida temprana en
   `draw_columns()` en vez de cuatro tarjetas tapadas, y el nombre de pantalla que abre en `Y_LABEL`) dibuja menos
   código y deja la imagen en **582 864 B de 583 612**. `.data+.bss` queda en **95 012 B de 98 304 (3 292 B
@@ -72,9 +56,37 @@
   de 0.6.67 con el paso de ENV por PRESETS, que es donde viven las páginas desde HOME) y el barrido del render con
   **0 hallazgos de lint** y **0 desalineaciones en 3 894 154 medidas**.
 
+### La escena de FX de cada pista
+
+
+- **La escena de FX, una por pista: los cuatro envíos de la página FX (DIST, CHOR, DLY, REV) y el tipo de DIST.** En la
+  página FX, **OCT+ guarda** la tira y **OCT- la llama de vuelta** (con UNDO, que devuelve la música de antes); una escena
+  que la pista no guardó dice `FX SCENE EMPTY` y no escribe nada, y OCT+ otra vez la escribe encima. Son las dos teclas
+  que esa página tiene libres: sus perillas son los envíos, PRESETS el sonido, SELECT las páginas, y los botones sus
+  secciones y sus capas. Ocupa 120 B de `.bss` (cuatro ranuras por pista; la página usa la primera).
+- **Un bug viejo que salió en el camino**: `N_DTYPE` es la tabla de nombres, no una cantidad — `N_DTYPE - 1` era
+  aritmética de punteros y guardaba basura en el tipo de DIST. El rango sale ahora de `TP[P_DTYPE]`, como el de cualquier
+  otro parámetro.
+- **Comprobado en host**: `tests/ui_test.c` suma `test_fx_scenes` — guarda, llama, escribe encima, una escena por pista y
+  la llamada vacía que no toca nada — en verde en tres corridas seguidas (`all passed`), con el barrido del render en
+  **0 hallazgos de lint** y **0 desalineaciones en 3 894 154 medidas**.
+
+- **No está guardada en el proyecto.** El payload del proyecto está lleno, medido: las pistas terminan en 2880, la cadena
+  ocupa 36 y el motion 260 (3176) y el bloque del punch-in empieza en `PROJ_PFX_OFF` 3168; después vienen el kit (3216),
+  los FM6 (3312), el nombre (3824) y el hash (3836) en un store de 3840 bytes con el hash pegado al final. No hay un solo
+  byte libre: 120 B por proyecto piden formato nuevo (magia `FUND`, payload más grande, lectura de `FUNC` al lado), y eso
+  es una migración que hay que hacer entera y con su paquete delante, no de paso.
+
 ### Lo que sigue sin hacer
-- **FX Scenes por pista, DEPTH/modo por paso en SLICER y A/B de la edición en las páginas de grupos: no
-  empezadas.**
+- **DEPTH y modo por paso en el SLICER: implementado y verde en host, fuera de la imagen.** El modelo, el DSP, la
+  página FX > SL STEP y el bloque `'S' 'P'` del proyecto están escritos y probados (`tests/ui_test.c`,
+  `tests/project_test.c`), pero el enlace del AC791N **no cierra**: 816 B por encima del slot con el gráfico de la
+  página y 496 B sin él, contra **292 B** libres. Medido por símbolos: `graph_slstep` 310 B, `proj_unpack_c` +120,
+  `page_desc` +92, `proj_pack` +84, `graph_signature` +84, `project_capture` +64, `project_restore_runtime` +48,
+  `slicer_on` +34, `sl_enter` +32, `slicer_bus` +28, `system_init` +20 y ~88 B de cadenas. Detrás del slot sólo
+  quedan **725 B** antes de la partición siguiente, así que el feature espera a que se pague esa flash. Vive en la
+  rama `sl-step`.
+- **A/B de la edición en las páginas de grupos: no empezada.**
 
 ## v1.3.1.1 — el empaquetado de `step_t` no entra: medido y descartado
 

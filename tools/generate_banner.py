@@ -6,8 +6,9 @@
 Everything in it belongs to the project: the five colours are read from the firmware's own QUANTUM palette
 (firmware/src/ui_palettes.h, RGB565), the two screens are the real captures of the drawing code the firmware
 links (assets/screenshots/quantum_26_boot_splash.png and quantum_01_home.png, made by generate_screenshots.py
-and by the render sweep), the typefaces are the ones in assets/fonts, and the version is read from
-firmware/src/felucca.c. Nothing is invented: if a number is on the banner, a file here says it.
+and by the render sweep) and the typefaces are the ones in assets/fonts. The banner carries **no version**:
+it is the same image for every release, so the README's first screen does not go stale. Nothing is
+invented: if a number is on the banner, a file here says it.
 
     python3 tools/generate_banner.py            # writes assets/branding/quantum_banner.png
 
@@ -262,8 +263,9 @@ def main():
         d.text((cx0 + 13, cy0 + 26), sub, font=sub_f, fill=mix(ink, bg, 0.42))
         cx0 += wbox + 10
 
-    # version and licence, under the chips
-    tracked(d, (x0, cy0 + row_h + 6), f"{version()}  ·  OPEN SOURCE  ·  GPL-3.0-ONLY", small_f,
+    # licence, under the chips: no version on the banner, so the README's first screen does not age with a
+    # release (the number lives in RELEASES.md). Every other number here is in the tree.
+    tracked(d, (x0, cy0 + row_h + 6), "OPEN SOURCE  ·  GPL-3.0-ONLY", small_f,
             mix(ink, cyan, 0.30), spacing=3)
 
     # ---------------------------------------------------------------- the instrument: two real captures

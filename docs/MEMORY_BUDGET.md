@@ -249,3 +249,23 @@ The other half of the same version — SELECT no longer pages from HOME, and a t
 **32 B**, so the release builds at **582 864 B** with a slot margin of **748 B** (684 → 748 B). Nothing else in
 the firmware changed: the three candidates of the audit (a memoised FM6 carrier mask, a last-use cache in `hc_lut()`, and `-fdata-sections`) were built,
 measured and refused — +48 B, +16 B and −4 B of image respectively, none of them in the region that binds.
+
+### 9.3 The FX scenes land, and the slot is down to 292 B
+
+This version also carries the per-track FX scene (four sends plus the DIST type, four slots per track, 120 B of
+`.bss`). Measured on the release build of `d4b5842` with the same toolchain and SDK:
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 583 320 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **292 B** |
+| `.data + .bss` | 95 124 B | 98 304 B | 3 180 B |
+| RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | 19 632 B | 24 576 B | 4 944 B |
+| Pool spare | 9 248 B (pool 318 432 B used) | ≥ 8 192 B | 1 056 B |
+| LOWBUF | 26 724 B | 28 672 B | 1 948 B |
+| NOINIT | 15 572 B | 15 696 B | 124 B |
+| XIP code / constants | 422 780 B / 140 112 B | inside the image | — |
+
+`tools/ram_report.py` and `tools/build.py` agree to the byte on all six regions. The scene costs **456 B** of
+image (582 864 → 583 320 B), so the margin is now **292 B** — less than a third of what it was, and the reason the
+next feature (the SLICER's per-step MODE/DEPTH, §8.4 of `BUILD_AC791N.md`) does not fit: it needs ~1 100 B and the
+space behind the slot before the next partition is 725 B in total.

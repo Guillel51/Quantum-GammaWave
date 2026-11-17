@@ -2240,7 +2240,7 @@ function makeMockDevice(opt = {}) {
     E("MIDI", ["USB", "TRS"], 0), D("REL", F.PCT, 0, 100, 30),   /* G_DREL (was SYNC): DUCK's release */ E("ROUTE", ["CH1-6", "SEL"], 0), D("CPU", F.INT, 0, 0, 0),
     D("SLOT", F.INT, 1, 4, 1), E("NAME", NDASH, 0), E("LOAD", NGO, 0), E("SAVE", NGO, 0),
     E("ENG", ["ANALOG", "-", "PHASE", "LOFI", "-", "VOICE", "-", "WHEEL",
-      "-", "-", "DRUM", "NOISE", "FM6", "-", "WTABLE"], 0), D("CLIP", F.PCT, 0, 100, 0),   /* G_CLIP (was SET) */
+      "-", "-", "DRUM", "NOISE", "FM6", "-", "WTABLE", "ADDTV"], 0), D("CLIP", F.PCT, 0, 100, 0),   /* G_CLIP (was SET) */
     E("CLRSQ", NGO, 0), E("INIT", NGO, 0),
     E("TYPE", ["ROOM", "SPRING", "SHIMR", "RESO", "CLOUD"], 0),               /* G_RTYPE (id 24, was G_DRCH): the reverb's model */
     D("PUNCH", F.PCT, 0, 100, 0), D("DUCK", F.PCT, 0, 100, 0),   /* G_PUNCH, G_DUCK (JIANT; were G_DRLVL, G_DRREV) */
@@ -2495,8 +2495,9 @@ function makeMockDevice(opt = {}) {
         P("INDUSTRIAL", [90,  82,  105,  70,  75,  50,  60,  50], [0,  100,  127,  100], 0, 12),
         P("ELECTRO", [40,  76,  95,  60,  65,  35,  25,  30], [0,  100,  127,  100], 0, 12),
         P("QUANTUM BEAT", [64,  70,  75,  60,  50,  20,  15,  10], [0,  100,  127,  100], 0, 12),
-        P("HEARTH KIT", [80,  55,  80,  70,  40,  30,  25,  20], [0,  100,  127,  100], 0, 12),
-        P("CYBER DRUM", [45,  80,  65,  50,  70,  10,  35,  15], [0,  100,  127,  100], 0, 12),
+        /* (FASE 2) HEARTH KIT and CYBER DRUM are the two pre-1.6 kits the firmware keeps at its ids 10 and 11 so an
+         * old project still loads them, and it never lists them: the device's ED_NAMES sends these 16 and ED_PRESET
+         * maps the list's index to the table's (12..17 here), which is also what preset_categories.json indexes */
         P("CONCRETE KICK", [18,  52,  58,  104,  22,  6,  0,  26], [0,  72,  60,  30], 1, 12),
         P("GLASS SNARE", [78,  66,  70,  58,  86,  18,  22,  20], [0,  70,  0,  40], 1, 12),
         P("TIN HAT", [92,  72,  58,  40,  92,  10,  14,  18], [0,  48,  0,  22], 1, 12),
@@ -2598,6 +2599,19 @@ function makeMockDevice(opt = {}) {
         /* (3.1) the two sounds phase 5 added to src/eng_wavetable.c: the editor table is the device's */
         P("ELECTRIC TINE", [34,  6,  0,   0,  96,   8,  4,  72], [0,  62,  44,  40], 0, 3),
         P("GLASS CHIME", [104,  0,  0,   0, 112,  20,  0, 100], [0,  70,  18,  62], 0, 3)] },
+    /* 15 (v1.2.6): ADDITIVE (src/eng_additive.c): eight partials on a road of eight profiles */
+    { name: "ADDTV", titles: ["PARTIAL", "TONE"], edit: [D("SPECTR", F.PCT, 0, 127, 0), D("TILT", F.PCT, 0, 127, 64),
+        D("DECAY", F.PCT, 0, 127, 0), D("STRETCH", F.PCT, 0, 127, 0), D("CUT", F.PCT, 0, 127, 110),
+        D("RES", F.PCT, 0, 127, 8), D("DRIVE", F.PCT, 0, 127, 0), D("SUB", F.PCT, 0, 127, 0)],
+      presets: [
+        P("ADDTV ORGAN", [0, 64,  0,  0, 108, 10,  0,  0], [0, 64, 127, 45], 0, 5),
+        P("GLASS BELL", [55, 78, 78, 42, 118, 14,  0,  0], [0, 72,  24, 66], 0, 3),
+        P("CRYSTAL PLUCK", [44, 90, 70, 20, 110, 26,  6,  0], [0, 76,  0, 40], 0, 3),
+        P("SPECTRAL PAD", [14, 54,  8, 12,  82, 24,  4, 12], [52, 88, 120, 92], 0, 5),
+        P("TINE EP", [24, 66, 58,  0, 100,  8,  2,  0], [0, 66, 40, 44], 0, 3),
+        P("GONG DEEP", [62, 40, 48, 96,  92, 18, 10, 24], [0, 84, 12, 96], 0, 7),
+        P("HARMONIC BASS", [1, 44, 26,  0,  58, 30, 26, 92], [0, 58, 112, 30], 1, 2),
+        P("METAL CLUSTER", [127, 96, 64, 74, 114, 40, 30,  0], [2, 70, 30, 58], 0, 1)] },
   ];
   const FM6_E = ENG.findIndex((e) => e.name === "FM6"), FM6_OWN = FM6.FACTORY_PK.length, DRUM_E = ENG.findIndex((e) => e.name === "DRUM");
   /* factory PATTERNS[] (engines.c; the device loads them from SEQ > PATTERNS, presets only suggest one): absolute
@@ -3255,7 +3269,7 @@ function enumShown(d) {
 /* the order the device shows its engines in (src/engines.c ENGINE_ORDER): the lists here follow it, the protocol keeps
    the engine numbers. engineOrder(names): the indices of names in that order, "-" (a reserved number) left out; a name
    the list does not know (another firmware) follows in index order */
-const ENGINE_ORDER = ["ANALOG", "FM6", "DIGITAL", "PHASE", "LOFI", "VOICE", "WHEEL", "NOISE", "WTABLE", "DRUM"];   /* (JIANT; TRIO folded into ANALOG in 0.4; WTABLE in QG-1 3.0) */
+const ENGINE_ORDER = ["ANALOG", "FM6", "DIGITAL", "PHASE", "LOFI", "VOICE", "WHEEL", "NOISE", "WTABLE", "ADDTV", "DRUM"];   /* (JIANT; TRIO folded into ANALOG in 0.4; WTABLE in QG-1 3.0) */
 function engineOrder(names) {
   const rank = (n) => { const k = ENGINE_ORDER.indexOf(n); return k < 0 ? ENGINE_ORDER.length : k; };
   return (names || []).map((n, i) => i).filter((i) => names[i] !== "-")

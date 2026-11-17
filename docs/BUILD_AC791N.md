@@ -302,3 +302,24 @@ paquete es su SHA-256 y su `identity`, no su longitud.
 
 `tests/engine_size_test.py` (host, sin toolchain) fija el camino: qué símbolo pertenece a qué motor,
 XIP contra RAM, la verificación con el mapa, el código de salida de `--strict` y la forma del `--json`.
+
+### 8.4 La 1.3.2 final: la escena de FX entra, el SLICER por paso no
+
+**Lo que entra.** La escena de FX por pista (los cuatro envíos de la página FX y el tipo de DIST, cuatro ranuras por
+pista) cuesta **456 B** de imagen y 120 B de `.bss`: el build de `d4b5842` enlaza en **583 320 B de 583 612** (292 B
+de margen), con `.data + .bss` en **95 124 B de 98 304**, pool **311 256 B con 9 248 B de sobra**, RAM code
+**19 632 B de 24 576**, LOWBUF **26 724 de 28 672** y NOINIT **15 572 de 15 696**. Es el mismo paquete de **610 959 B**
+con identidad **FM-1_965**: el contenedor llena un tamaño fijo por slot.
+
+**Lo que no entra, medido.** El SLICER con DEPTH y MODE por paso (rama `sl-step`) está escrito y verde en host, y el
+enlace del AC791N lo rechaza: `region XIP overflowed by 816 bytes` con el gráfico de la página y **496 B** sin él,
+contra **292 B** libres. Por símbolos, en el mismo build: `graph_slstep` **310 B**, `proj_unpack_c` **+120**,
+`page_desc` **+92**, `proj_pack` **+84**, `graph_signature` **+84**, `project_capture` **+64**,
+`project_restore_runtime` **+48**, `slicer_on` **+34**, `sl_enter` **+32**, `slicer_bus` **+28**, `system_init` **+20**
+y ~88 B de cadenas y descriptores.
+
+Detrás del slot no hay colchón: la región empaquetada acaba en `0x8ED2B` y la partición siguiente empieza en
+`0x8F000`, o sea **725 B** en total. Las salidas son tres: comprimir datos (el blob de `build/gen/ui_shapes.h` son
+10 861 B de puntos, y ya se hizo algo así con el kerning de la cara S: 1 590 B con `--kern-min 4`), crecer `APP_SLOT`
+comiendo ese margen (cambia el bloque `app_area_head` del paquete y hay que resincronizar instalador, emulador y
+sitio), o recortar la función. Ninguna es de una línea, así que el feature espera.
