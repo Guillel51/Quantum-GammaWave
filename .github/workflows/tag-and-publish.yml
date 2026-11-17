@@ -187,14 +187,34 @@ jobs:
               esac
             done
             gh release view "$V" --json tagName,isDraft,isPrerelease,assets
-            exit 0
+          else
+            gh release create "$V" \
+              --verify-tag \
+              --title "Quantum GammaWave $V" \
+              --notes-file build/release-notes.md \
+              $ASSETS
+            gh release view "$V" --json tagName,isDraft,isPrerelease,assets
           fi
-          gh release create "$V" \
-            --verify-tag \
-            --title "Quantum GammaWave $V" \
-            --notes-file build/release-notes.md \
-            $ASSETS
-          gh release view "$V" --json tagName,isDraft,isPrerelease,assets
+          # Closed, not assumed: every asset named above has to be on the release when this step ends. An
+          # upload that the release quietly did not keep is a download that 404s for a player, and the job
+          # said green -- the emulator archive was added to this list and never appeared on v1.3.8. The list
+          # also goes to the run summary, which needs no credential to read.
+          have2="$(gh release view "$V" --json assets --jq '.assets[].name' | tr '\n' ' ' || true)"
+          missing=""
+          for a in $ASSETS; do
+            case " $have2 " in
+              *" $(basename "$a") "*) ;;
+              *) missing="$missing $(basename "$a")" ;;
+            esac
+          done
+          {
+            echo "### assets on $V"
+            echo '```'
+            gh release view "$V" --json assets --jq '.assets[] | "\(.name)\t\(.size) B"'
+            echo '```'
+            [ -z "$missing" ] || echo "**MISSING:**$missing"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ -z "$missing" ] || { echo "::error::the release was left without:$missing"; exit 1; }
 
       # The seeded trigger: `push: tags` is suppressed for a tag pushed with GITHUB_TOKEN, a dispatch is
       # not. Named by version, one run per version (release.yml's `run-name` and `concurrency`), and never

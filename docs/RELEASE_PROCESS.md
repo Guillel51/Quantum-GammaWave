@@ -52,8 +52,11 @@ On that push:
 1. **`tag-and-publish.yml`** runs the pre-flight (`coherence_check`, `make_release.py --check`,
    `test_site.py site`), verifies the package against its manifest, creates the annotated tag **once**,
    writes the release notes from this version's `CHANGELOG.md` section, attests the package, creates the
-   GitHub release (`gh release create --verify-tag`) with the package, its manifest, the build record and
-   `SHA256SUMS`, and then dispatches `release.yml` for that tag.
+   GitHub release (`gh release create --verify-tag`) with the package, its manifest, the build record,
+   `SHA256SUMS` and `release/emu/qg1-emulator-<v>.zip` (the emulator as a download: open `index.html` from
+   the archive and it plays that release without hardware), then **checks that every one of them is on the
+   release** -- an upload the release did not keep fails the job instead of leaving a 404 for a player -- and
+   dispatches `release.yml` for that tag.
    Re-running it is safe: an existing tag is left alone, an existing release gets its notes refreshed, and
    of its assets only the two **derived** ones (`SHA256SUMS`, `build-manifest-<v>.json`) are replaced, and
    only when their digest differs from the tree's. The package and its manifest are never swapped.
