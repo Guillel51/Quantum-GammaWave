@@ -106,14 +106,15 @@ def write_emu_zip(root, version):
     """`release/emu/qg1-emulator-<v>.zip`: the emulator as a download, not only as a page.
 
     The release page carried the firmware and nothing to play it with; the emulator was only reachable from
-    the live site. This is the same four files the site serves, plus their fonts, in one archive -- and it is
-    built deterministically (sorted names, a fixed timestamp, fixed permissions) so the same build produces
-    the same bytes, the same rule the package follows.
+    the live site. This is the same files the site serves, from `site/emulator/` -- the tracked copy, not
+    `release/emu/`, whose `fonts/` are generated and gitignored: an archive built from those could not be
+    reproduced from a checkout and the pre-flight would fail on the two font files it could not find beside
+    the zip. Sorted names, one fixed timestamp and fixed permissions, so the same tree gives the same bytes.
     """
-    emu = os.path.join(root, "release", "emu")
-    out = os.path.join(emu, emu_zip_name(version))
-    names = sorted(n for n in os.listdir(emu) if os.path.isfile(os.path.join(emu, n)) and not n.endswith(".zip"))
-    fonts = os.path.join(emu, "fonts")
+    src = os.path.join(root, "site", "emulator")
+    out = os.path.join(root, "release", "emu", emu_zip_name(version))
+    names = sorted(n for n in os.listdir(src) if os.path.isfile(os.path.join(src, n)))
+    fonts = os.path.join(src, "fonts")
     if os.path.isdir(fonts):
         names += sorted("fonts/" + n for n in os.listdir(fonts) if os.path.isfile(os.path.join(fonts, n)))
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -121,7 +122,7 @@ def write_emu_zip(root, version):
             info = zipfile.ZipInfo(n, date_time=(1980, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
             info.compress_type = zipfile.ZIP_DEFLATED
-            z.writestr(info, open(os.path.join(emu, n), "rb").read())
+            z.writestr(info, open(os.path.join(src, n), "rb").read())
     return out
 
 
@@ -194,7 +195,6 @@ def sync(root):
     for old in os.listdir(emu_out):                 # one emulator archive per release, never a pile
         if old.endswith(".zip") and old != emu_zip_name(v):
             os.unlink(os.path.join(emu_out, old))
-    write_emu_zip(root, v)
 
     # 2. the site: the documented generator, not a second copy of it. `web/make_site.py` writes the portal,
     # the installer's meta, the editor's label, `firmware/`, and keeps the earlier versions it finds in
@@ -227,6 +227,8 @@ def sync(root):
     if os.path.isdir(os.path.join(build, "emu", "fonts")):
         shutil.rmtree(os.path.join(site, "emulator", "fonts"), ignore_errors=True)
         shutil.copytree(os.path.join(build, "emu", "fonts"), os.path.join(site, "emulator", "fonts"))
+    # the archive last: it is built from `site/emulator/`, which is only final now
+    write_emu_zip(root, v)
 
     # 3. both sums files, regenerated from the directories they describe (never appended to)
     write_text(os.path.join(rel, "SHA256SUMS"), sums_lines(rel, release_names(root)))
@@ -384,10 +386,10 @@ def check(root):
                     problems.append("release/emu/%s: %s is corrupt" % (emu_zip_name(v), bad))
                 listed = set(z.namelist())
                 for n in listed:
-                    src = os.path.join(rel, "emu", n)
+                    src = os.path.join(site, "emulator", n)
                     if not n.endswith("<none>"):
                         if not os.path.isfile(src):
-                            problems.append("release/emu/%s holds %s, which is not beside it"
+                            problems.append("release/emu/%s holds %s, which site/emulator does not"
                                             % (emu_zip_name(v), n))
                         elif z.read(n) != open(src, "rb").read():
                             problems.append("release/emu/%s holds a different %s" % (emu_zip_name(v), n))
