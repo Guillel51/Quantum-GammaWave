@@ -1832,13 +1832,18 @@ static void draw_splash(void)
         cv_text_in(0, (int32_t)k * 16, 240, &AF_S, SPLASH_LINES[k], k ? T_DIM : T_MID, T_BG);
     cv_blit(0, SPL_TY);
     spl_shown = 0;                                  /* the frame was just cleared under it: write the art again */
-    splash_sig(spl_anim && !(ui_prefs & PREF_ANIM_OFF) ? 0u : 256u, spl_ms);
+    /* (1.4) THE SPLASH ANIMATION IS NOT MENU > ANIM. That bit is about values (rolling digits, glides: ui.c
+     * ANIM_SNAP); it was also gating the boot art, so a unit with ANIM OFF -- which is how the owner's unit was
+     * set -- drew the whole splash at once and STARTUP SPLASH FULL looked exactly like SHORT, a still picture.
+     * The mode alone decides now: FULL writes the art on, SHORT draws it whole. */
+    splash_sig(spl_anim ? 0u : 256u, spl_ms);
     lcd_sync();
 }
 /* main.c's splash loop: the screen as written ms after the start */
 static void splash_write(uint32_t ms)
 {
-    if (!spl_anim || (ui_prefs & PREF_ANIM_OFF))
+    /* (1.4) only the mode: MENU > ANIM OFF no longer freezes the boot art (see draw_splash) */
+    if (!spl_anim)
         return;
     splash_sig(ms >= SPL_WRITE ? 256u : ms * 256u / SPL_WRITE, ms);
     lcd_sync();

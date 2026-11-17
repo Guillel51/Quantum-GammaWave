@@ -264,7 +264,10 @@ static void fm1_main(void)
         uint32_t el = (fm1_micros() - spl_t0_us) / 1000u;
         if (ui_splash == 0u && el + SPL_FADE > span)
             span = el + SPL_FADE;
-        for (n = 0; n < 600u; n++) {
+        /* (1.4) The bound follows the span. It was a flat 600 steps of 4 ms (2.4 s) while STARTUP SPLASH FULL
+         * runs SPL_WRITE + SPL_HOLD (4.5 s): the loop stopped 2.1 s before the art was written, so the boot
+         * handed over to HOME with the signature half drawn -- a short splash whatever the menu said. */
+        for (n = 0; n < span / 4u + 400u; n++) {
             if (stage == 0u) {
                 autosave_boot(boot_clean);              /* (1.2) the last session's music */
                 stage = 1u;

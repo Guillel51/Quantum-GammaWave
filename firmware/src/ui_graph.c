@@ -3160,11 +3160,12 @@ static void graph_home_viz(uint16_t c)
      * no alpha to set, so the well is mixed toward the page's own tone instead: the stars behind it keep
      * showing through the tint, and the grid and the traces still lead (they are the bright thing here). */
     uint16_t vbg = ux_mix(bg_darken(T_BG, 14), T_BG, 62), vsf = bg_darken(T_SURF, 10);
-    /* (1.3.9) THE SCOPES' WELLS ARE OPAQUE. vbg is the page's own tone, mixed toward T_BG so the milky way and its
-     * dust read through it; used as the wells' fill it let the field's diagonal and worlds sit under the grid and
-     * the trace. The wells take their own tone now (the page's, darkened further and not mixed back), so the two
-     * scopes are solid and the field stays outside them. */
-    uint16_t vwell = bg_darken(T_BG, 26);
+    /* (1.4) THE WELLS ARE THE PAGE'S OWN TONE, NOT BLACK BOXES. 1.3.9 made them opaque by darkening T_BG a further
+     * 26, which on the panel reads as two black rectangles sitting on the screen -- the boxes the owner reported on
+     * the unit. What the opaque fill was for is still true: the field's diagonal and its worlds must not show under
+     * the grid and the trace. So the well is painted, but in the tone of the body it sits in (T_SURF, the plate's
+     * own colour, which is what surrounds it), with the same 1 px frame as before: solid, and part of the page. */
+    uint16_t vwell = T_SURF;
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {

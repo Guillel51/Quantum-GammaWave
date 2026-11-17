@@ -1383,6 +1383,35 @@ static void draw(int s)
                        "longest still run %u ms\n", steps, changed, maxrun * 4u);
             }
         }
+        {   /* (1.4) MENU > ANIM OFF MUST NOT FREEZE THE BOOT ART. That bit is about values (rolling digits,
+             * glides); it used to gate the splash too, so a unit with ANIM OFF -- which is how the owner's
+             * unit was set -- drew FULL whole and it looked exactly like SHORT: a still picture. The mode
+             * alone decides now, and this asserts it on the pixels: with ANIM OFF, FULL still writes the art. */
+            const uint32_t np2 = (uint32_t)(sizeof host_screen / sizeof host_screen[0]);
+            uint32_t ms, i2, changed2 = 0, prev2 = 0;
+            uint8_t a0 = spl_anim;
+            uint32_t p0 = ui_prefs;
+            spl_anim = 1;
+            ui_prefs |= (uint32_t)PREF_ANIM_OFF;
+            for (ms = 0; ms < SPL_WRITE; ms += 4u) {
+                uint32_t h2 = 2166136261u;
+                splash_write(ms);
+                for (i2 = 0; i2 < np2; i2++) { h2 ^= (uint32_t)host_screen[i2]; h2 *= 16777619u; }
+                if (!ms) prev2 = h2;
+                else if (h2 != prev2) { changed2++; prev2 = h2; }
+            }
+            spl_anim = a0;
+            ui_prefs = p0;
+            if (changed2 < 20u) {
+                if (rep) fprintf(rep, "FIND %-26s MENU > ANIM OFF freezes the splash (%u changes over SPL_WRITE)\n",
+                                 cur_name, changed2);
+                nfind++;
+            } else {
+                static uint8_t saidoff;
+                if (!saidoff++) printf("ui_render: MENU > ANIM OFF no longer freezes the splash (%u frames written)\n",
+                                       changed2);
+            }
+        }
         return;
     }
     ui.force = 1;

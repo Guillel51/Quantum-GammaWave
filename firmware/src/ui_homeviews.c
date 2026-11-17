@@ -107,6 +107,37 @@ static const char *hv_name(void)
 {
     return ui.home_view == HV_OVERVIEW ? "OVERVIEW" : ui.home_view == HV_MIX ? "MIXER" : "PERFORMANCE";
 }
+
+/* (1.4) THE BODY IS DRAWN ONLY WHEN WHAT IT SHOWS CHANGES. These four screens redrew their whole 240 x 176 body on
+ * every frame -- three canvases and three blits over SPI, ~60 times a second -- whether anything had moved or not:
+ * on the unit that is the flicker and the lag the owner reported, and it also spends the frame time the audio needs.
+ * The signature below is a hash of the values the screens actually put on the panel, quantized the way they are drawn
+ * (a meter advances by a whole segment, the embers by 1/8 of a frame), so a steady screen costs nothing and a moving
+ * one repaints exactly when a pixel would differ. `ui.force` still wins: a page change, a theme change or a pop-up
+ * repaints regardless. */
+static uint32_t hv_sig_was;
+static uint32_t hv_view_sig(void)
+{
+    uint32_t h = 2166136261u, i, v = 0;
+    h = (h ^ (uint32_t)ui.home_view) * 16777619u;
+    h = (h ^ (uint32_t)settings.palette) * 16777619u;
+    h = (h ^ (ui.frame / 8u)) * 16777619u;          /* the embers' phase, as hv_air steps it */
+    h = (h ^ (uint32_t)(song.cpu_q8 / 4u)) * 16777619u;
+    h = (h ^ (uint32_t)song.batt_raw) * 16777619u;
+    h = (h ^ (uint32_t)(song.sel + (song.rec << 4))) * 16777619u;
+    h = (h ^ (uint32_t)(TSEL->eng_req * 8u + TSEL->preset)) * 16777619u;
+    h = (h ^ (uint32_t)snd_edited(TSEL)) * 16777619u;
+    for (i = 0; i < NTRK; i++) {
+        const track_t *q = &trk[i];
+        v += hv_voices(q);
+        h = (h ^ (uint32_t)((uint32_t)q->vu >> 9)) * 16777619u;      /* a bar advances by whole screens */
+        h = (h ^ (uint32_t)((uint32_t)q->peak >> 9)) * 16777619u;
+        h = (h ^ (uint32_t)(q->eng_req * 8u + q->preset)) * 16777619u;
+        h = (h ^ (uint32_t)(q->engine * 4u + q->user)) * 16777619u;
+    }
+    h = (h ^ v) * 16777619u;
+    return h;
+}
 static void hv_overview(const track_t *t, uint16_t c)
 {
     char b[28], pn[20];
@@ -296,7 +327,9 @@ static void hv_air(int32_t y0, int32_t h, uint16_t c, uint32_t seed)
      * once per call: a redraw of the same frame moved the whole field, a page drawn in two passes ran at
      * double speed, and the same state never came back to the same pixels. Drawn from ui.frame the field
      * advances with time like every other animation in the UI, and drawing a frame twice is idempotent. */
-    hv_fr = ui.frame;
+    /* (1.4) 1/8 of a frame: the field drifts slowly instead of repainting the whole body on every frame, which is
+     * what keeps the signature of a quiet HOME screen still (hv_view_sig) and the SPI bus free for the audio. */
+    hv_fr = ui.frame / 8u;
     for (i = 0; i < 16u; i++) {                        /* the embers: hashed, one to three px a frame */
         uint32_t s = 0x9E3779B9u * (i + seed * 7u + 1u);
         int32_t x = 8 + (int32_t)((s >> 8) % 224u);
@@ -799,7 +832,10 @@ static void hv_route(const track_t *t, uint16_t c)
 /* the screen HOME is showing (HV_OVERVIEW, HV_MIX, HV_SYSTEM): one 240 x 176 body in two 88-row passes */
 static void graph_home_view(uint16_t c)
 {
-    uint32_t pass;
+    uint32_t pass, sig = hv_view_sig();
+    if (!ui.force && sig == hv_sig_was)
+        return;                                     /* (1.4) nothing on this screen would differ: no blits at all */
+    hv_sig_was = sig;
     /* (1.3.2) THE BODY OPENS AT Y_LABEL (20), where HOME's cards do, not at 26: the six rows the panel left
      * uncovered showed the top edge of the four cards on every screen but the main one, and the screen's own
      * name -- drawn on the first row inside the panel -- had its cap row cut by the panel's border. A 26-row cap

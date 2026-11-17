@@ -146,10 +146,30 @@ def contrast(a, b):
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 
 
+# (1.4) DARKER ON THE UNIT. The owner reads most themes as too bright on the FM-1's own panel: an ST7789 with its
+# default gamma lifts the low end, so a background stored as 8/8/8 emits like a mid grey and every dark theme washes
+# out -- the whole screen looks greyer than it was designed to. The two ground colours are therefore stored darker
+# (72 % of each channel, on dark themes only: PAPER is a light theme and must stay light), which is the same as
+# compensating the panel's gamma where the panel is, in the data. Everything derived from them -- MID, DIM, LINE, SEL,
+# TINT -- follows, and the CHECKS table below still has to pass: darkening the ground can only raise the contrast of a
+# light text on it, never lower it.
+PANEL_DARKEN = 0.72
+
+
+def panel_dark(c565, mono):
+    r, g, b = from565(c565)
+    if mono or (r == g == b):                  # GREY must stay on the RGB565 gray axis (G = 2 R)
+        v = int(round(r * PANEL_DARKEN))
+        return to565((v, v, v))
+    return to565((int(round(r * PANEL_DARKEN)), int(round(g * PANEL_DARKEN)), int(round(b * PANEL_DARKEN))))
+
+
 def derive(p):
     name, *cols = p
     bg, surf, text, theme, accent = (to565(c, name == BW) for c in cols)
     mono = name == "GREY"
+    if luma(bg) <= 128:                        # a dark theme: darker still, as the panel shows it
+        bg, surf = panel_dark(bg, mono), panel_dark(surf, mono)
     d = dict(bg=bg, surf=surf, text=text, theme=theme, accent=accent,
              mid=mix(bg, text, PCT["MID"], mono), dim=mix(bg, text, PCT["DIM"], mono),
              line=mix(bg, text, PCT["LINE"], mono), sel=mix(bg, theme, PCT["SEL"], mono),

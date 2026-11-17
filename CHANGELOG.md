@@ -1,3 +1,37 @@
+## v1.4.0 — el splash animado, HOME sin repintarse de más, y los pozos de los osciloscopios
+
+Cuatro cosas del reporte del dueño, cada una con su causa.
+
+### STARTUP SPLASH FULL no se podía tener: se veía igual que SHORT
+La animación del arranque estaba condicionada por **MENU > ANIM**: con `ANIM OFF` —el ajuste de la unidad del
+dueño— `draw_splash()` escribía la firma entera de una vez y `splash_write()` volvía sin dibujar, así que FULL y
+SHORT daban la misma imagen fija. Ese bit es de los valores (dígitos que ruedan, glides: `ui.c` ANIM_SNAP), no
+del arte del arranque: ahora decide sólo el modo. Además el bucle del boot tenía un tope fijo de 600 pasos de
+4 ms (2,4 s) mientras FULL dura `SPL_WRITE + SPL_HOLD` (4,5 s): el tope sigue al span, y el splash se escribe
+hasta el final. FULL queda como opción por defecto (0 en el ajuste). Medido en host: con ANIM OFF la línea de
+tiempo escribe 127 fotogramas distintos, y con ANIM ON 244 de 1125 pasos cambian la pantalla (la suite lo
+comprueba en `tests/ui_render.c`).
+
+### HOME 2 a 5 parpadeaban y se sentían lentas
+OVERVIEW, MIXER, PERFORMANCE y SYSTEM redibujaban su cuerpo entero —tres canvas de 240 px y tres blits por
+SPI— en cada fotograma, hubiera cambiado algo o no. Ahora hay una firma de lo que la pantalla muestra (página,
+paleta, medidores cuantizados, CPU, batería, motor y preset de cada pista) y el cuerpo se dibuja **sólo cuando
+esa firma cambia**; `ui.force` sigue mandando en un cambio de página o de tema. Las brasas del fondo pasan de
+avanzar por fotograma a 1/8 de fotograma: siguen derivando, pero una pantalla quieta no gasta bus.
+
+### Los osciloscopios tenían dos cuadros negros de fondo
+1.3.9 hizo opacos los pozos oscureciendo `T_BG` otros 26 niveles: en el panel eso se lee como dos rectángulos
+negros sobre la pantalla. El relleno hace falta (el campo y sus mundos no deben verse bajo la rejilla ni la
+traza), así que ahora el pozo se pinta en el tono de la placa donde vive, `T_SURF`, con su marco de 1 px.
+
+### La pantalla, y la mayoría de los temas, se veían más claros en la FM-1
+Dos causas, dos arreglos. En los datos: los dos colores de suelo de cada tema oscuro se guardan al 72 % de cada
+canal (PAPER queda claro a propósito), y todo lo derivado —MID, DIM, LINE, SEL, TINT— los sigue; la tabla de
+contrastes del generador sigue pasando entera. En el panel: la secuencia del ST7789 escribía sólo el color y la
+inversión y dejaba **gamma y brillo en los valores de fábrica**, que es lo que levanta el extremo bajo del rango
+565; ahora se escriben las curvas 2.2 (0xE0/0xE1) y el brillo a 200/255 (0x53/0x51). Eso es un cambio de
+valores por defecto: **no está medido en una unidad**, y así queda anotado en la matriz.
+
 ## v1.3.9.1 — un publicador de Pages, el emulador en el release y un índice de lo medido
 
 Cambios de publicación y de evidencia: **no toca el DSP, ni la UI, ni el formato de proyecto**. El paquete
