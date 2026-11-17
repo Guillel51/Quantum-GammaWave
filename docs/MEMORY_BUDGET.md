@@ -269,3 +269,21 @@ This version also carries the per-track FX scene (four sends plus the DIST type,
 image (582 864 → 583 320 B), so the margin is now **292 B** — less than a third of what it was, and the reason the
 next feature (the SLICER's per-step MODE/DEPTH, §8.4 of `BUILD_AC791N.md`) does not fit: it needs ~1 100 B and the
 space behind the slot before the next partition is 725 B in total.
+
+### 9.4 1.3.3 fixes an input bug, and the slot pays 32 B for it
+
+On the FX page the two octave keys are the track's scene (9.3); the octave's own handler still ran on release, so
+storing a scene transposed the track. The page now leaves before it. Measured on the release build with the same
+toolchain and SDK, read twice (`tools/build.py` and `tools/ram_report.py`):
+
+| Region | Measured | Budget | Headroom |
+|--------|----------|--------|----------|
+| App image (`build/felucca.bin`) | 583 352 B | 583 612 B (`APP_SLOT` 0x8E7BC) | **260 B** |
+| `.data + .bss` | 95 124 B | 98 304 B | 3 180 B |
+| RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | 19 632 B | 24 576 B | 4 944 B |
+| Pool spare (`POOL_END - pool_top`) | 9 248 B (pool 318 432 B used) | ≥ 8 192 B | 1 056 B |
+| LOWBUF | 26 724 B | 28 672 B | 1 948 B |
+| NOINIT (`proj_slot[4]` + `felucca_dbg`) | 15 572 B | 15 696 B | 124 B |
+
+The guard costs **32 B** of image and nothing else; the dead `fx_scn_pick` byte is gone from `.bss`. The slot is now
+under 300 B, which is why the SLICER's per-step controls (496 B without their graph) stay out of this build.

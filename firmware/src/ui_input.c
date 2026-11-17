@@ -2472,9 +2472,13 @@ static void ui_input_frame(void)
         case B_OCTUP: {
             uint32_t both = (1u << panel.btn[B_OCTDN]) | (1u << panel.btn[B_OCTUP]);
             if (act_cols() || layer_set_open() ||       /* action pages: enter / back (below); SET layers: OCT- */
-                (b == B_OCTUP && ui.ly == LAYER_FX))    /* (3.1) with FX armed, OCT+ is the map's LATCH switch
+                (b == B_OCTUP && ui.ly == LAYER_FX) ||  /* (3.1) with FX armed, OCT+ is the map's LATCH switch
                                                          * (ui_layer.c layer_oct); OCT- stays the octave while
                                                          * LATCH is off, as it always was */
+                (!ui.home && !ui.menu && !ui.confirm && !ui.layer && !name_on() &&
+                 cur_page()->graph == GR_FX))           /* (1.3.3) on the FX page these two keys are the track's
+                                                         * scene, stored and called back above: with them the
+                                                         * octave moved too, so saving a scene transposed it */
                 break;
             if (!ui.home && !ui.menu && !ui.confirm && cur_page()->graph == GR_MUTATE) {   /* (0.6.43) KEEP, FREEZE */
                 if (b == B_OCTUP) { mut_keep(); ui_message("ANCHOR: THE MUSIC NOW"); }

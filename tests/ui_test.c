@@ -5462,6 +5462,26 @@ static int test_fx_scenes(void)
     ok &= t2->p[P_DIST] == 90 && t2->p[P_CHOR] == 91 && t2->p[P_DLY] == 92 && t2->p[P_REV] == 93 &&
           t2->p[P_DTYPE] == 1 && t1->p[P_DIST] == 11;
     bad += check("  per track: track 2's scene is its own, track 1's untouched", ok);
+    /* (1.3.3) THE SCENE'S KEYS DO NOT TRANSPOSE: OCT+ stored the strip and OCT- called it back, and the octave's own
+     * case moved it as well, so saving a scene changed the pitch of the track it was saving */
+    go_page(GR_FX);                                             /* (the page itself: open_family remembers) */
+    frames(90);
+    song.octave = 0;
+    ok = cur_page()->graph == GR_FX && fx_scn_used(0, 0);
+    press(B_OCTUP);
+    ok &= song.octave == 0 && fx_scn_used(0, 0);
+    press(B_OCTDN);
+    ok &= song.octave == 0;
+    bad += check("FX page: OCT+ stores and OCT- calls back, and neither moves the octave", ok);
+    /* out of that page the two keys are the octave's again, both ways */
+    go_page(GR_ADSR);
+    frames(90);
+    ok = cur_page()->graph != GR_FX && song.octave == 0;
+    press(B_OCTUP);
+    ok &= song.octave == 1;
+    press(B_OCTDN);
+    ok &= song.octave == 0;
+    bad += check("  off the FX page they still shift the octave, up and down", ok);
     return bad;
 }
 

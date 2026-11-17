@@ -921,13 +921,12 @@ static uint8_t ab_side;                              /* which side the track is 
 
 /* (1.3.2) THE FX SCENE, one per track: the four sends of the FX page and DIST's type, saved and called with that page's
  * two free keys -- OCT+ stores the strip, OCT- calls it back (ui_input.c: the knobs are the sends, PRESETS the sound,
- * SELECT the pages, the buttons their sections and layers). Four slots a track are kept; the page uses the first until
- * there is a picker for the rest. Every value is kept + 1 and a slot's first byte reads 0 until something is stored: the
+ * SELECT the pages, the buttons their sections and layers). Four slots a track are kept and the page uses the
+ * first: the picker for the other three does not exist yet, so no key claims one. Every value is kept + 1 and a slot's first byte reads 0 until something is stored: the
  * array starts zeroed, so a call back never writes values it was never given */
 #define FX_SCN_N 4u
 #define FX_SCN_V 5u
 static int8_t fx_scn[NTRK][FX_SCN_N][FX_SCN_V];
-static uint8_t fx_scn_pick;                            /* the slot the FX page is on, 0..FX_SCN_N-1 */
 static int fx_scn_used(uint32_t tr, uint32_t sl)
 {
     return fx_scn[tr % NTRK][sl % FX_SCN_N][0] > 0;

@@ -323,3 +323,12 @@ Detrás del slot no hay colchón: la región empaquetada acaba en `0x8ED2B` y la
 10 861 B de puntos, y ya se hizo algo así con el kerning de la cara S: 1 590 B con `--kern-min 4`), crecer `APP_SLOT`
 comiendo ese margen (cambia el bloque `app_area_head` del paquete y hay que resincronizar instalador, emulador y
 sitio), o recortar la función. Ninguna es de una línea, así que el feature espera.
+
+### 8.5 La 1.3.3: el arreglo de la escena de FX, 32 B
+
+Guardar la escena de FX con OCT+ en su página también movía la octava, porque el `case B_OCTDN/B_OCTUP` de la
+octava seguía resolviendo el botón al soltarlo. La página FX sale ahora antes de ese caso (como ya salía con
+`LAYER_FX`), y el arreglo cuesta **32 B**: la imagen queda en **583 352 B de 583 612** (**260 B** de margen),
+`.data + .bss` en **95 124 B de 98 304**, pool con **9 248 B** de sobra y RAM code en **19 632 B de 24 576**.
+La ranura fantasma `fx_scn_pick`, que nadie escribía ni leía, se fue. Con **260 B** libres el SLICER por paso
+(**496 B** sin su gráfico) sigue sin caber, y por eso su rama queda esperando flash, no RAM.

@@ -1,3 +1,38 @@
+## v1.3.3 — la escena de FX ya no transpone
+
+### Lo que está arreglado y medido
+- **OCT+ guardaba la escena de FX y además subía la octava; OCT- la llamaba de vuelta y además la bajaba.** En la
+  página FX esas dos teclas son la escena de la pista (1.3.2), pero el `case B_OCTDN/B_OCTUP` que resuelve la octava
+  cuando el botón se suelta seguía actuando: guardar la tira de envíos cambiaba el tono de lo que se iba a tocar, y
+  llamarla de vuelta lo cambiaba otra vez. La página FX ahora sale antes de la octava, igual que ya salía con
+  `LAYER_FX` (el LATCH del mapa) y con las páginas de acción; **fuera de esa página las dos teclas siguen moviendo la
+  octava, arriba y abajo**, que es lo que comprueba el segundo caso.
+- **La ranura de escena que la página «usaba» no existía.** `fx_scn_pick` estaba declarada y nadie la escribía ni la
+  leía; se va, y el comentario dice lo que hay: cuatro ranuras por pista, la página usa la primera y el selector para
+  las otras tres todavía no existe.
+- **Comprobado en host, con la regresión que falla sin el arreglo.** `tests/ui_test.c` suma dos casos: «FX page: OCT+
+  stores and OCT- calls back, and neither moves the octave» — **falla sin el cambio y pasa con él** — y «off the FX page
+  they still shift the octave, up and down». `ui_test` completo en verde (`all passed`) y la suite entera también.
+- **`morph_six_test` se revisó entero y está completo**: seis pistas, los buses de FX y el clipper, notas por MIDI,
+  una carga de preset encima y el giro de MORPH, con los dos renders idénticos antes del giro. 6 transiciones, 0
+  fallos: latencia 0,09–0,27 ms, slew al 90 % en 5,4–7,1 ms y ningún click (paso 4 385 contra 6 714 antes del giro).
+  No se tocó.
+
+### Memoria y mediciones (build AC791N de este árbol)
+- Imagen 583 320 → **583 352 B** de 583 612 (**260 B** de margen: el arreglo cuesta **32 B**). `.data + .bss`
+  95 124 B de 98 304 (3 180 B libres), pool **318 432 B con 9 248 B de sobra**, RAM code **19 632 B de 24 576**,
+  LOWBUF 26 724 de 28 672 y NOINIT 15 572 de 15 696. El paquete sigue en 610 959 B con identidad **FM-1_965**.
+- **Sin cambios visuales**: los 301 renders dorados salen idénticos y el barrido de las 190 pantallas × 22 paletas no
+  encuentra nada.
+
+### Lo que se revisó y no se tocó, con el motivo
+- **MIDI Learn es RAM por diseño.** `midi_control.c` lo dice y lo razona: la tabla que un apagado limpia, para no
+  cambiar el layout de ajustes, de los presets ni del proyecto. Persistirla pide formato nuevo, no un bug fix.
+- **La escena de FX no entra en el proyecto**: el payload está lleno byte a byte (medido en la 1.3.2), y meterla pide
+  un formato `FUND`/`FUNC` entero.
+- **SLICER con DEPTH y modo por paso, y el A/B de la edición en las páginas de grupos**: el SLICER está implementado y
+  verde en host pero el enlace no cierra (**496 B** sin su gráfico contra 260 B libres); el A/B no está empezado.
+
 ## v1.3.2 — HOME sin las tarjetas de atrás, los nombres enteros y la escena de FX de cada pista
 
 ### Lo que está arreglado y medido
