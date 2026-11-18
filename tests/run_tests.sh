@@ -294,6 +294,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     # palette or a 1 px offset that still parses as aligned. `ui_pixels.py --update` only when it was meant.
     run "UI pixels: every frame the sweep draws is byte-identical to tests/ui_pixels.txt (a moved pixel fails)" \
         python3 tests/ui_pixels.py build/ui_new/ppm
+    # (FASE 7) the perf log's host side: the CSV the console prints, read back from a capture made by hand. What it
+    # cannot prove is what the unit does -- that is the unit's -- but it pins the shape of the line and the grouping.
+    run "perf log: a captured stream is parsed, grouped by screen and by song, and its three pictures are written" \
+        python3 tests/perf_log_test.py
     mkdir -p build/capture            # (a clean build/ has no capture dir: the sed below used to fail first)
     sed 's/^int main(/int ui_render_main(/' tests/ui_render.c > build/capture/ui_render_nomain.c
     mkdir -p build/capture/ppm

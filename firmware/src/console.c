@@ -248,6 +248,51 @@ static void con_status(void)
 #endif
 }
 
+/* (FASE 7) THE PERF LOG, what a host plots by screen and by song. One CSV line per interview:
+ *
+ *   perf,ms,halves,late,shed,t5_nested,max_us,last_us,cpu_q8,ui_frames,in_audio,stage,page,home,song
+ *
+ * The counters are absolute since boot (felucca_dbg lives in .noinit), so the host differentiates halves, late,
+ * shed and ui_frames to get rates and keeps nothing of its own. `perf` prints one line, `perf on [ms]` prints one
+ * every interval (250 ms by default) until `perf off`, and cdc_task paces it from the main loop: the audio ISR
+ * pays nothing for this, which is the point -- a log that changes what it measures is not a measurement. */
+static struct { uint8_t on; uint32_t interval, t0; } perf = { 0, 250u, 0 };
+
+#define PERF_MIN_MS 20u                                 /* below this the line costs more than it can show */
+
+static void con_perf_csv(void)
+{
+    con_puts("perf,");
+    con_dec((int32_t)fm1_ms);
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.halves);
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.late);
+    con_putc(',');
+    con_dec((int32_t)shed_count);
+    con_putc(',');
+    con_dec((int32_t)t5_nested_ticks);                  /* TIMER4 ticks TIMER5 spent nested in the last half */
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.max_us);               /* the worst half since boot */
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.last_us);
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.cpu_q8);               /* Q8: 256 = a whole half spent rendering */
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.ui_frames);
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.in_audio);             /* 1 while the render has not returned: a nested IRQ */
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.stage);
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.page);
+    con_putc(',');
+    con_dec((int32_t)felucca_dbg.home);
+    con_putc(',');
+    con_dec((int32_t)song_cur);                         /* song_chain.c: the song whose sections proj_slot holds */
+    con_puts("\r\n");
+}
+
 static void con_dbg(void)
 {
     const uint32_t *w = (const uint32_t *)&felucca_dbg;
@@ -388,11 +433,25 @@ static void con_params(void)
 static void con_exec(const char *p)
 {
     if (con_word(&p, "help") || con_word(&p, "?"))
-        con_puts("status dbg inp crash mem params off N memr ADDR [LEN] flr OFF [LEN] uboot yes\r\n");
+        con_puts("status dbg inp perf [on MS|off] crash mem params off N memr ADDR [LEN] flr OFF [LEN] uboot yes\r\n");
     else if (con_word(&p, "status"))
         con_status();
     else if (con_word(&p, "dbg"))
         con_dbg();
+    else if (con_word(&p, "perf")) {              /* (FASE 7) the log the host plots: one line, or one every MS */
+        int ok = 0;
+        if (con_word(&p, "on")) {
+            uint32_t v = con_num(&p, &ok);
+            perf.interval = (ok && v >= PERF_MIN_MS) ? v : 250u;
+            perf.t0 = fm1_ms;
+            perf.on = 1;
+            con_kv("perf_ms", (int32_t)perf.interval);
+        } else if (con_word(&p, "off")) {
+            perf.on = 0;
+            con_kv("perf_on", 0);
+        } else
+            con_perf_csv();
+    }
     else if (con_word(&p, "crash"))
         con_crash();
     else if (con_word(&p, "inp"))
@@ -461,5 +520,9 @@ static void cdc_task(void)                              /* main loop */
             con.line[con.len++] = c;
             con_putc(c);
         }
+    }
+    if (perf.on && cdc.dtr && (uint32_t)(fm1_ms - perf.t0) >= perf.interval) {   /* (FASE 7) the perf log */
+        perf.t0 = fm1_ms;
+        con_perf_csv();
     }
 }
