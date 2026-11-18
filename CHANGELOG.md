@@ -1,3 +1,19 @@
+## v1.4.4 — el POLY, medido en la salida (y por qué un bajo suena a una nota)
+
+### El POLY no estaba roto: ahora hay una prueba que lo demuestra en el audio
+`tests/poly_test.c` (nuevo, paso de la suite) toca **C3 · E3 · G3 en un mismo track en POLY** y mira la **salida**:
+tres voces con gate y las tres fundamentales presentes en el espectro (Goertzel sobre 4096 muestras, cada una por
+encima del 20 % de la mayor). Se repite con `load_tight` puesto —el gobernador de carga, la sospecha que quedaba— y
+da lo mismo: tres voces, tres notas. Medido en host x86: C3 1402, E3 1385, G3 1331 (y 1461 / 1444 / 1382 con el
+gobernador).
+
+### Por qué un sonido puede no dar polifonía aunque el modo diga POLY
+El modo de voz **es parte del sonido**: `ui.c apply_preset_to` pone `P_VOICE` desde el preset (`mono` → LEGATO). Un
+bajo o un lead marcado mono carga el track en LEGATO y suena de a una nota por más que el modo estuviera en POLY
+antes de cargar el sonido. La prueba lo fija: un preset mono carga LEGATO, dos teclas dan una voz, y elegir POLY en
+la página VOICE devuelve el acorde —hasta el próximo cambio de sonido—. Si en la unidad se oye una sola nota con un
+sonido así, no es el asignador: es el sonido. Elegí POLY en VOICE *después* de elegir el sonido.
+
 ## v1.4.3 — limpieza de lo que dejaron 1.4.0 / 1.4.1 / 1.4.2 (sin cambiar nada de lo que se ve)
 
 Pasada con ojos frescos sobre lo que agregaron esas tres versiones. **No cambia el comportamiento**: el arnés de

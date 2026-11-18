@@ -1862,3 +1862,14 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | Lo redundante que se fue | `[STATIC]` | `vwell` (alias de `T_SURF` usado dos veces, más un comentario de FASE 5 que describía el pozo mezclado que 1.4 reemplazó); la línea de `hv_view_sig()` que hasheaba motor y preset de `TSEL` cuando el bucle de las seis pistas ya los incluye; el `(void)r;` y su comentario en `graph_preset_pop()` |
 | Nada de esto perdió cobertura | `[HOST]` | `NO_PACKAGE=1 ./tests/run_tests.sh`: **ALL HOST TESTS PASSED** con el release set de 1.4.2 completo |
 | En una FM-1 física | — | **NOT MEASURED**: igual que 1.4.2; nada de esto se probó en una unidad |
+
+---
+
+## 2026-11-17 (6) — v1.4.4: POLY medido en la salida
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| POLY da tres voces y tres notas | `[HOST]` | `tests/poly_test.c`: C3 · E3 · G3 en un track en POLY → **3 voces con gate** y las tres fundamentales en la salida (Goertzel 4096 muestras: 1402 / 1385 / 1331, cada una > 20 % de la mayor). Paso nuevo de `tests/run_tests.sh` |
+| El gobernador de carga no lo convierte en monofónico | `[HOST]` | La misma prueba con `load_tight` puesto: 3 voces y 1461 / 1444 / 1382. Era la última sospecha abierta de 1.4.1; queda cerrada en host |
+| Un sonido mono suena a una nota, y no es un fallo | `[HOST]` | `ui.c apply_preset_to` pone `P_VOICE` desde el preset (`mono` → LEGATO). La prueba carga un preset mono: LEGATO, dos teclas = **1 voz**; POLY en la página VOICE = 2 voces. Esto explica el reporte del dueño con bajos/leads |
+| Sigue sin medirse en la unidad | — | **NOT MEASURED**: el teclado físico (27 micro-switches, matriz con diodos) y el POLY en la FM-1 no se probaron acá. Lo de arriba es host x86 |

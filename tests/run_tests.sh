@@ -305,6 +305,10 @@ if [ -f build/gen/felucca_tables.h ]; then
         "$OUT/ui_render_fm4" build/ui_fm4 build/ui_fm4_slot
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/audio_test" tests/audio_test.c -lm
     run "audio: overload protection, bounded fades and DMA diagnostics" "$OUT/audio_test"
+    # (1.4.4) POLY from the output: three keys on one part, three voices, three fundamentals in the spectrum, with
+    # and without the load governor set (the owner's "no polyphony" is pinned here as behaviour that must hold)
+    $CC -w -O2 -Ibuild/gen -Ifirmware/src -o "$OUT/poly_test" tests/poly_test.c -lm
+    run "POLY: three keys give three voices and three notes in the output" "$OUT/poly_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/master_test" tests/master_test.c -lm
     run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_meter_test" tests/fx_meter_test.c
