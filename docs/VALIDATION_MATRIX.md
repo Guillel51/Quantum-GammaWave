@@ -1913,3 +1913,26 @@ Cada candidato que quedaría (compartir `cloud_buf` con `sl_buf`, asignar `fm6_n
 pistas que usan ese motor, achicar `WT_GEN`) cambia comportamiento o necesita el mapa real para saber cuánto
 deja: quedan listados, **no hechos**. Un cambio de DSP o de reparto sin el binario de destino y sin las
 capturas doradas idénticas sería una suposición, y este proyecto no publica suposiciones.
+
+### FASE 3 (motores): lo que se verificó y por qué no se añadió nada
+
+El bloqueo está medido y no es de este entorno: `docs/PERFORMANCE_BASELINE.md` §1 registra **12 B libres** en
+la región XIP del AC791N (imagen 583 600 de 583 612) y la matriz anota 328 B a 1.4.2. Ningún control de motor
+entra en 12 B: el plan de `docs/ENGINE_EXPANSION_PLAN.md` §1 lo cuantifica (80-250 B de DSP por control más
+30-60 B de descriptor). Sin `JIELI_TOOLCHAIN`/`AC79_SDK` en este entorno no hay forma de medir el tamaño de un
+cambio ni de compilar la imagen, así que **no se tocó ningún motor, parámetro, densidad de presets ni formato**:
+un cambio así no se puede publicar a ciegas sobre 12 B.
+
+Lo que sí se verificó en este pase (host, sobre las fuentes reales):
+
+| Qué | Resultado | Clase |
+|---|---|---|
+| Superficie de edición de los diez motores | Los diez leen los ocho slots `P_E0..P_E7` con DSP real; **FM6 es el único con dos slots libres** (`P_E1`, `P_E5`, declarados sin uso), o sea el único control nuevo que no obliga a `P_COUNT` 125→126 ni a migración de proyectos. No hay ningún otro control "muerto" que estuviera mostrado y sin efecto | `[HOST]` estático |
+| Espacio de ids de parámetro | 125 de los 127 que caben en el registro de 7 bits (`core.h`); a lo sumo dos `P_*` nuevos en todo el árbol | `[STATIC]` |
+| Tablas de rodata duplicadas | 0 grupos: no hay flash pagado dos veces que rescatar | `[HOST]` |
+| Assets candidatos a recomprimir | `AF_M/S/L_DATA` 31 273 B, `WT_DATA` 12 288 B (ya generado en RAM por `eng_wavetable.c`), `ui_shapes` 10 861 B (ya delta-codificado en bytes), `UAC_FIR` 7 680 B, `KC_DATA` 4 792 B | `[HOST]`, tamaños exactos |
+
+El orden de ataque sigue siendo el del plan: FM6 primero (dos slots libres, sin migración); después WTABLE,
+NOISE y DRUM-X; y ANALOG/PHASE/LOFI/VOICE/WHEEL de a uno con su prueba de compatibilidad, cada uno pagando un
+`P_COUNT`. Antes de cualquiera de esos pasos hace falta liberar flash de los assets —cosa que este entorno no
+puede verificar contra la imagen— y que exista el build de destino para medir el resultado.
