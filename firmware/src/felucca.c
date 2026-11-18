@@ -38,7 +38,7 @@
 #define FELUCCA_ID "FM-1_965"    /* package identity (build.py: the .fwsc marker string; docs/IDENTITY.md) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.4.12" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
+#define FELUCCA_VERSION "v1.4.13" /* QUANTUM GAMMAWAVE FM-1 (Pocket GammaWave, JIANT, Felucca): splash, menu, console,
                                     * editor. 1.0.0 is the clean public numbering of the whole instrument: the six tracks,
                                     * twelve voices and nine engines, the eight-slot modulation matrix with its MACROS
                                     * page, the ARP page drawn against its own clock and the Web Studio's preset

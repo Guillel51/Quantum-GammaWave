@@ -1,3 +1,28 @@
+## v1.4.13 — el cache de TONE, y los píxeles como baseline
+
+### El cache de coeficientes TONE (la optimización que la Fase 1 no pudo pagar)
+`tone_set` corría dos veces por bloque —1 378 veces por segundo— con tres divides y una tangente cada una, en un
+chip sin divide. Sus coeficientes sólo dependen de dos perillas (el TONE y DIGITAL del delay, el FILT de la
+reverb) y los demás argumentos son constantes, así que ahora se guardan para el valor con el que se construyeron
+y se rehacen cuando una perilla gira (`fx.c` `tc_dly` / `tc_rev`). El render es **bit-identico**: 303 renders
+dorados sin cambios. Coste: +2 276 B de código, pagados por la compactación de las píldoras de tecla.
+
+`tests/tone_cache_test.c` lo fija: dos renders frescos con las mismas perillas dan los mismos bytes, perillas
+distintas dan sonidos distintos, y A → B → A vuelve a A (nada queda clavado al primer valor).
+
+### Los píxeles, como baseline (`tests/ui_pixels.txt`)
+El barrido ya fallaba por lint y por alineación, pero nadie comparaba los **píxeles**: un cambio en una tabla de
+glifos, una paleta o un desplazamiento de 1 px podía pasar toda la suite. Ahora `tests/ui_pixels.py` hashea las
+3 056 capturas y las compara contra la lista versionada; CI lo corre en cada push. Cambiar los píxeles a
+propósito exige `--update` y decirlo en el commit.
+
+### Lo que se probó y no entra
+- `-flto`: el linker del toolchain (GNU ld 2.26) no lo enlaza — falla. Se midió; no está disponible.
+- Zero-init de los `ui_shapes` duplicados: no hay ninguno, 0 B.
+- Kerning de S (~476 B), `ui_shapes` comprimido (~2,3 KiB), unión de `sec_stage`/`proj_scratch` (~9 KiB de
+  `.bss`), buses a bloque de 64, blit en el núcleo 1, reescritura del barrido de teclas a 10 kHz: quedan
+  documentados con sus números en `docs/OPTIMIZATION_PHASE1_AUDIT.md` y `docs/INDEX.md`, sin empezar.
+
 ## v1.4.12 — 1 936 B de flash recuperados sin tocar un píxel
 
 Las 22 píldoras de tecla (`ui_keycaps.h`) se guardaban en nibble crudo (3 939 B) aunque el 90 % de una

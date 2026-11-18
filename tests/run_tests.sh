@@ -85,6 +85,9 @@
 # Browser emulator (web/emu, when emcc is there): the firmware in WebAssembly (build/emu) boots, plays keys and MIDI,
 #                   draws, lights its LEDs, keeps a save across instances, plays a song bit for bit as the same file
 #                   built with cc (web/emu/native_check.c); the cost of 1 s of a heavy song against real time.
+# TONE CACHE (tests/tone_cache_test.c, FASE 5): the delay's TONE and the reverb's FILT keep their coefficients for
+#                   the value they were built for (they were rebuilt on every block); a hit is byte-identical to a
+#                   first build, a knob turn reaches the DSP, and TONE 0 takes the delay's tone out of the chain.
 # BOOT FADE (tests/boot_fade_test.c, FASE 3): the power-on fade as the master gain sees it -- 0 is exact silence
 #                   (what the muted output stage plays and what its unmute lands on), the ramp is monotonic and
 #                   reaches the same bytes as an unfaded render.
@@ -286,6 +289,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost" \
         "$OUT/ui_render" build/ui_new build/ui_slot
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
+    # (FASE 5) and the pixels themselves against the tracked baseline: the lint above cannot see a glyph table, a
+    # palette or a 1 px offset that still parses as aligned. `ui_pixels.py --update` only when it was meant.
+    run "UI pixels: every frame the sweep draws is byte-identical to tests/ui_pixels.txt (a moved pixel fails)" \
+        python3 tests/ui_pixels.py build/ui_new/ppm
     mkdir -p build/capture            # (a clean build/ has no capture dir: the sed below used to fail first)
     sed 's/^int main(/int ui_render_main(/' tests/ui_render.c > build/capture/ui_render_nomain.c
     mkdir -p build/capture/ppm
@@ -377,6 +384,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "ENGINES: every EDIT knob at both ends of its range moves the rendered note (216 knobs)" "$OUT/engine_param_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/tone_cache_test" tests/tone_cache_test.c -lm
+    run "TONE cache: a hit is a first build's bytes, a knob turn reaches the DSP, TONE 0 is out of the chain" "$OUT/tone_cache_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/boot_fade_test" tests/boot_fade_test.c -lm
     run "BOOT FADE: gain 0 is exact silence, the ramp never goes back, 32768 is the unfaded render" "$OUT/boot_fade_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/dist_models_test" tests/dist_models_test.c -lm

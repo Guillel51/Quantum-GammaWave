@@ -125,3 +125,33 @@ colores por terna) no cambia y el resultado son los mismos píxeles.
 
 Con los 1 184 B que ya había, el margen para el cache de TONE (que desbordaba por 2 160 B) queda en
 **3 120 B**: entra.
+
+## FASE 5 — el cache de TONE, y los píxeles como baseline (v1.4.13)
+
+### El cache, medido
+
+| | Antes | Después |
+|---|---|---|
+| `tone_set` por segundo | 1 378 × 2 llamadas (3 divides + 1 tangente cada una) | 2 llamadas, y sólo cuando una perilla gira |
+| código XIP | 424 224 B | 426 524 B (**+2 276 B**) |
+| imagen | 580 492 B | 582 768 B (**844 B libres**) |
+| audio | — | **bit-idéntico**: 303 dorados, 0 cambiados |
+
+El precio es lo que en la Fase 1 no se vio: el compilador tenía las dos llamadas con argumentos constantes y
+podía plegarlas; al depender de una perilla las dos trayectorias de coeficientes se materializan. Entra gracias
+a los 3 120 B que dejó la compactación de las píldoras.
+
+### Lo que se midió y no entra
+
+- **`-flto`**: el linker del toolchain (GNU ld 2.26) no enlaza el bitcode — el build falla. No está disponible
+  con este SDK; sería la única fuente grande que queda (varios KB potenciales).
+- **Renombrar/deduplicar `ui_shapes`**: 17 streams, 10 861 B, **0 duplicados**. Nada que ganar ahí.
+- Pendientes con número, sin empezar: kerning de S (~476 B), `ui_shapes` comprimido con decodificación por
+  pantalla (~2,3 KiB), unión `sec_stage`/`proj_scratch` (~9 KiB de `.bss`), buses a bloque de 64, blit en el
+  núcleo 1, barrido de teclas a 10 kHz (necesita unidad).
+
+### La prueba que faltaba: los píxeles
+
+`tests/ui_pixels.py` + `tests/ui_pixels.txt` (3 056 hashes): CI falla si un solo píxel se mueve. Es el gate que
+hace seguras las compactaciones de datos — todas las de las fases 2 y 4 se verificaron a mano con esta misma
+comparación, y ahora queda permanente.
