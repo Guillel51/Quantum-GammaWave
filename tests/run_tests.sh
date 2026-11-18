@@ -285,7 +285,8 @@ if [ -f build/gen/felucca_tables.h ]; then
         env UI_ONLY=dice_all UI_REPEAT_DICE=50 "$OUT/ui_test"
     FV=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c)   # (the splash, ABOUT: the real version)
     $CC -O1 -w "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render" tests/ui_render.c -lm
-    mkdir -p build/ui_new/ppm build/ui_slot
+    rm -rf build/ui_new/ppm           # (FASE 5) from empty: a frame left by an older run cannot stand in for one the
+    mkdir -p build/ui_new/ppm build/ui_slot   # sweep failed to write, so the pixel gate below sees exactly this run's
     run "UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost" \
         "$OUT/ui_render" build/ui_new build/ui_slot
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
