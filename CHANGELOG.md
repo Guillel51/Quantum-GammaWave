@@ -1,7 +1,8 @@
-## v1.4.12 — PANEL Y: la franja del panel se elige en Settings y se recuerda
+## v1.4.14 — PANEL Y: la franja del panel se elige en Settings y se recuerda
 
-Esta versión integra la 1.4.11 del trabajo paralelo (DIST FOLD, la fuente S comprimida para pagarlo y el pop de
-encendido) con PANEL Y y los arreglos de pruebas de este lado; la 1.4.11 ya publicada no se reescribe.
+Esta versión integra lo que el trabajo paralelo publicó hasta la 1.4.13 (DIST FOLD con la fuente S comprimida, el
+pop de encendido, la compactación de las píldoras y el cache de TONE) con PANEL Y, el fade del motor arreglado y
+los arreglos de pruebas de este lado; las 1.4.11 a 1.4.13 ya publicadas no se reescriben.
 
 ### El problema, dicho entero
 El controlador tiene **240x320** de memoria de cuadro y el panel muestra **240 filas**: está pegado a una franja de
@@ -60,6 +61,43 @@ quedan idénticos.
   **4 208 795 medidas de alineación, 0** fuera por 1 px, con la fila PANEL Y incluida en el MENU.
 - La suite host completa pasa con este árbol (el único fallo era el test del conjunto de release, que exige
   `site/` sincronizado, y se sincroniza antes del commit del paquete).
+
+## v1.4.13 — el cache de TONE, y los píxeles como baseline
+
+### El cache de coeficientes TONE (la optimización que la Fase 1 no pudo pagar)
+`tone_set` corría dos veces por bloque —1 378 veces por segundo— con tres divides y una tangente cada una, en un
+chip sin divide. Sus coeficientes sólo dependen de dos perillas (el TONE y DIGITAL del delay, el FILT de la
+reverb) y los demás argumentos son constantes, así que ahora se guardan para el valor con el que se construyeron
+y se rehacen cuando una perilla gira (`fx.c` `tc_dly` / `tc_rev`). El render es **bit-identico**: 303 renders
+dorados sin cambios. Coste: +2 276 B de código, pagados por la compactación de las píldoras de tecla.
+
+`tests/tone_cache_test.c` lo fija: dos renders frescos con las mismas perillas dan los mismos bytes, perillas
+distintas dan sonidos distintos, y A → B → A vuelve a A (nada queda clavado al primer valor).
+
+### Los píxeles, como baseline (`tests/ui_pixels.txt`)
+El barrido ya fallaba por lint y por alineación, pero nadie comparaba los **píxeles**: un cambio en una tabla de
+glifos, una paleta o un desplazamiento de 1 px podía pasar toda la suite. Ahora `tests/ui_pixels.py` hashea las
+3 056 capturas y las compara contra la lista versionada; CI lo corre en cada push. Cambiar los píxeles a
+propósito exige `--update` y decirlo en el commit.
+
+### Lo que se probó y no entra
+- `-flto`: el linker del toolchain (GNU ld 2.26) no lo enlaza — falla. Se midió; no está disponible.
+- Zero-init de los `ui_shapes` duplicados: no hay ninguno, 0 B.
+- Kerning de S (~476 B), `ui_shapes` comprimido (~2,3 KiB), unión de `sec_stage`/`proj_scratch` (~9 KiB de
+  `.bss`), buses a bloque de 64, blit en el núcleo 1, reescritura del barrido de teclas a 10 kHz: quedan
+  documentados con sus números en `docs/OPTIMIZATION_PHASE1_AUDIT.md` y `docs/INDEX.md`, sin empezar.
+
+## v1.4.12 — 1 936 B de flash recuperados sin tocar un píxel
+
+Las 22 píldoras de tecla (`ui_keycaps.h`) se guardaban en nibble crudo (3 939 B) aunque el 90 % de una
+píldora es relleno (5) o afuera (0). Ahora van en el códec canonical de las fuentes, al que se le puede pedir
+runs de valores que no sean 0/15, y las dibuja el mismo `cv_alpha_hc` de los glifos: **1 947 B + 45 B** con
+los mismos píxeles (3 056 capturas del barrido idénticas byte a byte) y los 303 renders dorados sin cambios.
+
+La imagen queda en **580 492 B de 583 612** (3 120 B libres) — el margen que necesitaba el cache de
+coeficientes TONE, que desbordaba por 2 160 B. `docs/OPTIMIZATION_PHASE1_AUDIT.md` deja la tabla de lo que se
+midió y no daba nada: alinear funciones, fusionar constantes y quitar las tablas de unwind (0 B), menos
+inlineado (+788 B), `-fno-jump-tables` (+916 B), y las tablas grandes que ya estaban optimizadas.
 
 ## v1.4.11 — el pop de encendido, y el DIST que pliega
 

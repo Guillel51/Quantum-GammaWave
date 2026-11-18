@@ -1107,6 +1107,14 @@ static int tone_set(tone_t *t, int32_t v, int32_t top, int32_t lo, int32_t base,
     t->g = t->k >= 4096 ? 32767 : half ? (32767 + t->k * 8) >> 1 : t->k * 8;   /* (1/Q, Q15; half: half way to it) */
     return 1;
 }
+/* (FASE 5) THE TONE COEFFICIENTS ARE BUILT AT KNOB SPEED, NOT AT BLOCK SPEED. tone_set was called twice per
+ * block -- 1 378 times a second -- and each call runs three divides and a tsvf_coef_k tangent, on a chip with no
+ * divide. The result only depends on the two knobs it reads (the delay's TONE and DIGITAL, the reverb's FILT) and
+ * the arguments are constants, so the coefficients are kept for the value they were built for and rebuilt once
+ * when a knob turns. Nothing else changes: the same coefficients reach tone_run, so the render is bit-identical.
+ * (This is the cache that wanted 2 160 B in FASE 1 and did not fit; the keycaps' Huffman table paid for it.) */
+typedef struct { tone_t t; int32_t key; int32_t on; int8_t ok; } tone_cache_t;
+static tone_cache_t tc_dly, tc_rev;
 static inline int32_t tone_run(const tone_t *t, int32_t in, int32_t *ic1, int32_t *ic2)
 {
     int32_t v3 = in - *ic2;
@@ -1778,10 +1786,16 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
                                                          * residue in the lines stepped in: a tick on the next note) */
     int32_t fb = dly_fb(song.g[G_DFDBK]), tn = song.g[G_DCOLOR] - 64;   /* (JIANT 0.4) TONE: one knob, low-pass .. open .. low cut */
     int32_t wm, dwm, dig = song.g[G_DTYPE] == 1;        /* (0.6.89: TONE in the middle: each repeat the very copy) */
-    tone_t dtn, rtn;
-    int dton = dig ? tone_set(&dtn, tn > 63 ? 63 : tn, 113, 43, 18, 93, 5793, 0)   /* (0.6.90) DIGITAL: TONE plain (Q 0.7) */
-                   : tone_set(&dtn, tn > 63 ? 63 : tn, 113, 43, 18, 93, 2900, 1);   /* (0.6.89 half the level evened: the band
+    tone_t *dtn = &tc_dly.t, *rtn = &tc_rev.t;
+    int32_t dkey = (tn << 1) | (int32_t)dig;
+    if (!tc_dly.ok || dkey != tc_dly.key) {             /* (FASE 5) a knob turn, not a block */
+        tc_dly.key = dkey;
+        tc_dly.ok = 1;
+        tc_dly.on = dig ? tone_set(dtn, tn > 63 ? 63 : tn, 113, 43, 18, 93, 5793, 0)   /* (0.6.90) DIGITAL: TONE plain (Q 0.7) */
+                       : tone_set(dtn, tn > 63 ? 63 : tn, 113, 43, 18, 93, 2900, 1);   /* (0.6.89 half the level evened: the band
                                                          * at the cutoff above unity, the extremes self-oscillate) */
+    }
+    int dton = tc_dly.on;
     if (!dton) fx.dt1 = fx.dt2 = 0;   /* (8 kHz .. 250 Hz | 73 Hz .. 3 kHz, Q 1.4) */
     int32_t dmix = song.g[G_DMIX] * 258;
     int32_t cdepth = song.g[G_CDEPTH] * 6, rt;
@@ -1825,10 +1839,16 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
     dcw = fx_glide(fx.cw_cur, cw, n);
     ddm = fx_glide(fx.dm_cur, dmix, n);
     dly_wow_adv(n, &wm, &dwm);
-    if (tone_set(&rtn, song.g[G_RFILT], 121, 50, 14, 79, 1600, 1)) {   /* (JIANT) the reverb's tone: FILT < 0 a low-pass (~12 kHz ..
-                                                         * ~350 Hz), > 0 a low cut (~60 Hz .. ~1.5 kHz); 0.6.86 resonant (Q 2.5) */
+    if (!tc_rev.ok || song.g[G_RFILT] != tc_rev.key) {   /* (FASE 5) a knob turn, not a block */
+        tc_rev.key = song.g[G_RFILT];
+        tc_rev.ok = 1;
+        tc_rev.on = tone_set(rtn, song.g[G_RFILT], 121, 50, 14, 79, 1600, 1);   /* (JIANT) the reverb's tone: FILT < 0 a low-pass
+                                                         * (~12 kHz .. ~350 Hz), > 0 a low cut (~60 Hz .. ~1.5 kHz); 0.6.86
+                                                         * resonant (Q 2.5) */
+    }
+    if (tc_rev.on) {
         for (i = 0; i < n; i++)
-            rpre_out[i] = tone_run(&rtn, rev_in[i], &fx.rt1, &fx.rt2);
+            rpre_out[i] = tone_run(rtn, rev_in[i], &fx.rt1, &fx.rt2);
         rev_in = rpre_out;
     } else
         fx.rt1 = fx.rt2 = 0;
@@ -1919,7 +1939,7 @@ static inline __attribute__((always_inline)) void fx_buses(const int32_t *cho_in
             fx.dly_hp += (((x * 256) - fx.dly_hp) * hk + 16384) >> 15;
         {
             int32_t lf = (wr == 2 ? xr : x) - ((fx.dly_hp + 128) >> 8), w;
-            if (dton) lf = tone_run(&dtn, lf, &fx.dt1, &fx.dt2);
+            if (dton) lf = tone_run(dtn, lf, &fx.dt1, &fx.dt2);
             w = (dly_in[i] >> 1) + mulq15(clamp(lf, -32767, 32767), wr == 2 ? fb2 : fb);
             dly_buf[fx.dly_w & (DLY_LEN - 1u)] = (int16_t)(dig ? clamp(w, -32767, 32767) : dly_sat(w));   /* (DIGITAL: clean, a clip
                                                          * at full scale only) */

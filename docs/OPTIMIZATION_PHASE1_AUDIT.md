@@ -86,3 +86,72 @@ propio archivo ya usaba en `lev_block`, `fx_glide` y la capa de performance.
   simultáneos; unirlos o recortarlos cambia el sonido.
 - **CPU de la UI/DSP**: sin valgrind en este entorno y sin unidad, el único instrumento exacto es el conteo
   estático de arriba; cualquier afirmación de ciclos o de % de CPU sería inventada.
+
+## FASE 4 — la compactación que faltaba (v1.4.11 + 1)
+
+Objetivo: ~2,5 KiB de XIP para el cache de coeficientes TONE, sin pagar con calidad ni con funciones. Cada
+opción se midió con el **build AC791N** (`./build.sh`, pi32v2 clang + GNU ld); la invariancia, con host x86.
+
+### Opciones medidas y descartadas
+
+| Opción | Efecto medido en la imagen |
+|---|---|
+| `-falign-functions=4` / `=1` | 0 B (con `-Oz` el compilador ya empaqueta al byte) |
+| `-fmerge-all-constants` | 0 B (build unity: los literales ya se fusionan entre archivos) |
+| `-fno-asynchronous-unwind-tables -fno-unwind-tables -fno-ident` | 0 B |
+| `-fno-jump-tables` | **+916 B** (revertido) |
+| `-mllvm -inline-threshold=8` (menos inlineado) | **+788 B** (revertido: además toca el camino de audio) |
+| `UAC_FIR` (7 680 B) | nada: ya guarda 80 fases de 160 y lee la simétrica hacia atrás |
+| `ui_icons.h` (7 123 B) | nada: ya está en Huffman |
+| Fuente S | ya comprimida en la fase anterior (−1 224 B) |
+| `ui_shapes.h` (10 861 B de line art) | ~2,3 KiB posibles **pero** se dibuja por cuadro: pagaría con CPU de UI en cada pantalla, no con calidad — descartado |
+| Kerning de S (592 pares, 1 776 B) | ~476 B posibles con un índice por glifo izquierdo; queda como candidato, no se hizo |
+| `AF_S_KERN` a nibble | imposible: los ajustes van de −29 a +11 (21 valores distintos) |
+
+### Lo que sí: las píldoras de tecla, en Huffman (1 936 B)
+
+`ui_keycaps.h` guardaba los mapas de las 22 píldoras en nibble crudo (2 px/byte, 3 939 B). El 90 % de una
+píldora es **relleno (5)** y **afuera (0)**, así que el códec canonical de las fuentes —al que se le puede
+pedir runs de otros valores— las deja en **1 947 B + 45 B de tabla**, decodificadas por el mismo
+`cv_alpha_hc` que ya dibuja los glifos. `KC[]` conserva offsets en bytes, la tabla de cuantización (16
+colores por terna) no cambia y el resultado son los mismos píxeles.
+
+- Imagen: **582 428 → 580 492 B** (constantes −1 944, código +8; **3 120 B libres**).
+- Invariancia: **3 056 capturas del barrido (191 pantallas × 22 paletas + barrido de valores), 0 difieren**
+  contra el árbol anterior, byte a byte; `regress` **303 dorados, 0 cambiados**; `text_spacing` y `panel`
+  en verde.
+- Coste: decodificar una píldora es una caminata de bits sobre 13 filas de ~20 px, igual que un glifo de
+  texto; las pantallas se redibujan por firma, no por cuadro.
+
+Con los 1 184 B que ya había, el margen para el cache de TONE (que desbordaba por 2 160 B) queda en
+**3 120 B**: entra.
+
+## FASE 5 — el cache de TONE, y los píxeles como baseline (v1.4.13)
+
+### El cache, medido
+
+| | Antes | Después |
+|---|---|---|
+| `tone_set` por segundo | 1 378 × 2 llamadas (3 divides + 1 tangente cada una) | 2 llamadas, y sólo cuando una perilla gira |
+| código XIP | 424 224 B | 426 524 B (**+2 276 B**) |
+| imagen | 580 492 B | 582 768 B (**844 B libres**) |
+| audio | — | **bit-idéntico**: 303 dorados, 0 cambiados |
+
+El precio es lo que en la Fase 1 no se vio: el compilador tenía las dos llamadas con argumentos constantes y
+podía plegarlas; al depender de una perilla las dos trayectorias de coeficientes se materializan. Entra gracias
+a los 3 120 B que dejó la compactación de las píldoras.
+
+### Lo que se midió y no entra
+
+- **`-flto`**: el linker del toolchain (GNU ld 2.26) no enlaza el bitcode — el build falla. No está disponible
+  con este SDK; sería la única fuente grande que queda (varios KB potenciales).
+- **Renombrar/deduplicar `ui_shapes`**: 17 streams, 10 861 B, **0 duplicados**. Nada que ganar ahí.
+- Pendientes con número, sin empezar: kerning de S (~476 B), `ui_shapes` comprimido con decodificación por
+  pantalla (~2,3 KiB), unión `sec_stage`/`proj_scratch` (~9 KiB de `.bss`), buses a bloque de 64, blit en el
+  núcleo 1, barrido de teclas a 10 kHz (necesita unidad).
+
+### La prueba que faltaba: los píxeles
+
+`tests/ui_pixels.py` + `tests/ui_pixels.txt` (3 056 hashes): CI falla si un solo píxel se mueve. Es el gate que
+hace seguras las compactaciones de datos — todas las de las fases 2 y 4 se verificaron a mano con esta misma
+comparación, y ahora queda permanente.
