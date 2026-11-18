@@ -1,3 +1,13 @@
+## v1.4.15 — el build de release aceptaba sólo versiones de una cifra
+
+`tools/build.py --release` validaba el número con `(\d)\.(\d)(?:\.\d){0,2}`, un dígito por segmento. Toda versión
+con una cifra de dos dígitos —`1.4.10`, `1.4.13`, `1.4.14`— se rechazaba con «use X.Y, X.Y.Z…», y ése fue el paso
+que falló en el job `build` de **todas** las releases desde la 1.4.10: v1.4.9 es la última que compiló su paquete
+en CI. Ahora los segmentos son `\d+` (`X.Y`, `X.Y.Z`, `X.Y.Z.W` y el sufijo `-rc1` siguen aceptándose, `x1` no), y
+`./build.sh --release 1.4.15` corta el paquete desde un árbol limpio, como lo corre el workflow.
+
+Esta versión no cambia una línea del firmware: es la 1.4.14 soplando el `--release` que el tag necesita.
+
 ## v1.4.14 — PANEL Y: la franja del panel se elige en Settings y se recuerda
 
 Esta versión integra lo que el trabajo paralelo publicó hasta la 1.4.13 (DIST FOLD con la fuente S comprimida, el

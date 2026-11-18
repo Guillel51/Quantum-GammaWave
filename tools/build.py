@@ -408,7 +408,10 @@ def main():
     name = "felucca.fwsc"
     if a.release:                   # (1.1.1-GW) the identity stays PRODUCT (QG-1: FM-1_965) for every build: The Firmware Hub
         # knows Pocket GammaWave by it (Felucca's FM-1_9XY per release gave 1.1 FM-1_911, Felucca 1.1's own)
-        m = re.fullmatch(r"(\d)\.(\d)(?:\.\d){0,2}(-[A-Za-z0-9]+)?", a.release)
+        # (1.4.15) the segments are any number of digits: the first pattern took ONE digit each, so every release
+        # from 1.4.10 on ("1.4.10", "1.4.14", ...) was rejected with "use X.Y, X.Y.Z..." and the tag's own
+        # release run died there -- v1.4.9 was the last one that could build its package on CI.
+        m = re.fullmatch(r"(\d+)\.(\d+)(?:\.\d+){0,2}(-[A-Za-z0-9]+)?", a.release)
         if not m:
             raise SystemExit(f"--release {a.release}: use X.Y, X.Y.Z, X.Y.Z.W or X.Y-suffix, one digit each")
         VERSION = "v" + a.release.lower()      # e.g. v1.0, v1.1-rc1
