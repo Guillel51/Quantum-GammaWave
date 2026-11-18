@@ -187,7 +187,6 @@ static void fm1_main(void)
     prefs_update();                                     /* (JIANT 0.6.44) FX LATCH ON by default, once */
     usb_serial_apply();                                 /* (#67: the saved USB SERIAL before usb_start) */
     lcd_init(T_BG);                                /* (QG-1 v1.5) the whole 240x320 in the theme's background */
-    ui_bright_apply();                             /* (1.4.2) MENU > EXTRA > BRIGHT: the saved level, before the splash */
     spl_anim = ui_splash == 0u;                        /* (JIANT 0.5) the signature written: splash_write. (v1.5)
                                                         * FULL writes it on; SHORT and OFF have it whole */
     if (ui_splash != 2u) {                            /* (v1.5) STARTUP SPLASH OFF: no splash at all -- lcd_init has

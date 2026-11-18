@@ -14,8 +14,7 @@ void qg_fx_update_eq(uint8_t mode) { (void)mode; }
 static void fm1_led_key(unsigned k, int on) { (void)k; (void)on; }
 static int fm1_enc_take(unsigned k) { (void)k; return 0; }
 static void lcd_sync(void) {}
-static void lcd_power(uint32_t s) { (void)s; }
-static void lcd_bright_set(uint8_t v) { (void)v; }   /* (1.4.2) MENU > EXTRA > BRIGHT (lcd.c) */   /* (MENU > SCREEN OFF: lcd.c) */
+static void lcd_power(uint32_t s) { (void)s; }   /* (MENU > SCREEN OFF: lcd.c) */
 static void lcd_wake_now(void) {}
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *p)
 { (void)x; (void)y; (void)w; (void)h; (void)p; }

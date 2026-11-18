@@ -126,10 +126,6 @@ static void host_pw_log(uint32_t s)
     host_bl = s != 0u;
 }
 static void lcd_power(uint32_t s) { host_pw_log(s); }
-/* (1.4.2) MENU > EXTRA > BRIGHT: what was written to the ST7789's 0x51 (lcd.c lcd_bright_set) */
-static uint32_t host_br_n;
-static uint8_t host_br_last;
-static void lcd_bright_set(uint8_t v) { host_br_last = v; host_br_n++; }
 static void lcd_wake_now(void) { host_pw_log(3u); }
 #define SCOPE_N 256u                              /* audio.c: the HOME oscilloscope */
 static int16_t scope_buf[SCOPE_N];
@@ -2196,12 +2192,12 @@ static int test_menu_tabs(void)
             }
     }
     ui_prefs = 0;
-    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 6 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
+    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 5 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
                  ok && MTAB_COUNT == 5u && str_eq(MTAB_NAME[0], "DISPLAY") && mtab_rows(MTAB_DISPLAY) == 6u &&
                  mtab_rows(MTAB_CONTROL) == 6u && mtab_rows(MTAB_AUDIO) == 6u && mtab_rows(MTAB_SYSTEM) == 6u &&
-                 mtab_rows(MTAB_GEN) == 6u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN;
+                 mtab_rows(MTAB_GEN) == 5u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN;
                                                     * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH join it; FASE 3:
-                                                    * VOICES does too; 1.4.2: BRIGHT fills it to MTAB_ROWS) */
+                                                    * VOICES does too) */
 
     ui_power_on();
     hold(B_HOME);
@@ -2270,21 +2266,17 @@ static int test_menu_tabs(void)
     ui_prefs = 0; settings_hold = HOLD_DEF; settings_leds = LEDS_DIM; ui_style = ST_FLAT;
     settings.lowcut = 0; fx_lowcut = 0; menu_put(MI_COLOR, UI_GREY_INDEX);
     bad += check("MENU: OCT+ / OCT- step every value row up / down (COLOR wraps, the rest stop), the menu stays", ok);
-    {   /* (1.4.2) MENU > EXTRA > BRIGHT: four levels, each one written to the panel at once, and a record that
-         * never set the row (0) applying the value 1.4 shipped (0xC8) */
+    {   /* (1.4.2.1) EVERY ROW CHANGES SOMETHING ON SCREEN. draw_menu() skips while a hand-written signature of a
+         * few settings matches it; the rows 1.4 added (SPLASH, CPU MODE, VOICES, TRACKS, VIS QUALITY) were not in
+         * it, so their value changed and the text did not: they read as stuck. menu_put() invalidates the menu, and
+         * this walks every value row to say so. */
         ok = 1;
-        host_br_n = 0;
-        menu_put(MI_BRIGHT, 0u); ok &= ui_bright == 0x40 && host_br_last == 0x40;
-        menu_put(MI_BRIGHT, 1u); ok &= ui_bright == 0x80 && host_br_last == 0x80;
-        menu_put(MI_BRIGHT, 2u); ok &= ui_bright == 0xC8 && host_br_last == 0xC8;
-        menu_put(MI_BRIGHT, 3u); ok &= ui_bright == 0xFF && host_br_last == 0xFF;
-        ok &= menu_get(MI_BRIGHT) == 3u && menu_n(MI_BRIGHT) == 4u;
-        ui_bright = 0;                                 /* an older settings record */
-        ok &= menu_get(MI_BRIGHT) == 3u;               /* reads 100 %, the panel's full scale */
-        ui_bright_apply(); ok &= host_br_last == 0xFF;
-        ok &= host_br_n == 5u;
-        ui_bright = 0xC8;
-        bad += check("MENU > EXTRA > BRIGHT: the four levels are written to the panel's 0x51 at once, and 0 reads 100 %", ok);
+        for (i = 0; i < MI_VALUES; i++) {
+            menu_put(i, menu_get(i));
+            ok &= ui.menu_sig == 0;
+            ui.menu_sig = 1;                           /* a fresh signature for the next row */
+        }
+        bad += check("MENU: every value row's change invalidates the menu's signature (no row reads as stuck)", ok);
     }
     {   /* the ON / OFF rows: up (a knob right, OCT+) is ON, the switch's knob to the right, whichever bit it is */
         static const uint8_t SW[] = {MI_LARGE, MI_ANIM, MI_ACCEL, MI_LATCH, MI_BPMLOCK, MI_SERIAL, MI_RESTORE};

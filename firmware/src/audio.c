@@ -73,10 +73,28 @@ static void dac_scope(const int32_t *out, uint32_t n)
     }
 }
 
+/* (1.4.2.1) NO POP AT POWER-ON. The codec and its amp come up while the first blocks are already being rendered,
+ * and the step that makes -- DC offset settling, the codec's own transient -- went straight to the speaker under
+ * the splash. The DAC output is faded in over BOOT_FADE samples (~27 ms at 44.1 kHz): too slow to hear as a ramp,
+ * fast enough that the first keystroke is at level, and it silences the click. One multiply per sample, only while
+ * it runs. */
+#define BOOT_FADE 1200u
+static uint32_t boot_gain;                             /* 0 .. 32768, Q15: the fade's position */
 static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 -> 24 bit */
 {
     uint32_t i;
     mix_block(out, n);
+    if (boot_gain < 32768u) {                           /* (1.4.2.1) the fade is on the master: USB and DAC stay */
+        int32_t g0 = (int32_t)boot_gain;                /* the same signal they are meant to be */
+        for (i = 0; i < n; i++) {
+            int32_t g = g0 + (int32_t)(i + 1u) * (32768 / (int32_t)BOOT_FADE);
+            g = g > 32767 ? 32767 : g;
+            out[2u * i] = out[2u * i] * g >> 15;
+            out[2u * i + 1u] = out[2u * i + 1u] * g >> 15;
+        }
+        boot_gain += (uint32_t)n * (32768u / BOOT_FADE);
+        if (boot_gain > 32768u) boot_gain = 32768u;
+    }
 #if FELUCCA_UAC
     uac_tap(out, n);                                    /* the USB audio input: the same master output */
 #endif
@@ -219,5 +237,6 @@ static void audio_init(void)                   /* codec and ALNK0 bring-up (fm1_
     uint32_t i;
     for (i = 0; i < 2u * HALF_WORDS; i++)
         abuf[i] = 0;
+    boot_gain = 0;                                     /* (1.4.2.1) the fade starts at silence */
     fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);
 }

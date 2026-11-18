@@ -1,3 +1,39 @@
+## v1.4.2.1 — la pantalla oscura en la unidad, las filas que se trababan y el pop del arranque
+
+Tres causas reales, encontradas en el código, y una tercera que era un ajuste imposible.
+
+### La pantalla oscura (y las cosas negras) en la FM-1 real
+1.4 empezó a escribir en el ST7789 una **curva gamma 2.2** (0xE0/0xE1) y a **encender el control de brillo al
+78 %** (0x53/0x51) — valores elegidos comparando contra el emulador y **nunca medidos en un panel**, como el propio
+CHANGELOG de 1.4 admite. En la unidad eso aplasta el extremo bajo del rango: las placas (`T_SURF`), los divisores
+`LINE`, las etiquetas `DIM` y los pozos de los osciloscopios se van a negro, y el síntoma aparece en **todas** las
+pantallas porque es el panel, no el dibujo — el splash incluido. Los dos escritos se fueron: el panel arranca con
+sus valores de fábrica, como en 1.3.9, que es como se veía antes.
+
+### MENU > BRIGHT no podía funcionar, y se fue con la causa
+El brillo del registro 0x51 no hace nada en esta unidad porque **no hay camino de atenuación**: el backlight es el
+GPIO PA2, encendido/apagado, y además es el /OE del 595 del teclado (con PA2 alto no se lee ni una tecla), así que
+tampoco se puede PWM. Ese registro sin efecto era además el que podía dejar el panel atenuado. La fila BRIGHT se
+elimina con él: un control que no puede funcionar es peor que ninguno. Fuera también el byte de ajuste.
+
+### Las filas del MENU que "se trababan" (SPLASH, CPU MODE, VIS QUALITY, VOICES, TRACKS…)
+`draw_menu()` no redibuja mientras una **firma escrita a mano** de unos pocos ajustes no cambie, y esa lista nunca
+creció con las filas que agregó 1.4: SPLASH, CPU MODE, VOICES, TRACKS y VIS QUALITY **cambiaban el valor y dejaban el
+texto viejo en pantalla**, que es exactamente "se traba al cambiar entre FULL, SHORT y OFF". Ahora `menu_put()`
+invalida la firma del menú en **cada** cambio de fila: arregla la clase entera, incluidas las filas futuras, y con
+`ui_test.c` recorriendo todas las filas para que no vuelva.
+
+### Pop de audio en el splash
+El codec y su amplificador suben mientras los primeros bloques ya se están renderizando: ese escalón iba derecho al
+parlante debajo del splash. La salida del DAC ahora **entra con un fade de 1200 muestras (~27 ms)**: demasiado lento
+para oírse como rampa, suficiente para que el primer bloque arranque en silencio. Medido en host: pico del primer
+bloque 4 480 contra 942 528 después del fade (0,5 %).
+
+### SPLASH FULL por defecto, y una prueba de los tres modos
+El arranque sigue por defecto en **FULL animado** (0), con SHORT y OFF elegibles. `tests/startup_test.c` arranca la
+unidad **en los tres valores** y comprueba: la fila lee lo que el equipo arrancó, OFF no dibuja un solo fotograma de
+splash, FULL/SHORT sí lo dibujan antes de la UI, y en los tres la UI aparece después.
+
 ## v1.4.4 — el POLY, medido en la salida (y por qué un bajo suena a una nota)
 
 ### El POLY no estaba roto: ahora hay una prueba que lo demuestra en el audio

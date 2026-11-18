@@ -1873,3 +1873,16 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | El gobernador de carga no lo convierte en monofónico | `[HOST]` | La misma prueba con `load_tight` puesto: 3 voces y 1461 / 1444 / 1382. Era la última sospecha abierta de 1.4.1; queda cerrada en host |
 | Un sonido mono suena a una nota, y no es un fallo | `[HOST]` | `ui.c apply_preset_to` pone `P_VOICE` desde el preset (`mono` → LEGATO). La prueba carga un preset mono: LEGATO, dos teclas = **1 voz**; POLY en la página VOICE = 2 voces. Esto explica el reporte del dueño con bajos/leads |
 | Sigue sin medirse en la unidad | — | **NOT MEASURED**: el teclado físico (27 micro-switches, matriz con diodos) y el POLY en la FM-1 no se probaron acá. Lo de arriba es host x86 |
+
+---
+
+## 2026-11-18 — v1.4.2.1: pantalla oscura, filas trabadas y pop de arranque
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| La pantalla ya no se oscurece en el panel | `[STATIC]` + **sin medir en la unidad** | Causa: `lcd.c` escribía gamma 0xE0/0xE1 y brillo 0x53/0x51 (78 %) elegidos contra el emulador y nunca medidos en un panel; en la FM-1 aplastan el extremo bajo y las placas, `LINE` y `DIM` se ven negras en todas las pantallas. Los dos escritos se quitaron: el panel arranca en sus valores de fábrica (como 1.3.9). **No está medido en la unidad**: la próxima lectura del panel es la que lo confirma |
+| MENU > BRIGHT no podía funcionar | `[STATIC]` | El backlight es el GPIO PA2 (encendido/apagado) y además es el /OE del 595 del teclado: no hay PWM posible, y el registro 0x51 no tiene efecto en esta unidad. La fila, su byte y el escritor se eliminaron |
+| Ninguna fila del MENU se traba | `[HOST]` | `draw_menu()` salta su dibujo mientras una firma escrita a mano no cambie, y esa lista no incluía SPLASH, CPU MODE, VOICES, TRACKS ni VIS QUALITY: el valor cambiaba y el texto no. `menu_put()` invalida la firma en cada cambio; `tests/ui_test.c` recorre **todas** las filas (`MI_VALUES`) y exige `ui.menu_sig == 0` después de cada una |
+| Arranque en SPLASH FULL, SHORT y OFF | `[HOST]` | `tests/startup_test.c` arranca la unidad con cada uno de los tres valores: la fila lee lo que el equipo arrancó, OFF no dibuja splash, FULL/SHORT sí antes de la UI, y la UI aparece en los tres. (La diferencia animación-vs-cuadro entero la mide `ui_render.c`: 244 de 1125 pasos) |
+| Sin pop al arrancar | `[HOST]` | `audio.c` entra con un fade de 1200 muestras (~27 ms) desde el silencio: `tests/poly_test.c` mide el primer bloque con una nota fuerte desde el principio — pico 4 480 contra 942 528 tras el fade (0,5 %) |
+| En una FM-1 física | — | **NOT MEASURED**: el panel, el pop y las teclas se confirman apretando la unidad; lo de arriba es host x86 y código |

@@ -138,7 +138,6 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
     web_draws++;
 }
 static void lcd_sync(void) {}
-static uint8_t web_bright = 0xFF;              /* (1.4.2) the last brightness the firmware wrote (lcd_bright_set) */
 static void lcd_power(uint32_t s)              /* MENU > SCREEN OFF (lcd.c): off, the page dark; on: redrawn before */
 {
     if (!s) {
@@ -147,10 +146,6 @@ static void lcd_power(uint32_t s)              /* MENU > SCREEN OFF (lcd.c): off
     }
 }
 static void lcd_wake_now(void) {}
-/* (1.4.2) MENU > EXTRA > BRIGHT: the panel's 0x51 has no meaning on a canvas, and the browser already shows the
- * theme's own colours, so the emulator records the level and draws on. The row still steps and still saves: what
- * it does to the panel can only be seen on the panel */
-static void lcd_bright_set(uint8_t v) { web_bright = v; }
 static void lcd_init(uint16_t bg) { (void)bg; }   /* (QG-1 v1.5) main.c passes the theme's background; the
                                                      * emulator's frame is the panel's 240x240, already filled */
 

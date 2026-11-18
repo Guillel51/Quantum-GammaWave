@@ -120,19 +120,6 @@ static void prefs_update(void)
                                                 * as ever), 1 CLOCK, 2 ALL, 3 OFF; a byte no engine uses */
 #define ui_voices (favorites.factory[15][17])  /* (FASE 3) MENU > AUDIO > VOICES (voice.c voice_ucap): 0 twelve
                                                 * (default, what every older record holds), 1 ten, 2 eight */
-/* (1.4.2) MENU > EXTRA > BRIGHT: the panel's brightness as the ST7789 register 0x51 takes it (duty, 0..255). The
- * byte is 0 in every older record and 0 means the panel's full scale, 0xFF: 1.4 shipped 0xC8 (78 %) on top of a
- * palette that was itself stored 28 % darker, and the two together are what made every dark theme read as black.
- * The palette is stored at its designed values and the brightness starts where the panel is honest; whoever finds
- * it too bright on a unit dims it here, by eye, which is the only judge that panel has. lcd.c lcd_bright_set writes
- * it at once */
-#define ui_bright (favorites.factory[15][25])
-#define BRIGHT_DEF 0xFFu
-static const uint8_t BRIGHT_LCD[4] = {0x40, 0x80, 0xC8, 0xFF};   /* 25 %, 50 %, 78 %, 100 % (the default) */
-static void ui_bright_apply(void)                       /* main.c, after lcd_init: the saved level, not the default */
-{
-    lcd_bright_set(ui_bright ? ui_bright : BRIGHT_DEF);
-}
 #define ui_trks (favorites.factory[15][18])    /* (3.4) MENU > TRACKS: 0 four (ECO), 1 five (BALANCED), 2 six (FULL);
                                                 * a byte of engine 15's block (a bitmap of favourites for an engine that
                                                 * does not exist), 0 in every older setting = the four tracks it had */

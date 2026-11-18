@@ -122,8 +122,34 @@ static void preset_mode(void)
     trk_note_on(&trk[0], 55, 100);
     check("..and POLY on the VOICE page gives the notes back", held_n(&trk[0]) == 2u);
 }
+/* (1.4.2.1) NO POP AT POWER-ON: the DAC output ramps in over the first blocks instead of starting at level, so the
+ * codec's own transient under the splash has nothing to jump from. A loud note from the first block: block 0 must
+ * be a fraction of the level the same note reaches once the fade is over. */
+static void boot_fade(void)
+{
+    int32_t out[2 * CTL];
+    double pk0 = 0, pk1 = 0;
+    uint32_t b, k;
+    fresh2();
+    trk[0].engine = trk[0].eng_req = ENGI_ANALOG;
+    trk[0].p[P_VOICE] = V_POLY;
+    trk_note_on(&trk[0], 60, 120);
+    for (b = 0; b < 40u; b++) {
+        audio_block(out, CTL);
+        for (k = 0; k < CTL; k++) {
+            double v = (double)(out[2 * k] + out[2 * k + 1]) * 0.5;
+            v = v < 0 ? -v : v;
+            if (b == 0u && v > pk0) pk0 = v;
+            if (b >= 30u && v > pk1) pk1 = v;
+        }
+    }
+    check("power-on: the output fades in instead of starting at level (no pop under the splash)",
+          pk1 > 0 && pk0 < pk1 * 0.25);
+    printf("poly:   first block peak %.0f, after the fade %.0f\n", pk0, pk1);
+}
 int main(void)
 {
+    boot_fade();
     chord("POLY: three keys, three voices, three notes in the spectrum", 0);
     chord("POLY under the load governor: still three voices", 1);
     preset_mode();
