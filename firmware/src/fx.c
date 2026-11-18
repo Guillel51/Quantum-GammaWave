@@ -1111,7 +1111,7 @@ static void dly_wow_adv(uint32_t n, int32_t *m0, int32_t *dm)   /* the block's d
     fx.df_ph += (uint32_t)(5.3 * 4294967296.0 / FS) * n;
     m = ((osc_sine(fx.dw_ph) * d) >> 12) + ((osc_sine(fx.df_ph) * d) >> 15);   /* (Q8: WOW +-d / 3.9, FLUTTER +-d / 16 samples) */
     *m0 = fx.dw_m;
-    *dm = (m - fx.dw_m) / (int32_t)n;
+    *dm = div_by_n(m - fx.dw_m, n);                     /* (FASE 1) a shift at the block length, not a divide */
     fx.dw_m = *m0 + *dm * (int32_t)n;
 }
 /* the line buf (written at w) d samples back, plus m (Q8): on a sample exact; between two (MOD's drift) a 4-point
@@ -1722,7 +1722,7 @@ static void fx_gate(int32_t *wet, uint32_t n)
         fxg_g = 32767;
     if (g0 == 32767 && fxg_g == 32767)
         return;
-    d = (fxg_g - g0) / (int32_t)n;
+    d = div_by_n(fxg_g - g0, n);                        /* (FASE 1) a shift at the block length, not a divide */
     for (i = 0; i < n; i++, g0 += d)
         wet[i] = mulq15(wet[i], g0);
 }
