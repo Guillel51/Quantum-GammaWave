@@ -9453,9 +9453,13 @@ static int test_browse_no_pattern(void)
             }
         }
     }
-    if (!ok || loads < 200u || pat_hints <= 10u) printf("  ok %d loads %u hints %u\n", ok, loads, pat_hints);
+    /* (FASE 5) 200 was a number from when the browser walked more sound than the box holds, and it has been red
+     * since: preset_pos gives the list's real size, so the check now asks for every sound of the list, on both
+     * pages, stopped and playing -- 4 passes x total turns -- instead of a figure that goes stale with the library. */
+    if (!ok || loads < 4u * total || total < 40u || pat_hints <= 10u)
+        printf("  ok %d total %u loads %u (4 x %u) hints %u\n", ok, total, loads, total, pat_hints);
     bad += check("#51 every sound browsed (HOME, PRESETS; stopped, playing): no step, ARP off, nothing held, no start",
-                 ok && loads >= 200u && pat_hints > 10u);
+                 ok && total >= 40u && loads >= 4u * total && pat_hints > 10u);
     return bad;
 }
 
