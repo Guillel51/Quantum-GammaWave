@@ -1,3 +1,12 @@
+## En el árbol — Web Studio: MOD ROUTING, la matriz de un vistazo
+
+El grupo **MOD** del panel de sonido mostaba los cuatro slots como tres selectores y un número, uno debajo de
+otro: para saber qué modula qué había que leer doce campos. Arriba de esos slots ahora hay una tarjeta
+**MOD ROUTING** con una línea por slot activo — número, fuente, destino y la cantidad con su signo — y marca en
+ámbar los destinos que dos slots comparten, porque ahí las dos cantidades se suman. Se arma leyendo los mismos
+controles que recibe el dispositivo (no una copia), así que se actualiza cuando llega un valor del aparato o
+cuando se mueve un selector, y no cuesta nada en el firmware: el dispositivo no cambia ni un byte.
+
 ## En el árbol — auditoría de RAM/flash sin toolchain
 
 `tools/ram_flash_map.py` (nuevo, gate en la suite) compila las fuentes para host y publica, por sección de

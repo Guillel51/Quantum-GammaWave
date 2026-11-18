@@ -177,6 +177,19 @@
   }
   footer { margin-top: 28px; font-size: 11px; color: var(--dim); border-top: 1px solid var(--line); padding-top: 12px; }
   .row.pushed .v { font-weight: 800; color: var(--theme); text-shadow: 0 0 8px var(--glow); }
+  /* the matrix at a glance: every slot that does something, source -> destination and its amount */
+  .modmap { margin: 2px 0 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
+            background: linear-gradient(180deg, rgba(96, 228, 255, 0.05), rgba(96, 228, 255, 0.01)); }
+  .modmap h4 { margin: 0 0 6px; font-size: 10px; letter-spacing: 0.14em; color: var(--dim); font-weight: 700; }
+  .modmap .mq { display: grid; grid-template-columns: 14px 1fr 12px 1fr 46px; gap: 6px; align-items: baseline;
+                font-size: 12px; padding: 1px 0; }
+  .modmap .mq .n { color: var(--dim); font-size: 10px; }
+  .modmap .mq .s { color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modmap .mq .d { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modmap .mq .a { text-align: right; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .modmap .mq .ar { color: var(--dim); }
+  .modmap .mq.dup .d { color: #ffb347; }
+  .modmap .none { color: var(--dim); font-size: 11px; }
   .row.modrow { grid-template-columns: 16px 1fr 1fr 1fr 52px; }
   /* librarian: local library and the device's user bank side by side, stacked on a phone */
   .libcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px 24px; margin-top: 6px; }
@@ -4004,6 +4017,7 @@ function modDst(d, txt) {
 
 function buildGroups() {
   ctl.clear();
+  dev.modBase = null;
   dev.built = dev.dump.engine;
   /* Sound: the selected track's parameters; Sequencer: its pattern settings; Settings: globals */
   const groups = { groups: [], seqgroups: [], setgroups: [] };
@@ -4020,6 +4034,8 @@ function buildGroups() {
           for (let j = 0; j < 3; j++) ctl.get(key(0, g.mod + 3 * k + j)).row = row;   /* (the push highlight) */
           div.append(row);
         }
+        dev.modBase = g.mod;                        /* renderModMap: the same ids, read at a glance */
+        div.insertBefore(modMapEl(), div.children[1] || null);   /* under the group's title */
         groups.groups.push(div);
         continue;
       }
@@ -4043,6 +4059,46 @@ function buildGroups() {
     groups.setgroups.push(c);
   }
   for (const [id, divs] of Object.entries(groups)) $(id).replaceChildren(...divs);
+  renderModMap();
+}
+
+/* the matrix at a glance: each of the four slots that is doing something, its source, its destination and
+ * its amount, with a destination used by two slots marked (they sum). Read from the controls themselves,
+ * so it is the same value the device got. */
+function modMapEl() {
+  return el("div", { class: "modmap", id: "modmap" },
+    el("h4", { text: "MOD ROUTING" }), el("div", { class: "mm-body" }));
+}
+
+function modMapName(c) {
+  const o = c && c.input && c.input.options ? c.input.options[c.input.selectedIndex] : null;
+  return o ? o.textContent.trim() : "";
+}
+
+function renderModMap() {
+  const box = document.querySelector("#modmap .mm-body");
+  if (!box || !dev || dev.modBase == null) return;
+  const rows = [];
+  const uses = new Map();
+  for (let k = 0; k < 4; k++) {
+    const sc = ctl.get(key(0, dev.modBase + 3 * k)), dc = ctl.get(key(0, dev.modBase + 3 * k + 1)),
+          ac = ctl.get(key(0, dev.modBase + 3 * k + 2));
+    if (!sc || !dc || !ac) continue;
+    const sv = +sc.input.value, dv = +dc.input.value, av = +ac.input.value;
+    if (!sv || !dv || !av) continue;
+    const sn = modMapName(sc), dn = modMapName(dc);
+    uses.set(dn, (uses.get(dn) || 0) + 1);
+    rows.push({ k, sn, dn, av });
+  }
+  if (!rows.length) {
+    box.replaceChildren(el("div", { class: "none", text: "no slot assigned: SRC, DEST and AMT all need a value" }));
+    return;
+  }
+  box.replaceChildren(...rows.map((r) => el("div", { class: "mq" + (uses.get(r.dn) > 1 ? " dup" : "") },
+    el("span", { class: "n", text: String(r.k + 1) }),
+    el("span", { class: "s", text: r.sn }), el("span", { class: "ar", text: "→" }),
+    el("span", { class: "d", text: r.dn }),
+    el("span", { class: "a", text: (r.av > 0 ? "+" : "") + r.av }))));
 }
 
 function paramRow(s, id) {
@@ -4098,6 +4154,8 @@ function paramRow(s, id) {
 
 function showValue(k, v, force) {
   const c = ctl.get(k);
+  if (c && dev && dev.modBase != null && c.scope === 0 && c.id >= dev.modBase && c.id < dev.modBase + 12)
+    setTimeout(renderModMap, 0);                    /* the matrix's own controls: the map follows them */
   if (!c || v == null) return;
   const [txt0, unit] = fmtValue(c.desc, v), txt = modDst(c.desc, txt0);
   c.out.textContent = unit ? `${txt} ${unit}` : txt;
