@@ -1,4 +1,4 @@
-## v1.4.15 — LTO: la imagen baja 4 196 B
+## v1.4.16 — LTO: la imagen baja 4 196 B
 
 `-flto` estaba mal medido: `ld` no carga `LLVMgold.so` por su cuenta, y sin el plugin el enlace de bitcode falla.
 Con `-plugin <toolchain>/common/bin/LLVMgold.so` en los dos enlaces el build entra y:
@@ -7,9 +7,26 @@ Con `-plugin <toolchain>/common/bin/LLVMgold.so` en los dos enlaces el build ent
 - código XIP 422 364 B (−4 356), constantes 135 780 B (−40)
 - `.data+.bss` 91 312 B de 98 304; pool spare 9 248 B; LOWBUF 30 564 B — sin cambios
 
-Verificado con el cambio puesto: 303 renders dorados idénticos, 3 056 cuadros del barrido idénticos al baseline,
-lint y alineación sin hallazgos, `target_budget.py` sin entradas fuera de presupuesto. Sitio, paquete y emulador
-resincronizados sobre este árbol.
+No gana por unificar unidades (la app ya se compilaba a un solo módulo IR): el objeto final era código máquina y el
+linker sólo concatenaba; con el plugin corre LLVM sobre el bitcode.
+
+Verificado con el cambio puesto: 303 renders dorados idénticos (0 cambiados, 0 perdidos), 3 056 cuadros del
+barrido idénticos al baseline, lint y alineación sin hallazgos, `target_budget.py` sin entradas fuera de
+presupuesto. Clase: build AC791N para los bytes, host x86 para audio y pantalla.
+
+## v1.4.15 — el build de release aceptaba sólo versiones de una cifra
+
+`tools/build.py --release` validaba el número con `(\d)\.(\d)(?:\.\d){0,2}`, un dígito por segmento. Toda versión
+con una cifra de dos dígitos —`1.4.10`, `1.4.13`, `1.4.14`— se rechazaba con «use X.Y, X.Y.Z…», y ése fue el paso
+que falló en el job `build` de **todas** las releases desde la 1.4.10: v1.4.9 es la última que compiló su paquete
+en CI. Ahora los segmentos son `\d+` (`X.Y`, `X.Y.Z`, `X.Y.Z.W` y el sufijo `-rc1` siguen aceptándose, `x1` no), y
+`./build.sh --release 1.4.15` corta el paquete desde un árbol limpio, como lo corre el workflow.
+
+Esta versión no cambia una línea del firmware: es la 1.4.14 soplando el `--release` que el tag necesita. Con
+esto el job `build` del tag compila el paquete (15 m 13 s, artefacto `packages` y su atestación); el job
+`verify` de ese mismo run sigue en rojo y es la única cosa abierta de esta versión: su log necesita
+credencial y no se pudo leer desde acá, y el paquete publicado es byte a byte el del árbol (`sha256
+191493bc…`), así que lo que resta comprobar es la atestación, no los bytes del paquete.
 
 ## v1.4.14 — PANEL Y: la franja del panel se elige en Settings y se recuerda
 
@@ -100,8 +117,7 @@ glifos, una paleta o un desplazamiento de 1 px podía pasar toda la suite. Ahora
 propósito exige `--update` y decirlo en el commit.
 
 ### Lo que se probó y no entra
-- `-flto`: se midió sin `-plugin`, falló y se dio por no disponible. **La Fase 6 (v1.4.15) lo volvió a medir
-  con `LLVMgold.so` y entra: −4 196 B de imagen.**
+- `-flto`: el linker del toolchain (GNU ld 2.26) no lo enlaza — falla. Se midió; no está disponible.
 - Zero-init de los `ui_shapes` duplicados: no hay ninguno, 0 B.
 - Kerning de S (~476 B), `ui_shapes` comprimido (~2,3 KiB), unión de `sec_stage`/`proj_scratch` (~9 KiB de
   `.bss`), buses a bloque de 64, blit en el núcleo 1, reescritura del barrido de teclas a 10 kHz: quedan
