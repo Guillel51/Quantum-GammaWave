@@ -1,3 +1,32 @@
+## v1.4.7 — la pantalla de la unidad: la transferencia del panel ya no se corta a mitad de cuadro
+
+El dueño reporta, en la FM-1, que **todas las pantallas siguen casi negras** (el splash incluido), que sólo se ven
+partes y que faltan palabras. Después de descartar la gamma (1.4.4.1 dejó de escribirla y el síntoma no cambió),
+la causa está en el camino de datos del panel, no en el dibujo: lo que el firmware pinta es idéntico al del
+emulador (los 303 dorados y el barrido lo cubren), pero lo que llega al panel no es el cuadro entero.
+
+### La espera de la DMA tenía un tope fijo, más corto que un cuadro completo
+`fm1_lcd_wait()` (`hal/fm1_lcd_hw.h`) esperaba **4 000 000 de iteraciones para cualquier transferencia**. A 12 MHz
+un byte tarda 8/12e6 s = 666 ns y una iteración de ese lazo es una lectura de periférico (~16 ns en este núcleo),
+así que un blit de 240x240x2 = **115 200 B (≈77 ms)** necesita unos **4,8 millones**: el tope se agotaba antes,
+limpiaba el flag de pendiente y deseleccionaba CS **con la DMA viva**, y el panel se quedaba con la parte del
+cuadro que hubiera llegado. Eso es exactamente "sólo se ven algunos detalles": los blits que entraban en el tope,
+y los demás truncados. El splash y las pantallas de cuerpo entero son los blits más grandes, por eso también.
+
+Ahora el tope es **el de la transferencia**: `200 + bytes * 160` iteraciones (~2,5 µs por byte, tres veces lo que
+necesita el cable) y sólo se paga entero cuando la transferencia de verdad no termina. Clase: build AC791N y
+código leído; **no medido en la unidad**.
+
+### `status` dice si alguna se cortó
+`lcd_timeouts` sale en la consola: 0 significa que ninguna transferencia agotó su tope (y entonces lo que falla es
+el panel, no el envío); un número que sube, que era esto. Es la lectura que convierte el próximo reporte en una
+medición en vez de una impresión.
+
+### El instalador ya no reproduce el arranque
+La tarjeta "el instrumento encendiéndose" del instalador web arrancaba el `felucca.wasm` en la página y mostraba el
+splash animado sin relación con lo que el jugador estaba haciendo. Se quitó de `web/index_pkg.html` (sección,
+CSS, textos en los tres idiomas y el guion que lo arrancaba): el instalador vuelve a ser lo que hace.
+
 ## v1.4.6 — el panel vigilado por una prueba, la memoria legible en la unidad y `mem` en tres líneas
 
 Dos agregados, los dos pensados para que lo que se midió en el host se pueda comprobar (o volver a comprobar) sin

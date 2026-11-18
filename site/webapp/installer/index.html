@@ -5,7 +5,7 @@
 <html lang="en" data-palette="quantum">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RV26k7udKlI12oceB1fXg6uy2DyBYKuomrwQCsdN0wc=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-gNj1RwQLYpOFAhlKx5ZDEfcn/0eOfZb+3hPe1p+lVYA=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QUANTUM GAMMAWAVE — Installer for M-VAVE FM-1</title>
@@ -253,14 +253,6 @@
   }
   .nav-btn:hover { background: var(--accent); color: #070709; }
 
-  /* (4.0) the boot sequence, played here as it plays on the emulator and on the unit: the same felucca.wasm the
-     emulator runs, booted in this page and drawn at its own clock. A still frame was what the installer used to
-     show; this is the device's splash, its sweep and the screen it lands on, at 60 frames a second. */
-  .boot-stage { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 12px 0 4px; }
-  #boot-screen { width: 240px; max-width: 92vw; aspect-ratio: 1 / 1; height: auto; image-rendering: pixelated;
-                 image-rendering: crisp-edges; background: #000; border: 1px solid var(--edge, #2a2a30);
-                 border-radius: 10px; display: block; }
-  .boot-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 </style>
 </head>
 <body>
@@ -290,19 +282,6 @@
       <div class="spec-card"><strong>PUNCH-IN FX + 6 LATCH MUTES</strong>Live key assignments, full F3–G5 keyboard and real peak meters</div>
     </div>
   </header>
-
-  <!-- The device's own boot: the same image the emulator and the unit run, not a still of it -->
-  <section class="card" id="boot-card" hidden>
-    <div class="card-title" data-t="bootTitle"></div>
-    <p class="small" data-t="bootWhat"></p>
-    <div class="boot-stage">
-      <canvas id="boot-screen" width="240" height="240" role="img" aria-label="FM-1 boot sequence"></canvas>
-      <div class="boot-row">
-        <button class="btn-ghost" id="boot-replay" type="button" data-t="bootReplay"></button>
-      </div>
-      <p class="small" id="boot-note" style="color:var(--muted);margin:0"></p>
-    </div>
-  </section>
 
   <!-- Before anything is written: the same package checks the installer runs, and the exact sectors it will write -->
   <section class="card" id="plan-card">
@@ -2717,7 +2696,6 @@ const TEXT = {
     verLabel: "Version:", verOld: "You can install the latest release or roll back to an earlier build.", latest: "latest", manual: "Manual:",
     chipCheck: "🧪 Check chip (read only)",
     planTitle: "Before you write anything: what the install will write",
-    bootTitle: "The device, switching on: the boot sequence, frame by frame", bootWhat: "The same felucca.wasm the emulator runs, booted here at its own clock: the splash, the sweep and the screen it lands on. Nothing is sent to the FM-1 while you watch.", bootReplay: "Boot it again",
     planWhat: "On a stock FM-1 the install stages this package's loader, which reads the flash chip and refuses a part the firmware does not write before it erases anything. It writes only what differs inside 0x04000-0x92FFF, keeping the boot area and the factory data. This panel runs the same package checks the installer runs and, with your dump loaded, shows the exact sectors that will be written. Nothing is sent to the unit.",
     planDump: "Your dump (.bin, 1 MiB), for the exact plan:",
     planNoPkg: "The package has not loaded yet: reload the page.",
@@ -2867,7 +2845,6 @@ TEXT.es = {
   verLabel: "Versión del paquete:", verOld: "Podés instalar la última versión o volver a una anterior.", latest: "última", manual: "Manual:",
   chipCheck: "🧪 Comprobar chip (solo lectura)",
   planTitle: "Antes de escribir nada: qué va a escribir la instalación",
-  bootTitle: "El instrumento encendiéndose: la secuencia de arranque, cuadro a cuadro", bootWhat: "El mismo felucca.wasm que corre el emulador, arrancado aquí con su propio reloj: el splash, el barrido y la pantalla a la que llega. Mientras mirás, no se envía nada a la FM-1.", bootReplay: "Arrancarlo otra vez",
   planWhat: "En un FM-1 de fábrica la instalación prepara el loader de este paquete, que lee el chip de flash y rechaza una parte que el firmware no escribe antes de borrar nada. Escribe sólo lo que difiere dentro de 0x04000-0x92FFF, conservando el área de arranque y los datos de fábrica. Este panel corre las mismas comprobaciones de paquete que el instalador y, con tu dump cargado, muestra los sectores exactos que se van a escribir. No se envía nada a la unidad.",
   planDump: "Tu dump (.bin, 1 MiB), para el plan exacto:",
   planNoPkg: "El paquete todav\u00eda no est\u00e1 cargado: recarg\u00e1 la p\u00e1gina.",
@@ -2965,7 +2942,6 @@ TEXT.zh = {
   verLabel: "固件包版本：", verOld: "您可以安装最新版本或回退到较早版本。", latest: "最新", manual: "手册：",
   chipCheck: "🧪 检查闪存芯片（只读）",
   planTitle: "写入之前：安装将要写什么",
-  bootTitle: "设备开机：逐帧的启动序列", bootWhat: "与模拟器相同的 felucca.wasm，按设备自己的时钟在这里启动：启动画面、扫光以及它落到的屏幕。观看时不会向 FM-1 发送任何数据。", bootReplay: "再次启动",
   planWhat: "出厂 FM-1 的安装会准备好本包的 loader，它读取闪存芯片，在擦除任何内容之前就拒绝固件不写入的器件。它只写 0x04000-0x92FFF 内有差异的扇区，保留引导区与出厂数据。本面板运行与安装器相同的包校验，并在你加载 dump 后显示将要写入的确切扇区。不会向设备发送任何内容。",
   planDump: "\u4f60\u7684 dump\uff08.bin\uff0c1 MiB\uff09\uff0c\u7528\u4e8e\u786e\u5207\u8ba1\u5212\uff1a",
   planNoPkg: "\u5b89\u88c5\u5305\u5c1a\u672a\u52a0\u8f7d\uff1a\u8bf7\u5237\u65b0\u9875\u9762\u3002",
@@ -3479,7 +3455,7 @@ const log = (t) => { $("log").textContent += t + "\n"; };
 let image = null;                 // the verified package bytes (the transport derives the image)
 let releaseHash = null;           // the published SHA-256 of those bytes (versions.json)
 let releaseVersion = null;        // the version those bytes are
-const meta = {"version": "1.4.7", "product": "FM-1_965", "pkg": "../../firmware/felucca-1.4.7.fwsc", "sha256": "4e47b3742153beef700f9dfba616c993855a1cb1d353e03ae8520861834d0cfd", "size": 610959, "stock": false, "build": {"artifacts": {"felucca.bin": {"bytes": 583608, "sha256": "4945ea368ecfb86c9b15fb80b3bcfc7b3450a6377f843cc2344e0f61850f2fa2"}, "felucca.fwsc": {"bytes": 610959, "sha256": "4e47b3742153beef700f9dfba616c993855a1cb1d353e03ae8520861834d0cfd"}, "loader/ota.bin": {"bytes": 7803, "sha256": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"}}, "checks": {}, "commit": "2cf7feaf58740c3c50bb9c72b4c8dacd122a8e90", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "2cf7feaf5874", "version": "v1.4.7", "wasm_bytes": 1240323, "wasm_sha256": "ba00241cb78e99ed3f74b8ae7c787556e7f6f8f2fd35715051834ede9e978276"}, "identity": "FM-1_965", "schema": "qg1-build-1", "sdk": {"commit": "0617f4cc09685332aaf1104893718291c54ee5bb", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/73f3c91ff5742b239ea3ab96/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/73f3c91ff5742b239ea3ab96/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.4.7"}, "emu": {"built": "2026-11-18T14:26:02Z", "commit": "2cf7feaf5874", "config": {"EMU_CFLAGS": "", "EMU_OPT": "-O2", "EMU_PREVIEW": "0"}, "dirty": [], "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)", "identity": "FM-1_965", "schema": "qg1-emu-1", "version": "v1.4.7", "wasm_bytes": 1240323, "wasm_sha256": "ba00241cb78e99ed3f74b8ae7c787556e7f6f8f2fd35715051834ede9e978276"}, "keys": {"qg1-release-1": "70b6036fd33da3297a41da2141c5d135b3efce2d815d55911fc4f9b1d07fcd40"}, "versions": [{"version": "1.4.7", "pkg": "../../firmware/felucca-1.4.7.fwsc", "sha256": "4e47b3742153beef700f9dfba616c993855a1cb1d353e03ae8520861834d0cfd", "size": 610959, "manifest": "../../firmware/felucca-1.4.7.fwsc.manifest.json", "build": {"artifacts": {"felucca.bin": {"bytes": 583608, "sha256": "4945ea368ecfb86c9b15fb80b3bcfc7b3450a6377f843cc2344e0f61850f2fa2"}, "felucca.fwsc": {"bytes": 610959, "sha256": "4e47b3742153beef700f9dfba616c993855a1cb1d353e03ae8520861834d0cfd"}, "loader/ota.bin": {"bytes": 7803, "sha256": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"}}, "checks": {}, "commit": "2cf7feaf58740c3c50bb9c72b4c8dacd122a8e90", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "2cf7feaf5874", "version": "v1.4.7", "wasm_bytes": 1240323, "wasm_sha256": "ba00241cb78e99ed3f74b8ae7c787556e7f6f8f2fd35715051834ede9e978276"}, "identity": "FM-1_965", "schema": "qg1-build-1", "sdk": {"commit": "0617f4cc09685332aaf1104893718291c54ee5bb", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/73f3c91ff5742b239ea3ab96/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/73f3c91ff5742b239ea3ab96/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.4.7"}}, {"version": "1.4.6", "pkg": "../../firmware/felucca-1.4.6.fwsc", "sha256": "0cc2aa5515fcc6608dd6b61135f3537b9800b492c8ebb440060e5c6263e74578", "size": 610959, "manifest": "../../firmware/felucca-1.4.6.fwsc.manifest.json", "build": null}, {"version": "1.4.5", "pkg": "../../firmware/felucca-1.4.5.fwsc", "sha256": "7c12a9f98e776f92c3ccb29c29a5d5401bcf3745969f5f09ba8389bdc216c686", "size": 610959, "manifest": "../../firmware/felucca-1.4.5.fwsc.manifest.json", "build": null}, {"version": "1.4.4.1", "pkg": "../../firmware/felucca-1.4.4.1.fwsc", "sha256": "6f61b7ac474ec8f7c20f3d83932eaff5d21b7fb522a902b17a2a89354b312c04", "size": 610959, "manifest": "../../firmware/felucca-1.4.4.1.fwsc.manifest.json", "build": null}, {"version": "v1.4.4-ca2d53a", "pkg": "../../firmware/felucca-v1.4.4-ca2d53a.fwsc", "sha256": "4f20623b096df0979ce6937234d0d45c45f8a7adf84eb01a8836de6a9b17bc2e", "size": 610959, "manifest": "../../firmware/felucca-v1.4.4-ca2d53a.fwsc.manifest.json", "build": null}, {"version": "1.4.4", "pkg": "../../firmware/felucca-1.4.4.fwsc", "sha256": "4f20623b096df0979ce6937234d0d45c45f8a7adf84eb01a8836de6a9b17bc2e", "size": 610959, "manifest": "../../firmware/felucca-1.4.4.fwsc.manifest.json", "build": null}]};
+const meta = {"version": "1.4.7", "product": "FM-1_965", "pkg": "../../firmware/felucca-1.4.7.fwsc", "sha256": "50e4ec43e13844f73814ed32ff88363e803fddf82c6457f6a4b78609520783c2", "size": 610959, "stock": false, "build": {"artifacts": {"felucca.bin": {"bytes": 583500, "sha256": "a014e35d61c3c7b1cf9e48dc2b377890a3cf27ba18bbe159996dc92eb91a118e"}, "felucca.fwsc": {"bytes": 610959, "sha256": "50e4ec43e13844f73814ed32ff88363e803fddf82c6457f6a4b78609520783c2"}, "loader/ota.bin": {"bytes": 7803, "sha256": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"}}, "checks": {}, "commit": "ea1cb63c7fbf0a12f351cb904f8a07a45a58bce9", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "ea1cb63c7fbf", "version": "v1.4.7", "wasm_bytes": 1240754, "wasm_sha256": "3424012a613b505889212a0620c328c866bf18e1ac3af883878991ffee565793"}, "identity": "FM-1_965", "schema": "qg1-build-1", "sdk": {"commit": "unknown", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/1ba571e5d98c6103ac04d25e/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/1ba571e5d98c6103ac04d25e/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.4.7"}, "emu": {"built": "2026-11-18T14:25:07Z", "commit": "ea1cb63c7fbf", "config": {"EMU_CFLAGS": "", "EMU_OPT": "-O2", "EMU_PREVIEW": "0"}, "dirty": [], "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.11 (a0014542110d6078c3a1a7941fa1ddb3a2281f16)", "identity": "FM-1_965", "schema": "qg1-emu-1", "version": "v1.4.7", "wasm_bytes": 1240754, "wasm_sha256": "3424012a613b505889212a0620c328c866bf18e1ac3af883878991ffee565793"}, "keys": {"qg1-release-1": "70b6036fd33da3297a41da2141c5d135b3efce2d815d55911fc4f9b1d07fcd40"}, "versions": [{"version": "1.4.7", "pkg": "../../firmware/felucca-1.4.7.fwsc", "sha256": "50e4ec43e13844f73814ed32ff88363e803fddf82c6457f6a4b78609520783c2", "size": 610959, "manifest": "../../firmware/felucca-1.4.7.fwsc.manifest.json", "build": {"artifacts": {"felucca.bin": {"bytes": 583500, "sha256": "a014e35d61c3c7b1cf9e48dc2b377890a3cf27ba18bbe159996dc92eb91a118e"}, "felucca.fwsc": {"bytes": 610959, "sha256": "50e4ec43e13844f73814ed32ff88363e803fddf82c6457f6a4b78609520783c2"}, "loader/ota.bin": {"bytes": 7803, "sha256": "177c5680632768f7a0872f54e6071868595c3d780a57731fe9dacd427c1e776c"}}, "checks": {}, "commit": "ea1cb63c7fbf0a12f351cb904f8a07a45a58bce9", "config": {"FELUCCA_CDC": "default", "FELUCCA_CDC_DEFAULT": "default", "FELUCCA_FLASH": "default", "FELUCCA_FM4": "default", "FELUCCA_HOTRAM": "default", "FELUCCA_ICONS": "default", "FELUCCA_OTA": "default", "FELUCCA_OTA_DRYRUN": "default", "FELUCCA_OTA_RAMONLY": "default", "FELUCCA_SIZE": "default", "FELUCCA_SLICE": "default", "FELUCCA_UAC": "default", "FELUCCA_UAC_48K": "default", "FELUCCA_UAC_TONE": "default", "FELUCCA_UART": "default", "FELUCCA_USB_LAYOUT": "default"}, "dirty": [], "emulator": {"commit": "ea1cb63c7fbf", "version": "v1.4.7", "wasm_bytes": 1240754, "wasm_sha256": "3424012a613b505889212a0620c328c866bf18e1ac3af883878991ffee565793"}, "identity": "FM-1_965", "schema": "qg1-build-1", "sdk": {"commit": "unknown", "files": {"cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d", "cfg_tool.bin": "276579954f076886a6a7694f65dc71c034a63a2c204b76749065c0ac7b010d1b", "uboot.boot": "4e3b4c220dc96641cb5a723f41e68ce41d5261ae9434bb33fbd7f2c59976ded4"}, "path": "/workspace/homes/1ba571e5d98c6103ac04d25e/fw-AC79_AIoT_SDK"}, "toolchain": {"clang_sha256": "c45189ee624de0430deb0db02e6dce171fb5538e7fe323e3964dc8ac6236240f", "name": "jieli-linux-toolchains-20260730.1", "path": "/workspace/homes/1ba571e5d98c6103ac04d25e/.jieli/toolchain", "version": "clang version 4.0.1 () ()"}, "version": "v1.4.7"}}, {"version": "1.4.6", "pkg": "../../firmware/felucca-1.4.6.fwsc", "sha256": "0cc2aa5515fcc6608dd6b61135f3537b9800b492c8ebb440060e5c6263e74578", "size": 610959, "manifest": "../../firmware/felucca-1.4.6.fwsc.manifest.json", "build": null}, {"version": "1.4.5", "pkg": "../../firmware/felucca-1.4.5.fwsc", "sha256": "7c12a9f98e776f92c3ccb29c29a5d5401bcf3745969f5f09ba8389bdc216c686", "size": 610959, "manifest": "../../firmware/felucca-1.4.5.fwsc.manifest.json", "build": null}, {"version": "1.4.4.1", "pkg": "../../firmware/felucca-1.4.4.1.fwsc", "sha256": "6f61b7ac474ec8f7c20f3d83932eaff5d21b7fb522a902b17a2a89354b312c04", "size": 610959, "manifest": "../../firmware/felucca-1.4.4.1.fwsc.manifest.json", "build": null}, {"version": "v1.4.4-ca2d53a", "pkg": "../../firmware/felucca-v1.4.4-ca2d53a.fwsc", "sha256": "4f20623b096df0979ce6937234d0d45c45f8a7adf84eb01a8836de6a9b17bc2e", "size": 610959, "manifest": "../../firmware/felucca-v1.4.4-ca2d53a.fwsc.manifest.json", "build": null}, {"version": "1.4.4", "pkg": "../../firmware/felucca-1.4.4.fwsc", "sha256": "4f20623b096df0979ce6937234d0d45c45f8a7adf84eb01a8836de6a9b17bc2e", "size": 610959, "manifest": "../../firmware/felucca-1.4.4.fwsc.manifest.json", "build": null}]};
 /* what install()/resume() need to verify the package themselves: the transport identifies the chip
    on its own link, so no evidence is passed, and it refuses a transfer whose installed version is
    unknown. The page remembers the version it installed itself; anything else stays refused. */
@@ -4030,101 +4006,6 @@ $("stock-direct").addEventListener("click", async () => {
 });
 
 
-/* ---------------------------------------------------------------- the boot sequence (4.0) ---
- * The installer used to show the device as a still. This boots the same felucca.wasm the emulator ships, with the
- * same calls the worklet makes (web_nor_erase, web_master, web_seed, web_boot) but no audio: the page only needs
- * the panel. web_render(n) moves the device's clock n samples, so the animation runs at its real speed and the
- * splash is the firmware's own drawing, not a copy of it. It stops after the boot has landed on HOME and can be
- * replayed; it never runs while the card is off screen or the tab is hidden. */
-(() => {
-  const card = document.getElementById("boot-card"), cv = document.getElementById("boot-screen");
-  if (!card || !cv) return;
-  const ctx = cv.getContext("2d", { alpha: false });
-  const img = ctx.createImageData(240, 240), px = img.data;
-  for (let i = 3; i < px.length; i += 4) px[i] = 255;
-  const note = document.getElementById("boot-note"), again = document.getElementById("boot-replay");
-  const SRC = ["../../emulator/felucca.wasm", "../emulator/felucca.wasm"];   // the site's layout, then a local one
-  let ex = null, raf = 0, samples = 0, last = 0, shown = false, on = false, busy = false;
-  const BOOT_S = 7 * 44100;            // the splash (4.53 s: 30 + SPL_WRITE + SPL_HOLD) and a moment of HOME after it
-  const say = (m) => { if (note) note.textContent = m || ""; };
-
-  function paint() {
-    const p = new Uint16Array(ex.memory.buffer, ex.web_screen(), 240 * 240);
-    for (let i = 0; i < 240 * 240; i++) {
-      const v = p[i], q = ((v >> 8) | (v << 8)) & 0xffff;          // the panel's byte order -> RGB565
-      px[i * 4] = ((q >> 11) & 31) * 255 / 31;
-      px[i * 4 + 1] = ((q >> 5) & 63) * 255 / 63;
-      px[i * 4 + 2] = (q & 31) * 255 / 31;
-    }
-    ctx.putImageData(img, 0, 0);
-  }
-  function tick(t) {
-    raf = 0;
-    if (!ex || !on) return;
-    const dt = last ? Math.min(60, t - last) : 16;
-    last = t;
-    let n = Math.round(dt * 44.1);                                  // ms -> samples at 44100 Hz
-    if (n > 0) {
-      while (n > 0) { const k = Math.min(1024, n); ex.web_render(k); n -= k; }   // web_render takes <= 1024
-      samples += Math.round(dt * 44.1);
-      paint();
-    }
-    if (samples < BOOT_S) raf = requestAnimationFrame(tick);
-    else { last = 0; if (again) again.disabled = false; }
-  }
-  async function boot() {
-    if (busy) return;
-    busy = true;
-    if (raf) { cancelAnimationFrame(raf); raf = 0; }
-    ex = null; samples = 0; last = 0;
-    if (again) again.disabled = true;
-    say("");
-    let buf = null, err = "";
-    for (const u of SRC) {
-      try {
-        const r = await fetch(u, { cache: "force-cache" });
-        if (r.ok) { buf = await r.arrayBuffer(); break; }
-        err = "HTTP " + r.status;
-      } catch (e) { err = String((e && e.message) || e); }
-    }
-    if (!buf) {                                // no emulator next to this page: say so, do not show a fake device
-      card.hidden = true;
-      console.info("QUANTUM GAMMAWAVE: no felucca.wasm beside this page (" + err + "); the boot preview stays off.");
-      busy = false;
-      return;
-    }
-    try {
-      const { instance } = await WebAssembly.instantiate(buf, {});
-      const e = instance.exports;
-      e._initialize();
-      e.web_nor_erase();
-      if (e.web_master) e.web_master(700);
-      if (e.web_seed) e.web_seed((Math.random() * 4294967296) >>> 0);
-      e.web_boot();                            // the splash is drawn here, on the device's own timeline
-      ex = e;
-      card.hidden = false;
-      paint();
-      on = true;
-      raf = requestAnimationFrame(tick);
-    } catch (e) {
-      card.hidden = true;
-      console.info("QUANTUM GAMMAWAVE: the boot preview could not start: " + ((e && e.message) || e));
-    }
-    busy = false;
-  }
-  if (again) again.addEventListener("click", boot);
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver((rows) => {
-      const vis = rows.some((r) => r.isIntersecting);
-      if (!vis) { on = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
-      else if (ex && samples < BOOT_S) { on = true; last = 0; if (!raf) raf = requestAnimationFrame(tick); }
-    }, { threshold: 0.15 }).observe(card);
-  }
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) { on = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } }
-  });
-  boot();
-})();
 </script>
 </body>
 </html>
