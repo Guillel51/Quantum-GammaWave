@@ -1,0 +1,472 @@
+# emulator run 44244831926 (failure) at 5055fc484a17c21f06a53770f7bc8ac64673f226
+
+## jobs
+- build: completed / failure
+    step FAILED: 16 target compiler checks (DSP budget of the render loops, the .fwsc reader on the package) -> failure
+    step FAILED: 21 a package and a site exist (fail closed) -> failure
+- deploy: completed / skipped
+
+## publish job
+
+## failed steps, any job
+build	Set up job	2026-11-18T05:31:26.3772746Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261111.370/images/ubuntu/Ubuntu2404-Readme.md
+build	Set up job	2026-11-18T05:31:27.6032890Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5042257Z From https://github.com/Guillel51/Quantum-GammaWave
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5092035Z  * [new branch]      ci/log/42560324030-success -> origin/ci/log/42560324030-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5103404Z  * [new branch]      ci/log/42584658558-failure -> origin/ci/log/42584658558-failure
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5146057Z  * [new branch]      ci/log/42914036626-failure -> origin/ci/log/42914036626-failure
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5148974Z  * [new branch]      ci/log/42934304046-failure -> origin/ci/log/42934304046-failure
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5169238Z  * [new branch]      ci/log/42960254048-success -> origin/ci/log/42960254048-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5174271Z  * [new branch]      ci/log/42964034323-cancelled -> origin/ci/log/42964034323-cancelled
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5200980Z  * [new branch]      ci/log/43052403602-cancelled -> origin/ci/log/43052403602-cancelled
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5205649Z  * [new branch]      ci/log/43055422733-success -> origin/ci/log/43055422733-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5270422Z  * [new branch]      ci/log/43343939089-failure -> origin/ci/log/43343939089-failure
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5284381Z  * [new branch]      ci/log/43422452557-success -> origin/ci/log/43422452557-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5288927Z  * [new branch]      ci/log/43448840392-success -> origin/ci/log/43448840392-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5292391Z  * [new branch]      ci/log/43474037096-failure -> origin/ci/log/43474037096-failure
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5300954Z  * [new branch]      ci/log/43600042299-success -> origin/ci/log/43600042299-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5342278Z  * [new branch]      ci/log/43794426421-failure -> origin/ci/log/43794426421-failure
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5353359Z  * [new branch]      ci/log/44033689569-success -> origin/ci/log/44033689569-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5354187Z  * [new branch]      ci/log/44037558449-success -> origin/ci/log/44037558449-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5354793Z  * [new branch]      ci/log/44047765514-failure -> origin/ci/log/44047765514-failure
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5366991Z  * [new branch]      ci/log/44186140393-success -> origin/ci/log/44186140393-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5369862Z  * [new branch]      ci/log/44200842253-success -> origin/ci/log/44200842253-success
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5390246Z  * [new branch]      feature/quantum-handoff-evolution-7533491563390614422 -> origin/feature/quantum-handoff-evolution-7533491563390614422
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5403505Z  * [new branch]      integ/v2.7.2-phasescreen -> origin/integ/v2.7.2-phasescreen
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5404371Z  * [new branch]      jules-16051787961813429323-dfe6ca9b -> origin/jules-16051787961813429323-dfe6ca9b
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5422054Z  * [new tag]         v1.0.0                  -> v1.0.0
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5422482Z  * [new tag]         v1.0.1                  -> v1.0.1
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5422903Z  * [new tag]         v1.0.2                  -> v1.0.2
+build	Run actions/checkout@v4	2026-11-18T05:31:32.5440477Z  * [new tag]         v2.7.4.7                -> v2.7.4.7
+build	Run actions/setup-python@v5	2026-11-18T05:31:32.9474225Z (Use `node --trace-deprecation ...` to show where the warning was created)
+build	Run pip install Pillow numpy fonttools cryptography	2026-11-18T05:31:37.4043478Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.7/15.7 MB 332.1 MB/s  0:00:00
+build	generated headers (fonts, icons, palettes, shapes, tables, samples)	2026-11-18T05:31:43.8687534Z face S: ChakraPetch-Medium.ttf 12px h16 base12  105 glyphs x 4  data 9523 B + table 2730 B + kern 1776 B (592 pairs) = 14039 B   digit adv 7.00px
+build	Run mymindstorm/setup-emsdk@v14	2026-11-18T05:31:45.2403438Z [command]/home/runner/work/_temp/5a4e6ddf-4ac7-4c0c-a584-61232e3d6ad5/emsdk-main/emsdk install 6.0.11
+build	Run mymindstorm/setup-emsdk@v14	2026-11-18T05:31:48.0314908Z Downloading: /home/runner/work/_temp/5a4e6ddf-4ac7-4c0c-a584-61232e3d6ad5/emsdk-main/downloads/f6264d4a4dd9ba24a9f0a5702835a44d1463de13-wasm-binaries.tar.xz from https://storage.googleapis.com/webassembly/emscripten-releases-builds/linux/f6264d4a4dd9ba24a9f0a5702835a44d1463de13/wasm-binaries.tar.xz, 304047688 Bytes
+build	the package, the installer and the editor	2026-11-18T05:33:08.4294781Z face S: ChakraPetch-Medium.ttf 12px h16 base12  105 glyphs x 4  data 9523 B + table 2730 B + kern 1776 B (592 pairs) = 14039 B   digit adv 7.00px
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:13.8104229Z editor: no reply -> timeout after the retries                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:23.9842226Z v4: v3 firmware -> WATCH 1, no TRACK_PARAM (pan by select / restore) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:24.1614039Z editor: a current connection still completes its initial load    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9404533Z ok   official V15: reported as stock
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0006422Z ok   no port at all: no device to compare, and the package is still named
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0403497Z ok   the report measures the answer latency instead of guessing it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0404618Z ok   the report names the port that answered
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0422414Z ok   silent unit: both identity frames are counted and the report says no answer
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3882365Z verify only: 153 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.5036276Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5098336Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5114220Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5114944Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5126215Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5132635Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5139825Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5856055Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3929026Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6003403Z the external record never authorises an install                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6004170Z flash read: 16 checks, 0 FAILED
+build	a package and a site exist (fail closed)	﻿2026-11-18T05:34:25.7982572Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.7983463Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.7984504Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+
+## tail
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:26.6881339Z editor: every icon name is in GLYPH (36 used)                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:26.6888246Z editor: fukiai.ttf and FUKIAI-LICENSE.txt next to editor.html    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:26.6889338Z editor: icons hidden until the font has loaded                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:26.7195095Z fm1pkg.js logicalImage                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:26.7196120Z fm1pkg.js productOf                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:26.7219186Z fm1ota.js: the test package identifies as FM-1_965 and holds the 0x2000 image ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.8958008Z fm1ota.js: a package with its published hash installs (11 reads, 2 UPGRADE frames) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.8959495Z fm1ota.js: the transport is private (find,waitFor,install,write,resume) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.8962604Z fm1ota.js: a wrong hash -> 'image', 0 frame(s), 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.8964744Z fm1ota.js: a package for another product -> 'proof', 0 frame(s), 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.8966189Z fm1ota.js: a package that is not bytes -> 'image', 0 frame(s), 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.8966996Z fm1ota.js: an empty package -> 'image', 0 frame(s), 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.8969264Z fm1ota.js: write without a product -> 'proof', 0 frame(s), 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:32.9026635Z fm1ota.js: an unknown chip -> 'chip', 2 frame(s), 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:34.4074552Z fm1ota.js: a chip that never answers 0x12 -> 'chip', 2 frame(s), 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:34.4081238Z fm1ota.js: a package changed after it was verified -> 'image', no frame ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:34.4084453Z fm1ota.js: an expired authorisation -> 'proof', 0 frames, 0 writes, 0 bytes ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:34.4097904Z fm1ota.js: a swapped package with a valid authorisation -> 'image', no frame ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:40.5772718Z fm1ota.js: one authorisation cannot be used twice -> 'proof', no frame ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:40.5800295Z fm1ota.js: a unit answering as FM-1_965 for a FM-1_901 package -> 'model', nothing written ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:43.6284987Z fm1ota.js: unplugged during the write -> stops at once           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:46.6644301Z fm1ota.js: unplugged in step 1 -> error code 'lost'              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:46.6648523Z fm1ota.js: no device -> error code 'notfound'                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8361339Z fm1ota.js: lost final ACK -> no success ('noreturn')             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8375065Z installer: JIANT (its tag) may be written over                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8378419Z installer: an older JIANT (six tracks, v0.x) too                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8379444Z installer: Felucca 1.x (four tracks) is not                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8380110Z installer: another firmware is not                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8399908Z editor: 4 distortion topologies include SOFT, TAPE, HEARTH, FLUX ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8405263Z installer: the LIVE BROWSER DSP PREVIEW is gone (section, canvases, controls and synth loop) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8406234Z editor: contains new themes SOLARIS, CYBERPUNK, NORDIC           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8406942Z installer: contains css styles for 3 new themes                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8407642Z editor: contains all 8 categorized preset optgroups in selector  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8416007Z installer page: 0x12 identifies the flash before the first write frame ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8417296Z installer page: every install() call passes the published hash and the installed version ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8418520Z installer page: every resume() call passes the published hash and the remembered version ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8419611Z installer page: write() is reached only through install()/resume() ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8420767Z installer page: the package's SHA-256 is checked before INSTALL  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8421790Z installer page: INSTALL is disabled until the package is verified ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8891092Z web 0x12: probe over a fake link                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8892129Z web 0x12: part and geometry                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8893112Z web 0x12 refuses unknown part                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8914852Z web 0x12 refuses status 2                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8915827Z web 0x12 refuses truncated                                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8916704Z web 0x12 refuses bad CRC                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8917658Z web 0x12 refuses no answer                                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8918555Z web 0x12 refuses geometry                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8919463Z web 0x13: reads the NOR's bytes                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8920290Z web 0x13 refuses a stale session                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8920871Z web 0x13 refuses a read past the part                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8921436Z web: P25Q80H is a validated write part                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8921960Z web: UC25HQ80 is a validated write part                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8922467Z web: an undocumented part is refused for writing                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8922992Z web: a blank JEDEC is refused for writing                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.8923359Z web tests passed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9386566Z ok   our firmware: reported as ours, with its own identity
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9390702Z ok   our firmware: only the identity query was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9404533Z ok   official V15: reported as stock
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9405171Z ok   official V15: only the identity query was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9420108Z ok   JIANT/another FM-1: its identity is reported as it answered
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9420734Z ok   JIANT/another FM-1: only the identity query was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9435456Z ok   FM-1_909 (JIANT): detected as an FM-1, model and version read from the frame
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9436496Z ok   FM-1_909 (JIANT): the firmware is reported as not recognised, and no install is authorised
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9437327Z ok   FM-1_909 (JIANT): only the identity query was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9452999Z ok   FM-1_015: kind stock, recognised true, never an install authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9457024Z ok   FM-1_965: kind ours, recognised true, never an install authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9472237Z ok   ota-FM-1_965: kind ourloader, recognised true, never an install authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9486541Z ok   ota-FM-1_015: kind otherloader, recognised true, never an install authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9503975Z ok   FM-1_909: kind other, recognised false, never an install authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9527062Z ok   FM-1_210: kind other, recognised false, never an install authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9545013Z ok   the button names its messages
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9551606Z ok   every message exists in en / fr / es / zh (a missing key printed the key itself)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:54.9552970Z ok   the not-recognised message says the device was detected and that nothing was written
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:56.9569617Z ok   a silent FM-1 port: reported as silent, with the port name
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:56.9570527Z ok   a silent FM-1 port: only identity queries were sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:56.9571763Z ok   no FM-1 at all: none, nothing sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:56.9587470Z ok   this project's loader (ota-FM-1_965): ourloader, an install was cut off
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:56.9588289Z ok   this project's loader: only the identity query was sent, no resume
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:56.9602394Z ok   the vendor's update mode (ota-FM-1_015): otherloader, reported as foreign, not resumable
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:56.9603183Z ok   the vendor's update mode: nothing was sent to it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:33:58.9619311Z ok   a malformed answer (3 bytes): still silent, no write
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:00.9640813Z ok   a malformed answer (1 bytes): still silent, no write
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:02.9673177Z ok   a malformed answer (6 bytes): still silent, no write
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9699272Z ok   a disconnect mid-handshake: reported, nothing else sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9700520Z ok   the install path never probes gear that is not an FM-1
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9716694Z ok   Verify Only probes it, with the read-only query and nothing else
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9734492Z ok   one unit under two Windows names (MIDIIN2 / MIDIOUT2) is paired and read
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9749252Z ok   a different package tag: reported as another firmware
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9751024Z ok   fm1verify.js exports only the read-only surface: verifyDevice, verifyPackage and the query
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9752545Z ok   fm1verify.js exports no install/write/resume entry point
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9763353Z ok   the page's Verify only button calls verifyDevice
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9765198Z ok   the page's Verify only handler names no write path
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9766171Z ok   a port change re-runs Verify Only instead of needing a reload
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9772927Z ok   install() with no real package is refused fail-closed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9774124Z ok   and that refusal reaches the device as zero frames
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9783333Z ok   the Verify only handler names no erase, restore, backup capture or reboot
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9787579Z ok   JIANT on a real unit (FM-1_909): the hardware is recognised as an FM-1
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9788789Z ok   JIANT (FM-1_909): the firmware is reported as another build, with its own version
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9789827Z ok   JIANT (FM-1_909): canInstall stays false
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9790641Z ok   JIANT (FM-1_909): still one frame type on the wire
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9791534Z ok   the report names the hardware field with its source
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9792393Z ok   the report names the firmware family and its version
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9792993Z ok   the report says what it could not read (JEDEC, flash size, SoC, clock, VID/PID)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9793562Z ok   the report never claims the SoC or the flash as a reading
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9855582Z ok   canInstall is false for stock, ours, another build and the loader
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9870938Z ok   the USB-MIDI manufacturer is reported when the port exposes it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9871822Z ok   the USB descriptor version is reported too
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9872729Z ok   and the readout counts as a diagnosis, not as an authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9882317Z ok   the page has a report panel and a row list
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9883922Z ok   the panel is filled from the report's fields and limits
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9885209Z ok   the Verify handler renders the report
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9886089Z ok   the panel says detection is not an authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9887603Z ok   the panel renders the checklist and the verdict, not only the field list
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9891833Z ok   every checklist row and state has words in the three languages
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9906872Z ok   stock unit: the device identity is what the unit answered (FM-1_015)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9908526Z ok   stock unit: the package is named in its own rows (FM-1_965), never as the device's identity
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9909701Z ok   stock unit: the package rows carry the release version, the size and the expected hash, with sources
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9910577Z ok   stock unit + this package: compatibility says it replaces official V15, and authorisation stays none
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9911245Z ok   stock unit: the package tag is in no device row at all
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9922138Z ok   a unit answering FM-1_965 is not stock, even when the package is a V15 one
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9923158Z ok   that unit is reported with its own identity and is not offered an install
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9924009Z ok   and it still heard nothing but the identity query
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9936024Z ok   a unit on the previous identity (FM-1_982): ours, not another build
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9937087Z ok   ... and the package is an update for it, not a reinstall
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9937827Z ok   ... with the previous identity in the device rows, never in the package rows
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9950305Z ok   FM-1_965 + package FM-1_965: ours, same firmware (a reinstall)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9963408Z ok   this project's loader + this package: it can finish the interrupted install
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9976676Z ok   the vendor's loader + this package: blocked as foreign, never "finish the install"
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:04.9989836Z ok   a unit of another model is blocked by model, not by firmware
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0005139Z ok   a silent port: unproven, never compatible, and the package is still named
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0006422Z ok   no port at all: no device to compare, and the package is still named
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0007368Z ok   neither of them claims an authorisation
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0018715Z ok   the stock message is no longer given the package tag as an argument
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0019589Z ok   the Verify handler passes the package to the report
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0035443Z ok   every stock message names the unit's identity and none of them names the package's
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0036562Z ok   the panel renders the package rows and translates the compatibility and authorisation values
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0037185Z ok   the new panel labels exist in en, es and zh
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0037718Z ok   write() called directly, with no proof, is refused and sends nothing
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0038323Z ok   resume() called directly, with no proof, is refused and sends nothing
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0370053Z ok   the installer page's script parses (a missing comma is a dead installer, not a typo)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0384865Z ok   the report names the package's build commit (the package's, not the unit's)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0386269Z ok   the report names the image and the loader the package was packed from
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0387597Z ok   with no package check in this run the report says unchecked, and says why
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0389036Z ok   the platform block is present and every row is marked documented, never read
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0389935Z ok   no row from the platform block claims to have been answered by the device
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0390618Z ok   every device row still cites the identity answer
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0402279Z ok   the report counts the identity frames it actually sent (1 here)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0403497Z ok   the report measures the answer latency instead of guessing it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0404618Z ok   the report names the port that answered
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0405401Z ok   the port's descriptor state and type are reported as descriptor data, not as device data
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:07.0406606Z ok   the browsing context's secure-context state is reported (WebMIDI needs it)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0422414Z ok   silent unit: both identity frames are counted and the report says no answer
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0423508Z ok   silent unit: still only identity queries on the wire
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0446972Z ok   the real case: FM-1_015 answered, the package offered is FM-1_965
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0448393Z ok   the real case: the package replaces stock V15 (same model, other tag)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0449175Z ok   the checklist has its ten rows, in the installer's order
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0450765Z ok   without an image size the flash map stays unknown, and the post-install identity is an obligation, not a precondition
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0451753Z ok   the four conditions this run can establish are pass
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0452523Z ok   with no package check in this run, the package row is unknown, never pass
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0453477Z ok   the chip is checked at install (the update loader reads it), never claimed as pass here
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0454821Z ok   a stock unit needs no full-flash dump: V15 is M-VAVE's published file, and an install resumes
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0455719Z ok   the verdict is NO-GO, lists what blocks it, and cannot install
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0461965Z ok   a key map does not let verify only claim the signature was checked
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0464306Z ok   no report row claims a JEDEC id, a clock or a flash geometry was read
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0478874Z ok   the chip is decided by the unit at install, and no report is asked of the user
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0479686Z ok   the map is established from the package, not from a write session
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0480439Z ok   recovery is covered (an interrupted install resumes), never 'exercised'
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0481314Z ok   the package check is still the blocker when it did not run, and nothing claims otherwise
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0482083Z ok   the verdict names this page as the path for a stock unit
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0482729Z ok   the read-only path still sent nothing but identity queries
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0493330Z ok   a stock unit with a checked package is GO: this page installs it
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0494375Z ok   its limitations are named, not hidden
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0494939Z ok   GO-HOST is not an authorisation to send anything
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0496971Z ok   the diagnostic file says RECOVERY AVAILABLE honestly: covered, still not exercised
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0510718Z ok   a unit already running QG: the installer's own path is GO
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0511701Z ok   the chip is not a gap here: the install reads it with 0x12 before its first write frame
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0512661Z ok   an update needs no full-flash dump, and its recovery is the loader's resume
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0513431Z ok   verify only still sent nothing but the identity query
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0525343Z ok   another JIANT build: compatibility fails in the checklist and the verdict is still NO-GO
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0545915Z ok   the eight states are named and ordered
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0546722Z ok   a stock unit reaches VERIFY READY and DEVICE COMPATIBLE
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0547407Z ok   verify only never reaches SIGNATURE VERIFIED or INSTALL READY
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0548221Z ok   a stock unit's recovery is covered by the resumable install, not reported as missing
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0550497Z ok   the export is a qg1-diagnostic-1 document with all eight states
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0551571Z ok   the export repeats the report's own fields and verdict
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0552775Z ok   the export carries no key material and no session token
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0627929Z ok   the released package verifies offline: hash and identity
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0637436Z ok   a package whose bytes are not the published hash is refused
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0649033Z ok   one altered byte is refused before any device is involved
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0658328Z ok   the released package is refused for another model
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0664384Z ok   with no published hash nothing is trusted, not even the real package
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0667001Z ok   with no unit, the package still reaches PACKAGE VERIFIED and SIGNATURE VERIFIED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0668068Z ok   no unit still means no VERIFY READY, no DEVICE COMPATIBLE and NO-GO
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0668975Z ok   an empty WebMIDI reports zero inputs and zero outputs, and says so
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:09.0669777Z ok   the report shows the package as checked here, not as expected
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:11.0678930Z ok   a silent FM-1 port is reported as silent, not as absent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:11.0679994Z ok   a silent port still reaches SIGNATURE VERIFIED but never DEVICE COMPATIBLE
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.0707878Z ok   a unit whose descriptor says nothing is still probed, and reported as silent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3738936Z ok   a stock unit that ignores 0x12: reported, not invented
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3740900Z ok   the chip check sent the identity query and one 0x12, and nothing that writes
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3782251Z ok   a unit answering 0x12: the JEDEC and geometry are the chip's own answer
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3783400Z ok   the chip check never opens the update path, even when the chip answers
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3826643Z ok   a read-only part is identified and reported as not writable
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3827939Z ok   that same answer is refused by requireChip before any write frame
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3853569Z ok   a JEDEC outside the documented table is refused, not guessed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3854666Z ok   no FM-1 port: no chip is claimed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3867836Z ok   the report's chip gate is a fail when the unit refused 0x12
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3881478Z ok   the chip gate passes on a real answer, and the install is still not authorised here
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:13.3882365Z verify only: 153 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.4927679Z refused: /tmp/fm1pf-ekp7qy1_/bare.fwsc: no SHA-256 published (pass --sha256, or put PACKAGE.sha256 / SHA256SUMS next to it): nothing written. A hash is integrity, not authenticity: it proves the bytes are the published ones, not who published them
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.4945673Z refused: /tmp/fm1pf-ekp7qy1_/bad.fwsc: SHA-256 4889fc091c5fb32f31fcd59658763f02a7040a307f476d1d92125f3f9576b8d8 does not match 0000000000000000000000000000000000000000000000000000000000000000 (/tmp/fm1pf-ekp7qy1_/bad.fwsc.sha256): damaged or altered, nothing written
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.4967531Z refused: model_mismatch: device XY-9_001 vs package FM-1_965
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.5024185Z refused: device_not_found: no FM-1 port answered the handshake
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.5033602Z usage: preflight_test.py [-h] [--sha256 HEX] [--port NAME] [--json FILE]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.5034734Z                          [--info]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.5035319Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.5036276Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:14.5062812Z refused: no_midi: needs mido and python-rtmidi (pip install mido python-rtmidi)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5098336Z error: the NOR could not be identified (timeout: no 0x12 answer). The update was not started: nothing was sent
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5112514Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5113302Z                          [--verify-only]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5114220Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5114944Z preflight_test.py: error: unrecognized arguments: --jedec 123456
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5123937Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5125041Z                          [--verify-only]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5125497Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5126215Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5130061Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5131091Z                          [--verify-only]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5131547Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5132635Z preflight_test.py: error: unrecognized arguments: --jedec 856014
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5136991Z usage: preflight_test.py [-h] [--info] [--port NAME] [--yes] [--sha256 HEX]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5138023Z                          [--verify-only]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5138719Z                          [package]
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5139825Z preflight_test.py: error: unrecognized arguments: --allow-unidentified-chip
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5285482Z a package with its published hash and an identified chip reads as ready  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5286803Z the report is written and states that nothing was written                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5287812Z the report records the chip that answered 0x12 and that the gate allowed it ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5288792Z the UCUN part passes the same preflight as the Puya one                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5289757Z an undocumented part stays a NO-GO with its reason                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5290692Z a unit that does not answer 0x12 stays a NO-GO with its reason           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5291659Z the preflight never starts an update (no UPGRADE frame)                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5292618Z no published hash anywhere: refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5293519Z a hash that does not match: refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5294714Z another model: refused                                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5295785Z another version of the same model reaches the gate (a downgrade is a different decision) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5296800Z no device answering: refused                                             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5297702Z there is no flag that passes the gate without the chip                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5298628Z a device left in update mode is reported and still gated                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5299544Z a package that does not exist: refused                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5300275Z a device that cannot answer 0x12: refused (exit 7)                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5300865Z a device that cannot answer 0x12: no UPGRADE sent                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5301466Z a typed JEDEC is not evidence: no such flag, nothing sent                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5302077Z an unidentified chip cannot be allowed: no such flag, nothing sent       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5302691Z FM1_LAB=1 changes nothing: the flags are gone and no frame is sent       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5303364Z a direct Updater.write() through a foreign loader, without evidence, is refused too ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5304208Z this project's loader (FM-1_965) may take the image without host evidence ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:15.5304653Z preflight: all passed
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5820742Z 0x12 identifies the part and its geometry                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5822167Z page / sector / block                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5822967Z probe: two readings                                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5824161Z probe: fresh session                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5825016Z unknown JEDEC -> unknown-part                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5825884Z truncated reply -> frame                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5826615Z bad reply CRC -> crc                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5827367Z two readings disagree -> mismatch                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5828121Z geometry not the part's -> geometry                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5828866Z no session token -> no-session                                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5829591Z no answer -> timeout                                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5830314Z device disconnected -> lost                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5831065Z the NOR does not answer -> no-nor-answer                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5832232Z 0x13 returns exactly the NOR's bytes                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5832978Z zero length -> length                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5833852Z more than one chunk -> length                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5834570Z past the end -> range                                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5835295Z stale session -> no-session                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5836221Z device read error -> length-or-read                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5836743Z reply for another address -> address                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5837257Z chunked read range                                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5846396Z backup: complete                                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5847228Z backup: sha256 of the part                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5847801Z backup: the two passes agree                                       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5848315Z backup: exact size                                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5848885Z backup records the 0x12 pair and sends read frames only (no 0x30, no UPGRADE) ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5849543Z backup manifest keeps the real order: identification first, then every read ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5850146Z manifest: identity and geometry                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5850673Z manifest on disk                                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5851207Z backup: passes differ -> inconsistent                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5851752Z inconsistent keeps both passes, no final hash                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5852318Z backup: unread ranges -> partial, not complete                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5852876Z partial backup keeps the errors                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5853482Z a 0x12 answer already in the queue is not mistaken for the answer to this request ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5854376Z a 0x13 reply carrying an older session is refused as stale         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5855003Z a stock unit (vendor handshake, no 0x12) is refused as no-query, not a cable fault ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5855605Z the refusal sent 0x12 only: no UPGRADE, nothing written            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:19.5856055Z chip / backup test passed (0 failed)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3914105Z a complete read-only bundle verifies                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3915186Z the frame log is checked, not assumed                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3916069Z the evidence record is written                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3916964Z the record says verified-read                                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3917827Z the record never authorises an install                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3918730Z a P25Q80H read is marked write-capable (the part, not the unit)        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3919756Z the record carries the image's size and hash                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3920699Z the record's own hash covers the record                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3921635Z the record states what a read does not prove                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3922516Z a changed image byte fails the check                                   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3923359Z a 0x30 in the log fails the check                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3924372Z an unknown JEDEC id fails the check                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3925202Z a partial read fails the check                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3926064Z a second read that disagrees fails the check                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3926948Z two independent reads that agree verify                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3928237Z the UCUN part verifies as a read, is marked write-capable, and still authorises nothing ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.3929026Z flash evidence: 20 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5823879Z note: the flash header does not check out: not a readable boot area
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5840598Z note: the image is 524288 bytes; a full FM-1 part is 1048576 (1 MiB)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5863033Z note: the flash header does not check out: not a readable boot area
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5988255Z a stable part reads complete                                             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5989745Z the manifest records the external source and exactly two reads           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5991121Z no MIDI frame is claimed for an external read                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5992186Z the identity came from the image, not from a declaration                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5993035Z the JEDEC is declared and labelled as such                               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5994196Z the hash and size are the part's                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5995217Z the .sha256 sidecar is written                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5996054Z restore validates an external archive and gets the identity from it      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5996952Z a declared identity absent from the image is refused and nothing is written ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5997826Z two reads that differ are inconsistent, with no final hash               ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5998683Z a short read is partial, not a smaller chip                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.5999417Z an undocumented JEDEC is refused                                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6000076Z a programmer part name that contradicts the declaration is refused       ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6000747Z an image with no identity is complete and says restore will refuse it    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6001394Z restore refuses an archive that cannot be tied to a unit                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6002069Z a programmer operation other than two reads is refused by restore        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6002742Z the evidence checker verifies an external bundle and its restorability   ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6003403Z the external record never authorises an install                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.6004170Z flash read: 16 checks, 0 FAILED
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7857295Z the decoder gets the identity, the app CRC and the layout out of the image ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7858360Z app.bin verifies and the stock bootloader is recognised                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7859183Z a short image is refused as a size, not decoded                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7859961Z a single read with no chip CRC32 is not complete                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7860753Z the archive records one pass and the identity the image decodes to         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7861542Z restore refuses an unverifiable import                                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7862494Z the chip's CRC32 over the whole part completes the archive                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7863327Z the record says what verified it                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7864755Z restore accepts it and takes the identity from the decoded app             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7865666Z nothing written, nothing sent over MIDI                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7866518Z a chip CRC32 that disagrees is refused                                     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7867374Z two identical backups complete the archive                                 ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7868193Z the record says two reads                                                  ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7868986Z two backups that differ are refused                                        ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7869812Z a 0.11.0 backup records 0.11.0 and does not claim the 0.9.1 commit         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7870652Z an existing backup is refused, not overwritten                             ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7871798Z a .json whose hash is not the file's is refused                            ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7872629Z a record from another tool is refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7873232Z a UCUN part (newer FM-1s) imports                                          ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7874154Z a UCUN part is write-authorised, as fm1_gate and the web installer say     ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7874988Z an undocumented JEDEC is refused                                           ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7875588Z a unit whose chip key this project does not know is refused                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7876192Z an SMK-37 layout is not accepted as an FM-1 backup                         ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7876774Z an app.bin whose CRC fails is refused                                      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7877343Z a manifest that renames the unit is refused                                ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7877926Z a record that admits a flash write is refused                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7878507Z an import that claims a MIDI frame is refused                              ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7879105Z the evidence checker calls it a verified read of a restorable archive      ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7879704Z and still does not authorise an install                                    ok
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7880328Z the real stock dump                                                        skipped (set FM1_REAL_DUMP)
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7880671Z 
+build	the install gate cannot be bypassed (CLI and web)	2026-11-18T05:34:25.7880799Z mflasher tests passed
+build	a package and a site exist (fail closed)	﻿2026-11-18T05:34:25.7982572Z ##[group]Run test -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.7983463Z ^[[36;1mtest -s build/felucca.fwsc || ls -l firmware/packages/*.fwsc || { echo "::error::no package anywhere"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.7984504Z ^[[36;1mtest -s build/site/index.html || { echo "::error::the site was not built"; exit 1; }^[[0m
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8005444Z shell: /usr/bin/bash -e {0}
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8005723Z env:
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8006020Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8006489Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8006953Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8007362Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8007788Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8008201Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8010139Z   PATH: /home/runner/work/_temp/5a4e6ddf-4ac7-4c0c-a584-61232e3d6ad5/emsdk-main:/home/runner/work/_temp/5a4e6ddf-4ac7-4c0c-a584-61232e3d6ad5/emsdk-main/upstream/emscripten:/opt/hostedtoolcache/Python/3.13.18/x64/bin:/opt/hostedtoolcache/Python/3.13.18/x64:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8012087Z   EMSDK: /home/runner/work/_temp/5a4e6ddf-4ac7-4c0c-a584-61232e3d6ad5/emsdk-main
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8012740Z   EMSDK_NODE: /home/runner/work/_temp/5a4e6ddf-4ac7-4c0c-a584-61232e3d6ad5/emsdk-main/node/24.19.0_64bit/bin/node
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8013261Z ##[endgroup]
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8068908Z ##[error]the site was not built
+build	a package and a site exist (fail closed)	2026-11-18T05:34:25.8070366Z ##[error]Process completed with exit code 1.
+build	Post Run actions/checkout@v4	﻿2026-11-18T05:34:25.8184425Z Post job cleanup.
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9107479Z [command]/usr/bin/git version
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9156524Z git version 2.56.1
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9202725Z Temporarily overriding HOME='/home/runner/work/_temp/7ad25691-381d-47a8-a4c3-392f697037d0' before making global git config changes
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9204838Z Adding repository directory to the temporary git global config as a safe directory
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9212795Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Quantum-GammaWave/Quantum-GammaWave
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9263612Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9309993Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9611836Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9647691Z http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9674011Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+build	Post Run actions/checkout@v4	2026-11-18T05:34:25.9708865Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Post Run actions/checkout@v4	2026-11-18T05:34:26.0016922Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	Post Run actions/checkout@v4	2026-11-18T05:34:26.0081904Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	Complete job	﻿2026-11-18T05:34:26.0541207Z Cleaning up orphan processes
+build	Complete job	2026-11-18T05:34:26.0894144Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/setup-node@v4, actions/setup-python@v5, actions/upload-artifact@v4, mymindstorm/setup-emsdk@v14. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
