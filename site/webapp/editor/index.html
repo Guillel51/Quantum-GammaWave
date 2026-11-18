@@ -3,7 +3,7 @@
      Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments -->
 <!-- Felucca web editor. One file, no libraries. Protocol: EDITOR_PROTOCOL.md.
      Add ?mock=1 to the URL to use a built-in simulated device. -->
-<html lang="ja" data-version="1.4.11">
+<html lang="ja" data-version="1.4.12">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2655,7 +2655,7 @@ function makeMockDevice(opt = {}) {
   for (let op = 0; op < 4; op++) TP.push(D("ATK", F.TIME, 0, 127, 0), D("DEC", F.TIME, 0, 127, 0), D("SUS", F.PCT, 0, 127, 127), D("REL", F.TIME, 0, 127, 0), D("LEVEL", F.PCT, 0, 127, 127));
   TP.push(D("OFFSET", F.INT, -32, 32, 0), D("PITCH", F.SEMI, -24, 24, 0));   /* 81, 82: SHIFT (JIANT; the chord keys before) */
   for (const l of ["KICK", "SNARE", "CLAP", "HATCL", "HATOP", "TOM", "RIM", "BELL"]) TP.push(D(l, F.PCT, 0, 127, 127));   /* 83..90: DRUM lane levels */
-  TP.push(E("TYPE", ["SOFT", "TAPE", "HEARTH", "FLUX"], 0), D("TONE", F.BIPCT, -64, 63, 0),   /* 91, 92: DIST (GAMMAWAVE) */
+  TP.push(E("TYPE", ["SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"], 0), D("TONE", F.BIPCT, -64, 63, 0), /* 91, 92: DIST (GAMMAWAVE) */
     D("LEN", F.STEPS, 1, 16, 16), E("DIV", NDIV, 2), D("SLEW", F.PCT, 0, 127, 0));   /* 93..95: the modulation sequence */
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
@@ -5991,7 +5991,7 @@ if (MOCK_QS) { setMock(true); connect(); }
    * same parameter; ANALOG's own cutoff / resonance are its EDIT E4 / E5 (ui_being.c gw_trk_cut / gw_trk_res) */
   const GWP = { ATK: 1, REL: 4, SLEN: 29, DIST: 33, DTYPE: 91, FTYPE: 112, FCUT: 113, FRES: 114 };
   const GWG = { PUNCH: 25, DUCK: 26 };
-  const GW_DTYPES = ["SOFT", "TAPE", "HEARTH", "FLUX"];   /* N_DTYPE (fx.c DT_*) */
+  const GW_DTYPES = ["SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"];   /* fx.c DT_* (FASE 2 added FOLD) */
   const GW_FTYPES = ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"];                                  /* N_FTYPE (eng_analog.c FT_*) */
   const gwLive = () => !!(dev && dev.info && dev.dump && dev.dump.p);
   const gwHasP = (id) => gwLive() && id < dev.info.pe0 && id < dev.dump.p.length;
@@ -6292,7 +6292,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       ctx.textAlign = "center";
       ctx.font = "10px 'IBM Plex Mono', monospace";
       ctx.fillStyle = pal.text;
-      ctx.fillText("1.4.11", 120, 194);
+      ctx.fillText("1.4.12", 120, 194);
       ctx.fillStyle = pal.theme;
       ctx.fillText("QUANTUM GAMMAWAVE // QG-1", 120, 212);
       ctx.textAlign = "left";
