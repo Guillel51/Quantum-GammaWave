@@ -2655,7 +2655,7 @@ function makeMockDevice(opt = {}) {
   for (let op = 0; op < 4; op++) TP.push(D("ATK", F.TIME, 0, 127, 0), D("DEC", F.TIME, 0, 127, 0), D("SUS", F.PCT, 0, 127, 127), D("REL", F.TIME, 0, 127, 0), D("LEVEL", F.PCT, 0, 127, 127));
   TP.push(D("OFFSET", F.INT, -32, 32, 0), D("PITCH", F.SEMI, -24, 24, 0));   /* 81, 82: SHIFT (JIANT; the chord keys before) */
   for (const l of ["KICK", "SNARE", "CLAP", "HATCL", "HATOP", "TOM", "RIM", "BELL"]) TP.push(D(l, F.PCT, 0, 127, 127));   /* 83..90: DRUM lane levels */
-  TP.push(E("TYPE", ["SOFT", "TAPE", "HEARTH", "FLUX"], 0), D("TONE", F.BIPCT, -64, 63, 0),   /* 91, 92: DIST (GAMMAWAVE) */
+  TP.push(E("TYPE", ["SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"], 0), D("TONE", F.BIPCT, -64, 63, 0),   /* 91, 92: DIST (GAMMAWAVE; FOLD since 1.4.12) */
     D("LEN", F.STEPS, 1, 16, 16), E("DIV", NDIV, 2), D("SLEW", F.PCT, 0, 127, 0));   /* 93..95: the modulation sequence */
   for (let k = 0; k < 16; k++) TP.push(D("LEVEL", F.PCT, 0, 127, 0));                     /* 96..111: its levels */
   TP.push(E("TYPE", ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"], 0),                    /* 112: the FILTER's type (GAMMAWAVE) */
@@ -5991,7 +5991,7 @@ if (MOCK_QS) { setMock(true); connect(); }
    * same parameter; ANALOG's own cutoff / resonance are its EDIT E4 / E5 (ui_being.c gw_trk_cut / gw_trk_res) */
   const GWP = { ATK: 1, REL: 4, SLEN: 29, DIST: 33, DTYPE: 91, FTYPE: 112, FCUT: 113, FRES: 114 };
   const GWG = { PUNCH: 25, DUCK: 26 };
-  const GW_DTYPES = ["SOFT", "TAPE", "HEARTH", "FLUX"];   /* N_DTYPE (fx.c DT_*) */
+  const GW_DTYPES = ["SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"];   /* N_DTYPE (fx.c DT_SOFT..DT_FOLD; FOLD since 1.4.12) */
   const GW_FTYPES = ["LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"];                                  /* N_FTYPE (eng_analog.c FT_*) */
   const gwLive = () => !!(dev && dev.info && dev.dump && dev.dump.p);
   const gwHasP = (id) => gwLive() && id < dev.info.pe0 && id < dev.dump.p.length;
