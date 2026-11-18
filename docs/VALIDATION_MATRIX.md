@@ -1831,9 +1831,8 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | Check | Label | State and evidence |
 |-------|-------|--------------------|
 | LFO SHAPE tiene dos parámetros, no cuatro | `[HOST]` | `params.c page_desc()` devolvía `D[slot & 1]` y `&p[slot ? P_X3 : P_X2]` para **los cuatro** slots de `{P_X2, P_X3, 0xFF, 0xFF}`: el render daba SLEW / INVERT / SLEW / INVERT y tres knobs escribían el mismo `P_X3`. Ahora los slots en `0xFF` no dan parámetro: `build/ui_new/*/lfo_shape.png` muestra dos tarjetas (SLEW 69 %, INVERT 29 %) y el barrido de alineación baja de 3 897 970 a 3 777 978 medidas (190 pantallas × 22 paletas, 0 hallazgos) |
-| MASTER > STEREO M/S editaba el FM3 de la pista | `[HOST]` | Colisión de ids: `P_DXIMG` (`P_FM3_REL`) es 74 y `G_MWIDTH` (el ancho estéreo del MASTER, v1.4) también. `params.c page_desc()` tenía la rama de **ENV VEL** antes del despacho por `scope`, y comparaba el número pelado: la página `STEREO M/S` contestaba `VEL` y escribía `t->p[P_DXIMG]`, o sea que el ancho maestro era inalcanzable desde su página y el knob movía el release del FM3 de la pista seleccionada. La rama ahora exige `pg->scope != SC_GLOBAL`. `tests/control_map_test.c` barre las 86 páginas en los 10 motores y en cada estado que una página calcula (los 8 links de FX > BUSES, los 8 slots de MOD, los 16 pasos de MSEQ y SL PITCH): **23 763 comprobaciones, 0 fallos**, incluida la pareja de regresión (`STEREO M/S` → `M-WIDE`, def 64, `&song.g[G_MWIDTH]`, sin tocar `P_DXIMG`; `VOICE 2` → `VEL` sobre `P_DXIMG`) |
 | El knob PRESETS no repinta el cuadro entero | `[STATIC]` | `ui_input.c presets_turn()` hacía `ui.force = 1` en cada paso y `ui_draw.c` lo repetía al vencer el popup: dos cuadros completos por paso (cabecera, tarjetas, grafo, pie). Ahora pide el grafo (`ui.graph_sig = 0`), que es donde viven el nombre y los valores; el popup se dibuja encima y a su salida se repinta esa zona. El patrón de líneas en `T_BG` que el popup pintaba antes de su placa se quitó (era trabajo tapado) |
-| POLY con polifonía | **NO REPRODUCIDO EN HOST, 18 MEDIDAS** | `tests/poly_voices_test.c` (nuevo, en la suite) recorre los caminos reales: `trk_note_on()` → `voice_alloc()` da 8 voces a 8 notas y 12 a 12 (cada una con su pitch), soltar las apaga; seis partes × 3 notas conservan voz y bajo con el pool de 17 slots; `load_tight=1` con 6 notas sigue dando 6; `LOAD` LITE mantiene el cap entero y `LOAD` ECO lo deja en 4 por parte (política documentada); MENU VOICES 8 da 8; el teclado da 3 voces con 3 teclas y 4 con 4, y un acorde de 7 se apaga tecla por tecla sin voces colgadas; `mix_block()` con 3 notas reales devuelve 3 envolventes abiertas y una mezcla no silenciosa. Reparto medido con las seis partes tocando: 12 voces **compartidas** (cap `voice_user_budget()`), o sea que en un mix completo los acordes se roban entre partes por diseño, no por falta de polifonía. El asignador **no se tocó**: no hay fallo que corregir en este camino. Queda la unidad física: con `LOAD` ECO y seis pistas sonando el techo es 6 voces en total, y eso es lo que hay que escuchar allí |
+| POLY con polifonía | **NO REPRODUCIDO** | `trk_note_on()` en POLY asigna una voz por nota; el pool reparte 17 slots entre 6 partes; `trk_vcap()` sólo limita por `ENGINES[..]->poly` (FM6 2, FORMANT 4, resto 12); `tests/audio_test.c` toca acordes de tres notas en POLY y pasa en host. El asignador **no se tocó**: la sospecha es el gobernador de carga (`load_tight` / `LOAD` LITE-ECO, que en host no se mide), y eso se ve en la unidad |
 | El paquete de 1.4.1 | `[TARGET]` | build AC791N con `v1.4.1`: `.data+.bss` 95 140 B de 98 304, imagen 583 064 B de 583 612 (548 B libres), identidad `FM-1_965`; emulador wasm empaquetado desde el mismo árbol |
 | En una FM-1 física | — | **NOT MEASURED**: nada de lo anterior se probó en la unidad del dueño |
 
@@ -1975,3 +1974,27 @@ El orden de ataque sigue siendo el del plan: FM6 primero (dos slots libres, sin 
 NOISE y DRUM-X; y ANALOG/PHASE/LOFI/VOICE/WHEEL de a uno con su prueba de compatibilidad, cada uno pagando un
 `P_COUNT`. Antes de cualquiera de esos pasos hace falta liberar flash de los assets —cosa que este entorno no
 puede verificar contra la imagen— y que exista el build de destino para medir el resultado.
+
+---
+
+## 2026-11-18 — v1.4.5: pasada de optimización, con las mediciones delante
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| La tabla del panel no escribe gamma, brillo ni VCOM (y el comentario ya no los pide) | `[STATIC]` | `LCD_SEQ` termina en la inversión; el bloque de comentario que argumentaba a favor de la curva 2.2 se sustituyó por la regla y su motivo. Nada nuevo escribe 0xE0/0xE1/0x53/0x51 (grep en `lcd.c`) |
+| El pop de encendido sigue resuelto y no cuesta una pasada de muestras | `[HOST]` + `[BUILD AC791N]` | `tests/poly_test.c`: primer bloque 4 480 contra 942 528 tras el fade. El fade va en la ganancia del máster: el ISR baja de 354 a 300 de coste estático (budget 291, tolerancia +10 %) |
+| `.data+.bss` bajo presupuesto con más margen | `[BUILD AC791N]` | `./build.sh`: 91 300 B de 98 304 (7 004 libres, antes 3 164). `st_buf` (3 840 B) en LOWBUF (30 562 B de 32 768 usados, 2 204 libres); `ASSERT` de linker para esa ventana |
+| Nada audible ni visible cambió | `[HOST]` | 303 renders dorados idénticos (`tests/regress.c`), 3 040 imágenes del barrido idénticas byte a byte (`tests/ui_render.c`, hash 678413d9…), audio/poly/UI/startup/backup/persistencia/proyecto/settings/install en verde |
+| `mix_block` bajo presupuesto | `[BUILD AC791N]` | línea nueva en `tests/target_budget.txt`: 32 667 (2103 instrucciones en bucle + 9 divisiones); 42 entradas, 0 fuera de presupuesto |
+| En una FM-1 física | — | **NOT MEASURED**: la pantalla, el pop y el brillo se confirman encendiendo la unidad. Todo lo de arriba es host x86, emulador o el compilador del objetivo |
+
+---
+
+## 2026-11-18 — v1.4.6: el panel vigilado, la memoria legible en la unidad
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| La tabla del ST7789 no puede volver a escribir gamma, brillo, CABC ni VCOM | `[HOST]` | `tests/panel_table_test.py` parsea `LCD_SEQ` y falla con 0xE0/0xE1/0x53/0x51/0x55/0xBB, con una tabla que no parsea, o sin COLMOD 0x55 / MADCTL / INVON. Probada en las dos direcciones (verde con la tabla actual; roja con `0x53, 1, 0x24` inyectado). En `run_tests.sh` |
+| El presupuesto de memoria se puede leer en la unidad | `[BUILD AC791N]` + `[STATIC]` | comando `mem` (console.c): `ram 91300/98304` (7 004 libres), `lowbuf 30564/32768` (2 204), `pool 318432/327680` (9 248). Son los símbolos del linker: coinciden con `./build.sh` y con `tests/memory_map_test.py` (RAM spare 7 004, pool spare 9 248) |
+| La ventana LOWBUF que reporta la prueba es la del linker | `[HOST]` | `tests/memory_map_test.py`: LOWBUF_HI 0x01C08000 (era 0x01C07000, obsoleto desde la mudanza de 1.4.5); el mapa pasa con RAM spare 7 004 B |
+| En una FM-1 física | — | **NOT MEASURED**: `mem` se lee en la unidad; ninguna cifra de arriba es una medición de hardware |

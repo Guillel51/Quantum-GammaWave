@@ -88,7 +88,9 @@ static uint32_t st_sector(uint32_t obj, uint32_t copy)  /* flash offset of copy 
     return 0x97000u + (obj - OBJ_PROJECT0) * 2u * ST_SECTOR + copy * ST_SECTOR;
 }
 
-static uint8_t st_buf[ST_PAYLOAD_MAX] __attribute__((aligned(4)));
+/* (1.4.5) the flash driver's staging buffer is main-loop only (the audio ISR never reads across a write): it lives
+ * in LOWBUF, below the RAM code, so its 3 840 B are not part of the 96 KiB .data+.bss budget */
+static uint8_t st_buf[ST_PAYLOAD_MAX] __attribute__((aligned(4), section(".lowbuf")));
 
 static int st_head(uint32_t obj, uint32_t copy, st_hdr_t *h)   /* commit record valid: 0 */
 {

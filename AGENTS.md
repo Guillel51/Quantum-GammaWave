@@ -147,6 +147,9 @@ guessed.
   ≥ 8 KiB. No `malloc` in realtime audio paths.
 - **Render budget**: 32 samples at 44.1 kHz ≈ 725 µs per block, checked by `tests/target_budget.py`.
 - **Fixed point**: prefer Q12/Q15/Q31 over floating point where it fits; avoid divisions in hot paths.
+- **Panel**: the ST7789 init table (`LCD_SEQ`, `firmware/src/lcd.c`) never writes gamma, brightness, CABC or VCOM.
+  Those values were never read from a panel and 1.4's crushed every dark tone to black on the owner's unit;
+  `tests/panel_table_test.py` fails the build if they come back. A dark theme is the palette's business.
 - **UI**: colours flow through `ux_mix()` and `heat_col()`, which saturate per channel — an out-of-range mix
   must never bleed into a neighbouring channel (the GREY/MONO regression). Screens are verified by the
   render sweep and its alignment lint, not by eye alone.

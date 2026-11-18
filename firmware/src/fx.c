@@ -750,6 +750,14 @@ int32_t fx_master_eq_hz_db(int32_t hz)
                                                          * limiter's headroom (0.5.1: was 16000, it limited 95 % of the time) */
 #define LEV_GATE 400                                    /* -38 dB */
 static int32_t lev_env, lev_g = 32768, lev_cur = 32768, lev_dg;   /* the gain now and its step a sample (master_out) */
+/* (1.4.5) the power-on fade (audio.c): 0 at the first block, 32768 when it is over. Folded into lev_cur / lev_dg
+ * below, which master_out multiplies anyway, so the ISR pays one compare a block instead of two multiplies a
+ * sample and a pass over the samples. */
+static int32_t boot_g = 32768;
+void fx_boot_gain(int32_t g) { boot_g = g; }
+/* (1.4.5) WIDTH and the LOW CUT looked like per-sample loads worth latching once a block. Measured on the target
+ * compiler's listing (tests/target_budget.py, mix_block): 2103 -> 2102 loop instructions. The compiler had already
+ * hoisted them, so the latch was reverted: a knob read per sample that costs nothing stays where it reads plainly. */
 static __attribute__((noinline)) void lev_block(uint32_t n)
 {
     uint32_t i;
@@ -781,6 +789,10 @@ static __attribute__((noinline)) void lev_block(uint32_t n)
     lev_cur = lev_g;                                    /* (master_out ramps it across the block, after the DC block) */
     lev_dg = div_by_n(g1 - lev_g, n);                   /* (FASE 1) a shift at the block length, not a divide */
     lev_g = g1;
+    if (boot_g < 32768) {                               /* (1.4.5) the power-on fade, on the gain this block ramps */
+        lev_cur = (int32_t)(((int64_t)lev_cur * boot_g) >> 15);
+        lev_dg = (int32_t)(((int64_t)lev_dg * boot_g) >> 15);
+    }
 }
 /* DUCK (G_DUCK 0..100, G_DREL its release 40 .. 600 ms): a kick (eng_drum.c duck_hit) takes the parts that are not
  * DRUM down by up to 30 dB in ~2 ms, holds them there ~25 ms, and they come back with the release, shaped as a
@@ -902,7 +914,7 @@ static inline void master_out(int32_t *l, int32_t *r)
     *l = dc_block(*l, &dc_l, &dce_l);
     *r = dc_block(*r, &dc_r, &dce_r);
     if (fx_lowcut) {                  /* two one-pole high-passes, error feedback as dc_block (the */
-        uint32_t sh = fx_lowcut == 2u ? 5u : 6u;    /* rounded step stopped at |x - lc| < 32: an offset) */
+        uint32_t sh = fx_lowcut == 2u ? 5u : 6u;       /* rounded step stopped at |x - lc| < 32: an offset) */
         int32_t b = fx_lowcut == 2u ? spk_bass((*l + *r) >> 1) : 0;
         *l = lowcut1(*l, &lc_l1, &lce[0], sh);
         *l = lowcut1(*l, &lc_l2, &lce[1], sh) + b;

@@ -123,18 +123,15 @@ static void lcd_gdram_clear(uint16_t c)
         lcd_data(lcd_fillbuf, 240u * 2u);
 }
 
-/* ST7789V init: reset, then 16-bit colour, scan direction, IPS inversion, and -- since 1.4 -- the gamma curve and
- * the brightness. Format: cmd, n, n data bytes; cmd 0x00 = wait (data byte: ~ms).
+/* ST7789V init: reset, then 16-bit colour, scan direction, IPS inversion -- and NOTHING ELSE. Format: cmd, n,
+ * n data bytes; cmd 0x00 = wait (data byte: ~ms).
  *
- * (1.4) WHY THE GAMMA IS WRITTEN NOW. The owner reports the whole screen, and most themes, reading brighter and
- * greyer on the FM-1 than in the emulator. That is what a controller at its power-on defaults does: the panel emits
- * the low end of the 565 range lifted, so a background stored at 10/10/10 arrives like a mid grey and the dark
- * themes wash out (the palette data cannot go darker: 0x0841 is already the bottom of the range). The two 14-byte
- * curves below are the standard BT.709-ish 2.2 set used by the panel's own reference drivers, and 0x53/0x51 turn the
- * brightness control on at 200/255 instead of the controller's full-scale default.
- * These are the values that a comparison against the emulator justifies; they have NOT been measured on a unit --
- * nobody here has a panel to read, so this is a change of defaults, not a validated one. If a particular FM-1 ships a
- * differently bonded panel, 0xBB (VCOM) is the next knob and it is deliberately left at its default. */
+ * (1.4.5) THE ONE RULE FOR THIS TABLE: no gamma, no brightness, no VCOM. 1.4 wrote a 2.2 curve and turned the
+ * brightness register on, from a comparison against the emulator and never from a reading on a panel; on the
+ * owner's FM-1 that crushed the low half of the range (plates, dividers, dim labels: black) in every screen, the
+ * splash included. The panel's power-on defaults are the only values here that were never wrong, so the table
+ * stops at the inversion command and lcd_init clears the whole 240x320 in the theme's background. A dark theme
+ * being dark is the palette's business (ui_palettes.h), not the controller's. */
 static const uint8_t LCD_SEQ[] = {
     0x01, 0,                     /* SWRESET */
     0x00, 1, 150,

@@ -6,8 +6,10 @@
  * busy: the flash driver), .c1_text (the second core's loop), .hot_text (core 0's hottest audio code). A call reaches
  * +-4 MiB (pi32v2 imm23 x 2, no long calls in this compiler): RAM code there reaches the whole XIP image (build.py
  * checks the margin); at 0x01C00000 it reached none of it.
- * LOWBUF 0x01C00000..0x01C07000 (0.6.78; 0.6.82: 4 KiB more, the steps grew): main-loop buffers (undo, the project
- * scratch, the song section's stage), zeroed at boot; 0x01C07000..0x01C08000 stays for RAM-run debug.
+ * LOWBUF 0x01C00000..0x01C08000 (0.6.78; 0.6.82: 4 KiB more, the steps grew; 1.4.5: the last page, which nothing
+ * used -- it was kept "for RAM-run debug" -- joins it): main-loop buffers (undo, the project scratch, the song
+ * section's stage, the flash driver's staging buffer and the generator's backup), zeroed at boot. Every one of them
+ * is touched from the main loop only: the audio ISR never reads across a flash write. 8 KiB of .data+.bss back.
  * RAM  : .data/.bss (96 KiB)
  * POOL : big zero-initialised buffers (FX lines, canvases), section .pool
  * STACKS with 256-byte guard bands; NOINIT survives resets and UBOOT entry.
@@ -15,7 +17,7 @@
 MEMORY
 {
     XIP    (rx)  : ORIGIN = 0x02000120, LENGTH = 0x8E7BC
-    LOWBUF (rw)  : ORIGIN = 0x01C00000, LENGTH = 0x7000
+    LOWBUF (rw)  : ORIGIN = 0x01C00000, LENGTH = 0x8000
     RAM    (rwx) : ORIGIN = 0x01C08000, LENGTH = 96K
     POOL   (rw)  : ORIGIN = 0x01C20000, LENGTH = 0x50000
     RAMTEXT (rwx): ORIGIN = 0x01C70800, LENGTH = 0x6000   /* (0.6.97, 0.7.0, 1.0-GW: up 2 KiB so calls from RAMTEXT reach >16 KiB
@@ -53,6 +55,8 @@ SECTIONS
     _c1_ustack_top = _c1_stack_lo + 6144;
     _c1_sstack_top = _c1_stack_hi;
     .lowbuf (NOLOAD) : { _low_start = .; *(.lowbuf*) . = ALIGN(4); _low_end = .; } > LOWBUF
+    /* (1.4.5) the window is a budget of its own: a buffer that outgrows it must fail here, not at run time */
+    ASSERT(_low_end <= ORIGIN(LOWBUF) + LENGTH(LOWBUF), "LOWBUF is full: a main-loop buffer outgrew its window")
     .noinit (NOLOAD) : { *(.noinit*) } > NOINIT
     _guard0 = 0x01C76800; _ustack_lo = 0x01C76900; _ustack_top = 0x01C7A000;
     _guard1 = 0x01C7A000; _sstack_lo = 0x01C7A100; _sstack_top = 0x01C7C000;
