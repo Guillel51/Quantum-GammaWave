@@ -153,7 +153,15 @@ def contrast(a, b):
 # compensating the panel's gamma where the panel is, in the data. Everything derived from them -- MID, DIM, LINE, SEL,
 # TINT -- follows, and the CHECKS table below still has to pass: darkening the ground can only raise the contrast of a
 # light text on it, never lower it.
-PANEL_DARKEN = 0.72
+# (1.4.2) THE DARKENING IS GONE, AND THIS IS WHY. 1.4 stored the two ground colours at 72 % of each channel to
+# compensate for the panel's default gamma -- but the same release also started writing the ST7789's real gamma
+# (0xE0/0xE1) and a 78 % brightness (0x53/0x51). The two corrections stacked: the data went 28 % darker and the
+# panel then compressed the low end again, so every dark theme lost its background, its LINE dividers and its DIM
+# text -- the owner's "todos los temas quedan prácticamente negros". The compensation belongs where the panel is
+# (the driver, and MENU > EXTRA > BRIGHT for what only the unit can judge), never in the palette data, which is
+# shared with the emulator and the site. The palettes are their designed values again; PANEL_DARKEN stays as the
+# one knob for this experiment and 1.0 means "as designed".
+PANEL_DARKEN = 1.0
 
 
 def panel_dark(c565, mono):

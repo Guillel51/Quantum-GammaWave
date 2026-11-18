@@ -1835,3 +1835,18 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | POLY con polifonía | **NO REPRODUCIDO** | `trk_note_on()` en POLY asigna una voz por nota; el pool reparte 17 slots entre 6 partes; `trk_vcap()` sólo limita por `ENGINES[..]->poly` (FM6 2, FORMANT 4, resto 12); `tests/audio_test.c` toca acordes de tres notas en POLY y pasa en host. El asignador **no se tocó**: la sospecha es el gobernador de carga (`load_tight` / `LOAD` LITE-ECO, que en host no se mide), y eso se ve en la unidad |
 | El paquete de 1.4.1 | `[TARGET]` | build AC791N con `v1.4.1`: `.data+.bss` 95 140 B de 98 304, imagen 583 064 B de 583 612 (548 B libres), identidad `FM-1_965`; emulador wasm empaquetado desde el mismo árbol |
 | En una FM-1 física | — | **NOT MEASURED**: nada de lo anterior se probó en la unidad del dueño |
+
+---
+
+## 2026-11-17 (4) — v1.4.2: los temas legibles otra vez, y el brillo como ajuste
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| Ningún tema queda negro | `[HOST]` | Causa: 1.4 guardaba el suelo de cada tema oscuro al 72 % **y** empezó a escribir gamma real (0xE0/0xE1) y brillo 78 % en el ST7789 — dos compensaciones apiladas. `PANEL_DARKEN = 1.0`: las paletas vuelven a sus valores de diseño (los mismos del emulador y del sitio). La tabla de contrastes del generador pasa entera con los 22 temas (texto/fondo 14,2–21,0; mínimo exigido 12) |
+| Todas las pantallas, todas las paletas | `[HOST]` | `tests/ui_render.c`: **190 pantallas × 22 paletas**, 0 hallazgos de lint, 0 tintas sobre su propio color, 0 píxeles GREY/MONO fuera del eje gris, y **0 de 3 782 998 medidas de alineación** fuera de 1 px. Las hojas `build/ui_new/sheet_GAMMA.png`, `sheet_NIGHT.png` y `sheet_PAPER.png` (las tres clases de tema: oscuro con identidad, negro fósforo, claro) se miraron pantalla por pantalla |
+| El brillo del ST7789 es un ajuste, no una constante | `[STATIC]` + `[HOST]` | `lcd.c lcd_bright_set()` es el **único** escritor de 0x53/0x51: `lcd_init` lo llama al arrancar y MENU > EXTRA > BRIGHT en cada paso. Niveles 25 / 50 / 78 / 100 % (`ui.c BRIGHT_LCD`), 100 % por defecto y también lo que lee un registro que nunca tocó la fila (0); guardado en `favorites.factory[15][25]`, aplicado por `main.c` antes del splash. `tests/ui_test.c` comprueba los cuatro niveles contra el registro del panel y el valor de un registro viejo |
+| La fila nueva no rompe los tabs del menú | `[HOST]` | `MI_BRIGHT` es la sexta fila de `MTAB_GEN` (`MTAB_ROWS` 6); `tests/ui_test.c` verifica el reparto 6/6/6/6/6, que 1..6 van en un tramo por tab, que entran en la página y que los huecos entre tabs son constantes (S y LARGE) |
+| Regresión: el contraste no puede volver a bajar | `[HOST]` | `tools/gen_ui_palettes.py` falla (exit 1) si una pareja baja de su mínimo; es un paso de la suite. Y el lint de render falla si una tinta queda sobre su propio color |
+| El paquete de 1.4.2 | `[TARGET]` | build AC791N en el commit del release: `.data+.bss` 95 140 B de 98 304, imagen 583 284 B de 583 612 (328 B libres), identidad `FM-1_965` |
+| Gamma, nivel de brillo y oscurecido elegidos en la unidad | **NO MEDIDO** | Nadie acá tiene un panel que leer. La curva 0xE0/0xE1, el nivel de BRIGHT que el dueño prefiera y el aspecto real de cada tema en el ST7789 **no** están medidos en ninguna unidad: BRIGHT existe para que eso se ajuste ahí, no para dar el valor por validado |
+| En una FM-1 física | — | **NOT MEASURED**: la fila BRIGHT, su persistencia entre apagados y los cuatro niveles se prueban apretando la unidad, no acá |

@@ -1,3 +1,29 @@
+## v1.4.2 — el brillo del panel se ajusta desde el equipo (MENU > EXTRA > BRIGHT)
+
+La gamma 2.2 (0xE0/0xE1) y el brillo 200/255 (0x53/0x51) que 1.4 escribe en el ST7789, y el oscurecido al 72 % de
+las paletas, salieron de comparar contra el emulador: **no están medidos en ninguna unidad**, y un panel con otro
+pegado puede pedir otro valor. Hasta acá la única forma de moverlo era un build nuevo; ahora hay una fila.
+
+**MENU > EXTRA > BRIGHT**: 25 %, 50 %, 78 % y 100 % (el valor por defecto, y el que lee un registro de ajustes que
+nunca tocó la fila). Escribe el registro 0x51 en caliente al paso del knob, y el valor queda guardado en un byte
+libre del bloque del motor 15 (`favorites.factory[15][25]`, 0 en todo registro viejo = 100 %): al arrancar, `main.c`
+aplica lo guardado antes del splash, así que no hay un fotograma al brillo de fábrica. La secuencia de init del
+panel ya no lleva 0x53/0x51: hay **un solo escritor**, `lcd.c lcd_bright_set()`, en el arranque y en el cambio.
+
+### Los temas quedaban casi negros: el oscurecido de las paletas se fue
+1.4 guardaba los dos colores de suelo de cada tema oscuro al **72 %** de cada canal para compensar la gamma del panel.
+El mismo release empezó a escribir la gamma real del ST7789 (0xE0/0xE1) **y** un brillo del 78 % (0x53/0x51): las dos
+correcciones se apilaban, el dato iba 28 % más oscuro y el panel comprimía otra vez el extremo bajo. Fondo,
+divisores `LINE` y texto `DIM` desaparecían — "todos los temas quedan prácticamente negros". El oscurecido se fue
+(`PANEL_DARKEN = 1.0`): las paletas vuelven a sus valores de diseño, que son los mismos que ven el emulador y el
+sitio, y la compensación queda donde está el panel (el driver, y BRIGHT para lo que sólo la unidad puede juzgar), no
+en los datos. La tabla de contrastes del generador pasa entera con los 22 temas (texto/fondo 14,2–21,0), el barrido
+de render da 190 pantallas × 22 paletas con **0 hallazgos** y 0 medidas de alineación fuera de 1 px, y las hojas
+`build/ui_new/sheet_*.png` de GAMMA, NIGHT y PAPER se miraron pantalla por pantalla.
+
+Lo que **no** cambió y sigue sin medir: la curva de gamma del panel y el nivel de brillo que elige el dueño. Eso no
+se resuelve desde acá, necesita la unidad: por eso BRIGHT es un ajuste y no una constante, y así queda en la matriz.
+
 ## v1.4.1 — el LFO SHAPE tenía tres knobs para dos valores, y el knob PRESETS repintaba todo
 
 Dos de los cuatro puntos del reporte del dueño. El POLY no se reprodujo: abajo, lo que se miró y lo que falta.

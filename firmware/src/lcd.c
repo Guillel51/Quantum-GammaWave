@@ -147,10 +147,24 @@ static const uint8_t LCD_SEQ[] = {
     /* gamma, positive and negative polarity (0xE0 / 0xE1): 2.2, mid-tones down */
     0xE0, 14, 0xD0, 0x04, 0x0D, 0x11, 0x13, 0x2B, 0x3F, 0x54, 0x4C, 0x18, 0x0D, 0x0B, 0x1F, 0x23,
     0xE1, 14, 0xD0, 0x04, 0x0C, 0x11, 0x13, 0x2C, 0x3F, 0x44, 0x51, 0x2F, 0x1F, 0x1F, 0x20, 0x23,
-    /* brightness control on (0x53) and 200/255 (0x51): the panel's full scale reads as washed out at night */
-    0x53, 1, 0x24,
-    0x51, 1, 0xC8,
+    /* (1.4.2) 0x53 / 0x51 ARE NOT HERE ANY MORE. The brightness is the one value of this sequence that a unit may
+     * need to move (the gamma and the palette contrast below are the same on every FM-1 only in theory), so it is
+     * written by lcd_bright_set() instead: at the end of lcd_init with the default 0xC8, and again, at once, when
+     * MENU > EXTRA > BRIGHT changes. Keeping it out of the table means one writer, not two. */
 };
+/* the panel's brightness as last written (0x51). 0xC8, 200/255: what 1.4 shipped, and what an older settings record
+ * (BRIGHT 0) still gets. MENU > EXTRA > BRIGHT sets it and settings_persist.c stores the byte */
+static uint8_t lcd_bright_v = 0xC8;
+void lcd_bright_set(uint8_t v)
+{
+    lcd_bright_v = v;
+    lcd_cmd(0x53);                                 /* brightness control on: 0x24, the datasheet's own enable */
+    lcd_small[0] = 0x24;
+    lcd_data(lcd_small, 1);
+    lcd_cmd(0x51);
+    lcd_small[0] = v;
+    lcd_data(lcd_small, 1);
+}
 
 /* bg: the theme's background (main.c passes T_BG, valid because settings_init() applies the palette before
  * this runs). The whole 240x320 is written in it, not in black, so no bonded slice of the panel can show a
@@ -172,6 +186,7 @@ static void lcd_init(uint16_t bg)
             lcd_data(lcd_small, LCD_SEQ[r + 1u]);
     }
     fm1_lcd_baud(LCD_BAUD);
+    lcd_bright_set(lcd_bright_v);                  /* (1.4.2) before the first frame: no flash at the old level */
     lcd_gdram_clear(bg);                           /* every row of the 240x320, not just the 240x240 the UI uses */
     lcd_cmd(0x29);
     /* The backlight only now (fm1_lcd_hw_init left it off): the panel has had SWRESET, SLPOUT, COLMOD, MADCTL and a
