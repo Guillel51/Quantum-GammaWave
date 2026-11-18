@@ -3143,6 +3143,16 @@ static void draw_tracks(void)
  * - High-contrast, crystal-clear bottom telemetry & exit hint [HOME] EXIT. */
 static int16_t scope_snap[SCOPE_N];
 
+/* (FASE EXTRA) HOW DARK THE SCOPE'S WELL IS. The wells used to be opaque plates of T_SURF, which is why the
+ * visualizer's field, its dust, its band and its two worlds could not be seen behind the trace. They are a
+ * veil now: cv_rect_a() mixes this share of a near-page tone over whatever the field already drew, so the
+ * background reads through the glass and the grid and the trace (drawn after, solid) stay the brightest thing
+ * in the well. MENU > EXTRA > VIZ VEIL picks the share; 0 in an older settings record is MID, the default. */static int32_t viz_veil(void)
+{
+    uint32_t v = ui_viz_veil % 3u;                  /* 0 MID (default), 1 CLEAR, 2 DEEP */
+    return v == 1 ? 44 : v == 2 ? 76 : 60;
+}
+
 static void graph_home_viz(uint16_t c)
 {
     static uint8_t peak_decay[16];
@@ -3223,12 +3233,11 @@ static void graph_home_viz(uint16_t c)
         gw_embers(12, top_y, 216, 88, ui_viz_q >= 2u ? 10u : ui_viz_q == 1u ? 18u : 28u, 0u, 80, vsf);
 
         /* Scope field: the live trace on the left, its X/Y phase trajectory on the right. */
-        /* (1.1.1) THE SCOPE'S OWN FLOOR. The deep field -- the milky way's band, its dust and the two worlds --
-         * is drawn on this panel, and it showed THROUGH the trace: the diagonal of stars and that gradient sat
-         * on top of the oscilloscope, which is what made it hard to read. An opaque well of the page's own tone
-         * goes down after the field and the embers and before anything is measured, so the trace and its grid
-         * are the only things on it. */
-        cv_rect(12, 63, 144, 72, T_SURF);
+        /* (1.1.1) THE SCOPE'S OWN FLOOR, NOW SEE-THROUGH (FASE EXTRA). The deep field -- the milky way's band,
+         * its dust and the two worlds -- is drawn on this panel. It used to be covered by an opaque well so the
+         * trace could be read; the well is a veil of viz_veil() instead: enough of a near-page tone to keep the
+         * trace and its grid legible, little enough that the field behind it still reads through the glass. */
+        cv_rect_a(12, 63, 144, 72, T_BG, viz_veil());
         cv_rect(12, cy, 144, 1, T_LINE);
         for (i = 0; i < 4u; i++)
             cv_rect(12 + (int32_t)i * 48, 64, 1, 66, T_GRID);
@@ -3263,7 +3272,7 @@ static void graph_home_viz(uint16_t c)
          * the two read as two screens. Both wells are the page's own dark tone with the same 1 px frame, both
          * carry the same three-division grid and the same foot ticks, and both traces are on the same heat ramp,
          * so the pair reads as one instrument with two probes. */
-        cv_rect(164, 64, 64, 67, T_SURF);
+        cv_rect_a(164, 64, 64, 67, T_BG, viz_veil());
         {
             uint16_t fr = ux_mix(T_BG, T_GRID, 62);
             cv_rect(164, 64, 64, 1, fr);

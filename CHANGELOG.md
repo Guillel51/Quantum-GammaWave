@@ -1,3 +1,26 @@
+## En el árbol — FASE EXTRA: los osciloscopios del visualizador se ven a través
+
+Los dos pozos del visualizador de HOME (`graph_home_viz`) eran `cv_rect(T_SURF)`: placas opacas que tapaban el
+campo profundo —la banda de la Vía Láctea, su polvo, sus dos mundos y las brasas—. Ahora son un velo:
+`cv_rect_a()` mezcla un tono de página sobre **los píxeles que ya están en el lienzo**, píxel a píxel, con
+`ux_mix()`; el fondo se lee a través del cristal y la rejilla y la traza, dibujadas después, siguen siendo lo
+más brillante del pozo. Es blending real del framebuffer (que es legible), no un color sólido ni un dither que
+lo imite.
+
+**MENU > EXTRA > VIZ VEIL** (fila nueva, id de editor 25, «MID» por defecto: MID / CLEAR / DEEP) elige cuánto
+tapa el velo (60 / 44 / 76 %). El byte vive en el bloque del motor 15 que nadie usa, así que un ajuste viejo
+lee MID y no hay migración. El editor lo muestra solo, porque sus ajustes salen de `MENU_DESC`.
+
+Medido en el host (`cc -O1`, sólo las proporciones significan algo en el aparato): la pantalla del visualizador
+pasa de **213,3 a 247,5 µs** por cuadro en HIGH (+34 µs, +16 %). El primer intento con `ux_mix()` por píxel
+costaba +147 µs; las tablas de 128 entradas —construidas con el mismo `ux_mix()`, así que el resultado es bit a
+bit el mismo— lo bajan a +34. En el aparato: imagen **583 564 B de 583 612** (48 B libres), `.data+.bss` sin
+cambios (95 140 de 98 304).
+
+El barrido de `ui_render` queda en **0 hallazgos** de lint sobre 190 pantallas × 22 paletas, **0 píxeles GREY /
+MONO fuera de gris o neutro** y 0 alineaciones fuera por 1 px; los volcados de QUANTUM, MONO, GREY y PAPER
+muestran la banda y las estrellas atravesando los dos pozos con la traza legible.
+
 ## En el árbol — el build AC791N de este árbol, medido
 
 La cadena de destino (`tools/get_toolchain.sh` + los tres archivos del SDK AC79) se descargó y verificó en esta

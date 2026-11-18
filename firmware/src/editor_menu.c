@@ -25,6 +25,8 @@ static const uint8_t ED_MENU[][2] = {
     {MI_CPU, 22},                                      /* (QG-1 v1.5) CPU MODE AUTO / LITE / FULL, EXTRA */
     {MI_VIZQ, 23},                                      /* (QG-1 v1.5) VIS QUALITY LOW / HIGH / FULL, EXTRA */
     {MI_SPLASH, 24},                                    /* (QG-1 v1.5) SPLASH FULL / BRIEF / OFF, EXTRA */
+    {MI_VIZVEIL, 25},                                   /* (FASE EXTRA) VIZ VEIL MID / CLEAR / DEEP: how dark the
+                                                         * scope's well is over the visualizer's field, EXTRA */
 };
 #define ED_MENU_N NELEM(ED_MENU)
 

@@ -1877,6 +1877,22 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 
 ---
 
+### FASE EXTRA — pozos del visualizador semitransparentes
+
+| Qué se comprobó | Cómo | Clase | Resultado |
+|---|---|---|---|
+| El velo es blending real, no un color sólido | `cv_rect_a()` lee `cv_px` y mezcla con `ux_mix()` por píxel; la traza, la rejilla y los medidores se dibujan después | host x86 | sí (código + volcado) |
+| El fondo del visualizador se ve a través | volcado de `home_viz` en QUANTUM, MONO, GREY y PAPER (`QG_DUMP`)
+| host x86 | banda, polvo y estrellas visibles en ambos pozos |
+| Legibilidad y paletas | `tests/ui_render.c`: 190 pantallas × 22 paletas, lint, alineación, GREY/MONO | host x86 | 0 hallazgos, 0 fuera de gris/neutro, 0 desalineados |
+| Coste de dibujo | `ui_render` report: visualizador HIGH | host x86, `cc -O1` | 213,3 → **247,5 µs** por cuadro (+16 %) |
+| Flash y RAM | `./build.sh` con `JIELI_TOOLCHAIN` + `AC79_SDK` V1.2.1 | build AC791N | imagen **583 564 B / 583 612** (48 B libres); `.data+.bss` 95 140 / 98 304 |
+| Ajuste configurable | MENU > EXTRA > VIZ VEIL (id 25), `tests/editor_test.c` lo aplica y lo lee | host x86 | MID / CLEAR / DEEP |
+| Audio intacto | `tests/regress.c` | host x86 | 303 renders dorados sin cambios, 0 fallos |
+
+El parpadeo y el refresco no se pueden medir acá: el visualizador se redibuja entero por cuadro y el velo no
+añade ningún estado entre cuadros (no hay doble buffer ni acumulación), pero **no se vio en la unidad física**.
+
 ### Build AC791N de este árbol (FASE 7)
 
 Con `JIELI_TOOLCHAIN` (clang 4.0.1 pi32v2, `tools/get_toolchain.sh`, archivo verificado contra el SHA-256 fijado)

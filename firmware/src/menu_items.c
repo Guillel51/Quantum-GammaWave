@@ -8,7 +8,8 @@
  * value (MI_VALUES: the rows before them hold one). 1.0.5: in four tabs (MI_TAB). */
 enum { MI_COLOR, MI_STYLE, MI_LARGE, MI_ANIM, MI_LEDS, MI_SCROFF, MI_HOLD, MI_ACCEL, MI_LATCH, MI_BPMLOCK, MI_SCLLED, MI_MIDIOUT,
        MI_LOWCUT, MI_USB,
-       MI_CLICK, MI_CLKLVL, MI_COUNTIN, MI_TRACKS, MI_SELHOME, MI_CPU, MI_VIZQ, MI_SPLASH, MI_VOICES, MI_SERIAL, MI_RESTORE,
+       MI_CLICK, MI_CLKLVL, MI_COUNTIN, MI_TRACKS, MI_SELHOME, MI_CPU, MI_VIZQ, MI_VIZVEIL, MI_SPLASH, MI_VOICES,
+       MI_SERIAL, MI_RESTORE,
        MI_LOAD, MI_PANEL, MI_INIT, MI_ABOUT,
        MI_COUNT };   /* (1.1.1-GW: SELECT ON HOME, the GEN tab's) */   /* (1.1: the metronome's rows in
                                                                                              * AUDIO; 1.2: RESTORE LAST in SYSTEM, SCALE LEDS
@@ -17,7 +18,7 @@ enum { MI_COLOR, MI_STYLE, MI_LARGE, MI_ANIM, MI_LEDS, MI_SCROFF, MI_HOLD, MI_AC
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "STYLE", "LARGE", "ANIM", "LEDS", "SCREEN OFF", "HOLD", "KNOB ACCEL", "FX LATCH", "BPM LOCK",
                                               "SCALE LEDS", "MIDI OUT",
                                               "SPEAKER EQ", "USB LEVEL", "CLICK", "CLICK LEVEL", "COUNT-IN", "TRACKS",
-                                              "KNOB SELECT", "CPU MODE", "VIS QUALITY", "SPLASH", "VOICES",
+                                              "KNOB SELECT", "CPU MODE", "VIS QUALITY", "VIZ VEIL", "SPLASH", "VOICES",
                                               "USB SERIAL",
                                               "RESTORE LAST", "LOAD", "CALIBRATION", "INIT SYSTEM", "ABOUT"};
 /* 1.0.5: the MENU's tabs (ui_menu.c: ALGORITHM steps between them, PRESETS among one tab's rows; the editor gets a
@@ -36,9 +37,10 @@ static const uint8_t MI_TAB[MI_COUNT] = {
     MTAB_AUDIO, MTAB_AUDIO, MTAB_AUDIO, MTAB_AUDIO, MTAB_AUDIO,             /* SPEAKER EQ, USB LEVEL, CLICK, CLICK LEVEL,
                                                                              * COUNT-IN */
     MTAB_AUDIO,                                                             /* TRACKS (JIANT 0.6.18) */
-    MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN,                       /* SELECT ON HOME (1.1.1-GW), then the
+    MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN,             /* SELECT ON HOME (1.1.1-GW), then the
                                                                              * v1.5 EXTRA rows: CPU MODE, VIS QUALITY,
-                                                                             * SPLASH; and (FASE 3) VOICES */
+                                                                             * VIZ VEIL (FASE EXTRA), SPLASH; and
+                                                                             * (FASE 3) VOICES */
     MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM,        /* USB SERIAL, RESTORE LAST, LOAD (JIANT
                                                                              * 0.6.30), CALIBRATION, INIT SYSTEM (0.6.58) */
     MTAB_SYSTEM,                                                            /* ABOUT */
@@ -101,6 +103,10 @@ static const char *const SELHOME_N[5] = {"BPM", "TRACK VOL", "TRACK PAN", "MASTE
  * older settings record, which is each one's default (ui.c ui_cpu_mode / ui_viz_q / ui_splash). */
 static const char *const CPU_N[3] = {"AUTO", "DUAL CORE", "SAFE SINGLE"};
 static const char *const VIZQ_N[3] = {"HIGH", "BALANCED", "LOW"};
+/* (FASE EXTRA) MENU > EXTRA > VIZ VEIL: how much of a near-page tone the scope's well lays over the visualizer's
+ * field (ui_graph.c viz_veil). 0, what an older settings record holds, is MID: the well is dark enough for the
+ * trace and its grid and the field behind it still reads through the glass */
+static const char *const VIZVEIL_N[3] = {"MID", "CLEAR", "DEEP"};
 static const char *const SPLASH_N[3] = {"FULL", "SHORT", "OFF"};
 static const char *const TRACKS_N[3] = {"4 ECO", "5 BAL", "6 FULL"};   /* (3.4) MENU > TRACKS: trk_live 4 / 5 / 6 */
 static const char *const VOICES_N[3] = {"8", "10", "12"};   /* (FASE 3) MENU > AUDIO > VOICES: the shared budget */
@@ -136,7 +142,7 @@ static const menu_flag_t *menu_flag(uint32_t row)
 static uint32_t menu_n(uint32_t row)
 {
     return row == MI_COLOR ? UI_NPAL_LIVE : row == MI_LOWCUT || (row >= MI_CLICK && row <= MI_COUNTIN) || row == MI_LOAD ||
-           row == MI_CPU || row == MI_VIZQ || row == MI_SPLASH || row == MI_TRACKS || row == MI_VOICES ? 3u :
+           row == MI_CPU || row == MI_VIZQ || row == MI_VIZVEIL || row == MI_SPLASH || row == MI_TRACKS || row == MI_VOICES ? 3u :
            row == MI_HOLD || row == MI_MIDIOUT ? 4u : row == MI_SELHOME ? 5u : row == MI_LEDS ? LEDS_COUNT : row == MI_SCROFF ? NELEM(SCROFF_N) : 2u;
 }
 static uint32_t menu_get(uint32_t row)
@@ -157,6 +163,7 @@ static uint32_t menu_get(uint32_t row)
     case MI_SELHOME: return ui_sel_home < 5u ? ui_sel_home : 0u;
     case MI_CPU: return ui_cpu_mode < 3u ? ui_cpu_mode : 0u;
     case MI_VIZQ: return ui_viz_q < 3u ? ui_viz_q : 0u;
+    case MI_VIZVEIL: return ui_viz_veil < 3u ? ui_viz_veil : 0u;
     case MI_SPLASH: return ui_splash < 3u ? ui_splash : 0u;
     case MI_TRACKS: return trks_ui < 3u ? (uint32_t)trks_ui : 0u;   /* (3.4) 4 / 5 / 6 tracks */
     case MI_VOICES: return 2u - (ui_voices < VOICE_UCAP_N ? ui_voices : 0u);   /* (FASE 3) 8 / 10 / 12 */
@@ -185,6 +192,7 @@ static const char *menu_vname(uint32_t row, uint32_t v)
     case MI_SELHOME: return SELHOME_N[v % 5u];
     case MI_CPU: return CPU_N[v % 3u];
     case MI_VIZQ: return VIZQ_N[v % 3u];
+    case MI_VIZVEIL: return VIZVEIL_N[v % 3u];
     case MI_SPLASH: return SPLASH_N[v % 3u];
     case MI_TRACKS: return TRACKS_N[v % 3u];
     case MI_VOICES: return VOICES_N[v % 3u];
@@ -234,6 +242,7 @@ static void menu_put(uint32_t row, uint32_t v)
         cpu_mode_apply(ui_cpu_mode);                   /* (FASE 3) at once: fx.c cpu_mode_apply/cpu_mode_step */
         break;
     case MI_VIZQ: ui_viz_q = (uint8_t)(v % 3u); ui.force = 1; break;  /* (the visualizer redraws at once) */
+    case MI_VIZVEIL: ui_viz_veil = (uint8_t)(v % 3u); ui.force = 1; break;   /* (the wells redraw at once) */
     case MI_SPLASH: ui_splash = (uint8_t)(v % 3u); break;
     case MI_TRACKS: trks_put(v % 3u); break;
     case MI_VOICES: voices_put(v % 3u); break;   /* (FASE 3) at once: the next note already obeys it */         /* (ui.c: trk_live, trks_ui, the older bit) */      /* (main.c reads it at the next power-on) */

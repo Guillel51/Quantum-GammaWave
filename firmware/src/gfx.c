@@ -336,6 +336,48 @@ static void cv_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
             cv_px[(uint32_t)y * cv_w + (uint32_t)i] = sc;
 }
 
+/* (FASE EXTRA) A SEE-THROUGH WELL. cv_rect() paints whole, so a scope's floor filled with the plate's tone hid
+ * the deep field, its dust, its band and its worlds -- everything the visualizer draws behind it. This lays `c`
+ * down at `pct` over the pixels the canvas already holds: ux_mix() against the colour that is there, the same
+ * blend cv_ink does per dot, so the field keeps showing through the well while the grid and the trace, drawn
+ * after it, stay solid on top. It is a real blend of the frame buffer (which is readable), not a dithered
+ * imitation of one, and it clips exactly as cv_rect does. */
+static void cv_rect_a(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t pct)
+{
+    int32_t x1 = x + w, y1 = y + h + cv_oy, i;
+    y += cv_oy;
+    if (x < 0)
+        x = 0;
+    if (y < 0)
+        y = 0;
+    if (x1 > (int32_t)cv_w)
+        x1 = (int32_t)cv_w;
+    if (y1 > (int32_t)cv_h)
+        y1 = (int32_t)cv_h;
+    if (x1 <= x || y1 <= y)
+        return;
+    /* (the two wells are 14 656 px a frame: ux_mix() per pixel was 147 us of the host frame) The mix is per
+     * channel and depends on nothing but that channel's level, so 128 entries built with the same ux_mix()
+     * answer every pixel of the fill: the result is bit for bit what the per-pixel call gave -- GREY stays
+     * gray, no rounding difference -- with three loads per pixel instead of three divides. MONO reads the
+     * red table (its ux_mix branch is the red channel, returned as one gray), the same values. */
+    {
+        uint8_t tr[32], tg[64], tb[32];
+        for (i = 0; i < 32; i++) tr[i] = (uint8_t)(ux_mix((uint16_t)((uint32_t)i << 11), c, pct) >> 11);
+        for (i = 0; i < 64; i++) tg[i] = (uint8_t)((ux_mix((uint16_t)((uint32_t)i << 5), c, pct) >> 5) & 63u);
+        for (i = 0; i < 32; i++) tb[i] = (uint8_t)(ux_mix((uint16_t)i, c, pct) & 31u);
+        for (; y < y1; y++) {
+            uint16_t *row = cv_px + (uint32_t)y * cv_w;
+            for (i = x; i < x1; i++) {
+                uint32_t a = swap16(row[i]);
+                row[i] = swap16(ux.mono ? ux_gray(tr[a >> 11]) :
+                                (uint16_t)((uint32_t)tr[a >> 11] << 11 | (uint32_t)tg[(a >> 5) & 63u] << 5 |
+                                           (uint32_t)tb[a & 31u]));
+            }
+        }
+    }
+}
+
 /* a divider (LINE): a 1 px T_RULE line on the canvas, a cell edge for the host lint */
 static void cv_rule(int32_t x, int32_t y, int32_t w, int32_t h)
 {
