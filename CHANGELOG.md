@@ -6,7 +6,11 @@ que falló en el job `build` de **todas** las releases desde la 1.4.10: v1.4.9 e
 en CI. Ahora los segmentos son `\d+` (`X.Y`, `X.Y.Z`, `X.Y.Z.W` y el sufijo `-rc1` siguen aceptándose, `x1` no), y
 `./build.sh --release 1.4.15` corta el paquete desde un árbol limpio, como lo corre el workflow.
 
-Esta versión no cambia una línea del firmware: es la 1.4.14 soplando el `--release` que el tag necesita.
+Esta versión no cambia una línea del firmware: es la 1.4.14 soplando el `--release` que el tag necesita. Con
+esto el job `build` del tag compila el paquete (15 m 13 s, artefacto `packages` y su atestación); el job
+`verify` de ese mismo run sigue en rojo y es la única cosa abierta de esta versión: su log necesita
+credencial y no se pudo leer desde acá, y el paquete publicado es byte a byte el del árbol (`sha256
+191493bc…`), así que lo que resta comprobar es la atestación, no los bytes del paquete.
 
 ## v1.4.14 — PANEL Y: la franja del panel se elige en Settings y se recuerda
 
