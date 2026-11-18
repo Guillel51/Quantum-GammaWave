@@ -1102,10 +1102,10 @@ static void gen_mix(track_t *t, uint32_t r)
 }
 
 /* ---------------------------------------------------------------------------------------- the form: parts --- */
-static step_t gen_keep[2][NSTEP];                        /* (1.4.5) main-loop scratch, but it stays in .bss: the
-                                                         * LOWBUF window ends 3 870 B from its limit with the flash
-                                                         * driver's buffer moved there, and a window that ends 28 B
-                                                         * from it (both moved) is a trap for the next buffer */
+static step_t gen_keep[2][NSTEP];                        /* (1.4.5) main-loop scratch, but it stays in .bss: with the
+                                                         * flash driver's buffer moved there LOWBUF keeps 2 204 B
+                                                         * free, and a window that ends 28 B from its limit (both
+                                                         * moved) is a trap for the next buffer */
 static void section_store(uint32_t s);                  /* (song_main.c) */
 static int section_load(uint32_t s);
 static uint32_t section_bars(uint32_t s);

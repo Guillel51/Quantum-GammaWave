@@ -33,7 +33,8 @@ al enlazar, no en la unidad.
 | pool (build AC791N) | 311 256 B, spare 9 248 | igual |
 
 `gen_keep` (2 176 B) se probó en la misma ventana y se dejó en `.bss` a propósito: con los dos dentro, LOWBUF
-terminaba a **28 B** del límite, que es una trampa para el siguiente buffer. Se prefirieron 3 870 B de holgura.
+terminaba a **28 B** del límite, que es una trampa para el siguiente buffer. Se prefirieron los **2 204 B** de
+holgura que deja la mudanza de `st_buf` sola.
 
 ### Lo que se midió y NO se quedó
 Tres candidatos se implementaron, se midieron y se revirtieron, porque una optimización sin número es una opinión:
