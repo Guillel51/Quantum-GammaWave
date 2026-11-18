@@ -1,3 +1,54 @@
+## v1.4.5 — la pasada de optimización, medida (RAM, .data/.bss, pool, coste del ISR y del render)
+
+Sin cambios de sonido ni de dibujo: 303 renders dorados idénticos, las 3 040 imágenes del barrido de UI idénticas
+byte a byte, `audio_test`, `poly_test`, `ui_test`, `startup_test`, `backup_test`, `persistence_test`,
+`project_test`, `settings_test`, `install_test` y las pruebas web en verde.
+
+### La pantalla: revisada, y el pendiente que la podía traer de vuelta
+La tabla del ST7789 sigue **sin gamma, sin brillo y sin VCOM** (1.4.4.1 quitó los escritos que aplastaban los tonos
+bajos). Lo que quedaba era el comentario que *argumentaba a favor* de escribirlos, encima de `LCD_SEQ`: cualquiera
+que lo leyera podía volver a meterlos. Ahora dice la regla —"no gamma, no brightness, no VCOM"— y por qué: los
+valores de fábrica del panel son los únicos que nunca estuvieron mal.
+
+### El pop de encendido, sin coste en el ISR
+El fade de ~27 ms sigue ahí, pero ya no es una segunda pasada por todas las muestras: se aplica a la **ganancia del
+máster que el bloque ya rampa** (`lev_cur`/`lev_dg` en fx.c), así que la multiplicación que ya existía hace el
+trabajo. En el compilador del objetivo el coste estático del ISR de audio baja de **354 a 300** (presupuesto 291,
+tolerancia +10 %: de "OVER BUDGET +22 %" a "ok +3 %"), y durante el arranque desaparecen dos multiplicaciones por
+muestra sobre 1 200 muestras. Medido con `tests/target_budget.py` sobre `build/felucca.dis` (clase: build AC791N,
+no es una medición en la unidad).
+
+### Memoria: 3 840 B devueltos al presupuesto de 96 KiB
+El buffer de staging del driver de flash (`st_buf`, 3 840 B, sólo lo toca el bucle principal; el ISR de audio nunca
+lee a través de una escritura) se mudó a la ventana **LOWBUF**, que pasa a 0x01C08000 —la última página estaba
+reservada "para depuración en RAM" y nada la usaba— y ahora lleva un `ASSERT` de linker: un buffer que no entre falla
+al enlazar, no en la unidad.
+
+| medida (clase) | antes | después |
+|---|---|---|
+| `.data+.bss` (build AC791N) | 95 140 B de 98 304 (3 164 libres) | **91 300 B de 98 304 (7 004 libres, 7,1 %)** |
+| LOWBUF (build AC791N) | 26 722 B de 28 672 | 30 562 B de 32 768 |
+| ISR de audio, coste estático (pi32v2) | 354 (OVER +22 %) | **300 (ok, +3 %)** |
+| imagen (build AC791N) | 583 140 B de 583 612 | 583 172 B (440 libres) |
+| pool (build AC791N) | 311 256 B, spare 9 248 | igual |
+
+`gen_keep` (2 176 B) se probó en la misma ventana y se dejó en `.bss` a propósito: con los dos dentro, LOWBUF
+terminaba a **28 B** del límite, que es una trampa para el siguiente buffer. Se prefirieron 3 870 B de holgura.
+
+### Lo que se midió y NO se quedó
+Tres candidatos se implementaron, se midieron y se revirtieron, porque una optimización sin número es una opinión:
+
+- **`cv_rect` a dos píxeles por escritura** (el canvas ya es una unión de 32 bits) + salida temprana del rect
+  vacío. Perfil de host: 43,3 M llamadas, 14,6 % del render. Resultado: **9 % más lento** (41,5 s contra 37,9 s del
+  mismo barrido), imagen idéntica, y +80 B de XIP. Revertido.
+- **Bloquear WIDTH y LOW CUT una vez por bloque** en `master_out` (se leían una vez por muestra). Coste estático de
+  `mix_block`: **2 103 → 2 102** instrucciones en bucle. El compilador ya los había sacado del bucle. Revertido.
+- **`gen_keep` a LOWBUF**, por la holgura de 28 B de arriba: revertido.
+
+### Cobertura nueva
+`tests/target_budget.py` vigila también **`mix_block`** (32 667), que es donde viven `fx_buses`, `master_out`, el
+leveler y el fade: era la función más caliente del perfil y no tenía línea de presupuesto.
+
 ## v1.4.4.1 — la pantalla oscura en la unidad, las filas que se trababan y el pop del arranque
 
 (Pedida como 1.4.2.1: se publica como **1.4.4.1** porque el proyecto ya está en 1.4.4 y el sitio y el instalador

@@ -1886,3 +1886,16 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | Arranque en SPLASH FULL, SHORT y OFF | `[HOST]` | `tests/startup_test.c` arranca la unidad con cada uno de los tres valores: la fila lee lo que el equipo arrancó, OFF no dibuja splash, FULL/SHORT sí antes de la UI, y la UI aparece en los tres. (La diferencia animación-vs-cuadro entero la mide `ui_render.c`: 244 de 1125 pasos) |
 | Sin pop al arrancar | `[HOST]` | `audio.c` entra con un fade de 1200 muestras (~27 ms) desde el silencio: `tests/poly_test.c` mide el primer bloque con una nota fuerte desde el principio — pico 4 480 contra 942 528 tras el fade (0,5 %) |
 | En una FM-1 física | — | **NOT MEASURED**: el panel, el pop y las teclas se confirman apretando la unidad; lo de arriba es host x86 y código |
+
+---
+
+## 2026-11-18 — v1.4.5: pasada de optimización, con las mediciones delante
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| La tabla del panel no escribe gamma, brillo ni VCOM (y el comentario ya no los pide) | `[STATIC]` | `LCD_SEQ` termina en la inversión; el bloque de comentario que argumentaba a favor de la curva 2.2 se sustituyó por la regla y su motivo. Nada nuevo escribe 0xE0/0xE1/0x53/0x51 (grep en `lcd.c`) |
+| El pop de encendido sigue resuelto y no cuesta una pasada de muestras | `[HOST]` + `[BUILD AC791N]` | `tests/poly_test.c`: primer bloque 4 480 contra 942 528 tras el fade. El fade va en la ganancia del máster: el ISR baja de 354 a 300 de coste estático (budget 291, tolerancia +10 %) |
+| `.data+.bss` bajo presupuesto con más margen | `[BUILD AC791N]` | `./build.sh`: 91 300 B de 98 304 (7 004 libres, antes 3 164). `st_buf` (3 840 B) en LOWBUF; `ASSERT` de linker para esa ventana |
+| Nada audible ni visible cambió | `[HOST]` | 303 renders dorados idénticos (`tests/regress.c`), 3 040 imágenes del barrido idénticas byte a byte (`tests/ui_render.c`, hash 678413d9…), audio/poly/UI/startup/backup/persistencia/proyecto/settings/install en verde |
+| `mix_block` bajo presupuesto | `[BUILD AC791N]` | línea nueva en `tests/target_budget.txt`: 32 667 (2103 instrucciones en bucle + 9 divisiones); 42 entradas, 0 fuera de presupuesto |
+| En una FM-1 física | — | **NOT MEASURED**: la pantalla, el pop y el brillo se confirman encendiendo la unidad. Todo lo de arriba es host x86, emulador o el compilador del objetivo |
