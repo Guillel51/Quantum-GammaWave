@@ -548,7 +548,7 @@ enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHANCE, GR_MOTION, GR_EVENTS, GR_DXSND, GR_MSEQ, GR_SLPIT,
        GR_FMOP, GR_FMOP2, GR_FMENV,
        GR_COMP, GR_MUTATE, GR_MORPH, GR_DXIMG, GR_FUGUE, GR_SHAPE, GR_DIAG,
-       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS};   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
+       GR_SCL_SCALE, GR_SCL_CHORD, GR_SCL_PROG, GR_FX_BUSES, GR_SEQTOOLS, GR_MACROS, GR_MODMAP};   /* (FASE 8) MACROS: M1..M4 */   /* (6.1) SCL's three pages and FX>
                                      * BUSES: the routing console (ui_scl.c, ui_fxb.c) */   /* (2.8) SCL's tools: the
                                      * scale's notes and intervals, the chords the key has, their voicings, the
                                      * intervals from the root, the degrees' progressions and the keys (ui_graph.c) */
@@ -611,6 +611,8 @@ static const page_t PAGES[] = {
     {"LFO SHAPE", FAM_LFO, SC_TRACK, GR_NONE, {P_X2, P_X3, 0xFF, 0xFF}},   /* (FASE 2) SLEW, INVERT (the CHARACTER
                                      * bank's two remaining slots: a track's LFO, not an engine's) */
     {"MOD", FAM_LFO, SC_TRACK, GR_MOD, {0xFF, P_M1SRC, P_M1DST, P_M1AMT}},   /* KNOB 1: the slot (mod_ui_slot) */
+    {"MOD MAP", FAM_LFO, SC_TRACK, GR_MODMAP, {0xFF, 0xFF, 0xFF, 0xFF}},   /* the matrix at a glance: every assigned
+                                     * slot, its shared destinations counted (ui_graph.c: graph_modmap); read only */
     {"MSEQ", FAM_LFO, SC_TRACK, GR_MSEQ, {0xFF, P_MS0, P_MSLEN, P_MSSLW}},   /* JIANT: KNOB 1 the step (ms_ui_step) */
     {"MSEQ 2", FAM_LFO, SC_TRACK, GR_NONE, {P_MSDIV, 0xFF, 0xFF, 0xFF}},
     {"MACROS", FAM_LFO, SC_GLOBAL, GR_MACROS, {G_MAC1, G_MAC2, G_MAC3, G_MAC4}},   /* (FASE 8) M1..M4: what the

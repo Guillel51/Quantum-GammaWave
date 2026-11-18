@@ -216,6 +216,7 @@ a la derecha); apretá OCT+ para ejecutarla.
 | LFO | RATE | WAVE | PHASE | FADE |
 | LFO DEST | PITCH | FILTER | SHAPE | AMP |
 | MOD | SLOT (1–4) | SRC | DEST | AMT |
+| MOD MAP | — | — | — | — |
 | MSEQ | STEP (1–16) | LEVEL | LEN | SLEW |
 | MSEQ 2 | DIV | — | — | — |
 
@@ -1235,6 +1236,9 @@ dice entonces ECO).
     suave; RAND en cambio sortea un valor por nota).
   - Destinos: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (velocidad del LFO), VIB, **E1–E8** (las perillas
     EDIT propias del motor, mostradas por nombre), **CLIP** y **PNCH** (el master).
+- **MOD MAP**: la matriz de un vistazo. Sólo aparecen los slots realmente asignados (SRC, DEST y AMT con valor),
+  una fila cada uno, y un destino que mueven dos o más slots lleva su cuenta (`x2`, `x3`): los destinos
+  compartidos, donde un valor se mueve dos veces. Es de lectura; en MOD se editan los slots.
 - **MSEQ**: un secuenciador de modulación de 16 pasos por pista, como un secuenciador de CV. KNOB 1 elige el paso,
   KNOB 2 fija su nivel, LEN y SLEW; DIV en MSEQ 2. Usalo desde MOD con SRC **STEP**.
 
