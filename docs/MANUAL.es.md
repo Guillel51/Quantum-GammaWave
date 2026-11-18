@@ -1708,7 +1708,7 @@ propio CUT y RES) y el tipo de filtro; la pantalla dice cuál es. UNDO deshace u
 ### Tipos nuevos de filtro, ecualización y saturación armónica
 
 - **Filtros**: El **TYPE** de FILTER suma **VOWEL** y **SCREAM** (ver [4](#4-motores)).
-- **Saturación armónica cálida**: El **TYPE** de DIST cuenta con 4 modelos musicales de alta fidelidad: **`SOFT`** (recorte suave rico en 2º armónico), **`TAPE`** (saturación cúbica con calidez de cabezal), **`HEARTH`** (curva a válvulas asimétrica) y **`FLUX`** (deriva analógica y compresión de cinta).
+- **Saturación armónica cálida**: El **TYPE** de DIST cuenta con cinco modelos de saturación: **`SOFT`** (recorte suave rico en 2º armónico), **`TAPE`** (saturación cúbica con calidez de cabezal), **`HEARTH`** (curva a válvulas asimétrica) y **`FLUX`** (deriva analógica y compresión de cinta); un quinto, **`FOLD`**, es un plegador de onda triangular: la onda se dobla sobre sí misma en vez de recortarse, así que **DRIVE** suma parciales hacia arriba donde los otros cuatro saturan.
 - **Master EQ Paramétrico Biquad Q14**: Nueva página **MASTER EQ** en el bus master con filtro paramétrico biquad en Direct Form II Transposed de coma fija (`OFF`, `PEAK` tipo campana con ganancia y Q variables, y `NOTCH` de rechazo estrecho para limpieza quirúrgica de resonancias).
 - **Polifonía de 10 Voces y Asignación Psicoacústica**: Capacidad ampliada a 10 voces en tiempo real con robo inteligente de voces amortiguadas ($<-40\text{ dB}$) para evitar clics audibles.
 - **GENERATOR (49 géneros)**: Incluye GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP y RAGE TRAP (ver [8](#8-dados-y-undo)).

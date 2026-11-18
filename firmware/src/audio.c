@@ -82,14 +82,28 @@ static void dac_scope(const int32_t *out, uint32_t n)
  * budget and bought nothing. Only the fade's position advances here, once a block. */
 #define BOOT_FADE 1200u
 static uint32_t boot_gain;                             /* 0 .. 32768, Q15: the fade's position */
+/* (FASE 3) THE FADE WAS SPENT WHILE THE SPEAKER WAS STILL MUTED. fm1_audio_init unmutes the output stage
+ * (pc6) only at its very end, 25 ms after the engine started on the zeroed buffer -- and the ramp above ran
+ * from the first block, so by that unmute it was already at ~93 %: what reached the speaker was the step the
+ * fade existed to hide. Two things follow, and both are now handled here:
+ *   1. the output stays at digital silence (gain 0, exact zeros) until audio_fade_in() arms the ramp, which
+ *      main.c calls once the boot's own interrupts-off stages are done, so the fade is not spent under a
+ *      muted stage and the unmute lands on zeros;
+ *   2. the same window covers the boot's critical sections (the second core's start runs with interrupts off
+ *      for up to 20 ms, seven 2.9 ms halves): the engine may lose halves there, but it loses them on zeros,
+ *      which is silence, not a click.
+ * The ramp still ends ~27 ms after arming, during the splash: nothing is added to the boot's length. */
+static volatile uint8_t boot_armed;                    /* 0: silence; 1: the ramp above runs */
+void audio_fade_in(void) { boot_gain = 0; boot_armed = 1; }
 void fx_boot_gain(int32_t g);                          /* fx.c: the fade, folded into the block's master gain */
 static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 -> 24 bit */
 {
     uint32_t i;
-    fx_boot_gain((int32_t)boot_gain);                   /* (1.4.5) the fade is on the master: USB and DAC stay the
-                                                         * same signal, and it costs no pass of its own */
+    fx_boot_gain(boot_armed ? (int32_t)boot_gain : 0);  /* (1.4.5) the fade is on the master: USB and DAC stay the
+                                                         * same signal, and it costs no pass of its own. (FASE 3)
+                                                         * until armed: 0, so the output is exact silence */
     mix_block(out, n);
-    if (boot_gain < 32768u) {
+    if (boot_armed && boot_gain < 32768u) {
         boot_gain += (uint32_t)n * (32768u / BOOT_FADE);
         if (boot_gain > 32768u) boot_gain = 32768u;
     }
@@ -235,6 +249,7 @@ static void audio_init(void)                   /* codec and ALNK0 bring-up (fm1_
     uint32_t i;
     for (i = 0; i < 2u * HALF_WORDS; i++)
         abuf[i] = 0;
-    boot_gain = 0;                                     /* (1.4.2.1) the fade starts at silence */
+    boot_gain = 0;                                     /* (1.4.2.1) the fade starts at silence ... */
+    boot_armed = 0;                                    /* ... and (FASE 3) waits: audio_fade_in arms it */
     fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);
 }

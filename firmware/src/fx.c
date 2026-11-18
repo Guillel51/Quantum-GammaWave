@@ -108,11 +108,11 @@ _Static_assert(sizeof rev_comb / 2u >= SP_LEN && sizeof rev_u.sp / 4u >= 4u * (S
  * (a little bias = even harmonics) -> tone low-pass that closes with drive ->
  * make-up gain (straight into tanh over the full band, it would sound like a
  * broken digital fuzz). State per part (track_t dist_*). */
-/* (JIANT) DIST TYPE (P_DTYPE): SOFT the biased tanh as before; HARD a hard clip; FOLD a triangle wavefolder (the drive
- * folds the wave back on itself: more partials as it rises); CRUSH fewer bits and a held sample (the drive takes both
- * down); RECT full-wave rectified (an octave up, fuzz), its DC taken out. Then the two-pole low-pass, TONE (P_DTONE)
- * moving it darker / brighter, and the make-up. DRIVE 0: out of the chain */
-enum { DT_SOFT, DT_TAPE, DT_HEARTH, DT_FLUX };
+/* DIST TYPE (P_DTYPE): SOFT the biased tanh as before; TAPE the cubic tape curve; HEARTH the tube heat with its
+ * sparks and weight; FLUX the thermal drift; (FASE 2) FOLD the triangle wavefolder -- the wave folds back on
+ * itself instead of clipping, so DRIVE adds partials all the way up, where the other four saturate. Then the
+ * two-pole low-pass, TONE (P_DTONE) moving it darker / brighter, and the make-up. DRIVE 0: out of the chain */
+enum { DT_SOFT, DT_TAPE, DT_HEARTH, DT_FLUX, DT_FOLD };
 static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, int32_t x, int32_t g, int32_t d)
 {
     int32_t v = ((x >> 2) * g) >> 10, a;
@@ -141,6 +141,18 @@ static __attribute__((noinline)) int32_t dist_shape(track_t *t, uint32_t type, i
         int32_t x3 = (int32_t)(((int64_t)v * (((int64_t)v * v) >> 15)) >> 15);
         int32_t out = v - (x3 / 3);
         return softclip(out);
+    }
+    case DT_FOLD: {                                      /* (FASE 2) FOLD: a triangle wavefolder -- what passes
+                                                          * the fold point comes back mirrored, so the harmonics
+                                                          * climb with DRIVE instead of flattening. The period
+                                                          * is a power of two (8192 down to 1024 with DRIVE), so
+                                                          * the wrap and the fold are a mask and a subtraction:
+                                                          * no divide in the audio path (the chip has none) */
+        int32_t T = 8192 >> ((uint32_t)d >> 5), a = v < 0 ? -v : v;
+        a &= 2 * T - 1;                                  /* wrapped into 0 .. 2T-1 */
+        a = a > T ? 2 * T - a : a;                       /* every fold point mirrors it */
+        a <<= 2 + ((uint32_t)d >> 5);                    /* the peak back to 32768: DRIVE is loudness-neutral */
+        return v < 0 ? -a : a;
     }
     case DT_SOFT:                                        /* SOFT: musical asymmetric soft clip (even harmonics) */
     default: {
@@ -171,7 +183,7 @@ static void track_dist(track_t *t, int32_t *b, uint32_t n)
     g = 4096 + d * d * 2;                                /* Q12: 1x .. ~9x, gentle at first */
     k = clamp(32000 - d * 95 + t->p[P_DTONE] * 300, 2500, 32767);   /* tone: transparent at low drive .. ~3 kHz, Q15 */
     mk = 30000 - d * 100;                               /* make-up gain */
-    if (type > DT_FLUX)
+    if (type > DT_FOLD)
         type = DT_SOFT;
     for (i = 0; i < (int32_t)n; i++) {
         int32_t x = b[i], y;

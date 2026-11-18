@@ -1,4 +1,7 @@
-## v1.4.11 — PANEL Y: la franja del panel se elige en Settings y se recuerda
+## v1.4.12 — PANEL Y: la franja del panel se elige en Settings y se recuerda
+
+Esta versión integra la 1.4.11 del trabajo paralelo (DIST FOLD, la fuente S comprimida para pagarlo y el pop de
+encendido) con PANEL Y y los arreglos de pruebas de este lado; la 1.4.11 ya publicada no se reescribe.
 
 ### El problema, dicho entero
 El controlador tiene **240x320** de memoria de cuadro y el panel muestra **240 filas**: está pegado a una franja de
@@ -45,6 +48,41 @@ anterior de la 1.4.8 había dejado sin compilar (`text_ref_test.c` usaba `f->adv
   **4 208 795 medidas de alineación, 0** fuera por 1 px, con la fila PANEL Y incluida en el MENU.
 - La suite host completa pasa con este árbol (el único fallo era el test del conjunto de release, que exige
   `site/` sincronizado, y se sincroniza antes del commit del paquete).
+
+## v1.4.11 — el pop de encendido, y el DIST que pliega
+
+### El pop al encender: el fade se gastaba con el altavoz todavía en mute
+`fm1_audio_init` mantiene el estado de salida (pc6) en mute mientras el códec arranca y desmutea recién al
+final, 25 ms después de que el motor empezara a correr sobre el buffer en ceros. El fade de encendido, en
+cambio, arrancaba en el primer bloque: cuando el altavoz se abría, la rampa ya estaba al ~93 %, así que lo que
+llegaba al parlante era justamente el escalón que el fade existía para esconder.
+
+Ahora `audio.c` tiene un estado armado/desarmado: hasta que `main.c` llama a `audio_fade_in()` — después de
+las etapas del arranque que corren con interrupciones apagadas, incluido el arranque del segundo núcleo (hasta
+20 ms, siete medias de 2.9 ms) — el master entrega **cero exacto**. El desmute cae sobre ceros, las medias que
+se pierden en esas secciones se pierden sobre ceros, y la rampa 0 → full (~27 ms) ocurre ya con el sistema
+estable, dentro del hold del splash: no agrega tiempo de arranque.
+
+`tests/boot_fade_test.c` lo fija en host x86: con ganancia 0 el bloque es silencio digital exacto, la rampa es
+monótona (0 → 2 809 → 5 578 → 10 847 de pico) y en 32768 el render es byte a byte el mismo que sin fade.
+
+### DIST > FOLD
+Quinto modelo del insert: un plegador de onda triangular. Lo que pasa el punto de plegado vuelve espejado, así
+que DRIVE suma parciales hacia arriba donde SOFT, TAPE, HEARTH y FLUX saturan. El período es una potencia de
+dos (8192 → 1024 con DRIVE), de modo que envolver y plegar son una máscara y una resta: ningún divide en el
+camino de audio. La salida se re-escala para que DRIVE cambie el timbre y no el volumen.
+`tests/dist_models_test.c` pincha los cinco modelos (suenan, quedan en 16 bits, FOLD loudness-neutral y sin DC,
+los cinco renders difieren, y a DRIVE 0 el TYPE queda fuera de la cadena).
+
+### La fuente S, comprimida (1 224 B de flash recuperados)
+La cara que más se dibuja pasa a Huffman como M y L, con el mismo códec: decodifica a los mismos píxeles
+(3 056 capturas del barrido, 0 difieren byte a byte). Es lo que pagó el presupuesto de FOLD con la ranura en
+8 B libres: la imagen queda en 582 428 B de 583 612.
+
+### De paso
+`tests/text_spacing_test.py` leía el flag `adv8` como si fuera la tabla Huffman y decodificaba toda cara como
+nibbles; con la cara L (adv8 off, HC presente) reventaba con `IndexError`. Ahora lee el puntero del final de
+`aafont_t` y vuelve a medir.
 
 ## v1.4.10 — el panel: la tabla de init vuelve completa, con los valores del driver del módulo
 

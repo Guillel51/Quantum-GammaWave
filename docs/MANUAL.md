@@ -1607,7 +1607,7 @@ and the filter type; the screen says which one. UNDO takes a macro back.
 ### New filter, EQ and harmonic distortion types
 
 - **Filters**: FILTER **TYPE** adds **VOWEL** and **SCREAM** (see [4](#4-engines)).
-- **Harmonic Distortions**: DIST **TYPE** provides 4 musical saturation models: **`SOFT`** (warm soft-clip with 2nd harmonic richness), **`TAPE`** (cubic tape saturation and head warmth), **`HEARTH`** (asymmetric tube bias curve) and **`FLUX`** (analog drift and tape compression).
+- **Harmonic Distortions**: DIST **TYPE** provides five saturation models: **`SOFT`** (warm soft-clip with 2nd harmonic richness), **`TAPE`** (cubic tape saturation and head warmth), **`HEARTH`** (asymmetric tube bias curve) and **`FLUX`** (analog drift and tape compression); a fifth, **`FOLD`**, is a triangle wavefolder — the wave folds back on itself instead of clipping, so **DRIVE** adds partials all the way up where the other four saturate.
 - **Parametric Master Biquad EQ (Q14)**: Dedicated **MASTER EQ** page on the master bus implementing a fixed-point Direct Form II Transposed biquad filter (`OFF`, `PEAK` bell curve with adjustable gain and Q, and surgical `NOTCH` rejection).
 - **10-Voice Polyphony & Psychoacoustic Allocation**: Expanded real-time capacity to 10 voices with weighted quiet-tail stealing ($<-40\text{ dB}$) eliminating clicks.
 - **GENERATOR (49 genres)**: Includes GAMMAWAVE, WRAITHWAVE, TRAP ATL, UK DRILL, DARK TRAP and RAGE TRAP (see [8](#8-dice-and-undo)).

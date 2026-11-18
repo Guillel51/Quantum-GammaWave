@@ -55,9 +55,11 @@ def parse(path):
         faces[name] = {"h": int(f[0]), "asc": int(f[1]), "first": int(f[2]), "last": int(f[3]), "nex": int(f[4]),
                        "g": g, "adv": adv, "data": bytes(arr("DATA")), "kern": kern, "ex": arr("EX")[:int(f[4])],
                        "psh": int(f[12]) if len(f) > 12 else 0,
-                       # (1.4.8 XIP) aafont_t gained adv8 between psh and hc: the advances of S and M are bytes
-                       "adv8": int(f[13]) if len(f) > 13 else 0,
-                       "hc": arr("HC") if len(f) > 14 and f[14] != "0" else None}
+                       # (FASE 2) the Huffman code is the LAST member of aafont_t (a pointer, AF_x_HC or 0);
+                       # f[13] is adv8, the uint8-advance flag FASE 1 added, and reading it here made this
+                       # test decode every face as nibbles -- it crashed outright once a face had adv8 off and
+                       # an HC table, which is where the L face landed
+                       "hc": arr("HC") if len(f) > 14 and f[14].startswith("AF_") else None}
     return faces
 
 

@@ -249,6 +249,10 @@ static void fm1_main(void)
         fm1_irq_on();
     }
 #endif
+    /* (FASE 3) THE OUTPUT OPENS HERE, ON ZEROS. Everything above ran with the DAC silent: the unmute inside
+     * fm1_audio_init happened on zeros, and the second core's start (interrupts off) dropped its halves on
+     * zeros too. From this line the master ramps 0 -> full in ~27 ms, which lands inside the splash's hold. */
+    audio_fade_in();
     /* (v2.9.7) THE BOOT RUNS UNDER THE PICTURE, one stage a frame. The splash already painted itself as
      * the earlier stages finished, but the three that reach the flash -- the autosave's read, the TAKES
      * reel and the session's dice -- all ran before the animation took a single step, so the picture sat
