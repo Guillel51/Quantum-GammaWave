@@ -344,7 +344,8 @@ static void con_crash(void)
 /* (1.4.6) MEM: the budgets ./build.sh prints, read from the linker's own symbols. This is the one part of the
  * memory work that a host cannot answer for a unit: with this command the owner can type `mem` on an FM-1 and see
  * the same .data+.bss figure the CI build reports, plus the windows the build only prints (LOWBUF, the stacks).
- * Class: the linker's map, not a measurement -- nothing here says how much of a stack is USED. */
+ * Class: the linker's map, not a measurement -- nothing here says how much of a stack is USED.
+ * (1.4.7) `mem` prints `used/limit` per window: ram, lowbuf, pool. */
 extern uint32_t _bss_end[], _low_start[], _low_end[], _pool_start[], _pool_end[];   /* main.c's, same types */
 extern uint8_t _c1_stack_hi[];                    /* hal/fm1_multicore.h */
 extern char _ustack_lo[], _sstack_top[];          /* hal/fm1_guard.h (char: its own) */
@@ -352,17 +353,23 @@ extern char _ustack_lo[], _sstack_top[];          /* hal/fm1_guard.h (char: its 
 #define MEM_RAM_LIMIT 98304u
 #define MEM_LOW_HI   0x01C08000u
 #define MEM_POOL_HI  0x01C70000u
+/* (1.4.7) `used/limit` a line, which is the two figures the six `con_kv` pairs printed (free is the subtraction)
+ * with a third of the rodata: the keys were 62 B of XIP for the six calls, and the image has no slack. */
+static void con_pair(const char *k, uint32_t used, uint32_t limit)
+{
+    con_puts(k);
+    con_dec((int32_t)used);
+    con_putc('/');
+    con_dec((int32_t)limit);
+    con_puts("\r\n");
+}
+
 static void con_mem(void)
 {
-    uint32_t ram = (uint32_t)_bss_end - MEM_RAM_LO;
-    uint32_t low = (uint32_t)_low_end - (uint32_t)_low_start;
-    uint32_t pool = (uint32_t)_c1_stack_hi - (uint32_t)_pool_start;   /* .pool and the second core's stacks */
-    con_kv("ram_used", (int32_t)ram);
-    con_kv("ram_free", (int32_t)(MEM_RAM_LIMIT - ram));
-    con_kv("lowbuf_used", (int32_t)low);
-    con_kv("lowbuf_free", (int32_t)(MEM_LOW_HI - (uint32_t)_low_end));
-    con_kv("pool_used", (int32_t)pool);
-    con_kv("pool_free", (int32_t)(MEM_POOL_HI - (uint32_t)_c1_stack_hi));
+    con_pair("ram ", (uint32_t)_bss_end - MEM_RAM_LO, MEM_RAM_LIMIT);
+    con_pair("lowbuf ", (uint32_t)_low_end - (uint32_t)_low_start, MEM_LOW_HI - MEM_RAM_LO);
+    con_pair("pool ", (uint32_t)_c1_stack_hi - (uint32_t)_pool_start, MEM_POOL_HI - (uint32_t)_pool_start);
+    /* the second figure of `pool` is the whole window from .pool's start, its second core's stacks included */
 }
 
 static void con_params(void)

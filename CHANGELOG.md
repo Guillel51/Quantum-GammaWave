@@ -1,3 +1,35 @@
+## Sin publicar — `mem` compacto, y lo que no quedaba por recuperar
+
+La imagen de 1.4.6 dejó **228 B libres de 583 612** en la ranura de la aplicación. Antes de tocar nada se buscó lo
+que el enlazador ya tira y lo que queda vivo, porque la pregunta era "¿hay código o constantes que ya no se usen?".
+
+### Lo que se buscó, y lo que se encontró (clase: build AC791N)
+- **Código muerto: no queda.** `ld --gc-sections --print-gc-sections` sobre los mismos objetos quita exactamente
+  siete secciones (`.text.fx_master_eq_db`, `.text.fx_boot_gain`, `.text.fx_master_g`, `.text.fx_lim_env`,
+  `.text.scl_toggle`, `.text.scl_tap`, `.text.ui_tap`): todas son la copia fuera de línea de una función que el
+  compilador ya inlinó en el único TU del firmware. Un relink con esa bandera da un `.text` **idéntico byte a byte**
+  al del build, así que no hay nada más que quitar: `--gc-sections` ya lo quitó.
+- **Constantes muertas: cero bytes.** El compilador ya emite cada tabla en su propia sección (`.rodata.SINE`,
+  `.rodata.GENRE`, …), así que el `--gc-sections` las descarta por separado. Probado con `-fdata-sections` en
+  `CFLAGS`: la imagen pasó de 583 384 a **583 388 B**, cuatro bytes *más* (el relleno de alineación de más
+  secciones). Se revirtió: no había nada que ganar.
+- **132 constantes de 96 B o más** (`.rodata` entre `_ecode` y `_etext`, 139 368 B en 1.4.6) aparecen todas
+  nombradas en el desensamblado: ninguna es huérfana.
+
+### `mem`: de seis claves a tres líneas
+`mem` imprimía seis pares `clave valor` (`ram_used`, `ram_free`, `lowbuf_used`, `lowbuf_free`, `pool_used`,
+`pool_free`): 62 B de claves en XIP para un comando diagnóstico. Ahora imprime `usado/límite` por ventana, con el
+mismo dato (el libre es la resta):
+
+```
+ram 91300/98304
+lowbuf 30564/32768
+pool 318432/327680
+```
+
+Medido: **rodata −48 B, código +4 B, imagen 583 384 → 583 340 B**; libres en la ranura **228 → 272 B**. `.data+.bss`
+sigue en 91 300 B, pool y LOWBUF también. Clase: mapa del linker (el build AC791N), no una medición de la unidad.
+
 ## v1.4.6 — el panel, vigilado por una prueba; la memoria, legible en la unidad
 
 Dos agregados, los dos pensados para que lo que se midió en el host se pueda comprobar (o volver a comprobar) sin

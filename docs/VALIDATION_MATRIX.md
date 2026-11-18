@@ -1907,6 +1907,6 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | Check | Label | State and evidence |
 |-------|-------|--------------------|
 | La tabla del ST7789 no puede volver a escribir gamma, brillo, CABC ni VCOM | `[HOST]` | `tests/panel_table_test.py` parsea `LCD_SEQ` y falla con 0xE0/0xE1/0x53/0x51/0x55/0xBB, con una tabla que no parsea, o sin COLMOD 0x55 / MADCTL / INVON. Probada en las dos direcciones (verde con la tabla actual; roja con `0x53, 1, 0x24` inyectado). En `run_tests.sh` |
-| El presupuesto de memoria se puede leer en la unidad | `[BUILD AC791N]` + `[STATIC]` | comando `mem` (console.c): `ram_used` 91 300 / `ram_free` 7 004, `lowbuf_used` 30 564 / free 2 204, `pool_used` 318 432 / free 9 248. Son los símbolos del linker: coinciden con `./build.sh` y con `tests/memory_map_test.py` (RAM spare 7 004, pool spare 9 248) |
+| El presupuesto de memoria se puede leer en la unidad | `[BUILD AC791N]` + `[STATIC]` | comando `mem` (console.c): `ram 91300/98304` (7 004 libres), `lowbuf 30564/32768` (2 204), `pool 318432/327680` (9 248). Son los símbolos del linker: coinciden con `./build.sh` y con `tests/memory_map_test.py` (RAM spare 7 004, pool spare 9 248) |
 | La ventana LOWBUF que reporta la prueba es la del linker | `[HOST]` | `tests/memory_map_test.py`: LOWBUF_HI 0x01C08000 (era 0x01C07000, obsoleto desde la mudanza de 1.4.5); el mapa pasa con RAM spare 7 004 B |
 | En una FM-1 física | — | **NOT MEASURED**: `mem` se lee en la unidad; ninguna cifra de arriba es una medición de hardware |
