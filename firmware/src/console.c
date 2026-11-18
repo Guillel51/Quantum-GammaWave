@@ -223,6 +223,7 @@ static void con_status(void)
     con_kv("bpm", song.g[G_BPM]);
     con_kv("playing", song.playing);
     con_kv("boots", (int32_t)felucca_dbg.boots);
+    con_kv("lcd_timeouts", (int32_t)fm1_lcd_timeouts);   /* (1.4.7) a pixel transfer that ran past its bound */
     con_kv("usb_resets", (int32_t)usb.resets);
     con_kv("usb_sof", (int32_t)usb.sof_seen);
     con_kv("usb_suspends", (int32_t)usb.suspends);

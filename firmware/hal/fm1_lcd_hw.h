@@ -32,6 +32,7 @@
 #define FM1_LCD_DO (1u << 10)
 
 static uint32_t fm1_lcd_timeouts;
+static uint32_t fm1_lcd_bytes;      /* (1.4.7) the size of the transfer fm1_lcd_wait is about to wait for */
 
 FM1_INLINE void fm1_lcd_hw_init(void)
 {
@@ -56,12 +57,21 @@ FM1_INLINE void fm1_lcd_backlight(uint32_t on)
 
 FM1_INLINE void fm1_lcd_baud(uint32_t b) { FM1_LCD_SPI_BAUD = b; }
 
+/* (1.4.7) THE BOUND IS THE TRANSFER'S, NOT A FIXED NUMBER. It was 4 000 000 iterations for every
+ * transfer. A byte at 12 MHz takes 8/12e6 s = 666 ns, and one iteration of this loop is a peripheral
+ * read (~16 ns on this core), so a full-frame blit -- 240x240x2 = 115 200 B, ~77 ms -- needs about
+ * 4.8 M of them: the fixed bound ran out first, cleared the pending bit and deselected CS in the
+ * middle of a live DMA, and the panel kept whatever part of the frame had arrived. That is what a
+ * screen showing "only some details" is: the blits that fit, plus truncated ones. 160 iterations
+ * per byte is ~2.5 us/byte, three times the time the wire needs, and the wait only lasts that long
+ * when the transfer really is not finishing. */
 static void fm1_lcd_wait(void)
 {
-    uint32_t n;
-    for (n = 0; n < 4000000u && !(FM1_LCD_SPI_CON & 0x8000u); n++)
+    uint32_t n, bound = 200u + fm1_lcd_bytes * 160u;
+    fm1_lcd_bytes = 0;
+    for (n = 0; n < bound && !(FM1_LCD_SPI_CON & 0x8000u); n++)
         ;
-    if (n == 4000000u)
+    if (n == bound)
         fm1_lcd_timeouts++;
     FM1_LCD_SPI_CON |= 0x4000u;
 }
@@ -83,4 +93,5 @@ FM1_INLINE void fm1_lcd_send_data(const void *p, uint32_t n)
     FM1_LCD_SPI_CON |= 0x4000u;
     FM1_LCD_SPI_ADR = (uint32_t)(uintptr_t)p;
     FM1_LCD_SPI_CNT = n;
+    fm1_lcd_bytes = n;              /* fm1_lcd_wait: how long this one is allowed to take */
 }
