@@ -2192,12 +2192,13 @@ static int test_menu_tabs(void)
             }
     }
     ui_prefs = 0;
-    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 5 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
+    bad += check("MENU tabs: DISPLAY CONTROL AUDIO SYSTEM GEN (6 6 6 6 6 rows), 1..6 each in a run, fit the page; tab gaps constant (S, LARGE)",
                  ok && MTAB_COUNT == 5u && str_eq(MTAB_NAME[0], "DISPLAY") && mtab_rows(MTAB_DISPLAY) == 6u &&
                  mtab_rows(MTAB_CONTROL) == 6u && mtab_rows(MTAB_AUDIO) == 6u && mtab_rows(MTAB_SYSTEM) == 6u &&
-                 mtab_rows(MTAB_GEN) == 5u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN;
+                 mtab_rows(MTAB_GEN) == 6u);   /* (0.6.58: INIT SYSTEM; 0.6.72: MIDI OUT in CONTROL; 1.1.1-GW: GEN;
                                                     * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH join it; FASE 3:
-                                                    * VOICES does too) */
+                                                    * VOICES does too; 1.4.11: PANEL Y, the sixth and the most
+                                                    * a tab may hold -- a seventh needs a smaller row or a new tab) */
 
     ui_power_on();
     hold(B_HOME);
@@ -9429,6 +9430,11 @@ static int test_browse_no_pattern(void)
     int bad = 0, ok = 1;
     uint32_t pass, n, total, loads = 0, pat_hints = 0;
     track_t *t;
+    /* (1.4.11) a category filter left by an earlier test would make this browse one category instead of every sound
+     * (the MOD MAP page moved the leftover category far enough that the count fell under the 200 the assertion
+     * wants). pcat is 0 at power-on in the firmware; the harness does not reset it between tests, so say so here. */
+    pcat = 0;
+    favorites.filter = 0;
     for (pass = 0; pass < 4u; pass++) {
         ui_power_on();
         t = TSEL;

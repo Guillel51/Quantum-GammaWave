@@ -190,6 +190,19 @@ int main(void)
         p = original; assert(settings_import(&p, sizeof p) == 1);
     }
 #endif
+    {   /* (1.4.11) PANEL Y (lcd.c lcd_yoff, MENU > EXTRA): 0 or 1 in favorites.factory[15][16]; 0 in every older
+         * record, so nothing moves; unknown reads as 0; a save carries it back through the export */
+        persist_t q;
+        p = original; p.favorites.factory[15][16] = 1u;
+        assert(settings_import(&p, sizeof p) == 1 && settings_yoff == 1u);
+        p = original; p.favorites.factory[15][16] = 7u;
+        assert(settings_import(&p, sizeof p) == 1 && settings_yoff == 0u && p.favorites.factory[15][16] == 0u);
+        p = original; assert(settings_import(&p, sizeof p) == 1 && settings_yoff == 0u);
+        settings_yoff = 1u;
+        q = p; settings_export(&q); assert(q.favorites.factory[15][16] == 1u);
+        settings_yoff = 0u;
+        settings_export(&q); assert(q.favorites.factory[15][16] == 0u);
+    }
     assert(settings_import(&p, 3) == 0 && settings_import(&p, -1) == 0);
     assert(settings_import(&p, sizeof p - 1) == 0);
     puts("Settings: PER1/PER2/PER3 migration, palette ids, calibration, HOLD, LEDS, CLICK / COUNT-IN and independent feature preservation passed.");

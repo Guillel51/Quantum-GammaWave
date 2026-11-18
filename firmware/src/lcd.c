@@ -51,16 +51,17 @@ static void lcd_data(const void *p, uint32_t n)
  * one 240-row slice of a 240x320 memory and the common ST7789 modules use 80 (Adafruit, Arduino_GFX, TFT_eSPI): with
  * 80 the picture sits 80 rows below where it is written, so the top third of every screen (the header and the page
  * titles) is off the glass and the bottom third shows memory nobody draws in. `off N` in the console moves the window
- * and forces a full redraw, so which slice this unit has is a thing the owner can see, not a thing to guess. */
-uint32_t lcd_yoff;
+ * and forces a full redraw, so which slice this unit has is a thing the owner can see, not a thing to guess.
+ * (1.4.11) It is a saved setting now -- MENU > EXTRA > PANEL Y, panel.c settings_yoff -- and its storage lives in
+ * gfx.c, declared in hal/fm1_lcd_hw.h, so the host harness and the emulator (which stub lcd_fill / lcd_blit) have
+ * it too. */
 
+/* the raw window command: frame-memory coordinates. The callers that take the UI's 240x240 coordinates add
+ * lcd_yoff themselves (lcd_fill, lcd_blit); the ones that address the memory directly (lcd_gdram_clear, and the
+ * full-screen fill's other slice) do not. */
 static void lcd_window(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 {
     lcd_sync();
-    if (y1 < 240u) {                   /* the UI's window: into the panel's slice. The 0..319 clears are not. */
-        y0 += lcd_yoff;
-        y1 += lcd_yoff;
-    }
     lcd_small[0] = (uint8_t)(x0 >> 8);
     lcd_small[1] = (uint8_t)x0;
     lcd_small[2] = (uint8_t)(x1 >> 8);
@@ -91,7 +92,7 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
     k = 240u / w * w;                       /* whole rows per transfer (narrow fills: one DMA) */
     for (i = 0; i < k; i++)
         lcd_fillbuf[i] = (uint16_t)sw;
-    lcd_window(x, y, x + w - 1u, y + h - 1u);
+    lcd_window(x, y + lcd_yoff, x + w - 1u, y + h - 1u + lcd_yoff);   /* (1.4.11) onto the panel's slice */
     for (n = w * h; n; n -= k) {
         if (k > n)
             k = n;
@@ -115,7 +116,7 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
 {
     if (!w || !h)
         return;
-    lcd_window(x, y, x + w - 1u, y + h - 1u);
+    lcd_window(x, y + lcd_yoff, x + w - 1u, y + h - 1u + lcd_yoff);   /* (1.4.11) onto the panel's slice */
     lcd_data(px, w * h * 2u);
 }
 

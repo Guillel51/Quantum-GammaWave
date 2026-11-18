@@ -59,6 +59,8 @@ static int settings_import(persist_t *p, int n)
         p->favorites.factory[15][20] = 0;
     if (p->favorites.factory[15][21] > 2u)         /* CPU MODE: unknown = AUTO */
         p->favorites.factory[15][21] = 0;
+    if (p->favorites.factory[15][16] > 1u)         /* (1.4.11) PANEL Y: unknown = rows 0..239 */
+        p->favorites.factory[15][16] = 0;
     p->magic = PERSIST_MAGIC;
     p->palette = palette_to_stored(palette_from_stored(p->palette));
     settings.magic = SETTINGS_MAGIC;
@@ -67,6 +69,7 @@ static int settings_import(persist_t *p, int n)
     settings.zoom = p->zoom;
     settings_hold = (uint8_t)hold_from_stored(p->bold);
     settings_leds = (uint8_t)leds_from_stored(p->zoom);
+    settings_yoff = p->favorites.factory[15][16] & 1u;   /* (1.4.11) PANEL Y */
 #ifdef FELUCCA_FAVORITES
     memcpy(&favorites, &p->favorites, sizeof favorites);
     favorites.filter = favorites.filter == 1u;
@@ -115,4 +118,6 @@ static void settings_export(persist_t *p)
 #ifdef FELUCCA_FAVORITES
     memcpy(&p->favorites, &favorites, sizeof favorites);
 #endif
+    p->favorites.factory[15][16] = settings_yoff;   /* (1.4.11) PANEL Y, after the copy of the live favorites: that
+                                                     * copy is what would otherwise put the byte back */
 }

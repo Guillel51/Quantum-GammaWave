@@ -90,6 +90,9 @@ static void fm1_lcd_send_data(const void *p, uint32_t n)
     }                                                  /* every other command's parameters: consumed only */
 }
 
+/* (1.4.11) the panel's slice: gfx.c owns it in the firmware, and this TU builds lcd.c without gfx.c */
+uint32_t lcd_yoff;
+
 #include "../firmware/src/lcd.c"                       /* the real thing: lcd_init, lcd_fill, lcd_blit */
 
 /* ------------------------------------------------------------------ checks */
@@ -213,6 +216,26 @@ int main(void)
     lcd_fill(240, 0, 10, 10, 0);
     lcd_fill(0, 240, 10, 10, 0);
     bad += check("a fill outside the panel writes nothing", px_written == 0u && out_of_range == 0u);
+
+    /* (6) PANEL Y (1.4.11): the panel may be bonded to rows 80..319 instead of 0..239. The setting moves the UI's
+     *     window onto that slice and a whole-screen fill clears the rows the slice leaves out, so no band of an
+     *     earlier background can survive on either bonding. */
+    lcd_yoff = 80u;
+    panel_reset();
+    lcd_fill(0, 0, 240, 240, 0x7777u);
+    bad += check("PANEL Y 80: a whole-screen fill also clears rows 0..79, the slice it leaves out",
+                 ay0 == 0u && ay1 == 79u && rows_of_colour(0x7777u) == GH);
+    panel_reset();
+    lcd_fill(0, 0, 240, 1, 0x1111u);
+    bad += check("PANEL Y 80: the UI's row 0 is written to frame-memory row 80", ay0 == 80u && ay1 == 80u);
+    lcd_yoff = 0u;
+    panel_reset();
+    lcd_fill(0, 0, 240, 240, 0x7777u);
+    bad += check("PANEL Y 0 (the default): a whole-screen fill still clears rows 240..319",
+                 ay0 == 240u && ay1 == 319u && rows_of_colour(0x7777u) == GH);
+    panel_reset();
+    lcd_fill(0, 0, 240, 1, 0x1111u);
+    bad += check("PANEL Y 0: the UI's row 0 is frame-memory row 0", ay0 == 0u && ay1 == 0u);
 
     printf(bad ? "lcd: %d FAILED\n" : "lcd: all passed\n", bad);
     return !!bad;

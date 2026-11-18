@@ -32,6 +32,10 @@
 #define FM1_LCD_DO (1u << 10)
 
 static uint32_t fm1_lcd_timeouts;
+/* (1.4.11) the frame-memory row the UI's row 0 lands on: 0 or 80, the 240-row slice of the controller's 240x320 the
+ * panel is bonded to. Defined in gfx.c (every translation unit builds it; the host harness and the emulator stub
+ * lcd.c); set from MENU > EXTRA > PANEL Y and used by lcd_window and the full-screen clear. */
+extern uint32_t lcd_yoff;
 static uint32_t fm1_lcd_bytes;      /* (1.4.7) the size of the transfer fm1_lcd_wait is about to wait for */
 
 FM1_INLINE void fm1_lcd_hw_init(void)

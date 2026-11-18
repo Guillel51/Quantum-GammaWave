@@ -1,3 +1,73 @@
+## v1.4.14 — PANEL Y: la franja del panel se elige en Settings y se recuerda
+
+Esta versión integra lo que el trabajo paralelo publicó hasta la 1.4.13 (DIST FOLD con la fuente S comprimida, el
+pop de encendido, la compactación de las píldoras y el cache de TONE) con PANEL Y, el fade del motor arreglado y
+los arreglos de pruebas de este lado; las 1.4.11 a 1.4.13 ya publicadas no se reescriben.
+
+### El problema, dicho entero
+El controlador tiene **240x320** de memoria de cuadro y el panel muestra **240 filas**: está pegado a una franja de
+240 de esas 320. Todo el firmware escribe la pantalla en las filas **0..239**, que es la franja de arriba; si esta
+unidad está pegada a la de **80**, cada pantalla aparece 80 filas más arriba de lo que se ve: la cabecera y los
+títulos se van fuera del vidrio y el tercio de abajo muestra memoria que nadie dibuja. Eso no se arregla con la
+tabla de init —es el `LCD_SEQ` de 1.4.10— sino moviendo la ventana.
+
+Hasta ahora eso era el comando `off N` de la consola, que se perdía al apagar. Ahora es un ajuste:
+
+- **MENU > EXTRA > PANEL Y: `0` o `80`.** El 0 es el valor por defecto y el que leen todos los registros viejos,
+así que nada se mueve en una unidad que ya estaba bien; el 80 es la franja que usan los módulos ST7789 de 240x240 de
+siempre (Adafruit, TFT_eSPI, Pimoroni).
+- **Se aplica en `lcd_window` y en el despeje.** `lcd.c` suma la franja a toda ventana de 240x240 y el relleno de
+fondo de pantalla completa limpia las filas que quedan **fuera** de la franja (0..79 con 80; 240..319 con 0), así
+que al cambiarla no queda una banda del color anterior.
+- **Se recuerda.** Vive en `favorites.factory[15][16]` (un byte que ningún motor usa), con el clamp de siempre: un
+valor corrupto o de otra versión lee como 0. Se aplica en `settings_init`, antes de que `lcd_init` escriba nada.
+- **La consola dice lo mismo.** `off N` ahora escribe el mismo ajuste (y lo guarda), así que los dos caminos no
+pueden discrepar; `status` sigue publicando `lcd_off` con la franja en uso.
+
+### Cómo se mide
+En la unidad, con el mismo build: MENU > EXTRA > PANEL Y en `0`, mirar; pasarlo a `80`, mirar. La que muestre la
+pantalla **completa** (cabecera arriba, nada cortado, sin banda abajo) es la buena, y queda guardada. No hay que
+recompilar ni reflashear para probar la otra: es un paso de encoder.
+
+### Clase y límite
+Esto es código y build AC791N; la franja correcta **no está medida en la unidad** — la dice el dueño mirando. La
+tabla de panel de 1.4.10 sigue intacta y su prueba (`tests/panel_table_test.py`) no cambia.
+
+### Lo que entró con la fusión
+Esta versión integra también lo del trabajo paralelo: la pantalla **MOD MAP** del grupo MOD, la fase 1 de DSP (dos
+divisiones por bloque menos en los buses), DIST FOLD con la fuente S comprimida para pagarlo, el arreglo del pop de
+encendido y la auditoría de arranque. Con eso el árbol cierra en **582 356 de 583 612 B (1 256 B libres)**: la
+primera fusión de estas ramas desbordaba 160 B y hubo que acortar 36 claves de consola a mitad de camino; cuando la
+1.4.11 del otro lado pagó el espacio, **se restauraron los nombres completos** (`usb_frame_stalls`,
+`key_noteon_max_us`, la ayuda de `memr`/`flr`, `gap_hist`, …): la consola de esta versión dice lo mismo que decía
+la 1.4.10, y el árbol queda con más de un kilobyte de sobra. También quedó arreglado el test que la fusión anterior
+de la 1.4.8 había dejado sin compilar (`text_ref_test.c` usaba `f->adv[]`; la versión del otro chat lee `hc` por el
+puntero `AF_x_HC`, que es la buena, y esta rama aporta `advance()` para las avanzadas en bytes).
+
+### La 1.4.11 publicó el motor en silencio en el host, y eso se arregla acá
+El fade de encendido de la 1.4.11 gatea el master con un flag (`audio.c` `boot_armed`) que sólo `main.c` armaba.
+Cualquier otro que renderiza por `audio_block` —la suite host entera, y el emulador— quedaba en **cero exacto**:
+`poly_test`, `audio_test` y `master_test` daban −180 dB en todas las mediciones. Ahora el flag **nace armado**
+(la rampa corre desde el primer bloque, como antes de la 1.4.11) y es `main.c` el que sostiene el silencio con
+`audio_boot_hold()` justo después de `audio_init()`, hasta `audio_fade_in()` cuando terminaron las etapas con
+interrupciones apagadas. El arranque de la unidad queda exactamente como lo diseñó la 1.4.11 (el desmute cae
+sobre ceros) y nadie más tiene que conocer ese tiempo. `boot_fade_test` sigue pasando, y los 303 renders dorados
+quedan idénticos.
+
+### El baseline de píxeles de la FASE 5, regenerado a propósito
+`tests/ui_pixels.txt` cambia en 64 de sus 3 056 capturas, y las dos razones son las de esta versión: el
+splash y ABOUT dibujan la versión real (`v1.4.14` en vez de `v1.4.13`) y MENU > EXTRA tiene una fila más
+(PANEL Y). No se movió ningún otro píxel: el resto del barrido queda byte a byte igual, y las 3 056
+capturas vuelven a coincidir con el baseline nuevo.
+
+### Medido, en el host
+- `tests/lcd_st7789_test.c` tiene cuatro comprobaciones nuevas: con PANEL Y 80 la fila 0 del UI va a la memoria
+  80 y el relleno de pantalla completa limpia 0..79; con PANEL Y 0 vuelve a 0 y limpia 240..319. **Las cuatro pasan.**
+- El barrido de pantallas (`tests/ui_render.c`) queda en **200 pantallas × 22 paletas, 0 hallazgos** de lint y
+  **4 208 795 medidas de alineación, 0** fuera por 1 px, con la fila PANEL Y incluida en el MENU.
+- La suite host completa pasa con este árbol (el único fallo era el test del conjunto de release, que exige
+  `site/` sincronizado, y se sincroniza antes del commit del paquete).
+
 ## v1.4.13 — el cache de TONE, y los píxeles como baseline
 
 ### El cache de coeficientes TONE (la optimización que la Fase 1 no pudo pagar)

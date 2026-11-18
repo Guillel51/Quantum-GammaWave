@@ -75,6 +75,14 @@ typedef struct { uint16_t off; uint8_t w; const char *label; } kc_t;
 #define AL_CELLS 32u                               /* the next cells (cv_rrect), not ink: a row of keys, a fill */
 #define AL_N(n) ((uint32_t)(n) << 8)
 
+/* (1.4.11) THE PANEL'S SLICE, and the reason its storage is here: the controller's frame memory is 240x320 and the
+ * panel shows 240 rows of it, so every window lcd.c writes has to land on the 240-row slice the module is bonded
+ * to. 0 is rows 0..239 (what every build before 1.4.11 assumed); 80 is rows 80..319, the slice the common 240x240
+ * ST7789 modules use. MENU > EXTRA > PANEL Y sets it (panel.c settings_yoff, persisted), lcd_window adds it and the
+ * full-screen clear fills the rows it leaves out. It is defined here, in the one source every translation unit
+ * builds, because the host harness and the emulator stub lcd_fill / lcd_blit instead of compiling lcd.c. */
+uint32_t lcd_yoff;
+
 #define CV_MAX (240u * 124u)      /* the graph strip is 240 x 124 */
 /* (ISO C11 6.5.2.3) Union type-punning provides well-defined 32-bit word access without strict-aliasing UB */
 static union {

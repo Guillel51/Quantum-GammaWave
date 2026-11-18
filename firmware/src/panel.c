@@ -104,6 +104,15 @@ static uint32_t leds_to_stored(uint32_t old, uint32_t m)
 }
 static int leds_stored_ok(uint32_t v) { return v <= 1u || ((v & ~3u) == LEDS_TAG && (v & 3u) < LEDS_COUNT); }
 
+/* PANEL Y (menu): which 240-row slice of the controller's 240x320 frame memory the panel is bonded to. 0: rows
+ * 0..239, what every build before 1.4.11 assumed; 1: rows 80..319, the slice the common 240x240 ST7789 modules are
+ * bonded to. A module on the other slice shows the lower part of every screen where its top should be -- the header
+ * and the page titles off the glass, the bottom third memory nobody draws -- which is a thing to try on the unit and
+ * not a constant to guess. Saved in favorites.factory[15][16] (a byte no engine uses); 0 in every older record, so
+ * the default is rows 0..239 and nothing moves for a unit that was already right. lcd.c's lcd_yoff is the value it
+ * applies (lcd_window, and the full-screen clear's other slice). */
+static uint8_t settings_yoff;
+
 static void settings_init(void)
 {
     if (settings.magic == SETTINGS_MAGIC_OLD && settings.palette < 20u) {
@@ -119,4 +128,5 @@ static void settings_init(void)
     palette_set(settings.palette);
     fx_lowcut = (uint8_t)(settings.lowcut % 3u);
     qg_fx_update_eq(fx_lowcut);
+    lcd_yoff = settings_yoff ? 80u : 0u;       /* (1.4.11) set before lcd_init writes anything */
 }

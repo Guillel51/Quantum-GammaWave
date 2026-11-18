@@ -141,7 +141,7 @@ static void con_flr(const char *p)                  /* flash read over SPI (no X
     int ok, ok2;
     uint32_t a = con_num(&p, &ok), n = con_num(&p, &ok2), i;
     if (!ok || a < 0x93000u || a >= 0x100000u) {
-        con_puts("usage: flr OFF [N<=256]\r\n");
+        con_puts("usage: flr OFFSET [LEN<=256]   (0x93000..0xFFFFF)\r\n");
         return;
     }
     if (!ok2 || !n)
@@ -275,7 +275,7 @@ static void con_inp(void)
     con_kv("window_ms", (int32_t)(win_us / 1000u));
     con_kv("ticks_per_s", (int32_t)(win_us >= 1000u ? fm1_in_stat.ticks * 1000u / (win_us / 1000u) : 0u));
     con_kv("gap_max_us", (int32_t)(fm1_in_stat.gap_max / FM1_TICKS_PER_US));
-    con_puts("gap_hist ms:");
+    con_puts("gap_hist <.15 .3 .6 1.2 2.4 4.8 9.6 more ms:");
     for (i = 0; i < FM1_GAP_BINS; i++) {
         con_putc(' ');
         con_dec((int32_t)fm1_in_stat.gap_hist[i]);
@@ -388,7 +388,7 @@ static void con_params(void)
 static void con_exec(const char *p)
 {
     if (con_word(&p, "help") || con_word(&p, "?"))
-        con_puts("status dbg inp crash mem params off N memr A [N] flr O [N] uboot yes\r\n");
+        con_puts("status dbg inp crash mem params off N memr ADDR [LEN] flr OFF [LEN] uboot yes\r\n");
     else if (con_word(&p, "status"))
         con_status();
     else if (con_word(&p, "dbg"))
@@ -401,11 +401,13 @@ static void con_exec(const char *p)
         con_mem();
     else if (con_word(&p, "params"))
         con_params();
-    else if (con_word(&p, "off")) {                    /* (1.4.8) which 240-row slice of the 240x320 the panel scans */
+    else if (con_word(&p, "off")) {              /* (1.4.8/1.4.11) the panel's 240-row slice: same setting as the menu */
         int ok = 0;
         uint32_t v = con_num(&p, &ok);
         if (ok) {
-            lcd_yoff = v > 80u ? 80u : v;
+            settings_yoff = (uint8_t)(v ? 1u : 0u);    /* MENU > EXTRA > PANEL Y, so it survives the reboot */
+            lcd_yoff = settings_yoff ? 80u : 0u;
+            settings_save();
             ui.force = 1;                              /* main.c redraws with the whole 240x240 and the other slice */
         }
         con_kv("off", (int32_t)lcd_yoff);

@@ -8,7 +8,7 @@
  * value (MI_VALUES: the rows before them hold one). 1.0.5: in four tabs (MI_TAB). */
 enum { MI_COLOR, MI_STYLE, MI_LARGE, MI_ANIM, MI_LEDS, MI_SCROFF, MI_HOLD, MI_ACCEL, MI_LATCH, MI_BPMLOCK, MI_SCLLED, MI_MIDIOUT,
        MI_LOWCUT, MI_USB,
-       MI_CLICK, MI_CLKLVL, MI_COUNTIN, MI_TRACKS, MI_SELHOME, MI_CPU, MI_VIZQ, MI_SPLASH, MI_VOICES, MI_SERIAL, MI_RESTORE,
+       MI_CLICK, MI_CLKLVL, MI_COUNTIN, MI_TRACKS, MI_SELHOME, MI_CPU, MI_VIZQ, MI_SPLASH, MI_VOICES, MI_YOFF, MI_SERIAL, MI_RESTORE,
        MI_LOAD, MI_PANEL, MI_INIT, MI_ABOUT,
        MI_COUNT };   /* (1.1.1-GW: SELECT ON HOME, the GEN tab's) */   /* (1.1: the metronome's rows in
                                                                                              * AUDIO; 1.2: RESTORE LAST in SYSTEM, SCALE LEDS
@@ -17,7 +17,7 @@ enum { MI_COLOR, MI_STYLE, MI_LARGE, MI_ANIM, MI_LEDS, MI_SCROFF, MI_HOLD, MI_AC
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "STYLE", "LARGE", "ANIM", "LEDS", "SCREEN OFF", "HOLD", "KNOB ACCEL", "FX LATCH", "BPM LOCK",
                                               "SCALE LEDS", "MIDI OUT",
                                               "SPEAKER EQ", "USB LEVEL", "CLICK", "CLICK LEVEL", "COUNT-IN", "TRACKS",
-                                              "KNOB SELECT", "CPU MODE", "VIS QUALITY", "SPLASH", "VOICES",
+                                              "KNOB SELECT", "CPU MODE", "VIS QUALITY", "SPLASH", "VOICES", "PANEL Y",
                                               "USB SERIAL",
                                               "RESTORE LAST", "LOAD", "CALIBRATION", "INIT SYSTEM", "ABOUT"};
 /* 1.0.5: the MENU's tabs (ui_menu.c: ALGORITHM steps between them, PRESETS among one tab's rows; the editor gets a
@@ -36,9 +36,9 @@ static const uint8_t MI_TAB[MI_COUNT] = {
     MTAB_AUDIO, MTAB_AUDIO, MTAB_AUDIO, MTAB_AUDIO, MTAB_AUDIO,             /* SPEAKER EQ, USB LEVEL, CLICK, CLICK LEVEL,
                                                                              * COUNT-IN */
     MTAB_AUDIO,                                                             /* TRACKS (JIANT 0.6.18) */
-    MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN,                       /* SELECT ON HOME (1.1.1-GW), then the
+    MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN, MTAB_GEN,             /* SELECT ON HOME (1.1.1-GW), then the
                                                                              * v1.5 EXTRA rows: CPU MODE, VIS QUALITY,
-                                                                             * SPLASH; and (FASE 3) VOICES */
+                                                                             * SPLASH; (FASE 3) VOICES; (1.4.11) PANEL Y */
     MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM,        /* USB SERIAL, RESTORE LAST, LOAD (JIANT
                                                                              * 0.6.30), CALIBRATION, INIT SYSTEM (0.6.58) */
     MTAB_SYSTEM,                                                            /* ABOUT */
@@ -104,6 +104,10 @@ static const char *const VIZQ_N[3] = {"HIGH", "BALANCED", "LOW"};
 static const char *const SPLASH_N[3] = {"FULL", "SHORT", "OFF"};
 static const char *const TRACKS_N[3] = {"4 ECO", "5 BAL", "6 FULL"};   /* (3.4) MENU > TRACKS: trk_live 4 / 5 / 6 */
 static const char *const VOICES_N[3] = {"8", "10", "12"};   /* (FASE 3) MENU > AUDIO > VOICES: the shared budget */
+/* (1.4.11) MENU > EXTRA > PANEL Y: which 240-row slice of the controller's 240x320 the panel is bonded to (panel.c
+ * settings_yoff, lcd.c lcd_yoff). 0 is the default and every older record reads it; 80 is the slice the common
+ * 240x240 ST7789 modules use. Stepping it repaints the whole screen with the other slice. */
+static const char *const YOFF_N[2] = {"0", "80"};
 
 /* MENU > USB SERIAL (#67). The serial console is a developer tool (README: FELUCCA_CDC). ON (the default) presents it,
  * the descriptors byte for byte as before; OFF re-enumerates as audio + MIDI only, device class 0 (the bytes of a
@@ -160,6 +164,7 @@ static uint32_t menu_get(uint32_t row)
     case MI_SPLASH: return ui_splash < 3u ? ui_splash : 0u;
     case MI_TRACKS: return trks_ui < 3u ? (uint32_t)trks_ui : 0u;   /* (3.4) 4 / 5 / 6 tracks */
     case MI_VOICES: return 2u - (ui_voices < VOICE_UCAP_N ? ui_voices : 0u);   /* (FASE 3) 8 / 10 / 12 */
+    case MI_YOFF: return settings_yoff & 1u;   /* (1.4.11) rows 0..239 / 80..319 */
     case MI_LEDS:
         while (i + 1u < LEDS_COUNT && LEDS_MENU[i] != settings_leds)
             i++;
@@ -188,6 +193,7 @@ static const char *menu_vname(uint32_t row, uint32_t v)
     case MI_SPLASH: return SPLASH_N[v % 3u];
     case MI_TRACKS: return TRACKS_N[v % 3u];
     case MI_VOICES: return VOICES_N[v % 3u];
+    case MI_YOFF: return YOFF_N[v & 1u];
     case MI_SCROFF: return SCROFF_N[v % NELEM(SCROFF_N)];
     case MI_LEDS: return LEDS_NAME[LEDS_MENU[v % LEDS_COUNT]];
     }
@@ -236,7 +242,12 @@ static void menu_put(uint32_t row, uint32_t v)
     case MI_VIZQ: ui_viz_q = (uint8_t)(v % 3u); ui.force = 1; break;  /* (the visualizer redraws at once) */
     case MI_SPLASH: ui_splash = (uint8_t)(v % 3u); break;
     case MI_TRACKS: trks_put(v % 3u); break;
-    case MI_VOICES: voices_put(v % 3u); break;   /* (FASE 3) at once: the next note already obeys it */         /* (ui.c: trk_live, trks_ui, the older bit) */      /* (main.c reads it at the next power-on) */
+    case MI_VOICES: voices_put(v % 3u); break;
+    case MI_YOFF:                              /* (1.4.11) the panel's other slice: repaint from scratch */
+        settings_yoff = (uint8_t)(v & 1u);
+        lcd_yoff = settings_yoff ? 80u : 0u;
+        ui.force = 1;
+        break;   /* (FASE 3) at once: the next note already obeys it */         /* (ui.c: trk_live, trks_ui, the older bit) */      /* (main.c reads it at the next power-on) */
     case MI_MIDIOUT: midi_out_mode = (uint8_t)(v & 3u); break;   /* (seq.c reads it every frame: ui_input) */         /* (at once: voice.c sys_load) */
     }
 }
