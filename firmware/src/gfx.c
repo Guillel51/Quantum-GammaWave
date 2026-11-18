@@ -15,12 +15,14 @@ typedef struct {
     uint8_t h, asc, first, last, nex;   /* line height, baseline; ASCII range; extras */
     uint16_t nk;                        /* kerning pairs */
     const aag_t *g;
-    const uint16_t *adv;                /* the glyph's advance, 1/16 px: one per glyph, not per phase */
+    const void *adv;                    /* the glyph's advance, 1/16 px: one per glyph, not per phase; byte-wide
+                                         * when adv8, 16 bits otherwise (the faces' fits: 210 B less XIP) */
     const uint8_t *data;
     const uint16_t *kkey;               /* a << 8 | b, sorted */
     const int8_t *kd;                   /* 1/16 px */
     const uint8_t *ex;                  /* codes of the extra glyphs */
     uint8_t psh;                        /* log2 of the phases per glyph: g[i << psh] .. g[(i << psh) + phases - 1] */
+    uint8_t adv8;                       /* the advances in adv are bytes, not the 16-bit words of aafont_t.adv */
     const uint8_t *hc;                  /* data's Huffman code (cv_alpha_hc), 0 = 2 px per byte (cv_alpha) */
 } aafont_t;
 typedef struct { const char *name; uint16_t bg, surf, text, theme, accent; } ui_pal_t;
@@ -1079,6 +1081,12 @@ static int32_t kern(const aafont_t *f, uint32_t a, uint32_t b)       /* 1/16 px 
 
 static uint32_t fold(const aafont_t *f, uint32_t c) { return c >= 'a' && c <= 'z' && f->last < 'a' ? c - 32u : c; }
 
+/* the x advance of glyph i, 1/16 px, from the byte- or word-wide table the face carries */
+static uint32_t advance(const aafont_t *f, uint32_t i)
+{
+    return f->adv8 ? ((const uint8_t *)f->adv)[i] : ((const uint16_t *)f->adv)[i];
+}
+
 static int32_t text_w(const aafont_t *f, const char *s)
 {
     int32_t pen = 0;
@@ -1087,7 +1095,7 @@ static int32_t text_w(const aafont_t *f, const char *s)
         uint32_t c = fold(f, (uint8_t)*s);
         if (prev)
             pen += kern(f, prev, c);
-        pen += f->adv[glyph(f, c) >> f->psh];
+        pen += advance(f, glyph(f, c) >> f->psh);
         prev = c;
     }
     return (pen + 8) >> 4;
@@ -1129,7 +1137,7 @@ static int32_t text_run(int32_t x, int32_t y, const aafont_t *f, const char *s, 
             if (GFX_HOOKS && gy < y0) y0 = gy;       /* (the rows: for the host's lint only) */
             if (GFX_HOOKS && gy + g->bh > y1) y1 = gy + g->bh;
         }
-        pen += f->adv[gi >> f->psh];
+        pen += advance(f, gi >> f->psh);
         prev = c;
     }
     bb[0] = x0;
