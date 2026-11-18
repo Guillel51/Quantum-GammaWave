@@ -85,6 +85,9 @@
 # Browser emulator (web/emu, when emcc is there): the firmware in WebAssembly (build/emu) boots, plays keys and MIDI,
 #                   draws, lights its LEDs, keeps a save across instances, plays a song bit for bit as the same file
 #                   built with cc (web/emu/native_check.c); the cost of 1 s of a heavy song against real time.
+# BOOT FADE (tests/boot_fade_test.c, FASE 3): the power-on fade as the master gain sees it -- 0 is exact silence
+#                   (what the muted output stage plays and what its unmute lands on), the ramp is monotonic and
+#                   reaches the same bytes as an unfaded render.
 # DIST (tests/dist_models_test.c, FASE 2): the five models of the insert -- SOFT, TAPE, HEARTH, FLUX and the new
 #                   FOLD (a triangle wavefolder): each sounds at DRIVE 90, stays inside 16 bits, FOLD's peak matches
 #                   SOFT's (loudness-neutral) and carries no DC, the five renders differ, and DRIVE 0 takes TYPE out
@@ -374,6 +377,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "ENGINES: every EDIT knob at both ends of its range moves the rendered note (216 knobs)" "$OUT/engine_param_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/cloud_hot_test" tests/cloud_hot_test.c -lm
     run "CLOUD driven hot (JIANT): the loop never runs away, its line never clamps, no grain across the write head, SIZE 127 from silence" "$OUT/cloud_hot_test" build/fx_demo
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/boot_fade_test" tests/boot_fade_test.c -lm
+    run "BOOT FADE: gain 0 is exact silence, the ramp never goes back, 32768 is the unfaded render" "$OUT/boot_fade_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/dist_models_test" tests/dist_models_test.c -lm
     run "DIST: the five models (SOFT TAPE HEARTH FLUX FOLD) sound, stay in 16 bits, FOLD loudness-neutral and DC-free, TYPE out at DRIVE 0" "$OUT/dist_models_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
