@@ -1850,3 +1850,15 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | El paquete de 1.4.2 | `[TARGET]` | build AC791N en el commit del release: `.data+.bss` 95 140 B de 98 304, imagen 583 284 B de 583 612 (328 B libres), identidad `FM-1_965` |
 | Gamma, nivel de brillo y oscurecido elegidos en la unidad | **NO MEDIDO** | Nadie acá tiene un panel que leer. La curva 0xE0/0xE1, el nivel de BRIGHT que el dueño prefiera y el aspecto real de cada tema en el ST7789 **no** están medidos en ninguna unidad: BRIGHT existe para que eso se ajuste ahí, no para dar el valor por validado |
 | En una FM-1 física | — | **NOT MEASURED**: la fila BRIGHT, su persistencia entre apagados y los cuatro niveles se prueban apretando la unidad, no acá |
+
+---
+
+## 2026-11-17 (5) — v1.4.3: limpieza sin cambio de comportamiento
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| La limpieza no cambia un solo píxel | `[HOST]` | `tests/ui_render.c` antes y después: **2 992 de 3 040** capturas byte a byte idénticas; las 48 que difieren son exactamente ABOUT, ABOUT (REC) y el splash de cada paleta, que imprimen `__DATE__` (la fecha de compilación, `ui_menu.c:131`) y cambian en cualquier recompilación. 190 pantallas × 22 paletas, 0 hallazgos de lint, 0 de 3 782 998 medidas de alineación fuera de 1 px |
+| El header de paletas es idéntico | `[HOST]` | `python3 tools/gen_ui_palettes.py` antes y después de quitar `panel_dark()`/`PANEL_DARKEN`: `diff` vacío (el factor era 1.0 desde 1.4.2, así que la función sólo hacía un `round()` por canal) |
+| Lo redundante que se fue | `[STATIC]` | `vwell` (alias de `T_SURF` usado dos veces, más un comentario de FASE 5 que describía el pozo mezclado que 1.4 reemplazó); la línea de `hv_view_sig()` que hasheaba motor y preset de `TSEL` cuando el bucle de las seis pistas ya los incluye; el `(void)r;` y su comentario en `graph_preset_pop()` |
+| Nada de esto perdió cobertura | `[HOST]` | `NO_PACKAGE=1 ./tests/run_tests.sh`: **ALL HOST TESTS PASSED** con el release set de 1.4.2 completo |
+| En una FM-1 física | — | **NOT MEASURED**: igual que 1.4.2; nada de esto se probó en una unidad |

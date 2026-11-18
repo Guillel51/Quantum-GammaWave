@@ -125,8 +125,8 @@ static uint32_t hv_view_sig(void)
     h = (h ^ (uint32_t)(song.cpu_q8 / 4u)) * 16777619u;
     h = (h ^ (uint32_t)song.batt_raw) * 16777619u;
     h = (h ^ (uint32_t)(song.sel + (song.rec << 4))) * 16777619u;
-    h = (h ^ (uint32_t)(TSEL->eng_req * 8u + TSEL->preset)) * 16777619u;
-    h = (h ^ (uint32_t)snd_edited(TSEL)) * 16777619u;
+    h = (h ^ (uint32_t)snd_edited(TSEL)) * 16777619u;   /* (1.4.2) TSEL's engine and preset are already in the
+                                                         * loop below: it is one of the tracks */
     for (i = 0; i < NTRK; i++) {
         const track_t *q = &trk[i];
         v += hv_voices(q);

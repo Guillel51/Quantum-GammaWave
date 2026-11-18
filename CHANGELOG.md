@@ -1,3 +1,21 @@
+## v1.4.3 — limpieza de lo que dejaron 1.4.0 / 1.4.1 / 1.4.2 (sin cambiar nada de lo que se ve)
+
+Pasada con ojos frescos sobre lo que agregaron esas tres versiones. **No cambia el comportamiento**: el arnés de
+render da los mismos píxeles en 2 992 de las 3 040 capturas (las 48 restantes son ABOUT y el splash, que imprimen
+`__DATE__`, la fecha de compilación), 0 hallazgos de lint y 0 medidas de alineación fuera de 1 px; los contrastes de
+las 22 paletas y la suite host completa pasan.
+
+- **Paletas:** `panel_dark()` y `PANEL_DARKEN` se fueron. Desde 1.4.2 el factor era 1.0: la función sólo hacía un
+  `round()` por canal y una ida y vuelta por RGB565 para no cambiar nada. El header generado es idéntico byte a byte.
+- **Pozos de los osciloscopios:** `vwell` era un alias de una línea usado dos veces; se usa `T_SURF` directo y el
+  comentario de FASE 5 —que todavía describía el pozo *mezclado*, reemplazado en 1.4— se corrigió en vez de quedar
+  como documentación falsa.
+- **Firma de repintado de HOME:** `hv_view_sig()` hasheaba el motor y el preset de `TSEL` aparte y otra vez dentro
+  del bucle de las seis pistas, porque `TSEL` es una de ellas. Esa línea era redundante y se fue; la firma es la
+  misma función de lo que la pantalla muestra.
+- **Popup de presets:** el `(void)r;` que quedó del patrón de líneas borrado en 1.4.1 se fue, y con él el comentario
+  que explicaba trabajo que ya no existe.
+
 ## v1.4.2 — el brillo del panel se ajusta desde el equipo (MENU > EXTRA > BRIGHT)
 
 La gamma 2.2 (0xE0/0xE1) y el brillo 200/255 (0x53/0x51) que 1.4 escribe en el ST7789, y el oscurecido al 72 % de

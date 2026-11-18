@@ -153,31 +153,18 @@ def contrast(a, b):
 # compensating the panel's gamma where the panel is, in the data. Everything derived from them -- MID, DIM, LINE, SEL,
 # TINT -- follows, and the CHECKS table below still has to pass: darkening the ground can only raise the contrast of a
 # light text on it, never lower it.
-# (1.4.2) THE DARKENING IS GONE, AND THIS IS WHY. 1.4 stored the two ground colours at 72 % of each channel to
-# compensate for the panel's default gamma -- but the same release also started writing the ST7789's real gamma
-# (0xE0/0xE1) and a 78 % brightness (0x53/0x51). The two corrections stacked: the data went 28 % darker and the
-# panel then compressed the low end again, so every dark theme lost its background, its LINE dividers and its DIM
-# text -- the owner's "todos los temas quedan prácticamente negros". The compensation belongs where the panel is
-# (the driver, and MENU > EXTRA > BRIGHT for what only the unit can judge), never in the palette data, which is
-# shared with the emulator and the site. The palettes are their designed values again; PANEL_DARKEN stays as the
-# one knob for this experiment and 1.0 means "as designed".
-PANEL_DARKEN = 1.0
-
-
-def panel_dark(c565, mono):
-    r, g, b = from565(c565)
-    if mono or (r == g == b):                  # GREY must stay on the RGB565 gray axis (G = 2 R)
-        v = int(round(r * PANEL_DARKEN))
-        return to565((v, v, v))
-    return to565((int(round(r * PANEL_DARKEN)), int(round(g * PANEL_DARKEN)), int(round(b * PANEL_DARKEN))))
+# (1.4.2) NO DARKENING IN THE DATA. 1.4 stored the two ground colours of every dark theme at 72 % of each channel
+# to compensate for the panel's gamma, while the same release started writing that gamma in the driver -- the two
+# corrections stacked and every dark theme lost its background, its LINE dividers and its DIM text. The
+# compensation belongs where the panel is (lcd.c, and MENU > EXTRA > BRIGHT for what only a unit can judge), so the
+# palettes are stored as designed and here they are only converted. There is no knob left to darken them: the
+# correction is the driver's and MENU > EXTRA > BRIGHT's.
 
 
 def derive(p):
     name, *cols = p
     bg, surf, text, theme, accent = (to565(c, name == BW) for c in cols)
     mono = name == "GREY"
-    if luma(bg) <= 128:                        # a dark theme: darker still, as the panel shows it
-        bg, surf = panel_dark(bg, mono), panel_dark(surf, mono)
     d = dict(bg=bg, surf=surf, text=text, theme=theme, accent=accent,
              mid=mix(bg, text, PCT["MID"], mono), dim=mix(bg, text, PCT["DIM"], mono),
              line=mix(bg, text, PCT["LINE"], mono), sel=mix(bg, theme, PCT["SEL"], mono),

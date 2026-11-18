@@ -2569,11 +2569,7 @@ static void graph_preset_pop(void)
 
     if (!total) return;
 
-    /* (1.4.1) THE DITHER IS GONE. It painted every other row of the popup's box in T_BG before the panel was
-     * drawn over it -- work the panel then covered, and at the rounded corners stripes of background sat on the
-     * page. With the panel opaque the HUD reads as a plate over the graph, which is what it is. */
-    (void)r;
-
+    /* (1.4.1) opaque plate: the dithered rows this used to paint were covered by the panel a line later */
     /* Centered chamfered HUD enclosure */
     if (ux.chamfer && !ux.style) {
         gw_oct_panel(x0, y0, w, h, 6, T_SURF, T_ACCENT, 1, T_ACCENT);
@@ -3155,17 +3151,11 @@ static void graph_home_viz(uint16_t c)
     /* (3.5) a slightly deeper page: the panel and the space around it sit one step under the palette's own
      * tones, so the data (the only bright thing here) leads and the field behind it recedes. bg_darken()
      * can only move a tone down, so MONO stays black and PAPER stays legible. */
-    /* (FASE 5) the two scopes are GLASS over the field, not dark boxes: the well used to be the page's tone
-     * darkened by 14, which read as an opaque plate the starfield could not be seen through. A framebuffer has
-     * no alpha to set, so the well is mixed toward the page's own tone instead: the stars behind it keep
-     * showing through the tint, and the grid and the traces still lead (they are the bright thing here). */
+    /* page and plate, one step under the palette's own tones: bg_darken() only moves a tone down, so MONO stays
+     * black and PAPER stays legible */
     uint16_t vbg = ux_mix(bg_darken(T_BG, 14), T_BG, 62), vsf = bg_darken(T_SURF, 10);
-    /* (1.4) THE WELLS ARE THE PAGE'S OWN TONE, NOT BLACK BOXES. 1.3.9 made them opaque by darkening T_BG a further
-     * 26, which on the panel reads as two black rectangles sitting on the screen -- the boxes the owner reported on
-     * the unit. What the opaque fill was for is still true: the field's diagonal and its worlds must not show under
-     * the grid and the trace. So the well is painted, but in the tone of the body it sits in (T_SURF, the plate's
-     * own colour, which is what surrounds it), with the same 1 px frame as before: solid, and part of the page. */
-    uint16_t vwell = T_SURF;
+    /* (1.4) the two wells are the plate's own tone (T_SURF), not black boxes: opaque, so the field and its worlds
+     * stay out of the grid and the trace, but painted in what surrounds them, so they read as part of the page */
     int mono = ux.mono || settings.palette == UI_BW_INDEX;
 
     for (i = 0; i < SCOPE_N; i++) {
@@ -3238,7 +3228,7 @@ static void graph_home_viz(uint16_t c)
          * on top of the oscilloscope, which is what made it hard to read. An opaque well of the page's own tone
          * goes down after the field and the embers and before anything is measured, so the trace and its grid
          * are the only things on it. */
-        cv_rect(12, 63, 144, 72, vwell);
+        cv_rect(12, 63, 144, 72, T_SURF);
         cv_rect(12, cy, 144, 1, T_LINE);
         for (i = 0; i < 4u; i++)
             cv_rect(12 + (int32_t)i * 48, 64, 1, 66, T_GRID);
@@ -3273,7 +3263,7 @@ static void graph_home_viz(uint16_t c)
          * the two read as two screens. Both wells are the page's own dark tone with the same 1 px frame, both
          * carry the same three-division grid and the same foot ticks, and both traces are on the same heat ramp,
          * so the pair reads as one instrument with two probes. */
-        cv_rect(164, 64, 64, 67, vwell);
+        cv_rect(164, 64, 64, 67, T_SURF);
         {
             uint16_t fr = ux_mix(T_BG, T_GRID, 62);
             cv_rect(164, 64, 64, 1, fr);

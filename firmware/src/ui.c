@@ -123,9 +123,9 @@ static void prefs_update(void)
 /* (1.4.2) MENU > EXTRA > BRIGHT: the panel's brightness as the ST7789 register 0x51 takes it (duty, 0..255). The
  * byte is 0 in every older record and 0 means the panel's full scale, 0xFF: 1.4 shipped 0xC8 (78 %) on top of a
  * palette that was itself stored 28 % darker, and the two together are what made every dark theme read as black.
- * The palette is back at its designed values (tools/gen_ui_palettes.py PANEL_DARKEN 1.0) and the brightness starts
- * where the panel is honest; whoever finds it too bright on a unit dims it here, by eye, which is the only judge
- * that panel has. lcd.c lcd_bright_set writes it at once */
+ * The palette is stored at its designed values and the brightness starts where the panel is honest; whoever finds
+ * it too bright on a unit dims it here, by eye, which is the only judge that panel has. lcd.c lcd_bright_set writes
+ * it at once */
 #define ui_bright (favorites.factory[15][25])
 #define BRIGHT_DEF 0xFFu
 static const uint8_t BRIGHT_LCD[4] = {0x40, 0x80, 0xC8, 0xFF};   /* 25 %, 50 %, 78 %, 100 % (the default) */
