@@ -834,7 +834,7 @@ static void fx_ease(int32_t *st, int32_t target)
 static void graph_fx(const track_t *t, uint16_t c)
 {
     static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
-    static const char *const DIST_TYPES[4] = {"SOFT", "TAPE", "HRTH", "FLUX"};
+    static const char *const DIST_TYPES[5] = {"SOFT", "TAPE", "HRTH", "FLUX", "FOLD"};
     static const uint16_t FX_ICON[4] = {ICON_DIST, ICON_CHORUS, ICON_DELAY, ICON_REVERB};
     /* (4.0) one ballistics for every bar in the firmware: fx_meter_step (core.h), the helper the FX meter test
      * pins -- an immediate attack, a quarter of the way down per frame, a 30-frame hold. The FX page had grown
@@ -899,7 +899,7 @@ static void graph_fx(const track_t *t, uint16_t c)
         cv_text_on(cx + 3, 18, &AF_S, num, val ? T_TEXT : T_DIM, ux_ground_at(13, 73, 10, 45));
         /* (1.3) the type / SEND label moved down with the card: it was at y 40 on a 62 px card and is at 71 on an
          * 80 px one, so the meter gets the rows between the value and it instead of the label splitting them. */
-        cv_text_on(cx + 3, 66, &AF_S, i == 0 ? DIST_TYPES[t->p[P_DTYPE] & 3u] : "SEND",
+        cv_text_on(cx + 3, 66, &AF_S, i == 0 ? DIST_TYPES[(uint32_t)t->p[P_DTYPE] % 5u] : "SEND",
                    i == 0 ? T_ACCENT : T_DIM, ux_ground_at(61, 73, 10, 45));
         if (lvl >= 6800)                              /* (3.6) this bus is at full scale: it clips now */
             cv_rect(cx + 47, 6, 3, 3, T_ACCENT);

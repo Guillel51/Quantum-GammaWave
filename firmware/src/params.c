@@ -34,7 +34,7 @@ static const char *const N_CHOTYPE[] = {"CHORUS", "PHASER", "FLANGER", 0};   /* 
 /* seq.c kb_map; 1 = SNAP (stored projects: the former ON); 3 = SEQ: SNAP, and the sequencer's notes snap too as
  * they play (seq.c seq_step; the steps keep what was written). Append-only: older projects hold 0..2 */
 static const char *const N_QUANT[] = {"OFF", "SNAP", "WHITE", "SEQ"};
-static const char *const N_DTYPE[] = {"SOFT", "TAPE", "HEARTH", "FLUX"};   /* (QUANTUM) fx.c DT_SOFT..DT_FLUX */
+static const char *const N_DTYPE[] = {"SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"};   /* (QUANTUM) fx.c DT_SOFT..DT_FLUX; (FASE 2) FOLD appended */
 static const char *const N_FTYPE[] = {"LP", "HP", "BP", "COMB", "VOWEL", "SCREAM"};   /* (GAMMAWAVE) P_FTYPE: eng_analog.c FT_* */
 static const char *const N_VOICE[] = {"POLY", "MONO", "LEG", "UNI"};   /* V_POLY .. V_UNISON */
 static const char *const N_GLMODE[] = {"RATE", "TIME"};
@@ -144,7 +144,7 @@ static const param_desc_t TP[P_COUNT] = {
     LANE(0, "KICK"), LANE(1, "SNARE"), LANE(2, "CLAP"), LANE(3, "HATCL"),
     LANE(4, "HATOP"), LANE(5, "TOM"), LANE(6, "RIM"), LANE(7, "BELL"),
 #undef LANE
-    [P_DTYPE] = PE("TYPE", N_DTYPE, 0),         /* (JIANT) DIST: SOFT (as before) HARD FOLD CRUSH RECT */
+    [P_DTYPE] = PE("TYPE", N_DTYPE, 0),         /* the DIST model: SOFT TAPE HEARTH FLUX FOLD (fx.c) */
     [P_DTONE] = PD("TONE", F_BIPCT, -64, 63, 0),   /* .. its tone: darker / brighter */
     [P_MSLEN] = PD("LEN", F_STEPS, 1, 16, 16),  /* (JIANT) the modulation sequence (mod.c MS_STEP) */
     [P_MSDIV] = PE("DIV", N_DIV, 2),

@@ -42,9 +42,12 @@ CODE = {0x2026: 0x85}                  # characters outside Latin-1 -> their one
 PHASES, PHASES_M, PHASES_L = 4, 2, 2  # horizontal phases per glyph (aa_raster.raster_font): S, M, L. (4.2) M went to
                                        # 2: it is the monospace face, every advance is 9 px, and its fourth-phase cells
                                        # were 8 KB of flash for a quarter of a pixel.
-# faces stored Huffman-coded (--huff): M and L. S, the most drawn and the least compressible (-15 %), stays
-# 2 px per byte, so the labels draw at full speed
-HUFF = [("M", "L")]
+# faces stored Huffman-coded (--huff): M, L and S. S was left raw until now -- 2 px per byte, so the labels
+# drew at full speed -- because it is the most drawn face and the least compressible (-15 %); with the flash
+# slot down to 8 B free, 1.4 KiB of constants that decode to the same pixels is the only headroom the firmware
+# can still get without giving up a feature, and the text path is signature-gated (a label redraws when it
+# changes, not once a frame), so the decode sits in a path with margin
+HUFF = [("M", "L", "S")]
 # L draws only "JIANT" (ABOUT), the UPDATE MODE countdown digit, the calibration's control names (panel.c
 # B_NAME / E_NAME) and MENU > LARGE's card values and page titles (ui_draw.c draw_column_tall, ui_graph.c
 # graph_title: # . / J W too; a value with another character is set in M): a sparse face of those glyphs, the
