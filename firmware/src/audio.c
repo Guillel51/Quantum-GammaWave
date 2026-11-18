@@ -93,8 +93,16 @@ static uint32_t boot_gain;                             /* 0 .. 32768, Q15: the f
  *      for up to 20 ms, seven 2.9 ms halves): the engine may lose halves there, but it loses them on zeros,
  *      which is silence, not a click.
  * The ramp still ends ~27 ms after arming, during the splash: nothing is added to the boot's length. */
-static volatile uint8_t boot_armed;                    /* 0: silence; 1: the ramp above runs */
+static volatile uint8_t boot_armed = 1;                /* 0: silence; 1: the ramp above runs (armed by default: see
+                                                        * audio_fade_in / audio_boot_hold below) */
+/* (1.4.12) THE DEFAULT IS ARMED, and main.c is what holds the output for the boot: audio_init() leaves the ramp
+ * running, so a caller that is not the instrument's boot (every host test renders through audio_block, and the
+ * emulator too) gets the engine's output without having to know about the boot's timing -- without this, the
+ * whole host suite rendered -180 dB of exact silence after FASE 3 gated the master on this flag. main.c calls
+ * audio_boot_hold() right after audio_init() and audio_fade_in() once the interrupts-off stages are done, which
+ * is the behaviour the fade was added for. */
 void audio_fade_in(void) { boot_gain = 0; boot_armed = 1; }
+void audio_boot_hold(void) { boot_gain = 0; boot_armed = 0; }
 void fx_boot_gain(int32_t g);                          /* fx.c: the fade, folded into the block's master gain */
 static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 -> 24 bit */
 {
@@ -250,6 +258,6 @@ static void audio_init(void)                   /* codec and ALNK0 bring-up (fm1_
     for (i = 0; i < 2u * HALF_WORDS; i++)
         abuf[i] = 0;
     boot_gain = 0;                                     /* (1.4.2.1) the fade starts at silence ... */
-    boot_armed = 0;                                    /* ... and (FASE 3) waits: audio_fade_in arms it */
+    boot_armed = 1;                                    /* ... armed here: main.c holds it with audio_boot_hold() */
     fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);
 }

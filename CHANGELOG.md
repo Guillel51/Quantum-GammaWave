@@ -43,6 +43,16 @@ la 1.4.10, y el árbol queda con más de un kilobyte de sobra. También quedó a
 de la 1.4.8 había dejado sin compilar (`text_ref_test.c` usaba `f->adv[]`; la versión del otro chat lee `hc` por el
 puntero `AF_x_HC`, que es la buena, y esta rama aporta `advance()` para las avanzadas en bytes).
 
+### La 1.4.11 publicó el motor en silencio en el host, y eso se arregla acá
+El fade de encendido de la 1.4.11 gatea el master con un flag (`audio.c` `boot_armed`) que sólo `main.c` armaba.
+Cualquier otro que renderiza por `audio_block` —la suite host entera, y el emulador— quedaba en **cero exacto**:
+`poly_test`, `audio_test` y `master_test` daban −180 dB en todas las mediciones. Ahora el flag **nace armado**
+(la rampa corre desde el primer bloque, como antes de la 1.4.11) y es `main.c` el que sostiene el silencio con
+`audio_boot_hold()` justo después de `audio_init()`, hasta `audio_fade_in()` cuando terminaron las etapas con
+interrupciones apagadas. El arranque de la unidad queda exactamente como lo diseñó la 1.4.11 (el desmute cae
+sobre ceros) y nadie más tiene que conocer ese tiempo. `boot_fade_test` sigue pasando, y los 303 renders dorados
+quedan idénticos.
+
 ### Medido, en el host
 - `tests/lcd_st7789_test.c` tiene cuatro comprobaciones nuevas: con PANEL Y 80 la fila 0 del UI va a la memoria
   80 y el relleno de pantalla completa limpia 0..79; con PANEL Y 0 vuelve a 0 y limpia 240..319. **Las cuatro pasan.**

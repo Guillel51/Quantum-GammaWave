@@ -216,6 +216,8 @@ static void fm1_main(void)
     master_boot();
     kb_boot_hold = 1;                         /* #137: no notes from the keys before the UI (seq.c keyboard_block) */
     audio_init();
+    audio_boot_hold();                        /* (1.4.12) silence through the interrupts-off stages: armed by default
+                                               * for every other caller, held here until audio_fade_in() below */
     splash_step();
     usb_start();
     splash_step();
