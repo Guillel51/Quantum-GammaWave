@@ -5,7 +5,7 @@
 #define DLY_LEN 65536u           /* 1.49 s: 1/4 at 40 BPM fits */
 #define CHO_LEN 2048u
 /* Logarithmic reverb damping factor lookup table */
-static const int32_t rev_damp_table[128] = {
+static const int16_t rev_damp_table[128] = {      /* 0 .. 17430: a byte and a half of XIP a value, not four (2 B saved each) */
     0, 100, 200, 301, 403, 505, 607, 709, 813, 916,
     1020, 1124, 1229, 1335, 1440, 1546, 1653, 1761, 1870, 1980,
     2091, 2203, 2316, 2430, 2545, 2661, 2778, 2896, 3014, 3133,

@@ -1,4 +1,8 @@
-## v1.4.8 — toda la UI auditada: el dibujo está limpio, y `off N` pregunta cuál franja de la memoria ve el panel
+## v1.4.9 — toda la UI auditada: el dibujo está limpio, y `off N` pregunta cuál franja de la memoria ve el panel
+
+Esta versión integra la 1.4.8 del trabajo paralelo (el velo de los pozos del visualizador y los 448 B de XIP que
+recuperó la reverb y las avanzadas de las fuentes) con la auditoría de pantallas y la franja del panel de este
+lado; el 1.4.8 ya publicado no se reescribe.
 
 ### La auditoría, con números
 El renderizador del propio firmware (`tests/ui_render.c`, el mismo código de dibujo que corre la unidad) se pasó
@@ -116,6 +120,30 @@ Medido: **rodata −48 B, código +4 B, imagen 583 384 → 583 340 B**; libres e
 sigue en 91 300 B, pool y LOWBUF también. Clase: mapa del linker (el build AC791N), no una medición de la unidad.
 
 ## En el árbol (1.4.4.1, `6d33c44`) — el build AC791N de ese árbol, medido
+## En el árbol — FASE EXTRA v1.4.8: los osciloscopios del visualizador se ven a través
+
+Los dos pozos del visualizador de HOME (`graph_home_viz`) eran `cv_rect(T_SURF)`: placas opacas que tapaban el
+campo profundo —la banda de la Vía Láctea, su polvo, sus dos mundos y las brasas—. Ahora son un velo:
+`cv_rect_a()` mezcla un 60 % de tono de página sobre **los píxeles que ya están en el lienzo**, píxel a píxel,
+con el mismo `ux_mix()` que usa la tinta translúcida (`cv_pset`, `cv_ink`); el fondo se lee a través del
+cristal y la rejilla y la traza, dibujadas después, siguen siendo lo más brillante del pozo. Es blending real
+del framebuffer (que es legible), no un color sólido ni un dither que lo imite.
+
+Sin fila de menú: **se escribió y se midió MENU > EXTRA > VIZ VEIL (id 25, MID / CLEAR / DEEP)**, y no entra.
+Con el trabajo de panel de 1.4.7 la imagen quedaba 152 B por encima del XIP; la fila cuesta ~90 B y la versión
+barata del velo otros ~60, así que el 60 % quedó fijo en `VIZ_VEIL` y la imagen cierra en **583 564 de
+583 612 B (48 B libres)**. Decirlo es parte del resultado: no hay holgura para un ajuste, y menos para las
+fases 3–6, sin liberar flash de los assets.
+
+Medido en el host (`cc -O1`; sólo las proporciones significan algo en el aparato): la pantalla del
+visualizador pasa de **213,3 a 363,4 µs** por cuadro en HIGH (+70 %). La versión con tablas de 128 entradas
+bajaba a 247,5 µs pero costaba 144 B de XIP, que ya no existen.
+
+El barrido de `ui_render` queda en **0 hallazgos** de lint sobre 190 pantallas × 22 paletas, **0 píxeles GREY /
+MONO fuera de gris o neutro** y 0 alineaciones fuera por 1 px; los volcados de QUANTUM, MONO, GREY y PAPER
+muestran la banda y las estrellas atravesando los dos pozos con la traza legible.
+
+## En el árbol — el build AC791N de este árbol, medido
 
 La cadena de destino (`tools/get_toolchain.sh` + los tres archivos del SDK AC79) se descargó y verificó en esta
 sesión, así que por primera vez en este trabajo el árbol **se compiló para el aparato**: imagen **583 156 B de

@@ -234,7 +234,9 @@ def emit(face, tracking, gamma, kern_min):
     advs = [table[i][1] for i in range(0, len(table), phases)]
     assert all(len({table[g * phases + p][1] for p in range(phases)}) == 1 for g in range(len(advs))), \
         f"{name}: a glyph's advance differs between its phases"
-    lines.append(ar.c_array(f"AF_{name}_ADV", "uint16_t", advs, 16))
+    # the advances are 1/16 px: a byte each when the face's widest fits (S 156, M 144: 210 B less XIP)
+    advt = "uint8_t" if max(advs) <= 0xFF else "uint16_t"
+    lines.append(ar.c_array(f"AF_{name}_ADV", advt, advs, 16))
     lines.append(f"static const aag_t AF_{name}_G[{len(table)}] = {{")
     for off, adv, bx, by, bw, bh in table:
         lines.append(f"    {{{off}, {bx}, {by}, {bw}, {bh}}},")
@@ -246,7 +248,8 @@ def emit(face, tracking, gamma, kern_min):
     lines.append(f"static const uint8_t AF_{name}_EX[{max(1, len(extras))}] = {{{ex}}};")
     lines.append(f"static const aafont_t AF_{name} = {{{r['h']}, {r['asc']}, {first}, {last}, {len(extras)}, {len(keys)}, "
                  f"AF_{name}_G, AF_{name}_ADV, AF_{name}_DATA, {'AF_%s_KERN' % name if keys else '0'}, "
-                 f"{'AF_%s_KD' % name if keys else '0'}, AF_{name}_EX, {psh}, {'AF_%s_HC' % name if hc else '0'}}};")
+                 f"{'AF_%s_KD' % name if keys else '0'}, AF_{name}_EX, {psh}, {1 if advt == 'uint8_t' else 0}, "
+                 f"{'AF_%s_HC' % name if hc else '0'}}};")
     if "H" in chars:                                  # the capitals' band (gfx.c CAP_IN: centring text by it)
         cap = table[chars.index("H") * phases]
         lines.append(f"#define AF_{name}_CAP_Y {cap[3]}   /* the ink of H: rows {cap[3]} .. {cap[3] + cap[5] - 1} of the line */")

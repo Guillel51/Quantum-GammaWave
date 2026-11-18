@@ -820,7 +820,7 @@ static int menu_protocol(void)
     n = menu_desc(25, &it);                              /* past the list: it was 22 before EXTRA grew it */
     ok &= n == 2u && it.index == 25 && it.id == 127;
     n = menu_desc(127, &it);
-    bad += check("MENU_DESC: no CALIBRATION / ABOUT; an index past the list (25) answers index, 127 (no item)",
+            bad += check("MENU_DESC: no CALIBRATION / ABOUT; an index past the list (25) answers index, 127 (no item)",
                  ok && n == 2u && it.index == 127 && it.id == 127);
 
     /* (QG-1 1.5) MENU > EXTRA: ids 21..24 in the EXTRA tab, the three new rows with the defaults they ship with,
@@ -846,7 +846,8 @@ static int menu_protocol(void)
             for (k = i + 1u; k < 25u; k++) { menu_desc(k, &y); dup |= x.id == y.id || !strcmp(x.name, y.name); }
         }
         bad += check("MENU_DESC: 25 items, no id and no name repeated (the EXTRA rows included)", !dup);
-        ok = menu_set(22, 1) == 3 && ui_cpu_mode == 1u && menu_desc(22, &o) && o.value == 1;
+        ok = menu_set(22, 1) == 3 && ui_cpu_mode == 1u && menu_desc(22, &o) && o.value == 1;   /* (ids: the editor's,
+                                                                                              * not the row) */
         ok &= menu_set(23, 2) == 3 && ui_viz_q == 2u && menu_desc(23, &o) && o.value == 2;
         ok &= menu_set(24, 2) == 3 && ui_splash == 2u && menu_desc(24, &o) && o.value == 2;
         ok &= menu_set(22, 0) == 3 && ui_cpu_mode == 0u && menu_set(23, 0) == 3 && ui_viz_q == 0u &&

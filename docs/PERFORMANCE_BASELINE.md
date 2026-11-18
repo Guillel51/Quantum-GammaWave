@@ -85,3 +85,20 @@ that is cheaper than the bytes it saves. That is a project of its own; none of i
   `CPU_SPREAD=1 build/host/regress` gives that distribution on the host, not on the MCU.
 * **Physical audio**: no unit, no clicks, no voice-stealing behaviour under load on hardware.
 * **Render cost on the target**: the render figures in §3 are host x86 wall clock.
+
+## Visualizador de HOME con pozos semitransparentes (FASE EXTRA)
+
+`graph_home_viz` deja de tapar el campo profundo con dos placas opacas: `cv_rect_a()` mezcla un velo sobre los
+14 656 píxeles de los dos pozos. Medido con `tests/ui_render.c` (`cc -O1`, host x86; sólo las proporciones
+sirven en el aparato):
+
+| Versión del velo | Visualizador HIGH | LOW | XIP |
+|---|---|---|---|
+| sin velo (placas opacas, línea base de 1.4.4.x) | 213,3 µs | 98,2 µs | — |
+| `ux_mix()` por píxel (**la que quedó**) | 363,4 µs | 255,1 µs | +80 B |
+| tablas de 128 entradas construidas con `ux_mix()` | 247,5 µs | 133,1 µs | +224 B |
+
+Las tablas dan bit a bit el mismo resultado y son ~115 µs más rápidas, pero con la línea 1.4.7 del otro chat
+(la espera de la DMA del panel) el XIP no las admite: la imagen con tablas se pasaba por 152 B, y con la fila
+de menú VIZ VEIL también. Quedó la de `ux_mix()`: +70 % en el cuadro del visualizador y 48 B libres de imagen
+(583 564 de 583 612).
