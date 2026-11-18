@@ -157,9 +157,8 @@ static int preferences(void)
         host_wire[n - 23] == 0 &&                        /* (no bank since 1.0.3) */
         host_wire[n - 22] == 0x53 && host_wire[n - 21] == 1 && host_wire[n - 20] == 3 &&
         host_wire[n - 19] == 0x50 && host_wire[n - 18] == 1 && host_wire[n - 17] == 3 &&   /* FM6 v2: no bank, preset patches */
-        host_wire[n - 16] == 0x4E && host_wire[n - 15] == 1 && host_wire[n - 14] == 26 &&   /* MENU settings: 26 items (0.6.72: MIDI OUT, 1.1.1-GW: SELECT ON HOME,
-                                                        * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH;
-                                                        * FASE EXTRA: VIZ VEIL) */
+        host_wire[n - 16] == 0x4E && host_wire[n - 15] == 1 && host_wire[n - 14] == 25 &&   /* MENU settings: 25 items (0.6.72: MIDI OUT, 1.1.1-GW: SELECT ON HOME,
+                                                        * QG-1 v1.5: CPU MODE, VIS QUALITY, SPLASH) */
         host_wire[n - 13] == 0x52 && host_wire[n - 12] == 1 && host_wire[n - 11] == 4 &&   /* RATCH */
         host_wire[n - 10] == 0x4C && host_wire[n - 9] == 1 && host_wire[n - 8] == 1 &&   /* 1.1 parameter locks */
         host_wire[n - 7] == 0x56 && host_wire[n - 6] == 1 && host_wire[n - 5] == 32 &&   /* (0.6.11) FM6 voice bank */
@@ -812,49 +811,48 @@ static int menu_protocol(void)
         bad += check("MENU_DESC: the tab comes after every byte of the 1.0.4 reply (older editors ignore it)", ok);
     }
     ok = 1;
-    for (i = 0; i < 26u; i++) {                          /* the whole list: 26 items (FASE EXTRA: VIZ VEIL) */
+    for (i = 0; i < 25u; i++) {                          /* the whole list: 25 items since QG-1 1.5's EXTRA rows */
         menu_desc(i, &it);
         ok &= strcmp(it.name, "CALIBRATION") && strcmp(it.name, "ABOUT");
         if (i == 20u) ok &= !strcmp(it.name, "MIDI OUT") && it.id == 20;   /* (0.6.72) */
         if (i == 21u) ok &= !strcmp(it.name, "KNOB SELECT") && it.id == 21;
     }
-    n = menu_desc(26, &it);                              /* past the list: it was 22 before EXTRA grew it */
-    ok &= n == 2u && it.index == 26 && it.id == 127;
+    n = menu_desc(25, &it);                              /* past the list: it was 22 before EXTRA grew it */
+    ok &= n == 2u && it.index == 25 && it.id == 127;
     n = menu_desc(127, &it);
-            bad += check("MENU_DESC: no CALIBRATION / ABOUT; an index past the list (26) answers index, 127 (no item)",
+            bad += check("MENU_DESC: no CALIBRATION / ABOUT; an index past the list (25) answers index, 127 (no item)",
                  ok && n == 2u && it.index == 127 && it.id == 127);
 
     /* (QG-1 1.5) MENU > EXTRA: ids 21..24 in the EXTRA tab, the three new rows with the defaults they ship with,
      * applying where the firmware reads them and reading back, and no id or name repeated anywhere in the list. */
     {
-        static const char *const EXN[4] = {"CPU MODE", "VIS QUALITY", "SPLASH", "VIZ VEIL"};
-        static const char *const EX0[4] = {"AUTO", "HIGH", "FULL", "MID"};
+        static const char *const EXN[3] = {"CPU MODE", "VIS QUALITY", "SPLASH"};
+        static const char *const EX0[3] = {"AUTO", "HIGH", "FULL"};
         menu_item_t o, x, y;
         int dup = 0;
         ok = 1;
-        for (i = 21u; i < 26u; i++) {
+        for (i = 21u; i < 25u; i++) {
             n = menu_desc(i, &o);
             ok &= n > 10u && o.index == i && o.id == i && o.kind == 0 && o.tab == 4u && !strcmp(o.tabname, "EXTRA");
         }
-        for (i = 22u; i < 26u; i++) {
+        for (i = 22u; i < 25u; i++) {
             menu_desc(i, &o);
             ok &= o.min == 0 && o.max == 2 && o.nnames == 3u && o.value == 0 &&
                   !strcmp(o.name, EXN[i - 22u]) && !strcmp(o.names[0], EX0[i - 22u]);
         }
-        bad += check("MENU_DESC: EXTRA holds KNOB SELECT, CPU MODE, VIS QUALITY, SPLASH and VIZ VEIL (ids 21..25)", ok);
-        for (i = 0; i < 26u; i++) {
+        bad += check("MENU_DESC: EXTRA holds KNOB SELECT, CPU MODE, VIS QUALITY and SPLASH (ids 21..24, the three new rows AUTO / HIGH / FULL)", ok);
+        for (i = 0; i < 25u; i++) {
             menu_desc(i, &x);
-            for (k = i + 1u; k < 26u; k++) { menu_desc(k, &y); dup |= x.id == y.id || !strcmp(x.name, y.name); }
+            for (k = i + 1u; k < 25u; k++) { menu_desc(k, &y); dup |= x.id == y.id || !strcmp(x.name, y.name); }
         }
-        bad += check("MENU_DESC: 26 items, no id and no name repeated (the EXTRA rows included)", !dup);
+        bad += check("MENU_DESC: 25 items, no id and no name repeated (the EXTRA rows included)", !dup);
         ok = menu_set(22, 1) == 3 && ui_cpu_mode == 1u && menu_desc(22, &o) && o.value == 1;   /* (ids: the editor's,
                                                                                               * not the row) */
         ok &= menu_set(23, 2) == 3 && ui_viz_q == 2u && menu_desc(23, &o) && o.value == 2;
         ok &= menu_set(24, 2) == 3 && ui_splash == 2u && menu_desc(24, &o) && o.value == 2;
-        ok &= menu_set(25, 1) == 3 && ui_viz_veil == 1u && menu_desc(25, &o) && o.value == 1;
         ok &= menu_set(22, 0) == 3 && ui_cpu_mode == 0u && menu_set(23, 0) == 3 && ui_viz_q == 0u &&
-              menu_set(24, 0) == 3 && ui_splash == 0u && menu_set(25, 0) == 3 && ui_viz_veil == 0u;
-        bad += check("MENU_SET: CPU MODE, VIS QUALITY, SPLASH and VIZ VEIL land where the firmware reads them, read back, and return to their defaults", ok);
+              menu_set(24, 0) == 3 && ui_splash == 0u;
+        bad += check("MENU_SET: CPU MODE, VIS QUALITY and SPLASH land where the firmware reads them, read back, and return to their defaults", ok);
     }
     {
         uint8_t a[3] = {0, 0, 0};

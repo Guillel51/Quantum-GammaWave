@@ -120,9 +120,6 @@ static void prefs_update(void)
                                                 * as ever), 1 CLOCK, 2 ALL, 3 OFF; a byte no engine uses */
 #define ui_voices (favorites.factory[15][17])  /* (FASE 3) MENU > AUDIO > VOICES (voice.c voice_ucap): 0 twelve
                                                 * (default, what every older record holds), 1 ten, 2 eight */
-#define ui_viz_veil (favorites.factory[15][25])  /* (FASE EXTRA) MENU > EXTRA > VIZ VEIL: 0 MID (default, what
-                                                * an older record holds), 1 CLEAR, 2 DEEP; a byte of engine 15's
-                                                * block no engine uses (ui_graph.c viz_veil) */
 #define ui_trks (favorites.factory[15][18])    /* (3.4) MENU > TRACKS: 0 four (ECO), 1 five (BALANCED), 2 six (FULL);
                                                 * a byte of engine 15's block (a bitmap of favourites for an engine that
                                                 * does not exist), 0 in every older setting = the four tracks it had */

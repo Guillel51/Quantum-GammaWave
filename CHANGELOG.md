@@ -85,25 +85,24 @@ Medido: **rodata −48 B, código +4 B, imagen 583 384 → 583 340 B**; libres e
 sigue en 91 300 B, pool y LOWBUF también. Clase: mapa del linker (el build AC791N), no una medición de la unidad.
 
 ## En el árbol (1.4.4.1, `6d33c44`) — el build AC791N de ese árbol, medido
-## En el árbol — FASE EXTRA: los osciloscopios del visualizador se ven a través
+## En el árbol — FASE EXTRA v1.4.8: los osciloscopios del visualizador se ven a través
 
 Los dos pozos del visualizador de HOME (`graph_home_viz`) eran `cv_rect(T_SURF)`: placas opacas que tapaban el
 campo profundo —la banda de la Vía Láctea, su polvo, sus dos mundos y las brasas—. Ahora son un velo:
-`cv_rect_a()` mezcla un tono de página sobre **los píxeles que ya están en el lienzo**, píxel a píxel, con
-`ux_mix()`; el fondo se lee a través del cristal y la rejilla y la traza, dibujadas después, siguen siendo lo
-más brillante del pozo. Es blending real del framebuffer (que es legible), no un color sólido ni un dither que
-lo imite.
+`cv_rect_a()` mezcla un 60 % de tono de página sobre **los píxeles que ya están en el lienzo**, píxel a píxel,
+con el mismo `ux_mix()` que usa la tinta translúcida (`cv_pset`, `cv_ink`); el fondo se lee a través del
+cristal y la rejilla y la traza, dibujadas después, siguen siendo lo más brillante del pozo. Es blending real
+del framebuffer (que es legible), no un color sólido ni un dither que lo imite.
 
-**MENU > EXTRA > VIZ VEIL** (fila nueva, id de editor 25, «MID» por defecto: MID / CLEAR / DEEP) elige cuánto
-tapa el velo (60 / 44 / 76 %). El byte vive en el bloque del motor 15 que nadie usa, así que un ajuste viejo
-lee MID y no hay migración. El editor lo muestra solo, porque sus ajustes salen de `MENU_DESC`.
+Sin fila de menú: **se escribió y se midió MENU > EXTRA > VIZ VEIL (id 25, MID / CLEAR / DEEP)**, y no entra.
+Con el trabajo de panel de 1.4.7 la imagen quedaba 152 B por encima del XIP; la fila cuesta ~90 B y la versión
+barata del velo otros ~60, así que el 60 % quedó fijo en `VIZ_VEIL` y la imagen cierra en **583 564 de
+583 612 B (48 B libres)**. Decirlo es parte del resultado: no hay holgura para un ajuste, y menos para las
+fases 3–6, sin liberar flash de los assets.
 
 Medido en el host (`cc -O1`; sólo las proporciones significan algo en el aparato): la pantalla del
-visualizador pasa de **213,3 a 355,4 µs** por cuadro en HIGH (+67 %). La versión con tablas de 128 entradas
-bajaba a 247,5 µs pero costaba 144 B más de XIP, y con 1.4.6 del otro chat ya no entraba: se quedó la de
-`ux_mix()`, que es la que cabe. En el aparato: imagen **583 608 B de 583 612** (4 B libres), `.data+.bss` sin
-cambios (95 140 de 98 304). **Con 4 B no entra nada más**: la próxima función tiene que pagarse liberando
-flash de los assets.
+visualizador pasa de **213,3 a 363,4 µs** por cuadro en HIGH (+70 %). La versión con tablas de 128 entradas
+bajaba a 247,5 µs pero costaba 144 B de XIP, que ya no existen.
 
 El barrido de `ui_render` queda en **0 hallazgos** de lint sobre 190 pantallas × 22 paletas, **0 píxeles GREY /
 MONO fuera de gris o neutro** y 0 alineaciones fuera por 1 px; los volcados de QUANTUM, MONO, GREY y PAPER

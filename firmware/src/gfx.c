@@ -344,23 +344,12 @@ static void cv_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
  * imitation of one, and it clips exactly as cv_rect does. */
 static void cv_rect_a(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, int32_t pct)
 {
-    int32_t x1 = x + w, y1 = y + h + cv_oy, i;
-    y += cv_oy;
-    if (x < 0)
-        x = 0;
-    if (y < 0)
-        y = 0;
-    if (x1 > (int32_t)cv_w)
-        x1 = (int32_t)cv_w;
-    if (y1 > (int32_t)cv_h)
-        y1 = (int32_t)cv_h;
-    if (x1 <= x || y1 <= y)
-        return;
-    for (; y < y1; y++) {
-        uint16_t *row = cv_px + (uint32_t)y * cv_w;
-        for (i = x; i < x1; i++)
-            row[i] = swap16(ux_mix(swap16(row[i]), c, pct));   /* (the one blend: GREY stays gray, MONO neutral) */
-    }
+    int32_t i, j;
+    cv_ink = (int16_t)pct;          /* the blend cv_pset already does: one read, one ux_mix, clipped per dot */
+    for (j = y; j < y + h; j++)
+        for (i = x; i < x + w; i++)
+            cv_pset(i, j, c);
+    cv_ink = 100;
 }
 
 /* a divider (LINE): a 1 px T_RULE line on the canvas, a cell edge for the host lint */
