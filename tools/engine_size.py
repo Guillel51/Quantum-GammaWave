@@ -243,11 +243,20 @@ def main(argv):
                     checked += 1
                     bad += sizes[sym] != size
         if not checked:
-            raise SystemExit("engine_size: the map has no per-function sections to cross-check")
+            # (FASE 6) under -flto the plugin merges the per-function input sections into one .text before the
+            # linker sees them, so the map has no '.text.<fn>' entries left to measure. The sizes above already come
+            # from the symbol table and the disassembly; say plainly that the cross-check is unavailable rather than
+            # report a difference that cannot be computed.
+            if "(symbol from plugin)" in mp.read_text(errors="replace"):
+                print("map: no per-function sections to cross-check under -flto (the plugin merges them into "
+                      ".text); the sizes above are the symbol table's and the disassembly's")
+            else:
+                raise SystemExit("engine_size: the map has no per-function sections to cross-check")
         if bad:
             raise SystemExit("engine_size: %d of %d engine functions differ between the map and the "
                              "symbol table" % (bad, checked))
-        print("map: %d engine functions agree with the map (%s)" % (checked, mp))
+        if checked:
+            print("map: %d engine functions agree with the map (%s)" % (checked, mp))
 
     rows = sorted(per.items(), key=lambda kv: -(kv[1]["xip"] + kv[1]["bss"]))
     if "--json" in flags:
