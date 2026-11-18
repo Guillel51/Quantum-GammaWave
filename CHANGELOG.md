@@ -1,3 +1,53 @@
+## v1.4.10 — el panel: la tabla de init vuelve completa, con los valores del driver del módulo
+
+### Qué se revirtió, y por qué
+**Se revierte la decisión de 1.4.2.1 de no escribir nada después de MADCTL** (y con ella la de 1.4.4.1 que la
+repitió). Aquella vez se quitó la gamma y el brillo porque los números de 1.4 se habían inventado comparando con
+el emulador y en la unidad aplastaban el medio tono bajo — y eso era correcto. Lo que no era correcto es la
+conclusión: quitar los registros dejó el panel en sus **defaults de encendido** para VGH/VGL, VCOM, alimentación y
+gamma, un estado que nadie eligió ni midió. Una pantalla casi negra con fragmentos legibles es justo lo que se ve
+cuando ese bloque no es el del módulo. Quitar un valor equivocado no es escribir el bueno.
+
+### Lo que hay ahora
+`LCD_SEQ` (`firmware/src/lcd.c`) lleva la secuencia **completa** de un ST7789 de 240x240, byte por byte, tal como
+la publica el driver con el que se usan estos módulos:
+
+```
+0x01 SWRESET · 0x11 SLPOUT · 0x3A 0x55 COLMOD · 0x36 0x00 MADCTL
+0xB2 0C 0C 00 33 33   PORCTRL (los porches)
+0xB7 35               GCTRL (VGH/VGL)
+0xBB 19               VCOMS (la tensión de común)
+0xC0 2C               LCMCTRL
+0xC2 01               VDVVRHEN
+0xC3 12               VRHS
+0xC4 20               VDVS
+0xC6 0F               FRCTRL2
+0xD0 A4 A1            PWCTRL1
+0xE0 D0 04 0D 11 13 2B 3F 54 4C 18 0D 0B 1F 23   PVGAMCTRL
+0xE1 D0 04 0C 11 13 2C 3F 44 51 2F 1F 1F 20 23   NVGAMCTRL
+0x21 INVON · 0x13 NORON
+```
+
+Es el bloque de `init_240x240` de Adafruit_ST7789 (el mismo que llevan TFT_eSPI y Pimoroni para 240x240). La
+diferencia con 1.4 no es el tamaño de la tabla: es de dónde salieron los números. Entonces se ajustaron contra el
+emulador; ahora son los del driver del módulo, sin tocar uno solo.
+
+**Siguen fuera, y a propósito:** el brillo (`0x51`/`0x53`, el backlight de la FM-1 es un GPIO y la unidad ignoró
+el registro cuando 1.4 lo escribió) y CABC (`0xC7`, atenuación adaptativa en la pantalla de un instrumento).
+
+### La prueba cambia de regla, y no se debilita
+`tests/panel_table_test.py` antes **prohibía** `0xE0/0xE1/0xBB`; ahora **exige** la secuencia completa con esos
+bytes exactos, cada registro una sola vez, enviada entre `SLPOUT` e `INVON`, y sigue fallando si vuelven el brillo
+o el CABC, si falta un comando o si la tabla deja de parsear. La regla vive en `AGENTS.md` §8 en el mismo commit:
+los valores del panel nunca se inventan contra el emulador, y se escriben completos.
+
+### Clase y límite
+La tabla es la del driver publicado y se verifica en el código: eso es estático y está medido. **El efecto en la
+unidad no está medido** — no hay FM-1 en este entorno. Si al encender el contraste no es el de los módulos que usan
+la variante de Pimoroni para 240x240, son dos bytes (`GCTRL 0x14` y `VCOMS 0x37` en vez de `0x35`/`0x19`) y se
+prueban. `off N` sigue en la consola para la otra mitad del problema: si la imagen aparece entera pero desplazada,
+es la franja de la memoria, no la tabla.
+
 ## v1.4.9 — toda la UI auditada: el dibujo está limpio, y `off N` pregunta cuál franja de la memoria ve el panel
 
 Esta versión integra la 1.4.8 del trabajo paralelo (el velo de los pozos del visualizador y los 448 B de XIP que

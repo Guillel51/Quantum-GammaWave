@@ -147,9 +147,14 @@ guessed.
   ≥ 8 KiB. No `malloc` in realtime audio paths.
 - **Render budget**: 32 samples at 44.1 kHz ≈ 725 µs per block, checked by `tests/target_budget.py`.
 - **Fixed point**: prefer Q12/Q15/Q31 over floating point where it fits; avoid divisions in hot paths.
-- **Panel**: the ST7789 init table (`LCD_SEQ`, `firmware/src/lcd.c`) never writes gamma, brightness, CABC or VCOM.
-  Those values were never read from a panel and 1.4's crushed every dark tone to black on the owner's unit;
-  `tests/panel_table_test.py` fails the build if they come back. A dark theme is the palette's business.
+- **Panel**: the ST7789 init table (`LCD_SEQ`, `firmware/src/lcd.c`) carries the full published 240x240 sequence
+  — porch `0xB2`, gate `0xB7`, VCOM `0xBB`, power `0xC0/0xC2/0xC3/0xC4/0xC6/0xD0` and both gamma tables
+  `0xE0/0xE1` — byte for byte from the module's driver (Adafruit's `init_240x240`, the same block TFT_eSPI and
+  Pimoroni ship). 1.4 invented those numbers against the emulator and crushed the low end; 1.4.2.1 answered by
+  writing none of them, which left the panel on defaults nobody chose and it stayed almost black. Values are
+  never invented against the emulator. Brightness (`0x51`/`0x53`) and CABC (`0xC7`) stay out: the backlight is a
+  GPIO and the unit ignored the register. `tests/panel_table_test.py` fails the build if the table drifts from
+  that reference, loses a command, or brings brightness or CABC back. A dark theme is the palette's business.
 - **UI**: colours flow through `ux_mix()` and `heat_col()`, which saturate per channel — an out-of-range mix
   must never bleed into a neighbouring channel (the GREY/MONO regression). Screens are verified by the
   render sweep and its alignment lint, not by eye alone.

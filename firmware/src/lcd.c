@@ -137,15 +137,26 @@ static void lcd_gdram_clear(uint16_t c)
         lcd_data(lcd_fillbuf, 240u * 2u);
 }
 
-/* ST7789V init: reset, then 16-bit colour, scan direction, IPS inversion -- and NOTHING ELSE. Format: cmd, n,
- * n data bytes; cmd 0x00 = wait (data byte: ~ms).
+/* ST7789V init: reset, then the panel's own power, VCOM and gamma block, then 16-bit colour, scan direction and
+ * IPS inversion. Format: cmd, n, n data bytes; cmd 0x00 = wait (data byte: ~ms).
  *
- * (1.4.5) THE ONE RULE FOR THIS TABLE: no gamma, no brightness, no VCOM. 1.4 wrote a 2.2 curve and turned the
- * brightness register on, from a comparison against the emulator and never from a reading on a panel; on the
- * owner's FM-1 that crushed the low half of the range (plates, dividers, dim labels: black) in every screen, the
- * splash included. The panel's power-on defaults are the only values here that were never wrong, so the table
- * stops at the inversion command and lcd_init clears the whole 240x320 in the theme's background. A dark theme
- * being dark is the palette's business (ui_palettes.h), not the controller's. */
+ * (1.4.10) THE TABLE IS THE FULL SEQUENCE AGAIN, AND THE VALUES ARE NOT MINE. 1.4 wrote a 2.2 curve and the
+ * brightness register from a comparison against the emulator, never from a panel, and on the owner's FM-1 it crushed
+ * the low half of the range in every screen; 1.4.2.1 answered by removing everything after MADCTL, which leaves the
+ * panel on its power-on defaults for gate voltage, VCOM, power and gamma -- a state nobody chose and nobody measured,
+ * and the report from the unit (everything almost black, some details, whole words missing) is what a panel looks
+ * like when that block is not the module's.
+ *
+ * So the sequence below is the standard 240x240 ST7789 set as published by the driver these modules are used with:
+ * Adafruit_ST7789's init_240x240 (PORCTRL 0x0C/0x0C/0x00/0x33/0x33, GCTRL 0x35, VCOMS 0x19, LCMCTRL 0x2C, VDVVRHEN
+ * 0x01, VRHS 0x12, VDVS 0x20, FRCTRL2 0x0F, PWCTRL1 0xA4/0xA1 and its two 14-byte gamma tables), byte for byte, and
+ * the same block TFT_eSPI and Pimoroni ship for 240x240. What 1.4 did wrong was inventing numbers against the
+ * emulator; this is the one set the module's own driver carries. Two exemptions stay out in the open: brightness
+ * (WRCTRLD/WRDISBV, 0x53/0x51) because the FM-1's backlight is a GPIO and the register changed nothing when 1.4
+ * wrote it, and CABC (0xC7) because content-adaptive dimming on a synth's screen is a bug, not a feature.
+ * tests/panel_table_test.py fails the build if this table drifts from that reference, if a command goes missing, or
+ * if brightness or CABC come back. Class: the driver's published table; the effect on this panel is the owner's to
+ * see, and nothing here has been measured on the unit. */
 static const uint8_t LCD_SEQ[] = {
     0x01, 0,                     /* SWRESET */
     0x00, 1, 150,
@@ -153,15 +164,19 @@ static const uint8_t LCD_SEQ[] = {
     0x00, 1, 120,
     0x3A, 1, 0x55,               /* COLMOD: RGB565 */
     0x36, 1, 0x00,               /* MADCTL: top-left origin, RGB order */
+    0xB2, 5, 0x0C, 0x0C, 0x00, 0x33, 0x33,   /* PORCTRL: the porches (VFP/VBP/HFP/HBP) */
+    0xB7, 1, 0x35,               /* GCTRL: VGH / VGL */
+    0xBB, 1, 0x19,               /* VCOMS: the common voltage */
+    0xC0, 1, 0x2C,               /* LCMCTRL */
+    0xC2, 1, 0x01,               /* VDVVRHEN: VDV and VRH set by command */
+    0xC3, 1, 0x12,               /* VRHS */
+    0xC4, 1, 0x20,               /* VDVS */
+    0xC6, 1, 0x0F,               /* FRCTRL2: frame rate in normal mode */
+    0xD0, 2, 0xA4, 0xA1,         /* PWCTRL1 */
+    0xE0, 14, 0xD0, 0x04, 0x0D, 0x11, 0x13, 0x2B, 0x3F, 0x54, 0x4C, 0x18, 0x0D, 0x0B, 0x1F, 0x23,  /* PVGAMCTRL */
+    0xE1, 14, 0xD0, 0x04, 0x0C, 0x11, 0x13, 0x2C, 0x3F, 0x44, 0x51, 0x2F, 0x1F, 0x1F, 0x20, 0x23,  /* NVGAMCTRL */
     0x21, 0,                     /* INVON: IPS panel */
     0x13, 0,                     /* NORON */
-    /* (1.4.2.1) THE GAMMA AND THE BRIGHTNESS ARE NO LONGER WRITTEN. 1.4 wrote a 2.2 curve (0xE0/0xE1) and turned
-     * the brightness control on at 200/255 (0x53/0x51) from a comparison against the emulator: neither value was
-     * ever measured on a panel, and on the owner's FM-1 the result is a screen whose low tones crush to black --
-     * every plate, divider and dim label -- in every screen, the splash included. The brightness register is not
-     * even honoured there: MENU > BRIGHT changed nothing. The panel comes up on its own defaults, as it did before
-     * 1.4; the FM-1's backlight is a plain GPIO (PA2, on/off, shared with the key matrix's /OE), so there is no
-     * firmware path to a real brightness, and a control that cannot work is not worth a fake one. */
 };
 /* bg: the theme's background (main.c passes T_BG, valid because settings_init() applies the palette before
  * this runs). The whole 240x320 is written in it, not in black, so no bonded slice of the panel can show a
