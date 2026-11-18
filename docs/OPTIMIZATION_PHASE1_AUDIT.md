@@ -86,3 +86,42 @@ propio archivo ya usaba en `lev_block`, `fx_glide` y la capa de performance.
   simultáneos; unirlos o recortarlos cambia el sonido.
 - **CPU de la UI/DSP**: sin valgrind en este entorno y sin unidad, el único instrumento exacto es el conteo
   estático de arriba; cualquier afirmación de ciclos o de % de CPU sería inventada.
+
+## FASE 4 — la compactación que faltaba (v1.4.11 + 1)
+
+Objetivo: ~2,5 KiB de XIP para el cache de coeficientes TONE, sin pagar con calidad ni con funciones. Cada
+opción se midió con el **build AC791N** (`./build.sh`, pi32v2 clang + GNU ld); la invariancia, con host x86.
+
+### Opciones medidas y descartadas
+
+| Opción | Efecto medido en la imagen |
+|---|---|
+| `-falign-functions=4` / `=1` | 0 B (con `-Oz` el compilador ya empaqueta al byte) |
+| `-fmerge-all-constants` | 0 B (build unity: los literales ya se fusionan entre archivos) |
+| `-fno-asynchronous-unwind-tables -fno-unwind-tables -fno-ident` | 0 B |
+| `-fno-jump-tables` | **+916 B** (revertido) |
+| `-mllvm -inline-threshold=8` (menos inlineado) | **+788 B** (revertido: además toca el camino de audio) |
+| `UAC_FIR` (7 680 B) | nada: ya guarda 80 fases de 160 y lee la simétrica hacia atrás |
+| `ui_icons.h` (7 123 B) | nada: ya está en Huffman |
+| Fuente S | ya comprimida en la fase anterior (−1 224 B) |
+| `ui_shapes.h` (10 861 B de line art) | ~2,3 KiB posibles **pero** se dibuja por cuadro: pagaría con CPU de UI en cada pantalla, no con calidad — descartado |
+| Kerning de S (592 pares, 1 776 B) | ~476 B posibles con un índice por glifo izquierdo; queda como candidato, no se hizo |
+| `AF_S_KERN` a nibble | imposible: los ajustes van de −29 a +11 (21 valores distintos) |
+
+### Lo que sí: las píldoras de tecla, en Huffman (1 936 B)
+
+`ui_keycaps.h` guardaba los mapas de las 22 píldoras en nibble crudo (2 px/byte, 3 939 B). El 90 % de una
+píldora es **relleno (5)** y **afuera (0)**, así que el códec canonical de las fuentes —al que se le puede
+pedir runs de otros valores— las deja en **1 947 B + 45 B de tabla**, decodificadas por el mismo
+`cv_alpha_hc` que ya dibuja los glifos. `KC[]` conserva offsets en bytes, la tabla de cuantización (16
+colores por terna) no cambia y el resultado son los mismos píxeles.
+
+- Imagen: **582 428 → 580 492 B** (constantes −1 944, código +8; **3 120 B libres**).
+- Invariancia: **3 056 capturas del barrido (191 pantallas × 22 paletas + barrido de valores), 0 difieren**
+  contra el árbol anterior, byte a byte; `regress` **303 dorados, 0 cambiados**; `text_spacing` y `panel`
+  en verde.
+- Coste: decodificar una píldora es una caminata de bits sobre 13 filas de ~20 px, igual que un glifo de
+  texto; las pantallas se redibujan por firma, no por cuadro.
+
+Con los 1 184 B que ya había, el margen para el cache de TONE (que desbordaba por 2 160 B) queda en
+**3 120 B**: entra.
