@@ -54,6 +54,12 @@ interrupciones apagadas. El arranque de la unidad queda exactamente como lo dise
 sobre ceros) y nadie más tiene que conocer ese tiempo. `boot_fade_test` sigue pasando, y los 303 renders dorados
 quedan idénticos.
 
+### El baseline de píxeles de la FASE 5, regenerado a propósito
+`tests/ui_pixels.txt` cambia en 64 de sus 3 056 capturas, y las dos razones son las de esta versión: el
+splash y ABOUT dibujan la versión real (`v1.4.14` en vez de `v1.4.13`) y MENU > EXTRA tiene una fila más
+(PANEL Y). No se movió ningún otro píxel: el resto del barrido queda byte a byte igual, y las 3 056
+capturas vuelven a coincidir con el baseline nuevo.
+
 ### Medido, en el host
 - `tests/lcd_st7789_test.c` tiene cuatro comprobaciones nuevas: con PANEL Y 80 la fila 0 del UI va a la memoria
   80 y el relleno de pantalla completa limpia 0..79; con PANEL Y 0 vuelve a 0 y limpia 240..319. **Las cuatro pasan.**
