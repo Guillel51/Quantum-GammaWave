@@ -1700,7 +1700,7 @@ function qg1FeaturesCheck() {
   const pkgHtml = readFileSync(new URL("./index_pkg.html", import.meta.url), "utf8");
 
   // 1. Distortion topologies (Web Studio)
-  ok(html.includes('"SOFT", "TAPE", "HEARTH", "FLUX"'), "editor: 4 distortion topologies include SOFT, TAPE, HEARTH, FLUX");
+  ok(html.includes('"SOFT", "TAPE", "HEARTH", "FLUX", "FOLD"'), "editor: the 5 distortion topologies include SOFT, TAPE, HEARTH, FLUX and FOLD (fx.c DT_FOLD)");
 
   // 1b. (3.2) the installer page has no DSP preview: the section, its canvases, its controls and its synth loop are
   // gone, not hidden. This replaces the old "SOFT distortion is option 0" check, which only ever proved that the
