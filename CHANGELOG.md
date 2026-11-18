@@ -1,3 +1,16 @@
+## En el árbol — auditoría de RAM/flash sin toolchain
+
+`tools/ram_flash_map.py` (nuevo, gate en la suite) compila las fuentes para host y publica, por sección de
+`app.ld`, todos los objetos de más de 1 KiB con su tamaño: cuánto pesa cada buffer de la piscina, cada tabla y
+cada array de estado. Con eso se comprobó que **no hay ninguna tabla de rodata duplicada** (0 grupos de 680
+objetos: el mismo flash no se paga dos veces) y quedaron medidos los mayores consumidores de RAM estática
+(`WT_GEN` 12 288 B, `trk` 10 560 B, `fm6_note` 7 104 B, `drum_kit` 5 376 B).
+
+**No se tocó el DSP ni el reparto de voces**: sin `JIELI_TOOLCHAIN`/`AC79_SDK` no hay mapa del linker ni
+presupuesto de XIP (328 B libres a 1.4.2) ni de `.data+.bss` (3 164 B), y un cambio de ese tipo sin medir en
+el destino y sin las capturas doradas idénticas sería una suposición. Los candidatos concretos están en
+`docs/VALIDATION_MATRIX.md`, con su clase.
+
 ## v1.4.4.1 (en el árbol) — MASTER > STEREO M/S movía el release del FM3 de la pista
 
 Integrado desde el trabajo paralelo, encima de 1.4.4.1: la matriz de controles nueva

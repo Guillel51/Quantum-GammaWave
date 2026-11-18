@@ -1887,3 +1887,29 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | Arranque en SPLASH FULL, SHORT y OFF | `[HOST]` | `tests/startup_test.c` arranca la unidad con cada uno de los tres valores: la fila lee lo que el equipo arrancó, OFF no dibuja splash, FULL/SHORT sí antes de la UI, y la UI aparece en los tres. (La diferencia animación-vs-cuadro entero la mide `ui_render.c`: 244 de 1125 pasos) |
 | Sin pop al arrancar | `[HOST]` | `audio.c` entra con un fade de 1200 muestras (~27 ms) desde el silencio: `tests/poly_test.c` mide el primer bloque con una nota fuerte desde el principio — pico 4 480 contra 942 528 tras el fade (0,5 %) |
 | En una FM-1 física | — | **NOT MEASURED**: el panel, el pop y las teclas se confirman apretando la unidad; lo de arriba es host x86 y código |
+
+### Auditoría de RAM y flash sin toolchain (host)
+
+No hay `JIELI_TOOLCHAIN`/`AC79_SDK` en este entorno, así que no hay mapa del linker ni número nuevo de
+`.data+.bss` ni de XIP: lo último medido en target es 95 140/98 304 B de RAM y 328 B libres de imagen a
+1.4.2 `[TARGET]`, y cualquier cambio de este pase queda sin presupuesto medido en el aparato.
+Lo que sí se puede medir es la **composición** de esa RAM y de la rodata, compilando las mismas fuentes para
+host: `tools/ram_flash_map.py` (nuevo, en la suite con `--dups --check`).
+
+| Qué | Resultado | Clase |
+|---|---|---|
+| Tablas de rodata duplicadas (mismo flash pagado dos veces) | **0 grupos** de 380 objetos `.rodata` + 300 `.data.rel.ro.local`; el chequeo queda como gate de la suite | `[HOST]` |
+| Mayores consumidores de RAM estática | `WT_GEN` 12 288 B (el wavetable generado en el arranque, que ahorra 12 KB de flash), `trk` 10 560 B, `fm6_note` 7 104 B (6 pistas × `FM6_POLY` 4 × 244 B), `drum_kit` 5 376 B, `rev_comb` 9 874 B | `[HOST]`, tamaños exactos para arrays de ancho fijo |
+| Buffers de la piscina | `dly_buf` 131 072 B (1,49 s de delay), `cloud_buf` 32 768, `sl_buf` 32 768, `comb_buf` 6 144, `cho_buf`/`rpre_buf`/`shim_buf` 4 096 cada uno | `[HOST]` (`.pool`, región aparte de app.ld) |
+| Buffers sólo del emulador | `web_fb`, `nor`, `cv_buf`, `ring` aparecen en el listado porque la unidad de traducción es la del emulador: **no son RAM del aparato** | `[HOST]` |
+
+Dos micro-optimizaciones del camino de mezcla se probaron y se descartaron con número: fusionar el pase de
+medidores de HOME con el lazo de salida de `mix_block()` dio 118,1/113,9/111,1 ns por muestra contra
+118,4/113,8/111,1 del original (tres escenas, tres corridas alternadas, `tests/fx_bench` con `-O2`), o sea
+**dentro del ruido**: el compilador ya lo hace y el cambio se revirtió en vez de quedarse como cosmética. El
+camino de mezcla no tiene holgura que este entorno pueda demostrar.
+
+Cada candidato que quedaría (compartir `cloud_buf` con `sl_buf`, asignar `fm6_note`/`drum_kit` sólo a las
+pistas que usan ese motor, achicar `WT_GEN`) cambia comportamiento o necesita el mapa real para saber cuánto
+deja: quedan listados, **no hechos**. Un cambio de DSP o de reparto sin el binario de destino y sin las
+capturas doradas idénticas sería una suposición, y este proyecto no publica suposiciones.
