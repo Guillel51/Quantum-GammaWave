@@ -1,3 +1,34 @@
+## v1.4.11 — PANEL Y: la franja del panel se elige en Settings y se recuerda
+
+### El problema, dicho entero
+El controlador tiene **240x320** de memoria de cuadro y el panel muestra **240 filas**: está pegado a una franja de
+240 de esas 320. Todo el firmware escribe la pantalla en las filas **0..239**, que es la franja de arriba; si esta
+unidad está pegada a la de **80**, cada pantalla aparece 80 filas más arriba de lo que se ve: la cabecera y los
+títulos se van fuera del vidrio y el tercio de abajo muestra memoria que nadie dibuja. Eso no se arregla con la
+tabla de init —es el `LCD_SEQ` de 1.4.10— sino moviendo la ventana.
+
+Hasta ahora eso era el comando `off N` de la consola, que se perdía al apagar. Ahora es un ajuste:
+
+- **MENU > EXTRA > PANEL Y: `0` o `80`.** El 0 es el valor por defecto y el que leen todos los registros viejos,
+así que nada se mueve en una unidad que ya estaba bien; el 80 es la franja que usan los módulos ST7789 de 240x240 de
+siempre (Adafruit, TFT_eSPI, Pimoroni).
+- **Se aplica en `lcd_window` y en el despeje.** `lcd.c` suma la franja a toda ventana de 240x240 y el relleno de
+fondo de pantalla completa limpia las filas que quedan **fuera** de la franja (0..79 con 80; 240..319 con 0), así
+que al cambiarla no queda una banda del color anterior.
+- **Se recuerda.** Vive en `favorites.factory[15][16]` (un byte que ningún motor usa), con el clamp de siempre: un
+valor corrupto o de otra versión lee como 0. Se aplica en `settings_init`, antes de que `lcd_init` escriba nada.
+- **La consola dice lo mismo.** `off N` ahora escribe el mismo ajuste (y lo guarda), así que los dos caminos no
+pueden discrepar; `status` sigue publicando `lcd_off` con la franja en uso.
+
+### Cómo se mide
+En la unidad, con el mismo build: MENU > EXTRA > PANEL Y en `0`, mirar; pasarlo a `80`, mirar. La que muestre la
+pantalla **completa** (cabecera arriba, nada cortado, sin banda abajo) es la buena, y queda guardada. No hay que
+recompilar ni reflashear para probar la otra: es un paso de encoder.
+
+### Clase y límite
+Esto es código y build AC791N; la franja correcta **no está medida en la unidad** — la dice el dueño mirando. La
+tabla de panel de 1.4.10 sigue intacta y su prueba (`tests/panel_table_test.py`) no cambia.
+
 ## v1.4.10 — el panel: la tabla de init vuelve completa, con los valores del driver del módulo
 
 ### Qué se revirtió, y por qué

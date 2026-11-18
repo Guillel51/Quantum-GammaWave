@@ -401,11 +401,13 @@ static void con_exec(const char *p)
         con_mem();
     else if (con_word(&p, "params"))
         con_params();
-    else if (con_word(&p, "off")) {                    /* (1.4.8) which 240-row slice of the 240x320 the panel scans */
+    else if (con_word(&p, "off")) {              /* (1.4.8/1.4.11) the panel's 240-row slice: same setting as the menu */
         int ok = 0;
         uint32_t v = con_num(&p, &ok);
         if (ok) {
-            lcd_yoff = v > 80u ? 80u : v;
+            settings_yoff = (uint8_t)(v ? 1u : 0u);    /* MENU > EXTRA > PANEL Y, so it survives the reboot */
+            lcd_yoff = settings_yoff ? 80u : 0u;
+            settings_save();
             ui.force = 1;                              /* main.c redraws with the whole 240x240 and the other slice */
         }
         con_kv("off", (int32_t)lcd_yoff);
