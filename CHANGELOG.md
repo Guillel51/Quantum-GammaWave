@@ -1,3 +1,18 @@
+## v1.4.17 — URGENTE: `-flto` sale del build
+
+v1.4.16 fue la primera versión compilada con `-flto` (Fase 6) y **la unidad del dueño no volvió a arrancar después
+de instalarla**. Con la unidad brickeada y sin poder instrumentarla, el build vuelve a las banderas que corren hoy
+en las unidades: sin `-flto`, sin plugin, misma imagen de 583 036 B.
+
+- `-flto` ahorraba 4 196 B de imagen y eso no vale una unidad. Vuelve sólo con causa encontrada y evidencia de
+  hardware, no con una ganancia de tamaño.
+- El sitio deja de ofrecer 1.4.16: `site/firmware/versions.json` ya no la lista y sus archivos salen del paquete.
+- `docs/BRICK_v1.4.16.md` lista los mecanismos por los que LTO puede romper este firmware, qué está descartado y
+  qué falta para confirmarlo.
+
+La diferencia entre 1.4.16 y 1.4.15, además de LTO, es sólo código de UI del panel: nada cambió en el arranque, el
+loader o la tabla del panel.
+
 ## v1.4.16 — LTO: la imagen baja 4 196 B
 
 `-flto` estaba mal medido: `ld` no carga `LLVMgold.so` por su cuenta, y sin el plugin el enlace de bitcode falla.

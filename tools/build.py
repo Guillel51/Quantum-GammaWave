@@ -51,8 +51,7 @@ DOCKER_IMAGE = os.environ.get("JIELI_DOCKER_IMAGE", "debian:bookworm-slim")
 # (FASE 6) -flto: the app is already one IR module, but the final object used to be machine code, so the linker
 # could only concatenate. With -flto clang hands ld bitcode and ld runs LLVMgold.so over it, which is where the
 # 4 196 B came from. ld does not load the plugin on its own, so LTO_PLUGIN is passed to both links explicitly.
-CFLAGS = ["-Oz", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-function", "-flto"]
-LTO_PLUGIN = None                    # set in main(): <toolchain>/common/bin/LLVMgold.so
+CFLAGS = ["-Oz", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-function"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
 # SDK files of AC79NN_SDK_V1.2.1_2023-12-13 (the tested version)
@@ -98,11 +97,6 @@ def tc(tool, *args):
     if r.stderr.strip():
         sys.stderr.write(r.stderr)
     return r.stdout
-
-
-def lto_args():
-    """-plugin <LLVMgold.so> for the toolchain's ld: -flto objects are bitcode and ld cannot read them alone"""
-    return ["-plugin", LTO_PLUGIN] if LTO_PLUGIN else []
 
 
 def tc_all(*cmds):
@@ -179,7 +173,7 @@ def build_loader():
     tc_all(("cc", "-c", src / "crt0_ldr.S", "-o", LDR / "crt0_ldr.o"),
            ("cc", *flags, "-c", src / "loader.c", "-o", LDR / "loader.o"))
     elf = LDR / "loader.elf"
-    tc("pi32v2/bin/ld", *lto_args(), "--gc-sections", "-e", "_start", "-T", src / "loader.ld",
+    tc("pi32v2/bin/ld", "--gc-sections", "-e", "_start", "-T", src / "loader.ld",
        LDR / "crt0_ldr.o", LDR / "loader.o", "-o", elf)
     _, dis, hdr, syms = tc_all(("common/bin/objcopy", "-O", "binary", "-j", ".text", elf, LDR / "loader.bin"),
                                ("common/bin/objdump", "-d", elf),
@@ -276,7 +270,7 @@ def build_app():
         else:
             tc("cc", *cf, "-c", OUT / "felucca_size.ll", "-o", OUT / "felucca.o")
     elf = OUT / "felucca.elf"
-    tc("pi32v2/bin/ld", *lto_args(), "-T", FW / "app.ld", "--gc-sections", "-Map", OUT / "felucca.map",
+    tc("pi32v2/bin/ld", "-T", FW / "app.ld", "--gc-sections", "-Map", OUT / "felucca.map",
        OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o", OUT / "felucca.o", "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin", "c1text.bin", "hottext.bin"):
         (OUT / sect).unlink(missing_ok=True)
@@ -409,7 +403,7 @@ def mmio_check():
 
 
 def main():
-    global VERSION, LTO_PLUGIN
+    global VERSION
     ap = argparse.ArgumentParser()
     ap.add_argument("--release", metavar="X.Y", help="release build: version string vX.Y (the identity stays PRODUCT)")
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
@@ -429,11 +423,6 @@ def main():
     for rel, sha in SDK_SHA256.items():          # fail early without the SDK
         if hashlib.sha256(fm1pkg_make.sdk_file(rel)).hexdigest() != sha:
             print(f"warning: SDK {rel} differs from AC79NN_SDK_V1.2.1; the package will not match the reference")
-    # (FASE 6) -flto needs the toolchain's LLVMgold.so at link time: say so here, not with a link error
-    gold = toolchain() / "common" / "bin" / "LLVMgold.so"
-    if not gold.exists():
-        raise SystemExit(f"-flto is in CFLAGS but {gold} is missing: this toolchain cannot link LTO objects")
-    LTO_PLUGIN = str(gold)
     OUT.mkdir(parents=True, exist_ok=True)
     with ThreadPoolExecutor(2) as ex:
         gen, ldr = ex.submit(generate), ex.submit(build_loader)
