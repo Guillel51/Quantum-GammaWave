@@ -143,8 +143,8 @@ a los 3 120 B que dejó la compactación de las píldoras.
 
 ### Lo que se midió y no entra
 
-- **`-flto`**: el linker del toolchain (GNU ld 2.26) no enlaza el bitcode — el build falla. No está disponible
-  con este SDK; sería la única fuente grande que queda (varios KB potenciales).
+- **`-flto`**: en la Fase 5 se midió mal — el build fallaba porque `ld` no carga `LLVMgold.so` solo, no porque no
+  pudiera. La Fase 6 lo enlaza con `-plugin <toolchain>/common/bin/LLVMgold.so` y **entra: −4 196 B** (abajo).
 - **Renombrar/deduplicar `ui_shapes`**: 17 streams, 10 861 B, **0 duplicados**. Nada que ganar ahí.
 - Pendientes con número, sin empezar: kerning de S (~476 B), `ui_shapes` comprimido con decodificación por
   pantalla (~2,3 KiB), unión `sec_stage`/`proj_scratch` (~9 KiB de `.bss`), buses a bloque de 64, blit en el
@@ -155,3 +155,25 @@ a los 3 120 B que dejó la compactación de las píldoras.
 `tests/ui_pixels.py` + `tests/ui_pixels.txt` (3 056 hashes): CI falla si un solo píxel se mueve. Es el gate que
 hace seguras las compactaciones de datos — todas las de las fases 2 y 4 se verificaron a mano con esta misma
 comparación, y ahora queda permanente.
+
+## FASE 6 — LTO, medido de verdad (v1.4.15)
+
+`-flto` en `CFLAGS` y `-plugin <toolchain>/common/bin/LLVMgold.so` en los dos enlaces (`tools/build.py`,
+`lto_args()`). El documento original decía que no estaba disponible: era el plugin, no el linker.
+
+| | v1.4.14 | con `-flto` | |
+|---|---|---|---|
+| imagen | 583 036 B (576 libres) | **578 840 B (4 772 libres)** | **−4 196 B** |
+| código XIP | 426 720 B | 422 364 B | −4 356 B |
+| constantes XIP | 135 820 B | 135 780 B | −40 B |
+| `.data+.bss` | 91 320 B | 91 312 B | −8 B |
+| pool spare | 9 248 B | 9 248 B | = |
+| LOWBUF | 30 564/32 768 | 30 564/32 768 | = |
+
+Verificado con el cambio puesto: 303 renders dorados idénticos (0 cambiados, 0 perdidos), 3 056 cuadros del
+barrido idénticos al baseline, lint y alineación sin hallazgos, y `target_budget.py` sin entradas fuera de
+presupuesto. Clase: build AC791N para los bytes; host x86 para audio y pantalla.
+
+La app ya se compilaba a un único módulo IR (`build/felucca.ll`), así que el LTO no gana por unificar unidades:
+gana porque el objeto final era código máquina y el linker sólo podía concatenar. Con `-flto` el `ld` corre el
+plugin sobre el bitcode, y ahí aparecen las 4 196 B — casi todo funciones que sólo se llamaban desde un sitio.

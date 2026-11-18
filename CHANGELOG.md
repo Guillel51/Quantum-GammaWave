@@ -1,3 +1,16 @@
+## v1.4.15 — LTO: la imagen baja 4 196 B
+
+`-flto` estaba mal medido: `ld` no carga `LLVMgold.so` por su cuenta, y sin el plugin el enlace de bitcode falla.
+Con `-plugin <toolchain>/common/bin/LLVMgold.so` en los dos enlaces el build entra y:
+
+- imagen **578 840 B** de 583 612 (**4 772 B libres**, antes 576)
+- código XIP 422 364 B (−4 356), constantes 135 780 B (−40)
+- `.data+.bss` 91 312 B de 98 304; pool spare 9 248 B; LOWBUF 30 564 B — sin cambios
+
+Verificado con el cambio puesto: 303 renders dorados idénticos, 3 056 cuadros del barrido idénticos al baseline,
+lint y alineación sin hallazgos, `target_budget.py` sin entradas fuera de presupuesto. Sitio, paquete y emulador
+resincronizados sobre este árbol.
+
 ## v1.4.14 — PANEL Y: la franja del panel se elige en Settings y se recuerda
 
 Esta versión integra lo que el trabajo paralelo publicó hasta la 1.4.13 (DIST FOLD con la fuente S comprimida, el
@@ -87,7 +100,8 @@ glifos, una paleta o un desplazamiento de 1 px podía pasar toda la suite. Ahora
 propósito exige `--update` y decirlo en el commit.
 
 ### Lo que se probó y no entra
-- `-flto`: el linker del toolchain (GNU ld 2.26) no lo enlaza — falla. Se midió; no está disponible.
+- `-flto`: se midió sin `-plugin`, falló y se dio por no disponible. **La Fase 6 (v1.4.15) lo volvió a medir
+  con `LLVMgold.so` y entra: −4 196 B de imagen.**
 - Zero-init de los `ui_shapes` duplicados: no hay ninguno, 0 B.
 - Kerning de S (~476 B), `ui_shapes` comprimido (~2,3 KiB), unión de `sec_stage`/`proj_scratch` (~9 KiB de
   `.bss`), buses a bloque de 64, blit en el núcleo 1, reescritura del barrido de teclas a 10 kHz: quedan
