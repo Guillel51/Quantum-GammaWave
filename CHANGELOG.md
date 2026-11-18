@@ -1,4 +1,7 @@
-## v1.4.2.1 — la pantalla oscura en la unidad, las filas que se trababan y el pop del arranque
+## v1.4.4.1 — la pantalla oscura en la unidad, las filas que se trababan y el pop del arranque
+
+(Pedida como 1.4.2.1: se publica como **1.4.4.1** porque el proyecto ya está en 1.4.4 y el sitio y el instalador
+rechazan un número de versión menor — lo comprueba `make_release --check`.)
 
 Tres causas reales, encontradas en el código, y una tercera que era un ajuste imposible.
 

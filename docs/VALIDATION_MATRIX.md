@@ -1876,7 +1876,7 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 
 ---
 
-## 2026-11-18 — v1.4.2.1: pantalla oscura, filas trabadas y pop de arranque
+## 2026-11-18 — v1.4.4.1: pantalla oscura, filas trabadas y pop de arranque
 
 | Check | Label | State and evidence |
 |-------|-------|--------------------|
