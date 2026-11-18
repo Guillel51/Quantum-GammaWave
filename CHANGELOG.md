@@ -1,3 +1,24 @@
+## Sin publicar — MASTER > STEREO M/S movía el release del FM3 de la pista
+
+El barrido nuevo de la matriz de controles (`tests/control_map_test.c`) encontró una colisión de ids: `P_DXIMG`
+(`P_FM3_REL`) es **74** y `G_MWIDTH`, el ancho estéreo del master que entró en 1.4, también es **74**. En
+`params.c page_desc()` la rama de **ENV VEL** va antes del despacho por `scope` y comparaba el número pelado, así
+que la página **MASTER > STEREO M/S** contestaba `VEL` (con su def 0, invertido) y escribía `t->p[P_DXIMG]`: el
+ancho maestro era inalcanzable desde su propia página y el knob cambiaba el release del FM3 de la pista
+seleccionada. La rama ahora exige una página de pista (`pg->scope != SC_GLOBAL`).
+
+El barrido cubre **86 páginas × 10 motores** y cada estado que una página calcula (los 8 links de FX > BUSES, los
+8 slots de MOD, los 16 pasos de MSEQ y SL PITCH): 23 763 comprobaciones, 0 fallos, con la pareja de regresión
+(`STEREO M/S` → `M-WIDE` sobre `song.g[G_MWIDTH]`; `VOICE 2` → `VEL` sobre `P_DXIMG`).
+
+### POLY: medido en host por todos sus caminos, no reproducido
+`tests/poly_test.c` (en la suite) recorre el asignador, el reparto entre seis partes, el gobernador de carga
+(`load_tight`, `LOAD` LITE / ECO), el presupuesto de MENU VOICES, el teclado y la mezcla renderizada: 18
+comprobaciones en verde, incluidas 12 voces para 12 notas, 4 por parte con `LOAD` ECO, y un acorde de siete
+teclas que se apaga tecla por tecla sin voces colgadas. En un mix de seis partes las 12 voces son compartidas y
+los acordes se roban entre sí por diseño. No se tocó el asignador: no hay fallo en ese camino. Lo que falta es la
+unidad: con `LOAD` ECO el techo del aparato son 6 voces en total.
+
 ## v1.4.1 — el LFO SHAPE tenía tres knobs para dos valores, y el knob PRESETS repintaba todo
 
 Dos de los cuatro puntos del reporte del dueño. El POLY no se reprodujo: abajo, lo que se miró y lo que falta.

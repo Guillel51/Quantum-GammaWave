@@ -788,7 +788,12 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         *valp = &TSEL->p[slot ? P_X3 : P_X2];
         return D[slot];
     }
-    if (id == P_DXIMG && !FELUCCA_FM4 && TSEL->eng_req % NENGINES != ENGI_DRUM) {
+    /* A TRACK PARAMETER ID IS NOT A GLOBAL ONE. P_DXIMG (P_FM3_REL) is 74 and G_MWIDTH (MASTER > STEREO M/S,
+     * v1.4) is also 74, so this branch -- which runs before the scope check and matches a bare number -- answered
+     * MASTER > STEREO M/S's KNOB 1 with VEL and wrote the selected track's FM3 release instead of the master width:
+     * the stereo width page was dead, G_MWIDTH stayed at its default, and a track's FM synth changed under the knob.
+     * The ENV VEL descriptor is for a track page that names P_DXIMG, so a global page never takes it. */
+    if (pg->scope != SC_GLOBAL && id == P_DXIMG && !FELUCCA_FM4 && TSEL->eng_req % NENGINES != ENGI_DRUM) {
         *valp = &TSEL->p[P_DXIMG];                     /* (FASE 2) ENV VEL: how much velocity scales the amp */
         return &VEL_DESC;
     }

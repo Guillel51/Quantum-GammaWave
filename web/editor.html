@@ -354,6 +354,8 @@
   details.gw-macros > summary > span:first-child { flex: 1 1 auto; }   /* the name of the block wins the room */
   details.gw-macros > summary > span:last-child {
     flex: 0 1 auto; max-width: 45%; text-align: right; font-size: 10px; letter-spacing: 0.04em; }
+  /* A desk-wide window has room for the whole T1..T4 dump: 45 % cut it mid-word with the block name short. */
+  @media (min-width: 761px) { details.gw-macros > summary > span:last-child { max-width: 75%; } }
   .gw-macros-title { font-size: 10px; font-weight: 800; letter-spacing: 0.09em; color: var(--accent); text-transform: uppercase; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
   [hidden] { display: none !important; }
 
@@ -498,6 +500,7 @@
   .list tr.sel td { background: var(--theme); color: #04101e; }
   footer { border-top-color: var(--line); color: var(--dim); }
   .dim { color: var(--dim); }
+  .sep { color: var(--dim); }
   @media (max-width: 900px) {
     .gw-brandnav a:not(.hot) { display: none; }
     .gw-brandnav { width: 100%; margin-left: 0; }
@@ -511,6 +514,8 @@
     /* Seven tabs must stay reachable without a cut-off label: wrap them into two rows. */
     .tabs { flex-wrap: wrap; overflow-x: visible; padding-bottom: 0; row-gap: 4px; }
     .tabs button { flex: 0 1 auto; padding: 8px 10px; }
+    /* A separator alone on its own wrapped line reads as a stray mark: the gap does the job here. */
+    .sep { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
@@ -533,13 +538,13 @@
     <button class="lang" id="lang"></button>
   </div>
   <h1>Quantum GammaWave — FM-1 Web Studio Workstation</h1>
-  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a> &nbsp;|&nbsp; <span>12-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span> &nbsp;|&nbsp; <a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
+  <p class="dim" style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><a href="../installer/" style="color:var(--accent);font-weight:700" data-t="installer"></a><span class="sep" aria-hidden="true">|</span><span>12-VOICE POLYPHONY • PEAK/NOTCH BIQUAD EQ • 4 WARM TAPE SHAPES • DUAL-CORE AC791N DSP</span><span class="sep" aria-hidden="true">|</span><a href="https://github.com/Guillel51/Quantum-GammaWave" target="_blank" rel="noopener" style="background:linear-gradient(90deg,var(--theme),var(--accent));color:#050608;font-weight:900;padding:2px 10px;border-radius:3px;text-decoration:none;letter-spacing:0.05em">⚡ GITHUB REPOSITORY ↗</a></p>
   <!-- always visible: connection, version, sync mode, the tabs and (Sound / Sequencer / Tracks) the track selector -->
   <header class="top">
     <div class="bar">
       <button id="connect" data-t="connect" data-ic="port_usb_c"></button>
       <button type="button" class="gw-btn-sec" id="gw-sim-btn" title="Run built-in FM-1 hardware simulator in browser (No hardware required)">⚡ SIMULATE QG-1</button>
-      <button type="button" class="gw-btn-sec" id="gw-pal-btn" title="Workstation surface theme (GAMMA / WRAITH). It changes this page only: the device palette is set on FM-1 (17 themes).">🎨 STUDIO THEME: GAMMA</button>
+      <button type="button" class="gw-btn-sec" id="gw-pal-btn" title="Workstation surface theme (GAMMA / WRAITH). It changes this page only: the device palette is set on FM-1 (19 palettes).">🎨 STUDIO THEME: GAMMA</button>
       <span id="version" class="dim"></span>
       <span id="live" class="dim"></span>
       <span id="mock" class="dim" hidden data-t="mock"></span>
@@ -5776,6 +5781,7 @@ if (MOCK_QS) { setMock(true); connect(); }
       if (!t.used) return `T${i + 1}:EMPTY`;
       return `T${i + 1}:${t.muted ? "MUTE" : t.label}`;
     }).join(" + ");
+    el.title = el.textContent;   /* a phone still ellipsises it: the tooltip keeps the whole state reachable */
     document.querySelectorAll(".gw-tape-mute").forEach((b) => {
       const l = Number(b.dataset.lane) || 0;
       b.textContent = tapeLanes[l].muted ? `UNMUTE T${l + 1}` : `MUTE T${l + 1}`;
@@ -5958,6 +5964,7 @@ if (MOCK_QS) { setMock(true); connect(); }
     const distType = p && gwHasP(GWP.DTYPE) ? p[GWP.DTYPE] : gwLocal.dtype;
     return {
       trkIdx, eng, presetName: presetName.replace(/^\d+\s*/, "").slice(0, 12) || "SOLAR BASS",
+      p,   /* the live patch when the FM-1 (or the simulator) is connected; null off-device */
       cut, res, drv,
       atk: pv(GWP.ATK, 18),
       rel: pv(GWP.REL, 54),
@@ -6295,7 +6302,9 @@ if (MOCK_QS) { setMock(true); connect(); }
         const bx = 12 + i * 7.5;
         const d = Math.abs(bx - cutX);
         /* Horizontal shift controlled by knob 1 (parameter 9): -50..+50 pixels */
-    const knob1Shift = (st.p[9] - 64) / 64 * 50;
+    /* HOME reads knob 1 (parameter 9). Off-device st.p is null: a missing value used to throw here and
+     * kill the render loop, leaving the bay black with only its brackets drawn. */
+    const knob1Shift = (((st.p && st.p[9] != null) ? st.p[9] : 64) - 64) / 64 * 50;
     const bh = Math.max(4, Math.min(50, (42 - d * 0.22) + 9 + knob1Shift));
         const ty = 140 - bh;
         ctx.fillStyle = "#581c87"; ctx.fillRect(bx, ty + bh * 0.6, 5, bh * 0.4);
