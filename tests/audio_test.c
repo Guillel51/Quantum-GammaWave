@@ -44,6 +44,9 @@ static void fresh(void)
     memset(&song, 0, sizeof song);
     memset(&chain, 0, sizeof chain);
     host_tracks_init();
+    audio_fade_in();   /* (FASE 5) since the boot gate (FASE 3) the output is exact silence until main.c arms the
+                        * ramp at the splash's end; these tests render blocks, not that timeline, so they arm
+                        * it here and let the ramp spend itself in the first blocks */
     for (p = 0; p < NPART; p++) host_preset(&trk[p], 0, 0);
     memset(&felucca_dbg, 0, sizeof felucca_dbg);
     audio_cpu_rem = audio_halves = audio_max_us = 0;
@@ -220,6 +223,9 @@ static void usb_level(void)
 static void boot_fresh(void)
 {
     fresh();
+    audio_init();                                      /* (FASE 5) the boot's own state: not armed -- since FASE 3
+                                                        * audio_init leaves the output at exact silence and main.c
+                                                        * arms it when the splash ends, which is what this checks */
     lim_env = LIM_T; lev_env = 0; lev_g = lev_cur = 32768; lev_dg = 0; dc_l = dc_r = dce_l = dce_r = 0;
     memset(kb_note, 0, sizeof kb_note); kb_prev = 0; kb_layer = 0;
     trk[0].p[P_VOICE] = V_POLY;
@@ -237,7 +243,8 @@ static double boot_run(int32_t pot, int boot, uint32_t *splash_peak, uint32_t *f
     if (boot) {
         master_boot();
         kb_boot_hold = 1;
-    }
+    } else
+        audio_fade_in();                               /* (FASE 5) boot 0 = before the fix: audible from the start */
     *first_master = song.master_q12;
     for (b = 0; b < 600u; b++) {                       /* the splash, ~0.43 s: keys hammered, one held at its end */
         fm1_in.notes = b >= 580u ? 1u << 12 : (b / 40u) & 1u ? (1u << 7) | (1u << 11) : 1u << 4;
@@ -249,6 +256,8 @@ static double boot_run(int32_t pot, int boot, uint32_t *splash_peak, uint32_t *f
     }
     *splash_peak = peak;
     kb_boot_hold = 0;                                  /* the UI */
+    if (boot)
+        audio_fade_in();                               /* (FASE 5) main.c: the splash's end */
     *busy = 0;
     for (b = 0; b < 400u; b++) {                       /* the held key (silent), let go; then a chord pressed */
         fm1_in.notes = b < 40u ? 1u << 12 : b < 60u ? 0u : (1u << 0) | (1u << 4) | (1u << 7);
@@ -268,8 +277,19 @@ static void boot_keys(void)
     silent = boot_run(0, 1, &peak0, &m0, &busy0);
     old = boot_run(300, 0, &peak_old, &m_old, &busy_old);
     boot_fresh();                                      /* the reference: the chord, MASTER at the pot's level by hand */
-    song.master_q12 = ref_m = master_of_pot(300);
+    audio_fade_in();
+    host_pot = 300;                                    /* (FASE 5) the same route as boot_run: master_boot, not a
+                                                        * master_q12 written by hand, so the two paths can agree */
+    master_boot();
+    ref_m = song.master_q12;
     for (b = 0; b < 340u; b++) {
+        if (b < 40u) {                                 /* (FASE 5) let the boot ramp spend itself first, in silence,
+                                                        * as boot_run does before the chord: the sum then starts on
+                                                        * the chord's first block in both */
+            fm1_in.notes = 0;
+            audio_block(out, 32);
+            continue;
+        }
         fm1_in.notes = (1u << 0) | (1u << 4) | (1u << 7);
         audio_block(out, 32);
         ref += block_rms(out, 32);
@@ -284,8 +304,18 @@ static void boot_keys(void)
           peak == 0u && peak0 == 0u && peak_old > 0u);
     check("#137 boot: a key held across the splash's end stays silent until pressed again",
           busy == 0u && busy0 == 0u && busy_old > 0u);
-    check("#137 boot: after the splash the keys play at the pot's level, as set by hand (pot 0: silent)",
-          ref > 100.0 && fabs(quiet - ref) < 1e-9 && silent == 0.0);
+    /* (FASE 5) This used to demand quiet == ref to 1e-9, which only held while nothing armed the output: the two
+     * runs have different histories before the chord (600 blocks of hammered keys and one held across in the boot
+     * path, none in the by-hand one), so the envelopes cannot land on the same sample. What the check is for is the
+     * LEVEL, and the boot path can be pinned against the pre-fix path, which is the same instrument with MASTER at
+     * unity: quiet must be old scaled by the pot's master, and nothing at all with the pot at 0. */
+    {
+        double want = old * (double)ref_m / 2048.0;    /* the pre-fix path's MASTER was 2048: the scale down */
+        printf("audio: boot level: pot 300 rms %.0f, before the fix (MASTER 2048) %.0f scaled to %u: %.0f; by hand %.0f\n",
+               quiet, old, ref_m, want, ref);
+        check("#137 boot: after the splash the keys play at the pot's level, as set by hand (pot 0: silent)",
+              ref > 100.0 && ref_m == 351u && fabs(quiet - want) < want * 0.05 && silent == 0.0);
+    }
 }
 
 /* (1.2.1-GW) the delay's reads stay inside its line: the longest TIME, MOD's drift at 127 at its peak, the Hermite's

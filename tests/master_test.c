@@ -49,6 +49,9 @@ static void fresh(void)
     memset(&song, 0, sizeof song);
     memset(&chain, 0, sizeof chain);
     host_tracks_init();
+    audio_fade_in();   /* (FASE 5) since the boot gate (FASE 3) the output is exact silence until main.c arms the
+                        * ramp at the splash's end; these tests render blocks, not that timeline, so they arm
+                        * it here and let the ramp spend itself in the first blocks */
     for (p = 0; p < NPART; p++) {
         host_preset(&trk[p], 0, 0);
         trk[p].p[P_DIST] = trk[p].p[P_CHOR] = trk[p].p[P_DLY] = trk[p].p[P_REV] = 0;   /* no tail carried in */
