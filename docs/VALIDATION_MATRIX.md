@@ -1887,6 +1887,55 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | Sin pop al arrancar | `[HOST]` | `audio.c` entra con un fade de 1200 muestras (~27 ms) desde el silencio: `tests/poly_test.c` mide el primer bloque con una nota fuerte desde el principio — pico 4 480 contra 942 528 tras el fade (0,5 %) |
 | En una FM-1 física | — | **NOT MEASURED**: el panel, el pop y las teclas se confirman apretando la unidad; lo de arriba es host x86 y código |
 
+### Auditoría de RAM y flash sin toolchain (host)
+
+No hay `JIELI_TOOLCHAIN`/`AC79_SDK` en este entorno, así que no hay mapa del linker ni número nuevo de
+`.data+.bss` ni de XIP: lo último medido en target es 95 140/98 304 B de RAM y 328 B libres de imagen a
+1.4.2 `[TARGET]`, y cualquier cambio de este pase queda sin presupuesto medido en el aparato.
+Lo que sí se puede medir es la **composición** de esa RAM y de la rodata, compilando las mismas fuentes para
+host: `tools/ram_flash_map.py` (nuevo, en la suite con `--dups --check`).
+
+| Qué | Resultado | Clase |
+|---|---|---|
+| Tablas de rodata duplicadas (mismo flash pagado dos veces) | **0 grupos** de 380 objetos `.rodata` + 300 `.data.rel.ro.local`; el chequeo queda como gate de la suite | `[HOST]` |
+| Mayores consumidores de RAM estática | `WT_GEN` 12 288 B (el wavetable generado en el arranque, que ahorra 12 KB de flash), `trk` 10 560 B, `fm6_note` 7 104 B (6 pistas × `FM6_POLY` 4 × 244 B), `drum_kit` 5 376 B, `rev_comb` 9 874 B | `[HOST]`, tamaños exactos para arrays de ancho fijo |
+| Buffers de la piscina | `dly_buf` 131 072 B (1,49 s de delay), `cloud_buf` 32 768, `sl_buf` 32 768, `comb_buf` 6 144, `cho_buf`/`rpre_buf`/`shim_buf` 4 096 cada uno | `[HOST]` (`.pool`, región aparte de app.ld) |
+| Buffers sólo del emulador | `web_fb`, `nor`, `cv_buf`, `ring` aparecen en el listado porque la unidad de traducción es la del emulador: **no son RAM del aparato** | `[HOST]` |
+
+Dos micro-optimizaciones del camino de mezcla se probaron y se descartaron con número: fusionar el pase de
+medidores de HOME con el lazo de salida de `mix_block()` dio 118,1/113,9/111,1 ns por muestra contra
+118,4/113,8/111,1 del original (tres escenas, tres corridas alternadas, `tests/fx_bench` con `-O2`), o sea
+**dentro del ruido**: el compilador ya lo hace y el cambio se revirtió en vez de quedarse como cosmética. El
+camino de mezcla no tiene holgura que este entorno pueda demostrar.
+
+Cada candidato que quedaría (compartir `cloud_buf` con `sl_buf`, asignar `fm6_note`/`drum_kit` sólo a las
+pistas que usan ese motor, achicar `WT_GEN`) cambia comportamiento o necesita el mapa real para saber cuánto
+deja: quedan listados, **no hechos**. Un cambio de DSP o de reparto sin el binario de destino y sin las
+capturas doradas idénticas sería una suposición, y este proyecto no publica suposiciones.
+
+### FASE 3 (motores): lo que se verificó y por qué no se añadió nada
+
+El bloqueo está medido y no es de este entorno: `docs/PERFORMANCE_BASELINE.md` §1 registra **12 B libres** en
+la región XIP del AC791N (imagen 583 600 de 583 612) y la matriz anota 328 B a 1.4.2. Ningún control de motor
+entra en 12 B: el plan de `docs/ENGINE_EXPANSION_PLAN.md` §1 lo cuantifica (80-250 B de DSP por control más
+30-60 B de descriptor). Sin `JIELI_TOOLCHAIN`/`AC79_SDK` en este entorno no hay forma de medir el tamaño de un
+cambio ni de compilar la imagen, así que **no se tocó ningún motor, parámetro, densidad de presets ni formato**:
+un cambio así no se puede publicar a ciegas sobre 12 B.
+
+Lo que sí se verificó en este pase (host, sobre las fuentes reales):
+
+| Qué | Resultado | Clase |
+|---|---|---|
+| Superficie de edición de los diez motores | Los diez leen los ocho slots `P_E0..P_E7` con DSP real; **FM6 es el único con dos slots libres** (`P_E1`, `P_E5`, declarados sin uso), o sea el único control nuevo que no obliga a `P_COUNT` 125→126 ni a migración de proyectos. No hay ningún otro control "muerto" que estuviera mostrado y sin efecto | `[HOST]` estático |
+| Espacio de ids de parámetro | 125 de los 127 que caben en el registro de 7 bits (`core.h`); a lo sumo dos `P_*` nuevos en todo el árbol | `[STATIC]` |
+| Tablas de rodata duplicadas | 0 grupos: no hay flash pagado dos veces que rescatar | `[HOST]` |
+| Assets candidatos a recomprimir | `AF_M/S/L_DATA` 31 273 B, `WT_DATA` 12 288 B (ya generado en RAM por `eng_wavetable.c`), `ui_shapes` 10 861 B (ya delta-codificado en bytes), `UAC_FIR` 7 680 B, `KC_DATA` 4 792 B | `[HOST]`, tamaños exactos |
+
+El orden de ataque sigue siendo el del plan: FM6 primero (dos slots libres, sin migración); después WTABLE,
+NOISE y DRUM-X; y ANALOG/PHASE/LOFI/VOICE/WHEEL de a uno con su prueba de compatibilidad, cada uno pagando un
+`P_COUNT`. Antes de cualquiera de esos pasos hace falta liberar flash de los assets —cosa que este entorno no
+puede verificar contra la imagen— y que exista el build de destino para medir el resultado.
+
 ---
 
 ## 2026-11-18 — v1.4.5: pasada de optimización, con las mediciones delante

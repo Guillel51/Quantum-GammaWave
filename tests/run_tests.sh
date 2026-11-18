@@ -309,6 +309,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     # and without the load governor set (the owner's "no polyphony" is pinned here as behaviour that must hold)
     $CC -w -O2 -Ibuild/gen -Ifirmware/src -o "$OUT/poly_test" tests/poly_test.c -lm
     run "POLY: three keys give three voices and three notes in the output" "$OUT/poly_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_voices_test" tests/poly_voices_test.c -lm
+    run "POLY (voices): eight and twelve notes on one part, six parts sharing the pool, LOAD LITE / ECO, MENU VOICES, the keybed, and the mix itself" "$OUT/poly_voices_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/control_map_test" tests/control_map_test.c -lm
+    run "RAM / flash map: every object over 1 KiB with its section, and no two rodata objects holding the same bytes (the same flash paid twice)" python3 tools/ram_flash_map.py --dups --check --min 1024
+    run "pages: every knob of every page, in every engine and at every state a computed page can be in, edits its own value and no two share one (MASTER > STEREO M/S is the master width, not a track's release)" "$OUT/control_map_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/master_test" tests/master_test.c -lm
     run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_meter_test" tests/fx_meter_test.c

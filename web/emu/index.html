@@ -65,11 +65,12 @@ a { color: inherit; }
 .start button:disabled { opacity: .4; cursor: progress; }
 .start p { margin: 0; max-width: 32em; text-align: center; color: #fff; }
 .keys, footer { margin: 16px 0 0; color: var(--dim); text-align: center; }
-.keys span { white-space: nowrap; margin: 0 8px; }
+.keys span { display: inline-block; margin: 2px 8px; max-width: 100%; }   /* a phone wraps them: nowrap pushed the page sideways */
 kbd { font: 600 11px ui-monospace, Menlo, monospace; border: 1px solid var(--rule); padding: 0 4px; color: var(--fg); }
 footer { margin-top: 12px; font-size: 12px; }
 footer nav a { margin: 0 6px; }
 footer small { font-size: 11px; opacity: .8; }
+footer small.version { overflow-wrap: anywhere; }   /* the hashes have no spaces to break at */
 </style>
 </head>
 <body>
@@ -77,7 +78,7 @@ footer small { font-size: 11px; opacity: .8; }
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:10px 14px;background:#080e1d;color:#f5f5f7;border-radius:12px;border:1px solid #24395e">
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
     <strong style="color:#3adfff;letter-spacing:.08em;font-size:14px">☀️ QUANTUM GAMMAWAVE (QG-1)</strong>
-    <span style="font-size:12px;color:#aaa">Web Emulator · M-VAVE FM-1 Synthesizer &amp; Groovebox (12 Voices • Q24 Master EQ • 273 Factory Presets • Stereo M/S)</span>
+    <span style="font-size:12px;color:#aaa">Web Emulator · M-VAVE FM-1 Synthesizer &amp; Groovebox (12 Voices • Q24 Master EQ • 283 Factory Presets • Stereo M/S)</span>
     <span style="font-size:11px;color:#8a8a8e;font-family:ui-monospace,Menlo,monospace">build <code id="build-commit-header">@COMMIT@</code></span>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
