@@ -32,14 +32,16 @@ recompilar ni reflashear para probar la otra: es un paso de encoder.
 Esto es código y build AC791N; la franja correcta **no está medida en la unidad** — la dice el dueño mirando. La
 tabla de panel de 1.4.10 sigue intacta y su prueba (`tests/panel_table_test.py`) no cambia.
 
-### Lo que entró con la fusión, y lo que costó
-Esta versión integra también lo del trabajo paralelo (la pantalla **MOD MAP** del grupo MOD y la fase 1 de DSP: dos
-divisiones por bloque menos en los buses). Con eso el XIP desbordaba 160 B, así que **se acortaron los nombres de
-36 claves de la consola** (`usb_frame_stalls` → `usb_fstalls`, `key_noteon_max_us` → `knote_max_us`, …) y cuatro
-textos de ayuda: los valores, las unidades y el orden son los mismos, sólo cambia cómo se llaman en `status`/`inp`.
-El árbol cierra en **583 548 de 583 612 B (64 B libres)**. También quedaron arreglados dos tests que la fusión
-anterior de la 1.4.8 había dejado sin compilar (`text_ref_test.c` usaba `f->adv[]` y `text_spacing_test.py` leía los
-índices viejos de `aafont_t`; las avanzadas de S y M ahora son bytes, `gfx.c advance()`).
+### Lo que entró con la fusión
+Esta versión integra también lo del trabajo paralelo: la pantalla **MOD MAP** del grupo MOD, la fase 1 de DSP (dos
+divisiones por bloque menos en los buses), DIST FOLD con la fuente S comprimida para pagarlo, el arreglo del pop de
+encendido y la auditoría de arranque. Con eso el árbol cierra en **582 356 de 583 612 B (1 256 B libres)**: la
+primera fusión de estas ramas desbordaba 160 B y hubo que acortar 36 claves de consola a mitad de camino; cuando la
+1.4.11 del otro lado pagó el espacio, **se restauraron los nombres completos** (`usb_frame_stalls`,
+`key_noteon_max_us`, la ayuda de `memr`/`flr`, `gap_hist`, …): la consola de esta versión dice lo mismo que decía
+la 1.4.10, y el árbol queda con más de un kilobyte de sobra. También quedó arreglado el test que la fusión anterior
+de la 1.4.8 había dejado sin compilar (`text_ref_test.c` usaba `f->adv[]`; la versión del otro chat lee `hc` por el
+puntero `AF_x_HC`, que es la buena, y esta rama aporta `advance()` para las avanzadas en bytes).
 
 ### Medido, en el host
 - `tests/lcd_st7789_test.c` tiene cuatro comprobaciones nuevas: con PANEL Y 80 la fila 0 del UI va a la memoria
