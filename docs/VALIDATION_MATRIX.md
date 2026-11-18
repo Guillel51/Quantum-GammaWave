@@ -1833,6 +1833,57 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 | LFO SHAPE tiene dos parámetros, no cuatro | `[HOST]` | `params.c page_desc()` devolvía `D[slot & 1]` y `&p[slot ? P_X3 : P_X2]` para **los cuatro** slots de `{P_X2, P_X3, 0xFF, 0xFF}`: el render daba SLEW / INVERT / SLEW / INVERT y tres knobs escribían el mismo `P_X3`. Ahora los slots en `0xFF` no dan parámetro: `build/ui_new/*/lfo_shape.png` muestra dos tarjetas (SLEW 69 %, INVERT 29 %) y el barrido de alineación baja de 3 897 970 a 3 777 978 medidas (190 pantallas × 22 paletas, 0 hallazgos) |
 | MASTER > STEREO M/S editaba el FM3 de la pista | `[HOST]` | Colisión de ids: `P_DXIMG` (`P_FM3_REL`) es 74 y `G_MWIDTH` (el ancho estéreo del MASTER, v1.4) también. `params.c page_desc()` tenía la rama de **ENV VEL** antes del despacho por `scope`, y comparaba el número pelado: la página `STEREO M/S` contestaba `VEL` y escribía `t->p[P_DXIMG]`, o sea que el ancho maestro era inalcanzable desde su página y el knob movía el release del FM3 de la pista seleccionada. La rama ahora exige `pg->scope != SC_GLOBAL`. `tests/control_map_test.c` barre las 86 páginas en los 10 motores y en cada estado que una página calcula (los 8 links de FX > BUSES, los 8 slots de MOD, los 16 pasos de MSEQ y SL PITCH): **23 763 comprobaciones, 0 fallos**, incluida la pareja de regresión (`STEREO M/S` → `M-WIDE`, def 64, `&song.g[G_MWIDTH]`, sin tocar `P_DXIMG`; `VOICE 2` → `VEL` sobre `P_DXIMG`) |
 | El knob PRESETS no repinta el cuadro entero | `[STATIC]` | `ui_input.c presets_turn()` hacía `ui.force = 1` en cada paso y `ui_draw.c` lo repetía al vencer el popup: dos cuadros completos por paso (cabecera, tarjetas, grafo, pie). Ahora pide el grafo (`ui.graph_sig = 0`), que es donde viven el nombre y los valores; el popup se dibuja encima y a su salida se repinta esa zona. El patrón de líneas en `T_BG` que el popup pintaba antes de su placa se quitó (era trabajo tapado) |
-| POLY con polifonía | **NO REPRODUCIDO EN HOST, 18 MEDIDAS** | `tests/poly_test.c` (nuevo, en la suite) recorre los caminos reales: `trk_note_on()` → `voice_alloc()` da 8 voces a 8 notas y 12 a 12 (cada una con su pitch), soltar las apaga; seis partes × 3 notas conservan voz y bajo con el pool de 17 slots; `load_tight=1` con 6 notas sigue dando 6; `LOAD` LITE mantiene el cap entero y `LOAD` ECO lo deja en 4 por parte (política documentada); MENU VOICES 8 da 8; el teclado da 3 voces con 3 teclas y 4 con 4, y un acorde de 7 se apaga tecla por tecla sin voces colgadas; `mix_block()` con 3 notas reales devuelve 3 envolventes abiertas y una mezcla no silenciosa. Reparto medido con las seis partes tocando: 12 voces **compartidas** (cap `voice_user_budget()`), o sea que en un mix completo los acordes se roban entre partes por diseño, no por falta de polifonía. El asignador **no se tocó**: no hay fallo que corregir en este camino. Queda la unidad física: con `LOAD` ECO y seis pistas sonando el techo es 6 voces en total, y eso es lo que hay que escuchar allí |
+| POLY con polifonía | **NO REPRODUCIDO EN HOST, 18 MEDIDAS** | `tests/poly_voices_test.c` (nuevo, en la suite) recorre los caminos reales: `trk_note_on()` → `voice_alloc()` da 8 voces a 8 notas y 12 a 12 (cada una con su pitch), soltar las apaga; seis partes × 3 notas conservan voz y bajo con el pool de 17 slots; `load_tight=1` con 6 notas sigue dando 6; `LOAD` LITE mantiene el cap entero y `LOAD` ECO lo deja en 4 por parte (política documentada); MENU VOICES 8 da 8; el teclado da 3 voces con 3 teclas y 4 con 4, y un acorde de 7 se apaga tecla por tecla sin voces colgadas; `mix_block()` con 3 notas reales devuelve 3 envolventes abiertas y una mezcla no silenciosa. Reparto medido con las seis partes tocando: 12 voces **compartidas** (cap `voice_user_budget()`), o sea que en un mix completo los acordes se roban entre partes por diseño, no por falta de polifonía. El asignador **no se tocó**: no hay fallo que corregir en este camino. Queda la unidad física: con `LOAD` ECO y seis pistas sonando el techo es 6 voces en total, y eso es lo que hay que escuchar allí |
 | El paquete de 1.4.1 | `[TARGET]` | build AC791N con `v1.4.1`: `.data+.bss` 95 140 B de 98 304, imagen 583 064 B de 583 612 (548 B libres), identidad `FM-1_965`; emulador wasm empaquetado desde el mismo árbol |
 | En una FM-1 física | — | **NOT MEASURED**: nada de lo anterior se probó en la unidad del dueño |
+
+---
+
+## 2026-11-17 (4) — v1.4.2: los temas legibles otra vez, y el brillo como ajuste
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| Ningún tema queda negro | `[HOST]` | Causa: 1.4 guardaba el suelo de cada tema oscuro al 72 % **y** empezó a escribir gamma real (0xE0/0xE1) y brillo 78 % en el ST7789 — dos compensaciones apiladas. `PANEL_DARKEN = 1.0`: las paletas vuelven a sus valores de diseño (los mismos del emulador y del sitio). La tabla de contrastes del generador pasa entera con los 22 temas (texto/fondo 14,2–21,0; mínimo exigido 12) |
+| Todas las pantallas, todas las paletas | `[HOST]` | `tests/ui_render.c`: **190 pantallas × 22 paletas**, 0 hallazgos de lint, 0 tintas sobre su propio color, 0 píxeles GREY/MONO fuera del eje gris, y **0 de 3 782 998 medidas de alineación** fuera de 1 px. Las hojas `build/ui_new/sheet_GAMMA.png`, `sheet_NIGHT.png` y `sheet_PAPER.png` (las tres clases de tema: oscuro con identidad, negro fósforo, claro) se miraron pantalla por pantalla |
+| El brillo del ST7789 es un ajuste, no una constante | `[STATIC]` + `[HOST]` | `lcd.c lcd_bright_set()` es el **único** escritor de 0x53/0x51: `lcd_init` lo llama al arrancar y MENU > EXTRA > BRIGHT en cada paso. Niveles 25 / 50 / 78 / 100 % (`ui.c BRIGHT_LCD`), 100 % por defecto y también lo que lee un registro que nunca tocó la fila (0); guardado en `favorites.factory[15][25]`, aplicado por `main.c` antes del splash. `tests/ui_test.c` comprueba los cuatro niveles contra el registro del panel y el valor de un registro viejo |
+| La fila nueva no rompe los tabs del menú | `[HOST]` | `MI_BRIGHT` es la sexta fila de `MTAB_GEN` (`MTAB_ROWS` 6); `tests/ui_test.c` verifica el reparto 6/6/6/6/6, que 1..6 van en un tramo por tab, que entran en la página y que los huecos entre tabs son constantes (S y LARGE) |
+| Regresión: el contraste no puede volver a bajar | `[HOST]` | `tools/gen_ui_palettes.py` falla (exit 1) si una pareja baja de su mínimo; es un paso de la suite. Y el lint de render falla si una tinta queda sobre su propio color |
+| El paquete de 1.4.2 | `[TARGET]` | build AC791N en el commit del release: `.data+.bss` 95 140 B de 98 304, imagen 583 284 B de 583 612 (328 B libres), identidad `FM-1_965` |
+| Gamma, nivel de brillo y oscurecido elegidos en la unidad | **NO MEDIDO** | Nadie acá tiene un panel que leer. La curva 0xE0/0xE1, el nivel de BRIGHT que el dueño prefiera y el aspecto real de cada tema en el ST7789 **no** están medidos en ninguna unidad: BRIGHT existe para que eso se ajuste ahí, no para dar el valor por validado |
+| En una FM-1 física | — | **NOT MEASURED**: la fila BRIGHT, su persistencia entre apagados y los cuatro niveles se prueban apretando la unidad, no acá |
+
+---
+
+## 2026-11-17 (5) — v1.4.3: limpieza sin cambio de comportamiento
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| La limpieza no cambia un solo píxel | `[HOST]` | `tests/ui_render.c` antes y después: **2 992 de 3 040** capturas byte a byte idénticas; las 48 que difieren son exactamente ABOUT, ABOUT (REC) y el splash de cada paleta, que imprimen `__DATE__` (la fecha de compilación, `ui_menu.c:131`) y cambian en cualquier recompilación. 190 pantallas × 22 paletas, 0 hallazgos de lint, 0 de 3 782 998 medidas de alineación fuera de 1 px |
+| El header de paletas es idéntico | `[HOST]` | `python3 tools/gen_ui_palettes.py` antes y después de quitar `panel_dark()`/`PANEL_DARKEN`: `diff` vacío (el factor era 1.0 desde 1.4.2, así que la función sólo hacía un `round()` por canal) |
+| Lo redundante que se fue | `[STATIC]` | `vwell` (alias de `T_SURF` usado dos veces, más un comentario de FASE 5 que describía el pozo mezclado que 1.4 reemplazó); la línea de `hv_view_sig()` que hasheaba motor y preset de `TSEL` cuando el bucle de las seis pistas ya los incluye; el `(void)r;` y su comentario en `graph_preset_pop()` |
+| Nada de esto perdió cobertura | `[HOST]` | `NO_PACKAGE=1 ./tests/run_tests.sh`: **ALL HOST TESTS PASSED** con el release set de 1.4.2 completo |
+| En una FM-1 física | — | **NOT MEASURED**: igual que 1.4.2; nada de esto se probó en una unidad |
+
+---
+
+## 2026-11-17 (6) — v1.4.4: POLY medido en la salida
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| POLY da tres voces y tres notas | `[HOST]` | `tests/poly_test.c`: C3 · E3 · G3 en un track en POLY → **3 voces con gate** y las tres fundamentales en la salida (Goertzel 4096 muestras: 1402 / 1385 / 1331, cada una > 20 % de la mayor). Paso nuevo de `tests/run_tests.sh` |
+| El gobernador de carga no lo convierte en monofónico | `[HOST]` | La misma prueba con `load_tight` puesto: 3 voces y 1461 / 1444 / 1382. Era la última sospecha abierta de 1.4.1; queda cerrada en host |
+| Un sonido mono suena a una nota, y no es un fallo | `[HOST]` | `ui.c apply_preset_to` pone `P_VOICE` desde el preset (`mono` → LEGATO). La prueba carga un preset mono: LEGATO, dos teclas = **1 voz**; POLY en la página VOICE = 2 voces. Esto explica el reporte del dueño con bajos/leads |
+| Sigue sin medirse en la unidad | — | **NOT MEASURED**: el teclado físico (27 micro-switches, matriz con diodos) y el POLY en la FM-1 no se probaron acá. Lo de arriba es host x86 |
+
+---
+
+## 2026-11-18 — v1.4.4.1: pantalla oscura, filas trabadas y pop de arranque
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| La pantalla ya no se oscurece en el panel | `[STATIC]` + **sin medir en la unidad** | Causa: `lcd.c` escribía gamma 0xE0/0xE1 y brillo 0x53/0x51 (78 %) elegidos contra el emulador y nunca medidos en un panel; en la FM-1 aplastan el extremo bajo y las placas, `LINE` y `DIM` se ven negras en todas las pantallas. Los dos escritos se quitaron: el panel arranca en sus valores de fábrica (como 1.3.9). **No está medido en la unidad**: la próxima lectura del panel es la que lo confirma |
+| MENU > BRIGHT no podía funcionar | `[STATIC]` | El backlight es el GPIO PA2 (encendido/apagado) y además es el /OE del 595 del teclado: no hay PWM posible, y el registro 0x51 no tiene efecto en esta unidad. La fila, su byte y el escritor se eliminaron |
+| Ninguna fila del MENU se traba | `[HOST]` | `draw_menu()` salta su dibujo mientras una firma escrita a mano no cambie, y esa lista no incluía SPLASH, CPU MODE, VOICES, TRACKS ni VIS QUALITY: el valor cambiaba y el texto no. `menu_put()` invalida la firma en cada cambio; `tests/ui_test.c` recorre **todas** las filas (`MI_VALUES`) y exige `ui.menu_sig == 0` después de cada una |
+| Arranque en SPLASH FULL, SHORT y OFF | `[HOST]` | `tests/startup_test.c` arranca la unidad con cada uno de los tres valores: la fila lee lo que el equipo arrancó, OFF no dibuja splash, FULL/SHORT sí antes de la UI, y la UI aparece en los tres. (La diferencia animación-vs-cuadro entero la mide `ui_render.c`: 244 de 1125 pasos) |
+| Sin pop al arrancar | `[HOST]` | `audio.c` entra con un fade de 1200 muestras (~27 ms) desde el silencio: `tests/poly_test.c` mide el primer bloque con una nota fuerte desde el principio — pico 4 480 contra 942 528 tras el fade (0,5 %) |
+| En una FM-1 física | — | **NOT MEASURED**: el panel, el pop y las teclas se confirman apretando la unidad; lo de arriba es host x86 y código |

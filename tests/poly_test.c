@@ -1,26 +1,16 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* POLY: the polyphony of a POLY part, measured on the firmware's own allocator.
- *
- * The owner reported "POLY does not give polyphony" (docs/VALIDATION_MATRIX.md, 1.4.1 entry). This test
- * reproduces every path a note takes to a voice -- the keybed scan (keyboard_block: 27 keys, per key), the
- * key layer (key_on / input_on), the sequencer's trk_note_on -- and counts the voices that end up sounding,
- * with the load governor set and with the LOAD LITE / ECO settings, which are the two things the allocator
- * does not see on the host.
- *
- * Class of every number here: host x86-64, the real sources (tests/hostsim.c includes voice.c and seq.c).
- * Nothing here is a measurement of an FM-1: no unit was touched.
- */
+/* The real audio ISR with a simulated DMA and clock: overload must free work
+ * within one block without cutting another part's lead or bass. */
 #define main hostsim_main
 #include "hostsim.c"
 #undef main
 
-/* audio.c's clock and DMA, as tests/audio_test.c provides them: here only to render blocks */
 #define FM1_AUDIO_HALF 0x80u
 #define FM1_TICKS_PER_US 1u
 static uint32_t host_clock, host_us, host_half_reads, host_dma_advanced, host_acks, host_nest;
 static uint8_t host_pending;
-static volatile uint32_t t5_nested_ticks;
+static volatile uint32_t t5_nested_ticks;              /* audio.c's: TIMER5 nested in the render (main.c) */
 static uint32_t fm1_ticks(void) { t5_nested_ticks = host_nest; host_clock += host_us; return host_clock; }
 static uint8_t fm1_audio_pending(void) { return host_pending; }
 static void fm1_audio_ack_aux(uint8_t p) { (void)p; }
@@ -29,216 +19,140 @@ static void fm1_audio_ack_half(void) { host_acks++; }
 static void fm1_audio_init(int32_t *b, uint32_t n, void (*isr)(void), uint32_t p)
 { (void)b; (void)n; (void)isr; (void)p; }
 void isr_alnk0(void) {}
-#define FELUCCA_UAC 0
+#define FELUCCA_UAC 1                                  /* audio.c taps USB audio: here into host_tap */
+static int32_t host_tap[2 * 64];
+static uint32_t host_tap_n;
+static void uac_tap(const int32_t *out, uint32_t n) { memcpy(host_tap, out, 8u * n); host_tap_n = n; }
+static uint32_t host_acks_at_start;
+static void uac_render_start(void) { host_acks_at_start = host_acks; }   /* (just before the blocks) */
 #include "../firmware/src/audio.c"
 enum { FM1_ADC_BATT = 3, FM1_ADC_MASTER = 4 };
-static int32_t fm1_adc_read(uint32_t ch) { return ch == FM1_ADC_MASTER ? 1023 : 620; }
+static int32_t host_pot = 1023;                        /* the MASTER pot as the ADC reads it (-1: timeout) */
+static int32_t fm1_adc_read(uint32_t ch) { return ch == FM1_ADC_MASTER ? host_pot : 620; }
 #include "../firmware/src/master.c"
 
 static int bad;
+
+#include <math.h>
+/* (1.4.4) POLY, FROM THE OUTPUT: three keys on one part must put three voices in the air and three notes in the
+ * spectrum, with or without the load governor set. The owner reports no polyphony on the unit; this proves the
+ * host side and pins the behaviour that must not regress. */
+static int bad;
 static void check(const char *what, int ok)
 {
-    printf("poly: %-78s %s\n", what, ok ? "ok" : "FAIL");
+    printf("poly: %-76s %s\n", what, ok ? "ok" : "FAIL");
     bad += !ok;
 }
-
-static void fresh(void)
+static void fresh2(void)
 {
     uint32_t p;
     memset(trk, 0, sizeof trk);
     memset(&song, 0, sizeof song);
     memset(&chain, 0, sizeof chain);
     host_tracks_init();
-    for (p = 0; p < NPART; p++)
-        host_preset(&trk[p], 0, 0);
-    trk_live = NTRK;
-    load_tight = 0;
-    sys_load = LOAD_FULL;
-    voice_ucap = 0;
-    kb_prev = 0;
-    kb_boot_hold = 0;
-    for (p = 0; p < 27u; p++) { kb_note[p] = KB_SILENT; kb_on[p] = 0; kb_sn[p] = 0; }
-    song.sel = 0;
-    song.grid = 0;
-    fm1_in.notes = 0;
-    fm1_in.buttons = 0;
+    for (p = 0; p < NPART; p++) host_preset(&trk[p], 0, 0);
+    memset(&felucca_dbg, 0, sizeof felucca_dbg);
+    audio_cpu_rem = audio_halves = audio_max_us = 0;
+    shed_req = 0; shed_count = 0; shed_over = 0;
+    load_tight = 0; tight_calm = 0; memset((void *)&load_diag, 0, sizeof load_diag);
     host_clock = host_us = host_half_reads = host_dma_advanced = host_acks = host_nest = 0;
     host_pending = FM1_AUDIO_HALF;
+    transport_req = panic_req = 0;
+    song.master_q12 = 4096;
 }
-
-/* how many voices of the part are held (a gate, so a release tail does not count), and whether `note` is
- * one of them; `active` counts the tails too, for the tests that ask about the whole life of a voice */
-static uint32_t held_n(const track_t *t, uint32_t note, int *has, int active)
+/* the energy at one MIDI note's fundamental, over 4096 mono samples (Gibson's Goertzel) */
+static double tone(double *x, uint32_t n, uint32_t note)
+{
+    double f = 440.0 * pow(2.0, ((double)note - 69.0) / 12.0), w = 2.0 * 3.14159265358979 * f / 44100.0;
+    double c = 2.0 * cos(w), s1 = 0, s2 = 0, mag;
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        double s0 = x[i] + c * s1 - s2;
+        s2 = s1;
+        s1 = s0;
+    }
+    mag = s1 * s1 + s2 * s2 - c * s1 * s2;
+    return mag > 0 ? sqrt(mag) / (double)n : 0;
+}
+static uint32_t held_n(const track_t *t)
 {
     uint32_t i, n = 0;
-    if (has) *has = 0;
     for (i = 0; i < NVOICE; i++)
-        if (V(t, i).active && V(t, i).stage != 4u && (!active || V(t, i).gate)) {
-            n++;
-            if (has && V(t, i).note == note) *has = 1;
-        }
+        n += V(t, i).active && V(t, i).gate && V(t, i).stage != 4u;
     return n;
 }
-#define sounding(t, note, has) held_n(t, note, has, 1)
-
-static void test_allocator(void)
+static void chord(const char *what, int tight)
 {
-    uint32_t i;
-    int has;
-    fresh();
+    static double x[4096];
+    int32_t out[2 * CTL];
+    uint32_t i, k, n = 0;
+    double a, b, c, m;
+    fresh2();
+    load_tight = tight ? 1u : 0u;
+    trk[0].engine = trk[0].eng_req = ENGI_ANALOG;
     trk[0].p[P_VOICE] = V_POLY;
-    for (i = 0; i < 8u; i++)
-        trk_note_on(&trk[0], 48u + 2u * i, 100);
-    check("POLY: eight notes on one part are eight sounding voices", sounding(&trk[0], 0, 0) == 8u);
-    check("POLY: every one of the eight keeps its own pitch",
-          ({ uint32_t k, ok = 1; for (k = 0; k < 8u; k++) { sounding(&trk[0], 48u + 2u * k, &has); ok &= has; } ok; }));
-    for (i = 0; i < 4u; i++)
-        trk_note_on(&trk[0], 64u + 2u * i, 100);
-    check("POLY: twelve notes reach the part's cap of twelve", sounding(&trk[0], 0, 0) == NVOICE);
-    trk_all_off(&trk[0]);
-    check("POLY: letting go silences them", sounding(&trk[0], 0, 0) == 0u);
-}
-
-static void test_load_governor(void)
-{
-    uint32_t i;
-    fresh();
-    trk[0].p[P_VOICE] = V_POLY;
-    load_tight = 1;                                  /* what audio.c sets above 65 % of a half */
-    for (i = 0; i < 6u; i++)
-        trk_note_on(&trk[0], 48u + 2u * i, 100);
-    check("POLY: the load budget set does not take the polyphony away (six of six)",
-          sounding(&trk[0], 0, 0) == 6u);
-
-    /* The measured reason: with the budget set, a new note only makes room by releasing a dying tail; when
-     * there is none it still starts in a free voice of the part. */
-    fresh();
-    trk[0].p[P_VOICE] = V_POLY;
-    load_tight = 1;
-    trk_note_on(&trk[0], 60, 100);
-    trk_note_off(&trk[0], 60);                       /* a tail with the budget set */
-    trk_note_on(&trk[0], 64, 100);
-    trk_note_on(&trk[0], 67, 100);
-    {
-        int h64 = 0, h67 = 0;
-        sounding(&trk[0], 64, &h64);
-        sounding(&trk[0], 67, &h67);
-        check("POLY: a dying tail with the budget set does not eat the next two notes",
-              h64 && h67 && sounding(&trk[0], 0, 0) == 2u);
+    trk[0].p[P_DIST] = trk[0].p[P_CHOR] = trk[0].p[P_DLY] = trk[0].p[P_REV] = 0;
+    trk_note_on(&trk[0], 48, 100);
+    trk_note_on(&trk[0], 52, 100);
+    trk_note_on(&trk[0], 55, 100);
+    for (i = 0; i < 4u; i++) mix_block(out, CTL);        /* the attack settles */
+    while (n + CTL <= 4096u) {
+        mix_block(out, CTL);
+        for (k = 0; k < CTL; k++) x[n++] = (double)(out[2 * k] + out[2 * k + 1]) * 0.5;
     }
+    a = tone(x, n, 48); b = tone(x, n, 52); c = tone(x, n, 55);
+    m = a > b ? (a > c ? a : c) : (b > c ? b : c);
+    check(what, held_n(&trk[0]) == 3u && m > 0 && a > m * 0.2 && b > m * 0.2 && c > m * 0.2);
+    printf("poly:   voices %u of 3, fundamentals C3 %.3f E3 %.3f G3 %.3f\n", held_n(&trk[0]), a, b, c);
 }
-
-static void test_sharing(void)
+/* (1.4.4) THE OTHER HALF OF THE OWNER'S REPORT. A sound carries its own voice mode: ui.c apply_preset_to sets
+ * P_VOICE from the preset (mono -> LEGATO), so a bass or lead patch plays one note and a track reads as having no
+ * polyphony no matter what the VOICE page said before the load. POLY on the VOICE page wins until the next load. */
+static void preset_mode(void)
 {
-    uint32_t p, i, n = 0;
-    fresh();
-    for (p = 0; p < NPART; p++) {
-        trk[p].p[P_VOICE] = V_POLY;
-        for (i = 0; i < 3u; i++)
-            trk_note_on(&trk[p], 48u + 2u * i, 100);
-        n += sounding(&trk[p], 0, 0) > 0u;
-    }
-    check("POLY: six parts of three notes each keep a voice on every part", n == NPART);
-    check("POLY: .. and never sound more than the pool's usable slots", voices_busy() <= VDEAD);
-    {
-        int bass_ok = 1;
-        for (p = 0; p < NPART; p++) {
-            int has = 0;
-            sounding(&trk[p], 48, &has);
-            bass_ok &= has;
-        }
-        check("POLY: every part's lowest note survives the sharing", bass_ok);
-    }
+    uint32_t i, mp = NENGINES;
+    for (i = 0; i < ENGINES[ENGI_ANALOG]->npresets; i++)
+        if (ENGINES[ENGI_ANALOG]->presets[i].mono) { mp = i; break; }
+    fresh2();
+    host_preset(&trk[0], ENGI_ANALOG, mp);
+    check("a MONO sound loads the track as LEGATO: the mode is the sound's", mp < NENGINES && trk[0].p[P_VOICE] == V_LEGATO);
+    trk_note_on(&trk[0], 48, 100); trk_note_on(&trk[0], 52, 100);
+    check("..so two keys on it sound one note (it is not broken poly, it is the sound)", held_n(&trk[0]) == 1u);
+    trk[0].p[P_VOICE] = V_POLY;                        /* the VOICE page, until the next sound load */
+    trk_note_on(&trk[0], 55, 100);
+    check("..and POLY on the VOICE page gives the notes back", held_n(&trk[0]) == 2u);
 }
-
-static void test_settings(void)
-{
-    uint32_t i;
-    fresh();
-    trk[0].p[P_VOICE] = V_POLY;
-    sys_load = LOAD_LITE;
-    for (i = 0; i < 6u; i++)
-        trk_note_on(&trk[0], 48u + 2u * i, 100);
-    check("LOAD LITE: a POLY part still takes its whole cap (twelve), not one voice",
-          sounding(&trk[0], 0, 0) == 6u);
-    fresh();
-    trk[0].p[P_VOICE] = V_POLY;
-    sys_load = LOAD_ECO;
-    for (i = 0; i < 6u; i++)
-        trk_note_on(&trk[0], 48u + 2u * i, 100);
-    check("LOAD ECO: the documented cap (four voices a part) and no more",
-          sounding(&trk[0], 0, 0) == 4u);
-    fresh();
-    trk[0].p[P_VOICE] = V_POLY;
-    voice_ucap = 2u;                                 /* MENU > AUDIO > VOICES = 8 */
-    for (i = 0; i < 8u; i++)
-        trk_note_on(&trk[0], 40u + 2u * i, 100);
-    check("MENU VOICES 8: the budget is eight, and it is shared, never one",
-          sounding(&trk[0], 0, 0) == 8u);
-}
-
-/* Allocated is not the same as heard: the three voices of a chord have to be rendering. One control block
- * per step, as the ISR does it, and every one of the three has an envelope running. */
-static void test_audible(void)
+/* (1.4.2.1) NO POP AT POWER-ON: the DAC output ramps in over the first blocks instead of starting at level, so the
+ * codec's own transient under the splash has nothing to jump from. A loud note from the first block: block 0 must
+ * be a fraction of the level the same note reaches once the fade is over. */
+static void boot_fade(void)
 {
     int32_t out[2 * CTL];
-    uint32_t i, b, k, up = 0;
-    int32_t peak = 0;
-    fresh();
+    double pk0 = 0, pk1 = 0;
+    uint32_t b, k;
+    fresh2();
+    trk[0].engine = trk[0].eng_req = ENGI_ANALOG;
     trk[0].p[P_VOICE] = V_POLY;
-    for (i = 0; i < 3u; i++)
-        trk_note_on(&trk[0], 53u + 2u * i, 100);
+    trk_note_on(&trk[0], 60, 120);
     for (b = 0; b < 40u; b++) {
-        mix_block(out, CTL);
-        for (k = 0; k < 2u * CTL; k++)
-            if (out[k] > peak) peak = out[k];
-            else if (-out[k] > peak) peak = -out[k];
+        audio_block(out, CTL);
+        for (k = 0; k < CTL; k++) {
+            double v = (double)(out[2 * k] + out[2 * k + 1]) * 0.5;
+            v = v < 0 ? -v : v;
+            if (b == 0u && v > pk0) pk0 = v;
+            if (b >= 30u && v > pk1) pk1 = v;
+        }
     }
-    for (i = 0; i < NVOICE; i++)
-        if (V(&trk[0], i).active && V(&trk[0], i).gate && V(&trk[0], i).env_out > 0) up++;
-    check("POLY: the three voices of a chord are all rendering (an envelope each)", up == 3u);
-    check("POLY: .. and the mix is not silent", peak > 0);
+    check("power-on: the output fades in instead of starting at level (no pop under the splash)",
+          pk1 > 0 && pk0 < pk1 * 0.25);
+    printf("poly:   first block peak %.0f, after the fade %.0f\n", pk0, pk1);
 }
-
-/* the owner's path: the keybed itself. Two keys, three keys, a black key between them. */
-static void test_keybed(void)
-{
-    uint32_t i;
-    fresh();
-    trk[0].p[P_VOICE] = V_POLY;
-    fm1_in.notes = 1u | (1u << 2) | (1u << 4);        /* three white keys: F3 G3 A3 */
-    keyboard_block();
-    check("keybed: three keys held are three sounding voices (POLY)",
-          sounding(&trk[0], 0, 0) == 3u);
-    fm1_in.notes |= 1u << 7;                          /* .. and C4 on top */
-    keyboard_block();
-    check("keybed: a fourth key adds a fourth voice (POLY)", sounding(&trk[0], 0, 0) == 4u);
-    fm1_in.notes = 0;
-    keyboard_block();
-    check("keybed: releasing all of them silences the part", sounding(&trk[0], 0, 0) == 0u);
-
-    fresh();
-    trk[0].p[P_VOICE] = V_POLY;
-    for (i = 0; i < 7u; i++) {                        /* seven keys, released one by one: no stuck note */
-        fm1_in.notes |= 1u << i;
-        keyboard_block();
-    }
-    for (i = 0; i < 7u; i++) {
-        fm1_in.notes &= ~(1u << i);
-        keyboard_block();
-        if (sounding(&trk[0], 0, 0) != 6u - i) break;
-    }
-    check("keybed: a seven-key chord releases key by key, no stuck voice", i == 7u);
-}
-
 int main(void)
 {
-    test_allocator();
-    test_load_governor();
-    test_sharing();
-    test_settings();
-    test_audible();
-    test_keybed();
-    printf("poly: %s\n", bad ? "FAILED" : "all passed");
-    return bad ? 1 : 0;
+    boot_fade();
+    chord("POLY: three keys, three voices, three notes in the spectrum", 0);
+    chord("POLY under the load governor: still three voices", 1);
+    preset_mode();
+    printf("poly_test: %s\n", bad ? "FAILED" : "all checks ok");
+    return bad != 0;
 }

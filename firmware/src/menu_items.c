@@ -199,6 +199,11 @@ static const char *menu_vname(uint32_t row, uint32_t v)
 static void menu_put(uint32_t row, uint32_t v)
 {
     const menu_flag_t *f = menu_flag(row);
+    /* (1.4.2.1) THE ROW REDRAWS BECAUSE IT CHANGED. draw_menu() skips its work while a hand-written signature of
+     * a few settings matches, and that signature never grew the rows 1.4 added (SPLASH, CPU MODE, VOICES, TRACKS,
+     * VIS QUALITY): stepping them changed the value and left the old text on screen, so every one of them read as
+     * stuck. Invalidating the menu here fixes the whole class, including rows added later. */
+    ui.menu_sig = 0;
     if (f) {
         if (f->bit & PREF_REC)
             ui_rec_prefs = (uint8_t)(v ? ui_rec_prefs | f->bit >> 8 : ui_rec_prefs & ~(f->bit >> 8));

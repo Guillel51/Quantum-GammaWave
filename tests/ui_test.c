@@ -2266,6 +2266,18 @@ static int test_menu_tabs(void)
     ui_prefs = 0; settings_hold = HOLD_DEF; settings_leds = LEDS_DIM; ui_style = ST_FLAT;
     settings.lowcut = 0; fx_lowcut = 0; menu_put(MI_COLOR, UI_GREY_INDEX);
     bad += check("MENU: OCT+ / OCT- step every value row up / down (COLOR wraps, the rest stop), the menu stays", ok);
+    {   /* (1.4.2.1) EVERY ROW CHANGES SOMETHING ON SCREEN. draw_menu() skips while a hand-written signature of a
+         * few settings matches it; the rows 1.4 added (SPLASH, CPU MODE, VOICES, TRACKS, VIS QUALITY) were not in
+         * it, so their value changed and the text did not: they read as stuck. menu_put() invalidates the menu, and
+         * this walks every value row to say so. */
+        ok = 1;
+        for (i = 0; i < MI_VALUES; i++) {
+            menu_put(i, menu_get(i));
+            ok &= ui.menu_sig == 0;
+            ui.menu_sig = 1;                           /* a fresh signature for the next row */
+        }
+        bad += check("MENU: every value row's change invalidates the menu's signature (no row reads as stuck)", ok);
+    }
     {   /* the ON / OFF rows: up (a knob right, OCT+) is ON, the switch's knob to the right, whichever bit it is */
         static const uint8_t SW[] = {MI_LARGE, MI_ANIM, MI_ACCEL, MI_LATCH, MI_BPMLOCK, MI_SERIAL, MI_RESTORE};
         ok = 1;

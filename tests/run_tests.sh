@@ -238,8 +238,6 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "(FASE 2) PM: ANALOG's WAVE = PM and PHASE's LINE = PM bend the phase, move with MORPH / DCW, brighten and are not SIN / MIX / RING" "$OUT/pm_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/phase2_test" tests/phase2_test.c -lm
     run "FASE 2: every engine's CHARACTER bank moves the sound, LFO SLEW / INVERT, ENV VEL, the pages and a project round trip" "$OUT/phase2_test"
-    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/control_map_test" tests/control_map_test.c -lm
-    run "pages: every knob of every page, in every engine and at every state a computed page can be in, edits its own value and no two share one (MASTER > STEREO M/S is the master width, not a track's release)" "$OUT/control_map_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/morph_six_test" tests/morph_six_test.c -lm
     run "MORPH under load: six parts, the FX buses, MIDI notes and a preset load -- every transition measured (latency, slew to 90%, click) with the two renders bit-identical before the turn" "$OUT/morph_six_test"
     run "the particle pool bays: EDIT ribbon draws none, HOME and the visualizer keep theirs inside their own rect, no allocation" python3 tests/particle_bounds_test.py
@@ -307,8 +305,14 @@ if [ -f build/gen/felucca_tables.h ]; then
         "$OUT/ui_render_fm4" build/ui_fm4 build/ui_fm4_slot
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/audio_test" tests/audio_test.c -lm
     run "audio: overload protection, bounded fades and DMA diagnostics" "$OUT/audio_test"
-    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_test" tests/poly_test.c -lm
-    run "POLY: eight and twelve notes on one part, six parts sharing the pool, LOAD LITE / ECO, MENU VOICES, the keybed, and the mix itself" "$OUT/poly_test"
+    # (1.4.4) POLY from the output: three keys on one part, three voices, three fundamentals in the spectrum, with
+    # and without the load governor set (the owner's "no polyphony" is pinned here as behaviour that must hold)
+    $CC -w -O2 -Ibuild/gen -Ifirmware/src -o "$OUT/poly_test" tests/poly_test.c -lm
+    run "POLY: three keys give three voices and three notes in the output" "$OUT/poly_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_voices_test" tests/poly_voices_test.c -lm
+    run "POLY (voices): eight and twelve notes on one part, six parts sharing the pool, LOAD LITE / ECO, MENU VOICES, the keybed, and the mix itself" "$OUT/poly_voices_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/control_map_test" tests/control_map_test.c -lm
+    run "pages: every knob of every page, in every engine and at every state a computed page can be in, edits its own value and no two share one (MASTER > STEREO M/S is the master width, not a track's release)" "$OUT/control_map_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/master_test" tests/master_test.c -lm
     run "FX > MASTER: CLIP, PUNCH, DUCK and DREL each change the rendered mix" "$OUT/master_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/fx_meter_test" tests/fx_meter_test.c

@@ -144,14 +144,14 @@ static const uint8_t LCD_SEQ[] = {
     0x36, 1, 0x00,               /* MADCTL: top-left origin, RGB order */
     0x21, 0,                     /* INVON: IPS panel */
     0x13, 0,                     /* NORON */
-    /* gamma, positive and negative polarity (0xE0 / 0xE1): 2.2, mid-tones down */
-    0xE0, 14, 0xD0, 0x04, 0x0D, 0x11, 0x13, 0x2B, 0x3F, 0x54, 0x4C, 0x18, 0x0D, 0x0B, 0x1F, 0x23,
-    0xE1, 14, 0xD0, 0x04, 0x0C, 0x11, 0x13, 0x2C, 0x3F, 0x44, 0x51, 0x2F, 0x1F, 0x1F, 0x20, 0x23,
-    /* brightness control on (0x53) and 200/255 (0x51): the panel's full scale reads as washed out at night */
-    0x53, 1, 0x24,
-    0x51, 1, 0xC8,
+    /* (1.4.2.1) THE GAMMA AND THE BRIGHTNESS ARE NO LONGER WRITTEN. 1.4 wrote a 2.2 curve (0xE0/0xE1) and turned
+     * the brightness control on at 200/255 (0x53/0x51) from a comparison against the emulator: neither value was
+     * ever measured on a panel, and on the owner's FM-1 the result is a screen whose low tones crush to black --
+     * every plate, divider and dim label -- in every screen, the splash included. The brightness register is not
+     * even honoured there: MENU > BRIGHT changed nothing. The panel comes up on its own defaults, as it did before
+     * 1.4; the FM-1's backlight is a plain GPIO (PA2, on/off, shared with the key matrix's /OE), so there is no
+     * firmware path to a real brightness, and a control that cannot work is not worth a fake one. */
 };
-
 /* bg: the theme's background (main.c passes T_BG, valid because settings_init() applies the palette before
  * this runs). The whole 240x320 is written in it, not in black, so no bonded slice of the panel can show a
  * colour the splash and the UI never draw. */

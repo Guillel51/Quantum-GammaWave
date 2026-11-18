@@ -1,23 +1,120 @@
-## Sin publicar — MASTER > STEREO M/S movía el release del FM3 de la pista
+## v1.4.4.1 (en el árbol) — MASTER > STEREO M/S movía el release del FM3 de la pista
 
-El barrido nuevo de la matriz de controles (`tests/control_map_test.c`) encontró una colisión de ids: `P_DXIMG`
-(`P_FM3_REL`) es **74** y `G_MWIDTH`, el ancho estéreo del master que entró en 1.4, también es **74**. En
-`params.c page_desc()` la rama de **ENV VEL** va antes del despacho por `scope` y comparaba el número pelado, así
-que la página **MASTER > STEREO M/S** contestaba `VEL` (con su def 0, invertido) y escribía `t->p[P_DXIMG]`: el
-ancho maestro era inalcanzable desde su propia página y el knob cambiaba el release del FM3 de la pista
-seleccionada. La rama ahora exige una página de pista (`pg->scope != SC_GLOBAL`).
+Integrado desde el trabajo paralelo, encima de 1.4.4.1: la matriz de controles nueva
+(`tests/control_map_test.c`) encontró una colisión de ids. `P_DXIMG` (`P_FM3_REL`) es **74** y `G_MWIDTH`,
+el ancho estéreo del master, también es **74**; en `params.c page_desc()` la rama de **ENV VEL** iba antes del
+despacho por `scope` y comparaba el número pelado, así que **MASTER > STEREO M/S** contestaba `VEL` y escribía
+`t->p[P_DXIMG]`: el ancho maestro era inalcanzable desde su página y el knob cambiaba el release del FM3 de la
+pista seleccionada. La rama ahora exige una página de pista (`pg->scope != SC_GLOBAL`).
 
-El barrido cubre **86 páginas × 10 motores** y cada estado que una página calcula (los 8 links de FX > BUSES, los
-8 slots de MOD, los 16 pasos de MSEQ y SL PITCH): 23 763 comprobaciones, 0 fallos, con la pareja de regresión
-(`STEREO M/S` → `M-WIDE` sobre `song.g[G_MWIDTH]`; `VOICE 2` → `VEL` sobre `P_DXIMG`).
+El barrido cubre 86 páginas × 10 motores y cada estado que una página calcula (8 links de FX > BUSES, 8 slots de
+MOD, 16 pasos de MSEQ y SL PITCH): 23 763 comprobaciones, 0 fallos, con la pareja de regresión (`STEREO M/S` →
+`M-WIDE` sobre `song.g[G_MWIDTH]`; `VOICE 2` → `VEL` sobre `P_DXIMG`).
 
-### POLY: medido en host por todos sus caminos, no reproducido
-`tests/poly_test.c` (en la suite) recorre el asignador, el reparto entre seis partes, el gobernador de carga
+### POLY: medido por todos sus caminos, no reproducido
+`tests/poly_voices_test.c` (la suite) recorre el asignador, el reparto entre seis partes, el gobernador de carga
 (`load_tight`, `LOAD` LITE / ECO), el presupuesto de MENU VOICES, el teclado y la mezcla renderizada: 18
-comprobaciones en verde, incluidas 12 voces para 12 notas, 4 por parte con `LOAD` ECO, y un acorde de siete
-teclas que se apaga tecla por tecla sin voces colgadas. En un mix de seis partes las 12 voces son compartidas y
-los acordes se roban entre sí por diseño. No se tocó el asignador: no hay fallo en ese camino. Lo que falta es la
-unidad: con `LOAD` ECO el techo del aparato son 6 voces en total.
+comprobaciones en verde, incluidas 12 voces para 12 notas y 4 por parte con `LOAD` ECO. En un mix de seis partes
+las 12 voces son compartidas y los acordes se roban entre sí por diseño. El asignador no se tocó.
+
+## v1.4.4.1 — la pantalla oscura en la unidad, las filas que se trababan y el pop del arranque
+
+(Pedida como 1.4.2.1: se publica como **1.4.4.1** porque el proyecto ya está en 1.4.4 y el sitio y el instalador
+rechazan un número de versión menor — lo comprueba `make_release --check`.)
+
+Tres causas reales, encontradas en el código, y una tercera que era un ajuste imposible.
+
+### La pantalla oscura (y las cosas negras) en la FM-1 real
+1.4 empezó a escribir en el ST7789 una **curva gamma 2.2** (0xE0/0xE1) y a **encender el control de brillo al
+78 %** (0x53/0x51) — valores elegidos comparando contra el emulador y **nunca medidos en un panel**, como el propio
+CHANGELOG de 1.4 admite. En la unidad eso aplasta el extremo bajo del rango: las placas (`T_SURF`), los divisores
+`LINE`, las etiquetas `DIM` y los pozos de los osciloscopios se van a negro, y el síntoma aparece en **todas** las
+pantallas porque es el panel, no el dibujo — el splash incluido. Los dos escritos se fueron: el panel arranca con
+sus valores de fábrica, como en 1.3.9, que es como se veía antes.
+
+### MENU > BRIGHT no podía funcionar, y se fue con la causa
+El brillo del registro 0x51 no hace nada en esta unidad porque **no hay camino de atenuación**: el backlight es el
+GPIO PA2, encendido/apagado, y además es el /OE del 595 del teclado (con PA2 alto no se lee ni una tecla), así que
+tampoco se puede PWM. Ese registro sin efecto era además el que podía dejar el panel atenuado. La fila BRIGHT se
+elimina con él: un control que no puede funcionar es peor que ninguno. Fuera también el byte de ajuste.
+
+### Las filas del MENU que "se trababan" (SPLASH, CPU MODE, VIS QUALITY, VOICES, TRACKS…)
+`draw_menu()` no redibuja mientras una **firma escrita a mano** de unos pocos ajustes no cambie, y esa lista nunca
+creció con las filas que agregó 1.4: SPLASH, CPU MODE, VOICES, TRACKS y VIS QUALITY **cambiaban el valor y dejaban el
+texto viejo en pantalla**, que es exactamente "se traba al cambiar entre FULL, SHORT y OFF". Ahora `menu_put()`
+invalida la firma del menú en **cada** cambio de fila: arregla la clase entera, incluidas las filas futuras, y con
+`ui_test.c` recorriendo todas las filas para que no vuelva.
+
+### Pop de audio en el splash
+El codec y su amplificador suben mientras los primeros bloques ya se están renderizando: ese escalón iba derecho al
+parlante debajo del splash. La salida del DAC ahora **entra con un fade de 1200 muestras (~27 ms)**: demasiado lento
+para oírse como rampa, suficiente para que el primer bloque arranque en silencio. Medido en host: pico del primer
+bloque 4 480 contra 942 528 después del fade (0,5 %).
+
+### SPLASH FULL por defecto, y una prueba de los tres modos
+El arranque sigue por defecto en **FULL animado** (0), con SHORT y OFF elegibles. `tests/startup_test.c` arranca la
+unidad **en los tres valores** y comprueba: la fila lee lo que el equipo arrancó, OFF no dibuja un solo fotograma de
+splash, FULL/SHORT sí lo dibujan antes de la UI, y en los tres la UI aparece después.
+
+## v1.4.4 — el POLY, medido en la salida (y por qué un bajo suena a una nota)
+
+### El POLY no estaba roto: ahora hay una prueba que lo demuestra en el audio
+`tests/poly_test.c` (nuevo, paso de la suite) toca **C3 · E3 · G3 en un mismo track en POLY** y mira la **salida**:
+tres voces con gate y las tres fundamentales presentes en el espectro (Goertzel sobre 4096 muestras, cada una por
+encima del 20 % de la mayor). Se repite con `load_tight` puesto —el gobernador de carga, la sospecha que quedaba— y
+da lo mismo: tres voces, tres notas. Medido en host x86: C3 1402, E3 1385, G3 1331 (y 1461 / 1444 / 1382 con el
+gobernador).
+
+### Por qué un sonido puede no dar polifonía aunque el modo diga POLY
+El modo de voz **es parte del sonido**: `ui.c apply_preset_to` pone `P_VOICE` desde el preset (`mono` → LEGATO). Un
+bajo o un lead marcado mono carga el track en LEGATO y suena de a una nota por más que el modo estuviera en POLY
+antes de cargar el sonido. La prueba lo fija: un preset mono carga LEGATO, dos teclas dan una voz, y elegir POLY en
+la página VOICE devuelve el acorde —hasta el próximo cambio de sonido—. Si en la unidad se oye una sola nota con un
+sonido así, no es el asignador: es el sonido. Elegí POLY en VOICE *después* de elegir el sonido.
+
+## v1.4.3 — limpieza de lo que dejaron 1.4.0 / 1.4.1 / 1.4.2 (sin cambiar nada de lo que se ve)
+
+Pasada con ojos frescos sobre lo que agregaron esas tres versiones. **No cambia el comportamiento**: el arnés de
+render da los mismos píxeles en 2 992 de las 3 040 capturas (las 48 restantes son ABOUT y el splash, que imprimen
+`__DATE__`, la fecha de compilación), 0 hallazgos de lint y 0 medidas de alineación fuera de 1 px; los contrastes de
+las 22 paletas y la suite host completa pasan.
+
+- **Paletas:** `panel_dark()` y `PANEL_DARKEN` se fueron. Desde 1.4.2 el factor era 1.0: la función sólo hacía un
+  `round()` por canal y una ida y vuelta por RGB565 para no cambiar nada. El header generado es idéntico byte a byte.
+- **Pozos de los osciloscopios:** `vwell` era un alias de una línea usado dos veces; se usa `T_SURF` directo y el
+  comentario de FASE 5 —que todavía describía el pozo *mezclado*, reemplazado en 1.4— se corrigió en vez de quedar
+  como documentación falsa.
+- **Firma de repintado de HOME:** `hv_view_sig()` hasheaba el motor y el preset de `TSEL` aparte y otra vez dentro
+  del bucle de las seis pistas, porque `TSEL` es una de ellas. Esa línea era redundante y se fue; la firma es la
+  misma función de lo que la pantalla muestra.
+- **Popup de presets:** el `(void)r;` que quedó del patrón de líneas borrado en 1.4.1 se fue, y con él el comentario
+  que explicaba trabajo que ya no existe.
+
+## v1.4.2 — el brillo del panel se ajusta desde el equipo (MENU > EXTRA > BRIGHT)
+
+La gamma 2.2 (0xE0/0xE1) y el brillo 200/255 (0x53/0x51) que 1.4 escribe en el ST7789, y el oscurecido al 72 % de
+las paletas, salieron de comparar contra el emulador: **no están medidos en ninguna unidad**, y un panel con otro
+pegado puede pedir otro valor. Hasta acá la única forma de moverlo era un build nuevo; ahora hay una fila.
+
+**MENU > EXTRA > BRIGHT**: 25 %, 50 %, 78 % y 100 % (el valor por defecto, y el que lee un registro de ajustes que
+nunca tocó la fila). Escribe el registro 0x51 en caliente al paso del knob, y el valor queda guardado en un byte
+libre del bloque del motor 15 (`favorites.factory[15][25]`, 0 en todo registro viejo = 100 %): al arrancar, `main.c`
+aplica lo guardado antes del splash, así que no hay un fotograma al brillo de fábrica. La secuencia de init del
+panel ya no lleva 0x53/0x51: hay **un solo escritor**, `lcd.c lcd_bright_set()`, en el arranque y en el cambio.
+
+### Los temas quedaban casi negros: el oscurecido de las paletas se fue
+1.4 guardaba los dos colores de suelo de cada tema oscuro al **72 %** de cada canal para compensar la gamma del panel.
+El mismo release empezó a escribir la gamma real del ST7789 (0xE0/0xE1) **y** un brillo del 78 % (0x53/0x51): las dos
+correcciones se apilaban, el dato iba 28 % más oscuro y el panel comprimía otra vez el extremo bajo. Fondo,
+divisores `LINE` y texto `DIM` desaparecían — "todos los temas quedan prácticamente negros". El oscurecido se fue
+(`PANEL_DARKEN = 1.0`): las paletas vuelven a sus valores de diseño, que son los mismos que ven el emulador y el
+sitio, y la compensación queda donde está el panel (el driver, y BRIGHT para lo que sólo la unidad puede juzgar), no
+en los datos. La tabla de contrastes del generador pasa entera con los 22 temas (texto/fondo 14,2–21,0), el barrido
+de render da 190 pantallas × 22 paletas con **0 hallazgos** y 0 medidas de alineación fuera de 1 px, y las hojas
+`build/ui_new/sheet_*.png` de GAMMA, NIGHT y PAPER se miraron pantalla por pantalla.
+
+Lo que **no** cambió y sigue sin medir: la curva de gamma del panel y el nivel de brillo que elige el dueño. Eso no
+se resuelve desde acá, necesita la unidad: por eso BRIGHT es un ajuste y no una constante, y así queda en la matriz.
 
 ## v1.4.1 — el LFO SHAPE tenía tres knobs para dos valores, y el knob PRESETS repintaba todo
 
