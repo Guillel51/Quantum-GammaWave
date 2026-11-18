@@ -141,7 +141,7 @@ static void con_flr(const char *p)                  /* flash read over SPI (no X
     int ok, ok2;
     uint32_t a = con_num(&p, &ok), n = con_num(&p, &ok2), i;
     if (!ok || a < 0x93000u || a >= 0x100000u) {
-        con_puts("usage: flr OFFSET [LEN<=256]   (0x93000..0xFFFFF)\r\n");
+        con_puts("usage: flr OFF [N<=256]\r\n");
         return;
     }
     if (!ok2 || !n)
@@ -224,6 +224,7 @@ static void con_status(void)
     con_kv("playing", song.playing);
     con_kv("boots", (int32_t)felucca_dbg.boots);
     con_kv("lcd_timeouts", (int32_t)fm1_lcd_timeouts);   /* (1.4.7) a pixel transfer that ran past its bound */
+    con_kv("lcd_off", (int32_t)lcd_yoff);                /* (1.4.8) the frame-memory row the UI's row 0 lands on */
     con_kv("usb_resets", (int32_t)usb.resets);
     con_kv("usb_sof", (int32_t)usb.sof_seen);
     con_kv("usb_suspends", (int32_t)usb.suspends);
@@ -274,7 +275,7 @@ static void con_inp(void)
     con_kv("window_ms", (int32_t)(win_us / 1000u));
     con_kv("ticks_per_s", (int32_t)(win_us >= 1000u ? fm1_in_stat.ticks * 1000u / (win_us / 1000u) : 0u));
     con_kv("gap_max_us", (int32_t)(fm1_in_stat.gap_max / FM1_TICKS_PER_US));
-    con_puts("gap_hist <.15 .3 .6 1.2 2.4 4.8 9.6 more ms:");
+    con_puts("gap_hist ms:");
     for (i = 0; i < FM1_GAP_BINS; i++) {
         con_putc(' ');
         con_dec((int32_t)fm1_in_stat.gap_hist[i]);
@@ -387,7 +388,7 @@ static void con_params(void)
 static void con_exec(const char *p)
 {
     if (con_word(&p, "help") || con_word(&p, "?"))
-        con_puts("status  dbg  inp  crash  mem  params  memr ADDR [LEN]  flr OFF [LEN]  uboot yes\r\n");
+        con_puts("status dbg inp crash mem params off N memr A [N] flr O [N] uboot yes\r\n");
     else if (con_word(&p, "status"))
         con_status();
     else if (con_word(&p, "dbg"))
@@ -400,6 +401,15 @@ static void con_exec(const char *p)
         con_mem();
     else if (con_word(&p, "params"))
         con_params();
+    else if (con_word(&p, "off")) {                    /* (1.4.8) which 240-row slice of the 240x320 the panel scans */
+        int ok = 0;
+        uint32_t v = con_num(&p, &ok);
+        if (ok) {
+            lcd_yoff = v > 80u ? 80u : v;
+            ui.force = 1;                              /* main.c redraws with the whole 240x240 and the other slice */
+        }
+        con_kv("off", (int32_t)lcd_yoff);
+    }
     else if (con_word(&p, "memr"))
         con_memr(p);
 #if FELUCCA_FLASH

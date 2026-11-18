@@ -1,3 +1,34 @@
+## v1.4.8 — toda la UI auditada: el dibujo está limpio, y `off N` pregunta cuál franja de la memoria ve el panel
+
+### La auditoría, con números
+El renderizador del propio firmware (`tests/ui_render.c`, el mismo código de dibujo que corre la unidad) se pasó
+sobre **190 pantallas × 22 paletas** — 3 040 cuadros — más el barrido de páginas y valores del MENU: **0 hallazgos**
+de lint (ningún texto se sale de su celda, ninguno se pisa con otro, ninguno queda cortado por su canvas, ninguno
+toca un divisor), **0 tintas sobre su propio color**, y **3 776 583 medidas de alineación** de 74 sitios, **0** desviadas
+un píxel o más. En NIGHT, GREY, MONO, PAPER, LARGE, LINE y FLAT. Dicho de otro modo: **no hay bug de composición
+en ninguna pantalla**. Lo medido es el dibujo; lo que la unidad muestra no es el dibujo.
+
+### Si el dibujo está bien, lo que cambia es qué franja de la memoria se ve
+La memoria del controlador es **240x320** y el panel **240x240**: está pegado a una franja de 240 filas de esa
+memoria. Todo el firmware escribe la pantalla en las filas **0..239**, que es la franja de arriba. Los módulos
+ST7789 de 240x240 que todo el mundo usa (Adafruit, Arduino_GFX, TFT_eSPI) están pegados a la franja de **80**. Con
+esa franja y este firmware, la imagen aparece 80 filas más abajo de donde se escribe: **la cabecera y los títulos de
+cada página quedan fuera del vidrio**, el tercio de abajo enseña memoria que nadie dibuja, y lo que llega a la vista
+son fragmentos y palabras sueltas — exactamente el reporte, y también el del splash, cuyo cielo y cuyo texto están
+en esas filas de arriba.
+
+Por eso el comando nuevo **`off N`** (consola) mueve la ventana de la UI a la franja N de la memoria, rellena el fondo
+de pantalla completa de las filas que quedan fuera (0..N-1, no siempre 240..319) y fuerza un repintado completo.
+`status` publica **`lcd_off`** con el valor en uso. La medición es del dueño, en un segundo: `off 0` y `off 80` en la
+misma unidad; la que muestre la pantalla entera es la buena. Cuando lo diga, el valor se fija en el próximo build y
+el comando se queda como herramienta de taller.
+
+### Sigue en pie lo de 1.4.7
+La espera de la DMA del panel ya se escala con la transferencia (antes se agotaba a los 64 ms y cortaba los blits
+de cuadro completo a los 77 ms) y `status` sigue publicando `lcd_timeouts`. Son dos causas distintas del mismo
+síntoma y cada una tiene su lectura: `lcd_timeouts` dice si el envío se cortó, `off N` dice si el panel mira otra
+franja.
+
 ## v1.4.7 — la pantalla de la unidad: la transferencia del panel ya no se corta a mitad de cuadro
 
 El dueño reporta, en la FM-1, que **todas las pantallas siguen casi negras** (el splash incluido), que sólo se ven

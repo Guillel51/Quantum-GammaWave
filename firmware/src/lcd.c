@@ -46,9 +46,21 @@ static void lcd_data(const void *p, uint32_t n)
     lcd_busy = 1;                  /* completed by lcd_sync */
 }
 
+/* (1.4.8) WHICH SLICE OF THE CONTROLLER'S 240x320 THE PANEL SCANS. The UI draws in 240x240 and everything below
+ * went to frame-memory rows 0..239, which assumes the module is bonded to the top slice. A 240x240 panel is bonded to
+ * one 240-row slice of a 240x320 memory and the common ST7789 modules use 80 (Adafruit, Arduino_GFX, TFT_eSPI): with
+ * 80 the picture sits 80 rows below where it is written, so the top third of every screen (the header and the page
+ * titles) is off the glass and the bottom third shows memory nobody draws in. `off N` in the console moves the window
+ * and forces a full redraw, so which slice this unit has is a thing the owner can see, not a thing to guess. */
+uint32_t lcd_yoff;
+
 static void lcd_window(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 {
     lcd_sync();
+    if (y1 < 240u) {                   /* the UI's window: into the panel's slice. The 0..319 clears are not. */
+        y0 += lcd_yoff;
+        y1 += lcd_yoff;
+    }
     lcd_small[0] = (uint8_t)(x0 >> 8);
     lcd_small[1] = (uint8_t)x0;
     lcd_small[2] = (uint8_t)(x1 >> 8);
@@ -91,8 +103,10 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
      * startup background across the bottom of the screen for the rest of the session, and it changes colour
      * with the palette without them. The clamp above still keeps every other fill inside the panel. */
     if (!x && !y && w == 240u && h == 240u) {
-        lcd_window(0, 240u, 239u, 319u);
-        for (n = 80u * 240u; n; n -= 240u)            /* 19200 pixels, 240 at a time (lcd_fillbuf's size) */
+        /* (1.4.8) whichever rows the UI's slice leaves out: 240..319 at offset 0, 0..(off-1) at offset 80 */
+        uint32_t g0 = lcd_yoff ? 0u : 240u, g1 = lcd_yoff ? lcd_yoff - 1u : 319u;
+        lcd_window(0, g0, 239u, g1);
+        for (n = (g1 - g0 + 1u) * 240u; n; n -= 240u)  /* 240 at a time (lcd_fillbuf's size) */
             lcd_data(lcd_fillbuf, 240u * 2u);
     }
 }
