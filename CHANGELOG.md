@@ -29,6 +29,23 @@ recompilar ni reflashear para probar la otra: es un paso de encoder.
 Esto es código y build AC791N; la franja correcta **no está medida en la unidad** — la dice el dueño mirando. La
 tabla de panel de 1.4.10 sigue intacta y su prueba (`tests/panel_table_test.py`) no cambia.
 
+### Lo que entró con la fusión, y lo que costó
+Esta versión integra también lo del trabajo paralelo (la pantalla **MOD MAP** del grupo MOD y la fase 1 de DSP: dos
+divisiones por bloque menos en los buses). Con eso el XIP desbordaba 160 B, así que **se acortaron los nombres de
+36 claves de la consola** (`usb_frame_stalls` → `usb_fstalls`, `key_noteon_max_us` → `knote_max_us`, …) y cuatro
+textos de ayuda: los valores, las unidades y el orden son los mismos, sólo cambia cómo se llaman en `status`/`inp`.
+El árbol cierra en **583 548 de 583 612 B (64 B libres)**. También quedaron arreglados dos tests que la fusión
+anterior de la 1.4.8 había dejado sin compilar (`text_ref_test.c` usaba `f->adv[]` y `text_spacing_test.py` leía los
+índices viejos de `aafont_t`; las avanzadas de S y M ahora son bytes, `gfx.c advance()`).
+
+### Medido, en el host
+- `tests/lcd_st7789_test.c` tiene cuatro comprobaciones nuevas: con PANEL Y 80 la fila 0 del UI va a la memoria
+  80 y el relleno de pantalla completa limpia 0..79; con PANEL Y 0 vuelve a 0 y limpia 240..319. **Las cuatro pasan.**
+- El barrido de pantallas (`tests/ui_render.c`) queda en **200 pantallas × 22 paletas, 0 hallazgos** de lint y
+  **4 208 795 medidas de alineación, 0** fuera por 1 px, con la fila PANEL Y incluida en el MENU.
+- La suite host completa pasa con este árbol (el único fallo era el test del conjunto de release, que exige
+  `site/` sincronizado, y se sincroniza antes del commit del paquete).
+
 ## v1.4.10 — el panel: la tabla de init vuelve completa, con los valores del driver del módulo
 
 ### Qué se revirtió, y por qué
