@@ -92,11 +92,12 @@ that is cheaper than the bytes it saves. That is a project of its own; none of i
 14 656 píxeles de los dos pozos. Medido con `tests/ui_render.c` (`cc -O1`, host x86; sólo las proporciones
 sirven en el aparato):
 
-| Versión del velo | Visualizador HIGH | LOW |
-|---|---|---|
-| sin velo (placas opacas, línea base) | 213,3 µs | 98,2 µs |
-| `ux_mix()` por píxel | 355,4 µs | 248,0 µs |
-| tablas de 128 entradas construidas con `ux_mix()` | **247,5 µs** | **133,1 µs** |
+| Versión del velo | Visualizador HIGH | LOW | XIP |
+|---|---|---|---|
+| sin velo (placas opacas, línea base de 1.4.4.x) | 213,3 µs | 98,2 µs | — |
+| `ux_mix()` por píxel (**la que quedó**) | 355,4 µs | 248,0 µs | +80 B |
+| tablas de 128 entradas construidas con `ux_mix()` | 247,5 µs | 133,1 µs | +224 B |
 
-Las tablas dan bit a bit el mismo resultado que la llamada por píxel (se construyen con la misma función), y
-son la versión que quedó. Coste en el aparato: +48 B de imagen (583 564 de 583 612).
+Las tablas dan bit a bit el mismo resultado y son 108 µs más rápidas, pero con la línea 1.4.6 del otro chat el
+XIP ya no las admite (la imagen con tablas se pasaba por 156 B). Quedó la de `ux_mix()`: +67 % en el cuadro del
+visualizador y 4 B libres de imagen (583 608 de 583 612).

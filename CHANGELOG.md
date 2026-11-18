@@ -69,11 +69,12 @@ lo imite.
 tapa el velo (60 / 44 / 76 %). El byte vive en el bloque del motor 15 que nadie usa, así que un ajuste viejo
 lee MID y no hay migración. El editor lo muestra solo, porque sus ajustes salen de `MENU_DESC`.
 
-Medido en el host (`cc -O1`, sólo las proporciones significan algo en el aparato): la pantalla del visualizador
-pasa de **213,3 a 247,5 µs** por cuadro en HIGH (+34 µs, +16 %). El primer intento con `ux_mix()` por píxel
-costaba +147 µs; las tablas de 128 entradas —construidas con el mismo `ux_mix()`, así que el resultado es bit a
-bit el mismo— lo bajan a +34. En el aparato: imagen **583 564 B de 583 612** (48 B libres), `.data+.bss` sin
-cambios (95 140 de 98 304).
+Medido en el host (`cc -O1`; sólo las proporciones significan algo en el aparato): la pantalla del
+visualizador pasa de **213,3 a 355,4 µs** por cuadro en HIGH (+67 %). La versión con tablas de 128 entradas
+bajaba a 247,5 µs pero costaba 144 B más de XIP, y con 1.4.6 del otro chat ya no entraba: se quedó la de
+`ux_mix()`, que es la que cabe. En el aparato: imagen **583 608 B de 583 612** (4 B libres), `.data+.bss` sin
+cambios (95 140 de 98 304). **Con 4 B no entra nada más**: la próxima función tiene que pagarse liberando
+flash de los assets.
 
 El barrido de `ui_render` queda en **0 hallazgos** de lint sobre 190 pantallas × 22 paletas, **0 píxeles GREY /
 MONO fuera de gris o neutro** y 0 alineaciones fuera por 1 px; los volcados de QUANTUM, MONO, GREY y PAPER

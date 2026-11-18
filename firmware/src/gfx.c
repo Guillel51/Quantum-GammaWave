@@ -356,25 +356,10 @@ static void cv_rect_a(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c, in
         y1 = (int32_t)cv_h;
     if (x1 <= x || y1 <= y)
         return;
-    /* (the two wells are 14 656 px a frame: ux_mix() per pixel was 147 us of the host frame) The mix is per
-     * channel and depends on nothing but that channel's level, so 128 entries built with the same ux_mix()
-     * answer every pixel of the fill: the result is bit for bit what the per-pixel call gave -- GREY stays
-     * gray, no rounding difference -- with three loads per pixel instead of three divides. MONO reads the
-     * red table (its ux_mix branch is the red channel, returned as one gray), the same values. */
-    {
-        uint8_t tr[32], tg[64], tb[32];
-        for (i = 0; i < 32; i++) tr[i] = (uint8_t)(ux_mix((uint16_t)((uint32_t)i << 11), c, pct) >> 11);
-        for (i = 0; i < 64; i++) tg[i] = (uint8_t)((ux_mix((uint16_t)((uint32_t)i << 5), c, pct) >> 5) & 63u);
-        for (i = 0; i < 32; i++) tb[i] = (uint8_t)(ux_mix((uint16_t)i, c, pct) & 31u);
-        for (; y < y1; y++) {
-            uint16_t *row = cv_px + (uint32_t)y * cv_w;
-            for (i = x; i < x1; i++) {
-                uint32_t a = swap16(row[i]);
-                row[i] = swap16(ux.mono ? ux_gray(tr[a >> 11]) :
-                                (uint16_t)((uint32_t)tr[a >> 11] << 11 | (uint32_t)tg[(a >> 5) & 63u] << 5 |
-                                           (uint32_t)tb[a & 31u]));
-            }
-        }
+    for (; y < y1; y++) {
+        uint16_t *row = cv_px + (uint32_t)y * cv_w;
+        for (i = x; i < x1; i++)
+            row[i] = swap16(ux_mix(swap16(row[i]), c, pct));   /* (the one blend: GREY stays gray, MONO neutral) */
     }
 }
 
