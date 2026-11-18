@@ -115,8 +115,9 @@ static void settings_export(persist_t *p)
     p->zoom = settings.zoom = leds_to_stored(settings.zoom, settings_leds);
     p->panel = panel;
     p->bold = hold_to_stored(p->bold, settings_hold);
-    p->favorites.factory[15][16] = settings_yoff;   /* (1.4.11) PANEL Y */
 #ifdef FELUCCA_FAVORITES
     memcpy(&p->favorites, &favorites, sizeof favorites);
 #endif
+    p->favorites.factory[15][16] = settings_yoff;   /* (1.4.11) PANEL Y, after the copy of the live favorites: that
+                                                     * copy is what would otherwise put the byte back */
 }

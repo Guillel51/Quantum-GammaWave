@@ -9430,6 +9430,11 @@ static int test_browse_no_pattern(void)
     int bad = 0, ok = 1;
     uint32_t pass, n, total, loads = 0, pat_hints = 0;
     track_t *t;
+    /* (1.4.11) a category filter left by an earlier test would make this browse one category instead of every sound
+     * (the MOD MAP page moved the leftover category far enough that the count fell under the 200 the assertion
+     * wants). pcat is 0 at power-on in the firmware; the harness does not reset it between tests, so say so here. */
+    pcat = 0;
+    favorites.filter = 0;
     for (pass = 0; pass < 4u; pass++) {
         ui_power_on();
         t = TSEL;
