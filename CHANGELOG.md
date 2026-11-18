@@ -1,3 +1,15 @@
+## v1.4.12 — 1 936 B de flash recuperados sin tocar un píxel
+
+Las 22 píldoras de tecla (`ui_keycaps.h`) se guardaban en nibble crudo (3 939 B) aunque el 90 % de una
+píldora es relleno (5) o afuera (0). Ahora van en el códec canonical de las fuentes, al que se le puede pedir
+runs de valores que no sean 0/15, y las dibuja el mismo `cv_alpha_hc` de los glifos: **1 947 B + 45 B** con
+los mismos píxeles (3 056 capturas del barrido idénticas byte a byte) y los 303 renders dorados sin cambios.
+
+La imagen queda en **580 492 B de 583 612** (3 120 B libres) — el margen que necesitaba el cache de
+coeficientes TONE, que desbordaba por 2 160 B. `docs/OPTIMIZATION_PHASE1_AUDIT.md` deja la tabla de lo que se
+midió y no daba nada: alinear funciones, fusionar constantes y quitar las tablas de unwind (0 B), menos
+inlineado (+788 B), `-fno-jump-tables` (+916 B), y las tablas grandes que ya estaban optimizadas.
+
 ## v1.4.11 — el pop de encendido, y el DIST que pliega
 
 ### El pop al encender: el fade se gastaba con el altavoz todavía en mute
