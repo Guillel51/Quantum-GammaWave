@@ -208,6 +208,7 @@ muted. On the **MIXER**, asleep tracks are greyed and say OFF.
 | LFO | RATE | WAVE | PHASE | FADE |
 | LFO DEST | PITCH | FILTER | SHAPE | AMP |
 | MOD | SLOT (1–4) | SRC | DEST | AMT |
+| MOD MAP | — | — | — | — |
 | MSEQ | STEP (1–16) | LEVEL | LEN | SLEW |
 | MSEQ 2 | DIV | — | — | — |
 
@@ -1166,6 +1167,9 @@ ensemble). Hidden with LOAD ECO
     between; RAND instead draws one value per note).
   - Destinations: PITCH, CUT, SHP, AMP, PAN, DIST, CHO, DLY, REV, RATE (LFO rate), VIB, **E1–E8** (the engine's own
     EDIT knobs, shown by name), **CLIP** and **PNCH** (the master).
+- **MOD MAP**: the matrix at a glance. Only the slots that are really assigned are listed (SRC, DEST and AMT all
+  set), one row each, and a destination that two or more slots drive carries its count (`x2`, `x3`): the shared
+  destinations, where one value is moved twice. Read only; MOD is where the slots are edited.
 - **MSEQ**: a 16-step modulation sequencer per track, like a CV sequencer. KNOB 1 picks the step, KNOB 2 sets its
   level, LEN and SLEW; DIV on MSEQ 2. Use it from MOD with SRC **STEP**.
 

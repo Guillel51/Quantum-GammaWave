@@ -1500,19 +1500,26 @@ static void graph_macros(uint16_t c)
  * source has now -- a bar from the middle for a bipolar source (LFO, KEY, RAND, NOISE: its side is the polarity of
  * the moment) and from the left for the others. The amount's own sign (param_format, F_BIPCT) is the assignment's
  * polarity, always shown. The slot KNOB 2..4 edit is selected; a slot that does nothing (SRC, DST or AMT at 0) is
- * dim and has no bar. */
-static void graph_mod(const track_t *t, uint16_t c)
+ * dim and has no bar.
+ * MOD MAP is the same page in map mode: the matrix at a glance, as the editor's map reads it -- only the assigned
+ * slots, drawn by the same row, and a destination two or more of them drive carries its count in a chip: the
+ * shared destinations, where one value is moved twice. Read only and with no bars: MOD is where the slots are
+ * edited. */
+static void graph_mod(const track_t *t, uint16_t c, int map)
 {
-    uint32_t k;
+    uint32_t k, j, i = 0, n;
     for (k = 0; k < NMSLOT; k++) {
         int32_t s = mslot(t, k, 0), d = mslot(t, k, 1), a = mslot(t, k, 2);
-        int32_t y = 2 + (int32_t)k * 15, on = s && d && a, sel = k == mod_ui_slot;
+        int32_t on = s && d && a, sel = !map && k == mod_ui_slot, y;
         int32_t hot = sel && ui.hot_t;
         uint16_t bg = sel ? T_THEME : T_SURF, col = sel ? T_INK : on ? c : T_DIM;
         char b[10], nb[3];
         const char *unit;
+        if (map && !on)
+            continue;                                                    /* a slot that does nothing is not a route */
+        y = 2 + (int32_t)(map ? i : k) * 15;
         cv_rrect(4, y, 232, 13, 3, sel ? T_THEME : T_SURF, T_BG);         /* every slot its own plate */
-        if (!sel)                                                         /* a tab, so a slot reads as one; inside
+        if (!sel && !map)                                                 /* a tab, so a slot reads as one; inside
                                                                            * the plate's edge, clear of the digit */
             cv_rect(7, y + 3, 2, 7, on ? T_THEME : T_DIM);
         nb[0] = (char)('1' + k);
@@ -1527,7 +1534,18 @@ static void graph_mod(const track_t *t, uint16_t c)
         cv_text_on(70, y - 1, &AF_S, mod_dst_name(t, d), col, bg);
         param_format(&TP[P_M1AMT], a, b, &unit);         /* F_BIPCT: "+50" / "-50", the polarity */
         cv_text_r(152, y - 1, &AF_S, b, on ? (sel ? T_INK : a > 0 ? T_ACCENT : T_MID) : T_DIM, bg);
-        if (on) {                                        /* the source's live value, as a rounded bar */
+        if (map) {                                       /* shared: how many routes reach this destination */
+            for (n = 0, j = 0; j < NMSLOT; j++)
+                n += mslot(t, j, 0) && mslot(t, j, 1) && mslot(t, j, 2) && mslot(t, j, 1) == d;
+            if (n > 1u) {
+                b[0] = 'x';
+                b[1] = (char)('0' + n);
+                b[2] = 0;
+                cv_rrect(196, y, 24, 13, 3, T_KEY, T_SURF);
+                cv_text_on(200, y - 1, &AF_S, b, T_INK, T_KEY);
+            }
+            i++;
+        } else if (on) {                                 /* the source's live value, as a rounded bar */
             int32_t v = clamp(mod_src_live(t, k), -32767, 32767), x0 = 160, x1 = 230, yc = y + 6;
             cv_rrect(x0, yc, x1 - x0, 1, 0, sel ? T_INK : T_GRID, bg);
             if (MS_BIPOLAR((uint32_t)s)) {
@@ -3745,7 +3763,11 @@ static void draw_graph(void)
             break;
         case GR_MOD:
             cv_oy = 0;
-            graph_mod(t, c);
+            graph_mod(t, c, 0);
+            break;
+        case GR_MODMAP:
+            cv_oy = 0;
+            graph_mod(t, c, 1);
             break;
         case GR_MACROS:
             cv_oy = 0;
