@@ -1,3 +1,30 @@
+## v1.4.6 — el panel, vigilado por una prueba; la memoria, legible en la unidad
+
+Dos agregados, los dos pensados para que lo que se midió en el host se pueda comprobar (o volver a comprobar) sin
+depender de la memoria de nadie. Sin cambios de sonido ni de dibujo: los 303 renders dorados y el barrido de UI no
+se mueven.
+
+### `tests/panel_table_test.py`: la pantalla negra no puede volver sin que falle el build
+1.4 escribió una curva gamma y encendió el brillo del ST7789 desde una comparación con el emulador; en la FM-1 eso
+aplastó los tonos bajos de todas las pantallas y 1.4.2.1 lo deshizo. Lo que quedaba era disciplina y un comentario:
+ninguno de los dos es una prueba. La nueva prueba lee la tabla `LCD_SEQ` de `lcd.c`, la parsea entrada por entrada y
+falla si aparece **0xE0, 0xE1, 0x53, 0x51, 0x55 o 0xBB** (gamma, brillo, CABC, VCOM), si la tabla deja de parsear
+limpia, o si desaparecen las tres que hacen falta para ver algo (`0x3A` con `0x55`, `0x36`, `0x21`). Verificada en
+las dos direcciones: verde con la tabla actual, roja metiendo `0x53, 1, 0x24` en una copia. Corre en `run_tests.sh`.
+
+### `mem`: el presupuesto de memoria, preguntado a la unidad
+El comando de consola `mem` imprime, leídos de los símbolos del linker, los mismos números que el build:
+`ram_used` 91 300 de 98 304 (`ram_free` 7 004), `lowbuf_used` 30 564 de 32 768 (`lowbuf_free` 2 204),
+`pool_used` 318 432 de 327 680 (`pool_free` 9 248). Es la única parte del trabajo de memoria que un host no puede
+contestar por una unidad: ahora el dueño escribe `mem` en la FM-1 y compara con lo que reportó el CI. Clase: el mapa
+del linker, no una medición — no dice cuánto de una pila está USADA.
+
+### Lo que cambia en los números
+La imagen sube de 583 172 a **583 384 B** (228 libres de 583 612): el comando y sus claves cuestan ~210 B de XIP, y
+se recortaron dos claves que eran constantes de compilación para no gastar más. `.data+.bss` sigue en 91 300 B.
+`tests/memory_map_test.py` tenía la ventana LOWBUF vieja en 0x01C07000: corregido a 0x01C08000 (si no, la prueba
+fallaba con la mudanza de 1.4.5). `./build.sh` ahora imprime LOWBUF junto a RAM y pool.
+
 ## v1.4.5 — la pasada de optimización, medida (RAM, .data/.bss, pool, coste del ISR y del render)
 
 Sin cambios de sonido ni de dibujo: 303 renders dorados idénticos, las 3 040 imágenes del barrido de UI idénticas

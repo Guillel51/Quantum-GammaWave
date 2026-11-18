@@ -341,6 +341,30 @@ static void con_crash(void)
     con_kv("early", (int32_t)fm1_crash.early);
 }
 
+/* (1.4.6) MEM: the budgets ./build.sh prints, read from the linker's own symbols. This is the one part of the
+ * memory work that a host cannot answer for a unit: with this command the owner can type `mem` on an FM-1 and see
+ * the same .data+.bss figure the CI build reports, plus the windows the build only prints (LOWBUF, the stacks).
+ * Class: the linker's map, not a measurement -- nothing here says how much of a stack is USED. */
+extern uint32_t _bss_end[], _low_start[], _low_end[], _pool_start[], _pool_end[];   /* main.c's, same types */
+extern uint8_t _c1_stack_hi[];                    /* hal/fm1_multicore.h */
+extern char _ustack_lo[], _sstack_top[];          /* hal/fm1_guard.h (char: its own) */
+#define MEM_RAM_LO   0x01C08000u
+#define MEM_RAM_LIMIT 98304u
+#define MEM_LOW_HI   0x01C08000u
+#define MEM_POOL_HI  0x01C70000u
+static void con_mem(void)
+{
+    uint32_t ram = (uint32_t)_bss_end - MEM_RAM_LO;
+    uint32_t low = (uint32_t)_low_end - (uint32_t)_low_start;
+    uint32_t pool = (uint32_t)_c1_stack_hi - (uint32_t)_pool_start;   /* .pool and the second core's stacks */
+    con_kv("ram_used", (int32_t)ram);
+    con_kv("ram_free", (int32_t)(MEM_RAM_LIMIT - ram));
+    con_kv("lowbuf_used", (int32_t)low);
+    con_kv("lowbuf_free", (int32_t)(MEM_LOW_HI - (uint32_t)_low_end));
+    con_kv("pool_used", (int32_t)pool);
+    con_kv("pool_free", (int32_t)(MEM_POOL_HI - (uint32_t)_c1_stack_hi));
+}
+
 static void con_params(void)
 {
     uint32_t i;
@@ -355,7 +379,7 @@ static void con_params(void)
 static void con_exec(const char *p)
 {
     if (con_word(&p, "help") || con_word(&p, "?"))
-        con_puts("status  dbg  inp  crash  params  memr ADDR [LEN]  flr OFF [LEN]  uboot yes\r\n");
+        con_puts("status  dbg  inp  crash  mem  params  memr ADDR [LEN]  flr OFF [LEN]  uboot yes\r\n");
     else if (con_word(&p, "status"))
         con_status();
     else if (con_word(&p, "dbg"))
@@ -364,6 +388,8 @@ static void con_exec(const char *p)
         con_crash();
     else if (con_word(&p, "inp"))
         con_inp();
+    else if (con_word(&p, "mem"))
+        con_mem();
     else if (con_word(&p, "params"))
         con_params();
     else if (con_word(&p, "memr"))

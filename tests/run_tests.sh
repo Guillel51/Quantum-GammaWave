@@ -458,6 +458,8 @@ fi
 
 run "regression: target cost of the render loops (pi32v2 disassembly)" python3 tests/target_budget.py \
     build/felucca.dis tests/target_budget.txt
+run "the ST7789's init table: no gamma, no brightness, no VCOM (the 1.4 black-screen class, kept out)" \
+    python3 tests/panel_table_test.py firmware/src/lcd.c
 run "target memory map: 1 MiB flash, RAM / pool / stacks / noinit do not overlap" python3 tests/memory_map_test.py
 run "engine size: which symbol belongs to which engine, XIP vs RAM, the map cross-check" python3 tests/engine_size_test.py
 run "engine size of this build: XIP and .data+.bss per engine (skips without build/felucca.syms)" \

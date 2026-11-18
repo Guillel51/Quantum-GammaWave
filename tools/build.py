@@ -332,7 +332,9 @@ def check(img, syms, dis, rt):
     bss = sym("_bss_end") - 0x01C08000
     pool = sym("_pool_end") - sym("_pool_start")
     pool_top = max(sym("_pool_end"), sym("_c1_stack_hi"))   # (the second core's stacks after the pool)
-    notes.append(f"image {len(img)} B; RAM .data+.bss {bss} B of 98304; pool {pool} B, spare {POOL_END - pool_top} B")
+    low = sym("_low_end") - sym("_low_start")      # (1.4.6) the main-loop window: build and `mem` on the unit print
+    notes.append(f"image {len(img)} B; RAM .data+.bss {bss} B of 98304; pool {pool} B, spare {POOL_END - pool_top} B; "
+                 f"LOWBUF {low} B of 32768")        # the same numbers (firmware/src/console.c)
     if bss > 96 * 1024:
         errors.append("RAM region overflow")
     if POOL_END - pool_top < 8192:                # keep >= 8 KiB of the pool spare

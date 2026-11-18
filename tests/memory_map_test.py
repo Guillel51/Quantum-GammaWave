@@ -30,7 +30,7 @@ RAMTEXT_HI = 0x01C76800
 STACK_TOP = 0x01C7C000
 RESERVED_LO = 0x01C7FD50
 LOWBUF_LO = 0x01C00000
-LOWBUF_HI = 0x01C07000
+LOWBUF_HI = 0x01C08000    # (1.4.5) the window took the page that was kept for RAM-run debug
 
 
 def objdump():
