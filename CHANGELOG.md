@@ -1,3 +1,15 @@
+## En el árbol — el build AC791N de este árbol, medido
+
+La cadena de destino (`tools/get_toolchain.sh` + los tres archivos del SDK AC79) se descargó y verificó en esta
+sesión, así que por primera vez en este trabajo el árbol **se compiló para el aparato**: imagen **583 156 B de
+583 612** (456 B libres), `.data+.bss` **95 140 de 98 304**, pool con **9 248 B** libres (el mínimo es 8 192),
+RAM code 4 868 B libres y **`.noinit` con 124 B** — el recurso más apretado del proyecto hoy. El paquete sale con
+identidad `FM-1_965` y manifiesto `v1.4.4.1` en `6d33c44`.
+
+`tests/memory_map_test.py` pasa con ese `.elf` y `tests/target_budget.py` queda en **+0 %** en todos los lazos
+del DSP. No se publica un release nuevo: la versión sigue siendo 1.4.4.1 porque el emulador WASM necesita
+`emcc`, que no está en este entorno, y el sitio tiene que servir el emulador del mismo commit.
+
 ## En el árbol — Web Studio: MOD ROUTING, la matriz de un vistazo
 
 El grupo **MOD** del panel de sonido mostaba los cuatro slots como tres selectores y un número, uno debajo de

@@ -1877,6 +1877,29 @@ cadena de versión, y la suite del host tiene que dar los mismos `ok` que sobre 
 
 ---
 
+### Build AC791N de este árbol (FASE 7)
+
+Con `JIELI_TOOLCHAIN` (clang 4.0.1 pi32v2, `tools/get_toolchain.sh`, archivo verificado contra el SHA-256 fijado)
+y `AC79_SDK` descargados en esta sesión, el árbol de `6d33c44` **compila de verdad** y sus presupuestos quedan
+medidos en la clase `[TARGET]`, no estimados:
+
+| Qué | Medición | Límite |
+|---|---|---|
+| Imagen `build/felucca.bin` | 583 156 B | 583 612 B → **456 B libres** |
+| XIP | código 423 348 B + constantes 139 304 B = 562 652 B | — |
+| `.data+.bss` | 95 140 B | 98 304 B → 3 164 B libres |
+| Pool | — | **9 248 B libres** (el mínimo del proyecto es 8 192 B) |
+| RAM code (`.ram_text`+`.c1_text`+`.hot_text`) | — | 4 868 B libres |
+| `.noinit` | — | **124 B libres** |
+| Paquete | `build/felucca.fwsc` 610 959 B, identidad `FM-1_965`, manifiesto `v1.4.4.1` en `6d33c44` | — |
+
+`tests/memory_map_test.py` **pasa** con el `.elf` de este build (guardas de stack, `.noinit` dentro de su región,
+el mapa de RAM), y `tests/target_budget.py` da **+0 %** en todos los lazos del DSP contra
+`tests/target_budget.txt` (el guardia de `scope` de `page_desc()` no toca ningún lazo de audio). El margen real
+es de 456 B de imagen y 124 B de `.noinit`: cualquier trabajo de las fases 3–6 tiene que pagarse liberando flash
+de los assets, y el `.noinit` es ahora el recurso más apretado del árbol.
+
+
 ## 2026-11-18 — v1.4.4.1: pantalla oscura, filas trabadas y pop de arranque
 
 | Check | Label | State and evidence |
