@@ -1,3 +1,26 @@
+## v1.5.3 — ANIM OFF en HOME 2–5: la pantalla deja de repintarse para nada
+
+**El parpadeo del reporte, con la causa encontrada.** «Parpadeo continuo en los encabezados de HOME, páginas 2 a 5
+(OVERVIEW, MIXER, PERFORMANCE), independientemente de FLAT/LINE o ANIM ON/OFF.» Eran dos mitades del mismo error:
+
+- `hv_strip()` hacía **respirar** la barra bajo el icono de página encendido leyendo `ui.frame` **aunque ANIM
+  estuviera en OFF** (y en LOAD LITE / ECO);
+- `hv_view_sig()` — la firma que decide si el cuerpo de esas tres pantallas se redibuja — metía esa misma fase
+  en el hash, así que el cuerpo entero (240 × 176, y con él la banda del encabezado) se re-bliteaba cada 8
+  frames sobre una imagen que no había cambiado.
+
+Ahora, con ANIM OFF la fase no es parte del estado y el pulso no late: la pantalla queda quieta de verdad. Con
+la animación encendida la fase sigue siendo estado y un cambio de frame sí repinta, como corresponde.
+
+`tests/ui_test.c` gana `test_still_when_anim_off()`: con ANIM OFF la firma no cambia al avanzar 8 frames (nada
+se repinta) y con ANIM ON sí cambia. `regress` 303 renders **0 changed**; `ui_test` completo en verde.
+
+**Lo que esta versión NO arregla, y no voy a decir que sí:** los otros cinco defectos del informe —fragmentos del
+nombre de preset en la zona dB del MIXER, icono/valor de tempo sobre los números de T3/T4, redibujado completo
+del GLO MIXER al cambiar de pista en ALGORITHM, y la auditoría de invalidaciones (#106)— siguen abiertos. La
+causa probable de los tres primeros está localizada en `hv_mix`/`draw_head`, pero cada uno necesita su
+medición diferencial de región antes de tocar el dibujo, y el arnés actual dibuja frames enteros.
+
 ## v1.5.2 — Cambiar un preset ya no resetea la capa de performance de las otras pistas
 
 **El bug del reporte, encontrado y corregido.** «El audio se interrumpe al cambiar el preset desde GLO MIXER,

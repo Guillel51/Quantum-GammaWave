@@ -11495,6 +11495,40 @@ static int test_sound_edited(void)
     return bad;
 }
 
+/* (FASE 4) ANIM OFF MEANS THE SCREEN DOES NOT MOVE. The report named a continuous flicker in the header of
+ * OVERVIEW, MIXER and PERFORMANCE "regardless of FLAT/LINE or ANIM ON/OFF": the breathing bar under the lit page
+ * icon kept stepping from ui.frame with ANIM OFF, and the body's signature hashed that same phase, so the three
+ * screens re-blitted the whole 240 x 176 body -- top band included -- every eighth frame over a picture that had
+ * not changed. The setting is still: the phase is out of the signature and the pulse does not breathe.
+ * With the animation on, the phase is still part of the state and a step does change the signature. */
+static int test_still_when_anim_off(void)
+{
+    uint32_t p0 = ui_prefs, v0 = (uint32_t)ui.home_view, f0, s0, s1;
+    uint32_t l0 = sys_load;
+    int ok;
+    sys_load = LOAD_FULL;
+    ui.home_view = HV_MIX;
+    ui_prefs |= PREF_ANIM_OFF;
+    f0 = ui.frame;
+    s0 = hv_view_sig();
+    ui.frame = f0 + 8u;                            /* the step the embers and the pulse used to take */
+    s1 = hv_view_sig();
+    ok = s1 == s0;                                 /* no pixel may differ: nothing repaints */
+    ok &= !ANIM_SNAP() == 0;                       /* the setting really is in force here */
+    ui.frame = f0;
+    ui_prefs &= ~PREF_ANIM_OFF;
+    s0 = hv_view_sig();
+    ui.frame = f0 + 8u;
+    s1 = hv_view_sig();
+    ok &= s1 != s0;                                /* animation on: the step is state again */
+    ui.frame = f0;
+    ui_prefs = p0;
+    ui.home_view = (int16_t)v0;
+    sys_load = l0;
+    return check("ANIM OFF: the HOME body's signature ignores the embers' phase (nothing repaints, no flicker); "
+                 "ANIM ON: the phase is state again", ok);
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -11634,6 +11668,7 @@ int main(void)
     bad += test_screen_off();
     bad += test_fm6_charts();
     bad += test_sound_edited();
+    bad += test_still_when_anim_off();
 #if FELUCCA_FM4
     bad += test_fm_charts();                        /* (DIGITAL's charts: built with FELUCCA_FM4=1 only) */
 #else

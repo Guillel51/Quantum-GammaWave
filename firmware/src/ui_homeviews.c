@@ -62,7 +62,11 @@ static void hv_strip(int32_t y, uint16_t c)
     for (i = 0; i < 3; i++) {
         int32_t x = x0 + i * 13;
         if (i == on) {
-            int32_t ph = (int32_t)((ui.frame / 8u) % 12u), pulse = ph < 6 ? ph : 12 - ph;
+            /* (FASE 4) ANIM OFF MEANS STILL. The breathing bar under the lit icon kept stepping from ui.frame
+             * with ANIM OFF (and in LOAD LITE / ECO), so these three screens re-blitted their whole body every
+             * eighth frame for a pulse the setting says should not be there -- the flicker the report names on
+             * OVERVIEW, MIXER and PERFORMANCE "regardless of FLAT/LINE or ANIM ON/OFF". Still is the setting. */
+            int32_t ph = ANIM_SNAP() ? 0 : (int32_t)((ui.frame / 8u) % 12u), pulse = ph < 6 ? ph : 12 - ph;
             cv_rrect(x - 1, y - 1, 13, 13, 2, c, ux_mix(c, T_TEXT, 35 + pulse * 8));   /* a 12 px icon needs a 13 px cell */
             cv_icon_on(x, y, 12, IC[i], ux_mix(c, T_BG, 88), c);                       /* dark on the accent: it reads */
             cv_rect(x + 1, y + 12, 9, 1, ux_mix(c, T_BG, 100 - pulse * 14));
@@ -115,7 +119,11 @@ static uint32_t hv_view_sig(void)
     uint32_t h = 2166136261u, i, v = 0;
     h = (h ^ (uint32_t)ui.home_view) * 16777619u;
     h = (h ^ (uint32_t)settings.palette) * 16777619u;
-    h = (h ^ (ui.frame / 8u)) * 16777619u;          /* the embers' phase, as hv_air steps it */
+    /* (FASE 4) AND WITH ANIM OFF THE PHASE IS NOT PART OF THE STATE: hashing it repainted the body (and its top
+     * line) every eighth frame over a picture that had not changed -- the header's band flickered with nothing
+     * new to show. Meters, names and the selection still move the hash as they should. */
+    if (!ANIM_SNAP())
+        h = (h ^ (ui.frame / 8u)) * 16777619u;      /* the embers' phase, as hv_air steps it */
     /* (FASE 2, issue #106) THE LOAD IS NOT ON THESE SCREENS. Only the SYSTEM screen of older builds printed
  * song.cpu_q8 (it is gone: nothing reached it), and the three
      * screens that draw this body do not: hashing it repainted the whole 240 x 176 body -- three SPI blits, the
