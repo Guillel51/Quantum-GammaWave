@@ -2062,3 +2062,13 @@ La unidad física no se tocó: ninguna fila de abajo es una medición de hardwar
 | El paquete, el emulador y el manifiesto describen un commit | `[AC791N]` `[WASM]` | **PASS**: emulador v1.5.0 build `2dd157e` (wasm 1 240 931 B), `tools/build_manifest.py --verify --require-clean` ok, `tests/manifest_test.py` passed |
 | El release y el sitio son el mismo paquete | `[HOST]` | **PASS**: `tools/make_release.py --sync` + `--check` — `release/felucca-v1.5.0.fwsc`, `site/firmware/felucca-1.5.0.fwsc`, `versions.json`, instalador y editor describen un solo paquete; `tools/site_check.py` all passed |
 | Build sin storage (`FELUCCA_FLASH=0`) | — | **NOT RUN aquí** (el trabajo `no-storage` de `target.yml` lo hace en CI): no se quiso invalidar el `build/` del paquete recién firmado |
+
+## Fase 2 — Arranque de audio (2026-11-19)
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| El fade no se consume con la salida muteada | `[STATIC]` | `tests/boot_order_test.py`: hold antes de `audio_init`, apertura después del segundo núcleo, motor antes del desmuteo — **ok** |
+| El arranque compila y no toca el audio | `[AC791N]` `[HOST]` | `./build.sh`: paquete 610 959 B, 1 492 B libres en la imagen, RAM 6 696 libres; `regress` 303 renders **0 changed**; `ui_test`, `boot_order_test` ok |
+| El pop al encender, medido | — | **NOT MEASURED (acústico)**: sin unidad. El arreglo elimina la causa de orden; el asentamiento del códec (25 ms) sigue sin medirse con micrófono ni osciloscopio |
+| Clicks al cambiar preset / motor / FX / proyecto | — | **NOT MEASURED**: hay fades internos (`xf`, `fx_preset_flush`, `pfx_note`) y la regresión es bit-idéntica, pero ningún test de host puede oír un click |
+| Barrido de UI 240x240, todas las paletas y FLAT/LINE | `[HOST]` | `build/ui_render`: **191 pantallas x 22 paletas** + barrido de páginas/valores: **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles GREY/MONO fuera de gris, 3 783 017 medidas de alineación con **0 desvíos de 1 px**; splash con animación encendida y apagada (127 frames) |
