@@ -309,7 +309,7 @@ const APP_LO = 0x4000, APP_HI = 0x93000;
  *                 establish it (V16: it is taken with M-Flasher, outside this page)
  *   not-demonstrated  there is no demonstrated return nor recovery for this unit's layout (V16)
  */
-function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "none", stockVersion = 0 }) {
+function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "none", stockVersion = 0, dump = null }) {
   /* (FASE 5) AN FM-1_016 IS NOT A V15, AND THE GATE MUST NOT PRETEND IT IS. The two vendor releases are
    * both "stock", but only V15 has a return this project can describe: its firmware is M-VAVE's published
    * file, pinned by digest, and an interrupted install resumes. V16 moved the app area (app.bin at 0x4140,
@@ -346,16 +346,22 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
     /* An interrupted install is resumable by design (the loader waits for the bytes and the page resumes
      * it), and a stock unit's firmware is M-VAVE's published V15 file, so neither needs a full-flash dump
      * -- and this page does not ask for one: it takes no report from another tool as a condition. */
-    { key: "gate.backup", state: v16 ? "required"
+    /* (F4, V16) WHAT A COPY IN HAND DOES AND DOES NOT SETTLE. A V16 unit's way back is a complete 1 MiB copy of
+     * that unit, and the page cannot take it (a stock firmware answers neither 0x12 nor 0x13): it is taken with
+     * M-Flasher and brought here, where its whole-part size and its SHA-256 are computed in the browser. With
+     * that record the backup condition is met -- it is the unit's own bytes, hashed here -- and the recovery
+     * condition is `conditional`: the procedure exists and the copy is the thing it needs, but no restore on a
+     * V16 layout has been observed by this project, and the verdict keeps saying so. */
+    { key: "gate.backup", state: v16 ? (dump ? "pass" : "required")
       : (kind === "ours" || kind === "stock" ? "not-required" : "unknown") },
-    { key: "gate.recovery", state: v16 ? "not-demonstrated"
+    { key: "gate.recovery", state: v16 ? (dump ? "conditional" : "not-demonstrated")
       : (kind === "ours" || kind === "stock" ? "covered" : "unknown") },
     { key: "gate.revalidate", state: "after" },
   ];
   /* What each path needs. This page writes to a stock unit, a unit already running this firmware and
    * its own loader. The host path (M-Flasher) writes the same app area through the chip's ROM mode. */
   const page = kind === "ours" || kind === "ourloader" || kind === "stock";
-  const okPage = { pass: 1, "not-required": 1, covered: 1, "at-install": 1 };
+  const okPage = { pass: 1, "not-required": 1, covered: 1, "at-install": 1, conditional: 1 };
   const okHost = { pass: 1, covered: 1 };
   const ok = page ? okPage : okHost;
   const required = rows.filter((r) => r.state !== "after" && !(page && r.key === "gate.read" && kind === "ourloader"));
@@ -368,14 +374,17 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
   }
   const ready = blocking.length === 0 && found && read && pkg && pkg.identity;
   /* the two conditions a V16 unit carries, in the words of the tool that can meet them */
-  const conditions = v16 ? ["m-flasher-dump", "m-flasher-verify"] : [];
+  const conditions = v16 && !dump ? ["m-flasher-dump", "m-flasher-verify"] : [];
   /* a V16 unit whose other rows are all established: the honest answer is GO CONDITIONAL -- correct path,
    * correct conditions named, and still not an authorisation to write until the dump exists and verifies */
   const v16Conditional = v16 && blocking.every((k) => k === "gate.backup" || k === "gate.recovery") &&
     found && read && pkg && pkg.identity;
+  /* With the copy in hand the page's own path is the one that can run (it stages the package's loader through
+   * the unit's updater), so canInstall follows the page path -- the limitations above still name what was not
+   * observed. Without it the verdict is the same GO CONDITIONAL and nothing may write. */
   const verdict = v16Conditional
-    ? { result: "GO CONDITIONAL", path: "m-flasher", blocked: blocking, conditions, conditional: true,
-        canInstall: false, canInstallHost: false, limitations }
+    ? { result: "GO CONDITIONAL", path: page && dump ? "this-page" : "m-flasher", blocked: blocking, conditions,
+        conditional: true, canInstall: !!(page && dump), canInstallHost: false, limitations }
     : ready
     ? { result: page ? "GO" : "GO-HOST", path: page ? "this-page" : "m-flasher", blocked: [],
         conditions, conditional: false, canInstall: page, canInstallHost: !page, limitations }
@@ -389,6 +398,7 @@ export async function verifyDevice(midi, opts = {}) {
   const pkg = packageOf(product, opts.pkg);
   const sig = opts.signature || null;       // the offline check of the package (verifyPackage)
   const chip = opts.chip || null;           // a read-only 0x12 check, when one was run
+  const dump = opts.dump || null;           // (F4, V16) the complete copy of this unit, hashed by the page
   const log = opts.log || (() => {});
   const inputs = [...midi.inputs.values()].map(portInfo);
   const outputs = [...midi.outputs.values()].map(portInfo);
@@ -466,7 +476,7 @@ export async function verifyDevice(midi, opts = {}) {
   const compat = compatibility(kind, hardware, pkg.model, firmware === "gammaWaveLegacy");
   /* (FASE 5) the stock release the unit answered decides the gate: V15 keeps its return, V16 does not
    * inherit one. `version` is the identity's own number, never the package's. */
-  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, kind, stockVersion: version });
+  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, kind, stockVersion: version, dump });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },

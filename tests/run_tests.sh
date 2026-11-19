@@ -559,6 +559,7 @@ if command -v node >/dev/null 2>&1; then
     # the pinned official files: digests, the measured V16 layout, and the loader-window rule that
     # makes a vendor V16 file a restore target rather than something a QG package is patched from
     run "web stock releases: V15/V16 pins, the V16 layout and the loader window" node web/test_stock_releases.mjs
+    run "web V16 path: the unit's own version, the echo/partial chip diagnosis, and the copy a V16 needs" node web/test_v16_path.mjs
     # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
     # its dump hashed in the page, and the donor install path that accepts them -- with the wire
     # assertions that nothing is sent without them.

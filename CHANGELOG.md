@@ -1,3 +1,33 @@
+## v1.5.9 — Instalar desde el V16 oficial: la versión de la unidad, no una suposición
+
+- **La causa del bloqueo, exacta.** `web/index_pkg.html` le decía al transporte `"15"` para **cualquier** unidad
+  stock (`ctxFor(fw.kind === "stock" ? "15" : …)`). Una unidad en V16 responde `FM-1_016`; `donorIdentity()`
+  recibía una identidad que dice 16 y un firmware que dice 15 — dos afirmaciones que se contradicen — y la
+  rechazaba. El mensaje que veía el usuario, *«the device is FM-1_016, the package is for FM-1_965»*, era esa
+  contradicción, no una incompatibilidad real: el módulo ya tiene V16 como donante y su test lo fijaba
+  (`web/test_donor.mjs`). Ahora la versión sale de la identidad que la unidad respondió (`stockVersionOf`), y una
+  cadena ilegible sigue siendo ilegible (el transporte la rechaza: nada se afloja).
+- **El diagnóstico del chip.** El firmware oficial no implementa `0x12` (es un comando de este proyecto), y
+  algunos stacks USB-MIDI devuelven el frame tal cual. Las tres cosas — eco, cuerpo corto y silencio — se
+  informaban como *«Truncated identification reply»*, que se lee como una consulta rota en una unidad donde la
+  consulta no existe. Ahora cada una dice qué es, y en una unidad stock el botón **Check chip** ya no gasta dos
+  frames en un comando ausente: explica que el chip lo lee el loader del paquete **en la unidad** antes de borrar.
+- **El camino V16 tiene sus propias precondiciones, y se cumplen en la página.** Una copia completa de 1 MiB de
+  **esa** unidad (tomada con M-Flasher: el firmware stock no tiene `0x12` ni `0x13`, así que la página no puede
+  leerla), hasheada en el navegador, y la confirmación de que se sabe restaurar. Sin las dos, no se envía nada y
+  la página dice qué falta y dónde. El gate del informe de verificación pasa a `pass` para la copia y a
+  `conditional` para la recuperación —el procedimiento existe y la copia es lo que necesita, pero **no se ha
+  observado una restauración sobre un layout V16**, y el veredicto lo sigue diciendo—.
+- **Lo que no cambia:** el head `0x0000–0x3FFF` no se escribe nunca, nada por encima de `0x93000` se toca (en V16
+  eso deja `DX7.bin`'s tail, `VM`, `SEQ64` y `BTIF` intactos), `ldr_flash_known()` y `FL_JEDEC_OK()` siguen
+  decidiendo en la unidad, los dos chips admitidos son los mismos, y el archivo oficial V16 sigue siendo el
+  camino de vuelta fijado por digest.
+- **Pruebas nuevas:** `web/test_v16_path.mjs` (32 checks): la versión que la unidad responde, el eco, el cuerpo
+  corto, el silencio, los dos JEDEC admitidos, el chip desconocido, la geometría que no coincide, y las
+  precondiciones del camino V16. `test_donor`, `test_stock_releases`, `test_update_mode`, `test_verify_only`
+  (168 checks) y `test_web` siguen en verde.
+- **No probado en hardware.** Ninguna escritura física: el procedimiento queda listo para que lo corra el dueño.
+
 ## v1.5.8 — Un acorde no pierde teclas y el encabezado no se repinta por el medidor de carga
 
 - **#107, la causa real de la polifonía que se quedaba en siete.** Mientras el core 1 tiene un bloque en vuelo,

@@ -569,7 +569,17 @@ async function qryIdentify(link, nonce, timeoutMs, { optional = false } = {}) {
   body.push(qryCrc16(body) & 0xFF, (qryCrc16(body) >> 8) & 0xFF);
   const r = optional ? await qryAskOrNull(link, 0x12, body, timeoutMs) : await qryAsk(link, 0x12, body, timeoutMs);
   if (r === null) return null;                       // silence: the caller decides what it means
-  if (r.length !== 24) throw fail("chip", "Truncated identification reply: nothing was sent.");
+  /* (F4, issue #106 report) WHAT COMES BACK IS NOT ALWAYS AN ANSWER. A stock unit's firmware has no 0x12
+   * -- the command is this project's own -- and some USB-MIDI stacks echo the frame back unchanged. An
+   * echo, a short body and a body of the wrong length were all reported as "Truncated identification
+   * reply", which reads as a broken chip query on a unit where the query simply does not exist. Each
+   * one says what it is now; nothing is loosened, neither reaches a write. */
+  if (r.length === body.length && r.every((v, i) => v === body[i]))
+    throw fail("chip", "The unit echoed the identification query back unchanged: the program answering does "
+      + "not implement it (a stock firmware does not; this project's firmware and its loader do), or a MIDI "
+      + "bridge is looping frames. Nothing was sent.");
+  if (r.length !== 24) throw fail("chip", `The identification reply is ${r.length} bytes, not 24: the program `
+      + "answering is not this project's firmware, so it cannot identify the chip. Nothing was sent.");
   if (qryCrc16(r.slice(0, 21)) !== (r[21] | (r[22] << 8)))
     throw fail("chip", "The identification reply's CRC is wrong: nothing was sent.");
   if (r[1]) throw fail("chip", `The FM-1 refused to identify the NOR (${QRY_STATUS[r[1]] || "status " + r[1]}): nothing was sent.`);

@@ -354,6 +354,14 @@
       <p class="small"><label><span data-t="stockFile"></span><span id="stock-file-pre" hidden> <span data-t="stockOptional"></span></span>: <input id="stock-file" type="file" accept=".fwsc"></label></p>
       <p class="small"><label><input id="stock-recovery" type="checkbox"> <span data-t="stockRecovery"></span></label></p>
     </details>
+    <details id="v16" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      <summary style="cursor:pointer;color:var(--accent);font-weight:600" data-t="v16Title"></summary>
+      <p class="small" data-t="v16Text" style="margin-top:8px"></p>
+      <p class="small"><label><span data-t="v16Dump"></span>: <input id="v16-dump" type="file" accept=".bin,application/octet-stream"></label></p>
+      <p class="small" id="v16-dump-status" style="margin:4px 0 10px"></p>
+      <p class="small"><label><input id="v16-ack" type="checkbox" disabled> <span data-t="v16Ack"></span></label></p>
+      <p class="small" style="color:var(--gold)" data-t="v16Warn"></p>
+    </details>
   </section>
 
   <footer class="card small">
@@ -382,6 +390,11 @@ const TEXT = {
     firstTitle: "Vous venez d'un autre firmware custom ? Repassez d'abord par le firmware officiel M-VAVE",
     firstText: "L'installateur vérifie automatiquement votre FM-1 avant d'écrire : il flashe directement sur le firmware officiel M-VAVE (V15 ou V16) ou sur JIANT/GAMMAWAVE. Si un autre firmware custom est présent, utilisez la section de retour au firmware officiel ci-dessous.",
     firstStock: "Repasser d'abord au firmware officiel",
+    v16Title: "Installer depuis le V16 officiel (FM-1_016)",
+    v16Text: "Le V16 n'a pas de 0x12 : l'installateur ne peut pas lire la puce avant l'ecriture. Le chargeur du paquet la lit sur l'unite avant d'effacer. Il faut une copie complete de 1 Mio de CETTE unite (M-Flasher) et le fichier officiel V16 pour revenir.",
+    v16Dump: "Copie complete de cette unite (1 Mio, lue avec M-Flasher)",
+    v16Ack: "J'ai conserve cette copie et je sais la restaurer avec M-Flasher",
+    v16Warn: "GO CONDITIONNEL : le V16 deplace la zone applicative (0x4140, jusqu'a 0xA8FFF). Rien au-dessus de 0x93000 n'est ecrit, mais le retour et la reprise sur V16 n'ont pas ete observes ici.",
     firstOk: "Vérification automatique d'identité avant flash : sûr et sans sonde matérielle.",
     checking: "Vérification du firmware du FM-1…",
     otherfw: "Ce FM-1 utilise un autre firmware custom : rien n'a été écrit. Repassez d'abord au firmware officiel ci-dessous. Détecté : ",
@@ -442,6 +455,11 @@ const TEXT = {
     firstTitle: "Coming from another custom firmware? Return to M-VAVE's official firmware first",
     firstText: "Writing straight over another custom firmware (Felucca, baudgirl, etc.) can prevent startup. Return to M-VAVE's official firmware (V15 or V16) below first, then install GAMMAWAVE. If your FM-1 already runs official V15/V16, JIANT, or GAMMAWAVE, go right ahead.",
     firstStock: "Return to official firmware first",
+    v16Title: "Install from official V16 (FM-1_016)",
+    v16Text: "V16 carries no 0x12, so this page cannot read the chip before the write; the package's own update loader reads it on the unit before erasing. It needs a complete 1 MiB copy of THIS unit (M-Flasher) and the official V16 file as the way back.",
+    v16Dump: "Complete copy of this unit (1 MiB, read with M-Flasher)",
+    v16Ack: "I have kept that copy and I know how to restore it with M-Flasher",
+    v16Warn: "GO CONDITIONAL: V16 moved the app area (0x4140, to 0xA8FFF). Nothing above 0x93000 is written, but the return and the resume on V16 were not observed here.",
     firstOk: "Before installing, the installer checks the connected FM-1's firmware automatically.",
     checking: "Checking the FM-1's firmware…",
     otherfw: "This FM-1 runs a firmware that is neither M-VAVE's official firmware nor JIANT/GAMMAWAVE: nothing was written. Return to official firmware first below. Found: ",
@@ -486,6 +504,11 @@ const TEXT = {
     vNone: "Verify: no FM-1 answered. MIDI ports this browser enumerated:",
     chipOk: "Chip: identified by its own 0x12 answer",
     chipNo: "Chip: this unit did not answer its JEDEC",
+    chipStock: "Chip: stock firmware carries no 0x12. The update loader identifies the part on the unit before it erases; nothing is needed here:",
+    v16NeedDump: "V16: take the complete 1 MiB copy of this unit with M-Flasher first and load it here; nothing was sent.",
+    v16NeedAck: "V16: tick that the copy is kept and that you know how to restore it with M-Flasher; nothing was sent.",
+    v16DumpOk: "V16: copy recorded, SHA-256 ",
+    v16DumpBad: "V16: that file is not a 1 MiB full copy of this unit: nothing was sent.",
     vNoPorts: " \u2014 with the unit powered and a data cable, an empty list means this system is not presenting it: a charge-only cable, the unit switched off, or another program holding the port (Windows gives one client exclusive access per port). Nothing was sent.",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vVendorLoader: "Verify: the unit is in its own update mode (the vendor's loader). This page cannot finish that install; nothing was sent.",
@@ -539,6 +562,11 @@ const TEXT = {
     firstTitle: "他のカスタムファームウェアから入れる場合は、先に公式V15へ戻してください",
     firstText: "インストールの前に、接続された FM-1 のファームウェアを自動で確認します。公式V15 か JIANT/GAMMAWAVE のときだけ書き込みます。",
     firstStock: "先に公式V15へ戻す",
+    v16Title: "公式 V16 (FM-1_016) からインストール",
+    v16Text: "V16 には 0x12 がないため、書き込み前にチップを読めません。パッケージ内の更新ローダーが消去前に本体で読みます。この個体の 1 MiB 全体のコピー(M-Flasher)と、戻すための公式 V16 ファイルが必要です。",
+    v16Dump: "この個体の完全なコピー(1 MiB、M-Flasher で取得)",
+    v16Ack: "このコピーを保管し、M-Flasher で戻す方法を理解しています",
+    v16Warn: "GO CONDITIONAL:V16 はアプリ領域を移しました(0x4140〜0xA8FFF)。0x93000 より上は書きませんが、戻しと再開はここでは確認されていません。",
     firstOk: "プローブ不要、USBケーブルのみで安全に書き込みます。",
     checking: "FM-1 のファームウェアを確認中…",
     otherfw: "公式V15 でも JIANT/GAMMAWAVE でもないファームウェアが入っています。先に公式V15に戻してください: ",
@@ -591,6 +619,11 @@ TEXT.es = {
   firstTitle: "¿Venís de otro firmware personalizado? Volvé primero al V15 oficial",
   firstText: "El instalador verifica automáticamente tu FM-1 antes de escribir: solo graba sobre el firmware oficial V15 o sobre JIANT/GAMMAWAVE. Si hay otro firmware personalizado, usá primero la sección de retorno al V15.",
   firstStock: "Volver primero al V15 oficial",
+    v16Title: "Instalar desde el V16 oficial (FM-1_016)",
+    v16Text: "El V16 no tiene 0x12: esta pagina no puede leer el chip antes de escribir; el loader del paquete lo lee en la unidad antes de borrar. Hace falta una copia completa de 1 MiB de ESTA unidad (con M-Flasher) y el archivo oficial V16 como camino de vuelta.",
+    v16Dump: "Copia completa de esta unidad (1 MiB, leida con M-Flasher)",
+    v16Ack: "Guarde esa copia y se restaurarla con M-Flasher",
+    v16Warn: "GO CONDITIONAL: el V16 movio el area de aplicacion (0x4140, hasta 0xA8FFF). No se escribe nada por encima de 0x93000, pero la vuelta y la reanudacion en V16 no se observaron aca.",
   firstOk: "La identidad se comprueba antes de grabar: no hace falta una sonda física.",
   checking: "Comprobando el firmware del FM-1…",
   otherfw: "Este FM-1 tiene otro firmware personalizado: no se escribió nada. Volvé primero al V15 oficial. Detectado: ",
@@ -635,6 +668,11 @@ TEXT.es = {
   vNone: "Verificar: no respondió ningún FM-1. Puertos MIDI que enumeró este navegador:",
   chipOk: "Chip: identificado por su propia respuesta 0x12",
   chipNo: "Chip: esta unidad no dio su JEDEC",
+  chipStock: "Chip: el firmware oficial no tiene 0x12. El loader de actualización identifica el chip en la unidad antes de borrar; aquí no hace falta nada:",
+  v16NeedDump: "V16: toma primero la copia completa de 1 MiB de esta unidad con M-Flasher y cargala aca; no se envio nada.",
+  v16NeedAck: "V16: marca que guardaste la copia y que sabes restaurarla con M-Flasher; no se envio nada.",
+  v16DumpOk: "V16: copia registrada, SHA-256 ",
+  v16DumpBad: "V16: ese archivo no es una copia completa de 1 MiB de esta unidad: no se envio nada.",
   vNoPorts: " — con la unidad encendida y un cable de datos, una lista vacía significa que este sistema no la está presentando: cable sólo de carga, unidad apagada, u otro programa con el puerto tomado (Windows da acceso exclusivo a un cliente por puerto). No se envió nada.",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vVendorLoader: "Verificar: la unidad está en su propio modo actualización (el loader del fabricante). Esta página no puede terminar esa instalación; no se envió nada.",
@@ -688,6 +726,11 @@ TEXT.zh = {
   firstTitle: "来自其他自定义固件？请先恢复官方 V15",
   firstText: "写入前安装器会自动检查 FM-1：只允许在官方 V15 或 JIANT/GAMMAWAVE 上写入。如果检测到其他自定义固件，请先使用下方的 V15 恢复功能。",
   firstStock: "先恢复官方 V15",
+    v16Title: "从官方 V16 (FM-1_016) 安装",
+    v16Text: "V16 没有 0x12，页面无法在写入前读取芯片；包内的更新加载器会在擦除前于设备上读取。需要本机的 1 MiB 完整备份(用 M-Flasher)以及官方 V16 文件作为退路。",
+    v16Dump: "本机的完整备份(1 MiB，用 M-Flasher 读取)",
+    v16Ack: "我已保存该备份，并知道如何用 M-Flasher 恢复",
+    v16Warn: "GO CONDITIONAL:V16 改变了应用区(0x4140 至 0xA8FFF)。0x93000 之上不会写入，但回退与续传未在此验证。",
   firstOk: "写入前自动校验设备身份，无需硬件探针。",
   checking: "正在检查 FM-1 固件…",
   otherfw: "此 FM-1 运行其他自定义固件：未写入任何内容。请先恢复官方 V15。检测到：",
@@ -732,6 +775,11 @@ TEXT.zh = {
   vNone: "校验：没有 FM-1 回应。此浏览器枚举到的 MIDI 端口：",
   chipOk: "闪存芯片：已由其自身的 0x12 应答识别",
   chipNo: "闪存芯片：该设备没有返回 JEDEC",
+  chipStock: "闪存芯片：官方固件不含 0x12。更新加载器会在擦除前于设备上识别芯片；此处无需操作：",
+  v16NeedDump: "V16：请先用 M-Flasher 读取本机的 1 MiB 完整备份并在此载入；未发送任何数据。",
+  v16NeedAck: "V16：请勾选已保存备份并知道如何用 M-Flasher 恢复；未发送任何数据。",
+  v16DumpOk: "V16：备份已记录，SHA-256 ",
+  v16DumpBad: "V16：该文件不是本机的 1 MiB 完整备份；未发送任何数据。",
   vNoPorts: " — 若设备已开机并使用数据线，列表为空说明系统没有呈现它：仅充电线、设备未开机，或其他程序占用了端口（Windows 每个端口只允许一个客户端独占）。未发送任何内容。",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vVendorLoader: "校验：设备处于其自身的更新模式（厂商 loader）。本页面无法完成该安装；未发送任何数据。",
@@ -1266,6 +1314,54 @@ if ($("plan-dump")) $("plan-dump").addEventListener("change", async (ev) => {
 });
 
 const ctxFor = (firmware = null) => ({ sha256: releaseHash, firmware });
+/* (F4, V16) THE STOCK UNIT'S OWN VERSION. This page told the transport "15" for every stock unit it found,
+ * so a V16 unit -- whose identity is FM-1_016 -- arrived at donorIdentity() as an identity saying 16 and a
+ * firmware saying 15: two claims that contradict each other, refused, and the report read "the device is
+ * FM-1_016, the package is for FM-1_965". The version the unit answered is the only source; the identity
+ * has already been matched against the stock releases this project read (fm1pkg.js STOCK_RELEASES), and a
+ * string that cannot be read stays unreadable, which the transport refuses. */
+/* (F4, V16) THE DUMP RECORD. A V16 unit's app area is not the window this project's loader writes by default
+ * and nothing above 0x93000 is touched, so the way back is a complete 1 MiB copy of THIS unit, taken with
+ * M-Flasher: a stock firmware has neither 0x12 nor 0x13, so this page cannot read the part itself. The file is
+ * hashed here (browser crypto), the whole part is required, and the record is kept beside the language so a
+ * reload does not lose it. The transport never sees it: it is a condition of this page's V16 path, not a chip
+ * fact, and the chip is still read on the unit by the loader before it erases. */
+const V16_DUMP_KEY = "qg1.v16dump", V16_DUMP_SIZE = 0x100000;
+let v16Dump = null;
+const loadV16Dump = () => {
+  try {
+    const r = JSON.parse(localStorage.getItem(V16_DUMP_KEY) || "null");
+    return r && r.size === V16_DUMP_SIZE && /^[0-9a-f]{64}$/.test(String(r.sha256 || "")) ? r : null;
+  } catch (_) { return null; }
+};
+function showV16Dump() {
+  const st = $("v16-dump-status");
+  if (st) st.textContent = v16Dump
+    ? t("v16DumpOk") + v16Dump.sha256.slice(0, 16) + "\u2026 " + (v16Dump.name || "") + " \u00b7 " + v16Dump.at
+    : "";
+  if ($("v16-ack")) { $("v16-ack").disabled = !v16Dump; if (!v16Dump) $("v16-ack").checked = false; }
+}
+async function sha256hexBytes(b) {
+  const d = await crypto.subtle.digest("SHA-256", b);
+  return [...new Uint8Array(d)].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+if ($("v16-dump")) $("v16-dump").addEventListener("change", async () => {
+  const f = $("v16-dump").files && $("v16-dump").files[0];
+  if (!f) return;
+  try {
+    const b = new Uint8Array(await f.arrayBuffer());
+    if (b.length !== V16_DUMP_SIZE) { sayK("v16DumpBad", ` (${b.length} B)`); return; }
+    v16Dump = { size: b.length, sha256: await sha256hexBytes(b), at: new Date().toISOString().slice(0, 10), name: f.name };
+    try { localStorage.setItem(V16_DUMP_KEY, JSON.stringify(v16Dump)); } catch (_) {}
+    showV16Dump();
+    sayK("v16DumpOk", v16Dump.sha256.slice(0, 16) + "\u2026");
+  } catch (e) { sayK("error", e && e.message); }
+});
+v16Dump = loadV16Dump();
+const stockVersionOf = (text) => {
+  const m = /^FM-1_0(\d{2})$/.exec(String(text || ""));   /* the vendor's numbering is FM-1_0NN; 9NN is this project */
+  return m ? String(Number(m[1])) : "unreadable";         /* unreadable is refused by the transport, never guessed */
+};
 
 let writing = false, stock = null, stockFileEpoch = 0, releaseOk = false, provOk = false, lastVerify = null;
 /* the offline half of the trust chain, kept from the load: the bytes were hashed here and the
@@ -1427,6 +1523,7 @@ async function chipEvidence(up, model) {
     return ev;
   } finally { dev.link.close(); }
 }
+showV16Dump();
 $("first-stock").addEventListener("click", () => { $("stock").open = true; $("stock").scrollIntoView({ behavior: "smooth" }); });
 
 $("go").addEventListener("click", async () => {
@@ -1470,7 +1567,14 @@ $("go").addEventListener("click", async () => {
       log(`firmware: ${fw.kind} ${fw.text || ""}`);
       if (fw.kind === "none") { sayK("notfound"); lockInstaller(false); return; }
       if (fw.kind === "other") { sayK("otherfw", fw.text); $("stock").open = true; lockInstaller(false); return; }
-      /* A stock unit (V15) installs like any other: its own updater stages this package's loader, and
+      /* (F4, V16) THE V16 PATH HAS ITS OWN PRECONDITIONS, AND THEY ARE MET ON THIS PAGE. The complete copy of
+       * this unit and the acknowledgement that it can be put back are what a V16 install stands on; without
+       * them nothing is sent, and the section that asks for them is opened where the reader is looking. */
+      if (fw.kind === "stock" && stockVersionOf(fw.text) === "16") {
+        if (!v16Dump) { sayK("v16NeedDump"); if ($("v16")) $("v16").open = true; lockInstaller(false); return; }
+        if (!$("v16-ack").checked) { sayK("v16NeedAck"); if ($("v16")) $("v16").open = true; lockInstaller(false); return; }
+      }
+      /* A stock unit (V15 or V16) installs like any other: its own updater stages this package's loader, and
        * the loader checks the flash chip before it erases anything (firmware/loader/loader.c). */
       if (fw.kind === "jiant") {                 /* (QG-1) a backup first, always: songs, sounds, settings */
         let ai = null;
@@ -1487,7 +1591,7 @@ $("go").addEventListener("click", async () => {
       }
       /* install() identifies the chip on the very link it will write through: a reading taken on
        * another connection and passed in would be exactly the stale evidence the gate refuses. */
-      await up.install(image, meta.product, step, ctxFor(fw.kind === "stock" ? "15" : versionOf(fw.info)));
+      await up.install(image, meta.product, step, ctxFor(fw.kind === "stock" ? stockVersionOf(fw.text) : versionOf(fw.info)));
     }
   } catch (e) {
     /* The same "lost" means two different things: nothing was written, or a sector write was
@@ -1575,7 +1679,7 @@ async function runVerify() {
     let midi;
     try { midi = await navigator.requestMIDIAccess({ sysex: true }); } catch (e) { await midiRefused(e); return; }
     watchPorts(midi);
-    const fw = await verifyDevice(midi, { product: meta.product, log, signature: releaseSig,
+    const fw = await verifyDevice(midi, { product: meta.product, log, signature: releaseSig, dump: v16Dump,
       pkg: { version: meta.version, size: meta.size, sha256: meta.sha256, build: meta.build } });
     log(`verify: ${fw.kind} found=${fw.found} recognised=${fw.recognised} id=${fw.text || "-"}` +
         (fw.ports.length ? ` ports=${fw.ports.join(", ")}` : ""));
@@ -1611,6 +1715,17 @@ $("chip").addEventListener("click", async () => {
   if (writing || !lastVerify || !midiAccess) return;
   lockInstaller(true);
   try {
+    /* (F4) A STOCK UNIT HAS NO 0x12. Probing it spends two frames on a command the program does not
+     * implement and reports the silence (or the echo) as a failed chip check. On stock firmware the chip
+     * is read by the update loader this installer stages -- on the unit, before it erases anything. */
+    if (lastVerify.kind === "stock") {
+      log("chip: stock firmware has no 0x12; the update loader checks the part on the unit");
+      sayK("chipStock", " " + (lastVerify.text || ""));
+      lastVerify = { ...lastVerify, chip: { ok: false, code: "stock", why: "stock firmware carries no 0x12: the update loader checks the part on the unit, before it erases" } };
+      showVerify(lastVerify);
+      $("diag").disabled = false;
+      return;
+    }
     const r = await chipCheck(midiAccess, { log });
     log(`chip: ${r.ok ? `0x${Number(r.jedec).toString(16)} ${r.part}` : `${r.code} ${r.why}`}`);
     lastVerify = { ...lastVerify, chip: r };
