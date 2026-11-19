@@ -2049,3 +2049,13 @@ La unidad física no se tocó: ninguna fila de abajo es una medición de hardwar
 | Instalador web y pruebas del sitio | `[HOST]` | `tests/install_test.py` y `web/test_web.mjs`: pasan con la versión v1.5.0 en la fuente |
 | Paquete AC791N y release v1.5.0 | — | **NOT BUILT**: sin `JIELI_TOOLCHAIN` ni `AC79_SDK` en este entorno no hay `.fwsc`, ni firma, ni release. `site/` y `release/` siguen sirviendo v1.4.17 |
 | Issues #105/#106/#107 actualizados en GitHub | — | **NOT DONE**: `gh` sin autenticar; los resultados quedan en `docs/` y en el CHANGELOG |
+
+## Estabilidad — carrera entre núcleos en la asignación de voces
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| Una nota pulsada mientras el core 1 renderiza no toca el pool | `[HOST]` | `tests/voice_defer_test.c` (flag simulado, código real): 9/9 ok — note-on diferido, note-off diferido, acorde de 12, cola llena, note-off nunca descartado |
+| El audio no cambió | `[HOST]` | `build/regress`: 303 renders, **0 changed**, 0 fallos |
+| La UI compila y pasa sin `hv_system` | `[HOST]` | `build/ui_test`: all passed (código muerto eliminado: 0 referencias) |
+| La carrera en la unidad (DUAL CORE real) | — | **NOT MEASURED**: sin unidad; el arreglo elimina la ventana por construcción (`job != done`), pero la mejora de latencia de teclado (hasta un trabajo del core 1) no se midió |
+| Compilar para AC791N | — | **NOT RUN**: `JIELI_TOOLCHAIN` y `AC79_SDK` no están en este entorno |

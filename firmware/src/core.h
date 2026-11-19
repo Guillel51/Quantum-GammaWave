@@ -96,6 +96,11 @@ static inline uint32_t voice_user_budget(void)
 #define FELUCCA_WSEED 1               /* WHEEL seeds its wheels from the voice's place in its part, and reseeds a
                                        * slot with no note on it, never from the pool slot number */
 #endif
+/* (FASE 1) is the other core rendering a block right now? 0 on the host and in a one-core build; the firmware
+ * (felucca.c) points it at fm1_mc_job_busy(), and voice.c postpones a note it cannot place safely. */
+#ifndef FELUCCA_MC_BUSY
+#define FELUCCA_MC_BUSY() 0
+#endif
 #define NPART 6                  /* synth parts: tracks 1..6 (JIANT 0.6: was 4) */
 #define NTRK NPART               /* tracks (the formats and the protocol count these): every track is a part */
 #define NSTEP 64

@@ -56,6 +56,11 @@ static inline uint32_t fm1_mc_ticks(void) { return FM1_C1_T4(); }   /* (0.6.73) 
  * before `done`, so a value read while `done == job` is that job's own figure */
 static inline uint32_t fm1_mc_job_us(void) { return fm1_mc_box.job_us; }
 static uint8_t fm1_mc_on;                       /* answering: core 0 may hand it work */
+/* (FASE 1) IS CORE 1 RENDERING RIGHT NOW? The key scan (TIMER5) nests inside the audio ISR, and the pool it
+ * would allocate from is exactly what core 1 may be reading through its parts' windows: seen from a nested
+ * interrupt, `job != done` is a job in flight. voice.c asks this before it touches a window or a voice and
+ * keeps the note for the next block start instead (voice_defer_flush, events_block), when core 1 is idle. */
+static inline int fm1_mc_job_busy(void) { return fm1_mc_on && fm1_mc_box.job != fm1_mc_box.done; }
 static uint8_t fm1_mc_lost;                     /* why it stopped: 1 a wrong job, 2 a job not back, 3 a fault */
 static uint32_t fm1_mc_max_ticks;               /* the longest wait for a job (TIMER4 ticks): MENU > ABOUT */
 

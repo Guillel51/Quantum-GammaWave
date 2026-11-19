@@ -1,3 +1,28 @@
+## Estabilidad (corrección de pendientes): carrera entre núcleos en la asignación de voces
+
+**Bug real corregido (#107, sincronía de núcleos).** El escaneo del teclado corre desde TIMER5, **anidado
+dentro del ISR de audio**, y en ese momento el render ya le entregó las pistas 3..6 al core 1. Una nota
+pulsada ahí podía entrar en `voice_alloc` y, con ella, en `voice_window_grow` (que reasigna slots de la
+ventana de **otra** parte y hace `memset` de un `voice_t`), en `voice_start` (escribe la voz) o en un robo
+que escribe la voz de otra parte — todo mientras el core 1 las estaba leyendo. Ahora:
+
+- `firmware/hal/fm1_multicore.h`: `fm1_mc_job_busy()` (`job != done`), la pregunta "¿el core 1 está
+  renderizando?" desde un contexto anidado.
+- `core.h` / `felucca.c`: `FELUCCA_MC_BUSY()`, 0 en el host y en builds de un solo núcleo, y
+  `fm1_mc_job_busy()` en el firmware con DUAL CORE.
+- `voice.c`: si el otro núcleo tiene un trabajo en vuelo, el note-on/note-off se guarda en una cola de 8 y
+  se reproduce al principio del bloque siguiente (`voice_defer_flush`), cuando el core 1 está quieto. Un
+  note-off nunca se descarta (se aplica en el acto si la cola está llena): nunca una nota colgada. Un
+  note-on que no entra en la cola se pierde, y está dicho en el código.
+- `seq.c`: `events_block()` vacía la cola antes de que el bloque reparta trabajo.
+
+Nuevo `tests/voice_defer_test.c` (host, con el flag simulado, ejecutando el código real): 9 comprobaciones,
+incluido el acorde de 12 teclas diferido y la cola llena.
+
+**Código muerto eliminado.** `hv_system()` (la pantalla SYSTEM de HOME, ~90 líneas) no la llamaba nadie:
+`graph_home_view()` sólo alcanza OVERVIEW / MIXER / PERFORMANCE. Se borró con su helper `hv_batt()`, que
+sólo ella usaba. Libera XIP y quita un comentario que prometía una pantalla inexistente.
+
 ## v1.5.0 — Fase 3: accesibilidad, optimización de note-on y cierre de la fase 2
 
 **Issue #105 — FM-1 Screen Reader.** `firmware/src/announce.c`: el protocolo del lector (SysEx

@@ -334,6 +334,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     # once, SUSTAIN, the load budget, DUAL CORE, a long chord, fast on/off, and the voice states the monitor prints
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_report_test" tests/poly_report_test.c -lm
     run "POLY (issue #107): 1..12 keys on ANALOG BRASS / PLUCK and POLY, at once and one by one, SUSTAIN, LOAD TIGHT, DUAL CORE, long chord, fast on/off, release vs sounding and the peak" "$OUT/poly_report_test"
+    # (FASE 1) the note the key scan keeps while core 1 renders: the pool is never touched mid-job
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/voice_defer_test" tests/voice_defer_test.c -lm
+    run "CORE SYNC: a note while the other core renders is postponed (never allocated mid-job), replayed at the block start, note-offs never dropped, a burst over the queue loses only note-ons" "$OUT/voice_defer_test"
     # (FASE 3, issue #105) the screen reader's protocol (announce.c) and the USB-MIDI framing usb.c uses
     $CC -O1 -w -Ifirmware/src -o "$OUT/announce_test" tests/announce_test.c
     run "SCREEN READER (issue #105): silent until HELLO, the HELLO answer, SAY/WHERE/BYE, the 5 s timeout, a line cut at a word, and USB-MIDI CIN 4/5/6/7" "$OUT/announce_test"

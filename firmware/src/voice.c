@@ -945,6 +945,51 @@ static void mono_remove(track_t *t, uint32_t note)
 }
 
 static int pfx_note(track_t *t, uint32_t note, uint32_t vel);   /* pfx.c (in fx.c) */
+
+/* (FASE 1) A NOTE THAT ARRIVES WHILE CORE 1 IS RENDERING WAITS FOR THE NEXT BLOCK. The key scan runs from
+ * TIMER5, nested inside the audio ISR, and the render has handed parts 3..6 to core 1: an allocation there
+ * (voice_window_grow hands a slot from another part, voice_start writes the voice, a steal writes another
+ * part's) raced the core that was reading those same windows. Grounds: core 1's job is `job != done` in the
+ * mailbox; when it is, the note is kept here and replayed at the next block start (voice_defer_flush, called
+ * from events_block before the block hands out any work), when core 1 is idle. A full queue drops the note
+ * (a note-off is never dropped: it is applied at once, because a stuck note is worse than a race of one
+ * block on an event the player already ended). */
+#define VQ_N 8u
+static struct { uint8_t t, off, note, vel; } vq[VQ_N];
+static uint8_t vq_n, vq_replay;
+static void trk_note_on(track_t *t, uint32_t note, uint32_t vel);
+static void trk_note_off(track_t *t, uint32_t note);
+static int voice_mc_busy(void) { return !vq_replay && FELUCCA_MC_BUSY(); }
+/* 1 = kept for the next block, 0 = apply it now */
+static int voice_defer(track_t *t, uint32_t off, uint32_t note, uint32_t vel)
+{
+    if (vq_n >= VQ_N)
+        return off ? 0 : 1;                            /* full: the note-on is dropped (8 of a burst inside one
+                                                        * job), the note-off is applied at once by the caller */
+    vq[vq_n].t = (uint8_t)(uint32_t)(t - trk);
+    vq[vq_n].off = (uint8_t)off;
+    vq[vq_n].note = (uint8_t)note;
+    vq[vq_n].vel = (uint8_t)vel;
+    vq_n++;
+    return 1;
+}
+/* block start, core 0, before the block's jobs: replay in order, with the pool at rest */
+static void voice_defer_flush(void)
+{
+    uint32_t i;
+    if (!vq_n)
+        return;
+    vq_replay = 1;
+    for (i = 0; i < vq_n; i++) {
+        track_t *t = &trk[vq[i].t % NTRK];
+        if (vq[i].off)
+            trk_note_off(t, vq[i].note);
+        else
+            trk_note_on(t, vq[i].note, vq[i].vel);
+    }
+    vq_n = 0;
+    vq_replay = 0;
+}
 static uint8_t trk_hush;
 static uint8_t trk_live = 4;
 static volatile uint8_t asleep_hit;                     /* (0.6.28) a note went to a track asleep (ui_input: the hint) */                            /* (JIANT 0.6.18) MENU > TRACKS: the tracks that play (4 LOW CPU, the
@@ -954,6 +999,8 @@ static volatile uint8_t asleep_hit;                     /* (0.6.28) a note went 
                                                          * silenced track's voices end, it costs nothing) */
 static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
 {
+    if (voice_mc_busy() && voice_defer(t, 0, note, vel))
+        return;                                         /* (FASE 1) core 1 is rendering: next block */
     uint32_t any = 0, i, mode = trk_vmode(t);
     if ((uint32_t)(t - trk) >= trk_live && !t->p[P_MUTE]) {
         asleep_hit = 1;                                 /* (0.6.28) a note for a track asleep: the UI says so */
@@ -1017,6 +1064,8 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
 static void trk_note_off(track_t *t, uint32_t note)
 {
     uint32_t i, k = 0, mode = trk_vmode(t);
+    if (voice_mc_busy() && voice_defer(t, 1, note, 0))
+        return;                                         /* (FASE 1) core 1 is rendering: next block */
     for (i = 0; i < t->xp_n; i++)                       /* not sounding yet (engine switch): forget it */
         if (t->xp_note[i] != note) {
             t->xp_note[k] = t->xp_note[i];

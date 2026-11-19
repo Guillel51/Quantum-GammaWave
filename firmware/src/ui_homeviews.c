@@ -83,12 +83,6 @@ static void hv_sound_name(const track_t *t, char *b)
         str_cpy(b, e->presets[t->preset % e->npresets].name, 16);
 }
 
-/* ui_draw.c's battery steps (batt_raw: 531 / 561 / 591 are the thresholds its icon uses), so HOME and the footer
- * never disagree about the charge */
-static int32_t hv_batt(void)
-{
-    return song.batt_raw >= 591 ? 3 : song.batt_raw >= 561 ? 2 : song.batt_raw >= 531 ? 1 : 0;
-}
 
 /* the voices a part holds now (its window into the pool, the ones still sounding) */
 static uint32_t hv_voices(const track_t *t)
@@ -122,7 +116,8 @@ static uint32_t hv_view_sig(void)
     h = (h ^ (uint32_t)ui.home_view) * 16777619u;
     h = (h ^ (uint32_t)settings.palette) * 16777619u;
     h = (h ^ (ui.frame / 8u)) * 16777619u;          /* the embers' phase, as hv_air steps it */
-    /* (FASE 2, issue #106) THE LOAD IS NOT ON THESE SCREENS. hv_system alone prints song.cpu_q8, and the three
+    /* (FASE 2, issue #106) THE LOAD IS NOT ON THESE SCREENS. Only the SYSTEM screen of older builds printed
+ * song.cpu_q8 (it is gone: nothing reached it), and the three
      * screens that draw this body do not: hashing it repainted the whole 240 x 176 body -- three SPI blits, the
      * top line first -- on every frame the load moved, which is what flickered at the top of OVERVIEW, MIXER and
      * PERFORMANCE while the rest of the screen had nothing new to show. */
@@ -234,93 +229,6 @@ static void hv_overview(const track_t *t, uint16_t c)
     }
 }
 
-static void hv_system(uint16_t c)
-{
-    char b[28];
-    uint32_t v = 0, k;
-    hv_grad();
-    hv_air(26, 176, c, 5u);                            /* (FASE 2) the same embers and floor the other HOME views
-                                                        * carry: SYSTEM was the one that sat on a flat background */
-    for (k = 0; k < NTRK; k++)
-        v += hv_voices(&trk[k]);
-
-    hv_strip(29, c);
-    cv_text(14, 30, &AF_S, "SYSTEM", T_THEME);
-    cv_text(96, 30, &AF_S, FELUCCA_VERSION, T_MID);    /* (4.1) the version, beside the title */
-    cv_rect(14, 43, 212, 1, T_LINE);
-
-    /* the audio ISR's load: audio.c song.cpu_q8, averaged over CPU_AVG blocks, as the graphs' five-segment bar
-     * (ui_draw.c cpu_seg) and GLOBAL's own row read it */
-    cv_text(14, 50, &AF_S, "AUDIO CPU", T_DIM);
-    hv_bar(96, 51, 96, 6, (int32_t)(song.cpu_q8 * 100u / 256u), 100, c, T_RAISE);
-    fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
-    hv_cat(b, "%", sizeof b);
-    cv_text_r(226, 50, &AF_S, b, T_TEXT, T_SURF);
-
-    cv_text(14, 64, &AF_S, "VOICES", T_DIM);
-    hv_bar(96, 65, 96, 6, (int32_t)v, (int32_t)(NVOICE * NTRK), c, T_RAISE);
-    fmt_int(b, (int32_t)v);
-    cv_text_r(226, 64, &AF_S, b, T_TEXT, T_SURF);
-
-    cv_text(14, 78, &AF_S, "BATTERY", T_DIM);
-    for (k = 0; k < 4u; k++) {
-        uint16_t fg = (int32_t)k <= hv_batt() ? ((int32_t)k == 0 && hv_batt() == 0 ? T_RAISE : c) : T_RAISE;
-        cv_rect(96 + (int32_t)k * 13, 78, 11, 6, fg);
-    }
-    if (!song.batt_raw)                                  /* (0: the ADC has not read it yet) */
-        cv_text(150, 78, &AF_S, "NOT READ", T_DIM);
-
-    cv_text(14, 92, &AF_S, "UPTIME", T_DIM);
-    fmt_int(b, (int32_t)(fm1_ms / 3600000u));
-    hv_cat(b, "h ", sizeof b);
-    {   uint32_t m = (fm1_ms / 60000u) % 60u;
-        char t[4];
-        if (m < 10u)
-            hv_cat(b, "0", sizeof b);
-        fmt_int(t, (int32_t)m);
-        hv_cat(b, t, sizeof b);
-        hv_cat(b, "m", sizeof b);
-    }
-    cv_text(96, 92, &AF_S, b, T_TEXT);
-
-    cv_text(14, 106, &AF_S, "CLOCK", T_DIM);
-    cv_text(96, 106, &AF_S, song.g[G_CLOCK] ? "EXTERNAL (MIDI)" : "INTERNAL", T_TEXT);
-
-    /* pass 1: what each part is using right now */
-    cv_text(14, 118, &AF_S, "PARTS", T_THEME);
-    cv_text_r(226, 118, &AF_S, "[HOME] NEXT", T_DIM, T_SURF);
-    cv_rect(14, 131, 212, 1, T_LINE);
-    for (k = 0; k < NTRK; k++) {                       /* (FASE 2) THE VOICE POOL, drawn as it is: one cell a voice,
-                                                        * lit while that voice sounds. The row used to carry a bar
-                                                        * whose fill said "how many", which at rest is an empty
-                                                        * trough: the matrix says which ones, and the count stays. */
-        const track_t *q = &trk[k];
-        int32_t y = 136 + (int32_t)k * 10, n = (int32_t)hv_voices(q), i;
-        const engine_t *e = ENGINES[q->eng_req % NENGINES];
-        str_cpy(b, "T", sizeof b);
-        fmt_int(b + 1, (int32_t)k + 1);
-        cv_text(14, y, &AF_S, b, k == song.sel ? c : T_MID);
-        cv_text(32, y, &AF_S, e->name, k == song.sel ? T_TEXT : T_MID);
-        for (i = 0; i < NVOICE; i++) {                 /* a cell a voice: 4 px, 2 px apart, 120 .. 178. An empty
-                                                        * cell is drawn as a slot (a frame and a dark fill), so the
-                                                        * pool reads as ten places even with nothing sounding; a
-                                                        * voice in its release is dimmer than a gated one */
-            int32_t on = V(q, i).active ? 1 : 0;
-            int32_t cx0 = 120 + i * 6;
-            if (!on) {
-                cv_rect(cx0, y + 1, 4, 6, T_RAISE);
-                cv_frame(cx0, y + 1, 4, 6, T_LINE);
-            } else {
-                uint16_t fg = V(q, i).gate ? (k == song.sel ? c : T_THEME) : T_MID;
-                cv_rect(cx0, y + 1, 4, 6, fg);
-                cv_rect(cx0, y + 1, 4, 1, ux_mix(fg, T_TEXT, 45));
-                cv_rect(cx0, y + 6, 4, 1, ux_mix(fg, T_BG, 45));
-            }
-        }
-        fmt_int(b, n);
-        cv_text_r(226, y, &AF_S, b, n ? T_TEXT : T_DIM, T_SURF);
-    }
-}
 
 /* (3.3) the air behind HOME's screens: slow embers that drift upward and a floor of bars fed by each track's own
  * level. Everything is 1 px rects in the panel's own steps (SURF/RAISE/LINE), drawn first so the text sits on top,

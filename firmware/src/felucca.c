@@ -76,6 +76,9 @@
 
 /* ----------------------------------------------------------- sound --- */
 #include "core.h"
+#if FELUCCA_DUAL_CORE
+#define FELUCCA_MC_BUSY() fm1_mc_job_busy()      /* (FASE 1) core 1 mid-job: voice.c postpones the note */
+#endif
 #include "preset_level.c"        /* (2.1) the measured level of every factory preset */
 #include "engines.c"             /* dsp.c, the eng_*.c files, the factory patterns */
 #include "params.c"

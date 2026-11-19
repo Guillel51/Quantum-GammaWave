@@ -1937,6 +1937,7 @@ static int32_t click_beat_now(void)
 static void events_block(uint32_t n)
 {
     uint32_t i, pr, fo, seq_n = n;
+    voice_defer_flush();                            /* (FASE 1) the notes the key scan kept while core 1 was working */
     uint32_t clock_mode = (uint32_t)song.g[G_CLOCK];
     if (midi_clock.mode != clock_mode) {
         seq_stop();
