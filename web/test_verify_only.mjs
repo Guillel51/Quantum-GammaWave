@@ -94,6 +94,48 @@ function anyWrite(sent) {
   check("official V16: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
+  /* (FASE 5) V16 IS NOT V15 AND MUST NOT INHERIT V15'S EVIDENCE. V16 moved the app area (app.bin at 0x4140,
+   * 597 928 B, past this loader's 0x93000): there is no demonstrated return and no demonstrated recovery for
+   * it, and its firmware is not M-VAVE's pinned V15 file. The gate used to read both as "stock" and answer
+   * backup not-required / recovery covered, which authorised a write on evidence that only exists for V15.
+   * The most this page may say for a V16 unit is an explicit GO CONDITIONAL whose conditions are the dump
+   * taken with M-Flasher and its verification -- and it still cannot write. */
+  const built = { version: "1.5.0", size: 610959, sha256: "80".repeat(32), keys: { "qg1-release-1": "00".repeat(32) },
+    build: { commit: "901bb83", artifacts: { "felucca.bin": { bytes: 582104 }, "loader/ota.bin": { bytes: 7803 } } } };
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_016")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965", pkg: built,
+    signature: { state: "pass", keyid: "qg1-release-1", size: 610959, sha256: "80".repeat(32), detail: "checked" } });
+  const g = Object.fromEntries((fw.gate || []).map((r) => [r.key, r.state]));
+  check("official V16: a complete verified dump is a precondition, never 'not-required'",
+        g["gate.backup"] === "required" && fw.kind === "stock" && fw.version === 16);
+  check("official V16: recovery is not demonstrated (the app area moved, no return proven)",
+        g["gate.recovery"] === "not-demonstrated");
+  check("official V16: both conditions block, in every path",
+        fw.verdict.blocked.includes("gate.backup") && fw.verdict.blocked.includes("gate.recovery"));
+  check("official V16: the verdict is GO CONDITIONAL, not GO and not a silent NO-GO",
+        fw.verdict.result === "GO CONDITIONAL" && fw.verdict.conditional === true);
+  check("official V16: it names the dump and its check, made with M-Flasher",
+        Array.isArray(fw.verdict.conditions) && fw.verdict.conditions.includes("m-flasher-dump") &&
+        fw.verdict.conditions.includes("m-flasher-verify") && fw.verdict.path === "m-flasher");
+  check("official V16: GO CONDITIONAL is not an authorisation to write",
+        fw.verdict.canInstall === false && fw.verdict.canInstallHost === false && fw.authorised === false);
+  check("official V16: its limitations are named",
+        fw.verdict.limitations.includes("v16-backup-not-taken") &&
+        fw.verdict.limitations.includes("v16-return-and-recovery-not-demonstrated"));
+  check("official V16: the diagnostic reaches RECOVERY NOT VERIFIED and never INSTALL READY",
+        (() => { const st = Object.fromEntries(diag.diagnosticStates(fw).map((s) => [s.state, s.reached]));
+          return st["RECOVERY NOT VERIFIED"] === true && st["INSTALL READY"] === false && st["INSTALL BLOCKED"] === true; })());
+  check("official V16: still read-only, nothing but the identity query", onlyQueries(a.sent) && !anyWrite(a.sent));
+  /* and V15 keeps the evidence it has: the rule is about V16, it does not leak to the older release */
+  const b = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_015")] });
+  const fw15 = await verifyDevice(b.midi, { product: "FM-1_965", pkg: built,
+    signature: { state: "pass", keyid: "qg1-release-1", size: 610959, sha256: "80".repeat(32), detail: "checked" } });
+  const g15 = Object.fromEntries((fw15.gate || []).map((r) => [r.key, r.state]));
+  check("official V15 keeps not-required / covered and its GO",
+        g15["gate.backup"] === "not-required" && g15["gate.recovery"] === "covered" &&
+        fw15.verdict.result === "GO" && fw15.verdict.conditions.length === 0);
+}
+{
   // JIANT, or any FM-1 firmware that is not this one: its identity is reported, never "unknown"
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_210")] });
   const fw = await verifyDevice(a.midi, { product: "FM-1_965" });

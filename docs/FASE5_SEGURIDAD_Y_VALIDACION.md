@@ -69,3 +69,42 @@ las regiones fuera de `[0x4000,0x93000)` siguen sin escribirse por diseño (`ldr
 4. CPU de ambos núcleos con la carga de seis pistas (los 14 µs/bloque son de este host).
 5. #106 (UI): las invalidaciones de región no se pueden verificar con el arnés actual, que dibuja frames
    enteros.
+
+
+## 6. Corrección: un FM-1_016 ya no hereda la evidencia de un V15
+
+**Defecto.** `web/fm1verify.js` clasificaba las dos releases de M-VAVE como `stock` y derivaba de ese
+`kind` las filas del checklist: `gate.backup = not-required` y `gate.recovery = covered`. Eso es verdad
+para **V15** (su firmware es el archivo publicado por M-VAVE, fijado por digest, y una instalación
+interrumpida se reanuda), y **no** lo es para **V16**: V16 movió el área de aplicación (`app.bin` en
+`0x4140`, 597 928 B, terminando más allá de los `0x93000` que este loader escribe), no hay retorno
+demostrado ni recuperación demostrada para ese layout, y su SPL es otro. Un `FM-1_016` recibía por tanto
+una autorización basada en evidencia que sólo existe para el V15.
+
+**Corrección.** El `gate` recibe la versión que la unidad respondió (`stockVersion`, del frame de
+identidad, nunca del paquete) y para un `FM-1_016`:
+
+| Fila | Antes (V16) | Ahora (V16) | V15 (sin cambios) |
+|---|---|---|---|
+| `gate.backup` | `not-required` | **`required`** | `not-required` |
+| `gate.recovery` | `covered` | **`not-demonstrated`** | `covered` |
+| veredicto | `GO` / `GO-HOST` | **`GO CONDITIONAL`** | `GO` |
+
+`required` y `not-demonstrated` no están en ninguno de los dos mapas de aceptación (`okPage`, `okHost`), así
+que **bloquean en todas las rutas**; `GO CONDITIONAL` no es una autorización: `canInstall` y
+`canInstallHost` quedan en `false` y `authorised` sigue en `false`. El veredicto nombra las dos condiciones
+que pueden cumplirse —`m-flasher-dump` y `m-flasher-verify`— y declara las limitaciones
+`v16-backup-not-taken` y `v16-return-and-recovery-not-demonstrated`. En el diagnóstico, un V16 alcanza
+`RECOVERY NOT VERIFIED` y nunca `INSTALL READY`. **No se relajó ninguna otra protección**: el allowlist de
+chips, la identificación en la unidad antes del primer frame de escritura, los límites del mapa, la firma y
+la cabecera del loader siguen exactamente igual.
+
+**Pruebas.** `web/test_verify_only.mjs` creció con nueve comprobaciones nuevas para V16 (dump `required`,
+recovery `not-demonstrated`, ambos bloqueantes, `GO CONDITIONAL`, condiciones nombradas, sin autorización de
+escritura, limitaciones, diagnóstico y sólo lecturas) y una para que **V15 conserve** su
+`not-required`/`covered` y su `GO`: **168 comprobaciones, 0 FAILED**. Además pasan `test_web`,
+`test_backup`, `test_pkg_bounds`, `test_provenance` e `install_test`.
+
+**Límite de esta corrección, dicho claro:** la página no puede verificar un volcado hecho por M-Flasher —no
+lo recibe ni debe inventarlo—, así que el estado del V16 es precisamente "condicional": la condición existe,
+está nombrada y bloquea, y se cumple fuera de esta página, con el volcado delante.
