@@ -1805,11 +1805,184 @@ static void al_table(void)
             al_count, al_nst, al_fail, al_lost);
 }
 
+/* ------------------------------------------------------------------ the regions --- */
+/* (v1.5.5) THE BEFORE / AFTER OF A FIX, MEASURED ON THE RECTANGLES IT TOUCHES. The phase-2 report's three open UI
+ * defects are boxes of a few hundred pixels in a 57 600 px frame, and a whole-frame comparison cannot say which box
+ * moved. `ui_render --regions` draws the same screens the suite does and compares TWO STATES of the UI three ways:
+ *   - the pixels that stand DIFFERENT inside a named rectangle (what the eye sees: the fragments a closed pop-up
+ *     leaves in the MIXER's dB zone), and
+ *   - the pixels the drawer WROTE in that frame (blit_px, gfx.c's blits): a repaint under something opaque spends
+ *     them without changing a pixel, which is exactly "the whole mixer redrawn";
+ *   - the ink of ONE element, isolated by changing only its value (the header's tempo against the track numbers).
+ * The numbers go to stdout, no report files, no PPMs: a fix's commit carries them. Exit 1 when an AFTER number is
+ * not what the fix promises (the guard the three cases leave in the suite). */
+typedef struct { const char *n; int32_t x0, y0, x1, y1; } reg_t;
+static uint16_t rref[240 * 240];
+static int32_t rw[4];                            /* the box of the pixels that differ (x0 y0 x1 y1, x1 = -1: none) */
+static uint32_t rframe(void) { ui.force = 1; memset(host_screen, 0, sizeof host_screen); blit_px = 0; ui_draw(); return (uint32_t)blit_px; }
+static uint32_t rnext(void) { blit_px = 0; ui_draw(); return (uint32_t)blit_px; }
+static void rsnap(void) { memcpy(rref, host_screen, sizeof rref); }
+/* the pixels of r that differ from the snapshot, and their box in rw */
+static uint32_t rdiff(const reg_t *r)
+{
+    uint32_t n = 0;
+    int32_t x, y;
+    rw[0] = rw[1] = 240; rw[2] = rw[3] = -1;
+    for (y = r->y0; y < r->y1; y++)
+        for (x = r->x0; x < r->x1; x++)
+            if (host_screen[(uint32_t)y * 240u + (uint32_t)x] != rref[(uint32_t)y * 240u + (uint32_t)x]) {
+                n++;
+                if (x < rw[0]) rw[0] = x;
+                if (y < rw[1]) rw[1] = y;
+                if (x > rw[2]) rw[2] = x;
+                if (y > rw[3]) rw[3] = y;
+            }
+    return n;
+}
+static void rrow(const reg_t *r) { printf("  %-42s %6u px distintos\n", r->n, rdiff(r)); }
+static uint32_t rcell(const reg_t *r)              /* the diff's pixels inside another rectangle */
+{
+    uint32_t n = 0;
+    int32_t x, y;
+    for (y = r->y0; y < r->y1; y++)
+        for (x = r->x0; x < r->x1; x++)
+            n += host_screen[(uint32_t)y * 240u + (uint32_t)x] != rref[(uint32_t)y * 240u + (uint32_t)x];
+    return n;
+}
+static reg_t rrect(const char *n, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
+{
+    reg_t r;
+    r.n = n; r.x0 = x0; r.y0 = y0; r.x1 = x1; r.y1 = y1;
+    return r;
+}
+/* two states of one screen: `f0` draws the first (a fresh forced frame), `f1` the second; the diffs are printed and
+ * the first one's count is returned (the number a fix drives to zero) */
+static int rbad;
+static int regions_main(void)
+{
+    uint32_t k, written;
+    int32_t bx[4];
+    reg_t panel, pop, db, hdr, cards, foot, c3, c4;
+
+    /* the lint's own files (a finding goes to `rep`): this mode reports on stdout and keeps none of them */
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    if (!rep)
+        return 1;
+    printf("regions: what each defect costs, before / after (blit_px = the pixels the panel was made to write)\n");
+
+    /* ---- A. the preset pop-up over the MIXER: its box is not a column's, so closing it must repaint the panel.
+     * The HUD is drawn over rows 96..182 of the six-column mixer, the LEVEL knob and its dB word among them; the
+     * page must come back exactly as it was, and the report is the pixels left behind. ---- */
+    printf("\nA. pop-up de preset sobre el MIXER (QUANTUM, seis columnas)\n");
+    state(); setup(S_MIXER); pal(UI_QUANTUM_INDEX);
+    written = rframe();
+    rsnap();
+    fm1_ms = 10000u;                                /* the HUD's 1.5 s window is measured against the clock */
+    ui.preset_pop_ms = fm1_ms;
+    printf("  el pop-up: %u px escritos\n", rnext());
+    ui.preset_pop_ms = fm1_ms - 1600u;              /* 1.5 s: it has closed */
+    written = rnext();
+    printf("  al cerrarse: %u px escritos\n", written);
+    panel = rrect("panel del MIXER (Y_GRAPH .. +H_GRAPH)", 0, Y_GRAPH, 240, Y_GRAPH + H_GRAPH);
+    pop = rrect("la caja del pop-up (16..224 x 96..182)", 16, Y_GRAPH + 18, 224, Y_GRAPH + 18 + 86);
+    db = rrect("la zona dB de las columnas (y 118..148)", 0, Y_GRAPH + 40, 240, Y_GRAPH + 70);
+    hdr = rrect("la cabecera (no la toca)", 0, 0, 240, H_HEAD);
+    rrow(&panel);
+    rrow(&pop);
+    rrow(&db);
+    rrow(&hdr);
+    if (rdiff(&panel) || rdiff(&hdr)) {
+        printf("  FALLA: el MIXER no vuelve a su frame al cerrarse el pop-up\n");
+        rbad++;
+    }
+
+    /* ---- B. the tempo's ink against the track numbers. Only the BPM changes (124 -> 60, both three digits, so the
+     * block does not move): the pixels that differ ARE the tempo's ink, and the cushions' cells are the rectangles
+     * of T3 and T4 in the layout drawn. In every layout the two must not share a pixel. ---- */
+    printf("\nB. la tinta del tempo contra las almohadillas de T3/T4\n");
+    /* the six columns, then MENU > LARGE's four-track strip: only the BPM changes (124 -> 60, both three digits, so
+     * the block does not move), so the pixels that differ ARE the tempo's ink; the cushions are the boxes of T3 and
+     * T4 in the layout drawn, and the two must not share a pixel */
+    hdr = rrect("la cabecera", 0, 0, 240, H_HEAD);
+    for (k = 0; k < 2u; k++) {
+        state(); setup(S_MIXER); pal(UI_QUANTUM_INDEX);
+        if (k) { large_on = 1; ui_prefs |= PREF_LARGE; }
+        rframe();
+        rsnap();
+        song.g[G_BPM] = 60;
+        {   uint32_t f;
+            for (f = 0; f < 30u; f++)
+                rnext();                        /* the header's rolling digits settle */ }
+        (void)rdiff(&hdr);
+        if (k)
+            c3 = rrect("T3", CARD_X(2) + 4, LG_Y_GRAPH + 4, CARD_X(2) + 20, LG_Y_GRAPH + 20),
+            c4 = rrect("T4", CARD_X(3) + 4, LG_Y_GRAPH + 4, CARD_X(3) + 20, LG_Y_GRAPH + 20);
+        else
+            c3 = rrect("T3", T6_X(2) + 4, Y_GRAPH + 5, T6_X(2) + 20, Y_GRAPH + 21),
+            c4 = rrect("T4", T6_X(3) + 4, Y_GRAPH + 5, T6_X(3) + 20, Y_GRAPH + 21);
+        printf("  %s: el tempo x %d..%d, y %d..%d; almohadillas y %d..%d; solapamiento T3 %u px, T4 %u px\n",
+               k ? "LARGE (cuatro pistas)" : "seis columnas", rw[0], rw[2], rw[1], rw[3], c3.y0, c3.y1,
+               rcell(&c3), rcell(&c4));
+        if (rcell(&c3) || rcell(&c4)) {
+            printf("  FALLA: el badge del tempo comparte pixel con los numeros de T3/T4\n");
+            rbad++;
+        }
+        large_on = 0;
+    }
+
+    /* ---- C. the track change with ALGORITHM (ui_input.c: the EN_ALGO encoder calls page track_select). Only the
+     * selection moves: the header's cushion, the two columns whose accent swaps, the cards' and the footer's own
+     * signatures. The strip's ground, the other columns and the panel are the same pixels, so the panel must not be
+     * refilled nor the frame forced; the number that says how much was paid is blit_px. ---- */
+    printf("\nC. cambio de pista en el MIXER (ALGORITHM, ui.c track_select)\n");
+    state(); setup(S_MIXER); pal(UI_QUANTUM_INDEX);
+    printf("  el frame entero, forzado: %u px escritos\n", rframe());
+    rsnap();
+    {
+        static const reg_t col[4] = {{"T1", 3, 78, 41, 200}, {"T2", 42, 78, 80, 200},
+                                     {"T3", 81, 78, 119, 200}, {"T4", 120, 78, 158, 200}};
+        uint32_t old = song.sel, inside = 0, total;
+        track_select((old + 1u) % trk_live);        /* the ALGORITHM encoder's own call: its invalidation */
+        written = rnext();
+        printf("  el cambio de pista: %u px escritos\n", written);
+        panel = rrect("el panel del MIXER", 0, Y_GRAPH, 240, Y_GRAPH + H_GRAPH);
+        total = rdiff(&panel);
+        inside = rcell(&col[old]) + rcell(&col[(old + 1u) % trk_live]);
+        printf("  distintos en el panel: %u, de ellos en las dos columnas de la seleccion: %u, en el resto: %u\n",
+               total, inside, total - inside);
+        if (total - inside) {
+            printf("  FALLA: el cambio de pista toca el panel fuera de las dos columnas\n");
+            rbad++;
+        }
+        {   /* the fix has to be invisible: the frame it leaves is the one a whole redraw of the new selection
+             * makes, pixel for pixel (the footer is left out: the track's flash owns it for PF_MS) */
+            static uint16_t got[240 * 240];
+            uint32_t x, y, bad = 0;
+            memcpy(got, host_screen, sizeof got);
+            state(); setup(S_MIXER); pal(UI_QUANTUM_INDEX);
+            song.sel = (uint8_t)((old + 1u) % trk_live);
+            rframe();
+            for (y = 0; y < Y_FOOT; y++)
+                for (x = 0; x < 240u; x++)
+                    bad += got[y * 240u + x] != host_screen[y * 240u + x];
+            printf("  el frame que deja, contra un redibujo entero: %u px distintos\n", bad);
+            if (bad) {
+                printf("  FALLA: el cambio de pista ya no deja el frame de un redibujo entero\n");
+                rbad++;
+            }
+        }
+    }
+    (void)bx;
+    return rbad ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *out = argc > 1 ? argv[1] : "build/ui_new";
     char path[600];
     uint32_t p, s;
+    if (argc > 1 && !strcmp(argv[1], "--regions"))
+        return regions_main();
     static const char *const SHOW[] = {"GREY", "MONO", "GREEN", "PAPER", "NIGHT", "THERMAL", "GAMMA", "WRAITH", "QUANTUM"};   /* (NIGHT: #50, to review) */
     /* QG_DUMP=<screen>[,<palette>]: render one screen into /tmp/qg_dump.ppm for a visual review.
      * It is the same draw() the suite measures, so what it shows is what the panel gets; the
@@ -1826,6 +1999,10 @@ int main(int argc, char **argv)
         }
         state();
         setup(scr >= S_COUNT ? S_HOME : scr);
+        if (getenv("QG_DUMP_LARGE")) {           /* the MENU > LARGE layout of that screen, as the LARGE pass draws it */
+            large_on = 1;
+            ui_prefs |= PREF_LARGE;
+        }
         pal(pal_i);
         if (getenv("QG_DUMP_FX")) {   /* the echo train as the bus measures it (tests/dly_echo_test) and the
                                        * buses' peaks as fx.c publishes them (fx_vu), put in after setup so

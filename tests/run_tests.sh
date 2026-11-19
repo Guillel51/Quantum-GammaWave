@@ -289,6 +289,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     mkdir -p build/ui_new/ppm build/ui_slot   # sweep failed to write, so the pixel gate below sees exactly this run's
     run "UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost" \
         "$OUT/ui_render" build/ui_new build/ui_slot
+    # (v1.5.5) the phase-2 report's three UI defects, on the RECTANGLES they touch: the preset pop-up's close leaves
+    # no fragment in the MIXER's dB zone, the tempo's ink shares no pixel with the T3/T4 cushions (six columns and
+    # LARGE), and a track change (ALGORITHM's encoder) writes only what changed -- with the frame identical.
+    run "UI regions: pop-up close, the tempo against the T3/T4 cushions, a track change's cost" \
+        "$OUT/ui_render" --regions
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
     # (FASE 5) and the pixels themselves against the tracked baseline: the lint above cannot see a glyph table, a
     # palette or a 1 px offset that still parses as aligned. `ui_pixels.py --update` only when it was meant.

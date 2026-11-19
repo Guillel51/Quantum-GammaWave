@@ -2087,6 +2087,7 @@ static void ui_draw(void)
     if (!scr_frame())                                   /* MENU > SCREEN OFF: dark (or waking), nothing drawn */
         return;
     ui_draw_page(counting);
+    ui.sel_only = 0;                                    /* (v1.5.5) the flag is about this redraw only */
     scr_shown();
 }
 static void ui_draw_page(uint32_t counting)
@@ -2110,6 +2111,14 @@ static void ui_draw_page(uint32_t counting)
     if (menu_was && !ui.menu)
         ui.force = 1;
     menu_was = (uint8_t)ui.menu;
+    /* (v1.5.5) THE PRESET POP-UP'S END, BEFORE THE PANEL IS DRAWN. The 1.5 s HUD paints over the graph, and its box
+     * is the graph's, not a band's: when it goes, the panel AND every column must be painted again in this very frame.
+     * It used to clear the graph's signature only -- and after the graph, so the columns' own stamps ("nothing changed
+     * in this one") kept the preset's name over the MIXER's dB zone for good (ui_render --regions, case A). */
+    if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) >= 1500u) {
+        ui.preset_pop_ms = 0;
+        graph_invalidate();
+    }
     if (ui.uboot) {
         draw_uboot();
         draw_head();
@@ -2169,7 +2178,10 @@ static void ui_draw_page(uint32_t counting)
         page_entered();
     }
     cursor_fix();
-    if (ui.force)
+    if (ui.force && !ui.sel_only)                       /* (v1.5.5) a track change repaints each band by its own
+                                                         * signature; clearing the frame under them wrote 240 x 240
+                                                         * px that the bands then painted again (ui_render
+                                                         * --regions, case C) */
         draw_frame();
     felucca_dbg.stage = 3;
     draw_head();
@@ -2190,10 +2202,9 @@ static void ui_draw_page(uint32_t counting)
         if (ui.preset_pop_ms && (uint32_t)(fm1_ms - ui.preset_pop_ms) < 1500u) {
             /* Transient 1.5s compact translucent HUD preset popup over current page */
             graph_preset_pop();
-        } else if (ui.preset_pop_ms) {
+        } else if (ui.preset_pop_ms) {                 /* (v1.5.5) the end is handled at the top of this function */
             ui.preset_pop_ms = 0;
-            ui.graph_sig = 0;                          /* (1.4.1) the popup's area is the graph: repaint that,
-                                                        * not the whole frame, or the page flashes when it goes */
+            graph_invalidate();
         }
     }
     if (ui.msg_t && !--ui.msg_t && ui.msg2[0]) {     /* the second message (ui_notices) */

@@ -1,3 +1,41 @@
+## v1.5.5 — Los tres defectos de UI de la fase 2, medidos por región
+
+**Primero el arnés, como pedía el informe.** `tests/ui_render.c --regions` (registrado en `tests/run_tests.sh`)
+dibuja las mismas pantallas que la suite y compara **dos estados de la UI sobre rectángulos con nombre**, no sobre
+frames enteros: los defectos son cajas de unos cientos de píxeles en un frame de 57 600. Por caso da tres números:
+los píxeles que quedan **distintos** dentro del rectángulo (lo que ve el ojo: el fragmento que deja un pop-up),
+los que el dibujo **escribió** en ese frame (`blit_px`: un repintado debajo de algo opaco los gasta sin cambiar un
+píxel, que es exactamente «redibujar todo el MIXER»), y la tinta de **un** elemento, aislada cambiando sólo su
+valor. El paso falla si un número no es el que el arreglo promete, así que los tres casos quedan como guarda.
+
+| caso | antes | después |
+|---|---|---|
+| A. pop-up de preset sobre el MIXER, al cerrarse | 0 px escritos, **8 172 px distintos** (fragmentos del nombre sobre la zona dB y el nivel) | 27 816 px escritos, **0 px distintos** |
+| B. la tinta del tempo contra las almohadillas de T3/T4 | **0 px compartidos** (seis columnas y LARGE) | igual: no se reproduce, ver abajo |
+| C. cambio de pista en el MIXER (encoder ALGORITHM) | **53 064 px escritos** para 872 que cambian | **34 520** escritos, 872 distintos, y el frame **idéntico** a un redibujo entero |
+
+**1. El nombre de preset en la zona dB (corregido).** El pop-up pinta una caja de 208 × 86 sobre el panel; al
+cerrarse, `ui_draw.c` limpiaba sólo la firma del grafo y **después** de dibujarlo, así que cada columna conservaba
+su stamp («en ésta no cambió nada») con la tinta del HUD encima, para siempre. Ahora su fin se atiende al principio
+de `ui_draw_page`, con `graph_invalidate()` (`ui_graph.c`): el panel y **todas** las columnas se pintan de nuevo en
+ese mismo frame. Medido: 8 172 px distintos → 0.
+
+**3. El cambio de pista en ALGORITHM (corregido).** `track_select()` forzaba el frame entero: `draw_frame()`
+limpiaba 240 × 240 px que las bandas volvían a pintar, y `draw_tracks()` hacía `lcd_fill` de toda la tira y
+rebliteaba las seis columnas. Ahora el cambio lleva `ui.sel_only`: no hay limpieza de frame ni relleno de la tira,
+y cada banda se repinta por la firma que le corresponde (la cabecera lleva `song.sel`; las columnas, el acento de
+la seleccionada; las tarjetas y el pie, sus valores). Medido: 53 064 → 34 520 px escritos, y los 872 px que
+cambian son los de las dos columnas de la selección, con el frame **pixel por pixel igual** al de un redibujo
+entero (lo comprueba el mismo caso C).
+
+**2. El tempo sobre los números de T3/T4 (no se reproduce).** La medición aísla la tinta del bloque del tempo
+cambiando sólo el BPM (124 → 60, los dos de tres cifras: el bloque no se mueve): su tinta queda en **y 1..14**, y
+las almohadillas de T3/T4 en **y 83..99** (seis columnas) y **y 132..148** (MENU > LARGE). Cero píxeles
+compartidos en las dos variantes. La superposición que el informe describe es horizontal —el bloque del tempo
+ocupa x 76..132 y las columnas de T3/T4 empiezan en x 81 y 120—, no vertical: con la cabecera de 16 px y las
+tarjetas desde y 20 no hay fila que compartan. Se deja el caso B en el arnés como guarda; si el defecto se ve en
+una pantalla concreta, hace falta la foto o el estado exacto para medirlo.
+
 ## v1.5.4 — El tick de 10 kHz vuelve a su presupuesto, y con él la publicación del sitio
 
 **Numeración.** El trabajo de esta ronda llegó a `main` como v1.6.0 y v1.6.1; acá se renumera como **v1.5.4**, la

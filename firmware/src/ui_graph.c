@@ -3071,12 +3071,23 @@ static void track_col6(uint32_t c, uint32_t sel, uint32_t st, uint32_t mute, uin
         cv_rect(4, 113, rv * pw / 127 + 1, 3, mute ? T_DIM : hot == 3u ? T_ACCENT : heat_col(40 + rv * 3 / 2));
     cv_blit((uint32_t)T6_X(c), Y_GRAPH);
 }
+/* (v1.5.5) THE PANEL A POP-UP COVERED IS NOT A COLUMN'S. graph_preset_pop() paints a 208 x 86 HUD over the panel
+ * and ui_draw.c cleared the graph's signature when it closed, so the panel's ground came back -- but every column
+ * has its own stamp ("nothing changed in this one") and kept the HUD's ink where it had covered it: the preset's
+ * name left in the MIXER's dB zone. This flag says a whole panel was covered, so the ground and every column are
+ * painted again (ui_render --regions, case A). */
+static uint8_t graph_covered;
+static void graph_invalidate(void) { graph_covered = 1; ui.graph_sig = 0; }
 static void draw_tracks(void)
 {
     uint32_t c, sk = strip_kind() == SK_TRK, six = !sk;   /* (0.6.80: the six columns with every COLOR and STYLE;
                                                          * MENU > LARGE: four, bigger) */
     uint32_t b4 = six ? 0u : trk_base4(), n = six ? NTRK : 4u;
-    if (ui.force) {
+    /* (v1.5.5) a full panel: a new page / a knob's page, or one a pop-up covered. A TRACK CHANGE (ui.sel_only) is
+     * not one -- only the columns whose stamp moved are painted, which is what the per-column cache is for */
+    int all = (ui.force && !ui.sel_only) || graph_covered;
+    graph_covered = 0;
+    if (all) {
         lcd_fill(0, graph_y(), 240, graph_h(), T_BG);
         if (ux.style && !six)                        /* LINE: the strips divided as the cards above (four) */
             draw_rules(graph_y(), graph_h());
@@ -3102,7 +3113,7 @@ static void draw_tracks(void)
         sig = str_hash(1u + sel + st * 2u + (mute && arm) * 16u + hot * 32u, b) + lvl * 7919u +
               ts.meter[c] * 131u + (uint32_t)(pan + 128) * 104729u + (uint32_t)rv * 1299709u + mute * 3u + sk * 0x9E37u + c * 0x51u +
               six * 0x3C6Fu;
-        if (!ui.force && sig == ts.col[c - b4])
+        if (!all && sig == ts.col[c - b4])
             continue;
         ts.col[c - b4] = sig;
         if (sk) {

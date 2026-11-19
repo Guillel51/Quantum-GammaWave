@@ -233,6 +233,8 @@ static struct {
     uint16_t menu_scroll;        /* continuous ABOUT + CREDITS position, pixels */
     uint32_t menu_sig, home_t0;  /* HOME press time (btn_hold) */
     uint8_t force;               /* full redraw pending */
+    uint8_t sel_only;            /* (v1.5.5) that redraw is a track change: the bands repaint by their own
+                                  * signatures and the frame is NOT cleared (ui_draw.c, ui_graph.c draw_tracks) */
     uint8_t msg_t;               /* transient message frames */
     uint8_t bpm_t;               /* frames the BPM stays highlighted after a SELECT turn */
     uint8_t act;                 /* action pages: the column whose action OCT+ does, + 1; 0 = none (act_col) */
@@ -1601,6 +1603,11 @@ static void track_select(uint32_t i)
     ui.bank = 0;
     sync_reload = 1;
     ui.force = 1;
+    ui.sel_only = 1;                                 /* (v1.5.5) only the selection moved: the header's cushion, the
+                                                      * two columns whose accent swaps and the cards' own values
+                                                      * carry their signatures. The frame fill and the strip's
+                                                      * lcd_fill were paid for nothing (measured: ui_render
+                                                      * --regions, case C) */
     page_flash();                                    /* (0.6.51) the track's number and engine shown big */
 }
 

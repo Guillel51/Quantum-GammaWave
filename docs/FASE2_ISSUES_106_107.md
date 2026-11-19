@@ -68,22 +68,28 @@ entre el core 0 (que asigna) y el core 1 (que renderiza partes 3..6).
   cuando la pista que cambia de sonido no tiene ninguna voz activa. Ese era el corte que se oía "aunque
   el preset no esté sonando".
 
-### Pendiente (fase 3), con la causa localizada
+### Fase 3: los tres, medidos por región (`ui_render --regions`)
 
-1. **Nombre de preset en la zona dB (fragmento de pop-up).** `cv_free_text` sí recorta al ancho de la
-   tarjeta, así que el fragmento no es un desborde de texto: es una **región invalidada a medias** — el
-   pop-up que muestra el nombre escribe sobre la zona de medidores y al cerrarse no se repinta toda su
-   caja. Corregir en el cierre de pop-up/overlay (invalidar la caja completa, no sólo la fila del texto)
-   y añadir el caso al lint de `tests/ui_render.py`.
-2. **TEMPO sobre los indicadores de T3/T4.** El icono/valor vive en la cabecera (`ui_draw.c:215-234`,
-   `draw_header`) y la tira de seis columnas del MIXER arranca en `Y_GRAPH`; con `MENU > LARGE` el badge
-   cae sobre las columnas 3 y 4. Mover el badge a la banda de la cabecera que no comparte fila con la
-   tira (o acortar la tira) y verificar con el lint de alineación.
-3. **ALGORITHM repinta la caja MIXER entera.** `draw_tracks()` usa una firma **por columna**
-   (`ts.col[c]`), pero el cambio de pista con ALGORITHM invalida con `ui.force` (repintado completo:
-   `lcd_fill` de toda la tira + las seis columnas). Hace falta una invalidación selectiva: comparar el
-   estado por columna y no forzar el marco cuando sólo cambia `song.sel`, y separar en la firma las
-   filas LEVEL/PAN de los indicadores superior/inferior para que no se rebliteen.
+El arnés dibuja ahora **rectángulos**, no frames: cada caso da los píxeles distintos dentro de la caja (lo
+que ve el ojo) y los que el dibujo escribió (`blit_px`), y el paso de `tests/run_tests.sh` falla si no son
+los que el arreglo promete.
+
+1. **Nombre de preset en la zona dB — CORREGIDO.** El pop-up escribe sobre el panel y al cerrarse no se
+   repintaba toda su caja: `ui_draw.c` limpiaba la firma del grafo y encima **después** de dibujarlo, así
+   que las columnas conservaban su stamp con la tinta del HUD encima. Ahora su fin se atiende al principio
+   de `ui_draw_page` con `graph_invalidate()` (`ui_graph.c`): el panel y todas las columnas se pintan de
+   nuevo en ese frame. **Antes 8 172 px distintos, después 0.**
+2. **TEMPO sobre los indicadores de T3/T4 — NO SE REPRODUCE.** Aislando la tinta del tempo (BPM 124 → 60,
+   los dos de tres cifras), queda en **y 1..14**; las almohadillas de T3/T4, en **y 83..99** (seis
+   columnas) y **y 132..148** (LARGE). **0 px compartidos** en las dos variantes. La superposición del
+   informe es horizontal (el bloque ocupa x 76..132; las columnas de T3/T4 empiezan en 81 y 120), no
+   vertical. El caso B del arnés queda como guarda.
+3. **ALGORITHM repinta la caja MIXER entera — CORREGIDO.** `track_select()` (`ui.c`) fuerza el frame
+   entero: `draw_frame()` limpia 240 × 240 px que las bandas vuelven a pintar, y `draw_tracks()` hace
+   `lcd_fill` de toda la tira y reblitea las seis columnas. Ahora el cambio lleva `ui.sel_only`: no se
+   limpia el frame ni se rellena la tira, y cada banda se repinta por su firma. **Antes 53 064 px
+   escritos para 872 que cambian; después 34 520, con el frame pixel por pixel igual al de un redibujo
+   entero.**
 
 ## 3. Verificación ejecutada en esta fase
 
