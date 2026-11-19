@@ -2017,3 +2017,20 @@ La unidad física no se tocó: ninguna fila de abajo es una medición de hardwar
 | La página se arma con los módulos nuevos | `[HOST]` | `web/make_site.py release/felucca-v1.4.17.fwsc test-v16 build/site_preview` construye (un solo scope, sin declaraciones duplicadas, CSP con hash) y `web/test_site.py` pasa 20 ids / 10 imágenes / 31 enlaces |
 | Un V16 arranca Quantum GammaWave | — | **NOT MEASURED**: nadie instaló en una unidad V16. El SPL V16 leyendo el área de app estilo V15, el `UPDATA_PARM` `ota-FM-1_015` de `firmware/src/ota.c` y la reanudación tras corte son las pruebas de la fase 2 (`docs/FM1_V16.md` §5) |
 | La flash de una unidad V16 | — | **NOT READ**: no se leyó el JEDEC de ninguna unidad V16. La allowlist sigue igual y el loader sigue rechazando un part desconocido antes de borrar |
+
+## Fase 2 — Issues #106 (UI) y #107 (polifonía)
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| 12 voces en una parte, teclado real, presets reales | `[HOST]` | `tests/poly_report_test.c`: 12/12 en POLY, ANALOG BRASS y ANALOG PLUCK, de una vez y una por una, con SUSTAIN, `load_tight` y DUAL CORE (`mc_mask_last = 0x3F`); `voice_kills` 0 |
+| El pico y los estados de voz no dependen del frame | `[HOST]` | `voice_peak_now()` en `trk_note_on`, `voice_stats()` separa sounding / release / fading; el acorde de 12 deja `PK 12` y `REL 0`; al soltar 6, `S 6 R 6` |
+| Acorde largo y note-on/off rápido no dejan voces | `[HOST]` | 400 bloques con 12 notas de BRASS: 12 mantenidas, 0 robos; 24 note-on/off seguidos: 0 sonando al final |
+| El reparto ya no cuenta pistas dormidas | `[STATIC]` | `vshare()` usa `trk_live` (4 por defecto) en vez de `NPART` |
+| El cambio de preset no mezcla dos sonidos en un bloque | `[STATIC]` | `apply_preset_to` escribe los parámetros con `fm1_irq_off/on`; sólo asignaciones dentro de la sección |
+| Un preset mudo no vacía las líneas de las demás pistas | `[STATIC]` | `fx_preset_flush()` sólo si la pista tiene alguna voz `active` |
+| HOME no repinta el cuerpo por valores que no dibuja | `[STATIC]` | `hv_view_sig()` sin `song.cpu_q8` (sólo lo imprime SYSTEM) y medidores cuantizados a 9 segmentos / 12 px |
+| El audio no cambió | `[HOST]` | `build/regress tests/golden.txt tests/cpu_baseline.txt`: 303 renders, **0 changed**, 0 health/voice failures, 0 CPU over budget |
+| UI compila y sus pruebas pasan | `[HOST]` | `build/ui_test`: all passed (incluye `ui.c`, `ui_graph.c`, `ui_homeviews.c`, `voice.c`) |
+| El "7" del reporte | — | **NOT REPRODUCED**: el asignador da 12 en todos los casos medidos en el host; quedan por medir en la unidad el guardián de sobrecarga y la carrera de ventanas entre núcleos (`docs/FASE2_ISSUES_106_107.md` §1) |
+| Nombre de preset en la zona dB, TEMPO sobre T3/T4, repintado de ALGORITHM | — | **NOT FIXED**: causa localizada (región de pop-up sin invalidar; badge de la cabecera sobre la tira; `draw_tracks` con `ui.force` al cambiar de pista). Fase 3 |
+| Cualquier medición en una FM-1 | — | **NOT MEASURED**: no hubo unidad |

@@ -122,7 +122,10 @@ static uint32_t hv_view_sig(void)
     h = (h ^ (uint32_t)ui.home_view) * 16777619u;
     h = (h ^ (uint32_t)settings.palette) * 16777619u;
     h = (h ^ (ui.frame / 8u)) * 16777619u;          /* the embers' phase, as hv_air steps it */
-    h = (h ^ (uint32_t)(song.cpu_q8 / 4u)) * 16777619u;
+    /* (FASE 2, issue #106) THE LOAD IS NOT ON THESE SCREENS. hv_system alone prints song.cpu_q8, and the three
+     * screens that draw this body do not: hashing it repainted the whole 240 x 176 body -- three SPI blits, the
+     * top line first -- on every frame the load moved, which is what flickered at the top of OVERVIEW, MIXER and
+     * PERFORMANCE while the rest of the screen had nothing new to show. */
     h = (h ^ (uint32_t)song.batt_raw) * 16777619u;
     h = (h ^ (uint32_t)(song.sel + (song.rec << 4))) * 16777619u;
     h = (h ^ (uint32_t)snd_edited(TSEL)) * 16777619u;   /* (1.4.2) TSEL's engine and preset are already in the
@@ -130,8 +133,11 @@ static uint32_t hv_view_sig(void)
     for (i = 0; i < NTRK; i++) {
         const track_t *q = &trk[i];
         v += hv_voices(q);
-        h = (h ^ (uint32_t)((uint32_t)q->vu >> 9)) * 16777619u;      /* a bar advances by whole screens */
-        h = (h ^ (uint32_t)((uint32_t)q->peak >> 9)) * 16777619u;
+        /* (FASE 2, issue #106) QUANTIZED TO THE PIXELS THAT ARE DRAWN. `>> 9` was a step of 512 units: a meter
+         * whose fill had not moved a single pixel still forced the whole body (and its top line) to be blitted
+         * again, up to sixty times a second. MIXER's bar has nine segments, OVERVIEW's cap twelve pixels. */
+        h = (h ^ (uint32_t)((uint32_t)q->vu * 9u / 32768u)) * 16777619u;
+        h = (h ^ (uint32_t)((uint32_t)q->peak * 12u / 32768u)) * 16777619u;
         h = (h ^ (uint32_t)(q->eng_req * 8u + q->preset)) * 16777619u;
         h = (h ^ (uint32_t)(q->engine * 4u + q->user)) * 16777619u;
     }

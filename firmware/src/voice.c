@@ -508,9 +508,15 @@ static uint32_t v_energy(const track_t *t, const voice_t *v)
  * once here and a candidate that would leave its part above its fair share (the budget split evenly between the
  * parts) goes after one that does not, within the same class and before the loudness test. Nothing is reserved:
  * a part alone still gets every voice it can, the share only decides who gives one up when two can. */
+static uint8_t trk_live;                                /* MENU > TRACKS: defined, with its default, below (925) */
 static uint32_t vshare(void)
 {
-    uint32_t s = (voice_cap() + NPART - 1u) / NPART;
+    /* (FASE 2) THE PARTS THAT CAN SOUND. TRACKS 4 (the shipped default) leaves T5 and T6 asleep: they hold no
+     * voice, so counting them in the split made a four-part instrument treat three voices on a part as "over its
+     * share" while four slots sat in parts that cannot play. The share only breaks ties (nothing is reserved), so
+     * this changes no allocation, only whose voice is given up when two could be. */
+    uint32_t n = trk_live < NPART ? (trk_live ? trk_live : 1u) : NPART;
+    uint32_t s = (voice_cap() + n - 1u) / n;
     return s ? s : 1u;
 }
 static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
@@ -567,6 +573,48 @@ static uint32_t voice_victim(const track_t *self, int soft, track_t **pp)
 }
 
 static uint32_t voice_kills;                            /* voices given up (budget, overload): console, hostsim */
+/* (FASE 2, issue #107) THE MONITOR'S OWN PEAK. The peak of the polyphony used to be whatever the UI happened to
+ * sample on its next frame, so a chord that rose and fell between two frames read as if it never happened, and a
+ * voice taken for the budget read as a voice that simply stopped. The peak and the kills are counted where the
+ * voices start and end (the allocator), and the UI reads them; sounding / release / fading are read on demand. */
+static uint32_t voice_peak;                             /* the most sounding voices since the last reset */
+static uint32_t voice_denied;                           /* note-ons that found no voice at all */
+static void voice_peak_now(void)
+{
+    uint32_t b = voices_busy();
+    if (b > voice_peak)
+        voice_peak = b;
+}
+/* what the MONITOR prints: sounding (a key or the sequencer holds it), release (let go, still ringing), fading
+ * (given up by the allocator or the overload guard: the ~6 ms fade), the peak since the last reset, and the
+ * voices the allocator has taken since power-on. Every figure has a writer; N/A is never printed here. */
+static void voice_stats(uint32_t *sounding, uint32_t *release, uint32_t *fading, uint32_t *peak, uint32_t *steals,
+                        uint32_t *denied)
+{
+    uint32_t p, i;
+    *sounding = *release = *fading = 0;
+    for (p = 0; p < NPART; p++)
+        for (i = 0; i < NVOICE; i++) {
+            const voice_t *v = &V(&trk[p], i);
+            if (!v->active)
+                continue;
+            if (v->stage == 4u)
+                (*fading)++;
+            else if (v->gate)
+                (*sounding)++;
+            else
+                (*release)++;
+        }
+    *peak = voice_peak;
+    *steals = voice_kills;
+    *denied = voice_denied;
+}
+__attribute__((unused)) static void voice_stats_reset(void)
+{
+    voice_peak = voices_busy();                         /* the peak starts again from what is sounding now */
+    voice_kills = 0;
+    voice_denied = 0;
+}
 static void voice_kill(voice_t *v)                      /* fade out over ~6 ms (env_tick stage 4; 0.6.74, was a block) */
 {
     v->gate = 0;
@@ -915,12 +963,15 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
     }
     if (mode == V_POLY) {
         voice_t *v = voice_alloc(t, note);
-        if (!v)
+        if (!v) {                                       /* (FASE 2, #107) a note with no voice is a figure of its own */
+            voice_denied++;
             return;
+        }
         t->nmono = 0;                                   /* no stale mono stack after a mode change */
         t->mono_note = 0;
         v->fine = 0;
         voice_start(t, v, note, vel, t->p[P_GLIDE] != 0 && !ENGINES[t->engine]->oneshot);
+        voice_peak_now();                               /* (FASE 2) the peak, kept where the voices start */
         return;
     }
     {
@@ -936,6 +987,7 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
             mono_play(t, want, vel, 1, t->p[P_GLIDE] != 0 || t->slide_glide);
         else                                            /* LEGATO / UNISON: glide only between held notes */
             mono_play(t, want, vel, !sounding, sounding && (t->p[P_GLIDE] != 0 || t->slide_glide));
+        voice_peak_now();                               /* (FASE 2) UNISON is a peak too */
     }
 }
 

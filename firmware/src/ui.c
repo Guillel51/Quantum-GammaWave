@@ -1224,7 +1224,16 @@ static void apply_preset_to(track_t *t, uint32_t pi)
      * reverb/chorus lines are the old preset's, not this one's (delay: see fx_preset_flush) */
     fm1_irq_off();
     perf_reset();
-    fx_preset_flush();
+    {   /* (FASE 2, issue #106) THE BUSES ARE EVERY TRACK'S. Flushing them for a track with nothing sounding cut
+         * whatever another part still had ringing in the delay and the reverb -- the report's "the audio cuts when I
+         * change preset, even when that preset is not making any sound". A silent track has nothing of its own in
+         * the lines, so their tails are left alone. */
+        uint32_t i, any = 0;
+        for (i = 0; i < NVOICE; i++)
+            any |= V(t, i).active;
+        if (any)
+            fx_preset_flush();
+    }
     fm1_irq_on();
     t->user = 0;
     if (t == TSEL)
@@ -1233,6 +1242,11 @@ static void apply_preset_to(track_t *t, uint32_t pi)
         load_end(t);
         return;
     }
+    /* (FASE 2, issue #106) ONE SOUND, ONE BLOCK. The parameters below are read by the audio ISR every control
+     * block; written with the IRQ open, the ISR could see the new envelope with the old filter, or a new
+     * P_VOICE, for one block -- a click on the very edge of the sound change. The section is assignments only:
+     * no flash read, no allocation, nothing that waits. */
+    fm1_irq_off();
     pi = preset_orig(e, pi % e->npresets);
     t->preset = (uint8_t)pi;
     for (i = 0; i < P_E0; i++)                        /* the rest of the sound to its defaults: a preset */
@@ -1262,6 +1276,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
      * render of the preset itself (tools/gen_preset_levels.py writes preset_level.c), so it is a
      * property of the sound and not a taste. The user's fader still moves the track from there. */
     t->p[P_LEVEL] = (int16_t)preset_level_of(t->eng_req % NENGINES, pi);
+    fm1_irq_on();                                     /* (FASE 2) the whole sound, at once */
     load_end(t);
 }
 

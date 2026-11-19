@@ -1,3 +1,25 @@
+## Fase 2 — Issues #106 (UI) y #107 (polifonía)
+
+**#107:** la polifonía se mide ahora donde arrancan las voces. `voice.c` lleva el pico real
+(`voice_peak`), las voces negadas (`voice_denied`) y `voice_stats()` con **sounding / release / fading /
+peak / steals / denied** separados; el monitor de `ui_graph.c` los imprime (`REL`, `FADE`, `PK`, `STL`,
+`DEN`) y el pico se reinicia al abrir la pantalla, así que ya no depende del frame. `vshare()` reparte
+sólo entre las pistas vivas: las dormidas por `MENU > TRACKS` ya no hacen que una parte con tres voces
+lea como excedida. Nuevo `tests/poly_report_test.c`: 1..12 teclas en ANALOG BRASS / PLUCK y POLY, de una
+vez y una por una, con SUSTAIN, con el presupuesto de carga, con DUAL CORE, acorde largo y note-on/off
+rápido — **12 de 12 voces en todos los casos, cero robos en el host**. El "7" del reporte no se
+reproduce en el host; el detalle y lo que falta medir en la unidad están en
+`docs/FASE2_ISSUES_106_107.md`.
+
+**#106:** el cuerpo de HOME (OVERVIEW / MIXER / PERFORMANCE) metía la carga de audio y los medidores
+con paso `>> 9` en la firma que decide repintar 240×176 en tres blits: con PLAY se rebliteaba hasta 60
+veces por segundo sin que un píxel cambiara, y eso es el parpadeo de la línea superior. Ahora la carga
+no entra en la firma y los medidores se cuantizan a lo que se dibuja (9 segmentos, 12 px). El cambio de
+preset escribe los parámetros con la IRQ de audio cerrada (un bloque ve el sonido viejo o el nuevo,
+nunca una mezcla) y ya no vacía las líneas de delay/reverb de todas las pistas cuando la pista que
+cambia de sonido no tiene ninguna voz: ese era el corte que se oía con un preset mudo. Pendientes de
+región/pop-up, TEMPO y ALGORITHM, con la causa localizada, en el mismo documento.
+
 ## Fase 1 — compatibilidad con M-VAVE V16 (`FM-1_016`)
 
 El firmware oficial V16 (718 196 B, `d017fb65…`, identidad `FM-1_016`) se midió y se incorporó como

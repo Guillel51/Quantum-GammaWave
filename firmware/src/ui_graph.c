@@ -1326,13 +1326,11 @@ static void graph_slpitch(uint16_t c)
  * a writer; none is a constant. */
 static void graph_diag(uint16_t c)
 {
-    uint32_t i, active_voices = 0, n1 = 0, n0, step = 0, slen = 1;
+    uint32_t i, n1 = 0, n0, step = 0, slen = 1, sounding, release, fading, peak, steals, denied;
     char b[48];
-    for (i = 0; i < trk_live; i++) {
-        uint32_t v;
-        for (v = 0; v < NVOICE; v++)
-            if (V(&trk[i], v).active) active_voices++;
-    }
+    if (ui.force)                                   /* (FASE 2, #107) the peak is since this screen was opened */
+        voice_stats_reset();
+    voice_stats(&sounding, &release, &fading, &peak, &steals, &denied);
     for (i = 0; i < NPART; i++)                     /* the parts core 1 took in the last block */
         n1 += (mc_mask_last >> i) & 1u;
     if (n1 > trk_live) n1 = trk_live;
@@ -1393,14 +1391,36 @@ static void graph_diag(uint16_t c)
         str_cpy(b + str_len(b), " N/A TK", sizeof b - str_len(b));
     cv_text_r(224, 36, &AF_S, b, n1 ? T_THEME : T_TEXT, T_SURF);
 
-    /* Row 4: POLYPHONY (active voices across all live tracks) */
+    /* Row 4: POLYPHONY, told apart: what holds a note, what is ringing out, what the allocator is fading, the peak
+     * since the screen was opened, and how many voices it has taken. (FASE 2, #107: the old figure was a single
+     * count sampled at the UI's frame, so a release read as a voice and a peak between two frames was invisible.) */
     cv_text(16, 50, &AF_S, "POLYPHONY", T_MID);
     b[0] = 0;
-    fmt_int(b, (int32_t)active_voices);
+    fmt_int(b, (int32_t)sounding);
     str_cpy(b + str_len(b), " / ", sizeof b - str_len(b));
     fmt_int(b + str_len(b), (int32_t)NVOICE);        /* the cap it really has, not a written-out 10 */
     str_cpy(b + str_len(b), " VOICES", sizeof b - str_len(b));
-    cv_text_r(224, 50, &AF_S, b, active_voices + 1u >= NVOICE ? T_ACCENT : T_TEXT, T_SURF);
+    if (release) {
+        str_cpy(b + str_len(b), " REL ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)release);
+    }
+    if (fading) {
+        str_cpy(b + str_len(b), " FADE ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)fading);
+    }
+    if (peak) {
+        str_cpy(b + str_len(b), " PK ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)peak);
+    }
+    if (steals) {
+        str_cpy(b + str_len(b), " STL ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)steals);
+    }
+    if (denied) {                                   /* a note that found no voice at all: never a silent steal */
+        str_cpy(b + str_len(b), " DEN ", sizeof b - str_len(b));
+        fmt_int(b + str_len(b), (int32_t)denied);
+    }
+    cv_text_r(224, 50, &AF_S, b, sounding + 1u >= NVOICE ? T_ACCENT : T_TEXT, T_SURF);
 
     /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS (a muted track reads dim, a sounding one accent) */
     for (i = 0; i < 6u; i++) {

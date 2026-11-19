@@ -330,6 +330,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "POLY: three keys give three voices and three notes in the output" "$OUT/poly_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_voices_test" tests/poly_voices_test.c -lm
     run "POLY (voices): eight and twelve notes on one part, six parts sharing the pool, LOAD LITE / ECO, MENU VOICES, the keybed, and the mix itself" "$OUT/poly_voices_test"
+    # (FASE 2, issue #107) the report's own path: the engine's preset, the keybed, 1..12 keys one at a time and at
+    # once, SUSTAIN, the load budget, DUAL CORE, a long chord, fast on/off, and the voice states the monitor prints
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_report_test" tests/poly_report_test.c -lm
+    run "POLY (issue #107): 1..12 keys on ANALOG BRASS / PLUCK and POLY, at once and one by one, SUSTAIN, LOAD TIGHT, DUAL CORE, long chord, fast on/off, release vs sounding and the peak" "$OUT/poly_report_test"
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/control_map_test" tests/control_map_test.c -lm
     run "RAM / flash map: every object over 1 KiB with its section, and no two rodata objects holding the same bytes (the same flash paid twice)" python3 tools/ram_flash_map.py --dups --check --min 1024
     run "pages: every knob of every page, in every engine and at every state a computed page can be in, edits its own value and no two share one (MASTER > STEREO M/S is the master width, not a track's release)" "$OUT/control_map_test"
