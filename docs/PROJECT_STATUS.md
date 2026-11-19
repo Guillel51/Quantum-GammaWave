@@ -180,3 +180,13 @@ Measured on the **host** build (x86-64, 5 runs of 40000 blocks, best of):
 - **VERIFICADO EN HARDWARE** — nothing in this release. No FM-1 was connected, powered, flashed or recovered.
 - **SIMULADO** — everything in "What actually ran": the firmware's own sources built for the host, the menu/protocol, the golden renders, the splash timeline on the framebuffer, the ST7789's frame memory modelled byte for byte, the installer's package bounds and protocol, ASan/UBSan + fuzz, the 10 vs 12 measurement, and the FM-1 flash/recovery *analysis* in `docs/SECURITY.md`.
 - **NO VERIFICADO** — anything on a physical FM-1 (no device was connected, powered or flashed); dual-core timing and per-core load on the real AC791N; the flash map, bootloader and recovery window of a physical unit; `m-bootloader` installability; the CPU render budget (`tests/target_budget.py` skipped: no `.fwsc`, no JieLi toolchain — and `regress` reports *no instruction counter on this host*, so the budget is not checked here either); power-cut behaviour on real flash; the browser emulator (no `emcc`); CPU under valgrind (not installed); the `.fwsc` package (no toolchain).
+
+## Actualización 2026-11-19 — lo que cambió desde este informe
+
+Este documento se escribió cuando el entorno no tenía ni toolchain ni SDK. **Ya no es el caso**: el
+toolchain `jieli-linux-toolchains-20260730.1` (sha256 fijado) y el SDK `AC79NN_SDK_V1.2.1_2023-12-13` se
+instalan con `python3 tools/get_ac791n.py`, el build de AC791N se ejecuta y el paquete **v1.5.0** existe
+(610 959 B, identidad FM-1_965). Las filas de abajo que dicen "no toolchain" son **históricas**; el estado
+vigente está en `docs/VALIDATION_MATRIX.md` (secciones Fase 2, 3 y 5), `docs/FASE4_OPTIMIZACION.md` y
+`docs/FASE5_SEGURIDAD_Y_VALIDACION.md`. Lo que sigue pendiente es lo mismo de siempre y no depende de este
+entorno: **todo lo que exige una unidad FM-1**.
