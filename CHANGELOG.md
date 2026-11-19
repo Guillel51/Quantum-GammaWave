@@ -1,3 +1,31 @@
+## v1.6.0 — Validación completa, índice de evidencia reparado y baseline de píxeles renovado
+
+**La suite completa encontró dos fallos, y están corregidos.**
+
+1. **El índice de evidencia estaba desincronizado.** `docs/EVIDENCE.md` decía 617 filas cuando la matriz tiene
+   675: el archivo se genera desde `docs/VALIDATION_MATRIX.md` (`tools/evidence_index.py`) y había quedado
+   atrás. Regenerado; `--check` vuelve a pasar dentro de la suite, así que una fila que cambie de estado no
+   puede quedar invisible otra vez.
+2. **El baseline de píxeles era anterior a v1.5.3.** Los 197 frames marcados «changed» incluían ABOUT, FX y
+   MONITOR además de las pantallas de HOME, porque el cuerpo de HOME queda detrás de esas capas y la barra del
+   icono de página viaja con él: la suite dibuja con ANIM OFF, y ahí el pulso ya no late (el arreglo de v1.5.3).
+   No era una regresión sino el cambio pretendido sin baseline nuevo. Regenerado con
+   `tests/ui_pixels.py --update`: **3 056 frames, 0 changed**, y el motivo queda escrito acá, como pide la regla
+   del arnés.
+
+**Barrido de la fase (clase: host x86-64 sobre este árbol).** `NO_PACKAGE=1 ./tests/run_tests.sh` entero:
+polifonía y robo de voces, seis pistas, todos los motores, presets, FX y buses, ARP/SEQ/LFO/SCL/macros,
+entrada y rebotes de contactos, parser MIDI TRS, SysEx de accesibilidad, storage A/B con escrituras cortadas,
+auto-test del segundo núcleo, ASan/UBSan, lints de alineación (3 783 017 mediciones, 0 fuera de 1 px),
+`regress` 303 renders **0 changed**, y 3 056 frames de píxeles idénticos.
+
+**README al día.** El encabezado seguía diciendo `v1.3.9`; ahora nombra la versión que el firmware lleva. Los
+diez motores seleccionables del README son los que `ENGINES[]` muestra (`NENG_SHOWN` = 10 con FM4 retirado).
+
+**Lo que esta versión NO puede afirmar:** todo lo anterior es software. Pop de encendido, latencia real, CPU
+del core 1 y el comportamiento acústico de los fades siguen pidiendo la unidad; no hubo flasheo, borrado ni
+escritura en ningún FM-1 en esta fase.
+
 ## v1.5.3 — ANIM OFF en HOME 2–5: la pantalla deja de repintarse para nada
 
 **El parpadeo del reporte, con la causa encontrada.** «Parpadeo continuo en los encabezados de HOME, páginas 2 a 5
