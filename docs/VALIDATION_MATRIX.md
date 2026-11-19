@@ -2033,6 +2033,7 @@ La unidad física no se tocó: ninguna fila de abajo es una medición de hardwar
 | UI compila y sus pruebas pasan | `[HOST]` | `build/ui_test`: all passed (incluye `ui.c`, `ui_graph.c`, `ui_homeviews.c`, `voice.c`) |
 | El "7" del reporte | — | **NOT REPRODUCED**: el asignador da 12 en todos los casos medidos en el host; quedan por medir en la unidad el guardián de sobrecarga y la carrera de ventanas entre núcleos (`docs/FASE2_ISSUES_106_107.md` §1) |
 | Nombre de preset en la zona dB, TEMPO sobre T3/T4, repintado de ALGORITHM | `[HOST]` `ui_render --regions` | **pop-up: CORREGIDO** (8 172 px distintos al cerrarse → **0**); **ALGORITHM: CORREGIDO** (53 064 px escritos para 872 que cambian → **34 520**, frame idéntico a un redibujo entero); **TEMPO sobre T3/T4: NO SE REPRODUCE** (tinta del tempo y 1..14 contra almohadillas y 83..99 / y 132..148: **0 px compartidos**) |
+| Frame quieto: la banda de página reenviada al panel | `[HOST]` `ui_render --idle` | **CORREGIDO**: 1 485 216 px mandados con 0 cambiados en 201 escenas → **109 056** (−92,7 %); una página, 29 280 → **0**; costo +304 B de flash y +36 B de RAM |
 | Cualquier medición en una FM-1 | — | **NOT MEASURED**: no hubo unidad |
 
 ## Fase 3 — accesibilidad (#105), optimización y versión v1.5.0

@@ -488,9 +488,19 @@ static void contain(int32_t x, int32_t y)
         }
     }
 }
+static uint8_t bb_on;                            /* (v1.5.6) --idle: track where the blits land */
+static int32_t bb[4];
 static void hk_blit(uint32_t x, uint32_t y, uint32_t r0, uint32_t w, uint32_t h)
 {
     uint32_t i, k = 0;
+    if (bb_on && getenv("UI_IDLE_BLITS"))
+        printf("      blit x=%u y=%u w=%u h=%u\n", x, y, w, h);
+    if (bb_on && w && h > r0) {
+        if (bb[2] < 0 || (int32_t)x < bb[0]) bb[0] = (int32_t)x;
+        if (bb[2] < 0 || (int32_t)(x + w) > bb[2]) bb[2] = (int32_t)(x + w);
+        if (bb[2] < 0 || (int32_t)(y + r0) < bb[1]) bb[1] = (int32_t)(y + r0);
+        if ((int32_t)(y + h) > bb[3]) bb[3] = (int32_t)(y + h);
+    }
     al_flush();
     contain((int32_t)x, (int32_t)y);
     ncells = 0;
@@ -1293,7 +1303,7 @@ static void draw(int s)
     nscr = npend = nrules = 0;
     ntight = 0;
     tight[0] = 0;
-    memset(host_screen, 0, sizeof host_screen);
+    memset(host_screen, 0, sizeof host_screen); gfx_forget();
     if (s == S_CALIBRATION) {                     /* the blocking setup screen: its two drawing steps */
         setup_title();
         setup_show("TURN RIGHT", "ALGORITHM");
@@ -1819,7 +1829,7 @@ static void al_table(void)
 typedef struct { const char *n; int32_t x0, y0, x1, y1; } reg_t;
 static uint16_t rref[240 * 240];
 static int32_t rw[4];                            /* the box of the pixels that differ (x0 y0 x1 y1, x1 = -1: none) */
-static uint32_t rframe(void) { ui.force = 1; memset(host_screen, 0, sizeof host_screen); blit_px = 0; ui_draw(); return (uint32_t)blit_px; }
+static uint32_t rframe(void) { ui.force = 1; memset(host_screen, 0, sizeof host_screen); gfx_forget(); blit_px = 0; ui_draw(); return (uint32_t)blit_px; }
 static uint32_t rnext(void) { blit_px = 0; ui_draw(); return (uint32_t)blit_px; }
 static void rsnap(void) { memcpy(rref, host_screen, sizeof rref); }
 /* the pixels of r that differ from the snapshot, and their box in rw */
@@ -1857,6 +1867,48 @@ static reg_t rrect(const char *n, int32_t x0, int32_t y0, int32_t x1, int32_t y1
 }
 /* two states of one screen: `f0` draws the first (a fresh forced frame), `f1` the second; the diffs are printed and
  * the first one's count is returned (the number a fix drives to zero) */
+/* (v1.5.6) THE IDLE FRAME: what the drawer still writes when NOTHING changed. Every band has a signature and the
+ * columns have their own stamps, so an idle frame should write 0 px; whatever it writes is work the panel pays for
+ * nothing (bandwidth, CPU on core 0 next to the audio) and, when it repeats, is what a blinking or flickering strip
+ * looks like. Each scene is forced once, then drawn three more times with the clock still, and the least of the three
+ * is its idle cost (a cursor's blink is 0 in two of them). */
+static int idle_main(void)
+{
+    uint32_t s, k, w, tot = 0, worst[8] = {0}, wn[8] = {0};
+    reg_t all = rrect("frame", 0, 0, 240, 240);
+    rep = al_rep = audf = fopen("/dev/null", "w");
+    if (!rep)
+        return 1;
+    printf("idle: what an untouched frame costs -- px the panel writes and px that change (forced frame, then 3 idle draws)\n");
+    for (s = 0; s < S_COUNT; s++) {
+        state();
+        setup((int)s);
+        rframe();
+        rsnap();
+        bb[2] = -1; bb_on = 1;
+        w = rnext();                                  /* an idle draw: no state moved since the snapshot */
+        bb_on = 0;
+        if (!rdiff(&all))
+            tot += w;                                 /* wrote px, changed none: pure waste */
+        if (getenv("UI_IDLE_DEBUG") && w)
+            printf("    [%s] w=%u bb=%d,%d..%d,%d page=%u home=%u layer=%u\n", S_NAME[s], w, bb[0], bb[1], bb[2], bb[3],
+                   ui.page, ui.home, ui.layer);
+        else
+            continue;                                 /* an animation: its writes are its content */
+        for (k = 0; k < 8u; k++)
+            if (w > worst[k]) {
+                uint32_t i;
+                for (i = 7u; i > k; i--) { worst[i] = worst[i - 1u]; wn[i] = wn[i - 1u]; }
+                worst[k] = w; wn[k] = s;
+                break;
+            }
+    }
+    printf("  %u px escritos y 0 cambiados, sumando las escenas quietas\n", tot);
+    for (k = 0; k < 8u; k++)
+        if (worst[k])
+            printf("  %-28s %6u px escritos, 0 cambiados\n", S_NAME[wn[k]], worst[k]);
+    return tot ? 1 : 0;                          /* the guard: a still screen costs nothing, or it is a bug */
+}
 static int rbad;
 static int regions_main(void)
 {
@@ -1983,6 +2035,8 @@ int main(int argc, char **argv)
     uint32_t p, s;
     if (argc > 1 && !strcmp(argv[1], "--regions"))
         return regions_main();
+    if (argc > 1 && !strcmp(argv[1], "--idle"))
+        return idle_main();
     static const char *const SHOW[] = {"GREY", "MONO", "GREEN", "PAPER", "NIGHT", "THERMAL", "GAMMA", "WRAITH", "QUANTUM"};   /* (NIGHT: #50, to review) */
     /* QG_DUMP=<screen>[,<palette>]: render one screen into /tmp/qg_dump.ppm for a visual review.
      * It is the same draw() the suite measures, so what it shows is what the panel gets; the

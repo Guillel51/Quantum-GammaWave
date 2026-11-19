@@ -294,7 +294,6 @@ static void cv_blit_rows(uint32_t x, uint32_t y, uint32_t r0)
     uint32_t a, b;
     if (r0 >= cv_h)
         return;
-    cv_rec_add(x, y + r0, cv_w, cv_h - r0);         /* (the hole's rows: never cleared, cv_gaps) */
     if (cv_hole1 <= y + r0 || cv_hole0 >= y + cv_h) {
         lcd_blit(x, y + r0, cv_w, cv_h - r0, cv_px + r0 * cv_w);
         return;
@@ -308,9 +307,43 @@ static void cv_blit_rows(uint32_t x, uint32_t y, uint32_t r0)
     if (b < cv_h)
         lcd_blit(x, y + b, cv_w, cv_h - b, cv_px + b * cv_w);
 }
-
+/* (v1.5.6) THE PAGE BAND THE PANEL ALREADY HAS IS NOT SENT. Every page redraws its band into the canvas and this is
+ * the only path to lcd_blit, so an idle frame -- nothing on it changed -- used to push the same 240 x 122 px to the
+ * panel again: measured on the host harness, 29 280 px per idle frame on every page and 1 485 216 px over the 201
+ * scenes of `ui_render --idle`, every one of them identical to what the panel already showed. The panel is a memory:
+ * sending the same pixels to the same window changes nothing but the time core 0 spends in SPI, next to the audio.
+ * The check is on the PIXELS, not on a page's state, so no signature can miss a change: an FNV-1a over the canvas'
+ * 32-bit words (two pixels a load, the same bytes) against the one last sent to that same window. The bands with a
+ * signature of their own (header, cards, footer) are a few hundred pixels and skip this; the page band is the one
+ * that costs. Anything else that writes the panel outside this path -- a fill (draw_frame, the GEN screen, a
+ * full-screen clear) -- calls gfx_forget(), and so does the host harness when it empties its own framebuffer. */
+#define CV_SENT_MIN_H 64u                            /* rows: a canvas worth hashing */
+extern uint32_t lcd_gen;                             /* (lcd.c: a fill changes what the panel shows) */
+static struct { uint16_t x, y, w, h; uint32_t hh, gen; uint8_t on; } cv_last;
+void gfx_forget(void) { cv_last.on = 0; }
 static void cv_blit(uint32_t x, uint32_t y)
 {
+    uint32_t n = cv_w * cv_h, i;
+    cv_rec_add(x, y, cv_w, cv_h);                    /* (the cover, out or not: cv_gaps clears what none covers) */
+    if (cv_h >= CV_SENT_MIN_H) {
+        uint32_t s = 0x811C9DC5u;
+        for (i = 0; i < (n >> 1); i++)
+            s = (s ^ cv_buf.w32[i]) * 0x01000193u;
+        if (n & 1u)
+            s = (s ^ cv_px[n - 1u]) * 0x01000193u;
+        if (cv_last.on && cv_last.gen == lcd_gen && cv_last.x == x && cv_last.y == y && cv_last.w == cv_w &&
+            cv_last.h == cv_h && cv_last.hh == s)
+            return;                                  /* the panel already shows exactly this window */
+        cv_last.on = 1;
+        cv_last.x = (uint16_t)x;
+        cv_last.y = (uint16_t)y;
+        cv_last.w = (uint16_t)cv_w;
+        cv_last.h = (uint16_t)cv_h;
+        cv_last.hh = s;
+        cv_last.gen = lcd_gen;
+    } else if (cv_last.on && x < (uint32_t)cv_last.x + cv_last.w && cv_last.x < x + cv_w &&
+               y < (uint32_t)cv_last.y + cv_last.h && cv_last.y < y + cv_h)
+        cv_last.on = 0;                              /* (drawn over it: what it held is gone) */
     GFX_HOOK_BLIT(x, y, 0u);
     cv_blit_rows(x, y, 0u);
 }

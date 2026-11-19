@@ -56,3 +56,23 @@ comparación de sonido), y recién entonces agregar.
 Lo que sí queda cerrado en esta fase es la **verdad de las mediciones** (fases 2 y 3) y este mapa: a partir de
 aquí, cualquier propuesta de optimización tiene un presupuesto contra el que medirse, y las tres regiones
 críticas están identificadas con su margen exacto.
+
+## 5. Fase 1 de `v1.5.6`: lo que sí se pagó, y con qué se midió
+
+El techo de esta fase era el de la tabla de §1, y la primera pasada lo dejó ahí: **1 508 B libres de XIP**. Lo que
+cambió en `v1.5.6` no es un recorte de código sino **tráfico de panel**, que no estaba medido:
+
+| Medición | Antes | Después | Clase |
+|---|---|---|---|
+| Frame quieto, 201 escenas (`ui_render --idle`) | 1 485 216 px mandados al panel | **109 056 px** | `[HOST]` |
+| Frame quieto de una página (240 × 122) | 29 280 px | **0 px** | `[HOST]` |
+| Imagen de la app (AC791N) | 582 200 B, 1 412 libres | 582 504 B, **1 108 libres** | `[ESTÁTICO]` |
+| RAM `.data+.bss` | 91 612 B | 91 648 B | `[ESTÁTICO]` |
+
+El mecanismo: `gfx.c cv_blit()` es el único camino a `lcd_blit`, y guarda el hash de la última banda enviada con su
+ventana; si el canvas sale idéntico no se manda. `ui_render --idle` queda en la suite como guarda: si un frame
+quieto vuelve a escribir píxeles, el paso falla.
+
+Lo que sigue **sin** entrar por presupuesto es lo mismo que en §3 y §4: fuentes comprimidas (−14,9 KiB posibles,
+sin medir su CPU de decodificación), `UAC_FIR` acortado (−3,8 KiB, cambia el sonido del USB) y cualquier motor o
+parámetro nuevo. `v1.5.6` gasta 304 B de la holgura que había; quedan **1 108 B**.

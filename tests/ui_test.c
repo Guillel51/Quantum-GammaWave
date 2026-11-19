@@ -69,6 +69,7 @@ static void (*host_wdt_hook)(void);                /* (a test's: time passing in
 static void fm1_wdt_feed(void) { if (host_wdt_hook) host_wdt_hook(); }
 static void fm1_irq_off(void) {}
 static void fm1_irq_on(void) {}
+uint32_t lcd_gen;                    /* (v1.5.6) gfx.c: a fill makes the canvas cache stale */
 static uint16_t host_screen[240 * 240];
 /* (GEN fix) a flash: a pixel that changed during a frame and ended it as it began (a page drawn, then something over
  * it again; a body cleared and drawn the same): on the panel the eye sees it (the LCD shows every write). host_px
@@ -106,6 +107,7 @@ static void host_flash_end(void)
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 {
     uint32_t i, j;
+    lcd_gen++;
 #ifdef UI_FILL_HOOK
     UI_FILL_HOOK(x, y, w, h);                     /* (tests/ui_render.c: what a fill covers is gone) */
 #endif
@@ -2490,7 +2492,7 @@ static int mono_screens(uint32_t pal, int (*chk)(void), uint32_t *n)
             ui.home = 0; ui.page = (uint8_t)i; page_entered();
             if (!page_visible(i)) continue;
             settings.palette = pal; palette_set(pal);
-            memset(host_screen, 0, sizeof host_screen);
+            memset(host_screen, 0, sizeof host_screen); gfx_forget();
             ui.force = 1; ui_draw();
             ok &= chk();
             (*n)++;
@@ -3616,7 +3618,7 @@ static int test_layer(void)
         ui.page = (uint8_t)page;
         page_entered();
         TSEL->p[P_E2] = 8;                            /* DCW near its low end */
-        memset(host_screen, 0, sizeof host_screen);
+        memset(host_screen, 0, sizeof host_screen); gfx_forget();
         ui.force = 1; ui_draw();
         memcpy(a, host_screen, sizeof a);
         TSEL->p[P_E2] = 120;                          /* .. and near its top: the knee moves */
@@ -5035,7 +5037,7 @@ static int test_piano_roll(void)
     load_pat16(t, PATTERNS[0].note, PATTERNS[0].flags);               /* ACID: A2..A3, ties, accents, slides */
     t->p[P_ROOT] = 9; t->p[P_SCALE] = 2;
     go_page(GR_ROLL); ui.cursor = 0; ui.bank = 0;
-    memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+    memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();
     ok = pr_columns_match(t, &nb);
     bad += check("piano roll: ACID's bars drawn at their notes' rows, ties carried, rests empty", ok && nb >= 10u);
     bad += check("  the view holds the page's notes (A2..A3 in 21 rows), MONO gray", proll.lo <= 45 && proll.lo + PR_ROWS - 1 >= 57 &&
@@ -5047,7 +5049,7 @@ static int test_piano_roll(void)
         t->step[i + 1u].time = ST_TIE;
     }
     nb = 0;
-    memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+    memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();
     bad += check("  4-note chords stacked, their ties carry all four", pr_columns_match(t, &nb));
     for (i = 0; i < NSTEP; i++) {                                     /* LEN 32, page 2 */
         step_clear(&t->step[i]);
@@ -5055,7 +5057,7 @@ static int test_piano_roll(void)
     }
     t->p[P_SLEN] = 32; cursor_set(18);
     nb = 0;
-    memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+    memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();
     bad += check("  LEN 32, the cursor on page 2: its 16 steps drawn", ui.bank == 1u && pr_columns_match(t, &nb) && nb == 8u);
     lo0 = proll.lo;                                                   /* two octaves up: the view follows in steps */
     for (i = 16; i < 32u; i++) if (t->step[i].n) t->step[i].note[0] += 24;
@@ -10733,7 +10735,7 @@ static int test_head_centres(void)
                 ui_style = (uint8_t)st; style_apply();
                 settings.palette = p; palette_set(p);
                 head_state(s);
-                memset(host_screen, 0, sizeof host_screen);
+                memset(host_screen, 0, sizeof host_screen); gfx_forget();
                 ui.force = 1; draw_head(); ui.force = 0;
                 ok &= head_centres(HS_NAME[s], pr);
                 okp = nhel > 0 && hel[0][0] == 4;      /* the track cushion first, its ink from x 4 */

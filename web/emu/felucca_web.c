@@ -118,11 +118,13 @@ static void fm1_irq_off(void) {}
 static void fm1_irq_on(void) {}
 
 /* ----------------------------------------------------------- the screen --- */
+uint32_t lcd_gen;                    /* (v1.5.6) gfx.c: a fill makes the canvas cache stale */
 static uint16_t web_fb[240 * 240];       /* RGB565 as the panel gets it (high byte first) */
 static uint32_t web_draws;
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 {
     uint32_t i, j;
+    lcd_gen++;
     uint16_t sw = (uint16_t)((c >> 8) | (c << 8));
     for (j = 0; j < h && y + j < 240u; j++)
         for (i = 0; i < w && x + i < 240u; i++)
@@ -141,6 +143,7 @@ static void lcd_sync(void) {}
 static void lcd_power(uint32_t s)              /* MENU > SCREEN OFF (lcd.c): off, the page dark; on: redrawn before */
 {
     if (!s) {
+        lcd_gen++;
         memset(web_fb, 0, sizeof web_fb);
         web_draws++;
     }

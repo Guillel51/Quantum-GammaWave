@@ -294,6 +294,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     # LARGE), and a track change (ALGORITHM's encoder) writes only what changed -- with the frame identical.
     run "UI regions: pop-up close, the tempo against the T3/T4 cushions, a track change's cost" \
         "$OUT/ui_render" --regions
+    # (v1.5.6) and what an untouched frame costs: over the 201 scenes of the sweep, the pixels the drawer sends to the
+    # panel with nothing changed. It was 1 485 216 (29 280 on every page, the whole 240 x 122 band again) and is 109 056
+    # with gfx's identical-band skip; a page that starts re-sending what the panel has fails this step.
+    run "UI idle: an untouched frame sends the panel nothing it already has (201 scenes)" \
+        "$OUT/ui_render" --idle
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
     # (FASE 5) and the pixels themselves against the tracked baseline: the lint above cannot see a glyph table, a
     # palette or a 1 px offset that still parses as aligned. `ui_pixels.py --update` only when it was meant.

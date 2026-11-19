@@ -77,6 +77,10 @@ static void lcd_window(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
     lcd_cmd(0x2C);
 }
 
+/* (v1.5.6) EVERY FILL MAKES THE CANVAS CACHE STALE, and this is the one place that knows it: gfx.c skips a blit whose
+ * pixels the panel already has, and a fill under that window changes them. A counter instead of a call keeps lcd.c
+ * free of gfx: the tests that link this file alone still build. */
+uint32_t lcd_gen;
 static uint16_t lcd_fillbuf[240];
 
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
@@ -84,6 +88,7 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
     uint32_t i, n, k, sw = (uint16_t)((c >> 8) | (c << 8));
     if (!w || !h || x >= 240u || y >= 240u)
         return;
+    lcd_gen++;                              /* (v1.5.6) the panel changed outside gfx's blit */
     if (x + w > 240u)
         w = 240u - x;
     if (y + h > 240u)

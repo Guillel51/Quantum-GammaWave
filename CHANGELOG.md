@@ -1,3 +1,29 @@
+## v1.5.6 — El panel deja de recibir lo que ya tiene
+
+**La medición primero.** `tests/ui_render.c --idle` (nuevo, registrado en la suite) recorre las 201 escenas del
+barrido, fuerza un frame y después dibuja otra vez sin mover nada: cuenta los píxeles que el dibujo **manda al
+panel** (`blit_px`) y los que **cambian** en la pantalla. En `v1.5.5` ese frame quieto escribía **1 485 216 px**
+sumando las escenas, **29 280 px por frame en cada página** (240 × 122: la banda de página entera), con **0**
+píxeles distintos: el panel recibía otra vez lo que ya tenía. En un frame de 16,7 ms eso es la mayor parte del
+tiempo de core 0 en SPI, al lado del audio.
+
+**El arreglo, en el único camino que llega a `lcd_blit`.** `gfx.c` guarda el hash FNV-1a de la última banda enviada
+junto con su ventana y **no la manda si el canvas es el mismo** (32 bits sobre palabras de 32: dos píxeles por
+carga). La comparación es sobre los **píxeles**, no sobre el estado de la página, así que ninguna firma puede
+saltarse un cambio; y todo lo que escribe el panel fuera de ese camino — un `lcd_fill` (`draw_frame`, la pantalla
+GEN, un borrado completo) — llama a `gfx_forget()`, igual que el arnés cuando vacía su framebuffer.
+
+| | antes | después |
+|---|---|---|
+| frame quieto, 201 escenas | 1 485 216 px | **109 056 px (−92,7 %)** |
+| frame quieto, una página | 29 280 px | **0 px** |
+| flash (imagen de la app) | 582 200 B (1 412 libres) | 582 504 B (**1 108 libres**) |
+| RAM `.data+.bss` | 91 612 B (6 692 libres) | 91 648 B (6 656 libres) |
+
+Costo medido: **+304 B de flash y +36 B de RAM**. Clase: `[HOST]` (x86-64, `ui_render`) para los píxeles,
+`[ESTÁTICO]` (build AC791N con el toolchain `pi32v2` fijado) para flash y RAM. Los 3 056 frames del barrido siguen
+siendo idénticos al baseline; las únicas 48 líneas que cambian son las pantallas ABOUT, que muestran la versión.
+
 ## v1.5.5 — Los tres defectos de UI de la fase 2, medidos por región
 
 **Primero el arnés, como pedía el informe.** `tests/ui_render.c --regions` (registrado en `tests/run_tests.sh`)

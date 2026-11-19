@@ -857,6 +857,9 @@ static inline uint32_t swing_step_len(const track_t *t, uint32_t base, uint32_t 
 }
 
 /* ----------------------------------------------------------- system --- */
+/* (v1.5.6) gfx.c: forget the last canvas blit, so the next one is sent even if its pixels match. Call it from every
+ * path that writes the panel outside gfx's cv_blit (lcd_fill, the panels' own clears). */
+void gfx_forget(void);
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")   /* slot store before the index update */
 static volatile uint32_t fm1_ms;  /* milliseconds since boot (TIMER4-based, TIMER5 ISR in main.c) */
 /* boot-loop guard (main.c): two boots in a row that die in the first 30 s -> UBOOT */
