@@ -15,6 +15,14 @@
  * core.h); V(t, i) reads the same lvalue every caller already used. A slot with no sounding voice may be lent
  * to another part at a block boundary, so no voice is ever moved while it sounds. */
 voice_t vpool[VPOOLN];
+/* (FASE 3) THE LIVE COUNT. The monitor's peak used to walk all NPART x NVOICE voices inside every note-on
+ * (voices_busy()): on the host that scan cost more than starting the note itself (tests/alloc_bench.c,
+ * 270 ns -> 143 ns a note with it moved out). The count is kept where a voice starts and where it ends
+ * (voice_start, the envelope's last tick and the engine envelopes), and voice_stats() re-counts it once a
+ * frame, so any path not seen here heals at the next monitor read. */
+static uint32_t voice_live;                             /* voices active in the whole pool (fading ones too) */
+static uint32_t voice_peak;                             /* the most since the last reset */
+static uint32_t voice_denied;                           /* note-ons that found no voice at all */
 /* the pool's inert slot: never active (a scan that runs to NVOICE reads it and skips it), never free
  * (voice_alloc's !active test fails), never stolen (stage 4) and a note no key has (0xFF) */
 static void vdead_init(void)
@@ -36,6 +44,7 @@ void voices_boot(void)
         memset(&vpool[i], 0, sizeof(voice_t));
         vown[i] = 0;
     }
+    voice_live = voice_peak = voice_denied = 0;
     vdead_init();
     /* the first share of the pool: an even split of the slots that can be granted (VDEAD never is), and at
      * least one each, because MONO and LEGATO read their voice at index 0 */
@@ -577,13 +586,10 @@ static uint32_t voice_kills;                            /* voices given up (budg
  * sample on its next frame, so a chord that rose and fell between two frames read as if it never happened, and a
  * voice taken for the budget read as a voice that simply stopped. The peak and the kills are counted where the
  * voices start and end (the allocator), and the UI reads them; sounding / release / fading are read on demand. */
-static uint32_t voice_peak;                             /* the most sounding voices since the last reset */
-static uint32_t voice_denied;                           /* note-ons that found no voice at all */
-static void voice_peak_now(void)
+static void voice_peak_now(void)                        /* O(1): the count is kept, not scanned */
 {
-    uint32_t b = voices_busy();
-    if (b > voice_peak)
-        voice_peak = b;
+    if (voice_live > voice_peak)
+        voice_peak = voice_live;
 }
 /* what the MONITOR prints: sounding (a key or the sequencer holds it), release (let go, still ringing), fading
  * (given up by the allocator or the overload guard: the ~6 ms fade), the peak since the last reset, and the
@@ -605,6 +611,9 @@ static void voice_stats(uint32_t *sounding, uint32_t *release, uint32_t *fading,
             else
                 (*release)++;
         }
+    voice_live = *sounding + *release + *fading;         /* self-healing: the count matches the pool again */
+    if (voice_live > voice_peak)
+        voice_peak = voice_live;
     *peak = voice_peak;
     *steals = voice_kills;
     *denied = voice_denied;
@@ -714,15 +723,27 @@ static voice_t *voice_alloc(track_t *t, uint32_t note)
             return voice_reuse(t, &V(t, i));
         nfree += !V(t, i).active;
     }
-    if (nfree && (voices_busy() >= voice_cap() || load_tight)) {   /* (0.6.16: the load budget too; 0.6.18: a dying tail) */
+    /* (FASE 3) ONE SCAN, AND NONE UNDER THE LOAD BUDGET. This walked all NPART x NVOICE voices twice for
+     * every note started with a free slot (the condition and the victim test), and it walked them even when
+     * load_tight alone decided the branch. Under the budget -- where a busy unit spends its notes -- the
+     * scan is now skipped until a victim is actually needed, and otherwise the count is taken once. */
+    if (nfree) {
+        uint32_t busy = load_tight ? 0u : voices_busy();
         track_t *vp = 0;
-        uint32_t k = quiet_tail(&vp);
-        if (k == NVOICE && voices_busy() >= voice_cap())
-            k = voice_victim(t, 0, &vp);
-        if (k < np && vp == t)
-            return &V(t, k);                            /* our own: restart it in place (no click) */
-        if (k < NVOICE)
-            voice_kill(&V(vp, k));
+        uint32_t k;
+        if (load_tight || busy >= voice_cap()) {                   /* (0.6.16: the load budget too; 0.6.18: a dying tail) */
+            k = quiet_tail(&vp);
+            if (k == NVOICE) {
+                if (!busy)
+                    busy = voices_busy();
+                if (busy >= voice_cap())
+                    k = voice_victim(t, 0, &vp);
+            }
+            if (k < np && vp == t)
+                return &V(t, k);                        /* our own: restart it in place (no click) */
+            if (k < NVOICE)
+                voice_kill(&V(vp, k));
+        }
     }
     if (t->p[P_ALLOC] || t->p[P_GLIDE]) {
         for (i = 0; i < np; i++) {
@@ -807,6 +828,8 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
     v->note = (uint8_t)note;
     v->vel = (uint8_t)vel;
     v->gate = 1;
+    if (!v->active)                                     /* (FASE 3) a voice starting from silence: one more live */
+        voice_live++;
     v->active = 1;
     v->stage = 1;
     v->age = ++vage;
@@ -1106,6 +1129,8 @@ static void engine_block(track_t *t)
         }
         for (i = 0; i < NVOICE; i++) {                  /* faded to 0: gone */
             voice_t *v = &V(t, i);
+            if (v->active)
+                voice_live--;                           /* (FASE 3) the live count */
             v->active = v->gate = 0;
             v->stage = 0;
             v->env = v->env_out = 0;
@@ -1177,6 +1202,8 @@ static int32_t env_tick(track_t *t, voice_t *v)
         if (v->env < (1 << 12)) {
             v->env = 0;
             v->stage = 0;
+            if (v->active)
+                voice_live--;                           /* (FASE 3) the live count */
             v->active = 0;
         }
         break;
@@ -1193,6 +1220,8 @@ static int32_t env_tick(track_t *t, voice_t *v)
         if (v->kfade >= 6u || !v->env) {
             v->env = 0;
             v->stage = 0;
+            if (v->active)
+                voice_live--;                           /* (FASE 3) the live count */
             v->active = 0;
         }
         break;
@@ -1265,6 +1294,8 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
             env = env_tick(t, v);
             if (e->ownenv && v->active) {               /* the engine's envelopes (FM6): they end the voice */
                 if (e->done(t, v)) {
+                    if (v->active)
+                        voice_live--;                   /* (FASE 3) the live count */
                     v->active = v->gate = 0;
                     v->stage = 0;
                     v->env = v->env_out = 0;

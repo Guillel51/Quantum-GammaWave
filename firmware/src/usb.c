@@ -154,15 +154,19 @@ static struct {
 #if FELUCCA_OTA
 /* M-UPGRADE SysEx (ota.c): one received frame at a time (7-bit bytes between
  * F0 and F7; frames arriving while one is pending are dropped, the host
- * retries), and a TX ring of SysEx event packets sent before any MIDI. */
+ * retries). */
 static uint8_t sx_frame[640];
 static uint32_t sx_pos;
 static volatile uint32_t sx_frame_len;
-static volatile uint8_t sx_ready, sx_collect, sx_busy;
+static volatile uint8_t sx_ready, sx_collect;
+#endif
+/* (FASE 3, #105) THE SysEx OUT RING, for every build. It was M-UPGRADE's alone; the screen reader's lines
+ * go the same way (announce.c), so ep1_tx sends them before any MIDI and a reader's sentence is never split
+ * by a note. 64 packets = 192 bytes: the longest line we say is ~40 characters (~14 packets). */
 #define SXQ 64u
 static uint32_t sx_out_q[SXQ];
 static volatile uint32_t so_w, so_r;
-#endif
+static volatile uint8_t sx_busy;
 
 /* MIDI rings: 4-byte USB-MIDI event packets */
 #define MQ 64u
@@ -172,6 +176,24 @@ static uint8_t midi_in_source[MQ];                    /* 1 USB, 2 TRS */
 static volatile uint32_t fm1_ms;                    /* also declared by core.h; parser-only host tests */
 static volatile uint32_t mi_w, mi_r, mo_w, mo_r;
 static volatile uint8_t midi_in_overflow;               /* audio ISR discards a broken stream and releases notes */
+
+#if FELUCCA_ANNOUNCE
+/* (FASE 3, #105) one complete F0..F7 message for the screen reader, as USB-MIDI SysEx event packets, or 1
+ * when the ring has no room for all of it (the message is then dropped: the protocol says the device never
+ * waits, and a half sentence is worse than none). Never blocks, never allocates, never touches flash. */
+static int ann_wire_send(const uint8_t *p, uint32_t n)
+{
+    uint32_t pkt[8u + ANN_MAX / 3u], k = ann_pack(p, n, pkt, 8u + ANN_MAX / 3u), i;
+    if (so_w - so_r + k > SXQ)
+        return 1;
+    for (i = 0; i < k; i++) {
+        sx_out_q[so_w % SXQ] = pkt[i];
+        RING_PUBLISH();
+        so_w++;
+    }
+    return 0;
+}
+#endif
 
 static int midi_enqueue(uint32_t pkt, uint32_t source)
 {
@@ -772,6 +794,14 @@ static void sysex_byte(uint8_t b)
             ok = usb.sysex[i] == UBOOT_KEY[i];
         if (ok)
             usb.uboot_req = 1;
+#if FELUCCA_ANNOUNCE
+        else if (usb.sx_len >= 5u && usb.sysex[1] == 0x7Du && usb.sysex[2] == 0x53u && usb.sysex[3] == 0x52u) {
+            ann_frame(&usb.sysex[1], usb.sx_len - 2u, fm1_ms);   /* (FASE 3, #105) the screen reader's HELLO/BYE/WHERE */
+#if FELUCCA_OTA
+            sx_collect = 0;                             /* not the editor's: it must not be parsed as a frame */
+#endif
+        }
+#endif
 #if FELUCCA_OTA
         else if (usb.sx_len == 6u && usb.sysex[1] == 0x22 && usb.sysex[2] == 0x24 && usb.sysex[3] == 0x35 &&
                  usb.sysex[4] == 0x7F)
@@ -900,21 +930,15 @@ static void ota_frame_done(void)
 static void ep1_tx(void)
 {
     uint32_t csr, n = 0;
-#if FELUCCA_OTA
     if (mo_w == mo_r && so_w == so_r)
         return;
-#else
-    if (mo_w == mo_r)
-        return;
-#endif
     sie_wr(S_INDEX, 1);
     csr = sie_rd(S_TXCSR1);
     if (csr & 0x01u)
         return;                                         /* previous packet still pending */
     if (csr & 0x80u)
         sie_wr(S_TXCSR1, csr & ~0x80u);
-#if FELUCCA_OTA
-    while (so_r != so_w && n < 64u) {                   /* SysEx first, never split by notes */
+    while (so_r != so_w && n < 64u) {                   /* SysEx first, never split by notes (OTA and the reader) */
         uint32_t pkt = sx_out_q[so_r % SXQ];
         ep1tx[n] = (uint8_t)pkt;
         ep1tx[n + 1] = (uint8_t)(pkt >> 8);
@@ -924,9 +948,6 @@ static void ep1_tx(void)
         so_r++;
     }
     while (!sx_busy && so_r == so_w && mo_r != mo_w && n < 64u) {
-#else
-    while (mo_r != mo_w && n < 64u) {
-#endif
         uint32_t pkt;
         RING_PUBLISH();                                 /* the audio ISR (producer) can preempt us: */
         pkt = midi_out_q[mo_r % MQ];                    /* slot read strictly between the index checks */

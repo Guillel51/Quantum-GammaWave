@@ -2034,3 +2034,18 @@ La unidad física no se tocó: ninguna fila de abajo es una medición de hardwar
 | El "7" del reporte | — | **NOT REPRODUCED**: el asignador da 12 en todos los casos medidos en el host; quedan por medir en la unidad el guardián de sobrecarga y la carrera de ventanas entre núcleos (`docs/FASE2_ISSUES_106_107.md` §1) |
 | Nombre de preset en la zona dB, TEMPO sobre T3/T4, repintado de ALGORITHM | — | **NOT FIXED**: causa localizada (región de pop-up sin invalidar; badge de la cabecera sobre la tira; `draw_tracks` con `ui.force` al cambiar de pista). Fase 3 |
 | Cualquier medición en una FM-1 | — | **NOT MEASURED**: no hubo unidad |
+
+## Fase 3 — accesibilidad (#105), optimización y versión v1.5.0
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| Protocolo del FM-1 Screen Reader (HELLO/SAY/WHERE/BYE, 5 s, corte a palabra, cola de 120 ms) | `[HOST]` | `tests/announce_test.c`, 23 comprobaciones: **all checks ok** |
+| Empaquetado USB-MIDI del SysEx (CIN 4/5/6/7, 1..3 bytes) | `[HOST]` | el mismo test: los paquetes que `usb.c` encola son los que el protocolo espera |
+| El firmware entero compila con la capa de accesibilidad y la UI sigue pasando | `[HOST]` | `tests/ui_test.c` (incluye `felucca.c`: `announce.c`, `usb.c`, `ui.c`) → **all passed** |
+| El lector real (página de charlesvestal) dice la pantalla | — | **NOT RUN**: sin navegador con WebMIDI ni unidad; no se declara compatibilidad completa |
+| Emulador/Web Studio transportando el SysEx | — | **NOT IMPLEMENTED**: el camino USB-MIDI del emulador no lleva este flujo |
+| Note-on: escaneo del pico | `[HOST]` | `tests/alloc_bench.c`, dos árboles mismo `cc -O2`: misma nota 162–169 → 67–77 ns; nota nueva 269–278 → 146–179 ns |
+| El audio no cambió | `[HOST]` | `build/regress`: 303 renders, **0 changed**, 0 health/voice failures, 0 CPU over budget |
+| Instalador web y pruebas del sitio | `[HOST]` | `tests/install_test.py` y `web/test_web.mjs`: pasan con la versión v1.5.0 en la fuente |
+| Paquete AC791N y release v1.5.0 | — | **NOT BUILT**: sin `JIELI_TOOLCHAIN` ni `AC79_SDK` en este entorno no hay `.fwsc`, ni firma, ni release. `site/` y `release/` siguen sirviendo v1.4.17 |
+| Issues #105/#106/#107 actualizados en GitHub | — | **NOT DONE**: `gh` sin autenticar; los resultados quedan en `docs/` y en el CHANGELOG |

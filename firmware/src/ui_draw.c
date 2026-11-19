@@ -2069,6 +2069,7 @@ static void ui_draw(void)
 {
     static uint8_t counting;
     style_apply();
+    ann_ui();                                       /* (FASE 3, #105) the screen reader: silent unless one listens */
     /* (QG-1 v1.5) the full-screen visualizer belongs to HOME alone. open_global() used to leave ui.home_viz
      * set with ui.home == 0, and every consumer of the flag then drew the visualizer over a page: draw_frame
      * dropped the rules, and ui_draw_page skipped draw_columns() / draw_graph() altogether, so the section did

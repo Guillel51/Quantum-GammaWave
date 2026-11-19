@@ -334,6 +334,12 @@ if [ -f build/gen/felucca_tables.h ]; then
     # once, SUSTAIN, the load budget, DUAL CORE, a long chord, fast on/off, and the voice states the monitor prints
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_report_test" tests/poly_report_test.c -lm
     run "POLY (issue #107): 1..12 keys on ANALOG BRASS / PLUCK and POLY, at once and one by one, SUSTAIN, LOAD TIGHT, DUAL CORE, long chord, fast on/off, release vs sounding and the peak" "$OUT/poly_report_test"
+    # (FASE 3, issue #105) the screen reader's protocol (announce.c) and the USB-MIDI framing usb.c uses
+    $CC -O1 -w -Ifirmware/src -o "$OUT/announce_test" tests/announce_test.c
+    run "SCREEN READER (issue #105): silent until HELLO, the HELLO answer, SAY/WHERE/BYE, the 5 s timeout, a line cut at a word, and USB-MIDI CIN 4/5/6/7" "$OUT/announce_test"
+    # (FASE 3) how long a note takes to start: prints, never fails (a comparison tool, not a budget)
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/alloc_bench" tests/alloc_bench.c -lm
+    "$OUT/alloc_bench" | sed 's/^/  /'
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/control_map_test" tests/control_map_test.c -lm
     run "RAM / flash map: every object over 1 KiB with its section, and no two rodata objects holding the same bytes (the same flash paid twice)" python3 tools/ram_flash_map.py --dups --check --min 1024
     run "pages: every knob of every page, in every engine and at every state a computed page can be in, edits its own value and no two share one (MASTER > STEREO M/S is the master width, not a track's release)" "$OUT/control_map_test"

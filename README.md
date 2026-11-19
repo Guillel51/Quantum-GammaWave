@@ -174,6 +174,12 @@ master buses, the UI and tracks 1–3; core 1 renders tracks 4–6.
   console and the preferences, on a 240 × 240 panel with fourteen buttons and seven encoders.
 - The whole UI is rendered by the firmware sources and checked by the render sweep and its alignment lint.
 
+## Accessibility
+
+Quantum GammaWave speaks to the **FM-1 Screen Reader** ([charlesvestal/fm1-reader](https://github.com/charlesvestal/fm1-reader)) over USB-MIDI: the screen's name when it changes (HOME's five, MENU, CONFIRM and each page's own title), a HOME card's value and unit as its knob turns (once it settles, as the protocol asks), the sound a track loads (`ANALOG BRASS`), and everything the top bar says. Nothing is sent while no reader is listening, so a DAW on the same port never sees a byte, and the audio path gains no call.
+
+Open the reader page in Chrome or Edge with the FM-1 plugged in and press Connect. The words file is not published yet: the reader applies its own common rules. What is announced, what is not (MENU rows, knobs outside HOME, lists), what it costs and how to test it: [`docs/ACCESSIBILITY.md`](docs/ACCESSIBILITY.md). The autonomous readers Tonitor and Bigorna (speech from the headphone output) are studied there as the alternative not taken.
+
 ## MIDI, projects and tools
 
 - **USB-MIDI** in and out, with channel routing, a selectable track, and **SysEx** for the Web Studio and for

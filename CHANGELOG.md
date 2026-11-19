@@ -1,3 +1,27 @@
+## v1.5.0 — Fase 3: accesibilidad, optimización de note-on y cierre de la fase 2
+
+**Issue #105 — FM-1 Screen Reader.** `firmware/src/announce.c`: el protocolo del lector (SysEx
+`F0 7D 53 52`, versión 1) implementado en el firmware, con el anillo SysEx de salida compartido con M-UPGRADE
+(`usb.c`, SysEx antes que cualquier nota) y el parseo en el mismo sitio donde ya se parseaba el SysEx del
+editor. Se anuncia la pantalla al cambiar, el valor de una tarjeta de HOME mientras gira su perilla (a los
+~120 ms quieto, como pide el protocolo), el sonido cargado y los mensajes de la barra superior; WHERE
+reanuncia la pantalla. Silencioso mientras no hay lector: ningún byte, ninguna cadena formateada, ninguna
+llamada nueva desde el ISR. Sin archivo de palabras propio todavía (el lector aplica sus reglas comunes);
+filas de MENU, perillas fuera de HOME y listas quedan documentadas como pendientes en
+`docs/ACCESSIBILITY.md`, junto con Tonitor y Bigorna como alternativas autónomas estudiadas. Nuevo
+`tests/announce_test.c`: 23 comprobaciones del protocolo y del empaquetado USB-MIDI (CIN 4/5/6/7).
+
+**Optimización medida (host).** El pico del monitor escaneaba las 72 voces del pool en cada note-on. Ahora el
+contador de voces vivas se mantiene donde una voz empieza y donde termina, y `voice_stats()` lo recalcula una
+vez por frame. `tests/alloc_bench.c` (mismo compilador y flags, dos árboles): iniciar la misma nota
+**162–169 → 67–77 ns**, una nota nueva **269–278 → 146–179 ns**. `voice_alloc` además hace un solo escaneo del
+pool por nota (ninguno bajo el presupuesto de carga) en vez de dos. Los 303 renders dorados siguen idénticos.
+
+**Fase 2, lo que quedó pendiente se cierra aquí en lo que se pudo verificar.** Sin toolchain AC791N en este
+entorno no hay paquete ni release nuevos: el sitio y `release/` siguen sirviendo v1.4.17, y la versión de
+fuente pasa a `v1.5.0` como **no publicada**. Los pendientes de UI de la fase 2 (región de pop-up, TEMPO sobre
+T3/T4, repintado de ALGORITHM) siguen abiertos y con la causa localizada.
+
 ## Fase 2 — Issues #106 (UI) y #107 (polifonía)
 
 **#107:** la polifonía se mide ahora donde arrancan las voces. `voice.c` lleva el pico real

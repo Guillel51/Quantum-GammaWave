@@ -511,6 +511,11 @@ static void ui_say(const char *a, const char *b)
     str_cpy(ui.msg + n, b, sizeof ui.msg - n);
     ui.msg_t = 40;
     ui.msg2[0] = 0;
+#if FELUCCA_ANNOUNCE
+    /* (FASE 3, #105) the reader hears what the top bar says; the no-file icon leads a message about a
+     * missing file (a warning), which the protocol asks to be heard whole (KEEP) rather than cut off. */
+    ann_say(ui.msg, 0, a[0] == '\x01' ? ANN_KEEP : ANN_NOW);
+#endif
 }
 
 static void ui_message(const char *s) { ui_say(s, ""); }
@@ -1277,6 +1282,15 @@ static void apply_preset_to(track_t *t, uint32_t pi)
      * property of the sound and not a taste. The user's fader still moves the track from there. */
     t->p[P_LEVEL] = (int16_t)preset_level_of(t->eng_req % NENGINES, pi);
     fm1_irq_on();                                     /* (FASE 2) the whole sound, at once */
+#if FELUCCA_ANNOUNCE
+    {   /* (FASE 3, #105) the sound that was loaded, in words: "ANALOG BRASS" */
+        char nb[40];
+        str_cpy(nb, e->name, sizeof nb);
+        str_cpy(nb + str_len(nb), " ", sizeof nb - str_len(nb));
+        str_cpy(nb + str_len(nb), e->presets[pi].name, sizeof nb - str_len(nb));
+        ann_say(nb, 0, ANN_NOW);
+    }
+#endif
     load_end(t);
 }
 
@@ -1610,6 +1624,50 @@ static int32_t accel(uint32_t role, int32_t s, int32_t range)
     ui.enc_t[role] = now | up << 24 | (i ? i : 1u) << 25;
     return s * (int32_t)m;
 }
+
+#if FELUCCA_ANNOUNCE
+/* (FASE 3, issue #105) WHAT THE SCREEN SAYS, SAID. Three things, the ones the protocol's reader asks for and
+ * this instrument can name without inventing anything: the screen when it changes (HOME's five, MENU, a
+ * confirm, or the page's own title), the value of the card a knob is turning (once it has settled, ~120 ms,
+ * as the protocol wants for a knob), and every message the top bar shows (ui_say). Nothing is built while no
+ * reader is listening: ann_on() is the first test in each path. What is not announced yet (a MENU row, the
+ * knobs of a page other than HOME, a list selection) is written down in docs/ACCESSIBILITY.md. */
+static char ann_page_was[16];
+static void ann_ui(void)
+{
+    char b[48];
+    const char *nm;
+    if (!ann_on())
+        return;
+    ann_tick(fm1_ms);
+    nm = ui.menu ? "MENU" : ui.confirm ? "CONFIRM" : !ui.home ? cur_page()->title :
+         ui.home_viz ? "VISUALS" :
+         ui.home_view == HV_OVERVIEW ? "OVERVIEW" : ui.home_view == HV_MIX ? "MIXER" :
+         ui.home_view == HV_PERF ? "PERFORMANCE" : "HOME MAIN";
+    if (ann_where() || !str_eq(ann_page_was, nm)) {
+        str_cpy(ann_page_was, nm, sizeof ann_page_was);
+        ann_say(nm, 0, ANN_NOW);
+    }
+    if (ui.hot_t && ui.home && !ui.menu && !ui.confirm && !ui.home_viz) {   /* the card's value, as its knob turns */
+        int16_t *vp = 0;
+        const param_desc_t *d = home_param(ui.hot_col, &vp);
+        char val[12];
+        const char *unit;
+        if (d && vp) {
+            param_format(d, *vp, val, &unit);
+            b[0] = 0;
+            str_cpy(b, d->label, sizeof b);
+            str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
+            str_cpy(b + str_len(b), val, sizeof b - str_len(b));
+            if (unit)
+                str_cpy(b + str_len(b), unit, sizeof b - str_len(b));
+            ann_later(b, ANN_NOW, 120u, fm1_ms);
+        }
+    }
+}
+#else
+static void ann_ui(void) {}
+#endif
 
 #include "ui_events.c"                            /* SEQ > AUTO LIST: the locks and events as a list (an action page) */
 /* EDIT > SOUND / SOUND 2 (ui_dx.c, included by ui_input.c): the DRUM-X sound edited and its patch (0 A, 1 B) */
