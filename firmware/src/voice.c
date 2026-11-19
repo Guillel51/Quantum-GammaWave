@@ -586,10 +586,16 @@ static uint32_t voice_kills;                            /* voices given up (budg
  * sample on its next frame, so a chord that rose and fell between two frames read as if it never happened, and a
  * voice taken for the budget read as a voice that simply stopped. The peak and the kills are counted where the
  * voices start and end (the allocator), and the UI reads them; sounding / release / fading are read on demand. */
-static void voice_peak_now(void)                        /* O(1): the count is kept, not scanned */
+static void voice_peak_now(void)                        /* O(1): the count is kept, not scanned.
+                                                          * (FASE 3) The count includes the voices in
+                                                          * their ~6 ms fade, and those are already replaced:
+                                                          * reporting them made the peak read 17 on a budget
+                                                          * of 12. The peak is what sounded, so it is taken
+                                                          * in voice_stats (sounding + release) once a frame;
+                                                          * a burst shorter than a frame is not polyphony the
+                                                          * player heard. */
 {
-    if (voice_live > voice_peak)
-        voice_peak = voice_live;
+    (void)voice_live;
 }
 /* what the MONITOR prints: sounding (a key or the sequencer holds it), release (let go, still ringing), fading
  * (given up by the allocator or the overload guard: the ~6 ms fade), the peak since the last reset, and the
@@ -612,8 +618,10 @@ static void voice_stats(uint32_t *sounding, uint32_t *release, uint32_t *fading,
                 (*release)++;
         }
     voice_live = *sounding + *release + *fading;         /* self-healing: the count matches the pool again */
-    if (voice_live > voice_peak)
-        voice_peak = voice_live;
+    if (*sounding + *release > voice_peak)              /* (FASE 3) the fading ones are replaced voices, not
+                                                          * polyphony: the peak is what sounded, and it can
+                                                          * never read above the budget */
+        voice_peak = *sounding + *release;
     *peak = voice_peak;
     *steals = voice_kills;
     *denied = voice_denied;
@@ -809,6 +817,12 @@ static void voice_start(track_t *t, voice_t *v, uint32_t note, uint32_t vel, int
 {
     const engine_t *e = ENGINES[t->engine];
     int sounding = v->active && v->stage != 0;
+    /* (FASE 3) A SOUNDING VOICE TAKEN FOR ANOTHER NOTE IS A STEAL, and it used to be invisible: a part
+     * whose window is full replaces its own oldest voice in place (no fade, no voice_kill), so 20 notes into
+     * 12 voices reported zero steals. The note it was playing is cut all the same, and the monitor has to say
+     * so. A retrigger of the same note is a repeat, not a steal. */
+    if (sounding && v->note != note)
+        voice_kills++;
     uint32_t ph0 = v->ph[0], ph1 = v->ph[1], ph2 = v->ph[2];
 #if FELUCCA_VRESET
     if (!sounding) {                                /* (3.6) a voice that is not sounding starts from silence: the

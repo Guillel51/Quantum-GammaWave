@@ -2072,3 +2072,15 @@ La unidad física no se tocó: ninguna fila de abajo es una medición de hardwar
 | El pop al encender, medido | — | **NOT MEASURED (acústico)**: sin unidad. El arreglo elimina la causa de orden; el asentamiento del códec (25 ms) sigue sin medirse con micrófono ni osciloscopio |
 | Clicks al cambiar preset / motor / FX / proyecto | — | **NOT MEASURED**: hay fades internos (`xf`, `fx_preset_flush`, `pfx_note`) y la regresión es bit-idéntica, pero ningún test de host puede oír un click |
 | Barrido de UI 240x240, todas las paletas y FLAT/LINE | `[HOST]` | `build/ui_render`: **191 pantallas x 22 paletas** + barrido de páginas/valores: **0 hallazgos de lint**, 0 tintas sobre su propio color, 0 píxeles GREY/MONO fuera de gris, 3 783 017 medidas de alineación con **0 desvíos de 1 px**; splash con animación encendida y apagada (127 frames) |
+
+## Fase 3 — Polifonía y allocator (2026-11-19)
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| #107 con ANALOG BRASS / PLUCK, 1..12 teclas, de a una y de golpe | `[HOST]` | `poly_report_test`: 12 voces, 0 STL, 0 DEN en todos los casos; SUSTAIN 100, LOAD TIGHT y DUAL CORE incluidos — **all passed** |
+| Seis partes, seis motores, 24 notas en 12 voces | `[HOST]` | `poly_stress_test`: 12 ocupadas, PK 12, STL 8, DEN 0, ninguna parte en cero — ok |
+| Cambio de motor bajo un acorde sostenido | `[HOST]` | `poly_stress_test`: 0 voces activas tras soltar y dejar correr las colas — ok |
+| Coste de un bloque con seis partes y FX | `[HOST]` (reloj de este host) | 14.04 µs por bloque de 725 µs — **no es la unidad** |
+| El audio no cambió | `[HOST]` | `regress`: 303 renders, **0 changed**; `ui_test` all passed |
+| Memoria del target | `[AC791N]` | RAM 91 608 B de 98 304 (6 696 libres); paquete 610 959 B, 1 492 B libres de imagen |
+| Polifonía efectiva mayor que 12 | — | **NOT ENABLED**: 1 134 B de `.bss` por voz y 6 696 B libres; subirlo exige re-medir el sonido y el pool mínimo (`VPOOLN >= NVOICE + NPART`) |

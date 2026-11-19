@@ -337,6 +337,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     # (FASE 2) the power-on order of the audio path: held before the engine, opened after the second core
     python3 tests/boot_order_test.py
     run "BOOT ORDER: main.c holds the output before audio_init (the unmute lands on zeros, the fade is not spent behind the mute), opens it after the second core, and the HAL starts the engine before it unmutes" python3 tests/boot_order_test.py
+    # (FASE 3) six parts, six engines, effects, chords, fast attacks, preset changes: the allocator's counters
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_stress_test" tests/poly_stress_test.c -lm
+    run "POLY STRESS: 24 notes into 12 voices never exceed the pool, no part starved, no note denied, peak == what sounded, six parts + FX inside the block budget, an engine change under a held chord leaves nothing, 20 notes into 12 count their steals" "$OUT/poly_stress_test"
     # (FASE 1) the note the key scan keeps while core 1 renders: the pool is never touched mid-job
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/voice_defer_test" tests/voice_defer_test.c -lm
     run "CORE SYNC: a note while the other core renders is postponed (never allocated mid-job), replayed at the block start, note-offs never dropped, a burst over the queue loses only note-ons" "$OUT/voice_defer_test"

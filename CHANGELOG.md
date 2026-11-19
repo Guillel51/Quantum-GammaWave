@@ -1,3 +1,33 @@
+## Fase 3 — Los contadores del allocator dicen la verdad (#107)
+
+**#107 reproducido con los presets del reporte.** `tests/poly_report_test.c` corre el camino exacto (keybed
+del HAL, `keyboard_block`, `trk_note_on`) con ANALOG BRASS (preset 9) y ANALOG PLUCK (8): 1, 4, 6, 7, 8 y 12
+teclas de a una y de golpe dan **12 voces sonando, 0 robos, 0 denegadas**, también con SUSTAIN 100, con el
+gobernador de carga puesto y con DUAL CORE asignando todas las partes al core 1. Ninguna nota se pierde.
+
+**Dos defectos de medición, corregidos** (el audio no cambia; `regress` sigue en 303 renders, 0 changed):
+
+1. **El pico contaba las voces que ya se están desvaneciendo.** `voice_peak` se tomaba de `voice_live`, que
+   incluye los ~6 ms de fade de una voz ya reemplazada: con 12 voces de presupuesto el monitor imprimía
+   **PK 17**. El pico es ahora `sounding + release` y no puede pasar del presupuesto; una ráfaga más corta
+   que un frame no es polifonía que el oyente escuchó.
+2. **Un reemplazo en el sitio no se contaba como robo.** Una parte con la ventana llena reusa su voz más
+   vieja en el lugar, sin `voice_kill` y sin fade: 20 notas en 12 voces informaban **STL 0**. Ahora una voz
+   que sonaba y se toma para otra nota cuenta como robo (el retrigger de la misma nota es una repetición).
+
+**Prueba de estrés nueva** (`tests/poly_stress_test.c`, en `run_tests.sh`): seis partes con seis motores
+distintos, acordes de cuatro notas cada una (24 notas en 12 voces), efectos abiertos, ataques y releases
+rápidos, y un cambio de motor bajo un acorde sostenido. Medido en host x86-64: **12 voces ocupadas, PK 12,
+STL 8, DEN 0**, ninguna parte quedada en cero, **14 µs por bloque** con las seis partes y los FX (presupuesto
+725 µs), y **0 voces activas** después de soltar todo y dejar correr las colas. Memoria del target sin
+cambios: RAM 91 608 B de 98 304 (6 696 libres), paquete 610 959 B.
+
+**Polifonía efectiva:** se mantiene en **12 voces** (`NVOICE=12`, `VPOOLN=18`, `VRESET`/`WSEED` ya activos en
+`main`). No se subió el número: el coste medido en `docs/VOICE_POOL.md` es 1 134 B de `.bss` por voz de
+presupuesto y el margen de RAM es de 6 696 B; subir a 14 dejaría el pool por debajo del mínimo que el propio
+documento exige (`VPOOLN >= NVOICE + NPART`) sin re-medir el sonido. El CPU del host no es el de la unidad:
+esa comparación queda pendiente de hardware.
+
 ## Fase 2 — El fade de arranque ya no se gasta detrás del mutismo
 
 **Defecto de orden corregido (audio de encendido).** `fm1_audio_init` arranca ALNK0, renderiza 25 ms por

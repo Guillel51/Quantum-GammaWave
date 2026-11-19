@@ -1,6 +1,7 @@
 # The voice pool (3.5 / 3.6 / 3.7): the allocator, the numbers, and where the sound leaves
 
-Branch `exp/voice-pool`. **Not merged into `main`.** The shipped build is unchanged: 10 voices, per-part
+**Merged into `main`** (3.8: `NVOICE=12`, `VPOOLN=18`, `FELUCCA_VRESET=1`, `FELUCCA_WSEED=1` are the
+shipped defaults). This page keeps the measurement that justified it. The shipped build is unchanged: 10 voices, per-part
 arrays, 220 golden renders identical, every voice / routing check passing.
 
 ## 1. Why a pool
