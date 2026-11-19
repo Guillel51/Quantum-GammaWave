@@ -1,3 +1,39 @@
+## v1.5.1 — Auditoría de memoria medida, y la optimización que no se envió
+
+Versión sin cambios de comportamiento: es el resultado de la pasada de optimización profunda de RAM sobre el
+código real, con la regla del proyecto aplicada al pie de la letra (**no se incorpora una optimización que no
+demuestre un beneficio**). Lo medido:
+
+**Dónde está la RAM** (`tools/ram_report.py` sobre el `.elf` de AC791N, 91 608 B de `.data+.bss`):
+
+| Símbolo | B | Dónde |
+|---|---|---|
+| `WT_GEN` | 12 288 | `eng_wavetable.c`, banco de tablas generado en la primera nota |
+| `trk[6]` | 10 560 | `track_t` de 1 760 B por pista (parámetros, pasos, ventana de voces) |
+| `fm6_note[6][·]` | 7 104 | estado por voz del motor FM6 |
+| `drum_kit` | 5 376 | kit de DRUM |
+| `upf` | 3 728 | staging de backup del editor |
+
+Los 273 B de padding de sección y los 2 B de padding por `voice_t` (18×2 = 36 B) son lo único que queda sin
+usar en las estructuras, y reordenar `voice_t` no lo reduce (la alineación de 4 B lo vuelve a 88). No hay
+arreglos muertos: los sospechosos grandes (`midi_sel_on` 1 024, `gen_keep` 2 176, `motion_base` 1 500,
+`hc_tab` 1 548) tienen entre 4 y 20 usos reales cada uno.
+
+**El pool no puede absorber `.bss`**: quedan 9 248 B y la regla del proyecto exige ≥ 8 KiB libres ahí, así
+que sólo 1 056 B serían movibles y ninguna estructura grande entra en ese margen (`fm6_note` 7 104, `WT_GEN`
+12 288, `drum_kit` 5 376).
+
+**La optimización evaluada y rechazada.** `voice_victim` recorría el pool dos veces por robo (contar las seis
+partes y después elegir), y el conteo de cada parte sólo se usa dentro de su propia iteración: se unificó en
+un solo recorrido. En el binario de AC791N la función bajó de **474 a 426 B (−10,1 %)** pero `voice_room`
+subió 8 B por inlining y la **imagen creció 16 B** (libres 1 508 → 1 492), con el bench de host incapaz de
+resolver la diferencia (49–308 ns de dispersión entre corridas del mismo binario). Beneficio no demostrable y
+coste real en flash: **revertida**, con este registro como evidencia.
+
+Lo que sí queda de la pasada: el mapa exacto de la RAM, el techo de las tres regiones críticas (XIP 1 492 B,
+RAM 6 696 B, pool 9 248 B con su mínimo de 8 KiB) y la lista de lo que habría que rediseñar —no ajustar— para
+moverlo. Nada de audio, UI ni funciones cambió: `regress` 303 renders, 0 changed.
+
 ## Fase 3 — Los contadores del allocator dicen la verdad (#107)
 
 **#107 reproducido con los presets del reporte.** `tests/poly_report_test.c` corre el camino exacto (keybed
