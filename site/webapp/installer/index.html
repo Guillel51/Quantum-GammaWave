@@ -5,7 +5,7 @@
 <html lang="en" data-palette="quantum">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-nJbL1vT1TAUHScbYs7dAFlui08tNS2WlA5O4yo4ktfU=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tfK0j5okRyWcSL87nw+CFs0eY8mdVjT95KnZPYHWiQs=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>QUANTUM GAMMAWAVE — Installer for M-VAVE FM-1</title>
@@ -2079,8 +2079,21 @@ const APP_LO = 0x4000, APP_HI = 0x93000;
  *                 live 0x12 on the same link, before the first write frame (identify() in fm1ota.js)
  *   not-required  the update path does not need it (a unit already running this firmware)
  *   after         a post-write obligation, verified by the install, never a precondition
+ *   required      a complete, verified dump of this unit is a precondition and this page cannot
+ *                 establish it (V16: it is taken with M-Flasher, outside this page)
+ *   not-demonstrated  there is no demonstrated return nor recovery for this unit's layout (V16)
  */
-function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "none" }) {
+function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "none", stockVersion = 0 }) {
+  /* (FASE 5) AN FM-1_016 IS NOT A V15, AND THE GATE MUST NOT PRETEND IT IS. The two vendor releases are
+   * both "stock", but only V15 has a return this project can describe: its firmware is M-VAVE's published
+   * file, pinned by digest, and an interrupted install resumes. V16 moved the app area (app.bin at 0x4140,
+   * 597 928 B, ending past this loader's 0x93000), so for a V16 unit neither the return nor the recovery has
+   * been demonstrated, and a full, verified dump taken with M-Flasher is the one precondition that can be
+   * met. Reading V16 as "stock" and reporting backup not-required / recovery covered was the defect: it
+   * authorised a write on evidence that exists for V15 and does not exist for V16. Nothing else is relaxed:
+   * the two conditions are `required` and `not-demonstrated`, they block in every path (they are in neither
+   * ok map), and the most this page will say is an explicit GO CONDITIONAL that still cannot write. */
+  const v16 = kind === "stock" && Number(stockVersion) === 16;
   const compatible = compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader"
     || compat === "upgrade-legacy";
   const image = Number((pkg && pkg.binary) || 0);
@@ -2107,8 +2120,10 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
     /* An interrupted install is resumable by design (the loader waits for the bytes and the page resumes
      * it), and a stock unit's firmware is M-VAVE's published V15 file, so neither needs a full-flash dump
      * -- and this page does not ask for one: it takes no report from another tool as a condition. */
-    { key: "gate.backup", state: kind === "ours" || kind === "stock" ? "not-required" : "unknown" },
-    { key: "gate.recovery", state: kind === "ours" || kind === "stock" ? "covered" : "unknown" },
+    { key: "gate.backup", state: v16 ? "required"
+      : (kind === "ours" || kind === "stock" ? "not-required" : "unknown") },
+    { key: "gate.recovery", state: v16 ? "not-demonstrated"
+      : (kind === "ours" || kind === "stock" ? "covered" : "unknown") },
     { key: "gate.revalidate", state: "after" },
   ];
   /* What each path needs. This page writes to a stock unit, a unit already running this firmware and
@@ -2120,14 +2135,26 @@ function gateOf({ found, read, pkg, compat, sig = null, chip = null, kind = "non
   const required = rows.filter((r) => r.state !== "after" && !(page && r.key === "gate.read" && kind === "ourloader"));
   const blocking = required.filter((r) => !ok[r.state]).map((r) => r.key);
   const limitations = [];
-  if (rows.find((r) => r.key === "gate.recovery").state === "covered")
+  if (v16) {
+    limitations.push("v16-backup-not-taken", "v16-return-and-recovery-not-demonstrated");
+  } else if (rows.find((r) => r.key === "gate.recovery").state === "covered") {
     limitations.push(kind === "ours" || kind === "stock" ? "update-resumable-not-exercised" : "recovery-not-exercised");
+  }
   const ready = blocking.length === 0 && found && read && pkg && pkg.identity;
-  const verdict = ready
+  /* the two conditions a V16 unit carries, in the words of the tool that can meet them */
+  const conditions = v16 ? ["m-flasher-dump", "m-flasher-verify"] : [];
+  /* a V16 unit whose other rows are all established: the honest answer is GO CONDITIONAL -- correct path,
+   * correct conditions named, and still not an authorisation to write until the dump exists and verifies */
+  const v16Conditional = v16 && blocking.every((k) => k === "gate.backup" || k === "gate.recovery") &&
+    found && read && pkg && pkg.identity;
+  const verdict = v16Conditional
+    ? { result: "GO CONDITIONAL", path: "m-flasher", blocked: blocking, conditions, conditional: true,
+        canInstall: false, canInstallHost: false, limitations }
+    : ready
     ? { result: page ? "GO" : "GO-HOST", path: page ? "this-page" : "m-flasher", blocked: [],
-        canInstall: page, canInstallHost: !page, limitations }
-    : { result: "NO-GO", path: page ? "this-page" : "m-flasher", blocked: blocking,
-        canInstall: false, canInstallHost: false, limitations };
+        conditions, conditional: false, canInstall: page, canInstallHost: !page, limitations }
+    : { result: "NO-GO", path: v16 ? "m-flasher" : (page ? "this-page" : "m-flasher"), blocked: blocking,
+        conditions, conditional: false, canInstall: false, canInstallHost: false, limitations };
   return { rows, verdict };
 }
 
@@ -2211,7 +2238,9 @@ async function verifyDevice(midi, opts = {}) {
   const probe = up.lastProbe;
   const port = inputs.find((p) => PORT_RE.test(p.name)) || { name: "", manufacturer: "", version: "", id: "" };
   const compat = compatibility(kind, hardware, pkg.model, firmware === "gammaWaveLegacy");
-  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, kind });
+  /* (FASE 5) the stock release the unit answered decides the gate: V15 keeps its return, V16 does not
+   * inherit one. `version` is the identity's own number, never the package's. */
+  const gate = gateOf({ found: true, read: true, pkg, compat, sig, chip, kind, stockVersion: version });
   const fields = [
     { key: "hardware.model", value: hardware || "unknown", source: "identity answer", confidence: hardware ? "high" : "none" },
     { key: "firmware.identity", value: text, source: "identity answer", confidence: "high" },
