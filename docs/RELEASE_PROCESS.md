@@ -64,7 +64,14 @@ On that push:
    attestation that gives the Hub its "Built from source on GitHub" badge) and its `verify` job downloads
    the release's package, compares it byte for byte with the committed one and runs
    `gh attestation verify` against the signer workflow.
-3. **`pages.yml` / `emulator.yml`** publish the site; **`signed-release.yml`** verifies every package in
+3. **`emulator.yml`** is the only publisher of the site. There is no `pages.yml` and no `gh-pages` branch:
+   Settings > Pages > Source is "GitHub Actions", the workflow assembles `build/site` (root = the newest signed
+   release and its emulator, `/preview/` = this run) and deploys it as a Pages artefact. Everything happens
+   inside that job's `build`: a step that fails there skips the site assembly and the deploy, so the last
+   published artefact stays live and the site ages without anyone pushing to it (v1.4.17 stayed up for a day
+   because `target_budget.py` was 15 % over budget, and `ci-diag`'s error filter does not match "OVER
+   BUDGET"). Read `ci/log/<run>-<conclusion>` for the job states before assuming Pages is broken.
+   **`signed-release.yml`** verifies every package in
    `release/` and that `release/SHA256SUMS` describes exactly that directory; **`target.yml`** rebuilds
    twice and compares the bytes (reproducibility) and **`coherence.yml`** checks the tree against itself.
 
