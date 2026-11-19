@@ -374,9 +374,28 @@ static void cv_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
     if (y1 > (int32_t)cv_h)
         y1 = (int32_t)cv_h;
     GFX_HOOK_FILL((int32_t)(x1 - x), (int32_t)(y1 - y));   /* (FASE 8) what this fill costs, after clipping */
-    for (; y < y1; y++)
-        for (i = x; i < x1; i++)
-            cv_px[(uint32_t)y * cv_w + (uint32_t)i] = sc;
+    if (x1 <= x || y1 <= y)
+        return;                                         /* clipped away: a fill of nothing still cost the loop */
+    /* (v1.5.10) TWO PIXELS PER STORE. cv_rect is the canvas' most used primitive -- every card, well, bar and
+     * band is one -- and it wrote a 16-bit pixel at a time. The canvas is 4-byte aligned (cv_buf), so once a row's
+     * first index is even the rest of it goes in 32-bit stores of the same two pixels: identical bytes, half the
+     * stores. An odd start lays its first pixel down alone and an odd tail its last, so no row is skipped. */
+    {
+        uint32_t sc32 = ((uint32_t)sc << 16) | (uint32_t)sc;
+        int32_t n;
+        for (; y < y1; y++) {
+            uint32_t off = (uint32_t)y * cv_w + (uint32_t)x;
+            n = x1 - x;
+            if (off & 1u) {
+                cv_buf.px[off++] = sc;
+                n--;
+            }
+            for (i = 0; i < (n >> 1); i++)
+                cv_buf.w32[(off >> 1) + (uint32_t)i] = sc32;
+            if (n & 1)
+                cv_buf.px[off + (uint32_t)(n - 1)] = sc;
+        }
+    }
 }
 
 /* (FASE EXTRA) A SEE-THROUGH WELL. cv_rect() paints whole, so a scope's floor filled with the plate's tone hid
