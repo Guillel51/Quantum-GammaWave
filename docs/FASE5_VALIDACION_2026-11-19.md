@@ -1,4 +1,4 @@
-# FASE 5 — Validación, limpieza y cierre (v1.6.0)
+# FASE 5 — Validación, limpieza y cierre (v1.5.4)
 
 *19 de noviembre de 2026. Clase de toda medición de este documento: **host x86-64 sobre este árbol**, salvo
 donde se diga explícitamente otra cosa. No hubo flasheo, borrado, escritura ni restauración en ningún FM-1.*
@@ -40,7 +40,7 @@ tests, y **no** está medido en hardware: decirlo de otra forma sería fabricar 
 ## 4. Limpieza
 
 - El índice de evidencia vuelve a generarse solo: nada que quede invisible.
-- `README.md`: la línea de versión decía `v1.3.9`; ahora dice `v1.6.0`. Los «diez motores» del README coinciden
+- `README.md`: la línea de versión decía `v1.3.9`; ahora dice `v1.5.4`. Los «diez motores» del README coinciden
   con `NENG_SHOWN` (16 ranuras, FM4 retirado y cuatro reservadas).
 - No se borraron documentos de auditoría: son evidencia y material de recuperación (regla de la §2 de
   `AGENTS.md`). Lo obsoleto se marca en su propio texto, no se tira.

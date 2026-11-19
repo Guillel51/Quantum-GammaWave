@@ -1,4 +1,9 @@
-## v1.6.1 — El tick de 10 kHz vuelve a su presupuesto, y con él la publicación del sitio
+## v1.5.4 — El tick de 10 kHz vuelve a su presupuesto, y con él la publicación del sitio
+
+**Numeración.** El trabajo de esta ronda llegó a `main` como v1.6.0 y v1.6.1; acá se renumera como **v1.5.4**, la
+que sigue a v1.5.3, y así queda en una sola versión: firmware, paquete, emulador, instalador, editor, web y
+README. Los artefactos 1.6.x salen del árbol para que la selección de «última versión» no los elija por encima
+de ésta; sus etiquetas en el remoto son historia y no se tocan desde acá.
 
 **El sitio público llevaba desde el 2026-11-18 20:58 sirviendo v1.4.17.** No era Pages ni el despliegue: el
 workflow `emulator` —el único publicador, no hay `pages.yml` ni rama `gh-pages`— moría en el paso 16
@@ -26,7 +31,7 @@ SysEx llega byte a byte cuando el lector pregunta. El paquete nuevo pesa 610 933
 **Lo que esto NO afirma:** ninguna medición en un FM-1. Es un conteo estático del compilador del target más
 la suite de host; latencia real, CPU del core 1 y sonido siguen pidiendo la unidad.
 
-## v1.6.0 — Validación completa, índice de evidencia reparado y baseline de píxeles renovado
+### Validación completa: el índice de evidencia y el baseline de píxeles
 
 **La suite completa encontró dos fallos, y están corregidos.**
 
