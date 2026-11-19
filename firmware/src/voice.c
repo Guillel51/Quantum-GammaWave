@@ -978,8 +978,14 @@ static int voice_mc_busy(void) { return !vq_replay && FELUCCA_MC_BUSY(); }
 static int voice_defer(track_t *t, uint32_t off, uint32_t note, uint32_t vel)
 {
     if (vq_n >= VQ_N)
-        return off ? 0 : 1;                            /* full: the note-on is dropped (8 of a burst inside one
-                                                        * job), the note-off is applied at once by the caller */
+        return 0;                                      /* (F4, #107) full: it is applied at once, as a note-off
+                                                        * already was. Dropping it lost keys of a chord -- twelve
+                                                        * keys inside one core-1 job came out as the eight that fit,
+                                                        * which is the "polyphony stops at 7" the report measured
+                                                        * on the unit -- and a key the player pressed is never the
+                                                        * thing to give up for a mailbox. The race this guards
+                                                        * against is one block of window state, the same one the
+                                                        * note-off took already; a lost note is not recoverable. */
     vq[vq_n].t = (uint8_t)(uint32_t)(t - trk);
     vq[vq_n].off = (uint8_t)off;
     vq[vq_n].note = (uint8_t)note;

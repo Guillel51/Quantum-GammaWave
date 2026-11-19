@@ -1,3 +1,26 @@
+## v1.5.8 — Un acorde no pierde teclas y el encabezado no se repinta por el medidor de carga
+
+- **#107, la causa real de la polifonía que se quedaba en siete.** Mientras el core 1 tiene un bloque en vuelo,
+  `voice.c` guarda las notas en un buzón de ocho entradas y **descartaba** las que no entraban (el comentario
+  decía «8 de una ráfaga dentro de un mismo job»). Doce teclas dentro de un bloque salían como ocho voces, y las
+  demás se perdían: no era el asignador, era el buzón. Ahora, si está lleno, la nota **suena en el acto**, como ya
+  hacía una nota-off: una tecla que el músico apretó no es lo que se sacrifica por un buzón. La carrera que el
+  buzón evita es la de un bloque de estado de ventanas, la misma que la nota-off ya aceptaba; una nota perdida no
+  se recupera. **Medido en host** (`tests/voice_defer_test.c`, core 1 ocupado): acorde de doce teclas → **8
+  voces antes, 12 después**. El test que fijaba el descarte se reescribió para fijar lo contrario.
+- **#106, el encabezado.** El medidor de carga (`song.cpu_q8`) estaba dentro de la firma del encabezado, y es un
+  promedio que oscila: cada escalón de sus cinco celdas reenviaba la banda entera de 240 × 16 px. Ahora se pinta
+  como su propia celda de 3 × 14, igual que la del metrónomo. **Medido en host** (contando píxeles enviados al
+  panel desde `tests/ui_test.c`, escena `S_MIXER`): **3 840 px → 42 px** por cada cambio del medidor, y 0 px en un
+  cuadro quieto. La imagen es **byte a byte idéntica** en el barrido completo (191 escenas × 22 paletas).
+- **#106, el mixer.** La firma de cada columna llevaba la selección global (`sel`), así que cambiar de track
+  invalidaba las seis y el panel se repintaba columna a columna: el «entire mixer box flickers and redraws» del
+  informe. Cada columna lleva ahora su propio bit de selección, y sólo las dos cuyo acento cambia se repintan.
+- **#105, el lector de pantalla.** Ya implementado (`announce.c`: protocolo FM-1 Screen Reader v1 de
+  charlesvestal/fm1-reader por SysEx sobre USB-MIDI, con el anillo de salida en `usb.c` y `ann_ui()` llamado desde
+  `draw_frame`); esta ronda lo verifica con `tests/announce_test` en la suite completa.
+- **No probado en hardware.** Todo lo anterior es host x86-64; la FM-1 física no se tocó.
+
 ## v1.5.7 — El indicador de valor de las tarjetas ya no es negro
 
 - **El defecto.** La ranura del gauge que indica el valor de cada knob se pintaba con `T_BG`, el color de fondo de

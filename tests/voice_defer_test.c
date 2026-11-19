@@ -66,22 +66,24 @@ int main(void)
     voice_defer_flush();
     check(".. and ends the note at the next block", gated(&trk[0]) == 0u && vq_n == 0u);
 
-    /* the keybed's path: twelve keys, all of them deferred, all of them played */
+    /* the keybed's path: twelve keys. (F4, #107) the eight the queue holds are replayed at the block start
+     * and the four over it start where they were pressed -- the chord is twelve voices, not eight */
     fresh();
     host_mc_busy = 1;
     for (i = 0; i < 12u; i++)
         fm1_in.notes |= 1u << i;
     keyboard_block();
-    check("a twelve-key chord while core 1 renders keeps what fits", vq_n == VQ_N);
+    check("a twelve-key chord while core 1 renders keeps the queue's eight", vq_n == VQ_N);
+    check(".. and the four over the queue already sound (none is dropped)", gated(&trk[0]) == 4u);
     voice_defer_flush();
-    check(".. and the ones kept all sound", gated(&trk[0]) == VQ_N);
+    check(".. and the twelve all sound", gated(&trk[0]) == 12u);
 
-    /* a burst bigger than the queue: the note-on over it is dropped, a note-off is never dropped */
+    /* a burst bigger than the queue: what does not fit starts at once; a note-off is never dropped */
     fresh();
     host_mc_busy = 1;
     for (i = 0; i < VQ_N + 4u; i++)
         trk_note_on(&trk[0], 40u + i, 100);
-    check("a burst over the queue drops the note-on, never queues beyond it", vq_n == VQ_N);
+    check("a burst over the queue starts the rest at once, queues not one more", vq_n == VQ_N);
     fresh();
     host_mc_busy = 1;
     trk_note_on(&trk[0], 60, 100);                   /* kept, then played: this is the note to end */

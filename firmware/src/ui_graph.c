@@ -3110,7 +3110,11 @@ static void draw_tracks(void)
         if (m < ts.meter[c] - 1)
             m = ts.meter[c] - 1;                     /* falls ~2 dB a frame */
         ts.meter[c] = (uint8_t)(m < 0 ? 0 : m);
-        sig = str_hash(1u + sel + st * 2u + (mute && arm) * 16u + hot * 32u, b) + lvl * 7919u +
+        /* (F4, #106) THE SELECTION IS THIS COLUMN'S ALONE. `sel` (the whole panel's) was in every column's stamp,
+         * so changing track -- ALGORITHM's knob -- invalidated all six and the panel repainted itself column by
+         * column: the "entire mixer box flickers and redraws" in the report. Only the column that lost the
+         * selection and the one that took it can look different, and each one's own bit says so. */
+        sig = str_hash(1u + (sel ? 1u : 0u) + st * 2u + (mute && arm) * 16u + hot * 32u, b) + lvl * 7919u +
               ts.meter[c] * 131u + (uint32_t)(pan + 128) * 104729u + (uint32_t)rv * 1299709u + mute * 3u + sk * 0x9E37u + c * 0x51u +
               six * 0x3C6Fu;
         if (!all && sig == ts.col[c - b4])

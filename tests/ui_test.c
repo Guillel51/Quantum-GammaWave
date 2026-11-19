@@ -145,10 +145,14 @@ int32_t audio_out_peak(uint32_t ch)
     return pk;
 }
 static uint32_t host_blit_rows;                    /* rows blitted (what a frame draws) */
+static uint32_t host_blit_px;                      /* (F4) pixels written to the panel: what the SPI pays for,
+                                                    * which rows do not measure (a 3 x 14 cell and a 240 x 16
+                                                    * band are both 14 rows) */
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *p)
 {
     uint32_t i, j;
     host_blit_rows += h;
+    host_blit_px += w * h;
     for (j = 0; j < h && y + j < 240u; j++)
         for (i = 0; i < w && x + i < 240u; i++) host_px((y + j) * 240u + x + i, p[j * w + i]);
 }

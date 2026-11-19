@@ -297,6 +297,7 @@ static void draw_head(void)
 {
     static int16_t metro_x = -1;                       /* the metronome's ink as drawn (-1: hidden), its beat */
     static int8_t metro_beat;
+    static uint8_t load_drawn = 0xFFu;                 /* (F4, #106) the five load cells as painted */
     char b[16];
     head_geo_t g;
     int32_t beat = -1;                                 /* the metronome stands still (its swing removed in 1.1.5) */
@@ -304,8 +305,11 @@ static void draw_head(void)
     uint32_t sig = (uint32_t)song.playing * 3u + rec * 5u + (uint32_t)(song.octave + 8) * 11u + song.sel * 13131u +
                    (ui.msg_t ? str_hash(7u, ui.msg) : ui.layer * 7919u) + (uint32_t)song.g[G_BPM] * 101u + (ui.bpm_t != 0) * 31u +
                    (uint32_t)seq_counting() * 7u + (ui_prefs & PREF_BPM_LOCK) * 4099u +
-                   (uint32_t)batt_shown() * 7777u + (chain.running ? (chain.row + 1u) * 104729u : 0u) +
-                   head_load() * 0x9E3779B1u;
+                   (uint32_t)batt_shown() * 7777u + (chain.running ? (chain.row + 1u) * 104729u : 0u);
+    /* (F4, #106) THE LOAD IS NOT IN THIS STAMP. song.cpu_q8 is an average that jitters around a value, and each
+     * step of its five cells re-blitted the whole 240 x 16 header -- a band of the screen rewritten while
+     * nothing on it had changed, which is the flicker the report names at the top of HOME's screens. The five
+     * cells are 5 x 16 px and are redrawn on their own, as the metronome's cell already is. */
     int msg = ui.msg_t || ui.layer;
     int32_t mend = 0;          /* (3.9) where a message's ink ends: the battery keeps its cell while it fits */
     int centre = 1;             /* (3.9) always: nothing a preset load does may move the header's elements */
@@ -328,6 +332,14 @@ static void draw_head(void)
             roll_text(ROLL_BPM, g.bx - g.sx0, HEAD_MY, b, ui.bpm_t ? T_ACCENT : T_THEME);
             cv_blit((uint32_t)g.sx0, Y_HEAD);
         }
+        if ((uint8_t)head_load() != load_drawn) {      /* (F4, #106) the load's five cells, nothing else */
+            load_drawn = (uint8_t)head_load();
+            cv_begin(3, 14, T_BG);                     /* exactly the cells: rows 1..14, x 37..39 */
+            cv_oy = -1;
+            draw_load(0);
+            cv_oy = 0;
+            cv_blit(HEAD_LOAD_X, Y_HEAD + 1);
+        }
         if (metro_x >= 0 && beat != metro_beat) {      /* a beat: the metronome's cell only (either way round) */
             int32_t cx = g.mx0 - (g.sx0 - g.mx1);
             metro_beat = (int8_t)beat;
@@ -339,6 +351,7 @@ static void draw_head(void)
     }
     ui.head_sig = sig;
     metro_x = -1;
+    load_drawn = (uint8_t)head_load();                 /* (F4, #106) the whole band is about to be painted */
     cv_begin(240, H_HEAD, T_BG);
     cv_icon_mid(HEAD_TRK_X, H_HEAD / 2, 16, trk_icon(song.sel, 1), T_ACCENT, T_BG);
     draw_rec_mark(HEAD_REC_X, T_BG);
