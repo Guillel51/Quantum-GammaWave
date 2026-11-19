@@ -334,6 +334,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     # once, SUSTAIN, the load budget, DUAL CORE, a long chord, fast on/off, and the voice states the monitor prints
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_report_test" tests/poly_report_test.c -lm
     run "POLY (issue #107): 1..12 keys on ANALOG BRASS / PLUCK and POLY, at once and one by one, SUSTAIN, LOAD TIGHT, DUAL CORE, long chord, fast on/off, release vs sounding and the peak" "$OUT/poly_report_test"
+    # (FASE 2) a preset change on a silent track must not reset the instrument-wide performance layer
+    run "PRESET CHANGE: perf_reset and fx_preset_flush are gated on the changed track having a voice, so a preset change from GLO MIXER on a silent track cannot cut the rest of the instrument" python3 tests/preset_change_order_test.py
     # (FASE 2) the power-on order of the audio path: held before the engine, opened after the second core
     python3 tests/boot_order_test.py
     run "BOOT ORDER: main.c holds the output before audio_init (the unmute lands on zeros, the fade is not spent behind the mute), opens it after the second core, and the HAL starts the engine before it unmutes" python3 tests/boot_order_test.py

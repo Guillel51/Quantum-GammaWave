@@ -3402,11 +3402,34 @@ static int test_layer(void)
         pb[0].mode = BM_LOOP; pb[0].on = 1; pb[0].len = 1000u;     /* a recorded buffer, from the old sound */
         mute0 = (uint32_t)(trk[1].p[P_MUTE] != 0);
         trk[1].p[P_MUTE] = 1;                           /* the player muted T2: that stays */
+        /* (FASE 2) THE CLEAN START IS FOR THE SOUND BEING REPLACED. perf_reset() is instrument-wide: it
+         * latches perf_kill (the ISR plays the FX map empty for a block) and resets every track's punch-in
+         * buffer, so applying it to a SILENT track cut the other parts -- the GLO MIXER report. The gate is
+         * "this track has a voice", so the case it protects is a sounding one; that is what is set here. */
+        V(trk, 0).active = 1;
+        V(trk, 0).gate = 1;
+        V(trk, 0).stage = 1;
         apply_preset_to(trk, 1);                        /* another factory sound, as PRESETS loads it */
+        V(trk, 0).active = 0;
+        V(trk, 0).gate = 0;
+        V(trk, 0).stage = 0;
         ok &= !perf_latched && !perf_k[0] && !perf_k[1] && !perf_k[2] && !perf_k[3];
         ok &= pb[0].mode == BM_NONE && !pb[0].on && !pb[0].len;
         ok &= trk[1].p[P_MUTE] == 1;                    /* the mute is the player's, not the preset's */
         ok &= fx_vu[0] == 0 && fx_vu[4] == 0;           /* the buses' meters start from silence again */
+        {   /* (FASE 2) and a SILENT track's preset change leaves all of that alone: no perf_kill block,
+             * no macro wipe, no punch-in buffer cleared on a track that is not the one changing */
+            perf_k[0] = 30;
+            perf_latched = PF_BIT(PF_LPF);
+            pb[0].mode = BM_LOOP;
+            pb[0].on = 1;
+            apply_preset_to(&trk[2], 1);
+            ok &= perf_k[0] == 30 && (perf_latched & PF_BIT(PF_LPF)) != 0u && pb[0].mode == BM_LOOP;
+            perf_k[0] = 0;
+            perf_latched = 0;
+            pb[0].mode = BM_NONE;
+            pb[0].on = 0;
+        }
         trk[1].p[P_MUTE] = (int16_t)mute0;
         bad += check("a preset change clears the latched punch-in map, the macros and the buffer heads; the "
                      "player's mutes stay", ok);

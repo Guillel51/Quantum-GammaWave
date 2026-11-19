@@ -1228,7 +1228,6 @@ static void apply_preset_to(track_t *t, uint32_t pi)
     /* (2.1) a new sound starts clean: the punch-in latches and macros, the buses' short state and the
      * reverb/chorus lines are the old preset's, not this one's (delay: see fx_preset_flush) */
     fm1_irq_off();
-    perf_reset();
     {   /* (FASE 2, issue #106) THE BUSES ARE EVERY TRACK'S. Flushing them for a track with nothing sounding cut
          * whatever another part still had ringing in the delay and the reverb -- the report's "the audio cuts when I
          * change preset, even when that preset is not making any sound". A silent track has nothing of its own in
@@ -1236,8 +1235,18 @@ static void apply_preset_to(track_t *t, uint32_t pi)
         uint32_t i, any = 0;
         for (i = 0; i < NVOICE; i++)
             any |= V(t, i).active;
-        if (any)
+        /* (FASE 2) AND NEITHER IS THE PERFORMANCE LAYER THIS TRACK'S. perf_reset() is global by construction:
+         * it latches perf_kill (the ISR plays the FX map as empty for a block), clears the four performance
+         * knobs, the MACRO layer's latch and every track's punch-in buffer. Called for a preset change on a
+         * track that is not making a sound, it cut whatever the player was performing on the OTHER tracks --
+         * the same report the flush above answers, one subsystem further in, and the reason a preset change
+         * from GLO MIXER interrupted the music even with that preset silent. A silent track has no punch-in
+         * or macro state of its own to clear, so the layer is left alone; a sounding one still gets the clean
+         * start the comment on apply_preset_to promises. */
+        if (any) {
+            perf_reset();
             fx_preset_flush();
+        }
     }
     fm1_irq_on();
     t->user = 0;

@@ -1,3 +1,25 @@
+## v1.5.2 — Cambiar un preset ya no resetea la capa de performance de las otras pistas
+
+**El bug del reporte, encontrado y corregido.** «El audio se interrumpe al cambiar el preset desde GLO MIXER,
+incluso cuando el preset que elijo no está sonando.» El flush de los buses ya estaba acotado a la pista que
+suena (issue #106, fase 2), pero `apply_preset_to` seguía llamando **`perf_reset()`**, que es global por
+construcción:
+
+- levanta `perf_kill`: el ISR toca el mapa de FX **vacío durante un bloque**, en todas las pistas;
+- borra las cuatro perillas de performance (`perf_k[0..3]`);
+- suelta el latch de la capa MACRO y resetea **cada** buffer de punch-in (`pb_reset_all`).
+
+Cambiar el sonido de una pista muda tiraba todo eso por la borda. Ahora las dos llamadas globales
+(`perf_reset` y `fx_preset_flush`) están detrás del mismo gate: la pista tiene una voz activa. Una pista que
+suena sigue recibiendo su arranque limpio (el comentario de `apply_preset_to` lo promete y el gate lo
+respeta); una pista muda no toca nada que no sea suyo.
+
+`tests/preset_change_order_test.py` (nuevo, en `run_tests.sh`) fija exactamente eso: ambas llamadas dentro del
+`if (any)`, el gate leyendo las voces de esa pista, y ninguna llamada suelta fuera de él.
+**La ausencia del corte es de oído: queda pendiente de la unidad**, como el resto de lo acústico.
+
+Sin cambios de audio ni de UI: `regress` 303 renders, 0 changed; la imagen y la RAM no se mueven.
+
 ## v1.5.1 — Auditoría de memoria medida, y la optimización que no se envió
 
 Versión sin cambios de comportamiento: es el resultado de la pasada de optimización profunda de RAM sobre el
