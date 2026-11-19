@@ -334,6 +334,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     # once, SUSTAIN, the load budget, DUAL CORE, a long chord, fast on/off, and the voice states the monitor prints
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_report_test" tests/poly_report_test.c -lm
     run "POLY (issue #107): 1..12 keys on ANALOG BRASS / PLUCK and POLY, at once and one by one, SUSTAIN, LOAD TIGHT, DUAL CORE, long chord, fast on/off, release vs sounding and the peak" "$OUT/poly_report_test"
+    # (FASE 2) the power-on order of the audio path: held before the engine, opened after the second core
+    python3 tests/boot_order_test.py
+    run "BOOT ORDER: main.c holds the output before audio_init (the unmute lands on zeros, the fade is not spent behind the mute), opens it after the second core, and the HAL starts the engine before it unmutes" python3 tests/boot_order_test.py
     # (FASE 1) the note the key scan keeps while core 1 renders: the pool is never touched mid-job
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/voice_defer_test" tests/voice_defer_test.c -lm
     run "CORE SYNC: a note while the other core renders is postponed (never allocated mid-job), replayed at the block start, note-offs never dropped, a burst over the queue loses only note-ons" "$OUT/voice_defer_test"

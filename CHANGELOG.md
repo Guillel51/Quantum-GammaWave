@@ -1,3 +1,18 @@
+## Fase 2 — El fade de arranque ya no se gasta detrás del mutismo
+
+**Defecto de orden corregido (audio de encendido).** `fm1_audio_init` arranca ALNK0, renderiza 25 ms por
+`audio_block` y recién al final desmutea la salida (pc6). `main.c` llamaba a `audio_boot_hold()` **después** de
+`audio_init()`, así que esas 25 ms corrían el fade de 27 ms hasta ~92 % con la etapa todavía muteada: el
+amplificador se abría contra un DAC ya casi al máximo y el fade que existía para tapar ese escalón ya estaba
+gastado. Ahora el hold va **antes** de `audio_init()`: todo el bring-up (DAC, ALNK0, FIFO, DMA, arrange del
+segundo núcleo con interrupciones apagadas) es silencio digital exacto, el desmuteo cae sobre ceros y el fade
+se arma después, al final, cuando `audio_fade_in()` lo abre. No agrega latencia (el ramp sigue dentro del
+splash) y no silencia nada: el primer bloque tras armar sale desde 0 y llega a unidad en 1 200 muestras.
+
+`tests/boot_order_test.py` (nuevo, en `run_tests.sh`) fija el orden sobre el código que lo implementa: hold
+antes del motor, apertura después del segundo núcleo, y en el HAL el arranque del motor antes del desmuteo con
+su espera en medio. **La ausencia del pop es acústica: queda pendiente de verificación en la unidad.**
+
 ## Estabilidad (corrección de pendientes): carrera entre núcleos en la asignación de voces
 
 **Bug real corregido (#107, sincronía de núcleos).** El escaneo del teclado corre desde TIMER5, **anidado
