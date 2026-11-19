@@ -1,3 +1,30 @@
+## v1.5.7 — El indicador de valor de las tarjetas ya no es negro
+
+- **El defecto.** La ranura del gauge que indica el valor de cada knob se pintaba con `T_BG`, el color de fondo de
+  la página, y el relleno usaba ese mismo negro como fondo de sus dos extremos redondeados. En una tarjeta, que es
+  `T_SURF`, eso es una barra negra atravesando justo la parte que muestra el valor, y solo se notaba al mover el
+  knob hacia el mínimo, cuando el relleno es corto y queda casi toda la ranura a la vista.
+- **El arreglo.** `ui_draw.c gauge_track()`: la ranura es la superficie de la tarjeta llevada al color de línea de
+  la UI (`ux_mix(T_SURF, T_LINE, 70)`); los temas LINE, que no tienen tarjeta de la que recortar, siguen con
+  `T_LINE`. El relleno se recorta ahora contra la ranura, no contra el fondo. Las dos variantes de tarjeta (normal
+  y `MENU > LARGE`) usan la misma función.
+- **Medido (arnés del host, `tests/ui_render.c` sobre las stubs de `tests/ui_test.c`).** Píxeles del color de fondo
+  de página dentro de las cuatro tarjetas de la página de edición, sumando las 22 paletas: **15 928 → 4 488**
+  (724 → 204 por paleta); los 204 que quedan son las esquinas redondeadas de la tarjeta, que muestran el fondo a
+  propósito.
+- **Golden renders.** `tests/ui_pixels.txt` se actualizó a propósito: **1 157 px cambiados, 0 desaparecidos, 0
+  nuevos**, todos en la fila del gauge (la herramienta lo pide explícitamente y este es el motivo). El barrido no
+  trae hallazgos de layout: 191 escenas × 22 paletas, **0 findings**, 0 textos sobre su propio color, alineación
+  **0 lugares fuera por 1 px**.
+- **Presupuesto (build AC791N).** Imagen 582 504 → **582 520 B (+16 B)**; RAM `.data+.bss` 91 648 B, pool spare
+  9 248 B y LOWBUF 30 564/32 768 B **sin cambios**; RAM code 19 756/24 576 B.
+- **Segunda optimización: medida y descartada.** Se probó que la firma del gráfico no dependiera del cuadro en las
+  páginas sin diagrama propio con las animaciones apagadas (HOME y las de scope). En esta línea no dio nada: con
+  los contadores deterministas de filas enviadas por cuadro, HOME sigue en 62,6 filas/cuadro (su firma lleva
+  `gw_planet_sig()` y los knobs) y las páginas de edición y el mixer ya estaban en **0,0**. Sin ganancia medida no
+  se envía: el cambio se revirtió y no está en este release.
+- **No probado en hardware.** Todo lo anterior es host: la pantalla física del FM-1 no se tocó.
+
 ## v1.5.6 — El panel deja de recibir lo que ya tiene
 
 **La medición primero.** `tests/ui_render.c --idle` (nuevo, registrado en la suite) recorre las 201 escenas del

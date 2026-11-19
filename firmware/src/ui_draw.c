@@ -445,6 +445,13 @@ static void card_mot_of(const int16_t *vp)
 #define LG_UY 73                                        /* the unit's line (S capitals rows 76..84) */
 #define LG_GY 92                                        /* the gauge, 3 px */
 /* a card's gauge: GAMMA / WRAITH / JIANT (thermal) its value as heat; another palette its theme colour */
+/* the gauge's groove: the card's own surface carried most of the way to the UI's rule colour, so an empty or a
+ * just-started knob still reads as a track on the card instead of a black bar cut through it. LINE themes have no
+ * card to cut it from, so the rule's own colour is the groove there (as before). */
+static uint16_t gauge_track(void)
+{
+    return ux.style ? T_LINE : ux_mix(T_SURF, T_LINE, 70);
+}
 static uint16_t gauge_col(int32_t ratio)
 {
     return ux.chamfer ? heat_col(clamp(ratio, 0, 1000) * 256 / 1000) : T_THEME;
@@ -537,8 +544,9 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
     }
     if (ratio >= 0) {
         int32_t gw = COL_W - 10, fx = ratio * gw / 1000;
-        cv_rrect(5, LG_GY, gw, 3, 1, ux.style ? T_LINE : T_BG, T_SURF);
-        cv_rrect(5, LG_GY, fx < 3 ? 3 : fx, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), T_BG);
+        uint16_t trk = gauge_track();              /* a groove of the card's own colour, never the page's black */
+        cv_rrect(5, LG_GY, gw, 3, 1, trk, T_SURF);
+        cv_rrect(5, LG_GY, fx < 3 ? 3 : fx, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), trk);
     }
     cv_blit((uint32_t)CARD_X(c), Y_LABEL);
 }
@@ -740,8 +748,9 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
         }
         if (!strip && ratio >= 0) {
             int32_t gw = COL_W - 10, fx = ratio * gw / 1000, fillw = fx < 3 ? 3 : fx;
-            cv_rrect(5, 48, gw, 3, 1, ux.style ? T_LINE : T_BG, T_SURF);   /* (LINE: no card to cut it from) */
-            cv_rrect(5, 48, fillw, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), T_BG);
+            uint16_t trk = gauge_track();                       /* (LINE: no card to cut it from) */
+            cv_rrect(5, 48, gw, 3, 1, trk, T_SURF);
+            cv_rrect(5, 48, fillw, 3, 1, hot ? T_ACCENT : vc == T_DIM ? T_DIM : gauge_col(ratio), trk);
             if (ux.chamfer && !ux.style) {
                 int32_t s;
                 for (s = 6; s < gw; s += 6)
