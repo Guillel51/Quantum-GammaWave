@@ -196,6 +196,13 @@ master buses, the UI and tracks 1–3; core 1 renders tracks 4–6.
 Only two flash parts are accepted by the loader — P25Q80H (`0x856014`) and UCUN UC25HQ80 (`0xB36014`) — and
 an unknown part is refused before anything is erased.
 
+**Stock firmware.** The installer recognises M-VAVE's official **V15 (`FM-1_015`)** and **V16
+(`FM-1_016`)** releases, pinned by SHA-256 and by the layout measured from each file, and installs over
+either of them; a unit running either one can also be returned to its pinned official file. V16's own
+package is larger (`0xA9000` flash image) than the update loader's write window, so a QG package is
+never patched from it. What was verified on a host, and what still needs a unit, is in
+[`docs/FM1_V16.md`](docs/FM1_V16.md).
+
 ## Installing
 
 The installer is a web page that talks to the unit over USB-MIDI, and it is the only write path:

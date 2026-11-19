@@ -53,7 +53,7 @@
 
 import { Updater, PORT_RE, isOurLoader, LEGACY_IDS } from "./fm1ota.js";
 import { derive, describe, unobservable } from "./fm1state.js";
-import { productOf } from "./fm1pkg.js";
+import { isStockIdentity, productOf, stockReleaseByIdentity } from "./fm1pkg.js";
 
 // the one frame Verify Only may put on the wire (tests/test_verify_only.mjs checks the log)
 export const READ_ONLY_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
@@ -425,7 +425,10 @@ export async function verifyDevice(midi, opts = {}) {
     kind = isOurLoader(dev.id) ? "ourloader" : "otherloader";
     firmware = isOurLoader(dev.id) ? "loader" : "vendorLoader";
   }
-  else if (text === "FM-1_015") { kind = "stock"; firmware = "stock"; }
+  /* M-VAVE's own releases this project has read: FM-1_015 (V15) and FM-1_016 (V16). Both are
+   * "stock" -- the firmware this installer may replace -- and their number is carried in
+   * firmware.version, so the report never has to infer which one answered. */
+  else if (isStockIdentity(text)) { kind = "stock"; firmware = "stock"; }
   else if (product && (text === product || LEGACY_IDS.includes(text))) {
     /* same project, an identity it used before docs/IDENTITY.md (2.1.1 answered FM-1_982) */
     kind = "ours"; firmware = text === product ? "gammaWave" : "gammaWaveLegacy";
@@ -465,6 +468,8 @@ export async function verifyDevice(midi, opts = {}) {
     reading: { sysex: !!midi.sysexEnabled, inputs, outputs, probe },
     fields, missing, signature: sig, chip, gate: gate.rows, verdict: gate.verdict,
     package: pkg, compatibility: compat, authorised: false,
+    /* the official release this identity belongs to, when it is one this project pinned */
+    stockRelease: stockReleaseByIdentity(text) || null,
     compatible: compat === "replaces-stock" || compat === "reinstall-same" || compat === "finish-loader"
       || compat === "upgrade-legacy",
   });

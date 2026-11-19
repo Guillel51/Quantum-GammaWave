@@ -1998,3 +1998,22 @@ puede verificar contra la imagen— y que exista el build de destino para medir 
 | El presupuesto de memoria se puede leer en la unidad | `[BUILD AC791N]` + `[STATIC]` | comando `mem` (console.c): `ram 91300/98304` (7 004 libres), `lowbuf 30564/32768` (2 204), `pool 318432/327680` (9 248). Son los símbolos del linker: coinciden con `./build.sh` y con `tests/memory_map_test.py` (RAM spare 7 004, pool spare 9 248) |
 | La ventana LOWBUF que reporta la prueba es la del linker | `[HOST]` | `tests/memory_map_test.py`: LOWBUF_HI 0x01C08000 (era 0x01C07000, obsoleto desde la mudanza de 1.4.5); el mapa pasa con RAM spare 7 004 B |
 | En una FM-1 física | — | **NOT MEASURED**: `mem` se lee en la unidad; ninguna cifra de arriba es una medición de hardware |
+
+---
+
+## 2026-11-19 — Fase 1: compatibilidad con M-VAVE V16 (`FM-1_016`)
+
+La unidad física no se tocó: ninguna fila de abajo es una medición de hardware ni una transferencia.
+
+| Check | Label | State and evidence |
+|-------|-------|--------------------|
+| El archivo oficial V16 es el que se publicó | `[HOST]` | descargado del espejo de M-VAVE; SHA-256 `d017fb65…b61d5`, 718 196 B; imagen lógica 718 176 B `cca5d691…1d2a`. El pin vive en `web/fm1pkg.js` (`STOCK_RELEASES`) y `tools/fm1_install.py`; `tests/stock_profile_test.py` compara ambos hosts |
+| Las tres regiones de referencia de V16 se reproducen | `[HOST]` | `web/test_stock_releases.mjs /tmp/FM-1.fwsc`: head `8f5228c2…`, app `0x4000–0xA8FFF` `c47d8895…`, corte V15 `980ff51a…`, byte a byte contra las rebanadas de `flash.bin` |
+| El layout V16 es el medido, no el supuesto | `[HOST]` | `flash.bin` en 1044, imagen `0xA9000`, app base `0x4000`, `app.bin` en `0x4140` y 597 928 B, `app_area_head` `0xA4071`, `ota.bin` 19 969 B, chip key `0x980F`, identidad `FM-1_016` dentro del app |
+| Un V16 stock se reconoce como stock | `[HOST]` | `web/test_verify_only.mjs`: `FM-1_016` → kind `stock`, `firmware.version` 16, `stockRelease` presente, sólo la consulta de identidad en el cable |
+| V15 y V16 son donantes, y sólo esos | `[HOST]` | `web/test_donor.mjs`: ambos admitidos; identidad y firmware que se contradicen, o un número no leído (`FM-1_017`), se rechazan |
+| El paquete QG no puede salir del área que el loader escribe | `[HOST]` | `requireProof()` (`web/fm1ota.js`) parsea todo paquete con `FELUCCA-LOADER-1` y aplica `loaderWindowIssue()`: imagen ≥ `0x93000`, app ≤ `0x93000`; el builder (`tools/fm1pkg_make.py`) falla si el área se pasa |
+| Volver al archivo oficial acepta V15 y V16 | `[HOST]` | `validateStockPackage` valida el layout de cada perfil y el pin; la página usa el digest y la identidad del archivo verificado, no constantes V15 |
+| La página se arma con los módulos nuevos | `[HOST]` | `web/make_site.py release/felucca-v1.4.17.fwsc test-v16 build/site_preview` construye (un solo scope, sin declaraciones duplicadas, CSP con hash) y `web/test_site.py` pasa 20 ids / 10 imágenes / 31 enlaces |
+| Un V16 arranca Quantum GammaWave | — | **NOT MEASURED**: nadie instaló en una unidad V16. El SPL V16 leyendo el área de app estilo V15, el `UPDATA_PARM` `ota-FM-1_015` de `firmware/src/ota.c` y la reanudación tras corte son las pruebas de la fase 2 (`docs/FM1_V16.md` §5) |
+| La flash de una unidad V16 | — | **NOT READ**: no se leyó el JEDEC de ninguna unidad V16. La allowlist sigue igual y el loader sigue rechazando un part desconocido antes de borrar |

@@ -379,26 +379,26 @@ const TEXT = {
     dual: "Architecture Dual-Core AC791N + HOTRAM activée : les 2 cœurs processeur calculent les 6 pistes synthé + distorsions HEARTH/BLAST/PLASMA/FLUX et filtres VOWEL/SCREAM en temps réel. (Maintenez REC au démarrage pour forcer le mode 1 cœur).",
     install: "⚡ INSTALLER QUANTUM GAMMAWAVE SUR FM-1", other: "EN / 日本語",
     flashTitle: "INSTALLATION WEBMIDI DU FIRMWARE (M-VAVE FM-1)",
-    firstTitle: "Vous venez d'un autre firmware custom ? Repassez d'abord par le V15 officiel",
-    firstText: "L'installateur vérifie automatiquement votre FM-1 avant d'écrire : il flashe directement sur le firmware officiel V15 ou sur JIANT/GAMMAWAVE. Si un autre firmware custom est présent, utilisez la section de retour au V15 ci-dessous.",
-    firstStock: "Repasser d'abord en V15 officiel",
+    firstTitle: "Vous venez d'un autre firmware custom ? Repassez d'abord par le firmware officiel M-VAVE",
+    firstText: "L'installateur vérifie automatiquement votre FM-1 avant d'écrire : il flashe directement sur le firmware officiel M-VAVE (V15 ou V16) ou sur JIANT/GAMMAWAVE. Si un autre firmware custom est présent, utilisez la section de retour au firmware officiel ci-dessous.",
+    firstStock: "Repasser d'abord au firmware officiel",
     firstOk: "Vérification automatique d'identité avant flash : sûr et sans sonde matérielle.",
     checking: "Vérification du firmware du FM-1…",
-    otherfw: "Ce FM-1 utilise un autre firmware custom : rien n'a été écrit. Repassez d'abord en V15 officiel ci-dessous. Détecté : ",
+    otherfw: "Ce FM-1 utilise un autre firmware custom : rien n'a été écrit. Repassez d'abord au firmware officiel ci-dessous. Détecté : ",
     editor: "🎛️ Ouvrir le Web Studio Editor (Live USB)",
     editorMock: "🧪 Essayer le Web Studio Editor (Simulateur sans FM-1)",
     verLabel: "Version du package :", verOld: "Vous pouvez installer la dernière version GammaWave ou revenir à une version précédente.", latest: "dernière", manual: "Manuel :",
     direct: "Branchez le câble USB directement à l'ordinateur. Aucun programmateur externe requis.",
     brick: "En cas de coupure d'alimentation durant le flash, la récupération matérielle utilise :",
     beta: "QUANTUM GAMMAWAVE FM-1 est distribué sous licence GPL-3.0 sans garantie. Utilisez-le sous votre propre responsabilité.",
-    back: "Téléchargez le fichier officiel FM-1 V15 (FM-1.fwsc) chez M-VAVE. La validation se fait localement dans votre navigateur.",
-    stockTitle: "Retourner au firmware officiel V15 (avec sauvegarde complète)", stockFile: "Fichier officiel FM-1.fwsc", stockGo: "Sauvegarder et restaurer V15 officiel",
-    stockPreload: "✓ FM-1.fwsc (officiel V15, vérifié) est inclus sur ce site et déjà préchargé.", stockLocal: "📥 Télécharger FM-1.fwsc (officiel V15, copie de ce site)",
-    stockMirror: "Miroir cloud M-VAVE V15", stockDirect: "⚡ Flasher directement le V15 officiel (depuis un autre firmware)",
-    stockOptional: "(optionnel, déjà préchargé)", navStock: "📥 FM-1.fwsc (officiel V15)",
-    stockBackup: "Sauvegarde automatiquement vos morceaux, banques et réglages sur votre PC avant de restaurer le V15 officiel.",
+    back: "Téléchargez le fichier officiel FM-1 (FM-1.fwsc, V15 ou V16) chez M-VAVE. La validation se fait localement dans votre navigateur.",
+    stockTitle: "Retourner au firmware officiel M-VAVE (avec sauvegarde complète)", stockFile: "Fichier officiel FM-1.fwsc", stockGo: "Sauvegarder et restaurer le firmware officiel",
+    stockPreload: "✓ FM-1.fwsc (officiel V15/V16, vérifié) est inclus sur ce site et déjà préchargé.", stockLocal: "📥 Télécharger FM-1.fwsc (officiel V15/V16, copie de ce site)",
+    stockMirror: "Miroir cloud M-VAVE", stockDirect: "⚡ Flasher directement le firmware officiel (depuis un autre firmware)",
+    stockOptional: "(optionnel, déjà préchargé)", navStock: "📥 FM-1.fwsc (officiel V15/V16)",
+    stockBackup: "Sauvegarde automatiquement vos morceaux, banques et réglages sur votre PC avant de restaurer le firmware officiel.",
     stockRecovery: "Reprendre une mise à jour interrompue (sauvegarde déjà effectuée)",
-    stockValid: "Firmware officiel V15 vérifié ✓", stockConfirm: "La sauvegarde complète a-t-elle bien été enregistrée ? Continuer vers le firmware officiel V15 ?",
+    stockValid: "Firmware officiel M-VAVE vérifié ✓", stockConfirm: "La sauvegarde complète a-t-elle bien été enregistrée ? Continuer vers le firmware officiel ?",
     stockNeedBackup: "Impossible de sauvegarder depuis le mode bootloader. Cochez la reprise uniquement si vous avez déjà une sauvegarde.",
     stockUnsupported: "Ce firmware ne supporte pas la sauvegarde complète. Installez d'abord la version actuelle.",
     backup: "Sauvegarde complète en cours ", stockError: "Fichier officiel invalide : ",
@@ -426,7 +426,7 @@ const TEXT = {
     vSilent: "Vérifier : un port FM-1 n'a rien répondu, donc aucun firmware n'a été reconnu (JIANT et d'autres builds peuvent ne pas implémenter la requête d'identité). Rien d'autre n'a été envoyé. Port : ",
     vLoader: "Vérifier : le FM-1 est en mode mise à jour (une installation précédente a été interrompue). INSTALLER termine l'écriture.",
     vVendorLoader: "Vérifier : l'unité est dans son propre mode mise à jour (le loader du fabricant). Cette page ne peut pas terminer cette installation ; rien n'a été envoyé.",
-    vStock: "Vérifier : FM-1 détecté, il répond V15 officiel (FM-1_015). Rien n'a été écrit. ",
+    vStock: "Vérifier : FM-1 détecté, il répond le firmware officiel M-VAVE. Rien n'a été écrit. Identité : ",
     vOurs: "Vérifier : FM-1 détecté, ce firmware ",
     vOther: "Vérifier : un FM-1 a été détecté, mais son firmware n'est pas un de ceux que cet installateur connaît. Il se nomme : ",
     vOtherTail: " \u2014 lecture seule : rien n'a été écrit, et ce n'est pas une autorisation d'installation.",
@@ -439,12 +439,12 @@ const TEXT = {
     dual: "Dual-Core AC791N + HOTRAM active: both CPU cores render the 6 synth tracks + HEARTH/BLAST/PLASMA/FLUX distortions and VOWEL/SCREAM filters in real time. (Hold REC on power-up to force single-core mode).",
     install: "⚡ INSTALL QUANTUM GAMMAWAVE TO FM-1", other: "ES / 中文",
     flashTitle: "WEBMIDI FIRMWARE UPLOADER (M-VAVE FM-1)",
-    firstTitle: "Coming from another custom firmware? Return to official V15 first",
-    firstText: "Writing straight over another custom firmware (Felucca, baudgirl, etc.) can prevent startup. Return to official V15 below first, then install GAMMAWAVE. If your FM-1 already runs official V15, JIANT, or GAMMAWAVE, go right ahead.",
-    firstStock: "Return to official V15 first",
+    firstTitle: "Coming from another custom firmware? Return to M-VAVE's official firmware first",
+    firstText: "Writing straight over another custom firmware (Felucca, baudgirl, etc.) can prevent startup. Return to M-VAVE's official firmware (V15 or V16) below first, then install GAMMAWAVE. If your FM-1 already runs official V15/V16, JIANT, or GAMMAWAVE, go right ahead.",
+    firstStock: "Return to official firmware first",
     firstOk: "Before installing, the installer checks the connected FM-1's firmware automatically.",
     checking: "Checking the FM-1's firmware…",
-    otherfw: "This FM-1 runs a firmware that is neither official V15 nor JIANT/GAMMAWAVE: nothing was written. Return to official V15 first below. Found: ",
+    otherfw: "This FM-1 runs a firmware that is neither M-VAVE's official firmware nor JIANT/GAMMAWAVE: nothing was written. Return to official firmware first below. Found: ",
     editor: "🎛️ Open Web Studio Editor (Live USB)",
     editorMock: "🧪 Try Web Studio Editor (Mock Device Simulator)",
     verLabel: "Version:", verOld: "You can install the latest release or roll back to an earlier build.", latest: "latest", manual: "Manual:",
@@ -489,7 +489,7 @@ const TEXT = {
     vNoPorts: " \u2014 with the unit powered and a data cable, an empty list means this system is not presenting it: a charge-only cable, the unit switched off, or another program holding the port (Windows gives one client exclusive access per port). Nothing was sent.",
     vLoader: "Verify: the FM-1 is in update mode (an earlier install was cut off). INSTALL finishes the write.",
     vVendorLoader: "Verify: the unit is in its own update mode (the vendor's loader). This page cannot finish that install; nothing was sent.",
-    vStock: "Verify: FM-1 detected, it answers official V15 (FM-1_015). Nothing was written. ",
+    vStock: "Verify: FM-1 detected, it answers M-VAVE's official firmware. Nothing was written. Identity: ",
     vOurs: "Verify: FM-1 detected, this firmware ", vSilent: "Verify: an FM-1 port answered nothing (another firmware, JIANT among them, that does not implement the identity query). Nothing else was sent. Port: ", vOther: "Verify: an FM-1 was detected, but its firmware is not one this installer knows. It reports itself as: ", vOtherTail: " \u2014 read only: nothing was written, and this is not an install authorisation.",
     vSame: " \u2014 same identity as this package.", vCan: " — this package can be installed over it.",
     bkSaving: "Backing up the FM-1 before writing ", bkSaved: "The backup file was downloaded. Keep it: restore it from the Web Studio if anything goes wrong. Write the firmware now?",
@@ -498,14 +498,14 @@ const TEXT = {
     direct: "Connect the USB cable directly to the computer. No probe or Transporter is needed.",
     brick: "If an install is interrupted by power loss, hardware recovery uses:",
     beta: "QUANTUM GAMMAWAVE FM-1 is a custom firmware release (GPL-3.0). Use it at your own risk.",
-    back: "Get official FM-1 V15 from M-VAVE and select the unmodified FM-1.fwsc. Validated locally in your browser.",
-    stockTitle: "Return to official V15", stockFile: "Official FM-1.fwsc", stockGo: "Back up and return to official V15",
-    stockPreload: "✓ FM-1.fwsc (official V15, verified) is bundled with this site and already preloaded.", stockLocal: "📥 Download FM-1.fwsc (official V15, this site's copy)",
-    stockMirror: "M-VAVE V15 cloud mirror", stockDirect: "⚡ Flash official V15 directly (from another firmware)",
-    stockOptional: "(optional, already preloaded)", navStock: "📥 FM-1.fwsc (Official V15)",
+    back: "Get the official FM-1 file (FM-1.fwsc, V15 or V16) from M-VAVE and select it unmodified. Validated locally in your browser.",
+    stockTitle: "Return to M-VAVE's official firmware", stockFile: "Official FM-1.fwsc", stockGo: "Back up and return to official firmware",
+    stockPreload: "✓ FM-1.fwsc (official V15/V16, verified) is bundled with this site and already preloaded.", stockLocal: "📥 Download FM-1.fwsc (official V15/V16, this site's copy)",
+    stockMirror: "M-VAVE cloud mirror", stockDirect: "⚡ Flash official firmware directly (from another firmware)",
+    stockOptional: "(optional, already preloaded)", navStock: "📥 FM-1.fwsc (Official V15/V16)",
     stockBackup: "Current music, saved music, sound banks and settings are backed up first.",
     stockRecovery: "Resume an interrupted update: I already saved a complete backup to this computer",
-    stockValid: "Official V15 verified ✓", stockConfirm: "Has the complete backup file been saved to this computer? Continue to return to official V15.",
+    stockValid: "Official M-VAVE firmware verified ✓", stockConfirm: "Has the complete backup file been saved to this computer? Continue to return to official firmware.",
     stockNeedBackup: "An update loader cannot export a backup. Only select resume if you already saved a complete backup.",
     stockUnsupported: "This firmware does not support complete backups. Install the current firmware first.",
     backup: "Saving complete backup ", stockError: "Cannot validate official firmware: ",
@@ -638,7 +638,7 @@ TEXT.es = {
   vNoPorts: " — con la unidad encendida y un cable de datos, una lista vacía significa que este sistema no la está presentando: cable sólo de carga, unidad apagada, u otro programa con el puerto tomado (Windows da acceso exclusivo a un cliente por puerto). No se envió nada.",
   vLoader: "Verificar: el FM-1 está en modo actualización (una instalación anterior se cortó). INSTALAR termina la escritura.",
   vVendorLoader: "Verificar: la unidad está en su propio modo actualización (el loader del fabricante). Esta página no puede terminar esa instalación; no se envió nada.",
-  vStock: "Verificar: se detectó un FM-1 y responde V15 oficial (FM-1_015). No se escribió nada. ",
+  vStock: "Verificar: se detectó un FM-1 y responde el firmware oficial M-VAVE. No se escribió nada. Identidad: ",
   vOurs: "Verificar: firmware GAMMAWAVE/JIANT ", vSilent: "Verificar: el puerto del FM-1 no respondió (otro firmware, JIANT entre ellos, que no implementa la consulta de identidad). No se envió nada más. Puerto: ", vOther: "Verificar: se detectó un FM-1, pero su firmware no es uno de los que este instalador conoce. Se identifica como: ", vOtherTail: " — solo lectura: no se escribió nada y esto no autoriza la instalación.",
   vSame: " — misma identidad que este paquete (reinstalación u otra versión).", vCan: " — este paquete se puede instalar encima.",
   bkSaving: "Guardando copia de seguridad del FM-1 ", bkSaved: "La copia se descargó. Conservala: podés restaurarla desde Web Studio si algo falla. ¿Escribir el firmware ahora?",
@@ -735,7 +735,7 @@ TEXT.zh = {
   vNoPorts: " — 若设备已开机并使用数据线，列表为空说明系统没有呈现它：仅充电线、设备未开机，或其他程序占用了端口（Windows 每个端口只允许一个客户端独占）。未发送任何内容。",
   vLoader: "校验：FM-1 处于更新模式（上次安装被中断）。点击安装可完成写入。",
   vVendorLoader: "校验：设备处于其自身的更新模式（厂商 loader）。本页面无法完成该安装；未发送任何数据。",
-  vStock: "校验：检测到 FM-1，其回应为官方 V15（FM-1_015）。未写入任何内容。",
+  vStock: "校验：检测到 FM-1，其回应为官方 M-VAVE 固件。未写入任何内容。标识：",
   vOurs: "校验：GAMMAWAVE/JIANT 固件 ", vSilent: "校验：FM-1 端口没有回应（其他固件，例如 JIANT，未实现身份查询）。未发送其他内容。端口：", vOther: "校验：检测到一台 FM-1，但其固件不是本安装器所认识的固件。其自报身份为：", vOtherTail: " — 只读：未写入任何内容，也不构成安装授权。",
   vSame: " — 与此固件包身份相同（重装或其他版本）。", vCan: " — 可以安装此固件包。",
   bkSaving: "正在备份 FM-1 ", bkSaved: "备份已下载。请妥善保存：如有问题可在 Web Studio 中恢复。现在写入固件吗？",
@@ -905,7 +905,7 @@ const VF = {
     clock: "CPU clock",
     bootloader: "Boot loader",
     "usb.vidpid": "USB vendor / product id",
-    "fam.stock": "official V15",
+    "fam.stock": "M-VAVE official firmware",
     "fam.gammaWave": "Quantum GammaWave (this package)",
     "fam.gammaWaveLegacy": "Quantum GammaWave (previous identity, FM-1_982)",
     "fam.other": "another build (JIANT or custom)",
@@ -936,7 +936,7 @@ const VF = {
     "compat.unproven-device": "unproven: the port did not answer, so nothing is known about its firmware",
     "compat.blocked-model": "blocked: the package is for another model",
     "compat.blocked-firmware": "blocked: this installer cannot write over that firmware",
-    "compat.replaces-stock": "the package is built to replace official V15",
+    "compat.replaces-stock": "the package is built to replace M-VAVE's official firmware",
     "compat.reinstall-same": "same firmware: a reinstall",
     "compat.upgrade-legacy": "the same firmware on its previous identity (FM-1_982): an update",
     "compat.finish-loader": "the package can finish the interrupted install",
@@ -1008,7 +1008,7 @@ const VF = {
     clock: "Reloj de CPU",
     bootloader: "Boot loader",
     "usb.vidpid": "VID / PID de USB",
-    "fam.stock": "V15 oficial",
+    "fam.stock": "firmware oficial M-VAVE",
     "fam.gammaWave": "Quantum GammaWave (este paquete)",
     "fam.gammaWaveLegacy": "Quantum GammaWave (identidad anterior, FM-1_982)",
     "fam.other": "otro build (JIANT o personalizado)",
@@ -1039,7 +1039,7 @@ const VF = {
     "compat.unproven-device": "sin probar: el puerto no respondió, así que no se sabe nada de su firmware",
     "compat.blocked-model": "bloqueado: el paquete es para otro modelo",
     "compat.blocked-firmware": "bloqueado: este instalador no escribe sobre ese firmware",
-    "compat.replaces-stock": "el paquete está hecho para reemplazar V15 oficial",
+    "compat.replaces-stock": "el paquete está hecho para reemplazar el firmware oficial M-VAVE",
     "compat.reinstall-same": "mismo firmware: reinstalación",
     "compat.upgrade-legacy": "el mismo firmware con su identidad anterior (FM-1_982): una actualización",
     "compat.finish-loader": "el paquete puede terminar la instalación interrumpida",
@@ -1111,7 +1111,7 @@ const VF = {
     clock: "CPU 时钟",
     bootloader: "引导程序",
     "usb.vidpid": "USB VID / PID",
-    "fam.stock": "官方 V15",
+    "fam.stock": "M-VAVE 官方固件",
     "fam.gammaWave": "Quantum GammaWave（本包）",
     "fam.gammaWaveLegacy": "Quantum GammaWave（上一标识，FM-1_982）",
     "fam.other": "其他固件（JIANT 或自制）",
@@ -1142,7 +1142,7 @@ const VF = {
     "compat.unproven-device": "未证实：端口没有回应，因此无法得知其固件",
     "compat.blocked-model": "已阻止：该固件包适用于其他型号",
     "compat.blocked-firmware": "已阻止：本安装器无法写入该固件",
-    "compat.replaces-stock": "该固件包用于替换官方 V15",
+    "compat.replaces-stock": "该固件包用于替换 M-VAVE 官方固件",
     "compat.reinstall-same": "相同固件：重新安装",
     "compat.upgrade-legacy": "同一固件的上一标识（FM-1_982）：这是一次升级",
     "compat.finish-loader": "该固件包可以完成被中断的安装",
@@ -1377,7 +1377,7 @@ $("ver").addEventListener("change", () => { if (!writing) loadVersion(+$("ver").
       const verified = await validateStockPackage(sbytes);
       /* (v1.9.0) the official package has no build record of ours: its authority is the digest pinned
          in fm1pkg.js, and the token records that it is a vendor package, not a build of this tree. */
-      verified.provenance = await verifyVendorPackage(sbytes, { product: "FM-1_015", sha256: STOCK_V15_SHA256, size: sbytes.length, image: null });
+      verified.provenance = await verifyVendorPackage(sbytes, { product: verified.product, sha256: verified.sha256, size: sbytes.length, image: null });
       stock = verified;
       lockInstaller(writing);
       /* only now is there a copy to offer (the CI-built site has none: the links stay hidden, no 404) */
@@ -1406,7 +1406,7 @@ async function fwKind(up) {
   const dev = await up.find((id) => !/^ota-/i.test(id.model));
   if (!dev) return { kind: "none" };
   const text = dev.id.text;
-  if (text === "FM-1_015") { dev.link.close(); return { kind: "stock", text }; }
+  if (isStockIdentity(text)) { dev.link.close(); return { kind: "stock", text }; }
   if (!/^FM-1_9\d\d$/.test(text)) { dev.link.close(); return { kind: "other", text }; }
   const input = dev.link.input, output = dev.link.output; dev.link.close();
   const link = new BackupConnection(input, output);
@@ -1591,9 +1591,10 @@ async function runVerify() {
     else if (fw.kind === "otherloader") sayK("vVendorLoader");
     /* (7.x) the status line speaks about the device only. It used to append meta.product -- the tag of
      * the package THIS PAGE offers (FM-1_965) -- to a sentence about what the unit answered, so a stock
-     * FM-1 read as "official V15 (FM-1_015). ... FM-1_965": two identities in one line, and the package's
+     * FM-1 read as "official V15 (FM-1_015). ... FM-1_965" or "official V16 (FM-1_016)": two identities
+     * in one line, and the package's
      * presented as the unit's. The package is named in the report panel, under its own rows. */
-    else if (fw.kind === "stock") sayK("vStock");
+    else if (fw.kind === "stock") sayK("vStock", fw.text);
     else if (fw.kind === "ours") sayK("vOurs", fw.text + t("vSame"));
     else sayK("vOther", fw.text + t("vOtherTail"));   /* (7.x) detected, not recognised: FM-1_909 and the like */
     showVerify(fw);
@@ -1655,10 +1656,10 @@ $("stock-file").addEventListener("change", async () => {
   const epoch = ++stockFileEpoch, file = $("stock-file").files[0]; stock = null; lockInstaller(false);
   if (!file) return;
   try {
-    if (file.size !== STOCK_V15_SIZE) throw new Error("FM-1 V15 / FM-1.fwsc");
+    if (!stockReleaseBySize(file.size)) throw new Error("FM-1.fwsc (official V15 or V16)");
     const sbytes = new Uint8Array(await file.arrayBuffer());
     const verified = await validateStockPackage(sbytes);
-    verified.provenance = await verifyVendorPackage(sbytes, { product: "FM-1_015", sha256: STOCK_V15_SHA256, size: sbytes.length, image: null });
+    verified.provenance = await verifyVendorPackage(sbytes, { product: verified.product, sha256: verified.sha256, size: sbytes.length, image: null });
     if (epoch !== stockFileEpoch) return;
     stock = verified; sayK("stockValid"); lockInstaller(false);
   } catch (e) { if (epoch === stockFileEpoch) sayK("stockError", e.message); }
@@ -1686,7 +1687,7 @@ function archiveInfo(a) {
 }
 $("stock-go").addEventListener("click", async () => {
   if (!stock || writing) return;
-  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not the official V15: nothing will be written"); return; }
+  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not an official M-VAVE file: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   let link = null;
   try {
@@ -1703,7 +1704,7 @@ $("stock-go").addEventListener("click", async () => {
       if (!confirm(t("stockConfirm"))) return;
       /* the vendor V15 has no release manifest and this project has no key that could sign it, so
          requireProof refuses it: the page does not bypass that, it lets the transport say why */
-      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, sha256: selected.sha256 }) ? "done" : "stopped");
     } else {
       const device = await up.find(id => id.model === "FM-1");
       if (!device) { sayK("notfound"); return; }
@@ -1717,7 +1718,7 @@ $("stock-go").addEventListener("click", async () => {
         (done,total) => sayK("backup", `${Math.round(done / Math.max(1,total) * 100)}%`));
       saveArchive(archive); link.close(); link = null;
       if (!confirm(t("stockConfirm"))) return;
-      await up.install(selected.image, selected.product, step, { manifest: null, sha256: STOCK_V15_SHA256 });
+      await up.install(selected.image, selected.product, step, { manifest: null, sha256: selected.sha256 });
     }
   } catch (e) {
     if (e.code && TEXT[lang][e.code]) sayK(e.code,e.detail || ""); else sayK("error",e.message);
@@ -1726,7 +1727,7 @@ $("stock-go").addEventListener("click", async () => {
 });
 $("stock-direct").addEventListener("click", async () => {
   if (!stock || writing) return;
-  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not the official V15: nothing will be written"); return; }
+  if (!releaseOk || !stock.provenance) { sayK("error", "the package is not an official M-VAVE file: nothing will be written"); return; }
   const selected = stock; lockInstaller(true);
   try {
     let midi;
@@ -1747,11 +1748,11 @@ $("stock-direct").addEventListener("click", async () => {
       const ev = await probeChip(loader.link, 1500);
       log(`chip: ${ev.part} JEDEC 0x${ev.jedec.toString(16)} session 0x${(ev.session >>> 0).toString(16)}`);
       loader.link.close();
-      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, sha256: STOCK_V15_SHA256 }) ? "done" : "stopped");
+      sayK(await up.resume(selected.image, step, selected.product, { manifest: null, sha256: selected.sha256 }) ? "done" : "stopped");
     } else {
       const ev = await chipEvidence(up, selected.product.split("_")[0]);
       /* as above: the vendor V15 is not a signed release, so the transport refuses it */
-      await up.install(selected.image, selected.product, step, { manifest: null, sha256: STOCK_V15_SHA256 });
+      await up.install(selected.image, selected.product, step, { manifest: null, sha256: selected.sha256 });
     }
   } catch (e) {
     if (e && e.code && TEXT[lang][e.code]) sayK(e.code, e.detail || ""); else sayK("error", e && e.message);

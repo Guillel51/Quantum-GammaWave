@@ -12,7 +12,7 @@
 // verified, so neither a direct call nor a buffer changed after the fact can
 // reach the device.
 
-import { logicalImage, productOf, sha256hex } from "./fm1pkg.js";
+import { Package, hasFeluccaLoader, loaderWindowIssue, logicalImage, productOf, sha256hex } from "./fm1pkg.js";
 
 const HS_QUERY = [0xF0, 0x00, 0x32, 0x45, 0x00, 0x00, 0x00, 0x40, 0x7F, 0xF7];
 const UPGRADE = [0xF0, 0x22, 0x24, 0x35, 0x7F, 0xF7];
@@ -40,14 +40,20 @@ export const LEGACY_IDS = ["FM-1_982"];
 // starts from a device that is not the package's identity, and the package's identity is the one
 // that must be reported afterwards (install() checks it again once the unit comes back).
 // Only the stock versions this project has actually read are donors, and only as an origin.
-const STOCK_DONOR_VERSIONS = new Set([15]);
+// V15 (FM-1_015) and V16 (FM-1_016) are both read: V16's package, its head, its app area and its
+// identity were parsed and hashed in web/fm1pkg.js (STOCK_RELEASES). A number that is not in this
+// set is still refused, whatever a caller claims its firmware string is.
+const STOCK_DONOR_VERSIONS = new Set([15, 16]);
 export const donorIdentity = (id, product, firmware) => {
   const model = String(product).split("_")[0];
   if (!id || id.model !== model) return false;               // never across models
   if (!(id.version < 100) || !STOCK_DONOR_VERSIONS.has(id.version)) return false;
   const v = String(firmware ?? "").replace(/^v/i, "").trim();
   if (!v) return true;                                       // nothing to contradict it
-  return STOCK_DONOR_VERSIONS.has(Number.parseInt(v, 10));    // V15 is the donor this project read
+  /* The string and the identity have to name the same release: a unit answering FM-1_016 while
+   * its firmware says V15 is two different claims, and neither is trusted over the other. */
+  const fw = Number.parseInt(v, 10);
+  return fw === id.version && STOCK_DONOR_VERSIONS.has(fw);
 };
 // the port names this page will probe (and no others): fm1verify.js reports the silent ones,
 // so one regex decides what is "an FM-1" for the installer and for the verify button
@@ -685,12 +691,23 @@ export async function requireProof({ pkg, product = null, sha256 = null, proofTt
   const digest = await sha256hex(bytes);
   if (sha256 && digest !== String(sha256).toLowerCase())
     throw fail("image", "the package's SHA-256 is not the published one: nothing was sent.");
+  /* A package that carries THIS project's loader will be written by it, so its app area must
+   * fit the loader's own window before anything is offered. The official M-VAVE files carry the
+   * vendor's loader instead, and their writer is the vendor's program: the vendor image is not
+   * held to our window (that is what makes a return to V16 possible). */
+  if (hasFeluccaLoader(bytes)) {
+    let container;
+    try { container = new Package(bytes); }
+    catch (e) { throw fail("image", `the package carries this project's update loader but its flash.bin cannot be read (${(e && e.message) || e}): nothing was sent.`); }
+    const issue = loaderWindowIssue(container);
+    if (issue) throw fail("image", `${issue}: nothing was sent.`);
+  }
   const image = logicalImage(bytes);
   if (!image.length) throw fail("image", "the package holds no image: nothing was sent.");
   // (v2.6.0) when a verified build record authorised this transfer, the authorisation names the
   // commit it was verified against, so a caller can bind the write to that exact tree.
   const proof = Object.freeze({ product, model: product.split("_")[0], sha256: digest, size: bytes.length,
-    imageSize: image.length, build: verifiedCommit });
+    imageSize: image.length, build: verifiedCommit, ownLoader: hasFeluccaLoader(bytes) });
   const ttl = Math.max(0, Number(proofTtlMs) || 0);
   PROOFS.set(proof, { image, used: false, at: Date.now(), expires: Date.now() + ttl });
   return proof;

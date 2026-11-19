@@ -83,6 +83,17 @@ function anyWrite(sent) {
   check("official V15: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
 }
 {
+  // V16 is M-VAVE's newer official release (FM-1_016). It is stock, not "another firmware":
+  // the page must recognise it, carry its identity and report the release it belongs to.
+  const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_016")] });
+  const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
+  check("official V16: reported as stock, with its own identity and version",
+    fw.kind === "stock" && fw.text === "FM-1_016" && fw.version === 16);
+  check("official V16: the pinned release travels with the report",
+    fw.stockRelease && fw.stockRelease.identity === "FM-1_016" && fw.stockRelease.size === 718196);
+  check("official V16: only the identity query was sent", onlyQueries(a.sent) && !anyWrite(a.sent));
+}
+{
   // JIANT, or any FM-1 firmware that is not this one: its identity is reported, never "unknown"
   const a = access(["FM-1"], { "FM-1": () => [identityFrame("FM-1_210")] });
   const fw = await verifyDevice(a.midi, { product: "FM-1_965" });
@@ -104,7 +115,8 @@ function anyWrite(sent) {
   // every answer says what it is: found / recognised / canInstall, and only the reading one moves
   // the two loaders share the port name and are told apart by the version the unit answers:
   // 900 is this project's loader (resumable), any other is the vendor's update mode (not a target).
-  const cases = [["FM-1_015", "stock", true], ["FM-1_965", "ours", true], ["ota-FM-1_965", "ourloader", true],
+  const cases = [["FM-1_015", "stock", true], ["FM-1_016", "stock", true], ["FM-1_965", "ours", true],
+                 ["ota-FM-1_965", "ourloader", true], ["ota-FM-1_016", "otherloader", true],
                  ["ota-FM-1_015", "otherloader", true],
                  ["FM-1_909", "other", false], ["FM-1_210", "other", false]];
   for (const [id, kind, ok] of cases) {
@@ -279,7 +291,7 @@ function anyWrite(sent) {
 }
 {
   // every kind leaves canInstall false: the diagnosis never authorises an install
-  const cases = [["FM-1_015", "stock"], ["FM-1_965", "ours"], ["FM-1_909", "other"],
+  const cases = [["FM-1_015", "stock"], ["FM-1_016", "stock"], ["FM-1_965", "ours"], ["FM-1_909", "other"],
                  ["ota-FM-1_965", "ourloader"], ["ota-FM-1_015", "otherloader"]];
   let allFalse = true;
   for (const [id, kind] of cases) {
@@ -403,13 +415,18 @@ function anyWrite(sent) {
   const html = await fs.readFile(new URL("./index_pkg.html", import.meta.url), "utf8");
   const at = html.indexOf("async function runVerify()");
   const body = html.slice(at, html.indexOf("\n}\n$(" + JSON.stringify("verify") + ").addEventListener", at));
-  check("the stock message is no longer given the package tag as an argument",
-    /sayK\("vStock"\)/.test(body) && !/sayK\("vStock"\s*,/.test(body));
+  /* The status line speaks about the UNIT, so it is given what the unit answered (fw.text) and
+   * never the package's tag: V15 and V16 are both stock now, and hardcoding one of them would
+   * mislabel the other. */
+  check("the stock message is given the unit's identity, never the package tag",
+    /sayK\("vStock",\s*fw\.text\)/.test(body) && !/sayK\("vStock",\s*(pkg|meta)\./.test(body));
   check("the Verify handler passes the package to the report",
     /pkg:\s*\{[^}]*version[^}]*sha256/.test(body));
   const vstocks = [...html.matchAll(/\bvStock:\s*"([^"]*)"/g)].map((m) => m[1]);   // not navStock:
-  check("every stock message names the unit's identity and none of them names the package's",
-    vstocks.length >= 4 && vstocks.every((s) => /FM-1_015/.test(s) && !/FM-1_9\d\d/.test(s)));
+  /* Four languages say the same thing: the unit answers M-VAVE's official firmware. None of them
+   * hardcodes a version (V15 and V16 both qualify) and none can print the package's identity. */
+  check("every stock message names official firmware, without pinning one version or an identity",
+    vstocks.length >= 4 && vstocks.every((s) => /officiel|official|oficial|官方/i.test(s) && !/FM-1_\d{3}/.test(s)));
   check("the panel renders the package rows and translates the compatibility and authorisation values",
     /vf\("compat\."\s*\+/.test(html) && /vf\("auth\."\s*\+/.test(html) && /"pkg\.identity"/.test(html));
   const langBlocks = ["en", "es", "zh"].map((l) => html.slice(html.indexOf(`\n  ${l}: {`, html.indexOf("const VF"))));

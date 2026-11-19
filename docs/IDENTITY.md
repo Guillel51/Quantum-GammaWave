@@ -72,6 +72,9 @@ own tools:
   (`web/fm1ota.js`, `tools/fm1_install.py`). A longer identity would forfeit that, so the number is
   three digits. `tools/check_identity.py` refuses another shape unless `--any-form` says otherwise.
 * **`FM-1_015` is M-VAVE's V15** and is never used for a custom package; the tool refuses it by name.
+* **`FM-1_016` is M-VAVE's V16** and is refused the same way. Both are stock releases this project has
+  read (`STOCK_RELEASES` in `web/fm1pkg.js`); both may be the firmware a first install starts from, and
+  neither may be the identity a custom package answers with.
 * **One number, every build.** `tools/build.py` keeps `PRODUCT` fixed across releases: the hub knows a
   project by its identity, not by its version. The version travels in `FELUCCA_VERSION` (on the splash
   and in the build record), not in the identity.

@@ -32,6 +32,7 @@ APP_SLOT = 0x8E7BC       # declared maximum app.bin (0x8DFBC + 2048, the free sp
 #                          after the app area stay where they were: the region still ends at 0x8ED2B < 0x8F000.
 FLASH_SIZE = 0x93000     # flash.bin image size; the physical part is 1 MiB (0x100000)
 KEY = 0x980F
+LDR_APP_LO, LDR_APP_HI = 0x4000, 0x93000   # the update loader's write window (ldr_core.c)
 # flash header: JieLi SDK defaults (burner_size 544, VID "0.01", flash_size 0xFF000,
 # fs_ver 0x10, PID "AC791N_STORY"), plain, without its CRC
 FLASH_HDR = bytes.fromhex("20022f104cc900f00f001010a4ff4e5d0b41e0cd781dc856417fb367cf9f")
@@ -149,6 +150,14 @@ def flash_image(app, key):
     cfg_body = eq_e + eq
     cfg = entry(crc16(cfg_body), 0x20, 0x20 + len(cfg_body), 0x83, 0xFF, 1, "cfg") + cfg_body
     region = bytearray(area + cfg)
+    # The update loader (firmware/loader/ldr_core.c) erases and writes [0x4000, 0x93000) and stops
+    # there: an app area that crossed LDR_APP_HI would be installed truncated and the unit would
+    # boot a half-written image. This builder keeps the whole area inside that window by
+    # construction; the check makes that a fact of the build rather than a property of today's
+    # constants. (V16's vendor layout ends past it: that is why a V16 donor is not patched here.)
+    if 0x4000 + len(region) > LDR_APP_HI:
+        raise SystemExit(f"app area ends at {0x4000 + len(region):#x}, past the update loader's window "
+                         f"{LDR_APP_LO:#x}-{LDR_APP_HI:#x}")
     sfc(region, 0, len(region), 0, key)
     f[0x4000:0x4000 + len(region)] = region
     return bytes(f)

@@ -6,8 +6,9 @@ marker byte after each 0x30-byte block: `productOf` in `web/fm1pkg.js`). This to
 bytes the same way, and adds the two things a release job needs to refuse:
 
   * the identity must be THIS firmware's (`PRODUCT` in `tools/build.py`, `FM-1_965`);
-  * it must not be the identity of another firmware: `FM-1_015` is M-VAVE's V15 and is refused by
-    name, and any other number is reported so a human can compare it with the hub's catalogue
+  * it must not be the identity of another firmware: `FM-1_015` (V15) and `FM-1_016` (V16) are
+    M-VAVE's and are refused by name, and any other number is reported so a human can compare it
+    with the hub's catalogue
     (`tools/check_identity.py` does that comparison online).
 
 It also reports whether the package carries an `ota-FM-1_` loader identity string, and where.
@@ -26,6 +27,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BLOCKS, BLK, KEEP = 20, 0x30, 0x2F
 MARK_UNUSED = 0x7D
+# M-VAVE's own releases this project has read. A custom package may never use either identity.
+OFFICIAL = {"FM-1_015": "V15", "FM-1_016": "V16"}
 V15 = "FM-1_015"
 IDENT = re.compile(r"^FM-1_\d{3}$")
 
@@ -76,8 +79,8 @@ def main():
     if not IDENT.match(ident):
         print(f"FAIL  the identity is not FM-1_<three digits>: the hub will not list it")
         bad += 1
-    if ident == V15:
-        print(f"FAIL  {V15} is M-VAVE's official V15: never used for a custom package")
+    if ident in OFFICIAL:
+        print(f"FAIL  {ident} is M-VAVE's official {OFFICIAL[ident]}: never used for a custom package")
         bad += 1
     if want and ident != want:
         print(f"FAIL  the package says {ident!r}, the build says {want!r}")

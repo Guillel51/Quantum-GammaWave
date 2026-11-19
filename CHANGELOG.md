@@ -1,3 +1,28 @@
+## Fase 1 — compatibilidad con M-VAVE V16 (`FM-1_016`)
+
+El firmware oficial V16 (718 196 B, `d017fb65…`, identidad `FM-1_016`) se midió y se incorporó como
+segunda release oficial: un FM-1 que corre V16 se reconoce como **stock** (no como "otro firmware") y
+puede ser el origen de una instalación de Quantum GammaWave sin pasar por V15. También se puede volver
+al archivo oficial V16, con su propio pin.
+
+- `web/fm1pkg.js`: `STOCK_RELEASES` con V15 y V16 (digest, tamaño, imagen lógica, layout medido y las tres
+  regiones de referencia de V16); `isStockIdentity`, `stockReleaseOf`, `stockLayoutIssue`,
+  `loaderWindowIssue`, `hasFeluccaLoader`.
+- `web/fm1ota.js`: donantes V15 y V16 (identidad y firmware deben coincidir); la ventana del loader
+  (`0x4000–0x93000`) se exige **antes de cualquier frame** a todo paquete que lleve el loader de este
+  proyecto.
+- `web/fm1verify.js` y la página: `FM-1_016` es stock; el retorno al oficial usa el digest y la identidad
+  del archivo verificado, no constantes V15.
+- `tools/fm1_install.py`, `tools/fm1_preflight.py`, `tools/check_package_identity.py`, `tools/fm1pkg_make.py`:
+  los dos pines oficiales, y el builder falla si el área de app sale de la ventana del loader.
+- Pruebas: `web/test_stock_releases.mjs`, `tests/stock_profile_test.py`, `web/test_donor.mjs` y
+  `web/test_verify_only.mjs` actualizados. Verificado contra el archivo real: sus tres hashes de región se
+  reproducen byte a byte.
+
+**Pendiente de hardware:** que el actualizador V16 acepte el paquete y que el SPL V16 arranque el área de
+app de QG; el `UPDATA_PARM` `ota-FM-1_015` de `ota.c`; JEDEC de una unidad V16; corte y reanudación; y el
+backup verificado con M-Flasher. Detalle en `docs/FM1_V16.md` §5. Nada de eso se declara medido.
+
 ## v1.4.17 — URGENTE: `-flto` sale del build
 
 v1.4.16 fue la primera versión compilada con `-flto` (Fase 6) y **la unidad del dueño no volvió a arrancar después

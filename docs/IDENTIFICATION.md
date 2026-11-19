@@ -74,7 +74,9 @@ latest identification, and any failed re-identification clears it.
 | app without `0x12` (older firmware) | silence, then timeout | refused: **absence is not compatibility** |
 | app that does not start | handshake silence or a timeout | refused |
 | loader only (interrupted install) | identity `ota-FM-1_900` | **resumes**. The loader's build has no query, so the chip is not read by the host: this project's loader reads it itself before it erases anything (`firmware/loader/loader.c` `ldr_flash_known`) and refuses a part the firmware does not write. No report is asked of the user. |
-| the unit's own update mode | identity `ota-FM-1_015` | refused as `foreignloader`, zero frames: a Felucca image is not offered to the vendor's loader |
+| the unit's own update mode (V15) | identity `ota-FM-1_015` | refused as `foreignloader`, zero frames: a Felucca image is not offered to the vendor's loader |
+| the unit's own update mode (V16) | identity `ota-FM-1_016` | the same refusal: `ota-FM-1_016` is the vendor's loader, not this project's (965/900), so nothing is served to it |
+| stock application V16 | identity `FM-1_016` | recognised as **stock** (not "another firmware"): on the page it is a donor for a first install, with the same chip gate and package checks. See `docs/FM1_V16.md` |
 | unknown answer, bad length, bad CRC | `frame` / `crc` | refused |
 | device unplugged | `lost` | refused |
 | another model | identity check | refused before any query is sent |

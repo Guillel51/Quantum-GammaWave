@@ -76,11 +76,11 @@ def package_report(path, sha=None):
     product = I.product_of(raw)
     if not I.re.match(r"[^_]+_\d+", product):
         raise Refused("badpkg", "bad_identity", f"identity {product!r}")
-    official = sha256 == I.STOCK_V15_SHA256
+    official = sha256 in I.STOCK_SHA256
     if I.LOADER_MARK not in raw and not official:
         raise Refused("badpkg", "no_loader_marker",
                       "no Felucca update loader in this package (only Felucca packages and the "
-                      "unmodified official V15 are installable)")
+                      "unmodified official FM-1 file, V15 or V16, are installable)")
     image = I.logical_image(raw)
     return {
         "path": os.path.abspath(path),
@@ -88,7 +88,7 @@ def package_report(path, sha=None):
         "sha256": sha256,
         "product": product,
         "model": I.model_of(product),
-        "loader": "Felucca" if not official else "official V15",
+        "loader": "Felucca" if not official else "official " + I.STOCK_SHA256[sha256],
         "logical_bytes": len(image),
     }
 

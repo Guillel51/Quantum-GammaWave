@@ -508,6 +508,9 @@ fi
 
 run "preset library: 251 factory sounds, per-engine counts, DRUM's ten indices, names" python3 tests/preset_library_test.py
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
+# the two official M-VAVE releases (V15 V16) as both installers pin them: one digest, one layout,
+# one loader window, so a page and a terminal never disagree about which file is official
+run "stock profile: V15/V16 pins agree in both installers" python3 tests/stock_profile_test.py
 run "backup tool (fm1_archive.py): two independent passes, manifest, classification, verified restore" \
     python3 tests/backup_tool_test.py
 run "README navigation contract (WEB SITE first and double width, names, links, palette)" \
@@ -519,6 +522,12 @@ if command -v node >/dev/null 2>&1; then
     # (1.9) Verify Only is a read: the real Updater against a simulated FM-1, every frame it receives
     # counted -- handshake and one INFO read, never UPGRADE, a PUT or a resume
     run "web verify-only: identity reads only, zero write frames" node web/test_verify_only.mjs
+    # V15 and V16 are the stock releases this project has read: both are origins for a first
+    # install, and neither may answer as the installed identity afterwards.
+    run "web donor: V15/V16 are origins, an unread stock number is not" node web/test_donor.mjs
+    # the pinned official files: digests, the measured V16 layout, and the loader-window rule that
+    # makes a vendor V16 file a restore target rather than something a QG package is patched from
+    run "web stock releases: V15/V16 pins, the V16 layout and the loader window" node web/test_stock_releases.mjs
     # (first install) the chip fact a stock unit cannot give over MIDI: the record M-Flasher wrote,
     # its dump hashed in the page, and the donor install path that accepts them -- with the wire
     # assertions that nothing is sent without them.
