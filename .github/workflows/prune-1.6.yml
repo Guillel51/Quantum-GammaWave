@@ -1,0 +1,27 @@
+name: prune-1.6
+# One-shot: v1.6.0 / v1.6.1 were renumbered to v1.5.4 and the tree and the site no longer serve their
+# packages, so their releases and tags are removed (owner's request). Idempotent: a missing release or tag
+# is not an error. This file is deleted right after it runs.
+on:
+  push:
+    paths: [".github/workflows/prune-1.6.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: delete the v1.6.0 and v1.6.1 releases, then their tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -x
+          for t in v1.6.0 v1.6.1; do
+            gh release delete "$t" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$t" || true
+          done
+          echo "remaining 1.6 refs:"
+          git ls-remote --tags "https://github.com/$GITHUB_REPOSITORY.git" 'v1.6*' || true
