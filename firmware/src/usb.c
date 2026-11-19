@@ -755,8 +755,12 @@ stall:
     sie_wr(S_CSR0, 0x60);
 }
 
-/* SysEx assembly: only short commands matter here */
-static void sysex_byte(uint8_t b)
+/* SysEx assembly: only short commands matter here. Not inlined: the USB receive loops run inside the 10 kHz
+ * TIMER5 ISR, and this parser is the longest thing they would carry. Inlined, the screen reader's branch
+ * (#105) put ~60 instructions of it inside the per-byte loop and tests/target_budget.py read the tick at
+ * +15 % (as measured at c865155: 31098 against 27007, limit 29707). Called, the receive loop keeps the code
+ * it had; a SysEx byte costs one call, and SysEx arrives byte by byte with the reader asking. */
+static __attribute__((noinline)) void sysex_byte(uint8_t b)
 {
     static const uint8_t UBOOT_KEY[6] = {0xF0, 0x22, 0x24, 0x35, 0x7D, 0xF7};
     if (b >= 0xF8u)

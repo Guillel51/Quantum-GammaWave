@@ -1,3 +1,31 @@
+## v1.6.1 — El tick de 10 kHz vuelve a su presupuesto, y con él la publicación del sitio
+
+**El sitio público llevaba desde el 2026-11-18 20:58 sirviendo v1.4.17.** No era Pages ni el despliegue: el
+workflow `emulator` —el único publicador, no hay `pages.yml` ni rama `gh-pages`— moría en el paso 16
+(`tests/target_budget.py` + `web/test_pkg_bounds.mjs`) y un paso de build que falla deja sin armar el sitio y
+sin desplegar. El log recortado de `ci-diag` no lo mostraba porque el mensaje es «OVER BUDGET», que no entra
+en el filtro de errores.
+
+**Causa medida.** `tests/target_budget.py` sobre `build/felucca.dis` (clase: build AC791N con el compilador
+del target, cuenta estática —no una medición en la unidad):
+
+| commit | `fm1_timer5_irq` |
+| --- | --- |
+| `2fa2953`, el último que llegó a publicarse | 27 018 (baseline 27 007, ok) |
+| `c865155` (v1.5.0, Screen Reader) y todos los siguientes | **31 098 → +15 %, límite +10 % = FAIL** |
+
+`c865155` dejó el anillo SysEx de salida compilado en todas las build y agregó la rama del lector de pantalla
+dentro de `sysex_byte()`, que el compilador inlinaba en el bucle de recepción byte a byte del ISR de TIMER5:
+el bucle `ep1rx` pasó de 138 a 197 instrucciones.
+
+**Arreglo.** `sysex_byte()` pasa a `noinline`, el mismo patrón que `fm1__anim_frame()` en `hal/fm1_input.h`
+(«el código del tick queda como estaba»). Medido de nuevo: **21 962**, 19 % por debajo del baseline y por
+debajo del commit que sí se publicaba. El comportamiento es el mismo: un byte de SysEx cuesta una llamada, y
+SysEx llega byte a byte cuando el lector pregunta. El paquete nuevo pesa 610 933 B (imagen 582 142 B).
+
+**Lo que esto NO afirma:** ninguna medición en un FM-1. Es un conteo estático del compilador del target más
+la suite de host; latencia real, CPU del core 1 y sonido siguen pidiendo la unidad.
+
 ## v1.6.0 — Validación completa, índice de evidencia reparado y baseline de píxeles renovado
 
 **La suite completa encontró dos fallos, y están corregidos.**
