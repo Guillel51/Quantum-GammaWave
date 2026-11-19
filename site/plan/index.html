@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BO+a5I3JtEQ7B1u6XBgaLVom3aBcPSMawErhpCfJfV0=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3feylwg8M3KtlcNJjaCwLGt3PjGCG+tROu7TrPLjGlg=' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quantum GammaWave — the plan before you write</title>
@@ -59,9 +59,69 @@
 // device reads during an update.
 
 const BLOCKS = 20, BLK = 0x30, KEEP = 0x2F;
+
+/* The app window of the update loader this project ships (firmware/loader/ldr_core.c
+ * LDR_APP_LO / LDR_APP_HI). The loader erases and writes exactly this range and nothing
+ * else, so a package whose app area leaves it cannot be installed by that loader: the
+ * image would arrive truncated. It is a boundary of the loader, not of the flash. */
+const LOADER_APP_LO = 0x4000;
+const LOADER_APP_HI = 0x93000;
+/* the marker firmware/loader (and tools/fm1pkg_make.py) plant in the package when ota.bin is
+ * this project's loader: a package that carries it is written by OUR loader, with OUR window. */
+const FELUCCA_LOADER_MARK = "FELUCCA-LOADER-1";
+
+/* Two official M-VAVE FM-1 packages are known, each pinned by the digest of the exact file
+ * M-VAVE published. A pin is integrity, not authenticity: it proves the bytes are those the
+ * vendor shipped, not who shipped them.
+ *
+ * V15 (699 956 B) is the release this project has installed from since 1.0. V16 (718 196 B)
+ * was measured here with this repository's own parser: the values in `layout` and `reference`
+ * are readings of the file, not assumptions. V16 moved the app area: app.bin starts at 0x4140
+ * and is 597 928 B, the app area block is 671 857 B (it ends at 0xA8071, past V15's 0x93000),
+ * and the flash image grows from 0x93000 to 0xA9000. The head (0x0000-0x3FFF, the bootloader
+ * the install never writes) is a different SPL: 0x8f5228c2… against the V16 file.
+ *
+ * `imageSha256` is the logical image (the .fwsc minus its 20 marker bytes): that is what the
+ * device reads, so it is the value worth pinning beside the file digest. */
 const STOCK_V15_SHA256 = "db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a";
 const STOCK_APP_SIZE = 0x8E7BC;
 const STOCK_V15_SIZE = 699956;
+const STOCK_V16_SHA256 = "d017fb65e70aca97ee29d944470c3515a74581df5c0576bf70de917c7b2b61d5";
+const STOCK_V16_SIZE = 718196;
+const STOCK_V16_IMAGE_SHA256 = "cca5d6910017344674e6128e529876572ce443bcae41186d0d69768f0d1f1d2a";
+
+const STOCK_RELEASES = Object.freeze([
+  Object.freeze({
+    version: 15, identity: "FM-1_015", sha256: STOCK_V15_SHA256, size: STOCK_V15_SIZE,
+    imageSha256: null, imageSize: STOCK_V15_SIZE - BLOCKS,
+    /* V15 is pinned by digest and by the four layout values this project has always checked.
+     * Its other structures are not re-derived here: the file is not in this tree. */
+    layout: Object.freeze({ flashFileOff: 1044, flashSize: 0x93000, appBase: 0x4000,
+      appOff: 16672, appSize: STOCK_APP_SIZE, otaSize: 19969 }),
+    measured: false,
+  }),
+  Object.freeze({
+    version: 16, identity: "FM-1_016", sha256: STOCK_V16_SHA256, size: STOCK_V16_SIZE,
+    imageSha256: STOCK_V16_IMAGE_SHA256, imageSize: STOCK_V16_SIZE - BLOCKS,
+    layout: Object.freeze({ flashFileOff: 1044, flashSize: 0xA9000, appBase: 0x4000,
+      appOff: 0x4140, appSize: 597928, appDirSize: 0xA4071, otaSize: 19969 }),
+    /* what the file's own regions hash to, from this repository's parser: these are the
+     * reference values published for V16 and they reproduce byte for byte. */
+    reference: Object.freeze({
+      headSha256: "8f5228c2d6ea2068838ef4916f946bea877d14b07e6cfca49e41957f4c7b234f",
+      appRegionSha256: "c47d8895963c070f9334efd6a617d7aae5daf8480ffcf3438ffb634c03de8ef7",
+      appRegion93000Sha256: "980ff51ae2d90004cf3887602ebd11cd31796977410eb77cc7faabad4023003c",
+    }),
+    measured: true,
+  }),
+]);
+
+const STOCK_IDENTITIES = Object.freeze(STOCK_RELEASES.map((r) => r.identity));
+const isStockIdentity = (text) => STOCK_IDENTITIES.includes(String(text || ""));
+const stockReleaseBySize = (size) =>
+  STOCK_RELEASES.find((r) => r.size === size) || null;
+const stockReleaseByIdentity = (identity) =>
+  STOCK_RELEASES.find((r) => r.identity === identity) || null;
 
 const T = new Uint16Array(256);
 for (let i = 0; i < 256; i++) {
@@ -327,23 +387,110 @@ async function sha256hex(bytes) {
   return [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
-// Only the user's unmodified official V15 is accepted for a return to stock.
-// The digest pins every file, loader and flash layout; filenames are not evidence.
-async function validateStockPackage(bytes) {
-  if (bytes.length !== STOCK_V15_SIZE || await sha256hex(bytes) !== STOCK_V15_SHA256)
-    throw new Error("Select the unmodified official FM-1 V15 file (FM-1.fwsc).");
-  const pkg = new Package(bytes);
-  if (pkg.product !== "FM-1_015" || pkg.flashFileOff !== 1044 || pkg.flashSize !== 602112 ||
-      pkg.appBase !== 16384 || pkg.appOff !== 16672 || pkg.app.size !== STOCK_APP_SIZE ||
-      !pkg.entries.some((e) => e.type === 100 && e.name === "ota.bin" && e.size === 19969))
-    throw new Error("The official firmware has an unsupported FM-1 layout.");
-  return { product: pkg.product, image: logicalImage(bytes), sha256: STOCK_V15_SHA256 };
+/* The layout the pin promises, checked against what the container actually says. Pure and
+ * synchronous, so a test can drive it with a profile of its own. Returns a reason or null. */
+function stockLayoutIssue(pkg, profile) {
+  const L = profile.layout;
+  if (pkg.product !== profile.identity)
+    return `the package identifies as ${pkg.product}, not ${profile.identity}`;
+  if (pkg.flashFileOff !== L.flashFileOff)
+    return `flash.bin is at ${pkg.flashFileOff}, not ${L.flashFileOff}`;
+  if (pkg.flashSize !== L.flashSize)
+    return `the flash image is ${pkg.flashSize} B, not ${L.flashSize} B`;
+  if (pkg.appBase !== L.appBase)
+    return `app_dir_head is at 0x${pkg.appBase.toString(16)}, not 0x${L.appBase.toString(16)}`;
+  if (pkg.appOff !== L.appOff)
+    return `app.bin is at 0x${pkg.appOff.toString(16)}, not 0x${L.appOff.toString(16)}`;
+  if (!pkg.app || pkg.app.size !== L.appSize)
+    return `the app slot is ${pkg.app ? pkg.app.size : "missing"}, not ${L.appSize} B`;
+  const ota = pkg.entries.find((e) => e.type === 100 && e.name === "ota.bin");
+  if (!ota || ota.size !== L.otaSize)
+    return `ota.bin is ${ota ? ota.size + " B" : "missing"}, not ${L.otaSize} B`;
+  if (L.appDirSize !== undefined) {
+    if (pkg.head.size !== L.appDirSize)
+      return `app_area_head declares ${pkg.head.size} B, not ${L.appDirSize} B`;
+    if (pkg.appBase + pkg.head.size > pkg.flashSize)
+      return "app_area_head reaches past the flash image";
+  }
+  /* the readings this repository took of the file: the chip key and every attr-0x82 app file
+   * decrypting with it and matching its CRC16 (M-Flasher's own app_files_status check). Only
+   * for a profile that was actually measured -- V15 is pinned by digest, not re-derived. */
+  if (profile.measured) {
+    if (pkg.chipKey !== 0x980F)
+      return `the chip key decodes to ${pkg.chipKey === null ? "nothing" : "0x" + pkg.chipKey.toString(16)}, not 0x980F`;
+    const files = pkg.appFiles();
+    if (!files.length) return "the app area declares no attr-0x82 file";
+    const bad = files.filter((f) => !f.ok);
+    if (bad.length) return `${bad[0].name} does not decrypt/match its CRC16 with the chip key`;
+  }
+  return null;
 }
 
-// official V15 + Felucca app -> installable package (Uint8Array)
+// Which official release are these bytes? Matched on size and SHA-256 only: a filename and the
+// identity woven into the container are claims, the digest is the pin.
+async function stockReleaseOf(bytes) {
+  if (!bytes || typeof bytes.length !== "number") return null;
+  const bySize = stockReleaseBySize(bytes.length);
+  if (!bySize) return null;
+  return (await sha256hex(bytes)) === bySize.sha256 ? bySize : null;
+}
+
+// Only the user's unmodified official file is accepted for a return to stock, whichever release
+// it is. The digest pins every file, loader and flash layout; filenames are not evidence.
+async function validateStockPackage(bytes) {
+  const profile = await stockReleaseOf(bytes);
+  if (!profile)
+    throw new Error("Select the unmodified official M-VAVE FM-1 file (FM-1.fwsc, V15 or V16).");
+  const pkg = new Package(bytes);
+  const issue = stockLayoutIssue(pkg, profile);
+  if (issue) throw new Error(`The official ${profile.identity} file has an unsupported FM-1 layout: ${issue}.`);
+  const image = logicalImage(bytes);
+  if (profile.imageSize && image.length !== profile.imageSize)
+    throw new Error(`The official ${profile.identity} image is ${image.length} B, not ${profile.imageSize} B.`);
+  if (profile.imageSha256 && (await sha256hex(image)) !== profile.imageSha256)
+    throw new Error(`The official ${profile.identity} image is not the pinned one.`);
+  return { product: pkg.product, version: profile.version, profile,
+    image, sha256: profile.sha256, layout: profile.layout, loaderWindow: [LOADER_APP_LO, LOADER_APP_HI] };
+}
+
+/* Is this project's update loader inside these bytes? The UFW entry names ota.bin, but the
+ * marker is what the release job checks (web/make_site.py) and what tells the transport that
+ * OUR loader, with OUR write window, is the program that will do the erase. */
+function hasFeluccaLoader(bytes) {
+  const mark = FELUCCA_LOADER_MARK;
+  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  outer: for (let i = 0; i + mark.length <= b.length; i++) {
+    for (let j = 0; j < mark.length; j++) if (b[i + j] !== mark.charCodeAt(j)) continue outer;
+    return true;
+  }
+  return false;
+}
+
+/* The app area a package declares, and whether our loader can write all of it. A package whose
+ * flash image is shorter than the loader's window is refused by the loader itself
+ * (ldr_core.c: `fl_size < LDR_APP_HI`); one whose app area crosses LDR_APP_HI is the dangerous
+ * case -- the loader would stop mid-app and the unit would boot a truncated image. Both are
+ * answered here, before a frame leaves the host. */
+function loaderWindowIssue(pkg) {
+  if (!pkg || !pkg.head) return "the package has no app_area_head";
+  if (pkg.flashSize < LOADER_APP_HI)
+    return `the flash image is ${pkg.flashSize} B, the update loader needs at least ${LOADER_APP_HI} B`;
+  const end = pkg.appBase + pkg.head.size;
+  if (end > LOADER_APP_HI)
+    return `the app area ends at 0x${end.toString(16)}, past the update loader's window `
+      + `(0x${LOADER_APP_LO.toString(16)}-0x${LOADER_APP_HI.toString(16)}): it would be installed truncated`;
+  return null;
+}
+
+// official V15 + Felucca app -> installable package (Uint8Array). V16's app area ends past the
+// loader's window, so a V16 donor is not turned into a package here: tools/fm1pkg_make.py builds
+// the package this project installs, and its app area is inside the window by construction.
 async function buildFeluccaPackage(stockBytes, appBytes, product) {
-  const sha = await sha256hex(stockBytes);
-  if (sha !== STOCK_V15_SHA256) throw new Error("this is not the official FM-1 V15 firmware file (FM-1.fwsc)");
+  const profile = await stockReleaseOf(stockBytes);
+  if (!profile) throw new Error("this is not an official FM-1 firmware file (FM-1.fwsc)");
+  if (profile.version !== 15)
+    throw new Error(`the official ${profile.identity} layout keeps app.bin past the update loader's `
+      + "window: build the package with tools/fm1pkg_make.py instead of patching a vendor file");
   const pkg = new Package(stockBytes);
   pkg.setApp(appBytes);
   pkg.setProduct(product);

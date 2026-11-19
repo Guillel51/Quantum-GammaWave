@@ -44,7 +44,22 @@ pool por nota (ninguno bajo el presupuesto de carga) en vez de dos. Los 303 rend
 
 **Fase 2, lo que quedó pendiente se cierra aquí en lo que se pudo verificar.** Sin toolchain AC791N en este
 entorno no hay paquete ni release nuevos: el sitio y `release/` siguen sirviendo v1.4.17, y la versión de
-fuente pasa a `v1.5.0` como **no publicada**. Los pendientes de UI de la fase 2 (región de pop-up, TEMPO sobre
+fuente pasa a `v1.5.0`.
+
+**v1.5.0 PUBLICADA el 2026-11-19.** Construida con el toolchain y el SDK ya instalados y verificados por
+hash (`tools/get_ac791n.py`, `tools/toolchain.sha256`, `SDK_SHA256`), no anunciada antes de existir:
+`.fwsc` de **610 959 B**, sha256 `acbad1144b568711…`, identidad **FM-1_965**, build `2dd157e`, emulador del
+mismo commit, `release/`, `site/firmware/felucca-1.5.0.fwsc` y `versions.json` coherentes
+(`tools/make_release.py --check`). Reproducir:
+
+```sh
+python3 tools/get_ac791n.py          # toolchain (hash fijado) + los 3 blobs del SDK
+ulimit -n 9000
+JIELI_TOOLCHAIN=~/.jieli/toolchain AC79_SDK=~/fw-AC79_AIoT_SDK ./build.sh
+sh web/emu/build.sh                   # emulador del mismo commit (emsdk 6.0.11)
+python3 tools/make_release.py --sync   # release/, site/, SHA256SUMS
+python3 tools/make_release.py --check
+``` Los pendientes de UI de la fase 2 (región de pop-up, TEMPO sobre
 T3/T4, repintado de ALGORITHM) siguen abiertos y con la causa localizada.
 
 ## Fase 2 — Issues #106 (UI) y #107 (polifonía)
