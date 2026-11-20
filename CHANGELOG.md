@@ -1,3 +1,44 @@
+## v1.5.23 — el acorde que sobrevive, el guardián que elige la nota menos audible, y el monitor que dice qué costó
+
+Fase 2: polifonía, gestión de voces y estrés de audio. Primero los pendientes y las regresiones de la Fase 1 (suite
+completa sobre `1b5dc1c`: 6 315 `ok`, 306 renders golden sin cambios), después una revisión medida del asignador, y sólo
+las mejoras que un número sostiene. **No hay FM-1 en este entorno**: nada de aquí afirma sonido, panel ni DAC.
+
+- **Un acorde de doce notas ya no pierde ocho en un cambio de sonido que cambia de motor.** `track_t.xp_note/xp_vel`
+  guardaban cuatro notas y `engine_block` sólo re-engancha lo que encuentra ahí: la tecla seguía apoyada, su nota no
+  sonaba y su note-off caía en el vacío. Ahora la capacidad es `NVOICE` (doce). `[HOST]`,
+  `tests/poly_phase2_test.c`: **4 → 12** notas vuelven a sonar en el motor nuevo.
+- **La pila MONO / LEGATO tiene doce teclas.** Guardaba ocho y tiraba la primera al llegar la novena: con PRIO LOW o
+  HIGH eso era exactamente la tecla que decide la altura. `[HOST]`: con doce teclas apretadas de abajo hacia arriba,
+  suena **60** y no 64.
+- **Esa capacidad va al lado de los tracks, no dentro, y eso es lo que la hace entrar.** `track_t` mide 1 760 B y lo
+  lee todo el instrumento: crecer los arrays en su sitio cuesta **+2 952 B** de XIP (imagen 584 768 B contra un slot de
+  583 612: no enlazaba), y al final del struct +2 920 B. El crecimiento no está en los ficheros tocados sino repartido
+  por la UI (`nm --size-sort`: `ui_input_frame` +608 B, `gen_make` +210, `graph_signature` +182, `draw_graph` +170 ..),
+  un desplazamiento más largo en cada `trk[i].field`. Los primeros slots se quedan donde estaban y el resto vive en
+  `xp_more`/`xp_morev`/`ms_more` con tres accesores en línea. `[AC791N]`: imagen **581 816 → 582 144 B** (libre
+  1 796 → **1 468**), `.data+.bss` **86 784 → 86 912 B** (11 392 libres). La regla queda escrita en
+  `docs/VOICE_POOL.md` §9.
+- **El guardián de sobrecarga elige la nota menos audible y actúa una vez por episodio.** Entre las notas sostenidas de
+  una parte cortaba la más vieja —el cuerpo sostenido del acorde, lo más audible— y dejaba la recién atacada; ahora
+  ordena por `v_energy` (envolvente × nivel de la parte) y la edad sólo desempata, con el bajo y el lead MONO
+  protegidos. Y como una voz rebajada tarda seis bloques en irse mientras cuesta lo mismo, un pico más largo armaba
+  otro `shed_req`: un episodio podía llevarse tres o cuatro voces. Con una voz en fade, el guardián ya actuó.
+  `[HOST]`, `tests/audio_test.c`: las cuatro comprobaciones nuevas.
+- **El monitor dice qué costó la carga y qué hace cada track.** `CPU LOAD` gana `SHD n` (las voces que bajó el
+  guardián, que estaban sólo en `MENU > ABOUT`) y la fila T1..T6 distingue **sostenida** (acento) de **sólo colas**
+  (color de tema, con una barra tan larga como colas queden), en vez de un solo color para "tiene alguna voz". 48
+  fotogramas de `tests/ui_pixels.txt` rebaseados (versión y monitor); 3 056 idénticos.
+- **Escenas de estrés nuevas** (`tests/poly_phase2_test.c`): ráfaga de 24 note-ons en un bloque (12 suenan, 12 robos
+  contados, 0 denegadas, ninguna nota pegada), doce colas de release acumuladas contra un acorde nuevo (las colas
+  pagan), seis partes compitiendo (crece la que pide, ninguna se queda sin nota, el pool queda exacto en 12), cambio de
+  preset bajo el acorde con FX, y tres ciclos de saturación/recuperación que dejan el pool entero.
+- **Lo que el límite físico no deja**, con el número delante: `NVOICE` 16 no se sube (sin unidad no hay margen de CPU
+  que medir; `[ESTÁTICO]` DRUM 1 153/1 153); `track_t` no crece más (~25 B de flash por byte); un acorde de doce en FM6
+  no es asunto del asignador (`engine_t.poly` 4).
+- **Informe completo**: `docs/FASE2_POLIFONIA_v1.5.23.md`, con la tabla antes/después por escena, la del XIP y lo que
+  queda por validar en la FM-1 física.
+
 ## v1.5.22 — el wavetable guarda media tabla, y las palancas de flash que no pagan
 
 Fase 1 de recursos. Se buscó capacidad nueva **midiendo**, no repitiendo las búsquedas ya cerradas (compresión de

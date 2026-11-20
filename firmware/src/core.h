@@ -74,6 +74,31 @@ int32_t fx_master_eq_hz_db(int32_t hz);
                                   * FELUCCA_VPOOL=N overrides it (tools/build.py). */
 #endif
 #define VDEAD (VPOOLN - 1)            /* the pool's last slot: inert, and never granted to a part */
+/* (v1.5.23, FASE 2) WHAT A CHORD KEEPS WHILE A PART IS BUSY CHANGING SOUND, AND WHY IT IS SPLIT IN TWO.
+ * track_t.xp_note/xp_vel keep the notes pressed while an engine switch fades (engine_block replays them on the new
+ * engine) and track_t.mono_stack keeps the keys a MONO / LEGATO part still has down (mono_pick decides again from it
+ * on every release). Both held four / eight, so a twelve-key chord -- the pool's own size -- lost eight of them at a
+ * preset change that switches engine, and a LEGATO part with PRIO LOW/HIGH could lose the key that decides the pitch.
+ * The capacity is now NVOICE; the storage is NOT.
+ *
+ * track_t IS 1 760 B AND THE WHOLE INSTRUMENT READS IT: inserting those bytes where the arrays live moved every field
+ * after them and every `trk[i].field` in the UI paid for a longer displacement. Measured, the AC791N `--release`
+ * build: the two arrays grown in place take the image from 581 816 to 584 768 B (**+2 952 B** of XIP against a 1 796 B
+ * free slot: it does not link), and at the end of the struct 584 736 B (+2 920). The growth is not in the files that
+ * changed: `nm --size-sort` on the two objects puts it in ui_input_frame +608, gen_make +210, graph_signature +182,
+ * draw_graph +170, tools_key +210 .. -- one longer displacement each, thousands of times. Beside the tracks the same
+ * capacity costs **+160 B** of flash and 128 B of .bss, which is what this does. */
+#ifndef XP_N
+#define XP_N NVOICE                   /* notes a part keeps across a sound load, capacity (overridable, as NVOICE:
+                                       * the host build with -DXP_N=4 is how the v1.5.22 behaviour is measured
+                                       * beside it, tests/poly_phase2_test.c) */
+#endif
+#ifndef MONO_STACK_N
+#define MONO_STACK_N NVOICE           /* keys held by a MONO / LEGATO / UNISON part's stack (same override) */
+#endif
+#define XP_IN_T 4                     /* of those, the ones track_t carries (its layout is frozen: above) */
+#define MS_IN_T 8
+_Static_assert(XP_N >= XP_IN_T && MONO_STACK_N >= MS_IN_T, "the in-struct slots are the first of the capacity");
 /* (FASE 3) MENU > AUDIO > VOICES: how many voices the parts may sound together, 8, 10 or 12 (12 ships).
  * NVOICE and VPOOLN above are the storage the pool is built for and never change with the setting, so
  * turning the polyphony down costs nothing in .bss and nothing in the render loop: the cap is one
@@ -714,7 +739,7 @@ typedef struct track {
     uint8_t rh_last;             /* the last of them; rh_bak: what it held (an early release puts it back) */
     step_t rh_bak;
     /* mono */
-    uint8_t mono_stack[8];
+    uint8_t mono_stack[MS_IN_T];     /* (v1.5.23) the first MS_IN_T of MONO_STACK_N: the rest is beside the tracks */
     uint8_t nmono;
     uint8_t mono_note;           /* note the MONO / LEGATO / UNISON voice(s) play, 0 = none */
     uint8_t rr;                  /* POLY ROTATE: next voice to try */
@@ -733,7 +758,8 @@ typedef struct track {
     uint8_t xf_len, xf_dip;      /* (0.6.41) the fade's length; a dip (an engine's list value changed: the voices stay) */
     uint8_t xin, xin_len;        /* (0.6.41) fading in after it: blocks still to come, of xin_len */
     int16_t pe_old[8];           /* P_E0..P_E7 of the sounding engine: the fade renders with these */
-    uint8_t xp_n, xp_note[4], xp_vel[4];   /* note-ons during the fade, played on the new engine */
+    uint8_t xp_n, xp_note[XP_IN_T], xp_vel[XP_IN_T];   /* note-ons during the fade, played on the new engine (the
+                                                        * first XP_IN_T of XP_N: the rest is beside the tracks) */
     /* modulation matrix (mod.c): MIDI performance controllers of the track's channel, 0..127 */
     uint8_t mw, at;              /* CC1 mod wheel, channel aftertouch */
     uint8_t ex_off;              /* 127 - CC11 expression (0: full, the MIDI default) */
@@ -806,6 +832,25 @@ typedef struct {
 
 static track_t trk[NTRK];        /* the instrument: four parts */
 static song_t song;
+/* (v1.5.23, FASE 2) THE REST OF EACH CHORD ARRAY, BESIDE THE TRACKS. track_t keeps its size and its layout (see the
+ * measurement at XP_N); the slots past the ones it carries live here, and the note-on path reaches them through the
+ * two accessors. Six parts: 6 * ((12 - 4) * 2 + (12 - 8)) = 120 B of .bss, against 11 520 B free. Neither array is
+ * saved in a project or a backup (project.c copies named fields), so no stored layout moves either. */
+static uint8_t xp_more[NTRK][XP_N - XP_IN_T], xp_morev[NTRK][XP_N - XP_IN_T];
+static uint8_t ms_more[NTRK][MONO_STACK_N - MS_IN_T];
+static inline uint32_t xp_kt(const track_t *t) { return (uint32_t)(t - trk) % NTRK; }
+static inline uint8_t *xp_note_p(const track_t *t, uint32_t i)
+{
+    return i < XP_IN_T ? (uint8_t *)&t->xp_note[i] : &xp_more[xp_kt(t)][i - XP_IN_T];
+}
+static inline uint8_t *xp_vel_p(const track_t *t, uint32_t i)
+{
+    return i < XP_IN_T ? (uint8_t *)&t->xp_vel[i] : &xp_morev[xp_kt(t)][i - XP_IN_T];
+}
+static inline uint8_t *ms_p(const track_t *t, uint32_t i)
+{
+    return i < MS_IN_T ? (uint8_t *)&t->mono_stack[i] : &ms_more[xp_kt(t)][i - MS_IN_T];
+}
 #define TSEL (&trk[song.sel])
 
 /* (1.2.6) SOUND EDITED: a track's sound changed since the last load or save. A load or a save clears it

@@ -116,6 +116,35 @@ static void overload(void)
     lead->env = 10000; extra->env = 10;
     shed_voice();
     check("released voices shed the quieter tail first", extra->stage == 4u && lead->stage != 4u);
+
+    /* (v1.5.23, FASE 2) A HELD VOICE TOO: the guard used to take the oldest note it was allowed to, which is the
+     * sustained body of a chord -- the loudest thing a part has -- while the note just struck and still climbing its
+     * attack is a fifth as audible. The measure is v_energy (the envelope and the part's level), the same one the
+     * allocator uses; the age only breaks a tie. */
+    fresh();
+    trk[0].p[P_VOICE] = V_POLY;
+    voice_room(&trk[0], 0);                            /* a third slot, so the part has two notes it may lose */
+    trk_note_on(&trk[0], 60, 100);
+    trk_note_on(&trk[0], 67, 100);
+    trk_note_on(&trk[0], 72, 100);
+    bass = held(&trk[0], 60); lead = held(&trk[0], 67); extra = held(&trk[0], 72);
+    lead->env_out = 24000; extra->env_out = 600;      /* 67 is the sustained one and loud, 72 was just struck */
+    lead->age = 1u; extra->age = 2u;                  /* .. and 67 is the older: the old rule took that one */
+    bass->env_out = 24000;
+    shed_voice();
+    check("a held note: the quietest goes, not the oldest (the bass is kept)",
+          extra->stage == 4u && lead->stage != 4u && bass->stage != 4u);
+    check(".. and the guard counts it once", shed_count == 1u);
+    /* (v1.5.23, FASE 2) ONE ACTION PER EPISODE: a shed voice fades for six blocks, and until it does the load it costs
+     * is unchanged, so a spike that lasts longer than that armed a second shed and a single episode could take three or
+     * four voices. While a voice is in its stage-4 fade the guard has already acted. */
+    shed_voice();
+    check("a second request while the first is still fading takes nothing", shed_count == 1u);
+    for (i = 0; i < 6u; i++)
+        mix_block(out, CTL);
+    check(".. the fade ends, and the pool is one voice smaller", !extra->active && voices_busy() == 2u);
+    shed_voice();                                      /* the fade is done: a candidate is the loud held note */
+    check(".. and once it is gone the guard can act again", shed_count == 2u && lead->stage == 4u);
 }
 static void dma(void)
 {

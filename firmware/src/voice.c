@@ -944,12 +944,12 @@ static uint32_t mono_pick(const track_t *t)
     uint32_t i, n;
     if (!t->nmono)
         return 0;
-    n = t->mono_stack[t->nmono - 1u];
+    n = *ms_p(t, t->nmono - 1u);
     for (i = 0; i < t->nmono; i++) {
-        if (t->p[P_PRIO] == 1 && t->mono_stack[i] < n)
-            n = t->mono_stack[i];
-        if (t->p[P_PRIO] == 2 && t->mono_stack[i] > n)
-            n = t->mono_stack[i];
+        if (t->p[P_PRIO] == 1 && *ms_p(t, i) < n)
+            n = *ms_p(t, i);
+        if (t->p[P_PRIO] == 2 && *ms_p(t, i) > n)
+            n = *ms_p(t, i);
     }
     return n;
 }
@@ -958,8 +958,8 @@ static void mono_remove(track_t *t, uint32_t note)
 {
     uint32_t j, k = 0;
     for (j = 0; j < t->nmono; j++)
-        if (t->mono_stack[j] != note)
-            t->mono_stack[k++] = t->mono_stack[j];
+        if (*ms_p(t, j) != note)
+            *ms_p(t, k++) = *ms_p(t, j);
     t->nmono = (uint8_t)k;
 }
 
@@ -1037,13 +1037,13 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
     if (pfx_note(t, note, vel))                         /* the punch-in effects (pfx.c): a repeat holds the track */
         return;
     if (t->xf_on || t->eng_req != t->engine) {          /* engine switch under way: after the fade */
-        for (i = 0; i < t->xp_n && t->xp_note[i] != note; i++)
+        for (i = 0; i < t->xp_n && *xp_note_p(t, i) != note; i++)
             ;
-        if (i == t->xp_n && t->xp_n < 4u)
+        if (i == t->xp_n && t->xp_n < XP_N)
             t->xp_n++;
         i = i < t->xp_n ? i : t->xp_n - 1u;             /* (full: the last one is replaced) */
-        t->xp_note[i] = (uint8_t)note;
-        t->xp_vel[i] = (uint8_t)vel;
+        *xp_note_p(t, i) = (uint8_t)note;
+        *xp_vel_p(t, i) = (uint8_t)vel;
         return;
     }
     mod_note(t, note, vel);                             /* the matrix's VEL / KEY / RAND */
@@ -1072,9 +1072,9 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
     {
         uint32_t sounding = t->mono_note && V(t, 0).active && V(t, 0).gate, want;
         mono_remove(t, note);
-        if (t->nmono >= 8u)
-            mono_remove(t, t->mono_stack[0]);
-        t->mono_stack[t->nmono++] = (uint8_t)note;
+        if (t->nmono >= MONO_STACK_N)
+            mono_remove(t, *ms_p(t, 0));
+        *ms_p(t, t->nmono++) = (uint8_t)note;
         want = mono_pick(t);
         if (sounding && want == t->mono_note)
             return;                                     /* LOW / HIGH priority: this key does not win */
@@ -1092,9 +1092,9 @@ static void trk_note_off(track_t *t, uint32_t note)
     if (voice_mc_busy() && voice_defer(t, 1, note, 0))
         return;                                         /* (FASE 1) core 1 is rendering: next block */
     for (i = 0; i < t->xp_n; i++)                       /* not sounding yet (engine switch): forget it */
-        if (t->xp_note[i] != note) {
-            t->xp_note[k] = t->xp_note[i];
-            t->xp_vel[k++] = t->xp_vel[i];
+        if (*xp_note_p(t, i) != note) {
+            *xp_note_p(t, k) = *xp_note_p(t, i);
+            *xp_vel_p(t, k++) = *xp_vel_p(t, i);
         }
     t->xp_n = (uint8_t)k;
     mono_remove(t, note);                              /* a mode change must not retain a released key */
@@ -1147,7 +1147,7 @@ static void trk_all_off(track_t *t)
 #define XF_ENG 16u
 #define XF_DIP 4u                                       /* (0.6.81: 2.7 ms each way, was 1.3: a tick) */
 static int eng_kit(uint32_t e) { return ENGINES[e % NENGINES]->oneshot; }
-static uint32_t xf_held(const track_t *t, uint8_t *nt, uint8_t *vl)   /* the notes held (up to 4): their count */
+static uint32_t xf_held(const track_t *t, uint8_t *nt, uint8_t *vl)   /* the notes held (up to XP_N): their count */
 {
     uint32_t i, k, n = 0;
     if (eng_kit(t->engine) || eng_kit(t->eng_req))
@@ -1158,7 +1158,7 @@ static uint32_t xf_held(const track_t *t, uint8_t *nt, uint8_t *vl)   /* the not
             continue;
         for (k = 0; k < n && nt[k] != v->note; k++)
             ;
-        if (k == n && n < 4u) { nt[n] = v->note; vl[n++] = v->vel; }
+        if (k == n && n < XP_N) { nt[n] = v->note; vl[n++] = v->vel; }
     }
     return n;
 }
@@ -1218,7 +1218,7 @@ static void engine_block(track_t *t)
             uint32_t n = t->xp_n;
             t->xp_n = 0;
             for (i = 0; i < n; i++)
-                trk_note_on(t, t->xp_note[i], t->xp_vel[i]);
+                trk_note_on(t, *xp_note_p(t, i), *xp_vel_p(t, i));
             if (n && any)                               /* (0.6.41) on the new engine: in, not at once */
                 t->xin = t->xin_len = XF_ENG;
         }

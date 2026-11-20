@@ -389,6 +389,12 @@ if [ -f build/gen/felucca_tables.h ]; then
     # cost of waking T5/T6 measured on the same machine in the same run.
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_six_test" tests/poly_six_test.c -lm
     run "POLY SIX: six tracks x 2 = twelve sounding, twelve in one part, 4+4+2+1+1, releases (six gated six ringing), at the cap the released voice goes not a held one, the load governor does not cut a tail with room in the budget, twelve with the FX on, a preset change under the chord, TRACKS 4 sleeps, saturation refuses nothing, and the host cost of 4 vs 6 tracks" "$OUT/poly_six_test"
+    # (v1.5.23, FASE 2) the situations the earlier poly tests do not reach: a twelve-note chord through a sound load
+    # that changes engine (xp_note held four), twelve keys on a MONO / LEGATO part with PRIO LOW (mono_stack held
+    # eight), a 24-note burst, twelve accumulated releases against a new chord, six parts competing, a preset change
+    # under the chord with the FX on, and three saturation/recovery cycles.
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_phase2_test" tests/poly_phase2_test.c -lm
+    run "POLY FASE 2: a twelve-note chord re-struck whole on the new engine after a load, twelve keys in a LEGATO stack with PRIO LOW still playing the low one, a 24-note burst with every steal counted and no stuck note, twelve accumulated tails paying for a new chord, six parts competing without starving, a preset change under the chord with the FX on, and three saturation/recovery cycles leaving the pool whole" "$OUT/poly_phase2_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_budget_test" tests/poly_budget_test.c -lm
     run "POLY BUDGET: 8, 10 and 12 notes held on one part all sound with nothing stolen, the VOICES setting is the cap applied, LOAD ECO caps at 6 (4 a part) and says so, FM6 gives its engine cap, four tracks fill the pool, releases ring as releases, and a preset change under a chord keeps the audio" "$OUT/poly_budget_test"
     # (v1.5.13) the GLO MONITOR rows, built with a bounded appender: the diag page's POLYPHONY row outgrew its 48-byte

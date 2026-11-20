@@ -161,10 +161,23 @@ static __attribute__((noinline)) uint32_t shed_check(uint32_t all)
     return (all - t5_nested_ticks) / FM1_TICKS_PER_US;
 }
 
-static void shed_voice(void)
+/* (v1.5.23) NOINLINE, like shed_check above and for the same reason: this scans NPART x NVOICE twice, and the static
+ * budget of the render path (tests/target_budget.py) weighs a loop inside fm1_alnk0_irq far more than a call to a
+ * function out of line. Measured: inlined, the IRQ read 290 instructions / 158 in loops / cost 854 against a budget of
+ * 291 (OVER BUDGET +193 %); out of line it is the call it always was. The work and the behaviour are identical. */
+static __attribute__((noinline)) void shed_voice(void)
 {
-    uint32_t p, i;
+    uint32_t p, i, best_p = 0;
     voice_t *best = 0;
+    /* (v1.5.23, FASE 2) ONE ACTION PER EPISODE. shed_req is armed by two halves in a row above 80 % of the deadline,
+     * and a shed voice is not gone: it fades for six blocks (~4.4 ms) and, until it does, the load it costs is
+     * unchanged. A spike longer than that armed another shed while the first was still fading, so a single episode
+     * could take three or four voices (each one a cut the player hears) where one was the answer. While a voice is
+     * in its stage-4 fade the guard has already acted: wait for the load to see it. */
+    for (p = 0; p < NPART; p++)
+        for (i = 0; i < NVOICE; i++)
+            if (V(&trk[p], i).active && V(&trk[p], i).stage == 4u)
+                return;
     for (p = 0; p < NPART; p++)
         for (i = 0; i < NVOICE; i++) {
             voice_t *v = &V(&trk[p], i);
@@ -183,8 +196,16 @@ static void shed_voice(void)
             voice_t *v = &V(&trk[p], i);
             if (v->active && v->gate && v->stage != 4u &&
                 ((mode == V_POLY && i != low) || (mode != V_POLY && i > 0u))) {
-                if (!best || v->age < best->age)
+                /* (v1.5.23, FASE 2) THE QUIETEST, NOT THE OLDEST. The candidates here are held notes the part may keep
+                 * sounding; the oldest is the one that has been held longest, which is exactly the sustained body of
+                 * the chord (loud, at its sustain), while the note just struck is still climbing its attack and is a
+                 * fifth as audible. The measure is the same v_energy the allocator uses (the envelope times the
+                 * part's level), with the age only breaking a tie. */
+                uint32_t e = v_energy(t, v), be = best ? v_energy(&trk[best_p], best) : 0u;
+                if (!best || e < be || (e == be && v->age < best->age)) {
                     best = v;
+                    best_p = p;
+                }
             }
         }
     }

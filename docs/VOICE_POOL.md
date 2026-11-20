@@ -143,3 +143,21 @@ DUMP_DIR=/tmp/b /tmp/r16 tests/golden.txt tests/cpu_baseline.txt
 FELUCCA_VOICES=10 FELUCCA_VPOOL=16  JIELI_TOOLCHAIN=$PWD/.tools/toolchain AC79_SDK=$PWD/.tools/AC79_SDK python3 tools/build.py
 FELUCCA_VOICES=12 FELUCCA_VPOOL=18  JIELI_TOOLCHAIN=$PWD/.tools/toolchain AC79_SDK=$PWD/.tools/AC79_SDK python3 tools/build.py
 ```
+
+## 9. `track_t` is a budget, not a bag (v1.5.23, FASE 2)
+
+Dos arrays por parte que crecieron en esta fase (las notas de un acorde que sobrevive a un cambio de motor, y la pila
+MONO / LEGATO) enseñaron la regla: **`track_t` no crece en el medio.** Mide 1 760 B, lo lee todo el instrumento, y
+mover sus campos alarga miles de desplazamientos. Medido con `./build.sh --release 1.5.23`:
+
+| dónde viven los 4 slots nuevos | imagen | libre | resultado |
+|---|---|---|---|
+| en su sitio (dentro del struct) | 584 768 B | −1 156 B | **no enlaza** |
+| al final del struct | 584 736 B | −1 124 B | **no enlaza** |
+| al lado de los tracks (`xp_more`, `xp_morev`, `ms_more`) | 582 144 B | 1 468 B | +328 B en total |
+
+El desglose por función de `nm --size-sort` (ui_input_frame +608 B, gen_make +210, graph_signature +182, draw_graph
++170 ..) no es código nuevo: es un byte más en cada `trk[i].field` de la UI. Por eso la capacidad se guarda fuera y se
+llega por `xp_note_p` / `xp_vel_p` / `ms_p` (core.h), con los primeros `XP_IN_T` = 4 y `MS_IN_T` = 8 slots en su sitio
+exacto de siempre. Regla para el próximo campo: si es de una ruta por nota, va al lado; si es por bloque, se mide el
+precio antes de escribirlo.

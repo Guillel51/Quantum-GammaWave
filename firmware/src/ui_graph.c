@@ -1367,6 +1367,13 @@ static void graph_diag(uint16_t c)
         rowb_str(&r, "% (PK ");
         rowb_int(&r, (int32_t)load_diag.peak);
         rowb_str(&r, "%)");
+        if (load_diag.shed) {                       /* (v1.5.23, FASE 2) the overload guard's own count: how many
+                                                     * voices it took since power-on. It was only in MENU > ABOUT,
+                                                     * so the screen that shows the load could not say what the load
+                                                     * had cost. */
+            rowb_str(&r, " SHD ");
+            rowb_int(&r, (int32_t)load_diag.shed);
+        }
     } else {
         rowb_t r;
         rowb_init(&r, b, sizeof b);
@@ -1436,17 +1443,31 @@ static void graph_diag(uint16_t c)
     }
     cv_text_r(224, 50, &AF_S, b, sounding + 1u >= cap ? T_ACCENT : T_TEXT, T_SURF);
 
-    /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS (a muted track reads dim, a sounding one accent) */
+    /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS (a muted track reads dim, a sounding one accent). (v1.5.23) The block
+     * was one colour for "any voice", so a part holding a chord and a part whose chord had already been let go read
+     * the same. Now the block is accent while a key or the sequencer holds a voice and theme-coloured when only its
+     * release tails are left, with a bar under it as long as the tails still ringing: the two things the POLYPHONY row
+     * counts for the whole instrument, per part. */
     for (i = 0; i < 6u; i++) {
         int32_t tx = 16 + (int32_t)i * 35;
-        uint32_t v, tv = 0;
+        uint32_t v, tg = 0, tr = 0;
         char tb[4] = {'T', (char)('1' + i), 0, 0};
         int32_t live = i < trk_live;
-        if (live) {
-            for (v = 0; v < NVOICE; v++) if (V(&trk[i], v).active) tv++;
-        }
+        if (live)
+            for (v = 0; v < NVOICE; v++) {
+                const voice_t *tvv = &V(&trk[i], v);
+                if (!tvv->active)
+                    continue;
+                if (tvv->gate && tvv->stage != 4u)
+                    tg++;
+                else
+                    tr++;
+            }
         cv_text(tx, 64, &AF_S, tb, live ? T_DIM : T_LINE);
-        cv_rrect(tx + 16, 64, 14, 10, 2, tv ? T_ACCENT : live && !trk[i].p[P_MUTE] ? T_RAISE : T_LINE, T_SURF);
+        cv_rrect(tx + 16, 64, 14, 10, 2,
+                 tg ? T_ACCENT : tr ? T_THEME : live && !trk[i].p[P_MUTE] ? T_RAISE : T_LINE, T_SURF);
+        if (tr)
+            cv_rect(tx + 16, 75, (int32_t)(tr > 14u ? 14u : tr), 1, T_MID);
     }
 
     /* Row 6: the sequencer's real position (seq.c seq_src: the step the selected part plays now) */
