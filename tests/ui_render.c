@@ -1912,9 +1912,12 @@ static reg_t rrect(const char *n, int32_t x0, int32_t y0, int32_t x1, int32_t y1
 /* (v1.5.6) THE IDLE FRAME: what the drawer still writes when NOTHING changed. Every band has a signature and the
  * columns have their own stamps, so an idle frame should write 0 px; whatever it writes is work the panel pays for
  * nothing (bandwidth, CPU on core 0 next to the audio) and, when it repeats, is what a blinking or flickering strip
- * looks like. Each scene is forced once, then drawn three more times with the clock still, and the least of the three
- * is its idle cost (a cursor's blink is 0 in two of them). */
-#define IDLE_LIMIT 120000u                     /* (v1.5.6) measured at 109 056 after the skip; 1 485 216 before */
+ * looks like. Each scene is forced once, then drawn three more times with the clock RUNNING (33 ms a frame, the
+ * instrument's own rate), and the three are summed: the least of them hid a page that repainted every other frame
+ * (three draws always hold two of the same ui.frame parity) and a still clock never let a fade settle. */
+#define IDLE_LIMIT 33000u                      /* (FASE 4) measured 29 952 with the fills' own rows forgotten;
+                                                * v1.5.6 measured 109 056 through this same harness, 1 485 216
+                                                * before it. The harness sums three idle draws now (see main()). */
 static int idle_main(void)
 {
     uint32_t s, k, w, tot = 0, worst[8] = {0}, wn[8] = {0};
@@ -1929,7 +1932,22 @@ static int idle_main(void)
         rframe();
         rsnap();
         bb[2] = -1; bb_on = 1;
-        w = rnext();                                  /* an idle draw: no state moved since the snapshot */
+        /* (FASE 4) THREE idle draws, ADDED UP -- not the least of them. The least hid a page that repaints
+         * every other frame: three draws always contain two of the same frame parity, so the "cheapest" of
+         * the three was 0 for a page the panel was still fed 54 528 px every two frames. The sum is what the
+         * instrument spends standing still: 0 for a still page, and for a blink exactly the frames it moved
+         * (one of three, a third of its cost, which is the price of keeping the blink). */
+        w = 0;
+        for (k = 0; k < 3u; k++) {
+            fm1_ms += 33u;                            /* (FASE 4) the instrument's clock runs between frames (30 fps):
+                                                       * a fade that is timed against fm1_ms never settled with it
+                                                       * frozen, and a page mid-animation repaints whole every
+                                                       * frame -- measured as waste that the unit does not spend
+                                                       * once the animation is done. */
+            host_ticks += 33000u;
+            w += rnext();                             /* an idle draw: no state moved since the snapshot */
+        }
+        w /= 3u;                                      /* per idle frame, the unit the budget is in */
         bb_on = 0;
         if (!rdiff(&all))
             tot += w;                                 /* wrote px, changed none: pure waste */

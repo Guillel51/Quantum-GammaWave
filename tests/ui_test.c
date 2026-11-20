@@ -70,6 +70,8 @@ static void fm1_wdt_feed(void) { if (host_wdt_hook) host_wdt_hook(); }
 static void fm1_irq_off(void) {}
 static void fm1_irq_on(void) {}
 uint32_t lcd_gen;                    /* (v1.5.6) gfx.c: a fill makes the canvas cache stale */
+extern void gfx_fill_rows(uint32_t x, uint32_t y, uint32_t w, uint32_t h) __attribute__((weak));
+extern void gfx_panel_forget(void) __attribute__((weak));
 static uint16_t host_screen[240 * 240];
 /* (GEN fix) a flash: a pixel that changed during a frame and ended it as it began (a page drawn, then something over
  * it again; a body cleared and drawn the same): on the panel the eye sees it (the LCD shows every write). host_px
@@ -107,7 +109,12 @@ static void host_flash_end(void)
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 {
     uint32_t i, j;
+#ifdef UI_FILL_TRACE
+    { extern int printf(const char *, ...); printf("FILL %u,%u %ux%u\n", (unsigned)x, (unsigned)y, (unsigned)w, (unsigned)h); }
+#endif
     lcd_gen++;
+    if (gfx_fill_rows)                          /* (FASE 4) the rows and rects it touched (firmware/src/gfx.c) */
+        gfx_fill_rows(x, y, w, h);
 #ifdef UI_FILL_HOOK
     UI_FILL_HOOK(x, y, w, h);                     /* (tests/ui_render.c: what a fill covers is gone) */
 #endif
@@ -127,8 +134,16 @@ static void host_pw_log(uint32_t s)
     host_pw_n++;
     host_bl = s != 0u;
 }
-static void lcd_power(uint32_t s) { host_pw_log(s); }
-static void lcd_wake_now(void) { host_pw_log(3u); }
+/* (FASE 4) the panel that goes to sleep has nothing on it when it wakes (see firmware/src/lcd.c): the row table
+ * must be told, or the redraw the UI pays for is skipped as "already there" */
+static void host_panel_forget(void)
+{
+    lcd_gen++;
+    if (gfx_panel_forget)
+        gfx_panel_forget();
+}
+static void lcd_power(uint32_t s) { host_panel_forget(); host_pw_log(s); }
+static void lcd_wake_now(void) { host_panel_forget(); host_pw_log(3u); }
 #define SCOPE_N 256u                              /* audio.c: the HOME oscilloscope */
 static int16_t scope_buf[SCOPE_N];
 static uint32_t scope_w;

@@ -382,11 +382,55 @@ static uint8_t cv_rowv[CV_ROW_MAX];                  /* .. and whether that hash
                                                      /* canvas that does not go through the table (the columns, */
                                                      /* the header, anything narrower than 240 or shorter than */
                                                      /* CV_SENT_MIN_H) writes rows it cannot vouch for */
-static uint32_t cv_rowh_gen;                         /* the lcd_gen that table describes (a fill invalidates it) */
 static uint8_t cv_rowh_on;
-void gfx_forget(void)
+/* (FASE 4) WHAT THE FILLS TOUCHED, since the last blit: the rows and the rects. lcd.c calls gfx_fill_rows() on every
+ * fill (a weak symbol: a test that links lcd.c alone still builds), and a panel that goes to sleep calls
+ * gfx_panel_forget() -- everything on it is unknown then. Eight rects is every fill a page draws in a frame; past
+ * that the rows are all that is kept and the narrow windows under them are forgotten, which is the safe answer. */
+static uint16_t cv_fl_x0[8], cv_fl_x1[8], cv_fl_ya[8], cv_fl_yb[8];
+static uint8_t cv_fl_n;
+static uint32_t cv_fl_lo = 240u, cv_fl_hi;
+void gfx_fill_rows(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+{
+    if (y < cv_fl_lo)
+        cv_fl_lo = y;
+    if (y + h > cv_fl_hi)
+        cv_fl_hi = y + h;
+    if (cv_fl_n < 8u) {
+        cv_fl_x0[cv_fl_n] = (uint16_t)x;
+        cv_fl_x1[cv_fl_n] = (uint16_t)(x + w);
+        cv_fl_ya[cv_fl_n] = (uint16_t)y;
+        cv_fl_yb[cv_fl_n] = (uint16_t)(y + h);
+        cv_fl_n++;
+    } else {
+        cv_fl_x0[0] = 0u; cv_fl_x1[0] = 240u; cv_fl_ya[0] = 0u; cv_fl_yb[0] = 240u;
+    }
+}
+void gfx_panel_forget(void)
+{
+    cv_fl_lo = 0u;
+    cv_fl_hi = 240u;
+    cv_fl_x0[0] = 0u;
+    cv_fl_x1[0] = 240u;
+    cv_fl_ya[0] = 0u;
+    cv_fl_yb[0] = 240u;
+    cv_fl_n = 1u;
+}
+/* (FASE 4) the rows the panel was filled under since the last blit: unknown, so forgotten (see gfx_fill_rows) */
+__attribute__((noinline)) static void cv_fill_rows(void)
 {
     uint32_t r;
+    if (cv_fl_hi <= cv_fl_lo)
+        return;
+    for (r = cv_fl_lo; r < cv_fl_hi && r < CV_ROW_MAX; r++)
+        cv_rowv[r] = 0;
+    cv_fl_n = 0;
+    cv_fl_lo = 240u;
+    cv_fl_hi = 0u;
+}
+void gfx_forget(void)
+{
+    uint32_t r, i;
     cv_last.on = 0;
     cv_rowh_on = 0;
     for (r = 0; r < CV_ROW_MAX; r++)
@@ -395,14 +439,15 @@ void gfx_forget(void)
 static void cv_blit(uint32_t x, uint32_t y)
 {
     uint32_t n = cv_w * cv_h, i;
+    cv_fill_rows();                                  /* (FASE 4) what a fill touched is not on the panel */
     cv_rec_add(x, y, cv_w, cv_h);                    /* (the cover, out or not: cv_gaps clears what none covers) */
     if (cv_h >= CV_SENT_MIN_H && x == 0u && cv_w == 240u) {
         uint32_t r, run0 = 0, in_run = 0;
-        int same = cv_rowh_on && cv_rowh_gen == lcd_gen;   /* the table describes what the panel shows now */
+        int same = cv_rowh_on;                       /* (FASE 4) the table describes what the panel shows now:
+                                                      * cv_fill_rows() has already forgotten the filled rows */
         if (!same) {                                      /* first band after power-on or a fill: all of it */
             for (r = 0; r < CV_ROW_MAX; r++)
                 cv_rowv[r] = 0;
-            cv_rowh_gen = lcd_gen;
             cv_rowh_on = 1;
         }
         GFX_HOOK_BLIT_BAND(x, y);

@@ -316,12 +316,12 @@ static int screens(void)
         for (k = 0; k < 4u; k++) {
             t->step[0] = kind[k];
             step_set_ratchet(&t->step[0], 2);
-            memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+            memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();   /* (FASE 4) an emptied panel: the row table must forget it too */
             dim[k] = card_px(2, T_DIM); thm[k] = card_px(2, T_THEME);
         }
         t->step[0] = kind[3]; t->step[0].hit = 1u;   /* a NOTE step of lane hits only: it plays */
         step_set_ratchet(&t->step[0], 2);
-        memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+        memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();   /* (FASE 4) an emptied panel: the row table must forget it too */
         ok = card_px(2, T_DIM) == dim[0] && card_px(2, T_THEME) == thm[0];
         for (k = 1; k < 4u; k++)
             ok &= dim[k] > dim[0] && thm[k] < thm[0];
@@ -336,7 +336,7 @@ static int screens(void)
     t->step[3] = t->step[1];
     step_set_ratchet(&t->step[1], 2);
     go_page(GR_ROLL); ui.cursor = 8; ui.bank = 0;
-    memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+    memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();   /* (FASE 4) an emptied panel: the row table must forget it too */
     y = Y_GRAPH + (uint32_t)pr_row_y(60) + 2u;
     x = PR_X0 + 1u * PR_CW;
     ok = pr_is_bar(x + 3u, y) && pr_is_bar(x + 9u, y) && !pr_is_bar(x + 6u, y);
@@ -346,7 +346,7 @@ static int screens(void)
     t->step[3].flags = SF_SLIDE;
     t->step[1].flags |= SF_SLIDE;                     /* (x2 kept) */
     t->step[2] = t->step[4];
-    memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+    memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();   /* (FASE 4) an emptied panel: the row table must forget it too */
     bad += check("  a slide line from an x1 SLIDE step, none from an x2 one", pr_slide_px(3, 60, 64) > 0u &&
                  pr_slide_px(1, 60, 64) == 0u);
     t->step[1].flags &= (uint8_t)~SF_SLIDE; t->step[3].flags = 0;
@@ -356,7 +356,7 @@ static int screens(void)
     t->step[1] = (step_t){ .note = {0}, .n = 0, .time = ST_NOTE, .flags = 0, .vel = 100, .hit = 1u };
     step_set_ratchet(&t->step[1], 3);
     ui.lane = 1;
-    memset(host_screen, 0, sizeof host_screen); ui.force = 1; ui_draw();
+    memset(host_screen, 0, sizeof host_screen); gfx_forget(); ui.force = 1; ui_draw();   /* (FASE 4) an emptied panel: the row table must forget it too */
     y = Y_GRAPH + 6u + 4u + 6u;                      /* lane 0's hits: y 12 .. 21 of the panel */
     x = 40u + 12u;
     bad += check("  the DRUM grid draws an x3 hit in three parts", pr_is_bar(x, y) && !pr_is_bar(x + 2u, y) &&

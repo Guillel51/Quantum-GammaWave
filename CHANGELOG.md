@@ -1,3 +1,33 @@
+## v1.5.25 — el panel deja de recibir lo que ya tenía: dos cachés de filas y la barra de fader de FX
+
+Fase 4: segunda optimización, la del **dibujo**. La Fase 1 fue de recursos (RAM, XIP); esta es de trabajo: qué se
+escribe en el panel, cuándo y por qué. No baja la tasa de refresco, no apaga animaciones y no esconde nada: gana
+trabajo repetido que no producía un píxel distinto. **No hay FM-1 en este entorno**: nada de aquí afirma sonido,
+panel ni DAC. Todo es `[HOST]` (arnés de render) salvo el coste, que es `[AC791N]`.
+
+- **El instrumento, primero.** `ui_render --idle` medía un transitorio: un solo frame quieto (el primero, que
+  todavía paga el cambio de estado anterior), el **mínimo** de tres (que siempre encuentra dos frames de la misma
+  paridad de `ui.frame` y sale 0 para una página que se repinta cada dos) y un reloj detenido (una transición
+  temporizada nunca se asentaba). Ahora son tres frames quietos **sumados**, el reloj avanza 33 ms entre ellos, y
+  el tope del test baja de 120 000 a **33 000** px. Con el instrumento corregido, v1.5.24 mide **38 272 px** por
+  frame quieto; este build mide **29 952** (−22 %).
+- **Un relleno olvidaba la tabla entera.** Cuatro franjas negras de 3 × 56 px entre las tarjetas de las páginas de
+  operador de FM6 hacían que `lcd_gen++` tirara la tabla de hashes **completa** y el panel recibiera el cuerpo
+  entero otra vez: 18 176 px por frame para volver a mandar lo mismo. Ahora `lcd.c` registra **qué filas** y **qué
+  rectángulos** tocó cada relleno (hasta ocho por frame) y `gfx.c` olvida exactamente eso.
+- **Lo que se midió y no entra, con su razón:** una tabla de ventanas angostas (`cv_side`) para las columnas de
+  EDIT (12 768 px de 4 × 57 × 56 por frame) bajaba el total de 29 952 a **21 440** (−44 %), pero cuesta ~3,9 KB de
+  código y el `ld` del pi32v2 rechazó el enlace con la imagen de v1.5.24 (*XIP overflowed by 2 960 bytes*,
+  `[AC791N]`). Queda medido y escrito en `docs/FASE4_RENDER_v1.5.25.md` §2.2, no escondido.
+- **La barra de fader de FX.** Cada tarjeta tiene ahora una barra de **2 px**, de la altura del vúmetro y 4 px a su
+  izquierda: ranura oscura con labio, relleno desde el pie en seis bandas de un degradado tema → acento, con el
+  mismo valor que el número (0..127 como %). El vúmetro dice lo que el bus **devuelve**; la barra, lo que se le
+  **pide** — en un bus silencioso ahora se ve la diferencia.
+- **Prueba de que no cambia nada más:** de los **3 056 frames** del barrido (191 pantallas × 22 paletas), **sólo
+  cambian los 13 `*_fx`** de la barra nueva; todo el resto sale byte a byte igual. `--regions`, `--bands`,
+  `--headers`, `--announce`: en verde; 0 hallazgos de lint y 3 785 084 medidas de alineación sin una sola
+  desviación. Detalle y números en `docs/FASE4_RENDER_v1.5.25.md`.
+
 ## v1.5.24 — el LFO que cae como un pulso, la resonancia como destino, y dos filtros que el SVF ya sabía
 
 Fase 3: evolución sonora, opciones de edición y modulación. El árbol llegaba con dos techos medidos —125 de 127

@@ -81,6 +81,14 @@ static void lcd_window(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
  * pixels the panel already has, and a fill under that window changes them. A counter instead of a call keeps lcd.c
  * free of gfx: the tests that link this file alone still build. */
 uint32_t lcd_gen;
+/* (FASE 4) A FILL FORGETS ITS ROWS, NOT THE WHOLE TABLE. gfx keeps a hash per panel row of what the panel shows,
+ * and a fill under a window makes those hashes wrong -- but only for the rows the fill covers. lcd_gen said "some
+ * fill happened" and gfx threw the whole table away, so on the FM6 operator pages four 3 px strips drawn between
+ * the cards (13 x 56 px of black) cost the panel the whole body again: 18 176 px a frame for a page that had not
+ * changed a pixel. gfx owns that record (gfx_fill_rows: the rows and the rects); this file only tells it, through a
+ * weak symbol so that a test linking lcd.c alone still builds -- hence no header, and no gfx code here. */
+extern void gfx_fill_rows(uint32_t x, uint32_t y, uint32_t w, uint32_t h) __attribute__((weak));
+extern void gfx_panel_forget(void) __attribute__((weak));
 static uint16_t lcd_fillbuf[240];
 
 static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
@@ -93,6 +101,8 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
         w = 240u - x;
     if (y + h > 240u)
         h = 240u - y;
+    if (gfx_fill_rows)                      /* (FASE 4) which rows and rects a fill touched: gfx forgets those */
+        gfx_fill_rows(x, y, w, h);
     lcd_sync();
     k = 240u / w * w;                       /* whole rows per transfer (narrow fills: one DMA) */
     for (i = 0; i < k; i++)
@@ -217,8 +227,19 @@ static void lcd_init(uint16_t bg)
  * (after the frame that redrew it all). The panel keeps its RAM asleep, but the UI redraws everything before it shows
  * (ui.force). The backlight stays on: PA2 is also the key matrix 595's /OE, so with it
  * high no button, key or knob reads and nothing could wake the screen (#157 follow-up, found on 1.1.5) */
+/* (FASE 4) A PANEL THAT WENT TO SLEEP IS NOT A PANEL THAT STILL HAS THAT PICTURE. gfx's row table says which rows
+ * the panel already shows; a SLPIN/DISPOFF leaves a dark screen, and the UI redraws the page before DISPON, so a
+ * row that "had not changed" would never be sent to a panel that no longer holds it. Every power transition -- to
+ * sleep, to wake, to the crash screen -- forgets the whole panel, which is what ui.force is there to pay for. */
+static void lcd_panel_forget(void)
+{
+    lcd_gen++;
+    if (gfx_panel_forget)                          /* every row, every window: the panel has nothing */
+        gfx_panel_forget();
+}
 static void lcd_power(uint32_t s)
 {
+    lcd_panel_forget();                            /* (FASE 4) see above: asleep, waking or asleep-to-be */
     if (s == 1u)
         lcd_cmd(0x11);                             /* SLPOUT */
     else if (s == 2u)
@@ -232,6 +253,7 @@ static void lcd_power(uint32_t s)
  * left as they are: the crash handler calls it) */
 static void lcd_wake_now(void)
 {
+    lcd_panel_forget();                            /* (FASE 4) the panel was asleep: nothing of what it had counts */
     lcd_spin(3000000u);                            /* (120 ms after a SLPIN) */
     lcd_cmd(0x11);
     lcd_spin(3000000u);

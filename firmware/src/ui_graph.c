@@ -832,6 +832,29 @@ static void fx_ease(int32_t *st, int32_t target)
         *st -= (*st - target + 3) >> 2;
 }
 
+/* (FASE 4) THE FADER BESIDE THE METER -- what the card is SET TO, next to what the bus is DOING. The FX page
+ * shows four sends and its meters, and the meters only ever answered the second question: a bus that is silent
+ * is a flat bar whatever the fader says, so "why is CHORUS not audible" had no answer on screen (the fader was
+ * only a number, 2 px of which the % sign of "100 %" already used). This is a 2 px slot, the meter's own height,
+ * 4 px to its left: dark when nothing is asked for, and filled from the foot with a ramp that goes from the
+ * theme's dark to the accent as it climbs, so the head of the bar is where the level is. Two pixels wide on
+ * purpose: it reads as a fader's slot, it does not compete with the 12 px plasma meter 4 px away, and six solid
+ * bands are the whole cost (a ramp per pixel would be 43 fills a card a frame). */
+static void fx_fader_bar(int32_t x, int32_t y, int32_t h, int32_t pct)
+{
+    int32_t rows = clamp(pct, 0, 100) * h / 100, j, step;
+    cv_rect(x, y, 2, h, T_BG);                     /* the slot */
+    cv_rect(x, y, 2, 1, T_LINE);                   /* and its lip: the bar is a place, even empty */
+    if (rows <= 0)
+        return;
+    step = rows > 6 ? (rows + 5) / 6 : 1;
+    for (j = 0; j < rows; j += step) {
+        int32_t n = j + step > rows ? rows - j : step;
+        cv_rect(x, y + h - j - n, 2, n,
+                ux_mix(T_THEME, T_ACCENT, 15 + j * 85 / rows));   /* dark at the foot, the accent at the head */
+    }
+}
+
 static void graph_fx(const track_t *t, uint16_t c)
 {
     static const char *const FX_LABELS[4] = {"DIST", "CHORUS", "DELAY", "REVERB"};
@@ -925,6 +948,10 @@ static void graph_fx(const track_t *t, uint16_t c)
             uint16_t heat0 = i == 0 ? 60u : (uint16_t)(96u + (uint32_t)i * 24u);
             gw_plasma_bar(mx + 2, my, 12, mh, 8, fx_meter_step(&vu[i], &hold[i], &hold_t[i], target, 255), heat0);
         }
+        /* (FASE 4) and the fader's own setting beside the meter, in the 5 px the value's line leaves free
+         * between cx + 29 (where "100 %" ends) and mx - 1: the two bars now answer both questions at a
+         * glance -- what is asked for (thin, left) and what is coming back (plasma, right). */
+        fx_fader_bar(mx - 5, my, mh, (val * 100 + 63) / 127);
         if (i && inpx > 0)                            /* what the bus receives, over the return */
             cv_rect(mx + 6, my + mh - inpx, 4, 1, T_MID);
         if (lvl >= 6800)                              /* full scale: the head of the meter clips */
