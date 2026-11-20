@@ -494,6 +494,8 @@ static const preset_t ANALOG_PRESETS[] = {
      {XP(P_LRATE, 34), XP(P_LWAVE, 1), XP(P_LD_PIT, 5), XP(P_M1SRC, 7), XP(P_M1DST, 11), XP(P_M1AMT, 10)}},  /* G: lead */
     {"SIESTA DORADA", {6, 8, 96, 6, 52, 40, 28, -12}, {58, 90, 108, 92}, 12, 0, FX(0, 62, 30, 76), PAT(5),
      {XP(P_LRATE, 17), XP(P_LWAVE, 6), XP(P_LD_FLT, 12), XP(P_LD_AMP, 6)}},  /* G: warm pad */
+    {"AURORA DRIFT", {7, 38, 64, 6, 58, 20, 8, 12}, {44, 96, 118, 104}, 16, 0, FX(34, 58, 34, 84), PAT(5),
+     {XP(P_LRATE, 13), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 5), XP(P_M1SRC, 7), XP(P_M1DST, 2), XP(P_M1AMT, 12)}},  /* (v1.5.19) a slow pad whose cut breathes with the wheel */
 };
 
 static const param_desc_t ANALOG_CH[2] = {

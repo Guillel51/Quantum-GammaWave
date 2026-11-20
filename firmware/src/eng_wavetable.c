@@ -223,6 +223,8 @@ static const preset_t WT_PRESETS[] = {
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 18), XP(P_LEVEL, 112)}},
     {"GLASS CHIME", {104, 0, 0, 0, 112, 20, 0, 100}, {0, 70, 18, 62}, 10, 0, FX(0, 24, 26, 52), PAT(3),
      {XP(P_M1SRC, 3), XP(P_M1DST, 2), XP(P_M1AMT, 16), XP(P_LEVEL, 116)}},
+    {"TIDAL MIRROR", {44, 26, 1, 14, 86, 20, 18, 58}, {28, 78, 102, 84}, 10, 0, FX(24, 50, 42, 72), PAT(5),
+     {XP(P_LRATE, 9), XP(P_LWAVE, 7), XP(P_LD_FLT, 20), XP(P_M1SRC, 4), XP(P_M1DST, 1), XP(P_M1AMT, 14)}},  /* (v1.5.19) the table morphing under the cut */
 };
 
 static const param_desc_t WT_CH[3] = {

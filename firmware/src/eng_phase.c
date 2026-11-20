@@ -323,6 +323,8 @@ static const preset_t PHASE_PRESETS[] = {
      {XP(P_LRATE, 15), XP(P_LWAVE, 6), XP(P_LD_FLT, 18), XP(P_LD_AMP, 8)}},  /* G: texture */
     {"STRAY SIGNAL", {7, 6, 96, 20, 20, 1, 40, 76}, {0, 70, 30, 36}, 60, 1, FX(40, 10, 40, 24), PAT(1),
      {XP(P_LRATE, 62), XP(P_LWAVE, 4), XP(P_LD_FLT, 24)}},  /* D: glitch */
+    {"ROTOR GLASS", {1, 3, 70, 40, 14, 1, 0, 0}, {6, 62, 74, 52}, 0, 0, FX(30, 36, 30, 46), PAT(6),
+     {XP(P_LRATE, 52), XP(P_LWAVE, 0), XP(P_LD_PIT, 4), XP(P_M1SRC, 3), XP(P_M1DST, 0), XP(P_M1AMT, 10)}},  /* (v1.5.19) two phases turning against each other */
 };
 
 static const param_desc_t PHASE_CH[2] = {

@@ -1,3 +1,30 @@
+## v1.5.19 — la biblioteca, medida y nivelada; tres sonidos nuevos
+
+Fase de presets. No se añadió motor ni parámetro: la tabla de ids sigue en 125 de 127 y un motor nuevo pide RAM de
+voz y, sobre todo, oído en la unidad. Lo que sí se hizo es lo que se puede **medir**: pasar la herramienta de
+nivelación existente sobre la biblioteca entera y añadir sonidos con su nivel medido, no a ojo.
+
+- **Nivelado: 11 de los 285 presets de fábrica cambiaron de nivel** al volver a pasar `tests/preset_levels` +
+  `tools/gen_preset_levels.py` (que corrige desde los niveles que ya había, sin contar la corrección dos veces). Medido
+  en el host, con los 285: mediana **−18,50 dB RMS**, recorrido **12,6 → 12,2 dB**, presets a más de 6 dB de la mediana
+  **3** (los mismos: `AURORA FM` −29,7, `STATIC HAZE` −29,4, `GEIGER CNT` −28,8).
+- **El techo del fader es el límite, y queda dicho con nombre y cifra.** El generador lista los sonidos que piden más
+  de los **+13,5 dB** que el nivel puede dar: además de los tres de arriba, `FM6 MARIMBA` (+3,3), `STEEL DRUM` (+2,7),
+  `DEEP MARIMBA` (+3,4), `ADDTV GLASS BELL` (+5,7) y `CRYSTAL PLUCK` (+5,9). Arreglarlos es cambiar el **sonido**, no el
+  número, y eso no se hace sin oírlo: no se tocaron.
+- **Tres sonidos nuevos**, uno por motor, con identidad propia y sin duplicar nada (el test de la biblioteca lo
+  comprueba: 0 nombres repetidos, 0 duplicados exactos, 0 fuera de rango, 0 en silencio):
+  `ANALOG · AURORA DRIFT` (pad lento, cut que respira con la rueda, chorus y reverb largos), `PHASE · ROTOR GLASS`
+  (dos fases girando una contra otra, LFO al pitch) y `WTABLE · TIDAL MIRROR` (la tabla morphando bajo el cut, HSIN al
+  filtro). Medidos con el mismo arnés: **−18,0 / −16,4 / −17,4 dB RMS** y picos −6,4 / −5,4 / −7,0, es decir dentro de
+  ±3 dB de la mediana de la biblioteca.
+- **Ningún preset DRUM-X nuevo** (pedido explícito) y **ninguna normalización indiscriminada**: se corrigió el nivel
+  de lo que estaba fuera de sitio y se conservaron las diferencias de dinámica y de transitorio (los picos de los tres
+  nuevos van de −5,4 a −7,0 dB, no todos iguales).
+- **Medido**: `preset_audit` sobre **288** presets: 0 en silencio, 0 nombres repetidos, 0 duplicados exactos, 0 fuera
+  de rango; `preset_levels` sobre los 288 para los niveles. Clase host x86-64. Nadie escuchó estos sonidos: la unidad
+  no está aquí y no se afirma cómo suenan.
+
 ## v1.5.18 — cuatro operadores musicales en SEQ > TOOLS, y la biblioteca medida antes de tocarla
 
 Fase de evolución musical. La incorporación nueva son **cuatro operadores** en la página que ya existía (SEQ > TOOLS),
