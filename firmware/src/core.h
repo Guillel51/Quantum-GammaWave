@@ -81,6 +81,7 @@ int32_t fx_master_eq_hz_db(int32_t hz);
  * this setting existed holds, so a project or a unit that never touched it sounds exactly as it did. */
 extern volatile uint8_t voice_ucap;
 #define VOICE_UCAP_N 3u               /* 8, 10, 12 (menu_items.c VOICES_N, in that order) */
+uint32_t voice_budget(void);            /* voice.c: the cap the allocator applies right now */
 static inline uint32_t voice_user_budget(void)
 {
     return voice_ucap == 2u ? 8u : voice_ucap == 1u ? 10u : (uint32_t)NVOICE;

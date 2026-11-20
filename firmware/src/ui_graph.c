@@ -12,7 +12,8 @@
 #define GOY 11                                       /* graphs drawn on a 100 px scale sit at y 11..111 */
 /* the height ADSR and LFO are drawn on: 100 px, or (MENU > LARGE's strip: draw_graph) the strip's ~ 56 */
 static int32_t graph_ht = 100;
-#include "ui_organic.c"                              /* JIANT FM's organic line art (drawn by code) */
+#include "ui_organic.c"
+#include "rowb.h"                              /* JIANT FM's organic line art (drawn by code) */
 #include "ui_fm6op.c"                                /* (0.6.10, from Felucca 1.5) EDIT > OPERATOR, OP ENV, OPERATOR 2 */
 static uint16_t heat_col(int32_t v);
 /* GAMMA / WRAITH / JIANT (thermal): a curve's colour at canvas row y, hot at the top (y0) and cold at the bottom (y1); else c */
@@ -1326,8 +1327,8 @@ static void graph_slpitch(uint16_t c)
  * a writer; none is a constant. */
 static void graph_diag(uint16_t c)
 {
-    uint32_t i, n1 = 0, n0, step = 0, slen = 1, sounding, release, fading, peak, steals, denied;
-    char b[48];
+    uint32_t i, n1 = 0, n0, step = 0, slen = 1, sounding, release, fading, peak, steals, denied, cap;
+    char b[64];                    /* (v1.5.13) the longest row (POLYPHONY with every counter up) is 55 */
     if (ui.force)                                   /* (FASE 2, #107) the peak is since this screen was opened */
         voice_stats_reset();
     voice_stats(&sounding, &release, &fading, &peak, &steals, &denied);
@@ -1346,10 +1347,11 @@ static void graph_diag(uint16_t c)
      * fallback and the fault included, so the caption must not repeat it */
     cv_text(16, 8, &AF_S, "MULTICORE", T_MID);
     if (fx_trips) {                                 /* the buses reset out of range (fx.c fx_trip): a fault */
-        b[0] = 0;
-        str_cpy(b, mc_status(), sizeof b);
-        str_cpy(b + str_len(b), " TRIP ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)fx_trips);
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        rowb_str(&r, mc_status());
+        rowb_str(&r, " TRIP ");
+        rowb_int(&r, (int32_t)fx_trips);
         cv_text_r(224, 8, &AF_S, b, T_ACCENT, T_SURF);
     } else
         cv_text_r(224, 8, &AF_S, mc_status(), T_THEME, T_SURF);
@@ -1359,68 +1361,80 @@ static void graph_diag(uint16_t c)
      * render -- it says N/A: a 0 % there was a measurement that never happened. */
     cv_text(16, 22, &AF_S, "CPU LOAD", T_MID);
     if (load_diag.valid) {
-        b[0] = 0;
-        fmt_int(b, (int32_t)(song.cpu_q8 * 100u / 256u));
-        str_cpy(b + str_len(b), "% (PK ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)load_diag.peak);
-        str_cpy(b + str_len(b), "%)", sizeof b - str_len(b));
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        rowb_int(&r, (int32_t)(song.cpu_q8 * 100u / 256u));
+        rowb_str(&r, "% (PK ");
+        rowb_int(&r, (int32_t)load_diag.peak);
+        rowb_str(&r, "%)");
     } else {
-        str_cpy(b, "N/A", sizeof b);
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        rowb_str(&r, "N/A");
     }
     cv_text_r(224, 22, &AF_S, b, !load_diag.valid ? T_MID : song.cpu_q8 > 200u ? T_ACCENT : T_TEXT, T_SURF);
 
     /* Row 3: HOW THE PARTS SPLIT, and how long core 1's last job took (its own stamp on the shared TIMER4) */
     cv_text(16, 36, &AF_S, "CORE SPLIT", T_MID);
-    b[0] = 0;
-    str_cpy(b, "C0 ", sizeof b);
-    fmt_int(b + str_len(b), (int32_t)n0);
-    str_cpy(b + str_len(b), " C1 ", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), (int32_t)n1);
+    {
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        rowb_str(&r, "C0 ");
+        rowb_int(&r, (int32_t)n0);
+        rowb_str(&r, " C1 ");
+        rowb_int(&r, (int32_t)n1);
 #if FELUCCA_DUAL_CORE                              /* the figure only exists with a second core built in */
-    if (mc_live()) {                                /* .. and once core 1 has actually run a job */
-        str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)fm1_mc_job_us());
-        str_cpy(b + str_len(b), "us", sizeof b - str_len(b));
-    }
+        if (mc_live()) {                            /* .. and once core 1 has actually run a job */
+            rowb_str(&r, " ");
+            rowb_int(&r, (int32_t)fm1_mc_job_us());
+            rowb_str(&r, "us");
+        }
 #endif
-    if (mc_fx_tk) {                                 /* the buses' own block ticks (fx.c fx_run) */
-        str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)mc_fx_tk);
-        str_cpy(b + str_len(b), " TK", sizeof b - str_len(b));
-    } else
-        str_cpy(b + str_len(b), " N/A TK", sizeof b - str_len(b));
+        if (mc_fx_tk) {                             /* the buses' own block ticks (fx.c fx_run) */
+            rowb_str(&r, " ");
+            rowb_int(&r, (int32_t)mc_fx_tk);
+            rowb_str(&r, " TK");
+        } else
+            rowb_str(&r, " N/A TK");
+    }
     cv_text_r(224, 36, &AF_S, b, n1 ? T_THEME : T_TEXT, T_SURF);
 
     /* Row 4: POLYPHONY, told apart: what holds a note, what is ringing out, what the allocator is fading, the peak
      * since the screen was opened, and how many voices it has taken. (FASE 2, #107: the old figure was a single
      * count sampled at the UI's frame, so a release read as a voice and a peak between two frames was invisible.) */
     cv_text(16, 50, &AF_S, "POLYPHONY", T_MID);
-    b[0] = 0;
-    fmt_int(b, (int32_t)sounding);
-    str_cpy(b + str_len(b), " / ", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), (int32_t)NVOICE);        /* the cap it really has, not a written-out 10 */
-    str_cpy(b + str_len(b), " VOICES", sizeof b - str_len(b));
-    if (release) {
-        str_cpy(b + str_len(b), " REL ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)release);
+    cap = voice_budget();                           /* (v1.5.13) the cap in force, not the pool's size: LOAD ECO
+                                                     * shares 6 voices between the parts and this row printed 12
+                                                     * anyway, which is the figure a player compares a chord to */
+    {
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        rowb_int(&r, (int32_t)sounding);
+        rowb_str(&r, " / ");
+        rowb_int(&r, (int32_t)cap);
+        rowb_str(&r, " VOICES");
+        if (release) {
+            rowb_str(&r, " REL ");
+            rowb_int(&r, (int32_t)release);
+        }
+        if (fading) {
+            rowb_str(&r, " FADE ");
+            rowb_int(&r, (int32_t)fading);
+        }
+        if (peak) {
+            rowb_str(&r, " PK ");
+            rowb_int(&r, (int32_t)peak);
+        }
+        if (steals) {
+            rowb_str(&r, " STL ");
+            rowb_int(&r, (int32_t)steals);
+        }
+        if (denied) {                               /* a note that found no voice at all: never a silent steal */
+            rowb_str(&r, " DEN ");
+            rowb_int(&r, (int32_t)denied);
+        }
     }
-    if (fading) {
-        str_cpy(b + str_len(b), " FADE ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)fading);
-    }
-    if (peak) {
-        str_cpy(b + str_len(b), " PK ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)peak);
-    }
-    if (steals) {
-        str_cpy(b + str_len(b), " STL ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)steals);
-    }
-    if (denied) {                                   /* a note that found no voice at all: never a silent steal */
-        str_cpy(b + str_len(b), " DEN ", sizeof b - str_len(b));
-        fmt_int(b + str_len(b), (int32_t)denied);
-    }
-    cv_text_r(224, 50, &AF_S, b, sounding + 1u >= NVOICE ? T_ACCENT : T_TEXT, T_SURF);
+    cv_text_r(224, 50, &AF_S, b, sounding + 1u >= cap ? T_ACCENT : T_TEXT, T_SURF);
 
     /* Row 5: ACTIVE TRACKS T1..T6 VOICE BLOCKS (a muted track reads dim, a sounding one accent) */
     for (i = 0; i < 6u; i++) {
@@ -1439,32 +1453,38 @@ static void graph_diag(uint16_t c)
     cv_text(16, 78, &AF_S, "SEQ", T_MID);
     slen = (uint32_t)clamp(TSEL->p[P_SLEN], 1, NSTEP);
     step = seq_src(TSEL, TSEL->seq_idx);
-    b[0] = 0;
-    str_cpy(b, song.playing ? "PLAY " : "STOP ", sizeof b);
-    fmt_int(b + str_len(b), (int32_t)(step < slen ? step + 1u : 0u));
-    str_cpy(b + str_len(b), "/", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), (int32_t)slen);
-    str_cpy(b + str_len(b), "  ", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), bar_n + (song.playing ? 1u : 0u));   /* (the bar it is on now) */
-    str_cpy(b + str_len(b), " BAR", sizeof b - str_len(b));
+    {
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        rowb_str(&r, song.playing ? "PLAY " : "STOP ");
+        rowb_int(&r, (int32_t)(step < slen ? step + 1u : 0u));
+        rowb_str(&r, "/");
+        rowb_int(&r, (int32_t)slen);
+        rowb_str(&r, "  ");
+        rowb_int(&r, bar_n + (song.playing ? 1u : 0u));   /* (the bar it is on now) */
+        rowb_str(&r, " BAR");
+    }
     cv_text_r(224, 78, &AF_S, b, song.playing ? T_ACCENT : T_TEXT, T_SURF);
 
     /* Row 7: the three FX returns (fx.c fx_vu[3..5], the buses' measured peaks) and the blocks that missed
      * their deadline with the voices shed for them. A bus that has never returned anything is a dash, not a 0. */
     cv_text(16, 92, &AF_S, "FX RET", T_MID);
-    b[0] = 0;
-    for (i = 0; i < 3u; i++) {                      /* chorus, delay, reverb: what each bus returns */
-        int32_t v = clamp((int32_t)fx_vu[3 + i], 0, 32767);
-        str_cpy(b + str_len(b), i ? " " : "", sizeof b - str_len(b));
-        if (!v)
-            str_cpy(b + str_len(b), "-", sizeof b - str_len(b));
-        else
-            fmt_int(b + str_len(b), v * 99 / 32767);   /* 0..99: the return's own peak */
+    {
+        rowb_t r;
+        rowb_init(&r, b, sizeof b);
+        for (i = 0; i < 3u; i++) {                  /* chorus, delay, reverb: what each bus returns */
+            int32_t v = clamp((int32_t)fx_vu[3 + i], 0, 32767);
+            rowb_str(&r, i ? " " : "");
+            if (!v)
+                rowb_str(&r, "-");
+            else
+                rowb_int(&r, v * 99 / 32767);       /* 0..99: the return's own peak */
+        }
+        rowb_str(&r, "  LATE ");
+        rowb_int(&r, (int32_t)load_diag.late);
+        rowb_str(&r, "/");
+        rowb_int(&r, (int32_t)load_diag.shed);
     }
-    str_cpy(b + str_len(b), "  LATE ", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), (int32_t)load_diag.late);
-    str_cpy(b + str_len(b), "/", sizeof b - str_len(b));
-    fmt_int(b + str_len(b), (int32_t)load_diag.shed);
     cv_text_r(224, 92, &AF_S, b, load_diag.late || load_diag.shed ? T_ACCENT : T_TEXT, T_SURF);
 }
 

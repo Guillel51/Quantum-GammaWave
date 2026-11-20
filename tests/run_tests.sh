@@ -352,6 +352,17 @@ if [ -f build/gen/felucca_tables.h ]; then
     # (FASE 3) six parts, six engines, effects, chords, fast attacks, preset changes: the allocator's counters
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_stress_test" tests/poly_stress_test.c -lm
     run "POLY STRESS: 24 notes into 12 voices never exceed the pool, no part starved, no note denied, peak == what sounded, six parts + FX inside the block budget, an engine change under a held chord leaves nothing, 20 notes into 12 count their steals" "$OUT/poly_stress_test"
+    # (v1.5.13) the budget itself, measured: 8 / 10 / 12 held notes on one part all sound, the setting 10 / 8 is the
+    # cap the allocator applies, LOAD ECO's 6 voices (4 a part) are what the monitor now prints, FM6's own 4, four
+    # tracks at once, the release queue, and a preset change under a held chord that neither cuts the audio nor leaves
+    # a voice behind. The class of every figure is this host's, not the unit's.
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/poly_budget_test" tests/poly_budget_test.c -lm
+    run "POLY BUDGET: 8, 10 and 12 notes held on one part all sound with nothing stolen, the VOICES setting is the cap applied, LOAD ECO caps at 6 (4 a part) and says so, FM6 gives its engine cap, four tracks fill the pool, releases ring as releases, and a preset change under a chord keeps the audio" "$OUT/poly_budget_test"
+    # (v1.5.13) the GLO MONITOR rows, built with a bounded appender: the diag page's POLYPHONY row outgrew its 48-byte
+    # array while a sequence ran, str_len() walked past it and the next append wrote beyond the array -- the fields
+    # reported as overlapping. The builder is driven here with every counter at its worst, under ASan/UBSan.
+    $CC -O1 -w -fsanitize=address,undefined -o "$OUT/rowb_test" tests/rowb_test.c -lm
+    run "ROWB: every GLO MONITOR row stays inside its buffer with the counters at their worst (ASan/UBSan), a row that does not fit is cut short but stays a string" "$OUT/rowb_test"
     # (FASE 1) the note the key scan keeps while core 1 renders: the pool is never touched mid-job
     $CC -O1 -w -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/voice_defer_test" tests/voice_defer_test.c -lm
     run "CORE SYNC: a note while the other core renders is postponed (never allocated mid-job), replayed at the block start, note-offs never dropped, a burst over the queue loses only note-ons" "$OUT/voice_defer_test"

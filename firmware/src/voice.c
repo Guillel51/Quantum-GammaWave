@@ -483,6 +483,9 @@ static uint32_t voice_cap(void)
     uint32_t u = voice_user_budget();
     return sys_load == LOAD_ECO && ECO_VOICES < u ? ECO_VOICES : u;
 }
+/* (v1.5.13) the budget in force: the user's setting (8 / 10 / 12), cut to ECO_VOICES while LOAD ECO is selected.
+ * GLO MONITOR prints this, not NVOICE, so a chord is compared with the cap the allocator really applies. */
+uint32_t voice_budget(void) { return voice_cap(); }
 static uint32_t voices_busy(void)                       /* sounding voices of all parts (not the fading ones) */
 {
     uint32_t p, i, n = 0;
