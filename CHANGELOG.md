@@ -1,3 +1,30 @@
+## v1.5.12 — Las cinco ventanas de RAM, medidas y vigiladas
+
+- **La auditoría, con números del linker real** (`build/felucca.map`, build AC791N de esta versión):
+
+  | ventana | usado | tamaño | libre |
+  |---|---|---|---|
+  | LOWBUF | 30 564 B | 32 768 | 2 204 |
+  | RAM (.data+.bss) | 91 628 B | 98 304 | 6 676 |
+  | POOL | 311 256 B | 327 680 | 16 424 |
+  | RAMTEXT | 3 792 B | 24 576 | 20 784 |
+  | **NOINIT** | **15 572 B** | **15 696** | **124** |
+
+  La ventana más ajustada no era la flash (928 B) sino **NOINIT, con 124 B**, y no tenía ninguna regla que la
+  protegiera. `.noinit` guarda lo que sobrevive a un reinicio (bootguard, motivo de reset) y está pegada a los
+  guard words y a las pilas: un buffer que creciera enlazaba bien y después pisaba memoria viva en la unidad.
+- **`firmware/app.ld`**: NOINIT gana el `ASSERT` que LOWBUF tiene desde 1.4.5. Un buffer que la desborde ahora
+  **falla en el link**, con la unidad intacta.
+- **`tools/mem_budget.py` + `tests/mem_budget.json`**: se lee el mapa del linker tras cada build y cada ventana
+  conserva su piso (LOWBUF 1 KiB, RAM 4 KiB, POOL 4 KiB, RAMTEXT 1 KiB). Se suma a la suite cuando existe
+  `build/felucca.map`; sin toolchain se saltea con una línea. Un cambio que se coma la holgura tiene que decirlo.
+- **Lo que NO cambió:** ni un byte de DSP, motores, polifonía, FX, UI ni audio. En esta versión no hay una
+  optimización de código nueva, y lo digo claro: las candidatas que quedaban (aliasing de los buffers de reverb,
+  sustituir el hash del canvas, tablas de color) o cambian el sonido, o sólo se pueden validar midiendo en la
+  unidad, o cambiarían los 3056 goldens sin forma de verificar el resultado en hardware. Preferí no vender como
+  optimización algo que no puedo medir; lo que sí traje es la medición de las cinco ventanas y la regla que
+  faltaba.
+
 ## v1.5.11 — El banco de presets, medido y nivelado
 
 - **La medición.** `tests/preset_levels` renderiza los 285 presets de fábrica uno por uno (C4 a

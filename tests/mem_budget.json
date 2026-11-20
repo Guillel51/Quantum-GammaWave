@@ -1,0 +1,10 @@
+{
+  "_comment": "The free space each RAM window must keep after a target build (tools/mem_budget.py). Measured at v1.5.11 on the AC791N link map: LOWBUF 30564/32768 used, RAM .data+.bss 91648/98304, POOL 311256/327680, NOINIT 15572/15696. The floors are headroom a change must not eat without saying so: raise one only with a measurement that says the smaller figure is safe.",
+  "free_floor": {
+    "LOWBUF": 1024,
+    "RAM": 4096,
+    "POOL": 4096,
+    "RAMTEXT": 1024,
+    "NOINIT": 0
+  }
+}

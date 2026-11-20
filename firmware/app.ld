@@ -57,7 +57,11 @@ SECTIONS
     .lowbuf (NOLOAD) : { _low_start = .; *(.lowbuf*) . = ALIGN(4); _low_end = .; } > LOWBUF
     /* (1.4.5) the window is a budget of its own: a buffer that outgrows it must fail here, not at run time */
     ASSERT(_low_end <= ORIGIN(LOWBUF) + LENGTH(LOWBUF), "LOWBUF is full: a main-loop buffer outgrew its window")
-    .noinit (NOLOAD) : { *(.noinit*) } > NOINIT
+    .noinit (NOLOAD) : { _ni_start = .; *(.noinit*) . = ALIGN(4); _ni_end = .; } > NOINIT
+    /* (v1.5.12) THE SAME RULE LOWBUF HAS, FOR THE WINDOW THAT WAS CLOSEST TO FULL: 15 572 of 15 696 B used,
+     * 124 B to spare. A no-init buffer that grows past it linked fine and then shared memory with the guard
+     * words and the stacks at run time. It fails here now, with the unit untouched. */
+    ASSERT(_ni_end <= ORIGIN(NOINIT) + LENGTH(NOINIT), "NOINIT is full: a no-init buffer outgrew its window")
     _guard0 = 0x01C76800; _ustack_lo = 0x01C76900; _ustack_top = 0x01C7A000;
     _guard1 = 0x01C7A000; _sstack_lo = 0x01C7A100; _sstack_top = 0x01C7C000;
     /DISCARD/ : { *(.comment) *(.note*) }

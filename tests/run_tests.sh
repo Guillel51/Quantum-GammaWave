@@ -517,6 +517,11 @@ else
     run "ASan/UBSan fuzz: projects, the seed that found the vn=0 divide (20000, seed 7)" "$A/fuzz_proj" 20000 7
 fi
 
+# (v1.5.12) the RAM windows, when there is a target build to read: the map is what the linker wrote, and a
+# feature that eats the headroom has to say so in tests/mem_budget.json instead of failing on the unit
+if [ -f build/felucca.map ]; then
+    run "memory: every RAM window keeps its floor (AC791N link map)" python3 tools/mem_budget.py
+fi
 run "regression: target cost of the render loops (pi32v2 disassembly)" python3 tests/target_budget.py \
     build/felucca.dis tests/target_budget.txt
 run "the ST7789's init table: no gamma, no brightness, no VCOM (the 1.4 black-screen class, kept out)" \
