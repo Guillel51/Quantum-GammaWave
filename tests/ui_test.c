@@ -145,6 +145,8 @@ int32_t audio_out_peak(uint32_t ch)
     return pk;
 }
 static uint32_t host_blit_rows;                    /* rows blitted (what a frame draws) */
+static uint8_t host_row_mask[240];                 /* (v1.5.15) which PANEL rows a frame wrote: the row diff sends
+                                                    * runs, so their number is not the band's height any more */
 static uint32_t host_blit_px;                      /* (F4) pixels written to the panel: what the SPI pays for,
                                                     * which rows do not measure (a 3 x 14 cell and a 240 x 16
                                                     * band are both 14 rows) */
@@ -153,6 +155,7 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
     uint32_t i, j;
     host_blit_rows += h;
     host_blit_px += w * h;
+    for (j = 0; j < h && y + j < 240u; j++) host_row_mask[y + j] = 1u;
     for (j = 0; j < h && y + j < 240u; j++)
         for (i = 0; i < w && x + i < 240u; i++) host_px((y + j) * 240u + x + i, p[j * w + i]);
 }
@@ -2371,11 +2374,18 @@ static int test_menu_tabs(void)
     frame();
     turn(EN_ALGO, 1);
     ok = mt.pos > 0 && mt.pos < MT_ONE;                 /* (a step on the way) */
-    host_blit_rows = 0; frame();
-    ok &= host_blit_rows == (uint32_t)(MP_Y - H_HEAD);  /* (only the strip) */
+    host_blit_rows = 0;
+    memset(host_row_mask, 0, sizeof host_row_mask);
+    frame();
+    ok &= host_blit_rows > 0u;                          /* (the strip moved: it writes) */
+    for (i = 0; i < 240u; i++)                          /* (and nothing above or below it) */
+        if (host_row_mask[i])
+            ok &= i >= (uint32_t)H_HEAD && i < (uint32_t)MP_Y;
     for (i = 0; i < 8u && mt.pos != MT_ONE; i++) frame();
     ok &= mt.pos == MT_ONE && i <= 6u;
-    host_blit_rows = 0; frame();
+    host_blit_rows = 0;
+    memset(host_row_mask, 0, sizeof host_row_mask);
+    frame();
     ok &= host_blit_rows == 0u;                         /* (settled: nothing drawn) */
     ui_prefs |= PREF_ANIM_OFF;
     turn(EN_ALGO, 1);
